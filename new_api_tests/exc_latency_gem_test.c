@@ -1,0 +1,208 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <signal.h>
+#include <netinet/if_ether.h>
+#include <netinet/ether.h>
+#include <netinet/ip.h>
+#include <netinet/tcp.h>
+#include <iterator>
+#include <thread>
+
+#include "ekaline.h"
+#include "Exc.h"
+#include "Eka.h"
+#include "Efc.h"
+
+//to xn03
+#define DST_XN03_IP0 "10.0.0.30"
+#define DST_XN03_IP1 "10.0.0.31"
+
+//to xn01
+#define DST_XN01_IP0 "10.0.0.10"
+#define DST_XN01_IP1 "10.0.0.11"
+
+#define DST_EKA_PORT 22222
+
+#define DST_AVT_IP "146.127.177.26"
+#define DST_AVT_PORT 7060
+
+#define EXPECTED_SESS_ID 0
+
+volatile bool keep_work;
+
+int convert_ts(char* dst, uint64_t ts);
+
+void  INThandler(int sig) {
+  signal(sig, SIG_IGN);
+  keep_work = false;
+  return;
+}
+void efhDefaultOnOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData userData) { 
+  /* //  static uint64_t ctr = 0; */
+  /* static uint64_t fires = 0; */
+
+  /* //  if (++ctr % 1000 != 0) return; */
+  /* if (++fires == 10) keep_work = false; */
+  /* EfhCtx* pEfhCtx = (EfhCtx*) userData; */
+  /* EkaDev* dev = pEfhCtx->dev; */
+  /* excSend (dev, EXPECTED_SESS_ID, &msg->header.timeStamp, sizeof(msg->header.timeStamp)); */
+  /* EKA_LOG("Fire sent"); */
+  return;
+}
+
+void efhDefaultOnTrade(const EfhTradeMsg* msg, EfhSecUserData secData, EfhRunUserData userData) { return; }
+
+void efhDefaultOnQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData userData) { 
+  static uint64_t ctr = 0;
+  static uint64_t fires = 0;
+
+  if (++ctr % 100 != 0) return;
+  if (++fires == 10) keep_work = false;
+  EfhCtx* pEfhCtx = (EfhCtx*) userData;
+  EkaDev* dev = pEfhCtx->dev;
+  excSend (dev, EXPECTED_SESS_ID, &msg->header.timeStamp, sizeof(msg->header.timeStamp));
+  EKA_LOG("Fire sent");
+  return;
+}
+void efhDefaultOnDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) { return; }
+void efhDefaultOnFeedDown(const EfhFeedDownMsg* msg, EfhSecUserData secData, EfhRunUserData userData) { return; }
+void efhDefaultOnFeedUp(const EfhFeedUpMsg* msg, EfhSecUserData secData, EfhRunUserData userData) { return; }
+void efhDefaultOnException(EkaExceptionReport* msg, EfhRunUserData efhRunUserData) { return; }
+
+
+int main(int argc, char *argv[]) {
+  signal(SIGINT, INThandler);
+  keep_work = true;
+
+  char hostname[1024];
+  gethostname(hostname, 1024);
+
+  struct sockaddr_in dst = {};
+  dst.sin_family = AF_INET;
+  if (strcmp(hostname, "xn03") == 0) {
+    dst.sin_addr.s_addr = inet_addr(DST_XN01_IP0);
+    dst.sin_port = htons((uint16_t)DST_EKA_PORT);
+  } else if (strcmp(hostname, "xn01") == 0) {
+    dst.sin_addr.s_addr = inet_addr(DST_XN03_IP0);
+    dst.sin_port = htons((uint16_t)DST_EKA_PORT);
+  } else {
+    dst.sin_addr.s_addr = inet_addr(DST_AVT_IP);
+    dst.sin_port = htons((uint16_t)DST_AVT_PORT);
+  }
+
+  EkaDev* pEkaDev = NULL;
+  EkaDevInitCtx ekaDevInitCtx = {};
+  ekaDevInit(&pEkaDev, (const EkaDevInitCtx*) &ekaDevInitCtx);
+  EkaCoreInitCtx ekaCoreInitCtx = {};
+
+  ekaCoreInitCtx.coreId = 0;
+  ekaDevConfigurePort (pEkaDev, (const EkaCoreInitCtx*) &ekaCoreInitCtx);
+
+  int sock = excSocket(pEkaDev,ekaCoreInitCtx.coreId,0,0,0);
+  if (sock < 0) on_error("failed to open sock");
+
+  ExcConnHandle sess_id = excConnect(pEkaDev,sock,(struct sockaddr*) &dst, sizeof(struct sockaddr_in));
+  if (sess_id < 0) on_error ("failed to connect to %s:%u",inet_ntoa(dst.sin_addr),htons(dst.sin_port));
+  if (sess_id != EXPECTED_SESS_ID) on_error ("sess_id = %u, EXPECTED_SESS_ID = %u",sess_id, EXPECTED_SESS_ID);
+
+  //######################################################################
+  EkaProp efhInitCtxEntries[] = {
+#ifdef FH_LAB
+    {"efh.GEM_TQF.group.0.mcast.addr","233.54.12.148:18000"},
+    {"efh.GEM_TQF.group.1.mcast.addr","233.54.12.148:18001"},
+    {"efh.GEM_TQF.group.2.mcast.addr","233.54.12.148:18002"},
+    {"efh.GEM_TQF.group.3.mcast.addr","233.54.12.148:18003"},
+#else
+    {"efh.GEM_TQF.group.0.mcast.addr","233.54.12.164:18000"},
+    {"efh.GEM_TQF.group.1.mcast.addr","233.54.12.164:18001"},
+    {"efh.GEM_TQF.group.2.mcast.addr","233.54.12.164:18002"},
+    {"efh.GEM_TQF.group.3.mcast.addr","233.54.12.164:18003"},
+#endif
+  };
+  EkaProps ekaProps = {
+    .numProps = std::size(efhInitCtxEntries),
+    .props = efhInitCtxEntries
+  };
+
+  const EfhInitCtx efhInitCtx = {
+    .ekaProps = &ekaProps,
+    .numOfGroups = 4,
+    .coreId = 0,
+    .recvSoftwareMd = true,
+    //    .full_book = false,
+    .subscribe_all = true,
+    //    .feed_ver = EfhFeedVer::kGEMX
+  };
+
+  const EfhInitCtx* pEfhInitCtx = &efhInitCtx;
+
+  EfhRunCtx runCtx = {};
+  EfhRunCtx* pEfhRunCtx = &runCtx;
+  const EkaGroup gemGroups[] = {
+    {EkaSource::kGEM_TQF, (EkaLSI)0},
+    {EkaSource::kGEM_TQF, (EkaLSI)1},
+    {EkaSource::kGEM_TQF, (EkaLSI)2},
+    {EkaSource::kGEM_TQF, (EkaLSI)3}
+  };
+
+  pEfhRunCtx->numGroups = std::size(gemGroups);
+  pEfhRunCtx->groups = gemGroups;
+
+  pEfhRunCtx->onEfhQuoteMsgCb        = efhDefaultOnQuote;
+  pEfhRunCtx->onEfhDefinitionMsgCb   = efhDefaultOnDefinition;
+  pEfhRunCtx->onEfhOrderMsgCb        = efhDefaultOnOrder;
+  pEfhRunCtx->onEfhTradeMsgCb        = efhDefaultOnTrade;
+  pEfhRunCtx->onEfhFeedDownMsgCb     = efhDefaultOnFeedDown;
+  pEfhRunCtx->onEfhFeedUpMsgCb       = efhDefaultOnFeedUp;
+  pEfhRunCtx->onEkaExceptionReportCb = efhDefaultOnException;
+
+  EfhCtx* pEfhCtx = NULL;
+  efhInit(&pEfhCtx,pEkaDev,pEfhInitCtx);
+  pEfhRunCtx->efhRunUserData = (EfhRunUserData) pEfhCtx;
+
+  pEfhCtx->dontPrintTobUpd = true;
+  pEfhCtx->printQStatistics = false;
+
+  std::thread efh_run_thread = std::thread(efhRunGroups,pEfhCtx,pEfhRunCtx);
+  efh_run_thread.detach();
+
+  //######################################################################
+
+  while (keep_work) usleep(0);
+  sleep (1);
+
+  excClose(pEkaDev,sess_id);
+  efhDestroy(pEfhCtx);
+
+  printf("Closing device\n");
+  ekaDevClose(pEkaDev);
+
+  return 0;
+}
+
+int convert_ts(char* dst, uint64_t ts) {
+  uint ns = ts % 1000;
+  uint64_t res = (ts - ns) / 1000;
+
+  uint us = res % 1000;
+  res = (res - us) / 1000;
+  
+  uint ms = res % 1000;
+  res = (res - ms) / 1000;
+
+  uint s = res % 60;
+  res = (res - s) / 60;
+
+  uint m = res % 60;
+  res = (res - m) / 60;
+
+  uint h = res % 24;
+
+  sprintf (dst,"%02d:%02d:%02d.%03d.%03d.%03d",h,m,s,ms,us,ns);
+  return 0;
+}
