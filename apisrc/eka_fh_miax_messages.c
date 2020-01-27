@@ -56,7 +56,8 @@ bool FhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     msg.exchange              = EKA_GRP_SRC2EXCH(exch); //EfhExchange::kMIAX;
     msg.optionType            = message->CallOrPut == 'P' ?  EfhOptionType::kPut : EfhOptionType::kCall;
 
-    memcpy (&msg.underlying,message->UnderlyingSymbol,std::min(sizeof(msg.underlying),sizeof(message->UnderlyingSymbol)));
+    memcpy (&msg.underlying, message->UnderlyingSymbol,std::min(sizeof(msg.underlying), sizeof(message->UnderlyingSymbol)));
+    memcpy (&msg.classSymbol,message->SecuritySymbol,  std::min(sizeof(msg.classSymbol),sizeof(message->SecuritySymbol)));
 
     /* EKA_TRACE("UnderlyingSymbol = %s, SecuritySymbol = %s,  message->Expiration = %s = %u,  message->security_id = %ju", */
     /* 	      (std::string(message->UnderlyingSymbol,sizeof(message->UnderlyingSymbol))).c_str(), */
@@ -181,7 +182,7 @@ bool FhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     //--------------------------------------------------------------
 
   default: 
-    EKA_WARN("WARNING: Unexpected message: %c",(char)enc);
+    on_error("Unexpected message: %c",(char)enc);
     return false;
   }
   if (op == EkaFhMode::DEFINITIONS) return false;

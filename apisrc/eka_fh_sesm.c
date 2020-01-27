@@ -199,9 +199,9 @@ static bool procSesm(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, int sock, FhM
     switch (unsequencedType) {
     case 'R' :
       sequence = ((sesm_unsequenced*)m)->sequence;
+      gr->seq_after_snapshot = sequence;
       m += sizeof(sesm_unsequenced);
       if (gr->parseMsg(pEfhRunCtx,m,sequence,op)) {
-	gr->seq_after_snapshot = sequence;
 	EKA_LOG("%s:%u %s End Of Refresh: gr->seq_after_snapshot = %ju",
 		EKA_EXCH_DECODE(gr->exch),gr->id,
 		op == EkaFhMode::DEFINITIONS ? "DEFINITIONS" : "SNAPSHOT",

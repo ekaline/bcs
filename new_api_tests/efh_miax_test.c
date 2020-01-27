@@ -154,7 +154,7 @@ void onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData user
   //  fprintf(md[file_idx],"%s,%s,%s,%s,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%s\n",
   fprintf(MD,"%s,%s,%s,%s,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%d,%d,%s\n",
 	  EKA_CTS_SOURCE(msg->header.group.source),
-	  "today",
+	  (std::to_string(msg->header.securityId)).c_str(),
 	  eka_get_time().c_str(),
 #ifdef EKA_TEST_IGNORE_DEFINITIONS
 	  "DEFAULT_SEC_ID",
@@ -189,7 +189,7 @@ static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
   memcpy(dst,msg->underlying,6);
   for (auto i = 0; i < 6; i++) if (dst[i] == 0 || dst[i] == ' ') dst[i] = '_';
   char call_put = msg->optionType == EfhOptionType::kCall ? 'C' : 'P';
-  sprintf(dst+6,"%02u%02u%02u%c%08u",y,m,d,call_put,msg->strikePrice);
+  sprintf(dst+6,"%02u%02u%02u%c%08u",y,m,d,call_put,msg->strikePrice / 10);
   return;
 }
 
@@ -202,7 +202,8 @@ uint testSubscribeSec(int file_idx,const EfhDefinitionMsg* msg, EfhRunUserData u
   memcpy(testFhCtx[file_idx].myunderlying[sec_idx],underlyingName, SYMBOL_SIZE);
   memcpy(testFhCtx[file_idx].classSymbol[sec_idx] ,classSymbol,    SYMBOL_SIZE);
 
-  fprintf (subscrDict,"%s,%ju,%s\n",
+  fprintf (subscrDict,"%u,%s,%ju,%s\n",
+	   sec_idx,
 	   avtSecName,
 	   msg->header.securityId,
 	   EKA_PRINT_GRP(&msg->header.group)
@@ -219,11 +220,6 @@ void onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUse
 
   char avtSecName[SYMBOL_SIZE] = {};
   eka_create_avt_definition(avtSecName,msg);
-  fprintf (fullDict,"%s,%ju,%s\n",
-	   avtSecName,
-	   msg->header.securityId,
-	   EKA_PRINT_GRP(&msg->header.group)
-	   );
 
   int file_idx = (uint8_t)(msg->header.group.localId);
 
@@ -233,12 +229,20 @@ void onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUse
   char classSymbol[SYMBOL_SIZE] = {};
   char underlyingName[SYMBOL_SIZE] = {};
 
-  memcpy(underlyingName,msg->underlying,sizeof(msg->underlying));
-  memcpy(classSymbol,msg->classSymbol,sizeof(msg->classSymbol));
+  memcpy(underlyingName,msg->underlying, sizeof(msg->underlying));
+  memcpy(classSymbol,   msg->classSymbol,sizeof(msg->classSymbol));
   for (uint i=0; i < SYMBOL_SIZE; i++) {
     if (underlyingName[i] == ' ') underlyingName[i] = '\0';
     if (classSymbol[i]    == ' ') classSymbol[i]    = '\0';
   }
+
+  fprintf (fullDict,"%s,%ju,underlying=%s,classSymbol=%s,%s\n",
+	   avtSecName,
+	   msg->header.securityId,
+	   underlyingName,
+	   classSymbol,
+	   EKA_PRINT_GRP(&msg->header.group)
+	   );
   
   for (uint i = 0; i < valid_underlying2subscr; i ++) {
     if (strncmp(underlyingName,underlying2subscr[i],strlen(underlying2subscr[i])) == 0) {
