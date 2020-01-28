@@ -20,26 +20,27 @@ bool FhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     if (op != EkaFhMode::RECOVERY) break;
     //-----------------------------------------------------------------------------
   case EKA_XDP_MSG_TYPE::QUOTE : {
-    fh_b_security* s = book->find_security(((XdpQuote*)m)->SeriesIndex);
+    XdpQuote* msg = (XdpQuote*)m;
+    fh_b_security* s = book->find_security(msg->SeriesIndex);
     if (s == NULL) return false;
 
     /* if ( */
-    /* 	((XdpQuote*)m)->time.SourceTime  <  s->seconds ||  */
-    /* 	(((XdpQuote*)m)->time.SourceTime == s->seconds && ((XdpQuote*)m)->time.SourceTimeNS < s->nanoseconds) */
+    /* 	msg->time.SourceTime  <  s->seconds ||  */
+    /* 	(msg->time.SourceTime == s->seconds && msg->time.SourceTimeNS < s->nanoseconds) */
     /* 	) return false; // Back-in-time from Recovery */
 
-    /* s->seconds       = ((XdpQuote*)m)->time.SourceTime; */
-    /* s->nanoseconds   = ((XdpQuote*)m)->time.SourceTimeNS; */
+    /* s->seconds       = msg->time.SourceTime; */
+    /* s->nanoseconds   = msg->time.SourceTimeNS; */
 
-    s->bid_price     = ((XdpQuote*)m)->BidPrice;
-    s->bid_size      = ((XdpQuote*)m)->BidVolume;
-    s->bid_cust_size = ((XdpQuote*)m)->BidCustomerVolume;
+    s->bid_price     = msg->BidPrice;
+    s->bid_size      = msg->BidVolume;
+    s->bid_cust_size = msg->BidCustomerVolume;
 
-    s->ask_price     = ((XdpQuote*)m)->AskPrice;
-    s->ask_size      = ((XdpQuote*)m)->AskVolume;
-    s->ask_cust_size = ((XdpQuote*)m)->AskCustomerVolume;
+    s->ask_price     = msg->AskPrice;
+    s->ask_size      = msg->AskVolume;
+    s->ask_cust_size = msg->AskCustomerVolume;
 
-    switch (((XdpQuote*)m)->QuoteCondition) {
+    switch (msg->QuoteCondition) {
     case '1' : // (Regular Trading)
       s->option_open    = true;
       s->trading_action = EfhTradeStatus::kNormal;
@@ -54,40 +55,40 @@ bool FhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
       s->trading_action = EfhTradeStatus::kPreopen;
       break;
     default:
-      on_error("Unexpected QuoteCondition: \'%c\'",((XdpQuote*)m)->QuoteCondition);
+      on_error("Unexpected QuoteCondition: \'%c\'",msg->QuoteCondition);
     }
-    uint64_t ns = ((XdpQuote*)m)->time.SourceTime;
-    book->generateOnQuote (pEfhRunCtx, s, sequence, (ns << 32) | ((XdpQuote*)m)->time.SourceTimeNS, gapNum);
+    book->generateOnQuote (pEfhRunCtx, s, sequence, msg->time.SourceTime * SEC_TO_NANO + msg->time.SourceTimeNS, gapNum);
   }
     break;
     //-----------------------------------------------------------------------------
 
   case EKA_XDP_MSG_TYPE::TRADE : {
-    fh_b_security* s = book->find_security(((XdpTrade*)m)->SeriesIndex);
+    XdpTrade* msg = (XdpTrade*) m;
+    fh_b_security* s = book->find_security(msg->SeriesIndex);
     if (s == NULL) return false;
 
-    uint64_t ns = ((XdpQuote*)m)->time.SourceTime;
-    const EfhTradeMsg msg = {
+    const EfhTradeMsg efhTradeMsg = {
       { EfhMsgType::kTrade,
 	{exch,(EkaLSI)id}, // group
 	0,  // underlyingId
-	(uint64_t) ((XdpTrade*)m)->SeriesIndex,
+	(uint64_t) msg->SeriesIndex,
 	sequence,
-	(ns << 32) | ((XdpTrade*)m)->time.SourceTimeNS,
+	msg->time.SourceTime * SEC_TO_NANO + msg->time.SourceTimeNS,
 	gapNum },
-      ((XdpTrade*)m)->Price,
-      ((XdpTrade*)m)->Volume,
+      msg->Price,
+      msg->Volume,
       EfhTradeCond::kReg
     };
-    pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
+    pEfhRunCtx->onEfhTradeMsgCb(&efhTradeMsg, s->efhUserData, pEfhRunCtx->efhRunUserData);
   }
     break;
     //-----------------------------------------------------------------------------
 
   case EKA_XDP_MSG_TYPE::SERIES_STATUS : {
-    fh_b_security* s = book->find_security(((XdpTrade*)m)->SeriesIndex);
+    XdpSeriesStatus* msg = (XdpSeriesStatus*) m;
+    fh_b_security* s = book->find_security(msg->SeriesIndex);
     if (s == NULL) return false;
-    switch (((XdpSeriesStatus*)m)->SecurityStatus) {
+    switch (msg->SecurityStatus) {
     case 'O' :
       s->option_open = true;
       s->trading_action = EfhTradeStatus::kNormal;
@@ -105,8 +106,7 @@ bool FhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     default:
       return false;
     }
-    uint64_t ns = ((XdpQuote*)m)->time.SourceTime;
-    book->generateOnQuote (pEfhRunCtx, s, sequence, (ns << 32) | ((XdpQuote*)m)->time.SourceTimeNS, gapNum);
+    book->generateOnQuote (pEfhRunCtx, s, sequence, msg->time.SourceTime * SEC_TO_NANO + msg->time.SourceTimeNS, gapNum);
   }
     //-----------------------------------------------------------------------------
 

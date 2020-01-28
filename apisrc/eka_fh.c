@@ -686,18 +686,17 @@ bool FhBats::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhBatsGr* gr, const uint8
   return false;
 }
 /* ##################################################################### */
-bool FhXdp::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhXdpGr* gr, const uint8_t* pktPtr, uint msgInPkt, uint64_t seq) {
+bool FhXdp::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhXdpGr* gr, uint streamIdx, const uint8_t* pktPtr, uint msgInPkt, uint64_t seq) {
   uint8_t* p = (uint8_t*)pktPtr + sizeof(XdpPktHdr)+sizeof(XdpStreamId);
   uint64_t sequence = seq;
   for (uint msg=0; msg < msgInPkt; msg++) {
     uint16_t msg_len = EKA_XDP_MSG_LEN(p);
-    if (gr->expected_sequence == sequence) { // = ignore back in time messages
-      //-----------------------------------------------------------------------------
-      if (gr->parseMsg(pEfhRunCtx,p,sequence,EkaFhMode::MCAST)) return true;
-      //-----------------------------------------------------------------------------
-    } 
-    sequence ++;
-    gr->expected_sequence = sequence;
+    //    if (sequence == gr->getExpectedSeq(streamIdx)) { // = ignore back in time messages
+    //-----------------------------------------------------------------------------
+    gr->parseMsg(pEfhRunCtx,p,sequence++,EkaFhMode::MCAST); // never end of MC from Msg
+    //-----------------------------------------------------------------------------
+    gr->setExpectedSeq(streamIdx,sequence);
+    //    } 
     p += msg_len;
   }
   return false;
@@ -1043,6 +1042,8 @@ EkaOpResult FhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
     FhXdpGr* gr = (FhXdpGr*)b_gr[gr_id];
     uint streamIdx = gr->findAndInstallStream(streamId, sequence);
     //-----------------------------------------------------------------------------
+    if (pktType == (uint8_t)EKA_XDP_DELIVERY_FLAG::SequenceReset) gr->resetExpectedSeq(streamIdx);
+    //-----------------------------------------------------------------------------
     if (gr->inGap) {
       if (gr->isGapOver()) {
 	gr->inGap = false;
@@ -1051,20 +1052,18 @@ EkaOpResult FhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
       }
     }
     //-----------------------------------------------------------------------------
-    if (sequence > gr->getExpectedSeq(streamIdx) || pktType == (uint8_t)EKA_XDP_DELIVERY_FLAG::SequenceReset) {
+    if (sequence > gr->getExpectedSeq(streamIdx) && ! gr->inGap) {
+      EfhFeedDownMsg efhFeedDownMsg{ EfhMsgType::kFeedDown, {gr->exch, (EkaLSI)gr->id}, ++gr->gapNum };
+      pEfhRunCtx->onEfhFeedDownMsgCb(&efhFeedDownMsg, 0, pEfhRunCtx->efhRunUserData);
+
       EKA_LOG("%s:%u for Stream %u expectedSeq = %u < sequence %u, lost %u messages",
 	      EKA_EXCH_DECODE(exch),gr->id,gr->getId(streamIdx),gr->getExpectedSeq(streamIdx),sequence,sequence-gr->getExpectedSeq(streamIdx));
-      if (! gr->inGap) {
-	EfhFeedDownMsg efhFeedDownMsg{ EfhMsgType::kFeedDown, {gr->exch, (EkaLSI)gr->id}, ++gr->gapNum };
-	pEfhRunCtx->onEfhFeedDownMsgCb(&efhFeedDownMsg, 0, pEfhRunCtx->efhRunUserData);
-      }
       gr->inGap = true;
-      if (pktType == (uint8_t)EKA_XDP_DELIVERY_FLAG::SequenceReset) gr->resetExpectedSeq(streamIdx);
       gr->setGapStart();
     }
     //-----------------------------------------------------------------------------
 
-    if (processUdpPkt(pEfhRunCtx,gr,pkt,msgInPkt,(uint64_t)sequence)) break;
+    if (processUdpPkt(pEfhRunCtx,gr,streamIdx,pkt,msgInPkt,(uint64_t)sequence)) break;
 
     //-----------------------------------------------------------------------------
     runGr->udpCh->next(); 

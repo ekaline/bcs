@@ -79,7 +79,7 @@ static inline std::string ts_ns2str(uint64_t ts) {
   res = (res - s) / 60;
   uint m = res % 60;
   res = (res - m) / 60;
-  uint h = res % 24;
+  uint h = res % 24 - 5; // for UTC to EST
   sprintf (dst,"%02d:%02d:%02d.%03d.%03d.%03d",h,m,s,ms,us,ns);
   return std::string(dst);
 }
@@ -191,7 +191,7 @@ static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
   memcpy(dst,msg->underlying,6);
   for (auto i = 0; i < 6; i++) if (dst[i] == 0 || dst[i] == ' ') dst[i] = '_';
   char call_put = msg->optionType == EfhOptionType::kCall ? 'C' : 'P';
-  sprintf(dst+6,"%02u%02u%02u%c%08u",y,m,d,call_put,msg->strikePrice);
+  sprintf(dst+6,"%02u%02u%02u%c%08u",y,m,d,call_put,msg->strikePrice / 10);
   return;
 }
 
@@ -222,9 +222,11 @@ void onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUse
   char avtSecName[SYMBOL_SIZE] = {};
   eka_create_avt_definition(avtSecName,msg);
 
-  XdpAuxAttr attrA = {};
+  XdpAuxAttrA attrA = {};
   attrA.opaqueField = msg->opaqueAttrA;
-  fprintf (fullDict,"%s,%ju,%s,%u,%u,%u,%u,%ju\n",
+  XdpAuxAttrB attrB = {};
+  attrB.opaqueField = msg->opaqueAttrB;
+  fprintf (fullDict,"%s,%ju,%s,%u,%u,%u,%u,%u,%u\n",
 	   avtSecName,
 	   msg->header.securityId,
 	   EKA_PRINT_GRP(&msg->header.group),
@@ -232,7 +234,8 @@ void onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUse
 	   attrA.attr.ChannelID,
 	   attrA.attr.PriceScaleCode,
 	   attrA.attr.GroupID,
-	   msg->opaqueAttrB
+	   attrB.attr.UnderlIdx,
+	   attrB.attr.AbcGroupID
 	   );
   int file_idx = (uint8_t)(msg->header.group.localId);
 

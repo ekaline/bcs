@@ -89,7 +89,7 @@ static EkaOpResult sendRequest(FhXdpGr* gr) {
 
   defRequest.SeriesIndex = 0; // ALL
   memcpy(defRequest.SourceID,gr->auth_user,sizeof(defRequest.SourceID));
-  defRequest.ChannelID = 0; // ALL
+  defRequest.ChannelID = XDP_TOP_FEED_BASE + gr->id;   // 
 
   //  hexDump("XDP definitions request",(char*) &defRequest,sizeof(defRequest));
 #ifndef FH_LAB
@@ -213,13 +213,26 @@ EkaOpResult eka_get_xdp_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
       break;
       /* ***************************************************** */
     case EKA_XDP_MSG_TYPE::SERIES_INDEX_MAPPING : {
+      XdpSeriesMapping* m = (XdpSeriesMapping*) hdr;
+      if (m->ChannelID < XDP_TOP_FEED_BASE) break;
+
+      uint8_t AbcGroupID = m->OptionSymbolRoot[0] - 'A';
+
+      if ((int)AbcGroupID != (int)(m->ChannelID - XDP_TOP_FEED_BASE))
+	on_error("m->ChannelID (%u) != AbcGroupID (%u) for OptionSymbolRoot = %s",
+		 m->ChannelID,
+		 AbcGroupID,
+		 std::string(m->OptionSymbolRoot,sizeof(m->OptionSymbolRoot)).c_str()
+		 );
+
+      if (AbcGroupID != gr->id) break;
 
       EfhDefinitionMsg msg = {};
       msg.header.msgType        = EfhMsgType::kDefinition;
       msg.header.group.source   = gr->exch;
       msg.header.group.localId  = gr->id;
-      msg.header.underlyingId   = ((XdpSeriesMapping*)hdr)->UnderlyingIndex;
-      msg.header.securityId     = ((XdpSeriesMapping*)hdr)->SeriesIndex;
+      msg.header.underlyingId   = m->UnderlyingIndex;
+      msg.header.securityId     = m->SeriesIndex;
       msg.header.sequenceNumber = 0;
       msg.header.timeStamp      = 0;
       msg.header.gapNum         = 0;
@@ -227,27 +240,31 @@ EkaOpResult eka_get_xdp_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
       //    msg.secondaryGroup        = 0;
       msg.securityType          = EfhSecurityType::kOpt;
       msg.expiryDate            = 
-	(2000 + (((XdpSeriesMapping*)hdr)->MaturityDate[0] - '0') * 10 + (((XdpSeriesMapping*)hdr)->MaturityDate[1] - '0')) * 10000 + 
-	(       (((XdpSeriesMapping*)hdr)->MaturityDate[2] - '0') * 10 +  ((XdpSeriesMapping*)hdr)->MaturityDate[3] - '0')  * 100   +
-	(        ((XdpSeriesMapping*)hdr)->MaturityDate[4] - '0') * 10 +  ((XdpSeriesMapping*)hdr)->MaturityDate[4] - '0';
+	(2000 + (m->MaturityDate[0] - '0') * 10 + (m->MaturityDate[1] - '0')) * 10000 + 
+	(       (m->MaturityDate[2] - '0') * 10 +  m->MaturityDate[3] - '0')  * 100   +
+	(        m->MaturityDate[4] - '0') * 10 +  m->MaturityDate[4] - '0';
 
-      msg.contractSize          = ((XdpSeriesMapping*)hdr)->ContractMultiplier;
+      msg.contractSize          = m->ContractMultiplier;
       
-      msg.strikePrice           = (uint64_t) (strtof(((XdpSeriesMapping*)hdr)->StrikePrice,NULL) * 10000); //  / EFH_XDP_STRIKE_PRICE_SCALE;
+      msg.strikePrice           = (uint64_t) (strtof(m->StrikePrice,NULL) * 10000); //  / EFH_XDP_STRIKE_PRICE_SCALE;
       msg.exchange              = EKA_GRP_SRC2EXCH(gr->exch);
-      msg.optionType            = ((XdpSeriesMapping*)hdr)->PutOrCall ?  EfhOptionType::kCall : EfhOptionType::kPut;
+      msg.optionType            = m->PutOrCall ?  EfhOptionType::kCall : EfhOptionType::kPut;
 
-      memcpy (&msg.classSymbol,((XdpSeriesMapping*)hdr)->OptionSymbolRoot,std::min(sizeof(msg.classSymbol),sizeof(((XdpSeriesMapping*)hdr)->OptionSymbolRoot)));
-      memcpy (&msg.underlying, ((XdpSeriesMapping*)hdr)->UnderlyingSymbol,std::min(sizeof(msg.underlying), sizeof(((XdpSeriesMapping*)hdr)->UnderlyingSymbol)));
+      memcpy (&msg.underlying, m->OptionSymbolRoot,std::min(sizeof(msg.underlying), sizeof(m->OptionSymbolRoot)));
+      memcpy (&msg.classSymbol,m->UnderlyingSymbol,std::min(sizeof(msg.classSymbol),sizeof(m->UnderlyingSymbol)));
 
-      XdpAuxAttr attrA = {};
-      attrA.attr.StreamID       = ((XdpSeriesMapping*)hdr)->StreamID;
-      attrA.attr.ChannelID      = ((XdpSeriesMapping*)hdr)->ChannelID;
-      attrA.attr.PriceScaleCode = ((XdpSeriesMapping*)hdr)->PriceScaleCode;
-      attrA.attr.GroupID        = ((XdpSeriesMapping*)hdr)->GroupID;
+      XdpAuxAttrA attrA = {};
+      attrA.attr.StreamID       = m->StreamID;
+      attrA.attr.ChannelID      = m->ChannelID;
+      attrA.attr.PriceScaleCode = m->PriceScaleCode;
+      attrA.attr.GroupID        = m->GroupID;
+
+      XdpAuxAttrB attrB = {};
+      attrB.attr.UnderlIdx  = m->UnderlyingIndex;
+      attrB.attr.AbcGroupID = AbcGroupID;
 
       msg.opaqueAttrA = attrA.opaqueField;
-      msg.opaqueAttrB = ((XdpSeriesMapping*)hdr)->UnderlyingIndex;
+      msg.opaqueAttrB = attrB.opaqueField;
 
       pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
     }

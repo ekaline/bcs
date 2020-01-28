@@ -3,6 +3,8 @@
 
 #define EFH_XDP_STRIKE_PRICE_SCALE 1
 
+#define XDP_TOP_FEED_BASE static_cast<uint8_t>(32)
+
 enum class EKA_XDP_MSG_TYPE : uint16_t {
 
   //enum class EKA_XDP_TOP_MSG : uint16_t {
@@ -220,16 +222,26 @@ struct XdpSeriesMapping { // MSG TYPE 437
   uint32_t    GroupID;              //  56 4 Binary Used by Market Makers. Predefined group of series within a given underlying symbol.
 } __attribute__((packed));
 
-struct XdpDefAttr {
+struct XdpDefAttrA {
   uint16_t    StreamID;
   uint8_t     ChannelID;
   uint8_t     PriceScaleCode;
   uint32_t    GroupID;
 };
 
-union XdpAuxAttr {
+union XdpAuxAttrA {
   uint64_t opaqueField;
-  XdpDefAttr attr;
+  XdpDefAttrA attr;
+};
+
+struct XdpDefAttrB {
+  uint32_t    UnderlIdx;
+  uint32_t    AbcGroupID;
+};
+
+union XdpAuxAttrB {
+  uint64_t opaqueField;
+  XdpDefAttrB attr;
 };
 
 struct XdpStreamId { // MSG TYPE 455
