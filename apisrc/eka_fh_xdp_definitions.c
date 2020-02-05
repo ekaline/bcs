@@ -242,7 +242,7 @@ EkaOpResult eka_get_xdp_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
       msg.expiryDate            = 
 	(2000 + (m->MaturityDate[0] - '0') * 10 + (m->MaturityDate[1] - '0')) * 10000 + 
 	(       (m->MaturityDate[2] - '0') * 10 +  m->MaturityDate[3] - '0')  * 100   +
-	(        m->MaturityDate[4] - '0') * 10 +  m->MaturityDate[4] - '0';
+	(        m->MaturityDate[4] - '0') * 10 +  m->MaturityDate[5] - '0';
 
       msg.contractSize          = m->ContractMultiplier;
       

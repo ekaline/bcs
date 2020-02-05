@@ -19,10 +19,13 @@ void print_usage(char* cmd) {
 }
 volatile bool keep_work = true;
 
+int sock_fd = -1;
+
 void  INThandler(int sig) {
      signal(sig, SIG_IGN);
      printf("Ctrl-C detected, quitting\n");
      keep_work = false;
+     shutdown(sock_fd,SHUT_RD);
 }
 
 
@@ -59,8 +62,7 @@ int main(int argc, char *argv[]) {
   }
   /* ------------------------------------------------------------------ */
 
-  int sock_fd = socket(AF_INET,SOCK_DGRAM,0);
-  if (sock_fd < 0) on_error("cannot open UDP socket");
+  if ((sock_fd = socket(AF_INET,SOCK_DGRAM,0)) < 0) on_error("cannot open UDP socket");
 
   int const_one = 1;
   if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &const_one, sizeof(int)) < 0) 
@@ -98,7 +100,7 @@ int main(int argc, char *argv[]) {
     int rc = recvfrom(sock_fd, buffer, sizeof(buffer), 0, (struct sockaddr*) &from, &addrlen);
     if (rc < 0) on_error("ERROR READING FROM SOCKET");
     pktCnt ++;
-    if (pktCnt % 1000 == 0) TEST_LOG("received %ju packets",pktCnt);
+    if (pktCnt % 10 == 0) TEST_LOG("received %ju packets",pktCnt);
 #endif
   }
   close(sock_fd);
