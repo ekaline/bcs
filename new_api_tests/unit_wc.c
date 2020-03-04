@@ -19,11 +19,12 @@
 #include "smartnic.h"
 #include "ctls.h"
 #include "eka.h"
+#include "eka_data_structs.h"
 
 volatile uint64_t * EkalineGetWcBase(SC_DeviceId deviceId);
 
 #define TCP_FAST_SEND_SP_BASE (0x8000 / 8)
-#define on_error(...) { fprintf(stderr, "FATAL ERROR: %s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n");perror(""); fflush(stdout); fflush(stderr); exit(1); }
+// #define on_error(...) { fprintf(stderr, "FATAL ERROR: %s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n");perror(""); fflush(stdout); fflush(stderr); exit(1); }
 #define TEST_LOG(...) { fprintf(stderr, "%s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); }
 
 void hexDump (const char* desc, void *addr, int len) {
@@ -73,26 +74,35 @@ int main(int argc, char *argv[]) {
 
   SC_DeviceId dev_id = SC_OpenDevice(NULL, NULL);
   if (dev_id == NULL) on_error("SC_OpenDevice == NULL: cannot open Smartnic device");
+  volatile uint64_t* a2wr = EkalineGetWcBase(dev_id);
 
-  int fd = SC_GetFileDescriptor(dev_id);
-  eka_ioctl_t state = {};
-  state.cmd = EKA_IOREMAP_WC;
-  state.nif_num = 0;
+  /* int fd = SC_GetFileDescriptor(dev_id); */
+  /* eka_ioctl_t state = {}; */
+  /* state.cmd = EKA_IOREMAP_WC; */
+  /* state.nif_num = 0; */
+  /* //  state.wcattr.bar0_wc_va = (uint64_t)a2wr; */
 
-  int rc = ioctl(fd,SC_IOCTL_EKALINE_DATA,&state);
-  if (rc < 0) on_error("error ioctl(fd,SC_IOCTL_EKALINE_DATA,&state) EKA_IOREMAP_WC");
-  TEST_LOG("EKA_IOREMAP_WC succeeded\n");
+  /* int rc = ioctl(fd,SC_IOCTL_EKALINE_DATA,&state); */
+  /* if (rc < 0) on_error("error ioctl(fd,SC_IOCTL_EKALINE_DATA,&state) EKA_IOREMAP_WC"); */
+  /* TEST_LOG("EKA_IOREMAP_WC succeeded"); */
+
+
+  /* TEST_LOG("EkalineGetWcBase = %p, state.wcattr.bar0_wc_va = %jx",EkalineGetWcBase(dev_id),state.wcattr.bar0_wc_va); */
+  /* volatile uint64_t* a2wr = (volatile uint64_t*)state.wcattr.bar0_wc_va; */
+
+
+  TEST_LOG("a2wr = %p",a2wr);
+
+
 
   /* ------------------------------------------------------------------ */
     
    /* volatile uint8_t* a2wr = (uint8_t*)state.wcattr.bar0_wc_va; */
-  volatile uint64_t* a2wr_from_ioctl = (volatile uint64_t*)state.wcattr.bar0_wc_va;
+  //  volatile uint64_t* a2wr_from_ioctl = (volatile uint64_t*)state.wcattr.bar0_wc_va;
     
-  volatile uint64_t* a2wr = EkalineGetWcBase(dev_id);
-  TEST_LOG("WC bar0_wc_va = %p",a2wr);
 
-  if ((uint64_t)a2wr_from_ioctl != (uint64_t)a2wr) 
-    on_error("a2wr_from_ioctl (%jx ) != EkalineGetWcBase (%jx)",(uint64_t)a2wr_from_ioctl,(uint64_t)a2wr);
+  /* if ((uint64_t)a2wr_from_ioctl != (uint64_t)a2wr)  */
+  /*   on_error("a2wr_from_ioctl (%jx ) != EkalineGetWcBase (%jx)",(uint64_t)a2wr_from_ioctl,(uint64_t)a2wr); */
 						    
 
   /* ------------------------------------------------------------------ */

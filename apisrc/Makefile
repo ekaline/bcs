@@ -1,29 +1,15 @@
-ifeq ($(shell hostname),xn01)
-  SMARTNIC_ROOT:= $(HOME)/ekatools/smartnic/SmartNIC_SW_3_0_2_RC_WC3
-  LWIP_ROOT:=/home/vitaly/ekatools/smartnic/lwip
-  ARCH_FLAGS := -march=native	
-else ifeq ($(shell hostname),xn03)
-  SMARTNIC_ROOT:=$(HOME)/ekatools/smartnic/SmartNIC_SW_3_0_2_RC_WC3
-  LWIP_ROOT:=/home/vitaly/ekatools/smartnic/lwip/
-  ARCH_FLAGS := -march=native
-else
+ifeq ($(shell whoami),sysavtekaline)
   SMARTNIC_ROOT:=$(HOME)/SmartNIC_SW
   LWIP_ROOT:= $(HOME)/lwip
   ARCH_FLAGS := -march=native
-endif 
-
-
-ifeq ($(shell hostname),xn01)
-  LD_ASAN_OPTIONS:=
-  CC_OPT:= -O3 -g
-else ifeq ($(shell hostname),xn03)
-  LD_ASAN_OPTIONS:=
-  CC_OPT:= -O3 -g
 else
-  LD_ASAN_OPTIONS:=
-  CC_OPT:= -O3 -g -march=haswell
+  SMARTNIC_ROOT:=$(HOME)/ekatools/smartnic/SmartNIC_SW_3_0_2_RC_WC6
+  LWIP_ROOT:=/home/vitaly/ekatools/smartnic/lwip/
+  ARCH_FLAGS := -march=native
 endif
 
+ARCH_FLAGS := -march=native
+CC_OPT:= -O3 -g
 
 #ARCH_FLAGS := -march=corei7-avx -mmmx -msse -mpreferred-stack-boundary=4
 

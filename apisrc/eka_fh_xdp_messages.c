@@ -73,7 +73,7 @@ bool FhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
 	0,  // underlyingId
 	(uint64_t) msg->SeriesIndex,
 	sequence,
-	msg->time.SourceTime * SEC_TO_NANO + msg->time.SourceTimeNS,
+	msg->time.SourceTime * static_cast<uint64_t>(SEC_TO_NANO) + msg->time.SourceTimeNS,
 	gapNum },
       msg->Price,
       msg->Volume,

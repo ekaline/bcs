@@ -69,13 +69,17 @@
 
 #define EKA_GRP_SRC2EXCH(x) (				   \
   (x == EkaSource::kNOM_ITTO)   ? EfhExchange::kNOM   :	   \
-  (x == EkaSource::kGEM_TQF)    ? EfhExchange::kGEM    :	   \
-  (x == EkaSource::kISE_TQF)    ? EfhExchange::kISE    :	   \
+  (x == EkaSource::kGEM_TQF)    ? EfhExchange::kGEM   :	   \
+  (x == EkaSource::kISE_TQF)    ? EfhExchange::kISE   :	   \
   (x == EkaSource::kPHLX_TOPO)  ? EfhExchange::kPHLX  :	   \
-  (x == EkaSource::kMIAX_TOM)   ? EfhExchange::kMIAX   :	   \
-  (x == EkaSource::kC1_PITCH)   ? EfhExchange::kCboe :	   \
+  (x == EkaSource::kMIAX_TOM)   ? EfhExchange::kMIAX  :	   \
+  (x == EkaSource::kPEARL_TOM)  ? EfhExchange::kPEARL :	   \
+  (x == EkaSource::kC1_PITCH)   ? EfhExchange::kCboe  :	   \
   (x == EkaSource::kC2_PITCH)   ? EfhExchange::kCboe2 :	   \
-  (x == EkaSource::kBZX_PITCH)  ? EfhExchange::kCbsx :	   \
+  (x == EkaSource::kBZX_PITCH)  ? EfhExchange::kCbsx  :	   \
+  (x == EkaSource::kEDGX_PITCH) ? EfhExchange::kEDGX  :	   \
+  (x == EkaSource::kARCA_XDP)   ? EfhExchange::kAOE   :	   \
+  (x == EkaSource::kAMEX_XDP)   ? EfhExchange::kPCX   :	   \
    EfhExchange::kUnknown)
 
 #define EKA_CTS_SOURCE(x)						\

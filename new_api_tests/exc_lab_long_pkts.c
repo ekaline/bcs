@@ -113,11 +113,11 @@ void fastpath_thread_f(EkaDev* dev, ExcConnHandle sess_id,uint p2p_delay) {
     //    uint pkt_size = 2;
 
     /* -------------------------------------------------- */
-    EKA_LOG("%04u: sending %u bytes",pkt->cnt,pkt_size); fflush(stderr);
+    EKA_LOG("%u %04u: sending %u bytes",sess_id,pkt->cnt,pkt_size); fflush(stderr);
     uint send_ptr = 0;
     while (keep_work && send_ptr < pkt_size) {
       int sent = excSend (dev, sess_id, &tx_buf[send_ptr], pkt_size - send_ptr);
-      if (sent < 0) on_error("sent = %d, pkt_size = %u, send_ptr = %u",sent,pkt_size,send_ptr);//continue;
+      if (sent < 0) on_error("%u: sent = %d, pkt_size = %u, send_ptr = %u",sess_id,sent,pkt_size,send_ptr);//continue;
       send_ptr += sent;
       //      EKA_LOG("Sent %u (last sent %u) bytes out of %u, send_ptr=%u",send_ptr,sent,pkt_size,send_ptr);
     }
@@ -130,7 +130,7 @@ void fastpath_thread_f(EkaDev* dev, ExcConnHandle sess_id,uint p2p_delay) {
       rcv_ptr += rcvd;
       //      EKA_LOG("Received %u bytes out of %u",rcv_ptr,pkt_size);
     }
-    EKA_LOG("%04u: received %u bytes",pkt->cnt,pkt_size); fflush(stderr);
+    EKA_LOG("%u %04u: received %u bytes",sess_id,pkt->cnt,pkt_size); fflush(stderr);
 
     /* -------------------------------------------------- */
     if (! keep_work) return;
@@ -139,9 +139,9 @@ void fastpath_thread_f(EkaDev* dev, ExcConnHandle sess_id,uint p2p_delay) {
     if (memcmp(tx_buf,rx_buf,pkt_size) != 0) { 
       hexDump("TX_BUF",tx_buf,pkt_size);
       hexDump("RX_BUF",rx_buf,pkt_size);
-      on_error("RX != TX pkt_size=%u (=0x%x) for core %u sess %u",pkt_size,pkt_size,core,sess); 
+      on_error("%u pkt %04ju: RX != TX pkt_size=%u (=0x%x) for core %u sess %u",sess_id,pkt->cnt,pkt_size,pkt_size,core,sess); 
     }
-    EKA_LOG("%04u: payload is correct",pkt->cnt); fflush(stderr);
+    EKA_LOG("%u %04u: payload is correct",sess_id,pkt->cnt); fflush(stderr);
 
     /* if (pkt->cnt % STATISTICS_PERIOD == 0) { */
     /*   EKA_LOG ("Sess %u, pkt->cnt: %ju",sess_id,pkt->cnt); */

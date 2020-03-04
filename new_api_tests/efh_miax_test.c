@@ -265,6 +265,8 @@ void print_usage(char* cmd) {
   printf("\t-F [Feed Code]\n"); 
   printf("\t\t\tMA - MIAX TOM A feed\n"); 
   printf("\t\t\tMB - MIAX TOM B feed\n"); 
+  printf("\t\t\tPA - PEARL TOM A feed\n"); 
+  printf("\t\t\tPB - PEARL TOM B feed\n"); 
   printf("\t-p Print Parsed Messages\n");
   printf("\t-u [Underlying Name]\tSingle Name to subscribe to all its Securities on all Feeds\n");
   printf("\t-a Subscribe ALL (on enabled feeds)\n");
@@ -335,16 +337,31 @@ int main(int argc, char *argv[]) {
   }  
 
   EkaDev* pEkaDev = NULL;
+  EfhRunCtx runCtx = {};
 
   EkaProps ekaProps = {};
   if (feedName == std::string("MA")) {
     ekaProps.numProps = std::size(efhMiaxInitCtxEntries_A);
     ekaProps.props    = efhMiaxInitCtxEntries_A;
+    runCtx.numGroups = std::size(miaxGroups);
+    runCtx.groups = miaxGroups;
   } else if (feedName == std::string("MB")) {
     ekaProps.numProps = std::size(efhMiaxInitCtxEntries_B);
     ekaProps.props    = efhMiaxInitCtxEntries_B;
-  } else {
-    on_error("Unsupported feed name \"%s\". Supported: CA, CB, CC, CD",feedName.c_str());
+    runCtx.numGroups = std::size(miaxGroups);
+    runCtx.groups = miaxGroups;
+  } else if (feedName == std::string("PA")) {
+    ekaProps.numProps = std::size(efhPearlInitCtxEntries_A);
+    ekaProps.props    = efhPearlInitCtxEntries_A;
+    runCtx.numGroups = std::size(pearlGroups);
+    runCtx.groups = pearlGroups;
+  } else if (feedName == std::string("PB")) {
+    ekaProps.numProps = std::size(efhPearlInitCtxEntries_B);
+    ekaProps.props    = efhPearlInitCtxEntries_B;
+    runCtx.numGroups = std::size(pearlGroups);
+    runCtx.groups = pearlGroups;
+ } else {
+    on_error("Unsupported feed name \"%s\". Supported: MA, MB, PA, PB",feedName.c_str());
   }
 
   const EfhInitCtx efhInitCtx = {
@@ -362,11 +379,6 @@ int main(int argc, char *argv[]) {
 
   keep_work = true;
   signal(SIGINT, INThandler);
-
-  EfhRunCtx runCtx = {};
-
-  runCtx.numGroups = std::size(miaxGroups);
-  runCtx.groups = miaxGroups;
 
   EfhRunCtx* pEfhRunCtx = &runCtx;
 

@@ -274,4 +274,145 @@ const EkaGroup miaxGroups[] = {
 	{EkaSource::kMIAX_TOM, (EkaLSI)23},
 };
 
+EkaProp efhPearlInitCtxEntries_A[] = {
+	{"efh.PEARL_TOM.group.0.mcast.addr","224.0.141.1:57001"},
+	{"efh.PEARL_TOM.group.0.snapshot.addr","199.168.156.164:57101"}, 	// SESM 
+	{"efh.PEARL_TOM.group.0.snapshot.auth","1pr1:1pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.0.recovery.addr","199.168.156.164:57101"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.1.mcast.addr","224.0.141.2:57002"},
+	{"efh.PEARL_TOM.group.1.snapshot.addr","199.168.156.164:57102"}, 	// SESM 
+	{"efh.PEARL_TOM.group.1.snapshot.auth","2pr1:2pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.1.recovery.addr","199.168.156.164:57102"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.2.mcast.addr","224.0.141.3:57003"},
+	{"efh.PEARL_TOM.group.2.snapshot.addr","199.168.156.164:57103"}, 	// SESM 
+	{"efh.PEARL_TOM.group.2.snapshot.auth","3pr1:3pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.2.recovery.addr","199.168.156.164:57103"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.3.mcast.addr","224.0.141.4:57004"},
+	{"efh.PEARL_TOM.group.3.snapshot.addr","199.168.156.165:57104"}, 	// SESM 
+	{"efh.PEARL_TOM.group.3.snapshot.auth","4pr1:4pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.3.recovery.addr","199.168.156.165:57104"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.4.mcast.addr","224.0.141.5:57005"},
+	{"efh.PEARL_TOM.group.4.snapshot.addr","199.168.156.165:57105"}, 	// SESM 
+	{"efh.PEARL_TOM.group.4.snapshot.auth","5pr1:5pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.4.recovery.addr","199.168.156.165:57105"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.5.mcast.addr","224.0.141.6:57006"},
+	{"efh.PEARL_TOM.group.5.snapshot.addr","199.168.156.165:57106"}, 	// SESM 
+	{"efh.PEARL_TOM.group.5.snapshot.auth","6pr1:6pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.5.recovery.addr","199.168.156.165:57106"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.6.mcast.addr","224.0.141.7:57007"},
+	{"efh.PEARL_TOM.group.6.snapshot.addr","199.168.156.166:57107"}, 	// SESM 
+	{"efh.PEARL_TOM.group.6.snapshot.auth","7pr1:7pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.6.recovery.addr","199.168.156.166:57107"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.7.mcast.addr","224.0.141.8:57008"},
+	{"efh.PEARL_TOM.group.7.snapshot.addr","199.168.156.166:57108"}, 	// SESM 
+	{"efh.PEARL_TOM.group.7.snapshot.auth","8pr1:8pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.7.recovery.addr","199.168.156.166:57108"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.8.mcast.addr","224.0.141.9:57009"},
+	{"efh.PEARL_TOM.group.8.snapshot.addr","199.168.156.166:57109"}, 	// SESM 
+	{"efh.PEARL_TOM.group.8.snapshot.auth","9pr1:9pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.8.recovery.addr","199.168.156.166:57109"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.9.mcast.addr","224.0.141.10:57010"},
+	{"efh.PEARL_TOM.group.9.snapshot.addr","199.168.156.167:57110"}, 	// SESM 
+	{"efh.PEARL_TOM.group.9.snapshot.auth","10pr1:10pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.9.recovery.addr","199.168.156.167:57110"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.10.mcast.addr","224.0.141.11:57011"},
+	{"efh.PEARL_TOM.group.10.snapshot.addr","199.168.156.167:57111"}, 	// SESM 
+	{"efh.PEARL_TOM.group.10.snapshot.auth","11pr1:11pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.10.recovery.addr","199.168.156.167:57111"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.11.mcast.addr","224.0.141.12:57012"},
+	{"efh.PEARL_TOM.group.11.snapshot.addr","199.168.156.167:57112"}, 	// SESM 
+	{"efh.PEARL_TOM.group.11.snapshot.auth","12pr1:12pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.11.recovery.addr","199.168.156.167:57112"}, 	// SESM 
+
+};
+
+EkaProp efhPearlInitCtxEntries_B[] = {
+	{"efh.PEARL_TOM.group.0.mcast.addr","233.87.168.1:58001"},
+	{"efh.PEARL_TOM.group.0.snapshot.addr","199.168.156.164:58101"}, 	// SESM 
+	{"efh.PEARL_TOM.group.0.snapshot.auth","1pr1:1pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.0.recovery.addr","199.168.156.164:58101"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.1.mcast.addr","233.87.168.2:58002"},
+	{"efh.PEARL_TOM.group.1.snapshot.addr","199.168.156.164:58102"}, 	// SESM 
+	{"efh.PEARL_TOM.group.1.snapshot.auth","2pr1:2pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.1.recovery.addr","199.168.156.164:58102"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.2.mcast.addr","233.87.168.3:58003"},
+	{"efh.PEARL_TOM.group.2.snapshot.addr","199.168.156.164:58103"}, 	// SESM 
+	{"efh.PEARL_TOM.group.2.snapshot.auth","3pr1:3pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.2.recovery.addr","199.168.156.164:58103"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.3.mcast.addr","233.87.168.4:58004"},
+	{"efh.PEARL_TOM.group.3.snapshot.addr","199.168.156.165:58104"}, 	// SESM 
+	{"efh.PEARL_TOM.group.3.snapshot.auth","4pr1:4pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.3.recovery.addr","199.168.156.165:58104"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.4.mcast.addr","233.87.168.5:58005"},
+	{"efh.PEARL_TOM.group.4.snapshot.addr","199.168.156.165:58105"}, 	// SESM 
+	{"efh.PEARL_TOM.group.4.snapshot.auth","5pr1:5pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.4.recovery.addr","199.168.156.165:58105"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.5.mcast.addr","233.87.168.6:58006"},
+	{"efh.PEARL_TOM.group.5.snapshot.addr","199.168.156.165:58106"}, 	// SESM 
+	{"efh.PEARL_TOM.group.5.snapshot.auth","6pr1:6pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.5.recovery.addr","199.168.156.165:58106"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.6.mcast.addr","233.87.168.7:58007"},
+	{"efh.PEARL_TOM.group.6.snapshot.addr","199.168.156.166:58107"}, 	// SESM 
+	{"efh.PEARL_TOM.group.6.snapshot.auth","7pr1:7pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.6.recovery.addr","199.168.156.166:58107"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.7.mcast.addr","233.87.168.8:58008"},
+	{"efh.PEARL_TOM.group.7.snapshot.addr","199.168.156.166:58108"}, 	// SESM 
+	{"efh.PEARL_TOM.group.7.snapshot.auth","8pr1:8pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.7.recovery.addr","199.168.156.166:58108"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.8.mcast.addr","233.87.168.9:58009"},
+	{"efh.PEARL_TOM.group.8.snapshot.addr","199.168.156.166:58109"}, 	// SESM 
+	{"efh.PEARL_TOM.group.8.snapshot.auth","9pr1:9pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.8.recovery.addr","199.168.156.166:58109"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.9.mcast.addr","233.87.168.10:58010"},
+	{"efh.PEARL_TOM.group.9.snapshot.addr","199.168.156.167:58110"}, 	// SESM 
+	{"efh.PEARL_TOM.group.9.snapshot.auth","10pr1:10pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.9.recovery.addr","199.168.156.167:58110"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.10.mcast.addr","233.87.168.11:58011"},
+	{"efh.PEARL_TOM.group.10.snapshot.addr","199.168.156.167:58111"}, 	// SESM 
+	{"efh.PEARL_TOM.group.10.snapshot.auth","11pr1:11pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.10.recovery.addr","199.168.156.167:58111"}, 	// SESM 
+
+	{"efh.PEARL_TOM.group.11.mcast.addr","233.87.168.12:58012"},
+	{"efh.PEARL_TOM.group.11.snapshot.addr","199.168.156.167:58112"}, 	// SESM 
+	{"efh.PEARL_TOM.group.11.snapshot.auth","12pr1:12pr1"}, 			// SESM 
+	{"efh.PEARL_TOM.group.11.recovery.addr","199.168.156.167:58112"}, 	// SESM 
+
+};
+
+const EkaGroup pearlGroups[] = {
+	{EkaSource::kPEARL_TOM, (EkaLSI)0},
+	{EkaSource::kPEARL_TOM, (EkaLSI)1},
+	{EkaSource::kPEARL_TOM, (EkaLSI)2},
+	{EkaSource::kPEARL_TOM, (EkaLSI)3},
+	{EkaSource::kPEARL_TOM, (EkaLSI)4},
+	{EkaSource::kPEARL_TOM, (EkaLSI)5},
+	{EkaSource::kPEARL_TOM, (EkaLSI)6},
+	{EkaSource::kPEARL_TOM, (EkaLSI)7},
+	{EkaSource::kPEARL_TOM, (EkaLSI)8},
+	{EkaSource::kPEARL_TOM, (EkaLSI)9},
+	{EkaSource::kPEARL_TOM, (EkaLSI)10},
+	{EkaSource::kPEARL_TOM, (EkaLSI)11},
+};
+
 #endif

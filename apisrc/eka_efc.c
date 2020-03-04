@@ -369,6 +369,7 @@ bool eka_check_exceptions (EkaDev* dev) {
       char exception_report_buf[256];
       sprintf (exception_report_buf,"FPGA Interrupts discovered: interrupt vector = 0x%016jx",var_global_shadow);
       size_t report_size = sizeof(exception_report_buf);
+      if (dev->pEfcRunCtx->onEkaExceptionReportCb == NULL) on_error("dev->pEfcRunCtx->onEkaExceptionReportCb is not defined");
       dev->pEfcRunCtx->onEkaExceptionReportCb(
 					      dev->pEfcCtx,
 					      reinterpret_cast< EkaExceptionReport* >( exception_report_buf ), 
@@ -391,7 +392,7 @@ void efc_run_thread(struct EfcCtx* pEfcCtx, struct EfcRunCtx* pEfcRunCtx) { // U
   (dev->serv_thr).active = true;
 
   while (dev->serv_thr.active) {
-    if (eka_check_exceptions(dev)) on_error("Pizdets");
+    //    if (eka_check_exceptions(dev)) on_error("Pizdets");
     uint8_t* data;
     uint32_t len;
     if (! eka_get_uch_pkt(dev, &data, &len)) continue;

@@ -123,7 +123,12 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint p2p_delay) {
     //    hexDump("RCV",rx_buf,rxsize);
 
     if ((int)sizeof(pkt) != rxsize)  on_error("%u@%u : sizeof(pkt) (= %d) != rxsize (= %d)",sess,core,(int)sizeof(pkt),rxsize);
-    if (memcmp(&pkt,rx_buf,sizeof(pkt)) != 0) { on_error("RX != TX for core %u sess %u",core,sess); }
+    if (memcmp(&pkt,rx_buf,sizeof(pkt)) != 0) { 
+      hexDump("RX BUF",rx_buf,sizeof(pkt));
+      hexDump("TX BUF",(void*)&pkt,sizeof(pkt));
+
+      on_error("RX != TX for core %u sess %u",core,sess); 
+    }
 
     if (pkt.cnt % statistics_period == 0) {
       EKA_LOG ("Sess %u, pkt.cnt: %ju",sess_id,pkt.cnt);

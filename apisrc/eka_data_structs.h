@@ -14,6 +14,9 @@
 //#include "eka_exc.h"
 
 
+#define EKA_WC
+
+
 typedef enum {EFC_CONF=0, EFH_CONF=1} eka_conf_type_t;
 typedef uint64_t uint64_t;
 typedef enum {SUBSCR_SUCCESS=0, DUPLICATE_SEC_ID=-1, REACHED_MAX_TOTAL_SUBSCRIPTIONS=-2, NO_ROOM_IN_HASH_LINE=-3} eka_subscr_status_t;
