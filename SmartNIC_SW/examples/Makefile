@@ -1,0 +1,71 @@
+# ***************************************************************************
+# *
+# * Copyright (c) 2008-2019, Silicom Denmark A/S
+# * All rights reserved.
+# *
+# * Redistribution and use in source and binary forms, with or without
+# * modification, are permitted provided that the following conditions are met:
+# *
+# * 1. Redistributions of source code must retain the above copyright notice,
+# * this list of conditions and the following disclaimer.
+# *
+# * 2. Redistributions in binary form must reproduce the above copyright
+# * notice, this list of conditions and the following disclaimer in the
+# * documentation and/or other materials provided with the distribution.
+# *
+# * 3. Neither the name of the Silicom nor the names of its
+# * contributors may be used to endorse or promote products derived from
+# * this software without specific prior written permission.
+# *
+# * 4. This software may only be redistributed and used in connection with a
+# *  Silicom network adapter product.
+# *
+# * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+# * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# * POSSIBILITY OF SUCH DAMAGE.
+# *
+# ****************************************************************************
+#
+# Build SmartNIC example applications
+#
+
+include ../api/makefile_common
+
+ALL_TARGETS := echo loopback stat udp udp_demodesign ul_dma_loop ul_intr
+ALL_OBJECTS := $(patsubst %,%.o,$(ALL_TARGETS))
+
+CFLAGS := $(COMMON_FLAGS) -fPIC -Wall -Wpointer-arith -I../include -I../api -I../utils
+
+# Release build is the default:
+release: CFLAGS := $(CFLAGS) -DNDEBUG -O3
+release: all
+
+# To make a debug build run "make debug"
+debug: CFLAGS := $(CFLAGS) -DDEBUG -O0 -g
+debug: all
+
+LIBS := ../lib/libsmartnic.so -lrt -lpthread -lm
+
+all:
+	echo "--- Building example applications ---"
+	$(CC) echo.c $(CFLAGS) $(LIBS) -o echo
+	$(CC) loopback.c $(CFLAGS) $(LIBS) -o loopback
+	$(CC) stat.c $(CFLAGS) $(LIBS) -o stat
+	$(CC) stat2.c $(CFLAGS) $(LIBS) -o stat2
+	$(CC) udp.c $(CFLAGS) $(LIBS) -o udp
+	$(CC) udp_demodesign.c $(CFLAGS) $(LIBS) -o udp_demodesign
+	$(CC) ul_dma_loop.c $(CFLAGS) $(LIBS) -o ul_dma_loop
+	$(CC) ul_intr.c $(CFLAGS) $(LIBS) -o ul_intr
+	$(CC) ul_example.c $(CFLAGS) $(LIBS) -o ul_example
+
+
+clean: 
+	rm -f $(ALL_OBJECTS) $(ALL_TARGETS)

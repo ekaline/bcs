@@ -8,6 +8,8 @@ else
   ARCH_FLAGS := -march=native
 endif
 
+SMARTNIC_ROOT:=../SmartNIC_SW
+LWIP_ROOT:=../lwip
 ARCH_FLAGS := -march=native
 CC_OPT:= -O3 -g
 
