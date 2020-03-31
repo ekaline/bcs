@@ -1,0 +1,62 @@
+#!/bin/bash
+
+DRIVER_BUILD_DATE=`date`
+echo -n '#define EKA_SN_DRIVER_BUILD_TIME "EKA DRIVER BUILD TIME:  ' > ././driver/ekaline_build_time.h; echo -n $DRIVER_BUILD_DATE >> ./driver/ekaline_build_time.h; echo \" >> ./driver/ekaline_build_time.h
+
+echo -n '#define EKA_SN_DRIVER_RELEASE_NOTE ' >> ./driver/ekaline_build_time.h
+if [ -e eka_driver_release_notes.txt ] ; then
+    cat ./eka_driver_release_notes.txt >> ./driver/ekaline_build_time.h
+else
+    echo "" >> ./driver/ekaline_build_time.h
+fi
+
+mkdir -p bin
+cd driver
+make clean; make
+
+if [ -e smartnic.ko ] ; then
+    echo "========================================================"
+    echo $0: smartnic.ko IS SUCCESSFULLY BUILT!!!
+    echo "========================================================"
+else
+    echo "========================================================"
+    echo $0: FAILED TO BUILD smartnic.ko !!!
+    echo "========================================================"
+    exit 1
+fi
+
+cd ../api
+make -B $*
+cd ..
+if [ -d examples ]
+then
+    cd examples
+    make -B $*
+    cd ..
+fi
+cd tools
+make -B $*
+ln -sf ../tools/fbconfig ../bin/fbconfig
+ln -sf ../tools/fbacl ../bin/fbacl
+if [ -d fbupdate ]
+then
+    cd fbupdate
+    make -B
+    cd ..
+    ln -sf ../tools/fbupdate/fbupdate ../bin/fbupdate
+fi
+cd ..
+# NB: these directories are not present in a final software release
+if [ -d test ]
+then
+    cd test
+    make -B $*
+    cd ..
+fi
+if [ -d subrepositories ]
+then
+    cd subrepositories/FB2022_test
+    make -B -f makefile_fbupdate
+    ln -sf ../subrepositories/FB2022_test/fbupdate ../../bin/fbupdate
+    cd -
+fi
