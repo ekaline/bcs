@@ -1,0 +1,162 @@
+void  INThandler(int sig) {
+  signal(sig, SIG_IGN);
+  keep_work = false;
+  printf("%s:Ctrl-C detected: keep_work = false\n",__func__);
+  printf ("%s: exitting...\n",__func__);
+  fflush(stdout);
+  return;
+}
+
+int convert_ts(char* dst, uint64_t ts) {
+  uint ns = ts % 1000;
+  uint64_t res = (ts - ns) / 1000;
+
+  uint us = res % 1000;
+  res = (res - us) / 1000;
+  
+  uint ms = res % 1000;
+  res = (res - ms) / 1000;
+
+  uint s = res % 60;
+  res = (res - s) / 60;
+
+  uint m = res % 60;
+  res = (res - m) / 60;
+
+  uint h = res % 24;
+
+  sprintf (dst,"%02d:%02d:%02d.%03d.%03d.%03d",h,m,s,ms,us,ns);
+  return 0;
+}
+
+void efhDefaultOnOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+  EfhCtx* pEfhCtx = (EfhCtx*) userData;
+
+  uint8_t gr_id = (uint8_t)msg->header.group.localId;
+  if (pEfhCtx->printQStatistics && (++pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[gr_id]->upd_ctr % 1000000 == 0)) {
+    efhMonitorFhGroupState(pEfhCtx,(EkaGroup*)&msg->header.group);
+  }
+
+  if (pEfhCtx->dontPrintTobUpd) return;
+
+#if 1
+  char ts[32];
+  convert_ts(ts,msg->header.timeStamp);
+  printf("1-Side ORDER: %s:%u, SId:%016jx, SN:%06ju,TS:%s, gapNum:%u, %c, Price:%10u, Size:%4u\n",
+  	 EKA_EXCH_DECODE(msg->header.group.source),
+  	 msg->header.group.localId,
+	 msg->header.securityId,
+	 msg->header.sequenceNumber,
+  	 ts,
+  	 msg->header.gapNum,
+	 msg->orderSide == EfhOrderSideType::kBid ? 'B' : 'A',
+	 msg->bookSide.price,
+	 msg->bookSide.size
+  	 );
+#endif
+  return;
+}
+
+void efhDefaultOnTrade(const EfhTradeMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+  EfhCtx* pEfhCtx = (EfhCtx*) userData;
+
+  uint8_t gr_id = (uint8_t)msg->header.group.localId;
+  if (pEfhCtx->printQStatistics && (++pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[gr_id]->upd_ctr % 1000000 == 0)) {
+    efhMonitorFhGroupState(pEfhCtx,(EkaGroup*)&msg->header.group);
+  }
+
+  if (pEfhCtx->dontPrintTobUpd) return;
+
+#if 1
+  char ts[32];
+  convert_ts(ts,msg->header.timeStamp);
+  printf("TRADE: %s:%u, SId:%016jx, SN:%06ju,TS:%s, gapNum:%u, Price:%10u, Size:%4u\n",
+  	 EKA_EXCH_DECODE(msg->header.group.source),
+  	 msg->header.group.localId,
+	 msg->header.securityId,
+	 msg->header.sequenceNumber,
+  	 ts,
+  	 msg->header.gapNum,
+	 msg->price,
+	 msg->size
+  	 );
+#endif
+  return;
+
+}
+void efhDefaultOnQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+  EfhCtx* pEfhCtx = (EfhCtx*) userData;
+
+  uint8_t gr_id = (uint8_t)msg->header.group.localId;
+  if (pEfhCtx->printQStatistics && (++pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[gr_id]->upd_ctr % 1000000 == 0)) {
+    efhMonitorFhGroupState(pEfhCtx,(EkaGroup*)&msg->header.group);
+  }
+
+  if (pEfhCtx->dontPrintTobUpd) return;
+
+#if 1
+  char ts[32];
+  convert_ts(ts,msg->header.timeStamp);
+  printf("2-Side QUOTE: %s:%u, SId:%016jx, SN:%06ju,TS:%s, gapNum:%u, BidPrice:%10u, BidSize:%4u, AskPrice:%10u, AskSize:%4u \n",
+  	 EKA_EXCH_DECODE(msg->header.group.source),
+  	 msg->header.group.localId,
+	 msg->header.securityId,
+	 msg->header.sequenceNumber,
+  	 ts,
+  	 msg->header.gapNum,
+	 msg->bidSide.price,
+	 msg->bidSide.size,
+	 msg->askSide.price,
+	 msg->askSide.size
+  	 );
+#endif
+  return;
+}
+
+
+void efhDefaultOnDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+  EfhCtx* pEfhCtx = (EfhCtx*) userData;
+
+  efhSubscribeStatic(pEfhCtx, (EkaGroup*) &msg->header.group,  msg->header.securityId, EfhSecurityType::kOpt,(EfhSecUserData) 0,0,0);
+  if (pEfhCtx->dontPrintDefinition) return;
+
+#if 0
+  uint y,m,d;
+  d = msg->expiryDate % 100;
+  m = ((msg->expiryDate - d) / 100) % 100;
+  y = msg->expiryDate / 10000;
+
+  char underlying2print[9] = {};	
+  memcpy(underlying2print,msg->underlying,sizeof(underlying2print) - 1);
+  printf ("%s: %s:%u, %s, %ju, %04u-%02u-%02u\n",
+	  __func__,
+          EKA_EXCH_DECODE(msg->header.group.source),
+	  msg->header.group.localId,
+	  underlying2print,
+	  msg->header.securityId,
+	  y, m, d
+	  ); 
+#endif
+
+  return;
+}
+
+void efhDefaultOnFeedDown(const EfhFeedDownMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+  printf ("=========================\n%s: %s:%u -- %ju\n=========================\n",__func__,EKA_EXCH_DECODE(msg->group.source),msg->group.localId,msg->gapNum);
+  return;
+}
+
+void efhDefaultOnFeedUp(const EfhFeedUpMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+  printf ("=========================\n%s: %s:%u -- %ju\n=========================\n",__func__,EKA_EXCH_DECODE(msg->group.source),msg->group.localId,msg->gapNum);
+  return;
+}
+
+void efhDefaultOnException(EkaExceptionReport* msg, EfhRunUserData efhRunUserData) {
+  printf("%s: Doing nothing\n",__func__);
+  return;
+}
+
+void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fire_report_buf, size_t size) {
+  printf ("%s: Doing nothing \n",__func__);
+  return;	 
+}
