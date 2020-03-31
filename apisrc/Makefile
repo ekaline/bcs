@@ -22,7 +22,7 @@ include $(SMARTNIC_ROOT)/api/makefile_common
 #GCC_FLAGS:=-Wall -fpic -pthread -lrt $(EKA_AFFINITY_SET) -lm $(GCC_EXTERNAL_DEFINES) -DBUILD_TIME=`date +%d%m%y_%T`
 GCC_FLAGS:=-Wall -fPIC -pthread -lrt -lm $(GCC_EXTERNAL_DEFINES)
 #LD_FLAGS:=-shared -fpic $(LD_ASAN_OPTIONS) -static-libstdc++ -static-libgcc
-LD_FLAGS:=-shared -fpic $(LD_ASAN_OPTIONS) -static-libstdc++ -static-libgcc
+LD_FLAGS:=-shared -fpic $(LD_ASAN_OPTIONS)
 
 
 EKAUTILS_SRCS := $(wildcard ../eka_utils/*.c)
