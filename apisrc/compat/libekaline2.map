@@ -1,0 +1,45 @@
+LIBEKALINE2_1.0	{
+		global:
+		    
+		        efcInit;
+			efcEnableController;
+			efcEnableFiringOnSec;
+			getSecCtxHandle;
+			efcSetStaticSecCtx;
+			efcSetDynamicSecCtx;
+			efcSetSesCtx;
+			efcSetGroupSesCtx;
+			efcRun;
+			efhInit;
+			efcInitStrategy;
+			efhGetSupportedParams;
+			efhGetDefs;
+			efhSubscribeStatic;
+			efhSubscribeDynamic;
+			efhRunGroups;
+			ekaGetCapsResult;
+			excInit;
+			excGetSessionId;
+			excGetCoreId;
+			excSocket;
+			excConnect;
+			excReconnect;
+			excSend;
+			excRecv;
+			excClose;
+			excReadyToRecv;
+			ekaClose;
+   			efhMonitorFhGroupState;
+			efcPrintFireReport;
+			efhStopGroups;
+			ekaDevInit;
+			ekaDevClose;
+			ekaDevConfigurePort;	
+			efhDestroy;
+
+			excUdpSocket;
+			excSendTo;		
+		local:
+			*;
+		};
+
