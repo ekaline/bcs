@@ -1,13 +1,3 @@
-ifeq ($(shell whoami),sysavtekaline)
-  SMARTNIC_ROOT:=$(HOME)/SmartNIC_SW
-  LWIP_ROOT:= $(HOME)/lwip
-  ARCH_FLAGS := -march=native
-else
-  SMARTNIC_ROOT:=$(HOME)/ekatools/smartnic/SmartNIC_SW_3_0_2_RC_WC6
-  LWIP_ROOT:=/home/vitaly/ekatools/smartnic/lwip/
-  ARCH_FLAGS := -march=native
-endif
-
 SMARTNIC_ROOT:=../SmartNIC_SW
 LWIP_ROOT:=../lwip
 ARCH_FLAGS := -march=native
@@ -31,6 +21,7 @@ include $(SMARTNIC_ROOT)/api/makefile_common
 
 #GCC_FLAGS:=-Wall -fpic -pthread -lrt $(EKA_AFFINITY_SET) -lm $(GCC_EXTERNAL_DEFINES) -DBUILD_TIME=`date +%d%m%y_%T`
 GCC_FLAGS:=-Wall -fPIC -pthread -lrt -lm $(GCC_EXTERNAL_DEFINES)
+#LD_FLAGS:=-shared -fpic $(LD_ASAN_OPTIONS) -static-libstdc++ -static-libgcc
 LD_FLAGS:=-shared -fpic $(LD_ASAN_OPTIONS) -static-libstdc++ -static-libgcc
 
 
