@@ -4,7 +4,7 @@ uint8_t* eka_frameHeader = sc_get_raw_payload(pCurrentPacket);
 int eka_sizeOfEtherFrameHeader = GetSizeOfEthernetFrameHeader((FbEtherFrameHeader*)eka_frameHeader);
 struct iphdr *eka_ip = (struct iphdr*)&eka_frameHeader[eka_sizeOfEtherFrameHeader];
 
-if (((FbEtherFrameHeader *)eka_frameHeader)->etherType==0x0081) eka_ip = (char*) eka_ip + 4; // VLAN
+if (((FbEtherFrameHeader *)eka_frameHeader)->etherType==0x0081) eka_ip = (struct iphdr *)(((char*) eka_ip) + 4); // VLAN
 
 unsigned char *eka_saddr = (unsigned char *) &(eka_ip->saddr);
 unsigned char *eka_daddr = (unsigned char *) &(eka_ip->daddr);
