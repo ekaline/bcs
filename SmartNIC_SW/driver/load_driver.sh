@@ -50,8 +50,8 @@ get_interface_address() {
 
     # Extract the `IPADDR=<IPv4-address>` and `PREFIX=<CIDR-prefix-bits>`
     # fields from the configuration script.
-    local ip_addr=$(grep IPADDR $if_script_name | cut -d'=' -f2)
-    local net_prefix=$(grep PREFIX $if_script_name | cut -d'=' -f2)
+    local ip_addr=$(grep IPADDR $if_config_name | cut -d'=' -f2)
+    local net_prefix=$(grep PREFIX $if_config_name | cut -d'=' -f2)
 
     if test -z $ip_addr -o -z $net_prefix; then
         echo "network configuration script '$1' (for interface $1) is missing IPADDR or PREFIX"
