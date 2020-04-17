@@ -29,14 +29,17 @@ fi
 \rm -rf /tmp/${EKA_LIB_RPM_NAME}
 mkdir /tmp/${EKA_LIB_RPM_NAME}
 
-export EkaSnDir=/opt/ekaline/SmartNIC_SW/driver
+export EkaSnDriverDir=/opt/ekaline/SmartNIC_SW/driver
+export EkaSnToolsDir=/opt/ekaline/SmartNIC_SW/tools
+
 #export EkaInclDir=/usr/share/eka_include
 #export EkaLibDir=/usr/lib64
 #export EkaLibDir=/usr/share/${EKA_RPM_NAME}_lib
 #export EkaUtilsDir=/usr/share/eka_utils
 
 cd /tmp/${EKA_LIB_RPM_NAME}
-mkdir -p ./${EkaSnDir}
+mkdir -p ./${EkaSnDriverDir}
+mkdir -p ./${EkaSnToolsDir}
 
 #mkdir -p ./${EkaInclDir}
 #mkdir -p ./${EkaLibDir}
@@ -44,9 +47,9 @@ mkdir -p ./${EkaSnDir}
 
 #cp ${LIBEKA}/apisrc/lib${EKA_RPM_NAME}.so ./${EkaLibDir}
 #cp ${LIBEKA}/apisrc/compat/*.h ${LIBEKA}/apisrc/compat/*.inl ./${EkaInclDir}
-cp ${SN}/driver/smartnic.ko ${SN}/driver/*.sh ./${EkaSnDir}
-
-ls -ltr ./${EkaSnDir}
+cp ${SN}/driver/smartnic.ko ${SN}/driver/*.sh ./${EkaSnDriverDir}
+cp ${SN}/tools/fbupdate/fbupdate ${SN}/tools/fbconfig ./${EkaSnToolsDir}
+#ls -ltr ./${EkaSnDriverDir}
 
 #for f in `find ${LIBEKA}/eka_utils -executable -type f`; do
 #    cp $f ./${EkaUtilsDir}
