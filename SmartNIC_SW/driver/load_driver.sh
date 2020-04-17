@@ -35,6 +35,33 @@
 # *
 # ****************************************************************************
 
+# Function: get_interface_address() <if-name>
+#
+# Given an interface name as the first (and only) argument, set the variable
+# 'return_ip_addr equal to the `<ipv4-addr>/<cidr-prefix>` value for the
+# interface found in corresponding sysconfig/network-scripts ifcfg file.
+get_interface_address() {
+    local if_config_name="/etc/sysconfig/network-scripts/ifcfg-$1"
+
+    if test ! -e $if_config_name; then
+        echo "no network configuration file '$if_config_name' for interface '$1'"
+	exit 68 # EX_NOHOST
+    fi
+
+    # Extract the `IPADDR=<IPv4-address>` and `PREFIX=<CIDR-prefix-bits>`
+    # fields from the configuration script.
+    local ip_addr=$(grep IPADDR $if_script_name | cut -d'=' -f2)
+    local net_prefix=$(grep PREFIX $if_script_name | cut -d'=' -f2)
+
+    if test -z $ip_addr -o -z $net_prefix; then
+        echo "network configuration script '$1' (for interface $1) is missing IPADDR or PREFIX"
+	echo "ip_addr=$ip_addr net_prefix=$net_prefix"
+        exit 78 # EX_CONFIG
+    fi
+
+    return_ip_addr="$ip_addr/$net_prefix"
+}
+
 module="smartnic"
 device="smartnic"
 support_ul_devices=0
@@ -119,3 +146,29 @@ if [ $support_ul_devices -ne 0 ]; then
 fi
 
 echo "Driver '$module' loaded successfully."
+
+# EKALINE_IF_DEVICES is set to a space-separated list of entries having the
+# form "<sys-suffix>:<gts-suffix>", where the suffixes are the driver unit
+# numbers of the interfaces to bring up, e.g., "0:0_0 4:1_0" will bring up
+# "feth0" and "feth4", using the GTS configuration files for "fpga0_0" and
+# "fpga1_0".
+if test -z "$EKALINE_IF_DEVICES"; then
+    EKALINE_IF_DEVICES="0:0_0" # We only bring up the first port if not set.
+fi
+
+for u in $EKALINE_IF_DEVICES; do
+    # GTS names the device differently in their asset management system than
+    # the OS does. The GTS name is used in the network script "ifcfg" file
+    # names.
+    sys_unit_number=$(echo $u | cut -d':' -f1)
+    gts_unit_number=$(echo $u | cut -d':' -f2)
+
+    eka_sys_ifname="feth$sys_unit_number"
+    eka_gts_ifname="fpga$gts_unit_number"
+
+    echo "Configurating Ekaline FPGA interface '$eka_sys_ifname'"
+    ip link set $eka_sys_ifname up
+    get_interface_address $eka_gts_ifname
+    echo "Ekaline FGPA interface '$eka_sys_ifname' will use IPv4 address $return_ip_addr"
+    ip address add $return_ip_addr dev $eka_sys_ifname
+done
