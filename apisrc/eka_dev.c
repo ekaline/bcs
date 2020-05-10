@@ -11,6 +11,7 @@
 #include "eka_fh_run_group.h"
 #include "Eka.h"
 #include "Efh.h"
+#include "EkaEpm.h"
 
 int ekaDefaultLog (void* /*unused*/, const char* function, const char* file, int line, int priority, const char* format, ...);
 OnEfcFireReportCb* efcDefaultOnFireReportCb (EfcCtx* efcCtx, const EfcFireReport* efcFireReport, size_t size);
@@ -181,6 +182,8 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   pEfcRunCtx->onEfcFireReportCb      =  (OnEfcFireReportCb)     efcDefaultOnFireReportCb;
 
   sn_dev = new eka_sn_dev(this);
+
+  epm = new EkaEpm();
 
   hw.enabled_cores = (sn_dev->read(VERSION2) >> 56) & 0xFF;
   hw.feed_ver = (sn_dev->read(VERSION1) >> HW_FEED_SHIFT_SIZE) & HW_FEED_SHIFT_MASK;

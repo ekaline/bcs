@@ -10,6 +10,7 @@ class FhRunGr;
 class FhGroup;
 //template <class FhGroup> 
 class EkaFh;
+class EkaEpm;
 
 class EkaDev {
 
@@ -73,6 +74,8 @@ class EkaDev {
 
   volatile uint8_t          numRunGr;
   FhRunGr*                  runGr[CONF::MAX_RUN_GROUPS];
+
+  EkaEpm*                   epm;
 
   EkaLogCallback            logCB;
   void*                     logCtx;

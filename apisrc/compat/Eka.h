@@ -78,6 +78,19 @@ extern "C" {
     EKA_OPRESULT__ERR_BAD_ADDRESS = -102,     // returned if you pass NULL for something that can't be NULL, similar to EFAULT
     EKA_OPRESULT__ERR_SYSTEM_ERROR = -103,     // returned when a system call fails and errno is set
     EKA_OPRESULT__ERR_NOT_IMPLEMENTED = -104,     // returned when an API call is not implemented
+
+    // EPM specific
+    ERR_BAD_ADDRESS = -201,
+    ERR_INVALID_CORE = -202,
+    ERR_EPM_UNINITALIZED = -203,
+    ERR_INVALID_STRATEGY = -204,
+    ERR_INVALID_ACTION = -205,
+    ERR_NOT_CONNECTED = -206,
+    ERR_INVALID_OFFSET = -207,
+    ERR_INVALID_ALIGN = -208,
+    ERR_INVALID_LENGTH = -209,
+    ERR_UNKNOWN_FLAG = -210
+
   };
 
   struct ExcCtx;

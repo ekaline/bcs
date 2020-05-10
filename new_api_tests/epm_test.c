@@ -16,16 +16,31 @@
 #include <sys/time.h>
 #include <chrono>
 
-#include "ekaline.h"
+#include "eka_dev.h"
+
 #include "Exc.h"
 #include "Eka.h"
 #include "Efc.h"
+#include "Efh.h"
 #include "Epm.h"
 
-//#include "exc_debug_module.h"
+#include "eka_macros.h"
+
+/* --------------------------------------------- */
 
 volatile bool keep_work = true;
 volatile bool serverSet = false;;
+/* --------------------------------------------- */
+
+void  INThandler(int sig) {
+  signal(sig, SIG_IGN);
+  keep_work = false;
+  printf("%s:Ctrl-C detected: keep_work = false\n",__func__);
+  printf ("%s: exitting...\n",__func__);
+  fflush(stdout);
+  return;
+}
+/* --------------------------------------------- */
 
 void hexDump (const char* desc, void *addr, int len) {
     int i;
@@ -48,27 +63,33 @@ void hexDump (const char* desc, void *addr, int len) {
     printf ("  %s\n", buff);
 }
 
-#include "eka_default_callbacks4tests.incl"
-#include "eka_exc_debug_module.h"
-#include "eka_macros.h"
+
+/* --------------------------------------------- */
 
 int createThread(const char* name, EkaThreadType type,  void *(*threadRoutine)(void*), void* arg, void* context, uintptr_t *handle) {
   pthread_create ((pthread_t*)handle,NULL,threadRoutine, arg);
   pthread_setname_np((pthread_t)*handle,name);
   return 0;
 }
+/* --------------------------------------------- */
 
 int credAcquire(EkaCredentialType credType, EkaSource source, const char *user, const struct timespec *leaseTime, const struct timespec *timeout, void* context, EkaCredentialLease **lease) {
   printf ("Credential with USER %s is acquired for %s\n",user,EKA_EXCH_DECODE(source));
   return 0;
 }
+/* --------------------------------------------- */
 
 int credRelease(EkaCredentialLease *lease, void* context) {
   return 0;
 }
+/* --------------------------------------------- */
+
+void fireReportCb (const EpmFireReport *report, int nReports, void *ctx) {
+
+}
 
 /* --------------------------------------------- */
-void Child(int sock, uint port) {
+void tcpChild(int sock, uint port) {
   int bytes_read = -1;
   //  printf ("Running TCP Server for sock=%d, port = %u\n",sock,port);
   do {
@@ -114,7 +135,7 @@ void tcpServer(std::string ip, uint16_t port) {
 
     childSock = accept(sd, (struct sockaddr*)&addr,(socklen_t*) &addr_size);
     printf("Connected from: %s:%d -- sock=%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),childSock);
-    std::thread child(Child,childSock,be16toh(addr.sin_port));
+    std::thread child(tcpChild,childSock,be16toh(addr.sin_port));
     child.detach();
   }
 }
@@ -172,6 +193,7 @@ int main(int argc, char *argv[]) {
   getAttr(argc,argv,&serverIp,&clientIp,&port);
 
   keep_work = true;
+  serverSet = false;
 
   std::thread server = std::thread(tcpServer,serverIp,port);
   server.detach();
@@ -181,10 +203,15 @@ int main(int argc, char *argv[]) {
   EkaDev* dev = NULL;
   EkaCoreId coreId = 0;
 
-  EkaDevInitCtx ekaDevInitCtx = {};
-  ekaDevInitCtx.credAcquire = credAcquire;
-  ekaDevInitCtx.credRelease = credRelease;
-  ekaDevInitCtx.createThread = createThread;
+  EkaDevInitCtx ekaDevInitCtx = {
+    .logCallback = NULL,
+    .logContext  = NULL,
+    .credAcquire = credAcquire,
+    .credRelease  = credRelease,
+    .credContext = NULL,
+    .createThread = createThread,
+    .createThreadContext = NULL
+  };
   ekaDevInit(&dev, (const EkaDevInitCtx*) &ekaDevInitCtx);
 
   EkaCoreInitCtx ekaCoreInitCtx = {
@@ -198,7 +225,6 @@ int main(int argc, char *argv[]) {
       .dont_garp    = 0
     }
   };
-
   ekaDevConfigurePort (dev, (const EkaCoreInitCtx*) &ekaCoreInitCtx);
 
   struct sockaddr_in dst = {};
@@ -209,22 +235,57 @@ int main(int argc, char *argv[]) {
   int sock = excSocket(dev,coreId,0,0,0);
   if (sock < 0) on_error("failed to open sock");
 
-  printf ("Trying to connect to %s:%u",EKA_IP2STR(dst.sin_addr.s_addr),be16toh(dst.sin_port));
+  EKA_LOG ("Trying to connect to %s:%u",EKA_IP2STR(dst.sin_addr.s_addr),be16toh(dst.sin_port));
   ExcConnHandle conn = excConnect(dev,sock,(struct sockaddr*) &dst, sizeof(struct sockaddr_in));
-  if (conn < 0) on_error("failed to connect to %s:%u",EKA_IP2STR(dst.sin_addr.s_addr),be16toh(dst.sin_port));
-  printf("Connected\n");
+  if (conn < 0) on_error("excConnect %s:%u",EKA_IP2STR(dst.sin_addr.s_addr),be16toh(dst.sin_port));
 
   const char* pkt = "Hello world!";
   char rx_buf[1000] = {};
-  EKA_LOG("Sending: %s",pkt);
+
   excSend (dev, conn, pkt, strlen(pkt));
-  EKA_LOG("Sent: %s",pkt);
+
 
   int rxsize = 0;
   do {
     rxsize = excRecv(dev,conn, rx_buf, 1000);
   } while (keep_work && rxsize < 1);
   printf ("RX: %s\n",rx_buf);
+
+  /* ============================================== */
+
+  const char* pkt2send_1 = "Pkt 1 FIRED";
+
+
+  EpmAction epmAction_1 = {
+    .token         = static_cast<epm_token_t>(0), ///< Security token
+    .hConn         = conn,                        ///< TCP connection where segments will be sent
+    .offset        = 0,                           ///< Offset to payload in payload heap
+    .length        = strlen(pkt2send_1),                 ///< Payload length
+    .actionFlags   = AF_Valid,                    ///< Behavior flags (see EpmActionFlag)
+    .nextAction    = EPM_LAST_ACTION,             ///< Next action in sequence, or EPM_LAST_ACTION
+    .enable        = 0x01,                        ///< Enable bits
+    .postLocalMask = 0x01,                        ///< Post fire: enable & mask -> enable
+    .postStratMask = 0x01,                        ///< Post fire: strat-enable & mask -> strat-enable
+    .user          = NULL                         ///< Opaque value copied into `EpmFireReport`.
+  };
+
+  EpmStrategyParams strat_1 = {
+    .numActions  = 1,             ///< No. of actions entries used by this strategy
+    .triggerAddr = NULL,          ///< Address to receive trigger packets
+    .reportCb    = fireReportCb,  ///< Callback function to process fire reports
+    .cbCtx       = NULL           ///< Opaque value passed into reportCb
+  };
+
+
+
+
+
+
+
+
+
+  /* ============================================== */
+
 
   excClose(dev,conn);
 

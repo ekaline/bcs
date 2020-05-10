@@ -30,7 +30,7 @@ enum EpmDeviceCapability {
 /// fields can be found in the @ref epmGetAction function.
 struct EpmAction {
   epm_token_t token;           ///< Security token
-  ExcConnHandle hConn;   ///< TCP connection where segments will be sent
+  ExcConnHandle hConn;         ///< TCP connection where segments will be sent
   uint32_t offset;             ///< Offset to payload in payload heap
   uint32_t length;             ///< Payload length
   uint32_t actionFlags;        ///< Behavior flags (see EpmActionFlag)
@@ -328,7 +328,7 @@ EkaOpResult epmEnableController(EkaDev *ekaDev, EkaCoreId coreId, bool enable);
  */
 EkaOpResult epmGetAction(const EkaDev *ekaDev, EkaCoreId coreId,
                          epm_strategyid_t strategy, epm_actionid_t action,
-                         EpmAction *action);
+                         EpmAction *epmAction);
 
 /**
  * Sets the action descriptor in the strategy according to the passed in
@@ -363,7 +363,7 @@ EkaOpResult epmGetAction(const EkaDev *ekaDev, EkaCoreId coreId,
  */
 EkaOpResult epmSetAction(EkaDev *ekaDev, EkaCoreId coreId,
                          epm_strategyid_t strategy, epm_actionid_t action,
-                         const EpmAction *action);
+                         const EpmAction *epmAction);
 
 /**
  * Copy the contents of the given buffer into the payload heap.
