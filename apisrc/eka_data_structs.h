@@ -14,7 +14,7 @@
 //#include "eka_exc.h"
 
 
-#define EKA_WC
+// #define EKA_WC
 
 
 typedef enum {EFC_CONF=0, EFH_CONF=1} eka_conf_type_t;

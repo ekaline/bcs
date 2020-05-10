@@ -635,8 +635,8 @@ ssize_t eka_send(EkaDev* dev, uint16_t sess_id, void *buf, size_t size) {
 
   if (size2send == 1) EKA_LOG("WARNING: 1Byte payload might be considered as Keep Alive");
 
-  /* EKA_LOG("size = %u, size2send = %u",size,size2send); */
-  /* hexDump("eka_send",buf,size); */
+  EKA_LOG("size = %u, size2send = %u, core = %u, sess = %u",size,size2send,core,sess);
+  hexDump("eka_send",buf,size);
 
   ekaLowLevelSend_payload(dev, core, sess, buf, size2send);
 
@@ -712,10 +712,12 @@ uint16_t eka_connect (EkaDev* dev, int sock, const struct sockaddr *d, socklen_t
   fflush(stderr);
 
   if (lwip_fcntl(dev->core[core].tcp_sess[sess].sock_fd, F_SETFL, lwip_fcntl(dev->core[core].tcp_sess[sess].sock_fd, F_GETFL, 0) | O_NONBLOCK) < 0) on_error ("Cant set O_NONBLOCK on sock %d",dev->core[core].tcp_sess[sess].sock_fd);
-  EKA_LOG("Socket %d is set to O_NONBLOCK",sock);
+  //  EKA_LOG("Socket %d is set to O_NONBLOCK",sock);
 
   eka_preload_tcp_tx_header(dev,core,sess);
-
+#ifndef EKA_WC
+  
+#endif
   return sess_id;
 }
 

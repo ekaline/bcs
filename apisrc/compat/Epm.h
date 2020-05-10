@@ -30,7 +30,7 @@ enum EpmDeviceCapability {
 /// fields can be found in the @ref epmGetAction function.
 struct EpmAction {
   epm_token_t token;           ///< Security token
-  ExcConnectionHandle hConn;   ///< TCP connection where segments will be sent
+  ExcConnHandle hConn;   ///< TCP connection where segments will be sent
   uint32_t offset;             ///< Offset to payload in payload heap
   uint32_t length;             ///< Payload length
   uint32_t actionFlags;        ///< Behavior flags (see EpmActionFlag)

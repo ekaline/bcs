@@ -300,7 +300,6 @@ void net_checksum_calculate(uint8_t *data, int length)
 }
 
 void eka_preload_tcp_tx_header(EkaDev* dev, uint8_t core, uint8_t sess) {
-  //  uint64_t base_addr = TCP_FAST_SEND_SP_BASE + EKA_MAX_TCP_PACKET_SIZE * EKA_MAX_TCP_SESSIONS_PER_CORE * core + EKA_MAX_TCP_PACKET_SIZE * sess;
 
   //  uint8_t hdr[54] = {};
   //  struct eth_hdr* ethheader = (struct eth_hdr*) hdr;
@@ -323,15 +322,22 @@ void eka_preload_tcp_tx_header(EkaDev* dev, uint8_t core, uint8_t sess) {
   tcpheader->dest   = be16toh(dev->core[core].tcp_sess[sess].dst_port);
   tcpheader->_hdrlen_rsvd_flags = be16toh(0x5000 | TCP_PSH | TCP_ACK);
 
-  /* hexDump("Preloaded TCP TX Pkt Hdr",(void*)hdr,sizeof(hdr)); */
+#ifndef EKA_WC
+  uint64_t base_addr = TCP_FAST_SEND_SP_BASE + EKA_MAX_TCP_PACKET_SIZE * EKA_MAX_TCP_SESSIONS_PER_CORE * core + EKA_MAX_TCP_PACKET_SIZE * sess;
+  uint64_t *buff_ptr = (uint64_t *)ethheader;
+  for (uint i = 0; i < 6; i++) eka_write(dev, base_addr + i * 8, buff_ptr[i]);
+  //  hexDump("Preloaded TCP TX Pkt Hdr",(void*)ethheader,48);
+#endif  
 
-  /* uint64_t *buff_ptr = (uint64_t *)hdr; */
-
-  /* for (uint i = 0; i < 6; i++) eka_write(dev, base_addr + i * 8, buff_ptr[i]); */
-  
   dev->core[core].tcp_sess[sess].ip_preliminary_pseudo_csum = pseudo_csum((unsigned short *)ipheader, sizeof(struct ip_hdr));
-  EKA_LOG("Calculating tcp_preliminary_pseudo_csum");
   dev->core[core].tcp_sess[sess].tcp_preliminary_pseudo_csum = calc_pseudo_csum (ipheader, tcpheader, NULL, 0);
+
+
+  EKA_LOG("%s:%u -- %s:%u is preloaded for core=%u, sess=%u",
+	  EKA_IP2STR(*(uint32_t*)(&ipheader->src)),be16toh(tcpheader->src),
+	  EKA_IP2STR(*(uint32_t*)(&ipheader->dest)),be16toh(tcpheader->dest),
+	  core,sess
+	  );
   return;
 }
 

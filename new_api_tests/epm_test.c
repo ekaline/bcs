@@ -20,34 +20,9 @@
 #include "Exc.h"
 #include "Eka.h"
 #include "Efc.h"
+#include "Epm.h"
 
 //#include "exc_debug_module.h"
-
-//to avt-6
-#define DST_AVT6_IP0 "192.168.0.93"
-#define DST_AVT6_IP1 "192.168.0.93"
-
-//to xn03
-#define DST_XN03_IP0 "10.0.0.30"
-#define DST_XN03_IP1 "10.0.0.31"
-
-//to xn01
-#define DST_XN01_IP0 "10.0.0.10"
-#define DST_XN01_IP1 "10.0.0.11"
-
-//to xn02
-#define DST_XN02_IP0 "200.0.0.20"
-#define DST_XN02_IP1 "200.0.0.21"
-
-#define DST_PORT_BASE 22222
-
-#define MAX_PAYLOAD_SIZE 192
-#define MIN_PAYLOAD_SIZE 1
-
-#define CHAR_SIZE  (26+1)
-
-#define CORES 2
-#define SESSIONS 32
 
 volatile bool keep_work = true;
 volatile bool serverSet = false;;
@@ -90,55 +65,6 @@ int credAcquire(EkaCredentialType credType, EkaSource source, const char *user, 
 
 int credRelease(EkaCredentialLease *lease, void* context) {
   return 0;
-}
-
-void fastpath_thread_f(EkaDev* dev, ExcConnHandle sess_id,uint p2p_delay) {
-  //  char tcpsenddata[CHAR_SIZE] = "abcdefghijklmnopqrstuvwxyz";
-  EKA_LOG("Launching for sess_id %u",sess_id);
-
-  uint statistics_period = 10000;
-
-  uint8_t core = excGetCoreId(sess_id);
-  uint8_t sess = excGetSessionId(sess_id);
-
-  const char* test_pkt_prefix = "EXCPKT";
-
-  eka_tcp_test_pkt pkt = {};
-  memcpy(&pkt.prefix,test_pkt_prefix,EXC_TEST_PKT_PREFIX_SIZE);
-  pkt.core = core;
-  pkt.sess = sess;
-  while (keep_work) {
-
-    char rx_buf[MAX_PAYLOAD_SIZE];
-    int rxsize = 0;
-    sprintf(pkt.free_text,"%u_%2u_%07ju",core,sess,pkt.cnt);
-
-    excSend (dev, sess_id, &pkt, sizeof(pkt));
-
-    do {
-      rxsize = excRecv(dev,sess_id, rx_buf, 1000);
-    } while (keep_work && rxsize < 1);
-    if (! keep_work) return;
-    //    hexDump("RCV",rx_buf,rxsize);
-
-    if ((int)sizeof(pkt) != rxsize)  on_error("%u@%u : sizeof(pkt) (= %d) != rxsize (= %d)",sess,core,(int)sizeof(pkt),rxsize);
-    if (memcmp(&pkt,rx_buf,sizeof(pkt)) != 0) { 
-      hexDump("RX BUF",rx_buf,sizeof(pkt));
-      hexDump("TX BUF",(void*)&pkt,sizeof(pkt));
-
-      on_error("RX != TX for core %u sess %u",core,sess); 
-    }
-
-    if (pkt.cnt % statistics_period == 0) {
-      EKA_LOG ("Sess %u, pkt.cnt: %ju",sess_id,pkt.cnt);
-    }
-
-    usleep (p2p_delay);
-    pkt.cnt++;
-    
-    //    if (pkt.cnt == 2) {keep_work = false; return;}
-  }
-  return;
 }
 
 /* --------------------------------------------- */
@@ -199,26 +125,23 @@ void printUsage(char* cmd) {
   printf("USAGE: %s -s <Server IP> -c <Client IP> -p <TCP Port> \n",cmd); 
 }
 
-/* ############################################# */
-int main(int argc, char *argv[]) {
-  signal(SIGINT, INThandler);
+/* --------------------------------------------- */
 
-  std::string clientIp, serverIp;
-  uint16_t port = 0;
+static int getAttr(int argc, char *argv[], std::string* serverIp, std::string* clientIp, uint16_t* port) {
   int opt; 
   while((opt = getopt(argc, argv, ":c:s:p:h")) != -1) {  
     switch(opt) {  
       case 's':  
-	serverIp = std::string(optarg);
-	printf("serverIp = %s\n", serverIp.c_str());  
+	*serverIp = std::string(optarg);
+	printf("serverIp = %s\n", (*serverIp).c_str());  
 	break;  
       case 'c':  
-	clientIp = std::string(optarg);
-	printf("clientIp = %s\n", clientIp.c_str());  
+	*clientIp = std::string(optarg);
+	printf("clientIp = %s\n", (*clientIp).c_str());  
 	break;  
       case 'p':  
-	port = atoi(optarg);
-	printf("port = %u\n", port);  
+	*port = atoi(optarg);
+	printf("port = %u\n", *port);  
 	break;  
       case 'h':  
 	printUsage(argv[0]);
@@ -229,12 +152,24 @@ int main(int argc, char *argv[]) {
       }  
   }  
 
-  if (clientIp.empty() || serverIp.empty() || port == 0) {
+  if ((*clientIp).empty() || (*serverIp).empty() || *port == 0) {
     printUsage(argv[0]);
     on_error("missing params: clientIp=%s, serverIp=%s, port=%u",
-	     clientIp.c_str(),serverIp.c_str(),port);
+	     (*clientIp).c_str(),(*serverIp).c_str(),*port);
   }
+  return 0;
+}
+/* --------------------------------------------- */
 
+
+/* ############################################# */
+int main(int argc, char *argv[]) {
+  signal(SIGINT, INThandler);
+
+  std::string clientIp, serverIp;
+  uint16_t port = 0;
+
+  getAttr(argc,argv,&serverIp,&clientIp,&port);
 
   keep_work = true;
 
@@ -258,8 +193,8 @@ int main(int argc, char *argv[]) {
       .host_ip = inet_addr(clientIp.c_str()),
       .netmask = inet_addr("255.255.255.0"),
       .gateway = inet_addr(clientIp.c_str()),
-      .nexthop_mac  = {0x00,0x0F,0x53,0x08,0xED,0xD5},
-      .src_mac_addr = {0x00,0x21,0xB2,0x19,0x0F,0x30},
+      .nexthop_mac  = {}, //{0x00,0x0F,0x53,0x08,0xED,0xD5},
+      .src_mac_addr = {}, //{0x00,0x21,0xB2,0x19,0x0F,0x30},
       .dont_garp    = 0
     }
   };
@@ -281,8 +216,10 @@ int main(int argc, char *argv[]) {
 
   const char* pkt = "Hello world!";
   char rx_buf[1000] = {};
-
+  EKA_LOG("Sending: %s",pkt);
   excSend (dev, conn, pkt, strlen(pkt));
+  EKA_LOG("Sent: %s",pkt);
+
   int rxsize = 0;
   do {
     rxsize = excRecv(dev,conn, rx_buf, 1000);
