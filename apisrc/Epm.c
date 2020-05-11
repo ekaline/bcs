@@ -89,7 +89,7 @@ EkaOpResult epmInitStrategies(EkaDev *dev, EkaCoreId coreId,
   if (dev == NULL) return EKA_OPRESULT__ERR_BAD_ADDRESS;
   if (coreId >= EkaDev::CONF::MAX_CORES || ! dev->core[coreId].connected)
     return EKA_OPRESULT__ERR_INVALID_CORE;
-  if (numStrategies > dev->epm->getMaxStrategies())
+  if (numStrategies > static_cast<epm_strategyid_t>(dev->epm->getMaxStrategies()))
     return EKA_OPRESULT__ERR_MAX_STRATEGIES;
 
   return dev->epm->epmInitStrategies(coreId,params,numStrategies);

@@ -15,7 +15,7 @@ class EpmCore {
  public:
   EkaOpResult setAction(epm_strategyid_t strategy,
 			epm_actionid_t actionIdx, const EpmAction *epmAction) {
-    if (actionIdx >= EkaEpm::MaxActions) return EKA_OPRESULT__ERR_INVALID_ACTION;
+    if (actionIdx >= static_cast<epm_actionid_t>(EkaEpm::MaxActions)) return EKA_OPRESULT__ERR_INVALID_ACTION;
     if (! initialized) return EKA_OPRESULT__ERR_EPM_UNINITALIZED;
     if (strategy >= stratNum) return EKA_OPRESULT__ERR_INVALID_STRATEGY;
 
@@ -25,7 +25,7 @@ class EpmCore {
 
   EkaOpResult getAction(epm_strategyid_t strategy,
 			epm_actionid_t actionIdx, EpmAction *epmAction) {
-    if (actionIdx >= EkaEpm::MaxActions) return EKA_OPRESULT__ERR_INVALID_ACTION;
+    if (actionIdx >= static_cast<epm_actionid_t>(EkaEpm::MaxActions)) return EKA_OPRESULT__ERR_INVALID_ACTION;
     if (! initialized) return EKA_OPRESULT__ERR_EPM_UNINITALIZED;
     if (strategy >= stratNum) return EKA_OPRESULT__ERR_INVALID_STRATEGY;
 
@@ -78,6 +78,10 @@ class EpmCore {
 			      uint32_t offset,
 			      uint32_t length, 
 			      const void *contents) {
+    if (offset % EkaEpm::PayloadAlignment != 0)
+      return EKA_OPRESULT__ERR_INVALID_ALIGN;
+       
+    memcpy(heap + offset,contents,length);
     return EKA_OPRESULT__OK;
 
   }
@@ -88,7 +92,7 @@ class EpmCore {
     epm_enablebits_t  enable;
   };
 
-  uint32_t          stratNum = 0;
+  epm_actionid_t    stratNum = 0;
   
   Strategy          strat[EkaEpm::MaxStrategies] = {};
   EpmAction         action[EkaEpm::MaxActions] = {};
