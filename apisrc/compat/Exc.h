@@ -6,6 +6,8 @@
 #ifndef __EKALINE_EXC_H__
 #define __EKALINE_EXC_H__
 
+#include <unistd.h>
+
 #include "Eka.h"
 
 #ifdef __cplusplus

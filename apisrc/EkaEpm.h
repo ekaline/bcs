@@ -53,8 +53,37 @@ class EkaEpm {
     return MaxActions;
   }
 
+  EkaOpResult epmSetAction(EkaCoreId coreId,
+			   epm_strategyid_t strategy,
+			   epm_actionid_t action,
+			   const EpmAction *epmAction);
 
- private:
+
+  EkaOpResult epmGetAction(EkaCoreId coreId,
+			   epm_strategyid_t strategy,
+			   epm_actionid_t action,
+			   EpmAction *epmAction);
+
+  EkaOpResult epmEnableController(EkaCoreId coreId, bool enable);
+
+  EkaOpResult epmInitStrategies(EkaCoreId coreId,
+				const EpmStrategyParams *params,
+				epm_strategyid_t numStrategies);
+
+EkaOpResult epmSetStrategyEnableBits(EkaCoreId coreId,
+                                     epm_strategyid_t strategy,
+                                     epm_enablebits_t enable);
+EkaOpResult epmGetStrategyEnableBits(EkaCoreId coreId,
+                                     epm_strategyid_t strategy,
+                                     epm_enablebits_t enable);
+  
+EkaOpResult epmRaiseTriggers(EkaCoreId coreId,
+                             const EpmTrigger *trigger);
+
+EkaOpResult epmPayloadHeapCopy(EkaCoreId coreId,
+                               epm_strategyid_t strategy, uint32_t offset,
+                               uint32_t length, const void *contents);
+
   static const uint64_t PayloadMemorySize = 4096;
   static const uint64_t PayloadAlignment = 8;
   static const uint64_t DatagramOffset = 54; // 14+20+20
@@ -62,11 +91,7 @@ class EkaEpm {
   static const uint64_t MaxStrategies = 32;
   static const uint64_t MaxActions = 1024;
 
-  EkaOpResult epmSetAction(EkaCoreId coreId,
-			   epm_strategyid_t strategy, epm_actionid_t action,
-			   const EpmAction *epmAction) {
-
-  }
+ private:
 
   EpmCore* core[EkaDev::CONF::MAX_CORES];
 
