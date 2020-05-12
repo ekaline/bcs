@@ -48,6 +48,10 @@ unsigned int pseudo_csum(unsigned short *ptr,int nbytes);
 void eka_preload_tcp_tx_header(EkaDev* dev, uint8_t core, uint8_t sess);
 uint16_t pseudo_csum2csum (uint32_t pseudo);
 
+
+int processEpmTrigger(EkaDev* dev, uint8_t* buf, uint32_t len);
+
+
 inline bool ethernet_broadcast(uint8_t* m) {
   for (uint i = 0; i < 6; i++) if (m[i] != 0xFF) return false;
   printf ("%s: %02x:%02x:%02x:%02x:%02x:%02x is broadcast MAC\n",__func__,m[0],m[1],m[2],m[3],m[4],m[5]);

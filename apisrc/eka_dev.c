@@ -183,7 +183,7 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 
   sn_dev = new eka_sn_dev(this);
 
-  epm = new EkaEpm();
+  epm = new EkaEpm(this);
 
   hw.enabled_cores = (sn_dev->read(VERSION2) >> 56) & 0xFF;
   hw.feed_ver = (sn_dev->read(VERSION1) >> HW_FEED_SHIFT_SIZE) & HW_FEED_SHIFT_MASK;
@@ -250,6 +250,9 @@ EkaDev::~EkaDev() {
 
   EKA_LOG("Closing %u FHs",numFh);
   fflush(stderr);
+
+  EKA_LOG("Closing Epm");
+  dev->epm->active = false;
 
   for (auto i = 0; i < numFh; i++) {
     if (fh[i] != NULL) fh[i]->stop();

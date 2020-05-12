@@ -92,6 +92,7 @@ EkaOpResult epmInitStrategies(EkaDev *dev, EkaCoreId coreId,
   if (numStrategies > static_cast<epm_strategyid_t>(dev->epm->getMaxStrategies()))
     return EKA_OPRESULT__ERR_MAX_STRATEGIES;
 
+  EKA_LOG("initializing %u EPM strategies for core %u",numStrategies,coreId);
   return dev->epm->epmInitStrategies(coreId,params,numStrategies);
 }
 
@@ -136,3 +137,6 @@ EkaOpResult epmPayloadHeapCopy(EkaDev *dev, EkaCoreId coreId,
 
   return dev->epm->epmPayloadHeapCopy(coreId,strategy,offset,length,contents);
 }
+
+
+/* ######################################### */

@@ -93,6 +93,9 @@ include .depend
 eka_%.o: eka_%.c
 	$(CC) -c $< $(INCL) $(GCC_FLAGS)
 
+epm%.o: epm%.c
+	$(CC) -c $< $(INCL) $(GCC_FLAGS)
+
 E%.o: E%.c
 	$(CC) -c $< $(INCL) $(GCC_FLAGS)
 

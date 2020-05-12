@@ -27,6 +27,9 @@ EkaOpResult EkaEpm::epmEnableController(EkaCoreId coreId, bool enable) {
 EkaOpResult EkaEpm::epmInitStrategies(EkaCoreId coreId,
 			      const EpmStrategyParams *params,
 			      epm_strategyid_t numStrategies) {
+  if (core[coreId] != NULL) on_error("core[%u] != NULL",coreId);
+  core[coreId] = new EpmCore(dev, coreId);
+  if (core[coreId] == NULL) on_error("core[%u] == NULL",coreId);
   return core[coreId]->initStrategies(params,numStrategies);
 }
 

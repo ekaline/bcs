@@ -11,9 +11,6 @@ void eka_open_sn_channels (EkaDev* dev,SN_DeviceId devId);
 //################################################
 
 void set_fast_session(EkaDev* dev, uint8_t core,uint8_t sess) {
-  printf ("%s: dev = %p\n",__func__,dev);
-  fflush(stdout);
-
   EKA_LOG("Setting Fast Session for core = %u, sess = %u",core,sess);
   fflush(stderr);
   dev->sn_dev->set_fast_session(core,sess);

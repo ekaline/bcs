@@ -38,7 +38,16 @@ LIBEKALINE2_1.0	{
 			efhDestroy;
 
 			excUdpSocket;
-			excSendTo;		
+			excSendTo;	
+
+			epmGetDeviceCapability;		
+			epmInitStrategies;
+			epmEnableController;
+			epmSetAction;
+			epmPayloadHeapCopy;
+			epmGetStrategyEnableBits;
+			epmSetStrategyEnableBits;
+			epmRaiseTriggers;
 		local:
 			*;
 		};

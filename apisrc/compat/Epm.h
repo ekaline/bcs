@@ -7,6 +7,9 @@
 #ifndef __EKALINE_EPM_H__
 #define __EKALINE_EPM_H__
 
+
+extern "C" {
+
 struct EpmAction;
 
 typedef uint64_t epm_token_t;
@@ -445,5 +448,6 @@ EkaOpResult epmSetStrategyEnableBits(EkaDev *ekaDev, EkaCoreId coreId,
  */
 EkaOpResult epmRaiseTriggers(EkaDev *ekaDev, EkaCoreId coreId,
                              const EpmTrigger *trigger);
+} // End of extern "C"
 
 #endif

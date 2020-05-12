@@ -65,9 +65,14 @@ void fh_udp_channel::next() {
 
 fh_udp_channel::fh_udp_channel (EfhCtx* pEfhCtx) {
   dev = pEfhCtx->dev;
+  if (dev == NULL) on_error("dev == NULL");
+  if (dev->sn_dev == NULL) on_error("dev->sn_dev == NULL");
   pkt_payload_ptr = NULL;
 
   core = pEfhCtx->coreId;
+
+  EKA_LOG("Opening UDP Channel for core %u, dev = %p",core, dev); fflush(stderr);fflush(stdout);
+
   ptr_update_ctr = 0;
   packetBytesTotal = 0;
   pPreviousUdpPacket = NULL;
@@ -92,7 +97,7 @@ void fh_udp_channel::igmp_mc_join (uint32_t src_ip, uint32_t mcast_ip, uint16_t 
   sprintf (ip, "%s",EKA_IP2STR(mcast_ip));
   SN_Error errorCode = SN_IgmpJoin(ChannelId,core,(const char*)ip,be16toh(mcast_port),NULL);
   if (errorCode != SN_ERR_SUCCESS) 
-    on_error("Failed to join on core %u MC %s:%u, error code %d",core,ip,be16toh(mcast_port),errorCode);
+    on_error("Failed to join on core %u MC %s:%u, error code %d",core,ip,mcast_port,errorCode);
   //  EKA_LOG("IGMP joined %s:%u for HW UDP Channel from %s",ip,be16toh(mcast_port),EKA_IP2STR(src_ip));
 
   //----------------------------------------------------
@@ -122,6 +127,7 @@ void fh_udp_channel::igmp_mc_join (uint32_t src_ip, uint32_t mcast_ip, uint16_t 
   val &= 0xFFFFFF00FFFFFFFF; 
   val |= (uint64_t) ((s+1) << 32);
   eka_write(dev, SW_STATISTICS, val);
+  //  EKA_LOG("IGMP joined %s:%u for HW UDP Channel from %s",ip,mcast_port,EKA_IP2STR(src_ip));
   EKA_LOG("IGMP joined %s:%u for HW UDP Channel from %s",ip,be16toh(mcast_port),EKA_IP2STR(src_ip));
 
   //----------------------------------------------------

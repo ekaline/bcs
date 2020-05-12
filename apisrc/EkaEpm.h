@@ -29,6 +29,12 @@ class EpmCore;
 
 class EkaEpm {
  public:
+
+  EkaEpm(EkaDev* _dev) {
+    dev = _dev;
+    EKA_LOG("Created Epm");
+  }
+
   uint64_t getPayloadMemorySize () {
     return PayloadMemorySize;
   }
@@ -70,19 +76,19 @@ class EkaEpm {
 				const EpmStrategyParams *params,
 				epm_strategyid_t numStrategies);
 
-EkaOpResult epmSetStrategyEnableBits(EkaCoreId coreId,
-                                     epm_strategyid_t strategy,
-                                     epm_enablebits_t enable);
-EkaOpResult epmGetStrategyEnableBits(EkaCoreId coreId,
-                                     epm_strategyid_t strategy,
-                                     epm_enablebits_t enable);
+  EkaOpResult epmSetStrategyEnableBits(EkaCoreId coreId,
+				       epm_strategyid_t strategy,
+				       epm_enablebits_t enable);
+  EkaOpResult epmGetStrategyEnableBits(EkaCoreId coreId,
+				       epm_strategyid_t strategy,
+				       epm_enablebits_t enable);
   
-EkaOpResult epmRaiseTriggers(EkaCoreId coreId,
-                             const EpmTrigger *trigger);
+  EkaOpResult epmRaiseTriggers(EkaCoreId coreId,
+			       const EpmTrigger *trigger);
 
-EkaOpResult epmPayloadHeapCopy(EkaCoreId coreId,
-                               epm_strategyid_t strategy, uint32_t offset,
-                               uint32_t length, const void *contents);
+  EkaOpResult epmPayloadHeapCopy(EkaCoreId coreId,
+				 epm_strategyid_t strategy, uint32_t offset,
+				 uint32_t length, const void *contents);
 
   static const uint64_t PayloadMemorySize = 4096;
   static const uint64_t PayloadAlignment = 8;
@@ -91,9 +97,12 @@ EkaOpResult epmPayloadHeapCopy(EkaCoreId coreId,
   static const uint64_t MaxStrategies = 32;
   static const uint64_t MaxActions = 1024;
 
- private:
+  EkaDev* dev;
 
-  EpmCore* core[EkaDev::CONF::MAX_CORES];
+  EpmCore* core[EkaDev::CONF::MAX_CORES] = {};
+  volatile bool active = false;
+
+ private:
 
 
 };

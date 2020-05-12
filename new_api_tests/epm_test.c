@@ -13,6 +13,11 @@
 #include <iterator>
 #include <thread>
 
+#include <linux/sockios.h>
+
+#include <sys/ioctl.h>
+#include <net/if.h>
+
 #include <sys/time.h>
 #include <chrono>
 
@@ -23,13 +28,16 @@
 #include "Efc.h"
 #include "Efh.h"
 #include "Epm.h"
+#include "EkaEpm.h"
 
 #include "eka_macros.h"
+
 
 /* --------------------------------------------- */
 
 volatile bool keep_work = true;
-volatile bool serverSet = false;;
+volatile bool serverSet = false;
+volatile bool triggerGeneratorDone = false;
 /* --------------------------------------------- */
 
 void  INThandler(int sig) {
@@ -142,15 +150,49 @@ void tcpServer(std::string ip, uint16_t port) {
 
 /* --------------------------------------------- */
 
-void printUsage(char* cmd) {
-  printf("USAGE: %s -s <Server IP> -c <Client IP> -p <TCP Port> \n",cmd); 
+
+/* --------------------------------------------- */
+
+
+void triggerGenerator(const sockaddr_in* triggerAddr,EpmTrigger* epmTrigger,uint numTriggers) {
+  printf("=======================\nStrating triggerGenerator: %s:%u, numTriggers=%u\n",
+	 EKA_IP2STR(triggerAddr->sin_addr.s_addr),be16toh(triggerAddr->sin_port),numTriggers);
+
+  int sock = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
+  if (sock < 0) on_error("failed to open UDP sock");
+
+  struct ifreq interface;
+
+  strncpy(interface.ifr_ifrn.ifrn_name, "eth1", IFNAMSIZ);
+  if (setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE,
+                       (char *)&interface, sizeof(interface)) < 0) {
+    on_error("failed SO_BINDTODEVICE to eth1");
+  }
+
+  for(uint i = 0; i < numTriggers; i++) {
+    printf("Sending trigger %d to %s:%u\n",i,EKA_IP2STR(triggerAddr->sin_addr.s_addr),be16toh(triggerAddr->sin_port));
+    if (sendto(sock,&epmTrigger[i],sizeof(EpmTrigger),0,(const sockaddr*) triggerAddr,sizeof(sockaddr)) < 0) 
+      on_error("Failed to send trigegr to %s:%u",EKA_IP2STR(triggerAddr->sin_addr.s_addr),be16toh(triggerAddr->sin_port));
+    sleep (1);
+  }
+
+  triggerGeneratorDone = true;
 }
 
 /* --------------------------------------------- */
 
-static int getAttr(int argc, char *argv[], std::string* serverIp, std::string* clientIp, uint16_t* port) {
+void printUsage(char* cmd) {
+  printf("USAGE: %s -s <Connection Server IP> -p <Connection Server TcpPort> -c <Connection Client IP> -t <Trigger IP> -u <Trigger UdpPort> \n",cmd); 
+}
+
+/* --------------------------------------------- */
+
+static int getAttr(int argc, char *argv[],
+		   std::string* serverIp, uint16_t* serverTcpPort, 
+		   std::string* clientIp, 
+		   std::string* triggerIp, uint16_t* triggerUdpPort) {
   int opt; 
-  while((opt = getopt(argc, argv, ":c:s:p:h")) != -1) {  
+  while((opt = getopt(argc, argv, ":c:s:p:u:t:h")) != -1) {  
     switch(opt) {  
       case 's':  
 	*serverIp = std::string(optarg);
@@ -161,8 +203,16 @@ static int getAttr(int argc, char *argv[], std::string* serverIp, std::string* c
 	printf("clientIp = %s\n", (*clientIp).c_str());  
 	break;  
       case 'p':  
-	*port = atoi(optarg);
-	printf("port = %u\n", *port);  
+	*serverTcpPort = atoi(optarg);
+	printf("serverTcpPort = %u\n", *serverTcpPort);  
+	break;  
+      case 't':  
+	*triggerIp = std::string(optarg);
+	printf("triggerIp = %s\n", (*triggerIp).c_str());  
+	break;  
+      case 'u':  
+	*triggerUdpPort = atoi(optarg);
+	printf("triggerUdpPort = %u\n", *triggerUdpPort);  
 	break;  
       case 'h':  
 	printUsage(argv[0]);
@@ -173,10 +223,10 @@ static int getAttr(int argc, char *argv[], std::string* serverIp, std::string* c
       }  
   }  
 
-  if ((*clientIp).empty() || (*serverIp).empty() || *port == 0) {
+  if ((*clientIp).empty() || (*serverIp).empty() || (*triggerIp).empty() || *serverTcpPort == 0 || *triggerUdpPort == 0) {
     printUsage(argv[0]);
-    on_error("missing params: clientIp=%s, serverIp=%s, port=%u",
-	     (*clientIp).c_str(),(*serverIp).c_str(),*port);
+    on_error("missing params: clientIp=%s, serverIp=%s, serverTcpPort=%u, triggerUdpPort=%u",
+	     (*clientIp).c_str(),(*serverIp).c_str(),*serverTcpPort,*triggerUdpPort);
   }
   return 0;
 }
@@ -187,15 +237,16 @@ static int getAttr(int argc, char *argv[], std::string* serverIp, std::string* c
 int main(int argc, char *argv[]) {
   signal(SIGINT, INThandler);
 
-  std::string clientIp, serverIp;
-  uint16_t port = 0;
+  std::string clientIp, serverIp, triggerIp;
+  uint16_t serverTcpPort  = 0;
+  uint16_t triggerUdpPort = 0;;
 
-  getAttr(argc,argv,&serverIp,&clientIp,&port);
+  getAttr(argc,argv,&serverIp,&serverTcpPort,&clientIp,&triggerIp,&triggerUdpPort);
 
   keep_work = true;
   serverSet = false;
 
-  std::thread server = std::thread(tcpServer,serverIp,port);
+  std::thread server = std::thread(tcpServer,serverIp,serverTcpPort);
   server.detach();
 
   while (keep_work && ! serverSet) { sleep (0); }
@@ -230,7 +281,7 @@ int main(int argc, char *argv[]) {
   struct sockaddr_in dst = {};
   dst.sin_addr.s_addr = inet_addr(serverIp.c_str());
   dst.sin_family      = AF_INET;
-  dst.sin_port        = be16toh(port);
+  dst.sin_port        = be16toh(serverTcpPort);
 
   int sock = excSocket(dev,coreId,0,0,0);
   if (sock < 0) on_error("failed to open sock");
@@ -253,46 +304,79 @@ int main(int argc, char *argv[]) {
 
   /* ============================================== */
 
-  const char* pkt2send_1 = "Pkt 1 FIRED";
 
-
-  EpmAction epmAction_1 = {
-    .token         = static_cast<epm_token_t>(0), ///< Security token
-    .hConn         = conn,                        ///< TCP connection where segments will be sent
-    .offset        = 0,                           ///< Offset to payload in payload heap
-    .length        = strlen(pkt2send_1),                 ///< Payload length
-    .actionFlags   = AF_Valid,                    ///< Behavior flags (see EpmActionFlag)
-    .nextAction    = EPM_LAST_ACTION,             ///< Next action in sequence, or EPM_LAST_ACTION
-    .enable        = 0x01,                        ///< Enable bits
-    .postLocalMask = 0x01,                        ///< Post fire: enable & mask -> enable
-    .postStratMask = 0x01,                        ///< Post fire: strat-enable & mask -> strat-enable
-    .user          = NULL                         ///< Opaque value copied into `EpmFireReport`.
+  EpmTrigger epmTrigger[] = {
+    /* token, strategy, action */
+    {   11,       5,      23},
+    {   7,        3,      17},
+    {   9,        5,      21},
+    {   17,       5,       6},
   };
+  uint numTriggers = sizeof(epmTrigger)/sizeof(epmTrigger[0]);
 
-  EpmStrategyParams strat_1 = {
-    .numActions  = 1,             ///< No. of actions entries used by this strategy
-    .triggerAddr = NULL,          ///< Address to receive trigger packets
-    .reportCb    = fireReportCb,  ///< Callback function to process fire reports
-    .cbCtx       = NULL           ///< Opaque value passed into reportCb
+  /* ============================================== */
+
+  struct sockaddr_in triggerDst = {};
+  triggerDst.sin_family      = AF_INET;  
+  triggerDst.sin_addr.s_addr = inet_addr(triggerIp.c_str());
+  triggerDst.sin_port        = be16toh(triggerUdpPort);
+
+  const sockaddr* triggerAddr = reinterpret_cast<const sockaddr*>(&triggerDst);
+  const EpmStrategyParams strategyParams[] = {
+    /* numActions, *triggerAddr, reportCb,    *cbCtx */
+    { 2,              triggerAddr, fireReportCb, NULL },
+    { 3,              triggerAddr, fireReportCb, NULL },
+    { 1,              triggerAddr, fireReportCb, NULL },
+    { 1,              triggerAddr, fireReportCb, NULL },
   };
+  epm_strategyid_t numStrategies = sizeof(strategyParams) / sizeof(strategyParams[0]);
+
+  epmInitStrategies(dev, coreId, strategyParams, numStrategies);
+
+  /* ============================================== */
+  triggerGeneratorDone = false;
+
+  std::thread trigger = std::thread(triggerGenerator,reinterpret_cast<const sockaddr_in*>(triggerAddr),epmTrigger,numTriggers);
+  trigger.detach();
+
+  /* ============================================== */
+
+  /* const char* pkt2send_1 = "Pkt 1 FIRED"; */
+
+
+  /* EpmAction epmAction_1 = { */
+  /*   .token         = static_cast<epm_token_t>(0), ///< Security token */
+  /*   .hConn         = conn,                        ///< TCP connection where segments will be sent */
+  /*   .offset        = 0,                           ///< Offset to payload in payload heap */
+  /*   .length        = strlen(pkt2send_1),          ///< Payload length */
+  /*   .actionFlags   = AF_Valid,                    ///< Behavior flags (see EpmActionFlag) */
+  /*   .nextAction    = EPM_LAST_ACTION,             ///< Next action in sequence, or EPM_LAST_ACTION */
+  /*   .enable        = 0x01,                        ///< Enable bits */
+  /*   .postLocalMask = 0x01,                        ///< Post fire: enable & mask -> enable */
+  /*   .postStratMask = 0x01,                        ///< Post fire: strat-enable & mask -> strat-enable */
+  /*   .user          = NULL                         ///< Opaque value copied into `EpmFireReport`. */
+  /* }; */
+
+  /* EpmStrategyParams strat_1 = { */
+  /*   .numActions  = 1,             ///< No. of actions entries used by this strategy */
+  /*   .triggerAddr = NULL,          ///< Address to receive trigger packets */
+  /*   .reportCb    = fireReportCb,  ///< Callback function to process fire reports */
+  /*   .cbCtx       = NULL           ///< Opaque value passed into reportCb */
+  /* }; */
 
 
 
-
-
-
-
+  while (! triggerGeneratorDone) sleep(0);
 
 
   /* ============================================== */
 
 
   excClose(dev,conn);
+  printf("Closing device\n");
 
   sleep (1);
-  printf("Closing device\n");
   ekaDevClose(dev);
-  sleep (1);
 
   return 0;
 }
