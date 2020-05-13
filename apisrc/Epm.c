@@ -109,7 +109,7 @@ EkaOpResult epmSetStrategyEnableBits(EkaDev *dev, EkaCoreId coreId,
 
 EkaOpResult epmGetStrategyEnableBits(EkaDev *dev, EkaCoreId coreId,
                                      epm_strategyid_t strategy,
-                                     epm_enablebits_t enable) {
+                                     epm_enablebits_t *enable) {
 
   if (dev == NULL) return EKA_OPRESULT__ERR_BAD_ADDRESS;
   if (coreId >= EkaDev::CONF::MAX_CORES || ! dev->core[coreId].connected)

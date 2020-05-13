@@ -1,34 +1,44 @@
 #include "eka_fh_udp_channel.h"
 #include "EpmCore.h"
+#include "EpmStrategy.h"
 
 #include "EkaCtxs.h"
 
-EpmCore::EpmCore(EkaDev* _dev, EkaCoreId _coreId) {
-  dev = _dev;
+EpmCore::EpmCore(EkaEpm* _parent, EkaCoreId _coreId) {
+  parent = _parent;
+  dev = parent->dev;
   coreId = _coreId;
 }
 /* ----------------------------------------------------- */
 
-EkaOpResult EpmCore::setAction(epm_strategyid_t strategy,
+EkaOpResult EpmCore::setAction(epm_strategyid_t strategyIdx,
 			       epm_actionid_t actionIdx, 
 			       const EpmAction *epmAction) {
-  if (actionIdx >= static_cast<epm_actionid_t>(EkaEpm::MaxActions)) return EKA_OPRESULT__ERR_INVALID_ACTION;
-  if (! initialized) return EKA_OPRESULT__ERR_EPM_UNINITALIZED;
-  if (strategy >= stratNum) return EKA_OPRESULT__ERR_INVALID_STRATEGY;
-  
-  memcpy (&action[actionIdx],epmAction,sizeof(EpmAction));
-  return EKA_OPRESULT__OK;
+  if (! initialized) {
+    EKA_WARN ("EKA_OPRESULT__ERR_EPM_UNINITALIZED");
+    return EKA_OPRESULT__ERR_EPM_UNINITALIZED;
+  }
+  if (! validStrategyIdx(strategyIdx)) {
+    EKA_WARN ("EKA_OPRESULT__ERR_INVALID_STRATEGY");
+    return EKA_OPRESULT__ERR_INVALID_STRATEGY;
+  }
+  if (! strategy[strategyIdx]->myAction(actionIdx)){
+    EKA_WARN ("EKA_OPRESULT__ERR_INVALID_ACTION");
+    return EKA_OPRESULT__ERR_INVALID_ACTION;
+  }
+
+  return strategy[strategyIdx]->setAction(actionIdx,epmAction);
 }
 /* ----------------------------------------------------- */
-EkaOpResult EpmCore::getAction(epm_strategyid_t strategy,
+EkaOpResult EpmCore::getAction(epm_strategyid_t strategyIdx,
 			       epm_actionid_t actionIdx, 
 			       EpmAction *epmAction) {
-  if (actionIdx >= static_cast<epm_actionid_t>(EkaEpm::MaxActions)) return EKA_OPRESULT__ERR_INVALID_ACTION;
-  if (! initialized) return EKA_OPRESULT__ERR_EPM_UNINITALIZED;
-  if (strategy >= stratNum) return EKA_OPRESULT__ERR_INVALID_STRATEGY;
 
-  memcpy (epmAction,&action[actionIdx],sizeof(EpmAction));
-  return EKA_OPRESULT__OK;
+  if (! initialized) return EKA_OPRESULT__ERR_EPM_UNINITALIZED;
+  if (! validStrategyIdx(strategyIdx)) return EKA_OPRESULT__ERR_INVALID_STRATEGY;
+  if (! strategy[strategyIdx]->myAction(actionIdx)) return EKA_OPRESULT__ERR_INVALID_ACTION;
+
+  return strategy[strategyIdx]->getAction(actionIdx,epmAction);
 }
 
 /* ----------------------------------------------------- */
@@ -40,82 +50,107 @@ EkaOpResult EpmCore::enableController(bool enable) {
 }
 
 /* ----------------------------------------------------- */
-void swEpmProcessor(EpmCore* epmCore) {
-  EkaDev* dev = epmCore->dev;
-  EKA_LOG("Launched");
-  dev->epm->active = true;
-  while (dev->epm->active) {
-    if (! epmCore->epmCh->has_data()) continue;
+void EpmCore::swEpmProcessor() {
+  while (parent->active) {
+    if (! epmCh->has_data()) continue;
 
-    const uint8_t* pkt = epmCore->epmCh->get();
+    const uint8_t* pkt = epmCh->get();
     if (pkt == NULL) on_error("pkt == NULL");
     const EpmTrigger* trigger = reinterpret_cast<const EpmTrigger*>(pkt);
     EKA_LOG("Received Trigger: token=%u, strategy=%u, action=%u",
-	    trigger->token,trigger->strategy,trigger->action);
+  	    trigger->token,trigger->strategy,trigger->action);
 
+    epm_strategyid_t strategyIdx = trigger->strategy;
+    epm_actionid_t actionIdx = trigger->action;
+
+    if (! validStrategyIdx(strategyIdx))
+      on_error("INVALID Strategy %u",strategyIdx);
+    if (! strategy[strategyIdx]->myAction(actionIdx))
+      on_error("INVALID Action %u",actionIdx);
+
+    while (actionIdx != EPM_LAST_ACTION) {
+      EpmAction epmAction = {};
+      if (strategy[strategyIdx]->getAction(actionIdx,&epmAction) != EKA_OPRESULT__OK)
+	on_error("getAction failed for strategyIdx=%u, actionIdx=%u",strategyIdx,actionIdx);
+      if (epmAction.offset + epmAction.length >= EkaEpm::PayloadMemorySize)
+	on_error("epmAction.offset %u + epmAction.length %u >= EkaEpm::PayloadMemorySize %ju",
+		 epmAction.offset,epmAction.length, EkaEpm::PayloadMemorySize);
+      char pkt2send[1000] = {};
+      memcpy(pkt2send,&heap[epmAction.offset],epmAction.length);
+      EKA_LOG("\tSending pkt: |%s|",pkt2send);
+      excSend (dev, epmAction.hConn, &heap[epmAction.offset], epmAction.length);
+      //      EKA_LOG("strategy=%u, ActionId=%u, nextAction=%u",strategyIdx,epmAction.user,epmAction.nextAction);
+      actionIdx = epmAction.nextAction;
+    }
     
-    epmCore->epmCh->next();
+    epmCh->next();
   }
+}
+
+/* ----------------------------------------------------- */
+int EpmCore::openUdpChannel() {
+  EfhCtx dummyEfhCtx = {};
+  dummyEfhCtx.dev    = dev;
+  dummyEfhCtx.coreId = coreId;
+  epmCh              = new fh_udp_channel(&dummyEfhCtx);
+  if (epmCh == NULL) on_error ("epmCh == NULL");
+  return 0;
+}
+/* ----------------------------------------------------- */
+bool EpmCore::alreadyJoined(epm_strategyid_t prevStrats,uint32_t ip, uint16_t port) {
+  for (auto i = 0; i < prevStrats; i++) {
+    if (strategy[i]->hasSame(ip,port)) return true;
+  }
+  return false;
+}
+
+/* ----------------------------------------------------- */
+
+int EpmCore::joinMc(uint32_t ip, uint16_t port) {
+  epmCh->igmp_mc_join(dev->core[coreId].src_ip,ip,be16toh(port));
+  return 0;
 }
 
 /* ----------------------------------------------------- */
 
 EkaOpResult EpmCore::initStrategies(const EpmStrategyParams *params,
 				    epm_strategyid_t numStrategies) {
-  for (auto i = 0; i < numStrategies; i++) {
-    memcpy(&strat[i],&params[i],sizeof(EpmStrategyParams));
-  }
+  EKA_LOG("Initializing Core %u, numStrategies =  %u",coreId,numStrategies);
+
   initialized = true;
   stratNum = numStrategies;
+  openUdpChannel();
 
-  EfhCtx dummyEfhCtx = {};
-  dummyEfhCtx.dev = dev;
-  dummyEfhCtx.coreId = coreId;
-  epmCh = new fh_udp_channel(&dummyEfhCtx);
-  if (epmCh == NULL) on_error ("epmCh == NULL");
-
+  epm_actionid_t baseActionIdx = 0;
   for (auto i = 0; i < stratNum; i++) {
-    const sockaddr_in *triggerAddr = reinterpret_cast<const sockaddr_in*>(params[i].triggerAddr);
-    if (triggerAddr == NULL) on_error("triggerAddr == NULL for strategy %d",i);
-    uint32_t mcIp = triggerAddr->sin_addr.s_addr;
-    uint16_t port = be16toh(triggerAddr->sin_port);
-    bool alreadyJoined = false;
-    for (auto j = 0; j < i; j++) {
-      if (reinterpret_cast<const sockaddr_in*>(params[i].triggerAddr)->sin_addr.s_addr == mcIp && 
-	  be16toh(reinterpret_cast<const sockaddr_in*>(params[i].triggerAddr)->sin_port) == port) {
-	alreadyJoined = true;
-      }
-    }
-    EKA_LOG("strategy %d: %s:%u -- %s",i,EKA_IP2STR(mcIp),port, alreadyJoined ? "skipping IGMP join" : "joining MC");
-    if (! alreadyJoined) epmCh->igmp_mc_join(0,mcIp,be16toh(port));
-    //    if (! alreadyJoined) epmCh->igmp_mc_join(0,mcIp,0);
+    strategy[i] = new EpmStrategy(this,i,baseActionIdx, &params[i]);
+    baseActionIdx += params[i].numActions;
   }
 
-  swProcessor = std::thread(swEpmProcessor,this);
+  swProcessor = std::thread(&EpmCore::swEpmProcessor,this);
 
   return EKA_OPRESULT__OK;
 }
 /* ----------------------------------------------------- */
 
-EkaOpResult EpmCore::setStrategyEnableBits(epm_strategyid_t strategy,
+EkaOpResult EpmCore::setStrategyEnableBits(epm_strategyid_t strategyIdx,
 					   epm_enablebits_t enable) {
-  if (! initialized) return EKA_OPRESULT__ERR_EPM_UNINITALIZED;
-  if (strategy >= stratNum) return EKA_OPRESULT__ERR_INVALID_STRATEGY;
+  if (! initialized) 
+    return EKA_OPRESULT__ERR_EPM_UNINITALIZED;
 
-  memcpy(&strat[strategy].enable,&enable,sizeof(epm_enablebits_t));
+  if (! validStrategyIdx(strategyIdx)) return EKA_OPRESULT__ERR_INVALID_STRATEGY;
 
-  return EKA_OPRESULT__OK;
+  return strategy[strategyIdx]->setEnableBits(enable);
 }
 /* ----------------------------------------------------- */
 
-EkaOpResult EpmCore::getStrategyEnableBits(epm_strategyid_t strategy,
-					   epm_enablebits_t enable) {
-  if (! initialized) return EKA_OPRESULT__ERR_EPM_UNINITALIZED;
-  if (strategy >= stratNum) return EKA_OPRESULT__ERR_INVALID_STRATEGY;
+EkaOpResult EpmCore::getStrategyEnableBits(epm_strategyid_t strategyIdx,
+					   epm_enablebits_t *enable) {
+  if (! initialized)
+    return EKA_OPRESULT__ERR_EPM_UNINITALIZED;
+  if (! validStrategyIdx(strategyIdx)) return EKA_OPRESULT__ERR_INVALID_STRATEGY;
 
-  memcpy(&enable,&strat[strategy].enable,sizeof(epm_enablebits_t));
-
-  return EKA_OPRESULT__OK;
+  return strategy[strategyIdx]->getEnableBits(enable);
 }
 /* ----------------------------------------------------- */
 
@@ -132,6 +167,8 @@ EkaOpResult EpmCore::payloadHeapCopy(epm_strategyid_t strategy,
   if (offset % EkaEpm::PayloadAlignment != 0)
     return EKA_OPRESULT__ERR_INVALID_ALIGN;
        
+  if (offset + length > EkaEpm::PayloadMemorySize) 
+    return EKA_OPRESULT__ERR_INVALID_OFFSET;
   memcpy(heap + offset,contents,length);
   return EKA_OPRESULT__OK;
 

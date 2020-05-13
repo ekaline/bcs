@@ -71,7 +71,7 @@ fh_udp_channel::fh_udp_channel (EfhCtx* pEfhCtx) {
 
   core = pEfhCtx->coreId;
 
-  EKA_LOG("Opening UDP Channel for core %u, dev = %p",core, dev); fflush(stderr);fflush(stdout);
+  //  EKA_LOG("Opening UDP Channel for core %u, dev = %p",core, dev); fflush(stderr);fflush(stdout);
 
   ptr_update_ctr = 0;
   packetBytesTotal = 0;

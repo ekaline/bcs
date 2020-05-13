@@ -639,8 +639,8 @@ ssize_t eka_send(EkaDev* dev, uint16_t sess_id, void *buf, size_t size) {
 
   if (size2send == 1) EKA_LOG("WARNING: 1Byte payload might be considered as Keep Alive");
 
-  EKA_LOG("size = %u, size2send = %u, core = %u, sess = %u",size,size2send,core,sess);
-  hexDump("eka_send",buf,size);
+  /* EKA_LOG("size = %u, size2send = %u, core = %u, sess = %u",size,size2send,core,sess); */
+  /* hexDump("eka_send",buf,size); */
 
   ekaLowLevelSend_payload(dev, core, sess, buf, size2send);
 

@@ -28,8 +28,9 @@ EkaOpResult EkaEpm::epmInitStrategies(EkaCoreId coreId,
 			      const EpmStrategyParams *params,
 			      epm_strategyid_t numStrategies) {
   if (core[coreId] != NULL) on_error("core[%u] != NULL",coreId);
-  core[coreId] = new EpmCore(dev, coreId);
+  core[coreId] = new EpmCore(this, coreId);
   if (core[coreId] == NULL) on_error("core[%u] == NULL",coreId);
+  active = true;
   return core[coreId]->initStrategies(params,numStrategies);
 }
 
@@ -41,7 +42,7 @@ EkaOpResult EkaEpm::epmSetStrategyEnableBits(EkaCoreId coreId,
 
 EkaOpResult EkaEpm::epmGetStrategyEnableBits(EkaCoreId coreId,
                                      epm_strategyid_t strategy,
-                                     epm_enablebits_t enable) {
+                                     epm_enablebits_t *enable) {
   return core[coreId]->getStrategyEnableBits(strategy,enable);
 }
 

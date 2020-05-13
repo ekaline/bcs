@@ -12,10 +12,11 @@
 #include "EkaEpm.h"
 
 class fh_udp_channel;
+class EpmStrategy;
 
 class EpmCore {
  public:
-  EpmCore(EkaDev* dev, EkaCoreId _coreId);
+  EpmCore(EkaEpm* parent, EkaCoreId _coreId);
   EkaOpResult setAction(epm_strategyid_t strategy,
 			epm_actionid_t actionIdx, 
 			const EpmAction *epmAction);
@@ -33,7 +34,7 @@ class EpmCore {
 				    epm_enablebits_t enable);
 
   EkaOpResult getStrategyEnableBits(epm_strategyid_t strategy,
-				    epm_enablebits_t enable);
+				    epm_enablebits_t *enable);
 
   EkaOpResult raiseTriggers(const EpmTrigger *trigger);
 
@@ -41,30 +42,37 @@ class EpmCore {
 			      uint32_t offset,
 			      uint32_t length, 
 			      const void *contents);
+  bool alreadyJoined(epm_strategyid_t prevStrats,uint32_t ip, uint16_t port);
 
-  struct Strategy {
-    EpmStrategyParams params;
-    epm_enablebits_t  enable;
-  };
+  int joinMc(uint32_t ip, uint16_t port);
 
-  // private:
-  EkaDev* dev;
+ private:
+  void swEpmProcessor();
+  int  openUdpChannel();
 
-  epm_actionid_t    stratNum = 0;
-  
-  Strategy          strat[EkaEpm::MaxStrategies] = {};
-  EpmAction         action[EkaEpm::MaxActions] = {};
+  bool validStrategyIdx(epm_strategyid_t strategyIdx) {
+    return strategyIdx < stratNum || strategy[strategyIdx] != NULL;
+  }
+
+  epm_strategyid_t  stratNum = 0;
+  EpmStrategy*      strategy[EkaEpm::MaxStrategies] = {};
+
+  EpmAction*        action[EkaEpm::MaxActions]      = {};
   char              heap[EkaEpm::PayloadMemorySize] = {};
   
   bool              controllerEnabled = false;
   bool              initialized = false;
 
-  fh_udp_channel*   epmCh       = NULL;
   EkaCoreId         coreId;
+  EkaEpm*           parent;
 
   std::thread       swProcessor;
 
- private:
+ public:
+  EkaDev*           dev   = NULL;
+  fh_udp_channel*   epmCh = NULL;
+
+  
 };
 
 

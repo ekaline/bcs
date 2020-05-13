@@ -81,7 +81,7 @@ class EkaEpm {
 				       epm_enablebits_t enable);
   EkaOpResult epmGetStrategyEnableBits(EkaCoreId coreId,
 				       epm_strategyid_t strategy,
-				       epm_enablebits_t enable);
+				       epm_enablebits_t *enable);
   
   EkaOpResult epmRaiseTriggers(EkaCoreId coreId,
 			       const EpmTrigger *trigger);
@@ -90,8 +90,8 @@ class EkaEpm {
 				 epm_strategyid_t strategy, uint32_t offset,
 				 uint32_t length, const void *contents);
 
-  static const uint64_t PayloadMemorySize = 4096;
-  static const uint64_t PayloadAlignment = 8;
+  static const uint64_t PayloadMemorySize = 8 * 1024;
+  static const uint64_t PayloadAlignment = 1;
   static const uint64_t DatagramOffset = 54; // 14+20+20
   static const uint64_t RequiredTailPadding = 4;
   static const uint64_t MaxStrategies = 32;

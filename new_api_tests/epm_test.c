@@ -37,7 +37,11 @@
 
 volatile bool keep_work = true;
 volatile bool serverSet = false;
+volatile bool rxClientReady = false;
+
 volatile bool triggerGeneratorDone = false;
+
+static EkaOpResult ekaRC = EKA_OPRESULT__OK;
 /* --------------------------------------------- */
 
 void  INThandler(int sig) {
@@ -97,24 +101,24 @@ void fireReportCb (const EpmFireReport *report, int nReports, void *ctx) {
 }
 
 /* --------------------------------------------- */
-void tcpChild(int sock, uint port) {
+void tcpChild(EkaDev* dev, int sock, uint port) {
   int bytes_read = -1;
   //  printf ("Running TCP Server for sock=%d, port = %u\n",sock,port);
   do {
     char line[1536] = {};
     bytes_read = recv(sock, line, sizeof(line), 0);
-    printf ("%u: %s\n",sock,line);
+    //    printf ("%u: %s\n",sock,line);
     fflush(stdout);
     send(sock, line, bytes_read, 0);
-  } while (bytes_read > 0 && keep_work);
-  printf("%u: bytes_read = %d -- closing\n",sock,bytes_read);
+  } while (keep_work);
+  EKA_LOG("%u: bytes_read = %d -- closing\n",sock,bytes_read);
   fflush(stdout);
   close(sock);
   keep_work = false;
   return;
 }
 /* --------------------------------------------- */
-void tcpServer(std::string ip, uint16_t port) {
+void tcpServer(EkaDev* dev, std::string ip, uint16_t port) {
   printf("Starting TCP server: %s:%u\n",ip.c_str(),port);
   int sd = 0;
   if ((sd = socket(PF_INET, SOCK_STREAM, 0)) < 0) on_error("Socket");
@@ -142,21 +146,55 @@ void tcpServer(std::string ip, uint16_t port) {
     int childSock, addr_size = sizeof(addr);
 
     childSock = accept(sd, (struct sockaddr*)&addr,(socklen_t*) &addr_size);
-    printf("Connected from: %s:%d -- sock=%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),childSock);
-    std::thread child(tcpChild,childSock,be16toh(addr.sin_port));
+    EKA_LOG("Connected from: %s:%d -- sock=%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),childSock);
+    std::thread child(tcpChild,dev,childSock,be16toh(addr.sin_port));
     child.detach();
   }
 }
 
 /* --------------------------------------------- */
+void tcpRxClientLoop(EkaDev* dev, ExcConnHandle conn) {
+  while (keep_work) {
+    char rxBuf[1000] = {};
+    int rxsize = excRecv(dev,conn, rxBuf, sizeof(rxBuf));
+    //   if (rxsize < 1) on_error("rxsize < 1");
+    if (rxsize > 0) EKA_LOG("\n\t%s\n",rxBuf);
+    rxClientReady = true;
+  }
+}
+/* --------------------------------------------- */
 
+
+ExcConnHandle runTcpClient(EkaDev* dev, EkaCoreId coreId,std::string serverIp,uint16_t serverTcpPort) {
+  struct sockaddr_in dst = {};
+  dst.sin_addr.s_addr = inet_addr(serverIp.c_str());
+  dst.sin_family      = AF_INET;
+  dst.sin_port        = be16toh(serverTcpPort);
+
+  int sock = excSocket(dev,coreId,0,0,0);
+  if (sock < 0) on_error("failed to open sock");
+
+  EKA_LOG ("Trying to connect to %s:%u",EKA_IP2STR(dst.sin_addr.s_addr),be16toh(dst.sin_port));
+  ExcConnHandle conn = excConnect(dev,sock,(struct sockaddr*) &dst, sizeof(struct sockaddr_in));
+  if (conn < 0) on_error("excConnect %s:%u",EKA_IP2STR(dst.sin_addr.s_addr),be16toh(dst.sin_port));
+
+  std::thread rxLoop = std::thread(tcpRxClientLoop,dev,conn);
+  rxLoop.detach();
+
+  while (!rxClientReady) sleep(0);
+
+  const char* pkt = "\n\nHello world! Im staring the test TCP session\n\n";
+  excSend (dev, conn, pkt, strlen(pkt));
+
+  return conn;
+}
 
 /* --------------------------------------------- */
 
 
-void triggerGenerator(const sockaddr_in* triggerAddr,EpmTrigger* epmTrigger,uint numTriggers) {
-  printf("=======================\nStrating triggerGenerator: %s:%u, numTriggers=%u\n",
-	 EKA_IP2STR(triggerAddr->sin_addr.s_addr),be16toh(triggerAddr->sin_port),numTriggers);
+void triggerGenerator(EkaDev* dev, const sockaddr_in* triggerAddr,EpmTrigger* epmTrigger,uint numTriggers) {
+  EKA_LOG("\n=======================\nStrating triggerGenerator: %s:%u, numTriggers=%u\n",
+	  EKA_IP2STR(triggerAddr->sin_addr.s_addr),be16toh(triggerAddr->sin_port),numTriggers);
 
   int sock = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
   if (sock < 0) on_error("failed to open UDP sock");
@@ -241,16 +279,6 @@ int main(int argc, char *argv[]) {
   uint16_t serverTcpPort  = 0;
   uint16_t triggerUdpPort = 0;;
 
-  getAttr(argc,argv,&serverIp,&serverTcpPort,&clientIp,&triggerIp,&triggerUdpPort);
-
-  keep_work = true;
-  serverSet = false;
-
-  std::thread server = std::thread(tcpServer,serverIp,serverTcpPort);
-  server.detach();
-
-  while (keep_work && ! serverSet) { sleep (0); }
-
   EkaDev* dev = NULL;
   EkaCoreId coreId = 0;
 
@@ -265,6 +293,13 @@ int main(int argc, char *argv[]) {
   };
   ekaDevInit(&dev, (const EkaDevInitCtx*) &ekaDevInitCtx);
 
+  getAttr(argc,argv,&serverIp,&serverTcpPort,&clientIp,&triggerIp,&triggerUdpPort);
+
+  std::thread server = std::thread(tcpServer,dev,serverIp,serverTcpPort);
+  server.detach();
+
+  while (keep_work && ! serverSet) { sleep (0); }
+
   EkaCoreInitCtx ekaCoreInitCtx = {
     .coreId = coreId,
     .attrs = {
@@ -278,41 +313,18 @@ int main(int argc, char *argv[]) {
   };
   ekaDevConfigurePort (dev, (const EkaCoreInitCtx*) &ekaCoreInitCtx);
 
-  struct sockaddr_in dst = {};
-  dst.sin_addr.s_addr = inet_addr(serverIp.c_str());
-  dst.sin_family      = AF_INET;
-  dst.sin_port        = be16toh(serverTcpPort);
-
-  int sock = excSocket(dev,coreId,0,0,0);
-  if (sock < 0) on_error("failed to open sock");
-
-  EKA_LOG ("Trying to connect to %s:%u",EKA_IP2STR(dst.sin_addr.s_addr),be16toh(dst.sin_port));
-  ExcConnHandle conn = excConnect(dev,sock,(struct sockaddr*) &dst, sizeof(struct sockaddr_in));
-  if (conn < 0) on_error("excConnect %s:%u",EKA_IP2STR(dst.sin_addr.s_addr),be16toh(dst.sin_port));
-
-  const char* pkt = "Hello world!";
-  char rx_buf[1000] = {};
-
-  excSend (dev, conn, pkt, strlen(pkt));
-
-
-  int rxsize = 0;
-  do {
-    rxsize = excRecv(dev,conn, rx_buf, 1000);
-  } while (keep_work && rxsize < 1);
-  printf ("RX: %s\n",rx_buf);
+  ExcConnHandle conn = runTcpClient(dev, coreId,serverIp,serverTcpPort);
 
   /* ============================================== */
+  static const int ChainRows = 4;
+  static const int ChainCols = 8;
 
-
-  EpmTrigger epmTrigger[] = {
-    /* token, strategy, action */
-    {   11,       5,      23},
-    {   7,        3,      17},
-    {   9,        5,      21},
-    {   17,       5,       6},
+  int actionChain[ChainRows][ChainCols] = {
+    {1, 51, 8, 13, -1},
+    {4, -1      },
+    {47, -1     },
+    {100, 15, 21, 49, 17, 31, -1}
   };
-  uint numTriggers = sizeof(epmTrigger)/sizeof(epmTrigger[0]);
 
   /* ============================================== */
 
@@ -321,53 +333,86 @@ int main(int argc, char *argv[]) {
   triggerDst.sin_addr.s_addr = inet_addr(triggerIp.c_str());
   triggerDst.sin_port        = be16toh(triggerUdpPort);
 
-  const sockaddr* triggerAddr = reinterpret_cast<const sockaddr*>(&triggerDst);
-  const EpmStrategyParams strategyParams[] = {
-    /* numActions, *triggerAddr, reportCb,    *cbCtx */
-    { 2,              triggerAddr, fireReportCb, NULL },
-    { 3,              triggerAddr, fireReportCb, NULL },
-    { 1,              triggerAddr, fireReportCb, NULL },
-    { 1,              triggerAddr, fireReportCb, NULL },
-  };
-  epm_strategyid_t numStrategies = sizeof(strategyParams) / sizeof(strategyParams[0]);
+  const epm_strategyid_t numStrategies = 7;
+  EpmStrategyParams strategyParams[numStrategies] = {};
+  for (auto i = 0; i < numStrategies; i++) {
+    strategyParams[i].numActions = 200;
+    strategyParams[i].triggerAddr = reinterpret_cast<const sockaddr*>(&triggerDst);
+    strategyParams[i].reportCb = fireReportCb;
+  }
+  ekaRC = epmInitStrategies(dev, coreId, strategyParams, numStrategies);
+  if (ekaRC != EKA_OPRESULT__OK) on_error("epmInitStrategies failed: ekaRC = %u",ekaRC);
 
-  epmInitStrategies(dev, coreId, strategyParams, numStrategies);
+  uint32_t heapOffset = 0;
+
+  for (auto stategyIdx = 0; stategyIdx < numStrategies; stategyIdx++) {
+    for (auto chainIdx = 0; chainIdx < ChainRows; chainIdx++) {
+      bool imLast = false;
+      for (auto actionIdx = 0; actionIdx < ChainCols && ! imLast; actionIdx++) {
+	imLast = (actionIdx == ChainCols - 1) || (actionChain[chainIdx][actionIdx+1] == -1);
+	epm_actionid_t nextAction = imLast ? EPM_LAST_ACTION : actionChain[chainIdx][actionIdx+1];
+	char pkt2send[1000] = {};
+	sprintf(pkt2send,"Action Pkt: strategy=%d, action-in-chain=%d, actionId=%u, next=%u",
+		stategyIdx,actionIdx,static_cast<uint>(actionChain[chainIdx][actionIdx]),
+		nextAction);
+
+	EKA_LOG("\t%s",pkt2send);
+	EpmAction epmAction = {
+	  .token         = static_cast<epm_token_t>(0), ///< Security token
+	  .hConn         = conn,                        ///< TCP connection where segments will be sent
+	  .offset        = heapOffset,                  ///< Offset to payload in payload heap
+	  .length        = (uint32_t)strlen(pkt2send),  ///< Payload length
+	  .actionFlags   = AF_Valid,                    ///< Behavior flags (see EpmActionFlag)
+	  .nextAction    = nextAction,                  ///< Next action in sequence, or EPM_LAST_ACTION
+	  .enable        = 0x01,                        ///< Enable bits
+	  .postLocalMask = 0x01,                        ///< Post fire: enable & mask -> enable
+	  .postStratMask = 0x01,                        ///< Post fire: strat-enable & mask -> strat-enable
+	  .user          = static_cast<uintptr_t>
+	  (actionChain[chainIdx][actionIdx])                        ///< Opaque value copied into `EpmFireReport`.
+	};
+	ekaRC = epmSetAction(dev, coreId, stategyIdx, 
+			     actionChain[chainIdx][actionIdx], 
+			     &epmAction);
+	if (ekaRC != EKA_OPRESULT__OK) on_error("epmSetAction failed: ekaRC = %u",ekaRC);
+
+	ekaRC = epmPayloadHeapCopy(dev, coreId,
+				  static_cast<epm_strategyid_t>(stategyIdx),
+				  heapOffset,
+				  (uint32_t)strlen(pkt2send),
+				  (const void *)pkt2send);
+
+	if (ekaRC != EKA_OPRESULT__OK) on_error("epmPayloadHeapCopy failed: ekaRC = %u",ekaRC);
+	heapOffset += strlen(pkt2send);
+
+      }
+    }
+  }
+  /* ============================================== */
+  ekaRC = epmEnableController(dev,coreId,true);
+  if (ekaRC != EKA_OPRESULT__OK) on_error("epmEnableController failed: ekaRC = %u",ekaRC);
 
   /* ============================================== */
-  triggerGeneratorDone = false;
 
-  std::thread trigger = std::thread(triggerGenerator,reinterpret_cast<const sockaddr_in*>(triggerAddr),epmTrigger,numTriggers);
+  EpmTrigger epmTrigger[] = {
+    /* token, strategy, action */
+    {   11,       1,       1},
+    {   7,        2,       4},
+    {   9,        3,      47},
+    {   17,       4,     100},
+  };
+  uint numTriggers = sizeof(epmTrigger)/sizeof(epmTrigger[0]);
+
+  /* ============================================== */
+
+  std::thread trigger = std::thread(triggerGenerator,dev,&triggerDst,epmTrigger,numTriggers);
   trigger.detach();
 
   /* ============================================== */
 
-  /* const char* pkt2send_1 = "Pkt 1 FIRED"; */
 
+  while (keep_work && ! triggerGeneratorDone) sleep(0);
 
-  /* EpmAction epmAction_1 = { */
-  /*   .token         = static_cast<epm_token_t>(0), ///< Security token */
-  /*   .hConn         = conn,                        ///< TCP connection where segments will be sent */
-  /*   .offset        = 0,                           ///< Offset to payload in payload heap */
-  /*   .length        = strlen(pkt2send_1),          ///< Payload length */
-  /*   .actionFlags   = AF_Valid,                    ///< Behavior flags (see EpmActionFlag) */
-  /*   .nextAction    = EPM_LAST_ACTION,             ///< Next action in sequence, or EPM_LAST_ACTION */
-  /*   .enable        = 0x01,                        ///< Enable bits */
-  /*   .postLocalMask = 0x01,                        ///< Post fire: enable & mask -> enable */
-  /*   .postStratMask = 0x01,                        ///< Post fire: strat-enable & mask -> strat-enable */
-  /*   .user          = NULL                         ///< Opaque value copied into `EpmFireReport`. */
-  /* }; */
-
-  /* EpmStrategyParams strat_1 = { */
-  /*   .numActions  = 1,             ///< No. of actions entries used by this strategy */
-  /*   .triggerAddr = NULL,          ///< Address to receive trigger packets */
-  /*   .reportCb    = fireReportCb,  ///< Callback function to process fire reports */
-  /*   .cbCtx       = NULL           ///< Opaque value passed into reportCb */
-  /* }; */
-
-
-
-  while (! triggerGeneratorDone) sleep(0);
-
+  sleep(3);
 
   /* ============================================== */
 
