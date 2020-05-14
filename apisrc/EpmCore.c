@@ -78,7 +78,13 @@ void EpmCore::swEpmProcessor() {
       char pkt2send[1000] = {};
       memcpy(pkt2send,&heap[epmAction.offset],epmAction.length);
       EKA_LOG("\tSending pkt: |%s|",pkt2send);
-      excSend (dev, epmAction.hConn, &heap[epmAction.offset], epmAction.length);
+      int bytes2send = epmAction.length;
+      char* sndPtr = &heap[epmAction.offset];
+      do {
+	int bytesSent = excSend (dev, epmAction.hConn, sndPtr, bytes2send);
+	bytes2send -= bytesSent;
+	sndPtr     += bytesSent;
+      } while (bytes2send > 0);
       //      EKA_LOG("strategy=%u, ActionId=%u, nextAction=%u",strategyIdx,epmAction.user,epmAction.nextAction);
       actionIdx = epmAction.nextAction;
     }

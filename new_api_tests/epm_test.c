@@ -107,14 +107,16 @@ void tcpChild(EkaDev* dev, int sock, uint port) {
   do {
     char line[1536] = {};
     bytes_read = recv(sock, line, sizeof(line), 0);
-    //    printf ("%u: %s\n",sock,line);
-    fflush(stdout);
-    send(sock, line, bytes_read, 0);
+    if (bytes_read > 0) {
+      EKA_LOG ("recived pkt: %s",line);
+      fflush(stderr);
+      send(sock, line, bytes_read, 0);
+    }
   } while (keep_work);
-  EKA_LOG("%u: bytes_read = %d -- closing\n",sock,bytes_read);
+  EKA_LOG(" -- closing");
   fflush(stdout);
   close(sock);
-  keep_work = false;
+  //  keep_work = false;
   return;
 }
 /* --------------------------------------------- */
@@ -150,6 +152,7 @@ void tcpServer(EkaDev* dev, std::string ip, uint16_t port) {
     std::thread child(tcpChild,dev,childSock,be16toh(addr.sin_port));
     child.detach();
   }
+  EKA_LOG(" -- closing");
 }
 
 /* --------------------------------------------- */
@@ -355,8 +358,9 @@ int main(int argc, char *argv[]) {
 	sprintf(pkt2send,"Action Pkt: strategy=%d, action-in-chain=%d, actionId=%u, next=%u",
 		stategyIdx,actionIdx,static_cast<uint>(actionChain[chainIdx][actionIdx]),
 		nextAction);
+	pkt2send[strlen(pkt2send)] = '$'; // replacing '\0' to enable further printf
 
-	EKA_LOG("\t%s",pkt2send);
+	/* EKA_LOG("\t%s",pkt2send); */
 	EpmAction epmAction = {
 	  .token         = static_cast<epm_token_t>(0), ///< Security token
 	  .hConn         = conn,                        ///< TCP connection where segments will be sent
@@ -395,9 +399,9 @@ int main(int argc, char *argv[]) {
 
   EpmTrigger epmTrigger[] = {
     /* token, strategy, action */
-    {   11,       1,       1},
-    {   7,        2,       4},
-    {   9,        3,      47},
+    /* {   11,       1,       1}, */
+    /* {   7,        2,       4}, */
+    /* {   9,        3,      47}, */
     {   17,       4,     100},
   };
   uint numTriggers = sizeof(epmTrigger)/sizeof(epmTrigger[0]);
@@ -411,7 +415,7 @@ int main(int argc, char *argv[]) {
 
 
   while (keep_work && ! triggerGeneratorDone) sleep(0);
-
+  keep_work = false;
   sleep(3);
 
   /* ============================================== */
