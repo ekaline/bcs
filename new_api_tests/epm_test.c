@@ -108,8 +108,8 @@ void tcpChild(EkaDev* dev, int sock, uint port) {
     char line[1536] = {};
     bytes_read = recv(sock, line, sizeof(line), 0);
     if (bytes_read > 0) {
-      EKA_LOG ("recived pkt: %s",line);
-      fflush(stderr);
+      /* EKA_LOG ("recived pkt: %s",line); */
+      /* fflush(stderr); */
       send(sock, line, bytes_read, 0);
     }
   } while (keep_work);
@@ -161,7 +161,7 @@ void tcpRxClientLoop(EkaDev* dev, ExcConnHandle conn) {
     char rxBuf[1000] = {};
     int rxsize = excRecv(dev,conn, rxBuf, sizeof(rxBuf));
     //   if (rxsize < 1) on_error("rxsize < 1");
-    if (rxsize > 0) EKA_LOG("\n\t%s\n",rxBuf);
+    if (rxsize > 0) EKA_LOG("\n%s\n",rxBuf);
     rxClientReady = true;
   }
 }
@@ -358,7 +358,7 @@ int main(int argc, char *argv[]) {
 	sprintf(pkt2send,"Action Pkt: strategy=%d, action-in-chain=%d, actionId=%u, next=%u",
 		stategyIdx,actionIdx,static_cast<uint>(actionChain[chainIdx][actionIdx]),
 		nextAction);
-	pkt2send[strlen(pkt2send)] = '$'; // replacing '\0' to enable further printf
+	pkt2send[strlen(pkt2send)] = '\n'; // replacing '\0' to enable further printf
 
 	/* EKA_LOG("\t%s",pkt2send); */
 	EpmAction epmAction = {

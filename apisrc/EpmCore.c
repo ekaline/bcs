@@ -75,9 +75,9 @@ void EpmCore::swEpmProcessor() {
       if (epmAction.offset + epmAction.length >= EkaEpm::PayloadMemorySize)
 	on_error("epmAction.offset %u + epmAction.length %u >= EkaEpm::PayloadMemorySize %ju",
 		 epmAction.offset,epmAction.length, EkaEpm::PayloadMemorySize);
-      char pkt2send[1000] = {};
-      memcpy(pkt2send,&heap[epmAction.offset],epmAction.length);
-      EKA_LOG("\tSending pkt: |%s|",pkt2send);
+      /* char pkt2send[1000] = {}; */
+      /* memcpy(pkt2send,&heap[epmAction.offset],epmAction.length); */
+      /* EKA_LOG("\tSending pkt: |%s|",pkt2send); */
       int bytes2send = epmAction.length;
       char* sndPtr = &heap[epmAction.offset];
       do {
