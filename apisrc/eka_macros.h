@@ -34,7 +34,8 @@ class EkaDev;
 #define EKA_DEBUG(...)  dev->logCB(dev->logCtx, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_DEBUG, __VA_ARGS__)
 #define EKA_TRACE(...)  dev->logCB(dev->logCtx, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_TRACE, __VA_ARGS__)
 
-
+#define TEST_LOG_STDERR(...) { fprintf(stderr, "%s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); }
+#define TEST_LOG(...) { printf("%s@%s:%d: ",__func__,__FILE__,__LINE__); printf(__VA_ARGS__); printf("\n"); }
 
 //#define EKA_DEC_POINTS_10000(x) (((bool)(x % 10 != 0)) ? 4 : ((bool)(x % 100 != 0)) ? 3 : ((bool)(x % 1000 != 0)) ? 2 : ((bool)(x % 10000 != 0)) ? 1 : 0) 
 #define MIN(a,b) (((a)<(b))?(a):(b))

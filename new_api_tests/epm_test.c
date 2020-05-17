@@ -323,9 +323,9 @@ int main(int argc, char *argv[]) {
   static const int ChainCols = 8;
 
   int actionChain[ChainRows][ChainCols] = {
-    {1, 51, 8, 13, -1},
-    {4, -1      },
-    {47, -1     },
+    {1,   51,  8, 13, -1},
+    {4,  -1 },
+    {47, -1 },
     {100, 15, 21, 49, 17, 31, -1}
   };
 
