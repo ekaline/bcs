@@ -96,7 +96,19 @@ int main(int argc, char *argv[]) {
       std::string msgId = std::string(msgHdr->MsgType,sizeof(msgHdr->MsgType));
       //      TEST_LOG("\t%ju (%s),|%s|",seq,seqString.c_str(),msgId.c_str());
       pos += sizeof(HsvfMsgHdr);
-      
+      /* -------------------------------- */
+      if (msgId == "N ") { // OptionSummary
+	OptionSummary* msg = (OptionSummary*)&pkt[pos];
+	TEST_LOG("%s: |%s|",msgId.c_str(),std::string(msg->InstrumentDescription,sizeof(msg->InstrumentDescription)).c_str());
+      } else 
+      /* -------------------------------- */
+      if (msgId == "F ") { // OptionQuote
+	OptionQuote* msg = (OptionQuote*)&pkt[pos];
+	TEST_LOG("%s: |%s|",msgId.c_str(),std::string(msg->InstrumentDescription,sizeof(msg->InstrumentDescription)).c_str());
+      }
+      /* -------------------------------- */
+
+
       pos += skipChar(&pkt[pos],HsvfEom);
       pos += skipChar(&pkt[pos],'\0');
 
