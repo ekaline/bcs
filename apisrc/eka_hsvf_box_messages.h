@@ -35,6 +35,26 @@ struct HsvfMsgHdr {
 const char HsvfSom = 0x2;
 const char HsvfEom = 0x3;
 
+struct OptionInstrumentKeys { // "J "
+  char ExchangeID;
+  char InstrumentDescription[20];
+  char StrikePriceCurrency[3];
+  char MaximumNumberOfContractsPerOrder[6];
+  char MinimumNumberOfContractsPerOrder[6];
+  char MaximumThresholdPrice[6];
+  char MaximumThresholdPriceFractionIndicator;
+  char MinimumThresholdPrice[6];
+  char MinimumThresholdPriceFractionIndicator;
+  char TickIncrement[6];
+  char TickIncrementFractionIndicator;
+  char OptionType;
+  char MarketFlowIndicator[2];
+  char GroupInstrument[2];
+  char Instrument[4];
+  char InstrumentExternalCode[30];
+  char OptionMarker[2];
+  char UnderlyingSymbolRoot[10];
+};
 
 struct OptionSummary { // "N "
   char ExchangeID;
@@ -78,5 +98,10 @@ struct OptionQuote { // "F "
   char InstrumentStatusMarker;
   char PublicCustomerBidSize[5];
   char PublicCustomerAskSize[5];
+};
+
+
+struct SystemTimeStamp { // "Z "
+  char TimeStamp[9];
 };
 #endif

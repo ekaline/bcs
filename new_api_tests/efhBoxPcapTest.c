@@ -94,8 +94,13 @@ int main(int argc, char *argv[]) {
       std::string seqString = std::string(msgHdr->sequence,sizeof(msgHdr->sequence));
       uint64_t seq = std::stoul(seqString,nullptr,10);
       std::string msgId = std::string(msgHdr->MsgType,sizeof(msgHdr->MsgType));
-      //      TEST_LOG("\t%ju (%s),|%s|",seq,seqString.c_str(),msgId.c_str());
+      TEST_LOG("\t%ju (%s)",seq,seqString.c_str());
       pos += sizeof(HsvfMsgHdr);
+      /* -------------------------------- */
+      if (msgId == "J ") { // OptionInstrumentKeys
+	OptionInstrumentKeys* msg = (OptionInstrumentKeys*)&pkt[pos];
+	TEST_LOG("%s: |%s|",msgId.c_str(),std::string(msg->InstrumentDescription,sizeof(msg->InstrumentDescription)).c_str());
+      } else 
       /* -------------------------------- */
       if (msgId == "N ") { // OptionSummary
 	OptionSummary* msg = (OptionSummary*)&pkt[pos];
@@ -105,9 +110,17 @@ int main(int argc, char *argv[]) {
       if (msgId == "F ") { // OptionQuote
 	OptionQuote* msg = (OptionQuote*)&pkt[pos];
 	TEST_LOG("%s: |%s|",msgId.c_str(),std::string(msg->InstrumentDescription,sizeof(msg->InstrumentDescription)).c_str());
-      }
+      } else 
       /* -------------------------------- */
-
+      if (msgId == "Z ") { // SystemTimeStamp
+	SystemTimeStamp* msg = (SystemTimeStamp*)&pkt[pos];
+	TEST_LOG("%s: |%c%c:%c%c:%c%c.%c%c%c|",msgId.c_str(),
+		 msg->TimeStamp[0],msg->TimeStamp[1],msg->TimeStamp[2],msg->TimeStamp[3],msg->TimeStamp[4],msg->TimeStamp[5],
+		 msg->TimeStamp[6],msg->TimeStamp[7],msg->TimeStamp[8]
+		 );
+      } else
+      /* -------------------------------- */
+	{ /* do nothing */ }
 
       pos += skipChar(&pkt[pos],HsvfEom);
       pos += skipChar(&pkt[pos],'\0');

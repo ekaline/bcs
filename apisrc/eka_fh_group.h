@@ -193,6 +193,19 @@ class FhMiaxGr : public FhGroup{
 
 /* ##################################################################### */
 
+class FhBoxGr : public FhGroup{
+ public:
+  FhBoxGr();
+  bool     parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op);
+  virtual  ~FhBoxGr() {};
+  int      bookInit(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx);
+
+  static const bool full_book = false;
+};
+
+
+/* ##################################################################### */
+
 class FhXdpGr : public FhGroup{
  public:
   static const uint MAX_STREAMS = 10;

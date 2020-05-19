@@ -234,5 +234,12 @@ int FhXdpGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
   return 0;
 }
 
+
+int FhBoxGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
+  book = new TobBook(pEfhCtx,pEfhInitCtx,this);
+  ((TobBook*)book)->init();
+  return 0;
+}
+
 /* ##################################################################### */
 

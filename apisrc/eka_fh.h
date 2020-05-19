@@ -178,6 +178,24 @@ private:
 };
 //###############################################################
 
+class FhBox : public EkaFh { // MiaxTom & PearlTom
+ public:
+  static const uint QSIZE = 1024 * 1024;
+  EkaOpResult getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group);
+  EkaOpResult runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId );
+  EkaOpResult initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhRunGr* runGr);
+
+  uint8_t* getUdpPkt(FhRunGr* runGr, uint* msgInPkt, int16_t* pktLen, uint8_t* gr_id);
+  bool processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhBoxGr* gr, const uint8_t* pkt, int16_t pktLen);
+  void pushUdpPkt2Q(FhBoxGr* gr, const uint8_t* pkt, int16_t pktLen,int8_t gr_id);
+
+  virtual ~FhBox() {};
+ private:
+
+};
+
+//###############################################################
+
 class EkaFhThreadAttr {
  public:
   EkaFhThreadAttr(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint runGrId,FhGroup* gr, uint64_t startSeq, uint64_t endSeq, EkaFhMode   op);
