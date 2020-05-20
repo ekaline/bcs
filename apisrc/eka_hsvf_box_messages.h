@@ -35,6 +35,34 @@ struct HsvfMsgHdr {
 const char HsvfSom = 0x2;
 const char HsvfEom = 0x3;
 
+struct HsvfLogin { // "LI"
+  char       SoM; //  = HsvfSom;
+  HsvfMsgHdr hdr;
+  char       User[16];
+  char       Pwd[16];
+  char       TimeStamp[6]; // Format HHMMSS
+  char       ProtocolVersion[2]; // HSVF Protocol version (C7)
+  char       EoM; // = HsvfEom;
+};
+
+struct HsvfRetransmissionRequest { // "RT"
+  char       SoM; //  = HsvfSom;
+  HsvfMsgHdr hdr;
+  char       Line[2];
+  char       Start[9];
+  char       End[9];
+  char       EoM; // = HsvfEom;
+};
+
+struct HsvfEndOfTransmission { // "U "
+  char ExchangeID; // Q by default
+  char Time[6];
+};
+
+struct CircuitAssurance { // "V "
+  char Time[6];
+};
+
 struct OptionInstrumentKeys { // "J "
   char ExchangeID;
   char InstrumentDescription[20];

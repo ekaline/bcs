@@ -201,6 +201,7 @@ class FhBoxGr : public FhGroup{
   int      bookInit(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx);
 
   static const bool full_book = false;
+  uint64_t txSeqNum;
 };
 
 
