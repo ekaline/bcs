@@ -22,7 +22,7 @@ sudo killall sn_state
 
 FULL_BIT=$(readlink -f $1)
 
-sudo /opt/ekaline/Smartnic_SW/driver/reload_driver.sh
-/opt/ekaline/Smartnic_SW/tools/fbupdate --flash $FULL_BIT
-sudo /opt/ekaline/Smartnic_SW/driver/reload_fw.sh
-sudo /opt/ekaline/Smartnic_SW/driver/reload_driver.sh
+sudo /opt/ekaline/SmartNIC_SW/driver/reload_driver.sh
+/opt/ekaline/SmartNIC_SW/tools/fbupdate --flash $FULL_BIT
+sudo /opt/ekaline/SmartNIC_SW/driver/reload_fw.sh
+sudo /opt/ekaline/SmartNIC_SW/driver/reload_driver.sh

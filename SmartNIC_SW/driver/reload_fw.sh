@@ -45,7 +45,7 @@ SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 FIBERBLAZE_ROOT=$SCRIPTPATH/..
 
 FBCONFIG=$FIBERBLAZE_ROOT/tools/fbconfig
-FBUPDATE=$FIBERBLAZE_ROOT/bin/fbupdate
+FBUPDATE=$FIBERBLAZE_ROOT/tools/fbupdate
 
 
 # Default card device
