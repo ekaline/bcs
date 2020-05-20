@@ -97,6 +97,12 @@ FhMiaxGr::FhMiaxGr () {
 }
  /* ##################################################################### */
 
+FhBoxGr::FhBoxGr () {
+  txSeqNum = 1;
+}
+
+ /* ##################################################################### */
+
 FhXdpGr::FhXdpGr () {
   numStreams = 0;
   numUnderlyings = 0;
@@ -229,6 +235,13 @@ int FhMiaxGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
 }
 
 int FhXdpGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
+  book = new TobBook(pEfhCtx,pEfhInitCtx,this);
+  ((TobBook*)book)->init();
+  return 0;
+}
+
+
+int FhBoxGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
   book = new TobBook(pEfhCtx,pEfhInitCtx,this);
   ((TobBook*)book)->init();
   return 0;

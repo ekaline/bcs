@@ -491,6 +491,19 @@ EkaOpResult FhXdp::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhRu
   return EKA_OPRESULT__OK;
 }
 /* ##################################################################### */
+EkaOpResult FhBox::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhRunGr* runGr) {
+  for (uint8_t i = 0; i < runGr->numGr; i++) {
+    if (pEfhRunCtx->groups[i].localId >= groups) on_error("gr_id = %u >= groups %u",pEfhRunCtx->groups[i].localId,groups);
+    if (pEfhRunCtx->groups[i].source != exch) on_error("pEfhRunCtx->groups[i].source != exch");
+    FhGroup* gr = b_gr[pEfhRunCtx->groups[i].localId];
+    if (gr == NULL) on_error ("b_gr[%u] == NULL",pEfhRunCtx->groups[i].localId);
+    //    gr->createQ(pEfhCtx,qsize);
+    runGr->udpCh->igmp_mc_join (dev->core[c].src_ip, gr->mcast_ip,gr->mcast_port);
+    EKA_DEBUG("%s:%u: joined %s:%u for %u securities",EKA_EXCH_DECODE(exch),gr->id,EKA_IP2STR(gr->mcast_ip),be16toh(gr->mcast_port),gr->book->total_securities);
+  }
+  return EKA_OPRESULT__OK;
+}
+/* ##################################################################### */
 bool FhRunGr::drainQ(const EfhRunCtx* pEfhRunCtx) {
   if (hasGrpAfterGap) {
     FhGroup* gr = fh->b_gr[getGrAfterGap()];
@@ -571,6 +584,17 @@ uint8_t* FhMiax::getUdpPkt(FhRunGr* runGr, uint* msgInPkt, int16_t* pktLen, uint
   *gr_id    = getGrId(pkt);
   *sequence = EKA_GET_MACH_SEQ((pkt));
   *msgInPkt = 16; // just a number, greater than amount of messages in a packet
+  return pkt;
+}
+/* ##################################################################### */
+uint8_t* FhBox::getUdpPkt(FhRunGr* runGr, uint* msgInPkt, int16_t* pktLen, uint8_t* gr_id) {
+  uint8_t* pkt = (uint8_t*)runGr->udpCh->get();
+  if (pkt == NULL) on_error("%s: pkt == NULL",EKA_EXCH_DECODE(exch));
+
+  //  *pktLen   = runGr->udpCh->getPayloadLen();
+  *gr_id    = getGrId(pkt);
+  //  *sequence = 0;//EKA_GET_MACH_SEQ((pkt));
+  //  *msgInPkt = 16; // just a number, greater than amount of messages in a packet
   return pkt;
 }
 /* ##################################################################### */
@@ -696,6 +720,22 @@ bool FhXdp::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhXdpGr* gr, uint streamId
     gr->parseMsg(pEfhRunCtx,p,sequence++,EkaFhMode::MCAST); // never end of MC from Msg
     //-----------------------------------------------------------------------------
     gr->setExpectedSeq(streamIdx,sequence);
+    //    } 
+    p += msg_len;
+  }
+  return false;
+}
+/* ##################################################################### */
+bool FhBox::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhBoxGr* gr, const uint8_t* pktPtr, int16_t pktLen) {
+  uint8_t* p = (uint8_t*)pktPtr + sizeof(XdpPktHdr)+sizeof(XdpStreamId);
+  uint64_t sequence = 0;
+  for (uint msg=0; msg < 1 /*msgInPkt*/; msg++) {
+    uint16_t msg_len = 0;//EKA_XDP_MSG_LEN(p);
+    //    if (sequence == gr->getExpectedSeq(streamIdx)) { // = ignore back in time messages
+    //-----------------------------------------------------------------------------
+    gr->parseMsg(pEfhRunCtx,p,sequence++,EkaFhMode::MCAST); // never end of MC from Msg
+    //-----------------------------------------------------------------------------
+    //    gr->setExpectedSeq(streamIdx,sequence);
     //    } 
     p += msg_len;
   }
@@ -1071,6 +1111,60 @@ EkaOpResult FhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
   EKA_INFO("%s RunGroup %u EndOfSession",EKA_EXCH_DECODE(exch),runGrId);
   return EKA_OPRESULT__OK;
 }
+ /* ##################################################################### */
+
+EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId ) {
+  FhRunGr* runGr = dev->runGr[runGrId];
+  EKA_DEBUG("Running %s, groups %u .. %u",EKA_EXCH_DECODE(runGr->exch),runGr->firstGr,runGr->firstGr+runGr->numGr-1);
+  
+  initGroups(pEfhCtx, pEfhRunCtx, runGr);
+
+  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s:%u GROUPS ~~~~~~~~~~~~~",EKA_EXCH_DECODE(exch),(uint)pEfhRunCtx->numGroups);
+
+  while (runGr->thread_active) {
+    //-----------------------------------------------------------------------------
+    if (! runGr->udpCh->has_data()) continue;
+    uint msgInPkt = 0;
+    /* uint64_t sequence = 0; */
+    uint8_t gr_id = 0xFF;
+    /* uint16_t streamId = 0; */
+    /* uint8_t pktType = 0; */
+    int16_t pktLen = 0;
+
+    const uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&pktLen,&gr_id);
+    if (pkt == NULL) continue;
+    FhBoxGr* gr = (FhBoxGr*)b_gr[gr_id];
+    //    uint streamIdx = gr->findAndInstallStream(streamId, sequence);
+    //-----------------------------------------------------------------------------
+    //    if (pktType == (uint8_t)EKA_XDP_DELIVERY_FLAG::SequenceReset) gr->resetExpectedSeq(streamIdx);
+    //-----------------------------------------------------------------------------
+    /* if (gr->inGap) { */
+    /*   if (gr->isGapOver()) { */
+    /* 	gr->inGap = false; */
+    /* 	EfhFeedUpMsg efhFeedUpMsg{ EfhMsgType::kFeedUp, {gr->exch, (EkaLSI)gr->id}, gr->gapNum }; */
+    /* 	pEfhRunCtx->onEfhFeedUpMsgCb(&efhFeedUpMsg, 0, pEfhRunCtx->efhRunUserData); */
+    /*   } */
+    /* } */
+    //-----------------------------------------------------------------------------
+    /* if (sequence > gr->getExpectedSeq(streamIdx) && ! gr->inGap) { */
+    /*   EfhFeedDownMsg efhFeedDownMsg{ EfhMsgType::kFeedDown, {gr->exch, (EkaLSI)gr->id}, ++gr->gapNum }; */
+    /*   pEfhRunCtx->onEfhFeedDownMsgCb(&efhFeedDownMsg, 0, pEfhRunCtx->efhRunUserData); */
+
+    /*   EKA_LOG("%s:%u for Stream %u expectedSeq = %u < sequence %u, lost %u messages", */
+    /* 	      EKA_EXCH_DECODE(exch),gr->id,gr->getId(streamIdx),gr->getExpectedSeq(streamIdx),sequence,sequence-gr->getExpectedSeq(streamIdx)); */
+    /*   gr->inGap = true; */
+    /*   gr->setGapStart(); */
+    /* } */
+    //-----------------------------------------------------------------------------
+
+    if (processUdpPkt(pEfhRunCtx,gr,pkt,pktLen)) break;
+
+    //-----------------------------------------------------------------------------
+    runGr->udpCh->next(); 
+  }
+  EKA_INFO("%s RunGroup %u EndOfSession",EKA_EXCH_DECODE(exch),runGrId);
+  return EKA_OPRESULT__OK;
+}
 
 /* ##################################################################### */
 
@@ -1102,6 +1196,13 @@ EkaOpResult FhMiax::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
 
 EkaOpResult FhXdp::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group) {
   return eka_get_xdp_definitions(pEfhCtx,pEfhRunCtx,(FhXdpGr*)b_gr[(uint8_t)group->localId],EkaFhMode::DEFINITIONS);
+}
+ /* ##################################################################### */
+
+EkaOpResult FhBox::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group) {
+  /* return eka_get_xdp_definitions(pEfhCtx,pEfhRunCtx,(FhXdpGr*)b_gr[(uint8_t)group->localId],EkaFhMode::DEFINITIONS); */
+  return EKA_OPRESULT__OK;
+
 }
 
  /* ##################################################################### */

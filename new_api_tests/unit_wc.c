@@ -25,7 +25,7 @@ volatile uint64_t * EkalineGetWcBase(SC_DeviceId deviceId);
 
 #define TCP_FAST_SEND_SP_BASE (0x8000 / 8)
 // #define on_error(...) { fprintf(stderr, "FATAL ERROR: %s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n");perror(""); fflush(stdout); fflush(stderr); exit(1); }
-#define TEST_LOG(...) { fprintf(stderr, "%s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); }
+/* #define TEST_LOG(...) { fprintf(stderr, "%s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); } */
 
 void hexDump (const char* desc, void *addr, int len) {
     int i;
