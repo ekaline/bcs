@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
 
     int pos = sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr);
 
-    while (pos < pktLen) {
+    while (pos < (int)pktLen) {
       if (pkt[pos] != HsvfSom) 
 	on_error("pkt: %ju: expected SOM (0x%x), received 0x%x",pktNum,HsvfSom,pkt[pos]);
       pos++;

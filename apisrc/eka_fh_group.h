@@ -202,6 +202,7 @@ class FhBoxGr : public FhGroup{
 
   static const bool full_book = false;
   uint64_t txSeqNum;
+  char     line[2];
 };
 
 

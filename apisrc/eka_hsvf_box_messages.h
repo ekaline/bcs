@@ -28,8 +28,8 @@ inline bool operator==(const EkaHsvfMsgType &lhs, const char* rhs) {
 }
 
 struct HsvfMsgHdr {
-  char                sequence[9];
-  EKA_HSVF_MSG_TYPE   MsgType; 
+  char        sequence[9];
+  char        MsgType[2]; 
 } __attribute__((packed));
 
 const char HsvfSom = 0x2;
@@ -42,6 +42,12 @@ struct HsvfLogin { // "LI"
   char       Pwd[16];
   char       TimeStamp[6]; // Format HHMMSS
   char       ProtocolVersion[2]; // HSVF Protocol version (C7)
+  char       EoM; // = HsvfEom;
+};
+
+struct HsvfLoginAck { // "KI"
+  char       SoM; //  = HsvfSom;
+  HsvfMsgHdr hdr;
   char       EoM; // = HsvfEom;
 };
 

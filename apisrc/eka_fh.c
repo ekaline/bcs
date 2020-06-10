@@ -37,6 +37,7 @@ void* eka_get_grp_retransmit_data(void* attr);
 void* eka_get_sesm_data(void* attr);
 void* eka_get_sesm_retransmit(void* attr);
 EkaOpResult eka_get_xdp_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhXdpGr* gr,EkaFhMode op);
+EkaOpResult eka_hsvf_get_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhBoxGr* gr);
 
  /* ##################################################################### */
 
@@ -1200,9 +1201,7 @@ EkaOpResult FhXdp::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx,
  /* ##################################################################### */
 
 EkaOpResult FhBox::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group) {
-  /* return eka_get_xdp_definitions(pEfhCtx,pEfhRunCtx,(FhXdpGr*)b_gr[(uint8_t)group->localId],EkaFhMode::DEFINITIONS); */
-  return EKA_OPRESULT__OK;
-
+  return eka_hsvf_get_definitions(pEfhCtx, pEfhRunCtx,(FhBoxGr*)group);
 }
 
  /* ##################################################################### */
