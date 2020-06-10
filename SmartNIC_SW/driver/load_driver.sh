@@ -147,6 +147,13 @@ fi
 
 echo "Driver '$module' loaded successfully."
 
+# Sleep for one second. Once the module is loaded, udev will try to rename the
+# network interfaces that the driver creates (e.g., feth0) to their new names
+# from /etc/sysconfig (e.g. fpga0_0) based on the MAC address. If we don't sleep
+# here, the commands below (which assume the fpga0_0-style names) might execute
+# before the rename occurs, and the interfaces won't exist.
+sleep 1
+
 # EKALINE_IF_DEVICES is set to a space-separated list of entries consisting
 # of the driver unit numbers for the interfaces to bring up, e.g., "0_0 1_0"
 # will configure fpga0_0 and fpga1_0.
