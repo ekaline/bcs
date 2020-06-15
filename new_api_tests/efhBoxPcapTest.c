@@ -13,7 +13,7 @@
 #include "eka_nw_headers.h"
 #include "eka_macros.h"
 
-#include "eka_hsvf_box_messages.h"
+#include "eka_hsvf_box_messages4pcapTest.h"
 
 //###################################################
 struct pcap_file_hdr {

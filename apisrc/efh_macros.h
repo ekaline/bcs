@@ -17,6 +17,7 @@
 			(std::regex_search(std::string(x),std::regex("EDGX_PITCH")) == true) ? EkaSource::kEDGX_PITCH  : \
 			(std::regex_search(std::string(x),std::regex("ARCA_XDP"))   == true) ? EkaSource::kARCA_XDP  : \
 			(std::regex_search(std::string(x),std::regex("AMEX_XDP"))   == true) ? EkaSource::kAMEX_XDP  : \
+			(std::regex_search(std::string(x),std::regex("BOX_HSVF"))   == true) ? EkaSource::kBOX_HSVF  : \
 			EkaSource::kInvalid)
 
 #define EFH_EXCH2FEED(x)			(	\
@@ -28,10 +29,11 @@
   (x == EkaSource::kPHLX_TOPO)  ? EfhFeedVer::kPHLX :	\
   (x == EkaSource::kMIAX_TOM)   ? EfhFeedVer::kMIAX :	\
   (x == EkaSource::kPEARL_TOM)  ? EfhFeedVer::kMIAX :	\
-  (x == EkaSource::kC1_PITCH)    ? EfhFeedVer::kBATS :	\
-  (x == EkaSource::kC2_PITCH)    ? EfhFeedVer::kBATS :	\
-  (x == EkaSource::kBZX_PITCH)   ? EfhFeedVer::kBATS :	\
-  (x == EkaSource::kEDGX_PITCH)  ? EfhFeedVer::kBATS :	\
+  (x == EkaSource::kC1_PITCH)   ? EfhFeedVer::kBATS :	\
+  (x == EkaSource::kC2_PITCH)   ? EfhFeedVer::kBATS :	\
+  (x == EkaSource::kBZX_PITCH)  ? EfhFeedVer::kBATS :	\
+  (x == EkaSource::kEDGX_PITCH) ? EfhFeedVer::kBATS :	\
+  (x == EkaSource::kBOX_HSVF)   ? EfhFeedVer::kBOX :	\
   EfhFeedVer::kInvalid)
 
 #define EFH_EXCH2FULL_BOOK(x) ((x == EkaSource::kNOM_ITTO) || (x == EkaSource::kC2_PITCH) || (x == EkaSource::kBZX_PITCH) || (x == EkaSource::kEDGX_PITCH))
@@ -49,6 +51,7 @@
   (x == EkaSource::kEDGX_PITCH) ? "EDGX_PITCH" :	   \
   (x == EkaSource::kMIAX_TOM)   ? "MIAX_TOM"   :	   \
   (x == EkaSource::kPEARL_TOM)  ? "PEARL_TOM"  :	   \
+  (x == EkaSource::kBOX_HSVF)   ? "BOX_HSVF"  :	   \
   "UNKNOWN")
 
 #define EKA_EXCH_SOURCE_DECODE(x) (					\
@@ -64,6 +67,7 @@
 				   (x == EkaSource::kEDGX_PITCH) ? "EDGX" : \
 				   (x == EkaSource::kMIAX_TOM)   ? "MIAX"   : \
 				   (x == EkaSource::kPEARL_TOM)  ? "PEARL"  : \
+				   (x == EkaSource::kBOX_HSVF)   ? "BOX"  : \
 				   "UNKNOWN")
 
 
@@ -80,6 +84,7 @@
   (x == EkaSource::kEDGX_PITCH) ? EfhExchange::kEDGX  :	   \
   (x == EkaSource::kAMEX_XDP)   ? EfhExchange::kAOE   :	   \
   (x == EkaSource::kARCA_XDP)   ? EfhExchange::kPCX   :	   \
+  (x == EkaSource::kBOX_HSVF)   ? EfhExchange::kBOX   :	   \
    EfhExchange::kUnknown)
 
 #define EKA_CTS_SOURCE(x)						\
@@ -100,6 +105,7 @@
               x == EfhFeedVer::kMIAX     ? "MIAX"        : \
               x == EfhFeedVer::kBATS     ? "BATS"        : \
               x == EfhFeedVer::kXDP      ? "XDP"        : \
+              x == EfhFeedVer::kBOX      ? "BOX"        : \
                                            "UNKNOWN"
 #define EKA_TS_DECODE(x) \
   x == EfhTradeStatus::kUninit       ? '_' :	\

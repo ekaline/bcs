@@ -61,15 +61,23 @@ struct HsvfRetransmissionRequest { // "RT"
 };
 
 struct HsvfEndOfTransmission { // "U "
-  char ExchangeID; // Q by default
-  char Time[6];
+  char       SoM; //  = HsvfSom;
+  HsvfMsgHdr hdr;
+  char       ExchangeID; // Q by default
+  char       Time[6];
+  char       EoM; // = HsvfEom;
 };
 
-struct CircuitAssurance { // "V "
+struct HsvfCircuitAssurance { // "V "
+  char       SoM; //  = HsvfSom;
+  HsvfMsgHdr hdr;
   char Time[6];
+  char       EoM; // = HsvfEom;
 };
 
-struct OptionInstrumentKeys { // "J "
+struct HsvfOptionInstrumentKeys { // "J "
+  char       SoM; //  = HsvfSom;
+  HsvfMsgHdr hdr;
   char ExchangeID;
   char InstrumentDescription[20];
   char StrikePriceCurrency[3];
@@ -88,9 +96,12 @@ struct OptionInstrumentKeys { // "J "
   char InstrumentExternalCode[30];
   char OptionMarker[2];
   char UnderlyingSymbolRoot[10];
+  char       EoM; // = HsvfEom;
 };
 
-struct OptionSummary { // "N "
+struct HsvfOptionSummary { // "N "
+  char       SoM; //  = HsvfSom;
+  HsvfMsgHdr hdr;
   char ExchangeID;
   char InstrumentDescription[20];
   char BidPrice[6];
@@ -117,9 +128,12 @@ struct OptionSummary { // "N "
   char UnderlyingSymbol[10];
   char ReferencePrice[6];
   char ReferencePriceFractionIndicator;
+  char       EoM; // = HsvfEom;
 };
 
-struct OptionQuote { // "F "
+struct HsvfOptionQuote { // "F "
+  char       SoM; //  = HsvfSom;
+  HsvfMsgHdr hdr;
   char ExchangeID;
   char InstrumentDescription[20];
   char BidPrice[6];
@@ -132,10 +146,14 @@ struct OptionQuote { // "F "
   char InstrumentStatusMarker;
   char PublicCustomerBidSize[5];
   char PublicCustomerAskSize[5];
+  char       EoM; // = HsvfEom;
 };
 
 
-struct SystemTimeStamp { // "Z "
+struct HsvfSystemTimeStamp { // "Z "
+  char       SoM; //  = HsvfSom;
+  HsvfMsgHdr hdr;
   char TimeStamp[9];
+  char       EoM; // = HsvfEom;
 };
 #endif

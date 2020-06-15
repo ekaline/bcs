@@ -5,6 +5,7 @@
 #include <endian.h>
 #include <inttypes.h>
 #include <assert.h>
+#include <string>
 
 #include "eka_fh.h"
 #include "eka_hsvf_box_messages.h"
@@ -12,107 +13,155 @@
 #include "eka_dev.h"
 #include "Efh.h"
 
+/* ----------------------------------------------------------------------- */
+
+inline uint32_t charSymbol2SecurityId(const char* charSymbol) {
+  uint64_t hashRes = 0;
+  uint shiftBits = 0;
+
+  uint64_t fieldSize = 0;
+  uint64_t fieldMask = 0;
+
+  // 5 letters * 5 bits = 25 bits
+  fieldSize = 5;
+  fieldMask = (0x1 << fieldSize) - 1;
+  for (int i = 0; i < 5; i++) {
+    uint64_t nameLetter = (charSymbol[i] - 'A') & fieldMask;
+    hashRes |=  nameLetter << shiftBits;
+    shiftBits += fieldSize;
+  } 
+  // shiftBits = 25;
+
+  // 5 bits
+  fieldSize = 5;
+  fieldMask = (0x1 << fieldSize) - 1;
+  char month = (charSymbol[6] - 'A') & fieldMask;
+  hashRes |= month << shiftBits;
+  shiftBits += fieldSize;
+  // shiftBits = 30;
+
+  // 9,999,999 = 24 bits
+  fieldSize = 24;
+  fieldMask = (0x1 << fieldSize) - 1;
+  std::string priceStr = std::string(&charSymbol[8],7);
+  uint64_t price = std::stoul(priceStr,nullptr,10) & fieldMask;
+  hashRes |= price << shiftBits;
+  shiftBits += fieldSize;
+  // shiftBits = 54;
+
+  // 'A' .. 'G' = 3 bits
+  fieldSize = 3;
+  fieldMask = (0x1 << fieldSize) - 1;
+  char priceFractionIndicator = (charSymbol[15] - 'A') & fieldMask;
+  hashRes |= priceFractionIndicator << shiftBits;
+  shiftBits += fieldSize;
+  // shiftBits = 57;
+
+  // year offset = 2 bits
+  fieldSize = 2;
+  fieldMask = (0x1 << fieldSize) - 1;
+  std::string yearStr = std::string(&charSymbol[16],2);
+  uint64_t year = (std::stoi(yearStr,nullptr,10) - 20) & fieldMask;
+  hashRes |= year << shiftBits;
+  shiftBits += fieldSize;
+  // shiftBits = 59;
+
+  // 5 bits
+  std::string dayStr = std::string(&charSymbol[18],2);
+  int day = std::stoi(dayStr,nullptr,10) & fieldMask;
+  hashRes |= day << shiftBits;
+  shiftBits += fieldSize;
+  // shiftBits = 64;
+
+  uint32_t hashPartA = (hashRes >> 0 ) & 0xFFFFF;
+  uint32_t hashPartB = (hashRes >> 20) & 0xFFFFF;
+  uint32_t hashPartC = (hashRes >> 40) & 0xFFFFF;
+  uint32_t hashPartD = (hashRes >> 60) & 0xFFFFF;
+ //    printf ("charSymbol = %s, price = %s  = %u, month = %c, hash = %x\n",charSymbol,priceStr.c_str(), price, month,hashVal);
+  return hashPartA ^ hashPartB ^ hashPartC ^ hashPartD;
+}
+
+/* ----------------------------------------------------------------------- */
+
+template <class T> inline T getNumField(char* f, size_t fSize) {
+  std::string fieldString = std::string(f,fSize);
+  return static_cast<T>(std::stoul(fieldString,nullptr,10));
+}
+
+/* ----------------------------------------------------------------------- */
+EfhOptionType getOptionType(char* c) {
+  if (c[6] >= 'A' && c[6] <= 'L') return EfhOptionType::kCall;
+  if (c[6] >= 'M' && c[6] <= 'X') return EfhOptionType::kPut;
+  on_error("Unexpected Month Code \'%c\'",c[6]);
+}
+
+/* ----------------------------------------------------------------------- */
+uint64_t getMonth(char* c, EfhOptionType optType) {
+  if (optType == EfhOptionType::kCall) return c[6] - 'A';
+  return c[6] - 'M';
+}
+/* ----------------------------------------------------------------------- */
+uint64_t getYear(char* c) {
+  return getNumField<uint64_t>(c + 16,2);
+}
+/* ----------------------------------------------------------------------- */
+uint64_t getDay(char* c) {
+  return getNumField<uint64_t>(c + 18,2);
+}
+
+
+/* ----------------------------------------------------------------------- */
 
 bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
-  /* switch (((XdpMsgHdr*)m)->MsgType) { */
-  /*   //----------------------------------------------------------------------------- */
-  /* case EKA_XDP_MSG_TYPE::REFRESH_QUOTE : */
-  /*   if (op != EkaFhMode::RECOVERY) break; */
-  /*   //----------------------------------------------------------------------------- */
-  /* case EKA_XDP_MSG_TYPE::QUOTE : { */
-  /*   XdpQuote* msg = (XdpQuote*)m; */
-  /*   fh_b_security* s = book->find_security(msg->SeriesIndex); */
-  /*   if (s == NULL) return false; */
+  uint pos = 0;
+  if (m[pos] != HsvfSom) on_error("\'%c\' met while HsvfSom is expected",m[pos]);
+  pos++;
 
-  /*   /\* if ( *\/ */
-  /*   /\* 	msg->time.SourceTime  <  s->seconds ||  *\/ */
-  /*   /\* 	(msg->time.SourceTime == s->seconds && msg->time.SourceTimeNS < s->nanoseconds) *\/ */
-  /*   /\* 	) return false; // Back-in-time from Recovery *\/ */
+  HsvfMsgHdr* msgHdr = (HsvfMsgHdr*)&m[pos];
 
-  /*   /\* s->seconds       = msg->time.SourceTime; *\/ */
-  /*   /\* s->nanoseconds   = msg->time.SourceTimeNS; *\/ */
+  uint64_t seq = getNumField<uint64_t>(msgHdr->sequence,sizeof(msgHdr->sequence));
 
-  /*   s->bid_price     = msg->BidPrice; */
-  /*   s->bid_size      = msg->BidVolume; */
-  /*   s->bid_cust_size = msg->BidCustomerVolume; */
+  uint8_t* msgBody = (uint8_t*)msgHdr + sizeof(HsvfMsgHdr);
 
-  /*   s->ask_price     = msg->AskPrice; */
-  /*   s->ask_size      = msg->AskVolume; */
-  /*   s->ask_cust_size = msg->AskCustomerVolume; */
+  //===================================================
+  if (memcmp(msgHdr->MsgType,"J ",sizeof(msgHdr->MsgType)) == 0) { // OptionInstrumentKeys
+    HsvfOptionInstrumentKeys* boxMsg = (HsvfOptionInstrumentKeys*)msgBody;
+    
+    char* symb = boxMsg->InstrumentDescription;
 
-  /*   switch (msg->QuoteCondition) { */
-  /*   case '1' : // (Regular Trading) */
-  /*     s->option_open    = true; */
-  /*     s->trading_action = EfhTradeStatus::kNormal; */
-  /*     break; */
-  /*   case '2' : // (Rotation) -- TBD */
-  /*     break; */
-  /*   case '3' : // (Trading Halted) */
-  /*     s->trading_action = EfhTradeStatus::kHalted; */
-  /*     break; */
-  /*   case '4' : // (Pre-open) */
-  /*     s->option_open    = false; */
-  /*     s->trading_action = EfhTradeStatus::kPreopen; */
-  /*     break; */
-  /*   default: */
-  /*     on_error("Unexpected QuoteCondition: \'%c\'",msg->QuoteCondition); */
-  /*   } */
-  /*   book->generateOnQuote (pEfhRunCtx, s, sequence, msg->time.SourceTime * SEC_TO_NANO + msg->time.SourceTimeNS, gapNum); */
-  /* } */
-  /*   break; */
-  /*   //----------------------------------------------------------------------------- */
+    EfhDefinitionMsg msg = {};
+    msg.header.msgType        = EfhMsgType::kDefinition;
+    msg.header.group.source   = EkaSource::kBOX_HSVF;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.securityId     = (uint64_t) charSymbol2SecurityId(symb);
+    msg.header.sequenceNumber = seq;
+    msg.header.timeStamp      = 0;
+    msg.header.gapNum         = gapNum;
 
-  /* case EKA_XDP_MSG_TYPE::TRADE : { */
-  /*   XdpTrade* msg = (XdpTrade*) m; */
-  /*   fh_b_security* s = book->find_security(msg->SeriesIndex); */
-  /*   if (s == NULL) return false; */
+    //    msg.secondaryGroup        = 0;
+    msg.securityType          = EfhSecurityType::kOpt;
+    msg.optionType            = getOptionType(symb);
+    msg.expiryDate            = (2000 + getYear(symb)) * 10000 + getMonth(symb,msg.optionType) * 100 + getDay(symb);
+    msg.contractSize          = 0;
+    msg.strikePrice           = getNumField<uint32_t>(&symb[8],7) / EFH_HSV_BOX_STRIKE_PRICE_SCALE;
+    msg.exchange              = EfhExchange::kBOX;
 
-  /*   const EfhTradeMsg efhTradeMsg = { */
-  /*     { EfhMsgType::kTrade, */
-  /* 	{exch,(EkaLSI)id}, // group */
-  /* 	0,  // underlyingId */
-  /* 	(uint64_t) msg->SeriesIndex, */
-  /* 	sequence, */
-  /* 	msg->time.SourceTime * static_cast<uint64_t>(SEC_TO_NANO) + msg->time.SourceTimeNS, */
-  /* 	gapNum }, */
-  /*     msg->Price, */
-  /*     msg->Volume, */
-  /*     EfhTradeCond::kReg */
-  /*   }; */
-  /*   pEfhRunCtx->onEfhTradeMsgCb(&efhTradeMsg, s->efhUserData, pEfhRunCtx->efhRunUserData); */
-  /* } */
-  /*   break; */
-  /*   //----------------------------------------------------------------------------- */
+    memcpy (&msg.classSymbol,boxMsg->UnderlyingSymbolRoot,std::min(sizeof(msg.classSymbol),sizeof(boxMsg->UnderlyingSymbolRoot)));
+    memcpy (&msg.underlying,&symb[0],6);
 
-  /* case EKA_XDP_MSG_TYPE::SERIES_STATUS : { */
-  /*   XdpSeriesStatus* msg = (XdpSeriesStatus*) m; */
-  /*   fh_b_security* s = book->find_security(msg->SeriesIndex); */
-  /*   if (s == NULL) return false; */
-  /*   switch (msg->SecurityStatus) { */
-  /*   case 'O' : */
-  /*     s->option_open = true; */
-  /*     s->trading_action = EfhTradeStatus::kNormal; */
-  /*     break; */
-  /*   case 'X' : */
-  /*     s->option_open = false; */
-  /*     s->trading_action = EfhTradeStatus::kClosed; */
-  /*     break; */
-  /*   case 'S' : */
-  /*     s->trading_action = EfhTradeStatus::kHalted; */
-  /*     break; */
-  /*    case 'U' : */
-  /*     s->trading_action = EfhTradeStatus::kNormal; */
-  /*     break; */
-  /*   default: */
-  /*     return false; */
-  /*   } */
-  /*   book->generateOnQuote (pEfhRunCtx, s, sequence, msg->time.SourceTime * SEC_TO_NANO + msg->time.SourceTimeNS, gapNum); */
-  /* } */
-  /*   //----------------------------------------------------------------------------- */
-
-  /* default: */
-  /*   return false; */
-  /* } */
+    pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+    //===================================================
+  } else if (memcmp(msgHdr->MsgType,"N ",sizeof(msgHdr->MsgType)) == 0) { // OptionSummary
+    
+    //===================================================
+  } else if (memcmp(msgHdr->MsgType,"F ",sizeof(msgHdr->MsgType)) == 0) { // OptionQuote
+    
+    //===================================================
+  } else if (memcmp(msgHdr->MsgType,"Z ",sizeof(msgHdr->MsgType)) == 0) { // SystemTimeStamp
+    
+  }
+  //===================================================
 
   return false;
 }
