@@ -71,13 +71,13 @@ struct HsvfEndOfTransmission { // "U "
 struct HsvfCircuitAssurance { // "V "
   char       SoM; //  = HsvfSom;
   HsvfMsgHdr hdr;
-  char Time[6];
+  char       Time[6];
   char       EoM; // = HsvfEom;
 };
 
 struct HsvfOptionInstrumentKeys { // "J "
-  char       SoM; //  = HsvfSom;
-  HsvfMsgHdr hdr;
+  /* char       SoM; //  = HsvfSom; */
+  /* HsvfMsgHdr hdr; */
   char ExchangeID;
   char InstrumentDescription[20];
   char StrikePriceCurrency[3];
@@ -96,12 +96,12 @@ struct HsvfOptionInstrumentKeys { // "J "
   char InstrumentExternalCode[30];
   char OptionMarker[2];
   char UnderlyingSymbolRoot[10];
-  char       EoM; // = HsvfEom;
+  /* char       EoM; // = HsvfEom; */
 };
 
 struct HsvfOptionSummary { // "N "
-  char       SoM; //  = HsvfSom;
-  HsvfMsgHdr hdr;
+  /* char       SoM; //  = HsvfSom; */
+  /* HsvfMsgHdr hdr; */
   char ExchangeID;
   char InstrumentDescription[20];
   char BidPrice[6];
@@ -128,12 +128,12 @@ struct HsvfOptionSummary { // "N "
   char UnderlyingSymbol[10];
   char ReferencePrice[6];
   char ReferencePriceFractionIndicator;
-  char       EoM; // = HsvfEom;
+  /* char       EoM; // = HsvfEom; */
 };
 
 struct HsvfOptionQuote { // "F "
-  char       SoM; //  = HsvfSom;
-  HsvfMsgHdr hdr;
+  /* char       SoM; //  = HsvfSom; */
+  /* HsvfMsgHdr hdr; */
   char ExchangeID;
   char InstrumentDescription[20];
   char BidPrice[6];
@@ -146,14 +146,14 @@ struct HsvfOptionQuote { // "F "
   char InstrumentStatusMarker;
   char PublicCustomerBidSize[5];
   char PublicCustomerAskSize[5];
-  char       EoM; // = HsvfEom;
+  /* char       EoM; // = HsvfEom; */
 };
 
 
 struct HsvfSystemTimeStamp { // "Z "
-  char       SoM; //  = HsvfSom;
-  HsvfMsgHdr hdr;
+  /* char       SoM; //  = HsvfSom; */
+  /* HsvfMsgHdr hdr; */
   char TimeStamp[9];
-  char       EoM; // = HsvfEom;
+  /* char       EoM; // = HsvfEom; */
 };
 #endif

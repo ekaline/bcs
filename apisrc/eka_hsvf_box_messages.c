@@ -108,7 +108,90 @@ uint64_t getYear(char* c) {
 uint64_t getDay(char* c) {
   return getNumField<uint64_t>(c + 18,2);
 }
+/* ----------------------------------------------------------------------- */
+inline uint32_t getFractionIndicator(char FI) {
+  switch (FI) {
+  case '0' : return 1;
+  case '1' : return 10;
+  case '2' : return 100;
+  case '3' : return 1000;
+  case '4' : return 10000;
+  case '5' : return 100000;
+  case '6' : return 1000000;
+  case '7' : return 10000000;
+  case '8' : return 100000000;
+  case '9' : return 1000000000;
+  default:
+    on_error("Unexpected FractionIndicator \'%c\'",FI);
+  }
 
+}
+/* ----------------------------------------------------------------------- */
+inline int getStatus(fh_b_security* s, char statusMarker) {
+  switch (statusMarker) {
+  case 'Y' : // Pre-opening phase
+    s->option_open    = false;
+    s->trading_action = EfhTradeStatus::kPreopen;
+    break;
+
+  case 'O' : // Opening phase
+    s->option_open    = true;
+    s->trading_action = EfhTradeStatus::kNormal;
+    break;
+
+  case 'T' : // Opened for Trading
+    s->option_open    = true;
+    s->trading_action = EfhTradeStatus::kNormal;
+    break;
+
+  case 'F' : // Forbidden phase
+    s->option_open    = true;
+    s->trading_action = EfhTradeStatus::kHalted;
+    break;
+
+  case 'H' : // Trading Halted
+    s->option_open    = true;
+    s->trading_action = EfhTradeStatus::kHalted;
+    break;
+
+  case 'R' : // Reserved phase
+    s->option_open    = false;
+    s->trading_action = EfhTradeStatus::kPreopen;
+    break;
+
+  case 'S' : // Suspended phase
+    s->option_open    = true;
+    s->trading_action = EfhTradeStatus::kHalted;
+    break;
+
+  case 'Z' : // Frozen
+    s->option_open    = true;
+    s->trading_action = EfhTradeStatus::kHalted;
+    break;
+
+  case 'A' : // Surveillance Intervention phase
+    s->option_open    = true;
+    s->trading_action = EfhTradeStatus::kHalted;
+    break;
+
+  case 'C' : // Closed
+    s->option_open    = false;
+    s->trading_action = EfhTradeStatus::kClosed;
+    break;
+
+  case 'B' : // Beginning of day inquiries
+    s->option_open    = false;
+    s->trading_action = EfhTradeStatus::kClosed;
+    break;
+
+  case ' ' : // Not Used
+    break;
+
+  default:
+    on_error("unexpected statusMarker \'%c\'",statusMarker);
+  }
+  return 0;
+}
 
 /* ----------------------------------------------------------------------- */
 
@@ -116,6 +199,8 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
   uint pos = 0;
   if (m[pos] != HsvfSom) on_error("\'%c\' met while HsvfSom is expected",m[pos]);
   pos++;
+
+  fh_b_security* s = NULL;
 
   HsvfMsgHdr* msgHdr = (HsvfMsgHdr*)&m[pos];
 
@@ -156,10 +241,35 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     
     //===================================================
   } else if (memcmp(msgHdr->MsgType,"F ",sizeof(msgHdr->MsgType)) == 0) { // OptionQuote
-    
+    if (op == EkaFhMode::DEFINITIONS) return true; // Dictionary is done
+
+    HsvfOptionQuote* boxMsg = (HsvfOptionQuote*)msgBody;
+
+    uint32_t security_id = (uint32_t) charSymbol2SecurityId(boxMsg->InstrumentDescription);
+
+    s = ((TobBook*)book)->find_security(security_id);
+    if (s == NULL && !((TobBook*)book)->subscribe_all) return false;
+
+    s->bid_price     = getNumField<uint32_t>(boxMsg->BidPrice,sizeof(boxMsg->BidPrice)) * getFractionIndicator(boxMsg->BidPriceFractionIndicator);
+    s->bid_size      = getNumField<uint32_t>(boxMsg->BidSize,sizeof(boxMsg->BidSize));
+    s->bid_cust_size = getNumField<uint32_t>(boxMsg->PublicCustomerBidSize,sizeof(boxMsg->PublicCustomerBidSize));
+
+    s->ask_price     = getNumField<uint32_t>(boxMsg->AskPrice,sizeof(boxMsg->AskPrice)) * getFractionIndicator(boxMsg->AskPriceFractionIndicator);
+    s->ask_size      = getNumField<uint32_t>(boxMsg->AskSize,sizeof(boxMsg->AskSize));
+    s->ask_cust_size = getNumField<uint32_t>(boxMsg->PublicCustomerAskSize,sizeof(boxMsg->PublicCustomerAskSize));
+
+    getStatus(s,boxMsg->InstrumentStatusMarker);
+    book->generateOnQuote (pEfhRunCtx, s, seq, gr_ts, gapNum);
+
     //===================================================
   } else if (memcmp(msgHdr->MsgType,"Z ",sizeof(msgHdr->MsgType)) == 0) { // SystemTimeStamp
+    char* timeStamp = ((HsvfSystemTimeStamp*)msgBody)->TimeStamp;
+    uint64_t hour = getNumField<uint64_t>(&timeStamp[0],2);
+    uint64_t min  = getNumField<uint64_t>(&timeStamp[2],2);
+    uint64_t sec  = getNumField<uint64_t>(&timeStamp[4],2);
+    uint64_t ms   = getNumField<uint64_t>(&timeStamp[6],3);
     
+    gr_ts = ((hour * 3600 + min * 60 + sec) * 1000 + ms) * 1000000;
   }
   //===================================================
 
