@@ -52,6 +52,9 @@ EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhI
   case EkaSource::kAMEX_XDP:
     dev->fh[fhId] = new FhXdp();
     break;
+  case EkaSource::kBOX_HSVF:
+    dev->fh[fhId] = new FhBox();
+    break;
   default:
     on_error ("Invalid Exchange %s from: %s",EKA_EXCH_DECODE(exch),pEfhInitCtx->ekaProps->props[0].szKey);
   }

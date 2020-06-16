@@ -20,7 +20,7 @@ INCL+=-Iarch
 include $(SMARTNIC_ROOT)/api/makefile_common
 
 #GCC_FLAGS:=-Wall -fpic -pthread -lrt $(EKA_AFFINITY_SET) -lm $(GCC_EXTERNAL_DEFINES) -DBUILD_TIME=`date +%d%m%y_%T`
-GCC_FLAGS:=-Wall -fPIC -pthread -lrt -lm $(GCC_EXTERNAL_DEFINES)
+GCC_FLAGS:=-Wall -fPIC -pthread -lrt -lm $(GCC_EXTERNAL_DEFINES) -Wno-unused-function
 #LD_FLAGS:=-shared -fpic $(LD_ASAN_OPTIONS) -static-libstdc++ -static-libgcc
 LD_FLAGS:=-shared -fpic $(LD_ASAN_OPTIONS)
 
@@ -119,6 +119,6 @@ unit_tests: $(UNITTESTS_EXECS)
 
 
 clean:
-	rm -f *.o *.so *.a $(LWIPOBJS) *~ .depend core $(EKATESTS_EXECS) $(UNITTESTS_EXECS) $(EKAUTILS_EXECS) */*~ ../*/*~ *.csv *.txt
+	rm -f /tmp/core* *.o *.so *.a $(LWIPOBJS) *~ .depend core $(EKATESTS_EXECS) $(UNITTESTS_EXECS) $(EKAUTILS_EXECS) */*~ ../*/*~ *.csv *.txt
 
 

@@ -29,6 +29,7 @@
 #include "eka_fh_run_group.h"
 #include "eka_fh_xdp_messages.h"
 #include "eka_fh_miax_messages.h"
+#include "eka_hsvf_box_messages.h"
 
 void* eka_get_glimpse_data(void* attr);
 void* eka_get_mold_retransmit_data(void* attr);
@@ -38,6 +39,8 @@ void* eka_get_sesm_data(void* attr);
 void* eka_get_sesm_retransmit(void* attr);
 EkaOpResult eka_get_xdp_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhXdpGr* gr,EkaFhMode op);
 EkaOpResult eka_hsvf_get_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhBoxGr* gr);
+
+void hexDump (const char *desc, void *addr, int len);
 
  /* ##################################################################### */
 
@@ -177,7 +180,10 @@ int EkaFh::openGroups(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
     case EkaSource::kAMEX_XDP:
       b_gr[i] =  new FhXdpGr();
       break;
-    default:
+     case EkaSource::kBOX_HSVF:
+      b_gr[i] =  new FhBoxGr();
+      break;
+   default:
       on_error ("Invalid Exchange %s from: %s",EKA_EXCH_DECODE(exch),pEfhInitCtx->ekaProps->props[0].szKey);
     }
     assert (b_gr[i] != NULL);
@@ -254,7 +260,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       memcpy(&(b_gr[gr]->auth_user),v[0],strlen(v[0]));
       memcpy(&(b_gr[gr]->auth_passwd),v[1],strlen(v[1]));
 
-      EKA_DEBUG ("auth credentials for %s:%u are set to |%s|:|%s|",k[1],gr,b_gr[gr]->auth_user + '\0',b_gr[gr]->auth_passwd + '\0');
+      //      EKA_DEBUG ("auth credentials for %s:%u are set to |%s|:|%s|",k[1],gr,b_gr[gr]->auth_user + '\0',b_gr[gr]->auth_passwd + '\0');
       b_gr[gr]->auth_set = true;
       fflush(stderr);
 
@@ -381,6 +387,26 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       b_gr[gr]->recovery_port = htons((uint16_t)atoi(v[1]));
       b_gr[gr]->recovery_set  = true;
       //      EKA_DEBUG ("%s %s for %s:%u is set to %s:%u",k[4],k[5],k[1],gr,v[0],(uint16_t)atoi(v[1]));
+      fflush(stderr);
+      return EkaFhAddConf::CONF_SUCCESS;
+    }
+  }
+  //---------------------------------------------------------------------
+  // efh.BOX_HSVF.group.X.mcast.line   ,"11"
+  // k[0] k[1]    k[2] k[3] k[4]   k[5]
+  if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"mcast")==0) && (strcmp(k[5],"line")==0)) {
+    if (EFH_GET_SRC(k[1]) == exch) {
+      uint8_t gr = (uint8_t) atoi(k[3]);
+      if (b_gr[gr] == NULL) on_error("Group %u does not exist",gr);
+      //      if (gr >= groups) on_error("%s -- %s : group_id %d >= groups (=%u)",key, value,gr,groups);
+      if (gr >= groups) {
+	on_warning("%s -- %s : Ignoring group_id %d >= groups (=%u)",key, value,gr,groups);
+	return EkaFhAddConf::CONF_SUCCESS;
+      }
+
+      memset(&b_gr[gr]->line,' ',sizeof(b_gr[gr]->line));
+      memcpy(&b_gr[gr]->line,v[0],std::min(sizeof(b_gr[gr]->line),sizeof(v[0])));
+      //      EKA_DEBUG ("%s:%u line = %s", EKA_EXCH_SOURCE_DECODE(exch),gr,v[0]);
       fflush(stderr);
       return EkaFhAddConf::CONF_SUCCESS;
     }
@@ -592,10 +618,9 @@ uint8_t* FhBox::getUdpPkt(FhRunGr* runGr, uint* msgInPkt, int16_t* pktLen, uint8
   uint8_t* pkt = (uint8_t*)runGr->udpCh->get();
   if (pkt == NULL) on_error("%s: pkt == NULL",EKA_EXCH_DECODE(exch));
 
-  //  *pktLen   = runGr->udpCh->getPayloadLen();
+  *pktLen   = runGr->udpCh->getPayloadLen();
   *gr_id    = getGrId(pkt);
-  //  *sequence = 0;//EKA_GET_MACH_SEQ((pkt));
-  //  *msgInPkt = 16; // just a number, greater than amount of messages in a packet
+
   return pkt;
 }
 /* ##################################################################### */
@@ -728,17 +753,24 @@ bool FhXdp::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhXdpGr* gr, uint streamId
 }
 /* ##################################################################### */
 bool FhBox::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhBoxGr* gr, const uint8_t* pktPtr, int16_t pktLen) {
-  uint8_t* p = (uint8_t*)pktPtr + sizeof(XdpPktHdr)+sizeof(XdpStreamId);
-  uint64_t sequence = 0;
-  for (uint msg=0; msg < 1 /*msgInPkt*/; msg++) {
-    uint16_t msg_len = 0;//EKA_XDP_MSG_LEN(p);
-    //    if (sequence == gr->getExpectedSeq(streamIdx)) { // = ignore back in time messages
-    //-----------------------------------------------------------------------------
-    gr->parseMsg(pEfhRunCtx,p,sequence++,EkaFhMode::MCAST); // never end of MC from Msg
-    //-----------------------------------------------------------------------------
-    //    gr->setExpectedSeq(streamIdx,sequence);
-    //    } 
-    p += msg_len;
+  uint8_t* p = (uint8_t*)pktPtr;
+  EKA_LOG("%s:%u : pktLen = %u",EKA_EXCH_DECODE(gr->exch),gr->id,pktLen);
+
+  while (p < pktPtr + pktLen) {
+    if (*p != HsvfSom) on_error("0x%x) met while HsvfSom 0x%x is expected",*p,HsvfSom);
+    p++;
+    uint msgLen = 0;
+    gr->parseMsg(pEfhRunCtx,p,&msgLen,EkaFhMode::MCAST); // never end of MC from Msg
+    p += msgLen;
+    //    EKA_LOG("msgLen = %u, p - pktPtr = %jd",msgLen,p - pktPtr);
+    while (*p != HsvfEom) {
+      if (p > pktPtr + pktLen) {
+	hexDump("Pad Pkt",(uint8_t*)pktPtr,pktLen);
+	on_error("p - (pktPtr + pktLen) = %jd",p - (pktPtr + pktLen));
+      }
+      p++;
+    }
+    p++;
   }
   return false;
 }
@@ -1123,42 +1155,24 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
   EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s:%u GROUPS ~~~~~~~~~~~~~",EKA_EXCH_DECODE(exch),(uint)pEfhRunCtx->numGroups);
 
   while (runGr->thread_active) {
+    //    EKA_LOG("%s Waiting for a packet",EKA_EXCH_DECODE(exch));
+
     //-----------------------------------------------------------------------------
     if (! runGr->udpCh->has_data()) continue;
-    uint msgInPkt = 0;
-    /* uint64_t sequence = 0; */
+
     uint8_t gr_id = 0xFF;
-    /* uint16_t streamId = 0; */
-    /* uint8_t pktType = 0; */
+
     int16_t pktLen = 0;
 
-    const uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&pktLen,&gr_id);
+    const uint8_t* pkt = getUdpPkt(runGr,NULL,&pktLen,&gr_id);
     if (pkt == NULL) continue;
+
     FhBoxGr* gr = (FhBoxGr*)b_gr[gr_id];
-    //    uint streamIdx = gr->findAndInstallStream(streamId, sequence);
-    //-----------------------------------------------------------------------------
-    //    if (pktType == (uint8_t)EKA_XDP_DELIVERY_FLAG::SequenceReset) gr->resetExpectedSeq(streamIdx);
-    //-----------------------------------------------------------------------------
-    /* if (gr->inGap) { */
-    /*   if (gr->isGapOver()) { */
-    /* 	gr->inGap = false; */
-    /* 	EfhFeedUpMsg efhFeedUpMsg{ EfhMsgType::kFeedUp, {gr->exch, (EkaLSI)gr->id}, gr->gapNum }; */
-    /* 	pEfhRunCtx->onEfhFeedUpMsgCb(&efhFeedUpMsg, 0, pEfhRunCtx->efhRunUserData); */
-    /*   } */
-    /* } */
-    //-----------------------------------------------------------------------------
-    /* if (sequence > gr->getExpectedSeq(streamIdx) && ! gr->inGap) { */
-    /*   EfhFeedDownMsg efhFeedDownMsg{ EfhMsgType::kFeedDown, {gr->exch, (EkaLSI)gr->id}, ++gr->gapNum }; */
-    /*   pEfhRunCtx->onEfhFeedDownMsgCb(&efhFeedDownMsg, 0, pEfhRunCtx->efhRunUserData); */
 
-    /*   EKA_LOG("%s:%u for Stream %u expectedSeq = %u < sequence %u, lost %u messages", */
-    /* 	      EKA_EXCH_DECODE(exch),gr->id,gr->getId(streamIdx),gr->getExpectedSeq(streamIdx),sequence,sequence-gr->getExpectedSeq(streamIdx)); */
-    /*   gr->inGap = true; */
-    /*   gr->setGapStart(); */
-    /* } */
-    //-----------------------------------------------------------------------------
-
-    if (processUdpPkt(pEfhRunCtx,gr,pkt,pktLen)) break;
+    if (processUdpPkt(pEfhRunCtx,gr,pkt,pktLen)) {
+      runGr->udpCh->next();
+      break;
+    }
 
     //-----------------------------------------------------------------------------
     runGr->udpCh->next(); 
@@ -1201,7 +1215,9 @@ EkaOpResult FhXdp::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx,
  /* ##################################################################### */
 
 EkaOpResult FhBox::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group) {
-  return eka_hsvf_get_definitions(pEfhCtx, pEfhRunCtx,(FhBoxGr*)group);
+  //  EKA_LOG("Defintions for %s",EKA_PRINT_GRP(group));fflush(stdout);fflush(stderr);
+
+  return eka_hsvf_get_definitions(pEfhCtx, pEfhRunCtx,(FhBoxGr*)b_gr[(uint8_t)group->localId]);
 }
 
  /* ##################################################################### */

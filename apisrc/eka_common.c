@@ -25,8 +25,10 @@
 #include "ekaline.h"
 #include "eka_sn_dev.h"
 #include "eka_user_channel.h"
+#include "eka_macros.h"
 
 #include "Exc.h"
+#include "Efc.h"
 void eka_open_sn_channels (EkaDev* dev);
 void ekaLwipPollThread (EkaDev* dev);
 void ekaExcInitLwip (EkaDev* dev);
@@ -107,7 +109,9 @@ std::string ts_ns2str(uint64_t ts) {
 /* ##################################################################### */
 
 int ekaTcpConnect(int* sock, uint32_t ip, uint16_t port) {
-#ifndef FH_LAB
+#ifdef FH_LAB
+  TEST_LOG("Dummy FH_LAB TCP connect to %s:%u",EKA_IP2STR(ip),port);
+#else
   if ((*sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) on_error("failed to open TCP socket");
 
   struct sockaddr_in remote_addr = {};

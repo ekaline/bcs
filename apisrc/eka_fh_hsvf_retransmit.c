@@ -61,18 +61,24 @@ static EkaOpResult sendLogin (FhBoxGr* gr) {
   memcpy(msg.ProtocolVersion   , "C7"       , sizeof(msg.ProtocolVersion));
   msg.EoM = HsvfEom;
 
-	
+#ifdef FH_LAB
+  EKA_LOG("%s:%u Dummy FH_LAB Box Login sent: %s",EKA_EXCH_DECODE(gr->exch),gr->id,(char*)&msg);
+#else	
   if(send(gr->snapshot_sock,&msg,sizeof(msg), 0) < 0) {
     EKA_WARN("BOX Login send failed");
     return EKA_OPRESULT__ERR_SYSTEM_ERROR;
   }
-
   EKA_LOG("%s:%u Box Login sent: %s",EKA_EXCH_DECODE(gr->exch),gr->id,(char*)&msg);
+#endif
   return EKA_OPRESULT__OK;
 }
 /* ----------------------------- */
 static EkaOpResult getLoginResponse(FhBoxGr* gr) {
   EkaDev* dev = gr->dev;
+
+#ifdef FH_LAB
+  EKA_LOG("%s:%u Dummy FH_LAB Login Acknowledge received",EKA_EXCH_DECODE(gr->exch),gr->id);
+#else	
   HsvfLoginAck msg = {};
 
   if (recv(gr->snapshot_sock,&msg,sizeof(msg),MSG_WAITALL) != sizeof(msg))
@@ -89,6 +95,7 @@ static EkaOpResult getLoginResponse(FhBoxGr* gr) {
 	     msg.hdr.MsgType[0],msg.hdr.MsgType[1]);
 
   EKA_LOG("%s:%u Login Acknowledge received",EKA_EXCH_DECODE(gr->exch),gr->id);
+#endif
 
   return EKA_OPRESULT__OK;
 }
@@ -96,6 +103,8 @@ static EkaOpResult getLoginResponse(FhBoxGr* gr) {
 /* ----------------------------- */
 static EkaOpResult sendRequest(FhBoxGr* gr) {
   EkaDev* dev = gr->dev;
+
+
   HsvfRetransmissionRequest msg = {};
   memset(&msg,' ',sizeof(msg));
 
@@ -119,6 +128,10 @@ static EkaOpResult sendRequest(FhBoxGr* gr) {
 
   msg.EoM = HsvfEom;
 
+#ifdef FH_LAB
+  EKA_LOG("%s:%u Dummy FH_LAB Retransmit Request sent for %s .. %s messages",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,startStrBuf,endStrBuf);
+#else
   if(send(gr->snapshot_sock,&msg,sizeof(msg), 0) < 0) {
     EKA_WARN("Retransmit Request send failed");
     return EKA_OPRESULT__ERR_SYSTEM_ERROR;
@@ -126,6 +139,7 @@ static EkaOpResult sendRequest(FhBoxGr* gr) {
 
   EKA_LOG("%s:%u Retransmit Request sent for %s .. %s messages",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,startStrBuf,endStrBuf);
+#endif
 
   return EKA_OPRESULT__OK;
 }
@@ -133,6 +147,9 @@ static EkaOpResult sendRequest(FhBoxGr* gr) {
 /* ----------------------------- */
 static EkaOpResult getRetransmitionBegins(FhBoxGr* gr) {
   EkaDev* dev = gr->dev;
+#ifdef FH_LAB
+  EKA_LOG("%s:%u Dummy FH_LAB Retransmition Begins received",EKA_EXCH_DECODE(gr->exch),gr->id);
+#else
   HsvfLoginAck msg = {};
 
   if (recv(gr->snapshot_sock,&msg,sizeof(msg),MSG_WAITALL) != sizeof(msg))
@@ -149,7 +166,7 @@ static EkaOpResult getRetransmitionBegins(FhBoxGr* gr) {
 	     msg.hdr.MsgType[0],msg.hdr.MsgType[1]);
 
   EKA_LOG("%s:%u Retransmition Begins received",EKA_EXCH_DECODE(gr->exch),gr->id);
-
+#endif
   return EKA_OPRESULT__OK;
 }
 /* ----------------------------- */
@@ -179,13 +196,14 @@ static EkaOpResult getTcpMsg(uint8_t* msgBuf, int sock) {
 
 
 EkaOpResult eka_hsvf_get_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhBoxGr* gr) {
-  assert(gr != NULL);
+  if (gr == NULL) on_error("gr == NULL");
   EkaDev* dev = gr->dev;
-  assert(dev != NULL);
+  if (dev == NULL) on_error("dev == NULL");
   EkaOpResult ret = EKA_OPRESULT__OK;
 
   EKA_LOG("Definitions for %s:%u - BOX to %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id,
 	  EKA_IP2STR(gr->snapshot_ip),be16toh(gr->snapshot_port));
+
   //-----------------------------------------------------------------
   ekaTcpConnect(&gr->snapshot_sock,gr->snapshot_ip,gr->snapshot_port);
   //-----------------------------------------------------------------
@@ -197,7 +215,9 @@ EkaOpResult eka_hsvf_get_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
   //-----------------------------------------------------------------
   if ((ret = getRetransmitionBegins(gr)) != EKA_OPRESULT__OK) return ret;
   //-----------------------------------------------------------------
-
+#ifdef FH_LAB
+  EKA_LOG("%s:%u Dummy FH_LAB Defintions done",EKA_EXCH_DECODE(gr->exch),gr->id);
+#else
   gr->snapshot_active = true;
   bool definitionsDone = false;
   while (gr->snapshot_active && !definitionsDone) {
@@ -210,6 +230,7 @@ EkaOpResult eka_hsvf_get_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
 
     definitionsDone = gr->parseMsg(pEfhRunCtx,msgBuf,seq,EkaFhMode::DEFINITIONS);
   }
+#endif
   //-----------------------------------------------------------------
 
   return  EKA_OPRESULT__OK;

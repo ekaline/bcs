@@ -99,6 +99,8 @@ class FhGroup {
   char                  auth_user[10];     // snapshot
   char                  auth_passwd[12];  // snapshot
 
+  char                  line[2]; // used for BOX
+
   bool                  market_open; // used for BATS
 
   /* std::thread           snapshot_thread; */
@@ -196,13 +198,15 @@ class FhMiaxGr : public FhGroup{
 class FhBoxGr : public FhGroup{
  public:
   FhBoxGr();
-  bool     parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op);
+  bool     parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
+    return true;
+  }
+  bool     parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint* msgLen,EkaFhMode op);
   virtual  ~FhBoxGr() {};
   int      bookInit(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx);
 
   static const bool full_book = false;
   uint64_t txSeqNum;
-  char     line[2];
 };
 
 

@@ -195,10 +195,8 @@ inline int getStatus(fh_b_security* s, char statusMarker) {
 
 /* ----------------------------------------------------------------------- */
 
-bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
+bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint *msgLen,EkaFhMode op) {
   uint pos = 0;
-  if (m[pos] != HsvfSom) on_error("\'%c\' met while HsvfSom is expected",m[pos]);
-  pos++;
 
   fh_b_security* s = NULL;
 
@@ -208,8 +206,10 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
 
   uint8_t* msgBody = (uint8_t*)msgHdr + sizeof(HsvfMsgHdr);
 
+  EKA_LOG("MsgType = %c%c",msgHdr->MsgType[0],msgHdr->MsgType[1]);
   //===================================================
   if (memcmp(msgHdr->MsgType,"J ",sizeof(msgHdr->MsgType)) == 0) { // OptionInstrumentKeys
+    *msgLen = sizeof(HsvfMsgHdr) + sizeof(EfhDefinitionMsg);
     HsvfOptionInstrumentKeys* boxMsg = (HsvfOptionInstrumentKeys*)msgBody;
     
     char* symb = boxMsg->InstrumentDescription;
@@ -235,12 +235,16 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     memcpy (&msg.classSymbol,boxMsg->UnderlyingSymbolRoot,std::min(sizeof(msg.classSymbol),sizeof(boxMsg->UnderlyingSymbolRoot)));
     memcpy (&msg.underlying,&symb[0],6);
 
+
     pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
     //===================================================
   } else if (memcmp(msgHdr->MsgType,"N ",sizeof(msgHdr->MsgType)) == 0) { // OptionSummary
-    
+    *msgLen = sizeof(HsvfMsgHdr) + sizeof(HsvfOptionSummary);
+
     //===================================================
   } else if (memcmp(msgHdr->MsgType,"F ",sizeof(msgHdr->MsgType)) == 0) { // OptionQuote
+    *msgLen = sizeof(HsvfMsgHdr) + sizeof(HsvfOptionQuote);
+
     if (op == EkaFhMode::DEFINITIONS) return true; // Dictionary is done
 
     HsvfOptionQuote* boxMsg = (HsvfOptionQuote*)msgBody;
@@ -249,7 +253,10 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
 
     s = ((TobBook*)book)->find_security(security_id);
     if (s == NULL && !((TobBook*)book)->subscribe_all) return false;
+    if (s == NULL && book->subscribe_all) 
+      s = book->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0);
 
+    if (s == NULL) on_error("s == NULL");
     s->bid_price     = getNumField<uint32_t>(boxMsg->BidPrice,sizeof(boxMsg->BidPrice)) * getFractionIndicator(boxMsg->BidPriceFractionIndicator);
     s->bid_size      = getNumField<uint32_t>(boxMsg->BidSize,sizeof(boxMsg->BidSize));
     s->bid_cust_size = getNumField<uint32_t>(boxMsg->PublicCustomerBidSize,sizeof(boxMsg->PublicCustomerBidSize));
@@ -263,6 +270,7 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
 
     //===================================================
   } else if (memcmp(msgHdr->MsgType,"Z ",sizeof(msgHdr->MsgType)) == 0) { // SystemTimeStamp
+    *msgLen = sizeof(HsvfMsgHdr) + sizeof(HsvfSystemTimeStamp);
     char* timeStamp = ((HsvfSystemTimeStamp*)msgBody)->TimeStamp;
     uint64_t hour = getNumField<uint64_t>(&timeStamp[0],2);
     uint64_t min  = getNumField<uint64_t>(&timeStamp[2],2);
@@ -270,7 +278,9 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     uint64_t ms   = getNumField<uint64_t>(&timeStamp[6],3);
     
     gr_ts = ((hour * 3600 + min * 60 + sec) * 1000 + ms) * 1000000;
-  }
+  } else {
+    *msgLen = sizeof(HsvfMsgHdr);
+  };
   //===================================================
 
   return false;
