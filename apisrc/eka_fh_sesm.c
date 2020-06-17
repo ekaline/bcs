@@ -299,7 +299,8 @@ void* eka_get_sesm_data(void* attr) {
   char credName[7] = {};
   memset (credName,'\0',sizeof(credName));
   memcpy (credName,gr->auth_user,sizeof(credName) - 1);
-  int rc = dev->credAcquire(EkaCredentialType::kSnapshot, gr->exch, (const char*)credName, &leaseTime,&timeout,dev->credContext,&lease);
+  const EkaGroup group{gr->exch, (EkaLSI)gr->id};
+  int rc = dev->credAcquire(EkaCredentialType::kSnapshot, group, (const char*)credName, &leaseTime,&timeout,dev->credContext,&lease);
   if (rc != 0) on_error("%s:%u Failed to credAcquire for %s",EKA_EXCH_DECODE(gr->exch),gr->id,credName);
   EKA_LOG("%s:%u Sesm Credentials Accquired",EKA_EXCH_DECODE(gr->exch),gr->id);
   //-----------------------------------------------------------------

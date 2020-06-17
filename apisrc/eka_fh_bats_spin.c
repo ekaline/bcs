@@ -243,7 +243,8 @@ void* eka_get_spin_data(void* attr) {
   char credName[7] = {};
   memset (credName,'\0',sizeof(credName));
   memcpy (credName,gr->auth_user,sizeof(credName) - 1);
-  int rc = dev->credAcquire(EkaCredentialType::kSnapshot, gr->exch, (const char*)credName, &leaseTime,&timeout,dev->credContext,&lease);
+  const EkaGroup group{gr->exch, (EkaLSI)gr->id};
+  int rc = dev->credAcquire(EkaCredentialType::kSnapshot, group, (const char*)credName, &leaseTime,&timeout,dev->credContext,&lease);
   if (rc != 0) on_error("Failed to credAcquire for %s",credName);
 
   int64_t requestedSpinSequence = 0;
