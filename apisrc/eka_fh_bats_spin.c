@@ -19,7 +19,7 @@
 #include <assert.h>
 #include <sched.h>
 
-#include "eka_dev.h"
+#include "EkaDev.h"
 #include "eka_fh_book.h"
 #include "eka_fh_group.h"
 #include "eka_data_structs.h"

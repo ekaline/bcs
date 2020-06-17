@@ -9,13 +9,12 @@
 #include "eka_sn_addr_space.h"
 #include "eka_hw_conf.h"
 #include "eka_fh_q.h"
-//#include "eka_fh_udp_channel.h"
 #include "eka_fh_book.h"
 #include "Efh.h"
 
 class EkaDev;
 
-class fh_udp_channel;
+class EkaUdpChannel;
 
 //template <class FhGroup> class EkaFh;
 class EkaFh;
@@ -56,7 +55,7 @@ class FhGroup {
   EfhFeedVer            feed_ver;
   EkaSource             exch;
 
-  fh_udp_channel*       udp_ch;
+  EkaUdpChannel*       udp_ch;
 
   volatile uint64_t     seq_after_snapshot; // set from end of snapshot
 

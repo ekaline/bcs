@@ -18,7 +18,7 @@
 #include "Eka.h"
 #include "Efh.h"
 #include "EkaCtxs.h"
-#include "eka_dev.h"
+#include "EkaDev.h"
 #include "eka_fh.h"
 
 #include "eka_macros.h"

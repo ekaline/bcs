@@ -23,7 +23,7 @@
 #include "Efc.h"
 #include "Epm.h"
 
-#include "eka_dev.h"
+#include "EkaDev.h"
 
 class EpmCore;
 

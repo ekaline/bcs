@@ -698,7 +698,7 @@ int main(int argc, char *argv[]) {
   printf("\n\n------------ TEST PARAMETERS -----------------\n");
   printf("Hostname:\t%s\n",hostname);
 
-  switch(dev->hw.feed_ver) {
+  switch(dev->hwFeedVer) {
   case SN_GEMX:
     printf("HW:\t\tGEM");
     pEfcInitCtx = &gemInitCtx;
@@ -725,7 +725,7 @@ int main(int argc, char *argv[]) {
     //    pEfcInitCtx->numEntries = sizeof(cboeInitCtxEntries) / sizeof(EfcInitCtxEntry);
     break;
   default:
-    on_error ("Unknown dev->hw.feed_ver: %u\n",dev->hw.feed_ver);
+    on_error ("Unknown dev->hwFeedVer: %u\n",dev->hwFeedVer);
   }
 
   //  EfcCtx* pEfcCtx = &efc_ctx;
@@ -738,7 +738,7 @@ int main(int argc, char *argv[]) {
   //  printf ("efc_ctx.dev = %p, devid = %d\n",efc_ctx.dev, efc_ctx.dev->dev_id);
 
 
-  switch(dev->hw.feed_ver) {
+  switch(dev->hwFeedVer) {
   case SN_GEMX:
     configure_gem(pEfcCtx);
     break;

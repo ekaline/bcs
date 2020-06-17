@@ -7,19 +7,17 @@
 #include "eka_fh_group.h"
 #include "eka_fh_book.h"
 #include "eka_data_structs.h"
-#include "eka_dev.h"
-#include "eka_fh_udp_channel.h"
+#include "EkaDev.h"
+#include "EkaCore.h"
+#include "EkaUdpChannel.h"
 #include "eka_fh_miax_messages.h"
 #include "eka_fh_batspitch_messages.h"
+#include "EkaTcpSess.h"
 
 void hexDump (const char *desc, void *addr, int len);
 void hexDumpStderr (const char* desc, const void *addr, int len);
 
-void eka_send_pkt(EkaDev* dev, uint8_t core,  uint8_t sess, void *buf, int len);
-
-void create_igmp_pkt (char* dst, bool join, uint8_t* macsa, uint32_t ip_src, uint32_t ip_dst);
-
-
+int createIgmpPkt (char* dst, bool join, uint8_t* macsa, uint32_t ip_src, uint32_t ip_dst);
 
 void FhGroup::print_q_state() {
   if (q == NULL) {
@@ -122,7 +120,7 @@ int FhGroup::init (EfhCtx* pEfhCtx_p, const EfhInitCtx* pInitCtx,EkaFh* efh, uin
   exch = ec;
   feed_ver = EFH_EXCH2FEED(exch);
   core = pEfhCtx->coreId;
-  no_igmp = ! EKA_NATIVE_MAC(dev->core[core].macsa);
+  no_igmp = ! EKA_NATIVE_MAC(dev->core[core]->macSa);
 
   fh = efh;
 
@@ -145,7 +143,8 @@ void FhGroup::createQ(EfhCtx* pEfhCtx, const uint qsize) {
 /* ##################################################################### */
 
 void FhGroup::openUdp(EfhCtx* pEfhCtx) {  
-  udp_ch = new fh_udp_channel(pEfhCtx);
+  udp_ch = new EkaUdpChannel(dev,core);
+
   EKA_DEBUG("%s:%u UDP Ch is open. %s IGMPs",EKA_EXCH_DECODE(exch),id, no_igmp ? "NO" : "SENDING");
   return;
 }
@@ -191,9 +190,11 @@ void FhGroup::send_igmp(bool join_leave) {
 
   char igmp_join[64] = {};
   memset(igmp_join,0,sizeof(igmp_join));
-  create_igmp_pkt (igmp_join, join_leave, dev->core[core].macsa, dev->core[core].src_ip, mcast_ip);
-  //  hexDump((const char*)"igmp_join",(void*)igmp_join,64);
-  eka_send_pkt(dev, 0, 0, igmp_join, 60 /*14 + 24 + 8*/);
+  uint pktLen = createIgmpPkt(igmp_join, join_leave, dev->core[core]->macSa, dev->core[core]->srcIp, mcast_ip);
+
+  EkaTcpSess* controlTcpSess = dev->getControlTcpSess(core);
+  controlTcpSess->sendFullPkt((void*)igmp_join,pktLen);
+
   return;
 }
 

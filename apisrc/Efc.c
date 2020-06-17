@@ -21,7 +21,9 @@
 #include "Efc.h"
 
 #include "eka_data_structs.h"
-#include "eka_dev.h"
+#include "EkaDev.h"
+#include "EkaCore.h"
+#include "EkaTcpSess.h"
 
 void efc_run (EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx);
 void download_conf2hw (EkaDev* dev);
@@ -42,8 +44,6 @@ int eka_init_strategy_params (EkaDev* dev,const struct global_params *params) ;
   ssize_t eka_send(EkaDev* dev, uint16_t sess_id, void *buf, size_t size);
   ssize_t eka_recv(EkaDev* dev, uint16_t sess_id, void *buffer, size_t size);
 void print_new_compat_fire_report (EfcCtx* efcCtx, EfcReportHdr* p);
-uint8_t session2core (uint16_t id);
-uint8_t session2sess (uint16_t id);
 int eka_socket_close(EkaDev* dev, uint16_t id);
 
 
@@ -63,7 +63,7 @@ EkaOpResult efcInit( EfcCtx** ppEfcCtx, EkaDev *pEkaDev, const EfcInitCtx* pEfcI
   assert (pEkaDev != NULL);
   assert (pEfcInitCtx != NULL);
 
-  efc_init(ppEfcCtx,pEkaDev,pEfcInitCtx);
+  //  efc_init(ppEfcCtx,pEkaDev,pEfcInitCtx);
 
   return EKA_OPRESULT__OK;
 }
@@ -80,7 +80,7 @@ EkaOpResult efcInit( EfcCtx** ppEfcCtx, EkaDev *pEkaDev, const EfcInitCtx* pEfcI
 
 EkaOpResult efcInitStrategy( EfcCtx* efcCtx, const EfcStratGlobCtx* efcStratGlobCtx ) {
   if (sizeof(EfcStratGlobCtx) != sizeof(struct global_params)) on_error("sizeof(EfcStratGlobCtx) != sizeof(struct global_params)");
-  eka_init_strategy_params (efcCtx->dev,(const struct global_params *)efcStratGlobCtx);
+  //  eka_init_strategy_params (efcCtx->dev,(const struct global_params *)efcStratGlobCtx);
   return EKA_OPRESULT__OK;
 }
 
@@ -95,10 +95,10 @@ EkaOpResult efcInitStrategy( EfcCtx* efcCtx, const EfcStratGlobCtx* efcStratGlob
  * @retval [See EkaOpResult].
  */
 EkaOpResult efcEnableController( EfcCtx* pEfcCtx, EkaCoreId primaryCoreId ) {
-  assert (pEfcCtx != NULL);
-  download_conf2hw(pEfcCtx->dev);
-  if (primaryCoreId < 0) eka_arm_controller(pEfcCtx->dev, 0);
-  eka_arm_controller(pEfcCtx->dev, 1);
+  /* assert (pEfcCtx != NULL); */
+  /* download_conf2hw(pEfcCtx->dev); */
+  /* if (primaryCoreId < 0) eka_arm_controller(pEfcCtx->dev, 0); */
+  /* eka_arm_controller(pEfcCtx->dev, 1); */
   return EKA_OPRESULT__OK;
 }
 
@@ -115,14 +115,14 @@ EkaOpResult efcEnableController( EfcCtx* pEfcCtx, EkaCoreId primaryCoreId ) {
  * @retval [See EkaOpResult].
  */
 EkaOpResult efcEnableFiringOnSec( EfcCtx* pEfcCtx, const uint64_t* pSecurityIds, size_t numSecurityIds ) {
-  assert (pEfcCtx != NULL);
-  assert (pSecurityIds != NULL);
-  uint64_t* p = (uint64_t*) pSecurityIds;
-  for (uint i = 0; i < numSecurityIds; i++) {
-    eka_subscr_security2fire(pEfcCtx->dev,*p);
-    p++;
-  }
-  download_subscr_table(pEfcCtx->dev,0);
+  /* assert (pEfcCtx != NULL); */
+  /* assert (pSecurityIds != NULL); */
+  /* uint64_t* p = (uint64_t*) pSecurityIds; */
+  /* for (uint i = 0; i < numSecurityIds; i++) { */
+  /*   eka_subscr_security2fire(pEfcCtx->dev,*p); */
+  /*   p++; */
+  /* } */
+  /* download_subscr_table(pEfcCtx->dev,0); */
   return EKA_OPRESULT__OK;
 }
 
@@ -138,9 +138,11 @@ EkaOpResult efcEnableFiringOnSec( EfcCtx* pEfcCtx, const uint64_t* pSecurityIds,
  */
 EfcSecCtxHandle getSecCtxHandle( EfcCtx* pEfcCtx, uint64_t securityId ) {
   assert (pEfcCtx != NULL);
-  uint32_t res = get_subscription_id(pEfcCtx->dev, securityId);
-  if (res == 0xFFFFFFFF) return -1;
-  return (EfcSecCtxHandle) res;
+  /* uint32_t res = get_subscription_id(pEfcCtx->dev, securityId); */
+  /* if (res == 0xFFFFFFFF) return -1; */
+  /* return (EfcSecCtxHandle) res; */
+  return (EfcSecCtxHandle) 0;
+
 }
 
 /**
@@ -153,18 +155,19 @@ EfcSecCtxHandle getSecCtxHandle( EfcCtx* pEfcCtx, uint64_t securityId ) {
  * @retval [See EkaOpResult].
  */
 EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx, EfcSecCtxHandle hSecCtx, const SecCtx* pSecCtx, uint16_t writeChan ) {
-  assert (pEfcCtx != NULL);
-  assert (pSecCtx != NULL);
+  /* assert (pEfcCtx != NULL); */
+  /* assert (pSecCtx != NULL); */
 
-  struct sec_ctx ctx = {};
-  ctx.bid_min_price = pSecCtx->bidMinPrice;
-  ctx.ask_max_price = pSecCtx->askMaxPrice;
-  ctx.size = pSecCtx->size;
-  ctx.ver_num = pSecCtx->verNum;
-  ctx.lower_bytes_of_sec_id = pSecCtx->lowerBytesOfSecId;
+  /* struct sec_ctx ctx = {}; */
+  /* ctx.bid_min_price = pSecCtx->bidMinPrice; */
+  /* ctx.ask_max_price = pSecCtx->askMaxPrice; */
+  /* ctx.size = pSecCtx->size; */
+  /* ctx.ver_num = pSecCtx->verNum; */
+  /* ctx.lower_bytes_of_sec_id = pSecCtx->lowerBytesOfSecId; */
 
-  uint32_t ctx_idx = (uint32_t) (hSecCtx & 0xFFFFFFFF);
-  eka_set_security_ctx_with_idx (pEfcCtx->dev, ctx_idx, &ctx, (uint8_t) writeChan);
+  /* uint32_t ctx_idx = (uint32_t) (hSecCtx & 0xFFFFFFFF); */
+ 
+  /* eka_set_security_ctx_with_idx (pEfcCtx->dev, ctx_idx, &ctx, (uint8_t) writeChan); */
   return EKA_OPRESULT__OK;
 }
 
@@ -187,27 +190,27 @@ EkaOpResult efcSetSesCtx( EfcCtx* pEfcCtx, ExcConnHandle hConn, const SesCtx* pS
 
   assert (pEfcCtx != NULL);
   //  session_fire_app_ctx_t ctx = {};
-  struct session_fire_app_ctx ctx = {};
-  ctx.clid = pSesCtx->clOrdId;
-  ctx.next_session = pSesCtx->nextSessionId;
+  /* struct session_fire_app_ctx ctx = {}; */
+  /* ctx.clid = pSesCtx->clOrdId; */
+  /* ctx.next_session = pSesCtx->nextSessionId; */
 
-  auto feedVer = pEfcCtx->dev->hw.feed_ver;
-  switch( feedVer ) {
-  case SN_MIAX:
-    ctx.equote_mpid_sqf_badge = reinterpret_cast< const MeiSesCtx* >( pSesCtx )->mpid;
-    break;
+  /* auto feedVer = pEfcCtx->dev->hwFeedVer; */
+  /* switch( feedVer ) { */
+  /* case SN_MIAX: */
+  /*   ctx.equote_mpid_sqf_badge = reinterpret_cast< const MeiSesCtx* >( pSesCtx )->mpid; */
+  /*   break; */
 
-  case SN_NASDAQ:
-  case SN_PHLX:
-  case SN_GEMX:
-    ctx.equote_mpid_sqf_badge = reinterpret_cast< const SqfSesCtx* >( pSesCtx )->badge;
-    break;
+  /* case SN_NASDAQ: */
+  /* case SN_PHLX: */
+  /* case SN_GEMX: */
+  /*   ctx.equote_mpid_sqf_badge = reinterpret_cast< const SqfSesCtx* >( pSesCtx )->badge; */
+  /*   break; */
 
-  default:
-    on_error( "Unsupported feed_ver: %d", feedVer );
-  }
+  /* default: */
+  /*   on_error( "Unsupported feed_ver: %d", feedVer ); */
+  /* } */
   
-  eka_set_session_fire_app_ctx(pEfcCtx->dev,hConn,&ctx);
+  /* eka_set_session_fire_app_ctx(pEfcCtx->dev,hConn,&ctx); */
 
   return EKA_OPRESULT__OK;
 }
@@ -223,7 +226,7 @@ EkaOpResult efcSetSesCtx( EfcCtx* pEfcCtx, ExcConnHandle hConn, const SesCtx* pS
 EkaOpResult efcSetGroupSesCtx( EfcCtx* pEfcCtx, uint8_t group, ExcConnHandle hConn ) {
   assert (pEfcCtx != NULL);
 
-  eka_set_group_session(pEfcCtx->dev, group, hConn);
+  //  eka_set_group_session(pEfcCtx->dev, group, hConn);
   return EKA_OPRESULT__OK;
 
 }
@@ -243,10 +246,10 @@ EkaOpResult efcSetGroupSesCtx( EfcCtx* pEfcCtx, uint8_t group, ExcConnHandle hCo
  * @retval [See EkaOpResult].
  */
 EkaOpResult efcRun( EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx ) {
-  eka_open_udp_sockets(pEfcCtx->dev);
-  download_conf2hw(pEfcCtx->dev);
+  //  eka_open_udp_sockets(pEfcCtx->dev);
+  //  download_conf2hw(pEfcCtx->dev);
 
-  efc_run(pEfcCtx,pEfcRunCtx);
+  //  efc_run(pEfcCtx,pEfcRunCtx);
 
   return EKA_OPRESULT__OK;
 }
@@ -275,8 +278,7 @@ EkaOpResult efcRun( EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx ) {
  * @return This will return the ExcSessionId value that corresponds to excSessionId.
  */
 ExcSessionId excGetSessionId( ExcConnHandle hConn ) {
-  return (ExcSessionId) session2sess(hConn);
-  //  return (ExcSessionId) hConn % 128;
+  return (ExcSessionId) hConn % 128;
 }
 
 /**
@@ -286,27 +288,37 @@ ExcSessionId excGetSessionId( ExcConnHandle hConn ) {
  * @return This will return the ExcCoreid that corresponds to excSessionId.
  */
 EkaCoreId excGetCoreId( ExcConnHandle hConn ) {
-  return (EkaCoreId) session2core(hConn);
-  //  return (EkaCoreId) hConn / 128;
+  return (EkaCoreId) hConn / 128;
 }
 
 /*
  *
  */  
-ExcSocketHandle excSocket( EkaDev* pEkaDev, EkaCoreId coreId , int domain, int type, int protocol ) {
-  assert (pEkaDev != NULL);
-
+ExcSocketHandle excSocket( EkaDev* dev, EkaCoreId coreId , int domain, int type, int protocol ) {
+  assert (dev != NULL);
   // int domain, int type, int protocol parameters are ignored
   // always used: socket(AF_INET, SOCK_STREAM, 0)
-  return (ExcSocketHandle) eka_socket (pEkaDev,coreId);
+
+  if (dev->core[coreId] == NULL) on_error("core %u is not connected",coreId);
+  uint sessId = dev->core[coreId]->addTcpSess();
+  return (ExcSocketHandle) (coreId * 128 + sessId);
 }
 
 /*
  *
  */
-ExcConnHandle excConnect( EkaDev* pEkaDev, ExcSocketHandle hSocket, const struct sockaddr *dst, socklen_t addrlen ) {
-  assert (pEkaDev != NULL);
-  return eka_connect (pEkaDev,hSocket,dst,addrlen);
+ExcConnHandle excConnect( EkaDev* dev, ExcSocketHandle hSocket, const struct sockaddr *dst, socklen_t addrlen ) {
+  assert (dev != NULL);
+
+  EkaTcpSess* sess = dev->findTcpSess(hSocket);
+  if (sess == NULL) {
+    EKA_WARN("ExcSocketHandle %d not found",hSocket);
+    return -1;
+  }
+  sess->dstIp = ((sockaddr_in*)dst)->sin_addr.s_addr;
+  sess->dstIp = be16toh(((sockaddr_in*)dst)->sin_port);
+
+  return sess->connect();
 }
 
 /**
@@ -331,32 +343,67 @@ ExcConnHandle excReconnect( EkaDev* pEkaDev, ExcConnHandle hConn ) {
  *                path should be warmed up.
  * @return This will return the values that exhibit the same behavior of linux's send fn.
  */
-ssize_t excSend( EkaDev* pEkaDev, ExcConnHandle hConn, const void* pBuffer, size_t size ) {
-  return eka_send(pEkaDev, hConn, (void*) pBuffer, size);
+ssize_t excSend( EkaDev* dev, ExcConnHandle hConn, const void* pBuffer, size_t size ) {
+  assert (dev != NULL);
+
+  uint coreId = excGetCoreId(hConn);
+  if (dev->core[coreId] == NULL) {
+    EKA_WARN("Core %u of hConn %u is not connected",coreId,hConn);
+    return -1;
+  }
+
+  uint sessId = excGetSessionId(hConn);
+
+  if (dev->core[coreId]->tcpSess[sessId] == NULL) {
+    EKA_WARN("Session %u on Core %u of hConn %u is not connected",sessId,coreId,hConn);
+    return -1;
+  }
+
+  return dev->core[coreId]->tcpSess[sessId]->sendPayload((void*) pBuffer, size);
 }
 
 /**
  * $$NOTE$$ - This is mutexed to handle single session at a time.
  */
-ssize_t excRecv( EkaDev* pEkaDev, ExcConnHandle hConn, void *pBuffer, size_t size ) {
-  /* assert (pEkaDev != NULL); */
-  /* uint8_t c = excGetCoreId(hConn); */
-  /* uint8_t s = excGetSessionId(hConn); */
-  /* int sock_fd =  pEkaDev->core[c].tcp_sess[s].sock_fd; */
-  /* return recv(sock_fd, pBuffer, size, 0); */
-  return eka_recv(pEkaDev, hConn,pBuffer,size);
+ssize_t excRecv( EkaDev* dev, ExcConnHandle hConn, void *pBuffer, size_t size ) {
+  assert (dev != NULL);
+
+  uint coreId = excGetCoreId(hConn);
+  if (dev->core[coreId] == NULL) {
+    EKA_WARN("Core %u of hConn %u is not connected",coreId,hConn);
+    return -1;
+  }
+
+  uint sessId = excGetSessionId(hConn);
+
+  if (dev->core[coreId]->tcpSess[sessId] == NULL) {
+    EKA_WARN("Session %u on Core %u of hConn %u is not connected",sessId,coreId,hConn);
+    return -1;
+  }
+
+  return dev->core[coreId]->tcpSess[sessId]->recv(pBuffer,size);
 }
 
 /*
  *
  */
-int excClose( EkaDev* pEkaDev, ExcConnHandle hConn ) {
-  /* assert (pEkaDev != NULL); */
-  /* uint8_t c = excGetCoreId(hConn); */
-  /* uint8_t s = excGetSessionId(hConn); */
-  /* int sock_fd =  pEkaDev->core[c].tcp_sess[s].sock_fd; */
-  /* return close(sock_fd); */
-  return eka_socket_close(pEkaDev,hConn);
+int excClose( EkaDev* dev, ExcConnHandle hConn ) {
+  assert (dev != NULL);
+
+  uint coreId = excGetCoreId(hConn);
+  if (dev->core[coreId] == NULL) {
+    EKA_WARN("Core %u of hConn %u is not connected",coreId,hConn);
+    return -1;
+  }
+
+  uint sessId = excGetSessionId(hConn);
+
+  if (dev->core[coreId]->tcpSess[sessId] == NULL) {
+    EKA_WARN("Session %u on Core %u of hConn %u is not connected",sessId,coreId,hConn);
+    return -1;
+  }
+
+  return dev->core[coreId]->tcpSess[sessId]->close();
 }
 
 /**
@@ -368,6 +415,7 @@ int excReadyToRecv( EkaDev* pEkaDev, ExcConnHandle hConn ) {
 }
 
 EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, EfcReportHdr* p ) {
-  print_new_compat_fire_report (pEfcCtx,p);
+  // PATCH
+  //  print_new_compat_fire_report (pEfcCtx,p);
   return EKA_OPRESULT__OK;
 }

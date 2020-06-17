@@ -18,7 +18,7 @@
 #include "ekaline.h"
 #include "smartnic.h"
 
-#include "eka_dev.h"
+#include "EkaDev.h"
 
 bool eka_get_exceptions (eka_dev_t* dev) {
   return eka_read(dev,EKA_ADDR_INTERRUPT_SHADOW_RO) == 0 ? false : true;
@@ -30,7 +30,7 @@ void eka_print_exceptions (eka_dev_t* dev) {
   int curr_core;
 
   printf("--- Global Exceptions --\n\n");
-  for(curr_core = 0; curr_core < dev->hw.enabled_cores; curr_core++)
+  for(curr_core = 0; curr_core < dev->hwEnabledCores; curr_core++)
     if ((var_global_shadow>>curr_core)&0x1) printf("Bit %d: Core%d exception, will be resolved below\n",curr_core,curr_core);
   if ((var_global_shadow>>6)&0x1)  printf("Bit 6: Register access interface became full\n" );
   if ((var_global_shadow>>9)&0x1)  printf("Bit 9: CTX read reply FIFO overrun, FATAL\n" );
@@ -40,7 +40,7 @@ void eka_print_exceptions (eka_dev_t* dev) {
   if ((var_global_shadow>>14)&0x1) printf("Bit 14: Context table update overrun, happens if the table is updated too fast\n" );
 
   if ((var_global_shadow>>0)&0x3f) printf("\n--- Core Exceptions --\n");
-  for(curr_core = 0; curr_core < dev->hw.enabled_cores; curr_core++){
+  for(curr_core = 0; curr_core < dev->hwEnabledCores; curr_core++){
     if ((var_global_shadow>>curr_core)&0x1) {
       printf("\nResolving exception for Core%d\n",curr_core);
       var_core_shadow = eka_read(dev,EKA_ADDR_INTERRUPT_0_SHADOW_RO+curr_core*0x1000);

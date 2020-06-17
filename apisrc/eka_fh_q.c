@@ -20,7 +20,7 @@
 #include <time.h>
 
 #include "eka_data_structs.h"
-#include "eka_dev.h"
+#include "EkaDev.h"
 
 #include "eka_fh_q.h"
 #include "eka_fh_group.h"

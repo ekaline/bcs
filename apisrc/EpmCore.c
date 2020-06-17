@@ -1,8 +1,9 @@
-#include "eka_fh_udp_channel.h"
+#include "EkaUdpChannel.h"
 #include "EpmCore.h"
 #include "EpmStrategy.h"
 
 #include "EkaCtxs.h"
+#include "EkaCore.h"
 
 EpmCore::EpmCore(EkaEpm* _parent, EkaCoreId _coreId) {
   parent = _parent;
@@ -93,10 +94,7 @@ void EpmCore::swEpmProcessor() {
 
 /* ----------------------------------------------------- */
 int EpmCore::openUdpChannel() {
-  EfhCtx dummyEfhCtx = {};
-  dummyEfhCtx.dev    = dev;
-  dummyEfhCtx.coreId = coreId;
-  epmCh              = new fh_udp_channel(&dummyEfhCtx);
+  epmCh              = new EkaUdpChannel(dev,coreId);
   if (epmCh == NULL) on_error ("epmCh == NULL");
   return 0;
 }
@@ -110,8 +108,8 @@ bool EpmCore::alreadyJoined(epm_strategyid_t prevStrats,uint32_t ip, uint16_t po
 
 /* ----------------------------------------------------- */
 
-int EpmCore::joinMc(uint32_t ip, uint16_t port) {
-  epmCh->igmp_mc_join(dev->core[coreId].src_ip,ip,be16toh(port));
+int EpmCore::joinMc(uint32_t ip, uint16_t port, int16_t vlanTag) {
+  epmCh->igmp_mc_join(dev->core[coreId]->srcIp,ip,be16toh(port), vlanTag);
   return 0;
 }
 

@@ -21,7 +21,7 @@
 #include <sys/time.h>
 #include <chrono>
 
-#include "eka_dev.h"
+#include "EkaDev.h"
 
 #include "Exc.h"
 #include "Eka.h"

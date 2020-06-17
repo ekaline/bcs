@@ -10,7 +10,7 @@
 #include "eka_fh.h"
 #include "eka_hsvf_box_messages.h"
 #include "eka_data_structs.h"
-#include "eka_dev.h"
+#include "EkaDev.h"
 #include "Efh.h"
 
 /* ----------------------------------------------------------------------- */

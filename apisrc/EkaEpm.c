@@ -3,7 +3,7 @@
 #include "Efc.h"
 #include "Epm.h"
 
-#include "eka_dev.h"
+#include "EkaDev.h"
 #include "EpmCore.h"
 
 EkaOpResult EkaEpm::epmSetAction(EkaCoreId coreId,

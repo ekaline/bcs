@@ -16,8 +16,7 @@
 #include "eka_fh_book.h"
 #include "Efh.h"
 #include "eka_fh_group.h"
-#include "eka_dev.h"
-#include "eka_fh_udp_channel.h"
+#include "EkaDev.h"
 
 
 enum class EkaFhAddConf {CONF_SUCCESS=0, IGNORED=1, UNKNOWN_KEY=2, WRONG_VALUE=3, CONFLICTING_CONF=4} ;

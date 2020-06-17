@@ -4,9 +4,9 @@
 #include "Efh.h"
 #include "eka_macros.h"
 #include "EkaCtxs.h"
-#include "eka_dev.h"
+#include "EkaDev.h"
 #include "eka_fh.h"
-#include "eka_fh_run_group.h"
+#include "EkaFhRunGr.h"
 
 EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhInitCtx ) {
   assert (ppEfhCtx != NULL);

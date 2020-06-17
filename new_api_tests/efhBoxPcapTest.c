@@ -10,7 +10,7 @@
 #include <fcntl.h>
 #include <arpa/inet.h>
 
-#include "eka_nw_headers.h"
+#include "ekaNW.h"
 #include "eka_macros.h"
 
 #include "eka_hsvf_box_messages4pcapTest.h"

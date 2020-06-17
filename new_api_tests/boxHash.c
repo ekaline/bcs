@@ -15,7 +15,7 @@
 #include <string>
 #include <iostream>
 
-#include "eka_nw_headers.h"
+#include "ekaNW.h"
 #include "eka_macros.h"
 
 struct Sec {

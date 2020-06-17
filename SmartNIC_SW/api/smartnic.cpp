@@ -3246,7 +3246,7 @@ SC_DeviceId SC_OpenDevice(const char * deviceName, SC_DeviceOptions * pDeviceOpt
             CallErrorHandler(SC_ERR_MMAP_OF_FPGA_REGISTERS_FAILED, "failed to mmap FPGA BAR 0 EkalineWcBase to user space, errno = %d", errno);
             return nullptr;
         }
-	fprintf (stderr,"deviceId->pEkalineWcBase = %p\n",deviceId->pEkalineWcBase);
+	//	fprintf (stderr,"deviceId->pEkalineWcBase = %p\n",deviceId->pEkalineWcBase);
 	// end of ekaline code
 
         // Continue Tx DMA in spite of panic (no guarantees however that anything useful happens!):

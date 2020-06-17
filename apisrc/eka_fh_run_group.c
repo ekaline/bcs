@@ -3,21 +3,24 @@
 #include "Efh.h"
 #include "eka_macros.h"
 #include "EkaCtxs.h"
-#include "eka_dev.h"
+#include "EkaDev.h"
 #include "eka_fh.h"
-#include "eka_fh_run_group.h"
+#include "EkaFhRunGr.h"
+#include "EkaUdpChannel.h"
 
 /* ##################################################################### */
 
 FhRunGr::FhRunGr (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx ) {
   dev = pEfhCtx->dev;
+  coreId = 0; // TMP
+
   runId = dev->numRunGr;
   fh = dev->fh[pEfhCtx->fhId];
   exch = fh->exch;
   firstGr = pEfhRunCtx->groups[0].localId;
   numGr = pEfhRunCtx->numGroups;
 
-  udpCh = new fh_udp_channel(pEfhCtx);
+  udpCh = new EkaUdpChannel(dev,coreId);
   assert (udpCh != NULL);
 
   for (uint i = 0; i < MAX_GR2RUN; i++) grAfterGap[i] = false;

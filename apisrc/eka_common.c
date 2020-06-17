@@ -23,8 +23,6 @@
 //#include <syslog.h>
 
 #include "ekaline.h"
-#include "eka_sn_dev.h"
-#include "eka_user_channel.h"
 #include "eka_macros.h"
 
 #include "Exc.h"
@@ -52,10 +50,6 @@ int ekaDefaultLog (void* /*unused*/, const char* function, const char* file, int
   va_end(ap);
   const int rc3 = fprintf(stderr,"\n");
   return rc1 + rc2 + rc3;
-}
-
-uint64_t eka_read(eka_dev_t* dev, uint64_t addr) {
-  return dev->sn_dev->read(addr);
 }
 
 void eka_get_time (char* t) {
@@ -192,8 +186,13 @@ int ekaUdpConnect(EkaDev* dev, int* sock, uint32_t ip, uint16_t port) {
 /*   return EfhTradeCond::kUnmapped; */
 /* } */
 
+#if 0
 void eka_write(EkaDev* dev, uint64_t addr, uint64_t val) {
-  dev->sn_dev->write(addr,val);
+  dev->snDev->write(addr,val);
+}
+
+uint64_t eka_read(eka_dev_t* dev, uint64_t addr) {
+  return dev->snDev->read(addr);
 }
 
 bool eka_is_all_zeros (const void* buf, ssize_t size) {
@@ -231,6 +230,7 @@ uint16_t socket2session (eka_dev_t* dev, int sock_fd) {
   on_error("SocketFD %d is not found",sock_fd);
   return 0xFFFF;
 }
+#endif
 
 void errno_decode(int errsv, char* reason) {
   switch (errsv) {
@@ -275,18 +275,18 @@ int convert_ts(char* dst, uint64_t ts) {
 }
 
 void eka_enable_cores(eka_dev_t* dev) {
-  uint64_t fire_rx_tx_en = dev->sn_dev->read(ENABLE_PORT);
-  for (int c=0; c<dev->hw.enabled_cores; c++) {
-    if (! dev->core[c].connected) continue;
-    if (dev->core[c].tcp_sessions != 0) fire_rx_tx_en |= 1ULL << (16+c); //fire core enable
-    if (dev->core[c].udp_sessions != 0) fire_rx_tx_en |= 1ULL << c; // RX (Parser) core enable
-    EKA_LOG("fire_rx_tx_en = 0x%016jx",fire_rx_tx_en);
-  }
-  dev->sn_dev->write(ENABLE_PORT,fire_rx_tx_en);
+  /* uint64_t fire_rx_tx_en = dev->snDev->read(ENABLE_PORT); */
+  /* for (int c=0; c<dev->hw.enabled_cores; c++) { */
+  /*   if (! dev->core[c].connected) continue; */
+  /*   if (dev->core[c].tcp_sessions != 0) fire_rx_tx_en |= 1ULL << (16+c); //fire core enable */
+  /*   if (dev->core[c].udp_sessions != 0) fire_rx_tx_en |= 1ULL << c; // RX (Parser) core enable */
+  /*   EKA_LOG("fire_rx_tx_en = 0x%016jx",fire_rx_tx_en); */
+  /* } */
+  /* dev->snDev->write(ENABLE_PORT,fire_rx_tx_en); */
 }
 
 /* void eka_disable_cores(eka_dev_t* dev) { */
-/*   dev->sn_dev->write( ENABLE_PORT, 0); */
+/*   dev->snDev->write( ENABLE_PORT, 0); */
 /* } */
 
 void hexDump (const char* desc, void *addr, int len) {
@@ -339,7 +339,7 @@ EkaCapsResult ekaGetCapsResult(EkaDev* pEkaDev,  enum EkaCapType ekaCapType ) {
     return (EkaCapsResult) MAX_SEC_CTX;
 
   case EkaCapType::kEkaCapsExchange :
-    return (EkaCapsResult) pEkaDev->hw.feed_ver;
+    return (EkaCapsResult) pEkaDev->hwFeedVer;
 
   case EkaCapType::kEkaCapsMaxCores:
     return (EkaCapsResult) pEkaDev->CONF::MAX_CORES;
@@ -360,7 +360,7 @@ EkaCapsResult ekaGetCapsResult(EkaDev* pEkaDev,  enum EkaCapType ekaCapType ) {
   }
 }
 
-#if 1
+#if 0
 eka_add_conf_t eka_conf_parse(eka_dev_t* dev, eka_conf_type_t conf_type, const char *key, const char *value) {
   //  EKA_LOG("%s : %s",key,value);
 
@@ -386,7 +386,7 @@ eka_add_conf_t eka_conf_parse(eka_dev_t* dev, eka_conf_type_t conf_type, const c
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[1],"net")==0)  && (strcmp(k[2],"host")==0)) {//"efh.net.host.X" "IPV4"
     struct in_addr local_addr;
     inet_aton (k[3],&local_addr);
-    if (local_addr.s_addr == dev->core[atoi(k[3])].src_ip) return IGNORED;
+    if (local_addr.s_addr == dev->core[atoi(k[3])]->srcIp) return IGNORED;
     return CONFLICTING_CONF;
   }
 
@@ -448,7 +448,7 @@ eka_add_conf_t eka_conf_parse(eka_dev_t* dev, eka_conf_type_t conf_type, const c
   if ((strcmp(k[3],"local")==0) && (strcmp(k[4],"addr")==0)) {
     struct in_addr local_addr;
     inet_aton (v[0],&local_addr);
-    for (int c=0; c<dev->hw.enabled_cores; c++) if (local_addr.s_addr == dev->core[c].src_ip) return IGNORED;
+    for (int c=0; c<dev->hw.enabled_cores; c++) if (local_addr.s_addr == dev->core[c]->srcIp) return IGNORED;
     return CONFLICTING_CONF;
   }
 

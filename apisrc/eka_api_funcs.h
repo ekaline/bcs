@@ -3,7 +3,7 @@
 //#include "efh.h"
 //#include "exc_socket_def.h"
 #include "ekaline.h"
-#include "eka_dev.h"
+#include "EkaDev.h"
 
 //#include "EkaOpResult.h"
 //#include "EfcCtxs.h"

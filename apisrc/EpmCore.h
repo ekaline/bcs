@@ -8,10 +8,10 @@
 #include "Efc.h"
 #include "Epm.h"
 
-#include "eka_dev.h"
+#include "EkaDev.h"
 #include "EkaEpm.h"
 
-class fh_udp_channel;
+class EkaUdpChannel;
 class EpmStrategy;
 
 class EpmCore {
@@ -44,7 +44,7 @@ class EpmCore {
 			      const void *contents);
   bool alreadyJoined(epm_strategyid_t prevStrats,uint32_t ip, uint16_t port);
 
-  int joinMc(uint32_t ip, uint16_t port);
+  int joinMc(uint32_t ip, uint16_t port, int16_t vlanTag);
 
  private:
   void swEpmProcessor();
@@ -68,9 +68,11 @@ class EpmCore {
 
   std::thread       swProcessor;
 
+
  public:
+  uint16_t          vlanTag;
   EkaDev*           dev   = NULL;
-  fh_udp_channel*   epmCh = NULL;
+  EkaUdpChannel*    epmCh = NULL;
 
   
 };

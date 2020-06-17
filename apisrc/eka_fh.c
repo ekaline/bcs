@@ -22,14 +22,16 @@
 #include "Efh.h"
 #include "EkaCtxs.h"
 #include "eka_fh.h"
-#include "eka_dev.h"
+#include "EkaDev.h"
+#include "EkaCore.h"
 #include "eka_macros.h"
 #include "eka_fh_group.h"
 #include "eka_fh_batspitch_messages.h"
-#include "eka_fh_run_group.h"
+#include "EkaFhRunGr.h"
 #include "eka_fh_xdp_messages.h"
 #include "eka_fh_miax_messages.h"
 #include "eka_hsvf_box_messages.h"
+#include "EkaUdpChannel.h"
 
 void* eka_get_glimpse_data(void* attr);
 void* eka_get_mold_retransmit_data(void* attr);
@@ -499,7 +501,7 @@ EkaOpResult EkaFh::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhRu
     FhGroup* gr = b_gr[pEfhRunCtx->groups[i].localId];
     if (gr == NULL) on_error ("b_gr[%u] == NULL",pEfhRunCtx->groups[i].localId);
     gr->createQ(pEfhCtx,qsize);
-    runGr->udpCh->igmp_mc_join (dev->core[c].src_ip, gr->mcast_ip,gr->mcast_port);
+    runGr->udpCh->igmp_mc_join (dev->core[c]->srcIp, gr->mcast_ip,gr->mcast_port,0);
     EKA_DEBUG("%s:%u: joined %s:%u for %u securities",EKA_EXCH_DECODE(exch),gr->id,EKA_IP2STR(gr->mcast_ip),be16toh(gr->mcast_port),gr->book->total_securities);
   }
   return EKA_OPRESULT__OK;
@@ -512,7 +514,7 @@ EkaOpResult FhXdp::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhRu
     FhGroup* gr = b_gr[pEfhRunCtx->groups[i].localId];
     if (gr == NULL) on_error ("b_gr[%u] == NULL",pEfhRunCtx->groups[i].localId);
     //    gr->createQ(pEfhCtx,qsize);
-    runGr->udpCh->igmp_mc_join (dev->core[c].src_ip, gr->mcast_ip,gr->mcast_port);
+    runGr->udpCh->igmp_mc_join (dev->core[c]->srcIp, gr->mcast_ip,gr->mcast_port,0);
     EKA_DEBUG("%s:%u: joined %s:%u for %u securities",EKA_EXCH_DECODE(exch),gr->id,EKA_IP2STR(gr->mcast_ip),be16toh(gr->mcast_port),gr->book->total_securities);
   }
   return EKA_OPRESULT__OK;
@@ -525,7 +527,7 @@ EkaOpResult FhBox::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhRu
     FhGroup* gr = b_gr[pEfhRunCtx->groups[i].localId];
     if (gr == NULL) on_error ("b_gr[%u] == NULL",pEfhRunCtx->groups[i].localId);
     //    gr->createQ(pEfhCtx,qsize);
-    runGr->udpCh->igmp_mc_join (dev->core[c].src_ip, gr->mcast_ip,gr->mcast_port);
+    runGr->udpCh->igmp_mc_join (dev->core[c]->srcIp, gr->mcast_ip,gr->mcast_port,0);
     EKA_DEBUG("%s:%u: joined %s:%u for %u securities",EKA_EXCH_DECODE(exch),gr->id,EKA_IP2STR(gr->mcast_ip),be16toh(gr->mcast_port),gr->book->total_securities);
   }
   return EKA_OPRESULT__OK;

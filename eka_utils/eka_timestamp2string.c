@@ -11,7 +11,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "eka_nw_headers.h"
+#include "ekaNW.h"
 #include "eka_fh_nom_messages.h"
 
 #define on_error(...) { fprintf(stderr, "EKALINE API LIB FATAL ERROR: %s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n");perror(""); fflush(stdout); fflush(stderr); exit(1); }

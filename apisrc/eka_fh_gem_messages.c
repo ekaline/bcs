@@ -9,7 +9,7 @@
 #include "eka_fh.h"
 #include "eka_fh_gem_messages.h"
 #include "eka_data_structs.h"
-#include "eka_dev.h"
+#include "EkaDev.h"
 
 #include "Efh.h"
 

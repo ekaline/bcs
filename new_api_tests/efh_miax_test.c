@@ -20,7 +20,7 @@
 #include "Exc.h"
 #include "EkaCtxs.h"
 #include "eka_macros.h"
-#include "eka_dev.h"
+#include "EkaDev.h"
 #include "eka_fh.h"
 
 #include "EfhMiaxProps.h"

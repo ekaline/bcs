@@ -4,7 +4,7 @@
 #include <string>
 #include <algorithm>
 
-#include "eka_nw_headers.h"
+#include "ekaNW.h"
 #include "efh_macros.h"
 
 class EkaDev;

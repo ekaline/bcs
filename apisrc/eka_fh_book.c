@@ -4,7 +4,7 @@
 #include "eka_fh.h"
 #include "eka_fh_book.h"
 #include "eka_data_structs.h"
-#include "eka_dev.h"
+#include "EkaDev.h"
 
 inline uint32_t eka_get_order_hash_idx (uint64_t order_id, uint64_t MAX_ORDERS, uint ORDERS_HASH_MASK) {
   if ((order_id & ORDERS_HASH_MASK) > MAX_ORDERS) 

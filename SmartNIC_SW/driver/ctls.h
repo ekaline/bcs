@@ -902,7 +902,9 @@ typedef SC_Version sc_sw_version_t;
 #define SC_IOCTL_LAST_ACK_NO                        _IOR(SC_IOCTL_IOC_MAGIC, 22, uint32_t)
 #define SC_IOCTL_ETLM_DATA                          _IOWR(SC_IOCTL_IOC_MAGIC, 32, sc_etlm_data_t)
 
-#define SC_IOCTL_EKALINE_DATA                       _IOWR(SC_IOCTL_IOC_MAGIC, 39, eka_ioctl_t) // added by ekaline
+// added by ekaline
+#define SC_IOCTL_EKALINE_DATA                       _IOWR(SC_IOCTL_IOC_MAGIC, 39, eka_ioctl_t) 
+#define SMARTNIC_EKALINE_DATA  SC_IOCTL_EKALINE_DATA
 
 /// @endcond
 

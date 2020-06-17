@@ -22,7 +22,7 @@
 
 #include "eka_fh_book.h"
 #include "eka_fh_group.h"
-#include "eka_dev.h"
+#include "EkaDev.h"
 #include "Efh.h"
 #include "Eka.h"
 #include "eka_hsvf_box_messages.h"

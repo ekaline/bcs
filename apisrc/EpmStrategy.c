@@ -15,7 +15,7 @@ EpmStrategy::EpmStrategy(EpmCore* _parent, epm_strategyid_t _id, epm_actionid_t 
   cbCtx     =  params->cbCtx;
 
   if (! parent->alreadyJoined(id,ip,port))
-    parent->joinMc(ip,port);
+    parent->joinMc(ip,port,parent->vlanTag);
 
   EKA_LOG("Created Strategy %u: baseActionIdx=%u, numActions=%u, %s:%u",
 	  id,baseActionIdx,numActions,EKA_IP2STR(ip),port);

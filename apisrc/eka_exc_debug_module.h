@@ -5,7 +5,7 @@
 
 #include "eka_hw_conf.h"
 #include "eka_macros.h"
-#include "eka_nw_headers.h"
+#include "ekaNW.h"
 
 #define EXC_TEST_PKT_PREFIX_SIZE 6
 #define EXC_TEST_PKT_FREE_TEXT_SIZE 64
