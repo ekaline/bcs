@@ -1168,6 +1168,7 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 
     const uint8_t* pkt = getUdpPkt(runGr,NULL,&pktLen,&gr_id);
     if (pkt == NULL) continue;
+    EKA_LOG("%s:%u pktLen=%u",EKA_EXCH_DECODE(exch),gr_id,pktLen);
 
     FhBoxGr* gr = (FhBoxGr*)b_gr[gr_id];
 

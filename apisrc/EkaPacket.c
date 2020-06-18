@@ -19,6 +19,7 @@
 #include <fcntl.h>
 
 #include "ekaNW.h"
+#include "eka_macros.h"
 
 uint16_t pseudo_csum2csum (uint32_t pseudo) {
   uint32_t sum = pseudo;
@@ -132,14 +133,11 @@ int createIgmpPkt (char* dst, bool join, uint8_t* macsa, uint32_t ip_src, uint32
     EkaIpHdr     ipHdr;
     uint32_t     ip_options;
     EkaIgmpV2Hdr igmpHdr;
-  };
+  } __attribute__((packed));
+
+  //  TEST_LOG("Creating IGMP %s packet",join ? "JOIN" : "LEAVE");
 
   IgmpPkt* pkt = (IgmpPkt*) dst;
-
-  /* struct eth_hdr* ethheader = (struct eth_hdr*) dst; */
-  /* struct ip_hdr* ipheader = (struct ip_hdr*) ((uint8_t*) ethheader + sizeof(struct eth_hdr)); */
-  /* uint32_t* ip_options = (uint32_t*)((uint8_t*) ipheader + sizeof(struct ip_hdr)); */
-  /* struct igmpV2* igmpheader = (struct igmpV2*) ((uint8_t*) ipheader + sizeof(struct ip_hdr) + 4); // 4 for Router Aler Options */
 
   uint8_t macda[6] = {0x01, 0x00, 0x5e, 0x00, 0x00, 0x00};
   macda[3] = ((uint8_t*) &ip_dst)[1] & 0x7F;
@@ -162,8 +160,6 @@ int createIgmpPkt (char* dst, bool join, uint8_t* macsa, uint32_t ip_src, uint32
 
   pkt->ipHdr.src = ip_src;
   pkt->ipHdr.dest = ip_dst;
-  /* memcpy(&pkt->ipHdr.src,&ip_src,4); */
-  /* memcpy(&pkt->ipHdr.dest,&ip_dst,4); */
 
   pkt->ip_options = be32toh(0x94040000); 
 

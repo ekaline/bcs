@@ -29,7 +29,7 @@ class FhGroup {
 
   void print_q_state();
   void send_igmp(bool join_leave);
-  void openUdp(EfhCtx* pEfhCtx);
+  //  void openUdp(EfhCtx* pEfhCtx);
   void createQ(EfhCtx* pEfhCtx, const uint qsize);
 
   virtual int  bookInit(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) = 0;
@@ -55,7 +55,7 @@ class FhGroup {
   EfhFeedVer            feed_ver;
   EkaSource             exch;
 
-  EkaUdpChannel*       udp_ch;
+  //  EkaUdpChannel*       udp_ch; -- moved to FhRunGr
 
   volatile uint64_t     seq_after_snapshot; // set from end of snapshot
 

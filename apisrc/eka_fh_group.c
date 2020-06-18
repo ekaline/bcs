@@ -125,7 +125,7 @@ int FhGroup::init (EfhCtx* pEfhCtx_p, const EfhInitCtx* pInitCtx,EkaFh* efh, uin
   fh = efh;
 
   EKA_LOG("%s:%u initializing FhGroup, feed_ver=%s",EKA_EXCH_DECODE(exch),gr_id,EKA_FEED_VER_DECODE(feed_ver));
-  udp_ch = NULL;
+  //  udp_ch = NULL;
   q = NULL;
   id = gr_id;
   state = GrpState::INIT;
@@ -142,12 +142,12 @@ void FhGroup::createQ(EfhCtx* pEfhCtx, const uint qsize) {
 
 /* ##################################################################### */
 
-void FhGroup::openUdp(EfhCtx* pEfhCtx) {  
-  udp_ch = new EkaUdpChannel(dev,core);
+/* void FhGroup::openUdp(EfhCtx* pEfhCtx) {   */
+/*   udp_ch = new EkaUdpChannel(dev,core); */
 
-  EKA_DEBUG("%s:%u UDP Ch is open. %s IGMPs",EKA_EXCH_DECODE(exch),id, no_igmp ? "NO" : "SENDING");
-  return;
-}
+/*   EKA_DEBUG("%s:%u UDP Ch is open. %s IGMPs",EKA_EXCH_DECODE(exch),id, no_igmp ? "NO" : "SENDING"); */
+/*   return; */
+/* } */
 
  /* ##################################################################### */
 
@@ -168,10 +168,10 @@ int FhGroup::stop() {
  /* ##################################################################### */
 
 FhGroup::~FhGroup () {  
-  if (udp_ch != NULL) {
-    delete udp_ch;
-    EKA_DEBUG("%s:%u UDP Channel is deleted",EKA_EXCH_DECODE(exch),id);
-  }
+  /* if (udp_ch != NULL) { */
+  /*   delete udp_ch; */
+  /*   EKA_DEBUG("%s:%u UDP Channel is deleted",EKA_EXCH_DECODE(exch),id); */
+  /* } */
   if (fh->print_parsed_messages) fclose(book->parser_log);
 
   if (q != NULL) {
@@ -188,13 +188,14 @@ void FhGroup::send_igmp(bool join_leave) {
   if (no_igmp) return;
   if (mcast_ip == 0) return;
 
-  char igmp_join[64] = {};
-  memset(igmp_join,0,sizeof(igmp_join));
-  uint pktLen = createIgmpPkt(igmp_join, join_leave, dev->core[core]->macSa, dev->core[core]->srcIp, mcast_ip);
+  char igmpPkt[64] = {};
+  memset(igmpPkt,0,sizeof(igmpPkt));
+  uint pktLen = createIgmpPkt(igmpPkt, join_leave, dev->core[core]->macSa, dev->core[core]->srcIp, mcast_ip);
 
   EkaTcpSess* controlTcpSess = dev->getControlTcpSess(core);
-  controlTcpSess->sendFullPkt((void*)igmp_join,pktLen);
+  controlTcpSess->sendFullPkt((void*)igmpPkt,pktLen);
 
+  //  if (! join_leave) hexDump("IGMP LEAVE sent",igmpPkt,pktLen);
   return;
 }
 

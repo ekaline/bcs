@@ -55,6 +55,7 @@ EkaCore::EkaCore(EkaDev* pEkaDev, uint8_t lane, uint32_t ip, uint8_t* mac) {
     srcIp = ip;
     memset(macDa,0,6);
     connected = true;
+    vlanTag = 0;
 
     const char* arpTableFile = "/proc/net/arp";
     if (getMacDaFromArp(arpTableFile,coreId,macDa))

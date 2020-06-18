@@ -22,6 +22,7 @@
 
 #include "eka_data_structs.h"
 #include "EkaDev.h"
+#include "EkaSnDev.h"
 #include "EkaCore.h"
 #include "EkaTcpSess.h"
 
@@ -301,7 +302,8 @@ ExcSocketHandle excSocket( EkaDev* dev, EkaCoreId coreId , int domain, int type,
 
   if (dev->core[coreId] == NULL) on_error("core %u is not connected",coreId);
   uint sessId = dev->core[coreId]->addTcpSess();
-  return (ExcSocketHandle) (coreId * 128 + sessId);
+  //  return (ExcSocketHandle) (coreId * 128 + sessId);
+  return dev->core[coreId]->tcpSess[sessId]->sock;
 }
 
 /*
@@ -315,10 +317,24 @@ ExcConnHandle excConnect( EkaDev* dev, ExcSocketHandle hSocket, const struct soc
     EKA_WARN("ExcSocketHandle %d not found",hSocket);
     return -1;
   }
-  sess->dstIp = ((sockaddr_in*)dst)->sin_addr.s_addr;
-  sess->dstIp = be16toh(((sockaddr_in*)dst)->sin_port);
+  sess->dstIp   = ((sockaddr_in*)dst)->sin_addr.s_addr;
+  sess->dstPort = be16toh(((sockaddr_in*)dst)->sin_port);
 
-  return sess->connect();
+  sess->bind();
+  dev->snDev->set_fast_session(sess->coreId,sess->sessId,
+			       sess->srcIp,sess->srcPort,
+			       sess->dstIp,sess->dstPort);
+
+  /* EKA_LOG("on coreId=%u, sessId=%u, sock=%d, %s:%u --> %s:%u", */
+  /* 	  sess->coreId,sess->sessId,sess->sock, */
+  /* 	  EKA_IP2STR(sess->srcIp),sess->srcPort, */
+  /* 	  EKA_IP2STR(sess->dstIp),sess->dstPort); */
+
+  ExcConnHandle rc = sess->connect();
+
+  sess->preloadNwHeaders();
+  
+  return rc;
 }
 
 /**
@@ -359,6 +375,7 @@ ssize_t excSend( EkaDev* dev, ExcConnHandle hConn, const void* pBuffer, size_t s
     return -1;
   }
 
+  //  EKA_LOG("Sending on coreId=%u, sessId=%u",coreId,sessId);
   return dev->core[coreId]->tcpSess[sessId]->sendPayload((void*) pBuffer, size);
 }
 

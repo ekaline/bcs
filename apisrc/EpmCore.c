@@ -9,6 +9,7 @@ EpmCore::EpmCore(EkaEpm* _parent, EkaCoreId _coreId) {
   parent = _parent;
   dev = parent->dev;
   coreId = _coreId;
+  vlanTag = dev->core[coreId]->vlanTag;
 }
 /* ----------------------------------------------------- */
 

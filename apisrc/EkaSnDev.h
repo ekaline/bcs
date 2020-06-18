@@ -61,6 +61,7 @@ class EkaSnDev {
     delete tcpRx;
     SN_CloseDevice(dev_id);
   }
+//################################################
 
   uint64_t read(uint64_t addr) {
     uint64_t ret;
@@ -68,16 +69,19 @@ class EkaSnDev {
       on_error("SN_Read returned smartnic error code : %d",SN_GetLastErrorCode());
     return ret;
   }
+//################################################
 
   void write(uint64_t addr, uint64_t val) {
     if (SN_ERR_SUCCESS != SN_WriteUserLogicRegister(dev_id, addr/8, val))
       on_error("SN_Write returned smartnic error code : %d",SN_GetLastErrorCode());
   }
+//################################################
 
   void reset() {
     EKA_LOG("Resetting the FPGA");
     if (SN_ResetFPGA(dev_id) != SN_ERR_SUCCESS ) on_error("Failed to resed FPGA");    
   }
+//################################################
 
   bool       getLinkStatus(uint8_t lane, bool* sfp_present, bool* link) {
     SN_StatusInfo statusInfo;
@@ -91,6 +95,7 @@ class EkaSnDev {
     EKA_LOG("Core %u: sfp = %d, link = %d",lane,sfp,l);
     return sfp && l;
   }
+//################################################
 
   bool       hasLink(uint8_t lane) {
     SN_StatusInfo statusInfo;
@@ -101,8 +106,22 @@ class EkaSnDev {
 
     return s->SFP_Present && s->Link;
   }
+//################################################
 
   void       getIpMac(uint8_t lane, uint32_t* ip, uint8_t* mac) {
+    if (SC_GetLocalAddress(dev_id,lane, (struct in_addr*) ip, NULL, NULL, mac) != SC_ERR_SUCCESS) on_error("Error on SC_GetLocalAddress");
+    in_addr ip2set = {*ip};
+    in_addr netmask2set = {};
+    in_addr gw2set = {};
+
+    if (SC_SetLocalAddress(dev_id,lane, ip2set, netmask2set, gw2set, mac) != SC_ERR_SUCCESS) 
+      EKA_WARN("WARNING: Failed on SC_SetLocalAddress");
+    /* else */
+    /*   EKA_LOG ("IP is set to %s",EKA_IP2STR(*ip)); */
+    return;
+  }
+//################################################
+  void       getIpMac_ioctl(uint8_t lane, uint32_t* ip, uint8_t* mac) {
 #if 1
   char          buf[1024];
   struct ifconf ifc;
@@ -149,6 +168,7 @@ class EkaSnDev {
 #endif
     return;
   }
+//################################################
 
   void       set_fast_session (uint8_t core, uint8_t sess, uint32_t srcIp, uint16_t srcUdp, uint32_t dstIp, uint16_t dstUdp) {
     EKA_LOG("core=%u, sess=%u %s:%hu --> %s:%hu",core,sess,EKA_IP2STR(srcIp),srcUdp,EKA_IP2STR(dstIp),dstUdp);
@@ -176,6 +196,7 @@ class EkaSnDev {
     return;
   }
   //  void       ioremap_wc_tx_pkts ();
+//################################################
 
   uint16_t getWindowSize (uint8_t core, uint8_t sess) {
     int fd = SN_GetFileDescriptor(dev_id);
@@ -188,7 +209,8 @@ class EkaSnDev {
     return state.eka_session.tcp_window;
   }
   
-  
+  //################################################
+
   void update_fast_session_params (uint8_t coreId, uint8_t sessId, uint8_t* macSa, uint8_t* macDa) {
     int fd = SN_GetFileDescriptor(dev_id);
     eka_ioctl_t state = {};
@@ -219,5 +241,29 @@ class EkaSnDev {
   EkaDev*     dev;
 
 };
+//################################################
+
+/* void  ioremap_wc_tx_pkts() { */
+/* #ifdef EKA_WC */
+/*   int fd = SC_GetFileDescriptor(dev_id); */
+/*   eka_ioctl_t state = {}; */
+/*   state.cmd = EKA_IOREMAP_WC; */
+/*   state.nif_num = 0; */
+/*   int rc = ioctl(fd,SC_IOCTL_EKALINE_DATA,&state); */
+/*   if (rc < 0) on_error("error ioctl(fd,SC_IOCTL_EKALINE_DATA,&state) EKA_IOREMAP_WC"); */
+
+/*   uint64_t a2wr_from_ioctl = state.wcattr.bar0_wc_va; */
+
+/*   txPktBuf = (volatile uint8_t*) EkalineGetWcBase(dev_id); */
+
+/*   if (a2wr_from_ioctl != (uint64_t)txPktBuf)  */
+/*     on_error("txPktBuf from ioctl (%jx ) != EkalineGetWcBase (%jx)",a2wr_from_ioctl,(uint64_t)txPktBuf); */
+
+/*   EKA_LOG("WC txPktBuf = %p",txPktBuf); */
+/* #else */
+/*   EKA_LOG("WC IS NOT IMPLEMENTED IN THIS RELEASE"); */
+/* #endif */
+/*   return; */
+/* } */
 
 #endif

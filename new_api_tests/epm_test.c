@@ -30,8 +30,10 @@
 #include "Epm.h"
 #include "EkaEpm.h"
 
+
 #include "eka_macros.h"
 
+#include "EkaCore.h"
 
 /* --------------------------------------------- */
 
@@ -157,34 +159,32 @@ void tcpServer(EkaDev* dev, std::string ip, uint16_t port) {
 
 /* --------------------------------------------- */
 void tcpRxClientLoop(EkaDev* dev, ExcConnHandle conn) {
+  rxClientReady = true;
   while (keep_work) {
     char rxBuf[1000] = {};
     int rxsize = excRecv(dev,conn, rxBuf, sizeof(rxBuf));
     //   if (rxsize < 1) on_error("rxsize < 1");
     if (rxsize > 0) EKA_LOG("\n%s\n",rxBuf);
-    rxClientReady = true;
   }
 }
 /* --------------------------------------------- */
 
 
-ExcConnHandle runTcpClient(EkaDev* dev, EkaCoreId coreId,std::string serverIp,uint16_t serverTcpPort) {
-  struct sockaddr_in dst = {};
-  dst.sin_addr.s_addr = inet_addr(serverIp.c_str());
-  dst.sin_family      = AF_INET;
-  dst.sin_port        = be16toh(serverTcpPort);
-
+ExcConnHandle runTcpClient(EkaDev* dev, EkaCoreId coreId,sockaddr_in* dst,uint16_t serverTcpPort) {
   int sock = excSocket(dev,coreId,0,0,0);
   if (sock < 0) on_error("failed to open sock");
 
-  EKA_LOG ("Trying to connect to %s:%u",EKA_IP2STR(dst.sin_addr.s_addr),be16toh(dst.sin_port));
-  ExcConnHandle conn = excConnect(dev,sock,(struct sockaddr*) &dst, sizeof(struct sockaddr_in));
-  if (conn < 0) on_error("excConnect %s:%u",EKA_IP2STR(dst.sin_addr.s_addr),be16toh(dst.sin_port));
+  EKA_LOG ("Trying to connect to %s:%u on sock = %d",
+	   EKA_IP2STR(dst->sin_addr.s_addr),
+	   be16toh(dst->sin_port),
+	   sock);
+  ExcConnHandle conn = excConnect(dev,sock,(struct sockaddr*) dst, sizeof(struct sockaddr_in));
+  if (conn < 0) on_error("excConnect %s:%u",EKA_IP2STR(dst->sin_addr.s_addr),be16toh(dst->sin_port));
 
   std::thread rxLoop = std::thread(tcpRxClientLoop,dev,conn);
   rxLoop.detach();
 
-  while (!rxClientReady) sleep(0);
+  while (!rxClientReady && keep_work) sleep(0);
 
   const char* pkt = "\n\nHello world! Im staring the test TCP session\n\n";
   excSend (dev, conn, pkt, strlen(pkt));
@@ -195,21 +195,26 @@ ExcConnHandle runTcpClient(EkaDev* dev, EkaCoreId coreId,std::string serverIp,ui
 /* --------------------------------------------- */
 
 
-void triggerGenerator(EkaDev* dev, const sockaddr_in* triggerAddr,EpmTrigger* epmTrigger,uint numTriggers) {
-  EKA_LOG("\n=======================\nStrating triggerGenerator: %s:%u, numTriggers=%u\n",
-	  EKA_IP2STR(triggerAddr->sin_addr.s_addr),be16toh(triggerAddr->sin_port),numTriggers);
+void triggerGenerator(EkaDev* dev, const sockaddr_in* triggerAddr,const sockaddr_in* udpSenderAddr, EpmTrigger* epmTrigger,uint numTriggers) {
+  EKA_LOG("\n=======================\nStarting triggerGenerator: %s:%u --> %s:%u, numTriggers=%u\n",
+	  EKA_IP2STR(udpSenderAddr->sin_addr.s_addr),be16toh(udpSenderAddr->sin_port),
+	  EKA_IP2STR(triggerAddr->sin_addr.s_addr),  be16toh(triggerAddr->sin_port),numTriggers);
 
   int sock = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
   if (sock < 0) on_error("failed to open UDP sock");
 
-  struct ifreq interface;
+  /* struct ifreq interface; */
+  /* strncpy(interface.ifr_ifrn.ifrn_name, "eth1", IFNAMSIZ); */
+  /* if (setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE, */
+  /*                      (char *)&interface, sizeof(interface)) < 0) { */
+  /*   on_error("failed SO_BINDTODEVICE to eth1"); */
+  /* } */
 
-  strncpy(interface.ifr_ifrn.ifrn_name, "eth1", IFNAMSIZ);
-  if (setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE,
-                       (char *)&interface, sizeof(interface)) < 0) {
-    on_error("failed SO_BINDTODEVICE to eth1");
+  if (bind(sock,(sockaddr*)udpSenderAddr, sizeof(sockaddr)) != 0 ) {
+    on_error("failed to bind server sock to %s:%u",EKA_IP2STR(udpSenderAddr->sin_addr.s_addr),be16toh(udpSenderAddr->sin_port));
+  } else {
+    EKA_LOG("udpSenderAddr sock is binded to %s:%u",EKA_IP2STR(udpSenderAddr->sin_addr.s_addr),be16toh(udpSenderAddr->sin_port));
   }
-
   for(uint i = 0; i < numTriggers; i++) {
     printf("Sending trigger %d to %s:%u\n",i,EKA_IP2STR(triggerAddr->sin_addr.s_addr),be16toh(triggerAddr->sin_port));
     if (sendto(sock,&epmTrigger[i],sizeof(EpmTrigger),0,(const sockaddr*) triggerAddr,sizeof(sockaddr)) < 0) 
@@ -257,6 +262,7 @@ static int getAttr(int argc, char *argv[],
 	break;  
       case 'h':  
 	printUsage(argv[0]);
+	exit (1);
 	break;  
       case '?':  
 	printf("unknown option: %c\n", optopt); 
@@ -264,11 +270,11 @@ static int getAttr(int argc, char *argv[],
       }  
   }  
 
-  if ((*clientIp).empty() || (*serverIp).empty() || (*triggerIp).empty() || *serverTcpPort == 0 || *triggerUdpPort == 0) {
-    printUsage(argv[0]);
-    on_error("missing params: clientIp=%s, serverIp=%s, serverTcpPort=%u, triggerUdpPort=%u",
-	     (*clientIp).c_str(),(*serverIp).c_str(),*serverTcpPort,*triggerUdpPort);
-  }
+  /* if ((*clientIp).empty() || (*serverIp).empty() || (*triggerIp).empty() || *serverTcpPort == 0 || *triggerUdpPort == 0) { */
+  /*   printUsage(argv[0]); */
+  /*   on_error("missing params: clientIp=%s, serverIp=%s, serverTcpPort=%u, triggerUdpPort=%u", */
+  /* 	     (*clientIp).c_str(),(*serverIp).c_str(),*serverTcpPort,*triggerUdpPort); */
+  /* } */
   return 0;
 }
 /* --------------------------------------------- */
@@ -277,10 +283,6 @@ static int getAttr(int argc, char *argv[],
 /* ############################################# */
 int main(int argc, char *argv[]) {
   signal(SIGINT, INThandler);
-
-  std::string clientIp, serverIp, triggerIp;
-  uint16_t serverTcpPort  = 0;
-  uint16_t triggerUdpPort = 0;;
 
   EkaDev* dev = NULL;
   EkaCoreId coreId = 0;
@@ -296,7 +298,17 @@ int main(int argc, char *argv[]) {
   };
   ekaDevInit(&dev, (const EkaDevInitCtx*) &ekaDevInitCtx);
 
+  std::string triggerIp = "239.255.119.16";
+  std::string serverIp  = "10.0.0.11";
+  std::string clientIp  = std::string(EKA_IP2STR(dev->core[0]->srcIp));
+
+  uint16_t serverTcpPort  = 22222;
+  uint16_t triggerUdpPort = 18333;
+
   getAttr(argc,argv,&serverIp,&serverTcpPort,&clientIp,&triggerIp,&triggerUdpPort);
+
+  EKA_LOG("\n==============================\nUDP Trigger: %s:%u, Actions Server %s:%u, Client IP %s\n==============================",
+	  triggerIp.c_str(),triggerUdpPort,serverIp.c_str(),serverTcpPort,clientIp.c_str());
 
   std::thread server = std::thread(tcpServer,dev,serverIp,serverTcpPort);
   server.detach();
@@ -316,7 +328,13 @@ int main(int argc, char *argv[]) {
   };
   ekaDevConfigurePort (dev, (const EkaCoreInitCtx*) &ekaCoreInitCtx);
 
-  ExcConnHandle conn = runTcpClient(dev, coreId,serverIp,serverTcpPort);
+  struct sockaddr_in serverAddr = {};
+  serverAddr.sin_addr.s_addr = inet_addr(serverIp.c_str());
+  serverAddr.sin_family      = AF_INET;
+  serverAddr.sin_port        = be16toh(serverTcpPort);
+
+
+  ExcConnHandle conn = runTcpClient(dev, coreId,&serverAddr,serverTcpPort);
 
   /* ============================================== */
   static const int ChainRows = 4;
@@ -343,6 +361,8 @@ int main(int argc, char *argv[]) {
     strategyParams[i].triggerAddr = reinterpret_cast<const sockaddr*>(&triggerDst);
     strategyParams[i].reportCb = fireReportCb;
   }
+
+  EKA_LOG("Before: epmInitStrategies");
   ekaRC = epmInitStrategies(dev, coreId, strategyParams, numStrategies);
   if (ekaRC != EKA_OPRESULT__OK) on_error("epmInitStrategies failed: ekaRC = %u",ekaRC);
 
@@ -408,7 +428,13 @@ int main(int argc, char *argv[]) {
 
   /* ============================================== */
 
-  std::thread trigger = std::thread(triggerGenerator,dev,&triggerDst,epmTrigger,numTriggers);
+
+  struct sockaddr_in udpSenderAddr = {};
+  udpSenderAddr.sin_family      = AF_INET;
+  udpSenderAddr.sin_addr.s_addr = inet_addr(serverIp.c_str());
+  udpSenderAddr.sin_port        = be16toh(22221);
+
+  std::thread trigger = std::thread(triggerGenerator,dev,&triggerDst,&udpSenderAddr,epmTrigger,numTriggers);
   trigger.detach();
 
   /* ============================================== */

@@ -74,7 +74,9 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   uint64_t mirrorNonUdp2UserChannel = 1ULL << 32;
   uint64_t portState = eka_read(ENABLE_PORT);
   portState |= mirrorNonUdp2UserChannel;
-
+  portState = 0x81010003; // TO DOUBLE CHECK!!!
+  portState = 0x181010003;
+  EKA_LOG("portState = 0x%016x",portState);
   eka_write(ENABLE_PORT,portState);
 
   ekaInitLwip(this);
@@ -82,7 +84,7 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   totalNumTcpSess = 0;
   use_vlan = false;
 
-
+  bool noCores = true;
   for (uint c = 0; c < CONF::MAX_CORES; c++) {
     uint32_t ip = 0;
     uint8_t mac[6] = {};
@@ -93,11 +95,14 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
     if (ip != 0 && snDev->hasLink(c)) {
       core[c] = new EkaCore(dev,c,ip,mac);
       EKA_LOG("FETH%u LINK=1 %s %s",c,EKA_IP2STR(ip),EKA_MAC2STR(mac));
+      noCores = false;
     } else {
-      EKA_LOG("Core %u has NO link or configured IP",c);
+      //      EKA_LOG("Core %u has NO link or configured IP",c);
       core[c] = NULL;
     }
   }
+
+  if (noCores) on_error("No FPGA ports have Link and/or IP");
 
   servThreadActive = false;
   servThread    = std::thread(ekaServThread,this);
@@ -123,7 +128,7 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   assert (pEfcRunCtx != NULL);
 
   pEfcRunCtx->onEkaExceptionReportCb = (OnEkaExceptionReportCb) efhDefaultOnException;
-  pEfcRunCtx->onEfcFireReportCb      =  (OnEfcFireReportCb)     efcDefaultOnFireReportCb;
+  pEfcRunCtx->onEfcFireReportCb      = (OnEfcFireReportCb)      efcDefaultOnFireReportCb;
 
   epm = new EkaEpm(this);
 
@@ -173,10 +178,6 @@ uint8_t EkaDev::getNumFh() {
 
 EkaDev::~EkaDev() {
   EKA_LOG("shutting down...");
-  igmp_thread_active = false;
-  io_thread_active = false;
-  serv_thr.active = false;
-  exc_active = false;
 
   EKA_LOG("Closing %u FHs",numFh);
   fflush(stderr);
@@ -190,6 +191,13 @@ EkaDev::~EkaDev() {
   for (uint i = 0; i < numRunGr; i++) {
     if (runGr[i] != NULL) runGr[i]->thread_active = false;
   }
+
+  igmp_thread_active = false;
+  io_thread_active = false;
+  serv_thr.active = false;
+  exc_active = false;
+  servThreadActive = false;
+
   sleep(3);
 
   for (auto i = 0; i < numFh; i++) {

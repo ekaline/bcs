@@ -43,7 +43,7 @@ static inline void sendDummyFastPathPkt(EkaDev* dev, const uint8_t* payload) {
   uint8_t* data = (uint8_t*) tcph + sizeof(EkaTcpHdr);
   uint16_t len = be16toh(iph->_len) - sizeof(EkaIpHdr) - sizeof(EkaTcpHdr);
   
-  //  hexDump("Dummy Pkt to send",(void*)payload, 54);
+  //  hexDump("sendDummyFastPathPkt: Dummy Pkt to send",(void*)payload, 54);
 
   EkaTcpSess* tcpSess = dev->findTcpSess(iph->src, be16toh(tcph->src), iph->dest, be16toh(tcph->dest));
   if (tcpSess == NULL) 

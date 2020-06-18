@@ -32,6 +32,7 @@ class EkaCore {
   uint32_t      srcIp;
   uint8_t       macSa[6];
   uint8_t       macDa[6];
+  uint16_t      vlanTag;
 
   bool          connected;
   bool          macDa_set_externally = false;

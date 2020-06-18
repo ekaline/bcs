@@ -87,9 +87,9 @@ void EkaUdpChannel::igmp_mc_join (uint32_t src_ip, uint32_t mcast_ip, uint16_t m
 
   SN_Error errorCode = SN_IgmpJoin(ChannelId,core,(const char*)ip,be16toh(mcast_port), vlanTag ? &igmpOptions : NULL);
   if (errorCode != SN_ERR_SUCCESS) 
-    on_error("Failed to join on core %u MC %s:%u, error code %d",
-	     core,ip,be16toh(mcast_port),errorCode);
-  EKA_LOG("IGMP joined %s:%u for HW UDP Channel from coreId = %u, ip = %s, vlanTag = %u",
+    on_error("Failed to join on core %u MC %s:%u, vlanTag=%d, error code %d",
+	     core,ip,be16toh(mcast_port),vlanTag,(int)errorCode);
+  EKA_LOG("IGMP joined %s:%u for HW UDP Channel from coreId = %u, ip = %s, vlanTag = %d",
 	  ip,be16toh(mcast_port),core,EKA_IP2STR(src_ip),vlanTag);
 
   //----------------------------------------------

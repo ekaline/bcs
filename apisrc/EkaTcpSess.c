@@ -85,11 +85,14 @@ EkaTcpSess::EkaTcpSess(EkaDev* pEkaDev, EkaCore* _parent, uint8_t _coreId, uint8
   if ((sock = lwip_socket(AF_INET, SOCK_STREAM, 0)) < 0) 
     on_error ("error creating TCP socket");
 
-  EKA_LOG("sock=%d for: %s:%u --> %s:%u, %s -> %s",sock,
-	  EKA_IP2STR(srcIp),srcPort,
-	  EKA_IP2STR(dstIp),dstPort,
-	  EKA_MAC2STR(macSa),EKA_MAC2STR(macDa));
-
+  if (sessId == MAX_SESS_PER_CORE) {
+    EKA_LOG("Established TCP Session %u for Control Traffic",sessId);
+  } else {
+    EKA_LOG("sock=%d for: %s:%u --> %s:%u, %s -> %s",sock,
+	    EKA_IP2STR(srcIp),srcPort,
+	    EKA_IP2STR(dstIp),dstPort,
+	    EKA_MAC2STR(macSa),EKA_MAC2STR(macDa));
+  }
   payloadFastSendSlot = (MAX_SESS_PER_CORE + 1) * coreId + sessId;
 
   payloadFastSendDescr.tcpd.src_index      = MAX_PKT_SIZE * payloadFastSendSlot;
@@ -492,7 +495,7 @@ int EkaTcpSess::sendPayload(void *buf, int len) {
   if (fastPathBytes > txDriverBytes) {
     /* EKA_LOG("TX Backpressure: fastPathBytes=%ju, txDriverBytes=%ju", */
     /* 	    fastPathBytes,txDriverBytes); */
-    printf(".");
+    //    printf(".");
     return 0; // too high tx rate -- Back Pressure
   }
 
