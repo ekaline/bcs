@@ -279,6 +279,24 @@ static int getAttr(int argc, char *argv[],
 }
 /* --------------------------------------------- */
 
+/* [6/16 5:33 PM] Igor Galitskiy */
+    
+/* multicast IPs: */
+/* 239.255.119.16 & 239.255.119.17 */
+
+
+/* nqxlxavt059d */
+/*  publish: sfc0 10.120.115.53 */
+/*  receive: fpga0_0 10.120.115.56 */
+
+
+/* nqxlxavt061d */
+/*  publish: sfc0 10.120.115.52 */
+/*  receive: fpga0_0 10.120.115.54 */
+
+
+
+
 
 /* ############################################# */
 int main(int argc, char *argv[]) {
