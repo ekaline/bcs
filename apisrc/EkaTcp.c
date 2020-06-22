@@ -196,22 +196,16 @@ void ekaInitLwip (EkaDev* dev) {
 }
 
 void ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
-  /* EkaTcpSess* tcpSess = dev->findTcpSess(EKA_IPH_SRC(pkt), */
-  /* 					 EKA_IPH_DST(pkt), */
-  /* 					 EKA_TCPH_SRC(pkt), */
-  /* 					 EKA_TCPH_DST(pkt)); */
-  /* if (tcpSess != NULL) tcpSess->updateRx(pkt,len); */
-
-  //EKA_LOG("TCP RX: SEQ= %u, ACK = %u, pkt len = %u",EKA_TCPH_SEQNO(pkt),EKA_TCPH_ACKNO(pkt),EKA_TCP_PAYLOAD_LEN(pkt));
-
-  struct pbuf* p = pbuf_alloc(PBUF_RAW, len, PBUF_RAM);
-  if (p == NULL) on_error ("failed to get new PBUF");
-  memcpy(p->payload,pkt,len);
 
   uint8_t broadcastMac[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
   if (memcmp(pkt,broadcastMac,6) == 0) { // broadcast 
     for (uint8_t rxCoreId = 0; rxCoreId < EkaDev::CONF::MAX_CORES; rxCoreId++) {
       if (dev->core[rxCoreId] != NULL && dev->core[rxCoreId]->pLwipNetIf != NULL) {
+
+	struct pbuf* p = pbuf_alloc(PBUF_RAW, len, PBUF_RAM);
+	if (p == NULL) on_error ("failed to get new PBUF");
+	memcpy(p->payload,pkt,len);
+
 	struct netif* netIf = dev->core[rxCoreId]->pLwipNetIf;
 	netIf->input(p,netIf);
       }
@@ -219,11 +213,16 @@ void ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
   } else {
     uint8_t rxCoreId = dev->findCoreByMacSa(pkt);
     if (rxCoreId < EkaDev::CONF::MAX_CORES) {
-      struct netif* netIf = dev->core[rxCoreId]->pLwipNetIf;
+      if (dev->core[rxCoreId] != NULL && dev->core[rxCoreId]->pLwipNetIf != NULL) {
 
-      //      sys_check_timeouts();
-
-      netIf->input(p,netIf);
+	struct netif* netIf = dev->core[rxCoreId]->pLwipNetIf;
+	
+	struct pbuf* p = pbuf_alloc(PBUF_RAW, len, PBUF_RAM);
+	if (p == NULL) on_error ("failed to get new PBUF");
+	memcpy(p->payload,pkt,len);
+	
+	netIf->input(p,netIf);
+      }
     } else {
       EKA_WARN("Unexpected RX I/F: %s -- ignoring",EKA_MAC2STR(pkt));
       // Unexpected RX I/F -- Ignoring the pkt

@@ -756,7 +756,7 @@ bool FhXdp::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhXdpGr* gr, uint streamId
 /* ##################################################################### */
 bool FhBox::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhBoxGr* gr, const uint8_t* pktPtr, int16_t pktLen) {
   uint8_t* p = (uint8_t*)pktPtr;
-  EKA_LOG("%s:%u : pktLen = %u",EKA_EXCH_DECODE(gr->exch),gr->id,pktLen);
+  //  EKA_LOG("%s:%u : pktLen = %u",EKA_EXCH_DECODE(gr->exch),gr->id,pktLen);
 
   while (p < pktPtr + pktLen) {
     if (*p != HsvfSom) on_error("0x%x) met while HsvfSom 0x%x is expected",*p,HsvfSom);
@@ -1168,7 +1168,7 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 
     const uint8_t* pkt = getUdpPkt(runGr,NULL,&pktLen,&gr_id);
     if (pkt == NULL) continue;
-    EKA_LOG("%s:%u pktLen=%u",EKA_EXCH_DECODE(exch),gr_id,pktLen);
+    //    EKA_LOG("%s:%u pktLen=%u",EKA_EXCH_DECODE(exch),gr_id,pktLen);
 
     FhBoxGr* gr = (FhBoxGr*)b_gr[gr_id];
 
