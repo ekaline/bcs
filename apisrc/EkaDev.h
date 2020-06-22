@@ -27,6 +27,7 @@ class EkaDev {
   EkaTcpSess* findTcpSess(uint32_t ipSrc, uint16_t udpSrc, uint32_t ipDst, uint16_t udpDst);
   EkaTcpSess* findTcpSess(int sock);
   EkaTcpSess* getControlTcpSess(uint8_t coreId);
+  uint8_t     findCoreByMacSa(const uint8_t* macSa);
 
   int      configurePort(const EkaCoreInitCtx* pCoreInit);
   uint8_t  getNumFh();

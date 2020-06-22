@@ -47,7 +47,7 @@ class EkaCore {
 
   EkaUdpChannel* udpChannel;
 
-  void*         pLwipNetIf;
+  struct netif* pLwipNetIf;
 
   //  EkaBook*     book[EKA_MAX_BOOK_PRODUCTS];
   //  uint         numBooks;
