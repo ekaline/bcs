@@ -224,7 +224,7 @@ void ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
 	netIf->input(p,netIf);
       }
     } else {
-      hexDump("Ignored RX pkt",(uint8_t*)pkt,len);
+      //hexDump("Ignored RX pkt",(uint8_t*)pkt,len);
       //      EKA_WARN("Unexpected RX I/F: %s -- ignoring",EKA_MAC2STR(pkt));
       // Unexpected RX I/F -- Ignoring the pkt
     }
