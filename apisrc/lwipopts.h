@@ -46,7 +46,7 @@
  * interrupt context!
  */
 
-#define LWIP_TCPIP_CORE_LOCKING_INPUT   1
+#define LWIP_TCPIP_CORE_LOCKING_INPUT   0
 
 /**
  * SYS_LIGHTWEIGHT_PROT==1: enable inter-task protection (and task-vs-interrupt
@@ -64,6 +64,19 @@
    ---------- Memory options ----------
    ------------------------------------
 */
+/**
+ * @defgroup lwip_opts_mem Heap and memory pools
+ * @ingroup lwip_opts_infrastructure
+ * @{
+ */
+/**
+ * MEM_LIBC_MALLOC==1: Use malloc/free/realloc provided by your C-library
+ * instead of the lwip internal allocator. Can save code size if you
+ * already use it.
+ */
+
+#define MEM_LIBC_MALLOC                 0
+
 
 /**
  * MEMP_MEM_MALLOC==1: Use mem_malloc/mem_free instead of the lwip pool allocator.
@@ -75,7 +88,7 @@
  * not only for internal pools defined in memp_std.h)!
  */
 
-#define MEMP_MEM_MALLOC                 1
+#define MEMP_MEM_MALLOC                 0
 
 
 /**
@@ -91,7 +104,7 @@
  * a lot of data that needs to be copied, this should be set high.
  */
 
-#define MEM_SIZE                        (256 * 1024 * 1024)
+#define MEM_SIZE                        (16 * 1024 * 1024)
 
 
 /*
@@ -144,15 +157,6 @@
  */
 
 #define MEMP_NUM_TCP_PCB_LISTEN         8
-
-
-/**
- * MEMP_NUM_TCP_SEG: the number of simultaneously queued TCP segments.
- * (requires the LWIP_TCP option)
- */
-
-#define MEMP_NUM_TCP_SEG                64
-
 
 
 /**
@@ -213,7 +217,7 @@
  * PBUF_POOL_SIZE: the number of buffers in the pbuf pool.
  */
 
-#define PBUF_POOL_SIZE                  (256 * 1024)
+#define PBUF_POOL_SIZE                  (16 * 1024)
 
 
 /*
@@ -292,7 +296,8 @@
  * (but this should only occur for AutoIP).
  */
 
-#define ETHARP_TABLE_MATCH_NETIF        !LWIP_SINGLE_NETIF
+//#define ETHARP_TABLE_MATCH_NETIF        !LWIP_SINGLE_NETIF
+#define ETHARP_TABLE_MATCH_NETIF        0
 
 /**
  * @}
@@ -321,7 +326,8 @@
  * interface, define this to 0.
  */
 
-#define IP_FORWARD                      1
+//#define IP_FORWARD                      1
+#define IP_FORWARD                      0
 
 /**
  * IP_REASSEMBLY==1: Reassemble incoming fragmented IP packets. Note that
@@ -368,7 +374,7 @@
  * (PBUF_POOL_SIZE > 2 * IP_REASS_MAX_PBUFS)!
  */
 
-#define IP_REASS_MAX_PBUFS              1
+#define IP_REASS_MAX_PBUFS              64
 
 
 /*
@@ -437,7 +443,7 @@
  * core support for the corresponding IPv6 options.
  */
 
-#define LWIP_MULTICAST_TX_OPTIONS       0
+#define LWIP_MULTICAST_TX_OPTIONS       1
 
 /**
  * @}
@@ -536,7 +542,9 @@
  * an upper limit on the MSS advertised by the remote host.
  */
 
-#define TCP_MSS                         (1536 - 14 - 20 - 20)
+#define TCP_MSS                         (1536)
+
+#define TCP_WND                         (4 * TCP_MSS)
 
 /* #define TCP_SNDLOWAT                    (4 * TCP_MSS) */
 
@@ -559,7 +567,7 @@
  * To achieve good performance, this should be at least 2 * TCP_MSS.
  */
 
-#define TCP_SND_BUF                     (2 * TCP_MSS)
+#define TCP_SND_BUF                     (4 * TCP_MSS)
 
 
 /**
@@ -594,25 +602,6 @@
    ---------- Pbuf options ----------
    ----------------------------------
 */
-/**
- * @defgroup lwip_opts_pbuf PBUF
- * @ingroup lwip_opts
- * @{
- */
-/**
- * PBUF_LINK_HLEN: the number of bytes that should be allocated for a
- * link level header. The default is 14, the standard value for
- * Ethernet.
- */
-
-#define PBUF_LINK_HLEN                  14
-
-/**
- * PBUF_LINK_ENCAPSULATION_HLEN: the number of bytes that should be allocated
- * for an additional encapsulation header before ethernet headers (e.g. 802.11)
- */
-
-#define PBUF_LINK_ENCAPSULATION_HLEN    0
 
 
 /*
@@ -632,14 +621,6 @@
 
 #define LWIP_SINGLE_NETIF               0
 
-
-/**
- * LWIP_NETIF_HOSTNAME==1: use DHCP_OPTION_HOSTNAME with netif's hostname
- * field.
- */
-#if !defined LWIP_NETIF_HOSTNAME || defined __DOXYGEN__
-#define LWIP_NETIF_HOSTNAME             0
-#endif
 
 /**
  * LWIP_NETIF_API==1: Support netif api (in netifapi.c)
@@ -709,50 +690,6 @@
    ---------- Thread options ----------
    ------------------------------------
 */
-
-/**
- * @defgroup lwip_opts_thread Threading
- * @ingroup lwip_opts_infrastructure
- * @{
- */
-/**
- * TCPIP_THREAD_NAME: The name assigned to the main tcpip thread.
- */
-#define TCPIP_THREAD_NAME               "ekaline_tcpip_thread"
-
-/**
- * TCPIP_THREAD_STACKSIZE: The stack size used by the main tcpip thread.
- * The stack size value itself is platform-dependent, but is passed to
- * sys_thread_new() when the thread is created.
- */
-#define TCPIP_THREAD_STACKSIZE        (16 * 1024 * 1024)  
-
-/**
- * TCPIP_THREAD_PRIO: The priority assigned to the main tcpip thread.
- * The priority value itself is platform-dependent, but is passed to
- * sys_thread_new() when the thread is created.
- */
-#define TCPIP_THREAD_PRIO               18
-
-/**
- * DEFAULT_THREAD_NAME: The name assigned to any other lwIP thread.
- */
-#define DEFAULT_THREAD_NAME             "ekaline_lwIP"
-
-/**
- * DEFAULT_THREAD_STACKSIZE: The stack size used by any other lwIP thread.
- * The stack size value itself is platform-dependent, but is passed to
- * sys_thread_new() when the thread is created.
- */
-#define DEFAULT_THREAD_STACKSIZE        (16 * 1024 * 1024)
-
-/**
- * DEFAULT_THREAD_PRIO: The priority assigned to any other lwIP thread.
- * The priority value itself is platform-dependent, but is passed to
- * sys_thread_new() when the thread is created.
- */
-
-#define DEFAULT_THREAD_PRIO             18
 
 
 /*
@@ -904,6 +841,17 @@
 #define LWIP_SOCKET_POLL                1
 
 /**
+ * LWIP_SOCKET_OFFSET==n: Increases the file descriptor number created by LwIP with n.
+ * This can be useful when there are multiple APIs which create file descriptors.
+ * When they all start with a different offset and you won't make them overlap you can
+ * re implement read/write/close/ioctl/fnctl to send the requested action to the right
+ * library (sharing select will need more work though).
+ */
+
+#define LWIP_SOCKET_OFFSET              100
+
+
+/**
  * @}
  */
 
@@ -985,27 +933,31 @@
  */
 
 #define LWIP_DEBUG                      1
-#define LWIP_DBG_MIN_LEVEL              0xFF
-#define SOCKETS_DEBUG                   LWIP_DBG_ON
-#define TCP_INPUT_DEBUG                 LWIP_DBG_ON
+/* #define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_ALL */
 
-#define TCP_OUTPUT_DEBUG                LWIP_DBG_ON
-#define TCPIP_DEBUG                     LWIP_DBG_ON
-#define TCP_RTO_DEBUG                   LWIP_DBG_ON
-#define TCP_DEBUG                       LWIP_DBG_ON
+/* #define ETHARP_DEBUG                    LWIP_DBG_ON */
 
 #if 0
 #define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_ALL
 
-#define ETHARP_DEBUG                    LWIP_DBG_OFF
+#define TCP_INPUT_DEBUG                 LWIP_DBG_ON
+#define TCP_OUTPUT_DEBUG                LWIP_DBG_ON
+#define TIMERS_DEBUG                    LWIP_DBG_ON
+
+
 #define API_LIB_DEBUG                   LWIP_DBG_OFF
 #define NETIF_DEBUG                     LWIP_DBG_OFF
 #define API_MSG_DEBUG                   LWIP_DBG_OFF
+
 #define SOCKETS_DEBUG                   LWIP_DBG_ON
+#define ETHARP_DEBUG                    LWIP_DBG_OFF
+
 #define INET_DEBUG                      LWIP_DBG_OFF
 #define IP_DEBUG                        LWIP_DBG_OFF
 #define SYS_DEBUG                       LWIP_DBG_ON
+#endif
 
+#if 0
 #define TCP_INPUT_DEBUG                 LWIP_DBG_ON
 #define TCP_OUTPUT_DEBUG                LWIP_DBG_ON
 
@@ -1016,6 +968,9 @@
 #define TCP_QLEN_DEBUG                  LWIP_DBG_ON
 #define TIMERS_DEBUG                    LWIP_DBG_ON
 #define TCP_DEBUG                       LWIP_DBG_ON
+
+#define TIMERS_DEBUG                    LWIP_DBG_ON
+
 #endif
 
 /*

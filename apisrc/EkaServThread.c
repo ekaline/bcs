@@ -99,7 +99,7 @@ static inline void sendHb2HW(EkaDev* dev) {
 void ekaServThread(EkaDev* dev) {
   EKA_LOG("Launching");
   uint32_t fire_counter = 0;
-  uint32_t null_cnt = 0;
+  //  uint32_t null_cnt = 0;
   dev->servThreadActive = true;
   pthread_t thread = pthread_self();
   pthread_setname_np(thread,"EkaServThread");
@@ -138,16 +138,16 @@ void ekaServThread(EkaDev* dev) {
 
       /* hexDump("RX pkt",(void*)payload,len); */
     
-      ekaProcesTcpRx (dev, payload, len);
+      ekaProcesTcpRx (dev, payload, len - 4 /* FCS */);
       dev->snDev->tcpRx->next();
     }
     /* ----------------------------------------------- */
     if (! dev->servThreadActive) break;
 
-    if (((null_cnt++)%3000000)==0) {
-      sendDate2Hw(dev);
-      sendHb2HW(dev);
-    }
+    /* if (((null_cnt++)%3000000)==0) { */
+    /*   sendDate2Hw(dev); */
+    /*   sendHb2HW(dev); */
+    /* } */
   }
   EKA_LOG("Exiting");
   return;

@@ -100,12 +100,22 @@ err_t ekaLwipSend(struct netif *netif, struct pbuf *p) {
   return ERR_OK;
 }
 
-void initLwipNetIf(void** pLwipNetIf, EkaDev* dev, uint8_t coreId, uint8_t* macSa, uint8_t* macDa, uint32_t srcIp) {
-  struct netif* netIf = (struct netif*) calloc(1,sizeof(struct netif));
-  if (netIf == NULL) on_error("cannot allocate pLwipNetIf");
+void setNetifIpSrc(EkaDev* dev, uint8_t coreId, const uint32_t* pSrcIp) {
+  netif_set_ipaddr(dev->core[coreId]->pLwipNetIf,(const ip4_addr_t*)pSrcIp); 
+  return;
+}
 
-  //  (struct netif*)(*pLwipNetIf) = netIf;
-  *pLwipNetIf = netIf;
+
+void setNetifIpMacSa(EkaDev* dev, uint8_t coreId, const uint8_t* macSa) {
+  memcpy(dev->core[coreId]->pLwipNetIf->hwaddr,macSa,6);
+  return;
+}
+
+struct netif* initLwipNetIf(EkaDev* dev, uint8_t coreId, uint8_t* macSa, uint8_t* macDa, uint32_t srcIp) {
+  if (dev == NULL) on_error("dev == NULL");
+
+  struct netif* netIf = (struct netif*) calloc(1,sizeof(struct netif));
+  if (netIf == NULL) on_error("cannot allocate netIf");
 
   if ((netIf->state = calloc(1,sizeof(LwipNetifState))) == NULL) 
     on_error("cannot allocate LwipNetifState");
@@ -113,7 +123,8 @@ void initLwipNetIf(void** pLwipNetIf, EkaDev* dev, uint8_t coreId, uint8_t* macS
   ((struct LwipNetifState*)netIf->state)->pEkaDev = dev;
   ((struct LwipNetifState*)netIf->state)->lane = coreId;
 
-  for (int i = 0; i < 6; ++i) netIf->hwaddr[i] = macSa[i];
+  //  for (int i = 0; i < 6; ++i) netIf->hwaddr[i] = macSa[i];
+  memcpy(netIf->hwaddr,macSa,6);
 
   netIf->input = tcpip_input;
   netIf->output = etharp_output;
@@ -125,15 +136,19 @@ void initLwipNetIf(void** pLwipNetIf, EkaDev* dev, uint8_t coreId, uint8_t* macS
   netIf->mtu = 1500;
   netIf->hwaddr_len = 6;
 
-  EKA_LOG("running netif_add with ip=%s",EKA_IP2STR(srcIp));
+  EKA_LOG("running netif_add with ip=%s, macSa=%s, macDa=%s",
+	  EKA_IP2STR(srcIp),EKA_MAC2STR(macSa),EKA_MAC2STR(macDa));
 
-  netif_add(netIf,
-	    (const ip4_addr_t *) & srcIp,
-	    NULL, // netmask
-	    NULL, // gw
-	    netIf->state,
-	    eka_netif_init,
-	    tcpip_input);
+  struct netif* netIf_rc = netif_add(netIf,
+				     (const ip4_addr_t *) & srcIp,
+				     NULL, // netmask
+				     NULL, // gw
+				     netIf->state,
+				     eka_netif_init,
+				     tcpip_input);
+  if (netIf_rc == NULL) 
+    on_error("Failed to add netif on core[%u]",coreId);
+
   netIf->flags   |= 
     NETIF_FLAG_UP        | 
     NETIF_FLAG_BROADCAST | 
@@ -150,6 +165,8 @@ void initLwipNetIf(void** pLwipNetIf, EkaDev* dev, uint8_t coreId, uint8_t* macS
   EKA_LOG("NIC %u: netif->num = %d, I/F is %s, link is %s, MAC = %s",
 	  coreId, netIf->num, netif_is_up(netIf) ? "UP" : "DOWN",netif_is_link_up(netIf)  ? "UP" : "DOWN",
 	  EKA_MAC2STR(netIf->hwaddr));
+
+  return netIf_rc;
 }
 
 void ekaInitLwip (EkaDev* dev) {
@@ -178,7 +195,6 @@ void ekaInitLwip (EkaDev* dev) {
   return;
 }
 
-
 void ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
   /* EkaTcpSess* tcpSess = dev->findTcpSess(EKA_IPH_SRC(pkt), */
   /* 					 EKA_IPH_DST(pkt), */
@@ -192,15 +208,30 @@ void ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
   if (p == NULL) on_error ("failed to get new PBUF");
   memcpy(p->payload,pkt,len);
 
-  struct netif* netIf = (struct netif*) dev->core[0]->pLwipNetIf;
+  uint8_t broadcastMac[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+  if (memcmp(pkt,broadcastMac,6) == 0) { // broadcast 
+    for (uint8_t rxCoreId = 0; rxCoreId < EkaDev::CONF::MAX_CORES; rxCoreId++) {
+      if (dev->core[rxCoreId] != NULL && dev->core[rxCoreId]->pLwipNetIf != NULL) {
+	struct netif* netIf = dev->core[rxCoreId]->pLwipNetIf;
+	netIf->input(p,netIf);
+      }
+    }
+  } else {
+    uint8_t rxCoreId = dev->findCoreByMacSa(pkt);
+    if (rxCoreId < EkaDev::CONF::MAX_CORES) {
+      struct netif* netIf = dev->core[rxCoreId]->pLwipNetIf;
 
+      //      sys_check_timeouts();
+
+      netIf->input(p,netIf);
+    } else {
+      on_error("Unexpected RX I/F: %s",EKA_MAC2STR(pkt));
+      // Unexpected RX I/F -- Ignoring the pkt
+    }
+  }
   /* hexDump("ekaProcesTcpRx",(void*)pkt,len); */
-  // dev->mtx.lock();
-  netIf->input(p,netIf);
-  //dev->mtx.unlock();
-
-  sys_check_timeouts();
 
   return;
 }
+
 

@@ -5,7 +5,7 @@
 #include "EkaUdpSess.h"
 #include "EkaUdpChannel.h"
 
-void initLwipNetIf(void** pLwipNetIf, EkaDev* dev, uint8_t coreId, uint8_t* macSa, uint8_t* macDa, uint32_t srcIp);
+struct netif* initLwipNetIf(EkaDev* dev, uint8_t coreId, uint8_t* macSa, uint8_t* macDa, uint32_t srcIp);
 
 /* ------------------------------------------------------------- */
 #define ARP_STRING_LEN  1023
@@ -69,8 +69,7 @@ EkaCore::EkaCore(EkaDev* pEkaDev, uint8_t lane, uint32_t ip, uint8_t* mac) {
 
     udpChannel = NULL;
 
-    // PATCH!!!!
-    /* if (coreId == 0)  */initLwipNetIf(&pLwipNetIf,dev,coreId,macSa,macDa,srcIp);
+    pLwipNetIf = initLwipNetIf(dev,coreId,macSa,macDa,srcIp);
 
     // Control session for ARPs
     tcpSess[MAX_SESS_PER_CORE] = new EkaTcpSess(dev, this, coreId, MAX_SESS_PER_CORE,
