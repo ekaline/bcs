@@ -88,8 +88,8 @@ int createThread(const char* name, EkaThreadType type,  void *(*threadRoutine)(v
   return 0;
 }
 
-int credAcquire(EkaCredentialType credType, EkaSource source, const char *user, const struct timespec *leaseTime, const struct timespec *timeout, void* context, EkaCredentialLease **lease) {
-  printf ("Credential with USER %s is acquired for %s\n",user,EKA_EXCH_DECODE(source));
+int credAcquire(EkaCredentialType credType, EkaGroup group, const char *user, const struct timespec *leaseTime, const struct timespec *timeout, void* context, EkaCredentialLease **lease) {
+  printf ("Credential with USER %s is acquired for %s:%hhu\n",user,EKA_EXCH_DECODE(group.source),group.localId);
   return 0;
 }
 
