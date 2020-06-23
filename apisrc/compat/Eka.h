@@ -69,7 +69,7 @@ extern "C" {
     EkaProp* props;
   };
 
-  enum EkaOpResult {
+  enum EkaOpResult : int {
     EKA_OPRESULT__OK    = 0,        /** General success message */
     EKA_OPRESULT__ALREADY_INITIALIZED = 1,
     EKA_OPRESULT__END_OF_SESSION = 2,
@@ -78,6 +78,7 @@ extern "C" {
     EKA_OPRESULT__ERR_BAD_ADDRESS = -102,     // returned if you pass NULL for something that can't be NULL, similar to EFAULT
     EKA_OPRESULT__ERR_SYSTEM_ERROR = -103,     // returned when a system call fails and errno is set
     EKA_OPRESULT__ERR_NOT_IMPLEMENTED = -104,     // returned when an API call is not implemented
+    EKA_OPRESULT__ERR_GROUP_NOT_AVAILABLE = -105, // returned by test feed handler when group not present in capture
 
     // EPM specific
     //    EKA_OPRESULT__ERR_BAD_ADDRESS = -201,
@@ -230,23 +231,23 @@ struct EkaCoreInitCtx {
 struct EkaCredentialLease;
 
 typedef int (*EkaAcquireCredentialsFn)(EkaCredentialType credType,
-					 EkaSource source,
+					 EkaGroup group,
 					 const char *user,
 					 const struct timespec *leaseTime,
 					 const struct timespec *timeout,
 					 void *context,
 					 EkaCredentialLease **lease);
 
-  typedef int (*EkaReleaseCredentialsFn)(EkaCredentialLease *lease, void* context);
+typedef int (*EkaReleaseCredentialsFn)(EkaCredentialLease *lease, void* context);
 
 enum class EkaThreadType {
-  #define EkaThreadType_ENUM_ITER(_x)		\
-    _x ( Unspecipied, 0 )			\
-      _x (FeedSnapshot )			\
-      _x (FeedRecovery )			\
-      _x (IGMP )				\
-      _x (PacketIO )				\
-      _x (Heartbeat )
+  #define EkaThreadType_ENUM_ITER(_x)       \
+    _x ( Unspecified, 0 )                   \
+    _x ( FeedSnapshot )                     \
+    _x ( FeedRecovery )                     \
+    _x ( IGMP )                             \
+    _x ( PacketIO )                         \
+    _x ( Heartbeat )
   EkaThreadType_ENUM_ITER( EKA__ENUM_DEF )
 };
 
@@ -260,7 +261,7 @@ struct EkaDevInitCtx {
                 _x( EkaReleaseCredentialsFn,           credRelease )	\
                 _x( void*,                             credContext )	\
                 _x( EkaThreadCreateFn,                 createThread )	\
-                _x( void*,                             createThreadContext )			                
+                _x( void*,                             createThreadContext )
         EkaDevInitCtx_FIELD_ITER( EKA__FIELD_DEF )
 };
 

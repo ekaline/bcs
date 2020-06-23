@@ -54,6 +54,9 @@ bool FhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
       s->option_open    = false;
       s->trading_action = EfhTradeStatus::kPreopen;
       break;
+    case '5' : // (Rotation, legal width quote pending)
+      // preserve the state
+      break;
     default:
       on_error("Unexpected QuoteCondition: \'%c\'",msg->QuoteCondition);
     }
