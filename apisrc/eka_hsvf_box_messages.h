@@ -51,6 +51,15 @@ struct HsvfLoginAck { // "KI"
   char       EoM; // = HsvfEom;
 };
 
+
+struct HsvfError { // "ER"
+  char       SoM; //  = HsvfSom;
+  HsvfMsgHdr hdr;
+  char       ErrorCode[4];
+  char       ErrorMsg[80];
+  char       EoM; // = HsvfEom;
+};
+
 struct HsvfRetransmissionRequest { // "RT"
   char       SoM; //  = HsvfSom;
   HsvfMsgHdr hdr;
