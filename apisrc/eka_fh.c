@@ -1110,8 +1110,8 @@ EkaOpResult FhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
   for (uint8_t i = runGr->firstGr; i < runGr->numGr; i++) {
       EfhFeedDownMsg efhFeedDownMsg{ EfhMsgType::kFeedDown, {b_gr[i]->exch, (EkaLSI)b_gr[i]->id}, ++b_gr[i]->gapNum };
       pEfhRunCtx->onEfhFeedDownMsgCb(&efhFeedDownMsg, 0, pEfhRunCtx->efhRunUserData);
-      gr->inGap = true;
-      gr->setGapStart();
+      ((FhXdpGr*)b_gr[i])->inGap = true;
+      ((FhXdpGr*)b_gr[i])->setGapStart();
   }
 
   while (runGr->thread_active) {
