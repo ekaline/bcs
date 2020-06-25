@@ -747,7 +747,7 @@ bool FhXdp::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhXdpGr* gr, uint pktSize,
     uint16_t msg_len = EKA_XDP_MSG_LEN(p);
     //    if (sequence == gr->getExpectedSeq(streamIdx)) { // = ignore back in time messages
 
-    EKA_LOG("pktSize=%u, delta_p=%ju, MsgType=%u, MsgSize=%u",pktSize,p - pktPtr,((XdpMsgHdr*)p)->MsgType,msg_len);
+    //    EKA_LOG("pktSize=%u, delta_p=%ju, MsgType=%u, MsgSize=%u",pktSize,p - pktPtr,((XdpMsgHdr*)p)->MsgType,msg_len);
     //-----------------------------------------------------------------------------
     gr->parseMsg(pEfhRunCtx,p,sequence++,EkaFhMode::MCAST); // never end of MC from Msg
     //-----------------------------------------------------------------------------
@@ -1110,7 +1110,8 @@ EkaOpResult FhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
   for (uint8_t i = runGr->firstGr; i < runGr->numGr; i++) {
       EfhFeedDownMsg efhFeedDownMsg{ EfhMsgType::kFeedDown, {b_gr[i]->exch, (EkaLSI)b_gr[i]->id}, ++b_gr[i]->gapNum };
       pEfhRunCtx->onEfhFeedDownMsgCb(&efhFeedDownMsg, 0, pEfhRunCtx->efhRunUserData);
-
+      gr->inGap = true;
+      gr->setGapStart();
   }
 
   while (runGr->thread_active) {
@@ -1129,8 +1130,8 @@ EkaOpResult FhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
     FhXdpGr* gr = (FhXdpGr*)b_gr[gr_id];
     uint streamIdx = gr->findAndInstallStream(streamId, sequence);
 
-    EKA_LOG("%s:%u Seq=%ju,expSeq=%ju, pktSize=%u msgInPkt =%u",EKA_EXCH_DECODE(exch),gr_id,
-	    sequence,gr->getExpectedSeq(streamIdx),pktSize,msgInPkt);
+    /* EKA_LOG("%s:%u Seq=%ju,expSeq=%ju, pktSize=%u msgInPkt =%u",EKA_EXCH_DECODE(exch),gr_id, */
+    /* 	    sequence,gr->getExpectedSeq(streamIdx),pktSize,msgInPkt); */
 
 
     //-----------------------------------------------------------------------------
