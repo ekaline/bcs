@@ -111,6 +111,8 @@ bool FhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     }
     book->generateOnQuote (pEfhRunCtx, s, sequence, msg->time.SourceTime * SEC_TO_NANO + msg->time.SourceTimeNS, gapNum);
   }
+    break;
+
     //-----------------------------------------------------------------------------
 
   default:

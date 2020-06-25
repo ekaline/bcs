@@ -593,7 +593,7 @@ uint8_t* FhBats::getUdpPkt(FhRunGr* runGr, uint* msgInPkt, uint64_t* sequence,ui
   return pkt;
 }
 /* ##################################################################### */
-uint8_t* FhXdp::getUdpPkt(FhRunGr* runGr, uint* msgInPkt, uint64_t* sequence,uint8_t* gr_id,uint16_t* streamId, uint8_t* pktType) {
+uint8_t* FhXdp::getUdpPkt(FhRunGr* runGr, uint* msgInPkt, uint* pktSize, uint64_t* sequence,uint8_t* gr_id,uint16_t* streamId, uint8_t* pktType) {
   uint8_t* pkt = (uint8_t*)runGr->udpCh->get();
   if (pkt == NULL) on_error("%s: pkt == NULL",EKA_EXCH_DECODE(exch));
 
@@ -602,6 +602,8 @@ uint8_t* FhXdp::getUdpPkt(FhRunGr* runGr, uint* msgInPkt, uint64_t* sequence,uin
   *gr_id    = getGrId(pkt);
   *streamId = EKA_XDP_STREAM_ID((pkt));
   *pktType =  EKA_XDP_PKT_TYPE((pkt));
+  *pktSize =  EKA_XDP_PKT_SIZE((pkt));
+
   return pkt;
 }
 /* ##################################################################### */
@@ -1106,16 +1108,23 @@ EkaOpResult FhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
   while (runGr->thread_active) {
     //-----------------------------------------------------------------------------
     if (! runGr->udpCh->has_data()) continue;
-    uint msgInPkt = 0;
+    uint     msgInPkt = 0;
     uint64_t sequence = 0;
-    uint8_t gr_id = 0xFF;
+    uint8_t  gr_id = 0xFF;
     uint16_t streamId = 0;
-    uint8_t pktType = 0;
+    uint8_t  pktType = 0;
+    uint     pktSize = 0; 
 
-    uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&sequence,&gr_id, &streamId, &pktType);
+    uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&pktSize,&sequence,&gr_id, &streamId, &pktType);
     if (pkt == NULL) continue;
+
     FhXdpGr* gr = (FhXdpGr*)b_gr[gr_id];
     uint streamIdx = gr->findAndInstallStream(streamId, sequence);
+
+    EKA_LOG("%s:%u Seq=%ju,expSeq=%ju, pktSize=%u msgInPkt =%u",EKA_EXCH_DECODE(exch),gr_id,
+	    sequence,gr->getExpectedSeq(streamIdx),pktSize,msgInPkt);
+
+
     //-----------------------------------------------------------------------------
     if (pktType == (uint8_t)EKA_XDP_DELIVERY_FLAG::SequenceReset) gr->resetExpectedSeq(streamIdx);
     //-----------------------------------------------------------------------------

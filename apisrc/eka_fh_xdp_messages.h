@@ -89,6 +89,7 @@ struct XdpPktHdr {
 } __attribute__((packed));
 
 #define EKA_XDP_PKT_TYPE(x)      (((XdpPktHdr*)x)->DeliveryFlag)
+#define EKA_XDP_PKT_SIZE(x)      (((XdpPktHdr*)x)->PktSize)
 #define EKA_XDP_MSG_CNT(x)       (((XdpPktHdr*)x)->NumberMsgs)
 #define EKA_XDP_SEQUENCE(x)      (((XdpPktHdr*)x)->SeqNum)
 #define EKA_XDP_STREAM_ID_HDR(x) ((XdpStreamId*)((uint8_t*)x+sizeof(XdpPktHdr)))
