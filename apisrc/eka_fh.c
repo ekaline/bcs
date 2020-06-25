@@ -593,7 +593,7 @@ uint8_t* FhBats::getUdpPkt(FhRunGr* runGr, uint* msgInPkt, uint64_t* sequence,ui
   return pkt;
 }
 /* ##################################################################### */
-uint8_t* FhXdp::getUdpPkt(FhRunGr* runGr, uint* msgInPkt, uint64_t* sequence,uint8_t* gr_id,uint16_t* streamId, uint8_t* pktType) {
+uint8_t* FhXdp::getUdpPkt(FhRunGr* runGr, uint* msgInPkt, uint* pktSize, uint64_t* sequence,uint8_t* gr_id,uint16_t* streamId, uint8_t* pktType) {
   uint8_t* pkt = (uint8_t*)runGr->udpCh->get();
   if (pkt == NULL) on_error("%s: pkt == NULL",EKA_EXCH_DECODE(exch));
 
@@ -602,6 +602,8 @@ uint8_t* FhXdp::getUdpPkt(FhRunGr* runGr, uint* msgInPkt, uint64_t* sequence,uin
   *gr_id    = getGrId(pkt);
   *streamId = EKA_XDP_STREAM_ID((pkt));
   *pktType =  EKA_XDP_PKT_TYPE((pkt));
+  *pktSize =  EKA_XDP_PKT_SIZE((pkt));
+
   return pkt;
 }
 /* ##################################################################### */
@@ -738,12 +740,14 @@ bool FhBats::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhBatsGr* gr, const uint8
   return false;
 }
 /* ##################################################################### */
-bool FhXdp::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhXdpGr* gr, uint streamIdx, const uint8_t* pktPtr, uint msgInPkt, uint64_t seq) {
-  uint8_t* p = (uint8_t*)pktPtr + sizeof(XdpPktHdr)+sizeof(XdpStreamId);
+bool FhXdp::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhXdpGr* gr, uint pktSize, uint streamIdx, const uint8_t* pktPtr, uint msgInPkt, uint64_t seq) {
+  uint8_t* p = (uint8_t*)pktPtr + sizeof(XdpPktHdr);//+sizeof(XdpStreamId);
   uint64_t sequence = seq;
   for (uint msg=0; msg < msgInPkt; msg++) {
     uint16_t msg_len = EKA_XDP_MSG_LEN(p);
     //    if (sequence == gr->getExpectedSeq(streamIdx)) { // = ignore back in time messages
+
+    //    EKA_LOG("pktSize=%u, delta_p=%ju, MsgType=%u, MsgSize=%u",pktSize,p - pktPtr,((XdpMsgHdr*)p)->MsgType,msg_len);
     //-----------------------------------------------------------------------------
     gr->parseMsg(pEfhRunCtx,p,sequence++,EkaFhMode::MCAST); // never end of MC from Msg
     //-----------------------------------------------------------------------------
@@ -1103,19 +1107,33 @@ EkaOpResult FhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 
   EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s:%u GROUPS ~~~~~~~~~~~~~",EKA_EXCH_DECODE(exch),(uint)pEfhRunCtx->numGroups);
 
+  for (uint8_t i = runGr->firstGr; i < runGr->numGr; i++) {
+      EfhFeedDownMsg efhFeedDownMsg{ EfhMsgType::kFeedDown, {b_gr[i]->exch, (EkaLSI)b_gr[i]->id}, ++b_gr[i]->gapNum };
+      pEfhRunCtx->onEfhFeedDownMsgCb(&efhFeedDownMsg, 0, pEfhRunCtx->efhRunUserData);
+      ((FhXdpGr*)b_gr[i])->inGap = true;
+      ((FhXdpGr*)b_gr[i])->setGapStart();
+  }
+
   while (runGr->thread_active) {
     //-----------------------------------------------------------------------------
     if (! runGr->udpCh->has_data()) continue;
-    uint msgInPkt = 0;
+    uint     msgInPkt = 0;
     uint64_t sequence = 0;
-    uint8_t gr_id = 0xFF;
+    uint8_t  gr_id = 0xFF;
     uint16_t streamId = 0;
-    uint8_t pktType = 0;
+    uint8_t  pktType = 0;
+    uint     pktSize = 0; 
 
-    uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&sequence,&gr_id, &streamId, &pktType);
+    uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&pktSize,&sequence,&gr_id, &streamId, &pktType);
     if (pkt == NULL) continue;
+
     FhXdpGr* gr = (FhXdpGr*)b_gr[gr_id];
     uint streamIdx = gr->findAndInstallStream(streamId, sequence);
+
+    /* EKA_LOG("%s:%u Seq=%ju,expSeq=%ju, pktSize=%u msgInPkt =%u",EKA_EXCH_DECODE(exch),gr_id, */
+    /* 	    sequence,gr->getExpectedSeq(streamIdx),pktSize,msgInPkt); */
+
+
     //-----------------------------------------------------------------------------
     if (pktType == (uint8_t)EKA_XDP_DELIVERY_FLAG::SequenceReset) gr->resetExpectedSeq(streamIdx);
     //-----------------------------------------------------------------------------
@@ -1138,7 +1156,7 @@ EkaOpResult FhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
     }
     //-----------------------------------------------------------------------------
 
-    if (processUdpPkt(pEfhRunCtx,gr,streamIdx,pkt,msgInPkt,(uint64_t)sequence)) break;
+    if (processUdpPkt(pEfhRunCtx,gr,pktSize,streamIdx,pkt,msgInPkt,(uint64_t)sequence)) break;
 
     //-----------------------------------------------------------------------------
     runGr->udpCh->next(); 

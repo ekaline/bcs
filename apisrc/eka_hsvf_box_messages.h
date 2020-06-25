@@ -51,6 +51,15 @@ struct HsvfLoginAck { // "KI"
   char       EoM; // = HsvfEom;
 };
 
+
+struct HsvfError { // "ER"
+  char       SoM; //  = HsvfSom;
+  HsvfMsgHdr hdr;
+  char       ErrorCode[4];
+  char       ErrorMsg[80];
+  char       EoM; // = HsvfEom;
+};
+
 struct HsvfRetransmissionRequest { // "RT"
   char       SoM; //  = HsvfSom;
   HsvfMsgHdr hdr;
@@ -59,6 +68,14 @@ struct HsvfRetransmissionRequest { // "RT"
   char       End[9];
   char       EoM; // = HsvfEom;
 };
+
+struct HsvfRetransmissionEnd { // "RE"
+  char       SoM; //  = HsvfSom;
+  HsvfMsgHdr hdr;
+  char       EoM; // = HsvfEom;
+};
+
+
 
 struct HsvfEndOfTransmission { // "U "
   char       SoM; //  = HsvfSom;

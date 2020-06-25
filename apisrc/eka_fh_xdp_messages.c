@@ -12,6 +12,7 @@
 #include "EkaDev.h"
 #include "Efh.h"
 
+void hexDump (const char* desc, void *addr, int len);
 
 bool FhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
   switch (((XdpMsgHdr*)m)->MsgType) {
@@ -22,12 +23,10 @@ bool FhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
   case EKA_XDP_MSG_TYPE::QUOTE : {
     XdpQuote* msg = (XdpQuote*)m;
     fh_b_security* s = book->find_security(msg->SeriesIndex);
-    if (s == NULL) return false;
-
-    /* if ( */
-    /* 	msg->time.SourceTime  <  s->seconds ||  */
-    /* 	(msg->time.SourceTime == s->seconds && msg->time.SourceTimeNS < s->nanoseconds) */
-    /* 	) return false; // Back-in-time from Recovery */
+    if (s == NULL) {
+      if (! book->subscribe_all) return false;
+      s = book->subscribe_security(msg->SeriesIndex & 0x00000000FFFFFFFF,0,0);
+    }
 
     /* s->seconds       = msg->time.SourceTime; */
     /* s->nanoseconds   = msg->time.SourceTimeNS; */
@@ -58,7 +57,8 @@ bool FhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
       // preserve the state
       break;
     default:
-      on_error("Unexpected QuoteCondition: \'%c\'",msg->QuoteCondition);
+      hexDump("Bad Msg",m,sizeof(XdpQuote));
+      on_error("Unexpected QuoteCondition: \'%c\' (0x%x)",msg->QuoteCondition,msg->QuoteCondition);
     }
     book->generateOnQuote (pEfhRunCtx, s, sequence, msg->time.SourceTime * SEC_TO_NANO + msg->time.SourceTimeNS, gapNum);
   }
@@ -111,6 +111,8 @@ bool FhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     }
     book->generateOnQuote (pEfhRunCtx, s, sequence, msg->time.SourceTime * SEC_TO_NANO + msg->time.SourceTimeNS, gapNum);
   }
+    break;
+
     //-----------------------------------------------------------------------------
 
   default:

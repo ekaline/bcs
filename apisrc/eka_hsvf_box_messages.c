@@ -206,7 +206,7 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint *msgLen
 
   uint8_t* msgBody = (uint8_t*)msgHdr + sizeof(HsvfMsgHdr);
 
-  //  EKA_LOG("MsgType = %c%c",msgHdr->MsgType[0],msgHdr->MsgType[1]);
+  EKA_LOG("%s:%u: %ju \'%c%c\'",EKA_EXCH_DECODE(exch),id,seq,msgHdr->MsgType[0],msgHdr->MsgType[1]);
   //===================================================
   if (memcmp(msgHdr->MsgType,"J ",sizeof(msgHdr->MsgType)) == 0) { // OptionInstrumentKeys
     *msgLen = sizeof(HsvfMsgHdr) + sizeof(EfhDefinitionMsg);
