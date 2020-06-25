@@ -69,6 +69,14 @@ struct HsvfRetransmissionRequest { // "RT"
   char       EoM; // = HsvfEom;
 };
 
+struct HsvfRetransmissionEnd { // "RE"
+  char       SoM; //  = HsvfSom;
+  HsvfMsgHdr hdr;
+  char       EoM; // = HsvfEom;
+};
+
+
+
 struct HsvfEndOfTransmission { // "U "
   char       SoM; //  = HsvfSom;
   HsvfMsgHdr hdr;
