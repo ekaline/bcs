@@ -143,7 +143,7 @@ static EkaOpResult sendRequest(FhBoxGr* gr) {
   memset(&msg,' ',sizeof(msg));
 
   char seqStrBuf[10] = {};
-  sprintf(seqStrBuf,"%9ju",gr->txSeqNum ++);
+  sprintf(seqStrBuf,"%09ju",gr->txSeqNum ++);
 
   char startStrBuf[10] = {};
   sprintf(startStrBuf,"%09ju",static_cast<uint64_t>(1));

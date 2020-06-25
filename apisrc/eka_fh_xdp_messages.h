@@ -116,7 +116,7 @@ struct XdpQuote { // Valid for both REFRESH and OUTRIGHT QUOTE MESSAGES – MSG 
   uint16_t    BidVolume;         // 30 2 Binary Total quantity available at the Bid price. 
   uint16_t    AskCustomerVolume; // 32 2 Binary *Total quantity of customer orders available at the Ask price. 
   uint16_t    BidCustomerVolume; // 34 2 Binary *Total quantity of customer orders available at the Bid price. 
-  char        QuoteCondition;    // 36 1 ASCII  1 (Regular Trading)  2 (Rotation)  3 (Trading Halted)  4 (Pre-open) 
+  char        QuoteCondition;    // 36 1 ASCII  1 (Regular Trading)  2 (Rotation)  3 (Trading Halted)  4 (Pre-open)  5 (Rotation, legal width quote pending)
   uint8_t     Reserved1;         // 37 1 Binary Filler 
   uint16_t    Reserved;          // 38 2 Binary Filler
 } __attribute__((packed));

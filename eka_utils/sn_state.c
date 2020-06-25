@@ -230,7 +230,7 @@ int main(int argc, char *argv[]){
       printf("\n --- Global Statistics ---  \n");
 
       printf("Subscibed: \t\t %'.1ju (%ju per second, %s)\n",(var_sw_stats_zero>>0)&MASK32, (((var_sw_stats_zero>>0)&MASK32)-var_subscribed_prev)/sleep_seconds, ((var_sw_stats_zero>>63)&0x1) ? "finalized" : "not finalized");
-      printf("MC Joined: \t\t %'.1ju\n",(var_sw_stats_zero>>32)&0xff);
+      printf("MC Joined: \t\t %'.1ju\n",var_sw_stats_zero & 0xf);
 
       var_subscribed_prev = ((var_sw_stats_zero>>0)&MASK32);
 

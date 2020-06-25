@@ -12,6 +12,7 @@
 #include "EkaDev.h"
 #include "Efh.h"
 
+void hexDump (const char* desc, void *addr, int len);
 
 bool FhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
   switch (((XdpMsgHdr*)m)->MsgType) {
@@ -56,7 +57,8 @@ bool FhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
       // preserve the state
       break;
     default:
-      on_error("Unexpected QuoteCondition: \'%c\'",msg->QuoteCondition);
+      hexDump("Bad Msg",m,sizeof(XdpQuote));
+      on_error("Unexpected QuoteCondition: \'%c\' (0x%x)",msg->QuoteCondition,msg->QuoteCondition);
     }
     book->generateOnQuote (pEfhRunCtx, s, sequence, msg->time.SourceTime * SEC_TO_NANO + msg->time.SourceTimeNS, gapNum);
   }
