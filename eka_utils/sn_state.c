@@ -305,7 +305,7 @@ int main(int argc, char *argv[]){
       for(curr_core = 0; curr_core < number_of_cores; curr_core++){
 	printf(format,(var_overrun_trade_counter[curr_core]>>0)&MASK32);	  
       }
-      printf("\n\nRX KPPS Current\t");
+      printf("\n\nRX PPS Current \t");
       for(curr_core = 0; curr_core < number_of_cores; curr_core++){
         uint64_t rxpps = (var_stats_rx_pps[curr_core]>>0)&MASK32;
 	if (rxpps) {
@@ -316,7 +316,7 @@ int main(int argc, char *argv[]){
 	else
 	  printf(format,rxpps);	  
       }
-      printf("\nRX KPPS Maximum\t");
+      printf("\nRX PPS Maximum \t");
       for(curr_core = 0; curr_core < number_of_cores; curr_core++){
 	printf(format,(var_stats_rx_pps[curr_core]>>32)&MASK32);	  
 	}

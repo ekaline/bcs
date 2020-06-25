@@ -41,7 +41,8 @@ static EkaOpResult sendLogin (FhXdpGr* gr) {
   memcpy(loginRequest.SourceID,gr->auth_user,sizeof(loginRequest.SourceID));
   memcpy(loginRequest.Password,gr->auth_passwd,sizeof(loginRequest.Password));
 	
-#ifndef FH_LAB
+#ifdef FH_LAB
+#else
   if(send(gr->snapshot_sock,&loginRequest,sizeof(loginRequest), 0) < 0) {
     EKA_WARN("XDP Login send failed");
     return EKA_OPRESULT__ERR_SYSTEM_ERROR;
@@ -54,7 +55,8 @@ static EkaOpResult sendLogin (FhXdpGr* gr) {
 
 static EkaOpResult getLoginResponse(FhXdpGr* gr) {
   EkaDev* dev = gr->dev;
-
+#ifdef FH_LAB
+#else
   XdpLoginResponse loginResponse = {};
 
   if (recv(gr->snapshot_sock,&loginResponse,sizeof(loginResponse),MSG_WAITALL) <= 0) {
@@ -75,6 +77,7 @@ static EkaOpResult getLoginResponse(FhXdpGr* gr) {
 	     "Unknown");
     return EKA_OPRESULT__ERR_SYSTEM_ERROR;
   }
+#endif
   EKA_LOG("%s:%u: XDP Login accepted",EKA_EXCH_DECODE(gr->exch),gr->id);
   return EKA_OPRESULT__OK;
 }
@@ -105,6 +108,7 @@ static EkaOpResult sendRequest(FhXdpGr* gr) {
 /* ##################################################################### */
 static EkaOpResult sendLogOut(FhXdpGr* gr) {
   EkaDev* dev = gr->dev;
+#ifndef FH_LAB
   XdpLogoutRequest logOut = {};
   logOut.hdr.MsgType = EKA_XDP_MSG_TYPE::LOGOUT_REQUEST;
   logOut.hdr.MsgSize = sizeof(logOut);
@@ -113,7 +117,9 @@ static EkaOpResult sendLogOut(FhXdpGr* gr) {
     EKA_WARN("%s:%u: XDP Logout send failed",EKA_EXCH_DECODE(gr->exch),gr->id);
     return EKA_OPRESULT__ERR_SYSTEM_ERROR;
   }
+#else
   EKA_LOG("%s:%u XDP Logout sent",EKA_EXCH_DECODE(gr->exch),gr->id);
+#endif
   return EKA_OPRESULT__OK;
 }
 

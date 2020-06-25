@@ -353,13 +353,19 @@ int main(int argc, char *argv[]) {
   } else if (feedName == std::string("RB")) {
     ekaProps.numProps = std::size(efhArcaInitCtxEntries_B);
     ekaProps.props    = efhArcaInitCtxEntries_B;
+  } if (feedName == std::string("XA")) {
+    ekaProps.numProps = std::size(efhAmexInitCtxEntries_A);
+    ekaProps.props    = efhAmexInitCtxEntries_A;
+  } else if (feedName == std::string("XB")) {
+    ekaProps.numProps = std::size(efhAmexInitCtxEntries_B);
+    ekaProps.props    = efhAmexInitCtxEntries_B;
   } else {
-    on_error("Unsupported feed name \"%s\". Supported: CA, CB, CC, CD",feedName.c_str());
+    on_error("Unsupported feed name \"%s\". Supported: RA, RB, XA, XB",feedName.c_str());
   }
 
   const EfhInitCtx efhInitCtx = {
     .ekaProps = &ekaProps,
-    .numOfGroups = std::size(arcaGroups),
+    .numOfGroups = std::size(arcaGroups), 
     .coreId = 0,
     .recvSoftwareMd = true,
 #ifdef EKA_TEST_IGNORE_DEFINITIONS
