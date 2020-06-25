@@ -146,10 +146,10 @@ static EkaOpResult sendRequest(FhBoxGr* gr) {
   sprintf(seqStrBuf,"%9ju",gr->txSeqNum ++);
 
   char startStrBuf[10] = {};
-  sprintf(startStrBuf,"%9ju",static_cast<uint64_t>(1));
+  sprintf(startStrBuf,"%09ju",static_cast<uint64_t>(1));
 
   char endStrBuf[10] = {};
-  sprintf(endStrBuf,"%9ju",static_cast<uint64_t>(10000)); // 10000 is a patch to be fixed!!!
+  sprintf(endStrBuf,"%09ju",static_cast<uint64_t>(10000)); // 10000 is a patch to be fixed!!!
 
 
   msg.SoM = HsvfSom;
@@ -222,7 +222,7 @@ static EkaOpResult sendRetransmissionEnd(FhBoxGr* gr) {
   memset(&msg,' ',sizeof(msg));
 
   char seqStrBuf[10] = {};
-  sprintf(seqStrBuf,"%9ju",gr->txSeqNum ++);
+  sprintf(seqStrBuf,"%09ju",gr->txSeqNum ++);
 
   msg.SoM = HsvfSom;
 
@@ -232,8 +232,8 @@ static EkaOpResult sendRetransmissionEnd(FhBoxGr* gr) {
   msg.EoM = HsvfEom;
 
 #ifdef FH_LAB
-  EKA_LOG("%s:%u Dummy FH_LAB Retransmission End sent for %s .. %s messages",
-	  EKA_EXCH_DECODE(gr->exch),gr->id,startStrBuf,endStrBuf);
+  EKA_LOG("%s:%u Dummy FH_LAB Retransmission End sent",
+	  EKA_EXCH_DECODE(gr->exch),gr->id);
 #else
   if(send(gr->snapshot_sock,&msg,sizeof(msg), 0) < 0) {
     EKA_WARN("Retransmission End send failed");
