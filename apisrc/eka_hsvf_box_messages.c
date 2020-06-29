@@ -80,6 +80,7 @@ inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
 
   // 5 bits
   fieldSize = 5;
+  fieldMask = (0x1 << fieldSize) - 1;
   std::string dayStr = std::string(&charSymbol[18],2);
   uint64_t day = std::stoi(dayStr,nullptr,10) & fieldMask;
   f = day << shiftBits;
