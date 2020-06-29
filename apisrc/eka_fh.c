@@ -422,14 +422,12 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
 static int closeGap(EkaFhMode op, EfhCtx* pEfhCtx,const EfhRunCtx* pEfhRunCtx,FhGroup* gr, uint64_t start, uint64_t end) {
   pthread_detach(pthread_self());
 
+  EfhFeedDownMsg efhFeedDownMsg{ EfhMsgType::kFeedDown, {gr->exch, (EkaLSI)gr->id}, ++gr->gapNum };
+  pEfhRunCtx->onEfhFeedDownMsgCb(&efhFeedDownMsg, 0, pEfhRunCtx->efhRunUserData);
 #ifdef EKA_TEST_IGNORE_GAP
   gr->gapClosed = true;
 #else
-
   EkaDev* dev = pEfhCtx->dev;
-
-  EfhFeedDownMsg efhFeedDownMsg{ EfhMsgType::kFeedDown, {gr->exch, (EkaLSI)gr->id}, ++gr->gapNum };
-  pEfhRunCtx->onEfhFeedDownMsgCb(&efhFeedDownMsg, 0, pEfhRunCtx->efhRunUserData);
 
   std::string threadNamePrefix = op == EkaFhMode::SNAPSHOT ? std::string("ST_") : std::string("RT_");
   std::string threadName = threadNamePrefix + std::string(EKA_EXCH_SOURCE_DECODE(gr->exch)) + '_' + std::to_string(gr->id);
