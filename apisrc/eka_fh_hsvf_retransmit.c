@@ -248,7 +248,7 @@ EkaOpResult eka_hsvf_get_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
     if ((ret = getTcpMsg(msgBuf,gr->snapshot_sock)) != EKA_OPRESULT__OK) return ret;
 
     uint msgLen = 0;
-    definitionsDone = gr->parseMsg(pEfhRunCtx,msgBuf,&msgLen,EkaFhMode::DEFINITIONS);
+    definitionsDone = gr->parseMsg(pEfhRunCtx,&msgBuf[1],&msgLen,EkaFhMode::DEFINITIONS);
   }
   //-----------------------------------------------------------------
   if ((ret = sendRetransmissionEnd(gr))      != EKA_OPRESULT__OK) return ret;

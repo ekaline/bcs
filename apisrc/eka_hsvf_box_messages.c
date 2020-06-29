@@ -22,12 +22,16 @@ inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
   uint64_t fieldSize = 0;
   uint64_t fieldMask = 0;
 
+  uint64_t f = 0;
+
   // 5 letters * 5 bits = 25 bits
   fieldSize = 5;
   fieldMask = (0x1 << fieldSize) - 1;
   for (int i = 0; i < 5; i++) {
     uint64_t nameLetter = (charSymbol[i] - 'A') & fieldMask;
-    hashRes |=  nameLetter << shiftBits;
+    f = nameLetter << shiftBits;
+    hashRes |=  f;
+    TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
     shiftBits += fieldSize;
   } 
   // shiftBits = 25;
@@ -35,8 +39,10 @@ inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
   // 5 bits
   fieldSize = 5;
   fieldMask = (0x1 << fieldSize) - 1;
-  char month = (charSymbol[6] - 'A') & fieldMask;
-  hashRes |= month << shiftBits;
+  uint64_t month = (charSymbol[6] - 'A') & fieldMask;
+  f = month << shiftBits;
+  hashRes |= f;
+  TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
   shiftBits += fieldSize;
   // shiftBits = 30;
 
@@ -45,15 +51,19 @@ inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
   fieldMask = (0x1 << fieldSize) - 1;
   std::string priceStr = std::string(&charSymbol[8],7);
   uint64_t price = std::stoul(priceStr,nullptr,10) & fieldMask;
-  hashRes |= price << shiftBits;
+  f = price << shiftBits;
+  hashRes |= f;
+  TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
   shiftBits += fieldSize;
   // shiftBits = 54;
 
   // 'A' .. 'G' = 3 bits
   fieldSize = 3;
   fieldMask = (0x1 << fieldSize) - 1;
-  char priceFractionIndicator = (charSymbol[15] - 'A') & fieldMask;
-  hashRes |= priceFractionIndicator << shiftBits;
+  uint64_t priceFractionIndicator = (charSymbol[15] - 'A') & fieldMask;
+  f = priceFractionIndicator << shiftBits;
+  hashRes |= f;
+  TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
   shiftBits += fieldSize;
   // shiftBits = 57;
 
@@ -62,23 +72,22 @@ inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
   fieldMask = (0x1 << fieldSize) - 1;
   std::string yearStr = std::string(&charSymbol[16],2);
   uint64_t year = (std::stoi(yearStr,nullptr,10) - 20) & fieldMask;
-  hashRes |= year << shiftBits;
+  f = year << shiftBits;
+  hashRes |= f;
+  TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
   shiftBits += fieldSize;
   // shiftBits = 59;
 
   // 5 bits
+  fieldSize = 5;
   std::string dayStr = std::string(&charSymbol[18],2);
-  int day = std::stoi(dayStr,nullptr,10) & fieldMask;
-  hashRes |= day << shiftBits;
+  uint64_t day = std::stoi(dayStr,nullptr,10) & fieldMask;
+  f = day << shiftBits;
+  hashRes |= f;
+  TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
   shiftBits += fieldSize;
   // shiftBits = 64;
 
-  /* uint32_t hashPartA = (hashRes >> 0 ) & 0xFFFFF; */
-  /* uint32_t hashPartB = (hashRes >> 20) & 0xFFFFF; */
-  /* uint32_t hashPartC = (hashRes >> 40) & 0xFFFFF; */
-  /* uint32_t hashPartD = (hashRes >> 60) & 0xFFFFF; */
- //    printf ("charSymbol = %s, price = %s  = %u, month = %c, hash = %x\n",charSymbol,priceStr.c_str(), price, month,hashVal);
-  /* return hashPartA ^ hashPartB ^ hashPartC ^ hashPartD; */
   return hashRes;
 }
 
