@@ -15,7 +15,7 @@
 
 /* ----------------------------------------------------------------------- */
 
-inline uint32_t charSymbol2SecurityId(const char* charSymbol) {
+inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
   uint64_t hashRes = 0;
   uint shiftBits = 0;
 
@@ -73,12 +73,13 @@ inline uint32_t charSymbol2SecurityId(const char* charSymbol) {
   shiftBits += fieldSize;
   // shiftBits = 64;
 
-  uint32_t hashPartA = (hashRes >> 0 ) & 0xFFFFF;
-  uint32_t hashPartB = (hashRes >> 20) & 0xFFFFF;
-  uint32_t hashPartC = (hashRes >> 40) & 0xFFFFF;
-  uint32_t hashPartD = (hashRes >> 60) & 0xFFFFF;
+  /* uint32_t hashPartA = (hashRes >> 0 ) & 0xFFFFF; */
+  /* uint32_t hashPartB = (hashRes >> 20) & 0xFFFFF; */
+  /* uint32_t hashPartC = (hashRes >> 40) & 0xFFFFF; */
+  /* uint32_t hashPartD = (hashRes >> 60) & 0xFFFFF; */
  //    printf ("charSymbol = %s, price = %s  = %u, month = %c, hash = %x\n",charSymbol,priceStr.c_str(), price, month,hashVal);
-  return hashPartA ^ hashPartB ^ hashPartC ^ hashPartD;
+  /* return hashPartA ^ hashPartB ^ hashPartC ^ hashPartD; */
+  return hashRes;
 }
 
 /* ----------------------------------------------------------------------- */
@@ -127,7 +128,7 @@ inline uint32_t getFractionIndicator(char FI) {
 
 }
 /* ----------------------------------------------------------------------- */
-inline int getStatus(fh_b_security* s, char statusMarker) {
+inline int getStatus(fh_b_security64* s, char statusMarker) {
   switch (statusMarker) {
   case 'Y' : // Pre-opening phase
     s->option_open    = false;
@@ -198,7 +199,7 @@ inline int getStatus(fh_b_security* s, char statusMarker) {
 bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint *msgLen,EkaFhMode op) {
   uint pos = 0;
 
-  fh_b_security* s = NULL;
+  fh_b_security64* s = NULL;
 
   HsvfMsgHdr* msgHdr = (HsvfMsgHdr*)&m[pos];
 
@@ -206,7 +207,7 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint *msgLen
 
   uint8_t* msgBody = (uint8_t*)msgHdr + sizeof(HsvfMsgHdr);
 
-  EKA_LOG("%s:%u: %ju \'%c%c\'",EKA_EXCH_DECODE(exch),id,seq,msgHdr->MsgType[0],msgHdr->MsgType[1]);
+  //  EKA_LOG("%s:%u: %ju \'%c%c\'",EKA_EXCH_DECODE(exch),id,seq,msgHdr->MsgType[0],msgHdr->MsgType[1]);
   //===================================================
   if (memcmp(msgHdr->MsgType,"J ",sizeof(msgHdr->MsgType)) == 0) { // OptionInstrumentKeys
     *msgLen = sizeof(HsvfMsgHdr) + sizeof(EfhDefinitionMsg);
@@ -219,7 +220,7 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint *msgLen
     msg.header.group.source   = EkaSource::kBOX_HSVF;
     msg.header.group.localId  = id;
     msg.header.underlyingId   = 0;
-    msg.header.securityId     = (uint64_t) charSymbol2SecurityId(symb);
+    msg.header.securityId     = charSymbol2SecurityId(symb);
     msg.header.sequenceNumber = seq;
     msg.header.timeStamp      = 0;
     msg.header.gapNum         = gapNum;
@@ -249,12 +250,12 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint *msgLen
 
     HsvfOptionQuote* boxMsg = (HsvfOptionQuote*)msgBody;
 
-    uint32_t security_id = (uint32_t) charSymbol2SecurityId(boxMsg->InstrumentDescription);
+    uint64_t security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
 
-    s = ((TobBook*)book)->find_security(security_id);
+    s = ((TobBook*)book)->find_security64(security_id);
     if (s == NULL && !((TobBook*)book)->subscribe_all) return false;
     if (s == NULL && book->subscribe_all) 
-      s = book->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0);
+      s = book->subscribe_security64(security_id,0,0);
 
     if (s == NULL) on_error("s == NULL");
     s->bid_price     = getNumField<uint32_t>(boxMsg->BidPrice,sizeof(boxMsg->BidPrice)) * getFractionIndicator(boxMsg->BidPriceFractionIndicator);
@@ -266,7 +267,7 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint *msgLen
     s->ask_cust_size = getNumField<uint32_t>(boxMsg->PublicCustomerAskSize,sizeof(boxMsg->PublicCustomerAskSize));
 
     getStatus(s,boxMsg->InstrumentStatusMarker);
-    book->generateOnQuote (pEfhRunCtx, s, seq, gr_ts, gapNum);
+    book->generateOnQuote64 (pEfhRunCtx, s, seq, gr_ts, gapNum);
 
     //===================================================
   } else if (memcmp(msgHdr->MsgType,"Z ",sizeof(msgHdr->MsgType)) == 0) { // SystemTimeStamp

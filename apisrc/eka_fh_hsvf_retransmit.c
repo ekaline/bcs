@@ -47,7 +47,7 @@ static EkaOpResult getTcpMsg(uint8_t* msgBuf, int sock) {
     on_error("SoM \'%c\' != HsvfSom \'%c\'",msgBuf[charIdx],HsvfSom);
   do {
     charIdx++;
-    if (charIdx > std::max(sizeof(HsvfOptionInstrumentKeys),sizeof(HsvfOptionSummary)))
+    if (charIdx > std::max(sizeof(HsvfOptionInstrumentKeys),sizeof(HsvfOptionSummary)) + 20)
       on_error("HsvfEom not met after %u characters",charIdx);
   } while (getTcpChar(&msgBuf[charIdx],sock) != HsvfEom);
   return EKA_OPRESULT__OK;
@@ -244,12 +244,9 @@ EkaOpResult eka_hsvf_get_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
   gr->snapshot_active = true;
   bool definitionsDone = false;
   while (gr->snapshot_active && !definitionsDone) {
-
     uint8_t msgBuf[1500] = {};
     if ((ret = getTcpMsg(msgBuf,gr->snapshot_sock)) != EKA_OPRESULT__OK) return ret;
 
-    /* std::string seqString = std::string(((HsvfMsgHdr*)&msgBuf[1])->sequence,sizeof(((HsvfMsgHdr*)&msgBuf[1])->sequence)); */
-    /* uint64_t seq = std::stoul(seqString,nullptr,10); */
     uint msgLen = 0;
     definitionsDone = gr->parseMsg(pEfhRunCtx,msgBuf,&msgLen,EkaFhMode::DEFINITIONS);
   }

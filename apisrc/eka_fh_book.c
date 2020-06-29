@@ -408,6 +408,37 @@ fh_b_security* fh_book::find_security(uint32_t security_id) {
   return NULL;
 }
 
+fh_b_security64* fh_book::find_security64(uint64_t security_id) {
+#ifdef EKA_TIME_CHECK
+      auto start = std::chrono::high_resolution_clock::now();
+      uint ll_hops = 0;
+#endif
+  uint32_t index =  security_id & EKA_FH_SEC_HASH_MASK;
+  if (index >= EKA_FH_SEC_HASH_LINES) on_error("index = %u >= EKA_FH_SEC_HASH_LINES %u",index,EKA_FH_SEC_HASH_LINES);
+  if (sec64[index] == NULL) return NULL;
+  fh_b_security64* sp = sec64[index];
+  while (sp != NULL) {
+    //    EKA_LOG("sp->security_id = %u",sp->security_id);
+    if (sp->security_id == security_id) {
+#ifdef EKA_TIME_CHECK
+      ll_hops ++;
+      auto finish = std::chrono::high_resolution_clock::now();
+      uint64_t duration_ns = (uint64_t) std::chrono::duration_cast<std::chrono::nanoseconds>(finish-start).count();
+      if (duration_ns > 50000) EKA_WARN("WARNING: HIT processing took %ju ns with ll_hops = %u",duration_ns,ll_hops);
+#endif
+      return sp;
+    }
+    sp = sp->next;
+  }
+#ifdef EKA_TIME_CHECK
+      auto finish = std::chrono::high_resolution_clock::now();
+      uint64_t duration_ns = (uint64_t) std::chrono::duration_cast<std::chrono::nanoseconds>(finish-start).count();
+      if (duration_ns > 50000) EKA_WARN("WARNING: MISS processing took %ju ns with ll_hops = %u",duration_ns,ll_hops);
+#endif
+  if (subscribe_all) return  subscribe_security64(security_id,0,0);   // internal test case
+  return NULL;
+}
+
 fh_b_security::fh_b_security(uint32_t secid, uint8_t secType, uint64_t userData) {
   security_id = secid;
   type = secType;
@@ -442,6 +473,39 @@ fh_b_security::fh_b_security(uint32_t secid, uint8_t secType, uint64_t userData)
 }
 
 
+fh_b_security64::fh_b_security64(uint64_t secid, uint8_t secType, uint64_t userData) {
+  security_id = secid;
+  type = secType;
+  efhUserData = userData;
+  bid_ts = 0;
+  ask_ts = 0;
+
+  buy = NULL;
+  sell = NULL;
+  //  trading_action = '\0';
+  trading_action = EfhTradeStatus::kUninit;
+  option_open = false;
+  next = NULL;
+  num_of_buy_plevels = 0;
+  num_of_sell_plevels = 0;
+
+  bid_size = 0;
+  bid_o_size = 0;
+  bid_cust_size = 0;
+  bid_pro_cust_size = 0;
+  bid_bd_size = 0;
+  bid_price = 0;
+
+  ask_size = 0;
+  ask_o_size = 0;
+  ask_cust_size = 0;
+  ask_pro_cust_size = 0;
+  ask_bd_size = 0;
+  ask_price = 0;
+
+  return;
+}
+
 fh_b_security*  fh_book::subscribe_security (uint32_t secid, uint8_t type, uint64_t userData) {
 /* #if 1 */
 /*   EKA_LOG("GR%u: security_id=%d, subscribe_all=%u, total_securities=%u",id,secid,subscribe_all,total_securities); */
@@ -456,6 +520,27 @@ fh_b_security*  fh_book::subscribe_security (uint32_t secid, uint8_t type, uint6
     sec[index] = s; // empty bucket
   } else {
     fh_b_security *sp = sec[index];
+    while (sp->next != NULL) sp = sp->next;
+    sp->next = s;
+  }
+  total_securities++;
+  return s;
+}
+
+fh_b_security64*  fh_book::subscribe_security64 (uint64_t secid, uint8_t type, uint64_t userData) {
+/* #if 1 */
+/*   EKA_LOG("GR%u: security_id=%d, subscribe_all=%u, total_securities=%u",id,secid,subscribe_all,total_securities); */
+/* #endif */
+  fh_b_security64* s = new fh_b_security64(secid,type,userData);
+  if (s == NULL) on_error("constructor failed");
+
+  uint32_t index = secid & EKA_FH_SEC_HASH_MASK;
+  if (index >= EKA_FH_SEC_HASH_LINES) on_error("index = %u >= EKA_FH_SEC_HASH_LINES %u",index,EKA_FH_SEC_HASH_LINES);
+
+  if (sec64[index] == NULL) {
+    sec64[index] = s; // empty bucket
+  } else {
+    fh_b_security64 *sp = sec64[index];
     while (sp->next != NULL) sp = sp->next;
     sp->next = s;
   }
@@ -758,7 +843,9 @@ void TobBook::sendTobImage (const EfhRunCtx* pEfhRunCtx) {
 }
 
  /* ##################################################################### */
-
+int FullBook::generateOnQuote64 (const EfhRunCtx* pEfhRunCtx, fh_b_security64* s, uint64_t sequence, uint64_t timestamp,uint gapNum) {
+  return 0; // place holder
+}
 int FullBook::generateOnQuote (const EfhRunCtx* pEfhRunCtx, fh_b_security* s, uint64_t sequence, uint64_t timestamp,uint gapNum) {
   assert (s != NULL);
 
@@ -799,6 +886,49 @@ int FullBook::generateOnQuote (const EfhRunCtx* pEfhRunCtx, fh_b_security* s, ui
  /* ##################################################################### */
 
 int TobBook::generateOnQuote (const EfhRunCtx* pEfhRunCtx, fh_b_security* s, uint64_t sequence, uint64_t timestamp,uint gapNum) {
+  assert (s != NULL);
+
+  EfhQuoteMsg msg = {};
+  msg.header.msgType        = EfhMsgType::kQuote;
+  msg.header.group.source   = exch;
+  msg.header.group.localId  = id;
+  msg.header.securityId     = s->security_id;
+  msg.header.sequenceNumber = sequence;
+  msg.header.timeStamp      = timestamp;
+  msg.header.queueSize      = gr->q == NULL ? 0 : gr->q->get_len();
+  msg.header.gapNum         = gapNum;
+  msg.tradeStatus           = s->trading_action == EfhTradeStatus::kHalted ? EfhTradeStatus::kHalted :
+    s->option_open ? EfhTradeStatus::kNormal : EfhTradeStatus::kClosed;
+
+  msg.bidSide.price         = s->bid_price;
+  msg.bidSide.size          = s->bid_size;
+  msg.bidSide.customerSize  = s->bid_cust_size;
+  msg.bidSide.bdSize        = s->bid_bd_size;
+
+  msg.askSide.price         = s->ask_price;
+  msg.askSide.size          = s->ask_size;
+  msg.askSide.customerSize  = s->ask_cust_size;
+  msg.askSide.bdSize        = s->ask_bd_size;
+
+  if (pEfhRunCtx->onEfhQuoteMsgCb == NULL) on_error("Uninitialized pEfhRunCtx->onEfhQuoteMsgCb");
+
+
+#ifdef EKA_TIME_CHECK
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
+  pEfhRunCtx->onEfhQuoteMsgCb(&msg, (EfhSecUserData)s->efhUserData, pEfhRunCtx->efhRunUserData);
+
+#ifdef EKA_TIME_CHECK
+  auto finish = std::chrono::high_resolution_clock::now();
+  uint duration_ms = (uint) std::chrono::duration_cast<std::chrono::milliseconds>(finish-start).count();
+  if (duration_ms > 5) EKA_WARN("WARNING: onQuote Callback took %u ms",duration_ms);
+#endif
+
+  return 0;
+}
+ /* ##################################################################### */
+
+int TobBook::generateOnQuote64 (const EfhRunCtx* pEfhRunCtx, fh_b_security64* s, uint64_t sequence, uint64_t timestamp,uint gapNum) {
   assert (s != NULL);
 
   EfhQuoteMsg msg = {};
