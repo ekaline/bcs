@@ -31,7 +31,7 @@ inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
     uint64_t nameLetter = (charSymbol[i] - 'A') & fieldMask;
     f = nameLetter << shiftBits;
     hashRes |=  f;
-    TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
+    // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
     shiftBits += fieldSize;
   } 
   // shiftBits = 25;
@@ -42,7 +42,7 @@ inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
   uint64_t month = (charSymbol[6] - 'A') & fieldMask;
   f = month << shiftBits;
   hashRes |= f;
-  TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
+  // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
   shiftBits += fieldSize;
   // shiftBits = 30;
 
@@ -53,7 +53,7 @@ inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
   uint64_t price = std::stoul(priceStr,nullptr,10) & fieldMask;
   f = price << shiftBits;
   hashRes |= f;
-  TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
+  // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
   shiftBits += fieldSize;
   // shiftBits = 54;
 
@@ -63,7 +63,7 @@ inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
   uint64_t priceFractionIndicator = (charSymbol[15] - 'A') & fieldMask;
   f = priceFractionIndicator << shiftBits;
   hashRes |= f;
-  TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
+  // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
   shiftBits += fieldSize;
   // shiftBits = 57;
 
@@ -74,7 +74,7 @@ inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
   uint64_t year = (std::stoi(yearStr,nullptr,10) - 20) & fieldMask;
   f = year << shiftBits;
   hashRes |= f;
-  TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
+  // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
   shiftBits += fieldSize;
   // shiftBits = 59;
 
@@ -84,7 +84,7 @@ inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
   uint64_t day = std::stoi(dayStr,nullptr,10) & fieldMask;
   f = day << shiftBits;
   hashRes |= f;
-  TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
+  // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
   shiftBits += fieldSize;
   // shiftBits = 64;
 
@@ -245,7 +245,9 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint *msgLen
     memcpy (&msg.classSymbol,boxMsg->UnderlyingSymbolRoot,std::min(sizeof(msg.classSymbol),sizeof(boxMsg->UnderlyingSymbolRoot)));
     memcpy (&msg.underlying,&symb[0],6);
 
-
+#ifdef TEST_PRINT_DICT
+    fprintf(dev->testDict,"\'%s\', 0x%016jx,%ju\n",std::string(boxMsg->InstrumentDescription,20).c_str(),msg.header.securityId,msg.header.securityId);
+#endif
     pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
     //===================================================
   } else if (memcmp(msgHdr->MsgType,"N ",sizeof(msgHdr->MsgType)) == 0) { // OptionSummary

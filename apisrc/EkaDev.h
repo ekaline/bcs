@@ -105,6 +105,10 @@ class EkaDev {
 
   bool                      print_parsed_messages;
 
+#ifdef TEST_PRINT_DICT
+  FILE* testDict;
+#endif
+
 };
 
 typedef EkaDev eka_dev_t;  
