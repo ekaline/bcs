@@ -127,6 +127,50 @@ class fh_b_security {
  private:
 };
 
+class fh_b_security64 {
+ public:
+  fh_b_security64(uint64_t secid, uint8_t secType, uint64_t userData);
+
+  fh_b_plevel*   buy;
+  fh_b_plevel*   sell;
+  uint64_t       security_id;
+  fh_b_security64* next;
+  EfhTradeStatus trading_action;
+  bool		 option_open;
+
+  uint8_t       type; // EfhSecTypeIndx, EfhSecTypeMleg, EfhSecTypeOpt, EfhSecTypeFut, EfhSecTypeCs
+  uint64_t      efhUserData; // to be returned per TOB update
+
+  uint16_t      num_of_buy_plevels;
+  uint16_t      num_of_sell_plevels;
+
+  uint64_t      bid_ts;
+  uint64_t      ask_ts;
+
+  /* uint32_t      seconds; */
+  /* uint32_t      nanoseconds; */
+
+
+  // For TOB feeds only
+  uint32_t	bid_size;
+  uint32_t	bid_o_size;
+  uint32_t	bid_cust_size;
+  uint32_t	bid_pro_cust_size;
+  uint32_t	bid_bd_size;
+
+  uint32_t	bid_price;
+  
+  uint32_t	ask_size;
+  uint32_t	ask_o_size;
+  uint32_t	ask_cust_size;
+  uint32_t	ask_pro_cust_size;
+  uint32_t	ask_bd_size;
+
+  uint32_t	ask_price;
+
+ private:
+};
+
 class EkaDev;
  /* ##################################################################### */
 
@@ -139,8 +183,11 @@ class fh_book {
   virtual int     init() = 0;
 
   fh_b_security*  find_security(uint32_t security_id);
+  fh_b_security64*  find_security64(uint64_t security_id);
   fh_b_security*  subscribe_security (uint32_t secid, uint8_t type, uint64_t userData);
+  fh_b_security64*  subscribe_security64 (uint64_t secid, uint8_t type, uint64_t userData);
   virtual int generateOnQuote(const EfhRunCtx* pEfhRunCtx, fh_b_security* s, uint64_t sequence, uint64_t timestamp,uint gapNum) = 0;
+  virtual int generateOnQuote64(const EfhRunCtx* pEfhRunCtx, fh_b_security64* s, uint64_t sequence, uint64_t timestamp,uint gapNum) = 0;
 
 
   //----------------------------------------------------------
@@ -161,6 +208,7 @@ class fh_book {
   EkaDev*               dev;
 
   fh_b_security*        sec[EKA_FH_SEC_HASH_LINES]; // array of pointers to the securities
+  fh_b_security64*        sec64[EKA_FH_SEC_HASH_LINES]; // array of pointers to the securities
 
  private:
   static const uint64_t MAX_ORDERS = 0;
@@ -176,6 +224,8 @@ class TobBook : public fh_book {
  TobBook(EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx,FhGroup* gr) : fh_book(pEfhCtx,pInitCtx,gr){};
   int  generateOnQuote(const EfhRunCtx* pEfhRunCtx, fh_b_security* s, uint64_t sequence, uint64_t timestamp,uint gapNum);
   void sendTobImage (const EfhRunCtx* pEfhRunCtx);
+
+  int generateOnQuote64(const EfhRunCtx* pEfhRunCtx, fh_b_security64* s, uint64_t sequence, uint64_t timestamp,uint gapNum);
 
 };
 
@@ -198,6 +248,7 @@ class FullBook : public fh_book {
   EKA_FH_ERR_CODE         modify_order (fh_b_order* o, uint32_t price,uint32_t size);
   EKA_FH_ERR_CODE         delete_order (fh_b_order* o);
   EKA_FH_ERR_CODE         change_order_size (fh_b_order* o,uint32_t size,int incr);
+  int generateOnQuote64(const EfhRunCtx* pEfhRunCtx, fh_b_security64* s, uint64_t sequence, uint64_t timestamp,uint gapNum);
 
   void                    invalidate();
 

@@ -198,7 +198,7 @@ class FhBoxGr : public FhGroup{
  public:
   FhBoxGr();
   bool     parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
-    return true;
+    on_error("This function should never be called!!!");
   }
   bool     parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint* msgLen,EkaFhMode op);
   virtual  ~FhBoxGr() {};

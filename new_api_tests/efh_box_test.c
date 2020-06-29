@@ -23,8 +23,6 @@
 #include "EkaDev.h"
 #include "eka_fh.h"
 
-//#include "eka_fh_xdp_messages.h"
-
 #include "EfhBoxProps.h"
 
 #define MAX_SECURITIES 64000
@@ -386,6 +384,8 @@ int main(int argc, char *argv[]) {
   ekaDevInitCtx.createThread = createThread;
   ekaDevInit(&pEkaDev, (const EkaDevInitCtx*) &ekaDevInitCtx);
 
+  EkaDev* dev = pEkaDev;
+
   pEkaDev->print_parsed_messages = print_parsed_messages;
 
   efhInit(&pEfhCtx,pEkaDev,&efhInitCtx);
@@ -405,6 +405,10 @@ int main(int argc, char *argv[]) {
   if ((subscrDict = fopen(subscrDictName.c_str(),"w")) == NULL) on_error("Failed to open %s",subscrDictName.c_str());
   if ((MD = fopen(mdName.c_str(),"w")) == NULL) on_error("Failed to open %s",mdName.c_str());
 
+#ifdef TEST_PRINT_DICT
+  if ((dev->testDict   = fopen("BoxTestDict.txt","w")) == NULL) on_error("BoxTestDict.txt");
+#endif
+
   for (uint8_t i = 0; i < runCtx.numGroups; i++) {
     printf ("################ Group %u ################\n",i);
 #ifdef EKA_TEST_IGNORE_DEFINITIONS
@@ -414,6 +418,10 @@ int main(int argc, char *argv[]) {
     efhGetDefs(pEfhCtx, &runCtx, (EkaGroup*)&runCtx.groups[i]);
 #endif
   }
+
+#ifdef TEST_PRINT_DICT
+  fclose(dev->testDict);
+#endif
 
   std::thread efh_run_thread = std::thread(efhRunGroups,pEfhCtx, &runCtx);
   efh_run_thread.detach();

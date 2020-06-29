@@ -8,6 +8,8 @@ print <<EOF;
 
 EOF
 
+$groups = $#ARGV == 0 ? $ARGV[0] : 8;
+
 $mc_port = 21401;
 $mc_base  = "224.0.124.";
 $mc_lsb = 1;
@@ -20,7 +22,7 @@ $recovery_port = 21410;
 $exch_name = "BOX_HSVF";
 
 print "EkaProp efhBoxInitCtxEntries_A[] = {\n";
-for ($i=0; $i<8;$i++) {
+for ($i=0; $i<$groups;$i++) {
     $username = "  ";
     $passwd   = "  ";
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\"   ,\"$mc_base$mc_lsb:$mc_port\"\},\n";
@@ -43,7 +45,7 @@ $recovery_ip = "198.235.27.55";
 $recovery_port = 21410;
 
 print "EkaProp efhBoxInitCtxEntries_B[] = {\n";
-for ($i=0; $i<8;$i++) {
+for ($i=0; $i<$groups;$i++) {
     $username = "                ";
     $passwd   = "                ";
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\"   ,\"$mc_base$mc_lsb:$mc_port\"\},\n";
@@ -63,7 +65,7 @@ print "};\n\n";
 
 print "const EkaGroup boxGroups[] = {\n";
 
-for ($i = 0; $i < 8; $i ++) {
+for ($i = 0; $i < $groups; $i ++) {
     print "\t{EkaSource::kBOX_HSVF, (EkaLSI)$i},\n";
 
 }
