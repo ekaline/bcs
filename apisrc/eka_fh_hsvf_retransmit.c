@@ -123,16 +123,16 @@ static EkaOpResult getLoginResponse(FhBoxGr* gr) {
 }
 
 /* ----------------------------- */
-static EkaOpResult sendRequest(FhBoxGr* gr) {
+static EkaOpResult sendRequest(FhBoxGr* gr, uint64_t start, uint64_t end) {
   EkaDev* dev = gr->dev;
   HsvfRetransmissionRequest msg = {};
   memset(&msg,' ',sizeof(msg));
   char seqStrBuf[10] = {};
   sprintf(seqStrBuf,"%09ju",gr->txSeqNum ++);
   char startStrBuf[10] = {};
-  sprintf(startStrBuf,"%09ju",static_cast<uint64_t>(1));
+  sprintf(startStrBuf,"%09ju",start);
   char endStrBuf[10] = {};
-  sprintf(endStrBuf,"%09ju",static_cast<uint64_t>(1e6)); // 1,000,000 is a patch to be fixed!!!
+  sprintf(endStrBuf,"%09ju",end); // 1,000,000 is a patch to be fixed!!!
 
   msg.SoM = HsvfSom;
   memcpy(msg.hdr.sequence , seqStrBuf   , sizeof(msg.hdr.sequence));
@@ -234,7 +234,7 @@ EkaOpResult eka_hsvf_get_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
   //-----------------------------------------------------------------
   if ((ret = getLoginResponse(gr)) != EKA_OPRESULT__OK) return ret;
   //-----------------------------------------------------------------
-  if ((ret = sendRequest(gr))      != EKA_OPRESULT__OK) return ret;
+  if ((ret = sendRequest(gr,static_cast<uint64_t>(1),static_cast<uint64_t>(1e6))) != EKA_OPRESULT__OK) return ret;
   //-----------------------------------------------------------------
   if ((ret = getRetransmissionBegins(gr)) != EKA_OPRESULT__OK) return ret;
   //-----------------------------------------------------------------
@@ -247,8 +247,7 @@ EkaOpResult eka_hsvf_get_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
     uint8_t msgBuf[1500] = {};
     if ((ret = getTcpMsg(msgBuf,gr->snapshot_sock)) != EKA_OPRESULT__OK) return ret;
 
-    uint msgLen = 0;
-    definitionsDone = gr->parseMsg(pEfhRunCtx,&msgBuf[1],&msgLen,EkaFhMode::DEFINITIONS);
+    definitionsDone = gr->parseMsg(pEfhRunCtx,&msgBuf[1],0,EkaFhMode::DEFINITIONS);
   }
   //-----------------------------------------------------------------
   if ((ret = sendRetransmissionEnd(gr))      != EKA_OPRESULT__OK) return ret;
@@ -256,4 +255,59 @@ EkaOpResult eka_hsvf_get_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
   //-----------------------------------------------------------------
 
   return  EKA_OPRESULT__OK;
+}
+
+void* eka_get_hsvf_retransmit(void* attr) {
+
+  pthread_detach(pthread_self());
+
+  //  EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
+  EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
+  FhBoxGr*   gr             = (FhBoxGr*)((EkaFhThreadAttr*)attr)->gr;
+  uint64_t   start          = ((EkaFhThreadAttr*)attr)->startSeq;
+  uint64_t   end            = ((EkaFhThreadAttr*)attr)->endSeq;
+  //  EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
+  ((EkaFhThreadAttr*)attr)->~EkaFhThreadAttr();
+
+  if (gr->recovery_sock != -1) on_error("%s:%u gr->recovery_sock != -1",EKA_EXCH_DECODE(gr->exch),gr->id);
+  EkaDev* dev = gr->dev;
+
+  EKA_LOG("%s:%u start=%ju, end=%ju",EKA_EXCH_DECODE(gr->exch),gr->id,start,end);
+  //-----------------------------------------------------------------
+  ekaTcpConnect(&gr->snapshot_sock,gr->snapshot_ip,gr->snapshot_port);
+  //-----------------------------------------------------------------
+  sendLogin(gr);
+  //-----------------------------------------------------------------
+  getLoginResponse(gr);
+  //-----------------------------------------------------------------
+  sendRequest(gr,start,end);
+  //-----------------------------------------------------------------
+  getRetransmissionBegins(gr);
+  //-----------------------------------------------------------------
+#ifdef FH_LAB
+  EKA_LOG("%s:%u Dummy FH_LAB Retransmission done",EKA_EXCH_DECODE(gr->exch),gr->id);
+#else
+  gr->snapshot_active = true;
+
+  while (gr->snapshot_active) {
+    uint8_t msgBuf[1500] = {};
+    getTcpMsg(msgBuf,gr->snapshot_sock);
+
+    uint64_t sequence = getHsvfMsgSequence(msgBuf);
+    bool endOfTransmition = gr->parseMsg(pEfhRunCtx,&msgBuf[1],sequence,EkaFhMode::RECOVERY);
+    if (sequence == end || endOfTransmition) {
+      gr->snapshot_active = false;
+      gr->seq_after_snapshot = sequence;
+      EKA_LOG("%s:%u Retransmission completed at sequence = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,sequence);
+      break;
+    }
+  }
+  gr->gapClosed = true;
+
+  //-----------------------------------------------------------------
+  sendRetransmissionEnd(gr);
+#endif
+  //-----------------------------------------------------------------
+
+  return NULL;
 }

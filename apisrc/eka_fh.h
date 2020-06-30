@@ -110,7 +110,7 @@ class FhNasdaq : public EkaFh { // base class for Nom, Gem, Ise, Phlx
   virtual ~FhNasdaq() {};
   uint8_t* getUdpPkt(FhRunGr* runGr, uint* msgInPkt, uint64_t* sequence,uint8_t* gr_id);
   bool processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhNasdaqGr* gr, const uint8_t* pkt, uint msgInPkt, uint64_t sequence);
-  void pushUdpPkt2Q(FhNasdaqGr* gr, const uint8_t* pkt, uint msgInPkt, uint64_t sequenceu,int8_t gr_id);
+  void pushUdpPkt2Q(FhNasdaqGr* gr, const uint8_t* pkt, uint msgInPkt, uint64_t sequence,int8_t gr_id);
  private:
 
 };
@@ -184,7 +184,8 @@ class FhBox : public EkaFh { // MiaxTom & PearlTom
   EkaOpResult runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId );
   EkaOpResult initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhRunGr* runGr);
 
-  uint8_t* getUdpPkt(FhRunGr* runGr, uint* msgInPkt, int16_t* pktLen, uint8_t* gr_id);
+  uint8_t* getUdpPkt(FhRunGr* runGr, uint16_t* pktLen, uint64_t* sequence, uint8_t* gr_id);
+
   bool processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhBoxGr* gr, const uint8_t* pkt, int16_t pktLen);
   void pushUdpPkt2Q(FhBoxGr* gr, const uint8_t* pkt, int16_t pktLen,int8_t gr_id);
 

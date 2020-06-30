@@ -384,9 +384,7 @@ int main(int argc, char *argv[]) {
   ekaDevInitCtx.createThread = createThread;
   ekaDevInit(&pEkaDev, (const EkaDevInitCtx*) &ekaDevInitCtx);
 
-  EkaDev* dev = pEkaDev;
-
-  pEkaDev->print_parsed_messages = print_parsed_messages;
+   pEkaDev->print_parsed_messages = print_parsed_messages;
 
   efhInit(&pEfhCtx,pEkaDev,&efhInitCtx);
   runCtx.efhRunUserData = (EfhRunUserData) pEfhCtx;
@@ -406,7 +404,7 @@ int main(int argc, char *argv[]) {
   if ((MD = fopen(mdName.c_str(),"w")) == NULL) on_error("Failed to open %s",mdName.c_str());
 
 #ifdef TEST_PRINT_DICT
-  if ((dev->testDict   = fopen("BoxTestDict.txt","w")) == NULL) on_error("BoxTestDict.txt");
+  if ((pEkaDev->testDict   = fopen("BoxTestDict.txt","w")) == NULL) on_error("BoxTestDict.txt");
 #endif
 
   for (uint8_t i = 0; i < runCtx.numGroups; i++) {
@@ -420,7 +418,7 @@ int main(int argc, char *argv[]) {
   }
 
 #ifdef TEST_PRINT_DICT
-  fclose(dev->testDict);
+  fclose(pEkaDev->testDict);
 #endif
 
   std::thread efh_run_thread = std::thread(efhRunGroups,pEfhCtx, &runCtx);
