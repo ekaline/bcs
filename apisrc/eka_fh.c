@@ -733,19 +733,21 @@ void FhNasdaq::pushUdpPkt2Q(FhNasdaqGr* gr, const uint8_t* pkt, uint msgInPkt, u
 /* ##################################################################### */
 void FhBox::pushUdpPkt2Q(FhBoxGr* gr, const uint8_t* pkt, int16_t pktLen, int8_t gr_id) {
   uint8_t* p = (uint8_t*)pkt;
-
-  while (p < pkt + pktLen) {
-    uint msgLen = getHsvfMsgLen(p);
-    char* msgType = ((HsvfMsgHdr*) &p[1])->MsgType;
+  int idx = 0;
+  while (idx < pktLen) {
+    uint msgLen = getHsvfMsgLen(&p[idx]);
+    char* msgType = ((HsvfMsgHdr*) &p[idx+1])->MsgType;
     if (memcmp(msgType,"F ",2) == 0 ||  // Quote
 	memcmp(msgType,"Z ",2) == 0) {  // Time
       if (msgLen > fh_msg::MSG_SIZE) on_error("msgLen %u > fh_msg::MSG_SIZE %u",msgLen,fh_msg::MSG_SIZE);
       fh_msg* n = gr->q->push();
-      memcpy (n->data,&p[1],msgLen - 1);
+      memcpy (n->data,&p[idx+1],msgLen - 1);
       n->sequence = getHsvfMsgSequence(p);
       n->gr_id = gr_id;
     }
-    p += msgLen;
+    idx += msgLen;
+    idx += trailingZeros(&p[idx],pktLen-idx);
+
   }
   return;
 }
@@ -783,15 +785,17 @@ bool FhXdp::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhXdpGr* gr, uint pktSize,
   return false;
 }
 /* ##################################################################### */
-bool FhBox::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhBoxGr* gr, const uint8_t* pktPtr, int16_t pktLen) {
-  uint8_t* p = (uint8_t*)pktPtr;
+bool FhBox::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhBoxGr* gr, const uint8_t* pkt, int16_t pktLen) {
   //  EKA_LOG("%s:%u : pktLen = %u",EKA_EXCH_DECODE(gr->exch),gr->id,pktLen);
 
-  while (p < pktPtr + pktLen) {
-    uint msgLen = getHsvfMsgLen(p);
-    uint64_t sequence = getHsvfMsgSequence(p);
+  uint8_t* p = (uint8_t*)pkt;
+  int idx = 0;
+  while (idx < pktLen) {
+    uint msgLen       = getHsvfMsgLen     (&p[idx]);
+    uint64_t sequence = getHsvfMsgSequence(&p[idx]);
     if (gr->parseMsg(pEfhRunCtx,p,sequence,EkaFhMode::MCAST)) return true;
-    p += msgLen;
+    idx += msgLen;
+    idx += trailingZeros(&p[idx],pktLen-idx);
   }
   return false;
 }
