@@ -793,9 +793,9 @@ bool FhBox::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhBoxGr* gr, const uint8_t
   while (idx < pktLen) {
     uint msgLen       = getHsvfMsgLen     (&p[idx]);
     uint64_t sequence = getHsvfMsgSequence(&p[idx]);
-    if (gr->parseMsg(pEfhRunCtx,p,sequence,EkaFhMode::MCAST)) return true;
+    if (gr->parseMsg(pEfhRunCtx,&p[idx+1],sequence,EkaFhMode::MCAST)) return true;
     idx += msgLen;
-    idx += trailingZeros(&p[idx],pktLen-idx);
+    idx += trailingZeros(&p[idx],pktLen-idx );
   }
   return false;
 }
@@ -1199,7 +1199,7 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
     uint64_t sequence = 0;
     const uint8_t* pkt = getUdpPkt(runGr,&pktLen,&sequence,&gr_id);
     if (pkt == NULL) continue;
-
+    if (pktLen > 1000) on_error("pktLen = %u",pktLen);
     FhBoxGr* gr = (FhBoxGr*)b_gr[gr_id];
     if (gr == NULL) on_error("gr == NULL");
     //-----------------------------------------------------------------------------
@@ -1235,6 +1235,7 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 
       EfhFeedUpMsg efhFeedUpMsg{ EfhMsgType::kFeedUp, {gr->exch, (EkaLSI)gr->id}, gr->gapNum };
       pEfhRunCtx->onEfhFeedUpMsgCb(&efhFeedUpMsg, 0, pEfhRunCtx->efhRunUserData);
+      runGr->setGrAfterGap(gr->id);
 
       gr->expected_sequence = gr->seq_after_snapshot + 1;      
     }
@@ -1242,6 +1243,7 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
       //-----------------------------------------------------------------------------
     case FhGroup::GrpState::RETRANSMIT_GAP : {
       if (! gr->gapClosed) {
+	if (pktLen > 1000) on_error("pktLen = %u",pktLen);
 	pushUdpPkt2Q(gr,pkt,pktLen,gr_id);
 	break;
       }
@@ -1250,6 +1252,7 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 
       EfhFeedUpMsg efhFeedUpMsg{ EfhMsgType::kFeedUp, {gr->exch, (EkaLSI)gr->id}, gr->gapNum };
       pEfhRunCtx->onEfhFeedUpMsgCb(&efhFeedUpMsg, 0, pEfhRunCtx->efhRunUserData);
+      runGr->setGrAfterGap(gr->id);
 
       gr->expected_sequence = gr->seq_after_snapshot + 1;      
     }
