@@ -1205,7 +1205,7 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
       gr->gapClosed = false;
       gr->state = FhGroup::GrpState::SNAPSHOT_GAP;
 
-      closeGap(EkaFhMode::SNAPSHOT, pEfhCtx,pEfhRunCtx,gr, 1, sequence + 64 /* max messages in Pkt */);
+      closeGap(EkaFhMode::SNAPSHOT, pEfhCtx,pEfhRunCtx,gr, 1, sequence + 10 /* max messages in Pkt */);
     }
       break;
       //-----------------------------------------------------------------------------
@@ -1216,7 +1216,7 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 	gr->state = FhGroup::GrpState::RETRANSMIT_GAP;
 	gr->gapClosed = false;
 
-	closeGap(EkaFhMode::RECOVERY, pEfhCtx,pEfhRunCtx,gr, gr->expected_sequence, sequence + 64 /* max messages in Pkt */);
+	closeGap(EkaFhMode::RECOVERY, pEfhCtx,pEfhRunCtx,gr, gr->expected_sequence, sequence + 10 /* max messages in Pkt */);
       } else { // NORMAL
 	runGr->stoppedByExchange = processUdpPkt(pEfhRunCtx,gr,pkt,sequence);      
       }
