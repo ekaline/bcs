@@ -1262,8 +1262,8 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
       //-----------------------------------------------------------------------------
     }
     runGr->udpCh->next(); 
-    EKA_INFO("%s RunGroup %u EndOfSession",EKA_EXCH_DECODE(exch),runGrId);
   }
+  EKA_INFO("%s RunGroup %u EndOfSession",EKA_EXCH_DECODE(exch),runGrId);
   return EKA_OPRESULT__OK;
 }
 /* ##################################################################### */

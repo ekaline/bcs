@@ -24,17 +24,17 @@ inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
 
   uint64_t f = 0;
 
-  // 5 letters * 5 bits = 25 bits
-  fieldSize = 5;
-  fieldMask = (0x1 << fieldSize) - 1;
-  for (int i = 0; i < 5; i++) {
-    uint64_t nameLetter = (charSymbol[i] - 'A') & fieldMask;
-    f = nameLetter << shiftBits;
-    hashRes |=  f;
-    // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
-    shiftBits += fieldSize;
-  } 
-  // shiftBits = 25;
+  /* // 5 letters * 5 bits = 25 bits */
+  /* fieldSize = 5; */
+  /* fieldMask = (0x1 << fieldSize) - 1; */
+  /* for (int i = 0; i < 5; i++) { */
+  /*   uint64_t nameLetter = (charSymbol[i] - 'A') & fieldMask; */
+  /*   f = nameLetter << shiftBits; */
+  /*   hashRes |=  f; */
+  /*   // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes); */
+  /*   shiftBits += fieldSize; */
+  /* }  */
+  /* // shiftBits = 25; */
 
   // 5 bits
   fieldSize = 5;
@@ -88,6 +88,19 @@ inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
   // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
   shiftBits += fieldSize;
   // shiftBits = 64;
+
+
+  // 5 letters * 5 bits = 25 bits
+  fieldSize = 5;
+  fieldMask = (0x1 << fieldSize) - 1;
+  for (int i = 0; i < 5; i++) {
+    uint64_t nameLetter = (charSymbol[i] - 'A') & fieldMask;
+    f = nameLetter << shiftBits;
+    hashRes |=  f;
+    // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
+    shiftBits += fieldSize;
+  } 
+  // shiftBits = 25;
 
   return hashRes;
 }
@@ -206,6 +219,22 @@ inline int getStatus(fh_b_security64* s, char statusMarker) {
 
 /* ----------------------------------------------------------------------- */
 
+static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
+  uint8_t y,m,d;
+
+  d = msg->expiryDate % 100;
+  m = ((msg->expiryDate - d) / 100) % 100;
+  y = msg->expiryDate / 10000 - 2000;
+
+  memcpy(dst,msg->underlying,6);
+  for (auto i = 0; i < 6; i++) if (dst[i] == 0 || dst[i] == ' ') dst[i] = '_';
+  char call_put = msg->optionType == EfhOptionType::kCall ? 'C' : 'P';
+  sprintf(dst+6,"%02u%02u%02u%c%08u",y,m,d,call_put,msg->strikePrice / 10);
+  return;
+}
+
+/* ----------------------------------------------------------------------- */
+
 bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence, EkaFhMode op) {
   uint pos = 0;
 
@@ -244,7 +273,11 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     memcpy (&msg.underlying,&symb[0],6);
 
 #ifdef TEST_PRINT_DICT
-    fprintf(dev->testDict,"\'%s\', 0x%016jx,%ju\n",std::string(boxMsg->InstrumentDescription,20).c_str(),msg.header.securityId,msg.header.securityId);
+    char avtSecName[32] = {};
+    eka_create_avt_definition(avtSecName,&msg);
+    fprintf(dev->testDict,"\'%s\', %s, 0x%016jx,%ju\n",
+	    std::string(boxMsg->InstrumentDescription,20).c_str(),avtSecName,
+	    msg.header.securityId,msg.header.securityId);
 #endif
     pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
     //===================================================

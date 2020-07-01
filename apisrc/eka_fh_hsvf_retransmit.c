@@ -243,12 +243,14 @@ EkaOpResult eka_hsvf_get_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
 #else
   gr->snapshot_active = true;
   bool definitionsDone = false;
+  uint64_t sequence = 1;
   while (gr->snapshot_active && !definitionsDone) {
     uint8_t msgBuf[1500] = {};
     if ((ret = getTcpMsg(msgBuf,gr->snapshot_sock)) != EKA_OPRESULT__OK) return ret;
-
+    sequence = getHsvfMsgSequence(msgBuf);
     definitionsDone = gr->parseMsg(pEfhRunCtx,&msgBuf[1],0,EkaFhMode::DEFINITIONS);
   }
+  EKA_LOG("%s:%u Dictionary received after %ju messages",EKA_EXCH_DECODE(gr->exch),gr->id,sequence);
   //-----------------------------------------------------------------
   if ((ret = sendRetransmissionEnd(gr))      != EKA_OPRESULT__OK) return ret;
 #endif
