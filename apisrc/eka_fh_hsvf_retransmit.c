@@ -269,7 +269,7 @@ void* eka_get_hsvf_retransmit(void* attr) {
   FhBoxGr*   gr             = (FhBoxGr*)((EkaFhThreadAttr*)attr)->gr;
   uint64_t   start          = ((EkaFhThreadAttr*)attr)->startSeq;
   uint64_t   end            = ((EkaFhThreadAttr*)attr)->endSeq;
-  //  EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
+  EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
   ((EkaFhThreadAttr*)attr)->~EkaFhThreadAttr();
 
   if (gr->recovery_sock != -1) on_error("%s:%u gr->recovery_sock != -1",EKA_EXCH_DECODE(gr->exch),gr->id);
@@ -297,8 +297,8 @@ void* eka_get_hsvf_retransmit(void* attr) {
     getTcpMsg(msgBuf,gr->snapshot_sock);
 
     uint64_t sequence = getHsvfMsgSequence(msgBuf);
-    EKA_LOG("%s:%u got sequence = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,sequence);
-    bool endOfTransmition = gr->parseMsg(pEfhRunCtx,&msgBuf[1],sequence,EkaFhMode::RECOVERY);
+    //    EKA_LOG("%s:%u got sequence = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,sequence);
+    bool endOfTransmition = gr->parseMsg(pEfhRunCtx,&msgBuf[1],sequence,op);
     if (sequence == end || endOfTransmition) {
       gr->snapshot_active = false;
       gr->seq_after_snapshot = sequence;

@@ -1205,7 +1205,7 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
       gr->gapClosed = false;
       gr->state = FhGroup::GrpState::SNAPSHOT_GAP;
 
-      closeGap(EkaFhMode::RECOVERY, pEfhCtx,pEfhRunCtx,gr, 1, sequence + 64 /* max messages in Pkt */);
+      closeGap(EkaFhMode::SNAPSHOT, pEfhCtx,pEfhRunCtx,gr, 1, sequence + 64 /* max messages in Pkt */);
     }
       break;
       //-----------------------------------------------------------------------------
