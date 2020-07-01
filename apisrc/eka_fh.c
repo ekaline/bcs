@@ -1205,8 +1205,6 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
       gr->gapClosed = false;
       gr->state = FhGroup::GrpState::SNAPSHOT_GAP;
 
-      EfhFeedDownMsg efhFeedDownMsg{ EfhMsgType::kFeedDown, {gr->exch, (EkaLSI)gr->id}, ++gr->gapNum };
-      pEfhRunCtx->onEfhFeedDownMsgCb(&efhFeedDownMsg, 0, pEfhRunCtx->efhRunUserData);
       closeGap(EkaFhMode::RECOVERY, pEfhCtx,pEfhRunCtx,gr, 1, sequence + 64 /* max messages in Pkt */);
     }
       break;
@@ -1217,9 +1215,6 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%ju",EKA_EXCH_DECODE(exch),gr_id,gr->expected_sequence,sequence);
 	gr->state = FhGroup::GrpState::RETRANSMIT_GAP;
 	gr->gapClosed = false;
-
-	EfhFeedDownMsg efhFeedDownMsg{ EfhMsgType::kFeedDown, {gr->exch, (EkaLSI)gr->id}, ++gr->gapNum };
-	pEfhRunCtx->onEfhFeedDownMsgCb(&efhFeedDownMsg, 0, pEfhRunCtx->efhRunUserData);
 
 	closeGap(EkaFhMode::RECOVERY, pEfhCtx,pEfhRunCtx,gr, gr->expected_sequence, sequence + 64 /* max messages in Pkt */);
       } else { // NORMAL

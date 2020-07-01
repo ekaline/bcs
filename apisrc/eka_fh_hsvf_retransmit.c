@@ -253,8 +253,9 @@ EkaOpResult eka_hsvf_get_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
   EKA_LOG("%s:%u Dictionary received after %ju messages",EKA_EXCH_DECODE(gr->exch),gr->id,sequence);
   //-----------------------------------------------------------------
   if ((ret = sendRetransmissionEnd(gr))      != EKA_OPRESULT__OK) return ret;
-#endif
   //-----------------------------------------------------------------
+  close(gr->snapshot_sock);
+#endif
 
   return  EKA_OPRESULT__OK;
 }
@@ -296,6 +297,7 @@ void* eka_get_hsvf_retransmit(void* attr) {
     getTcpMsg(msgBuf,gr->snapshot_sock);
 
     uint64_t sequence = getHsvfMsgSequence(msgBuf);
+    EKA_LOG("%s:%u got sequence = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,sequence);
     bool endOfTransmition = gr->parseMsg(pEfhRunCtx,&msgBuf[1],sequence,EkaFhMode::RECOVERY);
     if (sequence == end || endOfTransmition) {
       gr->snapshot_active = false;
@@ -308,8 +310,9 @@ void* eka_get_hsvf_retransmit(void* attr) {
 
   //-----------------------------------------------------------------
   sendRetransmissionEnd(gr);
-#endif
   //-----------------------------------------------------------------
+  close(gr->snapshot_sock);
+#endif
 
   return NULL;
 }
