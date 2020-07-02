@@ -173,4 +173,5 @@ struct HsvfSystemTimeStamp { // "Z "
   char TimeStamp[9];
   /* char       EoM; // = HsvfEom; */
 };
+
 #endif

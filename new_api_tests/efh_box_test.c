@@ -77,7 +77,7 @@ static inline std::string ts_ns2str(uint64_t ts) {
   res = (res - s) / 60;
   uint m = res % 60;
   res = (res - m) / 60;
-  uint h = res % 24 - 5; // for UTC to EST
+  uint h = res % 24;
   sprintf (dst,"%02d:%02d:%02d.%03d.%03d.%03d",h,m,s,ms,us,ns);
   return std::string(dst);
 }
@@ -384,9 +384,7 @@ int main(int argc, char *argv[]) {
   ekaDevInitCtx.createThread = createThread;
   ekaDevInit(&pEkaDev, (const EkaDevInitCtx*) &ekaDevInitCtx);
 
-  EkaDev* dev = pEkaDev;
-
-  pEkaDev->print_parsed_messages = print_parsed_messages;
+   pEkaDev->print_parsed_messages = print_parsed_messages;
 
   efhInit(&pEfhCtx,pEkaDev,&efhInitCtx);
   runCtx.efhRunUserData = (EfhRunUserData) pEfhCtx;
@@ -406,7 +404,7 @@ int main(int argc, char *argv[]) {
   if ((MD = fopen(mdName.c_str(),"w")) == NULL) on_error("Failed to open %s",mdName.c_str());
 
 #ifdef TEST_PRINT_DICT
-  if ((dev->testDict   = fopen("BoxTestDict.txt","w")) == NULL) on_error("BoxTestDict.txt");
+  if ((pEkaDev->testDict   = fopen("BoxTestDict.txt","w")) == NULL) on_error("BoxTestDict.txt");
 #endif
 
   for (uint8_t i = 0; i < runCtx.numGroups; i++) {
@@ -420,7 +418,7 @@ int main(int argc, char *argv[]) {
   }
 
 #ifdef TEST_PRINT_DICT
-  fclose(dev->testDict);
+  fclose(pEkaDev->testDict);
 #endif
 
   std::thread efh_run_thread = std::thread(efhRunGroups,pEfhCtx, &runCtx);

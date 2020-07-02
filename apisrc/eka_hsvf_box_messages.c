@@ -14,6 +14,37 @@
 #include "Efh.h"
 
 /* ----------------------------------------------------------------------- */
+void hexDump (const char* desc, void *addr, int len);
+
+uint getHsvfMsgLen(const uint8_t* pkt, int bytes2run) {
+  uint idx = 0;
+  if (pkt[idx] != HsvfSom) {
+    hexDump("Msg with no HsvfSom (0x2)",(void*)pkt,bytes2run);
+    on_error("0x%x met while HsvfSom 0x%x is expected",pkt[idx],HsvfSom);
+    return 0;
+  }
+  do {
+    idx++;
+    if ((int)idx > bytes2run) {
+      hexDump("Msg with no HsvfEom (0x3)",(void*)pkt,bytes2run);
+      on_error("HsvfEom not met after %u characters",idx);
+    }
+  } while (pkt[idx] != HsvfEom);
+  return idx + 1;
+}
+
+uint64_t getHsvfMsgSequence(uint8_t* msg) {
+  HsvfMsgHdr* msgHdr = (HsvfMsgHdr*)&msg[1];
+  return std::stoul(std::string(msgHdr->sequence,sizeof(msgHdr->sequence)));
+}
+
+uint trailingZeros(uint8_t* p, uint maxChars) {
+  uint idx = 0;
+  while (p[idx] == 0x0 && idx < maxChars) {
+    idx++; // skipping trailing '\0' chars
+  }
+  return idx;
+}
 
 inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
   uint64_t hashRes = 0;
@@ -24,17 +55,17 @@ inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
 
   uint64_t f = 0;
 
-  // 5 letters * 5 bits = 25 bits
-  fieldSize = 5;
-  fieldMask = (0x1 << fieldSize) - 1;
-  for (int i = 0; i < 5; i++) {
-    uint64_t nameLetter = (charSymbol[i] - 'A') & fieldMask;
-    f = nameLetter << shiftBits;
-    hashRes |=  f;
-    // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
-    shiftBits += fieldSize;
-  } 
-  // shiftBits = 25;
+  /* // 5 letters * 5 bits = 25 bits */
+  /* fieldSize = 5; */
+  /* fieldMask = (0x1 << fieldSize) - 1; */
+  /* for (int i = 0; i < 5; i++) { */
+  /*   uint64_t nameLetter = (charSymbol[i] - 'A') & fieldMask; */
+  /*   f = nameLetter << shiftBits; */
+  /*   hashRes |=  f; */
+  /*   // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes); */
+  /*   shiftBits += fieldSize; */
+  /* }  */
+  /* // shiftBits = 25; */
 
   // 5 bits
   fieldSize = 5;
@@ -89,6 +120,19 @@ inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
   shiftBits += fieldSize;
   // shiftBits = 64;
 
+
+  // 5 letters * 5 bits = 25 bits
+  fieldSize = 5;
+  fieldMask = (0x1 << fieldSize) - 1;
+  for (int i = 0; i < 5; i++) {
+    uint64_t nameLetter = (charSymbol[i] - 'A') & fieldMask;
+    f = nameLetter << shiftBits;
+    hashRes |=  f;
+    // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
+    shiftBits += fieldSize;
+  } 
+  // shiftBits = 25;
+
   return hashRes;
 }
 
@@ -122,16 +166,16 @@ uint64_t getDay(char* c) {
 /* ----------------------------------------------------------------------- */
 inline uint32_t getFractionIndicator(char FI) {
   switch (FI) {
-  case '0' : return 1;
-  case '1' : return 10;
-  case '2' : return 100;
-  case '3' : return 1000;
-  case '4' : return 10000;
-  case '5' : return 100000;
-  case '6' : return 1000000;
-  case '7' : return 10000000;
-  case '8' : return 100000000;
-  case '9' : return 1000000000;
+  case '0' : return 1e0;
+  case '1' : return 1e1;
+  case '2' : return 1e2;
+  case '3' : return 1e3;
+  case '4' : return 1e4;
+  case '5' : return 1e5;
+  case '6' : return 1e6;
+  case '7' : return 1e7;
+  case '8' : return 1e8;
+  case '9' : return 1e9;
   default:
     on_error("Unexpected FractionIndicator \'%c\'",FI);
   }
@@ -206,21 +250,36 @@ inline int getStatus(fh_b_security64* s, char statusMarker) {
 
 /* ----------------------------------------------------------------------- */
 
-bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint *msgLen,EkaFhMode op) {
+static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
+  uint8_t y,m,d;
+
+  d = msg->expiryDate % 100;
+  m = ((msg->expiryDate - d) / 100) % 100;
+  y = msg->expiryDate / 10000 - 2000;
+
+  memcpy(dst,msg->underlying,6);
+  for (auto i = 0; i < 6; i++) if (dst[i] == 0 || dst[i] == ' ') dst[i] = '_';
+  char call_put = msg->optionType == EfhOptionType::kCall ? 'C' : 'P';
+  sprintf(dst+6,"%02u%02u%02u%c%08u",y,m,d,call_put,msg->strikePrice / 10);
+  return;
+}
+
+/* ----------------------------------------------------------------------- */
+
+bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence, EkaFhMode op) {
   uint pos = 0;
 
   fh_b_security64* s = NULL;
 
   HsvfMsgHdr* msgHdr = (HsvfMsgHdr*)&m[pos];
 
-  uint64_t seq = getNumField<uint64_t>(msgHdr->sequence,sizeof(msgHdr->sequence));
-
   uint8_t* msgBody = (uint8_t*)msgHdr + sizeof(HsvfMsgHdr);
 
   //  EKA_LOG("%s:%u: %ju \'%c%c\'",EKA_EXCH_DECODE(exch),id,seq,msgHdr->MsgType[0],msgHdr->MsgType[1]);
   //===================================================
   if (memcmp(msgHdr->MsgType,"J ",sizeof(msgHdr->MsgType)) == 0) { // OptionInstrumentKeys
-    *msgLen = sizeof(HsvfMsgHdr) + sizeof(EfhDefinitionMsg);
+    if (op == EkaFhMode::SNAPSHOT) return false;
+
     HsvfOptionInstrumentKeys* boxMsg = (HsvfOptionInstrumentKeys*)msgBody;
     
     char* symb = boxMsg->InstrumentDescription;
@@ -231,7 +290,7 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint *msgLen
     msg.header.group.localId  = id;
     msg.header.underlyingId   = 0;
     msg.header.securityId     = charSymbol2SecurityId(symb);
-    msg.header.sequenceNumber = seq;
+    msg.header.sequenceNumber = sequence;
     msg.header.timeStamp      = 0;
     msg.header.gapNum         = gapNum;
 
@@ -247,17 +306,18 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint *msgLen
     memcpy (&msg.underlying,&symb[0],6);
 
 #ifdef TEST_PRINT_DICT
-    fprintf(dev->testDict,"\'%s\', 0x%016jx,%ju\n",std::string(boxMsg->InstrumentDescription,20).c_str(),msg.header.securityId,msg.header.securityId);
+    char avtSecName[32] = {};
+    eka_create_avt_definition(avtSecName,&msg);
+    fprintf(dev->testDict,"\'%s\', %s, 0x%016jx,%ju\n",
+	    std::string(boxMsg->InstrumentDescription,20).c_str(),avtSecName,
+	    msg.header.securityId,msg.header.securityId);
 #endif
     pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
     //===================================================
   } else if (memcmp(msgHdr->MsgType,"N ",sizeof(msgHdr->MsgType)) == 0) { // OptionSummary
-    *msgLen = sizeof(HsvfMsgHdr) + sizeof(HsvfOptionSummary);
 
     //===================================================
   } else if (memcmp(msgHdr->MsgType,"F ",sizeof(msgHdr->MsgType)) == 0) { // OptionQuote
-    *msgLen = sizeof(HsvfMsgHdr) + sizeof(HsvfOptionQuote);
-
     if (op == EkaFhMode::DEFINITIONS) return true; // Dictionary is done
 
     HsvfOptionQuote* boxMsg = (HsvfOptionQuote*)msgBody;
@@ -279,11 +339,10 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint *msgLen
     s->ask_cust_size = getNumField<uint32_t>(boxMsg->PublicCustomerAskSize,sizeof(boxMsg->PublicCustomerAskSize));
 
     getStatus(s,boxMsg->InstrumentStatusMarker);
-    book->generateOnQuote64 (pEfhRunCtx, s, seq, gr_ts, gapNum);
+    book->generateOnQuote64 (pEfhRunCtx, s, sequence, gr_ts, gapNum);
 
     //===================================================
   } else if (memcmp(msgHdr->MsgType,"Z ",sizeof(msgHdr->MsgType)) == 0) { // SystemTimeStamp
-    *msgLen = sizeof(HsvfMsgHdr) + sizeof(HsvfSystemTimeStamp);
     char* timeStamp = ((HsvfSystemTimeStamp*)msgBody)->TimeStamp;
     uint64_t hour = getNumField<uint64_t>(&timeStamp[0],2);
     uint64_t min  = getNumField<uint64_t>(&timeStamp[2],2);
@@ -291,8 +350,10 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint *msgLen
     uint64_t ms   = getNumField<uint64_t>(&timeStamp[6],3);
     
     gr_ts = ((hour * 3600 + min * 60 + sec) * 1000 + ms) * 1000000;
+  } else if (memcmp(msgHdr->MsgType,"U ",sizeof(msgHdr->MsgType)) == 0) { // EndOfTransmission
+    EKA_LOG("%s:%u End Of Transmission",EKA_EXCH_DECODE(exch),id);
+    return true;
   } else {
-    *msgLen = sizeof(HsvfMsgHdr);
   };
   //===================================================
 
