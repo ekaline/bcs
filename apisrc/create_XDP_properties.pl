@@ -16,8 +16,8 @@ $rt_mc_lsb = 32;
 
 $exch_name = "ARCA_XDP";
 
-$user   = "bcoxdp10";
-$passwd = "bc0xdp10";
+$user   = "stkxdp01";
+$passwd = "stkxdp01";
 
 for ($i=0; $i<26;$i++) {
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\",\"$rt_mc_base$rt_mc_lsb:$port\"\},\n";
@@ -42,8 +42,9 @@ $rt_mc_lsb = 160;
 
 $exch_name = "ARCA_XDP";
 
-$user   = "bcoxdp10";
-$passwd = "bc0xdp10";
+
+$user   = "stkxdp01";
+$passwd = "stkxdp01";
 
 for ($i=0; $i<26;$i++) {
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\",\"$rt_mc_base$rt_mc_lsb:$port\"\},\n";
@@ -68,8 +69,9 @@ $rt_mc_lsb = 32;
 
 $exch_name = "AMEX_XDP";
 
-$user   = "bcoxdp10";
-$passwd = "bc0xdp10";
+$user   = "stkxdp01";
+$passwd = "stkxdp01";
+
 
 for ($i=0; $i<26;$i++) {
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\",\"$rt_mc_base$rt_mc_lsb:$port\"\},\n";
@@ -94,8 +96,8 @@ $rt_mc_lsb = 160;
 
 $exch_name = "AMEX_XDP";
 
-$user   = "bcoxdp10";
-$passwd = "bc0xdp10";
+$user   = "stkxdp01";
+$passwd = "stkxdp01";
 
 for ($i=0; $i<26;$i++) {
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\",\"$rt_mc_base$rt_mc_lsb:$port\"\},\n";
