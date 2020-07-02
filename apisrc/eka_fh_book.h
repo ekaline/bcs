@@ -308,7 +308,7 @@ class BatsBook : public FullBook {
 
   int init();
  private:
-  static const uint     BOOK_SCALE  = 20; //
+  static const uint     BOOK_SCALE  = 22; //
   static const uint64_t MAX_ORDERS  = (1 << BOOK_SCALE);       // 4 *256K 
   static const uint64_t MAX_PLEVELS = (1 << (BOOK_SCALE - 1)); // 4 * 128K
   static const uint64_t ORDERS_HASH_MASK = ((1 << (BOOK_SCALE - 3)) - 1); //0x7FFF
