@@ -80,7 +80,7 @@
   (x == EkaSource::kPEARL_TOM)  ? EfhExchange::kPEARL :	   \
   (x == EkaSource::kC1_PITCH)   ? EfhExchange::kCboe  :	   \
   (x == EkaSource::kC2_PITCH)   ? EfhExchange::kCboe2 :	   \
-  (x == EkaSource::kBZX_PITCH)  ? EfhExchange::kCbsx  :	   \
+  (x == EkaSource::kBZX_PITCH)  ? EfhExchange::kBATS  :	   \
   (x == EkaSource::kEDGX_PITCH) ? EfhExchange::kEDGX  :	   \
   (x == EkaSource::kAMEX_XDP)   ? EfhExchange::kAOE   :	   \
   (x == EkaSource::kARCA_XDP)   ? EfhExchange::kPCX   :	   \

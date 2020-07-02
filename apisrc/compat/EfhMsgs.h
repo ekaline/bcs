@@ -79,7 +79,7 @@ enum class EfhExchange : char {
     _x( ISE,   'Y' )				\
     _x( Cboe,  'W' )				\
     _x( One,   'O' )				\
-    _x( Cbsx,  'Z' )				\
+    _x( BATS,  'Z' )				\
     _x( Cfe,   'F' )				\
     _x( Cboe2, 'D' )				\
     _x( AOE,   'A' )				\

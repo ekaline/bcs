@@ -550,7 +550,7 @@ bool FhRunGr::drainQ(const EfhRunCtx* pEfhRunCtx) {
     FhGroup* gr = fh->b_gr[getGrAfterGap()];
     while (! gr->q->is_empty()) {
       fh_msg* buf = gr->q->pop();
-      EKA_LOG("q_len=%u,buf->sequence=%ju, gr->expected_sequence=%ju",gr->q->get_len(),buf->sequence,gr->expected_sequence);
+      //      EKA_LOG("q_len=%u,buf->sequence=%ju, gr->expected_sequence=%ju",gr->q->get_len(),buf->sequence,gr->expected_sequence);
       if (buf->sequence < gr->expected_sequence) continue;
       gr->parseMsg(pEfhRunCtx,(unsigned char*)buf->data,buf->sequence,EkaFhMode::MCAST);
       gr->expected_sequence = buf->sequence + 1;
