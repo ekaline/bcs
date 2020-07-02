@@ -232,7 +232,10 @@ FhGroup* EkaFh::nextGrToProcess(uint first, uint numGroups) {
 
 EkaOpResult EkaFh::subscribeStaticSecurity(uint8_t groupNum, uint64_t securityId, EfhSecurityType efhSecurityType,EfhSecUserData efhSecUserData,uint64_t opaqueAttrA,uint64_t opaqueAttrB) {
   if (groupNum >= groups) on_error("groupNum (%u) >= groups (%u)",groupNum,groups);
-  b_gr[groupNum]->book->subscribe_security (securityId, static_cast< uint8_t >( efhSecurityType ), efhSecUserData);
+  if (exch == EkaSource::kBOX_HSVF)
+    b_gr[groupNum]->book->subscribe_security64 (securityId, static_cast< uint8_t >( efhSecurityType ), efhSecUserData);
+  else
+    b_gr[groupNum]->book->subscribe_security (securityId, static_cast< uint8_t >( efhSecurityType ), efhSecUserData);
   return EKA_OPRESULT__OK;
 }
  /* ##################################################################### */
