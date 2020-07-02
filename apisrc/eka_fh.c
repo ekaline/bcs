@@ -538,10 +538,12 @@ EkaOpResult FhBox::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhRu
 }
 /* ##################################################################### */
 bool FhRunGr::drainQ(const EfhRunCtx* pEfhRunCtx) {
+  EKA_LOG("hasGrpAfterGap = %d",hasGrpAfterGap);
   if (hasGrpAfterGap) {
     FhGroup* gr = fh->b_gr[getGrAfterGap()];
     while (! gr->q->is_empty()) {
       fh_msg* buf = gr->q->pop();
+      EKA_LOG("(buf->sequence=%ju, gr->expected_sequence=%ju",buf->sequence,gr->expected_sequence);
       if (buf->sequence < gr->expected_sequence) continue;
       gr->parseMsg(pEfhRunCtx,(unsigned char*)buf->data,buf->sequence,EkaFhMode::MCAST);
       gr->expected_sequence = buf->sequence + 1;
@@ -1199,7 +1201,7 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
     uint64_t sequence = 0;
     const uint8_t* pkt = getUdpPkt(runGr,&pktLen,&sequence,&gr_id);
     if (pkt == NULL) continue;
-    if (pktLen > 1000) on_error("pktLen = %u",pktLen);
+    if (unlikely(pktLen > 1000)) on_error("pktLen = %u",pktLen);
     FhBoxGr* gr = (FhBoxGr*)b_gr[gr_id];
     if (gr == NULL) on_error("gr == NULL");
     //-----------------------------------------------------------------------------
@@ -1228,33 +1230,32 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
       break;
       //-----------------------------------------------------------------------------
     case FhGroup::GrpState::SNAPSHOT_GAP : {
-      if (! gr->gapClosed) break; // ignore UDP pkt during initial Snapshot
+      if (gr->gapClosed) {; // ignore UDP pkt during initial Snapshot
+	EKA_LOG("%s:%u: SNAPSHOT_GAP Closed: last snapshot sequence = %ju",EKA_EXCH_DECODE(exch),gr->id,gr->seq_after_snapshot);
+	gr->state = FhGroup::GrpState::NORMAL;
 
-      EKA_LOG("%s:%u: SNAPSHOT_GAP Closed: last snapshot sequence = %ju",EKA_EXCH_DECODE(exch),gr->id,gr->seq_after_snapshot);
-      gr->state = FhGroup::GrpState::NORMAL;
+	EfhFeedUpMsg efhFeedUpMsg{ EfhMsgType::kFeedUp, {gr->exch, (EkaLSI)gr->id}, gr->gapNum };
+	pEfhRunCtx->onEfhFeedUpMsgCb(&efhFeedUpMsg, 0, pEfhRunCtx->efhRunUserData);
+	runGr->setGrAfterGap(gr->id);
 
-      EfhFeedUpMsg efhFeedUpMsg{ EfhMsgType::kFeedUp, {gr->exch, (EkaLSI)gr->id}, gr->gapNum };
-      pEfhRunCtx->onEfhFeedUpMsgCb(&efhFeedUpMsg, 0, pEfhRunCtx->efhRunUserData);
-      runGr->setGrAfterGap(gr->id);
-
-      gr->expected_sequence = gr->seq_after_snapshot + 1;      
+	gr->expected_sequence = gr->seq_after_snapshot + 1;      
+      }
     }
       break;
       //-----------------------------------------------------------------------------
     case FhGroup::GrpState::RETRANSMIT_GAP : {
-      if (! gr->gapClosed) {
-	if (pktLen > 1000) on_error("pktLen = %u",pktLen);
-	pushUdpPkt2Q(gr,pkt,pktLen,gr_id);
-	break;
-      }
-      EKA_LOG("%s:%u: RETRANSMIT_GAP Closed: last retransmitted sequence = %ju",EKA_EXCH_DECODE(exch),gr->id,gr->seq_after_snapshot);
-      gr->state = FhGroup::GrpState::NORMAL;
+      pushUdpPkt2Q(gr,pkt,pktLen,gr_id);
 
-      EfhFeedUpMsg efhFeedUpMsg{ EfhMsgType::kFeedUp, {gr->exch, (EkaLSI)gr->id}, gr->gapNum };
-      pEfhRunCtx->onEfhFeedUpMsgCb(&efhFeedUpMsg, 0, pEfhRunCtx->efhRunUserData);
-      runGr->setGrAfterGap(gr->id);
+      if (gr->gapClosed) {
+	EKA_LOG("%s:%u: RETRANSMIT_GAP Closed: last retransmitted sequence = %ju",EKA_EXCH_DECODE(exch),gr->id,gr->seq_after_snapshot);
+	gr->state = FhGroup::GrpState::NORMAL;
 
-      gr->expected_sequence = gr->seq_after_snapshot + 1;      
+	EfhFeedUpMsg efhFeedUpMsg{ EfhMsgType::kFeedUp, {gr->exch, (EkaLSI)gr->id}, gr->gapNum };
+	pEfhRunCtx->onEfhFeedUpMsgCb(&efhFeedUpMsg, 0, pEfhRunCtx->efhRunUserData);
+	runGr->setGrAfterGap(gr->id);
+
+	gr->expected_sequence = gr->seq_after_snapshot + 1;     
+      } 
     }
       break;
       //-----------------------------------------------------------------------------
