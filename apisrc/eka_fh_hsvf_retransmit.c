@@ -301,7 +301,7 @@ void* eka_get_hsvf_retransmit(void* attr) {
     bool endOfTransmition = gr->parseMsg(pEfhRunCtx,&msgBuf[1],sequence,op);
     if (sequence == end || endOfTransmition) {
       gr->snapshot_active = false;
-      gr->seq_after_snapshot = sequence;
+      gr->seq_after_snapshot = sequence + 1;
       EKA_LOG("%s:%u Retransmission completed at sequence = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,sequence);
       break;
     }

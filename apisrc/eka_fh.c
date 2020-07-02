@@ -800,6 +800,8 @@ bool FhBox::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhBoxGr* gr, const uint8_t
     }
     uint64_t sequence = getHsvfMsgSequence(&p[idx]);
     if (gr->parseMsg(pEfhRunCtx,&p[idx+1],sequence,EkaFhMode::MCAST)) return true;
+    gr->expected_sequence = sequence + 1;
+
     idx += msgLen;
     idx += trailingZeros(&p[idx],pktLen-idx );
   }
@@ -1205,7 +1207,7 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
     uint64_t sequence = 0;
     const uint8_t* pkt = getUdpPkt(runGr,&pktLen,&sequence,&gr_id);
     if (pkt == NULL) continue;
-    //    if (unlikely(pktLen > 1000)) on_error("pktLen = %u",pktLen);
+   
     FhBoxGr* gr = (FhBoxGr*)b_gr[gr_id];
     if (gr == NULL) on_error("gr == NULL");
     //-----------------------------------------------------------------------------
@@ -1242,7 +1244,7 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 	pEfhRunCtx->onEfhFeedUpMsgCb(&efhFeedUpMsg, 0, pEfhRunCtx->efhRunUserData);
 	runGr->setGrAfterGap(gr->id);
 
-	gr->expected_sequence = gr->seq_after_snapshot + 1;      
+	gr->expected_sequence = gr->seq_after_snapshot;      
       }
     }
       break;
@@ -1257,8 +1259,7 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 	EfhFeedUpMsg efhFeedUpMsg{ EfhMsgType::kFeedUp, {gr->exch, (EkaLSI)gr->id}, gr->gapNum };
 	pEfhRunCtx->onEfhFeedUpMsgCb(&efhFeedUpMsg, 0, pEfhRunCtx->efhRunUserData);
 	runGr->setGrAfterGap(gr->id);
-
-	gr->expected_sequence = gr->seq_after_snapshot + 1;     
+	gr->expected_sequence = gr->seq_after_snapshot;     
       } 
     }
       break;
