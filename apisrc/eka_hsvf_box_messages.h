@@ -176,8 +176,11 @@ struct HsvfSystemTimeStamp { // "Z "
 
 inline uint getHsvfMsgLen(const uint8_t* pkt) {
   uint idx = 0;
-  if (pkt[idx] != HsvfSom) 
-    on_error("0x%x met while HsvfSom 0x%x is expected",pkt[idx],HsvfSom);
+  if (pkt[idx] != HsvfSom) {
+    //    on_error("0x%x met while HsvfSom 0x%x is expected",pkt[idx],HsvfSom);
+    TEST_LOG("ERROR: 0x%x met while HsvfSom 0x%x is expected",pkt[idx],HsvfSom);
+    return 0;
+  }
   do {
     idx++;
     if (idx > std::max(sizeof(HsvfOptionInstrumentKeys),sizeof(HsvfOptionSummary)) + 20)

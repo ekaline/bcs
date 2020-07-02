@@ -794,6 +794,10 @@ bool FhBox::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhBoxGr* gr, const uint8_t
   int idx = 0;
   while (idx < pktLen) {
     uint msgLen       = getHsvfMsgLen     (&p[idx]);
+    if (msgLen == 0) {
+      hexDump("Packet with bad SoP",(void*)pkt, pktLen);
+      on_error("0x%x instead of 0x%x at idx=%u",p[idx],2,idx);
+    }
     uint64_t sequence = getHsvfMsgSequence(&p[idx]);
     if (gr->parseMsg(pEfhRunCtx,&p[idx+1],sequence,EkaFhMode::MCAST)) return true;
     idx += msgLen;
