@@ -538,12 +538,12 @@ EkaOpResult FhBox::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhRu
 }
 /* ##################################################################### */
 bool FhRunGr::drainQ(const EfhRunCtx* pEfhRunCtx) {
-  EKA_LOG("hasGrpAfterGap = %d",hasGrpAfterGap);
+  //  EKA_LOG("hasGrpAfterGap = %d",hasGrpAfterGap);
   if (hasGrpAfterGap) {
     FhGroup* gr = fh->b_gr[getGrAfterGap()];
     while (! gr->q->is_empty()) {
       fh_msg* buf = gr->q->pop();
-      EKA_LOG("(buf->sequence=%ju, gr->expected_sequence=%ju",buf->sequence,gr->expected_sequence);
+      EKA_LOG("q_len=%u,buf->sequence=%ju, gr->expected_sequence=%ju",gr->q->get_len(),buf->sequence,gr->expected_sequence);
       if (buf->sequence < gr->expected_sequence) continue;
       gr->parseMsg(pEfhRunCtx,(unsigned char*)buf->data,buf->sequence,EkaFhMode::MCAST);
       gr->expected_sequence = buf->sequence + 1;
@@ -1205,7 +1205,7 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
     uint64_t sequence = 0;
     const uint8_t* pkt = getUdpPkt(runGr,&pktLen,&sequence,&gr_id);
     if (pkt == NULL) continue;
-    if (unlikely(pktLen > 1000)) on_error("pktLen = %u",pktLen);
+    //    if (unlikely(pktLen > 1000)) on_error("pktLen = %u",pktLen);
     FhBoxGr* gr = (FhBoxGr*)b_gr[gr_id];
     if (gr == NULL) on_error("gr == NULL");
     //-----------------------------------------------------------------------------
@@ -1228,7 +1228,7 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 
 	closeGap(EkaFhMode::RECOVERY, pEfhCtx,pEfhRunCtx,gr, gr->expected_sequence, sequence + 10 /* max messages in Pkt */);
       } else { // NORMAL
-	runGr->stoppedByExchange = processUdpPkt(pEfhRunCtx,gr,pkt,sequence);      
+	runGr->stoppedByExchange = processUdpPkt(pEfhRunCtx,gr,pkt,pktLen);      
       }
     }
       break;
