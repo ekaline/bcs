@@ -174,31 +174,4 @@ struct HsvfSystemTimeStamp { // "Z "
   /* char       EoM; // = HsvfEom; */
 };
 
-inline uint getHsvfMsgLen(const uint8_t* pkt) {
-  uint idx = 0;
-  if (pkt[idx] != HsvfSom) {
-    //    on_error("0x%x met while HsvfSom 0x%x is expected",pkt[idx],HsvfSom);
-    TEST_LOG("ERROR: 0x%x met while HsvfSom 0x%x is expected",pkt[idx],HsvfSom);
-    return 0;
-  }
-  do {
-    idx++;
-    if (idx > std::max(sizeof(HsvfOptionInstrumentKeys),sizeof(HsvfOptionSummary)) + 20)
-      on_error("HsvfEom not met after %u characters",idx);
-  } while (pkt[idx] != HsvfEom);
-  return idx + 1;
-}
-
-inline uint64_t getHsvfMsgSequence(uint8_t* msg) {
-  HsvfMsgHdr* msgHdr = (HsvfMsgHdr*)&msg[1];
-  return std::stoul(std::string(msgHdr->sequence,sizeof(msgHdr->sequence)));
-}
-
-inline uint trailingZeros(uint8_t* p, uint maxChars) {
-  uint idx = 0;
-  while (p[idx] == 0x0 && idx < maxChars) {
-    idx++; // skipping trailing '\0' chars
-  }
-  return idx;
-}
 #endif

@@ -77,7 +77,7 @@ static inline std::string ts_ns2str(uint64_t ts) {
   res = (res - s) / 60;
   uint m = res % 60;
   res = (res - m) / 60;
-  uint h = res % 24 - 5; // for UTC to EST
+  uint h = res % 24;
   sprintf (dst,"%02d:%02d:%02d.%03d.%03d.%03d",h,m,s,ms,us,ns);
   return std::string(dst);
 }

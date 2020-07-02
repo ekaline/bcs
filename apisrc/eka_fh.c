@@ -44,6 +44,10 @@ void* eka_get_hsvf_retransmit(void* attr);
 EkaOpResult eka_get_xdp_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhXdpGr* gr,EkaFhMode op);
 EkaOpResult eka_hsvf_get_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhBoxGr* gr);
 
+uint getHsvfMsgLen(const uint8_t* pkt, int bytes2run);
+uint64_t getHsvfMsgSequence(uint8_t* msg);
+uint trailingZeros(uint8_t* p, uint maxChars);
+
 void hexDump (const char *desc, void *addr, int len);
 
  /* ##################################################################### */
@@ -740,7 +744,7 @@ void FhBox::pushUdpPkt2Q(FhBoxGr* gr, const uint8_t* pkt, int16_t pktLen, int8_t
   uint8_t* p = (uint8_t*)pkt;
   int idx = 0;
   while (idx < pktLen) {
-    uint msgLen = getHsvfMsgLen(&p[idx]);
+    uint msgLen = getHsvfMsgLen(&p[idx],pktLen - idx);
     char* msgType = ((HsvfMsgHdr*) &p[idx+1])->MsgType;
     if (memcmp(msgType,"F ",2) == 0 ||  // Quote
 	memcmp(msgType,"Z ",2) == 0) {  // Time
@@ -796,11 +800,7 @@ bool FhBox::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhBoxGr* gr, const uint8_t
   uint8_t* p = (uint8_t*)pkt;
   int idx = 0;
   while (idx < pktLen) {
-    uint msgLen       = getHsvfMsgLen     (&p[idx]);
-    if (msgLen == 0) {
-      hexDump("Packet with bad SoP",(void*)pkt, pktLen);
-      on_error("0x%x instead of 0x%x at idx=%u",p[idx],2,idx);
-    }
+    uint msgLen       = getHsvfMsgLen(&p[idx],pktLen-idx);
     uint64_t sequence = getHsvfMsgSequence(&p[idx]);
     if (gr->parseMsg(pEfhRunCtx,&p[idx+1],sequence,EkaFhMode::MCAST)) return true;
     gr->expected_sequence = sequence + 1;

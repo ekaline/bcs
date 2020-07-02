@@ -31,6 +31,10 @@
 int ekaTcpConnect(int* sock, uint32_t ip, uint16_t port);
 int ekaUdpConnect(EkaDev* dev, int* sock, uint32_t ip, uint16_t port);
 
+uint getHsvfMsgLen(const uint8_t* pkt, int bytes2run);
+uint64_t getHsvfMsgSequence(uint8_t* msg);
+uint trailingZeros(uint8_t* p, uint maxChars);
+
 void hexDump (const char* desc, void *addr, int len);
 
 /* ----------------------------- */

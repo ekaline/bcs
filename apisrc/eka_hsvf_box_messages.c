@@ -14,6 +14,37 @@
 #include "Efh.h"
 
 /* ----------------------------------------------------------------------- */
+void hexDump (const char* desc, void *addr, int len);
+
+uint getHsvfMsgLen(const uint8_t* pkt, int bytes2run) {
+  uint idx = 0;
+  if (pkt[idx] != HsvfSom) {
+    hexDump("Msg with no HsvfSom (0x2)",(void*)pkt,bytes2run);
+    on_error("0x%x met while HsvfSom 0x%x is expected",pkt[idx],HsvfSom);
+    return 0;
+  }
+  do {
+    idx++;
+    if ((int)idx > bytes2run) {
+      hexDump("Msg with no HsvfEom (0x3)",(void*)pkt,bytes2run);
+      on_error("HsvfEom not met after %u characters",idx);
+    }
+  } while (pkt[idx] != HsvfEom);
+  return idx + 1;
+}
+
+uint64_t getHsvfMsgSequence(uint8_t* msg) {
+  HsvfMsgHdr* msgHdr = (HsvfMsgHdr*)&msg[1];
+  return std::stoul(std::string(msgHdr->sequence,sizeof(msgHdr->sequence)));
+}
+
+uint trailingZeros(uint8_t* p, uint maxChars) {
+  uint idx = 0;
+  while (p[idx] == 0x0 && idx < maxChars) {
+    idx++; // skipping trailing '\0' chars
+  }
+  return idx;
+}
 
 inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
   uint64_t hashRes = 0;
