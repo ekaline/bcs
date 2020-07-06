@@ -402,15 +402,18 @@ void* eka_get_grp_retransmit_data(void* attr) {
 
   FhBatsGr*   gr            = (FhBatsGr*)((EkaFhThreadAttr*)attr)->gr;
   EkaDev* dev = gr->dev;
+  uint64_t   start          = ((EkaFhThreadAttr*)attr)->startSeq;
   uint64_t   end            = ((EkaFhThreadAttr*)attr)->endSeq;
+  EKA_LOG("%s:%u Closing Gap by GRP retransmitting %ju .. %ju",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,start,end);
+
 #ifdef FH_LAB
-  EKA_LOG("%s:%u FH_LAB DUMMY Gap closed",EKA_EXCH_DECODE(gr->exch),gr->id);
+  EKA_LOG("%s:%u FH_LAB DUMMY Gap closed, gr->seq_after_snapshot = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot);
   gr->seq_after_snapshot = end + 1;
   gr->gapClosed = true;
 #else
 
   EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
-  uint64_t   start          = ((EkaFhThreadAttr*)attr)->startSeq;
   //  EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
   ((EkaFhThreadAttr*)attr)->~EkaFhThreadAttr();
 
