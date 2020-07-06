@@ -113,14 +113,12 @@ EkaOpResult efhRunGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx ) {
   assert (pEfhCtx->dev->fh[pEfhCtx->fhId] != NULL);
 
   
-  std::mutex mtx;   // mutex to protect concurrent dev->numRunGr++
-
-  mtx.lock();
   EkaDev* dev = pEfhCtx->dev;
+  dev->mtx.lock();
   uint runGrId = dev->numRunGr++;
   dev->runGr[runGrId] = new FhRunGr(pEfhCtx,pEfhRunCtx,runGrId);
   assert (dev->runGr[runGrId] != NULL);
-  mtx.unlock();
+  dev->mtx.unlock();
 
   //  EKA_DEBUG("invoking runGroups with runId = %u",runGrId);
   return ((FhNom*)pEfhCtx->dev->fh[pEfhCtx->fhId])->runGroups(pEfhCtx, pEfhRunCtx, runGrId);

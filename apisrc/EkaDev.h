@@ -2,6 +2,7 @@
 #define _EKA_DEV_H
 
 // SHURIK
+#include <mutex>
 
 #include "eka_data_structs.h"
 #include "Eka.h"
@@ -91,6 +92,7 @@ class EkaDev {
 
   volatile uint8_t          numRunGr;
   FhRunGr*                  runGr[CONF::MAX_RUN_GROUPS];
+  std::mutex mtx;   // mutex to protect concurrent dev->numRunGr++
 
   EkaEpm*                   epm;
 

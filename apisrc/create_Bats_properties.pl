@@ -109,7 +109,7 @@ $rt_mc_lsb = 0;
 $grp_mc_base = "224.0.74.";
 $grp_mc_lsb = 37;
 
-$spin_ip_base = "174.137.114.";
+$spin_ip_base = "170.137.114.";
 $spin_port = 18901;
 
 $sessionSubID = 57;
