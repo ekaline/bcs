@@ -367,15 +367,13 @@ int main(int argc, char *argv[]) {
   runCtx.numGroups = std::size(batsC1Groups);
   runCtx.groups = batsC1Groups;
 
-  EfhRunCtx* pEfhRunCtx = &runCtx;
-
-  pEfhRunCtx->onEfhQuoteMsgCb        = onQuote;
-  pEfhRunCtx->onEfhDefinitionMsgCb   = onDefinition;
-  pEfhRunCtx->onEfhOrderMsgCb        = onOrder;
-  pEfhRunCtx->onEfhTradeMsgCb        = onTrade;
-  pEfhRunCtx->onEfhFeedDownMsgCb     = onFeedDown;
-  pEfhRunCtx->onEfhFeedUpMsgCb       = onFeedUp;
-  pEfhRunCtx->onEkaExceptionReportCb = onException;
+  runCtx.onEfhQuoteMsgCb        = onQuote;
+  runCtx.onEfhDefinitionMsgCb   = onDefinition;
+  runCtx.onEfhOrderMsgCb        = onOrder;
+  runCtx.onEfhTradeMsgCb        = onTrade;
+  runCtx.onEfhFeedDownMsgCb     = onFeedDown;
+  runCtx.onEfhFeedUpMsgCb       = onFeedUp;
+  runCtx.onEkaExceptionReportCb = onException;
 
   EkaDevInitCtx ekaDevInitCtx = {};
   ekaDevInitCtx.credAcquire = credAcquire;
@@ -411,8 +409,36 @@ int main(int argc, char *argv[]) {
 #endif
   }
 
-  std::thread efh_run_thread = std::thread(efhRunGroups,pEfhCtx, &runCtx);
-  efh_run_thread.detach();
+  EfhRunCtx runGrCtx[4] = {};
+/* ------------------------------------------------- */
+  memcpy(&runGrCtx[0], &runCtx, sizeof(runCtx));
+
+  runGrCtx[0].numGroups = 8;
+  runGrCtx[0].groups    = batsC1Groups;
+  std::thread efh_run_thread_0 = std::thread(efhRunGroups,pEfhCtx, &runGrCtx[0]);
+  efh_run_thread_0.detach();
+/* ------------------------------------------------- */
+  memcpy(&runGrCtx[1], &runCtx, sizeof(runCtx));
+
+  runGrCtx[1].numGroups = 8;
+  runGrCtx[1].groups    = &batsC1Groups[8];
+  std::thread efh_run_thread_1 = std::thread(efhRunGroups,pEfhCtx, &runGrCtx[1]);
+  efh_run_thread_1.detach();
+/* ------------------------------------------------- */
+  memcpy(&runGrCtx[2], &runCtx, sizeof(runCtx));
+
+  runGrCtx[2].numGroups = 8;
+  runGrCtx[2].groups    = &batsC1Groups[16];
+  std::thread efh_run_thread_2 = std::thread(efhRunGroups,pEfhCtx, &runGrCtx[2]);
+  efh_run_thread_2.detach();
+/* ------------------------------------------------- */
+  memcpy(&runGrCtx[1], &runCtx, sizeof(runCtx));
+
+  runGrCtx[3].numGroups = 11;
+  runGrCtx[3].groups    = &batsC1Groups[24];
+  std::thread efh_run_thread_3 = std::thread(efhRunGroups,pEfhCtx, &runGrCtx[3]);
+  efh_run_thread_3.detach();
+/* ------------------------------------------------- */
 
   while (keep_work) usleep(0);
 
