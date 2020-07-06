@@ -432,11 +432,13 @@ static int closeGap(EkaFhMode op, EfhCtx* pEfhCtx,const EfhRunCtx* pEfhRunCtx,Fh
 
   EfhFeedDownMsg efhFeedDownMsg{ EfhMsgType::kFeedDown, {gr->exch, (EkaLSI)gr->id}, ++gr->gapNum };
   pEfhRunCtx->onEfhFeedDownMsgCb(&efhFeedDownMsg, 0, pEfhRunCtx->efhRunUserData);
-#ifdef EKA_TEST_IGNORE_GAP
-  gr->gapClosed = true;
-#else
   EkaDev* dev = pEfhCtx->dev;
 
+#ifdef EKA_TEST_IGNORE_GAP
+  gr->gapClosed = true;
+  EKA_LOG("%s:%u FH_LAB DUMMY Gap closed, gr->seq_after_snapshot = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot);
+  gr->seq_after_snapshot = end + 1;
+#else
   std::string threadNamePrefix = op == EkaFhMode::SNAPSHOT ? std::string("ST_") : std::string("RT_");
   std::string threadName = threadNamePrefix + std::string(EKA_EXCH_SOURCE_DECODE(gr->exch)) + '_' + std::to_string(gr->id);
   EkaFhThreadAttr* attr = new EkaFhThreadAttr(pEfhCtx, (const EfhRunCtx*)pEfhRunCtx, gr->id, gr, start, end, op);
@@ -938,11 +940,14 @@ EkaOpResult FhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
 EkaOpResult FhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId ) {
   FhRunGr* runGr = dev->runGr[runGrId];
-  EKA_DEBUG("Running %s, groups %u .. %u",EKA_EXCH_DECODE(runGr->exch),runGr->firstGr,runGr->firstGr+runGr->numGr-1);
+  EKA_DEBUG("Running %s,  Run Group %u (%u) with Fh Groups %u .. %u",
+	    EKA_EXCH_DECODE(runGr->exch),runGr->runId,runGrId,
+	    runGr->firstGr,runGr->firstGr+runGr->numGr-1);
 
   initGroups(pEfhCtx, pEfhRunCtx, runGr);
 
-  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s:%u GROUPS ~~~~~~~~~~~~~",EKA_EXCH_DECODE(exch),(uint)pEfhRunCtx->numGroups);
+  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u with %u Fh Groups~~~~~~~~~~~~~",
+	    EKA_EXCH_DECODE(exch),runGr->runId, runGr->numGr);
 
   while (runGr->thread_active && ! runGr->stoppedByExchange) {
     //-----------------------------------------------------------------------------

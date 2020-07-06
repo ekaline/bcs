@@ -15,7 +15,7 @@ $rt_mc_lsb = 46;
 $grp_mc_base = "224.0.74.";
 $grp_mc_lsb = 55;
 
-$auth = "BCAP:sb1bcap";
+$auth = "GTSS:sb2gtss";
 $spin_ip_base = "170.137.114.";
 $spin_port = 18901;
 

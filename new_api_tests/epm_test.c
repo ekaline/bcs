@@ -318,7 +318,8 @@ int main(int argc, char *argv[]) {
 
   std::string triggerIp = "239.255.119.16";
   std::string serverIp  = "10.0.0.10";
-  std::string clientIp  = "100.0.0.10"; //std::string(EKA_IP2STR(dev->core[0]->srcIp));
+  //  std::string clientIp  = "100.0.0.10"; //std::string(EKA_IP2STR(dev->core[0]->srcIp));
+  std::string clientIp  = "10.0.0.110"; //std::string(EKA_IP2STR(dev->core[0]->srcIp));
 
   uint16_t serverTcpPort  = 22222;
   uint16_t triggerUdpPort = 18333;

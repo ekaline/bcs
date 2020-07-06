@@ -99,7 +99,9 @@ static void sendLogin (FhBatsGr* gr) {
 
 static bool getLoginResponse(FhBatsGr* gr) {
   EkaDev* dev = gr->dev;
-#ifndef FH_LAB
+#ifdef FH_LAB
+  EKA_LOG("%s:%u FH_LAB DUMMY Login Accepted",EKA_EXCH_DECODE(gr->exch),gr->id);
+#else
   batspitch_login_response login_response ={};
   if (recv(gr->snapshot_sock,&login_response,sizeof(login_response),MSG_WAITALL) <= 0) 
     on_error("Spin connection reset by peer after Login (failed to receive Login Response) for %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id);
@@ -110,13 +112,16 @@ static bool getLoginResponse(FhBatsGr* gr) {
   if (login_response.status == 'S') on_error("Spin rejected login (\'S\') Invalid Session");
   if (login_response.status != 'A') on_error("Unknown Spin Login response status |%c|",login_response.status);
   if (login_response.hdr.count != 1) on_error("More than 1 message (%u) come with the Login Response",login_response.hdr.count);
-#endif
   EKA_LOG("%s:%u Login Accepted",EKA_EXCH_DECODE(gr->exch),gr->id);
+#endif
   return true;  
 }
 /* ##################################################################### */
 static uint64_t getSpinImageSeq(FhBatsGr* gr) {
   EkaDev* dev = gr->dev;
+#ifdef FH_LAB
+  EKA_LOG("%s:%u FH_LAB DUMMY \'Spin Image Available\' Accepted",EKA_EXCH_DECODE(gr->exch),gr->id);
+#else
   while (gr->snapshot_active) { // Accepted Login
     struct batspitch_sequenced_unit_header hdr = {};
     if (recv(gr->snapshot_sock,&hdr,sizeof(hdr),MSG_WAITALL) < (int) sizeof(struct batspitch_sequenced_unit_header)) {
@@ -143,11 +148,15 @@ static uint64_t getSpinImageSeq(FhBatsGr* gr) {
       //-----------------------------------------------------------------
     }
   }
+#endif
   return true;  
 }
 /* ##################################################################### */
 static void getSpinResponse(FhBatsGr* gr, EkaFhMode op) {
   EkaDev* dev = gr->dev;
+#ifdef FH_LAB
+  EKA_LOG("%s:%u FH_LAB DUMMY Spin Response Accepted",EKA_EXCH_DECODE(gr->exch),gr->id);
+#else
   while (gr->snapshot_active) { // Accepted Login
     struct batspitch_sequenced_unit_header hdr = {};
     if (recv(gr->snapshot_sock,&hdr,sizeof(hdr),MSG_WAITALL) < (int) sizeof(struct batspitch_sequenced_unit_header)) {
@@ -186,11 +195,15 @@ static void getSpinResponse(FhBatsGr* gr, EkaFhMode op) {
       //-----------------------------------------------------------------
     }
   }
+#endif
   return;  
 }
 /* ##################################################################### */
 static void sendSpinRequest(FhBatsGr* gr, EkaFhMode op, uint64_t image_sequence) {
   EkaDev* dev = gr->dev;
+#ifdef FH_LAB
+  EKA_LOG("%s:%u FH_LAB DUMMY Spin Request sent",EKA_EXCH_DECODE(gr->exch),gr->id);
+#else
   struct batspitch_spin_request request_message = {};
   request_message.hdr.length = sizeof(request_message);
   request_message.hdr.count = 1;
@@ -208,7 +221,6 @@ static void sendSpinRequest(FhBatsGr* gr, EkaFhMode op, uint64_t image_sequence)
 	  request_message.sequence
 	  );
 
-#ifndef FH_LAB
   if(send(gr->snapshot_sock,&request_message,sizeof(request_message), 0) < 0) on_error("Spin Request send failed");
 #endif
   //  hexDump("Spin Request Message sent",&request_message,sizeof(request_message));
@@ -341,14 +353,16 @@ static void sendGapRequest(FhBatsGr* gr, uint64_t start, uint16_t cnt) {
 /* ##################################################################### */
 int getGapResponse(FhBatsGr* gr) {
   EkaDev* dev = gr->dev;
-  batspitch_gap_response gap_response ={};
 #ifdef FH_LAB
+  EKA_LOG("%s:%u FH_LAB DUMMY Gap request Accepted",EKA_EXCH_DECODE(gr->exch),gr->id);
+  return 0;
+#else
+  batspitch_gap_response gap_response ={};
   gap_response.type = static_cast< uint8_t > (EKA_BATS_PITCH_MSG::GAP_RESPONSE);
   gap_response.status = 'A';
   gap_response.hdr.count = 1;
-#else
+
   if (recv(gr->snapshot_sock,&gap_response,sizeof(gap_response),MSG_WAITALL) <= 0) on_error("%s%u: connection reset by peer",EKA_EXCH_DECODE(gr->exch),gr->id);
-#endif
   if (gap_response.type != static_cast< uint8_t > (EKA_BATS_PITCH_MSG::GAP_RESPONSE)) on_error ("Unexpected GRP resonse type 0x%02x",gap_response.type);
 
   if (gap_response.hdr.count != 1) on_error("More than 1 message (%u) come with the Gap Response",gap_response.hdr.count);
@@ -375,6 +389,7 @@ int getGapResponse(FhBatsGr* gr) {
     on_error("Unexpected Gap response status: %c",gap_response.status);
   }
   return gap_response.count;
+#endif
 }
 
 /* ##################################################################### */
@@ -384,14 +399,24 @@ void* eka_get_grp_retransmit_data(void* attr) {
   pthread_detach(pthread_self());
 
   //  EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
-  EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
+
   FhBatsGr*   gr            = (FhBatsGr*)((EkaFhThreadAttr*)attr)->gr;
+  EkaDev* dev = gr->dev;
   uint64_t   start          = ((EkaFhThreadAttr*)attr)->startSeq;
   uint64_t   end            = ((EkaFhThreadAttr*)attr)->endSeq;
+  EKA_LOG("%s:%u Closing Gap by GRP retransmitting %ju .. %ju",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,start,end);
+
+#ifdef FH_LAB
+  EKA_LOG("%s:%u FH_LAB DUMMY Gap closed, gr->seq_after_snapshot = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot);
+  gr->seq_after_snapshot = end + 1;
+  gr->gapClosed = true;
+#else
+
+  EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
   //  EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
   ((EkaFhThreadAttr*)attr)->~EkaFhThreadAttr();
 
-  EkaDev* dev = gr->dev;
   if (end - start > 65000) on_error("Gap %ju is too high (> 65000), start = %ju, end = %ju",end - start, start, end);
 
   ekaTcpConnect(&gr->snapshot_sock,gr->snapshot_ip,gr->snapshot_port);
@@ -450,5 +475,6 @@ void* eka_get_grp_retransmit_data(void* attr) {
   //-----------------------------------------------------------------
   close(gr->snapshot_sock);
   close(gr->recovery_sock);
+#endif
   return NULL;
 }

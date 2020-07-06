@@ -7,7 +7,7 @@ class EkaFh;
 
 class FhRunGr {
  public:
-  FhRunGr(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx);
+  FhRunGr(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runId);
   uint getGrAfterGap();
   void setGrAfterGap(uint i);
   void clearGrAfterGap(uint i);

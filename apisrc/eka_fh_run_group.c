@@ -10,11 +10,11 @@
 
 /* ##################################################################### */
 
-FhRunGr::FhRunGr (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx ) {
+FhRunGr::FhRunGr (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t _runId ) {
   dev = pEfhCtx->dev;
   coreId = 0; // TMP
 
-  runId = dev->numRunGr;
+  runId = _runId;
   fh = dev->fh[pEfhCtx->fhId];
   exch = fh->exch;
   firstGr = pEfhRunCtx->groups[0].localId;
@@ -25,7 +25,7 @@ FhRunGr::FhRunGr (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx ) {
 
   for (uint i = 0; i < MAX_GR2RUN; i++) grAfterGap[i] = false;
   cntGrAfterGap = 0;
-  EKA_LOG("runId=%u, cntGrAfterGap = %u",runId,cntGrAfterGap);
+  EKA_LOG("runId = %u, firstGr = %u, numGr = %u",runId,firstGr,numGr);
   thread_active = true;
   hasGrpAfterGap = false;
   stoppedByExchange = false;
