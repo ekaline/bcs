@@ -268,16 +268,20 @@ void* eka_get_hsvf_retransmit(void* attr) {
 
   pthread_detach(pthread_self());
 
+
   //  EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
-  EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
   FhBoxGr*   gr             = (FhBoxGr*)((EkaFhThreadAttr*)attr)->gr;
+  EkaDev*    dev = gr->dev;
+#ifdef FH_LAB
+  EKA_LOG("%s:%u Dummy FH_LAB Retransmission done",EKA_EXCH_DECODE(gr->exch),gr->id);
+#else
+  EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
   uint64_t   start          = ((EkaFhThreadAttr*)attr)->startSeq;
   uint64_t   end            = ((EkaFhThreadAttr*)attr)->endSeq;
   EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
   ((EkaFhThreadAttr*)attr)->~EkaFhThreadAttr();
 
   if (gr->recovery_sock != -1) on_error("%s:%u gr->recovery_sock != -1",EKA_EXCH_DECODE(gr->exch),gr->id);
-  EkaDev* dev = gr->dev;
 
   EKA_LOG("%s:%u start=%ju, end=%ju",EKA_EXCH_DECODE(gr->exch),gr->id,start,end);
   //-----------------------------------------------------------------
@@ -291,9 +295,7 @@ void* eka_get_hsvf_retransmit(void* attr) {
   //-----------------------------------------------------------------
   getRetransmissionBegins(gr);
   //-----------------------------------------------------------------
-#ifdef FH_LAB
-  EKA_LOG("%s:%u Dummy FH_LAB Retransmission done",EKA_EXCH_DECODE(gr->exch),gr->id);
-#else
+
   gr->snapshot_active = true;
 
   while (gr->snapshot_active) {
