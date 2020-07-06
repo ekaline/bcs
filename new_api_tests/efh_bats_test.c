@@ -17,7 +17,7 @@
 
 #include "EfhBatsProps.h"
 
-#define MAX_SECURITIES 64000
+#define MAX_SECURITIES 80000
 #define MAX_UNDERLYINGS 8
 #define MAX_GROUPS 36
 #define MAX_TEST_THREADS 16
@@ -35,7 +35,7 @@ static FILE* subscrDict;
 static FILE* MD;
 
 static bool subscribe_all = false;
-static bool print_tob_updates = true;
+static bool print_tob_updates = false;
 
 static char underlying2subscr[MAX_UNDERLYINGS][SYMBOL_SIZE] = {};
 uint valid_underlying2subscr = 0;
