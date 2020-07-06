@@ -432,11 +432,13 @@ static int closeGap(EkaFhMode op, EfhCtx* pEfhCtx,const EfhRunCtx* pEfhRunCtx,Fh
 
   EfhFeedDownMsg efhFeedDownMsg{ EfhMsgType::kFeedDown, {gr->exch, (EkaLSI)gr->id}, ++gr->gapNum };
   pEfhRunCtx->onEfhFeedDownMsgCb(&efhFeedDownMsg, 0, pEfhRunCtx->efhRunUserData);
-#ifdef EKA_TEST_IGNORE_GAP
-  gr->gapClosed = true;
-#else
   EkaDev* dev = pEfhCtx->dev;
 
+#ifdef EKA_TEST_IGNORE_GAP
+  gr->gapClosed = true;
+  EKA_LOG("%s:%u FH_LAB DUMMY Gap closed, gr->seq_after_snapshot = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot);
+  gr->seq_after_snapshot = end + 1;
+#else
   std::string threadNamePrefix = op == EkaFhMode::SNAPSHOT ? std::string("ST_") : std::string("RT_");
   std::string threadName = threadNamePrefix + std::string(EKA_EXCH_SOURCE_DECODE(gr->exch)) + '_' + std::to_string(gr->id);
   EkaFhThreadAttr* attr = new EkaFhThreadAttr(pEfhCtx, (const EfhRunCtx*)pEfhRunCtx, gr->id, gr, start, end, op);
