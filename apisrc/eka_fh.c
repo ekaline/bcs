@@ -940,11 +940,14 @@ EkaOpResult FhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
 EkaOpResult FhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId ) {
   FhRunGr* runGr = dev->runGr[runGrId];
-  EKA_DEBUG("Running %s, groups %u .. %u",EKA_EXCH_DECODE(runGr->exch),runGr->firstGr,runGr->firstGr+runGr->numGr-1);
+  EKA_DEBUG("Running %s,  Run Group %u (%u) with Fh Groups %u .. %u",
+	    EKA_EXCH_DECODE(runGr->exch),runGr->runId,runGrId,
+	    runGr->firstGr,runGr->firstGr+runGr->numGr-1);
 
   initGroups(pEfhCtx, pEfhRunCtx, runGr);
 
-  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s:%u GROUPS ~~~~~~~~~~~~~",EKA_EXCH_DECODE(exch),(uint)pEfhRunCtx->numGroups);
+  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u with %u Fh Groups~~~~~~~~~~~~~",
+	    EKA_EXCH_DECODE(exch),runGr->runId, runGr->numGr);
 
   while (runGr->thread_active && ! runGr->stoppedByExchange) {
     //-----------------------------------------------------------------------------

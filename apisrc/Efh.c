@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
+#include <mutex>
 
 #include "Efh.h"
 #include "eka_macros.h"
@@ -110,12 +111,19 @@ EkaOpResult efhRunGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx ) {
   assert (pEfhCtx != NULL);
   assert (pEfhRunCtx != NULL);
   assert (pEfhCtx->dev->fh[pEfhCtx->fhId] != NULL);
-  EkaDev* dev = pEfhCtx->dev;
-  dev->runGr[dev->numRunGr] = new FhRunGr(pEfhCtx,pEfhRunCtx);
-  assert (dev->runGr[dev->numRunGr] != NULL);
-  dev->numRunGr++;
 
-  return ((FhNom*)pEfhCtx->dev->fh[pEfhCtx->fhId])->runGroups(pEfhCtx, pEfhRunCtx, dev->numRunGr - 1);
+  
+  std::mutex mtx;   // mutex to protect concurrent dev->numRunGr++
+
+  mtx.lock();
+  EkaDev* dev = pEfhCtx->dev;
+  uint runGrId = dev->numRunGr++;
+  dev->runGr[runGrId] = new FhRunGr(pEfhCtx,pEfhRunCtx,runGrId);
+  assert (dev->runGr[runGrId] != NULL);
+  mtx.unlock();
+
+  //  EKA_DEBUG("invoking runGroups with runId = %u",runGrId);
+  return ((FhNom*)pEfhCtx->dev->fh[pEfhCtx->fhId])->runGroups(pEfhCtx, pEfhRunCtx, runGrId);
 
   return EKA_OPRESULT__ERR_NOT_IMPLEMENTED;
 }

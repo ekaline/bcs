@@ -432,7 +432,7 @@ int main(int argc, char *argv[]) {
   std::thread efh_run_thread_2 = std::thread(efhRunGroups,pEfhCtx, &runGrCtx[2]);
   efh_run_thread_2.detach();
 /* ------------------------------------------------- */
-  memcpy(&runGrCtx[1], &runCtx, sizeof(runCtx));
+  memcpy(&runGrCtx[3], &runCtx, sizeof(runCtx));
 
   runGrCtx[3].numGroups = 11;
   runGrCtx[3].groups    = &batsC1Groups[24];
