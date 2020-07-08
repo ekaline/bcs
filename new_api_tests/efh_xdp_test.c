@@ -27,7 +27,7 @@
 
 #include "EfhXdpProps.h"
 
-#define MAX_SECURITIES 64000
+#define MAX_SECURITIES 96000
 #define MAX_UNDERLYINGS 8
 #define MAX_GROUPS 36
 #define MAX_TEST_THREADS 16
@@ -42,7 +42,7 @@ static EfhCtx* pEfhCtx = NULL;
 
 static FILE* fullDict;
 static FILE* subscrDict;
-static FILE* MD[2];
+static FILE* MD[26];
 
 static bool subscribe_all = false;
 static bool print_tob_updates = true;
@@ -122,8 +122,8 @@ void onTrade(const EfhTradeMsg* msg, EfhSecUserData secData, EfhRunUserData user
 }
 
 void onFeedDown(const EfhFeedDownMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
-  /* int file_idx = (uint8_t)(msg->group.localId); */
-  int file_idx = gr2fileIdx((uint8_t)(msg->group.localId));
+  int file_idx = (uint8_t)(msg->group.localId);
+  /* int file_idx = gr2fileIdx((uint8_t)(msg->group.localId)); */
   /* fprintf(md[file_idx],"%s: %s : FeedDown\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str()); */
   fprintf(MD[file_idx],"%s: %s : FeedDown\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str());
   printf ("=========================\n%s: %s -- %ju\n=========================\n",__func__,EKA_PRINT_GRP(&msg->group),msg->gapNum);
@@ -131,8 +131,8 @@ void onFeedDown(const EfhFeedDownMsg* msg, EfhSecUserData secData, EfhRunUserDat
 }
 
 void onFeedUp(const EfhFeedUpMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
-  /* int file_idx = (uint8_t)(msg->group.localId); */
-  int file_idx = gr2fileIdx((uint8_t)(msg->group.localId));
+  int file_idx = (uint8_t)(msg->group.localId);
+  /* int file_idx = gr2fileIdx((uint8_t)(msg->group.localId)); */
 
   /* fprintf(md[file_idx],"%s: %s : FeedUp\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str()); */
   fprintf(MD[file_idx],"%s: %s : FeedUp\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str());
@@ -159,7 +159,13 @@ void onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData user
 
   if (! print_tob_updates) return;
 
-  int file_idx = gr2fileIdx((uint8_t)(msg->header.group.localId));
+
+#ifdef EKA_TEST_IGNORE_DEFINITIONS
+#else
+  int file_idx = (uint8_t)(msg->header.group.localId);
+#endif
+
+  /* int file_idx = gr2fileIdx((uint8_t)(msg->header.group.localId)); */
 
   //  fprintf(md[file_idx],"%s,%s,%s,%s,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%s\n",
   fprintf(MD[file_idx],"%s,%s,%s,%s,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%d,%d,%s\n",
@@ -245,7 +251,8 @@ void onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUse
 	   attrB.attr.UnderlIdx,
 	   attrB.attr.AbcGroupID
 	   );
-  int file_idx = (uint8_t)(msg->header.group.localId);
+  //  int file_idx = (uint8_t)(msg->header.group.localId);
+  int file_idx = attrB.attr.AbcGroupID;
 
   if (testFhCtx[file_idx].subscr_cnt >= MAX_SECURITIES) 
     on_error("Trying to subscibe on %u securities > %u MAX_SECURITIES",testFhCtx[file_idx].subscr_cnt,MAX_SECURITIES);
@@ -424,8 +431,11 @@ int main(int argc, char *argv[]) {
 
   if ((fullDict   = fopen(fullDictName.c_str(),"w")) == NULL) on_error("Failed to open %s",fullDictName.c_str());
   if ((subscrDict = fopen(subscrDictName.c_str(),"w")) == NULL) on_error("Failed to open %s",subscrDictName.c_str());
-  if ((MD[0]      = fopen(mdName_0.c_str(),"w")) == NULL) on_error("Failed to open %s",mdName_0.c_str());
-  if ((MD[1]      = fopen(mdName_1.c_str(),"w")) == NULL) on_error("Failed to open %s",mdName_1.c_str());
+
+  for (int i = 0; i < 26; i++) {
+    std::string mdName = std::string(EKA_EXCH_SOURCE_DECODE(exch)) + std::string("_") + std::to_string(i) + std::string("_MD.txt");
+    if ((MD[i] = fopen(mdName.c_str(),"w")) == NULL) on_error("Failed to open %s",mdName.c_str());
+  }
 
   for (uint8_t i = 0; i < runCtx.numGroups; i++) {
     printf ("################ Group %u ################\n",i);
@@ -437,6 +447,8 @@ int main(int argc, char *argv[]) {
 #endif
   }
 
+  fclose(fullDict);
+  fclose(subscrDict);
 
   EfhRunCtx runGrCtx[2] = {};
 /* ------------------------------------------------- */
@@ -459,10 +471,10 @@ int main(int argc, char *argv[]) {
 
   ekaDevClose(pEkaDev);
 
-  fclose(fullDict);
-  fclose(subscrDict);
-  fclose(MD[0]);
-  fclose(MD[1]);
+  for (int i = 0; i < 26; i++) {
+    fclose(MD[i]);
+  }
+
   printf ("Exitting normally...\n");
 
   return 0;
