@@ -42,7 +42,7 @@ static EfhCtx* pEfhCtx = NULL;
 
 static FILE* fullDict;
 static FILE* subscrDict;
-static FILE* MD[2];
+static FILE* MD;
 
 static bool subscribe_all = false;
 static bool print_tob_updates = true;
@@ -92,12 +92,6 @@ static std::string eka_get_time () {
   return std::string(t_str);
 }
 
-inline uint gr2fileIdx(uint grId) {
-  if (grId < 13) return 0;
-  if (grId < 26) return 1;
-  on_error("grId = %u is out of range 0..25",grId);
-}
-
 int createThread(const char* name, EkaThreadType type,  void *(*threadRoutine)(void*), void* arg, void* context, uintptr_t *handle) {
   pthread_create ((pthread_t*)handle,NULL,threadRoutine, arg);
   pthread_setname_np((pthread_t)*handle,name);
@@ -123,19 +117,16 @@ void onTrade(const EfhTradeMsg* msg, EfhSecUserData secData, EfhRunUserData user
 
 void onFeedDown(const EfhFeedDownMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
   /* int file_idx = (uint8_t)(msg->group.localId); */
-  int file_idx = gr2fileIdx((uint8_t)(msg->group.localId));
   /* fprintf(md[file_idx],"%s: %s : FeedDown\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str()); */
-  fprintf(MD[file_idx],"%s: %s : FeedDown\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str());
+  fprintf(MD,"%s: %s : FeedDown\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str());
   printf ("=========================\n%s: %s -- %ju\n=========================\n",__func__,EKA_PRINT_GRP(&msg->group),msg->gapNum);
   return;
 }
 
 void onFeedUp(const EfhFeedUpMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
   /* int file_idx = (uint8_t)(msg->group.localId); */
-  int file_idx = gr2fileIdx((uint8_t)(msg->group.localId));
-
   /* fprintf(md[file_idx],"%s: %s : FeedUp\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str()); */
-  fprintf(MD[file_idx],"%s: %s : FeedUp\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str());
+  fprintf(MD,"%s: %s : FeedUp\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str());
   printf ("=========================\n%s: %s -- %ju\n=========================\n",__func__,EKA_PRINT_GRP(&msg->group),msg->gapNum);
   return;
 }
@@ -158,11 +149,12 @@ void onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData user
   }
 
   if (! print_tob_updates) return;
-
-  int file_idx = gr2fileIdx((uint8_t)(msg->header.group.localId));
+#ifndef EKA_TEST_IGNORE_DEFINITIONS
+  int file_idx = (uint8_t)(msg->header.group.localId);
+#endif
 
   //  fprintf(md[file_idx],"%s,%s,%s,%s,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%s\n",
-  fprintf(MD[file_idx],"%s,%s,%s,%s,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%d,%d,%s\n",
+  fprintf(MD,"%s,%s,%s,%s,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%d,%d,%s\n",
 	  EKA_CTS_SOURCE(msg->header.group.source),
 	  "today",
 	  eka_get_time().c_str(),
@@ -354,19 +346,37 @@ int main(int argc, char *argv[]) {
 
   EkaDev* pEkaDev = NULL;
 
+  EfhRunCtx runCtx = {};
+
   EkaProps ekaProps = {};
   if (feedName == std::string("RA")) {
     ekaProps.numProps = std::size(efhArcaInitCtxEntries_A);
     ekaProps.props    = efhArcaInitCtxEntries_A;
+    runCtx.numGroups = std::size(arcaGroups);
+    runCtx.groups = arcaGroups;
+
+
   } else if (feedName == std::string("RB")) {
     ekaProps.numProps = std::size(efhArcaInitCtxEntries_B);
     ekaProps.props    = efhArcaInitCtxEntries_B;
+
+    runCtx.numGroups = std::size(arcaGroups);
+    runCtx.groups = arcaGroups;
+
   } else if (feedName == std::string("XA")) {
     ekaProps.numProps = std::size(efhAmexInitCtxEntries_A);
     ekaProps.props    = efhAmexInitCtxEntries_A;
+
+    runCtx.numGroups = std::size(amexGroups);
+    runCtx.groups = amexGroups;
+
   } else if (feedName == std::string("XB")) {
     ekaProps.numProps = std::size(efhAmexInitCtxEntries_B);
     ekaProps.props    = efhAmexInitCtxEntries_B;
+
+    runCtx.numGroups = std::size(amexGroups);
+    runCtx.groups = amexGroups;
+
   } else {
     on_error("Unsupported feed name \"%s\". Supported: RA, RB, XA, XB",feedName.c_str());
   }
@@ -387,18 +397,19 @@ int main(int argc, char *argv[]) {
   keep_work = true;
   signal(SIGINT, INThandler);
 
-  EfhRunCtx runCtx = {};
 
   runCtx.numGroups = std::size(arcaGroups);
   runCtx.groups = arcaGroups;
 
-  runCtx.onEfhQuoteMsgCb        = onQuote;
-  runCtx.onEfhDefinitionMsgCb   = onDefinition;
-  runCtx.onEfhOrderMsgCb        = onOrder;
-  runCtx.onEfhTradeMsgCb        = onTrade;
-  runCtx.onEfhFeedDownMsgCb     = onFeedDown;
-  runCtx.onEfhFeedUpMsgCb       = onFeedUp;
-  runCtx.onEkaExceptionReportCb = onException;
+  EfhRunCtx* pEfhRunCtx = &runCtx;
+
+  pEfhRunCtx->onEfhQuoteMsgCb        = onQuote;
+  pEfhRunCtx->onEfhDefinitionMsgCb   = onDefinition;
+  pEfhRunCtx->onEfhOrderMsgCb        = onOrder;
+  pEfhRunCtx->onEfhTradeMsgCb        = onTrade;
+  pEfhRunCtx->onEfhFeedDownMsgCb     = onFeedDown;
+  pEfhRunCtx->onEfhFeedUpMsgCb       = onFeedUp;
+  pEfhRunCtx->onEkaExceptionReportCb = onException;
 
   EkaDevInitCtx ekaDevInitCtx = {};
   ekaDevInitCtx.credAcquire = credAcquire;
@@ -419,13 +430,11 @@ int main(int argc, char *argv[]) {
 
   std::string fullDictName   = std::string(EKA_EXCH_SOURCE_DECODE(exch)) + std::string("_FULL_DICT.txt");
   std::string subscrDictName = std::string(EKA_EXCH_SOURCE_DECODE(exch)) + std::string("_SUBSCR_DICT.txt");
-  std::string mdName_0       = std::string(EKA_EXCH_SOURCE_DECODE(exch)) + std::string("_0_MD.txt");
-  std::string mdName_1       = std::string(EKA_EXCH_SOURCE_DECODE(exch)) + std::string("_1_MD.txt");
+  std::string mdName =         std::string(EKA_EXCH_SOURCE_DECODE(exch)) + std::string("_MD.txt");
 
   if ((fullDict   = fopen(fullDictName.c_str(),"w")) == NULL) on_error("Failed to open %s",fullDictName.c_str());
   if ((subscrDict = fopen(subscrDictName.c_str(),"w")) == NULL) on_error("Failed to open %s",subscrDictName.c_str());
-  if ((MD[0]      = fopen(mdName_0.c_str(),"w")) == NULL) on_error("Failed to open %s",mdName_0.c_str());
-  if ((MD[1]      = fopen(mdName_1.c_str(),"w")) == NULL) on_error("Failed to open %s",mdName_1.c_str());
+  if ((MD = fopen(mdName.c_str(),"w")) == NULL) on_error("Failed to open %s",mdName.c_str());
 
   for (uint8_t i = 0; i < runCtx.numGroups; i++) {
     printf ("################ Group %u ################\n",i);
@@ -437,23 +446,8 @@ int main(int argc, char *argv[]) {
 #endif
   }
 
-
-  EfhRunCtx runGrCtx[2] = {};
-/* ------------------------------------------------- */
-  memcpy(&runGrCtx[0], &runCtx, sizeof(runCtx));
-
-  runGrCtx[0].numGroups = 13;
-  runGrCtx[0].groups    = feedName == std::string("RA") || feedName == std::string("RB") ? arcaGroups : amexGroups;
-  std::thread efh_run_thread_0 = std::thread(efhRunGroups,pEfhCtx, &runGrCtx[0]);
-  efh_run_thread_0.detach();
-/* ------------------------------------------------- */
-  memcpy(&runGrCtx[1], &runCtx, sizeof(runCtx));
-
-  runGrCtx[1].numGroups = 13;
-  runGrCtx[1].groups    = feedName == std::string("RA") || feedName == std::string("RB") ? &arcaGroups[13] : &amexGroups[13];
-  std::thread efh_run_thread_1 = std::thread(efhRunGroups,pEfhCtx, &runGrCtx[1]);
-  efh_run_thread_1.detach();
-/* ------------------------------------------------- */
+  std::thread efh_run_thread = std::thread(efhRunGroups,pEfhCtx, &runCtx);
+  efh_run_thread.detach();
 
   while (keep_work) usleep(0);
 
@@ -461,8 +455,7 @@ int main(int argc, char *argv[]) {
 
   fclose(fullDict);
   fclose(subscrDict);
-  fclose(MD[0]);
-  fclose(MD[1]);
+  fclose(MD);
   printf ("Exitting normally...\n");
 
   return 0;

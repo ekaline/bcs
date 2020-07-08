@@ -82,6 +82,10 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   EKA_LOG("portState = 0x%016x",portState);
   eka_write(ENABLE_PORT,portState);
 
+
+  time_t t;
+  srand((unsigned) time(&t));
+
   ekaInitLwip(this);
 
   totalNumTcpSess = 0;
