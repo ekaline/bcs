@@ -1135,9 +1135,10 @@ EkaOpResult FhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
   
   initGroups(pEfhCtx, pEfhRunCtx, runGr);
 
-  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s:%u GROUPS ~~~~~~~~~~~~~",EKA_EXCH_DECODE(exch),(uint)pEfhRunCtx->numGroups);
+  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u with %u Fh Groups (%u..%u) ~~~~~~~~~~~~~",
+	    EKA_EXCH_DECODE(exch),runGr->runId, runGr->numGr,runGr->firstGr,runGr->firstGr+runGr->numGr);
 
-  for (uint8_t i = runGr->firstGr; i < runGr->numGr; i++) {
+  for (uint8_t i = runGr->firstGr; i < runGr->firstGr + runGr->numGr; i++) {
       EfhFeedDownMsg efhFeedDownMsg{ EfhMsgType::kFeedDown, {b_gr[i]->exch, (EkaLSI)b_gr[i]->id}, ++b_gr[i]->gapNum };
       pEfhRunCtx->onEfhFeedDownMsgCb(&efhFeedDownMsg, 0, pEfhRunCtx->efhRunUserData);
       ((FhXdpGr*)b_gr[i])->inGap = true;

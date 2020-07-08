@@ -126,6 +126,7 @@ void onFeedDown(const EfhFeedDownMsg* msg, EfhSecUserData secData, EfhRunUserDat
   /* int file_idx = gr2fileIdx((uint8_t)(msg->group.localId)); */
   /* fprintf(md[file_idx],"%s: %s : FeedDown\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str()); */
   fprintf(MD[file_idx],"%s: %s : FeedDown\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str());
+  fflush(MD[file_idx]);
   printf ("=========================\n%s: %s -- %ju\n=========================\n",__func__,EKA_PRINT_GRP(&msg->group),msg->gapNum);
   return;
 }
@@ -136,6 +137,7 @@ void onFeedUp(const EfhFeedUpMsg* msg, EfhSecUserData secData, EfhRunUserData us
 
   /* fprintf(md[file_idx],"%s: %s : FeedUp\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str()); */
   fprintf(MD[file_idx],"%s: %s : FeedUp\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str());
+  fflush(MD[file_idx]);
   printf ("=========================\n%s: %s -- %ju\n=========================\n",__func__,EKA_PRINT_GRP(&msg->group),msg->gapNum);
   return;
 }
