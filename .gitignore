@@ -9,5 +9,16 @@
 !apisrc
 !compat
 !lwip
+!src
+!test
+!api
+!apps
+!core
+!Filelists.mk
+!include
+!netif
 !new_api_tests
+!arch
+!CMakeLists.txt
+
 
