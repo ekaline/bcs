@@ -3,6 +3,7 @@
 !*.h
 !*.pl
 !*.txt
+!*.sh
 !Makefile
 !.gitignore
 
