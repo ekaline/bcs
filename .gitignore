@@ -6,4 +6,8 @@
 !*.sh
 !Makefile
 !.gitignore
+!apisrc
+!compat
+!lwip
+!new_api_tests
 
