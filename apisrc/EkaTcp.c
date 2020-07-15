@@ -69,6 +69,7 @@ err_t ekaLwipSend(struct netif *netif, struct pbuf *p) {
   EkaDev* dev    = ((struct LwipNetifState*)netif->state)->pEkaDev;
   uint8_t coreId = ((struct LwipNetifState*)netif->state)->lane;
   if (dev == NULL) return ERR_CLSD;
+  if (dev->core[coreId] == NULL) on_error("dev->core[%u] == NULL",coreId);
 
   if (p == NULL) on_error("struct pbuf *p == NULL");
   if (p->len != p->tot_len) 
@@ -82,19 +83,11 @@ err_t ekaLwipSend(struct netif *netif, struct pbuf *p) {
 					   EKA_TCPH_SRC(pkt),
 					   EKA_IPH_DST(pkt),
 					   EKA_TCPH_DST(pkt));
-    if (tcpSess == NULL) {
-      hexDump("bad pkt from TCP Stack",pkt,p->len);
-      on_error("Unexpected tcsSess: %s:%u --> %s:%u",
-	       EKA_IP2STR(EKA_IPH_SRC(pkt)),
-	       EKA_TCPH_SRC(pkt),
-	       EKA_IP2STR(EKA_IPH_DST(pkt)),
-	       EKA_TCPH_DST(pkt));
+    if (tcpSess != NULL) {
+      tcpSess->sendStackPkt(pkt,p->len);
+      return ERR_OK;
     }
-    tcpSess->sendStackPkt(pkt,p->len);
-    return ERR_OK;
   }
-  //  EKA_LOG("NON TCP PKT!!!!");
-  //  hexDump("NON TCP PKT",pkt,p->len);
   EkaTcpSess* tcpSess = dev->getControlTcpSess(coreId);
   tcpSess->sendFullPkt(pkt,p->len);
   return ERR_OK;
@@ -207,7 +200,9 @@ void ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
 	memcpy(p->payload,pkt,len);
 
 	struct netif* netIf = dev->core[rxCoreId]->pLwipNetIf;
-	netIf->input(p,netIf);
+
+	if (netIf->input(p,netIf) != ERR_OK) 
+	  pbuf_free(p);
       }
     }
   } else {

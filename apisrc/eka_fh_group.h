@@ -210,7 +210,7 @@ class FhBoxGr : public FhGroup{
 
 class FhXdpGr : public FhGroup{
  public:
-  static const uint MAX_STREAMS = 10;
+  static const uint MAX_STREAMS = 16;
   static const uint MAX_UNDERLYINGS = 512;
   static const uint MAX_SERIES = 96000;
 

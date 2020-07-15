@@ -9,6 +9,10 @@ typedef uint16_t       EpmFieldSize;
 //#define EpmMaxRawTcpSize 1536
 #define EpmMaxRawTcpSize 80
 
+#define EpmNumHwFields 16
+#define EpmHwFieldSize 16
+
+
 enum class HwField : uint8_t {
   IMMEDIATE      = 0,
     LOCAL_SEQ    = 1,
@@ -21,7 +25,6 @@ enum class HwField : uint8_t {
     SIDE         = 8,
     TIME         = 9
 };
-
 
 #define EpmHwField2Str(x) \
   x == HwField::IMMEDIATE       ? "IMMEDIATE" : \
@@ -36,7 +39,11 @@ enum class HwField : uint8_t {
     x == HwField::TIME          ? "TIME" : \
     "UNDEFINED"
 
-
+struct EpmHwField {
+  uint8_t cksmEnable[EpmHwFieldSize];
+  uint8_t cksmMSB[EpmHwFieldSize];
+  uint8_t cksmLSB[EpmHwFieldSize];
+} __attribute__((packed));
 
 struct EpmTemplateField {
   EpmFieldName  name;
