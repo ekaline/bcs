@@ -184,6 +184,9 @@ int main(int argc, char *argv[]) {
   std::string clientIp  = gtsRun ? "10.120.115.56" : "10.0.0.110";
   uint16_t serverTcpPort  = 22222;
 
+  TEST_LOG("hostname=%s, gtsRun=%d, tcpServer=%s:%u",
+	   hostname,gtsRun,serverIp.c_str(),serverTcpPort);
+
   std::thread server = std::thread(tcpServer,dev,serverIp,serverTcpPort);
   server.detach();
   
