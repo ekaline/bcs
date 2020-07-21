@@ -170,7 +170,7 @@ int main(int argc, char *argv[]) {
   bool gtsRun = false;
   char hostname[1024] = {};
   gethostname(hostname, 1024);
-  if (strcmp(hostname, "nqxlxavt059d") == 0) gtsRun = true;
+  if (strncmp(hostname, "nqxlxavt059d",6) == 0) gtsRun = true;
 
   EkaDev* dev = NULL;
   EkaCoreId coreId = 0;
@@ -195,14 +195,11 @@ int main(int argc, char *argv[]) {
   EkaCoreInitCtx ekaCoreInitCtx = {
     .coreId = coreId,
     .attrs = {}
-    /*   .host_ip = inet_addr(clientIp.c_str()), */
-    /*   .netmask = inet_addr("255.255.255.0"), */
-    /*   .gateway = inet_addr(clientIp.c_str()), */
-    /*   .nexthop_mac  = {}, //{0x00,0x0F,0x53,0x08,0xED,0xD5}, */
-    /*   .src_mac_addr = {}, //{0x00,0x21,0xB2,0x19,0x0F,0x30}, */
-    /*   .dont_garp    = 0 */
-    /* } */
   };
+
+  char gtsServerMac[6] = {0x00,0x0F,0x53,0x42,0x5a,0x40};
+  if (gtsRun) memcpy (&ekaCoreInitCtx.attrs.nexthop_mac,&gtsServerMac,6);
+
   ekaDevConfigurePort (dev, (const EkaCoreInitCtx*) &ekaCoreInitCtx);
 
   struct sockaddr_in serverAddr = {};
