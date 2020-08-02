@@ -9,6 +9,7 @@
 			(std::regex_search(std::string(x),std::regex("PHLX_TOPO"))  == true) ? EkaSource::kPHLX_TOPO  : \
 			(std::regex_search(std::string(x),std::regex("GEM_TQF"))    == true) ? EkaSource::kGEM_TQF    : \
 			(std::regex_search(std::string(x),std::regex("ISE_TQF"))    == true) ? EkaSource::kISE_TQF    : \
+			(std::regex_search(std::string(x),std::regex("MRX_TQF"))    == true) ? EkaSource::kMRX_TQF    : \
 			(std::regex_search(std::string(x),std::regex("MIAX_TOM"))   == true) ? EkaSource::kMIAX_TOM   : \
 			(std::regex_search(std::string(x),std::regex("PEARL_TOM"))  == true) ? EkaSource::kPEARL_TOM  : \
 			(std::regex_search(std::string(x),std::regex("C1_PITCH"))   == true) ? EkaSource::kC1_PITCH    : \
@@ -24,6 +25,7 @@
   (x == EkaSource::kNOM_ITTO)   ? EfhFeedVer::kNASDAQ :	\
   (x == EkaSource::kGEM_TQF)    ? EfhFeedVer::kGEMX :	\
   (x == EkaSource::kISE_TQF)    ? EfhFeedVer::kGEMX :	\
+  (x == EkaSource::kMRX_TQF)    ? EfhFeedVer::kGEMX :	\
   (x == EkaSource::kARCA_XDP)   ? EfhFeedVer::kXDP :	\
   (x == EkaSource::kAMEX_XDP)   ? EfhFeedVer::kXDP :	\
   (x == EkaSource::kPHLX_TOPO)  ? EfhFeedVer::kPHLX :	\
@@ -42,6 +44,7 @@
   (x == EkaSource::kNOM_ITTO)   ? "NOM_ITTO"   :	   \
   (x == EkaSource::kGEM_TQF)    ? "GEM_TQF"    :	   \
   (x == EkaSource::kISE_TQF)    ? "ISE_TQF"    :	   \
+  (x == EkaSource::kMRX_TQF)    ? "MRX_TQF"    :	   \
   (x == EkaSource::kPHLX_TOPO)  ? "PHLX_TOPO"  :	   \
   (x == EkaSource::kARCA_XDP)   ? "ARCA_XDP"   :	   \
   (x == EkaSource::kAMEX_XDP)   ? "AMEX_XDP"   :	   \
@@ -58,6 +61,7 @@
 				   (x == EkaSource::kNOM_ITTO)   ? "NOM"   : \
 				   (x == EkaSource::kGEM_TQF)    ? "GEM"    : \
 				   (x == EkaSource::kISE_TQF)    ? "ISE"    : \
+				   (x == EkaSource::kMRX_TQF)    ? "MRX"    : \
 				   (x == EkaSource::kPHLX_TOPO)  ? "PHLX"  : \
 				   (x == EkaSource::kARCA_XDP)   ? "ARCA"   : \
 				   (x == EkaSource::kAMEX_XDP)   ? "AMEX"   : \
@@ -75,6 +79,7 @@
   (x == EkaSource::kNOM_ITTO)   ? EfhExchange::kNOM   :	   \
   (x == EkaSource::kGEM_TQF)    ? EfhExchange::kGEM   :	   \
   (x == EkaSource::kISE_TQF)    ? EfhExchange::kISE   :	   \
+  (x == EkaSource::kMRX_TQF)    ? EfhExchange::kMCRY  :	   \
   (x == EkaSource::kPHLX_TOPO)  ? EfhExchange::kPHLX  :	   \
   (x == EkaSource::kMIAX_TOM)   ? EfhExchange::kMIAX  :	   \
   (x == EkaSource::kPEARL_TOM)  ? EfhExchange::kPEARL :	   \

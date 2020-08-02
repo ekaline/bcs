@@ -169,6 +169,7 @@ int EkaFh::openGroups(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
       break;
     case EkaSource::kGEM_TQF:
     case EkaSource::kISE_TQF:
+    case EkaSource::kMRX_TQF:
       b_gr[i] =  new FhGemGr();
       break;
     case EkaSource::kPHLX_TOPO:
@@ -449,6 +450,7 @@ static int closeGap(EkaFhMode op, EfhCtx* pEfhCtx,const EfhRunCtx* pEfhRunCtx,Fh
   case EkaSource::kNOM_ITTO  :
   case EkaSource::kGEM_TQF   :
   case EkaSource::kISE_TQF   :
+  case EkaSource::kMRX_TQF   :
   case EkaSource::kPHLX_TOPO :
     if (op == EkaFhMode::SNAPSHOT) 
       dev->createThread(threadName.c_str(),EkaThreadType::kFeedSnapshot,eka_get_glimpse_data,        (void*)attr,dev->createThreadContext,(uintptr_t*)&gr->snapshot_thread);   
