@@ -4,6 +4,9 @@
 #include <unistd.h>
 #include <string>
 
+
+#define EFH_PITCH_STRIKE_PRICE_SCALE 10
+
 enum class EKA_BATS_PITCH_MSG : uint8_t {
   TIME = 0x20,
     ADD_ORDER_LONG = 0x21,

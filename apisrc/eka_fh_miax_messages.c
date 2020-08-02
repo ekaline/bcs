@@ -26,7 +26,8 @@ bool FhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
   switch (enc) {    
     //--------------------------------------------------------------
   case EKA_MIAX_TOM_MSG::Time : {
-    gr_ts = (((TomCommon*) m)->Timestamp - 5 * 60 * 60) * SEC_TO_NANO; // shifted 5 hours for UTC
+    //    gr_ts = (((TomCommon*) m)->Timestamp - 5 * 60 * 60) * SEC_TO_NANO; // shifted 5 hours for UTC
+    gr_ts = ((TomCommon*) m)->Timestamp * SEC_TO_NANO; 
     return false;
   }
     //--------------------------------------------------------------
