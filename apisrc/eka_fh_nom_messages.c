@@ -76,7 +76,7 @@ bool FhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     s = ((NomBook*)book)->find_security(security_id);
     if (s == NULL) {
       if (!((NomBook*)book)->subscribe_all) return false;
-      s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0);
+      s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
     }
     uint64_t order_id = be64toh(message->order_reference_delta);
     uint32_t size =  (uint32_t) be16toh (message->size);
@@ -94,7 +94,7 @@ bool FhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     s = ((NomBook*)book)->find_security(security_id);
     if (s == NULL) {
       if (!((NomBook*)book)->subscribe_all) return false;
-      s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0);
+      s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
     }
     uint64_t order_id = be64toh(message->order_reference_delta);
     uint32_t size =  be32toh (message->size);
@@ -120,7 +120,7 @@ bool FhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     s = ((NomBook*)book)->find_security(security_id);
     if (s == NULL) {
       if (!((NomBook*)book)->subscribe_all) return false;
-      s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0);
+      s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
       return false;
     }
 
@@ -134,7 +134,7 @@ bool FhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     s = ((NomBook*)book)->find_security(security_id);
     if (s == NULL) {
       if (!((NomBook*)book)->subscribe_all) return false;
-      s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0);
+      s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
     }
 
     prev_s.set(s);
@@ -151,7 +151,7 @@ bool FhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
 
     if (s == NULL) {
       if (!((NomBook*)book)->subscribe_all) return false;
-      s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0);
+      s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
     }
     uint64_t bid_order_id = be64toh(message->bid_reference_delta);
     uint32_t bid_price    = be32toh(message->bid_price) / EFH_PRICE_SCALE;
@@ -173,7 +173,7 @@ bool FhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     s = ((NomBook*)book)->find_security(security_id);
     if (s == NULL) {
       if (!((NomBook*)book)->subscribe_all) return false;
-      s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0);
+      s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
     }
 
     uint64_t bid_order_id =            be64toh(message->bid_reference_delta);
@@ -409,7 +409,7 @@ bool FhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     uint32_t security_id = be32toh(message->option_id);
     s = ((NomBook*)book)->find_security(security_id);
     if (s == NULL && !((NomBook*)book)->subscribe_all) return false;
-    if (s == NULL && ((NomBook*)book)->subscribe_all) s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0);
+    if (s == NULL && ((NomBook*)book)->subscribe_all) s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
 
     const EfhTradeMsg msg = {
       { EfhMsgType::kTrade,

@@ -120,6 +120,7 @@ extern "C" {
              _x( NOM_ITTO    )				\
              _x( GEM_TQF     )				\
              _x( ISE_TQF     )				\
+             _x( MRX_TQF     )				\
              _x( PHLX_TOPO   )				\
              _x( MIAX_TOM    )				\
              _x( PEARL_TOM   )				\

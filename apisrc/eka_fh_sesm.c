@@ -84,22 +84,20 @@ static bool getLoginResponse(FhMiaxGr* gr) {
 }
 
 /* ##################################################################### */
-static void sendRequest(FhMiaxGr* gr, EkaFhMode op) {
+static void sendRequest(FhMiaxGr* gr, char refreshType) {
   EkaDev* dev = gr->dev;
 
   struct miax_request def_request_msg = {};
   def_request_msg.header.length = sizeof(struct miax_request) - sizeof(def_request_msg.header.length);
   def_request_msg.header.type = 'U';  // Unsequenced
   def_request_msg.request_type = 'R'; // Refresh
-  def_request_msg.refresh_type = 
-    op == EkaFhMode::DEFINITIONS ? 'P' : // Simple Series Update Refresh
-    'Q';                                 // Simple Top of Market Refresh
+  def_request_msg.refresh_type = refreshType;
 
   //  hexDump("MIAX definitions request",(char*) &def_request_msg,sizeof(struct miax_request));
 #ifndef FH_LAB
   if(send(gr->recovery_sock,&def_request_msg,sizeof(def_request_msg), 0) < 0) on_error("SESM Request send failed");
 #endif
-  EKA_LOG("%s:%u %s Request sent",EKA_EXCH_DECODE(gr->exch),gr->id, op == EkaFhMode::DEFINITIONS ? "Definitions" : "Snapshot");
+  EKA_LOG("%s:%u \'%c\' Request sent",EKA_EXCH_DECODE(gr->exch),gr->id, refreshType);
   return;
 }
 
@@ -313,15 +311,32 @@ void* eka_get_sesm_data(void* attr) {
   sendLogin(gr);
   //-----------------------------------------------------------------
   getLoginResponse(gr);
-  //-----------------------------------------------------------------
-  sendRequest(gr,op);
-  //-----------------------------------------------------------------
 
   gr->snapshot_active = true;
+  //-----------------------------------------------------------------
+  if (op == EkaFhMode::DEFINITIONS) { 
+    sendRequest(gr,'P');
+    while (gr->snapshot_active) { 
+      if (procSesm(pEfhCtx,pEfhRunCtx,gr->recovery_sock,gr,op)) break;
+    } 
+  } else { // SNAPSHOT
+    sendRequest(gr,'S'); // System State Refresh
+    while (gr->snapshot_active) { 
+      if (procSesm(pEfhCtx,pEfhRunCtx,gr->recovery_sock,gr,op)) break;
+    } 
 
-  while (gr->snapshot_active) { 
-    if (procSesm(pEfhCtx,pEfhRunCtx,gr->recovery_sock,gr,op)) break;
-  } 
+    sendRequest(gr,'U'); // Underlying Trading Status Refresh
+    while (gr->snapshot_active) { 
+      if (procSesm(pEfhCtx,pEfhRunCtx,gr->recovery_sock,gr,op)) break;
+    } 
+
+    sendRequest(gr,'Q'); // Simple Top of Market Refresh
+    while (gr->snapshot_active) { 
+      if (procSesm(pEfhCtx,pEfhRunCtx,gr->recovery_sock,gr,op)) break;
+    } 
+
+  }
+  //-------------------------------------------------------
   gr->gapClosed = true;
 
   //-------------------------------------------------------

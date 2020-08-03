@@ -152,8 +152,8 @@ EfhOptionType getOptionType(char* c) {
 
 /* ----------------------------------------------------------------------- */
 uint64_t getMonth(char* c, EfhOptionType optType) {
-  if (optType == EfhOptionType::kCall) return c[6] - 'A';
-  return c[6] - 'M';
+  if (optType == EfhOptionType::kCall) return c[6] - 'A' + 1;
+  return c[6] - 'M' + 1;
 }
 /* ----------------------------------------------------------------------- */
 uint64_t getYear(char* c) {
@@ -299,7 +299,7 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     msg.optionType            = getOptionType(symb);
     msg.expiryDate            = (2000 + getYear(symb)) * 10000 + getMonth(symb,msg.optionType) * 100 + getDay(symb);
     msg.contractSize          = 0;
-    msg.strikePrice           = getNumField<uint32_t>(&symb[8],7) / EFH_HSV_BOX_STRIKE_PRICE_SCALE;
+    msg.strikePrice           = getNumField<uint32_t>(&symb[8],7) * getFractionIndicator(symb[15]) / EFH_HSV_BOX_STRIKE_PRICE_SCALE;
     msg.exchange              = EfhExchange::kBOX;
 
     memcpy (&msg.classSymbol,boxMsg->UnderlyingSymbolRoot,std::min(sizeof(msg.classSymbol),sizeof(boxMsg->UnderlyingSymbolRoot)));
@@ -327,7 +327,7 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     s = ((TobBook*)book)->find_security64(security_id);
     if (s == NULL && !((TobBook*)book)->subscribe_all) return false;
     if (s == NULL && book->subscribe_all) 
-      s = book->subscribe_security64(security_id,0,0);
+      s = book->subscribe_security64(security_id,0,0,0,0);
 
     if (s == NULL) on_error("s == NULL");
     s->bid_price     = getNumField<uint32_t>(boxMsg->BidPrice,sizeof(boxMsg->BidPrice)) * getFractionIndicator(boxMsg->BidPriceFractionIndicator);

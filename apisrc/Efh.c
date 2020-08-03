@@ -34,6 +34,7 @@ EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhI
     break;
   case EkaSource::kGEM_TQF:
   case EkaSource::kISE_TQF:
+  case EkaSource::kMRX_TQF:
     dev->fh[fhId] = new FhGem();
     break;
   case EkaSource::kPHLX_TOPO:

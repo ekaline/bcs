@@ -169,6 +169,7 @@ int EkaFh::openGroups(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
       break;
     case EkaSource::kGEM_TQF:
     case EkaSource::kISE_TQF:
+    case EkaSource::kMRX_TQF:
       b_gr[i] =  new FhGemGr();
       break;
     case EkaSource::kPHLX_TOPO:
@@ -237,9 +238,9 @@ FhGroup* EkaFh::nextGrToProcess(uint first, uint numGroups) {
 EkaOpResult EkaFh::subscribeStaticSecurity(uint8_t groupNum, uint64_t securityId, EfhSecurityType efhSecurityType,EfhSecUserData efhSecUserData,uint64_t opaqueAttrA,uint64_t opaqueAttrB) {
   if (groupNum >= groups) on_error("groupNum (%u) >= groups (%u)",groupNum,groups);
   if (exch == EkaSource::kBOX_HSVF)
-    b_gr[groupNum]->book->subscribe_security64 (securityId, static_cast< uint8_t >( efhSecurityType ), efhSecUserData);
+    b_gr[groupNum]->book->subscribe_security64 (securityId, static_cast< uint8_t >( efhSecurityType ), efhSecUserData,opaqueAttrA,opaqueAttrB);
   else
-    b_gr[groupNum]->book->subscribe_security (securityId, static_cast< uint8_t >( efhSecurityType ), efhSecUserData);
+    b_gr[groupNum]->book->subscribe_security (securityId, static_cast< uint8_t >( efhSecurityType ), efhSecUserData,opaqueAttrA,opaqueAttrB);
   return EKA_OPRESULT__OK;
 }
  /* ##################################################################### */
@@ -449,6 +450,7 @@ static int closeGap(EkaFhMode op, EfhCtx* pEfhCtx,const EfhRunCtx* pEfhRunCtx,Fh
   case EkaSource::kNOM_ITTO  :
   case EkaSource::kGEM_TQF   :
   case EkaSource::kISE_TQF   :
+  case EkaSource::kMRX_TQF   :
   case EkaSource::kPHLX_TOPO :
     if (op == EkaFhMode::SNAPSHOT) 
       dev->createThread(threadName.c_str(),EkaThreadType::kFeedSnapshot,eka_get_glimpse_data,        (void*)attr,dev->createThreadContext,(uintptr_t*)&gr->snapshot_thread);   
@@ -1135,9 +1137,10 @@ EkaOpResult FhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
   
   initGroups(pEfhCtx, pEfhRunCtx, runGr);
 
-  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s:%u GROUPS ~~~~~~~~~~~~~",EKA_EXCH_DECODE(exch),(uint)pEfhRunCtx->numGroups);
+  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u with %u Fh Groups (%u..%u) ~~~~~~~~~~~~~",
+	    EKA_EXCH_DECODE(exch),runGr->runId, runGr->numGr,runGr->firstGr,runGr->firstGr+runGr->numGr);
 
-  for (uint8_t i = runGr->firstGr; i < runGr->numGr; i++) {
+  for (uint8_t i = runGr->firstGr; i < runGr->firstGr + runGr->numGr; i++) {
       EfhFeedDownMsg efhFeedDownMsg{ EfhMsgType::kFeedDown, {b_gr[i]->exch, (EkaLSI)b_gr[i]->id}, ++b_gr[i]->gapNum };
       pEfhRunCtx->onEfhFeedDownMsgCb(&efhFeedDownMsg, 0, pEfhRunCtx->efhRunUserData);
       ((FhXdpGr*)b_gr[i])->inGap = true;

@@ -404,7 +404,7 @@ fh_b_security* fh_book::find_security(uint32_t security_id) {
       uint64_t duration_ns = (uint64_t) std::chrono::duration_cast<std::chrono::nanoseconds>(finish-start).count();
       if (duration_ns > 50000) EKA_WARN("WARNING: MISS processing took %ju ns with ll_hops = %u",duration_ns,ll_hops);
 #endif
-  if (subscribe_all) return  subscribe_security(security_id,0,0);   // internal test case
+  if (subscribe_all) return  subscribe_security(security_id,0,0,0,0);   // internal test case
   return NULL;
 }
 
@@ -435,11 +435,11 @@ fh_b_security64* fh_book::find_security64(uint64_t security_id) {
       uint64_t duration_ns = (uint64_t) std::chrono::duration_cast<std::chrono::nanoseconds>(finish-start).count();
       if (duration_ns > 50000) EKA_WARN("WARNING: MISS processing took %ju ns with ll_hops = %u",duration_ns,ll_hops);
 #endif
-  if (subscribe_all) return  subscribe_security64(security_id,0,0);   // internal test case
+  if (subscribe_all) return  subscribe_security64(security_id,0,0,0,0);   // internal test case
   return NULL;
 }
 
-fh_b_security::fh_b_security(uint32_t secid, uint8_t secType, uint64_t userData) {
+fh_b_security::fh_b_security(uint32_t secid, uint8_t secType, uint64_t userData,uint64_t opaqueAttrA,uint64_t opaqueAttrB) {
   security_id = secid;
   type = secType;
   efhUserData = userData;
@@ -469,11 +469,12 @@ fh_b_security::fh_b_security(uint32_t secid, uint8_t secType, uint64_t userData)
   ask_bd_size = 0;
   ask_price = 0;
 
+  underlyingIdx = opaqueAttrB;
   return;
 }
 
 
-fh_b_security64::fh_b_security64(uint64_t secid, uint8_t secType, uint64_t userData) {
+fh_b_security64::fh_b_security64(uint64_t secid, uint8_t secType, uint64_t userData,uint64_t opaqueAttrA,uint64_t opaqueAttrB) {
   security_id = secid;
   type = secType;
   efhUserData = userData;
@@ -503,14 +504,16 @@ fh_b_security64::fh_b_security64(uint64_t secid, uint8_t secType, uint64_t userD
   ask_bd_size = 0;
   ask_price = 0;
 
+  underlyingIdx = opaqueAttrB;
+
   return;
 }
 
-fh_b_security*  fh_book::subscribe_security (uint32_t secid, uint8_t type, uint64_t userData) {
+fh_b_security*  fh_book::subscribe_security (uint32_t secid, uint8_t type, uint64_t userData,uint64_t opaqueAttrA,uint64_t opaqueAttrB) {
 /* #if 1 */
 /*   EKA_LOG("GR%u: security_id=%d, subscribe_all=%u, total_securities=%u",id,secid,subscribe_all,total_securities); */
 /* #endif */
-  fh_b_security* s = new fh_b_security(secid,type,userData);
+  fh_b_security* s = new fh_b_security(secid,type,userData,opaqueAttrA,opaqueAttrB);
   if (s == NULL) on_error("constructor failed");
 
   uint32_t index = secid & EKA_FH_SEC_HASH_MASK;
@@ -527,11 +530,11 @@ fh_b_security*  fh_book::subscribe_security (uint32_t secid, uint8_t type, uint6
   return s;
 }
 
-fh_b_security64*  fh_book::subscribe_security64 (uint64_t secid, uint8_t type, uint64_t userData) {
+fh_b_security64*  fh_book::subscribe_security64 (uint64_t secid, uint8_t type, uint64_t userData,uint64_t opaqueAttrA,uint64_t opaqueAttrB) {
 /* #if 1 */
 /*   EKA_LOG("GR%u: security_id=%d, subscribe_all=%u, total_securities=%u",id,secid,subscribe_all,total_securities); */
 /* #endif */
-  fh_b_security64* s = new fh_b_security64(secid,type,userData);
+  fh_b_security64* s = new fh_b_security64(secid,type,userData,opaqueAttrA,opaqueAttrB);
   if (s == NULL) on_error("constructor failed");
 
   uint32_t index = secid & EKA_FH_SEC_HASH_MASK;

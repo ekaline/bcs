@@ -103,7 +103,8 @@ bool FhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     memcpy(strike_price_str,&osi[13],8);
     strike_price_str[8] = '\0';
 
-    msg.strikePrice           = strtoull(strike_price_str,NULL,10) / EFH_STRIKE_PRICE_SCALE;
+    //    msg.strikePrice           = strtoull(strike_price_str,NULL,10) / EFH_STRIKE_PRICE_SCALE;
+    msg.strikePrice           = strtoull(strike_price_str,NULL,10) * EFH_PITCH_STRIKE_PRICE_SCALE; // per Ken's request
     msg.exchange              = EKA_GRP_SRC2EXCH(exch);
 
     msg.optionType            = osi[12] == 'C' ?  EfhOptionType::kCall : EfhOptionType::kPut;
@@ -146,7 +147,7 @@ bool FhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     s = ((BatsBook*)book)->find_security(security_id);
     if (s == NULL) {
       if (!((BatsBook*)book)->subscribe_all) return false;
-      s = ((BatsBook*)book)->subscribe_security(security_id,0,0);
+      s = ((BatsBook*)book)->subscribe_security(security_id,0,0,0,0);
     }
     prev_s.set(s);
 
@@ -165,7 +166,7 @@ bool FhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     s = ((BatsBook*)book)->find_security(security_id);
     if (s == NULL) {
       if (!((BatsBook*)book)->subscribe_all) return false;
-      s = ((BatsBook*)book)->subscribe_security(security_id,0,0);
+      s = ((BatsBook*)book)->subscribe_security(security_id,0,0,0,0);
     }
     prev_s.set(s);
 
@@ -304,7 +305,7 @@ bool FhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     assert (security_id == s->security_id); // sanity check
 
     if (s == NULL && !((BatsBook*)book)->subscribe_all) return false;
-    if (s == NULL && ((BatsBook*)book)->subscribe_all) s = ((BatsBook*)book)->subscribe_security(security_id,0,0);
+    if (s == NULL && ((BatsBook*)book)->subscribe_all) s = ((BatsBook*)book)->subscribe_security(security_id,0,0,0,0);
 
     uint32_t price = (uint32_t) message->price * 100 / EFH_PRICE_SCALE; // Short Price representation
     uint32_t size =  (uint32_t) message->size;
@@ -340,7 +341,7 @@ bool FhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     assert (security_id == s->security_id); // sanity check
 
     if (s == NULL && !((BatsBook*)book)->subscribe_all) return false;
-    if (s == NULL && ((BatsBook*)book)->subscribe_all) s = ((BatsBook*)book)->subscribe_security(security_id,0,0);
+    if (s == NULL && ((BatsBook*)book)->subscribe_all) s = ((BatsBook*)book)->subscribe_security(security_id,0,0,0,0);
 
     uint32_t price = (uint32_t) ((message->price / EFH_PRICE_SCALE) & 0x00000000FFFFFFFF); // Long Price representation
     if (((message->price / EFH_PRICE_SCALE) & 0xFFFFFFFF00000000) != 0) on_error("Long price(%ju) exceeds 32bit",message->price);

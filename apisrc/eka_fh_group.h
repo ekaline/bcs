@@ -100,7 +100,7 @@ class FhGroup {
 
   char                  line[2]; // used for BOX
 
-  bool                  market_open; // used for BATS
+  bool                  market_open; // used for BATS & MIAX
 
   /* std::thread           snapshot_thread; */
   /* std::thread           retransmit_thread; */
@@ -210,7 +210,7 @@ class FhBoxGr : public FhGroup{
 
 class FhXdpGr : public FhGroup{
  public:
-  static const uint MAX_STREAMS = 10;
+  static const uint MAX_STREAMS = 16;
   static const uint MAX_UNDERLYINGS = 512;
   static const uint MAX_SERIES = 96000;
 
