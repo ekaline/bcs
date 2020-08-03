@@ -81,7 +81,7 @@ bool FhPhlxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     uint32_t security_id = long_form ? be32toh(message_long->option_id) : be32toh(message_short->option_id);
     fh_b_security* s = book->find_security(security_id);
     if (s == NULL && !book->subscribe_all) return false;
-    if (s == NULL && book->subscribe_all) s = book->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0);
+    if (s == NULL && book->subscribe_all) s = book->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
 
     if (ts < s->bid_ts && ts < s->ask_ts) return false; // Back-in-time from Recovery
 
@@ -112,7 +112,7 @@ bool FhPhlxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     uint32_t security_id = long_form ? be32toh(message_long->option_id) : be32toh(message_short->option_id);
     fh_b_security* s = book->find_security(security_id);
     if (s == NULL && !book->subscribe_all) return false;
-    if (s == NULL && book->subscribe_all) s = book->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0);
+    if (s == NULL && book->subscribe_all) s = book->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
 
     if (enc == 'B' || enc == 'b') {
       if (ts < s->bid_ts) return false; // Back-in-time from Recovery
@@ -136,7 +136,7 @@ bool FhPhlxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     uint32_t security_id = be32toh(message->option_id);
     fh_b_security* s = book->find_security(security_id);
     if (s == NULL && !book->subscribe_all) return false;
-    if (s == NULL && book->subscribe_all) s = book->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0);
+    if (s == NULL && book->subscribe_all) s = book->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
 
     EfhTradeMsg msg = {};
     msg.header.msgType        = EfhMsgType::kTrade;

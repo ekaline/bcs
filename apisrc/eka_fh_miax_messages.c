@@ -60,6 +60,9 @@ bool FhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     memcpy (&msg.underlying, message->UnderlyingSymbol,std::min(sizeof(msg.underlying), sizeof(message->UnderlyingSymbol)));
     memcpy (&msg.classSymbol,message->SecuritySymbol,  std::min(sizeof(msg.classSymbol),sizeof(message->SecuritySymbol)));
 
+    uint underlyingIdx = book->addUnderlying(msg.classSymbol, sizeof(msg.classSymbol));
+    msg.opaqueAttrB = (uint64_t)underlyingIdx;
+
     /* EKA_TRACE("UnderlyingSymbol = %s, SecuritySymbol = %s,  message->Expiration = %s = %u,  message->security_id = %ju", */
     /* 	      (std::string(message->UnderlyingSymbol,sizeof(message->UnderlyingSymbol))).c_str(), */
     /* 	      (std::string(message->SecuritySymbol,sizeof(message->SecuritySymbol))).c_str(), */
@@ -78,6 +81,19 @@ bool FhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     if (((TomSystemState*)m)->SystemStatus == 'C') market_open = false;
     return false;
     //--------------------------------------------------------------
+  case EKA_MIAX_TOM_MSG::UnderlyingTradingStatus : {
+    
+    char name2print[16] = {};
+    memcpy(name2print,((TomUnderlyingTradingStatus*)m)->underlying,sizeof(((TomUnderlyingTradingStatus*)m)->underlying));
+    int underlIdx = book->findUnderlying(((TomUnderlyingTradingStatus*)m)->underlying,
+					 std::min(sizeof(((TomUnderlyingTradingStatus*)m)->underlying),sizeof(EfhSymbol)));
+    if (underlIdx < 0) on_error("Underlying %s is not found",name2print);
+    book->underlying[underlIdx]->tradeStatus = ((TomUnderlyingTradingStatus*)m)->trading_status == 'H' ? EfhTradeStatus::kHalted : EfhTradeStatus::kNormal;
+
+    EKA_LOG("UnderlyingTradingStatus of %s : \'%c\'", name2print,((TomUnderlyingTradingStatus*)m)->trading_status);
+    return false;
+  }
+    //--------------------------------------------------------------
   case EKA_MIAX_TOM_MSG::BestBidShort : 
   case EKA_MIAX_TOM_MSG::BestAskShort : 
   case EKA_MIAX_TOM_MSG::BestBidLong : 
@@ -91,7 +107,11 @@ bool FhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
 
     fh_b_security* s = book->find_security(security_id);
     if (s == NULL && !book->subscribe_all) return false;
-    if (s == NULL &&  book->subscribe_all) s = book->subscribe_security(security_id,0,0);
+    if (s == NULL &&  book->subscribe_all) s = book->subscribe_security(security_id,0,0,0,0);
+
+    if (s == NULL) on_error("s == NULL");    
+    if (book->underlying[s->underlyingIdx] == NULL)
+      on_error("underlying[%u] == NULL",s->underlyingIdx);
 
     if (enc == EKA_MIAX_TOM_MSG::BestBidShort || enc == EKA_MIAX_TOM_MSG::BestBidLong) {
       //      if (ts < s->bid_ts) return false; // Back-in-time from Recovery
@@ -107,7 +127,9 @@ bool FhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
       s->ask_ts = ts;
     }
     bool setHalted = long_form ? message_long->condition == 'T' : message_short->condition == 'T';
-    s->trading_action = setHalted ? EfhTradeStatus::kHalted : EfhTradeStatus::kNormal;
+    //    s->trading_action = setHalted ? EfhTradeStatus::kHalted : EfhTradeStatus::kNormal;
+    s->trading_action = setHalted ? EfhTradeStatus::kHalted : book->underlying[s->underlyingIdx]->tradeStatus;
+
     s->option_open = market_open;
     tob_s = s;
     break;
@@ -126,7 +148,11 @@ bool FhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     uint32_t security_id = long_form ? message_long->security_id : message_short->security_id;
     fh_b_security* s = book->find_security(security_id);
     if (s == NULL && !book->subscribe_all) return false;
-    if (s == NULL && book->subscribe_all) s = book->subscribe_security(security_id,0,0);
+    if (s == NULL && book->subscribe_all) s = book->subscribe_security(security_id,0,0,0,0);
+
+    if (s == NULL) on_error("s == NULL");    
+    if (book->underlying[s->underlyingIdx] == NULL)
+      on_error("underlying[%u] == NULL",s->underlyingIdx);
 
     //    if (ts < s->bid_ts && ts < s->ask_ts) return false; // Back-in-time from Recovery
 
@@ -144,7 +170,8 @@ bool FhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
       s->ask_ts         = ts;
       setHalted         = long_form ? message_long->ask_condition == 'T' : message_short->ask_condition == 'T';
     }
-    s->trading_action = setHalted ? EfhTradeStatus::kHalted : EfhTradeStatus::kNormal;
+    //    s->trading_action = setHalted ? EfhTradeStatus::kHalted : EfhTradeStatus::kNormal;
+    s->trading_action = setHalted ? EfhTradeStatus::kHalted : book->underlying[s->underlyingIdx]->tradeStatus;
     s->option_open = market_open;
     tob_s = s;
     break;
@@ -156,7 +183,7 @@ bool FhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     uint32_t security_id = message->security_id;
     fh_b_security* s = book->find_security(security_id);
     if (s == NULL && !book->subscribe_all) return false;
-    if (s == NULL && book->subscribe_all) s = book->subscribe_security(security_id,0,0);
+    if (s == NULL && book->subscribe_all) s = book->subscribe_security(security_id,0,0,0,0);
 
     EfhTradeMsg msg = {};
     msg.header.msgType        = EfhMsgType::kTrade;
@@ -173,9 +200,6 @@ bool FhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
     return false;
   }
-    //--------------------------------------------------------------
-  case EKA_MIAX_TOM_MSG::UnderlyingTradingStatus:
-    return false;
     //--------------------------------------------------------------
   case EKA_MIAX_TOM_MSG::EndOfRefresh : 
     EKA_LOG("%s:%u End Of Refresh of \'%c\' Request",EKA_EXCH_DECODE(exch),id,m[1]);

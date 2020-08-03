@@ -327,7 +327,7 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     s = ((TobBook*)book)->find_security64(security_id);
     if (s == NULL && !((TobBook*)book)->subscribe_all) return false;
     if (s == NULL && book->subscribe_all) 
-      s = book->subscribe_security64(security_id,0,0);
+      s = book->subscribe_security64(security_id,0,0,0,0);
 
     if (s == NULL) on_error("s == NULL");
     s->bid_price     = getNumField<uint32_t>(boxMsg->BidPrice,sizeof(boxMsg->BidPrice)) * getFractionIndicator(boxMsg->BidPriceFractionIndicator);

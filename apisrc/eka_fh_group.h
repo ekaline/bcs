@@ -100,7 +100,7 @@ class FhGroup {
 
   char                  line[2]; // used for BOX
 
-  bool                  market_open; // used for BATS
+  bool                  market_open; // used for BATS & MIAX
 
   /* std::thread           snapshot_thread; */
   /* std::thread           retransmit_thread; */

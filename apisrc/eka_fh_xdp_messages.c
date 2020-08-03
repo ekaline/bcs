@@ -25,7 +25,7 @@ bool FhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     fh_b_security* s = book->find_security(msg->SeriesIndex);
     if (s == NULL) {
       if (! book->subscribe_all) return false;
-      s = book->subscribe_security(msg->SeriesIndex & 0x00000000FFFFFFFF,0,0);
+      s = book->subscribe_security(msg->SeriesIndex & 0x00000000FFFFFFFF,0,0,0,0);
     }
 
     /* s->seconds       = msg->time.SourceTime; */

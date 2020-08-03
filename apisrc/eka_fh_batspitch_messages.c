@@ -147,7 +147,7 @@ bool FhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     s = ((BatsBook*)book)->find_security(security_id);
     if (s == NULL) {
       if (!((BatsBook*)book)->subscribe_all) return false;
-      s = ((BatsBook*)book)->subscribe_security(security_id,0,0);
+      s = ((BatsBook*)book)->subscribe_security(security_id,0,0,0,0);
     }
     prev_s.set(s);
 
@@ -166,7 +166,7 @@ bool FhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     s = ((BatsBook*)book)->find_security(security_id);
     if (s == NULL) {
       if (!((BatsBook*)book)->subscribe_all) return false;
-      s = ((BatsBook*)book)->subscribe_security(security_id,0,0);
+      s = ((BatsBook*)book)->subscribe_security(security_id,0,0,0,0);
     }
     prev_s.set(s);
 
@@ -305,7 +305,7 @@ bool FhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     assert (security_id == s->security_id); // sanity check
 
     if (s == NULL && !((BatsBook*)book)->subscribe_all) return false;
-    if (s == NULL && ((BatsBook*)book)->subscribe_all) s = ((BatsBook*)book)->subscribe_security(security_id,0,0);
+    if (s == NULL && ((BatsBook*)book)->subscribe_all) s = ((BatsBook*)book)->subscribe_security(security_id,0,0,0,0);
 
     uint32_t price = (uint32_t) message->price * 100 / EFH_PRICE_SCALE; // Short Price representation
     uint32_t size =  (uint32_t) message->size;
@@ -341,7 +341,7 @@ bool FhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     assert (security_id == s->security_id); // sanity check
 
     if (s == NULL && !((BatsBook*)book)->subscribe_all) return false;
-    if (s == NULL && ((BatsBook*)book)->subscribe_all) s = ((BatsBook*)book)->subscribe_security(security_id,0,0);
+    if (s == NULL && ((BatsBook*)book)->subscribe_all) s = ((BatsBook*)book)->subscribe_security(security_id,0,0,0,0);
 
     uint32_t price = (uint32_t) ((message->price / EFH_PRICE_SCALE) & 0x00000000FFFFFFFF); // Long Price representation
     if (((message->price / EFH_PRICE_SCALE) & 0xFFFFFFFF00000000) != 0) on_error("Long price(%ju) exceeds 32bit",message->price);

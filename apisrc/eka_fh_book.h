@@ -85,7 +85,7 @@ class fh_b_security_state {
 
 class fh_b_security {
  public:
-  fh_b_security(uint32_t secid, uint8_t secType, uint64_t userData);
+  fh_b_security(uint32_t secid, uint8_t secType, uint64_t userData,uint64_t opaqueAttrA,uint64_t opaqueAttrB);
 
   fh_b_plevel*   buy;
   fh_b_plevel*   sell;
@@ -124,12 +124,14 @@ class fh_b_security {
 
   uint32_t	ask_price;
 
+  uint          underlyingIdx = (uint)-1;
+
  private:
 };
 
 class fh_b_security64 {
  public:
-  fh_b_security64(uint64_t secid, uint8_t secType, uint64_t userData);
+  fh_b_security64(uint64_t secid, uint8_t secType, uint64_t userData,uint64_t opaqueAttrA,uint64_t opaqueAttrB);
 
   fh_b_plevel*   buy;
   fh_b_plevel*   sell;
@@ -168,27 +170,66 @@ class fh_b_security64 {
 
   uint32_t	ask_price;
 
+  uint          underlyingIdx = (uint)-1;
+
  private:
 };
 
 class EkaDev;
  /* ##################################################################### */
 
+class Underlying {
+ public:
+  Underlying(char* _name,size_t size) {
+    memset(name,0,sizeof(name));
+    memcpy(name,_name,size);
+    tradeStatus = EfhTradeStatus::kNormal;
+  }
+  
+  EfhSymbol name = {};
+  EfhTradeStatus tradeStatus = EfhTradeStatus::kNormal;
+};
+
+ /* ##################################################################### */
+
 class FhGroup;
 
 class fh_book {
  public:
-
+  static const uint UndelyingsPerGroup = 2048;
+  
+  
   fh_book (EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx,FhGroup* gr);
   virtual int     init() = 0;
 
   fh_b_security*  find_security(uint32_t security_id);
   fh_b_security64*  find_security64(uint64_t security_id);
-  fh_b_security*  subscribe_security (uint32_t secid, uint8_t type, uint64_t userData);
-  fh_b_security64*  subscribe_security64 (uint64_t secid, uint8_t type, uint64_t userData);
+  fh_b_security*  subscribe_security (uint32_t secid, uint8_t type, uint64_t userData,uint64_t opaqueAttrA,uint64_t opaqueAttrB);
+  fh_b_security64*  subscribe_security64 (uint64_t secid, uint8_t type, uint64_t userData,uint64_t opaqueAttrA,uint64_t opaqueAttrB);
   virtual int generateOnQuote(const EfhRunCtx* pEfhRunCtx, fh_b_security* s, uint64_t sequence, uint64_t timestamp,uint gapNum) = 0;
   virtual int generateOnQuote64(const EfhRunCtx* pEfhRunCtx, fh_b_security64* s, uint64_t sequence, uint64_t timestamp,uint gapNum) = 0;
 
+  inline int findUnderlying(char* name, size_t size) {
+    for (int i = 0; i < (int)underlyingNum; i ++) {
+      if (memcmp(underlying[i]->name,name,size) == 0) return i;
+    }
+    return -1;
+  }
+
+  inline uint addUnderlying(char* name, size_t size) {
+    int u = findUnderlying(name,size);
+    if (u >= 0) return (uint)u;
+
+    if (underlyingNum == UndelyingsPerGroup) 
+      on_error("cannot add %s to gr %u: underlyingNum=%u",name,id,underlyingNum);
+
+    uint newUnderlying = underlyingNum++;
+
+    underlying[newUnderlying] = new Underlying(name,size);
+    if (underlying[newUnderlying] == NULL) on_error("cannot create new Underlying %s",name);
+
+    return newUnderlying;
+  }
 
   //----------------------------------------------------------
 
@@ -201,14 +242,17 @@ class fh_book {
 
   EfhFeedVer            feed_ver;
   EkaSource             exch;
-  FhGroup*           gr; 
+  FhGroup*              gr; 
 
   uint32_t              total_securities;
 
   EkaDev*               dev;
 
   fh_b_security*        sec[EKA_FH_SEC_HASH_LINES]; // array of pointers to the securities
-  fh_b_security64*        sec64[EKA_FH_SEC_HASH_LINES]; // array of pointers to the securities
+  fh_b_security64*      sec64[EKA_FH_SEC_HASH_LINES]; // array of pointers to the securities
+
+  Underlying*           underlying[UndelyingsPerGroup] = {};
+  uint                  underlyingNum = 0;
 
  private:
   static const uint64_t MAX_ORDERS = 0;
