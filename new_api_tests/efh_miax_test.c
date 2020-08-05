@@ -427,8 +427,8 @@ int main(int argc, char *argv[]) {
 
   for (int i = 0; i < (int)std::size(miaxGroups); i++) {
     TEST_LOG("gr %d:",i);
-    for (uint u = 0; u < pEkaDev->fh[0]->b_gr[u]->book->underlyingNum; u++) {
-      TEST_LOG("%3d: \'%s\'",u,pEkaDev->fh[0]->b_gr[u]->book->underlying[u]->name);
+    for (uint u = 0; u < pEkaDev->fh[0]->b_gr[i]->book->underlyingNum; u++) {
+      TEST_LOG("%3d: \'%s\'",u,pEkaDev->fh[0]->b_gr[i]->book->underlying[u]->name);
     }
   }
 
