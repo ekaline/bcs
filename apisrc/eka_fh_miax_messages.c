@@ -87,7 +87,18 @@ bool FhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     memcpy(name2print,((TomUnderlyingTradingStatus*)m)->underlying,sizeof(((TomUnderlyingTradingStatus*)m)->underlying));
     int underlIdx = book->findUnderlying(((TomUnderlyingTradingStatus*)m)->underlying,
 					 std::min(sizeof(((TomUnderlyingTradingStatus*)m)->underlying),sizeof(EfhSymbol)));
-    if (underlIdx < 0) on_error("Underlying %s is not found",name2print);
+    if (underlIdx < 0) {
+      EKA_LOG("%s:%u %s (size = %u) is not found in Underlyings dictionary (size used forr memcmp = %u:",
+	      EKA_EXCH_DECODE(exch),id,name2print,sizeof(((TomUnderlyingTradingStatus*)m)->underlying),
+	      std::min(sizeof(((TomUnderlyingTradingStatus*)m)->underlying),sizeof(EfhSymbol))
+	      );
+
+      for (uint u = 0; u < book->underlyingNum; u++) {
+	EKA_LOG("%3d: %16s",u,book->underlying[u]->name);
+      }
+      on_error("Underlying %s is not found",name2print);
+    }
+
     book->underlying[underlIdx]->tradeStatus = ((TomUnderlyingTradingStatus*)m)->trading_status == 'H' ? EfhTradeStatus::kHalted : EfhTradeStatus::kNormal;
 
     EKA_LOG("UnderlyingTradingStatus of %s : \'%c\'", name2print,((TomUnderlyingTradingStatus*)m)->trading_status);
