@@ -88,13 +88,23 @@ bool FhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     int underlIdx = book->findUnderlying(((TomUnderlyingTradingStatus*)m)->underlying,
 					 std::min(sizeof(((TomUnderlyingTradingStatus*)m)->underlying),sizeof(EfhSymbol)));
     if (underlIdx < 0) {
-      EKA_LOG("%s:%u \'%s\' (size = %u) is not found in Underlyings dictionary (size used forr memcmp = %u:",
-	      EKA_EXCH_DECODE(exch),id,name2print,sizeof(((TomUnderlyingTradingStatus*)m)->underlying),
+      EKA_LOG("%s:%u \'%s\' 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x (size = %u) is not found (size for strncmp = %u:",
+	      EKA_EXCH_DECODE(exch),id,name2print,
+	      ((TomUnderlyingTradingStatus*)m)->underlying[0],((TomUnderlyingTradingStatus*)m)->underlying[1],
+	      ((TomUnderlyingTradingStatus*)m)->underlying[2],((TomUnderlyingTradingStatus*)m)->underlying[3],
+	      ((TomUnderlyingTradingStatus*)m)->underlying[4],((TomUnderlyingTradingStatus*)m)->underlying[5],
+	      ((TomUnderlyingTradingStatus*)m)->underlying[6],((TomUnderlyingTradingStatus*)m)->underlying[7],
+	      sizeof(((TomUnderlyingTradingStatus*)m)->underlying),
 	      std::min(sizeof(((TomUnderlyingTradingStatus*)m)->underlying),sizeof(EfhSymbol))
 	      );
 
-      for (uint u = 0; u < book->underlyingNum; u++) {
-	EKA_LOG("%3d: \'%s\'",u,book->underlying[u]->name);
+      //      for (uint u = 0; u < book->underlyingNum; u++) {
+      for (uint u = 0; u < 2; u++) {
+	EKA_LOG("%3d: \'%s\' 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x ",
+		u,book->underlying[u]->name,
+		book->underlying[u]->name[0],book->underlying[u]->name[1],book->underlying[u]->name[2],book->underlying[u]->name[3],
+		book->underlying[u]->name[4],book->underlying[u]->name[5],book->underlying[u]->name[6],book->underlying[u]->name[7]
+		);
       }
       on_error("Underlying \'%s\' is not found",name2print);
     }
