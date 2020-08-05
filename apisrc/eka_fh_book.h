@@ -306,7 +306,11 @@ class fh_book {
 
   inline int findUnderlying(char* name, size_t size) {
     for (int i = 0; i < (int)underlyingNum; i ++) {
+      TEST_LOG("Comparing \'%s\' vs \'%s\'",name,underlying[i]->name);
       if (memcmp(&underlying[i]->name,name,size) == 0) return i;
+      TEST_LOG("memcmp - FALSE");
+      if (strncmp(underlying[i]->name,name,size) == 0) return i;
+      TEST_LOG("strncmp - FALSE");
     }
     return -1;
   }
