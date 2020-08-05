@@ -12,6 +12,22 @@
 static void eka_print_batspitch_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequence,uint64_t ts);
 std::string ts_ns2str(uint64_t ts);
 
+static inline EfhTradeStatus tradeAction(EfhTradeStatus prevTradeAction, char rawTradeStatus) {
+  switch (rawTradeStatus) {
+  case 'A' : // Accepting Orders for Queuing
+  case 'Q' : // Quote-Only
+    break;
+  case 'H' : // Halted
+  case 'S' : // Exchange Specific Suspension
+    return EfhTradeStatus::kHalted;
+  case 'T' : // Trading
+    return EfhTradeStatus::kNormal;
+  default:
+    on_error("Unexpected trade status \'%c\'",rawTradeStatus);
+  }
+  return prevTradeAction;
+}
+
 /* ------------------------------------------------ */
 
 inline uint32_t normalize_bats_symbol_char(char c) {
@@ -371,7 +387,7 @@ bool FhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     if (s == NULL) return false;
     prev_s.set(s);
 
-    s->trading_action = EKA_BATS_TRADE_STAT(message->trading_status);
+    s->trading_action = tradeAction(s->trading_action,message->trading_status);
     break;
   }
     //--------------------------------------------------------------
