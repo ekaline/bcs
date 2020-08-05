@@ -62,8 +62,6 @@ enum class EKA_BATS_PITCH_MSG : uint8_t {
     x == EKA_BATS_PITCH_MSG::TRADING_STATUS               ? "TRADING_STATUS" : \
     "NON_INTERESTING"
 
-#define EKA_BATS_PITCH_ORDER_TYPE(x) ((x) & 0x08 ? fh_b_order::type_t::ORDER : fh_b_order::type_t::QUOTE)
-
 enum class EKA_BATS_PITCH_CONSTANTS : uint {
   SYMBOL_SIZE = 6
 };

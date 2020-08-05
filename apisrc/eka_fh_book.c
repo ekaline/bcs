@@ -18,70 +18,13 @@ inline uint32_t eka_get_order_hash_idx (uint64_t order_id, uint64_t MAX_ORDERS, 
   return order_id & ORDERS_HASH_MASK;
 }
 
+int fh_b_order::deduct_size(uint32_t delta_size) {
+  if (size < delta_size) 
+    on_error("For order id %ju size %u < delta_size %u",order_id,size,delta_size);
 
-
-fh_b_order::fh_b_order () {
-  type = ORDER;
-  order_id = 0;
-  size = 0;
-  plevel = NULL;
-  next = NULL;
-}
-
-void fh_b_plevel::reset() {
-  state = INIT_PRICE;
-  size = 0;
-  cnt = 0;
-  price = 0;
-  prev = NULL;
-  s = NULL;
-}
-
-fh_b_plevel::fh_b_plevel() {
-  reset();
-}
-
-uint32_t fh_b_plevel::add_order(uint32_t ord_size, fh_b_order::type_t t ) {
-  size += ord_size;
-  if (t == fh_b_order::type_t::ORDER) o_size += ord_size;
-  cnt++;
-  return size;
-}
-
-EKA_FH_ERR_CODE fh_b_plevel::delete_order_from_plevel(uint32_t ord_size, fh_b_order::type_t t ) {
-  if (size < ord_size) {
-    on_warning("plevel->size (%u) < o->size (%u), cnt = %u, secid = %u",size,ord_size,cnt,s->security_id);
-    return EKA_FH_RESULT__NEG_SIZE;
-  }
-  size -= ord_size;
-  if (t == fh_b_order::type_t::ORDER) o_size -= ord_size;
-  --cnt;
-  if (size < o_size) {
-    on_warning("plevel->size (%u) < plevel->o_size (%u), after deleting o->size (%u), cnt = %u, secid = %u",size, o_size,ord_size,cnt,s->security_id);
-    return EKA_FH_RESULT__O_SIZE_GREATER_THAN_TOTAL;
-  }
-  return EKA_FH_RESULT__OK;
-}
-
-bool fh_b_plevel::is_empty() {
-  return cnt == 0;
-}
-
-EKA_FH_ERR_CODE fh_b_order::deduct_size(uint32_t delta_size) {
-  if (size < delta_size) {
-    on_warning("size (%u) < delta_size (%u), secid = %u, price = %u",size,delta_size,plevel->s->security_id,plevel->price);
-    return EKA_FH_RESULT__NEG_SIZE;
-  }
   size -= delta_size;
-  plevel->size -= delta_size;
-  if (type == fh_b_order::type_t::ORDER) plevel->o_size -= delta_size;
-
-  if (plevel->size < plevel->o_size) {
-    on_warning("plevel->size (%u) < plevel->o_size (%u), cnt = %u, secid = %u",plevel->size,plevel->o_size,plevel->s->security_id,plevel->price);
-    return EKA_FH_RESULT__O_SIZE_GREATER_THAN_TOTAL;
-  }
-
-  return EKA_FH_RESULT__OK;
+  plevel->deduct_order_size(delta_size,type);
+  return 0;
 }
 
 /* void fh_book::init_securities_data_struct () { */
@@ -234,15 +177,14 @@ void FullBook::release_order_element(fh_b_order* o) {
 
 EKA_FH_ERR_CODE FullBook::delete_order (fh_b_order* o) {
   if (o == NULL) on_error("o == NULL for GR%u",id);
+
 #ifdef INTERNAL_DEBUG
   EKA_LOG("o->order_id=%ju,o->plevel=%p,o->size=%d,o->plevel->price=%d,o->plevel->cnt=%d,o->plevel->state=%u",
 	  o->order_id,o->plevel,o->size,o->plevel->price,o->plevel->cnt,o->plevel->state);
 #endif
+
   EKA_FH_ERR_CODE err = EKA_FH_RESULT__OK;
-  if ((err = o->plevel->delete_order_from_plevel(o->size,o->type)) != EKA_FH_RESULT__OK) {
-    on_warning ("delete_order_from_plevel returned %d, secid = %u, order_id = %ju, price = %u",err,o->plevel->s->security_id,o->order_id,o->plevel->price);
-    return err;
-  }
+  o->plevel->delete_order_from_plevel(o->size,o->type);
   if (o->plevel->is_empty())  delete_plevel (o->plevel);
   delete_order_from_hash (o->order_id);
   release_order_element(o);
@@ -254,29 +196,20 @@ EKA_FH_ERR_CODE FullBook::change_order_size (fh_b_order* o,uint32_t size,int inc
 #ifdef INTERNAL_DEBUG
   EKA_LOG("o->plevel->price=%d, size=%d, incr=%d,o->size=%d",o->plevel->price,size,incr,o->size);
 #endif
-  EKA_FH_ERR_CODE err = EKA_FH_RESULT__OK;
 
   if (incr == 1) { // exec and cancel path
     if (o->size == size) {
-      err = delete_order(o); 
-      if (err != EKA_FH_RESULT__OK) {
-	on_warning("delete_order returned %d",err);
-	return err;
-      }
+      delete_order(o); 
     } else {
-      err = o->deduct_size(size); 
-      if (err != EKA_FH_RESULT__OK) {
-	on_warning("deduct_size returned %d",err);
-	return err;
-      }
+      o->deduct_size(size); 
     }
-    return err;
+    return EKA_FH_RESULT__OK;
   } 
   // order modify path (= deducting old size then adding new size)
-  err = o->plevel->delete_order_from_plevel(o->size,o->type);
+  o->plevel->delete_order_from_plevel(o->size,o->type);
   o->plevel->add_order(size,o->type);
   o->size = size;
-  return err;
+  return EKA_FH_RESULT__OK;
 }
 
 EKA_FH_ERR_CODE FullBook::delete_plevel(fh_b_plevel* p) {
@@ -284,7 +217,6 @@ EKA_FH_ERR_CODE FullBook::delete_plevel(fh_b_plevel* p) {
 #ifdef INTERNAL_DEBUG
   EKA_LOG("p=%p, p->price=%d, p->size=%d, p->cnt=%d, p->state=%s",p, p->price,p->size,p->cnt,"XYU");
 #endif
-  EKA_FH_ERR_CODE err = EKA_FH_RESULT__OK;
 
   if (p->state == fh_b_plevel::price_level_state_t::BEST_BUY) {
     ((fh_b_security*)p->prev)->buy = p->next;
@@ -306,46 +238,42 @@ EKA_FH_ERR_CODE FullBook::delete_plevel(fh_b_plevel* p) {
   }
   release_plevel_element(p);
 
-  return err;
+  return EKA_FH_RESULT__OK;
 }
 
 EKA_FH_ERR_CODE FullBook::replace_order (fh_b_order* o,uint64_t new_order_id,int32_t price,uint32_t size) {
   if (o == NULL) return EKA_FH_RESULT__OK;
-
-  EKA_FH_ERR_CODE err = EKA_FH_RESULT__OK;
 
 #ifdef INTERNAL_DEBUG
   EKA_LOG("old_order_id=%ju, o->plevel->price=%u, o->plevel->cnt=%u, new_order_id=%ju, price=%u, o->plevel = %p, size=%u o->plevel->state=%s",
 	  o->order_id,   o->plevel->price,    o->plevel->cnt,   new_order_id,      price,  o->plevel,       size,"XYU");
 #endif
 
-
-  err = modify_order(o,price,size);
+  modify_order(o,price,size);
   delete_order_from_hash(o->order_id);
   o->order_id = new_order_id;
   o->size = size;
   add_order2hash(o);
 
-  return err;
+  return EKA_FH_RESULT__OK;
 }
 
 EKA_FH_ERR_CODE FullBook::modify_order (fh_b_order* o,uint32_t price,uint32_t size) {
   if (o == NULL) return EKA_FH_RESULT__OK;
   fh_b_plevel* new_p;
-  EKA_FH_ERR_CODE err = EKA_FH_RESULT__OK;
 
   //  fh_b_plevel* c = o->plevel;
   if (o->plevel == NULL) on_error("o->plevel == NULL");
   fh_b_security* s = o->plevel->s;
 
-  char side = ((o->plevel->state == fh_b_plevel::price_level_state_t::BEST_BUY)  || (o->plevel->state == fh_b_plevel::price_level_state_t::BUY)) ? 'B' : 'S';
+  char side = ((o->plevel->state == fh_b_plevel::price_level_state_t::BEST_BUY)  || 
+	       (o->plevel->state == fh_b_plevel::price_level_state_t::BUY)) ? 'B' : 'S';
 #ifdef INTERNAL_DEBUG
   EKA_LOG("o=%p, o->order_id=%ju,o->size=%d, price=%d,o->plevel = %p, o->plevel->price=%d, o->plevel->state=%u",
 	  o,o->order_id,o->size,price,o->plevel,o->plevel->price,o->plevel->state);
 #endif
   if (o->plevel->price == price) return  change_order_size (o,size,0);
-  err = o->plevel->delete_order_from_plevel(o->size,o->type);
-  if (err != EKA_FH_RESULT__OK) return err;
+  o->plevel->delete_order_from_plevel(o->size,o->type);
   if (o->plevel->is_empty()) delete_plevel(o->plevel);
 
   o->size = size;
@@ -354,7 +282,7 @@ EKA_FH_ERR_CODE FullBook::modify_order (fh_b_order* o,uint32_t price,uint32_t si
   else new_p = find_and_update_sell_price_level4add (s,o->type,price,size);
   o->plevel = new_p;
 
-  return err;
+  return EKA_FH_RESULT__OK;
 }
 
 fh_b_plevel* FullBook::add_order2book (fh_b_security* s,uint64_t order_id,fh_b_order::type_t t, uint32_t price,uint32_t size,char side) {
@@ -754,12 +682,12 @@ void fh_b_security_state::reset () {
 void fh_b_security_state::set (fh_b_security* s) {
   security_id         = s->security_id;
 
-  best_buy_price      = s->buy  != NULL ? s->buy->price  : 0;
-  best_sell_price     = s->sell != NULL ? s->sell->price : 0;
-  best_buy_size       = s->buy  != NULL ? s->buy->size   : 0;
-  best_sell_size      = s->sell != NULL ? s->sell->size  : 0;
-  best_buy_o_size     = s->buy  != NULL ? s->buy->o_size   : 0;
-  best_sell_o_size    = s->sell != NULL ? s->sell->o_size  : 0;
+  best_buy_price      = s->buy  != NULL ? s->buy->price                      : 0;
+  best_sell_price     = s->sell != NULL ? s->sell->price                     : 0;
+  best_buy_size       = s->buy  != NULL ? s->buy->get_total_size()           : 0;
+  best_sell_size      = s->sell != NULL ? s->sell->get_total_size()          : 0;
+  best_buy_o_size     = s->buy  != NULL ? s->buy->get_total_customer_size()  : 0;
+  best_sell_o_size    = s->sell != NULL ? s->sell->get_total_customer_size() : 0;
 
   trading_action      = s->trading_action;
   option_open         = s->option_open;
@@ -771,14 +699,14 @@ bool fh_b_security_state::is_equal(fh_b_security* s) {
 
   if (security_id != s->security_id)  on_error("security_id(%u) != s->security_id(%u)",security_id,s->security_id);
 
-  if ((trading_action   != s->trading_action)                       ||
-      (option_open      != s->option_open)                          ||
-      (best_buy_price   != (s->buy  != NULL ? s->buy->price   : 0)) ||
-      (best_sell_price  != (s->sell != NULL ? s->sell->price  : 0)) ||
-      (best_buy_size    != (s->buy  != NULL ? s->buy->size    : 0)) ||
-      (best_sell_size   != (s->sell != NULL ? s->sell->size   : 0)) ||
-      (best_buy_o_size  != (s->buy  != NULL ? s->buy->o_size  : 0)) ||
-      (best_sell_o_size != (s->sell != NULL ? s->sell->o_size : 0))
+  if ((trading_action   != s->trading_action)                                          ||
+      (option_open      != s->option_open)                                             ||
+      (best_buy_price   != (s->buy  != NULL ? s->buy->price                      : 0)) ||
+      (best_sell_price  != (s->sell != NULL ? s->sell->price                     : 0)) ||
+      (best_buy_size    != (s->buy  != NULL ? s->buy->get_total_size()           : 0)) ||
+      (best_sell_size   != (s->sell != NULL ? s->sell->get_total_size()          : 0)) ||
+      (best_buy_o_size  != (s->buy  != NULL ? s->buy->get_total_customer_size()  : 0)) ||
+      (best_sell_o_size != (s->sell != NULL ? s->sell->get_total_customer_size() : 0))
       ) return false;
   return true;
 }
@@ -859,14 +787,14 @@ int FullBook::generateOnQuote (const EfhRunCtx* pEfhRunCtx, fh_b_security* s, ui
   msg.header.queueSize      = gr->q->get_len();
   msg.header.gapNum         = gapNum;
   msg.tradeStatus           = s->trading_action == EfhTradeStatus::kHalted ? EfhTradeStatus::kHalted :
-    s->option_open ? EfhTradeStatus::kNormal : EfhTradeStatus::kClosed;
+    s->option_open ? s->trading_action : EfhTradeStatus::kClosed;
 
   msg.bidSide.price         = s->num_of_buy_plevels == 0 ? 0 : s->buy->price;
-  msg.bidSide.size          = s->num_of_buy_plevels == 0 ? 0 : s->buy->size;
-  msg.bidSide.customerSize  = s->num_of_buy_plevels == 0 ? 0 : s->buy->o_size;
+  msg.bidSide.size          = s->num_of_buy_plevels == 0 ? 0 : s->buy->get_total_size();
+  msg.bidSide.customerSize  = s->num_of_buy_plevels == 0 ? 0 : s->buy->get_total_customer_size();
   msg.askSide.price         = s->num_of_sell_plevels == 0 ? 0 : s->sell->price;
-  msg.askSide.size          = s->num_of_sell_plevels == 0 ? 0 : s->sell->size;
-  msg.askSide.customerSize  = s->num_of_sell_plevels == 0 ? 0 : s->sell->o_size;
+  msg.askSide.size          = s->num_of_sell_plevels == 0 ? 0 : s->sell->get_total_size();
+  msg.askSide.customerSize  = s->num_of_sell_plevels == 0 ? 0 : s->sell->get_total_customer_size();
 
   if (pEfhRunCtx->onEfhQuoteMsgCb == NULL) on_error("Uninitialized pEfhRunCtx->onEfhQuoteMsgCb");
 

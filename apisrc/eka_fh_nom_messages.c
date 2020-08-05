@@ -84,7 +84,7 @@ bool FhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     char side = (char)message->side;
 
     prev_s.set(s);
-    ((NomBook*)book)->add_order2book(s,order_id,fh_b_order::type_t::ORDER,price,size,side);
+    ((NomBook*)book)->add_order2book(s,order_id,fh_b_order::type_t::CUSTOMER,price,size,side);
     break;
   }
     //--------------------------------------------------------------
@@ -102,7 +102,7 @@ bool FhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     char side = (char)message->side;
 
     prev_s.set(s);
-    ((NomBook*)book)->add_order2book(s,order_id,fh_b_order::type_t::ORDER,price,size,side);
+    ((NomBook*)book)->add_order2book(s,order_id,fh_b_order::type_t::CUSTOMER,price,size,side);
     break;
   }
     //--------------------------------------------------------------
@@ -161,8 +161,8 @@ bool FhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     uint32_t ask_size     = be32toh(message->ask_size);
 
     prev_s.set(s);
-    ((NomBook*)book)->add_order2book(s,bid_order_id,fh_b_order::type_t::QUOTE,bid_price,bid_size,'B');
-    ((NomBook*)book)->add_order2book(s,ask_order_id,fh_b_order::type_t::QUOTE,ask_price,ask_size,'S');
+    ((NomBook*)book)->add_order2book(s,bid_order_id,fh_b_order::type_t::BD,bid_price,bid_size,'B');
+    ((NomBook*)book)->add_order2book(s,ask_order_id,fh_b_order::type_t::BD,ask_price,ask_size,'S');
     break;
   }
     //--------------------------------------------------------------
@@ -184,8 +184,8 @@ bool FhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     uint32_t ask_size     = (uint32_t) be16toh(message->ask_size);
 
     prev_s.set(s);
-    ((NomBook*)book)->add_order2book(s,bid_order_id,fh_b_order::type_t::QUOTE,bid_price,bid_size,'B');
-    ((NomBook*)book)->add_order2book(s,ask_order_id,fh_b_order::type_t::QUOTE,ask_price,ask_size,'S');    
+    ((NomBook*)book)->add_order2book(s,bid_order_id,fh_b_order::type_t::BD,bid_price,bid_size,'B');
+    ((NomBook*)book)->add_order2book(s,ask_order_id,fh_b_order::type_t::BD,ask_price,ask_size,'S');    
     break;
   }
     //--------------------------------------------------------------

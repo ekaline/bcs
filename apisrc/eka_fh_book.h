@@ -24,40 +24,130 @@ class fh_b_security;
 class fh_book;
 class fh_b_plevel;
 
+/* --------------------------------------------------------------- */
+
 class fh_b_order {
  public:
-  typedef enum {ORDER = 1, QUOTE = 2} type_t;
-  fh_b_order();
-  EKA_FH_ERR_CODE deduct_size(uint32_t size);
+  typedef enum {
+    UNINIT = 0, 
+    CUSTOMER, 
+    BD, 
+    CUSTOMER_AON,
+    BD_AON
+  } type_t;
 
-  uint64_t            order_id;
-  type_t              type;
-  uint32_t	      size;
-  fh_b_plevel*        plevel;
-  fh_b_order*         next;
+  fh_b_order() {
+    type     = UNINIT;
+    order_id = 0;
+    size     = 0;
+    plevel   = NULL;
+    next     = NULL;
+  }
+
+  int deduct_size(uint32_t delta_size);
+
+  uint64_t            order_id = 0;
+  type_t              type = UNINIT;
+  uint32_t	      size = 0;
+  fh_b_plevel*        plevel = NULL;
+  fh_b_order*         next = NULL;
 
  private:
 };
 
+/* --------------------------------------------------------------- */
 class fh_b_plevel {
  public:
   typedef enum {INIT_PRICE = 0, BEST_BUY = 1, BEST_SELL = 2, BUY = 3, SELL = 4} price_level_state_t;
-  fh_b_plevel();
-  uint32_t add_order(uint32_t size, fh_b_order::type_t type);
-  EKA_FH_ERR_CODE delete_order_from_plevel(uint32_t ord_size, fh_b_order::type_t type);
-  bool is_empty();
-  void reset();
 
-  price_level_state_t state;
-  uint32_t	      size;
-  uint32_t	      o_size;
-  uint32_t            cnt; // amount of orders for this plevel
-  uint32_t	      price;
-  fh_b_plevel*        prev;
-  fh_b_plevel*        next;
-  fh_b_security*      s; // pointer to the security
+  fh_b_plevel() {
+    reset();
+  }
+
+  inline uint32_t* get_order_ptr(fh_b_order::type_t t) {
+    switch (t) {
+    case fh_b_order::type_t::CUSTOMER :
+      return &cust_size;
+    case fh_b_order::type_t::BD :
+      return &bd_size;
+    case fh_b_order::type_t::CUSTOMER_AON :
+      return &cust_aon_size;
+    case fh_b_order::type_t::BD_AON :
+      return &bd_aon_size;
+    default:
+      on_error("Unexpected Order Type %d",t);
+    }
+  }
+
+  inline uint32_t get_total_size() {
+    return cust_size + bd_size + cust_aon_size + bd_aon_size;
+  }
+
+  inline uint32_t get_total_customer_size() {
+    return cust_size + cust_aon_size;
+  }
+
+  inline int add_order_size(uint32_t ord_size, fh_b_order::type_t t) {
+    uint32_t* ord_size_ptr = get_order_ptr(t);
+    *ord_size_ptr = *ord_size_ptr + ord_size;
+
+    return 0;
+  }
+
+  inline int deduct_order_size(uint32_t ord_size, fh_b_order::type_t t) {
+    uint32_t* ord_size_ptr = get_order_ptr(t);
+    if (*ord_size_ptr < ord_size)
+      on_error("deducting size %u > order size %u for order type %d",
+	       ord_size,*ord_size_ptr,t);
+    *ord_size_ptr = *ord_size_ptr - ord_size;
+    return 0;
+  }
+
+  inline uint32_t add_order(uint32_t ord_size, fh_b_order::type_t t) {
+    add_order_size(ord_size, t);
+    cnt++;
+    return 0;
+  }
+
+  int delete_order_from_plevel(uint32_t ord_size, fh_b_order::type_t t) {
+    deduct_order_size(ord_size, t);
+    cnt--;
+    return 0;
+  }
+
+  inline bool is_empty() {
+    return cnt == 0;
+  }
+
+  inline void reset() {
+    state         = INIT_PRICE;
+
+    cust_size     = 0;
+    cust_aon_size = 0;
+    bd_size       = 0;
+    bd_aon_size   = 0;
+
+    cnt           = 0;
+    price         = 0;
+    prev          = NULL;
+    s             = NULL;
+  }
+
+  price_level_state_t state = INIT_PRICE;
+
+  uint32_t	      cust_size     = 0;
+  uint32_t	      cust_aon_size = 0;
+  uint32_t	      bd_size       = 0;
+  uint32_t	      bd_aon_size   = 0;
+
+  uint32_t            cnt           = 0; // amount of orders for this plevel
+  uint32_t	      price         = 0;
+  fh_b_plevel*        prev          = NULL;
+  fh_b_plevel*        next          = NULL;
+  fh_b_security*      s             = NULL; // pointer to the security
  private:
 };
+/* --------------------------------------------------------------- */
 
 
 class fh_b_security_state {
