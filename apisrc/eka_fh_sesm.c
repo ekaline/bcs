@@ -305,45 +305,53 @@ void* eka_get_sesm_data(void* attr) {
   if (gr->recovery_sock != -1) on_error("%s:%u gr->recovery_sock != -1",EKA_EXCH_DECODE(gr->exch),gr->id);
 
   EKA_LOG("%s:%u - SESM to %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id,EKA_IP2STR(gr->snapshot_ip),be16toh(gr->snapshot_port));
-  //-----------------------------------------------------------------
-  ekaTcpConnect(&gr->recovery_sock,gr->snapshot_ip,gr->snapshot_port);
-  //-----------------------------------------------------------------
-  sendLogin(gr);
-  //-----------------------------------------------------------------
-  getLoginResponse(gr);
 
   gr->snapshot_active = true;
-  //-----------------------------------------------------------------
   if (op == EkaFhMode::DEFINITIONS) { 
+    //-----------------------------------------------------------------
+    ekaTcpConnect(&gr->recovery_sock,gr->snapshot_ip,gr->snapshot_port);
+    //-----------------------------------------------------------------
+    sendLogin(gr);
+    //-----------------------------------------------------------------
+    getLoginResponse(gr);
+    //-----------------------------------------------------------------
     sendRequest(gr,'P');
+    //-----------------------------------------------------------------
     while (gr->snapshot_active) { 
       if (procSesm(pEfhCtx,pEfhRunCtx,gr->recovery_sock,gr,op)) break;
     } 
+    //-----------------------------------------------------------------
+    sendLogOut(gr);
+    //-----------------------------------------------------------------
+    close(gr->recovery_sock);
   } else { // SNAPSHOT
-    sendRequest(gr,'S'); // System State Refresh
-    while (gr->snapshot_active) { 
-      if (procSesm(pEfhCtx,pEfhRunCtx,gr->recovery_sock,gr,op)) break;
-    } 
-
-    sendRequest(gr,'U'); // Underlying Trading Status Refresh
-    while (gr->snapshot_active) { 
-      if (procSesm(pEfhCtx,pEfhRunCtx,gr->recovery_sock,gr,op)) break;
-    } 
-
-    sendRequest(gr,'Q'); // Simple Top of Market Refresh
-    while (gr->snapshot_active) { 
-      if (procSesm(pEfhCtx,pEfhRunCtx,gr->recovery_sock,gr,op)) break;
-    } 
-
+    char snapshotRequests[] = {'S', // System State Refresh
+			       'U', // Underlying Trading Status Refresh
+			       'Q'};// Simple Top of Market Refresh
+    for (int i = 0; i < (int)sizeof(snapshotRequests); i ++) {
+      EKA_LOG("%s:%u SESM Snapshot for \'%c\'",
+	      EKA_EXCH_DECODE(gr->exch),gr->id,snapshotRequests[i]);
+      ekaTcpConnect(&gr->recovery_sock,gr->snapshot_ip,gr->snapshot_port);
+      //-----------------------------------------------------------------
+      sendLogin(gr);
+      //-----------------------------------------------------------------
+      getLoginResponse(gr);
+      //-----------------------------------------------------------------
+      sendRequest(gr,snapshotRequests[i]); 
+      //-----------------------------------------------------------------
+      while (gr->snapshot_active) { 
+	if (procSesm(pEfhCtx,pEfhRunCtx,gr->recovery_sock,gr,op)) break;
+      } 
+      //-----------------------------------------------------------------
+      sendLogOut(gr);
+      //-----------------------------------------------------------------
+      close(gr->recovery_sock);
+    }
   }
   //-------------------------------------------------------
   gr->gapClosed = true;
-
-  //-------------------------------------------------------
-  sendLogOut(gr);
   //-------------------------------------------------------
   gr->heartbeat_active = false;
-  close(gr->recovery_sock);
   gr->recovery_sock = -1;
   EKA_TRACE("%s:%u End Of %s, gr->seq_after_snapshot = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,
 	    op==EkaFhMode::SNAPSHOT ? "GAP_RECOVERY" : "DEFINITIONS" ,gr->seq_after_snapshot);

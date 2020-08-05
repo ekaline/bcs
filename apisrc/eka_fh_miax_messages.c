@@ -201,6 +201,9 @@ bool FhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     return false;
   }
     //--------------------------------------------------------------
+  case EKA_MIAX_TOM_MSG::TradeCancel : 
+    return false;
+    //--------------------------------------------------------------
   case EKA_MIAX_TOM_MSG::EndOfRefresh : 
     EKA_LOG("%s:%u End Of Refresh of \'%c\' Request",EKA_EXCH_DECODE(exch),id,m[1]);
     return true;

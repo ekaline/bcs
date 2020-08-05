@@ -246,7 +246,7 @@ bool FhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     s = ((BatsBook*)book)->find_security(security_id);
     if (s == NULL) {
       if (!((BatsBook*)book)->subscribe_all) return false;
-      s = ((BatsBook*)book)->subscribe_security(security_id,0,0);
+      s = ((BatsBook*)book)->subscribe_security(security_id,0,0,0,0);
     }
     prev_s.set(s);
 
