@@ -60,7 +60,7 @@ bool FhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     memcpy (&msg.underlying, message->UnderlyingSymbol,std::min(sizeof(msg.underlying), sizeof(message->UnderlyingSymbol)));
     memcpy (&msg.classSymbol,message->SecuritySymbol,  std::min(sizeof(msg.classSymbol),sizeof(message->SecuritySymbol)));
 
-    uint underlyingIdx = book->addUnderlying(msg.classSymbol, sizeof(msg.classSymbol));
+    uint underlyingIdx = book->addUnderlying(msg.underlying, sizeof(msg.underlying));
     msg.opaqueAttrB = (uint64_t)underlyingIdx;
 
     /* EKA_TRACE("UnderlyingSymbol = %s, SecuritySymbol = %s,  message->Expiration = %s = %u,  message->security_id = %ju", */
