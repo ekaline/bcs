@@ -127,14 +127,15 @@ typedef struct {
  *
  */
 enum class EfhTradeStatus : char {
-    #define EfhTradeStatus_ENUM_ITER( _x )                                     \
-                _x( GapRecover, 'G' )                                          \
-                _x( Uninit,     '_' )                                          \
-                _x( Halted,     'H' )                                          \
-                _x( Preopen,    'P' )                                          \
-                _x( Normal,     'N' )                                          \
-                _x( Closed,     'C' )
-        EfhTradeStatus_ENUM_ITER( EKA__ENUM_DEF )
+    #define EfhTradeStatus_ENUM_ITER( _x )                              \
+                _x( GapRecover,        'G' )                            \
+		  _x( Uninit,            '_' )				\
+		  _x( Halted,            'H' )				\
+		  _x( Preopen,           'P' )				\
+		  _x( OpeningRotation,   'O' )				\
+		  _x( Normal,            'N' )				\
+		  _x( Closed,            'C' )
+  EfhTradeStatus_ENUM_ITER( EKA__ENUM_DEF )
 };
 
 /*

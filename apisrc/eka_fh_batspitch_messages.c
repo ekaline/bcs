@@ -12,6 +12,61 @@
 static void eka_print_batspitch_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequence,uint64_t ts);
 std::string ts_ns2str(uint64_t ts);
 
+static inline EfhTradeStatus tradeAction(EfhTradeStatus prevTradeAction, char msgTradeStatus) {
+  switch (msgTradeStatus) {
+  case 'A' : // Accepting Orders for Queuing
+    break; // To be confirmed!!!
+  case 'Q' : // Quote-Only
+    return EfhTradeStatus::kPreopen;
+  case 'R' : // Opening-Rotation
+    return EfhTradeStatus::kOpeningRotation;
+  case 'S' : // Exchange Specific Suspension
+    return EfhTradeStatus::kHalted;
+  case 'T' : // Trading
+    return EfhTradeStatus::kNormal;
+  default:
+    on_error("Unexpected trade status \'%c\'",msgTradeStatus);
+  }
+  return prevTradeAction;
+}
+
+/* ------------------------------------------------ */
+inline fh_b_order::type_t addFlags2orderType(uint8_t flags) {
+  switch (flags) {
+    /* case 0x01 : // bit #0 */
+    /*   return fh_b_order::BD; */
+  case 0x08 : // bit #3
+  case 0x09 : // bit #0 & #3
+    return fh_b_order::CUSTOMER_AON;
+  default:
+    return fh_b_order::CUSTOMER;
+  }
+}
+/* ------------------------------------------------ */
+inline fh_b_order::type_t addFlagsCustomerIndicator2orderType(uint8_t flags, char customerIndicator) {
+  if (customerIndicator == 'C') {
+    switch (flags) {
+      /* case 0x01 : // bit #0 */
+      /*   return fh_b_order::BD; */
+    case 0x08 : // bit #3
+    case 0x09 : // bit #0 & #3
+      return fh_b_order::CUSTOMER_AON;
+    default:
+      return fh_b_order::CUSTOMER;
+    }
+  } else {
+    switch (flags) {
+      /* case 0x01 : // bit #0 */
+      /*   return fh_b_order::BD; */
+    case 0x08 : // bit #3
+    case 0x09 : // bit #0 & #3
+      return fh_b_order::BD_AON;
+    default:
+      return fh_b_order::BD;
+    }
+  }
+}
+
 /* ------------------------------------------------ */
 
 inline uint32_t normalize_bats_symbol_char(char c) {
@@ -156,7 +211,7 @@ bool FhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     uint32_t price = (uint32_t) message->price * 100 / EFH_PRICE_SCALE; // Short Price representation
     char side = (char)message->side;
 
-    ((BatsBook*)book)->add_order2book(s,order_id,EKA_BATS_PITCH_ORDER_TYPE(message->flags),price,size,side);
+    ((BatsBook*)book)->add_order2book(s,order_id,addFlags2orderType(message->flags),price,size,side);
     break;
   }
     //--------------------------------------------------------------
@@ -176,7 +231,32 @@ bool FhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     if (((message->price / EFH_PRICE_SCALE) & 0xFFFFFFFF00000000) != 0) on_error("Long price(%ju) exceeds 32bit",message->price);
 
     char side = (char)message->side;
-    ((BatsBook*)book)->add_order2book(s,order_id,EKA_BATS_PITCH_ORDER_TYPE(message->flags),price,size,side);
+    ((BatsBook*)book)->add_order2book(s,order_id,addFlags2orderType(message->flags),price,size,side);
+    break;
+  }
+    //--------------------------------------------------------------
+  case EKA_BATS_PITCH_MSG::ADD_ORDER_EXPANDED:  { 
+    batspitch_add_order_expanded *message = (batspitch_add_order_expanded *)m;
+    if (message->exp_symbol[6] != ' ' || message->exp_symbol[7] != ' ')
+      on_error("ADD_ORDER_EXPANDED message with \'%c%c%c%c%c%c%c%c\' symbol (longer than 6 chars) not supported",
+	       message->exp_symbol[0],message->exp_symbol[1],message->exp_symbol[2],message->exp_symbol[3],
+	       message->exp_symbol[4],message->exp_symbol[5],message->exp_symbol[6],message->exp_symbol[7]);
+
+    uint32_t security_id =  bats_symbol2optionid(message->exp_symbol,6);
+    s = ((BatsBook*)book)->find_security(security_id);
+    if (s == NULL) {
+      if (!((BatsBook*)book)->subscribe_all) return false;
+      s = ((BatsBook*)book)->subscribe_security(security_id,0,0);
+    }
+    prev_s.set(s);
+
+    uint64_t order_id = message->order_id;
+    uint32_t size =  (uint32_t) message->size;
+    uint32_t price = (uint32_t) ((message->price / EFH_PRICE_SCALE) & 0x00000000FFFFFFFF); // Long Price representation
+    if (((message->price / EFH_PRICE_SCALE) & 0xFFFFFFFF00000000) != 0) on_error("Long price(%ju) exceeds 32bit",message->price);
+
+    char side = (char)message->side;
+    ((BatsBook*)book)->add_order2book(s,order_id,addFlagsCustomerIndicator2orderType(message->flags,message->customer_indicator),price,size,side);
     break;
   }
     //--------------------------------------------------------------
@@ -371,7 +451,7 @@ bool FhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     if (s == NULL) return false;
     prev_s.set(s);
 
-    s->trading_action = EKA_BATS_TRADE_STAT(message->trading_status);
+    s->trading_action = tradeAction(s->trading_action,message->trading_status);
     break;
   }
     //--------------------------------------------------------------
