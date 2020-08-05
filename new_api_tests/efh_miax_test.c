@@ -194,7 +194,8 @@ static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
 }
 
 /* ------------------------------------------------------------ */
-uint testSubscribeSec(int file_idx,const EfhDefinitionMsg* msg, EfhRunUserData userData, char* avtSecName, char* underlyingName, char* classSymbol) {
+uint testSubscribeSec(int file_idx,const EfhDefinitionMsg* msg, EfhRunUserData userData, char* avtSecName, char* underlyingName, char* classSymbol, 
+		      uint64_t opaqueAttrA, uint64_t opaqueAttrB) {
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   uint sec_idx = testFhCtx[file_idx].subscr_cnt;
 
@@ -209,7 +210,7 @@ uint testSubscribeSec(int file_idx,const EfhDefinitionMsg* msg, EfhRunUserData u
 	   EKA_PRINT_GRP(&msg->header.group)
 	   );
 
-  efhSubscribeStatic(pEfhCtx, (EkaGroup*) &msg->header.group,  msg->header.securityId, EfhSecurityType::kOpt,(EfhSecUserData) sec_idx,0,0);
+  efhSubscribeStatic(pEfhCtx, (EkaGroup*) &msg->header.group,msg->header.securityId,EfhSecurityType::kOpt,(EfhSecUserData) sec_idx,opaqueAttrA,opaqueAttrB);
   testFhCtx[file_idx].subscr_cnt++;
   return testFhCtx[file_idx].subscr_cnt;
 }
@@ -246,13 +247,13 @@ void onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUse
   
   for (uint i = 0; i < valid_underlying2subscr; i ++) {
     if (strncmp(underlyingName,underlying2subscr[i],strlen(underlying2subscr[i])) == 0) {
-      testSubscribeSec(file_idx,msg,userData,avtSecName,underlyingName,classSymbol);
+      testSubscribeSec(file_idx,msg,userData,avtSecName,underlyingName,classSymbol,msg->opaqueAttrA,msg->opaqueAttrB);
       return;
     }
   }
 
   if (subscribe_all) {
-    testSubscribeSec(file_idx,msg,userData,avtSecName,underlyingName,classSymbol);
+    testSubscribeSec(file_idx,msg,userData,avtSecName,underlyingName,classSymbol,msg->opaqueAttrA,msg->opaqueAttrB);
     return;
   }
 

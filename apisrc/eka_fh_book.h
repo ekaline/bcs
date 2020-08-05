@@ -326,7 +326,7 @@ class fh_book {
 
     underlying[newUnderlying] = new Underlying(name,size);
     if (underlying[newUnderlying] == NULL) on_error("cannot create new Underlying %s",name);
-#if 1
+#if 0
     char name2print[16] = {};
     memcpy(name2print,name,size);
     TEST_LOG("%s:%u underlying[newUnderlying] = \'%s\', size = %u",
