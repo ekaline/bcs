@@ -98,8 +98,7 @@ bool FhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
 	      std::min(sizeof(((TomUnderlyingTradingStatus*)m)->underlying),sizeof(EfhSymbol))
 	      );
 
-      //      for (uint u = 0; u < book->underlyingNum; u++) {
-      for (uint u = 0; u < 2; u++) {
+      for (uint u = 0; u < book->underlyingNum; u++) {
 	EKA_LOG("%3d: \'%s\' 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x ",
 		u,book->underlying[u]->name,
 		book->underlying[u]->name[0],book->underlying[u]->name[1],book->underlying[u]->name[2],book->underlying[u]->name[3],
@@ -111,7 +110,7 @@ bool FhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
 
     book->underlying[underlIdx]->tradeStatus = ((TomUnderlyingTradingStatus*)m)->trading_status == 'H' ? EfhTradeStatus::kHalted : EfhTradeStatus::kNormal;
 
-    EKA_LOG("UnderlyingTradingStatus of %s : \'%c\'", name2print,((TomUnderlyingTradingStatus*)m)->trading_status);
+    //    EKA_LOG("UnderlyingTradingStatus of %s : \'%c\'", name2print,((TomUnderlyingTradingStatus*)m)->trading_status);
     return false;
   }
     //--------------------------------------------------------------
