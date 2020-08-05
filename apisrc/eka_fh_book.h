@@ -87,12 +87,17 @@ class fh_b_plevel {
     return cust_size + cust_aon_size;
   }
 
+  inline uint32_t get_total_aon_size() {
+    return cust_aon_size + bd_aon_size;
+  }
+
   inline int add_order_size(uint32_t ord_size, fh_b_order::type_t t) {
     uint32_t* ord_size_ptr = get_order_ptr(t);
     *ord_size_ptr = *ord_size_ptr + ord_size;
 
     return 0;
   }
+
 
   inline int deduct_order_size(uint32_t ord_size, fh_b_order::type_t t) {
     uint32_t* ord_size_ptr = get_order_ptr(t);

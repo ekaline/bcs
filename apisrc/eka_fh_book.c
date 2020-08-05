@@ -789,12 +789,19 @@ int FullBook::generateOnQuote (const EfhRunCtx* pEfhRunCtx, fh_b_security* s, ui
   msg.tradeStatus           = s->trading_action == EfhTradeStatus::kHalted ? EfhTradeStatus::kHalted :
     s->option_open ? s->trading_action : EfhTradeStatus::kClosed;
 
-  msg.bidSide.price         = s->num_of_buy_plevels == 0 ? 0 : s->buy->price;
-  msg.bidSide.size          = s->num_of_buy_plevels == 0 ? 0 : s->buy->get_total_size();
-  msg.bidSide.customerSize  = s->num_of_buy_plevels == 0 ? 0 : s->buy->get_total_customer_size();
-  msg.askSide.price         = s->num_of_sell_plevels == 0 ? 0 : s->sell->price;
-  msg.askSide.size          = s->num_of_sell_plevels == 0 ? 0 : s->sell->get_total_size();
-  msg.askSide.customerSize  = s->num_of_sell_plevels == 0 ? 0 : s->sell->get_total_customer_size();
+  msg.bidSide.price           = s->num_of_buy_plevels == 0 ? 0 : s->buy->price;
+  msg.bidSide.size            = s->num_of_buy_plevels == 0 ? 0 : s->buy->get_total_size();
+  msg.bidSide.customerSize    = s->num_of_buy_plevels == 0 ? 0 : s->buy->get_total_customer_size();
+  msg.bidSide.customerAoNSize = s->num_of_buy_plevels == 0 ? 0 : s->buy->cust_aon_size;
+  msg.bidSide.bdAoNSize       = s->num_of_buy_plevels == 0 ? 0 : s->buy->bd_aon_size;
+  msg.bidSide.aoNSize         = s->num_of_buy_plevels == 0 ? 0 : s->buy->get_total_aon_size();
+
+  msg.askSide.price           = s->num_of_sell_plevels == 0 ? 0 : s->sell->price;
+  msg.askSide.size            = s->num_of_sell_plevels == 0 ? 0 : s->sell->get_total_size();
+  msg.askSide.customerSize    = s->num_of_sell_plevels == 0 ? 0 : s->sell->get_total_customer_size();
+  msg.bidSide.customerAoNSize = s->num_of_sell_plevels == 0 ? 0 : s->sell->cust_aon_size;
+  msg.bidSide.bdAoNSize       = s->num_of_sell_plevels == 0 ? 0 : s->sell->bd_aon_size;
+  msg.bidSide.aoNSize         = s->num_of_sell_plevels == 0 ? 0 : s->sell->get_total_aon_size();
 
   if (pEfhRunCtx->onEfhQuoteMsgCb == NULL) on_error("Uninitialized pEfhRunCtx->onEfhQuoteMsgCb");
 
