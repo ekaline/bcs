@@ -47,11 +47,13 @@ inline static uint8_t getTcpChar(uint8_t* dst, int sock) {
 /* ----------------------------- */
 static EkaOpResult getTcpMsg(uint8_t* msgBuf, int sock) {
   uint charIdx = 0;
+  const uint MAX_MSG_SIZE = 1400; // just a number
   if (getTcpChar(&msgBuf[charIdx],sock) != HsvfSom) 
     on_error("SoM \'%c\' != HsvfSom \'%c\'",msgBuf[charIdx],HsvfSom);
   do {
     charIdx++;
-    if (charIdx > std::max(sizeof(HsvfOptionInstrumentKeys),sizeof(HsvfOptionSummary)) + 20) {
+    //    if (charIdx > std::max(sizeof(HsvfOptionInstrumentKeys),sizeof(HsvfOptionSummary)) + 20) {
+    if (charIdx > MAX_MSG_SIZE) {
       hexDump("msgBuf with no HsvfEom",msgBuf,charIdx);
       on_error("HsvfEom not met after %u characters",charIdx);
     }
