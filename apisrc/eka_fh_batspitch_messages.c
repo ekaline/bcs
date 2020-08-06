@@ -20,6 +20,7 @@ static inline EfhTradeStatus tradeAction(EfhTradeStatus prevTradeAction, char ms
     return EfhTradeStatus::kPreopen;
   case 'R' : // Opening-Rotation
     return EfhTradeStatus::kOpeningRotation;
+  case 'H' : // Halted
   case 'S' : // Exchange Specific Suspension
     return EfhTradeStatus::kHalted;
   case 'T' : // Trading
@@ -102,6 +103,7 @@ bool FhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
   switch (enc) {    
   case EKA_BATS_PITCH_MSG::ADD_ORDER_LONG:
   case EKA_BATS_PITCH_MSG::ADD_ORDER_SHORT:
+  case EKA_BATS_PITCH_MSG::ADD_ORDER_EXPANDED:
   case EKA_BATS_PITCH_MSG::ORDER_EXECUTED:
   case EKA_BATS_PITCH_MSG::ORDER_EXECUTED_AT_PRICE_SIZE:
   case EKA_BATS_PITCH_MSG::REDUCED_SIZE_LONG:
