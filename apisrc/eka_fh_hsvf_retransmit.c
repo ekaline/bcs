@@ -51,8 +51,10 @@ static EkaOpResult getTcpMsg(uint8_t* msgBuf, int sock) {
     on_error("SoM \'%c\' != HsvfSom \'%c\'",msgBuf[charIdx],HsvfSom);
   do {
     charIdx++;
-    if (charIdx > std::max(sizeof(HsvfOptionInstrumentKeys),sizeof(HsvfOptionSummary)) + 20)
+    if (charIdx > std::max(sizeof(HsvfOptionInstrumentKeys),sizeof(HsvfOptionSummary)) + 20) {
+      hexDump("msgBuf with no HsvfEom",msgBuf,charIdx);
       on_error("HsvfEom not met after %u characters",charIdx);
+    }
   } while (getTcpChar(&msgBuf[charIdx],sock) != HsvfEom);
   return EKA_OPRESULT__OK;
 }
