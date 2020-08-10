@@ -163,8 +163,6 @@ bool FhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
 
     bool long_form = enc == EKA_MIAX_TOM_MSG::BestBidAskLong;
 
-    bool setHalted = false;
-
     uint32_t security_id = long_form ? message_long->security_id : message_short->security_id;
     fh_b_security* s = book->find_security(security_id);
     if (s == NULL && !book->subscribe_all) return false;
@@ -176,23 +174,20 @@ bool FhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
 
     //    if (ts < s->bid_ts && ts < s->ask_ts) return false; // Back-in-time from Recovery
 
-    if (ts >= s->bid_ts) {
-      s->bid_size       = long_form ? message_long->bid_size             : (uint32_t)  message_short->bid_size;
-      s->bid_cust_size  = long_form ? message_long->bid_customer_size    : (uint32_t)  message_short->bid_customer_size;
-      s->bid_price      = long_form ? message_long->bid_price            : (uint32_t) (message_short->bid_price * 100);
-      s->bid_ts         = ts;
-      setHalted         = long_form ? message_long->bid_condition == 'T' : message_short->bid_condition == 'T';
-    }
-    if (ts >= s->ask_ts) {
-      s->ask_size       = long_form ? message_long->ask_size             : (uint32_t)  message_short->ask_size;
-      s->ask_cust_size  = long_form ? message_long->ask_customer_size    : (uint32_t)  message_short->ask_customer_size;
-      s->ask_price      = long_form ? message_long->ask_price            : (uint32_t) (message_short->ask_price * 100);
-      s->ask_ts         = ts;
-      setHalted         = long_form ? message_long->ask_condition == 'T' : message_short->ask_condition == 'T';
-    }
-    //    s->trading_action = setHalted ? EfhTradeStatus::kHalted : EfhTradeStatus::kNormal;
-    s->trading_action = setHalted ? EfhTradeStatus::kHalted : book->underlying[s->underlyingIdx]->tradeStatus;
-    s->option_open = market_open;
+    s->bid_size       = long_form ? message_long->bid_size             : (uint32_t)  message_short->bid_size;
+    s->bid_cust_size  = long_form ? message_long->bid_customer_size    : (uint32_t)  message_short->bid_customer_size;
+    s->bid_price      = long_form ? message_long->bid_price            : (uint32_t) (message_short->bid_price * 100);
+    s->bid_ts         = ts;
+    bool setHaltedBid = long_form ? message_long->bid_condition == 'T' : message_short->bid_condition == 'T';
+
+    s->ask_size       = long_form ? message_long->ask_size             : (uint32_t)  message_short->ask_size;
+    s->ask_cust_size  = long_form ? message_long->ask_customer_size    : (uint32_t)  message_short->ask_customer_size;
+    s->ask_price      = long_form ? message_long->ask_price            : (uint32_t) (message_short->ask_price * 100);
+    s->ask_ts         = ts;
+    bool setHaltedAsk = long_form ? message_long->ask_condition == 'T' : message_short->ask_condition == 'T';
+
+    s->trading_action = setHaltedBid || setHaltedAsk ? EfhTradeStatus::kHalted : book->underlying[s->underlyingIdx]->tradeStatus;
+    s->option_open    = market_open;
     tob_s = s;
     break;
   }
