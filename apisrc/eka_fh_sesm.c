@@ -28,6 +28,7 @@
 #include "eka_fh_miax_messages.h"
 
 int ekaTcpConnect(int* sock, uint32_t ip, uint16_t port);
+void* heartBeatThread(EkaDev* dev, FhMiaxGr* gr,int sock);
 
 /* ##################################################################### */
 
@@ -257,12 +258,17 @@ void* eka_get_sesm_retransmit(void* attr) {
   //-----------------------------------------------------------------
   getLoginResponse(gr);
   //-----------------------------------------------------------------
+  std::thread heartBeat = std::thread(heartBeatThread,dev,gr,gr->recovery_sock);
+  heartBeat.detach();
+  //-----------------------------------------------------------------
   sendRetransmitRequest(gr,start,end);
   //-----------------------------------------------------------------
   gr->recovery_active = true;
   while (gr->recovery_active) {
     if (procSesm(pEfhCtx,pEfhRunCtx,gr->recovery_sock,gr,EkaFhMode::MCAST)) break;
   } 
+  gr->heartbeat_active = false;
+
   gr->gapClosed = true;
   close(gr->recovery_sock);
   gr->recovery_sock = -1;
@@ -315,15 +321,20 @@ void* eka_get_sesm_data(void* attr) {
     //-----------------------------------------------------------------
     getLoginResponse(gr);
     //-----------------------------------------------------------------
+    std::thread heartBeat = std::thread(heartBeatThread,dev,gr,gr->recovery_sock);
+    heartBeat.detach();
+    //-----------------------------------------------------------------
     sendRequest(gr,'P');
     //-----------------------------------------------------------------
     while (gr->snapshot_active) { 
       if (procSesm(pEfhCtx,pEfhRunCtx,gr->recovery_sock,gr,op)) break;
     } 
+    gr->heartbeat_active = false;
     //-----------------------------------------------------------------
     sendLogOut(gr);
     //-----------------------------------------------------------------
     close(gr->recovery_sock);
+    gr->recovery_sock = -1;
   } else { // SNAPSHOT
     char snapshotRequests[] = {'S', // System State Refresh
 			       'U', // Underlying Trading Status Refresh
@@ -337,22 +348,25 @@ void* eka_get_sesm_data(void* attr) {
       //-----------------------------------------------------------------
       getLoginResponse(gr);
       //-----------------------------------------------------------------
+      std::thread heartBeat = std::thread(heartBeatThread,dev,gr,gr->recovery_sock);
+      heartBeat.detach();
+      //-----------------------------------------------------------------
       sendRequest(gr,snapshotRequests[i]); 
       //-----------------------------------------------------------------
       while (gr->snapshot_active) { 
 	if (procSesm(pEfhCtx,pEfhRunCtx,gr->recovery_sock,gr,op)) break;
       } 
+      gr->heartbeat_active = false;
       //-----------------------------------------------------------------
       sendLogOut(gr);
       //-----------------------------------------------------------------
       close(gr->recovery_sock);
+      gr->recovery_sock = -1;
     }
   }
   //-------------------------------------------------------
   gr->gapClosed = true;
   //-------------------------------------------------------
-  gr->heartbeat_active = false;
-  gr->recovery_sock = -1;
   EKA_TRACE("%s:%u End Of %s, gr->seq_after_snapshot = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,
 	    op==EkaFhMode::SNAPSHOT ? "GAP_RECOVERY" : "DEFINITIONS" ,gr->seq_after_snapshot);
 
@@ -365,21 +379,19 @@ void* eka_get_sesm_data(void* attr) {
 
 
 
-/* void* sesm_heartbeat_thread(void* ptr) { */
-/*   fh_pthread_args_t* args = (fh_pthread_args_t*) ptr; */
-/*   eka_dev_t* dev = args->dev; */
-/*   uint8_t gr_id = args->gr_id; */
-/*   free(args); */
-/*   struct sesm_header heartbeat = {}; */
-/*   heartbeat.length		= sizeof(struct sesm_header) - sizeof(heartbeat.length); */
-/*   heartbeat.type		= '1'; */
-/*   EKA_LOG("gr=%u to dev->fh->b_gr[gr_id]->recovery_sock = %d",gr_id,dev->fh->b_gr[gr_id]->recovery_sock); */
+void* heartBeatThread(EkaDev* dev, FhMiaxGr* gr, int sock) {
+  sesm_header heartbeat = {
+    .length		= sizeof(struct sesm_header) - sizeof(heartbeat.length),
+    .type		= '1'
+  };
 
-/*   while(dev->fh->b_gr[gr_id]->heartbeat_active) { */
-/*     EKA_LOG("sending SESM hearbeat for gr=%u",gr_id); */
-/*     if(send(dev->fh->b_gr[gr_id]->recovery_sock,&heartbeat,sizeof(struct sesm_header), 0) < 0) on_error("heartbeat send failed"); */
-/*     usleep(900000); */
-/*   } */
-/*   EKA_LOG("SESM hearbeat thread terminated for gr=%u",gr_id); */
-/*   return NULL; */
-/* } */
+  EKA_LOG("gr=%u to sock = %d",gr->id,sock);
+
+  while(gr->heartbeat_active) {
+    EKA_LOG("sending SESM hearbeat for gr=%u",gr->id);
+    if(send(sock,&heartbeat,sizeof(sesm_header), 0) < 0) on_error("heartbeat send failed");
+    usleep(900000);
+  }
+  EKA_LOG("SESM hearbeat thread terminated for gr=%u",gr->id);
+  return NULL;
+}
