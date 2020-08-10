@@ -115,18 +115,20 @@ struct batspitch_generic_header { // presents at all messages excepting "Symbol 
 
 struct batspitch_trading_status { // 0x31
   struct batspitch_generic_header header;
-  char          symbol[8];      // 8  right padded with spaces
+  char          symbol[6];      // 6 right padded with spaces
+  char          reserved1[2];   // 2
   char          trading_status; // 1
-                                        /* 'A' - Accepting Orders for Queuing */
                                         /* 'H' - Halted */
                                         /* 'Q' - Quote-Only */
-                                        /* 'S' - Exchange Specific Suspension */
+                                        /* 'R' - Opening Rotation */
                                         /* 'T' - Trading */
-  char          reg_sho_action;// 1
-                                       /* '0' - No price test in effect */
-                                       /* '1' - Reg SHO price test restriction in effect */
-  char          reserveved1;   // 1
-  char          reserveved2;   // 1
+  char          reserved2;     // 1 
+
+  char          gth_trading_status;   // 1 C1 Only !!!
+                                        /* 'H' - Halted */
+                                        /* 'Q' - Quote-Only */
+                                        /* 'T' - Trading */  
+  char          reserved3;   // 1
 } __attribute__((packed));
 
 struct batspitch_time { // 0x20

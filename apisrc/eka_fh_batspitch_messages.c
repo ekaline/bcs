@@ -179,17 +179,17 @@ bool FhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
   }
     //--------------------------------------------------------------
   case EKA_BATS_PITCH_MSG::TRANSACTION_BEGIN:  { 
-    market_open = true;
+    //    market_open = true;
     return false;
   }
     //--------------------------------------------------------------
   case EKA_BATS_PITCH_MSG::TRANSACTION_END:  { 
-    market_open = false;
+    //    market_open = false;
     return false;
   }
     //--------------------------------------------------------------
   case EKA_BATS_PITCH_MSG::END_OF_SESSION:  { 
-    market_open = false;
+    //    market_open = false;
     return true;
   }
     //--------------------------------------------------------------
@@ -463,8 +463,8 @@ bool FhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     return false;
   }
   if (s == NULL) on_error("Uninitialized Security ptr after message 0x%x",(uint8_t)enc);
-  //  s->option_open = market_open;
-  s->option_open = true;
+  s->option_open = market_open;
+  //s->option_open = true;
   if (prev_s.is_equal(s)) return false;
 
   ((BatsBook*)book)->generateOnQuote (pEfhRunCtx, s, sequence, msg_timestamp, gapNum);
@@ -601,7 +601,7 @@ static void eka_print_batspitch_msg(FILE* md_file, uint8_t* m, int gr, uint64_t 
 	    EKA_PRINT_BATS_SYMBOL(((batspitch_trading_status*)m)->symbol),
 	    bats_symbol2optionid(((batspitch_trading_status*)m)->symbol,6),
 	    ((batspitch_trading_status*)m)->trading_status,
-	    ((batspitch_trading_status*)m)->reg_sho_action
+	    ((batspitch_trading_status*)m)->gth_trading_status
 	    );
     break;
 
