@@ -112,6 +112,24 @@ EkaTcpSess::EkaTcpSess(EkaDev* pEkaDev, EkaCore* _parent, uint8_t _coreId, uint8
 
 
 }
+/* ---------------------------------------------------------------- */
+int EkaTcpSess::readyToRecv() {
+  struct pollfd fds[1] = {{sock, POLLIN, 0}};
+
+  int rc = lwip_poll(fds, 1, 0);
+
+  if (rc < 0)
+    EKA_WARN("Core %u TcpSess %u poll returned rc=%d",coreId,sessId,rc);
+
+  if (fds[0].revents & POLLIN) return 1;
+
+  if (fds[0].revents & POLLERR)
+    EKA_WARN("Core %u TcpSess %u has POLLERR (broken pipe)",coreId,sessId);
+  if (fds[0].revents & POLLNVAL)
+    EKA_WARN("Core %u TcpSess %u has POLLNVAL (socket is not opened)",coreId,sessId);
+
+  return 0;
+}
 
 /* ---------------------------------------------------------------- */
 

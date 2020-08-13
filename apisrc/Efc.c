@@ -427,8 +427,23 @@ int excClose( EkaDev* dev, ExcConnHandle hConn ) {
  * @param hConnection
  * @return This will return true if hConn has data ready to be read.
  */
-int excReadyToRecv( EkaDev* pEkaDev, ExcConnHandle hConn ) {
-  return 0;
+int excReadyToRecv( EkaDev* dev, ExcConnHandle hConn ) {
+  assert (dev != NULL);
+
+  uint coreId = excGetCoreId(hConn);
+  if (dev->core[coreId] == NULL) {
+    EKA_WARN("Core %u of hConn %u is not connected",coreId,hConn);
+    return -1;
+  }
+
+  uint sessId = excGetSessionId(hConn);
+
+  if (dev->core[coreId]->tcpSess[sessId] == NULL) {
+    EKA_WARN("Session %u on Core %u of hConn %u is not connected",sessId,coreId,hConn);
+    return -1;
+  }
+
+  return dev->core[coreId]->tcpSess[sessId]->readyToRecv();
 }
 
 EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, EfcReportHdr* p ) {
