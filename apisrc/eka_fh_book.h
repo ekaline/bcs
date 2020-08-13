@@ -33,7 +33,8 @@ class fh_b_order {
     CUSTOMER, 
     BD, 
     CUSTOMER_AON,
-    BD_AON
+    BD_AON,
+    OTHER
   } type_t;
 
   fh_b_order() {
@@ -74,13 +75,15 @@ class fh_b_plevel {
       return &cust_aon_size;
     case fh_b_order::type_t::BD_AON :
       return &bd_aon_size;
+    case fh_b_order::type_t::OTHER :
+      return &other_size;
     default:
       on_error("Unexpected Order Type %d",t);
     }
   }
 
   inline uint32_t get_total_size() {
-    return cust_size + bd_size + cust_aon_size + bd_aon_size;
+    return cust_size + bd_size + cust_aon_size + bd_aon_size + other_size;
   }
 
   inline uint32_t get_total_customer_size() {
@@ -131,6 +134,7 @@ class fh_b_plevel {
     cust_aon_size = 0;
     bd_size       = 0;
     bd_aon_size   = 0;
+    other_size   = 0;
 
     cnt           = 0;
     price         = 0;
@@ -144,6 +148,7 @@ class fh_b_plevel {
   uint32_t	      cust_aon_size = 0;
   uint32_t	      bd_size       = 0;
   uint32_t	      bd_aon_size   = 0;
+  uint32_t	      other_size   = 0;
 
   uint32_t            cnt           = 0; // amount of orders for this plevel
   uint32_t	      price         = 0;

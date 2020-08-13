@@ -40,7 +40,7 @@ inline fh_b_order::type_t addFlags2orderType(uint8_t flags) {
   case 0x09 : // bit #0 & #3
     return fh_b_order::BD_AON;
   default:
-    return fh_b_order::BD;
+    return fh_b_order::OTHER;
   }
 }
 /* ------------------------------------------------ */
