@@ -44,17 +44,20 @@ bool FhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
       s->option_open    = true;
       s->trading_action = EfhTradeStatus::kNormal;
       break;
-    case '2' : // (Rotation) -- TBD
-      break;
+    case '2' : // (Rotation) 
+      s->option_open    = true;
+      s->trading_action = EfhTradeStatus::kOpeningRotation;
+     break;
     case '3' : // (Trading Halted)
       s->trading_action = EfhTradeStatus::kHalted;
       break;
     case '4' : // (Pre-open)
-      s->option_open    = false;
+      s->option_open    = true;
       s->trading_action = EfhTradeStatus::kPreopen;
       break;
     case '5' : // (Rotation, legal width quote pending)
-      // preserve the state
+      s->option_open    = true;
+      s->trading_action = EfhTradeStatus::kOpeningRotation;
       break;
     default:
       hexDump("Bad Msg",m,sizeof(XdpQuote));
