@@ -337,9 +337,9 @@ void* eka_get_sesm_data(void* attr) {
     gr->recovery_sock = -1;
   } else { // SNAPSHOT
     char snapshotRequests[] = {
-      'P', // Simple Series Update Refresh
       'S', // System State Refresh
       'U', // Underlying Trading Status Refresh
+      'P', // Simple Series Update Refresh
       'Q'};// Simple Top of Market Refresh
     for (int i = 0; i < (int)sizeof(snapshotRequests); i ++) {
       EKA_LOG("%s:%u SESM Snapshot for \'%c\'",
