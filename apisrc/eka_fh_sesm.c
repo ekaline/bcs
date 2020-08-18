@@ -258,8 +258,8 @@ void* eka_get_sesm_retransmit(void* attr) {
   //-----------------------------------------------------------------
   getLoginResponse(gr);
   //-----------------------------------------------------------------
-  std::thread heartBeat = std::thread(heartBeatThread,dev,gr,gr->recovery_sock);
-  heartBeat.detach();
+  /* std::thread heartBeat = std::thread(heartBeatThread,dev,gr,gr->recovery_sock); */
+  /* heartBeat.detach(); */
   //-----------------------------------------------------------------
   sendRetransmitRequest(gr,start,end);
   //-----------------------------------------------------------------
