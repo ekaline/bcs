@@ -463,8 +463,10 @@ bool FhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
     return false;
   }
   if (s == NULL) on_error("Uninitialized Security ptr after message 0x%x",(uint8_t)enc);
+
   //s->option_open = market_open;
   s->option_open = true;
+
   if (prev_s.is_equal(s)) return false;
 
   ((BatsBook*)book)->generateOnQuote (pEfhRunCtx, s, sequence, msg_timestamp, gapNum);
