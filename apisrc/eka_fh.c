@@ -1252,7 +1252,7 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 	gr->state = FhGroup::GrpState::NORMAL;
 
 	EKA_DEBUG("%s:%u Generating TOB quote for every Security",EKA_EXCH_DECODE(gr->exch),gr->id);
-	((TobBook*)gr->book)->sendTobImage(pEfhRunCtx);
+	((TobBook*)gr->book)->sendTobImage64(pEfhRunCtx);
 
 	EfhFeedUpMsg efhFeedUpMsg{ EfhMsgType::kFeedUp, {gr->exch, (EkaLSI)gr->id}, gr->gapNum };
 	pEfhRunCtx->onEfhFeedUpMsgCb(&efhFeedUpMsg, 0, pEfhRunCtx->efhRunUserData);
