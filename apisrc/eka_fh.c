@@ -1251,6 +1251,9 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 	EKA_LOG("%s:%u: SNAPSHOT_GAP Closed: last snapshot sequence = %ju",EKA_EXCH_DECODE(exch),gr->id,gr->seq_after_snapshot);
 	gr->state = FhGroup::GrpState::NORMAL;
 
+	EKA_DEBUG("%s:%u Generating TOB quote for every Security",EKA_EXCH_DECODE(gr->exch),gr->id);
+	((TobBook*)gr->book)->sendTobImage(pEfhRunCtx);
+
 	EfhFeedUpMsg efhFeedUpMsg{ EfhMsgType::kFeedUp, {gr->exch, (EkaLSI)gr->id}, gr->gapNum };
 	pEfhRunCtx->onEfhFeedUpMsgCb(&efhFeedUpMsg, 0, pEfhRunCtx->efhRunUserData);
 	runGr->setGrAfterGap(gr->id);

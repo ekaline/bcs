@@ -339,7 +339,8 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     s->ask_cust_size = getNumField<uint32_t>(boxMsg->PublicCustomerAskSize,sizeof(boxMsg->PublicCustomerAskSize));
 
     getStatus(s,boxMsg->InstrumentStatusMarker);
-    book->generateOnQuote64 (pEfhRunCtx, s, sequence, gr_ts, gapNum);
+    if (op != EkaFhMode::SNAPSHOT)
+      book->generateOnQuote64 (pEfhRunCtx, s, sequence, gr_ts, gapNum);
 
     //===================================================
   } else if (memcmp(msgHdr->MsgType,"Z ",sizeof(msgHdr->MsgType)) == 0) { // SystemTimeStamp
