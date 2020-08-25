@@ -772,7 +772,18 @@ void TobBook::sendTobImage (const EfhRunCtx* pEfhRunCtx) {
   }
   return;
 }
-
+ /* ##################################################################### */
+void TobBook::sendTobImage64 (const EfhRunCtx* pEfhRunCtx) {
+  for (uint i = 0; i < EKA_FH_SEC_HASH_LINES; i++) {
+    if (sec64[i] == NULL) continue;
+    fh_b_security64* s = sec64[i];
+    while (s != NULL) {
+      TobBook::generateOnQuote64(pEfhRunCtx,s,0,std::max(s->bid_ts,s->ask_ts),1);
+      s = s->next;
+    }
+  }
+  return;
+}
  /* ##################################################################### */
 int FullBook::generateOnQuote64 (const EfhRunCtx* pEfhRunCtx, fh_b_security64* s, uint64_t sequence, uint64_t timestamp,uint gapNum) {
   return 0; // place holder

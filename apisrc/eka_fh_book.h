@@ -377,6 +377,7 @@ class TobBook : public fh_book {
  TobBook(EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx,FhGroup* gr) : fh_book(pEfhCtx,pInitCtx,gr){};
   int  generateOnQuote(const EfhRunCtx* pEfhRunCtx, fh_b_security* s, uint64_t sequence, uint64_t timestamp,uint gapNum);
   void sendTobImage (const EfhRunCtx* pEfhRunCtx);
+  void sendTobImage64 (const EfhRunCtx* pEfhRunCtx);
 
   int generateOnQuote64(const EfhRunCtx* pEfhRunCtx, fh_b_security64* s, uint64_t sequence, uint64_t timestamp,uint gapNum);
 
