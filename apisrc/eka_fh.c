@@ -509,7 +509,9 @@ uint8_t FhBats::getGrId(const uint8_t* pkt) {
 /* ##################################################################### */
 EkaOpResult EkaFh::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhRunGr* runGr) {
   for (uint8_t i = 0; i < runGr->numGr; i++) {
-    if (pEfhRunCtx->groups[i].localId >= groups) on_error("gr_id = %u >= groups %u",pEfhRunCtx->groups[i].localId,groups);
+    if (! runGr->isMyGr(pEfhRunCtx->groups[i].localId)) 
+      on_error("pEfhRunCtx->groups[%d].localId = %u doesnt belong to %s",
+	       i,pEfhRunCtx->groups[i].localId,runGr->list2print);
     if (pEfhRunCtx->groups[i].source != exch) on_error("pEfhRunCtx->groups[i].source != exch");
     FhGroup* gr = b_gr[pEfhRunCtx->groups[i].localId];
     if (gr == NULL) on_error ("b_gr[%u] == NULL",pEfhRunCtx->groups[i].localId);
@@ -522,7 +524,10 @@ EkaOpResult EkaFh::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhRu
 /* ##################################################################### */
 EkaOpResult FhXdp::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhRunGr* runGr) {
   for (uint8_t i = 0; i < runGr->numGr; i++) {
-    if (pEfhRunCtx->groups[i].localId >= groups) on_error("gr_id = %u >= groups %u",pEfhRunCtx->groups[i].localId,groups);
+    if (! runGr->isMyGr(pEfhRunCtx->groups[i].localId)) 
+      on_error("pEfhRunCtx->groups[%d].localId = %u doesnt belong to %s",
+	       i,pEfhRunCtx->groups[i].localId,runGr->list2print);
+
     if (pEfhRunCtx->groups[i].source != exch) on_error("pEfhRunCtx->groups[i].source != exch");
     FhGroup* gr = b_gr[pEfhRunCtx->groups[i].localId];
     if (gr == NULL) on_error ("b_gr[%u] == NULL",pEfhRunCtx->groups[i].localId);
@@ -535,7 +540,9 @@ EkaOpResult FhXdp::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhRu
 /* ##################################################################### */
 EkaOpResult FhBox::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhRunGr* runGr) {
   for (uint8_t i = 0; i < runGr->numGr; i++) {
-    if (pEfhRunCtx->groups[i].localId >= groups) on_error("gr_id = %u >= groups %u",pEfhRunCtx->groups[i].localId,groups);
+    if (! runGr->isMyGr(pEfhRunCtx->groups[i].localId)) 
+      on_error("pEfhRunCtx->groups[%d].localId = %u doesnt belong to %s",
+	       i,pEfhRunCtx->groups[i].localId,runGr->list2print);
     if (pEfhRunCtx->groups[i].source != exch) on_error("pEfhRunCtx->groups[i].source != exch");
     FhGroup* gr = b_gr[pEfhRunCtx->groups[i].localId];
     if (gr == NULL) on_error ("b_gr[%u] == NULL",pEfhRunCtx->groups[i].localId);
@@ -574,8 +581,8 @@ uint8_t* FhNasdaq::getUdpPkt(FhRunGr* runGr, uint* msgInPkt, uint64_t* sequence,
     runGr->stoppedByExchange = true;
     return NULL; // EndOfMold
   }
-  if (grId == 0xFF || grId < runGr->firstGr || grId >= (runGr->firstGr + runGr->numGr) || b_gr[grId] == NULL || b_gr[grId]->q == NULL) { 
-    if (grId != 0) EKA_LOG("RunGr%u: Skipping gr_id = %u, firstGr=%u",runGr->runId,grId,runGr->firstGr);
+  if (grId == 0xFF || (! runGr->isMyGr(grId)) || b_gr[grId] == NULL || b_gr[grId]->q == NULL) { 
+    if (grId != 0) EKA_LOG("RunGr%u: Skipping gr_id = %u not belonging to %s",runGr->runId,grId,runGr->list2print);
     runGr->udpCh->next(); 
     return NULL;
   }
@@ -598,8 +605,8 @@ uint8_t* FhBats::getUdpPkt(FhRunGr* runGr, uint* msgInPkt, uint64_t* sequence,ui
   uint msgCnt = EKA_BATS_MSG_CNT((pkt));
   uint8_t grId = getGrId(pkt);
 
-  if (grId == 0xFF || grId < runGr->firstGr || grId >= (runGr->firstGr + runGr->numGr) || b_gr[grId] == NULL || b_gr[grId]->q == NULL) { 
-    if (grId != 0) EKA_LOG("RunGr%u: Skipping gr_id = %u, firstGr=%u",runGr->runId,grId,runGr->firstGr);
+  if (grId == 0xFF || (! runGr->isMyGr(grId)) || b_gr[grId] == NULL || b_gr[grId]->q == NULL) { 
+    if (grId != 0) EKA_LOG("RunGr%u: Skipping gr_id = %u not belonging to %s",runGr->runId,grId,runGr->list2print);
     runGr->udpCh->next(); 
     return NULL;
   }
@@ -834,25 +841,31 @@ void FhBats::pushUdpPkt2Q(FhBatsGr* gr, const uint8_t* pkt, uint msgInPkt, uint6
 
 EkaOpResult FhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId) {
   FhRunGr* runGr = dev->runGr[runGrId];
-  EKA_DEBUG("Running %s, groups %u .. %u",EKA_EXCH_DECODE(runGr->exch),runGr->firstGr,runGr->firstGr+runGr->numGr-1);
-  
+  if (runGr == NULL) on_error("runGr == NULL");
+
+  EKA_DEBUG("Initializing %s Run Group %u: %s GROUPS",
+	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
+
   initGroups(pEfhCtx, pEfhRunCtx, runGr);
 
   if (exch == EkaSource::kPHLX_TOPO && isPreTradeTime(9,27)) {
-    for (uint8_t i = runGr->firstGr; i < runGr->numGr; i++) {
-      EKA_LOG("%s:%u: Running PreTrade Snapshot",EKA_EXCH_DECODE(exch),b_gr[i]->id);
-      b_gr[i]->snapshotThreadDone = false;
-      closeGap(EkaFhMode::SNAPSHOT, pEfhCtx,pEfhRunCtx,b_gr[i], 1, 1);
-      while (! b_gr[i]->snapshotThreadDone) {} // instead of thread.join()
-      b_gr[i]->expected_sequence = b_gr[i]->recovery_sequence + 1;
-      EKA_LOG("%s:%u: PreTrade Glimpse Snapshot is done, expected_sequence = %ju",EKA_EXCH_DECODE(exch),b_gr[i]->id,b_gr[i]->expected_sequence);
-      b_gr[i]->state = FhGroup::GrpState::NORMAL;
+    for (uint8_t j = 0; j < runGr->numGr; j++) {
+      uint8_t grId = runGr->groupList[j];
+      EKA_LOG("%s:%u: Running PreTrade Snapshot",EKA_EXCH_DECODE(exch),b_gr[grId]->id);
+      b_gr[grId]->snapshotThreadDone = false;
+      closeGap(EkaFhMode::SNAPSHOT, pEfhCtx,pEfhRunCtx,b_gr[grId], 1, 1);
+      while (! b_gr[grId]->snapshotThreadDone) {} // instead of thread.join()
+      b_gr[grId]->expected_sequence = b_gr[grId]->recovery_sequence + 1;
+      EKA_LOG("%s:%u: PreTrade Glimpse Snapshot is done, expected_sequence = %ju",EKA_EXCH_DECODE(exch),b_gr[grId]->id,b_gr[grId]->expected_sequence);
+      b_gr[grId]->state = FhGroup::GrpState::NORMAL;
 
-      EfhFeedUpMsg efhFeedUpMsg{ EfhMsgType::kFeedUp, {b_gr[i]->exch, (EkaLSI)b_gr[i]->id}, b_gr[i]->gapNum };
+      EfhFeedUpMsg efhFeedUpMsg{ EfhMsgType::kFeedUp, {b_gr[grId]->exch, (EkaLSI)b_gr[grId]->id}, b_gr[grId]->gapNum };
       pEfhRunCtx->onEfhFeedUpMsgCb(&efhFeedUpMsg, 0, pEfhRunCtx->efhRunUserData);
     }
   }
-  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s:%u GROUPS ~~~~~~~~~~~~~",EKA_EXCH_DECODE(exch),(uint)pEfhRunCtx->numGroups);
+
+  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u: %s GROUPS ~~~~~~~~~~~~~",
+	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
 
   while (runGr->thread_active && ! runGr->stoppedByExchange) {
     //-----------------------------------------------------------------------------
@@ -942,14 +955,15 @@ EkaOpResult FhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
 EkaOpResult FhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId ) {
   FhRunGr* runGr = dev->runGr[runGrId];
-  EKA_DEBUG("Running %s,  Run Group %u (%u) with Fh Groups %u .. %u",
-	    EKA_EXCH_DECODE(runGr->exch),runGr->runId,runGrId,
-	    runGr->firstGr,runGr->firstGr+runGr->numGr-1);
+  if (runGr == NULL) on_error("runGr == NULL");
+
+  EKA_DEBUG("Initializing %s Run Group %u: %s GROUPS",
+	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
 
   initGroups(pEfhCtx, pEfhRunCtx, runGr);
 
-  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u with %u Fh Groups~~~~~~~~~~~~~",
-	    EKA_EXCH_DECODE(exch),runGr->runId, runGr->numGr);
+  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u: %s GROUPS ~~~~~~~~~~~~~",
+	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
 
   while (runGr->thread_active && ! runGr->stoppedByExchange) {
     //-----------------------------------------------------------------------------
@@ -1036,11 +1050,15 @@ EkaOpResult FhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uin
 
 EkaOpResult FhMiax::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId ) {
   FhRunGr* runGr = dev->runGr[runGrId];
-  EKA_DEBUG("Running %s, groups %u .. %u",EKA_EXCH_DECODE(runGr->exch),runGr->firstGr,runGr->firstGr+runGr->numGr-1);
+  if (runGr == NULL) on_error("runGr == NULL");
+
+  EKA_DEBUG("Initializing %s Run Group %u: %s GROUPS",
+	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
 
   initGroups(pEfhCtx, pEfhRunCtx, runGr);
 
-  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s:%u GROUPS ~~~~~~~~~~~~~",EKA_EXCH_DECODE(exch),(uint)pEfhRunCtx->numGroups);
+  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u: %s GROUPS ~~~~~~~~~~~~~",
+	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
 
   while (runGr->thread_active && ! runGr->stoppedByExchange) {
     //-----------------------------------------------------------------------------
@@ -1133,18 +1151,21 @@ EkaOpResult FhMiax::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uin
 
 EkaOpResult FhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId ) {
   FhRunGr* runGr = dev->runGr[runGrId];
-  EKA_DEBUG("Running %s, groups %u .. %u",EKA_EXCH_DECODE(runGr->exch),runGr->firstGr,runGr->firstGr+runGr->numGr-1);
-  
+  if (runGr == NULL) on_error("runGr == NULL");
+
+  EKA_DEBUG("Initializing %s Run Group %u: %s GROUPS",
+	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
   initGroups(pEfhCtx, pEfhRunCtx, runGr);
 
-  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u with %u Fh Groups (%u..%u) ~~~~~~~~~~~~~",
-	    EKA_EXCH_DECODE(exch),runGr->runId, runGr->numGr,runGr->firstGr,runGr->firstGr+runGr->numGr);
+  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u: %s GROUPS ~~~~~~~~~~~~~",
+	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
 
-  for (uint8_t i = runGr->firstGr; i < runGr->firstGr + runGr->numGr; i++) {
-      EfhFeedDownMsg efhFeedDownMsg{ EfhMsgType::kFeedDown, {b_gr[i]->exch, (EkaLSI)b_gr[i]->id}, ++b_gr[i]->gapNum };
-      pEfhRunCtx->onEfhFeedDownMsgCb(&efhFeedDownMsg, 0, pEfhRunCtx->efhRunUserData);
-      ((FhXdpGr*)b_gr[i])->inGap = true;
-      ((FhXdpGr*)b_gr[i])->setGapStart();
+  for (uint8_t j = 0; j < runGr->numGr; j++) {
+    uint8_t grId = runGr->groupList[j];
+    EfhFeedDownMsg efhFeedDownMsg{ EfhMsgType::kFeedDown, {b_gr[grId]->exch, (EkaLSI)b_gr[grId]->id}, ++b_gr[grId]->gapNum };
+    pEfhRunCtx->onEfhFeedDownMsgCb(&efhFeedDownMsg, 0, pEfhRunCtx->efhRunUserData);
+    ((FhXdpGr*)b_gr[grId])->inGap = true;
+    ((FhXdpGr*)b_gr[grId])->setGapStart();
   }
 
   while (runGr->thread_active) {
@@ -1201,11 +1222,14 @@ EkaOpResult FhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 
 EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId ) {
   FhRunGr* runGr = dev->runGr[runGrId];
-  EKA_DEBUG("Running %s, groups %u .. %u",EKA_EXCH_DECODE(runGr->exch),runGr->firstGr,runGr->firstGr+runGr->numGr-1);
-  
+  if (runGr == NULL) on_error("runGr == NULL");
+
+  EKA_DEBUG("Initializing %s Run Group %u: %s GROUPS",
+	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
   initGroups(pEfhCtx, pEfhRunCtx, runGr);
 
-  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s:%u GROUPS ~~~~~~~~~~~~~",EKA_EXCH_DECODE(exch),(uint)pEfhRunCtx->numGroups);
+  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u: %s GROUPS ~~~~~~~~~~~~~",
+	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
 
   while (runGr->thread_active && ! runGr->stoppedByExchange) {
     //-----------------------------------------------------------------------------

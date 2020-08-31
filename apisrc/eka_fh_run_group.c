@@ -17,20 +17,26 @@ FhRunGr::FhRunGr (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t _runId )
   runId = _runId;
   fh = dev->fh[pEfhCtx->fhId];
   exch = fh->exch;
-  firstGr = pEfhRunCtx->groups[0].localId;
+  //  firstGr = pEfhRunCtx->groups[0].localId;
   numGr = pEfhRunCtx->numGroups;
+  int n = 0;
+
+  for (auto i = 0; i < numGr; i++) {
+    groupList[i] = pEfhRunCtx->groups[i].localId;
+    n += sprintf (&list2print[n], "%d,", groupList[i]);
+  }
 
   udpCh = new EkaUdpChannel(dev,coreId);
   assert (udpCh != NULL);
 
   for (uint i = 0; i < MAX_GR2RUN; i++) grAfterGap[i] = false;
   cntGrAfterGap = 0;
-  EKA_LOG("runId = %u, firstGr = %u, numGr = %u",runId,firstGr,numGr);
+
   thread_active = true;
   hasGrpAfterGap = false;
   stoppedByExchange = false;
 
-  EKA_LOG("%s: groups: %u .. %u",EKA_EXCH_DECODE(exch),firstGr,firstGr+numGr-1);
+  EKA_LOG("%s: runId = %u,groups: %s",EKA_EXCH_DECODE(exch),runId,list2print);
 }
 /* ##################################################################### */
 
