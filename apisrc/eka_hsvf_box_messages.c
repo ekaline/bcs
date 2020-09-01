@@ -35,7 +35,8 @@ uint getHsvfMsgLen(const uint8_t* pkt, int bytes2run) {
 
 uint64_t getHsvfMsgSequence(uint8_t* msg) {
   HsvfMsgHdr* msgHdr = (HsvfMsgHdr*)&msg[1];
-  return std::stoul(std::string(msgHdr->sequence,sizeof(msgHdr->sequence)));
+  std::string seqString = std::string(msgHdr->sequence,sizeof(msgHdr->sequence));
+  return std::stoul(seqString,nullptr,10);
 }
 
 uint trailingZeros(uint8_t* p, uint maxChars) {
