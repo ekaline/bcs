@@ -24,6 +24,7 @@
 #include "eka_fh_group.h"
 #include "EkaDev.h"
 #include "Efh.h"
+#include "EkaCtxs.h"
 #include "Eka.h"
 #include "eka_fh_phlx_messages.h"
 #include "eka_fh.h"
@@ -112,8 +113,8 @@ static void sendLogout (FhGroup* gr) {
 static bool getLoginResponse(FhGroup* gr) {
   EkaDev* dev = gr->dev;
 
-  soupbin soupbin_hdr ={};
-  if (recv(gr->snapshot_sock,&soupbin_hdr,sizeof(struct soupbin),MSG_WAITALL) <= 0) 
+  soupbin_header soupbin_hdr ={};
+  if (recv(gr->snapshot_sock,&soupbin_hdr,sizeof(soupbin_hdr),MSG_WAITALL) <= 0) 
     on_error("%s:%u Glimpse connection reset by peer after Login (failed to receive SoupbinHdr), gr->snapshot_sock = %d",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock);
   char soupbin_buf[100] = {};
@@ -148,7 +149,7 @@ void* eka_get_glimpse_data(void* attr) {
 
   if (op != EkaFhMode::DEFINITIONS) pthread_detach(pthread_self());
 
-  eka_dev_t* dev = pEfhCtx->dev;
+  EkaDev* dev = pEfhCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
   if (dev->fh[pEfhCtx->fhId] == NULL) on_error("dev->fh[pEfhCtx->fhId] == NULL for pEfhCtx->fhId = %u",pEfhCtx->fhId);
   if (gr == NULL) on_error("gr == NULL");
@@ -188,8 +189,8 @@ void* eka_get_glimpse_data(void* attr) {
   //-----------------------------------------------------------------
 
   while (gr->snapshot_active) { // Accepted Login
-    struct soupbin soupbin_hdr ={};
-    if (recv(gr->snapshot_sock,&soupbin_hdr,sizeof(struct soupbin),MSG_WAITALL) <= 0) 
+    struct soupbin_header soupbin_hdr ={};
+    if (recv(gr->snapshot_sock,&soupbin_hdr,sizeof(soupbin_hdr),MSG_WAITALL) <= 0) 
       on_error("%s:%u: Glimpse Server connection reset by peer (failed to receive SoupbinHdr), gr->snapshot_sock=%d",
 	       EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock);
     char soupbin_buf[1000] = {};

@@ -16,10 +16,14 @@
 #include <sys/time.h>
 #include <chrono>
 
-#include "ekaline.h"
+#include "EkaDev.h"
+#include "eka_fh.h"
+#include "eka_macros.h"
+#include "Efh.h"
 #include "Exc.h"
 #include "Eka.h"
 #include "Efc.h"
+#include "EkaCtxs.h"
 
 //#include "exc_debug_module.h"
 
@@ -51,26 +55,26 @@
 
 volatile bool keep_work;
 
-void hexDump (const char* desc, void *addr, int len) {
-    int i;
-    unsigned char buff[17];
-    unsigned char *pc = (unsigned char*)addr;
-    if (desc != NULL) printf ("%s:\n", desc);
-    if (len == 0) { printf("  ZERO LENGTH\n"); return; }
-    if (len < 0)  { printf("  NEGATIVE LENGTH: %i\n",len); return; }
-    for (i = 0; i < len; i++) {
-        if ((i % 16) == 0) {
-            if (i != 0) printf ("  %s\n", buff);
-            printf ("  %04x ", i);
-        }
-        printf (" %02x", pc[i]);
-        if ((pc[i] < 0x20) || (pc[i] > 0x7e))  buff[i % 16] = '.';
-        else buff[i % 16] = pc[i];
-        buff[(i % 16) + 1] = '\0';
-    }
-    while ((i % 16) != 0) { printf ("   "); i++; }
-    printf ("  %s\n", buff);
-}
+/* void hexDump (const char* desc, void *addr, int len) { */
+/*     int i; */
+/*     unsigned char buff[17]; */
+/*     unsigned char *pc = (unsigned char*)addr; */
+/*     if (desc != NULL) printf ("%s:\n", desc); */
+/*     if (len == 0) { printf("  ZERO LENGTH\n"); return; } */
+/*     if (len < 0)  { printf("  NEGATIVE LENGTH: %i\n",len); return; } */
+/*     for (i = 0; i < len; i++) { */
+/*         if ((i % 16) == 0) { */
+/*             if (i != 0) printf ("  %s\n", buff); */
+/*             printf ("  %04x ", i); */
+/*         } */
+/*         printf (" %02x", pc[i]); */
+/*         if ((pc[i] < 0x20) || (pc[i] > 0x7e))  buff[i % 16] = '.'; */
+/*         else buff[i % 16] = pc[i]; */
+/*         buff[(i % 16) + 1] = '\0'; */
+/*     } */
+/*     while ((i % 16) != 0) { printf ("   "); i++; } */
+/*     printf ("  %s\n", buff); */
+/* } */
 
 #include "eka_default_callbacks4tests.incl"
 #include "eka_exc_debug_module.h"

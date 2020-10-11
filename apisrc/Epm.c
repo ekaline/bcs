@@ -56,30 +56,30 @@ EkaOpResult epmSetAction(EkaDev* dev, EkaCoreId coreId,
                          epm_strategyid_t strategy, epm_actionid_t action,
                          const EpmAction *epmAction) {
   if (dev == NULL) return EKA_OPRESULT__ERR_BAD_ADDRESS;
-  if (coreId >= EkaDev::CONF::MAX_CORES || dev->core[coreId] == NULL)
+  if (coreId >= EkaDev::MAX_CORES || dev->core[coreId] == NULL)
     return EKA_OPRESULT__ERR_INVALID_CORE;
 
-  return dev->epm->epmSetAction(coreId,strategy,action,epmAction);
+  return dev->epm->setAction(coreId,strategy,action,epmAction);
 }
 
 EkaOpResult epmGetAction(const EkaDev *dev, EkaCoreId coreId,
                          epm_strategyid_t strategy, epm_actionid_t action,
                          EpmAction *epmAction) {
   if (dev == NULL) return EKA_OPRESULT__ERR_BAD_ADDRESS;
-  if (coreId >= EkaDev::CONF::MAX_CORES || dev->core[coreId] == NULL)
+  if (coreId >= EkaDev::MAX_CORES || dev->core[coreId] == NULL)
     return EKA_OPRESULT__ERR_INVALID_CORE;
 
-  return dev->epm->epmGetAction(coreId,strategy,action,epmAction);
+  return dev->epm->getAction(coreId,strategy,action,epmAction);
 
 }
 
 
 EkaOpResult epmEnableController(EkaDev *dev, EkaCoreId coreId, bool enable) {
   if (dev == NULL) return EKA_OPRESULT__ERR_BAD_ADDRESS;
-  if (coreId >= EkaDev::CONF::MAX_CORES || dev->core[coreId] == NULL)
+  if (coreId >= EkaDev::MAX_CORES || dev->core[coreId] == NULL)
     return EKA_OPRESULT__ERR_INVALID_CORE;
 
-  return dev->epm->epmEnableController(coreId,enable);
+  return dev->epm->enableController(coreId,enable);
 }
 
 EkaOpResult epmInitStrategies(EkaDev *dev, EkaCoreId coreId,
@@ -87,13 +87,13 @@ EkaOpResult epmInitStrategies(EkaDev *dev, EkaCoreId coreId,
                               epm_strategyid_t numStrategies) {
 
   if (dev == NULL) return EKA_OPRESULT__ERR_BAD_ADDRESS;
-  if (coreId >= EkaDev::CONF::MAX_CORES || dev->core[coreId] == NULL)
+  if (coreId >= EkaDev::MAX_CORES || dev->core[coreId] == NULL)
     return EKA_OPRESULT__ERR_INVALID_CORE;
   if (numStrategies > static_cast<epm_strategyid_t>(dev->epm->getMaxStrategies()))
     return EKA_OPRESULT__ERR_MAX_STRATEGIES;
 
   EKA_LOG("initializing %u EPM strategies for core %u",numStrategies,coreId);
-  return dev->epm->epmInitStrategies(coreId,params,numStrategies);
+  return dev->epm->initStrategies(coreId,params,numStrategies);
 }
 
 EkaOpResult epmSetStrategyEnableBits(EkaDev *dev, EkaCoreId coreId,
@@ -101,10 +101,10 @@ EkaOpResult epmSetStrategyEnableBits(EkaDev *dev, EkaCoreId coreId,
                                      epm_enablebits_t enable) {
 
   if (dev == NULL) return EKA_OPRESULT__ERR_BAD_ADDRESS;
-  if (coreId >= EkaDev::CONF::MAX_CORES || dev->core[coreId] == NULL)
+  if (coreId >= EkaDev::MAX_CORES || dev->core[coreId] == NULL)
     return EKA_OPRESULT__ERR_INVALID_CORE;
 
-  return dev->epm->epmSetStrategyEnableBits(coreId,strategy,enable);
+  return dev->epm->setStrategyEnableBits(coreId,strategy,enable);
 }
 
 EkaOpResult epmGetStrategyEnableBits(EkaDev *dev, EkaCoreId coreId,
@@ -112,30 +112,30 @@ EkaOpResult epmGetStrategyEnableBits(EkaDev *dev, EkaCoreId coreId,
                                      epm_enablebits_t *enable) {
 
   if (dev == NULL) return EKA_OPRESULT__ERR_BAD_ADDRESS;
-  if (coreId >= EkaDev::CONF::MAX_CORES || dev->core[coreId] == NULL)
+  if (coreId >= EkaDev::MAX_CORES || dev->core[coreId] == NULL)
     return EKA_OPRESULT__ERR_INVALID_CORE;
 
-  return dev->epm->epmGetStrategyEnableBits(coreId,strategy,enable);
+  return dev->epm->getStrategyEnableBits(coreId,strategy,enable);
 }
 
 EkaOpResult epmRaiseTriggers(EkaDev *dev, EkaCoreId coreId,
                              const EpmTrigger *trigger) {
 
   if (dev == NULL) return EKA_OPRESULT__ERR_BAD_ADDRESS;
-  if (coreId >= EkaDev::CONF::MAX_CORES || dev->core[coreId] == NULL)
+  if (coreId >= EkaDev::MAX_CORES || dev->core[coreId] == NULL)
     return EKA_OPRESULT__ERR_INVALID_CORE;
 
-  return dev->epm->epmRaiseTriggers(coreId,trigger);
+  return dev->epm->raiseTriggers(coreId,trigger);
 }
 
 EkaOpResult epmPayloadHeapCopy(EkaDev *dev, EkaCoreId coreId,
                                epm_strategyid_t strategy, uint32_t offset,
                                uint32_t length, const void *contents) {
   if (dev == NULL) return EKA_OPRESULT__ERR_BAD_ADDRESS;
-  if (coreId >= EkaDev::CONF::MAX_CORES || dev->core[coreId] == NULL)
+  if (coreId >= EkaDev::MAX_CORES || dev->core[coreId] == NULL)
     return EKA_OPRESULT__ERR_INVALID_CORE;
 
-  return dev->epm->epmPayloadHeapCopy(coreId,strategy,offset,length,contents);
+  return dev->epm->payloadHeapCopy(coreId,strategy,offset,length,contents);
 }
 
 

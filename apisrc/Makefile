@@ -28,7 +28,7 @@ LD_FLAGS:=-shared -fpic $(LD_ASAN_OPTIONS)
 EKAUTILS_SRCS := $(wildcard ../eka_utils/*.c)
 EKAUTILS_EXECS := $(patsubst %.c,%,$(EKAUTILS_SRCS))
 
-EKATESTS_SRCS := $(wildcard ../new_api_tests/e*.c)
+EKATESTS_SRCS := $(wildcard ../new_api_tests/*.c)
 EKATESTS_EXECS := $(patsubst %.c,%,$(EKATESTS_SRCS))
 
 UNITTESTS_SRCS := $(wildcard ../new_api_tests/unit*.c)
@@ -62,13 +62,13 @@ lab: all
 # LWIP
 
 LWIPDIR?=$(LWIP_ROOT)/lwip/src
-CFLAGS+=-fPIC -I. -I$(LWIPDIR)/include
+CFLAGS+=-fPIC -I. -Og -I$(LWIPDIR)/include -I./arch -pthread -lrt -D_GNU_SOURCE 
 
 LDFLAGS+=-lutil -pthread -lrt -fPIC
 
 include $(LWIPDIR)/Filelists.mk
 
-LWIPFILES=$(LWIPNOAPPSFILES)
+LWIPFILES=$(LWIPNOAPPSFILES)  sys_arch.c
 
 LWIPOBJS=$(notdir $(LWIPFILES:.c=.o))
 
@@ -110,7 +110,7 @@ eka_utils: $(EKAUTILS_EXECS)
 #	$(CC) $< -o $@ $(GCC_FLAGS) -I . -I $(DRIVERS_INCL) -I $(API_INCL) -I ../apisrc $(SMARTNIC_LIB)
 
 eka_tests: $(EKATESTS_EXECS)
-../new_api_tests/e%: ../new_api_tests/e%.c $(LIBEKALLINE).so
+../new_api_tests/%: ../new_api_tests/%.c $(LIBEKALLINE).so
 	$(CC) $< -o $@ $(GCC_FLAGS) $(INCL) $(LLIB)
 
 unit_tests: $(UNITTESTS_EXECS)

@@ -4,7 +4,7 @@
 #include "eka_macros.h"
 
 #define EKA_MAX_P4_SUBSCR 768*1024
-#define EKA_MAX_CTX_THREADS 16
+//#define EKA_MAX_CTX_THREADS 16
 #define EKA_BANKS_PER_CTX_THREAD 8
 #define EKA_WORDS_PER_CTX_BANK 1
 

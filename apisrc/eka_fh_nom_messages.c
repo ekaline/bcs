@@ -7,8 +7,6 @@
 #include <assert.h>
 #include <algorithm>
 
-#include "ekaline.h"
-
 #include "eka_fh.h"
 #include "eka_fh_nom_messages.h"
 

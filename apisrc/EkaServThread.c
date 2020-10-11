@@ -11,28 +11,6 @@
 
 void ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len);
 
-static void hexDump (const char *desc, void *addr, int len) {
-    int i;
-    unsigned char buff[17];
-    unsigned char *pc = (unsigned char*)addr;
-    if (desc != NULL) printf ("%s:\n", desc);
-    if (len == 0) { printf("  ZERO LENGTH\n"); return; }
-    if (len < 0)  { printf("  NEGATIVE LENGTH: %i\n",len); return; }
-    for (i = 0; i < len; i++) {
-        if ((i % 16) == 0) {
-            if (i != 0) printf ("  %s\n", buff);
-            printf ("  %04x ", i);
-        }
-        printf (" %02x", pc[i]);
-        if ((pc[i] < 0x20) || (pc[i] > 0x7e))  buff[i % 16] = '.';
-        else buff[i % 16] = pc[i];
-        buff[(i % 16) + 1] = '\0';
-    }
-    while ((i % 16) != 0) { printf ("   "); i++; }
-    printf ("  %s\n", buff);
-}
-
-
 /* ----------------------------------------------- */
 static inline void sendDummyFastPathPkt(EkaDev* dev, const uint8_t* payload) {
   uint8_t vlan_size = /* dev->use_vlan ? 4 : */ 0;
@@ -114,6 +92,7 @@ void ekaServThread(EkaDev* dev) {
       /* hexDump("RX pkt",(void*)payload,len); */
       switch ((EkaUserChannel::DMA_TYPE)((dma_report_t*)payload)->type) {
       case EkaUserChannel::DMA_TYPE::FAST_PATH_DUMMY_PKT:
+      case EkaUserChannel::DMA_TYPE::EPM:
 	//	hexDump("FastPathPkt at ekaServThread",(uint8_t*)payload + sizeof(dma_report_t),len - sizeof(dma_report_t));
 
 	sendDummyFastPathPkt(dev,payload);
@@ -125,7 +104,7 @@ void ekaServThread(EkaDev* dev) {
       default:
 	/* ekaProcesTcpRx (dev, payload, len); */
 	hexDump("RX pkt at FAST_PATH User Channel",(void*)payload,len);
-	on_error("Unexpected packet");
+	on_error("Unexpected packet with DMA type %d",(int)((dma_report_t*)payload)->type);
       }
       dev->snDev->fastPath->next();
     }
@@ -149,6 +128,6 @@ void ekaServThread(EkaDev* dev) {
     /*   sendHb2HW(dev); */
     /* } */
   }
-  EKA_LOG("Exiting");
+  EKA_LOG("Terminated");
   return;
 }

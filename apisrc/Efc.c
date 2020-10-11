@@ -376,7 +376,8 @@ ssize_t excSend( EkaDev* dev, ExcConnHandle hConn, const void* pBuffer, size_t s
   }
 
   //  EKA_LOG("Sending on coreId=%u, sessId=%u",coreId,sessId);
-  return dev->core[coreId]->tcpSess[sessId]->sendPayload((void*) pBuffer, size);
+  //  return dev->core[coreId]->tcpSess[sessId]->sendPayload(0/* thrId */, (void*) pBuffer, size);
+  return dev->core[coreId]->tcpSess[sessId]->sendPayload(sessId/* thrId */, (void*) pBuffer, size);
 }
 
 /**
@@ -419,8 +420,10 @@ int excClose( EkaDev* dev, ExcConnHandle hConn ) {
     EKA_WARN("Session %u on Core %u of hConn %u is not connected",sessId,coreId,hConn);
     return -1;
   }
-
-  return dev->core[coreId]->tcpSess[sessId]->close();
+  delete dev->core[coreId]->tcpSess[sessId];
+  dev->core[coreId]->tcpSess[sessId] = NULL;
+  //  return dev->core[coreId]->tcpSess[sessId]->close();
+  return 0;
 }
 
 /**

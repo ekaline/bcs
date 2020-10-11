@@ -134,7 +134,7 @@ uint32_t hash3(const char* line) {
 
   // 5 bits
   std::string dayStr = std::string(&line[18],2);
-  int day = std::stoi(dayStr,nullptr,10) & 0x1F;
+  //  int day = std::stoi(dayStr,nullptr,10) & 0x1F;
   hashRes |= year << 56;
 
   uint32_t hashPartA = (hashRes >> 0 ) & 0xFFFFF;
@@ -169,7 +169,7 @@ uint32_t hash2(std::string line) {
 
   // 5 bits
   std::string dayStr = line.substr(18,2);
-  int day = std::stoi(dayStr,nullptr,10) & 0x1F;
+  //  int day = std::stoi(dayStr,nullptr,10) & 0x1F;
   hashRes |= year << 56;
 
   uint32_t hashPartA = (hashRes >> 0 ) & 0xFFFFF;
@@ -238,8 +238,8 @@ int main(int argc, char *argv[]) {
   const uint MaxCollisions = 100;
   uint total = 0;
   int collision[MaxCollisions] = {};
-  for (auto i = 0; i < IndTableSize; i++) {
-    if (hashIndTable[i].cnt >= MaxCollisions) {
+  for (uint i = 0; i < IndTableSize; i++) {
+    if (hashIndTable[i].cnt >= (int)MaxCollisions) {
       on_warning("hashIndTable[%d].cnt = %d",i,hashIndTable[i].cnt);
     } else {
       collision[hashIndTable[i].cnt]++;
@@ -250,7 +250,7 @@ int main(int argc, char *argv[]) {
   }
 
   uint totalfromCollisions = 0;
-  for (auto i = 0; i < MaxCollisions; i++) {
+  for (uint i = 0; i < MaxCollisions; i++) {
     totalfromCollisions += (collision[i] * i);
     printf ("%10u : %10u\n",i,collision[i]);
   }

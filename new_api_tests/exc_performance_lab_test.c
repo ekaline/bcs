@@ -16,10 +16,14 @@
 #include <sys/time.h>
 #include <chrono>
 
-#include "ekaline.h"
+#include "EkaDev.h"
+#include "eka_fh.h"
+#include "eka_macros.h"
+#include "Efh.h"
 #include "Exc.h"
 #include "Eka.h"
 #include "Efc.h"
+#include "EkaCtxs.h"
 
 //to xn03
 #define DST_XN03_IP0 "10.0.0.30"

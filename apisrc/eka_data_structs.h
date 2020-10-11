@@ -12,7 +12,7 @@
 //#include "eka_user_channel.h"
 
 //#include "eka_exc.h"
-
+#include "EkaHwInternalStructs.h"
 
 // #define EKA_WC
 
@@ -67,12 +67,12 @@ struct common_session_ctx {
 } __attribute__ ((packed));
 
 
-typedef struct __attribute__((packed)) {
-  uint8_t  type; 
-  uint8_t  subtype; // must be == 0xFF
-  uint8_t  core_id; 
-  uint16_t length; 
-} dma_report_t;
+/* typedef struct __attribute__((packed)) { */
+/*   uint8_t  type;  */
+/*   uint8_t  subtype; // must be == 0xFF */
+/*   uint8_t  core_id;  */
+/*   uint16_t length;  */
+/* } dma_report_t; */
 
 typedef struct __attribute__((packed)) {
   uint8_t fired_cores;
@@ -279,63 +279,63 @@ struct sqf_fire {
     struct sqf      sq1;
 } __attribute__((packed));
 
-typedef struct __attribute__((packed)) {
-  uint16_t ip_cs;
-  uint32_t dst_ip;
-  uint16_t src_port;
-  uint16_t dst_port; 
-  uint16_t tcpcs; //unused
-} hw_session_nw_header_t;
+/* typedef struct __attribute__((packed)) { */
+/*   uint16_t ip_cs; */
+/*   uint32_t dst_ip; */
+/*   uint16_t src_port; */
+/*   uint16_t dst_port;  */
+/*   uint16_t tcpcs; //unused */
+/* } hw_session_nw_header_t; */
 
   typedef enum {IDLE=0, GAP=1, RECOVERY=2, STREAMING_MD=3} eka_udp_state_t;
 
 
-  typedef struct eka_tcp_sess_prams {
-    /* struct sockaddr_in  src; */
-    /* struct sockaddr_in  dst; */
-    uint32_t           src_ip;
-    uint16_t           src_port;
+  /* typedef struct eka_tcp_sess_prams { */
+  /*   /\* struct sockaddr_in  src; *\/ */
+  /*   /\* struct sockaddr_in  dst; *\/ */
+  /*   uint32_t           src_ip; */
+  /*   uint16_t           src_port; */
 
-    uint32_t           dst_ip;
-    uint16_t           dst_port;
+  /*   uint32_t           dst_ip; */
+  /*   uint16_t           dst_port; */
 
-    uint32_t           ip_preliminary_pseudo_csum;
-    uint32_t           tcp_preliminary_pseudo_csum;
+  /*   uint32_t           ip_preliminary_pseudo_csum; */
+  /*   uint32_t           tcp_preliminary_pseudo_csum; */
 
-    uint8_t __attribute__ ((aligned(0x100)))  pktBuf[256];
+  /*   uint8_t __attribute__ ((aligned(0x100)))  pktBuf[256]; */
 
 
-    int sock_fd;
-    struct pico_socket* pico_sock;
-    uint16_t tcp_window;
-    volatile uint32_t tcp_local_seq_num;
-    volatile uint32_t tcp_remote_seq_num;
+  /*   int sock_fd; */
+  /*   struct pico_socket* pico_sock; */
+  /*   uint16_t tcp_window; */
+  /*   volatile uint32_t tcp_local_seq_num; */
+  /*   volatile uint32_t tcp_remote_seq_num; */
 
-    volatile uint64_t fast_path_bytes;
-    volatile uint64_t tx_driver_bytes;
-    volatile uint64_t fast_path_dummy_bytes;
-    volatile uint64_t fire_dummy_bytes;
-    //    bool     send_seq2hw;
-    session_fire_app_ctx_t app_ctx;
-  } eka_tcp_sess_prams_t;
+  /*   volatile uint64_t fast_path_bytes; */
+  /*   volatile uint64_t tx_driver_bytes; */
+  /*   volatile uint64_t fast_path_dummy_bytes; */
+  /*   volatile uint64_t fire_dummy_bytes; */
+  /*   //    bool     send_seq2hw; */
+  /*   session_fire_app_ctx_t app_ctx; */
+  /* } eka_tcp_sess_prams_t; */
 
-  typedef struct eka_udp_sess_prams {
-    eka_udp_state_t     state;
-    uint8_t             first_session_id;
-    bool                disable_igmp;
-    int                 sock_fd;
-    /* struct sockaddr_in  mcast; */
-    /* struct sockaddr_in  recovery; */
-    uint32_t            mcast_ip;
-    uint16_t            mcast_port;
-    uint16_t            mcast_set;
+  /* typedef struct eka_udp_sess_prams { */
+  /*   eka_udp_state_t     state; */
+  /*   uint8_t             first_session_id; */
+  /*   bool                disable_igmp; */
+  /*   int                 sock_fd; */
+  /*   /\* struct sockaddr_in  mcast; *\/ */
+  /*   /\* struct sockaddr_in  recovery; *\/ */
+  /*   uint32_t            mcast_ip; */
+  /*   uint16_t            mcast_port; */
+  /*   uint16_t            mcast_set; */
 
-    char                username[32];
-    char                passwd[32];
+  /*   char                username[32]; */
+  /*   char                passwd[32]; */
 
-    //    SN_ChannelId udpChannelId; // for HW UDP channel implementation
-    //    const SN_Packet* pPreviousUdpPacket; // for HW UDP channel implementation
-  } eka_udp_sess_prams_t;
+  /*   //    SN_ChannelId udpChannelId; // for HW UDP channel implementation */
+  /*   //    const SN_Packet* pPreviousUdpPacket; // for HW UDP channel implementation */
+  /* } eka_udp_sess_prams_t; */
 
   /* typedef struct user_channel_params { */
   /*   SN_ChannelId id; */
@@ -347,55 +347,55 @@ typedef struct __attribute__((packed)) {
     volatile bool           active; 
   } service_thread_params_t;
 
-  typedef struct eka_core_params {
-    char ifname[10];
-    bool connected;
-    bool macsa_set_externally;
-    bool macda_set_externally;
-    bool src_ip_set_externally;
-    uint8_t preconf_macsa[6];
-    uint8_t macsa[6];
-    uint8_t macda[6];
-    uint32_t src_ip;
-    //    struct sockaddr_in src_ip_addr; // same as previous field
-    uint8_t tcp_sessions;
-    uint8_t udp_sessions;
-    eka_tcp_sess_prams_t tcp_sess[EKA_MAX_TCP_SESSIONS_PER_CORE];
-    eka_udp_sess_prams_t udp_sess[EKA_MAX_UDP_SESSIONS_PER_CORE];
-    //    struct EkaTcpDev     tcpDev;
-    struct netif*  pLwipNetIf;
-  } eka_core_params_t;
+  /* typedef struct eka_core_params { */
+  /*   char ifname[10]; */
+  /*   bool connected; */
+  /*   bool macsa_set_externally; */
+  /*   bool macda_set_externally; */
+  /*   bool src_ip_set_externally; */
+  /*   uint8_t preconf_macsa[6]; */
+  /*   uint8_t macsa[6]; */
+  /*   uint8_t macda[6]; */
+  /*   uint32_t src_ip; */
+  /*   //    struct sockaddr_in src_ip_addr; // same as previous field */
+  /*   uint8_t tcp_sessions; */
+  /*   uint8_t udp_sessions; */
+  /*   eka_tcp_sess_prams_t tcp_sess[EKA_MAX_TCP_SESSIONS_PER_CORE]; */
+  /*   eka_udp_sess_prams_t udp_sess[EKA_MAX_UDP_SESSIONS_PER_CORE]; */
+  /*   //    struct EkaTcpDev     tcpDev; */
+  /*   struct netif*  pLwipNetIf; */
+  /* } eka_core_params_t; */
     
-  typedef struct p4_fire_params {
-    struct global_params external_params;
-    uint8_t     auto_rearm; // for testing only
-  } p4_fire_params_t;
+  /* typedef struct p4_fire_params { */
+  /*   struct global_params external_params; */
+  /*   uint8_t     auto_rearm; // for testing only */
+  /* } p4_fire_params_t; */
 
-  typedef struct hw_pararams {
-    uint8_t enabled_cores;
-    uint8_t feed_ver;
-  } hw_pararams_t;
+  /* typedef struct hw_pararams { */
+  /*   uint8_t enabled_cores; */
+  /*   uint8_t feed_ver; */
+  /* } hw_pararams_t; */
 
-  typedef struct eka_subscr_line {
-    uint16_t col[EKA_SUBSCR_TABLE_COLUMNS]; // keepint HASH of the corresponding Security
-    uint8_t valid_cntr; // the columns are populated sequentially with no gaps/holes
-    uint32_t prev_sum; // amount of securities in above lines
-  } eka_subscr_line_t;
+  /* typedef struct eka_subscr_line { */
+  /*   uint16_t col[EKA_SUBSCR_TABLE_COLUMNS]; // keepint HASH of the corresponding Security */
+  /*   uint8_t valid_cntr; // the columns are populated sequentially with no gaps/holes */
+  /*   uint32_t prev_sum; // amount of securities in above lines */
+  /* } eka_subscr_line_t; */
 
-  typedef struct eka_subsr_params {
-    uint32_t sec_cnt;
-    eka_subscr_line_t line[EKA_SUBSCR_TABLE_ROWS];
-    uint64_t sec_id[EKA_MAX_P4_SUBSCR]; // requested list
-    uint32_t cnt; // requested subscr cnt
-  } eka_subscr_params_t;
+  /* typedef struct eka_subsr_params { */
+  /*   uint32_t sec_cnt; */
+  /*   eka_subscr_line_t line[EKA_SUBSCR_TABLE_ROWS]; */
+  /*   uint64_t sec_id[EKA_MAX_P4_SUBSCR]; // requested list */
+  /*   uint32_t cnt; // requested subscr cnt */
+  /* } eka_subscr_params_t; */
 
-  typedef struct eka_ctx_thread_params {
-    uint8_t bank;
-  } eka_ctx_thread_params_t;
+  /* typedef struct eka_ctx_thread_params { */
+  /*   uint8_t bank; */
+  /* } eka_ctx_thread_params_t; */
 
-class eka_sn_dev;
-class eka_user_channel;
-class exc_debug_module;
+/* class eka_sn_dev; */
+/* class eka_user_channel; */
+/* class exc_debug_module; */
 
 /* EkaDev { */
 /*   //    SN_DeviceId               dev_id; */
@@ -440,32 +440,32 @@ class exc_debug_module;
 
 /* typedef EkaDev eka_dev_t;   */
 
-union tcp_fast_send_desc {
-    uint64_t desc;
-    struct tcp_desc {
-        uint16_t src_index;
-        uint8_t length;
-        uint8_t session;
-        uint8_t core;
-        uint16_t ip_checksum;
-        uint8_t send_attr;
-    } __attribute__((packed)) tcpd;
-} __attribute__((packed));
+/* union tcp_fast_send_desc { */
+/*     uint64_t desc; */
+/*     struct tcp_desc { */
+/*         uint16_t src_index; */
+/*         uint8_t length; */
+/*         uint8_t session; */
+/*         uint8_t core; */
+/*         uint16_t ip_checksum; */
+/*         uint8_t send_attr; */
+/*     } __attribute__((packed)) tcpd; */
+/* } __attribute__((packed)); */
 
-enum dma_type {
-    FPGA_FIRE = 1,
-    FAST_PATH = 2,
-};
+/* enum dma_type { */
+/*     FPGA_FIRE = 1, */
+/*     FAST_PATH = 2, */
+/* }; */
 
-union large_table_desc {
-    uint64_t lt_desc;
-    struct ltd {
-        uint8_t src_bank;
-        uint8_t src_thread;
-        uint32_t target_idx : 24;
-        uint8_t pad[3];
-    }__attribute__((packed)) ltd;
-}__attribute__((packed));
+/* union large_table_desc { */
+/*     uint64_t lt_desc; */
+/*     struct ltd { */
+/*         uint8_t src_bank; */
+/*         uint8_t src_thread; */
+/*         uint32_t target_idx : 24; */
+/*         uint8_t pad[3]; */
+/*     }__attribute__((packed)) ltd; */
+/* }__attribute__((packed)); */
 
 
 /* typedef struct fh_pthread_args { */
@@ -474,6 +474,25 @@ union large_table_desc {
 /* } fh_pthread_args_t; */
 
 
+
+/* struct hw_epm_capabilities_t { */
+/*   uint16_t numof_actions; */
+/*   uint8_t tcpcs_numof_templates; */
+/*   uint16_t data_template_total_bytes; */
+/*   uint32_t heap_total_bytes; */
+/*   uint8_t max_threads; */
+/* } __attribute__((packed)); */
+
+/* struct hw_core_capabilities_t { */
+/*   uint16_t tcp_sessions_percore; */
+/*   uint8_t bitmap_tcp_cores; */
+/*   uint8_t bitmap_md_cores; */
+/* } __attribute__((packed)); */
+
+/* struct hw_capabilities_t { */
+/*   hw_core_capabilities_t core; */
+/*   hw_epm_capabilities_t epm; */
+/* } __attribute__((packed)); */
 
 
 #endif

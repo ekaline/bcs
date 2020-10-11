@@ -16,8 +16,8 @@ class EkaDev;
 
 class EkaUserChannel {
  public:
-  enum class TYPE     : uint8_t { FIRE_REPORT = 0, FAST_PATH = 1, TCP_RX = 2 } ;
-  enum class DMA_TYPE : uint8_t { FIRE = 1, FAST_PATH_DUMMY_PKT = 2 };
+  enum class TYPE     : uint8_t { FIRE_REPORT = 0, FAST_PATH = 1, TCP_RX = 2 } ; //user channel
+  enum class DMA_TYPE : uint8_t { FIRE = 1, FAST_PATH_DUMMY_PKT = 2, EPM = 3 }; // type in descriptor
 
   TYPE type;
 

@@ -18,6 +18,7 @@
 #include "eka_fh_group.h"
 #include "EkaDev.h"
 
+#define EFH_PRICE_SCALE 1
 
 enum class EkaFhAddConf {CONF_SUCCESS=0, IGNORED=1, UNKNOWN_KEY=2, WRONG_VALUE=3, CONFLICTING_CONF=4} ;
 /* ##################################################################### */

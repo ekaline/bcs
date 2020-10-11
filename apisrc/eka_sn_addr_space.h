@@ -66,6 +66,10 @@ enum addresses {
     //described in ip_group union below
     FH_GROUP_PORT = 0xf0628,
     //described in port_group union below
+
+    EpmHeapHwBaseAddr  = 0xd0000,
+    HwCapabilitiesAddr = 0x8f000,
+
 };
 
 #endif

@@ -66,7 +66,7 @@ EkaUdpChannel::EkaUdpChannel(EkaDev* ekaDev, uint8_t coreId) {
 
   const SN_Packet * pPreviousUdpPacket = SN_GetNextPacket(ChannelId, NULL, SN_TIMEOUT_NONE);
   if (pPreviousUdpPacket != NULL) {
-    delete dev;
+    //    delete dev;
     on_error("pIncomingUdpPacket != NULL: Packet is arriving on UDP channel before any packet was sent");
   }
   EKA_LOG("UDP channel for lane %u is opened",core);  

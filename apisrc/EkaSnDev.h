@@ -54,11 +54,13 @@ class EkaSnDev {
     tcpRx      = new EkaUserChannel(dev,dev_id,EkaUserChannel::TYPE::TCP_RX);
   }
 
+//################################################
   ~EkaSnDev() {
     EKA_LOG("Closing Smartnic device");
-    delete fireReport;
-    delete fastPath;
-    delete tcpRx;
+    if (fireReport != NULL) delete fireReport;
+    if (fastPath   != NULL) delete fastPath;
+    if (tcpRx      != NULL) delete tcpRx;
+    EKA_LOG("SN_CloseDevice"); fflush(stderr);
     SN_CloseDevice(dev_id);
   }
 //################################################

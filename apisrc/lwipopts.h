@@ -35,7 +35,21 @@
  */
 
 #define LWIP_TCPIP_CORE_LOCKING         1
+#ifdef __cplusplus
+extern "C" {
+#endif
+void sys_lock_tcpip_core();
+void sys_unlock_tcpip_core();
+void sys_check_core_locking();
+void sys_mark_tcpip_thread();
+#ifdef __cplusplus
+} // End of extern "C"
+#endif
 
+#define LOCK_TCPIP_CORE() sys_lock_tcpip_core()
+#define UNLOCK_TCPIP_CORE() sys_unlock_tcpip_core()
+#define LWIP_MARK_TCPIP_THREAD() sys_mark_tcpip_thread()
+#define LWIP_ASSERT_CORE_LOCKED() sys_check_core_locking()
 
 /**
  * LWIP_TCPIP_CORE_LOCKING_INPUT: when LWIP_TCPIP_CORE_LOCKING is enabled,
@@ -46,7 +60,7 @@
  * interrupt context!
  */
 
-#define LWIP_TCPIP_CORE_LOCKING_INPUT   0
+#define LWIP_TCPIP_CORE_LOCKING_INPUT   1
 
 /**
  * SYS_LIGHTWEIGHT_PROT==1: enable inter-task protection (and task-vs-interrupt
@@ -164,7 +178,7 @@
  * reassembly (whole packets, not fragments!)
  */
 
-#define MEMP_NUM_REASSDATA              64
+#define MEMP_NUM_REASSDATA              256
 
 
 
@@ -374,7 +388,7 @@
  * (PBUF_POOL_SIZE > 2 * IP_REASS_MAX_PBUFS)!
  */
 
-#define IP_REASS_MAX_PBUFS              64
+#define IP_REASS_MAX_PBUFS              256
 
 
 /*
@@ -703,7 +717,7 @@
  * timers running in tcpip_thread from another thread.
  */
 
-#define LWIP_TCPIP_TIMEOUT              1
+#define LWIP_TCPIP_TIMEOUT              0
 
 
 /** LWIP_NETCONN_SEM_PER_THREAD==1: Use one (thread-local) semaphore per
@@ -777,7 +791,7 @@
  * SO_SNDTIMEO processing.
  */
 
-#define LWIP_SO_SNDTIMEO                1
+#define LWIP_SO_SNDTIMEO                0
 
 
 /**
@@ -785,7 +799,7 @@
  * SO_RCVTIMEO processing.
  */
 
-#define LWIP_SO_RCVTIMEO                1
+#define LWIP_SO_RCVTIMEO                0
 
 
 /**
@@ -793,12 +807,12 @@
  * (milliseconds, much like winsock does) instead of a struct timeval (default).
  */
 
-#define LWIP_SO_SNDRCVTIMEO_NONSTANDARD 1
+#define LWIP_SO_SNDRCVTIMEO_NONSTANDARD 0
 
 /**
  * LWIP_SO_RCVBUF==1: Enable SO_RCVBUF processing.
  */
-#define LWIP_SO_RCVBUF                  1
+#define LWIP_SO_RCVBUF                  0
 
 
 /**

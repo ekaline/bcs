@@ -7,7 +7,8 @@
 #include "eka_macros.h"
 #include "eka_hw_conf.h"
 
-class EkaDev;
+#include "EkaDev.h"
+
 class EkaUdpChannel;
 class EkaTcpSess;
 class EkaUdpSess;
@@ -18,15 +19,24 @@ class EkaCore {
 
   ~EkaCore();
 
+  uint8_t     getFreeTcpSess();
   uint        addTcpSess();
-  EkaTcpSess* findTcpSess(uint32_t ipSrc, uint16_t udpSrc, uint32_t ipDst, uint16_t udpDst);
+  EkaTcpSess* findTcpSess(uint32_t ipSrc, uint16_t udpSrc, 
+			  uint32_t ipDst, uint16_t udpDst);
   EkaTcpSess* findTcpSess(int sock);
 
-  EkaUdpSess* findUdpSess(uint32_t ip, uint16_t port);
+  void  suppressOldTcpSess(uint8_t newSessId,
+			   uint32_t srcIp,uint16_t srcPort,
+			   uint32_t dstIp,uint16_t dstPort);
 
   int tcpConnect(uint32_t dstIp, uint16_t port);
 
-  uint addUdpSess(uint32_t ip, uint16_t port);
+  /* uint addUdpSess(uint32_t ip, uint16_t port); */
+  /* EkaUdpSess* findUdpSess(uint32_t ip, uint16_t port); */
+
+  static const uint MAX_SESS_PER_CORE       = EkaDev::MAX_SESS_PER_CORE;
+  static const uint CONTROL_SESS_ID         = EkaDev::CONTROL_SESS_ID;
+  static const uint TOTAL_SESSIONS_PER_CORE = EkaDev::TOTAL_SESSIONS_PER_CORE;
 
   uint8_t       coreId;
   uint32_t      srcIp;
@@ -37,15 +47,14 @@ class EkaCore {
   bool          connected;
   bool          macDa_set_externally = false;
 
-  static const uint MAX_SESS_PER_CORE = 8;
-
   EkaTcpSess*   tcpSess[MAX_SESS_PER_CORE + 1];
   uint8_t       tcpSessions;
 
-  EkaUdpSess*   udpSess[EKA_MAX_UDP_SESSIONS_PER_CORE];
-  uint8_t       udpSessions;
+  /* EkaUdpSess*   udpSess[EKA_MAX_UDP_SESSIONS_PER_CORE]; */
+  /* uint8_t       udpSessions; */
 
-  EkaUdpChannel* udpChannel;
+  /* EkaUdpChannel* stratUdpChannel; */
+  /* EkaUdpChannel* feedServerUdpChannel; */
 
   struct netif* pLwipNetIf;
 

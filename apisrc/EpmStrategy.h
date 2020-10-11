@@ -1,11 +1,11 @@
 #ifndef _EKA_EPM_STRATEGY_H_
 #define _EKA_EPM_STRATEGY_H_
 
-#include "EpmCore.h"
+#include "EkaEpm.h"
 
 class EpmStrategy {
  public:
-  EpmStrategy(EpmCore* parent, epm_strategyid_t id, epm_actionid_t   baseActionIdx, const EpmStrategyParams *params);
+  EpmStrategy(EkaEpm* parent, epm_strategyid_t id, epm_actionid_t baseActionIdx, const EpmStrategyParams *params);
 
   EkaOpResult setEnableBits(epm_enablebits_t  enable);
   EkaOpResult getEnableBits(epm_enablebits_t *enable);
@@ -18,7 +18,7 @@ class EpmStrategy {
 
  private:
   EkaDev*           dev;
-  EpmCore*          parent;
+  EkaEpm*           epm;
   epm_strategyid_t  id;
 
   epm_enablebits_t  enable;

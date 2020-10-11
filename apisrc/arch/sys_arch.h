@@ -32,13 +32,57 @@
 #ifndef LWIP_ARCH_SYS_ARCH_H
 #define LWIP_ARCH_SYS_ARCH_H
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define SYS_MBOX_NULL NULL
 #define SYS_SEM_NULL  NULL
 
 /*typedef u32_t sys_prot_t;*/
 
-struct sys_sem;
+void sys_lock_tcpip_core();
+void sys_unlock_tcpip_core();
+void sys_check_core_locking();
+void sys_mark_tcpip_thread();
+
+struct sys_mbox_msg {
+  struct sys_mbox_msg *next;
+  void *msg;
+};
+
+#define SYS_MBOX_SIZE 128
+
+struct sys_mbox {
+  int first, last;
+  void *msgs[SYS_MBOX_SIZE];
+  struct sys_sem *not_empty;
+  struct sys_sem *not_full;
+  struct sys_sem *mutex;
+  int wait_send;
+};
+
+struct sys_sem {
+  unsigned int c;
+  pthread_condattr_t condattr;
+  pthread_cond_t cond;
+  pthread_mutex_t mutex;
+};
+
+struct sys_mutex {
+  pthread_mutex_t mutex;
+};
+
+struct sys_thread {
+  struct sys_thread *next;
+  pthread_t pthread;
+};
+
+
+//struct sys_sem;
 typedef struct sys_sem * sys_sem_t;
+
 #define sys_sem_valid(sem)             (((sem) != NULL) && (*(sem) != NULL))
 #define sys_sem_valid_val(sem)         ((sem) != NULL)
 #define sys_sem_set_invalid(sem)       do { if((sem) != NULL) { *(sem) = NULL; }}while(0)
@@ -58,6 +102,10 @@ typedef struct sys_mbox * sys_mbox_t;
 
 struct sys_thread;
 typedef struct sys_thread * sys_thread_t;
+
+#ifdef __cplusplus
+} // End of extern "C"
+#endif
 
 #endif /* LWIP_ARCH_SYS_ARCH_H */
 

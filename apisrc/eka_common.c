@@ -22,7 +22,7 @@
 #include <stdarg.h>
 //#include <syslog.h>
 
-#include "ekaline.h"
+#include "EkaDev.h"
 #include "eka_macros.h"
 
 #include "Exc.h"
@@ -191,7 +191,7 @@ void eka_write(EkaDev* dev, uint64_t addr, uint64_t val) {
   dev->snDev->write(addr,val);
 }
 
-uint64_t eka_read(eka_dev_t* dev, uint64_t addr) {
+uint64_t eka_read(EkaDev* dev, uint64_t addr) {
   return dev->snDev->read(addr);
 }
 
@@ -219,7 +219,7 @@ uint16_t encode_session_id (uint8_t core, uint8_t sess) {
     return sess + core*128;
 }
 
-uint16_t socket2session (eka_dev_t* dev, int sock_fd) {
+uint16_t socket2session (EkaDev* dev, int sock_fd) {
   for (int c=0;c<dev->hw.enabled_cores;c++) {
     for (int s=0;s<dev->core[c].tcp_sessions;s++) {
       if (sock_fd == dev->core[c].tcp_sess[s].sock_fd) {
@@ -274,7 +274,7 @@ int convert_ts(char* dst, uint64_t ts) {
   return 0;
 }
 
-void eka_enable_cores(eka_dev_t* dev) {
+void eka_enable_cores(EkaDev* dev) {
   /* uint64_t fire_rx_tx_en = dev->snDev->read(ENABLE_PORT); */
   /* for (int c=0; c<dev->hw.enabled_cores; c++) { */
   /*   if (! dev->core[c].connected) continue; */
@@ -285,30 +285,30 @@ void eka_enable_cores(eka_dev_t* dev) {
   /* dev->snDev->write(ENABLE_PORT,fire_rx_tx_en); */
 }
 
-/* void eka_disable_cores(eka_dev_t* dev) { */
+/* void eka_disable_cores(EkaDev* dev) { */
 /*   dev->snDev->write( ENABLE_PORT, 0); */
 /* } */
 
-void hexDump (const char* desc, void *addr, int len) {
-    int i;
-    unsigned char buff[17];
-    unsigned char *pc = (unsigned char*)addr;
-    if (desc != NULL) printf("%s:\n", desc);
-    if (len == 0) { printf("  ZERO LENGTH\n"); return; }
-    if (len < 0)  { printf("  NEGATIVE LENGTH: %i\n",len); return; }
-    for (i = 0; i < len; i++) {
-        if ((i % 16) == 0) {
-            if (i != 0) printf("  %s\n", buff);
-            printf("  %04x ", i);
-        }
-        printf(" %02x", pc[i]);
-        if ((pc[i] < 0x20) || (pc[i] > 0x7e))  buff[i % 16] = '.';
-        else buff[i % 16] = pc[i];
-        buff[(i % 16) + 1] = '\0';
-    }
-    while ((i % 16) != 0) { printf("   "); i++; }
-    printf("  %s\n", buff);
-}
+/* void hexDump (const char* desc, void *addr, int len) { */
+/*     int i; */
+/*     unsigned char buff[17]; */
+/*     unsigned char *pc = (unsigned char*)addr; */
+/*     if (desc != NULL) printf("%s:\n", desc); */
+/*     if (len == 0) { printf("  ZERO LENGTH\n"); return; } */
+/*     if (len < 0)  { printf("  NEGATIVE LENGTH: %i\n",len); return; } */
+/*     for (i = 0; i < len; i++) { */
+/*         if ((i % 16) == 0) { */
+/*             if (i != 0) printf("  %s\n", buff); */
+/*             printf("  %04x ", i); */
+/*         } */
+/*         printf(" %02x", pc[i]); */
+/*         if ((pc[i] < 0x20) || (pc[i] > 0x7e))  buff[i % 16] = '.'; */
+/*         else buff[i % 16] = pc[i]; */
+/*         buff[(i % 16) + 1] = '\0'; */
+/*     } */
+/*     while ((i % 16) != 0) { printf("   "); i++; } */
+/*     printf("  %s\n", buff); */
+/* } */
 
 void hexDumpStderr (const char* desc, const void *addr, int len) {
     int i;
@@ -336,22 +336,22 @@ EkaCapsResult ekaGetCapsResult(EkaDev* pEkaDev,  enum EkaCapType ekaCapType ) {
 
   case EkaCapType::kEkaCapsMaxSecCtxs :
   case EkaCapType::kEkaCapsMaxEkaHandle :
-    return (EkaCapsResult) MAX_SEC_CTX;
+    return (EkaCapsResult) EkaDev::MAX_SEC_CTX;
 
   case EkaCapType::kEkaCapsExchange :
     return (EkaCapsResult) pEkaDev->hwFeedVer;
 
   case EkaCapType::kEkaCapsMaxCores:
-    return (EkaCapsResult) pEkaDev->CONF::MAX_CORES;
+    return (EkaCapsResult) EkaDev::MAX_CORES;
 
   case EkaCapType::kEkaCapsMaxSesCtxs :
-    return (EkaCapsResult) (EKA_MAX_CORES * MAX_SESSION_CTX_PER_CORE);
+    return (EkaCapsResult) (EkaDev::MAX_CORES * EkaDev::MAX_SESSION_CTX_PER_CORE);
 
   case EkaCapType::kEkaCapsMaxSessPerCore:
-    return (EkaCapsResult) MAX_SESSION_CTX_PER_CORE;
+    return (EkaCapsResult) EkaDev::MAX_SESSION_CTX_PER_CORE;
 
   case EkaCapType::kEkaCapsNumWriteChans:
-    return (EkaCapsResult) pEkaDev->CONF::MAX_CTX_THREADS;
+    return (EkaCapsResult) EkaDev::MAX_CTX_THREADS;
 
   case EkaCapType::kEkaCapsSendWarmupFlag:
 
@@ -360,114 +360,3 @@ EkaCapsResult ekaGetCapsResult(EkaDev* pEkaDev,  enum EkaCapType ekaCapType ) {
   }
 }
 
-#if 0
-eka_add_conf_t eka_conf_parse(eka_dev_t* dev, eka_conf_type_t conf_type, const char *key, const char *value) {
-  //  EKA_LOG("%s : %s",key,value);
-
-  char val_buf[200];
-  memset (val_buf,'\0',sizeof(val_buf));
-  strcpy (val_buf,value);
-  int i=0;
-  char* v[10];
-  v[i] = strtok(val_buf,":");
-  while(v[i]!=NULL) v[++i] = strtok(NULL,":");
-  // parsing KEY
-  char key_buf[200];
-  memset (key_buf,'\0',sizeof(key_buf));
-  strcpy (key_buf,key);
-  i=0;
-  char* k[10];
-
-  k[i] = strtok(key_buf,".");
-  while(k[i]!=NULL) k[++i] = strtok(NULL,".");
-
-  //-------------- OLD KEY - VALUE VERSION --------------------
-
-  if ((strcmp(k[0],"efh")==0) && (strcmp(k[1],"net")==0)  && (strcmp(k[2],"host")==0)) {//"efh.net.host.X" "IPV4"
-    struct in_addr local_addr;
-    inet_aton (k[3],&local_addr);
-    if (local_addr.s_addr == dev->core[atoi(k[3])]->srcIp) return IGNORED;
-    return CONFLICTING_CONF;
-  }
-
-  if ((strcmp(k[0],"efh")==0) && (strcmp(k[1],"glimpse")==0)  && (strcmp(k[2],"auth")==0)) {//"efh.glimpse.auth" "user:passwd"
-    EKA_LOG("setting Glimpse auth credentials: %s:%s",v[0],v[1]);
-    memset(&(dev->fh[0]->auth_user),' ',sizeof(dev->fh[0]->auth_user));
-    memset(&(dev->fh[0]->auth_passwd),' ',sizeof(dev->fh[0]->auth_passwd));
-    memcpy(&(dev->fh[0]->auth_user),v[0],strlen(v[0]));
-    memcpy(&(dev->fh[0]->auth_passwd),v[1],strlen(v[1]));
-    return CONF_SUCCESS;
-  }
-
-  if (strcmp(k[0],"efh") || strcmp(k[1],"group")) return UNKNOWN_KEY; // on_error("%s.%s is not supported",k[0],k[1]);
-  for (char* c = k[2]; *c != '\0' ; c++) if (*c < '0' || *c >'9') on_error("group number %c in %s is not numeric",*c,k[2]);
-  uint8_t gr = (uint8_t) atoi(k[2]);
-  if ((strcmp(k[3],"recovery")==0) && (strcmp(k[4],"addr")==0)) {//"efh.group.X.recovery.addr", "IPV4:port"    
-    for (int c=0; c<dev->hw.enabled_cores; c++) {
-      if (! dev->core[c].connected) continue;
-      if (gr >= dev->fh[0]->groups) on_error("group_id %d >= dev->fh[0]->groups (=%u)",gr,dev->fh[0]->groups);
-      inet_aton (v[0],(struct in_addr*)&(dev->fh[0]->b_gr[gr]->recovery_ip));
-      dev->fh[0]->b_gr[gr]->recovery_port = htons((uint16_t)atoi(v[1]));
-      dev->fh[0]->b_gr[gr]->recovery_set = true;
-    }
-    EKA_LOG("setting Mold Recovery %s:%d for FH gr %u",inet_ntoa(* (struct in_addr*) & dev->fh[0]->b_gr[gr]->recovery_ip),be16toh(dev->fh[0]->b_gr[gr]->recovery_port),gr);
-    return CONF_SUCCESS;
-  }
-
-  if ((strcmp(k[3],"mcast")==0) && (strcmp(k[4],"addr")==0)) {//"efh.group.X.mcast.addr", "IPV4:port"    
-    if (conf_type == EFC_CONF) {
-      for (int c=0; c<dev->hw.enabled_cores; c++) {
-	if (! dev->core[c].connected) continue;
-	if (gr >= EKA_MAX_UDP_SESSIONS_PER_CORE) on_error("group_id %d >= EKA_MAX_UDP_SESSIONS_PER_CORE",gr);
-	inet_aton (v[0],(struct in_addr*)&(dev->core[c].udp_sess[gr].mcast_ip));
-	dev->core[c].udp_sess[gr].mcast_port =  htons((uint16_t)atoi(v[1]));
-	dev->core[c].udp_sess[gr].mcast_set = true;
-	EKA_LOG("setting MCAST %s:%d for gr %d, core %d",v[0],atoi(v[1]),gr,c);
-      }
-    } else { // EFH_CONF
-      if (gr >= dev->fh[0]->groups) on_error("group_id %d >= dev->fh[0]->groups (=%u)",gr,dev->fh[0]->groups);
-      inet_aton (v[0],(struct in_addr*)&(dev->fh[0]->b_gr[gr]->mcast_ip));
-      dev->fh[0]->b_gr[gr]->mcast_port =  htons((uint16_t)atoi(v[1]));
-      dev->fh[0]->b_gr[gr]->mcast_set = true;
-    }
-    return CONF_SUCCESS;
-  }
-
-  if ((strcmp(k[3],"first")==0) && (strcmp(k[4],"session")==0)) {//"efh.group.X.first.session",gr
-    //    EKA_LOG("efh.group.X.first.session");
-    eka_set_group_session(dev,gr,atoi(v[0]));
-    /* for (int c=0; c<dev->hw.enabled_cores; c++) { */
-    /*   if (! dev->core[c].connected) continue; */
-    /*   if (gr >= EKA_MAX_UDP_SESSIONS_PER_CORE) on_error("group_id %d >= EKA_MAX_UDP_SESSIONS_PER_CORE",gr); */
-    /*   dev->core[c].udp_sess[gr].first_session_id = atoi(v[0]); */
-    /*   EKA_LOG("setting %s.%s : %d for gr %d, core %d",k[3],k[4],atoi(v[0]),gr,c); */
-    /* } */
-    return CONF_SUCCESS;
-  }
-
-  if ((strcmp(k[3],"local")==0) && (strcmp(k[4],"addr")==0)) {
-    struct in_addr local_addr;
-    inet_aton (v[0],&local_addr);
-    for (int c=0; c<dev->hw.enabled_cores; c++) if (local_addr.s_addr == dev->core[c]->srcIp) return IGNORED;
-    return CONFLICTING_CONF;
-  }
-
-  if (strcmp(k[3],"disable_igmp")==0) {
-    for (int c=0; c<dev->hw.enabled_cores; c++) {
-      /* dev->core[c].udp_sess[gr].disable_igmp = true; */
-      /* int fd = SN_GetFileDescriptor(dev->dev_id); */
-      /* eka_ioctl_t state; */
-      /* memset(&state,0,sizeof(eka_ioctl_t)); */
-      /* state.cmd = EKA_DROP_IGMP_ON; */
-      /* state.nif_num = c; */
-      /* int rc = ioctl(fd,SC_IOCTL_EKALINE_DATA,&state); */
-      /* if (rc < 0) on_error("error ioctl(fd,SC_IOCTL_EKALINE_DATA,&state) EKA_DROP_IGMP for core %u",c); */
-      /* EKA_LOG("EKA_DROP_IGMP = ON for core %u",c); */
-    }
-    return CONF_SUCCESS;
-  }
-  EKA_LOG("UNKNOWN_KEY: k=%s v=%s",key,value);
-  return UNKNOWN_KEY;
-}
-
-#endif

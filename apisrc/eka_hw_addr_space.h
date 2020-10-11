@@ -1,7 +1,6 @@
 #ifndef _EKA_HW_ADDR_SPACE_H_
 #define _EKA_HW_ADDR_SPACE_H_
 
-
 enum addresses {
 //General
     VERSION1 = 0xf0ff0, //feed id is (reg_val>>56)&0xF
@@ -81,6 +80,9 @@ enum addresses {
     //    FH_GROUP_PORT = 0xf0628,
     //described in port_group union below
 
+    EpmHeapHwBaseAddr  = 0xd0000,
+    HwCapabilitiesAddr = 0x8f000,
 };
 
 #endif
+
