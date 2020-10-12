@@ -255,14 +255,9 @@ EkaDev::~EkaDev() {
     core[c] = NULL;
   }
 
-  TEST_LOG("Im here"); fflush(stderr);
-  delete snDev;
-
-  TEST_LOG("Im here"); fflush(stderr);
-  sleep(1);
+  //  delete snDev;
 
   //fprintf(stderr,"%d:Im here\n",__LINE__); fflush(stderr);
-  return;
   //  delete snDev;
 
 }

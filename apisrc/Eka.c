@@ -11,11 +11,8 @@ EkaOpResult ekaDevInit( EkaDev** ppEkaDev, const EkaDevInitCtx *pInitCtx ) {
 
 EkaOpResult ekaDevClose( EkaDev* pEkaDev ) {
   if (pEkaDev == NULL) return EKA_OPRESULT__ERR_SYSTEM_ERROR;
-  printf("%s:%d Im here\n",__func__,__LINE__);
   //delete pEkaDev;
   pEkaDev->~EkaDev();
-
-  printf("%s:%d Im here\n",__func__,__LINE__);
   return EKA_OPRESULT__OK;
 }
 
