@@ -117,7 +117,8 @@ void ekaServThread(EkaDev* dev) {
 
       /* hexDump("RX pkt",(void*)payload,len); */
     
-      ekaProcesTcpRx (dev, payload, len - 4 /* FCS */);
+      //      ekaProcesTcpRx (dev, payload, len - 4 /* FCS */);
+      ekaProcesTcpRx (dev, payload, len);
       dev->snDev->tcpRx->next();
     }
     /* ----------------------------------------------- */

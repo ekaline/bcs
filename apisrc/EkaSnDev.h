@@ -81,7 +81,7 @@ class EkaSnDev {
 
   void reset() {
     EKA_LOG("Resetting the FPGA");
-    if (SN_ResetFPGA(dev_id) != SN_ERR_SUCCESS ) on_error("Failed to resed FPGA");    
+    if (SN_ResetFPGA(dev_id) != SN_ERR_SUCCESS ) on_error("Failed to reset FPGA");    
   }
 //################################################
 

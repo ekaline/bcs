@@ -194,8 +194,10 @@ void ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
 
 	struct netif* netIf = dev->core[rxCoreId]->pLwipNetIf;
 	//	netIf->input(p,netIf);
-	if (netIf->input(p,netIf) != ERR_OK) 
+	if (netIf->input(p,netIf) != ERR_OK) {
+	  hexDump("Dropping RX pkt",(void*)pkt,len);
 	  pbuf_free(p);
+	}
       }
     }
   } else {
