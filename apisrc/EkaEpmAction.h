@@ -49,6 +49,25 @@ class EkaEpmAction {
   }
 
   /* ----------------------------------------------------- */
+
+  int update (uint8_t                 _coreId,
+	      uint8_t                 _sessId,
+	      uint                    _nextAction,
+	      uint64_t		      _heapAddr) {
+    coreId          = _coreId;
+    sessId          = _sessId;
+    heapAddr        = _heapAddr;
+    nextIdx         = _nextAction;
+
+    hwAction.target_core_id        = coreId;
+    hwAction.target_session_id     = sessId;
+    hwAction.data_db_ptr           = heapAddr;
+    hwAction.next_action_index     = nextIdx;
+
+    return 0;
+  }
+  /* ----------------------------------------------------- */
+
   char actionName[30] = {};
 
   EkaDev*  dev;
@@ -57,7 +76,7 @@ class EkaEpmAction {
   uint          idx       = -1;
   uint8_t    coreId       = -1;;
   uint8_t    sessId       = -1;
-  uint    productIdx      = -1;
+  uint   productIdx       = -1;
   epm_actione_bitparams_t actionBitParams;
   uint64_t heapAddr                = -1;
   uint64_t actionAddr              = -1;

@@ -16,14 +16,14 @@ class EpmStrategy {
   EkaOpResult setAction(epm_actionid_t actionIdx, const EpmAction *epmAction);
   EkaOpResult getAction(epm_actionid_t actionIdx, EpmAction *epmAction);
 
- private:
+  // private:
   EkaDev*           dev;
   EkaEpm*           epm;
   epm_strategyid_t  id;
 
   epm_enablebits_t  enable;
 
-  EpmAction*       action[EkaEpm::MaxActions]      = {};
+  EkaEpmActionRecord action[EkaEpm::MaxActionsPerStrategy]      = {};
 
   epm_actionid_t   baseActionIdx;
   epm_actionid_t   numActions; ///< No. of actions entries used by this strategy

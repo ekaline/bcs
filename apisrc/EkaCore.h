@@ -31,38 +31,26 @@ class EkaCore {
 
   int tcpConnect(uint32_t dstIp, uint16_t port);
 
-  /* uint addUdpSess(uint32_t ip, uint16_t port); */
-  /* EkaUdpSess* findUdpSess(uint32_t ip, uint16_t port); */
-
   static const uint MAX_SESS_PER_CORE       = EkaDev::MAX_SESS_PER_CORE;
   static const uint CONTROL_SESS_ID         = EkaDev::CONTROL_SESS_ID;
   static const uint TOTAL_SESSIONS_PER_CORE = EkaDev::TOTAL_SESSIONS_PER_CORE;
 
   uint8_t       coreId;
   uint32_t      srcIp;
-  uint8_t       macSa[6];
-  uint8_t       macDa[6];
+  uint8_t       macSa[6] = {};
+  uint8_t       macDa[6] = {};
   uint16_t      vlanTag;
 
-  bool          connected;
+  bool          connected = false;
   bool          macDa_set_externally = false;
 
   EkaTcpSess*   tcpSess[MAX_SESS_PER_CORE + 1];
-  uint8_t       tcpSessions;
+  uint8_t       tcpSessions = 0;
 
-  /* EkaUdpSess*   udpSess[EKA_MAX_UDP_SESSIONS_PER_CORE]; */
-  /* uint8_t       udpSessions; */
-
-  /* EkaUdpChannel* stratUdpChannel; */
-  /* EkaUdpChannel* feedServerUdpChannel; */
-
-  struct netif* pLwipNetIf;
-
-  //  EkaBook*     book[EKA_MAX_BOOK_PRODUCTS];
-  //  uint         numBooks;
+  struct netif* pLwipNetIf = NULL;
 
  private:
-  EkaDev*       dev;
+  EkaDev*       dev = NULL;
 
 };
 

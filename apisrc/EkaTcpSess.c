@@ -253,9 +253,7 @@ int EkaTcpSess::preloadNwHeaders() {
   //  EKA_LOG(" emptyAcktrigger.str.action_index = %u, emptyAcktrigger.str.payload_size=%u, emptyAckAction->heapAddr = 0x%jx",
   //  	  emptyAcktrigger.str.action_index, emptyAcktrigger.str.payload_size,emptyAckAction->heapAddr);
 
-/* ---------------------------------------------------------------- Fire Headers*/
-
-  ipHdr->_len = be16toh(dev->hwRawFireSize+sizeof(EkaIpHdr)+sizeof(EkaTcpHdr));
+  ipHdr->_len = be16toh(sizeof(EkaIpHdr)+sizeof(EkaTcpHdr));
 
   hw_session_nw_header_t hw_nw_header = {
     .ip_cs    = be16toh(csum((unsigned short *)ipHdr, sizeof(EkaIpHdr))),

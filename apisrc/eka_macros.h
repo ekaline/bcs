@@ -78,5 +78,10 @@ class EkaDev;
 
 #define EKA_NATIVE_MAC(x) (((uint8_t)x[0] == 0x00) && ((uint8_t)x[1] == 0x21) && ((uint8_t)x[2] == 0xb2))
 
-
+template <class T> inline T roundUp(T numToRound, T multiple) {
+  if (multiple == 0) return numToRound;
+  T remainder = (T) (numToRound % multiple);
+  if (remainder == 0) return numToRound;
+  return numToRound + multiple - remainder;
+}
 #endif

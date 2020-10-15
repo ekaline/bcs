@@ -28,6 +28,14 @@ class EkaEpmAction;
 class EkaUdpChannel;
 class EpmStrategy;
 
+struct EkaEpmActionRecord {
+  EkaEpmAction* ekaAction = NULL; // 
+  EpmAction*    epmAction = NULL; // configured by App
+  /* uint8_t*      buf       = NULL; // Heap shadow */
+  /* int           bufSize   = 0;    // Heap payload size */
+  /* bool          valid     = false; */
+};
+
 class EkaEpm {
  public:
   static const uint MAX_CORES               = EkaDev::MAX_CORES;
@@ -39,20 +47,32 @@ class EkaEpm {
 
   static const uint MaxActions              = 4 * 1024;
 
-  static const uint     UserActionsBaseIdx   = 1024;
-  static const uint64_t EpmActionBase        = 0x89000;
-  static const uint     ActionBudget         = 64;
+  static const uint64_t EpmActionBase       = 0x89000;
+  static const uint     ActionBudget        = 64;
+  static const uint64_t MaxHeap             = 4 * 1024 * 1024;
+
+  static const uint64_t MaxUserHeap         = 3 * 1024 * 1024;
+  static const uint64_t ServiceUserHeap     = MaxHeap - MaxUserHeap;
 
 
-  static const uint64_t PayloadMemorySize = 8 * 1024;
-  static const uint64_t PayloadAlignment = 8;
-  static const uint64_t DatagramOffset = 54; // 14+20+20
-  static const uint64_t RequiredTailPadding = 0;
-  static const uint64_t MaxStrategies = 32;
-  static const uint64_t MaxServiceActions = 1024;
-  static const uint64_t MaxUserActions = 4 * 1024;
+  static const uint64_t PayloadMemorySize    = MaxUserHeap;
+  static const uint64_t DatagramOffset       = sizeof(EkaEthHdr)+sizeof(EkaIpHdr)+sizeof(EkaTcpHdr);
+  static const uint64_t PayloadAlignment     = DatagramOffset % 8; //54 % 8 = 6
+  static const uint64_t RequiredTailPadding  = 0;
+  static const uint64_t MaxStrategies        = 16;
+  static const uint64_t MaxServiceActions    = 1024;
 
-  
+  static const uint     UserActionsBaseIdx   = 0;
+  static const uint64_t MaxUserActions       = MaxActions - MaxServiceActions;
+  static const uint64_t UserHeapBaseAddr     = EpmHeapHwBaseAddr;
+  static const uint64_t UserActionBaseAddr   = EpmActionBase;
+
+  static const uint     ServiceActionsBaseIdx   = UserActionsBaseIdx + MaxUserActions;
+  static const uint64_t ServiceHeapBaseAddr     = UserHeapBaseAddr   + MaxUserHeap;
+  static const uint64_t ServiceActionBaseAddr   = UserActionBaseAddr + MaxUserActions * ActionBudget;
+
+  static const uint MaxActionsPerStrategy   = 256;
+
 
   enum class ActionType : int {
     INVALID = 0,
@@ -67,6 +87,9 @@ class EkaEpm {
 
   EkaEpm(EkaDev* _dev) {
     dev = _dev;
+
+    
+
     EKA_LOG("Created Epm");
   }
 
@@ -130,12 +153,8 @@ class EkaEpm {
   int DownloadTemplates2HW();
   int InitTemplates();
 
-  // Service Actions only
   EkaEpmAction* addAction(ActionType type, uint8_t _coreId, uint8_t _sessId, uint8_t _auxIdx);
-
-  // User Actions only
-  EkaEpmAction* addUserAction(epm_actionid_t useActionIdx);
-
+  int ekaEpmProcessTrigger(const void* payload,uint len);
 
  private:
   bool alreadyJoined(epm_strategyid_t prevStrats,uint32_t ip, uint16_t port);
@@ -159,30 +178,32 @@ class EkaEpm {
   EpmTemplate* tcpFastPathPkt;
   EpmTemplate* rawPkt;
 
- private:
-  epm_strategyid_t  stratNum = 0;
-  EpmStrategy*      strategy[MaxStrategies] = {};
-
-  EkaEpmAction*     serviceAction[MaxServiceActions]      = {};
-
-  EkaEpmAction*     userAction[MaxUserActions]      = {};
-
-  char              heap[EkaEpm::PayloadMemorySize] = {};
-  
-  bool              controllerEnabled = false;
   bool              initialized = false;
-
-  std::mutex   createActionMtx;
 
   EkaUdpChannel*    udpCh[MAX_CORES] = {};
 
-  uint     serviceActionIdx  = 0;
-  uint64_t serviceHeapAddr   = EpmHeapHwBaseAddr;
-  uint64_t serviceActionAddr = EpmActionBase;
+  uint8_t           heap[EkaEpm::MaxHeap] = {};
 
-  uint     userActionIdx  = 0;
-  uint64_t userHeapAddr   = EpmHeapHwBaseAddr;
-  uint64_t userActionAddr = EpmActionBase;
+ private:
+  EpmStrategy*      strategy[MaxStrategies] = {};
+  epm_strategyid_t  stratNum = 0;
+
+//  EkaEpmAction*     serviceAction[MaxServiceActions]      = {};
+
+//  EkaEpmAction*     userAction[MaxUserActions]      = {};
+  
+  bool              controllerEnabled = false;
+
+  std::mutex   createActionMtx;
+
+  uint     userActionIdx  = UserActionsBaseIdx;
+  uint64_t userHeapAddr   = UserHeapBaseAddr;
+  uint64_t userActionAddr = UserActionBaseAddr;
+
+  uint     serviceActionIdx  = ServiceActionsBaseIdx;
+  uint64_t serviceHeapAddr   = ServiceHeapBaseAddr;
+  uint64_t serviceActionAddr = ServiceActionBaseAddr;
+
 
  protected:
 

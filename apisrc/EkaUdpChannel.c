@@ -73,8 +73,24 @@ EkaUdpChannel::EkaUdpChannel(EkaDev* ekaDev, uint8_t coreId) {
 }
 
 void EkaUdpChannel::igmp_mc_join (uint32_t src_ip, uint32_t mcast_ip, uint16_t mcast_port, int16_t vlanTag) {
-  static uint acl_num = 0;
-  assert (acl_num < 64);
+  
+  EkaUdpChIgmpEntry curr = {
+    .ip      = mcast_ip,
+    .port    = mcast_port,
+    .vlanTag = vlanTag
+  };
+
+  for (uint i = 0; i < subscribedIgmps; i++) {
+    if (memcmp(&entry[i],&curr,sizeof(curr)) == 0) {
+      EKA_WARN("Skipping subscribing on existing IGMP entry %s:%u for UdpCh on Core %u",
+	       EKA_IP2STR(mcast_ip),be16toh(mcast_port),core);
+      return;
+    }
+  }
+  if (subscribedIgmps == MAX_IGMP_ENTRIES) on_error("MAX_IGMP_ENTRIES %d is reached",MAX_IGMP_ENTRIES);
+  
+  memcpy(&entry[subscribedIgmps],&curr,sizeof(curr));
+  subscribedIgmps++;
 
   SN_IgmpOptions igmpOptions = {};
   igmpOptions.StructSize = sizeof(igmpOptions);

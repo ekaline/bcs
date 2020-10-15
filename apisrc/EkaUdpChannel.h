@@ -19,6 +19,12 @@
 
 class EkaDev;
 
+struct EkaUdpChIgmpEntry {
+  uint32_t ip;
+  uint16_t port;
+  int16_t  vlanTag;
+};
+
 class EkaUdpChannel {
  public:
   EkaUdpChannel(EkaDev* dev, uint8_t coreId);
@@ -35,6 +41,10 @@ class EkaUdpChannel {
   private:
   EkaDev* dev;
   uint8_t core;
+
+  static const uint MAX_IGMP_ENTRIES = 64;
+  EkaUdpChIgmpEntry entry[MAX_IGMP_ENTRIES] = {};
+  uint              subscribedIgmps = 0;
 
   //  int            sock_fd;   // for SW IGMP
   uint           ptr_update_ctr;

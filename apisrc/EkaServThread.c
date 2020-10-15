@@ -6,6 +6,7 @@
 #include "EkaCore.h"
 #include "EkaSnDev.h"
 #include "EkaUserChannel.h"
+#include "EkaUdpChannel.h"
 
 #include "eka_macros.h"
 
@@ -21,7 +22,7 @@ static inline void sendDummyFastPathPkt(EkaDev* dev, const uint8_t* payload) {
   uint8_t* data = (uint8_t*) tcph + sizeof(EkaTcpHdr);
   uint16_t len = be16toh(iph->_len) - sizeof(EkaIpHdr) - sizeof(EkaTcpHdr);
   
-  //  hexDump("sendDummyFastPathPkt: Dummy Pkt to send",(void*)payload, 54);
+  hexDump("sendDummyFastPathPkt: Dummy Pkt to send",(void*)payload, 54);
 
   EkaTcpSess* tcpSess = dev->findTcpSess(iph->src, be16toh(tcph->src), iph->dest, be16toh(tcph->dest));
   if (tcpSess == NULL) 
@@ -123,6 +124,18 @@ void ekaServThread(EkaDev* dev) {
     }
     /* ----------------------------------------------- */
     if (! dev->servThreadActive) break;
+    if (dev->epm != NULL && dev->epm->initialized) {
+      for (uint coreId = 0; coreId < EkaDev::MAX_CORES; coreId ++) {
+	if (dev->epm->udpCh[coreId] == NULL) continue;
+	if (dev->epm->udpCh[coreId]->has_data()) {
+	  const uint8_t* payload = dev->epm->udpCh[coreId]->get();
+	  uint len = dev->epm->udpCh[coreId]->getPayloadLen();
+	  dev->epm->ekaEpmProcessTrigger(payload, len);
+	  dev->epm->udpCh[coreId]->next();
+	}
+      }
+    }
+    /* ----------------------------------------------- */
 
     /* if (((null_cnt++)%3000000)==0) { */
     /*   sendDate2Hw(dev); */

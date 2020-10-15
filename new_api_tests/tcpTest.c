@@ -110,7 +110,12 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p
 
     /* -------------------------------------------------- */
     //    TEST_LOG("%u %04u: sending %u bytes",sessId,pkt->cnt,pkt_size); fflush(stderr);
-    excSend (pEkaDev, sess_id, pkt, pkt_size);
+    int sentBytes = 0;
+    while (keep_work && sentBytes < (int)pkt_size) {
+      int sent = excSend (pEkaDev, sess_id, pkt, pkt_size);
+      if (sent == 0) usleep(10);
+      sentBytes += sent;
+    }
     /* -------------------------------------------------- */
     //   TEST_LOG("RX or %u bytes:",pkt_size);
 #if TCP_TEST_ECHO

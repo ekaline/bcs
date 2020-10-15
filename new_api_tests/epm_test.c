@@ -54,29 +54,6 @@ void  INThandler(int sig) {
   fflush(stdout);
   return;
 }
-/* --------------------------------------------- */
-
-/* void hexDump (const char* desc, void *addr, int len) { */
-/*     int i; */
-/*     unsigned char buff[17]; */
-/*     unsigned char *pc = (unsigned char*)addr; */
-/*     if (desc != NULL) printf ("%s:\n", desc); */
-/*     if (len == 0) { printf("  ZERO LENGTH\n"); return; } */
-/*     if (len < 0)  { printf("  NEGATIVE LENGTH: %i\n",len); return; } */
-/*     for (i = 0; i < len; i++) { */
-/*         if ((i % 16) == 0) { */
-/*             if (i != 0) printf ("  %s\n", buff); */
-/*             printf ("  %04x ", i); */
-/*         } */
-/*         printf (" %02x", pc[i]); */
-/*         if ((pc[i] < 0x20) || (pc[i] > 0x7e))  buff[i % 16] = '.'; */
-/*         else buff[i % 16] = pc[i]; */
-/*         buff[(i % 16) + 1] = '\0'; */
-/*     } */
-/*     while ((i % 16) != 0) { printf ("   "); i++; } */
-/*     printf ("  %s\n", buff); */
-/* } */
-
 
 /* --------------------------------------------- */
 
@@ -104,6 +81,8 @@ void fireReportCb (const EpmFireReport *report, int nReports, void *ctx) {
 
 /* --------------------------------------------- */
 void tcpChild(EkaDev* dev, int sock, uint port) {
+  pthread_setname_np(pthread_self(),"tcpServerChild");
+
   int bytes_read = -1;
   //  printf ("Running TCP Server for sock=%d, port = %u\n",sock,port);
   do {
@@ -123,6 +102,8 @@ void tcpChild(EkaDev* dev, int sock, uint port) {
 }
 /* --------------------------------------------- */
 void tcpServer(EkaDev* dev, std::string ip, uint16_t port) {
+  pthread_setname_np(pthread_self(),"tcpServerParent");
+
   printf("Starting TCP server: %s:%u\n",ip.c_str(),port);
   int sd = 0;
   if ((sd = socket(PF_INET, SOCK_STREAM, 0)) < 0) on_error("Socket");
@@ -318,8 +299,7 @@ int main(int argc, char *argv[]) {
 
   std::string triggerIp = "239.255.119.16";
   std::string serverIp  = "10.0.0.10";
-  //  std::string clientIp  = "100.0.0.10"; //std::string(EKA_IP2STR(dev->core[0]->srcIp));
-  std::string clientIp  = "10.0.0.110"; //std::string(EKA_IP2STR(dev->core[0]->srcIp));
+  std::string clientIp  = "100.0.0.110"; //std::string(EKA_IP2STR(dev->core[0]->srcIp));
 
   uint16_t serverTcpPort  = 22222;
   uint16_t triggerUdpPort = 18333;
@@ -360,10 +340,10 @@ int main(int argc, char *argv[]) {
   static const int ChainCols = 8;
 
   int actionChain[ChainRows][ChainCols] = {
-    {1,   51,  8, 13, -1},
-    {4,  -1 },
-    {47, -1 },
-    {100, 15, 21, 49, 17, 31, -1}
+    {1,   51,  8, 13, 0},
+    {4,  0 },
+    {47, 0 },
+    {100, 15, 21, 49, 17, 31, 0}
   };
 
   /* ============================================== */
@@ -385,26 +365,30 @@ int main(int argc, char *argv[]) {
   ekaRC = epmInitStrategies(dev, coreId, strategyParams, numStrategies);
   if (ekaRC != EKA_OPRESULT__OK) on_error("epmInitStrategies failed: ekaRC = %u",ekaRC);
 
-  uint32_t heapOffset = 0;
+  uint nwHdrOffset = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_DatagramOffset);
+  uint fcsOffset   = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_RequiredTailPadding);
+  uint heapOffset  = 0;
 
   for (auto stategyIdx = 0; stategyIdx < numStrategies; stategyIdx++) {
     for (auto chainIdx = 0; chainIdx < ChainRows; chainIdx++) {
       bool imLast = false;
       for (auto actionIdx = 0; actionIdx < ChainCols && ! imLast; actionIdx++) {
-	imLast = (actionIdx == ChainCols - 1) || (actionChain[chainIdx][actionIdx+1] == -1);
+	imLast = (actionIdx == ChainCols - 1) || (actionChain[chainIdx][actionIdx+1] == 0);
 	epm_actionid_t nextAction = imLast ? EPM_LAST_ACTION : actionChain[chainIdx][actionIdx+1];
 	char pkt2send[1000] = {};
-	sprintf(pkt2send,"Action Pkt: strategy=%d, action-in-chain=%d, actionId=%u, next=%u",
+	sprintf(pkt2send,"Action Pkt: strategy=%d, action-in-chain=%d, actionId=%u, next=%u EOP",
 		stategyIdx,actionIdx,static_cast<uint>(actionChain[chainIdx][actionIdx]),
 		nextAction);
-	pkt2send[strlen(pkt2send)] = '\n'; // replacing '\0' to enable further printf
-
+	pkt2send[strlen(pkt2send)] = '\n'; // replacing first '\0' for future printf
+	uint32_t payloadSize = strlen(pkt2send);
 	/* EKA_LOG("\t%s",pkt2send); */
+	heapOffset = roundUp<uint>(heapOffset,8);
+	heapOffset += nwHdrOffset;
 	EpmAction epmAction = {
 	  .token         = static_cast<epm_token_t>(0), ///< Security token
 	  .hConn         = conn,                        ///< TCP connection where segments will be sent
 	  .offset        = heapOffset,                  ///< Offset to payload in payload heap
-	  .length        = (uint32_t)strlen(pkt2send),  ///< Payload length
+	  .length        = payloadSize,                 ///< Payload length
 	  .actionFlags   = AF_Valid,                    ///< Behavior flags (see EpmActionFlag)
 	  .nextAction    = nextAction,                  ///< Next action in sequence, or EPM_LAST_ACTION
 	  .enable        = 0x01,                        ///< Enable bits
@@ -413,19 +397,21 @@ int main(int argc, char *argv[]) {
 	  .user          = static_cast<uintptr_t>
 	  (actionChain[chainIdx][actionIdx])                        ///< Opaque value copied into `EpmFireReport`.
 	};
+	ekaRC = epmPayloadHeapCopy(dev, coreId,
+				  static_cast<epm_strategyid_t>(stategyIdx),
+				  heapOffset,
+				  payloadSize,
+				  (const void *)pkt2send);
+
+	if (ekaRC != EKA_OPRESULT__OK) on_error("epmPayloadHeapCopy failed: ekaRC = %u",ekaRC);
+	heapOffset += payloadSize;
+	heapOffset += fcsOffset;
+	
 	ekaRC = epmSetAction(dev, coreId, stategyIdx, 
 			     actionChain[chainIdx][actionIdx], 
 			     &epmAction);
 	if (ekaRC != EKA_OPRESULT__OK) on_error("epmSetAction failed: ekaRC = %u",ekaRC);
 
-	ekaRC = epmPayloadHeapCopy(dev, coreId,
-				  static_cast<epm_strategyid_t>(stategyIdx),
-				  heapOffset,
-				  (uint32_t)strlen(pkt2send),
-				  (const void *)pkt2send);
-
-	if (ekaRC != EKA_OPRESULT__OK) on_error("epmPayloadHeapCopy failed: ekaRC = %u",ekaRC);
-	heapOffset += strlen(pkt2send);
 
       }
     }
