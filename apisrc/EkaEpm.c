@@ -18,42 +18,56 @@ uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t 
 int EkaEpm::ekaEpmProcessTrigger(const void* payload,uint len) {
   /* hexDump("Trigger",(void*)payload,len); */
   EpmTrigger* trigger = (EpmTrigger*)payload;
-  EKA_LOG("Accepted Trigger: token=0x%jx, strategyId=%d, FistActionId=%d",
-	  trigger->token,trigger->strategy,trigger->action);
 
   uint strategyId = trigger->strategy;
   uint currAction = trigger->action;
+
+  epm_trig_desc_t epm_trig_desc = {};
+  epm_trig_desc.str.action_index = strategy[strategyId]->action[currAction].ekaAction->idx;
+
+  EKA_LOG("Accepted Trigger: token=0x%jx, strategyId=%d, FistActionId=%d, ekaAction->idx = %u, epm_trig_desc.str.action_index=%u",
+	  trigger->token,trigger->strategy,trigger->action,
+	  strategy[strategyId]->action[currAction].ekaAction->idx,epm_trig_desc.str.action_index);
+
   
-  while (currAction != EPM_LAST_ACTION) {
-    uint heapOffs    = strategy[strategyId]->action[currAction].ekaAction->heapAddr - UserHeapBaseAddr;
-    uint payloadSize = strategy[strategyId]->action[currAction].epmAction->length;
+  EKA_LOG("User Action: actionType = %u, strategyId=%u, actionId=%u,heapAddr=%ju, pktSize=%u",
+	  strategy[strategyId]->action[currAction].ekaAction->hwAction.tcpCsSizeSource,
+	  strategyId,currAction,
+	  strategy[strategyId]->action[currAction].ekaAction->hwAction.data_db_ptr,
+	  strategy[strategyId]->action[currAction].ekaAction->hwAction.payloadSize
+	  );
+  eka_write(dev,EPM_TRIGGER_DESC_ADDR,epm_trig_desc.desc);
 
-    EKA_LOG("Executing action %d:  heapOffs=%u, heapAddr = %ju, payloadSize=%u ",
-	    currAction,heapOffs,heapOffs + UserHeapBaseAddr, payloadSize);
+  /* while (currAction != EPM_LAST_ACTION) { */
+  /*   uint heapOffs    = strategy[strategyId]->action[currAction].ekaAction->heapAddr - UserHeapBaseAddr; */
+  /*   uint payloadSize = strategy[strategyId]->action[currAction].epmAction->length; */
 
-    if (currAction == 100) {
-      EKA_LOG("currAction = 100, idx = %u, heapAddr = %ju",
-	      strategy[strategyId]->action[currAction].ekaAction->idx,
-	      strategy[strategyId]->action[currAction].ekaAction->heapAddr);
-      hexDump("Heap Pkt",&heap[heapOffs],DatagramOffset + payloadSize);
-    }
-    //---------------------------------------------------------
+  /*   EKA_LOG("Executing action %d:  heapOffs=%u, heapAddr = %ju, payloadSize=%u ", */
+  /* 	    currAction,heapOffs,heapOffs + UserHeapBaseAddr, payloadSize); */
 
-    uint8_t* ipHdr      = &heap[heapOffs + sizeof(EkaEthHdr)];
-    uint8_t* tcpHdr     = ipHdr  + sizeof(EkaIpHdr);
-    uint8_t* tcpPayload = tcpHdr + sizeof(EkaTcpHdr);
+  /*   /\* if (currAction == 100) { *\/ */
+  /*   /\*   EKA_LOG("currAction = 100, idx = %u, heapAddr = %ju", *\/ */
+  /*   /\* 	      strategy[strategyId]->action[currAction].ekaAction->idx, *\/ */
+  /*   /\* 	      strategy[strategyId]->action[currAction].ekaAction->heapAddr); *\/ */
+  /*   /\*   hexDump("Heap Pkt",&heap[heapOffs],DatagramOffset + payloadSize); *\/ */
+  /*   /\* } *\/ */
+  /*   //--------------------------------------------------------- */
 
-    epm_trig_desc_t epm_trig_desc = {};
-    epm_trig_desc.str.action_index = strategy[strategyId]->action[currAction].ekaAction->idx;
-    epm_trig_desc.str.payload_size = DatagramOffset + payloadSize;
-    epm_trig_desc.str.tcp_cs       = calc_pseudo_csum(ipHdr,tcpHdr,tcpPayload,payloadSize);
+  /*   uint8_t* ipHdr      = &heap[heapOffs + sizeof(EkaEthHdr)]; */
+  /*   uint8_t* tcpHdr     = ipHdr  + sizeof(EkaIpHdr); */
+  /*   uint8_t* tcpPayload = tcpHdr + sizeof(EkaTcpHdr); */
 
-    eka_write(dev,EPM_TRIGGER_DESC_ADDR,epm_trig_desc.desc);
-    //---------------------------------------------------------
+  /*   epm_trig_desc_t epm_trig_desc = {}; */
+  /*   epm_trig_desc.str.action_index = strategy[strategyId]->action[currAction].ekaAction->idx; */
+  /*   epm_trig_desc.str.payload_size = DatagramOffset + payloadSize; */
+  /*   epm_trig_desc.str.tcp_cs       = calc_pseudo_csum(ipHdr,tcpHdr,tcpPayload,payloadSize); */
+
+  /*   eka_write(dev,EPM_TRIGGER_DESC_ADDR,epm_trig_desc.desc); */
+  /*   //--------------------------------------------------------- */
 
 
-    currAction = strategy[strategyId]->action[currAction].ekaAction->nextIdx;
-  }
+  /*   currAction = strategy[strategyId]->action[currAction].ekaAction->nextIdx; */
+  /* } */
 
   return 0;
 }
@@ -318,12 +332,17 @@ EkaEpmAction* EkaEpm::addAction(ActionType type, uint8_t _coreId, uint8_t _sessI
     on_error("Unexpected EkaEpmAction type %d",(int)type);
   }
 
+  /* printf ("--- %20s: %u:%u Action Idx: %u, Action addr: %8ju, Heap addr: %8ju + %4u\n", */
+  /* 	  actionName, _coreId,_sessId,actionIdx,actionAddr,heapAddr,heapBudget); */
+
   if (userActionIdx > UserActionsBaseIdx + MaxUserActions) 
     on_error("userActionIdx %u > MaxUserActions %ju",userActionIdx, UserActionsBaseIdx + MaxUserActions);
   if (serviceActionIdx > ServiceActionsBaseIdx + MaxServiceActions) 
     on_error("serviceActionIdx %u > MaxServiceActions %ju",serviceActionIdx, ServiceActionsBaseIdx + MaxServiceActions);
-  if (serviceHeapAddr > ServiceHeapBaseAddr + ServiceUserHeap)
-    on_error("serviceHeapAddr %ju > MaxServiceHeap %ju",serviceHeapAddr, ServiceHeapBaseAddr + ServiceUserHeap);
+  if (serviceHeapAddr > ServiceHeapBaseAddr + MaxServiceHeap)
+    on_error("serviceHeapAddr %ju > MaxServiceHeap %ju",serviceHeapAddr, ServiceHeapBaseAddr + MaxServiceHeap);
+  if (userHeapAddr > UserHeapBaseAddr + MaxUserHeap)
+    on_error("userHeapAddr %ju > MaxUserHeap %ju",userHeapAddr, UserHeapBaseAddr + MaxUserHeap);
   EkaEpmAction* action = new EkaEpmAction(dev,
 					  actionName,
 					  type,

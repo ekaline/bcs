@@ -131,6 +131,20 @@ class EkaDev {
 /* ######################################################################## */
 
 inline void     eka_write(EkaDev* dev, uint64_t addr, uint64_t val) { 
+#if 1
+  //  if (addr!=0xf0300 && addr!=0xf0308 && addr!=0xf0310 && addr!=0xf0608) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //general writes
+  //  if ((addr>=0x70000 && addr<=0x80000) || addr==0xf0410) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //tob+depth
+  if ((addr>=0x89000 && addr<0x8a000) || addr==0xf0238) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //epm action
+  if (addr==0xf0230) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                                    //epm trigger
+  if ((addr>=0x81000 && addr<0x82000)) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm data thread window start
+  if ((addr>=0xd0000 && addr<0xe0000)) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm data
+  if ((addr>=0xc0000 && addr<0xd0000)) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm template
+  if ((addr>=0x88000 && addr<0x89000)) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm tcpcs template
+
+  //  if ((addr>=0x50000 && addr<0x60000) || addr==0xf0200) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //fastpath data and desc
+
+#endif
+
   return dev->eka_write(addr,val);
 }
 

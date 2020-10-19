@@ -52,7 +52,7 @@ class EkaEpm {
   static const uint64_t MaxHeap             = 4 * 1024 * 1024;
 
   static const uint64_t MaxUserHeap         = 3 * 1024 * 1024;
-  static const uint64_t ServiceUserHeap     = MaxHeap - MaxUserHeap;
+  static const uint64_t MaxServiceHeap      = MaxHeap - MaxUserHeap;
 
 
   static const uint64_t PayloadMemorySize    = MaxUserHeap;

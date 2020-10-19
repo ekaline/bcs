@@ -49,6 +49,30 @@ struct epm_actione_bitparams_t {
   uint8_t israw      : 1; //should HW update HW_TCP_SEQ table
 } __attribute__((packed)); //must be in 1B resolution
 
+/* FPGA code: */
+/* typedef struct packed { */
+/*         bit [7:0]       action_type; // EPM_ACTION_TYPE_ */
+/*         bit [15:0]      payload_size;   */
+/*         bit [31:0]      tcp_cs;   */
+/*         bit [63:0]      token; */
+/*         bit [63:0]      user; */
+/*         bit [63:0]      mask_post_local; */
+/*         bit [63:0]      mask_post_strat; */
+/*         bit [15:0]      next_action_index;   */
+/*         bit [7:0]       target_session_id;   */
+/*         bit [7:0]       target_core_id;   */
+/*         bit [7:0]       target_prod_id;   */
+/*         bit [31:0]      data_db_ptr; */
+/*         bit [15:0]      template_db_ptr; */
+/*         bit [7:0]       tcpcs_template_db_ptr; */
+/*         epm_action_bp_t bit_params; */
+/* } epm_action_t; */
+
+/* parameter EPM_ACTION_TYPE_SRC_ACTION = 1; //take size and cs from action */
+/* parameter EPM_ACTION_TYPE_SRC_DESC   = 2; //take size and cs from desc */
+
+enum class TcpCsSizeSource : uint8_t {FROM_ACTION = 1, FROM_DESCR = 2};
+
 struct epm_action_t {
   epm_actione_bitparams_t bit_params;
   uint8_t  tcpcs_template_db_ptr;  
@@ -58,10 +82,13 @@ struct epm_action_t {
   uint8_t  target_core_id;  
   uint8_t  target_session_id;  
   uint16_t next_action_index;
-  /* uint64_t mask_post_strat; */
-  /* uint64_t mask_post_local; */
-  /* uint64_t user; */
-  /* uint64_t token; */
+  uint64_t mask_post_strat;
+  uint64_t mask_post_local;
+  uint64_t user;
+  uint64_t token;
+  uint32_t tcpCSum;
+  uint16_t payloadSize;
+  TcpCsSizeSource   tcpCsSizeSource;  
 } __attribute__((packed));
 
 

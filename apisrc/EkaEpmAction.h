@@ -36,6 +36,8 @@ class EkaEpmAction {
 
     nextIdx         = 0xffff; //last 
 
+    hwAction.tcpCsSizeSource      = type == EkaEpm::ActionType::UserAction ? TcpCsSizeSource::FROM_ACTION : TcpCsSizeSource::FROM_DESCR;
+
     hwAction.data_db_ptr           = heapAddr;
     hwAction.template_db_ptr       = templateAddr;
     hwAction.tcpcs_template_db_ptr = templateId;
@@ -52,8 +54,15 @@ class EkaEpmAction {
 
   int update (uint8_t                 _coreId,
 	      uint8_t                 _sessId,
-	      uint                    _nextAction,
-	      uint64_t		      _heapAddr) {
+	      epm_actionid_t          _nextAction,
+	      uint64_t		      _heapAddr,
+	      const uint64_t 	      _mask_post_strat,
+	      const uint64_t 	      _mask_post_local,
+	      const uint64_t  	      _user,
+	      const epm_token_t	      _token,
+	      uint16_t 		      _payloadSize,
+	      uint32_t 		      _tcpCSum
+	      ) {
     coreId          = _coreId;
     sessId          = _sessId;
     heapAddr        = _heapAddr;
@@ -63,6 +72,12 @@ class EkaEpmAction {
     hwAction.target_session_id     = sessId;
     hwAction.data_db_ptr           = heapAddr;
     hwAction.next_action_index     = nextIdx;
+    hwAction.mask_post_strat       = _mask_post_strat;
+    hwAction.mask_post_local       = _mask_post_local;
+    hwAction.user                  = _user;
+    hwAction.token                 = _token;
+    hwAction.payloadSize           = _payloadSize;
+    hwAction.tcpCSum               = _tcpCSum;
 
     return 0;
   }
@@ -83,12 +98,12 @@ class EkaEpmAction {
   uint64_t templateAddr            = -1;
   uint     templateId              = -1;
 
-  uint     nextIdx        = 0xffff; //last 
+  epm_actionid_t    nextIdx        = 0xffff; //last 
   epm_action_t hwAction = {};
 
 
   void print() {
-    EKA_LOG("%s: coreId = %u, sessId = %u, idx=%u, data_db_ptr=0x%jx, template_db_ptr=0x%jx, tcpcs_template_db_ptr=%u, coreId=%u, sessId=%u, heapAddr=0x%jx ",
+    EKA_LOG("%s: coreId = %u, sessId = %u, idx=%u, data_db_ptr=0x%jx, template_db_ptr=0x%jx, tcpcs_template_db_ptr=%u, coreId=%u, sessId=%u, heapAddr=0x%jx, payloadSize=%u ",
 	    actionName,
 	    coreId,
 	    sessId,
@@ -98,7 +113,8 @@ class EkaEpmAction {
 	    hwAction.tcpcs_template_db_ptr,
 	    hwAction.target_core_id,
 	    hwAction.target_session_id,
-	    heapAddr
+	    heapAddr,
+	    hwAction.payloadSize
 	    );
   }
 

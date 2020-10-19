@@ -335,15 +335,17 @@ int main(int argc, char *argv[]) {
 
   ExcConnHandle conn = runTcpClient(dev, coreId,&serverAddr,serverTcpPort);
 
+  //  sleep(5);
+
   /* ============================================== */
   static const int ChainRows = 4;
   static const int ChainCols = 8;
 
   int actionChain[ChainRows][ChainCols] = {
-    {1,   51,  8, 13, 0},
-    {4,  0 },
-    {47, 0 },
-    {100, 15, 21, 49, 17, 31, 0}
+    {1,   51,  8, 13, EPM_LAST_ACTION},
+    {4,  EPM_LAST_ACTION},
+    {47, EPM_LAST_ACTION},
+    {100, 15, 21, 49, 17, 31, EPM_LAST_ACTION}
   };
 
   /* ============================================== */
@@ -371,10 +373,12 @@ int main(int argc, char *argv[]) {
 
   for (auto stategyIdx = 0; stategyIdx < numStrategies; stategyIdx++) {
     for (auto chainIdx = 0; chainIdx < ChainRows; chainIdx++) {
-      bool imLast = false;
-      for (auto actionIdx = 0; actionIdx < ChainCols && ! imLast; actionIdx++) {
-	imLast = (actionIdx == ChainCols - 1) || (actionChain[chainIdx][actionIdx+1] == 0);
-	epm_actionid_t nextAction = imLast ? EPM_LAST_ACTION : actionChain[chainIdx][actionIdx+1];
+      //      bool imLast = false;
+      for (auto actionIdx = 0; actionIdx < ChainCols - 1/* && ! imLast */; actionIdx++) {
+	//	imLast = (actionIdx == ChainCols - 1) || (actionChain[chainIdx][actionIdx+1] == EPM_LAST_ACTION);
+	if (actionChain[chainIdx][actionIdx] == EPM_LAST_ACTION) break;
+
+	epm_actionid_t nextAction = /* imLast ? EPM_LAST_ACTION :  */actionChain[chainIdx][actionIdx+1];
 	char pkt2send[1000] = {};
 	sprintf(pkt2send,"Action Pkt: strategy=%d, action-in-chain=%d, actionId=%u, next=%u EOP",
 		stategyIdx,actionIdx,static_cast<uint>(actionChain[chainIdx][actionIdx]),
@@ -382,7 +386,7 @@ int main(int argc, char *argv[]) {
 	pkt2send[strlen(pkt2send)] = '\n'; // replacing first '\0' for future printf
 	uint32_t payloadSize = strlen(pkt2send);
 	/* EKA_LOG("\t%s",pkt2send); */
-	heapOffset = roundUp<uint>(heapOffset,8);
+	heapOffset = roundUp<uint>(heapOffset,32);
 	heapOffset += nwHdrOffset;
 	EpmAction epmAction = {
 	  .token         = static_cast<epm_token_t>(0), ///< Security token
@@ -427,7 +431,7 @@ int main(int argc, char *argv[]) {
     /* {   11,       1,       1}, */
     /* {   7,        2,       4}, */
     /* {   9,        3,      47}, */
-    {   17,       4,     100},
+    {   17,       0,     100},
   };
   uint numTriggers = sizeof(epmTrigger)/sizeof(epmTrigger[0]);
 
@@ -444,10 +448,12 @@ int main(int argc, char *argv[]) {
 
   /* ============================================== */
 
+  sleep(8);
+  fflush(stdout);
 
-  while (keep_work && ! triggerGeneratorDone) sleep(0);
+  //  while (keep_work /* && ! triggerGeneratorDone */) sleep(0);
   keep_work = false;
-  sleep(3);
+  sleep(1);
 
   /* ============================================== */
 

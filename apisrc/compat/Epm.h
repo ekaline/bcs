@@ -17,7 +17,7 @@ typedef uint64_t epm_enablebits_t;
 typedef int32_t epm_strategyid_t;
 typedef int32_t epm_actionid_t;
 
-#define EPM_LAST_ACTION 0
+#define EPM_LAST_ACTION 0xFFFF
 
 /// Eklaine device limitations
 enum EpmDeviceCapability {
