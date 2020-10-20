@@ -102,6 +102,9 @@ class EkaTcpSess {
   uint8_t   macDa[6];
 
  private:
+
+int  setRemoteSeqWnd2FPGA();
+
   typedef union exc_table_desc {
     uint64_t desc;
     struct fields {

@@ -131,7 +131,7 @@ class EkaDev {
 /* ######################################################################## */
 
 inline void     eka_write(EkaDev* dev, uint64_t addr, uint64_t val) { 
-#if 1
+#if 0
   //  if (addr!=0xf0300 && addr!=0xf0308 && addr!=0xf0310 && addr!=0xf0608) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //general writes
   //  if ((addr>=0x70000 && addr<=0x80000) || addr==0xf0410) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //tob+depth
   if ((addr>=0x89000 && addr<0x8a000) || addr==0xf0238) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //epm action

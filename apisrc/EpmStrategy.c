@@ -90,7 +90,7 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx, const EpmAction *ep
   if (heapOffs < 0 || (heapOffs % 32 != 0)) 
     on_error("Wrong epmAction->offset %d (must be X32)",epmAction->offset);
 
-  memcpy(&dev->epm->heap[heapOffs],dev->core[coreId]->tcpSess[sessId]->pktBuf,EkaEpm::DatagramOffset);
+  //  memcpy(&dev->epm->heap[heapOffs],dev->core[coreId]->tcpSess[sessId]->pktBuf,EkaEpm::DatagramOffset);
 
   uint64_t heapAddr = EkaEpm::UserHeapBaseAddr + heapOffs;
   if (heapAddr > EkaEpm::UserHeapBaseAddr + EkaEpm::MaxUserHeap)

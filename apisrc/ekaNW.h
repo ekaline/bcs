@@ -87,6 +87,10 @@ struct EkaUdpHdr {
 #define EKA_PROTO_TCP         0x06
 #define EKA_PROTO_UDP         0x11
 
+#define EKA_TCP_FLG_PSH 0x08U
+#define EKA_TCP_FLG_ACK 0x10U
+
+
 #define EKA_ETH_TYPE(pkt)  ((uint16_t)be16toh((((EkaEthHdr*)pkt)->type)))
 #define EKA_ETH_MACDA(pkt) ((uint8_t*)&(((EkaEthHdr*)pkt)->dest))
 #define EKA_ETH_MACSA(pkt) ((uint8_t*)&(((EkaEthHdr*)pkt)->src))

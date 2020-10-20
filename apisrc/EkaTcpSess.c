@@ -212,57 +212,62 @@ EkaTcpSess::~EkaTcpSess() {
 /* ---------------------------------------------------------------- */
 
 int EkaTcpSess::preloadNwHeaders() {
-  memset(&pktBuf,0,sizeof(pktBuf));
+  /* memset(&pktBuf,0,sizeof(pktBuf)); */
 
-  memcpy(&(ethHdr->dest),&macDa,6);
-  memcpy(&(ethHdr->src), &macSa,6);
-  ethHdr->type = be16toh(0x0800);
+  /* memcpy(&(ethHdr->dest),&macDa,6); */
+  /* memcpy(&(ethHdr->src), &macSa,6); */
+  /* ethHdr->type = be16toh(0x0800); */
 
-  ipHdr->_v_hl = 0x45;
-  ipHdr->_offset = 0x0040;
-  ipHdr->_ttl = 64;
-  ipHdr->_proto = IPPROTO_TCP;
-  ipHdr->_chksum = 0;
-  ipHdr->_id  = EkaIpId;
-  ipHdr->_len = 0;
+  /* ipHdr->_v_hl = 0x45; */
+  /* ipHdr->_offset = 0x0040; */
+  /* ipHdr->_ttl = 64; */
+  /* ipHdr->_proto = IPPROTO_TCP; */
+  /* ipHdr->_chksum = 0; */
+  /* ipHdr->_id  = EkaIpId; */
+  /* ipHdr->_len = 0; */
 
-  ipHdr->src  = srcIp;
-  ipHdr->dest = dstIp;
+  /* ipHdr->src  = srcIp; */
+  /* ipHdr->dest = dstIp; */
 
-  tcpHdr->src    = be16toh(srcPort);
-  tcpHdr->dest   = be16toh(dstPort);
-  tcpHdr->_hdrlen_rsvd_flags = be16toh(0x5000 | TCP_PSH | TCP_ACK);
-  tcpHdr->urgp = 0;
+  /* tcpHdr->src    = be16toh(srcPort); */
+  /* tcpHdr->dest   = be16toh(dstPort); */
+  /* tcpHdr->_hdrlen_rsvd_flags = be16toh(0x5000 | TCP_PSH | TCP_ACK); */
+  /* tcpHdr->urgp = 0; */
 
   //---------------------------------------------------------
   // Preloading EmptyAck 
-  ipHdr->_len = be16toh(sizeof(EkaIpHdr)+sizeof(EkaTcpHdr));
-  ipHdr->_chksum = csum((unsigned short *)ipHdr, sizeof(EkaIpHdr));
-  uint emptyAckLen = sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaTcpHdr);
-  copyIndirectBuf2HeapHw_swap4(dev,emptyAckAction->heapAddr,(uint64_t*) pktBuf, MAX_CTX_THREADS - 1 /* threadId */, emptyAckLen);
+  /* ipHdr->_len = be16toh(sizeof(EkaIpHdr)+sizeof(EkaTcpHdr)); */
+  /* ipHdr->_chksum = csum((unsigned short *)ipHdr, sizeof(EkaIpHdr)); */
+  /* uint emptyAckLen = sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaTcpHdr); */
+  /* copyIndirectBuf2HeapHw_swap4(dev,emptyAckAction->heapAddr,(uint64_t*) pktBuf, MAX_CTX_THREADS - 1 /\* threadId *\/, emptyAckLen); */
 
-  emptyAcktrigger.str.action_index = emptyAckAction->idx;
-  emptyAcktrigger.str.payload_size = emptyAckLen;
-  emptyAcktrigger.str.tcp_cs       = calc_pseudo_csum(ipHdr,tcpHdr,tcpPayload,0);
+  /* emptyAcktrigger.str.action_index = emptyAckAction->idx; */
+  /* emptyAcktrigger.str.payload_size = emptyAckLen; */
+  /* emptyAcktrigger.str.tcp_cs       = calc_pseudo_csum(ipHdr,tcpHdr,tcpPayload,0); */
 
-  ipHdr->_len = 0;
-  ipHdr->_chksum = 0;
+  /* ipHdr->_len = 0; */
+  /* ipHdr->_chksum = 0; */
 
   //---------------------------------------------------------
 
   //  EKA_LOG(" emptyAcktrigger.str.action_index = %u, emptyAcktrigger.str.payload_size=%u, emptyAckAction->heapAddr = 0x%jx",
   //  	  emptyAcktrigger.str.action_index, emptyAcktrigger.str.payload_size,emptyAckAction->heapAddr);
 
-  ipHdr->_len = be16toh(sizeof(EkaIpHdr)+sizeof(EkaTcpHdr));
+  /* ipHdr->_len = be16toh(sizeof(EkaIpHdr)+sizeof(EkaTcpHdr)); */
+
+
+  emptyAckAction->setNwHdrs(macDa,macSa,srcIp,dstIp,srcPort,dstPort);
+  fastPathAction->setNwHdrs(macDa,macSa,srcIp,dstIp,srcPort,dstPort);
+  fullPktAction->setNwHdrs (macDa,macSa,srcIp,dstIp,srcPort,dstPort);
 
   hw_session_nw_header_t hw_nw_header = {
-    .ip_cs    = be16toh(csum((unsigned short *)ipHdr, sizeof(EkaIpHdr))),
+    .ip_cs    = 0,//be16toh(csum((unsigned short *)ipHdr, sizeof(EkaIpHdr))),
     .dst_ip   = be32toh(dstIp),
     .src_port = srcPort,
     .dst_port = dstPort,
     .tcpcs    = 0
   };
-  ipHdr->_len = 0;
+  /* ipHdr->_len = 0; */
 
   copyBuf2Hw(dev,
 	     HW_SESSION_NETWORK_BASE+HW_SESSION_NETWORK_CORE_OFFSET * coreId,
@@ -327,7 +332,20 @@ int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
 }
 
 /* ---------------------------------------------------------------- */
+int EkaTcpSess::setRemoteSeqWnd2FPGA() {
+    // Update FPGA with tcpRemoteSeqNum and tcpWindow
+    exc_table_desc_t desc = {};
+    desc.td.source_bank = 0;
+    desc.td.source_thread = sessId;
+    desc.td.target_idx = (uint32_t)sessId;
 
+    uint64_t tcpWindow_64bit = (uint64_t)tcpWindow;
+    eka_write(dev,0x60000 + 0x1000*coreId + 8 * (sessId*2),tcpRemoteSeqNum | (tcpWindow_64bit << 32) );
+    eka_write(dev,0x6f000 + 0x100*coreId,desc.desc);
+    // Update FPGA with tcpRemoteSeqNum and tcpWindow
+    return 0;
+}
+/* ---------------------------------------------------------------- */
 int EkaTcpSess::sendStackPkt(void *pkt, int len) {
   if (EKA_TCP_SYN(pkt)) {
     tcpLocalSeqNum = EKA_TCPH_SEQNO(pkt) + 1;
@@ -350,51 +368,30 @@ int EkaTcpSess::sendStackPkt(void *pkt, int len) {
     return 0;    
   }
   /* -------------------------------------- */
-
-  if (tcpRemoteSeqNum != EKA_TCPH_ACKNO(pkt)) {
-    tcpRemoteSeqNum = EKA_TCPH_ACKNO(pkt);
-
-    tcpWindow = EKA_TCPH_WND(pkt);
-    uint64_t tcpWindow_64bit = (uint64_t)tcpWindow;
-
-    // Update FPGA with tcpRemoteSeqNum and tcpWindow
-    exc_table_desc_t desc = {};
-    desc.td.source_bank = 0;
-    desc.td.source_thread = sessId;
-    desc.td.target_idx = (uint32_t)sessId;
-
-    eka_write(dev,0x60000 + 0x1000*coreId + 8 * (sessId*2),tcpRemoteSeqNum | (tcpWindow_64bit << 32) );
-    eka_write(dev,0x6f000 + 0x100*coreId,desc.desc);
-    // Update FPGA with tcpRemoteSeqNum and tcpWindow
-
-    // Sending Empty Ack from FPGA
-    if (emptyAcktrigger.str.payload_size != 0) {
-      eka_write(dev,EPM_TRIGGER_DESC_ADDR,emptyAcktrigger.desc);
-      //      EKA_LOG(" emptyAcktrigger.str.action_index = %u, emptyAcktrigger.str.payload_size=%u, emptyAckAction->heapAddr = 0x%jx",
-      //	      emptyAcktrigger.str.action_index, emptyAcktrigger.str.payload_size,emptyAckAction->heapAddr);
-    }
-
-    if (connectionEstablished) {
-      //EKA_LOG("\n=====================\n%u: Sending empty SEQ %ju, ACK %ju from HW   \n=====================\n",sessId,tcpLocalSeqNum,tcpRemoteSeqNum);
-    } else {
-      //      EKA_LOG("\n=====================\n%u: Sending empty SEQ %ju, ACK %ju from Stack\n=====================\n",sessId,tcpLocalSeqNum,tcpRemoteSeqNum);
-      sendFullPkt(pkt,len);
-      return 0;
-    }
-  } else {
-    //    EKA_LOG("Not sending HW ACK: ACKNO=%u, pktLen = %u",EKA_TCPH_ACKNO(pkt),EKA_TCP_PAYLOAD_LEN(pkt));
+  if (! connectionEstablished) {
+    // 1st ACK on SYN-ACK
+    sendFullPkt(pkt,len);
+    return 0;
   }
-
   /* -------------------------------------- */
-  if (EKA_TCPH_SEQNO(pkt) < tcpLocalSeqNum) { // retransmit
+  if (EKA_TCPH_SEQNO(pkt) < tcpLocalSeqNum) { 
+    // Retransmit
     //    EKA_LOG("Retransmit: Total Len = %u bytes, Seq = %u, tcpLocalSeqNum=%u", len, EKA_TCPH_SEQNO(pkt),tcpLocalSeqNum);
     //    hexDump("RetransmitPkt",pkt,len);
-
     sendFullPkt(pkt,len);
     return 0;
   }
   /* -------------------------------------- */
   // DUMMY PACKET -- DROPPED
+  if (tcpRemoteSeqNum != EKA_TCPH_ACKNO(pkt)) {
+    // This is first ACK on the tcpRemoteSeqNum
+    // DUMMY PKT has "important" ACK (which was not sent)
+    tcpRemoteSeqNum = EKA_TCPH_ACKNO(pkt);
+    tcpWindow = EKA_TCPH_WND(pkt);
+    setRemoteSeqWnd2FPGA();
+    // Empty ACK is sent from FPGA
+    emptyAckAction->send(); //
+  }
   tcpLocalSeqNum = EKA_TCPH_SEQNO(pkt) + EKA_TCP_PAYLOAD_LEN(pkt);
   txDriverBytes += EKA_TCP_PAYLOAD_LEN(pkt);
 
@@ -412,19 +409,8 @@ int EkaTcpSess::sendFullPkt(void *buf, int len) {
   /* hexDump("sendFullPkt",buf,len); */
   /* fullPktAction->print(); */
 
-  copyIndirectBuf2HeapHw_swap4(dev,fullPktAction->heapAddr,(uint64_t*) buf, MAX_CTX_THREADS - 1 /* threadId */, (uint) len);
-
-  //---------------------------------------------------------
-
-  epm_trig_desc_t epm_trig_desc  = {};
-  epm_trig_desc.str.action_index = fullPktAction->idx;
-  epm_trig_desc.str.payload_size = (uint) len;
-  epm_trig_desc.str.tcp_cs       = 0;
-
-  /* EKA_LOG(" epm_trig_desc.str.action_index = %u, epm_trig_desc.str.payload_size=%u, fullPktAction->heapAddr = 0x%jx", */
-  /* 	  epm_trig_desc.str.action_index, epm_trig_desc.str.payload_size,fullPktAction->heapAddr); */
-
-  eka_write(dev,EPM_TRIGGER_DESC_ADDR,epm_trig_desc.desc);
+  fullPktAction->setFullPkt(MAX_CTX_THREADS - 1 /* threadId */,buf,(uint)len);
+  fullPktAction->send();
 
   return 0;
 }
@@ -465,15 +451,12 @@ int EkaTcpSess::sendDummyPkt(void *buf, int len) {
   while (dev->exc_active && (bytes2send > 0)) {
     txLwipBp = ! readyToSend();
     if (txLwipBp) {
-      //      printf("+");
-      //      usleep(100);
       usleep(0);
       continue;
     }
     int sentBytes = lwip_write(sock,sendPtr,bytes2send);
 
     if (sentBytes == 0) {
-      //      printf("*");
       usleep(0);
     } else if (sentBytes < 0) {
       //      printf("-");
@@ -493,16 +476,10 @@ int EkaTcpSess::sendDummyPkt(void *buf, int len) {
 int EkaTcpSess::sendPayload(uint thrId, void *buf, int len) {
   if (! dev->exc_active) return 1;
 
-  if (
-      txLwipBp                        || // lwip socket is unavauilable
+  if (txLwipBp                        || // lwip socket is unavauilable
       (fastPathBytes > txDriverBytes) || // previous TX pkt didn't arrive TX driver
-      (fastPathBytes > dummyBytes)    || // previous TX pkt wasn't sent to lwip as Dummy
-      false
+      (fastPathBytes > dummyBytes)       // previous TX pkt wasn't sent to lwip as Dummy
       ) {
-    /* EKA_LOG("TX Backpressure: socketReadyToSend=%d, fastPathBytes=%ju, txDriverBytes=%ju, dummyBytes=%ju", */
-    /* 	    socketReadyToSend,fastPathBytes,txDriverBytes,dummyBytes); */
-    //       printf(".");
-    //    usleep(10000);
     usleep(0);
     return 0; // too high tx rate -- Back Pressure
   }
@@ -511,25 +488,25 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len) {
   if (payloadSize2send <= 2) on_error("len = %d, payloadSize2send=%u,MAX_PKT_SIZE=%u",len,payloadSize2send,MAX_PAYLOAD_SIZE);
   fastPathBytes += payloadSize2send;
 
-  uint totalSize2send = sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaTcpHdr) + payloadSize2send;
+  fastPathAction->setPktPayload(thrId, buf, payloadSize2send);
+  fastPathAction->send();
 
-  memcpy(tcpPayload,buf,payloadSize2send);
+  /* uint totalSize2send = sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaTcpHdr) + payloadSize2send; */
 
-  ipHdr->_len    = be16toh(sizeof(EkaIpHdr)+sizeof(EkaTcpHdr)+payloadSize2send);
-  ipHdr->_chksum = 0;
-  ipHdr->_chksum = csum((unsigned short *)ipHdr, sizeof(EkaIpHdr));
+  /* memcpy(tcpPayload,buf,payloadSize2send); */
 
-  copyIndirectBuf2HeapHw_swap4(dev,fastPathAction->heapAddr,(uint64_t*) pktBuf, thrId, totalSize2send);
+  /* ipHdr->_len    = be16toh(sizeof(EkaIpHdr)+sizeof(EkaTcpHdr)+payloadSize2send); */
+  /* ipHdr->_chksum = 0; */
+  /* ipHdr->_chksum = csum((unsigned short *)ipHdr, sizeof(EkaIpHdr)); */
 
+  /* copyIndirectBuf2HeapHw_swap4(dev,fastPathAction->heapAddr,(uint64_t*) pktBuf, thrId, totalSize2send); */
+  /* //--------------------------------------------------------- */
+  /* epm_trig_desc_t epm_trig_desc = {}; */
+  /* epm_trig_desc.str.action_index = fastPathAction->idx; */
+  /* epm_trig_desc.str.payload_size = totalSize2send; */
+  /* epm_trig_desc.str.tcp_cs       = calc_pseudo_csum(ipHdr,tcpHdr,tcpPayload,payloadSize2send); */
 
-  //---------------------------------------------------------
-
-  epm_trig_desc_t epm_trig_desc = {};
-  epm_trig_desc.str.action_index = fastPathAction->idx;
-  epm_trig_desc.str.payload_size = totalSize2send;
-  epm_trig_desc.str.tcp_cs       = calc_pseudo_csum(ipHdr,tcpHdr,tcpPayload,payloadSize2send);
-
-  eka_write(dev,EPM_TRIGGER_DESC_ADDR,epm_trig_desc.desc);
+  /* eka_write(dev,EPM_TRIGGER_DESC_ADDR,epm_trig_desc.desc); */
 
   return payloadSize2send;
 }

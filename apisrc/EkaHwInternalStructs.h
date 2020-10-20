@@ -92,12 +92,26 @@ struct epm_action_t {
 } __attribute__((packed));
 
 
+/* FPGA code: */
+/* typedef struct packed { */
+/* 	bit [1:0]  reserved; */
+/*         bit [2:0]  action_region;   */
+/*         bit [10:0] payload_size;   */
+/*         bit [15:0] action_index;   */
+/*         bit [31:0] tcp_cs;   */
+/* } epm_trig_desc_t; */
+
+#define EpmTrigPayloadMask 0x3FF
+
+
 typedef union {
   uint64_t desc;
   struct  {
     uint32_t tcp_cs;  
-    uint16_t payload_size;  
     uint16_t action_index;
+    uint16_t size     : 11;  
+    uint16_t region   : 3;  
+    uint16_t reserved : 2;
   } __attribute__((packed)) str;
 } __attribute__((packed)) epm_trig_desc_t;
 
