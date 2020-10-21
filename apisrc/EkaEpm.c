@@ -263,7 +263,7 @@ EkaEpmAction* EkaEpm::addAction(ActionType type, uint8_t _coreId, uint8_t _sessI
     strcpy(actionName,"TcpFullPkt");
     break;
 
-  case ActionType::TcpEptyAck :
+  case ActionType::TcpEmptyAck :
     heapBudget                 = TCP_EMPTY_ACK_SIZE;
 
     actionIdx                  = serviceActionIdx ++;
@@ -277,7 +277,7 @@ EkaEpmAction* EkaEpm::addAction(ActionType type, uint8_t _coreId, uint8_t _sessI
     actionBitParams.feedbck_en = 0;
     dataTemplateAddr = tcpFastPathPkt->getDataTemplateAddr();
     templateId       = tcpFastPathPkt->id;
-    strcpy(actionName,"TcpEptyAck");
+    strcpy(actionName,"TcpEmptyAck");
     break;
 
   case ActionType::UserAction :
@@ -302,7 +302,7 @@ EkaEpmAction* EkaEpm::addAction(ActionType type, uint8_t _coreId, uint8_t _sessI
     on_error("Unexpected EkaEpmAction type %d",(int)type);
   }
 
-  EKA_LOG("--- %20s: %u:%u Action Idx: %u, Action addr: %8ju, Heap addr: %8ju + %4u",
+  EKA_LOG("--- %20s: %u:%u Action Idx: %u, Action addr: %8ju, Heap: %8ju + %4u",
   	  actionName, _coreId,_sessId,actionIdx,actionAddr,heapAddr,heapBudget); fflush(stderr);
 
   if (userActionIdx > UserActionsBaseIdx + MaxUserActions) 

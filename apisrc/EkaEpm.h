@@ -79,7 +79,7 @@ class EkaEpm {
       // Service Actions
       TcpFullPkt,
       TcpFastPath,
-      TcpEptyAck,
+      TcpEmptyAck,
 
       // User Actions
       UserAction

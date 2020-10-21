@@ -115,6 +115,11 @@ int EkaEpmAction::setNwHdrs(uint8_t* macDa,
 
   copyIndirectBuf2HeapHw_swap4(dev,heapAddr,(uint64_t*) ethHdr, 2 /* thrId */, pktSize);
 
+  EKA_LOG("%20s: core=%u, sess=%u NW headers preloaded for: %s:%u -- %s:%u",
+	  actionName,coreId,sessId,
+	  EKA_IP2STR(*(uint32_t*)(&ipHdr->src)),be16toh(tcpHdr->src),
+	  EKA_IP2STR(*(uint32_t*)(&ipHdr->dest)),be16toh(tcpHdr->dest)
+	  );
   return 0;
 }
 
@@ -171,7 +176,10 @@ int EkaEpmAction::setPktPayload(uint thrId, void* buf, uint len) {
   ipHdr->_chksum = 0;
   ipHdr->_chksum = csum((unsigned short *)ipHdr, sizeof(EkaIpHdr));
 
-  copyIndirectBuf2HeapHw_swap4(dev,heapAddr,(uint64_t*) ethHdr, thrId, pktSize);
+  //  hexDump("setPktPayload",ethHdr,pktSize); fflush(stdout);
+
+  //  copyIndirectBuf2HeapHw_swap4(dev,heapAddr + 48,(uint64_t*) (((uint8_t*)ethHdr) + 48), thrId, pktSize - 48);
+  copyIndirectBuf2HeapHw_swap4(dev,heapAddr,(uint64_t*)ethHdr, thrId, pktSize);
 
   tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,payloadLen);
 

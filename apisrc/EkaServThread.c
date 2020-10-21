@@ -25,9 +25,11 @@ static inline void sendDummyFastPathPkt(EkaDev* dev, const uint8_t* payload) {
   /* hexDump("sendDummyFastPathPkt: Dummy Pkt to send",(void*)payload, 54); */
 
   EkaTcpSess* tcpSess = dev->findTcpSess(iph->src, be16toh(tcph->src), iph->dest, be16toh(tcph->dest));
-  if (tcpSess == NULL) 
+  if (tcpSess == NULL) {
+    hexDump("Invalid FastPath pkt hdr",(void*)payload,128);
     on_error("Tcp Session %s:%u --> %s:%u not found",
 	     EKA_IP2STR((iph->src)),be16toh(tcph->src),EKA_IP2STR((iph->dest)),be16toh(tcph->dest));
+  }
   tcpSess->sendDummyPkt(data, len);
 
   return;

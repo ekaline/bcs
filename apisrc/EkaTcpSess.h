@@ -104,6 +104,7 @@ class EkaTcpSess {
  private:
 
 int  setRemoteSeqWnd2FPGA();
+int  setLocalSeqWnd2FPGA();
 
   typedef union exc_table_desc {
     uint64_t desc;
