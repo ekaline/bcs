@@ -23,17 +23,15 @@ class EkaEpmAction {
 
   /* ----------------------------------------------------- */
 
-  int update (uint8_t                 _coreId,
-	      uint8_t                 _sessId,
-	      epm_actionid_t          _nextAction,
-	      uint64_t		      _heapAddr,
-	      const uint64_t 	      _mask_post_strat,
-	      const uint64_t 	      _mask_post_local,
-	      const uint64_t  	      _user,
-	      const epm_token_t	      _token,
-	      uint16_t 		      _payloadSize,
-	      uint32_t 		      _tcpCSum
-	      );
+  int updateAttrs (uint8_t            _coreId,
+		   uint8_t            _sessId,
+		   uint               _payloadOffs,
+		   epm_actionid_t     _nextAction,
+		   const uint64_t     _mask_post_strat,
+		   const uint64_t     _mask_post_local,
+		   const uint64_t     _user,
+		   const epm_token_t  _token);
+
   /* ----------------------------------------------------- */
   void print();
   /* ----------------------------------------------------- */

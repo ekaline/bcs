@@ -3,6 +3,8 @@
 
 #include "EkaEpm.h"
 
+class EkaEpmAction;
+
 class EpmStrategy {
  public:
   EpmStrategy(EkaEpm* parent, epm_strategyid_t id, epm_actionid_t baseActionIdx, const EpmStrategyParams *params);
@@ -23,16 +25,16 @@ class EpmStrategy {
 
   epm_enablebits_t  enable;
 
-  EkaEpmActionRecord action[EkaEpm::MaxActionsPerStrategy]      = {};
+  EkaEpmAction*     action[EkaEpm::MaxActionsPerStrategy]      = {};
 
-  epm_actionid_t   baseActionIdx;
-  epm_actionid_t   numActions; ///< No. of actions entries used by this strategy
-  const sockaddr  *triggerAddr;///< Address to receive trigger packets
-  EpmFireReportCb  reportCb;   ///< Callback function to process fire reports
-  void            *cbCtx;
+  epm_actionid_t    baseActionIdx;
+  epm_actionid_t    numActions; ///< No. of actions entries used by this strategy
+  const sockaddr   *triggerAddr;///< Address to receive trigger packets
+  EpmFireReportCb   reportCb;   ///< Callback function to process fire reports
+  void             *cbCtx;
 
-  uint32_t         ip;
-  uint16_t         port;
+  uint32_t          ip;
+  uint16_t          port;
 };
 
 #endif

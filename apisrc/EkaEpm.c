@@ -22,20 +22,17 @@ int EkaEpm::ekaEpmProcessTrigger(const void* payload,uint len) {
   uint strategyId = trigger->strategy;
   uint currAction = trigger->action;
 
-  /* epm_trig_desc_t epm_trig_desc = {}; */
-  /* epm_trig_desc.str.action_index = strategy[strategyId]->action[currAction].ekaAction->idx; */
-
   /* EKA_LOG("Accepted Trigger: token=0x%jx, strategyId=%d, FistActionId=%d, ekaAction->idx = %u, epm_trig_desc.str.action_index=%u", */
   /* 	  trigger->token,trigger->strategy,trigger->action, */
-  /* 	  strategy[strategyId]->action[currAction].ekaAction->idx,epm_trig_desc.str.action_index); */
+  /* 	  strategy[strategyId]->action[currAction]->idx,epm_trig_desc.str.action_index); */
 
-  strategy[strategyId]->action[currAction].ekaAction->send();
+  strategy[strategyId]->action[currAction]->send();
 
   EKA_LOG("User Action: actionType = %u, strategyId=%u, actionId=%u,heapAddr=%ju, pktSize=%u",
-	  strategy[strategyId]->action[currAction].ekaAction->hwAction.tcpCsSizeSource,
+	  strategy[strategyId]->action[currAction]->hwAction.tcpCsSizeSource,
 	  strategyId,currAction,
-	  strategy[strategyId]->action[currAction].ekaAction->hwAction.data_db_ptr,
-	  strategy[strategyId]->action[currAction].ekaAction->hwAction.payloadSize
+	  strategy[strategyId]->action[currAction]->hwAction.data_db_ptr,
+	  strategy[strategyId]->action[currAction]->hwAction.payloadSize
 	  );
   /* eka_write(dev,EPM_TRIGGER_DESC_ADDR,epm_trig_desc.desc); */
 
@@ -302,8 +299,8 @@ EkaEpmAction* EkaEpm::addAction(ActionType type, uint8_t _coreId, uint8_t _sessI
     on_error("Unexpected EkaEpmAction type %d",(int)type);
   }
 
-  EKA_LOG("--- %20s: %u:%u Action Idx: %u, Action addr: %8ju, Heap: %8ju + %4u",
-  	  actionName, _coreId,_sessId,actionIdx,actionAddr,heapAddr,heapBudget); fflush(stderr);
+  /* EKA_LOG("--- %20s: %u:%u Action Idx: %u, Action addr: %8ju, Heap: %8ju + %4u", */
+  /* 	  actionName, _coreId,_sessId,actionIdx,actionAddr,heapAddr,heapBudget); fflush(stderr); */
 
   if (userActionIdx > UserActionsBaseIdx + MaxUserActions) 
     on_error("userActionIdx %u > MaxUserActions %ju",userActionIdx, UserActionsBaseIdx + MaxUserActions);

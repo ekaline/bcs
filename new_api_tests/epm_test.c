@@ -338,13 +338,13 @@ int main(int argc, char *argv[]) {
   //  sleep(5);
 
   /* ============================================== */
-  static const int ChainRows = 4;
+  static const int ChainRows = 1;
   static const int ChainCols = 8;
 
   int actionChain[ChainRows][ChainCols] = {
-    {1,   51,  8, 13, EPM_LAST_ACTION},
-    {4,  EPM_LAST_ACTION},
-    {47, EPM_LAST_ACTION},
+    /* {4,  EPM_LAST_ACTION}, */
+    /* {1,   51,  8, 13, EPM_LAST_ACTION}, */
+    /* {47, EPM_LAST_ACTION}, */
     {100, 15, 21, 49, 17, 31, EPM_LAST_ACTION}
   };
 
@@ -355,7 +355,7 @@ int main(int argc, char *argv[]) {
   triggerDst.sin_addr.s_addr = inet_addr(triggerIp.c_str());
   triggerDst.sin_port        = be16toh(triggerUdpPort);
 
-  const epm_strategyid_t numStrategies = 7;
+  const epm_strategyid_t numStrategies = 1;
   EpmStrategyParams strategyParams[numStrategies] = {};
   for (auto i = 0; i < numStrategies; i++) {
     strategyParams[i].numActions = 200;
@@ -429,7 +429,7 @@ int main(int argc, char *argv[]) {
   EpmTrigger epmTrigger[] = {
     /* token, strategy, action */
     /* {   11,       1,       1}, */
-    /* {   7,        2,       4}, */
+    /* {   7,        0,       4}, */
     /* {   9,        3,      47}, */
     {   17,       0,     100},
   };

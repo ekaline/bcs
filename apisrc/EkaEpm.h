@@ -28,14 +28,6 @@ class EkaEpmAction;
 class EkaUdpChannel;
 class EpmStrategy;
 
-struct EkaEpmActionRecord {
-  EkaEpmAction* ekaAction = NULL; // 
-  EpmAction*    epmAction = NULL; // configured by App
-  /* uint8_t*      buf       = NULL; // Heap shadow */
-  /* int           bufSize   = 0;    // Heap payload size */
-  /* bool          valid     = false; */
-};
-
 class EkaEpm {
  public:
   static const uint MAX_CORES               = EkaDev::MAX_CORES;
@@ -44,6 +36,8 @@ class EkaEpm {
   static const uint TOTAL_SESSIONS_PER_CORE = EkaDev::TOTAL_SESSIONS_PER_CORE;
   static const uint MAX_PKT_SIZE            = EkaDev::MAX_PKT_SIZE;
   static const uint TCP_EMPTY_ACK_SIZE      = 64;
+
+  static const uint EPM_REGIONS             = 8;
 
   static const uint MaxActions              = 4 * 1024;
 
