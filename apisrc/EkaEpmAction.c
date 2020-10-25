@@ -11,18 +11,20 @@ unsigned int pseudo_csum(unsigned short *ptr,int nbytes);
 uint16_t pseudo_csum2csum (uint32_t pseudo);
 unsigned short csum(unsigned short *ptr,int nbytes);
 
-EkaEpmAction::EkaEpmAction(EkaDev*                  _dev,
-			    char*                   _actionName,
-			    EkaEpm::ActionType      _type,
-			    uint                    _idx,
-			    uint8_t                 _coreId,
-			    uint8_t                 _sessId,
-			    uint                    _productIdx,
-			    epm_actione_bitparams_t _actionBitParams,
-			    uint64_t		    _heapAddr,
-			    uint64_t		    _actionAddr,
-			    uint64_t		    _dataTemplateAddr,
-			    uint		    _templateId) {
+EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
+			   char*                   _actionName,
+			   EkaEpm::ActionType      _type,
+			   uint                    _idx,
+			   uint                    _localIdx,
+			   uint                    _region,
+			   uint8_t                 _coreId,
+			   uint8_t                 _sessId,
+			   uint                    _productIdx,
+			   epm_actione_bitparams_t _actionBitParams,
+			   uint64_t		   _heapAddr,
+			   uint64_t		   _actionAddr,
+			   uint64_t		   _dataTemplateAddr,
+			   uint		           _templateId) {
 
   dev             = _dev;
   strcpy(actionName,_actionName);
@@ -33,6 +35,8 @@ EkaEpmAction::EkaEpmAction(EkaDev*                  _dev,
   epm             =  dev->epm;
   type            = _type;
   idx             = _idx;
+  localIdx        = _localIdx;
+  region          = _region;
   coreId          = _coreId;
   sessId          = _sessId;
   productIdx      = _productIdx;
@@ -217,16 +221,26 @@ int EkaEpmAction::setPktPayload(uint thrId, void* buf, uint len) {
 int EkaEpmAction::send() {
   epm_trig_desc_t epm_trig_desc = {};
 
-  epm_trig_desc.str.action_index = idx;
+  epm_trig_desc.str.action_index = localIdx;
   epm_trig_desc.str.size         = pktSize;
   epm_trig_desc.str.tcp_cs       = tcpCSum;
   epm_trig_desc.str.region       = region;
 
-  /* if (type == EkaEpm::ActionType::UserAction) { */
-  /*   EKA_LOG("%s: epm_trig_desc = %016jx,size=%x,tcpCSum=0x%08x",actionName,epm_trig_desc.desc,epm_trig_desc.str.size,tcpCSum); */
-  /*   hexDump("EkaEpmAction::send() pkt",&epm->heap[heapOffs],pktSize); */
-  /*   print(); */
-  /* } */
+#if 0
+  //  if (type == EkaEpm::ActionType::UserAction) {
+  if (1) {
+    EKA_LOG("%s: action_index = %u,region=%u,size=%u",
+	    actionName,
+	    epm_trig_desc.str.action_index,
+	    epm_trig_desc.str.region,
+	    epm_trig_desc.str.size
+	    );
+    hexDump("EkaEpmAction::send() pkt",&epm->heap[heapOffs],pktSize);
+    fflush(stdout);    fflush(stderr);
+    print();
+    fflush(stdout);    fflush(stderr);
+  }
+#endif
   eka_write(dev,EPM_TRIGGER_DESC_ADDR,epm_trig_desc.desc);
   return 0;
 }
@@ -234,13 +248,15 @@ int EkaEpmAction::send() {
   /* ----------------------------------------------------- */
 
 void EkaEpmAction::print() {
-  EKA_LOG("%s: tcpCsSizeSource=%s, coreId = %u, sessId = %u, idx=%u, data_db_ptr=0x%jx, template_db_ptr=0x%jx, tcpcs_template_db_ptr=%u, coreId=%u, sessId=%u, heapAddr=0x%jx, pktSize=%u ",
+  EKA_LOG("%s: tcpCsSizeSource=%s, coreId = %u, sessId = %u, idx=%u, localIdx=%u, data_db_ptr=0x%jx, heaOffs=%u, template_db_ptr=0x%jx,tcpcs_template_db_ptr=%u, coreId=%u, sessId=%u, heapAddr=0x%jx, pktSize=%u ",
 	  actionName,
 	  hwAction.tcpCsSizeSource == TcpCsSizeSource::FROM_ACTION ? "FROM ACTION" : "FROM DESCR",
 	  coreId,
 	  sessId,
 	  idx,
+	  localIdx,
 	  hwAction.data_db_ptr,
+	  hwAction.data_db_ptr - EpmHeapHwBaseAddr,
 	  hwAction.template_db_ptr,
 	  hwAction.tcpcs_template_db_ptr,
 	  hwAction.target_core_id,

@@ -28,44 +28,52 @@ class EkaEpmAction;
 class EkaUdpChannel;
 class EpmStrategy;
 
+inline void setActionRegionBaseIdx(EkaDev* dev, uint region, uint idx) {
+  EKA_LOG("region=%u, baseIdx=%u, addr=0x%jx",region,idx,0x82000 + 8 * region);
+  eka_write(dev,0x82000 + 8 * region, idx);
+}
+
 class EkaEpm {
  public:
-  static const uint MAX_CORES               = EkaDev::MAX_CORES;
-  static const uint MAX_SESS_PER_CORE       = EkaDev::MAX_SESS_PER_CORE;
-  static const uint CONTROL_SESS_ID         = EkaDev::CONTROL_SESS_ID;
-  static const uint TOTAL_SESSIONS_PER_CORE = EkaDev::TOTAL_SESSIONS_PER_CORE;
-  static const uint MAX_PKT_SIZE            = EkaDev::MAX_PKT_SIZE;
-  static const uint TCP_EMPTY_ACK_SIZE      = 64;
+  static const uint MAX_CORES                   = EkaDev::MAX_CORES;
+  static const uint MAX_SESS_PER_CORE           = EkaDev::MAX_SESS_PER_CORE;
+  static const uint CONTROL_SESS_ID             = EkaDev::CONTROL_SESS_ID;
+  static const uint TOTAL_SESSIONS_PER_CORE     = EkaDev::TOTAL_SESSIONS_PER_CORE;
+  static const uint MAX_PKT_SIZE                = EkaDev::MAX_PKT_SIZE;
+  static const uint TCP_EMPTY_ACK_SIZE          = 64;
 
-  static const uint EPM_REGIONS             = 8;
+  static const uint EPM_REGIONS                 = 8;
 
-  static const uint MaxActions              = 4 * 1024;
+  static const uint MaxActions                  = 4 * 1024;
+  static const uint MaxActionsPerStrategy       = 256;
+  static const uint64_t MaxStrategies           = 5;
 
-  static const uint64_t EpmActionBase       = 0x89000;
-  static const uint     ActionBudget        = 64;
-  static const uint64_t MaxHeap             = 4 * 1024 * 1024;
+  static const uint64_t EpmActionBase           = 0x89000;
+  static const uint     ActionBudget            = 64;
+  static const uint64_t MaxHeap                 = 4 * 1024 * 1024;
 
-  static const uint64_t MaxUserHeap         = 3 * 1024 * 1024;
-  static const uint64_t MaxServiceHeap      = MaxHeap - MaxUserHeap;
+  static const uint64_t MaxUserHeap             = 3 * 1024 * 1024;
+  static const uint64_t MaxServiceHeap          = MaxHeap - MaxUserHeap;
 
 
-  static const uint64_t PayloadMemorySize    = MaxUserHeap;
-  static const uint64_t DatagramOffset       = sizeof(EkaEthHdr)+sizeof(EkaIpHdr)+sizeof(EkaTcpHdr);
-  static const uint64_t PayloadAlignment     = DatagramOffset % 8; //54 % 8 = 6
-  static const uint64_t RequiredTailPadding  = 0;
-  static const uint64_t MaxStrategies        = 16;
-  static const uint64_t MaxServiceActions    = 1024;
+  static const uint64_t PayloadMemorySize       = MaxUserHeap;
+  static const uint64_t DatagramOffset          = sizeof(EkaEthHdr)+sizeof(EkaIpHdr)+sizeof(EkaTcpHdr);
+  static const uint64_t PayloadAlignment        = DatagramOffset % 8; //54 % 8 = 6
+  static const uint64_t RequiredTailPadding     = 0;
 
-  static const uint     UserActionsBaseIdx   = 0;
-  static const uint64_t MaxUserActions       = MaxActions - MaxServiceActions;
-  static const uint64_t UserHeapBaseAddr     = EpmHeapHwBaseAddr;
-  static const uint64_t UserActionBaseAddr   = EpmActionBase;
+  static const uint8_t  ServiceRegion           = MaxStrategies;
+
+  static const uint     UserActionsBaseIdx      = 0;
+  static const uint64_t MaxUserActions          = MaxStrategies * MaxActionsPerStrategy;
+  static const uint64_t MaxServiceActions       = MaxActions - MaxUserActions;
+
+  static const uint64_t UserHeapBaseAddr        = EpmHeapHwBaseAddr;
+  static const uint64_t UserActionBaseAddr      = EpmActionBase;
 
   static const uint     ServiceActionsBaseIdx   = UserActionsBaseIdx + MaxUserActions;
   static const uint64_t ServiceHeapBaseAddr     = UserHeapBaseAddr   + MaxUserHeap;
   static const uint64_t ServiceActionBaseAddr   = UserActionBaseAddr + MaxUserActions * ActionBudget;
 
-  static const uint MaxActionsPerStrategy   = 256;
 
 
   enum class ActionType : int {
@@ -79,13 +87,8 @@ class EkaEpm {
       UserAction
   };
 
-  EkaEpm(EkaDev* _dev) {
-    dev = _dev;
 
-    
-
-    EKA_LOG("Created Epm");
-  }
+  EkaEpm(EkaDev* _dev);
 
   uint64_t getPayloadMemorySize () {
     return PayloadMemorySize;
@@ -135,8 +138,7 @@ class EkaEpm {
 				    epm_strategyid_t strategy,
 				    epm_enablebits_t *enable);
   
-  EkaOpResult raiseTriggers(EkaCoreId coreId,
-			    const EpmTrigger *trigger);
+  EkaOpResult raiseTriggers(const EpmTrigger *trigger);
 
   EkaOpResult payloadHeapCopy(EkaCoreId coreId,
 			      epm_strategyid_t strategy, uint32_t offset,
@@ -147,8 +149,12 @@ class EkaEpm {
   int DownloadTemplates2HW();
   int InitTemplates();
 
-  EkaEpmAction* addAction(ActionType type, uint8_t _coreId, uint8_t _sessId, uint8_t _auxIdx);
-  int ekaEpmProcessTrigger(const void* payload,uint len);
+  EkaEpmAction* addAction(ActionType type, 
+			  epm_strategyid_t actionRegion, 
+			  epm_actionid_t localIdx, 
+			  uint8_t _coreId, 
+			  uint8_t _sessId, 
+			  uint8_t _auxIdx);
 
  private:
   bool alreadyJoined(epm_strategyid_t prevStrats,uint32_t ip, uint16_t port);

@@ -7,6 +7,7 @@
 #include "EkaSnDev.h"
 #include "EkaUserChannel.h"
 #include "EkaUdpChannel.h"
+#include "EkaEpm.h"
 
 #include "eka_macros.h"
 
@@ -97,7 +98,6 @@ void ekaServThread(EkaDev* dev) {
       case EkaUserChannel::DMA_TYPE::FAST_PATH_DUMMY_PKT:
       case EkaUserChannel::DMA_TYPE::EPM:
 	//	hexDump("FastPathPkt at ekaServThread",(uint8_t*)payload + sizeof(dma_report_t),len - sizeof(dma_report_t));
-
 	sendDummyFastPathPkt(dev,payload);
 	break;
       case EkaUserChannel::DMA_TYPE::FIRE:
@@ -117,10 +117,7 @@ void ekaServThread(EkaDev* dev) {
     if (dev->snDev->tcpRx->hasData()) {
       const uint8_t* payload = dev->snDev->tcpRx->get();
       uint len = dev->snDev->tcpRx->getPayloadSize();
-
       /* hexDump("RX pkt",(void*)payload,len); */
-    
-      //      ekaProcesTcpRx (dev, payload, len - 4 /* FCS */);
       ekaProcesTcpRx (dev, payload, len);
       dev->snDev->tcpRx->next();
     }
@@ -131,14 +128,12 @@ void ekaServThread(EkaDev* dev) {
 	if (dev->epm->udpCh[coreId] == NULL) continue;
 	if (dev->epm->udpCh[coreId]->has_data()) {
 	  const uint8_t* payload = dev->epm->udpCh[coreId]->get();
-	  uint len = dev->epm->udpCh[coreId]->getPayloadLen();
-	  dev->epm->ekaEpmProcessTrigger(payload, len);
+	  dev->epm->raiseTriggers((const EpmTrigger*)payload);
 	  dev->epm->udpCh[coreId]->next();
 	}
       }
     }
     /* ----------------------------------------------- */
-
     /* if (((null_cnt++)%3000000)==0) { */
     /*   sendDate2Hw(dev); */
     /*   sendHb2HW(dev); */

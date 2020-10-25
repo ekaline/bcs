@@ -13,14 +13,26 @@
 #include "EkaUdpChannel.h"
 
 uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size);
+void ekaFireReportThread(EkaDev* dev);
+
+
+EkaEpm::EkaEpm(EkaDev* _dev) {
+  dev = _dev;
+
+  setActionRegionBaseIdx(dev,ServiceRegion,ServiceActionsBaseIdx);
+
+  EKA_LOG("Created Epm");
+}
 
 /* ---------------------------------------------------- */
-int EkaEpm::ekaEpmProcessTrigger(const void* payload,uint len) {
-  /* hexDump("Trigger",(void*)payload,len); */
-  EpmTrigger* trigger = (EpmTrigger*)payload;
 
+EkaOpResult EkaEpm::raiseTriggers(const EpmTrigger *trigger) {
   uint strategyId = trigger->strategy;
   uint currAction = trigger->action;
+
+  if (strategy[strategyId] == NULL) on_error("strategy[%u] == NULL",strategyId);
+  if (strategy[strategyId]->action[currAction] == NULL) 
+    on_error("strategy[%u]->action[%u] == NULL",strategyId,currAction);
 
   /* EKA_LOG("Accepted Trigger: token=0x%jx, strategyId=%d, FistActionId=%d, ekaAction->idx = %u, epm_trig_desc.str.action_index=%u", */
   /* 	  trigger->token,trigger->strategy,trigger->action, */
@@ -36,7 +48,7 @@ int EkaEpm::ekaEpmProcessTrigger(const void* payload,uint len) {
 	  );
   /* eka_write(dev,EPM_TRIGGER_DESC_ADDR,epm_trig_desc.desc); */
 
-  return 0;
+  return EKA_OPRESULT__OK;
 }
 
 /* ---------------------------------------------------- */
@@ -90,6 +102,14 @@ EkaOpResult EkaEpm::initStrategies(EkaCoreId coreId,
   if (udpCh[coreId] == NULL) udpCh[coreId] = new EkaUdpChannel(dev,coreId);
   if (udpCh[coreId] == NULL) on_error("Failed to open Epm Udp Channel for CoreId %u",coreId);
 
+  if (! dev->fireReportThreadActive) {
+    dev->fireReportThread = std::thread(ekaFireReportThread,dev);
+    dev->fireReportThread.detach();
+    while (! dev->fireReportThreadActive) sleep(0);
+    EKA_LOG("fireReportThread activated");
+  }
+
+
   epm_actionid_t currActionIdx = 0;
   for (auto i = 0; i < stratNum; i++) {
     strategy[i] = new EpmStrategy(this,i,currActionIdx, &params[i]);
@@ -126,13 +146,6 @@ EkaOpResult EkaEpm::getStrategyEnableBits(EkaCoreId coreId,
   return strategy[strategyIdx]->getEnableBits(enable);
 }
 
-/* ---------------------------------------------------- */
-  
-EkaOpResult EkaEpm::raiseTriggers(EkaCoreId coreId,
-				  const EpmTrigger *trigger) {
-  // TBD !!!
-  return EKA_OPRESULT__OK;
-}
 /* ---------------------------------------------------- */
 
 EkaOpResult EkaEpm::payloadHeapCopy(EkaCoreId coreId,
@@ -209,7 +222,12 @@ int EkaEpm::DownloadTemplates2HW() {
 }
 /* ---------------------------------------------------- */
 
-EkaEpmAction* EkaEpm::addAction(ActionType type, uint8_t _coreId, uint8_t _sessId, uint8_t _productIdx) {
+EkaEpmAction* EkaEpm::addAction(ActionType type, 
+			  epm_strategyid_t actionRegion, 
+			  epm_actionid_t localIdx, 
+			  uint8_t _coreId, 
+			  uint8_t _sessId, 
+			  uint8_t _auxIdx) {
   if (tcpFastPathPkt == NULL) on_error("tcpFastPathPkt == NULL");
   if (rawPkt == NULL) on_error("rawPkt == NULL");
 
@@ -218,10 +236,11 @@ EkaEpmAction* EkaEpm::addAction(ActionType type, uint8_t _coreId, uint8_t _sessI
   uint64_t                dataTemplateAddr = -1;
   uint                    templateId = (uint)(-1);
 
-  char actionName[30] = {};
-  uint     actionIdx  = -1;
-  uint64_t heapAddr   = -1;
-  uint64_t actionAddr = -1;
+  char           actionName[30] = {};
+  epm_actionid_t actionIdx      = -1;
+  epm_actionid_t localActionIdx = -1;
+  uint64_t       heapAddr       = -1;
+  uint64_t       actionAddr     = -1;
 
   createActionMtx.lock();
 
@@ -229,6 +248,7 @@ EkaEpmAction* EkaEpm::addAction(ActionType type, uint8_t _coreId, uint8_t _sessI
   case ActionType::TcpFastPath :
     heapBudget                 = MAX_PKT_SIZE;
 
+    localActionIdx             = serviceActionIdx - ServiceActionsBaseIdx;
     actionIdx                  = serviceActionIdx ++;
     heapAddr                   = serviceHeapAddr;
     serviceHeapAddr           += heapBudget;
@@ -246,6 +266,7 @@ EkaEpmAction* EkaEpm::addAction(ActionType type, uint8_t _coreId, uint8_t _sessI
   case ActionType::TcpFullPkt  :
     heapBudget                 = MAX_PKT_SIZE;
 
+    localActionIdx             = serviceActionIdx - ServiceActionsBaseIdx;
     actionIdx                  = serviceActionIdx ++;
     heapAddr                   = serviceHeapAddr;
     serviceHeapAddr           += heapBudget;
@@ -263,6 +284,7 @@ EkaEpmAction* EkaEpm::addAction(ActionType type, uint8_t _coreId, uint8_t _sessI
   case ActionType::TcpEmptyAck :
     heapBudget                 = TCP_EMPTY_ACK_SIZE;
 
+    localActionIdx             = serviceActionIdx - ServiceActionsBaseIdx;
     actionIdx                  = serviceActionIdx ++;
     heapAddr                   = serviceHeapAddr;
     serviceHeapAddr           += heapBudget;
@@ -280,15 +302,16 @@ EkaEpmAction* EkaEpm::addAction(ActionType type, uint8_t _coreId, uint8_t _sessI
   case ActionType::UserAction :
     heapBudget                 = MAX_PKT_SIZE;
 
+    localActionIdx             = localIdx;
     actionIdx                  = userActionIdx ++;
+
     heapAddr                   = userHeapAddr;
     userHeapAddr              += heapBudget;
     actionAddr                 = userActionAddr;
     userActionAddr            += ActionBudget;
 
     actionBitParams.israw      = 0;
-    //    actionBitParams.report_en  = 1;
-    actionBitParams.report_en  = 0; // TMP!!!
+    actionBitParams.report_en  = 1;
     actionBitParams.feedbck_en = 1;
     dataTemplateAddr = tcpFastPathPkt->getDataTemplateAddr();
     templateId       = tcpFastPathPkt->id;
@@ -315,9 +338,11 @@ EkaEpmAction* EkaEpm::addAction(ActionType type, uint8_t _coreId, uint8_t _sessI
 					  actionName,
 					  type,
 					  actionIdx,
+					  localActionIdx,
+					  actionRegion,
 					  _coreId,
 					  _sessId,
-					  _productIdx,
+					  _auxIdx,
 					  actionBitParams,
 					  heapAddr,
 					  
@@ -326,8 +351,8 @@ EkaEpmAction* EkaEpm::addAction(ActionType type, uint8_t _coreId, uint8_t _sessI
 					  templateId
 					  );
   if (action ==NULL) on_error("new EkaEpmAction = NULL");
-  /* EKA_LOG("%s: idx = %u, heapAddr = 0x%jx, actionAddr = 0x%jx", */
-  /* 	  actionName,actionIdx,heapAddr,actionAddr); */
+  /* EKA_LOG("%s: idx = %3u, localIdx=%3u, heapAddr = 0x%jx, actionAddr = 0x%jx", */
+  /* 	  actionName,actionIdx,actionIdx - 0,heapAddr,actionAddr); */
 
   createActionMtx.unlock();
   copyBuf2Hw(dev,EpmActionBase, (uint64_t*)&action->hwAction,sizeof(action->hwAction)); //write to scratchpad

@@ -77,9 +77,9 @@ EkaTcpSess::EkaTcpSess(EkaDev* pEkaDev, EkaCore* _parent, uint8_t _coreId, uint8
   }
 
 /* -------------------------------------------- */
-  fastPathAction = dev->epm->addAction(EkaEpm::ActionType::TcpFastPath,coreId,sessId,0);
-  fullPktAction  = dev->epm->addAction(EkaEpm::ActionType::TcpFullPkt, coreId,sessId,0);
-  emptyAckAction = dev->epm->addAction(EkaEpm::ActionType::TcpEmptyAck,coreId,sessId,0);
+  fastPathAction = dev->epm->addAction(EkaEpm::ActionType::TcpFastPath,EkaEpm::ServiceRegion,0,coreId,sessId,0);
+  fullPktAction  = dev->epm->addAction(EkaEpm::ActionType::TcpFullPkt, EkaEpm::ServiceRegion,0,coreId,sessId,0);
+  emptyAckAction = dev->epm->addAction(EkaEpm::ActionType::TcpEmptyAck,EkaEpm::ServiceRegion,0,coreId,sessId,0);
 }
 
 /* ---------------------------------------------------------------- */

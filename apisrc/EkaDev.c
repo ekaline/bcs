@@ -93,6 +93,8 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   totalNumTcpSess = 0;
   use_vlan = false;
 
+  fireReportThreadActive = false;
+
   epm = new EkaEpm(this);
   if (epm == NULL) on_error("epm == NULL");
   epm->InitTemplates();
@@ -127,6 +129,13 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 
   hwEnabledCores = (eka_read(VERSION2) >> 56) & 0xFF;
   hwFeedVer      = (eka_read(VERSION1) >> HW_FEED_SHIFT_SIZE) & HW_FEED_SHIFT_MASK;
+
+  uint64_t epmVersion = eka_read(EPM_VERSION) & EPM_VERSION_MASK;
+  EKA_LOG("epmVersion = 0x%016jx",epmVersion);
+  if (epmVersion != EPM_CORRECT_VERSION) {
+    on_error("Incompatible EPM Version 0x%jx. Expected epmVersion = 0x%x",
+	     epmVersion,EPM_CORRECT_VERSION);
+  }
 
 /* -------------------------------------------- */
 
@@ -225,7 +234,7 @@ EkaDev::~EkaDev() {
   io_thread_active = false;
   exc_active = false;
   servThreadActive = false;
-
+  fireReportThreadActive = false;
   sleep(1);
 
   TEST_LOG("Closing %u FHs",numFh);

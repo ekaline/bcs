@@ -67,7 +67,7 @@ class EkaDev {
   volatile bool             exc_active = false;
 
   int64_t                   lwip_sem;
-  volatile uint8_t*         txPktBuf;
+  volatile uint8_t*         txPktBuf = NULL;
 
   /* service_thread_params_t   serv_thr; */
   /* eka_ctx_thread_params_t   thread[EKA_MAX_CTX_THREADS]; */
@@ -80,16 +80,18 @@ class EkaDev {
   std::mutex                addTcpSessMtx;
   std::mutex                lwipConnectMtx;
 
-  struct EfcCtx*            pEfcCtx;
-  struct EfcRunCtx*         pEfcRunCtx;
-  struct EfhRunCtx*         pEfhRunCtx;
+  struct EfcCtx*            pEfcCtx = NULL;
+  struct EfcRunCtx*         pEfcRunCtx = NULL;
+  struct EfhRunCtx*         pEfhRunCtx = NULL;
 
   void*                     credContext;
   void*                     createThreadContext;
 
-  volatile bool             servThreadActive;
+  volatile bool             servThreadActive = false;
   std::thread               servThread;
 
+  volatile bool             fireReportThreadActive = false;
+  std::thread               fireReportThread;
 
   volatile bool             exc_inited = false;
   volatile bool             lwip_inited = false;
@@ -109,7 +111,7 @@ class EkaDev {
   std::mutex mtx;   // mutex to protect concurrent dev->numRunGr++
 
   EkaLogCallback            logCB;
-  void*                     logCtx;
+  void*                     logCtx = NULL;
 
   EkaAcquireCredentialsFn   credAcquire;
   EkaReleaseCredentialsFn   credRelease;
@@ -137,6 +139,7 @@ inline void     eka_write(EkaDev* dev, uint64_t addr, uint64_t val) {
   if ((addr>=0x89000 && addr<0x8a000) || addr==0xf0238) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //epm action
   if (addr==0xf0230) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                                    //epm trigger
   if ((addr>=0x81000 && addr<0x82000)) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm data thread window start
+  if ((addr>=0x82000 && addr<0x83000)) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm region
   if ((addr>=0xd0000 && addr<0xe0000)) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm data
   if ((addr>=0xc0000 && addr<0xd0000)) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm template
   if ((addr>=0x88000 && addr<0x89000)) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm tcpcs template

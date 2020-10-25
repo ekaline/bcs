@@ -8,6 +8,11 @@ enum addresses {
     VERSION2 = 0xf0ff8, //cores # is (reg_val>>56)&0xFF
     ENABLE_PORT = 0xf0020,    // bit 0..7 - enable RX
                               // bit 16..23 - enable fire cores
+
+    EPM_VERSION = 0xf0fe0,         // [23:16] - epm version 
+    EPM_VERSION_MASK    = 0xF0000,
+    EPM_CORRECT_VERSION = 0x10000, // (current version = 1)
+
     SW_STATISTICS = 0xf0770,
 //P4
     P4_ARM_DISARM = 0xf07c8,

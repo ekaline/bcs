@@ -12,6 +12,8 @@ class EkaEpmAction {
 	       char*                   _actionName,
 	       EkaEpm::ActionType      _type,
 	       uint                    _idx,
+	       uint                    _localIdx,
+	       uint                    _region,
 	       uint8_t                 _coreId,
 	       uint8_t                 _sessId,
 	       uint                    _productIdx,
@@ -55,6 +57,8 @@ class EkaEpmAction {
   EkaEpm*  epm;
   EkaEpm::ActionType type = EkaEpm::ActionType::INVALID;
   uint          idx       = -1;
+  uint     localIdx       = -1;
+  uint       region       = -1;
   uint8_t    coreId       = -1;;
   uint8_t    sessId       = -1;
   uint   productIdx       = -1;
@@ -78,8 +82,6 @@ class EkaEpmAction {
   EkaIpHdr*        ipHdr           = NULL;
   EkaTcpHdr*       tcpHdr          = NULL;
   uint8_t*         payload         = NULL;
-
-  uint8_t          region          = 0;
 };
 
 

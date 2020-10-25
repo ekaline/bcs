@@ -125,7 +125,7 @@ EkaOpResult epmRaiseTriggers(EkaDev *dev, EkaCoreId coreId,
   if (coreId >= EkaDev::MAX_CORES || dev->core[coreId] == NULL)
     return EKA_OPRESULT__ERR_INVALID_CORE;
 
-  return dev->epm->raiseTriggers(coreId,trigger);
+  return dev->epm->raiseTriggers(trigger);
 }
 
 EkaOpResult epmPayloadHeapCopy(EkaDev *dev, EkaCoreId coreId,

@@ -167,7 +167,7 @@ ExcConnHandle runTcpClient(EkaDev* dev, EkaCoreId coreId,sockaddr_in* dst,uint16
 
   while (!rxClientReady && keep_work) sleep(0);
 
-  const char* pkt = "\n\nHello world! Im staring the test TCP session\n\n";
+  const char* pkt = "\n\nThis is 1st TCP packet\n\n";
   excSend (dev, conn, pkt, strlen(pkt));
 
   return conn;
@@ -184,20 +184,13 @@ void triggerGenerator(EkaDev* dev, const sockaddr_in* triggerAddr,const sockaddr
   int sock = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
   if (sock < 0) on_error("failed to open UDP sock");
 
-  /* struct ifreq interface; */
-  /* strncpy(interface.ifr_ifrn.ifrn_name, "eth1", IFNAMSIZ); */
-  /* if (setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE, */
-  /*                      (char *)&interface, sizeof(interface)) < 0) { */
-  /*   on_error("failed SO_BINDTODEVICE to eth1"); */
-  /* } */
-
   if (bind(sock,(sockaddr*)udpSenderAddr, sizeof(sockaddr)) != 0 ) {
     on_error("failed to bind server sock to %s:%u",EKA_IP2STR(udpSenderAddr->sin_addr.s_addr),be16toh(udpSenderAddr->sin_port));
   } else {
     EKA_LOG("udpSenderAddr sock is binded to %s:%u",EKA_IP2STR(udpSenderAddr->sin_addr.s_addr),be16toh(udpSenderAddr->sin_port));
   }
   for(uint i = 0; i < numTriggers; i++) {
-    printf("Sending trigger %d to %s:%u\n",i,EKA_IP2STR(triggerAddr->sin_addr.s_addr),be16toh(triggerAddr->sin_port));
+    TEST_LOG("Sending trigger %d to %s:%u\n",i,EKA_IP2STR(triggerAddr->sin_addr.s_addr),be16toh(triggerAddr->sin_port));
     if (sendto(sock,&epmTrigger[i],sizeof(EpmTrigger),0,(const sockaddr*) triggerAddr,sizeof(sockaddr)) < 0) 
       on_error("Failed to send trigegr to %s:%u",EKA_IP2STR(triggerAddr->sin_addr.s_addr),be16toh(triggerAddr->sin_port));
     sleep (1);
@@ -355,7 +348,7 @@ int main(int argc, char *argv[]) {
   triggerDst.sin_addr.s_addr = inet_addr(triggerIp.c_str());
   triggerDst.sin_port        = be16toh(triggerUdpPort);
 
-  const epm_strategyid_t numStrategies = 1;
+  const epm_strategyid_t numStrategies = 4;
   EpmStrategyParams strategyParams[numStrategies] = {};
   for (auto i = 0; i < numStrategies; i++) {
     strategyParams[i].numActions = 200;
@@ -389,17 +382,16 @@ int main(int argc, char *argv[]) {
 	heapOffset = roundUp<uint>(heapOffset,32);
 	heapOffset += nwHdrOffset;
 	EpmAction epmAction = {
-	  .token         = static_cast<epm_token_t>(0), ///< Security token
-	  .hConn         = conn,                        ///< TCP connection where segments will be sent
-	  .offset        = heapOffset,                  ///< Offset to payload in payload heap
-	  .length        = payloadSize,                 ///< Payload length
-	  .actionFlags   = AF_Valid,                    ///< Behavior flags (see EpmActionFlag)
-	  .nextAction    = nextAction,                  ///< Next action in sequence, or EPM_LAST_ACTION
-	  .enable        = 0x01,                        ///< Enable bits
-	  .postLocalMask = 0x01,                        ///< Post fire: enable & mask -> enable
-	  .postStratMask = 0x01,                        ///< Post fire: strat-enable & mask -> strat-enable
-	  .user          = static_cast<uintptr_t>
-	  (actionChain[chainIdx][actionIdx])                        ///< Opaque value copied into `EpmFireReport`.
+	  .token         = static_cast<epm_token_t>(0),       ///< Security token
+	  .hConn         = conn,                              ///< TCP connection where segments will be sent
+	  .offset        = heapOffset,                        ///< Offset to payload in payload heap
+	  .length        = payloadSize,                       ///< Payload length
+	  .actionFlags   = AF_Valid,                          ///< Behavior flags (see EpmActionFlag)
+	  .nextAction    = nextAction,                        ///< Next action in sequence, or EPM_LAST_ACTION
+	  .enable        = 0x01,                              ///< Enable bits
+	  .postLocalMask = 0x01,                              ///< Post fire: enable & mask -> enable
+	  .postStratMask = 0x01,                              ///< Post fire: strat-enable & mask -> strat-enable
+	  .user          = static_cast<uintptr_t>(stategyIdx) ///< Opaque value copied into `EpmFireReport`.
 	};
 	ekaRC = epmPayloadHeapCopy(dev, coreId,
 				  static_cast<epm_strategyid_t>(stategyIdx),
@@ -431,7 +423,7 @@ int main(int argc, char *argv[]) {
     /* {   11,       1,       1}, */
     /* {   7,        0,       4}, */
     /* {   9,        3,      47}, */
-    {   17,       0,     100},
+    {   17,       2,     100},
   };
   uint numTriggers = sizeof(epmTrigger)/sizeof(epmTrigger[0]);
 

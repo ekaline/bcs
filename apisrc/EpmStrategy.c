@@ -18,8 +18,7 @@ EpmStrategy::EpmStrategy(EkaEpm* _parent, epm_strategyid_t _id, epm_actionid_t _
   id = _id;
   baseActionIdx = _baseActionIdx;
 
-  // region
-  eka_write(dev,0x82000 + 8 * id,baseActionIdx);
+  setActionRegionBaseIdx(dev,id,baseActionIdx);
 
   const sockaddr_in* addr = reinterpret_cast<const sockaddr_in*>(params->triggerAddr);
   ip   = addr->sin_addr.s_addr;
@@ -32,8 +31,8 @@ EpmStrategy::EpmStrategy(EkaEpm* _parent, epm_strategyid_t _id, epm_actionid_t _
   if (numActions > (int)EkaEpm::MaxActionsPerStrategy)
     on_error("numActions %d > EkaEpm::MaxActionsPerStrategy %d",numActions,EkaEpm::MaxActionsPerStrategy);
 
-  for (int i = 0; i < numActions; i++) {
-    action[i] = dev->epm->addAction(EkaEpm::ActionType::UserAction,-1,-1,-1);
+  for (epm_actionid_t i = 0; i < numActions; i++) {
+    action[i] = dev->epm->addAction(EkaEpm::ActionType::UserAction, id, i, -1,-1,-1);
     if (action[i] == NULL) on_error("Failed addAction");
   }
 
@@ -103,21 +102,24 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx, const EpmAction *ep
 
   //---------------------------------------------------------
   //  if (id == 4 && actionIdx == 100)
-  /* if (1) */
-  /*   EKA_LOG("Setting Action %3d for Strategy %2d: token=%ju, hConn=0x%x, offset=%5ju,length=%3d,actionFlags=0x%x,nextAction=%3d,enable=%d,postLocalMask=%x,postStratMask=%x, heapAddr=%7ju, pktSize=%u", */
-  /* 	    actionIdx, */
-  /* 	    id, */
-  /* 	    epmAction->token, */
-  /* 	    epmAction->hConn, */
-  /* 	    epmAction->offset, */
-  /* 	    epmAction->length, */
-  /* 	    epmAction->actionFlags, */
-  /* 	    epmAction->nextAction, */
-  /* 	    epmAction->enable, */
-  /* 	    epmAction->postLocalMask, */
-  /* 	    epmAction->postStratMask, */
-  /* 	    heapAddr, pktSize); fflush(stderr); */
-
+  if (0) {
+    EKA_LOG("Setting Action Idx %3d (Local Action Idx=%3d) for Strategy %2d: token=%ju, hConn=0x%x, offset=%5ju,length=%3d,actionFlags=0x%x,nextAction=%3d,enable=%d,postLocalMask=%x,postStratMask=%x, heapOffs=%7ju, length=%u",
+  	    baseActionIdx + actionIdx,
+	    actionIdx,
+  	    id,
+  	    epmAction->token,
+  	    epmAction->hConn,
+  	    epmAction->offset,
+  	    epmAction->length,
+  	    epmAction->actionFlags,
+  	    epmAction->nextAction,
+  	    epmAction->enable,
+  	    epmAction->postLocalMask,
+  	    epmAction->postStratMask,
+  	    epmAction->offset, 
+	    epmAction->length); 
+    fflush(stderr);
+  }
   //---------------------------------------------------------
   // Writing Action to FPGA (Action Memory)
   copyBuf2Hw(dev,EkaEpm::EpmActionBase, (uint64_t*)&ekaA->hwAction,sizeof(ekaA->hwAction)); //write to scratchpad
