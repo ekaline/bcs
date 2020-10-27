@@ -364,7 +364,9 @@ int main(int argc, char *argv[]) {
   uint fcsOffset   = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_RequiredTailPadding);
   uint heapOffset  = 0;
 
+  epm_enablebits_t enableBitmap = 0xdeadbeafbeebee00;
   for (auto stategyIdx = 0; stategyIdx < numStrategies; stategyIdx++) {
+    epmSetStrategyEnableBits(dev, coreId, stategyIdx, ++enableBitmap);
     for (auto chainIdx = 0; chainIdx < ChainRows; chainIdx++) {
       //      bool imLast = false;
       for (auto actionIdx = 0; actionIdx < ChainCols - 1/* && ! imLast */; actionIdx++) {
@@ -388,7 +390,7 @@ int main(int argc, char *argv[]) {
 	  .length        = payloadSize,                       ///< Payload length
 	  .actionFlags   = AF_Valid,                          ///< Behavior flags (see EpmActionFlag)
 	  .nextAction    = nextAction,                        ///< Next action in sequence, or EPM_LAST_ACTION
-	  .enable        = 0x01,                              ///< Enable bits
+	  .enable        = enableBitmap,                      ///< Enable bits
 	  .postLocalMask = 0x01,                              ///< Post fire: enable & mask -> enable
 	  .postStratMask = 0x01,                              ///< Post fire: strat-enable & mask -> strat-enable
 	  .user          = static_cast<uintptr_t>(stategyIdx) ///< Opaque value copied into `EpmFireReport`.

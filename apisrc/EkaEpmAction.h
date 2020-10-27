@@ -17,23 +17,14 @@ class EkaEpmAction {
 	       uint8_t                 _coreId,
 	       uint8_t                 _sessId,
 	       uint                    _productIdx,
-	       epm_actione_bitparams_t _actionBitParams,
+	       EpmActionBitmap         _actionBitParams,
 	       uint64_t		       _heapAddr,
 	       uint64_t		       _actionAddr,
 	       uint64_t		       _dataTemplateAddr,
 	       uint		       _templateId);
 
   /* ----------------------------------------------------- */
-
-  int updateAttrs (uint8_t            _coreId,
-		   uint8_t            _sessId,
-		   uint               _payloadOffs,
-		   epm_actionid_t     _nextAction,
-		   const uint64_t     _mask_post_strat,
-		   const uint64_t     _mask_post_local,
-		   const uint64_t     _user,
-		   const epm_token_t  _token);
-
+  int updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction *epmAction);
   /* ----------------------------------------------------- */
   void print();
   /* ----------------------------------------------------- */
@@ -68,7 +59,9 @@ class EkaEpmAction {
   uint64_t templateAddr   = -1;
   uint     templateId     = -1;
 
-  epm_actione_bitparams_t actionBitParams = {};
+  EpmAction epmActionLocalCopy = {};
+
+  EpmActionBitmap actionBitParams = {};
 
   epm_actionid_t nextIdx  = EPM_LAST_ACTION;
   epm_action_t hwAction   = {};

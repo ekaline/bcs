@@ -40,14 +40,20 @@ EpmStrategy::EpmStrategy(EkaEpm* _parent, epm_strategyid_t _id, epm_actionid_t _
 	  id,baseActionIdx,numActions,EKA_IP2STR(ip),port);
 }
 /* ------------------------------------------------ */
+static inline uint64_t strategyEnableAddr(epm_strategyid_t  id) {
+  return (uint64_t) (0x85000 + id * 8);
+}
+/* ------------------------------------------------ */
 
 EkaOpResult EpmStrategy::setEnableBits(epm_enablebits_t _enable) {
   enable = _enable;
+  eka_write(dev,strategyEnableAddr(id),enable);
   return EKA_OPRESULT__OK;
 }
 /* ------------------------------------------------ */
 
 EkaOpResult EpmStrategy::getEnableBits(epm_enablebits_t *_enable) {
+  enable = eka_read(dev,strategyEnableAddr(id));
   *_enable = enable;
   return EKA_OPRESULT__OK;
 }
@@ -83,15 +89,7 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx, const EpmAction *ep
   EkaTcpSess* sess = dev->core[coreId]->tcpSess[sessId];
   //---------------------------------------------------------
 
-  ekaA->updateAttrs(coreId,
-		    sessId,
-		    epmAction->offset,
-		    epmAction->nextAction,
-		    epmAction->postStratMask,
-		    epmAction->postLocalMask,
-		    epmAction->user,
-		    epmAction->token
-		    );
+  ekaA->updateAttrs(coreId,sessId,epmAction);
 
   ekaA->setNwHdrs(sess->macDa,sess->macSa,sess->srcIp,sess->dstIp,sess->srcPort,sess->dstPort);
 
@@ -134,6 +132,6 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx, const EpmAction *ep
 EkaOpResult EpmStrategy::getAction(epm_actionid_t actionIdx, EpmAction *epmAction) {
   if (actionIdx >= (int)EkaEpm::MaxActionsPerStrategy) return EKA_OPRESULT__ERR_INVALID_ACTION;
 
-  //  memcpy(epmAction,&action[actionIdx].epmAction,sizeof(EpmAction));
+  memcpy(epmAction,&action[actionIdx]->epmActionLocalCopy,sizeof(EpmAction));
   return EKA_OPRESULT__OK;
 }

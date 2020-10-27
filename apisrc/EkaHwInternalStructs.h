@@ -38,34 +38,50 @@ struct epm_tcpcs_template_t {
   struct epm_tcpcs_half_template_t high;
 } __attribute__((packed));
 
-struct epm_actione_bitparams_t {
-  uint8_t reserved7  : 1;
-  uint8_t reserved6  : 1;
-  uint8_t reserved5  : 1;
-  uint8_t reserved4  : 1;
-  uint8_t feedbck_en : 1; //should HW send packet feedback to libary
-  uint8_t reserved2  : 1;
-  uint8_t report_en  : 1; //should HW send user application report
-  uint8_t israw      : 1; //should HW update HW_TCP_SEQ table
-} __attribute__((packed)); //must be in 1B resolution
+/* FPGA code: */
+/* typedef struct packed { */
+/* 	bit israw; */
+/* 	bit report_en; */
+/* 	bit action_valid; */
+/* 	bit dummy_en; */
+/* 	bit reserved4; */
+/* 	bit reserved5; */
+/* 	bit reserved6; */
+/* 	bit reserved7; */
+/* } epm_action_bp_t;  */
+
+typedef union  {
+  uint8_t bits;
+  struct  {
+    uint8_t reserved7     : 1;
+    uint8_t reserved6     : 1;
+    uint8_t reserved5     : 1;
+    uint8_t reserved4     : 1;
+    uint8_t feedbck_en    : 1; //should HW send packet feedback to libary
+    uint8_t action_valid  : 1;
+    uint8_t report_en     : 1; //should HW send user application report
+    uint8_t israw         : 1; //should HW update HW_TCP_SEQ table
+  } __attribute__((packed)) bitmap; //must be in 1B resolution
+} __attribute__((packed)) EpmActionBitmap;
 
 /* FPGA code: */
 /* typedef struct packed { */
-/*         bit [7:0]       action_type; // EPM_ACTION_TYPE_ */
+/* 	bit [7:0]       action_type; // EPM_ACTION_TYPE_ */
 /*         bit [15:0]      payload_size;   */
 /*         bit [31:0]      tcp_cs;   */
 /*         bit [63:0]      token; */
 /*         bit [63:0]      user; */
+/*         bit [63:0]      enable_bitmap; */
 /*         bit [63:0]      mask_post_local; */
 /*         bit [63:0]      mask_post_strat; */
 /*         bit [15:0]      next_action_index;   */
 /*         bit [7:0]       target_session_id;   */
 /*         bit [7:0]       target_core_id;   */
 /*         bit [7:0]       target_prod_id;   */
-/*         bit [31:0]      data_db_ptr; */
-/*         bit [15:0]      template_db_ptr; */
-/*         bit [7:0]       tcpcs_template_db_ptr; */
-/*         epm_action_bp_t bit_params; */
+/* 	bit [31:0]      data_db_ptr; */
+/* 	bit [15:0]      template_db_ptr; */
+/* 	bit [7:0]       tcpcs_template_db_ptr; */
+/* 	epm_action_bp_t bit_params; */
 /* } epm_action_t; */
 
 /* parameter EPM_ACTION_TYPE_SRC_ACTION = 1; //take size and cs from action */
@@ -74,7 +90,7 @@ struct epm_actione_bitparams_t {
 enum class TcpCsSizeSource : uint8_t {FROM_ACTION = 1, FROM_DESCR = 2};
 
 struct epm_action_t {
-  epm_actione_bitparams_t bit_params;
+  EpmActionBitmap bit_params;
   uint8_t  tcpcs_template_db_ptr;  
   uint16_t template_db_ptr;
   uint32_t data_db_ptr;
@@ -84,6 +100,7 @@ struct epm_action_t {
   uint16_t next_action_index;
   uint64_t mask_post_strat;
   uint64_t mask_post_local;
+  uint64_t enable_bitmap;
   uint64_t user;
   uint64_t token;
   uint32_t tcpCSum;

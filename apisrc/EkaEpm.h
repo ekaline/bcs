@@ -46,7 +46,7 @@ class EkaEpm {
 
   static const uint MaxActions                  = 4 * 1024;
   static const uint MaxActionsPerStrategy       = 256;
-  static const uint64_t MaxStrategies           = 5;
+  static const uint64_t MaxStrategies           = EPM_REGIONS - 1;
 
   static const uint64_t EpmActionBase           = 0x89000;
   static const uint     ActionBudget            = 64;
@@ -58,7 +58,7 @@ class EkaEpm {
 
   static const uint64_t PayloadMemorySize       = MaxUserHeap;
   static const uint64_t DatagramOffset          = sizeof(EkaEthHdr)+sizeof(EkaIpHdr)+sizeof(EkaTcpHdr);
-  static const uint64_t PayloadAlignment        = DatagramOffset % 8; //54 % 8 = 6
+  static const uint64_t PayloadAlignment        = 32;
   static const uint64_t RequiredTailPadding     = 0;
 
   static const uint8_t  ServiceRegion           = MaxStrategies;

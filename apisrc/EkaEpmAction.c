@@ -20,7 +20,7 @@ EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
 			   uint8_t                 _coreId,
 			   uint8_t                 _sessId,
 			   uint                    _productIdx,
-			   epm_actione_bitparams_t _actionBitParams,
+			   EpmActionBitmap         _actionBitParams,
 			   uint64_t		   _heapAddr,
 			   uint64_t		   _actionAddr,
 			   uint64_t		   _dataTemplateAddr,
@@ -57,18 +57,17 @@ EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
 
   memset(ethHdr,0,sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaTcpHdr));
 
-  hwAction.tcpCsSizeSource      = type == EkaEpm::ActionType::UserAction ? TcpCsSizeSource::FROM_ACTION : TcpCsSizeSource::FROM_DESCR;
+  hwAction.tcpCsSizeSource          = type == EkaEpm::ActionType::UserAction ? 
+    TcpCsSizeSource::FROM_ACTION    : TcpCsSizeSource::FROM_DESCR;
 
-  hwAction.data_db_ptr           = heapAddr;
-  hwAction.template_db_ptr       = templateAddr;
-  hwAction.tcpcs_template_db_ptr = templateId;
-  hwAction.bit_params.israw      = actionBitParams.israw;
-  hwAction.bit_params.report_en  = actionBitParams.report_en;
-  hwAction.bit_params.feedbck_en = actionBitParams.feedbck_en;
-  hwAction.target_prod_id        = productIdx;
-  hwAction.target_core_id        = coreId;
-  hwAction.target_session_id     = sessId;
-  hwAction.next_action_index     = EPM_LAST_ACTION; 
+  hwAction.data_db_ptr              = heapAddr;
+  hwAction.template_db_ptr          = templateAddr;
+  hwAction.tcpcs_template_db_ptr    = templateId;
+  hwAction.bit_params               = actionBitParams;
+  hwAction.target_prod_id           = productIdx;
+  hwAction.target_core_id           = coreId;
+  hwAction.target_session_id        = sessId;
+  hwAction.next_action_index        = EPM_LAST_ACTION; 
 }
 /* ----------------------------------------------------- */
 int EkaEpmAction::setNwHdrs(uint8_t* macDa, 
@@ -132,21 +131,18 @@ int EkaEpmAction::setNwHdrs(uint8_t* macDa,
 
 /* ----------------------------------------------------- */
 
-int EkaEpmAction::updateAttrs (uint8_t            _coreId,
-			       uint8_t            _sessId,
-			       uint               _payloadOffs,
-			       epm_actionid_t     _nextAction,
-			       const uint64_t 	  _mask_post_strat,
-			       const uint64_t 	  _mask_post_local,
-			       const uint64_t  	  _user,
-			       const epm_token_t  _token) {
+int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction *epmAction) {
+  if (epmAction == NULL) on_error("epmAction == NULL");
+  if (epmAction->offset  < EkaEpm::DatagramOffset) 
+    on_error("epmAction->offset %d < EkaEpm::DatagramOffset %d",epmAction->offset,EkaEpm::DatagramOffset);
 
-  if (_payloadOffs < EkaEpm::DatagramOffset) on_error("payloadOffs < EkaEpm::DatagramOffset");
 
-  heapOffs        = _payloadOffs - EkaEpm::DatagramOffset;
-  heapAddr        = EpmHeapHwBaseAddr + heapOffs;
-  coreId          = _coreId;
-  sessId          = _sessId;
+  memcpy (&epmActionLocalCopy,epmAction,sizeof(epmActionLocalCopy));
+
+  heapOffs = epmAction->offset - EkaEpm::DatagramOffset;
+  heapAddr = EpmHeapHwBaseAddr + heapOffs;
+  coreId   = _coreId;
+  sessId   = _sessId;
 
 /* ----------------------------------------------------- */
   ethHdr = (EkaEthHdr*) &dev->epm->heap[heapOffs];
@@ -169,18 +165,16 @@ int EkaEpmAction::updateAttrs (uint8_t            _coreId,
   hwAction.target_core_id        = coreId;
   hwAction.target_session_id     = sessId;
   hwAction.data_db_ptr           = heapAddr;
-  hwAction.next_action_index     = _nextAction;
-  hwAction.mask_post_strat       = _mask_post_strat;
-  hwAction.mask_post_local       = _mask_post_local;
-  hwAction.user                  = _user;
-  hwAction.token                 = _token;
-
-
-/* ----------------------------------------------------- */
-
-  /* EKA_LOG("payloadLen == %u, pktSize=%u, ethHdr=%p, ipHdr->_len=%u",payloadLen,pktSize,ethHdr,be16toh(ipHdr->_len)); */
-  /* hexDump("EkaEpmAction::update() pkt",ethHdr,pktSize); */
-  /* print(); */
+  hwAction.next_action_index     = epmAction->nextAction;
+  hwAction.enable_bitmap         = epmAction->enable;
+  hwAction.mask_post_strat       = epmAction->postStratMask;
+  hwAction.mask_post_local       = epmAction->postLocalMask;
+  hwAction.user                  = epmAction->user;
+  hwAction.token                 = epmAction->token;
+  if (epmAction->actionFlags == AF_Valid) 
+    hwAction.bit_params.bitmap.action_valid = 1;
+  else
+    hwAction.bit_params.bitmap.action_valid = 0;
 
   return 0;
 }

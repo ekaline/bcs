@@ -27,8 +27,10 @@ EkaEpm::EkaEpm(EkaDev* _dev) {
 /* ---------------------------------------------------- */
 
 EkaOpResult EkaEpm::raiseTriggers(const EpmTrigger *trigger) {
+  if (trigger == NULL) on_error("trigger == NULL");
   uint strategyId = trigger->strategy;
   uint currAction = trigger->action;
+  /* EKA_LOG("Raising Trigger: strategyId %u, ActionId %u",strategyId,currAction); */
 
   if (strategy[strategyId] == NULL) on_error("strategy[%u] == NULL",strategyId);
   if (strategy[strategyId]->action[currAction] == NULL) 
@@ -40,12 +42,12 @@ EkaOpResult EkaEpm::raiseTriggers(const EpmTrigger *trigger) {
 
   strategy[strategyId]->action[currAction]->send();
 
-  EKA_LOG("User Action: actionType = %u, strategyId=%u, actionId=%u,heapAddr=%ju, pktSize=%u",
-	  strategy[strategyId]->action[currAction]->hwAction.tcpCsSizeSource,
-	  strategyId,currAction,
-	  strategy[strategyId]->action[currAction]->hwAction.data_db_ptr,
-	  strategy[strategyId]->action[currAction]->hwAction.payloadSize
-	  );
+  /* EKA_LOG("User Action: actionType = %u, strategyId=%u, actionId=%u,heapAddr=%ju, pktSize=%u", */
+  /* 	  strategy[strategyId]->action[currAction]->hwAction.tcpCsSizeSource, */
+  /* 	  strategyId,currAction, */
+  /* 	  strategy[strategyId]->action[currAction]->hwAction.data_db_ptr, */
+  /* 	  strategy[strategyId]->action[currAction]->hwAction.payloadSize */
+  /* 	  ); */
   /* eka_write(dev,EPM_TRIGGER_DESC_ADDR,epm_trig_desc.desc); */
 
   return EKA_OPRESULT__OK;
@@ -95,8 +97,8 @@ EkaOpResult EkaEpm::enableController(EkaCoreId coreId, bool enable) {
 EkaOpResult EkaEpm::initStrategies(EkaCoreId coreId,
 				   const EpmStrategyParams *params,
 				   epm_strategyid_t numStrategies) {
-  if (numStrategies > (int)EkaEpm::MaxStrategies) 
-    on_error("numStrategies %u > EkaEpm::MaxStrategies %ju",numStrategies,EkaEpm::MaxStrategies);
+  if (numStrategies > (int)MaxStrategies) 
+    on_error("numStrategies %u > MaxStrategies %ju",numStrategies,MaxStrategies);
   stratNum = numStrategies;
 
   if (udpCh[coreId] == NULL) udpCh[coreId] = new EkaUdpChannel(dev,coreId);
@@ -153,15 +155,15 @@ EkaOpResult EkaEpm::payloadHeapCopy(EkaCoreId coreId,
 				    uint32_t offset,
 				    uint32_t length, 
 				    const void *contents) {
-  if (offset % 8 != EkaEpm::PayloadAlignment) {
-    EKA_WARN("offset %d %% 8 (=%d) != EkaEpm::PayloadAlignment (%d)",
-	     offset,offset % 8, EkaEpm::PayloadAlignment);
+  if ((offset - DatagramOffset) % PayloadAlignment != 0) {
+    EKA_WARN("offset (%d) - DatagramOffset (%d) %% PayloadAlignment (=%d) != 0",
+	     offset,DatagramOffset,PayloadAlignment);
     return EKA_OPRESULT__ERR_INVALID_ALIGN;
   }
        
-  if (offset + length > EkaEpm::PayloadMemorySize) {
-    EKA_WARN("offset %d + length %d > EkaEpm::PayloadMemorySize %d",
-	     offset,length,EkaEpm::PayloadMemorySize);
+  if (offset + length > PayloadMemorySize) {
+    EKA_WARN("offset %d + length %d > PayloadMemorySize %d",
+	     offset,length,PayloadMemorySize);
     return EKA_OPRESULT__ERR_INVALID_OFFSET;
   }
 
@@ -231,16 +233,16 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
   if (tcpFastPathPkt == NULL) on_error("tcpFastPathPkt == NULL");
   if (rawPkt == NULL) on_error("rawPkt == NULL");
 
-  uint                    heapBudget = (uint)(-1);
-  epm_actione_bitparams_t actionBitParams = {};
-  uint64_t                dataTemplateAddr = -1;
-  uint                    templateId = (uint)(-1);
+  uint            heapBudget = (uint)(-1);
+  EpmActionBitmap actionBitParams = {};
+  uint64_t        dataTemplateAddr = -1;
+  uint            templateId = (uint)(-1);
 
-  char           actionName[30] = {};
-  epm_actionid_t actionIdx      = -1;
-  epm_actionid_t localActionIdx = -1;
-  uint64_t       heapAddr       = -1;
-  uint64_t       actionAddr     = -1;
+  char            actionName[30] = {};
+  epm_actionid_t  actionIdx      = -1;
+  epm_actionid_t  localActionIdx = -1;
+  uint64_t        heapAddr       = -1;
+  uint64_t        actionAddr     = -1;
 
   createActionMtx.lock();
 
@@ -255,9 +257,10 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
     actionAddr                 = serviceActionAddr;
     serviceActionAddr         += ActionBudget;
 
-    actionBitParams.israw      = 0;
-    actionBitParams.report_en  = 0;
-    actionBitParams.feedbck_en = 1;
+    actionBitParams.bitmap.action_valid = 1;
+    actionBitParams.bitmap.israw      = 0;
+    actionBitParams.bitmap.report_en  = 0;
+    actionBitParams.bitmap.feedbck_en = 1;
     dataTemplateAddr = tcpFastPathPkt->getDataTemplateAddr();
     templateId       = tcpFastPathPkt->id;
     strcpy(actionName,"TcpFastPath");
@@ -273,9 +276,10 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
     actionAddr                 = serviceActionAddr;
     serviceActionAddr         += ActionBudget;
 
-    actionBitParams.israw      = 1;
-    actionBitParams.report_en  = 0;
-    actionBitParams.feedbck_en = 0;
+    actionBitParams.bitmap.action_valid = 1;
+    actionBitParams.bitmap.israw      = 1;
+    actionBitParams.bitmap.report_en  = 0;
+    actionBitParams.bitmap.feedbck_en = 0;
     dataTemplateAddr = rawPkt->getDataTemplateAddr();
     templateId       = rawPkt->id;
     strcpy(actionName,"TcpFullPkt");
@@ -291,9 +295,10 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
     actionAddr                 = serviceActionAddr;
     serviceActionAddr         += ActionBudget;
 
-    actionBitParams.israw      = 0;
-    actionBitParams.report_en  = 0;
-    actionBitParams.feedbck_en = 0;
+    actionBitParams.bitmap.action_valid = 1;
+    actionBitParams.bitmap.israw      = 0;
+    actionBitParams.bitmap.report_en  = 0;
+    actionBitParams.bitmap.feedbck_en = 0;
     dataTemplateAddr = tcpFastPathPkt->getDataTemplateAddr();
     templateId       = tcpFastPathPkt->id;
     strcpy(actionName,"TcpEmptyAck");
@@ -310,9 +315,10 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
     actionAddr                 = userActionAddr;
     userActionAddr            += ActionBudget;
 
-    actionBitParams.israw      = 0;
-    actionBitParams.report_en  = 1;
-    actionBitParams.feedbck_en = 1;
+    actionBitParams.bitmap.action_valid = 1;
+    actionBitParams.bitmap.israw      = 0;
+    actionBitParams.bitmap.report_en  = 1;
+    actionBitParams.bitmap.feedbck_en = 1;
     dataTemplateAddr = tcpFastPathPkt->getDataTemplateAddr();
     templateId       = tcpFastPathPkt->id;
     strcpy(actionName,"UserAction");

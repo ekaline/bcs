@@ -31,7 +31,7 @@ void ekaFireReportThread(EkaDev* dev) {
 	  on_error("DMA length mismatch %u != %u",be16toh(((dma_report_t*)payload)->length),len);
 
 
-	hexDump("EPM report",(void*)payload,len);
+	//	hexDump("EPM report",(void*)payload,len);
 	break;
       default:
 	on_error("Unexpected DMA type 0x%x",((dma_report_t*)payload)->type);

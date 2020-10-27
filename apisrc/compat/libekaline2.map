@@ -44,10 +44,12 @@ LIBEKALINE2_1.0	{
 			epmInitStrategies;
 			epmEnableController;
 			epmSetAction;
+			epmGetAction;
 			epmPayloadHeapCopy;
 			epmGetStrategyEnableBits;
 			epmSetStrategyEnableBits;
 			epmRaiseTriggers;
+
 		local:
 			*;
 		};
