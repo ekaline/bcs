@@ -134,7 +134,7 @@ int EkaEpmAction::setNwHdrs(uint8_t* macDa,
 int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction *epmAction) {
   if (epmAction == NULL) on_error("epmAction == NULL");
   if (epmAction->offset  < EkaEpm::DatagramOffset) 
-    on_error("epmAction->offset %d < EkaEpm::DatagramOffset %d",epmAction->offset,EkaEpm::DatagramOffset);
+    on_error("epmAction->offset %d < EkaEpm::DatagramOffset %ju",epmAction->offset,EkaEpm::DatagramOffset);
 
 
   memcpy (&epmActionLocalCopy,epmAction,sizeof(epmActionLocalCopy));

@@ -82,6 +82,8 @@ enum EpmTriggerAction : int {
 /// via an @ref EpmFireReportCb callback.
 struct EpmFireReport {
   const EpmTrigger *trigger;          ///< Contents of the trigger message
+  epm_strategyid_t strategyId;        ///< Strategy ID the report corresponds to
+  epm_actionid_t   actionId;          ///< Action ID the report corresponds to
   EpmTriggerAction action;            ///< What device did in response to trigger
   EkaOpResult error;                  ///< Error code for SendError
   epm_enablebits_t preLocalEnable;    ///< Action-level enable bits before fire

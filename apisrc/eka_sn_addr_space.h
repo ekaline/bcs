@@ -11,7 +11,7 @@ enum addresses {
 
     EPM_VERSION = 0xf0fe0,         // [23:16] - epm version 
     EPM_VERSION_MASK    = 0xF0000,
-    EPM_CORRECT_VERSION = 0x20000, // (current version = 2)
+    EPM_CORRECT_VERSION = 0x30000, 
 
     SW_STATISTICS = 0xf0770,
 //P4

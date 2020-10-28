@@ -137,6 +137,38 @@ typedef union {
 #define EPM_TRIGGER_DESC_ADDR       (0xf0230)
 
 
+/* FPGA code: */
+/* typedef struct packed { */
+/*         bit [7:0]  islocal;             ///< True -> called from epmRaiseTrigger */
+/*         bit [63:0] user;              ///< Opaque value copied from EpmAction */
+/*         bit [15:0] postStratEnable;   ///< Strategy-level enable bits after fire */
+/* 	bit [15:0] preStratEnable;    ///< Strategy-level enable bits before fire */
+/* 	bit [15:0] postLocalEnable;   ///< Action-level enable bits after firing */
+/* 	bit [15:0] preLocalEnable;    ///< Action-level enable bits before fire */
+/*         bit [7:0]  error;             ///< Error code for SendError */
+/*         bit [7:0]  action;            ///< What device did in response to trigger */
+/* 	bit [7:0]  strategyid; */
+/* 	bit [15:0] triggeractionid; */
+/* 	bit [15:0] actionactionid; */
+/* 	bit [63:0] token; */
+/* } epm_report_t; */
+
+
+struct hw_epm_report_t {
+  uint64_t  token;
+  uint16_t  actionId;
+  uint16_t  triggerActionId;
+  uint8_t   strategyId;
+  uint8_t   action;
+  uint8_t   error;
+  uint16_t  preLocalEnable;
+  uint16_t  postLocalEnable;
+  uint16_t  preStratEnable;
+  uint16_t  postStratEnable;
+  uint64_t  user;
+  uint8_t   islocal;
+} __attribute__((packed));
+
 struct hw_epm_capabilities_t {
   uint16_t numof_actions;
   uint8_t tcpcs_numof_templates;

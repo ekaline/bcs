@@ -78,7 +78,14 @@ int credRelease(EkaCredentialLease *lease, void* context) {
 /* --------------------------------------------- */
 
 void fireReportCb (const EpmFireReport *report, int nReports, void *ctx) {
-  TEST_LOG("Doing nothing");
+  TEST_LOG("StrategyId=%d, ActionId=%d (0x%x), TriggerActionId=%d (0x%x), TriggerSource=%s, token=0x%016jx, user = 0x%016jx",
+	   report->strategyId,
+	   report->actionId,report->actionId,
+	   report->trigger->action,report->trigger->action,
+	   report->local ? "FROM SW" : "FROM UDP",
+	   report->trigger->token,
+	   report->user
+	   );
 }
 
 /* --------------------------------------------- */
@@ -309,6 +316,8 @@ int main(int argc, char *argv[]) {
 
       heapOffset = heapOffset + dataAlignment - (heapOffset % dataAlignment) + nwHdrOffset;
 
+      //      uint64_t user = 0xdeadbeaf0beebee1;
+      uint64_t user = 0x1122334455667788;
       EpmAction epmAction = {
 	.token         = static_cast<epm_token_t>(0),       ///< Security token
 	.hConn         = conn,                              ///< TCP connection where segments will be sent
@@ -319,7 +328,7 @@ int main(int argc, char *argv[]) {
 	.enable        = enableBitmap,                      ///< Enable bits
 	.postLocalMask = 0x01,                              ///< Post fire: enable & mask -> enable
 	.postStratMask = 0x01,                              ///< Post fire: strat-enable & mask -> strat-enable
-	.user          = static_cast<uintptr_t>(stategyIdx) ///< Opaque value copied into `EpmFireReport`.
+	.user          = static_cast<uintptr_t>(user)       ///< Opaque value copied into `EpmFireReport`.
       };
       ekaRC = epmPayloadHeapCopy(dev, coreId,
 				 static_cast<epm_strategyid_t>(stategyIdx),

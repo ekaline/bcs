@@ -69,8 +69,8 @@ EkaOpResult epmGetAction(const EkaDev *dev, EkaCoreId coreId,
   if (coreId >= EkaDev::MAX_CORES || dev->core[coreId] == NULL)
     return EKA_OPRESULT__ERR_INVALID_CORE;
 
-  if (strategy >= EkaEpm::MaxStrategies) return EKA_OPRESULT__ERR_INVALID_STRATEGY;
-  if (action   >= EkaEpm::MaxActionsPerStrategy) return EKA_OPRESULT__ERR_INVALID_ACTION;
+  if (strategy >= (int)EkaEpm::MaxStrategies) return EKA_OPRESULT__ERR_INVALID_STRATEGY;
+  if (action   >= (int)EkaEpm::MaxActionsPerStrategy) return EKA_OPRESULT__ERR_INVALID_ACTION;
 
   return dev->epm->getAction(coreId,strategy,action,epmAction);
 
@@ -129,8 +129,8 @@ EkaOpResult epmRaiseTriggers(EkaDev *dev, EkaCoreId coreId,
     return EKA_OPRESULT__ERR_INVALID_CORE;
 
   if (trigger == NULL) on_error("trigger == NULL");
-  if (trigger->strategy >= EkaEpm::MaxStrategies) return EKA_OPRESULT__ERR_INVALID_STRATEGY;
-  if (trigger->action   >= EkaEpm::MaxActionsPerStrategy) return EKA_OPRESULT__ERR_INVALID_ACTION;
+  if (trigger->strategy >= (int)EkaEpm::MaxStrategies) return EKA_OPRESULT__ERR_INVALID_STRATEGY;
+  if (trigger->action   >= (int)EkaEpm::MaxActionsPerStrategy) return EKA_OPRESULT__ERR_INVALID_ACTION;
 
   return dev->epm->raiseTriggers(trigger);
 }

@@ -184,7 +184,6 @@ class EkaEpm {
 
   uint8_t           heap[EkaEpm::MaxHeap] = {};
 
- private:
   EpmStrategy*      strategy[MaxStrategies] = {};
   epm_strategyid_t  stratNum = 0;
 
@@ -194,6 +193,7 @@ class EkaEpm {
   
   bool              controllerEnabled = false;
 
+ private:
   std::mutex   createActionMtx;
 
   uint     userActionIdx  = UserActionsBaseIdx;
