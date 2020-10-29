@@ -28,10 +28,18 @@ class EkaEpmAction;
 class EkaUdpChannel;
 class EpmStrategy;
 
+/* ------------------------------------------------ */
+
 inline void setActionRegionBaseIdx(EkaDev* dev, uint region, uint idx) {
   EKA_LOG("region=%u, baseIdx=%u, addr=0x%jx",region,idx,0x82000 + 8 * region);
   eka_write(dev,0x82000 + 8 * region, idx);
 }
+
+/* ------------------------------------------------ */
+static inline uint64_t strategyEnableAddr(epm_strategyid_t  id) {
+  return (uint64_t) (0x85000 + id * 8);
+}
+/* ------------------------------------------------ */
 
 class EkaEpm {
  public:
@@ -41,6 +49,8 @@ class EkaEpm {
   static const uint TOTAL_SESSIONS_PER_CORE     = EkaDev::TOTAL_SESSIONS_PER_CORE;
   static const uint MAX_PKT_SIZE                = EkaDev::MAX_PKT_SIZE;
   static const uint TCP_EMPTY_ACK_SIZE          = 64;
+
+  static const uint64_t ALWAYS_ENABLE           = 0xFFFFFFFFFFFFFFFF;
 
   static const uint EPM_REGIONS                 = 8;
 

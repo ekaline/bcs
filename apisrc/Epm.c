@@ -129,8 +129,14 @@ EkaOpResult epmRaiseTriggers(EkaDev *dev, EkaCoreId coreId,
     return EKA_OPRESULT__ERR_INVALID_CORE;
 
   if (trigger == NULL) on_error("trigger == NULL");
-  if (trigger->strategy >= (int)EkaEpm::MaxStrategies) return EKA_OPRESULT__ERR_INVALID_STRATEGY;
-  if (trigger->action   >= (int)EkaEpm::MaxActionsPerStrategy) return EKA_OPRESULT__ERR_INVALID_ACTION;
+  if (trigger->strategy >= (int)EkaEpm::MaxStrategies) {
+    EKA_WARN("EKA_OPRESULT__ERR_INVALID_STRATEGY");
+    return EKA_OPRESULT__ERR_INVALID_STRATEGY;
+  }
+  if (trigger->action   >= (int)EkaEpm::MaxActionsPerStrategy) {
+    EKA_WARN("EKA_OPRESULT__ERR_INVALID_ACTION");
+    return EKA_OPRESULT__ERR_INVALID_ACTION;
+  }
 
   return dev->epm->raiseTriggers(trigger);
 }

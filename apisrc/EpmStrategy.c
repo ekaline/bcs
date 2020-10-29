@@ -40,10 +40,6 @@ EpmStrategy::EpmStrategy(EkaEpm* _parent, epm_strategyid_t _id, epm_actionid_t _
 	  id,baseActionIdx,numActions,EKA_IP2STR(ip),port);
 }
 /* ------------------------------------------------ */
-static inline uint64_t strategyEnableAddr(epm_strategyid_t  id) {
-  return (uint64_t) (0x85000 + id * 8);
-}
-/* ------------------------------------------------ */
 
 EkaOpResult EpmStrategy::setEnableBits(epm_enablebits_t _enable) {
   enable = _enable;

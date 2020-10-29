@@ -20,7 +20,7 @@ EkaEpm::EkaEpm(EkaDev* _dev) {
   dev = _dev;
 
   setActionRegionBaseIdx(dev,ServiceRegion,ServiceActionsBaseIdx);
-
+  eka_write(dev,strategyEnableAddr(ServiceRegion),ALWAYS_ENABLE);
   EKA_LOG("Created Epm");
 }
 
@@ -30,7 +30,7 @@ EkaOpResult EkaEpm::raiseTriggers(const EpmTrigger *trigger) {
   if (trigger == NULL) on_error("trigger == NULL");
   uint strategyId = trigger->strategy;
   uint currAction = trigger->action;
-  /* EKA_LOG("Raising Trigger: strategyId %u, ActionId %u",strategyId,currAction); */
+  EKA_LOG("Raising Trigger: strategyId %u, ActionId %u",strategyId,currAction);fflush(stderr);
 
   if (strategy[strategyId] == NULL) on_error("strategy[%u] == NULL",strategyId);
   if (strategy[strategyId]->action[currAction] == NULL) 
@@ -129,7 +129,7 @@ EkaOpResult EkaEpm::initStrategies(EkaCoreId coreId,
 EkaOpResult EkaEpm::setStrategyEnableBits(EkaCoreId coreId,
                                      epm_strategyid_t strategyIdx,
                                      epm_enablebits_t enable) {
-  if (! initialized) 
+  if (! initialized)
     return EKA_OPRESULT__ERR_EPM_UNINITALIZED;
 
   if (! validStrategyIdx(strategyIdx)) return EKA_OPRESULT__ERR_INVALID_STRATEGY;
@@ -299,6 +299,7 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
     actionBitParams.bitmap.israw      = 0;
     actionBitParams.bitmap.report_en  = 0;
     actionBitParams.bitmap.feedbck_en = 0;
+
     dataTemplateAddr = tcpFastPathPkt->getDataTemplateAddr();
     templateId       = tcpFastPathPkt->id;
     strcpy(actionName,"TcpEmptyAck");
@@ -319,6 +320,9 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
     actionBitParams.bitmap.israw      = 0;
     actionBitParams.bitmap.report_en  = 1;
     actionBitParams.bitmap.feedbck_en = 1;
+
+    actionBitParams.bitmap.empty_report_en = 1;
+
     dataTemplateAddr = tcpFastPathPkt->getDataTemplateAddr();
     templateId       = tcpFastPathPkt->id;
     strcpy(actionName,"UserAction");

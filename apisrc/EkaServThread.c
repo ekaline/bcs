@@ -128,6 +128,7 @@ void ekaServThread(EkaDev* dev) {
 	if (dev->epm->udpCh[coreId] == NULL) continue;
 	if (dev->epm->udpCh[coreId]->has_data()) {
 	  const uint8_t* payload = dev->epm->udpCh[coreId]->get();
+	  //	  EKA_LOG("RAISING UDP TRIGGER!!!");
 	  dev->epm->raiseTriggers((const EpmTrigger*)payload);
 	  dev->epm->udpCh[coreId]->next();
 	}

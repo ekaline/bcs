@@ -40,27 +40,28 @@ struct epm_tcpcs_template_t {
 
 /* FPGA code: */
 /* typedef struct packed { */
-/* 	bit israw; */
-/* 	bit report_en; */
-/* 	bit action_valid; */
-/* 	bit dummy_en; */
-/* 	bit reserved4; */
-/* 	bit reserved5; */
-/* 	bit reserved6; */
-/* 	bit reserved7; */
-/* } epm_action_bp_t;  */
+/*         bit israw; */
+/*         bit report_en; */
+/*         bit action_valid; */
+/*         bit dummy_en; */
+/*         bit empty_report_en; */
+/*         bit reserved5; */
+/*         bit reserved6; */
+/*         bit reserved7; */
+/* } epm_action_bp_t; //must be in 1B resolution */
+
 
 typedef union  {
   uint8_t bits;
   struct  {
-    uint8_t reserved7     : 1;
-    uint8_t reserved6     : 1;
-    uint8_t reserved5     : 1;
-    uint8_t reserved4     : 1;
-    uint8_t feedbck_en    : 1; //should HW send packet feedback to libary
-    uint8_t action_valid  : 1;
-    uint8_t report_en     : 1; //should HW send user application report
-    uint8_t israw         : 1; //should HW update HW_TCP_SEQ table
+    uint8_t reserved7        : 1;
+    uint8_t reserved6        : 1;
+    uint8_t reserved5        : 1;
+    uint8_t empty_report_en  : 1;
+    uint8_t feedbck_en       : 1; //should HW send packet feedback to libary
+    uint8_t action_valid     : 1;
+    uint8_t report_en        : 1; //should HW send user application report
+    uint8_t israw            : 1; //should HW update HW_TCP_SEQ table
   } __attribute__((packed)) bitmap; //must be in 1B resolution
 } __attribute__((packed)) EpmActionBitmap;
 

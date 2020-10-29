@@ -30,9 +30,11 @@ void ekaFireReportThread(EkaDev* dev) {
       case EkaUserChannel::DMA_TYPE::EPM: {
 	if (be16toh(((dma_report_t*)payload)->length) + sizeof(dma_report_t) != len)
 	  on_error("DMA length mismatch %u != %u",be16toh(((dma_report_t*)payload)->length),len);
-	hexDump("EPM report",(void*)payload,len);
+
 	hw_epm_report_t* hwEpmReport = (hw_epm_report_t*) (payload + sizeof(dma_report_t));
 	
+	/* hexDump("EPM report",(void*)payload,len); */
+
 	epm_strategyid_t strategyId = hwEpmReport->strategyId;
 	epm_actionid_t   actionId   = hwEpmReport->actionId;
 
@@ -46,8 +48,8 @@ void ekaFireReportThread(EkaDev* dev) {
 	  .trigger         = &trigger,
 	  .strategyId      = strategyId,
 	  .actionId        = actionId,
-	  .action          = EpmTriggerAction::Sent,
-	  .error           = EKA_OPRESULT__OK,
+	  .action          = (EpmTriggerAction)hwEpmReport->action,
+	  .error           = (EkaOpResult)hwEpmReport->error,
 	  .preLocalEnable  = hwEpmReport->preLocalEnable,
 	  .postLocalEnable = hwEpmReport->postLocalEnable,
 	  .preStratEnable  = hwEpmReport->preStratEnable,

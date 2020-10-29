@@ -68,6 +68,10 @@ EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
   hwAction.target_core_id           = coreId;
   hwAction.target_session_id        = sessId;
   hwAction.next_action_index        = EPM_LAST_ACTION; 
+
+  hwAction.mask_post_strat          = EkaEpm::ALWAYS_ENABLE;
+  hwAction.mask_post_local          = EkaEpm::ALWAYS_ENABLE;
+  hwAction.enable_bitmap            = EkaEpm::ALWAYS_ENABLE;
 }
 /* ----------------------------------------------------- */
 int EkaEpmAction::setNwHdrs(uint8_t* macDa, 
@@ -221,8 +225,8 @@ int EkaEpmAction::send() {
   epm_trig_desc.str.region       = region;
 
 #if 0
-  //  if (type == EkaEpm::ActionType::UserAction) {
-  if (1) {
+   if (type == EkaEpm::ActionType::UserAction) {
+     //if (1) {
     EKA_LOG("%s: action_index = %u,region=%u,size=%u",
 	    actionName,
 	    epm_trig_desc.str.action_index,

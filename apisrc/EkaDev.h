@@ -169,6 +169,13 @@ inline void copyBuf2Hw(EkaDev* dev,uint64_t dstAddr,uint64_t* srcAddr,uint msgSi
     eka_write(dev, dstAddr + w * 8, *srcAddr++); 
 }
 
+inline void bufSwap4(uint32_t* dst, uint32_t* src, uint size) {
+  uint words2write = size / 4 + !!(size % 4);
+  for (uint w = 0; w < words2write; w++) {
+    (*dst++) = be32toh(*src++);
+  }
+}
+
 inline void copyBuf2Hw_swap4(EkaDev* dev,uint64_t dstAddr,uint64_t* srcAddr,uint msgSize) {
   //  EKA_LOG("dstAddr=0x%jx, srcAddr=%p, msgSize=%u",dstAddr,srcAddr,msgSize);
   uint words2write = msgSize / 8 + !!(msgSize % 8);
