@@ -6,8 +6,17 @@ enum addresses {
 //General
     VERSION1 = 0xf0ff0, //feed id is (reg_val>>56)&0xF
     VERSION2 = 0xf0ff8, //cores # is (reg_val>>56)&0xFF
+
+    /* FPGA code for ENABLE_PORT register: */
+    /* `define FIELD__NW_GENERAL_CONF__RX_ENABLE           7:0       // {DESC} Enable RX per port. For P4 and EPM fires on UDP trigger
+                                                                        Must be activated after all internal initialization is completed. */
+    /* `define FIELD__NW_GENERAL_CONF__CONTROLLER_ENABLE  23:16      // {DESC} Controller enable per port */
+    /* `define FIELD__NW_GENERAL_CONF__UDPKILLER_DISABLE     31      // {DESC} Disable UDP killer for all ports (to kill udp data during UDP channel init */
+    /* `define FIELD__NW_GENERAL_CONF__TCPFILTER_ENABLE      32      // {DESC} Redirect all nonUDP traffic to user channel for lwip */
     ENABLE_PORT = 0xf0020,    // bit 0..7 - enable RX
                               // bit 16..23 - enable fire cores
+
+
 
     EPM_VERSION = 0xf0fe0,         // [23:16] - epm version 
     EPM_VERSION_MASK    = 0xF0000,
@@ -38,6 +47,9 @@ enum addresses {
     P4_CTX_CHANNEL_BUFF = P4_CTX_CHANNEL_SINGLE_SIZE*P4_CTX_BUFFERS_PER_CHANNEL,
     P4_CONFIRM_REG = 0xf0660,
     P4_CTX_CHANNELS_COUNT = 16,
+
+    FH_GROUP_IPPORT = 0xf0500,
+
 // pricing Round down to dime for GEM
     ROUND_2B_TABLE_DEPTH = 65536,
     ROUND_2B_ADDR = 0xf0510,

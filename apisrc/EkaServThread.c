@@ -123,6 +123,8 @@ void ekaServThread(EkaDev* dev) {
     }
     /* ----------------------------------------------- */
     if (! dev->servThreadActive) break;
+#if 0
+    // SW emulation for EPM fire on UDP trigger
     if (dev->epm != NULL && dev->epm->initialized) {
       for (uint coreId = 0; coreId < EkaDev::MAX_CORES; coreId ++) {
 	if (dev->epm->udpCh[coreId] == NULL) continue;
@@ -134,6 +136,7 @@ void ekaServThread(EkaDev* dev) {
 	}
       }
     }
+#endif
     /* ----------------------------------------------- */
     /* if (((null_cnt++)%3000000)==0) { */
     /*   sendDate2Hw(dev); */

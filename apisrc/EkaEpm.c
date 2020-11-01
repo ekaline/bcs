@@ -89,6 +89,19 @@ EkaOpResult EkaEpm::getAction(EkaCoreId coreId,
 
 EkaOpResult EkaEpm::enableController(EkaCoreId coreId, bool enable) {
   controllerEnabled = enable;
+
+  uint64_t fire_rx_en = eka_read(dev,ENABLE_PORT);
+  if (enable) {
+    fire_rx_en |= 1ULL << (coreId); //rx
+    fire_rx_en |= 1ULL << (16 + coreId); // fire
+    EKA_LOG ("Controller enabled for coreId %u (0x%016jx)",coreId,fire_rx_en);
+  } else {
+    fire_rx_en &= ~(1ULL << (coreId)); //rx
+    fire_rx_en &= ~(1ULL << (16 + coreId)); // fire
+    EKA_LOG ("Controller disabled for coreId %u (0x%016jx)",coreId,fire_rx_en);
+  }
+  eka_write(dev,ENABLE_PORT,fire_rx_en);
+
   return EKA_OPRESULT__OK;
 }
 

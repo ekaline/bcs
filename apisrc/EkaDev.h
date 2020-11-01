@@ -144,6 +144,8 @@ inline void     eka_write(EkaDev* dev, uint64_t addr, uint64_t val) {
   if ((addr>=0xd0000 && addr<0xe0000)) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm data
   if ((addr>=0xc0000 && addr<0xd0000)) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm template
   if ((addr>=0x88000 && addr<0x89000)) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm tcpcs template
+  if ((addr==0xf0020                )) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //ENABLE_PORT
+  if ((addr==0xf0500                )) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //FH_GROUP_IPPORT
 
   //  if ((addr>=0x50000 && addr<0x60000) || addr==0xf0200) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //fastpath data and desc
 

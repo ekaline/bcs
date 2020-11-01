@@ -76,14 +76,14 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 
   getHwCaps(&hw_capabilities);
 
-  uint64_t mirrorNonUdp2UserChannel = 1ULL << 32;
-  uint64_t portState = eka_read(ENABLE_PORT);
-  portState |= mirrorNonUdp2UserChannel;
-  portState = 0x81010003; // TO DOUBLE CHECK!!!
-  portState = 0x181010003;
-  EKA_LOG("portState = 0x%016x",portState);
-  eka_write(ENABLE_PORT,portState);
+  /* uint64_t mirrorNonUdp2UserChannel = 1ULL << 32; */
+  /* uint64_t portState = eka_read(ENABLE_PORT); */
+  /* portState |= mirrorNonUdp2UserChannel; */
+  /* portState = 0x181 010 003; // This version worked!!! */
+  /* EKA_LOG("portState = 0x%016x",portState); */
+  /* eka_write(ENABLE_PORT,portState); */
 
+  eka_write(ENABLE_PORT,0);
 
   time_t t;
   srand((unsigned) time(&t));
