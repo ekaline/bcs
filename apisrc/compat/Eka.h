@@ -122,6 +122,7 @@ extern "C" {
              _x( ISE_TQF     )				\
              _x( MRX_TQF     )				\
              _x( PHLX_TOPO   )				\
+             _x( PHLX_ORD    )				\
              _x( MIAX_TOM    )				\
              _x( PEARL_TOM   )				\
              _x( ARCA_XDP    )				\

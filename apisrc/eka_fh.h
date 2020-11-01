@@ -125,6 +125,8 @@ class FhNom : public FhNasdaq {
 
 };
 
+//###############################################################
+
 class FhGem : public FhNasdaq{ // Gem & Ise
   static const uint QSIZE = 1 * 1024 * 1024;
  public:
@@ -135,6 +137,17 @@ class FhGem : public FhNasdaq{ // Gem & Ise
 //###############################################################
 
 class FhPhlx : public FhNasdaq {
+  static const uint QSIZE = 2 * 1024 * 1024;
+  //  static const uint QSIZE = 1024 * 1024;
+public:
+  //  EkaOpResult runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId );
+  virtual ~FhPhlx() {};
+private:
+
+};
+//###############################################################
+
+class FhPhlxOrd : public FhNasdaq {
   static const uint QSIZE = 2 * 1024 * 1024;
   //  static const uint QSIZE = 1024 * 1024;
 public:
