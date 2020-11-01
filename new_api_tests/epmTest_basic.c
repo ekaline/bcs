@@ -212,12 +212,26 @@ static void cleanFireEvents() {
 }
 
 /* --------------------------------------------- */
+static std::string action2string(EpmTriggerAction action) {
+  switch (action) {
+  case Unknown:         return std::string("Unknown");
+  case Sent:            return std::string("Sent");
+  case InvalidToken:    return std::string("InvalidToken");
+  case InvalidStrategy: return std::string("InvalidStrategy");
+  case InvalidAction:   return std::string("InvalidAction");
+  case DisabledAction:  return std::string("DisabledAction");
+  case SendError:       return std::string("SendError");
+  default:              on_error("Unexpected action %d",action);
+  }
+    
+};
+/* --------------------------------------------- */
 
 static void printFireReport(EpmFireReport* report) {
-  TEST_LOG("strategyId=%d,actionId=%d,action=%d,error=%d",
+  TEST_LOG("strategyId=%3d,actionId=%3d,action=%20s,error=%d",
 	   report->strategyId,
 	   report->actionId,
-	   report->action,
+	   action2string(report->action).c_str(),
 	   report->error);
 }
 
@@ -476,7 +490,7 @@ bool invalidActionTest(EkaDev* dev, ExcConnHandle conn, int tcpServerSock, int t
     9, 4, 155, 13, EPM_LAST_ACTION
   };
   epm_actionid_t expectedAction[] = {
-    9, 4,      13
+    9, 4, 155, 13
   };
 
   epm_actionid_t invalidActionId = 155;
@@ -569,6 +583,8 @@ bool invalidActionTest(EkaDev* dev, ExcConnHandle conn, int tcpServerSock, int t
     if (report->actionId != expectedAction[i])
       on_error("ActionId mismatch: report->actionId %d != expectedAction[%d] %d",
 	       report->actionId, i, expectedAction[i]);
+
+    
   }
 
   if (numExpectedEvents != numFireEvents) {
