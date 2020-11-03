@@ -25,8 +25,8 @@ $recovery_ip   = "159.79.3.";
 $recovery_lsb_base  = 139;
 $recovery_port = 19201;
 
-$username = "XXXX";
-$passwd   = "YYYY";
+$username = "STRK01";
+$passwd   = "6EUG2W";
 
 print "EkaProp efhPhlxOrdInitCtxEntries_A[] = {\n";
 for ($i=0; $i<$groups;$i++) {    
@@ -63,9 +63,6 @@ $snapshot_port = 19201;
 $recovery_ip   = "159.79.3.";
 $recovery_lsb_base  = 203;
 $recovery_port = 19201;
-
-$username = "XXXX";
-$passwd   = "YYYY";
 
 print "EkaProp efhPhlxOrdInitCtxEntries_B[] = {\n";
 for ($i=0; $i<$groups;$i++) {    
