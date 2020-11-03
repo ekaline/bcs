@@ -187,6 +187,7 @@ struct EkaIgmpV2Hdr {
 };
 
 
+// MoldUdp64
 struct mold_hdr {
   uint8_t	session_id[10];
   uint64_t	sequence;
@@ -195,6 +196,16 @@ struct mold_hdr {
 
 #define EKA_MOLD_SEQUENCE(hdr) (be64toh(((struct mold_hdr *)hdr)->sequence))
 #define EKA_MOLD_MSG_CNT(hdr) (be16toh(((struct mold_hdr *)hdr)->message_cnt))
+
+// Mold for Phlx Orders (MolDUdp)
+struct PhlxMoldHdr { 
+  uint8_t	session_id[10];
+  uint32_t	sequence;
+  uint16_t	message_cnt;
+} __attribute__((packed));
+#define EKA_PHLX_MOLD_SEQUENCE(hdr) (((struct PhlxMoldHdr *)hdr)->sequence)
+#define EKA_PHLX_MOLD_MSG_CNT(hdr) (be16toh(((struct PhlxMoldHdr *)hdr)->message_cnt))
+
 
 #endif //_EKA_NW_HEADERS_H
 

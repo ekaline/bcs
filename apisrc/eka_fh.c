@@ -35,6 +35,7 @@
 
 void* eka_get_glimpse_data(void* attr);
 void* eka_get_mold_retransmit_data(void* attr);
+void* eka_get_phlx_mold_retransmit_data(void* attr);
 void* eka_get_spin_data(void* attr);
 void* eka_get_grp_retransmit_data(void* attr);
 void* eka_get_sesm_data(void* attr);
@@ -174,6 +175,9 @@ int EkaFh::openGroups(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
       break;
     case EkaSource::kPHLX_TOPO:
       b_gr[i] =  new FhPhlxGr();
+      break;
+    case EkaSource::kPHLX_ORD:
+      b_gr[i] =  new FhPhlxOrdGr();
       break;
     case EkaSource::kC1_PITCH:
     case EkaSource::kC2_PITCH:
@@ -457,6 +461,12 @@ static int closeGap(EkaFhMode op, EfhCtx* pEfhCtx,const EfhRunCtx* pEfhRunCtx,Fh
     else
       dev->createThread(threadName.c_str(),EkaThreadType::kFeedRecovery,eka_get_mold_retransmit_data,(void*)attr,dev->createThreadContext,(uintptr_t*)&gr->retransmit_thread);   
     break;
+  case EkaSource::kPHLX_ORD :
+    if (op == EkaFhMode::SNAPSHOT) 
+      dev->createThread(threadName.c_str(),EkaThreadType::kFeedSnapshot,eka_get_glimpse_data,        (void*)attr,dev->createThreadContext,(uintptr_t*)&gr->snapshot_thread);   
+    else
+      dev->createThread(threadName.c_str(),EkaThreadType::kFeedRecovery,eka_get_phlx_mold_retransmit_data,(void*)attr,dev->createThreadContext,(uintptr_t*)&gr->retransmit_thread);   
+    break;
   case EkaSource::kC1_PITCH   :
   case EkaSource::kC2_PITCH   :
   case EkaSource::kBZX_PITCH  :
@@ -594,6 +604,32 @@ uint8_t* FhNasdaq::getUdpPkt(FhRunGr* runGr, uint* msgInPkt, uint64_t* sequence,
   }
   *msgInPkt = msgCnt;
   *sequence = EKA_MOLD_SEQUENCE(pkt);
+  *gr_id = grId;
+  return pkt;
+}
+/* ##################################################################### */
+uint8_t* FhPhlxOrd::getUdpPkt(FhRunGr* runGr, uint* msgInPkt, uint64_t* sequence,uint8_t* gr_id) {
+  uint8_t* pkt = (uint8_t*)runGr->udpCh->get();
+  if (pkt == NULL) on_error("%s: pkt == NULL",EKA_EXCH_DECODE(exch));
+  uint msgCnt = EKA_PHLX_MOLD_MSG_CNT(pkt);
+  uint8_t grId = getGrId(pkt);
+  if (msgCnt == 0xFFFF) {
+    runGr->stoppedByExchange = true;
+    return NULL; // EndOfMold
+  }
+  if (grId == 0xFF || (! runGr->isMyGr(grId)) || b_gr[grId] == NULL || b_gr[grId]->q == NULL) { 
+    if (grId != 0) EKA_LOG("RunGr%u: Skipping gr_id = %u not belonging to %s",runGr->runId,grId,runGr->list2print);
+    runGr->udpCh->next(); 
+    return NULL;
+  }
+  FhGroup* gr = b_gr[grId];
+  if (gr->firstPkt) {
+    memcpy((uint8_t*)gr->session_id,((PhlxMoldHdr*)pkt)->session_id,10);
+    gr->firstPkt = false;
+    EKA_LOG("%s:%u session_id is set to %s",EKA_EXCH_DECODE(exch),grId,(char*)gr->session_id + '\0');
+  }
+  *msgInPkt = msgCnt;
+  *sequence = EKA_PHLX_MOLD_SEQUENCE(pkt);
   *gr_id = grId;
   return pkt;
 }
@@ -848,7 +884,7 @@ EkaOpResult FhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
   initGroups(pEfhCtx, pEfhRunCtx, runGr);
 
-  if (exch == EkaSource::kPHLX_TOPO && isPreTradeTime(9,27)) {
+  if ((exch == EkaSource::kPHLX_TOPO || exch == EkaSource::kPHLX_ORD) && isPreTradeTime(9,27)) {
     for (uint8_t j = 0; j < runGr->numGr; j++) {
       uint8_t grId = runGr->groupList[j];
       EKA_LOG("%s:%u: Running PreTrade Snapshot",EKA_EXCH_DECODE(exch),b_gr[grId]->id);
@@ -904,7 +940,7 @@ EkaOpResult FhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       break;
       //-----------------------------------------------------------------------------
     case FhGroup::GrpState::SNAPSHOT_GAP : {
-      if (exch == EkaSource::kPHLX_TOPO) {
+      if (exch == EkaSource::kPHLX_TOPO || exch == EkaSource::kPHLX_ORD) {
 	if (sequence + msgInPkt < gr->recovery_sequence) {
 	  gr->gapClosed = true;
 	  gr->snapshot_active = false;

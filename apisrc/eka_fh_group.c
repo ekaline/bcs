@@ -224,6 +224,13 @@ int FhPhlxGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
   return 0;
 }
 
+int FhPhlxOrdGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
+  book = new NomBook(pEfhCtx,pEfhInitCtx,this);
+  if (book == NULL) on_error("book == NULL, &book = %p",&book);
+  ((NomBook*)book)->init();
+  return 0;
+}
+
 int FhGemGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
   book = new TobBook(pEfhCtx,pEfhInitCtx,this);
   ((TobBook*)book)->init();
