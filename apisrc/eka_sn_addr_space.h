@@ -9,6 +9,11 @@ enum addresses {
     ENABLE_PORT = 0xf0020,    // bit 0..7 - enable RX
                               // bit 16..23 - enable fire cores
     SW_STATISTICS = 0xf0770,
+
+    // scratchpad
+    SW_SCRATCHPAD_BASE = 0x84000, //12bit 4kB address space
+    SW_SCRATCHPAD_SIZE = 4*1024,
+
 //P4
     P4_ARM_DISARM = 0xf07c8,
     P4_STRAT_CONF = 0xf07c0,

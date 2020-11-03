@@ -92,6 +92,8 @@ void EkaUdpChannel::igmp_mc_join (uint32_t src_ip, uint32_t mcast_ip, uint16_t m
   EKA_LOG("IGMP joined %s:%u for HW UDP Channel from coreId = %u, ip = %s, vlanTag = %d",
 	  ip,be16toh(mcast_port),core,EKA_IP2STR(src_ip),vlanTag);
 
+  saveMcStat(dev,core,mcast_ip);
+
   //----------------------------------------------
   /* struct ip_mreq mreq = {}; */
   /* mreq.imr_interface.s_addr = dev->core[0].src_ip; */

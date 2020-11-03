@@ -112,7 +112,7 @@ static void sendLogout (FhGroup* gr) {
 static bool getLoginResponse(FhGroup* gr) {
   EkaDev* dev = gr->dev;
 
-  soupbin soupbin_hdr ={};
+  soupbin_header soupbin_hdr ={};
   if (recv(gr->snapshot_sock,&soupbin_hdr,sizeof(struct soupbin),MSG_WAITALL) <= 0) 
     on_error("%s:%u Glimpse connection reset by peer after Login (failed to receive SoupbinHdr), gr->snapshot_sock = %d",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock);
