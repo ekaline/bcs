@@ -25,6 +25,7 @@ class EkaDev {
  public:
   EkaDev(const EkaDevInitCtx* initCtx);
   ~EkaDev();
+  int clearHw();
 
   void     eka_write(uint64_t addr, uint64_t val);
   uint64_t eka_read(uint64_t addr);
@@ -112,8 +113,9 @@ class EkaDev {
 
   bool                      print_parsed_messages;
 
-  static const uint64_t     statGlobalCoreAddrBase = SW_SCRATCHPAD_BASE;
-  static const uint64_t     statMcCoreAddrBase     = SW_SCRATCHPAD_BASE + 8 * MAX_CORES;
+  /* static const uint64_t     statSwVersion          = SW_SCRATCHPAD_BASE; */
+  /* static const uint64_t     statGlobalCoreAddrBase = statSwVersion + 8; */
+  /* static const uint64_t     statMcCoreAddrBase     = statGlobalCoreAddrBase + 8 * MAX_CORES; */
   volatile int              statNumUdpSess[MAX_CORES] = {};
   volatile uint32_t         statMcGrCore[EKA_MAX_UDP_SESSIONS_PER_CORE][MAX_CORES] = {};
 
@@ -153,11 +155,11 @@ inline void saveMcStat(EkaDev* dev, uint8_t coreId, uint32_t mcast_ip) {
   int currSess = dev->statNumUdpSess[coreId];
   dev->statMcGrCore[coreId][currSess] = /* (volatile uint32_t) */mcast_ip;
   uint globalSessId = coreId * EKA_MAX_UDP_SESSIONS_PER_CORE + currSess;
-  uint64_t statMcIpAddr = dev->statMcCoreAddrBase + globalSessId * 8;
+  uint64_t statMcIpAddr = SCRPAD_CORE_MC_IP_BASE + globalSessId * 8;
   eka_write(dev,statMcIpAddr,mcast_ip);
 
   dev->statNumUdpSess[coreId]++;
-  uint64_t statNumUdpSessAddr = dev->statGlobalCoreAddrBase + 8 * coreId;
+  uint64_t statNumUdpSessAddr = SCRPAD_CORE_BASE + 8 * coreId;
   testScratchPadAddr(statNumUdpSessAddr);
 
   eka_write(dev,statNumUdpSessAddr,dev->statNumUdpSess[coreId]);

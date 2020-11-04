@@ -161,11 +161,7 @@ void onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData user
 
   if (! print_tob_updates) return;
 
-
-#ifdef EKA_TEST_IGNORE_DEFINITIONS
-#else
   int file_idx = (uint8_t)(msg->header.group.localId);
-#endif
 
   /* int file_idx = gr2fileIdx((uint8_t)(msg->header.group.localId)); */
 

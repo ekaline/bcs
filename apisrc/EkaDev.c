@@ -50,6 +50,35 @@ void* igmp_thread (void* attr) {
 
   return NULL;
 }
+/* ##################################################################### */
+
+static void str_time_from_nano(uint64_t current_time, char* time_str){
+  int nano = current_time % 1000;
+  int micro = (current_time/1000) % 1000;
+  int mili = (current_time/(1000*1000)) % 1000;
+  int current_time_seconds = current_time/(1000*1000*1000);
+  time_t tmp = current_time_seconds;
+  struct tm lt;
+  (void) localtime_r(&tmp, &lt);
+  char result[32] = {};
+  strftime(result, sizeof(result), "%Y-%m-%d %H:%M:%S", &lt);
+  sprintf(time_str," %s.%03d.%03d.%03d", result, mili, micro, nano);
+  return;
+}
+/* ##################################################################### */
+
+static uint64_t getFpgaTimeCycles () { // ignores Application - PCIe - FPGA latency
+  struct timespec t;
+  clock_gettime(CLOCK_REALTIME, &t); // 
+  uint64_t current_time_ns = ((uint64_t)(t.tv_sec) * (uint64_t)1000000000 + (uint64_t)(t.tv_nsec));
+  uint64_t current_time_cycles = (current_time_ns * (EKA_FPGA_FREQUENCY / 1000.0));
+  /* eka_write(dev,FPGA_RT_CNTR,current_time_cycles); */
+  /* char t_str[64] = {}; */
+  /* str_time_from_nano(current_time_ns,t_str); */
+  /* EKA_LOG("setting HW time to %s",t_str); */
+  return current_time_cycles;
+}
+
 
 /* ##################################################################### */
 
@@ -151,8 +180,24 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   //  dev->createThread("IO_THREAD",EkaThreadType::kPacketIO,io_thread_loop,(void*)dev,createThreadContext,(uintptr_t*)&io_thr);
 
   print_parsed_messages = false;
+
+  clearHw();
+  eka_write(FPGA_RT_CNTR,getFpgaTimeCycles());
+  eka_write(SCRPAD_SW_VER,EKA_CORRECT_SW_VER | hwEnabledCores);
+
 }
 
+static void set_time (EkaDev* dev) { // ignores Application - PCIe - FPGA latency
+  struct timespec t;
+  clock_gettime(CLOCK_REALTIME, &t); // 
+  uint64_t current_time_ns = ((uint64_t)(t.tv_sec) * (uint64_t)1000000000 + (uint64_t)(t.tv_nsec));
+  uint64_t current_time_cycles = (current_time_ns * (EKA_FPGA_FREQUENCY / 1000.0));
+  eka_write(dev,FPGA_RT_CNTR,current_time_cycles);
+  char t_str[64] = {};
+  str_time_from_nano(current_time_ns,t_str);
+  EKA_LOG("setting HW time to %s",t_str);
+  return;
+}
 
 int EkaDev::configurePort(const EkaCoreInitCtx* pCoreInit) {
   uint8_t c = pCoreInit->coreId;
@@ -221,6 +266,11 @@ EkaDev::~EkaDev() {
     delete core[c];
   }
 
+  // Clesed Dev indication
+  uint64_t val = eka_read(SW_STATISTICS);
+  val = val & 0x7fffffffffffffff;
+  eka_write(SW_STATISTICS, val);
+
   delete snDev;
 
 }
@@ -262,4 +312,21 @@ void     EkaDev::eka_write(uint64_t addr, uint64_t val) {
 }
 uint64_t EkaDev::eka_read(uint64_t addr) { 
   return snDev->read(addr); 
+}
+
+
+int EkaDev::clearHw() {
+  eka_write(STAT_CLEAR   ,(uint64_t) 1); // Clearing HW Statistics
+  eka_write(SW_STATISTICS,(uint64_t) 0); // Clearing SW Statistics
+  eka_write(P4_STRAT_CONF,(uint64_t) 0); // Clearing Strategy params
+
+  eka_read(0xf0728); // Clearing Interrupts
+  eka_read(0xf0798); // Clearing Interrupts
+
+  for (uint64_t p = 0; p < SW_SCRATCHPAD_SIZE/8; p++) 
+    eka_write(SW_SCRATCHPAD_BASE +8*p,(uint64_t) 0);
+
+  // Open Dev indication
+  eka_write(SW_STATISTICS, (1ULL<<63));
+  return 0;
 }

@@ -1,6 +1,7 @@
 #ifndef _EKA_SN_ADDR_SPACE_H_
 #define _EKA_SN_ADDR_SPACE_H_
 
+#include "eka_hw_conf.h"
 
 enum addresses {
 //General
@@ -11,8 +12,8 @@ enum addresses {
     SW_STATISTICS = 0xf0770,
 
     // scratchpad
-    SW_SCRATCHPAD_BASE = 0x84000, //12bit 4kB address space
-    SW_SCRATCHPAD_SIZE = 4*1024,
+    SW_SCRATCHPAD_BASE = SCRATCHPAD_BASE, //12bit 4kB address space
+    SW_SCRATCHPAD_SIZE = SCRATCHPAD_SIZE,
 
 //P4
     P4_ARM_DISARM = 0xf07c8,
