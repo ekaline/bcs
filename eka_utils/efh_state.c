@@ -113,7 +113,7 @@ int getNwParams(IfParams coreParams[NUM_OF_CORES]) {
     int           sck, nInterfaces;
 
     std::string portNameFETH   = std::string("feth")   + std::to_string(coreId);
-    std::string portNameFPGA0_ = std::string("fpfa0_") + std::to_string(coreId);
+    std::string portNameFPGA0_ = std::string("fpga0_") + std::to_string(coreId);
 
     /* Get a socket handle. */
     sck = socket(AF_INET, SOCK_DGRAM, 0);
