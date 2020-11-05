@@ -574,7 +574,7 @@ int EkaTcpSess::sendPayload(void *buf, int len) {
      memcpy((uint8_t*)base_addr,pPktBuf,64);
      base_addr += 64;
      pPktBuf += 8;
-     _mm_mfence();
+     //     _mm_mfence();
   }
   //  EKA_LOG("len = %u, totalPktLen = %u, words64 = %u, copied %u Bytes",size2send, totalPktLen, words64, words64 * 64);
 #else
