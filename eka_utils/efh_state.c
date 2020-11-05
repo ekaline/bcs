@@ -44,7 +44,8 @@ const char* colStringFormat = "| %20s ";
 const char* colStringFormatGrn = GRN "| %20s " RESET;
 const char* colStringFormatRed = RED "| %20s " RESET;
 const char* colSmallNumFieldFormat  = "| %17s%3d ";
-const char* colformat="| %'-16ju     ";
+const char* colformat="|    %'-16ju  ";
+const int   colLen = 22;
 
 //################################################
 
@@ -230,7 +231,17 @@ int printHeader(IfParams coreParams[NUM_OF_CORES]) {
   }
   printf("\n");
   /* ----------------------------------------- */
-  printf("%s",emptyPrefix);
+  printf("%s",std::string(strlen(emptyPrefix),'-').c_str());
+  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
+    if (! coreParams[coreId].valid) continue;
+    printf("+%s", std::string(colLen,'-').c_str());
+  }
+  printf("\n");
+  /* ----------------------------------------- */
+
+  //  printf("%s",emptyPrefix);
+  printf (prefixStrFormat,"Link status");
+
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
 
@@ -244,7 +255,9 @@ int printHeader(IfParams coreParams[NUM_OF_CORES]) {
   }
   printf("\n");
   /* ----------------------------------------- */
-  printf("%s",emptyPrefix);
+  //  printf("%s",emptyPrefix);
+  printf (prefixStrFormat,"IP");
+
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
     if (coreParams[coreId].ip == 0) printf(colStringFormatRed,"NO IP SET  ");
@@ -252,7 +265,9 @@ int printHeader(IfParams coreParams[NUM_OF_CORES]) {
   }
   printf("\n");
   /* ----------------------------------------- */
-  printf("%s",emptyPrefix);
+  //  printf("%s",emptyPrefix);
+  printf (prefixStrFormat,"MAC");
+
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
 
@@ -261,11 +276,15 @@ int printHeader(IfParams coreParams[NUM_OF_CORES]) {
   }
   printf("\n");
   /* ----------------------------------------- */
-  printf("%s",emptyPrefix);
+  //  printf("%s",emptyPrefix);
+  printf (prefixStrFormat,"Joined MC groups");
+
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
 
-    printf(colSmallNumFieldFormat,"Joined MC groups:",coreParams[coreId].mcGrps);
+    //    printf(colSmallNumFieldFormat,"",coreParams[coreId].mcGrps);
+    printf (colformat,coreParams[coreId].mcGrps);
+
   }
   printf("\n");
   /* ----------------------------------------- */
