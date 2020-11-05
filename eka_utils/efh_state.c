@@ -202,6 +202,8 @@ void checkVer() {
 int getMcNum(IfParams coreParams[NUM_OF_CORES]) {
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     coreParams[coreId].mcGrps = reg_read(SCRPAD_CORE_BASE + 8 * coreId);
+    if (coreParams[coreId].mcGrps > EKA_MAX_UDP_SESSIONS_PER_CORE)
+      coreParams[coreId].mcGrps = 0;
   }
   return 0;
 }
