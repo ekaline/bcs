@@ -1,3 +1,5 @@
+/* SHURIK */
+
 #include "Exc.h"
 #include "Eka.h"
 #include "Efc.h"
@@ -271,11 +273,11 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
     serviceActionAddr         += ActionBudget;
 
     actionBitParams.bitmap.action_valid = 1;
-    actionBitParams.bitmap.israw      = 0;
-    actionBitParams.bitmap.report_en  = 0;
-    actionBitParams.bitmap.feedbck_en = 1;
-    dataTemplateAddr = tcpFastPathPkt->getDataTemplateAddr();
-    templateId       = tcpFastPathPkt->id;
+    actionBitParams.bitmap.israw        = 0;
+    actionBitParams.bitmap.report_en    = 0;
+    actionBitParams.bitmap.feedbck_en   = 1;
+    dataTemplateAddr                    = tcpFastPathPkt->getDataTemplateAddr();
+    templateId                          = tcpFastPathPkt->id;
     strcpy(actionName,"TcpFastPath");
     break;
 
@@ -290,11 +292,11 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
     serviceActionAddr         += ActionBudget;
 
     actionBitParams.bitmap.action_valid = 1;
-    actionBitParams.bitmap.israw      = 1;
-    actionBitParams.bitmap.report_en  = 0;
-    actionBitParams.bitmap.feedbck_en = 0;
-    dataTemplateAddr = rawPkt->getDataTemplateAddr();
-    templateId       = rawPkt->id;
+    actionBitParams.bitmap.israw        = 1;
+    actionBitParams.bitmap.report_en    = 0;
+    actionBitParams.bitmap.feedbck_en   = 0;
+    dataTemplateAddr                    = rawPkt->getDataTemplateAddr();
+    templateId                          = rawPkt->id;
     strcpy(actionName,"TcpFullPkt");
     break;
 
@@ -309,12 +311,12 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
     serviceActionAddr         += ActionBudget;
 
     actionBitParams.bitmap.action_valid = 1;
-    actionBitParams.bitmap.israw      = 0;
-    actionBitParams.bitmap.report_en  = 0;
-    actionBitParams.bitmap.feedbck_en = 0;
+    actionBitParams.bitmap.israw        = 0;
+    actionBitParams.bitmap.report_en    = 0;
+    actionBitParams.bitmap.feedbck_en   = 0;
 
-    dataTemplateAddr = tcpFastPathPkt->getDataTemplateAddr();
-    templateId       = tcpFastPathPkt->id;
+    dataTemplateAddr                    = tcpFastPathPkt->getDataTemplateAddr();
+    templateId                          = tcpFastPathPkt->id;
     strcpy(actionName,"TcpEmptyAck");
     break;
 
@@ -330,9 +332,9 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
     userActionAddr            += ActionBudget;
 
     actionBitParams.bitmap.action_valid = 1;
-    actionBitParams.bitmap.israw      = 0;
-    actionBitParams.bitmap.report_en  = 1;
-    actionBitParams.bitmap.feedbck_en = 1;
+    actionBitParams.bitmap.israw        = 0;
+    actionBitParams.bitmap.report_en    = 1;
+    actionBitParams.bitmap.feedbck_en   = 1;
 
     actionBitParams.bitmap.empty_report_en = 1;
 

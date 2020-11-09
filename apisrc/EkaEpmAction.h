@@ -1,10 +1,9 @@
+/* SHURIK */
+
 #ifndef _EKA_EPM_ACTION_H_
 #define _EKA_EPM_ACTION_H_
 
-#include "EkaHwInternalStructs.h"
-#include "EkaCore.h"
 #include "EkaEpm.h"
-#include "EpmStrategy.h"
 
 class EkaEpmAction {
  public:

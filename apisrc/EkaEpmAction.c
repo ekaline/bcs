@@ -1,14 +1,11 @@
+/* SHURIK */
+
 #include "EkaEpmAction.h"
 #include "EkaDev.h"
 #include "ekaNW.h"
 #include "EkaTcpSess.h"
 
 uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size);
-uint32_t calcEmptyPktPseudoCsum (EkaIpHdr* ipHdr, EkaTcpHdr* tcpHdr);
-uint16_t calc_tcp_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size);
-
-unsigned int pseudo_csum(unsigned short *ptr,int nbytes);
-uint16_t pseudo_csum2csum (uint32_t pseudo);
 unsigned short csum(unsigned short *ptr,int nbytes);
 
 EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,

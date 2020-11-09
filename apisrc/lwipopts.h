@@ -172,6 +172,20 @@ void sys_mark_tcpip_thread();
 
 #define MEMP_NUM_TCP_PCB_LISTEN         8
 
+/**
+ * MEMP_NUM_TCP_SEG: the number of simultaneously queued TCP segments.
+ * (requires the LWIP_TCP option)
+ */
+
+#define MEMP_NUM_TCP_SEG                256
+
+/**
+ * MEMP_NUM_TCPIP_MSG_API: the number of struct tcpip_msg, which are used
+ * for callback/timeout API communication.
+ * (only needed if you use tcpip.c)
+ */
+
+#define MEMP_NUM_TCPIP_MSG_API          256
 
 /**
  * MEMP_NUM_REASSDATA: the number of IP packets simultaneously queued for
@@ -180,6 +194,14 @@ void sys_mark_tcpip_thread();
 
 #define MEMP_NUM_REASSDATA              256
 
+
+/**
+ * MEMP_NUM_TCPIP_MSG_INPKT: the number of struct tcpip_msg, which are used
+ * for incoming packets.
+ * (only needed if you use tcpip.c)
+ */
+
+#define MEMP_NUM_TCPIP_MSG_INPKT        256
 
 
 /**
@@ -558,7 +580,7 @@ void sys_mark_tcpip_thread();
 
 #define TCP_MSS                         (1536)
 
-#define TCP_WND                         (4 * TCP_MSS)
+#define TCP_WND                         (32 * TCP_MSS)
 
 /* #define TCP_SNDLOWAT                    (4 * TCP_MSS) */
 
@@ -581,7 +603,7 @@ void sys_mark_tcpip_thread();
  * To achieve good performance, this should be at least 2 * TCP_MSS.
  */
 
-#define TCP_SND_BUF                     (4 * TCP_MSS)
+#define TCP_SND_BUF                     (32 * TCP_MSS)
 
 
 /**

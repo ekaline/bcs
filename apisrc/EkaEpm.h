@@ -1,3 +1,5 @@
+/* SHURIK */
+
 #ifndef _EKA_EPM_H_
 #define _EKA_EPM_H_
 
@@ -184,9 +186,9 @@ class EkaEpm {
   volatile bool active = false;
   EkaDev* dev = NULL;
 
-  uint         templatesNum = 0;
-  EpmTemplate* tcpFastPathPkt;
-  EpmTemplate* rawPkt;
+  uint         templatesNum   = 0;
+  EpmTemplate* tcpFastPathPkt = NULL;
+  EpmTemplate* rawPkt         = NULL;
 
   bool              initialized = false;
 

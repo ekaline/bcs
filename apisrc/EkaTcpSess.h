@@ -39,7 +39,7 @@ class EkaTcpSess {
   int readyToSend();
 
   ssize_t recv(void *buffer, size_t size);
-  //  int     close();
+  int     close();
 
   ~EkaTcpSess();
 
@@ -60,13 +60,13 @@ class EkaTcpSess {
   static const uint MAX_PAYLOAD_SIZE  = MAX_PKT_SIZE - 14 - 20 - 20;
   static const uint16_t EkaIpId       = 0x0;
 
-  EkaEpmAction* fastPathAction;
-  EkaEpmAction* fullPktAction;
-  EkaEpmAction* emptyAckAction;
+  EkaEpmAction* fastPathAction = NULL;
+  EkaEpmAction* fullPktAction = NULL;
+  EkaEpmAction* emptyAckAction = NULL;
 
   epm_trig_desc_t emptyAcktrigger = {};
 
-  EkaCore* parent;
+  EkaCore* parent = NULL;
 
   uint8_t  coreId;
   uint8_t  sessId;
@@ -98,14 +98,13 @@ class EkaTcpSess {
   EkaTcpHdr* tcpHdr     = (EkaTcpHdr*) (((uint8_t*)ipHdr ) + sizeof(EkaIpHdr));
   uint8_t*   tcpPayload = (uint8_t*)tcpHdr + sizeof(EkaTcpHdr);
 
-  uint8_t   macSa[6];
-  uint8_t   macDa[6];
+  uint8_t   macSa[6] = {};
+  uint8_t   macDa[6] = {};
+
+  int  setRemoteSeqWnd2FPGA();
+  int  setLocalSeqWnd2FPGA();
 
  private:
-
-int  setRemoteSeqWnd2FPGA();
-int  setLocalSeqWnd2FPGA();
-
   typedef union exc_table_desc {
     uint64_t desc;
     struct fields {
@@ -116,7 +115,7 @@ int  setLocalSeqWnd2FPGA();
     } __attribute__((packed)) td;
   } __attribute__((packed)) exc_table_desc_t;
 
-  EkaDev* dev;
+  EkaDev* dev = NULL;
 
   bool connectionEstablished = false;
 };

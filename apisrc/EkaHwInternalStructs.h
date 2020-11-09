@@ -1,3 +1,5 @@
+/* SHURIK */
+
 #ifndef _EKA_HW_INTERNAL_STRUCTS_H_
 #define _EKA_HW_INTERNAL_STRUCTS_H_
 
