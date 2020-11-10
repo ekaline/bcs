@@ -13,32 +13,26 @@ $groups = $#ARGV == 0 ? $ARGV[0] : 4;
 $exch_name = "PHLX_ORD";
 
 
-$mc_port = 19101;
-$mc_base = "233.47.179.";
-$mc_lsb_base  = 140;
+$mc_port            = 18064;
+$mc_base            = "233.47.179.";
+$mc_lsb_base        = 120;
 
-$snapshot_ip   = "159.79.3.";
-$snapshot_lsb_base  = 138;
-$snapshot_port = 19201;
+$snapshot_ip        = "206.200.151.";
+$snapshot_lsb_base  = 34;
+$snapshot_port      = 18164;
 
-$recovery_ip   = "159.79.3.";
-$recovery_lsb_base  = 139;
-$recovery_port = 19201;
+$recovery_ip        = $snapshot_ip;
+$recovery_lsb_base  = $snapshot_lsb_base;
+$recovery_port      = $snapshot_port;
 
 $username = "STRK01";
 $passwd   = "6EUG2W";
 
 print "EkaProp efhPhlxOrdInitCtxEntries_A[] = {\n";
 for ($i=0; $i<$groups;$i++) {    
-    if ($i == 3) {
-	$mc_lsb      = $mc_lsb_base;
-	$snapshot_lsb = $snapshot_lsb_base + 8;
-	$recovery_lsb = $recovery_lsb_base + 8;
-    } else {
-	$mc_lsb        = $mc_lsb_base       + $i + 1;
-	$snapshot_lsb  = $snapshot_lsb_base + 2 * $i;
-	$recovery_lsb  = $recovery_lsb_base + 2 * $i;
-    }
+    $mc_lsb        = $mc_lsb_base       + $i;
+    $snapshot_lsb  = $snapshot_lsb_base + $i;
+    $recovery_lsb  = $recovery_lsb_base + $i;
 
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\"   ,\"$mc_base$mc_lsb:$mc_port\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"$snapshot_ip$snapshot_lsb:$snapshot_port\"\}, \t// TCP SOUPBIN\n";
@@ -52,29 +46,23 @@ for ($i=0; $i<$groups;$i++) {
 }
 print "};\n\n";
 #####################################################
-$mc_port = 19101;
-$mc_base = "233.47.179.";
-$mc_lsb_base  = 156;
+$mc_port            = 18064;
+$mc_base            = "233.47.179.";
+$mc_lsb_base        = 184;
 
-$snapshot_ip   = "159.79.3.";
-$snapshot_lsb_base  = 202;
-$snapshot_port = 19201;
+$snapshot_ip        = "206.200.151.";
+$snapshot_lsb_base  = 98;
+$snapshot_port      = 18164;
 
-$recovery_ip   = "159.79.3.";
-$recovery_lsb_base  = 203;
-$recovery_port = 19201;
+$recovery_ip        = $snapshot_ip;
+$recovery_lsb_base  = $snapshot_lsb_base;
+$recovery_port      = $snapshot_port;
 
 print "EkaProp efhPhlxOrdInitCtxEntries_B[] = {\n";
 for ($i=0; $i<$groups;$i++) {    
-    if ($i == 3) {
-	$mc_lsb      = $mc_lsb_base;
-	$snapshot_lsb = $snapshot_lsb_base + 8;
-	$recovery_lsb = $recovery_lsb_base + 8;
-    } else {
-	$mc_lsb        = $mc_lsb_base       + $i + 1;
-	$snapshot_lsb  = $snapshot_lsb_base + 2 * $i;
-	$recovery_lsb  = $recovery_lsb_base + 2 * $i;
-    }
+    $mc_lsb        = $mc_lsb_base       + $i;
+    $snapshot_lsb  = $snapshot_lsb_base + $i;
+    $recovery_lsb  = $recovery_lsb_base + $i;
 
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\"   ,\"$mc_base$mc_lsb:$mc_port\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"$snapshot_ip$snapshot_lsb:$snapshot_port\"\}, \t// TCP SOUPBIN\n";
