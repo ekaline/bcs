@@ -150,6 +150,7 @@ class FhPhlxOrd : public FhNasdaq {
 public:
   //  EkaOpResult runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId );
   uint8_t* getUdpPkt(FhRunGr* runGr, uint* msgInPkt, uint64_t* sequence,uint8_t* gr_id);
+  bool processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhNasdaqGr* gr, const uint8_t* pkt, uint msgInPkt, uint64_t sequence);
   virtual ~FhPhlxOrd() {};
 private:
 

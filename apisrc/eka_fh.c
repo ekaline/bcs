@@ -705,6 +705,21 @@ bool FhNasdaq::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhNasdaqGr* gr, const u
   return false;
 }
 /* ##################################################################### */
+bool FhPhlxOrd::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhNasdaqGr* gr, const uint8_t* pkt, uint msgInPkt, uint64_t seq) {
+  uint indx = sizeof(PhlxMoldHdr);
+  uint64_t sequence = seq;
+  for (uint msg=0; msg < msgInPkt; msg++) {
+    uint16_t msg_len = be16toh((uint16_t) *(uint16_t*)&(pkt[indx]));
+    uint8_t* msgData = (uint8_t*)&pkt[indx + sizeof(msg_len)];
+    //-----------------------------------------------------------------------------
+    if (gr->parseMsg(pEfhRunCtx,msgData,sequence++,EkaFhMode::MCAST)) return true;
+    //-----------------------------------------------------------------------------
+    gr->expected_sequence = sequence;
+    indx += msg_len + sizeof(msg_len);
+  }
+  return false;
+}
+/* ##################################################################### */
 bool FhMiax::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhMiaxGr* gr, const uint8_t* pkt, int16_t pktLen) {
   if (pktLen < (int)sizeof(EkaMiaxMach)) on_error ("pktLen = %d < sizeof(EkaMiaxMach) %ju",pktLen,sizeof(EkaMiaxMach));
   int16_t processedBytes = 0;
