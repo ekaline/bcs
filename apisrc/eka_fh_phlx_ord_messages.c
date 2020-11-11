@@ -170,7 +170,7 @@ bool FhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
   }
 
     /* -------------------------------------------------- */
-  case 'p': { // phlx_ord_security_open_closed
+  case 'P': { // phlx_ord_security_open_closed
     phlx_ord_security_open_closed  *message = (phlx_ord_security_open_closed *)m;
     uint32_t security_id = be32toh(message->option_id);
     fh_b_security* s = ((NomBook*)book)->find_security(security_id);

@@ -709,7 +709,7 @@ bool FhPhlxOrd::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhNasdaqGr* gr, const 
   uint indx = sizeof(PhlxMoldHdr);
   uint64_t sequence = seq;
   for (uint msg=0; msg < msgInPkt; msg++) {
-    uint16_t msg_len = be16toh((uint16_t) *(uint16_t*)&(pkt[indx]));
+    uint16_t msg_len = (uint16_t) *(uint16_t*)&(pkt[indx]);
     uint8_t* msgData = (uint8_t*)&pkt[indx + sizeof(msg_len)];
     //-----------------------------------------------------------------------------
     if (gr->parseMsg(pEfhRunCtx,msgData,sequence++,EkaFhMode::MCAST)) return true;

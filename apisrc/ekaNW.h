@@ -204,7 +204,7 @@ struct PhlxMoldHdr {
   uint16_t	message_cnt;
 } __attribute__((packed));
 #define EKA_PHLX_MOLD_SEQUENCE(hdr) (((struct PhlxMoldHdr *)hdr)->sequence)
-#define EKA_PHLX_MOLD_MSG_CNT(hdr) (be16toh(((struct PhlxMoldHdr *)hdr)->message_cnt))
+#define EKA_PHLX_MOLD_MSG_CNT(hdr) (((struct PhlxMoldHdr *)hdr)->message_cnt)
 
 
 #endif //_EKA_NW_HEADERS_H
