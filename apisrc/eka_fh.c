@@ -802,6 +802,20 @@ void FhNasdaq::pushUdpPkt2Q(FhNasdaqGr* gr, const uint8_t* pkt, uint msgInPkt, u
   return;
 }
 /* ##################################################################### */
+void FhPhlxOrd::pushUdpPkt2Q(FhNasdaqGr* gr, const uint8_t* pkt, uint msgInPkt, uint64_t sequence,int8_t gr_id) {
+  uint indx = sizeof(PhlxMoldHdr);
+  for (uint msg=0; msg < msgInPkt; msg++) {
+    uint16_t msg_len = (uint16_t) *(uint16_t*)&(pkt[indx]);
+    assert (msg_len <= fh_msg::MSG_SIZE);
+    fh_msg* n = gr->q->push();
+    memcpy (n->data,&pkt[indx+sizeof(msg_len)],msg_len);
+    n->sequence = sequence++;
+    n->gr_id = gr_id;
+    indx += msg_len + sizeof(msg_len);
+  }
+  return;
+}
+/* ##################################################################### */
 void FhBox::pushUdpPkt2Q(FhBoxGr* gr, const uint8_t* pkt, int16_t pktLen, int8_t gr_id) {
   uint8_t* p = (uint8_t*)pkt;
   int idx = 0;
