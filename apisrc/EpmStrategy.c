@@ -73,7 +73,6 @@ bool EpmStrategy::myAction(epm_actionid_t actionId) {
 /* ------------------------------------------------ */
 
 EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx, const EpmAction *epmAction) {
-  uint thrId = 1; // TBD
   if (actionIdx >= (int)numActions) {
     EKA_WARN("actionIdx %d >= numActions %u",actionIdx, numActions);
     return EKA_OPRESULT__ERR_INVALID_ACTION;
@@ -93,7 +92,7 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx, const EpmAction *ep
 
   ekaA->setNwHdrs(sess->macDa,sess->macSa,sess->srcIp,sess->dstIp,sess->srcPort,sess->dstPort);
 
-  ekaA->setPktPayload(thrId, &epm->heap[epmAction->offset], epmAction->length);
+  ekaA->setPktPayload(/* thrId,  */&epm->heap[epmAction->offset], epmAction->length);
 
 
 

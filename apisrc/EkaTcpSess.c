@@ -216,39 +216,39 @@ int EkaTcpSess::preloadNwHeaders() {
   fastPathAction->setNwHdrs(macDa,macSa,srcIp,dstIp,srcPort,dstPort);
   fullPktAction->setNwHdrs (macDa,macSa,srcIp,dstIp,srcPort,dstPort);
 
-  hw_session_nw_header_t hw_nw_header = {
-    .ip_cs    = be16toh(csum((unsigned short *)emptyAckAction->ipHdr, sizeof(EkaIpHdr))),
-    .dst_ip   = be32toh(dstIp),
-    .src_port = srcPort,
-    .dst_port = dstPort,
-    .tcpcs    = 0
-  };
-  /* ipHdr->_len = 0; */
+/*   hw_session_nw_header_t hw_nw_header = { */
+/*     .ip_cs    = be16toh(csum((unsigned short *)emptyAckAction->ipHdr, sizeof(EkaIpHdr))), */
+/*     .dst_ip   = be32toh(dstIp), */
+/*     .src_port = srcPort, */
+/*     .dst_port = dstPort, */
+/*     .tcpcs    = 0 */
+/*   }; */
+/*   /\* ipHdr->_len = 0; *\/ */
 
-  copyBuf2Hw(dev,
-	     HW_SESSION_NETWORK_BASE+HW_SESSION_NETWORK_CORE_OFFSET * coreId,
-	     (uint64_t*)&hw_nw_header,sizeof(hw_nw_header));
-  atomicIndirectBufWrite(dev,
-			 HW_SESSION_NETWORK_DESC_BASE + HW_SESSION_NETWORK_DESC_OFFSET * coreId,
-			 0,0,sessId,0);
+/*   copyBuf2Hw(dev, */
+/* 	     HW_SESSION_NETWORK_BASE+HW_SESSION_NETWORK_CORE_OFFSET * coreId, */
+/* 	     (uint64_t*)&hw_nw_header,sizeof(hw_nw_header)); */
+/*   atomicIndirectBufWrite(dev, */
+/* 			 HW_SESSION_NETWORK_DESC_BASE + HW_SESSION_NETWORK_DESC_OFFSET * coreId, */
+/* 			 0,0,sessId,0); */
 
-/* ---------------------------------------------------------------- */
+/* /\* ---------------------------------------------------------------- *\/ */
 
-  uint64_t write_value;
-  // macda
-  memcpy ((char*)&write_value+2, macDa, 6);
-  write_value = be64toh(write_value);
-  eka_write (dev,CORE_CONFIG_BASE+CORE_CONFIG_DELTA*coreId+CORE_MACDA_OFFSET,write_value);
+/*   uint64_t write_value; */
+/*   // macda */
+/*   memcpy ((char*)&write_value+2, macDa, 6); */
+/*   write_value = be64toh(write_value); */
+/*   eka_write (dev,CORE_CONFIG_BASE+CORE_CONFIG_DELTA*coreId+CORE_MACDA_OFFSET,write_value); */
 
-  EKA_LOG("Writing MacDA for core %u: %s",coreId,EKA_MAC2STR(macDa));
+/*   EKA_LOG("Writing MacDA for core %u: %s",coreId,EKA_MAC2STR(macDa)); */
 
-  // src ip
-  eka_write (dev,CORE_CONFIG_BASE+CORE_CONFIG_DELTA*coreId+CORE_SRC_IP_OFFSET,be32toh(srcIp));
+/*   // src ip */
+/*   eka_write (dev,CORE_CONFIG_BASE+CORE_CONFIG_DELTA*coreId+CORE_SRC_IP_OFFSET,be32toh(srcIp)); */
     
-  // macsa
-  memcpy ((char*)&write_value+2, macSa, 6);
-  write_value = be64toh(write_value);
-  eka_write (dev,CORE_CONFIG_BASE+CORE_CONFIG_DELTA*coreId+CORE_MACSA_OFFSET,write_value);
+/*   // macsa */
+/*   memcpy ((char*)&write_value+2, macSa, 6); */
+/*   write_value = be64toh(write_value); */
+/*   eka_write (dev,CORE_CONFIG_BASE+CORE_CONFIG_DELTA*coreId+CORE_MACSA_OFFSET,write_value); */
   
 /* ---------------------------------------------------------------- FastPath Headers*/
   /* ipHdr->_len = 0; // for Fast Path. Recalculated every transaction */
@@ -374,7 +374,7 @@ int EkaTcpSess::sendFullPkt(void *buf, int len) {
   /* hexDump("sendFullPkt",buf,len); */
   /* fullPktAction->print(); */
 
-  fullPktAction->setFullPkt(MAX_CTX_THREADS - 1 /* threadId */,buf,(uint)len);
+  fullPktAction->setFullPkt(/* thrId, */buf,(uint)len);
   fullPktAction->send();
 
   return 0;
@@ -451,7 +451,7 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len) {
   if (payloadSize2send <= 2) on_error("len = %d, payloadSize2send=%u,MAX_PKT_SIZE=%u",len,payloadSize2send,MAX_PAYLOAD_SIZE);
   fastPathBytes += payloadSize2send;
 
-  fastPathAction->setPktPayload(thrId, buf, payloadSize2send);
+  fastPathAction->setPktPayload(/* thrId,  */buf, payloadSize2send);
   fastPathAction->send();
 
   return payloadSize2send;

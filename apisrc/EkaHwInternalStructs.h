@@ -199,4 +199,9 @@ typedef struct __attribute__((packed)) {
   uint8_t  paddingto32[32-5];
 } dma_report_t;
 
+struct EpmThreadState {
+  bool     valid          = false;
+  uint64_t threadWindBase = -1;
+};
+
 #endif

@@ -221,5 +221,33 @@ class EkaEpm {
 
 };
 
+/* ------------------------------------------------ */
+inline uint calcThrId (EkaEpm::ActionType type,uint8_t sessId,uint intIdx) {
+
+  static const uint TcpBase      = 0;
+  static const uint TcpNum       = 14;
+
+  static const uint UserBase     = TcpBase + TcpNum;
+  static const uint UserNum      = 1;
+
+  static const uint MaxNum       = EkaDev::MAX_CTX_THREADS;
+
+  uint     thrId        = -1;
+
+  switch (type) {
+  case EkaEpm::ActionType::TcpFullPkt  :
+  case EkaEpm::ActionType::TcpFastPath :
+  case EkaEpm::ActionType::TcpEmptyAck :
+    thrId = sessId == EkaEpm::CONTROL_SESS_ID ? MaxNum - 1 : TcpBase + sessId % TcpNum;
+    break;
+  case EkaEpm::ActionType::UserAction  :
+    thrId = UserBase + intIdx % UserNum;
+    break;
+  default :
+    on_error("Unexpected type %d",(int) type);
+  }
+  return thrId % MaxNum;
+}
+
 #endif
 

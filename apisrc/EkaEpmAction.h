@@ -1,4 +1,4 @@
-/* SHURIK */
+/* NE SHURIK */
 
 #ifndef _EKA_EPM_ACTION_H_
 #define _EKA_EPM_ACTION_H_
@@ -34,9 +34,9 @@ class EkaEpmAction {
 		uint16_t srcPort, 
 		uint16_t dstPort);
   /* ----------------------------------------------------- */
-  int setFullPkt(uint thrId, void* buf, uint len);
+  int setFullPkt(/* uint thrId,  */void* buf, uint len);
   /* ----------------------------------------------------- */
-  int setPktPayload(uint thrId, void* buf, uint len);
+  int setPktPayload(/* uint thrId,  */void* buf, uint len);
   /* ----------------------------------------------------- */
   int send(uint32_t _tcpCSum);
   /* ----------------------------------------------------- */
@@ -48,17 +48,19 @@ class EkaEpmAction {
   EkaDev*  dev;
   EkaEpm*  epm;
   EkaEpm::ActionType type = EkaEpm::ActionType::INVALID;
-  uint          idx       = -1;
-  uint     localIdx       = -1;
-  uint       region       = -1;
-  uint8_t    coreId       = -1;;
-  uint8_t    sessId       = -1;
-  uint   productIdx       = -1;
-  uint64_t heapAddr       = -1;
-  uint     heapOffs       = -1;
-  uint64_t actionAddr     = -1;
-  uint64_t templateAddr   = -1;
-  uint     templateId     = -1;
+  uint     idx          = -1;
+  uint     localIdx     = -1;
+  uint     region       = -1;
+  uint8_t  coreId       = -1;;
+  uint8_t  sessId       = -1;
+  uint     productIdx   = -1;
+  uint64_t heapAddr     = -1;
+  uint     heapOffs     = -1;
+  uint64_t actionAddr   = -1;
+  uint64_t templateAddr = -1;
+  uint     templateId   = -1;
+
+  uint     thrId        = -1;
 
   EpmAction epmActionLocalCopy = {};
 
@@ -77,6 +79,7 @@ class EkaEpmAction {
   EkaTcpHdr*       tcpHdr          = NULL;
   uint8_t*         payload         = NULL;
 };
+
 
 
 #endif

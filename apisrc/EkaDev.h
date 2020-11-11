@@ -61,6 +61,7 @@ class EkaDev {
   uint64_t                  totalNumTcpSess = 0; // for sn_state only
 
   EkaEpm*                   epm = NULL;
+  EpmThreadState            epmThr[MAX_CTX_THREADS] = {};
 
   bool                      use_vlan = false;
 
@@ -195,13 +196,18 @@ inline void copyBuf2Hw_swap4(EkaDev* dev,uint64_t dstAddr,uint64_t* srcAddr,uint
 
 // dstLogicalAddr : Window pointer in Heap
 //                  should be taken by getHeapWndAddr()
-inline void copyIndirectBuf2HeapHw_swap4(EkaDev* dev, uint64_t dstLogicalAddr,uint64_t* srcAddr,uint8_t threadId, uint msgSize) {
+inline void copyIndirectBuf2HeapHw_swap4(EkaDev* dev, uint64_t dstLogicalAddr,uint64_t* srcAddr,uint8_t thrId, uint msgSize) {
   //  EKA_LOG("dstLogicalAddr=0x%jx, srcAddr=%p, msgSize=%u",dstLogicalAddr,srcAddr,msgSize);
+  if (thrId >= (int)EkaDev::MAX_CTX_THREADS) on_error("thrId %u >= MAX_CTX_THREADS %d",thrId,EkaDev::MAX_CTX_THREADS);
 
-  // Configuring window base WINDOW_START_POINTER (to configure it, write the pointer to address 0x81000+THREAD_ID*8)
-  eka_write(dev, 0x81000+threadId*8, dstLogicalAddr); 
+  if ((! dev->epmThr[thrId].valid) || (dev->epmThr[thrId].threadWindBase != dstLogicalAddr)) {
+    // Configuring window base WINDOW_START_POINTER (to configure it, write the pointer to address 0x81000+THREAD_ID*8)
+    eka_write(dev, 0x81000+thrId*8, dstLogicalAddr); 
 
-  uint64_t dstAddr = EpmHeapHwBaseAddr + threadId * 0x01000;
+    dev->epmThr[thrId].valid = true;
+    dev->epmThr[thrId].threadWindBase = dstLogicalAddr;
+  }
+  uint64_t dstAddr = EpmHeapHwBaseAddr + thrId * 0x01000;
 
   uint words2write = msgSize / 8 + !!(msgSize % 8);
   for (uint w = 0; w < words2write; w++) {
