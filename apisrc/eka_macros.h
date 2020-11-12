@@ -13,6 +13,14 @@ class EkaDev;
 #define MILLI_TO_NANO 1e6
 #define MICRO_TO_NANO 1e3
 
+#define RED   "\x1B[31m"
+#define GRN   "\x1B[32m"
+#define YEL   "\x1B[33m"
+#define BLU   "\x1B[34m"
+#define MAG   "\x1B[35m"
+#define CYN   "\x1B[36m"
+#define WHT   "\x1B[37m"
+#define RESET "\x1B[0m"
 
 #ifdef __GNUC__
 #define likely(x)       __builtin_expect(!!(x), 1)
@@ -45,6 +53,9 @@ class EkaDev;
 
 #define TEST_LOG_STDERR(...) { fprintf(stderr, "%s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); }
 #define TEST_LOG(...) { printf("%s@%s:%d: ",__func__,__FILE__,__LINE__); printf(__VA_ARGS__); printf("\n"); }
+
+#define TEST_FAILED(...) { printf(RED "");printf( __VA_ARGS__); printf(RESET "\n");}
+#define TEST_PASSED(...) { printf(GRN "");printf( __VA_ARGS__); printf(RESET "\n");}
 
 //#define EKA_DEC_POINTS_10000(x) (((bool)(x % 10 != 0)) ? 4 : ((bool)(x % 100 != 0)) ? 3 : ((bool)(x % 1000 != 0)) ? 2 : ((bool)(x % 10000 != 0)) ? 1 : 0) 
 #define MIN(a,b) (((a)<(b))?(a):(b))

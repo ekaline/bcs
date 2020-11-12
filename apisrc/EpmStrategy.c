@@ -25,7 +25,7 @@ EpmStrategy::EpmStrategy(EkaEpm* _parent, epm_strategyid_t _id, epm_actionid_t _
   port = be16toh(addr->sin_port);
 
   uint64_t tmp_ipport = (uint64_t) (id) << 56 | (uint64_t) port << 32 | (uint64_t) be32toh(ip);
-  EKA_LOG("HW Port-IP register = 0x%016jx (%x : %x)",tmp_ipport,ip,port);
+  //  EKA_LOG("HW Port-IP register = 0x%016jx (%x : %x)",tmp_ipport,ip,port);
   eka_write (dev,FH_GROUP_IPPORT,tmp_ipport);
 
   numActions = params->numActions;
