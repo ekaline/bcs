@@ -710,6 +710,11 @@ bool FhPhlxOrd::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhNasdaqGr* gr, const 
   uint64_t sequence = seq;
   for (uint msg=0; msg < msgInPkt; msg++) {
     uint16_t msg_len = (uint16_t) *(uint16_t*)&(pkt[indx]);
+    if (msg_len == 0) {
+      EKA_WARN("%s:%u Mold session is terminated",EKA_EXCH_DECODE(exch),gr->id);
+      return true;
+    }
+
     uint8_t* msgData = (uint8_t*)&pkt[indx + sizeof(msg_len)];
     //-----------------------------------------------------------------------------
     if (gr->parseMsg(pEfhRunCtx,msgData,sequence++,EkaFhMode::MCAST)) return true;
@@ -913,7 +918,7 @@ EkaOpResult FhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
   initGroups(pEfhCtx, pEfhRunCtx, runGr);
 
-  if ((exch == EkaSource::kPHLX_TOPO || exch == EkaSource::kPHLX_ORD) && isPreTradeTime(9,27)) {
+  if ((exch == EkaSource::kPHLX_TOPO  && isPreTradeTime(9,27)) || exch == EkaSource::kPHLX_ORD) {
     for (uint8_t j = 0; j < runGr->numGr; j++) {
       uint8_t grId = runGr->groupList[j];
       EKA_LOG("%s:%u: Running PreTrade Snapshot",EKA_EXCH_DECODE(exch),b_gr[grId]->id);
