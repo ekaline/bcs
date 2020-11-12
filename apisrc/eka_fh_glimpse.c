@@ -365,10 +365,10 @@ void* eka_get_phlx_mold_retransmit_data(void* attr) {
 	       );
 
     if ((read_size = recvfrom(gr->recovery_sock, buf, sizeof(buf), 0, (struct sockaddr*) &mold_recovery_addr, &addrlen)) < 0) 
-      on_error("%s:%u read %d bytes when tried to recv Mold Pkt of > %ju bytes",EKA_EXCH_DECODE(gr->exch),gr->id,read_size,sizeof(struct mold_hdr));
+      on_error("%s:%u read %d bytes when tried to recv Mold Pkt of > %ju bytes",EKA_EXCH_DECODE(gr->exch),gr->id,read_size,sizeof(PhlxMoldHdr));
 
     //-----------------------------------------------
-    uint indx = sizeof(struct mold_hdr); // pointer to the start of 1st message in the packet
+    uint indx = sizeof(PhlxMoldHdr); // pointer to the start of 1st message in the packet
     uint16_t message_cnt = EKA_PHLX_MOLD_MSG_CNT(buf);
     sequence = EKA_PHLX_MOLD_SEQUENCE(buf);
     for (uint msg=0; msg < message_cnt; msg++) {
