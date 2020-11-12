@@ -372,7 +372,7 @@ void* eka_get_phlx_mold_retransmit_data(void* attr) {
     uint16_t message_cnt = EKA_PHLX_MOLD_MSG_CNT(buf);
     sequence = EKA_PHLX_MOLD_SEQUENCE(buf);
     for (uint msg=0; msg < message_cnt; msg++) {
-      uint16_t msg_len = be16toh((uint16_t) *(uint16_t*)&(buf[indx]));
+      uint16_t msg_len = (uint16_t) *(uint16_t*)&(buf[indx]);
       //-----------------------------------------------------------------
       if (sequence >= start) gr->parseMsg(pEfhRunCtx,(unsigned char*)&buf[indx+2],sequence++,EkaFhMode::MCAST);
       //-----------------------------------------------------------------
