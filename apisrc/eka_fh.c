@@ -1111,7 +1111,8 @@ EkaOpResult FhPhlxOrd::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
 	EfhFeedUpMsg efhFeedUpMsg{ EfhMsgType::kFeedUp, {gr->exch, (EkaLSI)gr->id}, gr->gapNum };
 	pEfhRunCtx->onEfhFeedUpMsgCb(&efhFeedUpMsg, 0, pEfhRunCtx->efhRunUserData);
 	runGr->setGrAfterGap(gr->id);
-	gr->expected_sequence = gr->seq_after_snapshot;
+	//	gr->expected_sequence = gr->seq_after_snapshot;
+	gr->expected_sequence = 2;
 	EKA_LOG("%s:%u: SNAPSHOT_GAP Closed - expected_sequence=%ju",EKA_EXCH_DECODE(exch),gr->id,gr->expected_sequence);
       }
     }
