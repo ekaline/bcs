@@ -1074,6 +1074,7 @@ EkaOpResult FhPhlxOrd::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
       gr->state = FhGroup::GrpState::SNAPSHOT_GAP;
 
       closeGap(EkaFhMode::SNAPSHOT, pEfhCtx,pEfhRunCtx,gr, 1, 2);
+      gr->expected_sequence = 2;
     }
       break;
       //-----------------------------------------------------------------------------
