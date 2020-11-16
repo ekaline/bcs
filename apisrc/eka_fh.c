@@ -1084,7 +1084,7 @@ EkaOpResult FhPhlxOrd::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
 	gr->state = FhGroup::GrpState::RETRANSMIT_GAP;
 	gr->gapClosed = false;
 
-	closeGap(EkaFhMode::RECOVERY, pEfhCtx,pEfhRunCtx,gr, gr->expected_sequence, sequence + msgInPkt);
+	closeGap(EkaFhMode::SNAPSHOT, pEfhCtx,pEfhRunCtx,gr, gr->expected_sequence, sequence + msgInPkt);
       } else { // NORMAL
 	runGr->stoppedByExchange = processUdpPkt(pEfhRunCtx,gr,pkt,msgInPkt,sequence);      
       }
