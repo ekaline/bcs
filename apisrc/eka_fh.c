@@ -35,7 +35,9 @@
 
 void* eka_get_glimpse_data(void* attr);
 void* eka_get_mold_retransmit_data(void* attr);
+void* eka_get_phlx_ord_glimpse_data(void* attr);
 void* eka_get_phlx_mold_retransmit_data(void* attr);
+
 void* eka_get_spin_data(void* attr);
 void* eka_get_grp_retransmit_data(void* attr);
 void* eka_get_sesm_data(void* attr);
@@ -463,7 +465,7 @@ static int closeGap(EkaFhMode op, EfhCtx* pEfhCtx,const EfhRunCtx* pEfhRunCtx,Fh
     break;
   case EkaSource::kPHLX_ORD :
     if (op == EkaFhMode::SNAPSHOT) 
-      dev->createThread(threadName.c_str(),EkaThreadType::kFeedSnapshot,eka_get_glimpse_data,        (void*)attr,dev->createThreadContext,(uintptr_t*)&gr->snapshot_thread);   
+      dev->createThread(threadName.c_str(),EkaThreadType::kFeedSnapshot,eka_get_phlx_ord_glimpse_data,        (void*)attr,dev->createThreadContext,(uintptr_t*)&gr->snapshot_thread);   
     else
       dev->createThread(threadName.c_str(),EkaThreadType::kFeedRecovery,eka_get_phlx_mold_retransmit_data,(void*)attr,dev->createThreadContext,(uintptr_t*)&gr->retransmit_thread);   
     break;
@@ -1071,7 +1073,7 @@ EkaOpResult FhPhlxOrd::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
       gr->gapClosed = false;
       gr->state = FhGroup::GrpState::SNAPSHOT_GAP;
 
-      closeGap(EkaFhMode::SNAPSHOT, pEfhCtx,pEfhRunCtx,gr, 1, 0);
+      closeGap(EkaFhMode::SNAPSHOT, pEfhCtx,pEfhRunCtx,gr, 1, 2);
     }
       break;
       //-----------------------------------------------------------------------------
