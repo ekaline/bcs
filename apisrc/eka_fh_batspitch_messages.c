@@ -166,8 +166,8 @@ bool FhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t se
 
     msg.optionType            = osi[12] == 'C' ?  EfhOptionType::kCall : EfhOptionType::kPut;
 
-    memcpy (&msg.underlying,osi,6);
-    memcpy (&msg.classSymbol,message->underlying,std::min(sizeof(msg.classSymbol),sizeof(message->underlying)));
+    memcpy (&msg.underlying,message->underlying,std::min(sizeof(msg.underlying),sizeof(message->underlying)));
+    memcpy (&msg.classSymbol,osi,6);
 
     memcpy(&msg.opaqueAttrA,message->symbol,6);
 

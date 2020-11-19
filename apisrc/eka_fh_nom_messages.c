@@ -55,8 +55,8 @@ bool FhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     msg.exchange              = EfhExchange::kNOM;
     msg.optionType            = message->option_type == 'C' ?  EfhOptionType::kCall : EfhOptionType::kPut;
 
-    memcpy (&msg.classSymbol,message->underlying_symbol,std::min(sizeof(msg.classSymbol),sizeof(message->underlying_symbol)));
-    memcpy (&msg.underlying,message->security_symbol,std::min(sizeof(msg.underlying),sizeof(message->security_symbol)));
+    memcpy (&msg.underlying,message->underlying_symbol,std::min(sizeof(msg.underlying),sizeof(message->underlying_symbol)));
+    memcpy (&msg.classSymbol,message->security_symbol,std::min(sizeof(msg.classSymbol),sizeof(message->security_symbol)));
 
     pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
     return false;

@@ -256,8 +256,8 @@ EkaOpResult eka_get_xdp_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
       msg.exchange              = EKA_GRP_SRC2EXCH(gr->exch);
       msg.optionType            = m->PutOrCall ?  EfhOptionType::kCall : EfhOptionType::kPut;
 
-      memcpy (&msg.underlying, m->OptionSymbolRoot,std::min(sizeof(msg.underlying), sizeof(m->OptionSymbolRoot)));
-      memcpy (&msg.classSymbol,m->UnderlyingSymbol,std::min(sizeof(msg.classSymbol),sizeof(m->UnderlyingSymbol)));
+      memcpy (&msg.underlying, m->UnderlyingSymbol,std::min(sizeof(msg.underlying), sizeof(m->UnderlyingSymbol)));
+      memcpy (&msg.classSymbol,m->OptionSymbolRoot,std::min(sizeof(msg.classSymbol),sizeof(m->OptionSymbolRoot)));
 
       XdpAuxAttrA attrA = {};
       attrA.attr.StreamID       = m->StreamID;
