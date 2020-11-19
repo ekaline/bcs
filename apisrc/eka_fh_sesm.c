@@ -263,8 +263,10 @@ void* eka_get_sesm_retransmit(void* attr) {
   //-----------------------------------------------------------------
   getLoginResponse(gr);
   //-----------------------------------------------------------------
-  /* std::thread heartBeat = std::thread(heartBeatThread,dev,gr,gr->recovery_sock); */
-  /* heartBeat.detach(); */
+#if 0  
+  std::thread heartBeat = std::thread(heartBeatThread,dev,gr,gr->recovery_sock);
+  heartBeat.detach();
+#endif  
   //-----------------------------------------------------------------
   sendRetransmitRequest(gr,start,end);
   //-----------------------------------------------------------------
@@ -326,8 +328,10 @@ void* eka_get_sesm_data(void* attr) {
     //-----------------------------------------------------------------
     getLoginResponse(gr);
     //-----------------------------------------------------------------
+#if 0
     std::thread heartBeat = std::thread(heartBeatThread,dev,gr,gr->recovery_sock);
     heartBeat.detach();
+#endif    
     //-----------------------------------------------------------------
     sendRequest(gr,'P');
     //-----------------------------------------------------------------
@@ -355,8 +359,10 @@ void* eka_get_sesm_data(void* attr) {
       //-----------------------------------------------------------------
       getLoginResponse(gr);
       //-----------------------------------------------------------------
+#if 0
       std::thread heartBeat = std::thread(heartBeatThread,dev,gr,gr->recovery_sock);
       heartBeat.detach();
+#endif      
       //-----------------------------------------------------------------
       sendRequest(gr,snapshotRequests[i]); 
       //-----------------------------------------------------------------
