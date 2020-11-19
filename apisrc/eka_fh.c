@@ -35,7 +35,9 @@
 
 void* eka_get_glimpse_data(void* attr);
 void* eka_get_mold_retransmit_data(void* attr);
+void* eka_get_phlx_ord_glimpse_data(void* attr);
 void* eka_get_phlx_mold_retransmit_data(void* attr);
+
 void* eka_get_spin_data(void* attr);
 void* eka_get_grp_retransmit_data(void* attr);
 void* eka_get_sesm_data(void* attr);
@@ -463,7 +465,7 @@ static int closeGap(EkaFhMode op, EfhCtx* pEfhCtx,const EfhRunCtx* pEfhRunCtx,Fh
     break;
   case EkaSource::kPHLX_ORD :
     if (op == EkaFhMode::SNAPSHOT) 
-      dev->createThread(threadName.c_str(),EkaThreadType::kFeedSnapshot,eka_get_glimpse_data,        (void*)attr,dev->createThreadContext,(uintptr_t*)&gr->snapshot_thread);   
+      dev->createThread(threadName.c_str(),EkaThreadType::kFeedSnapshot,eka_get_phlx_ord_glimpse_data,        (void*)attr,dev->createThreadContext,(uintptr_t*)&gr->snapshot_thread);   
     else
       dev->createThread(threadName.c_str(),EkaThreadType::kFeedRecovery,eka_get_phlx_mold_retransmit_data,(void*)attr,dev->createThreadContext,(uintptr_t*)&gr->retransmit_thread);   
     break;
@@ -526,6 +528,23 @@ EkaOpResult EkaFh::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhRu
     FhGroup* gr = b_gr[pEfhRunCtx->groups[i].localId];
     if (gr == NULL) on_error ("b_gr[%u] == NULL",pEfhRunCtx->groups[i].localId);
     gr->createQ(pEfhCtx,qsize);
+    runGr->udpCh->igmp_mc_join (dev->core[c]->srcIp, gr->mcast_ip,gr->mcast_port,0);
+    EKA_DEBUG("%s:%u: joined %s:%u for %u securities",EKA_EXCH_DECODE(exch),gr->id,EKA_IP2STR(gr->mcast_ip),be16toh(gr->mcast_port),gr->book->total_securities);
+  }
+  return EKA_OPRESULT__OK;
+}
+/* ##################################################################### */
+EkaOpResult FhPhlxOrd::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhRunGr* runGr) {
+  for (uint8_t i = 0; i < runGr->numGr; i++) {
+    if (! runGr->isMyGr(pEfhRunCtx->groups[i].localId)) 
+      on_error("pEfhRunCtx->groups[%d].localId = %u doesnt belong to %s",
+	       i,pEfhRunCtx->groups[i].localId,runGr->list2print);
+    if (pEfhRunCtx->groups[i].source != exch) on_error("pEfhRunCtx->groups[i].source != exch");
+    FhGroup* gr = b_gr[pEfhRunCtx->groups[i].localId];
+    if (gr == NULL) on_error ("b_gr[%u] == NULL",pEfhRunCtx->groups[i].localId);
+    gr->createQ(pEfhCtx,qsize);
+    gr->expected_sequence = 1;
+
     runGr->udpCh->igmp_mc_join (dev->core[c]->srcIp, gr->mcast_ip,gr->mcast_port,0);
     EKA_DEBUG("%s:%u: joined %s:%u for %u securities",EKA_EXCH_DECODE(exch),gr->id,EKA_IP2STR(gr->mcast_ip),be16toh(gr->mcast_port),gr->book->total_securities);
   }
@@ -918,7 +937,7 @@ EkaOpResult FhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
   initGroups(pEfhCtx, pEfhRunCtx, runGr);
 
-  if ((exch == EkaSource::kPHLX_TOPO  && isPreTradeTime(9,27)) || exch == EkaSource::kPHLX_ORD) {
+  if (exch == EkaSource::kPHLX_TOPO  && isPreTradeTime(9,27)) {
     for (uint8_t j = 0; j < runGr->numGr; j++) {
       uint8_t grId = runGr->groupList[j];
       EKA_LOG("%s:%u: Running PreTrade Snapshot",EKA_EXCH_DECODE(exch),b_gr[grId]->id);
@@ -974,7 +993,7 @@ EkaOpResult FhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       break;
       //-----------------------------------------------------------------------------
     case FhGroup::GrpState::SNAPSHOT_GAP : {
-      if (exch == EkaSource::kPHLX_TOPO || exch == EkaSource::kPHLX_ORD) {
+      if (exch == EkaSource::kPHLX_TOPO) {
 	if (sequence + msgInPkt < gr->recovery_sequence) {
 	  gr->gapClosed = true;
 	  gr->snapshot_active = false;
@@ -993,6 +1012,107 @@ EkaOpResult FhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	pEfhRunCtx->onEfhFeedUpMsgCb(&efhFeedUpMsg, 0, pEfhRunCtx->efhRunUserData);
 	runGr->setGrAfterGap(gr->id);
 	gr->expected_sequence = gr->seq_after_snapshot;
+	EKA_LOG("%s:%u: SNAPSHOT_GAP Closed - expected_sequence=%ju",EKA_EXCH_DECODE(exch),gr->id,gr->expected_sequence);
+      }
+    }
+      break;
+    case FhGroup::GrpState::RETRANSMIT_GAP : {
+      pushUdpPkt2Q(gr,pkt,msgInPkt,sequence,gr_id);
+      if (gr->gapClosed) {
+	EKA_LOG("%s:%u: RETRANSMIT_GAP Closed, switching to fetch from Q",EKA_EXCH_DECODE(exch),gr->id);
+	gr->state = FhGroup::GrpState::NORMAL;
+
+	EfhFeedUpMsg efhFeedUpMsg{ EfhMsgType::kFeedUp, {gr->exch, (EkaLSI)gr->id}, gr->gapNum };
+	pEfhRunCtx->onEfhFeedUpMsgCb(&efhFeedUpMsg, 0, pEfhRunCtx->efhRunUserData);
+	runGr->setGrAfterGap(gr->id);
+	gr->expected_sequence = gr->seq_after_snapshot;
+      }
+    }
+      break;
+      //-----------------------------------------------------------------------------
+    default:
+      on_error("%s:%u: UNEXPECTED GrpState %u",EKA_EXCH_DECODE(exch),gr->id,(uint)gr->state);
+      break;
+    }
+    runGr->udpCh->next(); 
+  }
+  EKA_INFO("%s RunGroup %u EndOfSession",EKA_EXCH_DECODE(exch),runGrId);
+  return EKA_OPRESULT__OK;
+}
+
+/* ##################################################################### */
+
+
+EkaOpResult FhPhlxOrd::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId) {
+  FhRunGr* runGr = dev->runGr[runGrId];
+  if (runGr == NULL) on_error("runGr == NULL");
+
+  EKA_DEBUG("Initializing %s Run Group %u: %s GROUPS",
+	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
+
+  initGroups(pEfhCtx, pEfhRunCtx, runGr);
+
+  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u: %s GROUPS ~~~~~~~~~~~~~",
+	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
+
+  while (runGr->thread_active && ! runGr->stoppedByExchange) {
+    //-----------------------------------------------------------------------------
+    if (runGr->drainQ(pEfhRunCtx)) continue;
+    //-----------------------------------------------------------------------------
+    if (! runGr->udpCh->has_data()) continue;
+    uint msgInPkt = 0;
+    uint64_t sequence = 0;
+    uint8_t gr_id = 0xFF;
+
+    uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&sequence,&gr_id);
+    if (pkt == NULL) continue;
+    FhNasdaqGr* gr = (FhNasdaqGr*)b_gr[gr_id];
+    //-----------------------------------------------------------------------------
+    switch (gr->state) {
+    case FhGroup::GrpState::INIT : { 
+      gr->gapClosed = false;
+      gr->state = FhGroup::GrpState::SNAPSHOT_GAP;
+
+      closeGap(EkaFhMode::SNAPSHOT, pEfhCtx,pEfhRunCtx,gr, 1, 2);
+      gr->expected_sequence = 2;
+    }
+      break;
+      //-----------------------------------------------------------------------------
+    case FhGroup::GrpState::NORMAL : {
+      if (sequence < gr->expected_sequence) break; // skipping stale messages
+      if (sequence > gr->expected_sequence) { // GAP
+	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%ju",EKA_EXCH_DECODE(exch),gr_id,gr->expected_sequence,sequence);
+	gr->state = FhGroup::GrpState::RETRANSMIT_GAP;
+	gr->gapClosed = false;
+
+	closeGap(EkaFhMode::SNAPSHOT, pEfhCtx,pEfhRunCtx,gr, gr->expected_sequence, sequence + msgInPkt);
+      } else { // NORMAL
+	runGr->stoppedByExchange = processUdpPkt(pEfhRunCtx,gr,pkt,msgInPkt,sequence);      
+      }
+    }
+      break;
+      //-----------------------------------------------------------------------------
+    case FhGroup::GrpState::SNAPSHOT_GAP : {
+      if (exch == EkaSource::kPHLX_TOPO || exch == EkaSource::kPHLX_ORD) {
+	if (sequence + msgInPkt < gr->recovery_sequence) {
+	  gr->gapClosed = true;
+	  gr->snapshot_active = false;
+	  gr->seq_after_snapshot = gr->recovery_sequence + 1;
+
+	  EKA_DEBUG("%s:%u Generating TOB quote for every Security",EKA_EXCH_DECODE(gr->exch),gr->id);
+	  ((TobBook*)gr->book)->sendTobImage(pEfhRunCtx);
+	}
+      } else {
+	pushUdpPkt2Q(gr,pkt,msgInPkt,sequence,gr_id);
+      }
+      if (gr->gapClosed) {
+	gr->state = FhGroup::GrpState::NORMAL;
+
+	EfhFeedUpMsg efhFeedUpMsg{ EfhMsgType::kFeedUp, {gr->exch, (EkaLSI)gr->id}, gr->gapNum };
+	pEfhRunCtx->onEfhFeedUpMsgCb(&efhFeedUpMsg, 0, pEfhRunCtx->efhRunUserData);
+	runGr->setGrAfterGap(gr->id);
+	//	gr->expected_sequence = gr->seq_after_snapshot;
+	gr->expected_sequence = 2;
 	EKA_LOG("%s:%u: SNAPSHOT_GAP Closed - expected_sequence=%ju",EKA_EXCH_DECODE(exch),gr->id,gr->expected_sequence);
       }
     }

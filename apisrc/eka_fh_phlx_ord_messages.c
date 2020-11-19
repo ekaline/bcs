@@ -95,10 +95,10 @@ bool FhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
       on_error("Unexepcted order_status \'%c\'",order_status);
 
     switch (message->market_qualifier) {
-    case 'O' : break; // “O” = Opening Order -- processed
-    case 'I' : // “I” = Implied Order -- ignored
-    case ' ' : // “ ” = N/A (field is space char) -- ignored
-      return false; 
+    case 'O' : // “O” = Opening Order
+    case 'I' : // “I” = Implied Order 
+    case ' ' : // “ ” = N/A (field is space char)
+      break; 
     default:
       on_error("Unexpected market_qualifier \'%c\'",message->market_qualifier);
     }
@@ -122,26 +122,26 @@ bool FhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
 		 order_status,size);
       if (o == NULL) return false;
       ((NomBook*)book)->delete_order (o);
-      break;
-    }
-    if (o == NULL) { // add order
-      fh_b_order::type_t o_type = fh_b_order::type_t::OTHER;
-      switch (message->customer_indicator) {
-      case 'C' : //      “C” = Customer Order
-	o_type = message->all_or_none == 'Y' ? fh_b_order::type_t::CUSTOMER_AON : fh_b_order::type_t::CUSTOMER;
+    } else {
+      if (o == NULL) { // add order
+	fh_b_order::type_t o_type = fh_b_order::type_t::OTHER;
+	switch (message->customer_indicator) {
+	case 'C' : //      “C” = Customer Order
+	  o_type = message->all_or_none == 'Y' ? fh_b_order::type_t::CUSTOMER_AON : fh_b_order::type_t::CUSTOMER;
+	  break;
+	case 'F' : //      “F” = Firm Order
+	case 'M' : //      “M” = On-floor Market Maker
+	case 'B' : //      “B” = Broker Dealer Order
+	case 'P' : //      “P” = Professional Order
+	  o_type = message->all_or_none == 'Y' ? fh_b_order::type_t::BD_AON : fh_b_order::type_t::BD;
 	break;
-      case 'F' : //      “F” = Firm Order
-      case 'M' : //      “M” = On-floor Market Maker
-      case 'B' : //      “B” = Broker Dealer Order
-      case 'P' : //      “P” = Professional Order
-	o_type = message->all_or_none == 'Y' ? fh_b_order::type_t::BD_AON : fh_b_order::type_t::BD;
-      break;
-      case ' ' : //      “ ” = N/A (For Implied Order)
-	return false;
+	case ' ' : //      “ ” = N/A (For Implied Order)
+	  return false;
+	}
+	((NomBook*)book)->add_order2book(s,order_id,o_type,price,size,side);
+      } else { // modify order
+	((NomBook*)book)->modify_order (o,price,size);
       }
-      ((NomBook*)book)->add_order2book(s,order_id,o_type,price,size,side);
-    } else { // modify order
-      ((NomBook*)book)->modify_order (o,price,size);
     }
     tob_s = s;
     break;
