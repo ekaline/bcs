@@ -224,9 +224,11 @@ void onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUse
 
   int file_idx = (uint8_t)(msg->header.group.localId);
 
-  if (testFhCtx[file_idx].subscr_cnt >= MAX_SECURITIES) 
-    on_error("Trying to subscibe on %u securities > %u MAX_SECURITIES",testFhCtx[file_idx].subscr_cnt,MAX_SECURITIES);
-
+  if (testFhCtx[file_idx].subscr_cnt >= MAX_SECURITIES) {
+    TEST_LOG("Ignoring subscription");
+    return;
+    //    on_error("Trying to subscibe on %u securities > %u MAX_SECURITIES",testFhCtx[file_idx].subscr_cnt,MAX_SECURITIES);
+  }
   char classSymbol[SYMBOL_SIZE] = {};
   char underlyingName[SYMBOL_SIZE] = {};
 
