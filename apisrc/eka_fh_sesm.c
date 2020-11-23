@@ -263,8 +263,8 @@ void* eka_get_sesm_retransmit(void* attr) {
   //-----------------------------------------------------------------
   getLoginResponse(gr);
   //-----------------------------------------------------------------
-  /* std::thread heartBeat = std::thread(heartBeatThread,dev,gr,gr->recovery_sock); */
-  /* heartBeat.detach(); */
+  std::thread heartBeat = std::thread(heartBeatThread,dev,gr,gr->recovery_sock);
+  heartBeat.detach();
   //-----------------------------------------------------------------
   sendRetransmitRequest(gr,start,end);
   //-----------------------------------------------------------------
@@ -388,7 +388,7 @@ void* eka_get_sesm_data(void* attr) {
 
 void* heartBeatThread(EkaDev* dev, FhMiaxGr* gr, int sock) {
   sesm_header heartbeat = {
-    .length		= sizeof(struct sesm_header) - sizeof(heartbeat.length),
+    .length		= 1, //sizeof(struct sesm_header) - sizeof(heartbeat.length),
     .type		= '1'
   };
 
