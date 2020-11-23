@@ -152,8 +152,9 @@ static bool procSesm(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, int sock, FhM
   recv_size = recv(sock,msg,sesm_hdr.length - sizeof(sesm_hdr.type),MSG_WAITALL);
   if (recv_size == -1)
     on_error("%s:%u failed to receive SESM payload", EKA_EXCH_DECODE(gr->exch),gr->id);
-  else if (recv_size == 0)
-    on_error("%s:%u unexpected request server socket EOF (expected SESM payload)",EKA_EXCH_DECODE(gr->exch),gr->id);
+  /* else if (recv_size == 0) */
+  /*   on_error("%s:%u unexpected request server socket EOF (expected SESM payload) type=\'%c\' len = %u", */
+  /* 	     EKA_EXCH_DECODE(gr->exch),gr->id,sesm_hdr.type, sesm_hdr.length); */
 
   uint64_t sequence = 0;
 
