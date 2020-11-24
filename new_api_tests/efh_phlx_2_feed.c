@@ -111,16 +111,10 @@ static std::string eka_get_time () {
 static int grp2idx (EkaGroup* grp) {
   int ret = -1;
 #if 1
-  if (grp->source == EkaSource::kNOM_ITTO)  ret =  (uint)grp->localId;
-  if (grp->source == EkaSource::kPHLX_TOPO) ret =  4;
-  if (grp->source == EkaSource::kGEM_TQF)   ret =  5;
-  if (grp->source == EkaSource::kISE_TQF)   ret =  6;
+  if (grp->source == EkaSource::kPHLX_TOPO) ret =  0;
+  if (grp->source == EkaSource::kPHLX_ORD)  ret =  1;
 #endif
-  /* if (grp->source == EkaSource::kNOM_ITTO)  ret =  0; */
-  /* if (grp->source == EkaSource::kPHLX_TOPO) ret =  1; */
-  /* if (grp->source == EkaSource::kGEM_TQF)   ret =  2; */
-  /* if (grp->source == EkaSource::kISE_TQF)   ret =  3; */
-  if ((ret < 0) || (ret > 6)) on_error ("Unsupported %s:%d",EKA_EXCH_DECODE(grp->source),grp->localId);
+  if ((ret < 0) || (ret > 1)) on_error ("Unsupported %s:%d",EKA_EXCH_DECODE(grp->source),grp->localId);
   return ret;
 }
 
@@ -366,7 +360,7 @@ int main(int argc, char *argv[]) {
   bool use_underlyings_filename = false;
   bool print_parsed_messages = false;
 
-  while((opt = getopt(argc, argv, ":u:f:g:AhatNPGImc")) != -1) {  
+  while((opt = getopt(argc, argv, ":u:f:g:AhatNPGOImc")) != -1) {  
     switch(opt) {  
       case 'A':  
 	printf ("Use A-side feeds\n");

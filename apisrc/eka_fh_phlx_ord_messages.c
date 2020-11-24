@@ -60,9 +60,11 @@ bool FhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     // Bits 7-10 = Month (1-12)
     // Bits 11-15 = Day (1-31)
     // Bit 15 is least significant bit
-    uint16_t year  = (message->expiration >> 9) & 0x007F;
-    uint16_t month = (message->expiration >> 5) & 0x000F;
-    uint16_t day   = (message->expiration     ) & 0x001F;
+
+    uint16_t expiration = be16toh(message->expiration);
+    uint16_t year  = (expiration >> 9) & 0x007F;
+    uint16_t month = (expiration >> 5) & 0x000F;
+    uint16_t day   = (expiration     ) & 0x001F;
     msg.expiryDate            = (2000 + year) * 10000 + month * 100 + day;
     msg.contractSize          = 0;
     msg.strikePrice           = be32toh(message->strike_price) / EFH_PHLX_STRIKE_PRICE_SCALE;
@@ -77,6 +79,12 @@ bool FhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
     return false;
   }
+
+0x8b29 = 1000 1011 0010 1001
+
+ 1001 0100 110 10001
+
+ 100 1010 0 110 10001
 
     /* -------------------------------------------------- */
   case 'O': { // phlx_ord_simple_order
