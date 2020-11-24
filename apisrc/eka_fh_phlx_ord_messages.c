@@ -80,12 +80,6 @@ bool FhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     return false;
   }
 
-0x8b29 = 1000 1011 0010 1001
-
- 1001 0100 110 10001
-
- 100 1010 0 110 10001
-
     /* -------------------------------------------------- */
   case 'O': { // phlx_ord_simple_order
     phlx_ord_simple_order* message = (phlx_ord_simple_order*)m;
