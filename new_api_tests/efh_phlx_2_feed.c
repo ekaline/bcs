@@ -247,6 +247,12 @@ void onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData user
 
   if (! print_tob_updates) return;
 
+  /* struct timespec ts; */
+  /* timespec_get(&ts, TIME_UTC); */
+  /* char buff[100]; */
+  /* strftime(buff, sizeof(buff), "%D %T", gmtime(&ts.tv_sec)); */
+  /* sprintf(today_str,"%s.%09ld", buff, ts.tv_nsec); */
+  
   fprintf(md[file_idx],"%s,%s,%s,%s,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%s\n",
 	  EKA_CTS_SOURCE(msg->header.group.source),
 	  today_str,
@@ -406,8 +412,12 @@ int main(int argc, char *argv[]) {
 	runFH[(uint8_t)EkaSource::kNOM_ITTO] = true;
 	break;  
       case 'P':  
-	printf("Running PHLX\n");  
+	printf("Running PHLX TOPO\n");  
 	runFH[(uint8_t)EkaSource::kPHLX_TOPO] = true;
+	break;  
+      case 'O':  
+	printf("Running PHLX ORD\n");  
+	runFH[(uint8_t)EkaSource::kPHLX_ORD] = true;
 	break;  
       case 'G':  
 	printf("Running GEM\n");  
@@ -455,372 +465,18 @@ int main(int argc, char *argv[]) {
 
   ekaDevInit(&pEkaDev, (const EkaDevInitCtx*) &ekaDevInitCtx);
 
-  //##########################################################
-  // PHLX INIT
-  //##########################################################
-  EkaProp efhPhlxInitCtxEntries_A[] = {
-    {"efh.PHLX_TOPO.group.0.mcast.addr","233.47.179.104:18016"},
-    {"efh.PHLX_TOPO.group.1.mcast.addr","233.47.179.105:18017"},
-    {"efh.PHLX_TOPO.group.2.mcast.addr","233.47.179.106:18018"},
-    {"efh.PHLX_TOPO.group.3.mcast.addr","233.47.179.107:18019"},
-    {"efh.PHLX_TOPO.group.4.mcast.addr","233.47.179.108:18020"},
-    {"efh.PHLX_TOPO.group.5.mcast.addr","233.47.179.109:18021"},
-    {"efh.PHLX_TOPO.group.6.mcast.addr","233.47.179.110:18022"},
-    {"efh.PHLX_TOPO.group.7.mcast.addr","233.47.179.111:18023"},
-
-    /* {"efh.PHLX_TOPO.group.8.mcast.addr" ,"233.47.179.112:18032"}, */
-    /* {"efh.PHLX_TOPO.group.9.mcast.addr" ,"233.47.179.113:18033"}, */
-    /* {"efh.PHLX_TOPO.group.10.mcast.addr","233.47.179.114:18034"}, */
-    /* {"efh.PHLX_TOPO.group.11.mcast.addr","233.47.179.115:18035"}, */
-    /* {"efh.PHLX_TOPO.group.12.mcast.addr","233.47.179.116:18036"}, */
-    /* {"efh.PHLX_TOPO.group.13.mcast.addr","233.47.179.117:18037"}, */
-    /* {"efh.PHLX_TOPO.group.14.mcast.addr","233.47.179.118:18038"}, */
-    /* {"efh.PHLX_TOPO.group.15.mcast.addr","233.47.179.119:18039"}, */
-
-    {"efh.PHLX_TOPO.group.0.snapshot.auth","BARZ20:02ZRAB"},
-    {"efh.PHLX_TOPO.group.1.snapshot.auth","BARZ03:30ZRAB"},
-    {"efh.PHLX_TOPO.group.2.snapshot.auth","BARZ02:20ZRAB"},
-    {"efh.PHLX_TOPO.group.3.snapshot.auth","BARZ03:30ZRAB"},
-    {"efh.PHLX_TOPO.group.4.snapshot.auth","BARZ02:20ZRAB"},
-    {"efh.PHLX_TOPO.group.5.snapshot.auth","BARZ03:30ZRAB"},
-    {"efh.PHLX_TOPO.group.6.snapshot.auth","BARZ02:20ZRAB"},
-    {"efh.PHLX_TOPO.group.7.snapshot.auth","BARZ03:30ZRAB"},
-
-    // quotes B side, No snapshots for Trades
-    {"efh.PHLX_TOPO.group.0.snapshot.addr","206.200.151.82:18116"},
-    {"efh.PHLX_TOPO.group.1.snapshot.addr","206.200.151.83:18117"},
-    {"efh.PHLX_TOPO.group.2.snapshot.addr","206.200.151.84:18118"},
-    {"efh.PHLX_TOPO.group.3.snapshot.addr","206.200.151.85:18119"},
-    {"efh.PHLX_TOPO.group.4.snapshot.addr","206.200.151.86:18120"},
-    {"efh.PHLX_TOPO.group.5.snapshot.addr","206.200.151.87:18121"},
-    {"efh.PHLX_TOPO.group.6.snapshot.addr","206.200.151.88:18122"},
-    {"efh.PHLX_TOPO.group.7.snapshot.addr","206.200.151.89:18123"},
-
-    {"efh.PHLX_TOPO.group.0.recovery.addr","206.200.151.82:18116"},
-    {"efh.PHLX_TOPO.group.1.recovery.addr","206.200.151.83:18117"},
-    {"efh.PHLX_TOPO.group.2.recovery.addr","206.200.151.84:18118"},
-    {"efh.PHLX_TOPO.group.3.recovery.addr","206.200.151.85:18119"},
-    {"efh.PHLX_TOPO.group.4.recovery.addr","206.200.151.86:18120"},
-    {"efh.PHLX_TOPO.group.5.recovery.addr","206.200.151.87:18121"},
-    {"efh.PHLX_TOPO.group.6.recovery.addr","206.200.151.88:18122"},
-    {"efh.PHLX_TOPO.group.7.recovery.addr","206.200.151.89:18123"},
+  EkaProps ekaPropsPhlxTopo = {
+    std::size(efhPhlxTopoInitCtxEntries_A),
+    efhPhlxTopoInitCtxEntries_A
   };
 
-  EkaProp efhPhlxInitCtxEntries_B[] = {
-    {"efh.PHLX_TOPO.group.0.mcast.addr","233.47.179.168:18016"},
-    {"efh.PHLX_TOPO.group.1.mcast.addr","233.47.179.169:18017"},
-    {"efh.PHLX_TOPO.group.2.mcast.addr","233.47.179.170:18018"},
-    {"efh.PHLX_TOPO.group.3.mcast.addr","233.47.179.171:18019"},
-    {"efh.PHLX_TOPO.group.4.mcast.addr","233.47.179.172:18020"},
-    {"efh.PHLX_TOPO.group.5.mcast.addr","233.47.179.173:18021"},
-    {"efh.PHLX_TOPO.group.6.mcast.addr","233.47.179.174:18022"},
-    {"efh.PHLX_TOPO.group.7.mcast.addr","233.47.179.175:18023"},
-    // trades B side
-    /* {"efh.PHLX_TOPO.group.8.mcast.addr" ,"233.47.179.176:18032"}, */
-    /* {"efh.PHLX_TOPO.group.9.mcast.addr" ,"233.47.179.177:18033"}, */
-    /* {"efh.PHLX_TOPO.group.10.mcast.addr","233.47.179.178:18034"}, */
-    /* {"efh.PHLX_TOPO.group.11.mcast.addr","233.47.179.179:18035"}, */
-    /* {"efh.PHLX_TOPO.group.12.mcast.addr","233.47.179.180:18036"}, */
-    /* {"efh.PHLX_TOPO.group.13.mcast.addr","233.47.179.181:18037"}, */
-    /* {"efh.PHLX_TOPO.group.14.mcast.addr","233.47.179.182:18038"}, */
-    /* {"efh.PHLX_TOPO.group.15.mcast.addr","233.47.179.183:18039"}, */
-
-    {"efh.PHLX_TOPO.group.0.snapshot.auth","BARZ20:02ZRAB"},
-    {"efh.PHLX_TOPO.group.1.snapshot.auth","BARZ03:30ZRAB"},
-    {"efh.PHLX_TOPO.group.2.snapshot.auth","BARZ02:20ZRAB"},
-    {"efh.PHLX_TOPO.group.3.snapshot.auth","BARZ03:30ZRAB"},
-    {"efh.PHLX_TOPO.group.4.snapshot.auth","BARZ02:20ZRAB"},
-    {"efh.PHLX_TOPO.group.5.snapshot.auth","BARZ03:30ZRAB"},
-    {"efh.PHLX_TOPO.group.6.snapshot.auth","BARZ02:20ZRAB"},
-    {"efh.PHLX_TOPO.group.7.snapshot.auth","BARZ03:30ZRAB"},
-
-    // quotes B side, No snapshots for Trades
-    {"efh.PHLX_TOPO.group.0.snapshot.addr","206.200.151.82:18116"},
-    {"efh.PHLX_TOPO.group.1.snapshot.addr","206.200.151.83:18117"},
-    {"efh.PHLX_TOPO.group.2.snapshot.addr","206.200.151.84:18118"},
-    {"efh.PHLX_TOPO.group.3.snapshot.addr","206.200.151.85:18119"},
-    {"efh.PHLX_TOPO.group.4.snapshot.addr","206.200.151.86:18120"},
-    {"efh.PHLX_TOPO.group.5.snapshot.addr","206.200.151.87:18121"},
-    {"efh.PHLX_TOPO.group.6.snapshot.addr","206.200.151.88:18122"},
-    {"efh.PHLX_TOPO.group.7.snapshot.addr","206.200.151.89:18123"},
-
-    {"efh.PHLX_TOPO.group.0.recovery.addr","206.200.151.82:18116"},
-    {"efh.PHLX_TOPO.group.1.recovery.addr","206.200.151.83:18117"},
-    {"efh.PHLX_TOPO.group.2.recovery.addr","206.200.151.84:18118"},
-    {"efh.PHLX_TOPO.group.3.recovery.addr","206.200.151.85:18119"},
-    {"efh.PHLX_TOPO.group.4.recovery.addr","206.200.151.86:18120"},
-    {"efh.PHLX_TOPO.group.5.recovery.addr","206.200.151.87:18121"},
-    {"efh.PHLX_TOPO.group.6.recovery.addr","206.200.151.88:18122"},
-    {"efh.PHLX_TOPO.group.7.recovery.addr","206.200.151.89:18123"},
-  };
-  EkaProps ekaPropsPhlx = {};
-  if (A_side) {
-    ekaPropsPhlx.numProps = std::size(efhPhlxInitCtxEntries_A);
-    ekaPropsPhlx.props = efhPhlxInitCtxEntries_A;
-  } else {
-    ekaPropsPhlx.numProps = std::size(efhPhlxInitCtxEntries_B);
-    ekaPropsPhlx.props = efhPhlxInitCtxEntries_B;
-  }
-
-  EkaGroup phlxGroups[] = {
-    {EkaSource::kPHLX_TOPO, (EkaLSI)0},
-    {EkaSource::kPHLX_TOPO, (EkaLSI)1},
-    {EkaSource::kPHLX_TOPO, (EkaLSI)2},
-    {EkaSource::kPHLX_TOPO, (EkaLSI)3},
-    {EkaSource::kPHLX_TOPO, (EkaLSI)4},
-    {EkaSource::kPHLX_TOPO, (EkaLSI)5},
-    {EkaSource::kPHLX_TOPO, (EkaLSI)6},
-    {EkaSource::kPHLX_TOPO, (EkaLSI)7},
-    /* {EkaSource::kPHLX_TOPO, (EkaLSI)8}, */
-    /* {EkaSource::kPHLX_TOPO, (EkaLSI)9}, */
-    /* {EkaSource::kPHLX_TOPO, (EkaLSI)10}, */
-    /* {EkaSource::kPHLX_TOPO, (EkaLSI)11}, */
-    /* {EkaSource::kPHLX_TOPO, (EkaLSI)12}, */
-    /* {EkaSource::kPHLX_TOPO, (EkaLSI)13}, */
-    /* {EkaSource::kPHLX_TOPO, (EkaLSI)14}, */
-    /* {EkaSource::kPHLX_TOPO, (EkaLSI)15}, */
+  EkaProps ekaPropsPhlxOrd = {
+    std::size(efhPhlxOrdInitCtxEntries_A),
+    efhPhlxOrdInitCtxEntries_A
   };
 
-  //##########################################################
-  // NOM INIT
-  //##########################################################
-  /* EkaProp efhNomInitCtxEntries_A_0[] = { */
-  EkaProp efhNomInitCtxEntries_A[] = {
-    {"efh.NOM_ITTO.group.0.mcast.addr","233.54.12.72:18000"},
-    {"efh.NOM_ITTO.group.0.snapshot.auth","NGBAR2:HY4VXK"},
-    {"efh.NOM_ITTO.group.0.snapshot.addr","206.200.43.72:18300"},
-    {"efh.NOM_ITTO.group.0.recovery.addr","206.200.43.64:18100"},
-  /* }; */
-
-  /* EkaProp efhNomInitCtxEntries_A_1[] = { */
-    {"efh.NOM_ITTO.group.1.mcast.addr","233.54.12.73:18001"},
-    {"efh.NOM_ITTO.group.1.snapshot.auth","NGBAR2:HY4VXK"},
-    {"efh.NOM_ITTO.group.1.snapshot.addr","206.200.43.73:18301"},
-    {"efh.NOM_ITTO.group.1.recovery.addr","206.200.43.65:18101"},
-  /* }; */
-
-  /* EkaProp efhNomInitCtxEntries_A_2[] = { */
-    {"efh.NOM_ITTO.group.2.mcast.addr","233.54.12.74:18002"},
-    {"efh.NOM_ITTO.group.2.snapshot.auth","NGBAR2:HY4VXK"},
-    {"efh.NOM_ITTO.group.2.snapshot.addr","206.200.43.74:18302"},
-    {"efh.NOM_ITTO.group.2.recovery.addr","206.200.43.66:18102"},
-  /* }; */
-
-  /* EkaProp efhNomInitCtxEntries_A_3[] = { */
-    {"efh.NOM_ITTO.group.3.mcast.addr","233.54.12.75:18003"},
-    {"efh.NOM_ITTO.group.3.snapshot.auth","NGBAR2:HY4VXK"},
-    {"efh.NOM_ITTO.group.3.snapshot.addr","206.200.43.75:18303"},
-    {"efh.NOM_ITTO.group.3.recovery.addr","206.200.43.67:18103"},
-  };
-
-  //  EkaProp efhNomInitCtxEntries_B_0[] = {
-  EkaProp efhNomInitCtxEntries_B[] = {
-    {"efh.NOM_ITTO.group.0.mcast.addr","233.49.196.72:18000"},
-    {"efh.NOM_ITTO.group.0.snapshot.auth","NGBAR2:HY4VXK"},
-    {"efh.NOM_ITTO.group.0.snapshot.addr","206.200.43.72:18300"},
-    {"efh.NOM_ITTO.group.0.recovery.addr","206.200.43.64:18100"},
-  /* }; */
-  /* EkaProp efhNomInitCtxEntries_B_1[] = { */
-    {"efh.NOM_ITTO.group.1.mcast.addr","233.49.196.73:18001"},
-    {"efh.NOM_ITTO.group.1.snapshot.auth","NGBAR2:HY4VXK"},
-    {"efh.NOM_ITTO.group.1.snapshot.addr","206.200.43.73:18301"},
-    {"efh.NOM_ITTO.group.1.recovery.addr","206.200.43.65:18101"},
-  /* }; */
-  /* EkaProp efhNomInitCtxEntries_B_2[] = { */
-    {"efh.NOM_ITTO.group.2.mcast.addr","233.49.196.74:18002"},
-    {"efh.NOM_ITTO.group.2.snapshot.auth","NGBAR2:HY4VXK"},
-    {"efh.NOM_ITTO.group.2.snapshot.addr","206.200.43.74:18302"},
-    {"efh.NOM_ITTO.group.2.recovery.addr","206.200.43.66:18102"},
-  /* }; */
-  /* EkaProp efhNomInitCtxEntries_B_3[] = { */
-    {"efh.NOM_ITTO.group.3.snapshot.auth","NGBAR2:HY4VXK"},
-    {"efh.NOM_ITTO.group.3.snapshot.addr","206.200.43.75:18303"},
-    {"efh.NOM_ITTO.group.3.recovery.addr","206.200.43.67:18103"},
-    {"efh.NOM_ITTO.group.3.mcast.addr","233.49.196.75:18003"},
-  };
-
-    // SideB FPGA Feed - disconnected at AVT
-    /* {"efh.NOM_ITTO.group.0.mcast.addr","233.54.12.76:18000"}, */
-    /* {"efh.NOM_ITTO.group.1.mcast.addr","233.54.12.77:18001"}, */
-    /* {"efh.NOM_ITTO.group.2.mcast.addr","233.54.12.78:18002"}, */
-    /* {"efh.NOM_ITTO.group.3.mcast.addr","233.54.12.79:18003"}, */
-
-  EkaProps ekaPropsNom = {};
-  if (A_side) {
-    ekaPropsNom.numProps = std::size(efhNomInitCtxEntries_A);
-    ekaPropsNom.props = efhNomInitCtxEntries_A;
-  } else {
-    ekaPropsNom.numProps = std::size(efhNomInitCtxEntries_B);
-    ekaPropsNom.props = efhNomInitCtxEntries_B;
-  }
-
-  /* EkaProps ekaPropsNom_0 = {}; */
-  /* EkaProps ekaPropsNom_1 = {}; */
-  /* EkaProps ekaPropsNom_2 = {}; */
-  /* EkaProps ekaPropsNom_3 = {}; */
-  /* if (A_side) { */
-  /*   ekaPropsNom_0.numProps = std::size(efhNomInitCtxEntries_A_0); */
-  /*   ekaPropsNom_0.props = efhNomInitCtxEntries_A_0; */
-  /*   ekaPropsNom_1.numProps = std::size(efhNomInitCtxEntries_A_1); */
-  /*   ekaPropsNom_1.props = efhNomInitCtxEntries_A_1; */
-  /*   ekaPropsNom_2.numProps = std::size(efhNomInitCtxEntries_A_2); */
-  /*   ekaPropsNom_2.props = efhNomInitCtxEntries_A_2; */
-  /*   ekaPropsNom_3.numProps = std::size(efhNomInitCtxEntries_A_3); */
-  /*   ekaPropsNom_3.props = efhNomInitCtxEntries_A_3; */
-  /* } else { */
-  /*   ekaPropsNom_0.numProps = std::size(efhNomInitCtxEntries_B_0); */
-  /*   ekaPropsNom_0.props = efhNomInitCtxEntries_B_0; */
-  /*   ekaPropsNom_1.numProps = std::size(efhNomInitCtxEntries_B_1); */
-  /*   ekaPropsNom_1.props = efhNomInitCtxEntries_B_1; */
-  /*   ekaPropsNom_2.numProps = std::size(efhNomInitCtxEntries_B_2); */
-  /*   ekaPropsNom_2.props = efhNomInitCtxEntries_B_2; */
-  /*   ekaPropsNom_3.numProps = std::size(efhNomInitCtxEntries_B_3); */
-  /*   ekaPropsNom_3.props = efhNomInitCtxEntries_B_3; */
-  /* } */
 
 
-  EkaGroup nomGroups_0[] = {{EkaSource::kNOM_ITTO, (EkaLSI)0}};
-  EkaGroup nomGroups_1[] = {{EkaSource::kNOM_ITTO, (EkaLSI)1}};
-  EkaGroup nomGroups_2[] = {{EkaSource::kNOM_ITTO, (EkaLSI)2}};
-  EkaGroup nomGroups_3[] = {{EkaSource::kNOM_ITTO, (EkaLSI)3}};
-
-  /* EkaGroup nomGroups[] = { */
-  /*   {EkaSource::kNOM_ITTO, (EkaLSI)0}, */
-  /*   {EkaSource::kNOM_ITTO, (EkaLSI)1}, */
-  /*   {EkaSource::kNOM_ITTO, (EkaLSI)2}, */
-  /*   {EkaSource::kNOM_ITTO, (EkaLSI)3}, */
-  /* }; */
-
-  //##########################################################
-  // GEM INIT
-  //##########################################################
-  EkaProp efhGemInitCtxEntries_A[] = {
-    {"efh.GEM_TQF.group.0.mcast.addr","233.54.12.148:18000"},
-    {"efh.GEM_TQF.group.1.mcast.addr","233.54.12.148:18001"},
-    {"efh.GEM_TQF.group.2.mcast.addr","233.54.12.148:18002"},
-    {"efh.GEM_TQF.group.3.mcast.addr","233.54.12.148:18003"},
-
-    {"efh.GEM_TQF.group.0.snapshot.auth","GGTBC4:BR5ODP"},
-    {"efh.GEM_TQF.group.1.snapshot.auth","GGTBC5:0WN9GH"},
-    {"efh.GEM_TQF.group.2.snapshot.auth","GGTBC6:03BHXL"},
-    {"efh.GEM_TQF.group.3.snapshot.auth","GGTBC7:C21TH1"},
-
-    {"efh.GEM_TQF.group.0.snapshot.addr","206.200.230.120:18300"},
-    {"efh.GEM_TQF.group.1.snapshot.addr","206.200.230.121:18301"},
-    {"efh.GEM_TQF.group.2.snapshot.addr","206.200.230.122:18302"},
-    {"efh.GEM_TQF.group.3.snapshot.addr","206.200.230.123:18303"},
-
-    /* {"efh.GEM_TQF.group.0.snapshot.addr","206.200.230.128:18100"}, */
-    /* {"efh.GEM_TQF.group.1.snapshot.addr","206.200.230.129:18101"}, */
-    /* {"efh.GEM_TQF.group.2.snapshot.addr","206.200.230.130:18102"}, */
-    /* {"efh.GEM_TQF.group.3.snapshot.addr","206.200.230.131:18103"}, */
-
-    {"efh.GEM_TQF.group.0.recovery.addr","206.200.230.128:18100"},
-    {"efh.GEM_TQF.group.1.recovery.addr","206.200.230.129:18101"},
-    {"efh.GEM_TQF.group.2.recovery.addr","206.200.230.130:18102"},
-    {"efh.GEM_TQF.group.3.recovery.addr","206.200.230.131:18103"},
-  };
-  EkaProp efhGemInitCtxEntries_B[] = {
-    {"efh.GEM_TQF.group.0.mcast.addr","233.54.12.164:18000"},
-    {"efh.GEM_TQF.group.1.mcast.addr","233.54.12.164:18001"},
-    {"efh.GEM_TQF.group.2.mcast.addr","233.54.12.164:18002"},
-    {"efh.GEM_TQF.group.3.mcast.addr","233.54.12.164:18003"},
-
-    {"efh.GEM_TQF.group.0.snapshot.auth","GGTBC4:BR5ODP"},
-    {"efh.GEM_TQF.group.1.snapshot.auth","GGTBC5:0WN9GH"},
-    {"efh.GEM_TQF.group.2.snapshot.auth","GGTBC6:03BHXL"},
-    {"efh.GEM_TQF.group.3.snapshot.auth","GGTBC7:C21TH1"},
-
-    /* {"efh.GEM_TQF.group.0.snapshot.addr","206.200.230.120:18300"}, */
-    /* {"efh.GEM_TQF.group.1.snapshot.addr","206.200.230.121:18301"}, */
-    /* {"efh.GEM_TQF.group.2.snapshot.addr","206.200.230.122:18302"}, */
-    /* {"efh.GEM_TQF.group.3.snapshot.addr","206.200.230.123:18303"}, */
-
-    {"efh.GEM_TQF.group.0.snapshot.addr","206.200.230.248:18300"},
-    {"efh.GEM_TQF.group.1.snapshot.addr","206.200.230.249:18301"},
-    {"efh.GEM_TQF.group.2.snapshot.addr","206.200.230.250:18302"},
-    {"efh.GEM_TQF.group.3.snapshot.addr","206.200.230.251:18303"},
-
-    {"efh.GEM_TQF.group.0.recovery.addr","206.200.230.128:18100"},
-    {"efh.GEM_TQF.group.1.recovery.addr","206.200.230.129:18101"},
-    {"efh.GEM_TQF.group.2.recovery.addr","206.200.230.130:18102"},
-    {"efh.GEM_TQF.group.3.recovery.addr","206.200.230.131:18103"},
-  };
-  EkaProps ekaPropsGem = {};
-  if (A_side) {
-    ekaPropsGem.numProps = std::size(efhGemInitCtxEntries_A);
-    ekaPropsGem.props = efhGemInitCtxEntries_A;
-  } else {
-    ekaPropsGem.numProps = std::size(efhGemInitCtxEntries_B);
-    ekaPropsGem.props = efhGemInitCtxEntries_B;
-  }
-  EkaGroup gemGroups[] = {
-    {EkaSource::kGEM_TQF, (EkaLSI)0},
-    {EkaSource::kGEM_TQF, (EkaLSI)1},
-    {EkaSource::kGEM_TQF, (EkaLSI)2},
-    {EkaSource::kGEM_TQF, (EkaLSI)3}
-  };
-  //##########################################################
-  // ISE INIT
-  //##########################################################
-  EkaProp efhIseInitCtxEntries_A[] = {
-    // side B
-    {"efh.ISE_TQF.group.0.mcast.addr","233.54.12.152:18000"},
-    {"efh.ISE_TQF.group.1.mcast.addr","233.54.12.152:18001"},
-    {"efh.ISE_TQF.group.2.mcast.addr","233.54.12.152:18002"},
-    {"efh.ISE_TQF.group.3.mcast.addr","233.54.12.152:18003"},
-
-    {"efh.ISE_TQF.group.0.snapshot.auth","IGTBC9:NI8HKX"},
-    {"efh.ISE_TQF.group.1.snapshot.auth","IGTB1B:AZK9CI"},
-    {"efh.ISE_TQF.group.2.snapshot.auth","IGTB1D:6V1SWS"},
-    {"efh.ISE_TQF.group.3.snapshot.auth","IGTB1F:4A6ZXQ"},
-
-    {"efh.ISE_TQF.group.0.snapshot.addr","206.200.230.104:18300"},
-    {"efh.ISE_TQF.group.1.snapshot.addr","206.200.230.105:18301"},
-    {"efh.ISE_TQF.group.2.snapshot.addr","206.200.230.106:18302"},
-    {"efh.ISE_TQF.group.3.snapshot.addr","206.200.230.107:18303"},
-
-    {"efh.ISE_TQF.group.0.recovery.addr","206.200.230.104:18300"},
-    {"efh.ISE_TQF.group.1.recovery.addr","206.200.230.105:18301"},
-    {"efh.ISE_TQF.group.2.recovery.addr","206.200.230.106:18302"},
-    {"efh.ISE_TQF.group.3.recovery.addr","206.200.230.107:18303"},
-  };  
-  EkaProp efhIseInitCtxEntries_B[] = {
-    // side B
-    {"efh.ISE_TQF.group.0.mcast.addr","233.54.12.168:18000"},
-    {"efh.ISE_TQF.group.1.mcast.addr","233.54.12.168:18001"},
-    {"efh.ISE_TQF.group.2.mcast.addr","233.54.12.168:18002"},
-    {"efh.ISE_TQF.group.3.mcast.addr","233.54.12.168:18003"},
-
-    {"efh.ISE_TQF.group.0.snapshot.auth","IGTBC9:NI8HKX"},
-    {"efh.ISE_TQF.group.1.snapshot.auth","IGTB1B:AZK9CI"},
-    {"efh.ISE_TQF.group.2.snapshot.auth","IGTB1D:6V1SWS"},
-    {"efh.ISE_TQF.group.3.snapshot.auth","IGTB1F:4A6ZXQ"},
-
-    {"efh.ISE_TQF.group.0.snapshot.addr","206.200.230.104:18300"},
-    {"efh.ISE_TQF.group.1.snapshot.addr","206.200.230.105:18301"},
-    {"efh.ISE_TQF.group.2.snapshot.addr","206.200.230.106:18302"},
-    {"efh.ISE_TQF.group.3.snapshot.addr","206.200.230.107:18303"},
-
-    {"efh.ISE_TQF.group.0.recovery.addr","206.200.230.160:18100"},
-    {"efh.ISE_TQF.group.1.recovery.addr","206.200.230.161:18101"},
-    {"efh.ISE_TQF.group.2.recovery.addr","206.200.230.162:18102"},
-    {"efh.ISE_TQF.group.3.recovery.addr","206.200.230.163:18103"},
-  };
-  EkaProps ekaPropsIse = {};
-  if (A_side) {
-    ekaPropsIse.numProps = std::size(efhIseInitCtxEntries_A);
-    ekaPropsIse.props = efhIseInitCtxEntries_A;
-  } else {
-    ekaPropsIse.numProps = std::size(efhIseInitCtxEntries_B);
-    ekaPropsIse.props = efhIseInitCtxEntries_B;
-  }
-  EkaGroup iseGroups[] = {
-    {EkaSource::kISE_TQF, (EkaLSI)0},
-    {EkaSource::kISE_TQF, (EkaLSI)1},
-    {EkaSource::kISE_TQF, (EkaLSI)2},
-    {EkaSource::kISE_TQF, (EkaLSI)3}
-  };
   //##########################################################
   struct TestFhCtx {
     EkaProps*         pEkaProps;
@@ -831,18 +487,8 @@ int main(int argc, char *argv[]) {
   };
 
   TestFhCtx t[] = {
-    /* {&ekaPropsNom_0,   nomGroups_0, 4,                     1, 1                    }, */
-    /* {&ekaPropsNom_1,   nomGroups_1, 0,                     1, 1                    }, */
-    /* {&ekaPropsNom_2,   nomGroups_2, 0,                     1, 1                    }, */
-    /* {&ekaPropsNom_3,   nomGroups_3, 0,                     1, 1                    }, */
-    {&ekaPropsNom,        nomGroups_0, 4,                     1, 1                    },
-    {NULL,                nomGroups_1, 0,                     1, 1                    },
-    {NULL,                nomGroups_2, 0,                     1, 1                    },
-    {NULL,                nomGroups_3, 0,                     1, 1                    },
-    //    {&ekaPropsNom,   nomGroups,   4,                     4, 4                    },
-    {&ekaPropsPhlx,  phlxGroups,  std::size(phlxGroups), 8, std::size(phlxGroups)},
-    {&ekaPropsGem,   gemGroups,   std::size(gemGroups),  4, std::size(gemGroups) },
-    {&ekaPropsIse,   iseGroups,   std::size(iseGroups),  4, std::size(iseGroups) }
+    {&ekaPropsPhlxTopo, (EkaGroup*)&phlxTopoGroups, std::size(phlxTopoGroups), std::size(phlxTopoGroups), std::size(phlxTopoGroups) },
+    {&ekaPropsPhlxOrd , (EkaGroup*)&phlxOrdGroups,  std::size(phlxOrdGroups),  std::size(phlxOrdGroups),  std::size(phlxOrdGroups) }
   };
 
   EfhRunCtx      runCtx[MAX_TEST_THREADS] = {};
