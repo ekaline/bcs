@@ -261,7 +261,7 @@ int main(int argc, char *argv[]) {
       if (printAll)
 	printf("\t%8ju, %s \'%c%c\'",sequence,group[gr].timestamp,msgHdr->MsgType[0],msgHdr->MsgType[1]);
       /* -------------------------------- */
-      if (group[gr].expectedSeq != sequence) {
+      if (group[gr].expectedSeq < sequence) {
 	if (printAll) 
 	  printf (" --- expected %ju != actual %ju\n",
 		  group[gr].expectedSeq,sequence);
