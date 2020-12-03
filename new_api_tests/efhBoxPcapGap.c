@@ -120,7 +120,7 @@ struct EkaUdpHdr {
 
 
 //###################################################
-#if 0
+#if 1
 static void hexDump (const char* desc, void *addr, int len) {
     int i;
     unsigned char buff[17];
@@ -143,6 +143,39 @@ static void hexDump (const char* desc, void *addr, int len) {
 }
 #endif
 //#########################################################
+uint getHsvfMsgLen(const uint8_t* pkt, int bytes2run) {
+  uint idx = 0;
+  /* if (pkt[idx] != HsvfSom) { */
+  /*   hexDump("Msg with no HsvfSom (0x2)",(void*)pkt,bytes2run); */
+  /*   on_error("0x%x met while HsvfSom 0x%x is expected",pkt[idx],HsvfSom); */
+  /*   return 0; */
+  /* } */
+  do {
+    idx++;
+    if ((int)idx > bytes2run) {
+      hexDump("Msg with no HsvfEom (0x3)",(void*)pkt,bytes2run);
+      on_error("HsvfEom not met after %u characters",idx);
+    }
+  } while (pkt[idx] != HsvfEom);
+  return idx + 1;
+}
+//###################################################
+
+uint64_t getHsvfMsgSequence(uint8_t* msg) {
+  HsvfMsgHdr* msgHdr = (HsvfMsgHdr*)&msg[1];
+  std::string seqString = std::string(msgHdr->sequence,sizeof(msgHdr->sequence));
+  return std::stoul(seqString,nullptr,10);
+}
+//###################################################
+
+uint trailingZeros(uint8_t* p, uint maxChars) {
+  uint idx = 0;
+  while (p[idx] == 0x0 && idx < maxChars) {
+    idx++; // skipping trailing '\0' chars
+  }
+  return idx - 1;
+}
+//###################################################
 
 inline int skipChar(char* s, char char2skip) {
   int p = 0;
@@ -156,7 +189,7 @@ inline int skipChar(char* s, char char2skip) {
     uint16_t  port;
     char      timestamp[64] = {};
     char      msgTimestamp[64] = {};
-    uint64_t  seq;
+    uint64_t  expectedSeq;
     uint hour = 0;
   };
 
@@ -203,50 +236,49 @@ int main(int argc, char *argv[]) {
 
     int pos = 0;
     if (EKA_ETHER_VLAN(pkt)) pos += 4;
-    if (! EKA_IS_UDP_PKT(&pkt[pos])) continue;
+    if (! EKA_IS_UDP_PKT(&pkt[pos])) {
+      continue;
+    }
 
     int gr = findGrp(EKA_IPH_DST(&pkt[pos]),EKA_UDPH_DST(&pkt[pos]));
-    if (group[gr].hour > startHour) printf ("%s:%u\n",EKA_IP2STR(EKA_IPH_DST(&pkt[pos])),EKA_UDPH_DST(&pkt[pos]));
+    //    if (group[gr].hour > startHour) printf ("%s:%u\n",EKA_IP2STR(EKA_IPH_DST(&pkt[pos])),EKA_UDPH_DST(&pkt[pos]));
 
 
     pos += sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr);
-
+    printf ("%d, %s:%u Pkt %ju\n--------------------\n",gr,EKA_IP2STR(group[gr].ip),group[gr].port,pktNum);
+    //###############################################
     while (pos < (int)pktLen) {
-      if (pkt[pos] != HsvfSom) 
-	on_error("pkt: %ju: expected SOM (0x%x), received 0x%x",pktNum,HsvfSom,pkt[pos]);
-      pos++;
+      if (pkt[pos] != HsvfSom) on_error("expected SOM (0x%x) != 0x%x",HsvfSom,pkt[pos]);
+      HsvfMsgHdr* msgHdr = (HsvfMsgHdr*)&pkt[pos+1];
+      uint64_t sequence = getHsvfMsgSequence((uint8_t*)msgHdr);
       /* -------------------------------- */
-      HsvfMsgHdr* msgHdr = (HsvfMsgHdr*)&pkt[pos];
-      std::string seqString = std::string(msgHdr->sequence,sizeof(msgHdr->sequence));
-      uint64_t seq = std::stoul(seqString,nullptr,10);
-      /* if (group[gr].hour > startHour) { */
-      /* 	printf ("-- %s\n",seqString.c_str()); */
-      /* } */
-      if (group[gr].hour > startHour && seq != group[gr].seq + 1) {
-	printf ("%d: %s:%u, %s expected %ju, actual %ju\n",
-		gr,EKA_IP2STR(group[gr].ip),group[gr].port,group[gr].timestamp,group[gr].seq + 1,seq);
+      printf("\t%8ju, %s \'%c%c\'",sequence,group[gr].timestamp,msgHdr->MsgType[0],msgHdr->MsgType[1]);
+      /* -------------------------------- */
+      if (group[gr].expectedSeq != sequence) {
+	printf (" --- expected %ju != actual %ju\n",
+		group[gr].expectedSeq,sequence);
+      } else {
+	printf("\n");
       }
-      group[gr].seq = seq;
+      group[gr].expectedSeq = sequence + 1;
 
-      pos += sizeof(HsvfMsgHdr);
       /* -------------------------------- */
+
       if (memcmp(msgHdr->MsgType,"Z ",sizeof(msgHdr->MsgType)) == 0) { // SystemTimeStamp
       	SystemTimeStamp* msg = (SystemTimeStamp*)&pkt[pos];
-	if (strlen(msg->TimeStamp) > 8) {
-	  group[gr].hour =  10 * (msg->TimeStamp[0] - '0') + (msg->TimeStamp[1] - '0');
-	  if (group[gr].hour > startHour) {
-	    sprintf (group[gr].timestamp,"%c%c:%c%c:%c%c.%c%c%c",
-		     msg->TimeStamp[0],msg->TimeStamp[1],msg->TimeStamp[2],msg->TimeStamp[3],msg->TimeStamp[4],msg->TimeStamp[5],
-		     msg->TimeStamp[6],msg->TimeStamp[7],msg->TimeStamp[8]
-		     );
-	    strncpy(group[gr].msgTimestamp,msg->TimeStamp,sizeof(msg->TimeStamp));
-	    printf("%d: %s:%u %ju, |%c%c|,|%s| == |%s|\n",
-		   gr,
-		   EKA_IP2STR(group[gr].ip),group[gr].port,
-		   seq,
-		   msgHdr->MsgType[0],msgHdr->MsgType[1],
-		   group[gr].timestamp,group[gr].msgTimestamp);
-	  }
+	group[gr].hour =  10 * (msg->TimeStamp[0] - '0') + (msg->TimeStamp[1] - '0');
+	if (group[gr].hour > startHour) {
+	  sprintf (group[gr].timestamp,"%c%c:%c%c:%c%c.%c%c%c",
+		   msg->TimeStamp[0],msg->TimeStamp[1],msg->TimeStamp[2],msg->TimeStamp[3],msg->TimeStamp[4],msg->TimeStamp[5],
+		   msg->TimeStamp[6],msg->TimeStamp[7],msg->TimeStamp[8]
+		   );
+	  strncpy(group[gr].msgTimestamp,msg->TimeStamp,sizeof(msg->TimeStamp));
+	  printf("%d: %s:%u %ju, |%c%c|,|%s| == |%s|\n",
+		 gr,
+		 EKA_IP2STR(group[gr].ip),group[gr].port,
+		 sequence,
+		 msgHdr->MsgType[0],msgHdr->MsgType[1],
+		 group[gr].timestamp,group[gr].msgTimestamp);
 	}
       } 
       /* -------------------------------- */
@@ -254,6 +286,7 @@ int main(int argc, char *argv[]) {
       pos += skipChar(&pkt[pos],HsvfEom);
       pos += skipChar(&pkt[pos],'\0');
     }
+
   }
   fprintf(stderr,"%ju packets processed\n",pktNum);
   fclose(pcap_file);
