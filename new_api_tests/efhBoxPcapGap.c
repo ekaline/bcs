@@ -143,13 +143,13 @@ static void hexDump (const char* desc, void *addr, int len) {
 }
 #endif
 //#########################################################
-uint getHsvfMsgLen(const uint8_t* pkt, int bytes2run) {
+uint getHsvfMsgLen(char* pkt, int bytes2run) {
   uint idx = 0;
-  /* if (pkt[idx] != HsvfSom) { */
-  /*   hexDump("Msg with no HsvfSom (0x2)",(void*)pkt,bytes2run); */
-  /*   on_error("0x%x met while HsvfSom 0x%x is expected",pkt[idx],HsvfSom); */
-  /*   return 0; */
-  /* } */
+  if (pkt[idx] != HsvfSom) {
+    hexDump("Msg with no HsvfSom (0x2)",(void*)pkt,bytes2run);
+    on_error("0x%x met while HsvfSom 0x%x is expected",pkt[idx],HsvfSom);
+    return 0;
+  }
   do {
     idx++;
     if ((int)idx > bytes2run) {
@@ -161,19 +161,19 @@ uint getHsvfMsgLen(const uint8_t* pkt, int bytes2run) {
 }
 //###################################################
 
-uint64_t getHsvfMsgSequence(uint8_t* msg) {
+uint64_t getHsvfMsgSequence(char* msg) {
   HsvfMsgHdr* msgHdr = (HsvfMsgHdr*)&msg[1];
   std::string seqString = std::string(msgHdr->sequence,sizeof(msgHdr->sequence));
   return std::stoul(seqString,nullptr,10);
 }
 //###################################################
 
-uint trailingZeros(uint8_t* p, uint maxChars) {
+uint trailingZeros(char* p, uint maxChars) {
   uint idx = 0;
   while (p[idx] == 0x0 && idx < maxChars) {
     idx++; // skipping trailing '\0' chars
   }
-  return idx - 1;
+  return idx;
 }
 //###################################################
 
@@ -218,6 +218,9 @@ int main(int argc, char *argv[]) {
   char buf[1600] = {};
   FILE *pcap_file;
 
+  bool printAll = argc > 2;
+  printf ("argc = %d\n",argc);
+
   if ((pcap_file = fopen(argv[1], "rb")) == NULL) on_error("Failed to open dump file %s",argv[1]);
   if (fread(buf,sizeof(pcap_file_hdr),1,pcap_file) != 1) 
     on_error ("Failed to read pcap_file_hdr from the pcap file");
@@ -245,20 +248,29 @@ int main(int argc, char *argv[]) {
 
 
     pos += sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr);
-    printf ("%d, %s:%u Pkt %ju\n--------------------\n",gr,EKA_IP2STR(group[gr].ip),group[gr].port,pktNum);
+    if (printAll) printf ("%d, %s:%u Pkt %ju\n--------------------\n",gr,EKA_IP2STR(group[gr].ip),group[gr].port,pktNum);
     //###############################################
     while (pos < (int)pktLen) {
       if (pkt[pos] != HsvfSom) on_error("expected SOM (0x%x) != 0x%x",HsvfSom,pkt[pos]);
+      uint msgLen       = getHsvfMsgLen(&pkt[pos],pktLen-pos);
+      uint64_t sequence = getHsvfMsgSequence(&pkt[pos]);
+
       HsvfMsgHdr* msgHdr = (HsvfMsgHdr*)&pkt[pos+1];
-      uint64_t sequence = getHsvfMsgSequence((uint8_t*)msgHdr);
+
       /* -------------------------------- */
-      printf("\t%8ju, %s \'%c%c\'",sequence,group[gr].timestamp,msgHdr->MsgType[0],msgHdr->MsgType[1]);
+      if (printAll)
+	printf("\t%8ju, %s \'%c%c\'",sequence,group[gr].timestamp,msgHdr->MsgType[0],msgHdr->MsgType[1]);
       /* -------------------------------- */
       if (group[gr].expectedSeq != sequence) {
-	printf (" --- expected %ju != actual %ju\n",
-		group[gr].expectedSeq,sequence);
+	if (printAll) 
+	  printf (" --- expected %ju != actual %ju\n",
+		  group[gr].expectedSeq,sequence);
+	else
+	  printf ("%d, %s:%u %s: expected %ju != actual %ju\n",
+		  gr, EKA_IP2STR(group[gr].ip),group[gr].port, group[gr].timestamp,
+		  group[gr].expectedSeq, sequence);
       } else {
-	printf("\n");
+	if (printAll) printf("\n");
       }
       group[gr].expectedSeq = sequence + 1;
 
@@ -272,8 +284,8 @@ int main(int argc, char *argv[]) {
 		   msg->TimeStamp[0],msg->TimeStamp[1],msg->TimeStamp[2],msg->TimeStamp[3],msg->TimeStamp[4],msg->TimeStamp[5],
 		   msg->TimeStamp[6],msg->TimeStamp[7],msg->TimeStamp[8]
 		   );
-	  strncpy(group[gr].msgTimestamp,msg->TimeStamp,sizeof(msg->TimeStamp));
-	  printf("%d: %s:%u %ju, |%c%c|,|%s| == |%s|\n",
+	  memcpy(group[gr].msgTimestamp,msg->TimeStamp,sizeof(msg->TimeStamp));
+	  if (printAll) printf("%d: %s:%u %ju, |%c%c|,|%s| == |%s|\n",
 		 gr,
 		 EKA_IP2STR(group[gr].ip),group[gr].port,
 		 sequence,
@@ -283,8 +295,10 @@ int main(int argc, char *argv[]) {
       } 
       /* -------------------------------- */
 
-      pos += skipChar(&pkt[pos],HsvfEom);
-      pos += skipChar(&pkt[pos],'\0');
+      pos += msgLen;
+      pos += trailingZeros(&pkt[pos],pktLen-pos );
+      //      pos += skipChar(&pkt[pos],HsvfEom);
+      //      pos += trailingZeros(&pkt[pos], 3); // up to 3 trailing '\0'
     }
 
   }
