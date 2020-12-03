@@ -226,7 +226,7 @@ int main(int argc, char *argv[]) {
     on_error ("Failed to read pcap_file_hdr from the pcap file");
 
   uint64_t pktNum = 0;
-  uint startHour = 10;
+  uint startHour = 0;
   while (fread(buf,sizeof(pcap_rec_hdr),1,pcap_file) == 1) {
     pcap_rec_hdr *pcap_rec_hdr_ptr = (pcap_rec_hdr *) buf;
     uint pktLen = pcap_rec_hdr_ptr->len;
@@ -277,7 +277,7 @@ int main(int argc, char *argv[]) {
       /* -------------------------------- */
 
       if (memcmp(msgHdr->MsgType,"Z ",sizeof(msgHdr->MsgType)) == 0) { // SystemTimeStamp
-      	SystemTimeStamp* msg = (SystemTimeStamp*)&pkt[pos];
+      	SystemTimeStamp* msg = (SystemTimeStamp*)&pkt[pos+sizeof(HsvfMsgHdr)+1];
 	group[gr].hour =  10 * (msg->TimeStamp[0] - '0') + (msg->TimeStamp[1] - '0');
 	if (group[gr].hour > startHour) {
 	  sprintf (group[gr].timestamp,"%c%c:%c%c:%c%c.%c%c%c",
@@ -297,8 +297,6 @@ int main(int argc, char *argv[]) {
 
       pos += msgLen;
       pos += trailingZeros(&pkt[pos],pktLen-pos );
-      //      pos += skipChar(&pkt[pos],HsvfEom);
-      //      pos += trailingZeros(&pkt[pos], 3); // up to 3 trailing '\0'
     }
 
   }
