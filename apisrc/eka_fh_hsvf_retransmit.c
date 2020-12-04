@@ -237,11 +237,12 @@ EkaOpResult eka_hsvf_get_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
 	  EKA_IP2STR(gr->snapshot_ip),be16toh(gr->snapshot_port));
 
 
-  gr->hsvfTcp = new EkaHsvfTcp(dev,gr->recovery_sock);
-  if (gr->hsvfTcp == NULL) on_error("Failed on new EkaHsvfTcp");
 
   //-----------------------------------------------------------------
   ekaTcpConnect(&gr->snapshot_sock,gr->snapshot_ip,gr->snapshot_port);
+  //-----------------------------------------------------------------
+  gr->hsvfTcp = new EkaHsvfTcp(dev,gr->snapshot_sock);
+  if (gr->hsvfTcp == NULL) on_error("Failed on new EkaHsvfTcp");
   //-----------------------------------------------------------------
   if ((ret = sendLogin(gr))        != EKA_OPRESULT__OK) return ret;
   //-----------------------------------------------------------------
@@ -293,12 +294,13 @@ void* eka_get_hsvf_retransmit(void* attr) {
 
   if (gr->recovery_sock != -1) on_error("%s:%u gr->recovery_sock != -1",EKA_EXCH_DECODE(gr->exch),gr->id);
 
-  gr->hsvfTcp = new EkaHsvfTcp(dev,gr->recovery_sock);
-  if (gr->hsvfTcp == NULL) on_error("Failed on new EkaHsvfTcp");
 
   EKA_LOG("%s:%u start=%ju, end=%ju",EKA_EXCH_DECODE(gr->exch),gr->id,start,end);
   //-----------------------------------------------------------------
   ekaTcpConnect(&gr->snapshot_sock,gr->snapshot_ip,gr->snapshot_port);
+  //-----------------------------------------------------------------
+  gr->hsvfTcp = new EkaHsvfTcp(dev,gr->recovery_sock);
+  if (gr->hsvfTcp == NULL) on_error("Failed on new EkaHsvfTcp");
   //-----------------------------------------------------------------
   sendLogin(gr);
   //-----------------------------------------------------------------
