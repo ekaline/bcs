@@ -34,6 +34,8 @@ EkaHsvfTcp::EkaHsvfTcp(EkaDev* dev, int sock) {
 /* ----------------------------- */
 
 bool EkaHsvfTcp::hasValidMsg() {
+  if (m_validBytes == 0) return 0;
+
   if (m_msgBuf[m_firstValidByte] != HsvfSom) 
     on_error("0x%x != 0x%x",m_msgBuf[m_firstValidByte],HsvfSom);
 
