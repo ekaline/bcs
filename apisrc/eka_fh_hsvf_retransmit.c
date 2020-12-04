@@ -236,6 +236,10 @@ EkaOpResult eka_hsvf_get_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
   EKA_LOG("Definitions for %s:%u - BOX to %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id,
 	  EKA_IP2STR(gr->snapshot_ip),be16toh(gr->snapshot_port));
 
+
+  gr->hsvfTcp = new EkaHsvfTcp(dev,gr->recovery_sock);
+  if (gr->hsvfTcp == NULL) on_error("Failed on new EkaHsvfTcp");
+
   //-----------------------------------------------------------------
   ekaTcpConnect(&gr->snapshot_sock,gr->snapshot_ip,gr->snapshot_port);
   //-----------------------------------------------------------------
@@ -264,6 +268,7 @@ EkaOpResult eka_hsvf_get_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
   if ((ret = sendRetransmissionEnd(gr))      != EKA_OPRESULT__OK) return ret;
   //-----------------------------------------------------------------
   close(gr->snapshot_sock);
+  delete gr->hsvfTcp;
 #endif
 
   return  EKA_OPRESULT__OK;
