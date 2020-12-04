@@ -40,7 +40,7 @@ bool EkaHsvfTcp::hasValidMsg() {
   if (m_msgBuf[m_firstValidByte] != HsvfSom) 
     on_error("0x%x != 0x%x",m_msgBuf[m_firstValidByte],HsvfSom);
 
-  for (auto idx = m_firstValidByte + m_msgLen + 1; idx < m_firstValidByte + m_validBytes; idx ++) {
+  for (auto idx = m_firstValidByte + m_msgLen; idx < m_firstValidByte + m_validBytes; idx ++) {
     m_msgLen++;
     if (m_msgBuf[idx] == HsvfEom) {
       m_msgLen += trailingZeros(&m_msgBuf[idx + 1], m_validBytes - m_msgLen);
@@ -62,8 +62,6 @@ int EkaHsvfTcp::shiftAndFillBuf() {
   int readBytes = recv(m_sock,&m_msgBuf[m_validBytes],MSG_BUF_SIZE - m_validBytes,MSG_DONTWAIT);
   if (readBytes <= 0) return 0;
 
-  //  hexDump("EkaHsvfTcp::shiftAndFillBuf readBytes",&m_msgBuf[m_validBytes],readBytes);
-  //  TEST_LOG("readBytes = %d",readBytes);
   m_validBytes += readBytes;
   return 0;
 }
@@ -79,10 +77,10 @@ EkaOpResult EkaHsvfTcp::getTcpMsg(uint8_t** msgBuf) {
   
   *msgBuf = &m_msgBuf[m_firstValidByte];
 
-  hexDump("Msg received",&m_msgBuf[m_firstValidByte],m_msgLen);
+  //  hexDump("Msg received",&m_msgBuf[m_firstValidByte],m_msgLen);
   
   m_validBytes     -= m_msgLen;
-  m_firstValidByte += m_msgLen + 1;
+  m_firstValidByte += m_msgLen;
   m_msgLen          = 0;
 
   
