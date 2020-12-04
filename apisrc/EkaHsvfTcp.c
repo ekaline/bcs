@@ -24,6 +24,7 @@
 #include "eka_hsvf_box_messages.h"
 
 uint trailingZeros(uint8_t* p, uint maxChars);
+void hexDump (const char* desc, void *addr, int len);
 
 EkaHsvfTcp::EkaHsvfTcp(EkaDev* dev, int sock) {
   m_dev            = dev;
@@ -60,6 +61,7 @@ int EkaHsvfTcp::shiftAndFillBuf() {
   
   int readBytes = recv(m_sock,&m_msgBuf[m_validBytes],MSG_BUF_SIZE - m_validBytes,MSG_WAITALL);
   if (readBytes < 0) on_error("Retransmit Server connection reset by peer");
+  hexDump("EkaHsvfTcp::shiftAndFillBuf readBytes",&m_msgBuf[m_validBytes],readBytes);
 
   m_validBytes += readBytes;
   return 0;
