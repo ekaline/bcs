@@ -299,7 +299,7 @@ void* eka_get_hsvf_retransmit(void* attr) {
   //-----------------------------------------------------------------
   ekaTcpConnect(&gr->snapshot_sock,gr->snapshot_ip,gr->snapshot_port);
   //-----------------------------------------------------------------
-  gr->hsvfTcp = new EkaHsvfTcp(dev,gr->recovery_sock);
+  gr->hsvfTcp = new EkaHsvfTcp(dev,gr->snapshot_sock);
   if (gr->hsvfTcp == NULL) on_error("Failed on new EkaHsvfTcp");
   //-----------------------------------------------------------------
   sendLogin(gr);
