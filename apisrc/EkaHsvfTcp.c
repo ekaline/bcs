@@ -41,11 +41,11 @@ bool EkaHsvfTcp::hasValidMsg() {
     on_error("0x%x != 0x%x",m_msgBuf[m_firstValidByte],HsvfSom);
 
   for (auto idx = m_firstValidByte + m_msgLen + 1; idx < m_firstValidByte + m_validBytes; idx ++) {
+    m_msgLen++;
     if (m_msgBuf[idx] == HsvfEom) {
       m_msgLen += trailingZeros(&m_msgBuf[idx + 1], m_validBytes - m_msgLen);
       return true;
     }
-    m_msgLen++;
   }
   if (m_validBytes > MAX_MSG_SIZE)
     on_error("Valid message is not found in %d validBytes",m_validBytes);
@@ -58,11 +58,12 @@ int EkaHsvfTcp::shiftAndFillBuf() {
     memcpy(&m_msgBuf[0],&m_msgBuf[m_firstValidByte],m_validBytes);
     m_firstValidByte = 0;
   }
-  
-  int readBytes = recv(m_sock,&m_msgBuf[m_validBytes],MSG_BUF_SIZE - m_validBytes,MSG_WAITALL);
-  if (readBytes < 0) on_error("Retransmit Server connection reset by peer");
-  hexDump("EkaHsvfTcp::shiftAndFillBuf readBytes",&m_msgBuf[m_validBytes],readBytes);
 
+  int readBytes = recv(m_sock,&m_msgBuf[m_validBytes],MSG_BUF_SIZE - m_validBytes,MSG_DONTWAIT);
+  if (readBytes <= 0) return 0;
+
+  //  hexDump("EkaHsvfTcp::shiftAndFillBuf readBytes",&m_msgBuf[m_validBytes],readBytes);
+  //  TEST_LOG("readBytes = %d",readBytes);
   m_validBytes += readBytes;
   return 0;
 }
@@ -75,13 +76,16 @@ EkaOpResult EkaHsvfTcp::getTcpMsg(uint8_t** msgBuf) {
   while (! hasValidMsg()) {
     shiftAndFillBuf();
   }
-
+  
   *msgBuf = &m_msgBuf[m_firstValidByte];
 
+  hexDump("Msg received",&m_msgBuf[m_firstValidByte],m_msgLen);
+  
   m_validBytes     -= m_msgLen;
-  m_firstValidByte += m_msgLen;
+  m_firstValidByte += m_msgLen + 1;
   m_msgLen          = 0;
 
+  
   return EKA_OPRESULT__OK;
 }
 
@@ -90,7 +94,7 @@ void EkaHsvfTcp::checkIntegrity() {
   if (m_validBytes < 0 || m_validBytes > MSG_BUF_SIZE) 
     on_error("m_validBytes = %d ",m_validBytes);
 
-  if (m_firstValidByte < 0 || m_firstValidByte > m_validBytes)
+  if (m_firstValidByte < 0) // || m_firstValidByte > m_validBytes)
     on_error("m_firstValidByte = %d, m_validBytes = %d",m_firstValidByte,m_validBytes);
 
   if (m_msgLen < 0 || m_msgLen > m_validBytes)
