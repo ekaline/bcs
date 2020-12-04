@@ -203,6 +203,7 @@ class FhMiaxGr : public FhGroup{
 };
 
 /* ##################################################################### */
+class EkaHsvfTcp;
 
 class FhBoxGr : public FhGroup{
  public:
@@ -213,6 +214,7 @@ class FhBoxGr : public FhGroup{
 
   static const bool full_book = false;
   uint64_t txSeqNum;
+  EkaHsvfTcp* hsvfTcp = NULL;
 };
 
 

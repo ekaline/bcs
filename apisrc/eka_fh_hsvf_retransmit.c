@@ -27,6 +27,7 @@
 #include "Eka.h"
 #include "eka_hsvf_box_messages.h"
 #include "eka_fh.h"
+#include "EkaHsvfTcp.h"
 
 int ekaTcpConnect(int* sock, uint32_t ip, uint16_t port);
 int ekaUdpConnect(EkaDev* dev, int* sock, uint32_t ip, uint16_t port);
@@ -45,21 +46,21 @@ inline static uint8_t getTcpChar(uint8_t* dst, int sock) {
 }
 
 /* ----------------------------- */
-static EkaOpResult getTcpMsg(uint8_t* msgBuf, int sock) {
-  uint charIdx = 0;
-  const uint MAX_MSG_SIZE = 1400; // just a number
-  if (getTcpChar(&msgBuf[charIdx],sock) != HsvfSom) 
-    on_error("SoM \'%c\' != HsvfSom \'%c\'",msgBuf[charIdx],HsvfSom);
-  do {
-    charIdx++;
-    //    if (charIdx > std::max(sizeof(HsvfOptionInstrumentKeys),sizeof(HsvfOptionSummary)) + 20) {
-    if (charIdx > MAX_MSG_SIZE) {
-      hexDump("msgBuf with no HsvfEom",msgBuf,charIdx);
-      on_error("HsvfEom not met after %u characters",charIdx);
-    }
-  } while (getTcpChar(&msgBuf[charIdx],sock) != HsvfEom);
-  return EKA_OPRESULT__OK;
-}
+/* static EkaOpResult getTcpMsg(uint8_t* msgBuf, int sock) { */
+/*   uint charIdx = 0; */
+/*   const uint MAX_MSG_SIZE = 1400; // just a number */
+/*   if (getTcpChar(&msgBuf[charIdx],sock) != HsvfSom)  */
+/*     on_error("SoM \'%c\' != HsvfSom \'%c\'",msgBuf[charIdx],HsvfSom); */
+/*   do { */
+/*     charIdx++; */
+/*     //    if (charIdx > std::max(sizeof(HsvfOptionInstrumentKeys),sizeof(HsvfOptionSummary)) + 20) { */
+/*     if (charIdx > MAX_MSG_SIZE) { */
+/*       hexDump("msgBuf with no HsvfEom",msgBuf,charIdx); */
+/*       on_error("HsvfEom not met after %u characters",charIdx); */
+/*     } */
+/*   } while (getTcpChar(&msgBuf[charIdx],sock) != HsvfEom); */
+/*   return EKA_OPRESULT__OK; */
+/* } */
 
 /* ----------------------------- */
 
@@ -107,8 +108,8 @@ static EkaOpResult getLoginResponse(FhBoxGr* gr) {
 #else	
   bool loginAcknowledged = false;
   while (! loginAcknowledged) {
-    uint8_t msgBuf[1000] = {};
-    if ((ret = getTcpMsg(msgBuf,gr->snapshot_sock)) != EKA_OPRESULT__OK) return ret;
+    uint8_t* msgBuf = NULL;
+    if ((ret = gr->hsvfTcp->getTcpMsg(&msgBuf)) != EKA_OPRESULT__OK) return ret;
 
     HsvfMsgHdr* msgHdr = (HsvfMsgHdr*)&msgBuf[1];
     if (memcmp(msgHdr->MsgType,"KI",sizeof(msgHdr->MsgType)) == 0) { // Login Acknowledge
@@ -173,8 +174,8 @@ static EkaOpResult getRetransmissionBegins(FhBoxGr* gr) {
 #else
   bool retransmissionBegins = false;
   while (! retransmissionBegins) {
-    uint8_t msgBuf[1000] = {};
-    if ((ret = getTcpMsg(msgBuf,gr->snapshot_sock)) != EKA_OPRESULT__OK) return ret;
+    uint8_t* msgBuf = NULL;
+    if ((ret = gr->hsvfTcp->getTcpMsg(&msgBuf)) != EKA_OPRESULT__OK) return ret;
 
     HsvfMsgHdr* msgHdr = (HsvfMsgHdr*)&msgBuf[1];
 
@@ -253,8 +254,8 @@ EkaOpResult eka_hsvf_get_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
   bool definitionsDone = false;
   uint64_t sequence = 1;
   while (gr->snapshot_active && !definitionsDone) {
-    uint8_t msgBuf[1500] = {};
-    if ((ret = getTcpMsg(msgBuf,gr->snapshot_sock)) != EKA_OPRESULT__OK) return ret;
+    uint8_t* msgBuf = NULL;
+    if ((ret = gr->hsvfTcp->getTcpMsg(&msgBuf)) != EKA_OPRESULT__OK) return ret;
     sequence = getHsvfMsgSequence(msgBuf);
     definitionsDone = gr->parseMsg(pEfhRunCtx,&msgBuf[1],0,EkaFhMode::DEFINITIONS);
   }
@@ -287,6 +288,9 @@ void* eka_get_hsvf_retransmit(void* attr) {
 
   if (gr->recovery_sock != -1) on_error("%s:%u gr->recovery_sock != -1",EKA_EXCH_DECODE(gr->exch),gr->id);
 
+  gr->hsvfTcp = new EkaHsvfTcp(dev,gr->recovery_sock);
+  if (gr->hsvfTcp == NULL) on_error("Failed on new EkaHsvfTcp");
+
   EKA_LOG("%s:%u start=%ju, end=%ju",EKA_EXCH_DECODE(gr->exch),gr->id,start,end);
   //-----------------------------------------------------------------
   ekaTcpConnect(&gr->snapshot_sock,gr->snapshot_ip,gr->snapshot_port);
@@ -303,8 +307,8 @@ void* eka_get_hsvf_retransmit(void* attr) {
   gr->snapshot_active = true;
 
   while (gr->snapshot_active) {
-    uint8_t msgBuf[1500] = {};
-    getTcpMsg(msgBuf,gr->snapshot_sock);
+    uint8_t* msgBuf = NULL;
+    gr->hsvfTcp->getTcpMsg(&msgBuf);
 
     uint64_t sequence = getHsvfMsgSequence(msgBuf);
     //    EKA_LOG("%s:%u got sequence = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,sequence);
@@ -322,6 +326,7 @@ void* eka_get_hsvf_retransmit(void* attr) {
   sendRetransmissionEnd(gr);
   //-----------------------------------------------------------------
   close(gr->snapshot_sock);
+  delete gr->hsvfTcp;
 #endif
 
   return NULL;
