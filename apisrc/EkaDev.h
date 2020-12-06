@@ -1,6 +1,7 @@
 #ifndef _EKA_DEV_H
 #define _EKA_DEV_H
 
+
 // SHURIK
 #include <mutex>
 #include <thread>
@@ -9,6 +10,9 @@
 #include "EkaHwInternalStructs.h"
 #include "Eka.h"
 #include "Efc.h"
+
+//#include "eka_hw_conf.h"
+
 #include "eka_sn_addr_space.h"
 
 class FhRunGr;
@@ -24,6 +28,7 @@ class EkaDev {
  public:
   EkaDev(const EkaDevInitCtx* initCtx);
   ~EkaDev();
+  int clearHw();
 
   void     eka_write(uint64_t addr, uint64_t val);
   uint64_t eka_read(uint64_t addr);
@@ -53,6 +58,14 @@ class EkaDev {
   EkaDev*                   dev = NULL; // pointer to myself
   EkaSnDev*                 snDev = NULL;
 
+  /* enum CONF { */
+  /*   MAX_FEED_HANDLERS = 8, */
+  /*   MAX_CTX_THREADS   = 16, */
+  /*   MAX_CORES         = EKA_MAX_CORES, //8, */
+  /*   MAX_RUN_GROUPS    = 32 */
+  /* }; */
+
+
   uint8_t                   hwEnabledCores = 0;
   uint8_t                   hwFeedVer = 0;
   uint16_t                  hwRawFireSize = 0;
@@ -70,11 +83,6 @@ class EkaDev {
   int64_t                   lwip_sem;
   volatile uint8_t*         txPktBuf = NULL;
 
-  /* service_thread_params_t   serv_thr; */
-  /* eka_ctx_thread_params_t   thread[EKA_MAX_CTX_THREADS]; */
-  /* p4_fire_params_t          fire_params; */
-  /* eka_subscr_params_t       subscr; */
-  //    volatile bool             continue_sending_igmps;
   pthread_mutex_t           tcp_send_mutex;
   pthread_mutex_t           tcp_socket_open_mutex;
 
@@ -118,11 +126,15 @@ class EkaDev {
   EkaReleaseCredentialsFn   credRelease;
   EkaThreadCreateFn         createThread;
 
-  //  exc_debug_module*         exc_debug = NULL;
-
   bool                      print_parsed_messages = false;
 
   hw_capabilities_t         hw_capabilities = {};
+
+  /* static const uint64_t     statSwVersion          = SW_SCRATCHPAD_BASE; */
+  /* static const uint64_t     statGlobalCoreAddrBase = statSwVersion + 8; */
+  /* static const uint64_t     statMcCoreAddrBase     = statGlobalCoreAddrBase + 8 * MAX_CORES; */
+  volatile int              statNumUdpSess[MAX_CORES] = {};
+  volatile uint32_t         statMcGrCore[EKA_MAX_UDP_SESSIONS_PER_CORE][MAX_CORES] = {};
 
 #ifdef TEST_PRINT_DICT
   FILE* testDict;
@@ -264,6 +276,28 @@ inline void hexDump (const char *desc, void *addr, int len) {
   }
   while ((i % 16) != 0) { printf ("   "); i++; }
   printf ("  %s\n", buff);
+}
+
+inline void testScratchPadAddr(uint64_t addr) {
+  if (addr >= SW_SCRATCHPAD_BASE + SW_SCRATCHPAD_SIZE)
+    on_error("Out of Scratchpad address space: %jx > SW_SCRATCHPAD_BASE %jx + SW_SCRATCHPAD_SIZE %jx",
+	     addr,(uint64_t)SW_SCRATCHPAD_BASE,(uint64_t)SW_SCRATCHPAD_SIZE);
+}
+
+inline void saveMcStat(EkaDev* dev, uint8_t coreId, uint32_t mcast_ip) {
+  if (dev->statNumUdpSess[coreId] == EKA_MAX_UDP_SESSIONS_PER_CORE) 
+    on_error("cannot subscribe on UDP %s sess %d",EKA_IP2STR(mcast_ip),coreId);
+  int currSess = dev->statNumUdpSess[coreId];
+  dev->statMcGrCore[coreId][currSess] = /* (volatile uint32_t) */mcast_ip;
+  uint globalSessId = coreId * EKA_MAX_UDP_SESSIONS_PER_CORE + currSess;
+  uint64_t statMcIpAddr = SCRPAD_CORE_MC_IP_BASE + globalSessId * 8;
+  eka_write(dev,statMcIpAddr,mcast_ip);
+
+  dev->statNumUdpSess[coreId]++;
+  uint64_t statNumUdpSessAddr = SCRPAD_CORE_BASE + 8 * coreId;
+  testScratchPadAddr(statNumUdpSessAddr);
+
+  eka_write(dev,statNumUdpSessAddr,dev->statNumUdpSess[coreId]);
 }
 
 #endif

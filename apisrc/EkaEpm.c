@@ -250,8 +250,7 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
 
   uint            heapBudget = (uint)(-1);
   EpmActionBitmap actionBitParams = {};
-  uint64_t        dataTemplateAddr = -1;
-  uint            templateId = (uint)(-1);
+  EpmTemplate*    pEpmTemplate = NULL;
 
   char            actionName[30] = {};
   epm_actionid_t  actionIdx      = -1;
@@ -264,9 +263,8 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
   switch (type) {
   case ActionType::TcpFastPath :
     heapBudget                 = MAX_PKT_SIZE;
-
-    localActionIdx             = serviceActionIdx - ServiceActionsBaseIdx;
-    actionIdx                  = serviceActionIdx ++;
+    localActionIdx             = serviceActionIdx;
+    actionIdx                  = ServiceActionsBaseIdx + serviceActionIdx++;
     heapAddr                   = serviceHeapAddr;
     serviceHeapAddr           += heapBudget;
     actionAddr                 = serviceActionAddr;
@@ -276,16 +274,15 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
     actionBitParams.bitmap.israw        = 0;
     actionBitParams.bitmap.report_en    = 0;
     actionBitParams.bitmap.feedbck_en   = 1;
-    dataTemplateAddr                    = tcpFastPathPkt->getDataTemplateAddr();
-    templateId                          = tcpFastPathPkt->id;
+    pEpmTemplate                        = tcpFastPathPkt;
     strcpy(actionName,"TcpFastPath");
     break;
 
   case ActionType::TcpFullPkt  :
     heapBudget                 = MAX_PKT_SIZE;
 
-    localActionIdx             = serviceActionIdx - ServiceActionsBaseIdx;
-    actionIdx                  = serviceActionIdx ++;
+    localActionIdx             = serviceActionIdx;
+    actionIdx                  = ServiceActionsBaseIdx + serviceActionIdx ++;
     heapAddr                   = serviceHeapAddr;
     serviceHeapAddr           += heapBudget;
     actionAddr                 = serviceActionAddr;
@@ -295,16 +292,17 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
     actionBitParams.bitmap.israw        = 1;
     actionBitParams.bitmap.report_en    = 0;
     actionBitParams.bitmap.feedbck_en   = 0;
-    dataTemplateAddr                    = rawPkt->getDataTemplateAddr();
-    templateId                          = rawPkt->id;
+    pEpmTemplate                        = rawPkt;
+
     strcpy(actionName,"TcpFullPkt");
     break;
 
   case ActionType::TcpEmptyAck :
     heapBudget                 = TCP_EMPTY_ACK_SIZE;
 
-    localActionIdx             = serviceActionIdx - ServiceActionsBaseIdx;
-    actionIdx                  = serviceActionIdx ++;
+
+    localActionIdx             = serviceActionIdx;
+    actionIdx                  = ServiceActionsBaseIdx + serviceActionIdx ++;
     heapAddr                   = serviceHeapAddr;
     serviceHeapAddr           += heapBudget;
     actionAddr                 = serviceActionAddr;
@@ -314,17 +312,16 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
     actionBitParams.bitmap.israw        = 0;
     actionBitParams.bitmap.report_en    = 0;
     actionBitParams.bitmap.feedbck_en   = 0;
+    pEpmTemplate                        = tcpFastPathPkt;
 
-    dataTemplateAddr                    = tcpFastPathPkt->getDataTemplateAddr();
-    templateId                          = tcpFastPathPkt->id;
     strcpy(actionName,"TcpEmptyAck");
     break;
 
   case ActionType::UserAction :
     heapBudget                 = MAX_PKT_SIZE;
 
-    localActionIdx             = localIdx;
-    actionIdx                  = userActionIdx ++;
+    localActionIdx             = userActionIdx;
+    actionIdx                  = UserActionsBaseIdx + userActionIdx ++;
 
     heapAddr                   = userHeapAddr;
     userHeapAddr              += heapBudget;
@@ -337,9 +334,8 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
     actionBitParams.bitmap.feedbck_en   = 1;
 
     actionBitParams.bitmap.empty_report_en = 1;
+    pEpmTemplate                        = tcpFastPathPkt;
 
-    dataTemplateAddr = tcpFastPathPkt->getDataTemplateAddr();
-    templateId       = tcpFastPathPkt->id;
     strcpy(actionName,"UserAction");
     break;
 
@@ -372,9 +368,9 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
 					  heapAddr,
 					  
 					  actionAddr,
-					  dataTemplateAddr,
-					  templateId
+					  pEpmTemplate
 					  );
+
   if (action ==NULL) on_error("new EkaEpmAction = NULL");
   /* EKA_LOG("%s: idx = %3u, localIdx=%3u, heapAddr = 0x%jx, actionAddr = 0x%jx", */
   /* 	  actionName,actionIdx,actionIdx - 0,heapAddr,actionAddr); */

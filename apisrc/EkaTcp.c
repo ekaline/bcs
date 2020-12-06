@@ -181,7 +181,7 @@ void ekaInitLwip (EkaDev* dev) {
   return;
 }
 
-void ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
+int ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
 
   uint8_t broadcastMac[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
   if (memcmp(pkt,broadcastMac,6) == 0) { // broadcast 
@@ -193,7 +193,7 @@ void ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
 	memcpy(p->payload,pkt,len);
 
 	struct netif* netIf = dev->core[rxCoreId]->pLwipNetIf;
-	//	netIf->input(p,netIf);
+
 	if (netIf->input(p,netIf) != ERR_OK) {
 	  hexDump("Dropping RX pkt",(void*)pkt,len);
 	  pbuf_free(p);
@@ -207,10 +207,22 @@ void ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
 
 	struct netif* netIf = dev->core[rxCoreId]->pLwipNetIf;
 	
+	if (EKA_IS_TCP_PKT(pkt)) {
+	  EkaTcpSess* tcpSess = dev->findTcpSess(EKA_IPH_DST(pkt),EKA_TCPH_DST(pkt),EKA_IPH_SRC(pkt),EKA_TCPH_SRC(pkt));
+	  if (tcpSess == NULL) {
+	    on_error("RX pkt TCP session %s:%u-->%s:%u not found",
+		     EKA_IP2STR(EKA_IPH_DST(pkt)),EKA_TCPH_DST(pkt),
+		     EKA_IP2STR(EKA_IPH_SRC(pkt)),EKA_TCPH_SRC(pkt)
+		     );
+	  }
+	  //	  if (tcpSess->updateRx(pkt,len) == 0) return 1;
+	  tcpSess->updateRx(pkt,len);
+	}
+
 	struct pbuf* p = pbuf_alloc(PBUF_RAW, len, PBUF_RAM);
 	if (p == NULL) on_error ("failed to get new PBUF");
 	memcpy(p->payload,pkt,len);
-	
+
 	if (netIf->input(p,netIf) != ERR_OK) 
 	  pbuf_free(p);
       }
@@ -222,7 +234,7 @@ void ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
   }
   /* hexDump("ekaProcesTcpRx",(void*)pkt,len); */
 
-  return;
+  return 0;
 }
 
 

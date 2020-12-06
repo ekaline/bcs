@@ -180,10 +180,10 @@ int EkaTcpSess::connect() {
   }
   if (! arpFound) on_error("%s is not in the ARP table",EKA_IP2STR(dst.sin_addr.s_addr));
 
-  dev->lwipConnectMtx.lock();
+  dev->lwipConnectMtx.lock(); // Consider to move to beginning of connect()
   if (lwip_connect(sock,(const sockaddr*) &dst, sizeof(struct sockaddr_in)) < 0) 
     on_error("socket connect failed");
-  dev->lwipConnectMtx.unlock();
+  //  dev->lwipConnectMtx.unlock();
 
   EKA_LOG("TCP connected %u:%u : %s:%u --> %s:%u",
 	  coreId,sessId,EKA_IP2STR(srcIp),srcPort,EKA_IP2STR(dstIp),dstPort);
@@ -191,13 +191,14 @@ int EkaTcpSess::connect() {
 
   connectionEstablished = true;
 
-
+  //  LOCK_TCPIP_CORE();
   uint32_t sockOpt = lwip_fcntl(sock, F_GETFL, 0);
   sockOpt |= O_NONBLOCK;
   int ret = lwip_fcntl(sock, F_SETFL, sockOpt);
   if (ret < 0) on_error("setting O_NONBLOCK is failed for sock %d: ret = %d",sock,ret);
   EKA_LOG("O_NONBLOCK is set for socket %d",sock);
-  UNLOCK_TCPIP_CORE();
+  //  UNLOCK_TCPIP_CORE();
+  dev->lwipConnectMtx.unlock();
 
   return 0;
 }
@@ -215,75 +216,18 @@ int EkaTcpSess::preloadNwHeaders() {
   emptyAckAction->setNwHdrs(macDa,macSa,srcIp,dstIp,srcPort,dstPort);
   fastPathAction->setNwHdrs(macDa,macSa,srcIp,dstIp,srcPort,dstPort);
   fullPktAction->setNwHdrs (macDa,macSa,srcIp,dstIp,srcPort,dstPort);
-
-/*   hw_session_nw_header_t hw_nw_header = { */
-/*     .ip_cs    = be16toh(csum((unsigned short *)emptyAckAction->ipHdr, sizeof(EkaIpHdr))), */
-/*     .dst_ip   = be32toh(dstIp), */
-/*     .src_port = srcPort, */
-/*     .dst_port = dstPort, */
-/*     .tcpcs    = 0 */
-/*   }; */
-/*   /\* ipHdr->_len = 0; *\/ */
-
-/*   copyBuf2Hw(dev, */
-/* 	     HW_SESSION_NETWORK_BASE+HW_SESSION_NETWORK_CORE_OFFSET * coreId, */
-/* 	     (uint64_t*)&hw_nw_header,sizeof(hw_nw_header)); */
-/*   atomicIndirectBufWrite(dev, */
-/* 			 HW_SESSION_NETWORK_DESC_BASE + HW_SESSION_NETWORK_DESC_OFFSET * coreId, */
-/* 			 0,0,sessId,0); */
-
-/* /\* ---------------------------------------------------------------- *\/ */
-
-/*   uint64_t write_value; */
-/*   // macda */
-/*   memcpy ((char*)&write_value+2, macDa, 6); */
-/*   write_value = be64toh(write_value); */
-/*   eka_write (dev,CORE_CONFIG_BASE+CORE_CONFIG_DELTA*coreId+CORE_MACDA_OFFSET,write_value); */
-
-/*   EKA_LOG("Writing MacDA for core %u: %s",coreId,EKA_MAC2STR(macDa)); */
-
-/*   // src ip */
-/*   eka_write (dev,CORE_CONFIG_BASE+CORE_CONFIG_DELTA*coreId+CORE_SRC_IP_OFFSET,be32toh(srcIp)); */
-    
-/*   // macsa */
-/*   memcpy ((char*)&write_value+2, macSa, 6); */
-/*   write_value = be64toh(write_value); */
-/*   eka_write (dev,CORE_CONFIG_BASE+CORE_CONFIG_DELTA*coreId+CORE_MACSA_OFFSET,write_value); */
-  
-/* ---------------------------------------------------------------- FastPath Headers*/
-  /* ipHdr->_len = 0; // for Fast Path. Recalculated every transaction */
-  /* ipPreliminaryPseudoCsum = pseudo_csum((unsigned short *)ipHdr, sizeof(EkaIpHdr)); */
-  /* tcpPreliminaryPseudoCsum = calcEmptyPktPseudoCsum(ipHdr, tcpHdr); */
-
-  /* hexDump("Preloaded TCP TX Pkt Hdr",(void*)ethHdr,48); */
-
-  /* copyIndirectBuf2HeapHw_swap4(dev, fastPathAction->heapAddr,(uint64_t *)pktBuf,0 /\* threadId *\/, 48); */
-
-  /* EKA_LOG("%s:%u -- %s:%u is preloaded for core=%u, sess=%u", */
-  /* 	  EKA_IP2STR(*(uint32_t*)(&ipHdr->src)),be16toh(tcpHdr->src), */
-  /* 	  EKA_IP2STR(*(uint32_t*)(&ipHdr->dest)),be16toh(tcpHdr->dest), */
-  /* 	  coreId,sessId */
-  /* 	  ); */
-
-
   return 0;
 }
 
 /* ---------------------------------------------------------------- */
 
 int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
-  // THIS FUNCTION IS NOT USED
-  if (tcpRemoteSeqNum != EKA_TCPH_SEQNO(pkt) + EKA_TCP_PAYLOAD_LEN(pkt)) {
-    tcpRemoteSeqNum = EKA_TCPH_SEQNO(pkt) + EKA_TCP_PAYLOAD_LEN(pkt);
-
-    exc_table_desc_t desc = {};
-    desc.td.source_bank = 0;
-    desc.td.source_thread = sessId;
-    desc.td.target_idx = (uint32_t)sessId;
-    eka_write(dev,0x60000 + 0x1000*coreId + 8 * (sessId*2),tcpRemoteSeqNum);
-    eka_write(dev,0x6f000 + 0x100*coreId,desc.desc); 
+  tcpRemoteAckNum = EKA_TCPH_ACKNO(pkt);
+  if ((tcpRemoteAckNum > tcpLocalSeqNum) && (! (EKA_TCP_SYN(pkt)))) {
+    EKA_WARN(CYN "tcpRemoteAckNum %u > tcpLocalSeqNum %u, delta = %d" RESET,
+  	     tcpRemoteAckNum, tcpLocalSeqNum, tcpRemoteAckNum - tcpLocalSeqNum);
+    return 1;
   }
-
   return 0;
 }
 
@@ -320,6 +264,7 @@ int EkaTcpSess::setLocalSeqWnd2FPGA() {
 int EkaTcpSess::sendStackPkt(void *pkt, int len) {
   if (EKA_TCP_SYN(pkt)) {
     tcpLocalSeqNum = EKA_TCPH_SEQNO(pkt) + 1;
+    tcpLocalSeqNumBase = EKA_TCPH_SEQNO(pkt) + 1;
     tcpWindow = EKA_TCPH_WND(pkt);
     setLocalSeqWnd2FPGA();
     sendFullPkt(pkt,len);
@@ -409,28 +354,14 @@ int EkaTcpSess::readyToSend() {
 /* ---------------------------------------------------------------- */
 
 int EkaTcpSess::sendDummyPkt(void *buf, int len) {
+  if (tcpRemoteAckNum > dummyBytes + tcpLocalSeqNumBase)
+    EKA_WARN(YEL "tcpRemoteAckNum %u > real dummyBytes %u, delta = %d" RESET,
+	     tcpRemoteAckNum, dummyBytes + tcpLocalSeqNumBase, tcpRemoteAckNum - dummyBytes - tcpLocalSeqNumBase);
 
-  fastBytesFromUserChannel += len;
-  uint8_t* sendPtr = (uint8_t*)buf;
-  int bytes2send = len;
-  while (dev->exc_active && (bytes2send > 0)) {
-    txLwipBp = ! readyToSend();
-    if (txLwipBp) {
-      usleep(0);
-      continue;
-    }
-    int sentBytes = lwip_write(sock,sendPtr,bytes2send);
-
-    if (sentBytes == 0) {
-      usleep(0);
-    } else if (sentBytes < 0) {
-      perror("XYEBO MHE");
-      usleep(0);
-    } else {   
-      sendPtr    += sentBytes;
-      bytes2send -= sentBytes;
-    }
-  }
+  int sentBytes = lwip_write(sock,buf,len);
+  if (sentBytes <= 0) return 0;
+  if (sentBytes != len) 
+    on_error("Partial Dummy packet: sentBytes %d != len %d",sentBytes, len);
   dummyBytes += len;
   return len;
 }
@@ -439,11 +370,13 @@ int EkaTcpSess::sendDummyPkt(void *buf, int len) {
 int EkaTcpSess::sendPayload(uint thrId, void *buf, int len) {
   if (! dev->exc_active) return 1;
 
-  if (txLwipBp                        || // lwip socket is unavauilable
-      (fastPathBytes > txDriverBytes) || // previous TX pkt didn't arrive TX driver
-      (fastPathBytes > dummyBytes)       // previous TX pkt wasn't sent to lwip as Dummy
+  static const uint TrafficMargin = 4096; // just a number
+
+  if (/* txLwipBp */       0                            || // lwip socket is unavauilable
+      (fastPathBytes > (txDriverBytes + TrafficMargin)) || // previous TX pkt didn't arrive TX driver
+      (fastPathBytes > (dummyBytes    + TrafficMargin))    // previous TX pkt wasn't sent to lwip as Dummy
       ) {
-    usleep(0);
+        usleep(0);
     return 0; // too high tx rate -- Back Pressure
   }
 
@@ -451,8 +384,7 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len) {
   if (payloadSize2send <= 2) on_error("len = %d, payloadSize2send=%u,MAX_PKT_SIZE=%u",len,payloadSize2send,MAX_PAYLOAD_SIZE);
   fastPathBytes += payloadSize2send;
 
-  fastPathAction->setPktPayload(/* thrId,  */buf, payloadSize2send);
-  fastPathAction->send();
+  fastPathAction->fastSend(buf, payloadSize2send);
 
   return payloadSize2send;
 }

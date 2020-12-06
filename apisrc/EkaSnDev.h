@@ -236,7 +236,7 @@ class EkaSnDev {
 
  private:
   enum CONF {
-    MAX_CORES   = 8,
+    MAX_CORES   = EKA_MAX_CORES, //8,
     CHANNELS    = 32
   };
 

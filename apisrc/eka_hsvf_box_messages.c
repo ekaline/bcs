@@ -303,8 +303,8 @@ bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t seq
     msg.strikePrice           = getNumField<uint32_t>(&symb[8],7) * getFractionIndicator(symb[15]) / EFH_HSV_BOX_STRIKE_PRICE_SCALE;
     msg.exchange              = EfhExchange::kBOX;
 
-    memcpy (&msg.classSymbol,boxMsg->UnderlyingSymbolRoot,std::min(sizeof(msg.classSymbol),sizeof(boxMsg->UnderlyingSymbolRoot)));
-    memcpy (&msg.underlying,&symb[0],6);
+    memcpy (&msg.underlying,boxMsg->UnderlyingSymbolRoot,std::min(sizeof(msg.underlying),sizeof(boxMsg->UnderlyingSymbolRoot)));
+    memcpy (&msg.classSymbol,&symb[0],6);
 
 #ifdef TEST_PRINT_DICT
     char avtSecName[32] = {};

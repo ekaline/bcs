@@ -3,6 +3,7 @@
 
 #include <string>
 #include <algorithm>
+#include <errno.h>
 
 #include "ekaNW.h"
 #include "efh_macros.h"
@@ -31,10 +32,10 @@ class EkaDev;
 #endif
 
 #ifndef on_error
-#define on_error(...) { fprintf(stderr, "EKALINE API LIB FATAL ERROR: %s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n");perror(""); fflush(stdout); fflush(stderr); exit(1); }
+#define on_error(...) do { const int err = errno; fprintf(stderr, "EKALINE API LIB FATAL ERROR: %s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); if (err) fprintf(stderr, ": %s (%d)", strerror(err), err); fprintf(stderr, "\n"); fflush(stdout); fflush(stderr); exit(1); } while(0)
 #endif
 
-#define on_warning(...) { fprintf(stderr, "EKALINE API LIB WARNING: %s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n");perror(""); fflush(stdout); fflush(stderr); }
+#define on_warning(...) do { const int err = errno; fprintf(stderr, "EKALINE API LIB WARNING: %s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); if (err) fprintf(stderr, ": %s (%d)", strerror(err), err); fprintf(stderr,"\n"); fflush(stdout); fflush(stderr); } while(0)
 
 #if !defined(LOG_TRACE)
 #define EKA_LOG_WARNING 4
@@ -95,4 +96,14 @@ template <class T> inline T roundUp(T numToRound, T multiple) {
   if (remainder == 0) return numToRound;
   return numToRound + multiple - remainder;
 }
+
+#define RED   "\x1B[31m"
+#define GRN   "\x1B[32m"
+#define YEL   "\x1B[33m"
+#define BLU   "\x1B[34m"
+#define MAG   "\x1B[35m"
+#define CYN   "\x1B[36m"
+#define WHT   "\x1B[37m"
+#define RESET "\x1B[0m"
+
 #endif

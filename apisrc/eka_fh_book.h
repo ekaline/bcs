@@ -444,9 +444,9 @@ class NomBook : public FullBook {
   int init();
 
  private:
-  static const uint     BOOK_SCALE  = 23; //
-  static const uint64_t MAX_ORDERS  = (1 << BOOK_SCALE);       // 8M 
-  static const uint64_t MAX_PLEVELS = (1 << (BOOK_SCALE - 1)); // 4M 
+  static const uint     BOOK_SCALE  = 24; //
+  static const uint64_t MAX_ORDERS  = (1 << BOOK_SCALE);       // 16M 
+  static const uint64_t MAX_PLEVELS = (1 << (BOOK_SCALE - 1)); // 8M 
   static const uint64_t ORDERS_HASH_MASK = ((1 << (BOOK_SCALE - 3)) - 1); //0xFFFFF
 
   fh_b_order*           ord[MAX_ORDERS]; // array of pointers to the orders

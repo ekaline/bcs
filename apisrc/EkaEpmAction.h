@@ -19,13 +19,14 @@ class EkaEpmAction {
 	       EpmActionBitmap         _actionBitParams,
 	       uint64_t		       _heapAddr,
 	       uint64_t		       _actionAddr,
-	       uint64_t		       _dataTemplateAddr,
-	       uint		       _templateId);
+	       EpmTemplate*            _epmTemplate
+	       /* uint64_t		       _dataTemplateAddr, */
+	       /* uint		       _templateId */);
 
   /* ----------------------------------------------------- */
   int updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction *epmAction);
   /* ----------------------------------------------------- */
-  void print();
+  void print(const char* msg);
   /* ----------------------------------------------------- */
   int setNwHdrs(uint8_t* macDa, 
 		uint8_t* macSa, 
@@ -42,6 +43,10 @@ class EkaEpmAction {
   /* ----------------------------------------------------- */
   int send();
   /* ----------------------------------------------------- */
+  int fastSend(void* buf, uint len);
+  /* ----------------------------------------------------- */
+  int fastSend(void* buf);
+  /* ----------------------------------------------------- */
 
   char actionName[30] = {};
 
@@ -57,8 +62,9 @@ class EkaEpmAction {
   uint64_t heapAddr     = -1;
   uint     heapOffs     = -1;
   uint64_t actionAddr   = -1;
-  uint64_t templateAddr = -1;
-  uint     templateId   = -1;
+  /* uint64_t templateAddr = -1; */
+  /* uint     templateId   = -1; */
+  EpmTemplate*  epmTemplate = NULL;
 
   uint     thrId        = -1;
 

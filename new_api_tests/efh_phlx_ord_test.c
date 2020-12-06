@@ -23,11 +23,9 @@
 #include "EkaDev.h"
 #include "eka_fh.h"
 
-#include "eka_fh_xdp_messages.h"
+#include "EfhPhlxOrdProps.h"
 
-#include "EfhXdpProps.h"
-
-#define MAX_SECURITIES 96000
+#define MAX_SECURITIES 64000
 #define MAX_UNDERLYINGS 8
 #define MAX_GROUPS 36
 #define MAX_TEST_THREADS 16
@@ -42,10 +40,10 @@ static EfhCtx* pEfhCtx = NULL;
 
 static FILE* fullDict;
 static FILE* subscrDict;
-static FILE* MD[26];
+static FILE* MD;
 
 static bool subscribe_all = false;
-static bool print_tob_updates = true;
+static bool print_tob_updates = false;
 
 static char underlying2subscr[MAX_UNDERLYINGS][SYMBOL_SIZE] = {};
 uint valid_underlying2subscr = 0;
@@ -79,7 +77,7 @@ static inline std::string ts_ns2str(uint64_t ts) {
   res = (res - s) / 60;
   uint m = res % 60;
   res = (res - m) / 60;
-  uint h = res % 24 - 5; // for UTC to EST
+  uint h = res % 24;
   sprintf (dst,"%02d:%02d:%02d.%03d.%03d.%03d",h,m,s,ms,us,ns);
   return std::string(dst);
 }
@@ -92,12 +90,6 @@ static std::string eka_get_time () {
   return std::string(t_str);
 }
 
-inline uint gr2fileIdx(uint grId) {
-  if (grId < 13) return 0;
-  if (grId < 26) return 1;
-  on_error("grId = %u is out of range 0..25",grId);
-}
-
 int createThread(const char* name, EkaThreadType type,  void *(*threadRoutine)(void*), void* arg, void* context, uintptr_t *handle) {
   pthread_create ((pthread_t*)handle,NULL,threadRoutine, arg);
   pthread_setname_np((pthread_t)*handle,name);
@@ -105,7 +97,7 @@ int createThread(const char* name, EkaThreadType type,  void *(*threadRoutine)(v
 }
 
 int credAcquire(EkaCredentialType credType, EkaGroup group, const char *user, const struct timespec *leaseTime, const struct timespec *timeout, void* context, EkaCredentialLease **lease) {
-  printf ("Credential with USER %s is acquired for %s:%hhu\n",user,EKA_EXCH_DECODE(group.source),group.localId);
+  printf ("Credential with USER %s is acquired for %s:%u\n",user,EKA_EXCH_DECODE(group.source),group.localId);
   return 0;
 }
 
@@ -122,23 +114,20 @@ void onTrade(const EfhTradeMsg* msg, EfhSecUserData secData, EfhRunUserData user
 }
 
 void onFeedDown(const EfhFeedDownMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
-  int file_idx = (uint8_t)(msg->group.localId);
-  /* int file_idx = gr2fileIdx((uint8_t)(msg->group.localId)); */
+  /* int file_idx = (uint8_t)(msg->group.localId); */
   /* fprintf(md[file_idx],"%s: %s : FeedDown\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str()); */
-  fprintf(MD[file_idx],"%s: %s : FeedDown\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str());
-  fflush(MD[file_idx]);
+  fprintf(MD,"%s: %s : FeedDown\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str());
   printf ("=========================\n%s: %s -- %ju\n=========================\n",__func__,EKA_PRINT_GRP(&msg->group),msg->gapNum);
+  fflush(MD);
   return;
 }
 
 void onFeedUp(const EfhFeedUpMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
-  int file_idx = (uint8_t)(msg->group.localId);
-  /* int file_idx = gr2fileIdx((uint8_t)(msg->group.localId)); */
-
+  /* int file_idx = (uint8_t)(msg->group.localId); */
   /* fprintf(md[file_idx],"%s: %s : FeedUp\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str()); */
-  fprintf(MD[file_idx],"%s: %s : FeedUp\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str());
-  fflush(MD[file_idx]);
+  fprintf(MD,"%s: %s : FeedUp\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str());
   printf ("=========================\n%s: %s -- %ju\n=========================\n",__func__,EKA_PRINT_GRP(&msg->group),msg->gapNum);
+  fflush(MD);
   return;
 }
 
@@ -160,13 +149,12 @@ void onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData user
   }
 
   if (! print_tob_updates) return;
-
+#ifndef EKA_TEST_IGNORE_DEFINITIONS
   int file_idx = (uint8_t)(msg->header.group.localId);
-
-  /* int file_idx = gr2fileIdx((uint8_t)(msg->header.group.localId)); */
+#endif
 
   //  fprintf(md[file_idx],"%s,%s,%s,%s,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%s\n",
-  fprintf(MD[file_idx],"%s,%s,%s,%s,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%d,%d,%s\n",
+  fprintf(MD,"%s,%s,%s,%s,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%d,%d,%s\n",
 	  EKA_CTS_SOURCE(msg->header.group.source),
 	  "today",
 	  eka_get_time().c_str(),
@@ -234,23 +222,28 @@ void onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUse
   char avtSecName[SYMBOL_SIZE] = {};
   eka_create_avt_definition(avtSecName,msg);
 
-  XdpAuxAttrA attrA = {};
-  attrA.opaqueField = msg->opaqueAttrA;
-  XdpAuxAttrB attrB = {};
-  attrB.opaqueField = msg->opaqueAttrB;
-  fprintf (fullDict,"%s,%ju,%s,%u,%u,%u,%u,%u,%u\n",
+  /* XdpAuxAttrA attrA = {}; */
+  /* attrA.opaqueField = msg->opaqueAttrA; */
+  /* XdpAuxAttrB attrB = {}; */
+  /* attrB.opaqueField = msg->opaqueAttrB; */
+  /* fprintf (fullDict,"%s,%ju,%s,%u,%u,%u,%u,%u,%u\n", */
+  /* 	   avtSecName, */
+  /* 	   msg->header.securityId, */
+  /* 	   EKA_PRINT_GRP(&msg->header.group), */
+  /* 	   attrA.attr.StreamID, */
+  /* 	   attrA.attr.ChannelID, */
+  /* 	   attrA.attr.PriceScaleCode, */
+  /* 	   attrA.attr.GroupID, */
+  /* 	   attrB.attr.UnderlIdx, */
+  /* 	   attrB.attr.AbcGroupID */
+  /* 	   ); */
+  fprintf (fullDict,"%s,%ju,%s\n",
 	   avtSecName,
 	   msg->header.securityId,
-	   EKA_PRINT_GRP(&msg->header.group),
-	   attrA.attr.StreamID,
-	   attrA.attr.ChannelID,
-	   attrA.attr.PriceScaleCode,
-	   attrA.attr.GroupID,
-	   attrB.attr.UnderlIdx,
-	   attrB.attr.AbcGroupID
+	   EKA_PRINT_GRP(&msg->header.group)
 	   );
-  //  int file_idx = (uint8_t)(msg->header.group.localId);
-  int file_idx = attrB.attr.AbcGroupID;
+
+  int file_idx = (uint8_t)(msg->header.group.localId);
 
   if (testFhCtx[file_idx].subscr_cnt >= MAX_SECURITIES) 
     on_error("Trying to subscibe on %u securities > %u MAX_SECURITIES",testFhCtx[file_idx].subscr_cnt,MAX_SECURITIES);
@@ -283,15 +276,12 @@ void onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUse
 
 void print_usage(char* cmd) {
   printf("USAGE: %s <flags> \n",cmd); 
-  printf("\t-F [Feed Code]\n"); 
-  printf("\t\t\tRA - ARCA Side A feed\n"); 
-  printf("\t\t\tRB - ARCA Side B feed\n"); 
-  printf("\t\t\tXA - AMEX Side A feed\n"); 
-  printf("\t\t\tXB - AMEX Side B feed\n"); 
-  printf("\t-p Print Parsed Messages\n");
-  printf("\t-u [Underlying Name]\tSingle Name to subscribe to all its Securities on all Feeds\n");
-  printf("\t-a Subscribe ALL (on enabled feeds)\n");
-  printf("\t-t Print TOB updates (EFH)\n");
+  printf("\t-A Side A feed (default)\n"); 
+  printf("\t-B Side B feed\n"); 
+  printf("\t-p Print Parsed Messages ON (default: OFF)\n");
+  printf("\t-u [Underlying Name]\t- Single Name to subscribe to all its Securities on all Feeds\n");
+  printf("\t-a Subscribe ALL on enabled feeds (default: OFF)\n");
+  printf("\t-t Print TOB updates (default: OFF)\n");
 
   /* printf("\t-f [File Name]\t\tFile with a list of Underlyings to subscribe to all their Securities on all Feeds(1 name per line)\n"); */
   /* printf("\t-m \t\t\tMeasure Latency (Exch ts --> Sample ts\n"); */
@@ -300,31 +290,27 @@ void print_usage(char* cmd) {
 }
 
 int main(int argc, char *argv[]) {
-  if (argc < 3) { print_usage(argv[0]);	return 1; }
+  //  if (argc < 3) { print_usage(argv[0]);	return 1; }
 
   int opt; 
   std::string underlyings_filename;
   //  bool use_underlyings_filename = false;
   bool print_parsed_messages = false;
-  std::string feedName = std::string("NO FEED");
+  bool A_side = true;
 
-  while((opt = getopt(argc, argv, ":u:f:F:Ahatmcp")) != -1) {  
+  while((opt = getopt(argc, argv, ":u:f:F:ABhatmcp")) != -1) {  
     switch(opt) {  
       case 'a':  
 	printf ("Subscribe ALL\n");
 	subscribe_all = true;
 	break;
-      case 'm':  
-	printf ("Measure Latency\n");
-	//	measure_latency = true;
-	break;
       case 'p':  
 	printf("Print Parsed Message\n");  
 	print_parsed_messages = true;
 	break;  
-      case 'c':  
-	printf("Set Threads Affinity\n");  
-	//	setAffinity = true;
+      case 'B':  
+	printf("Use B side\n");  
+	A_side = false;
 	break;  
       case 't':  
 	printf("Print TOB Updates (EFH)\n");  
@@ -334,10 +320,6 @@ int main(int argc, char *argv[]) {
 	strcpy(underlying2subscr[valid_underlying2subscr],optarg);
 	printf("Underlying to subscribe: %s\n", underlying2subscr[valid_underlying2subscr]);  
 	valid_underlying2subscr++;
-	break;  
-      case 'F':  
-	feedName = std::string(optarg);
-	printf("feedName: %s\n", feedName.c_str());  
 	break;  
       case 'f':  
 	//	use_underlyings_filename = true;
@@ -360,25 +342,17 @@ int main(int argc, char *argv[]) {
   EkaDev* pEkaDev = NULL;
 
   EkaProps ekaProps = {};
-  if (feedName == std::string("RA")) {
-    ekaProps.numProps = std::size(efhArcaInitCtxEntries_A);
-    ekaProps.props    = efhArcaInitCtxEntries_A;
-  } else if (feedName == std::string("RB")) {
-    ekaProps.numProps = std::size(efhArcaInitCtxEntries_B);
-    ekaProps.props    = efhArcaInitCtxEntries_B;
-  } else if (feedName == std::string("XA")) {
-    ekaProps.numProps = std::size(efhAmexInitCtxEntries_A);
-    ekaProps.props    = efhAmexInitCtxEntries_A;
-  } else if (feedName == std::string("XB")) {
-    ekaProps.numProps = std::size(efhAmexInitCtxEntries_B);
-    ekaProps.props    = efhAmexInitCtxEntries_B;
+  if (A_side) {
+    ekaProps.numProps = std::size(efhPhlxOrdInitCtxEntries_A);
+    ekaProps.props    = efhPhlxOrdInitCtxEntries_A;
   } else {
-    on_error("Unsupported feed name \"%s\". Supported: RA, RB, XA, XB",feedName.c_str());
-  }
+    ekaProps.numProps = std::size(efhPhlxOrdInitCtxEntries_B);
+    ekaProps.props    = efhPhlxOrdInitCtxEntries_B;
+  } 
 
   const EfhInitCtx efhInitCtx = {
     .ekaProps = &ekaProps,
-    .numOfGroups = std::size(arcaGroups), 
+    .numOfGroups = std::size(phlxOrdGroups),
     .coreId = 0,
     .recvSoftwareMd = true,
 #ifdef EKA_TEST_IGNORE_DEFINITIONS
@@ -388,22 +362,23 @@ int main(int argc, char *argv[]) {
 #endif
   };
 
-
   keep_work = true;
   signal(SIGINT, INThandler);
 
   EfhRunCtx runCtx = {};
 
-  runCtx.numGroups = std::size(arcaGroups);
-  runCtx.groups = arcaGroups;
+  runCtx.numGroups = std::size(phlxOrdGroups);
+  runCtx.groups = phlxOrdGroups;
 
-  runCtx.onEfhQuoteMsgCb        = onQuote;
-  runCtx.onEfhDefinitionMsgCb   = onDefinition;
-  runCtx.onEfhOrderMsgCb        = onOrder;
-  runCtx.onEfhTradeMsgCb        = onTrade;
-  runCtx.onEfhFeedDownMsgCb     = onFeedDown;
-  runCtx.onEfhFeedUpMsgCb       = onFeedUp;
-  runCtx.onEkaExceptionReportCb = onException;
+  EfhRunCtx* pEfhRunCtx = &runCtx;
+
+  pEfhRunCtx->onEfhQuoteMsgCb        = onQuote;
+  pEfhRunCtx->onEfhDefinitionMsgCb   = onDefinition;
+  pEfhRunCtx->onEfhOrderMsgCb        = onOrder;
+  pEfhRunCtx->onEfhTradeMsgCb        = onTrade;
+  pEfhRunCtx->onEfhFeedDownMsgCb     = onFeedDown;
+  pEfhRunCtx->onEfhFeedUpMsgCb       = onFeedUp;
+  pEfhRunCtx->onEkaExceptionReportCb = onException;
 
   EkaDevInitCtx ekaDevInitCtx = {};
   ekaDevInitCtx.credAcquire = credAcquire;
@@ -411,7 +386,7 @@ int main(int argc, char *argv[]) {
   ekaDevInitCtx.createThread = createThread;
   ekaDevInit(&pEkaDev, (const EkaDevInitCtx*) &ekaDevInitCtx);
 
-  pEkaDev->print_parsed_messages = print_parsed_messages;
+   pEkaDev->print_parsed_messages = print_parsed_messages;
 
   efhInit(&pEfhCtx,pEkaDev,&efhInitCtx);
   runCtx.efhRunUserData = (EfhRunUserData) pEfhCtx;
@@ -424,16 +399,15 @@ int main(int argc, char *argv[]) {
 
   std::string fullDictName   = std::string(EKA_EXCH_SOURCE_DECODE(exch)) + std::string("_FULL_DICT.txt");
   std::string subscrDictName = std::string(EKA_EXCH_SOURCE_DECODE(exch)) + std::string("_SUBSCR_DICT.txt");
-  std::string mdName_0       = std::string(EKA_EXCH_SOURCE_DECODE(exch)) + std::string("_0_MD.txt");
-  std::string mdName_1       = std::string(EKA_EXCH_SOURCE_DECODE(exch)) + std::string("_1_MD.txt");
+  std::string mdName =         std::string(EKA_EXCH_SOURCE_DECODE(exch)) + std::string("_MD.txt");
 
   if ((fullDict   = fopen(fullDictName.c_str(),"w")) == NULL) on_error("Failed to open %s",fullDictName.c_str());
   if ((subscrDict = fopen(subscrDictName.c_str(),"w")) == NULL) on_error("Failed to open %s",subscrDictName.c_str());
+  if ((MD = fopen(mdName.c_str(),"w")) == NULL) on_error("Failed to open %s",mdName.c_str());
 
-  for (int i = 0; i < 26; i++) {
-    std::string mdName = std::string(EKA_EXCH_SOURCE_DECODE(exch)) + std::string("_") + std::to_string(i) + std::string("_MD.txt");
-    if ((MD[i] = fopen(mdName.c_str(),"w")) == NULL) on_error("Failed to open %s",mdName.c_str());
-  }
+#ifdef TEST_PRINT_DICT
+  if ((pEkaDev->testDict   = fopen("PhlxOrdTestDict.txt","w")) == NULL) on_error("PhlxOrdTestDict.txt");
+#endif
 
   for (uint8_t i = 0; i < runCtx.numGroups; i++) {
     printf ("################ Group %u ################\n",i);
@@ -445,34 +419,20 @@ int main(int argc, char *argv[]) {
 #endif
   }
 
-  fclose(fullDict);
-  fclose(subscrDict);
+#ifdef TEST_PRINT_DICT
+  fclose(pEkaDev->testDict);
+#endif
 
-  EfhRunCtx runGrCtx[2] = {};
-/* ------------------------------------------------- */
-  memcpy(&runGrCtx[0], &runCtx, sizeof(runCtx));
-
-  runGrCtx[0].numGroups = 13;
-  runGrCtx[0].groups    = feedName == std::string("RA") || feedName == std::string("RB") ? arcaGroups : amexGroups;
-  std::thread efh_run_thread_0 = std::thread(efhRunGroups,pEfhCtx, &runGrCtx[0]);
-  efh_run_thread_0.detach();
-/* ------------------------------------------------- */
-  memcpy(&runGrCtx[1], &runCtx, sizeof(runCtx));
-
-  runGrCtx[1].numGroups = 13;
-  runGrCtx[1].groups    = feedName == std::string("RA") || feedName == std::string("RB") ? &arcaGroups[13] : &amexGroups[13];
-  std::thread efh_run_thread_1 = std::thread(efhRunGroups,pEfhCtx, &runGrCtx[1]);
-  efh_run_thread_1.detach();
-/* ------------------------------------------------- */
+  std::thread efh_run_thread = std::thread(efhRunGroups,pEfhCtx, &runCtx);
+  efh_run_thread.detach();
 
   while (keep_work) usleep(0);
 
   ekaDevClose(pEkaDev);
 
-  for (int i = 0; i < 26; i++) {
-    fclose(MD[i]);
-  }
-
+  fclose(fullDict);
+  fclose(subscrDict);
+  fclose(MD);
   printf ("Exitting normally...\n");
 
   return 0;

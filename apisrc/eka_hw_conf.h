@@ -46,6 +46,49 @@
 #define EKA_ADDR_INTERRUPT_SHADOW_RO       0xf0790
 #define EKA_ADDR_INTERRUPT_0_SHADOW_RO     0xe0150
 
+#define EKA_FPGA_FREQUENCY (161.132828125)
+
+// scratchpad 12bit 4kB address space
+#define SCRATCHPAD_BASE (0x84000)
+#define SCRATCHPAD_SIZE (4 * 1024)
+#define SCRPAD_SW_VER (SCRATCHPAD_BASE)
+#define SCRPAD_CORE_BASE (SCRPAD_SW_VER + 8)
+#define SCRPAD_CORE_MC_IP_BASE (SCRPAD_CORE_BASE + (8 * EKA_MAX_CORES))
+
+//#define SW_STATISTICS 0xf0770
+// reset statistic counters
+#define STAT_CLEAR    0xf0028
+
+#define ADDR_OPENDEV_COUNTER     0xf0e10
+#define ADDR_RT_COUNTER          0xf0e08
+#define FPGA_RT_CNTR             0xf0e00
+#define ADDR_INTERRUPT_SHADOW_RO 0xf0790
+
+// global configurations
+#define ADDR_VERSION_ID       0xf0ff0
+#define ADDR_VERSION_HIGH_ID  0xf0ff8
+#define ADDR_VERSION_HIGHTWO_ID 0xf0fe0
+
+#define ADDR_NW_GENERAL_CONF  0xf0020
+#define ADDR_SW_STATS_ZERO    0xf0770
+#define ADDR_P4_GENERAL_CONF  0xf07c0
+#define ADDR_P4_FIRE_MDCNT    0xf07f0
+#define ADDR_P4_ARB_POINTS    0xf07f8
+#define ADDR_FATAL_CONF       0xf0f00
+
+#define ADDR_IPFOUND                 0xe0128
+#define ADDR_IPFOUND1                0xe0148
+#define ADDR_IPFOUND2                0xe0160
+#define ADDR_IPFOUND3                0xe0168
+#define ADDR_PARSER_STATS            0xe0130
+
+#define ADDR_STATS_RX_PPS            0xe0008 //  Statistics: 4 msb - max, 4 lsb - curr
+#define ADDR_STATS_RX_BPS_MAX        0xe0010 //  Statistics: bytes per second max
+#define ADDR_STATS_RX_BPS_CURR       0xe0018 //  Statistics: bytes per second current
+#define ADDR_STATS_RX_BYTES_TOT      0xe0020 //  Statistics: total bytes
+#define ADDR_STATS_RX_PKTS_TOT       0xe0028 //  Statistics: total packets
+
+#define EKA_CORRECT_SW_VER    0x1122330000000000
 typedef enum {
   SN_NASDAQ   = 0x0,
   SN_MIAX     = 0x1,

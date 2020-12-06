@@ -65,8 +65,10 @@ static bool getLoginResponse(FhMiaxGr* gr) {
   EkaDev* dev = gr->dev;
 
   struct sesm_login_response sesm_response_msg ={};
-  if (recv(gr->recovery_sock,&sesm_response_msg,sizeof(struct sesm_login_response),MSG_WAITALL) <= 0) 
-    on_error("%s:%u Request Server connection reset by peer (failed to receive SESM Response)",EKA_EXCH_DECODE(gr->exch),gr->id);
+  if (const int r = recv(gr->recovery_sock,&sesm_response_msg,sizeof(struct sesm_login_response),MSG_WAITALL); r == -1)
+    on_error("%s:%u failed to receive SESM login response",EKA_EXCH_DECODE(gr->exch),gr->id);
+  else if (r == 0)
+    on_error("%s:%u unexpected request server socket EOF (expected login SESM response)",EKA_EXCH_DECODE(gr->exch),gr->id);
 
   if (sesm_response_msg.header.type == 'G')  on_error("SESM sent GoodBye Packet with reason: \'%c\'",sesm_response_msg.status);
   if (sesm_response_msg.header.type != 'R')  on_error("sesm_response_msg.header.type \'%c\' != \'R\' ",sesm_response_msg.header.type);
@@ -140,15 +142,19 @@ static bool procSesm(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, int sock, FhM
   EkaDev* dev = gr->dev;
   sesm_header sesm_hdr ={};
   int recv_size = recv(sock,&sesm_hdr,sizeof(struct sesm_header),MSG_WAITALL);
-  if (recv_size <= 0) 
-    on_error("%s:%u Request Server connection reset by peer (recv_size=%d, sizeof(struct sesm_header)=%ju)",
-	     EKA_EXCH_DECODE(gr->exch),gr->id,recv_size,sizeof(struct sesm_header));
+  if (recv_size == -1)
+    on_error("%s:%u failed to receive SESM header", EKA_EXCH_DECODE(gr->exch),gr->id);
+  else if (recv_size == 0)
+    on_error("%s:%u unexpected request server socket EOF (expected SESM header)",EKA_EXCH_DECODE(gr->exch),gr->id);
 
   uint8_t msg[1536] = {};
   uint8_t* m = msg;
   recv_size = recv(sock,msg,sesm_hdr.length - sizeof(sesm_hdr.type),MSG_WAITALL);
-  if (recv_size <= 0) on_error("%s:%u Request Server connection reset by peer (failed to receive SesmBuf) recv_size=%d",
-			       EKA_EXCH_DECODE(gr->exch),gr->id,recv_size);
+  if (recv_size == -1)
+    on_error("%s:%u failed to receive SESM payload", EKA_EXCH_DECODE(gr->exch),gr->id);
+  /* else if (recv_size == 0) */
+  /*   on_error("%s:%u unexpected request server socket EOF (expected SESM payload) type=\'%c\' len = %u", */
+  /* 	     EKA_EXCH_DECODE(gr->exch),gr->id,sesm_hdr.type, sesm_hdr.length); */
 
   uint64_t sequence = 0;
 
@@ -258,8 +264,8 @@ void* eka_get_sesm_retransmit(void* attr) {
   //-----------------------------------------------------------------
   getLoginResponse(gr);
   //-----------------------------------------------------------------
-  /* std::thread heartBeat = std::thread(heartBeatThread,dev,gr,gr->recovery_sock); */
-  /* heartBeat.detach(); */
+  std::thread heartBeat = std::thread(heartBeatThread,dev,gr,gr->recovery_sock);
+  heartBeat.detach();
   //-----------------------------------------------------------------
   sendRetransmitRequest(gr,start,end);
   //-----------------------------------------------------------------
@@ -383,7 +389,7 @@ void* eka_get_sesm_data(void* attr) {
 
 void* heartBeatThread(EkaDev* dev, FhMiaxGr* gr, int sock) {
   sesm_header heartbeat = {
-    .length		= sizeof(struct sesm_header) - sizeof(heartbeat.length),
+    .length		= 1, //sizeof(struct sesm_header) - sizeof(heartbeat.length),
     .type		= '1'
   };
 

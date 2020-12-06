@@ -44,9 +44,6 @@ class EkaFh {
 
   enum class GapType { SNAPSHOT=0, RETRANSMIT=1 };
 
-  /* EkaOpResult runGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId) { */
-  /*   return EKA_OPRESULT__OK; */
-  /* } */
   virtual EkaOpResult runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId ) {return EKA_OPRESULT__OK;};
 
   virtual EkaOpResult getDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group) {return EKA_OPRESULT__OK;};
@@ -109,9 +106,9 @@ class FhNasdaq : public EkaFh { // base class for Nom, Gem, Ise, Phlx
 
   EkaOpResult getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group);
   virtual ~FhNasdaq() {};
-  uint8_t* getUdpPkt(FhRunGr* runGr, uint* msgInPkt, uint64_t* sequence,uint8_t* gr_id);
-  bool processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhNasdaqGr* gr, const uint8_t* pkt, uint msgInPkt, uint64_t sequence);
-  void pushUdpPkt2Q(FhNasdaqGr* gr, const uint8_t* pkt, uint msgInPkt, uint64_t sequence,int8_t gr_id);
+  virtual uint8_t* getUdpPkt(FhRunGr* runGr, uint* msgInPkt, uint64_t* sequence,uint8_t* gr_id);
+  virtual bool processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhNasdaqGr* gr, const uint8_t* pkt, uint msgInPkt, uint64_t sequence);
+  virtual void pushUdpPkt2Q(FhNasdaqGr* gr, const uint8_t* pkt, uint msgInPkt, uint64_t sequence,int8_t gr_id);
  private:
 
 };
@@ -125,6 +122,8 @@ class FhNom : public FhNasdaq {
  private:
 
 };
+
+//###############################################################
 
 class FhGem : public FhNasdaq{ // Gem & Ise
   static const uint QSIZE = 1 * 1024 * 1024;
@@ -141,6 +140,23 @@ class FhPhlx : public FhNasdaq {
 public:
   //  EkaOpResult runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId );
   virtual ~FhPhlx() {};
+private:
+
+};
+//###############################################################
+
+class FhPhlxOrd : public FhNasdaq {
+  static const uint QSIZE = 2 * 1024 * 1024;
+  //  static const uint QSIZE = 1024 * 1024;
+public:
+  EkaOpResult initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhRunGr* runGr);
+  EkaOpResult runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId );
+
+  uint8_t* getUdpPkt(FhRunGr* runGr, uint* msgInPkt, uint64_t* sequence,uint8_t* gr_id);
+  bool processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhNasdaqGr* gr, const uint8_t* pkt, uint msgInPkt, uint64_t sequence);
+  void pushUdpPkt2Q(FhNasdaqGr* gr, const uint8_t* pkt, uint msgInPkt, uint64_t sequence,int8_t gr_id);
+
+  virtual ~FhPhlxOrd() {};
 private:
 
 };

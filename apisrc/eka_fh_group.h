@@ -164,6 +164,16 @@ class FhPhlxGr : public FhNasdaqGr{
   static const bool full_book = false;
 };
 
+/* ##################################################################### */
+
+class FhPhlxOrdGr : public FhNasdaqGr{
+  bool                  parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op);
+  virtual               ~FhPhlxOrdGr() {};
+  int                   bookInit(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx);
+
+  static const bool full_book = false;
+};
+
  /* ##################################################################### */
 
 class FhBatsGr : public FhGroup{
@@ -193,6 +203,7 @@ class FhMiaxGr : public FhGroup{
 };
 
 /* ##################################################################### */
+class EkaHsvfTcp;
 
 class FhBoxGr : public FhGroup{
  public:
@@ -203,6 +214,7 @@ class FhBoxGr : public FhGroup{
 
   static const bool full_book = false;
   uint64_t txSeqNum;
+  EkaHsvfTcp* hsvfTcp = NULL;
 };
 
 

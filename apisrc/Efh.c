@@ -40,6 +40,9 @@ EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhI
   case EkaSource::kPHLX_TOPO:
     dev->fh[fhId] = new FhPhlx();
     break;
+  case EkaSource::kPHLX_ORD:
+    dev->fh[fhId] = new FhPhlxOrd();
+    break;
   case EkaSource::kMIAX_TOM:
   case EkaSource::kPEARL_TOM:
     dev->fh[fhId] = new FhMiax();
