@@ -11,6 +11,8 @@
 
 #include "eka_macros.h"
 #include "smartnic.h"
+#include "EkaHwCaps.h"
+#include "EkaHwExpectedVersion.h"
 
 volatile bool keep_work = true;
 /* --------------------------------------------- */
@@ -96,6 +98,12 @@ static void enableSniffer(SC_DeviceId devId, uint coreId) {
 /* --------------------------------------------- */
 
 int main(int argc, char *argv[]) {
+  EkaHwCaps* ekaHwCaps = new EkaHwCaps(NULL);
+  if (ekaHwCaps == NULL) on_error("ekaHwCaps == NULL");
+    
+  if (ekaHwCaps->hwCaps.version.sniffer != EKA_EXPECTED_SNIFFER_VERSION)
+    on_error("This FW version does not support %s",argv[0]);
+
   uint coreId = -1;
   char fileName[256] = {};
   static const uint16_t SnifferUserChannelId = 7;
@@ -164,6 +172,9 @@ int main(int argc, char *argv[]) {
 
     if (++packetCount % 1024 == 0)
       if (SC_UpdateReceivePtr(channelId, pPacket) != SC_ERR_SUCCESS) on_error("error on SC_UpdateReceivePtr");
+
+    if (++packetCount % 1000000 == 0)
+      printf("%ju packets dumped\n",packetCount);
 
     pPrevPacket = pPacket;
 

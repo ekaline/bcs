@@ -16,6 +16,7 @@
 
 #include "EkaHwCaps.h"
 #include "eka_macros.h"
+#include "EkaHwExpectedVersion.h"
 
 #ifndef SMARTNIC_EKALINE_DATA
 #define SMARTNIC_EKALINE_DATA SC_IOCTL_EKALINE_DATA
@@ -27,7 +28,7 @@
 int main(int argc, char *argv[]){
   EkaHwCaps* ekaHwCaps = new EkaHwCaps(NULL);
   if (ekaHwCaps == NULL) on_error("ekaHwCaps == NULL");
-  
+
   ekaHwCaps->printStdout();
   ekaHwCaps->printDriverVer();
 

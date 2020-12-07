@@ -219,7 +219,7 @@ int findGrp(uint32_t ip, uint16_t port) {
     if (group[i].ip == ip && group[i].port == port)
       return i;
   }
-  on_error("%s:%u is not found",EKA_IP2STR(ip),port);
+  //  on_error("%s:%u is not found",EKA_IP2STR(ip),port);
   return -1;
 }
 
@@ -253,6 +253,7 @@ int main(int argc, char *argv[]) {
     }
 
     int gr = findGrp(EKA_IPH_DST(&pkt[pos]),EKA_UDPH_DST(&pkt[pos]));
+    if (gr < 0) continue;
     //    if (group[gr].hour > startHour) printf ("%s:%u\n",EKA_IP2STR(EKA_IPH_DST(&pkt[pos])),EKA_UDPH_DST(&pkt[pos]));
 
 
