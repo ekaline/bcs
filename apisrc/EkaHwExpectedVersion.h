@@ -3,7 +3,7 @@
 
 static const uint64_t EKA_EXPECTED_EPM_VERSION     = 0x4;
 static const uint64_t EKA_EXPECTED_DMA_VERSION     = 0x1;
-static const uint64_t EKA_EXPECTED_SNIFFER_VERSION = 0x1;
+static const uint64_t EKA_EXPECTED_SNIFFER_VERSION = 0x3;
 
 
 #endif
