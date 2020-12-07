@@ -60,14 +60,6 @@ class EkaDev {
   EkaDev*                   dev = NULL; // pointer to myself
   EkaSnDev*                 snDev = NULL;
 
-  /* enum CONF { */
-  /*   MAX_FEED_HANDLERS = 8, */
-  /*   MAX_CTX_THREADS   = 16, */
-  /*   MAX_CORES         = EKA_MAX_CORES, //8, */
-  /*   MAX_RUN_GROUPS    = 32 */
-  /* }; */
-
-
   uint8_t                   hwEnabledCores = 0;
   uint8_t                   hwFeedVer = 0;
   uint16_t                  hwRawFireSize = 0;

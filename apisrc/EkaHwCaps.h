@@ -9,6 +9,7 @@ class EkaHwCaps {
   struct hw_version_capabilities_t {
     uint8_t  strategy;
     uint8_t  parser;
+    uint8_t  sniffer;
     uint8_t  dma;
     uint8_t  epm;
     uint16_t build_seed;
@@ -46,6 +47,9 @@ class EkaHwCaps {
  public:
   EkaHwCaps(EkaDev* _dev);
   void print();
+  void printStdout();
+  void printDriverVer();
+
   bool check();
 
   hw_capabilities_t hwCaps = {};
@@ -53,6 +57,8 @@ class EkaHwCaps {
  private:
   EkaDev* dev = NULL;
 
+  char    snDriverBuildTime[100] = {};
+  char    snDriverEkaRelease[100] = {};
 };
 
 #endif

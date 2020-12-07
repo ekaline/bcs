@@ -25,8 +25,11 @@ GCC_FLAGS:=-Wall -fPIC -pthread -lrt -lm $(GCC_EXTERNAL_DEFINES) -Wno-unused-fun
 LD_FLAGS:=-shared -fpic $(LD_ASAN_OPTIONS)
 
 
-EKAUTILS_SRCS := $(wildcard ../eka_utils/*.c)
-EKAUTILS_EXECS := $(patsubst %.c,%,$(EKAUTILS_SRCS))
+#EKAUTILS_SRCS := $(wildcard ../eka_utils/*.c)
+#EKAUTILS_EXECS := $(patsubst %.c,%,$(EKAUTILS_SRCS))
+
+EKAUTILS := $(patsubst %.c,%,$(wildcard ../eka_utils/*.c))
+
 
 EKATESTS_SRCS := $(wildcard ../new_api_tests/*.c)
 EKATESTS_EXECS := $(patsubst %.c,%,$(EKATESTS_SRCS))
@@ -37,7 +40,7 @@ UNITTESTS_EXECS := $(patsubst %.c,%,$(UNITTESTS_SRCS))
 EKALIB_SRCS := $(wildcard *.c)
 
 EKALIB_FILES := $(patsubst %.c,%,$(EKALIB_SRCS))
-EKALIB_OBJECTS := $(EKALIB_SRCS:.c=.o)
+EKALIB_OBJ := $(EKALIB_SRCS:.c=.o)
 LLIB := -L. -lekaline2
 LLIB_TEST := -L. -lekaline2_test
 SMARTNIC_LIB := $(SMARTNIC_ROOT)/lib/libsmartnic.a
@@ -47,10 +50,12 @@ LWIP_LIB := liblwipcommon.a
 
 CCDEP:=gcc
 
-LIBEKALLINE:=libekaline2
+LIBEKALINE:=libekaline2
 
-#all:  $(LIBEKALLINE) $(EKAUTILS_EXECS) $(EKATESTS_EXECS) 
-all:  eka_utils ekalib eka_tests unit_tests
+SMARTNIC_LIB_FILES := $(shell ar t $(SMARTNIC_LIB))
+
+#all:  $(LIBEKALINE) $(EKAUTILS_EXECS) $(EKATESTS_EXECS) 
+all:  eka_utils ekalib eka_tests unit_tests $(LIBEKALINE).a
 	@echo "========================================="
 	@echo created: $^
 
@@ -99,22 +104,30 @@ epm%.o: epm%.c
 E%.o: E%.c
 	$(CC) -c $< $(INCL) $(GCC_FLAGS)
 
-ekalib: $(LIBEKALLINE).so 
-$(LIBEKALLINE).so: $(EKALIB_OBJECTS) $(SMARTNIC_LIB) $(LWIP_LIB)
-	$(CC) $(EKALIB_OBJECTS) -L. $(SMARTNIC_LIB) $(LWIP_LIB) -o $@ $(LD_FLAGS) -Wl,--version-script=./compat/$(LIBEKALLINE).map
-	$(CC) $(EKALIB_OBJECTS) -L. $(SMARTNIC_LIB) $(LWIP_LIB) -o $(LIBEKALLINE)_test.so $(LD_FLAGS)
+ekalib: $(LIBEKALINE).so 
+$(LIBEKALINE).so: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIP_LIB)
+	$(CC) $(EKALIB_OBJ) -L. $(SMARTNIC_LIB) $(LWIP_LIB) -o $@ $(LD_FLAGS) -Wl,--version-script=./compat/$(LIBEKALINE).map
+	$(CC) $(EKALIB_OBJ) -L. $(SMARTNIC_LIB) $(LWIP_LIB) -o $(LIBEKALINE)_test.so $(LD_FLAGS)
 
-eka_utils: $(EKAUTILS_EXECS)
-../eka_utils/%: ../eka_utils/%.c
-	$(CC) $< -o $@ $(GCC_FLAGS) $(INCL) $(SMARTNIC_LIB)
-#	$(CC) $< -o $@ $(GCC_FLAGS) -I . -I $(DRIVERS_INCL) -I $(API_INCL) -I ../apisrc $(SMARTNIC_LIB)
+$(LIBEKALINE).a: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIPOBJS)
+	ar x $(SMARTNIC_LIB)
+	ar rcs $@ $(EKALIB_OBJ) $(SMARTNIC_LIB_FILES) $(LWIPOBJS)
+
+#eka_utils: $(EKAUTILS_EXECS) $(LIBEKALINE).a
+#../eka_utils/%: ../eka_utils/%.c $(LIBEKALINE).a
+#	$(CC) $< -o $@ $(GCC_FLAGS) $(INCL) $(SMARTNIC_LIB) $(LIBEKALINE).a
+##	$(CC) $< -o $@ $(GCC_FLAGS) -I . -I $(DRIVERS_INCL) -I $(API_INCL) -I ../apisrc $(SMARTNIC_LIB)
+
+eka_utils: $(EKAUTILS)
+$(EKAUTILS): %: %.c $(LIBEKALINE).a
+	$(CC) -o $@ $^ $(GCC_FLAGS) $(INCL)
 
 eka_tests: $(EKATESTS_EXECS)
-../new_api_tests/%: ../new_api_tests/%.c $(LIBEKALLINE).so
+../new_api_tests/%: ../new_api_tests/%.c $(LIBEKALINE).so
 	$(CC) $< -o $@ $(GCC_FLAGS) $(INCL) $(LLIB)
 
 unit_tests: $(UNITTESTS_EXECS)
-../new_api_tests/unit%: ../new_api_tests/unit%.c $(LIBEKALLINE).so
+../new_api_tests/unit%: ../new_api_tests/unit%.c $(LIBEKALINE).so
 	$(CC) $< -o $@ $(GCC_FLAGS) $(INCL) $(LLIB_TEST) $(SMARTNIC_LIB)
 
 

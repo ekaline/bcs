@@ -85,7 +85,10 @@ class EkaTcpSess {
   volatile uint32_t tcpRemoteSeqNum = 0;
   volatile uint32_t tcpRemoteAckNum = 0;
 
-  volatile uint64_t fastPathBytes = 0;
+  //  volatile uint64_t fastPathBytes = 0;
+  volatile uint32_t fastPathBytes = 0;
+  volatile uint64_t throttleCounter = 0;
+  volatile uint64_t maxThrottleCounter = 0;
   volatile uint64_t txDriverBytes = 0;
   volatile uint64_t dummyBytes = 0;
   volatile uint64_t tcpLocalSeqNumBase = 0;

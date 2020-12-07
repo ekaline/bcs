@@ -54,6 +54,8 @@ EkaTcpSess::EkaTcpSess(EkaDev* pEkaDev, EkaCore* _parent, uint8_t _coreId, uint8
   tcpRemoteSeqNum    = 0;
 
   fastPathBytes      = 0;
+  throttleCounter    = 0;
+  maxThrottleCounter = 0;
   txDriverBytes      = 0;
   dummyBytes         = 0;
 
@@ -208,7 +210,7 @@ EkaTcpSess::~EkaTcpSess() {
   EKA_LOG("Closing socket %d for core%u sess%u",sock,coreId,sessId);
   lwip_shutdown(sock,SHUT_RDWR);
   lwip_close(sock);
-  EKA_LOG("Closed socket %d for core%u sess%u",sock,coreId,sessId);
+  EKA_LOG("Closed socket %d for core%u sess%u maxThrottle %uus",sock,coreId,sessId,maxThrottleCounter);
 }
 /* ---------------------------------------------------------------- */
 
@@ -223,10 +225,14 @@ int EkaTcpSess::preloadNwHeaders() {
 
 int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
   tcpRemoteAckNum = EKA_TCPH_ACKNO(pkt);
-  if ((tcpRemoteAckNum > tcpLocalSeqNum) && (! (EKA_TCP_SYN(pkt)))) {
-    EKA_WARN(CYN "tcpRemoteAckNum %u > tcpLocalSeqNum %u, delta = %d" RESET,
-  	     tcpRemoteAckNum, tcpLocalSeqNum, tcpRemoteAckNum - tcpLocalSeqNum);
-    return 1;
+  if ( 
+      (tcpRemoteAckNum > tcpLocalSeqNum) && //doesntwork with wraparound
+      (!(EKA_TCP_SYN(pkt)))
+      ) {
+    //   Bewlow warning is OK only for wraparound
+    //    EKA_WARN(CYN "tcpRemoteAckNum %u > tcpLocalSeqNum %u, delta = %d" RESET,
+    //  	     tcpRemoteAckNum, tcpLocalSeqNum, tcpRemoteAckNum - tcpLocalSeqNum);
+    return 0; //allow wraparound
   }
   return 0;
 }
@@ -370,16 +376,31 @@ int EkaTcpSess::sendDummyPkt(void *buf, int len) {
 int EkaTcpSess::sendPayload(uint thrId, void *buf, int len) {
   if (! dev->exc_active) return 1;
 
-  static const uint TrafficMargin = 4096; // just a number
+  static const uint TrafficMargin = 4*1024; // just a number
 
-  if (/* txLwipBp */       0                            || // lwip socket is unavauilable
-      (fastPathBytes > (txDriverBytes + TrafficMargin)) || // previous TX pkt didn't arrive TX driver
-      (fastPathBytes > (dummyBytes    + TrafficMargin))    // previous TX pkt wasn't sent to lwip as Dummy
+  /* if (/\* txLwipBp *\/       0                            || // lwip socket is unavauilable */
+  /*     (fastPathBytes > (txDriverBytes + TrafficMargin)) || // previous TX pkt didn't arrive TX driver */
+  /*     (fastPathBytes > (dummyBytes    + TrafficMargin))    // previous TX pkt wasn't sent to lwip as Dummy */
+  /*     ) { */
+  /*       usleep(0); */
+  /*   return 0; // too high tx rate -- Back Pressure */
+  /* } */
+
+  if (
+      ( (fastPathBytes + tcpLocalSeqNumBase - tcpRemoteAckNum) > TrafficMargin ) &&
+      ( (fastPathBytes + tcpLocalSeqNumBase - tcpRemoteAckNum) < TrafficMargin*4 ) //and not a wraparound
       ) {
-        usleep(0);
-    return 0; // too high tx rate -- Back Pressure
-  }
+    throttleCounter++;
+    if (throttleCounter > maxThrottleCounter) {
+      //      EKA_WARN(YEL "max throttling updated %u" RESET, throttleCounter);
+      maxThrottleCounter = throttleCounter;
+    }
 
+    //    EKA_WARN(YEL "throttling %u for %u us" RESET, fastPathBytes + tcpLocalSeqNumBase - tcpRemoteAckNum,throttleCounter);
+    usleep(throttleCounter);
+    return 0;
+  }
+  throttleCounter = 0;
   uint payloadSize2send = ((uint)len <= (MAX_PAYLOAD_SIZE + 2)) ? (uint)len : MAX_PAYLOAD_SIZE;
   if (payloadSize2send <= 2) on_error("len = %d, payloadSize2send=%u,MAX_PKT_SIZE=%u",len,payloadSize2send,MAX_PAYLOAD_SIZE);
   fastPathBytes += payloadSize2send;

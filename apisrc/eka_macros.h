@@ -65,6 +65,15 @@ class EkaDev;
 
 #define EKA_IP2STR(x)  ((std::to_string((x >> 0) & 0xFF) + '.' + std::to_string((x >> 8) & 0xFF) + '.' + std::to_string((x >> 16) & 0xFF) + '.' + std::to_string((x >> 24) & 0xFF)).c_str())
 
+
+#define EKA_FEED2STRING(x) \
+  x == 0 ? "NOM" : \
+    x == 1 ? "MIAX" : \
+    x == 2 ? "PHLX" : \
+    x == 3 ? "ISE/GEMX/MRX" : \
+    x == 4 ? "BZX/C2/EDGEX" : \
+    "GENERAL FH/EPM"
+
 #define EKA_NIBBLE2CHAR(x) \
   x == 0 ? "0" : \
   x == 1 ? "1" : \
