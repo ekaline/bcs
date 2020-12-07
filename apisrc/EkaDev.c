@@ -15,6 +15,7 @@
 #include "EkaEpm.h"
 #include "EkaFhRunGr.h"
 #include "EkaUserReportQ.h"
+#include "EkaHwCaps.h"
 
 int ekaDefaultLog (void* /*unused*/, const char* function, const char* file, int line, int priority, const char* format, ...);
 OnEfcFireReportCb* efcDefaultOnFireReportCb (EfcCtx* efcCtx, const EfcFireReport* efcFireReport, size_t size);
@@ -104,7 +105,11 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 
   snDev          = new EkaSnDev(this);
 
-  getHwCaps(&hw_capabilities);
+  ekaHwCaps = new EkaHwCaps(this);
+  if (ekaHwCaps == NULL) on_error("ekaHwCaps == NULL");
+  
+  ekaHwCaps->print();
+  ekaHwCaps->check();
 
   eka_write(ENABLE_PORT,0);
 
@@ -153,16 +158,6 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   while (!servThreadActive /* || !tcpRxThreadActive */) {}
   EKA_LOG("Serv thread activated");
 
-  hwEnabledCores = (eka_read(VERSION2) >> 56) & 0xFF;
-  hwFeedVer      = (eka_read(VERSION1) >> HW_FEED_SHIFT_SIZE) & HW_FEED_SHIFT_MASK;
-
-  uint64_t epmVersion = eka_read(EPM_VERSION) & EPM_VERSION_MASK;
-  EKA_LOG("epmVersion = 0x%016jx",epmVersion);
-  if (epmVersion != EPM_CORRECT_VERSION) {
-    on_error("Incompatible EPM Version 0x%jx. Expected epmVersion = 0x%x",
-	     epmVersion,EPM_CORRECT_VERSION);
-  }
-
 /* -------------------------------------------- */
 
 
@@ -195,7 +190,7 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 
   clearHw();
   eka_write(FPGA_RT_CNTR,getFpgaTimeCycles());
-  eka_write(SCRPAD_SW_VER,EKA_CORRECT_SW_VER | hwEnabledCores);
+  //  eka_write(SCRPAD_SW_VER,EKA_CORRECT_SW_VER | hwEnabledCores);
 
 }
 

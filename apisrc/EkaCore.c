@@ -4,6 +4,7 @@
 #include "EkaTcpSess.h"
 #include "EkaUdpSess.h"
 #include "EkaUdpChannel.h"
+#include "EkaHwCaps.h"
 
 struct netif* initLwipNetIf(EkaDev* dev, uint8_t coreId, uint8_t* macSa, uint8_t* macDa, uint32_t srcIp);
 
@@ -62,18 +63,13 @@ EkaCore::EkaCore(EkaDev* pEkaDev, uint8_t lane, uint32_t ip, uint8_t* mac) {
     if (getMacDaFromArp(arpTableFile,coreId,macDa))
       EKA_LOG("MAC DA is taken from %s : %s",arpTableFile,EKA_MAC2STR(macDa));
 
-    bool isTcpCore = dev->hw_capabilities.core.bitmap_tcp_cores & (1 << coreId);
+    bool isTcpCore = dev->ekaHwCaps->hwCaps.core.bitmap_tcp_cores & (1 << coreId);
 
     EKA_LOG("%s Core %u: %s %s",
 	    isTcpCore ? "TCP Enabled" : "NON TCP",
 	    coreId,EKA_MAC2STR(macSa),EKA_IP2STR(srcIp));
     for (uint i = 0; i < MAX_SESS_PER_CORE; i++) tcpSess[i] = NULL;
     tcpSessions = 0;
-    /* udpSessions = 0; */
-    //    numBooks = 0;
-
-    /* stratUdpChannel = NULL; */
-    /* feedServerUdpChannel = NULL; */
 
     if (! isTcpCore) return;
 

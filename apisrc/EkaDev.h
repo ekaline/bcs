@@ -23,6 +23,7 @@ class EkaCore;
 class EkaTcpSess;
 class EkaSnDev;
 class EkaUserReportQ;
+class EkaHwCaps;
 
 class EkaDev {
 
@@ -137,6 +138,8 @@ class EkaDev {
   volatile int              statNumUdpSess[MAX_CORES] = {};
   volatile uint32_t         statMcGrCore[EKA_MAX_UDP_SESSIONS_PER_CORE][MAX_CORES] = {};
 
+  EkaHwCaps*                ekaHwCaps = NULL;
+
 #ifdef TEST_PRINT_DICT
   FILE* testDict;
 #endif
@@ -147,8 +150,8 @@ class EkaDev {
 
 /* ######################################################################## */
 
-inline void     eka_write(EkaDev* dev, uint64_t addr, uint64_t val) { 
-#if 0
+inline void eka_write(EkaDev* dev, uint64_t addr, uint64_t val) { 
+#ifdef _VERILOG_SIM
   //  if (addr!=0xf0300 && addr!=0xf0308 && addr!=0xf0310 && addr!=0xf0608) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //general writes
   //  if ((addr>=0x70000 && addr<=0x80000) || addr==0xf0410) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //tob+depth
   if ((addr>=0x89000 && addr<0x8a000) || addr==0xf0238) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //epm action
@@ -185,6 +188,15 @@ inline void copyBuf2Hw(EkaDev* dev,uint64_t dstAddr,uint64_t* srcAddr,uint msgSi
   for (uint w = 0; w < words2write; w++)
     eka_write(dev, dstAddr + w * 8, *srcAddr++); 
 }
+
+inline void copyHw2Buf(EkaDev* dev,void* bufAddr,uint64_t srcAddr,uint bufSize) {
+  uint64_t* dstAddr = (uint64_t*) bufAddr;
+  //  EKA_LOG("dstAddr=%p, srcAddr=0x%jx, bufSize=%u",dstAddr,srcAddr,msgSize);
+  uint words2read = bufSize / 8 + !!(bufSize % 8);
+  for (uint w = 0; w < words2read; w++)
+    *(dstAddr + w) = eka_read(dev,srcAddr + w * 8); 
+}
+
 
 inline void bufSwap4(uint32_t* dst, uint32_t* src, uint size) {
   uint words2write = size / 4 + !!(size % 4);

@@ -56,15 +56,16 @@ class EkaEpm {
 
   static const uint EPM_REGIONS                 = 8;
 
-  static const uint MaxActions                  = 4 * 1024;
+  static const uint MaxActions                  = 8 * 1024;
   static const uint MaxActionsPerStrategy       = 256;
   static const uint64_t MaxStrategies           = EPM_REGIONS - 1;
 
+
   static const uint64_t EpmActionBase           = 0x89000;
   static const uint     ActionBudget            = 64;
-  static const uint64_t MaxHeap                 = 4 * 1024 * 1024;
+  static const uint64_t MaxHeap                 = 8 * 1024 * 1024;
 
-  static const uint64_t MaxUserHeap             = 3 * 1024 * 1024;
+  static const uint64_t MaxUserHeap             = 6 * 1024 * 1024;
   static const uint64_t MaxServiceHeap          = MaxHeap - MaxUserHeap;
 
 
