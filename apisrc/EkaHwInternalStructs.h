@@ -204,4 +204,58 @@ struct EpmThreadState {
   uint64_t threadWindBase = -1;
 };
 
+
+typedef struct __attribute__((packed)) {
+  uint8_t reserved0     : 1;
+  uint8_t reserved1     : 1;
+  uint8_t reserved2     : 1;
+  uint8_t reserved3     : 1;
+  uint8_t reserved4     : 1;
+  uint8_t reserved5     : 1;
+  uint8_t dummy_en      : 1;
+  uint8_t expect_report : 1;
+} feedback_dma_bitparams_t;
+
+typedef struct __attribute__((packed)) {
+  uint8_t  type;
+  uint16_t length;
+  uint32_t index;
+  feedback_dma_bitparams_t  bitparams;
+} feedback_dma_report_t;
+
+typedef struct __attribute__((packed)) {
+  uint8_t reserved0     : 1;
+  uint8_t reserved1     : 1;
+  uint8_t reserved2     : 1;
+  uint8_t reserved3     : 1;
+  uint8_t reserved4     : 1;
+  uint8_t reserved5     : 1;
+  uint8_t reserved6     : 1;
+  uint8_t reserved7     : 1;
+} report_dma_bitparams_t; //maybe other order?
+
+typedef struct __attribute__((packed)) {
+  uint8_t  type;
+  uint16_t length;
+  uint32_t feedbackDmaIndex;
+  report_dma_bitparams_t  bitparams;
+} report_dma_report_t;
+
+typedef struct __attribute__((packed)) {
+  uint8_t reserved0     : 1;
+  uint8_t reserved1     : 1;
+  uint8_t reserved2     : 1;
+  uint8_t reserved3     : 1;
+  uint8_t reserved4     : 1;
+  uint8_t reserved5     : 1;
+  uint8_t reserved6     : 1;
+  uint8_t reserved7     : 1;
+} tcprx_dma_bitparams_t; //maybe other order?
+
+typedef struct __attribute__((packed)) {
+  uint8_t  type;
+  tcprx_dma_bitparams_t bitparams;
+  char     pad[32 - 2];
+} tcprx_dma_report_t;
+
 #endif

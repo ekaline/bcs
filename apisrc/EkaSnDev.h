@@ -49,17 +49,18 @@ class EkaSnDev {
     write(P4_FATAL_DEBUG,(uint64_t) 0); // Clearing Fatal Debug
     write(ENABLE_PORT,1ULL << (24)); // No VLAN no ports, udp killed
 
-    fireReport = new EkaUserChannel(dev,dev_id,EkaUserChannel::TYPE::FIRE_REPORT);
-    fastPath   = new EkaUserChannel(dev,dev_id,EkaUserChannel::TYPE::FAST_PATH);
-    tcpRx      = new EkaUserChannel(dev,dev_id,EkaUserChannel::TYPE::TCP_RX);
+    epmReport = new EkaUserChannel(dev,dev_id,EkaUserChannel::TYPE::EPM_REPORT);
+    if (epmReport == NULL) on_error("epmReport == NULL");
+    lwipPath  = new EkaUserChannel(dev,dev_id,EkaUserChannel::TYPE::LWIP_PATH);
+    if (lwipPath == NULL) on_error("lwipPath == NULL");
+
   }
 
 //################################################
   ~EkaSnDev() {
     EKA_LOG("Closing Smartnic device");
-    if (fireReport != NULL) delete fireReport;
-    if (fastPath   != NULL) delete fastPath;
-    if (tcpRx      != NULL) delete tcpRx;
+    if (epmReport != NULL) delete epmReport;
+    if (lwipPath   != NULL) delete lwipPath;
     EKA_LOG("SN_CloseDevice"); fflush(stderr);
     SN_CloseDevice(dev_id);
   }
@@ -228,9 +229,8 @@ class EkaSnDev {
     memcpy(macDa,state.eka_session.macda,6);
   }
 
-  EkaUserChannel*           fireReport;
-  EkaUserChannel*           fastPath;
-  EkaUserChannel*           tcpRx; // LWIP
+  EkaUserChannel*           epmReport = NULL;
+  EkaUserChannel*           lwipPath = NULL;
 
   SN_DeviceId dev_id;
 

@@ -22,6 +22,7 @@ class EkaEpm;
 class EkaCore;
 class EkaTcpSess;
 class EkaSnDev;
+class EkaUserReportQ;
 
 class EkaDev {
 
@@ -139,6 +140,7 @@ class EkaDev {
 #ifdef TEST_PRINT_DICT
   FILE* testDict;
 #endif
+  EkaUserReportQ*           userReportQ = NULL;
 
 };
 
@@ -276,6 +278,10 @@ inline void hexDump (const char *desc, void *addr, int len) {
   }
   while ((i % 16) != 0) { printf ("   "); i++; }
   printf ("  %s\n", buff);
+}
+
+inline void hexDump (const char *desc, const void *addr, int len) {
+  hexDump(desc,(uint8_t*)addr,len);
 }
 
 inline void testScratchPadAddr(uint64_t addr) {

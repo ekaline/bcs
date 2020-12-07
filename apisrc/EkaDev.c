@@ -14,6 +14,7 @@
 #include "Efh.h"
 #include "EkaEpm.h"
 #include "EkaFhRunGr.h"
+#include "EkaUserReportQ.h"
 
 int ekaDefaultLog (void* /*unused*/, const char* function, const char* file, int line, int priority, const char* format, ...);
 OnEfcFireReportCb* efcDefaultOnFireReportCb (EfcCtx* efcCtx, const EfcFireReport* efcFireReport, size_t size);
@@ -105,13 +106,6 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 
   getHwCaps(&hw_capabilities);
 
-  /* uint64_t mirrorNonUdp2UserChannel = 1ULL << 32; */
-  /* uint64_t portState = eka_read(ENABLE_PORT); */
-  /* portState |= mirrorNonUdp2UserChannel; */
-  /* portState = 0x181 010 003; // This version worked!!! */
-  /* EKA_LOG("portState = 0x%016x",portState); */
-  /* eka_write(ENABLE_PORT,portState); */
-
   eka_write(ENABLE_PORT,0);
 
   time_t t;
@@ -149,6 +143,9 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   }
 
   if (noCores) on_error("No FPGA ports have Link and/or IP");
+
+  userReportQ = new EkaUserReportQ(this);
+  if (userReportQ == NULL) on_error("Failed on new EkaUserReportQ");
 
   servThreadActive = false;
   servThread    = std::thread(ekaServThread,this);
