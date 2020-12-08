@@ -97,7 +97,7 @@ inline bool fh_q::is_full() {
 fh_msg* fh_q::push() {
   //  assert (q_len < qsize);
   if (is_full()) {
-    EKA_WARN("WARNING: %s:%u Q is full -- Too slow Processing (maybe Gap Recovery): q_len (%u) >= qsize (%u) -- emptying Q",
+    on_error("%s:%u Q is full -- Too slow Processing (maybe Gap Recovery): q_len (%u) >= qsize (%u) -- emptying Q",
 	     EKA_EXCH_DECODE(exch),gr_id,get_len(),qsize);
     wr = 0;
     rd = 0;

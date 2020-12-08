@@ -242,7 +242,8 @@ int main(int argc, char *argv[]) {
     if (pktLen > 1536) on_error("Probably wrong PCAP format: pktLen = %u ",pktLen);
 
     char pkt[1536] = {};
-    if (fread(pkt,pktLen,1,pcap_file) != 1) on_error ("Failed to read %d packet bytes",pktLen);
+    if (fread(pkt,pktLen,1,pcap_file) != 1) 
+      on_error ("Failed to read %d packet bytes at pkt %ju",pktLen,pktNum);
     pktNum++;
     //    TEST_LOG("pkt = %ju, pktLen = %u",pktNum, pktLen);
 
@@ -274,7 +275,7 @@ int main(int argc, char *argv[]) {
       if (printAll)
 	printf("\t%8ju, %s \'%c%c\'",sequence,group[gr].timestamp,msgHdr->MsgType[0],msgHdr->MsgType[1]);
       /* -------------------------------- */
-      if (group[gr].expectedSeq < sequence) {
+      if (group[gr].expectedSeq != 0 && group[gr].expectedSeq < sequence) {
 	if (printAll) 
 	  printf (" --- expected %ju != actual %ju\n",
 		  group[gr].expectedSeq,sequence);
@@ -309,6 +310,7 @@ int main(int argc, char *argv[]) {
       /* -------------------------------- */
 
       pos += msgLen;
+      if (msgLen - pos == 4) break;
       pos += trailingZeros(&pkt[pos],pktLen-pos );
     }
 
