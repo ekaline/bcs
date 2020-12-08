@@ -276,7 +276,7 @@ struct TestCase {
   epm_actionid_t   expectedAction[NumActionsPerTestCase] = {};
 };
 /* ############################################# */
-bool test(EkaDev *dev, TestCase *testCase) {
+bool runTestCase(EkaDev *dev, TestCase *testCase) {
   uint dataAlignment = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_PayloadAlignment);
   uint nwHdrOffset   = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_DatagramOffset);
   uint fcsOffset     = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_RequiredTailPadding);
@@ -372,7 +372,7 @@ bool test(EkaDev *dev, TestCase *testCase) {
 
   if (testCase->expectedAction[numFireEvents] != 0) {
       testPassed = false;
-      TEST_FAILED("Expected more events than fired %d",numFireEvents);
+      TEST_FAILED("Expected more events than fired: %d",numFireEvents);
   }
 
   /* ============================================== */
@@ -515,8 +515,10 @@ int main(int argc, char *argv[]) {
       0,                                   // user -- Opaque value copied into `EpmFireReport`
       {100, 11, 29, 46, 83, 31}
     };
-    test(dev,&testCase);
+    runTestCase(dev,&testCase);
   }
+
+  //  goto end;
   /* ============================================== */
   {
     uint64_t user = 0;
@@ -534,7 +536,7 @@ int main(int argc, char *argv[]) {
       0,                                   // user -- Opaque value copied into `EpmFireReport`
       {100, 11, 29, 46, 83, 31}
     };
-    test(dev,&testCase);
+    runTestCase(dev,&testCase);
   }
   /* ============================================== */
   {
@@ -553,7 +555,7 @@ int main(int argc, char *argv[]) {
       0,                                   // user -- Opaque value copied into `EpmFireReport`
       {100, 11, 46, 83, 31}
     };
-    test(dev,&testCase);
+    runTestCase(dev,&testCase);
   }
   /* ============================================== */
   {
@@ -572,7 +574,7 @@ int main(int argc, char *argv[]) {
       0,                                   // user -- Opaque value copied into `EpmFireReport`
       {100, 11, 29, 46}
     };
-    test(dev,&testCase);
+    runTestCase(dev,&testCase);
   }
   /* ============================================== */
   {
@@ -591,10 +593,11 @@ int main(int argc, char *argv[]) {
       0,                                   // user -- Opaque value copied into `EpmFireReport`
       {100, 11, 29, 46}
     };
-    test(dev,&testCase);
+    runTestCase(dev,&testCase);
   }
   /* ============================================== */
 
+ end:
   fflush(stdout);fflush(stderr);
 
   keep_work = false;

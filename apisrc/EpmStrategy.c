@@ -42,6 +42,10 @@ EpmStrategy::EpmStrategy(EkaEpm* _parent, epm_strategyid_t _id, epm_actionid_t _
 
   EKA_LOG("Created Strategy %u: baseActionIdx=%u, numActions=%u, UDP trigger: %s:%u",
 	  id,baseActionIdx,numActions,EKA_IP2STR(ip),port);
+
+  setActionRegionBaseIdx(dev,id, baseActionIdx);
+  //  eka_write(dev,strategyEnableAddr(id), ALWAYS_ENABLE);
+
 }
 /* ------------------------------------------------ */
 

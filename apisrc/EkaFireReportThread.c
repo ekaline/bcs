@@ -26,12 +26,15 @@ void ekaFireReportThread(EkaDev* dev) {
       const uint8_t* payload = dev->snDev->epmReport->get();
       uint len = dev->snDev->epmReport->getPayloadSize();
 
-      switch ((EkaUserChannel::DMA_TYPE)((dma_report_t*)payload)->type) {
+      switch ((EkaUserChannel::DMA_TYPE)((report_dma_report_t*)payload)->type) {
       case EkaUserChannel::DMA_TYPE::EPM: {
-	if (be16toh(((dma_report_t*)payload)->length) + sizeof(dma_report_t) != len)
-	  on_error("DMA length mismatch %u != %u",be16toh(((dma_report_t*)payload)->length),len);
+	//	if (be16toh(((report_dma_report_t*)payload)->length) + sizeof(report_dma_report_t) != len) {
+	if (((report_dma_report_t*)payload)->length + sizeof(report_dma_report_t) != len) {
+	  hexDump("EPM report",payload,len); fflush(stdout);
+	  on_error("DMA length mismatch %u != %u",be16toh(((report_dma_report_t*)payload)->length),len);
+	}
 
-	hw_epm_report_t* hwEpmReport = (hw_epm_report_t*) (payload + sizeof(dma_report_t));
+	hw_epm_report_t* hwEpmReport = (hw_epm_report_t*) (payload + sizeof(report_dma_report_t));
 	
 	/* hexDump("EPM report",(void*)payload,len); */
 
@@ -63,7 +66,7 @@ void ekaFireReportThread(EkaDev* dev) {
       }
 	break;
       default:
-	on_error("Unexpected DMA type 0x%x",((dma_report_t*)payload)->type);
+	on_error("Unexpected DMA type 0x%x",((report_dma_report_t*)payload)->type);
       }
       dev->snDev->epmReport->next();
     }

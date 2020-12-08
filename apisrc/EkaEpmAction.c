@@ -18,13 +18,11 @@ EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
 			   uint                    _region,
 			   uint8_t                 _coreId,
 			   uint8_t                 _sessId,
-			   uint                    _productIdx,
+			   uint                    _auxIdx,
 			   EpmActionBitmap         _actionBitParams,
-			   uint64_t		   _heapAddr,
+			   uint  		   _heapOffs,
 			   uint64_t		   _actionAddr,
-			   EpmTemplate*            _epmTemplate
-			   /* uint64_t		   _dataTemplateAddr, */
-			   /* uint		           _templateId */) {
+			   EpmTemplate*            _epmTemplate) {
 
   dev             = _dev;
   strcpy(actionName,_actionName);
@@ -41,17 +39,15 @@ EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
   region          = _region;
   coreId          = _coreId;
   sessId          = _sessId;
-  productIdx      = _productIdx;
+  productIdx      = _auxIdx;
   actionBitParams = _actionBitParams;
-  heapAddr        = _heapAddr;
   actionAddr      = _actionAddr;
-  /* templateAddr    = _epmTemplate->getDataTemplateAddr() ;//_dataTemplateAddr; */
-  /* templateId      = _epmTemplate->id; //_templateId; */
   epmTemplate     = _epmTemplate;
 
   thrId           = calcThrId(type,sessId,productIdx);
 
-  heapOffs        = heapAddr - EpmHeapHwBaseAddr;
+  heapOffs        = _heapOffs;
+  heapAddr        = EpmHeapHwBaseAddr + heapOffs;
 
   if (epm == NULL) on_error("epm == NULL");
 

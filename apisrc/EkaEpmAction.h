@@ -15,13 +15,11 @@ class EkaEpmAction {
 	       uint                    _region,
 	       uint8_t                 _coreId,
 	       uint8_t                 _sessId,
-	       uint                    _productIdx,
+	       uint                    _auxIdx,
 	       EpmActionBitmap         _actionBitParams,
-	       uint64_t		       _heapAddr,
+	       uint		       _heapOffs,
 	       uint64_t		       _actionAddr,
-	       EpmTemplate*            _epmTemplate
-	       /* uint64_t		       _dataTemplateAddr, */
-	       /* uint		       _templateId */);
+	       EpmTemplate*            _epmTemplate);
 
   /* ----------------------------------------------------- */
   int updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction *epmAction);

@@ -13,6 +13,7 @@
 #include "EkaEpmAction.h"
 #include "EpmStrategy.h"
 #include "EkaUdpChannel.h"
+#include "EkaEpmRegion.h"
 
 uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size);
 void ekaFireReportThread(EkaDev* dev);
@@ -21,9 +22,29 @@ void ekaFireReportThread(EkaDev* dev);
 EkaEpm::EkaEpm(EkaDev* _dev) {
   dev = _dev;
 
-  setActionRegionBaseIdx(dev,ServiceRegion,ServiceActionsBaseIdx);
-  eka_write(dev,strategyEnableAddr(ServiceRegion),ALWAYS_ENABLE);
+  epmRegion[ServiceRegion] = new EkaEpmRegion(ServiceRegion,ServiceActionsBaseIdx);
+  if (epmRegion[ServiceRegion] == NULL) on_error("failed on new EkaEpmRegion");
+
+  setActionRegionBaseIdx(dev,ServiceRegion, ServiceActionsBaseIdx);
+  eka_write(dev,strategyEnableAddr(ServiceRegion), ALWAYS_ENABLE);
+
+
+#ifndef _VERILOG_SIM
+  initHeap();
+#endif
+
   EKA_LOG("Created Epm");
+}
+
+void EkaEpm::initHeap() {
+  uint numPages = MaxHeap / HeapPage;
+  if (MaxHeap % HeapPage != 0) 
+    on_error("MaxHeap %ju is not multiple of HeapPage %ju", MaxHeap, HeapPage);
+
+  for (uint i = 0; i < numPages; i++) {
+    uint8_t pageTmpBuf[HeapPage] = {};
+    copyIndirectBuf2HeapHw_swap4(dev, EpmHeapHwBaseAddr + i * HeapPage,(uint64_t*)&pageTmpBuf,0,HeapPage);
+  }
 }
 
 /* ---------------------------------------------------- */
@@ -129,10 +150,16 @@ EkaOpResult EkaEpm::initStrategies(EkaCoreId coreId,
 
   epm_actionid_t currActionIdx = 0;
   for (auto i = 0; i < stratNum; i++) {
+    if (epmRegion[i] != NULL) on_error("epmRegion[%d] != NULL",i);
+    epmRegion[i] = new EkaEpmRegion((uint)i,currActionIdx);
+    if (epmRegion[i] == NULL) on_error("epmRegion[%d] == NULL",i);
+
+    if (strategy[i] != NULL) on_error("strategy[%d] != NULL",i);
     strategy[i] = new EpmStrategy(this,i,currActionIdx, &params[i]);
     if (strategy[i] == NULL) on_error("Fail to create strategy[%d]",i);
     udpCh[coreId]->igmp_mc_join(0, strategy[i]->ip, be16toh(strategy[i]->port),0);
     currActionIdx += params[i].numActions;
+
     if (currActionIdx > (int)MaxUserActions) 
       on_error("currActionIdx %d > MaxUserActions %ju",currActionIdx,MaxUserActions);
   }
@@ -239,34 +266,36 @@ int EkaEpm::DownloadTemplates2HW() {
 }
 /* ---------------------------------------------------- */
 
-EkaEpmAction* EkaEpm::addAction(ActionType type, 
-			  epm_strategyid_t actionRegion, 
-			  epm_actionid_t localIdx, 
-			  uint8_t _coreId, 
-			  uint8_t _sessId, 
-			  uint8_t _auxIdx) {
+EkaEpmAction* EkaEpm::addAction(ActionType     type, 
+				uint           actionRegion, 
+				epm_actionid_t _localIdx, 
+				uint8_t        _coreId, 
+				uint8_t        _sessId, 
+				uint8_t        _auxIdx) {
   if (tcpFastPathPkt == NULL) on_error("tcpFastPathPkt == NULL");
   if (rawPkt == NULL) on_error("rawPkt == NULL");
+
+  if (actionRegion >= EPM_REGIONS || epmRegion[actionRegion] == NULL) 
+    on_error("wrong epmRegion[%u] = %p",actionRegion,epmRegion[actionRegion]);
 
   uint            heapBudget = (uint)(-1);
   EpmActionBitmap actionBitParams = {};
   EpmTemplate*    pEpmTemplate = NULL;
 
   char            actionName[30] = {};
-  epm_actionid_t  actionIdx      = -1;
-  epm_actionid_t  localActionIdx = -1;
-  uint64_t        heapAddr       = -1;
+  uint64_t        heapOffs       = -1;
   uint64_t        actionAddr     = -1;
 
   createActionMtx.lock();
 
+  epm_actionid_t  localActionIdx = epmRegion[actionRegion]->getNextLocalActionIdx();
+  epm_actionid_t  actionIdx      = epmRegion[actionRegion]->baseActionIdx + localActionIdx;
+
   switch (type) {
   case ActionType::TcpFastPath :
     heapBudget                 = MAX_PKT_SIZE;
-    localActionIdx             = serviceActionIdx;
-    actionIdx                  = ServiceActionsBaseIdx + serviceActionIdx++;
-    heapAddr                   = serviceHeapAddr;
-    serviceHeapAddr           += heapBudget;
+    heapOffs                   = serviceHeapOffs;
+    serviceHeapOffs           += heapBudget;
     actionAddr                 = serviceActionAddr;
     serviceActionAddr         += ActionBudget;
 
@@ -281,10 +310,8 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
   case ActionType::TcpFullPkt  :
     heapBudget                 = MAX_PKT_SIZE;
 
-    localActionIdx             = serviceActionIdx;
-    actionIdx                  = ServiceActionsBaseIdx + serviceActionIdx ++;
-    heapAddr                   = serviceHeapAddr;
-    serviceHeapAddr           += heapBudget;
+    heapOffs                   = serviceHeapOffs;
+    serviceHeapOffs           += heapBudget;
     actionAddr                 = serviceActionAddr;
     serviceActionAddr         += ActionBudget;
 
@@ -300,11 +327,8 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
   case ActionType::TcpEmptyAck :
     heapBudget                 = TCP_EMPTY_ACK_SIZE;
 
-
-    localActionIdx             = serviceActionIdx;
-    actionIdx                  = ServiceActionsBaseIdx + serviceActionIdx ++;
-    heapAddr                   = serviceHeapAddr;
-    serviceHeapAddr           += heapBudget;
+    heapOffs                   = serviceHeapOffs;
+    serviceHeapOffs           += heapBudget;
     actionAddr                 = serviceActionAddr;
     serviceActionAddr         += ActionBudget;
 
@@ -320,11 +344,8 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
   case ActionType::UserAction :
     heapBudget                 = MAX_PKT_SIZE;
 
-    localActionIdx             = userActionIdx;
-    actionIdx                  = UserActionsBaseIdx + userActionIdx ++;
-
-    heapAddr                   = userHeapAddr;
-    userHeapAddr              += heapBudget;
+    heapOffs                   = userHeapOffs;
+    userHeapOffs              += heapBudget;
     actionAddr                 = userActionAddr;
     userActionAddr            += ActionBudget;
 
@@ -343,17 +364,17 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
     on_error("Unexpected EkaEpmAction type %d",(int)type);
   }
 
-  /* EKA_LOG("--- %20s: %u:%u Action Idx: %u, Action addr: %8ju, Heap: %8ju + %4u", */
-  /* 	  actionName, _coreId,_sessId,actionIdx,actionAddr,heapAddr,heapBudget); fflush(stderr); */
+  /* EKA_LOG("--- %20s: Action Idx: %u, localActionIdx: %u, actionRegion: %u,  Action addr: %8ju, Heap: %8u + %4u", */
+  /* 	  actionName, actionIdx,localActionIdx,actionRegion,actionAddr,heapOffs,heapBudget); fflush(stderr); */
 
   if (userActionIdx > UserActionsBaseIdx + MaxUserActions) 
     on_error("userActionIdx %u > MaxUserActions %ju",userActionIdx, UserActionsBaseIdx + MaxUserActions);
   if (serviceActionIdx > ServiceActionsBaseIdx + MaxServiceActions) 
     on_error("serviceActionIdx %u > MaxServiceActions %ju",serviceActionIdx, ServiceActionsBaseIdx + MaxServiceActions);
-  if (serviceHeapAddr > ServiceHeapBaseAddr + MaxServiceHeap)
-    on_error("serviceHeapAddr %ju > MaxServiceHeap %ju",serviceHeapAddr, ServiceHeapBaseAddr + MaxServiceHeap);
-  if (userHeapAddr > UserHeapBaseAddr + MaxUserHeap)
-    on_error("userHeapAddr %ju > MaxUserHeap %ju",userHeapAddr, UserHeapBaseAddr + MaxUserHeap);
+  if (serviceHeapOffs > ServiceHeapBaseAddr + MaxServiceHeap)
+    on_error("serviceHeapOffs %u > MaxServiceHeap %ju",serviceHeapOffs, ServiceHeapBaseAddr + MaxServiceHeap);
+  if (userHeapOffs > UserHeapBaseAddr + MaxUserHeap)
+    on_error("userHeapOffs %u > MaxUserHeap %ju",userHeapOffs, UserHeapBaseAddr + MaxUserHeap);
 
   EkaEpmAction* action = new EkaEpmAction(dev,
 					  actionName,
@@ -365,15 +386,14 @@ EkaEpmAction* EkaEpm::addAction(ActionType type,
 					  _sessId,
 					  _auxIdx,
 					  actionBitParams,
-					  heapAddr,
-					  
+					  heapOffs,					  
 					  actionAddr,
 					  pEpmTemplate
 					  );
 
   if (action ==NULL) on_error("new EkaEpmAction = NULL");
-  /* EKA_LOG("%s: idx = %3u, localIdx=%3u, heapAddr = 0x%jx, actionAddr = 0x%jx", */
-  /* 	  actionName,actionIdx,actionIdx - 0,heapAddr,actionAddr); */
+  /* EKA_LOG("%s: idx = %3u, localIdx=%3u, heapOffs = 0x%jx, actionAddr = 0x%jx", */
+  /* 	  actionName,actionIdx,actionIdx - 0,heapOffs,actionAddr); */
 
   createActionMtx.unlock();
   copyBuf2Hw(dev,EpmActionBase, (uint64_t*)&action->hwAction,sizeof(action->hwAction)); //write to scratchpad

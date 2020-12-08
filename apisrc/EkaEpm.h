@@ -29,6 +29,7 @@ class EpmTemplate;
 class EkaEpmAction;
 class EkaUdpChannel;
 class EpmStrategy;
+class EkaEpmRegion;
 
 /* ------------------------------------------------ */
 
@@ -44,6 +45,9 @@ static inline uint64_t strategyEnableAddr(epm_strategyid_t  id) {
 /* ------------------------------------------------ */
 
 class EkaEpm {
+ private:
+  void initHeap();
+
  public:
   static const uint MAX_CORES                   = EkaDev::MAX_CORES;
   static const uint MAX_SESS_PER_CORE           = EkaDev::MAX_SESS_PER_CORE;
@@ -64,6 +68,7 @@ class EkaEpm {
   static const uint64_t EpmActionBase           = 0x89000;
   static const uint     ActionBudget            = 64;
   static const uint64_t MaxHeap                 = 8 * 1024 * 1024;
+  static const uint64_t HeapPage                = 4 * 1024;
 
   static const uint64_t MaxUserHeap             = 6 * 1024 * 1024;
   static const uint64_t MaxServiceHeap          = MaxHeap - MaxUserHeap;
@@ -74,6 +79,9 @@ class EkaEpm {
   static const uint64_t PayloadAlignment        = 32;
   static const uint64_t RequiredTailPadding     = 0;
 
+
+  static const uint8_t  UserRegion              = 0;
+  //  static const uint8_t  ServiceRegion           = 1;
   static const uint8_t  ServiceRegion           = MaxStrategies;
 
   static const uint     UserActionsBaseIdx      = 0;
@@ -86,6 +94,9 @@ class EkaEpm {
   static const uint     ServiceActionsBaseIdx   = UserActionsBaseIdx + MaxUserActions;
   static const uint64_t ServiceHeapBaseAddr     = UserHeapBaseAddr   + MaxUserHeap;
   static const uint64_t ServiceActionBaseAddr   = UserActionBaseAddr + MaxUserActions * ActionBudget;
+
+  static const uint     UserHeapBaseOffs        = 0;
+  static const uint     ServiceHeapBaseOffs     = MaxUserHeap;
 
 
 
@@ -162,12 +173,12 @@ class EkaEpm {
   int DownloadTemplates2HW();
   int InitTemplates();
 
-  EkaEpmAction* addAction(ActionType type, 
-			  epm_strategyid_t actionRegion, 
-			  epm_actionid_t localIdx, 
-			  uint8_t _coreId, 
-			  uint8_t _sessId, 
-			  uint8_t _auxIdx);
+  EkaEpmAction* addAction(ActionType      type, 
+			  uint            actionRegion, 
+			  epm_actionid_t  localIdx, 
+			  uint8_t         coreId, 
+			  uint8_t         sessId, 
+			  uint8_t         auxIdx);
 
  private:
   bool alreadyJoined(epm_strategyid_t prevStrats,uint32_t ip, uint16_t port);
@@ -206,6 +217,8 @@ class EkaEpm {
   
   bool              controllerEnabled = false;
 
+  EkaEpmRegion*    epmRegion[EPM_REGIONS] = {};
+
  private:
   std::mutex   createActionMtx;
 
@@ -217,6 +230,8 @@ class EkaEpm {
   uint64_t serviceHeapAddr   = ServiceHeapBaseAddr;
   uint64_t serviceActionAddr = ServiceActionBaseAddr;
 
+  uint userHeapOffs          = UserHeapBaseOffs;
+  uint serviceHeapOffs       = ServiceHeapBaseOffs;
 
  protected:
 

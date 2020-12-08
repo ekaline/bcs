@@ -147,7 +147,7 @@ uint getHsvfMsgLen(char* pkt, int bytes2run) {
   uint idx = 0;
   if (pkt[idx] != HsvfSom) {
     hexDump("Msg with no HsvfSom (0x2)",(void*)pkt,bytes2run);
-    on_error("0x%x met while HsvfSom 0x%x is expected",pkt[idx],HsvfSom);
+    on_error("0x%x met while HsvfSom 0x%x is expected",pkt[idx] & 0xFF,HsvfSom);
     return 0;
   }
   do {
@@ -261,7 +261,10 @@ int main(int argc, char *argv[]) {
     if (printAll) printf ("%d, %s:%u Pkt %ju\n--------------------\n",gr,EKA_IP2STR(group[gr].ip),group[gr].port,pktNum);
     //###############################################
     while (pos < (int)pktLen) {
-      if (pkt[pos] != HsvfSom) on_error("expected SOM (0x%x) != 0x%x",HsvfSom,pkt[pos]);
+      if (pkt[pos] != HsvfSom) {
+	hexDump("Pkt with no HsvfSom",&pkt[pos],pktLen);
+	on_error("expected HsvfSom (0x%x) != 0x%x",HsvfSom,pkt[pos] & 0xFF);
+      }
       uint msgLen       = getHsvfMsgLen(&pkt[pos],pktLen-pos);
       uint64_t sequence = getHsvfMsgSequence(&pkt[pos]);
 
