@@ -310,7 +310,7 @@ int main(int argc, char *argv[]) {
       /* -------------------------------- */
 
       pos += msgLen;
-      if (msgLen - pos == 4) break;
+      if (pktLen - pos == 4) break;
       pos += trailingZeros(&pkt[pos],pktLen-pos );
     }
 

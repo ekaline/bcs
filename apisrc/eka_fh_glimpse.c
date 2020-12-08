@@ -381,13 +381,13 @@ void* eka_get_mold_retransmit_data(void* attr) {
     mold_request.sequence = be64toh(seq2ask);
     uint16_t cnt2ask4mold = cnt2ask > 200 ? 200 : cnt2ask & 0xFFFF; // 200 is just a number: a Mold pkt always contains less than 200 messages
     mold_request.message_cnt = be16toh(cnt2ask4mold);
-    /* EKA_TRACE("%s:%u: Sending Mold request to: %s:%u, session_id = %s, seq=%ju, cnt=%u", */
-    /* 	      EKA_EXCH_DECODE(gr->exch),gr->id, */
-    /* 	      EKA_IP2STR(*(uint32_t*)&mold_recovery_addr.sin_addr),be16toh(mold_recovery_addr.sin_port), */
-    /* 	      mold_request.session_id + '\0', */
-    /* 	      be64toh(mold_request.sequence), */
-    /* 	      be16toh(mold_request.message_cnt) */
-    /* 	      ); */
+    EKA_TRACE("%s:%u: Sending Mold request to: %s:%u, session_id = %s, seq=%ju, cnt=%u",
+    	      EKA_EXCH_DECODE(gr->exch),gr->id,
+    	      EKA_IP2STR(*(uint32_t*)&mold_recovery_addr.sin_addr),be16toh(mold_recovery_addr.sin_port),
+    	      mold_request.session_id + '\0',
+    	      be64toh(mold_request.sequence),
+    	      be16toh(mold_request.message_cnt)
+    	      );
     if (sendto(gr->recovery_sock,&mold_request,sizeof(struct mold_hdr),0,(const struct sockaddr*) &mold_recovery_addr,sizeof(struct sockaddr)) < 0) 
       on_error("sendto failed for %s:%u on sending Mold request to: %s:%u, gr->recovery_sock=%d",
 	       EKA_EXCH_DECODE(gr->exch),gr->id,

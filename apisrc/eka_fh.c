@@ -503,7 +503,8 @@ static int closeGap(EkaFhMode op, EfhCtx* pEfhCtx,const EfhRunCtx* pEfhRunCtx,Fh
 /* ##################################################################### */
 
 inline uint8_t EkaFh::getGrId(const uint8_t* pkt) {
-  for (uint8_t i = 0; i < groups; i++) if (be16toh(b_gr[i]->mcast_port) == EKA_UDPHDR_DST((pkt-8))) return i;
+  for (uint8_t i = 0; i < groups; i++) 
+    if (b_gr[i]->mcast_ip == EKA_IPH_DST(pkt) && be16toh(b_gr[i]->mcast_port) == EKA_UDPHDR_DST((pkt-8))) return i;
   return 0xFF;
 }
 /* ##################################################################### */
