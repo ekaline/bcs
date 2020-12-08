@@ -359,7 +359,18 @@ void* eka_get_mold_retransmit_data(void* attr) {
   EkaDev* dev = gr->dev;
   assert (dev != NULL);
   if (gr->recovery_sock != -1) on_error("%s:%u gr->recovery_sock != -1",EKA_EXCH_DECODE(gr->exch),gr->id);
-  if ((gr->recovery_sock = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP)) == -1) on_error("Failed to open socket for %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id);
+  if ((gr->recovery_sock = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP)) == -1) 
+    on_error("Failed to open socket for %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id);
+  if (gr->recovery_sock < 0) on_error("%s:%u recovery_sock = %d",EKA_EXCH_DECODE(gr->exch),gr->id,gr->recovery_sock);
+
+  struct sockaddr_in my_addr;
+  socklen_t moldSockAddrLen = sizeof(my_addr);
+
+  
+  if (getsockname(gr->recovery_sock, (struct sockaddr *) &my_addr, &moldSockAddrLen) < 0)
+    on_error("getsockname failed");
+
+  EKA_LOG("%s:%u Mold socket connected via %s",EKA_EXCH_DECODE(gr->exch),gr->id,EKA_IP2STR(my_addr.sin_addr.s_addr));
 
   struct mold_hdr mold_request = {};
   memcpy(&mold_request.session_id,(uint8_t*)gr->session_id,10);
