@@ -45,6 +45,48 @@ struct soupbin_login_req {
   char			sequence[20];
 } __attribute__((packed));
 
+//-----------------------------------------------
+
+static int sendUdpPkt (EkaDev* dev, FhGroup* gr, int sock, void* sendBuf, size_t size, const sockaddr* addr, const char* msgName) {
+  int bytesSent = -1;
+  while (1) {
+    int bytesSent = sendto(sock,sendBuf,size,0,addr,sizeof(sockaddr));
+    if (bytesSent < 0) on_error("%s:%u sendto failed for %s to: %s:%u, sock=%d",
+				EKA_EXCH_DECODE(gr->exch),gr->id, msgName,
+				EKA_IP2STR(((sockaddr_in*)addr)->sin_addr.s_addr),be16toh(((sockaddr_in*)addr)->sin_port),
+				sock
+				);
+    if (bytesSent == 0) {
+      EKA_WARN("%s:%u %s sent %d bytes. Retrying...",EKA_EXCH_DECODE(gr->exch),gr->id,msgName,bytesSent);
+      continue;
+    }
+    if (bytesSent != (int) size)
+      on_error("%s:%u partial UDP pkt send: tried %d, sent %d",EKA_EXCH_DECODE(gr->exch),gr->id,(int)size,bytesSent);
+
+    break;
+  }
+  return bytesSent;
+}
+//-----------------------------------------------
+static int recvUdpPkt (EkaDev* dev, FhGroup* gr, int sock, void* recvBuf, size_t size, sockaddr* addr, const char* msgName) {
+  int receivedBytes = -1;
+  socklen_t addrlen = sizeof(sockaddr);
+  while (1) {
+    receivedBytes = recvfrom(sock, recvBuf, size, 0, addr, &addrlen); 
+    if (receivedBytes < 0) 
+      on_error("%s:%u Failed receiving %s: receivedBytes = %d",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,msgName,receivedBytes);
+    if (receivedBytes == 0) {
+      EKA_WARN("%s:%u Receiving %s: receivedBytes = %d. Retrying...",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,msgName,receivedBytes);
+      continue;
+    }
+    break;
+  }
+  return receivedBytes;
+}
+
+//-----------------------------------------------
 
 void* soupbin_heartbeat_thread(void* attr) {
   pthread_detach(pthread_self());
@@ -363,21 +405,10 @@ void* eka_get_mold_retransmit_data(void* attr) {
     on_error("Failed to open socket for %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id);
   if (gr->recovery_sock < 0) on_error("%s:%u recovery_sock = %d",EKA_EXCH_DECODE(gr->exch),gr->id,gr->recovery_sock);
 
-  struct sockaddr_in my_addr;
-  socklen_t moldSockAddrLen = sizeof(my_addr);
-
-  
-  if (getsockname(gr->recovery_sock, (struct sockaddr *) &my_addr, &moldSockAddrLen) < 0)
-    on_error("getsockname failed");
-
-  EKA_LOG("%s:%u Mold socket connected via %s",EKA_EXCH_DECODE(gr->exch),gr->id,EKA_IP2STR(my_addr.sin_addr.s_addr));
-
-  struct mold_hdr mold_request = {};
+  mold_hdr mold_request = {};
   memcpy(&mold_request.session_id,(uint8_t*)gr->session_id,10);
   uint64_t cnt2ask = end - start + 1;
   uint64_t seq2ask = start;
-
-  socklen_t addrlen = sizeof(struct sockaddr);
 
   struct sockaddr_in mold_recovery_addr = {};
   mold_recovery_addr.sin_addr.s_addr = gr->recovery_ip;
@@ -387,8 +418,6 @@ void* eka_get_mold_retransmit_data(void* attr) {
   uint64_t sequence = 0;
   while (gr->recovery_active && cnt2ask > 0) {
     char buf[1500] = {};
-    int read_size = -1;
-
     mold_request.sequence = be64toh(seq2ask);
     uint16_t cnt2ask4mold = cnt2ask > 200 ? 200 : cnt2ask & 0xFFFF; // 200 is just a number: a Mold pkt always contains less than 200 messages
     mold_request.message_cnt = be16toh(cnt2ask4mold);
@@ -399,18 +428,12 @@ void* eka_get_mold_retransmit_data(void* attr) {
     	      be64toh(mold_request.sequence),
     	      be16toh(mold_request.message_cnt)
     	      );
-    if (sendto(gr->recovery_sock,&mold_request,sizeof(struct mold_hdr),0,(const struct sockaddr*) &mold_recovery_addr,sizeof(struct sockaddr)) < 0) 
-      on_error("sendto failed for %s:%u on sending Mold request to: %s:%u, gr->recovery_sock=%d",
-	       EKA_EXCH_DECODE(gr->exch),gr->id,
-	       EKA_IP2STR(*(uint32_t*)&mold_recovery_addr.sin_addr),be16toh(mold_recovery_addr.sin_port),
-	       gr->recovery_sock
-	       );
 
-    if ((read_size = recvfrom(gr->recovery_sock, buf, sizeof(buf), 0, (struct sockaddr*) &mold_recovery_addr, &addrlen)) < 0) 
-      on_error("%s:%u read %d bytes when tried to recv Mold Pkt of > %ju bytes",EKA_EXCH_DECODE(gr->exch),gr->id,read_size,sizeof(struct mold_hdr));
+    sendUdpPkt (dev, gr, gr->recovery_sock, &mold_request, sizeof(mold_request), (const sockaddr*) &mold_recovery_addr, "Mold request");
+    recvUdpPkt (dev, gr, gr->recovery_sock, buf,           sizeof(buf),          (sockaddr*)       &mold_recovery_addr, "Mold response");
 
     //-----------------------------------------------
-    uint indx = sizeof(struct mold_hdr); // pointer to the start of 1st message in the packet
+    uint indx = sizeof(mold_hdr); // pointer to the start of 1st message in the packet
     uint16_t message_cnt = EKA_MOLD_MSG_CNT(buf);
     sequence = EKA_MOLD_SEQUENCE(buf);
     for (uint msg=0; msg < message_cnt; msg++) {
@@ -455,8 +478,6 @@ void* eka_get_phlx_mold_retransmit_data(void* attr) {
   uint64_t cnt2ask = end - start + 1;
   uint64_t seq2ask = start;
 
-  socklen_t addrlen = sizeof(struct sockaddr);
-
   struct sockaddr_in mold_recovery_addr = {};
   mold_recovery_addr.sin_addr.s_addr = gr->recovery_ip;
   mold_recovery_addr.sin_port = gr->recovery_port; 
@@ -465,27 +486,20 @@ void* eka_get_phlx_mold_retransmit_data(void* attr) {
   uint64_t sequence = 0;
   while (gr->recovery_active && cnt2ask > 0) {
     char buf[1500] = {};
-    int read_size = -1;
 
     mold_request.sequence = seq2ask;
     uint16_t cnt2ask4mold = cnt2ask > 200 ? 200 : cnt2ask & 0xFFFF; // 200 is just a number: a Mold pkt always contains less than 200 messages
     mold_request.message_cnt = cnt2ask4mold;
-    /* EKA_TRACE("%s:%u: Sending Mold request to: %s:%u, session_id = %s, seq=%ju, cnt=%u", */
-    /* 	      EKA_EXCH_DECODE(gr->exch),gr->id, */
-    /* 	      EKA_IP2STR(*(uint32_t*)&mold_recovery_addr.sin_addr),be16toh(mold_recovery_addr.sin_port), */
-    /* 	      mold_request.session_id + '\0', */
-    /* 	      mold_request.sequence, */
-    /* 	      mold_request.message_cnt */
-    /* 	      ); */
-    if (sendto(gr->recovery_sock,&mold_request,sizeof(mold_request),0,(const struct sockaddr*) &mold_recovery_addr,sizeof(struct sockaddr)) < 0) 
-      on_error("sendto failed for %s:%u on sending Mold request to: %s:%u, gr->recovery_sock=%d",
-	       EKA_EXCH_DECODE(gr->exch),gr->id,
-	       EKA_IP2STR(*(uint32_t*)&mold_recovery_addr.sin_addr),be16toh(mold_recovery_addr.sin_port),
-	       gr->recovery_sock
-	       );
+    EKA_TRACE("%s:%u: Sending Mold request to: %s:%u, session_id = %s, seq=%ju, cnt=%u",
+    	      EKA_EXCH_DECODE(gr->exch),gr->id,
+    	      EKA_IP2STR(*(uint32_t*)&mold_recovery_addr.sin_addr),be16toh(mold_recovery_addr.sin_port),
+    	      mold_request.session_id + '\0',
+    	      mold_request.sequence,
+    	      mold_request.message_cnt
+    	      );
 
-    if ((read_size = recvfrom(gr->recovery_sock, buf, sizeof(buf), 0, (struct sockaddr*) &mold_recovery_addr, &addrlen)) < 0) 
-      on_error("%s:%u read %d bytes when tried to recv Mold Pkt of > %ju bytes",EKA_EXCH_DECODE(gr->exch),gr->id,read_size,sizeof(PhlxMoldHdr));
+    sendUdpPkt (dev, gr, gr->recovery_sock, &mold_request, sizeof(mold_request), (const sockaddr*) &mold_recovery_addr, "Mold request");
+    recvUdpPkt (dev, gr, gr->recovery_sock, buf,           sizeof(buf),          (sockaddr*)       &mold_recovery_addr, "Mold response");
 
     //-----------------------------------------------
     uint indx = sizeof(PhlxMoldHdr); // pointer to the start of 1st message in the packet
