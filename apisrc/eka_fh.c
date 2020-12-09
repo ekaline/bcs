@@ -909,7 +909,8 @@ bool FhBox::processUdpPkt(const EfhRunCtx* pEfhRunCtx,FhBoxGr* gr, const uint8_t
   while (idx < pktLen) {
     uint msgLen       = getHsvfMsgLen(&p[idx],pktLen-idx);
     uint64_t sequence = getHsvfMsgSequence(&p[idx]);
-    if (gr->parseMsg(pEfhRunCtx,&p[idx+1],sequence,EkaFhMode::MCAST)) return true;
+    if (sequence == gr->expected_sequence)
+      if (gr->parseMsg(pEfhRunCtx,&p[idx+1],sequence,EkaFhMode::MCAST)) return true;
     gr->expected_sequence = sequence + 1;
 
     idx += msgLen;

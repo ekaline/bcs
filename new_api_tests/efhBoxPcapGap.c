@@ -259,7 +259,7 @@ int main(int argc, char *argv[]) {
 
 
     pos += sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr);
-    if (printAll) printf ("%d, %s:%u Pkt %ju\n--------------------\n",gr,EKA_IP2STR(group[gr].ip),group[gr].port,pktNum);
+    if (printAll) printf ("\n--------------------%d, %s:%u Pkt %ju\n",gr,EKA_IP2STR(group[gr].ip),group[gr].port,pktNum);
     //###############################################
     while (pos < (int)pktLen) {
       if (pkt[pos] != HsvfSom) {
