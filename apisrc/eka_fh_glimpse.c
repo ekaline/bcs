@@ -63,6 +63,7 @@ static int sendUdpPkt (EkaDev* dev, FhGroup* gr, int sock, void* sendBuf, size_t
     if (bytesSent != (int) size)
       on_error("%s:%u partial UDP pkt send: tried %d, sent %d",EKA_EXCH_DECODE(gr->exch),gr->id,(int)size,bytesSent);
 
+    EKA_TRACE("%s:%u %s of %d bytes is sent",EKA_EXCH_DECODE(gr->exch),gr->id,msgName,bytesSent);
     break;
   }
   return bytesSent;
@@ -71,17 +72,30 @@ static int sendUdpPkt (EkaDev* dev, FhGroup* gr, int sock, void* sendBuf, size_t
 static int recvUdpPkt (EkaDev* dev, FhGroup* gr, int sock, void* recvBuf, size_t size, sockaddr* addr, const char* msgName) {
   int receivedBytes = -1;
   socklen_t addrlen = sizeof(sockaddr);
+  int reTryCnt = 0;
   while (1) {
-    receivedBytes = recvfrom(sock, recvBuf, size, 0, addr, &addrlen); 
-    if (receivedBytes < 0) 
-      on_error("%s:%u Failed receiving %s: receivedBytes = %d",
-	       EKA_EXCH_DECODE(gr->exch),gr->id,msgName,receivedBytes);
-    if (receivedBytes == 0) {
-      EKA_WARN("%s:%u Receiving %s: receivedBytes = %d. Retrying...",
-	       EKA_EXCH_DECODE(gr->exch),gr->id,msgName,receivedBytes);
-      continue;
+    //    receivedBytes = recvfrom(sock, recvBuf, size, 0, addr, &addrlen); 
+    receivedBytes = recvfrom(sock, recvBuf, size, MSG_DONTWAIT, addr, &addrlen); 
+    if (receivedBytes > 0) {
+      EKA_TRACE("%s:%u %s of %d bytes is received",EKA_EXCH_DECODE(gr->exch),gr->id,msgName,receivedBytes);
+      return receivedBytes;
     }
-    break;
+
+    if (-- reTryCnt % 1000 == 0) {
+      EKA_WARN("%s:%u Retrying receiving %s: last receivedBytes = %d ...",
+    	       EKA_EXCH_DECODE(gr->exch),gr->id,msgName,receivedBytes);
+    }
+    /* if (receivedBytes < 0)  */
+    /*   on_error("%s:%u Failed receiving %s: receivedBytes = %d", */
+    /* 	       EKA_EXCH_DECODE(gr->exch),gr->id,msgName,receivedBytes); */
+    /* if (receivedBytes == 0) { */
+    /*   EKA_WARN("%s:%u Receiving %s: receivedBytes = %d. Retrying...", */
+    /* 	       EKA_EXCH_DECODE(gr->exch),gr->id,msgName,receivedBytes); */
+    /*   continue; */
+    /* } */
+    /* if (receivedBytes <= 0)  */
+    /*   EKA_TRACE("%s:%u %s of %d bytes is received",EKA_EXCH_DECODE(gr->exch),gr->id,msgName,receivedBytes); */
+
   }
   return receivedBytes;
 }
