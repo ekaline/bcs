@@ -1455,7 +1455,7 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
       break;
       //-----------------------------------------------------------------------------
     case FhGroup::GrpState::NORMAL : {
-      if (sequence < gr->expected_sequence) break; // skipping stale messages
+      //      if (sequence < gr->expected_sequence) break; // skipping stale messages
       if (sequence > gr->expected_sequence) { // GAP
 	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%ju",EKA_EXCH_DECODE(exch),gr_id,gr->expected_sequence,sequence);
 	gr->state = FhGroup::GrpState::RETRANSMIT_GAP;
