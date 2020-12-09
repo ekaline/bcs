@@ -71,6 +71,7 @@ static int sendUdpPkt (EkaDev* dev, FhGroup* gr, int sock, void* sendBuf, size_t
 //-----------------------------------------------
 static int recvUdpPkt (EkaDev* dev, FhGroup* gr, int sock, void* recvBuf, size_t size, sockaddr* addr, const char* msgName) {
   int receivedBytes = -1;
+  static const int Iterations = 1000000;
   socklen_t addrlen = sizeof(sockaddr);
   int reTryCnt = 0;
   while (1) {
@@ -81,9 +82,10 @@ static int recvUdpPkt (EkaDev* dev, FhGroup* gr, int sock, void* recvBuf, size_t
       return receivedBytes;
     }
 
-    if (-- reTryCnt % 1000 == 0) {
-      EKA_WARN("%s:%u Retrying receiving %s: last receivedBytes = %d ...",
+    if (-- reTryCnt % Iterations == 0) {
+      EKA_WARN("%s:%u Failed to receive %s: (receivedBytes = %d) giving up ...",
     	       EKA_EXCH_DECODE(gr->exch),gr->id,msgName,receivedBytes);
+      return -1;
     }
     /* if (receivedBytes < 0)  */
     /*   on_error("%s:%u Failed receiving %s: receivedBytes = %d", */
@@ -97,7 +99,7 @@ static int recvUdpPkt (EkaDev* dev, FhGroup* gr, int sock, void* recvBuf, size_t
     /*   EKA_TRACE("%s:%u %s of %d bytes is received",EKA_EXCH_DECODE(gr->exch),gr->id,msgName,receivedBytes); */
 
   }
-  return receivedBytes;
+  return -1;
 }
 
 //-----------------------------------------------
@@ -443,8 +445,11 @@ void* eka_get_mold_retransmit_data(void* attr) {
     	      be16toh(mold_request.message_cnt)
     	      );
 
-    sendUdpPkt (dev, gr, gr->recovery_sock, &mold_request, sizeof(mold_request), (const sockaddr*) &mold_recovery_addr, "Mold request");
-    recvUdpPkt (dev, gr, gr->recovery_sock, buf,           sizeof(buf),          (sockaddr*)       &mold_recovery_addr, "Mold response");
+    while (1) {
+      sendUdpPkt (dev, gr, gr->recovery_sock, &mold_request, sizeof(mold_request), (const sockaddr*) &mold_recovery_addr, "Mold request");
+      int r = recvUdpPkt (dev, gr, gr->recovery_sock, buf,           sizeof(buf),          (sockaddr*)       &mold_recovery_addr, "Mold response");
+      if (r > 0) break;
+    }
 
     //-----------------------------------------------
     uint indx = sizeof(mold_hdr); // pointer to the start of 1st message in the packet
@@ -512,8 +517,11 @@ void* eka_get_phlx_mold_retransmit_data(void* attr) {
     	      mold_request.message_cnt
     	      );
 
-    sendUdpPkt (dev, gr, gr->recovery_sock, &mold_request, sizeof(mold_request), (const sockaddr*) &mold_recovery_addr, "Mold request");
-    recvUdpPkt (dev, gr, gr->recovery_sock, buf,           sizeof(buf),          (sockaddr*)       &mold_recovery_addr, "Mold response");
+    while (1) {
+      sendUdpPkt (dev, gr, gr->recovery_sock, &mold_request, sizeof(mold_request), (const sockaddr*) &mold_recovery_addr, "Mold request");
+      int r = recvUdpPkt (dev, gr, gr->recovery_sock, buf,           sizeof(buf),          (sockaddr*)       &mold_recovery_addr, "Mold response");
+      if (r > 0) break;
+    }
 
     //-----------------------------------------------
     uint indx = sizeof(PhlxMoldHdr); // pointer to the start of 1st message in the packet
