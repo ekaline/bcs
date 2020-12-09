@@ -445,10 +445,14 @@ void* eka_get_mold_retransmit_data(void* attr) {
     	      be16toh(mold_request.message_cnt)
     	      );
 
+    int attempt = 0;
+    const int limit = 5;
     while (1) {
       sendUdpPkt (dev, gr, gr->recovery_sock, &mold_request, sizeof(mold_request), (const sockaddr*) &mold_recovery_addr, "Mold request");
       int r = recvUdpPkt (dev, gr, gr->recovery_sock, buf,           sizeof(buf),          (sockaddr*)       &mold_recovery_addr, "Mold response");
       if (r > 0) break;
+      if (attempt++ == limit) on_error("Mold UDP socket is not responding after %d attempts",limit);
+      sleep(0);
     }
 
     //-----------------------------------------------
@@ -517,10 +521,14 @@ void* eka_get_phlx_mold_retransmit_data(void* attr) {
     	      mold_request.message_cnt
     	      );
 
+    int attempt = 0;
+    const int limit = 5;
     while (1) {
       sendUdpPkt (dev, gr, gr->recovery_sock, &mold_request, sizeof(mold_request), (const sockaddr*) &mold_recovery_addr, "Mold request");
       int r = recvUdpPkt (dev, gr, gr->recovery_sock, buf,           sizeof(buf),          (sockaddr*)       &mold_recovery_addr, "Mold response");
       if (r > 0) break;
+      if (attempt++ == limit) on_error("Mold UDP socket is not responding after %d attempts",limit);
+      sleep(0);
     }
 
     //-----------------------------------------------
