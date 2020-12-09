@@ -77,7 +77,8 @@ void print_usage(char* cmd) {
   printf("USAGE: %s <flags> \n",cmd); 
   printf("\t-A \t\t\tUse A-side feed (default is B-side)\n"); 
   printf("\t-N \t\t\tRun NOM\n"); 
-  printf("\t-P \t\t\tRun PHLX\n"); 
+  printf("\t-P \t\t\tRun PHLX TOPO\n"); 
+  printf("\t-P \t\t\tRun PHLX ORDERS\n"); 
   printf("\t-G \t\t\tRun GEM\n"); 
   printf("\t-I \t\t\tRun ISE\n"); 
   printf("\t-u [Underlying Name]\tSingle Name to subscribe to all its Securities on all Feeds\n");

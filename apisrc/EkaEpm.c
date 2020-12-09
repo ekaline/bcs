@@ -272,8 +272,6 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
 				uint8_t        _coreId, 
 				uint8_t        _sessId, 
 				uint8_t        _auxIdx) {
-  if (tcpFastPathPkt == NULL) on_error("tcpFastPathPkt == NULL");
-  if (rawPkt == NULL) on_error("rawPkt == NULL");
 
   if (actionRegion >= EPM_REGIONS || epmRegion[actionRegion] == NULL) 
     on_error("wrong epmRegion[%u] = %p",actionRegion,epmRegion[actionRegion]);
@@ -363,6 +361,8 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
   default:
     on_error("Unexpected EkaEpmAction type %d",(int)type);
   }
+
+  if (pEpmTemplate == NULL) on_error("pEpmTemplate == NULL for %s",actionName);
 
   /* EKA_LOG("--- %20s: Action Idx: %u, localActionIdx: %u, actionRegion: %u,  Action addr: %8ju, Heap: %8u + %4u", */
   /* 	  actionName, actionIdx,localActionIdx,actionRegion,actionAddr,heapOffs,heapBudget); fflush(stderr); */
