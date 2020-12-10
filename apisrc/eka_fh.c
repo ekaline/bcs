@@ -993,8 +993,12 @@ EkaOpResult FhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%ju",EKA_EXCH_DECODE(exch),gr_id,gr->expected_sequence,sequence);
 	gr->state = FhGroup::GrpState::RETRANSMIT_GAP;
 	gr->gapClosed = false;
-
-	closeGap(EkaFhMode::RECOVERY, pEfhCtx,pEfhRunCtx,gr, gr->expected_sequence, sequence + msgInPkt);
+	if (exch == EkaSource::kPHLX_TOPO) {
+	  pushUdpPkt2Q(gr,pkt,msgInPkt,sequence,gr_id);
+	  closeGap(EkaFhMode::RECOVERY, pEfhCtx,pEfhRunCtx,gr, gr->expected_sequence, sequence);
+	} else {
+	  closeGap(EkaFhMode::RECOVERY, pEfhCtx,pEfhRunCtx,gr, gr->expected_sequence, sequence + msgInPkt);
+	}
       } else { // NORMAL
 	runGr->stoppedByExchange = processUdpPkt(pEfhRunCtx,gr,pkt,msgInPkt,sequence);      
       }
@@ -1462,7 +1466,9 @@ EkaOpResult FhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 	gr->state = FhGroup::GrpState::RETRANSMIT_GAP;
 	gr->gapClosed = false;
 
-	closeGap(EkaFhMode::RECOVERY, pEfhCtx,pEfhRunCtx,gr, gr->expected_sequence, sequence + 10 /* max messages in Pkt */);
+	pushUdpPkt2Q(gr,pkt,pktLen,gr_id);
+
+	closeGap(EkaFhMode::RECOVERY, pEfhCtx,pEfhRunCtx,gr, gr->expected_sequence, sequence);
       } else { // NORMAL
 	runGr->stoppedByExchange = processUdpPkt(pEfhRunCtx,gr,pkt,pktLen);      
       }

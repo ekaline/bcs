@@ -158,8 +158,8 @@ static EkaOpResult sendRequest(FhBoxGr* gr, uint64_t start, uint64_t end) {
     EKA_WARN("Retransmit Request send failed");
     return EKA_OPRESULT__ERR_SYSTEM_ERROR;
   }
-  EKA_LOG("%s:%u Retransmit Request sent for %s .. %s messages",
-	  EKA_EXCH_DECODE(gr->exch),gr->id,startStrBuf,endStrBuf);
+  EKA_LOG("%s:%u Retransmit Request sent for %s (%ju) .. %s (%ju) messages cnt = %ju",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,startStrBuf,start,endStrBuf,end,end-start);
 #endif
   return EKA_OPRESULT__OK;
 }
@@ -295,7 +295,7 @@ void* eka_get_hsvf_retransmit(void* attr) {
   if (gr->recovery_sock != -1) on_error("%s:%u gr->recovery_sock != -1",EKA_EXCH_DECODE(gr->exch),gr->id);
 
 
-  EKA_LOG("%s:%u start=%ju, end=%ju",EKA_EXCH_DECODE(gr->exch),gr->id,start,end);
+  EKA_LOG("%s:%u start=%ju, end=%ju, gap=%d",EKA_EXCH_DECODE(gr->exch),gr->id,start,end, end - start);
   //-----------------------------------------------------------------
   ekaTcpConnect(&gr->snapshot_sock,gr->snapshot_ip,gr->snapshot_port);
   //-----------------------------------------------------------------
