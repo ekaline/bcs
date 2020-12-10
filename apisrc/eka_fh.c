@@ -457,12 +457,13 @@ static int closeGap(EkaFhMode op, EfhCtx* pEfhCtx,const EfhRunCtx* pEfhRunCtx,Fh
   case EkaSource::kGEM_TQF   :
   case EkaSource::kISE_TQF   :
   case EkaSource::kMRX_TQF   :
-  case EkaSource::kPHLX_TOPO :
     if (op == EkaFhMode::SNAPSHOT) 
       dev->createThread(threadName.c_str(),EkaThreadType::kFeedSnapshot,eka_get_glimpse_data,        (void*)attr,dev->createThreadContext,(uintptr_t*)&gr->snapshot_thread);   
     else
       dev->createThread(threadName.c_str(),EkaThreadType::kFeedRecovery,eka_get_mold_retransmit_data,(void*)attr,dev->createThreadContext,(uintptr_t*)&gr->retransmit_thread);   
     break;
+  case EkaSource::kPHLX_TOPO :
+      dev->createThread(threadName.c_str(),EkaThreadType::kFeedSnapshot,eka_get_glimpse_data,        (void*)attr,dev->createThreadContext,(uintptr_t*)&gr->snapshot_thread);   
   case EkaSource::kPHLX_ORD :
     if (op == EkaFhMode::SNAPSHOT) 
       dev->createThread(threadName.c_str(),EkaThreadType::kFeedSnapshot,eka_get_phlx_ord_glimpse_data,        (void*)attr,dev->createThreadContext,(uintptr_t*)&gr->snapshot_thread);   
