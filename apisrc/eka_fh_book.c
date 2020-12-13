@@ -60,10 +60,10 @@ void FullBook::init_plevels_and_orders () {
 
 void FullBook::invalidate() {
   EKA_LOG("Invalidating FH %s:%u",EKA_EXCH_DECODE(exch),id);
-  if (! full_book) {
-    EKA_LOG("No PLeveles ans Orders to invalidate for %s:%u",EKA_EXCH_DECODE(exch),id);
-    return;
-  }
+  /* if (! full_book) { */
+  /*   EKA_LOG("No PLeveles ans Orders to invalidate for %s:%u",EKA_EXCH_DECODE(exch),id); */
+  /*   return; */
+  /* } */
   uint32_t released_used_plevels_cnt = 0;
   uint32_t released_used_orders_cnt = 0;
   uint32_t released_free_plevels_cnt = 0;
