@@ -21,7 +21,7 @@ public:
 			   uint64_t       sequence,
 			   uint8_t        gr_id);
 
-  virtual ~FhBats() {};
+  virtual ~EkaFhBats() {};
 private:
   uint8_t    getGrId(const uint8_t* pkt);
 

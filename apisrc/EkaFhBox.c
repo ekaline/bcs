@@ -3,7 +3,7 @@
 #include "EkaFhRunGroup.h"
 #include "EkaFhBoxGr.h"
 
-EkaOpResult eka_hsvf_get_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhBoxGr* gr);
+EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhBoxGr* gr);
 
 /* ##################################################################### */
 
@@ -53,6 +53,7 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     case EkaFhGroup::GrpState::INIT : {
       gr->gapClosed = false;
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
+      gr->sendFeedDown(pEfhRunCtx);
       gr->closeSnapshopGap(pEfhCtx,pEfhRunCtx,gr, 1, sequence);
     }
       break;
@@ -67,6 +68,7 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
 	gr->pushUdpPkt2Q(pkt,pktLen);
 
+	gr->sendFeedDown(pEfhRunCtx);
 	gr->closeIncrementalGap(pEfhCtx,pEfhRunCtx,gr->expected_sequence, sequence);
       } else { // NORMAL
 	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,pktLen);      

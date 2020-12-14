@@ -29,14 +29,11 @@
 #include "eka_fh.h"
 #include "EkaHsvfTcp.h"
 
-int ekaTcpConnect(int* sock, uint32_t ip, uint16_t port);
-int ekaUdpConnect(EkaDev* dev, int* sock, uint32_t ip, uint16_t port);
+int ekaTcpConnect(uint32_t ip, uint16_t port);
 
 uint getHsvfMsgLen(const uint8_t* pkt, int bytes2run);
 uint64_t getHsvfMsgSequence(uint8_t* msg);
 uint trailingZeros(uint8_t* p, uint maxChars);
-
-void hexDump (const char* desc, void *addr, int len);
 
 /* ----------------------------- */
 inline static uint8_t getTcpChar(uint8_t* dst, int sock) {
@@ -46,25 +43,8 @@ inline static uint8_t getTcpChar(uint8_t* dst, int sock) {
 }
 
 /* ----------------------------- */
-/* static EkaOpResult getTcpMsg(uint8_t* msgBuf, int sock) { */
-/*   uint charIdx = 0; */
-/*   const uint MAX_MSG_SIZE = 1400; // just a number */
-/*   if (getTcpChar(&msgBuf[charIdx],sock) != HsvfSom)  */
-/*     on_error("SoM \'%c\' != HsvfSom \'%c\'",msgBuf[charIdx],HsvfSom); */
-/*   do { */
-/*     charIdx++; */
-/*     //    if (charIdx > std::max(sizeof(HsvfOptionInstrumentKeys),sizeof(HsvfOptionSummary)) + 20) { */
-/*     if (charIdx > MAX_MSG_SIZE) { */
-/*       hexDump("msgBuf with no HsvfEom",msgBuf,charIdx); */
-/*       on_error("HsvfEom not met after %u characters",charIdx); */
-/*     } */
-/*   } while (getTcpChar(&msgBuf[charIdx],sock) != HsvfEom); */
-/*   return EKA_OPRESULT__OK; */
-/* } */
 
-/* ----------------------------- */
-
-static EkaOpResult sendLogin (FhBoxGr* gr) {
+static EkaOpResult sendLogin (EkaFhBoxGr* gr) {
   EkaDev* dev = gr->dev;
   HsvfLogin msg = {};
   memset(&msg,' ',sizeof(msg));
@@ -100,7 +80,7 @@ static EkaOpResult sendLogin (FhBoxGr* gr) {
   return EKA_OPRESULT__OK;
 }
 /* ----------------------------- */
-static EkaOpResult getLoginResponse(FhBoxGr* gr) {
+static EkaOpResult getLoginResponse(EkaFhBoxGr* gr) {
   EkaDev* dev = gr->dev;
   EkaOpResult ret = EKA_OPRESULT__OK;
 #ifdef FH_LAB
@@ -132,7 +112,7 @@ static EkaOpResult getLoginResponse(FhBoxGr* gr) {
 }
 
 /* ----------------------------- */
-static EkaOpResult sendRequest(FhBoxGr* gr, uint64_t start, uint64_t end) {
+static EkaOpResult sendRequest(EkaFhBoxGr* gr, uint64_t start, uint64_t end) {
   EkaDev* dev = gr->dev;
   HsvfRetransmissionRequest msg = {};
   memset(&msg,' ',sizeof(msg));
@@ -165,7 +145,7 @@ static EkaOpResult sendRequest(FhBoxGr* gr, uint64_t start, uint64_t end) {
 }
 
 /* ----------------------------- */
-static EkaOpResult getRetransmissionBegins(FhBoxGr* gr) {
+static EkaOpResult getRetransmissionBegins(EkaFhBoxGr* gr) {
   EkaDev* dev = gr->dev;
   EkaOpResult ret = EKA_OPRESULT__OK;
 
@@ -200,7 +180,7 @@ static EkaOpResult getRetransmissionBegins(FhBoxGr* gr) {
 
 /* ----------------------------- */
 
-static EkaOpResult sendRetransmissionEnd(FhBoxGr* gr) {
+static EkaOpResult sendRetransmissionEnd(EkaFhBoxGr* gr) {
   EkaDev* dev = gr->dev;
   HsvfRetransmissionEnd msg = {};
   memset(&msg,' ',sizeof(msg));
@@ -227,7 +207,7 @@ static EkaOpResult sendRetransmissionEnd(FhBoxGr* gr) {
 /* ----------------------------- */
 
 
-EkaOpResult eka_hsvf_get_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhBoxGr* gr) {
+EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhBoxGr* gr) {
   if (gr == NULL) on_error("gr == NULL");
   EkaDev* dev = gr->dev;
   if (dev == NULL) on_error("dev == NULL");
@@ -239,7 +219,7 @@ EkaOpResult eka_hsvf_get_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
 
 
   //-----------------------------------------------------------------
-  ekaTcpConnect(&gr->snapshot_sock,gr->snapshot_ip,gr->snapshot_port);
+  gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
   //-----------------------------------------------------------------
   gr->hsvfTcp = new EkaHsvfTcp(dev,gr->snapshot_sock);
   if (gr->hsvfTcp == NULL) on_error("Failed on new EkaHsvfTcp");
@@ -275,13 +255,11 @@ EkaOpResult eka_hsvf_get_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
   return  EKA_OPRESULT__OK;
 }
 
-void* eka_get_hsvf_retransmit(void* attr) {
+void* getHsvfRetransmit(void* attr) {
 
   pthread_detach(pthread_self());
 
-
-  //  EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
-  FhBoxGr*   gr             = (FhBoxGr*)((EkaFhThreadAttr*)attr)->gr;
+  EkaFhBoxGr*   gr             = (EkaFhBoxGr*)((EkaFhThreadAttr*)attr)->gr;
   EkaDev*    dev = gr->dev;
 #ifdef FH_LAB
   EKA_LOG("%s:%u Dummy FH_LAB Retransmission done",EKA_EXCH_DECODE(gr->exch),gr->id);
@@ -297,7 +275,7 @@ void* eka_get_hsvf_retransmit(void* attr) {
 
   EKA_LOG("%s:%u start=%ju, end=%ju, gap=%d",EKA_EXCH_DECODE(gr->exch),gr->id,start,end, end - start);
   //-----------------------------------------------------------------
-  ekaTcpConnect(&gr->snapshot_sock,gr->snapshot_ip,gr->snapshot_port);
+  gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
   //-----------------------------------------------------------------
   gr->hsvfTcp = new EkaHsvfTcp(dev,gr->snapshot_sock);
   if (gr->hsvfTcp == NULL) on_error("Failed on new EkaHsvfTcp");

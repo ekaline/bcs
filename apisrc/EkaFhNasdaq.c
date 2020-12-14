@@ -140,3 +140,6 @@ EkaOpResult EkaFhNasdaq::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhR
   }
   return EKA_OPRESULT__OK;
 }
+
+/* ##################################################################### */
+

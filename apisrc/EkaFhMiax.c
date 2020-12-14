@@ -2,6 +2,9 @@
 #include "EkaUdpChannel.h"
 #include "EkaFhRunGroup.h"
 #include "EkaFhMiaxGr.h"
+#include "EkaFhThreadAttr.h"
+
+void* getSesmData(void* attr);
 
 /* ##################################################################### */
 
@@ -65,6 +68,7 @@ EkaOpResult EkaFhMiax::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
       gr->gapClosed = false;
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
 
+      gr->sendFeedDown(pEfhRunCtx);
       gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 0, 0);
     }
       break;
@@ -76,6 +80,7 @@ EkaOpResult EkaFhMiax::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
 	gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
 	gr->gapClosed = false;
 
+	gr->sendFeedDown(pEfhRunCtx);
 	gr->closeIncrementalGap(pEfhCtx, pEfhRunCtx, gr->expected_sequence, sequence + msgInPkt);
 
       } else { // NORMAL
@@ -131,6 +136,6 @@ EkaOpResult EkaFhMiax::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRun
 					      b_gr[(uint8_t)group->localId], 
 					      1, 0, 
 					      EkaFhMode::DEFINITIONS);
-  eka_get_sesm_data(attr);
+  getSesmData(attr);
   return EKA_OPRESULT__OK;
 }

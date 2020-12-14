@@ -14,18 +14,6 @@ public:
 			 const EfhRunCtx* pEfhRunCtx, 
 			 uint8_t          runGrId);
 
-  bool        processUdpPkt(const EfhRunCtx* pEfhRunCtx,
-			    EkaFhPhlxOrdGr*  gr, 
-			    const uint8_t*   pkt, 
-			    uint             msgInPkt, 
-			    uint64_t         sequence);
-
-  void        pushUdpPkt2Q(EkaFhPhlxOrdGr* gr, 
-			   const uint8_t*  pkt, 
-			   uint            msgInPkt, 
-			   uint64_t        sequence,
-			   int8_t          gr_id);
-
   virtual ~EkaFhPhlxOrd() {};
 private:
   uint8_t*    getUdpPkt(EkaFhRunGroup* runGr, 

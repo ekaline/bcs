@@ -22,17 +22,6 @@ class EkaFhXdpGr : public EkaFhGroup{
 				      uint64_t         seq);
 
 
-  int    closeSnapshotGap(EfhCtx*              pEfhCtx, 
-			  const EfhInitCtx* pEfhRunCtx, 
-			  uint64_t          startSeq,
-			  uint64_t          endSeq);
-
-  int    closeIncrementalGap(EfhCtx*           pEfhCtx, 
-			     const EfhInitCtx* pEfhRunCtx, 
-			     uint64_t          startSeq,
-			     uint64_t          endSeq);
-
-
   inline uint     findAndInstallStream(uint streamId, uint32_t curSeq) {
     for (uint i = 0; i < numStreams; i ++) if (stream[i]->getId() == streamId) return i;
     if (numStreams == MAX_STREAMS) on_error("numStreams == MAX_STREAMS (%u), cant add stream %u",numStreams,streamId);

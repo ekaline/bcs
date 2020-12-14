@@ -1,6 +1,10 @@
 #include "EkaFhBatsGr.h"
 #include "eka_fh_book.h"
+#include "EkaFhThreadAttr.h"
+#include "eka_fh_q.h"
 
+void* getSpinData(void* attr);
+void* getGrpRetransmitData(void* attr);
 
 /* ##################################################################### */
 
@@ -45,5 +49,55 @@ int EkaFhBatsGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
   book = new BatsBook(pEfhCtx,pEfhInitCtx,this);
   if (book == NULL) on_error("book == NULL, &book = %p",&book);
   ((BatsBook*)book)->init();
+  return 0;
+}
+/* ##################################################################### */
+int EkaFhBatsGr::closeSnapshotGap(EfhCtx*           pEfhCtx, 
+				    const EfhInitCtx* pEfhRunCtx, 
+				    uint64_t          startSeq,
+				    uint64_t          endSeq) {
+  
+  std::string threadName = std::string("ST_") + std::string(EKA_EXCH_SOURCE_DECODE(exch)) + '_' + std::to_string(id);
+  EkaFhThreadAttr* attr  = new EkaFhThreadAttr(pEfhCtx, 
+					       (const EfhRunCtx*)pEfhRunCtx, 
+					       this, 
+					       startSeq, 
+					       endSeq, 
+					       EkaFhMode::SNAPSHOT);
+  if (attr == NULL) on_error("attr = NULL");
+  
+  dev->createThread(threadName.c_str(),
+		    EkaThreadType::kFeedSnapshot,
+		    getSpinData,        
+		    attr,
+		    dev->createThreadContext,
+		    (uintptr_t*)&snapshot_thread);   
+
+  return 0;
+}
+/* ##################################################################### */
+int EkaFhBatsGr::closeIncrementalGap(EfhCtx*        pEfhCtx, 
+				       const EfhInitCtx* pEfhRunCtx, 
+				       uint64_t          startSeq,
+				       uint64_t          endSeq) {
+  
+
+  std::string threadName = std::string("ST_") + std::string(EKA_EXCH_SOURCE_DECODE(exch)) + '_' + std::to_string(id);
+  EkaFhThreadAttr* attr  = new EkaFhThreadAttr(pEfhCtx, 
+					       (const EfhRunCtx*)pEfhRunCtx, 
+					       this, 
+					       startSeq, 
+					       endSeq,  
+					       EkaFhMode::RECOVERY);
+  if (attr == NULL) on_error("attr = NULL");
+    
+  dev->createThread(threadName.c_str(),
+		    EkaThreadType::kFeedSnapshot,
+		    getGrpRetransmitData,        
+		    attr,
+		    dev->createThreadContext,
+		    (uintptr_t*)&snapshot_thread);   
+
+
   return 0;
 }

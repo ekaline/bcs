@@ -1,4 +1,9 @@
 #include "EkaFhBoxGr.h"
+#include "EkaFhThreadAttr.h"
+#include "eka_fh_book.h"
+#include "eka_fh_q.h"
+
+void* getHsvfRetransmit(void* attr);
 
 /* ##################################################################### */
 
@@ -46,4 +51,31 @@ void EkaFhBoxGr::pushUdpPkt2Q(const uint8_t* pkt, int16_t pktLen) {
   return;
 }
  
+/* ##################################################################### */
+
+int EkaFhBoxGr::closeIncrementalGap(EfhCtx*        pEfhCtx, 
+				       const EfhInitCtx* pEfhRunCtx, 
+				       uint64_t          startSeq,
+				       uint64_t          endSeq) {
+  
+
+  std::string threadName = std::string("ST_") + std::string(EKA_EXCH_SOURCE_DECODE(exch)) + '_' + std::to_string(id);
+  EkaFhThreadAttr* attr  = new EkaFhThreadAttr(pEfhCtx, 
+					       (const EfhRunCtx*)pEfhRunCtx, 
+					       this, 
+					       startSeq, 
+					       endSeq,  
+					       EkaFhMode::RECOVERY);
+  if (attr == NULL) on_error("attr = NULL");
+    
+  dev->createThread(threadName.c_str(),
+		    EkaThreadType::kFeedSnapshot,
+		    getHsvfRetransmit,        
+		    attr,
+		    dev->createThreadContext,
+		    (uintptr_t*)&snapshot_thread);   
+
+
+  return 0;
+}
 /* ##################################################################### */

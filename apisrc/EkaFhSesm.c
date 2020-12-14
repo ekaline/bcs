@@ -27,7 +27,7 @@
 
 #include "eka_fh_miax_messages.h"
 
-int ekaTcpConnect(int* sock, uint32_t ip, uint16_t port);
+int ekaTcpConnect(uint32_t ip, uint16_t port);
 void* heartBeatThread(EkaDev* dev, FhMiaxGr* gr,int sock);
 
 /* ##################################################################### */
@@ -237,8 +237,8 @@ static bool procSesm(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, int sock, FhM
   return false;
 }
 /* ##################################################################### */
-//void eka_get_sesm_retransmit(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhMiaxGr* gr, uint64_t start, uint64_t end) {
-void* eka_get_sesm_retransmit(void* attr) {
+
+void* getSesmRetransmit(void* attr) {
 
   pthread_detach(pthread_self());
 
@@ -258,7 +258,7 @@ void* eka_get_sesm_retransmit(void* attr) {
   //  EkaDev* dev = gr->dev;
   //  if (end - start > 65000) on_error("Gap %ju is too high (> 65000), start = %ju, end = %ju",end - start, start, end);
   //-----------------------------------------------------------------
-  ekaTcpConnect(&gr->recovery_sock,gr->recovery_ip,gr->recovery_port);
+  gr->recovery_sock = ekaTcpConnect(gr->recovery_ip,gr->recovery_port);
   //-----------------------------------------------------------------
   sendLogin(gr);
   //-----------------------------------------------------------------
@@ -282,7 +282,7 @@ void* eka_get_sesm_retransmit(void* attr) {
 }
 /* ##################################################################### */
 
-void* eka_get_sesm_data(void* attr) {
+void* getSesmData(void* attr) {
 
   EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
   EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
@@ -350,7 +350,7 @@ void* eka_get_sesm_data(void* attr) {
     for (int i = 0; i < (int)sizeof(snapshotRequests); i ++) {
       EKA_LOG("%s:%u SESM Snapshot for \'%c\'",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,snapshotRequests[i]);
-      ekaTcpConnect(&gr->recovery_sock,gr->snapshot_ip,gr->snapshot_port);
+      gr->recovery_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
       //-----------------------------------------------------------------
       sendLogin(gr);
       //-----------------------------------------------------------------

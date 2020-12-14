@@ -27,11 +27,6 @@ class EkaFhBoxGr : public EkaFhGroup{
 				     uint           msgInPkt);
 
 
-  int                  closeSnapshotGap(EfhCtx*              pEfhCtx, 
-					const EfhInitCtx* pEfhRunCtx, 
-					uint64_t          startSeq,
-					uint64_t          endSeq);
-
   int                  closeIncrementalGap(EfhCtx*           pEfhCtx, 
 					   const EfhInitCtx* pEfhRunCtx, 
 					   uint64_t          startSeq,

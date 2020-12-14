@@ -1,4 +1,12 @@
 #include "EkaFhMiaxGr.h"
+#include "EkaFhThreadAttr.h"
+#include "eka_fh_book.h"
+#include "eka_fh_q.h"
+
+void* getSesmData(void* attr);
+void* getSesmRetransmit(void* attr);
+
+/* ##################################################################### */
 
 bool EkaFhMiaxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 				const uint8_t*   pkt, 
@@ -72,4 +80,55 @@ void EkaFhMiaxGr::pushUdpPkt2Q(const uint8_t* pkt, int16_t pktLen) {
     if (processedBytes > pktLen) on_error("processedBytes %d > pktLen %d",processedBytes,pktLen);
     pkt += machPktLen;
   }
+}
+
+/* ##################################################################### */
+int EkaFhMiaxGr::closeSnapshotGap(EfhCtx*           pEfhCtx, 
+				    const EfhInitCtx* pEfhRunCtx, 
+				    uint64_t          startSeq,
+				    uint64_t          endSeq) {
+  
+  std::string threadName = std::string("ST_") + std::string(EKA_EXCH_SOURCE_DECODE(exch)) + '_' + std::to_string(id);
+  EkaFhThreadAttr* attr  = new EkaFhThreadAttr(pEfhCtx, 
+					       (const EfhRunCtx*)pEfhRunCtx, 
+					       this, 
+					       startSeq, 
+					       endSeq, 
+					       EkaFhMode::SNAPSHOT);
+  if (attr == NULL) on_error("attr = NULL");
+  
+  dev->createThread(threadName.c_str(),
+		    EkaThreadType::kFeedSnapshot,
+		    getSesmData,        
+		    attr,
+		    dev->createThreadContext,
+		    (uintptr_t*)&snapshot_thread);   
+
+  return 0;
+}
+/* ##################################################################### */
+int EkaFhMiaxGr::closeIncrementalGap(EfhCtx*        pEfhCtx, 
+				       const EfhInitCtx* pEfhRunCtx, 
+				       uint64_t          startSeq,
+				       uint64_t          endSeq) {
+  
+
+  std::string threadName = std::string("ST_") + std::string(EKA_EXCH_SOURCE_DECODE(exch)) + '_' + std::to_string(id);
+  EkaFhThreadAttr* attr  = new EkaFhThreadAttr(pEfhCtx, 
+					       (const EfhRunCtx*)pEfhRunCtx, 
+					       this, 
+					       startSeq, 
+					       endSeq,  
+					       EkaFhMode::RECOVERY);
+  if (attr == NULL) on_error("attr = NULL");
+    
+  dev->createThread(threadName.c_str(),
+		    EkaThreadType::kFeedSnapshot,
+		    getSesmRetransmit,        
+		    attr,
+		    dev->createThreadContext,
+		    (uintptr_t*)&snapshot_thread);   
+
+
+  return 0;
 }

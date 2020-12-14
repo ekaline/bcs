@@ -2,8 +2,9 @@
 #include "EkaUdpChannel.h"
 #include "EkaFhRunGroup.h"
 #include "EkaFhBatsGr.h"
+#include "EkaFhThreadAttr.h"
 
-void* eka_get_spin_data(void* attr);
+void* getSpinData(void* attr);
 
 /* ##################################################################### */
 uint8_t* EkaFhBats::getUdpPkt(EkaFhRunGroup* runGr, uint* msgInPkt, uint64_t* sequence,uint8_t* gr_id) {
@@ -143,7 +144,7 @@ EkaOpResult EkaFhBats::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRun
 					      b_gr[(uint8_t)group->localId], 
 					      1, 0, 
 					      EkaFhMode::DEFINITIONS);
-  eka_get_spin_data(attr);
+  getSpinData(attr);
 
   return EKA_OPRESULT__OK;
 }

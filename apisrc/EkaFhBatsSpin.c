@@ -228,9 +228,8 @@ static void sendSpinRequest(FhBatsGr* gr, EkaFhMode op, uint64_t image_sequence)
 }
 
 /* ##################################################################### */
-//EkaOpResult eka_get_spin_data(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhBatsGr* gr, EkaFhMode op) {
 
-void* eka_get_spin_data(void* attr) {
+void* getSpinData(void* attr) {
   //  EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
   EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
   FhBatsGr*   gr            = (FhBatsGr*)((EkaFhThreadAttr*)attr)->gr;
@@ -393,9 +392,7 @@ int getGapResponse(FhBatsGr* gr) {
 }
 
 /* ##################################################################### */
-//void eka_get_grp_retransmit_data(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhBatsGr* gr, uint64_t start, uint64_t end ) {
-
-void* eka_get_grp_retransmit_data(void* attr) {
+void* getGrpRetransmitData(void* attr) {
   pthread_detach(pthread_self());
 
   //  EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
