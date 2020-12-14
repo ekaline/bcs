@@ -6,8 +6,18 @@
 #include "eka_macros.h"
 #include "EkaCtxs.h"
 #include "EkaDev.h"
-#include "eka_fh.h"
-#include "EkaFhRunGr.h"
+#include "EkaFhRunGroup.h"
+
+#include "EkaFhBats.h"
+#include "EkaFhBox.h"
+#include "EkaFhGem.h"
+#include "EkaFhMiax.h"
+#include "EkaFhNasdaq.h"
+#include "EkaFhNom.h"
+#include "EkaFhPhlxOrd.h"
+#include "EkaFhPhlxTopo.h"
+#include "EkaFhXdp.h"
+
 
 EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhInitCtx ) {
   assert (ppEfhCtx != NULL);
@@ -30,35 +40,35 @@ EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhI
   uint8_t fhId = dev->numFh++;
   switch (exch) {
   case EkaSource::kNOM_ITTO:
-    dev->fh[fhId] = new FhNom();
+    dev->fh[fhId] = new EkaFhNom();
     break;
   case EkaSource::kGEM_TQF:
   case EkaSource::kISE_TQF:
   case EkaSource::kMRX_TQF:
-    dev->fh[fhId] = new FhGem();
+    dev->fh[fhId] = new EkaFhGem();
     break;
   case EkaSource::kPHLX_TOPO:
-    dev->fh[fhId] = new FhPhlx();
+    dev->fh[fhId] = new EkaFhPhlxTopo();
     break;
   case EkaSource::kPHLX_ORD:
-    dev->fh[fhId] = new FhPhlxOrd();
+    dev->fh[fhId] = new EkaFhPhlxOrd();
     break;
   case EkaSource::kMIAX_TOM:
   case EkaSource::kPEARL_TOM:
-    dev->fh[fhId] = new FhMiax();
+    dev->fh[fhId] = new EkaFhMiax();
     break;
   case EkaSource::kC1_PITCH:
   case EkaSource::kC2_PITCH:
   case EkaSource::kBZX_PITCH:
   case EkaSource::kEDGX_PITCH:
-    dev->fh[fhId] = new FhBats();
+    dev->fh[fhId] = new EkaFhBats();
     break;
   case EkaSource::kARCA_XDP:
   case EkaSource::kAMEX_XDP:
-    dev->fh[fhId] = new FhXdp();
+    dev->fh[fhId] = new EkaFhXdp();
     break;
   case EkaSource::kBOX_HSVF:
-    dev->fh[fhId] = new FhBox();
+    dev->fh[fhId] = new EkaFhBox();
     break;
   default:
     on_error ("Invalid Exchange %s from: %s",EKA_EXCH_DECODE(exch),pEfhInitCtx->ekaProps->props[0].szKey);
@@ -109,7 +119,6 @@ const EfhInitCtx* efhGetSupportedParams( ) {
  *                   will be called as the Ekaline feedhandler processes messages.
  *
  */
-class FhNomGr;
 
 EkaOpResult efhRunGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx ) {
   assert (pEfhCtx != NULL);
@@ -120,14 +129,12 @@ EkaOpResult efhRunGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx ) {
   EkaDev* dev = pEfhCtx->dev;
   dev->mtx.lock();
   uint runGrId = dev->numRunGr++;
-  dev->runGr[runGrId] = new FhRunGr(pEfhCtx,pEfhRunCtx,runGrId);
+  dev->runGr[runGrId] = new EkaFhRunGroup(pEfhCtx,pEfhRunCtx,runGrId);
   assert (dev->runGr[runGrId] != NULL);
   dev->mtx.unlock();
 
   //  EKA_DEBUG("invoking runGroups with runId = %u",runGrId);
-  return ((FhNom*)pEfhCtx->dev->fh[pEfhCtx->fhId])->runGroups(pEfhCtx, pEfhRunCtx, runGrId);
-
-  return EKA_OPRESULT__ERR_NOT_IMPLEMENTED;
+  return (pEfhCtx->dev->fh[pEfhCtx->fhId])->runGroups(pEfhCtx, pEfhRunCtx, runGrId);
 }
 
 /**

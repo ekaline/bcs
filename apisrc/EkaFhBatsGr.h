@@ -5,17 +5,44 @@
 
 class EkaFhBatsGr : public EkaFhGroup{
  public:
-  FhBatsGr();
-  virtual               ~FhBatsGr() {};
+  EkaFhBatsGr();
+  virtual               ~EkaFhBatsGr() {};
 
   bool                  parseMsg(const EfhRunCtx* pEfhRunCtx,
-				 unsigned char* m,
-				 uint64_t sequence,
-				 EkaFhMode op);
-  int                   bookInit(EfhCtx* pEfhCtx,
+				 unsigned char*   m,
+				 uint64_t         sequence,
+				 EkaFhMode        op);
+
+  int                   bookInit(EfhCtx*           pEfhCtx,
 				 const EfhInitCtx* pEfhInitCtx);
 
+  bool                  processUdpPkt(const EfhRunCtx* pEfhRunCtx,
+				      const uint8_t*   pkt, 
+				      uint             msgInPkt, 
+				      uint64_t         seq);
+
+  void                 pushUdpPkt2Q(const uint8_t* pkt, 
+				    uint           msgInPkt, 
+				    uint64_t       sequence);
+
+
+  int    closeSnapshotGap(EfhCtx*              pEfhCtx, 
+			  const EfhInitCtx* pEfhRunCtx, 
+			  uint64_t          startSeq,
+			  uint64_t          endSeq);
+
+  int    closeIncrementalGap(EfhCtx*           pEfhCtx, 
+			     const EfhInitCtx* pEfhRunCtx, 
+			     uint64_t          startSeq,
+			     uint64_t          endSeq);
+
+  /* ##################################################################### */
+
   char                  sessionSubID[4] = {};  // for BATS Spin
-  uint8_t               batsUnit = -1;
+  uint8_t               batsUnit = 0;
+
+
+
+
 };
 #endif

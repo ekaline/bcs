@@ -102,44 +102,46 @@ std::string ts_ns2str(uint64_t ts) {
 
 /* ##################################################################### */
 
-int ekaTcpConnect(int* sock, uint32_t ip, uint16_t port) {
+int ekaTcpConnect(uint32_t ip, uint16_t port) {
 #ifdef FH_LAB
   TEST_LOG("Dummy FH_LAB TCP connect to %s:%u",EKA_IP2STR(ip),port);
 #else
-  if ((*sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) on_error("failed to open TCP socket");
+  int sock = socket(AF_INET, SOCK_STREAM, 0);
+  if (sock < 0) on_error("failed to open TCP socket");
 
   struct sockaddr_in remote_addr = {};
   remote_addr.sin_addr.s_addr = ip;
   remote_addr.sin_port = port;
   remote_addr.sin_family = AF_INET;
-  if (connect(*sock,(struct sockaddr*)&remote_addr,sizeof(struct sockaddr_in)) != 0) 
+  if (connect(sock,(struct sockaddr*)&remote_addr,sizeof(struct sockaddr_in)) != 0) 
     on_error("socket connect failed %s:%u",EKA_IP2STR(*(uint32_t*)&remote_addr.sin_addr),be16toh(remote_addr.sin_port));
 #endif
-  return 0;
+  return sock;
 }
 /* ##################################################################### */
 
-int ekaUdpConnect(EkaDev* dev, int* sock, uint32_t ip, uint16_t port) {
-  if ((*sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) on_error("failed to open UDP socket");
+int ekaUdpConnect(EkaDev* dev, uint32_t ip, uint16_t port) {
+  int sock = socket(AF_INET, SOCK_DGRAM, 0);
+  if (sock < 0) on_error("failed to open UDP socket");
 
   int const_one = 1;
-  if (setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, &const_one, sizeof(int)) < 0) on_error("setsockopt(SO_REUSEADDR) failed");
-  if (setsockopt(*sock, SOL_SOCKET, SO_REUSEPORT, &const_one, sizeof(int)) < 0) on_error("setsockopt(SO_REUSEPORT) failed");
+  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &const_one, sizeof(int)) < 0) on_error("setsockopt(SO_REUSEADDR) failed");
+  if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &const_one, sizeof(int)) < 0) on_error("setsockopt(SO_REUSEPORT) failed");
 
   struct sockaddr_in local2bind = {};
   local2bind.sin_family=AF_INET;
   local2bind.sin_addr.s_addr = INADDR_ANY;
   local2bind.sin_port = port;
-  if (bind(*sock,(struct sockaddr*) &local2bind, sizeof(struct sockaddr)) < 0) on_error("Failed to bind to %d",be16toh(local2bind.sin_port));
+  if (bind(sock,(struct sockaddr*) &local2bind, sizeof(struct sockaddr)) < 0) on_error("Failed to bind to %d",be16toh(local2bind.sin_port));
 
   struct ip_mreq mreq = {};
   mreq.imr_interface.s_addr = INADDR_ANY;
   mreq.imr_multiaddr.s_addr = ip;
 
-  if (setsockopt(*sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) on_error("Failed to join  %s",EKA_IP2STR(mreq.imr_multiaddr.s_addr));
+  if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) on_error("Failed to join  %s",EKA_IP2STR(mreq.imr_multiaddr.s_addr));
 
   EKA_LOG("Joined MC group %s:%u",EKA_IP2STR(mreq.imr_multiaddr.s_addr),be16toh(local2bind.sin_port));
-  return 0;
+  return sock;
 }
 
 

@@ -24,19 +24,31 @@ class EkaFhGroup {
 
   void         createQ(EfhCtx* pEfhCtx, const uint qsize);
 
-  virtual int  bookInit(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) = 0;
+  virtual int  bookInit(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx);
   virtual bool parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) = 0;
 
-  void         sendFeedUp();
+  void         sendFeedUp(const EfhInitCtx* pEfhInitCtx);
+  void         sendFeedDown(const EfhInitCtx* pEfhInitCtx);
+
+  virtual int closeSnapshotGap(EfhCtx*              pEfhCtx, 
+				  const EfhInitCtx* pEfhRunCtx, 
+				  uint64_t          startSeq,
+				  uint64_t          endSeq) = 0;
+
+  virtual int closeIncrementalGap(EfhCtx*           pEfhCtx, 
+				  const EfhInitCtx* pEfhRunCtx, 
+				  uint64_t          startSeq,
+				  uint64_t          endSeq) = 0;
+
 
   //----------------------------------------------------------
-  enum class GrpState { UNINIT = 0,INI, GAP, SNAPSHOT_GAP, RETRANSMIT_GAP, NORMAL, PHLX_SNAPSHOT_GAP };
+  enum class GrpState { UNINIT = 0,INIT, GAP, SNAPSHOT_GAP, RETRANSMIT_GAP, NORMAL, PHLX_SNAPSHOT_GAP };
   enum class DIAGNOSTICS : uint64_t { SAMPLE_PERIOD = 10000, PUSH2POP_SLACK = 10 * 1000 * 1000 /* 10 ms */ };
 
-  GrpState              state               = GrpState::UNINIT;
+  GrpState              state               = GrpState::INIT;
   bool                  dropMe              = false;
 
-  bool                  firstPkt            = false; // to get session_id
+  bool                  firstPkt            = true; // to get session_id
   volatile char         session_id[10]      = {}; // Mold Session Id
 
   EkaLSI                id                  = -1; // MC group ID: 1-4 for ITTO
@@ -51,7 +63,7 @@ class EkaFhGroup {
 
   volatile uint64_t     seq_after_snapshot  = -1; // set from end of snapshot
 
-  uint64_t              expected_sequence   = -1; 
+  uint64_t              expected_sequence   = 1; 
   volatile bool         heartbeat_active    = false; // Glimpse Heartbeat
   volatile bool         snapshot_active     = false; // Glimpse/Spin recovery thread
   volatile bool         recovery_active     = false; // Mold/Grp/Sesm/... thread

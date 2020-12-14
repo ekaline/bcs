@@ -4,14 +4,28 @@
 #include "EkaFhNasdaqGr.h"
 
 class EkaFhPhlxTopoGr : public EkaFhNasdaqGr{
+ public:
   virtual              ~EkaFhPhlxTopoGr() {};
 
   bool                 parseMsg(const EfhRunCtx* pEfhRunCtx,
 				unsigned char* m,
 				uint64_t sequence,
 				EkaFhMode op);
-  int                  bookInit(EfhCtx* pEfhCtx, 
-				const EfhInitCtx* pEfhInitCtx);
+
+  bool   processUdpPkt(const EfhRunCtx* pEfhRunCtx,
+		       const uint8_t*   pkt, 
+		       uint             msgInPkt, 
+		       uint64_t         seq);
+
+  int    closeSnapshotGap(EfhCtx*              pEfhCtx, 
+			  const EfhInitCtx* pEfhRunCtx, 
+			  uint64_t          startSeq,
+			  uint64_t          endSeq);
+
+  int    closeIncrementalGap(EfhCtx*           pEfhCtx, 
+			     const EfhInitCtx* pEfhRunCtx, 
+			     uint64_t          startSeq,
+			     uint64_t          endSeq);
 
 };
 

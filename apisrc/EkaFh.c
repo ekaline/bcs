@@ -20,16 +20,10 @@
 #include <time.h>
 
 #include "EkaFh.h"
+#include "EkaUdpChannel.h"
+#include "EkaFhRunGroup.h"
 
- /* ##################################################################### */
 
-static inline bool isPreTradeTime(int hour, int minute) {
-  time_t rawtime;
-  time (&rawtime);
-  struct tm * ct = localtime (&rawtime);
-  if (ct->tm_hour < hour || (ct->tm_hour == hour && ct->tm_min < minute)) return true;
-  return false;
-}
 
  /* ##################################################################### */
 
@@ -47,7 +41,19 @@ int EkaFh::setId(EfhCtx* pEfhCtx, EkaSource ec, uint8_t numFh) {
 
   return 0;
 }
+/* ##################################################################### */
 
+uint8_t EkaFh::getGrId(const uint8_t* pkt) {
+  EkaIpHdr* ipHdr = (EkaIpHdr*)(pkt - 8 - 20);
+  uint32_t ip = ipHdr->dest;
+  for (uint8_t i = 0; i < groups; i++)
+    if (b_gr[i]->mcast_ip == ip && be16toh(b_gr[i]->mcast_port) == EKA_UDPHDR_DST((pkt-8)))
+      return i;
+  
+  EKA_WARN("ip 0x%08x %s not found",ip, EKA_IP2STR(ip));
+  
+  return 0xFF;
+}
  /* ##################################################################### */
 int EkaFh::init(const EfhInitCtx* pEfhInitCtx, uint8_t numFh) {
   c = pEfhInitCtx->coreId;
@@ -394,101 +400,6 @@ EkaOpResult EkaFh::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhRu
   }
   return EKA_OPRESULT__OK;
 }
-
- /* ##################################################################### */
-EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId) {
-  FhRunGr* runGr = dev->runGr[runGrId];
-  if (runGr == NULL) on_error("runGr == NULL");
-
-  EKA_DEBUG("Initializing %s Run Group %u: %s GROUPS",
-	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
-
-  initGroups(pEfhCtx, pEfhRunCtx, runGr);
-
-  overture();
-
-  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u: %s GROUPS ~~~~~~~~~~~~~",
-	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
-
-  while (runGr->thread_active && ! runGr->stoppedByExchange) {
-    //-----------------------------------------------------------------------------
-    if (runGr->drainQ(pEfhRunCtx)) continue;
-    //-----------------------------------------------------------------------------
-    if (! runGr->udpCh->has_data()) continue;
-    uint     msgInPkt = 0;
-    uint64_t sequence = 0;
-    uint8_t  gr_id = 0xFF;
-
-    uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&sequence,&gr_id);
-    if (pkt == NULL) continue;
-    FhNasdaqGr* gr = (FhNasdaqGr*)b_gr[gr_id];
-    if (gr == NULL) on_error("b_gr[%u] = NULL",gr_id);
-
-    //-----------------------------------------------------------------------------
-    switch (gr->state) {
-    case FhGroup::GrpState::INIT : { 
-      gr->gapClosed = false;
-      gr->state = FhGroup::GrpState::SNAPSHOT_GAP;
-      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,gr, 1, 0);
-    }
-      break;
-      //-----------------------------------------------------------------------------
-    case FhGroup::GrpState::NORMAL : {
-      if (sequence < gr->expected_sequence) break; // skipping stale messages
-      if (sequence > gr->expected_sequence) { // GAP
-	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%ju",
-		EKA_EXCH_DECODE(exch),gr_id,gr->expected_sequence,sequence);
-	gr->state = FhGroup::GrpState::RETRANSMIT_GAP;
-	gr->gapClosed = false;
-
-	gr->closeIncrementalGap(pEfhCtx, pEfhRunCtx, expected_sequence, sequence + msgInPkt);
-
-      } else { // NORMAL
-	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,msgInPkt,sequence);      
-      }
-    }
-      break;
-      //-----------------------------------------------------------------------------
-    case FhGroup::GrpState::SNAPSHOT_GAP : {
-      gr->pushUdpPkt2Q(pkt,msgInPkt,sequence,gr_id);
-
-      if (gr->gapClosed) {
-	gr->state = FhGroup::GrpState::NORMAL;
-	gr->sendFeedUp(pEfhRunCtx);
-	runGr->setGrAfterGap(gr->id);
-	gr->expected_sequence = gr->seq_after_snapshot;
-	EKA_LOG("%s:%u: SNAPSHOT_GAP Closed - expected_sequence=%ju",
-		EKA_EXCH_DECODE(exch),gr->id,gr->expected_sequence);
-      }
-    }
-      break;
-      //-----------------------------------------------------------------------------
-    case FhGroup::GrpState::RETRANSMIT_GAP : {
-      gr->pushUdpPkt2Q(pkt,msgInPkt,sequence,gr_id);
-      if (gr->gapClosed) {
-	EKA_LOG("%s:%u: RETRANSMIT_GAP Closed, switching to fetch from Q",
-		EKA_EXCH_DECODE(exch),gr->id);
-	gr->state = FhGroup::GrpState::NORMAL;
-	gr->sendFeedUp(pEfhRunCtx);
-	runGr->setGrAfterGap(gr->id);
-	gr->expected_sequence = gr->seq_after_snapshot;
-      }
-    }
-      break;
-      //-----------------------------------------------------------------------------
-    default:
-      on_error("%s:%u: UNEXPECTED GrpState %u",
-	       EKA_EXCH_DECODE(exch),gr->id,(uint)gr->state);
-      break;
-    }
-    runGr->udpCh->next(); 
-  }
-  EKA_INFO("%s RunGroup %u EndOfSession",EKA_EXCH_DECODE(exch),runGrId);
-  return EKA_OPRESULT__OK;
-}
-
-
-
 
 
  /* ##################################################################### */

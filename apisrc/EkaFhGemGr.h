@@ -4,14 +4,13 @@
 #include "EkaFhNasdaqGr.h"
 
 class EkaFhGemGr : public EkaFhNasdaqGr{
+ public:
   virtual              ~EkaFhGemGr() {};
 
   bool                 parseMsg(const EfhRunCtx* pEfhRunCtx,
 				unsigned char* m,
 				uint64_t sequence,
 				EkaFhMode op);
-  int                  bookInit(EfhCtx* pEfhCtx, 
-				const EfhInitCtx* pEfhInitCtx);
 
 };
 

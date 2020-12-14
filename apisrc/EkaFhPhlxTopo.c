@@ -1,47 +1,49 @@
-#include "EkaFhNasdaq.h"
+#include "EkaFhPhlxTopo.h"
 #include "EkaUdpChannel.h"
 #include "EkaFhRunGroup.h"
-#include "EkaFhNasdaqGr.h"
+#include "eka_fh_book.h"
 #include "EkaFhThreadAttr.h"
 
-void* getSoupBinData(void* attr);
+ /* ##################################################################### */
 
-/* ##################################################################### */
-uint8_t* EkaFhNasdaq::getUdpPkt(EkaFhRunGroup* runGr, uint* msgInPkt, uint64_t* sequence,uint8_t* gr_id) {
-  uint8_t* pkt = (uint8_t*)runGr->udpCh->get();
-  if (pkt == NULL) on_error("%s: pkt == NULL",EKA_EXCH_DECODE(exch));
-  uint msgCnt = EKA_MOLD_MSG_CNT(pkt);
-  uint8_t grId = getGrId(pkt);
-  if (msgCnt == 0xFFFF) {
-    runGr->stoppedByExchange = true;
-    return NULL; // EndOfMold
-  }
-  if (grId == 0xFF || (! runGr->isMyGr(grId)) || b_gr[grId] == NULL || b_gr[grId]->q == NULL) { 
-    if (grId != 0) EKA_LOG("RunGr%u: Skipping gr_id = %u not belonging to %s",runGr->runId,grId,runGr->list2print);
-    runGr->udpCh->next(); 
-    return NULL;
-  }
-  EkaFhNasdaqGr* gr = b_gr[grId];
-  if (gr->firstPkt) {
-    memcpy((uint8_t*)gr->session_id,((struct mold_hdr*)pkt)->session_id,10);
-    gr->firstPkt = false;
-    EKA_LOG("%s:%u session_id is set to %s",EKA_EXCH_DECODE(exch),grId,(char*)gr->session_id + '\0');
-  }
-  *msgInPkt = msgCnt;
-  *sequence = EKA_MOLD_SEQUENCE(pkt);
-  *gr_id    = grId;
-  return pkt;
+static inline bool isPreTradeTime(int hour, int minute) {
+  time_t rawtime;
+  time (&rawtime);
+  struct tm * ct = localtime (&rawtime);
+  if (ct->tm_hour < hour || (ct->tm_hour == hour && ct->tm_min < minute)) return true;
+  return false;
 }
 
  /* ##################################################################### */
-EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId) {
+EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId) {
   EkaFhRunGroup* runGr = dev->runGr[runGrId];
   if (runGr == NULL) on_error("runGr == NULL");
-
+  
   EKA_DEBUG("Initializing %s Run Group %u: %s GROUPS",
 	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
-
+  
   initGroups(pEfhCtx, pEfhRunCtx, runGr);
+
+  if (isPreTradeTime(9,27)) {
+    for (uint8_t j = 0; j < runGr->numGr; j++) {
+      uint8_t grId = runGr->groupList[j];
+      EkaFhPhlxTopoGr* gr = (EkaFhPhlxTopoGr*)b_gr[grId];
+      if (gr == NULL) on_error("b_gr[%u] == NULL",grId);
+
+      EKA_LOG("%s:%u: Running PreTrade Snapshot",EKA_EXCH_DECODE(exch),gr->id);
+      gr->snapshotThreadDone = false;
+
+      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,gr, 1, 1);
+
+      while (! gr->snapshotThreadDone) {} // instead of thread.join()
+      gr->expected_sequence = gr->recovery_sequence + 1;
+      EKA_LOG("%s:%u: PreTrade Soupbin Snapshot is done, expected_sequence = %ju",
+	      EKA_EXCH_DECODE(exch),gr->id,gr->expected_sequence);
+
+      gr->state = EkaFhGroup::GrpState::NORMAL;
+      gr->sendFeedUp(pEfhRunCtx);
+    }
+  }
 
   EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u: %s GROUPS ~~~~~~~~~~~~~",
 	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
@@ -57,16 +59,15 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
 
     uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&sequence,&gr_id);
     if (pkt == NULL) continue;
-    EkaFhNasdaqGr* gr = (EkaFhNasdaqGr*)b_gr[gr_id];
+    EkaFhPhlxTopoGr* gr = (EkaFhPhlxTopoGr*)b_gr[gr_id];
     if (gr == NULL) on_error("b_gr[%u] = NULL",gr_id);
 
     //-----------------------------------------------------------------------------
     switch (gr->state) {
     case EkaFhGroup::GrpState::INIT : { 
       gr->gapClosed = false;
-      gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
-      gr->sendFeedDown(pEfhRunCtx);
-      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 1, 0);
+      gr->state =EkaFhGroup::GrpState::SNAPSHOT_GAP;
+      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,gr, 1, 0);
     }
       break;
       //-----------------------------------------------------------------------------
@@ -78,8 +79,7 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
 	gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
 	gr->gapClosed = false;
 
-	gr->sendFeedDown(pEfhRunCtx);
-	gr->closeIncrementalGap(pEfhCtx, pEfhRunCtx, gr->expected_sequence, sequence + msgInPkt);
+	gr->closeIncrementalGap(pEfhCtx, pEfhRunCtx, expected_sequence, sequence + msgInPkt);
 
       } else { // NORMAL
 	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,msgInPkt,sequence);      
@@ -88,10 +88,16 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
       break;
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::SNAPSHOT_GAP : {
-      gr->pushUdpPkt2Q(pkt,msgInPkt,sequence,gr_id);
+	if (sequence + msgInPkt < gr->recovery_sequence) {
+	  gr->gapClosed = true;
+	  gr->snapshot_active = false;
+	  gr->seq_after_snapshot = gr->recovery_sequence + 1;
+	  
+	  EKA_DEBUG("%s:%u Generating TOB quote for every Security",EKA_EXCH_DECODE(gr->exch),gr->id);
+	  ((TobBook*)gr->book)->sendTobImage(pEfhRunCtx);
 
       if (gr->gapClosed) {
-	gr->state = EkaFhGroup::GrpState::NORMAL;
+	gr->state =EkaFhGroup::GrpState::NORMAL;
 	gr->sendFeedUp(pEfhRunCtx);
 	runGr->setGrAfterGap(gr->id);
 	gr->expected_sequence = gr->seq_after_snapshot;
@@ -125,18 +131,5 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
   return EKA_OPRESULT__OK;
 }
 
-/* ##################################################################### */
 
-EkaOpResult EkaFhNasdaq::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group) {
-  EkaFhThreadAttr* attr = new EkaFhThreadAttr(pEfhCtx, 
-					      pEfhRunCtx, 
-					      (uint8_t)group->localId, 
-					      b_gr[(uint8_t)group->localId], 
-					      1, 0, 
-					      EkaFhMode::DEFINITIONS);
-  getSoupBinData(attr);
-  while (! b_gr[(uint8_t)group->localId]->heartbeatThreadDone) {
-    sleep (0);
-  }
-  return EKA_OPRESULT__OK;
-}
+

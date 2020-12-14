@@ -31,32 +31,22 @@ class EkaFh {
   virtual     ~EkaFh();
   virtual     EkaFhGroup* addGroup() = 0;
 
-  int         stop();
+  int                     stop();
 
-  int         init(const EfhInitCtx* pEfhInitCtx, uint8_t numFh);
-  int         setId(EfhCtx* pEfhCtx, EkaSource exch, uint8_t numFh);
+  int                     init(const EfhInitCtx* pEfhInitCtx, uint8_t numFh);
+  int                     setId(EfhCtx* pEfhCtx, EkaSource exch, uint8_t numFh);
 
-  int         openGroups(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx);
-  virtual     EkaOpResult initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhRunGr* runGr);
+  int                     openGroups(EfhCtx*           pEfhCtx, 
+				     const EfhInitCtx* pEfhInitCtx);
 
-  uint8_t     getGrId(const uint8_t* pkt);
+  virtual EkaOpResult     runGroups(EfhCtx*          pEfhCtx, 
+				    const EfhRunCtx* pEfhRunCtx, 
+				    uint8_t          runGrId) = 0;
 
-  enum class  GapType { SNAPSHOT=0, RETRANSMIT=1 };
-
-  virtual EkaOpResult runGroups( EfhCtx* pEfhCtx, 
-				 const EfhRunCtx* pEfhRunCtx, 
-				 uint8_t runGrId ) {
-    return EKA_OPRESULT__OK;
-  }
-
-  virtual EkaOpResult getDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group) {
-    return EKA_OPRESULT__OK;
-  }
+  virtual EkaOpResult     getDefinitions(EfhCtx*          pEfhCtx, 
+					 const EfhRunCtx* pEfhRunCtx, 
+					 EkaGroup*        group) = 0;
   
-
-  virtual void   overture() {
-  }
-
   void                send_igmp(bool join_leave, volatile bool igmp_thread_active);
   EkaFhAddConf        conf_parse(const char *key, const char *value);
   EkaOpResult         subscribeStaticSecurity(
@@ -68,11 +58,33 @@ class EkaFh {
 					      uint64_t opaqueAttrB);
 
   EkaFhGroup*         nextGrToProcess(uint first, uint numGroups);
+  //-----------------------------------------------------------------------------
+
+ private:
+  EkaOpResult         initGroups(EfhCtx*           pEfhCtx, 
+				 const EfhRunCtx*  pEfhRunCtx, 
+				 EkaFhRunGroup*    runGr);
+
+  virtual uint8_t     getGrId(const uint8_t* pkt);
+  
+  virtual uint8_t*    getUdpPkt(EkaFhRunGroup* runGr, 
+				uint*          msgInPkt, 
+				uint64_t*      sequence,
+				uint8_t*       gr_id) = 0;
+  
+  virtual bool        processUdpPkt(const EfhRunCtx* pEfhRunCtx,
+				    EkaFhGroup*      gr, 
+				    const uint8_t*   pkt, 
+				    uint             msgInPkt, 
+				    uint64_t         sequence) = 0;
 
   //-----------------------------------------------------------------------------
 
+ public:
+  enum class            GapType { SNAPSHOT=0, RETRANSMIT=1 };
+
   EfhFeedVer            feed_ver              = EfhFeedVer::kInvalid;
-  EkaSource             exch                  = EkaSource::kInvalid;;
+  EkaSource             exch                  = EkaSource::kInvalid;
 
   uint                  qsize                 = 8 * 1024 * 1024;
 

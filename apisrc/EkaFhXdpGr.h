@@ -5,15 +5,33 @@
 
 class EkaFhXdpGr : public EkaFhGroup{
  public:
-  FhXdpGr();
-  virtual               ~FhXdpGr() {};
+  EkaFhXdpGr();
+  virtual               ~EkaFhXdpGr() {};
 
   bool                  parseMsg(const EfhRunCtx* pEfhRunCtx,
 				 unsigned char* m,
 				 uint64_t sequence,
 				 EkaFhMode op);
-  int                   bookInit(EfhCtx* pEfhCtx,
-				 const EfhInitCtx* pEfhInitCtx);
+
+
+  bool                  processUdpPkt(const EfhRunCtx* pEfhRunCtx,
+				      uint             pktSize, 
+				      uint             streamIdx, 
+				      const uint8_t*   pktPtr, 
+				      uint             msgInPkt, 
+				      uint64_t         seq);
+
+
+  int    closeSnapshotGap(EfhCtx*              pEfhCtx, 
+			  const EfhInitCtx* pEfhRunCtx, 
+			  uint64_t          startSeq,
+			  uint64_t          endSeq);
+
+  int    closeIncrementalGap(EfhCtx*           pEfhCtx, 
+			     const EfhInitCtx* pEfhRunCtx, 
+			     uint64_t          startSeq,
+			     uint64_t          endSeq);
+
 
   inline uint     findAndInstallStream(uint streamId, uint32_t curSeq) {
     for (uint i = 0; i < numStreams; i ++) if (stream[i]->getId() == streamId) return i;
@@ -42,8 +60,8 @@ class EkaFhXdpGr : public EkaFhGroup{
   inline uint32_t resetExpectedSeq(uint streamIdx) {
     return stream[streamIdx]->resetExpectedSeq();
   }
-  bool     inGap;
 
+/* -------------------------------------- */
   class Stream {
   public:
     Stream(uint strId,uint32_t seq) {
@@ -62,21 +80,23 @@ class EkaFhXdpGr : public EkaFhGroup{
     inline uint32_t resetExpectedSeq() {
       return (expectedSeq = 2);
     }
-
   private:
     uint     id;
     uint32_t expectedSeq;
   };
+/* -------------------------------------- */
+ public:
+  bool     inGap = false;
 
  private:
-  Stream*  stream[MAX_STREAMS];
-  uint     numStreams;
+  Stream*  stream[MAX_STREAMS] = {};
+  uint     numStreams = 0;
 
-  std::chrono::high_resolution_clock::time_point gapStart;
+  std::chrono::high_resolution_clock::time_point gapStart = 0;
 
-  uint32_t underlyingIdx[MAX_UNDERLYINGS];
-  uint     numUnderlyings;
-  char     symbolStatus[MAX_UNDERLYINGS];
-  char     seriesStatus[MAX_SERIES];
+  uint32_t underlyingIdx[MAX_UNDERLYINGS] = {};
+  uint     numUnderlyings                 = 0;
+  char     symbolStatus[MAX_UNDERLYINGS]  = {};
+  char     seriesStatus[MAX_SERIES]       = {};
 };
 #endif
