@@ -303,7 +303,7 @@ void* getSoupBinData(void* attr) {
   return NULL;
 }
 
-void* getMoldUdp64(void* attr) {
+void* getMolUdp64Data(void* attr) {
   pthread_detach(pthread_self());
 
   //  EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
@@ -380,7 +380,8 @@ void* getMoldUdp64(void* attr) {
   return NULL;
 }
 
-void* eka_get_phlx_mold_retransmit_data(void* attr) {
+void* getMolUdpPlxOrdData(void* attr) {
+
   pthread_detach(pthread_self());
 
   //  EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;

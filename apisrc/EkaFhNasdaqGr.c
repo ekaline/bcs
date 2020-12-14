@@ -1,6 +1,10 @@
 #include "EkaFhNasdaqGr.h"
 #include "EkaFhThreadAttr.h"
 
+void* getMolUdp64Data(void* attr);
+void* getSoupBinData(void* attr);
+
+
 /* ##################################################################### */
 bool EkaFhNasdaqGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 				  const uint8_t*   pkt, 
@@ -72,11 +76,19 @@ int EkaFhNasdaqGr::closeIncrementalGap(EfhCtx*        pEfhCtx,
   EkaFhThreadAttr* attr  = new EkaFhThreadAttr(pEfhCtx, 
 					       (const EfhRunCtx*)pEfhRunCtx, 
 					       this, 
-					       startSeq, endSeq,  
+					       startSeq, 
+					       endSeq,  
 					       EkaFhMode::RECOVERY);
   if (attr == NULL) on_error("attr = NULL");
 
-  
+    
+  dev->createThread(threadName.c_str(),
+		    EkaThreadType::kFeedSnapshot,
+		    getMolUdp64Data,        
+		    attr,
+		    dev->createThreadContext,
+		    (uintptr_t*)&snapshot_thread);   
+
 
   return 0;
 }
