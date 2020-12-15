@@ -49,12 +49,12 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
   uint8_t* p = (uint8_t*)pkt;
   int idx = 0;
   while (idx < pktLen) {
-    uint msgLen       = getHsvfMsgLen(&p[idx],pktLen-idx);
+    uint     msgLen   = getHsvfMsgLen(&p[idx],pktLen-idx);
     uint64_t sequence = getHsvfMsgSequence(&p[idx]);
-    if (sequence >= expected_sequence) {
-      if (parseMsg(pEfhRunCtx,&p[idx+1],sequence,EkaFhMode::MCAST)) return true;
-      expected_sequence = sequence + 1;
-    }
+    
+    if (parseMsg(pEfhRunCtx,&p[idx+1],sequence,EkaFhMode::MCAST)) return true;
+
+    expected_sequence = sequence + 1;
 
     idx += msgLen;
     idx += trailingZeros(&p[idx],pktLen-idx );
