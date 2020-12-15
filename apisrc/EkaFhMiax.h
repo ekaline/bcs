@@ -7,6 +7,8 @@ class EkaFhMiax : public EkaFh { // MiaxTom & PearlTom
  public:
   static const uint QSIZE = 1024 * 1024;
 
+  EkaFhGroup* addGroup();
+
   EkaOpResult getDefinitions (EfhCtx*          pEfhCtx, 
 			      const EfhRunCtx* pEfhRunCtx, 
 			      EkaGroup*        group);

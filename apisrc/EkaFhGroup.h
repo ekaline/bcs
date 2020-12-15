@@ -1,5 +1,5 @@
-#ifndef _EKA_FH_GROUP_H
-#define _EKA_FH_GROUP_H
+#ifndef _EKA_FH_GROUP_H_
+#define _EKA_FH_GROUP_H_
 #include <stdint.h>
 #include <unistd.h>
 #include <thread>
@@ -9,10 +9,14 @@
 
 #include "EkaFh.h"
 
+class fh_q;
+class fh_book;
+
 
 class EkaFhGroup {
  protected:
-  EkaFhGroup();
+  EkaFhGroup() {};
+
  public:
   virtual ~EkaFhGroup();
 
@@ -27,19 +31,27 @@ class EkaFhGroup {
   virtual int  bookInit(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx);
   virtual bool parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) = 0;
 
-  void         sendFeedUp(const EfhInitCtx* pEfhInitCtx);
-  void         sendFeedDown(const EfhInitCtx* pEfhInitCtx);
+  void         sendFeedUp  (const EfhRunCtx* EfhRunCtx);
+  void         sendFeedDown(const EfhRunCtx* EfhRunCtx);
 
   virtual int closeSnapshotGap(EfhCtx*              pEfhCtx, 
-				  const EfhInitCtx* pEfhRunCtx, 
-				  uint64_t          startSeq,
-				  uint64_t          endSeq) = 0;
+			       const EfhRunCtx*  pEfhRunCtx, 
+			       uint64_t          startSeq,
+			       uint64_t          endSeq) {
+    return 0;
+  }
 
   virtual int closeIncrementalGap(EfhCtx*           pEfhCtx, 
-				  const EfhInitCtx* pEfhRunCtx, 
+				  const EfhRunCtx*  pEfhRunCtx, 
 				  uint64_t          startSeq,
-				  uint64_t          endSeq) = 0;
+				  uint64_t          endSeq) {
+    return 0;
+  }
 
+  /* virtual bool        processUdpPkt(const EfhRunCtx* pEfhRunCtx, */
+  /* 				    const uint8_t*   pkt,  */
+  /* 				    uint             msgInPkt,  */
+  /* 				    uint64_t         sequence); */
 
   //----------------------------------------------------------
   enum class GrpState { UNINIT = 0,INIT, GAP, SNAPSHOT_GAP, RETRANSMIT_GAP, NORMAL, PHLX_SNAPSHOT_GAP };
@@ -79,7 +91,7 @@ class EkaFhGroup {
   uint16_t              mcast_port          = -1; 
   bool                  mcast_set           = false;
 
-  uint32_t              snapshot_ip;        = -1;
+  uint32_t              snapshot_ip         = -1;
   uint16_t              snapshot_port       = -1; 
   bool                  snapshot_set        = false;
 
@@ -97,8 +109,6 @@ class EkaFhGroup {
 
   char                  auth_user[10]       = {};
   char                  auth_passwd[12]     = {};
-
-  char                  line[2]             = -1;
 
   bool                  market_open         = false;
 
@@ -120,7 +130,9 @@ class EkaFhGroup {
   uint8_t               core               = -1;
 
   fh_book*              book               = NULL;
- private:
+
   EkaDev*               dev                = NULL;
+ private:
 
 };
+#endif

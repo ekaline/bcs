@@ -20,19 +20,17 @@
 #include <sched.h>
 
 #include "eka_fh_book.h"
-#include "eka_data_structs.h"
-#include "eka_fh_group.h"
-#include "EkaDev.h"
-#include "eka_fh.h"
+#include "EkaFhMiaxParser.h"
+#include "EkaFhMiaxGr.h"
 
-#include "eka_fh_miax_messages.h"
+#include "EkaFhThreadAttr.h"
 
 int ekaTcpConnect(uint32_t ip, uint16_t port);
-void* heartBeatThread(EkaDev* dev, FhMiaxGr* gr,int sock);
+void* heartBeatThread(EkaDev* dev, EkaFhMiaxGr* gr,int sock);
 
 /* ##################################################################### */
 
-static void sendLogin (FhMiaxGr* gr) {
+static void sendLogin (EkaFhMiaxGr* gr) {
   EkaDev* dev = gr->dev;
 
   //--------------- SESM Login Request -------------------
@@ -61,7 +59,7 @@ static void sendLogin (FhMiaxGr* gr) {
 }
 /* ##################################################################### */
 
-static bool getLoginResponse(FhMiaxGr* gr) {
+static bool getLoginResponse(EkaFhMiaxGr* gr) {
   EkaDev* dev = gr->dev;
 
   struct sesm_login_response sesm_response_msg ={};
@@ -87,7 +85,7 @@ static bool getLoginResponse(FhMiaxGr* gr) {
 }
 
 /* ##################################################################### */
-static void sendRequest(FhMiaxGr* gr, char refreshType) {
+static void sendRequest(EkaFhMiaxGr* gr, char refreshType) {
   EkaDev* dev = gr->dev;
 
   struct miax_request def_request_msg = {};
@@ -105,7 +103,7 @@ static void sendRequest(FhMiaxGr* gr, char refreshType) {
 }
 
 /* ##################################################################### */
-static void sendRetransmitRequest(FhMiaxGr* gr, uint64_t start, uint64_t end) {
+static void sendRetransmitRequest(EkaFhMiaxGr* gr, uint64_t start, uint64_t end) {
   EkaDev* dev = gr->dev;
   sesm_retransmit_req retransmit_req = {};
   retransmit_req.header.length = sizeof(retransmit_req) - sizeof(retransmit_req.header.length);
@@ -121,7 +119,7 @@ static void sendRetransmitRequest(FhMiaxGr* gr, uint64_t start, uint64_t end) {
 }
 
 /* ##################################################################### */
-static void sendLogOut(FhMiaxGr* gr) {
+static void sendLogOut(EkaFhMiaxGr* gr) {
   EkaDev* dev = gr->dev;
 
   //--------------- SESM Logout Request -------------------
@@ -138,7 +136,7 @@ static void sendLogOut(FhMiaxGr* gr) {
 
 
 /* ##################################################################### */
-static bool procSesm(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, int sock, FhMiaxGr* gr,EkaFhMode op) {
+static bool procSesm(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, int sock, EkaFhMiaxGr* gr,EkaFhMode op) {
   EkaDev* dev = gr->dev;
   sesm_header sesm_hdr ={};
   int recv_size = recv(sock,&sesm_hdr,sizeof(struct sesm_header),MSG_WAITALL);
@@ -244,7 +242,7 @@ void* getSesmRetransmit(void* attr) {
 
   EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
   EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
-  FhMiaxGr*  gr             = (FhMiaxGr*)((EkaFhThreadAttr*)attr)->gr;
+  EkaFhMiaxGr*  gr             = (EkaFhMiaxGr*)((EkaFhThreadAttr*)attr)->gr;
   uint64_t   start          = ((EkaFhThreadAttr*)attr)->startSeq;
   uint64_t   end            = ((EkaFhThreadAttr*)attr)->endSeq;
   //  EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
@@ -286,7 +284,7 @@ void* getSesmData(void* attr) {
 
   EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
   EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
-  FhMiaxGr*   gr            = (FhMiaxGr*) ((EkaFhThreadAttr*)attr)->gr;
+  EkaFhMiaxGr*   gr            = (EkaFhMiaxGr*) ((EkaFhThreadAttr*)attr)->gr;
   /* uint64_t   start_sequence = ((EkaFhThreadAttr*)attr)->startSeq; */
   /* uint64_t   end_sequence   = ((EkaFhThreadAttr*)attr)->endSeq; */
   EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
@@ -321,7 +319,7 @@ void* getSesmData(void* attr) {
   gr->snapshot_active = true;
   if (op == EkaFhMode::DEFINITIONS) { 
     //-----------------------------------------------------------------
-    ekaTcpConnect(&gr->recovery_sock,gr->snapshot_ip,gr->snapshot_port);
+    gr->recovery_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
     //-----------------------------------------------------------------
     sendLogin(gr);
     //-----------------------------------------------------------------
@@ -387,7 +385,7 @@ void* getSesmData(void* attr) {
 
 
 
-void* heartBeatThread(EkaDev* dev, FhMiaxGr* gr, int sock) {
+void* heartBeatThread(EkaDev* dev, EkaFhMiaxGr* gr, int sock) {
   sesm_header heartbeat = {
     .length		= 1, //sizeof(struct sesm_header) - sizeof(heartbeat.length),
     .type		= '1'

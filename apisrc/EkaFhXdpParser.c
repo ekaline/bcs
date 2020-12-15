@@ -6,15 +6,11 @@
 #include <inttypes.h>
 #include <assert.h>
 
-#include "eka_fh.h"
-#include "eka_fh_xdp_messages.h"
-#include "eka_data_structs.h"
-#include "EkaDev.h"
-#include "Efh.h"
+#include "EkaFhXdpGr.h"
+#include "EkaFhXdpParser.h"
+#include "eka_fh_book.h"
 
-void hexDump (const char* desc, void *addr, int len);
-
-bool FhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
+bool EkaFhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
   switch (((XdpMsgHdr*)m)->MsgType) {
     //-----------------------------------------------------------------------------
   case EKA_XDP_MSG_TYPE::REFRESH_QUOTE :

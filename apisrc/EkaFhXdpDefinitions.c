@@ -19,18 +19,14 @@
 #include <assert.h>
 #include <sched.h>
 
-#include "eka_fh_book.h"
-//#include "eka_data_structs.h"
-#include "eka_fh_group.h"
-#include "EkaDev.h"
+#include "EkaFhXdpGr.h"
+#include "EkaFhXdpParser.h"
 
-#include "eka_fh_xdp_messages.h"
-
-int ekaTcpConnect(int* sock, uint32_t ip, uint16_t port);
+int ekaTcpConnect(uint32_t ip, uint16_t port);
 
 /* ##################################################################### */
 
-static EkaOpResult sendLogin (FhXdpGr* gr) {
+static EkaOpResult sendLogin (EkaFhXdpGr* gr) {
   EkaDev* dev = gr->dev;
 
   //--------------- XDP Login Request -------------------
@@ -53,7 +49,7 @@ static EkaOpResult sendLogin (FhXdpGr* gr) {
 }
 /* ##################################################################### */
 
-static EkaOpResult getLoginResponse(FhXdpGr* gr) {
+static EkaOpResult getLoginResponse(EkaFhXdpGr* gr) {
   EkaDev* dev = gr->dev;
 #ifdef FH_LAB
 #else
@@ -83,7 +79,7 @@ static EkaOpResult getLoginResponse(FhXdpGr* gr) {
 }
 
 /* ##################################################################### */
-static EkaOpResult sendRequest(FhXdpGr* gr) {
+static EkaOpResult sendRequest(EkaFhXdpGr* gr) {
   EkaDev* dev = gr->dev;
 
   XdpSeriesIndexMappingRequest defRequest  = {};
@@ -106,7 +102,7 @@ static EkaOpResult sendRequest(FhXdpGr* gr) {
 }
 
 /* ##################################################################### */
-static EkaOpResult sendLogOut(FhXdpGr* gr) {
+static EkaOpResult sendLogOut(EkaFhXdpGr* gr) {
   EkaDev* dev = gr->dev;
 #ifndef FH_LAB
   XdpLogoutRequest logOut = {};
@@ -125,7 +121,7 @@ static EkaOpResult sendLogOut(FhXdpGr* gr) {
 
 
 /* ##################################################################### */
-static EkaOpResult sendHeartbeat(FhXdpGr* gr) {
+static EkaOpResult sendHeartbeat(EkaFhXdpGr* gr) {
   EkaDev* dev = gr->dev;
 
   XdpHeartbeat hearbeat = {};
@@ -143,7 +139,7 @@ static EkaOpResult sendHeartbeat(FhXdpGr* gr) {
 
 /* ##################################################################### */
 
-EkaOpResult eka_get_xdp_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhXdpGr* gr,EkaFhMode op) {
+EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhXdpGr* gr,EkaFhMode op) {
   assert(gr != NULL);
   EkaDev* dev = gr->dev;
   assert(dev != NULL);
@@ -151,7 +147,7 @@ EkaOpResult eka_get_xdp_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
 
   EKA_LOG("Definitions for %s:%u - XDP to %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id,EKA_IP2STR(gr->snapshot_ip),be16toh(gr->snapshot_port));
   //-----------------------------------------------------------------
-  ekaTcpConnect(&gr->snapshot_sock,gr->snapshot_ip,gr->snapshot_port);
+  gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
   //-----------------------------------------------------------------
   if ((ret = sendLogin(gr))        != EKA_OPRESULT__OK) return ret;
   //-----------------------------------------------------------------

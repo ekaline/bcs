@@ -7,6 +7,7 @@
 #include "EkaCtxs.h"
 #include "EkaDev.h"
 #include "EkaFhRunGroup.h"
+#include "EkaFhGroup.h"
 
 #include "EkaFhBats.h"
 #include "EkaFhBox.h"

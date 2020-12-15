@@ -8,15 +8,12 @@ class EkaFhPhlxTopo : public EkaFhNasdaq {
 public:
   virtual ~EkaFhPhlxTopo() {};
 
+  EkaFhGroup*         addGroup();
 
   EkaOpResult         runGroups(EfhCtx*          pEfhCtx, 
 				const EfhRunCtx* pEfhRunCtx, 
 				uint8_t          runGrId);
-  
-  EkaOpResult         getDefinitions (EfhCtx*          pEfhCtx, 
-				      const EfhRunCtx* pEfhRunCtx, 
-				      EkaGroup*        group);
-  
+
  private:
 
 };

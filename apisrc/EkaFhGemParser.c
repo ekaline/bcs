@@ -6,18 +6,14 @@
 #include <inttypes.h>
 #include <assert.h>
 
-#include "eka_fh.h"
-#include "eka_fh_gem_messages.h"
-#include "eka_data_structs.h"
-#include "EkaDev.h"
+#include "EkaFhGemGr.h"
+#include "EkaFhGemParser.h"
+#include "eka_fh_book.h"
 
-#include "Efh.h"
-
-//static inline uint64_t get_ts(uint8_t* m);
 static void eka_print_gem_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequence,uint64_t ts);
 std::string ts_ns2str(uint64_t ts);
 
-bool FhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
+bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
   //  uint64_t ts = get_ts(m);
   uint64_t ts = EKA_GEM_TS(m);
 

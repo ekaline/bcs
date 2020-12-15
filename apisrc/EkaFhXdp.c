@@ -2,8 +2,14 @@
 #include "EkaUdpChannel.h"
 #include "EkaFhRunGroup.h"
 #include "EkaFhXdpGr.h"
+#include "EkaFhXdpParser.h"
 
-EkaOpResult eka_get_xdp_definitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhXdpGr* gr,EkaFhMode op);
+EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhXdpGr* gr,EkaFhMode op);
+
+/* ##################################################################### */
+EkaFhGroup* EkaFhXdp::addGroup() {
+  return new EkaFhXdpGr();
+}
 
 /* ##################################################################### */
 uint8_t* EkaFhXdp::getUdpPkt(EkaFhRunGroup* runGr, 
@@ -30,7 +36,7 @@ uint8_t* EkaFhXdp::getUdpPkt(EkaFhRunGroup* runGr,
 
 
 EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId ) {
-  FhRunGr* runGr = dev->runGr[runGrId];
+  EkaFhRunGroup* runGr = dev->runGr[runGrId];
   if (runGr == NULL) on_error("runGr == NULL");
 
   EKA_DEBUG("Initializing %s Run Group %u: %s GROUPS",
@@ -103,8 +109,8 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
  /* ##################################################################### */
 
 EkaOpResult EkaFhXdp::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group) {
-  return eka_get_xdp_definitions(pEfhCtx,
-				 pEfhRunCtx,
-				 (EkaFhXdpGr*)b_gr[(uint8_t)group->localId],
-				 EkaFhMode::DEFINITIONS);
+  return getXdpDefinitions(pEfhCtx,
+			   pEfhRunCtx,
+			   (EkaFhXdpGr*)b_gr[(uint8_t)group->localId],
+			   EkaFhMode::DEFINITIONS);
 }

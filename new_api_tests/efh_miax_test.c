@@ -21,7 +21,10 @@
 #include "EkaCtxs.h"
 #include "eka_macros.h"
 #include "EkaDev.h"
-#include "eka_fh.h"
+
+#include "EkaFhGroup.h"
+#include "eka_fh_book.h"
+
 
 #include "EfhMiaxProps.h"
 

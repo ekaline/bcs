@@ -21,9 +21,11 @@
 #include "EkaCtxs.h"
 #include "eka_macros.h"
 #include "EkaDev.h"
-#include "eka_fh.h"
 
-#include "eka_fh_xdp_messages.h"
+#include "EkaFhGroup.h"
+#include "eka_fh_book.h"
+
+#include "EkaFhXdpParser.h"
 
 #include "EfhXdpProps.h"
 

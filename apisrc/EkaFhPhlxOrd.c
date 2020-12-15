@@ -1,10 +1,37 @@
+#include <stdlib.h>
+#include <sys/ioctl.h>
+#include <string.h>
+#include <netdb.h>
+#include <netinet/if_ether.h>
+#include <netinet/ether.h>
+#include <netinet/ip.h>
+#include <netinet/tcp.h>
+#include <net/ethernet.h>
+#include <byteswap.h>
+#include <pthread.h>
+#include <arpa/inet.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <thread>
+#include <iostream>
+#include <assert.h>
+#include <sched.h>
+
 #include "EkaFhPhlxOrd.h"
+#include "EkaFhPhlxOrdGr.h"
 #include "EkaUdpChannel.h"
 #include "EkaFhRunGroup.h"
 
 /* ##################################################################### */
+EkaFhGroup*          EkaFhPhlxOrd::addGroup() {
+  return new EkaFhPhlxOrdGr();
+}
 
-uint8_t* EkaFhPhlxOrd::getUdpPkt(FhRunGroup* runGr, uint* msgInPkt, uint64_t* sequence,uint8_t* gr_id) {
+/* ##################################################################### */
+
+uint8_t* EkaFhPhlxOrd::getUdpPkt(EkaFhRunGroup* runGr, uint* msgInPkt, uint64_t* sequence,uint8_t* gr_id) {
   uint8_t* pkt = (uint8_t*)runGr->udpCh->get();
   if (pkt == NULL) on_error("%s: pkt == NULL",EKA_EXCH_DECODE(exch));
   uint msgCnt = EKA_PHLX_MOLD_MSG_CNT(pkt);
@@ -18,7 +45,8 @@ uint8_t* EkaFhPhlxOrd::getUdpPkt(FhRunGroup* runGr, uint* msgInPkt, uint64_t* se
     runGr->udpCh->next(); 
     return NULL;
   }
-  EkFhPhlxOrdGr* gr = b_gr[grId];
+  EkaFhPhlxOrdGr* gr = dynamic_cast<EkaFhPhlxOrdGr*>(b_gr[grId]);
+  if (gr == NULL) on_error("gr[%u] == NULL",grId);
 
   if (gr->firstPkt) {
     memcpy((uint8_t*)gr->session_id,((PhlxMoldHdr*)pkt)->session_id,10);
@@ -64,7 +92,7 @@ EkaOpResult EkaFhPhlxOrd::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
     case EkaFhGroup::GrpState::INIT : { 
       gr->gapClosed = false;
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
-      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,gr, 1, 2);
+      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,1, 2);
       gr->expected_sequence = 2;
     }
       break;
@@ -80,7 +108,7 @@ EkaOpResult EkaFhPhlxOrd::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
 	//	gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, gr->expected_sequence, sequence + msgInPkt);
 	gr->closeIncrementalGap(pEfhCtx,pEfhRunCtx, gr->expected_sequence, sequence + msgInPkt);
       } else { // NORMAL
-	runGr->stoppedByExchange = processUdpPkt(pEfhRunCtx,gr,pkt,msgInPkt,sequence);      
+	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,msgInPkt,sequence);      
       }
     }
       break;

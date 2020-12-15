@@ -7,11 +7,9 @@
 #include <assert.h>
 #include <string>
 
-#include "eka_fh.h"
-#include "eka_hsvf_box_messages.h"
-#include "eka_data_structs.h"
-#include "EkaDev.h"
-#include "Efh.h"
+#include "EkaFhBoxGr.h"
+#include "EkaFhBoxParser.h"
+#include "eka_fh_book.h"
 
 /* ----------------------------------------------------------------------- */
 void hexDump (const char* desc, void *addr, int len);
@@ -267,7 +265,7 @@ static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
 
 /* ----------------------------------------------------------------------- */
 
-bool FhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence, EkaFhMode op) {
+bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence, EkaFhMode op) {
   uint pos = 0;
 
   fh_b_security64* s = NULL;

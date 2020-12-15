@@ -19,15 +19,12 @@
 #include <assert.h>
 #include <time.h>
 
-#include "eka_data_structs.h"
 #include "EkaDev.h"
 
 #include "eka_fh_q.h"
-#include "eka_fh_group.h"
+#include "EkaFhGroup.h"
 
-#include "eka_macros.h"
-
-fh_q::fh_q(struct EfhCtx* pEfhCtx, EkaSource ec, FhGroup* parent_gr, uint8_t id, uint qs) {
+fh_q::fh_q(struct EfhCtx* pEfhCtx, EkaSource ec, EkaFhGroup* parent_gr, uint8_t id, uint qs) {
   dev = pEfhCtx->dev;
 
   q_len = 0;

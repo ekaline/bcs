@@ -22,7 +22,12 @@
 #include "EkaFh.h"
 #include "EkaUdpChannel.h"
 #include "EkaFhRunGroup.h"
+#include "eka_fh_book.h"
 
+#include "EkaFhBoxGr.h"
+#include "EkaFhBatsGr.h"
+
+#include "EkaCore.h"
 
 
  /* ##################################################################### */
@@ -155,7 +160,7 @@ static inline uint8_t nextQ(uint8_t c,uint first, uint max) {
 
  /* ##################################################################### */
 
-FhGroup* EkaFh::nextGrToProcess(uint first, uint numGroups) {
+EkaFhGroup* EkaFh::nextGrToProcess(uint first, uint numGroups) {
   uint8_t curr = nextQ(lastServed,first, numGroups);
   for (uint8_t i = 0; i < numGroups; i ++) {
     if (b_gr[curr] == NULL) on_error ("%s: numGroups=%u, but b_gr[%u] == NULL",
@@ -163,7 +168,7 @@ FhGroup* EkaFh::nextGrToProcess(uint first, uint numGroups) {
     if (b_gr[curr]->q == NULL) on_error ("%s: b_gr[%u]->q == NULL",
 					 EKA_EXCH_DECODE(exch),curr);
 
-    if (b_gr[curr]->q->is_empty() || b_gr[curr]->state == FhGroup::GrpState::GAP) {
+    if (b_gr[curr]->q->is_empty() || b_gr[curr]->state == EkaFhGroup::GrpState::GAP) {
       curr = nextQ(curr,first,(uint)numGroups);
       continue;
     }
@@ -253,8 +258,8 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"unit")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
-      ((FhBatsGr*)b_gr[gr])->batsUnit = (uint8_t) strtoul(v[0],NULL,10);
-      //      EKA_DEBUG ("batsUnit for %s:%u is set to %u",k[1],gr,((FhBatsGr*)b_gr[gr])->batsUnit);
+      ((EkaFhBatsGr*)b_gr[gr])->batsUnit = (uint8_t) strtoul(v[0],NULL,10);
+      //      EKA_DEBUG ("batsUnit for %s:%u is set to %u",k[1],gr,((EkaFhBatsGr*)b_gr[gr])->batsUnit);
       fflush(stderr);
       return EkaFhAddConf::CONF_SUCCESS;
     }
@@ -288,7 +293,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"snapshot")==0) && (strcmp(k[5],"sessionSubID")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
-      memcpy(&(((FhBatsGr*)b_gr[gr])->sessionSubID),v[0],sizeof(((FhBatsGr*)b_gr[gr])->sessionSubID));
+      memcpy(&(((EkaFhBatsGr*)b_gr[gr])->sessionSubID),v[0],sizeof(((EkaFhBatsGr*)b_gr[gr])->sessionSubID));
 
       EKA_DEBUG ("sessionSubID for %s:%u are set to %s",k[1],gr,v[0] +'\0');
       fflush(stderr);
@@ -367,9 +372,11 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
 	on_warning("%s -- %s : Ignoring group_id %d >= groups (=%u)",key, value,gr,groups);
 	return EkaFhAddConf::CONF_SUCCESS;
       }
+      EkaFhBoxGr* boxGr = dynamic_cast<EkaFhBoxGr*>(b_gr[gr]);
+      if (boxGr == NULL) on_error("boxGr (b_gr[%u]) == NULL",gr);
 
-      memset(&b_gr[gr]->line,' ',sizeof(b_gr[gr]->line));
-      memcpy(&b_gr[gr]->line,v[0],std::min(sizeof(b_gr[gr]->line),sizeof(v[0])));
+      memset(&boxGr->line,' ',sizeof(boxGr->line));
+      memcpy(&boxGr->line,v[0],std::min(sizeof(boxGr->line),sizeof(v[0])));
       //      EKA_DEBUG ("%s:%u line = %s", EKA_EXCH_SOURCE_DECODE(exch),gr,v[0]);
       fflush(stderr);
       return EkaFhAddConf::CONF_SUCCESS;
@@ -380,14 +387,14 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
 }
  /* ##################################################################### */
 
-EkaOpResult EkaFh::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, FhRunGr* runGr) {
+EkaOpResult EkaFh::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhRunGroup* runGr) {
   for (uint8_t i = 0; i < runGr->numGr; i++) {
     if (! runGr->isMyGr(pEfhRunCtx->groups[i].localId)) 
       on_error("pEfhRunCtx->groups[%d].localId = %u doesnt belong to %s",
 	       i,pEfhRunCtx->groups[i].localId,runGr->list2print);
     if (pEfhRunCtx->groups[i].source != exch) 
       on_error("pEfhRunCtx->groups[i].source != exch");
-    FhGroup* gr = b_gr[pEfhRunCtx->groups[i].localId];
+    EkaFhGroup* gr = b_gr[pEfhRunCtx->groups[i].localId];
     if (gr == NULL) on_error ("b_gr[%u] == NULL",pEfhRunCtx->groups[i].localId);
     gr->createQ(pEfhCtx,qsize);
     gr->expected_sequence = 1;

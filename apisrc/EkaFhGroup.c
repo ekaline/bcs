@@ -1,4 +1,30 @@
+#include <stdlib.h>
+#include <sys/ioctl.h>
+#include <string.h>
+#include <netdb.h>
+#include <netinet/if_ether.h>
+#include <netinet/ether.h>
+#include <netinet/ip.h>
+#include <netinet/tcp.h>
+#include <net/ethernet.h>
+#include <byteswap.h>
+#include <pthread.h>
+#include <arpa/inet.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <thread>
+#include <iostream>
+#include <assert.h>
+#include <sched.h>
+
 #include "EkaFhGroup.h"
+#include "eka_fh_book.h"
+#include "EkaCore.h"
+#include "EkaTcpSess.h"
+
+int createIgmpPkt (char* dst, bool join, uint8_t* macsa, uint32_t ip_src, uint32_t ip_dst);
 
  /* ##################################################################### */
 
@@ -61,7 +87,7 @@ int EkaFhGroup::init (EfhCtx* _pEfhCtx,
 
 void EkaFhGroup::createQ(EfhCtx* pEfhCtx, const uint qsize) {  
   if (qsize != 0) { 
-    q = new fh_q(pEfhCtx,exch,(FhGroup*)this,id,(uint)qsize);
+    q = new fh_q(pEfhCtx,exch,(EkaFhGroup*)this,id,(uint)qsize);
     if (q == NULL) on_error("q == NULL");
   } 
   EKA_DEBUG("%s:%u created Q with %u elemets",EKA_EXCH_DECODE(exch),id, qsize);
@@ -120,4 +146,19 @@ int EkaFhGroup::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
   book = new TobBook(pEfhCtx,pEfhInitCtx,this);
   ((TobBook*)book)->init();
   return 0;
+}
+ /* ##################################################################### */
+
+void EkaFhGroup::print_q_state() {
+  if (q == NULL) {
+    EKA_DEBUG("NO Q");
+    return;
+  }
+  EKA_DEBUG("Q.max_len=%10u, Q.ever_max_len=%10u, CPU:%u",
+	   q->get_max_len(),
+	   q->get_ever_max_len(),
+	   sched_getcpu()
+	   );
+  q->reset_max_len();
+  return;  
 }

@@ -1,10 +1,10 @@
 #include <thread>
 #include <assert.h>
 
-#include "eka_fh.h"
+#include "EkaFh.h"
 #include "eka_fh_book.h"
-#include "eka_data_structs.h"
-#include "EkaDev.h"
+
+#include "EkaFhGroup.h"
 
 inline uint32_t eka_get_order_hash_idx (uint64_t order_id, uint64_t MAX_ORDERS, uint ORDERS_HASH_MASK) {
   if ((order_id & ORDERS_HASH_MASK) > MAX_ORDERS) 
@@ -716,7 +716,7 @@ bool fh_b_security_state::is_equal(fh_b_security* s) {
 
  /* ##################################################################### */
 
-fh_book::fh_book (EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx,FhGroup* gr_ptr) {
+fh_book::fh_book (EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx,EkaFhGroup* gr_ptr) {
   dev = pEfhCtx->dev;
 
   gr = gr_ptr;
@@ -731,7 +731,7 @@ fh_book::fh_book (EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx,FhGroup* gr_ptr) {
   for (auto i = 0; i < EKA_FH_SEC_HASH_LINES; i++) sec[i] = NULL;
 }
 
-FullBook::FullBook(EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx,FhGroup* gr) : fh_book(pEfhCtx, pInitCtx,gr) {
+FullBook::FullBook(EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx,EkaFhGroup* gr) : fh_book(pEfhCtx, pInitCtx,gr) {
   orders_cnt = 0;
   plevels_cnt = 0;
   max_orders_cnt = 0;

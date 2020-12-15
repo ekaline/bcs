@@ -45,7 +45,7 @@ void EkaFhNasdaqGr::pushUdpPkt2Q(const uint8_t* pkt,
 
 /* ##################################################################### */
 int EkaFhNasdaqGr::closeSnapshotGap(EfhCtx*           pEfhCtx, 
-				    const EfhInitCtx* pEfhRunCtx, 
+				    const EfhRunCtx* pEfhRunCtx, 
 				    uint64_t          startSeq,
 				    uint64_t          endSeq) {
   
@@ -69,7 +69,7 @@ int EkaFhNasdaqGr::closeSnapshotGap(EfhCtx*           pEfhCtx,
 }
 /* ##################################################################### */
 int EkaFhNasdaqGr::closeIncrementalGap(EfhCtx*        pEfhCtx, 
-				       const EfhInitCtx* pEfhRunCtx, 
+				       const EfhRunCtx* pEfhRunCtx, 
 				       uint64_t          startSeq,
 				       uint64_t          endSeq) {
   

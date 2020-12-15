@@ -3,8 +3,14 @@
 #include "EkaFhRunGroup.h"
 #include "EkaFhBatsGr.h"
 #include "EkaFhThreadAttr.h"
+#include "EkaFhBatsParser.h"
 
 void* getSpinData(void* attr);
+
+/* ##################################################################### */
+EkaFhGroup* EkaFhBats::addGroup() {
+  return new EkaFhBatsGr();
+}
 
 /* ##################################################################### */
 uint8_t* EkaFhBats::getUdpPkt(EkaFhRunGroup* runGr, uint* msgInPkt, uint64_t* sequence,uint8_t* gr_id) {
@@ -41,7 +47,7 @@ uint8_t EkaFhBats::getGrId(const uint8_t* pkt) {
 /* ##################################################################### */
 
 EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId ) {
-  FhRunGr* runGr = dev->runGr[runGrId];
+  EkaFhRunGroup* runGr = dev->runGr[runGrId];
   if (runGr == NULL) on_error("runGr == NULL");
 
   EKA_DEBUG("Initializing %s Run Group %u: %s GROUPS",
@@ -76,7 +82,7 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
 
       gr->gapClosed = false;
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
-      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 0, 0);
+      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, (uint64_t)0, (uint64_t)0);
     }
       break;
       //-----------------------------------------------------------------------------
@@ -140,7 +146,6 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
 EkaOpResult EkaFhBats::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group) {
   EkaFhThreadAttr* attr = new EkaFhThreadAttr(pEfhCtx, 
 					      pEfhRunCtx, 
-					      (uint8_t)group->localId, 
 					      b_gr[(uint8_t)group->localId], 
 					      1, 0, 
 					      EkaFhMode::DEFINITIONS);

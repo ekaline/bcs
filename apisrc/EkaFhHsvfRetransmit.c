@@ -20,14 +20,10 @@
 #include <sched.h>
 #include <time.h>
 
-#include "eka_fh_book.h"
-#include "eka_fh_group.h"
-#include "EkaDev.h"
-#include "Efh.h"
-#include "Eka.h"
-#include "eka_hsvf_box_messages.h"
-#include "eka_fh.h"
+#include "EkaFhBoxGr.h"
 #include "EkaHsvfTcp.h"
+#include "EkaFhThreadAttr.h"
+#include "EkaFhBoxParser.h"
 
 int ekaTcpConnect(uint32_t ip, uint16_t port);
 

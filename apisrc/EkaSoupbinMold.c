@@ -20,14 +20,7 @@
 #include <sched.h>
 #include <time.h>
 
-#include "eka_fh_book.h"
-#include "eka_fh_group.h"
-#include "EkaDev.h"
-#include "Efh.h"
-#include "Eka.h"
-#include "eka_fh_phlx_messages.h"
-#include "eka_fh.h"
-#include "EkaCtxs.h"
+#include "EkaFhGroup.h"
 #include "EkaFhThreadAttr.h"
 
 int ekaTcpConnect(uint32_t ip, uint16_t port);
@@ -47,7 +40,7 @@ struct soupbin_login_req {
 
 //-----------------------------------------------
 
-static int sendUdpPkt (EkaDev* dev, FhGroup* gr, int sock, void* sendBuf, size_t size, const sockaddr* addr, const char* msgName) {
+static int sendUdpPkt (EkaDev* dev, EkaFhGroup* gr, int sock, void* sendBuf, size_t size, const sockaddr* addr, const char* msgName) {
   int bytesSent = -1;
   while (1) {
     int bytesSent = sendto(sock,sendBuf,size,0,addr,sizeof(sockaddr));
@@ -69,7 +62,7 @@ static int sendUdpPkt (EkaDev* dev, FhGroup* gr, int sock, void* sendBuf, size_t
   return bytesSent;
 }
 //-----------------------------------------------
-static int recvUdpPkt (EkaDev* dev, FhGroup* gr, int sock, void* recvBuf, size_t size, sockaddr* addr, const char* msgName) {
+static int recvUdpPkt (EkaDev* dev, EkaFhGroup* gr, int sock, void* recvBuf, size_t size, sockaddr* addr, const char* msgName) {
   int receivedBytes = -1;
   static const int Iterations = 1000000;
   socklen_t addrlen = sizeof(sockaddr);
@@ -106,7 +99,7 @@ static int recvUdpPkt (EkaDev* dev, FhGroup* gr, int sock, void* recvBuf, size_t
 
 void* soupbin_heartbeat_thread(void* attr) {
   pthread_detach(pthread_self());
-  FhGroup* gr = (FhGroup*) attr;
+  EkaFhGroup* gr = (EkaFhGroup*) attr;
   EkaDev* dev = gr->dev;
   gr->heartbeatThreadDone = false;
   struct soupbin_header heartbeat = {};
@@ -126,7 +119,7 @@ void* soupbin_heartbeat_thread(void* attr) {
   return NULL;
 }
 
-static void sendLogin (FhGroup* gr, uint64_t start_sequence) {
+static void sendLogin (EkaFhGroup* gr, uint64_t start_sequence) {
   EkaDev* dev = gr->dev;
 
   struct soupbin_header header = {};
@@ -155,7 +148,7 @@ static void sendLogin (FhGroup* gr, uint64_t start_sequence) {
   return;
 }
 
-static void sendLogout (FhGroup* gr) {
+static void sendLogout (EkaFhGroup* gr) {
   EkaDev* dev = gr->dev;
   struct soupbin_header logout_request = {};
   logout_request.length		= htons(1);
@@ -168,7 +161,7 @@ static void sendLogout (FhGroup* gr) {
 }
 /* ##################################################################### */
 
-static bool getLoginResponse(FhGroup* gr) {
+static bool getLoginResponse(EkaFhGroup* gr) {
   EkaDev* dev = gr->dev;
 
   soupbin_header soupbin_hdr ={};
@@ -197,7 +190,7 @@ void* getSoupBinData(void* attr) {
 
   EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
   EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
-  FhGroup*   gr             = ((EkaFhThreadAttr*)attr)->gr;
+  EkaFhGroup*   gr             = ((EkaFhThreadAttr*)attr)->gr;
   uint64_t   start_sequence = ((EkaFhThreadAttr*)attr)->startSeq;
   uint64_t   end_sequence   = ((EkaFhThreadAttr*)attr)->endSeq;
   EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
@@ -308,7 +301,7 @@ void* getMolUdp64Data(void* attr) {
 
   //  EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
   EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
-  FhGroup*   gr             = ((EkaFhThreadAttr*)attr)->gr;
+  EkaFhGroup*   gr             = ((EkaFhThreadAttr*)attr)->gr;
   uint64_t   start          = ((EkaFhThreadAttr*)attr)->startSeq;
   uint64_t   end            = ((EkaFhThreadAttr*)attr)->endSeq;
   //  EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
@@ -386,7 +379,7 @@ void* getMolUdpPlxOrdData(void* attr) {
 
   //  EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
   EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
-  FhGroup*   gr             = ((EkaFhThreadAttr*)attr)->gr;
+  EkaFhGroup*   gr             = ((EkaFhThreadAttr*)attr)->gr;
   uint64_t   start          = ((EkaFhThreadAttr*)attr)->startSeq;
   uint64_t   end            = ((EkaFhThreadAttr*)attr)->endSeq;
   //  EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;

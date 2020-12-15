@@ -3,9 +3,15 @@
 
 #include "EkaFh.h"
 
+class EkaFhBatsGr;
+
 class EkaFhBats : public EkaFh {
-   static const uint QSIZE = 1024 * 1024;
-public:
+  static const uint QSIZE = 1024 * 1024;
+ protected:
+  EkaFhGroup* addGroup();
+
+
+ public:
   EkaOpResult getDefinitions (EfhCtx*          pEfhCtx, 
 			      const EfhRunCtx* pEfhRunCtx, 
 			      EkaGroup*        group);
@@ -21,8 +27,9 @@ public:
 			   uint64_t       sequence,
 			   uint8_t        gr_id);
 
+
   virtual ~EkaFhBats() {};
-private:
+ private:
   uint8_t    getGrId(const uint8_t* pkt);
 
   uint8_t*   getUdpPkt(EkaFhRunGroup* runGr, 

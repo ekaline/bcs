@@ -3,12 +3,17 @@
 #include "EkaFhRunGroup.h"
 #include "EkaFhMiaxGr.h"
 #include "EkaFhThreadAttr.h"
+#include "EkaFhMiaxParser.h"
 
 void* getSesmData(void* attr);
 
 /* ##################################################################### */
+EkaFhGroup* EkaFhMiax::addGroup() {
+  return new EkaFhMiaxGr();
+}
+/* ##################################################################### */
 
-uint8_t* FhMiax::getUdpPkt(EkaFhRunGroup* runGr, 
+uint8_t* EkaFhMiax::getUdpPkt(EkaFhRunGroup* runGr, 
 			   uint*          msgInPkt, 
 			   int16_t*       pktLen, 
 			   uint64_t*      sequence,
@@ -27,7 +32,7 @@ uint8_t* FhMiax::getUdpPkt(EkaFhRunGroup* runGr,
 
 
 EkaOpResult EkaFhMiax::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId ) {
-  FhRunGr* runGr = dev->runGr[runGrId];
+  EkaFhRunGroup* runGr = dev->runGr[runGrId];
   if (runGr == NULL) on_error("runGr == NULL");
 
   EKA_DEBUG("Initializing %s Run Group %u: %s GROUPS",
@@ -132,7 +137,6 @@ EkaOpResult EkaFhMiax::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
 EkaOpResult EkaFhMiax::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group) {
   EkaFhThreadAttr* attr = new EkaFhThreadAttr(pEfhCtx, 
 					      pEfhRunCtx, 
-					      (uint8_t)group->localId, 
 					      b_gr[(uint8_t)group->localId], 
 					      1, 0, 
 					      EkaFhMode::DEFINITIONS);

@@ -8,11 +8,9 @@
 #include "eka_sn_addr_space.h"
 #include "eka_hw_conf.h"
 #include "eka_fh_q.h"
-//#include "eka_fh_udp_channel.h"
 #include "Efh.h"
 
-//typedef enum {EKA_DEFINITIONS = 0, EKA_GAP_SNAPSHOT = 1, EKA_MCAST = 2} eka_fh_op_t;
-enum class EkaFhMode : uint8_t {DEFINITIONS = 0, SNAPSHOT = 1, MCAST = 2, RECOVERY = 3};
+
 enum EKA_FH_ERR_CODE {
   EKA_FH_RESULT__OK = 0,
   EKA_FH_RESULT__NEG_SIZE = -1,
@@ -292,14 +290,14 @@ class Underlying {
 
  /* ##################################################################### */
 
-class FhGroup;
+class EkaFhGroup;
 
 class fh_book {
  public:
   static const uint UndelyingsPerGroup = 2048;
   
   
-  fh_book (EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx,FhGroup* gr);
+  fh_book (EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx,EkaFhGroup* gr);
   virtual int     init() = 0;
 
   fh_b_security*  find_security(uint32_t security_id);
@@ -351,7 +349,7 @@ class fh_book {
 
   EfhFeedVer            feed_ver;
   EkaSource             exch;
-  FhGroup*              gr; 
+  EkaFhGroup*              gr; 
 
   uint32_t              total_securities;
 
@@ -374,7 +372,7 @@ class TobBook : public fh_book {
   static const bool full_book = false;
   
   int                     init();
- TobBook(EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx,FhGroup* gr) : fh_book(pEfhCtx,pInitCtx,gr){};
+ TobBook(EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx,EkaFhGroup* gr) : fh_book(pEfhCtx,pInitCtx,gr){};
   int  generateOnQuote(const EfhRunCtx* pEfhRunCtx, fh_b_security* s, uint64_t sequence, uint64_t timestamp,uint gapNum);
   void sendTobImage (const EfhRunCtx* pEfhRunCtx);
   void sendTobImage64 (const EfhRunCtx* pEfhRunCtx);
@@ -388,7 +386,7 @@ class FullBook : public fh_book {
   static const bool full_book = true;
 
 
-  FullBook(EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx,FhGroup* gr);
+  FullBook(EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx,EkaFhGroup* gr);
 
   int generateOnQuote(const EfhRunCtx* pEfhRunCtx, fh_b_security* s, uint64_t sequence, uint64_t timestamp,uint gapNum);
 
@@ -439,7 +437,7 @@ class FullBook : public fh_book {
 
 class NomBook : public FullBook {
  public:
-  NomBook(EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx,FhGroup* gr) : FullBook(pEfhCtx,pInitCtx,gr){};
+  NomBook(EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx,EkaFhGroup* gr) : FullBook(pEfhCtx,pInitCtx,gr){};
 
   int init();
 
@@ -458,7 +456,7 @@ class NomBook : public FullBook {
 
 class BatsBook : public FullBook {
  public:
- BatsBook(EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx,FhGroup* gr) : FullBook(pEfhCtx,pInitCtx,gr){};
+ BatsBook(EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx,EkaFhGroup* gr) : FullBook(pEfhCtx,pInitCtx,gr){};
 
   int init();
  private:

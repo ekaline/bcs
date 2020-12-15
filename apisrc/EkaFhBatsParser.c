@@ -6,8 +6,9 @@
 #include <inttypes.h>
 #include <assert.h>
 
-#include "eka_fh.h"
-#include "eka_fh_batspitch_messages.h"
+#include "EkaFhBatsGr.h"
+#include "EkaFhBatsParser.h"
+#include "eka_fh_book.h"
 
 static void eka_print_batspitch_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequence,uint64_t ts);
 std::string ts_ns2str(uint64_t ts);
@@ -90,7 +91,7 @@ inline uint32_t bats_symbol2optionid (const char* s, uint symbol_size) {
 }
 /* ------------------------------------------------ */
 
-bool FhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
+bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
   EKA_BATS_PITCH_MSG enc =  (EKA_BATS_PITCH_MSG)m[1];
   //  EKA_LOG("%s:%u: 0x%02x",EKA_EXCH_DECODE(exch),id,enc);
   fh_b_security_state prev_s = {};

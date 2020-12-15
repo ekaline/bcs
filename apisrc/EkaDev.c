@@ -9,11 +9,11 @@
 #include "EkaDev.h"
 #include "EkaCore.h"
 #include "EkaSnDev.h"
-#include "eka_fh.h"
+#include "EkaFh.h"
 #include "Eka.h"
 #include "Efh.h"
 #include "EkaEpm.h"
-#include "EkaFhRunGr.h"
+#include "EkaFhRunGroup.h"
 #include "EkaUserReportQ.h"
 #include "EkaHwCaps.h"
 

@@ -1,12 +1,7 @@
-#include <assert.h>
-
-#include "Efh.h"
-#include "eka_macros.h"
-#include "EkaCtxs.h"
-#include "EkaDev.h"
-#include "eka_fh.h"
 #include "EkaFhRunGroup.h"
+#include "EkaFhGroup.h"
 #include "EkaUdpChannel.h"
+#include "eka_fh_q.h"
 
 /* ##################################################################### */
 
@@ -27,7 +22,7 @@ EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
   }
 
   udpCh    = new EkaUdpChannel(dev,coreId);
-  if (udpCh === NULL) on_error("udpCh === NULL");
+  if (udpCh == NULL) on_error("udpCh == NULL");
 
   for (uint i = 0; i < MAX_GR2RUN; i++) grAfterGap[i] = false;
   cntGrAfterGap      = 0;
@@ -70,7 +65,7 @@ void EkaFhRunGroup::clearGrAfterGap(uint i) {
 bool EkaFhRunGroup::drainQ(const EfhRunCtx* pEfhRunCtx) {
   //  EKA_LOG("hasGrpAfterGap = %d",hasGrpAfterGap);
   if (hasGrpAfterGap) {
-    FhGroup* gr = fh->b_gr[getGrAfterGap()];
+    EkaFhGroup* gr = fh->b_gr[getGrAfterGap()];
     while (! gr->q->is_empty()) {
       fh_msg* buf = gr->q->pop();
       //      EKA_LOG("q_len=%u,buf->sequence=%ju, gr->expected_sequence=%ju",gr->q->get_len(),buf->sequence,gr->expected_sequence);

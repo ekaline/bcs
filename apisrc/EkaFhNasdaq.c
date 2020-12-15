@@ -21,7 +21,9 @@ uint8_t* EkaFhNasdaq::getUdpPkt(EkaFhRunGroup* runGr, uint* msgInPkt, uint64_t* 
     runGr->udpCh->next(); 
     return NULL;
   }
-  EkaFhNasdaqGr* gr = b_gr[grId];
+  EkaFhNasdaqGr* gr = dynamic_cast<EkaFhNasdaqGr*>(b_gr[grId]);
+  if (gr == NULL) on_error("gr[%u ] == NULL",grId);
+
   if (gr->firstPkt) {
     memcpy((uint8_t*)gr->session_id,((struct mold_hdr*)pkt)->session_id,10);
     gr->firstPkt = false;
@@ -88,7 +90,7 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
       break;
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::SNAPSHOT_GAP : {
-      gr->pushUdpPkt2Q(pkt,msgInPkt,sequence,gr_id);
+      gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
 
       if (gr->gapClosed) {
 	gr->state = EkaFhGroup::GrpState::NORMAL;
@@ -102,7 +104,7 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
       break;
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::RETRANSMIT_GAP : {
-      gr->pushUdpPkt2Q(pkt,msgInPkt,sequence,gr_id);
+      gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
       if (gr->gapClosed) {
 	EKA_LOG("%s:%u: RETRANSMIT_GAP Closed, switching to fetch from Q",
 		EKA_EXCH_DECODE(exch),gr->id);
@@ -130,7 +132,6 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
 EkaOpResult EkaFhNasdaq::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group) {
   EkaFhThreadAttr* attr = new EkaFhThreadAttr(pEfhCtx, 
 					      pEfhRunCtx, 
-					      (uint8_t)group->localId, 
 					      b_gr[(uint8_t)group->localId], 
 					      1, 0, 
 					      EkaFhMode::DEFINITIONS);

@@ -14,7 +14,6 @@
 #include <thread>
 
 #include "EkaDev.h"
-#include "eka_fh.h"
 #include "eka_macros.h"
 #include "Efh.h"
 #include "Exc.h"
@@ -22,6 +21,8 @@
 #include "Efc.h"
 #include "EkaCtxs.h"
 
+#include "EkaFhGroup.h"
+#include "eka_fh_book.h"
 
 //to xn03
 #define DST_XN03_IP0 "10.0.0.30"

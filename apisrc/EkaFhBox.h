@@ -3,9 +3,14 @@
 
 #include "EkaFh.h"
 
+class EkaFhBoxGr;
+
 class EkaFhBox : public EkaFh { // MiaxTom & PearlTom
  public:
   static const uint QSIZE = 1024 * 1024;
+
+  EkaFhGroup* addGroup();
+
   EkaOpResult getDefinitions (EfhCtx*          pEfhCtx, 
 			      const EfhRunCtx* pEfhRunCtx, 
 			      EkaGroup*        group);
@@ -16,10 +21,6 @@ class EkaFhBox : public EkaFh { // MiaxTom & PearlTom
 
   virtual ~EkaFhBox() {};
  private:
-  EkaOpResult initGroups(EfhCtx*          pEfhCtx, 
-			 const EfhRunCtx* pEfhRunCtx, 
-			 EkaFhRunGroup*   runGr);
-
   uint8_t*    getUdpPkt(EkaFhRunGroup* runGr, 
 			uint16_t*      pktLen, 
 			uint64_t*      sequence, 

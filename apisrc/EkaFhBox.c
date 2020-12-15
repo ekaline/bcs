@@ -2,8 +2,16 @@
 #include "EkaUdpChannel.h"
 #include "EkaFhRunGroup.h"
 #include "EkaFhBoxGr.h"
+#include "eka_fh_book.h"
 
 EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhBoxGr* gr);
+uint64_t getHsvfMsgSequence(uint8_t* msg);
+
+/* ##################################################################### */
+EkaFhGroup* EkaFhBox::addGroup() {
+  //  return dynamic_cast<EkaFhGroup*>(new EkaFhBoxGr());
+  return new EkaFhBoxGr();
+}
 
 /* ##################################################################### */
 
@@ -23,7 +31,7 @@ uint8_t* EkaFhBox::getUdpPkt(EkaFhRunGroup* runGr,
 
 /* ##################################################################### */
 EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId ) {
-  FhRunGr* runGr = dev->runGr[runGrId];
+  EkaFhRunGroup* runGr = dev->runGr[runGrId];
   if (runGr == NULL) on_error("runGr == NULL");
 
   EKA_DEBUG("Initializing %s Run Group %u: %s GROUPS",
@@ -54,7 +62,7 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       gr->gapClosed = false;
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
       gr->sendFeedDown(pEfhRunCtx);
-      gr->closeSnapshopGap(pEfhCtx,pEfhRunCtx,gr, 1, sequence);
+      gr->closeIncrementalGap(pEfhCtx,pEfhRunCtx, (uint64_t)1, sequence);
     }
       break;
       //-----------------------------------------------------------------------------
@@ -121,7 +129,7 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
 EkaOpResult EkaFhBox::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group) {
 
-  return eka_hsvf_get_definitions(pEfhCtx, 
-				  pEfhRunCtx,
-				  (EkaFhBoxGr*)b_gr[(uint8_t)group->localId]);
+  return getHsvfDefinitions(pEfhCtx, 
+			    pEfhRunCtx,
+			    (EkaFhBoxGr*)b_gr[(uint8_t)group->localId]);
 }

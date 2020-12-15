@@ -7,13 +7,10 @@
 #include <assert.h>
 
 #include "eka_fh_book.h"
-#include "eka_data_structs.h"
-#include "eka_fh_group.h"
-#include "EkaDev.h"
+#include "EkaFhMiaxParser.h"
+#include "EkaFhMiaxGr.h"
 
-#include "eka_fh_miax_messages.h"
-
-bool FhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
+bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
 
   EKA_MIAX_TOM_MSG enc =  (EKA_MIAX_TOM_MSG)m[0];
 

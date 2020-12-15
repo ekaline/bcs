@@ -7,7 +7,6 @@ class EkaHsvfTcp;
 
 class EkaFhBoxGr : public EkaFhGroup{
  public:
-  EkaFhBoxGr();
   virtual               ~EkaFhBoxGr() {};
 
   bool                  parseMsg(const EfhRunCtx* pEfhRunCtx,
@@ -24,19 +23,21 @@ class EkaFhBoxGr : public EkaFhGroup{
   
 
   void                  pushUdpPkt2Q(const uint8_t* pkt, 
-				     uint           msgInPkt);
+				     uint           pktLen);
 
 
   int                  closeIncrementalGap(EfhCtx*           pEfhCtx, 
-					   const EfhInitCtx* pEfhRunCtx, 
+					   const EfhRunCtx*  pEfhRunCtx, 
 					   uint64_t          startSeq,
 					   uint64_t          endSeq);
+
 
 
   /* ##################################################################### */
 
   EkaHsvfTcp* hsvfTcp  = NULL;
   uint64_t    txSeqNum = 1;
+  char        line[2]             = {};
 
 };
 #endif

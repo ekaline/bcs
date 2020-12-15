@@ -7,14 +7,15 @@
 #include <assert.h>
 #include <algorithm>
 
-#include "eka_fh.h"
-#include "eka_fh_nom_messages.h"
+#include "EkaFhNomGr.h"
+#include "EkaFhNomParser.h"
+#include "eka_fh_book.h"
 
 static void eka_print_nom_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequence);
 static inline uint64_t get_ts(uint8_t* m);
 std::string ts_ns2str(uint64_t ts);
 
-bool FhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
+bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
   EKA_FH_ERR_CODE err = EKA_FH_RESULT__OK;
 #ifdef EKA_TIME_CHECK
   auto start = std::chrono::high_resolution_clock::now();  

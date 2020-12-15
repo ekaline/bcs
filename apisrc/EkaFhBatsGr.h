@@ -5,7 +5,6 @@
 
 class EkaFhBatsGr : public EkaFhGroup{
  public:
-  EkaFhBatsGr();
   virtual               ~EkaFhBatsGr() {};
 
   bool                  parseMsg(const EfhRunCtx* pEfhRunCtx,
@@ -27,12 +26,12 @@ class EkaFhBatsGr : public EkaFhGroup{
 
 
   int    closeSnapshotGap(EfhCtx*              pEfhCtx, 
-			  const EfhInitCtx* pEfhRunCtx, 
+			  const EfhRunCtx* pEfhRunCtx, 
 			  uint64_t          startSeq,
 			  uint64_t          endSeq);
 
   int    closeIncrementalGap(EfhCtx*           pEfhCtx, 
-			     const EfhInitCtx* pEfhRunCtx, 
+			     const EfhRunCtx* pEfhRunCtx, 
 			     uint64_t          startSeq,
 			     uint64_t          endSeq);
 

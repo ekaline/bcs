@@ -15,8 +15,8 @@
 
 #include "eka_sn_addr_space.h"
 
-class FhRunGr;
-class FhGroup;
+class EkaFhRunGroup;
+class EkaFhGroup;
 class EkaFh;
 class EkaEpm;
 class EkaCore;
@@ -110,7 +110,7 @@ class EkaDev {
   EkaFh*                    fh[MAX_FEED_HANDLERS] = {};
 
   volatile uint8_t          numRunGr = 0;
-  FhRunGr*                  runGr[MAX_RUN_GROUPS] = {};
+  EkaFhRunGroup*            runGr[MAX_RUN_GROUPS] = {};
   std::mutex mtx;   // mutex to protect concurrent dev->numRunGr++
 
   EkaLogCallback            logCB;

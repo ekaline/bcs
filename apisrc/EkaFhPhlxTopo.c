@@ -3,6 +3,7 @@
 #include "EkaFhRunGroup.h"
 #include "eka_fh_book.h"
 #include "EkaFhThreadAttr.h"
+#include "EkaFhPhlxTopoGr.h"
 
  /* ##################################################################### */
 
@@ -14,7 +15,14 @@ static inline bool isPreTradeTime(int hour, int minute) {
   return false;
 }
 
- /* ##################################################################### */
+/* ##################################################################### */
+EkaFhGroup*          EkaFhPhlxTopo::addGroup() {
+  return new EkaFhPhlxTopoGr();
+}
+
+
+/* ##################################################################### */
+
 EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId) {
   EkaFhRunGroup* runGr = dev->runGr[runGrId];
   if (runGr == NULL) on_error("runGr == NULL");
@@ -33,7 +41,7 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       EKA_LOG("%s:%u: Running PreTrade Snapshot",EKA_EXCH_DECODE(exch),gr->id);
       gr->snapshotThreadDone = false;
 
-      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,gr, 1, 1);
+      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,1, 1);
 
       while (! gr->snapshotThreadDone) {} // instead of thread.join()
       gr->expected_sequence = gr->recovery_sequence + 1;
@@ -67,7 +75,7 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
     case EkaFhGroup::GrpState::INIT : { 
       gr->gapClosed = false;
       gr->state =EkaFhGroup::GrpState::SNAPSHOT_GAP;
-      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,gr, 1, 0);
+      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 1, 0);
     }
       break;
       //-----------------------------------------------------------------------------
@@ -79,7 +87,7 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
 	gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
 	gr->gapClosed = false;
 
-	gr->closeIncrementalGap(pEfhCtx, pEfhRunCtx, expected_sequence, sequence + msgInPkt);
+	gr->closeIncrementalGap(pEfhCtx, pEfhRunCtx, gr->expected_sequence, sequence + msgInPkt);
 
       } else { // NORMAL
 	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,msgInPkt,sequence);      
@@ -88,14 +96,14 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       break;
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::SNAPSHOT_GAP : {
-	if (sequence + msgInPkt < gr->recovery_sequence) {
-	  gr->gapClosed = true;
-	  gr->snapshot_active = false;
-	  gr->seq_after_snapshot = gr->recovery_sequence + 1;
+      if (sequence + msgInPkt < gr->recovery_sequence) {
+	gr->gapClosed = true;
+	gr->snapshot_active = false;
+	gr->seq_after_snapshot = gr->recovery_sequence + 1;
 	  
-	  EKA_DEBUG("%s:%u Generating TOB quote for every Security",EKA_EXCH_DECODE(gr->exch),gr->id);
-	  ((TobBook*)gr->book)->sendTobImage(pEfhRunCtx);
-
+	EKA_DEBUG("%s:%u Generating TOB quote for every Security",EKA_EXCH_DECODE(gr->exch),gr->id);
+	((TobBook*)gr->book)->sendTobImage(pEfhRunCtx);
+      }
       if (gr->gapClosed) {
 	gr->state =EkaFhGroup::GrpState::NORMAL;
 	gr->sendFeedUp(pEfhRunCtx);
@@ -108,7 +116,7 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       break;
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::RETRANSMIT_GAP : {
-      gr->pushUdpPkt2Q(pkt,msgInPkt,sequence,gr_id);
+      gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
       if (gr->gapClosed) {
 	EKA_LOG("%s:%u: RETRANSMIT_GAP Closed, switching to fetch from Q",
 		EKA_EXCH_DECODE(exch),gr->id);

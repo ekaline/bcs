@@ -2,6 +2,8 @@
 #include "eka_fh_book.h"
 #include "EkaFhThreadAttr.h"
 #include "eka_fh_q.h"
+#include "EkaFhBatsParser.h"
+
 
 void* getSpinData(void* attr);
 void* getGrpRetransmitData(void* attr);
@@ -52,10 +54,10 @@ int EkaFhBatsGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
   return 0;
 }
 /* ##################################################################### */
-int EkaFhBatsGr::closeSnapshotGap(EfhCtx*           pEfhCtx, 
-				    const EfhInitCtx* pEfhRunCtx, 
-				    uint64_t          startSeq,
-				    uint64_t          endSeq) {
+int EkaFhBatsGr::closeSnapshotGap(EfhCtx*            pEfhCtx, 
+				    const EfhRunCtx* pEfhRunCtx, 
+				    uint64_t         startSeq,
+				    uint64_t         endSeq) {
   
   std::string threadName = std::string("ST_") + std::string(EKA_EXCH_SOURCE_DECODE(exch)) + '_' + std::to_string(id);
   EkaFhThreadAttr* attr  = new EkaFhThreadAttr(pEfhCtx, 
@@ -76,10 +78,10 @@ int EkaFhBatsGr::closeSnapshotGap(EfhCtx*           pEfhCtx,
   return 0;
 }
 /* ##################################################################### */
-int EkaFhBatsGr::closeIncrementalGap(EfhCtx*        pEfhCtx, 
-				       const EfhInitCtx* pEfhRunCtx, 
-				       uint64_t          startSeq,
-				       uint64_t          endSeq) {
+int EkaFhBatsGr::closeIncrementalGap(EfhCtx*            pEfhCtx, 
+				       const EfhRunCtx* pEfhRunCtx, 
+				       uint64_t         startSeq,
+				       uint64_t         endSeq) {
   
 
   std::string threadName = std::string("ST_") + std::string(EKA_EXCH_SOURCE_DECODE(exch)) + '_' + std::to_string(id);

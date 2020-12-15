@@ -3,6 +3,8 @@
 #include "eka_fh_book.h"
 #include "eka_fh_q.h"
 
+void* getMolUdpPlxOrdData(void* attr);
+
 /* ##################################################################### */
 bool EkaFhPhlxOrdGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 				   const uint8_t*   pkt, 
@@ -56,7 +58,7 @@ int EkaFhPhlxOrdGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
 /* ##################################################################### */
 
 int EkaFhPhlxOrdGr::closeIncrementalGap(EfhCtx*        pEfhCtx, 
-				       const EfhInitCtx* pEfhRunCtx, 
+				       const EfhRunCtx* pEfhRunCtx, 
 				       uint64_t          startSeq,
 				       uint64_t          endSeq) {
   

@@ -6,14 +6,11 @@
 #include <inttypes.h>
 #include <assert.h>
 
-#include "eka_fh.h"
-#include "eka_fh_phlx_messages.h"
-#include "eka_data_structs.h"
-#include "EkaDev.h"
-#include "Efh.h"
+#include "EkaFhPhlxTopoParser.h"
+#include "EkaFhPhlxTopoGr.h"
+#include "eka_fh_book.h"
 
-
-bool FhPhlxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
+bool EkaFhPhlxTopoGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
   char enc =  (char)m[0];
 
   if (op == EkaFhMode::DEFINITIONS && 

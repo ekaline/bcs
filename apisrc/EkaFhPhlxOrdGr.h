@@ -26,7 +26,7 @@ class EkaFhPhlxOrdGr : public EkaFhNasdaqGr{
 				    uint64_t       sequence);
 
   int    closeIncrementalGap(EfhCtx*           pEfhCtx, 
-			     const EfhInitCtx* pEfhRunCtx, 
+			     const EfhRunCtx* pEfhRunCtx, 
 			     uint64_t          startSeq,
 			     uint64_t          endSeq);
 

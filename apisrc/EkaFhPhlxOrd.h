@@ -3,12 +3,10 @@
 
 #include "EkaFhNasdaq.h"
 
-class EkaFhPhlxOrd : public FhNasdaq {
+class EkaFhPhlxOrd : public EkaFhNasdaq {
   static const uint QSIZE = 2 * 1024 * 1024;
 public:
-  EkaOpResult initGroups(EfhCtx*          pEfhCtx, 
-			 const EfhRunCtx* pEfhRunCtx, 
-			 FhRunGr*         runGr);
+  EkaFhGroup*         addGroup();
 
   EkaOpResult  runGroups(EfhCtx*          pEfhCtx, 
 			 const EfhRunCtx* pEfhRunCtx, 

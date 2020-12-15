@@ -5,7 +5,6 @@
 
 class EkaFhMiaxGr : public EkaFhGroup{
  public:
-  EkaFhMiaxGr();
   virtual               ~EkaFhMiaxGr() {};
 
   bool                  parseMsg(const EfhRunCtx* pEfhRunCtx,
@@ -20,12 +19,12 @@ class EkaFhMiaxGr : public EkaFhGroup{
   void                  pushUdpPkt2Q(const uint8_t* pkt, int16_t pktLen);
 
   int    closeSnapshotGap(EfhCtx*              pEfhCtx, 
-			  const EfhInitCtx* pEfhRunCtx, 
+			  const EfhRunCtx* pEfhRunCtx, 
 			  uint64_t          startSeq,
 			  uint64_t          endSeq);
 
   int    closeIncrementalGap(EfhCtx*           pEfhCtx, 
-			     const EfhInitCtx* pEfhRunCtx, 
+			     const EfhRunCtx* pEfhRunCtx, 
 			     uint64_t          startSeq,
 			     uint64_t          endSeq);
 

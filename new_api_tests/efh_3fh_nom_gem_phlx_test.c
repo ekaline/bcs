@@ -11,7 +11,8 @@
 #include <assert.h>
 
 #include "EkaDev.h"
-#include "eka_fh.h"
+#include "EkaFhGroup.h"
+#include "eka_fh_book.h"
 #include "eka_macros.h"
 #include "Efh.h"
 #include "Exc.h"

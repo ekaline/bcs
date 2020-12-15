@@ -19,23 +19,18 @@
 #include <assert.h>
 #include <sched.h>
 
-#include "EkaDev.h"
-#include "eka_fh_book.h"
-#include "eka_fh_group.h"
-#include "eka_data_structs.h"
-#include "Efh.h"
-#include "eka_fh_batspitch_messages.h"
-#include "eka_fh.h"
+#include "EkaFhBatsParser.h"
+#include "EkaFhBatsGr.h"
+#include "EkaFhThreadAttr.h"
 
-void hexDump (char *desc, void *addr, int len);
-int ekaTcpConnect(int* sock, uint32_t ip, uint16_t port);
-int ekaUdpConnect(EkaDev* dev, int* sock, uint32_t ip, uint16_t port);
+int ekaTcpConnect(uint32_t ip, uint16_t port);
+int ekaUdpConnect(EkaDev* dev, uint32_t ip, uint16_t port);
 
 /* ##################################################################### */
 
 void* spin_heartbeat_thread(void* attr) {
   pthread_detach(pthread_self());
-  FhBatsGr* gr = (FhBatsGr*) attr;
+  EkaFhBatsGr* gr = (EkaFhBatsGr*) attr;
 
   EkaDev* dev = gr->dev;
   batspitch_sequenced_unit_header heartbeat = {};
@@ -54,7 +49,7 @@ void* spin_heartbeat_thread(void* attr) {
 }
 /* ##################################################################### */
 
-static void sendLogin (FhBatsGr* gr) {
+static void sendLogin (EkaFhBatsGr* gr) {
   EkaDev* dev = gr->dev;
   struct batspitch_login_request login_message = {};
   memset(&login_message,' ',sizeof(login_message));
@@ -97,7 +92,7 @@ static void sendLogin (FhBatsGr* gr) {
 }
 /* ##################################################################### */
 
-static bool getLoginResponse(FhBatsGr* gr) {
+static bool getLoginResponse(EkaFhBatsGr* gr) {
   EkaDev* dev = gr->dev;
 #ifdef FH_LAB
   EKA_LOG("%s:%u FH_LAB DUMMY Login Accepted",EKA_EXCH_DECODE(gr->exch),gr->id);
@@ -117,7 +112,7 @@ static bool getLoginResponse(FhBatsGr* gr) {
   return true;  
 }
 /* ##################################################################### */
-static uint64_t getSpinImageSeq(FhBatsGr* gr) {
+static uint64_t getSpinImageSeq(EkaFhBatsGr* gr) {
   EkaDev* dev = gr->dev;
 #ifdef FH_LAB
   EKA_LOG("%s:%u FH_LAB DUMMY \'Spin Image Available\' Accepted",EKA_EXCH_DECODE(gr->exch),gr->id);
@@ -152,7 +147,7 @@ static uint64_t getSpinImageSeq(FhBatsGr* gr) {
   return true;  
 }
 /* ##################################################################### */
-static void getSpinResponse(FhBatsGr* gr, EkaFhMode op) {
+static void getSpinResponse(EkaFhBatsGr* gr, EkaFhMode op) {
   EkaDev* dev = gr->dev;
 #ifdef FH_LAB
   EKA_LOG("%s:%u FH_LAB DUMMY Spin Response Accepted",EKA_EXCH_DECODE(gr->exch),gr->id);
@@ -199,7 +194,7 @@ static void getSpinResponse(FhBatsGr* gr, EkaFhMode op) {
   return;  
 }
 /* ##################################################################### */
-static void sendSpinRequest(FhBatsGr* gr, EkaFhMode op, uint64_t image_sequence) {
+static void sendSpinRequest(EkaFhBatsGr* gr, EkaFhMode op, uint64_t image_sequence) {
   EkaDev* dev = gr->dev;
 #ifdef FH_LAB
   EKA_LOG("%s:%u FH_LAB DUMMY Spin Request sent",EKA_EXCH_DECODE(gr->exch),gr->id);
@@ -232,7 +227,7 @@ static void sendSpinRequest(FhBatsGr* gr, EkaFhMode op, uint64_t image_sequence)
 void* getSpinData(void* attr) {
   //  EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
   EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
-  FhBatsGr*   gr            = (FhBatsGr*)((EkaFhThreadAttr*)attr)->gr;
+  EkaFhBatsGr*   gr            = (EkaFhBatsGr*)((EkaFhThreadAttr*)attr)->gr;
   //  uint64_t   start          = ((EkaFhThreadAttr*)attr)->startSeq;
   //  uint64_t   end            = ((EkaFhThreadAttr*)attr)->endSeq;
   EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
@@ -246,7 +241,7 @@ void* getSpinData(void* attr) {
 	  EKA_EXCH_DECODE(gr->exch),gr->id, op==EkaFhMode::SNAPSHOT ? "GAP_RECOVERY" : "DEFINITIONS",
 	  EKA_IP2STR(gr->snapshot_ip),be16toh(gr->snapshot_port));
   //-----------------------------------------------------------------
-  ekaTcpConnect(&gr->snapshot_sock,gr->snapshot_ip,gr->snapshot_port);
+  gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
   //-----------------------------------------------------------------
   EkaCredentialLease* lease;
   const struct timespec leaseTime = {.tv_sec = 180, .tv_nsec = 0};
@@ -326,7 +321,7 @@ void* getSpinData(void* attr) {
 }
 
 /* ##################################################################### */
-static void sendGapRequest(FhBatsGr* gr, uint64_t start, uint16_t cnt) {
+static void sendGapRequest(EkaFhBatsGr* gr, uint64_t start, uint16_t cnt) {
   EkaDev* dev = gr->dev;
 
   batspitch_gap_request gap_request = {};
@@ -350,7 +345,7 @@ static void sendGapRequest(FhBatsGr* gr, uint64_t start, uint16_t cnt) {
 }
 
 /* ##################################################################### */
-int getGapResponse(FhBatsGr* gr) {
+int getGapResponse(EkaFhBatsGr* gr) {
   EkaDev* dev = gr->dev;
 #ifdef FH_LAB
   EKA_LOG("%s:%u FH_LAB DUMMY Gap request Accepted",EKA_EXCH_DECODE(gr->exch),gr->id);
@@ -397,7 +392,7 @@ void* getGrpRetransmitData(void* attr) {
 
   //  EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
 
-  FhBatsGr*   gr            = (FhBatsGr*)((EkaFhThreadAttr*)attr)->gr;
+  EkaFhBatsGr*   gr            = (EkaFhBatsGr*)((EkaFhThreadAttr*)attr)->gr;
   EkaDev* dev = gr->dev;
   uint64_t   start          = ((EkaFhThreadAttr*)attr)->startSeq;
   uint64_t   end            = ((EkaFhThreadAttr*)attr)->endSeq;
@@ -416,9 +411,9 @@ void* getGrpRetransmitData(void* attr) {
 
   if (end - start > 65000) on_error("Gap %ju is too high (> 65000), start = %ju, end = %ju",end - start, start, end);
 
-  ekaTcpConnect(&gr->snapshot_sock,gr->snapshot_ip,gr->snapshot_port);
+  gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
   //-----------------------------------------------------------------
-  ekaUdpConnect(dev, &gr->recovery_sock, gr->recovery_ip, gr->recovery_port);
+  gr->recovery_sock = ekaUdpConnect(dev,gr->recovery_ip, gr->recovery_port);
   //-----------------------------------------------------------------
   sendLogin(gr);
   //-----------------------------------------------------------------

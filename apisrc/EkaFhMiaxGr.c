@@ -1,7 +1,10 @@
+#include <assert.h>
+
 #include "EkaFhMiaxGr.h"
 #include "EkaFhThreadAttr.h"
 #include "eka_fh_book.h"
 #include "eka_fh_q.h"
+#include "EkaFhMiaxParser.h"
 
 void* getSesmData(void* attr);
 void* getSesmRetransmit(void* attr);
@@ -84,7 +87,7 @@ void EkaFhMiaxGr::pushUdpPkt2Q(const uint8_t* pkt, int16_t pktLen) {
 
 /* ##################################################################### */
 int EkaFhMiaxGr::closeSnapshotGap(EfhCtx*           pEfhCtx, 
-				    const EfhInitCtx* pEfhRunCtx, 
+				    const EfhRunCtx* pEfhRunCtx, 
 				    uint64_t          startSeq,
 				    uint64_t          endSeq) {
   
@@ -108,7 +111,7 @@ int EkaFhMiaxGr::closeSnapshotGap(EfhCtx*           pEfhCtx,
 }
 /* ##################################################################### */
 int EkaFhMiaxGr::closeIncrementalGap(EfhCtx*        pEfhCtx, 
-				       const EfhInitCtx* pEfhRunCtx, 
+				       const EfhRunCtx* pEfhRunCtx, 
 				       uint64_t          startSeq,
 				       uint64_t          endSeq) {
   

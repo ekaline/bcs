@@ -16,12 +16,11 @@ class EkaFhThreadAttr {
 		  uint64_t         _end, 
 		  EkaFhMode        _op) {
 
-  pEfhCtx    = _efhCtx;
-  pEfhRunCtx = (EfhRunCtx*)_efhRunCtx;
+  pEfhCtx    = _pEfhCtx;
+  pEfhRunCtx = (EfhRunCtx*)_pEfhRunCtx;
   gr         = _gr;
   startSeq   = _start;
   endSeq     = _end;
-  runGrId    = _runGrId;
   op         = _op;
   }
 
@@ -30,7 +29,7 @@ class EkaFhThreadAttr {
   EkaFhGroup* gr          = NULL;
   uint64_t    startSeq    = -1;
   uint64_t    endSeq      = -1;
-  EkaFhMode   op          = -1;
+  EkaFhMode   op          = EkaFhMode::UNINIT;
 };
 
 #endif

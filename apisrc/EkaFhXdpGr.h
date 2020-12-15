@@ -5,7 +5,6 @@
 
 class EkaFhXdpGr : public EkaFhGroup{
  public:
-  EkaFhXdpGr();
   virtual               ~EkaFhXdpGr() {};
 
   bool                  parseMsg(const EfhRunCtx* pEfhRunCtx,
@@ -78,14 +77,17 @@ class EkaFhXdpGr : public EkaFhGroup{
   bool     inGap = false;
 
  private:
+  static const uint MAX_STREAMS = 16;
+  static const uint MAX_UNDERLYINGS = 512;
+
   Stream*  stream[MAX_STREAMS] = {};
   uint     numStreams = 0;
 
-  std::chrono::high_resolution_clock::time_point gapStart = 0;
+  std::chrono::high_resolution_clock::time_point gapStart;
 
   uint32_t underlyingIdx[MAX_UNDERLYINGS] = {};
   uint     numUnderlyings                 = 0;
   char     symbolStatus[MAX_UNDERLYINGS]  = {};
-  char     seriesStatus[MAX_SERIES]       = {};
+  //  char     seriesStatus[MAX_SERIES]       = {};
 };
 #endif

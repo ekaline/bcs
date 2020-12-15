@@ -6,15 +6,12 @@
 #include <inttypes.h>
 #include <assert.h>
 
-#include "eka_fh.h"
-#include "eka_fh_phlx_ord_messages.h"
-#include "eka_data_structs.h"
-#include "EkaDev.h"
-#include "Efh.h"
+#include "EkaFhPhlxOrdGr.h"
+#include "EkaFhPhlxOrdParser.h"
 #include "eka_fh_book.h"
 
 
-bool FhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
+bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
   char enc =  (char)m[0];
 
   if (op == EkaFhMode::DEFINITIONS && 

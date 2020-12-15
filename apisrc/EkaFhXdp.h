@@ -4,9 +4,12 @@
 #include "EkaFh.h"
 
 class EkaFhXdp : public EkaFh {
-   static const uint QSIZE = 1 * 1024 * 1024;
+  static const uint QSIZE = 1 * 1024 * 1024;
 
-public:
+ protected:
+  EkaFhGroup*         addGroup();
+
+ public:
   EkaOpResult getDefinitions (EfhCtx*          pEfhCtx, 
 			      const EfhRunCtx* pEfhRunCtx, 
 			      EkaGroup*        group);
@@ -15,13 +18,8 @@ public:
 			const EfhRunCtx* pEfhRunCtx, 
 			uint8_t          runGrId);
 
-  EkaOpResult initGroups(EfhCtx*          pEfhCtx, 
-			 const EfhRunCtx* pEfhRunCtx, 
-			 FhRunGr*         runGr);
-
-
   virtual ~EkaFhXdp() {};
-private:
+ private:
   uint8_t* getUdpPkt(EkaFhRunGroup* runGr, 
 		     uint*          msgInPkt, 
 		     uint*          pktSize, 
