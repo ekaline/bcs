@@ -170,10 +170,9 @@ int main(int argc, char *argv[]) {
 
     /* +++++++++++++++++++++++++++++++++++++ */
 
-    if (++packetCount % 1024 == 0)
-      if (SC_UpdateReceivePtr(channelId, pPacket) != SC_ERR_SUCCESS) on_error("error on SC_UpdateReceivePtr");
+    if (SC_UpdateReceivePtr(channelId, pPacket) != SC_ERR_SUCCESS) on_error("error on SC_UpdateReceivePtr");
 
-    if (++packetCount % 1000000 == 0)
+    if (++packetCount % 10000 == 0)
       printf("%ju packets dumped\n",packetCount);
 
     pPrevPacket = pPacket;
@@ -181,5 +180,5 @@ int main(int argc, char *argv[]) {
   }
   disableSniffer(devId);
   fclose(out_pcap_file);
-  TEST_LOG ("%ju packets dumped to %s",packetCount,fileName);
+  printf ("%ju packets dumped to %s\n",packetCount,fileName);
 }

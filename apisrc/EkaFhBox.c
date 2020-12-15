@@ -88,6 +88,7 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       if (gr->gapClosed) { // ignore UDP pkt during initial Snapshot
 	EKA_LOG("%s:%u: SNAPSHOT_GAP Closed: last snapshot sequence = %ju",EKA_EXCH_DECODE(exch),gr->id,gr->seq_after_snapshot);
 	gr->state = EkaFhGroup::GrpState::NORMAL;
+	gr->pushUdpPkt2Q(pkt,pktLen);
 
 	EKA_DEBUG("%s:%u Generating TOB quote for every Security",
 		  EKA_EXCH_DECODE(gr->exch),gr->id);

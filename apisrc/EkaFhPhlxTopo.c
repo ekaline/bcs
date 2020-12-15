@@ -100,7 +100,7 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       break;
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::SNAPSHOT_GAP : {
-      if (sequence + msgInPkt < gr->recovery_sequence) {
+      if (sequence <= gr->recovery_sequence) {
 	// Recovery feed took sequence over the MCAST
 	gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
 
