@@ -34,7 +34,7 @@ void EkaFhGroup::sendFeedUp(const EfhRunCtx* pEfhRunCtx) {
   EfhFeedUpMsg efhFeedUpMsg = {
     EfhMsgType::kFeedUp, 
     {exch, id}, 
-    ++gapNum 
+    gapNum 
   };
   pEfhRunCtx->onEfhFeedUpMsgCb(&efhFeedUpMsg, 0, pEfhRunCtx->efhRunUserData);
 }

@@ -41,6 +41,7 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       EKA_LOG("%s:%u: Running PreTrade Snapshot",EKA_EXCH_DECODE(exch),gr->id);
       gr->snapshotThreadDone = false;
 
+      gr->sendFeedDown(pEfhRunCtx);
       gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,1, 1);
 
       while (! gr->snapshotThreadDone) {} // instead of thread.join()
@@ -74,7 +75,9 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
     switch (gr->state) {
     case EkaFhGroup::GrpState::INIT : { 
       gr->gapClosed = false;
-      gr->state =EkaFhGroup::GrpState::SNAPSHOT_GAP;
+      gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
+
+      gr->sendFeedDown(pEfhRunCtx);
       gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 1, 0);
     }
       break;
@@ -87,6 +90,7 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
 	gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
 	gr->gapClosed = false;
 
+	gr->sendFeedDown(pEfhRunCtx);
 	gr->closeIncrementalGap(pEfhCtx, pEfhRunCtx, gr->expected_sequence, sequence + msgInPkt);
 
       } else { // NORMAL

@@ -92,6 +92,8 @@ EkaOpResult EkaFhPhlxOrd::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
     case EkaFhGroup::GrpState::INIT : { 
       gr->gapClosed = false;
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
+
+      gr->sendFeedDown(pEfhRunCtx);
       gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,1, 2);
       gr->expected_sequence = 2;
     }
@@ -105,6 +107,7 @@ EkaOpResult EkaFhPhlxOrd::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
 	gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
 	gr->gapClosed = false;
 
+	gr->sendFeedDown(pEfhRunCtx);
 	//	gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, gr->expected_sequence, sequence + msgInPkt);
 	gr->closeIncrementalGap(pEfhCtx,pEfhRunCtx, gr->expected_sequence, sequence + msgInPkt);
       } else { // NORMAL
