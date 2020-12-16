@@ -331,7 +331,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
     if (s == NULL) on_error("s == NULL");
 
-    EKA_LOG("OptionQuote for %s",boxMsg->InstrumentDescription);
+    EKA_LOG("OptionQuote for %s",boxMsg->InstrumentDescription + '\0');
 
     s->bid_price     = getNumField<uint32_t>(boxMsg->BidPrice,sizeof(boxMsg->BidPrice)) * getFractionIndicator(boxMsg->BidPriceFractionIndicator);
     s->bid_size      = getNumField<uint32_t>(boxMsg->BidSize,sizeof(boxMsg->BidSize));
@@ -343,7 +343,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
     getStatus(s,boxMsg->InstrumentStatusMarker);
     if (op != EkaFhMode::SNAPSHOT)
-      book->generateOnQuote64 (pEfhRunCtx, s, sequence, gr_ts, gapNum);
+      ((TobBook*)book)->generateOnQuote64 (pEfhRunCtx, s, sequence, gr_ts, gapNum);
 
     //===================================================
   } else if (memcmp(msgHdr->MsgType,"Z ",sizeof(msgHdr->MsgType)) == 0) { // SystemTimeStamp
