@@ -331,7 +331,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
     if (s == NULL) on_error("s == NULL");
 
-    EKA_LOG("OptionQuote for %s",boxMsg->InstrumentDescription + '\0');
+    //    EKA_LOG("OptionQuote for %s",boxMsg->InstrumentDescription + '\0');
 
     s->bid_price     = getNumField<uint32_t>(boxMsg->BidPrice,sizeof(boxMsg->BidPrice)) * getFractionIndicator(boxMsg->BidPriceFractionIndicator);
     s->bid_size      = getNumField<uint32_t>(boxMsg->BidSize,sizeof(boxMsg->BidSize));

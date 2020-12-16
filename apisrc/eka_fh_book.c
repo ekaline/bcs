@@ -786,6 +786,7 @@ void TobBook::sendTobImage64 (const EfhRunCtx* pEfhRunCtx) {
 }
  /* ##################################################################### */
 int FullBook::generateOnQuote64 (const EfhRunCtx* pEfhRunCtx, fh_b_security64* s, uint64_t sequence, uint64_t timestamp,uint gapNum) {
+  on_error ("I was not supposed be here!!!");
   return 0; // place holder
 }
 int FullBook::generateOnQuote (const EfhRunCtx* pEfhRunCtx, fh_b_security* s, uint64_t sequence, uint64_t timestamp,uint gapNum) {
@@ -904,6 +905,7 @@ int TobBook::generateOnQuote64 (const EfhRunCtx* pEfhRunCtx, fh_b_security64* s,
 
   if (pEfhRunCtx->onEfhQuoteMsgCb == NULL) on_error("Uninitialized pEfhRunCtx->onEfhQuoteMsgCb");
 
+  EKA_LOG("secId = %ju",msg.header.securityId);
 
 #ifdef EKA_TIME_CHECK
   auto start = std::chrono::high_resolution_clock::now();
