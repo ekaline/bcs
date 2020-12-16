@@ -34,9 +34,9 @@ uint trailingZeros(uint8_t* p, uint maxChars);
 /* ##################################################################### */
 
 int EkaFhBoxGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
-  book = new NomBook(pEfhCtx,pEfhInitCtx,this);
+  book = new TobBook(pEfhCtx,pEfhInitCtx,this);
   if (book == NULL) on_error("book == NULL, &book = %p",&book);
-  ((NomBook*)book)->init();
+  ((TobBook*)book)->init();
   return 0;
 }
 /* ##################################################################### */
