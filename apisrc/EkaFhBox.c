@@ -62,6 +62,8 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       gr->gapClosed = false;
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
       gr->sendFeedDown(pEfhRunCtx);
+      gr->pushUdpPkt2Q(pkt,pktLen);
+
       gr->closeIncrementalGap(pEfhCtx,pEfhRunCtx, (uint64_t)1, sequence);
     }
       break;
@@ -86,7 +88,8 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::SNAPSHOT_GAP : {
       if (gr->gapClosed) { // ignore UDP pkt during initial Snapshot
-	EKA_LOG("%s:%u: SNAPSHOT_GAP Closed: last snapshot sequence = %ju",EKA_EXCH_DECODE(exch),gr->id,gr->seq_after_snapshot);
+	EKA_LOG("%s:%u: SNAPSHOT_GAP Closed: last snapshot sequence = %ju",
+		EKA_EXCH_DECODE(exch),gr->id,gr->seq_after_snapshot);
 	gr->state = EkaFhGroup::GrpState::NORMAL;
 	gr->pushUdpPkt2Q(pkt,pktLen);
 
@@ -126,6 +129,21 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
   EKA_INFO("%s RunGroup %u EndOfSession",EKA_EXCH_DECODE(exch),runGrId);
   return EKA_OPRESULT__OK;
 }
+ /* ##################################################################### */
+
+EkaOpResult EkaFhBox::subscribeStaticSecurity(uint8_t groupNum, 
+					      uint64_t securityId, 
+					      EfhSecurityType efhSecurityType,
+					      EfhSecUserData efhSecUserData,
+					      uint64_t opaqueAttrA,
+					      uint64_t opaqueAttrB) {
+  if (groupNum >= groups) on_error("groupNum (%u) >= groups (%u)",groupNum,groups);
+  b_gr[groupNum]->book->subscribe_security64 (securityId, 
+					      static_cast< uint8_t >( efhSecurityType ), 
+					      efhSecUserData,opaqueAttrA,opaqueAttrB);
+  return EKA_OPRESULT__OK;
+}
+
 /* ##################################################################### */
 
 EkaOpResult EkaFhBox::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group) {

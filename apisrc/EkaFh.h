@@ -54,13 +54,12 @@ class EkaFh {
   
   void                send_igmp(bool join_leave, volatile bool igmp_thread_active);
   EkaFhAddConf        conf_parse(const char *key, const char *value);
-  EkaOpResult         subscribeStaticSecurity(
-					      uint8_t groupNum, 
-					      uint64_t securityId, 
-					      EfhSecurityType efhSecurityType,
-					      EfhSecUserData efhSecUserData,
-					      uint64_t opaqueAttrA,
-					      uint64_t opaqueAttrB);
+  virtual EkaOpResult         subscribeStaticSecurity(uint8_t groupNum, 
+						      uint64_t securityId, 
+						      EfhSecurityType efhSecurityType,
+						      EfhSecUserData efhSecUserData,
+						      uint64_t opaqueAttrA,
+						      uint64_t opaqueAttrB);
 
   EkaFhGroup*         nextGrToProcess(uint first, uint numGroups);
   //-----------------------------------------------------------------------------

@@ -277,7 +277,8 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
   //  EKA_LOG("%s:%u: %ju \'%c%c\'",EKA_EXCH_DECODE(exch),id,seq,msgHdr->MsgType[0],msgHdr->MsgType[1]);
   //===================================================
   if (memcmp(msgHdr->MsgType,"J ",sizeof(msgHdr->MsgType)) == 0) { // OptionInstrumentKeys
-    if (op == EkaFhMode::SNAPSHOT) return false;
+    //    if (op == EkaFhMode::SNAPSHOT) return false;
+    if (op != EkaFhMode::DEFINITIONS) return false;
 
     HsvfOptionInstrumentKeys* boxMsg = (HsvfOptionInstrumentKeys*)msgBody;
     
@@ -329,6 +330,9 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
       s = book->subscribe_security64(security_id,0,0,0,0);
 
     if (s == NULL) on_error("s == NULL");
+
+    EKA_LOG("OptionQuote for %s",boxMsg->InstrumentDescription);
+
     s->bid_price     = getNumField<uint32_t>(boxMsg->BidPrice,sizeof(boxMsg->BidPrice)) * getFractionIndicator(boxMsg->BidPriceFractionIndicator);
     s->bid_size      = getNumField<uint32_t>(boxMsg->BidSize,sizeof(boxMsg->BidSize));
     s->bid_cust_size = getNumField<uint32_t>(boxMsg->PublicCustomerBidSize,sizeof(boxMsg->PublicCustomerBidSize));
