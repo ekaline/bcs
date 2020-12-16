@@ -88,7 +88,7 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::SNAPSHOT_GAP : {
       if (gr->gapClosed) { // ignore UDP pkt during initial Snapshot
-	EKA_LOG("%s:%u: SNAPSHOT_GAP Closed: last snapshot sequence = %ju",
+	EKA_LOG("%s:%u: SNAPSHOT_GAP Closed: seq_after_snapshot = %ju",
 		EKA_EXCH_DECODE(exch),gr->id,gr->seq_after_snapshot);
 	gr->state = EkaFhGroup::GrpState::NORMAL;
 	gr->pushUdpPkt2Q(pkt,pktLen);
@@ -109,7 +109,8 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       gr->pushUdpPkt2Q(pkt,pktLen);
 
       if (gr->gapClosed) {
-	EKA_LOG("%s:%u: RETRANSMIT_GAP Closed: last retransmitted sequence = %ju",EKA_EXCH_DECODE(exch),gr->id,gr->seq_after_snapshot);
+	EKA_LOG("%s:%u: RETRANSMIT_GAP Closed: seq_after_snapshot = %ju",
+		EKA_EXCH_DECODE(exch),gr->id,gr->seq_after_snapshot);
 	gr->state = EkaFhGroup::GrpState::NORMAL;
 	gr->sendFeedUp(pEfhRunCtx);
 
