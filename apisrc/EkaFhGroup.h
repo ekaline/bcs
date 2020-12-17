@@ -48,6 +48,8 @@ class EkaFhGroup {
     return 0;
   }
 
+  virtual int processFromQ(const EfhRunCtx* pEfhRunCtx);
+
   /* virtual bool        processUdpPkt(const EfhRunCtx* pEfhRunCtx, */
   /* 				    const uint8_t*   pkt,  */
   /* 				    uint             msgInPkt,  */

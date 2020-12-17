@@ -25,6 +25,8 @@ class EkaFhBoxGr : public EkaFhGroup{
   void                  pushUdpPkt2Q(const uint8_t* pkt, 
 				     uint           pktLen);
 
+  int                   processFromQ(const EfhRunCtx* pEfhRunCtx);
+
 
   int                  closeIncrementalGap(EfhCtx*           pEfhCtx, 
 					   const EfhRunCtx*  pEfhRunCtx, 

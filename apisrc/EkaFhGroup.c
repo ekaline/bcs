@@ -28,6 +28,20 @@ int createIgmpPkt (char* dst, bool join, uint8_t* macsa, uint32_t ip_src, uint32
 
  /* ##################################################################### */
 
+int EkaFhGroup::processFromQ(const EfhRunCtx* pEfhRunCtx) {
+  while (! q->is_empty()) {
+    fh_msg* buf = q->pop();
+    //      EKA_LOG("q_len=%u,buf->sequence=%ju, expected_sequence=%ju",q->get_len(),buf->sequence,expected_sequence);
+
+    if (buf->sequence < expected_sequence) continue;
+    parseMsg(pEfhRunCtx,(unsigned char*)buf->data,buf->sequence,EkaFhMode::MCAST);
+    expected_sequence = buf->sequence + 1;
+  }
+  return 0;
+}
+
+ /* ##################################################################### */
+
 void EkaFhGroup::sendFeedUp(const EfhRunCtx* pEfhRunCtx) {
   if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
 

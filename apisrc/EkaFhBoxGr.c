@@ -33,6 +33,17 @@ uint trailingZeros(uint8_t* p, uint maxChars);
 
 /* ##################################################################### */
 
+int EkaFhBoxGr::processFromQ(const EfhRunCtx* pEfhRunCtx) {
+  while (! q->is_empty()) {
+    fh_msg* buf = q->pop();
+    //      EKA_LOG("q_len=%u,buf->sequence=%ju, expected_sequence=%ju",q->get_len(),buf->sequence,expected_sequence);
+    parseMsg(pEfhRunCtx,(unsigned char*)buf->data,buf->sequence,EkaFhMode::MCAST);
+    expected_sequence = buf->sequence + 1;
+  }
+  return 0;
+}
+/* ##################################################################### */
+
 int EkaFhBoxGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
   book = new TobBook(pEfhCtx,pEfhInitCtx,this);
   if (book == NULL) on_error("book == NULL, &book = %p",&book);
