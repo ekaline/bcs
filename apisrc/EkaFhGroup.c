@@ -81,13 +81,14 @@ int EkaFhGroup::init (EfhCtx* _pEfhCtx,
   dev      = pEfhCtx->dev;
   exch     = _exch;
   feed_ver = EFH_EXCH2FEED(exch);
-  if (dev->core[core] == NULL) on_error("dev->core[%u] == NULL",core);
-
-  no_igmp  = ! EKA_NATIVE_MAC(dev->core[core]->macSa);
 
   fh       = _fh;
   if (fh == NULL) on_error("fh == NULL");
   core     = fh->c;
+
+  if (dev->core[core] == NULL) on_error("dev->core[%u] == NULL",core);
+
+  no_igmp  = ! EKA_NATIVE_MAC(dev->core[core]->macSa);
 
   q        = NULL;
   id       = gr_id;
