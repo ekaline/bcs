@@ -89,7 +89,8 @@ int EkaFh::init(const EfhInitCtx* pEfhInitCtx, uint8_t numFh) {
   }
   any_group_getting_snapshot = false;
 
-  EKA_DEBUG("%s is Initialized with feed_ver = %s, %u MC groups",EKA_EXCH_DECODE(exch), EKA_FEED_VER_DECODE(feed_ver),groups);
+  EKA_DEBUG("%s is Initialized: coreId = %u, feed_ver = %s, %u MC groups",
+	    EKA_EXCH_DECODE(exch), c, EKA_FEED_VER_DECODE(feed_ver),groups);
 
   return 0;
 }

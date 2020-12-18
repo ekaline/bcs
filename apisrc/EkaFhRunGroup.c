@@ -7,13 +7,14 @@
 
 EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t _runId ) {
   dev      = pEfhCtx->dev;
-  coreId   = pEfhCtx->coreId;
 
   runId    = _runId;
   fh       = dev->fh[pEfhCtx->fhId];
+  if (fh == NULL) on_error("fh = NULL");
   exch     = fh->exch;
   //  firstGr = pEfhRunCtx->groups[0].localId;
   numGr    = pEfhRunCtx->numGroups;
+  coreId   = fh->c;
 
   int n = 0;
   for (auto i = 0; i < numGr; i++) {
@@ -31,7 +32,8 @@ EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
   hasGrpAfterGap     = false;
   stoppedByExchange  = false;
 
-  EKA_LOG("%s: runId = %u,groups: %s",EKA_EXCH_DECODE(exch),runId,list2print);
+  EKA_LOG("%s: coreId = %u, runId = %u, MC groups: %s",
+	  EKA_EXCH_DECODE(exch),coreId,runId,list2print);
 }
 /* ##################################################################### */
 
