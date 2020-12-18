@@ -84,7 +84,7 @@ int EkaFhGroup::init (EfhCtx* _pEfhCtx,
 
   fh       = _fh;
   if (fh == NULL) on_error("fh == NULL");
-  core     = fh->c;
+  core     = 0; //fh->c;
 
   if (dev->core[core] == NULL) on_error("dev->core[%u] == NULL",core);
 
