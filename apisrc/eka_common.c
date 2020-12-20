@@ -105,6 +105,7 @@ std::string ts_ns2str(uint64_t ts) {
 int ekaTcpConnect(uint32_t ip, uint16_t port) {
 #ifdef FH_LAB
   TEST_LOG("Dummy FH_LAB TCP connect to %s:%u",EKA_IP2STR(ip),port);
+  return -1;
 #else
   int sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0) on_error("failed to open TCP socket");
@@ -115,8 +116,8 @@ int ekaTcpConnect(uint32_t ip, uint16_t port) {
   remote_addr.sin_family = AF_INET;
   if (connect(sock,(struct sockaddr*)&remote_addr,sizeof(struct sockaddr_in)) != 0) 
     on_error("socket connect failed %s:%u",EKA_IP2STR(*(uint32_t*)&remote_addr.sin_addr),be16toh(remote_addr.sin_port));
-#endif
   return sock;
+#endif
 }
 /* ##################################################################### */
 

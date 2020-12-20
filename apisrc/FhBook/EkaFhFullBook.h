@@ -18,22 +18,26 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class O
    : EkaFhBook (_dev,_gr,_exch) {}
  
 
-  int             init();
+  void            init() {
+    EKA_LOG("OK");
+    allocateResources();
+  }
 
-  EkaFhSecurity*     findSecurity(SecurityIdT secId);
+  EkaFhSecurity*  findSecurity(SecurityIdT secId);
 
-  EkaFhSecurity*     subscribeSecurity(SecurityIdT     secId,
-				       EfhSecurityType type,
-				       EfhSecUserData  userData,
-				       uint64_t        opaqueAttrA,
-				       uint64_t        opaqueAttrB);
+  EkaFhSecurity*  subscribeSecurity(SecurityIdT     secId,
+				    EfhSecurityType type,
+				    EfhSecUserData  userData,
+				    uint64_t        opaqueAttrA,
+				    uint64_t        opaqueAttrB);
+
   EkaFhPlevel*    addOrder(FhSecurity*     s,
 			   OrderIdT        _orderId,
 			   FhOrderType     _type, 
 			   PriceT          _price, 
 			   SizeT           _size, 
 			   SideT           _side);
-  //    int             replaceOrder();
+
   int             modifyOrder(FhOrder* o, PriceT price,SizeT size);
   int             deleteOrder(FhOrder* o);
   SizeT           reduceOrderSize(FhOrder* o, SizeT deltaSize);
@@ -49,6 +53,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class O
   EkaFhPlevel*    findOrAddPlevel  (FhSecurity* s,   PriceT _price, SideT _side);
   EkaFhPlevel*    addPlevelAfterTob(FhPlevel** pTob, PriceT _price, SideT _side);
   EkaFhPlevel*    addPlevelAfterP  (FhPlevel* p,     PriceT _price);
+  void            allocateResources();
   //----------------------------------------------------------
 
  public:

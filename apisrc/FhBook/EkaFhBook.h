@@ -5,11 +5,10 @@
 #include "eka_macros.h"
 
 #include "Efh.h"
+#include "EkaDev.h"
 
 class EkaFhGroup;
 class EkaFhSecurity;
-class EkaDev;
-
 
 class EkaFhBook {
  protected:
@@ -22,7 +21,7 @@ class EkaFhBook {
   }
 
  public:
-  //  virtual int      init() {return 0;}
+  //  virtual void      init() = 0;
 
 
   virtual int      generateOnQuote(const EfhRunCtx* pEfhRunCtx, 

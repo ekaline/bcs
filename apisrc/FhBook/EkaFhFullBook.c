@@ -66,9 +66,17 @@ inline uint32_t getOrderHashIdx(OrderIdT orderId, uint64_t MAX_ORDERS, uint ORDE
 }
 
 /* ####################################################### */
+
+/* template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class OrderIdT, class PriceT, class SizeT> */
+/*   void EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT> */
+/*   ::init() { */
+/*   EKA_LOG("OK"); */
+/* } */
+/* ####################################################### */
+
 template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class OrderIdT, class PriceT, class SizeT>
-  int EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>
-  ::init() {
+  void EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>
+  ::allocateResources() {
   for (auto i = 0; i < MAX_ORDERS; i++) ord[i]=NULL;
   //----------------------------------------------------------
   EKA_LOG("%s:%u: preallocating %u free orders",EKA_EXCH_DECODE(exch),gr->id,MAX_ORDERS);
@@ -87,7 +95,6 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class O
     p = &((*p)->next);
   }
   //----------------------------------------------------------
-  return 0;
 }
 
 /* ####################################################### */
@@ -322,3 +329,4 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class O
 
   return newP;
 }
+

@@ -95,17 +95,6 @@ include .depend
 	$(CCDEP) $(CFLAGS) -I . -MM $^ > .depend || rm -f .depend
 
 ###############################################
-
-#eka_%.o: eka_%.c
-#	$(CC) -c $< $(INCL) $(GCC_FLAGS)
-
-#epm%.o: epm%.c
-#	$(CC) -c $< $(INCL) $(GCC_FLAGS)
-
-#E%.o: E%.c
-#	$(CC) -c $< $(INCL) $(GCC_FLAGS)
-
-
 $(EKALIB_OBJ): %.o: %.c $(EKAHEADER_FILES)
 	$(CC) $(CC_OPT) -c $< $(GCC_FLAGS) $(INCL) -o $@
 
@@ -118,11 +107,6 @@ $(LIBEKALINE).so: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIP_LIB)
 $(LIBEKALINE).a: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIPOBJS)
 	ar x $(SMARTNIC_LIB)
 	ar rcs $@ $(EKALIB_OBJ) $(SMARTNIC_LIB_FILES) $(LWIPOBJS)
-
-#eka_utils: $(EKAUTILS_EXECS) $(LIBEKALINE).a
-#../eka_utils/%: ../eka_utils/%.c $(LIBEKALINE).a
-#	$(CC) $< -o $@ $(GCC_FLAGS) $(INCL) $(SMARTNIC_LIB) $(LIBEKALINE).a
-##	$(CC) $< -o $@ $(GCC_FLAGS) -I . -I $(DRIVERS_INCL) -I $(API_INCL) -I ../apisrc $(SMARTNIC_LIB)
 
 eka_utils: $(EKAUTILS)
 $(EKAUTILS): %: %.c $(LIBEKALINE).a

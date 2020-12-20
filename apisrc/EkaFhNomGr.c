@@ -12,7 +12,9 @@ int EkaFhNomGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
   /*   SecurityIdT, OrderIdT, PriceT, SizeT>(dev,this,exch); */
   
   fhBook = new FhBook(dev,this,exch);
- 
+  if (fhBook == NULL) on_error("fhBook = NULL");
+
+  fhBook->init();
+
   return 0;
 }
-

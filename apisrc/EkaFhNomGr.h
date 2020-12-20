@@ -5,7 +5,6 @@
 
 #include "EkaFhFullBook.h"
 
-//class EkaFhBook;
 
 class EkaFhNomGr : public EkaFhNasdaqGr {
  public:
@@ -29,8 +28,7 @@ class EkaFhNomGr : public EkaFhNasdaqGr {
 
   using FhBook      = EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>;
 
-  EkaFhBook*          fhBook         = NULL;
-
+  FhBook*          fhBook         = NULL;
 };
 
 #endif
