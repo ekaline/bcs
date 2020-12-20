@@ -3,6 +3,10 @@
 
 #include "EkaFhNasdaqGr.h"
 
+#include "EkaFhFullBook.h"
+
+//class EkaFhBook;
+
 class EkaFhNomGr : public EkaFhNasdaqGr {
  public:
   virtual              ~EkaFhNomGr() {};
@@ -14,6 +18,19 @@ class EkaFhNomGr : public EkaFhNasdaqGr {
 
   int                  bookInit(EfhCtx* pEfhCtx, 
 				const EfhInitCtx* pEfhInitCtx);
+
+  static const uint   SCALE          = (const uint) 24;
+  static const uint   SEC_HASH_SCALE = 17;
+
+  using SecurityIdT = uint32_t;
+  using OrderIdT    = uint32_t;
+  using PriceT      = uint32_t;
+  using SizeT       = uint32_t;
+
+  using FhBook      = EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>;
+
+  EkaFhBook*          fhBook         = NULL;
+
 };
 
 #endif

@@ -1,7 +1,59 @@
 #include "EkaFhFullBook.h"
+#include "EkaFhGroup.h"
+
+//----------------------------------------------------------
+/* template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class OrderIdT, class PriceT, class SizeT> */
+/*   EkaFhFullBook::EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>(EkaDev* _dev, EkaFhGroup* _gr, EkaSource   _exch) :  */
+/*   EkaFhBook (_dev,_gr,_exch) { */
+  
+/* } */
 
 /* ####################################################### */
-inline uint32_t getOrderHashIdx (OrderIdT orderId, uint64_t MAX_ORDERS, uint ORDERS_HASH_MASK) {
+template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class OrderIdT, class PriceT, class SizeT>
+  EkaFhSecurity* EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>
+  ::findSecurity(SecurityIdT secId) {
+  uint32_t index =  secId & SEC_HASH_MASK;
+  if (index >= SEC_HASH_LINES) on_error("index = %u >= SEC_HASH_LINES %u",index,SEC_HASH_LINES);
+  if (sec[index] == NULL) return NULL;
+
+  FhSecurity* sp = sec[index];
+
+  while (sp != NULL) {
+    if (sp->secId == secId) return sp;
+    sp = sp->next;
+  }
+
+  return NULL;
+}
+/* ####################################################### */
+
+template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class OrderIdT, class PriceT, class SizeT>
+  EkaFhSecurity* EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>
+  ::subscribeSecurity(SecurityIdT     secId,
+					    EfhSecurityType type,
+					    EfhSecUserData  userData,
+					    uint64_t        opaqueAttrA,
+					    uint64_t        opaqueAttrB) {
+  FhSecurity* s = new FhSecurity(secId,type,userData,opaqueAttrA,opaqueAttrB);
+  if (s == NULL) on_error("s == NULL, new FhSecurity failed");
+  
+  uint32_t index = secId & SEC_HASH_MASK;
+  if (index >= SEC_HASH_LINES) 
+    on_error("index = %u >= SEC_HASH_LINES %u",index,SEC_HASH_LINES);
+
+  if (sec[index] == NULL) {
+    sec[index] = s; // empty bucket
+  } else {
+    FhSecurity *sp = sec[index];
+    while (sp->next != NULL) sp = sp->next;
+    sp->next = s;
+  }
+  numSecurities++;
+  return s;
+}
+/* ####################################################### */
+template <class OrderIdT>
+inline uint32_t getOrderHashIdx(OrderIdT orderId, uint64_t MAX_ORDERS, uint ORDERS_HASH_MASK) {
   if ((orderId & ORDERS_HASH_MASK) > MAX_ORDERS) 
     on_error("orderId (%jx) & ORDERS_HASH_MASK (%x) (=%jx)  > MAX_ORDERS(%jx)",
 	      
@@ -14,20 +66,22 @@ inline uint32_t getOrderHashIdx (OrderIdT orderId, uint64_t MAX_ORDERS, uint ORD
 }
 
 /* ####################################################### */
-int EkaFhFullBook::init() {
+template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class OrderIdT, class PriceT, class SizeT>
+  int EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>
+  ::init() {
   for (auto i = 0; i < MAX_ORDERS; i++) ord[i]=NULL;
   //----------------------------------------------------------
-  EKA_LOG("%s:%u: preallocating %u free orders",EKA_EXCH_DECODE(exch),id,MAX_ORDERS);
+  EKA_LOG("%s:%u: preallocating %u free orders",EKA_EXCH_DECODE(exch),gr->id,MAX_ORDERS);
   FhOrder** o = &orderFreeHead;
-  for (uint i = 0; i < getMaxOrders(); i++) {
+  for (uint i = 0; i < MAX_ORDERS; i++) {
     *o = new FhOrder();
     if (*o == NULL) on_error("constructing new Order failed");
     o = &((*o)->next);
   }
   //----------------------------------------------------------
-  EKA_LOG("%s:%u: preallocating %u free Plevels",EKA_EXCH_DECODE(exch),id,MAX_PLEVELS);
+  EKA_LOG("%s:%u: preallocating %u free Plevels",EKA_EXCH_DECODE(exch),gr->id,MAX_PLEVELS);
   FhPlevel** p = &plevelFreeHead;
-  for (uint i = 0; i < getMaxPlevels();i++) {
+  for (uint i = 0; i < MAX_PLEVELS; i++) {
     *p = new FhPlevel();
     if (*p == NULL) on_error("constructing new Plevel failed");
     p = &((*p)->next);
@@ -37,10 +91,12 @@ int EkaFhFullBook::init() {
 }
 
 /* ####################################################### */
-FhPlevel* EkaFhFullBook::getNewPlevel() {
+template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class OrderIdT, class PriceT, class SizeT>
+  EkaFhPlevel* EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>
+  ::getNewPlevel() {
   if (numPlevels++ == MAX_PLEVELS) 
     on_error("%s:%u: out of preallocated FhPlevels: numPlevels=%u MAX_PLEVELS=%ju",
-	     EKA_EXCH_DECODE(exch),id,numPlevels,MAX_PLEVELS);
+	     EKA_EXCH_DECODE(exch),gr->id,numPlevels,MAX_PLEVELS);
 
   if (numPlevels > maxNumPlevels) maxNumPlevels = numPlevels;
   FhPlevel* p = plevelFreeHead;
@@ -51,10 +107,12 @@ FhPlevel* EkaFhFullBook::getNewPlevel() {
 }
 
 /* ####################################################### */
-FhOrder* EkaFhFullBook::getNewOrder() {
+template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class OrderIdT, class PriceT, class SizeT>
+  EkaFhOrder* EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>
+  ::getNewOrder() {
   if (++numOrders == MAX_ORDERS) 
     on_error("%s:%u: out of preallocated FhOrders: numOrders=%u MAX_ORDERS=%ju",
-	     EKA_EXCH_DECODE(exch),id,numOrders,MAX_ORDERS);
+	     EKA_EXCH_DECODE(exch),gr->id,numOrders,MAX_ORDERS);
 
   if (numOrders > maxNumOrders) maxNumOrders = numOrders;
   FhOrder* o = orderFreeHead;
@@ -64,144 +122,95 @@ FhOrder* EkaFhFullBook::getNewOrder() {
 }
 /* ####################################################### */
 
-void EkaFhFullBook::releasePlevel(FhPlevel* p) {
+template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class OrderIdT, class PriceT, class SizeT>
+  void EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>::
+  releasePlevel(FhPlevel* p) {
   if (p == NULL) on_error("p == NULL");
-  if (numPlevels-- == 0) on_error("numPlevels == 0 before releasing new element for GR%u",id);
+  if (numPlevels-- == 0) on_error("numPlevels == 0 before releasing new element for GR%u",gr->id);
   p->next = plevelFreeHead;
   plevelFreeHead = p;
   p->reset();
 }
 /* ####################################################### */
-void EkaFhFullBook::releaseOrder(FhOrder* o) {
+template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class OrderIdT, class PriceT, class SizeT>
+  void EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>::
+  releaseOrder(FhOrder* o) {
   if (o == NULL) on_error("o == NULL");
-  if (numOrders-- == 0) on_error("numOrders == 0 before releasing new element for GR%u",id);
+  if (numOrders-- == 0) on_error("numOrders == 0 before releasing new element for GR%u",gr->id);
   o->next       = orderFreeHead;
   orderFreeHead = o;
-  o->orderId   = 0;
+  o->orderId    = 0;
   o->size       = 0;
   o->plevel     = NULL; 
 }
 /* ####################################################### */
 
-int EkaFhFullBook::deleteOrder (FhOrder* o) {
-  if (o == NULL) on_error("o == NULL for GR%u",id);
+template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class OrderIdT, class PriceT, class SizeT>
+  int EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>
+  ::deleteOrder (FhOrder* o) {
+  if (o == NULL) on_error("o == NULL for GR%u",gr->id);
   FhPlevel* p = o->plevel;
   if (p == NULL) on_error("p == NULL");
-
-  p->deleteMyOrder(o->size,o->type);
+  
+  p->deductSize(o->type,o->size);
+  p->cnt--;
   if (p->isEmpty()) deletePlevel(p);
 
   deleteOrderFromHash (o->orderId);
   release_order_element(o);
-  return err;
+  return 0;
 }
 
 /* ####################################################### */
 
-FhPlevel* EkaFhFullBook::addOrder (FhSecurity*     s,
-				   OrderIdT        _orderId,
-				   FhOrder::type_t _type, 
-				   PriceT          _price, 
-				   SizeT           _size, 
-				   SideT           _side) {
-#ifdef INTERNAL_DEBUG
-  EKA_LOG("security_id=%d, orderId=%ju, price=%d, size=%d, side=%c",security_id, orderId,price,size,side);
-#endif
-  if (s == NULL) return NULL;
+template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class OrderIdT, class PriceT, class SizeT>
+  EkaFhPlevel* EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>
+  ::addOrder (FhSecurity*     s,
+	      OrderIdT        _orderId,
+	      FhOrderType     _type, 
+	      PriceT          _price, 
+	      SizeT           _size, 
+	      SideT           _side) {
   FhOrder* o = getNewOrder();
-  if (o == NULL) on_error("FhOrder* o = NULL");
-
-  o->orderId = _orderId;
-  o->type    = _type;
-  o->size    = _size;
-  o->next    = NULL;
-  o->plevel  = NULL;
-  
-  switch (side) {
-  case SideT::BID : 
-  }
-  if (side == 'B') o->plevel = find_and_update_buy_price_level4add(s,o->type,price,size);
-  else o->plevel = find_and_update_sell_price_level4add(s,o->type,price,size);
+  o->reset();
 
   o->plevel = findOrAddPlevel(s,_price,_side);
-  o->plevel->addMeOrder(o->type,o->size);
+  o->plevel->addSize(o->type,o->size);
+  o->plevel->cnt++;
   addOrder2Hash (o);
   return o->plevel;
 }
 
 /* ####################################################### */
 
-EKA_FH_ERR_CODE EkaFhFullBook::modify_order (FhOrder* o,uint32_t price,uint32_t size) {
-  if (o == NULL) return EKA_FH_RESULT__OK;
-  FhPlevel* new_p;
-
-  //  FhPlevel* c = o->plevel;
-  if (o->plevel == NULL) on_error("o->plevel == NULL");
-  FhSecurity* s = o->plevel->s;
-
-  char side = ((o->plevel->state == FhPlevel::STATE::BEST_BUY)  || 
-	       (o->plevel->state == FhPlevel::STATE::BUY)) ? 'B' : 'S';
-#ifdef INTERNAL_DEBUG
-  EKA_LOG("o=%p, o->orderId=%ju,o->size=%d, price=%d,o->plevel = %p, o->plevel->price=%d, o->plevel->state=%u",
-	  o,o->orderId,o->size,price,o->plevel,o->plevel->price,o->plevel->state);
-#endif
-  if (o->plevel->price == price) return  change_order_size (o,size,0);
-  o->plevel->delete_order_from_plevel(o->size,o->type);
-  if (o->plevel->is_empty()) delete_plevel(o->plevel);
-
-  o->size = size;
-
-  if (side == 'B') new_p = find_and_update_buy_price_level4add (s,o->type,price,size);
-  else new_p = find_and_update_sell_price_level4add (s,o->type,price,size);
-  o->plevel = new_p;
-
-  return EKA_FH_RESULT__OK;
+template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class OrderIdT, class PriceT, class SizeT>
+  int EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>
+  ::modifyOrder (FhOrder*    o,
+		 PriceT      price,
+		 SizeT       size) {
+  FhPlevel* p = o->plevel;
+  if (p->price == price) {
+    p->deductSize(o->type,o->size);
+    p->addSize   (o->type,   size);
+  } else {
+    FhSecurity* s = p->security;
+    SideT    side = p->side;
+    p->deductSize(o->type,o->size);
+    p->cnt--;
+    if (p->isEmpty()) deletePlevel(p);
+    o->size   = size;
+    o->plevel = findOrAddPlevel(s,price,side);
+  }
+  return 0;
 }
 
-/* ####################################################### */
-EKA_FH_ERR_CODE EkaFhFullBook::replace_order (FhOrder* o,uint64_t new_order_id,int32_t price,uint32_t size) {
-  if (o == NULL) return EKA_FH_RESULT__OK;
-
-#ifdef INTERNAL_DEBUG
-  EKA_LOG("old_order_id=%ju, o->plevel->price=%u, o->plevel->cnt=%u, new_order_id=%ju, price=%u, o->plevel = %p, size=%u o->plevel->state=%s",
-	  o->order_id,   o->plevel->price,    o->plevel->cnt,   new_order_id,      price,  o->plevel,       size,"XYU");
-#endif
-
-  modify_order(o,price,size);
-  deleteOrderFromHash(o->order_id);
-  o->order_id = new_order_id;
-  o->size = size;
-  add_order2hash(o);
-
-  return EKA_FH_RESULT__OK;
-}
-/* ####################################################### */
-
-EKA_FH_ERR_CODE EkaFhFullBook::change_order_size (FhOrder* o,uint32_t size,int incr) {
-  if (o == NULL) on_error("o == NULL for GR%u",id);
-#ifdef INTERNAL_DEBUG
-  EKA_LOG("o->plevel->price=%d, size=%d, incr=%d,o->size=%d",o->plevel->price,size,incr,o->size);
-#endif
-
-  if (incr == 1) { // exec and cancel path
-    if (o->size == size) {
-      delete_order(o); 
-    } else {
-      o->deduct_size(size); 
-    }
-    return EKA_FH_RESULT__OK;
-  } 
-  // order modify path (= deducting old size then adding new size)
-  o->plevel->delete_order_from_plevel(o->size,o->type);
-  o->plevel->add_order(size,o->type);
-  o->size = size;
-  return EKA_FH_RESULT__OK;
-}
 
 /* ####################################################### */
 
-void FullBook::deleteOrderFromHash(OrderIdT orderId) {
-  uint32_t index = getOrderHashIdx(orderId,MAX_ORDERS,ORDERS_HASH_MASK);
+template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class OrderIdT, class PriceT, class SizeT>
+  void EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>
+  ::deleteOrderFromHash(OrderIdT orderId) {
+  uint32_t index = getOrderHashIdx<OrderIdT>(orderId,MAX_ORDERS,ORDERS_HASH_MASK);
   if (ord[index] == NULL) on_error("ord[%u] == NULL",index);
 
   if ((ord[index]->orderId == orderId) && (ord[index]->next == NULL)) {
@@ -221,14 +230,16 @@ void FullBook::deleteOrderFromHash(OrderIdT orderId) {
 }
 /* ####################################################### */
 
-void FullBook::addOrder2Hash (FhOrder* o) {
+template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class OrderIdT, class PriceT, class SizeT>
+  void EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>
+  ::addOrder2Hash (FhOrder* o) {
   if (o == NULL) on_error("o==NULL");
 #ifdef INTERNAL_DEBUG
   EKA_LOG("o->orderId=%ju",o->orderId);
 #endif
   uint64_t orderId = o->orderId;
 
-  uint32_t index = getOrderHashIdx(orderId,MAX_ORDERS,ORDERS_HASH_MASK);
+  uint32_t index = getOrderHashIdx<OrderIdT>(orderId,MAX_ORDERS,ORDERS_HASH_MASK);
   FhOrder** curr = &(ord[index]);
   o->next = NULL;
 
@@ -244,8 +255,10 @@ void FullBook::addOrder2Hash (FhOrder* o) {
 
 /* ####################################################### */
 
-inline FhPlevel* EkaFhFullBook::findOrAddPlevel(FhSecurity* s, PriceT _price, SideT _side) {
-  FhPlevel** pTob;
+template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class OrderIdT, class PriceT, class SizeT>
+  EkaFhPlevel* EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>
+  ::findOrAddPlevel(FhSecurity* s, PriceT _price, SideT _side) {
+  FhPlevel** pTob = NULL;
   switch (_side) {
   case SideT::BID :
     pTob = &s->bid;
@@ -258,7 +271,7 @@ inline FhPlevel* EkaFhFullBook::findOrAddPlevel(FhSecurity* s, PriceT _price, Si
   }
 
   if (*pTob == NULL || (*pTob)->worsePriceThan(_price))
-    return addPlevelAfterTob(pTob, _price, SideT _side);
+    return addPlevelAfterTob(pTob, _price, _side);
 
   for (FhPlevel* p = *pTob; p != NULL; p = p->next) {
     if (p->price == _price) return p;
@@ -271,8 +284,10 @@ inline FhPlevel* EkaFhFullBook::findOrAddPlevel(FhSecurity* s, PriceT _price, Si
 
 /* ####################################################### */
 
-inline FhPlevel* EkaFhFullBook::addPlevelAfterTob(FhPlevel** pTob, PriceT _price, SideT _side) {
-    FhPlevel* newP = getNewFreePlevel();
+template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class OrderIdT, class PriceT, class SizeT>
+  EkaFhPlevel* EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>
+  ::addPlevelAfterTob(FhPlevel** pTob, PriceT _price, SideT _side) {
+    FhPlevel* newP = getNewPlevel();
     if (newP == NULL) on_error("newP == NULL");
     newP->price = _price;
     newP->side  = _side;
@@ -291,8 +306,10 @@ inline FhPlevel* EkaFhFullBook::addPlevelAfterTob(FhPlevel** pTob, PriceT _price
 
 /* ####################################################### */
 
-inline FhPlevel* EkaFhFullBook::addPlevelAfterP(FhPlevel* p, PriceT _price) {
-  FhPlevel* newP = getNewFreePlevel();
+template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class OrderIdT, class PriceT, class SizeT>
+  EkaFhPlevel* EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>
+  ::addPlevelAfterP(FhPlevel* p, PriceT _price) {
+  FhPlevel* newP = getNewPlevel();
   if (newP == NULL) on_error("newP == NULL");
   newP->setPrice(_price);
   newP->side = p->side;

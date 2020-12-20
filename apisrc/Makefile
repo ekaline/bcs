@@ -10,10 +10,9 @@ CC := g++ -std=c++17 $(CC_OPT) -frecord-gcc-switches -pipe $(ARCH_FLAGS)
 
 DRIVERS_INCL:=$(SMARTNIC_ROOT)/driver/
 API_INCL:=$(SMARTNIC_ROOT)/include/
-#PICO_TCP_INCL:=$(PICOTCP_ROOT)/include $(PICOTCP_ROOT)/build/include
-#LWIP_INCL:=$(LWIP_ROOT)/lwip/src/include $(LWIP_ROOT)/contrib-2.1.0/ports/unix/port/include
+
 LWIP_INCL:=$(LWIP_ROOT)/lwip/src/include 
-INC=$(DRIVERS_INCL) $(API_INCL) $(LWIP_INCL) $(shell pwd) $(shell pwd)/compat
+INC=$(DRIVERS_INCL) $(API_INCL) $(LWIP_INCL) $(shell pwd) $(shell pwd)/compat $(shell pwd)/FhBook
 INCL=$(foreach d, $(INC), -I$d)
 INCL+=-Iarch
 
@@ -38,13 +37,15 @@ UNITTESTS_SRCS := $(wildcard ../new_api_tests/unit*.c)
 UNITTESTS_EXECS := $(patsubst %.c,%,$(UNITTESTS_SRCS))
 
 EKALIB_SRCS := $(wildcard *.c)
+EKALIB_SRCS += $(wildcard FhBook/*.c)
+
+EKAHEADER_FILES := $(wildcard *.h) $(wildcard */*.h)
 
 EKALIB_FILES := $(patsubst %.c,%,$(EKALIB_SRCS))
 EKALIB_OBJ := $(EKALIB_SRCS:.c=.o)
 LLIB := -L. -lekaline2
 LLIB_TEST := -L. -lekaline2_test
 SMARTNIC_LIB := $(SMARTNIC_ROOT)/lib/libsmartnic.a
-PICOTCP_LIB := $(PICOTCP_ROOT)/build/lib/libpicotcp.a
 
 LWIP_LIB := liblwipcommon.a
 
@@ -95,14 +96,19 @@ include .depend
 
 ###############################################
 
-eka_%.o: eka_%.c
-	$(CC) -c $< $(INCL) $(GCC_FLAGS)
+#eka_%.o: eka_%.c
+#	$(CC) -c $< $(INCL) $(GCC_FLAGS)
 
-epm%.o: epm%.c
-	$(CC) -c $< $(INCL) $(GCC_FLAGS)
+#epm%.o: epm%.c
+#	$(CC) -c $< $(INCL) $(GCC_FLAGS)
 
-E%.o: E%.c
-	$(CC) -c $< $(INCL) $(GCC_FLAGS)
+#E%.o: E%.c
+#	$(CC) -c $< $(INCL) $(GCC_FLAGS)
+
+
+$(EKALIB_OBJ): %.o: %.c $(EKAHEADER_FILES)
+	$(CC) $(CC_OPT) -c $< $(GCC_FLAGS) $(INCL) -o $@
+
 
 ekalib: $(LIBEKALINE).so 
 $(LIBEKALINE).so: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIP_LIB)
@@ -132,6 +138,6 @@ unit_tests: $(UNITTESTS_EXECS)
 
 
 clean:
-	rm -f /tmp/core* *.o *.so *.a $(LWIPOBJS) *~ .depend core $(EKATESTS_EXECS) $(UNITTESTS_EXECS) $(EKAUTILS_EXECS) */*~ ../*/*~ *.csv *.txt
+	rm -f /tmp/core* *.o */*.o *.so *.a $(LWIPOBJS) *~ .depend core $(EKATESTS_EXECS) $(UNITTESTS_EXECS) $(EKAUTILS_EXECS) */*~ ../*/*~ *.csv *.txt
 
 

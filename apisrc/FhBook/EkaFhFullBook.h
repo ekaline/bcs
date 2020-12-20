@@ -2,23 +2,57 @@
 #define _EKA_FH_FULL_BOOK_H_
 
 #include "EkaFhBook.h"
+#include "EkaFhFbSecurity.h"
+#include "EkaFhPlevel.h"
+#include "EkaFhOrder.h"
 
-class EkaFhFullBook : 
-public EkaFhBook <class FhSecurityT, class SecurityIdT, class OrderIdT, class PriceT, class SizeT>  {
+template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class OrderIdT, class PriceT, class SizeT>
+  class EkaFhFullBook : 
+  public EkaFhBook  {
  public:
-  using FhPriceLevel = EkaFhPriceLevel<FhSecurityT,SecurityIdT,OrderIdT,PriceT,SizeT>;
+  using FhSecurity   = EkaFhFbSecurity  <SecurityIdT, OrderIdT, PriceT, SizeT>;
+  using FhPlevel     = EkaFhFbPlevel    <                       PriceT, SizeT>;
+  using FhOrder      = EkaFhFbOrder     <             OrderIdT,         SizeT>;
 
-  int             initPlevelsAndOrders();
-  FhPriceLevel*   addOrder();
-  int             replaceOrder();
-  int             modifyOrder();
-  int             deleteOrder();
+ EkaFhFullBook(EkaDev* _dev, EkaFhGroup* _gr, EkaSource   _exch) 
+   : EkaFhBook (_dev,_gr,_exch) {}
+ 
 
+  int             init();
+
+  EkaFhSecurity*     findSecurity(SecurityIdT secId);
+
+  EkaFhSecurity*     subscribeSecurity(SecurityIdT     secId,
+				       EfhSecurityType type,
+				       EfhSecUserData  userData,
+				       uint64_t        opaqueAttrA,
+				       uint64_t        opaqueAttrB);
+  EkaFhPlevel*    addOrder(FhSecurity*     s,
+			   OrderIdT        _orderId,
+			   FhOrderType     _type, 
+			   PriceT          _price, 
+			   SizeT           _size, 
+			   SideT           _side);
+  //    int             replaceOrder();
+  int             modifyOrder(FhOrder* o, PriceT price,SizeT size);
+  int             deleteOrder(FhOrder* o);
+  SizeT           reduceOrderSize(FhOrder* o, SizeT deltaSize);
   int             invalidate();
 
+ private:
+  EkaFhPlevel*    getNewPlevel();
+  EkaFhOrder*     getNewOrder();
+  void            releasePlevel(FhPlevel* p);
+  void            releaseOrder(FhOrder* o);
+  void            deleteOrderFromHash(OrderIdT orderId);
+  void            addOrder2Hash (FhOrder* o);
+  EkaFhPlevel*    findOrAddPlevel  (FhSecurity* s,   PriceT _price, SideT _side);
+  EkaFhPlevel*    addPlevelAfterTob(FhPlevel** pTob, PriceT _price, SideT _side);
+  EkaFhPlevel*    addPlevelAfterP  (FhPlevel* p,     PriceT _price);
   //----------------------------------------------------------
 
-  FhOrder*        orderFreeHead = NULL; // head pointer to free list of preallocated FhOrder elements
+ public:
+  EkaFhOrder*     orderFreeHead = NULL; // head pointer to free list of preallocated FhOrder elements
   uint            numOrders     = 0;    // counter of currently used orders (for statistics only)
   uint            maxNumOrders  = 0;    // highest value of numOrders ever reached (for statistics only)
 
@@ -38,11 +72,15 @@ public EkaFhBook <class FhSecurityT, class SecurityIdT, class OrderIdT, class Pr
   //         MAX_PLEVELS      = 4 M
   //         ORDERS_HASH_MASK = 0xFFFF
 
-  const uint64_t MAX_ORDERS       = (1 << SCALE);            
-  const uint64_t MAX_PLEVELS      = (1 << (SCALE - 1));      
-  const uint64_t ORDERS_HASH_MASK = ((1 << (SCALE - 3)) - 1);
+  static const uint64_t MAX_ORDERS       = (1 << SCALE);            
+  static const uint64_t MAX_PLEVELS      = (1 << (SCALE - 1));      
+  static const uint64_t ORDERS_HASH_MASK = ((1 << (SCALE - 3)) - 1);
 
-  FhOrder*       ord[MAX_ORDERS] = {};
-};
+  static const uint64_t SEC_HASH_LINES = 0x1 << SEC_HASH_SCALE;
+  static const uint64_t SEC_HASH_MASK  = (0x1 << SEC_HASH_SCALE) - 1;
+
+  EkaFhSecurity*  sec[SEC_HASH_LINES] = {}; // array of pointers to Securities
+  FhOrder*        ord[MAX_ORDERS] = {};
+  };
 
 #endif

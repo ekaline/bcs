@@ -20,5 +20,9 @@
 !new_api_tests
 !arch
 !CMakeLists.txt
+!apisrc/FhBook
+
+
+
 
 
