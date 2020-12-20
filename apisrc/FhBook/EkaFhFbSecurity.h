@@ -3,7 +3,7 @@
 
 #include "EkaFhSecurity.h"
 
-class EkaFhPlevel;
+class FhPlevel;
 
 template <class SecurityIdT, 
   class OrderIdT, 
@@ -18,8 +18,8 @@ template <class SecurityIdT,
     uint             numBidPlevels = 0;
     uint             numAskPlevels = 0;
     
-    EkaFhPlevel*     bid           = NULL;
-    EkaFhPlevel*     ask           = NULL;
+    FhPlevel*     bid           = NULL;
+    FhPlevel*     ask           = NULL;
 };
 
 #endif

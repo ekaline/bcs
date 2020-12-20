@@ -13,10 +13,12 @@ class EkaFhPlevel {
   //----------------------------------------------------------
 
  public:
-  EkaFhSecurity*  security = NULL;
+  class FhSecurity*  security = NULL;
   bool            top      = false;
   uint            cnt      = 0;
   
+  class EkaFhPlevel* prev = NULL;
+  class EkaFhPlevel* next = NULL;
 };
 
 // ##########################################################
@@ -74,9 +76,8 @@ template <class PriceT, class SizeT>
 
  public:
 
-  PriceT          price    = 0;
-  //  SizeT           size     = 0;
-  SideT           side     = SideT::UNINIT;
+  PriceT          price         = 0;
+  SideT           side          = SideT::UNINIT;
 
   SizeT	          cust_size     = 0;
   SizeT	          cust_aon_size = 0;

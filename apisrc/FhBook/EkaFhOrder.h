@@ -13,7 +13,7 @@ class EkaFhOrder {
 //--------------------------------------------------------------
 
  public:
-  FhOrderType        type    = FhOrderType::UNINIT;
+  FhOrderType     type    = FhOrderType::UNINIT;
   class EkaFhPlevel* plevel  = NULL;
   class EkaFhOrder*  next    = NULL;
 };

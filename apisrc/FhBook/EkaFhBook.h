@@ -13,10 +13,10 @@ class EkaFhSecurity;
 class EkaFhBook {
  protected:
   EkaFhBook (EkaDev*     _dev,
-  	     EkaFhGroup* _gr,
+  	     uint        _grId,
   	     EkaSource   _exch) {
     dev  = _dev;
-    gr   = _gr;
+    grId = _grId;
     exch = _exch;
   }
 
@@ -33,7 +33,7 @@ class EkaFhBook {
   //----------------------------------------------------------
 
   EkaDev*          dev      = NULL;
-  EkaFhGroup*      gr       = NULL; 
+  EkaLSI           grId     = -1; 
   EkaSource        exch     = EkaSource::kInvalid; 
   //----------------------------------------------------------
 
