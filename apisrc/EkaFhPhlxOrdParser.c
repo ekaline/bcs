@@ -8,8 +8,19 @@
 
 #include "EkaFhPhlxOrdGr.h"
 #include "EkaFhPhlxOrdParser.h"
-#include "eka_fh_book.h"
 
+/* ######################################################### */
+inline SideT sideDecode(char _side) {
+  switch (_side) {
+  case 'B' :
+    return SideT::BID;
+  case 'S' :
+    return SideT::ASK;
+  default:
+    on_error("Unexpected Side \'%c\'",_side);
+  }
+}
+/* ######################################################### */
 
 bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
   char enc =  (char)m[0];
@@ -25,8 +36,8 @@ bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint6
   uint32_t nano_sec = be32toh(((phlx_ord_generic_hdr*) m)->time_nano);
   uint64_t ts = seconds * SEC_TO_NANO + nano_sec;
 
-  fh_b_security* tob_s = NULL;
-  fh_b_security_state prev_s;
+  FhSecurity* s = NULL;
+  FhSecurityState prev_s;
   prev_s.reset();
 
   switch (enc) {    
@@ -80,15 +91,14 @@ bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint6
     /* -------------------------------------------------- */
   case 'O': { // phlx_ord_simple_order
     phlx_ord_simple_order* message = (phlx_ord_simple_order*)m;
-    uint32_t security_id = be32toh(message->option_id);
-    fh_b_security* s = ((NomBook*)book)->find_security(security_id);
-    if (s == NULL && !((NomBook*)book)->subscribe_all) return false;
-    if (s == NULL && ((NomBook*)book)->subscribe_all) s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
+    SecurityIdT security_id = be32toh(message->option_id);
+    s = book->findSecurity(security_id);
+    if (s == NULL) return false;
 
-    uint64_t order_id = be64toh(message->order_id);
-    char     side     = (char)message->side;
-    uint32_t size     = be32toh(message->exec_size);
-    uint32_t price    = be32toh(message->price);
+    OrderIdT order_id = be64toh(message->order_id);
+    SideT    side     = sideDecode(message->side);
+    SizeT    size     = be32toh(message->exec_size);
+    PriceT   price    = be32toh(message->price);
     char     order_status = message->order_status;
     if (order_status != 'O' && order_status != 'F' && order_status != 'C')
       on_error("Unexepcted order_status \'%c\'",order_status);
@@ -105,44 +115,39 @@ bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint6
     if (message->all_or_none != 'Y' && message->all_or_none != 'N')
       on_error("Unexpected message->all_or_none \'%c\'",message->all_or_none);
 
-    fh_b_order* o = ((NomBook*)book)->find_order(order_id);
+    FhOrder* o = book->findOrder(order_id);
     if (o != NULL) {
-      if (o->plevel == NULL) on_error("o->plevel == NULL");
-      if (o->plevel->s == NULL) on_error("o->plevel->s == NULL");
-      if (s != o->plevel->s) 
-	on_error("Order's message security_id %u != book security_id %u",
-		 security_id,o->plevel->s->security_id);
+      if (s != o->plevel->s) on_error("Order's message security_id %u != book security_id %u",
+				      security_id,o->plevel->s->security_id);
     }
 
     prev_s.set(s);
     if (order_status == 'F' || order_status == 'C') { // delete order
-      if (size != 0) 
-	on_error("Unexpected combination: order_status \'%c\' && size %u",
-		 order_status,size);
+      if (size != 0) on_error("Unexpected combination: order_status \'%c\' && size %u",
+			      order_status,size);
       if (o == NULL) return false;
-      ((NomBook*)book)->delete_order (o);
+      book->deleteOrder (o);
     } else {
       if (o == NULL) { // add order
-	fh_b_order::type_t o_type = fh_b_order::type_t::OTHER;
+	FhOrderType o_type = FhOrderType::OTHER;
 	switch (message->customer_indicator) {
 	case 'C' : //      “C” = Customer Order
-	  o_type = message->all_or_none == 'Y' ? fh_b_order::type_t::CUSTOMER_AON : fh_b_order::type_t::CUSTOMER;
+	  o_type = message->all_or_none == 'Y' ? FhOrderType::CUSTOMER_AON : FhOrderType::CUSTOMER;
 	  break;
 	case 'F' : //      “F” = Firm Order
 	case 'M' : //      “M” = On-floor Market Maker
 	case 'B' : //      “B” = Broker Dealer Order
 	case 'P' : //      “P” = Professional Order
-	  o_type = message->all_or_none == 'Y' ? fh_b_order::type_t::BD_AON : fh_b_order::type_t::BD;
+	  o_type = message->all_or_none == 'Y' ? FhOrderType::BD_AON : FhOrderType::BD;
 	break;
 	case ' ' : //      “ ” = N/A (For Implied Order)
 	  return false;
 	}
-	((NomBook*)book)->add_order2book(s,order_id,o_type,price,size,side);
+	book->addOrder(s,order_id,o_type,price,size,side);
       } else { // modify order
-	((NomBook*)book)->modify_order (o,price,size);
+	book->modifyOrder (o,price,size);
       }
     }
-    tob_s = s;
     break;
 
   }
@@ -150,8 +155,8 @@ bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint6
     /* -------------------------------------------------- */
   case 'H': { // phlx_ord_option_trading_action
     phlx_ord_option_trading_action  *message = (phlx_ord_option_trading_action *)m;
-    uint32_t security_id = be32toh(message->option_id);
-    fh_b_security* s = ((NomBook*)book)->find_security(security_id);
+    SecurityIdT security_id = be32toh(message->option_id);
+    s = book->findSecurity(security_id);
     if (s == NULL) return false;
     prev_s.set(s);
     switch (message->current_trading_state) {
@@ -164,15 +169,14 @@ bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint6
     default:
       on_error("Unexpected current_trading_state \'%c\'",message->current_trading_state);
     }
-    tob_s = s;
     break;
   }
 
     /* -------------------------------------------------- */
   case 'P': { // phlx_ord_security_open_closed
     phlx_ord_security_open_closed  *message = (phlx_ord_security_open_closed *)m;
-    uint32_t security_id = be32toh(message->option_id);
-    fh_b_security* s = ((NomBook*)book)->find_security(security_id);
+    SecurityIdT security_id = be32toh(message->option_id);
+    s = book->findSecurity(security_id);
     if (s == NULL) return false;
     prev_s.set(s);
 
@@ -188,7 +192,6 @@ bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint6
     default:
       on_error("Unexpected open_state \'%c\'",message->open_state);
     }
-    tob_s = s;
     break;
   }
     /* -------------------------------------------------- */
@@ -204,9 +207,9 @@ bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint6
     EKA_WARN("WARNING: Unexpected message: \'%c\'",enc);
     return false;
   }
-  if (tob_s == NULL) on_error ("Trying to generate TOB update from tob_s == NULL");
+  if (s == NULL) on_error ("Trying to generate TOB update from s == NULL");
   if (op != EkaFhMode::SNAPSHOT)
-    ((NomBook*)book)->generateOnQuote (pEfhRunCtx, tob_s, sequence, ts,gapNum);
+    book->generateOnQuote (pEfhRunCtx, s, sequence, ts,gapNum);
 
   return false;
 }

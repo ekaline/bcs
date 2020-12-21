@@ -8,7 +8,6 @@
 
 #include "EkaFhPhlxTopoParser.h"
 #include "EkaFhPhlxTopoGr.h"
-#include "eka_fh_book.h"
 
 bool EkaFhPhlxTopoGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
   char enc =  (char)m[0];
@@ -27,7 +26,7 @@ bool EkaFhPhlxTopoGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint
 
   uint64_t ts = gr_ts + be32toh(((topo_generic_hdr*) m)->time_nano);
 
-  fh_b_security* tob_s = NULL;
+  FhSecurity* s = NULL;
 
   switch (enc) {    
   case 'T':  { // topo_time_stamp
@@ -75,10 +74,9 @@ bool EkaFhPhlxTopoGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint
 
     bool long_form = enc == 'Q';
 
-    uint32_t security_id = long_form ? be32toh(message_long->option_id) : be32toh(message_short->option_id);
-    fh_b_security* s = book->find_security(security_id);
-    if (s == NULL && !book->subscribe_all) return false;
-    if (s == NULL && book->subscribe_all) s = book->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
+    SecurityIdT security_id = long_form ? be32toh(message_long->option_id) : be32toh(message_short->option_id);
+    s = book->find_security(security_id);
+    if (s == NULL) return false;
 
     if (ts < s->bid_ts && ts < s->ask_ts) return false; // Back-in-time from Recovery
 
@@ -92,7 +90,6 @@ bool EkaFhPhlxTopoGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint
       s->ask_price = long_form ? be32toh(message_long->ask_price) : (uint32_t) be16toh(message_short->ask_price) * 100;
       s->ask_ts = ts;
     }
-    tob_s = s;
     break;
 
   }
@@ -106,10 +103,9 @@ bool EkaFhPhlxTopoGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint
 
     bool long_form = (enc == 'A') || (enc == 'B');
 
-    uint32_t security_id = long_form ? be32toh(message_long->option_id) : be32toh(message_short->option_id);
-    fh_b_security* s = book->find_security(security_id);
-    if (s == NULL && !book->subscribe_all) return false;
-    if (s == NULL && book->subscribe_all) s = book->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
+    SecurityIdT security_id = long_form ? be32toh(message_long->option_id) : be32toh(message_short->option_id);
+    s = book->findSecurity(security_id);
+    if (s == NULL) return false;
 
     if (enc == 'B' || enc == 'b') {
       if (ts < s->bid_ts) return false; // Back-in-time from Recovery
@@ -122,18 +118,15 @@ bool EkaFhPhlxTopoGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint
       s->ask_price = long_form ? be32toh(message_long->price) : (uint32_t) be16toh(message_short->price) * 100;
       s->ask_ts = ts;
     }
-    tob_s = s;
     break;
-
   }
 
   case 'R': { // topo_option_trade_report
     struct topo_option_trade_report  *message = (struct topo_option_trade_report *)m;
 
-    uint32_t security_id = be32toh(message->option_id);
-    fh_b_security* s = book->find_security(security_id);
-    if (s == NULL && !book->subscribe_all) return false;
-    if (s == NULL && book->subscribe_all) s = book->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
+    SecurityIdT security_id = be32toh(message->option_id);
+    s = book->findSecurity(security_id);
+    if (s == NULL) return false;
 
     EfhTradeMsg msg = {};
     msg.header.msgType        = EfhMsgType::kTrade;
@@ -157,21 +150,20 @@ bool EkaFhPhlxTopoGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint
 
   case 'H': { // topo_option_trading_action
     struct topo_option_trading_action  *message = (struct topo_option_trading_action *)m;
-    uint32_t security_id = be32toh(message->option_id);
-    fh_b_security* s = book->find_security(security_id);
+    SecurityIdT security_id = be32toh(message->option_id);
+    s = book->findSecurity(security_id);
     if (s == NULL) return false;
 
     s->trading_action = message->current_trading_state == 'H' ? EfhTradeStatus::kHalted : 
       s->option_open ? EfhTradeStatus::kNormal : EfhTradeStatus::kClosed;
-    //    return false;
-    tob_s = s;
+
     break;
   }
 
   case 'O': { // topo_option_security_open_closed
     struct topo_option_security_open_closed  *message = (struct topo_option_security_open_closed *)m;
-    uint32_t security_id = be32toh(message->option_id);
-    fh_b_security* s = book->find_security(security_id);
+    SecurityIdT security_id = be32toh(message->option_id);
+    s = book->findSecurity(security_id);
     if (s == NULL) return false;
 
     if (message->open_state ==  'Y') {
@@ -181,8 +173,7 @@ bool EkaFhPhlxTopoGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint
       s->option_open = false;
       s->trading_action = EfhTradeStatus::kClosed;
     }
-    //    return false;
-    tob_s = s;
+
     break;
   }
 
@@ -190,9 +181,9 @@ bool EkaFhPhlxTopoGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint
     EKA_WARN("WARNING: Unexpected message: %c",enc);
     return false;
   }
-  if (tob_s == NULL) on_error ("Trying to generate TOB update from tob_s == NULL");
+  if (s == NULL) on_error ("Trying to generate TOB update from s == NULL");
   if (op != EkaFhMode::SNAPSHOT)
-    book->generateOnQuote (pEfhRunCtx, tob_s, sequence, ts,gapNum);
+    book->generateOnQuote (pEfhRunCtx, s, sequence, ts,gapNum);
 
   return false;
 }

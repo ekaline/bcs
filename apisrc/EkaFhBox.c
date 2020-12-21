@@ -2,7 +2,6 @@
 #include "EkaUdpChannel.h"
 #include "EkaFhRunGroup.h"
 #include "EkaFhBoxGr.h"
-#include "eka_fh_book.h"
 
 EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhBoxGr* gr);
 uint64_t getHsvfMsgSequence(uint8_t* msg);
@@ -95,7 +94,7 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
 	EKA_DEBUG("%s:%u Generating TOB quote for every Security",
 		  EKA_EXCH_DECODE(gr->exch),gr->id);
-	((TobBook*)gr->book)->sendTobImage64(pEfhRunCtx);
+	gr->book->sendTobImage(pEfhRunCtx);
 
 	gr->sendFeedUp(pEfhRunCtx);
 
@@ -139,9 +138,9 @@ EkaOpResult EkaFhBox::subscribeStaticSecurity(uint8_t groupNum,
 					      uint64_t opaqueAttrA,
 					      uint64_t opaqueAttrB) {
   if (groupNum >= groups) on_error("groupNum (%u) >= groups (%u)",groupNum,groups);
-  b_gr[groupNum]->book->subscribe_security64 (securityId, 
-					      static_cast< uint8_t >( efhSecurityType ), 
-					      efhSecUserData,opaqueAttrA,opaqueAttrB);
+  b_gr[groupNum]->book->subscribeSecurity (securityId, 
+					   static_cast< uint8_t >( efhSecurityType ), 
+					   efhSecUserData,opaqueAttrA,opaqueAttrB);
   return EKA_OPRESULT__OK;
 }
 

@@ -2,6 +2,7 @@
 #define _EKA_FH_BOX_GR_H_
 
 #include "EkaFhGroup.h"
+#include "EkaFhTobBook.h"
 
 class EkaHsvfTcp;
 
@@ -36,6 +37,14 @@ class EkaFhBoxGr : public EkaFhGroup{
 
 
   /* ##################################################################### */
+
+  static const uint   SEC_HASH_SCALE = 17;
+
+  using SecurityIdT = uint64_t;
+  using PriceT      = uint32_t;
+  using SizeT       = uint32_t;
+
+  using FhBook      = EkaFhTobBook<SEC_HASH_SCALE,SecurityIdT, PriceT, SizeT>;
 
   EkaHsvfTcp* hsvfTcp  = NULL;
   uint64_t    txSeqNum = 1;

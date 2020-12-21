@@ -2,7 +2,6 @@
 
 #include "EkaFhMiaxGr.h"
 #include "EkaFhThreadAttr.h"
-#include "eka_fh_book.h"
 #include "eka_fh_q.h"
 #include "EkaFhMiaxParser.h"
 
@@ -132,6 +131,15 @@ int EkaFhMiaxGr::closeIncrementalGap(EfhCtx*        pEfhCtx,
 		    dev->createThreadContext,
 		    (uintptr_t*)&snapshot_thread);   
 
+
+  return 0;
+}
+/* ##################################################################### */
+int EkaFhMiaxGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
+  book = new FhBook(dev,id,exch);
+  if (book == NULL) on_error("book = NULL");
+
+  book->init();
 
   return 0;
 }

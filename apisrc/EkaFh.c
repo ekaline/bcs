@@ -22,7 +22,7 @@
 #include "EkaFh.h"
 #include "EkaUdpChannel.h"
 #include "EkaFhRunGroup.h"
-#include "eka_fh_book.h"
+#include "EkaFhBook.h"
 
 #include "EkaFhBoxGr.h"
 #include "EkaFhBatsGr.h"
@@ -189,9 +189,9 @@ EkaOpResult EkaFh::subscribeStaticSecurity(uint8_t groupNum,
 					   uint64_t opaqueAttrB) {
   if (groupNum >= groups) on_error("groupNum (%u) >= groups (%u)",groupNum,groups);
 
-  b_gr[groupNum]->book->subscribe_security (securityId, 
-					    static_cast< uint8_t >( efhSecurityType ), 
-					    efhSecUserData,opaqueAttrA,opaqueAttrB);
+  b_gr[groupNum]->book->subscribeSecurity (securityId, 
+					   static_cast< uint8_t >( efhSecurityType ), 
+					   efhSecUserData,opaqueAttrA,opaqueAttrB);
   return EKA_OPRESULT__OK;
 }
 
@@ -398,7 +398,7 @@ EkaOpResult EkaFh::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
     EKA_DEBUG("%s:%u: joined %s:%u for %u securities",
 	      EKA_EXCH_DECODE(exch),gr->id,
 	      EKA_IP2STR(gr->mcast_ip),be16toh(gr->mcast_port),
-	      gr->book->total_securities);
+	      gr->book->numSecurities);
   }
   return EKA_OPRESULT__OK;
 }

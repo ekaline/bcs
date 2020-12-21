@@ -8,7 +8,6 @@
 
 #include "EkaFhGemGr.h"
 #include "EkaFhGemParser.h"
-#include "eka_fh_book.h"
 
 static void eka_print_gem_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequence,uint64_t ts);
 std::string ts_ns2str(uint64_t ts);
@@ -27,7 +26,7 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
   //  EKA_LOG("enc = %c",enc);
 
-  fh_b_security* tob_s = NULL;
+  FhSecurity* s = NULL;
 
   switch (enc) {    
   case 'D':  { //GEM_TQF_TYPE_OPTION_DIRECTORY
@@ -74,9 +73,9 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     struct tqf_best_bid_and_ask_update_short *message_short = (struct tqf_best_bid_and_ask_update_short *)m;
     bool long_form = (enc == 'Q');
 
-    uint32_t security_id = long_form ? be32toh(message_long->option_id) : be32toh(message_short->option_id);
+    SecurityIdT security_id = long_form ? be32toh(message_long->option_id) : be32toh(message_short->option_id);
 
-    fh_b_security* s = book->find_security(security_id);
+    s = book->findSecurity(security_id);
     if (s == NULL && !book->subscribe_all) return false;
     if (s == NULL && book->subscribe_all) s = book->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
 
@@ -98,7 +97,6 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
       s->ask_price   = long_form ? be32toh(message_long->ask_price)      : (uint32_t) be16toh(message_short->ask_price) * 100;
       s->ask_ts = ts;
     }
-    tob_s = s;
     break;
 
   }
@@ -114,8 +112,8 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
     bool long_form = (enc == 'A') || (enc == 'B');
 
-    uint32_t security_id = long_form ? be32toh(message_long->option_id) : be32toh(message_short->option_id);
-    fh_b_security* s = book->find_security(security_id);
+    SecurityIdT security_id = long_form ? be32toh(message_long->option_id) : be32toh(message_short->option_id);
+    s = book->findSecurity(security_id);
     if (s == NULL && !book->subscribe_all) return false;
     if (s == NULL && book->subscribe_all) s = book->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
 
@@ -134,18 +132,17 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
       s->ask_cust_size  = long_form ? be32toh(message_long->cust_size)     : (uint32_t) be16toh(message_short->cust_size);
       s->ask_bd_size    = long_form ? be32toh(message_long->pro_cust_size) : (uint32_t) be16toh(message_short->pro_cust_size);
 
-     s->ask_price   = long_form ? be32toh(message_long->price)      : (uint32_t) be16toh(message_short->price) * 100;
+      s->ask_price   = long_form ? be32toh(message_long->price)      : (uint32_t) be16toh(message_short->price) * 100;
       s->ask_ts = ts;
     }
-    tob_s = s;
     break;
   }
 
   case 'T': { // tqf_ticker
     struct tqf_ticker  *message = (struct tqf_ticker *)m;
 
-    uint32_t security_id = be32toh(message->option_id);
-    fh_b_security* s = book->find_security(security_id);
+    SecurityIdT security_id = be32toh(message->option_id);
+    s = book->findSecurity(security_id);
     if (s == NULL && !book->subscribe_all) return false;
     if (s == NULL && book->subscribe_all) s = book->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
 
@@ -167,21 +164,20 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
   case 'H': { // tqf_trading_action
     struct tqf_trading_action  *message = (struct tqf_trading_action *)m;
-    uint32_t security_id = be32toh(message->option_id);
-    fh_b_security* s = book->find_security(security_id);
+    SecurityIdT security_id = be32toh(message->option_id);
+    s = book->findSecurity(security_id);
     if (s == NULL) return false;
 
     s->trading_action = message->current_trading_state == 'H' ? EfhTradeStatus::kHalted : 
       s->option_open ? EfhTradeStatus::kNormal : EfhTradeStatus::kClosed;
-    //    return false;
-    tob_s = s;
+
     break;
   }
 
   case 'O': { // tqf_security_open_close
     struct tqf_security_open_close  *message = (struct tqf_security_open_close *)m;
-    uint32_t security_id = be32toh(message->option_id);
-    fh_b_security* s = book->find_security(security_id);
+    SecurityIdT security_id = be32toh(message->option_id);
+    s = book->findSecurity(security_id);
     if (s == NULL) return false;
 
     if (message->open_state ==  'Y') {
@@ -191,15 +187,15 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
       s->option_open = false;
       s->trading_action = EfhTradeStatus::kClosed;
     }
-    //    return false;
-    tob_s = s;
+
     break;
   }
 
-  default: return false;
+  default: 
+    return false;
   }
-  if (tob_s == NULL) on_error ("Trying to generate TOB update from tob_s == NULL");
-  book->generateOnQuote (pEfhRunCtx, tob_s, sequence, ts, gapNum);
+  if (s == NULL) on_error ("Trying to generate TOB update from s == NULL");
+  book->generateOnQuote (pEfhRunCtx, s, sequence, ts, gapNum);
 
   return false;
 }

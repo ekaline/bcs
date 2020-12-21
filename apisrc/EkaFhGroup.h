@@ -10,7 +10,7 @@
 #include "EkaFh.h"
 
 class fh_q;
-class fh_book;
+class EkaFhBook;
 
 
 class EkaFhGroup {
@@ -28,7 +28,7 @@ class EkaFhGroup {
 
   void         createQ(EfhCtx* pEfhCtx, const uint qsize);
 
-  virtual int  bookInit(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx);
+  virtual int  bookInit(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) = 0;
   virtual bool parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) = 0;
 
   void         sendFeedUp  (const EfhRunCtx* EfhRunCtx);
@@ -131,7 +131,7 @@ class EkaFhGroup {
   EfhCtx*               pEfhCtx            = NULL;
   uint8_t               core               = -1;
 
-  fh_book*              book               = NULL;
+  EkaFhBook*            book               = NULL;
 
   EkaDev*               dev                = NULL;
  private:

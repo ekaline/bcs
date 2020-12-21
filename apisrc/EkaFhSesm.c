@@ -19,7 +19,6 @@
 #include <assert.h>
 #include <sched.h>
 
-#include "eka_fh_book.h"
 #include "EkaFhMiaxParser.h"
 #include "EkaFhMiaxGr.h"
 

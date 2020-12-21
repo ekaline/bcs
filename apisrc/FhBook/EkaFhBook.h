@@ -23,13 +23,15 @@ class EkaFhBook {
  public:
   //  virtual void      init() = 0;
 
+/* ####################################################### */
 
-  virtual int      generateOnQuote(const EfhRunCtx* pEfhRunCtx, 
-				   EkaFhSecurity*   pFhSecurity, 
-				   uint64_t         sequence,
-				   uint64_t         timestamp,
-				   uint             gapNum) {return 0;};
-  
+  virtual EkaFhSecurity*  subscribeSecurity(SecurityIdT     secId,
+					    EfhSecurityType type,
+					    EfhSecUserData  userData,
+					    uint64_t        opaqueAttrA,
+					    uint64_t        opaqueAttrB) = 0;
+/* ####################################################### */
+
   //----------------------------------------------------------
 
   EkaDev*          dev      = NULL;

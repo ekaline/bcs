@@ -1,7 +1,6 @@
 #include "EkaFhPhlxTopo.h"
 #include "EkaUdpChannel.h"
 #include "EkaFhRunGroup.h"
-#include "eka_fh_book.h"
 #include "EkaFhThreadAttr.h"
 #include "EkaFhPhlxTopoGr.h"
 
@@ -109,7 +108,7 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
 	gr->seq_after_snapshot = gr->recovery_sequence + 1;
 	  
 	EKA_DEBUG("%s:%u Generating TOB quote for every Security",EKA_EXCH_DECODE(gr->exch),gr->id);
-	((TobBook*)gr->book)->sendTobImage(pEfhRunCtx);
+	gr->book->sendTobImage(pEfhRunCtx);
       }
       if (gr->gapClosed) {
 	gr->state =EkaFhGroup::GrpState::NORMAL;

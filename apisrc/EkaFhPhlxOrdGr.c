@@ -1,6 +1,5 @@
 #include "EkaFhPhlxOrdGr.h"
 #include "EkaFhThreadAttr.h"
-#include "eka_fh_book.h"
 #include "eka_fh_q.h"
 
 void* getMolUdpPlxOrdData(void* attr);
@@ -50,9 +49,10 @@ void EkaFhPhlxOrdGr::pushUdpPkt2Q(const uint8_t* pkt,
 /* ##################################################################### */
 
 int EkaFhPhlxOrdGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
-  book = new NomBook(pEfhCtx,pEfhInitCtx,this);
-  if (book == NULL) on_error("book == NULL, &book = %p",&book);
-  ((NomBook*)book)->init();
+  book = new FhBook(dev,id,exch);
+  if (book == NULL) on_error("book = NULL");
+
+  book->init();
   return 0;
 }
 /* ##################################################################### */
@@ -78,6 +78,7 @@ int EkaFhPhlxOrdGr::closeIncrementalGap(EfhCtx*        pEfhCtx,
 		    attr,
 		    dev->createThreadContext,
 		    (uintptr_t*)&snapshot_thread);   
+/* ##################################################################### */
 
 
   return 0;

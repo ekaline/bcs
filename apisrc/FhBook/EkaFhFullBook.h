@@ -1,11 +1,22 @@
 #ifndef _EKA_FH_FULL_BOOK_H_
 #define _EKA_FH_FULL_BOOK_H_
 
+#include <string>
+
 #include "EkaFhBook.h"
 #include "EkaFhFbSecurity.h"
 #include "EkaFhPlevel.h"
 #include "EkaFhOrder.h"
 
+/* ####################################################### */
+inline std::string side2str(SideT side) {
+  switch (side) {
+  case SideT::BID : return std::string("BID");
+  case SideT::ASK : return std::string("ASK");
+  default: 
+    return std::string("UNEXPECTED SIDE: ") + std::to_string((int)side);
+  }
+}
 /* ####################################################### */
 template <class OrderIdT>
 inline uint32_t getOrderHashIdx(OrderIdT orderId, uint64_t MAX_ORDERS, uint ORDERS_HASH_MASK) {
@@ -22,16 +33,17 @@ inline uint32_t getOrderHashIdx(OrderIdT orderId, uint64_t MAX_ORDERS, uint ORDE
 /* ####################################################### */
 
 template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class OrderIdT, class PriceT, class SizeT>
-  class EkaFhFullBook : 
-  public EkaFhBook  {
+  class EkaFhFullBook : public EkaFhBook  {
  public:
   using FhSecurity   = EkaFhFbSecurity  <SecurityIdT, OrderIdT, PriceT, SizeT>;
   using FhPlevel     = EkaFhFbPlevel    <                       PriceT, SizeT>;
   using FhOrder      = EkaFhFbOrder     <             OrderIdT,         SizeT>;
 
+/* ####################################################### */
+
  EkaFhFullBook(EkaDev* _dev, EkaLSI _grId, EkaSource   _exch) 
    : EkaFhBook (_dev,_grId,_exch) {}
- 
+ /* ####################################################### */
 
   void            init() {
     EKA_LOG("OK");
@@ -79,6 +91,25 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class O
 }
 
 /* ####################################################### */
+  EkaFhOrder*  findOrder(OrderIdT orderId) {
+    uint32_t index = getOrderHashIdx<OrderIdT>(orderId,MAX_ORDERS,ORDERS_HASH_MASK);
+    FhOrder* o = ord[index];
+    while (o != NULL) {
+      if (o->orderId == orderId) {
+	if (o->plevel == NULL)
+	  on_error("o->plevel == NULL for orderId %ju",(uint64_t)orderId);
+	if (o->plevel->security == NULL)
+	  on_error("o->plevel->security == NULL for  orderId %ju, side %s, price %ju",
+		   (uint64_t)orderId,side2str(o->plevel->side).c_str(),(uint64_t)o->plevel->price);
+
+	return o;
+      }
+      o = o->next;
+    }
+    return NULL;
+  }
+
+/* ####################################################### */
 
   EkaFhPlevel*    addOrder(FhSecurity*     s,
 			   OrderIdT        _orderId,
@@ -98,7 +129,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class O
 
 /* ####################################################### */
 
-  int             modifyOrder(FhOrder* o, PriceT price,SizeT size) {
+  int modifyOrder(FhOrder* o, PriceT price,SizeT size) {
   FhPlevel* p = o->plevel;
   if (p->price == price) {
     p->deductSize(o->type,o->size);
@@ -115,7 +146,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class O
   return 0;
 }
 /* ####################################################### */
-  int             deleteOrder(FhOrder* o) {
+  int deleteOrder(FhOrder* o) {
   if (o == NULL) on_error("o == NULL for GR%u",grId);
   FhPlevel* p = o->plevel;
   if (p == NULL) on_error("p == NULL");
@@ -129,7 +160,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class O
   return 0;
 }
 /* ####################################################### */
-  SizeT           reduceOrderSize(FhOrder* o, SizeT deltaSize) {
+  SizeT reduceOrderSize(FhOrder* o, SizeT deltaSize) {
     if (o->size < deltaSize) 
       on_error("o->size %d < deltaSize %d",(int)o->size, (int)deltaSize);
     o->size -= deltaSize;
@@ -138,6 +169,55 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class O
 /* ####################################################### */
   int             invalidate() {
     return 0; // TBD
+  }
+/* ####################################################### */
+  int generateOnQuote (const EfhRunCtx* pEfhRunCtx, 
+		       FhSecurity* s, 
+		       uint64_t sequence, 
+		       uint64_t timestamp,
+		       uint gapNum) {
+    if (s = NULL) on_error("s == NULL");
+
+    EfhQuoteMsg msg = {};
+    msg.header.msgType        = EfhMsgType::kQuote;
+    msg.header.group.source   = exch;
+    msg.header.group.localId  = id;
+    msg.header.securityId     = s->security_id;
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = timestamp;
+    msg.header.queueSize      = gr->q->get_len();
+    msg.header.gapNum         = gapNum;
+    msg.tradeStatus           = s->trading_action == EfhTradeStatus::kHalted ? EfhTradeStatus::kHalted :
+      s->option_open ? s->trading_action : EfhTradeStatus::kClosed;
+
+    msg.bidSide.price           = s->num_of_buy_plevels == 0 ? 0 : s->buy->price;
+    msg.bidSide.size            = s->num_of_buy_plevels == 0 ? 0 : s->buy->get_total_size();
+    msg.bidSide.customerSize    = s->num_of_buy_plevels == 0 ? 0 : s->buy->get_total_customer_size();
+    msg.bidSide.customerAoNSize = s->num_of_buy_plevels == 0 ? 0 : s->buy->cust_aon_size;
+    msg.bidSide.bdAoNSize       = s->num_of_buy_plevels == 0 ? 0 : s->buy->bd_aon_size;
+    msg.bidSide.aoNSize         = s->num_of_buy_plevels == 0 ? 0 : s->buy->get_total_aon_size();
+
+    msg.askSide.price           = s->num_of_sell_plevels == 0 ? 0 : s->sell->price;
+    msg.askSide.size            = s->num_of_sell_plevels == 0 ? 0 : s->sell->get_total_size();
+    msg.askSide.customerSize    = s->num_of_sell_plevels == 0 ? 0 : s->sell->get_total_customer_size();
+    msg.askSide.customerAoNSize = s->num_of_sell_plevels == 0 ? 0 : s->sell->cust_aon_size;
+    msg.askSide.bdAoNSize       = s->num_of_sell_plevels == 0 ? 0 : s->sell->bd_aon_size;
+    msg.askSide.aoNSize         = s->num_of_sell_plevels == 0 ? 0 : s->sell->get_total_aon_size();
+
+    if (pEfhRunCtx->onEfhQuoteMsgCb == NULL) on_error("Uninitialized pEfhRunCtx->onEfhQuoteMsgCb");
+
+#ifdef EKA_TIME_CHECK
+    auto start = std::chrono::high_resolution_clock::now();
+#endif
+
+    pEfhRunCtx->onEfhQuoteMsgCb(&msg, (EfhSecUserData)s->efhUserData, pEfhRunCtx->efhRunUserData);
+
+#ifdef EKA_TIME_CHECK
+    auto finish = std::chrono::high_resolution_clock::now();
+    uint duration_ms = (uint) std::chrono::duration_cast<std::chrono::milliseconds>(finish-start).count();
+    if (duration_ms > 5) EKA_WARN("WARNING: onQuote Callback took %u ms",duration_ms);
+#endif
+    return 0;
   }
 /* ####################################################### */
 
@@ -208,9 +288,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class O
 /* ####################################################### */
   void            addOrder2Hash (FhOrder* o) {
   if (o == NULL) on_error("o==NULL");
-#ifdef INTERNAL_DEBUG
-  EKA_LOG("o->orderId=%ju",o->orderId);
-#endif
+
   uint64_t orderId = o->orderId;
 
   uint32_t index = getOrderHashIdx<OrderIdT>(orderId,MAX_ORDERS,ORDERS_HASH_MASK);
@@ -289,7 +367,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class O
   return newP;
 }
 /* ####################################################### */
-  void            allocateResources() {
+  void  allocateResources() {
   for (uint i = 0; i < MAX_ORDERS; i++) ord[i]=NULL;
   //----------------------------------------------------------
   EKA_LOG("%s:%u: preallocating %u free orders",EKA_EXCH_DECODE(exch),grId,MAX_ORDERS);
@@ -309,7 +387,10 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class O
   }
   //----------------------------------------------------------
 }
+
 /* ####################################################### */
+
+
   //----------------------------------------------------------
 
  public:

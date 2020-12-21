@@ -2,6 +2,7 @@
 #define _EKA_FH_PHLX_ORD_GR_H_
 
 #include "EkaFhNasdaqGr.h"
+#include "EkaFhFullBook.h"
 
 class EkaFhPhlxOrdGr : public EkaFhNasdaqGr{
  public:
@@ -29,6 +30,18 @@ class EkaFhPhlxOrdGr : public EkaFhNasdaqGr{
 			     const EfhRunCtx* pEfhRunCtx, 
 			     uint64_t          startSeq,
 			     uint64_t          endSeq);
+
+
+  static const uint   SCALE          = (const uint) 22;
+  static const uint   SEC_HASH_SCALE = 17;
+
+  using SecurityIdT = uint32_t;
+  using OrderIdT    = uint32_t;
+  using PriceT      = uint32_t;
+  using SizeT       = uint32_t;
+
+  using FhSecurityState = EkaFhSecurityState<PriceT,SizeT>;
+  using FhBook          = EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>;
 
 };
 

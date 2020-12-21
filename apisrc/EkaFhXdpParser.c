@@ -8,7 +8,6 @@
 
 #include "EkaFhXdpGr.h"
 #include "EkaFhXdpParser.h"
-#include "eka_fh_book.h"
 
 bool EkaFhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
   switch (((XdpMsgHdr*)m)->MsgType) {
@@ -18,11 +17,8 @@ bool EkaFhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     //-----------------------------------------------------------------------------
   case EKA_XDP_MSG_TYPE::QUOTE : {
     XdpQuote* msg = (XdpQuote*)m;
-    fh_b_security* s = book->find_security(msg->SeriesIndex);
-    if (s == NULL) {
-      if (! book->subscribe_all) return false;
-      s = book->subscribe_security(msg->SeriesIndex & 0x00000000FFFFFFFF,0,0,0,0);
-    }
+    FhSecurity* s = book->findSecurity(msg->SeriesIndex);
+    if (s == NULL) return false;
 
     /* s->seconds       = msg->time.SourceTime; */
     /* s->nanoseconds   = msg->time.SourceTimeNS; */
@@ -66,7 +62,7 @@ bool EkaFhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
   case EKA_XDP_MSG_TYPE::TRADE : {
     XdpTrade* msg = (XdpTrade*) m;
-    fh_b_security* s = book->find_security(msg->SeriesIndex);
+    FhSecurity* s = book->findSecurity(msg->SeriesIndex);
     if (s == NULL) return false;
 
     const EfhTradeMsg efhTradeMsg = {
@@ -88,7 +84,7 @@ bool EkaFhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
   case EKA_XDP_MSG_TYPE::SERIES_STATUS : {
     XdpSeriesStatus* msg = (XdpSeriesStatus*) m;
-    fh_b_security* s = book->find_security(msg->SeriesIndex);
+    FhSecurity* s = book->findSecurity(msg->SeriesIndex);
     if (s == NULL) return false;
     switch (msg->SecurityStatus) {
     case 'O' :

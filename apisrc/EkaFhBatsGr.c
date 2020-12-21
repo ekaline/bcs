@@ -1,5 +1,4 @@
 #include "EkaFhBatsGr.h"
-#include "eka_fh_book.h"
 #include "EkaFhThreadAttr.h"
 #include "eka_fh_q.h"
 #include "EkaFhBatsParser.h"
@@ -48,9 +47,11 @@ void EkaFhBatsGr::pushUdpPkt2Q(const uint8_t* pkt,
 /* ##################################################################### */
 
 int EkaFhBatsGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
-  book = new BatsBook(pEfhCtx,pEfhInitCtx,this);
-  if (book == NULL) on_error("book == NULL, &book = %p",&book);
-  ((BatsBook*)book)->init();
+  book = new FhBook(dev,id,exch);
+  if (book == NULL) on_error("book = NULL");
+
+  book->init();
+
   return 0;
 }
 /* ##################################################################### */

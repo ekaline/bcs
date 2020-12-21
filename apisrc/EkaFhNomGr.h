@@ -2,9 +2,7 @@
 #define _EKA_FH_NOM_GR_H_
 
 #include "EkaFhNasdaqGr.h"
-
 #include "EkaFhFullBook.h"
-
 
 class EkaFhNomGr : public EkaFhNasdaqGr {
  public:
@@ -22,13 +20,13 @@ class EkaFhNomGr : public EkaFhNasdaqGr {
   static const uint   SEC_HASH_SCALE = 17;
 
   using SecurityIdT = uint32_t;
-  using OrderIdT    = uint32_t;
+  using OrderIdT    = uint64_t;
   using PriceT      = uint32_t;
   using SizeT       = uint32_t;
 
-  using FhBook      = EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>;
+  using FhSecurityState = EkaFhSecurityState<PriceT,SizeT>;
+  using FhBook          = EkaFhFullBook<SCALE,SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>;
 
-  FhBook*          fhBook         = NULL;
 };
 
 #endif

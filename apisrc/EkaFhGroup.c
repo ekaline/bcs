@@ -20,7 +20,7 @@
 #include <sched.h>
 
 #include "EkaFhGroup.h"
-#include "eka_fh_book.h"
+#include "EkaFhBook.h"
 #include "EkaCore.h"
 #include "EkaTcpSess.h"
 
@@ -154,13 +154,6 @@ void EkaFhGroup::send_igmp(bool join_leave) {
   return;
 }
 
- /* ##################################################################### */
-
-int EkaFhGroup::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
-  book = new TobBook(pEfhCtx,pEfhInitCtx,this);
-  ((TobBook*)book)->init();
-  return 0;
-}
  /* ##################################################################### */
 
 void EkaFhGroup::print_q_state() {

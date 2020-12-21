@@ -1,9 +1,13 @@
 #ifndef _EKA_FH_FB_SECURITY_H_
 #define _EKA_FH_FB_SECURITY_H_
 
+#include "EkaFhTypes.h"
+#include "Efh.h"
 #include "EkaFhSecurity.h"
 
 class FhPlevel;
+
+/* ####################################################### */
 
 template <class SecurityIdT, 
   class OrderIdT, 
@@ -21,5 +25,6 @@ template <class SecurityIdT,
     FhPlevel*     bid           = NULL;
     FhPlevel*     ask           = NULL;
 };
+/* ####################################################### */
 
 #endif

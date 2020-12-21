@@ -9,7 +9,6 @@
 
 #include "EkaFhBoxGr.h"
 #include "EkaFhBoxParser.h"
-#include "eka_fh_book.h"
 
 /* ----------------------------------------------------------------------- */
 void hexDump (const char* desc, void *addr, int len);
@@ -181,7 +180,7 @@ inline uint32_t getFractionIndicator(char FI) {
 
 }
 /* ----------------------------------------------------------------------- */
-inline int getStatus(fh_b_security64* s, char statusMarker) {
+inline int getStatus(FhSecurity* s, char statusMarker) {
   switch (statusMarker) {
   case 'Y' : // Pre-opening phase
     s->option_open    = false;
@@ -268,7 +267,7 @@ static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
 bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence, EkaFhMode op) {
   uint pos = 0;
 
-  fh_b_security64* s = NULL;
+  FhSecurity* s = NULL;
 
   HsvfMsgHdr* msgHdr = (HsvfMsgHdr*)&m[pos];
 
@@ -322,14 +321,10 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
     HsvfOptionQuote* boxMsg = (HsvfOptionQuote*)msgBody;
 
-    uint64_t security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
+    SecurityIdT security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
 
-    s = ((TobBook*)book)->find_security64(security_id);
-    if (s == NULL && !((TobBook*)book)->subscribe_all) return false;
-    if (s == NULL && book->subscribe_all) 
-      s = book->subscribe_security64(security_id,0,0,0,0);
-
-    if (s == NULL) on_error("s == NULL");
+    s = book->findSecurity(security_id);
+    if (s == NULL) return false;
 
     //    EKA_LOG("OptionQuote for %s",boxMsg->InstrumentDescription + '\0');
 
@@ -343,7 +338,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
     getStatus(s,boxMsg->InstrumentStatusMarker);
     if (op != EkaFhMode::SNAPSHOT)
-      ((TobBook*)book)->generateOnQuote64 (pEfhRunCtx, s, sequence, gr_ts, gapNum);
+      book->generateOnQuote (pEfhRunCtx, s, sequence, gr_ts, gapNum);
 
     //===================================================
   } else if (memcmp(msgHdr->MsgType,"Z ",sizeof(msgHdr->MsgType)) == 0) { // SystemTimeStamp

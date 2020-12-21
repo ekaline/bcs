@@ -6,7 +6,6 @@
 /* #include "lwip/prot/ip4.h" */
 /* #include "lwip/prot/tcp.h" */
 
-#include "eka_fh_book.h"
 #include "EkaCtxs.h"
 #include "Eka.h"
 //#include "eka_user_channel.h"

@@ -9,11 +9,27 @@
 
 #include "EkaFhNomGr.h"
 #include "EkaFhNomParser.h"
-#include "eka_fh_book.h"
+#include "EkaFhFullBook.h"
+#include "EkaFhSecurityState.h"
 
 static void eka_print_nom_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequence);
 static inline uint64_t get_ts(uint8_t* m);
 std::string ts_ns2str(uint64_t ts);
+
+/* ####################################################### */
+inline SideT sideDecode(char _side) {
+  switch (_side) {
+  case 'B' :
+    return SideT::BID;
+  case 'S' :
+    return SideT::ASK;
+  default:
+    on_error("Unexpected Side \'%c\'",_side);
+  }
+}
+
+
+/* ####################################################### */
 
 bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
   EKA_FH_ERR_CODE err = EKA_FH_RESULT__OK;
@@ -24,13 +40,13 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
   char enc =  (char)m[0];
   uint64_t msg_timestamp = get_ts(m);
 
-  fh_b_security_state prev_s;
+  FhSecurityState prev_s;
   prev_s.reset();
 
   if (op == EkaFhMode::DEFINITIONS && enc == 'M') return true;
   if ((op == EkaFhMode::DEFINITIONS && enc != 'R') || (op == EkaFhMode::SNAPSHOT    && enc == 'R')) return false;
 
-  fh_b_security* s = NULL;
+  EkaFhFbSecurity* s = NULL;
 
   switch (enc) {    
   case 'R':  { //ITTO_TYPE_OPTION_DIRECTORY 
@@ -71,37 +87,43 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     //--------------------------------------------------------------
   case 'a':  {  //NOM_ADD_ORDER_SHORT
     struct itto_add_order_short *message = (struct itto_add_order_short *)m;
-    uint32_t security_id = be32toh(message->option_id);
-    s = ((NomBook*)book)->find_security(security_id);
+    SecurityIdT security_id = be32toh(message->option_id);
+    s = book->findSecurity(security_id);
     if (s == NULL) {
-      if (!((NomBook*)book)->subscribe_all) return false;
-      s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
+#ifdef FH_LAB
+      s = book->subscribeSecurity((SecurityIdT)security_id);
+#else
+      return false;
+#endif
     }
-    uint64_t order_id = be64toh(message->order_reference_delta);
-    uint32_t size =  (uint32_t) be16toh (message->size);
-    uint32_t price = (uint32_t) be16toh (message->price) * 100 / EFH_PRICE_SCALE; // Short Price representation
-    char side = (char)message->side;
+    OrderIdT order_id = be64toh(message->order_reference_delta);
+    SizeT    size     = be16toh (message->size);
+    PriceT   price    = be16toh (message->price) * 100 / EFH_PRICE_SCALE; // Short Price representation
+    SideT    side     = sideDecode(message->side);
 
     prev_s.set(s);
-    ((NomBook*)book)->add_order2book(s,order_id,fh_b_order::type_t::CUSTOMER,price,size,side);
+    book->addOrder(s,order_id,fh_b_order::type_t::CUSTOMER,price,size,side);
     break;
   }
     //--------------------------------------------------------------
   case 'A' : { //NOM_ADD_ORDER_LONG
     struct itto_add_order_long *message = (struct itto_add_order_long *)m;
-    uint32_t security_id = be32toh(message->option_id);
-    s = ((NomBook*)book)->find_security(security_id);
+    SecurityIdT security_id = be32toh(message->option_id);
+    s = book->findSecurity(security_id);
     if (s == NULL) {
-      if (!((NomBook*)book)->subscribe_all) return false;
-      s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
+#ifdef FH_LAB
+      s = book->subscribeSecurity((SecurityIdT)security_id);
+#else
+      return false;
+#endif
     }
-    uint64_t order_id = be64toh(message->order_reference_delta);
-    uint32_t size =  be32toh (message->size);
-    uint32_t price = be32toh (message->price) / EFH_PRICE_SCALE;
-    char side = (char)message->side;
+    OrderIdT order_id = be64toh   (message->order_reference_delta);
+    SizeT    size     = be32toh   (message->size);
+    PriceT   price    = be32toh   (message->price) / EFH_PRICE_SCALE;
+    SideT    side     = sideDecode(message->side);
 
     prev_s.set(s);
-    ((NomBook*)book)->add_order2book(s,order_id,fh_b_order::type_t::CUSTOMER,price,size,side);
+    book->addOrder(s,order_id,fh_b_order::type_t::CUSTOMER,price,size,side);
     break;
   }
     //--------------------------------------------------------------
@@ -115,13 +137,9 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     //--------------------------------------------------------------
   case 'H': { //NOM_TRADING_ACTION 
     struct itto_trading_action *message = (struct itto_trading_action *)m;
-    uint32_t security_id = be32toh(message->option_id);
-    s = ((NomBook*)book)->find_security(security_id);
-    if (s == NULL) {
-      if (!((NomBook*)book)->subscribe_all) return false;
-      s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
-      return false;
-    }
+    SecurityIdT security_id = be32toh(message->option_id);
+    s = book->findSecurity(security_id);
+    if (s == NULL) return false;
 
     prev_s.set(s);
     s->trading_action = ITTO_NOM_TRADING_ACTION(message->trading_state);
@@ -129,12 +147,9 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
   }
   case 'O': { //NOM_OPTION_OPEN 
     struct itto_option_open *message = (struct itto_option_open *)m;
-    uint32_t security_id = be32toh(message->option_id);
-    s = ((NomBook*)book)->find_security(security_id);
-    if (s == NULL) {
-      if (!((NomBook*)book)->subscribe_all) return false;
-      s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
-    }
+    SecurityIdT security_id = be32toh(message->option_id);
+    s = book->findSecurity(security_id);
+    if (s == NULL) return false;
 
     prev_s.set(s);
     if (s != NULL) s->option_open = (message->open_state == 'Y');
@@ -145,116 +160,128 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
   case 'J': {  //NOM_ADD_QUOTE_LONG
     struct itto_add_quote_long *message = (struct itto_add_quote_long *)m;
 
-    uint32_t security_id  = be32toh(message->option_id);
-    s = ((NomBook*)book)->find_security(security_id);
-
+    SecurityIdT security_id  = be32toh(message->option_id);
+    s = book->findSecurity(security_id);
     if (s == NULL) {
-      if (!((NomBook*)book)->subscribe_all) return false;
-      s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
+#ifdef FH_LAB
+      s = book->subscribeSecurity((SecurityIdT)security_id);
+#else
+      return false;
+#endif
     }
-    uint64_t bid_order_id = be64toh(message->bid_reference_delta);
-    uint32_t bid_price    = be32toh(message->bid_price) / EFH_PRICE_SCALE;
-    uint32_t bid_size     = be32toh(message->bid_size);
-    uint64_t ask_order_id = be64toh(message->ask_reference_delta);
-    uint32_t ask_price    = be32toh(message->ask_price) / EFH_PRICE_SCALE;
-    uint32_t ask_size     = be32toh(message->ask_size);
+
+    OrderIdT bid_order_id = be64toh(message->bid_reference_delta);
+    PriceT   bid_price    = be32toh(message->bid_price) / EFH_PRICE_SCALE;
+    SizeT    bid_size     = be32toh(message->bid_size);
+    OrderIdT ask_order_id = be64toh(message->ask_reference_delta);
+    PriceT   ask_price    = be32toh(message->ask_price) / EFH_PRICE_SCALE;
+    SizeT    ask_size     = be32toh(message->ask_size);
 
     prev_s.set(s);
-    ((NomBook*)book)->add_order2book(s,bid_order_id,fh_b_order::type_t::BD,bid_price,bid_size,'B');
-    ((NomBook*)book)->add_order2book(s,ask_order_id,fh_b_order::type_t::BD,ask_price,ask_size,'S');
+    book->addOrder(s,bid_order_id,FhOrderType::BD,bid_price,bid_size,SideT::BID);
+    book->addOrder(s,ask_order_id,FhOrderType::BD,ask_price,ask_size,SideT::ASK);
     break;
   }
     //--------------------------------------------------------------
   case 'j': { //NOM_ADD_QUOTE_SHORT
     struct itto_add_quote_short *message = (struct itto_add_quote_short *)m;
 
-    uint32_t security_id = be32toh(message->option_id);
-    s = ((NomBook*)book)->find_security(security_id);
+    SecurityIdT security_id = be32toh(message->option_id);
+    s = book->findSecurity(security_id);
     if (s == NULL) {
       if (!((NomBook*)book)->subscribe_all) return false;
       s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
     }
 
-    uint64_t bid_order_id =            be64toh(message->bid_reference_delta);
-    uint32_t bid_price    = (uint32_t) be16toh(message->bid_price) * 100 / EFH_PRICE_SCALE;
-    uint32_t bid_size     = (uint32_t) be16toh(message->bid_size);
-    uint64_t ask_order_id =            be64toh(message->ask_reference_delta);
-    uint32_t ask_price    = (uint32_t) be16toh(message->ask_price) * 100 / EFH_PRICE_SCALE;
-    uint32_t ask_size     = (uint32_t) be16toh(message->ask_size);
+    OrderIdT bid_order_id =  be64toh(message->bid_reference_delta);
+    PriceT   bid_price    =  be16toh(message->bid_price) * 100 / EFH_PRICE_SCALE;
+    SizeT    bid_size     =  be16toh(message->bid_size);
+    OrderIdT ask_order_id =  be64toh(message->ask_reference_delta);
+    PriceT   ask_price    =  be16toh(message->ask_price) * 100 / EFH_PRICE_SCALE;
+    SizeT    ask_size     =  be16toh(message->ask_size);
 
     prev_s.set(s);
-    ((NomBook*)book)->add_order2book(s,bid_order_id,fh_b_order::type_t::BD,bid_price,bid_size,'B');
-    ((NomBook*)book)->add_order2book(s,ask_order_id,fh_b_order::type_t::BD,ask_price,ask_size,'S');    
+    book->addOrder(s,bid_order_id,FhOrderType::BD,bid_price,bid_size,SideT::BID);
+    book->addOrder(s,ask_order_id,FhOrderType::BD,ask_price,ask_size,SideT::ASK);    
     break;
   }
     //--------------------------------------------------------------
   case 'E':  { //NOM_SINGLE_SIDE_EXEC
     struct itto_executed *message = (struct itto_executed *)m;
-    uint64_t order_id   = be64toh(message->order_reference_delta);
-    uint32_t delta_size = be32toh(message->executed_contracts);
-    fh_b_order* o = ((NomBook*)book)->find_order(order_id);
+    OrderIdT order_id   = be64toh(message->order_reference_delta);
+    SizeT    delta_size = be32toh(message->executed_contracts);
 
+    FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
 
-    if (o->plevel == NULL) on_error("NOM_SINGLE_SIDE_EXEC: o->plevel == NULL");
-    if (o->plevel->s == NULL) on_error("NOM_SINGLE_SIDE_EXEC: o->plevel->s == NULL");
     s = o->plevel->s;
-
     prev_s.set(s);
-    err = ((NomBook*)book)->change_order_size (o,delta_size,1);    
+
+    if (book->reduceOrderSize(o,delta_size) == 0) {
+      deleteOrder(o);
+    } else {
+      o->plevel->deductSize (o->type,deltaSize);
+    }
     break;
   }
     //--------------------------------------------------------------
   case 'C': { //NOM_SINGLE_SIDE_EXEC_PRICE
     struct itto_executed_price *message = (struct itto_executed_price *)m;
-    uint64_t order_id   = be64toh(message->order_reference_delta);
-    uint32_t delta_size = be32toh(message->size);
+    OrderIdT order_id   = be64toh(message->order_reference_delta);
+    SizeT  delta_size   = be32toh(message->size);
 
-    fh_b_order* o = ((NomBook*)book)->find_order(order_id);
-
+    FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
 
-    if (o->plevel == NULL) on_error("NOM_SINGLE_SIDE_EXEC_PRICE: o->plevel == NULL");
-    if (o->plevel->s == NULL) on_error("NOM_SINGLE_SIDE_EXEC_PRICE: o->plevel->s == NULL");
     s = o->plevel->s;
-
     prev_s.set(s);
-    err = ((NomBook*)book)->change_order_size (o,delta_size,1);    
+
+    if (book->reduceOrderSize(o,delta_size) == 0) {
+      deleteOrder(o);
+    } else {
+      o->plevel->deductSize (o->type,deltaSize);
+    } 
     break;
   }
 
   //--------------------------------------------------------------
   case 'X': { //NOM_ORDER_CANCEL
     struct itto_order_cancel *message = (struct itto_order_cancel *)m;
-    uint64_t order_id = be64toh(message->order_reference_delta);
-    uint32_t delta_size = be32toh(message->cancelled_orders);
+    OrderIdT order_id = be64toh(message->order_reference_delta);
+    SizeT delta_size  = be32toh(message->cancelled_orders);
  
-    fh_b_order* o = ((NomBook*)book)->find_order(order_id);
+    FhOrder* o = book->findOrder(order_id);
     if (o == NULL)  return false;
-    if (o->plevel == NULL) on_error("NOM_ORDER_CANCEL: o->plevel == NULL");
-    if (o->plevel->s == NULL) on_error("NOM_ORDER_CANCEL: o->plevel->s == NULL");
-    s = o->plevel->s;
 
+    s = o->plevel->s;
     prev_s.set(s);
-    err = ((NomBook*)book)->change_order_size (o,delta_size,1);
+
+    if (book->reduceOrderSize(o,delta_size) == 0) {
+      deleteOrder(o);
+    } else {
+      o->plevel->deductSize (o->type,deltaSize);
+    } 
     break;
   }
 //--------------------------------------------------------------
   case 'u': {  //NOM_SINGLE_SIDE_REPLACE_SHORT
     struct itto_message_replace_short *message = (struct itto_message_replace_short *)m;
-    uint64_t old_order_id = be64toh(message->original_reference_delta);
-    uint64_t new_order_id = be64toh(message->new_reference_delta); 
-    uint32_t price    = (uint32_t) be16toh(message->price) * 100 / EFH_PRICE_SCALE;
-    uint32_t size     = (uint32_t) be16toh(message->size);
+    OrderIdT old_order_id = be64toh(message->original_reference_delta);
+    OrderIdT new_order_id = be64toh(message->new_reference_delta); 
+    PriceT   price        = be16toh(message->price) * 100 / EFH_PRICE_SCALE;
+    SizeT    size         = be16toh(message->size);
 
-    fh_b_order* o = ((NomBook*)book)->find_order(old_order_id);
+    FhOrder* o            = book->findOrder(old_order_id);
     if (o == NULL) return false;
-    if (o->plevel == NULL) on_error("NOM_SINGLE_SIDE_REPLACE_SHORT: o->plevel == NULL");
-    if (o->plevel->s == NULL) on_error("NOM_SINGLE_SIDE_REPLACE_SHORT: o->plevel->s == NULL");
-    s = o->plevel->s;
 
+    s = o->plevel->s;
     prev_s.set(s);
-    err = ((NomBook*)book)->replace_order(o,new_order_id,price,size);
+
+    FhOrderType t    = o->type;
+    SideT       side = o->side;
+    book->deleteOrder(o);
+    book->addOrder(s,new_order_id,t,price,size,side);
+
     break;
   }
 //--------------------------------------------------------------
@@ -262,153 +289,151 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     struct itto_message_replace_long *message = (struct itto_message_replace_long *)m;
     uint64_t old_order_id = be64toh(message->original_reference_delta);
     uint64_t new_order_id = be64toh(message->new_reference_delta); 
-    uint32_t price    = be32toh(message->price) / EFH_PRICE_SCALE;
-    uint32_t size     = be32toh(message->size);
-    fh_b_order* o = ((NomBook*)book)->find_order(old_order_id);
+    PriceT price          = be32toh(message->price) / EFH_PRICE_SCALE;
+    SizeT size            = be32toh(message->size);
+
+    FhOrder* o            = book->findOrder(old_order_id);
     if (o == NULL)  return false;
 
-    if (o->plevel == NULL) on_error("NOM_SINGLE_SIDE_REPLACE_LONG: o->plevel == NULL");
-    if (o->plevel->s == NULL) on_error("NOM_SINGLE_SIDE_REPLACE_LONG: o->plevel->s == NULL");
     s = o->plevel->s;
-
     prev_s.set(s);
-    err = ((NomBook*)book)->replace_order(o,new_order_id,price,size);
+
+    FhOrderType t    = o->type;
+    SideT       side = o->side;
+    book->deleteOrder(o);
+    book->addOrder(s,new_order_id,t,price,size,side);
+
     break;
   }
 //--------------------------------------------------------------
   case 'D': { //NOM_SINGLE_SIDE_DELETE 
     struct itto_message_delete *message = (struct itto_message_delete *)m;
-    uint64_t order_id = be64toh(message->reference_delta);
-    fh_b_order* o = ((NomBook*)book)->find_order(order_id);
+    OrderIdT order_id = be64toh(message->reference_delta);
+    FhOrder* o        = book->findOrder(order_id);
     if (o == NULL) return false;
-    if (o->plevel == NULL) on_error("NOM_SINGLE_SIDE_DELETE: o->plevel == NULL");
-    if (o->plevel->s == NULL) on_error("NOM_SINGLE_SIDE_DELETE: o->plevel->s == NULL");
+
     s = o->plevel->s;
     prev_s.set(s);
-    err = ((NomBook*)book)->delete_order (o);
+
+    book->deleteOrder(o);
     break;
   }
 //--------------------------------------------------------------
   case 'G': { //NOM_SINGLE_SIDE_UPDATE
     struct itto_message_update *message = (struct itto_message_update *)m;
-    uint64_t order_id = be64toh(message->reference_delta);
-    uint32_t price    = be32toh(message->price) / EFH_PRICE_SCALE;
-    uint32_t size     = be32toh(message->size);
+    OrderIdT order_id = be64toh(message->reference_delta);
+    PriceT price      = be32toh(message->price) / EFH_PRICE_SCALE;
+    SizeT size        = be32toh(message->size);
 
-    fh_b_order* o = ((NomBook*)book)->find_order(order_id);
+    FhOrder* o        = book->findOrder(order_id);
     if (o == NULL)  return false;
-    if (o->plevel == NULL) on_error("NOM_SINGLE_SIDE_UPDATE: o->plevel == NULL");
-    if (o->plevel->s == NULL) on_error("NOM_SINGLE_SIDE_UPDATE: o->plevel->s == NULL");
-    s = o->plevel->s;
 
+    s = o->plevel->s;
     prev_s.set(s);
-    err = ((NomBook*)book)->modify_order (o,price,size); // modify New order for price and size
+
+    book->modifyOrder (o,price,size); // modify order for price and size
     break;
   }
 //--------------------------------------------------------------
   case 'k':   {//NOM_QUOTE_REPLACE_SHORT
     struct itto_quote_replace_short *message = (struct itto_quote_replace_short *)m;
     
-    uint64_t old_bid_order_id   = be64toh(message->original_bid_delta);
-    uint64_t new_bid_order_id   = be64toh(message->new_bid_delta);
-    uint32_t bid_price          = (uint32_t)be16toh(message->bid_price) * 100 / EFH_PRICE_SCALE;
-    uint32_t bid_size           = (uint32_t)be16toh(message->bid_size);
-    uint64_t old_ask_order_id   = be64toh(message->original_ask_delta);
-    uint64_t new_ask_order_id   = be64toh(message->new_ask_delta);
-    uint32_t ask_price          = (uint32_t)be16toh(message->ask_price) * 100 / EFH_PRICE_SCALE;
-    uint32_t ask_size           = (uint32_t)be16toh(message->ask_size);
+    OrderIdT old_bid_order_id   = be64toh(message->original_bid_delta);
+    OrderIdT new_bid_order_id   = be64toh(message->new_bid_delta);
+    PriceT   bid_price          = (uint32_t)be16toh(message->bid_price) * 100 / EFH_PRICE_SCALE;
+    SizeT    bid_size           = (uint32_t)be16toh(message->bid_size);
+    OrderIdT old_ask_order_id   = be64toh(message->original_ask_delta);
+    OrderIdT new_ask_order_id   = be64toh(message->new_ask_delta);
+    PriceT   ask_price          = (uint32_t)be16toh(message->ask_price) * 100 / EFH_PRICE_SCALE;
+    SizeT    ask_size           = (uint32_t)be16toh(message->ask_size);
 
-    fh_b_order* bid_o = ((NomBook*)book)->find_order(old_bid_order_id);
-    if (bid_o != NULL) {
-      if (bid_o->plevel == NULL) on_error("NOM_QUOTE_REPLACE_SHORT: bid_o->plevel == NULL");
-      if (bid_o->plevel->s == NULL) on_error("NOM_QUOTE_REPLACE_SHORT: bid_o->plevel->s == NULL");
-      s = bid_o->plevel->s;
-    }
-    fh_b_order* ask_o = ((NomBook*)book)->find_order(old_ask_order_id);
-    if (ask_o != NULL) {
-      if (ask_o->plevel == NULL) on_error("NOM_QUOTE_REPLACE_SHORT: ask_o->plevel == NULL");
-      if (ask_o->plevel->s == NULL) on_error("NOM_QUOTE_REPLACE_SHORT: ask_o->plevel->s == NULL");
-      s = ask_o->plevel->s;
-    }
+    FhOrder* bid_o = book->findOrder(old_bid_order_id);
+    if (bid_o != NULL) s = bid_o->plevel->s;
+
+    FhOrder* ask_o = book->findOrder(old_ask_order_id);
+    if (ask_o != NULL) s = ask_o->plevel->s;
+
     if (bid_o == NULL && ask_o == NULL) return false;
-    if (s == NULL) on_error ("s = NULL");
 
+    if (s == NULL) on_error ("s = NULL");
     prev_s.set(s);
-    if (bid_o != NULL) err = ((NomBook*)book)->replace_order( bid_o, new_bid_order_id, bid_price, bid_size);
-    if (err != EKA_FH_RESULT__OK) break;
-    if (ask_o != NULL) err = ((NomBook*)book)->replace_order( ask_o, new_ask_order_id, ask_price, ask_size);
+
+    if (bid_o != NULL) {
+      FhOrderType t = bid_o->type;
+      book->deleteOrder(bid_o);
+      book->addOrder(s,new_bid_order_id,t,bid_price,bid_size,SideT::BID);
+    }
+    if (ask_o != NULL) {
+      FhOrderType t = ask_o->type;
+      book->deleteOrder(ask_o);
+      book->addOrder(s,new_ask_order_id,t,ask_price,ask_size,SideT::ASK);
+    }
+
     break;
   }
 //--------------------------------------------------------------
   case 'K': { //NOM_QUOTE_REPLACE_LONG
     struct itto_quote_replace_long *message = (struct itto_quote_replace_long *)m;
     
-    uint64_t old_bid_order_id   = be64toh(message->original_bid_delta);
-    uint64_t new_bid_order_id   = be64toh(message->new_bid_delta);
-    uint32_t bid_price          = be32toh(message->bid_price) / EFH_PRICE_SCALE;
-    uint32_t bid_size           = be32toh(message->bid_size);
-    uint64_t old_ask_order_id   = be64toh(message->original_ask_delta);
-    uint64_t new_ask_order_id   = be64toh(message->new_ask_delta);
-    uint32_t ask_price          = be32toh(message->ask_price) / EFH_PRICE_SCALE;
-    uint32_t ask_size           = be32toh(message->ask_size);
+    OrderIdT old_bid_order_id   = be64toh(message->original_bid_delta);
+    OrderIdT new_bid_order_id   = be64toh(message->new_bid_delta);
+    PriceT   bid_price          = be32toh(message->bid_price) / EFH_PRICE_SCALE;
+    SizeT    bid_size           = be32toh(message->bid_size);
+    OrderIdT old_ask_order_id   = be64toh(message->original_ask_delta);
+    OrderIdT new_ask_order_id   = be64toh(message->new_ask_delta);
+    PriceT   ask_price          = be32toh(message->ask_price) / EFH_PRICE_SCALE;
+    SizeT    ask_size           = be32toh(message->ask_size);
 
-    fh_b_order* bid_o = ((NomBook*)book)->find_order(old_bid_order_id);
-    if (bid_o != NULL) {
-      if (bid_o->plevel == NULL) on_error("NOM_QUOTE_REPLACE_SHORT: bid_o->plevel == NULL");
-      if (bid_o->plevel->s == NULL) on_error("NOM_QUOTE_REPLACE_SHORT: bid_o->plevel->s == NULL");
-      s = bid_o->plevel->s;
-    }
-    fh_b_order* ask_o = ((NomBook*)book)->find_order(old_ask_order_id);
-    if (ask_o != NULL) {
-      if (ask_o->plevel == NULL) on_error("NOM_QUOTE_REPLACE_SHORT: ask_o->plevel == NULL");
-      if (ask_o->plevel->s == NULL) on_error("NOM_QUOTE_REPLACE_SHORT: ask_o->plevel->s == NULL");
-      s = ask_o->plevel->s;
-    }
+    FhOrder* bid_o = book->findOrder(old_bid_order_id);
+    if (bid_o != NULL) s = bid_o->plevel->s;
+
+    FhOrder* ask_o = book->findOrder(old_ask_order_id);
+    if (ask_o != NULL) s = ask_o->plevel->s;
+
     if (bid_o == NULL && ask_o == NULL) return false;
-    if (s == NULL) on_error ("s = NULL");
 
+    if (s == NULL) on_error ("s = NULL");
     prev_s.set(s);
-    if (bid_o != NULL) err = ((NomBook*)book)->replace_order( bid_o, new_bid_order_id, bid_price, bid_size);
-    if (err != EKA_FH_RESULT__OK) break;
-    if (ask_o != NULL) err = ((NomBook*)book)->replace_order( ask_o, new_ask_order_id, ask_price, ask_size);
+
+    if (bid_o != NULL) {
+      FhOrderType t = bid_o->type;
+      book->deleteOrder(bid_o);
+      book->addOrder(s,new_bid_order_id,t,bid_price,bid_size,SideT::BID);
+    }
+    if (ask_o != NULL) {
+      FhOrderType t = ask_o->type;
+      book->deleteOrder(ask_o);
+      book->addOrder(s,new_ask_order_id,t,ask_price,ask_size,SideT::ASK);
+    }
+
     break;
   }
 //--------------------------------------------------------------
   case 'Y': { //NOM_QUOTE_DELETE 
     struct itto_quote_delete *message = (struct itto_quote_delete *)m;
-    uint64_t bid_order_id = be64toh(message->bid_delta);
-    uint64_t ask_order_id = be64toh(message->ask_delta);
+    OrderIdT bid_order_id = be64toh(message->bid_delta);
+    OrderIdT ask_order_id = be64toh(message->ask_delta);
 
-    fh_b_order *bid_o = ((NomBook*)book)->find_order(bid_order_id);
-    fh_b_order *ask_o = ((NomBook*)book)->find_order(ask_order_id);
+    FhOrder* bid_o = book->findOrder(bid_order_id);
+    FhOrder* ask_o = book->findOrder(ask_order_id);
 
-    if (bid_o != NULL) {
-      if (bid_o->plevel == NULL) on_error("NOM_QUOTE_DELETE: bid_o->plevel == NULL");
-      if (bid_o->plevel->s == NULL) on_error("NOM_QUOTE_DELETE: bid_o->plevel->s == NULL");
-      s = bid_o->plevel->s;
-    }
+    if (bid_o != NULL) s = bid_o->plevel->s;
+    if (ask_o != NULL) s = ask_o->plevel->s;
 
-    if (ask_o != NULL) {
-      if (ask_o->plevel == NULL) on_error("NOM_QUOTE_DELETE: ask_o->plevel == NULL");
-      if (ask_o->plevel->s == NULL) on_error("NOM_QUOTE_DELETE: ask_o->plevel->s == NULL");
-      s = ask_o->plevel->s;
-    }
     if (bid_o == NULL && ask_o == NULL)  return false;
     if (s == NULL) on_error ("s = NULL");
 
     prev_s.set(s);
-    if (bid_o != NULL) err = ((NomBook*)book)->delete_order ( bid_o);
-    if (err != EKA_FH_RESULT__OK) break;
-    if (ask_o != NULL) err = ((NomBook*)book)->delete_order ( ask_o);
+    if (bid_o != NULL) book->deleteOrder(bid_o);
+    if (ask_o != NULL) book->deleteOrder(ask_o);
     break;
   }
 //--------------------------------------------------------------
   case 'P': { //NOM_OPTIONS_TRADE
     struct itto_options_trade *message = (struct itto_options_trade *)m;
-    uint32_t security_id = be32toh(message->option_id);
-    s = ((NomBook*)book)->find_security(security_id);
-    if (s == NULL && !((NomBook*)book)->subscribe_all) return false;
-    if (s == NULL && ((NomBook*)book)->subscribe_all) s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
+    SecurityIdT security_id = be32toh(message->option_id);
+    s = book->findSecurity(security_id);
+    if (s == NULL) return false;
 
     const EfhTradeMsg msg = {
       { EfhMsgType::kTrade,
@@ -446,19 +471,14 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
   if (s == NULL) on_error("Uninitialized Security ptr after message %c",enc);
   s->bid_ts = msg_timestamp;
   s->ask_ts = msg_timestamp;
-  /* if(op == EkaFhMode::MCAST && msg_timestamp < s->timestamp) on_warning("WARNING: security %u: msg_timestamp (= %s) < s->timestamp (= %s)",s->security_id,ts_ns2str(msg_timestamp).c_str(),ts_ns2str(s->timestamp).c_str()); */
 
-  if (err != EKA_FH_RESULT__OK) {
-    eka_print_nom_msg(stderr,(uint8_t*)m,id,sequence);
-    on_error ("Failed FH BOOK OPERATION");
-  }
+  if (fh->print_parsed_messages) eka_print_nom_msg(book->parser_log,(uint8_t*)m,id,sequence);
 
-  if (fh->print_parsed_messages) eka_print_nom_msg(((NomBook*)book)->parser_log,(uint8_t*)m,id,sequence);
-
-  if (prev_s.security_id == 0) on_error("Uninitialized prev_s (sequence = %ju, timestamp = %ju",sequence,msg_timestamp);
+  if (prev_s.security_id == 0 || prev_s.security_id == -1) 
+    on_error("Uninitialized prev_s (sequence = %ju, timestamp = %ju",sequence,msg_timestamp);
  /* ##################################################################### */
 
-  if (prev_s.is_equal(s)) return false;
+  if (prev_s.isEqual(s)) return false;
 #ifdef EKA_TIME_CHECK
   auto finish = std::chrono::high_resolution_clock::now();
   uint64_t duration_ns = (uint64_t) std::chrono::duration_cast<std::chrono::nanoseconds>(finish-start).count();
@@ -466,7 +486,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 #endif
 
 
-  ((NomBook*)book)->generateOnQuote (pEfhRunCtx, s, sequence, msg_timestamp,gapNum);
+  book->generateOnQuote (pEfhRunCtx, s, sequence, msg_timestamp,gapNum);
 
   return false;
 }

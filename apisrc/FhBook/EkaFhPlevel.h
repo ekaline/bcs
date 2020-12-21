@@ -2,6 +2,7 @@
 #define _EKA_FH_PLEVEL_H_
 
 #include "EkaFhTypes.h"
+// ##########################################################
 
 class EkaFhPlevel {
  protected:
@@ -14,8 +15,9 @@ class EkaFhPlevel {
 
  public:
   class FhSecurity*  security = NULL;
-  bool            top      = false;
-  uint            cnt      = 0;
+  bool               top      = false;
+  uint               cnt      = 0;
+  SideT              side     = SideT::UNINIT;
   
   class EkaFhPlevel* prev = NULL;
   class EkaFhPlevel* next = NULL;
@@ -72,12 +74,26 @@ template <class PriceT, class SizeT>
     *pLevelSize -= deltaSize;
     return *pLevelSize;
   }
+
+  //----------------------------------------------------------
+  inline uint32_t get_total_size() {
+    return cust_size + bd_size + cust_aon_size + bd_aon_size + other_size;
+  }
+  //----------------------------------------------------------
+
+  inline uint32_t get_total_customer_size() {
+    return cust_size + cust_aon_size;
+  }
+  //----------------------------------------------------------
+
+  inline uint32_t get_total_aon_size() {
+    return cust_aon_size + bd_aon_size;
+  }
   //----------------------------------------------------------
 
  public:
 
   PriceT          price         = 0;
-  SideT           side          = SideT::UNINIT;
 
   SizeT	          cust_size     = 0;
   SizeT	          cust_aon_size = 0;
@@ -86,4 +102,6 @@ template <class PriceT, class SizeT>
   SizeT	          other_size    = 0;
 
 };
+// ##########################################################
+
 #endif

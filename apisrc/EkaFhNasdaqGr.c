@@ -1,6 +1,5 @@
 #include "EkaFhNasdaqGr.h"
 #include "EkaFhThreadAttr.h"
-#include "eka_fh_book.h"
 #include "eka_fh_q.h"
 
 void* getMolUdp64Data(void* attr);

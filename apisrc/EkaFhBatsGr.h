@@ -2,6 +2,7 @@
 #define _EKA_FH_BATS_GR_H_
 
 #include "EkaFhGroup.h"
+#include "EkaFhFullBook.h"
 
 class EkaFhBatsGr : public EkaFhGroup{
  public:
@@ -40,6 +41,17 @@ class EkaFhBatsGr : public EkaFhGroup{
   char                  sessionSubID[4] = {};  // for BATS Spin
   uint8_t               batsUnit = 0;
 
+
+  static const uint   SCALE          = (const uint) 22;
+  static const uint   SEC_HASH_SCALE = 17;
+
+  using SecurityIdT = uint32_t;
+  using OrderIdT    = uint64_t;
+  using PriceT      = uint32_t;
+  using SizeT       = uint32_t;
+
+  using FhSecurityState = EkaFhSecurityState<PriceT,SizeT>;
+  using FhBook          = EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>;
 
 
 

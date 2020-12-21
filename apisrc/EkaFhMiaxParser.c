@@ -6,7 +6,6 @@
 #include <inttypes.h>
 #include <assert.h>
 
-#include "eka_fh_book.h"
 #include "EkaFhMiaxParser.h"
 #include "EkaFhMiaxGr.h"
 
@@ -18,7 +17,7 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
 
   if (enc != EKA_MIAX_TOM_MSG::EndOfRefresh) ts = gr_ts + ((TomCommon*) m)->Timestamp;
 
-  fh_b_security* tob_s = NULL;
+  FhSecurity* s = NULL;
 
   switch (enc) {    
     //--------------------------------------------------------------
@@ -120,13 +119,11 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
 
     bool long_form = (enc == EKA_MIAX_TOM_MSG::BestBidLong) || (enc == EKA_MIAX_TOM_MSG::BestAskLong);
 
-    uint32_t security_id = long_form ? message_long->security_id : message_short->security_id;
+    SecurityIdT security_id = long_form ? message_long->security_id : message_short->security_id;
 
-    fh_b_security* s = book->find_security(security_id);
-    if (s == NULL && !book->subscribe_all) return false;
-    if (s == NULL &&  book->subscribe_all) s = book->subscribe_security(security_id,0,0,0,0);
+    s = book->findSecurity(security_id);
+    if (s == NULL) return false;
 
-    if (s == NULL) on_error("s == NULL");    
     if (book->underlying[s->underlyingIdx] == NULL)
       on_error("underlying[%u] == NULL",s->underlyingIdx);
 
@@ -148,7 +145,6 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     s->trading_action = setHalted ? EfhTradeStatus::kHalted : book->underlying[s->underlyingIdx]->tradeStatus;
 
     s->option_open = market_open;
-    tob_s = s;
     break;
   }
     //--------------------------------------------------------------
@@ -160,12 +156,10 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
 
     bool long_form = enc == EKA_MIAX_TOM_MSG::BestBidAskLong;
 
-    uint32_t security_id = long_form ? message_long->security_id : message_short->security_id;
-    fh_b_security* s = book->find_security(security_id);
-    if (s == NULL && !book->subscribe_all) return false;
-    if (s == NULL && book->subscribe_all) s = book->subscribe_security(security_id,0,0,0,0);
+    SecurityIdT security_id = long_form ? message_long->security_id : message_short->security_id;
+    s = book->findSecurity(security_id);
+    if (s == NULL) return false;
 
-    if (s == NULL) on_error("s == NULL");    
     if (book->underlying[s->underlyingIdx] == NULL)
       on_error("underlying[%u] == NULL",s->underlyingIdx);
 
@@ -185,17 +179,15 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
 
     s->trading_action = setHaltedBid || setHaltedAsk ? EfhTradeStatus::kHalted : book->underlying[s->underlyingIdx]->tradeStatus;
     s->option_open    = market_open;
-    tob_s = s;
     break;
   }
     //--------------------------------------------------------------
   case EKA_MIAX_TOM_MSG::Trade: { 
     TomTrade *message = (TomTrade *)m;
 
-    uint32_t security_id = message->security_id;
-    fh_b_security* s = book->find_security(security_id);
-    if (s == NULL && !book->subscribe_all) return false;
-    if (s == NULL && book->subscribe_all) s = book->subscribe_security(security_id,0,0,0,0);
+    SecurityIdT security_id = message->security_id;
+    s = book->findSecurity(security_id);
+    if (s == NULL) return false;
 
     EfhTradeMsg msg = {};
     msg.header.msgType        = EfhMsgType::kTrade;
@@ -227,8 +219,8 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
   }
   if (op == EkaFhMode::DEFINITIONS) return false;
 
-  if (tob_s == NULL) on_error ("Trying to generate TOB update from tob_s == NULL");
-  book->generateOnQuote (pEfhRunCtx, tob_s, sequence, ts,gapNum);
+  if (s == NULL) on_error ("Trying to generate TOB update from s == NULL");
+  book->generateOnQuote (pEfhRunCtx, s, sequence, ts,gapNum);
 
   return false;
 }

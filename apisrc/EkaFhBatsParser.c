@@ -8,7 +8,6 @@
 
 #include "EkaFhBatsGr.h"
 #include "EkaFhBatsParser.h"
-#include "eka_fh_book.h"
 
 static void eka_print_batspitch_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequence,uint64_t ts);
 std::string ts_ns2str(uint64_t ts);
@@ -33,38 +32,38 @@ static inline EfhTradeStatus tradeAction(EfhTradeStatus prevTradeAction, char ms
 }
 
 /* ------------------------------------------------ */
-inline fh_b_order::type_t addFlags2orderType(uint8_t flags) {
+inline FhOrderType addFlags2orderType(uint8_t flags) {
   switch (flags) {
     /* case 0x01 : // bit #0 */
-    /*   return fh_b_order::BD; */
+    /*   return FhOrderType::BD; */
   case 0x08 : // bit #3
   case 0x09 : // bit #0 & #3
-    return fh_b_order::BD_AON;
+    return FhOrderType::BD_AON;
   default:
-    return fh_b_order::OTHER;
+    return FhOrderType::OTHER;
   }
 }
 /* ------------------------------------------------ */
-inline fh_b_order::type_t addFlagsCustomerIndicator2orderType(uint8_t flags, char customerIndicator) {
+inline FhOrderType addFlagsCustomerIndicator2orderType(uint8_t flags, char customerIndicator) {
   if (customerIndicator == 'C') {
     switch (flags) {
       /* case 0x01 : // bit #0 */
-      /*   return fh_b_order::BD; */
+      /*   return FhOrderType::BD; */
     case 0x08 : // bit #3
     case 0x09 : // bit #0 & #3
-      return fh_b_order::CUSTOMER_AON;
+      return FhOrderType::CUSTOMER_AON;
     default:
-      return fh_b_order::CUSTOMER;
+      return FhOrderType::CUSTOMER;
     }
   } else {
     switch (flags) {
       /* case 0x01 : // bit #0 */
-      /*   return fh_b_order::BD; */
+      /*   return FhOrderType::BD; */
     case 0x08 : // bit #3
     case 0x09 : // bit #0 & #3
-      return fh_b_order::BD_AON;
+      return FhOrderType::BD_AON;
     default:
-      return fh_b_order::BD;
+      return FhOrderType::BD;
     }
   }
 }
@@ -91,14 +90,26 @@ inline uint32_t bats_symbol2optionid (const char* s, uint symbol_size) {
 }
 /* ------------------------------------------------ */
 
+inline SideT sideDecode(char _side) {
+  switch (_side) {
+  case 'B' :
+    return SideT::BID;
+  case 'S' :
+    return SideT::ASK;
+  default:
+    on_error("Unexpected Side \'%c\'",_side);
+  }
+}
+/* ------------------------------------------------ */
+
 bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
   EKA_BATS_PITCH_MSG enc =  (EKA_BATS_PITCH_MSG)m[1];
   //  EKA_LOG("%s:%u: 0x%02x",EKA_EXCH_DECODE(exch),id,enc);
-  fh_b_security_state prev_s = {};
+  FhSecurityState prev_s = {};
   prev_s.reset();
 
   uint64_t msg_timestamp = 0;
-  fh_b_security* s = NULL;
+  FhSecurity* s = NULL;
 
   if (op == EkaFhMode::SNAPSHOT && enc == EKA_BATS_PITCH_MSG::SYMBOL_MAPPING) return false;
   switch (enc) {    
@@ -120,7 +131,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
   default: {}
   }
 
-  if (op != EkaFhMode::DEFINITIONS && fh->print_parsed_messages) eka_print_batspitch_msg(((BatsBook*)book)->parser_log,(uint8_t*)m,id,sequence,msg_timestamp);
+  if (op != EkaFhMode::DEFINITIONS && fh->print_parsed_messages) eka_print_batspitch_msg(book->parser_log,(uint8_t*)m,id,sequence,msg_timestamp);
 
   switch (enc) {    
     //--------------------------------------------------------------
@@ -201,40 +212,35 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     //--------------------------------------------------------------
   case EKA_BATS_PITCH_MSG::ADD_ORDER_SHORT:  { 
     batspitch_add_order_short *message = (batspitch_add_order_short *)m;
-    uint32_t security_id =  bats_symbol2optionid(message->symbol,6);
-    s = ((BatsBook*)book)->find_security(security_id);
-    if (s == NULL) {
-      if (!((BatsBook*)book)->subscribe_all) return false;
-      s = ((BatsBook*)book)->subscribe_security(security_id,0,0,0,0);
-    }
+    SecurityIdT security_id =  bats_symbol2optionid(message->symbol,6);
+
+    s = book->findSecurity(security_id);
+    if (s == NULL) return false;
     prev_s.set(s);
 
-    uint64_t order_id = message->order_id;
-    uint32_t size =  (uint32_t) message->size;
-    uint32_t price = (uint32_t) message->price * 100 / EFH_PRICE_SCALE; // Short Price representation
-    char side = (char)message->side;
+    OrderIdT order_id = message->order_id;
+    SizeT    size     = message->size;
+    PriceT   price    = message->price * 100 / EFH_PRICE_SCALE; // Short Price representation
+    SideT    side     = sideDecode(message->side);
 
-    ((BatsBook*)book)->add_order2book(s,order_id,addFlags2orderType(message->flags),price,size,side);
+    book->addOrder(s,order_id,addFlags2orderType(message->flags),price,size,side);
     break;
   }
     //--------------------------------------------------------------
   case EKA_BATS_PITCH_MSG::ADD_ORDER_LONG:  { 
     batspitch_add_order_long *message = (batspitch_add_order_long *)m;
-    uint32_t security_id =  bats_symbol2optionid(message->symbol,6);
-    s = ((BatsBook*)book)->find_security(security_id);
-    if (s == NULL) {
-      if (!((BatsBook*)book)->subscribe_all) return false;
-      s = ((BatsBook*)book)->subscribe_security(security_id,0,0,0,0);
-    }
+    SecurityIdT security_id =  bats_symbol2optionid(message->symbol,6);
+    s = book->findSecurity(security_id);
+    if (s == NULL) return false;
     prev_s.set(s);
 
-    uint64_t order_id = message->order_id;
-    uint32_t size =  (uint32_t) message->size;
-    uint32_t price = (uint32_t) ((message->price / EFH_PRICE_SCALE) & 0x00000000FFFFFFFF); // Long Price representation
+    OrderIdT order_id = message->order_id;
+    SizeT    size     = message->size;
+    PriceT   price    = ((message->price / EFH_PRICE_SCALE) & 0x00000000FFFFFFFF); // Long Price representation
     if (((message->price / EFH_PRICE_SCALE) & 0xFFFFFFFF00000000) != 0) on_error("Long price(%ju) exceeds 32bit",message->price);
 
-    char side = (char)message->side;
-    ((BatsBook*)book)->add_order2book(s,order_id,addFlags2orderType(message->flags),price,size,side);
+    SideT    side     = sideDecode(message->side);
+    book->addOrder(s,order_id,addFlags2orderType(message->flags),price,size,side);
     break;
   }
     //--------------------------------------------------------------
@@ -245,95 +251,108 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
 	       message->exp_symbol[0],message->exp_symbol[1],message->exp_symbol[2],message->exp_symbol[3],
 	       message->exp_symbol[4],message->exp_symbol[5],message->exp_symbol[6],message->exp_symbol[7]);
 
-    uint32_t security_id =  bats_symbol2optionid(message->exp_symbol,6);
-    s = ((BatsBook*)book)->find_security(security_id);
-    if (s == NULL) {
-      if (!((BatsBook*)book)->subscribe_all) return false;
-      s = ((BatsBook*)book)->subscribe_security(security_id,0,0,0,0);
-    }
+    SecurityIdT security_id =  bats_symbol2optionid(message->exp_symbol,6);
+    s = book->findSecurity(security_id);
+    if (s == NULL) return false;
     prev_s.set(s);
 
-    uint64_t order_id = message->order_id;
-    uint32_t size =  (uint32_t) message->size;
-    uint32_t price = (uint32_t) ((message->price / EFH_PRICE_SCALE) & 0x00000000FFFFFFFF); // Long Price representation
+    OrderIdT order_id = message->order_id;
+    SizeT    size     = message->size;
+    PriceT   price    = ((message->price / EFH_PRICE_SCALE) & 0x00000000FFFFFFFF); // Long Price representation
     if (((message->price / EFH_PRICE_SCALE) & 0xFFFFFFFF00000000) != 0) on_error("Long price(%ju) exceeds 32bit",message->price);
 
-    char side = (char)message->side;
-    ((BatsBook*)book)->add_order2book(s,order_id,addFlagsCustomerIndicator2orderType(message->flags,message->customer_indicator),price,size,side);
+    SideT    side     = sideDecode(message->side);
+    book->addOrder(s,order_id,addFlagsCustomerIndicator2orderType(message->flags,message->customer_indicator),price,size,side);
     break;
   }
     //--------------------------------------------------------------
   case EKA_BATS_PITCH_MSG::ORDER_EXECUTED: { 
     batspitch_order_executed *message = (batspitch_order_executed *)m;
-    uint64_t order_id   = message->order_id;
-    uint32_t delta_size = message->executed_size;
-    fh_b_order* o = ((BatsBook*)book)->find_order(order_id);
+    OrderIdT order_id   = message->order_id;
+    SizeT    delta_size = message->executed_size;
+    FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
-    assert(o->plevel != NULL);
-    assert(o->plevel->s != NULL);
     s = o->plevel->s;
     prev_s.set(s);
-    ((BatsBook*)book)->change_order_size (o,delta_size,1);
+
+    if (book->reduceOrderSize(o,delta_size) == 0) {
+      deleteOrder(o);
+    } else {
+      o->plevel->deductSize (o->type,deltaSize);
+    }
+
     break;
   }
     //--------------------------------------------------------------
   case EKA_BATS_PITCH_MSG::ORDER_EXECUTED_AT_PRICE_SIZE:  { 
     batspitch_order_executed_at_price_size *message = (batspitch_order_executed_at_price_size *)m;
-    uint64_t order_id   = message->order_id;
-    uint32_t delta_size = message->executed_size;
-    fh_b_order* o = ((BatsBook*)book)->find_order(order_id);
+    OrderIdT order_id   = message->order_id;
+    SizeT    delta_size = message->executed_size;
+    FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
-    assert(o->plevel != NULL);
-    assert(o->plevel->s != NULL);
     s = o->plevel->s;
     prev_s.set(s);
-    ((BatsBook*)book)->change_order_size (o,delta_size,1);
+
+    if (book->reduceOrderSize(o,delta_size) == 0) {
+      deleteOrder(o);
+    } else {
+      o->plevel->deductSize (o->type,deltaSize);
+    }
+
     break;
   }
     //--------------------------------------------------------------
   case EKA_BATS_PITCH_MSG::REDUCED_SIZE_LONG:  { 
     batspitch_reduced_size_long *message = (batspitch_reduced_size_long *)m;
-    uint64_t order_id   = message->order_id;
-    uint32_t delta_size = message->canceled_size;
-    fh_b_order* o = ((BatsBook*)book)->find_order(order_id);
+    OrderIdT order_id   = message->order_id;
+    SizeT delta_size = message->canceled_size;
+    FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
-    assert(o->plevel != NULL);
-    assert(o->plevel->s != NULL);
     s = o->plevel->s;
     prev_s.set(s);
-    ((BatsBook*)book)->change_order_size (o,delta_size,1);
+
+    if (book->reduceOrderSize(o,delta_size) == 0) {
+      deleteOrder(o);
+    } else {
+      o->plevel->deductSize (o->type,deltaSize);
+    }
+
     break;
   }
     //--------------------------------------------------------------
   case EKA_BATS_PITCH_MSG::REDUCED_SIZE_SHORT:  { 
     batspitch_reduced_size_short *message = (batspitch_reduced_size_short *)m;
-    uint64_t order_id   = message->order_id;
-    uint32_t delta_size = message->canceled_size;
-    fh_b_order* o = ((BatsBook*)book)->find_order(order_id);
+    OrderIdT order_id   = message->order_id;
+    SizeT delta_size = message->canceled_size;
+    FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
     assert(o->plevel != NULL);
     assert(o->plevel->s != NULL);
     s = o->plevel->s;
     prev_s.set(s);
-    ((BatsBook*)book)->change_order_size (o,delta_size,1);
+
+    if (book->reduceOrderSize(o,delta_size) == 0) {
+      deleteOrder(o);
+    } else {
+      o->plevel->deductSize (o->type,deltaSize);
+    }
+
     break;
   }
     //--------------------------------------------------------------
   case EKA_BATS_PITCH_MSG::ORDER_MODIFY_SHORT:  { 
     batspitch_order_modify_short  *message = (batspitch_order_modify_short *)m;
 
-    uint64_t order_id = message->order_id;
-    uint32_t size =  (uint32_t) message->size;
-    uint32_t price = (uint32_t) message->price * 100 / EFH_PRICE_SCALE; // Short Price representation
+    OrderIdT order_id = message->order_id;
+    SizeT    size     = message->size;
+    PriceT   price    = message->price * 100 / EFH_PRICE_SCALE; // Short Price representation
 
-    fh_b_order* o = ((BatsBook*)book)->find_order(order_id);
+    FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
-    assert (o->plevel != NULL);
-    assert (o->plevel->s != NULL);
     s = o->plevel->s;
 
     prev_s.set(s);
-    ((BatsBook*)book)->modify_order (o,price,size); // modify existing order for price and size */
+    book->modifyOrder (o,price,size); // modify order for price and size
     break;
   }
     //--------------------------------------------------------------
@@ -341,34 +360,31 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
 
     batspitch_order_modify_long  *message = (batspitch_order_modify_long *)m;
 
-    uint64_t order_id = message->order_id;
-    uint32_t size =  (uint32_t) message->size;
-    uint32_t price = (uint32_t) ((message->price / EFH_PRICE_SCALE) & 0x00000000FFFFFFFF); // Long Price representation
+    OrderIdT order_id = message->order_id;
+    SizeT    size     = message->size;
+    PriceT   price    = ((message->price / EFH_PRICE_SCALE) & 0x00000000FFFFFFFF); // Long Price representation
     if (((message->price / EFH_PRICE_SCALE) & 0xFFFFFFFF00000000) != 0) on_error("Long price(%ju) exceeds 32bit",message->price);
 
-    fh_b_order* o = ((BatsBook*)book)->find_order(order_id);
+    FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
-    assert (o->plevel != NULL);
-    assert (o->plevel->s != NULL);
     s = o->plevel->s;
 
     prev_s.set(s);
-    ((BatsBook*)book)->modify_order (o,price,size); // modify existing order for price and size */
+    book->modifyOrder (o,price,size); // modify order for price and size
+
     break;
   }
     //--------------------------------------------------------------
   case EKA_BATS_PITCH_MSG::ORDER_DELETE:  { 
     batspitch_order_delete  *message = (batspitch_order_delete *)m;
 
-    uint64_t order_id = message->order_id;
-    fh_b_order* o = ((BatsBook*)book)->find_order(order_id);
+    OrderIdT order_id = message->order_id;
+    FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
-    assert (o->plevel != NULL);
-    assert (o->plevel->s != NULL);
     s = o->plevel->s;
 
     prev_s.set(s);
-    ((BatsBook*)book)->delete_order (o);
+    book->deleteOrder (o);
     break;
   }
 
@@ -376,22 +392,18 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
   case EKA_BATS_PITCH_MSG::TRADE_SHORT:  { 
     batspitch_trade_short *message = (batspitch_trade_short *)m;
 
-    uint64_t order_id = message->order_id;
-    fh_b_order* o = ((BatsBook*)book)->find_order(order_id);
+    OrderIdT order_id = message->order_id;
+    FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
     assert (o->plevel != NULL);
     assert (o->plevel->s != NULL);
-    uint32_t security_id =  bats_symbol2optionid(message->symbol,6);
+    SecurityIdT security_id =  bats_symbol2optionid(message->symbol,6);
 
-    s = ((BatsBook*)book)->find_security(security_id);
-    assert (s == o->plevel->s); // sanity check
-    assert (security_id == s->security_id); // sanity check
+    s = book->findSecurity(security_id);
+    if (s == NULL) return false;
 
-    if (s == NULL && !((BatsBook*)book)->subscribe_all) return false;
-    if (s == NULL && ((BatsBook*)book)->subscribe_all) s = ((BatsBook*)book)->subscribe_security(security_id,0,0,0,0);
-
-    uint32_t price = (uint32_t) message->price * 100 / EFH_PRICE_SCALE; // Short Price representation
-    uint32_t size =  (uint32_t) message->size;
+    PriceT price = message->price * 100 / EFH_PRICE_SCALE; // Short Price representation
+    SizeT  size  = message->size;
 
     const EfhTradeMsg msg = {
       { EfhMsgType::kTrade,
@@ -412,24 +424,19 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
   case EKA_BATS_PITCH_MSG::TRADE_LONG:  { 
     batspitch_trade_long *message = (batspitch_trade_long *)m;
 
-    uint64_t order_id = message->order_id;
-    fh_b_order* o = ((BatsBook*)book)->find_order(order_id);
+    OrderIdT order_id = message->order_id;
+    FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
-    assert (o->plevel != NULL);
-    assert (o->plevel->s != NULL);
-    uint32_t security_id =  bats_symbol2optionid(message->symbol,6);
+    SecurityIdT security_id =  bats_symbol2optionid(message->symbol,6);
 
-    s = ((BatsBook*)book)->find_security(security_id);
-    assert (s == o->plevel->s); // sanity check
-    assert (security_id == s->security_id); // sanity check
+    s = book->findSecurity(security_id);
+    if (s == NULL) return false;
 
-    if (s == NULL && !((BatsBook*)book)->subscribe_all) return false;
-    if (s == NULL && ((BatsBook*)book)->subscribe_all) s = ((BatsBook*)book)->subscribe_security(security_id,0,0,0,0);
+    PriceT price = ((message->price / EFH_PRICE_SCALE) & 0x00000000FFFFFFFF); // Long Price representation
+    if (((message->price / EFH_PRICE_SCALE) & 0xFFFFFFFF00000000) != 0) 
+      on_error("Long price(%ju) exceeds 32bit",message->price);
 
-    uint32_t price = (uint32_t) ((message->price / EFH_PRICE_SCALE) & 0x00000000FFFFFFFF); // Long Price representation
-    if (((message->price / EFH_PRICE_SCALE) & 0xFFFFFFFF00000000) != 0) on_error("Long price(%ju) exceeds 32bit",message->price);
-
-    uint32_t size =  (uint32_t) message->size;
+    SizeT size =  message->size;
 
     const EfhTradeMsg msg = {
       { EfhMsgType::kTrade,
@@ -449,8 +456,8 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     //--------------------------------------------------------------
   case EKA_BATS_PITCH_MSG::TRADING_STATUS:  { 
     batspitch_trading_status *message = (batspitch_trading_status *)m;
-    uint32_t security_id =  bats_symbol2optionid(message->symbol,6);
-    s = ((BatsBook*)book)->find_security(security_id);
+    SecurityIdT security_id =  bats_symbol2optionid(message->symbol,6);
+    s = book->findSecurity(security_id);
     if (s == NULL) return false;
     prev_s.set(s);
 
@@ -468,9 +475,9 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
   //s->option_open = market_open;
   s->option_open = true;
 
-  if (prev_s.is_equal(s)) return false;
+  if (prev_s.isEqual(s)) return false;
 
-  ((BatsBook*)book)->generateOnQuote (pEfhRunCtx, s, sequence, msg_timestamp, gapNum);
+  book->generateOnQuote (pEfhRunCtx, s, sequence, msg_timestamp, gapNum);
 
   return false;
 }
