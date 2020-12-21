@@ -140,13 +140,6 @@ int EkaFh::openGroups(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
 
     EKA_LOG("%s:%u initialized as %s:%u at runGroups",
 	    EKA_EXCH_DECODE(exch),b_gr[i]->id,EKA_EXCH_DECODE(b_gr[i]->exch),i);
-
-    if (print_parsed_messages) {
-      std::string parsedMsgFileName = std::string(EKA_EXCH_DECODE(exch)) + std::to_string(i) + std::string("_PARSED_MESSAGES.txt");
-      if((b_gr[i]->book->parser_log = fopen(parsedMsgFileName.c_str(),"w")) == NULL) on_error ("Error %s",parsedMsgFileName.c_str());
-      EKA_LOG("%s:%u created file %s",EKA_EXCH_DECODE(exch),b_gr[i]->id,parsedMsgFileName.c_str());
-    }
-
   }
   return 0;
 }
@@ -188,10 +181,12 @@ EkaOpResult EkaFh::subscribeStaticSecurity(uint8_t groupNum,
 					   uint64_t opaqueAttrA,
 					   uint64_t opaqueAttrB) {
   if (groupNum >= groups) on_error("groupNum (%u) >= groups (%u)",groupNum,groups);
-
-  b_gr[groupNum]->book->subscribeSecurity (securityId, 
-					   static_cast< uint8_t >( efhSecurityType ), 
-					   efhSecUserData,opaqueAttrA,opaqueAttrB);
+  if (b_gr[groupNum] == NULL) on_error("b_gr[%u] == NULL",groupNum);
+  b_gr[groupNum]->subscribeStaticSecurity(securityId, 
+					  efhSecurityType,
+					  efhSecUserData,
+					  opaqueAttrA,
+					  opaqueAttrB);
   return EKA_OPRESULT__OK;
 }
 
@@ -398,7 +393,7 @@ EkaOpResult EkaFh::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
     EKA_DEBUG("%s:%u: joined %s:%u for %u securities",
 	      EKA_EXCH_DECODE(exch),gr->id,
 	      EKA_IP2STR(gr->mcast_ip),be16toh(gr->mcast_port),
-	      gr->book->numSecurities);
+	      gr->getNumSecurities());
   }
   return EKA_OPRESULT__OK;
 }

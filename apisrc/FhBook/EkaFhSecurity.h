@@ -1,5 +1,5 @@
-#ifndef _EKA_FH_FB_SECURITY_H_
-#define _EKA_FH_FB_SECURITY_H_
+#ifndef _EKA_FH_SECURITY_H_
+#define _EKA_FH_SECURITY_H_
 
 #include "EkaFhTypes.h"
 #include "Efh.h"
@@ -12,6 +12,12 @@ class EkaFhSecurity {
  protected:
   EkaFhSecurity() {}
  public:
+  virtual uint64_t  getTopPrice(SideT side) { return 0;}
+  virtual uint32_t  getTopTotalSize(SideT side) { return 0;}
+  virtual uint32_t  getTopTotalCustomerSize(SideT side) { return 0;}
+
+/* --------------------------------------------------------------- */
+
   uint64_t         efhUserData    = 0; // to be returned per TOB update
   EfhSecurityType  type           = EfhSecurityType::kOpt;
   EkaFhSecurity*   next           = NULL;

@@ -3,6 +3,7 @@
 
 #include "EkaFhNasdaqGr.h"
 #include "EkaFhFullBook.h"
+#include "EkaFhSecurityState.h"
 
 class EkaFhNomGr : public EkaFhNasdaqGr {
  public:
@@ -16,6 +17,20 @@ class EkaFhNomGr : public EkaFhNasdaqGr {
   int                  bookInit(EfhCtx* pEfhCtx, 
 				const EfhInitCtx* pEfhInitCtx);
 
+  int                  subscribeStaticSecurity(uint64_t        securityId, 
+					       EfhSecurityType efhSecurityType,
+					       EfhSecUserData  efhSecUserData,
+					       uint64_t        opaqueAttrA,
+					       uint64_t        opaqueAttrB) {
+    if (book == NULL) on_error("%s:%u book == NULL",EKA_EXCH_DECODE(exch),id);
+    book->subscribeSecurity(securityId, 
+			    efhSecurityType,
+			    efhSecUserData,
+			    opaqueAttrA,
+			    opaqueAttrB);
+    return 0;
+  }
+
   static const uint   SCALE          = (const uint) 24;
   static const uint   SEC_HASH_SCALE = 17;
 
@@ -26,6 +41,8 @@ class EkaFhNomGr : public EkaFhNasdaqGr {
 
   using FhSecurityState = EkaFhSecurityState<PriceT,SizeT>;
   using FhBook          = EkaFhFullBook<SCALE,SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>;
+
+  FhBook*   book = NULL;
 
 };
 

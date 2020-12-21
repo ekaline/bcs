@@ -29,12 +29,20 @@ template <class PriceT, class SizeT>
   int set (EkaFhSecurity* s) {
     secId               = s->secId;
 
-    best_buy_price      = s->bid != NULL ? s->bid->price                     : 0;
-    best_sell_price     = s->ask != NULL ? s->ask->price                     : 0;
-    best_buy_size       = s->bid != NULL ? s->bid->get_total_size()          : 0;
-    best_sell_size      = s->ask != NULL ? s->ask->get_total_size()          : 0;
-    best_buy_o_size     = s->bid != NULL ? s->bid->get_total_customer_size() : 0;
-    best_sell_o_size    = s->ask != NULL ? s->ask->get_total_customer_size() : 0;
+    /* best_buy_price      = s->bid != NULL ? s->bid->price                     : 0; */
+    /* best_sell_price     = s->ask != NULL ? s->ask->price                     : 0; */
+    /* best_buy_size       = s->bid != NULL ? s->bid->get_total_size()          : 0; */
+    /* best_sell_size      = s->ask != NULL ? s->ask->get_total_size()          : 0; */
+    /* best_buy_o_size     = s->bid != NULL ? s->bid->get_total_customer_size() : 0; */
+    /* best_sell_o_size    = s->ask != NULL ? s->ask->get_total_customer_size() : 0; */
+
+    best_buy_price      = (PriceT) s->getTopPrice(SideT::BID);
+    best_sell_price     = (PriceT) s->getTopPrice(SideT::ASK);
+
+    best_buy_size       = (SizeT) s->getTopTotalSize(SideT::BID);
+    best_sell_size      = (SizeT) s->getTopTotalSize(SideT::ASK);
+    best_buy_o_size     = (SizeT) s->getTopTotalCustomerSize(SideT::BID);
+    best_sell_o_size    = (SizeT) s->getTopTotalCustomerSize(SideT::ASK);
 
     trading_action      = s->trading_action;
     option_open         = s->option_open;
@@ -48,12 +56,19 @@ template <class PriceT, class SizeT>
 
     if ((trading_action   != s->trading_action)                                        ||
 	(option_open      != s->option_open)                                           ||
-	(best_buy_price   != (s->bid != NULL ? s->bid->price                     : 0)) ||
-	(best_sell_price  != (s->ask != NULL ? s->ask->price                     : 0)) ||
-	(best_buy_size    != (s->bid != NULL ? s->bid->get_total_size()          : 0)) ||
-	(best_sell_size   != (s->ask != NULL ? s->ask->get_total_size()          : 0)) ||
-	(best_buy_o_size  != (s->bid != NULL ? s->bid->get_total_customer_size() : 0)) ||
-	(best_sell_o_size != (s->ask != NULL ? s->ask->get_total_customer_size() : 0))
+	/* (best_buy_price   != (s->bid != NULL ? s->bid->price                     : 0)) || */
+	/* (best_sell_price  != (s->ask != NULL ? s->ask->price                     : 0)) || */
+	/* (best_buy_size    != (s->bid != NULL ? s->bid->get_total_size()          : 0)) || */
+	/* (best_sell_size   != (s->ask != NULL ? s->ask->get_total_size()          : 0)) || */
+	/* (best_buy_o_size  != (s->bid != NULL ? s->bid->get_total_customer_size() : 0)) || */
+	/* (best_sell_o_size != (s->ask != NULL ? s->ask->get_total_customer_size() : 0)) */
+
+	(best_buy_price   != (PriceT) s->getTopPrice(SideT::BID)) ||
+	(best_sell_price  != (PriceT) s->getTopPrice(SideT::ASK)) ||
+	(best_buy_size    != (SizeT) s->getTopTotalSize(SideT::BID)) ||
+	(best_sell_size   != (SizeT) s->getTopTotalSize(SideT::ASK)) ||
+	(best_buy_o_size  != (SizeT) s->getTopTotalCustomerSize(SideT::BID)) ||
+	(best_sell_o_size != (SizeT) s->getTopTotalCustomerSize(SideT::ASK))
 	) return false;
     return true;
   }

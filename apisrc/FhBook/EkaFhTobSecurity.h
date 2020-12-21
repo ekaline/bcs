@@ -1,5 +1,5 @@
-#ifndef _EKA_FH_FB_SECURITY_H_
-#define _EKA_FH_FB_SECURITY_H_
+#ifndef _EKA_FH_TOB_SECURITY_H_
+#define _EKA_FH_TOB_SECURITY_H_
 
 #include "EkaFhTypes.h"
 #include "Efh.h"

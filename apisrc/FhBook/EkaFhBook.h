@@ -18,18 +18,17 @@ class EkaFhBook {
     dev  = _dev;
     grId = _grId;
     exch = _exch;
+
+    if (dev->print_parsed_messages) {
+      std::string parsedMsgFileName = std::string(EKA_EXCH_DECODE(exch)) + std::to_string(grId) + std::string("_PARSED_MESSAGES.txt");
+      if((parser_log = fopen(parsedMsgFileName.c_str(),"w")) == NULL) on_error ("Error %s",parsedMsgFileName.c_str());
+      EKA_LOG("%s:%u created file %s",EKA_EXCH_DECODE(exch),grId,parsedMsgFileName.c_str());
+    }
   }
 
  public:
   //  virtual void      init() = 0;
 
-/* ####################################################### */
-
-  virtual EkaFhSecurity*  subscribeSecurity(SecurityIdT     secId,
-					    EfhSecurityType type,
-					    EfhSecUserData  userData,
-					    uint64_t        opaqueAttrA,
-					    uint64_t        opaqueAttrB) = 0;
 /* ####################################################### */
 
   //----------------------------------------------------------

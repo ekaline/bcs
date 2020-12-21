@@ -20,6 +20,23 @@ class EkaFhXdpGr : public EkaFhGroup{
 				      uint             msgInPkt, 
 				      uint64_t         seq);
 
+  int                  bookInit(EfhCtx* pEfhCtx, 
+				const EfhInitCtx* pEfhInitCtx);
+
+  int                  subscribeStaticSecurity(uint64_t        securityId, 
+					       EfhSecurityType efhSecurityType,
+					       EfhSecUserData  efhSecUserData,
+					       uint64_t        opaqueAttrA,
+					       uint64_t        opaqueAttrB) {
+    if (book == NULL) on_error("%s:%u book == NULL",EKA_EXCH_DECODE(exch),id);
+    book->subscribeSecurity(securityId, 
+			    efhSecurityType,
+			    efhSecUserData,
+			    opaqueAttrA,
+			    opaqueAttrB);
+    return 0;
+  }
+
 
   inline uint     findAndInstallStream(uint streamId, uint32_t curSeq) {
     for (uint i = 0; i < numStreams; i ++) if (stream[i]->getId() == streamId) return i;
@@ -89,5 +106,16 @@ class EkaFhXdpGr : public EkaFhGroup{
   uint     numUnderlyings                 = 0;
   char     symbolStatus[MAX_UNDERLYINGS]  = {};
   //  char     seriesStatus[MAX_SERIES]       = {};
+
+  static const uint   SEC_HASH_SCALE = 17;
+
+  using SecurityIdT = uint32_t;
+  using PriceT      = uint32_t;
+  using SizeT       = uint32_t;
+
+  using FhBook      = EkaFhTobBook<SEC_HASH_SCALE,SecurityIdT, PriceT, SizeT>;
+
+  FhBook*   book = NULL;
+
 };
 #endif

@@ -27,6 +27,10 @@
 int createIgmpPkt (char* dst, bool join, uint8_t* macsa, uint32_t ip_src, uint32_t ip_dst);
 
  /* ##################################################################### */
+uint         EkaFhGroup::getNumSecurities() {
+  return book->numSecurities;
+}
+ /* ##################################################################### */
 
 int EkaFhGroup::processFromQ(const EfhRunCtx* pEfhRunCtx) {
   while (! q->is_empty()) {

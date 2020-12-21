@@ -4,10 +4,13 @@
 #include <string>
 
 #include "EkaFhBook.h"
+#include "EkaFhTobSecurity.h"
 
 template <const uint SEC_HASH_SCALE,class SecurityIdT, class PriceT, class SizeT>
   class EkaFhTobBook : public EkaFhBook  {
  public:
+  using FhSecurity   = EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>;
+
   /* ####################################################### */
 
  EkaFhTobBook(EkaDev* _dev, EkaLSI _grId, EkaSource   _exch) 

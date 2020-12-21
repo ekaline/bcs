@@ -26,9 +26,16 @@ class EkaFhGroup {
   void         print_q_state();
   void         send_igmp(bool join_leave);
 
+  uint         getNumSecurities();
+
   void         createQ(EfhCtx* pEfhCtx, const uint qsize);
 
   virtual int  bookInit(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) = 0;
+  virtual int  subscribeStaticSecurity(uint64_t        secId,
+				       EfhSecurityType type,
+				       EfhSecUserData  userData,
+				       uint64_t        opaqueAttrA,
+				       uint64_t        opaqueAttrB) = 0;
   virtual bool parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) = 0;
 
   void         sendFeedUp  (const EfhRunCtx* EfhRunCtx);
@@ -131,7 +138,7 @@ class EkaFhGroup {
   EfhCtx*               pEfhCtx            = NULL;
   uint8_t               core               = -1;
 
-  EkaFhBook*            book               = NULL;
+  //  EkaFhBook*            book               = NULL;
 
   EkaDev*               dev                = NULL;
  private:

@@ -2,6 +2,7 @@
 #define __EKA_CTXS_H__
 
 #include "Eka.h"
+#include "Efh.h"
 
 struct EkaCtx {
   EkaDev* dev;

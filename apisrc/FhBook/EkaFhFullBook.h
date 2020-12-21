@@ -181,11 +181,11 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class O
     EfhQuoteMsg msg = {};
     msg.header.msgType        = EfhMsgType::kQuote;
     msg.header.group.source   = exch;
-    msg.header.group.localId  = id;
+    msg.header.group.localId  = grId;
     msg.header.securityId     = s->security_id;
     msg.header.sequenceNumber = sequence;
     msg.header.timeStamp      = timestamp;
-    msg.header.queueSize      = gr->q->get_len();
+    msg.header.queueSize      = 0; //gr->q->get_len();
     msg.header.gapNum         = gapNum;
     msg.tradeStatus           = s->trading_action == EfhTradeStatus::kHalted ? EfhTradeStatus::kHalted :
       s->option_open ? s->trading_action : EfhTradeStatus::kClosed;
@@ -389,7 +389,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class O
 }
 
 /* ####################################################### */
-
+inline prevState
 
   //----------------------------------------------------------
 
@@ -422,7 +422,25 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class SecurityIdT, class O
   static const uint64_t SEC_HASH_MASK  = (0x1 << SEC_HASH_SCALE) - 1;
 
   EkaFhSecurity*  sec[SEC_HASH_LINES] = {}; // array of pointers to Securities
+
   FhOrder*        ord[MAX_ORDERS] = {};
+
+
+  //----------------------------------------------------------
+
+  EfhTradeStatus trading_action = EfhTradeStatus::kUninit;
+  bool           option_open    = false;
+
+  uint32_t      secId               = 0;
+  uint16_t      num_of_buy_plevels  = 0;
+  uint16_t      num_of_sell_plevels = 0;
+  PriceT	best_buy_price      = 0;
+  PriceT	best_sell_price     = 0;
+  SizeT  	best_buy_size       = 0;
+  SizeT	        best_sell_size      = 0;
+  SizeT	        best_buy_o_size     = 0;
+  SizeT	        best_sell_o_size    = 0;
+
   };
 
 #endif
