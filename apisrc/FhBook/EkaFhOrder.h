@@ -2,43 +2,34 @@
 #define _EKA_FH_ORDER_H_
 
 #include "EkaFhTypes.h"
-
-class EkaFhOrder {
- protected:
-  EkaFhOrder() {
-    type    = FhOrderType::UNINIT;
-    plevel  = NULL;
-    next    = NULL;
-  };
-//--------------------------------------------------------------
-
- public:
-  FhOrderType     type    = FhOrderType::UNINIT;
-  class EkaFhPlevel* plevel  = NULL;
-  class EkaFhOrder*  next    = NULL;
-};
-
+#include "EkaFhPlevel.h"
 
 // ###############################################################
-template <class OrderIdT, class SizeT>
-  class EkaFhFbOrder : public EkaFhOrder {
+template <class FhPlevel, class OrderIdT, class SizeT>
+  class EkaFhOrder{
  public:
-    EkaFhFbOrder() {
+    EkaFhOrder() {
+      type    = FhOrderType::UNINIT;
       orderId = 0;
       size    = 0;
+      plevel  = NULL;
+      next    = NULL;
     }
 
   void reset() {
-    orderId = 0;
     type    = FhOrderType::UNINIT;
+    orderId = 0;
     size    = 0;
     plevel  = NULL;
     next    = NULL;
   }
 //--------------------------------------------------------------
  public:
+  FhOrderType       type    = FhOrderType::UNINIT;
   OrderIdT          orderId = 0;
   SizeT             size    = 0;
+  FhPlevel*         plevel  = NULL;
+  EkaFhOrder*       next    = NULL;
 };
 
 #endif

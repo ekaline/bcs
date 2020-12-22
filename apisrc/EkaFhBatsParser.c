@@ -105,8 +105,6 @@ inline SideT sideDecode(char _side) {
 bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
   EKA_BATS_PITCH_MSG enc =  (EKA_BATS_PITCH_MSG)m[1];
   //  EKA_LOG("%s:%u: 0x%02x",EKA_EXCH_DECODE(exch),id,enc);
-  FhSecurityState prev_s = {};
-  prev_s.reset();
 
   uint64_t msg_timestamp = 0;
   FhSecurity* s = NULL;
@@ -216,7 +214,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
 
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
-    prev_s.set(s);
+    book->setSecurityPrevState(s);
 
     OrderIdT order_id = message->order_id;
     SizeT    size     = message->size;
@@ -232,7 +230,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     SecurityIdT security_id =  bats_symbol2optionid(message->symbol,6);
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
-    prev_s.set(s);
+    book->setSecurityPrevState(s);
 
     OrderIdT order_id = message->order_id;
     SizeT    size     = message->size;
@@ -254,7 +252,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     SecurityIdT security_id =  bats_symbol2optionid(message->exp_symbol,6);
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
-    prev_s.set(s);
+    book->setSecurityPrevState(s);
 
     OrderIdT order_id = message->order_id;
     SizeT    size     = message->size;
@@ -273,10 +271,10 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
     s = o->plevel->s;
-    prev_s.set(s);
+    book->setSecurityPrevState(s);
 
     if (book->reduceOrderSize(o,delta_size) == 0) {
-      deleteOrder(o);
+      book->deleteOrder(o);
     } else {
       o->plevel->deductSize (o->type,deltaSize);
     }
@@ -291,10 +289,10 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
     s = o->plevel->s;
-    prev_s.set(s);
+    book->setSecurityPrevState(s);
 
     if (book->reduceOrderSize(o,delta_size) == 0) {
-      deleteOrder(o);
+      book->deleteOrder(o);
     } else {
       o->plevel->deductSize (o->type,deltaSize);
     }
@@ -309,10 +307,10 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
     s = o->plevel->s;
-    prev_s.set(s);
+    book->setSecurityPrevState(s);
 
     if (book->reduceOrderSize(o,delta_size) == 0) {
-      deleteOrder(o);
+      book->deleteOrder(o);
     } else {
       o->plevel->deductSize (o->type,deltaSize);
     }
@@ -329,10 +327,10 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     assert(o->plevel != NULL);
     assert(o->plevel->s != NULL);
     s = o->plevel->s;
-    prev_s.set(s);
+    book->setSecurityPrevState(s);
 
     if (book->reduceOrderSize(o,delta_size) == 0) {
-      deleteOrder(o);
+      book->deleteOrder(o);
     } else {
       o->plevel->deductSize (o->type,deltaSize);
     }
@@ -351,7 +349,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     if (o == NULL) return false;
     s = o->plevel->s;
 
-    prev_s.set(s);
+    book->setSecurityPrevState(s);
     book->modifyOrder (o,price,size); // modify order for price and size
     break;
   }
@@ -369,7 +367,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     if (o == NULL) return false;
     s = o->plevel->s;
 
-    prev_s.set(s);
+    book->setSecurityPrevState(s);
     book->modifyOrder (o,price,size); // modify order for price and size
 
     break;
@@ -383,7 +381,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     if (o == NULL) return false;
     s = o->plevel->s;
 
-    prev_s.set(s);
+    book->setSecurityPrevState(s);
     book->deleteOrder (o);
     break;
   }
@@ -459,7 +457,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     SecurityIdT security_id =  bats_symbol2optionid(message->symbol,6);
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
-    prev_s.set(s);
+    book->setSecurityPrevState(s);
 
     s->trading_action = tradeAction(s->trading_action,message->trading_status);
     break;
@@ -475,9 +473,8 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
   //s->option_open = market_open;
   s->option_open = true;
 
-  if (prev_s.isEqual(s)) return false;
-
-  book->generateOnQuote (pEfhRunCtx, s, sequence, msg_timestamp, gapNum);
+  if (! book->isEqualState(s))
+    book->generateOnQuote (pEfhRunCtx, s, sequence, msg_timestamp, gapNum);
 
   return false;
 }

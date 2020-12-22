@@ -19,13 +19,6 @@ class EkaFhBox : public EkaFh { // MiaxTom & PearlTom
 			const EfhRunCtx* pEfhRunCtx, 
 			uint8_t          runGrId);
 
-  EkaOpResult         subscribeStaticSecurity(uint8_t groupNum, 
-					      uint64_t securityId, 
-					      EfhSecurityType efhSecurityType,
-					      EfhSecUserData efhSecUserData,
-					      uint64_t opaqueAttrA,
-					      uint64_t opaqueAttrB);
-  
   virtual ~EkaFhBox() {};
  private:
   uint8_t*    getUdpPkt(EkaFhRunGroup* runGr, 

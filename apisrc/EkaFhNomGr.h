@@ -3,7 +3,6 @@
 
 #include "EkaFhNasdaqGr.h"
 #include "EkaFhFullBook.h"
-#include "EkaFhSecurityState.h"
 
 class EkaFhNomGr : public EkaFhNasdaqGr {
  public:
@@ -39,8 +38,24 @@ class EkaFhNomGr : public EkaFhNasdaqGr {
   using PriceT      = uint32_t;
   using SizeT       = uint32_t;
 
-  using FhSecurityState = EkaFhSecurityState<PriceT,SizeT>;
-  using FhBook          = EkaFhFullBook<SCALE,SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>;
+
+  using FhPlevel     = EkaFhPlevel      <                                                   PriceT, SizeT>;
+  using FhSecurity   = EkaFhFbSecurity  <EkaFhPlevel<PriceT, SizeT>, SecurityIdT, OrderIdT, PriceT, SizeT>;
+  using FhOrder      = EkaFhOrder       <EkaFhPlevel<PriceT, SizeT>,              OrderIdT,         SizeT>;
+
+  using FhBook      = EkaFhFullBook<
+    SCALE,SEC_HASH_SCALE,
+    EkaFhFbSecurity  <EkaFhPlevel<PriceT, SizeT>,SecurityIdT, OrderIdT, PriceT, SizeT>,
+    EkaFhPlevel      <PriceT, SizeT>,
+    EkaFhOrder       <EkaFhPlevel<PriceT, SizeT>,OrderIdT,SizeT>,
+    SecurityIdT, OrderIdT, PriceT, SizeT>;
+
+  /* using FhBook      = EkaFhFullBook< */
+  /*   SCALE,SEC_HASH_SCALE, */
+  /*   FhSecurity, */
+  /*   FhPlevel, */
+  /*   FhOrder, */
+  /*   SecurityIdT, OrderIdT, PriceT, SizeT>; */
 
   FhBook*   book = NULL;
 

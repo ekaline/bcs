@@ -37,8 +37,6 @@ bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint6
   uint64_t ts = seconds * SEC_TO_NANO + nano_sec;
 
   FhSecurity* s = NULL;
-  FhSecurityState prev_s;
-  prev_s.reset();
 
   switch (enc) {    
     /* -------------------------------------------------- */
@@ -121,7 +119,7 @@ bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint6
 				      security_id,o->plevel->s->security_id);
     }
 
-    prev_s.set(s);
+    book->setSecurityPrevState(s);
     if (order_status == 'F' || order_status == 'C') { // delete order
       if (size != 0) on_error("Unexpected combination: order_status \'%c\' && size %u",
 			      order_status,size);
@@ -158,7 +156,7 @@ bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint6
     SecurityIdT security_id = be32toh(message->option_id);
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
-    prev_s.set(s);
+    book->setSecurityPrevState(s);
     switch (message->current_trading_state) {
     case 'H' : 
       s->trading_action = EfhTradeStatus::kHalted;
@@ -178,7 +176,7 @@ bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint6
     SecurityIdT security_id = be32toh(message->option_id);
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
-    prev_s.set(s);
+    book->setSecurityPrevState(s);
 
     switch (message->open_state) {
     case 'Y' :
@@ -208,9 +206,10 @@ bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint6
     return false;
   }
   if (s == NULL) on_error ("Trying to generate TOB update from s == NULL");
-  if (op != EkaFhMode::SNAPSHOT)
-    book->generateOnQuote (pEfhRunCtx, s, sequence, ts,gapNum);
-
+  if (op != EkaFhMode::SNAPSHOT) {
+    if (! book->isEqualState(s))
+      book->generateOnQuote (pEfhRunCtx, s, sequence, ts,gapNum);
+  }
   return false;
 }
 

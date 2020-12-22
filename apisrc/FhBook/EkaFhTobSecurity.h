@@ -12,7 +12,15 @@ template <class SecurityIdT,
   class SizeT>
   class EkaFhTobSecurity : public EkaFhSecurity {
  public:
-    EkaFhTobSecurity() {}
+    EkaFhTobSecurity(SecurityIdT     _secId,
+		    EfhSecurityType _type,
+		    EfhSecUserData  _userData,
+		    uint64_t        _opaqueAttrA,
+		    uint64_t        _opaqueAttrB) : 
+    EkaFhSecurity(_type,_userData,_opaqueAttrA,_opaqueAttrB) {
+      secId = _secId;
+    }
+
     SecurityIdT      secId              = 0;
     
     SizeT	     bid_size           = 0;

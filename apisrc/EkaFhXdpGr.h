@@ -2,6 +2,7 @@
 #define _EKA_FH_XDP_GR_H_
 
 #include "EkaFhGroup.h"
+#include "EkaFhTobBook.h"
 
 class EkaFhXdpGr : public EkaFhGroup{
  public:
@@ -113,7 +114,8 @@ class EkaFhXdpGr : public EkaFhGroup{
   using PriceT      = uint32_t;
   using SizeT       = uint32_t;
 
-  using FhBook      = EkaFhTobBook<SEC_HASH_SCALE,SecurityIdT, PriceT, SizeT>;
+  using FhSecurity  = EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>;
+  using FhBook      = EkaFhTobBook<SEC_HASH_SCALE,FhSecurity,SecurityIdT, PriceT, SizeT>;
 
   FhBook*   book = NULL;
 

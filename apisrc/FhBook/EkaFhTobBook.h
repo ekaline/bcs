@@ -6,10 +6,10 @@
 #include "EkaFhBook.h"
 #include "EkaFhTobSecurity.h"
 
-template <const uint SEC_HASH_SCALE,class SecurityIdT, class PriceT, class SizeT>
+template <const uint SEC_HASH_SCALE,class FhSecurity, class SecurityIdT, class PriceT, class SizeT>
   class EkaFhTobBook : public EkaFhBook  {
  public:
-  using FhSecurity   = EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>;
+  //  using FhSecurity   = EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>;
 
   /* ####################################################### */
 
@@ -23,23 +23,23 @@ template <const uint SEC_HASH_SCALE,class SecurityIdT, class PriceT, class SizeT
   }
   /* ####################################################### */
 
-  EkaFhSecurity*  findSecurity(SecurityIdT secId) {
+  FhSecurity*  findSecurity(SecurityIdT secId) {
     uint32_t index =  secId & SEC_HASH_MASK;
-    if (index >= SEC_HASH_LINES) on_error("index = %u >= SEC_HASH_LINES %u",index,SEC_HASH_LINES);
+    if (index >= SEC_HASH_LINES) on_error("index = %u >= SEC_HASH_LINES %ju",index,SEC_HASH_LINES);
     if (sec[index] == NULL) return NULL;
 
     FhSecurity* sp = sec[index];
 
     while (sp != NULL) {
       if (sp->secId == secId) return sp;
-      sp = sp->next;
+      sp = (FhSecurity*)sp->next;
     }
 
     return NULL;
   }
   /* ####################################################### */
 
-  EkaFhSecurity*  subscribeSecurity(SecurityIdT     secId,
+  FhSecurity*  subscribeSecurity(SecurityIdT     secId,
 				    EfhSecurityType type,
 				    EfhSecUserData  userData,
 				    uint64_t        opaqueAttrA,
@@ -49,14 +49,14 @@ template <const uint SEC_HASH_SCALE,class SecurityIdT, class PriceT, class SizeT
   
     uint32_t index = secId & SEC_HASH_MASK;
     if (index >= SEC_HASH_LINES) 
-      on_error("index = %u >= SEC_HASH_LINES %u",index,SEC_HASH_LINES);
+      on_error("index = %u >= SEC_HASH_LINES %ju",index,SEC_HASH_LINES);
 
     if (sec[index] == NULL) {
       sec[index] = s; // empty bucket
     } else {
       FhSecurity *sp = sec[index];
-      while (sp->next != NULL) sp = sp->next;
-      sp->next = s;
+      while (sp->next != NULL) sp = (FhSecurity*)sp->next;
+      sp->next = (EkaFhSecurity*) s;
     }
     numSecurities++;
     return s;
@@ -69,16 +69,16 @@ template <const uint SEC_HASH_SCALE,class SecurityIdT, class PriceT, class SizeT
 		       uint64_t         timestamp,
 		       uint             gapNum) {
 
-    if (s = NULL) on_error("s == NULL");
+    if (s == NULL) on_error("s == NULL");
 
     EfhQuoteMsg msg = {};
     msg.header.msgType        = EfhMsgType::kQuote;
     msg.header.group.source   = exch;
-    msg.header.group.localId  = id;
-    msg.header.securityId     = s->security_id;
+    msg.header.group.localId  = grId;
+    msg.header.securityId     = s->secId;
     msg.header.sequenceNumber = sequence;
     msg.header.timeStamp      = timestamp;
-    msg.header.queueSize      = gr->q == NULL ? 0 : gr->q->get_len();
+    msg.header.queueSize      = 0; //gr->q == NULL ? 0 : gr->q->get_len();
     msg.header.gapNum         = gapNum;
     msg.tradeStatus           = s->trading_action == EfhTradeStatus::kHalted ? EfhTradeStatus::kHalted :
       s->option_open ? EfhTradeStatus::kNormal : EfhTradeStatus::kClosed;
@@ -116,7 +116,7 @@ template <const uint SEC_HASH_SCALE,class SecurityIdT, class PriceT, class SizeT
       FhSecurity* s = sec[i];
       while (s != NULL) {
 	generateOnQuote(pEfhRunCtx,s,0,std::max(s->bid_ts,s->ask_ts),1);
-	s = s->next;
+	s = (FhSecurity*)s->next;
       }
     }
     return;
@@ -124,34 +124,15 @@ template <const uint SEC_HASH_SCALE,class SecurityIdT, class PriceT, class SizeT
 /* ####################################################### */
 
  private:
-/* ####################################################### */
-  void allocateResources() {
-  for (uint i = 0; i < MAX_ORDERS; i++) ord[i]=NULL;
-  //----------------------------------------------------------
-  EKA_LOG("%s:%u: preallocating %u free orders",EKA_EXCH_DECODE(exch),grId,MAX_ORDERS);
-  EkaFhOrder** o = (EkaFhOrder**)&orderFreeHead;
-  for (uint i = 0; i < MAX_ORDERS; i++) {
-    *o = new FhOrder();
-    if (*o == NULL) on_error("constructing new Order failed");
-    o = &(*o)->next;
-  }
-  //----------------------------------------------------------
-  EKA_LOG("%s:%u: preallocating %u free Plevels",EKA_EXCH_DECODE(exch),grId,MAX_PLEVELS);
-  EkaFhPlevel** p = (EkaFhPlevel**)&plevelFreeHead;
-  for (uint i = 0; i < MAX_PLEVELS; i++) {
-    *p = new FhPlevel();
-    if (*p == NULL) on_error("constructing new Plevel failed");
-    p = &(*p)->next;
-  }
-  //----------------------------------------------------------
-}
+
 /* ####################################################### */
   
  public:
   static const uint64_t SEC_HASH_LINES = 0x1 << SEC_HASH_SCALE;
   static const uint64_t SEC_HASH_MASK  = (0x1 << SEC_HASH_SCALE) - 1;
 
-  EkaFhSecurity*  sec[SEC_HASH_LINES] = {}; // array of pointers to Securities
+  FhSecurity*  sec[SEC_HASH_LINES] = {}; // array of pointers to Securities
 
-}
+};
+
 #endif

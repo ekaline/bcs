@@ -53,8 +53,12 @@ class EkaFhPhlxOrdGr : public EkaFhNasdaqGr{
   using PriceT      = uint32_t;
   using SizeT       = uint32_t;
 
-  using FhSecurityState = EkaFhSecurityState<PriceT,SizeT>;
-  using FhBook          = EkaFhFullBook<SCALE, SEC_HASH_SCALE,SecurityIdT, OrderIdT, PriceT, SizeT>;
+  using FhSecurity   = EkaFhFbSecurity  <SecurityIdT, OrderIdT, PriceT, SizeT>;
+  using FhPlevel     = EkaFhFbPlevel    <                       PriceT, SizeT>;
+  using FhOrder      = EkaFhFbOrder     <             OrderIdT,         SizeT>;
+
+  using FhBook      = EkaFhFullBook<SCALE,SEC_HASH_SCALE,FhSecurity,FhPlevel,FhOrder,SecurityIdT, OrderIdT, PriceT, SizeT>;
+
   FhBook*   book = NULL;
 
 };

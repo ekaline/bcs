@@ -54,7 +54,7 @@ class EkaFh {
   
   void                send_igmp(bool join_leave, volatile bool igmp_thread_active);
   EkaFhAddConf        conf_parse(const char *key, const char *value);
-  virtual EkaOpResult         subscribeStaticSecurity(uint8_t groupNum, 
+  EkaOpResult         subscribeStaticSecurity(uint8_t groupNum, 
 						      uint64_t securityId, 
 						      EfhSecurityType efhSecurityType,
 						      EfhSecUserData efhSecUserData,

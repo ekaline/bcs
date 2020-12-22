@@ -18,7 +18,7 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
   char enc =  (char)m[0];
 
-  if (fh->print_parsed_messages) eka_print_gem_msg(((NomBook*)book)->parser_log,(uint8_t*)m,id,sequence,ts);
+  if (fh->print_parsed_messages) eka_print_gem_msg(book->parser_log,(uint8_t*)m,id,sequence,ts);
 
   if (op == EkaFhMode::DEFINITIONS && enc == 'M') return true;
   if (op == EkaFhMode::DEFINITIONS && enc != 'D') return false;
@@ -76,8 +76,7 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     SecurityIdT security_id = long_form ? be32toh(message_long->option_id) : be32toh(message_short->option_id);
 
     s = book->findSecurity(security_id);
-    if (s == NULL && !book->subscribe_all) return false;
-    if (s == NULL && book->subscribe_all) s = book->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
+    if (s == NULL) return false;
 
     if (ts < s->bid_ts && ts < s->ask_ts) return false; // Back-in-time from Recovery
 
@@ -114,8 +113,7 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
     SecurityIdT security_id = long_form ? be32toh(message_long->option_id) : be32toh(message_short->option_id);
     s = book->findSecurity(security_id);
-    if (s == NULL && !book->subscribe_all) return false;
-    if (s == NULL && book->subscribe_all) s = book->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
+    if (s == NULL) return false;
 
     if (enc == 'B' || enc == 'b') {
       if (ts < s->bid_ts) return false; // Back-in-time from Recovery
@@ -143,8 +141,7 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
     SecurityIdT security_id = be32toh(message->option_id);
     s = book->findSecurity(security_id);
-    if (s == NULL && !book->subscribe_all) return false;
-    if (s == NULL && book->subscribe_all) s = book->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
+    if (s == NULL) return false;
 
     EfhTradeMsg msg = {};
     msg.header.msgType        = EfhMsgType::kTrade;

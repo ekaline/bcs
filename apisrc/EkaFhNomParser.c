@@ -10,7 +10,6 @@
 #include "EkaFhNomGr.h"
 #include "EkaFhNomParser.h"
 #include "EkaFhFullBook.h"
-#include "EkaFhSecurityState.h"
 
 static void eka_print_nom_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequence);
 static inline uint64_t get_ts(uint8_t* m);
@@ -32,7 +31,7 @@ inline SideT sideDecode(char _side) {
 /* ####################################################### */
 
 bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
-  EKA_FH_ERR_CODE err = EKA_FH_RESULT__OK;
+
 #ifdef EKA_TIME_CHECK
   auto start = std::chrono::high_resolution_clock::now();  
 #endif
@@ -40,13 +39,10 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
   char enc =  (char)m[0];
   uint64_t msg_timestamp = get_ts(m);
 
-  FhSecurityState prev_s;
-  prev_s.reset();
-
   if (op == EkaFhMode::DEFINITIONS && enc == 'M') return true;
   if ((op == EkaFhMode::DEFINITIONS && enc != 'R') || (op == EkaFhMode::SNAPSHOT    && enc == 'R')) return false;
 
-  EkaFhFbSecurity* s = NULL;
+  FhSecurity* s = NULL;
 
   switch (enc) {    
   case 'R':  { //ITTO_TYPE_OPTION_DIRECTORY 
@@ -101,8 +97,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     PriceT   price    = be16toh (message->price) * 100 / EFH_PRICE_SCALE; // Short Price representation
     SideT    side     = sideDecode(message->side);
 
-    prev_s.set(s);
-    book->addOrder(s,order_id,fh_b_order::type_t::CUSTOMER,price,size,side);
+    book->setSecurityPrevState(s);
+    book->addOrder(s,order_id,FhOrderType::CUSTOMER,price,size,side);
     break;
   }
     //--------------------------------------------------------------
@@ -122,8 +118,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     PriceT   price    = be32toh   (message->price) / EFH_PRICE_SCALE;
     SideT    side     = sideDecode(message->side);
 
-    prev_s.set(s);
-    book->addOrder(s,order_id,fh_b_order::type_t::CUSTOMER,price,size,side);
+    book->setSecurityPrevState(s);
+    book->addOrder(s,order_id,FhOrderType::CUSTOMER,price,size,side);
     break;
   }
     //--------------------------------------------------------------
@@ -141,7 +137,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
 
-    prev_s.set(s);
+    book->setSecurityPrevState(s);
     s->trading_action = ITTO_NOM_TRADING_ACTION(message->trading_state);
     break;
   }
@@ -151,7 +147,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
 
-    prev_s.set(s);
+    book->setSecurityPrevState(s);
     if (s != NULL) s->option_open = (message->open_state == 'Y');
     if (s != NULL && message->open_state == 'N') s->trading_action = EfhTradeStatus::kClosed;
     break;
@@ -177,7 +173,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     PriceT   ask_price    = be32toh(message->ask_price) / EFH_PRICE_SCALE;
     SizeT    ask_size     = be32toh(message->ask_size);
 
-    prev_s.set(s);
+    book->setSecurityPrevState(s);
     book->addOrder(s,bid_order_id,FhOrderType::BD,bid_price,bid_size,SideT::BID);
     book->addOrder(s,ask_order_id,FhOrderType::BD,ask_price,ask_size,SideT::ASK);
     break;
@@ -188,10 +184,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
     SecurityIdT security_id = be32toh(message->option_id);
     s = book->findSecurity(security_id);
-    if (s == NULL) {
-      if (!((NomBook*)book)->subscribe_all) return false;
-      s = ((NomBook*)book)->subscribe_security((uint32_t ) security_id & 0x00000000FFFFFFFF,0,0,0,0);
-    }
+    if (s == NULL) return false;
 
     OrderIdT bid_order_id =  be64toh(message->bid_reference_delta);
     PriceT   bid_price    =  be16toh(message->bid_price) * 100 / EFH_PRICE_SCALE;
@@ -200,7 +193,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     PriceT   ask_price    =  be16toh(message->ask_price) * 100 / EFH_PRICE_SCALE;
     SizeT    ask_size     =  be16toh(message->ask_size);
 
-    prev_s.set(s);
+    book->setSecurityPrevState(s);
     book->addOrder(s,bid_order_id,FhOrderType::BD,bid_price,bid_size,SideT::BID);
     book->addOrder(s,ask_order_id,FhOrderType::BD,ask_price,ask_size,SideT::ASK);    
     break;
@@ -214,13 +207,15 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
 
-    s = o->plevel->s;
-    prev_s.set(s);
+    FhPlevel* p = (FhPlevel*)o->plevel;
+    s = (FhSecurity*)p->s;
+
+    book->setSecurityPrevState(s);
 
     if (book->reduceOrderSize(o,delta_size) == 0) {
-      deleteOrder(o);
+      book->deleteOrder(o);
     } else {
-      o->plevel->deductSize (o->type,deltaSize);
+      p->deductSize (o->type,delta_size);
     }
     break;
   }
@@ -233,13 +228,15 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
 
-    s = o->plevel->s;
-    prev_s.set(s);
+    FhPlevel* p = (FhPlevel*)o->plevel;
+    s = (FhSecurity*)p->s;
+
+    book->setSecurityPrevState(s);
 
     if (book->reduceOrderSize(o,delta_size) == 0) {
-      deleteOrder(o);
+      book->deleteOrder(o);
     } else {
-      o->plevel->deductSize (o->type,deltaSize);
+      p->deductSize (o->type,delta_size);
     } 
     break;
   }
@@ -253,13 +250,16 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     FhOrder* o = book->findOrder(order_id);
     if (o == NULL)  return false;
 
-    s = o->plevel->s;
-    prev_s.set(s);
+
+    FhPlevel* p = (FhPlevel*)o->plevel;
+    s = (FhSecurity*)p->s;
+
+    book->setSecurityPrevState(s);
 
     if (book->reduceOrderSize(o,delta_size) == 0) {
-      deleteOrder(o);
+      book->deleteOrder(o);
     } else {
-      o->plevel->deductSize (o->type,deltaSize);
+      p->deductSize (o->type,delta_size);
     } 
     break;
   }
@@ -274,11 +274,11 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     FhOrder* o            = book->findOrder(old_order_id);
     if (o == NULL) return false;
 
-    s = o->plevel->s;
-    prev_s.set(s);
+    s = (FhSecurity*)o->plevel->s;
+    book->setSecurityPrevState(s);
 
     FhOrderType t    = o->type;
-    SideT       side = o->side;
+    SideT       side = o->plevel->side;
     book->deleteOrder(o);
     book->addOrder(s,new_order_id,t,price,size,side);
 
@@ -295,11 +295,11 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     FhOrder* o            = book->findOrder(old_order_id);
     if (o == NULL)  return false;
 
-    s = o->plevel->s;
-    prev_s.set(s);
+    s = (FhSecurity*)o->plevel->s;
+    book->setSecurityPrevState(s);
 
     FhOrderType t    = o->type;
-    SideT       side = o->side;
+    SideT       side = o->plevel->side;
     book->deleteOrder(o);
     book->addOrder(s,new_order_id,t,price,size,side);
 
@@ -312,8 +312,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     FhOrder* o        = book->findOrder(order_id);
     if (o == NULL) return false;
 
-    s = o->plevel->s;
-    prev_s.set(s);
+    s = (FhSecurity*)o->plevel->s;
+    book->setSecurityPrevState(s);
 
     book->deleteOrder(o);
     break;
@@ -328,8 +328,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     FhOrder* o        = book->findOrder(order_id);
     if (o == NULL)  return false;
 
-    s = o->plevel->s;
-    prev_s.set(s);
+    s = (FhSecurity*)o->plevel->s;
+    book->setSecurityPrevState(s);
 
     book->modifyOrder (o,price,size); // modify order for price and size
     break;
@@ -348,15 +348,22 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     SizeT    ask_size           = (uint32_t)be16toh(message->ask_size);
 
     FhOrder* bid_o = book->findOrder(old_bid_order_id);
-    if (bid_o != NULL) s = bid_o->plevel->s;
-
     FhOrder* ask_o = book->findOrder(old_ask_order_id);
-    if (ask_o != NULL) s = ask_o->plevel->s;
+
+    if (bid_o != NULL) {
+      FhPlevel* bid_p = (FhPlevel*)bid_o->plevel;
+      s = (FhSecurity*)bid_p->s;
+    }
+
+    if (ask_o != NULL) {
+      FhPlevel* ask_p = (FhPlevel*)ask_o->plevel;
+      s = (FhSecurity*)ask_p->s;
+    }
 
     if (bid_o == NULL && ask_o == NULL) return false;
 
     if (s == NULL) on_error ("s = NULL");
-    prev_s.set(s);
+    book->setSecurityPrevState(s);
 
     if (bid_o != NULL) {
       FhOrderType t = bid_o->type;
@@ -385,15 +392,22 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     SizeT    ask_size           = be32toh(message->ask_size);
 
     FhOrder* bid_o = book->findOrder(old_bid_order_id);
-    if (bid_o != NULL) s = bid_o->plevel->s;
-
     FhOrder* ask_o = book->findOrder(old_ask_order_id);
-    if (ask_o != NULL) s = ask_o->plevel->s;
+
+    if (bid_o != NULL) {
+      FhPlevel* bid_p = (FhPlevel*)bid_o->plevel;
+      s = (FhSecurity*)bid_p->s;
+    }
+
+    if (ask_o != NULL) {
+      FhPlevel* ask_p = (FhPlevel*)ask_o->plevel;
+      s = (FhSecurity*)ask_p->s;
+    }
 
     if (bid_o == NULL && ask_o == NULL) return false;
 
     if (s == NULL) on_error ("s = NULL");
-    prev_s.set(s);
+    book->setSecurityPrevState(s);
 
     if (bid_o != NULL) {
       FhOrderType t = bid_o->type;
@@ -417,13 +431,19 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     FhOrder* bid_o = book->findOrder(bid_order_id);
     FhOrder* ask_o = book->findOrder(ask_order_id);
 
-    if (bid_o != NULL) s = bid_o->plevel->s;
-    if (ask_o != NULL) s = ask_o->plevel->s;
+    if (bid_o != NULL) {
+      FhPlevel* p = (FhPlevel*)bid_o->plevel;
+      s = (FhSecurity*)p->s;
+    }
+    if (ask_o != NULL) {
+      FhPlevel* p = (FhPlevel*)ask_o->plevel;
+      s = (FhSecurity*)p->s;
+    }
 
     if (bid_o == NULL && ask_o == NULL)  return false;
     if (s == NULL) on_error ("s = NULL");
 
-    prev_s.set(s);
+    book->setSecurityPrevState(s);
     if (bid_o != NULL) book->deleteOrder(bid_o);
     if (ask_o != NULL) book->deleteOrder(ask_o);
     break;
@@ -474,22 +494,21 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
   if (fh->print_parsed_messages) eka_print_nom_msg(book->parser_log,(uint8_t*)m,id,sequence);
 
-  if (prev_s.security_id == 0 || prev_s.security_id == -1) 
-    on_error("Uninitialized prev_s (sequence = %ju, timestamp = %ju",sequence,msg_timestamp);
  /* ##################################################################### */
 
-  if (prev_s.isEqual(s)) return false;
 #ifdef EKA_TIME_CHECK
   auto finish = std::chrono::high_resolution_clock::now();
   uint64_t duration_ns = (uint64_t) std::chrono::duration_cast<std::chrono::nanoseconds>(finish-start).count();
   if (duration_ns > 50000) EKA_WARN("WARNING: \'%c\' processing took %ju ns",enc, duration_ns);
 #endif
 
-
-  book->generateOnQuote (pEfhRunCtx, s, sequence, msg_timestamp,gapNum);
+  if (! book->isEqualState(s))
+    book->generateOnQuote (pEfhRunCtx, s, sequence, msg_timestamp,gapNum);
 
   return false;
 }
+
+
 #if 0
 static void print_sec_state(fh_b_security* s) {
   printf ("SecID: %u, num_of_buy_plevels: %u, num_of_sell_plevels: %u\n",s->security_id,s->num_of_buy_plevels,s->num_of_sell_plevels);

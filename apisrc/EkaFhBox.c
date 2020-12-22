@@ -129,20 +129,6 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
   EKA_INFO("%s RunGroup %u EndOfSession",EKA_EXCH_DECODE(exch),runGrId);
   return EKA_OPRESULT__OK;
 }
- /* ##################################################################### */
-
-EkaOpResult EkaFhBox::subscribeStaticSecurity(uint8_t groupNum, 
-					      uint64_t securityId, 
-					      EfhSecurityType efhSecurityType,
-					      EfhSecUserData efhSecUserData,
-					      uint64_t opaqueAttrA,
-					      uint64_t opaqueAttrB) {
-  if (groupNum >= groups) on_error("groupNum (%u) >= groups (%u)",groupNum,groups);
-  b_gr[groupNum]->book->subscribeSecurity (securityId, 
-					   static_cast< uint8_t >( efhSecurityType ), 
-					   efhSecUserData,opaqueAttrA,opaqueAttrB);
-  return EKA_OPRESULT__OK;
-}
 
 /* ##################################################################### */
 

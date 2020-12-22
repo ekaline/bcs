@@ -2,30 +2,11 @@
 #define _EKA_FH_PLEVEL_H_
 
 #include "EkaFhTypes.h"
-// ##########################################################
-
-class EkaFhPlevel {
- protected:
-  EkaFhPlevel() {
-    security = NULL;
-    top      = false;
-    cnt      = 0;
-  }
-  //----------------------------------------------------------
-
- public:
-  class FhSecurity*  security = NULL;
-  bool               top      = false;
-  uint               cnt      = 0;
-  SideT              side     = SideT::UNINIT;
-  
-  class EkaFhPlevel* prev = NULL;
-  class EkaFhPlevel* next = NULL;
-};
 
 // ##########################################################
+
 template <class PriceT, class SizeT>
-  class EkaFhFbPlevel : public EkaFhPlevel {
+  class EkaFhPlevel {
  public:
   //----------------------------------------------------------
   inline bool isEmpty() {
@@ -42,24 +23,6 @@ template <class PriceT, class SizeT>
     return false;
   }
 
- private:
-  //----------------------------------------------------------
-  inline SizeT* getSizePtr(FhOrderType t) {
-    switch (t) {
-    case FhOrderType::CUSTOMER :
-      return &cust_size;
-    case FhOrderType::BD :
-      return &bd_size;
-    case FhOrderType::CUSTOMER_AON :
-      return &cust_aon_size;
-    case FhOrderType::BD_AON :
-      return &bd_aon_size;
-    case FhOrderType::OTHER :
-      return &other_size;
-    default:
-      on_error("Unexpected Order Type %d",(int)t);
-    }
-  }
   //----------------------------------------------------------
   inline SizeT addSize (FhOrderType t, SizeT deltaSize) {
     SizeT* pLevelSize = getSizePtr(t);
@@ -90,8 +53,50 @@ template <class PriceT, class SizeT>
     return cust_aon_size + bd_aon_size;
   }
   //----------------------------------------------------------
+  inline void reset() {
+    s        = NULL;
+    top      = false;
+    cnt      = 0;
+    side     = SideT::UNINIT;
+  
+    price         = 0;
 
+    cust_size     = 0;
+    cust_aon_size = 0;
+    bd_size       = 0;
+    bd_aon_size   = 0;
+    other_size    = 0;
+  }
+  //----------------------------------------------------------
+
+
+ private:
+  //----------------------------------------------------------
+  inline SizeT* getSizePtr(FhOrderType t) {
+    switch (t) {
+    case FhOrderType::CUSTOMER :
+      return &cust_size;
+    case FhOrderType::BD :
+      return &bd_size;
+    case FhOrderType::CUSTOMER_AON :
+      return &cust_aon_size;
+    case FhOrderType::BD_AON :
+      return &bd_aon_size;
+    case FhOrderType::OTHER :
+      return &other_size;
+    default:
+      on_error("Unexpected Order Type %d",(int)t);
+    }
+  }
+  //----------------------------------------------------------
  public:
+  class EkaFhSecurity*     s             = NULL;
+  bool            top           = false;
+  uint            cnt           = 0;
+  SideT           side          = SideT::UNINIT;
+  
+  EkaFhPlevel*    prev          = NULL;
+  EkaFhPlevel*    next          = NULL;
 
   PriceT          price         = 0;
 
