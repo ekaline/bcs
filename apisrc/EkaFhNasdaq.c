@@ -62,6 +62,10 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
     EkaFhNasdaqGr* gr = (EkaFhNasdaqGr*)b_gr[gr_id];
     if (gr == NULL) on_error("b_gr[%u] = NULL",gr_id);
 
+#ifdef FH_LAB
+    gr->state = EkaFhGroup::GrpState::NORMAL;
+    gr->processUdpPkt(pEfhRunCtx,pkt,msgInPkt,sequence);
+#else
     //-----------------------------------------------------------------------------
     switch (gr->state) {
     case EkaFhGroup::GrpState::INIT : { 
@@ -121,6 +125,7 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
 	       EKA_EXCH_DECODE(exch),gr->id,(uint)gr->state);
       break;
     }
+#endif
     runGr->udpCh->next(); 
   }
   EKA_INFO("%s RunGroup %u EndOfSession",EKA_EXCH_DECODE(exch),runGrId);

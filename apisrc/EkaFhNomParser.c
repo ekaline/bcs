@@ -87,7 +87,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     s = book->findSecurity(security_id);
     if (s == NULL) {
 #ifdef FH_LAB
-      s = book->subscribeSecurity((SecurityIdT)security_id);
+      s = book->subscribeSecurity(security_id,(EfhSecurityType)1,(EfhSecUserData)0,0,0);
 #else
       return false;
 #endif
@@ -108,7 +108,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     s = book->findSecurity(security_id);
     if (s == NULL) {
 #ifdef FH_LAB
-      s = book->subscribeSecurity((SecurityIdT)security_id);
+      s = book->subscribeSecurity(security_id,(EfhSecurityType)1,(EfhSecUserData)0,0,0);
 #else
       return false;
 #endif
@@ -160,7 +160,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     s = book->findSecurity(security_id);
     if (s == NULL) {
 #ifdef FH_LAB
-      s = book->subscribeSecurity((SecurityIdT)security_id);
+      s = book->subscribeSecurity(security_id,(EfhSecurityType)1,(EfhSecUserData)0,0,0);
 #else
       return false;
 #endif
@@ -184,8 +184,13 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
     SecurityIdT security_id = be32toh(message->option_id);
     s = book->findSecurity(security_id);
-    if (s == NULL) return false;
-
+    if (s == NULL) {
+#ifdef FH_LAB
+      s = book->subscribeSecurity(security_id,(EfhSecurityType)1,(EfhSecUserData)0,0,0);
+#else
+      return false;
+#endif
+    }
     OrderIdT bid_order_id =  be64toh(message->bid_reference_delta);
     PriceT   bid_price    =  be16toh(message->bid_price) * 100 / EFH_PRICE_SCALE;
     SizeT    bid_size     =  be16toh(message->bid_size);
