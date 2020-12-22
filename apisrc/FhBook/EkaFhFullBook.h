@@ -117,7 +117,11 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
 			   SizeT           _size, 
 			   SideT           _side) {
     FhOrder* o = getNewOrder();
-    o->reset();
+
+    o->orderId = _orderId;
+    o->type    = _type;
+    o->size    = _size;
+    o->next    = NULL;
 
     o->plevel = findOrAddPlevel(s,_price,_side);
     ((FhPlevel*)o->plevel)->addSize(o->type,o->size);
