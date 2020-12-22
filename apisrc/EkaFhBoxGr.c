@@ -57,6 +57,9 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 			       int16_t          pktLen) {
   //  EKA_LOG("%s:%u : pktLen = %d",EKA_EXCH_DECODE(exch),id,pktLen);
 
+  lastPktLen    = pktLen;
+  lastPktMsgCnt = 0;
+
   uint8_t* p = (uint8_t*)pkt;
   int idx = 0;
   while (idx < pktLen) {
@@ -64,12 +67,15 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
     uint64_t sequence = getHsvfMsgSequence(&p[idx]);
     
     if (sequence >= expected_sequence) {
+      //      EKA_LOG("%ju",sequence);
       if (parseMsg(pEfhRunCtx,&p[idx+1],sequence,EkaFhMode::MCAST)) return true;
       expected_sequence = sequence + 1;
     }
 
     idx += msgLen;
     idx += trailingZeros(&p[idx],pktLen-idx );
+    
+    lastPktMsgCnt++;
   }
   return false;
 }

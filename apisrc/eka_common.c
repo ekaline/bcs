@@ -115,8 +115,9 @@ int ekaTcpConnect(uint32_t ip, uint16_t port) {
   remote_addr.sin_family = AF_INET;
   if (connect(sock,(struct sockaddr*)&remote_addr,sizeof(struct sockaddr_in)) != 0) 
     on_error("socket connect failed %s:%u",EKA_IP2STR(*(uint32_t*)&remote_addr.sin_addr),be16toh(remote_addr.sin_port));
-#endif
   return sock;
+#endif
+  return -1;
 }
 /* ##################################################################### */
 

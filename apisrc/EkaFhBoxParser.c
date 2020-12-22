@@ -14,8 +14,51 @@
 /* ----------------------------------------------------------------------- */
 void hexDump (const char* desc, void *addr, int len);
 
+inline uint hsvfTableLen(const uint8_t* msg) {
+  if (memcmp(msg,"V ",2) == 0) return 17;
+  if (memcmp(msg,"Z ",2) == 0) return 20;
+  if (memcmp(msg,"C ",2) == 0) return 76;
+  if (memcmp(msg,"CS",2) == 0) return 79;
+  if (memcmp(msg,"D ",2) == 0) return 40;
+  if (memcmp(msg,"F ",2) == 0) return 68;
+  if (memcmp(msg,"FS",2) == 0) return 79;
+  if (memcmp(msg,"GC",2) == 0) return 25;
+  if (memcmp(msg,"GR",2) == 0) return 19;
+  if (memcmp(msg,"GS",2) == 0) return 15;
+  if (memcmp(msg,"I ",2) == 0) return 68;
+  if (memcmp(msg,"IS",2) == 0) return 71;
+  if (memcmp(msg,"J ",2) == 0) return 119;
+  if (memcmp(msg,"L ",2) == 0) return 93;
+  if (memcmp(msg,"N ",2) == 0) return 127;
+  if (memcmp(msg,"NS",2) == 0) return 116;
+  if (memcmp(msg,"Q ",2) == 0) return 12;
+  if (memcmp(msg,"QS",2) == 0) return 12;
+  if (memcmp(msg,"S ",2) == 0) return 18;
+  if (memcmp(msg,"M ",2) == 0) return 84;
+  if (memcmp(msg,"MS",2) == 0) return 94;
+  if (memcmp(msg,"O ",2) == 0) return 80;
+  if (memcmp(msg,"OS",2) == 0) return 91;
+  if (memcmp(msg,"T ",2) == 0) return 47;
+  if (memcmp(msg,"TS",2) == 0) return 57;
+
+  if (memcmp(msg,"ER",2) == 0) return 95;
+  if (memcmp(msg,"KI",2) == 0) return 11;
+  if (memcmp(msg,"KO",2) == 0) return 11;
+  if (memcmp(msg,"LI",2) == 0) return 51;
+  if (memcmp(msg,"LO",2) == 0) return 11;
+  if (memcmp(msg,"RB",2) == 0) return 11;
+  if (memcmp(msg,"RE",2) == 0) return 11;
+  if (memcmp(msg,"RT",2) == 0) return 31;
+  if (memcmp(msg,"U ",2) == 0) return 18;
+  if (memcmp(msg,"ER",2) == 0) return 95;
+
+  return 0;
+}
+
 uint getHsvfMsgLen(const uint8_t* pkt, int bytes2run) {
   uint idx = 0;
+  const uint8_t* msg = &pkt[10];
+
   if (pkt[idx] != HsvfSom) {
     hexDump("Msg with no HsvfSom (0x2)",(void*)pkt,bytes2run);
     on_error("0x%x met while HsvfSom 0x%x is expected",pkt[idx],HsvfSom);
@@ -28,6 +71,11 @@ uint getHsvfMsgLen(const uint8_t* pkt, int bytes2run) {
       on_error("HsvfEom not met after %u characters",idx);
     }
   } while (pkt[idx] != HsvfEom);
+
+  if (hsvfTableLen(msg) != 0 && hsvfTableLen(msg) != idx - 1)
+    on_warning("hsvfTableLen(\'%c%c\') %u != discovered %u",
+	       (char)msg[0],(char)msg[1],hsvfTableLen(msg),idx + 1);
+
   return idx + 1;
 }
 

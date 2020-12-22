@@ -176,6 +176,7 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   pEfcRunCtx->onEfcFireReportCb      = (OnEfcFireReportCb)      efcDefaultOnFireReportCb;
 
   EKA_LOG("EKALINE2 LIB BUILD TIME: %s @ %s",__DATE__,__TIME__);
+  EKA_LOG("EKALINE2 LIB GIT: %s",LIBEKA_GIT_VER);
 
 
   igmp_thread_active = true;

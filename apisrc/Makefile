@@ -7,6 +7,7 @@ CC_OPT:= -O3 -g
 
 CC := g++ -std=c++17 $(CC_OPT) -frecord-gcc-switches -pipe $(ARCH_FLAGS)
 
+LIBEKA_GIT_VER:= $(shell git rev-parse --short HEAD)
 
 DRIVERS_INCL:=$(SMARTNIC_ROOT)/driver/
 API_INCL:=$(SMARTNIC_ROOT)/include/
@@ -20,7 +21,8 @@ INCL+=-Iarch
 include $(SMARTNIC_ROOT)/api/makefile_common
 
 #GCC_FLAGS:=-Wall -fpic -pthread -lrt $(EKA_AFFINITY_SET) -lm $(GCC_EXTERNAL_DEFINES) -DBUILD_TIME=`date +%d%m%y_%T`
-GCC_FLAGS:=-Wall -fPIC -pthread -lrt -lm $(GCC_EXTERNAL_DEFINES) -Wno-unused-function
+GCC_FLAGS:=-Wall -fPIC -pthread -lrt -lm $(GCC_EXTERNAL_DEFINES) -Wno-unused-function -DLIBEKA_GIT_VER=\"$(LIBEKA_GIT_VER)\"
+#GCC_FLAGS:=-Wall -fPIC -pthread -lrt -lm $(GCC_EXTERNAL_DEFINES) -Wno-unused-function -DLIBEKA_GIT_VER=`git rev-parse --short HEAD`
 #LD_FLAGS:=-shared -fpic $(LD_ASAN_OPTIONS) -static-libstdc++ -static-libgcc
 LD_FLAGS:=-shared -fpic $(LD_ASAN_OPTIONS)
 
