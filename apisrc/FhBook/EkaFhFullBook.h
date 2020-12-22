@@ -99,7 +99,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
 	  on_error("o->plevel == NULL for orderId %ju",(uint64_t)orderId);
 	if (o->plevel->s == NULL)
 	  on_error("o->plevel->s == NULL for  orderId %ju, side %s, price %ju",
-		   (uint64_t)orderId,side2str(o->plevel->side).c_str(),(uint64_t)((FhPlevel*)o->plevel)->price);
+		   (uint64_t)orderId,side2str(o->plevel->side).c_str(),(uint64_t)o->plevel->price);
 
 	return o;
       }
@@ -128,13 +128,13 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     o->plevel->addSize(o->type,o->size);
     o->plevel->cnt++;
     addOrder2Hash (o);
-    return (FhPlevel*)o->plevel;
+    return o->plevel;
   }
 
   /* ####################################################### */
 
   int modifyOrder(FhOrder* o, PriceT price,SizeT size) {
-    FhPlevel* p = (FhPlevel*)o->plevel;
+    FhPlevel* p = o->plevel;
     if (p->price == price) {
       p->deductSize(o->type,o->size);
       p->addSize   (o->type,   size);
@@ -232,8 +232,8 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     prevTradingAction = s->trading_action;
     prevOptionOpen    = s->option_open;
 
-    FhPlevel* topBid = (FhPlevel*) s->bid;
-    FhPlevel* topAsk = (FhPlevel*) s->ask;
+    FhPlevel* topBid = s->bid;
+    FhPlevel* topAsk = s->ask;
 
     prevBestBidPrice     = topBid == NULL ? 0 : topBid->price;
     prevBestBidTotalSize = topBid == NULL ? 0 : topBid->get_total_size();
@@ -243,8 +243,8 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
 
   /* ####################################################### */
   inline bool isEqualState(FhSecurity* s) {
-    FhPlevel* topBid = (FhPlevel*) s->bid;
-    FhPlevel* topAsk = (FhPlevel*) s->ask;
+    FhPlevel* topBid = s->bid;
+    FhPlevel* topAsk = s->ask;
 
     PriceT newBestBidPrice     = topBid == NULL ? 0 : topBid->price;
     SizeT  newBestBidTotalSize = topBid == NULL ? 0 : topBid->get_total_size();
@@ -285,7 +285,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     if (numOrders > maxNumOrders) maxNumOrders = numOrders;
     FhOrder* o = orderFreeHead;
     if (o == NULL) on_error("o == NULL, numOrders=%u",numOrders);
-    orderFreeHead = (FhOrder*)orderFreeHead->next;
+    orderFreeHead = orderFreeHead->next;
     return o;
   }
   /* ####################################################### */
@@ -304,7 +304,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     switch (p->side) {
     case SideT::BID :
       if (p->top) {
-	if ((FhPlevel*)s->bid  != p)    on_error("s->bid  != p    for Top Plevel");
+	if (s->bid  != p)    on_error("s->bid  != p    for Top Plevel");
 	if (p->prev != NULL) on_error("p->prev != NULL for Top Plevel");
 	s->bid = p->next;
 	if (p->next != NULL) {
@@ -321,7 +321,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
       break;
     case SideT::ASK :
       if (p->top) {
-	if ((FhPlevel*)s->ask  != p)    on_error("s->ask  != p    for Top Plevel");
+	if (s->ask  != p)    on_error("s->ask  != p    for Top Plevel");
 	if (p->prev != NULL) on_error("p->prev != NULL for Top Plevel");
 	s->ask = p->next;
 	if (p->next != NULL) {
@@ -400,9 +400,11 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     switch (_side) {
     case SideT::BID :
       pTob = (FhPlevel**)&s->bid;
+      s->numBidPlevels++;
       break;
     case SideT::ASK :
       pTob = (FhPlevel**)&s->ask;
+      s->numAskPlevels++;
       break;
     default:
       on_error("Unexpected side = %d",(int)_side);
@@ -413,7 +415,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
 
     for (FhPlevel* p = *pTob; p != NULL; p = p->next) {
       if (p->price == _price) return p;
-      if (p->next == NULL || ((FhPlevel*)p->next)->worsePriceThan(_price))
+      if (p->next == NULL || p->next->worsePriceThan(_price))
 	return addPlevelAfterP(p,_price);
     }
     on_error("place to insert Plevel not found");
