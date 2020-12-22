@@ -4,6 +4,21 @@
 #include "EkaFhGroup.h"
 #include "EkaFhTobBook.h"
 
+ /* ##################################################################### */
+
+class Underlying {
+ public:
+  Underlying(char* _name,size_t size) {
+    memset(name,0,sizeof(name));
+    memcpy(name,_name,size);
+    tradeStatus = EfhTradeStatus::kNormal;
+  }
+  
+  EfhSymbol name = {};
+  EfhTradeStatus tradeStatus = EfhTradeStatus::kNormal;
+};
+ /* ##################################################################### */
+
 class EkaFhMiaxGr : public EkaFhGroup{
  public:
   virtual               ~EkaFhMiaxGr() {};
@@ -47,6 +62,44 @@ class EkaFhMiaxGr : public EkaFhGroup{
     return 0;
   }
 
+/* ####################################################### */
+
+ private:
+  inline int findUnderlying(char* name, size_t size) {
+    for (int i = 0; i < (int)underlyingNum; i ++) {
+      /* TEST_LOG("Comparing \'%s\' vs \'%s\'",name,underlying[i]->name); */
+      /* if (memcmp(&underlying[i]->name,name,size) == 0) return i; */
+      /* TEST_LOG("memcmp - FALSE"); */
+      if (strncmp(underlying[i]->name,name,size) == 0) return i;
+      /* TEST_LOG("strncmp - FALSE"); */
+    }
+    return -1;
+  }
+
+  inline uint addUnderlying(char* name, size_t size) {
+    int u = findUnderlying(name,size);
+    if (u >= 0) return (uint)u;
+
+    if (underlyingNum == UndelyingsPerGroup) 
+      on_error("cannot add %s to gr %u: underlyingNum=%u",name,id,underlyingNum);
+
+    uint newUnderlying = underlyingNum++;
+
+    underlying[newUnderlying] = new Underlying(name,size);
+    if (underlying[newUnderlying] == NULL) on_error("cannot create new Underlying %s",name);
+#if 0
+    char name2print[16] = {};
+    memcpy(name2print,name,size);
+    TEST_LOG("%s:%u underlying[newUnderlying] = \'%s\', size = %u",
+	     EKA_EXCH_DECODE(exch),id,name,(uint)size);
+#endif
+    return newUnderlying;
+  }
+
+/* ####################################################### */
+
+ public:
+
 
   static const uint   SEC_HASH_SCALE = 17;
 
@@ -58,6 +111,11 @@ class EkaFhMiaxGr : public EkaFhGroup{
   using FhBook      = EkaFhTobBook<SEC_HASH_SCALE,EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>,SecurityIdT, PriceT, SizeT>;
 
   FhBook*   book = NULL;
+
+  static const uint UndelyingsPerGroup = 2048;
+
+  uint  underlyingNum = 0;
+  Underlying*           underlying[UndelyingsPerGroup] = {};
 
 };
 #endif

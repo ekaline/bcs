@@ -12,7 +12,7 @@
 
 #include "EkaDev.h"
 #include "EkaFhGroup.h"
-#include "eka_fh_book.h"
+
 #include "eka_macros.h"
 #include "Efh.h"
 #include "Exc.h"
@@ -279,7 +279,7 @@ int main(int argc, char *argv[]) {
   for (uint8_t i = 0; i < NOM_GROUPS; i++) { 
     printf ("################ NOM Definitions Group %u ################\n",i);
     efhGetDefs(pNomEfhCtx, pNomRunCtx[i], (EkaGroup*)&pNomRunCtx[i]->groups[0]);
-    printf ("NOM_ITTO GR%2u: subscribed securities: %u\n",i,pEkaDev->fh[0]->b_gr[i]->book->total_securities);
+    printf ("NOM_ITTO GR%2u: subscribed securities: %u\n",i,pEkaDev->fh[0]->b_gr[i]->numSecurities);
   }
 
   //##########################################################
@@ -288,7 +288,7 @@ int main(int argc, char *argv[]) {
   for (uint8_t i = 0; i < pPhlxRunCtx->numGroups / 2; i++) { // half groups are trades
     printf ("################ PHLX Definitions Group %u ################\n",i);
     efhGetDefs(pPhlxEfhCtx, pPhlxRunCtx, (EkaGroup*)&pPhlxRunCtx->groups[i]);
-    printf ("PHLX_TOPO GR%2u: subscribed securities: %u\n",i,pEkaDev->fh[0]->b_gr[i]->book->total_securities);
+    printf ("PHLX_TOPO GR%2u: subscribed securities: %u\n",i,pEkaDev->fh[0]->b_gr[i]->numSecurities);
   }
 
   //##########################################################
@@ -297,7 +297,7 @@ int main(int argc, char *argv[]) {
   for (uint8_t i = 0; i < pGemRunCtx->numGroups; i++) { 
     printf ("################ GEM Definitions Group %u ################\n",i);
     efhGetDefs(pGemEfhCtx, pGemRunCtx, (EkaGroup*)&pGemRunCtx->groups[i]);
-    printf ("GEM_TQF GR%2u: subscribed securities: %u\n",i,pEkaDev->fh[0]->b_gr[i]->book->total_securities);
+    printf ("GEM_TQF GR%2u: subscribed securities: %u\n",i,pEkaDev->fh[0]->b_gr[i]->numSecurities);
   }
 
   //##########################################################

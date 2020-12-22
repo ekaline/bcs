@@ -23,12 +23,13 @@
 #include "EkaFhBook.h"
 #include "EkaCore.h"
 #include "EkaTcpSess.h"
+#include "eka_fh_q.h"
 
 int createIgmpPkt (char* dst, bool join, uint8_t* macsa, uint32_t ip_src, uint32_t ip_dst);
 
  /* ##################################################################### */
 uint         EkaFhGroup::getNumSecurities() {
-  return book->numSecurities;
+  return numSecurities;
 }
  /* ##################################################################### */
 
@@ -96,8 +97,14 @@ int EkaFhGroup::init (EfhCtx* _pEfhCtx,
   id       = gr_id;
   state    = GrpState::INIT;
 
+  if (dev->print_parsed_messages) {
+    std::string parsedMsgFileName = std::string(EKA_EXCH_DECODE(exch)) + std::to_string(id) + std::string("_PARSED_MESSAGES.txt");
+    if((parser_log = fopen(parsedMsgFileName.c_str(),"w")) == NULL) on_error ("Error %s",parsedMsgFileName.c_str());
+    EKA_LOG("%s:%u created file %s",EKA_EXCH_DECODE(exch),id,parsedMsgFileName.c_str());
+  }
+
   EKA_LOG("%s:%u is initialized, feed_ver=%s",
-	  EKA_EXCH_DECODE(exch),gr_id,EKA_FEED_VER_DECODE(feed_ver));
+	  EKA_EXCH_DECODE(exch),id,EKA_FEED_VER_DECODE(feed_ver));
 
   return 0;
 }
@@ -131,7 +138,7 @@ int EkaFhGroup::stop() {
  /* ##################################################################### */
 
 EkaFhGroup::~EkaFhGroup () {  
-  if (fh->print_parsed_messages) fclose(book->parser_log);
+  if (fh->print_parsed_messages) fclose(parser_log);
 
   if (q != NULL) {
     delete q;

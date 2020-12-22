@@ -492,7 +492,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
   s->bid_ts = msg_timestamp;
   s->ask_ts = msg_timestamp;
 
-  if (fh->print_parsed_messages) eka_print_nom_msg(book->parser_log,(uint8_t*)m,id,sequence);
+  if (fh->print_parsed_messages) eka_print_nom_msg(parser_log,(uint8_t*)m,id,sequence);
 
  /* ##################################################################### */
 

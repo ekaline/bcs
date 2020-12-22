@@ -115,7 +115,8 @@ class EkaFhXdpGr : public EkaFhGroup{
   using SizeT       = uint32_t;
 
   using FhSecurity  = EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>;
-  using FhBook      = EkaFhTobBook<SEC_HASH_SCALE,FhSecurity,SecurityIdT, PriceT, SizeT>;
+  using FhBook      = EkaFhTobBook<SEC_HASH_SCALE,EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>,SecurityIdT, PriceT, SizeT>;
+
 
   FhBook*   book = NULL;
 

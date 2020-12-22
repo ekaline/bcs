@@ -58,7 +58,7 @@ template <const uint SEC_HASH_SCALE,class FhSecurity, class SecurityIdT, class P
       while (sp->next != NULL) sp = (FhSecurity*)sp->next;
       sp->next = (EkaFhSecurity*) s;
     }
-    numSecurities++;
+    //    numSecurities++;
     return s;
   }
   /* ####################################################### */

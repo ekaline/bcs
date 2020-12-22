@@ -28,6 +28,7 @@
 #include "EkaFhBatsGr.h"
 
 #include "EkaCore.h"
+#include "eka_fh_q.h"
 
 
  /* ##################################################################### */
@@ -182,11 +183,14 @@ EkaOpResult EkaFh::subscribeStaticSecurity(uint8_t groupNum,
 					   uint64_t opaqueAttrB) {
   if (groupNum >= groups) on_error("groupNum (%u) >= groups (%u)",groupNum,groups);
   if (b_gr[groupNum] == NULL) on_error("b_gr[%u] == NULL",groupNum);
+
   b_gr[groupNum]->subscribeStaticSecurity(securityId, 
 					  efhSecurityType,
 					  efhSecUserData,
 					  opaqueAttrA,
 					  opaqueAttrB);
+
+  b_gr[groupNum]->numSecurities++;
   return EKA_OPRESULT__OK;
 }
 

@@ -56,7 +56,7 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     memcpy (&msg.underlying, message->UnderlyingSymbol,std::min(sizeof(msg.underlying), sizeof(message->UnderlyingSymbol)));
     memcpy (&msg.classSymbol,message->SecuritySymbol,  std::min(sizeof(msg.classSymbol),sizeof(message->SecuritySymbol)));
 
-    uint underlyingIdx = book->addUnderlying(msg.underlying, sizeof(msg.underlying));
+    uint underlyingIdx = addUnderlying(msg.underlying, sizeof(msg.underlying));
     msg.opaqueAttrB = (uint64_t)underlyingIdx;
 
     /* EKA_TRACE("UnderlyingSymbol = %s, SecuritySymbol = %s,  message->Expiration = %s = %u,  message->security_id = %ju", */
@@ -81,7 +81,7 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     
     char name2print[16] = {};
     memcpy(name2print,((TomUnderlyingTradingStatus*)m)->underlying,sizeof(((TomUnderlyingTradingStatus*)m)->underlying));
-    int underlIdx = book->findUnderlying(((TomUnderlyingTradingStatus*)m)->underlying,
+    int underlIdx = findUnderlying(((TomUnderlyingTradingStatus*)m)->underlying,
 					 std::min(sizeof(((TomUnderlyingTradingStatus*)m)->underlying),sizeof(EfhSymbol)));
     if (underlIdx < 0) {
       EKA_LOG("%s:%u \'%s\' 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x (size = %u) is not found (size for strncmp = %u:",
@@ -94,17 +94,17 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
 	      std::min(sizeof(((TomUnderlyingTradingStatus*)m)->underlying),sizeof(EfhSymbol))
 	      );
 
-      for (uint u = 0; u < book->underlyingNum; u++) {
+      for (uint u = 0; u < underlyingNum; u++) {
 	EKA_LOG("%3d: \'%s\' 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x ",
-		u,book->underlying[u]->name,
-		book->underlying[u]->name[0],book->underlying[u]->name[1],book->underlying[u]->name[2],book->underlying[u]->name[3],
-		book->underlying[u]->name[4],book->underlying[u]->name[5],book->underlying[u]->name[6],book->underlying[u]->name[7]
+		u,underlying[u]->name,
+		underlying[u]->name[0],underlying[u]->name[1],underlying[u]->name[2],underlying[u]->name[3],
+		underlying[u]->name[4],underlying[u]->name[5],underlying[u]->name[6],underlying[u]->name[7]
 		);
       }
       on_error("Underlying \'%s\' is not found",name2print);
     }
 
-    book->underlying[underlIdx]->tradeStatus = ((TomUnderlyingTradingStatus*)m)->trading_status == 'H' ? EfhTradeStatus::kHalted : EfhTradeStatus::kNormal;
+    underlying[underlIdx]->tradeStatus = ((TomUnderlyingTradingStatus*)m)->trading_status == 'H' ? EfhTradeStatus::kHalted : EfhTradeStatus::kNormal;
 
     //    EKA_LOG("UnderlyingTradingStatus of %s : \'%c\'", name2print,((TomUnderlyingTradingStatus*)m)->trading_status);
     return false;
@@ -124,7 +124,7 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
 
-    if (book->underlying[s->underlyingIdx] == NULL)
+    if (underlying[s->underlyingIdx] == NULL)
       on_error("underlying[%u] == NULL",s->underlyingIdx);
 
     if (enc == EKA_MIAX_TOM_MSG::BestBidShort || enc == EKA_MIAX_TOM_MSG::BestBidLong) {
@@ -142,7 +142,7 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     }
     bool setHalted = long_form ? message_long->condition == 'T' : message_short->condition == 'T';
     //    s->trading_action = setHalted ? EfhTradeStatus::kHalted : EfhTradeStatus::kNormal;
-    s->trading_action = setHalted ? EfhTradeStatus::kHalted : book->underlying[s->underlyingIdx]->tradeStatus;
+    s->trading_action = setHalted ? EfhTradeStatus::kHalted : underlying[s->underlyingIdx]->tradeStatus;
 
     s->option_open = market_open;
     break;
@@ -160,7 +160,7 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
 
-    if (book->underlying[s->underlyingIdx] == NULL)
+    if (underlying[s->underlyingIdx] == NULL)
       on_error("underlying[%u] == NULL",s->underlyingIdx);
 
     //    if (ts < s->bid_ts && ts < s->ask_ts) return false; // Back-in-time from Recovery
@@ -177,7 +177,7 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     s->ask_ts         = ts;
     bool setHaltedAsk = long_form ? message_long->ask_condition == 'T' : message_short->ask_condition == 'T';
 
-    s->trading_action = setHaltedBid || setHaltedAsk ? EfhTradeStatus::kHalted : book->underlying[s->underlyingIdx]->tradeStatus;
+    s->trading_action = setHaltedBid || setHaltedAsk ? EfhTradeStatus::kHalted : underlying[s->underlyingIdx]->tradeStatus;
     s->option_open    = market_open;
     break;
   }

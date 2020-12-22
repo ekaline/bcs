@@ -19,11 +19,6 @@ class EkaFhBook {
     grId = _grId;
     exch = _exch;
 
-    if (dev->print_parsed_messages) {
-      std::string parsedMsgFileName = std::string(EKA_EXCH_DECODE(exch)) + std::to_string(grId) + std::string("_PARSED_MESSAGES.txt");
-      if((parser_log = fopen(parsedMsgFileName.c_str(),"w")) == NULL) on_error ("Error %s",parsedMsgFileName.c_str());
-      EKA_LOG("%s:%u created file %s",EKA_EXCH_DECODE(exch),grId,parsedMsgFileName.c_str());
-    }
   }
 
  public:
@@ -38,9 +33,7 @@ class EkaFhBook {
   EkaSource        exch     = EkaSource::kInvalid; 
   //----------------------------------------------------------
 
-  uint             numSecurities = 0;
 
-  FILE*            parser_log = NULL; // used with PRINT_PARSED_MESSAGES define
 };
 
 #endif

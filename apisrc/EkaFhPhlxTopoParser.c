@@ -75,7 +75,7 @@ bool EkaFhPhlxTopoGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint
     bool long_form = enc == 'Q';
 
     SecurityIdT security_id = long_form ? be32toh(message_long->option_id) : be32toh(message_short->option_id);
-    s = book->find_security(security_id);
+    s = book->findSecurity(security_id);
     if (s == NULL) return false;
 
     if (ts < s->bid_ts && ts < s->ask_ts) return false; // Back-in-time from Recovery

@@ -19,7 +19,7 @@
 #include "EkaCtxs.h"
 
 #include "EkaFhGroup.h"
-#include "eka_fh_book.h"
+
 
 
 #define MAX_SECURITIES 16000
@@ -207,7 +207,7 @@ int main(int argc, char *argv[]) {
   }
   printf ("Definitions phase done:\n");
   for (uint8_t i = 0; i < runCtx.numGroups; i++) 
-    printf ("\tGR%u: subscribed securities: %u\n",i,pEkaDev->fh[0]->b_gr[i]->book->total_securities);
+    printf ("\tGR%u: subscribed securities: %u\n",i,pEkaDev->fh[0]->b_gr[i]->numSecurities);
   std::thread efh_run_thread = std::thread(efhRunGroups,pEfhCtx, pEfhRunCtx);
   efh_run_thread.detach();
 

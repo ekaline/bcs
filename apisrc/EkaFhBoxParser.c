@@ -180,6 +180,7 @@ inline uint32_t getFractionIndicator(char FI) {
 
 }
 /* ----------------------------------------------------------------------- */
+template <class FhSecurity> 
 inline int getStatus(FhSecurity* s, char statusMarker) {
   switch (statusMarker) {
   case 'Y' : // Pre-opening phase
@@ -336,7 +337,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     s->ask_size      = getNumField<uint32_t>(boxMsg->AskSize,sizeof(boxMsg->AskSize));
     s->ask_cust_size = getNumField<uint32_t>(boxMsg->PublicCustomerAskSize,sizeof(boxMsg->PublicCustomerAskSize));
 
-    getStatus(s,boxMsg->InstrumentStatusMarker);
+    getStatus<FhSecurity>(s,boxMsg->InstrumentStatusMarker);
     if (op != EkaFhMode::SNAPSHOT)
       book->generateOnQuote (pEfhRunCtx, s, sequence, gr_ts, gapNum);
 

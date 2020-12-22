@@ -22,7 +22,6 @@
 #include "EkaCtxs.h"
 
 #include "EkaFhGroup.h"
-#include "eka_fh_book.h"
 
 //to xn03
 #define DST_XN03_IP0 "10.0.0.30"

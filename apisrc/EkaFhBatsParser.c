@@ -129,7 +129,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
   default: {}
   }
 
-  if (op != EkaFhMode::DEFINITIONS && fh->print_parsed_messages) eka_print_batspitch_msg(book->parser_log,(uint8_t*)m,id,sequence,msg_timestamp);
+  if (op != EkaFhMode::DEFINITIONS && fh->print_parsed_messages) eka_print_batspitch_msg(parser_log,(uint8_t*)m,id,sequence,msg_timestamp);
 
   switch (enc) {    
     //--------------------------------------------------------------
@@ -270,13 +270,13 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     SizeT    delta_size = message->executed_size;
     FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
-    s = o->plevel->s;
+    s = (FhSecurity*)o->plevel->s;
     book->setSecurityPrevState(s);
 
     if (book->reduceOrderSize(o,delta_size) == 0) {
       book->deleteOrder(o);
     } else {
-      o->plevel->deductSize (o->type,deltaSize);
+      o->plevel->deductSize (o->type,delta_size);
     }
 
     break;
@@ -288,13 +288,13 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     SizeT    delta_size = message->executed_size;
     FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
-    s = o->plevel->s;
+    s = (FhSecurity*)o->plevel->s;
     book->setSecurityPrevState(s);
 
     if (book->reduceOrderSize(o,delta_size) == 0) {
       book->deleteOrder(o);
     } else {
-      o->plevel->deductSize (o->type,deltaSize);
+      o->plevel->deductSize (o->type,delta_size);
     }
 
     break;
@@ -306,13 +306,13 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     SizeT delta_size = message->canceled_size;
     FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
-    s = o->plevel->s;
+    s = (FhSecurity*)o->plevel->s;
     book->setSecurityPrevState(s);
 
     if (book->reduceOrderSize(o,delta_size) == 0) {
       book->deleteOrder(o);
     } else {
-      o->plevel->deductSize (o->type,deltaSize);
+      o->plevel->deductSize (o->type,delta_size);
     }
 
     break;
@@ -326,13 +326,13 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     if (o == NULL) return false;
     assert(o->plevel != NULL);
     assert(o->plevel->s != NULL);
-    s = o->plevel->s;
+    s = (FhSecurity*)o->plevel->s;
     book->setSecurityPrevState(s);
 
     if (book->reduceOrderSize(o,delta_size) == 0) {
       book->deleteOrder(o);
     } else {
-      o->plevel->deductSize (o->type,deltaSize);
+      o->plevel->deductSize (o->type,delta_size);
     }
 
     break;
@@ -347,7 +347,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
 
     FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
-    s = o->plevel->s;
+    s = (FhSecurity*)o->plevel->s;
 
     book->setSecurityPrevState(s);
     book->modifyOrder (o,price,size); // modify order for price and size
@@ -365,7 +365,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
 
     FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
-    s = o->plevel->s;
+    s = (FhSecurity*)o->plevel->s;
 
     book->setSecurityPrevState(s);
     book->modifyOrder (o,price,size); // modify order for price and size
@@ -379,7 +379,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t
     OrderIdT order_id = message->order_id;
     FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
-    s = o->plevel->s;
+    s = (FhSecurity*)o->plevel->s;
 
     book->setSecurityPrevState(s);
     book->deleteOrder (o);

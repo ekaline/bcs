@@ -116,7 +116,7 @@ bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint6
     FhOrder* o = book->findOrder(order_id);
     if (o != NULL) {
       if (s != o->plevel->s) on_error("Order's message security_id %u != book security_id %u",
-				      security_id,o->plevel->s->security_id);
+				      security_id,((FhSecurity*)o->plevel->s)->secId);
     }
 
     book->setSecurityPrevState(s);

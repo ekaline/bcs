@@ -18,7 +18,7 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
   char enc =  (char)m[0];
 
-  if (fh->print_parsed_messages) eka_print_gem_msg(book->parser_log,(uint8_t*)m,id,sequence,ts);
+  if (fh->print_parsed_messages) eka_print_gem_msg(parser_log,(uint8_t*)m,id,sequence,ts);
 
   if (op == EkaFhMode::DEFINITIONS && enc == 'M') return true;
   if (op == EkaFhMode::DEFINITIONS && enc != 'D') return false;

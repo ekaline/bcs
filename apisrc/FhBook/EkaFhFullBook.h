@@ -21,13 +21,12 @@ inline std::string side2str(SideT side) {
 template <class OrderIdT>
 inline uint32_t getOrderHashIdx(OrderIdT orderId, uint64_t MAX_ORDERS, uint ORDERS_HASH_MASK) {
   if ((orderId & ORDERS_HASH_MASK) > MAX_ORDERS) 
-    on_error("orderId (%jx) & ORDERS_HASH_MASK (%x) (=%jx)  > MAX_ORDERS(%jx)",
-	      
-	      orderId,
-	      ORDERS_HASH_MASK,
-	      orderId & ORDERS_HASH_MASK,
-	      MAX_ORDERS
-	      );
+    on_error("orderId (%jx) & ORDERS_HASH_MASK (%x) (=%jx)  > MAX_ORDERS(%jx)",	      
+	     (uint64_t)orderId,
+	     ORDERS_HASH_MASK,
+	     (uint64_t)orderId & ORDERS_HASH_MASK,
+	     MAX_ORDERS
+	     );
   return orderId & ORDERS_HASH_MASK;
 }
 /* ####################################################### */
@@ -86,7 +85,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
       while (sp->next != NULL) sp = (FhSecurity*)sp->next;
       sp->next = s;
     }
-    numSecurities++;
+    //    numSecurities++;
     return s;
   }
 

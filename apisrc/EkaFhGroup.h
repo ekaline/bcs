@@ -126,6 +126,8 @@ class EkaFhGroup {
   pthread_t             snapshot_thread;
   pthread_t             retransmit_thread;
 
+  uint                  numSecurities = 0;
+
 
   fh_q*                 q                  = NULL;
 
@@ -141,6 +143,9 @@ class EkaFhGroup {
   //  EkaFhBook*            book               = NULL;
 
   EkaDev*               dev                = NULL;
+
+  FILE*            parser_log = NULL; // used with PRINT_PARSED_MESSAGES define
+
  private:
 
 };
