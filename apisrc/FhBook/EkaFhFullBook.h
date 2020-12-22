@@ -103,7 +103,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
 
 	return o;
       }
-      o = (FhOrder*)o->next;
+      o = o->next;
     }
     return NULL;
   }
@@ -124,8 +124,9 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     o->next    = NULL;
 
     o->plevel = findOrAddPlevel(s,_price,_side);
-    ((FhPlevel*)o->plevel)->addSize(o->type,o->size);
-    ((FhPlevel*)o->plevel)->cnt++;
+    o->plevel->s = s;
+    o->plevel->addSize(o->type,o->size);
+    o->plevel->cnt++;
     addOrder2Hash (o);
     return (FhPlevel*)o->plevel;
   }
@@ -151,7 +152,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   /* ####################################################### */
   int deleteOrder(FhOrder* o) {
     if (o == NULL) on_error("o == NULL for GR%u",grId);
-    FhPlevel* p = (FhPlevel*)o->plevel;
+    FhPlevel* p = o->plevel;
     if (p == NULL) on_error("p == NULL");
   
     p->deductSize(o->type,o->size);
@@ -181,8 +182,8 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
 		       uint gapNum) {
     if (s == NULL) on_error("s == NULL");
 
-    FhPlevel* topBid = (FhPlevel*) s->bid;
-    FhPlevel* topAsk = (FhPlevel*) s->ask;
+    FhPlevel* topBid = s->bid;
+    FhPlevel* topAsk = s->ask;
 
     EfhQuoteMsg msg = {};
     msg.header.msgType        = EfhMsgType::kQuote;
