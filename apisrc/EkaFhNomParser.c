@@ -212,9 +212,12 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
     book->setSecurityPrevState(s);
 
-    if (book->reduceOrderSize(o,delta_size) == 0) {
+    if (o->size < delta_size) {
+      on_error("o->size %u < delta_size %u",o->size,delta_size);
+    } else if (o->size == delta_size) {
       book->deleteOrder(o);
     } else {
+      book->reduceOrderSize(o,delta_size);
       p->deductSize (o->type,delta_size);
     }
     break;
@@ -233,11 +236,14 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
     book->setSecurityPrevState(s);
 
-    if (book->reduceOrderSize(o,delta_size) == 0) {
+    if (o->size < delta_size) {
+      on_error("o->size %u < delta_size %u",o->size,delta_size);
+    } else if (o->size == delta_size) {
       book->deleteOrder(o);
     } else {
+      book->reduceOrderSize(o,delta_size);
       p->deductSize (o->type,delta_size);
-    } 
+    }
     break;
   }
 
@@ -256,11 +262,15 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
     book->setSecurityPrevState(s);
 
-    if (book->reduceOrderSize(o,delta_size) == 0) {
+    if (o->size < delta_size) {
+      on_error("o->size %u < delta_size %u",o->size,delta_size);
+    } else if (o->size == delta_size) {
       book->deleteOrder(o);
     } else {
+      book->reduceOrderSize(o,delta_size);
       p->deductSize (o->type,delta_size);
-    } 
+    }
+
     break;
   }
 //--------------------------------------------------------------
@@ -287,8 +297,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 //--------------------------------------------------------------
   case 'U': { //NOM_SINGLE_SIDE_REPLACE_LONG
     struct itto_message_replace_long *message = (struct itto_message_replace_long *)m;
-    uint64_t old_order_id = be64toh(message->original_reference_delta);
-    uint64_t new_order_id = be64toh(message->new_reference_delta); 
+    OrderIdT old_order_id = be64toh(message->original_reference_delta);
+    OrderIdT new_order_id = be64toh(message->new_reference_delta); 
     PriceT price          = be32toh(message->price) / EFH_PRICE_SCALE;
     SizeT size            = be32toh(message->size);
 
