@@ -65,6 +65,9 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
   while (idx < pktLen) {
     uint     msgLen   = getHsvfMsgLen(&p[idx],pktLen-idx);
     uint64_t sequence = getHsvfMsgSequence(&p[idx]);
+    if (sequence < expected_sequence)
+      EKA_WARN("%s:%u sequence %ju < expected_sequence %ju",
+	       EKA_EXCH_DECODE(exch),id,sequence,expected_sequence);
     
     if (sequence >= expected_sequence) {
       //      EKA_LOG("%ju",sequence);
