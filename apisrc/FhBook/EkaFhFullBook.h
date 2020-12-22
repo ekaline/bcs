@@ -146,6 +146,9 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
       if (p->isEmpty()) deletePlevel(p);
       o->size   = size;
       o->plevel = findOrAddPlevel(s,price,side);
+      o->plevel->s = s;
+      o->plevel->addSize(o->type,o->size);
+      o->plevel->cnt++;
     }
     return 0;
   }
@@ -400,31 +403,30 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     switch (_side) {
     case SideT::BID :
       pTob = (FhPlevel**)&s->bid;
-      s->numBidPlevels++;
       break;
     case SideT::ASK :
       pTob = (FhPlevel**)&s->ask;
-      s->numAskPlevels++;
       break;
     default:
       on_error("Unexpected side = %d",(int)_side);
     }
 
     if (*pTob == NULL || (*pTob)->worsePriceThan(_price))
-      return addPlevelAfterTob(pTob, _price, _side);
+      return addPlevelAfterTob(s, pTob, _price, _side);
 
     for (FhPlevel* p = *pTob; p != NULL; p = p->next) {
       if (p->price == _price) return p;
       if (p->next == NULL || p->next->worsePriceThan(_price))
-	return addPlevelAfterP(p,_price);
+	return addPlevelAfterP(s, p,_price);
     }
     on_error("place to insert Plevel not found");
     return NULL;
   }
   /* ####################################################### */
-  FhPlevel* addPlevelAfterTob(FhPlevel** pTob, 
-				 PriceT     _price, 
-				 SideT      _side) {
+  FhPlevel* addPlevelAfterTob(FhSecurity* s,
+			      FhPlevel**  pTob, 
+			      PriceT     _price, 
+			      SideT      _side) {
     FhPlevel* newP = getNewPlevel();
     if (newP == NULL) on_error("newP == NULL");
     newP->price = _price;
@@ -438,11 +440,22 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     if (tob != NULL) tob->prev = newP;
     if (tob != NULL) tob->top  = false;
     *pTob = newP;
-
+    switch (newP->side) {
+    case SideT::BID :
+      s->numBidPlevels++;
+      break;
+    case SideT::ASK :
+      s->numAskPlevels++;
+      break;
+    default:
+      on_error("Unexpected side = %d",(int)newP->side);
+    }
     return newP;
   }
   /* ####################################################### */
-  FhPlevel*    addPlevelAfterP  (FhPlevel* p,     PriceT _price) {
+  FhPlevel*    addPlevelAfterP  (FhSecurity* s,
+				 FhPlevel* p,     
+				 PriceT _price) {
     FhPlevel* newP = getNewPlevel();
     if (newP == NULL) on_error("newP == NULL");
     newP->price =_price;
@@ -453,7 +466,16 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     newP->prev = p;
     if (newP->next != NULL) newP->next->prev = newP;
     p->next = newP;
-
+    switch (newP->side) {
+    case SideT::BID :
+      s->numBidPlevels++;
+      break;
+    case SideT::ASK :
+      s->numAskPlevels++;
+      break;
+    default:
+      on_error("Unexpected side = %d",(int)newP->side);
+    }
     return newP;
   }
   /* ####################################################### */

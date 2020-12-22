@@ -207,7 +207,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
 
-    FhPlevel* p = (FhPlevel*)o->plevel;
+    FhPlevel* p = o->plevel;
     s = (FhSecurity*)p->s;
 
     book->setSecurityPrevState(s);
@@ -228,7 +228,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
 
-    FhPlevel* p = (FhPlevel*)o->plevel;
+    FhPlevel* p = o->plevel;
     s = (FhSecurity*)p->s;
 
     book->setSecurityPrevState(s);
@@ -251,7 +251,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     if (o == NULL)  return false;
 
 
-    FhPlevel* p = (FhPlevel*)o->plevel;
+    FhPlevel* p = o->plevel;
     s = (FhSecurity*)p->s;
 
     book->setSecurityPrevState(s);
@@ -351,12 +351,12 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     FhOrder* ask_o = book->findOrder(old_ask_order_id);
 
     if (bid_o != NULL) {
-      FhPlevel* bid_p = (FhPlevel*)bid_o->plevel;
+      FhPlevel* bid_p = bid_o->plevel;
       s = (FhSecurity*)bid_p->s;
     }
 
     if (ask_o != NULL) {
-      FhPlevel* ask_p = (FhPlevel*)ask_o->plevel;
+      FhPlevel* ask_p = ask_o->plevel;
       s = (FhSecurity*)ask_p->s;
     }
 
@@ -395,12 +395,12 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     FhOrder* ask_o = book->findOrder(old_ask_order_id);
 
     if (bid_o != NULL) {
-      FhPlevel* bid_p = (FhPlevel*)bid_o->plevel;
+      FhPlevel* bid_p = bid_o->plevel;
       s = (FhSecurity*)bid_p->s;
     }
 
     if (ask_o != NULL) {
-      FhPlevel* ask_p = (FhPlevel*)ask_o->plevel;
+      FhPlevel* ask_p = ask_o->plevel;
       s = (FhSecurity*)ask_p->s;
     }
 
@@ -432,11 +432,11 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     FhOrder* ask_o = book->findOrder(ask_order_id);
 
     if (bid_o != NULL) {
-      FhPlevel* p = (FhPlevel*)bid_o->plevel;
+      FhPlevel* p = bid_o->plevel;
       s = (FhSecurity*)p->s;
     }
     if (ask_o != NULL) {
-      FhPlevel* p = (FhPlevel*)ask_o->plevel;
+      FhPlevel* p = ask_o->plevel;
       s = (FhSecurity*)p->s;
     }
 

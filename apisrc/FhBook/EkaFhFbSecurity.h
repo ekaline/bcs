@@ -22,8 +22,13 @@ class FhPlevel,
 		    uint64_t        _opaqueAttrA,
 		    uint64_t        _opaqueAttrB) : 
     EkaFhSecurity(_type,_userData,_opaqueAttrA,_opaqueAttrB) {
-      secId = _secId;
+      secId         = _secId;
+      numBidPlevels = 0;
+      numAskPlevels = 0;
+      bid           = NULL;
+      ask           = NULL;
     }
+
 /* /\* --------------------------------------------------------------- *\/ */
 /*     uint64_t  getTopPrice(SideT side) {  */
 /*       switch (side) { */
