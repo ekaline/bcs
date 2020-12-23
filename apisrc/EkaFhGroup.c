@@ -97,7 +97,8 @@ int EkaFhGroup::init (EfhCtx* _pEfhCtx,
   id       = gr_id;
   state    = GrpState::INIT;
 
-  if (dev->print_parsed_messages) {
+  //  if (fh->print_parsed_messages) {
+  if (1) {
     std::string parsedMsgFileName = std::string(EKA_EXCH_DECODE(exch)) + std::to_string(id) + std::string("_PARSED_MESSAGES.txt");
     if((parser_log = fopen(parsedMsgFileName.c_str(),"w")) == NULL) on_error ("Error %s",parsedMsgFileName.c_str());
     EKA_LOG("%s:%u created file %s",EKA_EXCH_DECODE(exch),id,parsedMsgFileName.c_str());

@@ -362,7 +362,7 @@ int main(int argc, char *argv[]) {
   bool use_underlyings_filename = false;
   bool print_parsed_messages = false;
 
-  while((opt = getopt(argc, argv, ":u:f:g:AhatNPGImc")) != -1) {  
+  while((opt = getopt(argc, argv, ":u:f:g:AhatNPGImcp")) != -1) {  
     switch(opt) {  
       case 'A':  
 	printf ("Use A-side feeds\n");
@@ -927,6 +927,13 @@ int main(int argc, char *argv[]) {
       printf("##########################################################\n");
       efhGetDefs(pEfhCtx[i], &runCtx[i], &t[i].pEkaGroup[j]);
       //##########################################################
+    }
+#endif
+
+#if 0
+    for (auto i = 0; i < 4; i++) {
+      EkaGroup g = {EkaSource::kNOM_ITTO, (EkaLSI)i};      
+      efhSubscribeStatic(*pEfhCtx,&g, 4657, EfhSecurityType::kOpt,0,0,0);
     }
 #endif
 

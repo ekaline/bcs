@@ -3,6 +3,15 @@
 
 #include "EkaFhTypes.h"
 
+/* ####################################################### */
+inline std::string side2str(SideT side) {
+  switch (side) {
+  case SideT::BID : return std::string("BID");
+  case SideT::ASK : return std::string("ASK");
+  default: 
+    return std::string("UNEXPECTED SIDE: ") + std::to_string((int)side);
+  }
+}
 // ##########################################################
 
 template <class PriceT, class SizeT>
@@ -10,7 +19,7 @@ template <class PriceT, class SizeT>
  public:
   //----------------------------------------------------------
   inline bool isEmpty() {
-    return cnt == 1;
+    return cnt == 0;
   }
   //----------------------------------------------------------
 
@@ -24,16 +33,19 @@ template <class PriceT, class SizeT>
   }
 
   //----------------------------------------------------------
-  inline SizeT addSize (FhOrderType t, SizeT deltaSize) {
+  inline int addSize (FhOrderType t, SizeT deltaSize) {
     SizeT* pLevelSize = getSizePtr(t);
     *pLevelSize += deltaSize;
     return *pLevelSize;
   }
   //----------------------------------------------------------
-  inline SizeT deductSize (FhOrderType t, SizeT deltaSize) {
+  inline int deductSize (FhOrderType t, SizeT deltaSize) {
     SizeT* pLevelSize = getSizePtr(t);
-    if (*pLevelSize < deltaSize) 
-      on_error("pLevelSize %d < deltaSize %d",(int)*pLevelSize, (int)deltaSize);
+    if (*pLevelSize < deltaSize) {
+      print("pLevelSize error");
+      test_error("%s pLevelSize %d < deltaSize %d",
+		 side2str(side).c_str(),(int)*pLevelSize, (int)deltaSize);
+    }
     *pLevelSize -= deltaSize;
     return *pLevelSize;
   }
@@ -52,6 +64,21 @@ template <class PriceT, class SizeT>
   inline uint32_t get_total_aon_size() {
     return cust_aon_size + bd_aon_size;
   }
+  //----------------------------------------------------------
+  int print (const char* msg) {
+    TEST_LOG("%32s: %s, price %6ju, cnt = %u,CUSTOMER = %3ju, BD = %3ju, CUSTOMER_AON = %3ju, BD_AON = %3ju, OTHER = %3ju",
+	     msg,  
+	     side2str(side).c_str(),
+	     (uint64_t)price,
+	     cnt,
+	     (uint64_t)cust_size,
+	     (uint64_t)bd_size,
+	     (uint64_t)cust_aon_size,
+	     (uint64_t)bd_aon_size,
+	     (uint64_t)other_size);
+    return 0;
+  }
+
   //----------------------------------------------------------
   inline void reset() {
     s        = NULL;

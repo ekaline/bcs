@@ -86,7 +86,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     SecurityIdT security_id = be32toh(message->option_id);
     s = book->findSecurity(security_id);
     if (s == NULL) {
-#ifdef FH_LAB
+#ifdef FH_SUBSCRIBE_ALL
       s = book->subscribeSecurity(security_id,(EfhSecurityType)1,(EfhSecUserData)0,0,0);
 #else
       return false;
@@ -107,7 +107,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     SecurityIdT security_id = be32toh(message->option_id);
     s = book->findSecurity(security_id);
     if (s == NULL) {
-#ifdef FH_LAB
+#ifdef FH_SUBSCRIBE_ALL
       s = book->subscribeSecurity(security_id,(EfhSecurityType)1,(EfhSecUserData)0,0,0);
 #else
       return false;
@@ -159,7 +159,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     SecurityIdT security_id  = be32toh(message->option_id);
     s = book->findSecurity(security_id);
     if (s == NULL) {
-#ifdef FH_LAB
+#ifdef FH_SUBSCRIBE_ALL
       s = book->subscribeSecurity(security_id,(EfhSecurityType)1,(EfhSecUserData)0,0,0);
 #else
       return false;
@@ -174,8 +174,14 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     SizeT    ask_size     = be32toh(message->ask_size);
 
     book->setSecurityPrevState(s);
+    /* FhOrder* bid_o =  */
     book->addOrder(s,bid_order_id,FhOrderType::BD,bid_price,bid_size,SideT::BID);
+    /* bid_o->plevel->print("NOM_ADD_QUOTE_LONG BID"); */
+
+    /* FhOrder* ask_o =  */
     book->addOrder(s,ask_order_id,FhOrderType::BD,ask_price,ask_size,SideT::ASK);
+    /* ask_o->plevel->print("NOM_ADD_QUOTE_LONG ASK"); */
+
     break;
   }
     //--------------------------------------------------------------
@@ -185,7 +191,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     SecurityIdT security_id = be32toh(message->option_id);
     s = book->findSecurity(security_id);
     if (s == NULL) {
-#ifdef FH_LAB
+#ifdef FH_SUBSCRIBE_ALL
       s = book->subscribeSecurity(security_id,(EfhSecurityType)1,(EfhSecUserData)0,0,0);
 #else
       return false;
@@ -199,8 +205,15 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     SizeT    ask_size     =  be16toh(message->ask_size);
 
     book->setSecurityPrevState(s);
+
+    /* FhOrder* bid_o =  */
     book->addOrder(s,bid_order_id,FhOrderType::BD,bid_price,bid_size,SideT::BID);
+    /* bid_o->plevel->print("NOM_ADD_QUOTE_SHORT BID"); */
+
+    /* FhOrder* ask_o =  */
     book->addOrder(s,ask_order_id,FhOrderType::BD,ask_price,ask_size,SideT::ASK);    
+    /* ask_o->plevel->print("NOM_ADD_QUOTE_SHORT ASK"); */
+
     break;
   }
     //--------------------------------------------------------------
@@ -294,6 +307,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
     FhOrderType t    = o->type;
     SideT       side = o->plevel->side;
+
     book->deleteOrder(o);
     book->addOrder(s,new_order_id,t,price,size,side);
 
@@ -315,9 +329,9 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
     FhOrderType t    = o->type;
     SideT       side = o->plevel->side;
+
     book->deleteOrder(o);
     book->addOrder(s,new_order_id,t,price,size,side);
-
     break;
   }
 //--------------------------------------------------------------
@@ -345,8 +359,10 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
 
     s = (FhSecurity*)o->plevel->s;
     book->setSecurityPrevState(s);
-
-    book->modifyOrder (o,price,size); // modify order for price and size
+    if (book->modifyOrder (o,price,size) < 0) { // modify order for price and size
+      EKA_WARN("modifyOrder failed at NOM_SINGLE_SIDE_UPDATE");
+      return true;
+    }
     break;
   }
 //--------------------------------------------------------------
@@ -459,8 +475,19 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
     if (s == NULL) on_error ("s = NULL");
 
     book->setSecurityPrevState(s);
-    if (bid_o != NULL) book->deleteOrder(bid_o);
-    if (ask_o != NULL) book->deleteOrder(ask_o);
+    if (bid_o != NULL) {
+      if (book->deleteOrder(bid_o) < 0) {
+	EKA_WARN("NOM_QUOTE_DELETE failed for OrderId %ju",bid_order_id);
+	return true;
+      }
+    }
+    if (ask_o != NULL) {
+      if (book->deleteOrder(ask_o) < 0) {
+	eka_print_nom_msg(stderr,(uint8_t*)m,id,sequence); fflush(stderr);
+	EKA_WARN("NOM_QUOTE_DELETE failed for OrderId %ju",ask_order_id);
+	return true;
+      }
+    }
     break;
   }
 //--------------------------------------------------------------
@@ -507,7 +534,10 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t 
   s->bid_ts = msg_timestamp;
   s->ask_ts = msg_timestamp;
 
-  if (fh->print_parsed_messages) eka_print_nom_msg(parser_log,(uint8_t*)m,id,sequence);
+  //  if (fh->print_parsed_messages) eka_print_nom_msg(parser_log,(uint8_t*)m,id,sequence);
+  //  eka_print_nom_msg(stderr,(uint8_t*)m,id,sequence); fflush(stderr);
+  //  book->printAll();
+  //  book->printSecurity(s);
 
  /* ##################################################################### */
 
