@@ -521,7 +521,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
       newP->next->prev = newP;
       newP->next->top  = false;
     }
-    printPlevel(newP,"addPlevelAfterTob:");
+    //    printPlevel(newP,"addPlevelAfterTob:");
     return newP;
   }
   /* ####################################################### */
@@ -548,7 +548,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     default:
       on_error("Unexpected side = %d",(int)newP->side);
     }
-    printPlevel(newP,"addPlevelAfterP:");
+    //    printPlevel(newP,"addPlevelAfterP:");
 
     return newP;
   }
