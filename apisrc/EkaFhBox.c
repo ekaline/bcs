@@ -50,10 +50,14 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     uint8_t        gr_id = 0xFF;
     uint16_t       pktLen = 0;
     uint64_t       sequence = 0;
-    uint8_t        buf[1536] = {};
+    static const uint  bufSize = 1200;
+    uint8_t        buf[bufSize] = {};
     const uint8_t* rawPkt = getUdpPkt(runGr,&pktLen,&sequence,&gr_id);
     if (rawPkt == NULL) continue;
-   
+
+    if (pktLen > bufSize) on_error("%u pktLen > %ju bufSize",
+				   pktLen,(uint64_t)bufSize);
+
     memcpy(buf,rawPkt,pktLen);
     const uint8_t* pkt = buf;
 

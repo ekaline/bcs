@@ -63,8 +63,8 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
   lastPktLen    = pktLen;
   lastPktMsgCnt = 0;
 
-  uint64_t initial_expected_sequence = expected_sequence;
-  uint64_t first_sequence = getHsvfMsgSequence(&p[idx]);
+  /* uint64_t initial_expected_sequence = expected_sequence; */
+  /* uint64_t first_sequence = getHsvfMsgSequence(&p[idx]); */
 
 
   while (idx < pktLen) {
@@ -76,8 +76,8 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
       if (parseMsg(pEfhRunCtx,&p[idx+1],sequence,EkaFhMode::MCAST)) return true;
       expected_sequence = sequence + 1;
     } else {
-      EKA_WARN("%s:%u sequence %ju < expected_sequence %ju",
-	       EKA_EXCH_DECODE(exch),id,sequence,expected_sequence);
+      /* EKA_WARN("%s:%u sequence %ju < expected_sequence %ju", */
+      /* 	       EKA_EXCH_DECODE(exch),id,sequence,expected_sequence); */
     }
 
     idx += msgLen;
@@ -86,9 +86,9 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
     lastPktMsgCnt++;
   }
 
-  if (expected_sequence - initial_expected_sequence != lastPktMsgCnt)
-    EKA_WARN("first_sequence = %ju, expected_sequence %ju - initial_expected_sequence %ju != lastPktMsgCnt %ju",
-	     first_sequence,expected_sequence,initial_expected_sequence,lastPktMsgCnt);
+  /* if (expected_sequence - initial_expected_sequence != lastPktMsgCnt) */
+  /*   EKA_WARN("first_sequence = %ju, expected_sequence %ju - initial_expected_sequence %ju != lastPktMsgCnt %ju", */
+  /* 	     first_sequence,expected_sequence,initial_expected_sequence,lastPktMsgCnt); */
 
   return false;
 }
