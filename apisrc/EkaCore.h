@@ -15,7 +15,7 @@ class EkaUdpSess;
 
 class EkaCore {
  public:
-  EkaCore(EkaDev* pEkaDev, uint8_t lane, uint32_t ip, uint8_t* mac);
+  EkaCore(EkaDev* pEkaDev, uint8_t lane, uint32_t ip, uint8_t* mac, bool epmEnabled);
 
   ~EkaCore();
 

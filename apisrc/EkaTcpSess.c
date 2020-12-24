@@ -66,16 +66,20 @@ EkaTcpSess::EkaTcpSess(EkaDev* pEkaDev, EkaCore* _parent, uint8_t _coreId, uint8
   memcpy(macSa,_macSa,6);
   memcpy(macDa,_macDa,6);
 
-  if ((sock = lwip_socket(AF_INET, SOCK_STREAM, 0)) < 0) 
-    on_error ("error creating TCP socket");
+  if (dev->epmEnabled) {
+    if ((sock = lwip_socket(AF_INET, SOCK_STREAM, 0)) < 0) 
+      on_error ("error creating TCP socket");
 
-  if (sessId == CONTROL_SESS_ID) {
-    EKA_LOG("Established TCP Session %u for Control Traffic, coreId=%u",sessId,coreId);
+    if (sessId == CONTROL_SESS_ID) {
+      EKA_LOG("Established TCP Session %u for Control Traffic, coreId=%u",sessId,coreId);
+    } else {
+      EKA_LOG("sock=%d for: %s:%u --> %s:%u, %s -> %s",sock,
+	      EKA_IP2STR(srcIp),srcPort,
+	      EKA_IP2STR(dstIp),dstPort,
+	      EKA_MAC2STR(macSa),EKA_MAC2STR(macDa));
+    }
   } else {
-    EKA_LOG("sock=%d for: %s:%u --> %s:%u, %s -> %s",sock,
-	    EKA_IP2STR(srcIp),srcPort,
-	    EKA_IP2STR(dstIp),dstPort,
-	    EKA_MAC2STR(macSa),EKA_MAC2STR(macDa));
+    EKA_LOG("FPGA created IGMP-ONLY network channel");
   }
 
 /* -------------------------------------------- */

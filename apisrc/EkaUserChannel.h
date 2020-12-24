@@ -32,17 +32,28 @@ class EkaUserChannel {
     packetBytesTotal = 0;
 
     ChannelId = SN_AllocateUserLogicChannel(dev_id,(int16_t)type, NULL);
-    if (ChannelId == NULL) on_error("Cannot open User channel for %s",USR_CH_DECODE(type));
+
+    //    if (ChannelId == NULL) on_error("Cannot open User channel for %s",USR_CH_DECODE(type));
+    if (ChannelId == NULL) {
+      EKA_LOG("%s Channel is already acquired by other App instance",USR_CH_DECODE(type));
+      return;
+    }
+
     EKA_LOG("SN_AllocateUserLogicChannel: OK for %s (=%u)",USR_CH_DECODE(type),(int16_t)type);
 
-    if ((pPreviousUdpPacket = SN_GetNextPacket(ChannelId, NULL, SN_TIMEOUT_NONE)) != NULL) on_error("Packet is arriving on User channel before any packet was sent");
+    if ((pPreviousUdpPacket = SN_GetNextPacket(ChannelId, NULL, SN_TIMEOUT_NONE)) != NULL) 
+      on_error("Packet is arriving on User channel before any packet was sent");
     pIncomingUdpPacket = NULL;
   }
 
+  bool isOpen() {
+    EKA_LOG("%s is %s",USR_CH_DECODE(type),ChannelId == NULL ? "CLOSED" : "OPEN");
+    return (ChannelId != NULL);
+  }
 
   ~EkaUserChannel();
 
-  bool              hasData() {
+  bool  hasData() {
     pIncomingUdpPacket = SN_GetNextPacket(ChannelId, pPreviousUdpPacket, SN_TIMEOUT_NONE);
     return  pIncomingUdpPacket == NULL ? false : true;
   }

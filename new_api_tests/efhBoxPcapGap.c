@@ -223,14 +223,59 @@ int findGrp(uint32_t ip, uint16_t port) {
   return -1;
 }
 
+//###################################################
+void printUsage(char* cmd) {
+  printf("USAGE: %s -f [pcapFile]\n",cmd);
+  printf("          \t\t\t\t-p     -- printAll\n");
+  printf("          \t\t\t\t-d [number of Pkt to dump]\n");
+}
+//###################################################
+
+static bool     printAll = false;
+static uint64_t pkt2dump = -1;
+static char     pcapFile[256] = {};
+
+//###################################################
+
+static int getAttr(int argc, char *argv[]) {
+  int opt; 
+  while((opt = getopt(argc, argv, ":f:d:ph")) != -1) {  
+    switch(opt) {  
+      case 'f':
+	strcpy(pcapFile,optarg);
+	printf("pcapFile = %s\n", pcapFile);  
+	break;  
+      case 'p':  
+	printAll = true;
+	printf("printAll\n");
+	break;  
+      case 'd':  
+	pkt2dump = atoi(optarg);
+	printf("pkt2dump = %ju\n",pkt2dump);  
+	break;  
+      case 'h':  
+	printUsage(argv[0]);
+	exit (1);
+	break;  
+      case '?':  
+	printf("unknown option: %c\n", optopt); 
+      break;  
+      }  
+  }  
+  return 0;
+}
+//###################################################
+
 int main(int argc, char *argv[]) {
   char buf[1600] = {};
   FILE *pcap_file;
+  getAttr(argc,argv);
 
-  bool printAll = argc > 2;
-  printf ("argc = %d\n",argc);
-
-  if ((pcap_file = fopen(argv[1], "rb")) == NULL) on_error("Failed to open dump file %s",argv[1]);
+  if ((pcap_file = fopen(pcapFile, "rb")) == NULL) {
+    printf("Failed to open dump file %s\n",pcapFile);
+    printUsage(argv[0]);
+    exit(1);
+  }
   if (fread(buf,sizeof(pcap_file_hdr),1,pcap_file) != 1) 
     on_error ("Failed to read pcap_file_hdr from the pcap file");
 
@@ -259,6 +304,9 @@ int main(int argc, char *argv[]) {
 
 
     pos += sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr);
+    if (pktNum == pkt2dump) {
+      hexDump("pkt2dump",pkt,pktLen);
+    }
     if (printAll) printf ("\n--------------------%d, %s:%u Pkt %ju\n",gr,EKA_IP2STR(group[gr].ip),group[gr].port,pktNum);
     //###############################################
     while (pos < (int)pktLen) {

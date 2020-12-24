@@ -49,11 +49,24 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     uint8_t        gr_id = 0xFF;
     uint16_t       pktLen = 0;
     uint64_t       sequence = 0;
-    const uint8_t* pkt = getUdpPkt(runGr,&pktLen,&sequence,&gr_id);
-    if (pkt == NULL) continue;
-   
+    static const uint  bufSize = 1200;
+    uint8_t        buf[bufSize] = {};
+    const uint8_t* rawPkt = getUdpPkt(runGr,&pktLen,&sequence,&gr_id);
+    if (rawPkt == NULL) continue;
+
+    if (pktLen > bufSize) on_error("%u pktLen > %ju bufSize",
+				   pktLen,(uint64_t)bufSize);
+
+    memcpy(buf,rawPkt,pktLen);
+    const uint8_t* pkt = buf;
+
     EkaFhBoxGr* gr = (EkaFhBoxGr*)b_gr[gr_id];
     if (gr == NULL) on_error("gr == NULL");
+
+#ifdef FH_LAB
+    gr->state = EkaFhGroup::GrpState::NORMAL;
+#endif
+
     //-----------------------------------------------------------------------------
     switch (gr->state) {
       //-----------------------------------------------------------------------------
@@ -72,6 +85,18 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       if (sequence > gr->expected_sequence) { // GAP
 	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%ju",
 		EKA_EXCH_DECODE(exch),gr_id,gr->expected_sequence,sequence);
+
+	EKA_LOG("%s:%u prev pktLen = %u, prev pkt msgCnt=%u",
+		EKA_EXCH_DECODE(exch),gr_id,gr->lastPktLen,gr->lastPktMsgCnt);
+
+	//	hexDump("Gap Pkt",pkt,pktLen);
+#ifdef FH_LAB
+	gr->sendFeedDown(pEfhRunCtx);
+	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,pktLen);      
+	break;
+#endif
+
+
 	gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
 	gr->gapClosed = false;
 

@@ -16,6 +16,7 @@
 #include "EkaFhRunGroup.h"
 #include "EkaUserReportQ.h"
 #include "EkaHwCaps.h"
+#include "EkaUserChannel.h"
 
 int ekaDefaultLog (void* /*unused*/, const char* function, const char* file, int line, int priority, const char* format, ...);
 OnEfcFireReportCb* efcDefaultOnFireReportCb (EfcCtx* efcCtx, const EfcFireReport* efcFireReport, size_t size);
@@ -116,17 +117,8 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   time_t t;
   srand((unsigned) time(&t));
 
-  ekaInitLwip(this);
+  epmEnabled = openEpm();
 
-  totalNumTcpSess = 0;
-  use_vlan = false;
-
-  fireReportThreadActive = false;
-
-  epm = new EkaEpm(this);
-  if (epm == NULL) on_error("epm == NULL");
-  epm->InitTemplates();
-  epm->DownloadTemplates2HW();
 
   bool noCores = true;
   for (uint c = 0; c < MAX_CORES; c++) {
@@ -138,7 +130,7 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
     if (c == 1) ip = inet_addr("200.0.0.111");
 #endif
     if (ip != 0 && snDev->hasLink(c)) {
-      core[c] = new EkaCore(dev,c,ip,mac);
+      core[c] = new EkaCore(dev,c,ip,mac, epmEnabled);
       EKA_LOG("FETH%u LINK=1 %s %s",c,EKA_IP2STR(ip),EKA_MAC2STR(mac));
       noCores = false;
     } else {
@@ -149,14 +141,17 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 
   if (noCores) on_error("No FPGA ports have Link and/or IP");
 
-  userReportQ = new EkaUserReportQ(this);
-  if (userReportQ == NULL) on_error("Failed on new EkaUserReportQ");
 
-  servThreadActive = false;
-  servThread    = std::thread(ekaServThread,this);
-  servThread.detach();
-  while (!servThreadActive /* || !tcpRxThreadActive */) {}
-  EKA_LOG("Serv thread activated");
+  if (epmEnabled) {
+    userReportQ = new EkaUserReportQ(this);
+    if (userReportQ == NULL) on_error("Failed on new EkaUserReportQ");
+    
+    servThreadActive = false;
+    servThread    = std::thread(ekaServThread,this);
+    servThread.detach();
+    while (!servThreadActive /* || !tcpRxThreadActive */) {}
+    EKA_LOG("Serv thread activated");
+  }
 
 /* -------------------------------------------- */
 
@@ -176,6 +171,7 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   pEfcRunCtx->onEfcFireReportCb      = (OnEfcFireReportCb)      efcDefaultOnFireReportCb;
 
   EKA_LOG("EKALINE2 LIB BUILD TIME: %s @ %s",__DATE__,__TIME__);
+  EKA_LOG("EKALINE2 LIB GIT: %s",LIBEKA_GIT_VER);
 
 
   igmp_thread_active = true;
@@ -193,6 +189,30 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   //  eka_write(SCRPAD_SW_VER,EKA_CORRECT_SW_VER | hwEnabledCores);
 
 }
+/* ##################################################################### */
+
+bool EkaDev::openEpm() {
+  epm = new EkaEpm(this);
+  if (epm == NULL) on_error("epm == NULL");
+  epm->InitTemplates();
+  epm->DownloadTemplates2HW();
+
+  epmReport = new EkaUserChannel(dev,snDev->dev_id,EkaUserChannel::TYPE::EPM_REPORT);
+  if (epmReport == NULL) on_error("Failed to open epmReport Channel");
+  lwipPath  = new EkaUserChannel(dev,snDev->dev_id,EkaUserChannel::TYPE::LWIP_PATH);
+  if (lwipPath == NULL) on_error("Failed to open epmReport Channel");
+
+  if (epmReport->isOpen() && lwipPath->isOpen()) {
+    ekaInitLwip(this);
+    return true;
+  } else {
+    epmEnabled = false;
+    EKA_LOG("EPM is disabled for current Application");
+    return false;
+  }
+}
+
+/* ##################################################################### */
 
 static void set_time (EkaDev* dev) { // ignores Application - PCIe - FPGA latency
   struct timespec t;
@@ -205,6 +225,7 @@ static void set_time (EkaDev* dev) { // ignores Application - PCIe - FPGA latenc
   EKA_LOG("setting HW time to %s",t_str);
   return;
 }
+/* ##################################################################### */
 
 int EkaDev::configurePort(const EkaCoreInitCtx* pCoreInit) {
   uint8_t c = pCoreInit->coreId;
@@ -235,6 +256,7 @@ int EkaDev::configurePort(const EkaCoreInitCtx* pCoreInit) {
 uint8_t EkaDev::getNumFh() {
   return numFh;
 }
+/* ##################################################################### */
 
 
 int EkaDev::getHwCaps(hw_capabilities_t* caps) {
@@ -263,6 +285,7 @@ int EkaDev::getHwCaps(hw_capabilities_t* caps) {
 
   return 0;
 }
+/* ##################################################################### */
 
 EkaDev::~EkaDev() {
   TEST_LOG("shutting down...");
@@ -309,6 +332,7 @@ EkaDev::~EkaDev() {
   //  delete snDev;
 
 }
+/* ##################################################################### */
 
 EkaTcpSess* EkaDev::findTcpSess(uint32_t ipSrc, uint16_t udpSrc, uint32_t ipDst, uint16_t udpDst) {
   for (uint c = 0; c < MAX_CORES; c++) {
@@ -318,6 +342,7 @@ EkaTcpSess* EkaDev::findTcpSess(uint32_t ipSrc, uint16_t udpSrc, uint32_t ipDst,
   }
   return NULL;
 }
+/* ##################################################################### */
 
 EkaTcpSess* EkaDev::findTcpSess(int sock) {
   for (uint c = 0; c < MAX_CORES; c++) {
@@ -327,11 +352,13 @@ EkaTcpSess* EkaDev::findTcpSess(int sock) {
   }
   return NULL;
 }
+/* ##################################################################### */
 
 
 EkaTcpSess* EkaDev::getControlTcpSess(uint8_t coreId) {
   return core[coreId]->tcpSess[MAX_SESS_PER_CORE];
 }
+/* ##################################################################### */
 
 uint8_t EkaDev::findCoreByMacSa(const uint8_t* macSa) {
   for (uint8_t c = 0; c < MAX_CORES; c++) {
@@ -340,14 +367,17 @@ uint8_t EkaDev::findCoreByMacSa(const uint8_t* macSa) {
   }
   return 65; // NO CORE FOUND
 }
+/* ##################################################################### */
 
 void     EkaDev::eka_write(uint64_t addr, uint64_t val) { 
   snDev->write(addr, val); 
 }
+/* ##################################################################### */
 
 uint64_t EkaDev::eka_read(uint64_t addr) { 
   return snDev->read(addr); 
 }
+/* ##################################################################### */
 
 
 int EkaDev::clearHw() {

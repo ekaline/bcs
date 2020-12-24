@@ -297,6 +297,11 @@ EkaCoreId excGetCoreId( ExcConnHandle hConn ) {
  */  
 ExcSocketHandle excSocket( EkaDev* dev, EkaCoreId coreId , int domain, int type, int protocol ) {
   assert (dev != NULL);
+
+  if (! dev->epmEnabled) {
+    EKA_WARN("FPGA TCP is disabled for this Application instance");
+    return -1;
+  }
   // int domain, int type, int protocol parameters are ignored
   // always used: socket(AF_INET, SOCK_STREAM, 0)
 
@@ -311,6 +316,10 @@ ExcSocketHandle excSocket( EkaDev* dev, EkaCoreId coreId , int domain, int type,
  */
 ExcConnHandle excConnect( EkaDev* dev, ExcSocketHandle hSocket, const struct sockaddr *dst, socklen_t addrlen ) {
   assert (dev != NULL);
+
+  if (! dev->epmEnabled) {
+    on_error("FPGA TCP is disabled for this Application instance");
+  }
 
   EkaTcpSess* sess = dev->findTcpSess(hSocket);
   if (sess == NULL) {
@@ -361,7 +370,9 @@ ExcConnHandle excReconnect( EkaDev* pEkaDev, ExcConnHandle hConn ) {
  */
 ssize_t excSend( EkaDev* dev, ExcConnHandle hConn, const void* pBuffer, size_t size ) {
   assert (dev != NULL);
-
+  if (! dev->epmEnabled) {
+    on_error("FPGA TCP is disabled for this Application instance");
+  }
   uint coreId = excGetCoreId(hConn);
   if (dev->core[coreId] == NULL) {
     EKA_WARN("Core %u of hConn %u is not connected",coreId,hConn);
@@ -385,7 +396,9 @@ ssize_t excSend( EkaDev* dev, ExcConnHandle hConn, const void* pBuffer, size_t s
  */
 ssize_t excRecv( EkaDev* dev, ExcConnHandle hConn, void *pBuffer, size_t size ) {
   assert (dev != NULL);
-
+  if (! dev->epmEnabled) {
+    on_error("FPGA TCP is disabled for this Application instance");
+  }
   uint coreId = excGetCoreId(hConn);
   if (dev->core[coreId] == NULL) {
     EKA_WARN("Core %u of hConn %u is not connected",coreId,hConn);
@@ -407,7 +420,9 @@ ssize_t excRecv( EkaDev* dev, ExcConnHandle hConn, void *pBuffer, size_t size ) 
  */
 int excClose( EkaDev* dev, ExcConnHandle hConn ) {
   assert (dev != NULL);
-
+  if (! dev->epmEnabled) {
+    on_error("FPGA TCP is disabled for this Application instance");
+  }
   uint coreId = excGetCoreId(hConn);
   if (dev->core[coreId] == NULL) {
     EKA_WARN("Core %u of hConn %u is not connected",coreId,hConn);
@@ -432,7 +447,9 @@ int excClose( EkaDev* dev, ExcConnHandle hConn ) {
  */
 int excReadyToRecv( EkaDev* dev, ExcConnHandle hConn ) {
   assert (dev != NULL);
-
+  if (! dev->epmEnabled) {
+    on_error("FPGA TCP is disabled for this Application instance");
+  }
   uint coreId = excGetCoreId(hConn);
   if (dev->core[coreId] == NULL) {
     EKA_WARN("Core %u of hConn %u is not connected",coreId,hConn);

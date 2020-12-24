@@ -67,5 +67,8 @@ class EkaFhBoxGr : public EkaFhGroup{
   uint64_t    txSeqNum = 1;
   char        line[2]             = {};
 
+  uint        lastPktLen    = 0;
+  uint        lastPktMsgCnt = 0;
+
 };
 #endif

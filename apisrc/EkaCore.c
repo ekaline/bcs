@@ -50,7 +50,7 @@ static bool getMacDaFromArp(const char* arpTableFile,uint8_t coreId, uint8_t* ma
 }
 /* ------------------------------------------------------------- */
 
-EkaCore::EkaCore(EkaDev* pEkaDev, uint8_t lane, uint32_t ip, uint8_t* mac) {
+EkaCore::EkaCore(EkaDev* pEkaDev, uint8_t lane, uint32_t ip, uint8_t* mac, bool epmEnabled) {
     dev = pEkaDev;
     coreId = lane;
     memcpy(macSa,mac,6);
@@ -71,14 +71,15 @@ EkaCore::EkaCore(EkaDev* pEkaDev, uint8_t lane, uint32_t ip, uint8_t* mac) {
     for (uint i = 0; i < MAX_SESS_PER_CORE; i++) tcpSess[i] = NULL;
     tcpSessions = 0;
 
-    if (! isTcpCore) return;
-
-    pLwipNetIf = initLwipNetIf(dev,coreId,macSa,macDa,srcIp);
-
-    // Control session for ARPs
+    // Control session for IGMP join/leave
     tcpSess[CONTROL_SESS_ID] = new EkaTcpSess(dev, this, coreId, CONTROL_SESS_ID,
 					      0 /* srcIp */, 0 /* dstIp */, 0 /* dstPort */, 
 					      macSa, macDa);
+
+    if (! isTcpCore || ! epmEnabled) return;
+
+    pLwipNetIf = initLwipNetIf(dev,coreId,macSa,macDa,srcIp);
+
 }
 
 /* ------------------------------------------------------------- */

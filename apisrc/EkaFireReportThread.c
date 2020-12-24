@@ -22,9 +22,9 @@ void ekaFireReportThread(EkaDev* dev) {
 
   while (dev->fireReportThreadActive) {
     /* ----------------------------------------------- */
-    if (dev->snDev->epmReport->hasData()) {
-      const uint8_t* payload = dev->snDev->epmReport->get();
-      uint len = dev->snDev->epmReport->getPayloadSize();
+    if (dev->epmReport->hasData()) {
+      const uint8_t* payload = dev->epmReport->get();
+      uint len = dev->epmReport->getPayloadSize();
 
       switch ((EkaUserChannel::DMA_TYPE)((report_dma_report_t*)payload)->type) {
       case EkaUserChannel::DMA_TYPE::EPM: {
@@ -68,7 +68,7 @@ void ekaFireReportThread(EkaDev* dev) {
       default:
 	on_error("Unexpected DMA type 0x%x",((report_dma_report_t*)payload)->type);
       }
-      dev->snDev->epmReport->next();
+      dev->epmReport->next();
     }
   }
   EKA_LOG("Terminated");

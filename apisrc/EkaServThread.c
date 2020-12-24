@@ -73,9 +73,9 @@ void ekaServThread(EkaDev* dev) {
   while (dev->servThreadActive) {
     /* ----------------------------------------------- */
 
-    if (dev->snDev->lwipPath->hasData()) {
-      const uint8_t* payload = dev->snDev->lwipPath->get();
-      uint len = dev->snDev->lwipPath->getPayloadSize();
+    if (dev->lwipPath->hasData()) {
+      const uint8_t* payload = dev->lwipPath->get();
+      uint len = dev->lwipPath->getPayloadSize();
       //      hexDump("Serv Thread Pkt",payload,len);
 
       EkaUserChannel::DMA_TYPE dmaType = (EkaUserChannel::DMA_TYPE)(*payload);
@@ -96,7 +96,7 @@ void ekaServThread(EkaDev* dev) {
 	  EKA_LOG("User Report # %ju is pushed to Q",feedbackDmaReport->index);
 	  dev->userReportQ->push(payload,len);
 	}
-	dev->snDev->lwipPath->next();
+	dev->lwipPath->next();
       }
 	break;
 	/* ----------------------------------------------- */
@@ -108,7 +108,7 @@ void ekaServThread(EkaDev* dev) {
 
 	uint8_t* data = (uint8_t*)payload + sizeof(tcprx_dma_report_t);
 	ekaProcesTcpRx (dev, data, len - sizeof(tcprx_dma_report_t));
-	dev->snDev->lwipPath->next();
+	dev->lwipPath->next();
       }
 	break;
 	/* ----------------------------------------------- */

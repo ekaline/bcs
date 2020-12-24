@@ -24,6 +24,7 @@ class EkaTcpSess;
 class EkaSnDev;
 class EkaUserReportQ;
 class EkaHwCaps;
+class EkaUserChannel;
 
 class EkaDev {
 
@@ -35,6 +36,7 @@ class EkaDev {
   void     eka_write(uint64_t addr, uint64_t val);
   uint64_t eka_read(uint64_t addr);
 
+  bool        openEpm();
   int         getHwCaps(hw_capabilities_t* caps);
 
   EkaTcpSess* findTcpSess(uint32_t ipSrc, uint16_t udpSrc, uint32_t ipDst, uint16_t udpDst);
@@ -59,6 +61,10 @@ class EkaDev {
 
   EkaDev*                   dev = NULL; // pointer to myself
   EkaSnDev*                 snDev = NULL;
+
+  bool                      epmEnabled = false;
+  EkaUserChannel*           epmReport = NULL;
+  EkaUserChannel*           lwipPath = NULL;
 
   uint8_t                   hwEnabledCores = 0;
   uint8_t                   hwFeedVer = 0;

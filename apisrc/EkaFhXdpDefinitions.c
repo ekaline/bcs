@@ -220,6 +220,8 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
 
       uint8_t AbcGroupID = m->OptionSymbolRoot[0] - 'A';
 
+#if 0
+      // an old assumption about AbcGroupID is WRONG!!!
       if ((int)AbcGroupID != (int)(m->ChannelID - XDP_TOP_FEED_BASE))
 	on_error("m->ChannelID (%u) != AbcGroupID (%u) for OptionSymbolRoot = %s",
 		 m->ChannelID,
@@ -228,7 +230,7 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
 		 );
 
       if (AbcGroupID != gr->id) break;
-
+#endif
       EfhDefinitionMsg msg = {};
       msg.header.msgType        = EfhMsgType::kDefinition;
       msg.header.group.source   = gr->exch;

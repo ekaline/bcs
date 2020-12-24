@@ -60,18 +60,37 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 
   uint8_t* p = (uint8_t*)pkt;
   int idx = 0;
+
+  lastPktLen    = pktLen;
+  lastPktMsgCnt = 0;
+
+  /* uint64_t initial_expected_sequence = expected_sequence; */
+  /* uint64_t first_sequence = getHsvfMsgSequence(&p[idx]); */
+
+
   while (idx < pktLen) {
     uint     msgLen   = getHsvfMsgLen(&p[idx],pktLen-idx);
     uint64_t sequence = getHsvfMsgSequence(&p[idx]);
-    
+
     if (sequence >= expected_sequence) {
+      //      EKA_LOG("%ju",sequence);
       if (parseMsg(pEfhRunCtx,&p[idx+1],sequence,EkaFhMode::MCAST)) return true;
       expected_sequence = sequence + 1;
+    } else {
+      /* EKA_WARN("%s:%u sequence %ju < expected_sequence %ju", */
+      /* 	       EKA_EXCH_DECODE(exch),id,sequence,expected_sequence); */
     }
 
     idx += msgLen;
     idx += trailingZeros(&p[idx],pktLen-idx );
+    
+    lastPktMsgCnt++;
   }
+
+  /* if (expected_sequence - initial_expected_sequence != lastPktMsgCnt) */
+  /*   EKA_WARN("first_sequence = %ju, expected_sequence %ju - initial_expected_sequence %ju != lastPktMsgCnt %ju", */
+  /* 	     first_sequence,expected_sequence,initial_expected_sequence,lastPktMsgCnt); */
+
   return false;
 }
  
