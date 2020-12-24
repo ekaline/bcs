@@ -71,6 +71,7 @@ void ekaFireReportThread(EkaDev* dev) {
       dev->epmReport->next();
     }
   }
+  dev->fireReportThreadTerminated = true;
   EKA_LOG("Terminated");
   return;
 }

@@ -98,9 +98,12 @@ class EkaDev {
 
   volatile bool             servThreadActive = false;
   std::thread               servThread;
+  volatile bool             servThreadTerminated = false;
 
   volatile bool             fireReportThreadActive = false;
   std::thread               fireReportThread;
+  volatile bool             fireReportThreadTerminated = false;
+
 
   volatile bool             exc_inited = false;
   volatile bool             lwip_inited = false;
@@ -109,7 +112,7 @@ class EkaDev {
   volatile bool             efc_fire_report_threadIsUp = false;
   volatile bool             igmp_thread_active = false;
 
-  volatile bool             io_thread_active = false;
+  volatile bool             igmpThreadTerminated = false;
 
   volatile uint8_t          numFh = 0;
 
@@ -294,7 +297,7 @@ inline void hexDump (const char *desc, const void *addr, int len) {
   hexDump(desc,(uint8_t*)addr,len);
 }
 
-inline void testScratchPadAddr(uint64_t addr) {
+inline void checkScratchPadAddr(uint64_t addr) {
   if (addr >= SW_SCRATCHPAD_BASE + SW_SCRATCHPAD_SIZE)
     on_error("Out of Scratchpad address space: %jx > SW_SCRATCHPAD_BASE %jx + SW_SCRATCHPAD_SIZE %jx",
 	     addr,(uint64_t)SW_SCRATCHPAD_BASE,(uint64_t)SW_SCRATCHPAD_SIZE);
@@ -311,7 +314,7 @@ inline void saveMcStat(EkaDev* dev, uint8_t coreId, uint32_t mcast_ip) {
 
   dev->statNumUdpSess[coreId]++;
   uint64_t statNumUdpSessAddr = SCRPAD_CORE_BASE + 8 * coreId;
-  testScratchPadAddr(statNumUdpSessAddr);
+  checkScratchPadAddr(statNumUdpSessAddr);
 
   eka_write(dev,statNumUdpSessAddr,dev->statNumUdpSess[coreId]);
 }

@@ -49,6 +49,8 @@ void* igmp_thread (void* attr) {
     if (! dev->igmp_thread_active) return NULL;
     usleep(1000000);
   }
+  dev->igmpThreadTerminated = true;
+
   EKA_LOG("IGMP thread Terminated. IGMPs left for %u FHs",dev->numFh);
 
   return NULL;
@@ -112,7 +114,7 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   ekaHwCaps->print();
   ekaHwCaps->check();
 
-  eka_write(ENABLE_PORT,0);
+  //  eka_write(ENABLE_PORT,0);
 
   time_t t;
   srand((unsigned) time(&t));
@@ -178,10 +180,6 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   pthread_t igmp_thr;
   dev->createThread("IGMP_THREAD",EkaThreadType::kIGMP,igmp_thread,(void*)dev,createThreadContext,(uintptr_t*)&igmp_thr);
 
-  //  io_thread_active = true;
-  //  pthread_t io_thr;
-  //  dev->createThread("IO_THREAD",EkaThreadType::kPacketIO,io_thread_loop,(void*)dev,createThreadContext,(uintptr_t*)&io_thr);
-
   print_parsed_messages = false;
 
   clearHw();
@@ -199,17 +197,26 @@ bool EkaDev::openEpm() {
 
   epmReport = new EkaUserChannel(dev,snDev->dev_id,EkaUserChannel::TYPE::EPM_REPORT);
   if (epmReport == NULL) on_error("Failed to open epmReport Channel");
-  lwipPath  = new EkaUserChannel(dev,snDev->dev_id,EkaUserChannel::TYPE::LWIP_PATH);
-  if (lwipPath == NULL) on_error("Failed to open epmReport Channel");
 
-  if (epmReport->isOpen() && lwipPath->isOpen()) {
+  if (epmReport->isOpen()) {
+    uint64_t fire_rx_tx_en = eka_read(ENABLE_PORT);
+    fire_rx_tx_en |= (1ULL << 32); //turn off trprx
+    EKA_LOG ("Turning off tcprx = 0x%016jx",fire_rx_tx_en);
+    eka_write(ENABLE_PORT,fire_rx_tx_en);
+
+    lwipPath  = new EkaUserChannel(dev,snDev->dev_id,EkaUserChannel::TYPE::LWIP_PATH);
+    if (lwipPath == NULL) on_error("Failed to open epmReport Channel");
+
+    if (! lwipPath->isOpen()) on_error("lwipPath Channel is Closed");
+
     ekaInitLwip(this);
-    return true;
+    return true;    
   } else {
     epmEnabled = false;
     EKA_LOG("EPM is disabled for current Application");
     return false;
   }
+
 }
 
 /* ##################################################################### */
@@ -291,11 +298,19 @@ EkaDev::~EkaDev() {
   TEST_LOG("shutting down...");
 
   igmp_thread_active = false;
-  io_thread_active = false;
+
   exc_active = false;
   servThreadActive = false;
   fireReportThreadActive = false;
-  sleep(1);
+
+  EKA_LOG("Waiting for servThreadTerminated...");
+  while (! servThreadTerminated) { sleep(0); }
+
+  EKA_LOG("Waiting for fireReportThreadTerminated...");
+  while (! fireReportThreadTerminated) { sleep(0); }
+
+  EKA_LOG("Waiting for igmpThreadTerminated...");
+  while (! igmpThreadTerminated) { sleep(0); }
 
   TEST_LOG("Closing %u FHs",numFh);
   fflush(stderr);
