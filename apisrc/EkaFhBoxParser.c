@@ -67,12 +67,12 @@ uint getHsvfMsgLen(const uint8_t* pkt, int bytes2run) {
   uint tableLen = hsvfTableLen(msg);
 
   if (tableLen != 0) {
-    if (pkt[tableLen+2] != HsvfEom) {
+    if (pkt[tableLen+1] != HsvfEom) {
       hexDump("Hsvf Msg with wrong hsvfTableLen",pkt,bytes2run);
       on_error("tableLen of \'%c%c\' = %u, but last char = 0x%x",
-	       (char)msg[0],(char)msg[1],tableLen,pkt[tableLen+2]);
+	       (char)msg[0],(char)msg[1],tableLen,pkt[tableLen+1]);
     }
-    return tableLen;
+    return tableLen + 2;
   }
 
 
