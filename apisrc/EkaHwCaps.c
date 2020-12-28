@@ -32,6 +32,9 @@ EkaHwCaps::EkaHwCaps(EkaDev* _dev) {
   SN_CloseDevice(DeviceId);
 
   print2buf();
+  idx += sprintf(&buf[idx],"EKALINE2 LIB GIT:\t\t\t= 0x%s\n",LIBEKA_GIT_VER);
+  idx += sprintf(&buf[idx],"EKALINE2 LIB BUILD TIME:\t\t= %s @ %s\n",__DATE__,__TIME__);
+
   idx += sprintf(&buf[idx],"%s\n",state.eka_version);
   idx += sprintf(&buf[idx],"%s\n",state.eka_release);
   if (idx > bufSize) on_error("idx %u > bufSize %u",idx,bufSize);

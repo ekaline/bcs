@@ -163,7 +163,7 @@ EkaOpResult EkaEpm::initStrategies(EkaCoreId coreId,
     if (strategy[i] != NULL) on_error("strategy[%d] != NULL",i);
     strategy[i] = new EpmStrategy(this,i,currActionIdx, &params[i]);
     if (strategy[i] == NULL) on_error("Fail to create strategy[%d]",i);
-    udpCh[coreId]->igmp_mc_join(0, strategy[i]->ip, be16toh(strategy[i]->port),0);
+    udpCh[coreId]->igmp_mc_join(0, strategy[i]->ip, strategy[i]->port,0);
     currActionIdx += params[i].numActions;
 
     if (currActionIdx > (int)MaxUserActions) 
@@ -393,8 +393,8 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
 					  );
 
   if (action ==NULL) on_error("new EkaEpmAction = NULL");
-  EKA_LOG("%s: idx = %3u, localIdx=%3u, heapOffs = 0x%jx, actionAddr = 0x%jx",
-  	  actionName,actionIdx,localActionIdx,heapOffs,actionAddr);
+  /* EKA_LOG("%s: idx = %3u, localIdx=%3u, heapOffs = 0x%jx, actionAddr = 0x%jx", */
+  /* 	  actionName,actionIdx,localActionIdx,heapOffs,actionAddr); */
 
   createActionMtx.unlock();
   copyBuf2Hw(dev,EpmActionBase, (uint64_t*)&action->hwAction,sizeof(action->hwAction)); //write to scratchpad
