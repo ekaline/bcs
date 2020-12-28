@@ -9,16 +9,17 @@ class EkaEpmRegion {
   EkaEpmRegion(EkaDev* _dev, uint _id, epm_actionid_t _baseActionIdx) {
     dev            = _dev;
     id             = _id;
-    //    baseActionIdx  = id * EkaEpm::ActionsPerRegion;
+
     baseActionIdx  = _baseActionIdx;
     localActionIdx = 0;
+
     baseHeapOffs   = id * EkaEpm::HeapPerRegion;
     heapOffs       = baseHeapOffs;
 
     // writing region's baseActionIdx to FPGA
     eka_write(dev,0x82000 + 8 * id, baseActionIdx);
 
-    EKA_LOG("Created EpmRegion %u: baseActionIdx=%u, baseHeapOffs=%u",
+    EKA_LOG("Created EpmRegion %u: baseActionIdx=%u, baseHeapOffs=%x",
 	    id,baseActionIdx,baseHeapOffs);
   }
 

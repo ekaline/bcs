@@ -130,8 +130,7 @@ typedef union {
     uint32_t tcp_cs;  
     uint16_t action_index;
     uint16_t size     : 11;  
-    uint16_t region   : 3;  
-    uint16_t reserved : 2;
+    uint16_t region   : 5;  
   } __attribute__((packed)) str;
 } __attribute__((packed)) epm_trig_desc_t;
 

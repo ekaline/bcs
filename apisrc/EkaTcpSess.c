@@ -71,7 +71,7 @@ EkaTcpSess::EkaTcpSess(EkaDev* pEkaDev, EkaCore* _parent, uint8_t _coreId, uint8
       on_error ("error creating TCP socket");
 
     if (sessId == CONTROL_SESS_ID) {
-      EKA_LOG("Established TCP Session %u for Control Traffic, coreId=%u",sessId,coreId);
+      EKA_LOG("Established TCP Session %u for Control Traffic, coreId=%u, EpmRegion = %u",sessId,coreId,EkaEpm::ServiceRegion);
     } else {
       EKA_LOG("sock=%d for: %s:%u --> %s:%u, %s -> %s",sock,
 	      EKA_IP2STR(srcIp),srcPort,
@@ -327,7 +327,7 @@ int EkaTcpSess::sendFullPkt(void *buf, int len) {
     on_error("Size (=%d) > MAX_PKT_SIZE (%d)",(int)len,MAX_PKT_SIZE);
 
   /* hexDump("sendFullPkt",buf,len); */
-  /* fullPktAction->print(); */
+  /* fullPktAction->print("from sendFullPkt:"); */
 
   fullPktAction->setFullPkt(/* thrId, */buf,(uint)len);
   fullPktAction->send();

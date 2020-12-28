@@ -29,6 +29,7 @@ class EkaHwCaps {
     uint16_t data_template_total_bytes;
     uint32_t heap_total_bytes;
     uint8_t max_threads;
+    uint16_t numof_regions;
   } __attribute__((packed));
 
   struct hw_core_capabilities_t {
@@ -59,17 +60,20 @@ class EkaHwCaps {
   EkaHwCaps(EkaDev* _dev);
   void print();
   void printStdout();
-  void printDriverVer();
 
   bool check();
 
   hw_capabilities_t hwCaps = {};
 
  private:
+  void print2buf();
+
   EkaDev* dev = NULL;
 
-  char    snDriverBuildTime[256] = {};
-  char    snDriverEkaRelease[512] = {};
+  static const int bufSize = 10000;
+
+  uint idx = 0;
+  char buf[bufSize] = {};
 };
 
 #endif
