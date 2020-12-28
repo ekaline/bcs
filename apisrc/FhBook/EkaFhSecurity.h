@@ -18,6 +18,8 @@ class EkaFhSecurity {
     efhUserData = _userData;
     opaqueAttrA = _opaqueAttrA;
     opaqueAttrB = _opaqueAttrB;
+
+    underlyingIdx = (uint)opaqueAttrB;
 }
 /* --------------------------------------------------------------- */
 
