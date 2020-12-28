@@ -48,9 +48,9 @@
 
 #define EKA_FPGA_FREQUENCY (161.132828125)
 
-// scratchpad 12bit 4kB address space
-#define SCRATCHPAD_BASE (0x84000)
-#define SCRATCHPAD_SIZE (4 * 1024)
+// scratchpad 16bit 64kB address space
+#define SCRATCHPAD_BASE (0x20000)
+#define SCRATCHPAD_SIZE (64 * 1024)
 #define SCRPAD_SW_VER (SCRATCHPAD_BASE)
 #define SCRPAD_CORE_BASE (SCRPAD_SW_VER + 8)
 #define SCRPAD_CORE_MC_IP_BASE (SCRPAD_CORE_BASE + (8 * EKA_MAX_CORES))

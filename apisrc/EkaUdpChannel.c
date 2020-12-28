@@ -64,51 +64,49 @@ EkaUdpChannel::EkaUdpChannel(EkaDev* ekaDev, uint8_t coreId) {
   ChannelId = SN_AllocateUdpChannel(dev->snDev->dev_id, core, -1, NULL);
   if (ChannelId == NULL) on_error("Cannot open UDP channel");
 
+  chId = SC_GetChannelNumber(ChannelId);
+
   const SN_Packet * pPreviousUdpPacket = SN_GetNextPacket(ChannelId, NULL, SN_TIMEOUT_NONE);
   if (pPreviousUdpPacket != NULL) {
     //    delete dev;
     on_error("pIncomingUdpPacket != NULL: Packet is arriving on UDP channel before any packet was sent");
   }
-  EKA_LOG("UDP channel for lane %u is opened",core);  
+  EKA_LOG("UDP channel %d for lane %u is opened",chId,core);  
 }
 
 void EkaUdpChannel::igmp_mc_join (uint32_t src_ip, uint32_t mcast_ip, uint16_t mcast_port, int16_t vlanTag) {
-  
-  EkaUdpChIgmpEntry curr = {
-    .ip      = mcast_ip,
-    .port    = mcast_port,
-    .vlanTag = vlanTag
-  };
+  // MC Port here is in BE (Human) format
 
-  for (uint i = 0; i < subscribedIgmps; i++) {
-    if (memcmp(&entry[i],&curr,sizeof(curr)) == 0) {
-      EKA_WARN("Skipping subscribing on existing IGMP entry %s:%u for UdpCh on Core %u",
-	       EKA_IP2STR(mcast_ip),be16toh(mcast_port),core);
-      return;
-    }
-  }
-  if (subscribedIgmps == MAX_IGMP_ENTRIES) on_error("MAX_IGMP_ENTRIES %d is reached",MAX_IGMP_ENTRIES);
+  /* for (uint i = 0; i < subscribedIgmps; i++) {    */
+  /*   if (entry[i].ip == mcast_ip  && entry[i].port == mcast_port) { */
+  /*     EKA_WARN("Skipping subscribing on existing IGMP entry %s:%u for UdpCh on Core %u", */
+  /* 	       EKA_IP2STR(mcast_ip),mcast_port,core); */
+  /*     return; */
+  /*   } */
+  /* } */
+  /* if (subscribedIgmps == MAX_IGMP_ENTRIES) on_error("MAX_IGMP_ENTRIES %d is reached",MAX_IGMP_ENTRIES); */
   
-  memcpy(&entry[subscribedIgmps],&curr,sizeof(curr));
-  subscribedIgmps++;
+  /* entry[subscribedIgmps].ip      = mcast_ip; */
+  /* entry[subscribedIgmps].port    = mcast_port; */
+  /* entry[subscribedIgmps].vlanTag = vlanTag; */
+  /* subscribedIgmps++; */
 
   SN_IgmpOptions igmpOptions = {};
   igmpOptions.StructSize = sizeof(igmpOptions);
   igmpOptions.EnableMulticastBypass = true;
   igmpOptions.VLanTag = vlanTag;
 
-
   char ip[20] = {};
   sprintf (ip, "%s",EKA_IP2STR(mcast_ip));
 
-  SN_Error errorCode = SN_IgmpJoin(ChannelId,core,(const char*)ip,be16toh(mcast_port), vlanTag ? &igmpOptions : NULL);
+  SN_Error errorCode = SN_IgmpJoin(ChannelId,core,(const char*)ip,mcast_port, vlanTag ? &igmpOptions : NULL);
   if (errorCode != SN_ERR_SUCCESS) 
     on_error("Failed to join on core %u MC %s:%u, vlanTag=%d, error code %d",
-	     core,ip,be16toh(mcast_port),vlanTag,(int)errorCode);
-  EKA_LOG("IGMP joined %s:%u for HW UDP Channel from coreId = %u, ip = %s, vlanTag = %d",
-	  ip,be16toh(mcast_port),core,EKA_IP2STR(src_ip),vlanTag);
+	     core,ip,mcast_port,vlanTag,(int)errorCode);
+  EKA_LOG("IGMP joined %s:%u for HW UDP Channel %d from coreId = %u, ip = %s, vlanTag = %d",
+	  ip,mcast_port,chId,core,EKA_IP2STR(src_ip),vlanTag);
 
-  saveMcStat(dev,core,mcast_ip);
+  /* saveMcStat(dev,core,mcast_ip); */
 
   //----------------------------------------------
   /* struct ip_mreq mreq = {}; */

@@ -35,26 +35,26 @@ void ekaServThread(EkaDev* dev);
 
 /* ##################################################################### */
 
-void* igmp_thread (void* attr) {
-  pthread_detach(pthread_self());
-  EkaDev* dev = (EkaDev*) attr;
-  EKA_LOG("Launching IGMPs for %u FHs",dev->numFh);
-  while (dev->igmp_thread_active) {
-    for (uint i = 0; i < dev->MAX_FEED_HANDLERS; i++) {
-      if (! dev->igmp_thread_active) return NULL;
-      if (dev->fh[i] == NULL) continue;
-      dev->fh[i]->send_igmp(true,dev->igmp_thread_active);      
-      usleep(10);
-    }
-    if (! dev->igmp_thread_active) return NULL;
-    usleep(1000000);
-  }
-  dev->igmpThreadTerminated = true;
+/* void* igmp_thread (void* attr) { */
+/*   pthread_detach(pthread_self()); */
+/*   EkaDev* dev = (EkaDev*) attr; */
+/*   EKA_LOG("Launching IGMPs for %u FHs",dev->numFh); */
+/*   while (dev->igmp_thread_active) { */
+/*     for (uint i = 0; i < dev->MAX_FEED_HANDLERS; i++) { */
+/*       if (! dev->igmp_thread_active) return NULL; */
+/*       if (dev->fh[i] == NULL) continue; */
+/*       dev->fh[i]->send_igmp(true,dev->igmp_thread_active);       */
+/*       usleep(10); */
+/*     } */
+/*     if (! dev->igmp_thread_active) return NULL; */
+/*     usleep(1000000); */
+/*   } */
+/*   dev->igmpThreadTerminated = true; */
 
-  EKA_LOG("IGMP thread Terminated. IGMPs left for %u FHs",dev->numFh);
+/*   EKA_LOG("IGMP thread Terminated. IGMPs left for %u FHs",dev->numFh); */
 
-  return NULL;
-}
+/*   return NULL; */
+/* } */
 /* ##################################################################### */
 
 static void str_time_from_nano(uint64_t current_time, char* time_str){
@@ -176,9 +176,9 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   EKA_LOG("EKALINE2 LIB GIT: %s",LIBEKA_GIT_VER);
 
 
-  igmp_thread_active = true;
-  pthread_t igmp_thr;
-  dev->createThread("IGMP_THREAD",EkaThreadType::kIGMP,igmp_thread,(void*)dev,createThreadContext,(uintptr_t*)&igmp_thr);
+  /* igmp_thread_active = true; */
+  /* pthread_t igmp_thr; */
+  /* dev->createThread("IGMP_THREAD",EkaThreadType::kIGMP,igmp_thread,(void*)dev,createThreadContext,(uintptr_t*)&igmp_thr); */
 
   print_parsed_messages = false;
 
@@ -199,6 +199,11 @@ bool EkaDev::openEpm() {
   if (epmReport == NULL) on_error("Failed to open epmReport Channel");
 
   if (epmReport->isOpen()) {
+    epm->createRegion(EkaEpm::ServiceRegion, EkaEpm::ServiceRegion * EkaEpm::ActionsPerRegion);
+#ifndef _VERILOG_SIM
+    epm->initHeap(0,EkaEpm::MaxHeap);
+#endif
+
     uint64_t fire_rx_tx_en = eka_read(ENABLE_PORT);
     fire_rx_tx_en |= (1ULL << 32); //turn off trprx
     EKA_LOG ("Turning off tcprx = 0x%016jx",fire_rx_tx_en);
@@ -297,7 +302,7 @@ int EkaDev::getHwCaps(hw_capabilities_t* caps) {
 EkaDev::~EkaDev() {
   TEST_LOG("shutting down...");
 
-  igmp_thread_active = false;
+  /* igmp_thread_active = false; */
 
   exc_active = false;
   servThreadActive = false;
@@ -309,8 +314,8 @@ EkaDev::~EkaDev() {
   EKA_LOG("Waiting for fireReportThreadTerminated...");
   while (! fireReportThreadTerminated) { sleep(0); }
 
-  EKA_LOG("Waiting for igmpThreadTerminated...");
-  while (! igmpThreadTerminated) { sleep(0); }
+  /* EKA_LOG("Waiting for igmpThreadTerminated..."); */
+  /* while (! igmpThreadTerminated) { sleep(0); } */
 
   TEST_LOG("Closing %u FHs",numFh);
   fflush(stderr);
@@ -323,6 +328,7 @@ EkaDev::~EkaDev() {
   }
   for (uint i = 0; i < numRunGr; i++) {
     if (runGr[i] != NULL) runGr[i]->thread_active = false;
+    delete runGr[i];
   }
   usleep(10);
 

@@ -33,10 +33,10 @@ class EkaEpmRegion;
 
 /* ------------------------------------------------ */
 
-inline void setActionRegionBaseIdx(EkaDev* dev, uint region, uint idx) {
-  EKA_LOG("region=%u, baseIdx=%u, addr=0x%jx",region,idx,0x82000 + 8 * region);
-  eka_write(dev,0x82000 + 8 * region, idx);
-}
+/* inline void setActionRegionBaseIdx(EkaDev* dev, uint region, uint idx) { */
+/*   EKA_LOG("region=%u, baseIdx=%u, addr=0x%jx",region,idx,0x82000 + 8 * region); */
+/*   eka_write(dev,0x82000 + 8 * region, idx); */
+/* } */
 
 /* ------------------------------------------------ */
 static inline uint64_t strategyEnableAddr(epm_strategyid_t  id) {
@@ -45,9 +45,6 @@ static inline uint64_t strategyEnableAddr(epm_strategyid_t  id) {
 /* ------------------------------------------------ */
 
 class EkaEpm {
- private:
-  void initHeap();
-
  public:
   static const uint MAX_CORES                   = EkaDev::MAX_CORES;
   static const uint MAX_SESS_PER_CORE           = EkaDev::MAX_SESS_PER_CORE;
@@ -55,10 +52,14 @@ class EkaEpm {
   static const uint TOTAL_SESSIONS_PER_CORE     = EkaDev::TOTAL_SESSIONS_PER_CORE;
   static const uint MAX_PKT_SIZE                = EkaDev::MAX_PKT_SIZE;
   static const uint TCP_EMPTY_ACK_SIZE          = 64;
+  static const uint IGMP_V2_SIZE                = 64;
+
+  /* static const uint IGMP_ACTIONS_BASE           = MAX_CORES * TOTAL_SESSIONS_PER_CORE * 3; */
+  /* static const uint MAX_IGMP_ACTIONS            = EkaDev::MAX_UDP_CHANNELS; */
 
   static const uint64_t ALWAYS_ENABLE           = 0xFFFFFFFFFFFFFFFF;
 
-  static const uint EPM_REGIONS                 = 8;
+  static const uint EPM_REGIONS                 = 32;
 
   static const uint MaxActions                  = 8 * 1024;
   static const uint MaxActionsPerStrategy       = 256;
@@ -73,6 +74,8 @@ class EkaEpm {
   static const uint64_t MaxUserHeap             = 6 * 1024 * 1024;
   static const uint64_t MaxServiceHeap          = MaxHeap - MaxUserHeap;
 
+  static const uint     HeapPerRegion           = MaxHeap    / EPM_REGIONS;
+  static const uint     ActionsPerRegion        = MaxActions / EPM_REGIONS;
 
   static const uint64_t PayloadMemorySize       = MaxUserHeap;
   static const uint64_t DatagramOffset          = sizeof(EkaEthHdr)+sizeof(EkaIpHdr)+sizeof(EkaTcpHdr);
@@ -106,6 +109,7 @@ class EkaEpm {
       TcpFullPkt,
       TcpFastPath,
       TcpEmptyAck,
+      Igmp,
 
       // User Actions
       UserAction
@@ -113,6 +117,11 @@ class EkaEpm {
 
 
   EkaEpm(EkaDev* _dev);
+
+  void initHeap(uint start, uint size);
+
+  int createRegion(uint regionId, epm_actionid_t baseActionIdx);
+
 
   uint64_t getPayloadMemorySize () {
     return PayloadMemorySize;
@@ -255,6 +264,9 @@ inline uint calcThrId (EkaEpm::ActionType type,uint8_t sessId,uint intIdx) {
   case EkaEpm::ActionType::TcpFastPath :
   case EkaEpm::ActionType::TcpEmptyAck :
     thrId = sessId == EkaEpm::CONTROL_SESS_ID ? MaxNum - 1 : TcpBase + sessId % TcpNum;
+    break;
+  case EkaEpm::ActionType::Igmp    :
+    thrId = MaxNum - 2;
     break;
   case EkaEpm::ActionType::UserAction  :
     thrId = UserBase + intIdx % UserNum;

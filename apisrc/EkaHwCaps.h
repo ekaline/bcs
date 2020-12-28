@@ -7,6 +7,7 @@ class EkaHwCaps {
   static const uint64_t HwCapabilitiesAddr = 0x8f000;
 
   struct hw_version_capabilities_t {
+    uint8_t  hwcaps;
     uint8_t  strategy;
     uint8_t  parser;
     uint8_t  sniffer;
@@ -36,10 +37,20 @@ class EkaHwCaps {
     uint8_t bitmap_md_cores;
   } __attribute__((packed));
 
+  struct hw_entity_capabilities_t {
+    uint8_t numof_entities;
+  } __attribute__((packed));
+
+  struct hw_scratchpad_capabilities_t {
+    uint32_t size;
+  } __attribute__((packed));
+
   struct hw_capabilities_t {
+    hw_version_capabilities_t version;
+    hw_scratchpad_capabilities_t scratchpad;
+    hw_entity_capabilities_t entity;
     hw_core_capabilities_t core;
     hw_epm_capabilities_t epm;
-    hw_version_capabilities_t version;
   } __attribute__((packed));
 
 
@@ -57,8 +68,8 @@ class EkaHwCaps {
  private:
   EkaDev* dev = NULL;
 
-  char    snDriverBuildTime[100] = {};
-  char    snDriverEkaRelease[100] = {};
+  char    snDriverBuildTime[256] = {};
+  char    snDriverEkaRelease[512] = {};
 };
 
 #endif

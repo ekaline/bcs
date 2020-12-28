@@ -24,7 +24,6 @@ class EkaFhGroup {
   int          init(EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx, EkaFh* fh,uint8_t gr_id,EkaSource exch);
 
   void         print_q_state();
-  void         send_igmp(bool join_leave);
 
   uint         getNumSecurities();
 
@@ -93,8 +92,6 @@ class EkaFhGroup {
   volatile bool         heartbeatThreadDone = false; // thread join() replacement
 
   volatile bool         gapClosed           = false;
-
-  bool                  no_igmp             = false; // skip IGMPs for the Metamako setup
 
   uint32_t              mcast_ip            = -1; 
   uint16_t              mcast_port          = -1; 

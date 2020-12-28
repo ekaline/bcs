@@ -71,12 +71,12 @@ EkaCore::EkaCore(EkaDev* pEkaDev, uint8_t lane, uint32_t ip, uint8_t* mac, bool 
     for (uint i = 0; i < MAX_SESS_PER_CORE; i++) tcpSess[i] = NULL;
     tcpSessions = 0;
 
-    // Control session for IGMP join/leave
+
+    if (! isTcpCore || ! epmEnabled) return;
+
     tcpSess[CONTROL_SESS_ID] = new EkaTcpSess(dev, this, coreId, CONTROL_SESS_ID,
 					      0 /* srcIp */, 0 /* dstIp */, 0 /* dstPort */, 
 					      macSa, macDa);
-
-    if (! isTcpCore || ! epmEnabled) return;
 
     pLwipNetIf = initLwipNetIf(dev,coreId,macSa,macDa,srcIp);
 

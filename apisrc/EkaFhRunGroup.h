@@ -5,6 +5,7 @@
 #include "EkaFh.h"
 
 class EkaUdpChannel;
+class EkaIgmpEntry;
 
 class EkaFhRunGroup {
  public:
@@ -16,18 +17,27 @@ class EkaFhRunGroup {
   }
 
   EkaFhRunGroup(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runId);
+  ~EkaFhRunGroup();
   uint getGrAfterGap();
   void setGrAfterGap(uint i);
   void clearGrAfterGap(uint i);
 
   bool drainQ(const EfhRunCtx* pEfhRunCtx);
 
+  int igmpMcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag);
+
+ private:
+  int igmpThreadLoop();
+  int igmpLeaveAll();
+
+ public:
   static const uint MAX_GR2RUN = 64;
+  static const int  MAX_IGMP_ENTRIES = 64;
 
   uint8_t               groupList[MAX_GR2RUN] = {};
   uint8_t               numGr             = 0; // total MC groups belonging to this RunGr
 
-  char                  list2print[300] = {};
+  char                  list2print[300]   = {};
 
   bool                  grAfterGap[MAX_GR2RUN] = {};
   uint                  cntGrAfterGap     = 0;
@@ -37,11 +47,20 @@ class EkaFhRunGroup {
 
   uint8_t               runId             = -1;
   EkaUdpChannel*        udpCh             = NULL;
+  int                   udpChId           = -1;
+
   EkaSource             exch              = EkaSource::kInvalid;
   EkaFh*                fh                = NULL;
 
   bool                  thread_active     = false;
   bool                  stoppedByExchange = false;
+
+  EkaIgmpEntry*         igmpEntry[MAX_IGMP_ENTRIES] = {};
+  int                   numIgmpEntries    = 0;
+
+  bool                  igmpLoopTerminated = false;
+
+  std::thread           igmpThread;
 
  private:
   EkaDev*               dev               = NULL;

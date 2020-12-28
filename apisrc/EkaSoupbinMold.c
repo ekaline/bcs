@@ -188,6 +188,10 @@ static bool getLoginResponse(EkaFhGroup* gr) {
 
 void* getSoupBinData(void* attr) {
 
+#ifdef FH_LAB
+  return NULL;
+#endif
+
   EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
   EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
   EkaFhGroup*   gr             = ((EkaFhThreadAttr*)attr)->gr;

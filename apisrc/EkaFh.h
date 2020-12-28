@@ -52,7 +52,7 @@ class EkaFh {
 					 const EfhRunCtx* pEfhRunCtx, 
 					 EkaGroup*        group) = 0;
   
-  void                send_igmp(bool join_leave, volatile bool igmp_thread_active);
+  //  void                send_igmp(bool join_leave, volatile bool igmp_thread_active);
   EkaFhAddConf        conf_parse(const char *key, const char *value);
   EkaOpResult         subscribeStaticSecurity(uint8_t groupNum, 
 						      uint64_t securityId, 

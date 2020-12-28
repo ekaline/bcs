@@ -74,6 +74,7 @@ void ekaServThread(EkaDev* dev) {
   fire_rx_tx_en &= ~(1ULL << 32); //turn on trprx
   EKA_LOG ("Turning on tcprx = 0x%016jx",fire_rx_tx_en);
   eka_write(dev,ENABLE_PORT,fire_rx_tx_en);
+  dev->servThreadTerminated = false;
 
   while (dev->servThreadActive) {
     /* ----------------------------------------------- */

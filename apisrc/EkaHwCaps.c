@@ -26,8 +26,10 @@ EkaHwCaps::EkaHwCaps(EkaDev* _dev) {
       SN_ReadUserLogicRegister(DeviceId, srcAddr++, dstAddr++);
 
     int fd = SN_GetFileDescriptor(DeviceId);
-    eka_ioctl_t state;
+    eka_ioctl_t __attribute__ ((aligned(0x1000))) state = {};
     state.cmd = EKA_VERSION;
+    state.nif_num = 0;
+    state.session_num = 0;
     ioctl(fd,SMARTNIC_EKALINE_DATA,&state);
     
     strcpy(snDriverBuildTime,  state.eka_version);
@@ -47,12 +49,16 @@ void EkaHwCaps::print() {
   EKA_LOG("hwCaps.epm.tcpcs_numof_templates\t\t= %ju",    (uint64_t)(hwCaps.epm.tcpcs_numof_templates));
   EKA_LOG("hwCaps.epm.numof_actions\t\t\t= %ju",          (uint64_t)(hwCaps.epm.numof_actions));
 
+  EKA_LOG("hwCaps.entity.numof_entities\t\t= %ju",          (uint64_t)(hwCaps.entity.numof_entities));
+  EKA_LOG("hwCaps.scratchpad.size\t\t\t= %ju",          (uint64_t)(hwCaps.scratchpad.size));
+
+  EKA_LOG("hwCaps.version.hwcaps\t\t\t= %ju",           (uint64_t)(hwCaps.version.hwcaps));
   EKA_LOG("hwCaps.version.strategy\t\t\t= %ju",           (uint64_t)(hwCaps.version.strategy));
   EKA_LOG("hwCaps.version.parser\t\t\t= %ju (%s)",           (uint64_t)(hwCaps.version.parser),EKA_FEED2STRING (hwCaps.version.parser));
   EKA_LOG("hwCaps.version.sniffer\t\t\t= %ju",              (uint64_t)(hwCaps.version.sniffer));
   EKA_LOG("hwCaps.version.dma\t\t\t= %ju",              (uint64_t)(hwCaps.version.dma));
   EKA_LOG("hwCaps.version.epm\t\t\t= %ju",              (uint64_t)(hwCaps.version.epm));
-  EKA_LOG("hwCaps.version.build_seed\t\t\t= %ju",         (uint64_t)(hwCaps.version.build_seed));
+  EKA_LOG("hwCaps.version.build_seed\t\t\t= %jx",         (uint64_t)(hwCaps.version.build_seed));
   EKA_LOG("hwCaps.version.build_date\t\t\t= %02jx/%02jx/20%02jx %02jx:%02jx",
 	  (uint64_t)(hwCaps.version.build_date_day),
 	  (uint64_t)(hwCaps.version.build_date_month),
@@ -61,6 +67,7 @@ void EkaHwCaps::print() {
 	  (uint64_t)(hwCaps.version.build_time_sec));
   EKA_LOG("hwCaps.version.ekaline_git\t\t= 0x%08jx",    (uint64_t)(hwCaps.version.ekaline_git));
   EKA_LOG("hwCaps.version.silicom_git\t\t= 0x%08jx",    (uint64_t)(hwCaps.version.silicom_git));
+  EKA_LOG("API library GIT           \t\t= 0x%s",        LIBEKA_GIT_VER);
 
 }
 #define _printN(...) {printf(__VA_ARGS__); printf("\n"); }
@@ -76,6 +83,10 @@ void EkaHwCaps::printStdout() {
   _printN("hwCaps.epm.tcpcs_numof_templates\t= %ju",    (uint64_t)(hwCaps.epm.tcpcs_numof_templates));
   _printN("hwCaps.epm.numof_actions\t\t= %ju",          (uint64_t)(hwCaps.epm.numof_actions));
 
+  _printN("hwCaps.entity.numof_entities\t\t= %ju",    (uint64_t)(hwCaps.entity.numof_entities));
+  _printN("hwCaps.scratchpad.size\t\t\t= %ju",          (uint64_t)(hwCaps.scratchpad.size));
+
+  _printN("hwCaps.version.hwcaps\t\t\t= %ju",           (uint64_t)(hwCaps.version.hwcaps));
   _printN("hwCaps.version.strategy\t\t\t= %ju",           (uint64_t)(hwCaps.version.strategy));
   _printN("hwCaps.version.parser\t\t\t= %ju (%s)",           (uint64_t)(hwCaps.version.parser),EKA_FEED2STRING (hwCaps.version.parser));
   _printN("hwCaps.version.sniffer\t\t\t= %ju",              (uint64_t)(hwCaps.version.sniffer));
@@ -90,7 +101,7 @@ void EkaHwCaps::printStdout() {
 	  (uint64_t)(hwCaps.version.build_time_sec));
   _printN("hwCaps.version.ekaline_git\t\t= 0x%08jx",    (uint64_t)(hwCaps.version.ekaline_git));
   _printN("hwCaps.version.silicom_git\t\t= 0x%08jx",    (uint64_t)(hwCaps.version.silicom_git));
-
+  _printN("API library GIT           \t\t= 0x%s",        LIBEKA_GIT_VER);
 }
 void EkaHwCaps::printDriverVer() {
   _printN("%s",snDriverBuildTime);
@@ -122,6 +133,10 @@ bool EkaHwCaps::check() {
   if (hwCaps.epm.numof_actions < EkaEpm::MaxActions)
     on_error("hwCaps.epm.numof_actions %d < EkaEpm::MaxActions %d",
 	     hwCaps.epm.numof_actions, EkaEpm::MaxActions);
-    
+
+  if (hwCaps.scratchpad.size < SCRATCHPAD_SIZE)
+    on_error("hwCaps.scratchpad.size %d < SCRATCHPAD_SIZE %d",
+	     hwCaps.scratchpad.size, SCRATCHPAD_SIZE);
+
   return true;
 }

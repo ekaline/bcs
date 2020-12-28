@@ -93,14 +93,13 @@ int EkaFhGroup::init (EfhCtx* _pEfhCtx,
 
   if (dev->core[core] == NULL) on_error("dev->core[%u] == NULL",core);
 
-  no_igmp  = ! EKA_NATIVE_MAC(dev->core[core]->macSa);
+  //  no_igmp  = ! EKA_NATIVE_MAC(dev->core[core]->macSa);
 
   q        = NULL;
   id       = gr_id;
   state    = GrpState::INIT;
 
-  //  if (fh->print_parsed_messages) {
-  if (1) {
+  if (fh->print_parsed_messages) {
     std::string parsedMsgFileName = std::string(EKA_EXCH_DECODE(exch)) + std::to_string(id) + std::string("_PARSED_MESSAGES.txt");
     if((parser_log = fopen(parsedMsgFileName.c_str(),"w")) == NULL) on_error ("Error %s",parsedMsgFileName.c_str());
     EKA_LOG("%s:%u created file %s",EKA_EXCH_DECODE(exch),id,parsedMsgFileName.c_str());
@@ -124,8 +123,8 @@ void EkaFhGroup::createQ(EfhCtx* pEfhCtx, const uint qsize) {
  /* ##################################################################### */
 
 int EkaFhGroup::stop() {  
-  send_igmp(false);
-  EKA_DEBUG("%s:%u - Stopping: IGMP LEAVE sent",EKA_EXCH_DECODE(exch),id);
+  /* send_igmp(false); */
+  /* EKA_DEBUG("%s:%u - Stopping: IGMP LEAVE sent",EKA_EXCH_DECODE(exch),id); */
 
   thread_active    = false;
   snapshot_active  = false;
@@ -149,23 +148,6 @@ EkaFhGroup::~EkaFhGroup () {
     //    book->invalidate();
   }
   EKA_DEBUG("%s:%u closed",EKA_EXCH_DECODE(exch),id);
-}
-
- /* ##################################################################### */
-
-void EkaFhGroup::send_igmp(bool join_leave) {
-  if (no_igmp) return;
-  if (mcast_ip == 0) return;
-
-  char igmpPkt[64] = {};
-  memset(igmpPkt,0,sizeof(igmpPkt));
-  uint pktLen = createIgmpPkt(igmpPkt, join_leave, dev->core[core]->macSa, dev->core[core]->srcIp, mcast_ip);
-
-  EkaTcpSess* controlTcpSess = dev->getControlTcpSess(core);
-  controlTcpSess->sendFullPkt((void*)igmpPkt,pktLen);
-
-  //  if (! join_leave) hexDump("IGMP LEAVE sent",igmpPkt,pktLen);
-  return;
 }
 
  /* ##################################################################### */

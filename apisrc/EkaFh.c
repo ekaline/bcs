@@ -53,7 +53,7 @@ uint8_t EkaFh::getGrId(const uint8_t* pkt) {
   EkaIpHdr* ipHdr = (EkaIpHdr*)(pkt - 8 - 20);
   uint32_t ip = ipHdr->dest;
   for (uint8_t i = 0; i < groups; i++)
-    if (b_gr[i]->mcast_ip == ip && be16toh(b_gr[i]->mcast_port) == EKA_UDPHDR_DST((pkt-8)))
+    if (b_gr[i]->mcast_ip == ip && b_gr[i]->mcast_port == EKA_UDPHDR_DST((pkt-8)))
       return i;
   
   EKA_WARN("ip 0x%08x %s not found",ip, EKA_IP2STR(ip));
@@ -81,7 +81,7 @@ int EkaFh::init(const EfhInitCtx* pEfhInitCtx, uint8_t numFh) {
     EKA_DEBUG("initializing FH %s:%u: MCAST: %s:%u, SNAPSHOT: %s:%u, RECOVERY: %s:%u, AUTH: %s:%s",
 	    EKA_EXCH_DECODE(b_gr[i]->exch),
 	    b_gr[i]->id,
-	    EKA_IP2STR(b_gr[i]->mcast_ip),   be16toh(b_gr[i]->mcast_port),
+	    EKA_IP2STR(b_gr[i]->mcast_ip),   b_gr[i]->mcast_port,
 	    EKA_IP2STR(b_gr[i]->snapshot_ip),be16toh(b_gr[i]->snapshot_port),
 	    EKA_IP2STR(b_gr[i]->recovery_ip),be16toh(b_gr[i]->recovery_port),
 	    b_gr[i]->auth_set ? std::string(b_gr[i]->auth_user,sizeof(b_gr[i]->auth_user)).c_str() : "NOT SET",
@@ -98,16 +98,16 @@ int EkaFh::init(const EfhInitCtx* pEfhInitCtx, uint8_t numFh) {
 
  /* ##################################################################### */
 
-void EkaFh::send_igmp(bool join_leave, volatile bool igmp_thread_active) {
-  //  EKA_DEBUG("Sending IGMP %s", join_leave ? "JOIN" : "LEAVE");
-  for (auto i = 0; i < groups; i++) {
-    if (b_gr[i] == NULL) continue;
-    if (join_leave && ! igmp_thread_active) break; // dont send JOIN
-    b_gr[i]->send_igmp(join_leave);
-    usleep (10);
-  }
-  return;
-}
+/* void EkaFh::send_igmp(bool join_leave, volatile bool igmp_thread_active) { */
+/*   //  EKA_DEBUG("Sending IGMP %s", join_leave ? "JOIN" : "LEAVE"); */
+/*   for (auto i = 0; i < groups; i++) { */
+/*     if (b_gr[i] == NULL) continue; */
+/*     if (join_leave && ! igmp_thread_active) break; // dont send JOIN */
+/*     b_gr[i]->send_igmp(join_leave); */
+/*     usleep (10); */
+/*   } */
+/*   return; */
+/* } */
  /* ##################################################################### */
 int EkaFh::stop() {
   EKA_DEBUG("Stopping %s (fhId=%u)",EKA_EXCH_DECODE(exch),id);
@@ -308,7 +308,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
 	return EkaFhAddConf::CONF_SUCCESS;
       }
       inet_aton (v[0],(struct in_addr*) &b_gr[gr]->mcast_ip);
-      b_gr[gr]->mcast_port =  htons((uint16_t)atoi(v[1]));
+      b_gr[gr]->mcast_port =  (uint16_t)atoi(v[1]);
       b_gr[gr]->mcast_set  = true;
       //      EKA_DEBUG ("%s %s for %s:%u is set to %s:%u",k[4],k[5],k[1],gr,v[0],(uint16_t)atoi(v[1]));
       fflush(stderr);
@@ -394,10 +394,10 @@ EkaOpResult EkaFh::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
     gr->createQ(pEfhCtx,qsize);
     gr->expected_sequence = 1;
 
-    runGr->udpCh->igmp_mc_join (dev->core[c]->srcIp, gr->mcast_ip,gr->mcast_port,0);
+    runGr->igmpMcJoin(gr->mcast_ip,gr->mcast_port,0);
     EKA_DEBUG("%s:%u: joined %s:%u for %u securities",
 	      EKA_EXCH_DECODE(exch),gr->id,
-	      EKA_IP2STR(gr->mcast_ip),be16toh(gr->mcast_port),
+	      EKA_IP2STR(gr->mcast_ip),gr->mcast_port,
 	      gr->getNumSecurities());
   }
   return EKA_OPRESULT__OK;

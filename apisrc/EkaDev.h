@@ -48,13 +48,14 @@ class EkaDev {
   uint8_t  getNumFh();
 
   static const uint MAX_FEED_HANDLERS       = 8;
-  static const int8_t MAX_CORES               = 8;
+  static const int8_t MAX_CORES             = 8;
   static const uint MAX_RUN_GROUPS          = 32;
-  static const uint MAX_SESS_PER_CORE       = 64;
+  static const uint MAX_SESS_PER_CORE       = 255;
   static const uint CONTROL_SESS_ID         = MAX_SESS_PER_CORE;
   static const uint TOTAL_SESSIONS_PER_CORE = MAX_SESS_PER_CORE + 1;
   static const uint MAX_PKT_SIZE            = 1536;
-  
+  static const uint MAX_UDP_CHANNELS        = 32;
+
   static const uint MAX_SEC_CTX             = 768*1024;
   static const uint MAX_CTX_THREADS         = 16;
   static const uint MAX_SESSION_CTX_PER_CORE = 128;
@@ -98,11 +99,11 @@ class EkaDev {
 
   volatile bool             servThreadActive = false;
   std::thread               servThread;
-  volatile bool             servThreadTerminated = false;
+  volatile bool             servThreadTerminated = true;
 
-  volatile bool             fireReportThreadActive = false;
+  volatile bool             fireReportThreadActive = true;
   std::thread               fireReportThread;
-  volatile bool             fireReportThreadTerminated = false;
+  volatile bool             fireReportThreadTerminated = true;
 
 
   volatile bool             exc_inited = false;
@@ -110,9 +111,6 @@ class EkaDev {
   //  volatile bool             ekaLwipPollThreadIsUp;
   volatile bool             efc_run_threadIsUp = false;
   volatile bool             efc_fire_report_threadIsUp = false;
-  volatile bool             igmp_thread_active = false;
-
-  volatile bool             igmpThreadTerminated = false;
 
   volatile uint8_t          numFh = 0;
 

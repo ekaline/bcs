@@ -19,6 +19,7 @@ void ekaFireReportThread(EkaDev* dev) {
   dev->fireReportThreadActive = true;
   pthread_t thread = pthread_self();
   pthread_setname_np(thread,"EkaFireReportThread");
+  dev->fireReportThreadTerminated = false;
 
   while (dev->fireReportThreadActive) {
     /* ----------------------------------------------- */
