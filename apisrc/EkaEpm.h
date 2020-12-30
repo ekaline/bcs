@@ -30,7 +30,7 @@ class EkaEpmAction;
 class EkaUdpChannel;
 class EpmStrategy;
 class EkaEpmRegion;
-
+class EkaIgmp;
 /* ------------------------------------------------ */
 
 /* inline void setActionRegionBaseIdx(EkaDev* dev, uint region, uint idx) { */
@@ -207,15 +207,17 @@ class EkaEpm {
   volatile bool active = false;
   EkaDev* dev = NULL;
 
-  uint         templatesNum   = 0;
-  EpmTemplate* tcpFastPathPkt = NULL;
-  EpmTemplate* rawPkt         = NULL;
+  uint              templatesNum            = 0;
+  EpmTemplate*      tcpFastPathPkt          = NULL;
+  EpmTemplate*      rawPkt                  = NULL;
 
-  bool              initialized = false;
+  bool              initialized             = false;
 
-  EkaUdpChannel*    udpCh[MAX_CORES] = {};
+  EkaUdpChannel*    udpCh[MAX_CORES]        = {};
 
-  uint8_t           heap[EkaEpm::MaxHeap] = {};
+  EkaIgmp*          ekaIgmp                 = NULL;
+
+  uint8_t           heap[EkaEpm::MaxHeap]   = {};
 
   EpmStrategy*      strategy[MaxStrategies] = {};
   epm_strategyid_t  stratNum = 0;

@@ -5,7 +5,7 @@
 #include "EkaFh.h"
 
 class EkaUdpChannel;
-class EkaIgmpEntry;
+class EkaIgmp;
 
 class EkaFhRunGroup {
  public:
@@ -55,12 +55,7 @@ class EkaFhRunGroup {
   bool                  thread_active     = false;
   bool                  stoppedByExchange = false;
 
-  EkaIgmpEntry*         igmpEntry[MAX_IGMP_ENTRIES] = {};
-  int                   numIgmpEntries    = 0;
-
-  bool                  igmpLoopTerminated = false;
-
-  std::thread           igmpThread;
+  EkaIgmp*              ekaIgmp           = NULL;
 
  private:
   EkaDev*               dev               = NULL;

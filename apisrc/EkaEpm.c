@@ -14,6 +14,7 @@
 #include "EpmStrategy.h"
 #include "EkaUdpChannel.h"
 #include "EkaEpmRegion.h"
+#include "EkaIgmp.h"
 
 uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size);
 void ekaFireReportThread(EkaDev* dev);
@@ -145,6 +146,11 @@ EkaOpResult EkaEpm::initStrategies(EkaCoreId coreId,
   if (udpCh[coreId] == NULL) udpCh[coreId] = new EkaUdpChannel(dev,coreId);
   if (udpCh[coreId] == NULL) on_error("Failed to open Epm Udp Channel for CoreId %u",coreId);
 
+  char name[50] = {};
+  sprintf(name,"EpmTrigger");
+  ekaIgmp = new EkaIgmp(dev,udpCh[coreId],(uint8_t)coreId,(uint)ServiceRegion,name);
+  if (ekaIgmp == NULL) on_error("ekaIgmp == NULL");
+
   if (! dev->fireReportThreadActive) {
     dev->fireReportThread = std::thread(ekaFireReportThread,dev);
     dev->fireReportThread.detach();
@@ -163,7 +169,10 @@ EkaOpResult EkaEpm::initStrategies(EkaCoreId coreId,
     if (strategy[i] != NULL) on_error("strategy[%d] != NULL",i);
     strategy[i] = new EpmStrategy(this,i,currActionIdx, &params[i]);
     if (strategy[i] == NULL) on_error("Fail to create strategy[%d]",i);
-    udpCh[coreId]->igmp_mc_join(0, strategy[i]->ip, strategy[i]->port,0);
+
+    //    udpCh[coreId]->igmp_mc_join(0, strategy[i]->ip, strategy[i]->port,0);
+    ekaIgmp->mcJoin(strategy[i]->ip, strategy[i]->port,0);
+
     currActionIdx += params[i].numActions;
 
     if (currActionIdx > (int)MaxUserActions) 
@@ -282,11 +291,11 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
   if (actionRegion >= EPM_REGIONS || epmRegion[actionRegion] == NULL) 
     on_error("wrong epmRegion[%u] = %p",actionRegion,epmRegion[actionRegion]);
 
-  uint            heapBudget = (uint)(-1);
+  uint            heapBudget      = (uint)(-1);
   EpmActionBitmap actionBitParams = {};
-  EpmTemplate*    pEpmTemplate = NULL;
+  EpmTemplate*    pEpmTemplate    = NULL;
 
-  char            actionName[30] = {};
+  char            actionName[30]  = {};
 
   createActionMtx.lock();
 
@@ -365,14 +374,14 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
   /* EKA_LOG("--- %20s: Action Idx: %u, localActionIdx: %u, actionRegion: %u,  Action addr: %8ju, Heap: %8u + %4u", */
   /* 	  actionName, actionIdx,localActionIdx,actionRegion,actionAddr,heapOffs,heapBudget); fflush(stderr); */
 
-  if (userActionIdx > UserActionsBaseIdx + MaxUserActions) 
-    on_error("userActionIdx %u > MaxUserActions %ju",userActionIdx, UserActionsBaseIdx + MaxUserActions);
-  if (serviceActionIdx > ServiceActionsBaseIdx + MaxServiceActions) 
-    on_error("serviceActionIdx %u > MaxServiceActions %ju",serviceActionIdx, ServiceActionsBaseIdx + MaxServiceActions);
-  if (serviceHeapOffs > ServiceHeapBaseAddr + MaxServiceHeap)
-    on_error("serviceHeapOffs %u > MaxServiceHeap %ju",serviceHeapOffs, ServiceHeapBaseAddr + MaxServiceHeap);
-  if (userHeapOffs > UserHeapBaseAddr + MaxUserHeap)
-    on_error("userHeapOffs %u > MaxUserHeap %ju",userHeapOffs, UserHeapBaseAddr + MaxUserHeap);
+  if (userActionIdx > MaxUserActions) 
+    on_error("userActionIdx %u > MaxUserActions %ju",userActionIdx, MaxUserActions);
+  if (serviceActionIdx > MaxServiceActions) 
+    on_error("serviceActionIdx %u > MaxServiceActions %ju",serviceActionIdx, MaxServiceActions);
+  if (serviceHeapOffs > MaxServiceHeap)
+    on_error("serviceHeapOffs %u > MaxServiceHeap %ju",serviceHeapOffs, MaxServiceHeap);
+  if (userHeapOffs > MaxUserHeap)
+    on_error("userHeapOffs %u > MaxUserHeap %ju",userHeapOffs, MaxUserHeap);
 
   uint64_t actionAddr = EpmActionBase + actionIdx * ActionBudget;
   epmRegion[actionRegion]->heapOffs += heapBudget;
