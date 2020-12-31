@@ -45,7 +45,7 @@ struct PcapRecHdr {
 };
 
 static void printUsage(char* cmd) {
-  printf("USAGE: %s <flags> \n",cmd); 
+  printf("USAGE: %s <options> \n",cmd); 
   printf("\t-i - FPGA lane number [0..3]\n"); 
   printf("\t-w - Output file path (Pcap format)\n"); 
   printf("\t-h - Print this help\n"); 
@@ -54,16 +54,21 @@ static void printUsage(char* cmd) {
 
 static int getAttr(int argc, char *argv[],
 		   uint* coreId, char* fileName) {
+  
+  bool ifSet = false;
+  bool fileSet = false;
   int opt; 
   while((opt = getopt(argc, argv, ":i:w:h")) != -1) {  
     switch(opt) {  
       case 'i':  
 	*coreId = atoi(optarg);
 	printf("coreId = %u\n", *coreId);
+	ifSet = true;
 	break;  
       case 'w':  
 	strcpy(fileName,optarg);
 	printf("fileName = %s\n", fileName);
+	fileSet = true;
 	break;  
       case 'h':  
 	printUsage(argv[0]);
@@ -74,6 +79,8 @@ static int getAttr(int argc, char *argv[],
       break;  
       }  
   }  
+  if (! ifSet) on_error("FPGA interface to capture is not set. Use \'-i <FPGA lane number [0..3]>\' mandatory option");
+  if (! fileSet) on_error("PCAP file name is not set. Use \'-w <file name>\' mandatory option");
   return 0;
 }
 /* --------------------------------------------- */
@@ -114,7 +121,7 @@ int main(int argc, char *argv[]) {
   if (coreId > 3) on_error("coreId %u is not supported",coreId);
 
   FILE* out_pcap_file = fopen(fileName, "w+");
-  if (out_pcap_file == NULL) on_error("Ne mogu otkrit pcapFile file %s\n",fileName);
+  if (out_pcap_file == NULL) on_error("Failed opening pcapFile file \'%s\'\n",fileName);
 
 
   PcapFileHdr pcapFileHdr = {
