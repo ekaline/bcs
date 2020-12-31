@@ -77,7 +77,6 @@ int EkaIgmp::igmpLeaveAll() {
     igmpEntry[i]->sendIgmpLeave();
     delete igmpEntry[i];
   }
-  igmpLeaveAll();
 
   return 0;
 }

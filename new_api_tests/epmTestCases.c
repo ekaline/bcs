@@ -79,6 +79,7 @@ int credRelease(EkaCredentialLease *lease, void* context) {
 /* --------------------------------------------- */
 
 void fireReportCb (const EpmFireReport *report, int nReports, void *ctx) {
+  TEST_LOG("numFireEvents = %d",numFireEvents);
   for (auto i = 0; i < nReports; i++) {
     if (numFireEvents > MaxFireEvents) on_error("numFireEvents %d > MaxFireEvents %d",numFireEvents, MaxFireEvents);
 
@@ -89,19 +90,21 @@ void fireReportCb (const EpmFireReport *report, int nReports, void *ctx) {
     numFireEvents++;
   }
 
-  /* TEST_LOG("StrategyId=%d,ActionId=%d,TriggerActionId=%d,TriggerSource=%s,token=%016jx,user=%016jx," */
-  /* 	   "preLocalEnable=%016jx,postLocalEnable=%016jx,preStratEnable=%016jx,postStratEnable=%016jx", */
-  /* 	   report->strategyId, */
-  /* 	   report->actionId, */
-  /* 	   report->trigger->action, */
-  /* 	   report->local ? "FROM SW" : "FROM UDP", */
-  /* 	   report->trigger->token, */
-  /* 	   report->user, */
-  /* 	   report->preLocalEnable, */
-  /* 	   report->postLocalEnable, */
-  /* 	   report->preStratEnable, */
-  /* 	   report->postStratEnable */
-  /* 	   ); */
+#if 1
+  TEST_LOG("StrategyId=%d,ActionId=%d,TriggerActionId=%d,TriggerSource=%s,token=%016jx,user=%016jx,"
+  	   "preLocalEnable=%016jx,postLocalEnable=%016jx,preStratEnable=%016jx,postStratEnable=%016jx",
+  	   report->strategyId,
+  	   report->actionId,
+  	   report->trigger->action,
+  	   report->local ? "FROM SW" : "FROM UDP",
+  	   report->trigger->token,
+  	   report->user,
+  	   report->preLocalEnable,
+  	   report->postLocalEnable,
+  	   report->preStratEnable,
+  	   report->postStratEnable
+  	   );
+#endif
 }
 
 /* --------------------------------------------- */
@@ -605,7 +608,7 @@ int main(int argc, char *argv[]) {
 
   /* ============================================== */
 
-  excClose(dev,conn);
+  //  excClose(dev,conn);
   printf("Closing device\n");
 
   sleep (1);

@@ -374,14 +374,17 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
   /* EKA_LOG("--- %20s: Action Idx: %u, localActionIdx: %u, actionRegion: %u,  Action addr: %8ju, Heap: %8u + %4u", */
   /* 	  actionName, actionIdx,localActionIdx,actionRegion,actionAddr,heapOffs,heapBudget); fflush(stderr); */
 
-  if (userActionIdx > MaxUserActions) 
-    on_error("userActionIdx %u > MaxUserActions %ju",userActionIdx, MaxUserActions);
-  if (serviceActionIdx > MaxServiceActions) 
-    on_error("serviceActionIdx %u > MaxServiceActions %ju",serviceActionIdx, MaxServiceActions);
-  if (serviceHeapOffs > MaxServiceHeap)
-    on_error("serviceHeapOffs %u > MaxServiceHeap %ju",serviceHeapOffs, MaxServiceHeap);
-  if (userHeapOffs > MaxUserHeap)
-    on_error("userHeapOffs %u > MaxUserHeap %ju",userHeapOffs, MaxUserHeap);
+  if (userActionIdx > UserActionsBaseIdx + MaxUserActions) 
+    on_error("userActionIdx %u > MaxUserActions %ju",userActionIdx, UserActionsBaseIdx + MaxUserActions);
+
+  if (serviceActionIdx > ServiceActionsBaseIdx + MaxServiceActions) 
+    on_error("serviceActionIdx %u > MaxServiceActions %ju",serviceActionIdx, ServiceActionsBaseIdx + MaxServiceActions);
+
+  if (serviceHeapOffs > ServiceHeapBaseOffs + MaxServiceHeap)
+    on_error("serviceHeapOffs %u > MaxServiceHeap %ju",serviceHeapOffs, ServiceHeapBaseOffs + MaxServiceHeap);
+
+  if (userHeapOffs > UserHeapBaseOffs + MaxUserHeap)
+    on_error("userHeapOffs %u > MaxUserHeap %ju",userHeapOffs, UserHeapBaseOffs + MaxUserHeap);
 
   uint64_t actionAddr = EpmActionBase + actionIdx * ActionBudget;
   epmRegion[actionRegion]->heapOffs += heapBudget;
