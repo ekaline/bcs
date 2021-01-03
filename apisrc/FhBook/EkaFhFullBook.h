@@ -110,9 +110,9 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     if (sec[index] == NULL) {
       sec[index] = s; // empty bucket
     } else {
-      FhSecurity* s = sec[index];
-      while (s->next != NULL) s = (FhSecurity*)s->next;
-      s->next = s;
+      FhSecurity* sp = sec[index];
+      while (sp->next != NULL) sp = (FhSecurity*)sp->next;
+      sp->next = s;
     }
     //    numSecurities++;
     return s;
