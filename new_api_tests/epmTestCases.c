@@ -473,7 +473,7 @@ int main(int argc, char *argv[]) {
   triggerMcAddr.sin_port        = be16toh(triggerUdpPort);
 
   const epm_strategyid_t numStrategies = 7;
-  const epm_actionid_t   numActions    = 200;
+  const epm_actionid_t   numActions    = 110;
   EpmStrategyParams strategyParams[numStrategies] = {};
   for (auto i = 0; i < numStrategies; i++) {
     strategyParams[i].numActions  = numActions;
@@ -505,6 +505,26 @@ int main(int argc, char *argv[]) {
   {
     uint64_t user = 0;
     TestCase testCase = {
+      "Basic Chain Test (from SW)", conn, tcpServerSock, triggerSock, (const sockaddr*) &triggerMcAddr,
+      {1, 0xabcd}, {    // testStrategy
+	{100, 0xabcd, 0xabcd, 0xabcd, AF_Valid, coreId, user, 0x1122334455667788},
+	{11 , 0xabcd, 0xabcd, 0xabcd, AF_Valid, coreId, user, 0x1122334455667788},
+	{29 , 0xabcd, 0xabcd, 0xabcd, AF_Valid, coreId, user, 0x1122334455667788},
+	{46 , 0xabcd, 0xabcd, 0xabcd, AF_Valid, coreId, user, 0x1122334455667788},
+	{83 , 0xabcd, 0xabcd, 0xabcd, AF_Valid, coreId, user, 0x1122334455667788},
+	{31 , 0xabcd, 0xabcd, 0xabcd, AF_Valid, coreId, user, 0x1122334455667788},
+	{EPM_LAST_ACTION, 0,0,0,0,0,0,0}},
+      /* raiseTriggerFromSw =  */ true, {0x1122334455667788, 1, 100}, // epmTrigger
+      0,                                   // user -- Opaque value copied into `EpmFireReport`
+      {100, 11, 29, 46, 83, 31}
+    };
+    runTestCase(dev,&testCase);
+  }
+  //  goto end;
+  /* ============================================== */
+  {
+    uint64_t user = 0;
+    TestCase testCase = {
       "Basic Chain Test (from UDP)", conn, tcpServerSock, triggerSock, (const sockaddr*) &triggerMcAddr,
       {1, 0xabcd}, {    // testStrategy
 	{100, 0xabcd, 0xabcd, 0xabcd, AF_Valid, coreId, user, 0x1122334455667788},
@@ -526,25 +546,6 @@ int main(int argc, char *argv[]) {
   {
     uint64_t user = 0;
     TestCase testCase = {
-      "Basic Chain Test (from SW)", conn, tcpServerSock, triggerSock, (const sockaddr*) &triggerMcAddr,
-      {1, 0xabcd}, {    // testStrategy
-	{100, 0xabcd, 0xabcd, 0xabcd, AF_Valid, coreId, user, 0x1122334455667788},
-	{11 , 0xabcd, 0xabcd, 0xabcd, AF_Valid, coreId, user, 0x1122334455667788},
-	{29 , 0xabcd, 0xabcd, 0xabcd, AF_Valid, coreId, user, 0x1122334455667788},
-	{46 , 0xabcd, 0xabcd, 0xabcd, AF_Valid, coreId, user, 0x1122334455667788},
-	{83 , 0xabcd, 0xabcd, 0xabcd, AF_Valid, coreId, user, 0x1122334455667788},
-	{31 , 0xabcd, 0xabcd, 0xabcd, AF_Valid, coreId, user, 0x1122334455667788},
-	{EPM_LAST_ACTION, 0,0,0,0,0,0,0}},
-      /* raiseTriggerFromSw =  */ true, {0x1122334455667788, 1, 100}, // epmTrigger
-      0,                                   // user -- Opaque value copied into `EpmFireReport`
-      {100, 11, 29, 46, 83, 31}
-    };
-    runTestCase(dev,&testCase);
-  }
-  /* ============================================== */
-  {
-    uint64_t user = 0;
-    TestCase testCase = {
       "Action Skip Test (from UDP)", conn, tcpServerSock, triggerSock, (const sockaddr*) &triggerMcAddr,
       {2, 0xabcd}, {    // testStrategy
 	{100, 0xabcd, 0xabcd, 0xabcd, AF_Valid, coreId, user, 0x1122334455667788},
@@ -560,6 +561,8 @@ int main(int argc, char *argv[]) {
     };
     runTestCase(dev,&testCase);
   }
+  //  goto end;
+
   /* ============================================== */
   {
     uint64_t user = 0;
@@ -579,6 +582,8 @@ int main(int argc, char *argv[]) {
     };
     runTestCase(dev,&testCase);
   }
+  //  goto end;
+
   /* ============================================== */
   {
     uint64_t user = 0;
@@ -598,9 +603,11 @@ int main(int argc, char *argv[]) {
     };
     runTestCase(dev,&testCase);
   }
+  goto end;
+
   /* ============================================== */
 
-  // end:
+  end:
   fflush(stdout);fflush(stderr);
 
   keep_work = false;

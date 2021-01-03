@@ -371,9 +371,6 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
 
   if (pEpmTemplate == NULL) on_error("pEpmTemplate == NULL for %s",actionName);
 
-  /* EKA_LOG("--- %20s: Action Idx: %u, localActionIdx: %u, actionRegion: %u,  Action addr: %8ju, Heap: %8u + %4u", */
-  /* 	  actionName, actionIdx,localActionIdx,actionRegion,actionAddr,heapOffs,heapBudget); fflush(stderr); */
-
   if (userActionIdx > UserActionsBaseIdx + MaxUserActions) 
     on_error("userActionIdx %u > MaxUserActions %ju",userActionIdx, UserActionsBaseIdx + MaxUserActions);
 

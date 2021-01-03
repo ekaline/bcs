@@ -101,7 +101,7 @@ class EkaDev {
   std::thread               servThread;
   volatile bool             servThreadTerminated = true;
 
-  volatile bool             fireReportThreadActive = true;
+  volatile bool             fireReportThreadActive = false;
   std::thread               fireReportThread;
   volatile bool             fireReportThreadTerminated = true;
 
