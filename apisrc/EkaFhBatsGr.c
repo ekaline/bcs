@@ -70,7 +70,7 @@ int EkaFhBatsGr::closeSnapshotGap(EfhCtx*            pEfhCtx,
   if (attr == NULL) on_error("attr = NULL");
   
   dev->createThread(threadName.c_str(),
-		    EkaThreadType::kFeedSnapshot,
+		    EkaServiceType::kFeedSnapshot,
 		    getSpinData,        
 		    attr,
 		    dev->createThreadContext,
@@ -95,7 +95,7 @@ int EkaFhBatsGr::closeIncrementalGap(EfhCtx*            pEfhCtx,
   if (attr == NULL) on_error("attr = NULL");
     
   dev->createThread(threadName.c_str(),
-		    EkaThreadType::kFeedSnapshot,
+		    EkaServiceType::kFeedSnapshot,
 		    getGrpRetransmitData,        
 		    attr,
 		    dev->createThreadContext,

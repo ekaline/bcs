@@ -261,7 +261,7 @@ void* getSpinData(void* attr) {
   gr->heartbeat_active = true;
 
   pthread_t heartbeat_thread;
-  dev->createThread((std::string("HB_") + std::string(EKA_EXCH_DECODE(gr->exch)) + '_' + std::to_string(gr->id)).c_str(),EkaThreadType::kHeartbeat,spin_heartbeat_thread,(void*)gr,dev->createThreadContext,(uintptr_t*)&heartbeat_thread);
+  dev->createThread((std::string("HB_") + std::string(EKA_EXCH_DECODE(gr->exch)) + '_' + std::to_string(gr->id)).c_str(),EkaServiceType::kHeartbeat,spin_heartbeat_thread,(void*)gr,dev->createThreadContext,(uintptr_t*)&heartbeat_thread);
 
   //-----------------------------------------------------------------
   if (op == EkaFhMode::SNAPSHOT) requestedSpinSequence = getSpinImageSeq(gr);

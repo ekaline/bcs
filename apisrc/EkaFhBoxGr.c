@@ -135,7 +135,7 @@ int EkaFhBoxGr::closeIncrementalGap(EfhCtx*          pEfhCtx,
   if (attr == NULL) on_error("attr = NULL");
     
   dev->createThread(threadName.c_str(),
-		    EkaThreadType::kFeedSnapshot,
+		    EkaServiceType::kFeedSnapshot,
 		    getHsvfRetransmit,        
 		    attr,
 		    dev->createThreadContext,

@@ -73,7 +73,7 @@ int EkaFhPhlxOrdGr::closeIncrementalGap(EfhCtx*        pEfhCtx,
   if (attr == NULL) on_error("attr = NULL");
     
   dev->createThread(threadName.c_str(),
-		    EkaThreadType::kFeedSnapshot,
+		    EkaServiceType::kFeedSnapshot,
 		    getMolUdpPlxOrdData,
 		    attr,
 		    dev->createThreadContext,

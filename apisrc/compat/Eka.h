@@ -242,18 +242,18 @@ typedef int (*EkaAcquireCredentialsFn)(EkaCredentialType credType,
 
 typedef int (*EkaReleaseCredentialsFn)(EkaCredentialLease *lease, void* context);
 
-enum class EkaThreadType {
-  #define EkaThreadType_ENUM_ITER(_x)       \
+enum class EkaServiceType {
+  #define EkaServiceType_ENUM_ITER(_x)       \
     _x ( Unspecified, 0 )                   \
     _x ( FeedSnapshot )                     \
     _x ( FeedRecovery )                     \
     _x ( IGMP )                             \
     _x ( PacketIO )                         \
     _x ( Heartbeat )
-  EkaThreadType_ENUM_ITER( EKA__ENUM_DEF )
+  EkaServiceType_ENUM_ITER( EKA__ENUM_DEF )
 };
 
-typedef int (*EkaThreadCreateFn)(const char* name, EkaThreadType type, void *(*start_routine)(void*),void *arg, void *context, uintptr_t *handle);
+typedef int (*EkaThreadCreateFn)(const char* name, EkaServiceType type, void *(*start_routine)(void*),void *arg, void *context, uintptr_t *handle);
 
 struct EkaDevInitCtx {
     #define EkaDevInitCtx_FIELD_ITER( _x )                              \

@@ -58,7 +58,7 @@ int EkaFhNasdaqGr::closeSnapshotGap(EfhCtx*           pEfhCtx,
   if (attr == NULL) on_error("attr = NULL");
   
   dev->createThread(threadName.c_str(),
-		    EkaThreadType::kFeedSnapshot,
+		    EkaServiceType::kFeedSnapshot,
 		    getSoupBinData,        
 		    attr,
 		    dev->createThreadContext,
@@ -83,7 +83,7 @@ int EkaFhNasdaqGr::closeIncrementalGap(EfhCtx*        pEfhCtx,
   if (attr == NULL) on_error("attr = NULL");
     
   dev->createThread(threadName.c_str(),
-		    EkaThreadType::kFeedSnapshot,
+		    EkaServiceType::kFeedSnapshot,
 		    getMolUdp64Data,        
 		    attr,
 		    dev->createThreadContext,
