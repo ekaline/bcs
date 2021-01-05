@@ -100,7 +100,7 @@ int EkaFhMiaxGr::closeSnapshotGap(EfhCtx*           pEfhCtx,
   if (attr == NULL) on_error("attr = NULL");
   
   dev->createThread(threadName.c_str(),
-		    EkaThreadType::kFeedSnapshot,
+		    EkaServiceType::kFeedSnapshot,
 		    getSesmData,        
 		    attr,
 		    dev->createThreadContext,
@@ -125,7 +125,7 @@ int EkaFhMiaxGr::closeIncrementalGap(EfhCtx*        pEfhCtx,
   if (attr == NULL) on_error("attr = NULL");
     
   dev->createThread(threadName.c_str(),
-		    EkaThreadType::kFeedSnapshot,
+		    EkaServiceType::kFeedSnapshot,
 		    getSesmRetransmit,        
 		    attr,
 		    dev->createThreadContext,

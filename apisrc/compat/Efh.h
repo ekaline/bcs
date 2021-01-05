@@ -78,7 +78,7 @@ const EfhInitCtx* efhGetSupportedParams( );
  * @param efhCtx 
  * @retval [See EkaOpResult].
  */
-EkaOpResult efhGetDefs( EfhCtx* efhCtx, const struct EfhRunCtx* efhRunCtx, EkaGroup* group);
+EkaOpResult efhGetDefs( EfhCtx* efhCtx, const struct EfhRunCtx* efhRunCtx, EkaGroup* group, void** retval );
 
 /**
  * This function will tell the Ekaline feedhandler that we are interested in updates for a specific static
@@ -136,7 +136,7 @@ struct EfhRunCtx {
      * Callbacks.
      **************************************/
     #define _DECL_CALLBACK( _msg, ... )                                         \
-                void                                                            \
+                void *                                                          \
                 ( EKA__DELAYED_CAT3( *onEfh, _msg, MsgCb ) )                    \
                 (                                                               \
                     const EKA__DELAYED_CAT3( Efh, _msg, Msg )* msg,             \
@@ -160,7 +160,7 @@ struct EfhRunCtx {
  *                   will be called as the Ekaline feedhandler processes messages.
  * @retval [See EkaOpResult].
  */
-EkaOpResult efhRunGroups( EfhCtx* efhCtx, const EfhRunCtx* efhRunCtx );
+EkaOpResult efhRunGroups( EfhCtx* efhCtx, const EfhRunCtx* efhRunCtx, void** retval );
 
 /**
  * This function will stop all internal loops in the ekaline Fh.

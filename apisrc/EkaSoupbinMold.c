@@ -239,7 +239,7 @@ void* getSoupBinData(void* attr) {
   gr->snapshot_active = true;
   pthread_t heartbeat_thread;
   dev->createThread((std::string("HB_") + std::string(EKA_EXCH_DECODE(gr->exch)) + '_' + std::to_string(gr->id)).c_str(),
-		    EkaThreadType::kHeartbeat,
+		    EkaServiceType::kHeartbeat,
 		    soupbin_heartbeat_thread,
 		    (void*)gr,
 		    dev->createThreadContext,

@@ -178,7 +178,7 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 
   /* igmp_thread_active = true; */
   /* pthread_t igmp_thr; */
-  /* dev->createThread("IGMP_THREAD",EkaThreadType::kIGMP,igmp_thread,(void*)dev,createThreadContext,(uintptr_t*)&igmp_thr); */
+  /* dev->createThread("IGMP_THREAD",EkaServiceType::kIGMP,igmp_thread,(void*)dev,createThreadContext,(uintptr_t*)&igmp_thr); */
 
   print_parsed_messages = false;
 
