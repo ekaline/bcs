@@ -18,6 +18,7 @@
 class EkaFhRunGroup;
 class EkaFhGroup;
 class EkaFh;
+class EkaEfc;
 class EkaEpm;
 class EkaCore;
 class EkaTcpSess;
@@ -138,6 +139,8 @@ class EkaDev {
   volatile uint32_t         statMcGrCore[EKA_MAX_UDP_SESSIONS_PER_CORE][MAX_CORES] = {};
 
   EkaHwCaps*                ekaHwCaps = NULL;
+
+  EkaEfc*                   efc = NULL;
 
 #ifdef TEST_PRINT_DICT
   FILE* testDict;

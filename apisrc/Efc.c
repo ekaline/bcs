@@ -25,6 +25,7 @@
 #include "EkaSnDev.h"
 #include "EkaCore.h"
 #include "EkaTcpSess.h"
+#include "EkaEfc.h"
 
 void efc_run (EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx);
 void download_conf2hw (EkaDev* dev);
@@ -116,14 +117,21 @@ EkaOpResult efcEnableController( EfcCtx* pEfcCtx, EkaCoreId primaryCoreId ) {
  * @retval [See EkaOpResult].
  */
 EkaOpResult efcEnableFiringOnSec( EfcCtx* pEfcCtx, const uint64_t* pSecurityIds, size_t numSecurityIds ) {
-  /* assert (pEfcCtx != NULL); */
-  /* assert (pSecurityIds != NULL); */
-  /* uint64_t* p = (uint64_t*) pSecurityIds; */
-  /* for (uint i = 0; i < numSecurityIds; i++) { */
-  /*   eka_subscr_security2fire(pEfcCtx->dev,*p); */
-  /*   p++; */
-  /* } */
-  /* download_subscr_table(pEfcCtx->dev,0); */
+  if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
+  EkaDev* dev = pEfcCtx->dev;
+  if (dev == NULL) on_error("dev == NULL");
+  EkaEfc* efc = dev->efc;
+  if (efc == NULL) on_error("efc == NULL");
+
+  if (pSecurityIds == NULL) on_error("pSecurityIds == NULL");
+
+  uint64_t* p = (uint64_t*) pSecurityIds;
+  for (uint i = 0; i < numSecurityIds; i++) {
+    efc->subscribeSec(*p);
+    p++;
+  }
+  efc->downloadTable();
+
   return EKA_OPRESULT__OK;
 }
 
@@ -138,12 +146,13 @@ EkaOpResult efcEnableFiringOnSec( EfcCtx* pEfcCtx, const uint64_t* pSecurityIds,
  * @retval [<0]  On failure this will return a value to be interpreted as an error EkaOpResult.
  */
 EfcSecCtxHandle getSecCtxHandle( EfcCtx* pEfcCtx, uint64_t securityId ) {
-  assert (pEfcCtx != NULL);
-  /* uint32_t res = get_subscription_id(pEfcCtx->dev, securityId); */
-  /* if (res == 0xFFFFFFFF) return -1; */
-  /* return (EfcSecCtxHandle) res; */
-  return (EfcSecCtxHandle) 0;
+  if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
+  EkaDev* dev = pEfcCtx->dev;
+  if (dev == NULL) on_error("dev == NULL");
+  EkaEfc* efc = dev->efc;
+  if (efc == NULL) on_error("efc == NULL");
 
+  return (EfcSecCtxHandle) efc->getSubscriptionId(securityId);
 }
 
 /**

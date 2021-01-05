@@ -21,13 +21,14 @@
  * This function must be called before efcInit().
  */
 struct EfcInitCtx {
-    EkaProps* ekaProps;
-
-    /** This should be a pointer to a valid EfhCtx created by efhInit(). */
-    EfhCtx* efhCtx;
-
-   /* This is true if we expect to receive marketdata updates when we run efhRun().  If this is false, 
-    * we dont expect updates, and so Ekaline can save memory and avoid creating structures that arent needed.  */
+  EkaProps* ekaProps;
+  
+  EkaCoreId mdCoreId; // what 10G port get MD on -- added by Vitaly
+  
+  /** This should be a pointer to a valid EfhCtx created by efhInit(). */
+  // EfhCtx* efhCtx; -- removed by Vitaly
+  
+  /* Efh and Efc must be initialized independently using EfhInitCtx and EfcInitCtx */
 };
 
 /**

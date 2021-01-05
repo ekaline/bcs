@@ -44,7 +44,8 @@ int EkaIgmp::mcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag) {
 
   numIgmpEntries++;
 
-  udpCh->igmp_mc_join (dev->core[coreId]->srcIp, ip, port, 0);
+  if (udpCh != NULL) 
+    udpCh->igmp_mc_join (dev->core[coreId]->srcIp, ip, port, 0);
   return 0;
 }
 
