@@ -363,7 +363,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       if (b_gr[gr] == NULL) on_error("Group %u does not exist",gr);
       //      if (gr >= groups) on_error("%s -- %s : group_id %d >= groups (=%u)",key, value,gr,groups);
-      if (gr >= groups) {
+      if (gr > groups) {
 	on_warning("%s -- %s : Ignoring group_id %d >= groups (=%u)",key, value,gr,groups);
 	return EkaFhAddConf::CONF_SUCCESS;
       }

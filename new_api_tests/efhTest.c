@@ -153,6 +153,7 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
     break;
   }
     /* ----------------------------- */
+  case EfhGroupState::kNormal :
   case EfhGroupState::kInitializing : {
     std::string gapType = std::string("Unknown");
     switch (msg->systemState) {
