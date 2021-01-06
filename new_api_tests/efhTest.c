@@ -305,7 +305,8 @@ void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUs
 
 void print_usage(char* cmd) {
   printf("USAGE: %s <flags> \n",cmd); 
-  printf("\t-F [Feed Code]\n"); 
+  printf("\t-F <Feed Code>\n");
+  printf("\t\tSupported Feed Codes:\n"); 
   printf("\t\t\tNA - NOM       A feed\n"); 
   printf("\t\t\tNB - NOM       B feed\n"); 
   printf("\t\t\tGA - GEM       A feed\n"); 
@@ -330,6 +331,7 @@ void print_usage(char* cmd) {
   printf("\t\t\tXB - AMEX      B feed\n"); 
   printf("\t\t\tBA - BOX       A feed\n"); 
   printf("\t\t\tBB - BOX       B feed\n"); 
+  printf("\t-u <Underlying Name> - subscribe on all options belonging to\n");
   printf("\t-s run single MC group #0\n");
   printf("\t-t Print TOB updates (EFH)\n");
 
