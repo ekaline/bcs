@@ -25,7 +25,8 @@ class EkaFhRunGroup {
   bool drainQ(const EfhRunCtx* pEfhRunCtx);
 
   int igmpMcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag);
-
+  int checkTimeOut(const EfhRunCtx* pEfhRunCtx);
+  int sendFeedCloseAll(const EfhRunCtx* pEfhRunCtx);
  private:
   int igmpThreadLoop();
   int igmpLeaveAll();
@@ -58,6 +59,7 @@ class EkaFhRunGroup {
   EkaIgmp*              ekaIgmp           = NULL;
 
  private:
+  uint64_t              timeOutCntr       = 0;
   EkaDev*               dev               = NULL;
 
 };

@@ -38,7 +38,12 @@ class EkaFhGroup {
   virtual bool parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) = 0;
 
   void         sendFeedUp  (const EfhRunCtx* EfhRunCtx);
+  void         sendFeedUpInitial  (const EfhRunCtx* EfhRunCtx);
   void         sendFeedDown(const EfhRunCtx* EfhRunCtx);
+  void         sendFeedDownInitial(const EfhRunCtx* EfhRunCtx);
+  void         sendFeedDownClosed(const EfhRunCtx* EfhRunCtx);
+
+  void         sendNoMdTimeOut(const EfhRunCtx* EfhRunCtx);
 
   virtual int closeSnapshotGap(EfhCtx*              pEfhCtx, 
 			       const EfhRunCtx*  pEfhRunCtx, 
@@ -123,8 +128,10 @@ class EkaFhGroup {
   pthread_t             snapshot_thread;
   pthread_t             retransmit_thread;
 
-  uint                  numSecurities = 0;
+  uint                  numSecurities      = 0;
 
+  std::chrono::high_resolution_clock::time_point lastMdReceived;
+  bool                  lastMdReceivedValid = false;
 
   fh_q*                 q                  = NULL;
 

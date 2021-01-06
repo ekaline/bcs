@@ -175,6 +175,7 @@ enum class EfhGroupState : char {
   _x( Initializing, 'I' )            \
   _x( Normal,       'N' )            \
   _x( Gap,          'G' )            \
+  _x( Closed,       'C' )            \
   _x( Error,        'E' )
   EfhGroupState_ENUM_ITER( EKA__ENUM_DEF )
 };

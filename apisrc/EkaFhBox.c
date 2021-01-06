@@ -45,7 +45,10 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     if (runGr->drainQ(pEfhRunCtx)) continue;
 
     //-----------------------------------------------------------------------------
-    if (! runGr->udpCh->has_data()) continue;
+    if (! runGr->udpCh->has_data()) {
+      runGr->checkTimeOut(pEfhRunCtx);
+      continue;
+    }
     uint8_t        gr_id = 0xFF;
     uint16_t       pktLen = 0;
     uint64_t       sequence = 0;
@@ -73,7 +76,7 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     case EkaFhGroup::GrpState::INIT : {
       gr->gapClosed = false;
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
-      gr->sendFeedDown(pEfhRunCtx);
+      gr->sendFeedDownInitial(pEfhRunCtx);
       gr->pushUdpPkt2Q(pkt,pktLen);
 
       gr->closeIncrementalGap(pEfhCtx,pEfhRunCtx, (uint64_t)1, sequence);
@@ -92,7 +95,7 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	//	hexDump("Gap Pkt",pkt,pktLen);
 #ifdef FH_LAB
 	gr->sendFeedDown(pEfhRunCtx);
-	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,pktLen);      
+	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,pktLen);  
 	break;
 #endif
 
@@ -121,7 +124,7 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 		  EKA_EXCH_DECODE(gr->exch),gr->id);
 	gr->book->sendTobImage(pEfhRunCtx);
 
-	gr->sendFeedUp(pEfhRunCtx);
+	gr->sendFeedUpInitial(pEfhRunCtx);
 
 	runGr->setGrAfterGap(gr->id);
 	gr->expected_sequence = gr->seq_after_snapshot;      
@@ -152,6 +155,9 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     runGr->udpCh->next(); 
   }
   EKA_INFO("%s RunGroup %u EndOfSession",EKA_EXCH_DECODE(exch),runGrId);
+
+  runGr->sendFeedCloseAll(pEfhRunCtx);
+
   return EKA_OPRESULT__OK;
 }
 

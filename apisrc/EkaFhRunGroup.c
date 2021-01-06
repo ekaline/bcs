@@ -53,6 +53,49 @@ int EkaFhRunGroup::igmpMcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag) {
 }
 
 /* ##################################################################### */
+int EkaFhRunGroup::checkTimeOut(const EfhRunCtx* pEfhRunCtx) {
+  static const int TimeOutSeconds = 4;
+  static const int TimeOutSample  = 1000;
+
+  if (++timeOutCntr % TimeOutSample != 0) return 0;
+ 
+  for (auto i = 0; i < numGr; i++) {
+    EkaFhGroup* gr = fh->b_gr[groupList[i]];
+    if (gr == NULL) on_error("fh->gr[%u] == NULL",groupList[i]);
+
+    auto now = std::chrono::high_resolution_clock::now();
+
+    if (! gr->lastMdReceivedValid) {
+      gr->lastMdReceivedValid = true;
+      goto next;
+    }
+
+    if (std::chrono::duration_cast<std::chrono::seconds>(now - gr->lastMdReceived).count() > TimeOutSeconds) {
+      gr->sendNoMdTimeOut(pEfhRunCtx);
+    }
+
+  next:
+    gr->lastMdReceived      = now;
+      
+  }
+  return 0;
+}
+/* ##################################################################### */
+
+int EkaFhRunGroup::sendFeedCloseAll(const EfhRunCtx* pEfhRunCtx) {
+  for (auto i = 0; i < numGr; i++) {
+    EkaFhGroup* gr = fh->b_gr[groupList[i]];
+    if (gr == NULL) {
+      EKA_WARN("fh->gr[%u] == NULL",groupList[i]);
+      continue;
+    }
+    gr->sendFeedDownClosed(pEfhRunCtx);
+  }
+  return 0;
+}
+
+/* ##################################################################### */
+
 
 uint EkaFhRunGroup::getGrAfterGap() {
   if (cntGrAfterGap == 0) on_error("cntGrAfterGap = 0");

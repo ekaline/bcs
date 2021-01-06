@@ -50,12 +50,32 @@ int EkaFhGroup::processFromQ(const EfhRunCtx* pEfhRunCtx) {
 void EkaFhGroup::sendFeedUp(const EfhRunCtx* pEfhRunCtx) {
   if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
 
-  EfhFeedUpMsg efhFeedUpMsg = {
-    EfhMsgType::kFeedUp, 
-    {exch, id}, 
-    gapNum 
+  EfhGroupStateChangedMsg msg = {
+    EfhMsgType::kGroupStateChanged,
+    {exch, id},
+    EfhGroupState::kNormal,   //Initializing
+    EfhSystemState::kTrading, // Preopen, Trading, Closed
+    EfhGroupStateErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EkaServiceType::kFeedRecovery, // Unspecified, FeedRecovery
+    gapNum // int64_t code
   };
-  pEfhRunCtx->onEfhFeedUpMsgCb(&efhFeedUpMsg, 0, pEfhRunCtx->efhRunUserData);
+  pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
+}
+ /* ##################################################################### */
+
+void EkaFhGroup::sendFeedUpInitial(const EfhRunCtx* pEfhRunCtx) {
+  if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
+
+  EfhGroupStateChangedMsg msg = {
+    EfhMsgType::kGroupStateChanged,
+    {exch, id},
+    EfhGroupState::kInitializing,   //Initializing
+    EfhSystemState::kInitial, // Preopen, Trading, Closed
+    EfhGroupStateErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EkaServiceType::kFeedSnapshot, // Unspecified, FeedRecovery
+    gapNum // int64_t code
+  };
+  pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
 }
 
  /* ##################################################################### */
@@ -63,14 +83,68 @@ void EkaFhGroup::sendFeedUp(const EfhRunCtx* pEfhRunCtx) {
 void EkaFhGroup::sendFeedDown(const EfhRunCtx* pEfhRunCtx) {
   if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
 
-  EfhFeedDownMsg efhFeedDownMsg = { 
-    EfhMsgType::kFeedDown, 
-    {exch, id}, 
-    ++gapNum 
+  EfhGroupStateChangedMsg msg = {
+    EfhMsgType::kGroupStateChanged,
+    {exch, id},
+    EfhGroupState::kGap, //Initializing
+    EfhSystemState::kTrading, // Preopen, Trading, Closed
+    EfhGroupStateErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EkaServiceType::kFeedRecovery, // Unspecified, FeedRecovery
+    ++gapNum // int64_t code
   };
-  pEfhRunCtx->onEfhFeedDownMsgCb(&efhFeedDownMsg, 0, pEfhRunCtx->efhRunUserData);
+  pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
 }
 
+ /* ##################################################################### */
+
+void EkaFhGroup::sendFeedDownInitial(const EfhRunCtx* pEfhRunCtx) {
+  if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
+
+  EfhGroupStateChangedMsg msg = {
+    EfhMsgType::kGroupStateChanged,
+    {exch, id},
+    EfhGroupState::kGap,
+    EfhSystemState::kInitial, // Preopen, Trading, Closed
+    EfhGroupStateErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EkaServiceType::kFeedSnapshot, // Unspecified, FeedRecovery
+    ++gapNum // int64_t code
+  };
+  pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
+}
+
+ /* ##################################################################### */
+
+void EkaFhGroup::sendFeedDownClosed(const EfhRunCtx* pEfhRunCtx) {
+  if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
+
+  EfhGroupStateChangedMsg msg = {
+    EfhMsgType::kGroupStateChanged,
+    {exch, id},
+    EfhGroupState::kClosed,
+    EfhSystemState::kClosed, // Preopen, Trading, Closed
+    EfhGroupStateErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EkaServiceType::kUnspecified, // Unspecified, FeedRecovery
+    ++gapNum // int64_t code
+  };
+  pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
+}
+
+ /* ##################################################################### */
+
+void EkaFhGroup::sendNoMdTimeOut(const EfhRunCtx* pEfhRunCtx) {
+  if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
+
+  EfhGroupStateChangedMsg msg = {
+    EfhMsgType::kGroupStateChanged,
+    {exch, id},
+    EfhGroupState::kError,
+    EfhSystemState::kUnknown, // Preopen, Trading, Closed
+    EfhGroupStateErrorDomain::kUpdateTimeout, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EkaServiceType::kUnspecified, // Unspecified, FeedRecovery
+    ++gapNum // int64_t code
+  };
+  pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
+}
  /* ##################################################################### */
 
 int EkaFhGroup::init (EfhCtx* _pEfhCtx, 
