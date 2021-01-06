@@ -132,6 +132,7 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
 	    EKA_PRINT_GRP(&msg->group));
     break;
     /* ----------------------------- */
+  case EfhGroupState::kClosed : 
   case EfhGroupState::kGap : {
     std::string gapType = std::string("Unknown");
     switch (msg->systemState) {

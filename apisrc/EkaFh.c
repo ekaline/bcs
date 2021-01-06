@@ -218,7 +218,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"snapshot")==0) && (strcmp(k[5],"auth")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
-      if (gr > groups) {
+      if (gr >= groups) {
 	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
 	return EkaFhAddConf::CONF_SUCCESS;
       }
@@ -259,7 +259,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"unit")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
-      if (gr > groups) {
+      if (gr >= groups) {
 	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
 	return EkaFhAddConf::CONF_SUCCESS;
       }
@@ -300,7 +300,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"snapshot")==0) && (strcmp(k[5],"sessionSubID")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
-      if (gr > groups) {
+      if (gr >= groups) {
 	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
 	return EkaFhAddConf::CONF_SUCCESS;
       }
@@ -320,12 +320,12 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"mcast")==0) && (strcmp(k[5],"addr")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
-      //      if (gr > groups) on_error("%s -- %s : group_id %d >= groups (=%u)",key, value,gr,groups);
-      if (gr > groups) {
+      //      if (gr >= groups) on_error("%s -- %s : group_id %d >= groups (=%u)",key, value,gr,groups);
+      if (gr >= groups) {
 	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
 	return EkaFhAddConf::CONF_SUCCESS;
       }
-      if (b_gr[gr] == NULL) on_error("b_gr[%u] == NULL",gr);
+      if (b_gr[gr] == NULL) on_error("b_gr[%u] == NULL, groups = %u",gr,groups);
       inet_aton (v[0],(struct in_addr*) &b_gr[gr]->mcast_ip);
       b_gr[gr]->mcast_port =  (uint16_t)atoi(v[1]);
       b_gr[gr]->mcast_set  = true;
@@ -341,8 +341,8 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"snapshot")==0) && (strcmp(k[5],"addr")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
-      //      if (gr > groups) on_error("%s -- %s : group_id %d >= groups (=%u)",key, value,gr,groups);
-      if (gr > groups) {
+      //      if (gr >= groups) on_error("%s -- %s : group_id %d >= groups (=%u)",key, value,gr,groups);
+      if (gr >= groups) {
 	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
 	return EkaFhAddConf::CONF_SUCCESS;
       }
@@ -362,8 +362,8 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"recovery")==0) && (strcmp(k[5],"addr")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
-      //      if (gr > groups) on_error("%s -- %s : group_id %d >= groups (=%u)",key, value,gr,groups);
-      if (gr > groups) {
+      //      if (gr >= groups) on_error("%s -- %s : group_id %d >= groups (=%u)",key, value,gr,groups);
+      if (gr >= groups) {
 	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
 	return EkaFhAddConf::CONF_SUCCESS;
       }
@@ -383,8 +383,8 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"mcast")==0) && (strcmp(k[5],"line")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
-      //      if (gr > groups) on_error("%s -- %s : group_id %d >= groups (=%u)",key, value,gr,groups);
-      if (gr > groups) {
+      //      if (gr >= groups) on_error("%s -- %s : group_id %d >= groups (=%u)",key, value,gr,groups);
+      if (gr >= groups) {
 	on_warning("%s -- %s : Ignoring group_id %d >= groups (=%u)",key, value,gr,groups);
 	return EkaFhAddConf::CONF_SUCCESS;
       }
