@@ -74,6 +74,7 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
     EkaFhXdpGr* gr = (EkaFhXdpGr*)b_gr[gr_id];
     if (gr == NULL) on_error("b_gr[%u] == NULL",gr_id);
+    gr->resetNoMdTimer();
 
     uint streamIdx = gr->findAndInstallStream(streamId, sequence);
 

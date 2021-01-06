@@ -65,6 +65,7 @@ EkaOpResult EkaFhMiax::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
     }
     EkaFhMiaxGr* gr = (EkaFhMiaxGr*)b_gr[gr_id];
     if (gr == NULL) on_error("gr = NULL");
+    gr->resetNoMdTimer();
 
     //-----------------------------------------------------------------------------
     switch (gr->state) {

@@ -89,6 +89,7 @@ EkaOpResult EkaFhPhlxOrd::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
     if (pkt == NULL) continue;
     EkaFhPhlxOrdGr* gr = (EkaFhPhlxOrdGr*)b_gr[gr_id];
     if (gr == NULL) on_error("b_gr[%u] = NULL",gr_id);
+    gr->resetNoMdTimer();
 
     //-----------------------------------------------------------------------------
     switch (gr->state) {

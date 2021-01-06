@@ -73,6 +73,7 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
     if (pkt == NULL) continue;
     EkaFhPhlxTopoGr* gr = (EkaFhPhlxTopoGr*)b_gr[gr_id];
     if (gr == NULL) on_error("b_gr[%u] = NULL",gr_id);
+    gr->resetNoMdTimer();
 
     //-----------------------------------------------------------------------------
     switch (gr->state) {

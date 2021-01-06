@@ -29,6 +29,10 @@ class EkaFhGroup {
 
   void         createQ(EfhCtx* pEfhCtx, const uint qsize);
 
+  inline void resetNoMdTimer() {
+    lastMdReceived = std::chrono::high_resolution_clock::now();
+  }
+
   virtual int  bookInit(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) = 0;
   virtual int  subscribeStaticSecurity(uint64_t        secId,
 				       EfhSecurityType type,

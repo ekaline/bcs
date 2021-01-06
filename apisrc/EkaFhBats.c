@@ -75,6 +75,7 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
     if (pkt == NULL) continue;
     EkaFhBatsGr* gr = (EkaFhBatsGr*)b_gr[gr_id];
     if (gr == NULL) on_error("b_gr[%u] = NULL",gr_id);
+    gr->resetNoMdTimer();
 
     //-----------------------------------------------------------------------------
     switch (gr->state) {

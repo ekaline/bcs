@@ -65,6 +65,8 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
     EkaFhNasdaqGr* gr = (EkaFhNasdaqGr*)b_gr[gr_id];
     if (gr == NULL) on_error("b_gr[%u] = NULL",gr_id);
 
+    gr->resetNoMdTimer();
+
 #ifdef FH_LAB
     gr->state = EkaFhGroup::GrpState::NORMAL;
     gr->processUdpPkt(pEfhRunCtx,pkt,msgInPkt,sequence);

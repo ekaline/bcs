@@ -66,6 +66,8 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     EkaFhBoxGr* gr = (EkaFhBoxGr*)b_gr[gr_id];
     if (gr == NULL) on_error("gr == NULL");
 
+    gr->resetNoMdTimer();
+
 #ifdef FH_LAB
     gr->state = EkaFhGroup::GrpState::NORMAL;
 #endif

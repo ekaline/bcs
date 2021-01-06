@@ -67,16 +67,15 @@ int EkaFhRunGroup::checkTimeOut(const EfhRunCtx* pEfhRunCtx) {
 
     if (! gr->lastMdReceivedValid) {
       gr->lastMdReceivedValid = true;
-      goto next;
+      gr->lastMdReceived      = now;
+      continue;
     }
 
     if (std::chrono::duration_cast<std::chrono::seconds>(now - gr->lastMdReceived).count() > TimeOutSeconds) {
       gr->sendNoMdTimeOut(pEfhRunCtx);
+      gr->lastMdReceived      = now;
     }
 
-  next:
-    gr->lastMdReceived      = now;
-      
   }
   return 0;
 }
