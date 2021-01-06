@@ -50,7 +50,7 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     uint8_t grId = runGr->groupList[j];
     EkaFhXdpGr* gr = (EkaFhXdpGr*)b_gr[grId];
     if (gr == NULL) on_error("b_gr[%u] == NULL",grId);
-    gr->sendFeedDown(pEfhRunCtx);
+    gr->sendFeedDownInitial(pEfhRunCtx);
 
     gr->inGap = true;
     gr->setGapStart();
@@ -58,7 +58,10 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
   while (runGr->thread_active) {
     //-----------------------------------------------------------------------------
-    if (! runGr->udpCh->has_data()) continue;
+    if (! runGr->udpCh->has_data()) {
+      runGr->checkTimeOut(pEfhRunCtx);
+      continue;
+    }
     uint     msgInPkt = 0;
     uint64_t sequence = 0;
     uint8_t  gr_id = 0xFF;
@@ -104,6 +107,8 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     runGr->udpCh->next(); 
   }
   EKA_INFO("%s RunGroup %u EndOfSession",EKA_EXCH_DECODE(exch),runGrId);
+  runGr->sendFeedCloseAll(pEfhRunCtx);
+
   return EKA_OPRESULT__OK;
 }
  /* ##################################################################### */

@@ -52,7 +52,10 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
     //-----------------------------------------------------------------------------
     if (runGr->drainQ(pEfhRunCtx)) continue;
     //-----------------------------------------------------------------------------
-    if (! runGr->udpCh->has_data()) continue;
+    if (! runGr->udpCh->has_data()) {
+      runGr->checkTimeOut(pEfhRunCtx);
+      continue;
+    }
     uint     msgInPkt = 0;
     uint64_t sequence = 0;
     uint8_t  gr_id    = 0xFF;
@@ -71,7 +74,7 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
     case EkaFhGroup::GrpState::INIT : { 
       gr->gapClosed = false;
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
-      gr->sendFeedDown(pEfhRunCtx);
+      gr->sendFeedDownInitial(pEfhRunCtx);
       gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 1, 0);
     }
       break;
@@ -98,7 +101,8 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
 
       if (gr->gapClosed) {
 	gr->state = EkaFhGroup::GrpState::NORMAL;
-	gr->sendFeedUp(pEfhRunCtx);
+	gr->sendFeedUpInitial(pEfhRunCtx);
+
 	runGr->setGrAfterGap(gr->id);
 	gr->expected_sequence = gr->seq_after_snapshot;
 	EKA_LOG("%s:%u: SNAPSHOT_GAP Closed - expected_sequence=%ju",
@@ -129,6 +133,9 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
     runGr->udpCh->next(); 
   }
   EKA_INFO("%s RunGroup %u EndOfSession",EKA_EXCH_DECODE(exch),runGrId);
+
+  runGr->sendFeedCloseAll(pEfhRunCtx);
+
   return EKA_OPRESULT__OK;
 }
 

@@ -40,7 +40,8 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       EKA_LOG("%s:%u: Running PreTrade Snapshot",EKA_EXCH_DECODE(exch),gr->id);
       gr->snapshotThreadDone = false;
 
-      gr->sendFeedDown(pEfhRunCtx);
+      gr->sendFeedUpInitial(pEfhRunCtx);
+
       gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,1, 1);
 
       while (! gr->snapshotThreadDone) {} // instead of thread.join()
@@ -49,7 +50,7 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
 	      EKA_EXCH_DECODE(exch),gr->id,gr->expected_sequence);
 
       gr->state = EkaFhGroup::GrpState::NORMAL;
-      gr->sendFeedUp(pEfhRunCtx);
+      gr->sendFeedUpInitial(pEfhRunCtx);
     }
   }
 
@@ -60,7 +61,10 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
     //-----------------------------------------------------------------------------
     if (runGr->drainQ(pEfhRunCtx)) continue;
     //-----------------------------------------------------------------------------
-    if (! runGr->udpCh->has_data()) continue;
+    if (! runGr->udpCh->has_data()) {
+      runGr->checkTimeOut(pEfhRunCtx);
+      continue;
+    }
     uint     msgInPkt = 0;
     uint64_t sequence = 0;
     uint8_t  gr_id    = 0xFF;
@@ -76,7 +80,8 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       gr->gapClosed = false;
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
 
-      gr->sendFeedDown(pEfhRunCtx);
+      gr->sendFeedUpInitial(pEfhRunCtx);
+
       gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 1, 0);
     }
       break;
@@ -142,6 +147,8 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
     runGr->udpCh->next(); 
   }
   EKA_INFO("%s RunGroup %u EndOfSession",EKA_EXCH_DECODE(exch),runGrId);
+  runGr->sendFeedCloseAll(pEfhRunCtx);
+
   return EKA_OPRESULT__OK;
 }
 

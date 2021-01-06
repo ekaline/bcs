@@ -48,7 +48,10 @@ EkaOpResult EkaFhMiax::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
     if (runGr->drainQ(pEfhRunCtx)) continue;
 
     //-----------------------------------------------------------------------------
-    if (! runGr->udpCh->has_data()) continue;
+    if (! runGr->udpCh->has_data()) {
+      runGr->checkTimeOut(pEfhRunCtx);
+      continue;
+    }
     uint     msgInPkt = 0;
     uint64_t sequence = 0;
     uint8_t  gr_id = 0xFF;
@@ -73,7 +76,7 @@ EkaOpResult EkaFhMiax::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
       gr->gapClosed = false;
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
 
-      gr->sendFeedDown(pEfhRunCtx);
+      gr->sendFeedDownInitial(pEfhRunCtx);
       gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 0, 0);
     }
       break;
@@ -101,7 +104,7 @@ EkaOpResult EkaFhMiax::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
 	EKA_LOG("%s:%u: SNAPSHOT_GAP Closed: gr->seq_after_snapshot = %ju",EKA_EXCH_DECODE(exch),gr->id,gr->seq_after_snapshot);
 	gr->state = EkaFhGroup::GrpState::NORMAL;
 	any_group_getting_snapshot = false;
-	gr->sendFeedUp(pEfhRunCtx);
+	gr->sendFeedUpInitial(pEfhRunCtx);
 
 	runGr->setGrAfterGap(gr->id);
 	gr->expected_sequence = gr->seq_after_snapshot + 1;
@@ -128,6 +131,8 @@ EkaOpResult EkaFhMiax::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
     }
     runGr->udpCh->next(); 
   }
+  runGr->sendFeedCloseAll(pEfhRunCtx);
+
   return EKA_OPRESULT__OK;
 
 }
