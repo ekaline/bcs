@@ -38,7 +38,7 @@ uint8_t EkaFhBats::getGrId(const uint8_t* pkt) {
     /* FhBatsGr* gr = dynamic_cast<FhBatsGr*>(b_gr[i]); */
     /* if (gr == NULL) on_error("cannot convert gr to FhBatsGr"); */
     EkaFhBatsGr* gr = static_cast<EkaFhBatsGr*>(b_gr[i]);
-    if ((be16toh(gr->mcast_port) == EKA_UDPHDR_DST((pkt-8))) && (EKA_BATS_UNIT(pkt) == (gr->batsUnit))) 
+    if ((gr->mcast_port == EKA_UDPHDR_DST((pkt-8))) && (EKA_BATS_UNIT(pkt) == (gr->batsUnit))) 
       return i;
   }
   return 0xFF;
