@@ -48,6 +48,8 @@ class EkaFhGroup {
   void         sendFeedDownClosed(const EfhRunCtx* EfhRunCtx);
 
   void         sendNoMdTimeOut(const EfhRunCtx* EfhRunCtx);
+  void         sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx);
+  void         sendRetransmitSocketError(const EfhRunCtx* pEfhRunCtx);
 
   virtual int closeSnapshotGap(EfhCtx*              pEfhCtx, 
 			       const EfhRunCtx*  pEfhRunCtx, 

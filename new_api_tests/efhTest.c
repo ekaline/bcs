@@ -128,9 +128,43 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
   switch (msg->groupState) {
     /* ----------------------------- */
   case EfhGroupState::kError :
-    printf ("=========================\n%s: MdTimeOut\n=========================\n",
-	    EKA_PRINT_GRP(&msg->group));
-    break;
+    switch (msg->errorDomain) {
+    case EfhGroupStateErrorDomain::kUpdateTimeout :
+      printf ("=========================\n%s: MdTimeOut\n=========================\n",
+	      EKA_PRINT_GRP(&msg->group));
+      break;
+      
+    case EfhGroupStateErrorDomain::kExchangeError :
+      printf ("=========================\n%s: ExchangeError\n=========================\n",
+	      EKA_PRINT_GRP(&msg->group));
+      break;
+
+    case EfhGroupStateErrorDomain::kSocketError :
+      printf ("=========================\n%s: SocketError\n=========================\n",
+	      EKA_PRINT_GRP(&msg->group));
+      break;
+
+    case EfhGroupStateErrorDomain::kCredentialError :
+      printf ("=========================\n%s: CredentialError\n=========================\n",
+	      EKA_PRINT_GRP(&msg->group));
+      break;
+
+    case EfhGroupStateErrorDomain::kOSError :
+      printf ("=========================\n%s: OSError\n=========================\n",
+	      EKA_PRINT_GRP(&msg->group));
+      break;
+
+    case EfhGroupStateErrorDomain::kDeviceError :
+      printf ("=========================\n%s: DeviceError\n=========================\n",
+	      EKA_PRINT_GRP(&msg->group));
+      break;
+
+    default:
+      printf ("=========================\n%s: errorDomain = \'%c\'\n=========================\n",
+	      EKA_PRINT_GRP(&msg->group),(char)msg->errorDomain);
+    }
+
+
     /* ----------------------------- */
   case EfhGroupState::kClosed : 
   case EfhGroupState::kGap : {

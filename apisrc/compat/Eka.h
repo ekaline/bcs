@@ -79,6 +79,7 @@ extern "C" {
     EKA_OPRESULT__ERR_SYSTEM_ERROR = -103,     // returned when a system call fails and errno is set
     EKA_OPRESULT__ERR_NOT_IMPLEMENTED = -104,     // returned when an API call is not implemented
     EKA_OPRESULT__ERR_GROUP_NOT_AVAILABLE = -105, // returned by test feed handler when group not present in capture
+    EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION = -106, // returned if exchange retransmit connection failed
 
     // EPM specific
     //    EKA_OPRESULT__ERR_BAD_ADDRESS = -201,
