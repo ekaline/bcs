@@ -247,6 +247,7 @@ EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, Eka
       continue;
     }
     //-----------------------------------------------------------------
+    success = true;
   }
 #ifdef FH_LAB
   EKA_LOG("%s:%u Dummy FH_LAB Defintions done",EKA_EXCH_DECODE(gr->exch),gr->id);
