@@ -22,7 +22,7 @@ inline SideT sideDecode(char _side) {
 }
 /* ######################################################### */
 
-bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
+bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op) {
   char enc =  (char)m[0];
 
   if (op == EkaFhMode::DEFINITIONS && 

@@ -9,7 +9,7 @@
 #include "EkaFhMiaxParser.h"
 #include "EkaFhMiaxGr.h"
 
-bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
+bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op) {
 
   EKA_MIAX_TOM_MSG enc =  (EKA_MIAX_TOM_MSG)m[0];
 

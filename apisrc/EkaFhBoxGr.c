@@ -27,8 +27,8 @@
 
 void* getHsvfRetransmit(void* attr);
 uint getHsvfMsgLen(const uint8_t* pkt, int bytes2run);
-uint64_t getHsvfMsgSequence(uint8_t* msg);
-uint trailingZeros(uint8_t* p, uint maxChars);
+uint64_t getHsvfMsgSequence(const uint8_t* msg);
+uint trailingZeros(const uint8_t* p, uint maxChars);
 
 /* ##################################################################### */
 
@@ -58,7 +58,8 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 			       int16_t          pktLen) {
   //  EKA_LOG("%s:%u : pktLen = %d",EKA_EXCH_DECODE(exch),id,pktLen);
 
-  uint8_t* p = (uint8_t*)pkt;
+  //  uint8_t* p = (uint8_t*)pkt;
+  const uint8_t* p = pkt;
   int idx = 0;
 
   lastPktLen    = pktLen;
@@ -97,7 +98,7 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
  
 /* ##################################################################### */
 void EkaFhBoxGr::pushUdpPkt2Q(const uint8_t* pkt, uint pktLen) {
-  uint8_t* p = (uint8_t*)pkt;
+  const uint8_t* p = pkt;
   uint idx = 0;
   while (idx < pktLen) {
     uint msgLen = getHsvfMsgLen(&p[idx],pktLen - idx);

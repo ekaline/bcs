@@ -4,7 +4,7 @@
 #include "EkaFhBoxGr.h"
 
 EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhBoxGr* gr);
-uint64_t getHsvfMsgSequence(uint8_t* msg);
+uint64_t getHsvfMsgSequence(const uint8_t* msg);
 
 /* ##################################################################### */
 EkaFhGroup* EkaFhBox::addGroup() {
@@ -14,11 +14,11 @@ EkaFhGroup* EkaFhBox::addGroup() {
 
 /* ##################################################################### */
 
-uint8_t* EkaFhBox::getUdpPkt(EkaFhRunGroup* runGr, 
+const uint8_t* EkaFhBox::getUdpPkt(EkaFhRunGroup* runGr, 
 			     uint16_t*      pktLen, 
 			     uint64_t*      sequence, 
 			     uint8_t*       gr_id) {
-  uint8_t* pkt = (uint8_t*)runGr->udpCh->get();
+  const uint8_t* pkt = (uint8_t*)runGr->udpCh->get();
   if (pkt == NULL) on_error("%s: pkt == NULL",EKA_EXCH_DECODE(exch));
 
   *pktLen   = runGr->udpCh->getPayloadLen();

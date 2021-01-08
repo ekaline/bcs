@@ -28,15 +28,7 @@
 int ekaTcpConnect(uint32_t ip, uint16_t port);
 
 uint getHsvfMsgLen(const uint8_t* pkt, int bytes2run);
-uint64_t getHsvfMsgSequence(uint8_t* msg);
-uint trailingZeros(uint8_t* p, uint maxChars);
-
-/* ----------------------------- */
-/* inline static uint8_t getTcpChar(uint8_t* dst, int sock) { */
-/*   if (recv(sock,dst,1,MSG_WAITALL) != 1) */
-/*     on_error("Retransmit Server connection reset by peer (failed to receive SoM)"); */
-/*   return *dst; */
-/* } */
+uint64_t getHsvfMsgSequence(const uint8_t* msg);
 
 /* ----------------------------- */
 
@@ -285,7 +277,7 @@ EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, Eka
   while (gr->snapshot_active && !definitionsDone) {
     uint8_t* msgBuf = NULL;
     if ((ret = gr->hsvfTcp->getTcpMsg(&msgBuf)) != EKA_OPRESULT__OK) return ret;
-    sequence = getHsvfMsgSequence(msgBuf);
+    sequence = getHsvfMsgSequence((const uint8_t*)msgBuf);
     definitionsDone = gr->parseMsg(pEfhRunCtx,&msgBuf[1],0,EkaFhMode::DEFINITIONS);
   }
   EKA_LOG("%s:%u Dictionary received after %ju messages",EKA_EXCH_DECODE(gr->exch),gr->id,sequence);
@@ -363,7 +355,7 @@ void* getHsvfRetransmit(void* attr) {
     if (gr->hsvfTcp->getTcpMsg(&msgBuf) != EKA_OPRESULT__OK) 
       gr->sendRetransmitSocketError(pEfhRunCtx);
 
-    uint64_t sequence = getHsvfMsgSequence(msgBuf);
+    uint64_t sequence = getHsvfMsgSequence((const uint8_t*)msgBuf);
     //    EKA_LOG("%s:%u got sequence = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,sequence);
     bool endOfTransmition = gr->parseMsg(pEfhRunCtx,&msgBuf[1],sequence,op);
     if (sequence == end || endOfTransmition) {

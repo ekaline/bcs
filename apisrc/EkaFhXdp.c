@@ -12,7 +12,7 @@ EkaFhGroup* EkaFhXdp::addGroup() {
 }
 
 /* ##################################################################### */
-uint8_t* EkaFhXdp::getUdpPkt(EkaFhRunGroup* runGr, 
+const uint8_t* EkaFhXdp::getUdpPkt(EkaFhRunGroup* runGr, 
 			     uint*          msgInPkt, 
 			     uint*          pktSize, 
 			     uint64_t*      sequence,
@@ -69,7 +69,7 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     uint8_t  pktType = 0;
     uint     pktSize = 0; 
 
-    uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&pktSize,&sequence,&gr_id, &streamId, &pktType);
+    const uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&pktSize,&sequence,&gr_id, &streamId, &pktType);
     if (pkt == NULL) continue;
 
     EkaFhXdpGr* gr = (EkaFhXdpGr*)b_gr[gr_id];

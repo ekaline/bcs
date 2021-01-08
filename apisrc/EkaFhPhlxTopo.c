@@ -69,7 +69,7 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
     uint64_t sequence = 0;
     uint8_t  gr_id    = 0xFF;
 
-    uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&sequence,&gr_id);
+    const uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&sequence,&gr_id);
     if (pkt == NULL) continue;
     EkaFhPhlxTopoGr* gr = (EkaFhPhlxTopoGr*)b_gr[gr_id];
     if (gr == NULL) on_error("b_gr[%u] = NULL",gr_id);

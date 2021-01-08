@@ -32,10 +32,10 @@ class EkaFhBats : public EkaFh {
  private:
   uint8_t    getGrId(const uint8_t* pkt);
 
-  uint8_t*   getUdpPkt(EkaFhRunGroup* runGr, 
-		       uint*          msgInPkt, 
-		       uint64_t*      sequence,
-		       uint8_t*       gr_id);
+  const uint8_t*   getUdpPkt(EkaFhRunGroup* runGr, 
+			     uint*          msgInPkt, 
+			     uint64_t*      sequence,
+			     uint8_t*       gr_id);
 
 };
 #endif

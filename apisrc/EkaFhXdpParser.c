@@ -9,7 +9,7 @@
 #include "EkaFhXdpGr.h"
 #include "EkaFhXdpParser.h"
 
-bool EkaFhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
+bool EkaFhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op) {
   switch (((XdpMsgHdr*)m)->MsgType) {
     //-----------------------------------------------------------------------------
   case EKA_XDP_MSG_TYPE::REFRESH_QUOTE :

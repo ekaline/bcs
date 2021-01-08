@@ -18,10 +18,10 @@ class EkaFhNasdaq : public EkaFh { // base class for Nom, Gem, Ise, Phlx
 				      EkaGroup*        group);
 
  protected:
-  uint8_t* getUdpPkt(EkaFhRunGroup* runGr, 
-		     uint*          msgInPkt, 
-		     uint64_t*      sequence,
-		     uint8_t*       gr_id);
+  const uint8_t* getUdpPkt(EkaFhRunGroup* runGr, 
+			   uint*          msgInPkt, 
+			   uint64_t*      sequence,
+			   uint8_t*       gr_id);
 
 };
 

@@ -23,7 +23,7 @@
 #include "EkaHsvfTcp.h"
 #include "EkaFhBoxParser.h"
 
-uint trailingZeros(uint8_t* p, uint maxChars);
+uint trailingZeros(const uint8_t* p, uint maxChars);
 void hexDump (const char* desc, void *addr, int len);
 
 EkaHsvfTcp::EkaHsvfTcp(EkaDev* dev, int sock) {
@@ -43,7 +43,7 @@ bool EkaHsvfTcp::hasValidMsg() {
   for (auto idx = m_firstValidByte + m_msgLen; idx < m_firstValidByte + m_validBytes; idx ++) {
     m_msgLen++;
     if (m_msgBuf[idx] == HsvfEom) {
-      m_msgLen += trailingZeros(&m_msgBuf[idx + 1], m_validBytes - m_msgLen);
+      m_msgLen += trailingZeros((const uint8_t*)&m_msgBuf[idx + 1], m_validBytes - m_msgLen);
       return true;
     }
   }

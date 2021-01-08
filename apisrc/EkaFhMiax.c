@@ -13,7 +13,7 @@ EkaFhGroup* EkaFhMiax::addGroup() {
 }
 /* ##################################################################### */
 
-uint8_t* EkaFhMiax::getUdpPkt(EkaFhRunGroup* runGr, 
+const uint8_t* EkaFhMiax::getUdpPkt(EkaFhRunGroup* runGr, 
 			   uint*          msgInPkt, 
 			   int16_t*       pktLen, 
 			   uint64_t*      sequence,
@@ -57,7 +57,7 @@ EkaOpResult EkaFhMiax::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
     uint8_t  gr_id = 0xFF;
     int16_t  pktLen = 0;
 
-    uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&pktLen,&sequence,&gr_id);
+    const uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&pktLen,&sequence,&gr_id);
     if (pkt == NULL) continue;
     if (gr_id == 0xFF) {
       runGr->udpCh->next(); 
