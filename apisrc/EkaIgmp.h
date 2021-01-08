@@ -5,11 +5,11 @@
 
 class EkaIgmpEntry;
 class EkaDev;
-class EkaUdpChannel;
+//class EkaUdpChannel;
 
 class EkaIgmp {
  public:
-  EkaIgmp(EkaDev* dev,EkaUdpChannel* udpCh,  uint8_t coreId, uint epmRegion, const char* name);
+  EkaIgmp(EkaDev* dev,/* EkaUdpChannel* udpCh, */  uint8_t coreId, uint epmRegion, const char* name);
   ~EkaIgmp();
 
   int mcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag);
@@ -22,11 +22,12 @@ class EkaIgmp {
   int igmpThreadLoop();
   int igmpLeaveAll();
 
-  EkaUdpChannel*        udpCh                       = NULL;
+  //  EkaUdpChannel*        udpCh                       = NULL;
   char                  name[256]                   = {};
   uint                  epmRegion                   = -1;
 
   std::thread           igmpThread;
+  //pthread_t             igmpThread;
   bool                  threadActive                = false;
   bool                  igmpLoopTerminated          = false;
 

@@ -4,13 +4,13 @@
 #include "EkaIgmpEntry.h"
 #include "EkaEpm.h"
 #include "EkaCore.h"
-#include "EkaUdpChannel.h"
+//#include "EkaUdpChannel.h"
 
 /* ##################################################################### */
 
-EkaIgmp::EkaIgmp(EkaDev* _dev, EkaUdpChannel* _udpCh, uint8_t _coreId, uint _epmRegion, const char* _name) {
+EkaIgmp::EkaIgmp(EkaDev* _dev, /* EkaUdpChannel* _udpCh,  */uint8_t _coreId, uint _epmRegion, const char* _name) {
   dev       = _dev;
-  udpCh     = _udpCh;
+  /* udpCh     = _udpCh; */
   coreId    = _coreId;
   epmRegion = _epmRegion;
   strcpy(name,_name);
@@ -19,6 +19,13 @@ EkaIgmp::EkaIgmp(EkaDev* _dev, EkaUdpChannel* _udpCh, uint8_t _coreId, uint _epm
 
   igmpThread = std::thread(&EkaIgmp::igmpThreadLoop,this);
   igmpThread.detach();
+
+  /* dev->createThread(name, */
+  /* 		    EkaServiceType::kIGMP, */
+  /* 		    &EkaIgmp::igmpThreadLoop,         */
+  /* 		    this, */
+  /* 		    dev->createThreadContext, */
+  /* 		    (uintptr_t*)&igmpThread);  */ 
 }
 
 /* ##################################################################### */
@@ -44,7 +51,7 @@ int EkaIgmp::mcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag) {
 
   numIgmpEntries++;
 
-  udpCh->igmp_mc_join (dev->core[coreId]->srcIp, ip, port, 0);
+  /* udpCh->igmp_mc_join (dev->core[coreId]->srcIp, ip, port, 0); */
   return 0;
 }
 

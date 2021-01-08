@@ -41,15 +41,19 @@ EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 
   char name[50] = {};
   sprintf(name,"RunGr%u",runId);
-  ekaIgmp = new EkaIgmp(dev,udpCh,coreId,udpChId,name);
+  ekaIgmp = new EkaIgmp(dev,/* udpCh, */coreId,udpChId,name);
   if (ekaIgmp == NULL) on_error("ekaIgmp == NULL");
 
   EKA_LOG("%s: coreId = %u, runId = %u, udpChId = %d, MC groups: %s",
 	  EKA_EXCH_DECODE(exch),coreId,runId,udpChId, list2print);
 
 }
+/* ##################################################################### */
+
 int EkaFhRunGroup::igmpMcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag) {
-  return ekaIgmp->mcJoin(ip,port,vlanTag);
+  ekaIgmp->mcJoin(ip,port,vlanTag);
+  udpCh->igmp_mc_join (ip, ip, port, 0);
+  return 0;
 }
 
 /* ##################################################################### */

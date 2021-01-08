@@ -91,8 +91,8 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%ju",
 		EKA_EXCH_DECODE(exch),gr_id,gr->expected_sequence,sequence);
 
-	EKA_LOG("%s:%u prev pktLen = %u, prev pkt msgCnt=%u",
-		EKA_EXCH_DECODE(exch),gr_id,gr->lastPktLen,gr->lastPktMsgCnt);
+	EKA_LOG("%s:%u prev pktLen = %u, prev pkt msgCnt=%u, prev pkt Seq=%ju",
+		EKA_EXCH_DECODE(exch),gr_id,gr->lastPktLen,gr->lastPktMsgCnt,gr->lastPkt1stSeq);
 
 	//	hexDump("Gap Pkt",pkt,pktLen);
 #ifdef FH_LAB

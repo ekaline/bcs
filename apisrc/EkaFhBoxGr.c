@@ -63,6 +63,7 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 
   lastPktLen    = pktLen;
   lastPktMsgCnt = 0;
+  lastPkt1stSeq = getHsvfMsgSequence(&p[idx]);
 
   /* uint64_t initial_expected_sequence = expected_sequence; */
   /* uint64_t first_sequence = getHsvfMsgSequence(&p[idx]); */

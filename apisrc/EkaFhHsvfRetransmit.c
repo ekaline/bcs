@@ -205,6 +205,31 @@ static EkaOpResult sendRetransmissionEnd(EkaFhBoxGr* gr) {
 
 /* ----------------------------- */
 
+static EkaOpResult sendLogout(EkaFhBoxGr* gr) {
+  EkaDev* dev = gr->dev;
+  HsvfRetransmissionEnd msg = {};
+  memset(&msg,' ',sizeof(msg));
+
+  char seqStrBuf[10] = {};
+  sprintf(seqStrBuf,"%09ju",gr->txSeqNum ++);
+  msg.SoM = HsvfSom;
+  memcpy(msg.hdr.sequence , seqStrBuf   , sizeof(msg.hdr.sequence));
+  memcpy(msg.hdr.MsgType  , "LO"        , sizeof(msg.hdr.MsgType));
+  msg.EoM = HsvfEom;
+#ifdef FH_LAB
+  EKA_LOG("%s:%u Dummy FH_LAB Logout sent",
+	  EKA_EXCH_DECODE(gr->exch),gr->id);
+#else
+  if(send(gr->snapshot_sock,&msg,sizeof(msg), 0) < 0) {
+    EKA_WARN("Logout send failed");
+    return EKA_OPRESULT__ERR_SYSTEM_ERROR;
+  }
+  EKA_LOG("%s:%u Logout sent",EKA_EXCH_DECODE(gr->exch),gr->id);
+#endif
+  return EKA_OPRESULT__OK;
+}
+/* ----------------------------- */
+
 
 EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhBoxGr* gr) {
   if (gr == NULL) on_error("gr == NULL");
@@ -238,11 +263,13 @@ EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, Eka
 
     //-----------------------------------------------------------------
     if (sendRequest(gr,static_cast<uint64_t>(1),static_cast<uint64_t>(1e6)) != EKA_OPRESULT__OK) {
+      sendLogout(gr);
       gr->sendRetransmitSocketError(pEfhRunCtx);
       continue;
     }
     //-----------------------------------------------------------------
     if (getRetransmissionBegins(gr) != EKA_OPRESULT__OK) {
+      sendLogout(gr);
       gr->sendRetransmitExchangeError(pEfhRunCtx);
       continue;
     }
@@ -264,6 +291,8 @@ EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, Eka
   EKA_LOG("%s:%u Dictionary received after %ju messages",EKA_EXCH_DECODE(gr->exch),gr->id,sequence);
   //-----------------------------------------------------------------
   if ((ret = sendRetransmissionEnd(gr))      != EKA_OPRESULT__OK) return ret;
+  //-----------------------------------------------------------------
+  if ((ret = sendLogout(gr))                 != EKA_OPRESULT__OK) return ret;
   //-----------------------------------------------------------------
   close(gr->snapshot_sock);
   delete gr->hsvfTcp;
@@ -312,11 +341,13 @@ void* getHsvfRetransmit(void* attr) {
     }
     //-----------------------------------------------------------------
     if (sendRequest(gr,start,end) != EKA_OPRESULT__OK) {
+      sendLogout(gr);
       gr->sendRetransmitSocketError(pEfhRunCtx);
       continue;
     }
     //-----------------------------------------------------------------
     if (getRetransmissionBegins(gr) != EKA_OPRESULT__OK) {
+      sendLogout(gr);
       gr->sendRetransmitExchangeError(pEfhRunCtx);
       continue;
     }
@@ -329,7 +360,8 @@ void* getHsvfRetransmit(void* attr) {
 
   while (gr->snapshot_active) {
     uint8_t* msgBuf = NULL;
-    gr->hsvfTcp->getTcpMsg(&msgBuf);
+    if (gr->hsvfTcp->getTcpMsg(&msgBuf) != EKA_OPRESULT__OK) 
+      gr->sendRetransmitSocketError(pEfhRunCtx);
 
     uint64_t sequence = getHsvfMsgSequence(msgBuf);
     //    EKA_LOG("%s:%u got sequence = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,sequence);
@@ -344,8 +376,11 @@ void* getHsvfRetransmit(void* attr) {
   gr->gapClosed = true;
 
   //-----------------------------------------------------------------
-  sendRetransmissionEnd(gr);
+  if (sendRetransmissionEnd(gr) != EKA_OPRESULT__OK) gr->sendRetransmitSocketError(pEfhRunCtx);
   //-----------------------------------------------------------------
+  if (sendLogout(gr)            != EKA_OPRESULT__OK) gr->sendRetransmitSocketError(pEfhRunCtx);
+  //-----------------------------------------------------------------
+
   close(gr->snapshot_sock);
   delete gr->hsvfTcp;
 #endif

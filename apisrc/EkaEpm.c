@@ -12,7 +12,7 @@
 #include "EkaTcpSess.h"
 #include "EkaEpmAction.h"
 #include "EpmStrategy.h"
-#include "EkaUdpChannel.h"
+//#include "EkaUdpChannel.h"
 #include "EkaEpmRegion.h"
 #include "EkaIgmp.h"
 
@@ -143,12 +143,12 @@ EkaOpResult EkaEpm::initStrategies(EkaCoreId coreId,
     on_error("numStrategies %u > MaxStrategies %ju",numStrategies,MaxStrategies);
   stratNum = numStrategies;
 
-  if (udpCh[coreId] == NULL) udpCh[coreId] = new EkaUdpChannel(dev,coreId);
-  if (udpCh[coreId] == NULL) on_error("Failed to open Epm Udp Channel for CoreId %u",coreId);
+  /* if (udpCh[coreId] == NULL) udpCh[coreId] = new EkaUdpChannel(dev,coreId); */
+  /* if (udpCh[coreId] == NULL) on_error("Failed to open Epm Udp Channel for CoreId %u",coreId); */
 
   char name[50] = {};
   sprintf(name,"EpmTrigger");
-  ekaIgmp = new EkaIgmp(dev,udpCh[coreId],(uint8_t)coreId,(uint)ServiceRegion,name);
+  ekaIgmp = new EkaIgmp(dev,/* udpCh[coreId], */(uint8_t)coreId,(uint)ServiceRegion,name);
   if (ekaIgmp == NULL) on_error("ekaIgmp == NULL");
 
   if (! dev->fireReportThreadActive) {
