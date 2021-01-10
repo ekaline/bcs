@@ -18,7 +18,11 @@
 #include "EkaHwCaps.h"
 #include "EkaUserChannel.h"
 
+#include "eka_hw_conf.h"
+
+
 int ekaDefaultLog (void* /*unused*/, const char* function, const char* file, int line, int priority, const char* format, ...);
+int ekaDefaultCreateThread(const char* name, EkaServiceType type,  void *(*threadRoutine)(void*), void* arg, void* context, uintptr_t *handle);
 OnEfcFireReportCb* efcDefaultOnFireReportCb (EfcCtx* efcCtx, const EfcFireReport* efcFireReport, size_t size);
 OnEkaExceptionReportCb* efhDefaultOnException(EkaExceptionReport* msg, EfhRunUserData efhRunUserData);
 //void eka_write(EkaDev* dev, uint64_t addr, uint64_t val);
@@ -34,27 +38,17 @@ void setNetifIpSrc(EkaDev* dev, uint8_t coreId, const uint32_t* srcIp);
 void ekaServThread(EkaDev* dev);
 
 /* ##################################################################### */
+static EfhFeedVer feedVer(int hwFeedVer) {
+  switch (hwFeedVer) {
+  case   SN_NASDAQ : return EfhFeedVer::kNASDAQ;
+  case   SN_MIAX   : return EfhFeedVer::kMIAX;
+  case   SN_PHLX   : return EfhFeedVer::kPHLX;
+  case   SN_GEMX   : return EfhFeedVer::kGEMX;
+  case   SN_CBOE   : return EfhFeedVer::kCBOE;
+  default          : return EfhFeedVer::kInvalid;
+  }
+}
 
-/* void* igmp_thread (void* attr) { */
-/*   pthread_detach(pthread_self()); */
-/*   EkaDev* dev = (EkaDev*) attr; */
-/*   EKA_LOG("Launching IGMPs for %u FHs",dev->numFh); */
-/*   while (dev->igmp_thread_active) { */
-/*     for (uint i = 0; i < dev->MAX_FEED_HANDLERS; i++) { */
-/*       if (! dev->igmp_thread_active) return NULL; */
-/*       if (dev->fh[i] == NULL) continue; */
-/*       dev->fh[i]->send_igmp(true,dev->igmp_thread_active);       */
-/*       usleep(10); */
-/*     } */
-/*     if (! dev->igmp_thread_active) return NULL; */
-/*     usleep(1000000); */
-/*   } */
-/*   dev->igmpThreadTerminated = true; */
-
-/*   EKA_LOG("IGMP thread Terminated. IGMPs left for %u FHs",dev->numFh); */
-
-/*   return NULL; */
-/* } */
 /* ##################################################################### */
 
 static void str_time_from_nano(uint64_t current_time, char* time_str){
@@ -106,6 +100,8 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   logCB  = initCtx->logCallback == NULL ? ekaDefaultLog : initCtx->logCallback;
   logCtx = initCtx->logContext;
 
+  createThread = initCtx->createThread == NULL ? ekaDefaultCreateThread : initCtx->createThread;
+
   snDev          = new EkaSnDev(this);
 
   ekaHwCaps = new EkaHwCaps(this);
@@ -113,6 +109,8 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   
   ekaHwCaps->print();
   ekaHwCaps->check();
+
+  hwFeedVer = feedVer(ekaHwCaps->hwCaps.version.parser);
 
   //  eka_write(ENABLE_PORT,0);
 
@@ -174,11 +172,6 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 
   EKA_LOG("EKALINE2 LIB BUILD TIME: %s @ %s",__DATE__,__TIME__);
   EKA_LOG("EKALINE2 LIB GIT: %s",LIBEKA_GIT_VER);
-
-
-  /* igmp_thread_active = true; */
-  /* pthread_t igmp_thr; */
-  /* dev->createThread("IGMP_THREAD",EkaServiceType::kIGMP,igmp_thread,(void*)dev,createThreadContext,(uintptr_t*)&igmp_thr); */
 
   print_parsed_messages = false;
 
@@ -268,35 +261,7 @@ int EkaDev::configurePort(const EkaCoreInitCtx* pCoreInit) {
 uint8_t EkaDev::getNumFh() {
   return numFh;
 }
-/* ##################################################################### */
 
-
-int EkaDev::getHwCaps(hw_capabilities_t* caps) {
-  uint iter = sizeof(hw_capabilities_t) / 8 + !!(sizeof(hw_capabilities_t) % 8);
-  uint64_t* wr_ptr = (uint64_t*) caps;
-  for(uint i = 0; i < iter; i++)
-    *(wr_ptr + i) = eka_read(HwCapabilitiesAddr+i*8);
-
-  EKA_LOG("MD    (UDP MC) Cores bitmap           = 0x%jx",(uint64_t)(caps->core.bitmap_md_cores));
-  EKA_LOG("EPM/Fire (TCP) Cores bitmap           = 0x%jx",(uint64_t)(caps->core.bitmap_tcp_cores));
-  EKA_LOG("MAX TCP Sessions per Core             = %ju",  (uint64_t)(caps->core.tcp_sessions_percore));
-  EKA_LOG("MAX EPM Threads                       = %ju",  (uint64_t)(caps->epm.max_threads));
-  EKA_LOG("EPM HEAP TOTAL memory size (bytes)    = %ju",  (uint64_t)(caps->epm.heap_total_bytes));
-  EKA_LOG("EPM Data Template memory size (bytes) = %ju",  (uint64_t)(caps->epm.data_template_total_bytes));
-  EKA_LOG("EPM MAX TCP CSUM Templates            = %ju",  (uint64_t)(caps->epm.tcpcs_numof_templates));
-  EKA_LOG("EPM MAX Actions                       = %ju",  (uint64_t)(caps->epm.numof_actions));
-
-  if (EkaDev::MAX_SESS_PER_CORE > caps->core.tcp_sessions_percore)
-    on_error("EkaDev::MAX_SESS_PER_CORE = %u > caps->core.tcp_sessions_percore = %u",
-	     EkaDev::MAX_SESS_PER_CORE,caps->core.tcp_sessions_percore);
-
-  // EPM checks to be added!!!
-  if (EkaDev::MAX_SESS_PER_CORE > caps->core.tcp_sessions_percore)
-    on_error("EkaDev::MAX_SESS_PER_CORE = %u > caps->core.tcp_sessions_percore = %u",
-	     EkaDev::MAX_SESS_PER_CORE,caps->core.tcp_sessions_percore);
-
-  return 0;
-}
 /* ##################################################################### */
 
 EkaDev::~EkaDev() {

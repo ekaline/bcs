@@ -52,6 +52,12 @@ int ekaDefaultLog (void* /*unused*/, const char* function, const char* file, int
   return rc1 + rc2 + rc3;
 }
 
+int ekaDefaultCreateThread(const char* name, EkaServiceType type,  void *(*threadRoutine)(void*), void* arg, void* context, uintptr_t *handle) {
+  pthread_create ((pthread_t*)handle,NULL,threadRoutine, arg);
+  pthread_setname_np((pthread_t)*handle,name);
+  return 0;
+}
+
 void eka_get_time (char* t) {
   std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
   auto duration = now.time_since_epoch();

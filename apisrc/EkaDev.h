@@ -10,8 +10,7 @@
 #include "EkaHwInternalStructs.h"
 #include "Eka.h"
 #include "Efc.h"
-
-//#include "eka_hw_conf.h"
+#include "Efh.h"
 
 #include "eka_sn_addr_space.h"
 
@@ -38,7 +37,6 @@ class EkaDev {
   uint64_t eka_read(uint64_t addr);
 
   bool        openEpm();
-  int         getHwCaps(hw_capabilities_t* caps);
 
   EkaTcpSess* findTcpSess(uint32_t ipSrc, uint16_t udpSrc, uint32_t ipDst, uint16_t udpDst);
   EkaTcpSess* findTcpSess(int sock);
@@ -69,7 +67,7 @@ class EkaDev {
   EkaUserChannel*           lwipPath = NULL;
 
   uint8_t                   hwEnabledCores = 0;
-  uint8_t                   hwFeedVer = 0;
+  EfhFeedVer                hwFeedVer = EfhFeedVer::kInvalid;
   uint16_t                  hwRawFireSize = 0;
 
   EkaCore*                  core[MAX_CORES] = {};
