@@ -9,7 +9,7 @@ class EkaFhXdpGr : public EkaFhGroup{
   virtual               ~EkaFhXdpGr() {};
 
   bool                  parseMsg(const EfhRunCtx* pEfhRunCtx,
-				 unsigned char* m,
+				 const unsigned char* m,
 				 uint64_t sequence,
 				 EkaFhMode op);
 

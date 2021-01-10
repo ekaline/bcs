@@ -20,13 +20,13 @@ class EkaFhXdp : public EkaFh {
 
   virtual ~EkaFhXdp() {};
  private:
-  uint8_t* getUdpPkt(EkaFhRunGroup* runGr, 
-		     uint*          msgInPkt, 
-		     uint*          pktSize, 
-		     uint64_t*      sequence,
-		     uint8_t*       gr_id,
-		     uint16_t*      streamId, 
-		     uint8_t*       pktType);
+  const uint8_t* getUdpPkt(EkaFhRunGroup* runGr, 
+			   uint*          msgInPkt, 
+			   uint*          pktSize, 
+			   uint64_t*      sequence,
+			   uint8_t*       gr_id,
+			   uint16_t*      streamId, 
+			   uint8_t*       pktType);
 
 };
 #endif

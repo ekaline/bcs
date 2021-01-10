@@ -5,7 +5,7 @@
 
 class EkaFhPhlxOrd : public EkaFhNasdaq {
   static const uint QSIZE = 2 * 1024 * 1024;
-public:
+ public:
   EkaFhGroup*         addGroup();
 
   EkaOpResult  runGroups(EfhCtx*          pEfhCtx, 
@@ -13,11 +13,11 @@ public:
 			 uint8_t          runGrId);
 
   virtual ~EkaFhPhlxOrd() {};
-private:
-  uint8_t*    getUdpPkt(EkaFhRunGroup* runGr, 
-			uint*          msgInPkt, 
-			uint64_t*      sequence,
-			uint8_t*       gr_id);
+ private:
+  const uint8_t*    getUdpPkt(EkaFhRunGroup* runGr, 
+			      uint*          msgInPkt, 
+			      uint64_t*      sequence,
+			      uint8_t*       gr_id);
 
 };
 #endif

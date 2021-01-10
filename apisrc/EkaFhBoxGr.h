@@ -11,7 +11,7 @@ class EkaFhBoxGr : public EkaFhGroup{
   virtual               ~EkaFhBoxGr() {};
 
   bool                  parseMsg(const EfhRunCtx* pEfhRunCtx,
-				 unsigned char* m,
+				 const unsigned char* m,
 				 uint64_t sequence,
 				 EkaFhMode op);
 
@@ -69,6 +69,7 @@ class EkaFhBoxGr : public EkaFhGroup{
 
   uint        lastPktLen    = 0;
   uint        lastPktMsgCnt = 0;
+  uint64_t    lastPkt1stSeq = -1;
 
 };
 #endif

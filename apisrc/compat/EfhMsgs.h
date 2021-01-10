@@ -20,8 +20,7 @@ enum class EfhMsgType {
                 _x( Quote                  )                                \
                 _x( Order                  )                                \
                 _x( DoneStaticDefs,    50  )                                \
-                _x( FeedDown,          100 )                                \
-                _x( FeedUp,            101 )
+                _x( GroupStateChanged, 100 )
         EfhMsgType_ENUM_ITER( EKA__ENUM_DEF )
 };
 
@@ -39,7 +38,7 @@ typedef struct {
                 _x( uint64_t,   queueSize )                                 \
                 /** Incremented each time a new gap is encountered so this 
                  * can be compared  with the latest from 
-                 * EfhFeedStatusMsg::gapNum. */                             \
+                 * EfhGroupStateChangedMsg::code. */                        \
                 _x( uint32_t,   gapNum )
          EfhMsgHeader_FIELD_ITER( EKA__FIELD_DEF )
 } EfhMsgHeader;
@@ -94,6 +93,125 @@ enum class EfhExchange : char {
     _x( Unknown, ' ' )
   EfhExchange_ENUM_ITER( EKA__ENUM_DEF )
     };
+
+/**
+ * Current state of the exchange system.
+ *
+ * The trading day is divided up into time periods (the upper-case letters on
+ * top) and various events happen throughout the day (e.g., market closing)
+ * that move us to the next period. Those events are represented by the
+ * lower-case letters on the bottom. This enumeration describes the time
+ * periods (the upper-case letters), *not* the events that cause the transition.
+ * Nevertheless, it is easier to describe the time periods by describing the
+ * events that cause their transition. The time periods are called the
+ * "System State" after a message type having the same name in the NASDAQ
+ * family of feed protocols.
+ *
+ *      I     P     O     T     L     C     A
+ *   *-----*-----*-----*-----*-----*-----*-----*
+ *   p     s     o     t     l     c     e     x
+ *
+ *   p - start of the process, occuring in this example before the exchange
+ *       has communicated any messages. After this, we're in the 'I' (Initial)
+ *       state. This state always exists if the process is started early
+ *       enough.
+ *
+ *   s - Start of system hours, i.e., when the exchange sends its first
+ *       message. After this, we are in the 'P' (Preopen) state. Preopen is the
+ *       time period after which the exchange has started sending us messages,
+ *       but before the exchange's official "opening" process. This state may
+ *       not exist on an exchange, e.g., if it communicates nothing interesting
+ *       before opening or trading.
+ *
+ *   o - Start of exchange opening process. After this, we're in the 'O'
+ *       (Opening) state. This state may not exist on an exchange if it does
+ *       not have an opening process.
+ *
+ *   t - Start of normal trading hours. After this, we're in the 'T' (Trading)
+ *       state.
+ *
+ *   l - Start of late trading hours (also the close of normal trading). After
+ *       this, we're in the 'L' (LateTrading) state.
+ *
+ *   c - Close of late trading. After this, we're in the 'C' (Closed) state.
+ *       In most cases, some exchange services are still available for some time
+ *       after trading has ended.
+ *
+ *   e - End of system hours. After this, the exchange will not send any more
+ *       messages and we are in the 'A' (AfterHours) state.
+ *
+ *   x - Process exit.
+ */
+enum class EfhSystemState : char {
+#define EfhSystemState_ENUM_ITER( _x ) \
+  _x( Unknown,     'U' )               \
+  _x( Initial,     'I' )               \
+  _x( Preopen,     'P' )               \
+  _x( Opening,     'O' )               \
+  _x( Trading,     'T' )               \
+  _x( LateTrading, 'L' )               \
+  _x( Closed,      'C' )               \
+  _x( AfterHours,  'A' )
+  EfhSystemState_ENUM_ITER( EKA__ENUM_DEF )
+};
+
+/**
+ * Current state of a feed group.
+ *
+ *   - 'I' (Initializing): the group is in this state initially, until the
+ *         first full recovery or the first error.
+ *
+ *   - 'N' (Normal): the group is completely recovered and operating normally.
+ *
+ *   - 'G' (Gap): a gap was detected and recovery is in progress. If an error
+ *         occurs that prevents the gap from closing, it will enter the error
+ *         state.
+ *
+ *   - 'E' (Error): the group is in this state when an error occurs during any
+ *         other state.
+ */
+enum class EfhGroupState : char {
+#define EfhGroupState_ENUM_ITER( _x ) \
+  _x( Initializing, 'I' )            \
+  _x( Normal,       'N' )            \
+  _x( Gap,          'G' )            \
+  _x( Closed,       'C' )            \
+  _x( Error,        'E' )
+  EfhGroupState_ENUM_ITER( EKA__ENUM_DEF )
+};
+
+/**
+ * Describes the domain of the error code when the group is in the error
+ * state.
+ *
+ *   - SocketError, OSError: the error code is in the POSIX errno domain.
+ *
+ *   - UpdateTimeout: reported when the device did not receive any network
+ *     packets during normal operation. The "error code" field is used to
+ *     report the number of nanoseconds the feed has been silent.
+ *
+ *   - CredentialError: reported when there was a credential/login problem
+ *     connecting to an exchange service. The error code is taken directly
+ *     from the exchange message.
+ *
+ *   - ExchangeError: a catch-all error category when the exchange reports
+ *     a non-credential error. The error code is taken directly from the
+ *     exchange message.
+ *
+ *   - DeviceError: an Ekaline device error. The error code is in the
+ *     EkaOpResult domain.
+ */
+enum class EfhGroupStateErrorDomain : char {
+#define EfhGroupStateErrorDomain_ENUM_ITER( _x ) \
+  _x( NoError,         ' ' )              \
+  _x( SocketError,     'S' )              \
+  _x( OSError,         'O' )              \
+  _x( UpdateTimeout,   'T' )              \
+  _x( CredentialError, 'C' )              \
+  _x( ExchangeError,   'E' )              \
+  _x( DeviceError,     'D' )
+  EfhGroupStateErrorDomain_ENUM_ITER( EKA__ENUM_DEF )
+};
 
 typedef char EfhSymbol[8];
 
@@ -236,19 +354,34 @@ typedef struct {
         EfhOrderMsg_FIELD_ITER( EKA__FIELD_DEF )
 } EfhOrderMsg;
 
-/*
+/**
+ * This message is reported when either the EfhGroupState or the
+ * EfhSystemState changes.
  *
+ * When the groupState is EfhGroupState::Error:
+ *
+ *   - The error code is copied into "code" and "errorDomain" describes
+ *     what kind of error code it is (see EfhGroupStateErrorDomain).
+ *
+ *   - If the error is related to a particular service (e.g., a failure on
+ *     a recovery service socket), the service that failed is reported
+ *     in the "service" field. This will usually be EkaServiceType::FeedRecovery,
+ *     EkaServiceType::FeedSnapshot, or EkaServiceType::Heartbeat.
+ *
+ * When the groupState is EfhGroupState::Gap, the gap number is reported
+ * using the "code" field.
  */
 typedef struct {
-    #define EfhFeedStatusMsg_FIELD_ITER( _x )                               \
-                _x( EfhMsgType, msgType )                                   \
-                _x( EkaGroup,   group )                                     \
-                _x( uint64_t,   gapNum )
-        EfhFeedStatusMsg_FIELD_ITER( EKA__FIELD_DEF )
-} EfhFeedStatusMsg;
-
-struct EfhFeedDownMsg : public EfhFeedStatusMsg {};
-struct EfhFeedUpMsg   : public EfhFeedStatusMsg {};
+    #define EfhGroupStateChangedMsg_FIELD_ITER( _x )                        \
+                _x( EfhMsgType,               msgType )                     \
+                _x( EkaGroup,                 group )                       \
+                _x( EfhGroupState,            groupState )                  \
+                _x( EfhSystemState,           systemState )                 \
+                _x( EfhGroupStateErrorDomain, errorDomain )                 \
+                _x( EkaServiceType,           service )                     \
+                _x( int64_t,                  code )
+        EfhGroupStateChangedMsg_FIELD_ITER( EKA__FIELD_DEF )
+} EfhGroupStateChangedMsg;
 
 /**
  * This is returned when the last static definition has been replayed.

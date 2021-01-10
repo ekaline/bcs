@@ -9,7 +9,7 @@
 #include "EkaFhPhlxTopoParser.h"
 #include "EkaFhPhlxTopoGr.h"
 
-bool EkaFhPhlxTopoGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
+bool EkaFhPhlxTopoGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op) {
   char enc =  (char)m[0];
 
   if (op == EkaFhMode::DEFINITIONS && 

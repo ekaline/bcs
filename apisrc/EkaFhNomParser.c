@@ -11,8 +11,8 @@
 #include "EkaFhNomParser.h"
 #include "EkaFhFullBook.h"
 
-static void eka_print_nom_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequence);
-static inline uint64_t get_ts(uint8_t* m);
+static void eka_print_nom_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t sequence);
+static inline uint64_t get_ts(const uint8_t* m);
 std::string ts_ns2str(uint64_t ts);
 
 /* ####################################################### */
@@ -30,7 +30,7 @@ inline SideT sideDecode(char _side) {
 
 /* ####################################################### */
 
-bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) {
+bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op) {
 
 #ifdef EKA_TIME_CHECK
   auto start = std::chrono::high_resolution_clock::now();  
@@ -573,13 +573,13 @@ static void print_sec_state(fh_b_security* s) {
 }
 #endif
 
-static inline uint64_t get_ts(uint8_t* m) {
+static inline uint64_t get_ts(const uint8_t* m) {
   uint64_t ts_tmp = 0;
   memcpy((uint8_t*)&ts_tmp+2,m+3,6);
   return be64toh(ts_tmp);
 }
 
-static void eka_print_nom_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequence) {
+static void eka_print_nom_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t sequence) {
   fprintf (md_file,"GR%d,%s,SN:%ju,%3s(%c),",gr,(ts_ns2str(get_ts(m))).c_str(),sequence,ITTO_NOM_MSG((char)m[0]),(char)m[0]);
   switch ((char)m[0]) {
   case 'R': //ITTO_TYPE_OPTION_DIRECTORY 

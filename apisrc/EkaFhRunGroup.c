@@ -41,18 +41,64 @@ EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 
   char name[50] = {};
   sprintf(name,"RunGr%u",runId);
-  ekaIgmp = new EkaIgmp(dev,udpCh,coreId,udpChId,name);
+  ekaIgmp = new EkaIgmp(dev,/* udpCh, */coreId,udpChId,name);
   if (ekaIgmp == NULL) on_error("ekaIgmp == NULL");
 
   EKA_LOG("%s: coreId = %u, runId = %u, udpChId = %d, MC groups: %s",
 	  EKA_EXCH_DECODE(exch),coreId,runId,udpChId, list2print);
 
 }
+/* ##################################################################### */
+
 int EkaFhRunGroup::igmpMcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag) {
-  return ekaIgmp->mcJoin(ip,port,vlanTag);
+  ekaIgmp->mcJoin(ip,port,vlanTag);
+  udpCh->igmp_mc_join (ip, ip, port, 0);
+  return 0;
 }
 
 /* ##################################################################### */
+int EkaFhRunGroup::checkTimeOut(const EfhRunCtx* pEfhRunCtx) {
+  static const int TimeOutSeconds = 4;
+  static const int TimeOutSample  = 1000;
+
+  if (++timeOutCntr % TimeOutSample != 0) return 0;
+ 
+  for (auto i = 0; i < numGr; i++) {
+    EkaFhGroup* gr = fh->b_gr[groupList[i]];
+    if (gr == NULL) on_error("fh->gr[%u] == NULL",groupList[i]);
+
+    auto now = std::chrono::high_resolution_clock::now();
+
+    if (! gr->lastMdReceivedValid) {
+      gr->lastMdReceivedValid = true;
+      gr->lastMdReceived      = now;
+      continue;
+    }
+
+    if (std::chrono::duration_cast<std::chrono::seconds>(now - gr->lastMdReceived).count() > TimeOutSeconds) {
+      gr->sendNoMdTimeOut(pEfhRunCtx);
+      gr->lastMdReceived      = now;
+    }
+
+  }
+  return 0;
+}
+/* ##################################################################### */
+
+int EkaFhRunGroup::sendFeedCloseAll(const EfhRunCtx* pEfhRunCtx) {
+  for (auto i = 0; i < numGr; i++) {
+    EkaFhGroup* gr = fh->b_gr[groupList[i]];
+    if (gr == NULL) {
+      EKA_WARN("fh->gr[%u] == NULL",groupList[i]);
+      continue;
+    }
+    gr->sendFeedDownClosed(pEfhRunCtx);
+  }
+  return 0;
+}
+
+/* ##################################################################### */
+
 
 uint EkaFhRunGroup::getGrAfterGap() {
   if (cntGrAfterGap == 0) on_error("cntGrAfterGap = 0");

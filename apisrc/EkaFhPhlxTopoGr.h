@@ -9,7 +9,7 @@ class EkaFhPhlxTopoGr : public EkaFhNasdaqGr{
   virtual              ~EkaFhPhlxTopoGr() {};
 
   bool                 parseMsg(const EfhRunCtx* pEfhRunCtx,
-				unsigned char* m,
+				const unsigned char* m,
 				uint64_t sequence,
 				EkaFhMode op);
 

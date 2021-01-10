@@ -31,7 +31,7 @@ EkaFhGroup*          EkaFhPhlxOrd::addGroup() {
 
 /* ##################################################################### */
 
-uint8_t* EkaFhPhlxOrd::getUdpPkt(EkaFhRunGroup* runGr, uint* msgInPkt, uint64_t* sequence,uint8_t* gr_id) {
+const uint8_t* EkaFhPhlxOrd::getUdpPkt(EkaFhRunGroup* runGr, uint* msgInPkt, uint64_t* sequence,uint8_t* gr_id) {
   uint8_t* pkt = (uint8_t*)runGr->udpCh->get();
   if (pkt == NULL) on_error("%s: pkt == NULL",EKA_EXCH_DECODE(exch));
   uint msgCnt = EKA_PHLX_MOLD_MSG_CNT(pkt);
@@ -77,15 +77,19 @@ EkaOpResult EkaFhPhlxOrd::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
     //-----------------------------------------------------------------------------
     if (runGr->drainQ(pEfhRunCtx)) continue;
     //-----------------------------------------------------------------------------
-    if (! runGr->udpCh->has_data()) continue;
+    if (! runGr->udpCh->has_data()) {
+      runGr->checkTimeOut(pEfhRunCtx);
+      continue;
+    }
     uint     msgInPkt = 0;
     uint64_t sequence = 0;
     uint8_t  gr_id = 0xFF;
 
-    uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&sequence,&gr_id);
+    const uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&sequence,&gr_id);
     if (pkt == NULL) continue;
     EkaFhPhlxOrdGr* gr = (EkaFhPhlxOrdGr*)b_gr[gr_id];
     if (gr == NULL) on_error("b_gr[%u] = NULL",gr_id);
+    gr->resetNoMdTimer();
 
     //-----------------------------------------------------------------------------
     switch (gr->state) {
@@ -93,7 +97,7 @@ EkaOpResult EkaFhPhlxOrd::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
       gr->gapClosed = false;
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
 
-      gr->sendFeedDown(pEfhRunCtx);
+      gr->sendFeedDownInitial(pEfhRunCtx);
       gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,1, 2);
       gr->expected_sequence = 2;
     }
@@ -129,7 +133,7 @@ EkaOpResult EkaFhPhlxOrd::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
 
       if (gr->gapClosed) {
 	gr->state = EkaFhGroup::GrpState::NORMAL;
-	gr->sendFeedUp(pEfhRunCtx);
+	gr->sendFeedUpInitial(pEfhRunCtx);
 
 	runGr->setGrAfterGap(gr->id);
 	gr->expected_sequence = gr->seq_after_snapshot;
@@ -159,6 +163,8 @@ EkaOpResult EkaFhPhlxOrd::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
     runGr->udpCh->next(); 
   }
   EKA_INFO("%s RunGroup %u EndOfSession",EKA_EXCH_DECODE(exch),runGrId);
+  runGr->sendFeedCloseAll(pEfhRunCtx);
+
   return EKA_OPRESULT__OK;
 }
 

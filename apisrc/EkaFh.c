@@ -218,6 +218,12 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"snapshot")==0) && (strcmp(k[5],"auth")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
+      if (gr >= groups) {
+	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+	return EkaFhAddConf::CONF_SUCCESS;
+      }
+      if (b_gr[gr] == NULL) on_error("b_gr[%u] == NULL",gr);
+
       char string_filler = EFH_EXCH2FEED(exch) == EfhFeedVer::kXDP ? '\0' : ' ';
       memset(&(b_gr[gr]->auth_user),string_filler,sizeof(b_gr[gr]->auth_user));
       memset(&(b_gr[gr]->auth_passwd),string_filler,sizeof(b_gr[gr]->auth_passwd));
@@ -253,6 +259,12 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"unit")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
+      if (gr >= groups) {
+	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+	return EkaFhAddConf::CONF_SUCCESS;
+      }
+      if (b_gr[gr] == NULL) on_error("b_gr[%u] == NULL",gr);
+
       ((EkaFhBatsGr*)b_gr[gr])->batsUnit = (uint8_t) strtoul(v[0],NULL,10);
       //      EKA_DEBUG ("batsUnit for %s:%u is set to %u",k[1],gr,((EkaFhBatsGr*)b_gr[gr])->batsUnit);
       fflush(stderr);
@@ -288,6 +300,12 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"snapshot")==0) && (strcmp(k[5],"sessionSubID")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
+      if (gr >= groups) {
+	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+	return EkaFhAddConf::CONF_SUCCESS;
+      }
+      if (b_gr[gr] == NULL) on_error("b_gr[%u] == NULL",gr);
+
       memcpy(&(((EkaFhBatsGr*)b_gr[gr])->sessionSubID),v[0],sizeof(((EkaFhBatsGr*)b_gr[gr])->sessionSubID));
 
       EKA_DEBUG ("sessionSubID for %s:%u are set to %s",k[1],gr,v[0] +'\0');
@@ -304,9 +322,10 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       //      if (gr >= groups) on_error("%s -- %s : group_id %d >= groups (=%u)",key, value,gr,groups);
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d >= groups (=%u)",key, value,gr,groups);
+	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
 	return EkaFhAddConf::CONF_SUCCESS;
       }
+      if (b_gr[gr] == NULL) on_error("b_gr[%u] == NULL, groups = %u",gr,groups);
       inet_aton (v[0],(struct in_addr*) &b_gr[gr]->mcast_ip);
       b_gr[gr]->mcast_port =  (uint16_t)atoi(v[1]);
       b_gr[gr]->mcast_set  = true;
@@ -324,9 +343,10 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       //      if (gr >= groups) on_error("%s -- %s : group_id %d >= groups (=%u)",key, value,gr,groups);
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d >= groups (=%u)",key, value,gr,groups);
+	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
 	return EkaFhAddConf::CONF_SUCCESS;
       }
+      if (b_gr[gr] == NULL) on_error("b_gr[%u] == NULL",gr);
 
       inet_aton (v[0],(struct in_addr*) &b_gr[gr]->snapshot_ip);
       b_gr[gr]->snapshot_port =  htons((uint16_t)atoi(v[1]));
@@ -344,9 +364,11 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       //      if (gr >= groups) on_error("%s -- %s : group_id %d >= groups (=%u)",key, value,gr,groups);
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d >= groups (=%u)",key, value,gr,groups);
+	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
 	return EkaFhAddConf::CONF_SUCCESS;
       }
+      if (b_gr[gr] == NULL) on_error("b_gr[%u] == NULL",gr);
+
       inet_aton (v[0],(struct in_addr*) &b_gr[gr]->recovery_ip);
       b_gr[gr]->recovery_port = htons((uint16_t)atoi(v[1]));
       b_gr[gr]->recovery_set  = true;
@@ -361,12 +383,12 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"mcast")==0) && (strcmp(k[5],"line")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
-      if (b_gr[gr] == NULL) on_error("Group %u does not exist",gr);
       //      if (gr >= groups) on_error("%s -- %s : group_id %d >= groups (=%u)",key, value,gr,groups);
       if (gr >= groups) {
 	on_warning("%s -- %s : Ignoring group_id %d >= groups (=%u)",key, value,gr,groups);
 	return EkaFhAddConf::CONF_SUCCESS;
       }
+      if (b_gr[gr] == NULL) on_error("Group %u does not exist",gr);
       EkaFhBoxGr* boxGr = dynamic_cast<EkaFhBoxGr*>(b_gr[gr]);
       if (boxGr == NULL) on_error("boxGr (b_gr[%u]) == NULL",gr);
 

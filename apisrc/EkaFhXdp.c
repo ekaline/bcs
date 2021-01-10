@@ -12,7 +12,7 @@ EkaFhGroup* EkaFhXdp::addGroup() {
 }
 
 /* ##################################################################### */
-uint8_t* EkaFhXdp::getUdpPkt(EkaFhRunGroup* runGr, 
+const uint8_t* EkaFhXdp::getUdpPkt(EkaFhRunGroup* runGr, 
 			     uint*          msgInPkt, 
 			     uint*          pktSize, 
 			     uint64_t*      sequence,
@@ -50,7 +50,7 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     uint8_t grId = runGr->groupList[j];
     EkaFhXdpGr* gr = (EkaFhXdpGr*)b_gr[grId];
     if (gr == NULL) on_error("b_gr[%u] == NULL",grId);
-    gr->sendFeedDown(pEfhRunCtx);
+    gr->sendFeedDownInitial(pEfhRunCtx);
 
     gr->inGap = true;
     gr->setGapStart();
@@ -58,7 +58,10 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
   while (runGr->thread_active) {
     //-----------------------------------------------------------------------------
-    if (! runGr->udpCh->has_data()) continue;
+    if (! runGr->udpCh->has_data()) {
+      runGr->checkTimeOut(pEfhRunCtx);
+      continue;
+    }
     uint     msgInPkt = 0;
     uint64_t sequence = 0;
     uint8_t  gr_id = 0xFF;
@@ -66,11 +69,12 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     uint8_t  pktType = 0;
     uint     pktSize = 0; 
 
-    uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&pktSize,&sequence,&gr_id, &streamId, &pktType);
+    const uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&pktSize,&sequence,&gr_id, &streamId, &pktType);
     if (pkt == NULL) continue;
 
     EkaFhXdpGr* gr = (EkaFhXdpGr*)b_gr[gr_id];
     if (gr == NULL) on_error("b_gr[%u] == NULL",gr_id);
+    gr->resetNoMdTimer();
 
     uint streamIdx = gr->findAndInstallStream(streamId, sequence);
 
@@ -104,6 +108,8 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     runGr->udpCh->next(); 
   }
   EKA_INFO("%s RunGroup %u EndOfSession",EKA_EXCH_DECODE(exch),runGrId);
+  runGr->sendFeedCloseAll(pEfhRunCtx);
+
   return EKA_OPRESULT__OK;
 }
  /* ##################################################################### */

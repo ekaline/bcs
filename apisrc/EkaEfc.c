@@ -34,7 +34,7 @@ EkaEfc::EkaEfc(EkaDev* _dev, EfhFeedVer _hwFeedVer, const EfcInitCtx* pEfcInitCt
 
   cleanSubscrHwTable();
   initHwRoundTable();
-  ekaIgmp = new EkaIgmp(dev,NULL,mdCoreId,EkaEpm::EfcRegion,"Efc");
+  ekaIgmp = new EkaIgmp(dev,mdCoreId,EkaEpm::EfcRegion,"Efc");
   if (ekaIgmp == NULL) on_error("ekaIgmp == NULL");
 
   setMcParams(pEfcInitCtx);

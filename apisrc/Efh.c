@@ -121,7 +121,7 @@ const EfhInitCtx* efhGetSupportedParams( ) {
  *
  */
 
-EkaOpResult efhRunGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx ) {
+EkaOpResult efhRunGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, void** retval) {
   assert (pEfhCtx != NULL);
   assert (pEfhRunCtx != NULL);
   assert (pEfhCtx->dev->fh[pEfhCtx->fhId] != NULL);
@@ -183,7 +183,7 @@ EkaOpResult efhStopGroups( EfhCtx* pEfhCtx ) {
  * @param pEfhCtx 
  * @retval [See EkaOpResult].
  */
-EkaOpResult efhGetDefs( EfhCtx* pEfhCtx, const struct EfhRunCtx* pEfhRunCtx, EkaGroup* group) {
+EkaOpResult efhGetDefs( EfhCtx* pEfhCtx, const struct EfhRunCtx* pEfhRunCtx, EkaGroup* group, void** retval) {
   assert (pEfhCtx != NULL);
 
   return pEfhCtx->dev->fh[pEfhCtx->fhId]->getDefinitions(pEfhCtx, pEfhRunCtx, group);

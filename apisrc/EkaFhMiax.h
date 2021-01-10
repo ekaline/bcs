@@ -20,11 +20,11 @@ class EkaFhMiax : public EkaFh { // MiaxTom & PearlTom
   virtual     ~EkaFhMiax() {};
 
  private:
-  uint8_t* getUdpPkt(EkaFhRunGroup* runGr, 
-		     uint*          msgInPkt, 
-		     int16_t*       pktLen, 
-		     uint64_t*      sequence,
-		     uint8_t*       gr_id);
+  const uint8_t* getUdpPkt(EkaFhRunGroup* runGr, 
+			   uint*          msgInPkt, 
+			   int16_t*       pktLen, 
+			   uint64_t*      sequence,
+			   uint8_t*       gr_id);
 
 };
 

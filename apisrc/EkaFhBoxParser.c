@@ -87,13 +87,13 @@ uint getHsvfMsgLen(const uint8_t* pkt, int bytes2run) {
   return idx + 1;
 }
 
-uint64_t getHsvfMsgSequence(uint8_t* msg) {
+uint64_t getHsvfMsgSequence(const uint8_t* msg) {
   HsvfMsgHdr* msgHdr = (HsvfMsgHdr*)&msg[1];
   std::string seqString = std::string(msgHdr->sequence,sizeof(msgHdr->sequence));
   return std::stoul(seqString,nullptr,10);
 }
 
-uint trailingZeros(uint8_t* p, uint maxChars) {
+uint trailingZeros(const uint8_t* p, uint maxChars) {
   uint idx = 0;
   while (p[idx] == 0x0 && idx < maxChars) {
     idx++; // skipping trailing '\0' chars
@@ -322,7 +322,7 @@ static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
 
 /* ----------------------------------------------------------------------- */
 
-bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence, EkaFhMode op) {
+bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence, EkaFhMode op) {
   uint pos = 0;
 
   FhSecurity* s = NULL;

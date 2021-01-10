@@ -29,16 +29,27 @@ class EkaFhGroup {
 
   void         createQ(EfhCtx* pEfhCtx, const uint qsize);
 
+  inline void resetNoMdTimer() {
+    lastMdReceived = std::chrono::high_resolution_clock::now();
+  }
+
   virtual int  bookInit(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) = 0;
   virtual int  subscribeStaticSecurity(uint64_t        secId,
 				       EfhSecurityType type,
 				       EfhSecUserData  userData,
 				       uint64_t        opaqueAttrA,
 				       uint64_t        opaqueAttrB) = 0;
-  virtual bool parseMsg(const EfhRunCtx* pEfhRunCtx,unsigned char* m,uint64_t sequence,EkaFhMode op) = 0;
+  virtual bool parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op) = 0;
 
   void         sendFeedUp  (const EfhRunCtx* EfhRunCtx);
+  void         sendFeedUpInitial  (const EfhRunCtx* EfhRunCtx);
   void         sendFeedDown(const EfhRunCtx* EfhRunCtx);
+  void         sendFeedDownInitial(const EfhRunCtx* EfhRunCtx);
+  void         sendFeedDownClosed(const EfhRunCtx* EfhRunCtx);
+
+  void         sendNoMdTimeOut(const EfhRunCtx* EfhRunCtx);
+  void         sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx);
+  void         sendRetransmitSocketError(const EfhRunCtx* pEfhRunCtx);
 
   virtual int closeSnapshotGap(EfhCtx*              pEfhCtx, 
 			       const EfhRunCtx*  pEfhRunCtx, 
@@ -123,8 +134,10 @@ class EkaFhGroup {
   pthread_t             snapshot_thread;
   pthread_t             retransmit_thread;
 
-  uint                  numSecurities = 0;
+  uint                  numSecurities      = 0;
 
+  std::chrono::high_resolution_clock::time_point lastMdReceived;
+  bool                  lastMdReceivedValid = false;
 
   fh_q*                 q                  = NULL;
 

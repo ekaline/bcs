@@ -79,6 +79,7 @@ extern "C" {
     EKA_OPRESULT__ERR_SYSTEM_ERROR = -103,     // returned when a system call fails and errno is set
     EKA_OPRESULT__ERR_NOT_IMPLEMENTED = -104,     // returned when an API call is not implemented
     EKA_OPRESULT__ERR_GROUP_NOT_AVAILABLE = -105, // returned by test feed handler when group not present in capture
+    EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION = -106, // returned if exchange retransmit connection failed
 
     // EPM specific
     //    EKA_OPRESULT__ERR_BAD_ADDRESS = -201,
@@ -242,18 +243,18 @@ typedef int (*EkaAcquireCredentialsFn)(EkaCredentialType credType,
 
 typedef int (*EkaReleaseCredentialsFn)(EkaCredentialLease *lease, void* context);
 
-enum class EkaThreadType {
-  #define EkaThreadType_ENUM_ITER(_x)       \
+enum class EkaServiceType {
+  #define EkaServiceType_ENUM_ITER(_x)       \
     _x ( Unspecified, 0 )                   \
     _x ( FeedSnapshot )                     \
     _x ( FeedRecovery )                     \
     _x ( IGMP )                             \
     _x ( PacketIO )                         \
     _x ( Heartbeat )
-  EkaThreadType_ENUM_ITER( EKA__ENUM_DEF )
+  EkaServiceType_ENUM_ITER( EKA__ENUM_DEF )
 };
 
-typedef int (*EkaThreadCreateFn)(const char* name, EkaThreadType type, void *(*start_routine)(void*),void *arg, void *context, uintptr_t *handle);
+typedef int (*EkaThreadCreateFn)(const char* name, EkaServiceType type, void *(*start_routine)(void*),void *arg, void *context, uintptr_t *handle);
 
 struct EkaDevInitCtx {
     #define EkaDevInitCtx_FIELD_ITER( _x )                              \
