@@ -2,10 +2,10 @@
 #define _EKA_IGMP_H_
 
 #include <thread>
+#include <pthread.h>
 
 class EkaIgmpEntry;
 class EkaDev;
-//class EkaUdpChannel;
 
 class EkaIgmp {
  public:
@@ -18,16 +18,20 @@ class EkaIgmp {
  private:
   static const int  MAX_IGMP_ENTRIES = 64;
 
+  static void* igmpThreadLoopCb(void* pEkaIgmp);
+  int          igmpThreadLoop();
+  int          igmpLeaveAll();
 
-  int igmpThreadLoop();
-  int igmpLeaveAll();
+  /* ------------------------------------------------- */
 
-  //  EkaUdpChannel*        udpCh                       = NULL;
   char                  name[256]                   = {};
   uint                  epmRegion                   = -1;
 
+#ifdef _NO_PTHREAD_CB_
   std::thread           igmpThread;
-  //pthread_t             igmpThread;
+#else
+  pthread_t             igmpPthread;
+#endif
   bool                  threadActive                = false;
   bool                  igmpLoopTerminated          = false;
 
