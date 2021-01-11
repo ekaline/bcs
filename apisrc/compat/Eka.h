@@ -243,7 +243,7 @@ typedef int (*EkaAcquireCredentialsFn)(EkaCredentialType credType,
 
 typedef int (*EkaReleaseCredentialsFn)(EkaCredentialLease *lease, void* context);
 
-enum class EkaServiceType {
+enum class EkaServiceType : uint8_t {
   #define EkaServiceType_ENUM_ITER(_x)       \
     _x ( Unspecified, 0 )                   \
     _x ( FeedSnapshot )                     \
