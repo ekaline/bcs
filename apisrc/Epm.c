@@ -90,6 +90,11 @@ EkaOpResult epmInitStrategies(EkaDev *dev, EkaCoreId coreId,
                               epm_strategyid_t numStrategies) {
 
   if (dev == NULL) return EKA_OPRESULT__ERR_BAD_ADDRESS;
+  if (dev->epm == NULL) {
+    EKA_WARN("This SW instance cannot run EPM functionality. Check other Ekaline processes running (or suspended) on this machine.");
+    return EKA_OPRESULT__ERR_EPM_DISABLED;
+  }
+
   if (coreId >= EkaDev::MAX_CORES || dev->core[coreId] == NULL)
     return EKA_OPRESULT__ERR_INVALID_CORE;
   if (numStrategies > static_cast<epm_strategyid_t>(dev->epm->getMaxStrategies()))

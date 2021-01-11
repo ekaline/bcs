@@ -65,6 +65,11 @@ EkaOpResult efcInit( EfcCtx** ppEfcCtx, EkaDev *pEkaDev, const EfcInitCtx* pEfcI
 
   EkaDev* dev = pEkaDev;
 
+  if (! dev->epmEnabled) {
+    EKA_WARN("This SW instance cannot run EFC functionality. Check other Ekaline processes running (or suspended) on this machine.");
+    return EKA_OPRESULT__ERR_EFC_DISABLED;
+  }
+
   dev->efc = new EkaEfc(dev,dev->hwFeedVer,pEfcInitCtx);
   if (dev->efc == NULL) on_error("dev->efc == NULL");
 
