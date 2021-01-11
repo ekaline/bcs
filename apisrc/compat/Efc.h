@@ -109,9 +109,22 @@ EkaOpResult efcSetStaticSecCtx( EfcCtx* efcCtx, EfcSecCtxHandle hSecCtx, const S
 EkaOpResult efcSetDynamicSecCtx( EfcCtx* efcCtx, EfcSecCtxHandle hSecCtx, const SecCtx* secCtx, uint16_t writeChan );
 
 /**
- * This is just like setStaticSectx except it is for SesCtxs.
+ * This function is OBSOLETE. Use efcSetFireTemplate() below
  */
 EkaOpResult efcSetSesCtx( EfcCtx* efcCtx, ExcConnHandle hConn, const SesCtx* sesCtx );
+
+
+/**
+ * This sets the Fire Message template for the hConn session. The template must populate all
+ * fields that are not managed by FPGA (fields managed by FPGA: size, price, etc.).
+ * @param efcCtx
+ * @param hConn          This is the ExcSessionId that we will be mapping to.
+ * @param fireMsg        Application messge in Exchange specific format: SQF, eQuote, etc.
+ * @param fireMsgSize    Size of the template
+ * @retval [See EkaOpResult].
+ */
+ EkaOpResult efcSetFireTemplate( EfcCtx* efcCtx, ExcConnHandle hConn, const void* fireMsg, size_t fireMsgSize );
+
 
 /**
  * This will tell the controller which Session to first fire on based on the multicast group that the 

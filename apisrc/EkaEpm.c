@@ -9,10 +9,10 @@
 #include "EpmTemplate.h"
 #include "EpmFastPathTemplate.h"
 #include "EpmRawPktTemplate.h"
+#include "EpmFireSqfTemplate.h"
 #include "EkaTcpSess.h"
 #include "EkaEpmAction.h"
 #include "EpmStrategy.h"
-//#include "EkaUdpChannel.h"
 #include "EkaEpmRegion.h"
 #include "EkaIgmp.h"
 
@@ -242,6 +242,17 @@ int EkaEpm::InitTemplates() {
   rawPkt         = new EpmRawPktTemplate(templatesNum++  ,"EpmRawPktTemplate" );
   if (rawPkt == NULL) on_error("rawPkt == NULL");
 
+  switch (dev->hwFeedVer) {
+  case EfhFeedVer::kNASDAQ : 
+    hwFire         = new EpmFireSqfTemplate(templatesNum++  ,"EpmFireSqfTemplate" );
+    EKA_LOG("Initializing EpmFireSqfTemplate");
+    break;
+  default :
+    hwFire         = new EpmRawPktTemplate(templatesNum++  ,"PlaceHolderRawPkt" );
+    EKA_LOG("Initializing PlaceHolderRawPkt -- SHOULD NOT BE USED!!!");
+    break;
+  }
+
   return 0;
 }
 /* ---------------------------------------------------- */
@@ -276,6 +287,7 @@ int EkaEpm::DownloadTemplates2HW() {
 
   DownloadSingleTemplate2HW(tcpFastPathPkt);
   DownloadSingleTemplate2HW(rawPkt);
+  DownloadSingleTemplate2HW(hwFire);
 
   return 0;
 }
@@ -351,6 +363,19 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
     strcpy(actionName,"Igmp");
     break;
 
+
+  case ActionType::HwFireAction :
+    heapBudget                 = HW_FIRE_MSG_SIZE;
+
+    actionBitParams.bitmap.action_valid = 1;
+    actionBitParams.bitmap.israw        = 0;
+    actionBitParams.bitmap.report_en    = 1;
+    actionBitParams.bitmap.feedbck_en   = 1;
+    pEpmTemplate                        = hwFire;
+
+    strcpy(actionName,"HwFire");
+    break;
+
   case ActionType::UserAction :
     heapBudget                 = MAX_PKT_SIZE;
 
@@ -370,18 +395,6 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
   }
 
   if (pEpmTemplate == NULL) on_error("pEpmTemplate == NULL for %s",actionName);
-
-  if (userActionIdx > UserActionsBaseIdx + MaxUserActions) 
-    on_error("userActionIdx %u > MaxUserActions %ju",userActionIdx, UserActionsBaseIdx + MaxUserActions);
-
-  if (serviceActionIdx > ServiceActionsBaseIdx + MaxServiceActions) 
-    on_error("serviceActionIdx %u > MaxServiceActions %ju",serviceActionIdx, ServiceActionsBaseIdx + MaxServiceActions);
-
-  if (serviceHeapOffs > ServiceHeapBaseOffs + MaxServiceHeap)
-    on_error("serviceHeapOffs %u > MaxServiceHeap %ju",serviceHeapOffs, ServiceHeapBaseOffs + MaxServiceHeap);
-
-  if (userHeapOffs > UserHeapBaseOffs + MaxUserHeap)
-    on_error("userHeapOffs %u > MaxUserHeap %ju",userHeapOffs, UserHeapBaseOffs + MaxUserHeap);
 
   uint64_t actionAddr = EpmActionBase + actionIdx * ActionBudget;
   epmRegion[actionRegion]->heapOffs += heapBudget;

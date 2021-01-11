@@ -9,6 +9,8 @@
 
 class EkaHwHashTableLine;
 class EkaIgmp;
+class EkaUdpSess;
+class EkaEpmAction;
 
 class EkaEfc {
  public:
@@ -18,21 +20,46 @@ class EkaEfc {
   int subscribeSec(uint64_t secId);
   int cleanSubscrHwTable();
   int getSubscriptionId(uint64_t secId);
+  int initStrategy(const EfcStratGlobCtx* efcStratGlobCtx);
+  int armController();
+  int disArmController();
+  int run();
+  int createFireAction(uint8_t group, ExcConnHandle hConn);
+  int setActionPayload(ExcConnHandle hConn,const void* fireMsg, size_t fireMsgSize);
 
  private:
-  bool isValidSecId(uint64_t secId);
-  int  setMcParams(const EfcInitCtx* pEfcInitCtx);
-  int  confParse(const char *key, const char *value);
-  int  initHwRoundTable();
-  int  normalizeId(uint64_t secId);
-  int  getLineIdx(uint64_t normSecId);
+  bool          isValidSecId(uint64_t secId);
+  int           getMcParams(const EfcInitCtx* pEfcInitCtx);
+  int           confParse(const char *key, const char *value);
+  int           initHwRoundTable();
+  int           normalizeId(uint64_t secId);
+  int           getLineIdx(uint64_t normSecId);
+  EkaUdpSess*   findUdpSess(uint32_t mcAddr, uint16_t mcPort);
+  int           setHwGlobalParams();
+  int           setHwUdpParams();
+  int           igmpJoinAll();
+  EkaEpmAction* findFireAction(ExcConnHandle hConn);
 
-  EkaIgmp*   ekaIgmp    = NULL;
-  uint8_t    mdCoreId = -1;
-  EkaDev*    dev = NULL;
-  EfhFeedVer hwFeedVer;
+  /* ----------------------------------------------------- */
+  static const int MAX_UDP_SESS = 64;
+  static const int MAX_TCP_SESS = 64;
+  static const int MAX_FIRE_ACTIONS = 64;
+
+  EkaIgmp*            ekaIgmp    = NULL;
+  uint8_t             mdCoreId = -1;
+  EkaDev*             dev = NULL;
+  EfhFeedVer          hwFeedVer = EfhFeedVer::kInvalid;
   EkaHwHashTableLine* hashLine[EKA_SUBSCR_TABLE_ROWS] = {};
-  int        numSecurities = 0;
+  int                 numSecurities = 0;
+
+  EfcStratGlobCtx     stratGlobCtx = {};
+
+  EkaUdpSess*         udpSess[MAX_UDP_SESS] = {};
+  int                 numUdpSess = 0;
+
+  EkaEpmAction*       fireAction[MAX_FIRE_ACTIONS] = {};
+  int                 numFireActions = 0;
+
 };
 
 #endif

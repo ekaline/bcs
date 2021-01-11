@@ -33,17 +33,17 @@ class EkaEpmAction {
 		uint16_t srcPort, 
 		uint16_t dstPort);
   /* ----------------------------------------------------- */
-  int setFullPkt(/* uint thrId,  */void* buf, uint len);
+  int setFullPkt(const void* buf, uint len);
   /* ----------------------------------------------------- */
-  int setPktPayload(/* uint thrId,  */void* buf, uint len);
+  int setPktPayload(const void* buf, uint len);
   /* ----------------------------------------------------- */
   int send(uint32_t _tcpCSum);
   /* ----------------------------------------------------- */
   int send();
   /* ----------------------------------------------------- */
-  int fastSend(void* buf, uint len);
+  int fastSend(const void* buf, uint len);
   /* ----------------------------------------------------- */
-  int fastSend(void* buf);
+  int fastSend(const void* buf);
   /* ----------------------------------------------------- */
 
   char actionName[30] = {};

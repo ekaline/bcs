@@ -31,17 +31,12 @@ class EkaUdpChannel;
 class EpmStrategy;
 class EkaEpmRegion;
 class EkaIgmp;
-/* ------------------------------------------------ */
-
-/* inline void setActionRegionBaseIdx(EkaDev* dev, uint region, uint idx) { */
-/*   EKA_LOG("region=%u, baseIdx=%u, addr=0x%jx",region,idx,0x82000 + 8 * region); */
-/*   eka_write(dev,0x82000 + 8 * region, idx); */
-/* } */
 
 /* ------------------------------------------------ */
 static inline uint64_t strategyEnableAddr(epm_strategyid_t  id) {
   return (uint64_t) (0x85000 + id * 8);
 }
+
 /* ------------------------------------------------ */
 
 class EkaEpm {
@@ -53,6 +48,7 @@ class EkaEpm {
   static const uint MAX_PKT_SIZE                = EkaDev::MAX_PKT_SIZE;
   static const uint TCP_EMPTY_ACK_SIZE          = 64;
   static const uint IGMP_V2_SIZE                = 64;
+  static const uint HW_FIRE_MSG_SIZE            = 512;
 
   /* static const uint IGMP_ACTIONS_BASE           = MAX_CORES * TOTAL_SESSIONS_PER_CORE * 3; */
   /* static const uint MAX_IGMP_ACTIONS            = EkaDev::MAX_UDP_CHANNELS; */
@@ -111,6 +107,9 @@ class EkaEpm {
       TcpFastPath,
       TcpEmptyAck,
       Igmp,
+
+      // Efc
+      HwFireAction,
 
       // User Actions
       UserAction
@@ -208,9 +207,10 @@ class EkaEpm {
   volatile bool active = false;
   EkaDev* dev = NULL;
 
-  uint              templatesNum            = 0;
   EpmTemplate*      tcpFastPathPkt          = NULL;
   EpmTemplate*      rawPkt                  = NULL;
+  EpmTemplate*      hwFire                  = NULL;
+  uint              templatesNum            = 0;
 
   bool              initialized             = false;
 
@@ -250,7 +250,8 @@ class EkaEpm {
 };
 
 /* ------------------------------------------------ */
-inline uint calcThrId (EkaEpm::ActionType type,uint8_t sessId,uint intIdx) {
+
+inline uint calcThrId (EkaEpm::ActionType actionType, uint8_t sessId, uint intIdx) {
 
   static const uint TcpBase      = 0;
   static const uint TcpNum       = 14;
@@ -262,7 +263,7 @@ inline uint calcThrId (EkaEpm::ActionType type,uint8_t sessId,uint intIdx) {
 
   uint     thrId        = -1;
 
-  switch (type) {
+  switch (actionType) {
   case EkaEpm::ActionType::TcpFullPkt  :
   case EkaEpm::ActionType::TcpFastPath :
   case EkaEpm::ActionType::TcpEmptyAck :
@@ -275,10 +276,11 @@ inline uint calcThrId (EkaEpm::ActionType type,uint8_t sessId,uint intIdx) {
     thrId = UserBase + intIdx % UserNum;
     break;
   default :
-    on_error("Unexpected type %d",(int) type);
+    on_error("Unexpected actionType %d",(int) actionType);
   }
   return thrId % MaxNum;
 }
+
 
 #endif
 

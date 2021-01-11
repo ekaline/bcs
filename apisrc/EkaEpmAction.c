@@ -186,7 +186,7 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
   return 0;
 }
 /* ----------------------------------------------------- */
-int EkaEpmAction::setFullPkt(/* uint thrId,  */void* buf, uint len) {
+int EkaEpmAction::setFullPkt(const void* buf, uint len) {
   pktSize  = len;
   memcpy(&epm->heap[heapOffs],buf,pktSize);
   copyIndirectBuf2HeapHw_swap4(dev,heapAddr,(uint64_t*) ethHdr, thrId, pktSize);
@@ -198,7 +198,7 @@ int EkaEpmAction::setFullPkt(/* uint thrId,  */void* buf, uint len) {
 }
 /* ----------------------------------------------------- */
 // OBSOLETE!!!
-int EkaEpmAction::setPktPayload(/* uint thrId,  */void* buf, uint len) {
+int EkaEpmAction::setPktPayload(const void* buf, uint len) {
   memcpy(&epm->heap[heapOffs + EkaEpm::DatagramOffset],buf,len);
 
   if (payloadLen != len) {
@@ -261,7 +261,7 @@ int EkaEpmAction::send() {
   return send(tcpCSum);
 }
 /* ----------------------------------------------------- */
-int EkaEpmAction::fastSend(void* buf, uint len) {
+int EkaEpmAction::fastSend(const void* buf, uint len) {
   //  hexDump("EkaEpmAction::fastSend buf",buf,len);
   /* if (payloadLen == len && memcmp(payload,buf,len) == 0) */
   /*   return send();  */
@@ -322,7 +322,7 @@ int EkaEpmAction::fastSend(void* buf, uint len) {
   return send();
 }
 /* ----------------------------------------------------- */
-int EkaEpmAction::fastSend(void* buf) {
+int EkaEpmAction::fastSend(const void* buf) {
   return fastSend(buf,payloadLen);
 }
 

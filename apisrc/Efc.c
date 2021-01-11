@@ -27,26 +27,26 @@
 #include "EkaTcpSess.h"
 #include "EkaEfc.h"
 
-void efc_run (EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx);
-void download_conf2hw (EkaDev* dev);
-EkaOpResult efc_init ( EfcCtx** efcCtx, EkaDev *ekaCoreCtx, const EfcInitCtx* efcInitCtx );
-void eka_arm_controller(EkaDev* dev, uint8_t arm);
-uint64_t eka_subscr_security2fire(EkaDev* dev, uint64_t id);
-int eka_init_strategy_params (EkaDev* dev,const struct global_params *params) ;
+/* void efc_run (EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx); */
+/* void download_conf2hw (EkaDev* dev); */
+/* EkaOpResult efc_init ( EfcCtx** efcCtx, EkaDev *ekaCoreCtx, const EfcInitCtx* efcInitCtx ); */
+/* void eka_arm_controller(EkaDev* dev, uint8_t arm); */
+/* uint64_t eka_subscr_security2fire(EkaDev* dev, uint64_t id); */
+/* int eka_init_strategy_params (EkaDev* dev,const struct global_params *params) ; */
 
-  void download_subscr_table(EkaDev* dev, bool clear_all);
-  uint32_t get_subscription_id(EkaDev* dev, uint64_t id);
-  int eka_set_security_ctx_with_idx (EkaDev* dev, uint32_t ctx_idx, struct sec_ctx *ctx, uint8_t ch);
-  int eka_set_session_fire_app_ctx(EkaDev* dev, uint16_t sess_id , void *ctx);
-  int eka_set_group_session(EkaDev* dev, uint8_t gr, uint16_t sess_id);
-  int eka_open_udp_sockets(EkaDev* dev);
-//void  eka_set_core_addr(EkaDev* dev, uint8_t core, EkaCoreInitAttrs* attrs);
-  int eka_socket(EkaDev* dev, uint8_t core);
-  uint16_t eka_connect (EkaDev* dev, int sock, const struct sockaddr *dst, socklen_t addrlen);
-  ssize_t eka_send(EkaDev* dev, uint16_t sess_id, void *buf, size_t size);
-  ssize_t eka_recv(EkaDev* dev, uint16_t sess_id, void *buffer, size_t size);
-void print_new_compat_fire_report (EfcCtx* efcCtx, EfcReportHdr* p);
-int eka_socket_close(EkaDev* dev, uint16_t id);
+/*   void download_subscr_table(EkaDev* dev, bool clear_all); */
+/*   uint32_t get_subscription_id(EkaDev* dev, uint64_t id); */
+/*   int eka_set_security_ctx_with_idx (EkaDev* dev, uint32_t ctx_idx, struct sec_ctx *ctx, uint8_t ch); */
+/*   int eka_set_session_fire_app_ctx(EkaDev* dev, uint16_t sess_id , void *ctx); */
+/*   int eka_set_group_session(EkaDev* dev, uint8_t gr, uint16_t sess_id); */
+/*   int eka_open_udp_sockets(EkaDev* dev); */
+/* //void  eka_set_core_addr(EkaDev* dev, uint8_t core, EkaCoreInitAttrs* attrs); */
+/*   int eka_socket(EkaDev* dev, uint8_t core); */
+/*   uint16_t eka_connect (EkaDev* dev, int sock, const struct sockaddr *dst, socklen_t addrlen); */
+/*   ssize_t eka_send(EkaDev* dev, uint16_t sess_id, void *buf, size_t size); */
+/*   ssize_t eka_recv(EkaDev* dev, uint16_t sess_id, void *buffer, size_t size); */
+/* void print_new_compat_fire_report (EfcCtx* efcCtx, EfcReportHdr* p); */
+/* int eka_socket_close(EkaDev* dev, uint16_t id); */
 
 
 /**
@@ -85,9 +85,14 @@ EkaOpResult efcInit( EfcCtx** ppEfcCtx, EkaDev *pEkaDev, const EfcInitCtx* pEfcI
  * @return This will return an appropriate EkalineOpResult indicating success or an error code.
  */
 
-EkaOpResult efcInitStrategy( EfcCtx* efcCtx, const EfcStratGlobCtx* efcStratGlobCtx ) {
-  if (sizeof(EfcStratGlobCtx) != sizeof(struct global_params)) on_error("sizeof(EfcStratGlobCtx) != sizeof(struct global_params)");
-  //  eka_init_strategy_params (efcCtx->dev,(const struct global_params *)efcStratGlobCtx);
+EkaOpResult efcInitStrategy( EfcCtx* pEfcCtx, const EfcStratGlobCtx* efcStratGlobCtx ) {
+  if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
+  EkaDev* dev = pEfcCtx->dev;
+  if (dev == NULL) on_error("dev == NULL");
+  EkaEfc* efc = dev->efc;
+  if (efc == NULL) on_error("efc == NULL");
+
+  efc->initStrategy(efcStratGlobCtx);
   return EKA_OPRESULT__OK;
 }
 
@@ -102,6 +107,15 @@ EkaOpResult efcInitStrategy( EfcCtx* efcCtx, const EfcStratGlobCtx* efcStratGlob
  * @retval [See EkaOpResult].
  */
 EkaOpResult efcEnableController( EfcCtx* pEfcCtx, EkaCoreId primaryCoreId ) {
+  if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
+  EkaDev* dev = pEfcCtx->dev;
+  if (dev == NULL) on_error("dev == NULL");
+  EkaEfc* efc = dev->efc;
+  if (efc == NULL) on_error("efc == NULL");
+
+  if (primaryCoreId < 0) efc->disArmController();
+  else efc->armController();
+
   /* assert (pEfcCtx != NULL); */
   /* download_conf2hw(pEfcCtx->dev); */
   /* if (primaryCoreId < 0) eka_arm_controller(pEfcCtx->dev, 0); */
@@ -200,10 +214,11 @@ EkaOpResult efcSetDynamicSecCtx( EfcCtx* pEfcCtx, EfcSecCtxHandle hSecCtx, const
  * This is just like setStaticSectx except it is for SesCtxs.
  */
 EkaOpResult efcSetSesCtx( EfcCtx* pEfcCtx, ExcConnHandle hConn, const SesCtx* pSesCtx) {
-  assert (pEfcCtx != NULL);
-  assert (pSesCtx != NULL);
+  on_error("This function is obsolete. Use efcSetFireTemplate()");
+  /* assert (pEfcCtx != NULL); */
+  /* assert (pSesCtx != NULL); */
 
-  assert (pEfcCtx != NULL);
+  /* assert (pEfcCtx != NULL); */
   //  session_fire_app_ctx_t ctx = {};
   /* struct session_fire_app_ctx ctx = {}; */
   /* ctx.clid = pSesCtx->clOrdId; */
@@ -231,6 +246,28 @@ EkaOpResult efcSetSesCtx( EfcCtx* pEfcCtx, ExcConnHandle hConn, const SesCtx* pS
 }
 
 /**
+ * This sets the Fire Message template for the hConn session. The template must populate all
+ * fields that are not managed by FPGA (fields managed by FPGA: size, price, etc.).
+ * @param efcCtx
+ * @param hConn          This is the ExcSessionId that we will be mapping to.
+ * @param fireMsg        Application messge in Exchange specific format: SQF, eQuote, etc.
+ * @param fireMsgSize    Size of the template
+ * @retval [See EkaOpResult].
+ */
+
+EkaOpResult efcSetFireTemplate( EfcCtx* pEfcCtx, ExcConnHandle hConn, const void* fireMsg, size_t fireMsgSize ) {
+  if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
+  EkaDev* dev = pEfcCtx->dev;
+  if (dev == NULL) on_error("dev == NULL");
+  EkaEfc* efc = dev->efc;
+  if (efc == NULL) on_error("efc == NULL");
+
+  efc->setActionPayload(hConn,fireMsg,fireMsgSize);
+
+  return EKA_OPRESULT__OK;
+}
+
+/**
  * This will tell the controller which Session to first fire on based on the multicast group that the 
  * opportunity arrived on.  
  * @param pEfcCtx
@@ -239,8 +276,20 @@ EkaOpResult efcSetSesCtx( EfcCtx* pEfcCtx, ExcConnHandle hConn, const SesCtx* pS
  * @retval [See EkaOpResult].
  */
 EkaOpResult efcSetGroupSesCtx( EfcCtx* pEfcCtx, uint8_t group, ExcConnHandle hConn ) {
-  assert (pEfcCtx != NULL);
+  if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
+  EkaDev* dev = pEfcCtx->dev;
+  if (dev == NULL) on_error("dev == NULL");
+  EkaEfc* efc = dev->efc;
+  if (efc == NULL) on_error("efc == NULL");
 
+  EkaCoreId coreId = excGetCoreId(hConn);
+  if (dev->core[coreId] == NULL) on_error("dev->core[%u] == NULL",coreId);
+
+  uint sessId = excGetSessionId(hConn);
+  if (dev->core[coreId]->tcpSess[sessId] == NULL)
+    on_error("hConn 0x%x is not connected",hConn);
+
+  efc->createFireAction(group,hConn);
   //  eka_set_group_session(pEfcCtx->dev, group, hConn);
   return EKA_OPRESULT__OK;
 
@@ -261,6 +310,14 @@ EkaOpResult efcSetGroupSesCtx( EfcCtx* pEfcCtx, uint8_t group, ExcConnHandle hCo
  * @retval [See EkaOpResult].
  */
 EkaOpResult efcRun( EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx ) {
+  if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
+  EkaDev* dev = pEfcCtx->dev;
+  if (dev == NULL) on_error("dev == NULL");
+  EkaEfc* efc = dev->efc;
+  if (efc == NULL) on_error("efc == NULL");
+
+  efc->run();
+
   //  eka_open_udp_sockets(pEfcCtx->dev);
   //  download_conf2hw(pEfcCtx->dev);
 

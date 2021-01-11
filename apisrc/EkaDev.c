@@ -320,10 +320,10 @@ EkaDev::~EkaDev() {
 }
 /* ##################################################################### */
 
-EkaTcpSess* EkaDev::findTcpSess(uint32_t ipSrc, uint16_t udpSrc, uint32_t ipDst, uint16_t udpDst) {
+EkaTcpSess* EkaDev::findTcpSess(uint32_t srcIp, uint16_t srcPort, uint32_t dstIp, uint16_t dstPort) {
   for (uint c = 0; c < MAX_CORES; c++) {
     if (core[c] == NULL) continue;
-    EkaTcpSess* s = core[c]->findTcpSess(ipSrc,udpSrc,ipDst,udpDst);
+    EkaTcpSess* s = core[c]->findTcpSess(srcIp,srcPort,dstIp,dstPort);
     if (s != NULL) return s;
   }
   return NULL;

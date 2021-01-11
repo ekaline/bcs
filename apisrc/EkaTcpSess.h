@@ -40,6 +40,9 @@ class EkaTcpSess {
 
   ssize_t recv(void *buffer, size_t size);
   int     close();
+  ExcConnHandle getConnHandle() {
+    return coreId * 128 + sessId;
+  }
 
   ~EkaTcpSess();
 
@@ -68,16 +71,16 @@ class EkaTcpSess {
 
   EkaCore* parent = NULL;
 
-  uint8_t  coreId;
-  uint8_t  sessId;
+  uint8_t  coreId = -1;
+  uint8_t  sessId = -1;
   
-  int      sock;
-  uint32_t srcIp;
-  uint16_t srcPort;
-  uint32_t dstIp;
-  uint16_t dstPort;
+  int      sock   = -1;
+  uint32_t srcIp  = -1;
+  uint16_t srcPort = -1;
+  uint32_t dstIp   = -1;
+  uint16_t dstPort = -1;
 
-  uint32_t vlan_tag;
+  uint32_t vlan_tag = 0;
 
   uint16_t tcpWindow; // new
 

@@ -359,7 +359,7 @@ int main(int argc, char *argv[]) {
   for (uint8_t c = 0; c < testCores; c ++) {
     for (uint8_t s = 0; s < testSessions ;s ++) {
       uint thrId = c * testSessions + s;
-      fast_path_thread[c][s] = std::thread(fastpath_thread_f,pEkaDev,thrId,sess_id[c][s],p2p_delay);
+      fast_path_thread[c][s] = std::thread(fastpath_thread_f,pEkaDev,sess_id[c][s],thrId,p2p_delay);
       fast_path_thread[c][s].detach();
     }
   }

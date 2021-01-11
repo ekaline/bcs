@@ -94,11 +94,13 @@ ExcConnHandle excConnect( EkaDev* dev, ExcSocketHandle hSocket, const struct soc
   /* 	  EKA_IP2STR(sess->srcIp),sess->srcPort, */
   /* 	  EKA_IP2STR(sess->dstIp),sess->dstPort); */
 
-  ExcConnHandle rc = sess->connect();
 
-  sess->preloadNwHeaders();
-  
-  return rc;
+  if (sess->connect() == 0) {
+    sess->preloadNwHeaders();
+    return sess->getConnHandle();
+  }
+
+  return -1;
 }
 
 /**
