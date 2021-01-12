@@ -69,7 +69,7 @@ void EkaFhGroup::sendFeedUpInitial(const EfhRunCtx* pEfhRunCtx) {
   EfhGroupStateChangedMsg msg = {
     EfhMsgType::kGroupStateChanged,
     {exch, id},
-    EfhGroupState::kInitializing,   //Initializing
+    EfhGroupState::kNormal,   //Initializing
     EfhSystemState::kInitial, // Preopen, Trading, Closed
     EfhGroupStateErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kFeedSnapshot, // Unspecified, FeedRecovery
@@ -103,7 +103,7 @@ void EkaFhGroup::sendFeedDownInitial(const EfhRunCtx* pEfhRunCtx) {
   EfhGroupStateChangedMsg msg = {
     EfhMsgType::kGroupStateChanged,
     {exch, id},
-    EfhGroupState::kGap,
+    EfhGroupState::kInitializing,
     EfhSystemState::kInitial, // Preopen, Trading, Closed
     EfhGroupStateErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kFeedSnapshot, // Unspecified, FeedRecovery
