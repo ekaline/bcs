@@ -1,8 +1,7 @@
 #ifndef __EKA_CTXS_H__
 #define __EKA_CTXS_H__
 
-#include "Eka.h"
-#include "Efh.h"
+class EkaDev;
 
 struct EkaCtx {
   EkaDev* dev;

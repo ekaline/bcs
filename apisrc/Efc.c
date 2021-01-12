@@ -331,7 +331,15 @@ EkaOpResult efcRun( EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx ) {
 
 
 EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, EfcReportHdr* p ) {
-  // PATCH
+  if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
+  EkaDev* dev = pEfcCtx->dev;
+  if (dev == NULL) on_error("dev == NULL");
+  EkaEfc* efc = dev->efc;
+  if (efc == NULL) on_error("efc == NULL");
+
+  EKA_LOG("NOT IMPLEMENTED YET!!!");
+
   //  print_new_compat_fire_report (pEfcCtx,p);
+  
   return EKA_OPRESULT__OK;
 }

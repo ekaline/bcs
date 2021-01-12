@@ -61,9 +61,9 @@ int EkaEfc::confParse(const char *key, const char *value) {
   while(k[i]!=NULL) k[++i] = strtok(NULL,".");
 
 
-  // efc.NOM_ITTO.group.X.mcast.addr, x.x.x.x:xxxx
+  // efc.group.X.mcast.addr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
-  if (((strcmp(k[0],"efh")==0) || (strcmp(k[0],"efc")==0)) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"mcast")==0) && (strcmp(k[5],"addr")==0)) {
+  if (((strcmp(k[0],"efh")==0) || (strcmp(k[0],"efc")==0)) && (strcmp(k[1],"group")==0) && (strcmp(k[1],"mcast")==0) && (strcmp(k[5],"addr")==0)) {
     EkaSource exch = EFH_GET_SRC(k[1]);
     if (EFH_EXCH2FEED(exch) == hwFeedVer) {
       uint32_t mcAddr = inet_addr(v[0]);
