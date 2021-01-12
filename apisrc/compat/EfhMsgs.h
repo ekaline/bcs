@@ -13,7 +13,7 @@
 /*
  * $$NOTE$$ - All of these messages are standalone and therefore arent contained in a kEkaContainerMsg.
  */
-enum class EfhMsgType {
+enum class EfhMsgType : uint16_t {
     #define EfhMsgType_ENUM_ITER( _x )                                      \
                 _x( Definition,        0   )                                \
                 _x( Trade                  )                                \
