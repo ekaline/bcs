@@ -84,8 +84,6 @@ static uint64_t getFpgaTimeCycles () { // ignores Application - PCIe - FPGA late
 
 EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   exc_inited = false;
-  efc_run_threadIsUp = false;
-  efc_fire_report_threadIsUp = false;
   exc_active = false;
   exc_inited = false;
   lwip_inited = false;
@@ -198,7 +196,7 @@ bool EkaDev::openEpm() {
 #endif
 
     uint64_t fire_rx_tx_en = eka_read(ENABLE_PORT);
-    fire_rx_tx_en |= (1ULL << 32); //turn off trprx
+    fire_rx_tx_en |= (1ULL << 32); //turn off tcprx
     EKA_LOG ("Turning off tcprx = 0x%016jx",fire_rx_tx_en);
     eka_write(ENABLE_PORT,fire_rx_tx_en);
 
@@ -210,7 +208,6 @@ bool EkaDev::openEpm() {
     ekaInitLwip(this);
     return true;    
   } else {
-    epmEnabled = false;
     EKA_LOG("EPM is disabled for current Application");
     return false;
   }

@@ -11,6 +11,7 @@
 #include "EkaTcpSess.h"
 #include "EkaEpmAction.h"
 #include "EpmFireSqfTemplate.h"
+#include "EkaEfcDataStructs.h"
 
 /* ################################################ */
 static bool isAscii (char letter) {
@@ -156,8 +157,12 @@ int EkaEfc::initHwRoundTable() {
     default:
       on_error("Unexpected hwFeedVer = 0x%x",(int)hwFeedVer);
     }
-    eka_write (dev,ROUND_2B_ADDR,addr);
-    eka_write (dev,ROUND_2B_DATA,data);
+
+    uint64_t indAddr = 0x0100000000000000 + addr;
+    indirectWrite(dev,indAddr,data);
+
+    /* eka_write (dev,ROUND_2B_ADDR,addr); */
+    /* eka_write (dev,ROUND_2B_DATA,data); */
     //    EKA_LOG("%016x (%ju) @ %016x (%ju)",data,data,addr,addr);
   }
   return 0;
@@ -289,12 +294,24 @@ int EkaEfc::downloadTable() {
 }
 
 /* ################################################ */
+int EkaEfc::enableRxFire() {
+  uint64_t fire_rx_tx_en = eka_read(dev,ENABLE_PORT);
+  fire_rx_tx_en |= 1ULL << (16 + fireCoreId); //fire core enable */
+  fire_rx_tx_en |= 1ULL << mdCoreId;          // RX (Parser) core enable */
+  eka_write(dev,ENABLE_PORT,fire_rx_tx_en);
+
+  EKA_LOG("fire_rx_tx_en = 0x%016jx",fire_rx_tx_en);
+  return 0;
+}
+/* ################################################ */
 int EkaEfc::run() {
   setHwGlobalParams();
   setHwUdpParams();
+  setHwStratRegion();
   igmpJoinAll();
 
-  //  enableRxFire();
+  enableRxFire();
+
   return 0;
 }
 
@@ -348,6 +365,24 @@ int EkaEfc::setHwUdpParams() {
   return 0;
 }
 /* ################################################ */
+int EkaEfc::setHwStratRegion() {
+  struct StratRegion {
+    uint8_t region;
+    uint8_t strategyIdx;
+  } __attribute__((packed));
+
+  StratRegion stratRegion[MAX_UDP_SESS] = {};
+
+  for (auto i = 0; i < numUdpSess; i++) {
+    if (udpSess[i] == NULL) on_error("udpSess[%d] == NULL",i);
+    stratRegion[i].region      = EkaEpm::EfcRegion;
+    stratRegion[i].strategyIdx = 0;
+  }
+  copyBuf2Hw(dev,0x83000,(uint64_t*) &stratRegion,sizeof(stratRegion));
+
+  return 0;
+}
+/* ################################################ */
 
 int EkaEfc::createFireAction(uint8_t group, ExcConnHandle hConn) {
   if (numFireActions == MAX_FIRE_ACTIONS) 
@@ -359,6 +394,13 @@ int EkaEfc::createFireAction(uint8_t group, ExcConnHandle hConn) {
   EkaTcpSess* myTcpSess = dev->core[myCoreId]->tcpSess[mySessId];
   if (myTcpSess == NULL) on_error("myTcpSess == NULL");
   
+  if (fireCoreId == -1) {
+    fireCoreId = myCoreId;
+  } else {
+    if (fireCoreId != myCoreId) 
+      on_error("fireCoreId %u != myCoreId %u",fireCoreId, myCoreId);
+  }
+
   udpSess[group]->firstSessId = mySessId;
 
   fireAction[numFireActions] = dev->epm->addAction(EkaEpm::ActionType::HwFireAction,

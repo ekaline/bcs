@@ -71,7 +71,7 @@ void ekaServThread(EkaDev* dev) {
   dev->servThreadActive = true;
 
   uint64_t fire_rx_tx_en = eka_read(dev,ENABLE_PORT);
-  fire_rx_tx_en &= ~(1ULL << 32); //turn on trprx
+  fire_rx_tx_en &= ~(1ULL << 32); //turn on tcprx
   EKA_LOG ("Turning on tcprx = 0x%016jx",fire_rx_tx_en);
   eka_write(dev,ENABLE_PORT,fire_rx_tx_en);
   dev->servThreadTerminated = false;
@@ -132,7 +132,7 @@ void ekaServThread(EkaDev* dev) {
   }
 
   fire_rx_tx_en = eka_read(dev,ENABLE_PORT);
-  fire_rx_tx_en |= (1ULL << 32); //turn off trprx
+  fire_rx_tx_en |= (1ULL << 32); //turn off tcprx
   EKA_LOG ("Turning off tcprx = 0x%016jx",fire_rx_tx_en);
   eka_write(dev,ENABLE_PORT,fire_rx_tx_en);
 

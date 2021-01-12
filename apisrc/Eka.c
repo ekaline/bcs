@@ -1,6 +1,6 @@
 #include "Eka.h"
 
-#include "eka_data_structs.h"
+//#include "eka_data_structs.h"
 #include "EkaDev.h"
 
 EkaOpResult ekaDevInit( EkaDev** ppEkaDev, const EkaDevInitCtx *pInitCtx ) {

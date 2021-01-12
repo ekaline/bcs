@@ -39,16 +39,20 @@ class EkaEfc {
   int           setHwUdpParams();
   int           igmpJoinAll();
   EkaEpmAction* findFireAction(ExcConnHandle hConn);
+  int           setHwStratRegion();
+  int           enableRxFire();
 
   /* ----------------------------------------------------- */
-  static const int MAX_UDP_SESS = 64;
-  static const int MAX_TCP_SESS = 64;
-  static const int MAX_FIRE_ACTIONS = 64;
+  static const int MAX_UDP_SESS      = 64;
+  static const int MAX_TCP_SESS      = 64;
+  static const int MAX_FIRE_ACTIONS  = 64;
+  static const int MAX_CTX_THREADS   = 16;
 
   EkaIgmp*            ekaIgmp    = NULL;
-  uint8_t             mdCoreId = -1;
-  EkaDev*             dev = NULL;
-  EfhFeedVer          hwFeedVer = EfhFeedVer::kInvalid;
+  uint8_t             mdCoreId   = -1;
+  uint8_t             fireCoreId = -1;
+  EkaDev*             dev        = NULL;
+  EfhFeedVer          hwFeedVer  = EfhFeedVer::kInvalid;
   EkaHwHashTableLine* hashLine[EKA_SUBSCR_TABLE_ROWS] = {};
   int                 numSecurities = 0;
 
@@ -59,6 +63,9 @@ class EkaEfc {
 
   EkaEpmAction*       fireAction[MAX_FIRE_ACTIONS] = {};
   int                 numFireActions = 0;
+
+ public:
+  int                 ctxWriteBank[MAX_CTX_THREADS] = {};
 
 };
 

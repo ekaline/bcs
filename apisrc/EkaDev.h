@@ -89,46 +89,44 @@ class EkaDev {
   std::mutex                addTcpSessMtx;
   std::mutex                lwipConnectMtx;
 
-  struct EfcCtx*            pEfcCtx = NULL;
-  struct EfcRunCtx*         pEfcRunCtx = NULL;
-  struct EfhRunCtx*         pEfhRunCtx = NULL;
+  struct EfcCtx*            pEfcCtx                    = NULL;
+  struct EfcRunCtx*         pEfcRunCtx                 = NULL;
+  struct EfhRunCtx*         pEfhRunCtx                 = NULL;
 
-  void*                     credContext;
-  void*                     createThreadContext;
+  void*                     credContext                = NULL;
+  void*                     createThreadContext        = NULL;
 
-  volatile bool             servThreadActive = false;
+  volatile bool             servThreadActive           = false;
   std::thread               servThread;
-  volatile bool             servThreadTerminated = true;
+  volatile bool             servThreadTerminated       = true;
 
-  volatile bool             fireReportThreadActive = false;
+  volatile bool             fireReportThreadActive     = false;
   std::thread               fireReportThread;
   volatile bool             fireReportThreadTerminated = true;
 
 
-  volatile bool             exc_inited = false;
-  volatile bool             lwip_inited = false;
+  volatile bool             exc_inited                 = false;
+  volatile bool             lwip_inited                = false;
   //  volatile bool             ekaLwipPollThreadIsUp;
-  volatile bool             efc_run_threadIsUp = false;
-  volatile bool             efc_fire_report_threadIsUp = false;
+  /* volatile bool             efc_run_threadIsUp = false; */
+  /* volatile bool             efc_fire_report_threadIsUp = false; */
 
-  volatile uint8_t          numFh = 0;
+  volatile uint8_t          numFh                      = 0;
 
-  EkaFh*                    fh[MAX_FEED_HANDLERS] = {};
+  EkaFh*                    fh[MAX_FEED_HANDLERS]      = {};
 
   volatile uint8_t          numRunGr = 0;
-  EkaFhRunGroup*            runGr[MAX_RUN_GROUPS] = {};
-  std::mutex mtx;   // mutex to protect concurrent dev->numRunGr++
+  EkaFhRunGroup*            runGr[MAX_RUN_GROUPS]      = {};
+  std::mutex                mtx;   // mutex to protect concurrent dev->numRunGr++
 
   EkaLogCallback            logCB;
-  void*                     logCtx = NULL;
+  void*                     logCtx                     = NULL;
 
   EkaAcquireCredentialsFn   credAcquire;
   EkaReleaseCredentialsFn   credRelease;
   EkaThreadCreateFn         createThread;
 
   bool                      print_parsed_messages = false;
-
-  hw_capabilities_t         hw_capabilities = {};
 
   /* static const uint64_t     statSwVersion          = SW_SCRATCHPAD_BASE; */
   /* static const uint64_t     statGlobalCoreAddrBase = statSwVersion + 8; */
@@ -270,6 +268,16 @@ inline void atomicIndirectBufWrite(EkaDev* dev, uint64_t addr, uint8_t bank, uin
   eka_write (dev,addr,desc.lt_desc);
 }
 
+inline void indirectWrite(EkaDev* dev,uint64_t addr,uint64_t data) {
+  eka_write(dev,0xf0100,addr);
+  eka_write(dev,0xf0108,data); 
+}
+
+
+inline uint64_t indirectRead(EkaDev* dev,uint64_t addr) {
+  eka_write(dev,0xf0100,addr);
+  return eka_read(dev,0xf0108); 
+}
 
 inline void hexDump (const char *desc, void *addr, int len) {
   int i;
