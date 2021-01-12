@@ -66,6 +66,9 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
   lastPktMsgCnt = 0;
   lastPkt1stSeq = getHsvfMsgSequence(&p[idx]);
 
+  if (lastPktLen == 0  || lastPkt1stSeq == 0 || lastPkt1stSeq == (uint64_t)-1) {
+    EKA_WARN("lastPktLen=%u, lastPkt1stSeq=%ju",lastPktLen,lastPkt1stSeq);
+  }
   /* uint64_t initial_expected_sequence = expected_sequence; */
   /* uint64_t first_sequence = getHsvfMsgSequence(&p[idx]); */
 
@@ -74,9 +77,16 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
     uint     msgLen   = getHsvfMsgLen(&p[idx],pktLen-idx);
     uint64_t sequence = getHsvfMsgSequence(&p[idx]);
 
+    if (lastPktLen == 0  || lastPkt1stSeq == 0 || lastPkt1stSeq == (uint64_t)-1) {
+      EKA_WARN("lastPktLen=%u, lastPkt1stSeq=%ju",lastPktLen,lastPkt1stSeq);
+    }
+
     if (sequence >= expected_sequence) {
       //      EKA_LOG("%ju",sequence);
-      if (parseMsg(pEfhRunCtx,&p[idx+1],sequence,EkaFhMode::MCAST)) return true;
+      if (parseMsg(pEfhRunCtx,&p[idx+1],sequence,EkaFhMode::MCAST)) {
+	EKA_WARN("Exiting in the middle of the packet");
+	return true;
+      }
       expected_sequence = sequence + 1;
     } else {
       /* EKA_WARN("%s:%u sequence %ju < expected_sequence %ju", */
@@ -84,7 +94,9 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
     }
 
     idx += msgLen;
-    idx += trailingZeros(&p[idx],pktLen-idx );
+    uint numZeros = trailingZeros(&p[idx],pktLen-idx );
+    if (numZeros > 2) EKA_WARN("numZeros = %u",numZeros);
+    idx += numZeros;
     
     lastPktMsgCnt++;
   }

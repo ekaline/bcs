@@ -88,7 +88,7 @@ uint getHsvfMsgLen(const uint8_t* pkt, int bytes2run) {
 }
 
 uint64_t getHsvfMsgSequence(const uint8_t* msg) {
-  HsvfMsgHdr* msgHdr = (HsvfMsgHdr*)&msg[1];
+  const HsvfMsgHdr* msgHdr = (const HsvfMsgHdr*)&msg[1];
   std::string seqString = std::string(msgHdr->sequence,sizeof(msgHdr->sequence));
   return std::stoul(seqString,nullptr,10);
 }
