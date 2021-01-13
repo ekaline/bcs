@@ -283,7 +283,7 @@ int main(int argc, char *argv[]) {
   uint startHour = 0;
   while (fread(buf,sizeof(pcap_rec_hdr),1,pcap_file) == 1) {
     pcap_rec_hdr *pcap_rec_hdr_ptr = (pcap_rec_hdr *) buf;
-    uint pktLen = pcap_rec_hdr_ptr->len;
+    uint pktLen = pcap_rec_hdr_ptr->len - 4 /* FCS */;
     if (pktLen > 1536) on_error("Probably wrong PCAP format: pktLen = %u ",pktLen);
 
     char pkt[1536] = {};
@@ -359,7 +359,7 @@ int main(int argc, char *argv[]) {
       /* -------------------------------- */
 
       pos += msgLen;
-      if (pktLen - pos == 4) break;
+      //      if (pktLen - pos == 4 || pktLen - pos == 5) break; // FCS
       pos += trailingZeros(&pkt[pos],pktLen-pos );
     }
 
