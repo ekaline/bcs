@@ -55,10 +55,15 @@ struct MsgHdr {
 } __attribute__((packed));
 
 
-struct RefreshBookRoot { // 11
+struct RootBlock { // 11
   uint64_t    TransactTime;       // 8
   uint8_t     MatchEventIndicator;// 1
   uint8_t     pad[2];             // 2
+} __attribute__((packed));
+
+struct GroupSize {
+  uint16_t blockLen;
+  uint8_t  numInGroup;
 } __attribute__((packed));
 
 struct MdEntry { // 32 
@@ -142,10 +147,14 @@ int main(int argc, char *argv[]) {
       switch (msgHdr->templateId) {
       case MsgId::MDIncrementalRefreshBook : {
 	uint msgPos = pos;
-	const RefreshBookRoot* bookRoot = (const RefreshBookRoot*)&pkt[msgPos];
+	/* ------------------------------- */
+	uint rootBlockPos = msgPos;
+	const RootBlock* rootBlock = (const RootBlock*)&pkt[msgPos];
 	printf ("IncrementalRefreshBook: TransactTime=%ju, MatchEventIndicator=0x%x,",
-		bookRoot->TransactTime,bookRoot->MatchEventIndicator);
-	msgPos += sizeof(RefreshBookRoot);
+		rootBlock->TransactTime,rootBlock->MatchEventIndicator);
+	msgPos += msgHdr->blockLen;
+	/* ------------------------------- */
+	
 
 	pos += msgHdr->size;
       }

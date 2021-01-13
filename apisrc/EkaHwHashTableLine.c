@@ -129,44 +129,21 @@ int EkaHwHashTableLine::downloadPacked() {
   int packedBytes = roundUp<int>(EKA_SUBSCR_TABLE_COLUMNS * getHashSize(),8) / 8 + 4;
   int packedWords = roundUp<int>(packedBytes,8) / 8;
 
-#ifdef _VERILOG_SIM 
-  if (id == 0x440e) {
-    print();
-    uint64_t* pWord = (uint64_t*)packed;
-    for (auto i = 0; i < packedWords; i++) {
-      eka_write(dev, FH_SUBS_HASH_BASE + 8 * i, *pWord);
-      EKA_LOG("pWord = %jx",*pWord);
-      pWord++;
-    }
-    union large_table_desc desc = {};
-    desc.ltd.src_bank = 0;
-    desc.ltd.src_thread = 0;
-    desc.ltd.target_idx = id;
-    eka_write(dev, FH_SUBS_HASH_DESC, desc.lt_desc);
-  }
+#ifdef _VERILOG_SIM
+  if (validCnt == 0) return 0;
+#endif
 
-#else
   uint64_t* pWord = (uint64_t*)packed;
   for (auto i = 0; i < packedWords; i++) {
-/* #ifdef _VERILOG_SIM  */
-/*     if (*pWord != 0) eka_write(dev, FH_SUBS_HASH_BASE + 8 * i, *pWord); */
-/* #else */
     eka_write(dev, FH_SUBS_HASH_BASE + 8 * i, *pWord);
-/* #endif */
     pWord++;
-  }
-  
+  }  
+
   union large_table_desc desc = {};
   desc.ltd.src_bank = 0;
   desc.ltd.src_thread = 0;
   desc.ltd.target_idx = id;
   eka_write(dev, FH_SUBS_HASH_DESC, desc.lt_desc);
-
-  uint64_t subdone = 1ULL<<63;
-  uint64_t val = eka_read(dev, SW_STATISTICS);
-  val |= subdone;
-  eka_write(dev, SW_STATISTICS, val);
-#endif
 
   return 0;
 }
