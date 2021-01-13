@@ -56,42 +56,29 @@ int EkaFhBoxGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
 bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 			       const uint8_t*   pkt, 
 			       int16_t          pktLen) {
-  //  EKA_LOG("%s:%u : pktLen = %d",EKA_EXCH_DECODE(exch),id,pktLen);
-
-  //  uint8_t* p = (uint8_t*)pkt;
   const uint8_t* p = pkt;
   int idx = 0;
 
   lastPktLen    = pktLen;
   lastPktMsgCnt = 0;
-  lastPkt1stSeq = getHsvfMsgSequence(&p[idx]);
-
-  if (lastPktLen == 0  || lastPkt1stSeq == 0 || lastPkt1stSeq == (uint64_t)-1) {
-    EKA_WARN("lastPktLen=%u, lastPkt1stSeq=%ju",lastPktLen,lastPkt1stSeq);
-  }
-  /* uint64_t initial_expected_sequence = expected_sequence; */
-  /* uint64_t first_sequence = getHsvfMsgSequence(&p[idx]); */
-
 
   while (idx < pktLen) {
     uint     msgLen   = getHsvfMsgLen(&p[idx],pktLen-idx);
+    if (idx + (int)msgLen > (int)pktLen) {
+      hexDump("Pkt with wrong msgLen",pkt,pktLen);
+      on_error("idx %d + msgLen %u > pktLen %d",idx,msgLen,pktLen);
+    }
     uint64_t sequence = getHsvfMsgSequence(&p[idx]);
 
-    if (lastPktLen == 0  || lastPkt1stSeq == 0 || lastPkt1stSeq == (uint64_t)-1) {
-      EKA_WARN("lastPktLen=%u, lastPkt1stSeq=%ju",lastPktLen,lastPkt1stSeq);
-    }
+    lastProcessedSeq = sequence;
 
     if (sequence >= expected_sequence) {
-      //      EKA_LOG("%ju",sequence);
       if (parseMsg(pEfhRunCtx,&p[idx+1],sequence,EkaFhMode::MCAST)) {
 	EKA_WARN("Exiting in the middle of the packet");
 	return true;
       }
       expected_sequence = sequence + 1;
-    } else {
-      /* EKA_WARN("%s:%u sequence %ju < expected_sequence %ju", */
-      /* 	       EKA_EXCH_DECODE(exch),id,sequence,expected_sequence); */
-    }
+    } 
 
     idx += msgLen;
     uint numZeros = trailingZeros(&p[idx],pktLen-idx );
@@ -100,6 +87,9 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
     
     lastPktMsgCnt++;
   }
+
+  if (expected_sequence != lastProcessedSeq + 1) 
+    on_error("expected_sequence %ju != lastProcessedSeq %ju + 1",expected_sequence,lastProcessedSeq);
 
   /* if (expected_sequence - initial_expected_sequence != lastPktMsgCnt) */
   /*   EKA_WARN("first_sequence = %ju, expected_sequence %ju - initial_expected_sequence %ju != lastPktMsgCnt %ju", */
