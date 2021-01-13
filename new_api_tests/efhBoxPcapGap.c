@@ -283,7 +283,7 @@ int main(int argc, char *argv[]) {
   uint startHour = 0;
   while (fread(buf,sizeof(pcap_rec_hdr),1,pcap_file) == 1) {
     pcap_rec_hdr *pcap_rec_hdr_ptr = (pcap_rec_hdr *) buf;
-    uint pktLen = pcap_rec_hdr_ptr->len - 4 /* FCS */;
+    uint pktLen = pcap_rec_hdr_ptr->len;
     if (pktLen > 1536) on_error("Probably wrong PCAP format: pktLen = %u ",pktLen);
 
     char pkt[1536] = {};
@@ -302,7 +302,7 @@ int main(int argc, char *argv[]) {
     if (gr < 0) continue;
     //    if (group[gr].hour > startHour) printf ("%s:%u\n",EKA_IP2STR(EKA_IPH_DST(&pkt[pos])),EKA_UDPH_DST(&pkt[pos]));
 
-
+    pktLen -= 4; // FCS
     pos += sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr);
     if (pktNum == pkt2dump) {
       hexDump("pkt2dump",pkt,pktLen);
