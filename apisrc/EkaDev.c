@@ -110,6 +110,10 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 
   hwFeedVer = feedVer(ekaHwCaps->hwCaps.version.parser);
 
+#ifdef _ENFORCE_NOM_
+  hwFeedVer = EfhFeedVer::kNASDAQ;
+#endif
+
   //  eka_write(ENABLE_PORT,0);
 
   time_t t;

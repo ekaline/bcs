@@ -504,7 +504,8 @@ int main(int argc, char *argv[]) {
 
   efcRun(pEfcCtx, &runCtx );
 
-  while (keep_work) { sleep(0); }
+  EKA_LOG("After efcRun");
+  //  while (keep_work) { sleep(0); }
 
   //  end:
   fflush(stdout);fflush(stderr);

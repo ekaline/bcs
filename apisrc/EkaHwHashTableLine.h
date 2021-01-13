@@ -20,6 +20,7 @@ class EkaHwHashTableLine {
   int  getSubscriptionId(uint64_t secId);
   int  pack(int _sum);
   int  downloadPacked();
+  int print();
 
  private:
   uint16_t getHash(uint64_t normSecId);

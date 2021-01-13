@@ -50,7 +50,7 @@ int EkaHwHashTableLine::getHashSize() {
 bool EkaHwHashTableLine::addSecurity(uint64_t secId) {
   if (validCnt == EKA_SUBSCR_TABLE_COLUMNS) {
     EKA_WARN("No room for %ju in Hash Row %d",secId,id);
-    return -1;
+    return false;
   }
 
   uint16_t hash = getHash(secId);
@@ -62,14 +62,14 @@ bool EkaHwHashTableLine::addSecurity(uint64_t secId) {
 		 id, secId, secId, col[i].secId, col[i].secId, hash);
       EKA_WARN("secId %jx (%ju) is already subscribed at Hash line %d with hash %04x",
 	       secId,secId,id,hash);
-      return 0;
+      return false;
     }
   }
 
   col[validCnt].hash  = hash;
   col[validCnt].secId = secId;
   validCnt++;
-  return 0;
+  return true;
 }
 
 /* ############################################### */
@@ -89,10 +89,16 @@ static void turnOnBit(uint8_t* dst, int bitLocation) {
 }
 
 /* ############################################### */
+int EkaHwHashTableLine::print() {
+  EKA_LOG("line %d: validCnt = %u, sum=%u, col[0].secId = 0x%jx col[0].hash = %u",
+	  id, validCnt, sum, col[0].secId, col[0].hash);
+  return 0;
+}
+
+/* ############################################### */
 int EkaHwHashTableLine::pack(int _sum) {
   sum = _sum;
   
-  uint8_t packed[64] = {};
   *(uint32_t*)packed = sum;
   *(packed + 3)      = validCnt;
   
@@ -102,7 +108,19 @@ int EkaHwHashTableLine::pack(int _sum) {
       if (col[i].hash & (1ULL << b)) turnOnBit(packed,bitOffs++); 
     }
   }
-  
+  /* if (id == 0x440e) { */
+  /*   print(); */
+  /*   uint64_t* pWord = (uint64_t*)packed; */
+
+  /*   int packedBytes = roundUp<int>(EKA_SUBSCR_TABLE_COLUMNS * getHashSize(),8) / 8 + 4; */
+  /*   int packedWords = roundUp<int>(packedBytes,8) / 8; */
+
+  /*   for (auto i = 0; i < packedWords; i++) { */
+  /*     EKA_LOG("pWord = %jx",*pWord); */
+  /*     pWord++; */
+  /*   } */
+  /* } */
+
   return validCnt;
 }
 
@@ -111,9 +129,30 @@ int EkaHwHashTableLine::downloadPacked() {
   int packedBytes = roundUp<int>(EKA_SUBSCR_TABLE_COLUMNS * getHashSize(),8) / 8 + 4;
   int packedWords = roundUp<int>(packedBytes,8) / 8;
 
+#ifdef _VERILOG_SIM 
+  if (id == 0x440e) {
+    print();
+    uint64_t* pWord = (uint64_t*)packed;
+    for (auto i = 0; i < packedWords; i++) {
+      eka_write(dev, FH_SUBS_HASH_BASE + 8 * i, *pWord);
+      EKA_LOG("pWord = %jx",*pWord);
+      pWord++;
+    }
+    union large_table_desc desc = {};
+    desc.ltd.src_bank = 0;
+    desc.ltd.src_thread = 0;
+    desc.ltd.target_idx = id;
+    eka_write(dev, FH_SUBS_HASH_DESC, desc.lt_desc);
+  }
+
+#else
   uint64_t* pWord = (uint64_t*)packed;
   for (auto i = 0; i < packedWords; i++) {
+/* #ifdef _VERILOG_SIM  */
+/*     if (*pWord != 0) eka_write(dev, FH_SUBS_HASH_BASE + 8 * i, *pWord); */
+/* #else */
     eka_write(dev, FH_SUBS_HASH_BASE + 8 * i, *pWord);
+/* #endif */
     pWord++;
   }
   
@@ -123,11 +162,11 @@ int EkaHwHashTableLine::downloadPacked() {
   desc.ltd.target_idx = id;
   eka_write(dev, FH_SUBS_HASH_DESC, desc.lt_desc);
 
-
   uint64_t subdone = 1ULL<<63;
   uint64_t val = eka_read(dev, SW_STATISTICS);
   val |= subdone;
   eka_write(dev, SW_STATISTICS, val);
+#endif
 
   return 0;
 }
