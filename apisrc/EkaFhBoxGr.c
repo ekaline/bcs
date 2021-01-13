@@ -81,10 +81,7 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
     } 
 
     idx += msgLen;
-    uint numZeros = trailingZeros(&p[idx],pktLen-idx );
-    if (numZeros > 2) EKA_WARN("numZeros = %u",numZeros);
-    idx += numZeros;
-    
+    idx += trailingZeros(&p[idx],pktLen-idx );    
     lastPktMsgCnt++;
   }
 

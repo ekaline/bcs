@@ -98,6 +98,10 @@ uint trailingZeros(const uint8_t* p, uint maxChars) {
   while (p[idx] == 0x0 && idx < maxChars) {
     idx++; // skipping trailing '\0' chars
   }
+  if (idx > 2) {
+    hexDump("Msg with unexpected trailing zeros",p,maxChars);
+    on_error("unexpected %u trailing Zeros",idx);
+  }
   return idx;
 }
 
