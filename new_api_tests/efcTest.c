@@ -48,8 +48,12 @@ static const int MaxFireEvents = 10000;
 static volatile EpmFireReport* FireEvent[MaxFireEvents] = {};
 static volatile int numFireEvents = 0;
 
+static const int TEST_NUMOFSEC = 2;
 
-static const uint64_t TEST_NOM_SEC_ID = 0x0003c40e;
+static const uint64_t TEST_NOM_SEC_ID[TEST_NUMOFSEC] = {
+  0x0003c40e,
+  0x00064b74
+};
 /* --------------------------------------------- */
 
 void  INThandler(int sig) {
@@ -488,20 +492,21 @@ int main(int argc, char *argv[]) {
   }
 
   /* ============================================== */
-  efcEnableFiringOnSec(pEfcCtx, &TEST_NOM_SEC_ID, 1);
-  EfcSecCtxHandle handle = getSecCtxHandle(pEfcCtx, TEST_NOM_SEC_ID);
-  SecCtx secCtx = {
-    .bidMinPrice       = 1, //x100, should be nonzero
-    .askMaxPrice       = 0,  //x100
-    .size              = 1,
-    .verNum            = 0xaf,
-    .lowerBytesOfSecId = TEST_NOM_SEC_ID & 0xFF
-  };
-  rc = efcSetStaticSecCtx(pEfcCtx, handle, &secCtx, 0);
-  if (rc != EKA_OPRESULT__OK) on_error ("failed to efcSetStaticSecCtx");
-
+  efcEnableFiringOnSec(pEfcCtx, (uint64_t*)&TEST_NOM_SEC_ID, TEST_NUMOFSEC);
+  for (auto i = 0; i < TEST_NUMOFSEC; i++) {
+    EfcSecCtxHandle handle = getSecCtxHandle(pEfcCtx, TEST_NOM_SEC_ID[i]);
+    SecCtx secCtx = {
+      .bidMinPrice       = 1, //x100, should be nonzero
+      .askMaxPrice       = 0,  //x100
+      .size              = 1,
+      .verNum            = 0xaf,
+      .lowerBytesOfSecId = TEST_NOM_SEC_ID[i] & 0xFF
+    };
+    rc = efcSetStaticSecCtx(pEfcCtx, handle, &secCtx, 0);
+    if (rc != EKA_OPRESULT__OK) on_error ("failed to efcSetStaticSecCtx");
+  }
   /* ============================================== */
-
+  
   efcRun(pEfcCtx, &runCtx );
 
   EKA_LOG("After efcRun");
