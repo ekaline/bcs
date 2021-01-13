@@ -311,8 +311,9 @@ int main(int argc, char *argv[]) {
     //###############################################
     while (pos < (int)pktLen) {
       if (pkt[pos] != HsvfSom) {
-	hexDump("Pkt with no HsvfSom",&pkt[pos],pktLen);
-	on_error("expected HsvfSom (0x%x) != 0x%x",HsvfSom,pkt[pos] & 0xFF);
+	hexDump("Pkt with no HsvfSom",pkt,pktLen);
+	on_error("at pos = %d expected HsvfSom (0x%x) != 0x%x",
+		 pos,HsvfSom,pkt[pos] & 0xFF);
       }
       uint msgLen       = getHsvfMsgLen(&pkt[pos],pktLen-pos);
       uint64_t sequence = getHsvfMsgSequence(&pkt[pos]);
