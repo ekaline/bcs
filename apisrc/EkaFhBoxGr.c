@@ -64,7 +64,7 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 
   while (idx < pktLen) {
     uint     msgLen   = getHsvfMsgLen(&p[idx],pktLen-idx);
-    if (idx + (int)msgLen > (int)pktLen) {
+    if (idx + (int)msgLen > pktLen) {
       hexDump("Pkt with wrong msgLen",pkt,pktLen);
       on_error("idx %d + msgLen %u > pktLen %d",idx,msgLen,pktLen);
     }

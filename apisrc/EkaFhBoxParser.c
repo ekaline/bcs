@@ -197,29 +197,29 @@ inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
 
 /* ----------------------------------------------------------------------- */
 
-template <class T> inline T getNumField(char* f, size_t fSize) {
+template <class T> inline T getNumField(const char* f, size_t fSize) {
   std::string fieldString = std::string(f,fSize);
   return static_cast<T>(std::stoul(fieldString,nullptr,10));
 }
 
 /* ----------------------------------------------------------------------- */
-EfhOptionType getOptionType(char* c) {
+EfhOptionType getOptionType(const char* c) {
   if (c[6] >= 'A' && c[6] <= 'L') return EfhOptionType::kCall;
   if (c[6] >= 'M' && c[6] <= 'X') return EfhOptionType::kPut;
   on_error("Unexpected Month Code \'%c\'",c[6]);
 }
 
 /* ----------------------------------------------------------------------- */
-uint64_t getMonth(char* c, EfhOptionType optType) {
+uint64_t getMonth(const char* c, EfhOptionType optType) {
   if (optType == EfhOptionType::kCall) return c[6] - 'A' + 1;
   return c[6] - 'M' + 1;
 }
 /* ----------------------------------------------------------------------- */
-uint64_t getYear(char* c) {
+uint64_t getYear(const char* c) {
   return getNumField<uint64_t>(c + 16,2);
 }
 /* ----------------------------------------------------------------------- */
-uint64_t getDay(char* c) {
+uint64_t getDay(const char* c) {
   return getNumField<uint64_t>(c + 18,2);
 }
 /* ----------------------------------------------------------------------- */
@@ -331,9 +331,9 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
 
   FhSecurity* s = NULL;
 
-  HsvfMsgHdr* msgHdr = (HsvfMsgHdr*)&m[pos];
+  const HsvfMsgHdr* msgHdr = (const HsvfMsgHdr*)&m[pos];
 
-  uint8_t* msgBody = (uint8_t*)msgHdr + sizeof(HsvfMsgHdr);
+  const uint8_t* msgBody = (uint8_t*)msgHdr + sizeof(HsvfMsgHdr);
 
   //  EKA_LOG("%s:%u: %ju \'%c%c\'",EKA_EXCH_DECODE(exch),id,seq,msgHdr->MsgType[0],msgHdr->MsgType[1]);
   //===================================================
@@ -341,9 +341,9 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     //    if (op == EkaFhMode::SNAPSHOT) return false;
     if (op != EkaFhMode::DEFINITIONS) return false;
 
-    HsvfOptionInstrumentKeys* boxMsg = (HsvfOptionInstrumentKeys*)msgBody;
+    const HsvfOptionInstrumentKeys* boxMsg = (const HsvfOptionInstrumentKeys*)msgBody;
     
-    char* symb = boxMsg->InstrumentDescription;
+    const char* symb = boxMsg->InstrumentDescription;
 
     EfhDefinitionMsg msg = {};
     msg.header.msgType        = EfhMsgType::kDefinition;
@@ -381,7 +381,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   } else if (memcmp(msgHdr->MsgType,"F ",sizeof(msgHdr->MsgType)) == 0) { // OptionQuote
     if (op == EkaFhMode::DEFINITIONS) return true; // Dictionary is done
 
-    HsvfOptionQuote* boxMsg = (HsvfOptionQuote*)msgBody;
+    const HsvfOptionQuote* boxMsg = (const HsvfOptionQuote*)msgBody;
 
     SecurityIdT security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
 
