@@ -105,7 +105,7 @@ EkaOpResult EkaFhMiax::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
 	EKA_LOG("%s:%u: SNAPSHOT_GAP Closed: gr->seq_after_snapshot = %ju",EKA_EXCH_DECODE(exch),gr->id,gr->seq_after_snapshot);
 	gr->state = EkaFhGroup::GrpState::NORMAL;
 	any_group_getting_snapshot = false;
-	gr->sendFeedUpInitial(pEfhRunCtx);
+	gr->sendFeedUp(pEfhRunCtx);
 
 	runGr->setGrAfterGap(gr->id);
 	gr->expected_sequence = gr->seq_after_snapshot + 1;
