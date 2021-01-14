@@ -79,7 +79,7 @@ struct MdEntry { // 32
 } __attribute__((packed));
 
 
-#define EKA_CME_SIDE(x) \
+#define EKA_CME_ENTRY_TYPE(x) \
     x == '0'   ? "Offer" : \
     x == '1'   ? "Ask  " : \
     x == '2'   ? "Trade" : \
@@ -97,21 +97,21 @@ struct MdEntry { // 32
     x == 'W'   ? "FixingPrice         " : \
     x == 'e'   ? "ElectronicVolume    " : \
     x == 'g'   ? "ThresholdLimitsandPriceBandVariation" : \
-    "UNEXPECTED"
+    "UNEXPECTED_ENTRY_TYPE"
 
 
 #define EKA_CME_ACTION(x) \
-  x == '0'   ? "New       " : \
-    x == '1' ? "Change    " : \
-    x == '2' ? "Delete    " : \
-    x == '3' ? "DeleteThru" : \
-    x == '4' ? "DeleteFrom" : \
-    x == '5' ? "Overlay   " : \
-    "UNEXPECTED"
+  x == 0   ? "New       " : \
+    x == 1 ? "Change    " : \
+    x == 2 ? "Delete    " : \
+    x == 3 ? "DeleteThru" : \
+    x == 4 ? "DeleteFrom" : \
+    x == 5 ? "Overlay   " : \
+    "UNEXPECTED_ACTION"
 
 //###################################################
 
-#if 1
+#if 0
 static void hexDump (const char* desc, void *addr, int len) {
     int i;
     unsigned char buff[17];
@@ -133,13 +133,7 @@ static void hexDump (const char* desc, void *addr, int len) {
     printf("  %s\n", buff);
 }
 #endif
-//#########################################################
 
-inline int skipChar(char* s, char char2skip) {
-  int p = 0;
-  while (s[p++] != char2skip) {}
-  return p;
-}
 
 //###################################################
 
@@ -169,20 +163,23 @@ int main(int argc, char *argv[]) {
     pktLen -= 4;
 
     const PktHdr* pktHdr = (const PktHdr*)&pkt[pos];
-    hexDump("pkt",pkt,pktLen);
+    //    hexDump("pkt",pkt,pktLen);
     printf ("##############\n%8ju: %8u, %20ju\n",pktNum,pktHdr->seq,pktHdr->time);
+
     pos += sizeof(PktHdr);
+
     while (pos < (int)pktLen) {
-      const MsgHdr* msgHdr = (const MsgHdr*)&pkt[pos];
+      uint msgPos = pos;
+      const MsgHdr* msgHdr = (const MsgHdr*)&pkt[msgPos];
       printf ("size=%u,blockLen=%u,MsgId=%d\n",
 	      msgHdr->size,msgHdr->blockLen,msgHdr->templateId);
+
       switch (msgHdr->templateId) {
       case MsgId::MDIncrementalRefreshBook : {
-	uint msgPos = pos;
 	/* ------------------------------- */
-	uint rootBlockPos = msgPos + msgHdr->blockLen;
-	const RootBlock* rootBlock = (const RootBlock*)&pkt[msgPos];
-	printf ("IncrementalRefreshBook: TransactTime=%ju, MatchEventIndicator=0x%x\n",
+	uint rootBlockPos = msgPos + sizeof(MsgHdr);
+	const RootBlock* rootBlock = (const RootBlock*)&pkt[rootBlockPos];
+	printf ("IncrementalRefreshBook: TransactTime=%jx, MatchEventIndicator=0x%x\n",
 		rootBlock->TransactTime,rootBlock->MatchEventIndicator);
 	/* ------------------------------- */
 	uint groupSizePos = rootBlockPos + msgHdr->blockLen;
@@ -191,21 +188,21 @@ int main(int argc, char *argv[]) {
 	uint entryPos = groupSizePos + sizeof(GroupSize);
 	for (uint i = 0; i < groupSize->numInGroup; i++) {
 	  const MdEntry* e = (const MdEntry*) &pkt[entryPos];
-	  printf("\t\tsecId=%8u,%s,%s,plvl=%u,p=%8ju,s=%u\n",
+	  printf("\t\tsecId=%8u,%s,%s,plvl=%u,p=%16ju,s=%u\n",
 		 e->SecurityId,
-		 EKA_CME_SIDE(e->MDUpdateAction),
-		 EKA_CME_SIDE(e->MDEntryType),
+		 EKA_CME_ACTION(e->MDUpdateAction),
+		 EKA_CME_ENTRY_TYPE(e->MDEntryType),
 		 e->priceLevel,
 		 e->price,
 		 e->size);
 	  entryPos += groupSize->blockLen;
 	}
-	pos += msgHdr->size;
       }
 	break;
       default:
 	printf ("MsgId = \'%d\'\n",(int)msgHdr->templateId);
       }
+      pos += msgPos + msgHdr->size;
     }
   }
   fprintf(stderr,"%ju packets processed\n",pktNum);
