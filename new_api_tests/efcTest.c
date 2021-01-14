@@ -500,7 +500,7 @@ int main(int argc, char *argv[]) {
       .askMaxPrice       = 0,  //x100
       .size              = 1,
       .verNum            = 0xaf,
-      .lowerBytesOfSecId = TEST_NOM_SEC_ID[i] & 0xFF
+      .lowerBytesOfSecId = (uint8_t)(TEST_NOM_SEC_ID[i] & 0xFF)
     };
     rc = efcSetStaticSecCtx(pEfcCtx, handle, &secCtx, 0);
     if (rc != EKA_OPRESULT__OK) on_error ("failed to efcSetStaticSecCtx");

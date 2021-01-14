@@ -293,7 +293,7 @@ int EkaEfc::downloadTable() {
     struct timespec req = {0, 1000};
     struct timespec rem = {};
 
-    sum += hashLine[i]->pack(sum);
+    sum += hashLine[i]->pack6b(sum);
     hashLine[i]->downloadPacked();
 
     nanosleep(&req, &rem);  // added due to "too fast" write to card

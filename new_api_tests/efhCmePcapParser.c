@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
     on_error ("Failed to read pcap_file_hdr from the pcap file");
 
   uint64_t pktNum = 0;
-  char timeStamp[16] = {}; 
+  //  char timeStamp[16] = {}; 
   //  char sequence[10] = {};
   while (fread(buf,sizeof(pcap_rec_hdr),1,pcap_file) == 1) {
     pcap_rec_hdr *pcap_rec_hdr_ptr = (pcap_rec_hdr *) buf;
@@ -172,7 +172,7 @@ int main(int argc, char *argv[]) {
       uint msgPos = pos;
       const MsgHdr* msgHdr = (const MsgHdr*)&pkt[msgPos];
       printf ("size=%u,blockLen=%u,MsgId=%d\n",
-	      msgHdr->size,msgHdr->blockLen,msgHdr->templateId);
+	      msgHdr->size,msgHdr->blockLen,(int)msgHdr->templateId);
 
       switch (msgHdr->templateId) {
       case MsgId::MDIncrementalRefreshBook : {
