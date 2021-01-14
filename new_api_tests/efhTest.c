@@ -164,7 +164,7 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
 	      EKA_PRINT_GRP(&msg->group),(char)msg->errorDomain);
     }
 
-
+    break;
     /* ----------------------------- */
   case EfhGroupState::kClosed : 
   case EfhGroupState::kGap : {
@@ -185,8 +185,8 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
     fprintf(MD,"%s: %s : %s FeedDown\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str(),gapType.c_str());
     printf ("=========================\n%s: %s %ju\n=========================\n",
 	    EKA_PRINT_GRP(&msg->group),gapType.c_str(),msg->code);
-    break;
   }
+    break;
     /* ----------------------------- */
   case EfhGroupState::kNormal :
   case EfhGroupState::kInitializing : {
@@ -204,8 +204,8 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
     fprintf(MD,"%s: %s : %s \n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str(),gapType.c_str());
     printf ("=========================\n%s: %s %ju\n=========================\n",
 	    EKA_PRINT_GRP(&msg->group),gapType.c_str(),msg->code);
-    break;
   }
+    break;
     /* ----------------------------- */
   default:
     on_error("Unexpected EfhGroupState \'%c\'",(char)msg->groupState);
