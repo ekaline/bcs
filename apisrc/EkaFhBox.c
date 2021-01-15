@@ -52,16 +52,6 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     uint8_t            gr_id = 0xFF;
     int16_t            pktLen = 0;
     uint64_t           sequence = 0;
-    /* static const uint  bufSize = 1600; */
-    /* uint8_t            buf[bufSize] = {}; */
-    /* const uint8_t*     rawPkt = getUdpPkt(runGr,&pktLen,&sequence,&gr_id); */
-    /* if (rawPkt == NULL) continue; */
-
-    /* if (pktLen > (int)sizeof(buf))  */
-    /*   on_error("%d pktLen > sizeof(buf) %d",pktLen,(int)sizeof(buf)); */
-
-    /* memcpy(buf,rawPkt,pktLen); */
-    /* const uint8_t* pkt = buf; */
 
     const uint8_t* pkt = getUdpPkt(runGr,&pktLen,&sequence,&gr_id);
     if (pkt == NULL) continue;
@@ -103,8 +93,6 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,pktLen);  
 	break;
 #endif
-
-
 	gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
 	gr->gapClosed = false;
 

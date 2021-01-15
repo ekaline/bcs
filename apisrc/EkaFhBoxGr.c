@@ -56,41 +56,37 @@ int EkaFhBoxGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
 bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 			       const uint8_t*   pkt, 
 			       int16_t          pktLen) {
-  const uint8_t* p = pkt;
+  //  const uint8_t* p = pkt;
   int idx = 0;
 
   lastPktLen    = pktLen;
   lastPktMsgCnt = 0;
 
   while (idx < pktLen) {
-    uint     msgLen   = getHsvfMsgLen(&p[idx],pktLen-idx);
+    uint     msgLen   = getHsvfMsgLen(&pkt[idx],pktLen-idx);
     if (idx + (int)msgLen > pktLen) {
       hexDump("Pkt with wrong msgLen",pkt,pktLen);
       on_error("idx %d + msgLen %u > pktLen %d",idx,msgLen,pktLen);
     }
-    uint64_t sequence = getHsvfMsgSequence(&p[idx]);
+    uint64_t msgSeq = getHsvfMsgSequence(&pkt[idx]);
 
-    lastProcessedSeq = sequence;
+    lastProcessedSeq = msgSeq;
 
-    if (sequence >= expected_sequence) {
-      if (parseMsg(pEfhRunCtx,&p[idx+1],sequence,EkaFhMode::MCAST)) {
+    if (msgSeq >= expected_sequence) {
+      if (parseMsg(pEfhRunCtx,&pkt[idx+1],msgSeq,EkaFhMode::MCAST)) {
 	EKA_WARN("Exiting in the middle of the packet");
 	return true;
       }
-      expected_sequence = sequence + 1;
+      expected_sequence = msgSeq + 1;
     } 
 
     idx += msgLen;
-    idx += trailingZeros(&p[idx],pktLen-idx );    
+    idx += trailingZeros(&pkt[idx],pktLen-idx );    
     lastPktMsgCnt++;
   }
 
   if (expected_sequence != lastProcessedSeq + 1) 
     on_error("expected_sequence %ju != lastProcessedSeq %ju + 1",expected_sequence,lastProcessedSeq);
-
-  /* if (expected_sequence - initial_expected_sequence != lastPktMsgCnt) */
-  /*   EKA_WARN("first_sequence = %ju, expected_sequence %ju - initial_expected_sequence %ju != lastPktMsgCnt %ju", */
-  /* 	     first_sequence,expected_sequence,initial_expected_sequence,lastPktMsgCnt); */
 
   return false;
 }
