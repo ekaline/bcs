@@ -121,11 +121,12 @@ static uint64_t getSpinImageSeq(EkaFhBatsGr* gr) {
   EKA_LOG("%s:%u FH_LAB DUMMY \'Spin Image Available\' Accepted",EKA_EXCH_DECODE(gr->exch),gr->id);
   return 0;  
 #endif
+  if (! gr->snapshot_active) on_error("gr->snapshot_active == false");
   while (gr->snapshot_active) { // Accepted Login
     struct batspitch_sequenced_unit_header hdr = {};
     if (recv(gr->snapshot_sock,&hdr,sizeof(hdr),MSG_WAITALL) < (int) sizeof(struct batspitch_sequenced_unit_header)) {
-      EKA_LOG("%s:%u: Spin Server connection reset by peer (failed to receive Unit Header)",EKA_EXCH_DECODE(gr->exch),gr->id);
-      break;
+      EKA_WARN("%s:%u: Spin Server connection reset by peer (failed to receive Unit Header)",EKA_EXCH_DECODE(gr->exch),gr->id);
+      return 0; 
     }
     int payload_size = hdr.length - sizeof(struct batspitch_sequenced_unit_header);
     uint8_t buf[1536] = {};
@@ -133,7 +134,7 @@ static uint64_t getSpinImageSeq(EkaFhBatsGr* gr) {
     if ((size = recv(gr->snapshot_sock,buf,payload_size,MSG_WAITALL)) != payload_size) {
       EKA_WARN("%s:%u: Spin Server connection reset by peer (received %u bytes < expected payload size of %d bytes)",
 	       EKA_EXCH_DECODE(gr->exch),gr->id,size,payload_size);
-      break;
+      return 0; 
     }
     uint8_t* ptr = &buf[0];
     for (uint i = 0; i < hdr.count; i ++) {
@@ -147,6 +148,7 @@ static uint64_t getSpinImageSeq(EkaFhBatsGr* gr) {
       //-----------------------------------------------------------------
     }
   }
+
   return 0;  
 
 }
@@ -279,11 +281,13 @@ void* getSpinData(void* attr) {
     }
     //-----------------------------------------------------------------
 
-    if (op == EkaFhMode::SNAPSHOT) requestedSpinSequence = getSpinImageSeq(gr);
-    if (requestedSpinSequence == 0) {
-      gr->sendRetransmitExchangeError(pEfhRunCtx);
-      close(gr->snapshot_sock);
-      continue;
+    if (op == EkaFhMode::SNAPSHOT) {
+      requestedSpinSequence = getSpinImageSeq(gr);
+      if (requestedSpinSequence == 0) {
+	gr->sendRetransmitExchangeError(pEfhRunCtx);
+	close(gr->snapshot_sock);
+	continue;
+      }
     }
     //-----------------------------------------------------------------
     sendSpinRequest(gr, op, requestedSpinSequence);

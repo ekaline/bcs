@@ -247,6 +247,10 @@ int EkaFhGroup::stop() {
  /* ##################################################################### */
 
 EkaFhGroup::~EkaFhGroup () {  
+  heartbeat_active = false;
+  snapshot_active  = false;
+  recovery_active  = false;
+
   if (fh->print_parsed_messages) fclose(parser_log);
 
   if (q != NULL) {
