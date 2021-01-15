@@ -79,6 +79,8 @@ class EkaFhGroup {
   GrpState              state               = GrpState::INIT;
   bool                  dropMe              = false;
 
+  static const int      ReconnectTimeOutSeconds = 15;
+
   bool                  firstPkt            = true; // to get session_id
   volatile char         session_id[10]      = {}; // Mold Session Id
 
