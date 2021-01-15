@@ -54,6 +54,7 @@ static void sendLogin (EkaFhMiaxGr* gr) {
   if(send(gr->recovery_sock,&sesm_login_msg,sizeof(struct sesm_login_req), 0) < 0) on_error("SESM Login send failed");
 #endif
   EKA_LOG("%s:%u Sesm Login sent",EKA_EXCH_DECODE(gr->exch),gr->id);
+
   return;
 }
 /* ##################################################################### */
@@ -262,14 +263,15 @@ void* getSesmRetransmit(void* attr) {
   //  EkaDev* dev = gr->dev;
   //  if (end - start > 65000) on_error("Gap %ju is too high (> 65000), start = %ju, end = %ju",end - start, start, end);
   //-----------------------------------------------------------------
-  gr->recovery_sock = ekaTcpConnect(gr->recovery_ip,gr->recovery_port);
-  //-----------------------------------------------------------------
   while (1) {
+    gr->recovery_sock = ekaTcpConnect(gr->recovery_ip,gr->recovery_port);
+    //-----------------------------------------------------------------
     sendLogin(gr);
     //-----------------------------------------------------------------
     if (getLoginResponse(gr) != EKA_OPRESULT__OK) {
       gr->sendRetransmitExchangeError(pEfhRunCtx);
       sendLogOut(gr);
+      close(gr->recovery_sock);
       continue;
     }
     break;
@@ -332,14 +334,15 @@ void* getSesmData(void* attr) {
   gr->snapshot_active = true;
   if (op == EkaFhMode::DEFINITIONS) { 
     //-----------------------------------------------------------------
-    gr->recovery_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
-    //-----------------------------------------------------------------
     while (1) {
+      gr->recovery_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
+      //-----------------------------------------------------------------
       sendLogin(gr);
       //-----------------------------------------------------------------
       if (getLoginResponse(gr) != EKA_OPRESULT__OK) {
 	gr->sendRetransmitExchangeError(pEfhRunCtx);
 	sendLogOut(gr);
+	close(gr->recovery_sock);
 	continue;
       }
       break;
@@ -368,14 +371,15 @@ void* getSesmData(void* attr) {
     for (int i = 0; i < (int)sizeof(snapshotRequests); i ++) {
       EKA_LOG("%s:%u SESM Snapshot for \'%c\'",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,snapshotRequests[i]);
-      gr->recovery_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
-      //-----------------------------------------------------------------
       while (1) {
+	gr->recovery_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
+	//-----------------------------------------------------------------
 	sendLogin(gr);
 	//-----------------------------------------------------------------
 	if (getLoginResponse(gr) != EKA_OPRESULT__OK) {
 	  gr->sendRetransmitExchangeError(pEfhRunCtx);
 	  sendLogOut(gr);
+	  close(gr->recovery_sock);
 	  continue;
 	}
 	break;

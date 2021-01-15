@@ -96,20 +96,23 @@ static bool getLoginResponse(EkaFhBatsGr* gr) {
   EkaDev* dev = gr->dev;
 #ifdef FH_LAB
   EKA_LOG("%s:%u FH_LAB DUMMY Login Accepted",EKA_EXCH_DECODE(gr->exch),gr->id);
-#else
+  return true;  
+#endif
   batspitch_login_response login_response ={};
   if (recv(gr->snapshot_sock,&login_response,sizeof(login_response),MSG_WAITALL) <= 0) 
-    on_error("Spin connection reset by peer after Login (failed to receive Login Response) for %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id);
-  if (login_response.type != EKA_BATS_PITCH_MSG::LOGIN_RESPONSE) on_error ("Unexpected Spin resonse type 0x%02x",login_response.type);
+    EKA_WARN("Spin connection reset by peer after Login (failed to receive Login Response) for %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id);
+  if (login_response.type != EKA_BATS_PITCH_MSG::LOGIN_RESPONSE) EKA_WARN ("Unexpected Spin resonse type 0x%02x",login_response.type);
 
-  if (login_response.status == 'N') on_error("Spin rejected login (\'N\') Not authorized (Invalid Username/Password)");
-  if (login_response.status == 'B') on_error("Spin rejected login (\'B\') Session in use");
-  if (login_response.status == 'S') on_error("Spin rejected login (\'S\') Invalid Session");
-  if (login_response.status != 'A') on_error("Unknown Spin Login response status |%c|",login_response.status);
-  if (login_response.hdr.count != 1) on_error("More than 1 message (%u) come with the Login Response",login_response.hdr.count);
-  EKA_LOG("%s:%u Login Accepted",EKA_EXCH_DECODE(gr->exch),gr->id);
-#endif
-  return true;  
+  if (login_response.status == 'N') EKA_WARN("Spin rejected login (\'N\') Not authorized (Invalid Username/Password)");
+  if (login_response.status == 'B') EKA_WARN("Spin rejected login (\'B\') Session in use");
+  if (login_response.status == 'S') EKA_WARN("Spin rejected login (\'S\') Invalid Session");
+  if (login_response.status != 'A') EKA_WARN("Unknown Spin Login response status |%c|",login_response.status);
+  if (login_response.hdr.count != 1) EKA_WARN("More than 1 message (%u) come with the Login Response",login_response.hdr.count);
+  if (login_response.status == 'A') {
+    EKA_LOG("%s:%u Login Accepted",EKA_EXCH_DECODE(gr->exch),gr->id);
+    return true;
+  }
+  return false;  
 }
 /* ##################################################################### */
 static uint64_t getSpinImageSeq(EkaFhBatsGr* gr) {
@@ -147,11 +150,12 @@ static uint64_t getSpinImageSeq(EkaFhBatsGr* gr) {
   return true;  
 }
 /* ##################################################################### */
-static void getSpinResponse(EkaFhBatsGr* gr, EkaFhMode op) {
+static bool getSpinResponse(EkaFhBatsGr* gr, EkaFhMode op) {
   EkaDev* dev = gr->dev;
 #ifdef FH_LAB
   EKA_LOG("%s:%u FH_LAB DUMMY Spin Response Accepted",EKA_EXCH_DECODE(gr->exch),gr->id);
-#else
+  return true;
+#endif
   while (gr->snapshot_active) { // Accepted Login
     struct batspitch_sequenced_unit_header hdr = {};
     if (recv(gr->snapshot_sock,&hdr,sizeof(hdr),MSG_WAITALL) < (int) sizeof(struct batspitch_sequenced_unit_header)) {
@@ -170,35 +174,44 @@ static void getSpinResponse(EkaFhBatsGr* gr, EkaFhMode op) {
     for (uint i = 0; i < hdr.count; i ++) {
       if (size <= 0) on_error("%s:%u: remaining buff size = %d",EKA_EXCH_DECODE(gr->exch),gr->id,size);
       struct batspitch_dummy_header* msg_hdr = (struct batspitch_dummy_header*) ptr;
-      if (
-	  (EKA_BATS_PITCH_MSG)msg_hdr->type == EKA_BATS_PITCH_MSG::SNAPSHOT_RESPONSE ||
+      if ((EKA_BATS_PITCH_MSG)msg_hdr->type == EKA_BATS_PITCH_MSG::SNAPSHOT_RESPONSE ||
 	  (EKA_BATS_PITCH_MSG)msg_hdr->type == EKA_BATS_PITCH_MSG::DEFINITIONS_RESPONSE
 	  ) {
 	switch (((batspitch_spin_response*)ptr)->status) {
-	case 'A' : break; // Accepted
-	case 'O' : on_error("%s:%u: Spin request rejected with (\'O\') - Out of range",EKA_EXCH_DECODE(gr->exch),gr->id);
-	case 'S' : on_error("%s:%u: Spin request rejected with (\'S\') - Spin already in progress",EKA_EXCH_DECODE(gr->exch),gr->id);
-	default  : on_error("%s:%u: Spin request rejected with unknown status |%c|",EKA_EXCH_DECODE(gr->exch),gr->id,((batspitch_spin_response*)ptr)->status);
+	case 'A' : // Accepted
+	  EKA_LOG("%s:%u Spin %s Request Accepted: Count=%u, Sequence=%u",
+		  EKA_EXCH_DECODE(gr->exch),gr->id,
+		  op == EkaFhMode::DEFINITIONS ? "Definitions" : "Snapshot",
+		  ((batspitch_spin_response*)ptr)->count,((batspitch_spin_response*)ptr)->sequence);
+	  return true;
+	case 'O' : 
+	  EKA_WARN("%s:%u: Spin request rejected with (\'O\') - Out of range",
+		   EKA_EXCH_DECODE(gr->exch),gr->id);
+	  break;
+	case 'S' : 
+	  EKA_WARN("%s:%u: Spin request rejected with (\'S\') - Spin already in progress",
+		   EKA_EXCH_DECODE(gr->exch),gr->id);
+	  break;
+	default  : 
+	  EKA_WARN("%s:%u: Spin request rejected with unknown status |%c|",
+		   EKA_EXCH_DECODE(gr->exch),gr->id,((batspitch_spin_response*)ptr)->status);
 	}
-	EKA_LOG("%s:%u Spin %s Request Accepted: Count=%u, Sequence=%u",
-		EKA_EXCH_DECODE(gr->exch),gr->id,
-		op == EkaFhMode::DEFINITIONS ? "Definitions" : "Snapshot",
-		((batspitch_spin_response*)ptr)->count,((batspitch_spin_response*)ptr)->sequence);
-	return;
+	return false;
       }
       ptr += msg_hdr->length;
       //-----------------------------------------------------------------
     }
   }
-#endif
-  return;  
+
+  return false;  
 }
 /* ##################################################################### */
 static void sendSpinRequest(EkaFhBatsGr* gr, EkaFhMode op, uint64_t image_sequence) {
   EkaDev* dev = gr->dev;
 #ifdef FH_LAB
   EKA_LOG("%s:%u FH_LAB DUMMY Spin Request sent",EKA_EXCH_DECODE(gr->exch),gr->id);
-#else
+  return;
+#endif
   struct batspitch_spin_request request_message = {};
   request_message.hdr.length = sizeof(request_message);
   request_message.hdr.count = 1;
@@ -217,7 +230,6 @@ static void sendSpinRequest(EkaFhBatsGr* gr, EkaFhMode op, uint64_t image_sequen
 	  );
 
   if(send(gr->snapshot_sock,&request_message,sizeof(request_message), 0) < 0) on_error("Spin Request send failed");
-#endif
   //  hexDump("Spin Request Message sent",&request_message,sizeof(request_message));
   return;
 }
@@ -241,8 +253,6 @@ void* getSpinData(void* attr) {
 	  EKA_EXCH_DECODE(gr->exch),gr->id, op==EkaFhMode::SNAPSHOT ? "GAP_RECOVERY" : "DEFINITIONS",
 	  EKA_IP2STR(gr->snapshot_ip),be16toh(gr->snapshot_port));
   //-----------------------------------------------------------------
-  gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
-  //-----------------------------------------------------------------
   EkaCredentialLease* lease;
   const struct timespec leaseTime = {.tv_sec = 180, .tv_nsec = 0};
   const struct timespec timeout   = {.tv_sec = 60, .tv_nsec = 0};
@@ -254,23 +264,38 @@ void* getSpinData(void* attr) {
   if (rc != 0) on_error("Failed to credAcquire for %s",credName);
 
   int64_t requestedSpinSequence = 0;
-  sendLogin(gr);
-  //-----------------------------------------------------------------
-  getLoginResponse(gr);
-  //-----------------------------------------------------------------
+  while (1) {
+    //-----------------------------------------------------------------
+    gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
+    //-----------------------------------------------------------------
+    sendLogin(gr);
+    //-----------------------------------------------------------------
+    if (! getLoginResponse(gr)) {
+      gr->sendRetransmitExchangeError(pEfhRunCtx);
+      close(gr->snapshot_sock);
+      continue;
+    }
+    //-----------------------------------------------------------------
+
+    if (op == EkaFhMode::SNAPSHOT) requestedSpinSequence = getSpinImageSeq(gr);
+    //-----------------------------------------------------------------
+    sendSpinRequest(gr, op, requestedSpinSequence);
+    //-----------------------------------------------------------------
+    if (! getSpinResponse(gr, op)) {
+      gr->sendRetransmitExchangeError(pEfhRunCtx);
+      close(gr->snapshot_sock);
+      continue;
+    }
+    //-----------------------------------------------------------------
+    break;
+  }
+
   gr->heartbeat_active = true;
 
   pthread_t heartbeat_thread;
   dev->createThread((std::string("HB_") + std::string(EKA_EXCH_DECODE(gr->exch)) + '_' + std::to_string(gr->id)).c_str(),EkaServiceType::kHeartbeat,spin_heartbeat_thread,(void*)gr,dev->createThreadContext,(uintptr_t*)&heartbeat_thread);
 
   //-----------------------------------------------------------------
-  if (op == EkaFhMode::SNAPSHOT) requestedSpinSequence = getSpinImageSeq(gr);
-  //-----------------------------------------------------------------
-  sendSpinRequest(gr, op, requestedSpinSequence);
-  //-----------------------------------------------------------------
-  getSpinResponse(gr, op);
-  //-----------------------------------------------------------------
-
   gr->snapshot_active = true;
 
   uint64_t sequence = 0;
@@ -350,40 +375,56 @@ int getGapResponse(EkaFhBatsGr* gr) {
 #ifdef FH_LAB
   EKA_LOG("%s:%u FH_LAB DUMMY Gap request Accepted",EKA_EXCH_DECODE(gr->exch),gr->id);
   return 0;
-#else
+#endif
   batspitch_gap_response gap_response ={};
   gap_response.type = static_cast< uint8_t > (EKA_BATS_PITCH_MSG::GAP_RESPONSE);
   gap_response.status = 'A';
   gap_response.hdr.count = 1;
 
-  if (recv(gr->snapshot_sock,&gap_response,sizeof(gap_response),MSG_WAITALL) <= 0) on_error("%s%u: connection reset by peer",EKA_EXCH_DECODE(gr->exch),gr->id);
-  if (gap_response.type != static_cast< uint8_t > (EKA_BATS_PITCH_MSG::GAP_RESPONSE)) on_error ("Unexpected GRP resonse type 0x%02x",gap_response.type);
+  if (recv(gr->snapshot_sock,&gap_response,sizeof(gap_response),MSG_WAITALL) <= 0) {
+    EKA_WARN("%s%u: connection reset by peer",EKA_EXCH_DECODE(gr->exch),gr->id);
+    return -1;
 
-  if (gap_response.hdr.count != 1) on_error("More than 1 message (%u) come with the Gap Response",gap_response.hdr.count);
+  }
+
+  if (gap_response.type != static_cast< uint8_t > (EKA_BATS_PITCH_MSG::GAP_RESPONSE)) {
+    EKA_WARN ("Unexpected GRP resonse type 0x%02x",gap_response.type);
+    return -1;
+  }
+  if (gap_response.hdr.count != 1) {
+    EKA_WARN("More than 1 message (%u) come with the Gap Response",gap_response.hdr.count);
+    return -1;
+  }
   switch (gap_response.status) {
   case 'A':
     EKA_LOG("%s:%u Accepted: Unit=%u, Seq=%u. Cnt=%u",EKA_EXCH_DECODE(gr->exch),gr->id,
 	    gap_response.unit, gap_response.sequence, gap_response.count);
-    break;
+    return gap_response.count;
   case 'O': 
-    on_error("Out-of-range");
+    EKA_WARN("Out-of-range");
+    break;
   case 'D': 
-    on_error("Daily gap request allocation exhausted");
+    EKA_WARN("Daily gap request allocation exhausted");
+    break;
   case 'M': 
-    on_error("Minute gap request allocation exhausted");
+    EKA_WARN("Minute gap request allocation exhausted");
+    break;
   case 'S': 
-    on_error("Second gap request allocation exhausted");
+    EKA_WARN("Second gap request allocation exhausted");
+    break;
   case 'C': 
-    on_error("Count request limit for one gap request exceeded");
+    EKA_WARN("Count request limit for one gap request exceeded");
+    break;
   case 'I': 
-    on_error("Invalid Unit specified in request");
+    EKA_WARN("Invalid Unit specified in request");
+    break;
   case 'U': 
-    on_error("Unit is currently unavailable");
+    EKA_WARN("Unit is currently unavailable");
+    break;
   default:
-    on_error("Unexpected Gap response status: %c",gap_response.status);
+    EKA_WARN("Unexpected Gap response status: %c",gap_response.status);
   }
-  return gap_response.count;
-#endif
+  return -1;
 }
 
 /* ##################################################################### */
@@ -411,17 +452,27 @@ void* getGrpRetransmitData(void* attr) {
 
   if (end - start > 65000) on_error("Gap %ju is too high (> 65000), start = %ju, end = %ju",end - start, start, end);
 
-  gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
-  //-----------------------------------------------------------------
-  gr->recovery_sock = ekaUdpConnect(dev,gr->recovery_ip, gr->recovery_port);
-  //-----------------------------------------------------------------
-  sendLogin(gr);
-  //-----------------------------------------------------------------
-  getLoginResponse(gr);
-  //-----------------------------------------------------------------
-  sendGapRequest(gr, start, (uint16_t) (end - start + 1));
-  //-----------------------------------------------------------------
-  int cnt = getGapResponse(gr);
+  int cnt = -1;
+  while (1) {
+    gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
+    //-----------------------------------------------------------------
+    gr->recovery_sock = ekaUdpConnect(dev,gr->recovery_ip, gr->recovery_port);
+    //-----------------------------------------------------------------
+    sendLogin(gr);
+    //-----------------------------------------------------------------
+    getLoginResponse(gr);
+    //-----------------------------------------------------------------
+    sendGapRequest(gr, start, (uint16_t) (end - start + 1));
+    //-----------------------------------------------------------------
+    cnt = getGapResponse(gr);
+    if (cnt < 0) {
+      gr->sendRetransmitExchangeError(pEfhRunCtx);
+      close(gr->snapshot_sock);
+      close(gr->recovery_sock);
+      continue;
+    }
+    break;
+  }
   //-----------------------------------------------------------------
   struct sockaddr_in recovery_addr = {};
   recovery_addr.sin_addr.s_addr = gr->recovery_ip;
@@ -463,7 +514,8 @@ void* getGrpRetransmitData(void* attr) {
   }
   gr->seq_after_snapshot = sequence;
   gr->gapClosed = true;
-  EKA_LOG("%s:%u: GRP closed: start=%ju, end=%ju, cnt=%d, seq_after_snapshot=%ju",EKA_EXCH_DECODE(gr->exch),gr->id,start,end,cnt,gr->seq_after_snapshot);
+  EKA_LOG("%s:%u: GRP closed: start=%ju, end=%ju, cnt=%d, seq_after_snapshot=%ju",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,start,end,cnt,gr->seq_after_snapshot);
   //-----------------------------------------------------------------
   close(gr->snapshot_sock);
   close(gr->recovery_sock);
