@@ -173,7 +173,7 @@ void EkaFhGroup::sendRetransmitSocketError(const EfhRunCtx* pEfhRunCtx) {
     EfhGroupState::kError,
     EfhSystemState::kUnknown, // Preopen, Trading, Closed
     EfhGroupStateErrorDomain::kSocketError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
-    EkaServiceType::kFeedRecovery, // Unspecified, FeedRecovery
+    EkaServiceType::kFeedSnapshot, // Unspecified, FeedRecovery
     0 // int64_t code
   };
   pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);

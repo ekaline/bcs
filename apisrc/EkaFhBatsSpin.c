@@ -275,7 +275,7 @@ void* getSpinData(void* attr) {
     sendLogin(gr);
     //-----------------------------------------------------------------
     if (! getLoginResponse(gr)) {
-      gr->sendRetransmitExchangeError(pEfhRunCtx);
+      gr->sendRetransmitSocketError(pEfhRunCtx);
       close(gr->snapshot_sock);
       continue;
     }
@@ -284,7 +284,7 @@ void* getSpinData(void* attr) {
     if (op == EkaFhMode::SNAPSHOT) {
       requestedSpinSequence = getSpinImageSeq(gr);
       if (requestedSpinSequence == 0) {
-	gr->sendRetransmitExchangeError(pEfhRunCtx);
+	gr->sendRetransmitSocketError(pEfhRunCtx);
 	close(gr->snapshot_sock);
 	continue;
       }
@@ -293,7 +293,7 @@ void* getSpinData(void* attr) {
     sendSpinRequest(gr, op, requestedSpinSequence);
     //-----------------------------------------------------------------
     if (! getSpinResponse(gr, op)) {
-      gr->sendRetransmitExchangeError(pEfhRunCtx);
+      gr->sendRetransmitSocketError(pEfhRunCtx);
       close(gr->snapshot_sock);
       continue;
     }
@@ -477,7 +477,7 @@ void* getGrpRetransmitData(void* attr) {
     //-----------------------------------------------------------------
     cnt = getGapResponse(gr);
     if (cnt < 0) {
-      gr->sendRetransmitExchangeError(pEfhRunCtx);
+      gr->sendRetransmitSocketError(pEfhRunCtx);
       close(gr->snapshot_sock);
       close(gr->recovery_sock);
       continue;
