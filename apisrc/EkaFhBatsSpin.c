@@ -119,7 +119,8 @@ static uint64_t getSpinImageSeq(EkaFhBatsGr* gr) {
   EkaDev* dev = gr->dev;
 #ifdef FH_LAB
   EKA_LOG("%s:%u FH_LAB DUMMY \'Spin Image Available\' Accepted",EKA_EXCH_DECODE(gr->exch),gr->id);
-#else
+  return 0;  
+#endif
   while (gr->snapshot_active) { // Accepted Login
     struct batspitch_sequenced_unit_header hdr = {};
     if (recv(gr->snapshot_sock,&hdr,sizeof(hdr),MSG_WAITALL) < (int) sizeof(struct batspitch_sequenced_unit_header)) {
@@ -146,8 +147,8 @@ static uint64_t getSpinImageSeq(EkaFhBatsGr* gr) {
       //-----------------------------------------------------------------
     }
   }
-#endif
-  return true;  
+  return 0;  
+
 }
 /* ##################################################################### */
 static bool getSpinResponse(EkaFhBatsGr* gr, EkaFhMode op) {
@@ -264,7 +265,8 @@ void* getSpinData(void* attr) {
   if (rc != 0) on_error("Failed to credAcquire for %s",credName);
 
   int64_t requestedSpinSequence = 0;
-  while (1) {
+  gr->snapshot_active = true;
+  while (gr->snapshot_active) {
     //-----------------------------------------------------------------
     gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
     //-----------------------------------------------------------------
@@ -278,6 +280,11 @@ void* getSpinData(void* attr) {
     //-----------------------------------------------------------------
 
     if (op == EkaFhMode::SNAPSHOT) requestedSpinSequence = getSpinImageSeq(gr);
+    if (requestedSpinSequence == 0) {
+      gr->sendRetransmitExchangeError(pEfhRunCtx);
+      close(gr->snapshot_sock);
+      continue;
+    }
     //-----------------------------------------------------------------
     sendSpinRequest(gr, op, requestedSpinSequence);
     //-----------------------------------------------------------------
@@ -296,7 +303,6 @@ void* getSpinData(void* attr) {
   dev->createThread((std::string("HB_") + std::string(EKA_EXCH_DECODE(gr->exch)) + '_' + std::to_string(gr->id)).c_str(),EkaServiceType::kHeartbeat,spin_heartbeat_thread,(void*)gr,dev->createThreadContext,(uintptr_t*)&heartbeat_thread);
 
   //-----------------------------------------------------------------
-  gr->snapshot_active = true;
 
   uint64_t sequence = 0;
   while (gr->snapshot_active) { // Accepted Login
@@ -444,7 +450,8 @@ void* getGrpRetransmitData(void* attr) {
   EKA_LOG("%s:%u FH_LAB DUMMY Gap closed, gr->seq_after_snapshot = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot);
   gr->seq_after_snapshot = end + 1;
   gr->gapClosed = true;
-#else
+  return NULL;
+#endif
 
   EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
   //  EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
@@ -519,6 +526,5 @@ void* getGrpRetransmitData(void* attr) {
   //-----------------------------------------------------------------
   close(gr->snapshot_sock);
   close(gr->recovery_sock);
-#endif
   return NULL;
 }

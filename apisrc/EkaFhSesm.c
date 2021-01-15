@@ -263,7 +263,8 @@ void* getSesmRetransmit(void* attr) {
   //  EkaDev* dev = gr->dev;
   //  if (end - start > 65000) on_error("Gap %ju is too high (> 65000), start = %ju, end = %ju",end - start, start, end);
   //-----------------------------------------------------------------
-  while (1) {
+  gr->recovery_active = true;
+  while (gr->recovery_active) {
     gr->recovery_sock = ekaTcpConnect(gr->recovery_ip,gr->recovery_port);
     //-----------------------------------------------------------------
     sendLogin(gr);
@@ -282,7 +283,7 @@ void* getSesmRetransmit(void* attr) {
   //-----------------------------------------------------------------
   sendRetransmitRequest(gr,start,end);
   //-----------------------------------------------------------------
-  gr->recovery_active = true;
+
   while (gr->recovery_active) {
     if (procSesm(pEfhCtx,pEfhRunCtx,gr->recovery_sock,gr,EkaFhMode::MCAST)) break;
   } 
@@ -334,7 +335,7 @@ void* getSesmData(void* attr) {
   gr->snapshot_active = true;
   if (op == EkaFhMode::DEFINITIONS) { 
     //-----------------------------------------------------------------
-    while (1) {
+    while (gr->snapshot_active) {
       gr->recovery_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
       //-----------------------------------------------------------------
       sendLogin(gr);
@@ -371,7 +372,7 @@ void* getSesmData(void* attr) {
     for (int i = 0; i < (int)sizeof(snapshotRequests); i ++) {
       EKA_LOG("%s:%u SESM Snapshot for \'%c\'",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,snapshotRequests[i]);
-      while (1) {
+      while (gr->snapshot_active) {
 	gr->recovery_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
 	//-----------------------------------------------------------------
 	sendLogin(gr);
