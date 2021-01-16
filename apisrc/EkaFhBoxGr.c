@@ -96,7 +96,7 @@ void EkaFhBoxGr::pushUdpPkt2Q(const uint8_t* pkt, uint pktLen) {
   const uint8_t* p = pkt;
   uint idx = 0;
   while (idx < pktLen) {
-    uint msgLen = getHsvfMsgLen(&p[idx],pktLen - idx);
+    uint msgLen = getHsvfMsgLen(&p[idx],pktLen - idx);    
     char* msgType = ((HsvfMsgHdr*) &p[idx+1])->MsgType;
     if (memcmp(msgType,"F ",2) == 0 ||  // Quote
 	memcmp(msgType,"Z ",2) == 0) {  // Time
@@ -104,7 +104,7 @@ void EkaFhBoxGr::pushUdpPkt2Q(const uint8_t* pkt, uint pktLen) {
 	on_error("msgLen %u > fh_msg::MSG_SIZE %u",msgLen,fh_msg::MSG_SIZE);
       fh_msg* n = q->push();
       memcpy (n->data,&p[idx+1],msgLen - 1);
-      n->sequence = getHsvfMsgSequence(p);
+      n->sequence = getHsvfMsgSequence(&p[idx]);
       n->gr_id = id;
     }
     idx += msgLen;
