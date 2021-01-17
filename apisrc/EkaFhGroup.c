@@ -161,7 +161,7 @@ void EkaFhGroup::sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx) {
     0 // int64_t code
   };
   pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
-  sleep(ReconnectTimeOutSeconds);
+  sleep(connectRetryDelayTime);
 }
  /* ##################################################################### */
 
@@ -178,7 +178,7 @@ void EkaFhGroup::sendRetransmitSocketError(const EfhRunCtx* pEfhRunCtx) {
     0 // int64_t code
   };
   pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
-  sleep(ReconnectTimeOutSeconds);
+  sleep(connectRetryDelayTime);
 }
  /* ##################################################################### */
 

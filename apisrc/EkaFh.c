@@ -213,7 +213,25 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
   k[i] = strtok(key_buf,".");
   while(k[i]!=NULL) k[++i] = strtok(NULL,".");
   //---------------------------------------------------------------------
- // efh.NOM_ITTO.group.X.snapshot.auth, user:passwd
+  // efh.NOM_ITTO.group.X.snapshot.connectRetryDelayTime, <numSec>
+  // k[0] k[1]   k[2] k[3] k[4]   k[5]
+  if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"snapshot")==0) && (strcmp(k[5],"auth")==0)) {
+    if (EFH_GET_SRC(k[1]) == exch) {
+      uint8_t gr = (uint8_t) atoi(k[3]);
+      if (gr >= groups) {
+	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+	return EkaFhAddConf::CONF_SUCCESS;
+      }
+      if (b_gr[gr] == NULL) on_error("b_gr[%u] == NULL",gr);
+
+      b_gr[gr]->connectRetryDelayTime = atoi(v[0]);
+      fflush(stderr);
+
+      return EkaFhAddConf::CONF_SUCCESS;
+    }
+  }
+  //---------------------------------------------------------------------
+  // efh.NOM_ITTO.group.X.snapshot.auth, user:passwd
   // k[0] k[1]   k[2] k[3] k[4]   k[5]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"snapshot")==0) && (strcmp(k[5],"auth")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
@@ -236,8 +254,9 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
 
       return EkaFhAddConf::CONF_SUCCESS;
     }
-  }  //---------------------------------------------------------------------
- // efh.NOM_ITTO.snapshot.auth, user:passwd
+  }  
+  //---------------------------------------------------------------------
+  // efh.NOM_ITTO.snapshot.auth, user:passwd
   // k[0] k[1]   k[2]     k[3] 
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"snapshot")==0) && (strcmp(k[3],"auth")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
