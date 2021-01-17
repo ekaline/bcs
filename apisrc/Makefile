@@ -30,17 +30,14 @@ LD_FLAGS:=-shared -fpic $(LD_ASAN_OPTIONS)
 
 EKAUTILS := $(patsubst %.c,%,$(wildcard ../eka_utils/*.c))
 
-
 EKATESTS_SRCS := $(wildcard ../new_api_tests/*.c)
 EKATESTS_EXECS := $(patsubst %.c,%,$(EKATESTS_SRCS))
 
 UNITTESTS_SRCS := $(wildcard ../new_api_tests/unit*.c)
 UNITTESTS_EXECS := $(patsubst %.c,%,$(UNITTESTS_SRCS))
 
-EKALIB_SRCS := $(wildcard *.c)
+EKALIB_SRCS := $(wildcard e*.c E*.c)
 EKALIB_SRCS += $(wildcard FhBook/*.c)
-
-EKAHEADER_FILES := $(wildcard *.h) $(wildcard */*.h)
 
 EKALIB_FILES := $(patsubst %.c,%,$(EKALIB_SRCS))
 EKALIB_OBJ := $(EKALIB_SRCS:.c=.o)
@@ -57,7 +54,7 @@ LIBEKALINE:=libekaline2
 SMARTNIC_LIB_FILES := $(shell ar t $(SMARTNIC_LIB))
 
 #all:  $(LIBEKALINE) $(EKAUTILS_EXECS) $(EKATESTS_EXECS) 
-all:  eka_utils ekalib eka_tests unit_tests $(LIBEKALINE).a
+all:  eka_utils ekalib eka_tests unit_tests $(LIBEKALINE).a libeka_depend lwip_depend
 	@echo "========================================="
 	@echo created: $^
 
@@ -89,16 +86,22 @@ $(LWIPLIBCOMMON): $(LWIPFILES) $(LWIPOBJS)
 $(LWIPOBJS): %.o:
 	$(CCDEP) $(CFLAGS) -c $<
 
-depend dep: .depend
-include .depend
+lwip_depend: .lwip_depend
+include .lwip_depend
 
-.depend: $(LWIPFILES)
-	$(CCDEP) $(CFLAGS) -I . -MM $^ > .depend || rm -f .depend
+.lwip_depend: $(LWIPFILES)
+	$(CCDEP) $(CFLAGS) -I . -MM $^ > .lwip_depend || rm -f .lwip_depend
 
 ###############################################
-$(EKALIB_OBJ): %.o: %.c $(EKAHEADER_FILES)
+$(EKALIB_OBJ): %.o:
 	$(CC) $(CC_OPT) -c $< $(GCC_FLAGS) $(INCL) -o $@
 
+
+libeka_depend: .libeka_depend
+include .libeka_depend
+
+.libeka_depend: $(EKALIB_SRCS)
+	$(CC) $(INCL) -MM $^ > .libeka_depend || rm -f .libeka_depend
 
 ekalib: $(LIBEKALINE).so 
 $(LIBEKALINE).so: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIP_LIB)
@@ -123,6 +126,7 @@ unit_tests: $(UNITTESTS_EXECS)
 
 
 clean:
-	rm -f /tmp/core* *.o */*.o *.so *.a $(LWIPOBJS) *~ .depend core $(EKATESTS_EXECS) $(UNITTESTS_EXECS) $(EKAUTILS_EXECS) */*~ ../*/*~ *.csv *.txt
+	rm -f /tmp/core* *.o */*.o *.so *.a *~ core $(EKATESTS_EXECS) $(UNITTESTS_EXECS) $(EKAUTILS_EXECS) */*~ ../*/*~ *.csv *.txt
+#	rm -f /tmp/core* *.o */*.o *.so *.a $(LWIPOBJS) *~ .depend core $(EKATESTS_EXECS) $(UNITTESTS_EXECS) $(EKAUTILS_EXECS) */*~ ../*/*~ *.csv *.txt
 
 
