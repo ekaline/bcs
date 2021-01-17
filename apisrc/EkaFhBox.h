@@ -22,7 +22,7 @@ class EkaFhBox : public EkaFh { // MiaxTom & PearlTom
   virtual ~EkaFhBox() {};
  private:
   const uint8_t*    getUdpPkt(EkaFhRunGroup* runGr, 
-			      uint16_t*      pktLen, 
+			      int16_t*       pktLen, 
 			      uint64_t*      sequence, 
 			      uint8_t*       gr_id);
   

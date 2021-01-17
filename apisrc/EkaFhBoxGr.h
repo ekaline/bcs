@@ -69,7 +69,7 @@ class EkaFhBoxGr : public EkaFhGroup{
 
   uint        lastPktLen    = 0;
   uint        lastPktMsgCnt = 0;
-  uint64_t    lastPkt1stSeq = 0;
+  uint64_t    lastProcessedSeq = 0;
 
 };
 #endif

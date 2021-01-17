@@ -161,6 +161,7 @@ void EkaFhGroup::sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx) {
     0 // int64_t code
   };
   pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
+  sleep(ReconnectTimeOutSeconds);
 }
  /* ##################################################################### */
 
@@ -173,10 +174,11 @@ void EkaFhGroup::sendRetransmitSocketError(const EfhRunCtx* pEfhRunCtx) {
     EfhGroupState::kError,
     EfhSystemState::kUnknown, // Preopen, Trading, Closed
     EfhGroupStateErrorDomain::kSocketError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
-    EkaServiceType::kFeedRecovery, // Unspecified, FeedRecovery
+    EkaServiceType::kFeedSnapshot, // Unspecified, FeedRecovery
     0 // int64_t code
   };
   pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
+  sleep(ReconnectTimeOutSeconds);
 }
  /* ##################################################################### */
 
@@ -247,6 +249,10 @@ int EkaFhGroup::stop() {
  /* ##################################################################### */
 
 EkaFhGroup::~EkaFhGroup () {  
+  heartbeat_active = false;
+  snapshot_active  = false;
+  recovery_active  = false;
+
   if (fh->print_parsed_messages) fclose(parser_log);
 
   if (q != NULL) {

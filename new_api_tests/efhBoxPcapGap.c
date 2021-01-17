@@ -302,7 +302,7 @@ int main(int argc, char *argv[]) {
     if (gr < 0) continue;
     //    if (group[gr].hour > startHour) printf ("%s:%u\n",EKA_IP2STR(EKA_IPH_DST(&pkt[pos])),EKA_UDPH_DST(&pkt[pos]));
 
-
+    pktLen -= 4; // FCS
     pos += sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr);
     if (pktNum == pkt2dump) {
       hexDump("pkt2dump",pkt,pktLen);
@@ -311,8 +311,9 @@ int main(int argc, char *argv[]) {
     //###############################################
     while (pos < (int)pktLen) {
       if (pkt[pos] != HsvfSom) {
-	hexDump("Pkt with no HsvfSom",&pkt[pos],pktLen);
-	on_error("expected HsvfSom (0x%x) != 0x%x",HsvfSom,pkt[pos] & 0xFF);
+	hexDump("Pkt with no HsvfSom",pkt,pktLen);
+	on_error("at pos = %d expected HsvfSom (0x%x) != 0x%x",
+		 pos,HsvfSom,pkt[pos] & 0xFF);
       }
       uint msgLen       = getHsvfMsgLen(&pkt[pos],pktLen-pos);
       uint64_t sequence = getHsvfMsgSequence(&pkt[pos]);
@@ -358,7 +359,7 @@ int main(int argc, char *argv[]) {
       /* -------------------------------- */
 
       pos += msgLen;
-      if (pktLen - pos == 4) break;
+      //      if (pktLen - pos == 4 || pktLen - pos == 5) break; // FCS
       pos += trailingZeros(&pkt[pos],pktLen-pos );
     }
 

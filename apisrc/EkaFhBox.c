@@ -15,7 +15,7 @@ EkaFhGroup* EkaFhBox::addGroup() {
 /* ##################################################################### */
 
 const uint8_t* EkaFhBox::getUdpPkt(EkaFhRunGroup* runGr, 
-			     uint16_t*      pktLen, 
+			     int16_t*      pktLen, 
 			     uint64_t*      sequence, 
 			     uint8_t*       gr_id) {
   const uint8_t* pkt = (uint8_t*)runGr->udpCh->get();
@@ -49,19 +49,12 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       runGr->checkTimeOut(pEfhRunCtx);
       continue;
     }
-    uint8_t        gr_id = 0xFF;
-    uint16_t       pktLen = 0;
-    uint64_t       sequence = 0;
-    static const uint  bufSize = 1200;
-    uint8_t        buf[bufSize] = {};
-    const uint8_t* rawPkt = getUdpPkt(runGr,&pktLen,&sequence,&gr_id);
-    if (rawPkt == NULL) continue;
+    uint8_t            gr_id = 0xFF;
+    int16_t            pktLen = 0;
+    uint64_t           sequence = 0;
 
-    if (pktLen > bufSize) on_error("%u pktLen > %ju bufSize",
-				   pktLen,(uint64_t)bufSize);
-
-    memcpy(buf,rawPkt,pktLen);
-    const uint8_t* pkt = buf;
+    const uint8_t* pkt = getUdpPkt(runGr,&pktLen,&sequence,&gr_id);
+    if (pkt == NULL) continue;
 
     EkaFhBoxGr* gr = (EkaFhBoxGr*)b_gr[gr_id];
     if (gr == NULL) on_error("gr == NULL");
@@ -91,8 +84,8 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%ju",
 		EKA_EXCH_DECODE(exch),gr_id,gr->expected_sequence,sequence);
 
-	EKA_LOG("%s:%u prev pktLen = %u, prev pkt msgCnt=%u, prev pkt Seq=%ju",
-		EKA_EXCH_DECODE(exch),gr_id,gr->lastPktLen,gr->lastPktMsgCnt,gr->lastPkt1stSeq);
+	EKA_LOG("%s:%u lastPktLen = %u, lastPktMsgCnt=%u, lastProcessedSeq=%ju",
+		EKA_EXCH_DECODE(exch),gr_id,gr->lastPktLen,gr->lastPktMsgCnt,gr->lastProcessedSeq);
 
 	//	hexDump("Gap Pkt",pkt,pktLen);
 #ifdef FH_LAB
@@ -100,8 +93,6 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,pktLen);  
 	break;
 #endif
-
-
 	gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
 	gr->gapClosed = false;
 
