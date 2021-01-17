@@ -39,8 +39,6 @@ UNITTESTS_EXECS := $(patsubst %.c,%,$(UNITTESTS_SRCS))
 EKALIB_SRCS := $(wildcard e*.c E*.c)
 EKALIB_SRCS += $(wildcard FhBook/*.c)
 
-EKAHEADER_FILES := $(wildcard *.h) $(wildcard */*.h)
-
 EKALIB_FILES := $(patsubst %.c,%,$(EKALIB_SRCS))
 EKALIB_OBJ := $(EKALIB_SRCS:.c=.o)
 LLIB := -L. -lekaline2
@@ -95,7 +93,7 @@ include .lwip_depend
 	$(CCDEP) $(CFLAGS) -I . -MM $^ > .lwip_depend || rm -f .lwip_depend
 
 ###############################################
-$(EKALIB_OBJ): %.o: # %.c $(EKAHEADER_FILES)
+$(EKALIB_OBJ): %.o:
 	$(CC) $(CC_OPT) -c $< $(GCC_FLAGS) $(INCL) -o $@
 
 
