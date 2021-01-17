@@ -81,12 +81,8 @@ class EkaFhGroup {
 
   int                   connectRetryDelayTime = 15;
 
-  bool                  firstPkt            = true; // to get session_id
-  volatile char         session_id[10]      = {}; // Mold Session Id
-
   EkaLSI                id                  = -1; // MC group ID: 1-4 for ITTO
   uint                  gapNum              = 0; // num of Gaps
-  volatile uint32_t     spinImageSeq        = - 1; // used by BATS
 
   EkaFh*                fh                  = NULL; // parent FH
 
@@ -152,11 +148,9 @@ class EkaFhGroup {
   EfhCtx*               pEfhCtx            = NULL;
   uint8_t               core               = -1;
 
-  //  EkaFhBook*            book               = NULL;
-
   EkaDev*               dev                = NULL;
 
-  FILE*            parser_log = NULL; // used with PRINT_PARSED_MESSAGES define
+  FILE*                 parser_log = NULL; // used with PRINT_PARSED_MESSAGES define
 
  private:
 

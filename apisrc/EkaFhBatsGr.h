@@ -55,7 +55,6 @@ class EkaFhBatsGr : public EkaFhGroup{
   char                  sessionSubID[4] = {};  // for BATS Spin
   uint8_t               batsUnit = 0;
 
-
   static const uint   SCALE          = (const uint) 22;
   static const uint   SEC_HASH_SCALE = 17;
 

@@ -20,7 +20,7 @@
 #include <sched.h>
 #include <time.h>
 
-#include "EkaFhGroup.h"
+#include "EkaFhNasdaqGr.h"
 #include "EkaFhThreadAttr.h"
 
 int ekaTcpConnect(uint32_t ip, uint16_t port);
@@ -40,7 +40,7 @@ struct soupbin_login_req {
 
 //-----------------------------------------------
 
-static int sendUdpPkt (EkaDev* dev, EkaFhGroup* gr, int sock, void* sendBuf, size_t size, const sockaddr* addr, const char* msgName) {
+static int sendUdpPkt (EkaDev* dev, EkaFhNasdaqGr* gr, int sock, void* sendBuf, size_t size, const sockaddr* addr, const char* msgName) {
   int bytesSent = -1;
   while (1) {
     int bytesSent = sendto(sock,sendBuf,size,0,addr,sizeof(sockaddr));
@@ -62,7 +62,7 @@ static int sendUdpPkt (EkaDev* dev, EkaFhGroup* gr, int sock, void* sendBuf, siz
   return bytesSent;
 }
 //-----------------------------------------------
-static int recvUdpPkt (EkaDev* dev, EkaFhGroup* gr, int sock, void* recvBuf, size_t size, sockaddr* addr, const char* msgName) {
+static int recvUdpPkt (EkaDev* dev, EkaFhNasdaqGr* gr, int sock, void* recvBuf, size_t size, sockaddr* addr, const char* msgName) {
   int receivedBytes = -1;
   static const int Iterations = 1000000;
   socklen_t addrlen = sizeof(sockaddr);
@@ -99,7 +99,7 @@ static int recvUdpPkt (EkaDev* dev, EkaFhGroup* gr, int sock, void* recvBuf, siz
 
 void* soupbin_heartbeat_thread(void* attr) {
   pthread_detach(pthread_self());
-  EkaFhGroup* gr = (EkaFhGroup*) attr;
+  EkaFhNasdaqGr* gr = (EkaFhNasdaqGr*) attr;
   EkaDev* dev = gr->dev;
   gr->heartbeatThreadDone = false;
   struct soupbin_header heartbeat = {};
@@ -119,7 +119,7 @@ void* soupbin_heartbeat_thread(void* attr) {
   return NULL;
 }
 
-static void sendLogin (EkaFhGroup* gr, uint64_t start_sequence) {
+static void sendLogin (EkaFhNasdaqGr* gr, uint64_t start_sequence) {
   EkaDev* dev = gr->dev;
 
   struct soupbin_header header = {};
@@ -148,7 +148,7 @@ static void sendLogin (EkaFhGroup* gr, uint64_t start_sequence) {
   return;
 }
 
-static void sendLogout (EkaFhGroup* gr) {
+static void sendLogout (EkaFhNasdaqGr* gr) {
   EkaDev* dev = gr->dev;
   struct soupbin_header logout_request = {};
   logout_request.length		= htons(1);
@@ -161,21 +161,28 @@ static void sendLogout (EkaFhGroup* gr) {
 }
 /* ##################################################################### */
 
-static bool getLoginResponse(EkaFhGroup* gr) {
+static bool getLoginResponse(EkaFhNasdaqGr* gr) {
   EkaDev* dev = gr->dev;
 
   soupbin_header soupbin_hdr ={};
-  if (recv(gr->snapshot_sock,&soupbin_hdr,sizeof(soupbin_header),MSG_WAITALL) <= 0) 
-    on_error("%s:%u Glimpse connection reset by peer after Login (failed to receive SoupbinHdr), gr->snapshot_sock = %d",
+  if (recv(gr->snapshot_sock,&soupbin_hdr,sizeof(soupbin_header),MSG_WAITALL) <= 0) {
+    EKA_WARN("%s:%u Glimpse connection reset by peer after Login (failed to receive SoupbinHdr), gr->snapshot_sock = %d",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock);
+    return false;
+  }
   char soupbin_buf[100] = {};
-  if (recv(gr->snapshot_sock,soupbin_buf,be16toh(soupbin_hdr.length) - sizeof(soupbin_hdr.type),MSG_WAITALL) <= 0) 
-    on_error("%s:%u failed to receive Soupbin message from Glimpse, gr->snapshot_sock = %d",
+  if (recv(gr->snapshot_sock,soupbin_buf,be16toh(soupbin_hdr.length) - sizeof(soupbin_hdr.type),MSG_WAITALL) <= 0) {
+    EKA_WARN("%s:%u failed to receive Soupbin message from Glimpse, gr->snapshot_sock = %d",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock);
+    return false;
+  }
 
-  if (soupbin_hdr.type == 'J') on_error("Glimpse rejected login (\'J\') message with code: |%c|",soupbin_buf[0]);
-  if (soupbin_hdr.type == 'H') on_error("Glimpse Heartbeat arrived before login");
-  if (soupbin_hdr.type != 'A') on_error("Unknown Soupbin message type \'%c\' arrived after Login request",soupbin_hdr.type);
+  if (soupbin_hdr.type == 'J') EKA_WARN("Glimpse rejected login (\'J\') message with code: |%c|",soupbin_buf[0]);
+  if (soupbin_hdr.type == 'H') EKA_WARN("Glimpse Heartbeat arrived before login");
+  if (soupbin_hdr.type != 'A') {
+    EKA_WARN("Unknown Soupbin message type \'%c\' arrived after Login request",soupbin_hdr.type);
+    return false;
+  }
   char* session_id = soupbin_buf;
   char first_seq[20] = {};
   memcpy(first_seq,session_id+10,sizeof(first_seq));
@@ -194,7 +201,7 @@ void* getSoupBinData(void* attr) {
 
   EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
   EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
-  EkaFhGroup*   gr             = ((EkaFhThreadAttr*)attr)->gr;
+  EkaFhNasdaqGr*   gr       = (EkaFhNasdaqGr*)((EkaFhThreadAttr*)attr)->gr;
   uint64_t   start_sequence = ((EkaFhThreadAttr*)attr)->startSeq;
   uint64_t   end_sequence   = ((EkaFhThreadAttr*)attr)->endSeq;
   EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
@@ -225,14 +232,27 @@ void* getSoupBinData(void* attr) {
   EKA_LOG("%s:%u Glimpse Credentials Accquired",EKA_EXCH_DECODE(gr->exch),gr->id);
   //-----------------------------------------------------------------
   if (gr->snapshot_sock != -1) on_error("%s:%u gr->snapshot_sock != -1",EKA_EXCH_DECODE(gr->exch),gr->id);
-  gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
-  if (gr->snapshot_sock == -1) on_error("%s:%u gr->snapshot_sock = -1",EKA_EXCH_DECODE(gr->exch),gr->id);
-  EKA_LOG("%s:%u TCP connected to Glimpse, gr->snapshot_sock = %d",EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock);
 
-  //-----------------------------------------------------------------
-  sendLogin (gr, start_sequence);
-  //-----------------------------------------------------------------
-  getLoginResponse(gr);
+  while (1) {
+    gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
+    if (gr->snapshot_sock == -1) {
+      EKA_WARN("%s:%u gr->snapshot_sock = -1",EKA_EXCH_DECODE(gr->exch),gr->id);
+      gr->sendRetransmitSocketError(pEfhRunCtx);
+      continue;
+    }
+    EKA_LOG("%s:%u TCP connected to Glimpse, gr->snapshot_sock = %d",EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock);
+
+    //-----------------------------------------------------------------
+    sendLogin (gr, start_sequence);
+    //-----------------------------------------------------------------
+    if (! getLoginResponse(gr) ) {
+      sendLogout(gr);
+      close (gr->snapshot_sock);
+      gr->sendRetransmitSocketError(pEfhRunCtx);
+      continue;
+    }
+    break;
+  }
   //-----------------------------------------------------------------
   gr->heartbeat_active = true;
   gr->hearbeat_ctr = 0;
@@ -305,7 +325,7 @@ void* getMolUdp64Data(void* attr) {
 
   //  EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
   EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
-  EkaFhGroup*   gr             = ((EkaFhThreadAttr*)attr)->gr;
+  EkaFhNasdaqGr*   gr       = (EkaFhNasdaqGr*)((EkaFhThreadAttr*)attr)->gr;
   uint64_t   start          = ((EkaFhThreadAttr*)attr)->startSeq;
   uint64_t   end            = ((EkaFhThreadAttr*)attr)->endSeq;
   //  EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
@@ -344,12 +364,14 @@ void* getMolUdp64Data(void* attr) {
     	      );
 
     int attempt = 0;
-    const int limit = 5;
     while (1) {
       sendUdpPkt (dev, gr, gr->recovery_sock, &mold_request, sizeof(mold_request), (const sockaddr*) &mold_recovery_addr, "Mold request");
-      int r = recvUdpPkt (dev, gr, gr->recovery_sock, buf,           sizeof(buf),          (sockaddr*)       &mold_recovery_addr, "Mold response");
+      int r = recvUdpPkt (dev, gr, gr->recovery_sock, buf,   sizeof(buf),          (sockaddr*)       &mold_recovery_addr, "Mold response");
       if (r > 0) break;
-      if (attempt++ == limit) on_error("Mold UDP socket is not responding after %d attempts",limit);
+      if (attempt++ == gr->MoldLocalRetryAttempts) {
+	EKA_WARN("Mold UDP socket is not responding after %d attempts",gr->MoldLocalRetryAttempts);
+	gr->sendRetransmitSocketError(pEfhRunCtx);
+      }
       sleep(0);
     }
 
@@ -369,7 +391,8 @@ void* getMolUdp64Data(void* attr) {
     seq2ask += message_cnt;
   } // while loop
   gr->seq_after_snapshot = sequence;
-  EKA_LOG("%s:%u: Mold recovery finished: next expected_sequence = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot);
+  EKA_LOG("%s:%u: Mold recovery finished: next expected_sequence = %ju",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot);
   gr->gapClosed = true;
 
   close(gr->recovery_sock);
@@ -383,7 +406,7 @@ void* getMolUdpPlxOrdData(void* attr) {
 
   //  EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
   EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
-  EkaFhGroup*   gr             = ((EkaFhThreadAttr*)attr)->gr;
+  EkaFhNasdaqGr*   gr       = (EkaFhNasdaqGr*)((EkaFhThreadAttr*)attr)->gr;
   uint64_t   start          = ((EkaFhThreadAttr*)attr)->startSeq;
   uint64_t   end            = ((EkaFhThreadAttr*)attr)->endSeq;
   //  EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
@@ -421,12 +444,14 @@ void* getMolUdpPlxOrdData(void* attr) {
     	      );
 
     int attempt = 0;
-    const int limit = 5;
     while (1) {
       sendUdpPkt (dev, gr, gr->recovery_sock, &mold_request, sizeof(mold_request), (const sockaddr*) &mold_recovery_addr, "Mold request");
       int r = recvUdpPkt (dev, gr, gr->recovery_sock, buf,           sizeof(buf),          (sockaddr*)       &mold_recovery_addr, "Mold response");
       if (r > 0) break;
-      if (attempt++ == limit) on_error("Mold UDP socket is not responding after %d attempts",limit);
+      if (attempt++ == gr->MoldLocalRetryAttempts) {
+	EKA_WARN("Mold UDP socket is not responding after %d attempts",gr->MoldLocalRetryAttempts);
+	gr->sendRetransmitSocketError(pEfhRunCtx);
+      }
       sleep(0);
     }
 

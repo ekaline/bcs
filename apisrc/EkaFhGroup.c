@@ -161,6 +161,7 @@ void EkaFhGroup::sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx) {
     0 // int64_t code
   };
   pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
+  EKA_LOG("%s:%u re-trying in %d seconds",EKA_EXCH_DECODE(exch),id,connectRetryDelayTime);
   sleep(connectRetryDelayTime);
 }
  /* ##################################################################### */
@@ -178,6 +179,7 @@ void EkaFhGroup::sendRetransmitSocketError(const EfhRunCtx* pEfhRunCtx) {
     0 // int64_t code
   };
   pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
+  EKA_LOG("%s:%u re-trying in %d seconds",EKA_EXCH_DECODE(exch),id,connectRetryDelayTime);
   sleep(connectRetryDelayTime);
 }
  /* ##################################################################### */
