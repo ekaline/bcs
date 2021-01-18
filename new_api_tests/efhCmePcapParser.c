@@ -203,9 +203,7 @@ int main(int argc, char *argv[]) {
 	break;
       default:
 	break;
-	//	printf ("\tMsgId = \'%d\', msgSize = %u\n",(int)msgHdr->templateId,msgHdr->size);
       }
-      //      printf("pos = %d, pktLen = %u, msgPos = %d, msgHdr->size = %u\n",pos,pktLen,msgPos,msgHdr->size);
       pos = msgPos + msgHdr->size;
       if (pos > (int)pktLen) on_error("pos %d > pktLen %u (msgPos = %d, msgHdr->size = %u)",pos,pktLen,msgPos,msgHdr->size);
     }
