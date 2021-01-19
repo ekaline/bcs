@@ -103,10 +103,10 @@ static bool getLoginResponse(EkaFhBatsGr* gr) {
     EKA_WARN("Spin connection reset by peer after Login (failed to receive Login Response) for %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id);
   if (login_response.type != EKA_BATS_PITCH_MSG::LOGIN_RESPONSE) EKA_WARN ("Unexpected Spin resonse type 0x%02x",login_response.type);
 
-  if (login_response.status == 'N') EKA_WARN("Spin rejected login (\'N\') Not authorized (Invalid Username/Password)");
+  if (login_response.status == 'N') on_error("Spin rejected login (\'N\') Not authorized (Invalid Username/Password)");
   if (login_response.status == 'B') EKA_WARN("Spin rejected login (\'B\') Session in use");
-  if (login_response.status == 'S') EKA_WARN("Spin rejected login (\'S\') Invalid Session");
-  if (login_response.status != 'A') EKA_WARN("Unknown Spin Login response status |%c|",login_response.status);
+  if (login_response.status == 'S') on_error("Spin rejected login (\'S\') Invalid Session");
+  if (login_response.status != 'A') on_error("Unknown Spin Login response status |%c|",login_response.status);
   if (login_response.hdr.count != 1) EKA_WARN("More than 1 message (%u) come with the Login Response",login_response.hdr.count);
   if (login_response.status == 'A') {
     EKA_LOG("%s:%u Login Accepted",EKA_EXCH_DECODE(gr->exch),gr->id);

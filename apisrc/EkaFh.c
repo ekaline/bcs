@@ -78,15 +78,16 @@ int EkaFh::init(const EfhInitCtx* pEfhInitCtx, uint8_t numFh) {
       memcpy(b_gr[i]->auth_passwd,auth_passwd,sizeof(auth_passwd));
       b_gr[i]->auth_set = true;
     }
-    EKA_DEBUG("initializing FH %s:%u: MCAST: %s:%u, SNAPSHOT: %s:%u, RECOVERY: %s:%u, AUTH: %s:%s",
-	    EKA_EXCH_DECODE(b_gr[i]->exch),
-	    b_gr[i]->id,
-	    EKA_IP2STR(b_gr[i]->mcast_ip),   b_gr[i]->mcast_port,
-	    EKA_IP2STR(b_gr[i]->snapshot_ip),be16toh(b_gr[i]->snapshot_port),
-	    EKA_IP2STR(b_gr[i]->recovery_ip),be16toh(b_gr[i]->recovery_port),
-	    b_gr[i]->auth_set ? std::string(b_gr[i]->auth_user,sizeof(b_gr[i]->auth_user)).c_str() : "NOT SET",
-	    b_gr[i]->auth_set ? std::string(b_gr[i]->auth_passwd,sizeof(b_gr[i]->auth_passwd)).c_str() : "NOT SET"
-	    );
+    EKA_DEBUG("initializing FH %s:%u: MCAST: %s:%u, SNAPSHOT: %s:%u, RECOVERY: %s:%u, AUTH: %s:%s, connectRetryDelayTime=%d",
+	      EKA_EXCH_DECODE(b_gr[i]->exch),
+	      b_gr[i]->id,
+	      EKA_IP2STR(b_gr[i]->mcast_ip),   b_gr[i]->mcast_port,
+	      EKA_IP2STR(b_gr[i]->snapshot_ip),be16toh(b_gr[i]->snapshot_port),
+	      EKA_IP2STR(b_gr[i]->recovery_ip),be16toh(b_gr[i]->recovery_port),
+	      b_gr[i]->auth_set ? std::string(b_gr[i]->auth_user,sizeof(b_gr[i]->auth_user)).c_str() : "NOT SET",
+	      b_gr[i]->auth_set ? std::string(b_gr[i]->auth_passwd,sizeof(b_gr[i]->auth_passwd)).c_str() : "NOT SET",
+	      b_gr[i]->connectRetryDelayTime
+	      );
   }
   any_group_getting_snapshot = false;
 

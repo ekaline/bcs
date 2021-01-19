@@ -36,7 +36,7 @@ int EkaFhBoxGr::processFromQ(const EfhRunCtx* pEfhRunCtx) {
   while (! q->is_empty()) {
     fh_msg* buf = q->pop();
     //      EKA_LOG("q_len=%u,buf->sequence=%ju, expected_sequence=%ju",q->get_len(),buf->sequence,expected_sequence);
-    parseMsg(pEfhRunCtx,(unsigned char*)buf->data,buf->sequence,EkaFhMode::MCAST);
+    parseMsg(pEfhRunCtx,(const unsigned char*)buf->data,buf->sequence,EkaFhMode::MCAST);
     expected_sequence = buf->sequence + 1;
   }
   return 0;
@@ -56,7 +56,6 @@ int EkaFhBoxGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
 bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 			       const uint8_t*   pkt, 
 			       int16_t          pktLen) {
-  //  const uint8_t* p = pkt;
   int idx = 0;
 
   lastPktLen    = pktLen;
