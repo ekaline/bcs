@@ -216,7 +216,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
   //---------------------------------------------------------------------
   // efh.NOM_ITTO.group.X.snapshot.connectRetryDelayTime, <numSec>
   // k[0] k[1]   k[2] k[3] k[4]   k[5]
-  if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"snapshot")==0) && (strcmp(k[5],"auth")==0)) {
+  if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"snapshot")==0) && (strcmp(k[5],"connectRetryDelayTime")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       if (gr >= groups) {
