@@ -470,11 +470,12 @@ int main(int argc, char *argv[]) {
     .report_only = 0,
   //  .no_report_on_exception = 0,
     .debug_always_fire_on_unsubscribed = 0,
-    .debug_always_fire = 0,
+    .debug_always_fire = 1,
     .max_size = 1000,
     .watchdog_timeout_sec = 100000,
   };
   efcInitStrategy(pEfcCtx, &efcStratGlobCtx);
+  //  dev->eka_write(0xf0f00,0xefa0beda); // FATAL ENABLE
   /* ============================================== */
   EfcRunCtx runCtx = {};
   runCtx.onEfcFireReportCb = onFireReport;
@@ -506,11 +507,17 @@ int main(int argc, char *argv[]) {
     if (rc != EKA_OPRESULT__OK) on_error ("failed to efcSetStaticSecCtx");
   }
   /* ============================================== */
-  
+  efcSetGroupSesCtx(pEfcCtx, 0, conn );
+  /* ============================================== */
+
   efcRun(pEfcCtx, &runCtx );
 
   EKA_LOG("After efcRun");
-  //  while (keep_work) { sleep(0); }
+ 
+  while (keep_work) { 
+    
+    sleep(0); 
+  }
 
   //  end:
   fflush(stdout);fflush(stderr);

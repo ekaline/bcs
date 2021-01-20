@@ -13,6 +13,8 @@
 #include "EpmFireSqfTemplate.h"
 #include "EkaEfcDataStructs.h"
 
+void ekaFireReportThread(EkaDev* dev);
+
 /* ################################################ */
 static bool isAscii (char letter) {
   //  EKA_LOG("testing %d", letter);
@@ -327,6 +329,13 @@ int EkaEfc::run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx) {
 
   enableRxFire();
 
+  if (! dev->fireReportThreadActive) {
+    dev->fireReportThread = std::thread(ekaFireReportThread,dev);
+    dev->fireReportThread.detach();
+    while (! dev->fireReportThreadActive) sleep(0);
+    EKA_LOG("fireReportThread activated");
+  }
+
   return 0;
 }
 
@@ -413,7 +422,7 @@ int EkaEfc::createFireAction(uint8_t group, ExcConnHandle hConn) {
     fireCoreId = myCoreId;
   } else {
     if (fireCoreId != myCoreId) 
-      on_error("fireCoreId %u != myCoreId %u",fireCoreId, myCoreId);
+      on_error("fireCoreId %d != myCoreId %d",fireCoreId, myCoreId);
   }
 
   udpSess[group]->firstSessId = mySessId;
@@ -433,6 +442,10 @@ int EkaEfc::createFireAction(uint8_t group, ExcConnHandle hConn) {
 					myTcpSess->srcPort,
 					myTcpSess->dstPort);
 
+  EKA_LOG("Created FireAction: on fireCoreId %d %s:%u --> %s:%u ",
+	  fireCoreId,
+	  EKA_IP2STR(myTcpSess->srcIp),myTcpSess->srcPort,
+	  EKA_IP2STR(myTcpSess->dstIp),myTcpSess->dstPort);
   numFireActions++;
   return 0;
 }

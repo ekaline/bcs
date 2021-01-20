@@ -131,6 +131,8 @@ void ekaFireReportThread(EkaDev* dev) {
     const uint8_t* data = dev->epmReport->get();
     uint len = dev->epmReport->getPayloadSize();
 
+    hexDump("EPM/Fire report",data,len); fflush(stdout);
+
     if (((report_dma_report_t*)data)->length + sizeof(report_dma_report_t) != len) {
       hexDump("EPM report",data,len); fflush(stdout);
       on_error("DMA length mismatch %u != %u",be16toh(((report_dma_report_t*)data)->length),len);

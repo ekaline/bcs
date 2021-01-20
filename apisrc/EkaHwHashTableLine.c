@@ -107,7 +107,7 @@ int EkaHwHashTableLine::printPacked(const char* msg) {
 
   uint64_t* pWord = (uint64_t*)packed;
   for (auto i = 0; i < packedWords; i++) {
-    EKA_LOG("%s %d: pWord = %016jx",msg,i,*pWord);
+    //    EKA_LOG("%s %d: pWord = %016jx",msg,i,*pWord);
     pWord++;
   }
   return 0;
@@ -186,10 +186,10 @@ int EkaHwHashTableLine::downloadPacked() {
   if (validCnt == 0) return 0;
 #endif
 
-  if (validCnt != 0) {
-    print("downloadPacked");
-    printPacked("downloadPacked");
-  }
+  /* if (validCnt != 0) { */
+  /*   print("downloadPacked"); */
+  /*   printPacked("downloadPacked"); */
+  /* } */
 
   uint64_t* pWord = (uint64_t*)packed;
   for (auto i = 0; i < packedWords; i++) {

@@ -275,6 +275,9 @@ inline uint calcThrId (EkaEpm::ActionType actionType, uint8_t sessId, uint intId
   case EkaEpm::ActionType::UserAction  :
     thrId = UserBase + intIdx % UserNum;
     break;
+  case EkaEpm::ActionType::HwFireAction:
+    thrId = UserBase + intIdx % UserNum; // TO BE CHECKED!!!
+    break;
   default :
     on_error("Unexpected actionType %d",(int) actionType);
   }

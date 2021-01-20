@@ -49,8 +49,8 @@ class EkaEfc {
   static const int MAX_CTX_THREADS   = 16;
 
   EkaIgmp*            ekaIgmp    = NULL;
-  uint8_t             mdCoreId   = -1;
-  uint8_t             fireCoreId = -1;
+  EkaCoreId           mdCoreId   = -1;
+  EkaCoreId           fireCoreId = -1;
   EkaDev*             dev        = NULL;
   EfhFeedVer          hwFeedVer  = EfhFeedVer::kInvalid;
   EkaHwHashTableLine* hashLine[EKA_SUBSCR_TABLE_ROWS] = {};
