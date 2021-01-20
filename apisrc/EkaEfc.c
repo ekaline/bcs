@@ -316,7 +316,10 @@ int EkaEfc::enableRxFire() {
   return 0;
 }
 /* ################################################ */
-int EkaEfc::run() {
+int EkaEfc::run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx) {
+  memcpy(&localCopyEfcCtx,   pEfcCtx,   sizeof(EfcCtx));
+  memcpy(&localCopyEfcRunCtx,pEfcRunCtx,sizeof(EfcRunCtx));
+
   setHwGlobalParams();
   setHwUdpParams();
   setHwStratRegion();

@@ -319,7 +319,7 @@ EkaOpResult efcRun( EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx ) {
   EkaEfc* efc = dev->efc;
   if (efc == NULL) on_error("efc == NULL");
 
-  efc->run();
+  efc->run(pEfcCtx,pEfcRunCtx);
 
   //  eka_open_udp_sockets(pEfcCtx->dev);
   //  download_conf2hw(pEfcCtx->dev);

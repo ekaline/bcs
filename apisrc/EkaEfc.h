@@ -23,7 +23,7 @@ class EkaEfc {
   int initStrategy(const EfcStratGlobCtx* efcStratGlobCtx);
   int armController();
   int disArmController();
-  int run();
+  int run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx);
   int createFireAction(uint8_t group, ExcConnHandle hConn);
   int setActionPayload(ExcConnHandle hConn,const void* fireMsg, size_t fireMsgSize);
 
@@ -66,7 +66,8 @@ class EkaEfc {
 
  public:
   int                 ctxWriteBank[MAX_CTX_THREADS] = {};
-
+  EfcCtx              localCopyEfcCtx = {};
+  EfcRunCtx           localCopyEfcRunCtx = {};
 };
 
 #endif

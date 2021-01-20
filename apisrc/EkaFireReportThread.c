@@ -8,9 +8,12 @@
 #include "EkaUserChannel.h"
 #include "EkaUdpChannel.h"
 #include "EkaEpm.h"
+#include "EkaEfc.h"
+
 #include "EpmStrategy.h"
 
 #include "eka_macros.h"
+#include "EkaEfcDataStructs.h"
 
 int processEpmReport(EkaDev* dev, const uint8_t* payload,uint len) {
   hw_epm_report_t* hwEpmReport = (hw_epm_report_t*) (payload + sizeof(report_dma_report_t));
@@ -45,31 +48,72 @@ int processEpmReport(EkaDev* dev, const uint8_t* payload,uint len) {
 }
 /* ########################################################### */
 
-int processFireReport(EkaDev* dev, const uint8_t* payload,uint len) {
-  uint8_t buf[1200] = {};
-
-  uint8_t* b =  buf;
+int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len) {
+  uint8_t reportBuf[4000] ={};
+  uint8_t* b =  reportBuf;
   uint reportIdx = 0;
+  auto report { reinterpret_cast<const EfcNormalizedFireReport*>(srcReport) };
 
+  //--------------------------------------------------------------------------
   ((EkaContainerGlobalHdr*)b)->type = EkaEventType:: kFireReport;
-  ((EkaContainerGlobalHdr*)buf)->num_of_reports = 0; // to be overwritten at the end
+  ((EkaContainerGlobalHdr*)b)->num_of_reports = 0; // to be overwritten at the end
   b += sizeof(EkaContainerGlobalHdr);
+
   //--------------------------------------------------------------------------
   ((EfcReportHdr*)b)->type = EfcReportType::kControllerState;
   ((EfcReportHdr*)b)->idx  = ++reportIdx;
   ((EfcReportHdr*)b)->size = sizeof(EfcControllerState); // 1 byte for uint8_t unarm_reson;
   b += sizeof(EfcReportHdr);
 
-  ((EfcControllerState*)b)->unarm_reason = 0; // TBD!!! source->normalized_report.last_unarm_reason;
+  auto controllerState { reinterpret_cast<EfcControllerState*>(b) };
+  controllerState->unarm_reason = 0; // TBD!!! source->normalized_report.last_unarm_reason;
   b += sizeof(EfcControllerState);
+
   //--------------------------------------------------------------------------
   ((EfcReportHdr*)b)->type = EfcReportType::kMdReport;
   ((EfcReportHdr*)b)->idx  = ++reportIdx;
   ((EfcReportHdr*)b)->size = sizeof(EfcMdReport);
   b += sizeof(EfcReportHdr);
 
- return 0;
+  auto mdReport { reinterpret_cast<EfcMdReport*>(b) };
+  mdReport->timestamp = report->triggerOrder.timestamp;
+  mdReport->sequence  = report->triggerOrder.sequence;
+  mdReport->side      = report->triggerOrder.attr.bitmap.Side;
+  mdReport->price     = report->triggerOrder.price;
+  mdReport->size      = report->triggerOrder.size;
+  mdReport->group_id  = report->triggerOrder.groupId;
+  mdReport->core_id   = report->triggerOrder.attr.bitmap.CoreID;
+  b += sizeof(EfcMdReport);
+
+  //--------------------------------------------------------------------------
+  ((EfcReportHdr*)b)->type = EfcReportType::kSecurityCtx;
+  ((EfcReportHdr*)b)->idx  = ++reportIdx;
+  ((EfcReportHdr*)b)->size = sizeof(EfcSecurityCtx);
+  b += sizeof(EfcReportHdr);
+
+  auto secCtxReport { reinterpret_cast<EfcSecurityCtx*>(b) };
+  secCtxReport->lower_bytes_of_sec_id = report->securityCtx.lowerBytesOfSecId;
+  secCtxReport->ver_num               = report->securityCtx.verNum;
+  secCtxReport->size                  = report->securityCtx.size;
+  secCtxReport->ask_max_price         = report->securityCtx.askMaxPrice;
+  secCtxReport->bid_min_price         = report->securityCtx.bidMinPrice;
+  b += sizeof(EfcSecurityCtx);
+
+
+  //--------------------------------------------------------------------------
+  ((EkaContainerGlobalHdr*)b)->num_of_reports = reportIdx;
+
+  int resLen = b - &reportBuf[0];
+  if (resLen > (int)sizeof(reportBuf)) 
+    on_error("resLen %d > sizeof(reportBuf) %d",resLen,(int)sizeof(reportBuf));
+
+  if (dev->efc->localCopyEfcRunCtx.onEfcFireReportCb == NULL) on_error("onFireReportCb == NULL");
+  dev->efc->localCopyEfcRunCtx.onEfcFireReportCb(&dev->efc->localCopyEfcCtx,
+						 reinterpret_cast< EfcFireReport* >(reportBuf), 
+						 resLen);
+  return 0;
 }
+
 /* ########################################################### */
 
 void ekaFireReportThread(EkaDev* dev) {
