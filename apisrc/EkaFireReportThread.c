@@ -14,6 +14,7 @@
 
 #include "eka_macros.h"
 #include "EkaEfcDataStructs.h"
+#include "EkaUserReportQ.h"
 
 int processEpmReport(EkaDev* dev, const uint8_t* payload,uint len) {
   hw_epm_report_t* hwEpmReport = (hw_epm_report_t*) (payload + sizeof(report_dma_report_t));
@@ -49,6 +50,19 @@ int processEpmReport(EkaDev* dev, const uint8_t* payload,uint len) {
 /* ########################################################### */
 
 int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len) {
+  //--------------------------------------------------------------------------
+  while (dev->userReportQ->isEmpty()) {}
+
+  EkaUserReportElem* userReport = dev->userReportQ->pop();
+  uint32_t userReportIndex = userReport->hdr.index;
+  uint32_t epmReportIndex = ((report_dma_report_t*)srcReport)->feedbackDmaIndex;
+
+  if (userReportIndex != epmReportIndex) 
+    on_error("userReportIndex %u != epmReportIndex %u",
+	     userReportIndex,epmReportIndex);
+
+  //--------------------------------------------------------------------------
+
   uint8_t reportBuf[4000] ={};
   uint8_t* b =  reportBuf;
   uint reportIdx = 0;
@@ -99,18 +113,28 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len) {
   secCtxReport->bid_min_price         = report->securityCtx.bidMinPrice;
   b += sizeof(EfcSecurityCtx);
 
+  //--------------------------------------------------------------------------
+  ((EfcReportHdr*)b)->type = EfcReportType::kFirePkt;
+  ((EfcReportHdr*)b)->idx  = ++reportIdx;
+  ((EfcReportHdr*)b)->size = userReport->hdr.length;
+  b += sizeof(EfcReportHdr);
+
+  memcpy(b,&userReport->data,userReport->hdr.length);
+  b += userReport->hdr.length;
 
   //--------------------------------------------------------------------------
   ((EkaContainerGlobalHdr*)b)->num_of_reports = reportIdx;
 
-  int resLen = b - &reportBuf[0];
-  if (resLen > (int)sizeof(reportBuf)) 
-    on_error("resLen %d > sizeof(reportBuf) %d",resLen,(int)sizeof(reportBuf));
+  int reportLen = b - &reportBuf[0];
+  if (reportLen > (int)sizeof(reportBuf)) 
+    on_error("reportLen %d > sizeof(reportBuf) %d",
+	     reportLen,(int)sizeof(reportBuf));
 
-  if (dev->efc->localCopyEfcRunCtx.onEfcFireReportCb == NULL) on_error("onFireReportCb == NULL");
+  if (dev->efc->localCopyEfcRunCtx.onEfcFireReportCb == NULL) 
+    on_error("onFireReportCb == NULL");
   dev->efc->localCopyEfcRunCtx.onEfcFireReportCb(&dev->efc->localCopyEfcCtx,
 						 reinterpret_cast< EfcFireReport* >(reportBuf), 
-						 resLen);
+						 reportLen);
   return 0;
 }
 

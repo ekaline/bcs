@@ -142,7 +142,7 @@ EkaOpResult efcSetGroupSesCtx( EfcCtx* efcCtx, uint8_t group, ExcConnHandle hCon
  * @retval [See EkaOpResult].
  */
 
-EkaOpResult efcPrintFireReport( EfcCtx* efcCtx, EfcReportHdr* p );
+EkaOpResult efcPrintFireReport( EfcCtx* efcCtx, const EfcReportHdr* p );
 
 /* ****************************************
  * Declaring callbacks.

@@ -330,16 +330,112 @@ EkaOpResult efcRun( EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx ) {
 }
 
 
-EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, EfcReportHdr* p ) {
+EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p ) {
   if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
   EkaDev* dev = pEfcCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
   EkaEfc* efc = dev->efc;
   if (efc == NULL) on_error("efc == NULL");
 
-  EKA_LOG("NOT IMPLEMENTED YET!!!");
+  const uint8_t* b = (const uint8_t*)p;
+ //--------------------------------------------------------------------------
+  if (((EkaContainerGlobalHdr*)b)->type == EkaEventType::kExceptionReport) {
+    EKA_LOG("EXCEPTION_REPORT");
+    return EKA_OPRESULT__OK;
+  }
+ //--------------------------------------------------------------------------
+  if (((EkaContainerGlobalHdr*)b)->type != EkaEventType::kFireReport) 
+    on_error("UNKNOWN Event report: 0x%02x",
+	     static_cast< uint32_t >( ((EkaContainerGlobalHdr*)b)->type ) );
 
-  //  print_new_compat_fire_report (pEfcCtx,p);
-  
+  EKA_LOG("\tTotal reports: %u",((EkaContainerGlobalHdr*)b)->num_of_reports);
+  uint total_reports = ((EkaContainerGlobalHdr*)b)->num_of_reports;
+  b += sizeof(EkaContainerGlobalHdr);
+  //--------------------------------------------------------------------------
+  if (((EfcReportHdr*)b)->type != EfcReportType::kControllerState) 
+    on_error("EfcControllerState report expected, 0x%02x received",
+	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type));
+
+  EKA_LOG("\treport_type = %u EfcControllerState, idx=%u, size=%ju",
+	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ),
+	  ((EfcReportHdr*)b)->idx,
+	  ((EfcReportHdr*)b)->size);
+  b += sizeof(EfcReportHdr);
+  EKA_LOG("\tunarm_reason=0x%02x",((EfcControllerState*)b)->unarm_reason);
+  b += sizeof(EfcControllerState);
+  total_reports--;
+ //--------------------------------------------------------------------------
+
+  if (((EfcReportHdr*)b)->type != EfcReportType::kMdReport) 
+    on_error("MdReport report expected, %02x received",
+	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type) );
+  EKA_LOG("\treport_type = %u MdReport, idx=%u, size=%ju",
+	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ),
+	  ((EfcReportHdr*)b)->idx,
+	  ((EfcReportHdr*)b)->size);
+  b += sizeof(EfcReportHdr);
+
+  {
+    auto msg{ reinterpret_cast< const EfcMdReport* >( b ) };
+    EKA_LOG("\ttimestamp=%ju ", msg->timestamp);
+    EKA_LOG("\tsequence=%ju ",  msg->sequence);
+    EKA_LOG("\tside=%c ",       msg->side == 1 ? 'b' : 'a');
+    EKA_LOG("\tprice = %ju ",   msg->price);
+    EKA_LOG("\tsize=%ju ",      msg->size);
+    EKA_LOG("\tgroup_id=%u ",   msg->group_id);
+    EKA_LOG("\tcore_id=%u ",    msg->core_id);
+    b += sizeof(*msg);
+  }
+  total_reports--;
+
+  //--------------------------------------------------------------------------
+
+  if (((EfcReportHdr*)b)->type != EfcReportType::kMdReport) 
+    on_error("MdReport report expected, %02x received",
+	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type) );
+  EKA_LOG("\treport_type = %u MdReport, idx=%u, size=%ju",
+	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ),
+	  ((EfcReportHdr*)b)->idx,
+	  ((EfcReportHdr*)b)->size);
+  b += sizeof(EfcReportHdr);
+
+  {
+    auto msg{ reinterpret_cast< const EfcMdReport* >( b ) };
+    EKA_LOG("\ttimestamp=%ju ", msg->timestamp);
+    EKA_LOG("\tsequence=%ju ",  msg->sequence);
+    EKA_LOG("\tside=%c ",       msg->side == 1 ? 'b' : 'a');
+    EKA_LOG("\tprice = %ju ",   msg->price);
+    EKA_LOG("\tsize=%ju ",      msg->size);
+    EKA_LOG("\tgroup_id=%u ",   msg->group_id);
+    EKA_LOG("\tcore_id=%u ",    msg->core_id);
+    b += sizeof(*msg);
+  }
+  total_reports--;
+
+  //--------------------------------------------------------------------------
+
+  if (((EfcReportHdr*)b)->type != EfcReportType::kSecurityCtx) 
+    on_error("SecurityCtx report expected, %02x received",
+	     ((EfcReportHdr*)b)->type);
+  EKA_LOG("\treport_type = %u SecurityCtx, idx=%u, size=%ju",
+	  ((EfcReportHdr*)b)->type,
+	  ((EfcReportHdr*)b)->idx,
+	  ((EfcReportHdr*)b)->size);
+  b += sizeof(EfcReportHdr);
+
+  {
+    auto msg{ reinterpret_cast< const EfcSecurityCtx* >( b ) };
+    EKA_LOG("\tlower_bytes_of_sec_id=0x%x ", msg->lower_bytes_of_sec_id);
+    EKA_LOG("\tver_num=0x%x ", msg->ver_num);
+    EKA_LOG("\tsize=%u ", msg->size);
+    EKA_LOG("\task_max_price=%u ", msg->ask_max_price);
+    EKA_LOG("\tbid_min_price=%u ", msg->bid_min_price);
+    b += sizeof(*msg);
+  }
+  total_reports--;
+
+  //--------------------------------------------------------------------------
+
+
   return EKA_OPRESULT__OK;
 }
