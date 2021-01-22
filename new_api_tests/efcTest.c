@@ -514,10 +514,7 @@ int main(int argc, char *argv[]) {
 
   EKA_LOG("After efcRun");
  
-  while (keep_work) { 
-    
-    sleep(0); 
-  }
+  //  while (keep_work) { sleep(0); }
 
   //  end:
   fflush(stdout);fflush(stderr);
