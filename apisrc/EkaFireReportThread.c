@@ -53,6 +53,8 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len) {
   //--------------------------------------------------------------------------
   while (dev->userReportQ->isEmpty()) {}
 
+  EKA_LOG("Report received!");
+
   EkaUserReportElem* userReport = dev->userReportQ->pop();
   uint32_t userReportIndex = userReport->hdr.index;
   uint32_t epmReportIndex = ((report_dma_report_t*)srcReport)->feedbackDmaIndex;

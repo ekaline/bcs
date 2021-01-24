@@ -28,12 +28,11 @@
 #include "Efc.h"
 #include "Efh.h"
 #include "Epm.h"
-#include "EkaEpm.h"
 
 #include "eka_macros.h"
 
-#include "EkaCore.h"
 #include "EkaCtxs.h"
+//#include "EkaTestFuncs.h"
 
 #include <fcntl.h>
 
@@ -101,6 +100,8 @@ void tcpServer(EkaDev* dev, std::string ip, uint16_t port, int* sock) {
   int one_const = 1;
   if (setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &one_const, sizeof(int)) < 0) 
     on_error("setsockopt(SO_REUSEADDR) failed");
+  if (setsockopt(sd, SOL_SOCKET, SO_REUSEPORT, &one_const, sizeof(int)) < 0) 
+    on_error("setsockopt(SO_REUSEPORT) failed");
 
   struct linger so_linger = {
     true, // Linger ON
@@ -475,7 +476,8 @@ int main(int argc, char *argv[]) {
     .watchdog_timeout_sec = 100000,
   };
   efcInitStrategy(pEfcCtx, &efcStratGlobCtx);
-  //  dev->eka_write(0xf0f00,0xefa0beda); // FATAL ENABLE
+  eka_write(dev,(uint64_t)0xf0f00,(uint64_t)0xefa0beda); // FATAL ENABLE
+
   /* ============================================== */
   EfcRunCtx runCtx = {};
   runCtx.onEfcFireReportCb = onFireReport;
@@ -509,13 +511,18 @@ int main(int argc, char *argv[]) {
   /* ============================================== */
   efcSetGroupSesCtx(pEfcCtx, 0, conn );
   /* ============================================== */
-
+  efcEnableController(pEfcCtx, 0);
   efcRun(pEfcCtx, &runCtx );
+  EKA_LOG("After efcRun: ENABLE_PORT = 0x%016jx",eka_read(dev,0xf0020));
 
-  EKA_LOG("After efcRun");
- 
-  //  while (keep_work) { sleep(0); }
+  efcEnableController(pEfcCtx, 0);
 
+#ifndef _VERILOG_SIM
+  while (keep_work) { 
+    //    EKA_LOG("keep_work loop: ENABLE_PORT = 0x%016jx",eka_read(dev,0xf0020));
+    sleep(0); 
+  }
+#endif
   //  end:
   fflush(stdout);fflush(stderr);
 

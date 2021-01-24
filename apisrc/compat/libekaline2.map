@@ -50,7 +50,6 @@ LIBEKALINE2_1.0	{
 			epmGetStrategyEnableBits;
 			epmSetStrategyEnableBits;
 			epmRaiseTriggers;
-
 		local:
 			*;
 		};
