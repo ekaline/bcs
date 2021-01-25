@@ -38,6 +38,9 @@
  * @return This will return an appropriate EkalineOpResult indicating success or an error code.
  */
 
+int printSecCtx(EkaDev* dev, const EfcSecurityCtx* msg);
+int printMdReport(EkaDev* dev, const EfcMdReport* msg);
+
 EkaOpResult efcInit( EfcCtx** ppEfcCtx, EkaDev *pEkaDev, const EfcInitCtx* pEfcInitCtx ) {
   if (pEkaDev == NULL) on_error("pEkaDev == NULL");
   if (pEfcInitCtx == NULL) on_error("pEfcInitCtx == NULL");
@@ -130,6 +133,7 @@ EkaOpResult efcEnableFiringOnSec( EfcCtx* pEfcCtx, const uint64_t* pSecurityIds,
 
   uint64_t* p = (uint64_t*) pSecurityIds;
   for (uint i = 0; i < numSecurityIds; i++) {
+    EKA_LOG("Subscribing on 0x%x",*p);
     efc->subscribeSec(*p);
     p++;
   }
@@ -361,6 +365,7 @@ EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p ) {
 	  ((EfcReportHdr*)b)->idx,
 	  ((EfcReportHdr*)b)->size);
   b += sizeof(EfcReportHdr);
+
   EKA_LOG("\tunarm_reason=0x%02x",((EfcControllerState*)b)->unarm_reason);
   b += sizeof(EfcControllerState);
   total_reports--;
@@ -377,37 +382,9 @@ EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p ) {
 
   {
     auto msg{ reinterpret_cast< const EfcMdReport* >( b ) };
-    EKA_LOG("\ttimestamp=%ju ", msg->timestamp);
-    EKA_LOG("\tsequence=%ju ",  msg->sequence);
-    EKA_LOG("\tside=%c ",       msg->side == 1 ? 'b' : 'a');
-    EKA_LOG("\tprice = %ju ",   msg->price);
-    EKA_LOG("\tsize=%ju ",      msg->size);
-    EKA_LOG("\tgroup_id=%u ",   msg->group_id);
-    EKA_LOG("\tcore_id=%u ",    msg->core_id);
-    b += sizeof(*msg);
-  }
-  total_reports--;
 
-  //--------------------------------------------------------------------------
+    printMdReport(dev,msg);
 
-  if (((EfcReportHdr*)b)->type != EfcReportType::kMdReport) 
-    on_error("MdReport report expected, %02x received",
-	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type) );
-  EKA_LOG("\treport_type = %u MdReport, idx=%u, size=%ju",
-	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ),
-	  ((EfcReportHdr*)b)->idx,
-	  ((EfcReportHdr*)b)->size);
-  b += sizeof(EfcReportHdr);
-
-  {
-    auto msg{ reinterpret_cast< const EfcMdReport* >( b ) };
-    EKA_LOG("\ttimestamp=%ju ", msg->timestamp);
-    EKA_LOG("\tsequence=%ju ",  msg->sequence);
-    EKA_LOG("\tside=%c ",       msg->side == 1 ? 'b' : 'a');
-    EKA_LOG("\tprice = %ju ",   msg->price);
-    EKA_LOG("\tsize=%ju ",      msg->size);
-    EKA_LOG("\tgroup_id=%u ",   msg->group_id);
-    EKA_LOG("\tcore_id=%u ",    msg->core_id);
     b += sizeof(*msg);
   }
   total_reports--;
@@ -416,23 +393,24 @@ EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p ) {
 
   if (((EfcReportHdr*)b)->type != EfcReportType::kSecurityCtx) 
     on_error("SecurityCtx report expected, %02x received",
-	     ((EfcReportHdr*)b)->type);
+	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type) );
   EKA_LOG("\treport_type = %u SecurityCtx, idx=%u, size=%ju",
-	  ((EfcReportHdr*)b)->type,
+	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ),
 	  ((EfcReportHdr*)b)->idx,
 	  ((EfcReportHdr*)b)->size);
   b += sizeof(EfcReportHdr);
 
   {
     auto msg{ reinterpret_cast< const EfcSecurityCtx* >( b ) };
-    EKA_LOG("\tlower_bytes_of_sec_id=0x%x ", msg->lower_bytes_of_sec_id);
-    EKA_LOG("\tver_num=0x%x ", msg->ver_num);
-    EKA_LOG("\tsize=%u ", msg->size);
-    EKA_LOG("\task_max_price=%u ", msg->ask_max_price);
-    EKA_LOG("\tbid_min_price=%u ", msg->bid_min_price);
+
+    printSecCtx(dev, msg);
+
     b += sizeof(*msg);
   }
   total_reports--;
+
+  //--------------------------------------------------------------------------
+
 
   //--------------------------------------------------------------------------
 

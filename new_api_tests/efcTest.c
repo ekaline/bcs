@@ -35,6 +35,8 @@
 #include "EkaEfcDataStructs.h"
 
 #include <fcntl.h>
+#include "ekaNW.h"
+#include "EkaFhNomParser.h"
 
 /* --------------------------------------------- */
 volatile bool keep_work = true;
@@ -47,11 +49,20 @@ static const int MaxFireEvents = 10000;
 static volatile EpmFireReport* FireEvent[MaxFireEvents] = {};
 static volatile int numFireEvents = 0;
 
-static const int TEST_NUMOFSEC = 2;
+static const int TEST_NUMOFSEC = 1;
 
-static const uint64_t TEST_NOM_SEC_ID[TEST_NUMOFSEC] = {
-  0x0003c40e,
-  0x00064b74
+static const uint64_t TEST_NOM_SEC_ID =  0x0003c40e;
+
+/* --------------------------------------------- */
+struct NomAddOrderShortPkt {
+  mold_hdr             mold;
+  uint16_t             msgLen;
+  itto_add_order_short addOrderShort;
+};
+struct NomAddOrderLongPkt {
+  mold_hdr            mold;
+  uint16_t            msgLen;
+  itto_add_order_long addOrderLong;
 };
 /* --------------------------------------------- */
 
@@ -451,6 +462,7 @@ int main(int argc, char *argv[]) {
 
   /* ============================================== */
   EkaProp initCtxEntries[] = {
+    //    "efc.group.0.mcast.addr", "233.54.12.73:18001"
     "efc.group.0.mcast.addr", "233.54.12.73:18001"
   };
   EkaProps ekaProps = {
@@ -471,12 +483,12 @@ int main(int argc, char *argv[]) {
     .report_only = 0,
   //  .no_report_on_exception = 0,
     .debug_always_fire_on_unsubscribed = 0,
-    .debug_always_fire = 1,
+    .debug_always_fire = 0,
     .max_size = 1000,
     .watchdog_timeout_sec = 100000,
   };
   efcInitStrategy(pEfcCtx, &efcStratGlobCtx);
-  eka_write(dev,(uint64_t)0xf0f00,(uint64_t)0xefa0beda); // FATAL ENABLE
+  //  eka_write(dev,(uint64_t)0xf0f00,(uint64_t)0xefa0beda); // FATAL ENABLE
 
   /* ============================================== */
   EfcRunCtx runCtx = {};
@@ -493,21 +505,23 @@ int main(int argc, char *argv[]) {
   } else {
     EKA_LOG("triggerSock is binded to %s:%u",EKA_IP2STR(serverAddr.sin_addr.s_addr),be16toh(serverAddr.sin_port));
   }
+  struct sockaddr_in triggerMcAddr = {};
+  triggerMcAddr.sin_addr.s_addr = inet_addr(triggerIp.c_str());
+  triggerMcAddr.sin_family      = AF_INET;
+  triggerMcAddr.sin_port        = be16toh(triggerUdpPort);
 
   /* ============================================== */
-  efcEnableFiringOnSec(pEfcCtx, (uint64_t*)&TEST_NOM_SEC_ID, TEST_NUMOFSEC);
-  for (auto i = 0; i < TEST_NUMOFSEC; i++) {
-    EfcSecCtxHandle handle = getSecCtxHandle(pEfcCtx, TEST_NOM_SEC_ID[i]);
-    SecCtx secCtx = {
-      .bidMinPrice       = 1, //x100, should be nonzero
-      .askMaxPrice       = 0,  //x100
-      .size              = 1,
-      .verNum            = 0xaf,
-      .lowerBytesOfSecId = (uint8_t)(TEST_NOM_SEC_ID[i] & 0xFF)
-    };
-    rc = efcSetStaticSecCtx(pEfcCtx, handle, &secCtx, 0);
-    if (rc != EKA_OPRESULT__OK) on_error ("failed to efcSetStaticSecCtx");
-  }
+  efcEnableFiringOnSec(pEfcCtx, (uint64_t*)&TEST_NOM_SEC_ID, 1);
+  EfcSecCtxHandle handle = getSecCtxHandle(pEfcCtx, TEST_NOM_SEC_ID);
+  SecCtx secCtx = {
+    .bidMinPrice       = 700,  //x100, should be nonzero
+    .askMaxPrice       = 800,  //x100
+    .size              = 1,
+    .verNum            = 0xaf,
+    .lowerBytesOfSecId = (uint8_t)(TEST_NOM_SEC_ID & 0xFF)
+  };
+  rc = efcSetStaticSecCtx(pEfcCtx, handle, &secCtx, 0);
+  if (rc != EKA_OPRESULT__OK) on_error ("failed to efcSetStaticSecCtx");
   /* ============================================== */
   efcSetGroupSesCtx(pEfcCtx, 0, conn );
   /* ============================================== */
@@ -525,13 +539,63 @@ int main(int argc, char *argv[]) {
   };
   efcSetFireTemplate(pEfcCtx, conn, &fireMsg, sizeof(fireMsg));
   /* ============================================== */
-
   efcEnableController(pEfcCtx, 0);
+  /* ============================================== */
   efcRun(pEfcCtx, &runCtx );
-  EKA_LOG("After efcRun: ENABLE_PORT = 0x%016jx, debug fire = 0x%016jx"
-	  ,eka_read(dev,0xf0020),eka_read(dev,0xf0f00));
-
+  /* ============================================== */
   efcEnableController(pEfcCtx, 0);
+  /* ============================================== */
+  NomAddOrderShortPkt mdAskShortPkt = {
+    .mold = {
+      .session_id  = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa},
+      .sequence    = be64toh(123),
+      .message_cnt = be16toh(1)
+    },
+    .msgLen = be16toh(sizeof(itto_add_order_short)),
+    .addOrderShort = {
+      .type                  = 'a',
+      .tracking_num          = be16toh(0xbeda),
+      .time_nano             = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66},
+      .order_reference_delta = be64toh(0x1234567890abcdef),
+      .side                  = 'S',
+      .option_id             = be32toh(TEST_NOM_SEC_ID),
+      .price                 = be16toh(secCtx.askMaxPrice - 1),
+      .size                  = be16toh(secCtx.size)
+    }
+  };
+    /* ============================================== */
+  NomAddOrderLongPkt mdBidLongPkt = {
+    .mold = {
+      .session_id  = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa},
+      .sequence    = be64toh(124),
+      .message_cnt = be16toh(1)
+    },
+    .msgLen = be16toh(sizeof(itto_add_order_long)),
+    .addOrderLong = {
+      .type                  = 'A',
+      .tracking_num          = be16toh(0xbeda),
+      .time_nano             = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66},
+      .order_reference_delta = be64toh(0x1234567890abcdef),
+      .side                  = 'B',
+      .option_id             = be32toh(TEST_NOM_SEC_ID),
+      .price                 = be32toh(secCtx.bidMinPrice * 100 + 1),
+      .size                  = be32toh(secCtx.size)
+    }
+  };
+  
+  /* ============================================== */
+  EKA_LOG("sending AskShort trigger to %s:%u",
+	  EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
+  if (sendto(triggerSock,&mdAskShortPkt,sizeof(mdAskShortPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
+      on_error ("MC trigger send failed");
+    /* ============================================== */
+  sleep(2);
+    /* ============================================== */
+  EKA_LOG("sending BidLong  trigger to %s:%u",EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
+  if (sendto(triggerSock,&mdBidLongPkt,sizeof(mdBidLongPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
+      on_error ("MC trigger send failed");
+  
+  /* ============================================== */
 
 #ifndef _VERILOG_SIM
   while (keep_work) { sleep(0); }

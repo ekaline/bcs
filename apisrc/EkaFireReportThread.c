@@ -48,6 +48,30 @@ int processEpmReport(EkaDev* dev, const uint8_t* payload,uint len) {
   return 0;
 }
 /* ########################################################### */
+int printMdReport(EkaDev* dev, const EfcMdReport* msg) {
+  EKA_LOG("MdReport:");
+  EKA_LOG("\ttimestamp=0x%jx ", msg->timestamp);
+  EKA_LOG("\tsequence=0x%jx ",  msg->sequence);
+  EKA_LOG("\tside=%c ",       msg->side == 1 ? 'b' : 'a');
+  EKA_LOG("\tprice = %ju ",   msg->price);
+  EKA_LOG("\tsize=%ju ",      msg->size);
+  EKA_LOG("\tgroup_id=%u ",   msg->group_id);
+  EKA_LOG("\tcore_id=%u ",    msg->core_id);
+
+  return 0;
+}
+/* ########################################################### */
+int printSecCtx(EkaDev* dev, const EfcSecurityCtx* msg) {
+  EKA_LOG("SecurityCtx:");
+  EKA_LOG("\tlowerBytesOfSecId = 0x%x ",msg->lower_bytes_of_sec_id);
+  EKA_LOG("\tverNum = %u",              msg->ver_num);
+  EKA_LOG("\tsize = %u",                msg->size);
+  EKA_LOG("\taskMaxPrice = %u",         msg->ask_max_price);
+  EKA_LOG("\tbidMinPrice = %u",         msg->bid_min_price);
+
+  return 0;
+}
+/* ########################################################### */
 
 int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len) {
   //--------------------------------------------------------------------------
@@ -100,6 +124,9 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len) {
   mdReport->size      = report->triggerOrder.size;
   mdReport->group_id  = report->triggerOrder.groupId;
   mdReport->core_id   = report->triggerOrder.attr.bitmap.CoreID;
+
+  printMdReport(dev,mdReport);
+
   b += sizeof(EfcMdReport);
 
   //--------------------------------------------------------------------------
@@ -114,6 +141,9 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len) {
   secCtxReport->size                  = report->securityCtx.size;
   secCtxReport->ask_max_price         = report->securityCtx.askMaxPrice;
   secCtxReport->bid_min_price         = report->securityCtx.bidMinPrice;
+
+  printSecCtx  (dev,secCtxReport);
+
   b += sizeof(EfcSecurityCtx);
 
   //--------------------------------------------------------------------------
@@ -126,7 +156,7 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len) {
   b += userReport->hdr.length;
 
   //--------------------------------------------------------------------------
-  ((EkaContainerGlobalHdr*)b)->num_of_reports = reportIdx;
+  ((EkaContainerGlobalHdr*)&reportBuf[0])->num_of_reports = reportIdx;
 
   int reportLen = b - &reportBuf[0];
   if (reportLen > (int)sizeof(reportBuf)) 
@@ -173,7 +203,7 @@ void ekaFireReportThread(EkaDev* dev) {
       break;
       /* ----------------------------------------------- */
     case EkaUserChannel::DMA_TYPE::FIRE:
-      processFireReport(dev,payload,len);
+      processFireReport(dev,data,len);
       break;
       /* ----------------------------------------------- */
     default:
