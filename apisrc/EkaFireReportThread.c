@@ -59,10 +59,11 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len) {
   uint32_t userReportIndex = userReport->hdr.index;
   uint32_t epmReportIndex = ((report_dma_report_t*)srcReport)->feedbackDmaIndex;
 
-  if (userReportIndex != epmReportIndex) 
-    on_error("userReportIndex %u != epmReportIndex %u",
-	     userReportIndex,epmReportIndex);
-
+  if (userReportIndex != epmReportIndex) {
+    hexDump("Fire Report with wrong Index",srcReport,len);
+    on_error("userReportIndex %u (0x%x) != epmReportIndex %u (0x%x)",
+	     userReportIndex,userReportIndex,epmReportIndex,epmReportIndex);
+  }
   //--------------------------------------------------------------------------
 
   uint8_t reportBuf[4000] ={};

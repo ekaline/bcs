@@ -32,7 +32,7 @@
 #include "eka_macros.h"
 
 #include "EkaCtxs.h"
-//#include "EkaTestFuncs.h"
+#include "EkaEfcDataStructs.h"
 
 #include <fcntl.h>
 
@@ -511,17 +511,30 @@ int main(int argc, char *argv[]) {
   /* ============================================== */
   efcSetGroupSesCtx(pEfcCtx, 0, conn );
   /* ============================================== */
+  const SqfShortQuoteBlockMsg fireMsg = {
+    .typeSub    = {'Q','Q'},
+    .badge      = 0x12345678,
+    .messageId  = 0x12345678aabbccdd,
+    .quoteCount = 1,
+    .optionId   = 0,
+    .bidPrice   = 0,
+    .bidSize    = 0,
+    .askPrice   = 0,
+    .askSize    = 0,
+    .reentry    = '1'
+  };
+  efcSetFireTemplate(pEfcCtx, conn, &fireMsg, sizeof(fireMsg));
+  /* ============================================== */
+
   efcEnableController(pEfcCtx, 0);
   efcRun(pEfcCtx, &runCtx );
-  EKA_LOG("After efcRun: ENABLE_PORT = 0x%016jx",eka_read(dev,0xf0020));
+  EKA_LOG("After efcRun: ENABLE_PORT = 0x%016jx, debug fire = 0x%016jx"
+	  ,eka_read(dev,0xf0020),eka_read(dev,0xf0f00));
 
   efcEnableController(pEfcCtx, 0);
 
 #ifndef _VERILOG_SIM
-  while (keep_work) { 
-    //    EKA_LOG("keep_work loop: ENABLE_PORT = 0x%016jx",eka_read(dev,0xf0020));
-    sleep(0); 
-  }
+  while (keep_work) { sleep(0); }
 #endif
   //  end:
   fflush(stdout);fflush(stderr);
