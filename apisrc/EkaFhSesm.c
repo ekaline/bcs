@@ -138,7 +138,7 @@ static void sendRetransmitRequest(EkaFhMiaxGr* gr, uint64_t start, uint64_t end)
 }
 
 /* ##################################################################### */
-static void sendLogOut(EkaFhMiaxGr* gr) {
+static int sendLogOut(EkaFhMiaxGr* gr) {
   EkaDev* dev = gr->dev;
 
   //--------------- SESM Logout Request -------------------
@@ -147,10 +147,13 @@ static void sendLogOut(EkaFhMiaxGr* gr) {
   sesm_logout_msg.header.type = 'X';
   sesm_logout_msg.reason = ' '; // Graceful Logout (Done for now)
 #ifndef FH_LAB
-  if(send(gr->recovery_sock,&sesm_logout_msg,sizeof(struct sesm_logout_req), 0) < 0) on_error("SESM Logout send failed");
+  if(send(gr->recovery_sock,&sesm_logout_msg,sizeof(struct sesm_logout_req), 0) < 0) {
+    EKA_WARN("SESM Logout send failed");
+    return 1;
+  }
 #endif
   EKA_LOG("%s:%u SESM Logout sent",EKA_EXCH_DECODE(gr->exch),gr->id);
-  return;
+  return 0;
 }
 
 
