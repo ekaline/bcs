@@ -383,7 +383,7 @@ EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p ) {
   {
     auto msg{ reinterpret_cast< const EfcMdReport* >( b ) };
 
-    //   printMdReport(dev,msg);
+    printMdReport(dev,msg);
 
     b += sizeof(*msg);
   }
@@ -403,7 +403,7 @@ EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p ) {
   {
     auto msg{ reinterpret_cast< const EfcSecurityCtx* >( b ) };
 
-    //   printSecCtx(dev, msg);
+    printSecCtx(dev, msg);
 
     b += sizeof(*msg);
   }

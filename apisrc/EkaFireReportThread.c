@@ -74,8 +74,22 @@ int printSecCtx(EkaDev* dev, const EfcSecurityCtx* msg) {
   return 0;
 }
 /* ########################################################### */
+int printFireOrder(EkaDev* dev,const EfcFiredOrder* msg) {
+  EKA_LOG("attr = %02x",msg->attr);
+  EKA_LOG("price = %u",msg->price);
+  EKA_LOG("size = %u",msg->size);
+  EKA_LOG("counter = %u",msg->counter);
+  EKA_LOG("securityId = %x",msg->securityId);
+  EKA_LOG("groupId = %u",msg->groupId);
+  EKA_LOG("sequence = 0x%jx",msg->sequence);
+  EKA_LOG("timestamp = 0x%jx",msg->timestamp);
 
-int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len) {
+  return 0;
+}
+
+/* ########################################################### */
+
+int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len, uint32_t epmReportIndex) {
   //--------------------------------------------------------------------------
   while (dev->userReportQ->isEmpty()) {}
 
@@ -83,7 +97,6 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len) {
 
   EkaUserReportElem* userReport = dev->userReportQ->pop();
   uint32_t userReportIndex = userReport->hdr.index;
-  uint32_t epmReportIndex = ((report_dma_report_t*)srcReport)->feedbackDmaIndex;
 
   if (userReportIndex != epmReportIndex) {
     hexDump("Fire Report with wrong Index",srcReport,len);
@@ -118,7 +131,8 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len) {
   ((EfcReportHdr*)b)->size = sizeof(EfcMdReport);
   b += sizeof(EfcReportHdr);
 
-  hexDump("processFireReport: triggerOrder",&report->triggerOrder,sizeof(EfcFiredOrder));
+  //  hexDump("processFireReport: triggerOrder",&report->triggerOrder,sizeof(EfcFiredOrder));
+  //  printFireOrder(dev,&report->triggerOrder);
 
   auto mdReport { reinterpret_cast<EfcMdReport*>(b) };
   mdReport->timestamp = report->triggerOrder.timestamp;
@@ -129,7 +143,7 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len) {
   mdReport->group_id  = report->triggerOrder.groupId;
   mdReport->core_id   = report->triggerOrder.attr.bitmap.CoreID;
 
-  printMdReport(dev,mdReport);
+  // printMdReport(dev,mdReport);
 
   b += sizeof(EfcMdReport);
 
@@ -146,7 +160,7 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len) {
   secCtxReport->ask_max_price         = report->securityCtx.askMaxPrice;
   secCtxReport->bid_min_price         = report->securityCtx.bidMinPrice;
 
-  printSecCtx  (dev,secCtxReport);
+  //  printSecCtx  (dev,secCtxReport);
 
   b += sizeof(EfcSecurityCtx);
 
@@ -192,12 +206,15 @@ void ekaFireReportThread(EkaDev* dev) {
     const uint8_t* data = dev->epmReport->get();
     uint len = dev->epmReport->getPayloadSize();
 
-    hexDump("ekaFireReportThread: EPM/Fire report",data,len); fflush(stdout);
+    //    hexDump("ekaFireReportThread: EPM/Fire report",data,len); fflush(stdout);
 
     if (((report_dma_report_t*)data)->length + sizeof(report_dma_report_t) != len) {
       hexDump("EPM report",data,len); fflush(stdout);
-      on_error("DMA length mismatch %u != %u",be16toh(((report_dma_report_t*)data)->length),len);
+      on_error("DMA length mismatch %u != %u",
+	       be16toh(((report_dma_report_t*)data)->length),len);
     }
+
+    uint32_t epmReportIndex = ((report_dma_report_t*)data)->feedbackDmaIndex;
     const uint8_t* payload = data + sizeof(report_dma_report_t);
 
     switch ((EkaUserChannel::DMA_TYPE)((report_dma_report_t*)data)->type) {
@@ -207,7 +224,7 @@ void ekaFireReportThread(EkaDev* dev) {
       break;
       /* ----------------------------------------------- */
     case EkaUserChannel::DMA_TYPE::FIRE:
-      processFireReport(dev,data,len);
+      processFireReport(dev,payload,len,epmReportIndex);
       break;
       /* ----------------------------------------------- */
     default:
