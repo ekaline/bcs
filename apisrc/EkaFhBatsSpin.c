@@ -24,7 +24,8 @@
 #include "EkaFhThreadAttr.h"
 
 int ekaTcpConnect(uint32_t ip, uint16_t port);
-int ekaUdpConnect(EkaDev* dev, uint32_t ip, uint16_t port);
+//int ekaUdpConnect(EkaDev* dev, uint32_t ip, uint16_t port);
+int ekaUdpMcConnect(EkaDev* dev, uint32_t ip, uint16_t port);
 
 /* ##################################################################### */
 
@@ -474,7 +475,7 @@ void* getGrpRetransmitData(void* attr) {
   while (1) {
     gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
     //-----------------------------------------------------------------
-    gr->recovery_sock = ekaUdpConnect(dev,gr->recovery_ip, gr->recovery_port);
+    gr->recovery_sock = ekaUdpMcConnect(dev,gr->recovery_ip, gr->recovery_port);
     //-----------------------------------------------------------------
     sendLogin(gr);
     //-----------------------------------------------------------------
