@@ -49,6 +49,8 @@ int processEpmReport(EkaDev* dev, const uint8_t* payload,uint len) {
 }
 /* ########################################################### */
 int printMdReport(EkaDev* dev, const EfcMdReport* msg) {
+  hexDump("printMdReport",msg,sizeof(EfcMdReport));
+
   EKA_LOG("MdReport:");
   EKA_LOG("\ttimestamp=0x%jx ", msg->timestamp);
   EKA_LOG("\tsequence=0x%jx ",  msg->sequence);
@@ -77,7 +79,7 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len) {
   //--------------------------------------------------------------------------
   while (dev->userReportQ->isEmpty()) {}
 
-  EKA_LOG("Report received!");
+  EKA_LOG("processFireReport: Report len = %u",len);
 
   EkaUserReportElem* userReport = dev->userReportQ->pop();
   uint32_t userReportIndex = userReport->hdr.index;
@@ -188,7 +190,7 @@ void ekaFireReportThread(EkaDev* dev) {
     const uint8_t* data = dev->epmReport->get();
     uint len = dev->epmReport->getPayloadSize();
 
-    hexDump("EPM/Fire report",data,len); fflush(stdout);
+    hexDump("ekaFireReportThread: EPM/Fire report",data,len); fflush(stdout);
 
     if (((report_dma_report_t*)data)->length + sizeof(report_dma_report_t) != len) {
       hexDump("EPM report",data,len); fflush(stdout);

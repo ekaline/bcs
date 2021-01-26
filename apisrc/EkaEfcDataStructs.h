@@ -52,6 +52,13 @@ struct SqfShortQuoteBlockMsg {
 /* 	bit	[15:0]	BidMinPrice; */
 /* } emc_sec_ctx_s; // you should have this struct in any case to configure SecCtx */
 
+struct EkaHwSecCtxReport {
+  uint8_t    lowerBytesOfSecId;
+  uint8_t    verNum;
+  uint8_t    size;
+  FixedPrice askMaxPrice;
+  FixedPrice bidMinPrice;
+} __attribute__ ((packed));
 
 /* FPGA code: */
 /* typedef struct packed { */
@@ -108,10 +115,10 @@ struct EfcFiredOrder {
 /* } normalized_report_sh_t; */
 
 struct EfcNormalizedFireReport {
-  uint16_t      pad;
-  EfcFiredOrder triggerOrder;
-  uint32_t      securityCtxAddr;
-  EkaHwSecCtx   securityCtx;
+  uint16_t            pad;             // = bit [2*8-1:0] padx4
+  EfcFiredOrder       triggerOrder;    // = sp4_order_t   order_trigger_data 
+  uint32_t            securityCtxAddr; // = bit [31:0]    security_context_addr
+  EkaHwSecCtxReport   securityCtx;     // = emc_sec_ctx_s security_context_entry
 } __attribute__((packed));
 
 #endif
