@@ -118,6 +118,8 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len) {
   ((EfcReportHdr*)b)->size = sizeof(EfcMdReport);
   b += sizeof(EfcReportHdr);
 
+  hexDump("processFireReport: triggerOrder",&report->triggerOrder,sizeof(EfcFiredOrder));
+
   auto mdReport { reinterpret_cast<EfcMdReport*>(b) };
   mdReport->timestamp = report->triggerOrder.timestamp;
   mdReport->sequence  = report->triggerOrder.sequence;

@@ -22,13 +22,14 @@ struct global_params {
 
 // FixedPrice is uint16_t
 
-struct EkaHwSecCtx {
-  FixedPrice bidMinPrice;
-  FixedPrice askMaxPrice;
-  uint8_t    size;
-  uint8_t    verNum;
-  uint8_t    lowerBytesOfSecId;
-} __attribute__ ((packed));
+
+/* struct EkaHwSecCtx { */
+/*   uint8_t    lowerBytesOfSecId; */
+/*   uint8_t    verNum; */
+/*   uint8_t    size; */
+/*   FixedPrice askMaxPrice; */
+/*   FixedPrice bidMinPrice; */
+/* } __attribute__ ((packed)); */
 
 struct SqfShortQuoteBlockMsg {
   char     typeSub[2]; // = {'Q','Q'};
@@ -52,13 +53,14 @@ struct SqfShortQuoteBlockMsg {
 /* 	bit	[15:0]	BidMinPrice; */
 /* } emc_sec_ctx_s; // you should have this struct in any case to configure SecCtx */
 
-struct EkaHwSecCtxReport {
-  uint8_t    lowerBytesOfSecId;
-  uint8_t    verNum;
-  uint8_t    size;
-  FixedPrice askMaxPrice;
+struct EkaHwSecCtx {
   FixedPrice bidMinPrice;
+  FixedPrice askMaxPrice;
+  uint8_t    size;
+  uint8_t    verNum;
+  uint8_t    lowerBytesOfSecId;
 } __attribute__ ((packed));
+
 
 /* FPGA code: */
 /* typedef struct packed { */
@@ -73,6 +75,7 @@ struct EkaHwSecCtxReport {
 typedef union  {
   uint8_t bits;
   struct  {
+    uint8_t Reserved       : 1;
     uint8_t CoreID         : 3;
     uint8_t isAON          : 1;
     uint8_t Side           : 1;
@@ -118,7 +121,7 @@ struct EfcNormalizedFireReport {
   uint16_t            pad;             // = bit [2*8-1:0] padx4
   EfcFiredOrder       triggerOrder;    // = sp4_order_t   order_trigger_data 
   uint32_t            securityCtxAddr; // = bit [31:0]    security_context_addr
-  EkaHwSecCtxReport   securityCtx;     // = emc_sec_ctx_s security_context_entry
+  EkaHwSecCtx         securityCtx;     // = emc_sec_ctx_s security_context_entry
 } __attribute__((packed));
 
 #endif
