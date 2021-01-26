@@ -46,6 +46,7 @@ bool EkaIgmpEntry::isMy(uint32_t _ip, uint16_t _port) {
 
 int EkaIgmpEntry::sendIgmpJoin() {
   if (noIgmp) return 1;
+  //  igmpJoinAction->print("Sending Igmp");
   return igmpJoinAction->send();
 }
 /* -------------------------------------------- */

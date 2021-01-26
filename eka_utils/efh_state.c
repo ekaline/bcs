@@ -259,11 +259,14 @@ int getMcState(McState* state, IfParams coreParams[NUM_OF_CORES]) {
 int printMcGroups(McState* state) {
   if (state->totalNum == 0) return 0;
   printf("\n");
-  printf ("   ");
+  printf("   ");
 
   for (auto chId = 0; chId < 32; chId++) {
     if (state->chState[chId].num == 0) continue;
-    printf("       Ch%2d : %02d       |",chId,state->chState[chId].num);
+    printf("   Ch%2d : Core %d, MC %2d |",
+	   chId,
+	   state->chState[chId].grpState[0].coreId,
+	   state->chState[chId].num);
   }
   printf("\n");
 
@@ -272,12 +275,10 @@ int printMcGroups(McState* state) {
     for (auto chId = 0; chId < 32; chId++) {
       if (state->chState[chId].num == 0) continue;
       if (state->chState[chId].grpState[grId].ip == 0) {
-	printf ("%23s|"," ");
+	printf ("%24s|"," ");
 	continue;
       }
-      printf (" %d: %12s:%u |",
-	      
-	      state->chState[chId].grpState[grId].coreId,
+      printf (" %16s:%5u |",
 	      EKA_IP2STR(state->chState[chId].grpState[grId].ip),
 	      state->chState[chId].grpState[grId].port);
     }
@@ -440,6 +441,7 @@ int main(int argc, char *argv[]) {
   /* ----------------------------------------- */
   getNwParams(coreParams);
   /* ----------------------------------------- */
+  uint64_t cnt = 0;
   while (1) {
     printf("\e[1;1H\e[2J"); //	system("clear");
     /* ----------------------------------------- */
@@ -457,6 +459,10 @@ int main(int argc, char *argv[]) {
     /* ----------------------------------------- */
     printMcGroups(&mcState);
     /* ----------------------------------------- */
+    if (++cnt % 5 == 0) {
+      cleanMcState();
+      sleep (1);
+    }
     sleep(1);
   }
   SN_CloseDevice(devId);
