@@ -164,22 +164,24 @@ int main(int argc, char *argv[]) {
 
     const PktHdr* pktHdr = (const PktHdr*)&pkt[pos];
     //    hexDump("pkt",pkt,pktLen);
-    printf ("##############\n%8ju: %8u, %20ju\n",pktNum,pktHdr->seq,pktHdr->time);
+    printf ("##############\n");
+    printf ("%8ju: %8u, %20ju (pktLen = %u)\n",pktNum,pktHdr->seq,pktHdr->time,pktLen);
 
     pos += sizeof(PktHdr);
 
     while (pos < (int)pktLen) {
-      uint msgPos = pos;
+      int msgPos = pos;
       const MsgHdr* msgHdr = (const MsgHdr*)&pkt[msgPos];
-      printf ("size=%u,blockLen=%u,MsgId=%d\n",
-	      msgHdr->size,msgHdr->blockLen,(int)msgHdr->templateId);
-
+      printf ("\tMsgId=%d,size=%u,blockLen=%u,\n",
+	      (int)msgHdr->templateId,msgHdr->size,msgHdr->blockLen);
+      if (msgPos + msgHdr->size > (int)pktLen) 
+	on_error("msgPos %d + msgHdr->size %u > pktLen %u",msgPos,msgHdr->size,pktLen);
       switch (msgHdr->templateId) {
       case MsgId::MDIncrementalRefreshBook : {
 	/* ------------------------------- */
 	uint rootBlockPos = msgPos + sizeof(MsgHdr);
 	const RootBlock* rootBlock = (const RootBlock*)&pkt[rootBlockPos];
-	printf ("IncrementalRefreshBook: TransactTime=%jx, MatchEventIndicator=0x%x\n",
+	printf ("\t\tIncrementalRefreshBook: TransactTime=%jx, MatchEventIndicator=0x%x\n",
 		rootBlock->TransactTime,rootBlock->MatchEventIndicator);
 	/* ------------------------------- */
 	uint groupSizePos = rootBlockPos + msgHdr->blockLen;
@@ -188,7 +190,7 @@ int main(int argc, char *argv[]) {
 	uint entryPos = groupSizePos + sizeof(GroupSize);
 	for (uint i = 0; i < groupSize->numInGroup; i++) {
 	  const MdEntry* e = (const MdEntry*) &pkt[entryPos];
-	  printf("\t\tsecId=%8u,%s,%s,plvl=%u,p=%16ju,s=%u\n",
+	  printf("\t\t\tsecId=%8u,%s,%s,plvl=%u,p=%16ju,s=%u\n",
 		 e->SecurityId,
 		 EKA_CME_ACTION(e->MDUpdateAction),
 		 EKA_CME_ENTRY_TYPE(e->MDEntryType),
@@ -200,9 +202,10 @@ int main(int argc, char *argv[]) {
       }
 	break;
       default:
-	printf ("MsgId = \'%d\'\n",(int)msgHdr->templateId);
+	break;
       }
-      pos += msgPos + msgHdr->size;
+      pos = msgPos + msgHdr->size;
+      if (pos > (int)pktLen) on_error("pos %d > pktLen %u (msgPos = %d, msgHdr->size = %u)",pos,pktLen,msgPos,msgHdr->size);
     }
   }
   fprintf(stderr,"%ju packets processed\n",pktNum);

@@ -113,7 +113,10 @@ class EkaDev {
 
   volatile uint8_t          numFh                      = 0;
 
-  EkaFh*                    fh[MAX_FEED_HANDLERS]      = {};
+  char                      genIfName[20] = {'U','N','S','E','T'};
+  uint32_t                  genIfIp = 0;//INADDR_ANY;
+
+  EkaFh*                    fh[MAX_FEED_HANDLERS] = {};
 
   volatile uint8_t          numRunGr = 0;
   EkaFhRunGroup*            runGr[MAX_RUN_GROUPS]      = {};
@@ -312,20 +315,5 @@ inline void checkScratchPadAddr(uint64_t addr) {
 	     addr,(uint64_t)SW_SCRATCHPAD_BASE,(uint64_t)SW_SCRATCHPAD_SIZE);
 }
 
-inline void saveMcStat(EkaDev* dev, uint8_t coreId, uint32_t mcast_ip) {
-  if (dev->statNumUdpSess[coreId] == EKA_MAX_UDP_SESSIONS_PER_CORE) 
-    on_error("cannot subscribe on UDP %s sess %d",EKA_IP2STR(mcast_ip),coreId);
-  int currSess = dev->statNumUdpSess[coreId];
-  dev->statMcGrCore[coreId][currSess] = /* (volatile uint32_t) */mcast_ip;
-  uint globalSessId = coreId * EKA_MAX_UDP_SESSIONS_PER_CORE + currSess;
-  uint64_t statMcIpAddr = SCRPAD_CORE_MC_IP_BASE + globalSessId * 8;
-  eka_write(dev,statMcIpAddr,mcast_ip);
-
-  dev->statNumUdpSess[coreId]++;
-  uint64_t statNumUdpSessAddr = SCRPAD_CORE_BASE + 8 * coreId;
-  checkScratchPadAddr(statNumUdpSessAddr);
-
-  eka_write(dev,statNumUdpSessAddr,dev->statNumUdpSess[coreId]);
-}
 
 #endif

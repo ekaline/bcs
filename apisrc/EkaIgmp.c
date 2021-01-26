@@ -5,6 +5,7 @@
 #include "EkaEpm.h"
 #include "EkaCore.h"
 
+void saveMcState(EkaDev* dev, int grId, int chId, uint8_t coreId, uint32_t mcast_ip, uint16_t mcast_port);
 
 /* ##################################################################### */
 
@@ -67,6 +68,12 @@ int EkaIgmp::igmpThreadLoop() {
   while (threadActive) {
     for (int i = 0; i < numIgmpEntries; i++) {
       igmpEntry[i]->sendIgmpJoin();
+      saveMcState(dev,
+		  i,
+		  igmpEntry[i]->udpChId, 
+		  igmpEntry[i]->coreId, 
+		  igmpEntry[i]->ip,
+		  igmpEntry[i]->port);
     }
     sleep (1);
   }
@@ -88,6 +95,12 @@ void* EkaIgmp::igmpThreadLoopCb(void* pEkaIgmp) {
   while (igmp->threadActive) {
     for (int i = 0; i < igmp->numIgmpEntries; i++) {
       igmp->igmpEntry[i]->sendIgmpJoin();
+      saveMcState(dev,
+		  i,
+		  igmp->igmpEntry[i]->udpChId, 
+		  igmp->igmpEntry[i]->coreId, 
+		  igmp->igmpEntry[i]->ip,
+		  igmp->igmpEntry[i]->port);
     }
     sleep (1);
   }

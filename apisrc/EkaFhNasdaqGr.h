@@ -16,15 +16,21 @@ class EkaFhNasdaqGr : public EkaFhGroup {
 		      uint           msgInPkt, 
 		      uint64_t       sequence);
 
-  int    closeSnapshotGap(EfhCtx*              pEfhCtx, 
+  int    closeSnapshotGap(EfhCtx*          pEfhCtx, 
 			  const EfhRunCtx* pEfhRunCtx, 
-			  uint64_t          startSeq,
-			  uint64_t          endSeq);
+			  uint64_t         startSeq,
+			  uint64_t         endSeq);
 
-  int    closeIncrementalGap(EfhCtx*           pEfhCtx, 
+  int    closeIncrementalGap(EfhCtx*          pEfhCtx, 
 			     const EfhRunCtx* pEfhRunCtx, 
-			     uint64_t          startSeq,
-			     uint64_t          endSeq);
+			     uint64_t         startSeq,
+			     uint64_t         endSeq);
+
+  /* ##################################################################### */
+
+  volatile char session_id[10] = {};   // Mold Session Id
+  bool          firstPkt       = true; // to get session_id
+  static const int MoldLocalRetryAttempts = 5;
 
  private:
 

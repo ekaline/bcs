@@ -22,6 +22,7 @@ enum class EfhFeedVer {
 	   _x( BATS             )			\
 	   _x( XDP              )			\
 	   _x( BOX              )			\
+	   _x( CME              )			\
 	   _x( CBOE             )                                
 	 EfhFeedVer_ENUM_ITER( EKA__ENUM_DEF )
 };
