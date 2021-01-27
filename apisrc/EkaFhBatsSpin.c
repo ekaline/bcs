@@ -398,55 +398,53 @@ int getGapResponse(EkaFhBatsGr* gr) {
   static const int Packets2Try = 4;
 
   for (auto j = 0; j < Packets2Try; j++) {
-    batspitch_sequenced_unit_header hdr = {};
-    int totalReceived = recv(gr->snapshot_sock,
-			     &hdr,
-			     sizeof(hdr),
-			     MSG_WAITALL);
-    if (totalReceived <= 0) {
+    uint8_t buf[1500] = {};
+
+    int bytes = recv(gr->snapshot_sock,
+		     buf,
+		     sizeof(batspitch_sequenced_unit_header),
+		     MSG_WAITALL);
+    if (bytes <= 0) {
+      EKA_WARN("%s:%u: connection reset by peer",EKA_EXCH_DECODE(gr->exch),gr->id);
+      return -1;
+    }
+    batspitch_sequenced_unit_header* hdr = (batspitch_sequenced_unit_header*)&buf[0];
+
+    bytes = recv(gr->snapshot_sock,
+		     &buf[sizeof(batspitch_sequenced_unit_header)],
+		     hdr->length - sizeof(batspitch_sequenced_unit_header),
+		     MSG_WAITALL);
+
+    if (bytes <= 0) {
       EKA_WARN("%s:%u: connection reset by peer",EKA_EXCH_DECODE(gr->exch),gr->id);
       return -1;
     }
 
-    if (hdr.unit != 0 && hdr.unit != gr->batsUnit) {
-      EKA_WARN("%s:%u: hdr.unit %u != gr->batsUnit %u",
-	       EKA_EXCH_DECODE(gr->exch),gr->id,hdr.unit, gr->batsUnit);
+    EKA_LOG("%s:%u: TcpPkt accepted: unit=%u, sequence=%u, msgCnt=%u, length=%u",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,hdr->unit,hdr->sequence,hdr->count,hdr->length);
+
+    if (hdr->unit != 0 && hdr->unit != gr->batsUnit) {
+      EKA_WARN("%s:%u: hdr->unit %u != gr->batsUnit %u",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,hdr->unit, gr->batsUnit);
       return -1;
     }
 
-    for (auto i = 0; i < hdr.count; i ++) {
-      uint8_t msgBuf[1500] = {};
-      int bytes = recv(gr->snapshot_sock,
-		       msgBuf,
-		       sizeof(batspitch_dummy_header),
-		       MSG_WAITALL);
-      if (bytes <= 0) {
-	EKA_WARN("%s:%u: connection reset by peer",EKA_EXCH_DECODE(gr->exch),gr->id);
-	return -1;
-      }
-      totalReceived += bytes;
-    
-      uint8_t msgType = ((batspitch_dummy_header*)&msgBuf[0])->type;
-      uint8_t msgLen  = ((batspitch_dummy_header*)&msgBuf[0])->length;
+    uint8_t* msg = &buf[sizeof(batspitch_sequenced_unit_header)];
 
-      bytes = recv(gr->snapshot_sock,
-		   &msgBuf[sizeof(batspitch_dummy_header)],
-		   msgLen - sizeof(batspitch_dummy_header),
-		   MSG_WAITALL);
-      if (bytes <= 0) {
-	EKA_WARN("%s:%u: connection reset by peer",EKA_EXCH_DECODE(gr->exch),gr->id);
-	return -1;
-      }
-      totalReceived += bytes;
+    for (auto i = 0; i < hdr->count; i ++) {
+      uint8_t msgType = ((batspitch_dummy_header*)msg)->type;
+      uint8_t msgLen  = ((batspitch_dummy_header*)msg)->length;
 
       if (msgType != EKA_BATS_PITCH_MSG::GAP_RESPONSE) {
-	EKA_LOG("%s:%u: Ignoring Msg 0x%02x",EKA_EXCH_DECODE(gr->exch),gr->id,msgType);
+	EKA_LOG("%s:%u: Ignoring Msg 0x%02x at pkt %d, msg %d",
+		EKA_EXCH_DECODE(gr->exch),gr->id,msgType, j,i);
+	msg += msgLen;
 	continue;
       }
-      batspitch_gap_response* gap_response = (batspitch_gap_response*)&msgBuf[0];
+      batspitch_gap_response* gap_response = (batspitch_gap_response*)msg;
       if (gap_response->unit != 0 && gap_response->unit != gr->batsUnit) {
 	EKA_WARN("%s:%u: gap_response->unit %u != gr->batsUnit %u",
-		 EKA_EXCH_DECODE(gr->exch),gr->id,hdr.unit, gr->batsUnit);
+		 EKA_EXCH_DECODE(gr->exch),gr->id,hdr->unit, gr->batsUnit);
 	continue;
       }
 
@@ -483,7 +481,8 @@ int getGapResponse(EkaFhBatsGr* gr) {
       return -1;
     }
   }
-  EKA_WARN("%s:%u: Gap response not received",EKA_EXCH_DECODE(gr->exch),gr->id);
+  EKA_WARN("%s:%u: Gap response not received after processing %d packets",
+	   EKA_EXCH_DECODE(gr->exch),gr->id,Packets2Try);
   return -1;
 }
 
@@ -539,39 +538,45 @@ void* getGrpRetransmitData(void* attr) {
   recovery_addr.sin_addr.s_addr = gr->recovery_ip;
   recovery_addr.sin_port = gr->recovery_port;
 
-  bool endReached = false;
   uint64_t sequence = 0;
   while (sequence <= end) {
     socklen_t addrlen = sizeof(struct sockaddr);
 
-    batspitch_sequenced_unit_header hdr = {};
-    int size = recvfrom(gr->recovery_sock, &hdr, sizeof(hdr), 0, (struct sockaddr*) &recovery_addr, &addrlen);
-    if (size < (int) sizeof(hdr)) on_error("read_size %d < %ju",size,sizeof(hdr));
+    uint8_t buf[1500] = {};
 
-    if (hdr.unit != gr->batsUnit) continue;
+    int size = recvfrom(gr->recovery_sock, buf, sizeof(buf), 0, (struct sockaddr*) &recovery_addr, &addrlen);
+    if (size <= 0) {
+      EKA_WARN("%s:%u: bytes = %d",EKA_EXCH_DECODE(gr->exch),gr->id,size);
+      gr->sendRetransmitSocketError(pEfhRunCtx);
+      continue;
+    }
+    batspitch_sequenced_unit_header* hdr = (batspitch_sequenced_unit_header*)buf;
 
-    int payload_size = hdr.length - sizeof(hdr);
-    uint8_t buf[1536] = {};
-    size = recvfrom(gr->recovery_sock, buf, payload_size, 0, (struct sockaddr*) &recovery_addr, &addrlen);
-    if (size < payload_size) on_error("read_size %d < %d", size, payload_size);
+    EKA_LOG("%s:%u: UdpPkt accepted: unit=%u, sequence=%u, msgCnt=%u, length=%u",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,hdr->unit,hdr->sequence,hdr->count,hdr->length);
 
-    uint8_t* ptr = buf;
-    sequence = hdr.sequence;
-    for (uint i = 0; i < hdr.count; i ++) {
-      if (size <= 0) on_error("%s:%u: remaining buff size = %d",EKA_EXCH_DECODE(gr->exch),gr->id,size);
+    if (hdr->unit != gr->batsUnit) continue;
+
+    size -= sizeof(batspitch_sequenced_unit_header);
+    uint8_t* ptr = &buf[0] + sizeof(batspitch_sequenced_unit_header);
+
+    sequence = hdr->sequence;
+    for (uint i = 0; i < hdr->count; i ++) {
+      if (size <= 0) on_error("%s:%u: size = %d",
+			      EKA_EXCH_DECODE(gr->exch),gr->id,size);
       batspitch_dummy_header* msg_hdr = (batspitch_dummy_header*) ptr;
       size -= msg_hdr->length;
 
       if (sequence >= start) gr->parseMsg(pEfhRunCtx,ptr,sequence,EkaFhMode::SNAPSHOT);
       sequence++;
 
-      if (sequence > end) { endReached = true; break; }
+      if (sequence > end) {
+	break; 
+      }
 
-      ptr += msg_hdr->length;
+      ptr  += msg_hdr->length;
+      size -= msg_hdr->length;
     }
-    if (endReached) break;
-    if (size != 0) on_error("%s:%u: after parsing all messages remaining buf size %d != 0",
-			    EKA_EXCH_DECODE(gr->exch),gr->id,size);
   }
   gr->seq_after_snapshot = sequence;
   gr->gapClosed = true;
