@@ -36,7 +36,7 @@ int EkaFhBoxGr::processFromQ(const EfhRunCtx* pEfhRunCtx) {
   while (! q->is_empty()) {
     fh_msg* buf = q->pop();
     //      EKA_LOG("q_len=%u,buf->sequence=%ju, expected_sequence=%ju",q->get_len(),buf->sequence,expected_sequence);
-    parseMsg(pEfhRunCtx,(unsigned char*)buf->data,buf->sequence,EkaFhMode::MCAST);
+    parseMsg(pEfhRunCtx,(const unsigned char*)buf->data,buf->sequence,EkaFhMode::MCAST);
     expected_sequence = buf->sequence + 1;
   }
   return 0;
@@ -56,19 +56,20 @@ int EkaFhBoxGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
 bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 			       const uint8_t*   pkt, 
 			       int16_t          pktLen) {
-  //  const uint8_t* p = pkt;
   int idx = 0;
 
   lastPktLen    = pktLen;
   lastPktMsgCnt = 0;
 
+  uint64_t firstMsgSeq   = getHsvfMsgSequence(&pkt[idx]);
+
   while (idx < pktLen) {
     uint     msgLen   = getHsvfMsgLen(&pkt[idx],pktLen-idx);
+    uint64_t msgSeq   = getHsvfMsgSequence(&pkt[idx]);
     if (idx + (int)msgLen > pktLen) {
       hexDump("Pkt with wrong msgLen",pkt,pktLen);
       on_error("idx %d + msgLen %u > pktLen %d",idx,msgLen,pktLen);
     }
-    uint64_t msgSeq = getHsvfMsgSequence(&pkt[idx]);
 
     lastProcessedSeq = msgSeq;
 
@@ -88,6 +89,9 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
   if (expected_sequence != lastProcessedSeq + 1) 
     on_error("expected_sequence %ju != lastProcessedSeq %ju + 1",expected_sequence,lastProcessedSeq);
 
+  if (lastProcessedSeq - firstMsgSeq != lastPktMsgCnt - 1)
+    EKA_WARN("lastProcessedSeq %ju - firstMsgSeq %ju != lastPktMsgCnt %ju - 1",
+	     lastProcessedSeq,firstMsgSeq,lastPktMsgCnt);
   return false;
 }
  
@@ -96,16 +100,17 @@ void EkaFhBoxGr::pushUdpPkt2Q(const uint8_t* pkt, uint pktLen) {
   const uint8_t* p = pkt;
   uint idx = 0;
   while (idx < pktLen) {
-    uint msgLen = getHsvfMsgLen(&p[idx],pktLen - idx);    
-    char* msgType = ((HsvfMsgHdr*) &p[idx+1])->MsgType;
+    char*    msgType = ((HsvfMsgHdr*)&p[idx+1])->MsgType;
+    uint     msgLen  = getHsvfMsgLen(&p[idx],pktLen - idx);    
+    uint64_t msgSeq  = getHsvfMsgSequence(&p[idx]);
     if (memcmp(msgType,"F ",2) == 0 ||  // Quote
 	memcmp(msgType,"Z ",2) == 0) {  // Time
       if (msgLen > fh_msg::MSG_SIZE) 
 	on_error("msgLen %u > fh_msg::MSG_SIZE %u",msgLen,fh_msg::MSG_SIZE);
       fh_msg* n = q->push();
       memcpy (n->data,&p[idx+1],msgLen - 1);
-      n->sequence = getHsvfMsgSequence(&p[idx]);
-      n->gr_id = id;
+      n->sequence = msgSeq;
+      n->gr_id    = id;
     }
     idx += msgLen;
     idx += trailingZeros(&p[idx],pktLen-idx);

@@ -15,7 +15,9 @@ class EkaFhBook;
 
 class EkaFhGroup {
  protected:
-  EkaFhGroup() {};
+  EkaFhGroup() {
+    connectRetryDelayTime = 15;
+  };
 
  public:
   virtual ~EkaFhGroup();

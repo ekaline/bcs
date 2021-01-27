@@ -67,28 +67,40 @@ static EkaOpResult getLoginResponse(EkaFhMiaxGr* gr) {
     EKA_WARN("%s:%u failed to receive SESM login response",EKA_EXCH_DECODE(gr->exch),gr->id);
     return EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION;
   } else if (r == 0) {
-    EKA_WARN("%s:%u unexpected request server socket EOF (expected login SESM response)",EKA_EXCH_DECODE(gr->exch),gr->id);
+    on_error("%s:%u unexpected request server socket EOF (expected login SESM response)",EKA_EXCH_DECODE(gr->exch),gr->id);
     return EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION;
   }
-  if (sesm_response_msg.header.type == 'G')  EKA_WARN("SESM sent GoodBye Packet with reason: \'%c\'",sesm_response_msg.status);
-  if (sesm_response_msg.header.type != 'R')  EKA_WARN("sesm_response_msg.header.type \'%c\' != \'R\' ",sesm_response_msg.header.type);
+  if (sesm_response_msg.header.type == 'G')  {
+    EKA_WARN("SESM sent GoodBye Packet with reason: \'%c\'",sesm_response_msg.status);
+    return EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION;
+  }
 
-  if (sesm_response_msg.status == 'X') EKA_WARN("SESM Login Response: \'X\' -- Rejected: Invalid Username/Computer ID combination");
-  if (sesm_response_msg.status == 'S') EKA_WARN("SESM Login Response: \'S\' -- Rejected: Requested session is not available");
-  if (sesm_response_msg.status == 'N') EKA_WARN("SESM Login Response: \'N\' -- Rejected: Invalid start sequence number requested");
-  if (sesm_response_msg.status == 'I') EKA_WARN("SESM Login Response: \'I\' -- Rejected: Incompatible Session protocol version");
-  if (sesm_response_msg.status == 'A') EKA_WARN("SESM Login Response: \'A\' -- Rejected: Incompatible Application protocol version");
-  if (sesm_response_msg.status == 'L') EKA_WARN("SESM Login Response: \'L\' -- Rejected: Request rejected because client already logged in");
-  if (sesm_response_msg.status != ' ') EKA_WARN("Unknown SESM Login Response: \'%c\'",sesm_response_msg.status);
+  if (sesm_response_msg.header.type != 'R')  {
+    EKA_WARN("sesm_response_msg.header.type \'%c\' != \'R\' ",sesm_response_msg.header.type);
+    return EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION;
+  }
 
-  if (sesm_response_msg.status == ' ') {
+  switch (sesm_response_msg.status) {
+  case 'X' :
+    on_error("SESM Login Response: \'X\' -- Rejected: Invalid Username/Computer ID combination");
+  case 'S' :
+    on_error("SESM Login Response: \'S\' -- Rejected: Requested session is not available");
+  case 'N' : 
+    on_error("SESM Login Response: \'N\' -- Rejected: Invalid start sequence number requested");
+  case 'I' :
+    on_error("SESM Login Response: \'I\' -- Rejected: Incompatible Session protocol version");
+  case 'A' :
+    on_error("SESM Login Response: \'A\' -- Rejected: Incompatible Application protocol version");
+  case 'L' :
+    EKA_WARN("SESM Login Response: \'L\' -- Rejected: Request rejected because client already logged in");
+    return EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION;
+  case  ' ' :
     EKA_LOG("%s:%u SESM Login accepted. Highest sequence available=%ju",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,sesm_response_msg.sequence);
     return EKA_OPRESULT__OK;
-  } else {
-    return EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION;
+  default:
+    on_error("Unknown SESM Login Response: \'%c\'",sesm_response_msg.status);
   }
-
 }
 
 /* ##################################################################### */
@@ -126,7 +138,7 @@ static void sendRetransmitRequest(EkaFhMiaxGr* gr, uint64_t start, uint64_t end)
 }
 
 /* ##################################################################### */
-static void sendLogOut(EkaFhMiaxGr* gr) {
+static int sendLogOut(EkaFhMiaxGr* gr) {
   EkaDev* dev = gr->dev;
 
   //--------------- SESM Logout Request -------------------
@@ -135,10 +147,13 @@ static void sendLogOut(EkaFhMiaxGr* gr) {
   sesm_logout_msg.header.type = 'X';
   sesm_logout_msg.reason = ' '; // Graceful Logout (Done for now)
 #ifndef FH_LAB
-  if(send(gr->recovery_sock,&sesm_logout_msg,sizeof(struct sesm_logout_req), 0) < 0) on_error("SESM Logout send failed");
+  if(send(gr->recovery_sock,&sesm_logout_msg,sizeof(struct sesm_logout_req), 0) < 0) {
+    EKA_WARN("SESM Logout send failed");
+    return 1;
+  }
 #endif
   EKA_LOG("%s:%u SESM Logout sent",EKA_EXCH_DECODE(gr->exch),gr->id);
-  return;
+  return 0;
 }
 
 

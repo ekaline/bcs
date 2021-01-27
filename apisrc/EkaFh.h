@@ -26,6 +26,18 @@ class EkaFhGroup;
 class EkaFhRunGroup;
 
 /* ##################################################################### */
+static inline bool isTradingHours(int startHour, int startMinute, int endHour, int endMinute) {
+  time_t rawtime;
+  time (&rawtime);
+  struct tm * ct = localtime (&rawtime);
+  if ((ct->tm_hour > startHour || (ct->tm_hour == startHour && ct->tm_min > startMinute)) &&
+      (ct->tm_hour < endHour   || (ct->tm_hour == endHour   && ct->tm_min < endMinute  ))
+      ) {
+    return true;
+  }
+  return false;
+}
+/* ##################################################################### */
 
 class EkaFh {
  protected:
@@ -101,6 +113,9 @@ class EkaFh {
  protected:
   EkaDev*               dev                   = NULL;
 
+  static const uint64_t TimeCheckRate = 1000;
+  bool                  tradingHours = false;
+  uint64_t              timeCheckCnt = 0;
 };
 
 #endif

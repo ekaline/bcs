@@ -126,30 +126,89 @@ int ekaTcpConnect(uint32_t ip, uint16_t port) {
 #endif
 }
 /* ##################################################################### */
+uint32_t getIfIp(const char* ifName) {
+  int sck = socket(AF_INET, SOCK_DGRAM, 0);
+  if(sck < 0) on_error ("%s: failed on socket(AF_INET, SOCK_DGRAM, 0) -> ",__func__);
 
-int ekaUdpConnect(EkaDev* dev, uint32_t ip, uint16_t port) {
+  char          buf[1024] = {};
+
+  struct ifconf ifc = {};
+  ifc.ifc_len = sizeof(buf);
+  ifc.ifc_buf = buf;
+  if(ioctl(sck, SIOCGIFCONF, &ifc) < 0) on_error ("%s: failed on ioctl(sck, SIOCGIFCONF, &ifc)  -> ",__func__);
+
+  struct ifreq* ifr = ifc.ifc_req;
+  int nInterfaces   = ifc.ifc_len / sizeof(struct ifreq);
+
+  for(int i = 0; i < nInterfaces; i++) {
+    struct ifreq *item = &ifr[i];
+    if (strncmp(item->ifr_name,ifName,strlen(ifName)) != 0) continue;
+    return ((struct sockaddr_in *)&item->ifr_addr)->sin_addr.s_addr;
+  }
+  return 0;
+}
+
+/* ##################################################################### */
+
+int ekaUdpMcConnect(EkaDev* dev, uint32_t ip, uint16_t port) {
   int sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock < 0) on_error("failed to open UDP socket");
 
-  int const_one = 1;
-  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &const_one, sizeof(int)) < 0) on_error("setsockopt(SO_REUSEADDR) failed");
-  if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &const_one, sizeof(int)) < 0) on_error("setsockopt(SO_REUSEPORT) failed");
+  EKA_LOG("Subscribing on Kernel UDP MC group %s:%u from %s (%s)",
+	  EKA_IP2STR(ip),be16toh(port),
+	  dev->genIfName,EKA_IP2STR(dev->genIfIp));
 
-  struct sockaddr_in local2bind = {};
-  local2bind.sin_family=AF_INET;
-  local2bind.sin_addr.s_addr = INADDR_ANY;
-  local2bind.sin_port = port;
-  if (bind(sock,(struct sockaddr*) &local2bind, sizeof(struct sockaddr)) < 0) on_error("Failed to bind to %d",be16toh(local2bind.sin_port));
+  int const_one = 1;
+  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &const_one, sizeof(int)) < 0) 
+    on_error("setsockopt(SO_REUSEADDR) failed");
+  if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &const_one, sizeof(int)) < 0) 
+    on_error("setsockopt(SO_REUSEPORT) failed");
+
+  struct sockaddr_in mcast = {};
+  mcast.sin_family=AF_INET;
+  mcast.sin_addr.s_addr = ip; // INADDR_ANY
+  mcast.sin_port = port;
+  if (bind(sock,(struct sockaddr*) &mcast, sizeof(struct sockaddr)) < 0) 
+    on_error("Failed to bind to %d",be16toh(mcast.sin_port));
 
   struct ip_mreq mreq = {};
-  mreq.imr_interface.s_addr = INADDR_ANY;
+  mreq.imr_interface.s_addr = dev->genIfIp; //INADDR_ANY;
   mreq.imr_multiaddr.s_addr = ip;
 
-  if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) on_error("Failed to join  %s",EKA_IP2STR(mreq.imr_multiaddr.s_addr));
+  if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) 
+    on_error("Failed to join  %s",EKA_IP2STR(mreq.imr_multiaddr.s_addr));
 
-  EKA_LOG("Joined MC group %s:%u",EKA_IP2STR(mreq.imr_multiaddr.s_addr),be16toh(local2bind.sin_port));
+  EKA_LOG("Kernel joined MC group %s:%u from %s (%s)",
+	  EKA_IP2STR(mreq.imr_multiaddr.s_addr),be16toh(mcast.sin_port),
+	  dev->genIfName,EKA_IP2STR(dev->genIfIp));
   return sock;
 }
+
+/* ##################################################################### */
+
+/* int ekaUdpConnect(EkaDev* dev, uint32_t ip, uint16_t port) { */
+/*   int sock = socket(AF_INET, SOCK_DGRAM, 0); */
+/*   if (sock < 0) on_error("failed to open UDP socket"); */
+
+/*   int const_one = 1; */
+/*   if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &const_one, sizeof(int)) < 0) on_error("setsockopt(SO_REUSEADDR) failed"); */
+/*   if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &const_one, sizeof(int)) < 0) on_error("setsockopt(SO_REUSEPORT) failed"); */
+
+/*   struct sockaddr_in local2bind = {}; */
+/*   local2bind.sin_family=AF_INET; */
+/*   local2bind.sin_addr.s_addr = INADDR_ANY; */
+/*   local2bind.sin_port = port; */
+/*   if (bind(sock,(struct sockaddr*) &local2bind, sizeof(struct sockaddr)) < 0) on_error("Failed to bind to %d",be16toh(local2bind.sin_port)); */
+
+/*   struct ip_mreq mreq = {}; */
+/*   mreq.imr_interface.s_addr = INADDR_ANY; */
+/*   mreq.imr_multiaddr.s_addr = ip; */
+
+/*   if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) on_error("Failed to join  %s",EKA_IP2STR(mreq.imr_multiaddr.s_addr)); */
+
+/*   EKA_LOG("Joined MC group %s:%u",EKA_IP2STR(mreq.imr_multiaddr.s_addr),be16toh(local2bind.sin_port)); */
+/*   return sock; */
+/* } */
 
 
 /* uint8_t normalize_bats_symbol_char(char c) { */

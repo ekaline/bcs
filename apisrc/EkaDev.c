@@ -34,6 +34,7 @@ void eka_close_tcp ( EkaDev* pEkaDev);
 void ekaInitLwip (EkaDev* dev);
 void setNetifIpMacSa(EkaDev* dev, uint8_t coreId, const uint8_t* macSa);
 void setNetifIpSrc(EkaDev* dev, uint8_t coreId, const uint32_t* srcIp);
+uint32_t getIfIp(const char* ifName);
 
 void ekaServThread(EkaDev* dev);
 
@@ -141,6 +142,17 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 
   if (noCores) on_error("No FPGA ports have Link and/or IP");
 
+  genIfIp = INADDR_ANY;
+  const char* genIf[] = {"sfc0", "sfc1", "sfc2", "sfc3", "eth0", "eth1"};
+  for (auto i = 0; i < (int)std::size(genIf); i++) {
+    uint32_t ip = getIfIp(genIf[i]);
+    if (ip == 0) continue;
+    strcpy(genIfName,genIf[i]);
+    genIfIp = ip;
+    break;
+  }
+  EKA_LOG("genIfIp of %s = %s",genIfName,EKA_IP2STR(genIfIp));
+
 
   if (epmEnabled) {
     userReportQ = new EkaUserReportQ(this);
@@ -194,7 +206,7 @@ bool EkaDev::openEpm() {
   if (epmReport->isOpen()) {
     epm->createRegion(EkaEpm::ServiceRegion, EkaEpm::ServiceRegion * EkaEpm::ActionsPerRegion);
 #ifndef _VERILOG_SIM
-    epm->initHeap(0,EkaEpm::MaxHeap);
+    //    epm->initHeap(0,EkaEpm::MaxHeap);
 #endif
 
     uint64_t fire_rx_tx_en = eka_read(ENABLE_PORT);

@@ -176,19 +176,37 @@ static bool getLoginResponse(EkaFhNasdaqGr* gr) {
 	     EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock);
     return false;
   }
+  char* session_id = soupbin_buf;
 
-  if (soupbin_hdr.type == 'J') EKA_WARN("Glimpse rejected login (\'J\') message with code: |%c|",soupbin_buf[0]);
-  if (soupbin_hdr.type == 'H') EKA_WARN("Glimpse Heartbeat arrived before login");
-  if (soupbin_hdr.type != 'A') {
+  switch (soupbin_hdr.type) {
+  case 'J' : {
+    const char* rejectReason = 
+      soupbin_buf[0] == 'A' ? "Not Authorized. There was an invalid username and password combination in the Login Request Message." :
+      soupbin_buf[0] == 'S' ? "Session not available. The Requested Session in the Login Request Packet was either invalid or not available." :
+      "Unknown reason";
+
+    on_error("Glimpse rejected login (\'J\') message with code: \'%c\', reject reason: \'%s\'",
+	     soupbin_buf[0], rejectReason);
+  }
+
+  case 'H' :
+    EKA_WARN("Soupbin Heartbeat arrived before login");
+    return false;
+
+  case 'A' :
+    EKA_LOG("%s:%u Login accepted for session_id=%s, first_seq=%ju",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,session_id,gr->recovery_sequence);
+    break;
+
+  default:
     EKA_WARN("Unknown Soupbin message type \'%c\' arrived after Login request",soupbin_hdr.type);
     return false;
   }
-  char* session_id = soupbin_buf;
+
   char first_seq[20] = {};
   memcpy(first_seq,session_id+10,sizeof(first_seq));
   gr->recovery_sequence = strtoul(first_seq, NULL, 10);
   
-  EKA_LOG("%s:%u Login accepted for session_id=%s, first_seq=%ju",EKA_EXCH_DECODE(gr->exch),gr->id,session_id,gr->recovery_sequence);
   return true;  
 }
 /* ##################################################################### */
@@ -285,8 +303,12 @@ void* getSoupBinData(void* attr) {
       }
       continue; // Heartbeat
     }
-    if (soupbin_hdr.type == 'Z') on_error("%s:%u Glimpse closed the session with Z (End of Session Packet)",EKA_EXCH_DECODE(gr->exch),gr->id);
-    if (soupbin_hdr.type == '+') EKA_TRACE("%s:%u Glimpse debug message: %s",EKA_EXCH_DECODE(gr->exch),gr->id,soupbin_buf);
+    if (soupbin_hdr.type == 'Z') 
+      on_error ("%s:%u Glimpse closed the session with Z (End of Session Packet)",
+		EKA_EXCH_DECODE(gr->exch),gr->id);
+      
+    if (soupbin_hdr.type == '+') 
+      EKA_TRACE("%s:%u Glimpse debug message: %s",EKA_EXCH_DECODE(gr->exch),gr->id,soupbin_buf);
     unsigned char* m = (unsigned char*)&(soupbin_buf[0]);
   //-----------------------------------------------------------------
     if (gr->parseMsg(pEfhRunCtx,m,gr->recovery_sequence,op)) {

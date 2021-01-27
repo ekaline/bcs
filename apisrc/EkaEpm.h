@@ -118,7 +118,7 @@ class EkaEpm {
 
   EkaEpm(EkaDev* _dev);
 
-  void initHeap(uint start, uint size);
+  void initHeap(uint start, uint size, uint regionId);
 
   int createRegion(uint regionId, epm_actionid_t baseActionIdx);
 

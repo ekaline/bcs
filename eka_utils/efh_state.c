@@ -12,6 +12,7 @@
 #include "smartnic.h"
 #include "eka_macros.h"
 #include "eka_sn_addr_space.h"
+#include "EkaMcState.h"
 
 #define NUM_OF_CORES EKA_MAX_CORES
 #define FREQUENCY EKA_FPGA_FREQUENCY
@@ -28,7 +29,7 @@ struct IfParams {
   bool     valid = false;
 
   int      mcGrps = 0;
-  uint32_t mcIp[EKA_MAX_UDP_SESSIONS_PER_CORE] = {};
+  //  uint32_t mcIp[EKA_MAX_UDP_SESSIONS_PER_CORE] = {};
 
   uint64_t totalRxBytes = 0;
   uint64_t totalRxPkts = 0;
@@ -37,6 +38,18 @@ struct IfParams {
   uint64_t currBPS = 0;
   uint64_t maxBPS = 0;
 };
+
+struct McChState {
+  int          num = 0;
+  EkaMcState   grpState[64] = {};
+};
+
+struct McState {
+  int          totalNum    = 0;
+  int          maxGrPerCh  = 0;
+  McChState    chState[32] = {};
+};
+
 
 const char* emptyPrefix     = "                     ";
 const char* prefixStrFormat = "%-20s ";
@@ -51,8 +64,15 @@ const int   colLen = 22;
 
 inline uint64_t reg_read (uint32_t addr) {
     uint64_t value = -1;
-    SN_ReadUserLogicRegister (devId, addr/8, &value);
+    if (SN_ERR_SUCCESS != SN_ReadUserLogicRegister (devId, addr/8, &value))
+      on_error("SN_Read returned smartnic error code : %d",SN_GetLastErrorCode());    
     return value;
+}
+//################################################
+
+inline void reg_write(uint64_t addr, uint64_t val) {
+  if (SN_ERR_SUCCESS != SN_WriteUserLogicRegister(devId, addr/8, val))
+    on_error("SN_Write returned smartnic error code : %d",SN_GetLastErrorCode());
 }
 
 //################################################
@@ -199,27 +219,74 @@ void checkVer() {
   //  TEST_LOG("swVer 0x%016jx is OK",swVer);
 }
 //################################################
-int getMcNum(IfParams coreParams[NUM_OF_CORES]) {
-  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
-    coreParams[coreId].mcGrps = reg_read(SCRPAD_CORE_BASE + 8 * coreId);
-    if (coreParams[coreId].mcGrps > EKA_MAX_UDP_SESSIONS_PER_CORE)
-      coreParams[coreId].mcGrps = 0;
-  }
-  return 0;
-}
-//################################################
-int getMcIPs(IfParams coreParams[NUM_OF_CORES]) {
-  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
-    for (auto i = 0; i < coreParams[coreId].mcGrps; i++) {
-      uint globalSessId = coreId * EKA_MAX_UDP_SESSIONS_PER_CORE + i;
-      uint64_t statMcIpAddr = SCRPAD_CORE_MC_IP_BASE + globalSessId * 8;
-      uint32_t mcIp = 0xFFFFFFFF & reg_read(statMcIpAddr);
-      //     TEST_LOG("mcIp = %x %s",mcIp,EKA_IP2STR(mcIp));
-      coreParams[coreId].mcIp[i] = mcIp;
+int cleanMcState() {
+  for (auto chId = 0; chId < 32; chId++) {
+    uint64_t chBaseAddr = SCRPAD_MC_STATE_BASE + chId * MAX_MC_GROUPS_PER_UDP_CH * 8;
+    for (auto grId = 0; grId < 64; grId++) {
+      uint64_t addr = chBaseAddr + grId * 8;
+      reg_write(addr,0);
     }
   }
   return 0;
 }
+
+
+//################################################
+int getMcState(McState* state, IfParams coreParams[NUM_OF_CORES]) {
+  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++)
+    coreParams[coreId].mcGrps = 0;
+
+  state->totalNum = 0;
+  state->maxGrPerCh = 0;
+  for (auto chId = 0; chId < 32; chId++) {
+    state->chState[chId].num = 0;
+    uint64_t chBaseAddr = SCRPAD_MC_STATE_BASE + chId * MAX_MC_GROUPS_PER_UDP_CH * 8;
+    for (auto grId = 0; grId < 64; grId++) {
+      uint64_t addr = chBaseAddr + grId * 8;
+      *(uint64_t*)&state->chState[chId].grpState[grId] = reg_read(addr);
+      if (state->chState[chId].grpState[grId].ip == 0) continue;
+      state->chState[chId].num++;
+      state->totalNum++;
+      uint8_t coreId = state->chState[chId].grpState[grId].coreId;
+      coreParams[coreId].mcGrps++;
+    }
+    if (state->chState[chId].num > state->maxGrPerCh)
+      state->maxGrPerCh = state->chState[chId].num;
+  }
+  return 0;
+}
+//################################################
+int printMcGroups(McState* state) {
+  if (state->totalNum == 0) return 0;
+  printf("\n");
+  printf("   ");
+
+  for (auto chId = 0; chId < 32; chId++) {
+    if (state->chState[chId].num == 0) continue;
+    printf("   Ch%2d : Core %d, MC %2d |",
+	   chId,
+	   state->chState[chId].grpState[0].coreId,
+	   state->chState[chId].num);
+  }
+  printf("\n");
+
+  for (auto grId = 0; grId < state->maxGrPerCh; grId++) {
+    printf ("%2d ",grId);
+    for (auto chId = 0; chId < 32; chId++) {
+      if (state->chState[chId].num == 0) continue;
+      if (state->chState[chId].grpState[grId].ip == 0) {
+	printf ("%24s|"," ");
+	continue;
+      }
+      printf (" %16s:%5u |",
+	      EKA_IP2STR(state->chState[chId].grpState[grId].ip),
+	      state->chState[chId].grpState[grId].port);
+    }
+    printf("\n");
+  }
+  return 0;
+}
+
 //################################################
 
 int printHeader(IfParams coreParams[NUM_OF_CORES]) {
@@ -365,11 +432,16 @@ int main(int argc, char *argv[]) {
   devId = SN_OpenDevice(NULL, NULL);
   if (devId == NULL) on_error ("Cannot open FiberBlaze device. Is driver loaded?");
   IfParams coreParams[NUM_OF_CORES] = {};
+  McState mcState = {};
+
   /* ----------------------------------------- */
   checkVer();
   /* ----------------------------------------- */
+  cleanMcState();
+  /* ----------------------------------------- */
   getNwParams(coreParams);
   /* ----------------------------------------- */
+  uint64_t cnt = 0;
   while (1) {
     printf("\e[1;1H\e[2J"); //	system("clear");
     /* ----------------------------------------- */
@@ -377,9 +449,7 @@ int main(int argc, char *argv[]) {
     /* ----------------------------------------- */
     printExceptions();
     /* ----------------------------------------- */
-    getMcNum(coreParams);
-    /* ----------------------------------------- */
-    getMcIPs(coreParams);
+    getMcState(&mcState,coreParams);
     /* ----------------------------------------- */
     getCurrTraffic(coreParams);
     /* ----------------------------------------- */
@@ -387,6 +457,12 @@ int main(int argc, char *argv[]) {
     /* ----------------------------------------- */
     printCurrTraffic(coreParams);
     /* ----------------------------------------- */
+    printMcGroups(&mcState);
+    /* ----------------------------------------- */
+    if (++cnt % 5 == 0) {
+      cleanMcState();
+      sleep (1);
+    }
     sleep(1);
   }
   SN_CloseDevice(devId);

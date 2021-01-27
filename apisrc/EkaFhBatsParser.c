@@ -12,6 +12,17 @@
 static void eka_print_batspitch_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequence,uint64_t ts);
 std::string ts_ns2str(uint64_t ts);
 
+/* ------------------------------------------------ */
+inline int checkPriceLengh(EkaDev* dev, uint64_t price, const char* symbol, uint64_t sequence,uint64_t ts ) {
+  if (((price / EFH_PRICE_SCALE) & 0xFFFFFFFF00000000) != 0) 
+      EKA_WARN("%c%c%c%c%c%c %s seq=%ju Long price(%ju) exceeds 32bit",
+	       symbol[0],symbol[1],symbol[2],symbol[3],symbol[4],symbol[5],
+	       ts_ns2str(ts).c_str(),
+	       sequence,
+	       price);
+  return 0;
+}
+/* ------------------------------------------------ */
 static inline EfhTradeStatus tradeAction(EfhTradeStatus prevTradeAction, char msgTradeStatus) {
   switch (msgTradeStatus) {
   case 'A' : // Accepting Orders for Queuing
@@ -234,8 +245,9 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
 
     OrderIdT order_id = message->order_id;
     SizeT    size     = message->size;
-    PriceT   price    = ((message->price / EFH_PRICE_SCALE) & 0x00000000FFFFFFFF); // Long Price representation
-    if (((message->price / EFH_PRICE_SCALE) & 0xFFFFFFFF00000000) != 0) on_error("Long price(%ju) exceeds 32bit",message->price);
+    PriceT   price    = message->price / EFH_PRICE_SCALE;
+
+    checkPriceLengh(dev, message->price, message->symbol, sequence, msg_timestamp);
 
     SideT    side     = sideDecode(message->side);
     book->addOrder(s,order_id,addFlags2orderType(message->flags),price,size,side);
@@ -256,8 +268,8 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
 
     OrderIdT order_id = message->order_id;
     SizeT    size     = message->size;
-    PriceT   price    = ((message->price / EFH_PRICE_SCALE) & 0x00000000FFFFFFFF); // Long Price representation
-    if (((message->price / EFH_PRICE_SCALE) & 0xFFFFFFFF00000000) != 0) on_error("Long price(%ju) exceeds 32bit",message->price);
+    PriceT   price    = message->price / EFH_PRICE_SCALE;
+    checkPriceLengh(dev, message->price, message->exp_symbol, sequence, msg_timestamp);
 
     SideT    side     = sideDecode(message->side);
     book->addOrder(s,order_id,addFlagsCustomerIndicator2orderType(message->flags,message->customer_indicator),price,size,side);
@@ -360,8 +372,8 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
 
     OrderIdT order_id = message->order_id;
     SizeT    size     = message->size;
-    PriceT   price    = ((message->price / EFH_PRICE_SCALE) & 0x00000000FFFFFFFF); // Long Price representation
-    if (((message->price / EFH_PRICE_SCALE) & 0xFFFFFFFF00000000) != 0) on_error("Long price(%ju) exceeds 32bit",message->price);
+    PriceT   price    = message->price / EFH_PRICE_SCALE;
+    checkPriceLengh(dev, message->price, "MODIFY", sequence, msg_timestamp);
 
     FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
@@ -430,9 +442,8 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
 
-    PriceT price = ((message->price / EFH_PRICE_SCALE) & 0x00000000FFFFFFFF); // Long Price representation
-    if (((message->price / EFH_PRICE_SCALE) & 0xFFFFFFFF00000000) != 0) 
-      on_error("Long price(%ju) exceeds 32bit",message->price);
+    PriceT price = message->price / EFH_PRICE_SCALE;
+    checkPriceLengh(dev, message->price, message->symbol, sequence, msg_timestamp);
 
     SizeT size =  message->size;
 

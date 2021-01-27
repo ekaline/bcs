@@ -14,14 +14,15 @@ class EkaIgmpEntry {
   int    sendIgmpJoin() ;
   int    sendIgmpLeave();
 
- private:
-  EkaDev*  dev     =  NULL;
   int      udpChId = -1;
   uint32_t ip      = -1;
   uint16_t port    = -1;
   uint16_t vlanTag =  0;
   uint8_t  coreId  = -1;
 
+
+ private:
+  EkaDev*  dev     =  NULL;
   bool     noIgmp  = false;
 
   EkaEpmAction* igmpJoinAction = NULL;

@@ -33,13 +33,17 @@ const uint8_t* EkaFhXdp::getUdpPkt(EkaFhRunGroup* runGr,
   return pkt;
 }
 /* ##################################################################### */
-static inline bool isTradingHours(int hour, int minute) {
-  time_t rawtime;
-  time (&rawtime);
-  struct tm * ct = localtime (&rawtime);
-  if (ct->tm_hour > hour || (ct->tm_hour == hour && ct->tm_min > minute)) return true;
-  return false;
-}
+/* static inline bool isTradingHours(int startHour, int startMinute, int endHour, int endMinute) { */
+/*   time_t rawtime; */
+/*   time (&rawtime); */
+/*   struct tm * ct = localtime (&rawtime); */
+/*   if ((ct->tm_hour > startHour || (ct->tm_hour == startHour && ct->tm_min > startMinute)) && */
+/*       (ct->tm_hour < endHour   || (ct->tm_hour == endHour   && ct->tm_min < endMinute  )) */
+/*       ) { */
+/*     return true; */
+/*   } */
+/*   return false; */
+/* } */
 /* ##################################################################### */
 
 EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId ) {
@@ -63,11 +67,12 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     gr->setGapStart();
   }
 
-  bool tradingHours = false;
   while (runGr->thread_active) {
     //-----------------------------------------------------------------------------
     if (! runGr->udpCh->has_data()) {
-      if (! tradingHours) tradingHours = isTradingHours(9,30);
+      if (++timeCheckCnt % TimeCheckRate == 0) {
+	tradingHours = isTradingHours(9,30,16,00);
+      }
       if (tradingHours)   runGr->checkTimeOut(pEfhRunCtx);
       continue;
     }
