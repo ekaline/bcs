@@ -395,88 +395,95 @@ int getGapResponse(EkaFhBatsGr* gr) {
   return 0;
 #endif
 
-  batspitch_sequenced_unit_header hdr = {};
-  int totalReceived = recv(gr->snapshot_sock,
-			   &hdr,
-			   sizeof(hdr),
-			   MSG_WAITALL);
-  if (totalReceived <= 0) {
-    EKA_WARN("%s%u: connection reset by peer",EKA_EXCH_DECODE(gr->exch),gr->id);
-    return -1;
-  }
+  static const int Packets2Try = 4;
 
-  if (hdr.unit != 0 && hdr.unit != gr->batsUnit) {
-    EKA_WARN("hdr.unit %u != gr->batsUnit %u",hdr.unit, gr->batsUnit);
-    return -1;
-  }
-
-  for (auto i = 0; i < hdr.count; i ++) {
-    uint8_t msgBuf[1500] = {};
-    int bytes = recv(gr->snapshot_sock,
-		     msgBuf,
-		     sizeof(batspitch_dummy_header),
-		     MSG_WAITALL);
-    if (bytes <= 0) {
-      EKA_WARN("%s%u: connection reset by peer",EKA_EXCH_DECODE(gr->exch),gr->id);
+  for (auto j = 0; j < Packets2Try; j++) {
+    batspitch_sequenced_unit_header hdr = {};
+    int totalReceived = recv(gr->snapshot_sock,
+			     &hdr,
+			     sizeof(hdr),
+			     MSG_WAITALL);
+    if (totalReceived <= 0) {
+      EKA_WARN("%s:%u: connection reset by peer",EKA_EXCH_DECODE(gr->exch),gr->id);
       return -1;
     }
-    totalReceived += bytes;
+
+    if (hdr.unit != 0 && hdr.unit != gr->batsUnit) {
+      EKA_WARN("%s:%u: hdr.unit %u != gr->batsUnit %u",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,hdr.unit, gr->batsUnit);
+      return -1;
+    }
+
+    for (auto i = 0; i < hdr.count; i ++) {
+      uint8_t msgBuf[1500] = {};
+      int bytes = recv(gr->snapshot_sock,
+		       msgBuf,
+		       sizeof(batspitch_dummy_header),
+		       MSG_WAITALL);
+      if (bytes <= 0) {
+	EKA_WARN("%s:%u: connection reset by peer",EKA_EXCH_DECODE(gr->exch),gr->id);
+	return -1;
+      }
+      totalReceived += bytes;
     
-    uint8_t msgType = ((batspitch_dummy_header*)&msgBuf[0])->type;
-    uint8_t msgLen  = ((batspitch_dummy_header*)&msgBuf[0])->length;
+      uint8_t msgType = ((batspitch_dummy_header*)&msgBuf[0])->type;
+      uint8_t msgLen  = ((batspitch_dummy_header*)&msgBuf[0])->length;
 
-    bytes = recv(gr->snapshot_sock,
-		 &msgBuf[sizeof(batspitch_dummy_header)],
-		 msgLen - sizeof(batspitch_dummy_header),
-		 MSG_WAITALL);
-    if (bytes <= 0) {
-      EKA_WARN("%s%u: connection reset by peer",EKA_EXCH_DECODE(gr->exch),gr->id);
+      bytes = recv(gr->snapshot_sock,
+		   &msgBuf[sizeof(batspitch_dummy_header)],
+		   msgLen - sizeof(batspitch_dummy_header),
+		   MSG_WAITALL);
+      if (bytes <= 0) {
+	EKA_WARN("%s:%u: connection reset by peer",EKA_EXCH_DECODE(gr->exch),gr->id);
+	return -1;
+      }
+      totalReceived += bytes;
+
+      if (msgType != EKA_BATS_PITCH_MSG::GAP_RESPONSE) {
+	EKA_LOG("%s:%u: Ignoring Msg 0x%02x",EKA_EXCH_DECODE(gr->exch),gr->id,msgType);
+	continue;
+      }
+      batspitch_gap_response* gap_response = (batspitch_gap_response*)&msgBuf[0];
+      if (gap_response->unit != 0 && gap_response->unit != gr->batsUnit) {
+	EKA_WARN("%s:%u: gap_response->unit %u != gr->batsUnit %u",
+		 EKA_EXCH_DECODE(gr->exch),gr->id,hdr.unit, gr->batsUnit);
+	continue;
+      }
+
+      switch (gap_response->status) {
+      case 'A':
+	EKA_LOG("%s:%u Accepted: Unit=%u, Seq=%u. Cnt=%u",
+		EKA_EXCH_DECODE(gr->exch),gr->id,
+		gap_response->unit, gap_response->sequence, gap_response->count);
+	return gap_response->count;
+      case 'O': 
+	on_error("%s:%u: Out-of-range",EKA_EXCH_DECODE(gr->exch),gr->id);
+	break;
+      case 'D': 
+	on_error("%s:%u: Daily gap request allocation exhausted",EKA_EXCH_DECODE(gr->exch),gr->id);
+	break;
+      case 'M': 
+	EKA_WARN("%s:%u: Minute gap request allocation exhausted",EKA_EXCH_DECODE(gr->exch),gr->id);
+	break;
+      case 'S': 
+	EKA_WARN("%s:%u: Second gap request allocation exhausted",EKA_EXCH_DECODE(gr->exch),gr->id);
+	break;
+      case 'C': 
+	on_error("%s:%u: Count request limit for one gap request exceeded",EKA_EXCH_DECODE(gr->exch),gr->id);
+	break;
+      case 'I': 
+	on_error("%s:%u: Invalid Unit specified in request",EKA_EXCH_DECODE(gr->exch),gr->id);
+	break;
+      case 'U': 
+	EKA_WARN("%s:%u: Unit is currently unavailable",EKA_EXCH_DECODE(gr->exch),gr->id);
+	break;
+      default:
+	on_error("%s:%u: Unexpected Gap response status: \'%c\'",EKA_EXCH_DECODE(gr->exch),gr->id,gap_response->status);
+      }
       return -1;
     }
-    totalReceived += bytes;
-
-    if (msgType != EKA_BATS_PITCH_MSG::GAP_RESPONSE) {
-      EKA_LOG("Ignoring Msg 0x%02x",msgType);
-      continue;
-    }
-    batspitch_gap_response* gap_response = (batspitch_gap_response*)&msgBuf[0];
-    if (gap_response->unit != 0 && gap_response->unit != gr->batsUnit) {
-      EKA_WARN("gap_response->unit %u != gr->batsUnit %u",hdr.unit, gr->batsUnit);
-      return -1;
-    }
-
-    switch (gap_response->status) {
-    case 'A':
-      EKA_LOG("%s:%u Accepted: Unit=%u, Seq=%u. Cnt=%u",EKA_EXCH_DECODE(gr->exch),gr->id,
-	      gap_response->unit, gap_response->sequence, gap_response->count);
-      return gap_response->count;
-    case 'O': 
-      on_error("Out-of-range");
-      break;
-    case 'D': 
-      on_error("Daily gap request allocation exhausted");
-      break;
-    case 'M': 
-      EKA_WARN("Minute gap request allocation exhausted");
-      break;
-    case 'S': 
-      EKA_WARN("Second gap request allocation exhausted");
-      break;
-    case 'C': 
-      on_error("Count request limit for one gap request exceeded");
-      break;
-    case 'I': 
-      on_error("Invalid Unit specified in request");
-      break;
-    case 'U': 
-      EKA_WARN("Unit is currently unavailable");
-      break;
-    default:
-      on_error("Unexpected Gap response status: \'%c\'",gap_response->status);
-    }
-    return -1;
   }
-  EKA_WARN("Gap response not received");
+  EKA_WARN("%s:%u: Gap response not received",EKA_EXCH_DECODE(gr->exch),gr->id);
   return -1;
 }
 
