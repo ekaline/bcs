@@ -34,8 +34,8 @@
 #include "EfhPhlxTopoProps.h"
 #include "EfhXdpProps.h"
 
-#define MAX_SECURITIES 64000
-#define MAX_UNDERLYINGS 8
+#define MAX_SECURITIES 300000
+#define MAX_UNDERLYINGS 4000
 #define MAX_GROUPS 36
 #define MAX_TEST_THREADS 16
 #define SYMBOL_SIZE 32
@@ -52,6 +52,7 @@ static FILE* subscrDict;
 static FILE* MD;
 
 static bool print_tob_updates = true;
+static bool subscribe_all     = false;
 
 static char underlying2subscr[MAX_UNDERLYINGS][SYMBOL_SIZE] = {};
 uint valid_underlying2subscr = 0;
@@ -63,7 +64,7 @@ struct TestFhCtx {
   uint subscr_cnt;
 };
   
-static TestFhCtx testFhCtx[MAX_GROUPS] = {};
+static TestFhCtx* testFhCtx[MAX_GROUPS] = {};
 
 void  INThandler(int sig) {
   signal(sig, SIG_IGN);
@@ -246,8 +247,8 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
 	  "DEFAULT_SEC_ID",
 	  "DEFAULT_UNDERLYING_ID",
 #else
-	  testFhCtx[file_idx].mysecurity[(uint)secData],
-	  testFhCtx[file_idx].classSymbol[(uint)secData],
+	  testFhCtx[file_idx]->mysecurity[(uint)secData],
+	  testFhCtx[file_idx]->classSymbol[(uint)secData],
 #endif
 	  '1',
 	  msg->bidSide.size,
@@ -282,11 +283,11 @@ static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
 /* ------------------------------------------------------------ */
 uint testSubscribeSec(int file_idx,const EfhDefinitionMsg* msg, EfhRunUserData userData, char* avtSecName, char* underlyingName, char* classSymbol) {
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
-  uint sec_idx = testFhCtx[file_idx].subscr_cnt;
+  uint sec_idx = testFhCtx[file_idx]->subscr_cnt;
 
-  memcpy(testFhCtx[file_idx].mysecurity[sec_idx]  ,avtSecName,     SYMBOL_SIZE);
-  memcpy(testFhCtx[file_idx].myunderlying[sec_idx],underlyingName, SYMBOL_SIZE);
-  memcpy(testFhCtx[file_idx].classSymbol[sec_idx] ,classSymbol,    SYMBOL_SIZE);
+  memcpy(testFhCtx[file_idx]->mysecurity[sec_idx]  ,avtSecName,     SYMBOL_SIZE);
+  memcpy(testFhCtx[file_idx]->myunderlying[sec_idx],underlyingName, SYMBOL_SIZE);
+  memcpy(testFhCtx[file_idx]->classSymbol[sec_idx] ,classSymbol,    SYMBOL_SIZE);
 
   fprintf (subscrDict,"%s,%ju,%s,%s\n",
 	   avtSecName,
@@ -296,8 +297,8 @@ uint testSubscribeSec(int file_idx,const EfhDefinitionMsg* msg, EfhRunUserData u
 	   );
 
   efhSubscribeStatic(pEfhCtx, (EkaGroup*) &msg->header.group,  msg->header.securityId, EfhSecurityType::kOpt,(EfhSecUserData) sec_idx,0,0);
-  testFhCtx[file_idx].subscr_cnt++;
-  return testFhCtx[file_idx].subscr_cnt;
+  testFhCtx[file_idx]->subscr_cnt++;
+  return testFhCtx[file_idx]->subscr_cnt;
 }
 /* ------------------------------------------------------------ */
 
@@ -315,8 +316,8 @@ void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUs
 
   int file_idx = (uint8_t)(msg->header.group.localId);
 
-  if (testFhCtx[file_idx].subscr_cnt >= MAX_SECURITIES) 
-    on_error("Trying to subscibe on %u securities > %u MAX_SECURITIES",testFhCtx[file_idx].subscr_cnt,MAX_SECURITIES);
+  if (testFhCtx[file_idx]->subscr_cnt >= MAX_SECURITIES) 
+    on_error("Trying to subscibe on %u securities > %u MAX_SECURITIES",testFhCtx[file_idx]->subscr_cnt,MAX_SECURITIES);
 
   char classSymbol[SYMBOL_SIZE] = {};
   char underlyingName[SYMBOL_SIZE] = {};
@@ -327,14 +328,17 @@ void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUs
     if (underlyingName[i] == ' ') underlyingName[i] = '\0';
     if (classSymbol[i]    == ' ') classSymbol[i]    = '\0';
   }
+
+  if (subscribe_all) goto subscr;
   
   for (uint i = 0; i < valid_underlying2subscr; i ++) {
     if (strncmp(underlyingName,underlying2subscr[i],strlen(underlying2subscr[i])) == 0) {
-      testSubscribeSec(file_idx,msg,userData,avtSecName,underlyingName,classSymbol);
-      return NULL;
+      goto subscr;
     }
   }
 
+ subscr:
+  testSubscribeSec(file_idx,msg,userData,avtSecName,underlyingName,classSymbol);
   return NULL;
 }
 /* ------------------------------------------------------------ */
@@ -370,6 +374,7 @@ void print_usage(char* cmd) {
   printf("\t-u <Underlying Name> - subscribe on all options belonging to\n");
   printf("\t-s run single MC group #0\n");
   printf("\t-t Print TOB updates (EFH)\n");
+  printf("\t-a subscribe all\n");
 
   /* printf("\t-f [File Name]\t\tFile with a list of Underlyings to subscribe to all their Securities on all Feeds(1 name per line)\n"); */
   /* printf("\t-m \t\t\tMeasure Latency (Exch ts --> Sample ts\n"); */
@@ -385,7 +390,7 @@ int main(int argc, char *argv[]) {
   int opt; 
   std::string feedName = std::string("NO FEED");
 
-  while((opt = getopt(argc, argv, ":u:F:hts")) != -1) {  
+  while((opt = getopt(argc, argv, ":u:F:htsa")) != -1) {  
     switch(opt) {  
       case 's':  
 	printf("Running for single Grp#0\n");  
@@ -394,6 +399,10 @@ int main(int argc, char *argv[]) {
       case 't':  
 	printf("Print TOB Updates (EFH)\n");  
 	print_tob_updates = true;
+	break;  
+      case 'a':  
+	printf("subscribe all\n");
+	subscribe_all = true;
 	break;  
       case 'u':  
 	strcpy(underlying2subscr[valid_underlying2subscr],optarg);
@@ -416,6 +425,12 @@ int main(int argc, char *argv[]) {
       break;  
       }  
   }  
+
+  for (auto i = 0; i < MAX_GROUPS; i++) {
+    testFhCtx[i] = new TestFhCtx;
+    testFhCtx[i]->subscr_cnt = 0;
+  }
+
 
   EkaDev* pEkaDev = NULL;
 
@@ -603,7 +618,7 @@ int main(int argc, char *argv[]) {
 #ifdef EKA_TEST_IGNORE_DEFINITIONS
     printf ("Skipping Definitions for EKA_TEST_IGNORE_DEFINITIONS\n");
 #else
-    testFhCtx[i].subscr_cnt = 0;
+    testFhCtx[i]->subscr_cnt = 0;
     efhGetDefs(pEfhCtx, &runCtx, (EkaGroup*)&runCtx.groups[i], NULL);
 #endif
   }
