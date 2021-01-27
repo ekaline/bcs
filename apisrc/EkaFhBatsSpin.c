@@ -472,7 +472,7 @@ int getGapResponse(EkaFhBatsGr* gr) {
       EKA_WARN("Unit is currently unavailable");
       break;
     default:
-      on_error("Unexpected Gap response status: %c",gap_response->status);
+      on_error("Unexpected Gap response status: \'%c\'",gap_response->status);
     }
     return -1;
   }

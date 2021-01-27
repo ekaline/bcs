@@ -353,7 +353,7 @@ struct batspitch_gap_request { // 0x03
 } __attribute__((packed));
 
 struct batspitch_gap_response { // 0x04
-  struct batspitch_sequenced_unit_header hdr;
+  //  struct batspitch_sequenced_unit_header hdr;
   uint8_t	length;             // 1
   uint8_t       type;               // 1 
   uint8_t       unit;               // 1
