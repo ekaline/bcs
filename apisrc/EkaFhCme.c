@@ -1,18 +1,19 @@
-#include "EkaFhXdp.h"
+#include "EkaFhCme.h"
 #include "EkaUdpChannel.h"
 #include "EkaFhRunGroup.h"
-#include "EkaFhXdpGr.h"
-#include "EkaFhXdpParser.h"
+#include "EkaFhCmeGr.h"
+#include "EkaFhCmeParser.h"
 
-EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhXdpGr* gr,EkaFhMode op);
+EkaOpResult getCmeDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhCmeGr* gr,EkaFhMode op);
+int ekaUdpMcConnect(EkaDev* dev, uint32_t ip, uint16_t port);
 
 /* ##################################################################### */
-EkaFhGroup* EkaFhXdp::addGroup() {
-  return new EkaFhXdpGr();
+EkaFhGroup* EkaFhCme::addGroup() {
+  return new EkaFhCmeGr();
 }
 
 /* ##################################################################### */
-const uint8_t* EkaFhXdp::getUdpPkt(EkaFhRunGroup* runGr, 
+const uint8_t* EkaFhCme::getUdpPkt(EkaFhRunGroup* runGr, 
 			     uint*          msgInPkt, 
 			     uint*          pktSize, 
 			     uint64_t*      sequence,
@@ -23,19 +24,19 @@ const uint8_t* EkaFhXdp::getUdpPkt(EkaFhRunGroup* runGr,
   uint8_t* pkt = (uint8_t*)runGr->udpCh->get();
   if (pkt == NULL) on_error("%s: pkt == NULL",EKA_EXCH_DECODE(exch));
 
-  *msgInPkt = EKA_XDP_MSG_CNT((pkt));
-  *sequence = EKA_XDP_SEQUENCE((pkt));
+  *msgInPkt = EKA_CME_MSG_CNT((pkt));
+  *sequence = EKA_CME_SEQUENCE((pkt));
   *gr_id    = getGrId(pkt);
-  *streamId = EKA_XDP_STREAM_ID((pkt));
-  *pktType  = EKA_XDP_PKT_TYPE((pkt));
-  *pktSize  = EKA_XDP_PKT_SIZE((pkt));
+  *streamId = EKA_CME_STREAM_ID((pkt));
+  *pktType  = EKA_CME_PKT_TYPE((pkt));
+  *pktSize  = EKA_CME_PKT_SIZE((pkt));
 
   return pkt;
 }
 
 /* ##################################################################### */
 
-EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId ) {
+EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId ) {
   EkaFhRunGroup* runGr = dev->runGr[runGrId];
   if (runGr == NULL) on_error("runGr == NULL");
 
@@ -48,7 +49,7 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
   for (uint8_t j = 0; j < runGr->numGr; j++) {
     uint8_t grId = runGr->groupList[j];
-    EkaFhXdpGr* gr = (EkaFhXdpGr*)b_gr[grId];
+    EkaFhCmeGr* gr = (EkaFhCmeGr*)b_gr[grId];
     if (gr == NULL) on_error("b_gr[%u] == NULL",grId);
     gr->sendFeedDownInitial(pEfhRunCtx);
 
@@ -75,7 +76,7 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     const uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&pktSize,&sequence,&gr_id, &streamId, &pktType);
     if (pkt == NULL) continue;
 
-    EkaFhXdpGr* gr = (EkaFhXdpGr*)b_gr[gr_id];
+    EkaFhCmeGr* gr = (EkaFhCmeGr*)b_gr[gr_id];
     if (gr == NULL) on_error("b_gr[%u] == NULL",gr_id);
     gr->resetNoMdTimer();
 
@@ -86,7 +87,7 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
 
     //-----------------------------------------------------------------------------
-    if (pktType == (uint8_t)EKA_XDP_DELIVERY_FLAG::SequenceReset) gr->resetExpectedSeq(streamIdx);
+    if (pktType == (uint8_t)EKA_CME_DELIVERY_FLAG::SequenceReset) gr->resetExpectedSeq(streamIdx);
     //-----------------------------------------------------------------------------
     if (gr->inGap) {
       if (gr->isGapOver()) {
@@ -117,9 +118,26 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 }
  /* ##################################################################### */
 
-EkaOpResult EkaFhXdp::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group) {
-  return getXdpDefinitions(pEfhCtx,
-			   pEfhRunCtx,
-			   (EkaFhXdpGr*)b_gr[(uint8_t)group->localId],
-			   EkaFhMode::DEFINITIONS);
+EkaOpResult EkaFhCme::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group) {
+  EkaFhCmeGr* gr = b_gr[(uint8_t)group->localId];
+  if (gr == NULL) on_error("gr[%u] == NULL",(uint8_t)group->localId);
+
+  int sock = ekaUdpMcConnect(dev, gr->snapshot_ip, gr->snapshot_port);
+  if (sock < 0) on_error ("sock = %d",sock);
+
+  sockaddr_in addr = {};
+  addr.sin_addr.s_addr = gr->snapshot_ip;
+  addr.sin_port        = gr->snapshot_port;
+  socklen_t addrlen = sizeof(sockaddr);
+
+  while (runGr->thread_active) {
+    uint8_t pkt[1536] = {};
+    int size = recvfrom(sock, pkt, sizeof(pkt), 0, (sockaddr*) &addr, &addrlen);
+    if (size < 0) on_error("size = %d",size);
+    gr->processUdpPkt(pEfhRunCtx,pkt,size,EkaFhMode::DEFINITIONS);
+  }
+
+  close (sock);
+  return EKA_OPRESULT__OK;
+
 }

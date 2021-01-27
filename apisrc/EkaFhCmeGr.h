@@ -63,13 +63,5 @@ class EkaFhCmeGr : public EkaFhGroup {
 
   FhBook*   book = NULL;
 
-  EkaHsvfTcp* hsvfTcp  = NULL;
-  uint64_t    txSeqNum = 1;
-  char        line[2]             = {};
-
-  uint        lastPktLen    = 0;
-  uint        lastPktMsgCnt = 0;
-  uint64_t    lastProcessedSeq = 0;
-
 };
 #endif
