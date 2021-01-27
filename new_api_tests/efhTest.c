@@ -51,7 +51,7 @@ static FILE* fullDict;
 static FILE* subscrDict;
 static FILE* MD;
 
-static bool print_tob_updates = true;
+static bool print_tob_updates = false;
 static bool subscribe_all     = false;
 
 static char underlying2subscr[MAX_UNDERLYINGS][SYMBOL_SIZE] = {};
