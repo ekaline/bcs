@@ -40,7 +40,7 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       EKA_LOG("%s:%u: Running PreTrade Snapshot",EKA_EXCH_DECODE(exch),gr->id);
       gr->snapshotThreadDone = false;
 
-      gr->sendFeedUpInitial(pEfhRunCtx);
+      gr->sendFeedDownInitial(pEfhRunCtx);
 
       gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,1, 1);
 
@@ -81,7 +81,7 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       gr->gapClosed = false;
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
 
-      gr->sendFeedUpInitial(pEfhRunCtx);
+      gr->sendFeedDownInitial(pEfhRunCtx);
 
       gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 1, 0);
     }

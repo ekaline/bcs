@@ -405,7 +405,7 @@ int getGapResponse(EkaFhBatsGr* gr) {
     return -1;
   }
 
-  if (hdr.unit != gr->batsUnit) {
+  if (hdr.unit != 0 && hdr.unit != gr->batsUnit) {
     EKA_WARN("hdr.unit %u != gr->batsUnit %u",hdr.unit, gr->batsUnit);
     return -1;
   }
