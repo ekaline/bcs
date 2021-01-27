@@ -440,7 +440,7 @@ int getGapResponse(EkaFhBatsGr* gr) {
       continue;
     }
     batspitch_gap_response* gap_response = (batspitch_gap_response*)&msgBuf[0];
-    if (gap_response->unit != gr->batsUnit) {
+    if (gap_response->unit != 0 && gap_response->unit != gr->batsUnit) {
       EKA_WARN("gap_response->unit %u != gr->batsUnit %u",hdr.unit, gr->batsUnit);
       return -1;
     }
