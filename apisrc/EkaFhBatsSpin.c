@@ -376,9 +376,11 @@ static void sendGapRequest(EkaFhBatsGr* gr, uint64_t start, uint16_t cnt) {
 
   gap_request.length   = sizeof(gap_request) - sizeof(gap_request.hdr);
   gap_request.type     = (uint8_t) EKA_BATS_PITCH_MSG::GAP_REQUEST;
+  gap_request.unit     = gr->batsUnit;
   gap_request.sequence = start & 0xFFFFFFFF;
   gap_request.count    = cnt;
-  EKA_LOG("%s:%u Sending GRP Request from %ju for %u messages",EKA_EXCH_DECODE(gr->exch),gr->id,start,cnt);
+  EKA_LOG("%s:%u Sending GRP Request for unit %u messages sequence=%ju, count=%ju",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,gap_request.unit,start,cnt);
 
 #ifndef FH_LAB
   if(send(gr->snapshot_sock,&gap_request,sizeof(gap_request), 0) < 0) on_error("GRP Request send failed");
@@ -443,8 +445,8 @@ int getGapResponse(EkaFhBatsGr* gr) {
       }
       batspitch_gap_response* gap_response = (batspitch_gap_response*)msg;
       if (gap_response->unit != 0 && gap_response->unit != gr->batsUnit) {
-	EKA_WARN("%s:%u: gap_response->unit %u != gr->batsUnit %u",
-		 EKA_EXCH_DECODE(gr->exch),gr->id,hdr->unit, gr->batsUnit);
+	EKA_WARN("%s:%u: msgType = 0x%x, gap_response->unit %u != gr->batsUnit %u",
+		 EKA_EXCH_DECODE(gr->exch),gr->id,msgType,gap_response->unit, gr->batsUnit);
 	continue;
       }
 
