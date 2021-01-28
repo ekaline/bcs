@@ -439,7 +439,7 @@ static bool sendGapRequest(EkaFhBatsGr* gr, uint64_t start, uint16_t cnt) {
 	     EKA_EXCH_DECODE(gr->exch),gr->id,size,strerror(dev->lastErrno));
     return false;
   }
-  //  hexDump("GRP Request Message sent",&gap_request,sizeof(gap_request));
+  hexDump("GRP Request Message sent",&gap_request,sizeof(gap_request));
   return true;
 }
 
