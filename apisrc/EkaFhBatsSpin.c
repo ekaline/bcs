@@ -450,7 +450,7 @@ int getGapResponse(EkaFhBatsGr* gr) {
 	continue;
       }
 
-      EKA_LOG("%s:%u Gap Response Accepted: Unit=%u, Seq=%u. Cnt=%u, Status=\'%c\'",
+      EKA_LOG("%s:%u Gap Response Accepted: Unit=%u, Seq=%u, Count=%u, Status=\'%c\'",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,
 	      gap_response->unit, gap_response->sequence, gap_response->count,gap_response->status);
 
