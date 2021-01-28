@@ -50,7 +50,10 @@ void* spin_heartbeat_thread(void* attr) {
 }
 /* ##################################################################### */
 
-static void sendLogin (EkaFhBatsGr* gr) {
+static bool sendLogin (EkaFhBatsGr* gr) {
+#ifdef FH_LAB
+  return true;
+#endif
   EkaDev* dev = gr->dev;
   struct batspitch_login_request login_message = {};
   memset(&login_message,' ',sizeof(login_message));
@@ -84,13 +87,16 @@ static void sendLogin (EkaFhBatsGr* gr) {
 	  filler2print,
 	  password2print
 	  );
-#ifndef FH_LAB
-  if(send(gr->snapshot_sock,&login_message,sizeof(login_message), 0) < 0) 
-    on_error("Login send failed for %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id);
-#endif
+  if(send(gr->snapshot_sock,&login_message,sizeof(login_message), 0) < 0) {
+    dev->lastErrno = errno;
+    EKA_WARN("%s:%u: Login send failed: %s",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
+    return false;
+
+  }
   EKA_LOG("%s:%u Spin Login sent",EKA_EXCH_DECODE(gr->exch),gr->id);
   //  hexDump("Spin Login Message sent",&login_message,sizeof(login_message));
-  return;
+  return true;
 }
 /* ##################################################################### */
 
@@ -234,11 +240,11 @@ static bool getSpinResponse(EkaFhBatsGr* gr, EkaFhMode op) {
   return false;  
 }
 /* ##################################################################### */
-static void sendSpinRequest(EkaFhBatsGr* gr, EkaFhMode op, uint64_t image_sequence) {
+static bool sendSpinRequest(EkaFhBatsGr* gr, EkaFhMode op, uint64_t image_sequence) {
   EkaDev* dev = gr->dev;
 #ifdef FH_LAB
   EKA_LOG("%s:%u FH_LAB DUMMY Spin Request sent",EKA_EXCH_DECODE(gr->exch),gr->id);
-  return;
+  return true;
 #endif
   struct batspitch_spin_request request_message = {};
   request_message.hdr.length = sizeof(request_message);
@@ -257,9 +263,14 @@ static void sendSpinRequest(EkaFhBatsGr* gr, EkaFhMode op, uint64_t image_sequen
 	  request_message.sequence
 	  );
 
-  if(send(gr->snapshot_sock,&request_message,sizeof(request_message), 0) < 0) on_error("Spin Request send failed");
+  if(send(gr->snapshot_sock,&request_message,sizeof(request_message), 0) < 0) {
+    dev->lastErrno = errno;
+    EKA_WARN("%s:%u: Spin Request send failed: %s",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
+    return false;
+  }
   //  hexDump("Spin Request Message sent",&request_message,sizeof(request_message));
-  return;
+  return true;
 }
 
 /* ##################################################################### */
@@ -297,7 +308,11 @@ void* getSpinData(void* attr) {
     //-----------------------------------------------------------------
     gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
     //-----------------------------------------------------------------
-    sendLogin(gr);
+    if (! sendLogin(gr)) {
+      gr->sendRetransmitSocketError(pEfhRunCtx);
+      close(gr->snapshot_sock);
+      continue;
+    }
     //-----------------------------------------------------------------
     if (! getLoginResponse(gr)) {
       gr->sendRetransmitSocketError(pEfhRunCtx);
@@ -315,7 +330,11 @@ void* getSpinData(void* attr) {
       }
     }
     //-----------------------------------------------------------------
-    sendSpinRequest(gr, op, requestedSpinSequence);
+    if (! sendSpinRequest(gr, op, requestedSpinSequence)) {
+      gr->sendRetransmitSocketError(pEfhRunCtx);
+      close(gr->snapshot_sock);
+      continue;
+    }
     //-----------------------------------------------------------------
     if (! getSpinResponse(gr, op)) {
       gr->sendRetransmitSocketError(pEfhRunCtx);
@@ -406,8 +425,11 @@ static bool sendGapRequest(EkaFhBatsGr* gr, uint64_t start, uint16_t cnt) {
     .count    = cnt
   };
 
-  EKA_LOG("%s:%u Sending GRP Request for unit %u messages sequence=%ju, count=%ju",
-	  EKA_EXCH_DECODE(gr->exch),gr->id,gap_request.unit,start,cnt);
+  EKA_LOG("%s:%u Sending GRP Request for unit=%u, start sequence=%ju, count=%ju",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,
+	  gap_request.unit,
+	  gap_request.sequence,
+	  gap_request.count);
 
   int size = send(gr->snapshot_sock,&gap_request,sizeof(gap_request), 0);
   if(size <= 0) {
@@ -421,11 +443,11 @@ static bool sendGapRequest(EkaFhBatsGr* gr, uint64_t start, uint16_t cnt) {
 }
 
 /* ##################################################################### */
-int getGapResponse(EkaFhBatsGr* gr) {
+static bool getGapResponse(EkaFhBatsGr* gr) {
   EkaDev* dev = gr->dev;
 #ifdef FH_LAB
   EKA_LOG("%s:%u FH_LAB DUMMY Gap request Accepted",EKA_EXCH_DECODE(gr->exch),gr->id);
-  return 0;
+  return true;
 #endif
 
   static const int Packets2Try = 4;
@@ -441,7 +463,7 @@ int getGapResponse(EkaFhBatsGr* gr) {
       dev->lastErrno = errno;
       EKA_WARN("%s:%u: connection reset by peer: %s",
 	       EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
-      return -1;
+      return false;
     }
     batspitch_sequenced_unit_header* hdr = (batspitch_sequenced_unit_header*)&buf[0];
 
@@ -454,7 +476,7 @@ int getGapResponse(EkaFhBatsGr* gr) {
       dev->lastErrno = errno;
       EKA_WARN("%s:%u: connection reset by peer: %s",
 	       EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
-      return -1;
+      return false;
     }
 
     /* EKA_LOG("%s:%u: TcpPkt accepted: unit=%u, sequence=%u, msgCnt=%u, length=%u", */
@@ -463,7 +485,7 @@ int getGapResponse(EkaFhBatsGr* gr) {
     if (hdr->unit != 0 && hdr->unit != gr->batsUnit) {
       EKA_WARN("%s:%u: hdr->unit %u != gr->batsUnit %u",
 	       EKA_EXCH_DECODE(gr->exch),gr->id,hdr->unit, gr->batsUnit);
-      return -1;
+      return false;
     }
 
     uint8_t* msg = &buf[sizeof(batspitch_sequenced_unit_header)];
@@ -494,7 +516,7 @@ int getGapResponse(EkaFhBatsGr* gr) {
 	EKA_LOG("%s:%u Accepted: Unit=%u, Seq=%u. Cnt=%u",
 		EKA_EXCH_DECODE(gr->exch),gr->id,
 		gap_response->unit, gap_response->sequence, gap_response->count);
-	return gap_response->count;
+	return true;
       case 'O': 
 	on_error("%s:%u: Out-of-range",EKA_EXCH_DECODE(gr->exch),gr->id);
 	break;
@@ -519,12 +541,12 @@ int getGapResponse(EkaFhBatsGr* gr) {
       default:
 	on_error("%s:%u: Unexpected Gap response status: \'%c\'",EKA_EXCH_DECODE(gr->exch),gr->id,gap_response->status);
       }
-      return -1;
+      return false;
     }
   }
   EKA_WARN("%s:%u: Gap response not received after processing %d packets",
 	   EKA_EXCH_DECODE(gr->exch),gr->id,Packets2Try);
-  return -1;
+  return false;
 }
 
 /* ##################################################################### */
@@ -555,31 +577,37 @@ void* getGrpRetransmitData(void* attr) {
   if (end - start > 65000) 
     on_error("Gap %ju is too high (> 65000), start = %ju, end = %ju",end - start, start, end);
 
-  int cnt = -1;
+  uint16_t cnt = end - start;;
+  EKA_LOG("%s:%u: GRP recovery for %ju..%ju, cnt = %u",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,start,end,cnt);
+
   while (1) {
     gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
     //-----------------------------------------------------------------
     gr->recovery_sock = ekaUdpMcConnect(dev,gr->recovery_ip, gr->recovery_port);
     //-----------------------------------------------------------------
-    sendLogin(gr);
-    //-----------------------------------------------------------------
-    if (! getLoginResponse(gr)) {
+    if (! sendLogin(gr)) {
       gr->sendRetransmitSocketError(pEfhRunCtx);
       close(gr->snapshot_sock);
       continue;
     }
     //-----------------------------------------------------------------
-    if (! sendGapRequest(gr, start, (uint16_t) (end - start /* + 1 */))) {
-      gr->sendRetransmitSocketError(pEfhRunCtx);
+    if (! getLoginResponse(gr)) {
       close(gr->snapshot_sock);
+      gr->sendRetransmitSocketError(pEfhRunCtx);
+      continue;
+    }
+    //-----------------------------------------------------------------
+    if (! sendGapRequest(gr, start, (uint16_t) (end - start /* + 1 */))) {
+      close(gr->snapshot_sock);
+      gr->sendRetransmitSocketError(pEfhRunCtx);
       continue;
     }   
     //-----------------------------------------------------------------
-    cnt = getGapResponse(gr);
-    if (cnt < 0) {
-      gr->sendRetransmitSocketError(pEfhRunCtx);
+    if (! getGapResponse(gr)) {
       close(gr->snapshot_sock);
       close(gr->recovery_sock);
+      gr->sendRetransmitSocketError(pEfhRunCtx);
       continue;
     }
     break;
