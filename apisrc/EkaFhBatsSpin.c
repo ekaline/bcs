@@ -42,7 +42,8 @@ void* spin_heartbeat_thread(void* attr) {
   //  EKA_LOG("%s:%u: start sending heartbeats",EKA_EXCH_DECODE(gr->exch),gr->id);
   while(gr->heartbeat_active) {
     EKA_LOG("%s:%u: sending Spin hearbeat",EKA_EXCH_DECODE(gr->exch),gr->id);
-    if(send(gr->snapshot_sock,&heartbeat,sizeof(heartbeat), 0) < 0) on_error("heartbeat send failed");
+    if(send(gr->snapshot_sock,&heartbeat,sizeof(heartbeat), 0) < 0) 
+      EKA_WARN("heartbeat send failed");
     usleep(900000);
   }
   EKA_LOG("%s:%u: stop sending heartbeats",EKA_EXCH_DECODE(gr->exch),gr->id);
@@ -195,7 +196,7 @@ static bool getSpinResponse(EkaFhBatsGr* gr, EkaFhMode op) {
 	      EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
       break;
     }
-    int payload_size = hdr.length - sizeof(struct batspitch_sequenced_unit_header);
+    int payload_size = hdr.length - sizeof(batspitch_sequenced_unit_header);
     uint8_t buf[1536] = {};
     size = recv(gr->snapshot_sock,buf,payload_size,MSG_WAITALL);
     if (size != payload_size) {
@@ -413,12 +414,12 @@ static bool sendGapRequest(EkaFhBatsGr* gr, uint64_t start, uint16_t cnt) {
 
   const batspitch_gap_request gap_request = {
     .hdr = {
-      .length = sizeof(gap_request),
-      .count = 1,
-      .unit = gr->batsUnit,
+      .length   = sizeof(batspitch_gap_request),
+      .count    = 1,
+      .unit     = gr->batsUnit,
       .sequence = 0
     },
-    .length   = (uint8_t)(sizeof(gap_request) - sizeof(gap_request.hdr)),
+    .length   = (uint8_t)(sizeof(batspitch_gap_request) - sizeof(batspitch_sequenced_unit_header)),
     .type     = (uint8_t) EKA_BATS_PITCH_MSG::GAP_REQUEST,
     .unit     = gr->batsUnit,
     .sequence = (uint32_t)start,
@@ -581,6 +582,8 @@ void* getGrpRetransmitData(void* attr) {
   EKA_LOG("%s:%u: GRP recovery for %ju..%ju, cnt = %u",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,start,end,cnt);
 
+  gr->heartbeat_active = false;
+  pthread_t heartbeat_thread;
   gr->snapshot_active = true;
   while (gr->snapshot_active) {
     gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
@@ -599,6 +602,13 @@ void* getGrpRetransmitData(void* attr) {
       continue;
     }
     //-----------------------------------------------------------------
+    if (! gr->heartbeat_active) {
+      gr->heartbeat_active = true;
+      dev->createThread((std::string("HB_") + std::string(EKA_EXCH_DECODE(gr->exch)) + '_' + std::to_string(gr->id)).c_str(),EkaServiceType::kHeartbeat,spin_heartbeat_thread,(void*)gr,dev->createThreadContext,(uintptr_t*)&heartbeat_thread);
+      
+    }
+
+    //-----------------------------------------------------------------
     if (! sendGapRequest(gr, start, (uint16_t) (end - start /* + 1 */))) {
       close(gr->snapshot_sock);
       gr->sendRetransmitSocketError(pEfhRunCtx);
@@ -613,6 +623,8 @@ void* getGrpRetransmitData(void* attr) {
     }
     break;
   }
+  gr->heartbeat_active = false;
+
   //-----------------------------------------------------------------
   struct sockaddr_in recovery_addr = {};
   recovery_addr.sin_addr.s_addr = gr->recovery_ip;
