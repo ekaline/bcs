@@ -85,7 +85,8 @@ static void sendLogin (EkaFhBatsGr* gr) {
 	  password2print
 	  );
 #ifndef FH_LAB
-  if(send(gr->snapshot_sock,&login_message,sizeof(login_message), 0) < 0) on_error("Login send failed for %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id);
+  if(send(gr->snapshot_sock,&login_message,sizeof(login_message), 0) < 0) 
+    on_error("Login send failed for %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id);
 #endif
   EKA_LOG("%s:%u Spin Login sent",EKA_EXCH_DECODE(gr->exch),gr->id);
   //  hexDump("Spin Login Message sent",&login_message,sizeof(login_message));
@@ -100,25 +101,34 @@ static bool getLoginResponse(EkaFhBatsGr* gr) {
   return true;  
 #endif
   batspitch_login_response login_response ={};
-  if (recv(gr->snapshot_sock,&login_response,sizeof(login_response),MSG_WAITALL) <= 0) 
-    EKA_WARN("Spin connection reset by peer after Login (failed to receive Login Response) for %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id);
+  if (recv(gr->snapshot_sock,&login_response,sizeof(login_response),MSG_WAITALL) <= 0) {
+    dev->lastErrno = errno;
+    EKA_WARN("%s:%u: Spin connection reset by peer after Login (failed to receive Login Response): %s",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
+    return false;
+  }
   if (login_response.type != EKA_BATS_PITCH_MSG::LOGIN_RESPONSE) 
-    on_error ("Unexpected Login response type 0x%02x",login_response.type);
+    on_error ("%s:%u: Unexpected Login response type 0x%02x",
+	      EKA_EXCH_DECODE(gr->exch),gr->id,login_response.type);
 
   switch (login_response.status) {
   case 'N' :
-    on_error("Spin rejected login (\'N\') Not authorized (Invalid Username/Password)");
+    on_error("%s:%u: Spin rejected login (\'N\') Not authorized (Invalid Username/Password)",
+	     EKA_EXCH_DECODE(gr->exch),gr->id);
   case 'B' :
-    EKA_WARN("Spin rejected login (\'B\') Session in use");
+    EKA_WARN("%s:%u: Spin rejected login (\'B\') Session in use",
+	     EKA_EXCH_DECODE(gr->exch),gr->id);
     return false;
   case 'S' :
-    on_error("Spin rejected login (\'S\') Invalid Session");
+    on_error("%s:%u: Spin rejected login (\'S\') Invalid Session",
+	     EKA_EXCH_DECODE(gr->exch),gr->id);
   case 'A' :
     if (login_response.hdr.count != 1) EKA_WARN("More than 1 message (%u) come with the Login Response",login_response.hdr.count);
     EKA_LOG("%s:%u Login Accepted",EKA_EXCH_DECODE(gr->exch),gr->id);
     return true;
   default :
-    on_error("Unknown Spin Login response status \'%c\'",login_response.status);
+    on_error("%s:%u: Unknown Spin Login response status \'%c\'",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,login_response.status);
   }
   return false;  
 }
@@ -133,15 +143,18 @@ static int64_t getSpinImageSeq(EkaFhBatsGr* gr) {
   while (gr->snapshot_active) { // Accepted Login
     struct batspitch_sequenced_unit_header hdr = {};
     if (recv(gr->snapshot_sock,&hdr,sizeof(hdr),MSG_WAITALL) < (int) sizeof(struct batspitch_sequenced_unit_header)) {
-      EKA_WARN("%s:%u: Spin Server connection reset by peer (failed to receive Unit Header)",EKA_EXCH_DECODE(gr->exch),gr->id);
+      dev->lastErrno = errno;
+      EKA_WARN("%s:%u: Spin Server connection reset by peer (failed to receive Unit Header) %s",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
       return -1; 
     }
     int payload_size = hdr.length - sizeof(struct batspitch_sequenced_unit_header);
     uint8_t buf[1536] = {};
-    int size = 0;
-    if ((size = recv(gr->snapshot_sock,buf,payload_size,MSG_WAITALL)) != payload_size) {
-      EKA_WARN("%s:%u: Spin Server connection reset by peer (received %u bytes < expected payload size of %d bytes)",
-	       EKA_EXCH_DECODE(gr->exch),gr->id,size,payload_size);
+    int size = recv(gr->snapshot_sock,buf,payload_size,MSG_WAITALL);
+    if (size != payload_size) {
+      dev->lastErrno = errno;
+      EKA_WARN("%s:%u: Spin Server connection reset by peer (received %u bytes < expected payload size of %d bytes): %s",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,size,payload_size,strerror(dev->lastErrno));
       return -2; 
     }
     uint8_t* ptr = &buf[0];
@@ -169,16 +182,20 @@ static bool getSpinResponse(EkaFhBatsGr* gr, EkaFhMode op) {
 #endif
   while (gr->snapshot_active) { // Accepted Login
     struct batspitch_sequenced_unit_header hdr = {};
-    if (recv(gr->snapshot_sock,&hdr,sizeof(hdr),MSG_WAITALL) < (int) sizeof(struct batspitch_sequenced_unit_header)) {
-      EKA_LOG("%s:%u: Spin Server connection reset by peer (failed to receive Unit Header)",EKA_EXCH_DECODE(gr->exch),gr->id);
+    int size = recv(gr->snapshot_sock,&hdr,sizeof(hdr),MSG_WAITALL);
+    if (size < (int) sizeof(struct batspitch_sequenced_unit_header)) {
+      dev->lastErrno = errno;
+      EKA_LOG("%s:%u: Spin Server connection reset by peer (failed to receive Unit Header): %s",
+	      EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
       break;
     }
     int payload_size = hdr.length - sizeof(struct batspitch_sequenced_unit_header);
     uint8_t buf[1536] = {};
-    int size = 0;
-    if ((size = recv(gr->snapshot_sock,buf,payload_size,MSG_WAITALL)) != payload_size) {
-      EKA_WARN("%s:%u: Spin Server connection reset by peer (received %u bytes < expected payload size of %d bytes)",
-	       EKA_EXCH_DECODE(gr->exch),gr->id,size,payload_size);
+    size = recv(gr->snapshot_sock,buf,payload_size,MSG_WAITALL);
+    if (size != payload_size) {
+      dev->lastErrno = errno;
+      EKA_WARN("%s:%u: Spin Server connection reset by peer (received %u bytes < expected payload size of %d bytes): %s",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,size,payload_size,strerror(dev->lastErrno));
       break;
     }
     uint8_t* ptr = &buf[0];
@@ -319,17 +336,21 @@ void* getSpinData(void* attr) {
   uint64_t sequence = 0;
   while (gr->snapshot_active) { // Accepted Login
     struct batspitch_sequenced_unit_header hdr = {};
-    if (recv(gr->snapshot_sock,&hdr,sizeof(hdr),MSG_WAITALL) < (int) sizeof(struct batspitch_sequenced_unit_header)) {
-      EKA_LOG("%s:%u: Spin Server connection reset by peer (failed to receive Unit Header)",EKA_EXCH_DECODE(gr->exch),gr->id);
+    int size = recv(gr->snapshot_sock,&hdr,sizeof(hdr),MSG_WAITALL);
+    if (size < (int) sizeof(struct batspitch_sequenced_unit_header)) {
+      dev->lastErrno = errno;
+      EKA_WARN("%s:%u: Spin Server connection reset by peer (failed to receive Unit Header): %s",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
       break;
     }
     int payload_size = hdr.length - sizeof(struct batspitch_sequenced_unit_header);
     uint8_t buf[1536] = {};
 
-    int size = 0;
-    if ((size = recv(gr->snapshot_sock,buf,payload_size,MSG_WAITALL)) != payload_size) {
-      EKA_WARN("%s:%u: Spin Server connection reset by peer (received %u bytes < expected payload size of %d bytes)",
-	       EKA_EXCH_DECODE(gr->exch),gr->id,size,payload_size);
+    size = recv(gr->snapshot_sock,buf,payload_size,MSG_WAITALL);
+    if (size != payload_size) {
+      dev->lastErrno = errno;
+      EKA_WARN("%s:%u: Spin Server connection reset by peer (received %u bytes < expected payload size of %d bytes): %s",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,size,payload_size,strerror(dev->lastErrno));
       break;
     }
     //    EKA_LOG("%s:%u: Sequenced Unit Header: Length=%u, Count=%u, Unit=%u, Sequence=%u",EKA_EXCH_DECODE(gr->exch),gr->id,hdr.length,hdr.count,hdr.unit,hdr.sequence);
@@ -364,29 +385,39 @@ void* getSpinData(void* attr) {
 }
 
 /* ##################################################################### */
-static void sendGapRequest(EkaFhBatsGr* gr, uint64_t start, uint16_t cnt) {
+static bool sendGapRequest(EkaFhBatsGr* gr, uint64_t start, uint16_t cnt) {
+#ifdef FH_LAB
+  return true;
+#endif
+
   EkaDev* dev = gr->dev;
 
-  batspitch_gap_request gap_request = {};
-  memset(&gap_request,' ',sizeof(gap_request));
-  gap_request.hdr.length = sizeof(gap_request);
-  gap_request.hdr.count = 1;
-  gap_request.hdr.unit = gr->batsUnit;
-  gap_request.hdr.sequence = 0;
+  const batspitch_gap_request gap_request = {
+    .hdr = {
+      .length = sizeof(gap_request),
+      .count = 1,
+      .unit = gr->batsUnit,
+      .sequence = 0
+    },
+    .length   = (uint8_t)(sizeof(gap_request) - sizeof(gap_request.hdr)),
+    .type     = (uint8_t) EKA_BATS_PITCH_MSG::GAP_REQUEST,
+    .unit     = gr->batsUnit,
+    .sequence = (uint32_t)start,
+    .count    = cnt
+  };
 
-  gap_request.length   = sizeof(gap_request) - sizeof(gap_request.hdr);
-  gap_request.type     = (uint8_t) EKA_BATS_PITCH_MSG::GAP_REQUEST;
-  gap_request.unit     = gr->batsUnit;
-  gap_request.sequence = start & 0xFFFFFFFF;
-  gap_request.count    = cnt;
   EKA_LOG("%s:%u Sending GRP Request for unit %u messages sequence=%ju, count=%ju",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,gap_request.unit,start,cnt);
 
-#ifndef FH_LAB
-  if(send(gr->snapshot_sock,&gap_request,sizeof(gap_request), 0) < 0) on_error("GRP Request send failed");
-#endif
+  int size = send(gr->snapshot_sock,&gap_request,sizeof(gap_request), 0);
+  if(size <= 0) {
+    dev->lastErrno = errno;
+    EKA_WARN("%s:%u: GRP Request send failed (sent %d bytes): %s",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,size,strerror(dev->lastErrno));
+    return false;
+  }
   //  hexDump("GRP Request Message sent",&gap_request,sizeof(gap_request));
-  return;
+  return true;
 }
 
 /* ##################################################################### */
@@ -407,7 +438,9 @@ int getGapResponse(EkaFhBatsGr* gr) {
 		     sizeof(batspitch_sequenced_unit_header),
 		     MSG_WAITALL);
     if (bytes <= 0) {
-      EKA_WARN("%s:%u: connection reset by peer",EKA_EXCH_DECODE(gr->exch),gr->id);
+      dev->lastErrno = errno;
+      EKA_WARN("%s:%u: connection reset by peer: %s",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
       return -1;
     }
     batspitch_sequenced_unit_header* hdr = (batspitch_sequenced_unit_header*)&buf[0];
@@ -418,12 +451,14 @@ int getGapResponse(EkaFhBatsGr* gr) {
 		     MSG_WAITALL);
 
     if (bytes <= 0) {
-      EKA_WARN("%s:%u: connection reset by peer",EKA_EXCH_DECODE(gr->exch),gr->id);
+      dev->lastErrno = errno;
+      EKA_WARN("%s:%u: connection reset by peer: %s",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
       return -1;
     }
 
-    EKA_LOG("%s:%u: TcpPkt accepted: unit=%u, sequence=%u, msgCnt=%u, length=%u",
-	    EKA_EXCH_DECODE(gr->exch),gr->id,hdr->unit,hdr->sequence,hdr->count,hdr->length);
+    /* EKA_LOG("%s:%u: TcpPkt accepted: unit=%u, sequence=%u, msgCnt=%u, length=%u", */
+    /* 	    EKA_EXCH_DECODE(gr->exch),gr->id,hdr->unit,hdr->sequence,hdr->count,hdr->length); */
 
     if (hdr->unit != 0 && hdr->unit != gr->batsUnit) {
       EKA_WARN("%s:%u: hdr->unit %u != gr->batsUnit %u",
@@ -498,15 +533,16 @@ void* getGrpRetransmitData(void* attr) {
 
   //  EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
 
-  EkaFhBatsGr*   gr            = (EkaFhBatsGr*)((EkaFhThreadAttr*)attr)->gr;
-  EkaDev* dev = gr->dev;
+  EkaFhBatsGr*   gr         = (EkaFhBatsGr*)((EkaFhThreadAttr*)attr)->gr;
+  EkaDev* dev               = gr->dev;
   uint64_t   start          = ((EkaFhThreadAttr*)attr)->startSeq;
   uint64_t   end            = ((EkaFhThreadAttr*)attr)->endSeq;
   EKA_LOG("%s:%u Closing Gap by GRP retransmitting %ju .. %ju",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,start,end);
 
 #ifdef FH_LAB
-  EKA_LOG("%s:%u FH_LAB DUMMY Gap closed, gr->seq_after_snapshot = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot);
+  EKA_LOG("%s:%u FH_LAB DUMMY Gap closed, gr->seq_after_snapshot = %ju",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot);
   gr->seq_after_snapshot = end + 1;
   gr->gapClosed = true;
   return NULL;
@@ -516,7 +552,8 @@ void* getGrpRetransmitData(void* attr) {
   //  EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
   ((EkaFhThreadAttr*)attr)->~EkaFhThreadAttr();
 
-  if (end - start > 65000) on_error("Gap %ju is too high (> 65000), start = %ju, end = %ju",end - start, start, end);
+  if (end - start > 65000) 
+    on_error("Gap %ju is too high (> 65000), start = %ju, end = %ju",end - start, start, end);
 
   int cnt = -1;
   while (1) {
@@ -526,9 +563,17 @@ void* getGrpRetransmitData(void* attr) {
     //-----------------------------------------------------------------
     sendLogin(gr);
     //-----------------------------------------------------------------
-    getLoginResponse(gr);
+    if (! getLoginResponse(gr)) {
+      gr->sendRetransmitSocketError(pEfhRunCtx);
+      close(gr->snapshot_sock);
+      continue;
+    }
     //-----------------------------------------------------------------
-    sendGapRequest(gr, start, (uint16_t) (end - start + 1));
+    if (! sendGapRequest(gr, start, (uint16_t) (end - start /* + 1 */))) {
+      gr->sendRetransmitSocketError(pEfhRunCtx);
+      close(gr->snapshot_sock);
+      continue;
+    }   
     //-----------------------------------------------------------------
     cnt = getGapResponse(gr);
     if (cnt < 0) {
@@ -552,7 +597,9 @@ void* getGrpRetransmitData(void* attr) {
 
     int size = recvfrom(gr->recovery_sock, buf, sizeof(buf), 0, (struct sockaddr*) &recovery_addr, &addrlen);
     if (size <= 0) {
-      EKA_WARN("%s:%u: bytes = %d",EKA_EXCH_DECODE(gr->exch),gr->id,size);
+      dev->lastErrno = errno;
+      EKA_WARN("%s:%u: failed on recv from recovery sock: %s",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
       gr->sendRetransmitSocketError(pEfhRunCtx);
       continue;
     }

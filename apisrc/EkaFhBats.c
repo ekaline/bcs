@@ -79,7 +79,8 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
 
 #ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
     if (sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
-      EKA_WARN("EFH_TEST_GAP_INJECTED!!! (_EFH_TEST_GAP_INJECT_INTERVAL_ = %d)",_EFH_TEST_GAP_INJECT_INTERVAL_);
+      EKA_WARN("%s:%u: TEST GAP INJECTED: (GAP_INJECT_INTERVAL = %d): pkt sequence %ju with %u messages dropped",
+	       EKA_EXCH_DECODE(exch),gr_id, _EFH_TEST_GAP_INJECT_INTERVAL_,sequence,msgInPkt);
       runGr->udpCh->next(); 
     }
 #endif

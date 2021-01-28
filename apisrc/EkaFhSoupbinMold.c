@@ -64,7 +64,7 @@ static int sendUdpPkt (EkaDev* dev, EkaFhNasdaqGr* gr, int sock, void* sendBuf, 
 //-----------------------------------------------
 static int recvUdpPkt (EkaDev* dev, EkaFhNasdaqGr* gr, int sock, void* recvBuf, size_t size, sockaddr* addr, const char* msgName) {
   int receivedBytes = -1;
-  static const int Iterations = 1000000;
+  static const int MaxIterations = 1000000;
   socklen_t addrlen = sizeof(sockaddr);
   int reTryCnt = 0;
   while (1) {
@@ -75,9 +75,15 @@ static int recvUdpPkt (EkaDev* dev, EkaFhNasdaqGr* gr, int sock, void* recvBuf, 
       return receivedBytes;
     }
 
-    if (-- reTryCnt % Iterations == 0) {
-      EKA_WARN("%s:%u Failed to receive %s: (receivedBytes = %d) giving up ...",
-    	       EKA_EXCH_DECODE(gr->exch),gr->id,msgName,receivedBytes);
+    if (receivedBytes < 0) {
+      dev->lastErrno = errno;
+      EKA_WARN("recvfrom MOLD UDP socket failed: %s",strerror(dev->lastErrno));
+      return -1;
+    }
+
+    if (++ reTryCnt % MaxIterations == 0) {
+      EKA_WARN("%s:%u Failed to receive %s: (receivedBytes = %d) after %d iterations. Giving up ...",
+    	       EKA_EXCH_DECODE(gr->exch),gr->id,msgName,receivedBytes,reTryCnt);
       return -1;
     }
     /* if (receivedBytes < 0)  */
@@ -166,12 +172,14 @@ static bool getLoginResponse(EkaFhNasdaqGr* gr) {
 
   soupbin_header soupbin_hdr ={};
   if (recv(gr->snapshot_sock,&soupbin_hdr,sizeof(soupbin_header),MSG_WAITALL) <= 0) {
+    dev->lastErrno = errno;
     EKA_WARN("%s:%u Glimpse connection reset by peer after Login (failed to receive SoupbinHdr), gr->snapshot_sock = %d",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock);
     return false;
   }
   char soupbin_buf[100] = {};
   if (recv(gr->snapshot_sock,soupbin_buf,be16toh(soupbin_hdr.length) - sizeof(soupbin_hdr.type),MSG_WAITALL) <= 0) {
+    dev->lastErrno = errno;
     EKA_WARN("%s:%u failed to receive Soupbin message from Glimpse, gr->snapshot_sock = %d",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock);
     return false;
