@@ -393,9 +393,13 @@ void* getMolUdp64Data(void* attr) {
     	      be16toh(mold_request.message_cnt)
     	      );
 
+    if (sendUdpPkt (dev, gr, gr->recovery_sock, &mold_request, sizeof(mold_request), (const sockaddr*) &mold_recovery_addr, "Mold request") <= 0) {
+      dev->lastErrno = errno;
+      gr->sendRetransmitSocketError(pEfhRunCtx);
+      return NULL;
+    }
     int attempt = 0;
     while (1) {
-      sendUdpPkt (dev, gr, gr->recovery_sock, &mold_request, sizeof(mold_request), (const sockaddr*) &mold_recovery_addr, "Mold request");
       int r = recvUdpPkt (dev, gr, gr->recovery_sock, buf,   sizeof(buf),          (sockaddr*)       &mold_recovery_addr, "Mold response");
       if (r > 0) break;
       if (attempt++ == gr->MoldLocalRetryAttempts) {
@@ -474,8 +478,12 @@ void* getMolUdpPlxOrdData(void* attr) {
     	      );
 
     int attempt = 0;
+    if (sendUdpPkt (dev, gr, gr->recovery_sock, &mold_request, sizeof(mold_request), (const sockaddr*) &mold_recovery_addr, "Mold request") <= 0) {
+      dev->lastErrno = errno;
+      gr->sendRetransmitSocketError(pEfhRunCtx);
+      return NULL;
+    }
     while (1) {
-      sendUdpPkt (dev, gr, gr->recovery_sock, &mold_request, sizeof(mold_request), (const sockaddr*) &mold_recovery_addr, "Mold request");
       int r = recvUdpPkt (dev, gr, gr->recovery_sock, buf,           sizeof(buf),          (sockaddr*)       &mold_recovery_addr, "Mold response");
       if (r > 0) break;
       if (attempt++ == gr->MoldLocalRetryAttempts) {
