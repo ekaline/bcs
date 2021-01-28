@@ -164,7 +164,7 @@ static int64_t getSpinImageSeq(EkaFhBatsGr* gr) {
       return -2; 
     }
     uint8_t* ptr = &buf[0];
-    for (uint i = 0; i < hdr.count; i ++) {
+    for (uint i = 0; gr->snapshot_active && i < hdr.count; i ++) {
       if (size <= 0) on_error("%s:%u: remaining buff size = %d",EKA_EXCH_DECODE(gr->exch),gr->id,size);
       struct batspitch_dummy_header* msg_hdr = (struct batspitch_dummy_header*) ptr;
       if ((EKA_BATS_PITCH_MSG)msg_hdr->type == EKA_BATS_PITCH_MSG::SPIN_IMAGE_AVAILABLE) {
@@ -205,7 +205,7 @@ static bool getSpinResponse(EkaFhBatsGr* gr, EkaFhMode op) {
       break;
     }
     uint8_t* ptr = &buf[0];
-    for (uint i = 0; i < hdr.count; i ++) {
+    for (uint i = 0; gr->snapshot_active && i < hdr.count; i ++) {
       if (size <= 0) on_error("%s:%u: remaining buff size = %d",EKA_EXCH_DECODE(gr->exch),gr->id,size);
       struct batspitch_dummy_header* msg_hdr = (struct batspitch_dummy_header*) ptr;
       if ((EKA_BATS_PITCH_MSG)msg_hdr->type == EKA_BATS_PITCH_MSG::SNAPSHOT_RESPONSE ||
@@ -378,7 +378,7 @@ void* getSpinData(void* attr) {
 
     uint8_t* ptr = &buf[0];
     bool end_of_spin = false;
-    for (uint i = 0; i < hdr.count; i ++) {
+    for (uint i = 0; gr->snapshot_active && i < hdr.count; i ++) {
       if (size <= 0) on_error("%s:%u: remaining buff size = %d",EKA_EXCH_DECODE(gr->exch),gr->id,size);
       struct batspitch_dummy_header* msg_hdr = (struct batspitch_dummy_header*) ptr;
       size -= msg_hdr->length;
@@ -452,7 +452,7 @@ static bool getGapResponse(EkaFhBatsGr* gr) {
 
   static const int Packets2Try = 4;
 
-  for (auto j = 0; j < Packets2Try; j++) {
+  for (auto j = 0; gr->snapshot_active && j < Packets2Try; j++) {
     uint8_t buf[1500] = {};
 
     int bytes = recv(gr->snapshot_sock,
@@ -490,7 +490,7 @@ static bool getGapResponse(EkaFhBatsGr* gr) {
 
     uint8_t* msg = &buf[sizeof(batspitch_sequenced_unit_header)];
 
-    for (auto i = 0; i < hdr->count; i ++) {
+    for (auto i = 0; gr->snapshot_active && i < hdr->count; i ++) {
       uint8_t msgType = ((batspitch_dummy_header*)msg)->type;
       uint8_t msgLen  = ((batspitch_dummy_header*)msg)->length;
 
@@ -581,7 +581,8 @@ void* getGrpRetransmitData(void* attr) {
   EKA_LOG("%s:%u: GRP recovery for %ju..%ju, cnt = %u",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,start,end,cnt);
 
-  while (1) {
+  gr->snapshot_active = true;
+  while (gr->snapshot_active) {
     gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
     //-----------------------------------------------------------------
     gr->recovery_sock = ekaUdpMcConnect(dev,gr->recovery_ip, gr->recovery_port);
@@ -618,7 +619,7 @@ void* getGrpRetransmitData(void* attr) {
   recovery_addr.sin_port = gr->recovery_port;
 
   uint64_t sequence = 0;
-  while (sequence <= end) {
+  while (gr->snapshot_active && sequence <= end) {
     socklen_t addrlen = sizeof(struct sockaddr);
 
     uint8_t buf[1500] = {};
@@ -642,7 +643,7 @@ void* getGrpRetransmitData(void* attr) {
     uint8_t* ptr = &buf[0] + sizeof(batspitch_sequenced_unit_header);
 
     sequence = hdr->sequence;
-    for (uint i = 0; i < hdr->count; i ++) {
+    for (uint i = 0; gr->snapshot_active && i < hdr->count; i ++) {
       if (size <= 0) on_error("%s:%u: size = %d",
 			      EKA_EXCH_DECODE(gr->exch),gr->id,size);
       batspitch_dummy_header* msg_hdr = (batspitch_dummy_header*) ptr;

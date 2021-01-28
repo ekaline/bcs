@@ -243,6 +243,7 @@ int EkaFhGroup::stop() {
 
   thread_active    = false;
   snapshot_active  = false;
+  recovery_active  = false;
   heartbeat_active = false;
 
   /* shutdown(recovery_sock,SHUT_RD); */

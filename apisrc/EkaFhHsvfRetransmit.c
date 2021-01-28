@@ -33,12 +33,13 @@ uint64_t getHsvfMsgSequence(const uint8_t* msg);
 /* ----------------------------- */
 
 static bool sendLogin (EkaFhBoxGr* gr) {
+  EkaDev* dev = gr->dev;
 #ifdef FH_LAB
-  EKA_LOG("%s:%u Dummy FH_LAB Box Login sent: %s",EKA_EXCH_DECODE(gr->exch),gr->id,(char*)&msg);
+  EKA_LOG("%s:%u Dummy FH_LAB Box Login sent",
+	  EKA_EXCH_DECODE(gr->exch),gr->id);
   return true;
 #endif
 
-  EkaDev* dev = gr->dev;
   HsvfLogin msg = {};
   memset(&msg,' ',sizeof(msg));
 
@@ -74,11 +75,11 @@ static bool sendLogin (EkaFhBoxGr* gr) {
 }
 /* ----------------------------- */
 static bool getLoginResponse(EkaFhBoxGr* gr) {
+  EkaDev* dev = gr->dev;
 #ifdef FH_LAB
   EKA_LOG("%s:%u Dummy FH_LAB Login Acknowledge received",EKA_EXCH_DECODE(gr->exch),gr->id);
   return false;
 #endif
-  EkaDev* dev = gr->dev;
 
   bool loginAcknowledged = false;
   while (! loginAcknowledged) {
@@ -143,13 +144,13 @@ static bool sendRequest(EkaFhBoxGr* gr, uint64_t start, uint64_t end) {
 
 /* ----------------------------- */
 static bool getRetransmissionBegins(EkaFhBoxGr* gr) {
+  EkaDev* dev = gr->dev;
 #ifdef FH_LAB
   EKA_LOG("%s:%u Dummy FH_LAB Retransmission Begins received",
 	  EKA_EXCH_DECODE(gr->exch),gr->id);
   return true;
 #endif
 
-  EkaDev* dev = gr->dev;
 
   bool retransmissionBegins = false;
   while (! retransmissionBegins) {
@@ -183,13 +184,13 @@ static bool getRetransmissionBegins(EkaFhBoxGr* gr) {
 /* ----------------------------- */
 
 static bool sendRetransmissionEnd(EkaFhBoxGr* gr) {
+  EkaDev* dev = gr->dev;
 #ifdef FH_LAB
   EKA_LOG("%s:%u Dummy FH_LAB Retransmission End sent",
 	  EKA_EXCH_DECODE(gr->exch),gr->id);
   return true;
 #endif
 
-  EkaDev* dev = gr->dev;
   HsvfRetransmissionEnd msg = {};
   memset(&msg,' ',sizeof(msg));
 
@@ -214,12 +215,12 @@ static bool sendRetransmissionEnd(EkaFhBoxGr* gr) {
 /* ----------------------------- */
 
 static bool sendLogout(EkaFhBoxGr* gr) {
+  EkaDev* dev = gr->dev;
 #ifdef FH_LAB
   EKA_LOG("%s:%u Dummy FH_LAB Logout sent",
 	  EKA_EXCH_DECODE(gr->exch),gr->id);
   return true;
 #endif
-  EkaDev* dev = gr->dev;
   HsvfRetransmissionEnd msg = {};
   memset(&msg,' ',sizeof(msg));
 
@@ -244,13 +245,15 @@ static bool sendLogout(EkaFhBoxGr* gr) {
 
 
 EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhBoxGr* gr) {
-#ifdef FH_LAB
-  EKA_LOG("%s:%u Dummy FH_LAB Defintions done",EKA_EXCH_DECODE(gr->exch),gr->id);
-  return EKA_OPRESULT__OK
-#endif
   if (gr == NULL) on_error("gr == NULL");
   EkaDev* dev = gr->dev;
   if (dev == NULL) on_error("dev == NULL");
+
+#ifdef FH_LAB
+  EKA_LOG("%s:%u Dummy FH_LAB Defintions done",
+	  EKA_EXCH_DECODE(gr->exch),gr->id);
+  return EKA_OPRESULT__OK;
+#endif
   EkaOpResult ret = EKA_OPRESULT__OK;
 
   EKA_LOG("Definitions for %s:%u - BOX to %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id,
@@ -325,14 +328,13 @@ EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, Eka
 void* getHsvfRetransmit(void* attr) {
 
   pthread_detach(pthread_self());
+  EkaFhBoxGr*   gr             = (EkaFhBoxGr*)((EkaFhThreadAttr*)attr)->gr;
+  EkaDev*    dev = gr->dev;
 
 #ifdef FH_LAB
   EKA_LOG("%s:%u Dummy FH_LAB Retransmission done",EKA_EXCH_DECODE(gr->exch),gr->id);
   return NULL;
 #endif
-
-  EkaFhBoxGr*   gr             = (EkaFhBoxGr*)((EkaFhThreadAttr*)attr)->gr;
-  EkaDev*    dev = gr->dev;
 
   EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
   uint64_t   start          = ((EkaFhThreadAttr*)attr)->startSeq;
