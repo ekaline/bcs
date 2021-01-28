@@ -34,7 +34,7 @@
 #include "EfhPhlxTopoProps.h"
 #include "EfhXdpProps.h"
 
-#define MAX_SECURITIES 300000
+#define MAX_SECURITIES 600000
 #define MAX_UNDERLYINGS 4000
 #define MAX_GROUPS 36
 #define MAX_TEST_THREADS 16

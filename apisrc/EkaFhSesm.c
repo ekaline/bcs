@@ -328,12 +328,16 @@ void* getSesmRetransmit(void* attr) {
   while (gr->recovery_active) {
     gr->recovery_sock = ekaTcpConnect(gr->recovery_ip,gr->recovery_port);
     //-----------------------------------------------------------------
-    sendLogin(gr);
-    //-----------------------------------------------------------------
-    if (getLoginResponse(gr) != EKA_OPRESULT__OK) {
+    if (! sendLogin(gr)) {
+      close(gr->recovery_sock);
       gr->sendRetransmitExchangeError(pEfhRunCtx);
+      continue;
+    }
+    //-----------------------------------------------------------------
+    if (! getLoginResponse(gr)) {
       sendLogOut(gr);
       close(gr->recovery_sock);
+      gr->sendRetransmitExchangeError(pEfhRunCtx);
       continue;
     }
     break;
@@ -342,7 +346,12 @@ void* getSesmRetransmit(void* attr) {
   std::thread heartBeat = std::thread(heartBeatThread,dev,gr,gr->recovery_sock);
   heartBeat.detach();
   //-----------------------------------------------------------------
-  sendRetransmitRequest(gr,start,end);
+  if (! sendRetransmitRequest(gr,start,end)) {
+    sendLogOut(gr);
+    close(gr->recovery_sock);
+    gr->sendRetransmitExchangeError(pEfhRunCtx);
+    return NULL;
+  }
   //-----------------------------------------------------------------
 
   while (gr->recovery_active) {
@@ -399,9 +408,13 @@ void* getSesmData(void* attr) {
     while (gr->snapshot_active) {
       gr->recovery_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
       //-----------------------------------------------------------------
-      sendLogin(gr);
+      if (! sendLogin(gr)) {
+	gr->sendRetransmitExchangeError(pEfhRunCtx);
+	close(gr->recovery_sock);
+	continue;
+      }
       //-----------------------------------------------------------------
-      if (getLoginResponse(gr) != EKA_OPRESULT__OK) {
+      if (! getLoginResponse(gr)) {
 	gr->sendRetransmitExchangeError(pEfhRunCtx);
 	sendLogOut(gr);
 	close(gr->recovery_sock);
@@ -438,7 +451,7 @@ void* getSesmData(void* attr) {
 	//-----------------------------------------------------------------
 	sendLogin(gr);
 	//-----------------------------------------------------------------
-	if (getLoginResponse(gr) != EKA_OPRESULT__OK) {
+	if (! getLoginResponse(gr)) {
 	  gr->sendRetransmitExchangeError(pEfhRunCtx);
 	  sendLogOut(gr);
 	  close(gr->recovery_sock);
