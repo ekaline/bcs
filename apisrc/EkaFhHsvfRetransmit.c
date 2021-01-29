@@ -259,16 +259,14 @@ EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, Eka
   EKA_LOG("Definitions for %s:%u - BOX to %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id,
 	  EKA_IP2STR(gr->snapshot_ip),be16toh(gr->snapshot_port));
 
-
-
-  //-----------------------------------------------------------------
-  gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
-  //-----------------------------------------------------------------
-  gr->hsvfTcp = new EkaHsvfTcp(dev,gr->snapshot_sock);
-  if (gr->hsvfTcp == NULL) on_error("Failed on new EkaHsvfTcp");
-
   gr->snapshot_active = true;
   while (gr->snapshot_active) {
+    //-----------------------------------------------------------------
+    gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
+    //-----------------------------------------------------------------
+    gr->hsvfTcp = new EkaHsvfTcp(dev,gr->snapshot_sock);
+    if (gr->hsvfTcp == NULL) on_error("Failed on new EkaHsvfTcp");
+
     //-----------------------------------------------------------------
     if (! sendLogin(gr)) {
       close(gr->snapshot_sock);
@@ -348,16 +346,13 @@ void* getHsvfRetransmit(void* attr) {
 
   EKA_LOG("%s:%u start=%ju, end=%ju, gap=%d",EKA_EXCH_DECODE(gr->exch),gr->id,start,end, end - start);
   //-----------------------------------------------------------------
-  gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
-  //-----------------------------------------------------------------
-  gr->hsvfTcp = new EkaHsvfTcp(dev,gr->snapshot_sock);
-  if (gr->hsvfTcp == NULL) on_error("Failed on new EkaHsvfTcp");
-  //-----------------------------------------------------------------
-
-
   gr->snapshot_active = true;
 
   while (gr->snapshot_active) {
+    gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
+    //-----------------------------------------------------------------
+    gr->hsvfTcp = new EkaHsvfTcp(dev,gr->snapshot_sock);
+    if (gr->hsvfTcp == NULL) on_error("Failed on new EkaHsvfTcp");
     //-----------------------------------------------------------------
     if (! sendLogin(gr)) {
       close(gr->snapshot_sock);
