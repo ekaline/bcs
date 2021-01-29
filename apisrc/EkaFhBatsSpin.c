@@ -28,6 +28,16 @@ int ekaTcpConnect(uint32_t ip, uint16_t port);
 int ekaUdpMcConnect(EkaDev* dev, uint32_t ip, uint16_t port);
 
 /* ##################################################################### */
+static int sendHearBeat(EkaDev* dev,int sock, uint8_t batsUnit) {
+  batspitch_sequenced_unit_header heartbeat = {
+    .length   = sizeof(batspitch_sequenced_unit_header),
+    .count    = 0,
+    .unit     = batsUnit,
+    .sequence = 0
+  };
+  return send(sock,&heartbeat,sizeof(heartbeat), 0);
+}
+/* ##################################################################### */
 
 void* spin_heartbeat_thread(void* attr) {
   pthread_detach(pthread_self());
@@ -451,7 +461,7 @@ static bool getGapResponse(EkaFhBatsGr* gr) {
   return true;
 #endif
 
-  static const int Packets2Try = 4;
+  static const int Packets2Try = 40;
 
   for (auto j = 0; gr->snapshot_active && j < Packets2Try; j++) {
     uint8_t buf[1500] = {};
@@ -479,6 +489,7 @@ static bool getGapResponse(EkaFhBatsGr* gr) {
 	       EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
       return false;
     }
+    sendHearBeat(dev,gr->snapshot_sock,gr->batsUnit);
 
     /* EKA_LOG("%s:%u: TcpPkt accepted: unit=%u, sequence=%u, msgCnt=%u, length=%u", */
     /* 	    EKA_EXCH_DECODE(gr->exch),gr->id,hdr->unit,hdr->sequence,hdr->count,hdr->length); */
@@ -583,7 +594,7 @@ void* getGrpRetransmitData(void* attr) {
 	  EKA_EXCH_DECODE(gr->exch),gr->id,start,end,cnt);
 
   gr->heartbeat_active = false;
-  pthread_t heartbeat_thread;
+  //  pthread_t heartbeat_thread;
   gr->snapshot_active = true;
   while (gr->snapshot_active) {
     gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
@@ -602,11 +613,13 @@ void* getGrpRetransmitData(void* attr) {
       continue;
     }
     //-----------------------------------------------------------------
-    if (! gr->heartbeat_active) {
-      gr->heartbeat_active = true;
-      dev->createThread((std::string("HB_") + std::string(EKA_EXCH_DECODE(gr->exch)) + '_' + std::to_string(gr->id)).c_str(),EkaServiceType::kHeartbeat,spin_heartbeat_thread,(void*)gr,dev->createThreadContext,(uintptr_t*)&heartbeat_thread);
+    sendHearBeat(dev,gr->snapshot_sock,gr->batsUnit);
+    //-----------------------------------------------------------------
+    /* if (! gr->heartbeat_active) { */
+    /*   gr->heartbeat_active = true; */
+    /*   dev->createThread((std::string("HB_") + std::string(EKA_EXCH_DECODE(gr->exch)) + '_' + std::to_string(gr->id)).c_str(),EkaServiceType::kHeartbeat,spin_heartbeat_thread,(void*)gr,dev->createThreadContext,(uintptr_t*)&heartbeat_thread); */
       
-    }
+    /* } */
 
     //-----------------------------------------------------------------
     if (! sendGapRequest(gr, start, (uint16_t) (end - start /* + 1 */))) {
@@ -614,6 +627,9 @@ void* getGrpRetransmitData(void* attr) {
       gr->sendRetransmitSocketError(pEfhRunCtx);
       continue;
     }   
+    //-----------------------------------------------------------------
+    sendHearBeat(dev,gr->snapshot_sock,gr->batsUnit);
+
     //-----------------------------------------------------------------
     if (! getGapResponse(gr)) {
       close(gr->snapshot_sock);
