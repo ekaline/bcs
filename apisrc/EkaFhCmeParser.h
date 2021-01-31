@@ -527,22 +527,22 @@ struct PktHdr {
 } __attribute__((packed));
   
 
-#define MDpdateAction2STR(x) \
-  x ==  MDUpdateAction_T::New         ? "New       " : \
-    x == MDUpdateAction_T::Change     ? "Change    " : \
-    x == MDUpdateAction_T::Delete     ? "Delete    " : \
+#define MDpdateAction2STR(x)			       \
+  x ==  MDUpdateAction_T::New         ? "New"        : \
+    x == MDUpdateAction_T::Change     ? "Change"     : \
+    x == MDUpdateAction_T::Delete     ? "Delete"     : \
     x == MDUpdateAction_T::DeleteThru ? "DeleteThru" : \
     x == MDUpdateAction_T::DeleteFrom ? "DeleteFrom" : \
-    x == MDUpdateAction_T::Overlay    ? "Overlay   " : \
+    x == MDUpdateAction_T::Overlay    ? "Overlay"    : \
     "UNEXPECTED_ACTION"
 
-#define MDEntryTypeBook2STR(x)		                   \
+#define MDEntryTypeBook2STR(x)				     \
   x == MDEntryTypeBook_T::Bid            ? "Bid"          :  \
     x == MDEntryTypeBook_T::Offer        ? "Offer"        :  \
     x == MDEntryTypeBook_T::ImpliedBid   ? "ImpliedBid"   :  \
     x == MDEntryTypeBook_T::ImpliedOffer ? "ImpliedOffer" :  \
     x == MDEntryTypeBook_T::BookReset    ? "BookReset"    :  \
-    "UNEXPECTED_ENTRY_BOOK"
+    "UNEXPECTED_ENTRY_TYPE_BOOK"
 
 #define EKA_CME_ENTRY_TYPE(x) \
     x == '0'   ? "Offer" : \

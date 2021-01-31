@@ -33,6 +33,7 @@
 #include "EfhPhlxOrdProps.h"
 #include "EfhPhlxTopoProps.h"
 #include "EfhXdpProps.h"
+#include "EfhCmeProps.h"
 
 #define MAX_SECURITIES 300000
 #define MAX_UNDERLYINGS 4000
@@ -370,7 +371,8 @@ void print_usage(char* cmd) {
   printf("\t\t\tXA - AMEX      A feed\n"); 
   printf("\t\t\tXB - AMEX      B feed\n"); 
   printf("\t\t\tBA - BOX       A feed\n"); 
-  printf("\t\t\tBB - BOX       B feed\n"); 
+  printf("\t\t\tEA - CME       A feed\n"); 
+  printf("\t\t\tEB - CME       B feed\n"); 
   printf("\t-u <Underlying Name> - subscribe on all options belonging to\n");
   printf("\t-s run single MC group #0\n");
   printf("\t-t Print TOB updates (EFH)\n");
@@ -567,6 +569,17 @@ int main(int argc, char *argv[]) {
     ekaProps.props    = efhPhlxOrdInitCtxEntries_B;
     runCtx.numGroups  = std::size(phlxOrdGroups);
     runCtx.groups     = phlxOrdGroups;
+/* ------------------------------------------------------- */
+  } else if (feedName == std::string("EA")) {
+    ekaProps.numProps = std::size(efhCmeInitCtxEntries_A);
+    ekaProps.props    = efhCmeInitCtxEntries_A;
+    runCtx.numGroups  = std::size(cmeGroups);
+    runCtx.groups     = cmeGroups;
+  } else if (feedName == std::string("EB")) {
+    ekaProps.numProps = std::size(efhCmeInitCtxEntries_B);
+    ekaProps.props    = efhCmeInitCtxEntries_B;
+    runCtx.numGroups  = std::size(cmeGroups);
+    runCtx.groups     = cmeGroups;
 /* ------------------------------------------------------- */
   } else {
     on_error("Unsupported feed name \"%s\". Supported: CA, CB, CC, CD",feedName.c_str());
