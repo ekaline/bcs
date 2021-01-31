@@ -337,7 +337,43 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
 
   //  EKA_LOG("%s:%u: %ju \'%c%c\'",EKA_EXCH_DECODE(exch),id,seq,msgHdr->MsgType[0],msgHdr->MsgType[1]);
   //===================================================
-  if (memcmp(msgHdr->MsgType,"J ",sizeof(msgHdr->MsgType)) == 0) { // OptionInstrumentKeys
+  if (memcmp(msgHdr->MsgType,"F ",sizeof(msgHdr->MsgType)) == 0) { // OptionQuote
+    if (op == EkaFhMode::DEFINITIONS) return true; // Dictionary is done
+
+    const HsvfOptionQuote* boxMsg = (const HsvfOptionQuote*)msgBody;
+
+    SecurityIdT security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
+
+    s = book->findSecurity(security_id);
+    if (s == NULL) return false;
+
+    //    EKA_LOG("OptionQuote for %s",boxMsg->InstrumentDescription + '\0');
+
+    s->bid_price     = getNumField<uint32_t>(boxMsg->BidPrice,sizeof(boxMsg->BidPrice)) * getFractionIndicator(boxMsg->BidPriceFractionIndicator);
+    s->bid_size      = getNumField<uint32_t>(boxMsg->BidSize,sizeof(boxMsg->BidSize));
+    s->bid_cust_size = getNumField<uint32_t>(boxMsg->PublicCustomerBidSize,sizeof(boxMsg->PublicCustomerBidSize));
+
+    s->ask_price     = getNumField<uint32_t>(boxMsg->AskPrice,sizeof(boxMsg->AskPrice)) * getFractionIndicator(boxMsg->AskPriceFractionIndicator);
+    s->ask_size      = getNumField<uint32_t>(boxMsg->AskSize,sizeof(boxMsg->AskSize));
+    s->ask_cust_size = getNumField<uint32_t>(boxMsg->PublicCustomerAskSize,sizeof(boxMsg->PublicCustomerAskSize));
+
+    getStatus<FhSecurity>(s,boxMsg->InstrumentStatusMarker);
+    if (op != EkaFhMode::SNAPSHOT)
+      book->generateOnQuote (pEfhRunCtx, s, sequence, gr_ts, gapNum);
+
+    //===================================================
+  } else if (memcmp(msgHdr->MsgType,"Z ",sizeof(msgHdr->MsgType)) == 0) { // SystemTimeStamp
+    char* timeStamp = ((HsvfSystemTimeStamp*)msgBody)->TimeStamp;
+    uint64_t hour = getNumField<uint64_t>(&timeStamp[0],2);
+    uint64_t min  = getNumField<uint64_t>(&timeStamp[2],2);
+    uint64_t sec  = getNumField<uint64_t>(&timeStamp[4],2);
+    uint64_t ms   = getNumField<uint64_t>(&timeStamp[6],3);
+    
+    gr_ts = ((hour * 3600 + min * 60 + sec) * 1000 + ms) * 1000000;
+  } else if (memcmp(msgHdr->MsgType,"U ",sizeof(msgHdr->MsgType)) == 0) { // EndOfTransmission
+    EKA_LOG("%s:%u End Of Transmission",EKA_EXCH_DECODE(exch),id);
+    return true;
+  } else if (memcmp(msgHdr->MsgType,"J ",sizeof(msgHdr->MsgType)) == 0) { // OptionInstrumentKeys
     //    if (op == EkaFhMode::SNAPSHOT) return false;
     if (op != EkaFhMode::DEFINITIONS) return false;
 
@@ -378,44 +414,8 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   } else if (memcmp(msgHdr->MsgType,"N ",sizeof(msgHdr->MsgType)) == 0) { // OptionSummary
 
     //===================================================
-  } else if (memcmp(msgHdr->MsgType,"F ",sizeof(msgHdr->MsgType)) == 0) { // OptionQuote
-    if (op == EkaFhMode::DEFINITIONS) return true; // Dictionary is done
-
-    const HsvfOptionQuote* boxMsg = (const HsvfOptionQuote*)msgBody;
-
-    SecurityIdT security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
-
-    s = book->findSecurity(security_id);
-    if (s == NULL) return false;
-
-    //    EKA_LOG("OptionQuote for %s",boxMsg->InstrumentDescription + '\0');
-
-    s->bid_price     = getNumField<uint32_t>(boxMsg->BidPrice,sizeof(boxMsg->BidPrice)) * getFractionIndicator(boxMsg->BidPriceFractionIndicator);
-    s->bid_size      = getNumField<uint32_t>(boxMsg->BidSize,sizeof(boxMsg->BidSize));
-    s->bid_cust_size = getNumField<uint32_t>(boxMsg->PublicCustomerBidSize,sizeof(boxMsg->PublicCustomerBidSize));
-
-    s->ask_price     = getNumField<uint32_t>(boxMsg->AskPrice,sizeof(boxMsg->AskPrice)) * getFractionIndicator(boxMsg->AskPriceFractionIndicator);
-    s->ask_size      = getNumField<uint32_t>(boxMsg->AskSize,sizeof(boxMsg->AskSize));
-    s->ask_cust_size = getNumField<uint32_t>(boxMsg->PublicCustomerAskSize,sizeof(boxMsg->PublicCustomerAskSize));
-
-    getStatus<FhSecurity>(s,boxMsg->InstrumentStatusMarker);
-    if (op != EkaFhMode::SNAPSHOT)
-      book->generateOnQuote (pEfhRunCtx, s, sequence, gr_ts, gapNum);
-
-    //===================================================
-  } else if (memcmp(msgHdr->MsgType,"Z ",sizeof(msgHdr->MsgType)) == 0) { // SystemTimeStamp
-    char* timeStamp = ((HsvfSystemTimeStamp*)msgBody)->TimeStamp;
-    uint64_t hour = getNumField<uint64_t>(&timeStamp[0],2);
-    uint64_t min  = getNumField<uint64_t>(&timeStamp[2],2);
-    uint64_t sec  = getNumField<uint64_t>(&timeStamp[4],2);
-    uint64_t ms   = getNumField<uint64_t>(&timeStamp[6],3);
-    
-    gr_ts = ((hour * 3600 + min * 60 + sec) * 1000 + ms) * 1000000;
-  } else if (memcmp(msgHdr->MsgType,"U ",sizeof(msgHdr->MsgType)) == 0) { // EndOfTransmission
-    EKA_LOG("%s:%u End Of Transmission",EKA_EXCH_DECODE(exch),id);
-    return true;
-  } else {
-  };
+  } 
+ 
   //===================================================
 
   return false;
