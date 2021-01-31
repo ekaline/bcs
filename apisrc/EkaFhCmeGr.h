@@ -11,12 +11,16 @@ class EkaFhCmeGr : public EkaFhGroup {
   virtual               ~EkaFhCmeGr() {};
 
   bool                  parseMsg(const EfhRunCtx* pEfhRunCtx,
-				 const unsigned char* m,
-				 uint64_t sequence,
-				 EkaFhMode op);
+  				 const unsigned char* m,
+  				 uint64_t sequence,
+  				 EkaFhMode op) {
+    return true;
+  }
 
   int                   bookInit(EfhCtx* pEfhCtx,
-				 const EfhInitCtx* pEfhInitCtx);
+  				 const EfhInitCtx* pEfhInitCtx) {
+    return 0;
+  }
 
   int                  subscribeStaticSecurity(uint64_t        securityId, 
 					       EfhSecurityType efhSecurityType,
@@ -32,21 +36,26 @@ class EkaFhCmeGr : public EkaFhGroup {
     return 0;
   }
 
-  bool                  processUdpPkt(const EfhRunCtx* pEfhRunCtx,
+  bool                  processPkt(const EfhRunCtx* pEfhRunCtx,
 				      const uint8_t*   pkt, 
-				      int16_t          pktLen);
+				      int16_t          pktLen,
+				      EkaFhMode        op);
   
+  /* bool                  processUdpDefinitionsPkt(const EfhRunCtx* pEfhRunCtx, */
+  /* 						 const uint8_t*   pkt,  */
+  /* 						 int16_t          pktLen, */
+  /* 						 EkaFhMode        op); */
+  
+  /* void                  pushUdpPkt2Q(const uint8_t* pkt,  */
+  /* 				     uint           pktLen); */
 
-  void                  pushUdpPkt2Q(const uint8_t* pkt, 
-				     uint           pktLen);
-
-  int                   processFromQ(const EfhRunCtx* pEfhRunCtx);
+  /* int                   processFromQ(const EfhRunCtx* pEfhRunCtx); */
 
 
-  int                  closeIncrementalGap(EfhCtx*           pEfhCtx, 
-					   const EfhRunCtx*  pEfhRunCtx, 
-					   uint64_t          startSeq,
-					   uint64_t          endSeq);
+  /* int                   closeIncrementalGap(EfhCtx*           pEfhCtx,  */
+  /* 					   const EfhRunCtx*  pEfhRunCtx,  */
+  /* 					   uint64_t          startSeq, */
+  /* 					   uint64_t          endSeq); */
 
 
 
@@ -54,9 +63,12 @@ class EkaFhCmeGr : public EkaFhGroup {
 
   static const uint   SEC_HASH_SCALE = 17;
 
-  using SecurityIdT = uint64_t;
-  using PriceT      = uint32_t;
-  using SizeT       = uint32_t;
+  using SecurityIdT = int32_t;
+  using PriceT      = int64_t;
+  using SizeT       = int32_t;
+
+  using SequenceT   = uint32_t;
+  using PriceLevetT = uint8_t;
 
   using FhSecurity  = EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>;
   using FhBook      = EkaFhTobBook<SEC_HASH_SCALE,EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>,SecurityIdT, PriceT, SizeT>;

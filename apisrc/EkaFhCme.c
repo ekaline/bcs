@@ -14,26 +14,49 @@ EkaFhGroup* EkaFhCme::addGroup() {
 
 /* ##################################################################### */
 const uint8_t* EkaFhCme::getUdpPkt(EkaFhRunGroup* runGr, 
-			     uint*          msgInPkt, 
-			     uint*          pktSize, 
+			     int16_t*       pktLen, 
 			     uint64_t*      sequence,
-			     uint8_t*       gr_id,
-			     uint16_t*      streamId, 
-			     uint8_t*       pktType) {
+			     uint8_t*       gr_id) {
 
   uint8_t* pkt = (uint8_t*)runGr->udpCh->get();
   if (pkt == NULL) on_error("%s: pkt == NULL",EKA_EXCH_DECODE(exch));
+  *pktLen   = runGr->udpCh->getPayloadLen();
 
-  *msgInPkt = EKA_CME_MSG_CNT((pkt));
-  *sequence = EKA_CME_SEQUENCE((pkt));
+  const PktHdr* pktHdr = (const PktHdr*)pkt;
+
+
+  *sequence = pktHdr->seq;
   *gr_id    = getGrId(pkt);
-  *streamId = EKA_CME_STREAM_ID((pkt));
-  *pktType  = EKA_CME_PKT_TYPE((pkt));
-  *pktSize  = EKA_CME_PKT_SIZE((pkt));
 
   return pkt;
 }
+ /* ##################################################################### */
 
+EkaOpResult EkaFhCme::initGroups(EfhCtx* pEfhCtx, 
+				 const EfhRunCtx* pEfhRunCtx, 
+				 EkaFhRunGroup* runGr) {
+  for (uint8_t i = 0; i < runGr->numGr; i++) {
+    if (! runGr->isMyGr(pEfhRunCtx->groups[i].localId)) 
+      on_error("pEfhRunCtx->groups[%d].localId = %u doesnt belong to %s",
+	       i,pEfhRunCtx->groups[i].localId,runGr->list2print);
+    if (pEfhRunCtx->groups[i].source != exch) 
+      on_error("pEfhRunCtx->groups[i].source != exch");
+
+    EkaFhGroup* gr = b_gr[pEfhRunCtx->groups[i].localId];
+    if (gr == NULL) on_error ("b_gr[%u] == NULL",pEfhRunCtx->groups[i].localId);
+    gr->createQ(pEfhCtx,qsize);
+    gr->expected_sequence = 1;
+
+    runGr->igmpMcJoin(gr->mcast_ip,gr->mcast_port,0);
+    runGr->igmpMcJoin(gr->recovery_ip,gr->recovery_port,0);
+    EKA_DEBUG("%s:%u: joined Incr Feed %s:%u, Recovery Feed %s:%u, for %u securities",
+	      EKA_EXCH_DECODE(exch),gr->id,
+	      EKA_IP2STR(gr->mcast_ip),   gr->mcast_port,
+	      EKA_IP2STR(gr->recovery_ip),gr->recovery_port,
+	      gr->getNumSecurities());
+  }
+  return EKA_OPRESULT__OK;
+}
 /* ##################################################################### */
 
 EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId ) {
@@ -47,14 +70,15 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
   EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u: %s GROUPS ~~~~~~~~~~~~~",
 	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
 
+  //-----------------------------------------------------------------------------
   for (uint8_t j = 0; j < runGr->numGr; j++) {
     uint8_t grId = runGr->groupList[j];
     EkaFhCmeGr* gr = (EkaFhCmeGr*)b_gr[grId];
     if (gr == NULL) on_error("b_gr[%u] == NULL",grId);
     gr->sendFeedDownInitial(pEfhRunCtx);
 
-    gr->inGap = true;
-    gr->setGapStart();
+    //    gr->inGap = true;
+    //    gr->setGapStart();
   }
 
   while (runGr->thread_active) {
@@ -66,47 +90,37 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       if (tradingHours)   runGr->checkTimeOut(pEfhRunCtx);
       continue;
     }
-    uint     msgInPkt = 0;
     uint64_t sequence = 0;
     uint8_t  gr_id = 0xFF;
-    uint16_t streamId = 0;
-    uint8_t  pktType = 0;
-    uint     pktSize = 0; 
+    int16_t  pktSize = 0; 
 
-    const uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&pktSize,&sequence,&gr_id, &streamId, &pktType);
+    const uint8_t* pkt = getUdpPkt(runGr,&pktSize,&sequence,&gr_id);
     if (pkt == NULL) continue;
 
     EkaFhCmeGr* gr = (EkaFhCmeGr*)b_gr[gr_id];
     if (gr == NULL) on_error("b_gr[%u] == NULL",gr_id);
     gr->resetNoMdTimer();
 
-    uint streamIdx = gr->findAndInstallStream(streamId, sequence);
 
     /* EKA_LOG("%s:%u Seq=%ju,expSeq=%ju, pktSize=%u msgInPkt =%u",EKA_EXCH_DECODE(exch),gr_id, */
     /* 	    sequence,gr->getExpectedSeq(streamIdx),pktSize,msgInPkt); */
 
+    /* if (gr->inGap) { */
+    /*   if (gr->isGapOver()) { */
+    /* 	gr->inGap = false; */
+    /* 	gr->sendFeedUp(pEfhRunCtx); */
+    /*   } */
+    /* } */
+    /* //----------------------------------------------------------------------------- */
+    /* if (sequence > gr->getExpectedSeq(streamIdx) && ! gr->inGap) { */
+    /*   gr->sendFeedDown(pEfhRunCtx); */
 
-    //-----------------------------------------------------------------------------
-    if (pktType == (uint8_t)EKA_CME_DELIVERY_FLAG::SequenceReset) gr->resetExpectedSeq(streamIdx);
-    //-----------------------------------------------------------------------------
-    if (gr->inGap) {
-      if (gr->isGapOver()) {
-	gr->inGap = false;
-	gr->sendFeedUp(pEfhRunCtx);
-      }
-    }
-    //-----------------------------------------------------------------------------
-    if (sequence > gr->getExpectedSeq(streamIdx) && ! gr->inGap) {
-      gr->sendFeedDown(pEfhRunCtx);
-
-      EKA_LOG("%s:%u for Stream %u expectedSeq = %u < sequence %u, lost %u messages",
-	      EKA_EXCH_DECODE(exch),gr->id,gr->getId(streamIdx),gr->getExpectedSeq(streamIdx),sequence,sequence-gr->getExpectedSeq(streamIdx));
-      gr->inGap = true;
-      gr->setGapStart();
-    }
+    /*   gr->inGap = true; */
+    /*   gr->setGapStart(); */
+    /* } */
     //-----------------------------------------------------------------------------
 
-    if (gr->processUdpPkt(pEfhRunCtx,pktSize,streamIdx,pkt,msgInPkt,(uint64_t)sequence)) break;
+    if (gr->processPkt(pEfhRunCtx,pkt,pktSize,EkaFhMode::MCAST)) break;
 
     //-----------------------------------------------------------------------------
     runGr->udpCh->next(); 
@@ -119,7 +133,7 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
  /* ##################################################################### */
 
 EkaOpResult EkaFhCme::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group) {
-  EkaFhCmeGr* gr = b_gr[(uint8_t)group->localId];
+  EkaFhCmeGr* gr = (EkaFhCmeGr*)b_gr[group->localId];
   if (gr == NULL) on_error("gr[%u] == NULL",(uint8_t)group->localId);
 
   int sock = ekaUdpMcConnect(dev, gr->snapshot_ip, gr->snapshot_port);
@@ -130,12 +144,14 @@ EkaOpResult EkaFhCme::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
   addr.sin_port        = gr->snapshot_port;
   socklen_t addrlen = sizeof(sockaddr);
 
-  while (runGr->thread_active) {
+  gr->snapshot_active = true;
+  while (gr->snapshot_active) {
     uint8_t pkt[1536] = {};
     int size = recvfrom(sock, pkt, sizeof(pkt), 0, (sockaddr*) &addr, &addrlen);
     if (size < 0) on_error("size = %d",size);
-    gr->processUdpPkt(pEfhRunCtx,pkt,size,EkaFhMode::DEFINITIONS);
+    gr->processPkt(pEfhRunCtx,pkt,size,EkaFhMode::DEFINITIONS);
   }
+  gr->snapshot_active = false;
 
   close (sock);
   return EKA_OPRESULT__OK;
