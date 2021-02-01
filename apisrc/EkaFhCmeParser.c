@@ -142,6 +142,8 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       std::string cfiCode          = std::string((const char*)&rootBlock->CFICode,         sizeof(rootBlock->CFICode));
       std::string securityExchange = std::string((const char*)&rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange));
       std::string asset            = std::string((const char*)&rootBlock->Asset,           sizeof(rootBlock->Asset));
+      std::string securityType     = std::string((const char*)&rootBlock->SecurityType,    sizeof(rootBlock->SecurityType));
+
       const MaturityMonthYear_T* pMaturity = (MaturityMonthYear_T*)&rootBlock->MaturityMonthYear;
 #ifdef _PRINT_ALL_
       EKA_LOG ("\t\tDefinitionFuture54: report %d of %d,\'%s\',\'%s\',\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u",
@@ -170,6 +172,8 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       std::string cfiCode          = std::string((const char*)&rootBlock->CFICode,         sizeof(rootBlock->CFICode));
       std::string securityExchange = std::string((const char*)&rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange));
       std::string asset            = std::string((const char*)&rootBlock->Asset,           sizeof(rootBlock->Asset));
+      std::string securityType     = std::string((const char*)&rootBlock->SecurityType,    sizeof(rootBlock->SecurityType));
+
       const MaturityMonthYear_T* pMaturity = (MaturityMonthYear_T*)&rootBlock->MaturityMonthYear;
       uint8_t     putOrCall        = (uint8_t)rootBlock->PutOrCall;
 #ifdef _PRINT_ALL_
