@@ -131,6 +131,34 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 
 
       /* ##################################################################### */
+    case MsgId::MDInstrumentDefinitionFuture54 : {
+      ++processedDefinitionMessages;
+      /* ------------------------------- */
+      uint rootBlockPos = msgPos + sizeof(MsgHdr);
+      const MDInstrumentDefinitionFuture54_mainBlock* rootBlock = (const MDInstrumentDefinitionFuture54_mainBlock*)&pkt[rootBlockPos];
+      SecurityIdT securityId       = rootBlock->SecurityID;
+      int32_t     totNumReports    = rootBlock->TotNumReports;
+      std::string symbol           = std::string((const char*)&rootBlock->Symbol,          sizeof(rootBlock->Symbol));
+      std::string cfiCode          = std::string((const char*)&rootBlock->CFICode,         sizeof(rootBlock->CFICode));
+      std::string securityExchange = std::string((const char*)&rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange));
+      std::string asset            = std::string((const char*)&rootBlock->Asset,           sizeof(rootBlock->Asset));
+      const MaturityMonthYear_T* pMaturity = (MaturityMonthYear_T*)&rootBlock->MaturityMonthYear;
+#ifdef _PRINT_ALL_
+      EKA_LOG ("\t\tDefinitionFuture54: report %d of %d,\'%s\',\'%s\',\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u",
+	       processedDefinitionMessages,totNumReports,
+	       securityExchange.c_str(),
+	       asset.c_str(),
+	       symbol.c_str(),
+	       securityId,
+	       cfiCode.c_str(),
+	       pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week
+	       );
+
+#endif
+      if (processedDefinitionMessages >= totNumReports) return true;
+    }
+      break;
+      /* ##################################################################### */
     case MsgId::MDInstrumentDefinitionOption55 : {
       ++processedDefinitionMessages;
       /* ------------------------------- */
@@ -145,15 +173,15 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       const MaturityMonthYear_T* pMaturity = (MaturityMonthYear_T*)&rootBlock->MaturityMonthYear;
       uint8_t     putOrCall        = (uint8_t)rootBlock->PutOrCall;
 #ifdef _PRINT_ALL_
-      EKA_LOG ("\t\tDefinitionOption55: report %d of %d,\'%s\',\'%s\',\'%s\',%s,%d,\'%s\',%04u-%02u-%02u",
+      EKA_LOG ("\t\tDefinitionOption55: report %d of %d,\'%s\',\'%s\',\'%s\',%s,(%d),%d,\'%s\',%04u-%02u-%02u--%02u",
 	       processedDefinitionMessages,totNumReports,
 	       securityExchange.c_str(),
 	       asset.c_str(),
 	       symbol.c_str(),
-	       putOrCall == PutOrCall_T::Put ? "PUT" : putOrCall == PutOrCall_T::Call ? "CALL" : "UNEXPECTED",
+	       putOrCall == PutOrCall_T::Put ? "PUT" : putOrCall == PutOrCall_T::Call ? "CALL" : "UNEXPECTED",putOrCall,
 	       securityId,
 	       cfiCode.c_str(),
-	       pMaturity->year,pMaturity->month,pMaturity->day
+	       pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week
 	       );
 
 #endif
