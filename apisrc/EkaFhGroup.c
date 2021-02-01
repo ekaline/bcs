@@ -158,8 +158,9 @@ void EkaFhGroup::sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx) {
     EfhSystemState::kUnknown, // Preopen, Trading, Closed
     EfhGroupStateErrorDomain::kExchangeError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kFeedRecovery, // Unspecified, FeedRecovery
-    0 // int64_t code
+    dev->lastErrno
   };
+  dev->lastErrno = 0;
   pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
   EKA_LOG("%s:%u re-trying in %d seconds",EKA_EXCH_DECODE(exch),id,connectRetryDelayTime);
   if (connectRetryDelayTime == 0) on_error("connectRetryDelayTime == 0");
@@ -177,8 +178,9 @@ void EkaFhGroup::sendRetransmitSocketError(const EfhRunCtx* pEfhRunCtx) {
     EfhSystemState::kUnknown, // Preopen, Trading, Closed
     EfhGroupStateErrorDomain::kSocketError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kFeedSnapshot, // Unspecified, FeedRecovery
-    0 // int64_t code
+    dev->lastErrno
   };
+  dev->lastErrno = 0;
   pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
   EKA_LOG("%s:%u re-trying in %d seconds",EKA_EXCH_DECODE(exch),id,connectRetryDelayTime);
   if (connectRetryDelayTime == 0) on_error("connectRetryDelayTime == 0");
@@ -241,6 +243,7 @@ int EkaFhGroup::stop() {
 
   thread_active    = false;
   snapshot_active  = false;
+  recovery_active  = false;
   heartbeat_active = false;
 
   /* shutdown(recovery_sock,SHUT_RD); */

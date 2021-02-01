@@ -49,7 +49,10 @@ EkaOpResult EkaFhMiax::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
 
     //-----------------------------------------------------------------------------
     if (! runGr->udpCh->has_data()) {
-      runGr->checkTimeOut(pEfhRunCtx);
+      if (++timeCheckCnt % TimeCheckRate == 0) {
+	tradingHours = isTradingHours(9,30,16,00);
+      }
+      if (tradingHours)   runGr->checkTimeOut(pEfhRunCtx);
       continue;
     }
     uint     msgInPkt = 0;

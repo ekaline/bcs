@@ -35,7 +35,7 @@
 #include "EfhXdpProps.h"
 #include "EfhCmeProps.h"
 
-#define MAX_SECURITIES 300000
+#define MAX_SECURITIES 600000
 #define MAX_UNDERLYINGS 4000
 #define MAX_GROUPS 36
 #define MAX_TEST_THREADS 16
@@ -44,6 +44,8 @@
 static volatile bool keep_work = true;
 static EfhCtx* pEfhCtx = NULL;
 
+static int fatalErrorCnt = 0;
+static const int MaxFatalErrors = 4;
 /* static FILE* md[MAX_GROUPS] = {}; */
 /* static FILE* full_dict[MAX_GROUPS] = {}; */
 /* static FILE* subscr_dict[MAX_GROUPS] = {}; */
@@ -139,26 +141,34 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
     case EfhGroupStateErrorDomain::kExchangeError :
       printf ("=========================\n%s: ExchangeError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
+      if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
       break;
 
     case EfhGroupStateErrorDomain::kSocketError :
       printf ("=========================\n%s: SocketError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
+      if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
       break;
 
     case EfhGroupStateErrorDomain::kCredentialError :
       printf ("=========================\n%s: CredentialError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
+      if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
+
       break;
 
     case EfhGroupStateErrorDomain::kOSError :
       printf ("=========================\n%s: OSError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
+      if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
+
       break;
 
     case EfhGroupStateErrorDomain::kDeviceError :
       printf ("=========================\n%s: DeviceError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
+      if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
+
       break;
 
     default:

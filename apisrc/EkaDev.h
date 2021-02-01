@@ -143,6 +143,8 @@ class EkaDev {
 
   EkaEfc*                   efc = NULL;
 
+  int64_t                   lastErrno = 0;
+
 #ifdef TEST_PRINT_DICT
   FILE* testDict;
 #endif

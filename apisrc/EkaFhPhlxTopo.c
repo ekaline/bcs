@@ -40,7 +40,7 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       EKA_LOG("%s:%u: Running PreTrade Snapshot",EKA_EXCH_DECODE(exch),gr->id);
       gr->snapshotThreadDone = false;
 
-      gr->sendFeedUpInitial(pEfhRunCtx);
+      gr->sendFeedDownInitial(pEfhRunCtx);
 
       gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,1, 1);
 
@@ -61,10 +61,15 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
     //-----------------------------------------------------------------------------
     if (runGr->drainQ(pEfhRunCtx)) continue;
     //-----------------------------------------------------------------------------
+
     if (! runGr->udpCh->has_data()) {
-      runGr->checkTimeOut(pEfhRunCtx);
+      if (++timeCheckCnt % TimeCheckRate == 0) {
+	tradingHours = isTradingHours(9,30,16,00);
+      }
+      if (tradingHours)   runGr->checkTimeOut(pEfhRunCtx);
       continue;
     }
+
     uint     msgInPkt = 0;
     uint64_t sequence = 0;
     uint8_t  gr_id    = 0xFF;
@@ -81,7 +86,7 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       gr->gapClosed = false;
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
 
-      gr->sendFeedUpInitial(pEfhRunCtx);
+      gr->sendFeedDownInitial(pEfhRunCtx);
 
       gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 1, 0);
     }
