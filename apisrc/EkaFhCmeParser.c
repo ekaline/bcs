@@ -146,11 +146,12 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 
       const MaturityMonthYear_T* pMaturity = (MaturityMonthYear_T*)&rootBlock->MaturityMonthYear;
 #ifdef _PRINT_ALL_
-      EKA_LOG ("\t\tDefinitionFuture54: report %d of %d,\'%s\',\'%s\',\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u",
+      EKA_LOG ("\t\tDefinitionFuture54: report %d of %d,\'%s\',\'%s\',\'%s\',\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u",
 	       processedDefinitionMessages,totNumReports,
 	       securityExchange.c_str(),
 	       asset.c_str(),
 	       symbol.c_str(),
+	       securityType.c_str(),
 	       securityId,
 	       cfiCode.c_str(),
 	       pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week
@@ -177,12 +178,13 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       const MaturityMonthYear_T* pMaturity = (MaturityMonthYear_T*)&rootBlock->MaturityMonthYear;
       uint8_t     putOrCall        = (uint8_t)rootBlock->PutOrCall;
 #ifdef _PRINT_ALL_
-      EKA_LOG ("\t\tDefinitionOption55: report %d of %d,\'%s\',\'%s\',\'%s\',%s,(%d),%d,\'%s\',%04u-%02u-%02u--%02u",
+      EKA_LOG ("\t\tDefinitionOption55: report %d of %d,\'%s\',\'%s\',\'%s\',%s (0x%x),\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u",
 	       processedDefinitionMessages,totNumReports,
 	       securityExchange.c_str(),
 	       asset.c_str(),
 	       symbol.c_str(),
 	       putOrCall == PutOrCall_T::Put ? "PUT" : putOrCall == PutOrCall_T::Call ? "CALL" : "UNEXPECTED",putOrCall,
+	       securityType.c_str(),
 	       securityId,
 	       cfiCode.c_str(),
 	       pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week
