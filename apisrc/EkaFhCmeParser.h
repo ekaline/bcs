@@ -237,6 +237,18 @@ enum class PutOrCall_T : uInt8 {
     Call = 1
     };
 
+inline bool operator==(const PutOrCall_T &lhs, const uint8_t &rhs) noexcept {
+  return (uint8_t)lhs == rhs;
+}
+inline bool operator==(const uint8_t &lhs, const PutOrCall_T &rhs) noexcept {
+  return lhs == (uint8_t)rhs;
+}
+inline bool operator!=(const PutOrCall_T &lhs, const uint8_t &rhs) noexcept {
+  return !operator==(lhs, rhs);
+}
+inline bool operator!=(const uint8_t &lhs, const PutOrCall_T &rhs) noexcept {
+  return !operator==(lhs, rhs);
+}
 enum class SecurityTradingEvent_T : uInt8 {
   NoEvent = 0,
     NoCancel = 1,

@@ -75,5 +75,7 @@ class EkaFhCmeGr : public EkaFhGroup {
 
   FhBook*   book = NULL;
 
+  int       processedDefinitionMessages = 0;
+
 };
 #endif

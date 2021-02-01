@@ -145,14 +145,18 @@ EkaOpResult EkaFhCme::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
   socklen_t addrlen = sizeof(sockaddr);
 
   gr->snapshot_active = true;
+  gr->processedDefinitionMessages = 0;
   while (gr->snapshot_active) {
     uint8_t pkt[1536] = {};
     int size = recvfrom(sock, pkt, sizeof(pkt), 0, (sockaddr*) &addr, &addrlen);
     if (size < 0) on_error("size = %d",size);
-    gr->processPkt(pEfhRunCtx,pkt,size,EkaFhMode::DEFINITIONS);
+    if (gr->processPkt(pEfhRunCtx,pkt,size,EkaFhMode::DEFINITIONS)) break;
+    
   }
   gr->snapshot_active = false;
 
+  EKA_LOG("%s:%u: %d Definition messages processed",
+	  EKA_EXCH_DECODE(exch),gr->id,gr->processedDefinitionMessages);
   close (sock);
   return EKA_OPRESULT__OK;
 

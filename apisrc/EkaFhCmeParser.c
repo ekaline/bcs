@@ -132,19 +132,32 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 
       /* ##################################################################### */
     case MsgId::MDInstrumentDefinitionOption55 : {
+      ++processedDefinitionMessages;
       /* ------------------------------- */
       uint rootBlockPos = msgPos + sizeof(MsgHdr);
       const MDInstrumentDefinitionOption55_mainBlock* rootBlock = (const MDInstrumentDefinitionOption55_mainBlock*)&pkt[rootBlockPos];
-      std::string symbol = std::string((const char*)&rootBlock->Symbol,sizeof(rootBlock->Symbol));
-      SecurityIdT securityId      = rootBlock->SecurityID;
-      int32_t totNumReports       = rootBlock->TotNumReports;
-      uint8_t matchEventIndicator = rootBlock->MatchEventIndicator;
+      SecurityIdT securityId       = rootBlock->SecurityID;
+      int32_t     totNumReports    = rootBlock->TotNumReports;
+      std::string symbol           = std::string((const char*)&rootBlock->Symbol,          sizeof(rootBlock->Symbol));
+      std::string cfiCode          = std::string((const char*)&rootBlock->CFICode,         sizeof(rootBlock->CFICode));
+      std::string securityExchange = std::string((const char*)&rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange));
+      std::string asset            = std::string((const char*)&rootBlock->Asset,           sizeof(rootBlock->Asset));
+      const MaturityMonthYear_T* pMaturity = (MaturityMonthYear_T*)&rootBlock->MaturityMonthYear;
+      uint8_t     putOrCall        = (uint8_t)rootBlock->PutOrCall;
 #ifdef _PRINT_ALL_
-      EKA_LOG ("\t\tMDInstrumentDefinitionOption55: matchEventIndicator=0x%02x, TotNumReports=%d, Symbol=\'%s\', SecurityID=%d",
-	       matchEventIndicator,totNumReports,symbol.c_str(),securityId);
+      EKA_LOG ("\t\tDefinitionOption55: report %d of %d,\'%s\',\'%s\',\'%s\',%s,%d,\'%s\',%04u-%02u-%02u",
+	       processedDefinitionMessages,totNumReports,
+	       securityExchange.c_str(),
+	       asset.c_str(),
+	       symbol.c_str(),
+	       putOrCall == PutOrCall_T::Put ? "PUT" : putOrCall == PutOrCall_T::Call ? "CALL" : "UNEXPECTED",
+	       securityId,
+	       cfiCode.c_str(),
+	       pMaturity->year,pMaturity->month,pMaturity->day
+	       );
 
 #endif
-
+      if (processedDefinitionMessages >= totNumReports) return true;
     }
       break;
 
