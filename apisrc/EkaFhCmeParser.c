@@ -192,7 +192,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       /* ##################################################################### */
     default:
 #ifdef _PRINT_ALL_
-      EKA_LOG ("\t\tMsgId=%u",msgHdr->templateId);
+      //     EKA_LOG ("\t\tMsgId=%u",msgHdr->templateId);
 
 #endif
 
