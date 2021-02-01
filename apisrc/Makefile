@@ -62,6 +62,8 @@ lab: GCC_EXTERNAL_DEFINES=-DEKA_TEST_IGNORE_DEFINITIONS -DEKA_TEST_IGNORE_GAP -D
 lab: GCC_FLAGS= -Wall -fpic -pthread -lrt -lm $(GCC_EXTERNAL_DEFINES)
 lab: all
 
+use_onload: export LD_PRELOAD=libonload.so
+use_onload: all
 
 ###############################################
 # LWIP
