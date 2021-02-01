@@ -131,7 +131,22 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 
 
       /* ##################################################################### */
+    case MsgId::MDInstrumentDefinitionOption55 : {
+      /* ------------------------------- */
+      uint rootBlockPos = msgPos + sizeof(MsgHdr);
+      const MDInstrumentDefinitionOption55_mainBlock* rootBlock = (const MDInstrumentDefinitionOption55_mainBlock*)&pkt[rootBlockPos];
+      std::string symbol = std::string((const char*)&rootBlock->Symbol,sizeof(rootBlock->Symbol));
+      SecurityIdT securityId      = rootBlock->SecurityID;
+      int32_t totNumReports       = rootBlock->TotNumReports;
+      uint8_t matchEventIndicator = rootBlock->MatchEventIndicator;
+#ifdef _PRINT_ALL_
+      EKA_LOG ("\t\tMDInstrumentDefinitionOption55: matchEventIndicator=0x%02x, TotNumReports=%d, Symbol=\'%s\', SecurityID=%d",
+	       matchEventIndicator,totNumReports,symbol.c_str(),securityId);
 
+#endif
+
+    }
+      break;
 
       /* ##################################################################### */
     default:

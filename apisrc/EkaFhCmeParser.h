@@ -307,15 +307,16 @@ enum class InstAttribValue_T : uInt32 {
     };
 
 // Bitmap. Fields are bit indxes
-enum class MatchEventIndicator_T : uInt8 {
-  LastTradeMsg = 0,
-    LastVolumeMsg = 1,
-    LastQuoteMsg = 2,
-    LastStatsMsg = 3,
-    LastImpliedMsg = 4,
-    RecoveryMsg = 5,
-    Reserved = 6,
-    EndOfEvent = 7,
+typedef uInt8 MatchEventIndicator_T;
+enum class MatchEventIndicator_Bit : uInt8 {
+  LastTradeMsg     = 0x01, // = 0
+    LastVolumeMsg  = 0x02, // = 1
+    LastQuoteMsg   = 0x04, // = 2
+    LastStatsMsg   = 0x08,  // = 3
+    LastImpliedMsg = 0x10, // = 4
+    RecoveryMsg    = 0x20, // = 5
+    Reserved       = 0x40, // = 6
+    EndOfEvent     = 0x80  // = 7
     };
 
 // Bitmap. Fields are bit indxes
