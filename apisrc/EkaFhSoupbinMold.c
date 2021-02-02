@@ -40,29 +40,42 @@ struct soupbin_login_req {
 
 //-----------------------------------------------
 
-static int sendUdpPkt (EkaDev* dev, EkaFhNasdaqGr* gr, int sock, void* sendBuf, size_t size, const sockaddr* addr, const char* msgName) {
+static int sendUdpPkt (EkaDev* dev, 
+		       EkaFhNasdaqGr* gr, 
+		       int sock, 
+		       void* sendBuf, 
+		       size_t size, 
+		       const sockaddr* addr, 
+		       const char* msgName) {
+  static const int SendMaxReTry = 3;
   int bytesSent = -1;
-  while (1) {
+  for (auto i = 0; i < SendMaxReTry; i++) {
     int bytesSent = sendto(sock,sendBuf,size,0,addr,sizeof(sockaddr));
-    if (bytesSent < 0) on_error("%s:%u sendto failed for %s to: %s:%u, sock=%d",
-				EKA_EXCH_DECODE(gr->exch),gr->id, msgName,
-				EKA_IP2STR(((sockaddr_in*)addr)->sin_addr.s_addr),be16toh(((sockaddr_in*)addr)->sin_port),
-				sock
-				);
-    if (bytesSent == 0) {
-      EKA_WARN("%s:%u %s sent %d bytes. Retrying...",EKA_EXCH_DECODE(gr->exch),gr->id,msgName,bytesSent);
-      continue;
+    if (bytesSent == (int) size) {
+      EKA_TRACE("%s:%u %s of %d bytes is sent",
+		EKA_EXCH_DECODE(gr->exch),gr->id,msgName,bytesSent);
+      return bytesSent;
+    } else {
+      dev->lastErrno = errno;
+      EKA_WARN("%s:%u sendto failed for %s to: %s:%u bytesSent=%d: %s",
+	       EKA_EXCH_DECODE(gr->exch),gr->id, msgName,
+	       EKA_IP2STR(((sockaddr_in*)addr)->sin_addr.s_addr),
+	       be16toh(((sockaddr_in*)addr)->sin_port),
+	       bytesSent,
+	       strerror(dev->lastErrno));
     }
-    if (bytesSent != (int) size)
-      on_error("%s:%u partial UDP pkt send: tried %d, sent %d",EKA_EXCH_DECODE(gr->exch),gr->id,(int)size,bytesSent);
-
-    EKA_TRACE("%s:%u %s of %d bytes is sent",EKA_EXCH_DECODE(gr->exch),gr->id,msgName,bytesSent);
-    break;
+    sleep(1);
   }
   return bytesSent;
 }
 //-----------------------------------------------
-static int recvUdpPkt (EkaDev* dev, EkaFhNasdaqGr* gr, int sock, void* recvBuf, size_t size, sockaddr* addr, const char* msgName) {
+static int recvUdpPkt (EkaDev* dev, 
+		       EkaFhNasdaqGr* gr, 
+		       int sock, 
+		       void* recvBuf, 
+		       size_t size, 
+		       sockaddr* addr, 
+		       const char* msgName) {
   int receivedBytes = -1;
   static const int MaxIterations = 1000000;
   socklen_t addrlen = sizeof(sockaddr);
@@ -374,10 +387,10 @@ void* getMolUdp64Data(void* attr) {
 
   EkaDev* dev = gr->dev;
   assert (dev != NULL);
-  if (gr->recovery_sock != -1) on_error("%s:%u gr->recovery_sock != -1",EKA_EXCH_DECODE(gr->exch),gr->id);
-  if ((gr->recovery_sock = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP)) == -1) 
-    on_error("Failed to open socket for %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id);
-  if (gr->recovery_sock < 0) on_error("%s:%u recovery_sock = %d",EKA_EXCH_DECODE(gr->exch),gr->id,gr->recovery_sock);
+  int udpSock = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
+  if (udpSock < 0) 
+    on_error("%s:%u: Failed to open socket: %s",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,strerror(errno));
 
   mold_hdr mold_request = {};
   memcpy(&mold_request.session_id,(uint8_t*)gr->session_id,10);
@@ -402,21 +415,64 @@ void* getMolUdp64Data(void* attr) {
     	      be64toh(mold_request.sequence),
     	      be16toh(mold_request.message_cnt)
     	      );
-
-    if (sendUdpPkt (dev, gr, gr->recovery_sock, &mold_request, sizeof(mold_request), (const sockaddr*) &mold_recovery_addr, "Mold request") <= 0) {
-      dev->lastErrno = errno;
-      gr->sendRetransmitSocketError(pEfhRunCtx);
-      return NULL;
-    }
-    int attempt = 0;
-    while (1) {
-      int r = recvUdpPkt (dev, gr, gr->recovery_sock, buf,   sizeof(buf),          (sockaddr*)       &mold_recovery_addr, "Mold response");
-      if (r > 0) break;
-      if (attempt++ == gr->MoldLocalRetryAttempts) {
-	EKA_WARN("Mold UDP socket is not responding after %d attempts",gr->MoldLocalRetryAttempts);
-	gr->sendRetransmitSocketError(pEfhRunCtx);
+    static const int MaxMoldReTry = 5;
+    static const int MaxSendReTry = 2;
+    static const int MaxReadReTry = 100000;
+    bool moldRcvSuccess = false;
+    /* ----------------------------------------------------- */
+    for (auto i = 0; i < MaxMoldReTry; i++) {
+      /* ----------------------------------------------------- */
+      for (auto j = 0; j < MaxSendReTry; j++) {
+	int r = sendto(udpSock,&mold_request,sizeof(mold_request),0,(const sockaddr*)&mold_recovery_addr,sizeof(sockaddr));
+	if (r == sizeof(mold_request)) {
+	  EKA_TRACE("%s:%u Mold request sent: %s:%u r=%d",
+		    EKA_EXCH_DECODE(gr->exch),gr->id,
+		    EKA_IP2STR(((sockaddr_in*)&mold_recovery_addr)->sin_addr.s_addr),
+		    be16toh(((sockaddr_in*)&mold_recovery_addr)->sin_port),
+		    r);
+	  break;
+	} else {      
+	  dev->lastErrno = errno;
+	  EKA_WARN("%s:%u Mold request send failed to: %s:%u r=%d: %s",
+		   EKA_EXCH_DECODE(gr->exch),gr->id,
+		   EKA_IP2STR(((sockaddr_in*)&mold_recovery_addr)->sin_addr.s_addr),
+		   be16toh(((sockaddr_in*)&mold_recovery_addr)->sin_port),
+		   r,
+		   strerror(dev->lastErrno));
+	  sleep(0);
+	  continue;
+	}
       }
-      sleep(0);
+      /* ----------------------------------------------------- */
+      socklen_t addrlen = sizeof(sockaddr);
+      for (auto k = 0; k < MaxReadReTry; k++) {
+	int r = recvfrom(udpSock,buf,sizeof(buf), MSG_DONTWAIT, (sockaddr*)&mold_recovery_addr, &addrlen);
+	if (r > 0) {
+	  moldRcvSuccess = true;
+	  break;
+	}
+	if (r == 0) {
+	  sleep(0);
+	  continue;
+	}
+	// r < 0
+	dev->lastErrno = errno;
+
+	EKA_WARN("%s:%u Mold request receive failed from: %s:%u r=%d: %s",
+		 EKA_EXCH_DECODE(gr->exch),gr->id,
+		 EKA_IP2STR(((sockaddr_in*)&mold_recovery_addr)->sin_addr.s_addr),
+		 be16toh(((sockaddr_in*)&mold_recovery_addr)->sin_port),
+		 r,
+		 strerror(dev->lastErrno));
+	moldRcvSuccess = false;
+	break;
+      }
+      /* ----------------------------------------------------- */
+    }
+    if (! moldRcvSuccess) {
+      gr->sendRetransmitSocketError(pEfhRunCtx);
+      on_error("%s:%u Mold request failed after %d attempts: %s",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,MaxMoldReTry,strerror(dev->lastErrno));
     }
 
     //-----------------------------------------------
@@ -439,8 +495,8 @@ void* getMolUdp64Data(void* attr) {
 	  EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot);
   gr->gapClosed = true;
 
-  close(gr->recovery_sock);
-  gr->recovery_sock = -1;
+  close(udpSock);
+
   return NULL;
 }
 
