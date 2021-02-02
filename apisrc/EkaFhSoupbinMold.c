@@ -125,7 +125,7 @@ void* soupbin_heartbeat_thread(void* attr) {
   return NULL;
 }
 
-static void sendLogin (EkaFhNasdaqGr* gr, uint64_t start_sequence) {
+static bool sendLogin (EkaFhNasdaqGr* gr, uint64_t start_sequence) {
   EkaDev* dev = gr->dev;
 
   struct soupbin_header header = {};
@@ -149,9 +149,13 @@ static void sendLogin (EkaFhNasdaqGr* gr, uint64_t start_sequence) {
 	  login_message.sequence+'\0'
 	  );
 #endif	
-  if(send(gr->snapshot_sock,&login_message,sizeof(login_message), 0) < 0) 
-    on_error("%s:%u Login send failed, gr->snapshot_sock = %d",EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock);
-  return;
+  if(send(gr->snapshot_sock,&login_message,sizeof(login_message), 0) < 0) {
+    dev->lastErrno = errno;
+    EKA_WARN("%s:%u Login send failed, gr->snapshot_sock = %d: %s",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock,strerror(dev->lastErrno));
+    return false;
+  }
+  return true;
 }
 
 static void sendLogout (EkaFhNasdaqGr* gr) {
@@ -159,10 +163,12 @@ static void sendLogout (EkaFhNasdaqGr* gr) {
   struct soupbin_header logout_request = {};
   logout_request.length		= htons(1);
   logout_request.type		= 'O';
-  if(send(gr->snapshot_sock,&logout_request,sizeof(logout_request) , 0) < 0) 
-    on_error("%s:%u Logout send failed, gr->snapshot_sock = %d",EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock);
-  EKA_LOG("%s:%u Logout sent",EKA_EXCH_DECODE(gr->exch),gr->id);
-
+  if(send(gr->snapshot_sock,&logout_request,sizeof(logout_request) , 0) < 0) {
+    EKA_WARN("%s:%u Logout send failed, gr->snapshot_sock = %d: ",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock,strerror(errno));
+  } else {
+    EKA_LOG("%s:%u Logout sent",EKA_EXCH_DECODE(gr->exch),gr->id);
+  }
   return;
 }
 /* ##################################################################### */
@@ -269,7 +275,11 @@ void* getSoupBinData(void* attr) {
     EKA_LOG("%s:%u TCP connected to Glimpse, gr->snapshot_sock = %d",EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock);
 
     //-----------------------------------------------------------------
-    sendLogin (gr, start_sequence);
+    if (! sendLogin(gr, start_sequence)) {
+      gr->sendRetransmitSocketError(pEfhRunCtx);
+      close(gr->snapshot_sock);
+      continue;
+    }
     //-----------------------------------------------------------------
     if (! getLoginResponse(gr) ) {
       sendLogout(gr);
