@@ -4,11 +4,17 @@
 #include <string.h>
 #include <endian.h>
 #include <inttypes.h>
-
-#include "EkaFhRunGroup.h"
-#include "EkaFhCmeGr.h"
+#include <string>
 
 #include "EkaFhCmeParser.h"
+
+#ifdef _PCAP_TEST_
+#include "cmePcapParse.h"
+#else
+#include "EkaFhRunGroup.h"
+#include "EkaFhCmeGr.h"
+#endif
+
 
 std::string ts_ns2str(uint64_t ts);
 /* ##################################################################### */
@@ -17,7 +23,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 			    const uint8_t*   pkt, 
 			    int16_t          pktLen,
 			    EkaFhMode        op) {
-  const PktHdr* pktHdr = (const PktHdr*)pkt;
+  auto pktHdr {reinterpret_cast<const PktHdr*>(pkt)};
 
   uint64_t  pktTime = pktHdr->time;
   SequenceT pktSeq  = pktHdr->seq;
@@ -26,10 +32,11 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 
   while (pos < pktLen) {
     int msgPos = pos;
-    const MsgHdr* msgHdr = (const MsgHdr*)&pkt[msgPos];
+    auto msgHdr {reinterpret_cast<const MsgHdr*>(&pkt[msgPos])};
 
 #ifdef _PRINT_ALL_
-    EKA_LOG ("\tMsgId=%d,size=%u,blockLen=%u,schemaId=%u,version=%u",
+    //    TEST_LOG("--------------- pktLen = %d, pos = %d",pktLen,pos);
+    TEST_LOG ("\tMsgId=%d,size=%u,blockLen=%u,schemaId=%u,version=%u",
 	     (int)msgHdr->templateId,
 	     msgHdr->size,
 	     msgHdr->blockLen,
@@ -37,23 +44,25 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 	     msgHdr->version);
 #endif
 
+
     if (msgPos + msgHdr->size > pktLen) 
       on_error("msgPos %d + msgHdr->size %u > pktLen %u",
 	       msgPos,msgHdr->size,pktLen);
+
+    uint rootBlockPos = msgPos + sizeof(*msgHdr);
 
     switch (msgHdr->templateId) {
       /* ##################################################################### */
     case MsgId::MDIncrementalRefreshBook46 : {
       /* ------------------------------- */
-      uint rootBlockPos = msgPos + sizeof(MsgHdr);
-      const MDIncrementalRefreshBook46_mainBlock* rootBlock = (const MDIncrementalRefreshBook46_mainBlock*)&pkt[rootBlockPos];
+      auto rootBlock {reinterpret_cast<const MDIncrementalRefreshBook46_mainBlock*>(&pkt[rootBlockPos])};
 #ifdef _PRINT_ALL_
-      EKA_LOG ("\t\tIncrementalRefreshBook46: TransactTime=%jx, MatchEventIndicator=0x%x",
+      TEST_LOG ("\t\tIncrementalRefreshBook46: TransactTime=%jx, MatchEventIndicator=0x%x",
 	       rootBlock->TransactTime,rootBlock->MatchEventIndicator);
 #endif
       /* ------------------------------- */
       uint groupSizePos = rootBlockPos + msgHdr->blockLen;
-      const groupSize_T* pGroupSize = (const groupSize_T*)&pkt[groupSizePos];
+      auto pGroupSize {reinterpret_cast<const groupSize_T*>(&pkt[groupSizePos])};
       /* ------------------------------- */
       uint entryPos = groupSizePos + sizeof(*pGroupSize);
       for (uint i = 0; i < pGroupSize->numInGroup; i++) {
@@ -67,7 +76,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 	MDEntryTypeBook_T entryType    = e->MDEntryType;
 
 #ifdef _PRINT_ALL_
-	EKA_LOG("\t\t\tsecId=%8d,%s,%s,plvl=%u,p=%16jd,s=%d\n",
+	TEST_LOG("\t\t\tsecId=%8d,%s,%s,plvl=%u,p=%16jd,s=%d\n",
 		securityId,
 		MDpdateAction2STR(action),
 		MDEntryTypeBook2STR(entryType),
@@ -82,8 +91,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       /* ##################################################################### */
     case MsgId::SnapshotFullRefresh52 : {
       /* ------------------------------- */
-      uint rootBlockPos = msgPos + sizeof(MsgHdr);
-      const SnapshotFullRefresh52_mainBlock* rootBlock = (const SnapshotFullRefresh52_mainBlock*)&pkt[rootBlockPos];
+      auto rootBlock {reinterpret_cast<const SnapshotFullRefresh52_mainBlock*>(&pkt[rootBlockPos])};
       SequenceT               lastMsgSeqNumProcessed = rootBlock->LastMsgSeqNumProcessed;
       uInt32_T                totNumReports          = rootBlock->TotNumReports;
       SecurityIdT             securityID             = rootBlock->SecurityID;
@@ -92,7 +100,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       uInt64_T                lastUpdateTime         = rootBlock->LastUpdateTime;
       SecurityTradingStatus_T tradingStatus          = rootBlock->MDSecurityTradingStatus;
 #ifdef _PRINT_ALL_
-      EKA_LOG ("\t\tSnapshotFullRefresh52: securityID=%d, lastMsgSeqNumProcessed=%u,totNumReports=%u,tradingStatus=%s,lastUpdateTime=%s",
+      TEST_LOG ("\t\tSnapshotFullRefresh52: securityID=%d, lastMsgSeqNumProcessed=%u,totNumReports=%u,tradingStatus=%s,lastUpdateTime=%s",
 	       securityID,
 	       lastMsgSeqNumProcessed,
 	       totNumReports,
@@ -105,7 +113,8 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       /* ------------------------------- */
       uint entryPos = groupSizePos + sizeof(*pGroupSize);
       for (uint i = 0; i < pGroupSize->numInGroup; i++) {
-	const IncementaRefreshMdEntry* e = (const IncementaRefreshMdEntry*) &pkt[entryPos];
+	auto e {reinterpret_cast<const IncementaRefreshMdEntry*>(&pkt[entryPos])};
+
 	PriceT            price        = e->MDEntryPx;
 	SizeT             size         = e->MDEntrySize;
 	SecurityIdT       securityId   = e->SecurityID;
@@ -115,7 +124,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 	MDEntryTypeBook_T entryType    = e->MDEntryType;
 
 #ifdef _PRINT_ALL_
-	EKA_LOG("\t\t\tsecId=%8d,%s,%s,plvl=%u,p=%16jd,s=%d\n",
+	TEST_LOG("\t\t\tsecId=%8d,%s,%s,plvl=%u,p=%16jd,s=%d\n",
 		securityId,
 		MDpdateAction2STR(action),
 		MDEntryTypeBook2STR(entryType),
@@ -134,8 +143,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
     case MsgId::MDInstrumentDefinitionFuture54 : {
       ++processedDefinitionMessages;
       /* ------------------------------- */
-      uint rootBlockPos = msgPos + sizeof(MsgHdr);
-      const MDInstrumentDefinitionFuture54_mainBlock* rootBlock = (const MDInstrumentDefinitionFuture54_mainBlock*)&pkt[rootBlockPos];
+      auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionFuture54_mainBlock*>(&pkt[rootBlockPos])};
       SecurityIdT securityId       = rootBlock->SecurityID;
       int32_t     totNumReports    = rootBlock->TotNumReports;
       std::string symbol           = std::string((const char*)&rootBlock->Symbol,          sizeof(rootBlock->Symbol));
@@ -143,10 +151,10 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       std::string securityExchange = std::string((const char*)&rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange));
       std::string asset            = std::string((const char*)&rootBlock->Asset,           sizeof(rootBlock->Asset));
       std::string securityType     = std::string((const char*)&rootBlock->SecurityType,    sizeof(rootBlock->SecurityType));
+      auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
 
-      const MaturityMonthYear_T* pMaturity = (MaturityMonthYear_T*)&rootBlock->MaturityMonthYear;
 #ifdef _PRINT_ALL_
-      EKA_LOG ("\t\tDefinitionFuture54: report %d of %d,\'%s\',\'%s\',\'%s\',\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u",
+      TEST_LOG ("\t\tDefinitionFuture54: report %d of %d,\'%s\',\'%s\',\'%s\',\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u",
 	       processedDefinitionMessages,totNumReports,
 	       securityExchange.c_str(),
 	       asset.c_str(),
@@ -165,8 +173,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
     case MsgId::MDInstrumentDefinitionOption55 : {
       ++processedDefinitionMessages;
       /* ------------------------------- */
-      uint rootBlockPos = msgPos + sizeof(MsgHdr);
-      const MDInstrumentDefinitionOption55_mainBlock* rootBlock = (const MDInstrumentDefinitionOption55_mainBlock*)&pkt[rootBlockPos];
+      auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionOption55_mainBlock*>(&pkt[rootBlockPos])};
       SecurityIdT securityId       = rootBlock->SecurityID;
       int32_t     totNumReports    = rootBlock->TotNumReports;
       std::string symbol           = std::string((const char*)&rootBlock->Symbol,          sizeof(rootBlock->Symbol));
@@ -174,22 +181,21 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       std::string securityExchange = std::string((const char*)&rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange));
       std::string asset            = std::string((const char*)&rootBlock->Asset,           sizeof(rootBlock->Asset));
       std::string securityType     = std::string((const char*)&rootBlock->SecurityType,    sizeof(rootBlock->SecurityType));
-
-      const MaturityMonthYear_T* pMaturity = (MaturityMonthYear_T*)&rootBlock->MaturityMonthYear;
+      auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
       uint8_t     putOrCall        = (uint8_t)rootBlock->PutOrCall;
+
 #ifdef _PRINT_ALL_
-      EKA_LOG ("\t\tDefinitionOption55: report %d of %d,\'%s\',\'%s\',\'%s\',%s (0x%x),\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u",
+      TEST_LOG ("\t\tDefinitionOption55: report %d of %d,\'%s\',\'%s\',\'%s\',%s,\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u",
 	       processedDefinitionMessages,totNumReports,
 	       securityExchange.c_str(),
 	       asset.c_str(),
 	       symbol.c_str(),
-	       putOrCall == PutOrCall_T::Put ? "PUT" : putOrCall == PutOrCall_T::Call ? "CALL" : "UNEXPECTED",putOrCall,
+	       putOrCall == PutOrCall_T::Put ? "PUT" : putOrCall == PutOrCall_T::Call ? "CALL" : "UNEXPECTED",
 	       securityType.c_str(),
 	       securityId,
 	       cfiCode.c_str(),
 	       pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week
 	       );
-
 #endif
       if (processedDefinitionMessages >= totNumReports) return true;
     }
@@ -198,12 +204,16 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       /* ##################################################################### */
     default:
 #ifdef _PRINT_ALL_
-      //     EKA_LOG ("\t\tMsgId=%u",msgHdr->templateId);
+      //     TEST_LOG ("\t\tMsgId=%u",msgHdr->templateId);
 
 #endif
 
       break;
     }
+    pos += msgHdr->size;
+
+    //    TEST_LOG("pos=%d, pktLen=%d",pos,pktLen);
+    if (pktLen - pos == 4) pos += 4; // for FCS from eka_tcpdump
   }
   return false;
 }

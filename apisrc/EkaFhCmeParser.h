@@ -48,41 +48,41 @@ typedef int16_t int16;
 typedef int32_t int32;
 typedef int64_t int64;
 
-typedef char     	Asset_T[6];                     // length='6', semanticType='String', const='',description='Asset'
-typedef char    	CFICode_T[6];                   // length='6', semanticType='String', const='',description=''
-typedef char      	CHAR_T;                         // length='', semanticType='', const='',description='char'
-typedef char    	Currency_T[3];                  // length='3', semanticType='Currency', const='',description='Currency'
-typedef int8      	InstAttribType_T;               // length='', semanticType='', const='24',description='Eligibility'
-typedef int16     	Int16_T;                        // length='', semanticType='', const='',description='int16'
-typedef int32     	Int32_T;                        // length='', semanticType='', const='',description='int32'
-typedef int32     	Int32NULL_T;                    // length='', semanticType='', const='',description=''
-typedef int8      	Int8_T;                         // length='', semanticType='', const='',description='int8'
-typedef int8      	Int8NULL_T;                     // length='', semanticType='', const='',description='int8'
-typedef uint16    	LocalMktDate_T;                 // length='', semanticType='LocalMktDate', const='',description=''
-typedef char      	MDEntryTypeChannelReset_T;      // length='', semanticType='', const='J',description='Channel'
-typedef char      	MDEntryTypeLimits_T;            // length='', semanticType='', const='g',description='MDEntryTypeLimits'
-typedef char      	MDEntryTypeTrade_T;             // length='', semanticType='', const='2',description='MDEntryTypeTrade'
-typedef char      	MDEntryTypeVol_T;               // length='', semanticType='', const='e',description='MDEntryTypeVol'
-typedef char    	MDFeedType_T[3];                // length='3', semanticType='String', const='',description=''
-typedef int8      	MDUpdateActionNew_T;            // length='', semanticType='', const='0',description='MDUpdateActionNew'
-typedef int8      	MDUpdateTypeNew_T;              // length='', semanticType='', const='0',description='MDUpdateTypeNew'
-typedef char    	QuoteReqId_T[23];               // length='23', semanticType='String', const='',description=''
-typedef char    	SecurityExchange_T[4];          // length='4', semanticType='Exchange', const='',description=''
-typedef char    	SecurityGroup_T[6];             // length='6', semanticType='String', const='',description=''
-typedef char      	SecurityIDSource_T;             // length='1', semanticType='char', const='8',description='SecurityIDSource'
-typedef char    	SecuritySubType_T[5];           // length='5', semanticType='String', const='',description=''
-typedef char    	SecurityType_T[6];              // length='6', semanticType='String', const='',description='SecurityType'
-typedef char   	        Symbol_T[20];                   // length='20', semanticType='String', const='',description='Symbol'
-typedef char    	Text_T[180];                    // length='180', semanticType='String', const='',description='Text'
-typedef char    	UnderlyingSymbol_T[20];         // length='20', semanticType='String', const='',description=''
-typedef char    	UnitOfMeasure_T[30];            // length='30', semanticType='String', const='',description=''
-typedef char      	UserDefinedInstrument_T;        // length='1', semanticType='char', const='',description=''
-typedef uint32    	uInt32_T;                       // length='', semanticType='', const='',description='uInt32'
-typedef uint32    	uInt32NULL_T;                   // length='', semanticType='', const='',description='uInt32'
-typedef uint64    	uInt64_T;                       // length='', semanticType='', const='',description='uInt64'
-typedef uint64    	uInt64NULL_T;                   // length='', semanticType='', const='',description='uInt64'
-typedef uint8     	uInt8_T;                        // length='', semanticType='', const='',description='uInt8'
-typedef uint8     	uInt8NULL_T;                    // length='', semanticType='', const='',description='uInt8NULL'
+typedef char     	Asset_T[6];                     // length='6',   semanticType='String',       const='',  description='Asset'
+typedef char    	CFICode_T[6];                   // length='6',   semanticType='String',       const='',  description=''
+typedef char      	CHAR_T;                         // length='',    semanticType='',             const='',  description='char'
+typedef char    	Currency_T[3];                  // length='3',   semanticType='Currency',     const='',  description='Currency'
+typedef int8      	InstAttribType_CONST_T;         // length='',    semanticType='',             const='24',description='Eligibility'
+typedef int16     	Int16_T;                        // length='',    semanticType='',             const='',  description='int16'
+typedef int32     	Int32_T;                        // length='',    semanticType='',             const='',  description='int32'
+typedef int32     	Int32NULL_T;                    // length='',    semanticType='',             const='',  description=''
+typedef int8      	Int8_T;                         // length='',    semanticType='',             const='',  description='int8'
+typedef int8      	Int8NULL_T;                     // length='',    semanticType='',             const='',  description='int8'
+typedef uint16    	LocalMktDate_T;                 // length='',    semanticType='LocalMktDate', const='',  description=''
+typedef char      	MDEntryTypeChannelReset_CONST_T;// length='',    semanticType='',             const='J', description='Channel'
+typedef char      	MDEntryTypeLimits_CONST_T;      // length='',    semanticType='',             const='g', description='MDEntryTypeLimits'
+typedef char      	MDEntryTypeTrade_CONST_T;       // length='',    semanticType='',             const='2', description='MDEntryTypeTrade'
+typedef char      	MDEntryTypeVol_CONST_T;         // length='',    semanticType='',             const='e', description='MDEntryTypeVol'
+typedef char    	MDFeedType_T[3];                // length='3',   semanticType='String',       const='',  description=''
+typedef int8      	MDUpdateActionNew_CONST_T;      // length='',    semanticType='',             const='0', description='MDUpdateActionNew'
+typedef int8      	MDUpdateTypeNew_T;              // length='',    semanticType='',             const='0', description='MDUpdateTypeNew'
+typedef char    	QuoteReqId_T[23];               // length='23',  semanticType='String',       const='',  description=''
+typedef char    	SecurityExchange_T[4];          // length='4',   semanticType='Exchange',     const='',  description=''
+typedef char    	SecurityGroup_T[6];             // length='6',   semanticType='String',       const='',  description=''
+typedef char      	SecurityIDSource_CONST_T;       // length='1',   semanticType='char',         const='8', description='SecurityIDSource'
+typedef char    	SecuritySubType_T[5];           // length='5',   semanticType='String',       const='',  description=''
+typedef char    	SecurityType_T[6];              // length='6',   semanticType='String',       const='',  description='SecurityType'
+typedef char   	        Symbol_T[20];                   // length='20',  semanticType='String',       const='',  description='Symbol'
+typedef char    	Text_T[180];                    // length='180', semanticType='String',       const='',  description='Text'
+typedef char    	UnderlyingSymbol_T[20];         // length='20',  semanticType='String',       const='',  description=''
+typedef char    	UnitOfMeasure_T[30];            // length='30',  semanticType='String',       const='',  description=''
+typedef char      	UserDefinedInstrument_T;        // length='1',   semanticType='char',         const='',  description=''
+typedef uint32    	uInt32_T;                       // length='',    semanticType='',             const='',  description='uInt32'
+typedef uint32    	uInt32NULL_T;                   // length='',    semanticType='',             const='',  description='uInt32'
+typedef uint64    	uInt64_T;                       // length='',    semanticType='',             const='',  description='uInt64'
+typedef uint64    	uInt64NULL_T;                   // length='',    semanticType='',             const='',  description='uInt64'
+typedef uint8     	uInt8_T;                        // length='',    semanticType='',             const='',  description='uInt8'
+typedef uint8     	uInt8NULL_T;                    // length='',    semanticType='',             const='',  description='uInt8NULL'
 
 
 typedef int64 Decimal9_T;      // Decimal9" description="Decimal with constant exponent -9
@@ -315,7 +315,7 @@ enum class InstAttribValue_T : uInt32 {
     GTOrdersEligibility = 18,
     ImpliedMatchingEligibility = 19,
     TriangulationEligible = 20,
-    VariableCabEligible = 21,
+    VariableCabEligible = 21
     };
 
 // Bitmap. Fields are bit indxes
@@ -357,7 +357,7 @@ struct MDInstrumentDefinitionFuture27_mainBlock {
 	Asset_T                       	Asset;
 	Symbol_T                      	Symbol;
 	Int32_T                       	SecurityID;
-	SecurityIDSource_T            	SecurityIDSource;
+  //	SecurityIDSource_CONST_T            	SecurityIDSource;
 	SecurityType_T                	SecurityType;
 	CFICode_T                     	CFICode;
 	MaturityMonthYear_T           	MaturityMonthYear;
@@ -407,7 +407,7 @@ struct MDInstrumentDefinitionOption41_mainBlock {
 	Asset_T                       	Asset;
 	Symbol_T                      	Symbol;
 	Int32_T                       	SecurityID;
-	SecurityIDSource_T            	SecurityIDSource;
+  //	SecurityIDSource_CONST_T            	SecurityIDSource;
 	SecurityType_T                	SecurityType;
 	CFICode_T                     	CFICode;
 	PutOrCall_T                   	PutOrCall;
@@ -453,7 +453,7 @@ struct MDInstrumentDefinitionFuture54_mainBlock {
 	Asset_T                       	Asset;
 	Symbol_T                      	Symbol;
 	Int32_T                       	SecurityID;
-	SecurityIDSource_T            	SecurityIDSource;
+  //	SecurityIDSource_CONST_T            	SecurityIDSource;
 	SecurityType_T                	SecurityType;
 	CFICode_T                     	CFICode;
 	MaturityMonthYear_T           	MaturityMonthYear;
@@ -502,7 +502,7 @@ struct MDInstrumentDefinitionOption55_mainBlock {
 	Asset_T                       	Asset;
 	Symbol_T                      	Symbol;
 	Int32_T                       	SecurityID;
-	SecurityIDSource_T            	SecurityIDSource;
+  //	SecurityIDSource_CONST_T            	SecurityIDSource;
 	SecurityType_T                	SecurityType;
 	CFICode_T                     	CFICode;
 	PutOrCall_T                   	PutOrCall;
