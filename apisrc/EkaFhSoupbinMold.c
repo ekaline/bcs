@@ -392,6 +392,13 @@ void* getMolUdp64Data(void* attr) {
     on_error("%s:%u: Failed to open socket: %s",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,strerror(errno));
 
+  static const int TimeOut = 1;
+  struct timeval tv = {
+    .tv_sec = TimeOut
+  };
+  
+  setsockopt(udpSock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
   mold_hdr mold_request = {};
   memcpy(&mold_request.session_id,(uint8_t*)gr->session_id,10);
   uint64_t cnt2ask = end - start + 1;
@@ -446,7 +453,7 @@ void* getMolUdp64Data(void* attr) {
       /* ----------------------------------------------------- */
       socklen_t addrlen = sizeof(sockaddr);
       for (auto k = 0; k < MaxReadReTry; k++) {
-	int r = recvfrom(udpSock,buf,sizeof(buf), MSG_DONTWAIT, (sockaddr*)&mold_recovery_addr, &addrlen);
+	int r = recvfrom(udpSock,buf,sizeof(buf), MSG_WAITALL, (sockaddr*)&mold_recovery_addr, &addrlen);
 	if (r > 0) {
 	  moldRcvSuccess = true;
 	  break;
@@ -456,6 +463,17 @@ void* getMolUdp64Data(void* attr) {
 	  continue;
 	}
 	// r < 0
+	if (errno == EAGAIN) {
+	  EKA_WARN("%s:%u Mold request receive failed from: %s:%u after TimeOut %d, r=%d: %s",
+		   EKA_EXCH_DECODE(gr->exch),gr->id,
+		   EKA_IP2STR(((sockaddr_in*)&mold_recovery_addr)->sin_addr.s_addr),
+		   be16toh(((sockaddr_in*)&mold_recovery_addr)->sin_port),
+		   TimeOut,
+		   r,
+		   strerror(dev->lastErrno));
+	  continue;
+	}
+	
 	dev->lastErrno = errno;
 
 	EKA_WARN("%s:%u Mold request receive failed from: %s:%u r=%d: %s",
