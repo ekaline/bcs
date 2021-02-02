@@ -194,7 +194,7 @@ static bool sendLogOut(EkaFhMiaxGr* gr) {
   sesm_logout_msg.reason        = ' '; // Graceful Logout (Done for now)
 
   if(send(gr->recovery_sock,&sesm_logout_msg,sizeof(struct sesm_logout_req), 0) < 0) {
-    EKA_WARN("%s:%u: SESM Logout send failed");
+    EKA_WARN("%s:%u: SESM Logout send failed",EKA_EXCH_DECODE(gr->exch),gr->id);
     return false;
   }
 
