@@ -20,10 +20,13 @@ enum EfcReportType {
                 _x( ControllerState,    1000 )                              \
                 _x( MdReport,           2000 )                              \
                 _x( SecurityCtx,        3000 )                              \
-                _x( FireReport,         4000 )                              \
-                _x( MiaxSessionCtx,     5001 )                              \
-                _x( SqfSessionCtx,      5002 )                              \
-                _x( ExceptionReport,    6000 )
+                _x( FirePkt,            4000 )                              \
+  /* Following reports components are obsolete          */                  \
+  /* The firing params should be extracted from FirePkt */                  \
+                _x( FireReport,         5000 )                              \
+                _x( MiaxSessionCtx,     6001 )                              \
+                _x( SqfSessionCtx,      6002 )                              \
+                _x( ExceptionReport,    7000 )
     EfcReportType_ENUM_ITER( EKA__ENUM_DEF )
 };
 

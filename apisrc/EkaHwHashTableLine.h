@@ -18,12 +18,14 @@ class EkaHwHashTableLine {
   EkaHwHashTableLine(EkaDev* dev, EfhFeedVer hwFeedVer, int id);
   bool addSecurity(uint64_t secId);
   int  getSubscriptionId(uint64_t secId);
-  int  pack(int _sum);
+  int  pack6b(int _sum);
   int  downloadPacked();
 
  private:
   uint16_t getHash(uint64_t normSecId);
   int      getHashSize();
+  int      print(const char* msg);
+  int      printPacked(const char* msg);
 
  private:
 

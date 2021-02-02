@@ -23,7 +23,7 @@ class EkaEfc {
   int initStrategy(const EfcStratGlobCtx* efcStratGlobCtx);
   int armController();
   int disArmController();
-  int run();
+  int run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx);
   int createFireAction(uint8_t group, ExcConnHandle hConn);
   int setActionPayload(ExcConnHandle hConn,const void* fireMsg, size_t fireMsgSize);
 
@@ -39,16 +39,20 @@ class EkaEfc {
   int           setHwUdpParams();
   int           igmpJoinAll();
   EkaEpmAction* findFireAction(ExcConnHandle hConn);
+  int           setHwStratRegion();
+  int           enableRxFire();
 
   /* ----------------------------------------------------- */
-  static const int MAX_UDP_SESS = 64;
-  static const int MAX_TCP_SESS = 64;
-  static const int MAX_FIRE_ACTIONS = 64;
+  static const int MAX_UDP_SESS      = 64;
+  static const int MAX_TCP_SESS      = 64;
+  static const int MAX_FIRE_ACTIONS  = 64;
+  static const int MAX_CTX_THREADS   = 16;
 
   EkaIgmp*            ekaIgmp    = NULL;
-  uint8_t             mdCoreId = -1;
-  EkaDev*             dev = NULL;
-  EfhFeedVer          hwFeedVer = EfhFeedVer::kInvalid;
+  EkaCoreId           mdCoreId   = -1;
+  EkaCoreId           fireCoreId = -1;
+  EkaDev*             dev        = NULL;
+  EfhFeedVer          hwFeedVer  = EfhFeedVer::kInvalid;
   EkaHwHashTableLine* hashLine[EKA_SUBSCR_TABLE_ROWS] = {};
   int                 numSecurities = 0;
 
@@ -60,6 +64,10 @@ class EkaEfc {
   EkaEpmAction*       fireAction[MAX_FIRE_ACTIONS] = {};
   int                 numFireActions = 0;
 
+ public:
+  int                 ctxWriteBank[MAX_CTX_THREADS] = {};
+  EfcCtx              localCopyEfcCtx = {};
+  EfcRunCtx           localCopyEfcRunCtx = {};
 };
 
 #endif

@@ -12,7 +12,19 @@ typedef uint16_t       EpmFieldSize;
 //#define EpmMaxRawTcpSize 1536
 //#define EpmMaxRawTcpSize 80
 
-
+/* parameter EPM_SRC_IMMEDIATE    = 0; */
+/* parameter EPM_SRC_LOCAL_SEQ    = 1; */
+/* parameter EPM_SRC_REMOTE_SEQ   = 2; */
+/* parameter EPM_SRC_TCP_WINDOW   = 3; */
+/* parameter EPM_SRC_TCP_CHCK_SUM = 4; */
+/* parameter EPM_SRC_SECURITY_ID  = 5; */
+/* parameter EPM_SRC_PRICE        = 6;// for orders use this, for quotes this is buy side */
+/* parameter EPM_SRC_SIZE         = 7;// for orders use this, for quotes this is buy side  */
+/* parameter EPM_SRC_SIDE         = 8; */
+/* parameter EPM_SRC_TIME         = 9; */
+/* parameter EPM_SRC_APP_SEQ      = 10; */
+/* parameter EPM_SRC_ASK_PRICE    = 11;// for orders use this, for quotes this is ask side */
+/* parameter EPM_SRC_ASK_SIZE     = 12;// for orders use this, for quotes this is ask side */
 enum class HwField : uint8_t {
   IMMEDIATE      = 0,
     LOCAL_SEQ    = 1,
@@ -20,11 +32,13 @@ enum class HwField : uint8_t {
     TCP_WINDOW   = 3,
     TCP_CHCK_SUM = 4,
     SECURITY_ID  = 5,
-    PRICE        = 6,
-    SIZE         = 7,
+    PRICE        = 6,  // for orders use this, for quotes this is buy side
+    SIZE         = 7,  // for orders use this, for quotes this is buy side
     SIDE         = 8,
     TIME         = 9,
-    APPSEQ       = 10
+    APPSEQ       = 10,
+    ASK_PRICE    = 11, // for orders use this, for quotes this is ask side
+    ASK_SIZE     = 12  // for orders use this, for quotes this is ask side
 };
 
 #define EpmHwField2Str(x) \
@@ -39,6 +53,9 @@ enum class HwField : uint8_t {
     x == HwField::SIDE          ? "SIDE" : \
     x == HwField::TIME          ? "TIME" : \
     x == HwField::APPSEQ        ? "APPSEQ" : \
+    x == HwField::APPSEQ        ? "APPSEQ" : \
+    x == HwField::ASK_PRICE     ? "ASK_PRICE" : \
+    x == HwField::ASK_SIZE      ? "ASK_SIZE" : \
     "UNDEFINED"
 
 struct EpmTemplateField {

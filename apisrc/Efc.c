@@ -19,35 +19,14 @@
 #include <thread>
 
 #include "Efc.h"
-
-#include "eka_data_structs.h"
+#include "EkaCtxs.h"
 #include "EkaDev.h"
 #include "EkaSnDev.h"
 #include "EkaCore.h"
 #include "EkaTcpSess.h"
 #include "EkaEfc.h"
 
-/* void efc_run (EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx); */
-/* void download_conf2hw (EkaDev* dev); */
-/* EkaOpResult efc_init ( EfcCtx** efcCtx, EkaDev *ekaCoreCtx, const EfcInitCtx* efcInitCtx ); */
-/* void eka_arm_controller(EkaDev* dev, uint8_t arm); */
-/* uint64_t eka_subscr_security2fire(EkaDev* dev, uint64_t id); */
-/* int eka_init_strategy_params (EkaDev* dev,const struct global_params *params) ; */
-
-/*   void download_subscr_table(EkaDev* dev, bool clear_all); */
-/*   uint32_t get_subscription_id(EkaDev* dev, uint64_t id); */
-/*   int eka_set_security_ctx_with_idx (EkaDev* dev, uint32_t ctx_idx, struct sec_ctx *ctx, uint8_t ch); */
-/*   int eka_set_session_fire_app_ctx(EkaDev* dev, uint16_t sess_id , void *ctx); */
-/*   int eka_set_group_session(EkaDev* dev, uint8_t gr, uint16_t sess_id); */
-/*   int eka_open_udp_sockets(EkaDev* dev); */
-/* //void  eka_set_core_addr(EkaDev* dev, uint8_t core, EkaCoreInitAttrs* attrs); */
-/*   int eka_socket(EkaDev* dev, uint8_t core); */
-/*   uint16_t eka_connect (EkaDev* dev, int sock, const struct sockaddr *dst, socklen_t addrlen); */
-/*   ssize_t eka_send(EkaDev* dev, uint16_t sess_id, void *buf, size_t size); */
-/*   ssize_t eka_recv(EkaDev* dev, uint16_t sess_id, void *buffer, size_t size); */
-/* void print_new_compat_fire_report (EfcCtx* efcCtx, EfcReportHdr* p); */
-/* int eka_socket_close(EkaDev* dev, uint16_t id); */
-
+#include "EkaEfcDataStructs.h"
 
 /**
  * This will initialize the Ekaline firing controller.
@@ -59,11 +38,19 @@
  * @return This will return an appropriate EkalineOpResult indicating success or an error code.
  */
 
+int printSecCtx(EkaDev* dev, const EfcSecurityCtx* msg);
+int printMdReport(EkaDev* dev, const EfcMdReport* msg);
+
 EkaOpResult efcInit( EfcCtx** ppEfcCtx, EkaDev *pEkaDev, const EfcInitCtx* pEfcInitCtx ) {
   if (pEkaDev == NULL) on_error("pEkaDev == NULL");
   if (pEfcInitCtx == NULL) on_error("pEfcInitCtx == NULL");
 
   EkaDev* dev = pEkaDev;
+
+  if (! dev->epmEnabled) {
+    EKA_WARN("This SW instance cannot run EFC functionality. Check other Ekaline processes running (or suspended) on this machine.");
+    return EKA_OPRESULT__ERR_EFC_DISABLED;
+  }
 
   dev->efc = new EkaEfc(dev,dev->hwFeedVer,pEfcInitCtx);
   if (dev->efc == NULL) on_error("dev->efc == NULL");
@@ -146,6 +133,7 @@ EkaOpResult efcEnableFiringOnSec( EfcCtx* pEfcCtx, const uint64_t* pSecurityIds,
 
   uint64_t* p = (uint64_t*) pSecurityIds;
   for (uint i = 0; i < numSecurityIds; i++) {
+    EKA_LOG("Subscribing on 0x%x",*p);
     efc->subscribeSec(*p);
     p++;
   }
@@ -184,19 +172,38 @@ EfcSecCtxHandle getSecCtxHandle( EfcCtx* pEfcCtx, uint64_t securityId ) {
  * @retval [See EkaOpResult].
  */
 EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx, EfcSecCtxHandle hSecCtx, const SecCtx* pSecCtx, uint16_t writeChan ) {
-  /* assert (pEfcCtx != NULL); */
-  /* assert (pSecCtx != NULL); */
+  if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
+  EkaDev* dev = pEfcCtx->dev;
+  if (dev == NULL) on_error("dev == NULL");
+  EkaEfc* efc = dev->efc;
+  if (efc == NULL) on_error("efc == NULL");
 
-  /* struct sec_ctx ctx = {}; */
-  /* ctx.bid_min_price = pSecCtx->bidMinPrice; */
-  /* ctx.ask_max_price = pSecCtx->askMaxPrice; */
-  /* ctx.size = pSecCtx->size; */
-  /* ctx.ver_num = pSecCtx->verNum; */
-  /* ctx.lower_bytes_of_sec_id = pSecCtx->lowerBytesOfSecId; */
+  if (pSecCtx == NULL) on_error("pSecCtx == NULL");
 
-  /* uint32_t ctx_idx = (uint32_t) (hSecCtx & 0xFFFFFFFF); */
- 
-  /* eka_set_security_ctx_with_idx (pEfcCtx->dev, ctx_idx, &ctx, (uint8_t) writeChan); */
+  // This copy is needed because EkaHwSecCtx is packed and SecCtx is not!
+  const EkaHwSecCtx hwSecCtx = {
+    .bidMinPrice       = pSecCtx->bidMinPrice,
+    .askMaxPrice       = pSecCtx->askMaxPrice,
+    .size              = pSecCtx->size,
+    .verNum            = pSecCtx->verNum,
+    .lowerBytesOfSecId = pSecCtx->lowerBytesOfSecId
+  };
+
+  uint64_t ctxWrAddr = P4_CTX_CHANNEL_BASE + 
+    writeChan * EKA_BANKS_PER_CTX_THREAD * EKA_WORDS_PER_CTX_BANK * 8 + 
+    efc->ctxWriteBank[writeChan] * EKA_WORDS_PER_CTX_BANK * 8;
+
+  // EkaHwSecCtx is 7 Bytes ==> single write
+  eka_write(dev,ctxWrAddr,*(uint64_t*)&hwSecCtx); 
+
+  union large_table_desc done_val = {};
+  done_val.ltd.src_bank           = efc->ctxWriteBank[writeChan];
+  done_val.ltd.src_thread         = writeChan;
+  done_val.ltd.target_idx         = hSecCtx;
+  eka_write(dev, P4_CONFIRM_REG, done_val.lt_desc);
+
+  efc->ctxWriteBank[writeChan] = (efc->ctxWriteBank[writeChan] + 1) % EKA_BANKS_PER_CTX_THREAD;
+
   return EKA_OPRESULT__OK;
 }
 
@@ -316,7 +323,7 @@ EkaOpResult efcRun( EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx ) {
   EkaEfc* efc = dev->efc;
   if (efc == NULL) on_error("efc == NULL");
 
-  efc->run();
+  efc->run(pEfcCtx,pEfcRunCtx);
 
   //  eka_open_udp_sockets(pEfcCtx->dev);
   //  download_conf2hw(pEfcCtx->dev);
@@ -327,8 +334,86 @@ EkaOpResult efcRun( EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx ) {
 }
 
 
-EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, EfcReportHdr* p ) {
-  // PATCH
-  //  print_new_compat_fire_report (pEfcCtx,p);
+EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p ) {
+  if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
+  EkaDev* dev = pEfcCtx->dev;
+  if (dev == NULL) on_error("dev == NULL");
+  EkaEfc* efc = dev->efc;
+  if (efc == NULL) on_error("efc == NULL");
+
+  const uint8_t* b = (const uint8_t*)p;
+ //--------------------------------------------------------------------------
+  if (((EkaContainerGlobalHdr*)b)->type == EkaEventType::kExceptionReport) {
+    EKA_LOG("EXCEPTION_REPORT");
+    return EKA_OPRESULT__OK;
+  }
+ //--------------------------------------------------------------------------
+  if (((EkaContainerGlobalHdr*)b)->type != EkaEventType::kFireReport) 
+    on_error("UNKNOWN Event report: 0x%02x",
+	     static_cast< uint32_t >( ((EkaContainerGlobalHdr*)b)->type ) );
+
+  EKA_LOG("\tTotal reports: %u",((EkaContainerGlobalHdr*)b)->num_of_reports);
+  uint total_reports = ((EkaContainerGlobalHdr*)b)->num_of_reports;
+  b += sizeof(EkaContainerGlobalHdr);
+  //--------------------------------------------------------------------------
+  if (((EfcReportHdr*)b)->type != EfcReportType::kControllerState) 
+    on_error("EfcControllerState report expected, 0x%02x received",
+	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type));
+
+  EKA_LOG("\treport_type = %u EfcControllerState, idx=%u, size=%ju",
+	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ),
+	  ((EfcReportHdr*)b)->idx,
+	  ((EfcReportHdr*)b)->size);
+  b += sizeof(EfcReportHdr);
+
+  EKA_LOG("\tunarm_reason=0x%02x",((EfcControllerState*)b)->unarm_reason);
+  b += sizeof(EfcControllerState);
+  total_reports--;
+ //--------------------------------------------------------------------------
+
+  if (((EfcReportHdr*)b)->type != EfcReportType::kMdReport) 
+    on_error("MdReport report expected, %02x received",
+	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type) );
+  EKA_LOG("\treport_type = %u MdReport, idx=%u, size=%ju",
+	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ),
+	  ((EfcReportHdr*)b)->idx,
+	  ((EfcReportHdr*)b)->size);
+  b += sizeof(EfcReportHdr);
+
+  {
+    auto msg{ reinterpret_cast< const EfcMdReport* >( b ) };
+
+    printMdReport(dev,msg);
+
+    b += sizeof(*msg);
+  }
+  total_reports--;
+
+  //--------------------------------------------------------------------------
+
+  if (((EfcReportHdr*)b)->type != EfcReportType::kSecurityCtx) 
+    on_error("SecurityCtx report expected, %02x received",
+	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type) );
+  EKA_LOG("\treport_type = %u SecurityCtx, idx=%u, size=%ju",
+	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ),
+	  ((EfcReportHdr*)b)->idx,
+	  ((EfcReportHdr*)b)->size);
+  b += sizeof(EfcReportHdr);
+
+  {
+    auto msg{ reinterpret_cast< const EfcSecurityCtx* >( b ) };
+
+    printSecCtx(dev, msg);
+
+    b += sizeof(*msg);
+  }
+  total_reports--;
+
+  //--------------------------------------------------------------------------
+
+
+  //--------------------------------------------------------------------------
+
+
   return EKA_OPRESULT__OK;
 }

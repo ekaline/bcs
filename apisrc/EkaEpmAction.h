@@ -1,5 +1,3 @@
-/* NE SHURIK */
-
 #ifndef _EKA_EPM_ACTION_H_
 #define _EKA_EPM_ACTION_H_
 
@@ -26,6 +24,14 @@ class EkaEpmAction {
   /* ----------------------------------------------------- */
   void print(const char* msg);
   /* ----------------------------------------------------- */
+  int setUdpMcNwHdrs(uint8_t* macSa, 
+		     uint32_t srcIp, 
+		     uint32_t dstIp, 
+		     uint16_t srcPort, 
+		     uint16_t dstPort,
+		     uint     payloadSize);
+  /* ----------------------------------------------------- */
+
   int setNwHdrs(uint8_t* macDa, 
 		uint8_t* macSa, 
 		uint32_t srcIp, 
@@ -36,6 +42,8 @@ class EkaEpmAction {
   int setFullPkt(const void* buf, uint len);
   /* ----------------------------------------------------- */
   int setPktPayload(const void* buf, uint len);
+  /* ----------------------------------------------------- */
+  int setUdpPktPayload(const void* buf, uint len);
   /* ----------------------------------------------------- */
   int send(uint32_t _tcpCSum);
   /* ----------------------------------------------------- */
@@ -81,6 +89,7 @@ class EkaEpmAction {
   EkaEthHdr*       ethHdr          = NULL;
   EkaIpHdr*        ipHdr           = NULL;
   EkaTcpHdr*       tcpHdr          = NULL;
+  EkaUdpHdr*       udpHdr          = NULL;
   uint8_t*         payload         = NULL;
 };
 

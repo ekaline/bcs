@@ -11,6 +11,9 @@
 #include "EkaTcpSess.h"
 #include "EkaEpmAction.h"
 #include "EpmFireSqfTemplate.h"
+#include "EkaEfcDataStructs.h"
+
+void ekaFireReportThread(EkaDev* dev);
 
 /* ################################################ */
 static bool isAscii (char letter) {
@@ -34,7 +37,10 @@ EkaEfc::EkaEfc(EkaDev* _dev, EfhFeedVer _hwFeedVer, const EfcInitCtx* pEfcInitCt
     if (hashLine[i] == NULL) on_error("hashLine[%d] == NULL",i);
   }
 
+#ifndef _VERILOG_SIM
   cleanSubscrHwTable();
+#endif
+
   initHwRoundTable();
   ekaIgmp = new EkaIgmp(dev,mdCoreId,EkaEpm::EfcRegion,"Efc");
   if (ekaIgmp == NULL) on_error("ekaIgmp == NULL");
@@ -59,23 +65,22 @@ int EkaEfc::confParse(const char *key, const char *value) {
   k[i] = strtok(key_buf,".");
   while(k[i]!=NULL) k[++i] = strtok(NULL,".");
 
+  EKA_LOG("Processing %s -- %s",key,value);
+  // efc.group.X.mcast.addr, x.x.x.x:xxxx
+  //k[0] k[1]k[2] k[3] k[4]
+  if (((strcmp(k[0],"efh")==0) || (strcmp(k[0],"efc")==0)) && (strcmp(k[1],"group")==0) && (strcmp(k[3],"mcast")==0) && (strcmp(k[4],"addr")==0)) {
 
-  // efc.NOM_ITTO.group.X.mcast.addr, x.x.x.x:xxxx
-  // k[0] k[1]   k[2]  k[3] k[4] k[5]
-  if (((strcmp(k[0],"efh")==0) || (strcmp(k[0],"efc")==0)) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"mcast")==0) && (strcmp(k[5],"addr")==0)) {
-    EkaSource exch = EFH_GET_SRC(k[1]);
-    if (EFH_EXCH2FEED(exch) == hwFeedVer) {
-      uint32_t mcAddr = inet_addr(v[0]);
-      uint16_t mcPort = (uint16_t)atoi(v[1]);
+    uint32_t mcAddr = inet_addr(v[0]);
+    uint16_t mcPort = (uint16_t)atoi(v[1]);
 
-      if (findUdpSess(mcAddr,mcPort) != NULL) 
-	on_error("\'%s\',\'%s\' : Udp Session %s:%u is already set",
-		 key,value,EKA_IP2STR(mcAddr),mcPort);
+    if (findUdpSess(mcAddr,mcPort) != NULL) 
+      on_error("\'%s\',\'%s\' : Udp Session %s:%u is already set",
+	       key,value,EKA_IP2STR(mcAddr),mcPort);
 
-      udpSess[numUdpSess] = new EkaUdpSess(dev,numUdpSess,mcAddr,mcPort);
-      if (udpSess[numUdpSess] == NULL) on_error("udpSess[%d] == NULL",numUdpSess);
-      numUdpSess++;
-    } 
+    udpSess[numUdpSess] = new EkaUdpSess(dev,numUdpSess,mcAddr,mcPort);
+    if (udpSess[numUdpSess] == NULL) on_error("udpSess[%d] == NULL",numUdpSess);
+    numUdpSess++;
+    EKA_LOG("%s:%u is set, numUdpSess = %d",EKA_IP2STR(mcAddr),mcPort,numUdpSess);
   }
   return 0;
 }
@@ -141,6 +146,9 @@ int EkaEfc::cleanSubscrHwTable() {
 
 /* ################################################ */
 int EkaEfc::initHwRoundTable() {
+#ifdef _VERILOG_SIM
+  return 0;
+#else
   for (uint64_t addr = 0; addr < ROUND_2B_TABLE_DEPTH; addr++) {
     uint64_t data = 0;
     switch (hwFeedVer) {
@@ -156,10 +164,15 @@ int EkaEfc::initHwRoundTable() {
     default:
       on_error("Unexpected hwFeedVer = 0x%x",(int)hwFeedVer);
     }
-    eka_write (dev,ROUND_2B_ADDR,addr);
-    eka_write (dev,ROUND_2B_DATA,data);
+
+    uint64_t indAddr = 0x0100000000000000 + addr;
+    indirectWrite(dev,indAddr,data);
+
+    /* eka_write (dev,ROUND_2B_ADDR,addr); */
+    /* eka_write (dev,ROUND_2B_DATA,data); */
     //    EKA_LOG("%016x (%ju) @ %016x (%ju)",data,data,addr,addr);
   }
+#endif
   return 0;
 }
 /* ############################################### */
@@ -234,7 +247,12 @@ int EkaEfc::normalizeId(uint64_t secId) {
 }
 /* ################################################ */
 int EkaEfc::getLineIdx(uint64_t normSecId) {
+/* #ifdef _VERILOG_SIM */
+/*     return (int) normSecId & 0x3F; // Low 6 bits */
+/* #else */
     return (int) normSecId & 0x7FFF; // Low 15 bits
+/* #endif */
+
 }
 /* ################################################ */
 int EkaEfc::subscribeSec(uint64_t secId) {
@@ -250,6 +268,7 @@ int EkaEfc::subscribeSec(uint64_t secId) {
   uint64_t normSecId = normalizeId(secId);
   int      lineIdx   = getLineIdx(normSecId);
 
+  EKA_DEBUG("Subscribing on 0x%jx, lineIdx = 0x%x (%d)",secId,lineIdx,lineIdx);
   if (hashLine[lineIdx]->addSecurity(normSecId)) {
     numSecurities++;
     uint64_t val = eka_read(dev, SW_STATISTICS);
@@ -276,7 +295,7 @@ int EkaEfc::downloadTable() {
     struct timespec req = {0, 1000};
     struct timespec rem = {};
 
-    sum += hashLine[i]->pack(sum);
+    sum += hashLine[i]->pack6b(sum);
     hashLine[i]->downloadPacked();
 
     nanosleep(&req, &rem);  // added due to "too fast" write to card
@@ -289,12 +308,34 @@ int EkaEfc::downloadTable() {
 }
 
 /* ################################################ */
-int EkaEfc::run() {
+int EkaEfc::enableRxFire() {
+  uint64_t fire_rx_tx_en = eka_read(dev,ENABLE_PORT);
+  fire_rx_tx_en |= 1ULL << (16 + fireCoreId); //fire core enable */
+  fire_rx_tx_en |= 1ULL << mdCoreId;          // RX (Parser) core enable */
+  eka_write(dev,ENABLE_PORT,fire_rx_tx_en);
+
+  EKA_LOG("fire_rx_tx_en = 0x%016jx",fire_rx_tx_en);
+  return 0;
+}
+/* ################################################ */
+int EkaEfc::run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx) {
+  memcpy(&localCopyEfcCtx,   pEfcCtx,   sizeof(EfcCtx));
+  memcpy(&localCopyEfcRunCtx,pEfcRunCtx,sizeof(EfcRunCtx));
+
   setHwGlobalParams();
   setHwUdpParams();
+  setHwStratRegion();
   igmpJoinAll();
 
-  //  enableRxFire();
+  enableRxFire();
+
+  if (! dev->fireReportThreadActive) {
+    dev->fireReportThread = std::thread(ekaFireReportThread,dev);
+    dev->fireReportThread.detach();
+    while (! dev->fireReportThreadActive) sleep(0);
+    EKA_LOG("fireReportThread activated");
+  }
+
   return 0;
 }
 
@@ -332,19 +373,37 @@ int EkaEfc::setHwGlobalParams() {
 }
 /* ################################################ */
 int EkaEfc::setHwUdpParams() {
+  EKA_LOG("downloading %d MC sessions to FPGA",numUdpSess);
   for (auto i = 0; i < numUdpSess; i++) {
     if (udpSess[i] == NULL) on_error("udpSess[%d] == NULL",i);
 
-    EKA_LOG("configuring IP:UDP_PORT for MD for group:%d",i);
-    uint32_t ip   = be32toh(udpSess[i]->ip);
-    uint16_t port = be16toh(udpSess[i]->port);
-    uint64_t tmp_ip   = ((uint64_t) i) << 32 | ip;
-    uint64_t tmp_port = ((uint64_t) i) << 32 | ((uint64_t)udpSess[i]->firstSessId) << 16 | port;
-    //        EKA_LOG("writing 0x%016jx (ip=%s) to addr  0x%016jx",tmp_ip,inet_ntoa(dev->core[0].udp_sess[s].mcast.sin_addr),(uint64_t)FH_GROUP_IP);
-    eka_write (dev,FH_GROUP_IP,tmp_ip);
-    //        EKA_LOG("writing 0x%016jx to addr  0x%016jx",tmp_port,(uint64_t)FH_GROUP_PORT);
-    eka_write (dev,FH_GROUP_PORT,tmp_port);
+    EKA_LOG("configuring IP:UDP_PORT %s:%u for MD for group:%d",EKA_IP2STR(udpSess[i]->ip),udpSess[i]->port,i);
+    uint32_t ip   = udpSess[i]->ip;
+    uint16_t port = udpSess[i]->port;
+
+    uint64_t tmp_ipport = ((uint64_t)i) << 56 | ((uint64_t)port) << 32 | be32toh(ip);
+    //  EKA_LOG("HW Port-IP register = 0x%016jx (%x : %x)",tmp_ipport,ip,port);
+    eka_write (dev,FH_GROUP_IPPORT,tmp_ipport);
+
   }
+  return 0;
+}
+/* ################################################ */
+int EkaEfc::setHwStratRegion() {
+  struct StratRegion {
+    uint8_t region;
+    uint8_t strategyIdx;
+  } __attribute__((packed));
+
+  StratRegion stratRegion[MAX_UDP_SESS] = {};
+
+  for (auto i = 0; i < numUdpSess; i++) {
+    if (udpSess[i] == NULL) on_error("udpSess[%d] == NULL",i);
+    stratRegion[i].region      = EkaEpm::EfcRegion;
+    stratRegion[i].strategyIdx = 0;
+  }
+  copyBuf2Hw(dev,0x83000,(uint64_t*) &stratRegion,sizeof(stratRegion));
+
   return 0;
 }
 /* ################################################ */
@@ -359,6 +418,13 @@ int EkaEfc::createFireAction(uint8_t group, ExcConnHandle hConn) {
   EkaTcpSess* myTcpSess = dev->core[myCoreId]->tcpSess[mySessId];
   if (myTcpSess == NULL) on_error("myTcpSess == NULL");
   
+  if (fireCoreId == -1) {
+    fireCoreId = myCoreId;
+  } else {
+    if (fireCoreId != myCoreId) 
+      on_error("fireCoreId %d != myCoreId %d",fireCoreId, myCoreId);
+  }
+
   udpSess[group]->firstSessId = mySessId;
 
   fireAction[numFireActions] = dev->epm->addAction(EkaEpm::ActionType::HwFireAction,
@@ -376,6 +442,10 @@ int EkaEfc::createFireAction(uint8_t group, ExcConnHandle hConn) {
 					myTcpSess->srcPort,
 					myTcpSess->dstPort);
 
+  EKA_LOG("Created FireAction: on fireCoreId %d %s:%u --> %s:%u ",
+	  fireCoreId,
+	  EKA_IP2STR(myTcpSess->srcIp),myTcpSess->srcPort,
+	  EKA_IP2STR(myTcpSess->dstIp),myTcpSess->dstPort);
   numFireActions++;
   return 0;
 }

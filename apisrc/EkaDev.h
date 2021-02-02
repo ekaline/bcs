@@ -89,29 +89,29 @@ class EkaDev {
   std::mutex                addTcpSessMtx;
   std::mutex                lwipConnectMtx;
 
-  struct EfcCtx*            pEfcCtx = NULL;
-  struct EfcRunCtx*         pEfcRunCtx = NULL;
-  struct EfhRunCtx*         pEfhRunCtx = NULL;
+  struct EfcCtx*            pEfcCtx                    = NULL;
+  struct EfcRunCtx*         pEfcRunCtx                 = NULL;
+  struct EfhRunCtx*         pEfhRunCtx                 = NULL;
 
-  void*                     credContext;
-  void*                     createThreadContext;
+  void*                     credContext                = NULL;
+  void*                     createThreadContext        = NULL;
 
-  volatile bool             servThreadActive = false;
+  volatile bool             servThreadActive           = false;
   std::thread               servThread;
-  volatile bool             servThreadTerminated = true;
+  volatile bool             servThreadTerminated       = true;
 
-  volatile bool             fireReportThreadActive = false;
+  volatile bool             fireReportThreadActive     = false;
   std::thread               fireReportThread;
   volatile bool             fireReportThreadTerminated = true;
 
 
-  volatile bool             exc_inited = false;
-  volatile bool             lwip_inited = false;
+  volatile bool             exc_inited                 = false;
+  volatile bool             lwip_inited                = false;
   //  volatile bool             ekaLwipPollThreadIsUp;
-  volatile bool             efc_run_threadIsUp = false;
-  volatile bool             efc_fire_report_threadIsUp = false;
+  /* volatile bool             efc_run_threadIsUp = false; */
+  /* volatile bool             efc_fire_report_threadIsUp = false; */
 
-  volatile uint8_t          numFh = 0;
+  volatile uint8_t          numFh                      = 0;
 
   char                      genIfName[20] = {'U','N','S','E','T'};
   uint32_t                  genIfIp = 0;//INADDR_ANY;
@@ -119,19 +119,17 @@ class EkaDev {
   EkaFh*                    fh[MAX_FEED_HANDLERS] = {};
 
   volatile uint8_t          numRunGr = 0;
-  EkaFhRunGroup*            runGr[MAX_RUN_GROUPS] = {};
-  std::mutex mtx;   // mutex to protect concurrent dev->numRunGr++
+  EkaFhRunGroup*            runGr[MAX_RUN_GROUPS]      = {};
+  std::mutex                mtx;   // mutex to protect concurrent dev->numRunGr++
 
   EkaLogCallback            logCB;
-  void*                     logCtx = NULL;
+  void*                     logCtx                     = NULL;
 
   EkaAcquireCredentialsFn   credAcquire;
   EkaReleaseCredentialsFn   credRelease;
   EkaThreadCreateFn         createThread;
 
   bool                      print_parsed_messages = false;
-
-  hw_capabilities_t         hw_capabilities = {};
 
   /* static const uint64_t     statSwVersion          = SW_SCRATCHPAD_BASE; */
   /* static const uint64_t     statGlobalCoreAddrBase = statSwVersion + 8; */
@@ -157,18 +155,20 @@ class EkaDev {
 
 inline void eka_write(EkaDev* dev, uint64_t addr, uint64_t val) { 
 #ifdef _VERILOG_SIM
+  printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);
   //  if (addr!=0xf0300 && addr!=0xf0308 && addr!=0xf0310 && addr!=0xf0608) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //general writes
   //  if ((addr>=0x70000 && addr<=0x80000) || addr==0xf0410) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //tob+depth
-  if ((addr>=0x89000 && addr<0x8a000) || addr==0xf0238) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //epm action
-  if (addr==0xf0230) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                                    //epm trigger
-  if ((addr>=0x81000 && addr<0x82000)) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm data thread window start
-  if ((addr>=0x82000 && addr<0x83000)) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm region
-  if ((addr>=0x85000 && addr<0x86000)) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm region strategy enables
-  if ((addr>=0xd0000 && addr<0xe0000)) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm data
-  if ((addr>=0xc0000 && addr<0xd0000)) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm template
-  if ((addr>=0x88000 && addr<0x89000)) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm tcpcs template
-  if ((addr==0xf0020                )) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //ENABLE_PORT
-  if ((addr==0xf0500                )) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //FH_GROUP_IPPORT
+  /* if (addr>=0x89000 && addr<0x8a000)   printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //epm action */
+  /* if (addr==0xf0238)                   printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //epm action */
+  /* if (addr==0xf0230)                   printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                                    //epm trigger */
+  /* if (addr>=0x81000 && addr<0x82000) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm data thread window start */
+  /* if (addr>=0x82000 && addr<0x83000) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm region */
+  /* if (addr>=0x85000 && addr<0x86000) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm region strategy enables */
+  /* if (addr>=0xd0000 && addr<0xe0000) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm data */
+  /* if (addr>=0xc0000 && addr<0xd0000) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm template */
+  /* if (addr>=0x88000 && addr<0x89000) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //epm tcpcs template */
+  /* if (addr==0xf0020                ) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //ENABLE_PORT */
+  /* if (addr==0xf0500                ) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);                  //FH_GROUP_IPPORT */
 
   //  if ((addr>=0x50000 && addr<0x60000) || addr==0xf0200) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //fastpath data and desc
 
@@ -275,6 +275,16 @@ inline void atomicIndirectBufWrite(EkaDev* dev, uint64_t addr, uint8_t bank, uin
   eka_write (dev,addr,desc.lt_desc);
 }
 
+inline void indirectWrite(EkaDev* dev,uint64_t addr,uint64_t data) {
+  eka_write(dev,0xf0100,addr);
+  eka_write(dev,0xf0108,data); 
+}
+
+
+inline uint64_t indirectRead(EkaDev* dev,uint64_t addr) {
+  eka_write(dev,0xf0100,addr);
+  return eka_read(dev,0xf0108); 
+}
 
 inline void hexDump (const char *desc, void *addr, int len) {
   int i;

@@ -61,7 +61,7 @@ int EkaIgmp::igmpThreadLoop() {
   std::string threadName = std::string("Igmp_") + std::string(name);
   pthread_setname_np(pthread_self(),threadName.c_str());
 
-  EKA_LOG("%s: %s igmpThreadLoop() lunched",name,threadName.c_str());
+  EKA_LOG("%s: %s igmpThreadLoop() started",name,threadName.c_str());
   igmpLoopTerminated = false;
   threadActive = true;
 
@@ -88,7 +88,7 @@ void* EkaIgmp::igmpThreadLoopCb(void* pEkaIgmp) {
   EkaDev* dev = igmp->dev;
 
   std::string threadName = std::string("Igmp_") + std::string(igmp->name);
-  EKA_LOG("%s: %s igmpThreadLoopCb() lunched",igmp->name,threadName.c_str());
+  EKA_LOG("%s: %s igmpThreadLoopCb() started",igmp->name,threadName.c_str());
   igmp->igmpLoopTerminated = false;
   igmp->threadActive = true;
 
