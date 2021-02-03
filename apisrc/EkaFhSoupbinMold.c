@@ -387,7 +387,7 @@ void* getMolUdp64Data(void* attr) {
 
   EkaDev* dev = gr->dev;
   assert (dev != NULL);
-  int udpSock = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
+  int udpSock = socket(AF_INET,SOCK_DGRAM,0);
   if (udpSock < 0) 
     on_error("%s:%u: Failed to open socket: %s",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,strerror(errno));
@@ -578,7 +578,7 @@ void* getMolUdpPlxOrdData(void* attr) {
   EkaDev* dev = gr->dev;
   assert (dev != NULL);
   if (gr->recovery_sock != -1) on_error("%s:%u gr->recovery_sock != -1",EKA_EXCH_DECODE(gr->exch),gr->id);
-  if ((gr->recovery_sock = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP)) == -1) on_error("Failed to open socket for %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id);
+  if ((gr->recovery_sock = socket(AF_INET,SOCK_DGRAM,0)) == -1) on_error("Failed to open socket for %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id);
 
   PhlxMoldHdr mold_request = {};
   memcpy(&mold_request.session_id,(uint8_t*)gr->session_id,10);
@@ -586,6 +586,7 @@ void* getMolUdpPlxOrdData(void* attr) {
   uint64_t seq2ask = start;
 
   struct sockaddr_in mold_recovery_addr = {};
+  mold_recovery_addr.sin_family      = AF_INET;
   mold_recovery_addr.sin_addr.s_addr = gr->recovery_ip;
   mold_recovery_addr.sin_port = gr->recovery_port; 
 
