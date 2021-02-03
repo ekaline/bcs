@@ -52,11 +52,11 @@ static bool sesmCycle(EkaDev* dev,
 		      uint64_t start,
 		      uint64_t end,
 		      const int MaxTrials) {
-  EKA_LOG("%s:%d %s cycle",
-	  EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
   EkaFhParseResult parseResult;
   int sock = -1;
-  for (auto trials = 0; trials < MaxTrials && gr->recovery_active; trials++) {
+  for (auto trial = 0; trial < MaxTrials && gr->recovery_active; trial++) {
+    EKA_LOG("%s:%d %s cycle: trial: %d",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op),trial);
     sock = ekaTcpConnect(gr->recovery_ip,gr->recovery_port);
     if (sock < 0) on_error("%s:%d sock = %d",EKA_EXCH_DECODE(gr->exch),gr->id,sock);
     auto lastHeartBeatTime = std::chrono::high_resolution_clock::now();
@@ -507,6 +507,8 @@ void* getSesmData(void* attr) {
   //-----------------------------------------------------------------
   const int MaxTrials = 4;
   bool success = false;
+  gr->recovery_active = true;
+
   switch (op) {
   case EkaFhMode::DEFINITIONS :
       EKA_LOG("%s:%u DEFINITIONS",EKA_EXCH_DECODE(gr->exch),gr->id);
@@ -552,6 +554,8 @@ void* getSesmData(void* attr) {
   EKA_LOG("%s:%u End Of %s, seq_after_snapshot = %ju",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,
 	    EkaFhMode2STR(op),gr->seq_after_snapshot);
+
+  gr->recovery_active = false;
 
   return NULL;
 }
