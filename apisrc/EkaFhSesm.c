@@ -53,12 +53,11 @@ static bool sesmCycle(EkaDev* dev,
 		      uint64_t end,
 		      const int MaxTrials) {
   EkaFhParseResult parseResult;
-  int sock = -1;
   for (auto trial = 0; trial < MaxTrials && gr->recovery_active; trial++) {
     EKA_LOG("%s:%d %s cycle: trial: %d",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op),trial);
-    sock = ekaTcpConnect(gr->recovery_ip,gr->recovery_port);
-    if (sock < 0) on_error("%s:%d sock = %d",EKA_EXCH_DECODE(gr->exch),gr->id,sock);
+    gr->recovery_sock = ekaTcpConnect(gr->recovery_ip,gr->recovery_port);
+    if (gr->recovery_sock < 0) on_error("%s:%d gr->recovery_sock = %d",EKA_EXCH_DECODE(gr->exch),gr->id,gr->recovery_sock);
     auto lastHeartBeatTime = std::chrono::high_resolution_clock::now();
     std::chrono::high_resolution_clock::time_point now;
     //-----------------------------------------------------------------
@@ -76,10 +75,10 @@ static bool sesmCycle(EkaDev* dev,
     //-----------------------------------------------------------------
     while (gr->recovery_active) {
       if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHeartBeatTime).count() > 900) {
-	sendHearBeat(sock);
+	sendHearBeat(gr->recovery_sock);
 	lastHeartBeatTime = now;
       }
-      parseResult = procSesm(pEfhRunCtx,sock,gr,EkaFhMode::MCAST);
+      parseResult = procSesm(pEfhRunCtx,gr->recovery_sock,gr,EkaFhMode::MCAST);
       switch (parseResult) {
       case EkaFhParseResult::End:
 	goto SUCCESS_END;
@@ -95,14 +94,14 @@ static bool sesmCycle(EkaDev* dev,
 
   ITERATION_FAIL:
     sendLogOut(gr);
-    close(sock);
+    close(gr->recovery_sock);
     gr->sendRetransmitExchangeError(pEfhRunCtx);
   }
   return false;
 
  SUCCESS_END:
   sendLogOut(gr);
-  close(sock);
+  close(gr->recovery_sock);
   return true;
 }
 
