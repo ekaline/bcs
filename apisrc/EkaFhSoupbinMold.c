@@ -446,6 +446,7 @@ void* getMolUdp64Data(void* attr) {
   uint64_t seq2ask = start;
 
   struct sockaddr_in mold_recovery_addr = {};
+  mold_recovery_addr.sin_family      = AF_INET; // IPv4 
   mold_recovery_addr.sin_addr.s_addr = gr->recovery_ip;
   mold_recovery_addr.sin_port        = gr->recovery_port; 
 
