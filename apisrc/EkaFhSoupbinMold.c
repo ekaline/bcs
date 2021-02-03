@@ -421,9 +421,14 @@ void* getMolUdp64Data(void* attr) {
 	  EKA_IP2STR(local2bind.sin_addr.s_addr),be16toh(local2bind.sin_port));
 
 
-  if (setsockopt(udpSock, SOL_SOCKET, SO_BINDTODEVICE, dev->genIfName, strlen(dev->genIfName)+1) < 0) {
-    EKA_WARN("%s:%u: setsockopt SO_BINDTODEVICE failed binding to %s (len=%d)",
-	     EKA_EXCH_DECODE(gr->exch),gr->id,dev->genIfName,strlen(dev->genIfName)+1);
+  ifreq ifr = {};
+  memset(&ifr, 0, sizeof(ifreq));
+  snprintf(ifr.ifr_name, sizeof(ifr.ifr_name), dev->genIfName);
+  ioctl(udpSock, SIOCGIFINDEX, &ifr);
+  if (setsockopt(udpSock, SOL_SOCKET, SO_BINDTODEVICE,  (void*)&ifr, sizeof(ifreq)) < 0) {
+  //  if (setsockopt(udpSock, SOL_SOCKET, SO_BINDTODEVICE, dev->genIfName, strlen(dev->genIfName)+1) < 0) {
+    EKA_WARN("%s:%u: setsockopt SO_BINDTODEVICE failed binding to %s (len=%d), errno=%d (%s)",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,dev->genIfName,strlen(dev->genIfName)+1,errno,strerror(errno));
   } else {
     EKA_LOG("%s:%u: Mold UDP sock is binded to %s (len=%d)",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,dev->genIfName,strlen(dev->genIfName)+1);
