@@ -392,11 +392,35 @@ void* getMolUdp64Data(void* attr) {
     on_error("%s:%u: Failed to open socket: %s",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,strerror(errno));
 
-  static const int TimeOut = 1;
+  
+  int const_one = 1;
+  if (setsockopt(udpSock, SOL_SOCKET, SO_REUSEADDR, &const_one, sizeof(int)) < 0) {
+    dev->lastErrno = errno;
+    gr->sendRetransmitExchangeError(pEfhRunCtx);
+    on_error("setsockopt(SO_REUSEADDR) failed");
+  }
+
+  if (setsockopt(udpSock, SOL_SOCKET, SO_REUSEPORT, &const_one, sizeof(int)) < 0) {
+    dev->lastErrno = errno;
+    gr->sendRetransmitExchangeError(pEfhRunCtx);
+    on_error("setsockopt(SO_REUSEPORT) failed");
+  }
+
+  sockaddr_in local2bind = {};
+  local2bind.sin_family      = AF_INET;
+  local2bind.sin_addr.s_addr = gr->recovery_ip;
+  local2bind.sin_port        = gr->recovery_port;
+
+  if (bind(udpSock,(sockaddr*) &local2bind, sizeof(sockaddr)) < 0) {
+    dev->lastErrno = errno;
+    gr->sendRetransmitExchangeError(pEfhRunCtx);
+    on_error("bind UDP socket failed");
+  }
+
+  static const int TimeOut = 1; // seconds
   struct timeval tv = {
     .tv_sec = TimeOut
-  };
-  
+  }; 
   setsockopt(udpSock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
   mold_hdr mold_request = {};
@@ -406,14 +430,15 @@ void* getMolUdp64Data(void* attr) {
 
   struct sockaddr_in mold_recovery_addr = {};
   mold_recovery_addr.sin_addr.s_addr = gr->recovery_ip;
-  mold_recovery_addr.sin_port = gr->recovery_port; 
+  mold_recovery_addr.sin_port        = gr->recovery_port; 
 
   gr->recovery_active = true;
   uint64_t sequence = 0;
   while (gr->recovery_active && cnt2ask > 0) {
     char buf[1500] = {};
     mold_request.sequence = be64toh(seq2ask);
-    uint16_t cnt2ask4mold = cnt2ask > 200 ? 200 : cnt2ask & 0xFFFF; // 200 is just a number: a Mold pkt always contains less than 200 messages
+    // 200 is just a number: a Mold pkt always contains less than 200 messages
+    uint16_t cnt2ask4mold = cnt2ask > 200 ? 200 : cnt2ask & 0xFFFF; 
     mold_request.message_cnt = be16toh(cnt2ask4mold);
     EKA_TRACE("%s:%u: Sending Mold request to: %s:%u, session_id = %s, seq=%ju, cnt=%u",
     	      EKA_EXCH_DECODE(gr->exch),gr->id,
@@ -451,9 +476,10 @@ void* getMolUdp64Data(void* attr) {
 	}
       }
       /* ----------------------------------------------------- */
-      socklen_t addrlen = sizeof(sockaddr);
+      //      socklen_t addrlen = sizeof(sockaddr);
       for (auto k = 0; k < MaxReadReTry; k++) {
-	int r = recvfrom(udpSock,buf,sizeof(buf), MSG_WAITALL, (sockaddr*)&mold_recovery_addr, &addrlen);
+	//	int r = recvfrom(udpSock,buf,sizeof(buf), MSG_WAITALL, (sockaddr*)&mold_recovery_addr, &addrlen);
+	int r = recvfrom(udpSock,buf,sizeof(buf), MSG_WAITALL, NULL, NULL);
 	if (r > 0) {
 	  moldRcvSuccess = true;
 	  break;
