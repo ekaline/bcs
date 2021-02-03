@@ -48,14 +48,17 @@ static bool sesmCycle(EkaDev* dev,
 		      EfhRunCtx* pEfhRunCtx, 
 		      EkaFhMode op,
 		      EkaFhMiaxGr* gr, 
-		      int sock, 
 		      char sesmRequest,
 		      uint64_t start,
 		      uint64_t end,
 		      const int MaxTrials) {
+  EKA_LOG("%s:%d %s cycle",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
   EkaFhParseResult parseResult;
+  int sock = -1;
   for (auto trials = 0; trials < MaxTrials && gr->recovery_active; trials++) {
     sock = ekaTcpConnect(gr->recovery_ip,gr->recovery_port);
+    if (sock < 0) on_error("%s:%d sock = %d",EKA_EXCH_DECODE(gr->exch),gr->id,sock);
     auto lastHeartBeatTime = std::chrono::high_resolution_clock::now();
     std::chrono::high_resolution_clock::time_point now;
     //-----------------------------------------------------------------
@@ -504,11 +507,10 @@ void* getSesmData(void* attr) {
   //-----------------------------------------------------------------
   const int MaxTrials = 4;
   bool success = false;
-  int sock = -1;
   switch (op) {
   case EkaFhMode::DEFINITIONS :
       EKA_LOG("%s:%u DEFINITIONS",EKA_EXCH_DECODE(gr->exch),gr->id);
-      success = sesmCycle(dev,pEfhRunCtx,op,gr,sock,'P',0,0,MaxTrials);
+      success = sesmCycle(dev,pEfhRunCtx,op,gr,'P',0,0,MaxTrials);
       break;
   case EkaFhMode::SNAPSHOT: {
     char snapshotRequests[] = {
@@ -519,14 +521,14 @@ void* getSesmData(void* attr) {
     for (int i = 0; i < (int)(sizeof(snapshotRequests)/sizeof(snapshotRequests[0])); i ++) {
       EKA_LOG("%s:%u SNAPSHOT \'%c\' Phase",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,snapshotRequests[i]);
-      success = sesmCycle(dev,pEfhRunCtx,op,gr,sock,snapshotRequests[i],start,end,MaxTrials);
+      success = sesmCycle(dev,pEfhRunCtx,op,gr,snapshotRequests[i],start,end,MaxTrials);
     }
     break;
   }
   case EkaFhMode::RECOVERY :
     EKA_LOG("%s:%u RECOVERY %ju .. %ju",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,start,end);
-    success = sesmCycle(dev,pEfhRunCtx,op,gr,sock,' ',start,end,MaxTrials);
+    success = sesmCycle(dev,pEfhRunCtx,op,gr,' ',start,end,MaxTrials);
     break;
   default:
     on_error("%s:%u Unexpected op = %d",EKA_EXCH_DECODE(gr->exch),gr->id,(int)op);
@@ -535,6 +537,8 @@ void* getSesmData(void* attr) {
   rc = dev->credRelease(lease, dev->credContext);
   if (rc != 0) on_error("%s:%u Failed to credRelease for %s",EKA_EXCH_DECODE(gr->exch),gr->id,credName);
   EKA_LOG("%s:%u Sesm Credentials Released",EKA_EXCH_DECODE(gr->exch),gr->id);
+  //-------------------------------------------------------
+
   //-------------------------------------------------------
   if (! success) {
     EKA_WARN("%s:%u Failed after %d trials. Exiting...",
