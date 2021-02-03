@@ -408,7 +408,7 @@ void* getMolUdp64Data(void* attr) {
 
   sockaddr_in local2bind = {};
   local2bind.sin_family      = AF_INET;
-  local2bind.sin_addr.s_addr = gr->recovery_ip;
+  local2bind.sin_addr.s_addr = INADDR_ANY; //gr->recovery_ip;
   local2bind.sin_port        = gr->recovery_port;
 
   if (bind(udpSock,(sockaddr*) &local2bind, sizeof(sockaddr)) < 0) {
@@ -416,6 +416,9 @@ void* getMolUdp64Data(void* attr) {
     gr->sendRetransmitExchangeError(pEfhRunCtx);
     on_error("bind UDP socket failed");
   }
+  EKA_LOG("%s:%u: Udp recovery socket is binded to: %s:%u",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,
+	  EKA_IP2STR(local2bind.sin_addr.s_addr),be16toh(local2bind.sin_port));
 
   static const int TimeOut = 1; // seconds
   struct timeval tv = {
