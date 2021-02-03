@@ -420,6 +420,15 @@ void* getMolUdp64Data(void* attr) {
 	  EKA_EXCH_DECODE(gr->exch),gr->id,
 	  EKA_IP2STR(local2bind.sin_addr.s_addr),be16toh(local2bind.sin_port));
 
+
+  if (setsockopt(udpSock, SOL_SOCKET, SO_BINDTODEVICE, dev->genIfName, strlen(dev->genIfName)+1) < 0) {
+    EKA_WARN("%s:%u: setsockopt SO_BINDTODEVICE failed binding to %s (len=%d)",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,dev->genIfName,strlen(dev->genIfName)+1);
+  } else {
+    EKA_LOG("%s:%u: Mold UDP sock is binded to %s (len=%d)",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,dev->genIfName,strlen(dev->genIfName)+1);
+  }
+
   static const int TimeOut = 1; // seconds
   struct timeval tv = {
     .tv_sec = TimeOut
@@ -452,7 +461,7 @@ void* getMolUdp64Data(void* attr) {
     	      );
     static const int MaxMoldReTry = 5;
     static const int MaxSendReTry = 2;
-    static const int MaxReadReTry = 100000;
+    static const int MaxReadReTry = 10;
     bool moldRcvSuccess = false;
     /* ----------------------------------------------------- */
     for (auto i = 0; i < MaxMoldReTry; i++) {
@@ -499,7 +508,7 @@ void* getMolUdp64Data(void* attr) {
 		   be16toh(((sockaddr_in*)&mold_recovery_addr)->sin_port),
 		   TimeOut,
 		   r,
-		   strerror(dev->lastErrno));
+		   strerror(errno));
 	  continue;
 	}
 	
