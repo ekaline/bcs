@@ -52,8 +52,8 @@ static bool sesmCycle(EkaDev* dev,
 		      const int MaxTrials) {
   EkaFhParseResult parseResult;
   for (auto trial = 0; trial < MaxTrials && gr->recovery_active; trial++) {
-    EKA_LOG("%s:%d %s cycle: trial: %d",
-	    EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op),trial);
+    EKA_LOG("%s:%d %s cycle: trial: %d / %d",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op),trial,MaxTrials);
 
     auto lastHeartBeatTime = std::chrono::high_resolution_clock::now();
     std::chrono::high_resolution_clock::time_point now;

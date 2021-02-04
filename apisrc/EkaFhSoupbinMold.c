@@ -340,8 +340,8 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
   EkaFhParseResult parseResult;
 
   for (auto trial = 0; trial < MaxTrials && gr->snapshot_active; trial++) {
-    EKA_LOG("%s:%d %s cycle: trial: %d %ju..%ju",
-	    EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op),trial,
+    EKA_LOG("%s:%d %s cycle: trial: %d/%d %ju..%ju",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op),trial,MaxTrials,
 	    start_sequence,end_sequence);
     //-----------------------------------------------------------------
     auto lastHeartBeatTime = std::chrono::high_resolution_clock::now();
