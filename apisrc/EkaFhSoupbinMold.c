@@ -512,6 +512,7 @@ void* getSoupBinData(void* attr) {
 	    EkaFhMode2STR(op),gr->seq_after_snapshot);
 
   gr->snapshot_active = false;
+  gr->gapClosed = true;
 
   return NULL;
 }
