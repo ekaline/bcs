@@ -264,7 +264,7 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
     return EkaFhParseResult::SocketError;
   }
   uint8_t soupbin_buf[2000] = {};
-  int payloadLen = be16toh(hdr.length) - sizeof(hdr.length);
+  int payloadLen = be16toh(hdr.length) - sizeof(hdr.type);
   if (payloadLen < 0) {
     hexDump("SoupbinHdr",&hdr,sizeof(hdr));
     on_error("payloadLen = %d, hdr.length = %d",
