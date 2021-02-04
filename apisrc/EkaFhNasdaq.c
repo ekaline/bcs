@@ -153,9 +153,7 @@ EkaOpResult EkaFhNasdaq::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhR
 					      1, 0, 
 					      EkaFhMode::DEFINITIONS);
   getSoupBinData(attr);
-  while (! b_gr[(uint8_t)group->localId]->heartbeatThreadDone) {
-    sleep (0);
-  }
+
   return EKA_OPRESULT__OK;
 }
 
