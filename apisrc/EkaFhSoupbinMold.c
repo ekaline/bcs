@@ -348,6 +348,7 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
     //-----------------------------------------------------------------
     auto lastHeartBeatTime = std::chrono::high_resolution_clock::now();
     std::chrono::high_resolution_clock::time_point now;
+    gr->hearbeat_ctr = 0;
 
     gr->snapshot_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (gr->snapshot_sock < 0) on_error("%s:%u: failed to open TCP socket",
@@ -377,7 +378,13 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
       if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHeartBeatTime).count() > 900) {
 	sendHearBeat(gr->snapshot_sock);
 	lastHeartBeatTime = now;
-	EKA_TRACE("%s:%u: Heartbeat sent",EKA_EXCH_DECODE(gr->exch),gr->id);
+	if (isTradingHours(9,30,16,00))
+	  EKA_TRACE("%s:%u: Heartbeat: %s start=%10ju, curr=%10ju, end=%10ju",
+		    EKA_EXCH_DECODE(gr->exch),gr->id,
+		    EkaFhMode2STR(op),
+		    start_sequence,
+		    gr->recovery_sequence,
+		    end_sequence);
       }
 
       parseResult = procSoupbinPkt(pEfhRunCtx,gr,end_sequence,op);
