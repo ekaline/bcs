@@ -268,7 +268,7 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
   if (payloadLen < 0) {
     hexDump("SoupbinHdr",&hdr,sizeof(hdr));
     on_error("payloadLen = %d, hdr.length = %d",
-			       payloadLen,be16toh(hdr.length));
+	     payloadLen,be16toh(hdr.length));
   }
   r = recv(gr->snapshot_sock,
 	   soupbin_buf,
@@ -295,22 +295,22 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
     }
     break;
 
-  /* ------------ */
+    /* ------------ */
   case 'Z' : // End of Session Packet
     EKA_WARN("%s:%u Soupbin closed the session with Z (End of Session Packet)",
 	     EKA_EXCH_DECODE(gr->exch),gr->id);
     return EkaFhParseResult::End;
 
-  /* ------------ */
+    /* ------------ */
   case '+' : // Debug Packet
     EKA_LOG("%s:%u Soupbin Debug Msg: \'%s\'",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,
 	    (unsigned char*)&soupbin_buf[0]);
     break;
-  /* ------------ */
+    /* ------------ */
   case 'S' : // Sequenced Packet
     sequencedPkt = true;
-  /* ------------ */
+    /* ------------ */
   default:
     lastMsg = gr->parseMsg(pEfhRunCtx,soupbin_buf,gr->recovery_sequence,op);
 
@@ -326,7 +326,7 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
 	      EKA_EXCH_DECODE(gr->exch),gr->id,end_sequence);
       return EkaFhParseResult::End;
     }
-  /* ------------ */
+    /* ------------ */
   }
   return EkaFhParseResult::NotEnd;
 }
@@ -373,9 +373,11 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
     if (! getLoginResponse(gr) ) goto ITERATION_FAIL;
     //-----------------------------------------------------------------
     while (gr->snapshot_active) {
+      now = std::chrono::high_resolution_clock::now();
       if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHeartBeatTime).count() > 900) {
 	sendHearBeat(gr->snapshot_sock);
 	lastHeartBeatTime = now;
+	EKA_TRACE("%s:%u: Heartbeat sent",EKA_EXCH_DECODE(gr->exch),gr->id);
       }
 
       parseResult = procSoupbinPkt(pEfhRunCtx,gr,end_sequence,op);
@@ -395,6 +397,9 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
     goto SUCCESS_END;
 
   ITERATION_FAIL:    
+    EKA_LOG("%s:%u: Iteration %d failed",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,trial);
+    
     sendLogout(gr);
     close(gr->snapshot_sock);
     gr->sendRetransmitExchangeError(pEfhRunCtx);

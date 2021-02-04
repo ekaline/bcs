@@ -74,9 +74,11 @@ static bool sesmCycle(EkaDev* dev,
     }
     //-----------------------------------------------------------------
     while (gr->recovery_active) {
+      now = std::chrono::high_resolution_clock::now();
       if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHeartBeatTime).count() > 900) {
 	sendHearBeat(gr->recovery_sock);
 	lastHeartBeatTime = now;
+	EKA_TRACE("%s:%u: Heartbeat sent",EKA_EXCH_DECODE(gr->exch),gr->id);
       }
       parseResult = procSesm(pEfhRunCtx,gr->recovery_sock,gr,EkaFhMode::MCAST);
       switch (parseResult) {
