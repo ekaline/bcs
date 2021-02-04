@@ -263,16 +263,20 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
 	     strerror(dev->lastErrno));
     return EkaFhParseResult::SocketError;
   }
-  uint8_t soupbin_buf[1000] = {};
+  uint8_t soupbin_buf[2000] = {};
   int payloadLen = be16toh(hdr.length) - sizeof(hdr.length);
-
+  if (payloadLen < 0) {
+    hexDump("SoupbinHdr",&hdr,sizeof(hdr));
+    on_error("payloadLen = %d, hdr.length = %d",
+			       payloadLen,be16toh(hdr.length));
+  }
   r = recv(gr->snapshot_sock,
 	   soupbin_buf,
 	   payloadLen,
 	   MSG_WAITALL);
   if (r < payloadLen) {
     dev->lastErrno = errno;
-    EKA_WARN("%s:%u failed to receive SoupbinBuf: received %u, expected %d: %s",
+    EKA_WARN("%s:%u failed to receive SoupbinBuf: received %d, expected %d: %s",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,
 	     r,
 	     payloadLen,
