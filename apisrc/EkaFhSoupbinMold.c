@@ -115,7 +115,18 @@ static int recvUdpPkt (EkaDev* dev,
 }
 
 //-----------------------------------------------
+/* ##################################################################### */
 
+static int sendHearBeat(int sock) {
+  soupbin_header heartbeat = {
+    .length		= be16toh(1),
+    .type		= 'R'
+  };
+
+  return send(sock,&heartbeat,sizeof(heartbeat), 0);
+}
+
+/* ##################################################################### */
 void* soupbin_heartbeat_thread(void* attr) {
   pthread_detach(pthread_self());
   EkaFhNasdaqGr* gr = (EkaFhNasdaqGr*) attr;
@@ -237,9 +248,164 @@ static bool getLoginResponse(EkaFhNasdaqGr* gr) {
   return true;  
 }
 /* ##################################################################### */
+static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx, 
+				       EkaFhNasdaqGr* gr,
+				       uint64_t end_sequence,
+				       EkaFhMode op) {
+  EkaDev* dev = gr->dev;
+  soupbin_header hdr ={};
+  int r = recv(gr->snapshot_sock,&hdr,sizeof(hdr),MSG_WAITALL);
+  if (r <= 0) {
+    dev->lastErrno = errno;
+    EKA_WARN("%s:%u: Soupbin Server connection reset by peer (failed to receive SoupbinHdr), r = %d: %s",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,
+	     r,
+	     strerror(dev->lastErrno));
+    return EkaFhParseResult::SocketError;
+  }
+  uint8_t soupbin_buf[1000] = {};
+  int payloadLen = be16toh(hdr.length) - sizeof(hdr.length);
+
+  r = recv(gr->snapshot_sock,
+	   soupbin_buf,
+	   payloadLen,
+	   MSG_WAITALL);
+  if (r < payloadLen) {
+    dev->lastErrno = errno;
+    EKA_WARN("%s:%u failed to receive SoupbinBuf: received %u, expected %d: %s",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,
+	     r,
+	     payloadLen,
+	     strerror(dev->lastErrno));
+    return EkaFhParseResult::SocketError;
+  }
+  bool sequencedPkt = false;
+  bool lastMsg      = false;
+  /* ------------ */
+  switch (hdr.type) {
+  case 'H' : // Hearbeat
+    if (gr->feed_ver == EfhFeedVer::kPHLX && 
+	(op == EkaFhMode::DEFINITIONS  || end_sequence == 1) 
+	&& ++gr->hearbeat_ctr == 5) { 
+      return EkaFhParseResult::End;
+    }
+    break;
+
+  /* ------------ */
+  case 'Z' : // End of Session Packet
+    EKA_WARN("%s:%u Soupbin closed the session with Z (End of Session Packet)",
+	     EKA_EXCH_DECODE(gr->exch),gr->id);
+    return EkaFhParseResult::End;
+
+  /* ------------ */
+  case '+' : // Debug Packet
+    EKA_LOG("%s:%u Soupbin Debug Msg: \'%s\'",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,
+	    (unsigned char*)&soupbin_buf[0]);
+    break;
+  /* ------------ */
+  case 'S' : // Sequenced Packet
+    sequencedPkt = true;
+  /* ------------ */
+  default:
+    lastMsg = gr->parseMsg(pEfhRunCtx,soupbin_buf,gr->recovery_sequence,op);
+
+    if (lastMsg) {
+      EKA_LOG("%s:%u After lastMsg (\'M\') message: seq_after_snapshot = %ju, recovery_sequence = %ju",
+	      EKA_EXCH_DECODE(gr->exch),gr->id,soupbin_buf,gr->seq_after_snapshot,gr->recovery_sequence);
+      return EkaFhParseResult::End;
+    }
+
+    if (sequencedPkt) gr->recovery_sequence++;
+    if (gr->recovery_sequence == end_sequence) {
+      EKA_LOG("%s:%u Snapshot Gap is closed: recovery_sequence == end_sequence %ju",
+	      EKA_EXCH_DECODE(gr->exch),gr->id,end_sequence);
+      return EkaFhParseResult::End;
+    }
+  /* ------------ */
+  }
+  return EkaFhParseResult::NotEnd;
+}
+/* ##################################################################### */
+  static bool soupbinCycle(EkaDev*        dev, 
+			   EfhRunCtx*     pEfhRunCtx, 
+			   EkaFhMode      op,
+			   EkaFhNasdaqGr* gr, 
+			   uint64_t       start_sequence,
+			   uint64_t       end_sequence,
+			   const int      MaxTrials
+			   ) {
+  EkaFhParseResult parseResult;
+
+  for (auto trial = 0; trial < MaxTrials && gr->snapshot_active; trial++) {
+    EKA_LOG("%s:%d %s cycle: trial: %d %ju..%ju",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op),trial,
+	    start_sequence,end_sequence);
+    //-----------------------------------------------------------------
+    auto lastHeartBeatTime = std::chrono::high_resolution_clock::now();
+    std::chrono::high_resolution_clock::time_point now;
+
+    gr->snapshot_sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (gr->snapshot_sock < 0) on_error("%s:%u: failed to open TCP socket",
+					EKA_EXCH_DECODE(gr->exch),gr->id);
+
+    sockaddr_in remote_addr = {};
+    remote_addr.sin_addr.s_addr = gr->snapshot_ip;
+    remote_addr.sin_port        = gr->snapshot_port;
+    remote_addr.sin_family      = AF_INET;
+    if (connect(gr->snapshot_sock,(sockaddr*)&remote_addr,sizeof(sockaddr_in)) != 0) {
+      dev->lastErrno = errno;
+      EKA_WARN("%s:%u Tcp Connect to %s:%u failed: %s",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,
+	       EKA_IP2STR(remote_addr.sin_addr.s_addr),
+	       be16toh   (remote_addr.sin_port),
+	       strerror(dev->lastErrno));
+
+      goto ITERATION_FAIL;
+    }
+    //-----------------------------------------------------------------
+    if (! sendLogin(gr, start_sequence)) goto ITERATION_FAIL;
+    //-----------------------------------------------------------------
+    if (! getLoginResponse(gr) ) goto ITERATION_FAIL;
+    //-----------------------------------------------------------------
+    while (gr->snapshot_active) {
+      if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHeartBeatTime).count() > 900) {
+	sendHearBeat(gr->snapshot_sock);
+	lastHeartBeatTime = now;
+      }
+
+      parseResult = procSoupbinPkt(pEfhRunCtx,gr,end_sequence,op);
+      switch (parseResult) {
+      case EkaFhParseResult::End:
+	goto SUCCESS_END;
+      case EkaFhParseResult::NotEnd:
+	break;
+      case EkaFhParseResult::SocketError:
+	start_sequence = gr->recovery_sequence;
+	goto ITERATION_FAIL;
+      default:
+	on_error("Unexpected parseResult %d",(int)parseResult);
+      }
+    }
+    //-----------------------------------------------------------------
+    goto SUCCESS_END;
+
+  ITERATION_FAIL:    
+    sendLogout(gr);
+    close(gr->snapshot_sock);
+    gr->sendRetransmitExchangeError(pEfhRunCtx);
+  }
+  return false;
+
+ SUCCESS_END:
+  sendLogout(gr);
+  close(gr->recovery_sock);
+  return true;
+}
+
+/* ##################################################################### */
 
 void* getSoupBinData(void* attr) {
-
 #ifdef FH_LAB
   return NULL;
 #endif
@@ -257,13 +423,15 @@ void* getSoupBinData(void* attr) {
 
   EkaDev* dev = pEfhCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
-  if (dev->fh[pEfhCtx->fhId] == NULL) on_error("dev->fh[pEfhCtx->fhId] == NULL for pEfhCtx->fhId = %u",pEfhCtx->fhId);
+  if (dev->fh[pEfhCtx->fhId] == NULL) 
+    on_error("dev->fh[pEfhCtx->fhId] == NULL for pEfhCtx->fhId = %u",pEfhCtx->fhId);
   if (gr == NULL) on_error("gr == NULL");
 
-  EKA_LOG("%s:%u %s : start_sequence=%ju, end_sequence=%ju",EKA_EXCH_DECODE(gr->exch),gr->id,
-	    op==EkaFhMode::SNAPSHOT ? "GAP_SNAPSHOT" : "DEFINITIONS",
-	    start_sequence,end_sequence
-	    );
+  EKA_LOG("%s:%u %s : start_sequence=%ju, end_sequence=%ju",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,
+	  EkaFhMode2STR(op),
+	  start_sequence,end_sequence
+	  );
   //-----------------------------------------------------------------
   EkaCredentialLease* lease;
   const struct timespec leaseTime = {.tv_sec = 180, .tv_nsec = 0};
@@ -272,106 +440,158 @@ void* getSoupBinData(void* attr) {
   memset (credName,'\0',sizeof(credName));
   memcpy (credName,gr->auth_user,sizeof(credName) - 1);
   const EkaGroup group{gr->exch, (EkaLSI)gr->id};
-  int rc = dev->credAcquire(EkaCredentialType::kSnapshot, group, (const char*)credName, &leaseTime,&timeout,dev->credContext,&lease);
-  if (rc != 0) on_error("%s:%u Failed to credAcquire for %s",EKA_EXCH_DECODE(gr->exch),gr->id,credName);
-  EKA_LOG("%s:%u Glimpse Credentials Accquired",EKA_EXCH_DECODE(gr->exch),gr->id);
+  int rc = dev->credAcquire(EkaCredentialType::kSnapshot, 
+			    group, 
+			    (const char*)credName, 
+			    &leaseTime,
+			    &timeout,
+			    dev->credContext,&lease);
+  if (rc != 0) 
+    on_error("%s:%u Failed to credAcquire for %s",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,credName);
+  EKA_LOG("%s:%u Glimpse/Soupbin Credentials Accquired",
+	  EKA_EXCH_DECODE(gr->exch),gr->id);
   //-----------------------------------------------------------------
-  if (gr->snapshot_sock != -1) on_error("%s:%u gr->snapshot_sock != -1",EKA_EXCH_DECODE(gr->exch),gr->id);
-
-  while (1) {
-    gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
-    if (gr->snapshot_sock == -1) {
-      EKA_WARN("%s:%u gr->snapshot_sock = -1",EKA_EXCH_DECODE(gr->exch),gr->id);
-      gr->sendRetransmitSocketError(pEfhRunCtx);
-      continue;
-    }
-    EKA_LOG("%s:%u TCP connected to Glimpse, gr->snapshot_sock = %d",EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock);
-
-    //-----------------------------------------------------------------
-    if (! sendLogin(gr, start_sequence)) {
-      gr->sendRetransmitSocketError(pEfhRunCtx);
-      close(gr->snapshot_sock);
-      continue;
-    }
-    //-----------------------------------------------------------------
-    if (! getLoginResponse(gr) ) {
-      sendLogout(gr);
-      close (gr->snapshot_sock);
-      gr->sendRetransmitSocketError(pEfhRunCtx);
-      continue;
-    }
-    break;
-  }
-  //-----------------------------------------------------------------
-  gr->heartbeat_active = true;
-  gr->hearbeat_ctr = 0;
+  const int MaxTrials = 4;
+  bool success = false;
   gr->snapshot_active = true;
-  pthread_t heartbeat_thread;
-  dev->createThread((std::string("HB_") + std::string(EKA_EXCH_DECODE(gr->exch)) + '_' + std::to_string(gr->id)).c_str(),
-		    EkaServiceType::kHeartbeat,
-		    soupbin_heartbeat_thread,
-		    (void*)gr,
-		    dev->createThreadContext,
-		    (uintptr_t*)&heartbeat_thread);
 
   //-----------------------------------------------------------------
 
-  while (gr->snapshot_active) { // Accepted Login
-    soupbin_header soupbin_hdr ={};
-    if (recv(gr->snapshot_sock,&soupbin_hdr,sizeof(soupbin_header),MSG_WAITALL) <= 0) 
-      on_error("%s:%u: Glimpse Server connection reset by peer (failed to receive SoupbinHdr), gr->snapshot_sock=%d",
-	       EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock);
-    char soupbin_buf[1000] = {};
-    int rc_size = recv(gr->snapshot_sock,soupbin_buf,be16toh(soupbin_hdr.length) - sizeof(soupbin_hdr.type),MSG_WAITALL);
-    if (rc_size - sizeof(soupbin_hdr.type) <= 0) 	
-      on_error("%s:%u failed to receive SoupbinBuf: received %u, expected %ju, gr->snapshot_sock=%d",
-	       EKA_EXCH_DECODE(gr->exch),gr->id,rc_size,sizeof(soupbin_hdr.type), gr->snapshot_sock);
-
-    if (soupbin_hdr.type == 'H') {
-      if (gr->feed_ver == EfhFeedVer::kPHLX && (op == EkaFhMode::DEFINITIONS  || end_sequence == 1) && ++gr->hearbeat_ctr == 5) { 
-	gr->snapshotThreadDone = true;
-	break; //
-      }
-      continue; // Heartbeat
-    }
-    if (soupbin_hdr.type == 'Z') 
-      on_error ("%s:%u Glimpse closed the session with Z (End of Session Packet)",
-		EKA_EXCH_DECODE(gr->exch),gr->id);
-      
-    if (soupbin_hdr.type == '+') 
-      EKA_TRACE("%s:%u Glimpse debug message: %s",EKA_EXCH_DECODE(gr->exch),gr->id,soupbin_buf);
-    unsigned char* m = (unsigned char*)&(soupbin_buf[0]);
-  //-----------------------------------------------------------------
-    if (gr->parseMsg(pEfhRunCtx,m,gr->recovery_sequence,op)) {
-      EKA_TRACE("%s:%u After \'M\' message: gr->seq_after_snapshot = %ju, gr->recovery_sequence = %ju",
-		EKA_EXCH_DECODE(gr->exch),gr->id,soupbin_buf,gr->seq_after_snapshot, gr->recovery_sequence);
-      break;
-    }
-  //-----------------------------------------------------------------
-    if (soupbin_hdr.type == 'S') gr->recovery_sequence++;
-    if (gr->recovery_sequence == end_sequence) {
-      EKA_LOG("%s:%u Snapshot Gap is closed: recovery_sequence == end_sequence %ju",
-	      EKA_EXCH_DECODE(gr->exch),gr->id,end_sequence);
-      break;
-    }
+  success = soupbinCycle(dev,
+			 pEfhRunCtx,
+			 op,
+			 gr,
+			 start_sequence,
+			 end_sequence,
+			 MaxTrials);
+  if (! success) {
+    EKA_WARN("%s:%u soupbinHandshakeCycle Failed after %d trials. Exiting...",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
+    on_error("%s:%u Failed after %d trials. Exiting...",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
   }
-  gr->gapClosed = true;
-  gr->heartbeat_active = false;
   //-----------------------------------------------------------------
-  sendLogout(gr);
-  //-----------------------------------------------------------------
-  //  heartbeat_thread.join();
-  close(gr->snapshot_sock);
-  gr->snapshot_sock = -1;
-  EKA_TRACE("%s:%u End Of %s, gr->recovery_sequence = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,
-	    op==EkaFhMode::SNAPSHOT ? "GAP_RECOVERY" : "DEFINITIONS",gr->recovery_sequence);
-
   rc = dev->credRelease(lease, dev->credContext);
-  if (rc != 0) on_error("%s:%u Failed to credRelease for %s",EKA_EXCH_DECODE(gr->exch),gr->id,credName);
-  EKA_LOG("%s:%u Soupbin Credentials Released",EKA_EXCH_DECODE(gr->exch),gr->id);
+  if (rc != 0) on_error("%s:%u Failed to credRelease for %s",
+			EKA_EXCH_DECODE(gr->exch),gr->id,credName);
+  EKA_LOG("%s:%u Soupbin Credentials Released",
+	  EKA_EXCH_DECODE(gr->exch),gr->id);
+  //-----------------------------------------------------------------
+
+  if (! success) {
+    EKA_WARN("%s:%u soupbinCycle Failed after %d trials. Exiting...",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
+    on_error("%s:%u Failed after %d trials. Exiting...",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
+  }
+
+  //-----------------------------------------------------------------
+  EKA_LOG("%s:%u End Of %s, seq_after_snapshot = %ju",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,
+	    EkaFhMode2STR(op),gr->seq_after_snapshot);
+
+  gr->snapshot_active = false;
 
   return NULL;
 }
+
+
+/*   while (1) { */
+/*     gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port); */
+/*     if (gr->snapshot_sock == -1) { */
+/*       EKA_WARN("%s:%u gr->snapshot_sock = -1",EKA_EXCH_DECODE(gr->exch),gr->id); */
+/*       gr->sendRetransmitSocketError(pEfhRunCtx); */
+/*       continue; */
+/*     } */
+/*     EKA_LOG("%s:%u TCP connected to Glimpse, gr->snapshot_sock = %d", */
+/* 	    EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock); */
+
+/*     //----------------------------------------------------------------- */
+/*     if (! sendLogin(gr, start_sequence)) { */
+/*       gr->sendRetransmitSocketError(pEfhRunCtx); */
+/*       close(gr->snapshot_sock); */
+/*       continue; */
+/*     } */
+/*     //----------------------------------------------------------------- */
+/*     if (! getLoginResponse(gr) ) { */
+/*       sendLogout(gr); */
+/*       close (gr->snapshot_sock); */
+/*       gr->sendRetransmitSocketError(pEfhRunCtx); */
+/*       continue; */
+/*     } */
+/*     break; */
+/*   } */
+/*   //----------------------------------------------------------------- */
+/*   gr->heartbeat_active = true; */
+/*   gr->hearbeat_ctr = 0; */
+/*   gr->snapshot_active = true; */
+/*   pthread_t heartbeat_thread; */
+/*   dev->createThread((std::string("HB_") + std::string(EKA_EXCH_DECODE(gr->exch)) + '_' + std::to_string(gr->id)).c_str(), */
+/* 		    EkaServiceType::kHeartbeat, */
+/* 		    soupbin_heartbeat_thread, */
+/* 		    (void*)gr, */
+/* 		    dev->createThreadContext, */
+/* 		    (uintptr_t*)&heartbeat_thread); */
+
+/*   //----------------------------------------------------------------- */
+
+/*   while (gr->snapshot_active) { // Accepted Login */
+/*     soupbin_header soupbin_hdr ={}; */
+/*     if (recv(gr->snapshot_sock,&soupbin_hdr,sizeof(soupbin_header),MSG_WAITALL) <= 0)  */
+/*       on_error("%s:%u: Glimpse Server connection reset by peer (failed to receive SoupbinHdr), gr->snapshot_sock=%d", */
+/* 	       EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock); */
+/*     char soupbin_buf[1000] = {}; */
+/*     int rc_size = recv(gr->snapshot_sock,soupbin_buf,be16toh(soupbin_hdr.length) - sizeof(soupbin_hdr.type),MSG_WAITALL); */
+/*     if (rc_size - sizeof(soupbin_hdr.type) <= 0) 	 */
+/*       on_error("%s:%u failed to receive SoupbinBuf: received %u, expected %ju, gr->snapshot_sock=%d", */
+/* 	       EKA_EXCH_DECODE(gr->exch),gr->id,rc_size,sizeof(soupbin_hdr.type), gr->snapshot_sock); */
+
+/*     if (soupbin_hdr.type == 'H') { */
+/*       if (gr->feed_ver == EfhFeedVer::kPHLX && (op == EkaFhMode::DEFINITIONS  || end_sequence == 1) && ++gr->hearbeat_ctr == 5) {  */
+/* 	gr->snapshotThreadDone = true; */
+/* 	break; // */
+/*       } */
+/*       continue; // Heartbeat */
+/*     } */
+/*     if (soupbin_hdr.type == 'Z')  */
+/*       on_error ("%s:%u Glimpse closed the session with Z (End of Session Packet)", */
+/* 		EKA_EXCH_DECODE(gr->exch),gr->id); */
+      
+/*     if (soupbin_hdr.type == '+')  */
+/*       EKA_TRACE("%s:%u Glimpse debug message: %s",EKA_EXCH_DECODE(gr->exch),gr->id,soupbin_buf); */
+/*     unsigned char* m = (unsigned char*)&(soupbin_buf[0]); */
+/*   //----------------------------------------------------------------- */
+/*     if (gr->parseMsg(pEfhRunCtx,m,gr->recovery_sequence,op)) { */
+/*       EKA_TRACE("%s:%u After \'M\' message: gr->seq_after_snapshot = %ju, gr->recovery_sequence = %ju", */
+/* 		EKA_EXCH_DECODE(gr->exch),gr->id,soupbin_buf,gr->seq_after_snapshot, gr->recovery_sequence); */
+/*       break; */
+/*     } */
+/*   //----------------------------------------------------------------- */
+/*     if (soupbin_hdr.type == 'S') gr->recovery_sequence++; */
+/*     if (gr->recovery_sequence == end_sequence) { */
+/*       EKA_LOG("%s:%u Snapshot Gap is closed: recovery_sequence == end_sequence %ju", */
+/* 	      EKA_EXCH_DECODE(gr->exch),gr->id,end_sequence); */
+/*       break; */
+/*     } */
+/*   } */
+/*   gr->gapClosed = true; */
+/*   gr->heartbeat_active = false; */
+/*   //----------------------------------------------------------------- */
+/*   sendLogout(gr); */
+/*   //----------------------------------------------------------------- */
+/*   //  heartbeat_thread.join(); */
+/*   close(gr->snapshot_sock); */
+/*   gr->snapshot_sock = -1; */
+/*   EKA_TRACE("%s:%u End Of %s, gr->recovery_sequence = %ju",EKA_EXCH_DECODE(gr->exch),gr->id, */
+/* 	    op==EkaFhMode::SNAPSHOT ? "GAP_RECOVERY" : "DEFINITIONS",gr->recovery_sequence); */
+
+/*   rc = dev->credRelease(lease, dev->credContext); */
+/*   if (rc != 0) on_error("%s:%u Failed to credRelease for %s",EKA_EXCH_DECODE(gr->exch),gr->id,credName); */
+/*   EKA_LOG("%s:%u Soupbin Credentials Released",EKA_EXCH_DECODE(gr->exch),gr->id); */
+
+/*   return NULL; */
+/* } */
 
 void* getMolUdp64Data(void* attr) {
   pthread_detach(pthread_self());
@@ -458,11 +678,11 @@ void* getMolUdp64Data(void* attr) {
     // 200 is just a number: a Mold pkt always contains less than 200 messages
     uint16_t cnt2ask4mold = cnt2ask > 200 ? 200 : cnt2ask & 0xFFFF; 
     mold_request.message_cnt = be16toh(cnt2ask4mold);
-    EKA_TRACE("%s:%u: Sending Mold request to: %s:%u, session_id = %s, seq=%ju, cnt=%u",
+    EKA_TRACE("%s:%u: Sending Mold request to: %s:%u, session_id = %s, seq=%ju (0x%jx), cnt=%u",
     	      EKA_EXCH_DECODE(gr->exch),gr->id,
     	      EKA_IP2STR(*(uint32_t*)&mold_recovery_addr.sin_addr),be16toh(mold_recovery_addr.sin_port),
     	      mold_request.session_id + '\0',
-    	      be64toh(mold_request.sequence),
+    	      be64toh(mold_request.sequence),be64toh(mold_request.sequence),
     	      be16toh(mold_request.message_cnt)
     	      );
     static const int MaxMoldReTry = 5;
@@ -473,20 +693,25 @@ void* getMolUdp64Data(void* attr) {
     for (auto i = 0; i < MaxMoldReTry; i++) {
       /* ----------------------------------------------------- */
       for (auto j = 0; j < MaxSendReTry; j++) {
-	int r = sendto(udpSock,&mold_request,sizeof(mold_request),0,(const sockaddr*)&mold_recovery_addr,sizeof(sockaddr));
+	int r = sendto(udpSock,
+		       &mold_request,
+		       sizeof(mold_request),
+		       0,
+		       (const sockaddr*)&mold_recovery_addr,
+		       sizeof(sockaddr));
 	if (r == sizeof(mold_request)) {
 	  EKA_TRACE("%s:%u Mold request sent: %s:%u r=%d",
 		    EKA_EXCH_DECODE(gr->exch),gr->id,
-		    EKA_IP2STR(((sockaddr_in*)&mold_recovery_addr)->sin_addr.s_addr),
-		    be16toh(((sockaddr_in*)&mold_recovery_addr)->sin_port),
+		    EKA_IP2STR(mold_recovery_addr.sin_addr.s_addr),
+		    be16toh   (mold_recovery_addr.sin_port),
 		    r);
 	  break;
 	} else {      
 	  dev->lastErrno = errno;
 	  EKA_WARN("%s:%u Mold request send failed to: %s:%u r=%d: %s",
 		   EKA_EXCH_DECODE(gr->exch),gr->id,
-		   EKA_IP2STR(((sockaddr_in*)&mold_recovery_addr)->sin_addr.s_addr),
-		   be16toh(((sockaddr_in*)&mold_recovery_addr)->sin_port),
+		   EKA_IP2STR(mold_recovery_addr.sin_addr.s_addr),
+		   be16toh   (mold_recovery_addr.sin_port),
 		   r,
 		   strerror(dev->lastErrno));
 	  sleep(0);
@@ -494,10 +719,8 @@ void* getMolUdp64Data(void* attr) {
 	}
       }
       /* ----------------------------------------------------- */
-      //      socklen_t addrlen = sizeof(sockaddr);
       for (auto k = 0; k < MaxReadReTry; k++) {
-	//	int r = recvfrom(udpSock,buf,sizeof(buf), MSG_WAITALL, (sockaddr*)&mold_recovery_addr, &addrlen);
-	int r = recvfrom(udpSock,buf,sizeof(buf), MSG_WAITALL, NULL, NULL);
+	int r = recvfrom(udpSock,buf,sizeof(buf),MSG_WAITALL,NULL,NULL);
 	if (r > 0) {
 	  moldRcvSuccess = true;
 	  break;
@@ -510,8 +733,8 @@ void* getMolUdp64Data(void* attr) {
 	if (errno == EAGAIN) {
 	  EKA_WARN("%s:%u Mold request receive failed from: %s:%u after TimeOut %d, r=%d: %s",
 		   EKA_EXCH_DECODE(gr->exch),gr->id,
-		   EKA_IP2STR(((sockaddr_in*)&mold_recovery_addr)->sin_addr.s_addr),
-		   be16toh(((sockaddr_in*)&mold_recovery_addr)->sin_port),
+		   EKA_IP2STR(mold_recovery_addr.sin_addr.s_addr),
+		   be16toh   (mold_recovery_addr.sin_port),
 		   TimeOut,
 		   r,
 		   strerror(errno));
@@ -522,8 +745,8 @@ void* getMolUdp64Data(void* attr) {
 
 	EKA_WARN("%s:%u Mold request receive failed from: %s:%u r=%d: %s",
 		 EKA_EXCH_DECODE(gr->exch),gr->id,
-		 EKA_IP2STR(((sockaddr_in*)&mold_recovery_addr)->sin_addr.s_addr),
-		 be16toh(((sockaddr_in*)&mold_recovery_addr)->sin_port),
+		 EKA_IP2STR(mold_recovery_addr.sin_addr.s_addr),
+		 be16toh   (mold_recovery_addr.sin_port),
 		 r,
 		 strerror(dev->lastErrno));
 	moldRcvSuccess = false;
@@ -534,7 +757,8 @@ void* getMolUdp64Data(void* attr) {
     if (! moldRcvSuccess) {
       gr->sendRetransmitSocketError(pEfhRunCtx);
       on_error("%s:%u Mold request failed after %d attempts: %s",
-	       EKA_EXCH_DECODE(gr->exch),gr->id,MaxMoldReTry,strerror(dev->lastErrno));
+	       EKA_EXCH_DECODE(gr->exch),gr->id,
+	       MaxMoldReTry,strerror(dev->lastErrno));
     }
 
     //-----------------------------------------------
