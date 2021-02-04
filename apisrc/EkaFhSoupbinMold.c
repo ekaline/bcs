@@ -23,8 +23,6 @@
 #include "EkaFhNasdaqGr.h"
 #include "EkaFhThreadAttr.h"
 
-int ekaTcpConnect(uint32_t ip, uint16_t port);
-
 struct soupbin_header {
   uint16_t    length;
   char        type;
@@ -354,6 +352,12 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
     if (gr->snapshot_sock < 0) on_error("%s:%u: failed to open TCP socket",
 					EKA_EXCH_DECODE(gr->exch),gr->id);
 
+    static const int TimeOut = 1; // seconds
+    struct timeval tv = {
+      .tv_sec = TimeOut
+    }; 
+    setsockopt(gr->snapshot_sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
     sockaddr_in remote_addr = {};
     remote_addr.sin_addr.s_addr = gr->snapshot_ip;
     remote_addr.sin_port        = gr->snapshot_port;
@@ -415,7 +419,7 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
 
  SUCCESS_END:
   sendLogout(gr);
-  close(gr->recovery_sock);
+  close(gr->snapshot_sock);
   return true;
 }
 

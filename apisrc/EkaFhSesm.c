@@ -24,8 +24,6 @@
 
 #include "EkaFhThreadAttr.h"
 
-int ekaTcpConnect(uint32_t ip, uint16_t port);
-void* heartBeatThread(EkaDev* dev, EkaFhMiaxGr* gr,int sock);
 static bool sendLogin (EkaFhMiaxGr* gr);
 static bool getLoginResponse(EkaFhMiaxGr* gr);
 static bool sendRetransmitRequest(EkaFhMiaxGr* gr, uint64_t start, uint64_t end);
@@ -56,10 +54,35 @@ static bool sesmCycle(EkaDev* dev,
   for (auto trial = 0; trial < MaxTrials && gr->recovery_active; trial++) {
     EKA_LOG("%s:%d %s cycle: trial: %d",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op),trial);
-    gr->recovery_sock = ekaTcpConnect(gr->recovery_ip,gr->recovery_port);
-    if (gr->recovery_sock < 0) on_error("%s:%d gr->recovery_sock = %d",EKA_EXCH_DECODE(gr->exch),gr->id,gr->recovery_sock);
+
     auto lastHeartBeatTime = std::chrono::high_resolution_clock::now();
     std::chrono::high_resolution_clock::time_point now;
+
+    gr->recovery_sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (gr->recovery_sock < 0) on_error("%s:%u: failed to open TCP socket",
+					EKA_EXCH_DECODE(gr->exch),gr->id);
+
+    static const int TimeOut = 1; // seconds
+    struct timeval tv = {
+      .tv_sec = TimeOut
+    }; 
+    setsockopt(gr->recovery_sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
+    sockaddr_in remote_addr = {};
+    remote_addr.sin_addr.s_addr = gr->recovery_ip;
+    remote_addr.sin_port        = gr->recovery_port;
+    remote_addr.sin_family      = AF_INET;
+    if (connect(gr->recovery_sock,(sockaddr*)&remote_addr,sizeof(sockaddr_in)) != 0) {
+      dev->lastErrno = errno;
+      EKA_WARN("%s:%u Tcp Connect to %s:%u failed: %s",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,
+	       EKA_IP2STR(remote_addr.sin_addr.s_addr),
+	       be16toh   (remote_addr.sin_port),
+	       strerror(dev->lastErrno));
+
+      goto ITERATION_FAIL;
+    }
+
     //-----------------------------------------------------------------
     if (! sendLogin(gr)) goto ITERATION_FAIL;
     //-----------------------------------------------------------------
@@ -376,92 +399,6 @@ static EkaFhParseResult procSesm(const EfhRunCtx* pEfhRunCtx,
   return EkaFhParseResult::NotEnd;
 }
 /* ##################################################################### */
-#if 0
-void* getSesmRetransmit(void* attr) {
-#ifdef FH_LAB
-  return NULL;
-#endif
-  pthread_detach(pthread_self());
-
-  EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
-  EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
-  EkaFhMiaxGr*  gr             = (EkaFhMiaxGr*)((EkaFhThreadAttr*)attr)->gr;
-  uint64_t   start          = ((EkaFhThreadAttr*)attr)->startSeq;
-  uint64_t   end            = ((EkaFhThreadAttr*)attr)->endSeq;
-  //  EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
-  ((EkaFhThreadAttr*)attr)->~EkaFhThreadAttr();
-
-  if (gr->recovery_sock != -1) on_error("%s:%u gr->recovery_sock != -1",EKA_EXCH_DECODE(gr->exch),gr->id);
-  EkaDev* dev = gr->dev;
-
-  EKA_LOG("%s:%u start=%ju, end=%ju",EKA_EXCH_DECODE(gr->exch),gr->id,start,end);
-
-  //  EkaDev* dev = gr->dev;
-  //  if (end - start > 65000) on_error("Gap %ju is too high (> 65000), start = %ju, end = %ju",end - start, start, end);
-  //-----------------------------------------------------------------
-  static const int MaxTrials = 3;
-  gr->recovery_active = true;
-  bool success = false;
-  for (auto trials = 0; trials < MaxTrials; trials++) {
-    while (gr->recovery_active) {
-      gr->recovery_sock = ekaTcpConnect(gr->recovery_ip,gr->recovery_port);
-      //-----------------------------------------------------------------
-      if (! sendLogin(gr)) {
-	close(gr->recovery_sock);
-	gr->sendRetransmitExchangeError(pEfhRunCtx);
-	continue;
-      }
-      //-----------------------------------------------------------------
-      if (! getLoginResponse(gr)) {
-	sendLogOut(gr);
-	close(gr->recovery_sock);
-	gr->sendRetransmitExchangeError(pEfhRunCtx);
-	continue;
-      }
-      break;
-    }
-    //-----------------------------------------------------------------
-    std::thread heartBeat = std::thread(heartBeatThread,dev,gr,gr->recovery_sock);
-    heartBeat.detach();
-    //-----------------------------------------------------------------
-    if (! sendRetransmitRequest(gr,start,end)) {
-      sendLogOut(gr);
-      close(gr->recovery_sock);
-      gr->sendRetransmitExchangeError(pEfhRunCtx);
-      return NULL;
-    }
-    //-----------------------------------------------------------------
-    bool endOfCycle = false;
-    while (gr->recovery_active) {
-      EkaFhParseResult parseResult = procSesm(pEfhCtx,pEfhRunCtx,gr->recovery_sock,gr,EkaFhMode::MCAST);
-      switch (parseResult) {
-      case EkaFhParseResult::End:
-	success = true;
-	endOfCycle = true;
-	break;
-      case EkaFhParseResult::NotEnd:
-	break;
-      case EkaFhParseResult::SocketError:
-	endOfCycle = true;
-	gr->sendRetransmitExchangeError(pEfhRunCtx);
-	break;
-      default:
-	endOfCycle = true;
-	break;
-      }
-      if (endOfCycle) break;
-    } 
-    gr->heartbeat_active = false;
-    close(gr->recovery_sock);
-    if (success) break;
-  }
-  gr->gapClosed = true;
-
-  return NULL;
-}
-#endif
-/* ##################################################################### */
-
 void* getSesmData(void* attr) {
 #ifdef FH_LAB
   return NULL;
