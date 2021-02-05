@@ -55,6 +55,12 @@ class EkaFhBatsGr : public EkaFhGroup{
   char                  sessionSubID[4] = {};  // for BATS Spin
   uint8_t               batsUnit = 0;
 
+  char                  grpSessionSubID[4] = {'0','5','8','7'};  // C1 default
+  uint32_t              grpIp         = 0x667289aa;              // C1 default "170.137.114.102"
+  uint16_t              grpPort       = 0x6e42;                  // C1 default be16toh(17006)
+  char                  grpUser[4]    = {'G','T','S','S'};       // C1 default
+  char                  grpPasswd[10] = {'e','b','3','g','t','s','s',' ',' ',' '}; // C1 default
+
   static const uint   SCALE          = (const uint) 22;
   static const uint   SEC_HASH_SCALE = 17;
 
