@@ -69,6 +69,10 @@ class EkaFhGroup {
 
   virtual int processFromQ(const EfhRunCtx* pEfhRunCtx);
 
+  int         credentialAcquire(const char*          credName,
+				size_t               credNameSize,
+				EkaCredentialLease** lease);
+
   /* virtual bool        processUdpPkt(const EfhRunCtx* pEfhRunCtx, */
   /* 				    const uint8_t*   pkt,  */
   /* 				    uint             msgInPkt,  */
@@ -155,6 +159,8 @@ class EkaFhGroup {
   FILE*                 parser_log = NULL; // used with PRINT_PARSED_MESSAGES define
 
  private:
+
+ protected:
 
 };
 #endif

@@ -285,3 +285,28 @@ void EkaFhGroup::print_q_state() {
   q->reset_max_len();
   return;  
 }
+ /* ##################################################################### */
+
+ int EkaFhGroup::credentialAcquire(const char* credName,
+				   size_t      credNameSize,
+				   EkaCredentialLease** lease) {
+
+  const struct timespec leaseTime = {.tv_sec = 180, .tv_nsec = 0};
+  const struct timespec timeout   = {.tv_sec = 60, .tv_nsec = 0};
+
+  char                  name[7] = {};
+
+  memcpy (name,credName,std::min(sizeof(name),credNameSize) - 1);
+  const EkaGroup group {exch,id};
+  int rc = dev->credAcquire(EkaCredentialType::kSnapshot, 
+			    group, 
+			    name, 
+			    &leaseTime,
+			    &timeout,
+			    dev->credContext,
+			    lease);
+  if (rc != 0) 
+    on_error("%s:%u Failed to credAcquire for \'%s\'",
+			EKA_EXCH_DECODE(exch),id,name);
+  return rc;
+ }
