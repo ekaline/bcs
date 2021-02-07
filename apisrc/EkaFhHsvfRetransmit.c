@@ -346,6 +346,10 @@ void* getHsvfRetransmit(void* attr) {
 
   EKA_LOG("%s:%u start=%ju, end=%ju, gap=%d",EKA_EXCH_DECODE(gr->exch),gr->id,start,end, end - start);
   //-----------------------------------------------------------------
+  EkaCredentialLease* lease;
+  gr->credentialAcquire(gr->auth_user,sizeof(gr->auth_user),&lease);
+
+  //-----------------------------------------------------------------
   gr->snapshot_active = true;
 
   while (gr->snapshot_active) {
@@ -411,6 +415,13 @@ void* getHsvfRetransmit(void* attr) {
   sendRetransmissionEnd(gr);
   //-----------------------------------------------------------------
   sendLogout(gr);
+
+  //-----------------------------------------------------------------
+  int rc = dev->credRelease(lease, dev->credContext);
+  if (rc != 0) on_error("%s:%u Failed to credRelease",
+			EKA_EXCH_DECODE(gr->exch),gr->id);
+  EKA_LOG("%s:%u BOX retransmit Credentials Released",
+	  EKA_EXCH_DECODE(gr->exch),gr->id);
   //-----------------------------------------------------------------
 
   close(gr->snapshot_sock);

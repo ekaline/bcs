@@ -254,7 +254,7 @@ static bool sendSpinRequest(EkaDev*   dev,
 			    EkaSource exch,
 			    EkaLSI    id
 			    ) {
-  if ((spinImageSequence & 0xFFFFFFFF) != 0) 
+  if (spinImageSequence >= (1ULL << 32)) 
     on_error("%s:%u: spinImageSequence %ju exceeds 32bit",
 	     EKA_EXCH_DECODE(exch),id,spinImageSequence);
 
@@ -656,7 +656,9 @@ void* getSpinData(void* attr) {
     gr->sendRetransmitExchangeError(pEfhRunCtx);    
   }
   //-----------------------------------------------------------------
-  dev->credRelease(lease, dev->credContext);
+  int rc = dev->credRelease(lease, dev->credContext);
+  if (rc != 0) on_error("%s:%u Failed to credRelease",
+			EKA_EXCH_DECODE(gr->exch),gr->id);
   //-----------------------------------------------------------------
   gr->snapshot_active = false;
 
@@ -839,6 +841,9 @@ void* getGrpRetransmitData(void* attr) {
   EkaDev* dev = gr->dev;
   if (dev == NULL) on_error("dev == NULL");
 
+  if (! gr->grpSet) on_error("%s:%u: GRP credentials not set",
+			 EKA_EXCH_DECODE(gr->exch),gr->id);
+
   if (end - start > 65000) 
     on_error("%s:%u: Gap %ju is too high (> 65000), start = %ju, end = %ju",
 	     EKA_EXCH_DECODE(gr->exch),gr->id, end - start, start, end);
@@ -865,7 +870,9 @@ void* getGrpRetransmitData(void* attr) {
     gr->sendRetransmitExchangeError(pEfhRunCtx);
   }
   //-----------------------------------------------------------------
-  dev->credRelease(lease, dev->credContext);
+  int rc = dev->credRelease(lease, dev->credContext);
+  if (rc != 0) on_error("%s:%u Failed to credRelease",
+			EKA_EXCH_DECODE(gr->exch),gr->id);
   //-----------------------------------------------------------------
   gr->recovery_active = false;
   gr->seq_after_snapshot = end;

@@ -60,6 +60,7 @@ class EkaFhBatsGr : public EkaFhGroup{
   uint16_t              grpPort       = 0x6e42;                  // C1 default be16toh(17006)
   char                  grpUser[4]    = {'G','T','S','S'};       // C1 default
   char                  grpPasswd[10] = {'e','b','3','g','t','s','s',' ',' ',' '}; // C1 default
+  bool                  grpSet        = false;
 
   static const uint   SCALE          = (const uint) 22;
   static const uint   SEC_HASH_SCALE = 17;

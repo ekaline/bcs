@@ -424,24 +424,8 @@ void* getSesmData(void* attr) {
 
   //-----------------------------------------------------------------
   EkaCredentialLease* lease;
-  const struct timespec leaseTime = {.tv_sec = 180, .tv_nsec = 0};
-  const struct timespec timeout   = {.tv_sec = 60,  .tv_nsec = 0};
-  char credName[7] = {};
-  memset (credName,'\0',sizeof(credName));
-  memcpy (credName,gr->auth_user,sizeof(credName) - 1);
-  const EkaGroup group{gr->exch, (EkaLSI)gr->id};
-  int rc = dev->credAcquire(op == EkaFhMode::RECOVERY ? 
-			    EkaCredentialType::kRecovery : 
-			    EkaCredentialType::kSnapshot, 
-			    group, 
-			    (const char*)credName, 
-			    &leaseTime,
-			    &timeout,
-			    dev->credContext,
-			    &lease);
-  if (rc != 0) on_error("%s:%u Failed to credAcquire for %s",
-			EKA_EXCH_DECODE(gr->exch),gr->id,credName);
-  EKA_LOG("%s:%u Sesm Credentials Accquired",EKA_EXCH_DECODE(gr->exch),gr->id);
+  gr->credentialAcquire(gr->auth_user,sizeof(gr->auth_user),&lease);
+
   //-----------------------------------------------------------------
   const int MaxTrials = 4;
   bool success = false;
@@ -474,8 +458,9 @@ void* getSesmData(void* attr) {
     on_error("%s:%u Unexpected op = %d",EKA_EXCH_DECODE(gr->exch),gr->id,(int)op);
   }
   //-------------------------------------------------------
-  rc = dev->credRelease(lease, dev->credContext);
-  if (rc != 0) on_error("%s:%u Failed to credRelease for %s",EKA_EXCH_DECODE(gr->exch),gr->id,credName);
+  int rc = dev->credRelease(lease, dev->credContext);
+  if (rc != 0) on_error("%s:%u Failed to credRelease",
+			EKA_EXCH_DECODE(gr->exch),gr->id);
   EKA_LOG("%s:%u Sesm Credentials Released",EKA_EXCH_DECODE(gr->exch),gr->id);
   //-------------------------------------------------------
 
