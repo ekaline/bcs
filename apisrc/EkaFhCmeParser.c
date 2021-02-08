@@ -58,7 +58,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       auto rootBlock {reinterpret_cast<const MDIncrementalRefreshBook46_mainBlock*>(&pkt[rootBlockPos])};
 #ifdef _PRINT_ALL_
       TEST_LOG ("\t\tIncrementalRefreshBook46: TransactTime=%jx, MatchEventIndicator=0x%x",
-	       rootBlock->TransactTime,rootBlock->MatchEventIndicator);
+		rootBlock->TransactTime,rootBlock->MatchEventIndicator);
 #endif
       /* ------------------------------- */
       uint groupSizePos = rootBlockPos + msgHdr->blockLen;
@@ -67,24 +67,83 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       uint entryPos = groupSizePos + sizeof(*pGroupSize);
       for (uint i = 0; i < pGroupSize->numInGroup; i++) {
 	const IncementaRefreshMdEntry* e = (const IncementaRefreshMdEntry*) &pkt[entryPos];
-	PriceT            price        = e->MDEntryPx;
-	SizeT             size         = e->MDEntrySize;
-	SecurityIdT       securityId   = e->SecurityID;
-	SequenceT         prodSequence = e->RptSeq;
-	PriceLevetT       priceLevel   = e->MDPriceLevel;
-	MDUpdateAction_T  action       = e->MDUpdateAction;
-	MDEntryTypeBook_T entryType    = e->MDEntryType;
+	/* PriceT            price        = e->MDEntryPx; */
+	/* SizeT             size         = e->MDEntrySize; */
+	/* SecurityIdT       securityId   = e->SecurityID; */
+	/* SequenceT         prodSequence = e->RptSeq; */
+	/* PriceLevetT       priceLevel   = e->MDPriceLevel; */
+	/* MDUpdateAction_T  action       = e->MDUpdateAction; */
+	/* MDEntryTypeBook_T entryType    = e->MDEntryType; */
 
 #ifdef _PRINT_ALL_
 	TEST_LOG("\t\t\tsecId=%8d,%s,%s,plvl=%u,p=%16jd,s=%d\n",
-		securityId,
-		MDpdateAction2STR(action),
-		MDEntryTypeBook2STR(entryType),
-		priceLevel,
-		price,
-		size);
+		 e->SecurityID,
+		 MDpdateAction2STR(e->MDUpdateAction),
+		 MDEntryTypeBook2STR(e->MDEntryType),
+		 e->MDPriceLevel,
+		 e->MDEntryPx,
+		 e->MDEntrySize);
 #endif
 	entryPos += pGroupSize->blockLength;
+	FhSecurity* s = book->findSecurity(e->SecurityID);
+	if (s == NULL) break;
+
+	bool ignorMe = false;
+	SideT  side  = SideT::UNINIT;
+	switch (e->MDEntryType) {
+	case MDEntryTypeBook_T::Bid :
+	  side = SideT::BID;
+	  break;
+
+	case MDEntryTypeBook_T::Offer :
+	  side = SideT::ASK;
+	  break;
+
+	case MDEntryTypeBook_T::ImpliedBid   :
+	case MDEntryTypeBook_T::ImpliedOffer :
+	  ignorMe = true;
+	  break;
+
+	case MDEntryTypeBook_T::BookReset :
+	  /* TBD */
+	  ignorMe = true;
+	  break;
+	default:
+	  on_error("Unexpected MDEntryType \'%c\'",(char)e->MDEntryType);
+	}
+
+	if (ignorMe) break;
+	bool tobChange = false;
+	switch (e->MDUpdateAction) {
+	case MDUpdateAction_T::New:
+	  tobChange = s->newPlevel(side,
+		       e->MDPriceLevel,
+		       e->MDEntryPx,
+		       e->MDEntrySize);
+	  break;
+	case MDUpdateAction_T::Change:
+	  tobChange = s->changePlevel(side,
+			  e->MDPriceLevel,
+			  e->MDEntryPx,
+			  e->MDEntrySize);
+	  break;
+	case MDUpdateAction_T::Delete:
+	  tobChange = s->deletePlevel(side,
+			  e->MDPriceLevel);
+	  break;
+	case MDUpdateAction_T::DeleteThru:
+	case MDUpdateAction_T::DeleteFrom:
+	case MDUpdateAction_T::Overlay:
+	  break;
+	default:
+	  on_error("Unexpected MDUpdateActio %u",(uint)e->MDUpdateAction);
+	}
+
+	if (tobChange) book->generateOnQuote (pEfhRunCtx, 
+					      s, 
+					      pktSeq,
+					      pktTime, 
+					      gapNum);
       }
     }
       break;
@@ -92,20 +151,20 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
     case MsgId::SnapshotFullRefresh52 : {
       /* ------------------------------- */
       auto rootBlock {reinterpret_cast<const SnapshotFullRefresh52_mainBlock*>(&pkt[rootBlockPos])};
-      SequenceT               lastMsgSeqNumProcessed = rootBlock->LastMsgSeqNumProcessed;
-      uInt32_T                totNumReports          = rootBlock->TotNumReports;
-      SecurityIdT             securityID             = rootBlock->SecurityID;
-      SequenceT               prodSequence           = rootBlock->RptSeq;
-      uInt64_T                transactTime           = rootBlock->TransactTime;
-      uInt64_T                lastUpdateTime         = rootBlock->LastUpdateTime;
-      SecurityTradingStatus_T tradingStatus          = rootBlock->MDSecurityTradingStatus;
+      /* SequenceT               lastMsgSeqNumProcessed = rootBlock->LastMsgSeqNumProcessed; */
+      /* uInt32_T                totNumReports          = rootBlock->TotNumReports; */
+      /* SecurityIdT             securityID             = rootBlock->SecurityID; */
+      /* SequenceT               prodSequence           = rootBlock->RptSeq; */
+      /* uInt64_T                transactTime           = rootBlock->TransactTime; */
+      /* uInt64_T                lastUpdateTime         = rootBlock->LastUpdateTime; */
+      /* SecurityTradingStatus_T tradingStatus          = rootBlock->MDSecurityTradingStatus; */
 #ifdef _PRINT_ALL_
       TEST_LOG ("\t\tSnapshotFullRefresh52: securityID=%d, lastMsgSeqNumProcessed=%u,totNumReports=%u,tradingStatus=%s,lastUpdateTime=%s",
-	       securityID,
-	       lastMsgSeqNumProcessed,
-	       totNumReports,
-	       SecurityTradingStatus2STR(tradingStatus),
-	       ts_ns2str(lastUpdateTime).c_str());
+	       rootBlock->SecurityID,
+	       rootBlock->LastMsgSeqNumProcessed,
+	       rootBlock->TotNumReports,
+	       SecurityTradingStatus2STR(rootBlock->MDSecurityTradingStatus),
+	       ts_ns2str(rootBlock->LastUpdateTime).c_str());
 #endif
       /* ------------------------------- */
       uint groupSizePos = rootBlockPos + msgHdr->blockLen;
@@ -115,22 +174,22 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       for (uint i = 0; i < pGroupSize->numInGroup; i++) {
 	auto e {reinterpret_cast<const IncementaRefreshMdEntry*>(&pkt[entryPos])};
 
-	PriceT            price        = e->MDEntryPx;
-	SizeT             size         = e->MDEntrySize;
-	SecurityIdT       securityId   = e->SecurityID;
-	SequenceT         prodSequence = e->RptSeq;
-	PriceLevetT       priceLevel   = e->MDPriceLevel;
-	MDUpdateAction_T  action       = e->MDUpdateAction;
-	MDEntryTypeBook_T entryType    = e->MDEntryType;
+	/* PriceT            price        = e->MDEntryPx; */
+	/* SizeT             size         = e->MDEntrySize; */
+	/* SecurityIdT       securityId   = e->SecurityID; */
+	/* SequenceT         prodSequence = e->RptSeq; */
+	/* PriceLevetT       priceLevel   = e->MDPriceLevel; */
+	/* MDUpdateAction_T  action       = e->MDUpdateAction; */
+	/* MDEntryTypeBook_T entryType    = e->MDEntryType; */
 
 #ifdef _PRINT_ALL_
 	TEST_LOG("\t\t\tsecId=%8d,%s,%s,plvl=%u,p=%16jd,s=%d\n",
-		securityId,
-		MDpdateAction2STR(action),
-		MDEntryTypeBook2STR(entryType),
-		priceLevel,
-		price,
-		size
+		e->SecurityID,
+		MDpdateAction2STR(e->MDUpdateAction),
+		MDEntryTypeBook2STR(e->MDEntryType),
+		e->MDPriceLevel,
+		e->MDEntryPx,
+		e->MDEntrySize
 		);
 #endif
 	entryPos += pGroupSize->blockLength;

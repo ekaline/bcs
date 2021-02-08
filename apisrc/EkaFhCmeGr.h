@@ -2,7 +2,8 @@
 #define _EKA_FH_CME_GR_H_
 
 #include "EkaFhGroup.h"
-#include "EkaFhTobBook.h"
+#include "EkaFhCmeBook.h"
+#include "EkaFhCmeSecurity.h"
 
 class EkaHsvfTcp;
 
@@ -61,7 +62,7 @@ class EkaFhCmeGr : public EkaFhGroup {
 
   /* ##################################################################### */
 
-  static const uint   SEC_HASH_SCALE = 17;
+  static const uint   SEC_HASH_SCALE = 15;
 
   using SecurityIdT = int32_t;
   using PriceT      = int64_t;
@@ -70,8 +71,17 @@ class EkaFhCmeGr : public EkaFhGroup {
   using SequenceT   = uint32_t;
   using PriceLevetT = uint8_t;
 
-  using FhSecurity  = EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>;
-  using FhBook      = EkaFhTobBook<SEC_HASH_SCALE,EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>,SecurityIdT, PriceT, SizeT>;
+  using FhSecurity  = EkaFhCmeSecurity  <
+    PriceLevetT,
+    SecurityIdT, 
+    PriceT, 
+    SizeT>;
+  using FhBook      = EkaFhCmeBook      <
+    SEC_HASH_SCALE,
+    EkaFhCmeSecurity  <PriceLevetT,SecurityIdT, PriceT, SizeT>,
+    SecurityIdT, 
+    PriceT, 
+    SizeT>;
 
   FhBook*   book = NULL;
 
