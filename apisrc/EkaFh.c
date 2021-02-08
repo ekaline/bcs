@@ -270,8 +270,10 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       auto batsGr {reinterpret_cast<EkaFhBatsGr*>(b_gr[gr])};
       if (batsGr == NULL) on_error("b_gr[%u] == NULL",gr);
 
-      memset(batsGr->grpUser,  '\0',sizeof(batsGr->grpUser));
-      memset(batsGr->grpPasswd,'\0',sizeof(batsGr->grpPasswd));
+      /* memset(batsGr->grpUser,  '\0',sizeof(batsGr->grpUser)); */
+      /* memset(batsGr->grpPasswd,'\0',sizeof(batsGr->grpPasswd)); */
+      memset(batsGr->grpUser,  ' ',sizeof(batsGr->grpUser));
+      memset(batsGr->grpPasswd,' ',sizeof(batsGr->grpPasswd));
       memcpy(batsGr->grpUser,  v[0],strlen(v[0]));
       memcpy(batsGr->grpPasswd,v[1],strlen(v[1]));
 

@@ -93,7 +93,7 @@ static bool sendLogin (EkaDev*     dev,
     return false;
   }
 
-  EKA_LOG("%s:%u %s Login sent",loginType,EKA_EXCH_DECODE(exch),id);
+  EKA_LOG("%s:%u %s Login sent",EKA_EXCH_DECODE(exch),id,loginType);
   //  hexDump("Spin Login Message sent",&loginMsg,sizeof(loginMsg));
   return true;
 }
@@ -543,6 +543,11 @@ static bool grpCycle(EfhRunCtx*   pEfhRunCtx,
   remote_addr.sin_port        = gr->grpPort;
   remote_addr.sin_family      = AF_INET;
   //-----------------------------------------------------------------
+  EKA_LOG("%s:%u Tcp Connecting to %s:%u",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,
+	  EKA_IP2STR(remote_addr.sin_addr.s_addr),
+	  be16toh   (remote_addr.sin_port));
+
   if (connect(tcpSock,(sockaddr*)&remote_addr,sizeof(sockaddr_in)) != 0) {
     dev->lastErrno = errno;
     EKA_WARN("%s:%u Tcp Connect to GRP %s:%u failed: %s",
