@@ -144,15 +144,12 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       ++processedDefinitionMessages;
       /* ------------------------------- */
       auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionFuture54_mainBlock*>(&pkt[rootBlockPos])};
-      SecurityIdT securityId       = rootBlock->SecurityID;
-      int32_t     totNumReports    = rootBlock->TotNumReports;
       std::string symbol           = std::string((const char*)&rootBlock->Symbol,          sizeof(rootBlock->Symbol));
       std::string cfiCode          = std::string((const char*)&rootBlock->CFICode,         sizeof(rootBlock->CFICode));
       std::string securityExchange = std::string((const char*)&rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange));
       std::string asset            = std::string((const char*)&rootBlock->Asset,           sizeof(rootBlock->Asset));
       std::string securityType     = std::string((const char*)&rootBlock->SecurityType,    sizeof(rootBlock->SecurityType));
       auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
-
 #ifdef _PRINT_ALL_
       TEST_LOG ("\t\tDefinitionFuture54: report %d of %d,\'%s\',\'%s\',\'%s\',\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u",
 	       processedDefinitionMessages,totNumReports,
@@ -160,13 +157,36 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 	       asset.c_str(),
 	       symbol.c_str(),
 	       securityType.c_str(),
-	       securityId,
+		rootBlock->SecurityID,
 	       cfiCode.c_str(),
 	       pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week
 	       );
 
 #endif
-      if (processedDefinitionMessages >= totNumReports) return true;
+      EfhDefinitionMsg msg = {};
+      msg.header.msgType        = EfhMsgType::kDefinition;
+      msg.header.group.source   = EkaSource::kCME_SBE;
+      msg.header.group.localId  = id;
+      msg.header.underlyingId   = rootBlock->UnderlyingProduct;
+      msg.header.securityId     = rootBlock->SecurityID;
+      msg.header.sequenceNumber = pktSeq;
+      msg.header.timeStamp      = pktTime; //rootBlock->LastUpdateTime;
+      msg.header.gapNum         = gapNum;
+
+      //    msg.secondaryGroup        = 0;
+      msg.securityType          = EfhSecurityType::kFut;
+      //      msg.optionType            = putOrCall;
+      msg.expiryDate            = pMaturity->year * 10000 + pMaturity->month * 100 + pMaturity->day;
+      msg.contractSize          = 0;
+      //      msg.strikePrice           = rootBlock->StrikePrice;
+      msg.exchange              = EfhExchange::kCME;
+
+      memcpy (&msg.underlying, rootBlock->Symbol,std::min(sizeof(msg.underlying), sizeof(rootBlock->Symbol)));
+      memcpy (&msg.classSymbol,rootBlock->Symbol,std::min(sizeof(msg.classSymbol),sizeof(rootBlock->Symbol)));
+
+      pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+
+      if (processedDefinitionMessages >= (int)rootBlock->TotNumReports) return true;
     }
       break;
       /* ##################################################################### */
@@ -174,30 +194,63 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       ++processedDefinitionMessages;
       /* ------------------------------- */
       auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionOption55_mainBlock*>(&pkt[rootBlockPos])};
-      SecurityIdT securityId       = rootBlock->SecurityID;
-      int32_t     totNumReports    = rootBlock->TotNumReports;
       std::string symbol           = std::string((const char*)&rootBlock->Symbol,          sizeof(rootBlock->Symbol));
       std::string cfiCode          = std::string((const char*)&rootBlock->CFICode,         sizeof(rootBlock->CFICode));
       std::string securityExchange = std::string((const char*)&rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange));
       std::string asset            = std::string((const char*)&rootBlock->Asset,           sizeof(rootBlock->Asset));
       std::string securityType     = std::string((const char*)&rootBlock->SecurityType,    sizeof(rootBlock->SecurityType));
       auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
-      uint8_t     putOrCall        = (uint8_t)rootBlock->PutOrCall;
+
+      EfhOptionType putOrCall;
+      switch (rootBlock->PutOrCall) {
+      case PutOrCall_T::Put :
+	putOrCall = EfhOptionType::kPut;
+	break;
+      case PutOrCall_T::Call :
+	putOrCall = EfhOptionType::kCall;
+	break;
+      default:
+	on_error("unexpected PutOrCall %d",(int)rootBlock->PutOrCall);
+      }
 
 #ifdef _PRINT_ALL_
       TEST_LOG ("\t\tDefinitionOption55: report %d of %d,\'%s\',\'%s\',\'%s\',%s,\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u",
-	       processedDefinitionMessages,totNumReports,
-	       securityExchange.c_str(),
-	       asset.c_str(),
-	       symbol.c_str(),
-	       putOrCall == PutOrCall_T::Put ? "PUT" : putOrCall == PutOrCall_T::Call ? "CALL" : "UNEXPECTED",
-	       securityType.c_str(),
-	       securityId,
-	       cfiCode.c_str(),
-	       pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week
-	       );
+		processedDefinitionMessages,totNumReports,
+		securityExchange.c_str(),
+		asset.c_str(),
+		symbol.c_str(),
+		putOrCall == PutOrCall_T::Put ? "PUT" : putOrCall == PutOrCall_T::Call ? "CALL" : "UNEXPECTED",
+		securityType.c_str(),
+		rootBlock->SecurityID,
+		cfiCode.c_str(),
+		pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week
+		);
 #endif
-      if (processedDefinitionMessages >= totNumReports) return true;
+
+      EfhDefinitionMsg msg = {};
+      msg.header.msgType        = EfhMsgType::kDefinition;
+      msg.header.group.source   = EkaSource::kCME_SBE;
+      msg.header.group.localId  = id;
+      msg.header.underlyingId   = rootBlock->UnderlyingProduct;
+      msg.header.securityId     = rootBlock->SecurityID;
+      msg.header.sequenceNumber = pktSeq;
+      msg.header.timeStamp      = pktTime; //rootBlock->LastUpdateTime;
+      msg.header.gapNum         = gapNum;
+
+      //    msg.secondaryGroup        = 0;
+      msg.securityType          = EfhSecurityType::kOpt;
+      msg.optionType            = putOrCall;
+      msg.expiryDate            = pMaturity->year * 10000 + pMaturity->month * 100 + pMaturity->day;
+      msg.contractSize          = 0;
+      msg.strikePrice           = rootBlock->StrikePrice;
+      msg.exchange              = EfhExchange::kCME;
+
+      memcpy (&msg.underlying, rootBlock->Symbol,std::min(sizeof(msg.underlying), sizeof(rootBlock->Symbol)));
+      memcpy (&msg.classSymbol,rootBlock->Symbol,std::min(sizeof(msg.classSymbol),sizeof(rootBlock->Symbol)));
+
+      pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+
+      if (processedDefinitionMessages >= (int)rootBlock->TotNumReports) return true;
     }
       break;
 
