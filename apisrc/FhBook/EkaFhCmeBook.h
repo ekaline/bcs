@@ -55,6 +55,11 @@ template <const uint SEC_HASH_SCALE,
     return s;
   }
   /* ####################################################### */
+  void            init() {
+    EKA_LOG("%s:%u : CME book with preallocated: %u Securities Hash lines, no PLEVELS, no ORDERS",
+	  EKA_EXCH_DECODE(exch),grId,SEC_HASH_LINES);
+  }
+  /* ####################################################### */
 
   int generateOnQuote (const EfhRunCtx* pEfhRunCtx, 
 		       FhSecurity*      s, 
