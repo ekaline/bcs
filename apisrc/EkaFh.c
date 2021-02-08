@@ -410,6 +410,27 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
     } 
   }
   //---------------------------------------------------------------------
+  // efh.NOM_ITTO.group.X.snapshot.addr, x.x.x.x:xxxx
+  // k[0] k[1]   k[2]  k[3] k[4] k[5]
+  if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"snapshot")==0) && (strcmp(k[5],"addr")==0)) {
+    if (EFH_GET_SRC(k[1]) == exch) {
+      uint8_t gr = (uint8_t) atoi(k[3]);
+      //      if (gr >= groups) on_error("%s -- %s : group_id %d >= groups (=%u)",key, value,gr,groups);
+      if (gr >= groups) {
+	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+	return EkaFhAddConf::CONF_SUCCESS;
+      }
+      if (b_gr[gr] == NULL) on_error("b_gr[%u] == NULL",gr);
+
+      inet_aton (v[0],(struct in_addr*) &b_gr[gr]->snapshot_ip);
+      b_gr[gr]->snapshot_port =  htons((uint16_t)atoi(v[1]));
+      b_gr[gr]->snapshot_set = true;
+      //      EKA_DEBUG ("%s %s for %s:%u is set to %s:%u",k[4],k[5],k[1],gr,v[0],(uint16_t)atoi(v[1]));
+      fflush(stderr);
+      return EkaFhAddConf::CONF_SUCCESS;
+    }
+  }
+  //---------------------------------------------------------------------
   // efh.C1_PITCH.group.X.recovery.grpAddr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"recovery")==0) && (strcmp(k[5],"grpAddr")==0)) {
