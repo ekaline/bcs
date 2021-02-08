@@ -352,9 +352,14 @@ static bool spinCycle(EfhRunCtx*   pEfhRunCtx,
   setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
   sockaddr_in remote_addr = {};
-  remote_addr.sin_addr.s_addr = gr->recovery_ip;
-  remote_addr.sin_port        = gr->recovery_port;
+  remote_addr.sin_addr.s_addr = gr->snapshot_ip;
+  remote_addr.sin_port        = gr->snapshot_port;
   remote_addr.sin_family      = AF_INET;
+  EKA_LOG("%s:%u Tcp Connecting to %s:%u",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,
+	  EKA_IP2STR(remote_addr.sin_addr.s_addr),
+	  be16toh   (remote_addr.sin_port));
+
   if (connect(sock,(sockaddr*)&remote_addr,sizeof(sockaddr_in)) != 0) {
     dev->lastErrno = errno;
     EKA_WARN("%s:%u Tcp Connect to %s:%u failed: %s",
