@@ -10,6 +10,7 @@
 #include <sys/time.h>
 #include <stdbool.h>
 #include <string.h>
+#include <time.h>
 
 #include "ekaNW.h"
 
@@ -20,6 +21,23 @@
 /*   uint64_t      sequence; */
 /*   uint16_t      message_cnt; */
 /* } __attribute__((packed)); */
+
+int timespec2str(char *buf, int len, struct timespec *ts) {
+    int ret;
+    struct tm t;
+
+    tzset();
+    if (localtime_r(&(ts->tv_sec),&t) == NULL) return 1;
+
+    ret = strftime(buf, len, "%F %T", &t);
+    if (ret == 0) return 2;
+    len -= ret - 1;
+
+    ret = snprintf(&buf[strlen(buf)], len, ".%09ld", ts->tv_nsec);
+    if (ret >= len) return 3;
+
+    return 0;
+}
 
 struct pcap_file_hdr {
         uint32_t magic_number;   /* magic number */
@@ -43,26 +61,10 @@ struct GrpState {
   in_addr_t mc_ip;
   uint16_t  port;
   uint64_t  expected;
-  uint64_t  ts_ns;
   uint64_t  drop_cnt;
-  uint64_t  back_in_timet_cnt;
 };
 
 static GrpState gr[] = {
-  /* {inet_addr("233.54.12.72"),18000,0,{},0,0}, */
-  /* {inet_addr("233.54.12.73"),18001,0,{},0,0}, */
-  /* {inet_addr("233.54.12.74"),18002,0,{},0,0}, */
-  /* {inet_addr("233.54.12.75"),18003,0,{},0,0},     */
-
-  /* {inet_addr("233.54.12.76"),18000,0,{},0,0}, */
-  /* {inet_addr("233.54.12.77"),18001,0,{},0,0}, */
-  /* {inet_addr("233.54.12.78"),18002,0,{},0,0}, */
-  /* {inet_addr("233.54.12.79"),18003,0,{},0,0}, */
-
-  /* {inet_addr("233.49.196.72"),18000,0,{},0,0}, */
-  /* {inet_addr("233.49.196.73"),18001,0,{},0,0}, */
-  /* {inet_addr("233.49.196.74"),18002,0,{},0,0}, */
-  /* {inet_addr("233.49.196.75"),18003,0,{},0,0} */
   {"NOM_ITTO_0",inet_addr("233.54.12.72"),18000},
   {"NOM_ITTO_1",inet_addr("233.54.12.73"),18001},
   {"NOM_ITTO_2",inet_addr("233.54.12.74"),18002},
@@ -106,60 +108,11 @@ static GrpState gr[] = {
 
 };
 
-/* void hexDump (const char* desc, void *addr, int len) { */
-/*     int i; */
-/*     unsigned char buff[17]; */
-/*     unsigned char *pc = (unsigned char*)addr; */
-/*     if (desc != NULL) printf ("%s:\n", desc); */
-/*     if (len == 0) { printf("  ZERO LENGTH\n"); return; } */
-/*     if (len < 0)  { printf("  NEGATIVE LENGTH: %i\n",len); return; } */
-/*     for (i = 0; i < len; i++) { */
-/*         if ((i % 16) == 0) { */
-/*             if (i != 0) printf ("  %s\n", buff); */
-/*             printf ("  %04x ", i); */
-/*         } */
-/*         printf (" %02x", pc[i]); */
-/*         if ((pc[i] < 0x20) || (pc[i] > 0x7e))  buff[i % 16] = '.'; */
-/*         else buff[i % 16] = pc[i]; */
-/*         buff[(i % 16) + 1] = '\0'; */
-/*     } */
-/*     while ((i % 16) != 0) { printf ("   "); i++; } */
-/*     printf ("  %s\n", buff); */
-/* } */
-
 int get_gr_id(in_addr_t ip, uint16_t port) {
   for (int i = 0; i < (int)(sizeof(gr)/sizeof(gr[0])); i++) {
     if ((gr[i].mc_ip == ip) || (gr[i].port == port)) return i;
   }
   return -1;
-}
-
-uint64_t get_ts(uint8_t* msg) {
-  uint64_t ts_tmp = 0;
-  memcpy((uint8_t*)&ts_tmp+2,msg+5,6);
-  return be64toh(ts_tmp);
-}
-
-static uint64_t ts_ns2str(char* dst, uint64_t ts) {
-  uint ns = ts % 1000;
-  uint64_t res = (ts - ns) / 1000;
-
-  uint us = res % 1000;
-  res = (res - us) / 1000;
-  
-  uint ms = res % 1000;
-  res = (res - ms) / 1000;
-
-  uint s = res % 60;
-  res = (res - s) / 60;
-
-  uint m = res % 60;
-  res = (res - m) / 60;
-
-  uint h = res % 24;
-
-  sprintf (dst,"%02d:%02d:%02d.%03d.%03d.%03d",h,m,s,ms,us,ns);
-  return 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -171,70 +124,50 @@ int main(int argc, char *argv[]) {
 
   while (fread(buf,sizeof(pcap_rec_hdr),1,pcap_file) == 1) {
     pcap_rec_hdr *pcap_rec_hdr_ptr = (pcap_rec_hdr *) buf;
-    if (fread(buf,pcap_rec_hdr_ptr->orig_len,1,pcap_file) != 1) on_error ("Failed to read %d packet bytes",pcap_rec_hdr_ptr->orig_len);
+    if (fread(buf,pcap_rec_hdr_ptr->orig_len,1,pcap_file) != 1) 
+      on_error ("Failed to read %d packet bytes",pcap_rec_hdr_ptr->orig_len);
 
     if (! EKA_IS_UDP_PKT(buf)) continue;
-
 
     int gr_id = get_gr_id((in_addr_t)EKA_IPH_DST(buf),EKA_UDPH_DST(buf));
     if (gr_id < 0) continue;
 
-    uint8_t* pkt = buf + sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr);
+    uint8_t* pkt         = buf + sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr);
     uint16_t message_cnt = EKA_MOLD_MSG_CNT(pkt);
-    uint64_t sequence = EKA_MOLD_SEQUENCE(pkt);
+    uint64_t sequence    = EKA_MOLD_SEQUENCE(pkt);
 
-    uint8_t* msg = pkt + sizeof(mold_hdr);
-    if (gr[gr_id].expected == 0) {
-      gr[gr_id].expected = sequence + message_cnt;
-      gr[gr_id].ts_ns = get_ts(msg);
-      continue;
-    }
-    uint64_t ts_ns = get_ts(msg);
+    timespec ts = {
+      .tv_sec  = pcap_rec_hdr_ptr->ts_sec,
+      .tv_nsec = pcap_rec_hdr_ptr->ts_usec * 1000
+    };
+
+    if (sequence == 0) gr[gr_id].expected = sequence;
+
     if (sequence != gr[gr_id].expected) {
-      char last_ts[32] = {};
-      char curr_ts[32] = {};
-      char diff_ts[32] = {};
-
-      ts_ns2str(curr_ts,ts_ns);
-      ts_ns2str(last_ts,gr[gr_id].ts_ns);
-      ts_ns2str(diff_ts,ts_ns - gr[gr_id].ts_ns);
-
-      printf("%20s %s:%u: expected %s %ju received %s %ju -- ",
+      char timestr[40] = {};
+      int rc = timespec2str(timestr, sizeof(timestr), &ts);
+      if (rc != 0) on_error("timespec2str failed: rc=%d",rc);
+      
+      printf("%40s: %20s %s:%u: expected %10ju != received %10ju, lost %jd\n",
+	     timestr,
 	     gr[gr_id].name,
 	     inet_ntoa(*(in_addr*) &EKA_IPH_DST(buf)),
 	     EKA_UDPH_DST(buf),
-	     last_ts,
 	     gr[gr_id].expected,
-	     curr_ts,
-	     sequence
-	     );
-      if (sequence > gr[gr_id].expected)  {
-	printf ("lost %8ju, down time: %s\n",
-		sequence - gr[gr_id].expected,
-		diff_ts
-		);
-	gr[gr_id].drop_cnt++;
-				 
-      } else {
-	printf ("BACK IN TIME\n");
-	gr[gr_id].back_in_timet_cnt++;
-      }
+	     sequence,
+	     sequence - gr[gr_id].expected);
+      gr[gr_id].drop_cnt++;
     }
     gr[gr_id].expected = sequence + message_cnt;
-    gr[gr_id].ts_ns = ts_ns;
-
   }
-
   fclose(pcap_file);
 
   for (int i = 0; i < (int)(sizeof(gr)/sizeof(gr[0])); i++) {
     if (gr[i].drop_cnt == 0) continue;
-    printf("%20s %s:%u: Gaps: %8ju, Back-in-time: %8ju\n",
+    printf("%20s %s:%u: Gaps: %8ju\n",
 	   gr[i].name,
 	   inet_ntoa(*(in_addr*) &gr[i].mc_ip),
 	   gr[i].port,
-	   gr[i].drop_cnt,
-	   gr[i].back_in_timet_cnt
-	   );
+	   gr[i].drop_cnt);
   }
 }
