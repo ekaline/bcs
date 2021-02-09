@@ -122,10 +122,10 @@ int main(int argc, char *argv[]) {
   if ((pcap_file = fopen(argv[1], "rb")) == NULL) on_error("Failed to open dump file %s",argv[1]);
   if (fread(buf,sizeof(pcap_file_hdr),1,pcap_file) != 1) on_error ("Failed to read pcap_file_hdr from the pcap file");
 
-  while (fread(buf,sizeof(pcap_rec_hdr),1,pcap_file) == 1) {
-    pcap_rec_hdr *pcap_rec_hdr_ptr = (pcap_rec_hdr *) buf;
-    if (fread(buf,pcap_rec_hdr_ptr->orig_len,1,pcap_file) != 1) 
-      on_error ("Failed to read %d packet bytes",pcap_rec_hdr_ptr->orig_len);
+  pcap_rec_hdr recHdr = {};
+  while (fread(&recHdr,sizeof(recHdr),1,pcap_file) == 1) {
+    if (fread(buf,recHdr.orig_len,1,pcap_file) != 1) 
+      on_error ("Failed to read %d packet bytes",recHdr.orig_len);
 
     if (! EKA_IS_UDP_PKT(buf)) continue;
 
@@ -137,11 +137,11 @@ int main(int argc, char *argv[]) {
     uint64_t sequence    = EKA_MOLD_SEQUENCE(pkt);
 
     timespec ts = {
-      .tv_sec  = pcap_rec_hdr_ptr->ts_sec,
-      .tv_nsec = pcap_rec_hdr_ptr->ts_usec * 1000
+      .tv_sec  = recHdr.ts_sec,
+      .tv_nsec = recHdr.ts_usec * 1000
     };
 
-    if (sequence == 0) gr[gr_id].expected = sequence;
+    if (gr[gr_id].expected == 0) gr[gr_id].expected = sequence;
 
     if (sequence != gr[gr_id].expected) {
       char timestr[40] = {};
