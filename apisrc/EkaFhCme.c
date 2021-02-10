@@ -32,9 +32,9 @@ const uint8_t* EkaFhCme::getUdpPkt(EkaFhRunGroup* runGr,
 }
  /* ##################################################################### */
 
-EkaOpResult EkaFhCme::initGroups(EfhCtx* pEfhCtx, 
+EkaOpResult EkaFhCme::initGroups(EfhCtx*          pEfhCtx, 
 				 const EfhRunCtx* pEfhRunCtx, 
-				 EkaFhRunGroup* runGr) {
+				 EkaFhRunGroup*   runGr) {
   for (uint8_t i = 0; i < runGr->numGr; i++) {
     if (! runGr->isMyGr(pEfhRunCtx->groups[i].localId)) 
       on_error("pEfhRunCtx->groups[%d].localId = %u doesnt belong to %s",
@@ -42,18 +42,19 @@ EkaOpResult EkaFhCme::initGroups(EfhCtx* pEfhCtx,
     if (pEfhRunCtx->groups[i].source != exch) 
       on_error("pEfhRunCtx->groups[i].source != exch");
 
-    EkaFhGroup* gr = b_gr[pEfhRunCtx->groups[i].localId];
+    auto gr = reinterpret_cast<EkaFhCmeGr*>(b_gr[pEfhRunCtx->groups[i].localId]);
     if (gr == NULL) on_error ("b_gr[%u] == NULL",pEfhRunCtx->groups[i].localId);
-    gr->createQ(pEfhCtx,qsize);
-    gr->expected_sequence = 1;
+
+    gr->expected_sequence = 0;
 
     runGr->igmpMcJoin(gr->mcast_ip,gr->mcast_port,0);
-    runGr->igmpMcJoin(gr->recovery_ip,gr->recovery_port,0);
+    //    runGr->igmpMcJoin(gr->recovery_ip,gr->recovery_port,0);
     EKA_DEBUG("%s:%u: joined Incr Feed %s:%u, Recovery Feed %s:%u, for %u securities",
 	      EKA_EXCH_DECODE(exch),gr->id,
 	      EKA_IP2STR(gr->mcast_ip),   gr->mcast_port,
 	      EKA_IP2STR(gr->recovery_ip),gr->recovery_port,
 	      gr->getNumSecurities());
+    gr->sendFeedDownInitial(pEfhRunCtx);
   }
   return EKA_OPRESULT__OK;
 }
@@ -71,15 +72,6 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
 
   //-----------------------------------------------------------------------------
-  for (uint8_t j = 0; j < runGr->numGr; j++) {
-    uint8_t grId = runGr->groupList[j];
-    EkaFhCmeGr* gr = (EkaFhCmeGr*)b_gr[grId];
-    if (gr == NULL) on_error("b_gr[%u] == NULL",grId);
-    gr->sendFeedDownInitial(pEfhRunCtx);
-
-    //    gr->inGap = true;
-    //    gr->setGapStart();
-  }
 
   while (runGr->thread_active) {
     //-----------------------------------------------------------------------------
@@ -90,6 +82,7 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       if (tradingHours)   runGr->checkTimeOut(pEfhRunCtx);
       continue;
     }
+    //-----------------------------------------------------------------------------
     uint64_t sequence = 0;
     uint8_t  gr_id = 0xFF;
     int16_t  pktSize = 0; 
@@ -100,6 +93,16 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     EkaFhCmeGr* gr = (EkaFhCmeGr*)b_gr[gr_id];
     if (gr == NULL) on_error("b_gr[%u] == NULL",gr_id);
     gr->resetNoMdTimer();
+
+    //-----------------------------------------------------------------------------
+    if (sequence != gr->expected_sequence) {
+      if (gr->expected_sequence != 0) 
+	gr->sendFeedDown(pEfhRunCtx);
+      pushPkt2Q(pkt,pktSize,sequence);
+     
+      gr->inGap = true;
+      gr->closeSnapshotGap(pEfhCtx, pEfhRunCtx, sequence); 
+    }
 
 
     /* EKA_LOG("%s:%u Seq=%ju,expSeq=%ju, pktSize=%u msgInPkt =%u",EKA_EXCH_DECODE(exch),gr_id, */

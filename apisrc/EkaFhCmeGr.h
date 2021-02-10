@@ -5,10 +5,12 @@
 #include "EkaFhCmeBook.h"
 #include "EkaFhCmeSecurity.h"
 
-class EkaHsvfTcp;
+#include "EkaFhPktQ.h"
+#include "EkaFhPktQElem.h"
 
 class EkaFhCmeGr : public EkaFhGroup {
  public:
+  EkaFhCmeGr();
   virtual               ~EkaFhCmeGr() {};
 
   bool                  parseMsg(const EfhRunCtx* pEfhRunCtx,
@@ -40,16 +42,17 @@ class EkaFhCmeGr : public EkaFhGroup {
 				      int16_t          pktLen,
 				      EkaFhMode        op);
   
+
+  void                  pushPkt2Q(const uint8_t* pkt, 
+				  uint16_t       pktSize,
+				  uint64_t       sequence);
+  
+  int                   processPktFromQ(const EfhRunCtx* pEfhRunCtx);
+
   /* bool                  processUdpDefinitionsPkt(const EfhRunCtx* pEfhRunCtx, */
   /* 						 const uint8_t*   pkt,  */
   /* 						 int16_t          pktLen, */
   /* 						 EkaFhMode        op); */
-  
-  /* void                  pushUdpPkt2Q(const uint8_t* pkt,  */
-  /* 				     uint           pktLen); */
-
-  /* int                   processFromQ(const EfhRunCtx* pEfhRunCtx); */
-
 
   /* int                   closeIncrementalGap(EfhCtx*           pEfhCtx,  */
   /* 					   const EfhRunCtx*  pEfhRunCtx,  */
@@ -61,6 +64,8 @@ class EkaFhCmeGr : public EkaFhGroup {
   /* ##################################################################### */
 
   static const uint   SEC_HASH_SCALE = 15;
+  static const int    QELEM_SIZE     = 2048;
+  static const int    MAX_ELEMS      = 1024 * 1024;
 
   using SecurityIdT = int32_t;
   using PriceT      = int64_t;
@@ -81,9 +86,14 @@ class EkaFhCmeGr : public EkaFhGroup {
     PriceT, 
     SizeT>;
 
-  FhBook*   book = NULL;
+  FhBook*   book       = NULL;
 
+  using     PktElem    = EkaFhPktQElem<QELEM_SIZE>;
+  using     PktQ       = EkaFhPktQ<QELEM_SIZE,MAX_ELEMS,PktElem>;
+    
+  PktQ*     pktQ       = NULL;
   int       processedDefinitionMessages = 0;
 
+  volatile bool inGap  = false;
 };
 #endif

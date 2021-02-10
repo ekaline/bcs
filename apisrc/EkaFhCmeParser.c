@@ -159,7 +159,12 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       /* uInt64_T                lastUpdateTime         = rootBlock->LastUpdateTime; */
       /* SecurityTradingStatus_T tradingStatus          = rootBlock->MDSecurityTradingStatus; */
 #ifdef _PRINT_ALL_
-      TEST_LOG ("\t\tSnapshotFullRefresh52: securityID=%d, lastMsgSeqNumProcessed=%u,totNumReports=%u,tradingStatus=%s,lastUpdateTime=%s",
+      TEST_LOG ("\t\tSnapshotFullRefresh52: \
+securityID=%d,\
+lastMsgSeqNumProcessed=%u,\
+totNumReports=%u,\
+tradingStatus=%s,\
+lastUpdateTime=%s",
 	       rootBlock->SecurityID,
 	       rootBlock->LastMsgSeqNumProcessed,
 	       rootBlock->TotNumReports,
