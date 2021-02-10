@@ -376,13 +376,13 @@ static bool soupbinCycle(EkaDev*        dev,
     if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHeartBeatTime).count() > 900) {
       sendHearBeat(gr->snapshot_sock);
       lastHeartBeatTime = now;
-      if (isTradingHours(9,30,16,00))
-	EKA_TRACE("%s:%u: Heartbeat: %s start=%10ju, curr=%10ju, end=%10ju",
-		  EKA_EXCH_DECODE(gr->exch),gr->id,
-		  EkaFhMode2STR(op),
-		  start_sequence,
-		  gr->recovery_sequence,
-		  end_sequence);
+      /* if (isTradingHours(9,30,16,00)) */
+      /* 	EKA_TRACE("%s:%u: Heartbeat: %s start=%10ju, curr=%10ju, end=%10ju", */
+      /* 		  EKA_EXCH_DECODE(gr->exch),gr->id, */
+      /* 		  EkaFhMode2STR(op), */
+      /* 		  start_sequence, */
+      /* 		  gr->recovery_sequence, */
+      /* 		  end_sequence); */
     }
 
     parseResult = procSoupbinPkt(pEfhRunCtx,gr,end_sequence,op);
@@ -485,7 +485,7 @@ void* getSoupBinData(void* attr) {
     on_error("%s:%u Failed after %d trials. Exiting...",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
   }
-
+  gr->snapshotThreadDone = true;
   return NULL;
 }
 
