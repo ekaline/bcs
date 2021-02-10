@@ -25,6 +25,10 @@ const uint8_t* EkaFhBox::getUdpPkt(EkaFhRunGroup* runGr,
   *gr_id    = getGrId(pkt);
   *sequence = getHsvfMsgSequence(pkt);
 
+  if (*gr_id == 0xFF) {
+    runGr->udpCh->next(); 
+    return NULL;
+  }
   return pkt;
 }
 
