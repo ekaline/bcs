@@ -22,7 +22,7 @@ bool EkaFhPhlxTopoGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* 
 	)) return true; // ending the Definitions snapshot when getting first MD
 
   if (op == EkaFhMode::DEFINITIONS && enc != 'D') return false;
-  if (op == EkaFhMode::SNAPSHOT    && enc == 'D') return false;
+  if (op != EkaFhMode::DEFINITIONS && enc == 'D') return false;
 
   uint64_t ts = gr_ts + be32toh(((topo_generic_hdr*) m)->time_nano);
 
