@@ -27,26 +27,26 @@ volatile uint64_t * EkalineGetWcBase(SC_DeviceId deviceId);
 // #define on_error(...) { fprintf(stderr, "FATAL ERROR: %s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n");perror(""); fflush(stdout); fflush(stderr); exit(1); }
 /* #define TEST_LOG(...) { fprintf(stderr, "%s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); } */
 
-void hexDump (const char* desc, void *addr, int len) {
-    int i;
-    unsigned char buff[17];
-    unsigned char *pc = (unsigned char*)addr;
-    if (desc != NULL) printf ("%s:\n", desc);
-    if (len == 0) { printf("  ZERO LENGTH\n"); return; }
-    if (len < 0)  { printf("  NEGATIVE LENGTH: %i\n",len); return; }
-    for (i = 0; i < len; i++) {
-        if ((i % 16) == 0) {
-            if (i != 0) printf ("  %s\n", buff);
-            printf ("  %04x ", i);
-        }
-        printf (" %02x", pc[i]);
-        if ((pc[i] < 0x20) || (pc[i] > 0x7e))  buff[i % 16] = '.';
-        else buff[i % 16] = pc[i];
-        buff[(i % 16) + 1] = '\0';
-    }
-    while ((i % 16) != 0) { printf ("   "); i++; }
-    printf ("  %s\n", buff);
-}
+/* void hexDump (const char* desc, void *addr, int len) { */
+/*     int i; */
+/*     unsigned char buff[17]; */
+/*     unsigned char *pc = (unsigned char*)addr; */
+/*     if (desc != NULL) printf ("%s:\n", desc); */
+/*     if (len == 0) { printf("  ZERO LENGTH\n"); return; } */
+/*     if (len < 0)  { printf("  NEGATIVE LENGTH: %i\n",len); return; } */
+/*     for (i = 0; i < len; i++) { */
+/*         if ((i % 16) == 0) { */
+/*             if (i != 0) printf ("  %s\n", buff); */
+/*             printf ("  %04x ", i); */
+/*         } */
+/*         printf (" %02x", pc[i]); */
+/*         if ((pc[i] < 0x20) || (pc[i] > 0x7e))  buff[i % 16] = '.'; */
+/*         else buff[i % 16] = pc[i]; */
+/*         buff[(i % 16) + 1] = '\0'; */
+/*     } */
+/*     while ((i % 16) != 0) { printf ("   "); i++; } */
+/*     printf ("  %s\n", buff); */
+/* } */
 
 /* void print__m256i(__m256i* addr, __m256i in) { */
 /*   uint64_t *v64val = (uint64_t*) &in; */

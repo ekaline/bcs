@@ -154,12 +154,14 @@ static void update_fpga(const char * from, struct igmp_context * context)
         uint16_t channel = 0;
 
         sc_multicast_subscription_t * pSubscriber = &context->global_subscriber[i];
+
         if (pSubscriber->update_fpga)
         {
             uint8_t lane = pSubscriber->lane;
             int16_t vlanTag = pSubscriber->vlanTag;
             uint16_t positionIndex = pSubscriber->positionIndex;
             bool enableMulticastBypass = pSubscriber->enable_multicast_bypass;
+
 
             if (pSubscriber->group_address)
             {
@@ -176,6 +178,18 @@ static void update_fpga(const char * from, struct igmp_context * context)
                 channel = 0;
             }
 
+	    const device_context_t * pDevExt = context->pDevExt;
+	    uint32_t ip = pSubscriber->group_address;
+	    PRINTK("EKALINE: update_fpga: global_subscriber[%d]: lane=%u, positionIndex=%u, channel=%u, ip=%u.%u.%u.%u, port=%u",
+		   i,
+		   lane,
+		   positionIndex,
+		   channel,
+		   (ip >> 24) & 0xFF,
+		   (ip >> 16) & 0xFF, 
+		   (ip >>  8) & 0xFF, 
+		   (ip >>  0) & 0xFF,
+		   pSubscriber->ip_port_number);
             setSourceMulticast(from, context->pDevExt, lane, positionIndex, macAddress, ipPortNumber, vlanTag, channel, enableMulticastBypass);
 
             pSubscriber->update_fpga = false;
@@ -277,7 +291,8 @@ int init_igmp(device_context_t * pDevExt, sc_net_interface_t * nif)
     group = insert_group(context, nif->network_interface, IGMP_ALL_HOSTS, NO_VLAN_TAG, 0); // 224.0.0.1, local subnetwok
     group->state = IGMP_STATE_IDLE_MEMBER;
 
-    insert_subscriber(context->global_subscriber, number_of_elements(context->global_subscriber), nif->network_interface, 0xe0000001, 0, 0, NO_VLAN_TAG, false);
+    //fixed by Ekaline
+    //    insert_subscriber(context->global_subscriber, number_of_elements(context->global_subscriber), nif->network_interface, 0xe0000001, 0, 0, NO_VLAN_TAG, false);
 
     update_fpga("init_igmp", context);
 
@@ -932,7 +947,8 @@ static int delete_subscriber(sc_multicast_subscription_t *list, size_t listLengt
             pSubscriber->ip_port_number = 0;
             pSubscriber->channel = 0;
             pSubscriber->vlanTag = NO_VLAN_TAG;
-            pSubscriber->lane = NO_NIF;
+	    //fixed by Ekaline
+	    //            pSubscriber->lane = NO_NIF;
             pSubscriber->positionIndex = 0;
             pSubscriber->enable_multicast_bypass = 0;
             pSubscriber->update_fpga = true;
@@ -1012,7 +1028,24 @@ int handle_igmp_ioctl(struct igmp_context *context, fb_channel_t * channel, sc_i
             // Check is it already on global list?
             lock_subscriber(context);
 
-            if (find_subscriber(context->global_subscriber, number_of_elements(context->global_subscriber), pValue->lane, pValue->group_address, pValue->ip_port_number, pValue->vlan_tag) == -1)
+	    // Ekaline fix
+	    /* int i=0; */
+	    /* for (i=0; i<number_of_elements(context->global_subscriber);i++) { */
+	    /*   PRINTK("EKALINE: IGMP_LEAVE testing: GlobalSubscriber[%d]: %u.%u.%u.%u:%u lane=%u position=%u update_fpga=%d", */
+	    /* 	     i, */
+	    /* 	     (context->global_subscriber[i].group_address >> 24) & 0xFF, */
+	    /* 	     (context->global_subscriber[i].group_address >> 16) & 0xFF,  */
+	    /* 	     (context->global_subscriber[i].group_address >>  8) & 0xFF,  */
+	    /* 	     (context->global_subscriber[i].group_address >>  0) & 0xFF, */
+	    /* 	     context->global_subscriber[i].ip_port_number, */
+	    /* 	     context->global_subscriber[i].lane, */
+	    /* 	     context->global_subscriber[i].positionIndex, */
+	    /* 	     context->global_subscriber[i].update_fpga); */
+	    /* } */
+
+	    int ekaGlobalSubscriberIdx = find_subscriber(context->global_subscriber, number_of_elements(context->global_subscriber), pValue->lane, pValue->group_address, pValue->ip_port_number, pValue->vlan_tag);
+            if (ekaGlobalSubscriberIdx == -1)
+	      //            if (find_subscriber(context->global_subscriber, number_of_elements(context->global_subscriber), pValue->lane, pValue->group_address, pValue->ip_port_number, pValue->vlan_tag) == -1)
             {
                 unlock_subscriber(context);
                 if (LOG(LOG_ERROR | LOG_IGMP))
@@ -1021,7 +1054,10 @@ int handle_igmp_ioctl(struct igmp_context *context, fb_channel_t * channel, sc_i
                 }
                 return -EINVAL;
             }
-            if (find_subscriber(channel->subscriber, number_of_elements(channel->subscriber), pValue->lane, pValue->group_address, pValue->ip_port_number, pValue->vlan_tag) == -1)
+	    // Ekaline fix
+	    int ekaChannelSubscriberIdx = find_subscriber(channel->subscriber, number_of_elements(channel->subscriber), pValue->lane, pValue->group_address, pValue->ip_port_number, pValue->vlan_tag);
+            if (ekaChannelSubscriberIdx == -1)
+	      //            if (find_subscriber(channel->subscriber, number_of_elements(channel->subscriber), pValue->lane, pValue->group_address, pValue->ip_port_number, pValue->vlan_tag) == -1)
             {
                 unlock_subscriber(context);
                 if (LOG(LOG_ERROR | LOG_IGMP))
@@ -1031,8 +1067,33 @@ int handle_igmp_ioctl(struct igmp_context *context, fb_channel_t * channel, sc_i
                 return -EINVAL;
             }
             // Found in global subscribers and channel subscribers, delete from both
-            delete_subscriber(context->global_subscriber, number_of_elements(context->global_subscriber), pValue->lane, pValue->group_address, pValue->ip_port_number, pValue->vlan_tag);
+	    // Ekaline fix
+	    int ekaGlobalDeleteSubscriberIdx = 
+	      delete_subscriber(context->global_subscriber, number_of_elements(context->global_subscriber), pValue->lane, pValue->group_address, pValue->ip_port_number, pValue->vlan_tag);
             delete_subscriber(channel->subscriber, number_of_elements(channel->subscriber), pValue->lane, pValue->group_address, pValue->ip_port_number, pValue->vlan_tag);
+
+	    PRINTK("EKALINE: IGMP_LEAVE: %u.%u.%u.%u:%u lane=%u, ekaGlobalDeleteSubscriberIdx=%d, ekaChannelSubscriberIdx=%d\n",
+		   (pValue->group_address >> 24) & 0xFF,
+		   (pValue->group_address >> 16) & 0xFF, 
+		   (pValue->group_address >>  8) & 0xFF, 
+		   (pValue->group_address >>  0) & 0xFF,
+		   pValue->ip_port_number,
+		   pValue->lane,
+		   ekaGlobalDeleteSubscriberIdx,
+		   ekaChannelSubscriberIdx
+		   );
+
+	    PRINTK("EKALINE: IGMP_LEAVE: GlobalSubscriber[%d]: %u.%u.%u.%u:%u lane=%u position=%u update_fpga=%d",
+		   ekaGlobalDeleteSubscriberIdx,
+		   (context->global_subscriber[ekaGlobalDeleteSubscriberIdx].group_address >> 24) & 0xFF,
+		   (context->global_subscriber[ekaGlobalDeleteSubscriberIdx].group_address >> 16) & 0xFF, 
+		   (context->global_subscriber[ekaGlobalDeleteSubscriberIdx].group_address >>  8) & 0xFF, 
+		   (context->global_subscriber[ekaGlobalDeleteSubscriberIdx].group_address >>  0) & 0xFF,
+		   context->global_subscriber[ekaGlobalDeleteSubscriberIdx].ip_port_number,
+		   context->global_subscriber[ekaGlobalDeleteSubscriberIdx].lane,
+		   context->global_subscriber[ekaGlobalDeleteSubscriberIdx].positionIndex,
+		   context->global_subscriber[ekaGlobalDeleteSubscriberIdx].update_fpga);
+		   
 
             update_fpga("handle_igmp_ioctl", context);
 

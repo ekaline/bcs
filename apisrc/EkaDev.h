@@ -276,6 +276,8 @@ inline void atomicIndirectBufWrite(EkaDev* dev, uint64_t addr, uint8_t bank, uin
 }
 
 
+#ifndef _hexDump_defined_
+#define _hexDump_defined_
 inline void hexDump (const char *desc, void *addr, int len) {
   int i;
   unsigned char buff[17];
@@ -300,6 +302,7 @@ inline void hexDump (const char *desc, void *addr, int len) {
 inline void hexDump (const char *desc, const void *addr, int len) {
   hexDump(desc,(uint8_t*)addr,len);
 }
+#endif
 
 inline void checkScratchPadAddr(uint64_t addr) {
   if (addr >= SW_SCRATCHPAD_BASE + SW_SCRATCHPAD_SIZE)

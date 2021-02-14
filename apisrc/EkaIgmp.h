@@ -12,7 +12,7 @@ class EkaIgmp {
   EkaIgmp(EkaDev* dev,/* EkaUdpChannel* udpCh, */  uint8_t coreId, uint epmRegion, const char* name);
   ~EkaIgmp();
 
-  int mcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag);
+  int mcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag, uint64_t* pPktCnt);
 
 
  private:

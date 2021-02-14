@@ -115,22 +115,24 @@ int main(int argc, char *argv[]) {
     TEST_LOG("Allocated UdpCh: %d",chId);
 
     TEST_LOG("Trying SC_IgmpJoin %s",mcIp.c_str());
-    errorCode = SC_IgmpJoin(ChannelId,0, mcIp.c_str(),0,NULL);
+    errorCode = SC_IgmpJoin(ChannelId,0, mcIp.c_str(),mcPort,NULL);
     if (errorCode != SC_ERR_SUCCESS)
       on_error("SC_IgmpJoin %s failed with error code %d",mcIp.c_str(),errorCode);
   
 
     TEST_LOG("Trying SC_IgmpLeave %s",mcIp.c_str());
-    errorCode = SC_IgmpLeave(ChannelId, 0, mcIp.c_str(), 0, NULL);
+    errorCode = SC_IgmpLeave(ChannelId, 0, mcIp.c_str(), mcPort, NULL);
     if (errorCode != SC_ERR_SUCCESS)
       on_error("SC_IgmpLeave %s failed with error code %d",mcIp.c_str(),errorCode);
 
-    /* std::string mc = "224.0.0.1"; */
-    /* TEST_LOG("Trying SC_IgmpJoin %s",mc.c_str()); */
-    /* errorCode = SC_IgmpJoin(ChannelId,0, mc.c_str(),0,NULL); */
-    /* if (errorCode != SC_ERR_SUCCESS) */
-    /*   on_error("SC_IgmpJoin %s failed with error code %d",mc.c_str(),errorCode); */
-  
+#if 0
+    // Dummy IgmpJoin
+    std::string mc = "1.2.3.4";
+    TEST_LOG("Trying SC_IgmpJoin %s",mc.c_str());
+    errorCode = SC_IgmpJoin(ChannelId,0, mc.c_str(),18120,NULL);
+    if (errorCode != SC_ERR_SUCCESS)
+      on_error("SC_IgmpJoin %s failed with error code %d",mc.c_str(),errorCode);
+#endif
 
     /* TEST_LOG("Deallocating UdpCh: %d",chId); */
     /* errorCode = SC_DeallocateChannel(ChannelId); */

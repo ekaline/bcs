@@ -59,7 +59,7 @@ class EkaEfc {
 
   EkaEpmAction*       fireAction[MAX_FIRE_ACTIONS] = {};
   int                 numFireActions = 0;
-
+  uint64_t            pktCnt         = 0; // for EFH compatibility
 };
 
 #endif

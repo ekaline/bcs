@@ -5,7 +5,7 @@
 #include "EkaEpm.h"
 #include "EkaCore.h"
 
-void saveMcState(EkaDev* dev, int grId, int chId, uint8_t coreId, uint32_t mcast_ip, uint16_t mcast_port);
+void saveMcState(EkaDev* dev, int grId, int chId, uint8_t coreId, uint32_t mcast_ip, uint16_t mcast_port, uint64_t pktCnt);
 
 /* ##################################################################### */
 
@@ -37,7 +37,7 @@ EkaIgmp::~EkaIgmp() {
 }
 
 /* ##################################################################### */
-int EkaIgmp::mcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag) {
+int EkaIgmp::mcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag, uint64_t* pPktCnt) {
   for (auto i = 0; i < numIgmpEntries; i++) {
     if (igmpEntry[i] == NULL) on_error("igmpEntry[%d] == NULL",i);
     if (igmpEntry[i]->isMy(ip,port)) return 0;
@@ -45,7 +45,7 @@ int EkaIgmp::mcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag) {
   if (numIgmpEntries == MAX_IGMP_ENTRIES) 
     on_error("numIgmpEntries %d == MAX_IGMP_ENTRIES %d",numIgmpEntries,MAX_IGMP_ENTRIES);
 
-  igmpEntry[numIgmpEntries] = new EkaIgmpEntry(dev,epmRegion,ip,port,vlanTag,coreId);
+  igmpEntry[numIgmpEntries] = new EkaIgmpEntry(dev,epmRegion,ip,port,vlanTag,coreId,pPktCnt);
   if (igmpEntry[numIgmpEntries] == NULL) on_error("igmpEntry[%d] == NULL",numIgmpEntries);
 
   EKA_LOG("%s: MC join: %s:%u",name,EKA_IP2STR(ip),port);
@@ -73,7 +73,8 @@ int EkaIgmp::igmpThreadLoop() {
 		  igmpEntry[i]->udpChId, 
 		  igmpEntry[i]->coreId, 
 		  igmpEntry[i]->ip,
-		  igmpEntry[i]->port);
+		  igmpEntry[i]->port,
+		  *igmpEntry[i]->pPktCnt);
     }
     sleep (1);
   }
@@ -100,7 +101,8 @@ void* EkaIgmp::igmpThreadLoopCb(void* pEkaIgmp) {
 		  igmp->igmpEntry[i]->udpChId, 
 		  igmp->igmpEntry[i]->coreId, 
 		  igmp->igmpEntry[i]->ip,
-		  igmp->igmpEntry[i]->port);
+		  igmp->igmpEntry[i]->port,
+		  *igmp->igmpEntry[i]->pPktCnt);
     }
     sleep (1);
   }

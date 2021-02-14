@@ -514,7 +514,7 @@ EkaOpResult EkaFh::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
     gr->createQ(pEfhCtx,qsize);
     gr->expected_sequence = 1;
 
-    runGr->igmpMcJoin(gr->mcast_ip,gr->mcast_port,0);
+    runGr->igmpMcJoin(gr->mcast_ip,gr->mcast_port,0,&gr->pktCnt);
     EKA_DEBUG("%s:%u: joined %s:%u for %u securities",
 	      EKA_EXCH_DECODE(exch),gr->id,
 	      EKA_IP2STR(gr->mcast_ip),gr->mcast_port,
