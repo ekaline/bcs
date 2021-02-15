@@ -98,7 +98,7 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     if (sequence != gr->expected_sequence) {
       if (gr->expected_sequence != 0) 
 	gr->sendFeedDown(pEfhRunCtx);
-      pushPkt2Q(pkt,pktSize,sequence);
+      gr->pushPkt2Q(pkt,pktSize,sequence);
      
       gr->inGap = true;
       gr->closeSnapshotGap(pEfhCtx, pEfhRunCtx, sequence); 

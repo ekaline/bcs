@@ -49,6 +49,10 @@ class EkaFhCmeGr : public EkaFhGroup {
   
   int                   processPktFromQ(const EfhRunCtx* pEfhRunCtx);
 
+  int                   closeSnapshotGap(EfhCtx*           pEfhCtx, 
+					 const EfhRunCtx* pEfhRunCtx, 
+					 uint64_t          sequence);
+
   /* bool                  processUdpDefinitionsPkt(const EfhRunCtx* pEfhRunCtx, */
   /* 						 const uint8_t*   pkt,  */
   /* 						 int16_t          pktLen, */
@@ -93,6 +97,9 @@ class EkaFhCmeGr : public EkaFhGroup {
     
   PktQ*     pktQ       = NULL;
   int       processedDefinitionMessages = 0;
+
+  uint64_t firstLifeSeq = 0;
+  uint64_t processedSnapshotMessages = 0;
 
   volatile bool inGap  = false;
 };
