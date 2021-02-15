@@ -114,11 +114,11 @@ struct EfcFiredOrder {
 /* 	emc_sec_ctx_s security_context_entry;  // Security Context */
 /* 	bit [31:0]    security_context_addr; // Security Context in SecCtx Table */
 /*         sp4_order_t   order_trigger_data; // MD used for trigger */
-/* 	bit [2*8-1:0] padx4; */
+/* 	bit [6*8-1:0] padx8; */
 /* } normalized_report_sh_t; */
 
 struct EfcNormalizedFireReport {
-  uint16_t            pad;             // = bit [2*8-1:0] padx4
+  char                pad[6];          // = bit [6*8-1:0] padx8
   EfcFiredOrder       triggerOrder;    // = sp4_order_t   order_trigger_data 
   uint32_t            securityCtxAddr; // = bit [31:0]    security_context_addr
   EkaHwSecCtx         securityCtx;     // = emc_sec_ctx_s security_context_entry

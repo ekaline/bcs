@@ -23,6 +23,7 @@
 #include "Efc.h"
 
 #define TCP_TEST_ECHO 1
+#define TCP_TEST_DATA 1
 
 //#define BUF_SIZE 8192
 #define BUF_SIZE 1444
@@ -99,13 +100,14 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p
   pkt->cnt = 0;
 
   while (keep_work) {
+#if TCP_TEST_DATA
     sprintf(pkt->free_text,"%u_%u_%2u_%08ju",thrId,coreId,sessId,pkt->cnt);
 
-    //    uint pkt_size = rand() % (BUF_SIZE - 2 - sizeof(TcpTestPkt)) + 3;
-    uint pkt_size = 128;
+    uint pkt_size = rand() % (BUF_SIZE - 2 - sizeof(TcpTestPkt)) + 3;
+    //    uint pkt_size = 128;
     for (auto i = sizeof(TcpTestPkt); i < pkt_size; i++) {
-      tx_buf[i] = (char)(sessId + 1);
-    //      tx_buf[i] = 'a' + (rand() % ('z' - 'a'));
+      //  tx_buf[i] = (char)(sessId + 1);
+          tx_buf[i] = 'a' + (rand() % ('z' - 'a'));
     }
 
     /* -------------------------------------------------- */
@@ -122,7 +124,7 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p
     char rx_buf[BUF_SIZE] = {};
     int rxsize = 0;
     do {
-      rxsize = excRecv(pEkaDev,sess_id, rx_buf, 1000);
+      rxsize = excRecv(pEkaDev,sess_id, rx_buf, pkt_size);
     } while (keep_work && rxsize < 1);
 
     if (! keep_work) return;
@@ -143,6 +145,7 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p
     pkt->cnt++;
 
     //    if (pkt->cnt > 20000) keep_work = false;
+#endif
   }
   TEST_LOG("fastpath_thread_f is terminated"); fflush(stderr);fflush(stdout);
 

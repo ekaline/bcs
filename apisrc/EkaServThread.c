@@ -90,9 +90,10 @@ void ekaServThread(EkaDev* dev) {
 	/* ----------------------------------------------- */
       case EkaUserChannel::DMA_TYPE::EPM : {
 	feedback_dma_report_t* feedbackDmaReport = (feedback_dma_report_t*) payload;
-	/* hexDump("Serv Thread EPM Pkt",payload,len); */
-	/* EKA_LOG("EPM PKT: bitparams = 0x%0x, dummy_en = %d, expect_report = %d", */
-	/* 	feedbackDmaReport->bitparams,feedbackDmaReport->bitparams.dummy_en,feedbackDmaReport->bitparams.expect_report); */
+	/* EKA_LOG("EPM PKT: bitparams = 0x%0x, dummy_en = %d, expect_report = %d, type = %d, length = %d, index = %d, dmalen = %d", */
+	/* 	feedbackDmaReport->bitparams,feedbackDmaReport->bitparams.dummy_en,feedbackDmaReport->bitparams.expect_report, */
+	/* 	feedbackDmaReport->type,feedbackDmaReport->length,feedbackDmaReport->index,len); */
+	/* hexDump("Serv Thread EPM Pkt",payload,len);fflush(stdout); */
 
 
 	if (feedbackDmaReport->bitparams.dummy_en == 1) {

@@ -582,7 +582,8 @@ int main(int argc, char *argv[]) {
       .size                  = be32toh(secCtx.size)
     }
   };
-  
+
+  for (int i=0;i<1;i++){
   /* ============================================== */
   EKA_LOG("sending AskShort trigger to %s:%u",
 	  EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
@@ -590,14 +591,19 @@ int main(int argc, char *argv[]) {
       on_error ("MC trigger send failed");
     /* ============================================== */
   sleep(2);
+  }
     /* ============================================== */
-  EKA_LOG("sending BidLong  trigger to %s:%u",EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
-  if (sendto(triggerSock,&mdBidLongPkt,sizeof(mdBidLongPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
+  for (int i=0;i<1;i++){
+    EKA_LOG("sending BidLong  trigger to %s:%u",EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
+    if (sendto(triggerSock,&mdBidLongPkt,sizeof(mdBidLongPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
       on_error ("MC trigger send failed");
-  
+    sleep(2);
+  }
   /* ============================================== */
 
 #ifndef _VERILOG_SIM
+  sleep(2);
+  EKA_LOG("--Test finished, ctrl-c to end---");
   while (keep_work) { sleep(0); }
 #endif
   //  end:

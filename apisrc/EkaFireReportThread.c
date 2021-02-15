@@ -211,7 +211,7 @@ void ekaFireReportThread(EkaDev* dev) {
     if (((report_dma_report_t*)data)->length + sizeof(report_dma_report_t) != len) {
       hexDump("EPM report",data,len); fflush(stdout);
       on_error("DMA length mismatch %u != %u",
-	       be16toh(((report_dma_report_t*)data)->length),len);
+	       ((report_dma_report_t*)data)->length,len);
     }
 
     uint32_t epmReportIndex = ((report_dma_report_t*)data)->feedbackDmaIndex;
