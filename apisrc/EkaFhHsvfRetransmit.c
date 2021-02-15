@@ -279,7 +279,7 @@ EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, Eka
       sendLogout(gr);
       close(gr->snapshot_sock);
       delete gr->hsvfTcp;
-      gr->sendRetransmitExchangeError(pEfhRunCtx);
+      gr->sendRetransmitSocketError(pEfhRunCtx);
       continue;
     }
 
@@ -296,7 +296,7 @@ EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, Eka
       sendLogout(gr);
       close(gr->snapshot_sock);
       delete gr->hsvfTcp;
-      gr->sendRetransmitExchangeError(pEfhRunCtx);
+      gr->sendRetransmitSocketError(pEfhRunCtx);
       continue;
     }
     //-----------------------------------------------------------------
@@ -369,7 +369,7 @@ void* getHsvfRetransmit(void* attr) {
       sendLogout(gr);
       close(gr->snapshot_sock);
       delete gr->hsvfTcp;
-      gr->sendRetransmitExchangeError(pEfhRunCtx);
+      gr->sendRetransmitSocketError(pEfhRunCtx);
       continue;
     }
     //-----------------------------------------------------------------
@@ -385,7 +385,7 @@ void* getHsvfRetransmit(void* attr) {
       sendLogout(gr);
       close(gr->snapshot_sock);
       delete gr->hsvfTcp;
-      gr->sendRetransmitExchangeError(pEfhRunCtx);
+      gr->sendRetransmitSocketError(pEfhRunCtx);
       continue;
     }
     //-----------------------------------------------------------------

@@ -120,7 +120,8 @@ static bool sesmCycle(EkaDev* dev,
   ITERATION_FAIL:
     sendLogOut(gr);
     close(gr->recovery_sock);
-    gr->sendRetransmitExchangeError(pEfhRunCtx);
+    //    gr->sendRetransmitExchangeError(pEfhRunCtx);
+    gr->sendRetransmitSocketError(pEfhRunCtx);
   }
   return false;
 

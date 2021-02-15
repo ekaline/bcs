@@ -663,7 +663,8 @@ void* getSpinData(void* attr) {
 
     success = spinCycle(pEfhRunCtx,op,gr,MaxTrials);
     if (success) break;
-    gr->sendRetransmitExchangeError(pEfhRunCtx);    
+    gr->sendRetransmitSocketError(pEfhRunCtx);    
+    //    gr->sendRetransmitExchangeError(pEfhRunCtx);    
   }
   //-----------------------------------------------------------------
   int rc = dev->credRelease(lease, dev->credContext);
@@ -877,7 +878,8 @@ void* getGrpRetransmitData(void* attr) {
 
     success = grpCycle(pEfhRunCtx, gr, start, end);
     if (success) break;
-    gr->sendRetransmitExchangeError(pEfhRunCtx);
+    gr->sendRetransmitSocketError(pEfhRunCtx);
+    //    gr->sendRetransmitExchangeError(pEfhRunCtx);
   }
   //-----------------------------------------------------------------
   int rc = dev->credRelease(lease, dev->credContext);

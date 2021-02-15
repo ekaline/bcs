@@ -462,7 +462,7 @@ void* getSoupBinData(void* attr) {
 			   end_sequence,
 			   MaxTrials);
     if (success) break;
-    gr->sendRetransmitExchangeError(pEfhRunCtx);    
+    gr->sendRetransmitSocketError(pEfhRunCtx);    
   }
   //-----------------------------------------------------------------
   int rc = dev->credRelease(lease, dev->credContext);
@@ -609,13 +609,13 @@ void* getMolUdp64Data(void* attr) {
   int const_one = 1;
   if (setsockopt(udpSock, SOL_SOCKET, SO_REUSEADDR, &const_one, sizeof(int)) < 0) {
     dev->lastErrno = errno;
-    gr->sendRetransmitExchangeError(pEfhRunCtx);
+    gr->sendRetransmitSocketError(pEfhRunCtx);
     on_error("setsockopt(SO_REUSEADDR) failed");
   }
 
   if (setsockopt(udpSock, SOL_SOCKET, SO_REUSEPORT, &const_one, sizeof(int)) < 0) {
     dev->lastErrno = errno;
-    gr->sendRetransmitExchangeError(pEfhRunCtx);
+    gr->sendRetransmitSocketError(pEfhRunCtx);
     on_error("setsockopt(SO_REUSEPORT) failed");
   }
 
@@ -626,7 +626,7 @@ void* getMolUdp64Data(void* attr) {
 
   if (bind(udpSock,(sockaddr*) &local2bind, sizeof(sockaddr)) < 0) {
     dev->lastErrno = errno;
-    gr->sendRetransmitExchangeError(pEfhRunCtx);
+    gr->sendRetransmitSocketError(pEfhRunCtx);
     on_error("bind UDP socket failed");
   }
   EKA_LOG("%s:%u: Udp recovery socket is binded to: %s:%u",
