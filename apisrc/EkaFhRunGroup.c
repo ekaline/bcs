@@ -50,8 +50,8 @@ EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 }
 /* ##################################################################### */
 
-int EkaFhRunGroup::igmpMcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag) {
-  ekaIgmp->mcJoin(ip,port,vlanTag);
+int EkaFhRunGroup::igmpMcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag,uint64_t* pPktCnt) {
+  ekaIgmp->mcJoin(ip,port,vlanTag,pPktCnt);
   udpCh->igmp_mc_join (ip, ip, port, 0);
   return 0;
 }

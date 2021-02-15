@@ -25,6 +25,10 @@ const uint8_t* EkaFhBox::getUdpPkt(EkaFhRunGroup* runGr,
   *gr_id    = getGrId(pkt);
   *sequence = getHsvfMsgSequence(pkt);
 
+  if (*gr_id == 0xFF) {
+    runGr->udpCh->next(); 
+    return NULL;
+  }
   return pkt;
 }
 
@@ -55,6 +59,14 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
     const uint8_t* pkt = getUdpPkt(runGr,&pktLen,&sequence,&gr_id);
     if (pkt == NULL) continue;
+#ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
+    if (sequence != 0 && sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
+      EKA_WARN("%s:%u: TEST GAP INJECTED: (GAP_INJECT_INTERVAL = %d): pkt sequence %ju with unknown number of messages dropped",
+	       EKA_EXCH_DECODE(exch),gr_id, _EFH_TEST_GAP_INJECT_INTERVAL_,sequence);
+      runGr->udpCh->next(); 
+      continue;
+    }
+#endif
 
     EkaFhBoxGr* gr = (EkaFhBoxGr*)b_gr[gr_id];
     if (gr == NULL) on_error("gr == NULL");

@@ -30,7 +30,15 @@ class EkaFhPhlxTopoGr : public EkaFhNasdaqGr{
     return 0;
   }
 
-  static const uint   SEC_HASH_SCALE = 17;
+
+  int closeIncrementalGap(EfhCtx*          pEfhCtx, 
+			  const EfhRunCtx* pEfhRunCtx, 
+			  uint64_t         startSeq,
+			  uint64_t         endSeq);
+  
+  //-----------------------------------------------------------------
+
+ static const uint   SEC_HASH_SCALE = 17;
 
   using SecurityIdT = uint32_t;
   using PriceT      = uint32_t;

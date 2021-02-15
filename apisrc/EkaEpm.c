@@ -174,7 +174,7 @@ EkaOpResult EkaEpm::initStrategies(EkaCoreId coreId,
     if (strategy[i] == NULL) on_error("Fail to create strategy[%d]",i);
 
     //    udpCh[coreId]->igmp_mc_join(0, strategy[i]->ip, strategy[i]->port,0);
-    ekaIgmp->mcJoin(strategy[i]->ip, strategy[i]->port,0);
+    ekaIgmp->mcJoin(strategy[i]->ip, strategy[i]->port,0,&pktCnt);
 
     currActionIdx += params[i].numActions;
 

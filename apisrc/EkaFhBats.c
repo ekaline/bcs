@@ -115,8 +115,6 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
 	gr->sendFeedDown(pEfhRunCtx);
 	gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
 	gr->closeIncrementalGap(pEfhCtx, pEfhRunCtx, gr->expected_sequence, sequence);
-	//gr->closeIncrementalGap(pEfhCtx, pEfhRunCtx, gr->expected_sequence, sequence + msgInPkt);
-
       } else { // NORMAL
 	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,msgInPkt,sequence);      
       }

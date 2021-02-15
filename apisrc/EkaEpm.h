@@ -229,6 +229,8 @@ class EkaEpm {
   
   bool              controllerEnabled = false;
 
+  uint64_t          pktCnt = 0; // for EFH compatibility
+
   EkaEpmRegion*    epmRegion[EPM_REGIONS] = {};
 
  private:

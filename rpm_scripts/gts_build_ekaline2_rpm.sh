@@ -37,6 +37,10 @@ export EkaSnToolsDir=/opt/ekaline/SmartNIC_SW/tools
 #export EkaLibDir=/usr/share/${EKA_RPM_NAME}_lib
 #export EkaUtilsDir=/usr/share/eka_utils
 
+#export EkaUtilsDir=/usr/share/eka_utils
+
+export EkaUtilsDir=/opt/ekaline/SmartNIC_SW/tools
+
 cd /tmp/${EKA_LIB_RPM_NAME}
 mkdir -p ./${EkaSnDriverDir}
 mkdir -p ./${EkaSnToolsDir}
@@ -54,6 +58,14 @@ cp ${SN}/tools/fbupdate/fbupdate ${SN}/tools/fbconfig ./${EkaSnToolsDir}
 #for f in `find ${LIBEKA}/eka_utils -executable -type f`; do
 #    cp $f ./${EkaUtilsDir}
 #done
+
+cp ${LIBEKA}/eka_utils/eka_tcpdump       ./${EkaUtilsDir}
+cp ${LIBEKA}/eka_utils/eka_version       ./${EkaUtilsDir}
+cp ${LIBEKA}/eka_utils/eka_Mold64PcapGap ./${EkaUtilsDir}
+cp ${LIBEKA}/eka_utils/efh_dump_igmp_acl ./${EkaUtilsDir}
+cp ${LIBEKA}/eka_utils/efh_state         ./${EkaUtilsDir}
+cp ${LIBEKA}/eka_utils/eka_BoxPcapGap    ./${EkaUtilsDir}
+
 
 cd /tmp
 

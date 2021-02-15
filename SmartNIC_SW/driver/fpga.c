@@ -1029,6 +1029,9 @@ int setSourceMulticast(const char * from, device_context_t * pDevExt, unsigned i
     uint64_t value;
     unsigned long flags;
 
+    PRINTK("EKALINE: setSourceMulticast: lane=%u, position %u MAC %02x:%02x:%02x:%02x:%02x:%02x port %u channel %u",
+	   lane, positionIndex, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], port, channel);
+
     if (!is_valid_udp_lane(pDevExt, lane))
     {
         return 1;

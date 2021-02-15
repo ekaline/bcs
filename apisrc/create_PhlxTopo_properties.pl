@@ -18,7 +18,7 @@ $mc_base            = "233.47.179.";
 $mc_lsb_base        = 104;
 
 $snapshot_ip        = "206.200.151.";
-$snapshot_lsb_base  = 82;
+$snapshot_lsb_base  = 18;
 $snapshot_port      = 18116;
 
 $recovery_ip        = $snapshot_ip;

@@ -68,6 +68,9 @@ class EkaEfc {
   int                 ctxWriteBank[MAX_CTX_THREADS] = {};
   EfcCtx              localCopyEfcCtx = {};
   EfcRunCtx           localCopyEfcRunCtx = {};
+
+  uint64_t            pktCnt         = 0; // for EFH compatibility
+
 };
 
 #endif

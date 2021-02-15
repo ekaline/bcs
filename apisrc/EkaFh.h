@@ -20,6 +20,15 @@
 
 enum class EkaFhAddConf {CONF_SUCCESS=0, IGNORED=1, UNKNOWN_KEY=2, WRONG_VALUE=3, CONFLICTING_CONF=4} ;
 enum class EkaFhMode : uint8_t {UNINIT = 0, DEFINITIONS, SNAPSHOT, MCAST, RECOVERY};
+
+#define EkaFhMode2STR(x) \
+  x == EkaFhMode::DEFINITIONS ? "DEFINITIONS" : \
+    x == EkaFhMode::SNAPSHOT ? "SNAPSHOT" : \
+    x == EkaFhMode::RECOVERY ? "RECOVERY" : \
+    "UNEXPECTED"
+
+
+enum class EkaFhParseResult : int {End = 0, NotEnd, SocketError, ProtocolError};
 #define EFH_STRIKE_PRICE_SCALE 1
 
 class EkaFhGroup;

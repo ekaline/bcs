@@ -257,6 +257,36 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
     }
   }  
   //---------------------------------------------------------------------
+  // efh.C1_PITCH.group.X.recovery.grpAuth, user:passwd
+  // k[0] k[1]   k[2] k[3] k[4]   k[5]
+  if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"recovery")==0) && (strcmp(k[5],"grpAuth")==0)) {
+    if (EFH_GET_SRC(k[1]) == exch) {
+      uint8_t gr = (uint8_t) atoi(k[3]);
+      if (gr >= groups) {
+	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+	return EkaFhAddConf::CONF_SUCCESS;
+      }
+      
+      auto batsGr {reinterpret_cast<EkaFhBatsGr*>(b_gr[gr])};
+      if (batsGr == NULL) on_error("b_gr[%u] == NULL",gr);
+
+      /* memset(batsGr->grpUser,  '\0',sizeof(batsGr->grpUser)); */
+      /* memset(batsGr->grpPasswd,'\0',sizeof(batsGr->grpPasswd)); */
+      memset(batsGr->grpUser,  ' ',sizeof(batsGr->grpUser));
+      memset(batsGr->grpPasswd,' ',sizeof(batsGr->grpPasswd));
+      memcpy(batsGr->grpUser,  v[0],strlen(v[0]));
+      memcpy(batsGr->grpPasswd,v[1],strlen(v[1]));
+
+      EKA_DEBUG ("%s:%u: %s set to |%s|:|%s|",
+		 k[1],gr,k[5],batsGr->grpUser + '\0',batsGr->grpPasswd + '\0');
+
+      batsGr->grpSet = true;
+      fflush(stderr);
+
+      return EkaFhAddConf::CONF_SUCCESS;
+    }
+  }  
+  //---------------------------------------------------------------------
   // efh.NOM_ITTO.snapshot.auth, user:passwd
   // k[0] k[1]   k[2]     k[3] 
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"snapshot")==0) && (strcmp(k[3],"auth")==0)) {
@@ -274,7 +304,9 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
     }
   }
   //---------------------------------------------------------------------
-  // efh.BATS_PITCH.group.X.unit, "1"
+
+  //---------------------------------------------------------------------
+  // efh.C1_PITCH.group.X.unit, "1"
   // k[0] k[1]     k[2] k[3] k[4]   k[5]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"unit")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
@@ -328,7 +360,31 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
 
       memcpy(&(((EkaFhBatsGr*)b_gr[gr])->sessionSubID),v[0],sizeof(((EkaFhBatsGr*)b_gr[gr])->sessionSubID));
 
-      EKA_DEBUG ("sessionSubID for %s:%u are set to %s",k[1],gr,v[0] +'\0');
+      EKA_DEBUG ("%s:%u: sessionSubID set to %s",k[1],gr,v[0] +'\0');
+      fflush(stderr);
+
+      return EkaFhAddConf::CONF_SUCCESS;
+    }
+  }
+  //---------------------------------------------------------------------
+  // efh.C1_PITCH.group.X.recovery.grpSessionSubID, "0285"
+  // k[0] k[1]     k[2] k[3] k[4]   k[5]
+  if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"recovery")==0) && (strcmp(k[5],"grpSessionSubID")==0)) {
+    if (EFH_GET_SRC(k[1]) == exch) {
+      uint8_t gr = (uint8_t) atoi(k[3]);
+      if (gr >= groups) {
+	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+	return EkaFhAddConf::CONF_SUCCESS;
+      }
+      auto batsGr {reinterpret_cast<EkaFhBatsGr*>(b_gr[gr])};
+      if (batsGr == NULL) on_error("b_gr[%u] == NULL",gr);
+
+      if (strlen(v[0]) != sizeof(batsGr->grpSessionSubID))
+	on_error("parameter size mismatch: strlen(%s) %d != sizeof(batsGr->grpSessionSubID) %d",
+		 v[0], (int)strlen(v[0]), (int)sizeof(batsGr->grpSessionSubID));
+      memcpy(batsGr->grpSessionSubID,v[0],sizeof(batsGr->grpSessionSubID));
+
+      EKA_DEBUG ("%s:%u: grpSessionSubID set to %s",k[1],gr,v[0] +'\0');
       fflush(stderr);
 
       return EkaFhAddConf::CONF_SUCCESS;
@@ -372,6 +428,28 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       b_gr[gr]->snapshot_port =  htons((uint16_t)atoi(v[1]));
       b_gr[gr]->snapshot_set = true;
       //      EKA_DEBUG ("%s %s for %s:%u is set to %s:%u",k[4],k[5],k[1],gr,v[0],(uint16_t)atoi(v[1]));
+      fflush(stderr);
+      return EkaFhAddConf::CONF_SUCCESS;
+    }
+  }
+  //---------------------------------------------------------------------
+  // efh.C1_PITCH.group.X.recovery.grpAddr, x.x.x.x:xxxx
+  // k[0] k[1]   k[2]  k[3] k[4] k[5]
+  if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"recovery")==0) && (strcmp(k[5],"grpAddr")==0)) {
+    if (EFH_GET_SRC(k[1]) == exch) {
+      uint8_t gr = (uint8_t) atoi(k[3]);
+      if (gr >= groups) {
+	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+	return EkaFhAddConf::CONF_SUCCESS;
+      }
+      auto batsGr {reinterpret_cast<EkaFhBatsGr*>(b_gr[gr])};
+
+      if (batsGr == NULL) on_error("b_gr[%u] == NULL",gr);
+      batsGr->grpIp = inet_addr(v[0]);
+      batsGr->grpPort = be16toh((uint16_t)atoi(v[1]));
+
+      EKA_DEBUG ("%s:%u: %s is set to %s:%u",
+		 k[1],gr,k[5],EKA_IP2STR(batsGr->grpIp),be16toh(batsGr->grpPort));
       fflush(stderr);
       return EkaFhAddConf::CONF_SUCCESS;
     }
@@ -436,7 +514,7 @@ EkaOpResult EkaFh::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
     gr->createQ(pEfhCtx,qsize);
     gr->expected_sequence = 1;
 
-    runGr->igmpMcJoin(gr->mcast_ip,gr->mcast_port,0);
+    runGr->igmpMcJoin(gr->mcast_ip,gr->mcast_port,0,&gr->pktCnt);
     EKA_DEBUG("%s:%u: joined %s:%u for %u securities",
 	      EKA_EXCH_DECODE(exch),gr->id,
 	      EKA_IP2STR(gr->mcast_ip),gr->mcast_port,

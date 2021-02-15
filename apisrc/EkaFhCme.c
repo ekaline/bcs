@@ -47,7 +47,7 @@ EkaOpResult EkaFhCme::initGroups(EfhCtx*          pEfhCtx,
 
     gr->expected_sequence = 0;
 
-    runGr->igmpMcJoin(gr->mcast_ip,gr->mcast_port,0);
+    runGr->igmpMcJoin(gr->mcast_ip,gr->mcast_port,0,&gr->pktCnt);
     //    runGr->igmpMcJoin(gr->recovery_ip,gr->recovery_port,0);
     EKA_DEBUG("%s:%u: joined Incr Feed %s:%u, Recovery Feed %s:%u, for %u securities",
 	      EKA_EXCH_DECODE(exch),gr->id,

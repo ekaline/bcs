@@ -66,6 +66,16 @@ EkaOpResult EkaFhMiax::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
       runGr->udpCh->next(); 
       continue;
     }
+
+#ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
+    if (sequence != 0 && sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
+      EKA_WARN("%s:%u: TEST GAP INJECTED: (GAP_INJECT_INTERVAL = %d): pkt sequence %ju with %u messages dropped",
+	       EKA_EXCH_DECODE(exch),gr_id, _EFH_TEST_GAP_INJECT_INTERVAL_,sequence,msgInPkt);
+      runGr->udpCh->next(); 
+      continue;
+    }
+#endif
+
     EkaFhMiaxGr* gr = (EkaFhMiaxGr*)b_gr[gr_id];
     if (gr == NULL) on_error("gr = NULL");
     gr->resetNoMdTimer();

@@ -65,6 +65,17 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
 
     const uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&sequence,&gr_id);
     if (pkt == NULL) continue;
+
+#ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
+    if (sequence != 0 && sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
+      EKA_WARN("%s:%u: TEST GAP INJECTED: (GAP_INJECT_INTERVAL = %d): pkt sequence %ju with %u messages dropped",
+	       EKA_EXCH_DECODE(exch),gr_id, _EFH_TEST_GAP_INJECT_INTERVAL_,sequence,msgInPkt);
+      runGr->udpCh->next(); 
+      continue;
+    }
+#endif
+
+
     EkaFhNasdaqGr* gr = (EkaFhNasdaqGr*)b_gr[gr_id];
     if (gr == NULL) on_error("b_gr[%u] = NULL",gr_id);
 
@@ -153,9 +164,7 @@ EkaOpResult EkaFhNasdaq::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhR
 					      1, 0, 
 					      EkaFhMode::DEFINITIONS);
   getSoupBinData(attr);
-  while (! b_gr[(uint8_t)group->localId]->heartbeatThreadDone) {
-    sleep (0);
-  }
+
   return EKA_OPRESULT__OK;
 }
 
