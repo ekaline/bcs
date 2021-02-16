@@ -15,7 +15,7 @@ class PriceLevetT,
   EkaFhCmeBookSide(SideT _side) {
     side       = _side;
     tob        = 0;
-    TEST_LOG("Creating %s side",side == SideT::BID ? "BID" : "ASK");
+    //    TEST_LOG("Creating %s side",side == SideT::BID ? "BID" : "ASK");
     for (auto i = 0; i < ENTRIES; i++) {
       entry[i].valid   = 0;
       entry[i].price   = 0;

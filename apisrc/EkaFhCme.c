@@ -76,6 +76,8 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
   while (runGr->thread_active) {
     //-----------------------------------------------------------------------------
+    if (runGr->drainQ(pEfhRunCtx)) continue;
+    //-----------------------------------------------------------------------------
     if (! runGr->udpCh->has_data()) {
       if (++timeCheckCnt % TimeCheckRate == 0) {
 	tradingHours = isTradingHours(9,30,16,00);
@@ -91,37 +93,41 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     const uint8_t* pkt = getUdpPkt(runGr,&pktSize,&sequence,&gr_id);
     if (pkt == NULL) continue;
 
+#ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
+    if (sequence != 0 && sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
+      EKA_WARN("%s:%u: TEST GAP INJECTED: (GAP_INJECT_INTERVAL = %d): pkt sequence %ju with %u messages dropped",
+	       EKA_EXCH_DECODE(exch),gr_id, _EFH_TEST_GAP_INJECT_INTERVAL_,sequence,msgInPkt);
+      runGr->udpCh->next(); 
+      continue;
+    }
+#endif
+
     EkaFhCmeGr* gr = (EkaFhCmeGr*)b_gr[gr_id];
     if (gr == NULL) on_error("b_gr[%u] == NULL",gr_id);
     gr->resetNoMdTimer();
 
     //-----------------------------------------------------------------------------
-    if (sequence != gr->expected_sequence) {
-      if (gr->expected_sequence != 0) 
-	gr->sendFeedDown(pEfhRunCtx);
-      gr->pushPkt2Q(pkt,pktSize,sequence);
-     
-      gr->inGap = true;
-      gr->closeSnapshotGap(pEfhCtx, pEfhRunCtx, sequence); 
+    if (gr->inGap) {
+      if (gr->snapshotClosed) {
+	gr->inGap = false;
+	gr->sendFeedUp(pEfhRunCtx);
+	runGr->setGrAfterGap(gr->id);
+      }
+    } else {
+      if (sequence != gr->expected_sequence) {
+  	EKA_LOG("%s:%u sequence=%ju,expected_sequence=%ju",
+		EKA_EXCH_DECODE(exch),gr_id, sequence,gr->expected_sequence);
+
+	if (gr->expected_sequence == 0) gr->sendFeedDownInitial(pEfhRunCtx);
+	else gr->sendFeedDown(pEfhRunCtx);
+
+	gr->pushPkt2Q(pkt,pktSize,sequence);
+	
+	gr->inGap = true;
+	gr->closeSnapshotGap(pEfhCtx, pEfhRunCtx, sequence); 
+      }
     }
 
-
-    /* EKA_LOG("%s:%u Seq=%ju,expSeq=%ju, pktSize=%u msgInPkt =%u",EKA_EXCH_DECODE(exch),gr_id, */
-    /* 	    sequence,gr->getExpectedSeq(streamIdx),pktSize,msgInPkt); */
-
-    /* if (gr->inGap) { */
-    /*   if (gr->isGapOver()) { */
-    /* 	gr->inGap = false; */
-    /* 	gr->sendFeedUp(pEfhRunCtx); */
-    /*   } */
-    /* } */
-    /* //----------------------------------------------------------------------------- */
-    /* if (sequence > gr->getExpectedSeq(streamIdx) && ! gr->inGap) { */
-    /*   gr->sendFeedDown(pEfhRunCtx); */
-
-    /*   gr->inGap = true; */
-    /*   gr->setGapStart(); */
-    /* } */
     //-----------------------------------------------------------------------------
 
     if (gr->processPkt(pEfhRunCtx,pkt,pktSize,EkaFhMode::MCAST)) break;
@@ -158,6 +164,7 @@ EkaOpResult EkaFhCme::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
     
   }
   gr->snapshot_active = false;
+  gr->snapshotClosed  = true;
 
   EKA_LOG("%s:%u: %d Definition messages processed",
 	  EKA_EXCH_DECODE(exch),gr->id,gr->processedDefinitionMessages);

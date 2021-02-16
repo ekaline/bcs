@@ -63,10 +63,9 @@ void EkaFhCmeGr::pushPkt2Q(const uint8_t*       pkt,
 }
  /* ##################################################################### */
 
-int EkaFhCmeGr::processPktFromQ(const EfhRunCtx* pEfhRunCtx) {
+int EkaFhCmeGr::processFromQ(const EfhRunCtx* pEfhRunCtx) {
   while (! pktQ->is_empty()) {
     PktElem* buf = pktQ->pop();
-    //      EKA_LOG("q_len=%u,buf->sequence=%ju, expected_sequence=%ju",q->get_len(),buf->sequence,expected_sequence);
 
     if (buf->sequence < expected_sequence) continue;
     processPkt(pEfhRunCtx,

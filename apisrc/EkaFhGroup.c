@@ -36,7 +36,8 @@ uint         EkaFhGroup::getNumSecurities() {
 int EkaFhGroup::processFromQ(const EfhRunCtx* pEfhRunCtx) {
   while (! q->is_empty()) {
     fh_msg* buf = q->pop();
-    //      EKA_LOG("q_len=%u,buf->sequence=%ju, expected_sequence=%ju",q->get_len(),buf->sequence,expected_sequence);
+    /* EKA_LOG("q_len=%u,buf->sequence=%ju, expected_sequence=%ju", */
+    /* 	    q->get_len(),buf->sequence,expected_sequence); */
 
     if (buf->sequence < expected_sequence) continue;
     parseMsg(pEfhRunCtx,(unsigned char*)buf->data,buf->sequence,EkaFhMode::MCAST);
