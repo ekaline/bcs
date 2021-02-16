@@ -117,7 +117,7 @@ switch (eka_ioctl.cmd) {
  }
    break;
  case EKA_GET_IGMP_STATE: {
-   struct sc_multicast_subscription_t* dstAddr = (sc_multicast_subscription_t*)((eka_ioctl_t*)data)->wcattr.bar0_pa;
+   struct sc_multicast_subscription_t* dstAddr = (struct sc_multicast_subscription_t*)((eka_ioctl_t*)data)->wcattr.bar0_pa;
    if ((rc = copy_to_user((void __user *) dstAddr,
 			  &pDevExt->igmpContext.global_subscriber,
 			  sizeof(pDevExt->igmpContext.global_subscriber)))) {
