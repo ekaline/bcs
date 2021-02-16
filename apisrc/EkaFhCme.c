@@ -108,33 +108,37 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
     //-----------------------------------------------------------------------------
     if (gr->inGap) {
+      gr->pushPkt2Q(pkt,pktSize,sequence);
       if (gr->snapshotClosed) {
 	gr->inGap = false;
 	gr->sendFeedUp(pEfhRunCtx);
 	runGr->setGrAfterGap(gr->id);
       }
     } else {
-      if (sequence != gr->expected_sequence) {
+      if (sequence < gr->expected_sequence) {
+	// skip stale
+      } else if (sequence != gr->expected_sequence) {
   	EKA_LOG("%s:%u sequence=%ju,expected_sequence=%ju",
 		EKA_EXCH_DECODE(exch),gr_id, sequence,gr->expected_sequence);
 
-	if (gr->expected_sequence == 0) gr->sendFeedDownInitial(pEfhRunCtx);
-	else gr->sendFeedDown(pEfhRunCtx);
+	if (gr->expected_sequence == 0) {
+	  gr->sendFeedDownInitial(pEfhRunCtx);
+	} else {
+	  gr->sendFeedDown(pEfhRunCtx);
+	}
 
 	gr->pushPkt2Q(pkt,pktSize,sequence);
 	
 	gr->inGap = true;
 	gr->closeSnapshotGap(pEfhCtx, pEfhRunCtx, sequence); 
+      } else {
+	//-----------------------------------------------------------------------------
+	if (gr->processPkt(pEfhRunCtx,pkt,pktSize,EkaFhMode::MCAST)) break;
+	//-----------------------------------------------------------------------------
       }
     }
-
-    //-----------------------------------------------------------------------------
-
-    if (gr->processPkt(pEfhRunCtx,pkt,pktSize,EkaFhMode::MCAST)) break;
-
-    //-----------------------------------------------------------------------------
     runGr->udpCh->next(); 
-  }
+  } // while
   EKA_INFO("%s RunGroup %u EndOfSession",EKA_EXCH_DECODE(exch),runGrId);
   runGr->sendFeedCloseAll(pEfhRunCtx);
 
