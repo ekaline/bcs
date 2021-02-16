@@ -27,9 +27,11 @@ void* getCmeSnapshot(void* attr);
 int ekaUdpMcConnect(EkaDev* dev, uint32_t ip, uint16_t port);
 
 /* ##################################################################### */
-EkaFhCmeGr::EkaFhCmeGr() {
+int EkaFhCmeGr::createPktQ() {
+  EKA_LOG("%s:%u: Creating PktQ",EKA_EXCH_DECODE(exch),id);
   pktQ = new PktQ(dev,exch,this,id);
   if (pktQ == NULL) on_error("pktQ == NULL");
+  return 0;
 }
 
 /* ##################################################################### */

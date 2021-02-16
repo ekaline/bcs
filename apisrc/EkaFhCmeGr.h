@@ -10,7 +10,6 @@
 
 class EkaFhCmeGr : public EkaFhGroup {
  public:
-  EkaFhCmeGr();
   virtual               ~EkaFhCmeGr() {};
 
   bool                  parseMsg(const EfhRunCtx* pEfhRunCtx,
@@ -36,6 +35,7 @@ class EkaFhCmeGr : public EkaFhGroup {
 			    opaqueAttrB);
     return 0;
   }
+  int                   createPktQ();
 
   bool                  processPkt(const EfhRunCtx* pEfhRunCtx,
 				      const uint8_t*   pkt, 

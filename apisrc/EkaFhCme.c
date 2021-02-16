@@ -45,6 +45,7 @@ EkaOpResult EkaFhCme::initGroups(EfhCtx*          pEfhCtx,
     auto gr = reinterpret_cast<EkaFhCmeGr*>(b_gr[pEfhRunCtx->groups[i].localId]);
     if (gr == NULL) on_error ("b_gr[%u] == NULL",pEfhRunCtx->groups[i].localId);
 
+    gr->createPktQ();
     gr->expected_sequence = 0;
 
     runGr->igmpMcJoin(gr->mcast_ip,gr->mcast_port,0,&gr->pktCnt);
