@@ -55,8 +55,8 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       /* ##################################################################### */
     case MsgId::MDIncrementalRefreshBook46 : {
       /* ------------------------------- */
-      auto rootBlock {reinterpret_cast<const MDIncrementalRefreshBook46_mainBlock*>(&pkt[rootBlockPos])};
 #ifdef _PRINT_ALL_
+      auto rootBlock {reinterpret_cast<const MDIncrementalRefreshBook46_mainBlock*>(&pkt[rootBlockPos])};
       TEST_LOG ("\t\tIncrementalRefreshBook46: TransactTime=%jx, MatchEventIndicator=0x%x",
 		rootBlock->TransactTime,rootBlock->MatchEventIndicator);
 #endif

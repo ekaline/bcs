@@ -94,6 +94,15 @@ static inline std::string ts_ns2str(uint64_t ts) {
   return std::string(dst);
 }
 
+static std::string eka_get_date () {
+  const char* months[] = {"JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"};
+  time_t t = time(NULL);
+  struct tm tm = *localtime(&t);
+  char t_str[100] = {};
+  sprintf(t_str,"%d-%s-%02d",1900+tm.tm_year,months[tm.tm_mon],tm.tm_mday);
+  return std::string(t_str);
+}
+
 static std::string eka_get_time () {
   time_t t = time(NULL);
   struct tm tm = *localtime(&t);
@@ -197,8 +206,8 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
       gapType = std::string("Unknown Gap");
     }
     fprintf(MD,"%s: %s : %s FeedDown\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str(),gapType.c_str());
-    printf ("=========================\n%s: %s %ju\n=========================\n",
-	    EKA_PRINT_GRP(&msg->group),gapType.c_str(),msg->code);
+    printf ("=========================\n%s: %s: %s %ju\n=========================\n",
+	    EKA_PRINT_GRP(&msg->group),eka_get_time().c_str(),gapType.c_str(),msg->code);
   }
     break;
     /* ----------------------------- */
@@ -215,8 +224,8 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
       gapType = std::string("Unknown Gap");
     }
     fprintf(MD,"%s: %s : %s \n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str(),gapType.c_str());
-    printf ("=========================\n%s: %s %ju\n=========================\n",
-	    EKA_PRINT_GRP(&msg->group),gapType.c_str(),msg->code);
+    printf ("=========================\n%s: %s: %s %ju\n=========================\n",
+	    EKA_PRINT_GRP(&msg->group),eka_get_time().c_str(),gapType.c_str(),msg->code);
   }
     break;
     /* ----------------------------- */
@@ -252,7 +261,7 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
   //  fprintf(md[file_idx],"%s,%s,%s,%s,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%s\n",
   fprintf(MD,"%s,%s,%s,%s,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%d,%d,%s\n",
 	  EKA_CTS_SOURCE(msg->header.group.source),
-	  "today",
+	  eka_get_date().c_str(),
 	  eka_get_time().c_str(),
 #ifdef EKA_TEST_IGNORE_DEFINITIONS
 	  "DEFAULT_SEC_ID",
