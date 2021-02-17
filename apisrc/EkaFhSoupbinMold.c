@@ -247,9 +247,9 @@ static bool getLoginResponse(EkaFhNasdaqGr* gr) {
 }
 /* ##################################################################### */
 static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx, 
-				       EkaFhNasdaqGr* gr,
-				       uint64_t end_sequence,
-				       EkaFhMode op) {
+				       EkaFhNasdaqGr*   gr,
+				       uint64_t         end_sequence,
+				       EkaFhMode        op) {
   EkaDev* dev = gr->dev;
   soupbin_header hdr ={};
   int r = recv(gr->snapshot_sock,&hdr,sizeof(hdr),MSG_WAITALL);
@@ -313,7 +313,8 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
     lastMsg = gr->parseMsg(pEfhRunCtx,soupbin_buf,gr->recovery_sequence,op);
 
     if (lastMsg) {
-      EKA_LOG("%s:%u After lastMsg (\'M\') message: seq_after_snapshot = %ju, recovery_sequence = %ju",
+      gr->seq_after_snapshot = gr->recovery_sequence + 1;
+      EKA_LOG("%s:%u After lastMsg message: seq_after_snapshot = %ju, recovery_sequence = %ju",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,soupbin_buf,gr->seq_after_snapshot,gr->recovery_sequence);
       return EkaFhParseResult::End;
     }
@@ -325,7 +326,7 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
       return EkaFhParseResult::End;
     }
     /* ------------ */
-  }
+  } // switch (hdr.type)
   return EkaFhParseResult::NotEnd;
 }
 /* ##################################################################### */
@@ -419,14 +420,17 @@ void* getSoupBinData(void* attr) {
   return NULL;
 #endif
 
-  EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
-  EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
-  EkaFhNasdaqGr*   gr       = (EkaFhNasdaqGr*)((EkaFhThreadAttr*)attr)->gr;
-  uint64_t   start_sequence = ((EkaFhThreadAttr*)attr)->startSeq;
-  uint64_t   end_sequence   = ((EkaFhThreadAttr*)attr)->endSeq;
-  EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
+  auto params {reinterpret_cast<EkaFhThreadAttr*>(attr)};
+  auto gr     {reinterpret_cast<EkaFhNasdaqGr*>(params->gr)};
+  if (gr == NULL) on_error("gr == NULL");
 
-  ((EkaFhThreadAttr*)attr)->~EkaFhThreadAttr();
+  EfhCtx*    pEfhCtx        = params->pEfhCtx;
+  EfhRunCtx* pEfhRunCtx     = params->pEfhRunCtx;
+  uint64_t   start_sequence = params->startSeq;
+  uint64_t   end_sequence   = params->endSeq;
+  EkaFhMode  op             = params->op;
+
+  delete params;
 
   if (op != EkaFhMode::DEFINITIONS) pthread_detach(pthread_self());
 
@@ -462,7 +466,7 @@ void* getSoupBinData(void* attr) {
 			   end_sequence,
 			   MaxTrials);
     if (success) break;
-    gr->sendRetransmitExchangeError(pEfhRunCtx);    
+    gr->sendRetransmitSocketError(pEfhRunCtx);    
   }
   //-----------------------------------------------------------------
   int rc = dev->credRelease(lease, dev->credContext);
@@ -490,113 +494,17 @@ void* getSoupBinData(void* attr) {
 }
 
 
-/*   while (1) { */
-/*     gr->snapshot_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port); */
-/*     if (gr->snapshot_sock == -1) { */
-/*       EKA_WARN("%s:%u gr->snapshot_sock = -1",EKA_EXCH_DECODE(gr->exch),gr->id); */
-/*       gr->sendRetransmitSocketError(pEfhRunCtx); */
-/*       continue; */
-/*     } */
-/*     EKA_LOG("%s:%u TCP connected to Glimpse, gr->snapshot_sock = %d", */
-/* 	    EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock); */
-
-/*     //----------------------------------------------------------------- */
-/*     if (! sendLogin(gr, start_sequence)) { */
-/*       gr->sendRetransmitSocketError(pEfhRunCtx); */
-/*       close(gr->snapshot_sock); */
-/*       continue; */
-/*     } */
-/*     //----------------------------------------------------------------- */
-/*     if (! getLoginResponse(gr) ) { */
-/*       sendLogout(gr); */
-/*       close (gr->snapshot_sock); */
-/*       gr->sendRetransmitSocketError(pEfhRunCtx); */
-/*       continue; */
-/*     } */
-/*     break; */
-/*   } */
-/*   //----------------------------------------------------------------- */
-/*   gr->heartbeat_active = true; */
-/*   gr->hearbeat_ctr = 0; */
-/*   gr->snapshot_active = true; */
-/*   pthread_t heartbeat_thread; */
-/*   dev->createThread((std::string("HB_") + std::string(EKA_EXCH_DECODE(gr->exch)) + '_' + std::to_string(gr->id)).c_str(), */
-/* 		    EkaServiceType::kHeartbeat, */
-/* 		    soupbin_heartbeat_thread, */
-/* 		    (void*)gr, */
-/* 		    dev->createThreadContext, */
-/* 		    (uintptr_t*)&heartbeat_thread); */
-
-/*   //----------------------------------------------------------------- */
-
-/*   while (gr->snapshot_active) { // Accepted Login */
-/*     soupbin_header soupbin_hdr ={}; */
-/*     if (recv(gr->snapshot_sock,&soupbin_hdr,sizeof(soupbin_header),MSG_WAITALL) <= 0)  */
-/*       on_error("%s:%u: Glimpse Server connection reset by peer (failed to receive SoupbinHdr), gr->snapshot_sock=%d", */
-/* 	       EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock); */
-/*     char soupbin_buf[1000] = {}; */
-/*     int rc_size = recv(gr->snapshot_sock,soupbin_buf,be16toh(soupbin_hdr.length) - sizeof(soupbin_hdr.type),MSG_WAITALL); */
-/*     if (rc_size - sizeof(soupbin_hdr.type) <= 0) 	 */
-/*       on_error("%s:%u failed to receive SoupbinBuf: received %u, expected %ju, gr->snapshot_sock=%d", */
-/* 	       EKA_EXCH_DECODE(gr->exch),gr->id,rc_size,sizeof(soupbin_hdr.type), gr->snapshot_sock); */
-
-/*     if (soupbin_hdr.type == 'H') { */
-/*       if (gr->feed_ver == EfhFeedVer::kPHLX && (op == EkaFhMode::DEFINITIONS  || end_sequence == 1) && ++gr->hearbeat_ctr == 5) {  */
-/* 	gr->snapshotThreadDone = true; */
-/* 	break; // */
-/*       } */
-/*       continue; // Heartbeat */
-/*     } */
-/*     if (soupbin_hdr.type == 'Z')  */
-/*       on_error ("%s:%u Glimpse closed the session with Z (End of Session Packet)", */
-/* 		EKA_EXCH_DECODE(gr->exch),gr->id); */
-      
-/*     if (soupbin_hdr.type == '+')  */
-/*       EKA_TRACE("%s:%u Glimpse debug message: %s",EKA_EXCH_DECODE(gr->exch),gr->id,soupbin_buf); */
-/*     unsigned char* m = (unsigned char*)&(soupbin_buf[0]); */
-/*   //----------------------------------------------------------------- */
-/*     if (gr->parseMsg(pEfhRunCtx,m,gr->recovery_sequence,op)) { */
-/*       EKA_TRACE("%s:%u After \'M\' message: gr->seq_after_snapshot = %ju, gr->recovery_sequence = %ju", */
-/* 		EKA_EXCH_DECODE(gr->exch),gr->id,soupbin_buf,gr->seq_after_snapshot, gr->recovery_sequence); */
-/*       break; */
-/*     } */
-/*   //----------------------------------------------------------------- */
-/*     if (soupbin_hdr.type == 'S') gr->recovery_sequence++; */
-/*     if (gr->recovery_sequence == end_sequence) { */
-/*       EKA_LOG("%s:%u Snapshot Gap is closed: recovery_sequence == end_sequence %ju", */
-/* 	      EKA_EXCH_DECODE(gr->exch),gr->id,end_sequence); */
-/*       break; */
-/*     } */
-/*   } */
-/*   gr->gapClosed = true; */
-/*   gr->heartbeat_active = false; */
-/*   //----------------------------------------------------------------- */
-/*   sendLogout(gr); */
-/*   //----------------------------------------------------------------- */
-/*   //  heartbeat_thread.join(); */
-/*   close(gr->snapshot_sock); */
-/*   gr->snapshot_sock = -1; */
-/*   EKA_TRACE("%s:%u End Of %s, gr->recovery_sequence = %ju",EKA_EXCH_DECODE(gr->exch),gr->id, */
-/* 	    op==EkaFhMode::SNAPSHOT ? "GAP_RECOVERY" : "DEFINITIONS",gr->recovery_sequence); */
-
-/*   rc = dev->credRelease(lease, dev->credContext); */
-/*   if (rc != 0) on_error("%s:%u Failed to credRelease for %s",EKA_EXCH_DECODE(gr->exch),gr->id,credName); */
-/*   EKA_LOG("%s:%u Soupbin Credentials Released",EKA_EXCH_DECODE(gr->exch),gr->id); */
-
-/*   return NULL; */
-/* } */
-
 void* getMolUdp64Data(void* attr) {
   pthread_detach(pthread_self());
 
-  //  EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
-  EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
-  EkaFhNasdaqGr*   gr       = (EkaFhNasdaqGr*)((EkaFhThreadAttr*)attr)->gr;
-  uint64_t   start          = ((EkaFhThreadAttr*)attr)->startSeq;
-  uint64_t   end            = ((EkaFhThreadAttr*)attr)->endSeq;
-  //  EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
-  ((EkaFhThreadAttr*)attr)->~EkaFhThreadAttr();
+  auto params {reinterpret_cast<EkaFhThreadAttr*>(attr)};
+  auto gr     {reinterpret_cast<EkaFhNasdaqGr*>(params->gr)};
+  if (gr == NULL) on_error("gr == NULL");
 
+  EfhRunCtx*   pEfhRunCtx = params->pEfhRunCtx;
+  uint64_t     start      = params->startSeq;
+  uint64_t     end        = params->endSeq;
+  delete params;
 
   EkaDev* dev = gr->dev;
   assert (dev != NULL);
@@ -609,13 +517,13 @@ void* getMolUdp64Data(void* attr) {
   int const_one = 1;
   if (setsockopt(udpSock, SOL_SOCKET, SO_REUSEADDR, &const_one, sizeof(int)) < 0) {
     dev->lastErrno = errno;
-    gr->sendRetransmitExchangeError(pEfhRunCtx);
+    gr->sendRetransmitSocketError(pEfhRunCtx);
     on_error("setsockopt(SO_REUSEADDR) failed");
   }
 
   if (setsockopt(udpSock, SOL_SOCKET, SO_REUSEPORT, &const_one, sizeof(int)) < 0) {
     dev->lastErrno = errno;
-    gr->sendRetransmitExchangeError(pEfhRunCtx);
+    gr->sendRetransmitSocketError(pEfhRunCtx);
     on_error("setsockopt(SO_REUSEPORT) failed");
   }
 
@@ -626,7 +534,7 @@ void* getMolUdp64Data(void* attr) {
 
   if (bind(udpSock,(sockaddr*) &local2bind, sizeof(sockaddr)) < 0) {
     dev->lastErrno = errno;
-    gr->sendRetransmitExchangeError(pEfhRunCtx);
+    gr->sendRetransmitSocketError(pEfhRunCtx);
     on_error("bind UDP socket failed");
   }
   EKA_LOG("%s:%u: Udp recovery socket is binded to: %s:%u",
@@ -780,22 +688,28 @@ void* getMolUdp64Data(void* attr) {
 }
 
 void* getMolUdpPlxOrdData(void* attr) {
+#ifdef FH_LAB
+  pthread_detach(pthread_self());
+  return NULL;
+#endif
 
   pthread_detach(pthread_self());
 
-  //  EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
-  EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
-  EkaFhNasdaqGr*   gr       = (EkaFhNasdaqGr*)((EkaFhThreadAttr*)attr)->gr;
-  uint64_t   start          = ((EkaFhThreadAttr*)attr)->startSeq;
-  uint64_t   end            = ((EkaFhThreadAttr*)attr)->endSeq;
-  //  EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
-  ((EkaFhThreadAttr*)attr)->~EkaFhThreadAttr();
+  auto params {reinterpret_cast<EkaFhThreadAttr*>(attr)};
+  auto gr     {reinterpret_cast<EkaFhNasdaqGr*>(params->gr)};
+  if (gr == NULL) on_error("gr == NULL");
 
+  EfhRunCtx*   pEfhRunCtx = params->pEfhRunCtx;
+  uint64_t     start      = params->startSeq;
+  uint64_t     end        = params->endSeq;
+  delete params;
 
   EkaDev* dev = gr->dev;
   assert (dev != NULL);
-  if (gr->recovery_sock != -1) on_error("%s:%u gr->recovery_sock != -1",EKA_EXCH_DECODE(gr->exch),gr->id);
-  if ((gr->recovery_sock = socket(AF_INET,SOCK_DGRAM,0)) == -1) on_error("Failed to open socket for %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id);
+  if (gr->recovery_sock != -1) on_error("%s:%u gr->recovery_sock != -1",
+					EKA_EXCH_DECODE(gr->exch),gr->id);
+  if ((gr->recovery_sock = socket(AF_INET,SOCK_DGRAM,0)) == -1) 
+    on_error("Failed to open socket for %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id);
 
   PhlxMoldHdr mold_request = {};
   memcpy(&mold_request.session_id,(uint8_t*)gr->session_id,10);
@@ -813,7 +727,8 @@ void* getMolUdpPlxOrdData(void* attr) {
     char buf[1500] = {};
 
     mold_request.sequence = seq2ask;
-    uint16_t cnt2ask4mold = cnt2ask > 200 ? 200 : cnt2ask & 0xFFFF; // 200 is just a number: a Mold pkt always contains less than 200 messages
+    // 200 is just a number: a Mold pkt always contains less than 200 messages
+    uint16_t cnt2ask4mold = cnt2ask > 200 ? 200 : cnt2ask & 0xFFFF; 
     mold_request.message_cnt = cnt2ask4mold;
     EKA_TRACE("%s:%u: Sending Mold request to: %s:%u, session_id = %s, seq=%ju, cnt=%u",
     	      EKA_EXCH_DECODE(gr->exch),gr->id,

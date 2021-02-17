@@ -26,7 +26,7 @@ int EkaFhPhlxTopoGr::closeIncrementalGap(EfhCtx*          pEfhCtx,
     std::to_string(id);
 
   EkaFhThreadAttr* attr  = new EkaFhThreadAttr(pEfhCtx, 
-					       (const EfhRunCtx*)pEfhRunCtx, 
+					       pEfhRunCtx, 
 					       this, 
 					       startSeq, 
 					       endSeq,  
