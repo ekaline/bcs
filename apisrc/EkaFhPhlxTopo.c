@@ -42,13 +42,18 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
 
       gr->sendFeedDownInitial(pEfhRunCtx);
 
-      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,1, 1);
+      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,1, 0);
 
       while (! gr->snapshotThreadDone) {} // instead of thread.join()
       gr->expected_sequence = gr->recovery_sequence + 1;
       EKA_LOG("%s:%u: PreTrade Soupbin Snapshot is done, expected_sequence = %ju",
 	      EKA_EXCH_DECODE(exch),gr->id,gr->expected_sequence);
-
+      gr->seq_after_snapshot = gr->recovery_sequence + 1;
+      
+      EKA_DEBUG("%s:%u Generating TOB quote for every Security",
+		EKA_EXCH_DECODE(gr->exch),gr->id);
+      gr->book->sendTobImage(pEfhRunCtx);
+      
       gr->state = EkaFhGroup::GrpState::NORMAL;
       gr->sendFeedUpInitial(pEfhRunCtx);
     }
