@@ -100,7 +100,7 @@ class EkaFhCmeGr : public EkaFhGroup {
   int       processedDefinitionMessages = 0;
   bool      snapshotClosed = false;
   uint64_t  firstLifeSeq = 0;
-  uint64_t  processedSnapshotMessages = 0;
+  int       processedSnapshotMessages = 0;
 
   volatile bool inGap  = false;
 };

@@ -134,6 +134,7 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       } else {
 	//-----------------------------------------------------------------------------
 	if (gr->processPkt(pEfhRunCtx,pkt,pktSize,EkaFhMode::MCAST)) break;
+	gr->expected_sequence = sequence + 1;
 	//-----------------------------------------------------------------------------
       }
     }

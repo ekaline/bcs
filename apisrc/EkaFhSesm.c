@@ -405,18 +405,20 @@ void* getSesmData(void* attr) {
   return NULL;
 #endif
 
-  EfhCtx*        pEfhCtx     = ((EkaFhThreadAttr*)attr)->pEfhCtx;
-  EfhRunCtx*     pEfhRunCtx  = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
-  EkaFhMiaxGr*   gr          = (EkaFhMiaxGr*) ((EkaFhThreadAttr*)attr)->gr;
-  uint64_t       start       = ((EkaFhThreadAttr*)attr)->startSeq;
-  uint64_t       end         = ((EkaFhThreadAttr*)attr)->endSeq;
-  EkaFhMode      op          = ((EkaFhThreadAttr*)attr)->op;
+  auto params {reinterpret_cast<EkaFhThreadAttr*>(attr)};
+  auto gr     {reinterpret_cast<EkaFhMiaxGr*>(params->gr)};
+  if (gr == NULL) on_error("gr == NULL");
 
-  ((EkaFhThreadAttr*)attr)->~EkaFhThreadAttr();
+  EfhCtx*    pEfhCtx        = params->pEfhCtx;
+  EfhRunCtx* pEfhRunCtx     = params->pEfhRunCtx;
+  uint64_t   start          = params->startSeq;
+  uint64_t   end            = params->endSeq;
+  EkaFhMode  op             = params->op;
+  delete params;
 
   if (op != EkaFhMode::DEFINITIONS) pthread_detach(pthread_self());
 
-  EkaDev* dev = pEfhCtx->dev;
+  EkaDev*    dev = gr->dev;
   if (dev == NULL) on_error("dev == NULL");
   if (dev->fh[pEfhCtx->fhId] == NULL) on_error("dev->fh[pEfhCtx->fhId] == NULL for pEfhCtx->fhId = %u",pEfhCtx->fhId);
   if (gr == NULL) on_error("gr == NULL");

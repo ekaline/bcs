@@ -324,21 +324,22 @@ EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, Eka
 }
 
 void* getHsvfRetransmit(void* attr) {
-
-  pthread_detach(pthread_self());
-  EkaFhBoxGr*   gr             = (EkaFhBoxGr*)((EkaFhThreadAttr*)attr)->gr;
-  EkaDev*    dev = gr->dev;
-
 #ifdef FH_LAB
-  EKA_LOG("%s:%u Dummy FH_LAB Retransmission done",EKA_EXCH_DECODE(gr->exch),gr->id);
   return NULL;
 #endif
 
-  EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
-  uint64_t   start          = ((EkaFhThreadAttr*)attr)->startSeq;
-  uint64_t   end            = ((EkaFhThreadAttr*)attr)->endSeq;
-  EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
-  ((EkaFhThreadAttr*)attr)->~EkaFhThreadAttr();
+  pthread_detach(pthread_self());
+
+  auto params {reinterpret_cast<EkaFhThreadAttr*>(attr)};
+  auto gr     {reinterpret_cast<EkaFhBoxGr*>(params->gr)};
+  if (gr == NULL) on_error("gr == NULL");
+  EkaDev*    dev = gr->dev;
+
+  EfhRunCtx* pEfhRunCtx     = params->pEfhRunCtx;
+  uint64_t   start          = params->startSeq;
+  uint64_t   end            = params->endSeq;
+  EkaFhMode  op             = params->op;
+  delete params;
 
   if (gr->recovery_sock != -1) on_error("%s:%u gr->recovery_sock != -1",EKA_EXCH_DECODE(gr->exch),gr->id);
   //  EkaOpResult ret = EKA_OPRESULT__OK;

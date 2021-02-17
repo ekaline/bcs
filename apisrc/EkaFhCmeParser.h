@@ -147,12 +147,12 @@ enum class AggressorSide : uInt8NULL_T {
   NoAggressor = 0,
     Buy       = 1,
     Sell      = 2
-};
+    };
 
 enum class AggressorSide_T : uInt8 {
   Activation = 5,
     LastEligibleTradeDate       = 7,
-};
+    };
 
 enum class HaltReason_T : uInt8 {
   GroupSchedule = 0,
@@ -557,6 +557,26 @@ struct PktHdr {
     x == MDEntryTypeBook_T::BookReset    ? "BookReset"    :  \
     "UNEXPECTED_ENTRY_TYPE_BOOK"
 
+#define MDEntryType2STR(x)						\
+  x == MDEntryType_T::Bid                                     ? "Bid" :	\
+    x == MDEntryType_T::Offer                                 ? "Offer" : \
+    x == MDEntryType_T::Trade                                 ? "Trade" : \
+    x == MDEntryType_T::OpenPrice                             ? "OpenPrice" : \
+    x == MDEntryType_T::SettlementPrice                       ? "SettlementPrice" : \
+    x == MDEntryType_T::TradingSessionHighPrice               ? "TradingSessionHighPrice" : \
+    x == MDEntryType_T::TradingSessionLowPrice                ? "TradingSessionLowPrice" : \
+    x == MDEntryType_T::ClearedVolume                         ? "ClearedVolume" : \
+    x == MDEntryType_T::OpenInterest                          ? "OpenInterest" : \
+    x == MDEntryType_T::ImpliedBid                            ? "ImpliedBid" : \
+    x == MDEntryType_T::ImpliedOffer                          ? "ImpliedOffer" : \
+    x == MDEntryType_T::BookReset                             ? "BookReset" : \
+    x == MDEntryType_T::SessionHighBid                        ? "SessionHighBid" : \
+    x == MDEntryType_T::SessionLowOffer                       ? "SessionLowOffer" : \
+    x == MDEntryType_T::FixingPrice                           ? "FixingPrice" :	\
+    x == MDEntryType_T::ElectronicVolume                      ? "ElectronicVolume" : \
+    x == MDEntryType_T::ThresholdLimitsandPriceBandVariation  ? "ThresholdLimitsandPriceBandVariation" : \
+    "UNEXPECTED_ENTRY_TYPE"
+
 #define EKA_CME_ENTRY_TYPE(x) \
     x == '0'   ? "Offer" : \
     x == '1'   ? "Ask  " : \
@@ -577,7 +597,7 @@ struct PktHdr {
     x == 'g'   ? "ThresholdLimitsandPriceBandVariation" : \
     "UNEXPECTED_ENTRY_TYPE"
 
-struct IncementaRefreshMdEntry {
+struct IncrementaRefreshMdEntry {
   PRICENULL_T                   	MDEntryPx;
   Int32NULL_T                   	MDEntrySize;
   Int32_T                       	SecurityID;

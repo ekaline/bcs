@@ -635,8 +635,10 @@ void* getSpinData(void* attr) {
 #endif
 
   auto params {reinterpret_cast<EkaFhThreadAttr*>(attr)};
+  auto gr     {reinterpret_cast<EkaFhBatsGr*>(params->gr)};
+  if (gr == NULL) on_error("gr == NULL");
+
   EfhRunCtx*   pEfhRunCtx = params->pEfhRunCtx;
-  EkaFhBatsGr* gr         = (EkaFhBatsGr*)params->gr;
   EkaFhMode    op         = params->op;
   delete params;
 
@@ -842,8 +844,10 @@ void* getGrpRetransmitData(void* attr) {
 #endif
 
   auto params {reinterpret_cast<EkaFhThreadAttr*>(attr)};
+  auto gr     {reinterpret_cast<EkaFhBatsGr*>(params->gr)};
+  if (gr == NULL) on_error("gr == NULL");
+
   EfhRunCtx*   pEfhRunCtx = params->pEfhRunCtx;
-  EkaFhBatsGr* gr         = (EkaFhBatsGr*)params->gr;
   uint64_t     start      = params->startSeq;
   uint64_t     end        = params->endSeq;
   delete params;

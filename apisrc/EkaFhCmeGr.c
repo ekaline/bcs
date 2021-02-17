@@ -115,17 +115,14 @@ void* getCmeSnapshot(void* attr) {
   auto params {reinterpret_cast<const EkaFhThreadAttr*>(attr)};
   if (params == NULL) on_error("params == NULL");
 
-  EfhCtx*    pEfhCtx        = params->pEfhCtx;
   EfhRunCtx* pEfhRunCtx     = params->pEfhRunCtx;
-  EkaFhCmeGr*   gr          = (EkaFhCmeGr*)params->gr;
-  /* uint64_t   start_sequence = params->startSeq; */
-  /* uint64_t   end_sequence   = params->endSeq; */
-  /* EkaFhMode  op             = params->op; */
+  auto gr {reinterpret_cast<EkaFhCmeGr*>(params->gr)};
+  if (gr == NULL) on_error("gr == NULL");
 
   delete params;
 
   pthread_detach(pthread_self());
-  if (gr == NULL) on_error ("gr == NULL");
+
   EkaDev* dev = gr->dev;
   if (dev == NULL) on_error ("dev == NULL");
 
@@ -147,7 +144,8 @@ void* getCmeSnapshot(void* attr) {
     
   }
   gr->snapshot_active = false;
-  gr->inGap = false;
+  gr->snapshotClosed  = true;
+  gr->inGap           = false;
 
   EKA_LOG("%s:%u: %d Snapshot messages processed",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,gr->processedSnapshotMessages);

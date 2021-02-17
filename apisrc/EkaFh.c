@@ -509,8 +509,10 @@ EkaOpResult EkaFh::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
 	       i,pEfhRunCtx->groups[i].localId,runGr->list2print);
     if (pEfhRunCtx->groups[i].source != exch) 
       on_error("pEfhRunCtx->groups[i].source != exch");
+
     EkaFhGroup* gr = b_gr[pEfhRunCtx->groups[i].localId];
     if (gr == NULL) on_error ("b_gr[%u] == NULL",pEfhRunCtx->groups[i].localId);
+
     gr->createQ(pEfhCtx,qsize);
     gr->expected_sequence = 1;
 
