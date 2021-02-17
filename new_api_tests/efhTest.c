@@ -33,9 +33,10 @@
 #include "EfhPhlxOrdProps.h"
 #include "EfhPhlxTopoProps.h"
 #include "EfhXdpProps.h"
+#include "EfhCmeProps.h"
 
-#define MAX_SECURITIES 64000
-#define MAX_UNDERLYINGS 8
+#define MAX_SECURITIES 600000
+#define MAX_UNDERLYINGS 4000
 #define MAX_GROUPS 36
 #define MAX_TEST_THREADS 16
 #define SYMBOL_SIZE 32
@@ -43,6 +44,8 @@
 static volatile bool keep_work = true;
 static EfhCtx* pEfhCtx = NULL;
 
+static int fatalErrorCnt = 0;
+static const int MaxFatalErrors = 4;
 /* static FILE* md[MAX_GROUPS] = {}; */
 /* static FILE* full_dict[MAX_GROUPS] = {}; */
 /* static FILE* subscr_dict[MAX_GROUPS] = {}; */
@@ -51,7 +54,8 @@ static FILE* fullDict;
 static FILE* subscrDict;
 static FILE* MD;
 
-static bool print_tob_updates = true;
+static bool print_tob_updates = false;
+static bool subscribe_all     = false;
 
 static char underlying2subscr[MAX_UNDERLYINGS][SYMBOL_SIZE] = {};
 uint valid_underlying2subscr = 0;
@@ -63,7 +67,7 @@ struct TestFhCtx {
   uint subscr_cnt;
 };
   
-static TestFhCtx testFhCtx[MAX_GROUPS] = {};
+static TestFhCtx* testFhCtx[MAX_GROUPS] = {};
 
 void  INThandler(int sig) {
   signal(sig, SIG_IGN);
@@ -88,6 +92,15 @@ static inline std::string ts_ns2str(uint64_t ts) {
   uint h = res % 24;
   sprintf (dst,"%02d:%02d:%02d.%03d.%03d.%03d",h,m,s,ms,us,ns);
   return std::string(dst);
+}
+
+static std::string eka_get_date () {
+  const char* months[] = {"JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"};
+  time_t t = time(NULL);
+  struct tm tm = *localtime(&t);
+  char t_str[100] = {};
+  sprintf(t_str,"%d-%s-%02d",1900+tm.tm_year,months[tm.tm_mon],tm.tm_mday);
+  return std::string(t_str);
 }
 
 static std::string eka_get_time () {
@@ -137,26 +150,34 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
     case EfhGroupStateErrorDomain::kExchangeError :
       printf ("=========================\n%s: ExchangeError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
+      if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
       break;
 
     case EfhGroupStateErrorDomain::kSocketError :
       printf ("=========================\n%s: SocketError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
+      if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
       break;
 
     case EfhGroupStateErrorDomain::kCredentialError :
       printf ("=========================\n%s: CredentialError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
+      if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
+
       break;
 
     case EfhGroupStateErrorDomain::kOSError :
       printf ("=========================\n%s: OSError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
+      if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
+
       break;
 
     case EfhGroupStateErrorDomain::kDeviceError :
       printf ("=========================\n%s: DeviceError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
+      if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
+
       break;
 
     default:
@@ -185,8 +206,8 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
       gapType = std::string("Unknown Gap");
     }
     fprintf(MD,"%s: %s : %s FeedDown\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str(),gapType.c_str());
-    printf ("=========================\n%s: %s %ju\n=========================\n",
-	    EKA_PRINT_GRP(&msg->group),gapType.c_str(),msg->code);
+    printf ("=========================\n%s: %s: %s %ju\n=========================\n",
+	    EKA_PRINT_GRP(&msg->group),eka_get_time().c_str(),gapType.c_str(),msg->code);
   }
     break;
     /* ----------------------------- */
@@ -203,8 +224,8 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
       gapType = std::string("Unknown Gap");
     }
     fprintf(MD,"%s: %s : %s \n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str(),gapType.c_str());
-    printf ("=========================\n%s: %s %ju\n=========================\n",
-	    EKA_PRINT_GRP(&msg->group),gapType.c_str(),msg->code);
+    printf ("=========================\n%s: %s: %s %ju\n=========================\n",
+	    EKA_PRINT_GRP(&msg->group),eka_get_time().c_str(),gapType.c_str(),msg->code);
   }
     break;
     /* ----------------------------- */
@@ -240,14 +261,14 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
   //  fprintf(md[file_idx],"%s,%s,%s,%s,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%s\n",
   fprintf(MD,"%s,%s,%s,%s,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%d,%d,%s\n",
 	  EKA_CTS_SOURCE(msg->header.group.source),
-	  "today",
+	  eka_get_date().c_str(),
 	  eka_get_time().c_str(),
 #ifdef EKA_TEST_IGNORE_DEFINITIONS
 	  "DEFAULT_SEC_ID",
 	  "DEFAULT_UNDERLYING_ID",
 #else
-	  testFhCtx[file_idx].mysecurity[(uint)secData],
-	  testFhCtx[file_idx].classSymbol[(uint)secData],
+	  testFhCtx[file_idx]->mysecurity[(uint)secData],
+	  testFhCtx[file_idx]->classSymbol[(uint)secData],
 #endif
 	  '1',
 	  msg->bidSide.size,
@@ -282,11 +303,11 @@ static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
 /* ------------------------------------------------------------ */
 uint testSubscribeSec(int file_idx,const EfhDefinitionMsg* msg, EfhRunUserData userData, char* avtSecName, char* underlyingName, char* classSymbol) {
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
-  uint sec_idx = testFhCtx[file_idx].subscr_cnt;
+  uint sec_idx = testFhCtx[file_idx]->subscr_cnt;
 
-  memcpy(testFhCtx[file_idx].mysecurity[sec_idx]  ,avtSecName,     SYMBOL_SIZE);
-  memcpy(testFhCtx[file_idx].myunderlying[sec_idx],underlyingName, SYMBOL_SIZE);
-  memcpy(testFhCtx[file_idx].classSymbol[sec_idx] ,classSymbol,    SYMBOL_SIZE);
+  memcpy(testFhCtx[file_idx]->mysecurity[sec_idx]  ,avtSecName,     SYMBOL_SIZE);
+  memcpy(testFhCtx[file_idx]->myunderlying[sec_idx],underlyingName, SYMBOL_SIZE);
+  memcpy(testFhCtx[file_idx]->classSymbol[sec_idx] ,classSymbol,    SYMBOL_SIZE);
 
   fprintf (subscrDict,"%s,%ju,%s,%s\n",
 	   avtSecName,
@@ -296,8 +317,8 @@ uint testSubscribeSec(int file_idx,const EfhDefinitionMsg* msg, EfhRunUserData u
 	   );
 
   efhSubscribeStatic(pEfhCtx, (EkaGroup*) &msg->header.group,  msg->header.securityId, EfhSecurityType::kOpt,(EfhSecUserData) sec_idx,0,0);
-  testFhCtx[file_idx].subscr_cnt++;
-  return testFhCtx[file_idx].subscr_cnt;
+  testFhCtx[file_idx]->subscr_cnt++;
+  return testFhCtx[file_idx]->subscr_cnt;
 }
 /* ------------------------------------------------------------ */
 
@@ -315,8 +336,8 @@ void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUs
 
   int file_idx = (uint8_t)(msg->header.group.localId);
 
-  if (testFhCtx[file_idx].subscr_cnt >= MAX_SECURITIES) 
-    on_error("Trying to subscibe on %u securities > %u MAX_SECURITIES",testFhCtx[file_idx].subscr_cnt,MAX_SECURITIES);
+  if (testFhCtx[file_idx]->subscr_cnt >= MAX_SECURITIES) 
+    on_error("Trying to subscibe on %u securities > %u MAX_SECURITIES",testFhCtx[file_idx]->subscr_cnt,MAX_SECURITIES);
 
   char classSymbol[SYMBOL_SIZE] = {};
   char underlyingName[SYMBOL_SIZE] = {};
@@ -327,14 +348,17 @@ void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUs
     if (underlyingName[i] == ' ') underlyingName[i] = '\0';
     if (classSymbol[i]    == ' ') classSymbol[i]    = '\0';
   }
+
+  if (subscribe_all) goto subscr;
   
   for (uint i = 0; i < valid_underlying2subscr; i ++) {
     if (strncmp(underlyingName,underlying2subscr[i],strlen(underlying2subscr[i])) == 0) {
-      testSubscribeSec(file_idx,msg,userData,avtSecName,underlyingName,classSymbol);
-      return NULL;
+      goto subscr;
     }
   }
 
+ subscr:
+  testSubscribeSec(file_idx,msg,userData,avtSecName,underlyingName,classSymbol);
   return NULL;
 }
 /* ------------------------------------------------------------ */
@@ -366,10 +390,12 @@ void print_usage(char* cmd) {
   printf("\t\t\tXA - AMEX      A feed\n"); 
   printf("\t\t\tXB - AMEX      B feed\n"); 
   printf("\t\t\tBA - BOX       A feed\n"); 
-  printf("\t\t\tBB - BOX       B feed\n"); 
+  printf("\t\t\tEA - CME       A feed\n"); 
+  printf("\t\t\tEB - CME       B feed\n"); 
   printf("\t-u <Underlying Name> - subscribe on all options belonging to\n");
   printf("\t-s run single MC group #0\n");
   printf("\t-t Print TOB updates (EFH)\n");
+  printf("\t-a subscribe all\n");
 
   /* printf("\t-f [File Name]\t\tFile with a list of Underlyings to subscribe to all their Securities on all Feeds(1 name per line)\n"); */
   /* printf("\t-m \t\t\tMeasure Latency (Exch ts --> Sample ts\n"); */
@@ -385,7 +411,7 @@ int main(int argc, char *argv[]) {
   int opt; 
   std::string feedName = std::string("NO FEED");
 
-  while((opt = getopt(argc, argv, ":u:F:hts")) != -1) {  
+  while((opt = getopt(argc, argv, ":u:F:htsa")) != -1) {  
     switch(opt) {  
       case 's':  
 	printf("Running for single Grp#0\n");  
@@ -394,6 +420,10 @@ int main(int argc, char *argv[]) {
       case 't':  
 	printf("Print TOB Updates (EFH)\n");  
 	print_tob_updates = true;
+	break;  
+      case 'a':  
+	printf("subscribe all\n");
+	subscribe_all = true;
 	break;  
       case 'u':  
 	strcpy(underlying2subscr[valid_underlying2subscr],optarg);
@@ -416,6 +446,12 @@ int main(int argc, char *argv[]) {
       break;  
       }  
   }  
+
+  for (auto i = 0; i < MAX_GROUPS; i++) {
+    testFhCtx[i] = new TestFhCtx;
+    testFhCtx[i]->subscr_cnt = 0;
+  }
+
 
   EkaDev* pEkaDev = NULL;
 
@@ -553,6 +589,17 @@ int main(int argc, char *argv[]) {
     runCtx.numGroups  = std::size(phlxOrdGroups);
     runCtx.groups     = phlxOrdGroups;
 /* ------------------------------------------------------- */
+  } else if (feedName == std::string("EA")) {
+    ekaProps.numProps = std::size(efhCmeInitCtxEntries_A);
+    ekaProps.props    = efhCmeInitCtxEntries_A;
+    runCtx.numGroups  = std::size(cmeGroups);
+    runCtx.groups     = cmeGroups;
+  } else if (feedName == std::string("EB")) {
+    ekaProps.numProps = std::size(efhCmeInitCtxEntries_B);
+    ekaProps.props    = efhCmeInitCtxEntries_B;
+    runCtx.numGroups  = std::size(cmeGroups);
+    runCtx.groups     = cmeGroups;
+/* ------------------------------------------------------- */
   } else {
     on_error("Unsupported feed name \"%s\". Supported: CA, CB, CC, CD",feedName.c_str());
   }
@@ -603,7 +650,7 @@ int main(int argc, char *argv[]) {
 #ifdef EKA_TEST_IGNORE_DEFINITIONS
     printf ("Skipping Definitions for EKA_TEST_IGNORE_DEFINITIONS\n");
 #else
-    testFhCtx[i].subscr_cnt = 0;
+    testFhCtx[i]->subscr_cnt = 0;
     efhGetDefs(pEfhCtx, &runCtx, (EkaGroup*)&runCtx.groups[i], NULL);
 #endif
   }

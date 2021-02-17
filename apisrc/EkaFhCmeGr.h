@@ -2,21 +2,25 @@
 #define _EKA_FH_CME_GR_H_
 
 #include "EkaFhGroup.h"
-#include "EkaFhTobBook.h"
+#include "EkaFhCmeBook.h"
+#include "EkaFhCmeSecurity.h"
 
-class EkaHsvfTcp;
+#include "EkaFhPktQ.h"
+#include "EkaFhPktQElem.h"
 
 class EkaFhCmeGr : public EkaFhGroup {
  public:
   virtual               ~EkaFhCmeGr() {};
 
   bool                  parseMsg(const EfhRunCtx* pEfhRunCtx,
-				 const unsigned char* m,
-				 uint64_t sequence,
-				 EkaFhMode op);
+  				 const unsigned char* m,
+  				 uint64_t sequence,
+  				 EkaFhMode op) {
+    return true;
+  }
 
   int                   bookInit(EfhCtx* pEfhCtx,
-				 const EfhInitCtx* pEfhInitCtx);
+  				 const EfhInitCtx* pEfhInitCtx);
 
   int                  subscribeStaticSecurity(uint64_t        securityId, 
 					       EfhSecurityType efhSecurityType,
@@ -31,45 +35,73 @@ class EkaFhCmeGr : public EkaFhGroup {
 			    opaqueAttrB);
     return 0;
   }
+  int                   createPktQ();
 
-  bool                  processUdpPkt(const EfhRunCtx* pEfhRunCtx,
+  bool                  processPkt(const EfhRunCtx* pEfhRunCtx,
 				      const uint8_t*   pkt, 
-				      int16_t          pktLen);
+				      int16_t          pktLen,
+				      EkaFhMode        op);
   
 
-  void                  pushUdpPkt2Q(const uint8_t* pkt, 
-				     uint           pktLen);
-
+  void                  pushPkt2Q(const uint8_t* pkt, 
+				  uint16_t       pktSize,
+				  uint64_t       sequence);
+  
   int                   processFromQ(const EfhRunCtx* pEfhRunCtx);
 
+  int                   closeSnapshotGap(EfhCtx*           pEfhCtx, 
+					 const EfhRunCtx* pEfhRunCtx, 
+					 uint64_t          sequence);
 
-  int                  closeIncrementalGap(EfhCtx*           pEfhCtx, 
-					   const EfhRunCtx*  pEfhRunCtx, 
-					   uint64_t          startSeq,
-					   uint64_t          endSeq);
+  /* bool                  processUdpDefinitionsPkt(const EfhRunCtx* pEfhRunCtx, */
+  /* 						 const uint8_t*   pkt,  */
+  /* 						 int16_t          pktLen, */
+  /* 						 EkaFhMode        op); */
+
+  /* int                   closeIncrementalGap(EfhCtx*           pEfhCtx,  */
+  /* 					   const EfhRunCtx*  pEfhRunCtx,  */
+  /* 					   uint64_t          startSeq, */
+  /* 					   uint64_t          endSeq); */
 
 
 
   /* ##################################################################### */
 
-  static const uint   SEC_HASH_SCALE = 17;
+  static const uint   SEC_HASH_SCALE = 15;
+  static const int    QELEM_SIZE     = 2048;
+  static const int    MAX_ELEMS      = 1024 * 1024;
 
-  using SecurityIdT = uint64_t;
-  using PriceT      = uint32_t;
-  using SizeT       = uint32_t;
+  using SecurityIdT = int32_t;
+  using PriceT      = int64_t;
+  using SizeT       = int32_t;
 
-  using FhSecurity  = EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>;
-  using FhBook      = EkaFhTobBook<SEC_HASH_SCALE,EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>,SecurityIdT, PriceT, SizeT>;
+  using SequenceT   = uint32_t;
+  using PriceLevetT = uint8_t;
 
-  FhBook*   book = NULL;
+  using FhSecurity  = EkaFhCmeSecurity  <
+    PriceLevetT,
+    SecurityIdT, 
+    PriceT, 
+    SizeT>;
+  using FhBook      = EkaFhCmeBook      <
+    SEC_HASH_SCALE,
+    EkaFhCmeSecurity  <PriceLevetT,SecurityIdT, PriceT, SizeT>,
+    SecurityIdT, 
+    PriceT, 
+    SizeT>;
 
-  EkaHsvfTcp* hsvfTcp  = NULL;
-  uint64_t    txSeqNum = 1;
-  char        line[2]             = {};
+  FhBook*   book       = NULL;
 
-  uint        lastPktLen    = 0;
-  uint        lastPktMsgCnt = 0;
-  uint64_t    lastProcessedSeq = 0;
+  using     PktElem    = EkaFhPktQElem<QELEM_SIZE>;
+  using     PktQ       = EkaFhPktQ<QELEM_SIZE,MAX_ELEMS,PktElem>;
+    
+  PktQ*     pktQ       = NULL;
 
+  int       processedDefinitionMessages = 0;
+  bool      snapshotClosed = false;
+  uint64_t  firstLifeSeq = 0;
+  int       processedSnapshotMessages = 0;
+
+  volatile bool inGap  = false;
 };
 #endif

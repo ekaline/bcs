@@ -208,7 +208,7 @@ bool EkaDev::openEpm() {
   if (epmReport->isOpen()) {
     epm->createRegion(EkaEpm::ServiceRegion, EkaEpm::ServiceRegion * EkaEpm::ActionsPerRegion);
 #ifndef _VERILOG_SIM
-    epm->initHeap(0,EkaEpm::MaxHeap);
+    //    epm->initHeap(0,EkaEpm::MaxHeap);
 #endif
 
     uint64_t fire_rx_tx_en = eka_read(ENABLE_PORT);

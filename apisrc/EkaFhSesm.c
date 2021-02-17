@@ -24,12 +24,116 @@
 
 #include "EkaFhThreadAttr.h"
 
-int ekaTcpConnect(uint32_t ip, uint16_t port);
-void* heartBeatThread(EkaDev* dev, EkaFhMiaxGr* gr,int sock);
+static bool sendLogin (EkaFhMiaxGr* gr);
+static bool getLoginResponse(EkaFhMiaxGr* gr);
+static bool sendRetransmitRequest(EkaFhMiaxGr* gr, uint64_t start, uint64_t end);
+static bool sendRequest(EkaFhMiaxGr* gr, char refreshType);
+static bool sendLogOut(EkaFhMiaxGr* gr);
+static EkaFhParseResult procSesm(const EfhRunCtx* pEfhRunCtx,int sock,EkaFhMiaxGr* gr,EkaFhMode op);
 
 /* ##################################################################### */
 
-static void sendLogin (EkaFhMiaxGr* gr) {
+static int sendHearBeat(int sock) {
+  sesm_header heartbeat = {
+    .length		= 1, //sizeof(struct sesm_header) - sizeof(heartbeat.length),
+    .type		= '1'
+  };
+
+  return send(sock,&heartbeat,sizeof(sesm_header), 0);
+}
+/* ##################################################################### */
+static bool sesmCycle(EkaDev* dev, 
+		      EfhRunCtx* pEfhRunCtx, 
+		      EkaFhMode op,
+		      EkaFhMiaxGr* gr, 
+		      char sesmRequest,
+		      uint64_t start,
+		      uint64_t end,
+		      const int MaxTrials) {
+  EkaFhParseResult parseResult;
+  for (auto trial = 0; trial < MaxTrials && gr->recovery_active; trial++) {
+    EKA_LOG("%s:%d %s cycle: trial: %d / %d",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op),trial,MaxTrials);
+
+    auto lastHeartBeatTime = std::chrono::high_resolution_clock::now();
+    std::chrono::high_resolution_clock::time_point now;
+
+    gr->recovery_sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (gr->recovery_sock < 0) on_error("%s:%u: failed to open TCP socket",
+					EKA_EXCH_DECODE(gr->exch),gr->id);
+
+    static const int TimeOut = 1; // seconds
+    struct timeval tv = {
+      .tv_sec = TimeOut
+    }; 
+    setsockopt(gr->recovery_sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
+    sockaddr_in remote_addr = {};
+    remote_addr.sin_addr.s_addr = gr->recovery_ip;
+    remote_addr.sin_port        = gr->recovery_port;
+    remote_addr.sin_family      = AF_INET;
+    if (connect(gr->recovery_sock,(sockaddr*)&remote_addr,sizeof(sockaddr_in)) != 0) {
+      dev->lastErrno = errno;
+      EKA_WARN("%s:%u Tcp Connect to %s:%u failed: %s",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,
+	       EKA_IP2STR(remote_addr.sin_addr.s_addr),
+	       be16toh   (remote_addr.sin_port),
+	       strerror(dev->lastErrno));
+
+      goto ITERATION_FAIL;
+    }
+
+    //-----------------------------------------------------------------
+    if (! sendLogin(gr)) goto ITERATION_FAIL;
+    //-----------------------------------------------------------------
+    if (! getLoginResponse(gr)) goto ITERATION_FAIL;
+    //-----------------------------------------------------------------
+    if (op == EkaFhMode::RECOVERY) {
+      if (! sendRetransmitRequest(gr,start,end)) 
+	goto ITERATION_FAIL;
+    } else {
+      if (! sendRequest(gr,sesmRequest)) 
+	goto ITERATION_FAIL;
+    }
+    //-----------------------------------------------------------------
+    while (gr->recovery_active) {
+      now = std::chrono::high_resolution_clock::now();
+      if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHeartBeatTime).count() > 900) {
+	sendHearBeat(gr->recovery_sock);
+	lastHeartBeatTime = now;
+	EKA_TRACE("%s:%u: Heartbeat sent",EKA_EXCH_DECODE(gr->exch),gr->id);
+      }
+      parseResult = procSesm(pEfhRunCtx,gr->recovery_sock,gr,EkaFhMode::MCAST);
+      switch (parseResult) {
+      case EkaFhParseResult::End:
+	goto SUCCESS_END;
+      case EkaFhParseResult::NotEnd:
+	break;
+      case EkaFhParseResult::SocketError:
+	goto ITERATION_FAIL;
+      default:
+	on_error("Unexpected parseResult %d",(int)parseResult);
+      }
+
+    }
+
+  ITERATION_FAIL:
+    sendLogOut(gr);
+    close(gr->recovery_sock);
+    //    gr->sendRetransmitExchangeError(pEfhRunCtx);
+    gr->sendRetransmitSocketError(pEfhRunCtx);
+  }
+  return false;
+
+ SUCCESS_END:
+  sendLogOut(gr);
+  close(gr->recovery_sock);
+  return true;
+}
+
+/* ##################################################################### */
+
+static bool sendLogin (EkaFhMiaxGr* gr) {
   EkaDev* dev = gr->dev;
 
   //--------------- SESM Login Request -------------------
@@ -50,61 +154,79 @@ static void sendLogin (EkaFhMiaxGr* gr) {
 	  std::string(gr->auth_user,sizeof(gr->auth_user)).c_str(),
 	  std::string(gr->auth_passwd,sizeof(gr->auth_passwd)).c_str()
 	  );	
-#ifndef FH_LAB
-  if(send(gr->recovery_sock,&sesm_login_msg,sizeof(struct sesm_login_req), 0) < 0) on_error("SESM Login send failed");
-#endif
+  int r = send(gr->recovery_sock,&sesm_login_msg,sizeof(struct sesm_login_req), 0);
+  if(r < 0) {
+    dev->lastErrno = errno;
+    EKA_WARN("%s:%u: SESM Login send failed: %s",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
+    return false;
+  }
+
   EKA_LOG("%s:%u Sesm Login sent",EKA_EXCH_DECODE(gr->exch),gr->id);
 
-  return;
+  return true;
 }
 /* ##################################################################### */
 
-static EkaOpResult getLoginResponse(EkaFhMiaxGr* gr) {
+static bool getLoginResponse(EkaFhMiaxGr* gr) {
   EkaDev* dev = gr->dev;
 
-  struct sesm_login_response sesm_response_msg ={};
-  if (const int r = recv(gr->recovery_sock,&sesm_response_msg,sizeof(struct sesm_login_response),MSG_WAITALL); r == -1) {
-    EKA_WARN("%s:%u failed to receive SESM login response",EKA_EXCH_DECODE(gr->exch),gr->id);
-    return EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION;
+  sesm_login_response sesm_response_msg ={};
+  const int r = recv(gr->recovery_sock,&sesm_response_msg,sizeof(sesm_login_response),MSG_WAITALL);
+  if (r < 0) {
+    dev->lastErrno = errno;
+    EKA_WARN("%s:%u: failed to receive SESM login response: %s",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
+    return false;
   } else if (r == 0) {
-    on_error("%s:%u unexpected request server socket EOF (expected login SESM response)",EKA_EXCH_DECODE(gr->exch),gr->id);
-    return EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION;
+    dev->lastErrno = errno;
+    EKA_WARN("%s:%u: unexpected request server socket EOF (expected login SESM response): %s",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
+    return false;
   }
   if (sesm_response_msg.header.type == 'G')  {
     EKA_WARN("SESM sent GoodBye Packet with reason: \'%c\'",sesm_response_msg.status);
-    return EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION;
+    return false;
   }
-
   if (sesm_response_msg.header.type != 'R')  {
     EKA_WARN("sesm_response_msg.header.type \'%c\' != \'R\' ",sesm_response_msg.header.type);
-    return EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION;
+    return false;
   }
 
   switch (sesm_response_msg.status) {
   case 'X' :
-    on_error("SESM Login Response: \'X\' -- Rejected: Invalid Username/Computer ID combination");
+    on_error("%s:%u: SESM Login Response: \'X\' -- Rejected: Invalid Username/Computer ID combination",
+	     EKA_EXCH_DECODE(gr->exch),gr->id);
   case 'S' :
-    on_error("SESM Login Response: \'S\' -- Rejected: Requested session is not available");
+    on_error("%s:%u: SESM Login Response: \'S\' -- Rejected: Requested session is not available",
+	     EKA_EXCH_DECODE(gr->exch),gr->id);
   case 'N' : 
-    on_error("SESM Login Response: \'N\' -- Rejected: Invalid start sequence number requested");
+    on_error("%s:%u: SESM Login Response: \'N\' -- Rejected: Invalid start sequence number requested",
+	     EKA_EXCH_DECODE(gr->exch),gr->id);
   case 'I' :
-    on_error("SESM Login Response: \'I\' -- Rejected: Incompatible Session protocol version");
+    on_error("%s:%u: SESM Login Response: \'I\' -- Rejected: Incompatible Session protocol version",
+	     EKA_EXCH_DECODE(gr->exch),gr->id);
   case 'A' :
-    on_error("SESM Login Response: \'A\' -- Rejected: Incompatible Application protocol version");
+    on_error("%s:%u: SESM Login Response: \'A\' -- Rejected: Incompatible Application protocol version",
+	     EKA_EXCH_DECODE(gr->exch),gr->id);
   case 'L' :
-    EKA_WARN("SESM Login Response: \'L\' -- Rejected: Request rejected because client already logged in");
-    return EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION;
+    EKA_WARN("%s:%u: SESM Login Response: \'L\' -- Rejected: Request rejected because client already logged in",
+	     EKA_EXCH_DECODE(gr->exch),gr->id);
+    return false;
   case  ' ' :
-    EKA_LOG("%s:%u SESM Login accepted. Highest sequence available=%ju",
+    EKA_LOG("%s:%u: SESM Login accepted. Highest sequence available=%ju",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,sesm_response_msg.sequence);
-    return EKA_OPRESULT__OK;
+    return true;
   default:
-    on_error("Unknown SESM Login Response: \'%c\'",sesm_response_msg.status);
+    dev->lastErrno = errno;
+    EKA_WARN("%s:%u: Unknown SESM Login Response:  \'%c\'",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,sesm_response_msg.status);
+    return false;
   }
 }
 
 /* ##################################################################### */
-static void sendRequest(EkaFhMiaxGr* gr, char refreshType) {
+static bool sendRequest(EkaFhMiaxGr* gr, char refreshType) {
   EkaDev* dev = gr->dev;
 
   struct miax_request def_request_msg = {};
@@ -114,76 +236,97 @@ static void sendRequest(EkaFhMiaxGr* gr, char refreshType) {
   def_request_msg.refresh_type = refreshType;
 
   //  hexDump("MIAX definitions request",(char*) &def_request_msg,sizeof(struct miax_request));
-#ifndef FH_LAB
-  if(send(gr->recovery_sock,&def_request_msg,sizeof(def_request_msg), 0) < 0) on_error("SESM Request send failed");
-#endif
-  EKA_LOG("%s:%u \'%c\' Request sent",EKA_EXCH_DECODE(gr->exch),gr->id, refreshType);
-  return;
+  int r = send(gr->recovery_sock,&def_request_msg,sizeof(def_request_msg), 0);
+  if(r <= 0) {
+    dev->lastErrno = errno;
+    EKA_WARN("%s:%u: SESM Request send failed: %s",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
+    return false;
+  }
+
+  EKA_LOG("%s:%u: \'%c\' Request sent",
+	  EKA_EXCH_DECODE(gr->exch),gr->id, refreshType);
+  return true;
 }
 
 /* ##################################################################### */
-static void sendRetransmitRequest(EkaFhMiaxGr* gr, uint64_t start, uint64_t end) {
+static bool sendRetransmitRequest(EkaFhMiaxGr* gr, uint64_t start, uint64_t end) {
   EkaDev* dev = gr->dev;
   sesm_retransmit_req retransmit_req = {};
   retransmit_req.header.length = sizeof(retransmit_req) - sizeof(retransmit_req.header.length);
-  retransmit_req.header.type = 'A';
-  retransmit_req.start = start;
-  retransmit_req.end = end;
-#ifndef FH_LAB
-  if(send(gr->recovery_sock,&retransmit_req,sizeof(retransmit_req), 0) < 0) 
-    on_error("%s:%u SESM Retransmit Request send failed",EKA_EXCH_DECODE(gr->exch),gr->id);
-#endif
-  EKA_LOG("%s:%u Retransmit Request sent for %ju .. %ju",EKA_EXCH_DECODE(gr->exch),gr->id, start, end);
-  return;
+  retransmit_req.header.type   = 'A';
+  retransmit_req.start         = start;
+  retransmit_req.end           = end;
+
+  int r = send(gr->recovery_sock,&retransmit_req,sizeof(retransmit_req), 0);
+  if(r <= 0) {
+    dev->lastErrno = errno;
+    EKA_WARN("%s:%u: SESM Retransmit Request send failed: %s",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
+    return false;
+  }
+  EKA_LOG("%s:%u: Retransmit Request sent for %ju .. %ju",
+	  EKA_EXCH_DECODE(gr->exch),gr->id, start, end);
+  return true;
 }
 
 /* ##################################################################### */
-static void sendLogOut(EkaFhMiaxGr* gr) {
+static bool sendLogOut(EkaFhMiaxGr* gr) {
   EkaDev* dev = gr->dev;
 
   //--------------- SESM Logout Request -------------------
   struct sesm_logout_req sesm_logout_msg = {};
-  sesm_logout_msg.header.length = sizeof(struct sesm_logout_req) - sizeof(sesm_logout_msg.header.length);
-  sesm_logout_msg.header.type = 'X';
-  sesm_logout_msg.reason = ' '; // Graceful Logout (Done for now)
-#ifndef FH_LAB
-  if(send(gr->recovery_sock,&sesm_logout_msg,sizeof(struct sesm_logout_req), 0) < 0) on_error("SESM Logout send failed");
-#endif
-  EKA_LOG("%s:%u SESM Logout sent",EKA_EXCH_DECODE(gr->exch),gr->id);
-  return;
+  sesm_logout_msg.header.length = sizeof(sesm_logout_req) - sizeof(sesm_logout_msg.header.length);
+  sesm_logout_msg.header.type   = 'X';
+  sesm_logout_msg.reason        = ' '; // Graceful Logout (Done for now)
+
+  if(send(gr->recovery_sock,&sesm_logout_msg,sizeof(sesm_logout_req), 0) < 0) {
+    EKA_WARN("%s:%u: SESM Logout send failed",EKA_EXCH_DECODE(gr->exch),gr->id);
+    return false;
+  }
+
+  EKA_LOG("%s:%u: SESM Logout sent",EKA_EXCH_DECODE(gr->exch),gr->id);
+  return true;
 }
 
 
 /* ##################################################################### */
-static bool procSesm(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, int sock, EkaFhMiaxGr* gr,EkaFhMode op) {
+static EkaFhParseResult procSesm(const EfhRunCtx* pEfhRunCtx, 
+				 int sock, 
+				 EkaFhMiaxGr* gr,
+				 EkaFhMode op) {
   EkaDev* dev = gr->dev;
   sesm_header sesm_hdr ={};
-  int recv_size = recv(sock,&sesm_hdr,sizeof(struct sesm_header),MSG_WAITALL);
-  if (recv_size == -1)
-    on_error("%s:%u failed to receive SESM header", EKA_EXCH_DECODE(gr->exch),gr->id);
-  else if (recv_size == 0)
-    on_error("%s:%u unexpected request server socket EOF (expected SESM header)",EKA_EXCH_DECODE(gr->exch),gr->id);
-
+  int r = recv(sock,&sesm_hdr,sizeof(sesm_header),MSG_WAITALL);
+  if (r <= 0) {
+    dev->lastErrno = errno;
+    EKA_WARN("%s:%u failed to receive SESM header: r=%d: %s", 
+	     EKA_EXCH_DECODE(gr->exch),gr->id,r,strerror(dev->lastErrno));
+    return EkaFhParseResult::SocketError;
+  }
   uint8_t msg[1536] = {};
   uint8_t* m = msg;
-  recv_size = recv(sock,msg,sesm_hdr.length - sizeof(sesm_hdr.type),MSG_WAITALL);
-  if (recv_size == -1)
-    on_error("%s:%u failed to receive SESM payload", EKA_EXCH_DECODE(gr->exch),gr->id);
-  /* else if (recv_size == 0) */
-  /*   on_error("%s:%u unexpected request server socket EOF (expected SESM payload) type=\'%c\' len = %u", */
-  /* 	     EKA_EXCH_DECODE(gr->exch),gr->id,sesm_hdr.type, sesm_hdr.length); */
+
+  r = recv(sock,msg,sesm_hdr.length - sizeof(sesm_hdr.type),MSG_WAITALL);
+  if (r <= 0) {
+    dev->lastErrno = errno;
+    EKA_WARN("%s:%u failed to receive SESM payload: r=%d: %s", 
+	     EKA_EXCH_DECODE(gr->exch),gr->id,r,strerror(dev->lastErrno));
+    return EkaFhParseResult::SocketError;
+  }
 
   uint64_t sequence = 0;
 
   switch ((EKA_SESM_TYPE)sesm_hdr.type) {
   case EKA_SESM_TYPE::GoodBye : {
-    EKA_LOG("%s:%u Sesm Server sent GoodBye with reason \'%c\' : %s",EKA_EXCH_DECODE(gr->exch),gr->id,((sesm_goodbye*)m)->reason,((sesm_goodbye*)m)->text);
-    return true;
+    EKA_LOG("%s:%u Sesm Server sent GoodBye with reason \'%c\' : %s",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,((sesm_goodbye*)m)->reason,((sesm_goodbye*)m)->text);
+    return EkaFhParseResult::End;
   }
 
   case EKA_SESM_TYPE::ServerHeartbeat :
     EKA_LOG("%s:%u Sesm Server Heartbeat received",EKA_EXCH_DECODE(gr->exch),gr->id);
-    return false;
+    return EkaFhParseResult::NotEnd;
  
   case EKA_SESM_TYPE::EndOfSession :
     EKA_LOG("%s:%u %s End-of-Session message. gr->seq_after_snapshot = %ju",
@@ -191,15 +334,15 @@ static bool procSesm(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, int sock, Eka
 	    op == EkaFhMode::DEFINITIONS ? "DEFINITIONS" : "SNAPSHOT",
 	    gr->seq_after_snapshot
 	    );
-    return true;
+    return EkaFhParseResult::End;
 
   case EKA_SESM_TYPE::SyncComplete :
     EKA_LOG("%s:%u SESM server sent SyncComplete message",EKA_EXCH_DECODE(gr->exch),gr->id);
-    return true;
+    return EkaFhParseResult::End;
 
   case EKA_SESM_TYPE::TestPacket : {
     EKA_LOG("%s:%u Sesm Server sent Test Packet: %s",EKA_EXCH_DECODE(gr->exch),gr->id,(char*)m);
-    return false;
+    return EkaFhParseResult::NotEnd;
   }
 
   case EKA_SESM_TYPE::Sequenced : 
@@ -212,7 +355,7 @@ static bool procSesm(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, int sock, Eka
 	      op == EkaFhMode::DEFINITIONS ? "DEFINITIONS" : "SNAPSHOT",
 	      gr->seq_after_snapshot
 	      );
-      return true;
+      return EkaFhParseResult::End;
     }  
     break;
 
@@ -229,7 +372,7 @@ static bool procSesm(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, int sock, Eka
 		op == EkaFhMode::DEFINITIONS ? "DEFINITIONS" : "SNAPSHOT",
 		gr->seq_after_snapshot
 		);
-	return true;
+	return EkaFhParseResult::End;
       }
       break;
     case 'E' :
@@ -238,7 +381,7 @@ static bool procSesm(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, int sock, Eka
 	      op == EkaFhMode::DEFINITIONS ? "DEFINITIONS" : "SNAPSHOT",
 	      gr->seq_after_snapshot
 	      );
-      return true;
+      return EkaFhParseResult::End;
       break;
     default:
       on_error ("%s:%u Unexpected UnSequenced Packet type \'%c\'",
@@ -248,80 +391,34 @@ static bool procSesm(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, int sock, Eka
     break;
     
   default:
-    EKA_WARN("%s:%u Unexpected sesm_hdr.type: \'%c\'",EKA_EXCH_DECODE(gr->exch),gr->id,sesm_hdr.type);
-    return false;
+    EKA_WARN("%s:%u Unexpected sesm_hdr.type: \'%c\'",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,sesm_hdr.type);
+    on_error("%s:%u Unexpected sesm_hdr.type: \'%c\'",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,sesm_hdr.type);
+    return EkaFhParseResult::ProtocolError;
   }
-  return false;
+  return EkaFhParseResult::NotEnd;
 }
 /* ##################################################################### */
-
-void* getSesmRetransmit(void* attr) {
-
-  pthread_detach(pthread_self());
-
-  EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
-  EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
-  EkaFhMiaxGr*  gr             = (EkaFhMiaxGr*)((EkaFhThreadAttr*)attr)->gr;
-  uint64_t   start          = ((EkaFhThreadAttr*)attr)->startSeq;
-  uint64_t   end            = ((EkaFhThreadAttr*)attr)->endSeq;
-  //  EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
-  ((EkaFhThreadAttr*)attr)->~EkaFhThreadAttr();
-
-  if (gr->recovery_sock != -1) on_error("%s:%u gr->recovery_sock != -1",EKA_EXCH_DECODE(gr->exch),gr->id);
-  EkaDev* dev = gr->dev;
-
-  EKA_LOG("%s:%u start=%ju, end=%ju",EKA_EXCH_DECODE(gr->exch),gr->id,start,end);
-
-  //  EkaDev* dev = gr->dev;
-  //  if (end - start > 65000) on_error("Gap %ju is too high (> 65000), start = %ju, end = %ju",end - start, start, end);
-  //-----------------------------------------------------------------
-  gr->recovery_active = true;
-  while (gr->recovery_active) {
-    gr->recovery_sock = ekaTcpConnect(gr->recovery_ip,gr->recovery_port);
-    //-----------------------------------------------------------------
-    sendLogin(gr);
-    //-----------------------------------------------------------------
-    if (getLoginResponse(gr) != EKA_OPRESULT__OK) {
-      gr->sendRetransmitExchangeError(pEfhRunCtx);
-      sendLogOut(gr);
-      close(gr->recovery_sock);
-      continue;
-    }
-    break;
-  }
-  //-----------------------------------------------------------------
-  std::thread heartBeat = std::thread(heartBeatThread,dev,gr,gr->recovery_sock);
-  heartBeat.detach();
-  //-----------------------------------------------------------------
-  sendRetransmitRequest(gr,start,end);
-  //-----------------------------------------------------------------
-
-  while (gr->recovery_active) {
-    if (procSesm(pEfhCtx,pEfhRunCtx,gr->recovery_sock,gr,EkaFhMode::MCAST)) break;
-  } 
-  gr->heartbeat_active = false;
-
-  gr->gapClosed = true;
-  close(gr->recovery_sock);
-  gr->recovery_sock = -1;
-  return NULL;
-}
-/* ##################################################################### */
-
 void* getSesmData(void* attr) {
+#ifdef FH_LAB
+  return NULL;
+#endif
 
-  EfhCtx*    pEfhCtx        = ((EkaFhThreadAttr*)attr)->pEfhCtx;
-  EfhRunCtx* pEfhRunCtx     = ((EkaFhThreadAttr*)attr)->pEfhRunCtx;
-  EkaFhMiaxGr*   gr            = (EkaFhMiaxGr*) ((EkaFhThreadAttr*)attr)->gr;
-  /* uint64_t   start_sequence = ((EkaFhThreadAttr*)attr)->startSeq; */
-  /* uint64_t   end_sequence   = ((EkaFhThreadAttr*)attr)->endSeq; */
-  EkaFhMode  op             = ((EkaFhThreadAttr*)attr)->op;
+  auto params {reinterpret_cast<EkaFhThreadAttr*>(attr)};
+  auto gr     {reinterpret_cast<EkaFhMiaxGr*>(params->gr)};
+  if (gr == NULL) on_error("gr == NULL");
 
-  ((EkaFhThreadAttr*)attr)->~EkaFhThreadAttr();
+  EfhCtx*    pEfhCtx        = params->pEfhCtx;
+  EfhRunCtx* pEfhRunCtx     = params->pEfhRunCtx;
+  uint64_t   start          = params->startSeq;
+  uint64_t   end            = params->endSeq;
+  EkaFhMode  op             = params->op;
+  delete params;
 
   if (op != EkaFhMode::DEFINITIONS) pthread_detach(pthread_self());
 
-  EkaDev* dev = pEfhCtx->dev;
+  EkaDev*    dev = gr->dev;
   if (dev == NULL) on_error("dev == NULL");
   if (dev->fh[pEfhCtx->fhId] == NULL) on_error("dev->fh[pEfhCtx->fhId] == NULL for pEfhCtx->fhId = %u",pEfhCtx->fhId);
   if (gr == NULL) on_error("gr == NULL");
@@ -330,104 +427,64 @@ void* getSesmData(void* attr) {
 
   //-----------------------------------------------------------------
   EkaCredentialLease* lease;
-  const struct timespec leaseTime = {.tv_sec = 180, .tv_nsec = 0};
-  const struct timespec timeout   = {.tv_sec = 60,  .tv_nsec = 0};
-  char credName[7] = {};
-  memset (credName,'\0',sizeof(credName));
-  memcpy (credName,gr->auth_user,sizeof(credName) - 1);
-  const EkaGroup group{gr->exch, (EkaLSI)gr->id};
-  int rc = dev->credAcquire(EkaCredentialType::kSnapshot, group, (const char*)credName, &leaseTime,&timeout,dev->credContext,&lease);
-  if (rc != 0) on_error("%s:%u Failed to credAcquire for %s",EKA_EXCH_DECODE(gr->exch),gr->id,credName);
-  EKA_LOG("%s:%u Sesm Credentials Accquired",EKA_EXCH_DECODE(gr->exch),gr->id);
+  gr->credentialAcquire(gr->auth_user,sizeof(gr->auth_user),&lease);
+
   //-----------------------------------------------------------------
-  if (gr->recovery_sock != -1) on_error("%s:%u gr->recovery_sock != -1",EKA_EXCH_DECODE(gr->exch),gr->id);
+  const int MaxTrials = 4;
+  bool success = false;
+  gr->recovery_active = true;
 
-  EKA_LOG("%s:%u - SESM to %s:%u",EKA_EXCH_DECODE(gr->exch),gr->id,EKA_IP2STR(gr->snapshot_ip),be16toh(gr->snapshot_port));
-
-  gr->snapshot_active = true;
-  if (op == EkaFhMode::DEFINITIONS) { 
-    //-----------------------------------------------------------------
-    while (gr->snapshot_active) {
-      gr->recovery_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
-      //-----------------------------------------------------------------
-      sendLogin(gr);
-      //-----------------------------------------------------------------
-      if (getLoginResponse(gr) != EKA_OPRESULT__OK) {
-	gr->sendRetransmitExchangeError(pEfhRunCtx);
-	sendLogOut(gr);
-	close(gr->recovery_sock);
-	continue;
-      }
+  switch (op) {
+  case EkaFhMode::DEFINITIONS :
+      EKA_LOG("%s:%u DEFINITIONS",EKA_EXCH_DECODE(gr->exch),gr->id);
+      success = sesmCycle(dev,pEfhRunCtx,op,gr,'P',0,0,MaxTrials);
       break;
-    }
-    //-----------------------------------------------------------------
-    std::thread heartBeat = std::thread(heartBeatThread,dev,gr,gr->recovery_sock);
-    heartBeat.detach();
-    //-----------------------------------------------------------------
-    sendRequest(gr,'P');
-    //-----------------------------------------------------------------
-    while (gr->snapshot_active) { 
-      if (procSesm(pEfhCtx,pEfhRunCtx,gr->recovery_sock,gr,op)) break;
-    } 
-    gr->heartbeat_active = false;
-    //-----------------------------------------------------------------
-    sendLogOut(gr);
-    //-----------------------------------------------------------------
-    close(gr->recovery_sock);
-    gr->recovery_sock = -1;
-  } else { // SNAPSHOT
+  case EkaFhMode::SNAPSHOT: {
     char snapshotRequests[] = {
       'S', // System State Refresh
       'U', // Underlying Trading Status Refresh
       'P', // Simple Series Update Refresh
       'Q'};// Simple Top of Market Refresh
-    for (int i = 0; i < (int)sizeof(snapshotRequests); i ++) {
-      EKA_LOG("%s:%u SESM Snapshot for \'%c\'",
+    for (int i = 0; i < (int)(sizeof(snapshotRequests)/sizeof(snapshotRequests[0])); i ++) {
+      EKA_LOG("%s:%u SNAPSHOT \'%c\' Phase",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,snapshotRequests[i]);
-      while (gr->snapshot_active) {
-	gr->recovery_sock = ekaTcpConnect(gr->snapshot_ip,gr->snapshot_port);
-	//-----------------------------------------------------------------
-	sendLogin(gr);
-	//-----------------------------------------------------------------
-	if (getLoginResponse(gr) != EKA_OPRESULT__OK) {
-	  gr->sendRetransmitExchangeError(pEfhRunCtx);
-	  sendLogOut(gr);
-	  close(gr->recovery_sock);
-	  continue;
-	}
-	break;
-      }
-      //-----------------------------------------------------------------
-
-      std::thread heartBeat = std::thread(heartBeatThread,dev,gr,gr->recovery_sock);
-      heartBeat.detach();
-      //-----------------------------------------------------------------
-      sendRequest(gr,snapshotRequests[i]); 
-      //-----------------------------------------------------------------
-      while (gr->snapshot_active) { 
-	if (procSesm(pEfhCtx,pEfhRunCtx,gr->recovery_sock,gr,op)) break;
-      } 
-      gr->heartbeat_active = false;
-      //-----------------------------------------------------------------
-      sendLogOut(gr);
-      //-----------------------------------------------------------------
-      close(gr->recovery_sock);
-      gr->recovery_sock = -1;
+      success = sesmCycle(dev,pEfhRunCtx,op,gr,snapshotRequests[i],start,end,MaxTrials);
     }
+    break;
+  }
+  case EkaFhMode::RECOVERY :
+    EKA_LOG("%s:%u RECOVERY %ju .. %ju",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,start,end);
+    success = sesmCycle(dev,pEfhRunCtx,op,gr,' ',start,end,MaxTrials);
+    break;
+  default:
+    on_error("%s:%u Unexpected op = %d",EKA_EXCH_DECODE(gr->exch),gr->id,(int)op);
+  }
+  //-------------------------------------------------------
+  int rc = dev->credRelease(lease, dev->credContext);
+  if (rc != 0) on_error("%s:%u Failed to credRelease",
+			EKA_EXCH_DECODE(gr->exch),gr->id);
+  EKA_LOG("%s:%u Sesm Credentials Released",EKA_EXCH_DECODE(gr->exch),gr->id);
+  //-------------------------------------------------------
+
+  //-------------------------------------------------------
+  if (! success) {
+    EKA_WARN("%s:%u Failed after %d trials. Exiting...",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
+    on_error("%s:%u Failed after %d trials. Exiting...",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
   }
   //-------------------------------------------------------
   gr->gapClosed = true;
   //-------------------------------------------------------
-  EKA_TRACE("%s:%u End Of %s, gr->seq_after_snapshot = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,
-	    op==EkaFhMode::SNAPSHOT ? "GAP_RECOVERY" : "DEFINITIONS" ,gr->seq_after_snapshot);
+  EKA_LOG("%s:%u End Of %s, seq_after_snapshot = %ju",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,
+	    EkaFhMode2STR(op),gr->seq_after_snapshot);
 
-  rc = dev->credRelease(lease, dev->credContext);
-  if (rc != 0) on_error("%s:%u Failed to credRelease for %s",EKA_EXCH_DECODE(gr->exch),gr->id,credName);
-  EKA_LOG("%s:%u Sesm Credentials Released",EKA_EXCH_DECODE(gr->exch),gr->id);
+  gr->recovery_active = false;
 
   return NULL;
 }
-
 
 
 void* heartBeatThread(EkaDev* dev, EkaFhMiaxGr* gr, int sock) {

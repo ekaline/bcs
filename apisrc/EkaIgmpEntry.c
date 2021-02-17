@@ -6,13 +6,14 @@
 int createIgmpPkt (char* dst, bool join, uint8_t* macsa, uint32_t ip_src, uint32_t ip_dst);
 /* -------------------------------------------- */
 
-EkaIgmpEntry::EkaIgmpEntry(EkaDev* _dev, int _udpChId, uint32_t _ip, uint16_t _port, int16_t _vlanTag, uint8_t _coreId) {
+EkaIgmpEntry::EkaIgmpEntry(EkaDev* _dev, int _udpChId, uint32_t _ip, uint16_t _port, int16_t _vlanTag, uint8_t _coreId, uint64_t* _pPktCnt) {
   dev     = _dev;
   udpChId = _udpChId;
   ip      = _ip;
   port    = _port;
   vlanTag = _vlanTag;
   coreId  = _coreId;
+  pPktCnt = _pPktCnt;
 
   if (udpChId < 0 || udpChId >= (int)EkaEpm::EPM_REGIONS) on_error("bad udpChId %d",udpChId);
 
@@ -46,6 +47,7 @@ bool EkaIgmpEntry::isMy(uint32_t _ip, uint16_t _port) {
 
 int EkaIgmpEntry::sendIgmpJoin() {
   if (noIgmp) return 1;
+  //  igmpJoinAction->print("Sending Igmp");
   return igmpJoinAction->send();
 }
 /* -------------------------------------------- */

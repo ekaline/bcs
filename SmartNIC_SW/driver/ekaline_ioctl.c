@@ -116,6 +116,17 @@ switch (eka_ioctl.cmd) {
    PRINTK("EKALINE DEBUG: EKA_IOREMAP_WC pDevExt->ekaline_wc_addr = 0x%016llx", pDevExt->ekaline_wc_addr);
  }
    break;
+ case EKA_GET_IGMP_STATE: {
+   struct sc_multicast_subscription_t* dstAddr = (struct sc_multicast_subscription_t*)((eka_ioctl_t*)data)->wcattr.bar0_pa;
+   if ((rc = copy_to_user((void __user *) dstAddr,
+			  &pDevExt->igmpContext.global_subscriber,
+			  sizeof(pDevExt->igmpContext.global_subscriber)))) {
+     PRINTK("%s:%u: EKALINE DEBUG: EKA_GET_IGMP_STATE failed\n",__FILE__,__LINE__);
+     return -EFAULT;
+   }
+   PRINTK("EKALINE DEBUG: EKA_GET_IGMP_STATE copied %u bytes", sizeof(pDevExt->igmpContext.global_subscriber));
+ }
+   break;
 
  default:
    PRINTK("EKALINE DEBUG: Unknown IOCTL cmd %u\n",eka_ioctl.cmd);

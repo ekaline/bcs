@@ -6,7 +6,7 @@
 #include "EkaFhMiaxParser.h"
 
 void* getSesmData(void* attr);
-void* getSesmRetransmit(void* attr);
+//void* getSesmRetransmit(void* attr);
 
 /* ##################################################################### */
 
@@ -126,7 +126,7 @@ int EkaFhMiaxGr::closeIncrementalGap(EfhCtx*        pEfhCtx,
     
   dev->createThread(threadName.c_str(),
 		    EkaServiceType::kFeedSnapshot,
-		    getSesmRetransmit,        
+		    getSesmData, //getSesmRetransmit,        
 		    attr,
 		    dev->createThreadContext,
 		    (uintptr_t*)&snapshot_thread);   

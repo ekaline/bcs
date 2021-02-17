@@ -13,6 +13,8 @@
 #include "eka_macros.h"
 #include "eka_sn_addr_space.h"
 #include "EkaMcState.h"
+#include "ctls.h"
+#include "eka.h"
 
 #define NUM_OF_CORES EKA_MAX_CORES
 #define FREQUENCY EKA_FPGA_FREQUENCY
@@ -40,8 +42,10 @@ struct IfParams {
 };
 
 struct McChState {
-  int          num = 0;
-  EkaMcState   grpState[64] = {};
+  int          num            = 0;  // num of "logical" groups at this Channel
+  int          currHwGr       = 0;
+  EkaMcState   grpState[64]   = {};
+  EkaHwMcState grpHwState[64] = {};
 };
 
 struct McState {
@@ -74,6 +78,52 @@ inline void reg_write(uint64_t addr, uint64_t val) {
   if (SN_ERR_SUCCESS != SN_WriteUserLogicRegister(devId, addr/8, val))
     on_error("SN_Write returned smartnic error code : %d",SN_GetLastErrorCode());
 }
+
+//################################################
+int getSnIgmpCtx(McState* mcState, sc_multicast_subscription_t* hwIgmp) {
+  if (hwIgmp == NULL) on_error("hwIgmp == NULL");
+  memset(hwIgmp,0,sizeof(sc_multicast_subscription_t) * 8 * 64);
+
+  int fd = SN_GetFileDescriptor(devId);
+  if (fd < 0) on_error("fd = %d",fd);
+
+  eka_ioctl_t __attribute__ ((aligned(0x1000))) state = {};
+
+  state.cmd = EKA_GET_IGMP_STATE;
+  state.nif_num = 0;
+  state.session_num = 0;
+  state.wcattr.bar0_pa = (uint64_t)hwIgmp;
+
+  int rc = ioctl(fd,SMARTNIC_EKALINE_DATA,&state);
+  if (rc != 0) on_error("ioctl failed: rc = %d",rc);
+
+  for (auto i = 0; i < 32; i++) {
+    mcState->chState[i].currHwGr = 0;
+  }
+
+  for (auto i = 0; i < 512; i++) {
+    int chId = hwIgmp[i].channel - 32;
+    if ((hwIgmp[i].group_address != 0) && (chId < 0 || chId > 31)) 
+      on_error("chId=%d,hwIgmp[%d].channel=%u",chId,i,hwIgmp[i].channel);
+    if (hwIgmp[i].group_address == 0) continue;
+
+    int grId = mcState->chState[chId].currHwGr;
+    if (grId < 0 || grId > 63) 
+      on_error("chId=%d,grId=%d,hwIgmp[%d].positionIndex=%u,group_address=0x%08x",
+	       chId,grId,i,hwIgmp[i].positionIndex,hwIgmp[i].group_address);
+
+    
+    mcState->chState[chId].grpHwState[grId].coreId        = hwIgmp[i].lane;
+    mcState->chState[chId].grpHwState[grId].ip            = be32toh(hwIgmp[i].group_address);
+    mcState->chState[chId].grpHwState[grId].port          = hwIgmp[i].ip_port_number;
+    mcState->chState[chId].grpHwState[grId].positionIndex = hwIgmp[i].positionIndex;
+    mcState->chState[chId].currHwGr++;
+  }
+
+  return 0;
+}
+
+
 
 //################################################
 void       getIpMac_ioctl(uint8_t lane, IfParams* params) {
@@ -221,9 +271,9 @@ void checkVer() {
 //################################################
 int cleanMcState() {
   for (auto chId = 0; chId < 32; chId++) {
-    uint64_t chBaseAddr = SCRPAD_MC_STATE_BASE + chId * MAX_MC_GROUPS_PER_UDP_CH * 8;
+    uint64_t chBaseAddr = SCRPAD_MC_STATE_BASE + chId * MAX_MC_GROUPS_PER_UDP_CH * sizeof(EkaMcState);
     for (auto grId = 0; grId < 64; grId++) {
-      uint64_t addr = chBaseAddr + grId * 8;
+      uint64_t addr = chBaseAddr + grId * sizeof(EkaMcState);
       reg_write(addr,0);
     }
   }
@@ -240,10 +290,15 @@ int getMcState(McState* state, IfParams coreParams[NUM_OF_CORES]) {
   state->maxGrPerCh = 0;
   for (auto chId = 0; chId < 32; chId++) {
     state->chState[chId].num = 0;
-    uint64_t chBaseAddr = SCRPAD_MC_STATE_BASE + chId * MAX_MC_GROUPS_PER_UDP_CH * 8;
+    uint64_t chBaseAddr = SCRPAD_MC_STATE_BASE + chId * MAX_MC_GROUPS_PER_UDP_CH * sizeof(EkaMcState);
     for (auto grId = 0; grId < 64; grId++) {
-      uint64_t addr = chBaseAddr + grId * 8;
-      *(uint64_t*)&state->chState[chId].grpState[grId] = reg_read(addr);
+      uint64_t addr = chBaseAddr + grId * sizeof(EkaMcState);
+
+      uint64_t* pData = (uint64_t*)&state->chState[chId].grpState[grId];
+
+      *pData++ = reg_read(addr);
+      *pData++ = reg_read(addr+8);
+      //      *(uint64_t*)&state->chState[chId].grpState[grId] = reg_read(addr);
       if (state->chState[chId].grpState[grId].ip == 0) continue;
       state->chState[chId].num++;
       state->totalNum++;
@@ -259,11 +314,14 @@ int getMcState(McState* state, IfParams coreParams[NUM_OF_CORES]) {
 int printMcGroups(McState* state) {
   if (state->totalNum == 0) return 0;
   printf("\n");
-  printf ("   ");
+  printf("   ");
 
   for (auto chId = 0; chId < 32; chId++) {
     if (state->chState[chId].num == 0) continue;
-    printf("       Ch%2d : %02d       |",chId,state->chState[chId].num);
+    printf("                   Ch%2d : Core %d, MC %2d                 |",
+	   chId,
+	   state->chState[chId].grpState[0].coreId,
+	   state->chState[chId].num);
   }
   printf("\n");
 
@@ -272,14 +330,22 @@ int printMcGroups(McState* state) {
     for (auto chId = 0; chId < 32; chId++) {
       if (state->chState[chId].num == 0) continue;
       if (state->chState[chId].grpState[grId].ip == 0) {
-	printf ("%23s|"," ");
+	printf ("%56s|"," ");
 	continue;
       }
-      printf (" %d: %12s:%u |",
-	      
-	      state->chState[chId].grpState[grId].coreId,
+
+      //      const char* fmt = "%16s:%5u (%16s:%5u) %8ju|";
+      const char* coloredFmt = 
+	state->chState[chId].grpState[grId].ip   == state->chState[chId].grpHwState[grId].ip &&
+	state->chState[chId].grpState[grId].port == state->chState[chId].grpHwState[grId].port ?
+	"%16s:%5u (%16s:%5u) %8ju|" : RED "%16s:%5u (%16s:%5u) %8ju|" RESET;
+      printf (coloredFmt,
 	      EKA_IP2STR(state->chState[chId].grpState[grId].ip),
-	      state->chState[chId].grpState[grId].port);
+	      state->chState[chId].grpState[grId].port,
+	      EKA_IP2STR(state->chState[chId].grpHwState[grId].ip),
+	      state->chState[chId].grpHwState[grId].port,
+	      state->chState[chId].grpState[grId].pktCnt
+	      );
     }
     printf("\n");
   }
@@ -433,6 +499,10 @@ int main(int argc, char *argv[]) {
   IfParams coreParams[NUM_OF_CORES] = {};
   McState mcState = {};
 
+  sc_multicast_subscription_t* hwIgmp = (sc_multicast_subscription_t*)malloc(sizeof(sc_multicast_subscription_t) * 8 * 64);
+  if (hwIgmp == NULL) on_error("malloc failed");
+
+
   /* ----------------------------------------- */
   checkVer();
   /* ----------------------------------------- */
@@ -440,6 +510,7 @@ int main(int argc, char *argv[]) {
   /* ----------------------------------------- */
   getNwParams(coreParams);
   /* ----------------------------------------- */
+  uint64_t cnt = 0;
   while (1) {
     printf("\e[1;1H\e[2J"); //	system("clear");
     /* ----------------------------------------- */
@@ -449,6 +520,8 @@ int main(int argc, char *argv[]) {
     /* ----------------------------------------- */
     getMcState(&mcState,coreParams);
     /* ----------------------------------------- */
+    getSnIgmpCtx(&mcState,hwIgmp);
+    /* ----------------------------------------- */
     getCurrTraffic(coreParams);
     /* ----------------------------------------- */
     printHeader(coreParams);
@@ -457,12 +530,16 @@ int main(int argc, char *argv[]) {
     /* ----------------------------------------- */
     printMcGroups(&mcState);
     /* ----------------------------------------- */
+    if (++cnt % 5 == 0) {
+      cleanMcState();
+      sleep (1);
+    }
     sleep(1);
   }
   SN_CloseDevice(devId);
   exit(0);
 
 
-
+  free(hwIgmp);
   return 0;
 }

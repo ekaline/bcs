@@ -66,12 +66,13 @@ EkaUdpChannel::EkaUdpChannel(EkaDev* ekaDev, uint8_t coreId) {
 
   chId = SC_GetChannelNumber(ChannelId);
 
-  const SN_Packet * pPreviousUdpPacket = SN_GetNextPacket(ChannelId, NULL, SN_TIMEOUT_NONE);
-  if (pPreviousUdpPacket != NULL) {
-    EKA_WARN("pIncomingUdpPacket != NULL: Packet is arriving on UDP channel before any packet was sent");
-    if (SN_UpdateReceivePtr(ChannelId, pIncomingUdpPacket) != SN_ERR_SUCCESS) 
+  while (1) {
+    pPreviousUdpPacket = SC_GetNextPacket(ChannelId, pPreviousUdpPacket, SC_TIMEOUT_NONE);      
+    if (pPreviousUdpPacket == NULL) break;
+    if (SC_UpdateReceivePtr(ChannelId, pPreviousUdpPacket) != SN_ERR_SUCCESS) 
       on_error ("Failed to sync DMA ReceivePtr");
   }
+
   EKA_LOG("UDP channel %d for lane %u is opened",chId,core);  
 }
 

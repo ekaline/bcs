@@ -118,7 +118,7 @@ class EkaEpm {
 
   EkaEpm(EkaDev* _dev);
 
-  void initHeap(uint start, uint size);
+  void initHeap(uint start, uint size, uint regionId);
 
   int createRegion(uint regionId, epm_actionid_t baseActionIdx);
 
@@ -228,6 +228,8 @@ class EkaEpm {
 //  EkaEpmAction*     userAction[MaxUserActions]      = {};
   
   bool              controllerEnabled = false;
+
+  uint64_t          pktCnt = 0; // for EFH compatibility
 
   EkaEpmRegion*    epmRegion[EPM_REGIONS] = {};
 

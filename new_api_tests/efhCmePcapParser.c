@@ -172,8 +172,8 @@ int main(int argc, char *argv[]) {
     while (pos < (int)pktLen) {
       int msgPos = pos;
       const MsgHdr* msgHdr = (const MsgHdr*)&pkt[msgPos];
-      printf ("\tMsgId=%d,size=%u,blockLen=%u,\n",
-	      (int)msgHdr->templateId,msgHdr->size,msgHdr->blockLen);
+      printf ("\tMsgId=%d,size=%u,blockLen=%u,version=%u\n",
+	      (int)msgHdr->templateId,msgHdr->size,msgHdr->blockLen,msgHdr->version);
       if (msgPos + msgHdr->size > (int)pktLen) 
 	on_error("msgPos %d + msgHdr->size %u > pktLen %u",msgPos,msgHdr->size,pktLen);
       switch (msgHdr->templateId) {

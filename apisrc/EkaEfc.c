@@ -89,7 +89,7 @@ int EkaEfc::confParse(const char *key, const char *value) {
 int EkaEfc::igmpJoinAll() {
   for (auto i = 0; i < numUdpSess; i++) {
     if (udpSess[i] == NULL) on_error("udpSess[%d] == NULL",i);
-    ekaIgmp->mcJoin(udpSess[i]->ip,udpSess[i]->port,0);
+    ekaIgmp->mcJoin(udpSess[i]->ip,udpSess[i]->port,0,&pktCnt);
   }
   
   return 0;

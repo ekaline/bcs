@@ -32,18 +32,7 @@ const uint8_t* EkaFhXdp::getUdpPkt(EkaFhRunGroup* runGr,
 
   return pkt;
 }
-/* ##################################################################### */
-/* static inline bool isTradingHours(int startHour, int startMinute, int endHour, int endMinute) { */
-/*   time_t rawtime; */
-/*   time (&rawtime); */
-/*   struct tm * ct = localtime (&rawtime); */
-/*   if ((ct->tm_hour > startHour || (ct->tm_hour == startHour && ct->tm_min > startMinute)) && */
-/*       (ct->tm_hour < endHour   || (ct->tm_hour == endHour   && ct->tm_min < endMinute  )) */
-/*       ) { */
-/*     return true; */
-/*   } */
-/*   return false; */
-/* } */
+
 /* ##################################################################### */
 
 EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId ) {
@@ -85,6 +74,16 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
     const uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&pktSize,&sequence,&gr_id, &streamId, &pktType);
     if (pkt == NULL) continue;
+
+#ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
+    if (sequence != 0 && sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
+      EKA_WARN("%s:%u: TEST GAP INJECTED: (GAP_INJECT_INTERVAL = %d): pkt sequence %ju with %u messages dropped",
+	       EKA_EXCH_DECODE(exch),gr_id, _EFH_TEST_GAP_INJECT_INTERVAL_,sequence,msgInPkt);
+      runGr->udpCh->next(); 
+      continue;
+    }
+#endif
+
 
     EkaFhXdpGr* gr = (EkaFhXdpGr*)b_gr[gr_id];
     if (gr == NULL) on_error("b_gr[%u] == NULL",gr_id);

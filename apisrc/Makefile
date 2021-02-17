@@ -13,7 +13,7 @@ DRIVERS_INCL:=$(SMARTNIC_ROOT)/driver/
 API_INCL:=$(SMARTNIC_ROOT)/include/
 
 LWIP_INCL:=$(LWIP_ROOT)/lwip/src/include 
-INC=$(DRIVERS_INCL) $(API_INCL) $(LWIP_INCL) $(shell pwd) $(shell pwd)/compat $(shell pwd)/FhBook
+INC=$(DRIVERS_INCL) $(API_INCL) $(LWIP_INCL) $(shell pwd) $(shell pwd)/compat $(shell pwd)/FhBook $(shell pwd)/../pcapParsers
 INCL=$(foreach d, $(INC), -I$d)
 INCL+=-Iarch
 
@@ -62,6 +62,8 @@ lab: GCC_EXTERNAL_DEFINES=-DEKA_TEST_IGNORE_DEFINITIONS -DEKA_TEST_IGNORE_GAP -D
 lab: GCC_FLAGS= -Wall -fpic -pthread -lrt -lm $(GCC_EXTERNAL_DEFINES)
 lab: all
 
+use_onload: export LD_PRELOAD=libonload.so
+use_onload: all
 
 ###############################################
 # LWIP
@@ -129,6 +131,12 @@ unit_tests: $(UNITTESTS_EXECS)
 ../new_api_tests/unit%: ../new_api_tests/unit%.c $(LIBEKALINE)_test.so
 	$(CC) $< -o $@ $(GCC_FLAGS) $(INCL) $(LLIB_TEST) $(SMARTNIC_LIB)
 
+
+../pcapParsers/cmePcapParse.o: ../pcapParsers/cmePcapParse.c 
+	$(CC) $(CC_OPT) -c $< $(GCC_FLAGS) $(INCL) -o $@
+
+../pcapParsers/cmePcapParse: ../pcapParsers/cmePcapParse.o EkaFhCmeParser.o eka_common.o
+	$(CC) -o $@ $^ $(GCC_FLAGS) $(INCL)
 
 clean:
 	rm -f /tmp/core* *.o */*.o *.so *.a *~ core $(EKATESTS_EXECS) $(UNITTESTS_EXECS) $(EKAUTILS_EXECS) */*~ ../*/*~ *.csv *.txt

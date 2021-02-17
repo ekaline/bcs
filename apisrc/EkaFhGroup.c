@@ -36,7 +36,8 @@ uint         EkaFhGroup::getNumSecurities() {
 int EkaFhGroup::processFromQ(const EfhRunCtx* pEfhRunCtx) {
   while (! q->is_empty()) {
     fh_msg* buf = q->pop();
-    //      EKA_LOG("q_len=%u,buf->sequence=%ju, expected_sequence=%ju",q->get_len(),buf->sequence,expected_sequence);
+    /* EKA_LOG("q_len=%u,buf->sequence=%ju, expected_sequence=%ju", */
+    /* 	    q->get_len(),buf->sequence,expected_sequence); */
 
     if (buf->sequence < expected_sequence) continue;
     parseMsg(pEfhRunCtx,(unsigned char*)buf->data,buf->sequence,EkaFhMode::MCAST);
@@ -158,8 +159,9 @@ void EkaFhGroup::sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx) {
     EfhSystemState::kUnknown, // Preopen, Trading, Closed
     EfhGroupStateErrorDomain::kExchangeError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kFeedRecovery, // Unspecified, FeedRecovery
-    0 // int64_t code
+    dev->lastErrno
   };
+  dev->lastErrno = 0;
   pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
   EKA_LOG("%s:%u re-trying in %d seconds",EKA_EXCH_DECODE(exch),id,connectRetryDelayTime);
   if (connectRetryDelayTime == 0) on_error("connectRetryDelayTime == 0");
@@ -177,8 +179,9 @@ void EkaFhGroup::sendRetransmitSocketError(const EfhRunCtx* pEfhRunCtx) {
     EfhSystemState::kUnknown, // Preopen, Trading, Closed
     EfhGroupStateErrorDomain::kSocketError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kFeedSnapshot, // Unspecified, FeedRecovery
-    0 // int64_t code
+    dev->lastErrno
   };
+  dev->lastErrno = 0;
   pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
   EKA_LOG("%s:%u re-trying in %d seconds",EKA_EXCH_DECODE(exch),id,connectRetryDelayTime);
   if (connectRetryDelayTime == 0) on_error("connectRetryDelayTime == 0");
@@ -241,6 +244,7 @@ int EkaFhGroup::stop() {
 
   thread_active    = false;
   snapshot_active  = false;
+  recovery_active  = false;
   heartbeat_active = false;
 
   /* shutdown(recovery_sock,SHUT_RD); */
@@ -282,3 +286,28 @@ void EkaFhGroup::print_q_state() {
   q->reset_max_len();
   return;  
 }
+ /* ##################################################################### */
+
+ int EkaFhGroup::credentialAcquire(const char* credName,
+				   size_t      credNameSize,
+				   EkaCredentialLease** lease) {
+
+  const struct timespec leaseTime = {.tv_sec = 180, .tv_nsec = 0};
+  const struct timespec timeout   = {.tv_sec = 60, .tv_nsec = 0};
+
+  char                  name[7] = {};
+
+  memcpy (name,credName,std::min(sizeof(name),credNameSize) - 1);
+  const EkaGroup group {exch,id};
+  int rc = dev->credAcquire(EkaCredentialType::kSnapshot, 
+			    group, 
+			    name, 
+			    &leaseTime,
+			    &timeout,
+			    dev->credContext,
+			    lease);
+  if (rc != 0) 
+    on_error("%s:%u Failed to credAcquire for \'%s\'",
+			EKA_EXCH_DECODE(exch),id,name);
+  return rc;
+ }

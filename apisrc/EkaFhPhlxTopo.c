@@ -40,7 +40,7 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       EKA_LOG("%s:%u: Running PreTrade Snapshot",EKA_EXCH_DECODE(exch),gr->id);
       gr->snapshotThreadDone = false;
 
-      gr->sendFeedUpInitial(pEfhRunCtx);
+      gr->sendFeedDownInitial(pEfhRunCtx);
 
       gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,1, 1);
 
@@ -61,16 +61,31 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
     //-----------------------------------------------------------------------------
     if (runGr->drainQ(pEfhRunCtx)) continue;
     //-----------------------------------------------------------------------------
+
     if (! runGr->udpCh->has_data()) {
-      runGr->checkTimeOut(pEfhRunCtx);
+      if (++timeCheckCnt % TimeCheckRate == 0) {
+	tradingHours = isTradingHours(9,30,16,00);
+      }
+      if (tradingHours)   runGr->checkTimeOut(pEfhRunCtx);
       continue;
     }
+
     uint     msgInPkt = 0;
     uint64_t sequence = 0;
     uint8_t  gr_id    = 0xFF;
 
     const uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&sequence,&gr_id);
     if (pkt == NULL) continue;
+
+#ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
+    if (sequence != 0 && sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
+      EKA_WARN("%s:%u: TEST GAP INJECTED: (GAP_INJECT_INTERVAL = %d): pkt sequence %ju with %u messages dropped",
+	       EKA_EXCH_DECODE(exch),gr_id, _EFH_TEST_GAP_INJECT_INTERVAL_,sequence,msgInPkt);
+      runGr->udpCh->next(); 
+      continue;
+    }
+#endif
+
     EkaFhPhlxTopoGr* gr = (EkaFhPhlxTopoGr*)b_gr[gr_id];
     if (gr == NULL) on_error("b_gr[%u] = NULL",gr_id);
     gr->resetNoMdTimer();
@@ -81,7 +96,7 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       gr->gapClosed = false;
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
 
-      gr->sendFeedUpInitial(pEfhRunCtx);
+      gr->sendFeedDownInitial(pEfhRunCtx);
 
       gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 1, 0);
     }
@@ -96,7 +111,9 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
 	gr->gapClosed = false;
 
 	gr->sendFeedDown(pEfhRunCtx);
-	gr->closeIncrementalGap(pEfhCtx, pEfhRunCtx, gr->expected_sequence, sequence + msgInPkt);
+	gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
+
+	gr->closeIncrementalGap(pEfhCtx,pEfhRunCtx,gr->expected_sequence,sequence);
 
       } else { // NORMAL
 	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,msgInPkt,sequence);      
@@ -106,18 +123,19 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::SNAPSHOT_GAP : {
       if (sequence <= gr->recovery_sequence) {
-	// Recovery feed took sequence over the MCAST
+	// Recovery feed sequence took over the MCAST sequence
 	gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
 
 	gr->gapClosed = true;
 	gr->snapshot_active = false;
 	gr->seq_after_snapshot = gr->recovery_sequence + 1;
 	  
-	EKA_DEBUG("%s:%u Generating TOB quote for every Security",EKA_EXCH_DECODE(gr->exch),gr->id);
+	EKA_DEBUG("%s:%u Generating TOB quote for every Security",
+		  EKA_EXCH_DECODE(gr->exch),gr->id);
 	gr->book->sendTobImage(pEfhRunCtx);
       }
       if (gr->gapClosed) {
-	gr->state =EkaFhGroup::GrpState::NORMAL;
+	gr->state = EkaFhGroup::GrpState::NORMAL;
 	gr->sendFeedUp(pEfhRunCtx);
 	runGr->setGrAfterGap(gr->id);
 	gr->expected_sequence = gr->seq_after_snapshot;
@@ -144,9 +162,9 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       on_error("%s:%u: UNEXPECTED GrpState %u",
 	       EKA_EXCH_DECODE(exch),gr->id,(uint)gr->state);
       break;
-    }
+    } // switch
     runGr->udpCh->next(); 
-  }
+  } // while
   EKA_INFO("%s RunGroup %u EndOfSession",EKA_EXCH_DECODE(exch),runGrId);
   runGr->sendFeedCloseAll(pEfhRunCtx);
 

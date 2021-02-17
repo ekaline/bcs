@@ -21,8 +21,13 @@ class EkaFhCme : public EkaFh {
 
   virtual ~EkaFhCme() {};
  private:
+  
+  EkaOpResult initGroups(EfhCtx* pEfhCtx, 
+			 const EfhRunCtx* pEfhRunCtx, 
+			 EkaFhRunGroup* runGr);
+
   const uint8_t*    getUdpPkt(EkaFhRunGroup* runGr, 
-			      int16_t*       pktLen, 
+			      int16_t*      pktLen, 
 			      uint64_t*      sequence, 
 			      uint8_t*       gr_id);
   

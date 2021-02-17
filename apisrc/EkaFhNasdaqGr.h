@@ -21,11 +21,11 @@ class EkaFhNasdaqGr : public EkaFhGroup {
 			  uint64_t         startSeq,
 			  uint64_t         endSeq);
 
-  int    closeIncrementalGap(EfhCtx*          pEfhCtx, 
-			     const EfhRunCtx* pEfhRunCtx, 
-			     uint64_t         startSeq,
-			     uint64_t         endSeq);
-
+  virtual int closeIncrementalGap(EfhCtx*          pEfhCtx, 
+				  const EfhRunCtx* pEfhRunCtx, 
+				  uint64_t         startSeq,
+				  uint64_t         endSeq);
+  
   /* ##################################################################### */
 
   volatile char session_id[10] = {};   // Mold Session Id

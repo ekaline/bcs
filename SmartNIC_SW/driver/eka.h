@@ -39,7 +39,7 @@ typedef struct { // driver's params per NIF
   eka_session_t eka_session[EKA_SESSIONS_PER_NIF]; // valid only for NIF == 0
 } eka_nif_state_t;
 
-typedef enum {EKA_VERSION=1, EKA_DUMP=2, EKA_SET=3, EKA_DEBUG_ON=4, EKA_DEBUG_OFF=5, EKA_DROP_IGMP_ON=6, EKA_DROP_IGMP_OFF=7, EKA_DROP_ARP_ON=8, EKA_DROP_ARP_OFF=9, EKA_UDP_DROP_ON=10, EKA_UDP_DROP_OFF=11, EKA_GET_NIF_STATE=12, EKA_IOREMAP_WC=13} eka_ioctl_cmd_t;
+typedef enum {EKA_VERSION=1, EKA_DUMP=2, EKA_SET=3, EKA_DEBUG_ON=4, EKA_DEBUG_OFF=5, EKA_DROP_IGMP_ON=6, EKA_DROP_IGMP_OFF=7, EKA_DROP_ARP_ON=8, EKA_DROP_ARP_OFF=9, EKA_UDP_DROP_ON=10, EKA_UDP_DROP_OFF=11, EKA_GET_NIF_STATE=12, EKA_IOREMAP_WC=13, EKA_GET_IGMP_STATE=14} eka_ioctl_cmd_t;
 
 typedef struct {
   uint64_t bar0_pa;

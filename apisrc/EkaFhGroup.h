@@ -17,6 +17,7 @@ class EkaFhGroup {
  protected:
   EkaFhGroup() {
     connectRetryDelayTime = 15;
+    pktCnt = 0;
   };
 
  public:
@@ -33,6 +34,7 @@ class EkaFhGroup {
 
   inline void resetNoMdTimer() {
     lastMdReceived = std::chrono::high_resolution_clock::now();
+    pktCnt++;
   }
 
   virtual int  bookInit(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) = 0;
@@ -68,6 +70,10 @@ class EkaFhGroup {
   }
 
   virtual int processFromQ(const EfhRunCtx* pEfhRunCtx);
+
+  int         credentialAcquire(const char*          credName,
+				size_t               credNameSize,
+				EkaCredentialLease** lease);
 
   /* virtual bool        processUdpPkt(const EfhRunCtx* pEfhRunCtx, */
   /* 				    const uint8_t*   pkt,  */
@@ -146,7 +152,7 @@ class EkaFhGroup {
   EfhTradeStatus        trade_status       = EfhTradeStatus::kUninit;
 
   uint64_t              upd_ctr            = 0; // used for test periodic printouts
-
+  uint64_t              pktCnt             = 0; // for monitoring by efh_state
   EfhCtx*               pEfhCtx            = NULL;
   uint8_t               core               = -1;
 
@@ -155,6 +161,8 @@ class EkaFhGroup {
   FILE*                 parser_log = NULL; // used with PRINT_PARSED_MESSAGES define
 
  private:
+
+ protected:
 
 };
 #endif

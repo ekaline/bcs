@@ -34,7 +34,7 @@ int EkaEpm::createRegion(uint regionId, epm_actionid_t baseActionIdx) {
   eka_write(dev,strategyEnableAddr(regionId), ALWAYS_ENABLE);
 
 #ifndef _VERILOG_SIM
-  initHeap(epmRegion[regionId]->baseHeapOffs,HeapPerRegion);
+  initHeap(epmRegion[regionId]->baseHeapOffs,HeapPerRegion,regionId);
 #endif
 
   return 0;
@@ -42,14 +42,17 @@ int EkaEpm::createRegion(uint regionId, epm_actionid_t baseActionIdx) {
 
 /* ---------------------------------------------------- */
 
-void EkaEpm::initHeap(uint start, uint size) {
+void EkaEpm::initHeap(uint start, uint size, uint regionId) {
   uint numPages = size / HeapPage;
   if (size % HeapPage != 0) 
     on_error("size %u is not multiple of HeapPage %ju", size, HeapPage);
-
+  EKA_LOG("start=%u, size=%u, HeapPage=%ju, numPages=%ju",start,size,HeapPage,numPages);
   for (uint i = 0; i < numPages; i++) {
     uint8_t pageTmpBuf[HeapPage] = {};
-    copyIndirectBuf2HeapHw_swap4(dev, EpmHeapHwBaseAddr + start + i * HeapPage,(uint64_t*)&pageTmpBuf,0,HeapPage);
+    uint64_t pageStart = EpmHeapHwBaseAddr + start + i * HeapPage;
+    //    EKA_LOG("Cleaning pageStart=%ju + %ju",pageStart,HeapPage);
+    uint thrId = regionId % EkaDev::MAX_CTX_THREADS;
+    copyIndirectBuf2HeapHw_swap4(dev,pageStart,(uint64_t*)&pageTmpBuf,thrId,HeapPage);
   }
 }
 
@@ -171,7 +174,7 @@ EkaOpResult EkaEpm::initStrategies(EkaCoreId coreId,
     if (strategy[i] == NULL) on_error("Fail to create strategy[%d]",i);
 
     //    udpCh[coreId]->igmp_mc_join(0, strategy[i]->ip, strategy[i]->port,0);
-    ekaIgmp->mcJoin(strategy[i]->ip, strategy[i]->port,0);
+    ekaIgmp->mcJoin(strategy[i]->ip, strategy[i]->port,0,&pktCnt);
 
     currActionIdx += params[i].numActions;
 
