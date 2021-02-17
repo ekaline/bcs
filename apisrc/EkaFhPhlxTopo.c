@@ -60,7 +60,8 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       gr->book->sendTobImage(pEfhRunCtx);
       
       gr->state = EkaFhGroup::GrpState::NORMAL;
-      gr->sendFeedUpInitial(pEfhRunCtx);
+      //      gr->sendFeedUpInitial(pEfhRunCtx);
+      gr->sendFeedUp(pEfhRunCtx);
     }
   }
 
