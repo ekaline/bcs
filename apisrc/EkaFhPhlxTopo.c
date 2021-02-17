@@ -4,6 +4,8 @@
 #include "EkaFhThreadAttr.h"
 #include "EkaFhPhlxTopoGr.h"
 
+uint64_t getMostRecentSeq (EkaFhNasdaqGr* gr);
+
  /* ##################################################################### */
 
 static inline bool isPreTradeTime(int hour, int minute) {
@@ -42,7 +44,10 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
 
       gr->sendFeedDownInitial(pEfhRunCtx);
 
-      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,1, 0);
+      uint64_t mostRecentSeq = getMostRecentSeq(gr);
+      EKA_LOG("%s:%u: mostRecentSeq = %ju",EKA_EXCH_DECODE(exch),gr->id,mostRecentSeq);
+
+      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,1, mostRecentSeq);
 
       while (! gr->snapshotThreadDone) {} // instead of thread.join()
       gr->expected_sequence = gr->recovery_sequence + 1;

@@ -36,6 +36,9 @@ struct soupbin_login_req {
   char			sequence[20];
 } __attribute__((packed));
 
+static bool sendLogin (EkaFhNasdaqGr* gr, uint64_t start_sequence);
+static void sendLogout (EkaFhNasdaqGr* gr);
+static bool getLoginResponse(EkaFhNasdaqGr* gr);
 //-----------------------------------------------
 
 static int sendUdpPkt (EkaDev* dev, 
@@ -146,6 +149,82 @@ void* soupbin_heartbeat_thread(void* attr) {
   EKA_LOG("%s:%u: Glimpse hearbeat thread terminated on sock %d",EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock);
   return NULL;
 }
+/* ##################################################################### */
+
+uint64_t getMostRecentSeq (EkaFhNasdaqGr* gr) {
+  EkaDev* dev = gr->dev;
+  //-----------------------------------------------------------------
+  EkaCredentialLease* lease;
+  gr->credentialAcquire(gr->auth_user,sizeof(gr->auth_user),&lease);
+  //-----------------------------------------------------------------
+
+  gr->snapshot_sock = socket(AF_INET, SOCK_STREAM, 0);
+  if (gr->snapshot_sock < 0) on_error("%s:%u: failed to open TCP socket",
+				      EKA_EXCH_DECODE(gr->exch),gr->id);
+
+  static const int TimeOut = 1; // seconds
+  struct timeval tv = {
+    .tv_sec = TimeOut
+  }; 
+  setsockopt(gr->snapshot_sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+  int rc = 0;
+  sockaddr_in remote_addr = {};
+  remote_addr.sin_addr.s_addr = gr->snapshot_ip;
+  remote_addr.sin_port        = gr->snapshot_port;
+  remote_addr.sin_family      = AF_INET;
+
+  static const int MaxAttempts = 2;
+  for (auto i = 0; i < MaxAttempts; i++) {
+    if (connect(gr->snapshot_sock,(sockaddr*)&remote_addr,sizeof(sockaddr_in)) != 0) {
+      dev->lastErrno = errno;
+      EKA_WARN("%s:%u Tcp Connect to %s:%u failed: %s",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,
+	       EKA_IP2STR(remote_addr.sin_addr.s_addr),
+	       be16toh   (remote_addr.sin_port),
+	       strerror(dev->lastErrno));
+
+      goto ITERATION_FAIL;
+    }
+
+    //-----------------------------------------------------------------
+    if (! sendLogin(gr, 0))     goto ITERATION_FAIL;
+    //-----------------------------------------------------------------
+    if (! getLoginResponse(gr)) goto ITERATION_FAIL;
+    //-----------------------------------------------------------------
+    goto SUCCESS;
+
+  ITERATION_FAIL:
+    EKA_WARN("%s:%u atempt %d / %d failed",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,i,MaxAttempts);
+     sendLogout(gr);
+     close(gr->snapshot_sock);
+  }
+  //-----------------------------------------------------------------
+
+  rc = dev->credRelease(lease, dev->credContext);
+  if (rc != 0) on_error("%s:%u Failed to credRelease",
+			EKA_EXCH_DECODE(gr->exch),gr->id);
+  EKA_LOG("%s:%u Soupbin Credentials Released",
+	  EKA_EXCH_DECODE(gr->exch),gr->id);
+  EKA_WARN("%s:%u getMostRecentSeq Failed after %d trials. Exiting...",
+	   EKA_EXCH_DECODE(gr->exch),gr->id,MaxAttempts);
+  on_error("%s:%u Failed after %d trials. Exiting...",
+	   EKA_EXCH_DECODE(gr->exch),gr->id,MaxAttempts);
+  return 0;
+  //-----------------------------------------------------------------
+  
+ SUCCESS:
+  sendLogout(gr);
+  close(gr->snapshot_sock);
+  rc = dev->credRelease(lease, dev->credContext);
+  if (rc != 0) on_error("%s:%u Failed to credRelease",
+			EKA_EXCH_DECODE(gr->exch),gr->id);
+  EKA_LOG("%s:%u Soupbin Credentials Released",
+	  EKA_EXCH_DECODE(gr->exch),gr->id);
+  return gr->firstSoupbinSeq;
+}
+
+/* ##################################################################### */
 
 static bool sendLogin (EkaFhNasdaqGr* gr, uint64_t start_sequence) {
   EkaDev* dev = gr->dev;
@@ -232,7 +311,8 @@ static bool getLoginResponse(EkaFhNasdaqGr* gr) {
   case 'A' : {
     char first_seq[20] = {};
     memcpy(first_seq,session_id+10,sizeof(first_seq));
-    gr->recovery_sequence = strtoul(first_seq, NULL, 10);
+    gr->firstSoupbinSeq = strtoul(first_seq, NULL, 10);
+    gr->recovery_sequence = gr->firstSoupbinSeq;
   
     EKA_LOG("%s:%u Login accepted for session_id=\'%s\', first_seq= \'%s\' (=%ju)",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,session_id,first_seq,gr->recovery_sequence);
@@ -331,6 +411,7 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
   } // switch (hdr.type)
   return EkaFhParseResult::NotEnd;
 }
+
 /* ##################################################################### */
 static bool soupbinCycle(EkaDev*        dev, 
 			   EfhRunCtx*     pEfhRunCtx, 

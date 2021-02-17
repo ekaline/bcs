@@ -31,7 +31,7 @@ class EkaFhNasdaqGr : public EkaFhGroup {
   volatile char session_id[10] = {};   // Mold Session Id
   bool          firstPkt       = true; // to get session_id
   static const int MoldLocalRetryAttempts = 5;
-
+  uint64_t      firstSoupbinSeq = 0;
  private:
 
 
