@@ -43,14 +43,14 @@ void EkaFhNasdaqGr::pushUdpPkt2Q(const uint8_t* pkt,
 }
 
 /* ##################################################################### */
-int EkaFhNasdaqGr::closeSnapshotGap(EfhCtx*           pEfhCtx, 
+int EkaFhNasdaqGr::closeSnapshotGap(EfhCtx*          pEfhCtx, 
 				    const EfhRunCtx* pEfhRunCtx, 
-				    uint64_t          startSeq,
-				    uint64_t          endSeq) {
+				    uint64_t         startSeq,
+				    uint64_t         endSeq) {
   
   std::string threadName = std::string("ST_") + std::string(EKA_EXCH_SOURCE_DECODE(exch)) + '_' + std::to_string(id);
   EkaFhThreadAttr* attr  = new EkaFhThreadAttr(pEfhCtx, 
-					       (const EfhRunCtx*)pEfhRunCtx, 
+					       pEfhRunCtx, 
 					       this, 
 					       startSeq, 
 					       endSeq, 
@@ -67,15 +67,19 @@ int EkaFhNasdaqGr::closeSnapshotGap(EfhCtx*           pEfhCtx,
   return 0;
 }
 /* ##################################################################### */
-int EkaFhNasdaqGr::closeIncrementalGap(EfhCtx*        pEfhCtx, 
+int EkaFhNasdaqGr::closeIncrementalGap(EfhCtx*          pEfhCtx, 
 				       const EfhRunCtx* pEfhRunCtx, 
-				       uint64_t          startSeq,
-				       uint64_t          endSeq) {
+				       uint64_t         startSeq,
+				       uint64_t         endSeq) {
   
 
-  std::string threadName = std::string("ST_") + std::string(EKA_EXCH_SOURCE_DECODE(exch)) + '_' + std::to_string(id);
+  std::string threadName = std::string("ST_") + 
+    std::string(EKA_EXCH_SOURCE_DECODE(exch)) + 
+    '_' + 
+    std::to_string(id);
+
   EkaFhThreadAttr* attr  = new EkaFhThreadAttr(pEfhCtx, 
-					       (const EfhRunCtx*)pEfhRunCtx, 
+					       pEfhRunCtx, 
 					       this, 
 					       startSeq, 
 					       endSeq,  
