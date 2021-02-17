@@ -234,7 +234,7 @@ static bool getLoginResponse(EkaFhNasdaqGr* gr) {
     memcpy(first_seq,session_id+10,sizeof(first_seq));
     gr->recovery_sequence = strtoul(first_seq, NULL, 10);
   
-    EKA_LOG("%s:%u Login accepted for session_id=%s, first_seq= \'%s\' %ju",
+    EKA_LOG("%s:%u Login accepted for session_id=\'%s\', first_seq= \'%s\' (=%ju)",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,session_id,first_seq,gr->recovery_sequence);
   }
     break;
@@ -340,6 +340,10 @@ static bool soupbinCycle(EkaDev*        dev,
 			   uint64_t       end_sequence,
 			   const int      MaxTrials
 			 ) {
+  EKA_LOG("%s:%u %s start_sequence=%ju, end_sequence=%ju",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op),
+	  start_sequence,end_sequence);
+
   EkaFhParseResult parseResult;
   auto lastHeartBeatTime = std::chrono::high_resolution_clock::now();
   std::chrono::high_resolution_clock::time_point now;
