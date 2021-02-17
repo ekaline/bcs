@@ -165,10 +165,10 @@ static bool sendLogin (EkaFhNasdaqGr* gr, uint64_t start_sequence) {
 #if 1
   EKA_LOG("%s:%u: sending login message: user[6]=|%s|, passwd[10]=|%s|, session[10]=|%s|, sequence[20]=|%s|",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,
-	  login_message.username+'\0',
-	  login_message.password+'\0',
-	  login_message.session+'\0',
-	  login_message.sequence+'\0'
+	  std::string(login_message.username,sizeof(login_message.username)).c_str(),
+	  std::string(login_message.password,sizeof(login_message.password)).c_str(),
+	  std::string(login_message.session, sizeof(login_message.session) ).c_str(),
+	  std::string(login_message.sequence,sizeof(login_message.sequence)).c_str()
 	  );
 #endif	
   if(send(gr->snapshot_sock,&login_message,sizeof(login_message), 0) < 0) {
@@ -229,9 +229,14 @@ static bool getLoginResponse(EkaFhNasdaqGr* gr) {
     EKA_WARN("Soupbin Heartbeat arrived before login");
     return false;
 
-  case 'A' :
-    EKA_LOG("%s:%u Login accepted for session_id=%s, first_seq=%ju",
-	    EKA_EXCH_DECODE(gr->exch),gr->id,session_id,gr->recovery_sequence);
+  case 'A' : {
+    char first_seq[20] = {};
+    memcpy(first_seq,session_id+10,sizeof(first_seq));
+    gr->recovery_sequence = strtoul(first_seq, NULL, 10);
+  
+    EKA_LOG("%s:%u Login accepted for session_id=%s, first_seq= \'%s\' %ju",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,session_id,first_seq,gr->recovery_sequence);
+  }
     break;
 
   default:
@@ -239,10 +244,6 @@ static bool getLoginResponse(EkaFhNasdaqGr* gr) {
     return false;
   }
 
-  char first_seq[20] = {};
-  memcpy(first_seq,session_id+10,sizeof(first_seq));
-  gr->recovery_sequence = strtoul(first_seq, NULL, 10);
-  
   return true;  
 }
 /* ##################################################################### */
