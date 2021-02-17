@@ -4,6 +4,8 @@
 #include "EkaFhThreadAttr.h"
 #include "EkaFhPhlxTopoGr.h"
 
+uint64_t getMostRecentSeq (EkaFhNasdaqGr* gr);
+
  /* ##################################################################### */
 
 static inline bool isPreTradeTime(int hour, int minute) {
@@ -42,15 +44,24 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
 
       gr->sendFeedDownInitial(pEfhRunCtx);
 
-      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,1, 1);
+      uint64_t mostRecentSeq = getMostRecentSeq(gr);
+      EKA_LOG("%s:%u: mostRecentSeq = %ju",EKA_EXCH_DECODE(exch),gr->id,mostRecentSeq);
+
+      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,1, mostRecentSeq);
 
       while (! gr->snapshotThreadDone) {} // instead of thread.join()
       gr->expected_sequence = gr->recovery_sequence + 1;
       EKA_LOG("%s:%u: PreTrade Soupbin Snapshot is done, expected_sequence = %ju",
 	      EKA_EXCH_DECODE(exch),gr->id,gr->expected_sequence);
-
+      gr->seq_after_snapshot = gr->recovery_sequence + 1;
+      
+      EKA_DEBUG("%s:%u Generating TOB quote for every Security",
+		EKA_EXCH_DECODE(gr->exch),gr->id);
+      gr->book->sendTobImage(pEfhRunCtx);
+      
       gr->state = EkaFhGroup::GrpState::NORMAL;
-      gr->sendFeedUpInitial(pEfhRunCtx);
+      //      gr->sendFeedUpInitial(pEfhRunCtx);
+      gr->sendFeedUp(pEfhRunCtx);
     }
   }
 
