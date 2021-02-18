@@ -1,1 +1,1 @@
-"EKA DRIVER RELEASE:     3_0_2_RC_WC6 EKA_GET_IGMP_STATE ioctl"
+"EKA DRIVER RELEASE:     3_0_2_RC_WC6 IGMP ioctl + driver fix"

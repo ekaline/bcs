@@ -945,11 +945,12 @@ static int delete_subscriber(sc_multicast_subscription_t *list, size_t listLengt
         {
             pSubscriber->group_address = 0;
             pSubscriber->ip_port_number = 0;
-            pSubscriber->channel = 0;
+	    //fixed by Ekaline
+            //pSubscriber->channel = 0;
             pSubscriber->vlanTag = NO_VLAN_TAG;
 	    //fixed by Ekaline
 	    //            pSubscriber->lane = NO_NIF;
-            pSubscriber->positionIndex = 0;
+            //pSubscriber->positionIndex = 0;
             pSubscriber->enable_multicast_bypass = 0;
             pSubscriber->update_fpga = true;
             return i;
