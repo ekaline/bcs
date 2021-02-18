@@ -81,8 +81,8 @@ class EkaEpm {
 
   static const uint8_t  UserRegion              = 0;
   //  static const uint8_t  ServiceRegion           = 1;
-  static const uint8_t  ServiceRegion           = EPM_REGIONS - 1;
-  static const uint8_t  EfcRegion               = EPM_REGIONS - 2;
+  static const uint8_t  ServiceRegion           = 31; // EPM_REGIONS - 1;
+  static const uint8_t  EfcRegion               = 30; // EPM_REGIONS - 2;
 
   static const uint     UserActionsBaseIdx      = 0;
   static const uint64_t MaxUserActions          = MaxStrategies * MaxActionsPerStrategy;
@@ -100,21 +100,23 @@ class EkaEpm {
 
 
 
-  enum class ActionType : int {
-    INVALID = 0,
-      // Service Actions
-      TcpFullPkt,
-      TcpFastPath,
-      TcpEmptyAck,
-      Igmp,
+  /* enum class ActionType : int { */
+  /*   INVALID = 0, */
+  /*     // Service Actions */
+  /*     TcpFullPkt, */
+  /*     TcpFastPath, */
+  /*     TcpEmptyAck, */
+  /*     Igmp, */
 
-      // Efc
-      HwFireAction,
+  /*     // Efc */
+  /*     HwFireAction, */
 
-      // User Actions
-      UserAction
-  };
+  /*     // User Actions */
+  /*     UserAction */
+  /* }; */
 
+
+  using ActionType = EpmActionType;
 
   EkaEpm(EkaDev* _dev);
 

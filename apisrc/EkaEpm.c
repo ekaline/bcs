@@ -15,6 +15,7 @@
 #include "EpmStrategy.h"
 #include "EkaEpmRegion.h"
 #include "EkaIgmp.h"
+#include "EkaEfc.h"
 
 uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size);
 void ekaFireReportThread(EkaDev* dev);
@@ -91,10 +92,23 @@ EkaOpResult EkaEpm::setAction(EkaCoreId coreId,
 			      epm_strategyid_t strategyIdx,
 			      epm_actionid_t actionIdx,
 			      const EpmAction *epmAction) {
+
+  if (strategyIdx == EFC_STRATEGY) {
+    if (dev->efc == NULL) {
+      EKA_WARN ("EKA_OPRESULT__ERR_EFC_UNINITALIZED");
+      return EKA_OPRESULT__ERR_EFC_UNINITALIZED;
+    }
+    
+    dev->efc->createFireAction(actionIdx, epmAction->hConn);
+
+    return EKA_OPRESULT__OK;
+  }
+
   if (! initialized) {
     EKA_WARN ("EKA_OPRESULT__ERR_EPM_UNINITALIZED");
     return EKA_OPRESULT__ERR_EPM_UNINITALIZED;
   }
+
   if (! validStrategyIdx(strategyIdx)) {
     EKA_WARN ("EKA_OPRESULT__ERR_INVALID_STRATEGY: strategyIdx=%d",strategyIdx);
     return EKA_OPRESULT__ERR_INVALID_STRATEGY;

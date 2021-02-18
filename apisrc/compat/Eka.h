@@ -98,6 +98,7 @@ extern "C" {
 
     // EFC specific
     EKA_OPRESULT__ERR_EFC_DISABLED = -301,
+    EKA_OPRESULT__ERR_EFC_UNINITALIZED = -302,
 
   };
 

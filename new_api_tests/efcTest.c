@@ -52,6 +52,8 @@ static volatile int numFireEvents = 0;
 static const int TEST_NUMOFSEC = 1;
 
 static const uint64_t TEST_NOM_SEC_ID =  0x0003c40e;
+static const uint64_t AlwaysFire      = 0xadcd;
+static const uint64_t DefaultToken    = 0x1122334455667788;
 
 /* --------------------------------------------- */
 struct NomAddOrderShortPkt {
@@ -243,148 +245,6 @@ static void printFireReport(EpmFireReport* report) {
 /*  receive: fpga0_0 10.120.115.54 */
 
 /* --------------------------------------------- */
-static const int NumActionsPerTestCase = 10;
-
-struct TestStrategy {
-  epm_strategyid_t id;
-  epm_enablebits_t enableBitmap;
-};
-
-struct TestAction {
-  epm_actionid_t   id;
-  epm_enablebits_t enableBitmap;
-  epm_enablebits_t postLocalMask;
-  epm_enablebits_t postStratMask;
-  uint32_t         validFlag;
-  EkaCoreId        coreId;
-  uint64_t         user;
-  epm_token_t      token;
-};
-
-struct TestCase {
-  const char       *testCaseName;
-  ExcConnHandle    conn;
-  int              tcpServerSock;
-  int              triggerSock;
-  const sockaddr*  triggerMcAddr;
-  TestStrategy     testStrategy;
-  TestAction       testAction[NumActionsPerTestCase] = {};
-  bool             raiseTriggerFromSw;
-  EpmTrigger       epmTrigger;
-  uint64_t         user;
-  epm_actionid_t   expectedAction[NumActionsPerTestCase] = {};
-};
-/* ############################################# */
-bool runTestCase(EkaDev *dev, TestCase *testCase) {
-  uint dataAlignment = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_PayloadAlignment);
-  uint nwHdrOffset   = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_DatagramOffset);
-  uint fcsOffset     = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_RequiredTailPadding);
-  uint heapOffset    = 0;
-
-  uint coreId = excGetCoreId(testCase->conn);
-
-  EkaOpResult ekaRC = epmEnableController(dev,coreId,false);
-  if (ekaRC != EKA_OPRESULT__OK) on_error("epmEnableController failed: ekaRC = %d",ekaRC);
-
-  epmSetStrategyEnableBits(dev, coreId, testCase->testStrategy.id, testCase->testStrategy.enableBitmap);
-  /* ============================================== */
-
-  int testActionsNum = sizeof(testCase->testAction)/sizeof(testCase->testAction[0]);
-  for (auto i = 0; i < testActionsNum ; i++) {
-    TestAction *currAction = &testCase->testAction[i];
-    if (currAction->id == EPM_LAST_ACTION) break;
-    epm_actionid_t nextActionId = testCase->testAction[i+1].id;
-
-    char pkt2send[1000] = {};
-    sprintf(pkt2send,"Action Pkt: strategy=%d, action-in-chain=%d, actionId=%3u, next=%5u EOP\n",
-	    testCase->testStrategy.id,i,static_cast<uint>(currAction->id),nextActionId);
-
-    heapOffset = heapOffset + dataAlignment - (heapOffset % dataAlignment) + nwHdrOffset;
-
-    EpmAction epmAction = {
-      .token         = currAction->token,                      ///< Security token
-      .hConn         = testCase->conn,                         ///< TCP connection where segments will be sent
-      .offset        = heapOffset,                             ///< Offset to payload in payload heap
-      .length        = (uint32_t)strlen(pkt2send),             ///< Payload length
-      .actionFlags   = currAction->validFlag,                  ///< Behavior flags (see EpmActionFlag)
-      .nextAction    = nextActionId,                           ///< Next action in sequence, or EPM_LAST_ACTION
-      .enable        = currAction->enableBitmap,               ///< Enable bits
-      .postLocalMask = currAction->postLocalMask,              ///< Post fire: enable & mask -> enable
-      .postStratMask = currAction->postStratMask,              ///< Post fire: strat-enable & mask -> strat-enable
-      .user          = static_cast<uintptr_t>(testCase->user)  ///< Opaque value copied into `EpmFireReport`.
-    };
-    ekaRC = epmPayloadHeapCopy(dev, coreId,
-			       static_cast<epm_strategyid_t>(testCase->testStrategy.id),
-			       heapOffset,
-			       epmAction.length,
-			       (const void *)pkt2send);
-
-    if (ekaRC != EKA_OPRESULT__OK) on_error("epmPayloadHeapCopy failed: ekaRC = %d",ekaRC);
-    heapOffset += epmAction.length + fcsOffset;
-	
-    ekaRC = epmSetAction(dev, coreId, testCase->testStrategy.id, currAction->id, &epmAction);
-    if (ekaRC != EKA_OPRESULT__OK) on_error("epmSetAction failed: ekaRC = %d",ekaRC);
-    //    printf("%d --> ",currAction->id);
-  }
-  //  printf("EPM_LAST_ACTION\n");
-  /* ============================================== */
-  ekaRC = epmEnableController(dev,coreId,true);
-  if (ekaRC != EKA_OPRESULT__OK) on_error("epmEnableController failed: ekaRC = %d",ekaRC);
-
-  /* ============================================== */
-
-  if (testCase->raiseTriggerFromSw) {
-    ekaRC = epmRaiseTriggers(dev,coreId, &testCase->epmTrigger);
-    if (ekaRC != EKA_OPRESULT__OK) on_error("epmRaiseTriggers failed: ekaRC = %d",ekaRC);
-  } else {
-    if (sendto(testCase->triggerSock,&testCase->epmTrigger,sizeof(EpmTrigger),0,testCase->triggerMcAddr,sizeof(sockaddr)) < 0) 
-      on_error ("MC trigger send failed");
-  }
-  /* ============================================== */
-
-  sleep(1);
-  char rxBuf[2000] = {};
-  int bytes_read = recv(testCase->tcpServerSock, rxBuf, sizeof(rxBuf), 0);
-  if (bytes_read > 0) EKA_LOG("EPM fires received by TCP:\n%s",rxBuf);
-  else EKA_LOG("No fires\n");
-  /* ============================================== */
-
-  bool testPassed = true;
-
-  for (auto i = 0; i < numFireEvents; i++) {
-    if (FireEvent[i] == NULL) on_error("FireEvent[%d] == NULL",i);
-
-    EpmFireReport* report = (EpmFireReport*)FireEvent[i];
-    printFireReport(report);
-
-    if (report->strategyId != testCase->testStrategy.id) {
-      testPassed = false;
-      TEST_FAILED("StrategyId mismatch: report->strategyId %d != testCase->testStrategy.id %d",
-	       report->strategyId, testCase->testStrategy.id);
-    }
-    if (report->actionId != testCase->expectedAction[i]) {
-      testPassed = false;
-      TEST_FAILED("ActionId mismatch: report->actionId %d != expectedAction[%d] %d",
-	       report->actionId, i, testCase->expectedAction[i]);
-    }
-  }
-
-  if (testCase->expectedAction[numFireEvents] != 0) {
-      testPassed = false;
-      TEST_FAILED("Expected more events than fired: %d",numFireEvents);
-  }
-
-  /* ============================================== */
-  cleanFireEvents();
-  /* ============================================== */
-
-  if (testPassed) {
-    TEST_PASSED("%s: PASSED",testCase->testCaseName);
-  } else {
-    TEST_FAILED("%s: FAILED",testCase->testCaseName);
-  }
-  return testPassed;
-}
 
 
 /* ############################################# */
@@ -393,7 +253,7 @@ int main(int argc, char *argv[]) {
 
   EkaDev* dev = NULL;
   EkaCoreId coreId = 0;
-
+  EkaOpResult rc;
   EkaDevInitCtx ekaDevInitCtx = {
     .logCallback  = NULL,
     .logContext   = NULL,
@@ -414,7 +274,9 @@ int main(int argc, char *argv[]) {
 
   getAttr(argc,argv,&serverIp,&serverTcpPort,&clientIp,&triggerIp,&triggerUdpPort);
 
-  EKA_LOG("\n==============================\nUDP Trigger: %s:%u, Actions Server %s:%u, Client IP %s\n==============================",
+  EKA_LOG("\n==============================\n\
+UDP Trigger: %s:%u, Actions Server %s:%u, Client IP %s\n\
+==============================",
 	  triggerIp.c_str(),triggerUdpPort,serverIp.c_str(),serverTcpPort,clientIp.c_str());
 
   /* ============================================== */
@@ -475,7 +337,7 @@ int main(int argc, char *argv[]) {
   };
   EfcCtx efcCtx = {};
   EfcCtx* pEfcCtx = &efcCtx;
-  EkaOpResult rc = efcInit(&pEfcCtx,dev,&initCtx);
+  rc = efcInit(&pEfcCtx,dev,&initCtx);
   if (rc != EKA_OPRESULT__OK) on_error("efcInit returned %d",(int)rc);
   /* ============================================== */
   EfcStratGlobCtx efcStratGlobCtx = {
@@ -537,7 +399,36 @@ int main(int argc, char *argv[]) {
     .askSize    = 0,
     .reentry    = '1'
   };
-  efcSetFireTemplate(pEfcCtx, conn, &fireMsg, sizeof(fireMsg));
+  //  efcSetFireTemplate(pEfcCtx, conn, &fireMsg, sizeof(fireMsg));
+  uint32_t fireHeapOffset = 14 + 20 + 20;
+  rc = epmPayloadHeapCopy(dev, 
+			  0, // coreId
+			  EFC_STRATEGY,
+			  fireHeapOffset,
+			  sizeof(fireMsg),
+			  &fireMsg);
+  if (rc != EKA_OPRESULT__OK) on_error("epmPayloadHeapCopy returned %d",(int)rc);
+
+  const EpmAction sqfFireAction = {
+    .type          = EpmActionType::SqfFire,                 ///< Action type
+    .token         = DefaultToken,                           ///< Security token
+    .hConn         = conn,                                   ///< TCP connection where segments will be sent
+    .offset        = fireHeapOffset,                         ///< Offset to payload in payload heap
+    .length        = (uint32_t)sizeof(fireMsg),              ///< Payload length
+    .actionFlags   = AF_Valid,                               ///< Behavior flags (see EpmActionFlag)
+    .nextAction    = EPM_LAST_ACTION,                        ///< Next action in sequence, or EPM_LAST_ACTION
+    .enable        = AlwaysFire,                             ///< Enable bits
+    .postLocalMask = AlwaysFire,                             ///< Post fire: enable & mask -> enable
+    .postStratMask = AlwaysFire,                             ///< Post fire: strat-enable & mask -> strat-enable
+    .user          = 0x1234567890abcdef                      ///< Opaque value copied into `EpmFireReport`.
+  };
+  rc = epmSetAction(dev, 
+		    0,               // coreId
+		    EFC_STRATEGY, 
+		    0,               // epm_actionid_t must correspond to the MC gr ID
+                    &sqfFireAction);
+  if (rc != EKA_OPRESULT__OK) on_error("epmSetAction returned %d",(int)rc);
+
   /* ============================================== */
   efcEnableController(pEfcCtx, 0);
   /* ============================================== */

@@ -296,7 +296,7 @@ EkaOpResult efcSetGroupSesCtx( EfcCtx* pEfcCtx, uint8_t group, ExcConnHandle hCo
   if (dev->core[coreId]->tcpSess[sessId] == NULL)
     on_error("hConn 0x%x is not connected",hConn);
 
-  efc->createFireAction(group,hConn);
+  //  efc->createFireAction(group,hConn);
   //  eka_set_group_session(pEfcCtx->dev, group, hConn);
   return EKA_OPRESULT__OK;
 

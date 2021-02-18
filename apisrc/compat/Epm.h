@@ -19,6 +19,9 @@ typedef int32_t epm_actionid_t;
 
 #define EPM_LAST_ACTION 0xFFFF
 
+  //static const epm_strategyid_t EfcStrategyId = 30;
+#define EFC_STRATEGY 30
+
 /// Eklaine device limitations
 enum EpmDeviceCapability {
   EHC_PayloadMemorySize,       ///< Bytes available for payload packets
@@ -29,9 +32,35 @@ enum EpmDeviceCapability {
   EHC_MaxActions               ///< Total no. of actions (shared by all strats)
 };
 
+enum class EpmActionType : int {
+  INVALID = 0,
+
+    /// Service Actions - used by Ekaline internally
+    /// These Actions use dedicated Heap partition protected from User
+    TcpFullPkt  = 11,
+    TcpFastPath = 12,
+    TcpEmptyAck = 13,
+    Igmp        = 14,
+    
+    /// Efc Actions - can be fired from SW and FPGA logic
+    /// These Actions must belong only to EFC_STRATEGY
+    /// Part of the payload fields are managed by FPGA (securityId, price, size, etc.)
+    /// Each Action must have implicit template (manually prepared by ekaline)
+    HwFireAction = 21,          ///< Default Fire Format (for backward compatibility) 
+    SqfFire      = 22,
+    SqfCancel    = 23,
+    BoeFire      = 24,
+    BoeCancel    = 25,
+
+    // User Actions
+    UserAction   = 100          ///< EPM fire. No fields managed by HW
+ };
+
+
 /// Descriptor of an action to be performed; more documentation about these
 /// fields can be found in the @ref epmGetAction function.
 struct EpmAction {
+  EpmActionType type;          ///< Action type
   epm_token_t token;           ///< Security token
   ExcConnHandle hConn;         ///< TCP connection where segments will be sent
   uint32_t offset;             ///< Offset to payload in payload heap
