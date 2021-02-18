@@ -98,8 +98,15 @@ EkaOpResult EkaEpm::setAction(EkaCoreId coreId,
       EKA_WARN ("EKA_OPRESULT__ERR_EFC_UNINITALIZED");
       return EKA_OPRESULT__ERR_EFC_UNINITALIZED;
     }
-    
-    dev->efc->createFireAction(actionIdx, epmAction->hConn);
+    EKA_LOG("Creating EFC Action %u",actionIdx);
+    EkaEpmAction* fireAction = dev->efc->createFireAction(actionIdx, epmAction->hConn);
+    if (fireAction == NULL) on_error("fireAction == NULL");
+
+    fireAction->updateAttrs(excGetCoreId(epmAction->hConn),
+			    excGetSessionId(epmAction->hConn),
+			    epmAction);
+
+    fireAction->updatePayload(epmAction->offset,epmAction->length);
 
     return EKA_OPRESULT__OK;
   }

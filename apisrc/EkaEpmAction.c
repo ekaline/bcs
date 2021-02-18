@@ -231,6 +231,8 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
   else
     hwAction.bit_params.bitmap.action_valid = 0;
 
+  print("from updateAttrs");
+
   return 0;
 }
 /* ----------------------------------------------------- */
@@ -297,7 +299,33 @@ int EkaEpmAction::setPktPayload(const void* buf, uint len) {
   
   return 0;
 }
+/* ----------------------------------------------------- */
 
+int EkaEpmAction::updatePayload(uint offset, uint len) {
+  /* heapOffs   = offset - EkaEpm::DatagramOffset; */
+  /* if (heapOffs % 64 != 0) on_error("offset %u is not alligned",offset); */
+  payloadLen = len;
+
+  //  heapAddr        = EpmHeapHwBaseAddr + heapOffs;
+
+  pktSize = EkaEpm::DatagramOffset + payloadLen;
+  ipHdr->_len    = be16toh(sizeof(EkaIpHdr)+sizeof(EkaTcpHdr)+payloadLen);
+  ipHdr->_chksum = 0;
+  ipHdr->_chksum = csum((unsigned short *)ipHdr, sizeof(EkaIpHdr));
+
+  epmTemplate->clearHwFields(&epm->heap[heapOffs]);
+
+  tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,payloadLen);
+  copyIndirectBuf2HeapHw_swap4(dev,heapAddr, (uint64_t*) &epm->heap[heapOffs], thrId, pktSize);
+
+  hwAction.tcpCSum      = tcpCSum;
+  hwAction.payloadSize  = pktSize; 
+  copyBuf2Hw(dev,EkaEpm::EpmActionBase, (uint64_t*)&hwAction,sizeof(hwAction)); //write to scratchpad
+  atomicIndirectBufWrite(dev, 0xf0238 /* ActionAddr */, 0,0,idx,0);
+
+  print("from updatePayload");
+  return 0;
+}
 /* ----------------------------------------------------- */
 
 int EkaEpmAction::setUdpPktPayload(const void* buf, uint len) {

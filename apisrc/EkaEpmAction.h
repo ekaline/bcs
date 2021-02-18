@@ -41,6 +41,8 @@ class EkaEpmAction {
   /* ----------------------------------------------------- */
   int setFullPkt(const void* buf, uint len);
   /* ----------------------------------------------------- */
+  int updatePayload(uint heapOffset, uint len);
+  /* ----------------------------------------------------- */
   int setPktPayload(const void* buf, uint len);
   /* ----------------------------------------------------- */
   int setUdpPktPayload(const void* buf, uint len);

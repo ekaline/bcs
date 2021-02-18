@@ -408,7 +408,7 @@ int EkaEfc::setHwStratRegion() {
 }
 /* ################################################ */
 
-int EkaEfc::createFireAction(uint8_t group, ExcConnHandle hConn) {
+EkaEpmAction* EkaEfc::createFireAction(uint8_t group, ExcConnHandle hConn) {
   if (numFireActions == MAX_FIRE_ACTIONS) 
     on_error("numFireActions == MAX_FIRE_ACTIONS %d",numFireActions);
 
@@ -427,7 +427,9 @@ int EkaEfc::createFireAction(uint8_t group, ExcConnHandle hConn) {
 
   udpSess[group]->firstSessId = mySessId;
 
-  fireAction[numFireActions] = dev->epm->addAction(EkaEpm::ActionType::HwFireAction,
+  int newActionId = numFireActions;
+  
+  fireAction[newActionId] = dev->epm->addAction(EkaEpm::ActionType::HwFireAction,
 						   EkaEpm::EfcRegion,
 						   0, //localIdx
 						   myCoreId,
@@ -435,19 +437,20 @@ int EkaEfc::createFireAction(uint8_t group, ExcConnHandle hConn) {
 						   0 //auxIdx
 						   );
 
-  fireAction[numFireActions]->setNwHdrs(myTcpSess->macDa,
+  fireAction[newActionId]->setNwHdrs(myTcpSess->macDa,
 					myTcpSess->macSa,
 					myTcpSess->srcIp,
 					myTcpSess->dstIp,
 					myTcpSess->srcPort,
 					myTcpSess->dstPort);
 
+
   EKA_LOG("Created FireAction: on fireCoreId %d %s:%u --> %s:%u ",
 	  fireCoreId,
 	  EKA_IP2STR(myTcpSess->srcIp),myTcpSess->srcPort,
 	  EKA_IP2STR(myTcpSess->dstIp),myTcpSess->dstPort);
   numFireActions++;
-  return 0;
+  return fireAction[newActionId];
 }
 
 /* ################################################ */

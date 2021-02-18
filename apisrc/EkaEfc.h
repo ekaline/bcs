@@ -24,7 +24,7 @@ class EkaEfc {
   int armController();
   int disArmController();
   int run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx);
-  int createFireAction(uint8_t group, ExcConnHandle hConn);
+  EkaEpmAction* createFireAction(uint8_t group, ExcConnHandle hConn);
   int setActionPayload(ExcConnHandle hConn,const void* fireMsg, size_t fireMsgSize);
 
  private:
