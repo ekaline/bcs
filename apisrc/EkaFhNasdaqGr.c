@@ -88,7 +88,7 @@ int EkaFhNasdaqGr::closeIncrementalGap(EfhCtx*          pEfhCtx,
     
   dev->createThread(threadName.c_str(),
 		    EkaServiceType::kFeedSnapshot,
-		    getSoupBinData, //getMolUdp64Data,        
+		    getMolUdp64Data,        
 		    attr,
 		    dev->createThreadContext,
 		    (uintptr_t*)&snapshot_thread);   
