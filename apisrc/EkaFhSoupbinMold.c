@@ -400,7 +400,7 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
       return EkaFhParseResult::End;
     }
 
-    if (end_sequence != 0 && sequencedPkt && gr->recovery_sequence >= end_sequence) {
+    if (end_sequence != 0 && gr->recovery_sequence >= end_sequence) {
       gr->seq_after_snapshot = gr->recovery_sequence + 1;
       EKA_LOG("%s:%u Snapshot Gap is closed: recovery_sequence == end_sequence %ju",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,end_sequence);
