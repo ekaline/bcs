@@ -425,7 +425,7 @@ EkaEpmAction* EkaEfc::createFireAction(uint8_t group, ExcConnHandle hConn) {
       on_error("fireCoreId %d != myCoreId %d",fireCoreId, myCoreId);
   }
 
-  udpSess[group]->firstSessId = mySessId;
+  //  udpSess[group]->firstSessId = mySessId;
 
   int newActionId = numFireActions;
   
