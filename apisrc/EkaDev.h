@@ -141,7 +141,8 @@ class EkaDev {
 
   EkaEfc*                   efc = NULL;
 
-  int64_t                   lastErrno = 0;
+  int64_t                   lastErrno   = 0;
+  EfhExchangeErrorCode      lastExchErr = EfhExchangeErrorCode::kNoError;
 
 #ifdef TEST_PRINT_DICT
   FILE* testDict;

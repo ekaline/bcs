@@ -117,15 +117,20 @@ static bool getLoginResponse(EkaDev*     dev,
 
   switch (login_response.status) {
   case 'N' :
-    on_error("%s:%u: %s rejected login (\'N\') Not authorized (Invalid Username/Password)",
+    dev->lastExchErr = EfhExchangeErrorCode::kInvalidUserPasswd;
+    EKA_WARN("%s:%u: %s rejected login (\'N\') Not authorized (Invalid Username/Password)",
 	     EKA_EXCH_DECODE(exch),id,loginType);
+    return false;
   case 'B' :
+    dev->lastExchErr = EfhExchangeErrorCode::kSessionInUse;
     EKA_WARN("%s:%u: %s rejected login (\'B\') Session in use",
 	     EKA_EXCH_DECODE(exch),id,loginType);
     return false;
   case 'S' :
-    on_error("%s:%u: %s rejected login (\'S\') Invalid Session",
+    dev->lastExchErr = EfhExchangeErrorCode::kInvalidSession;
+    EKA_WARN("%s:%u: %s rejected login (\'S\') Invalid Session",
 	     EKA_EXCH_DECODE(exch),id,loginType);
+    return false;
   case 'A' :
     if (login_response.hdr.count != 1) 
       EKA_WARN("More than 1 message (%u) come with the Login Response",login_response.hdr.count);
@@ -175,6 +180,7 @@ static bool getSpinImageSeq(EkaFhBatsGr* gr, int sock, int64_t* imageSequence) {
       //-----------------------------------------------------------------
     }
   }
+  dev->lastExchErr = EfhExchangeErrorCode::kRequestNotServed;
   EKA_WARN("%s:%u Spin Image Available not received after %d trials",
 	   EKA_EXCH_DECODE(gr->exch),gr->id,MaxLocalTrials);
 
@@ -223,10 +229,12 @@ static bool getSpinResponse(EkaDev*   dev,
 		  ((batspitch_spin_response*)ptr)->count,((batspitch_spin_response*)ptr)->sequence);
 	  return true;
 	case 'O' : 
+	  dev->lastExchErr = EfhExchangeErrorCode::kInvalidSequenceRange;
 	  EKA_WARN("%s:%u: Spin request rejected with (\'O\') - Out of range",
 		   EKA_EXCH_DECODE(exch),id);
 	  return false;
 	case 'S' : 
+	  dev->lastExchErr = EfhExchangeErrorCode::kOperationAlreadyInProgress;
 	  EKA_WARN("%s:%u: Spin request rejected with (\'S\') - Spin already in progress",
 		   EKA_EXCH_DECODE(exch),id);
 	  return false;
@@ -240,6 +248,7 @@ static bool getSpinResponse(EkaDev*   dev,
       //-----------------------------------------------------------------
     }
   }
+  dev->lastExchErr = EfhExchangeErrorCode::kRequestNotServed;
   EKA_WARN("%s:%u Spin Reponse not received after %d trials",
 	   EKA_EXCH_DECODE(exch),id,MaxLocalTrials);
 
@@ -665,8 +674,8 @@ void* getSpinData(void* attr) {
 
     success = spinCycle(pEfhRunCtx,op,gr,MaxTrials);
     if (success) break;
-    gr->sendRetransmitSocketError(pEfhRunCtx);    
-    //    gr->sendRetransmitExchangeError(pEfhRunCtx);    
+    if (dev->lastExchErr != EfhExchangeErrorCode::kNoError) gr->sendRetransmitExchangeError(pEfhRunCtx);
+    if (dev->lastErrno   != 0)                              gr->sendRetransmitSocketError(pEfhRunCtx);
   }
   //-----------------------------------------------------------------
   int rc = dev->credRelease(lease, dev->credContext);
@@ -770,6 +779,7 @@ static bool getGapResponse(EkaDev*        dev,
     	    EKA_EXCH_DECODE(exch),id,hdr->unit,hdr->sequence,hdr->count,hdr->length);
 
     if (hdr->unit != 0 && hdr->unit != batsUnit) {
+      dev->lastExchErr = EfhExchangeErrorCode::kUnexpectedResponse;
       EKA_WARN("%s:%u: hdr->unit %u != batsUnit %u",
 	       EKA_EXCH_DECODE(exch),id,hdr->unit, batsUnit);
       return false;
@@ -805,24 +815,31 @@ static bool getGapResponse(EkaDev*        dev,
 		gap_response->unit, gap_response->sequence, gap_response->count);
 	return true;
       case 'O': 
-	on_error("%s:%u: Out-of-range",EKA_EXCH_DECODE(exch),id);
+	dev->lastExchErr = EfhExchangeErrorCode::kInvalidSequenceRange;
+	EKA_WARN("%s:%u: Out-of-range",EKA_EXCH_DECODE(exch),id);
 	break;
       case 'D': 
-	on_error("%s:%u: Daily gap request allocation exhausted",EKA_EXCH_DECODE(exch),id);
+	dev->lastExchErr = EfhExchangeErrorCode::kServiceLimitExhausted;
+	EKA_WARN("%s:%u: Daily gap request allocation exhausted",EKA_EXCH_DECODE(exch),id);
 	break;
       case 'M': 
+	dev->lastExchErr = EfhExchangeErrorCode::kServiceLimitExhausted;
 	EKA_WARN("%s:%u: Minute gap request allocation exhausted",EKA_EXCH_DECODE(exch),id);
 	break;
       case 'S': 
+	dev->lastExchErr = EfhExchangeErrorCode::kServiceLimitExhausted;
 	EKA_WARN("%s:%u: Second gap request allocation exhausted",EKA_EXCH_DECODE(exch),id);
 	break;
       case 'C': 
-	on_error("%s:%u: Count request limit for one gap request exceeded",EKA_EXCH_DECODE(exch),id);
+	dev->lastExchErr = EfhExchangeErrorCode::kCountLimitExceeded;
+	EKA_WARN("%s:%u: Count request limit for one gap request exceeded",EKA_EXCH_DECODE(exch),id);
 	break;
       case 'I': 
-	on_error("%s:%u: Invalid Unit specified in request",EKA_EXCH_DECODE(exch),id);
+	dev->lastExchErr = EfhExchangeErrorCode::kInvalidFieldFormat;
+	EKA_WARN("%s:%u: Invalid Unit specified in request",EKA_EXCH_DECODE(exch),id);
 	break;
       case 'U': 
+	dev->lastExchErr = EfhExchangeErrorCode::kServiceCurrentlyUnavailable;
 	EKA_WARN("%s:%u: Unit is currently unavailable",EKA_EXCH_DECODE(exch),id);
 	break;
       default:
@@ -831,6 +848,7 @@ static bool getGapResponse(EkaDev*        dev,
       return false;
     }
   }
+  dev->lastExchErr = EfhExchangeErrorCode::kRequestNotServed;
   EKA_WARN("%s:%u: Gap response not received after processing %d packets",
 	   EKA_EXCH_DECODE(exch),id,Packets2Try);
   return false;
@@ -882,8 +900,8 @@ void* getGrpRetransmitData(void* attr) {
 
     success = grpCycle(pEfhRunCtx, gr, start, end);
     if (success) break;
-    gr->sendRetransmitSocketError(pEfhRunCtx);
-    //    gr->sendRetransmitExchangeError(pEfhRunCtx);
+    if (dev->lastExchErr != EfhExchangeErrorCode::kNoError) gr->sendRetransmitExchangeError(pEfhRunCtx);
+    if (dev->lastErrno   != 0)                              gr->sendRetransmitSocketError(pEfhRunCtx);
   }
   //-----------------------------------------------------------------
   int rc = dev->credRelease(lease, dev->credContext);
