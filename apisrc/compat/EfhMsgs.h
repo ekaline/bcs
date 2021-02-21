@@ -392,4 +392,28 @@ typedef struct {
         EfhDoneStaticDefsMsg_FIELD_ITER( EKA__FIELD_DEF )
 } EfhDoneStaticDefsMsg;
 
+
+enum class EfhExchangeErrorCode : int64_t {
+  #define EfhExchangeErrorCode_ENUM_ITER(_x)       \
+    _x ( NoError, 0 )                        \
+    _x ( InvalidFieldFormat )                \
+    _x ( InvalidUserPasswd )                 \
+    _x ( InvalidSession )                    \
+    _x ( InvalidSessionProtocolVersion )     \
+    _x ( InvalidApplicationProtocolVersion ) \
+    _x ( SessionInUse )                      \
+    _x ( ServiceLimitExhausted )             \
+    _x ( CountLimitExceeded )                \
+    _x ( OperationAlreadyInProgress )        \
+    _x ( InvalidSequenceRange )              \
+    _x ( ServiceCurrentlyUnavailable )       \
+    _x ( RequestNotServed )                  \
+    _x ( UnexpectedResponse )                \
+      /* BOX exchange doesnt send predefined error code, but rather explicit text description */ \
+    _x ( ExplicitBoxError )                  \
+    _x ( Unknown )
+  EfhExchangeErrorCode_ENUM_ITER( EKA__ENUM_DEF )
+};
+
+
 #endif // __EFH_MSGS__H__

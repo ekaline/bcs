@@ -159,9 +159,9 @@ void EkaFhGroup::sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx) {
     EfhSystemState::kUnknown, // Preopen, Trading, Closed
     EfhGroupStateErrorDomain::kExchangeError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kFeedRecovery, // Unspecified, FeedRecovery
-    dev->lastErrno
+    (int64_t)dev->lastExchErr
   };
-  dev->lastErrno = 0;
+  dev->lastExchErr = EfhExchangeErrorCode::kNoError;
   pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
   EKA_LOG("%s:%u re-trying in %d seconds",EKA_EXCH_DECODE(exch),id,connectRetryDelayTime);
   if (connectRetryDelayTime == 0) on_error("connectRetryDelayTime == 0");
