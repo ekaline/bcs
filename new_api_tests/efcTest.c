@@ -52,6 +52,7 @@ static volatile int numFireEvents = 0;
 static const int TEST_NUMOFSEC = 1;
 
 static const uint64_t TEST_NOM_SEC_ID =  0x0003c40e;
+static const uint64_t DUMMY_NOM_SEC_ID =  0x0003c40f;
 static const uint64_t AlwaysFire      = 0xadcd;
 static const uint64_t DefaultToken    = 0x1122334455667788;
 
@@ -64,6 +65,13 @@ struct NomAddOrderShortPkt {
 struct NomAddOrderLongPkt {
   mold_hdr            mold;
   uint16_t            msgLen;
+  itto_add_order_long addOrderLong;
+};
+struct NomAddOrderShortLongPkt {
+  mold_hdr            mold;
+  uint16_t            msgLenShort;
+  itto_add_order_short addOrderShort;
+  uint16_t            msgLenLong;
   itto_add_order_long addOrderLong;
 };
 /* --------------------------------------------- */
@@ -434,8 +442,6 @@ UDP Trigger: %s:%u, Actions Server %s:%u, Client IP %s\n\
   /* ============================================== */
   efcRun(pEfcCtx, &runCtx );
   /* ============================================== */
-  efcEnableController(pEfcCtx, 0);
-  /* ============================================== */
   NomAddOrderShortPkt mdAskShortPkt = {
     .mold = {
       .session_id  = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa},
@@ -473,28 +479,69 @@ UDP Trigger: %s:%u, Actions Server %s:%u, Client IP %s\n\
       .size                  = be32toh(secCtx.size)
     }
   };
+    /* ============================================== */
+  NomAddOrderShortLongPkt mdAskShortBidLongPkt = {
+    .mold = {
+      .session_id  = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa},
+      .sequence    = be64toh(125),
+      .message_cnt = be16toh(2)
+    },
+    .msgLenShort = be16toh(sizeof(itto_add_order_short)),
+    .addOrderShort = {
+      .type                  = 'a',
+      .tracking_num          = be16toh(0xbeda),
+      .time_nano             = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66},
+      .order_reference_delta = be64toh(0x1234567890abcdef),
+      .side                  = 'S',
+      .option_id             = be32toh(TEST_NOM_SEC_ID),
+      .price                 = be16toh(secCtx.askMaxPrice - 1),
+      .size                  = be16toh(secCtx.size)
+    },
+    .msgLenLong = be16toh(sizeof(itto_add_order_long)),
+    .addOrderLong = {
+      .type                  = 'A',
+      .tracking_num          = be16toh(0xbeda),
+      .time_nano             = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66},
+      .order_reference_delta = be64toh(0x1234567890abcdef),
+      .side                  = 'B',
+      .option_id             = be32toh(DUMMY_NOM_SEC_ID),
+      .price                 = be32toh(secCtx.bidMinPrice * 100 + 1),
+      .size                  = be32toh(secCtx.size)
+    }
+  };
 
-  for (int i=0;i<1;i++){
+  efcEnableController(pEfcCtx, 1);
+  sleep(1);
+  /* ============================================== */
+  for (int i=0;i<10;i++){
   /* ============================================== */
   EKA_LOG("sending AskShort trigger to %s:%u",
 	  EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
   if (sendto(triggerSock,&mdAskShortPkt,sizeof(mdAskShortPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
       on_error ("MC trigger send failed");
     /* ============================================== */
-  sleep(2);
+  sleep(1);
   }
     /* ============================================== */
-  for (int i=0;i<1;i++){
+  for (int i=0;i<10;i++){
     EKA_LOG("sending BidLong  trigger to %s:%u",EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
     if (sendto(triggerSock,&mdBidLongPkt,sizeof(mdBidLongPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
       on_error ("MC trigger send failed");
-    sleep(2);
+    sleep(1);
+  }
+  /* ============================================== */
+  for (int i=0;i<10;i++){
+    EKA_LOG("sending combined AskShort BidLong  trigger to %s:%u",EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
+    if (sendto(triggerSock,&mdAskShortBidLongPkt,sizeof(mdAskShortBidLongPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
+      on_error ("MC trigger send failed");
+    sleep(1);
   }
   /* ============================================== */
 
 #ifndef _VERILOG_SIM
   sleep(2);
   EKA_LOG("--Test finished, ctrl-c to end---");
+  keep_work = false;
   while (keep_work) { sleep(0); }
 #endif
   //  end:
