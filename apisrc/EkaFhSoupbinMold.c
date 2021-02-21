@@ -294,18 +294,30 @@ static bool getLoginResponse(EkaFhNasdaqGr* gr) {
   char* session_id = soupbin_buf;
 
   switch (soupbin_hdr.type) {
-  case 'J' : {
-    const char* rejectReason = 
-      soupbin_buf[0] == 'A' ? "Not Authorized. There was an invalid username and password combination in the Login Request Message." :
-      soupbin_buf[0] == 'S' ? "Session not available. The Requested Session in the Login Request Packet was either invalid or not available." :
-      "Unknown reason";
+  case 'J' : 
+    switch (soupbin_buf[0]) {
+    case 'A' :
+      dev->lastExchErr = EfhExchangeErrorCode::kInvalidUserPasswd;
+      EKA_WARN("%s:%u: Soupbin/Glimpse rejected login (\'J\') reject code: \'%c\': Not Authorized. There was an invalid username and password combination in the Login Request Message.",
+	       EKA_EXCH_DECODE(gr->exch),gr->id, soupbin_buf[0]);
+      return false;
 
-    on_error("Glimpse rejected login (\'J\') message with code: \'%c\', reject reason: \'%s\'",
-	     soupbin_buf[0], rejectReason);
-  }
+    case 'S' :
+      dev->lastExchErr = EfhExchangeErrorCode::kInvalidSession;
+      EKA_WARN("%s:%u: Soupbin/Glimpse rejected login (\'J\') reject code: \'%c\': Session not available. The Requested Session in the Login Request Packet was either invalid or not available.",
+	       EKA_EXCH_DECODE(gr->exch),gr->id, soupbin_buf[0]);
+      return false;
+
+    default:
+      dev->lastExchErr = EfhExchangeErrorCode::kUnknown;
+      EKA_WARN("%s:%u: Soupbin/Glimpse rejected login (\'J\') reject code: \'%c\': Unknown Code",
+	       EKA_EXCH_DECODE(gr->exch),gr->id, soupbin_buf[0]);
+      return false;
+    }
 
   case 'H' :
-    EKA_WARN("Soupbin Heartbeat arrived before login");
+    dev->lastExchErr = EfhExchangeErrorCode::kUnexpectedResponse;
+    EKA_WARN("%s:%u: Soupbin Heartbeat arrived before login",EKA_EXCH_DECODE(gr->exch),gr->id);
     return false;
 
   case 'A' : {
@@ -320,7 +332,9 @@ static bool getLoginResponse(EkaFhNasdaqGr* gr) {
     break;
 
   default:
-    EKA_WARN("Unknown Soupbin message type \'%c\' arrived after Login request",soupbin_hdr.type);
+    dev->lastExchErr = EfhExchangeErrorCode::kUnexpectedResponse;
+    EKA_WARN("%s:%u: Unknown Soupbin message type \'%c\' arrived after Login request",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,soupbin_hdr.type);
     return false;
   }
 
@@ -553,7 +567,8 @@ void* getSoupBinData(void* attr) {
 			   end_sequence,
 			   MaxTrials);
     if (success) break;
-    gr->sendRetransmitSocketError(pEfhRunCtx);    
+    if (dev->lastExchErr != EfhExchangeErrorCode::kNoError) gr->sendRetransmitExchangeError(pEfhRunCtx);
+    if (dev->lastErrno   != 0)                              gr->sendRetransmitSocketError(pEfhRunCtx);
   }
   //-----------------------------------------------------------------
   int rc = dev->credRelease(lease, dev->credContext);
@@ -743,7 +758,8 @@ void* getMolUdp64Data(void* attr) {
       /* ----------------------------------------------------- */
     }
     if (! moldRcvSuccess) {
-      gr->sendRetransmitSocketError(pEfhRunCtx);
+      if (dev->lastExchErr != EfhExchangeErrorCode::kNoError) gr->sendRetransmitExchangeError(pEfhRunCtx);
+      if (dev->lastErrno   != 0)                              gr->sendRetransmitSocketError(pEfhRunCtx);
       on_error("%s:%u Mold request failed after %d attempts: %s",
 	       EKA_EXCH_DECODE(gr->exch),gr->id,
 	       MaxMoldReTry,strerror(dev->lastErrno));

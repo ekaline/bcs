@@ -84,8 +84,10 @@ static bool getLoginResponse(EkaFhBoxGr* gr) {
   bool loginAcknowledged = false;
   while (! loginAcknowledged) {
     uint8_t* msgBuf = NULL;
-    if (gr->hsvfTcp->getTcpMsg(&msgBuf) != EKA_OPRESULT__OK) 
+    if (gr->hsvfTcp->getTcpMsg(&msgBuf) != EKA_OPRESULT__OK) {
+      dev->lastErrno = errno;
       return false;
+    }
 
     HsvfMsgHdr* msgHdr = (HsvfMsgHdr*)&msgBuf[1];
     if (memcmp(msgHdr->MsgType,"KI",sizeof(msgHdr->MsgType)) == 0) { // Login Acknowledge
@@ -95,6 +97,7 @@ static bool getLoginResponse(EkaFhBoxGr* gr) {
       std::string errorCode = std::string(msg->ErrorCode,sizeof(msg->ErrorCode));
       std::string errorMsg  = std::string(msg->ErrorMsg, sizeof(msg->ErrorMsg));
 
+      dev->lastExchErr = EfhExchangeErrorCode::kExplicitBoxError;
       EKA_WARN("%s:%u Login Response Error: ErrorCode=\'%s\', ErrorMsg=\'%s\'",
 	       EKA_EXCH_DECODE(gr->exch),gr->id, errorCode.c_str(),errorMsg.c_str());
       return false;
@@ -155,8 +158,10 @@ static bool getRetransmissionBegins(EkaFhBoxGr* gr) {
   bool retransmissionBegins = false;
   while (! retransmissionBegins) {
     uint8_t* msgBuf = NULL;
-    if (gr->hsvfTcp->getTcpMsg(&msgBuf) != EKA_OPRESULT__OK) 
+    if (gr->hsvfTcp->getTcpMsg(&msgBuf) != EKA_OPRESULT__OK) {
+      dev->lastErrno = errno;
       return false;
+    }
 
     HsvfMsgHdr* msgHdr = (HsvfMsgHdr*)&msgBuf[1];
 
@@ -167,6 +172,7 @@ static bool getRetransmissionBegins(EkaFhBoxGr* gr) {
       std::string errorCode = std::string(msg->ErrorCode,sizeof(msg->ErrorCode));
       std::string errorMsg  = std::string(msg->ErrorMsg, sizeof(msg->ErrorMsg));
 
+      dev->lastExchErr = EfhExchangeErrorCode::kExplicitBoxError;
       EKA_WARN("%s:%u Login Response Error: ErrorCode=\'%s\', ErrorMsg=\'%s\'",
 	       EKA_EXCH_DECODE(gr->exch),gr->id, errorCode.c_str(),errorMsg.c_str());
 
@@ -279,7 +285,8 @@ EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, Eka
       sendLogout(gr);
       close(gr->snapshot_sock);
       delete gr->hsvfTcp;
-      gr->sendRetransmitExchangeError(pEfhRunCtx);
+      if (dev->lastExchErr != EfhExchangeErrorCode::kNoError) gr->sendRetransmitExchangeError(pEfhRunCtx);
+      if (dev->lastErrno   != 0)                              gr->sendRetransmitSocketError(pEfhRunCtx);
       continue;
     }
 
@@ -288,7 +295,8 @@ EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, Eka
       sendLogout(gr);
       close(gr->snapshot_sock);
       delete gr->hsvfTcp;
-      gr->sendRetransmitSocketError(pEfhRunCtx);
+      if (dev->lastExchErr != EfhExchangeErrorCode::kNoError) gr->sendRetransmitExchangeError(pEfhRunCtx);
+      if (dev->lastErrno   != 0)                              gr->sendRetransmitSocketError(pEfhRunCtx);
       continue;
     }
     //-----------------------------------------------------------------
@@ -296,7 +304,8 @@ EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, Eka
       sendLogout(gr);
       close(gr->snapshot_sock);
       delete gr->hsvfTcp;
-      gr->sendRetransmitExchangeError(pEfhRunCtx);
+      if (dev->lastExchErr != EfhExchangeErrorCode::kNoError) gr->sendRetransmitExchangeError(pEfhRunCtx);
+      if (dev->lastErrno   != 0)                              gr->sendRetransmitSocketError(pEfhRunCtx);
       continue;
     }
     //-----------------------------------------------------------------
@@ -307,7 +316,10 @@ EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, Eka
   uint64_t sequence = 1;
   while (gr->snapshot_active && !definitionsDone) {
     uint8_t* msgBuf = NULL;
-    if ((ret = gr->hsvfTcp->getTcpMsg(&msgBuf)) != EKA_OPRESULT__OK) return ret;
+    if ((ret = gr->hsvfTcp->getTcpMsg(&msgBuf)) != EKA_OPRESULT__OK) {
+      dev->lastErrno = errno;
+      return ret;
+    }
     sequence = getHsvfMsgSequence((const uint8_t*)msgBuf);
     definitionsDone = gr->parseMsg(pEfhRunCtx,&msgBuf[1],0,EkaFhMode::DEFINITIONS);
   }
@@ -369,7 +381,8 @@ void* getHsvfRetransmit(void* attr) {
       sendLogout(gr);
       close(gr->snapshot_sock);
       delete gr->hsvfTcp;
-      gr->sendRetransmitExchangeError(pEfhRunCtx);
+      if (dev->lastExchErr != EfhExchangeErrorCode::kNoError) gr->sendRetransmitExchangeError(pEfhRunCtx);
+      if (dev->lastErrno   != 0)                              gr->sendRetransmitSocketError(pEfhRunCtx);
       continue;
     }
     //-----------------------------------------------------------------
@@ -377,7 +390,8 @@ void* getHsvfRetransmit(void* attr) {
       sendLogout(gr);
       close(gr->snapshot_sock);
       delete gr->hsvfTcp;
-      gr->sendRetransmitSocketError(pEfhRunCtx);
+      if (dev->lastExchErr != EfhExchangeErrorCode::kNoError) gr->sendRetransmitExchangeError(pEfhRunCtx);
+      if (dev->lastErrno   != 0)                              gr->sendRetransmitSocketError(pEfhRunCtx);
       continue;
     }
     //-----------------------------------------------------------------
@@ -385,7 +399,8 @@ void* getHsvfRetransmit(void* attr) {
       sendLogout(gr);
       close(gr->snapshot_sock);
       delete gr->hsvfTcp;
-      gr->sendRetransmitExchangeError(pEfhRunCtx);
+      if (dev->lastExchErr != EfhExchangeErrorCode::kNoError) gr->sendRetransmitExchangeError(pEfhRunCtx);
+      if (dev->lastErrno   != 0)                              gr->sendRetransmitSocketError(pEfhRunCtx);
       continue;
     }
     //-----------------------------------------------------------------
@@ -395,8 +410,10 @@ void* getHsvfRetransmit(void* attr) {
 
   while (gr->snapshot_active) {
     uint8_t* msgBuf = NULL;
-    if (gr->hsvfTcp->getTcpMsg(&msgBuf) != EKA_OPRESULT__OK) 
+    if (gr->hsvfTcp->getTcpMsg(&msgBuf) != EKA_OPRESULT__OK) {
+      dev->lastErrno = errno;
       gr->sendRetransmitSocketError(pEfhRunCtx);
+    }
 
     uint64_t sequence = getHsvfMsgSequence((const uint8_t*)msgBuf);
     //    EKA_LOG("%s:%u got sequence = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,sequence);

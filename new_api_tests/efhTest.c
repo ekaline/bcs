@@ -33,6 +33,7 @@
 #include "EfhPhlxOrdProps.h"
 #include "EfhPhlxTopoProps.h"
 #include "EfhXdpProps.h"
+#include "EfhCmeProps.h"
 
 #define MAX_SECURITIES 600000
 #define MAX_UNDERLYINGS 4000
@@ -91,6 +92,15 @@ static inline std::string ts_ns2str(uint64_t ts) {
   uint h = res % 24;
   sprintf (dst,"%02d:%02d:%02d.%03d.%03d.%03d",h,m,s,ms,us,ns);
   return std::string(dst);
+}
+
+static std::string eka_get_date () {
+  const char* months[] = {"JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"};
+  time_t t = time(NULL);
+  struct tm tm = *localtime(&t);
+  char t_str[100] = {};
+  sprintf(t_str,"%d-%s-%02d",1900+tm.tm_year,months[tm.tm_mon],tm.tm_mday);
+  return std::string(t_str);
 }
 
 static std::string eka_get_time () {
@@ -196,8 +206,8 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
       gapType = std::string("Unknown Gap");
     }
     fprintf(MD,"%s: %s : %s FeedDown\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str(),gapType.c_str());
-    printf ("=========================\n%s: %s %ju\n=========================\n",
-	    EKA_PRINT_GRP(&msg->group),gapType.c_str(),msg->code);
+    printf ("=========================\n%s: %s: %s %ju\n=========================\n",
+	    EKA_PRINT_GRP(&msg->group),eka_get_time().c_str(),gapType.c_str(),msg->code);
   }
     break;
     /* ----------------------------- */
@@ -214,8 +224,8 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
       gapType = std::string("Unknown Gap");
     }
     fprintf(MD,"%s: %s : %s \n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str(),gapType.c_str());
-    printf ("=========================\n%s: %s %ju\n=========================\n",
-	    EKA_PRINT_GRP(&msg->group),gapType.c_str(),msg->code);
+    printf ("=========================\n%s: %s: %s %ju\n=========================\n",
+	    EKA_PRINT_GRP(&msg->group),eka_get_time().c_str(),gapType.c_str(),msg->code);
   }
     break;
     /* ----------------------------- */
@@ -251,7 +261,7 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
   //  fprintf(md[file_idx],"%s,%s,%s,%s,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%s\n",
   fprintf(MD,"%s,%s,%s,%s,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%d,%d,%s\n",
 	  EKA_CTS_SOURCE(msg->header.group.source),
-	  "today",
+	  eka_get_date().c_str(),
 	  eka_get_time().c_str(),
 #ifdef EKA_TEST_IGNORE_DEFINITIONS
 	  "DEFAULT_SEC_ID",
@@ -380,7 +390,8 @@ void print_usage(char* cmd) {
   printf("\t\t\tXA - AMEX      A feed\n"); 
   printf("\t\t\tXB - AMEX      B feed\n"); 
   printf("\t\t\tBA - BOX       A feed\n"); 
-  printf("\t\t\tBB - BOX       B feed\n"); 
+  printf("\t\t\tEA - CME       A feed\n"); 
+  printf("\t\t\tEB - CME       B feed\n"); 
   printf("\t-u <Underlying Name> - subscribe on all options belonging to\n");
   printf("\t-s run single MC group #0\n");
   printf("\t-t Print TOB updates (EFH)\n");
@@ -577,6 +588,17 @@ int main(int argc, char *argv[]) {
     ekaProps.props    = efhPhlxOrdInitCtxEntries_B;
     runCtx.numGroups  = std::size(phlxOrdGroups);
     runCtx.groups     = phlxOrdGroups;
+/* ------------------------------------------------------- */
+  } else if (feedName == std::string("EA")) {
+    ekaProps.numProps = std::size(efhCmeInitCtxEntries_A);
+    ekaProps.props    = efhCmeInitCtxEntries_A;
+    runCtx.numGroups  = std::size(cmeGroups);
+    runCtx.groups     = cmeGroups;
+  } else if (feedName == std::string("EB")) {
+    ekaProps.numProps = std::size(efhCmeInitCtxEntries_B);
+    ekaProps.props    = efhCmeInitCtxEntries_B;
+    runCtx.numGroups  = std::size(cmeGroups);
+    runCtx.groups     = cmeGroups;
 /* ------------------------------------------------------- */
   } else {
     on_error("Unsupported feed name \"%s\". Supported: CA, CB, CC, CD",feedName.c_str());
