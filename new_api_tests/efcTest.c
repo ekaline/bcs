@@ -56,6 +56,11 @@ static const uint64_t DUMMY_NOM_SEC_ID =  0x0003c40f;
 static const uint64_t AlwaysFire      = 0xadcd;
 static const uint64_t DefaultToken    = 0x1122334455667788;
 
+int ekaSock[16];
+ExcConnHandle conn[16];
+static const uint64_t FireEntryHeapSize = 256;
+uint32_t fireHeapOffset[16];
+
 /* --------------------------------------------- */
 struct NomAddOrderShortPkt {
   mold_hdr             mold;
@@ -154,7 +159,7 @@ void tcpServer(EkaDev* dev, std::string ip, uint16_t port, int* sock) {
 /* --------------------------------------------- */
 
 void printUsage(char* cmd) {
-  printf("USAGE: %s -s <Connection Server IP> -p <Connection Server TcpPort> -c <Connection Client IP> -t <Trigger IP> -u <Trigger UdpPort> \n",cmd); 
+  printf("USAGE: %s -s <Connection Server IP> -p <Connection Server TcpPort> -c <Connection Client IP> -t <Trigger IP> -u <Trigger UdpPort> -l <Length of fire chain>\n",cmd); 
 }
 
 /* --------------------------------------------- */
@@ -162,9 +167,10 @@ void printUsage(char* cmd) {
 static int getAttr(int argc, char *argv[],
 		   std::string* serverIp, uint16_t* serverTcpPort, 
 		   std::string* clientIp, 
-		   std::string* triggerIp, uint16_t* triggerUdpPort) {
+		   std::string* triggerIp, uint16_t* triggerUdpPort,
+		   uint16_t* fireChainLength) {
   int opt; 
-  while((opt = getopt(argc, argv, ":c:s:p:u:t:h")) != -1) {  
+  while((opt = getopt(argc, argv, ":c:s:p:u:l:t:h")) != -1) {  
     switch(opt) {  
       case 's':  
 	*serverIp = std::string(optarg);
@@ -185,6 +191,10 @@ static int getAttr(int argc, char *argv[],
       case 'u':  
 	*triggerUdpPort = atoi(optarg);
 	printf("triggerUdpPort = %u\n", *triggerUdpPort);  
+	break;  
+      case 'l':  
+	*fireChainLength = atoi(optarg);
+	printf("fireChainLength = %u\n", *fireChainLength);  
 	break;  
       case 'h':  
 	printUsage(argv[0]);
@@ -277,10 +287,11 @@ int main(int argc, char *argv[]) {
   std::string serverIp  = "10.0.0.10";      // Ekaline lab default
   std::string clientIp  = "100.0.0.110";    // Ekaline lab default
 
-  uint16_t serverTcpPort  = 22222;          // Ekaline lab default
-  uint16_t triggerUdpPort = 18001;          // Ekaline lab default
+  uint16_t serverTcpPort   = 22222;          // Ekaline lab default
+  uint16_t triggerUdpPort  = 18001;          // Ekaline lab default
+  uint16_t fireChainLength = 1;
 
-  getAttr(argc,argv,&serverIp,&serverTcpPort,&clientIp,&triggerIp,&triggerUdpPort);
+  getAttr(argc,argv,&serverIp,&serverTcpPort,&clientIp,&triggerIp,&triggerUdpPort,&fireChainLength);
 
   EKA_LOG("\n==============================\n\
 UDP Trigger: %s:%u, Actions Server %s:%u, Client IP %s\n\
@@ -317,18 +328,21 @@ UDP Trigger: %s:%u, Actions Server %s:%u, Client IP %s\n\
   serverAddr.sin_family      = AF_INET;
   serverAddr.sin_port        = be16toh(serverTcpPort);
 
-  int ekaSock = excSocket(dev,coreId,0,0,0);
-  if (ekaSock < 0) on_error("failed to open sock");
-  ExcConnHandle conn = excConnect(dev,ekaSock,(struct sockaddr*) &serverAddr, sizeof(struct sockaddr_in));
-  if (conn < 0) on_error("excConnect %s:%u",EKA_IP2STR(serverAddr.sin_addr.s_addr),be16toh(serverAddr.sin_port));
-  const char* pkt = "\n\nThis is 1st TCP packet sent from FPGA TCP client to Kernel TCP server\n\n";
-  excSend (dev, conn, pkt, strlen(pkt));
+  for (auto i = 0; i < fireChainLength; i++) {
+    ekaSock[i] = excSocket(dev,coreId,0,0,0);
+    if (ekaSock[i] < 0) on_error("failed to open sock %d",i);
+    conn[i] = excConnect(dev,ekaSock[i],(struct sockaddr*) &serverAddr, sizeof(struct sockaddr_in));
+    if (conn[i] < 0) on_error("excConnect %d %s:%u",i,EKA_IP2STR(serverAddr.sin_addr.s_addr),be16toh(serverAddr.sin_port));
+    const char* pkt = "\n\nThis is 1st TCP packet sent from FPGA TCP client to Kernel TCP server\n\n";
+    excSend (dev, conn[i], pkt, strlen(pkt));
+    int bytes_read = 0;
+    char rxBuf[2000] = {};
+    bytes_read = recv(tcpServerSock, rxBuf, sizeof(rxBuf), 0);
+    if (bytes_read > 0) EKA_LOG("\n%s",rxBuf);
 
-  int bytes_read = 0;
-  char rxBuf[2000] = {};
+    fireHeapOffset[i] = 14 + 20 + 20 + FireEntryHeapSize*i;
 
-  bytes_read = recv(tcpServerSock, rxBuf, sizeof(rxBuf), 0);
-  if (bytes_read > 0) EKA_LOG("\n%s",rxBuf);
+  }
 
   /* ============================================== */
   EkaProp initCtxEntries[] = {
@@ -393,7 +407,7 @@ UDP Trigger: %s:%u, Actions Server %s:%u, Client IP %s\n\
   rc = efcSetStaticSecCtx(pEfcCtx, handle, &secCtx, 0);
   if (rc != EKA_OPRESULT__OK) on_error ("failed to efcSetStaticSecCtx");
   /* ============================================== */
-  efcSetGroupSesCtx(pEfcCtx, 0, conn );
+  efcSetGroupSesCtx(pEfcCtx, 0, conn[0] ); // start the fire chain on the first conn
   /* ============================================== */
   const SqfShortQuoteBlockMsg fireMsg = {
     .typeSub    = {'Q','Q'},
@@ -408,34 +422,37 @@ UDP Trigger: %s:%u, Actions Server %s:%u, Client IP %s\n\
     .reentry    = '1'
   };
   //  efcSetFireTemplate(pEfcCtx, conn, &fireMsg, sizeof(fireMsg));
-  uint32_t fireHeapOffset = 14 + 20 + 20;
-  rc = epmPayloadHeapCopy(dev, 
-			  0, // coreId
-			  EFC_STRATEGY,
-			  fireHeapOffset,
-			  sizeof(fireMsg),
-			  &fireMsg);
-  if (rc != EKA_OPRESULT__OK) on_error("epmPayloadHeapCopy returned %d",(int)rc);
 
-  const EpmAction sqfFireAction = {
-    .type          = EpmActionType::SqfFire,                 ///< Action type
-    .token         = DefaultToken,                           ///< Security token
-    .hConn         = conn,                                   ///< TCP connection where segments will be sent
-    .offset        = fireHeapOffset,                         ///< Offset to payload in payload heap
-    .length        = (uint32_t)sizeof(fireMsg),              ///< Payload length
-    .actionFlags   = AF_Valid,                               ///< Behavior flags (see EpmActionFlag)
-    .nextAction    = EPM_LAST_ACTION,                        ///< Next action in sequence, or EPM_LAST_ACTION
-    .enable        = AlwaysFire,                             ///< Enable bits
-    .postLocalMask = AlwaysFire,                             ///< Post fire: enable & mask -> enable
-    .postStratMask = AlwaysFire,                             ///< Post fire: strat-enable & mask -> strat-enable
-    .user          = 0x1234567890abcdef                      ///< Opaque value copied into `EpmFireReport`.
-  };
-  rc = epmSetAction(dev, 
-		    0,               // coreId
-		    EFC_STRATEGY, 
-		    0,               // epm_actionid_t must correspond to the MC gr ID
-                    &sqfFireAction);
-  if (rc != EKA_OPRESULT__OK) on_error("epmSetAction returned %d",(int)rc);
+  for (auto i = 0; i < fireChainLength; i++) {
+    rc = epmPayloadHeapCopy(dev, 
+			    0, // coreId
+			    EFC_STRATEGY,
+			    fireHeapOffset[i],
+			    sizeof(fireMsg),
+			    &fireMsg);
+    if (rc != EKA_OPRESULT__OK) on_error("epmPayloadHeapCopy %d returned %d",i,(int)rc);
+
+    const EpmAction sqfFireAction = {
+      .type          = EpmActionType::SqfFire,                 ///< Action type
+      .token         = DefaultToken,                           ///< Security token
+      .hConn         = conn[i],                                ///< TCP connection where segments will be sent
+      .offset        = fireHeapOffset[i],                      ///< Offset to payload in payload heap
+      .length        = (uint32_t)sizeof(fireMsg),              ///< Payload length
+      .actionFlags   = AF_Valid,                               ///< Behavior flags (see EpmActionFlag)
+      .nextAction    = (i==(fireChainLength-1)) ? EPM_LAST_ACTION : i+1,  ///< Next action in sequence, or EPM_LAST_ACTION
+      .enable        = AlwaysFire,                             ///< Enable bits
+      .postLocalMask = AlwaysFire,                             ///< Post fire: enable & mask -> enable
+      .postStratMask = AlwaysFire,                             ///< Post fire: strat-enable & mask -> strat-enable
+      .user          = 0x1234567890abcdef                      ///< Opaque value copied into `EpmFireReport`.
+    };
+    EKA_LOG(" CreatingAction #%d -----> hConn=%d, offset=%d, nextAction=%d",i,sqfFireAction.hConn,sqfFireAction.offset,sqfFireAction.nextAction);
+    rc = epmSetAction(dev, 
+		      0,               // coreId
+		      EFC_STRATEGY, 
+		      i,               // epm_actionid_t must correspond to the MC gr ID
+		      &sqfFireAction);
+    if (rc != EKA_OPRESULT__OK) on_error("epmSetAction returned %d",(int)rc);
+  }
 
   /* ============================================== */
   efcEnableController(pEfcCtx, 0);
@@ -513,7 +530,7 @@ UDP Trigger: %s:%u, Actions Server %s:%u, Client IP %s\n\
   efcEnableController(pEfcCtx, 1);
   sleep(1);
   /* ============================================== */
-  for (int i=0;i<10;i++){
+  for (int i=0;i<1;i++){
   /* ============================================== */
   EKA_LOG("sending AskShort trigger to %s:%u",
 	  EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
@@ -523,20 +540,21 @@ UDP Trigger: %s:%u, Actions Server %s:%u, Client IP %s\n\
   sleep(1);
   }
     /* ============================================== */
-  for (int i=0;i<10;i++){
+  for (int i=0;i<0;i++){
     EKA_LOG("sending BidLong  trigger to %s:%u",EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
     if (sendto(triggerSock,&mdBidLongPkt,sizeof(mdBidLongPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
       on_error ("MC trigger send failed");
     sleep(1);
   }
   /* ============================================== */
-  for (int i=0;i<10;i++){
+  for (int i=0;i<0;i++){
     EKA_LOG("sending combined AskShort BidLong  trigger to %s:%u",EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
     if (sendto(triggerSock,&mdAskShortBidLongPkt,sizeof(mdAskShortBidLongPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
       on_error ("MC trigger send failed");
     sleep(1);
   }
   /* ============================================== */
+  sleep(2);
 
 #ifndef _VERILOG_SIM
   sleep(2);
