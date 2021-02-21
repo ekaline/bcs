@@ -33,37 +33,6 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
   
   initGroups(pEfhCtx, pEfhRunCtx, runGr);
 
-  if (isPreTradeTime(9,27)) {
-    for (uint8_t j = 0; j < runGr->numGr; j++) {
-      uint8_t grId = runGr->groupList[j];
-      EkaFhPhlxTopoGr* gr = (EkaFhPhlxTopoGr*)b_gr[grId];
-      if (gr == NULL) on_error("b_gr[%u] == NULL",grId);
-
-      EKA_LOG("%s:%u: Running PreTrade Snapshot",EKA_EXCH_DECODE(exch),gr->id);
-      gr->snapshotThreadDone = false;
-
-      gr->sendFeedDownInitial(pEfhRunCtx);
-
-      uint64_t mostRecentSeq = getMostRecentSeq(gr);
-      EKA_LOG("%s:%u: mostRecentSeq = %ju",EKA_EXCH_DECODE(exch),gr->id,mostRecentSeq);
-
-      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx,1, mostRecentSeq);
-
-      while (! gr->snapshotThreadDone) {} // instead of thread.join()
-      gr->expected_sequence = gr->recovery_sequence + 1;
-      EKA_LOG("%s:%u: PreTrade Soupbin Snapshot is done, expected_sequence = %ju",
-	      EKA_EXCH_DECODE(exch),gr->id,gr->expected_sequence);
-      gr->seq_after_snapshot = gr->recovery_sequence + 1;
-      
-      EKA_DEBUG("%s:%u Generating TOB quote for every Security",
-		EKA_EXCH_DECODE(gr->exch),gr->id);
-      gr->book->sendTobImage(pEfhRunCtx);
-      
-      gr->state = EkaFhGroup::GrpState::NORMAL;
-      //      gr->sendFeedUpInitial(pEfhRunCtx);
-      gr->sendFeedUp(pEfhRunCtx);
-    }
-  }
 
   EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u: %s GROUPS ~~~~~~~~~~~~~",
 	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
@@ -133,9 +102,12 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       break;
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::SNAPSHOT_GAP : {
+      gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
       if (sequence <= gr->recovery_sequence) {
 	// Recovery feed sequence took over the MCAST sequence
-	gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
+
+	EKA_LOG("%s:%u: Snapshot closed due: recovery_sequence %ju >= sequence",
+		EKA_EXCH_DECODE(gr->exch),gr->id,gr->recovery_sequence,sequence);
 
 	gr->gapClosed = true;
 	gr->snapshot_active = false;
@@ -145,7 +117,7 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
 		  EKA_EXCH_DECODE(gr->exch),gr->id);
 	gr->book->sendTobImage(pEfhRunCtx);
       }
-      if (gr->gapClosed) {
+      if (gr->gapClosed) { // Gap can be closed from Soupbin thread
 	gr->state = EkaFhGroup::GrpState::NORMAL;
 	gr->sendFeedUp(pEfhRunCtx);
 	runGr->setGrAfterGap(gr->id);

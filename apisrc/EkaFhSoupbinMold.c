@@ -382,8 +382,10 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
   switch (hdr.type) {
   case 'H' : // Hearbeat
     if (gr->feed_ver == EfhFeedVer::kPHLX && 
-	(op == EkaFhMode::DEFINITIONS  || end_sequence == 1) 
-	&& ++gr->hearbeat_ctr == 5) { 
+	(op == EkaFhMode::DEFINITIONS  || op == EkaFhMode::SNAPSHOT) &&
+	++gr->hearbeat_ctr == 5) { 
+      EKA_LOG("%s:%u: End of %s due: 5 Heartbeats received",
+	      EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
       return EkaFhParseResult::End;
     }
     break;
