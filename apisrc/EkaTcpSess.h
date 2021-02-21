@@ -35,9 +35,6 @@ class EkaTcpSess {
 
   int preloadNwHeaders();
 
-  int readyToRecv();
-  int readyToSend();
-
   ssize_t recv(void *buffer, size_t size);
   int     close();
   ExcConnHandle getConnHandle() {

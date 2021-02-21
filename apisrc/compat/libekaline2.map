@@ -28,7 +28,10 @@ LIBEKALINE2_1.0	{
 			excSend;
 			excRecv;
 			excClose;
-			excReadyToRecv;
+			excPoll;
+			excGetSockOpt;
+			excSetSockOpt;
+			excIoctl;
 			ekaClose;
    			efhMonitorFhGroupState;
 			efcPrintFireReport;
