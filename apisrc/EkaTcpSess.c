@@ -108,7 +108,7 @@ int EkaTcpSess::bind() {
   };
 
   if (lwip_setsockopt(sock,SOL_SOCKET, SO_LINGER,&linger,sizeof(struct linger)) < 0) 
-    on_error("Cant set TCP_NODELAY");    
+    on_error("Cant set SO_LINGER");
 
   struct sockaddr_in src = {};
   src.sin_addr.s_addr = srcIp;
@@ -136,7 +136,7 @@ int EkaTcpSess::connect() {
   struct sockaddr_in dst = {};
   dst.sin_addr.s_addr = dstIp;
   dst.sin_port        = be16toh(dstPort);
-  dst.sin_family      = AF_INET;\
+  dst.sin_family      = AF_INET;
 
   struct netif* pLwipNetIf = (struct netif*) parent->pLwipNetIf;
 
@@ -186,26 +186,15 @@ int EkaTcpSess::connect() {
   }
   if (! arpFound) on_error("%s is not in the ARP table",EKA_IP2STR(dst.sin_addr.s_addr));
 
-  dev->lwipConnectMtx.lock(); // Consider to move to beginning of connect()
+  // Consider to move to beginning of connect()
+  std::unique_lock<std::mutex> lck{dev->lwipConnectMtx};
   if (lwip_connect(sock,(const sockaddr*) &dst, sizeof(struct sockaddr_in)) < 0) 
-    on_error("socket connect failed");
-  //  dev->lwipConnectMtx.unlock();
+    return -1;
 
   EKA_LOG("TCP connected %u:%u : %s:%u --> %s:%u",
 	  coreId,sessId,EKA_IP2STR(srcIp),srcPort,EKA_IP2STR(dstIp),dstPort);
 
-
   connectionEstablished = true;
-
-  //  LOCK_TCPIP_CORE();
-  uint32_t sockOpt = lwip_fcntl(sock, F_GETFL, 0);
-  sockOpt |= O_NONBLOCK;
-  int ret = lwip_fcntl(sock, F_SETFL, sockOpt);
-  if (ret < 0) on_error("setting O_NONBLOCK is failed for sock %d: ret = %d",sock,ret);
-  EKA_LOG("O_NONBLOCK is set for socket %d",sock);
-  //  UNLOCK_TCPIP_CORE();
-  dev->lwipConnectMtx.unlock();
-
   return 0;
 }
 /* ---------------------------------------------------------------- */

@@ -108,6 +108,7 @@ class EkaTcpSess {
 
   int  setRemoteSeqWnd2FPGA();
   int  setLocalSeqWnd2FPGA();
+  bool isEstablished() const noexcept { return connectionEstablished; }
 
  private:
   typedef union exc_table_desc {

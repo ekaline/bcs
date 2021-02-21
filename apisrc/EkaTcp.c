@@ -194,7 +194,7 @@ void ekaInitLwip (EkaDev* dev) {
   return;
 }
 
-int ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
+void ekaProcessTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
 
   uint8_t broadcastMac[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
   if (memcmp(pkt,broadcastMac,6) == 0) { // broadcast 
@@ -221,16 +221,27 @@ int ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
       struct netif* netIf = dev->core[rxCoreId]->pLwipNetIf;
 	
       if (EKA_IS_TCP_PKT(pkt)) {
-	EkaTcpSess* tcpSess = dev->findTcpSess(EKA_IPH_DST(pkt),EKA_TCPH_DST(pkt),EKA_IPH_SRC(pkt),EKA_TCPH_SRC(pkt));
-	if (tcpSess == NULL) {
-	  hexDump("Unexpected RX TCP pkt",pkt,len);
-	  on_error("RX pkt TCP session %s:%u-->%s:%u not found",
-		   EKA_IP2STR(EKA_IPH_DST(pkt)),EKA_TCPH_DST(pkt),
-		   EKA_IP2STR(EKA_IPH_SRC(pkt)),EKA_TCPH_SRC(pkt)
-		   );
-	}
-	//	  if (tcpSess->updateRx(pkt,len) == 0) return 1;
-	tcpSess->updateRx(pkt,len);
+        EkaTcpSess* tcpSess = dev->findTcpSess(EKA_IPH_DST(pkt),EKA_TCPH_DST(pkt),EKA_IPH_SRC(pkt),EKA_TCPH_SRC(pkt));
+        if (!tcpSess) {
+          // TCP packet not corresponding to any session we know about. This could
+          // be a retransmission of a connection that once existed, or any number
+          // of improper-TCP-close errors that cause us to receive a packet not
+          // meant for us. Warn and ignore.
+          char hexBuf[8192]; // approximate MTU * 4 bytes to hold the hexdump
+          hexBuf[0] = '\0';  // In case something goes wrong.
+          if (std::FILE *const hexBufFile = fmemopen(hexBuf, sizeof hexBuf, "w")) {
+            hexDump("Unexpected RX TCP pkt",pkt,len,hexBufFile);
+            (void)std::fwrite("\0", 1, 1, hexBufFile);
+            (void)std::fclose(hexBufFile);
+          }
+          EKA_WARN("RX pkt TCP session %s:%u-->%s:%u not found,pkt is:\n%s",
+                   EKA_IP2STR(EKA_IPH_DST(pkt)),EKA_TCPH_DST(pkt),
+                   EKA_IP2STR(EKA_IPH_SRC(pkt)),EKA_TCPH_SRC(pkt),
+                   hexBuf);
+          return;
+        }
+
+        tcpSess->updateRx(pkt,len);
       }
 
       struct pbuf* p = pbuf_alloc(PBUF_RAW, len, PBUF_RAM);
@@ -242,8 +253,6 @@ int ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
     }
   }
   /* hexDump("ekaProcesTcpRx",(void*)pkt,len); */
-
-  return 0;
 }
 
 

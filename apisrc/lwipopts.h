@@ -821,7 +821,7 @@ void sys_mark_tcpip_thread();
  * SO_RCVTIMEO processing.
  */
 
-#define LWIP_SO_RCVTIMEO                0
+#define LWIP_SO_RCVTIMEO                1
 
 
 /**
@@ -834,7 +834,7 @@ void sys_mark_tcpip_thread();
 /**
  * LWIP_SO_RCVBUF==1: Enable SO_RCVBUF processing.
  */
-#define LWIP_SO_RCVBUF                  0
+#define LWIP_SO_RCVBUF                  1
 
 
 /**

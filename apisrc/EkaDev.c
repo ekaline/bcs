@@ -255,8 +255,17 @@ static void set_time (EkaDev* dev) { // ignores Application - PCIe - FPGA latenc
 /* ##################################################################### */
 
 int EkaDev::configurePort(const EkaCoreInitCtx* pCoreInit) {
-  EkaCoreId c = pCoreInit->coreId;
-  if (core[c] == NULL) on_error("Trying to configure not connected core %d",c);
+  const EkaCoreId c = pCoreInit->coreId;
+  if (core[c] == NULL) {
+    EKA_WARN("trying to configure not connected core %d",c);
+    errno = ENODEV;
+    return -1;
+  }
+  else if (!epmEnabled) {
+    EKA_WARN("cannot configure port; EPM not enabled");
+    errno = ENOSYS;
+    return -1;
+  }
 
   const EkaCoreInitAttrs* attrs = &pCoreInit->attrs;
 

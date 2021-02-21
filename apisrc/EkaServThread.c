@@ -12,7 +12,7 @@
 
 #include "eka_macros.h"
 
-void ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len);
+void ekaProcessTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len);
 
 /* ----------------------------------------------- */
 static inline int sendDummyFastPathPkt(EkaDev* dev, const uint8_t* payload) {
@@ -114,7 +114,7 @@ void ekaServThread(EkaDev* dev) {
 	/* hexDump("ServThread TCPRX Pkt",payload,len); */
 
 	uint8_t* data = (uint8_t*)payload + sizeof(tcprx_dma_report_t);
-	ekaProcesTcpRx (dev, data, len - sizeof(tcprx_dma_report_t));
+	ekaProcessTcpRx (dev, data, len - sizeof(tcprx_dma_report_t));
 	dev->lwipPath->next();
       }
 	break;

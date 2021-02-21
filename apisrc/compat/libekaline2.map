@@ -23,6 +23,7 @@ LIBEKALINE2_1.0	{
 			excGetSessionId;
 			excGetCoreId;
 			excSocket;
+			excSocketClose;
 			excConnect;
 			excReconnect;
 			excSend;
@@ -32,6 +33,11 @@ LIBEKALINE2_1.0	{
 			excGetSockOpt;
 			excSetSockOpt;
 			excIoctl;
+			excGetSockName;
+			excGetPeerName;
+			excGetBlocking;
+			excSetBlocking;
+			excShutdown;
 			ekaClose;
    			efhMonitorFhGroupState;
 			efcPrintFireReport;
