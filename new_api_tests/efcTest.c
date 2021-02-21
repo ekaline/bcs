@@ -56,10 +56,14 @@ static const uint64_t DUMMY_NOM_SEC_ID =  0x0003c40f;
 static const uint64_t AlwaysFire      = 0xadcd;
 static const uint64_t DefaultToken    = 0x1122334455667788;
 
-int ekaSock[16];
-ExcConnHandle conn[16];
+static const int      DatagramOffset  = 54; // 14 + 20 + 20
+static const int      MaxSessions     = 16;
+
 static const uint64_t FireEntryHeapSize = 256;
-uint32_t fireHeapOffset[16];
+
+int           ekaSock[MaxSessions]        = {};
+ExcConnHandle conn[MaxSessions]           = {};
+uint32_t      fireHeapOffset[MaxSessions] = {};
 
 /* --------------------------------------------- */
 struct NomAddOrderShortPkt {
@@ -340,18 +344,20 @@ UDP Trigger: %s:%u, Actions Server %s:%u, Client IP %s\n\
     bytes_read = recv(tcpServerSock, rxBuf, sizeof(rxBuf), 0);
     if (bytes_read > 0) EKA_LOG("\n%s",rxBuf);
 
-    fireHeapOffset[i] = 14 + 20 + 20 + FireEntryHeapSize*i;
+    fireHeapOffset[i] = DatagramOffset + FireEntryHeapSize * i;
 
   }
 
   /* ============================================== */
   EkaProp initCtxEntries[] = {
-    //    "efc.group.0.mcast.addr", "233.54.12.73:18001"
-    "efc.group.0.mcast.addr", "233.54.12.73:18001"
+    {"efc.group.0.mcast.addr", "233.54.12.72:18000"},
+    {"efc.group.1.mcast.addr", "233.54.12.73:18001"},
+    {"efc.group.2.mcast.addr", "233.54.12.74:18002"},
+    {"efc.group.3.mcast.addr", "233.54.12.75:18003"}
   };
   EkaProps ekaProps = {
     .numProps = std::size(initCtxEntries),
-    .props = initCtxEntries
+    .props    = initCtxEntries
   };
   const EfcInitCtx initCtx = {
     .ekaProps = &ekaProps,

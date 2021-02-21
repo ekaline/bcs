@@ -364,7 +364,7 @@ uint8_t EkaDev::findCoreByMacSa(const uint8_t* macSa) {
     if (core[c] == NULL) continue;
     if (memcmp(core[c]->macSa,macSa,6) == 0) return c;
   }
-  return 65; // NO CORE FOUND
+  return 0xFF; // NO CORE FOUND
 }
 /* ##################################################################### */
 
