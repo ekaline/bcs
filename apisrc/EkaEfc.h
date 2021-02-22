@@ -3,15 +3,19 @@
 
 #include "Efh.h"
 #include "Efc.h"
+#include "Epm.h"
 #include "eka_macros.h"
 #include "efh_macros.h"
 #include "eka_hw_conf.h"
+
+//#include "EpmStrategy.h"
 
 class EkaHwHashTableLine;
 class EkaIgmp;
 class EkaUdpSess;
 class EkaEpmAction;
 
+//class EkaEfc : public EpmStrategy {
 class EkaEfc {
  public:
   EkaEfc(EkaDev* dev, EfhFeedVer hwFeedVer, const EfcInitCtx* pEfcInitCtx);
@@ -24,7 +28,7 @@ class EkaEfc {
   int armController();
   int disArmController();
   int run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx);
-  EkaEpmAction* createFireAction(uint8_t group, ExcConnHandle hConn);
+  EkaEpmAction* createFireAction(epm_actionid_t actionIdx, ExcConnHandle hConn);
   int setActionPayload(ExcConnHandle hConn,const void* fireMsg, size_t fireMsgSize);
 
  private:

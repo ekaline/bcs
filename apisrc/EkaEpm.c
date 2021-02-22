@@ -93,23 +93,24 @@ EkaOpResult EkaEpm::setAction(EkaCoreId coreId,
 			      epm_actionid_t actionIdx,
 			      const EpmAction *epmAction) {
 
-  if (strategyIdx == EFC_STRATEGY) {
-    if (dev->efc == NULL) {
-      EKA_WARN ("EKA_OPRESULT__ERR_EFC_UNINITALIZED");
-      return EKA_OPRESULT__ERR_EFC_UNINITALIZED;
-    }
-    EKA_LOG("Creating EFC Action %u",actionIdx);
-    EkaEpmAction* fireAction = dev->efc->createFireAction(actionIdx, epmAction->hConn);
-    if (fireAction == NULL) on_error("fireAction == NULL");
+  /* if (strategyIdx == EFC_STRATEGY) { */
+  /*   if (dev->efc == NULL) { */
+  /*     EKA_WARN ("EKA_OPRESULT__ERR_EFC_UNINITALIZED"); */
+  /*     return EKA_OPRESULT__ERR_EFC_UNINITALIZED; */
+  /*   } */
+  /*   EKA_LOG("Creating EFC Action %u",actionIdx); */
+  /*   EkaEpmAction* fireAction = dev->efc->createFireAction(actionIdx, epmAction->hConn); */
+  /*   if (fireAction == NULL) on_error("fireAction == NULL"); */
 
-    fireAction->updateAttrs(excGetCoreId(epmAction->hConn),
-			    excGetSessionId(epmAction->hConn),
-			    epmAction);
+  /*   fireAction->updateAttrs(excGetCoreId(epmAction->hConn), */
+  /* 			    excGetSessionId(epmAction->hConn), */
+  /* 			    epmAction); */
 
-    fireAction->updatePayload(epmAction->offset,epmAction->length);
+  /*   fireAction->updatePayload(epmAction->offset,epmAction->length); */
 
-    return EKA_OPRESULT__OK;
-  }
+  /*   return EKA_OPRESULT__OK; */
+  /* } */
+
 
   if (! initialized) {
     EKA_WARN ("EKA_OPRESULT__ERR_EPM_UNINITALIZED");

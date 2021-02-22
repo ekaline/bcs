@@ -408,7 +408,7 @@ int EkaEfc::setHwStratRegion() {
 }
 /* ################################################ */
 
-EkaEpmAction* EkaEfc::createFireAction(uint8_t group, ExcConnHandle hConn) {
+EkaEpmAction* EkaEfc::createFireAction(epm_actionid_t actionIdx, ExcConnHandle hConn) {
   if (numFireActions == MAX_FIRE_ACTIONS) 
     on_error("numFireActions == MAX_FIRE_ACTIONS %d",numFireActions);
 
@@ -431,7 +431,7 @@ EkaEpmAction* EkaEfc::createFireAction(uint8_t group, ExcConnHandle hConn) {
   
   fireAction[newActionId] = dev->epm->addAction(EkaEpm::ActionType::HwFireAction,
 						   EkaEpm::EfcRegion,
-						   0, //localIdx
+						   actionIdx, //localIdx
 						   myCoreId,
 						   mySessId,
 						   0 //auxIdx
