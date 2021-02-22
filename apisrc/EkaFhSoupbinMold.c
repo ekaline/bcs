@@ -410,7 +410,7 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
     lastMsg = gr->parseMsg(pEfhRunCtx,soupbin_buf,gr->recovery_sequence,op);
 
     if (lastMsg) {
-      gr->seq_after_snapshot = gr->recovery_sequence + 1;
+      //      gr->seq_after_snapshot = gr->recovery_sequence + 1;
       EKA_LOG("%s:%u After lastMsg message: seq_after_snapshot = %ju, recovery_sequence = %ju",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,soupbin_buf,gr->seq_after_snapshot,gr->recovery_sequence);
       return EkaFhParseResult::End;
