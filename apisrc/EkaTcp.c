@@ -210,6 +210,7 @@ int ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
 	if (EKA_IS_TCP_PKT(pkt)) {
 	  EkaTcpSess* tcpSess = dev->findTcpSess(EKA_IPH_DST(pkt),EKA_TCPH_DST(pkt),EKA_IPH_SRC(pkt),EKA_TCPH_SRC(pkt));
 	  if (tcpSess == NULL) {
+	    hexDump("Unexpected RX TCP pkt",pkt,len);
 	    on_error("RX pkt TCP session %s:%u-->%s:%u not found",
 		     EKA_IP2STR(EKA_IPH_DST(pkt)),EKA_TCPH_DST(pkt),
 		     EKA_IP2STR(EKA_IPH_SRC(pkt)),EKA_TCPH_SRC(pkt)
