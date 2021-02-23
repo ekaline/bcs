@@ -1,3 +1,4 @@
+#include <alloca.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
@@ -17,6 +18,7 @@
 #include <linux/sockios.h>
 #include <errno.h>
 #include <thread>
+#include <sys/poll.h>
 
 #include "Efc.h"
 
@@ -26,6 +28,52 @@
 #include "EkaCore.h"
 #include "EkaTcpSess.h"
 #include "EkaEfc.h"
+
+extern "C" {
+
+int lwip_poll(struct pollfd* fds, int nfds, int timeout);
+int lwip_getsockopt(int fd, int level, int optname, void* optval, socklen_t *optlen);
+int lwip_setsockopt(int fd, int level, int optname, const void* optval, socklen_t optlen);
+int lwip_ioctl(int fd, long cmd, void *argp);
+
+}
+
+// Linux and lwIP number their socket options differently. In general the
+// levels are the same, except for SOL_SOCKET.
+// NOTE: you *cannot* include <lwip/socket.h> here or it will re#define
+// all the important macros. If lwIP is ever upgraded, this mapping
+// must be kept in sync by hand.
+constexpr int mapLinuxSocketOptionLevelToLWIP(int linuxLevel) {
+  return linuxLevel == SOL_SOCKET ? 0xfff : linuxLevel;
+}
+
+// Linux and lwIP use very different numbering for option names. We only
+// map support options that we care about.
+constexpr int mapLinuxSocketOptionNameToLWIP(int linuxLevel, int linuxName) {
+  switch (linuxLevel) {
+  case SOL_SOCKET:
+    switch (linuxName) {
+    case SO_LINGER: return 0x0080;
+    case SO_RCVBUF: return 0x1002;
+    case SO_SNDTIMEO: return 0x1005;
+    case SO_RCVTIMEO: return 0x1006;
+    case SO_ERROR: return 0x1007;
+    case SO_TYPE: return 0x1008;
+    case SO_BINDTODEVICE: return 0x100b;
+    default: return -1;
+    }
+
+  case IPPROTO_TCP:
+    switch (linuxName) {
+    case TCP_NODELAY: return 0x01;
+    case TCP_INFO: return 0x06;
+    default: return -1;
+    }
+
+  default:
+    return -1;
+  }
+}
 
 /**
  * This is a utility function that will return the ExcSessionId from the result of exc_connect.
@@ -198,27 +246,49 @@ int excClose( EkaDev* dev, ExcConnHandle hConn ) {
   return 0;
 }
 
-/**
- * @param hConnection
- * @return This will return true if hConn has data ready to be read.
- */
-int excReadyToRecv( EkaDev* dev, ExcConnHandle hConn ) {
-  assert (dev != NULL);
-  if (! dev->epmEnabled) {
-    on_error("FPGA TCP is disabled for this Application instance");
-  }
-  uint coreId = excGetCoreId(hConn);
-  if (dev->core[coreId] == NULL) {
-    EKA_WARN("Core %u of hConn %u is not connected",coreId,hConn);
-    return -1;
+int excPoll( EkaDev *dev, struct pollfd *fds, int nfds, int timeout ) {
+  auto *const lwipPollFds = static_cast<pollfd *>(alloca(sizeof(pollfd) * nfds));
+
+  for (int i = 0; i < nfds; ++i) {
+    const auto hConn = static_cast<ExcConnHandle>(fds[i].fd);
+    const auto coreId = excGetCoreId(hConn);
+    const auto sessId = excGetSessionId(hConn);
+
+    lwipPollFds[i].fd = dev->core[coreId]->tcpSess[sessId]->sock;
+    lwipPollFds[i].events = fds[i].events;
   }
 
-  uint sessId = excGetSessionId(hConn);
-
-  if (dev->core[coreId]->tcpSess[sessId] == NULL) {
-    EKA_WARN("Session %u on Core %u of hConn %u is not connected",sessId,coreId,hConn);
-    return -1;
+  const int rc = lwip_poll(lwipPollFds, nfds, timeout);
+  if (rc != -1) {
+    for (int i = 0; i < nfds; ++i)
+      fds[i].revents = lwipPollFds[i].revents;
   }
+  return rc;
+}
 
-  return dev->core[coreId]->tcpSess[sessId]->readyToRecv();
+int excGetSockOpt( EkaDev* dev, ExcConnHandle hConn, int level, int optname,
+                   void* optval, socklen_t* optlen ) {
+  const auto coreId = excGetCoreId(hConn);
+  const auto sessId = excGetSessionId(hConn);
+  const int fd = dev->core[coreId]->tcpSess[sessId]->sock;
+  optname = mapLinuxSocketOptionNameToLWIP(level, optname); // Must be first because
+  level = mapLinuxSocketOptionLevelToLWIP(level);           // we change level
+  return lwip_getsockopt(fd, level, optname, optval, optlen);
+}
+
+int excSetSockOpt( EkaDev* dev, ExcConnHandle hConn, int level, int optname,
+                   const void* optval, socklen_t optlen ) {
+  const auto coreId = excGetCoreId(hConn);
+  const auto sessId = excGetSessionId(hConn);
+  const int fd = dev->core[coreId]->tcpSess[sessId]->sock;
+  optname = mapLinuxSocketOptionNameToLWIP(level, optname);
+  level = mapLinuxSocketOptionLevelToLWIP(level);
+  return lwip_setsockopt(fd, level, optname, optval, optlen);
+}
+
+int excIoctl ( EkaDev* dev, ExcConnHandle hConn, long cmd, void *argp ) {
+  const auto coreId = excGetCoreId(hConn);
+  const auto sessId = excGetSessionId(hConn);
+  const int fd = dev->core[coreId]->tcpSess[sessId]->sock;
+  return lwip_ioctl(fd, cmd, argp);
 }
