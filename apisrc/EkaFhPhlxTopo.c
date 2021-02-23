@@ -102,6 +102,8 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
     case EkaFhGroup::GrpState::SNAPSHOT_GAP : {
       if (sequence <= gr->recovery_sequence) {
 	// Recovery feed sequence took over the MCAST sequence
+	gr->expected_sequence = gr->recovery_sequence + 1;
+
 	gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
 
 	gr->gapClosed = true;
@@ -113,9 +115,8 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
 	gr->state = EkaFhGroup::GrpState::NORMAL;
 	gr->sendFeedUp(pEfhRunCtx);
 	runGr->setGrAfterGap(gr->id);
-	gr->expected_sequence = gr->recovery_sequence + 1;
 
-	EKA_LOG("%s:%u: SNAPSHOT GAP: recovery_sequence %ju >= sequence %ju, expected_sequence=%ju",
+	EKA_LOG("%s:%u: SNAPSHOT GAP closed: recovery_sequence %ju >= sequence %ju, expected_sequence=%ju",
 		EKA_EXCH_DECODE(gr->exch),gr->id,gr->recovery_sequence,sequence,gr->expected_sequence);
 
       }
