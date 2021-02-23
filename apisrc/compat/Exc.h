@@ -10,6 +10,8 @@
 
 #include "Eka.h"
 
+struct pollfd;
+
 #ifdef __cplusplus
     extern "C" {
 #endif
@@ -80,13 +82,15 @@ ssize_t excRecv( EkaDev* pEkaDev, ExcConnHandle hConn, void *buffer, size_t size
  */
 int excClose( EkaDev* pEkaDev, ExcConnHandle hConn );
 
+int excPoll( EkaDev* pEkaDev, struct pollfd *fds, int nfds, int timeout );
 
-/**
- * @param hConn
- * @return This will return true if hConn has data ready to be read.
- */
-int excReadyToRecv( EkaDev* pEkaDev, ExcConnHandle hConn );
+int excGetSockOpt( EkaDev* pEkaDev, ExcConnHandle hConn, int level, int optname,
+                   void* optval, socklen_t* optlen );
 
+int excSetSockOpt( EkaDev* pEkaDev, ExcConnHandle hConn, int level, int optname,
+                   const void* optval, socklen_t optlen );
+
+int excIoctl( EkaDev* pEkaDev, ExcConnHandle hConn, long cmd, void *argp );
 
 /**
  * Help functions for the tests
