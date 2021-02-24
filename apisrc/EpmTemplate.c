@@ -28,7 +28,7 @@ int EpmTemplate::init() {
       uint8_t shiftedSrc = ((uint8_t)f->source) << 4;
       uint8_t byteOffs   = (f->swap)? (b) & 0xf : (f->size - b - 1) & 0xf;
       data[idx] = shiftedSrc | 
-	(f->source != HwField::IMMEDIATE ? byteOffs : idx % 4);
+	(f->source != HwField::IMMEDIATE ? byteOffs : idx % 8);
 
       if (f->source != HwField::IMMEDIATE && f->source != HwField::TCP_CHCK_SUM) {
 	if (f->size > EpmHwFieldSize) 
