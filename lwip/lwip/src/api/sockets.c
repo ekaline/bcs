@@ -3111,6 +3111,11 @@ lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *opt
                                       s, *(int *)optval));
           break;
 #endif /* LWIP_TCP_KEEPALIVE */
+        case TCP_INFO:
+        *(int *)optval = (int)sock->conn->pcb.tcp->state;
+        LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_getsockopt(%d, IPPROTO_TCP, TCP_INFO) = %d\n",
+                                    s, *(int *)optval));
+        break;
         default:
           LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_getsockopt(%d, IPPROTO_TCP, UNIMPL: optname=0x%x, ..)\n",
                                       s, optname));

@@ -343,26 +343,6 @@ int EkaTcpSess::sendThruStack(void *buf, int len) {
 
 /* ---------------------------------------------------------------- */
 
-int EkaTcpSess::readyToSend() {
-  struct pollfd fds[1] = {{sock, POLLOUT, 0}};
-
-  int rc = lwip_poll(fds, 1, 0);
-
-  if (rc < 0) on_error("Core %u TcpSess %u poll returned rc=%d",coreId,sessId,rc);
-
-  if (fds[0].revents & POLLERR)
-    on_error("Core %u TcpSess %u has POLLERR (broken pipe)",coreId,sessId);
-  if (fds[0].revents & POLLNVAL)
-    on_error("Core %u TcpSess %u has POLLNVAL (socket is not opened)",coreId,sessId);
-
-  if (fds[0].revents & POLLOUT) return 1;
-
-  //  EKA_WARN("core %u, sess %u, sock %d is not ready to write",coreId,sessId,sock);
-  return 0;
-}
-
-/* ---------------------------------------------------------------- */
-
 int EkaTcpSess::sendDummyPkt(void *buf, int len) {
   if (tcpRemoteAckNum > dummyBytes + tcpLocalSeqNumBase)
     EKA_WARN(YEL "tcpRemoteAckNum %u > real dummyBytes %u, delta = %d" RESET,
@@ -412,24 +392,4 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len) {
   fastPathAction->fastSend(buf, payloadSize2send);
 
   return payloadSize2send;
-}
-
-/* ---------------------------------------------------------------- */
-
-int EkaTcpSess::readyToRecv() {
-  struct pollfd fds[1] = {{sock, POLLIN, 0}};
-
-  int rc = lwip_poll(fds, 1, 0);
-
-  if (rc < 0)
-    EKA_WARN("Core %u TcpSess %u poll returned rc=%d",coreId,sessId,rc);
-
-  if (fds[0].revents & POLLIN) return 1;
-
-  if (fds[0].revents & POLLERR)
-    EKA_WARN("Core %u TcpSess %u has POLLERR (broken pipe)",coreId,sessId);
-  if (fds[0].revents & POLLNVAL)
-    EKA_WARN("Core %u TcpSess %u has POLLNVAL (socket is not opened)",coreId,sessId);
-
-  return 0;
 }
