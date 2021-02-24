@@ -290,7 +290,7 @@ bool runTestCase(EkaDev *dev, TestCase *testCase) {
   EkaOpResult ekaRC = epmEnableController(dev,coreId,false);
   if (ekaRC != EKA_OPRESULT__OK) on_error("epmEnableController failed: ekaRC = %d",ekaRC);
 
-  epmSetStrategyEnableBits(dev, coreId, testCase->testStrategy.id, testCase->testStrategy.enableBitmap);
+  epmSetStrategyEnableBits(dev, testCase->testStrategy.id, testCase->testStrategy.enableBitmap);
   /* ============================================== */
 
   int testActionsNum = sizeof(testCase->testAction)/sizeof(testCase->testAction[0]);
@@ -317,7 +317,7 @@ bool runTestCase(EkaDev *dev, TestCase *testCase) {
       .postStratMask = currAction->postStratMask,              ///< Post fire: strat-enable & mask -> strat-enable
       .user          = static_cast<uintptr_t>(testCase->user)  ///< Opaque value copied into `EpmFireReport`.
     };
-    ekaRC = epmPayloadHeapCopy(dev, coreId,
+    ekaRC = epmPayloadHeapCopy(dev,
 			       static_cast<epm_strategyid_t>(testCase->testStrategy.id),
 			       heapOffset,
 			       epmAction.length,
@@ -326,7 +326,7 @@ bool runTestCase(EkaDev *dev, TestCase *testCase) {
     if (ekaRC != EKA_OPRESULT__OK) on_error("epmPayloadHeapCopy failed: ekaRC = %d",ekaRC);
     heapOffset += epmAction.length + fcsOffset;
 	
-    ekaRC = epmSetAction(dev, coreId, testCase->testStrategy.id, currAction->id, &epmAction);
+    ekaRC = epmSetAction(dev, testCase->testStrategy.id, currAction->id, &epmAction);
     if (ekaRC != EKA_OPRESULT__OK) on_error("epmSetAction failed: ekaRC = %d",ekaRC);
     //    printf("%d --> ",currAction->id);
   }
@@ -338,7 +338,7 @@ bool runTestCase(EkaDev *dev, TestCase *testCase) {
   /* ============================================== */
 
   if (testCase->raiseTriggerFromSw) {
-    ekaRC = epmRaiseTriggers(dev,coreId, &testCase->epmTrigger);
+    ekaRC = epmRaiseTriggers(dev, &testCase->epmTrigger);
     if (ekaRC != EKA_OPRESULT__OK) on_error("epmRaiseTriggers failed: ekaRC = %d",ekaRC);
   } else {
     if (sendto(testCase->triggerSock,&testCase->epmTrigger,sizeof(EpmTrigger),0,testCase->triggerMcAddr,sizeof(sockaddr)) < 0) 
@@ -477,12 +477,12 @@ int main(int argc, char *argv[]) {
   EpmStrategyParams strategyParams[numStrategies] = {};
   for (auto i = 0; i < numStrategies; i++) {
     strategyParams[i].numActions  = numActions;
-    strategyParams[i].triggerAddr = reinterpret_cast<const sockaddr*>(&triggerMcAddr);
+    //    strategyParams[i].triggerAddr = reinterpret_cast<const sockaddr*>(&triggerMcAddr);
     strategyParams[i].reportCb    = fireReportCb;
   }
 
   EKA_LOG("Configuring %u Strategies with up %u Actions per Strategy",numStrategies,numActions);
-  ekaRC = epmInitStrategies(dev, coreId, strategyParams, numStrategies);
+  ekaRC = epmInitStrategies(dev, strategyParams, numStrategies);
   if (ekaRC != EKA_OPRESULT__OK) on_error("epmInitStrategies failed: ekaRC = %d",ekaRC);
 
   /* ============================================== */

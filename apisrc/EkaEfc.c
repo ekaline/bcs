@@ -42,7 +42,7 @@ EkaEfc::EkaEfc(EkaDev* _dev, EfhFeedVer _hwFeedVer, const EfcInitCtx* pEfcInitCt
 #endif
 
   initHwRoundTable();
-  ekaIgmp = new EkaIgmp(dev,mdCoreId,EkaEpm::EfcRegion,"Efc");
+  ekaIgmp = new EkaIgmp(dev,EkaEpm::EfcRegion,"Efc");
   if (ekaIgmp == NULL) on_error("ekaIgmp == NULL");
 
   getMcParams(pEfcInitCtx);

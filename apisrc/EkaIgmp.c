@@ -9,9 +9,8 @@ void saveMcState(EkaDev* dev, int grId, int chId, uint8_t coreId, uint32_t mcast
 
 /* ##################################################################### */
 
-EkaIgmp::EkaIgmp(EkaDev* _dev, uint8_t _coreId, uint _epmRegion, const char* _name) {
+EkaIgmp::EkaIgmp(EkaDev* _dev, uint _epmRegion, const char* _name) {
   dev       = _dev;
-  coreId    = _coreId;
   epmRegion = _epmRegion;
   strcpy(name,_name);
 
@@ -37,7 +36,7 @@ EkaIgmp::~EkaIgmp() {
 }
 
 /* ##################################################################### */
-int EkaIgmp::mcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag, uint64_t* pPktCnt) {
+int EkaIgmp::mcJoin(EkaCoreId coreId, uint32_t ip, uint16_t port, uint16_t vlanTag, uint64_t* pPktCnt) {
   for (auto i = 0; i < numIgmpEntries; i++) {
     if (igmpEntry[i] == NULL) on_error("igmpEntry[%d] == NULL",i);
     if (igmpEntry[i]->isMy(ip,port)) return 0;

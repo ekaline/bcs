@@ -4,15 +4,17 @@
 #include <thread>
 #include <pthread.h>
 
+#include "Eka.h"
+
 class EkaIgmpEntry;
 class EkaDev;
 
 class EkaIgmp {
  public:
-  EkaIgmp(EkaDev* dev,/* EkaUdpChannel* udpCh, */  uint8_t coreId, uint epmRegion, const char* name);
+  EkaIgmp(EkaDev* dev, uint epmRegion, const char* name);
   ~EkaIgmp();
 
-  int mcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag, uint64_t* pPktCnt);
+  int mcJoin(EkaCoreId coreId, uint32_t ip, uint16_t port, uint16_t vlanTag, uint64_t* pPktCnt);
 
 
  private:
@@ -38,7 +40,6 @@ class EkaIgmp {
   EkaIgmpEntry*         igmpEntry[MAX_IGMP_ENTRIES] = {};
   int                   numIgmpEntries              = 0;
 
-  uint8_t               coreId                      = -1;
   EkaDev*               dev                         = NULL;
 };
 

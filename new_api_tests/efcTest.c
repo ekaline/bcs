@@ -358,17 +358,18 @@ int main(int argc, char *argv[]) {
   // ==============================================
   // Setup EFC MC groups
   struct IpPort {
-    uint32_t ip;
-    uint16_t port;
-    char     keyStr[80];
-    char     valStr[80];
+    EkaCoreId coreId;
+    uint32_t  ip;
+    uint16_t  port;
+    char      keyStr[80];
+    char      valStr[80];
   };
 
   IpPort mcGroup[] = {
-    {inet_addr("233.54.12.72"),18000},
-    {inet_addr("233.54.12.73"),18001},
-    {inet_addr("233.54.12.74"),18002},
-    {inet_addr("233.54.12.75"),18003}
+    {0,inet_addr("233.54.12.72"),18000,{},{}},
+    {0,inet_addr("233.54.12.73"),18001,{},{}},
+    {0,inet_addr("233.54.12.74"),18002,{},{}},
+    {0,inet_addr("233.54.12.75"),18003,{},{}}
   };
 
   EkaProp initCtxEntries[std::size(mcGroup)] = {};
@@ -416,11 +417,11 @@ int main(int argc, char *argv[]) {
 
   const EpmStrategyParams efcEpmStrategyParams = {
     .numActions  = 256,          // just a number
-    .triggerAddr = NULL,         // set via EfcInitCtx
+    //    .triggerAddr = NULL,         // set via EfcInitCtx
     .reportCb    = NULL,         // set via EfcRunCtx
     .cbCtx       = NULL
   };
-  rc = epmInitStrategies(dev, coreId, &efcEpmStrategyParams, 1);
+  rc = epmInitStrategies(dev, &efcEpmStrategyParams, 1);
   if (rc != EKA_OPRESULT__OK) on_error("epmInitStrategies failed: rc = %d",rc);
 
   // ==============================================
@@ -516,7 +517,6 @@ int main(int argc, char *argv[]) {
   };
 
   rc = epmSetAction(dev, 
-		    coreId,
 		    EFC_STRATEGY, 
 		    0,               // epm_actionid_t must correspond to the MC gr ID
 		    &sqfFire0);
@@ -524,7 +524,6 @@ int main(int argc, char *argv[]) {
   if (rc != EKA_OPRESULT__OK) on_error("epmSetAction returned %d",(int)rc);
 
   rc = epmPayloadHeapCopy(dev, 
-			  coreId,
 			  EFC_STRATEGY,
 			  sqfFire0.offset,
 			  sqfFire0.length,
@@ -551,7 +550,6 @@ int main(int argc, char *argv[]) {
   };
 
   rc = epmPayloadHeapCopy(dev, 
-			  coreId,
 			  EFC_STRATEGY,
 			  sqfCancel0.offset,
 			  sqfCancel0.length,
@@ -564,7 +562,6 @@ int main(int argc, char *argv[]) {
   heapOffset += dataAlignment - (heapOffset % dataAlignment);
 
   rc = epmSetAction(dev, 
-		    coreId,
 		    EFC_STRATEGY, 
 		    chainActionCurrId,               
 		    &sqfCancel0);
@@ -657,7 +654,6 @@ int main(int argc, char *argv[]) {
     .user          = 0x1234567890abcdef,
     };
     rc = epmSetAction(dev, 
-		      coreId,
 		      EFC_STRATEGY, 
 		      currActionId, 
 		      &chainAction);
@@ -665,7 +661,6 @@ int main(int argc, char *argv[]) {
     if (rc != EKA_OPRESULT__OK) on_error("epmSetAction returned %d",(int)rc);
 
     rc = epmPayloadHeapCopy(dev, 
-			    coreId,
 			    EFC_STRATEGY,
 			    chainAction.offset,
 			    chainAction.length,

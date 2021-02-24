@@ -1,4 +1,5 @@
 /* SHURIK */
+#include <arpa/inet.h>
 
 #include "Exc.h"
 #include "Eka.h"
@@ -88,8 +89,7 @@ EkaOpResult EkaEpm::raiseTriggers(const EpmTrigger *trigger) {
 
 /* ---------------------------------------------------- */
 
-EkaOpResult EkaEpm::setAction(EkaCoreId coreId,
-			      epm_strategyid_t strategyIdx,
+EkaOpResult EkaEpm::setAction(epm_strategyid_t strategyIdx,
 			      epm_actionid_t actionIdx,
 			      const EpmAction *epmAction) {
 
@@ -129,10 +129,9 @@ EkaOpResult EkaEpm::setAction(EkaCoreId coreId,
   return strategy[strategyIdx]->setAction(actionIdx,epmAction);
 }
 /* ---------------------------------------------------- */
-EkaOpResult EkaEpm::getAction(EkaCoreId coreId,
-				 epm_strategyid_t strategyIdx,
-				 epm_actionid_t actionIdx,
-				 EpmAction *epmAction) {
+EkaOpResult EkaEpm::getAction(epm_strategyid_t strategyIdx,
+			      epm_actionid_t actionIdx,
+			      EpmAction *epmAction) {
   if (! initialized) return EKA_OPRESULT__ERR_EPM_UNINITALIZED;
   if (! validStrategyIdx(strategyIdx)) return EKA_OPRESULT__ERR_INVALID_STRATEGY;
   if (! strategy[strategyIdx]->myAction(actionIdx)) return EKA_OPRESULT__ERR_INVALID_ACTION;
@@ -161,8 +160,7 @@ EkaOpResult EkaEpm::enableController(EkaCoreId coreId, bool enable) {
 
 /* ---------------------------------------------------- */
 
-EkaOpResult EkaEpm::initStrategies(EkaCoreId coreId,
-				   const EpmStrategyParams *params,
+EkaOpResult EkaEpm::initStrategies(const EpmStrategyParams *params,
 				   epm_strategyid_t numStrategies) {
   if (numStrategies > (int)MaxStrategies) 
     on_error("numStrategies %u > MaxStrategies %ju",numStrategies,MaxStrategies);
@@ -173,7 +171,7 @@ EkaOpResult EkaEpm::initStrategies(EkaCoreId coreId,
 
   char name[50] = {};
   sprintf(name,"EpmTrigger");
-  ekaIgmp = new EkaIgmp(dev,/* udpCh[coreId], */(uint8_t)coreId,(uint)ServiceRegion,name);
+  ekaIgmp = new EkaIgmp(dev,(uint)ServiceRegion,name);
   if (ekaIgmp == NULL) on_error("ekaIgmp == NULL");
 
   if (! dev->fireReportThreadActive) {
@@ -196,8 +194,12 @@ EkaOpResult EkaEpm::initStrategies(EkaCoreId coreId,
     strategy[i] = new EpmStrategy(this,i,currActionIdx, &params[i]);
     if (strategy[i] == NULL) on_error("Fail to create strategy[%d]",i);
 
-    //    udpCh[coreId]->igmp_mc_join(0, strategy[i]->ip, strategy[i]->port,0);
-    ekaIgmp->mcJoin(strategy[i]->ip, strategy[i]->port,0,&pktCnt);
+    for (auto i = 0; i < params->numTriggers; i++) {
+      ekaIgmp->mcJoin(params->triggerParams[i].coreId, 
+		      inet_addr(params->triggerParams[i].mcIp), 
+		      params->triggerParams[i].mcUdpPort,
+		      0,&pktCnt);
+    }
 
     currActionIdx += params[i].numActions;
 
@@ -209,9 +211,8 @@ EkaOpResult EkaEpm::initStrategies(EkaCoreId coreId,
 }
 /* ---------------------------------------------------- */
 
-EkaOpResult EkaEpm::setStrategyEnableBits(EkaCoreId coreId,
-                                     epm_strategyid_t strategyIdx,
-                                     epm_enablebits_t enable) {
+EkaOpResult EkaEpm::setStrategyEnableBits(epm_strategyid_t strategyIdx,
+					  epm_enablebits_t enable) {
   if (! initialized)
     return EKA_OPRESULT__ERR_EPM_UNINITALIZED;
 
@@ -221,8 +222,7 @@ EkaOpResult EkaEpm::setStrategyEnableBits(EkaCoreId coreId,
 }
 /* ---------------------------------------------------- */
 
-EkaOpResult EkaEpm::getStrategyEnableBits(EkaCoreId coreId,
-					  epm_strategyid_t strategyIdx,
+EkaOpResult EkaEpm::getStrategyEnableBits(epm_strategyid_t strategyIdx,
 					  epm_enablebits_t *enable) {
   if (! initialized)
     return EKA_OPRESULT__ERR_EPM_UNINITALIZED;
@@ -233,8 +233,7 @@ EkaOpResult EkaEpm::getStrategyEnableBits(EkaCoreId coreId,
 
 /* ---------------------------------------------------- */
 
-EkaOpResult EkaEpm::payloadHeapCopy(EkaCoreId coreId,
-				    epm_strategyid_t strategyIdx, 
+EkaOpResult EkaEpm::payloadHeapCopy(epm_strategyid_t strategyIdx, 
 				    uint32_t offset,
 				    uint32_t length, 
 				    const void *contents) {

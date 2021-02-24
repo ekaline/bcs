@@ -127,7 +127,7 @@ typedef void (*EpmFireReportCb)(const EpmFireReport *report, int nReports, void 
 /**
  * Strategy parameters passed to epmInitStrategies
  *
- * - triggerAddr: A destination socket address of the UDP triggers
+ * - triggerParams: A list of UDP triggers (10G port + MC IP + UDP Port)
  *     the device will look for. This can be NULL, in which case the user
  *     may only send software triggers via @ref epmRaiseTrigger.
  *
@@ -138,9 +138,17 @@ typedef void (*EpmFireReportCb)(const EpmFireReport *report, int nReports, void 
  *     Because multiple actions may be performed, the callback is given an
  *     array of report structures.
  */
+
+struct EpmTriggerParams {
+  EkaCoreId   coreId;          ///< 10G port to receive UDP MC trigger
+  const char* mcIp;            ///< MC IP address
+  uint16_t    mcUdpPort;       ///< MC UDP Port
+};
+
 struct EpmStrategyParams {
   epm_actionid_t numActions;   ///< No. of actions entries used by this strategy
-  const sockaddr *triggerAddr; ///< Address to receive trigger packets
+  const EpmTriggerParams *triggerParams; ///< list of triggers belonging to this strategy
+  size_t numTriggers;          ///< size of triggerParams list
   EpmFireReportCb reportCb;    ///< Callback function to process fire reports
   void *cbCtx;                 ///< Opaque value passed into reportCb
 };
@@ -213,9 +221,6 @@ uint64_t epmGetDeviceCapability(const EkaDev *ekaDev, EpmDeviceCapability cap);
  * @param [in] ekaDev The device where the action table memory and payload
  *     heap memory will be allocated.
  *
- * @param [in] coreId Identifier of core where the action table will be
- *     allocated; the exc socket will need to exist on this same core.
- *
  * @param [in] params An array (of size numsStrategies) of `EpmStrategyParams`
  *     structures, which describe the fixed parameters of the strategies
  *     that affect hardware resource allocation that cannot change during
@@ -227,12 +232,10 @@ uint64_t epmGetDeviceCapability(const EkaDev *ekaDev, EpmDeviceCapability cap);
  *
  * @retval ERR_BAD_ADDRESS Returned if ekaDev or params was NULL.
  *
- * @retval ERR_INVALID_CORE coreId did not refer to a valid core.
- *
  * @retval ERR_MAX_STRATEGIES If `numStrategies` exceeded the maximum number
  *     of allowable strategies as reported by @ref epmGetDeviceCapability.
  */
-EkaOpResult epmInitStrategies(EkaDev *ekaDev, EkaCoreId coreId,
+EkaOpResult epmInitStrategies(EkaDev *ekaDev,
                               const EpmStrategyParams *params,
                               epm_strategyid_t numStrategies);
 
@@ -350,18 +353,12 @@ EkaOpResult epmEnableController(EkaDev *ekaDev, EkaCoreId coreId, bool enable);
  *
  * @retval ERR_BAD_ADDRESS ekaDev or action was NULL.
  *
- * @retval ERR_INVALID_CORE coreId does not refer to a valid port.
- *
- * @retvla ERR_EPM_UNINITALIZED coreId refers to a core which has not called
- *     @ref epmInitStrategies.
- *
  * @retval ERR_INVALID_STRATEGY strategy was not a valid strategy id.
  *
  * @retval ERR_INVALID_ACTION action was not a valid action id.
  */
-EkaOpResult epmGetAction(const EkaDev *ekaDev, EkaCoreId coreId,
-                         epm_strategyid_t strategy, epm_actionid_t action,
-                         EpmAction *epmAction);
+EkaOpResult epmGetAction(const EkaDev *ekaDev, epm_strategyid_t strategy, 
+			 epm_actionid_t action, EpmAction *epmAction);
 
 /**
  * Sets the action descriptor in the strategy according to the passed in
@@ -372,11 +369,6 @@ EkaOpResult epmGetAction(const EkaDev *ekaDev, EkaCoreId coreId,
  * @retval OK
  *
  * @retval ERR_BAD_ADDRESS ekaDev or enable was NULL.
- *
- * @retval ERR_INVALID_CORE coreId does not refer to a valid port.
- *
- * @retvla ERR_EPM_UNINITALIZED coreId refers to a core which has not called
- *     @ref epmInitStrategies.
  *
  * @retval ERR_INVALID_STRATEGY strategy was not a valid strategy id.
  *
@@ -394,16 +386,15 @@ EkaOpResult epmGetAction(const EkaDev *ekaDev, EkaCoreId coreId,
  * @retval ERR_UNKNOWN_FLAG Caller tried to set an unrecognized behavior flag.
  *
  */
-EkaOpResult epmSetAction(EkaDev *ekaDev, EkaCoreId coreId,
-                         epm_strategyid_t strategy, epm_actionid_t action,
-                         const EpmAction *epmAction);
+EkaOpResult epmSetAction(EkaDev *ekaDev, epm_strategyid_t strategy, 
+			 epm_actionid_t action, const EpmAction *epmAction);
 
 /**
  * Copy the contents of the given buffer into the payload heap.
  */
-EkaOpResult epmPayloadHeapCopy(EkaDev *ekaDev, EkaCoreId coreId,
-                               epm_strategyid_t strategy, uint32_t offset,
-                               uint32_t length, const void *contents);
+EkaOpResult epmPayloadHeapCopy(EkaDev *ekaDev, epm_strategyid_t strategy, 
+			       uint32_t offset, uint32_t length, 
+			       const void *contents);
 
 /**
  * Gets strategy-level enable bits.
@@ -422,12 +413,8 @@ EkaOpResult epmPayloadHeapCopy(EkaDev *ekaDev, EkaCoreId coreId,
  *
  * @retval ERR_INVALID_STRATEGY strategy was not a valid strategy id.
  * 
- * @retval ERR_INVALID_CORE coreId does not refer to a valid port.
- *
- * @retvla ERR_EPM_UNINITALIZED coreId refers to a core which has not called
- *     @ref epmInitStrategies.
  */
-EkaOpResult epmGetStrategyEnableBits(const EkaDev *ekaDev, EkaCoreId coreId,
+EkaOpResult epmGetStrategyEnableBits(const EkaDev *ekaDev,
                                      epm_strategyid_t strategy,
                                      epm_enablebits_t *enable);
 /**
@@ -446,12 +433,8 @@ EkaOpResult epmGetStrategyEnableBits(const EkaDev *ekaDev, EkaCoreId coreId,
  *
  * @retval ERR_INVALID_STRATEGY strategy was not a valid strategy id.
  *
- * @retval ERR_INVALID_CORE coreId does not refer to a valid port.
- *
- * @retvla ERR_EPM_UNINITALIZED coreId refers to a core which has not called
- *     @ref epmInitStrategies.
  */
-EkaOpResult epmSetStrategyEnableBits(EkaDev *ekaDev, EkaCoreId coreId,
+EkaOpResult epmSetStrategyEnableBits(EkaDev *ekaDev,
                                      epm_strategyid_t strategy,
                                      epm_enablebits_t enable);
 
@@ -471,12 +454,8 @@ EkaOpResult epmSetStrategyEnableBits(EkaDev *ekaDev, EkaCoreId coreId,
  *
  * @retval ERR_BAD_ADDRESS ekaDev was NULL.
  *
- * @retval ERR_INVALID_CORE coreId does not refer to a valid port.
- *
- * @retvla ERR_EPM_UNINITALIZED coreId refers to a core which has not called
- *     @ref epmInitStrategies.
  */
-EkaOpResult epmRaiseTriggers(EkaDev *ekaDev, EkaCoreId coreId,
+EkaOpResult epmRaiseTriggers(EkaDev *ekaDev,
                              const EpmTrigger *trigger);
 } // End of extern "C"
 

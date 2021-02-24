@@ -149,34 +149,28 @@ class EkaEpm {
     return MaxUserActions;
   }
 
-  EkaOpResult setAction(EkaCoreId coreId,
-			epm_strategyid_t strategy,
+  EkaOpResult setAction(epm_strategyid_t strategy,
 			epm_actionid_t action,
 			const EpmAction *epmAction);
 
 
-  EkaOpResult getAction(EkaCoreId coreId,
-			epm_strategyid_t strategy,
+  EkaOpResult getAction(epm_strategyid_t strategy,
 			epm_actionid_t action,
 			EpmAction *epmAction);
 
   EkaOpResult enableController(EkaCoreId coreId, bool enable);
 
-  EkaOpResult initStrategies(EkaCoreId coreId,
-			     const EpmStrategyParams *params,
+  EkaOpResult initStrategies(const EpmStrategyParams *params,
 			     epm_strategyid_t numStrategies);
 
-  EkaOpResult setStrategyEnableBits(EkaCoreId coreId,
-				    epm_strategyid_t strategy,
+  EkaOpResult setStrategyEnableBits(epm_strategyid_t strategy,
 				    epm_enablebits_t enable);
-  EkaOpResult getStrategyEnableBits(EkaCoreId coreId,
-				    epm_strategyid_t strategy,
+  EkaOpResult getStrategyEnableBits(epm_strategyid_t strategy,
 				    epm_enablebits_t *enable);
   
   EkaOpResult raiseTriggers(const EpmTrigger *trigger);
 
-  EkaOpResult payloadHeapCopy(EkaCoreId coreId,
-			      epm_strategyid_t strategy, uint32_t offset,
+  EkaOpResult payloadHeapCopy(epm_strategyid_t strategy, uint32_t offset,
 			      uint32_t length, const void *contents);
 
   int DownloadSingleTemplate2HW(EpmTemplate* t);

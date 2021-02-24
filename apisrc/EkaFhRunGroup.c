@@ -41,7 +41,7 @@ EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 
   char name[50] = {};
   sprintf(name,"RunGr%u",runId);
-  ekaIgmp = new EkaIgmp(dev,/* udpCh, */coreId,udpChId,name);
+  ekaIgmp = new EkaIgmp(dev,udpChId,name);
   if (ekaIgmp == NULL) on_error("ekaIgmp == NULL");
 
   EKA_LOG("%s: coreId = %u, runId = %u, udpChId = %d, MC groups: %s",
@@ -51,7 +51,7 @@ EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 /* ##################################################################### */
 
 int EkaFhRunGroup::igmpMcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag,uint64_t* pPktCnt) {
-  ekaIgmp->mcJoin(ip,port,vlanTag,pPktCnt);
+  ekaIgmp->mcJoin(coreId,ip,port,vlanTag,pPktCnt);
   udpCh->igmp_mc_join (ip, ip, port, 0);
   return 0;
 }
