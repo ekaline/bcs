@@ -75,9 +75,7 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
     case EkaFhGroup::GrpState::INIT : { 
       gr->gapClosed = false;
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
-
       gr->sendFeedDownInitial(pEfhRunCtx);
-
       gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 1, 0);
     }
       break;
@@ -102,28 +100,25 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       break;
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::SNAPSHOT_GAP : {
-      gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
       if (sequence <= gr->recovery_sequence) {
 	// Recovery feed sequence took over the MCAST sequence
+	gr->expected_sequence = gr->recovery_sequence + 1;
 
-	EKA_LOG("%s:%u: Snapshot closed due: recovery_sequence %ju >= sequence",
-		EKA_EXCH_DECODE(gr->exch),gr->id,gr->recovery_sequence,sequence);
+	gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
 
 	gr->gapClosed = true;
 	gr->snapshot_active = false;
-	gr->seq_after_snapshot = gr->recovery_sequence + 1;
-	  
+
 	EKA_DEBUG("%s:%u Generating TOB quote for every Security",
 		  EKA_EXCH_DECODE(gr->exch),gr->id);
 	gr->book->sendTobImage(pEfhRunCtx);
-      }
-      if (gr->gapClosed) { // Gap can be closed from Soupbin thread
 	gr->state = EkaFhGroup::GrpState::NORMAL;
 	gr->sendFeedUp(pEfhRunCtx);
 	runGr->setGrAfterGap(gr->id);
-	gr->expected_sequence = gr->seq_after_snapshot;
-	EKA_LOG("%s:%u: SNAPSHOT_GAP Closed - expected_sequence=%ju",
-		EKA_EXCH_DECODE(exch),gr->id,gr->expected_sequence);
+
+	EKA_LOG("%s:%u: SNAPSHOT GAP closed: recovery_sequence %ju >= sequence %ju, expected_sequence=%ju",
+		EKA_EXCH_DECODE(gr->exch),gr->id,gr->recovery_sequence,sequence,gr->expected_sequence);
+
       }
     }
       break;
@@ -131,12 +126,12 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
     case EkaFhGroup::GrpState::RETRANSMIT_GAP : {
       gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
       if (gr->gapClosed) {
-	EKA_LOG("%s:%u: RETRANSMIT_GAP Closed, switching to fetch from Q",
-		EKA_EXCH_DECODE(exch),gr->id);
 	gr->state = EkaFhGroup::GrpState::NORMAL;
 	gr->sendFeedUp(pEfhRunCtx);
 	runGr->setGrAfterGap(gr->id);
-	gr->expected_sequence = gr->seq_after_snapshot;
+	gr->expected_sequence = gr->seq_after_snapshot + 1;
+	EKA_LOG("%s:%u: RETRANSMIT_GAP Closed, switching to fetch from Q",
+		EKA_EXCH_DECODE(exch),gr->id);
       }
     }
       break;
