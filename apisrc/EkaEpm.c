@@ -186,6 +186,7 @@ EkaOpResult EkaEpm::initStrategies(EkaCoreId coreId,
 
   epm_actionid_t currActionIdx = 0;
   for (auto i = 0; i < stratNum; i++) {
+    EKA_LOG("Imitializing strategy %d",i);
     if (epmRegion[i] != NULL) on_error("epmRegion[%d] != NULL",i);
     /* epmRegion[i] = new EkaEpmRegion((uint)i,currActionIdx); */
     /* if (epmRegion[i] == NULL) on_error("epmRegion[%d] == NULL",i); */

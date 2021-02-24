@@ -412,6 +412,18 @@ int main(int argc, char *argv[]) {
   runCtx.onEfcFireReportCb = onFireReport;
 
   // ==============================================
+  // Configuring EFC as EPM Strategy
+
+  const EpmStrategyParams efcEpmStrategyParams = {
+    .numActions  = 256,          // just a number
+    .triggerAddr = NULL,         // set via EfcInitCtx
+    .reportCb    = NULL,         // set via EfcRunCtx
+    .cbCtx       = NULL
+  };
+  rc = epmInitStrategies(dev, coreId, &efcEpmStrategyParams, 1);
+  if (rc != EKA_OPRESULT__OK) on_error("epmInitStrategies failed: rc = %d",rc);
+
+  // ==============================================
   // Subscribing on securities
   struct SecurityCtx {
     uint64_t        id;

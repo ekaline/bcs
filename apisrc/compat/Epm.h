@@ -19,8 +19,7 @@ typedef int32_t epm_actionid_t;
 
 #define EPM_LAST_ACTION 0xFFFF
 
-  //static const epm_strategyid_t EfcStrategyId = 30;
-#define EFC_STRATEGY 30
+#define EFC_STRATEGY 0
 
 /// Eklaine device limitations
 enum EpmDeviceCapability {
