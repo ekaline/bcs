@@ -39,12 +39,12 @@ EkaIgmp::~EkaIgmp() {
 int EkaIgmp::mcJoin(EkaCoreId coreId, uint32_t ip, uint16_t port, uint16_t vlanTag, uint64_t* pPktCnt) {
   for (auto i = 0; i < numIgmpEntries; i++) {
     if (igmpEntry[i] == NULL) on_error("igmpEntry[%d] == NULL",i);
-    if (igmpEntry[i]->isMy(ip,port)) return 0;
+    if (igmpEntry[i]->isMy(coreId,ip,port)) return 0;
   }
   if (numIgmpEntries == MAX_IGMP_ENTRIES) 
     on_error("numIgmpEntries %d == MAX_IGMP_ENTRIES %d",numIgmpEntries,MAX_IGMP_ENTRIES);
 
-  igmpEntry[numIgmpEntries] = new EkaIgmpEntry(dev,epmRegion,ip,port,vlanTag,coreId,pPktCnt);
+  igmpEntry[numIgmpEntries] = new EkaIgmpEntry(dev,epmRegion,coreId,ip,port,vlanTag,pPktCnt);
   if (igmpEntry[numIgmpEntries] == NULL) on_error("igmpEntry[%d] == NULL",numIgmpEntries);
 
   EKA_LOG("%s: MC join: %s:%u",name,EKA_IP2STR(ip),port);
@@ -73,7 +73,7 @@ int EkaIgmp::igmpThreadLoop() {
 		  igmpEntry[i]->coreId, 
 		  igmpEntry[i]->ip,
 		  igmpEntry[i]->port,
-		  *igmpEntry[i]->pPktCnt);
+		  igmpEntry[i]->pPktCnt == NULL ? 0 : *igmpEntry[i]->pPktCnt);
     }
     sleep (1);
   }
@@ -101,7 +101,7 @@ void* EkaIgmp::igmpThreadLoopCb(void* pEkaIgmp) {
 		  igmp->igmpEntry[i]->coreId, 
 		  igmp->igmpEntry[i]->ip,
 		  igmp->igmpEntry[i]->port,
-		  *igmp->igmpEntry[i]->pPktCnt);
+		  igmpEntry[i]->pPktCnt == NULL ? 0 : *igmp->igmpEntry[i]->pPktCnt);
     }
     sleep (1);
   }

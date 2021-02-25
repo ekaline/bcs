@@ -6,7 +6,7 @@
 int createIgmpPkt (char* dst, bool join, uint8_t* macsa, uint32_t ip_src, uint32_t ip_dst);
 /* -------------------------------------------- */
 
-EkaIgmpEntry::EkaIgmpEntry(EkaDev* _dev, int _udpChId, uint32_t _ip, uint16_t _port, int16_t _vlanTag, uint8_t _coreId, uint64_t* _pPktCnt) {
+EkaIgmpEntry::EkaIgmpEntry(EkaDev* _dev, int _udpChId, EkaCoreId _coreId, uint32_t _ip, uint16_t _port, int16_t _vlanTag, uint64_t* _pPktCnt) {
   dev     = _dev;
   udpChId = _udpChId;
   ip      = _ip;
@@ -40,8 +40,8 @@ EkaIgmpEntry::EkaIgmpEntry(EkaDev* _dev, int _udpChId, uint32_t _ip, uint16_t _p
 }
 /* -------------------------------------------- */
 
-bool EkaIgmpEntry::isMy(uint32_t _ip, uint16_t _port) {
-  return (ip == _ip && port == _port);
+bool EkaIgmpEntry::isMy(EkaCoreId _coreId, uint32_t _ip, uint16_t _port) {
+  return (coreId == _coreId && ip == _ip && port == _port);
 }
 /* -------------------------------------------- */
 

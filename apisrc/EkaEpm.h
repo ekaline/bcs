@@ -50,6 +50,9 @@ class EkaEpm {
   static const uint IGMP_V2_SIZE                = 64;
   static const uint HW_FIRE_MSG_SIZE            = 512;
 
+  static const int MAX_UDP_SESS      = 64;
+
+
   /* static const uint IGMP_ACTIONS_BASE           = MAX_CORES * TOTAL_SESSIONS_PER_CORE * 3; */
   /* static const uint MAX_IGMP_ACTIONS            = EkaDev::MAX_UDP_CHANNELS; */
 

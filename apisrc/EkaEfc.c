@@ -23,14 +23,11 @@ static bool isAscii (char letter) {
 }
 
 /* ################################################ */
-EkaEfc::EkaEfc(EkaDev* _dev, EfhFeedVer _hwFeedVer, const EfcInitCtx* pEfcInitCtx) {
-  dev       = _dev;
-  hwFeedVer = _hwFeedVer;
-
-  if (dev == NULL) on_error("dev == NULL");
-  if (pEfcInitCtx == NULL) on_error("pEfcInitCtx == NULL");
-  mdCoreId = pEfcInitCtx->mdCoreId;
-  if (dev->core[mdCoreId] == NULL) on_error("dev->core[%u] == NULL",mdCoreId);
+EpmStrategy(EkaEpm*                  epm, 
+	    epm_strategyid_t         id, 
+	    epm_actionid_t           baseActionIdx, 
+	    const EpmStrategyParams* params, 
+	    EfhFeedVer               hwFeedVer)::EkaEfc(epm,id,baseActionIdx,params,hwFeedVer) {
 
   for (auto i = 0; i < EKA_SUBSCR_TABLE_ROWS; i++) {
     hashLine[i] = new EkaHwHashTableLine(dev, hwFeedVer, i);
@@ -42,58 +39,58 @@ EkaEfc::EkaEfc(EkaDev* _dev, EfhFeedVer _hwFeedVer, const EfcInitCtx* pEfcInitCt
 #endif
 
   initHwRoundTable();
-  ekaIgmp = new EkaIgmp(dev,EkaEpm::EfcRegion,"Efc");
-  if (ekaIgmp == NULL) on_error("ekaIgmp == NULL");
+  /* ekaIgmp = new EkaIgmp(dev,EkaEpm::EfcRegion,"Efc"); */
+  /* if (ekaIgmp == NULL) on_error("ekaIgmp == NULL"); */
 
-  getMcParams(pEfcInitCtx);
+  /* getMcParams(pEfcInitCtx); */
 }
 
 /* ################################################ */
-int EkaEfc::confParse(const char *key, const char *value) {
-  char val_buf[200] = {};
-  strcpy (val_buf,value);
-  int i=0;
-  char* v[10];
-  v[i] = strtok(val_buf,":");
-  while(v[i]!=NULL) v[++i] = strtok(NULL,":");
+/* int EkaEfc::confParse(const char *key, const char *value) { */
+/*   char val_buf[200] = {}; */
+/*   strcpy (val_buf,value); */
+/*   int i=0; */
+/*   char* v[10]; */
+/*   v[i] = strtok(val_buf,":"); */
+/*   while(v[i]!=NULL) v[++i] = strtok(NULL,":"); */
 
-  // parsing KEY
-  char key_buf[200] = {};
-  strcpy (key_buf,key);
-  i=0;
-  char* k[10];
-  k[i] = strtok(key_buf,".");
-  while(k[i]!=NULL) k[++i] = strtok(NULL,".");
+/*   // parsing KEY */
+/*   char key_buf[200] = {}; */
+/*   strcpy (key_buf,key); */
+/*   i=0; */
+/*   char* k[10]; */
+/*   k[i] = strtok(key_buf,"."); */
+/*   while(k[i]!=NULL) k[++i] = strtok(NULL,"."); */
 
-  EKA_LOG("Processing %s -- %s",key,value);
-  // efc.group.X.mcast.addr, x.x.x.x:xxxx
-  //k[0] k[1]k[2] k[3] k[4]
-  if (((strcmp(k[0],"efh")==0) || (strcmp(k[0],"efc")==0)) && (strcmp(k[1],"group")==0) && (strcmp(k[3],"mcast")==0) && (strcmp(k[4],"addr")==0)) {
+/*   EKA_LOG("Processing %s -- %s",key,value); */
+/*   // efc.group.X.mcast.addr, x.x.x.x:xxxx */
+/*   //k[0] k[1]k[2] k[3] k[4] */
+/*   if (((strcmp(k[0],"efh")==0) || (strcmp(k[0],"efc")==0)) && (strcmp(k[1],"group")==0) && (strcmp(k[3],"mcast")==0) && (strcmp(k[4],"addr")==0)) { */
 
-    uint32_t mcAddr = inet_addr(v[0]);
-    uint16_t mcPort = (uint16_t)atoi(v[1]);
+/*     uint32_t mcAddr = inet_addr(v[0]); */
+/*     uint16_t mcPort = (uint16_t)atoi(v[1]); */
 
-    if (findUdpSess(mcAddr,mcPort) != NULL) 
-      on_error("\'%s\',\'%s\' : Udp Session %s:%u is already set",
-	       key,value,EKA_IP2STR(mcAddr),mcPort);
+/*     if (findUdpSess(mcAddr,mcPort) != NULL)  */
+/*       on_error("\'%s\',\'%s\' : Udp Session %s:%u is already set", */
+/* 	       key,value,EKA_IP2STR(mcAddr),mcPort); */
 
-    udpSess[numUdpSess] = new EkaUdpSess(dev,numUdpSess,mcAddr,mcPort);
-    if (udpSess[numUdpSess] == NULL) on_error("udpSess[%d] == NULL",numUdpSess);
-    numUdpSess++;
-    EKA_LOG("%s:%u is set, numUdpSess = %d",EKA_IP2STR(mcAddr),mcPort,numUdpSess);
-  }
-  return 0;
-}
+/*     udpSess[numUdpSess] = new EkaUdpSess(dev,numUdpSess,mcAddr,mcPort); */
+/*     if (udpSess[numUdpSess] == NULL) on_error("udpSess[%d] == NULL",numUdpSess); */
+/*     numUdpSess++; */
+/*     EKA_LOG("%s:%u is set, numUdpSess = %d",EKA_IP2STR(mcAddr),mcPort,numUdpSess); */
+/*   } */
+/*   return 0; */
+/* } */
 /* ################################################ */
 
-int EkaEfc::igmpJoinAll() {
-  for (auto i = 0; i < numUdpSess; i++) {
-    if (udpSess[i] == NULL) on_error("udpSess[%d] == NULL",i);
-    ekaIgmp->mcJoin(udpSess[i]->ip,udpSess[i]->port,0,&pktCnt);
-  }
+/* int EkaEfc::igmpJoinAll() { */
+/*   for (auto i = 0; i < numUdpSess; i++) { */
+/*     if (udpSess[i] == NULL) on_error("udpSess[%d] == NULL",i); */
+/*     ekaIgmp->mcJoin(udpSess[i]->coreId,udpSess[i]->ip,udpSess[i]->port,0,&pktCnt); */
+/*   } */
   
-  return 0;
-}
+/*   return 0; */
+/* } */
 
 /* ################################################ */
 int EkaEfc::armController() {
@@ -122,15 +119,15 @@ EkaUdpSess* EkaEfc::findUdpSess(uint32_t mcAddr, uint16_t mcPort) {
 }
 /* ################################################ */
 
-int EkaEfc::getMcParams(const EfcInitCtx* pEfcInitCtx) {
-    for (uint i = 0; i < pEfcInitCtx->ekaProps->numProps; i++) {
-    EkaProp& ekaProp{ pEfcInitCtx->ekaProps->props[i] };
-    //    EKA_DEBUG("ekaProp.szKey = %s, ekaProp.szVal = %s",ekaProp.szKey,ekaProp.szVal);   fflush(stderr);
-    confParse(ekaProp.szKey,ekaProp.szVal);
-  }
+/* int EkaEfc::getMcParams(const EfcInitCtx* pEfcInitCtx) { */
+/*     for (uint i = 0; i < pEfcInitCtx->ekaProps->numProps; i++) { */
+/*     EkaProp& ekaProp{ pEfcInitCtx->ekaProps->props[i] }; */
+/*     //    EKA_DEBUG("ekaProp.szKey = %s, ekaProp.szVal = %s",ekaProp.szKey,ekaProp.szVal);   fflush(stderr); */
+/*     confParse(ekaProp.szKey,ekaProp.szVal); */
+/*   } */
 
-  return 0;
-}
+/*   return 0; */
+/* } */
 
 /* ################################################ */
 int EkaEfc::cleanSubscrHwTable() {

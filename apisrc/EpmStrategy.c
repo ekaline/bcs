@@ -12,9 +12,11 @@ unsigned short csum(unsigned short *ptr,int nbytes);
 uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size);
 
 /* ------------------------------------------------ */
-EpmStrategy::EpmStrategy(EkaEpm* _parent, epm_strategyid_t _id, epm_actionid_t _baseActionIdx, const EpmStrategyParams *params) {
-  epm = _parent;
+EpmStrategy::EpmStrategy(EkaEpm* _epm, epm_strategyid_t _id, epm_actionid_t _baseActionIdx, const EpmStrategyParams *params, EfhFeedVer _hwFeedVer) {
+  epm = _epm;
+  if (epm == NULL) on_error("epm == NULL");
   dev = epm->dev;
+  if (dev == NULL) on_error("dev == NULL");
   id = _id;
   baseActionIdx = _baseActionIdx;
 
@@ -40,6 +42,8 @@ EpmStrategy::EpmStrategy(EkaEpm* _parent, epm_strategyid_t _id, epm_actionid_t _
     if (action[i] == NULL) on_error("Failed addAction");
   }
 
+  
+
   EKA_LOG("Created Strategy %u: baseActionIdx=%u, numActions=%u, UDP trigger: %s:%u",
 	  id,baseActionIdx,numActions,EKA_IP2STR(ip),port);
 
@@ -62,9 +66,9 @@ EkaOpResult EpmStrategy::getEnableBits(epm_enablebits_t *_enable) {
 }
 /* ------------------------------------------------ */
 
-bool EpmStrategy::hasSame(uint32_t _ip, uint16_t _port) {
-  return ip == _ip && port == _port;
-}
+/* bool EpmStrategy::hasSame(uint32_t _ip, uint16_t _port) { */
+/*   return ip == _ip && port == _port; */
+/* } */
 /* ------------------------------------------------ */
 
 bool EpmStrategy::myAction(epm_actionid_t actionId) {

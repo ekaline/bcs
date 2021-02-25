@@ -4,21 +4,28 @@
 #include "EkaEpm.h"
 
 class EkaEpmAction;
+class EkaUdpSess;
 
 class EpmStrategy {
  public:
-  EpmStrategy(EkaEpm* parent, epm_strategyid_t id, epm_actionid_t baseActionIdx, const EpmStrategyParams *params);
+  EpmStrategy(EkaEpm*                  epm, 
+	      epm_strategyid_t         id, 
+	      epm_actionid_t           baseActionIdx, 
+	      const EpmStrategyParams* params, 
+	      EfhFeedVer               hwFeedVer);
 
   EkaOpResult setEnableBits(epm_enablebits_t  enable);
   EkaOpResult getEnableBits(epm_enablebits_t *enable);
 
-  bool hasSame(uint32_t ip, uint16_t port);
+  //  bool hasSame(uint32_t ip, uint16_t port);
   bool myAction(epm_actionid_t actionId);
 
   EkaOpResult setAction(epm_actionid_t actionIdx, const EpmAction *epmAction);
   EkaOpResult getAction(epm_actionid_t actionIdx, EpmAction *epmAction);
 
   // private:
+  /* ----------------------------------------------------- */
+ public:
   EkaDev*           dev;
   EkaEpm*           epm;
   epm_strategyid_t  id;
@@ -33,8 +40,11 @@ class EpmStrategy {
   EpmFireReportCb   reportCb;   ///< Callback function to process fire reports
   void             *cbCtx;
 
-  uint32_t          ip;
-  uint16_t          port;
+  EfhFeedVer          hwFeedVer  = EfhFeedVer::kInvalid;
+
+  EkaUdpSess*       udpSess[EkaEpm::MAX_UDP_SESS] = {};
+  int               numUdpSess = 0;
+
 };
 
 #endif

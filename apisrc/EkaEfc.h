@@ -8,17 +8,16 @@
 #include "efh_macros.h"
 #include "eka_hw_conf.h"
 
-//#include "EpmStrategy.h"
+#include "EpmStrategy.h"
 
 class EkaHwHashTableLine;
 class EkaIgmp;
 class EkaUdpSess;
 class EkaEpmAction;
 
-//class EkaEfc : public EpmStrategy {
-class EkaEfc {
+class EkaEfc : public EpmStrategy {
  public:
-  EkaEfc(EkaDev* dev, EfhFeedVer hwFeedVer, const EfcInitCtx* pEfcInitCtx);
+  EkaEfc();
 
   int downloadTable();
   int subscribeSec(uint64_t secId);
@@ -33,15 +32,15 @@ class EkaEfc {
 
  private:
   bool          isValidSecId(uint64_t secId);
-  int           getMcParams(const EfcInitCtx* pEfcInitCtx);
-  int           confParse(const char *key, const char *value);
+  //  int           getMcParams(const EfcInitCtx* pEfcInitCtx);
+  //  int           confParse(const char *key, const char *value);
   int           initHwRoundTable();
   int           normalizeId(uint64_t secId);
   int           getLineIdx(uint64_t normSecId);
   EkaUdpSess*   findUdpSess(uint32_t mcAddr, uint16_t mcPort);
   int           setHwGlobalParams();
   int           setHwUdpParams();
-  int           igmpJoinAll();
+  //  int           igmpJoinAll();
   EkaEpmAction* findFireAction(ExcConnHandle hConn);
   int           setHwStratRegion();
   int           enableRxFire();
@@ -52,21 +51,11 @@ class EkaEfc {
   static const int MAX_FIRE_ACTIONS  = 64;
   static const int MAX_CTX_THREADS   = 16;
 
-  EkaIgmp*            ekaIgmp    = NULL;
-  EkaCoreId           mdCoreId   = -1;
-  EkaCoreId           fireCoreId = -1;
-  EkaDev*             dev        = NULL;
   EfhFeedVer          hwFeedVer  = EfhFeedVer::kInvalid;
   EkaHwHashTableLine* hashLine[EKA_SUBSCR_TABLE_ROWS] = {};
   int                 numSecurities = 0;
 
   EfcStratGlobCtx     stratGlobCtx = {};
-
-  EkaUdpSess*         udpSess[MAX_UDP_SESS] = {};
-  int                 numUdpSess = 0;
-
-  EkaEpmAction*       fireAction[MAX_FIRE_ACTIONS] = {};
-  int                 numFireActions = 0;
 
  public:
   int                 ctxWriteBank[MAX_CTX_THREADS] = {};
