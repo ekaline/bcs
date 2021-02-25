@@ -122,6 +122,9 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 
   epmEnabled = openEpm();
 
+  ekaIgmp = new EkaIgmp(this);
+  if (ekaIgmp == NULL) on_error("ekaIgmp == NULL");
+
 
   bool noCores = true;
   for (uint c = 0; c < MAX_CORES; c++) {
@@ -206,10 +209,8 @@ bool EkaDev::openEpm() {
   if (epmReport == NULL) on_error("Failed to open epmReport Channel");
 
   if (epmReport->isOpen()) {
+    EkaUdpChannel* serviceUdpCh = EkaUdpChannel(dev,coreId,EkaEpm::ServiceRegion);
     epm->createRegion(EkaEpm::ServiceRegion, EkaEpm::ServiceRegion * EkaEpm::ActionsPerRegion);
-#ifndef _VERILOG_SIM
-    //    epm->initHeap(0,EkaEpm::MaxHeap);
-#endif
 
     uint64_t fire_rx_tx_en = eka_read(ENABLE_PORT);
     fire_rx_tx_en |= (1ULL << 32); //turn off tcprx

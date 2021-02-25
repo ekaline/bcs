@@ -166,14 +166,6 @@ EkaOpResult EkaEpm::initStrategies(const EpmStrategyParams *params,
     on_error("numStrategies %u > MaxStrategies %ju",numStrategies,MaxStrategies);
   stratNum = numStrategies;
 
-  /* if (udpCh[coreId] == NULL) udpCh[coreId] = new EkaUdpChannel(dev,coreId); */
-  /* if (udpCh[coreId] == NULL) on_error("Failed to open Epm Udp Channel for CoreId %u",coreId); */
-
-  char name[50] = {};
-  sprintf(name,"EpmTrigger");
-  ekaIgmp = new EkaIgmp(dev,(uint)ServiceRegion,name);
-  if (ekaIgmp == NULL) on_error("ekaIgmp == NULL");
-
   if (! dev->fireReportThreadActive) {
     dev->fireReportThread = std::thread(ekaFireReportThread,dev);
     dev->fireReportThread.detach();
@@ -186,20 +178,11 @@ EkaOpResult EkaEpm::initStrategies(const EpmStrategyParams *params,
   for (auto i = 0; i < stratNum; i++) {
     EKA_LOG("Imitializing strategy %d",i);
     if (epmRegion[i] != NULL) on_error("epmRegion[%d] != NULL",i);
-    /* epmRegion[i] = new EkaEpmRegion((uint)i,currActionIdx); */
-    /* if (epmRegion[i] == NULL) on_error("epmRegion[%d] == NULL",i); */
     createRegion((uint)i,currActionIdx);
 
     if (strategy[i] != NULL) on_error("strategy[%d] != NULL",i);
-    strategy[i] = new EpmStrategy(this,i,currActionIdx, &params[i]);
+    strategy[i] = new EpmStrategy(this,i,currActionIdx, &params[i],dev->hwFeedVer);
     if (strategy[i] == NULL) on_error("Fail to create strategy[%d]",i);
-
-    for (auto i = 0; i < params->numTriggers; i++) {
-      ekaIgmp->mcJoin(params->triggerParams[i].coreId, 
-		      inet_addr(params->triggerParams[i].mcIp), 
-		      params->triggerParams[i].mcUdpPort,
-		      0,&pktCnt);
-    }
 
     currActionIdx += params[i].numActions;
 

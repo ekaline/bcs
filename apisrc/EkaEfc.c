@@ -23,11 +23,11 @@ static bool isAscii (char letter) {
 }
 
 /* ################################################ */
-EpmStrategy(EkaEpm*                  epm, 
-	    epm_strategyid_t         id, 
-	    epm_actionid_t           baseActionIdx, 
-	    const EpmStrategyParams* params, 
-	    EfhFeedVer               hwFeedVer)::EkaEfc(epm,id,baseActionIdx,params,hwFeedVer) {
+EkaEfc::EkaEfc(EkaEpm*                  epm, 
+	       epm_strategyid_t         id, 
+	       epm_actionid_t           baseActionIdx, 
+	       const EpmStrategyParams* params, 
+	       EfhFeedVer               hwFeedVer) : EpmStrategy(epm,id,baseActionIdx,params,hwFeedVer) {
 
   for (auto i = 0; i < EKA_SUBSCR_TABLE_ROWS; i++) {
     hashLine[i] = new EkaHwHashTableLine(dev, hwFeedVer, i);
@@ -307,6 +307,9 @@ int EkaEfc::downloadTable() {
 /* ################################################ */
 int EkaEfc::enableRxFire() {
   uint64_t fire_rx_tx_en = eka_read(dev,ENABLE_PORT);
+
+  for (auto i = 0; i < EkaDev::
+
   fire_rx_tx_en |= 1ULL << (16 + fireCoreId); //fire core enable */
   fire_rx_tx_en |= 1ULL << mdCoreId;          // RX (Parser) core enable */
   eka_write(dev,ENABLE_PORT,fire_rx_tx_en);

@@ -27,7 +27,7 @@ struct EkaUdpChIgmpEntry {
 
 class EkaUdpChannel {
  public:
-  EkaUdpChannel(EkaDev* dev, uint8_t coreId);
+  EkaUdpChannel(EkaDev* dev, uint8_t coreId, int requestedChId);
   ~EkaUdpChannel();
   bool           has_data();
   const uint8_t* get();
@@ -35,7 +35,7 @@ class EkaUdpChannel {
   uint16_t       getUdpPort();
   void           next();
 
-  void igmp_mc_join (uint32_t src_ip, uint32_t mcast_ip, uint16_t port, int16_t vlanTag);
+  void igmp_mc_join (uint32_t mcast_ip, uint16_t port, int16_t vlanTag);
 
  public:
   int                     chId               = -1;

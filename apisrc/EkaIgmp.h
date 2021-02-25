@@ -11,10 +11,10 @@ class EkaDev;
 
 class EkaIgmp {
  public:
-  EkaIgmp(EkaDev* dev, uint epmRegion, const char* name);
+  EkaIgmp(EkaDev* dev);
   ~EkaIgmp();
 
-  int mcJoin(EkaCoreId coreId, uint32_t ip, uint16_t port, uint16_t vlanTag, uint64_t* pPktCnt);
+  int mcJoin(int epmRegion, EkaCoreId coreId, uint32_t ip, uint16_t port, uint16_t vlanTag, uint64_t* pPktCnt);
 
 
  private:
@@ -25,9 +25,6 @@ class EkaIgmp {
   int          igmpLeaveAll();
 
   /* ------------------------------------------------- */
-
-  char                  name[256]                   = {};
-  uint                  epmRegion                   = -1;
 
 #ifdef _NO_PTHREAD_CB_
   std::thread           igmpThread;

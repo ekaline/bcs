@@ -3,6 +3,8 @@
 
 #include "eka_macros.h"
 
+#include "Eka.h"
+
 class EkaDev;
 class EkaEpmAction;
 

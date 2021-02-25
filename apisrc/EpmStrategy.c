@@ -41,8 +41,20 @@ EpmStrategy::EpmStrategy(EkaEpm* _epm, epm_strategyid_t _id, epm_actionid_t _bas
     action[i] = dev->epm->addAction(EkaEpm::ActionType::UserAction, id, i, -1,-1,-1);
     if (action[i] == NULL) on_error("Failed addAction");
   }
-
   
+  for (auto i = 0; i < params->numTriggers; i++) {
+    udpSess[i] = new EkaUdpSess(dev,
+				i,
+				params->triggerParams[i].coreId,
+				inet_addr(params->triggerParams[i].mcIp),
+				params->triggerParams[i].mcUdpPort); 
+    dev->ekaIgmp->mcJoin(id, // = ChId = epmRegion
+			 udpSess[i]->coreId, 
+			 udpSess[i]->ip, 
+			 udpSess[i]->port, 
+			 0, // VLAN
+			 NULL); // pPktCnt
+  }
 
   EKA_LOG("Created Strategy %u: baseActionIdx=%u, numActions=%u, UDP trigger: %s:%u",
 	  id,baseActionIdx,numActions,EKA_IP2STR(ip),port);

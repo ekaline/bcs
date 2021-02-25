@@ -16,7 +16,7 @@ class EkaUdpSess {
     dev  = pEkaDev;
     if (dev == NULL) on_error("dev == NULL");
 
-    id     = _dx;
+    id     = _id;
     coreId = _coreId;
     ip     = _ip;
     port   = _port;

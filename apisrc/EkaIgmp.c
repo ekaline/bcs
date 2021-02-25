@@ -9,17 +9,16 @@ void saveMcState(EkaDev* dev, int grId, int chId, uint8_t coreId, uint32_t mcast
 
 /* ##################################################################### */
 
-EkaIgmp::EkaIgmp(EkaDev* _dev, uint _epmRegion, const char* _name) {
+EkaIgmp::EkaIgmp(EkaDev* _dev) {
   dev       = _dev;
-  epmRegion = _epmRegion;
-  strcpy(name,_name);
 
-  dev->epm->createRegion(epmRegion, epmRegion * EkaEpm::ActionsPerRegion);
+  EKA_LOG("EkaIgmp created");
+
 #ifdef _NO_PTHREAD_CB_
   igmpThread = std::thread(&EkaIgmp::igmpThreadLoop,this);
   igmpThread.detach();
 #else
-  dev->createThread(name,
+  dev->createThread("Igmp",
   		    EkaServiceType::kIGMP,
   		    igmpThreadLoopCb,
   		    this,
@@ -36,7 +35,7 @@ EkaIgmp::~EkaIgmp() {
 }
 
 /* ##################################################################### */
-int EkaIgmp::mcJoin(EkaCoreId coreId, uint32_t ip, uint16_t port, uint16_t vlanTag, uint64_t* pPktCnt) {
+int EkaIgmp::mcJoin(int epmRegion, EkaCoreId coreId, uint32_t ip, uint16_t port, uint16_t vlanTag, uint64_t* pPktCnt) {
   for (auto i = 0; i < numIgmpEntries; i++) {
     if (igmpEntry[i] == NULL) on_error("igmpEntry[%d] == NULL",i);
     if (igmpEntry[i]->isMy(coreId,ip,port)) return 0;
@@ -47,7 +46,7 @@ int EkaIgmp::mcJoin(EkaCoreId coreId, uint32_t ip, uint16_t port, uint16_t vlanT
   igmpEntry[numIgmpEntries] = new EkaIgmpEntry(dev,epmRegion,coreId,ip,port,vlanTag,pPktCnt);
   if (igmpEntry[numIgmpEntries] == NULL) on_error("igmpEntry[%d] == NULL",numIgmpEntries);
 
-  EKA_LOG("%s: MC join: %s:%u",name,EKA_IP2STR(ip),port);
+  EKA_LOG("MC join: %s:%u",EKA_IP2STR(ip),port);
 
   numIgmpEntries++;
 
@@ -57,10 +56,10 @@ int EkaIgmp::mcJoin(EkaCoreId coreId, uint32_t ip, uint16_t port, uint16_t vlanT
 
 /* ##################################################################### */
 int EkaIgmp::igmpThreadLoop() {
-  std::string threadName = std::string("Igmp_") + std::string(name);
+  std::string threadName = std::string("Igmp");
   pthread_setname_np(pthread_self(),threadName.c_str());
 
-  EKA_LOG("%s: %s igmpThreadLoop() started",name,threadName.c_str());
+  EKA_LOG("%s igmpThreadLoop() started",threadName.c_str());
   igmpLoopTerminated = false;
   threadActive = true;
 
@@ -87,8 +86,8 @@ void* EkaIgmp::igmpThreadLoopCb(void* pEkaIgmp) {
   EkaIgmp* igmp = (EkaIgmp*)pEkaIgmp;
   EkaDev* dev = igmp->dev;
 
-  std::string threadName = std::string("Igmp_") + std::string(igmp->name);
-  EKA_LOG("%s: %s igmpThreadLoopCb() started",igmp->name,threadName.c_str());
+  std::string threadName = std::string("Igmp");
+  EKA_LOG("%s igmpThreadLoopCb() started",threadName.c_str());
   igmp->igmpLoopTerminated = false;
   igmp->threadActive = true;
 
@@ -113,7 +112,7 @@ void* EkaIgmp::igmpThreadLoopCb(void* pEkaIgmp) {
 
 /* ##################################################################### */
 int EkaIgmp::igmpLeaveAll() {
-  EKA_LOG("%s: leaving MC groups",name);
+  EKA_LOG("leaving all MC groups");
   for (int i = 0; i < numIgmpEntries; i++) {
     igmpEntry[i]->sendIgmpLeave();
     delete igmpEntry[i];

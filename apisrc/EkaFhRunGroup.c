@@ -26,7 +26,7 @@ EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
     n += sprintf (&list2print[n], "%d,", groupList[i]);
   }
 
-  udpCh    = new EkaUdpChannel(dev,coreId);
+  udpCh    = new EkaUdpChannel(dev,coreId,-1);
   if (udpCh == NULL) on_error("udpCh == NULL");
 
   udpChId            = udpCh->chId;
@@ -41,8 +41,9 @@ EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 
   char name[50] = {};
   sprintf(name,"RunGr%u",runId);
-  ekaIgmp = new EkaIgmp(dev,udpChId,name);
-  if (ekaIgmp == NULL) on_error("ekaIgmp == NULL");
+
+  uint epmRegion = udpChId;
+  dev->epm->createRegion(epmRegion, epmRegion * EkaEpm::ActionsPerRegion);
 
   EKA_LOG("%s: coreId = %u, runId = %u, udpChId = %d, MC groups: %s",
 	  EKA_EXCH_DECODE(exch),coreId,runId,udpChId, list2print);
@@ -51,8 +52,8 @@ EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 /* ##################################################################### */
 
 int EkaFhRunGroup::igmpMcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag,uint64_t* pPktCnt) {
-  ekaIgmp->mcJoin(coreId,ip,port,vlanTag,pPktCnt);
-  udpCh->igmp_mc_join (ip, ip, port, 0);
+  dev->ekaIgmp->mcJoin(udpChId,coreId,ip,port,vlanTag,pPktCnt);
+  udpCh->igmp_mc_join (ip, port, 0);
   return 0;
 }
 
@@ -143,8 +144,6 @@ bool EkaFhRunGroup::drainQ(const EfhRunCtx* pEfhRunCtx) {
 /* ##################################################################### */
 EkaFhRunGroup::~EkaFhRunGroup() {
   thread_active      = false;
-
-  delete ekaIgmp;
 
   EKA_LOG("Run Gr %u: terminated",runId);  
 }
