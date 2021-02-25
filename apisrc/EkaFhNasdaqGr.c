@@ -17,9 +17,12 @@ bool EkaFhNasdaqGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
     uint16_t msg_len = be16toh((uint16_t) *(uint16_t*)&(pkt[indx]));
     uint8_t* msgData = (uint8_t*)&pkt[indx + sizeof(msg_len)];
     //-----------------------------------------------------------------------------
-    if (parseMsg(pEfhRunCtx,msgData,sequence++,EkaFhMode::MCAST)) return true;
+    if (sequence == expected_sequence){
+      if (parseMsg(pEfhRunCtx,msgData,sequence,EkaFhMode::MCAST)) return true;
+    }
     //-----------------------------------------------------------------------------
-    expected_sequence = sequence;
+    expected_sequence = sequence + 1;
+    sequence++;
     indx += msg_len + sizeof(msg_len);
   }
   return false;  

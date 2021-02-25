@@ -81,7 +81,7 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       break;
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::NORMAL : {
-      if (sequence < gr->expected_sequence) break; // skipping stale messages
+      //      if (sequence < gr->expected_sequence) break; // skipping stale messages
       if (sequence > gr->expected_sequence) { // GAP
 	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%ju",
 		EKA_EXCH_DECODE(exch),gr_id,gr->expected_sequence,sequence);
@@ -104,10 +104,10 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
 	// Recovery feed sequence took over the MCAST sequence
 	gr->expected_sequence = gr->recovery_sequence + 1;
 
-	gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
-
 	gr->gapClosed = true;
 	gr->snapshot_active = false;
+
+	gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
 
 	EKA_DEBUG("%s:%u Generating TOB quote for every Security",
 		  EKA_EXCH_DECODE(gr->exch),gr->id);
@@ -116,8 +116,8 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
 	gr->sendFeedUp(pEfhRunCtx);
 	runGr->setGrAfterGap(gr->id);
 
-	EKA_LOG("%s:%u: SNAPSHOT GAP closed: recovery_sequence %ju >= sequence %ju, expected_sequence=%ju",
-		EKA_EXCH_DECODE(gr->exch),gr->id,gr->recovery_sequence,sequence,gr->expected_sequence);
+	EKA_LOG("%s:%u: SNAPSHOT GAP closed: recovery_sequence %ju >= sequence %ju, expected_sequence=%ju, msgInPkt=%u",
+		EKA_EXCH_DECODE(gr->exch),gr->id,gr->recovery_sequence,sequence,gr->expected_sequence,msgInPkt);
 
       }
     }
