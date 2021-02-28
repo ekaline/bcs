@@ -25,6 +25,7 @@ class EkaSnDev;
 class EkaUserReportQ;
 class EkaHwCaps;
 class EkaUserChannel;
+class EkaIgmp;
 
 class EkaDev {
 
@@ -122,6 +123,8 @@ class EkaDev {
   EkaFhRunGroup*            runGr[MAX_RUN_GROUPS]      = {};
   std::mutex                mtx;   // mutex to protect concurrent dev->numRunGr++
 
+  EkaIgmp*                  ekaIgmp = NULL;
+
   EkaLogCallback            logCB;
   void*                     logCtx                     = NULL;
 
@@ -174,6 +177,8 @@ inline void eka_write(EkaDev* dev, uint64_t addr, uint64_t val) {
   //  if ((addr>=0x50000 && addr<0x60000) || addr==0xf0200) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //fastpath data and desc
 
 #endif
+
+  if (dev == NULL) fprintf(stderr,"dev == NULL");
 
   return dev->eka_write(addr,val);
 }

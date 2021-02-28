@@ -30,7 +30,7 @@ EkaIgmp::EkaIgmp(EkaDev* _dev) {
 /* ##################################################################### */
 EkaIgmp::~EkaIgmp() {
   threadActive = false;
-  EKA_LOG("%s: Waiting for igmpLoopTerminated",name);
+  EKA_LOG("%s: Waiting for igmpLoopTerminated");
   while (! igmpLoopTerminated) sleep(0);
 }
 
@@ -100,7 +100,7 @@ void* EkaIgmp::igmpThreadLoopCb(void* pEkaIgmp) {
 		  igmp->igmpEntry[i]->coreId, 
 		  igmp->igmpEntry[i]->ip,
 		  igmp->igmpEntry[i]->port,
-		  igmpEntry[i]->pPktCnt == NULL ? 0 : *igmp->igmpEntry[i]->pPktCnt);
+		  igmp->igmpEntry[i]->pPktCnt == NULL ? 0 : *igmp->igmpEntry[i]->pPktCnt);
     }
     sleep (1);
   }

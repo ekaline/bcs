@@ -17,6 +17,8 @@
 #include "EkaUserReportQ.h"
 #include "EkaHwCaps.h"
 #include "EkaUserChannel.h"
+#include "EkaUdpChannel.h"
+#include "EkaIgmp.h"
 
 #include "eka_hw_conf.h"
 
@@ -209,7 +211,8 @@ bool EkaDev::openEpm() {
   if (epmReport == NULL) on_error("Failed to open epmReport Channel");
 
   if (epmReport->isOpen()) {
-    EkaUdpChannel* serviceUdpCh = EkaUdpChannel(dev,coreId,EkaEpm::ServiceRegion);
+    // EkaCoreId serviceCoreId = 0;
+    // EkaUdpChannel* serviceUdpCh = new EkaUdpChannel(dev,serviceCoreId,EkaEpm::ServiceRegion);
     epm->createRegion(EkaEpm::ServiceRegion, EkaEpm::ServiceRegion * EkaEpm::ActionsPerRegion);
 
     uint64_t fire_rx_tx_en = eka_read(ENABLE_PORT);

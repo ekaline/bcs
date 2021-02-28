@@ -43,7 +43,7 @@ int printMdReport(EkaDev* dev, const EfcMdReport* msg);
 
 EkaOpResult efcInit( EfcCtx** ppEfcCtx, EkaDev *pEkaDev, const EfcInitCtx* pEfcInitCtx ) {
   if (pEkaDev == NULL) on_error("pEkaDev == NULL");
-  if (pEfcInitCtx == NULL) on_error("pEfcInitCtx == NULL");
+  /* if (pEfcInitCtx == NULL) on_error("pEfcInitCtx == NULL"); */
 
   EkaDev* dev = pEkaDev;
 
@@ -52,8 +52,8 @@ EkaOpResult efcInit( EfcCtx** ppEfcCtx, EkaDev *pEkaDev, const EfcInitCtx* pEfcI
     return EKA_OPRESULT__ERR_EFC_DISABLED;
   }
 
-  dev->efc = new EkaEfc(dev,dev->hwFeedVer,pEfcInitCtx);
-  if (dev->efc == NULL) on_error("dev->efc == NULL");
+  /* dev->efc = new EkaEfc(dev,dev->hwFeedVer,pEfcInitCtx); */
+  /* if (dev->efc == NULL) on_error("dev->efc == NULL"); */
 
   *ppEfcCtx = (EfcCtx*)malloc(sizeof(EfcCtx));
   if (*ppEfcCtx == NULL) on_error("*ppEfcCtx == NULL");
@@ -76,10 +76,14 @@ EkaOpResult efcInitStrategy( EfcCtx* pEfcCtx, const EfcStratGlobCtx* efcStratGlo
   if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
   EkaDev* dev = pEfcCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
-  EkaEfc* efc = dev->efc;
+
+  auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
   if (efc == NULL) on_error("efc == NULL");
 
   efc->initStrategy(efcStratGlobCtx);
+
+  EKA_LOG("Initializing EFC global params");
+
   return EKA_OPRESULT__OK;
 }
 
@@ -97,7 +101,8 @@ EkaOpResult efcEnableController( EfcCtx* pEfcCtx, EkaCoreId primaryCoreId ) {
   if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
   EkaDev* dev = pEfcCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
-  EkaEfc* efc = dev->efc;
+
+  auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
   if (efc == NULL) on_error("efc == NULL");
 
   if (primaryCoreId < 0) efc->disArmController();
@@ -126,7 +131,8 @@ EkaOpResult efcEnableFiringOnSec( EfcCtx* pEfcCtx, const uint64_t* pSecurityIds,
   if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
   EkaDev* dev = pEfcCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
-  EkaEfc* efc = dev->efc;
+
+  auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
   if (efc == NULL) on_error("efc == NULL");
 
   if (pSecurityIds == NULL) on_error("pSecurityIds == NULL");
@@ -156,7 +162,8 @@ EfcSecCtxHandle getSecCtxHandle( EfcCtx* pEfcCtx, uint64_t securityId ) {
   if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
   EkaDev* dev = pEfcCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
-  EkaEfc* efc = dev->efc;
+
+  auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
   if (efc == NULL) on_error("efc == NULL");
 
   return (EfcSecCtxHandle) efc->getSubscriptionId(securityId);
@@ -175,7 +182,8 @@ EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx, EfcSecCtxHandle hSecCtx, const 
   if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
   EkaDev* dev = pEfcCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
-  EkaEfc* efc = dev->efc;
+
+  auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
   if (efc == NULL) on_error("efc == NULL");
 
   if (pSecCtx == NULL) on_error("pSecCtx == NULL");
@@ -265,11 +273,13 @@ EkaOpResult efcSetSesCtx( EfcCtx* pEfcCtx, ExcConnHandle hConn, const SesCtx* pS
 EkaOpResult efcSetFireTemplate( EfcCtx* pEfcCtx, ExcConnHandle hConn, const void* fireMsg, size_t fireMsgSize ) {
   if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
   EkaDev* dev = pEfcCtx->dev;
-  if (dev == NULL) on_error("dev == NULL");
-  EkaEfc* efc = dev->efc;
-  if (efc == NULL) on_error("efc == NULL");
+  /* if (dev == NULL) on_error("dev == NULL"); */
+  /* EkaEfc* efc = dev->efc; */
+  /* if (efc == NULL) on_error("efc == NULL"); */
 
-  efc->setActionPayload(hConn,fireMsg,fireMsgSize);
+  /* efc->setActionPayload(hConn,fireMsg,fireMsgSize); */
+
+  EKA_WARN("Obsolete function!!!");
 
   return EKA_OPRESULT__OK;
 }
@@ -320,7 +330,8 @@ EkaOpResult efcRun( EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx ) {
   if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
   EkaDev* dev = pEfcCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
-  EkaEfc* efc = dev->efc;
+
+  auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
   if (efc == NULL) on_error("efc == NULL");
 
   efc->run(pEfcCtx,pEfcRunCtx);
@@ -338,7 +349,8 @@ EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p ) {
   if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
   EkaDev* dev = pEfcCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
-  EkaEfc* efc = dev->efc;
+
+  auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
   if (efc == NULL) on_error("efc == NULL");
 
   const uint8_t* b = (const uint8_t*)p;
@@ -352,7 +364,7 @@ EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p ) {
     on_error("UNKNOWN Event report: 0x%02x",
 	     static_cast< uint32_t >( ((EkaContainerGlobalHdr*)b)->type ) );
 
-  EKA_LOG("\tTotal reports: %u",((EkaContainerGlobalHdr*)b)->num_of_reports);
+  /* EKA_LOG("\tTotal reports: %u",((EkaContainerGlobalHdr*)b)->num_of_reports); */
   uint total_reports = ((EkaContainerGlobalHdr*)b)->num_of_reports;
   b += sizeof(EkaContainerGlobalHdr);
   //--------------------------------------------------------------------------
@@ -360,10 +372,10 @@ EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p ) {
     on_error("EfcControllerState report expected, 0x%02x received",
 	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type));
 
-  EKA_LOG("\treport_type = %u EfcControllerState, idx=%u, size=%ju",
-	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ),
-	  ((EfcReportHdr*)b)->idx,
-	  ((EfcReportHdr*)b)->size);
+  /* EKA_LOG("\treport_type = %u EfcControllerState, idx=%u, size=%ju", */
+  /* 	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ), */
+  /* 	  ((EfcReportHdr*)b)->idx, */
+  /* 	  ((EfcReportHdr*)b)->size); */
   b += sizeof(EfcReportHdr);
 
   EKA_LOG("\tunarm_reason=0x%02x",((EfcControllerState*)b)->unarm_reason);
@@ -374,10 +386,10 @@ EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p ) {
   if (((EfcReportHdr*)b)->type != EfcReportType::kMdReport) 
     on_error("MdReport report expected, %02x received",
 	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type) );
-  EKA_LOG("\treport_type = %u MdReport, idx=%u, size=%ju",
-	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ),
-	  ((EfcReportHdr*)b)->idx,
-	  ((EfcReportHdr*)b)->size);
+  /* EKA_LOG("\treport_type = %u MdReport, idx=%u, size=%ju", */
+  /* 	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ), */
+  /* 	  ((EfcReportHdr*)b)->idx, */
+  /* 	  ((EfcReportHdr*)b)->size); */
   b += sizeof(EfcReportHdr);
 
   {
@@ -394,10 +406,10 @@ EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p ) {
   if (((EfcReportHdr*)b)->type != EfcReportType::kSecurityCtx) 
     on_error("SecurityCtx report expected, %02x received",
 	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type) );
-  EKA_LOG("\treport_type = %u SecurityCtx, idx=%u, size=%ju",
-	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ),
-	  ((EfcReportHdr*)b)->idx,
-	  ((EfcReportHdr*)b)->size);
+  /* EKA_LOG("\treport_type = %u SecurityCtx, idx=%u, size=%ju", */
+  /* 	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ), */
+  /* 	  ((EfcReportHdr*)b)->idx, */
+  /* 	  ((EfcReportHdr*)b)->size); */
   b += sizeof(EfcReportHdr);
 
   {

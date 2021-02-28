@@ -13,6 +13,7 @@ class EpmStrategy {
 	      epm_actionid_t           baseActionIdx, 
 	      const EpmStrategyParams* params, 
 	      EfhFeedVer               hwFeedVer);
+  virtual ~EpmStrategy(){}
 
   EkaOpResult setEnableBits(epm_enablebits_t  enable);
   EkaOpResult getEnableBits(epm_enablebits_t *enable);

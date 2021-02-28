@@ -56,6 +56,14 @@ class EkaEpmAction {
   int fastSend(const void* buf);
   /* ----------------------------------------------------- */
 
+ private:
+  int setActionBitmap();
+  int setTemplate();
+  int setName();
+
+  /* ----------------------------------------------------- */
+
+ public:
   char actionName[30] = {};
 
   EkaDev*  dev;

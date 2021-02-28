@@ -17,7 +17,11 @@ class EkaEpmAction;
 
 class EkaEfc : public EpmStrategy {
  public:
-  EkaEfc();
+  EkaEfc(EkaEpm*                  epm, 
+	       epm_strategyid_t         id, 
+	       epm_actionid_t           baseActionIdx, 
+	       const EpmStrategyParams* params, 
+	       EfhFeedVer               hwFeedVer);
 
   int downloadTable();
   int subscribeSec(uint64_t secId);
@@ -27,8 +31,8 @@ class EkaEfc : public EpmStrategy {
   int armController();
   int disArmController();
   int run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx);
-  EkaEpmAction* createFireAction(epm_actionid_t actionIdx, ExcConnHandle hConn);
-  int setActionPayload(ExcConnHandle hConn,const void* fireMsg, size_t fireMsgSize);
+  //  EkaEpmAction* createFireAction(epm_actionid_t actionIdx, ExcConnHandle hConn);
+  //  int setActionPayload(ExcConnHandle hConn,const void* fireMsg, size_t fireMsgSize);
 
  private:
   bool          isValidSecId(uint64_t secId);
@@ -37,11 +41,11 @@ class EkaEfc : public EpmStrategy {
   int           initHwRoundTable();
   int           normalizeId(uint64_t secId);
   int           getLineIdx(uint64_t normSecId);
-  EkaUdpSess*   findUdpSess(uint32_t mcAddr, uint16_t mcPort);
+  EkaUdpSess*   findUdpSess(EkaCoreId coreId, uint32_t mcAddr, uint16_t mcPort);
   int           setHwGlobalParams();
   int           setHwUdpParams();
   //  int           igmpJoinAll();
-  EkaEpmAction* findFireAction(ExcConnHandle hConn);
+  //  EkaEpmAction* findFireAction(ExcConnHandle hConn);
   int           setHwStratRegion();
   int           enableRxFire();
 
@@ -51,7 +55,6 @@ class EkaEfc : public EpmStrategy {
   static const int MAX_FIRE_ACTIONS  = 64;
   static const int MAX_CTX_THREADS   = 16;
 
-  EfhFeedVer          hwFeedVer  = EfhFeedVer::kInvalid;
   EkaHwHashTableLine* hashLine[EKA_SUBSCR_TABLE_ROWS] = {};
   int                 numSecurities = 0;
 

@@ -112,7 +112,7 @@ void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fireReportBuf, size_t s
   EkaDev* dev = pEfcCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
   EKA_LOG ("FIRE REPORT RECEIVED");
-  hexDump("FireReport",fireReportBuf,size);
+  //  hexDump("FireReport",fireReportBuf,size);
   efcPrintFireReport(pEfcCtx, (const EfcReportHdr*)fireReportBuf);
   EKA_LOG ("Rearming...\n");
   efcEnableController(pEfcCtx,1);
@@ -365,37 +365,30 @@ int main(int argc, char *argv[]) {
     char      valStr[80];
   };
 
-  IpPort mcGroup[] = {
-    {0,inet_addr("233.54.12.72"),18000,{},{}},
-    {0,inet_addr("233.54.12.73"),18001,{},{}},
-    {0,inet_addr("233.54.12.74"),18002,{},{}},
-    {0,inet_addr("233.54.12.75"),18003,{},{}}
+  EpmTriggerParams triggerParam[] = {
+    {0,"233.54.12.72",18000},
+    {0,"233.54.12.73",18001},
+    {0,"233.54.12.74",18002},
+    {0,"233.54.12.75",18003}
   };
 
-  EkaProp initCtxEntries[std::size(mcGroup)] = {};
-
-  for (auto i = 0; i < (int)std::size(mcGroup); i++) {
-    sprintf(mcGroup[i].keyStr,"efc.group.%d.mcast.addr",i);
-    sprintf(mcGroup[i].valStr,"%s:%u",
-	    EKA_IP2STR(mcGroup[i].ip),mcGroup[i].port);
-    initCtxEntries[i].szKey = mcGroup[i].keyStr;
-    initCtxEntries[i].szVal = mcGroup[i].valStr;
-    /* TEST_LOG("initCtxEntries[%d] = %s -> %s", */
-    /* 	     i,initCtxEntries[i].szKey,initCtxEntries[i].szVal); */
-  }
-
-  EkaProps ekaProps = {
-    .numProps = std::size(initCtxEntries),
-    .props    = initCtxEntries
-  };
-  const EfcInitCtx initCtx = {
-    .ekaProps = &ekaProps,
-    .mdCoreId = 0
-  };
   EfcCtx efcCtx = {};
   EfcCtx* pEfcCtx = &efcCtx;
-  rc = efcInit(&pEfcCtx,dev,&initCtx);
+  rc = efcInit(&pEfcCtx,dev,NULL /* &initCtx */);
   if (rc != EKA_OPRESULT__OK) on_error("efcInit returned %d",(int)rc);
+
+  // ==============================================
+  // Configuring EFC as EPM Strategy
+
+  const EpmStrategyParams efcEpmStrategyParams = {
+    .numActions    = 256,          // just a number
+    .triggerParams = triggerParam,         
+    .numTriggers   = std::size(triggerParam),
+    .reportCb      = NULL,         // set via EfcRunCtx
+    .cbCtx         = NULL
+  };
+  rc = epmInitStrategies(dev, &efcEpmStrategyParams, 1);
+  if (rc != EKA_OPRESULT__OK) on_error("epmInitStrategies failed: rc = %d",rc);
 
   // ==============================================
   // Global EFC config
@@ -411,18 +404,6 @@ int main(int argc, char *argv[]) {
 
   EfcRunCtx runCtx = {};
   runCtx.onEfcFireReportCb = onFireReport;
-
-  // ==============================================
-  // Configuring EFC as EPM Strategy
-
-  const EpmStrategyParams efcEpmStrategyParams = {
-    .numActions  = 256,          // just a number
-    //    .triggerAddr = NULL,         // set via EfcInitCtx
-    .reportCb    = NULL,         // set via EfcRunCtx
-    .cbCtx       = NULL
-  };
-  rc = epmInitStrategies(dev, &efcEpmStrategyParams, 1);
-  if (rc != EKA_OPRESULT__OK) on_error("epmInitStrategies failed: rc = %d",rc);
 
   // ==============================================
   // Subscribing on securities
@@ -498,9 +479,13 @@ int main(int argc, char *argv[]) {
   uint fcsOffset     = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_RequiredTailPadding);
   uint heapOffset    = 0;
   epm_actionid_t chainActionCurrId = 64; // Just a number
+  int testCase = 0;
   // ==============================================
   // preparing action chain for MC Gr#0:
   // Single Fire + single Cancel
+
+  TEST_LOG("\n===========================\nTEST %d\n===========================\n",++testCase);
+
 
   const EpmAction sqfFire0 = {
     .type          = EpmActionType::SqfFire,                 ///< Action type
@@ -516,12 +501,6 @@ int main(int argc, char *argv[]) {
     .user          = 0x1234567890abcdef                      ///< Opaque value copied into `EpmFireReport`.
   };
 
-  rc = epmSetAction(dev, 
-		    EFC_STRATEGY, 
-		    0,               // epm_actionid_t must correspond to the MC gr ID
-		    &sqfFire0);
-
-  if (rc != EKA_OPRESULT__OK) on_error("epmSetAction returned %d",(int)rc);
 
   rc = epmPayloadHeapCopy(dev, 
 			  EFC_STRATEGY,
@@ -531,6 +510,12 @@ int main(int argc, char *argv[]) {
   if (rc != EKA_OPRESULT__OK) 
     on_error("epmPayloadHeapCopy offset=%u, length=%u rc=%d",
 	     sqfFire0.offset,sqfFire0.length,(int)rc);
+  rc = epmSetAction(dev, 
+		    EFC_STRATEGY, 
+		    0,               // epm_actionid_t must correspond to the MC gr ID
+		    &sqfFire0);
+
+  if (rc != EKA_OPRESULT__OK) on_error("epmSetAction returned %d",(int)rc);
 
   heapOffset += sizeof(sqfFire0) + nwHdrOffset + fcsOffset;
   heapOffset += dataAlignment - (heapOffset % dataAlignment);
@@ -594,9 +579,9 @@ int main(int argc, char *argv[]) {
 	    EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),be16toh(triggerSourceAddr.sin_port));
   }
   struct sockaddr_in triggerMcAddr = {};
-  triggerMcAddr.sin_addr.s_addr = mcGroup[0].ip;
   triggerMcAddr.sin_family      = AF_INET;
-  triggerMcAddr.sin_port        = be16toh(mcGroup[0].port);
+  triggerMcAddr.sin_addr.s_addr = inet_addr(triggerParam[0].mcIp);
+  triggerMcAddr.sin_port        = be16toh(triggerParam[0].mcUdpPort);
 
   // ==============================================
   // MD trigger message A on GR#0, security #0
@@ -639,6 +624,8 @@ int main(int argc, char *argv[]) {
   epm_actionid_t currActionId = 1;
   epm_actionid_t nextActionId = chainActionCurrId;
 
+  TEST_LOG("\n===========================\nTEST %d\n===========================\n",++testCase);
+
   for (auto i = 0; i < numSessFires * 2; i ++) {
     const EpmAction chainAction {
     .type          = i < numSessFires ? EpmActionType::SqfFire :  EpmActionType::SqfCancel,
@@ -653,12 +640,6 @@ int main(int argc, char *argv[]) {
     .postStratMask = AlwaysFire,
     .user          = 0x1234567890abcdef,
     };
-    rc = epmSetAction(dev, 
-		      EFC_STRATEGY, 
-		      currActionId, 
-		      &chainAction);
-
-    if (rc != EKA_OPRESULT__OK) on_error("epmSetAction returned %d",(int)rc);
 
     rc = epmPayloadHeapCopy(dev, 
 			    EFC_STRATEGY,
@@ -668,6 +649,13 @@ int main(int argc, char *argv[]) {
     if (rc != EKA_OPRESULT__OK) 
       on_error("epmPayloadHeapCopy offset=%u, length=%u rc=%d",
 	       chainAction.offset,chainAction.length,(int)rc);
+    rc = epmSetAction(dev, 
+		      EFC_STRATEGY, 
+		      currActionId, 
+		      &chainAction);
+
+    if (rc != EKA_OPRESULT__OK) on_error("epmSetAction returned %d",(int)rc);
+
 
     heapOffset += sizeof(chainAction) + nwHdrOffset + fcsOffset;
     heapOffset += dataAlignment - (heapOffset % dataAlignment);
@@ -702,8 +690,9 @@ int main(int argc, char *argv[]) {
   // ==============================================
   // Sending MD trigger MC GR#0
 
-  triggerMcAddr.sin_addr.s_addr = mcGroup[1].ip;
-  triggerMcAddr.sin_port        = be16toh(mcGroup[1].port);
+  triggerMcAddr.sin_family      = AF_INET;
+  triggerMcAddr.sin_addr.s_addr = inet_addr(triggerParam[1].mcIp);
+  triggerMcAddr.sin_port        = be16toh(triggerParam[1].mcUdpPort);
 
   EKA_LOG("sending AskShort trigger to %s:%u",
 	  EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
@@ -747,6 +736,8 @@ int main(int argc, char *argv[]) {
   };
 
 #endif
+
+  TEST_LOG("\n===========================\nEND OT TESTS\n===========================\n");
 
 #ifndef _VERILOG_SIM
   sleep(2);

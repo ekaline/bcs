@@ -158,6 +158,7 @@ EkaOpResult EkaEpm::enableController(EkaCoreId coreId, bool enable) {
   return EKA_OPRESULT__OK;
 }
 
+
 /* ---------------------------------------------------- */
 
 EkaOpResult EkaEpm::initStrategies(const EpmStrategyParams *params,
@@ -176,12 +177,17 @@ EkaOpResult EkaEpm::initStrategies(const EpmStrategyParams *params,
 
   epm_actionid_t currActionIdx = 0;
   for (auto i = 0; i < stratNum; i++) {
-    EKA_LOG("Imitializing strategy %d",i);
+    EKA_LOG("Imitializing strategy %d, hwFeedVer=%d",i,(int)dev->hwFeedVer);
     if (epmRegion[i] != NULL) on_error("epmRegion[%d] != NULL",i);
     createRegion((uint)i,currActionIdx);
 
     if (strategy[i] != NULL) on_error("strategy[%d] != NULL",i);
-    strategy[i] = new EpmStrategy(this,i,currActionIdx, &params[i],dev->hwFeedVer);
+
+    if (i == EFC_STRATEGY) {
+      strategy[i] = new EkaEfc(this,i,currActionIdx, &params[i],dev->hwFeedVer);
+    } else {
+      strategy[i] = new EpmStrategy(this,i,currActionIdx, &params[i],dev->hwFeedVer);
+    }
     if (strategy[i] == NULL) on_error("Fail to create strategy[%d]",i);
 
     currActionIdx += params[i].numActions;

@@ -49,7 +49,7 @@ int processEpmReport(EkaDev* dev, const uint8_t* payload,uint len) {
 }
 /* ########################################################### */
 int printMdReport(EkaDev* dev, const EfcMdReport* msg) {
-  hexDump("printMdReport",msg,sizeof(EfcMdReport));
+  //  hexDump("printMdReport",msg,sizeof(EfcMdReport));
 
   EKA_LOG("MdReport:");
   EKA_LOG("\ttimestamp=0x%jx ", msg->timestamp);
@@ -75,13 +75,13 @@ int printSecCtx(EkaDev* dev, const EfcSecurityCtx* msg) {
 }
 /* ########################################################### */
 int printFireOrder(EkaDev* dev,const EfcFiredOrder* msg) {
-  EKA_LOG("attr = %02x",msg->attr);
-  EKA_LOG("price = %u",msg->price);
-  EKA_LOG("size = %u",msg->size);
-  EKA_LOG("counter = %u",msg->counter);
-  EKA_LOG("securityId = %x",msg->securityId);
-  EKA_LOG("groupId = %u",msg->groupId);
-  EKA_LOG("sequence = 0x%jx",msg->sequence);
+  EKA_LOG("attr = %02x",      msg->attr);
+  EKA_LOG("price = %u",       msg->price);
+  EKA_LOG("size = %u",        msg->size);
+  EKA_LOG("counter = %u",     msg->counter);
+  EKA_LOG("securityId = %x",  msg->securityId);
+  EKA_LOG("groupId = %u",     msg->groupId);
+  EKA_LOG("sequence = 0x%jx", msg->sequence);
   EKA_LOG("timestamp = 0x%jx",msg->timestamp);
 
   return 0;
@@ -93,7 +93,7 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len, uint32_t e
   //--------------------------------------------------------------------------
   while (dev->userReportQ->isEmpty()) {}
 
-  EKA_LOG("processFireReport: Report len = %u",len);
+  /* EKA_LOG("processFireReport: Report len = %u",len); */
 
   EkaUserReportElem* userReport = dev->userReportQ->pop();
   uint32_t userReportIndex = userReport->hdr.index;
@@ -181,11 +181,15 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len, uint32_t e
     on_error("reportLen %d > sizeof(reportBuf) %d",
 	     reportLen,(int)sizeof(reportBuf));
 
-  if (dev->efc->localCopyEfcRunCtx.onEfcFireReportCb == NULL) 
+
+  auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
+  if (efc == NULL) on_error("efc == NULL");
+
+  if (efc->localCopyEfcRunCtx.onEfcFireReportCb == NULL) 
     on_error("onFireReportCb == NULL");
-  dev->efc->localCopyEfcRunCtx.onEfcFireReportCb(&dev->efc->localCopyEfcCtx,
-						 reinterpret_cast< EfcFireReport* >(reportBuf), 
-						 reportLen);
+  efc->localCopyEfcRunCtx.onEfcFireReportCb(&efc->localCopyEfcCtx,
+					    reinterpret_cast< EfcFireReport* >(reportBuf), 
+					    reportLen);
   return 0;
 }
 
