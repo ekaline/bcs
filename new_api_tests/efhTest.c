@@ -357,6 +357,8 @@ void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUs
     }
   }
 
+  return NULL;
+
  subscr:
   testSubscribeSec(file_idx,msg,userData,avtSecName,underlyingName,classSymbol);
   return NULL;
