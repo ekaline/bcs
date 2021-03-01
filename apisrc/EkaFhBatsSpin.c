@@ -499,12 +499,13 @@ static EkaFhParseResult procGrp(const EfhRunCtx* pEfhRunCtx,
 			    EKA_EXCH_DECODE(gr->exch),gr->id,size);
 
     auto msgHdr {reinterpret_cast<const batspitch_dummy_header*>(ptr)};
-    size -= msgHdr->length;
 
     if (sequence >= start) gr->parseMsg(pEfhRunCtx,ptr,sequence,EkaFhMode::RECOVERY);
     sequence++;
 
-    if (sequence > end) {
+    if (sequence == end) {
+      EKA_LOG("%s:%u: GAP closed by GRP: sequence %ju == end %ju",
+	      EKA_EXCH_DECODE(gr->exch),gr->id,sequence,end);
       return EkaFhParseResult::End; 
     }
 
