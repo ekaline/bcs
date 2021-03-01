@@ -29,6 +29,7 @@
 
 #include "EkaCore.h"
 #include "eka_fh_q.h"
+#include "EkaHwCaps.h"
 
 
  /* ##################################################################### */
@@ -63,6 +64,10 @@ uint8_t EkaFh::getGrId(const uint8_t* pkt) {
  /* ##################################################################### */
 int EkaFh::init(const EfhInitCtx* pEfhInitCtx, uint8_t numFh) {
   c = pEfhInitCtx->coreId;
+
+  if ((dev->ekaHwCaps->hwCaps.core.bitmap_md_cores & (1 << c)) == 0) {
+    on_error("Core %u is not enabled in FPGA for Market Data RX",c);
+  }
 
   assert (pEfhInitCtx->numOfGroups <= EKA_FH_GROUPS);
   groups = pEfhInitCtx->numOfGroups;
