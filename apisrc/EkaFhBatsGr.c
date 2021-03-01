@@ -23,6 +23,8 @@ bool EkaFhBatsGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
     //-----------------------------------------------------------------------------
 
     expected_sequence = sequence == 4294967295 ? 1 : sequence + 1;
+    sequence ++;
+
     indx += msg_len;
   }
   return false;
