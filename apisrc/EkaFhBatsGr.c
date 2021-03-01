@@ -19,9 +19,10 @@ bool EkaFhBatsGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
     uint8_t msg_len = pkt[indx];
     uint8_t* msgData = (uint8_t*)&pkt[indx];
     //-----------------------------------------------------------------------------
-    if (parseMsg(pEfhRunCtx,msgData,sequence++,EkaFhMode::MCAST)) return true;
+    if (parseMsg(pEfhRunCtx,msgData,sequence,EkaFhMode::MCAST)) return true;
     //-----------------------------------------------------------------------------
-    expected_sequence = sequence;
+
+    expected_sequence = sequence == 4294967295 ? 1 : sequence + 1;
     indx += msg_len;
   }
   return false;
