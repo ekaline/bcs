@@ -478,11 +478,16 @@ int main(int argc, char *argv[]) {
   uint nwHdrOffset   = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_DatagramOffset);
   uint fcsOffset     = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_RequiredTailPadding);
   uint heapOffset    = 0;
-  epm_actionid_t chainActionCurrId = 64; // Just a number
+  epm_actionid_t chainActionCurrId = 64; // used to offset "chain" actions from the "first" actions
   int testCase = 0;
   // ==============================================
   // preparing action chain for MC Gr#0:
   // Single Fire + single Cancel
+
+
+  // ==============================================
+  // ==============================================
+  // 1 Fire + 1 Cancel on a MD trigger from MC GR#0
 
   TEST_LOG("\n===========================\nTEST %d\n===========================\n",++testCase);
 
@@ -619,12 +624,13 @@ int main(int argc, char *argv[]) {
   // ==============================================
   // 4 Fires on a MD trigger from MC GR#1 + 4 Cancels
 
+  TEST_LOG("\n===========================\nTEST %d\n===========================\n",++testCase);
+
   static const int numSessFires = 4;
 
   epm_actionid_t currActionId = 1;
   epm_actionid_t nextActionId = chainActionCurrId;
 
-  TEST_LOG("\n===========================\nTEST %d\n===========================\n",++testCase);
 
   for (auto i = 0; i < numSessFires * 2; i ++) {
     const EpmAction chainAction {
@@ -702,6 +708,24 @@ int main(int argc, char *argv[]) {
   efcEnableController(pEfcCtx, 1);
   sleep(1);
 
+
+  // ==============================================
+  // ==============================================
+  // Same chain as previous test, but using SW trigger
+  // 4 SQF Fires + 4 Cancels
+  TEST_LOG("\n===========================\nTEST %d\n===========================\n",++testCase);
+
+  EpmTrigger swTrigger = {
+    .token    = DefaultToken,
+    .strategy = EFC_STRATEGY,
+    .action   = 1
+  };
+
+  rc = epmRaiseTriggers(dev, &swTrigger);
+  if (rc != EKA_OPRESULT__OK) EKA_WARN("epmRaiseTriggers: rc = %d",(int)rc);
+
+  sleep(1);
+
 #if 0
 
     /* ============================================== */
@@ -745,16 +769,13 @@ int main(int argc, char *argv[]) {
   keep_work = false;
   while (keep_work) { sleep(0); }
 #endif
-  //  end:
   fflush(stdout);fflush(stderr);
 
 
   /* ============================================== */
 
-  //  excClose(dev,conn);
   printf("Closing device\n");
 
-  sleep (1);
   ekaDevClose(dev);
 
   return 0;
