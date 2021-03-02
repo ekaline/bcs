@@ -499,12 +499,13 @@ static EkaFhParseResult procGrp(const EfhRunCtx* pEfhRunCtx,
 			    EKA_EXCH_DECODE(gr->exch),gr->id,size);
 
     auto msgHdr {reinterpret_cast<const batspitch_dummy_header*>(ptr)};
-    size -= msgHdr->length;
 
     if (sequence >= start) gr->parseMsg(pEfhRunCtx,ptr,sequence,EkaFhMode::RECOVERY);
     sequence++;
 
-    if (sequence > end) {
+    if (sequence == end) {
+      EKA_LOG("%s:%u: GAP closed by GRP: sequence %ju == end %ju",
+	      EKA_EXCH_DECODE(gr->exch),gr->id,sequence,end);
       return EkaFhParseResult::End; 
     }
 
@@ -545,12 +546,30 @@ static bool grpCycle(EfhRunCtx*   pEfhRunCtx,
   }; 
   setsockopt(udpSock, SOL_SOCKET, SO_RCVTIMEO, &udpTv, sizeof(udpTv));
   //-----------------------------------------------------------------
-
-
   sockaddr_in remote_addr = {};
   remote_addr.sin_addr.s_addr = gr->grpIp;
   remote_addr.sin_port        = gr->grpPort;
   remote_addr.sin_family      = AF_INET;
+  //-----------------------------------------------------------------
+  EKA_LOG("%s:%u: getting 1 GRP UDP MC pkt to ensure MC joined",
+	  EKA_EXCH_DECODE(gr->exch),gr->id);
+
+  bool success = false;
+  uint8_t     buf[1500]  = {};
+  static const int LocalAttemps = 4;
+  for (auto i = 0; i < LocalAttemps; i++) {
+    int size = recvfrom(udpSock, buf, sizeof(buf), MSG_WAITALL, NULL, NULL);
+    if (size > 0) {
+      success = true;
+      break;
+    }
+  }
+  if (! success) {
+    dev->lastErrno = errno;
+    EKA_WARN("%s:%u failed to receive GRP MC pkt after %d attempts: %s",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,LocalAttemps,strerror(dev->lastErrno));
+    goto ITERATION_FAIL;
+  }
   //-----------------------------------------------------------------
   EKA_LOG("%s:%u Tcp Connecting to %s:%u",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,

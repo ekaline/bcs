@@ -350,9 +350,9 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
   int r = recv(gr->snapshot_sock,&hdr,sizeof(hdr),MSG_WAITALL);
   if (r <= 0) {
     dev->lastErrno = errno;
-    EKA_WARN("%s:%u: Soupbin Server connection reset by peer (failed to receive SoupbinHdr), r = %d: %s",
+    EKA_WARN("%s:%u: Failed to receive SoupbinHdr (%d bytes) : r = %d, errno=%d: \'%s\'",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,
-	     r,
+	     (int)sizeof(hdr), r, dev->lastErrno,
 	     strerror(dev->lastErrno));
     return EkaFhParseResult::SocketError;
   }
