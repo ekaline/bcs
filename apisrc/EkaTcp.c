@@ -41,7 +41,7 @@ static void ekaLwipInit (void * arg) {
 
 err_t ekaLwipSendRaw(struct netif *netif, struct pbuf *p) {
   EkaDev* dev    = ((struct LwipNetifState*)netif->state)->pEkaDev;
-  uint8_t coreId = ((struct LwipNetifState*)netif->state)->lane;
+  EkaCoreId coreId = ((struct LwipNetifState*)netif->state)->lane;
   if (dev == NULL) return ERR_CLSD;
 
   //  dev->getControlTcpSess(coreId)->sendFullPkt(p->payload,p->len);
@@ -53,7 +53,7 @@ err_t ekaLwipSendRaw(struct netif *netif, struct pbuf *p) {
 err_t ekaLwipSend(struct netif *netif, struct pbuf *p) {
   /* hexDump("ekaLwipSend",p->payload,p->len); */
   EkaDev* dev    = ((struct LwipNetifState*)netif->state)->pEkaDev;
-  uint8_t coreId = ((struct LwipNetifState*)netif->state)->lane;
+  EkaCoreId coreId = ((struct LwipNetifState*)netif->state)->lane;
   if (dev == NULL) return ERR_CLSD;
   if (dev->core[coreId] == NULL) on_error("dev->core[%u] == NULL",coreId);
 
@@ -80,20 +80,33 @@ err_t ekaLwipSend(struct netif *netif, struct pbuf *p) {
   return ERR_OK;
 }
 
-void setNetifIpSrc(EkaDev* dev, uint8_t coreId, const uint32_t* pSrcIp) {
+void setNetifIpSrc(EkaDev* dev, EkaCoreId coreId, const uint32_t* pSrcIp) {
   LOCK_TCPIP_CORE();
   netif_set_ipaddr(dev->core[coreId]->pLwipNetIf,(const ip4_addr_t*)pSrcIp); 
   UNLOCK_TCPIP_CORE();
   return;
 }
 
+void setNetifGw(EkaDev* dev, EkaCoreId coreId, const uint32_t* pGwIp) {
+  LOCK_TCPIP_CORE();
+  netif_set_gw (dev->core[coreId]->pLwipNetIf,(const ip4_addr_t*)pGwIp); 
+  UNLOCK_TCPIP_CORE();
+  return;
+}
 
-void setNetifIpMacSa(EkaDev* dev, uint8_t coreId, const uint8_t* macSa) {
+void setNetifNetmask(EkaDev* dev, EkaCoreId coreId, const uint32_t* pNetmaskIp) {
+  LOCK_TCPIP_CORE();
+  netif_set_netmask (dev->core[coreId]->pLwipNetIf,(const ip4_addr_t*)pNetmaskIp); 
+  UNLOCK_TCPIP_CORE();
+  return;
+}
+
+void setNetifIpMacSa(EkaDev* dev, EkaCoreId coreId, const uint8_t* macSa) {
   memcpy(dev->core[coreId]->pLwipNetIf->hwaddr,macSa,6);
   return;
 }
 
-struct netif* initLwipNetIf(EkaDev* dev, uint8_t coreId, uint8_t* macSa, uint8_t* macDa, uint32_t srcIp) {
+struct netif* initLwipNetIf(EkaDev* dev, EkaCoreId coreId, uint8_t* macSa, uint8_t* macDa, uint32_t srcIp) {
   if (dev == NULL) on_error("dev == NULL");
 
   struct netif* netIf = (struct netif*) calloc(1,sizeof(struct netif));
@@ -185,7 +198,7 @@ int ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
 
   uint8_t broadcastMac[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
   if (memcmp(pkt,broadcastMac,6) == 0) { // broadcast 
-    for (uint8_t rxCoreId = 0; rxCoreId < EkaDev::MAX_CORES; rxCoreId++) {
+    for (EkaCoreId rxCoreId = 0; rxCoreId < EkaDev::MAX_CORES; rxCoreId++) {
       if (dev->core[rxCoreId] != NULL && dev->core[rxCoreId]->pLwipNetIf != NULL) {
 
 	struct pbuf* p = pbuf_alloc(PBUF_RAW, len, PBUF_RAM);
@@ -201,7 +214,7 @@ int ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
       }
     }
   } else {
-    uint8_t rxCoreId = dev->findCoreByMacSa(pkt);
+    EkaCoreId rxCoreId = dev->findCoreByMacSa(pkt);
     if (rxCoreId < EkaDev::MAX_CORES) {
       if (dev->core[rxCoreId] != NULL && dev->core[rxCoreId]->pLwipNetIf != NULL) {
 

@@ -6,7 +6,7 @@
 #include "EkaUdpChannel.h"
 #include "EkaHwCaps.h"
 
-struct netif* initLwipNetIf(EkaDev* dev, uint8_t coreId, uint8_t* macSa, uint8_t* macDa, uint32_t srcIp);
+struct netif* initLwipNetIf(EkaDev* dev, EkaCoreId coreId, uint8_t* macSa, uint8_t* macDa, uint32_t srcIp);
 
 /* ------------------------------------------------------------- */
 #define ARP_STRING_LEN  1023

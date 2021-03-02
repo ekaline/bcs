@@ -34,8 +34,11 @@ void eka_close_tcp ( EkaDev* pEkaDev);
 
 
 void ekaInitLwip (EkaDev* dev);
-void setNetifIpMacSa(EkaDev* dev, uint8_t coreId, const uint8_t* macSa);
-void setNetifIpSrc(EkaDev* dev, uint8_t coreId, const uint32_t* srcIp);
+void setNetifIpMacSa (EkaDev* dev, EkaCoreId coreId, const uint8_t*  macSa);
+void setNetifIpSrc   (EkaDev* dev, EkaCoreId coreId, const uint32_t* srcIp);
+void setNetifGw      (EkaDev* dev, EkaCoreId coreId, const uint32_t* pGwIp);
+void setNetifNetmask (EkaDev* dev, EkaCoreId coreId, const uint32_t* pNetmaskIp);
+
 uint32_t getIfIp(const char* ifName);
 
 void ekaServThread(EkaDev* dev);
@@ -250,7 +253,7 @@ static void set_time (EkaDev* dev) { // ignores Application - PCIe - FPGA latenc
 /* ##################################################################### */
 
 int EkaDev::configurePort(const EkaCoreInitCtx* pCoreInit) {
-  uint8_t c = pCoreInit->coreId;
+  EkaCoreId c = pCoreInit->coreId;
   if (core[c] == NULL) on_error("Trying to configure not connected core %d",c);
 
   const EkaCoreInitAttrs* attrs = &pCoreInit->attrs;
@@ -259,17 +262,27 @@ int EkaDev::configurePort(const EkaCoreInitCtx* pCoreInit) {
   if (! eka_is_all_zeros((void*)&attrs->src_mac_addr,6)) {
     for (auto i =0;i<6;i++) core[c]->macSa[i] = ((uint8_t*)&attrs->src_mac_addr)[i];
     setNetifIpMacSa(dev,c,(const uint8_t*)&attrs->src_mac_addr);
-    EKA_LOG("Setting SRC MAC: %s",EKA_MAC2STR(core[c]->macSa));
+    EKA_LOG("Core %u: Setting SRC MAC: %s",c,EKA_MAC2STR(core[c]->macSa));
   }
   if (! eka_is_all_zeros((void*)&attrs->nexthop_mac,6)) {
     for (auto i =0;i<6;i++) core[c]->macDa[i] = ((uint8_t*)&attrs->nexthop_mac)[i];
-    EKA_LOG("Setting DST MAC: %s",EKA_MAC2STR(core[c]->macDa));
+    EKA_LOG("Core %u: Setting DST MAC: %s",c,EKA_MAC2STR(core[c]->macDa));
     core[c]->macDa_set_externally = true;
   }
   if (! eka_is_all_zeros((void*)&attrs->host_ip,4)) {
     memcpy(&core[c]->srcIp,&attrs->host_ip,4);
     setNetifIpSrc(dev,c,&attrs->host_ip);
-    EKA_LOG("Setting HOST IP: %s",EKA_IP2STR(core[c]->srcIp));
+    EKA_LOG("Core %u: Setting HOST IP: %s",c,EKA_IP2STR(core[c]->srcIp));
+  }
+  if (! eka_is_all_zeros((void*)&attrs->gateway,4)) {
+    memcpy(&core[c]->gwIp,&attrs->gateway,4);
+    setNetifGw(dev,c,&attrs->gateway);
+    EKA_LOG("Core %u: Setting GW: %s",c,EKA_IP2STR(core[c]->gwIp));
+  }
+  if (! eka_is_all_zeros((void*)&attrs->netmask,4)) {
+    memcpy(&core[c]->netmask,&attrs->netmask,4);
+    setNetifNetmask(dev,c,&attrs->netmask);
+    EKA_LOG("Core %u: Setting Netmask: %s",c,EKA_IP2STR(core[c]->netmask));
   }
 
   return 0;
@@ -358,13 +371,13 @@ EkaTcpSess* EkaDev::findTcpSess(int sock) {
 /* ##################################################################### */
 
 
-EkaTcpSess* EkaDev::getControlTcpSess(uint8_t coreId) {
+EkaTcpSess* EkaDev::getControlTcpSess(EkaCoreId coreId) {
   return core[coreId]->tcpSess[MAX_SESS_PER_CORE];
 }
 /* ##################################################################### */
 
-uint8_t EkaDev::findCoreByMacSa(const uint8_t* macSa) {
-  for (uint8_t c = 0; c < MAX_CORES; c++) {
+EkaCoreId EkaDev::findCoreByMacSa(const uint8_t* macSa) {
+  for (EkaCoreId c = 0; c < MAX_CORES; c++) {
     if (core[c] == NULL) continue;
     if (memcmp(core[c]->macSa,macSa,6) == 0) return c;
   }

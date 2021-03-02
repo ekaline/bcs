@@ -35,11 +35,13 @@ class EkaCore {
   static const uint CONTROL_SESS_ID         = EkaDev::CONTROL_SESS_ID;
   static const uint TOTAL_SESSIONS_PER_CORE = EkaDev::TOTAL_SESSIONS_PER_CORE;
 
-  uint8_t       coreId;
-  uint32_t      srcIp;
+  EkaCoreId     coreId   = -1;
+  uint32_t      srcIp    = 0;
+  uint32_t      gwIp     = 0;
+  uint32_t      netmask  = 0;
   uint8_t       macSa[6] = {};
   uint8_t       macDa[6] = {};
-  uint16_t      vlanTag = 0;
+  uint16_t      vlanTag  = 0;
 
   bool          connected = false;
   bool          macDa_set_externally = false;
