@@ -36,6 +36,7 @@ EkaIgmp::~EkaIgmp() {
 
 /* ##################################################################### */
 int EkaIgmp::mcJoin(int epmRegion, EkaCoreId coreId, uint32_t ip, uint16_t port, uint16_t vlanTag, uint64_t* pPktCnt) {
+  createEntryMtx.lock();
   for (auto i = 0; i < numIgmpEntries; i++) {
     if (igmpEntry[i] == NULL) on_error("igmpEntry[%d] == NULL",i);
     if (igmpEntry[i]->isMy(coreId,ip,port)) return 0;
@@ -49,6 +50,7 @@ int EkaIgmp::mcJoin(int epmRegion, EkaCoreId coreId, uint32_t ip, uint16_t port,
   EKA_LOG("MC join: %s:%u",EKA_IP2STR(ip),port);
 
   numIgmpEntries++;
+  createEntryMtx.unlock();
 
   return 0;
 }

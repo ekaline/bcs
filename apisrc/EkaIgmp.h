@@ -37,6 +37,8 @@ class EkaIgmp {
   EkaIgmpEntry*         igmpEntry[MAX_IGMP_ENTRIES] = {};
   int                   numIgmpEntries              = 0;
 
+  std::mutex            createEntryMtx;
+
   EkaDev*               dev                         = NULL;
 };
 
