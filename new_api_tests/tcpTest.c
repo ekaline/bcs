@@ -102,18 +102,22 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p
     sprintf(pkt->free_text,"%u_%u_%2u_%08ju",thrId,coreId,sessId,pkt->cnt);
 
     //    uint pkt_size = rand() % (BUF_SIZE - 2 - sizeof(TcpTestPkt)) + 3;
-    uint pkt_size = 128;
+    uint pkt_size = rand() % 2; tx_buf[0] = 0xa1; tx_buf[1] = 0xb2;
+    if (pkt_size == 0) pkt_size = 2;
+    //    uint pkt_size = 128;
+    //uint pkt_size = 1; tx_buf[0] = 0xab;
     for (auto i = sizeof(TcpTestPkt); i < pkt_size; i++) {
       tx_buf[i] = (char)(sessId + 1);
     //      tx_buf[i] = 'a' + (rand() % ('z' - 'a'));
     }
 
     /* -------------------------------------------------- */
-    //    TEST_LOG("%u %04u: sending %u bytes",sessId,pkt->cnt,pkt_size); fflush(stderr);
+    //    TEST_LOG("%u %04ju: sending %u bytes",sessId,pkt->cnt,pkt_size); fflush(stderr);
     int sentBytes = 0;
-    while (keep_work && sentBytes < (int)pkt_size) {
+    while (keep_work && (sentBytes < (int)pkt_size || pkt_size == 0)) {
       int sent = excSend (pEkaDev, sess_id, pkt, pkt_size);
-      if (sent == 0) usleep(10);
+      //      TEST_LOG("%u %04ju: sent %u out of %u bytes",sessId,pkt->cnt,sent,pkt_size); fflush(stderr);
+      if (pkt_size != 0 && sent == 0) usleep(10);
       sentBytes += sent;
     }
     /* -------------------------------------------------- */

@@ -386,7 +386,7 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len) {
   }
   throttleCounter = 0;
   uint payloadSize2send = ((uint)len <= (MAX_PAYLOAD_SIZE + 2)) ? (uint)len : MAX_PAYLOAD_SIZE;
-  if (payloadSize2send <= 2) on_error("len = %d, payloadSize2send=%u,MAX_PKT_SIZE=%u",len,payloadSize2send,MAX_PAYLOAD_SIZE);
+  //  if (payloadSize2send <= 2) on_error("len = %d, payloadSize2send=%u,MAX_PKT_SIZE=%u",len,payloadSize2send,MAX_PAYLOAD_SIZE);
   fastPathBytes += payloadSize2send;
 
   fastPathAction->fastSend(buf, payloadSize2send);
