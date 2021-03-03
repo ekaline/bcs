@@ -77,17 +77,20 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
     const uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&sequence,&gr_id);
     if (pkt == NULL) continue;
 
+    EkaFhBatsGr* gr = (EkaFhBatsGr*)b_gr[gr_id];
+    if (gr == NULL) on_error("b_gr[%u] = NULL",gr_id);
+
 #ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
-    if (sequence != 0 && sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
-      EKA_WARN("%s:%u: TEST GAP INJECTED: (GAP_INJECT_INTERVAL = %d): pkt sequence %ju with %u messages dropped",
-	       EKA_EXCH_DECODE(exch),gr_id, _EFH_TEST_GAP_INJECT_INTERVAL_,sequence,msgInPkt);
+    if (gr->state == EkaFhGroup::GrpState::NORMAL && 
+	sequence != 0 && 
+	sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
+      EKA_WARN("%s:%u: TEST GAP INJECTED: (GAP_INJECT_INTERVAL = %d): pkt sequence %ju with unknown number of messages dropped",
+	       EKA_EXCH_DECODE(exch),gr_id, _EFH_TEST_GAP_INJECT_INTERVAL_,sequence);
       runGr->udpCh->next(); 
       continue;
     }
 #endif
 
-    EkaFhBatsGr* gr = (EkaFhBatsGr*)b_gr[gr_id];
-    if (gr == NULL) on_error("b_gr[%u] = NULL",gr_id);
     gr->resetNoMdTimer();
 
     //-----------------------------------------------------------------------------
@@ -105,7 +108,7 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
       break;
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::NORMAL : {
-      if (sequence == 1) gr->expected_sequence = 1;
+      if (sequence != 0 && sequence < 50) gr->expected_sequence = sequence; // potential wrap around
       if (sequence < gr->expected_sequence) break; // skipping stale messages
       if (sequence > gr->expected_sequence) { // GAP
 	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%ju",
