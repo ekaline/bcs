@@ -108,7 +108,7 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
       break;
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::NORMAL : {
-      if (sequence < 50) gr->expected_sequence = sequence; // potential wrap around
+      if (sequence != 0 && sequence < 50) gr->expected_sequence = sequence; // potential wrap around
       if (sequence < gr->expected_sequence) break; // skipping stale messages
       if (sequence > gr->expected_sequence) { // GAP
 	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%ju",
