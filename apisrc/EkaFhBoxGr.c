@@ -37,7 +37,7 @@ int EkaFhBoxGr::processFromQ(const EfhRunCtx* pEfhRunCtx) {
     fh_msg* buf = q->pop();
     //      EKA_LOG("q_len=%u,buf->sequence=%ju, expected_sequence=%ju",q->get_len(),buf->sequence,expected_sequence);
     parseMsg(pEfhRunCtx,(const unsigned char*)buf->data,buf->sequence,EkaFhMode::MCAST);
-    expected_sequence = buf->sequence + 1;
+    expected_sequence = buf->sequence >= 999999999 ? buf->sequence + 1 - 999999999 : buf->sequence + 1;
   }
   return 0;
 }
@@ -78,7 +78,7 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 	EKA_WARN("Exiting in the middle of the packet");
 	return true;
       }
-      expected_sequence = msgSeq + 1;
+      expected_sequence = msgSeq >= 999999999 ?  msgSeq + 1 - 999999999 : msgSeq + 1;
     } 
 
     idx += msgLen;
