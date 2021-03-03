@@ -101,8 +101,17 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 
 /* -------------------------------------------- */
   dev = this;
+
+  if (initCtx == NULL) on_error("initCtx == NULL");
+
   logCB  = initCtx->logCallback == NULL ? ekaDefaultLog : initCtx->logCallback;
   logCtx = initCtx->logContext;
+
+  credAcquire = initCtx->credAcquire;
+  credRelease = initCtx->credRelease;
+
+  credContext = initCtx->credContext;
+  createThreadContext = initCtx->createThreadContext;
 
   createThread = initCtx->createThread == NULL ? ekaDefaultCreateThread : initCtx->createThread;
 
@@ -177,13 +186,6 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 
 /* -------------------------------------------- */
 
-
-  credAcquire = initCtx->credAcquire;
-  credRelease = initCtx->credRelease;
-  createThread = initCtx->createThread;
-
-  credContext = initCtx->credContext;
-  createThreadContext = initCtx->createThreadContext;
 
 
   pEfcRunCtx = (EfcRunCtx*) calloc(1, sizeof(EfcRunCtx));
