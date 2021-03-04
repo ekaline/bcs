@@ -215,35 +215,30 @@ int ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
     }
   } else {
     EkaCoreId rxCoreId = dev->findCoreByMacSa(pkt);
-    if (rxCoreId < EkaDev::MAX_CORES) {
-      if (dev->core[rxCoreId] != NULL && dev->core[rxCoreId]->pLwipNetIf != NULL) {
+    if (rxCoreId < 0) return 0; // ignoring "not mine" pkt
 
-	struct netif* netIf = dev->core[rxCoreId]->pLwipNetIf;
+    if (dev->core[rxCoreId] != NULL && dev->core[rxCoreId]->pLwipNetIf != NULL) {
+      struct netif* netIf = dev->core[rxCoreId]->pLwipNetIf;
 	
-	if (EKA_IS_TCP_PKT(pkt)) {
-	  EkaTcpSess* tcpSess = dev->findTcpSess(EKA_IPH_DST(pkt),EKA_TCPH_DST(pkt),EKA_IPH_SRC(pkt),EKA_TCPH_SRC(pkt));
-	  if (tcpSess == NULL) {
-	    hexDump("Unexpected RX TCP pkt",pkt,len);
-	    on_error("RX pkt TCP session %s:%u-->%s:%u not found",
-		     EKA_IP2STR(EKA_IPH_DST(pkt)),EKA_TCPH_DST(pkt),
-		     EKA_IP2STR(EKA_IPH_SRC(pkt)),EKA_TCPH_SRC(pkt)
-		     );
-	  }
-	  //	  if (tcpSess->updateRx(pkt,len) == 0) return 1;
-	  tcpSess->updateRx(pkt,len);
+      if (EKA_IS_TCP_PKT(pkt)) {
+	EkaTcpSess* tcpSess = dev->findTcpSess(EKA_IPH_DST(pkt),EKA_TCPH_DST(pkt),EKA_IPH_SRC(pkt),EKA_TCPH_SRC(pkt));
+	if (tcpSess == NULL) {
+	  hexDump("Unexpected RX TCP pkt",pkt,len);
+	  on_error("RX pkt TCP session %s:%u-->%s:%u not found",
+		   EKA_IP2STR(EKA_IPH_DST(pkt)),EKA_TCPH_DST(pkt),
+		   EKA_IP2STR(EKA_IPH_SRC(pkt)),EKA_TCPH_SRC(pkt)
+		   );
 	}
-
-	struct pbuf* p = pbuf_alloc(PBUF_RAW, len, PBUF_RAM);
-	if (p == NULL) on_error ("failed to get new PBUF");
-	memcpy(p->payload,pkt,len);
-
-	if (netIf->input(p,netIf) != ERR_OK) 
-	  pbuf_free(p);
+	//	  if (tcpSess->updateRx(pkt,len) == 0) return 1;
+	tcpSess->updateRx(pkt,len);
       }
-    } else {
-      //hexDump("Ignored RX pkt",(uint8_t*)pkt,len);
-      //      EKA_WARN("Unexpected RX I/F: %s -- ignoring",EKA_MAC2STR(pkt));
-      // Unexpected RX I/F -- Ignoring the pkt
+
+      struct pbuf* p = pbuf_alloc(PBUF_RAW, len, PBUF_RAM);
+      if (p == NULL) on_error ("failed to get new PBUF");
+      memcpy(p->payload,pkt,len);
+
+      if (netIf->input(p,netIf) != ERR_OK) 
+	pbuf_free(p);
     }
   }
   /* hexDump("ekaProcesTcpRx",(void*)pkt,len); */
