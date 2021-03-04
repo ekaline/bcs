@@ -38,6 +38,8 @@ void setNetifIpMacSa (EkaDev* dev, EkaCoreId coreId, const uint8_t*  macSa);
 void setNetifIpSrc   (EkaDev* dev, EkaCoreId coreId, const uint32_t* srcIp);
 void setNetifGw      (EkaDev* dev, EkaCoreId coreId, const uint32_t* pGwIp);
 void setNetifNetmask (EkaDev* dev, EkaCoreId coreId, const uint32_t* pNetmaskIp);
+int ekaAddArpEntry   (EkaDev* dev, EkaCoreId coreId, const uint32_t* protocolAddr,
+                      const uint8_t* hwAddr);
 
 uint32_t getIfIp(const char* ifName);
 
@@ -275,11 +277,6 @@ int EkaDev::configurePort(const EkaCoreInitCtx* pCoreInit) {
     setNetifIpMacSa(dev,c,(const uint8_t*)&attrs->src_mac_addr);
     EKA_LOG("Core %u: Setting SRC MAC: %s",c,EKA_MAC2STR(core[c]->macSa));
   }
-  if (! eka_is_all_zeros((void*)&attrs->nexthop_mac,6)) {
-    for (auto i =0;i<6;i++) core[c]->macDa[i] = ((uint8_t*)&attrs->nexthop_mac)[i];
-    EKA_LOG("Core %u: Setting DST MAC: %s",c,EKA_MAC2STR(core[c]->macDa));
-    core[c]->macDa_set_externally = true;
-  }
   if (! eka_is_all_zeros((void*)&attrs->host_ip,4)) {
     memcpy(&core[c]->srcIp,&attrs->host_ip,4);
     setNetifIpSrc(dev,c,&attrs->host_ip);
@@ -289,6 +286,17 @@ int EkaDev::configurePort(const EkaCoreInitCtx* pCoreInit) {
     memcpy(&core[c]->gwIp,&attrs->gateway,4);
     setNetifGw(dev,c,&attrs->gateway);
     EKA_LOG("Core %u: Setting GW: %s",c,EKA_IP2STR(core[c]->gwIp));
+    if (! eka_is_all_zeros((void*)&attrs->nexthop_mac,6)) {
+      if (ekaAddArpEntry(this, c, &attrs->gateway, attrs->nexthop_mac.ether_addr_octet) == -1)
+        return -1;
+      EKA_LOG("Core %u: Adding GW static APR: %s",c,
+              EKA_MAC2STR(attrs->nexthop_mac.ether_addr_octet));
+    }
+  }
+  else if (! eka_is_all_zeros((void *)&attrs->nexthop_mac,6)) {
+    EKA_WARN("gateway MAC is specified, but gateway IP not; can't add static ARP");
+    errno = EINVAL;
+    return -1;
   }
   if (! eka_is_all_zeros((void*)&attrs->netmask,4)) {
     memcpy(&core[c]->netmask,&attrs->netmask,4);

@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <shared_mutex>
 #include <thread>
 #include <malloc.h>
 
@@ -22,12 +23,36 @@
 
 #include "eka_hw_conf.h"
 
+// Note: internal flags, must be kept in sync with `lwip/src/core/ipv4/etharp.c`
+#define ETHARP_FLAG_TRY_HARD     1
+#define ETHARP_FLAG_STATIC_ENTRY 4
+
+extern EkaDev *g_allDevs;
+extern std::shared_mutex g_allDevsMtx;
 
 static err_t eka_netif_init (struct netif *netif) {
   //  EkaDev* dev = ((struct LwipNetifState*)netif->state)->pEkaDev;
   //  EKA_LOG("Initializing");
 
   return ERR_OK;
+}
+
+extern "C" netif* eka_route_ipv4_src(const ip4_addr_t* src, const ip4_addr_t* dst) {
+  std::shared_lock<std::shared_mutex> lck{g_allDevsMtx};
+
+  // For each open device, look through each initialized core, trying to find
+  // the core whose source IP address matches the source IP address of the
+  // packet we're trying to route. If we find a match, tell lwIP to use that
+  // core's associated netif.
+  // FIXME: need to acquire any locks here to protect cores / core members?
+  for (EkaDev *dev = g_allDevs; dev; dev = dev->next) {
+    for (EkaCoreId c = 0; c < EkaDev::MAX_CORES; ++c) {
+      if (dev->core[c] && dev->core[c]->srcIp == src->addr)
+        return dev->core[c]->pLwipNetIf;
+    }
+  }
+
+  return nullptr;
 }
 
 static void ekaLwipInit (void * arg) {
@@ -106,7 +131,22 @@ void setNetifIpMacSa(EkaDev* dev, EkaCoreId coreId, const uint8_t* macSa) {
   return;
 }
 
-struct netif* initLwipNetIf(EkaDev* dev, EkaCoreId coreId, uint8_t* macSa, uint8_t* macDa, uint32_t srcIp) {
+int ekaAddArpEntry(EkaDev* dev, EkaCoreId coreId, const uint32_t *protocolAddr,
+                   const uint8_t *hwAddr) {
+  netif *const nif = dev->core[coreId]->pLwipNetIf;
+  LOCK_TCPIP_CORE();
+  const err_t lwipErr =
+      etharp_update_arp_entry(nif, (const ip4_addr_t*) &protocolAddr, (struct eth_addr *)hwAddr,
+                              (u8_t)(ETHARP_FLAG_TRY_HARD | ETHARP_FLAG_STATIC_ENTRY));
+  UNLOCK_TCPIP_CORE();
+  if (lwipErr != ERR_OK) {
+    errno = err_to_errno(lwipErr);
+    return -1;
+  }
+  return 0;
+}
+
+struct netif* initLwipNetIf(EkaDev* dev, EkaCoreId coreId, uint8_t* macSa, uint32_t srcIp) {
   if (dev == NULL) on_error("dev == NULL");
 
   struct netif* netIf = (struct netif*) calloc(1,sizeof(struct netif));
@@ -131,8 +171,8 @@ struct netif* initLwipNetIf(EkaDev* dev, EkaCoreId coreId, uint8_t* macSa, uint8
   netIf->mtu = 1500;
   netIf->hwaddr_len = 6;
 
-  EKA_LOG("running netif_add with ip=%s, macSa=%s, macDa=%s",
-	  EKA_IP2STR(srcIp),EKA_MAC2STR(macSa),EKA_MAC2STR(macDa));
+  EKA_LOG("running netif_add with ip=%s, macSa=%s",
+	  EKA_IP2STR(srcIp),EKA_MAC2STR(macSa));
 
   LOCK_TCPIP_CORE();
   struct netif* netIf_rc = netif_add(netIf,
@@ -154,8 +194,6 @@ struct netif* initLwipNetIf(EkaDev* dev, EkaCoreId coreId, uint8_t* macSa, uint8
     NETIF_FLAG_ETHERNET  | 
     NETIF_FLAG_IGMP;
   netIf->output = etharp_output;
-
-  //  netif_set_default (netIf);
 
   netif_set_up(netIf);
   netif_set_link_up(netIf);
@@ -215,7 +253,7 @@ void ekaProcessTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
     }
   } else {
     EkaCoreId rxCoreId = dev->findCoreByMacSa(pkt);
-    if (rxCoreId < 0) return 0; // ignoring "not mine" pkt
+    if (rxCoreId < 0) return; // ignoring "not mine" pkt
 
     if (dev->core[rxCoreId] != NULL && dev->core[rxCoreId]->pLwipNetIf != NULL) {
       struct netif* netIf = dev->core[rxCoreId]->pLwipNetIf;

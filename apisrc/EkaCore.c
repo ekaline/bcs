@@ -6,48 +6,8 @@
 #include "EkaUdpChannel.h"
 #include "EkaHwCaps.h"
 
-struct netif* initLwipNetIf(EkaDev* dev, EkaCoreId coreId, uint8_t* macSa, uint8_t* macDa, uint32_t srcIp);
+struct netif* initLwipNetIf(EkaDev* dev, EkaCoreId coreId, uint8_t* macSa, uint32_t srcIp);
 
-/* ------------------------------------------------------------- */
-#define ARP_STRING_LEN  1023
-#define ARP_BUFFER_LEN  (ARP_STRING_LEN + 1)
-
-/**
- * Macros to turn a numeric macro into a string literal.  See
- * https://gcc.gnu.org/onlinedocs/cpp/Stringification.html
- */
-#define xstr(s) str(s)
-#define str(s) #s
-
-/* Format for fscanf() to read the 1st, 4th, and 6th space-delimited fields */
-#define ARP_LINE_FORMAT "%" xstr(ARP_STRING_LEN) "s %*s %*s " \
-                        "%" xstr(ARP_STRING_LEN) "s %*s " \
-                        "%" xstr(ARP_STRING_LEN) "s"
-/* ------------------------------------------------------------- */
-
-static bool getMacDaFromArp(const char* arpTableFile,uint8_t coreId, uint8_t* macDa) {
-  FILE *arpCache = fopen(arpTableFile, "r");
-  if (arpCache == NULL) on_error("cannot open ARP Cache %s",arpTableFile);
-
-  char header[ARP_BUFFER_LEN] = {};
-  if (!fgets(header, sizeof(header), arpCache)) return false;
-
-  char ipAddr[ARP_BUFFER_LEN], hwAddr[ARP_BUFFER_LEN], device[ARP_BUFFER_LEN];
-
-  while (3 == fscanf(arpCache, ARP_LINE_FORMAT, ipAddr, hwAddr, device)) {
-    char myName[10] = {};
-    sprintf (myName,"feth%u",coreId);
-    if (strcmp(myName,device) == 0) {
-      sscanf(hwAddr, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &macDa[0], &macDa[1], &macDa[2], &macDa[3], &macDa[4], &macDa[5]);
-      //      EKA_LOG("%s destination MAC is %s = %s",myName,hwAddr,EKA_MAC2STR(macDa));
-      fclose(arpCache);
-      return true;
-    }
-    //    printf("%03d: Mac Address of [%s] on [%s] is \"%s\"\n", ++count, ipAddr, device, hwAddr);
-  }
-  fclose(arpCache);
-  return false;
-}
 /* ------------------------------------------------------------- */
 
 EkaCore::EkaCore(EkaDev* pEkaDev, uint8_t lane, uint32_t ip, uint8_t* mac, bool epmEnabled) {
@@ -55,13 +15,8 @@ EkaCore::EkaCore(EkaDev* pEkaDev, uint8_t lane, uint32_t ip, uint8_t* mac, bool 
     coreId = lane;
     memcpy(macSa,mac,6);
     srcIp = ip;
-    memset(macDa,0,6);
     connected = true;
     vlanTag = 0;
-
-    const char* arpTableFile = "/proc/net/arp";
-    if (getMacDaFromArp(arpTableFile,coreId,macDa))
-      EKA_LOG("MAC DA is taken from %s : %s",arpTableFile,EKA_MAC2STR(macDa));
 
     bool isTcpCore = dev->ekaHwCaps->hwCaps.core.bitmap_tcp_cores & (1 << coreId);
 
@@ -76,9 +31,9 @@ EkaCore::EkaCore(EkaDev* pEkaDev, uint8_t lane, uint32_t ip, uint8_t* mac, bool 
 
     tcpSess[CONTROL_SESS_ID] = new EkaTcpSess(dev, this, coreId, CONTROL_SESS_ID,
 					      0 /* srcIp */, 0 /* dstIp */, 0 /* dstPort */, 
-					      macSa, macDa);
+					      macSa);
 
-    pLwipNetIf = initLwipNetIf(dev,coreId,macSa,macDa,srcIp);
+    pLwipNetIf = initLwipNetIf(dev,coreId,macSa,srcIp);
 
 }
 
@@ -133,8 +88,7 @@ uint EkaCore::addTcpSess() {
 
   uint8_t sessId = getFreeTcpSess();
   tcpSessions++;
-  tcpSess[sessId] = new EkaTcpSess(dev, this, coreId, sessId, srcIp, 0, 0, 
-				   macSa, macDa);
+  tcpSess[sessId] = new EkaTcpSess(dev, this, coreId, sessId, srcIp, 0, 0, macSa);
   return sessId;
 }
 
@@ -169,8 +123,7 @@ int EkaCore::tcpConnect(uint32_t dstIp, uint16_t dstPort) {
   tcpSessions++;
   EKA_LOG("Opening TCP session %u from core %u, srcIp = %s",sessId,coreId,EKA_IP2STR(srcIp));
 
-  tcpSess[sessId] = new EkaTcpSess(dev, this, coreId, sessId, srcIp, dstIp, dstPort, 
-				   macSa, macDa);
+  tcpSess[sessId] = new EkaTcpSess(dev, this, coreId, sessId, srcIp, dstIp, dstPort, macSa);
   tcpSess[sessId]->bind();
 
   suppressOldTcpSess(sessId,

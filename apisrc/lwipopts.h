@@ -946,9 +946,8 @@ void sys_mark_tcpip_thread();
  * Declare your hook function prototypes in there, you may also \#include all headers
  * providing data types that are need in this file.
  */
-#ifdef __DOXYGEN__
-#define LWIP_HOOK_FILENAME "path/to/my/lwip_hooks.h"
-#endif
+#define LWIP_HOOK_FILENAME "lwiphooks.h"
+#define LWIP_HOOK_IP4_ROUTE_SRC(SRC, DST) eka_route_ipv4_src(SRC, DST)
 
 
 /*

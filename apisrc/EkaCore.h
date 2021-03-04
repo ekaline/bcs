@@ -40,11 +40,9 @@ class EkaCore {
   uint32_t      gwIp     = 0;
   uint32_t      netmask  = 0;
   uint8_t       macSa[6] = {};
-  uint8_t       macDa[6] = {};
   uint16_t      vlanTag  = 0;
 
   bool          connected = false;
-  bool          macDa_set_externally = false;
 
   EkaTcpSess*   tcpSess[MAX_SESS_PER_CORE + 1] = {};
   uint8_t       tcpSessions = 0;

@@ -151,7 +151,7 @@ class EkaDev {
   FILE* testDict;
 #endif
   EkaUserReportQ*           userReportQ = NULL;
-
+  EkaDev*                   next = NULL; // Next device in global list
 };
 
 
