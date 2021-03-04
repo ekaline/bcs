@@ -38,6 +38,7 @@ EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
   thread_active      = true;
   hasGrpAfterGap     = false;
   stoppedByExchange  = false;
+  allGroupsClosed    = false;
 
   char name[50] = {};
   sprintf(name,"RunGr%u",runId);
@@ -95,6 +96,7 @@ int EkaFhRunGroup::sendFeedCloseAll(const EfhRunCtx* pEfhRunCtx) {
     }
     gr->sendFeedDownClosed(pEfhRunCtx);
   }
+  allGroupsClosed = true;
   return 0;
 }
 
@@ -144,6 +146,9 @@ bool EkaFhRunGroup::drainQ(const EfhRunCtx* pEfhRunCtx) {
 /* ##################################################################### */
 EkaFhRunGroup::~EkaFhRunGroup() {
   thread_active      = false;
+
+  EKA_LOG("Waiting for all groups sending FeedDownClosed...");
+  while (! allGroupsClosed) { sleep(0); }
 
   EKA_LOG("Run Gr %u: terminated",runId);  
 }

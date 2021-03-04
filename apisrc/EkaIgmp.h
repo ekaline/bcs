@@ -17,6 +17,10 @@ class EkaIgmp {
   int mcJoin(int epmRegion, EkaCoreId coreId, uint32_t ip, uint16_t port, uint16_t vlanTag, uint64_t* pPktCnt);
 
 
+ public:
+  volatile bool        threadActive                = false;
+  volatile bool        igmpLoopTerminated          = false;
+
  private:
   static const int  MAX_IGMP_ENTRIES = 64;
 
@@ -31,8 +35,6 @@ class EkaIgmp {
 #else
   pthread_t             igmpPthread;
 #endif
-  bool                  threadActive                = false;
-  bool                  igmpLoopTerminated          = false;
 
   EkaIgmpEntry*         igmpEntry[MAX_IGMP_ENTRIES] = {};
   int                   numIgmpEntries              = 0;

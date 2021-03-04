@@ -56,9 +56,8 @@ class EkaFhRunGroup {
   bool                  thread_active     = false;
   bool                  stoppedByExchange = false;
 
-  EkaIgmp*              ekaIgmp           = NULL;
-
  private:
+  volatile bool         allGroupsClosed   = false;
   uint64_t              timeOutCntr       = 0;
   EkaDev*               dev               = NULL;
 

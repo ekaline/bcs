@@ -304,6 +304,7 @@ EkaDev::~EkaDev() {
   exc_active = false;
   servThreadActive = false;
   fireReportThreadActive = false;
+  ekaIgmp->threadActive = false;
 
   EKA_LOG("Waiting for servThreadTerminated...");
   while (! servThreadTerminated) { sleep(0); }
@@ -311,8 +312,8 @@ EkaDev::~EkaDev() {
   EKA_LOG("Waiting for fireReportThreadTerminated...");
   while (! fireReportThreadTerminated) { sleep(0); }
 
-  /* EKA_LOG("Waiting for igmpThreadTerminated..."); */
-  /* while (! igmpThreadTerminated) { sleep(0); } */
+  EKA_LOG("Waiting for igmpLoopTerminated...");
+  while (! ekaIgmp->igmpLoopTerminated) { sleep(0); }
 
   TEST_LOG("Closing %u FHs",numFh);
   fflush(stderr);
