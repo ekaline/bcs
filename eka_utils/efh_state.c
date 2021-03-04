@@ -499,8 +499,10 @@ int main(int argc, char *argv[]) {
   IfParams coreParams[NUM_OF_CORES] = {};
   McState mcState = {};
 
-  sc_multicast_subscription_t* hwIgmp = (sc_multicast_subscription_t*)malloc(sizeof(sc_multicast_subscription_t) * 8 * 64);
-  if (hwIgmp == NULL) on_error("malloc failed");
+
+  sc_multicast_subscription_t hwIgmp[8 * 64] = {};
+  /* sc_multicast_subscription_t* hwIgmp = (sc_multicast_subscription_t*)malloc(sizeof(sc_multicast_subscription_t) * 8 * 64); */
+  /* if (hwIgmp == NULL) on_error("malloc failed"); */
 
 
   /* ----------------------------------------- */
@@ -537,9 +539,6 @@ int main(int argc, char *argv[]) {
     sleep(1);
   }
   SN_CloseDevice(devId);
-  exit(0);
 
-
-  free(hwIgmp);
   return 0;
 }
