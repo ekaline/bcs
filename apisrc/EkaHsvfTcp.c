@@ -26,8 +26,8 @@
 uint trailingZeros(const uint8_t* p, uint maxChars);
 void hexDump (const char* desc, void *addr, int len);
 
-EkaHsvfTcp::EkaHsvfTcp(EkaDev* dev, int sock) {
-  m_dev            = dev;
+EkaHsvfTcp::EkaHsvfTcp(EkaDev* _dev, int sock) {
+  dev              = _dev;
   m_sock           = sock;
   m_validBytes     = 0;
   m_firstValidByte = 0;
@@ -38,7 +38,8 @@ bool EkaHsvfTcp::hasValidMsg() {
   if (m_validBytes == 0) return 0;
 
   if (m_msgBuf[m_firstValidByte] != HsvfSom) 
-    on_error("0x%x != 0x%x",m_msgBuf[m_firstValidByte],HsvfSom);
+    on_error("m_msgBuf[%d] 0x%x != 0x%x, m_validBytes = %d",
+	     m_firstValidByte,m_msgBuf[m_firstValidByte],HsvfSom,m_validBytes);
 
   for (auto idx = m_firstValidByte + m_msgLen; idx < m_firstValidByte + m_validBytes; idx ++) {
     m_msgLen++;
@@ -60,7 +61,12 @@ int EkaHsvfTcp::shiftAndFillBuf() {
   }
 
   int readBytes = recv(m_sock,&m_msgBuf[m_validBytes],MSG_BUF_SIZE - m_validBytes,MSG_DONTWAIT);
-  if (readBytes <= 0) return 0;
+  if (readBytes <= 0) {
+    if (errno == EAGAIN || errno == EWOULDBLOCK) return 0;
+    dev->lastErrno = errno;
+    EKA_WARN("TCP session disconnected: rc=%d -- %s",readBytes,strerror(dev->lastErrno));
+    return -1;
+  }
 
   m_validBytes += readBytes;
   return 0;
@@ -72,7 +78,8 @@ EkaOpResult EkaHsvfTcp::getTcpMsg(uint8_t** msgBuf) {
   checkIntegrity();
 
   while (! hasValidMsg()) {
-    shiftAndFillBuf();
+    int rc = shiftAndFillBuf();
+    if (rc < 0) return EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION;
   }
   
   *msgBuf = &m_msgBuf[m_firstValidByte];

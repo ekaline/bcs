@@ -19,7 +19,7 @@ class EkaHsvfTcp {
   static const int MAX_MSG_SIZE = 1024;
   static const int MSG_BUF_SIZE = 2048;
 
-  EkaDev* m_dev = NULL;
+  EkaDev* dev = NULL;
   int     m_sock = -1;
   uint8_t m_msgBuf[MSG_BUF_SIZE] = {};
 

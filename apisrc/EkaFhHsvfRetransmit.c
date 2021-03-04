@@ -85,7 +85,7 @@ static bool getLoginResponse(EkaFhBoxGr* gr) {
   while (! loginAcknowledged) {
     uint8_t* msgBuf = NULL;
     if (gr->hsvfTcp->getTcpMsg(&msgBuf) != EKA_OPRESULT__OK) {
-      dev->lastErrno = errno;
+      //      dev->lastErrno = errno;
       return false;
     }
 
@@ -412,7 +412,7 @@ void* getHsvfRetransmit(void* attr) {
   while (gr->snapshot_active) {
     uint8_t* msgBuf = NULL;
     if (gr->hsvfTcp->getTcpMsg(&msgBuf) != EKA_OPRESULT__OK) {
-      dev->lastErrno = errno;
+      //      dev->lastErrno = errno;
       gr->sendRetransmitSocketError(pEfhRunCtx);
     }
 
