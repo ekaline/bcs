@@ -318,7 +318,7 @@ int printMcGroups(McState* state) {
 
   for (auto chId = 0; chId < 32; chId++) {
     if (state->chState[chId].num == 0) continue;
-    printf("                   Ch%2d : Core %d, MC %2d                 |",
+    printf("                       Ch%2d : Core %d, MC %2d                    |",
 	   chId,
 	   state->chState[chId].grpState[0].coreId,
 	   state->chState[chId].num);
@@ -330,18 +330,22 @@ int printMcGroups(McState* state) {
     for (auto chId = 0; chId < 32; chId++) {
       if (state->chState[chId].num == 0) continue;
       if (state->chState[chId].grpState[grId].ip == 0) {
-	printf ("%56s|"," ");
+	printf ("%63s|"," ");
 	continue;
       }
 
-      //      const char* fmt = "%16s:%5u (%16s:%5u) %8ju|";
+#define _LINE_FORMAT "%16s:%5u (%d %3d %16s:%5u) %9ju|"
       const char* coloredFmt = 
 	state->chState[chId].grpState[grId].ip   == state->chState[chId].grpHwState[grId].ip &&
 	state->chState[chId].grpState[grId].port == state->chState[chId].grpHwState[grId].port ?
-	"%16s:%5u (%16s:%5u) %8ju|" : RED "%16s:%5u (%16s:%5u) %8ju|" RESET;
+	_LINE_FORMAT : RED _LINE_FORMAT RESET;
+#undef _LINE_FORMAT
+
       printf (coloredFmt,
 	      EKA_IP2STR(state->chState[chId].grpState[grId].ip),
 	      state->chState[chId].grpState[grId].port,
+	      state->chState[chId].grpHwState[grId].coreId,
+	      state->chState[chId].grpHwState[grId].positionIndex,
 	      EKA_IP2STR(state->chState[chId].grpHwState[grId].ip),
 	      state->chState[chId].grpHwState[grId].port,
 	      state->chState[chId].grpState[grId].pktCnt

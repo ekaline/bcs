@@ -1,3 +1,5 @@
+#include <string>
+
 #include "EkaFhRunGroup.h"
 #include "EkaFhGroup.h"
 #include "EkaUdpChannel.h"
@@ -5,7 +7,13 @@
 #include "EkaIgmp.h"
 #include "EkaCore.h"
 #include "EkaEpm.h"
-#include <string>
+#include "EkaSnDev.h"
+#include "eka_sn_addr_space.h"
+#include "EkaMcState.h"
+#include "ctls.h"
+#include "eka.h"
+#include "smartnic.h"
+
 
 /* ##################################################################### */
 
@@ -51,10 +59,92 @@ EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
 
 }
 /* ##################################################################### */
+bool EkaFhRunGroup::igmpSanityCheck(int grId2check, uint32_t ip, uint16_t port) {
+  /* EKA_LOG("%s:%u on coreId %d udpChId %u", */
+  /* 	  EKA_IP2STR(ip),port,coreId,udpChId); */
+  struct McChState {
+    int          num            = 0;  // num of "logical" groups at this Channel
+    int          currHwGr       = 0;
+    EkaMcState   grpState[64]   = {};
+    EkaHwMcState grpHwState[64] = {};
+  };
 
+  struct McState {
+    int          totalNum    = 0;
+    int          maxGrPerCh  = 0;
+    McChState    chState[32] = {};
+  };
+
+  McState mcState = {};
+
+  sc_multicast_subscription_t hwIgmp[8 * 64] = {};
+
+  int fd = SN_GetFileDescriptor(dev->snDev->dev_id);
+  if (fd < 0) on_error("fd = %d",fd);
+
+  eka_ioctl_t __attribute__ ((aligned(0x1000))) state = {};
+
+  state.cmd = EKA_GET_IGMP_STATE;
+  state.nif_num = 0;
+  state.session_num = 0;
+  state.wcattr.bar0_pa = (uint64_t)hwIgmp;
+
+  int rc = ioctl(fd,SMARTNIC_EKALINE_DATA,&state);
+  if (rc != 0) on_error("ioctl failed: rc = %d",rc);
+
+  for (auto i = 0; i < 32; i++) {
+    mcState.chState[i].currHwGr = 0;
+  }
+
+  for (auto i = 0; i < 512; i++) {
+    int chId = hwIgmp[i].channel - 32;
+    if ((hwIgmp[i].group_address != 0) && (chId < 0 || chId > 31)) 
+      on_error("chId=%d,hwIgmp[%d].channel=%u",chId,i,hwIgmp[i].channel);
+    if (hwIgmp[i].group_address == 0) continue;
+
+    int grId = mcState.chState[chId].currHwGr;
+    if (grId < 0 || grId > 63) 
+      on_error("chId=%d,grId=%d,hwIgmp[%d].positionIndex=%u,group_address=0x%08x",
+	       chId,grId,i,hwIgmp[i].positionIndex,hwIgmp[i].group_address);
+
+    
+    mcState.chState[chId].grpHwState[grId].coreId        = hwIgmp[i].lane;
+    mcState.chState[chId].grpHwState[grId].ip            = be32toh(hwIgmp[i].group_address);
+    mcState.chState[chId].grpHwState[grId].port          = hwIgmp[i].ip_port_number;
+    mcState.chState[chId].grpHwState[grId].positionIndex = hwIgmp[i].positionIndex;
+    mcState.chState[chId].currHwGr++;
+  }
+
+  if (coreId != mcState.chState[udpChId].grpHwState[grId2check].coreId) {
+    EKA_WARN("chId %d, grId %d: expected coreId %d != actual %d",
+	     udpChId,grId2check,coreId,mcState.chState[udpChId].grpHwState[grId2check].coreId);
+    return false;
+  }
+
+  if (ip != mcState.chState[udpChId].grpHwState[grId2check].ip || 
+      port != mcState.chState[udpChId].grpHwState[grId2check].port) {
+    EKA_WARN("chId %s, grId %d: expected ip:port %s:%u != actual %s:%u",
+	     udpChId,grId2check,
+	     EKA_IP2STR(mcState.chState[udpChId].grpHwState[grId2check].ip),
+	     mcState.chState[udpChId].grpHwState[grId2check].port,
+	     EKA_IP2STR(ip),
+	     port
+	     );
+    return false;
+  }
+
+  return true;
+}
+/* ##################################################################### */
 int EkaFhRunGroup::igmpMcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag,uint64_t* pPktCnt) {
-  dev->ekaIgmp->mcJoin(udpChId,coreId,ip,port,vlanTag,pPktCnt);
+  dev->igmpJoinMtx.lock();
+  int grId = dev->ekaIgmp->mcJoin(udpChId,coreId,ip,port,vlanTag,pPktCnt);
   udpCh->igmp_mc_join (ip, port, 0);
+  EKA_LOG("%d: %s:%u on coreId %d udpChId %u: %s",
+	  grId,
+	  EKA_IP2STR(ip),port,coreId,udpChId,
+	  igmpSanityCheck(grId,ip,port) ? "PASSED" : "FAILED");
+  dev->igmpJoinMtx.unlock();
   return 0;
 }
 

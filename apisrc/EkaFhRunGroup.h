@@ -30,6 +30,7 @@ class EkaFhRunGroup {
  private:
   int igmpThreadLoop();
   int igmpLeaveAll();
+  bool igmpSanityCheck(int grId2check, uint32_t ip, uint16_t port);
 
  public:
   static const uint MAX_GR2RUN = 64;

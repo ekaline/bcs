@@ -395,6 +395,7 @@ void print_usage(char* cmd) {
   printf("\t\t\tEA - CME       A feed\n"); 
   printf("\t\t\tEB - CME       B feed\n"); 
   printf("\t-u <Underlying Name> - subscribe on all options belonging to\n");
+  printf("\t-c <core ID>         - 10G port ID to use (default 0)\n");
   printf("\t-s run single MC group #0\n");
   printf("\t-t Print TOB updates (EFH)\n");
   printf("\t-a subscribe all\n");
@@ -408,12 +409,13 @@ void print_usage(char* cmd) {
 int main(int argc, char *argv[]) {
   if (argc < 3) { print_usage(argv[0]);	return 1; }
 
-  bool singleGrp = false;
+  bool singleGrp   = false;
+  EkaCoreId coreId = 0;
 
   int opt; 
   std::string feedName = std::string("NO FEED");
 
-  while((opt = getopt(argc, argv, ":u:F:htsa")) != -1) {  
+  while((opt = getopt(argc, argv, ":u:c:F:htsa")) != -1) {  
     switch(opt) {  
       case 's':  
 	printf("Running for single Grp#0\n");  
@@ -432,6 +434,11 @@ int main(int argc, char *argv[]) {
 	printf("Underlying to subscribe: %s\n", underlying2subscr[valid_underlying2subscr]);  
 	valid_underlying2subscr++;
 	break;  
+      case 'c':  
+	coreId = atoi(optarg);
+	printf("coreId: %d\n", coreId);  
+	valid_underlying2subscr++;
+	break; 
       case 'F':  
 	feedName = std::string(optarg);
 	printf("feedName: %s\n", feedName.c_str());  
@@ -611,7 +618,7 @@ int main(int argc, char *argv[]) {
   const EfhInitCtx efhInitCtx = {
     .ekaProps    = &ekaProps,
     .numOfGroups = runCtx.numGroups,
-    .coreId      = 0,
+    .coreId      = coreId,
     .recvSoftwareMd = true,
   };
 

@@ -52,7 +52,7 @@ int EkaIgmp::mcJoin(int epmRegion, EkaCoreId coreId, uint32_t ip, uint16_t port,
   numIgmpEntries++;
   createEntryMtx.unlock();
 
-  return 0;
+  return numIgmpEntries - 1;
 }
 
 
