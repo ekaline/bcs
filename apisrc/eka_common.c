@@ -378,27 +378,6 @@ void eka_enable_cores(EkaDev* dev) {
 /*     printf("  %s\n", buff); */
 /* } */
 
-void hexDumpStderr (const char* desc, const void *addr, int len) {
-    int i;
-    unsigned char buff[17];
-    unsigned char *pc = (unsigned char*)addr;
-    if (desc != NULL) fprintf(stderr,"%s:\n", desc);
-    if (len == 0) { fprintf(stderr,"  ZERO LENGTH\n"); return; }
-    if (len < 0)  { fprintf(stderr,"  NEGATIVE LENGTH: %i\n",len); return; }
-    for (i = 0; i < len; i++) {
-        if ((i % 16) == 0) {
-            if (i != 0) fprintf(stderr,"  %s\n", buff);
-            fprintf(stderr,"  %04x ", i);
-        }
-        fprintf(stderr," %02x", pc[i]);
-        if ((pc[i] < 0x20) || (pc[i] > 0x7e))  buff[i % 16] = '.';
-        else buff[i % 16] = pc[i];
-        buff[(i % 16) + 1] = '\0';
-    }
-    while ((i % 16) != 0) { fprintf(stderr,"   "); i++; }
-    fprintf(stderr,"  %s\n", buff);
-}
-
 EkaCapsResult ekaGetCapsResult(EkaDev* pEkaDev,  enum EkaCapType ekaCapType ) {
   switch (ekaCapType) {
 

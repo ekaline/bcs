@@ -18,8 +18,7 @@ class EkaTcpSess {
  public:
 
   EkaTcpSess(EkaDev* pEkaDev, EkaCore* parent, uint8_t coreId, uint8_t sessId,  
-	     uint32_t _srcIp,  uint32_t _dstIp, uint16_t _dstPort, 
-	     uint8_t* macSa, uint8_t* macDa);
+	     uint32_t _srcIp,  uint32_t _dstIp, uint16_t _dstPort, uint8_t* macSa);
 
   int bind();
   int connect();
@@ -108,6 +107,7 @@ class EkaTcpSess {
 
   int  setRemoteSeqWnd2FPGA();
   int  setLocalSeqWnd2FPGA();
+  bool isEstablished() const noexcept { return connectionEstablished; }
 
  private:
   typedef union exc_table_desc {

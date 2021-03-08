@@ -821,7 +821,7 @@ void sys_mark_tcpip_thread();
  * SO_RCVTIMEO processing.
  */
 
-#define LWIP_SO_RCVTIMEO                0
+#define LWIP_SO_RCVTIMEO                1
 
 
 /**
@@ -834,7 +834,7 @@ void sys_mark_tcpip_thread();
 /**
  * LWIP_SO_RCVBUF==1: Enable SO_RCVBUF processing.
  */
-#define LWIP_SO_RCVBUF                  0
+#define LWIP_SO_RCVBUF                  1
 
 
 /**
@@ -946,9 +946,8 @@ void sys_mark_tcpip_thread();
  * Declare your hook function prototypes in there, you may also \#include all headers
  * providing data types that are need in this file.
  */
-#ifdef __DOXYGEN__
-#define LWIP_HOOK_FILENAME "path/to/my/lwip_hooks.h"
-#endif
+#define LWIP_HOOK_FILENAME "lwiphooks.h"
+#define LWIP_HOOK_IP4_ROUTE_SRC(SRC, DST) eka_route_ipv4_src(SRC, DST)
 
 
 /*

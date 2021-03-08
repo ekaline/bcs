@@ -1,6 +1,7 @@
 #ifndef _EKA_MACROS_H
 #define _EKA_MACROS_H
 
+#include <cstdio>
 #include <string>
 #include <algorithm>
 #include <errno.h>
@@ -118,33 +119,25 @@ template <class T> inline T roundUp(T numToRound, T multiple) {
 #define WHT   "\x1B[37m"
 #define RESET "\x1B[0m"
 
-
-#ifndef _hexDump_defined_
-#define _hexDump_defined_
-inline void hexDump (const char *desc, void *addr, int len) {
+inline void hexDump (const char *desc, const void *addr, int len, std::FILE *file = stdout) {
   int i;
   unsigned char buff[17];
   unsigned char *pc = (unsigned char*)addr;
-  if (desc != NULL) printf ("%s:\n", desc);
-  if (len == 0) { printf("  ZERO LENGTH\n"); return; }
-  if (len < 0)  { printf("  NEGATIVE LENGTH: %i\n",len); return; }
+  if (desc != NULL) std::fprintf (file, "%s:\n", desc);
+  if (len == 0) { std::fprintf(file, "  ZERO LENGTH\n"); return; }
+  if (len < 0)  { std::fprintf(file, "  NEGATIVE LENGTH: %i\n",len); return; }
   for (i = 0; i < len; i++) {
     if ((i % 16) == 0) {
-      if (i != 0) printf ("  %s\n", buff);
-      printf ("  %04x ", i);
+      if (i != 0) std::fprintf (file, "  %s\n", buff);
+      std::fprintf (file, "  %04x ", i);
     }
-    printf (" %02x", pc[i]);
+    std::fprintf (file, " %02x", pc[i]);
     if ((pc[i] < 0x20) || (pc[i] > 0x7e))  buff[i % 16] = '.';
     else buff[i % 16] = pc[i];
     buff[(i % 16) + 1] = '\0';
   }
-  while ((i % 16) != 0) { printf ("   "); i++; }
-  printf ("  %s\n", buff);
+  while ((i % 16) != 0) { std::fprintf (file, "   "); i++; }
+  std::fprintf (file, "  %s\n", buff);
 }
-
-inline void hexDump (const char *desc, const void *addr, int len) {
-  hexDump(desc,(uint8_t*)addr,len);
-}
-#endif
 
 #endif

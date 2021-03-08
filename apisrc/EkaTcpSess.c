@@ -37,8 +37,7 @@ inline bool eka_is_all_zeros (void* buf, ssize_t size) {
 
 /* ---------------------------------------------------------------- */
 EkaTcpSess::EkaTcpSess(EkaDev* pEkaDev, EkaCore* _parent, uint8_t _coreId, uint8_t _sessId, 
-		       uint32_t _srcIp, uint32_t _dstIp,uint16_t _dstPort, 
-		       uint8_t* _macSa, uint8_t* _macDa) {
+		       uint32_t _srcIp, uint32_t _dstIp,uint16_t _dstPort, uint8_t* _macSa) {
   dev     = pEkaDev;
   coreId  = _coreId;
   sessId  = _sessId;
@@ -64,7 +63,6 @@ EkaTcpSess::EkaTcpSess(EkaDev* pEkaDev, EkaCore* _parent, uint8_t _coreId, uint8
   connectionEstablished = false;
 
   memcpy(macSa,_macSa,6);
-  memcpy(macDa,_macDa,6);
 
   if (dev->epmEnabled) {
     if ((sock = lwip_socket(AF_INET, SOCK_STREAM, 0)) < 0) 
@@ -73,10 +71,9 @@ EkaTcpSess::EkaTcpSess(EkaDev* pEkaDev, EkaCore* _parent, uint8_t _coreId, uint8
     if (sessId == CONTROL_SESS_ID) {
       EKA_LOG("Established TCP Session %u for Control Traffic, coreId=%u, EpmRegion = %u",sessId,coreId,EkaEpm::ServiceRegion);
     } else {
-      EKA_LOG("sock=%d for: %s:%u --> %s:%u, %s -> %s",sock,
+      EKA_LOG("sock=%d for: %s:%u --> %s:%u",sock,
 	      EKA_IP2STR(srcIp),srcPort,
-	      EKA_IP2STR(dstIp),dstPort,
-	      EKA_MAC2STR(macSa),EKA_MAC2STR(macDa));
+	      EKA_IP2STR(dstIp),dstPort);
     }
   } else {
     EKA_LOG("FPGA created IGMP-ONLY network channel");
@@ -108,7 +105,7 @@ int EkaTcpSess::bind() {
   };
 
   if (lwip_setsockopt(sock,SOL_SOCKET, SO_LINGER,&linger,sizeof(struct linger)) < 0) 
-    on_error("Cant set TCP_NODELAY");    
+    on_error("Cant set SO_LINGER");
 
   struct sockaddr_in src = {};
   src.sin_addr.s_addr = srcIp;
@@ -136,7 +133,7 @@ int EkaTcpSess::connect() {
   struct sockaddr_in dst = {};
   dst.sin_addr.s_addr = dstIp;
   dst.sin_port        = be16toh(dstPort);
-  dst.sin_family      = AF_INET;\
+  dst.sin_family      = AF_INET;
 
   struct netif* pLwipNetIf = (struct netif*) parent->pLwipNetIf;
 
@@ -144,68 +141,76 @@ int EkaTcpSess::connect() {
 	  coreId,sessId,
 	  EKA_IP2STR(srcIp),srcPort,EKA_IP2STR(dstIp),dstPort);
 
-  if (! eka_is_all_zeros(macDa,6)) {
-    EKA_LOG("Adding Static ARP entry %s --> %s for NIC %d",
-	    EKA_IP2STR(dst.sin_addr.s_addr),
-	    EKA_MAC2STR(macDa),
-	    ((LwipNetifState*)(pLwipNetIf)->state)->lane);
+  // lwIP will do routing of its own, but we need to do our own routing and ARP
+  // resolution first, to set macDa. lwip_connect will begin issuing network
+  // packets immediately (e.g., TCP SYNs), and if we don't set macDa now,
+  // session lookup won't work when we start asynchronously hearing replies.
+  // FIXME: confirm that that is how it really works...
+  const bool dstIsOnOurNetwork = (dstIp & parent->netmask) == (srcIp & parent->netmask);
+  const uint32_t nextHopIPv4 = dstIsOnOurNetwork ? dstIp : parent->gwIp;
+  const char *const who = dstIsOnOurNetwork ? "network neighbor" : "gateway";
 
-    /* err_t err = etharp_add_static_entry((const ip4_addr_t*) &dst.sin_addr, (struct eth_addr *)macDa); */
-    /* if (err == ERR_RTE) on_error("etharp_add_static_entry returned ERR_RTE"); */
-#define ETHARP_FLAG_TRY_HARD     1
-#define ETHARP_FLAG_STATIC_ENTRY 4
-    LOCK_TCPIP_CORE();
-    etharp_update_arp_entry(pLwipNetIf, (const ip4_addr_t*) &dst.sin_addr, (struct eth_addr *)macDa, (u8_t)(ETHARP_FLAG_TRY_HARD | ETHARP_FLAG_STATIC_ENTRY));
-    UNLOCK_TCPIP_CORE();
-
-  } else {
-    EKA_LOG("Sending ARP request to %s from core %u",EKA_IP2STR(dst.sin_addr.s_addr),coreId);
-    LOCK_TCPIP_CORE();
-    if (etharp_request(pLwipNetIf, (const ip4_addr_t*)&dst.sin_addr) != ERR_OK) 
-      on_error("etharp_query failed: no route to %s",EKA_IP2STR(dst.sin_addr.s_addr));
-    UNLOCK_TCPIP_CORE();
-
-  }
+  // Try to look in the ARP cache before sending an ARP request on the network.
+  // This might succeed even if we've never sent any ARP packets at all because
+  // we sometimes place static entries in the ARP table, e.g., for the gateway.
+  // FIXME: need LOCK_TCPIP_CORE here? What protects the table?
   uint32_t* ipPtr = NULL;
-  bool arpFound = false;
   uint8_t* macDa_ptr = NULL;
-  for (int trials = 0; trials < 10000; trials ++) {
-    int arpEntry = etharp_find_addr(pLwipNetIf,
-				    (const ip4_addr_t*)&dst.sin_addr,
-				    (eth_addr**)&macDa_ptr,
-				    (const ip4_addr_t**)&ipPtr);
-    if (arpEntry >= 0) {
-      arpFound = true;
-      if (macDa_ptr == NULL) on_error("macDa_ptr == NULL");
-      memcpy(macDa,macDa_ptr,6);
-      EKA_LOG("Found Arp Entry %d with %s %s",arpEntry,EKA_IP2STR(*ipPtr),EKA_MAC2STR(macDa));
-      break;
-    }
-    if (! dev->servThreadActive) break;
-    usleep(1);
-  }
-  if (! arpFound) on_error("%s is not in the ARP table",EKA_IP2STR(dst.sin_addr.s_addr));
+  ssize_t arpEntry = etharp_find_addr(pLwipNetIf,
+                                      (const ip4_addr_t*)&nextHopIPv4,
+                                      (eth_addr**)&macDa_ptr,
+                                      (const ip4_addr_t**)&ipPtr);
 
-  dev->lwipConnectMtx.lock(); // Consider to move to beginning of connect()
+  if (arpEntry == -1) {
+    // ARP entry is not cached, send a request on the network.
+    EKA_LOG("Sending ARP request for %s %s from core %u",who,EKA_IP2STR(nextHopIPv4),coreId);
+    LOCK_TCPIP_CORE();
+    const err_t arpReqErr = etharp_request(pLwipNetIf, (const ip4_addr_t*)&nextHopIPv4);
+    if (arpReqErr != ERR_OK) {
+      EKA_WARN("etharp_query failed for %s %s: %s (%d)",who,EKA_IP2STR(nextHopIPv4),
+               lwip_strerr(arpReqErr),int(arpReqErr));
+      errno = err_to_errno(arpReqErr);
+      return -1;
+    }
+    UNLOCK_TCPIP_CORE();
+
+    // Keep looking until we find it, with microsecond sleeps in between, since
+    // it may take several milliseconds for the host to respond to us.
+    for (int trials = 0; arpEntry == -1 && dev->servThreadActive && trials < 10000;
+         (void)usleep(1), ++trials) {
+      arpEntry = etharp_find_addr(pLwipNetIf,
+                                  (const ip4_addr_t*)&nextHopIPv4,
+                                  (eth_addr**)&macDa_ptr,
+                                  (const ip4_addr_t**)&ipPtr);
+    }
+
+    if (! dev->servThreadActive) {
+      errno = ENETDOWN; // Network device is gone.
+      return -1;
+    }
+  }
+
+  if (arpEntry == -1) {
+    // Still no ARP resolution after sending an explicit request; we don't
+    // know how to reach the next hop.
+    EKA_WARN("%s address %s is not in the ARP table",who,EKA_IP2STR(nextHopIPv4));
+    errno = EHOSTUNREACH;
+    return -1;
+  }
+
+  if (macDa_ptr == NULL) on_error("macDa_ptr == NULL");
+  memcpy(macDa,macDa_ptr,6);
+  EKA_LOG("Found %s ARP entry %zd with %s %s",who,arpEntry,EKA_IP2STR(*ipPtr),EKA_MAC2STR(macDa));
+
+  // Consider to move to beginning of connect()
+  std::unique_lock<std::mutex> lck{dev->lwipConnectMtx};
   if (lwip_connect(sock,(const sockaddr*) &dst, sizeof(struct sockaddr_in)) < 0) 
-    on_error("socket connect failed");
-  //  dev->lwipConnectMtx.unlock();
+    return -1;
 
   EKA_LOG("TCP connected %u:%u : %s:%u --> %s:%u",
 	  coreId,sessId,EKA_IP2STR(srcIp),srcPort,EKA_IP2STR(dstIp),dstPort);
 
-
   connectionEstablished = true;
-
-  //  LOCK_TCPIP_CORE();
-  uint32_t sockOpt = lwip_fcntl(sock, F_GETFL, 0);
-  sockOpt |= O_NONBLOCK;
-  int ret = lwip_fcntl(sock, F_SETFL, sockOpt);
-  if (ret < 0) on_error("setting O_NONBLOCK is failed for sock %d: ret = %d",sock,ret);
-  EKA_LOG("O_NONBLOCK is set for socket %d",sock);
-  //  UNLOCK_TCPIP_CORE();
-  dev->lwipConnectMtx.unlock();
-
   return 0;
 }
 /* ---------------------------------------------------------------- */

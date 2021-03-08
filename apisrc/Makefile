@@ -108,7 +108,7 @@ include .libeka_depend
 
 ekalib: $(LIBEKALINE).so 
 $(LIBEKALINE).so: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIP_LIB)
-	$(CC) $(EKALIB_OBJ) -L. $(SMARTNIC_LIB) $(LWIP_LIB) -o $@ $(LD_FLAGS) -Wl,--version-script=./compat/$(LIBEKALINE).map
+	$(CC) $(EKALIB_OBJ) -L. $(SMARTNIC_LIB) $(LWIP_LIB) -o $@ $(LD_FLAGS) -Wl,--version-script=./compat/$(LIBEKALINE).map -static-libstdc++ -static-libgcc
 
 ekalib_test: $(LIBEKALINE)_test.so 
 $(LIBEKALINE)_test.so: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIP_LIB)
@@ -121,7 +121,7 @@ $(LIBEKALINE).a: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIPOBJS)
 
 eka_utils: $(EKAUTILS)
 $(EKAUTILS): %: %.c $(LIBEKALINE).a
-	$(CC) -o $@ $^ $(GCC_FLAGS) $(INCL)
+	$(CC) -o $@ $^ $(GCC_FLAGS) $(INCL) -static-libstdc++ -static-libgcc
 
 eka_tests: $(EKATESTS_EXECS)
 ../new_api_tests/%: ../new_api_tests/%.c $(LIBEKALINE)_test.so
