@@ -54,7 +54,8 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
     //-----------------------------------------------------------------------------
     if (! runGr->udpCh->has_data()) {
       if (++timeCheckCnt % TimeCheckRate == 0) {
-	tradingHours = isTradingHours(9,30,16,00);
+	//	tradingHours = isTradingHours(9,30,16,00);
+	tradingHours = isTradingHours(8,30,16,00);
       }
       if (tradingHours)   runGr->checkTimeOut(pEfhRunCtx);
       continue;
