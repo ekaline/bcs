@@ -29,12 +29,23 @@
 #include "EkaTcpSess.h"
 #include "EkaEfc.h"
 
+// Coped from <lwip/sockets.h>, needed to get the LWIP definition of FIONREAD.
+#define LWIP_IOCPARM_MASK    0x7fU           /* parameters must be < 128 bytes */
+#define LWIP_IOC_OUT         0x40000000UL    /* copy out parameters */
+#define LWIP__IOR(x,y,t)     ((long)(LWIP_IOC_OUT|((sizeof(t)&LWIP_IOCPARM_MASK)<<16)|((x)<<8)|(y)))
+
+#define FIONREAD_LWIP LWIP__IOR('f', 127, unsigned long) /* get # bytes to read */
+
 extern "C" {
 
 int lwip_poll(struct pollfd* fds, int nfds, int timeout);
 int lwip_getsockopt(int fd, int level, int optname, void* optval, socklen_t *optlen);
 int lwip_setsockopt(int fd, int level, int optname, const void* optval, socklen_t optlen);
 int lwip_ioctl(int fd, long cmd, void *argp);
+int lwip_getsockname(int fd, sockaddr *, socklen_t *);
+int lwip_getpeername(int fd, sockaddr *, socklen_t *);
+int lwip_fcntl(int fd, int cmd, int val);
+int lwip_shutdown(int fd, int how);
 
 }
 
@@ -75,6 +86,79 @@ constexpr int mapLinuxSocketOptionNameToLWIP(int linuxLevel, int linuxName) {
   }
 }
 
+// Linux and LWIP also map their poll(2) constants differently.
+constexpr int mapLinuxPollFlagToLWIP(int linuxFlag) {
+  switch (linuxFlag) {
+  case POLLIN: return 0x1;
+  case POLLPRI: return 0x40;
+  case POLLOUT: return 0x2;
+  case POLLERR: return 0x4;
+  case POLLHUP: return 0x200;
+  case POLLNVAL: return 0x8;
+  case POLLRDNORM: return 0x10;
+  case POLLRDBAND: return 0x20;
+  case POLLWRNORM: return 0x80;
+  case POLLWRBAND: return 0x100;
+  default: return 0;
+  }
+}
+
+constexpr int mapLWIPPollFlagToLinux(int lwipFlag) {
+  switch (lwipFlag) {
+  case 0x1: return POLLIN;
+  case 0x2: return POLLOUT;
+  case 0x4: return POLLERR;
+  case 0x8: return POLLNVAL;
+  case 0x10: return POLLRDNORM;
+  case 0x20: return POLLRDBAND;
+  case 0x40: return POLLPRI;
+  case 0x80: return POLLWRNORM;
+  case 0x100: return POLLWRBAND;
+  case 0x200: return POLLHUP;
+  default: return 0;
+  }
+}
+
+constexpr bool isLinuxPollFlagSupported(int linuxFlag) {
+  return mapLinuxPollFlagToLWIP(linuxFlag) <= 0x8;
+}
+
+int linuxPollEventsToLWIP(int linuxEvents, int *unsupported) {
+  int lwipEvents = 0;
+
+  for (int b = 0; linuxEvents; ++b) {
+    const int linuxFlag = (1 << b);
+    if (linuxEvents & linuxFlag) {
+      const auto lwipFlag = mapLinuxPollFlagToLWIP(linuxFlag);
+      if (lwipFlag == 0)
+        on_error("lwip does not map define poll flag %x", linuxFlag);
+      else if (!isLinuxPollFlagSupported(linuxFlag) && unsupported)
+        *unsupported |= linuxFlag;
+      lwipEvents |= lwipFlag;
+      linuxEvents &= ~linuxFlag;
+    }
+  }
+
+  return lwipEvents;
+}
+
+constexpr int lwipPollEventsToLinux(int lwipEvents) {
+  int linuxEvents = 0;
+
+  for (int b = 0; lwipEvents; ++b) {
+    const int lwipFlag = (1 << b);
+    if (lwipEvents & lwipFlag) {
+      const auto linuxFlag = mapLWIPPollFlagToLinux(lwipFlag);
+      linuxEvents |= linuxFlag;
+      lwipEvents &= ~lwipFlag;
+    }
+  }
+
+  return linuxEvents;
+}
+
+constexpr int O_NONBLOCK_LWIP = 0x1;
+
 /**
  * This is a utility function that will return the ExcSessionId from the result of exc_connect.
  *
@@ -95,40 +179,100 @@ EkaCoreId excGetCoreId( ExcConnHandle hConn ) {
   return (EkaCoreId) hConn / 128;
 }
 
+inline EkaDev *checkDevice(EkaDev* dev) {
+  if (!dev) {
+    errno = EFAULT;
+    return nullptr;
+  }
+  else if (!dev->epmEnabled) {
+    errno = ENOSYS;
+    return nullptr;
+  }
+  return dev;
+}
+
+inline EkaCore *getEkaCore(EkaDev* dev, EkaCoreId coreId) {
+  if (!checkDevice(dev))
+    return nullptr;
+  else if (coreId < 0 || unsigned(coreId) >= std::size(dev->core)) {
+    errno = EBADF;
+    return nullptr;
+  }
+  EkaCore *const core = dev->core[coreId];
+  if (!core) {
+    errno = ENODEV;
+    return nullptr;
+  }
+  return core;
+}
+
+inline EkaTcpSess *getEkaTcpSess(EkaDev* dev, ExcConnHandle hConn) {
+  if (EkaCore *const core = getEkaCore(dev, excGetCoreId(hConn))) {
+    const auto sessionId = excGetSessionId(hConn);
+    if (sessionId < 0 || unsigned(sessionId) >= std::size(core->tcpSess)) {
+      errno = EBADF;
+      return nullptr;
+    }
+    EkaTcpSess *const s = core->tcpSess[sessionId];
+    if (!s)
+      errno = ENOTCONN;
+    return s;
+  }
+  return nullptr;
+}
+
 /*
  *
  */  
 ExcSocketHandle excSocket( EkaDev* dev, EkaCoreId coreId , int domain, int type, int protocol ) {
-  assert (dev != NULL);
-
-  if (! dev->epmEnabled) {
-    EKA_WARN("FPGA TCP is disabled for this Application instance");
+  EkaCore *const core = getEkaCore(dev, coreId);
+  if (!core)
     return -1;
-  }
+
   // int domain, int type, int protocol parameters are ignored
   // always used: socket(AF_INET, SOCK_STREAM, 0)
+  const auto sessId = core->addTcpSess();
+  return core->tcpSess[sessId]->sock;
+}
 
-  if (dev->core[coreId] == NULL) on_error("core %u is not connected",coreId);
-  uint sessId = dev->core[coreId]->addTcpSess();
-  //  return (ExcSocketHandle) (coreId * 128 + sessId);
-  return dev->core[coreId]->tcpSess[sessId]->sock;
+int excSocketClose( EkaDev* dev, ExcSocketHandle hSocket ) {
+  if (!checkDevice(dev))
+    return -1;
+
+  EkaTcpSess *const sess = dev->findTcpSess(hSocket);
+  if (!sess) {
+    EKA_WARN("ExcSocketHandle %d not found", hSocket);
+    errno = EBADF;
+    return -1;
+  }
+  else if (sess->isEstablished()) {
+    errno = EISCONN;
+    return -1;
+  }
+
+  dev->core[sess->coreId]->tcpSess[sess->sessId] = nullptr;
+  delete sess;
+  return 0;
 }
 
 /*
  *
  */
 ExcConnHandle excConnect( EkaDev* dev, ExcSocketHandle hSocket, const struct sockaddr *dst, socklen_t addrlen ) {
-  assert (dev != NULL);
+  if (!checkDevice(dev))
+    return -1;
 
-  if (! dev->epmEnabled) {
-    on_error("FPGA TCP is disabled for this Application instance");
-  }
-
-  EkaTcpSess* sess = dev->findTcpSess(hSocket);
-  if (sess == NULL) {
+  EkaTcpSess *const sess = dev->findTcpSess(hSocket);
+  if (!sess) {
     EKA_WARN("ExcSocketHandle %d not found",hSocket);
+    errno = EBADF;
     return -1;
   }
+  else if (sess->isEstablished()) {
+    errno = EISCONN;
+    return -1;
+  }
+
   sess->dstIp   = ((sockaddr_in*)dst)->sin_addr.s_addr;
   sess->dstPort = be16toh(((sockaddr_in*)dst)->sin_port);
 
@@ -143,12 +287,11 @@ ExcConnHandle excConnect( EkaDev* dev, ExcSocketHandle hSocket, const struct soc
   /* 	  EKA_IP2STR(sess->dstIp),sess->dstPort); */
 
 
-  if (sess->connect() == 0) {
-    sess->preloadNwHeaders();
-    return sess->getConnHandle();
-  }
+  if (sess->connect() == -1)
+    return -1;
 
-  return -1;
+  sess->preloadNwHeaders();
+  return sess->getConnHandle();
 }
 
 /**
@@ -174,121 +317,127 @@ ExcConnHandle excReconnect( EkaDev* pEkaDev, ExcConnHandle hConn ) {
  * @return This will return the values that exhibit the same behavior of linux's send fn.
  */
 ssize_t excSend( EkaDev* dev, ExcConnHandle hConn, const void* pBuffer, size_t size ) {
-  assert (dev != NULL);
-  if (! dev->epmEnabled) {
-    on_error("FPGA TCP is disabled for this Application instance");
-  }
-  uint coreId = excGetCoreId(hConn);
-  if (dev->core[coreId] == NULL) {
-    EKA_WARN("Core %u of hConn %u is not connected",coreId,hConn);
-    return -1;
-  }
-
-  uint sessId = excGetSessionId(hConn);
-
-  if (dev->core[coreId]->tcpSess[sessId] == NULL) {
-    EKA_WARN("Session %u on Core %u of hConn %u is not connected",sessId,coreId,hConn);
-    return -1;
-  }
-
-  //  EKA_LOG("Sending on coreId=%u, sessId=%u",coreId,sessId);
-  //  return dev->core[coreId]->tcpSess[sessId]->sendPayload(0/* thrId */, (void*) pBuffer, size);
-  return dev->core[coreId]->tcpSess[sessId]->sendPayload(sessId/* thrId */, (void*) pBuffer, size);
+  if (EkaTcpSess *const s = getEkaTcpSess(dev, hConn))
+    return s->sendPayload(s->sessId/* thrId */, (void*) pBuffer, size);
+  return -1;
 }
 
 /**
  * $$NOTE$$ - This is mutexed to handle single session at a time.
  */
 ssize_t excRecv( EkaDev* dev, ExcConnHandle hConn, void *pBuffer, size_t size ) {
-  assert (dev != NULL);
-  if (! dev->epmEnabled) {
-    on_error("FPGA TCP is disabled for this Application instance");
-  }
-  uint coreId = excGetCoreId(hConn);
-  if (dev->core[coreId] == NULL) {
-    EKA_WARN("Core %u of hConn %u is not connected",coreId,hConn);
-    return -1;
-  }
-
-  uint sessId = excGetSessionId(hConn);
-
-  if (dev->core[coreId]->tcpSess[sessId] == NULL) {
-    EKA_WARN("Session %u on Core %u of hConn %u is not connected",sessId,coreId,hConn);
-    return -1;
-  }
-
-  return dev->core[coreId]->tcpSess[sessId]->recv(pBuffer,size);
+  if (EkaTcpSess *const s = getEkaTcpSess(dev, hConn))
+    return s->recv(pBuffer,size);
+  return -1;
 }
 
 /*
  *
  */
 int excClose( EkaDev* dev, ExcConnHandle hConn ) {
-  assert (dev != NULL);
-  if (! dev->epmEnabled) {
-    on_error("FPGA TCP is disabled for this Application instance");
+  if (EkaTcpSess *const s = getEkaTcpSess(dev, hConn)) {
+    dev->core[s->coreId]->tcpSess[s->sessId] = nullptr;
+    delete s;
+    return 0;
   }
-  uint coreId = excGetCoreId(hConn);
-  if (dev->core[coreId] == NULL) {
-    EKA_WARN("Core %u of hConn %u is not connected",coreId,hConn);
-    return -1;
-  }
-
-  uint sessId = excGetSessionId(hConn);
-
-  if (dev->core[coreId]->tcpSess[sessId] == NULL) {
-    EKA_WARN("Session %u on Core %u of hConn %u is not connected",sessId,coreId,hConn);
-    return -1;
-  }
-  delete dev->core[coreId]->tcpSess[sessId];
-  dev->core[coreId]->tcpSess[sessId] = NULL;
-  //  return dev->core[coreId]->tcpSess[sessId]->close();
-  return 0;
+  return -1;
 }
 
 int excPoll( EkaDev *dev, struct pollfd *fds, int nfds, int timeout ) {
+  if (!checkDevice(dev))
+    return -1;
+
   auto *const lwipPollFds = static_cast<pollfd *>(alloca(sizeof(pollfd) * nfds));
 
   for (int i = 0; i < nfds; ++i) {
-    const auto hConn = static_cast<ExcConnHandle>(fds[i].fd);
-    const auto coreId = excGetCoreId(hConn);
-    const auto sessId = excGetSessionId(hConn);
-
-    lwipPollFds[i].fd = dev->core[coreId]->tcpSess[sessId]->sock;
-    lwipPollFds[i].events = fds[i].events;
+    if (fds[i].fd < 0)
+      lwipPollFds[i].fd = -1;
+    else {
+      int unsupported = 0;
+      lwipPollFds[i].fd = fds[i].fd;
+      lwipPollFds[i].events = linuxPollEventsToLWIP(fds[i].events, &unsupported);
+    }
   }
 
   const int rc = lwip_poll(lwipPollFds, nfds, timeout);
   if (rc != -1) {
     for (int i = 0; i < nfds; ++i)
-      fds[i].revents = lwipPollFds[i].revents;
+      fds[i].revents = lwipPollEventsToLinux(lwipPollFds[i].revents);
   }
   return rc;
 }
 
-int excGetSockOpt( EkaDev* dev, ExcConnHandle hConn, int level, int optname,
+int excGetSockOpt( EkaDev* dev, ExcSocketHandle hSock, int level, int optname,
                    void* optval, socklen_t* optlen ) {
-  const auto coreId = excGetCoreId(hConn);
-  const auto sessId = excGetSessionId(hConn);
-  const int fd = dev->core[coreId]->tcpSess[sessId]->sock;
-  optname = mapLinuxSocketOptionNameToLWIP(level, optname); // Must be first because
-  level = mapLinuxSocketOptionLevelToLWIP(level);           // we change level
-  return lwip_getsockopt(fd, level, optname, optval, optlen);
+  if (checkDevice(dev)) {
+    optname = mapLinuxSocketOptionNameToLWIP(level, optname); // Must be first because
+    level = mapLinuxSocketOptionLevelToLWIP(level);           // we change level here
+    return lwip_getsockopt(hSock, level, optname, optval, optlen);
+  }
+  return -1;
 }
 
-int excSetSockOpt( EkaDev* dev, ExcConnHandle hConn, int level, int optname,
+int excSetSockOpt( EkaDev* dev, ExcSocketHandle hSock, int level, int optname,
                    const void* optval, socklen_t optlen ) {
-  const auto coreId = excGetCoreId(hConn);
-  const auto sessId = excGetSessionId(hConn);
-  const int fd = dev->core[coreId]->tcpSess[sessId]->sock;
-  optname = mapLinuxSocketOptionNameToLWIP(level, optname);
-  level = mapLinuxSocketOptionLevelToLWIP(level);
-  return lwip_setsockopt(fd, level, optname, optval, optlen);
+  if (checkDevice(dev)) {
+    optname = mapLinuxSocketOptionNameToLWIP(level, optname);
+    level = mapLinuxSocketOptionLevelToLWIP(level);
+    return lwip_setsockopt(hSock, level, optname, optval, optlen);
+  }
+  return -1;
 }
 
-int excIoctl ( EkaDev* dev, ExcConnHandle hConn, long cmd, void *argp ) {
-  const auto coreId = excGetCoreId(hConn);
-  const auto sessId = excGetSessionId(hConn);
-  const int fd = dev->core[coreId]->tcpSess[sessId]->sock;
-  return lwip_ioctl(fd, cmd, argp);
+int excIoctl( EkaDev* dev, ExcSocketHandle hSock, long cmd, void *argp ) {
+  if (cmd != FIONREAD) {
+    // We only support FIONREAD
+    errno = ENOTTY;
+    return -1;
+  }
+  else if (checkDevice(dev))
+    return lwip_ioctl(hSock, FIONREAD_LWIP, argp);
+  return -1;
+}
+
+int excGetSockName( EkaDev* dev, ExcSocketHandle hSock, sockaddr* addr,
+                    socklen_t* addrlen ) {
+  if (checkDevice(dev))
+    return lwip_getsockname(hSock, addr, addrlen);
+  return -1;
+}
+
+int excGetPeerName( EkaDev* dev, ExcSocketHandle hSock, sockaddr* addr,
+                    socklen_t* addrlen ) {
+  if (checkDevice(dev))
+    return lwip_getpeername(hSock, addr, addrlen);
+  return -1;
+}
+
+int excGetBlocking( EkaDev* dev, ExcSocketHandle hSock ) {
+  if (checkDevice(dev)) {
+    const int flags = lwip_fcntl(hSock, F_GETFL, 0);
+    return flags != -1
+        ? (flags & O_NONBLOCK_LWIP) ? 0 : 1
+        : -1;
+  }
+  return -1;
+}
+
+int excSetBlocking( EkaDev* dev, ExcSocketHandle hSock, bool blocking ) {
+  if (checkDevice(dev)) {
+    int flags = lwip_fcntl(hSock, F_GETFL, 0);
+    if (flags == -1)
+      return -1;
+    else if (blocking)
+      flags &= ~O_NONBLOCK_LWIP;
+    else
+      flags |= O_NONBLOCK_LWIP;
+    return lwip_fcntl(hSock, F_SETFL, flags);
+  }
+  return -1;
+}
+
+int excShutdown( EkaDev* dev, ExcConnHandle hConn, int how ) {
+  if (const EkaTcpSess *const s = getEkaTcpSess(dev, hConn))
+    return lwip_shutdown(s->sock, how);
+  return -1;
 }

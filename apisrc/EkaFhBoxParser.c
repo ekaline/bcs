@@ -11,7 +11,6 @@
 #include "EkaFhBoxParser.h"
 
 /* ----------------------------------------------------------------------- */
-void hexDump (const char* desc, void *addr, int len);
 
 inline uint hsvfTableLen(const uint8_t* msg) {
   if (memcmp(msg,"V ",2) == 0) return 17;
