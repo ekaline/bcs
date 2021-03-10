@@ -30,6 +30,6 @@ int main(int argc, char *argv[]){
   if (ekaHwCaps == NULL) on_error("ekaHwCaps == NULL");
 
   ekaHwCaps->printStdout();
-
+  ekaHwCaps->check();
   return 0;
 }

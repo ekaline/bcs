@@ -209,7 +209,7 @@ static bool sendRetransmissionEnd(EkaFhBoxGr* gr) {
 
   if(send(gr->snapshot_sock,&msg,sizeof(msg), 0) < 0) {
     dev->lastErrno = errno;
-    EKA_WARN("%s:%u: Retransmission End send failed",
+    EKA_WARN("%s:%u: Retransmission End send failed: %s",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
     return false;
   }
@@ -357,7 +357,8 @@ void* getHsvfRetransmit(void* attr) {
   //  EkaOpResult ret = EKA_OPRESULT__OK;
 
 
-  EKA_LOG("%s:%u start=%ju, end=%ju, gap=%d",EKA_EXCH_DECODE(gr->exch),gr->id,start,end, end - start);
+  EKA_LOG("%s:%u start=%ju, end=%ju, gap=%ju",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,start,end, end - start);
   //-----------------------------------------------------------------
   EkaCredentialLease* lease;
   gr->credentialAcquire(gr->auth_user,sizeof(gr->auth_user),&lease);

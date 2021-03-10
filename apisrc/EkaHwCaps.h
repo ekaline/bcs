@@ -65,6 +65,8 @@ class EkaHwCaps {
 
   hw_capabilities_t hwCaps = {};
 
+  uint64_t snDriverVerNum = -1;
+
  private:
   void print2buf();
 

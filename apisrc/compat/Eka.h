@@ -200,8 +200,12 @@ extern "C" {
 /** Only positive values should be used except for special cases like efcEnableControllerexcept for special(). */
 typedef int8_t EkaCoreId;
 
+/* typedef int (*EkaLogCallback) (void* ctx, const char* function, const char* file, */
+/*                                int line, int priority, const char* format, ...); */
+
 typedef int (*EkaLogCallback) (void* ctx, const char* function, const char* file,
-                               int line, int priority, const char* format, ...);
+                               int line, int priority, const char* format, ...)
+                               __attribute__ ((format (printf, 6, 7)));
 
   struct eka_ether_addr { // replicated to avoid #include <net/ethernet.h>
     uint8_t ether_addr_octet[6];

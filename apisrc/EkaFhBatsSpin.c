@@ -476,7 +476,7 @@ static EkaFhParseResult procGrp(const EfhRunCtx* pEfhRunCtx,
       return EkaFhParseResult::NotEnd;
     }
     dev->lastErrno = errno;
-    EKA_WARN("%s:%u GRP read failed from: %s:%u r=%d, errno = %d: %s",
+    EKA_WARN("%s:%u GRP read failed from: %s:%u r=%d, errno = %jd: %s",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,
 	     EKA_IP2STR(gr->recovery_ip),
 	     be16toh   (gr->recovery_port),
@@ -741,7 +741,7 @@ static bool sendGapRequest(EkaDev*   dev,
     .count    = (uint16_t) (end - start)
   };
 
-  EKA_LOG("%s:%u Sending GRP Request for unit=%u, start sequence=%ju, count=%ju",
+  EKA_LOG("%s:%u Sending GRP Request for unit=%u, start sequence=%u, count=%d",
 	  EKA_EXCH_DECODE(exch),id,
 	  gap_request.unit,
 	  gap_request.sequence,

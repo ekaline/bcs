@@ -24,7 +24,7 @@ static inline int sendDummyFastPathPkt(EkaDev* dev, const uint8_t* payload) {
   uint8_t* data = (uint8_t*) tcph + sizeof(EkaTcpHdr);
   uint16_t len = be16toh(iph->_len) - sizeof(EkaIpHdr) - sizeof(EkaTcpHdr);
   
-  if (len == 0 || len > 1536 - 54) on_error("len %u is wrong",len);
+  if (len > 1536 - 54) on_error("len %u is wrong",len);
   
   //  hexDump("Dummy Pkt to send",(void*)data, len);
 
@@ -100,7 +100,8 @@ void ekaServThread(EkaDev* dev) {
 	  if (sendDummyFastPathPkt(dev,payload) <= 0) break; // LWIP is busy
 	}
 	if (feedbackDmaReport->bitparams.expect_report == 1) {
-	  EKA_LOG("User Report # %ju is pushed to Q",feedbackDmaReport->index);
+	  EKA_LOG("User Report # %u is pushed to Q",
+		  feedbackDmaReport->index);
 	  dev->userReportQ->push(payload,len);
 	}
 	dev->lwipPath->next();

@@ -31,7 +31,10 @@ EkaHwCaps::EkaHwCaps(EkaDev* _dev) {
   ioctl(fd,SMARTNIC_EKALINE_DATA,&state);
   SN_CloseDevice(DeviceId);
 
+  snDriverVerNum = state.wcattr.bar0_wc_va;
+
   print2buf();
+  idx += sprintf(&buf[idx],"Ekaline SN Driver Version\t\t= %ju\n",snDriverVerNum);
   idx += sprintf(&buf[idx],"EKALINE2 LIB GIT:\t\t\t= 0x%s\n",LIBEKA_GIT_VER);
   idx += sprintf(&buf[idx],"EKALINE2 LIB BUILD TIME:\t\t= %s @ %s\n",__DATE__,__TIME__);
 
@@ -83,12 +86,16 @@ void EkaHwCaps::printStdout() {
 
 bool EkaHwCaps::check() {
   if (hwCaps.version.epm != EKA_EXPECTED_EPM_VERSION) 
-    on_error("hwCaps.version.epm %x != EKA_EXPECTED_EPM_VERSION %jx",
+    on_error("hwCaps.version.epm %x != EKA_EXPECTED_EPM_VERSION %x",
 	     hwCaps.version.epm,EKA_EXPECTED_EPM_VERSION);
 
   if (hwCaps.version.dma != EKA_EXPECTED_DMA_VERSION) 
-    on_error("hwCaps.version.dma %x != EKA_EXPECTED_DMA_VERSION %jx",
+    on_error("hwCaps.version.dma %x != EKA_EXPECTED_DMA_VERSION %x",
 	     hwCaps.version.dma,EKA_EXPECTED_DMA_VERSION);
+
+  if (snDriverVerNum != 0 && snDriverVerNum != EKA_EXPECTED_SN_DRIVER_VERSION)
+    on_error("snDriverVerNum 0x%jx != EKA_EXPECTED_SN_DRIVER_VERSION 0x%x",
+	     snDriverVerNum,EKA_EXPECTED_SN_DRIVER_VERSION);
 
   if (hwCaps.core.tcp_sessions_percore < EKA_MAX_TCP_SESSIONS_PER_CORE)
     on_error("hwCaps.core.tcp_sessions_percore %d < EKA_MAX_TCP_SESSIONS_PER_CORE %d",

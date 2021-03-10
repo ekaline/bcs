@@ -84,7 +84,7 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     int underlIdx = findUnderlying(((TomUnderlyingTradingStatus*)m)->underlying,
 					 std::min(sizeof(((TomUnderlyingTradingStatus*)m)->underlying),sizeof(EfhSymbol)));
     if (underlIdx < 0) {
-      EKA_LOG("%s:%u \'%s\' 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x (size = %u) is not found (size for strncmp = %u:",
+      EKA_LOG("%s:%u \'%s\' 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x (size = %ju) is not found (size for strncmp = %ju:",
 	      EKA_EXCH_DECODE(exch),id,name2print,
 	      ((TomUnderlyingTradingStatus*)m)->underlying[0],((TomUnderlyingTradingStatus*)m)->underlying[1],
 	      ((TomUnderlyingTradingStatus*)m)->underlying[2],((TomUnderlyingTradingStatus*)m)->underlying[3],

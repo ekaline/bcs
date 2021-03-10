@@ -265,7 +265,7 @@ static void sendLogout (EkaFhNasdaqGr* gr) {
   logout_request.length		= htons(1);
   logout_request.type		= 'O';
   if(send(gr->snapshot_sock,&logout_request,sizeof(logout_request) , 0) < 0) {
-    EKA_WARN("%s:%u Logout send failed, gr->snapshot_sock = %d: ",
+    EKA_WARN("%s:%u Logout send failed, gr->snapshot_sock = %d: %s",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock,strerror(errno));
   } else {
     EKA_LOG("%s:%u Logout sent",EKA_EXCH_DECODE(gr->exch),gr->id);
@@ -350,7 +350,7 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
   int r = recv(gr->snapshot_sock,&hdr,sizeof(hdr),MSG_WAITALL);
   if (r <= 0) {
     dev->lastErrno = errno;
-    EKA_WARN("%s:%u: Failed to receive SoupbinHdr (%d bytes) : r = %d, errno=%d: \'%s\'",
+    EKA_WARN("%s:%u: Failed to receive SoupbinHdr (%d bytes) : r = %d, errno=%jd: \'%s\'",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,
 	     (int)sizeof(hdr), r, dev->lastErrno,
 	     strerror(dev->lastErrno));
@@ -412,7 +412,7 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
     if (lastMsg) {
       //      gr->seq_after_snapshot = gr->recovery_sequence + 1;
       EKA_LOG("%s:%u After lastMsg message: seq_after_snapshot = %ju, recovery_sequence = %ju",
-	      EKA_EXCH_DECODE(gr->exch),gr->id,soupbin_buf,gr->seq_after_snapshot,gr->recovery_sequence);
+	      EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot,gr->recovery_sequence);
       return EkaFhParseResult::End;
     }
 
@@ -653,10 +653,10 @@ void* getMolUdp64Data(void* attr) {
   if (setsockopt(udpSock, SOL_SOCKET, SO_BINDTODEVICE,  (void*)&ifr, sizeof(ifreq)) < 0) {
   //  if (setsockopt(udpSock, SOL_SOCKET, SO_BINDTODEVICE, dev->genIfName, strlen(dev->genIfName)+1) < 0) {
     EKA_WARN("%s:%u: setsockopt SO_BINDTODEVICE failed binding to %s (len=%d), errno=%d (%s)",
-	     EKA_EXCH_DECODE(gr->exch),gr->id,dev->genIfName,strlen(dev->genIfName)+1,errno,strerror(errno));
+	     EKA_EXCH_DECODE(gr->exch),gr->id,dev->genIfName,(int)strlen(dev->genIfName)+1,errno,strerror(errno));
   } else {
     EKA_LOG("%s:%u: Mold UDP sock is binded to %s (len=%d)",
-	     EKA_EXCH_DECODE(gr->exch),gr->id,dev->genIfName,strlen(dev->genIfName)+1);
+	    EKA_EXCH_DECODE(gr->exch),gr->id,dev->genIfName,(int)strlen(dev->genIfName)+1);
   }
 
   static const int TimeOut = 1; // seconds
@@ -835,7 +835,7 @@ void* getMolUdpPlxOrdData(void* attr) {
     // 200 is just a number: a Mold pkt always contains less than 200 messages
     uint16_t cnt2ask4mold = cnt2ask > 200 ? 200 : cnt2ask & 0xFFFF; 
     mold_request.message_cnt = cnt2ask4mold;
-    EKA_TRACE("%s:%u: Sending Mold request to: %s:%u, session_id = %s, seq=%ju, cnt=%u",
+    EKA_TRACE("%s:%u: Sending Mold request to: %s:%u, session_id = %s, seq=%u, cnt=%u",
     	      EKA_EXCH_DECODE(gr->exch),gr->id,
     	      EKA_IP2STR(*(uint32_t*)&mold_recovery_addr.sin_addr),be16toh(mold_recovery_addr.sin_port),
     	      mold_request.session_id + '\0',

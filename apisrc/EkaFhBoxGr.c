@@ -90,7 +90,7 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
     on_error("expected_sequence %ju != lastProcessedSeq %ju + 1",expected_sequence,lastProcessedSeq);
 
   if (lastProcessedSeq - firstMsgSeq != lastPktMsgCnt - 1)
-    EKA_WARN("lastProcessedSeq %ju - firstMsgSeq %ju != lastPktMsgCnt %ju - 1",
+    EKA_WARN("lastProcessedSeq %ju - firstMsgSeq %ju != lastPktMsgCnt %u - 1",
 	     lastProcessedSeq,firstMsgSeq,lastPktMsgCnt);
   return false;
 }

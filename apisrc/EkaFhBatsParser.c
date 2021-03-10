@@ -152,7 +152,8 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
      //--------------------------------------------------------------
   case EKA_BATS_PITCH_MSG::SPIN_FINISHED : {
     seq_after_snapshot = ((batspitch_spin_finished*)m)->sequence + 1;
-    EKA_LOG("%s:%u: SPIN_FINISHED: seq_after_snapshot = %u",EKA_EXCH_DECODE(exch),id,seq_after_snapshot);
+    EKA_LOG("%s:%u: SPIN_FINISHED: seq_after_snapshot = %ju",
+	    EKA_EXCH_DECODE(exch),id,seq_after_snapshot);
     return true;
   }
     //--------------------------------------------------------------

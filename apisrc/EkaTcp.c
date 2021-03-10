@@ -85,7 +85,7 @@ err_t ekaLwipSend(struct netif *netif, struct pbuf *p) {
   if (p == NULL) on_error("struct pbuf *p == NULL");
   if (p->len != p->tot_len) 
     on_error("p->len (%u) != p->tot_len (%u): IP fragmentation not supported",p->len,p->tot_len);
-  if (p->len < 1) on_error("p->len < 1");//return ERR_OK;
+  //  if (p->len < 1) on_error("p->len < 1");//return ERR_OK;
 
   uint8_t* pkt = (uint8_t*) p->payload;
 

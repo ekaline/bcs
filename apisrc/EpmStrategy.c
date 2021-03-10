@@ -125,7 +125,7 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx, const EpmAction *ep
   //---------------------------------------------------------
   //  if (id == 4 && actionIdx == 100)
   if (0) {
-    EKA_LOG("Setting Action Idx %3d (Local Action Idx=%3d) for Strategy %2d: token=%ju, hConn=0x%x, offset=%5ju,length=%3d,actionFlags=0x%x,nextAction=%3d,enable=%d,postLocalMask=%x,postStratMask=%x, heapOffs=%7ju, length=%u",
+    EKA_LOG("Setting Action Idx %3d (Local Action Idx=%3d) for Strategy %2d: token=%ju, hConn=0x%x, offset=%5u,length=%3d,actionFlags=0x%x,nextAction=%3d,enable=%jx,postLocalMask=%jx,postStratMask=%jx, heapOffs=%7u, length=%u",
   	    baseActionIdx + actionIdx,
 	    actionIdx,
   	    id,

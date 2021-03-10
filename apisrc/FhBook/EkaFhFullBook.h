@@ -556,7 +556,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   int  allocateResources() {
     for (uint i = 0; i < MAX_ORDERS; i++) ord[i]=NULL;
     //----------------------------------------------------------
-    EKA_LOG("%s:%u: preallocating %u free orders",EKA_EXCH_DECODE(exch),grId,MAX_ORDERS);
+    EKA_LOG("%s:%u: preallocating %ju free orders",EKA_EXCH_DECODE(exch),grId,MAX_ORDERS);
     FhOrder** o = (FhOrder**)&orderFreeHead;
     for (uint i = 0; i < MAX_ORDERS; i++) {
       *o = new FhOrder();
@@ -564,7 +564,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
       o = (FhOrder**)&(*o)->next;
     }
     //----------------------------------------------------------
-    EKA_LOG("%s:%u: preallocating %u free Plevels",EKA_EXCH_DECODE(exch),grId,MAX_PLEVELS);
+    EKA_LOG("%s:%u: preallocating %ju free Plevels",EKA_EXCH_DECODE(exch),grId,MAX_PLEVELS);
     FhPlevel** p = (FhPlevel**)&plevelFreeHead;
     for (uint i = 0; i < MAX_PLEVELS; i++) {
       *p = new FhPlevel();
@@ -572,7 +572,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
       p = (FhPlevel**)&(*p)->next;
     }
     //----------------------------------------------------------
-    EKA_LOG("%s:%u: completed",EKA_EXCH_DECODE(exch),grId,MAX_PLEVELS);
+    EKA_LOG("%s:%u: completed",EKA_EXCH_DECODE(exch),grId);
 
     return 0;
   }

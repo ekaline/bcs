@@ -18,7 +18,7 @@ template <const uint SEC_HASH_SCALE,class FhSecurity, class SecurityIdT, class P
   /* ####################################################### */
 
   void            init() {
-    EKA_LOG("%s:%u : TOB book with preallocated: %u Securities Hash lines, no PLEVELS, no ORDERS",
+    EKA_LOG("%s:%u : TOB book with preallocated: %ju Securities Hash lines, no PLEVELS, no ORDERS",
 	  EKA_EXCH_DECODE(exch),grId,SEC_HASH_LINES);
   }
   /* ####################################################### */

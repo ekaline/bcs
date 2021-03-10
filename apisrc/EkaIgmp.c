@@ -30,7 +30,7 @@ EkaIgmp::EkaIgmp(EkaDev* _dev) {
 /* ##################################################################### */
 EkaIgmp::~EkaIgmp() {
   threadActive = false;
-  EKA_LOG("%s: Waiting for igmpLoopTerminated");
+  EKA_LOG("Waiting for igmpLoopTerminated");
   while (! igmpLoopTerminated) sleep(0);
 }
 

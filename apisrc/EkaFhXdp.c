@@ -108,7 +108,7 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     if (sequence > gr->getExpectedSeq(streamIdx) && ! gr->inGap) {
       gr->sendFeedDown(pEfhRunCtx);
 
-      EKA_LOG("%s:%u for Stream %u expectedSeq = %u < sequence %u, lost %u messages",
+      EKA_LOG("%s:%u for Stream %u expectedSeq = %u < sequence %ju, lost %ju messages",
 	      EKA_EXCH_DECODE(exch),gr->id,gr->getId(streamIdx),gr->getExpectedSeq(streamIdx),sequence,sequence-gr->getExpectedSeq(streamIdx));
       gr->inGap = true;
       gr->setGapStart();

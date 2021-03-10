@@ -2,6 +2,7 @@
 #define EKA_H
 
 #include "ekaline_build_time.h"
+#include "ekaline_ver_num.h"
 
 #define EKA_SESSIONS_PER_NIF 32
 #define EKA_WC_REGION_OFFS 0x8000

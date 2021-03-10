@@ -219,7 +219,8 @@ EkaTcpSess::~EkaTcpSess() {
   EKA_LOG("Closing socket %d for core%u sess%u",sock,coreId,sessId);
   lwip_shutdown(sock,SHUT_RDWR);
   lwip_close(sock);
-  EKA_LOG("Closed socket %d for core%u sess%u maxThrottle %uus",sock,coreId,sessId,maxThrottleCounter);
+  EKA_LOG("Closed socket %d for core%u sess%u maxThrottle %juus",
+	  sock,coreId,sessId,maxThrottleCounter);
 }
 /* ---------------------------------------------------------------- */
 
@@ -350,8 +351,10 @@ int EkaTcpSess::sendThruStack(void *buf, int len) {
 
 int EkaTcpSess::sendDummyPkt(void *buf, int len) {
   if (tcpRemoteAckNum > dummyBytes + tcpLocalSeqNumBase)
-    EKA_WARN(YEL "tcpRemoteAckNum %u > real dummyBytes %u, delta = %d" RESET,
-	     tcpRemoteAckNum, dummyBytes + tcpLocalSeqNumBase, tcpRemoteAckNum - dummyBytes - tcpLocalSeqNumBase);
+    EKA_WARN("tcpRemoteAckNum %u > real dummyBytes %ju, delta = %jd",
+	     tcpRemoteAckNum, 
+	     dummyBytes + tcpLocalSeqNumBase, 
+	     tcpRemoteAckNum - dummyBytes - tcpLocalSeqNumBase);
 
   int sentBytes = lwip_write(sock,buf,len);
   if (sentBytes <= 0) return 0;

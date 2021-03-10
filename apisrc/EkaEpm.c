@@ -48,7 +48,8 @@ void EkaEpm::initHeap(uint start, uint size, uint regionId) {
   uint numPages = size / HeapPage;
   if (size % HeapPage != 0) 
     on_error("size %u is not multiple of HeapPage %ju", size, HeapPage);
-  EKA_LOG("start=%u, size=%u, HeapPage=%ju, numPages=%ju",start,size,HeapPage,numPages);
+  EKA_LOG("start=%u, size=%u, HeapPage=%ju, numPages=%u",
+	  start,size,HeapPage,numPages);
   for (uint i = 0; i < numPages; i++) {
     uint8_t pageTmpBuf[HeapPage] = {};
     uint64_t pageStart = EpmHeapHwBaseAddr + start + i * HeapPage;
@@ -228,13 +229,13 @@ EkaOpResult EkaEpm::payloadHeapCopy(epm_strategyid_t strategyIdx,
 				    const void *contents) {
   if ((offset - DatagramOffset) % PayloadAlignment != 0) {
     EKA_WARN("offset (%d) - DatagramOffset (%d) %% PayloadAlignment (=%d) != 0",
-	     offset,DatagramOffset,PayloadAlignment);
+	     (int)offset,(int)DatagramOffset,(int)PayloadAlignment);
     return EKA_OPRESULT__ERR_INVALID_ALIGN;
   }
        
   if (offset + length > PayloadMemorySize) {
     EKA_WARN("offset %d + length %d > PayloadMemorySize %d",
-	     offset,length,PayloadMemorySize);
+	     (int)offset,(int)length,(int)PayloadMemorySize);
     return EKA_OPRESULT__ERR_INVALID_OFFSET;
   }
 

@@ -160,11 +160,13 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
     uint8_t buf[1536] = {};
     uint8_t* hdr = buf;
     if (recv(gr->snapshot_sock,hdr,sizeof(XdpMsgHdr),MSG_WAITALL) < (int)sizeof(XdpMsgHdr)) {
-      EKA_WARN("%s:%u: Request Server connection reset by peer (failed to read XdpMsgHdr)",EKA_EXCH_DECODE(gr->exch),gr->id);
+      EKA_WARN("%s:%u: Request Server connection reset by peer (failed to read XdpMsgHdr)",
+	       EKA_EXCH_DECODE(gr->exch),gr->id);
       return EKA_OPRESULT__ERR_SYSTEM_ERROR;
     }
     if (recv(gr->snapshot_sock,hdr + sizeof(XdpMsgHdr),((XdpMsgHdr*)hdr)->MsgSize - sizeof(XdpMsgHdr),MSG_WAITALL) < (int)(((XdpMsgHdr*)hdr)->MsgSize - sizeof(XdpMsgHdr))) {
-      EKA_WARN("%s:%u: Request Server connection reset by peer (failed to read Msg Body for MsgType = %u)",EKA_EXCH_DECODE(gr->exch),gr->id,((XdpMsgHdr*)hdr)->MsgType);
+      EKA_WARN("%s:%u: Request Server connection reset by peer (failed to read Msg Body for MsgType = %u)",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,(uint)((XdpMsgHdr*)hdr)->MsgType);
       return EKA_OPRESULT__ERR_SYSTEM_ERROR;
     }
     //-----------------------------------------------------------------
@@ -180,32 +182,40 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
 
       switch (((XdpRequestResponse*)hdr)->Status) {
       case 0 : 
-	EKA_LOG("%s:%u: Request was accepted",EKA_EXCH_DECODE(gr->exch),gr->id);
+	EKA_LOG("%s:%u: Request was accepted",
+		EKA_EXCH_DECODE(gr->exch),gr->id);
 	break;
       case 1 :
-	EKA_WARN("%s:%u: Rejected due to an Invalid Source ID",EKA_EXCH_DECODE(gr->exch),gr->id);
+	EKA_WARN("%s:%u: Rejected due to an Invalid Source ID",
+		 EKA_EXCH_DECODE(gr->exch),gr->id);
 	return EKA_OPRESULT__ERR_SYSTEM_ERROR;
       case 4 :
-	EKA_WARN("%s:%u: Rejected due to ",EKA_EXCH_DECODE(gr->exch),gr->id);
+	EKA_WARN("%s:%u: Rejected due to ",
+		 EKA_EXCH_DECODE(gr->exch),gr->id);
 	return EKA_OPRESULT__ERR_SYSTEM_ERROR;
       case 6 :
-	EKA_WARN("%s:%u: Rejected due to an Invalid Channel ID",EKA_EXCH_DECODE(gr->exch),gr->id);
+	EKA_WARN("%s:%u: Rejected due to an Invalid Channel ID",
+		 EKA_EXCH_DECODE(gr->exch),gr->id);
 	return EKA_OPRESULT__ERR_SYSTEM_ERROR;
       case 8 :
-	EKA_LOG("%s:%u: Underlying download complete",EKA_EXCH_DECODE(gr->exch),gr->id);
+	EKA_LOG("%s:%u: Underlying download complete",
+		EKA_EXCH_DECODE(gr->exch),gr->id);
 	break;
       case 9 :
-	EKA_LOG("%s:%u: Series download complete",EKA_EXCH_DECODE(gr->exch),gr->id);
+	EKA_LOG("%s:%u: Series download complete",
+		EKA_EXCH_DECODE(gr->exch),gr->id);
 	//-------------------------------------------------------
 	if ((ret = sendLogOut(gr))        != EKA_OPRESULT__OK) return ret;
 	close(gr->snapshot_sock);
 	//-------------------------------------------------------
 	return EKA_OPRESULT__OK;
       case 10 :
-	EKA_LOG("%s:%u: Complex download complete",EKA_EXCH_DECODE(gr->exch),gr->id);
+	EKA_LOG("%s:%u: Complex download complete",
+		EKA_EXCH_DECODE(gr->exch),gr->id);
 	break;
       default:
-	EKA_WARN("%s:%u: Unexpected (XdpRequestResponse*)hdr)->Status = %u",EKA_EXCH_DECODE(gr->exch),gr->id,((XdpRequestResponse*)hdr)->Status);
+	EKA_WARN("%s:%u: Unexpected (XdpRequestResponse*)hdr)->Status = %u",
+		 EKA_EXCH_DECODE(gr->exch),gr->id,((XdpRequestResponse*)hdr)->Status);
 	return EKA_OPRESULT__ERR_SYSTEM_ERROR;
       }
       break;
@@ -276,7 +286,9 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
       /* ***************************************************** */
 
     default:
-      EKA_TRACE("%s:%u: ignored EKA_XDP_MSG_TYPE %u",EKA_EXCH_DECODE(gr->exch),gr->id,((XdpMsgHdr*)hdr)->MsgType);
+      EKA_TRACE("%s:%u: ignored EKA_XDP_MSG_TYPE %u",
+		EKA_EXCH_DECODE(gr->exch),gr->id,
+		(uint)((XdpMsgHdr*)hdr)->MsgType);
     }
   }
   return EKA_OPRESULT__OK;

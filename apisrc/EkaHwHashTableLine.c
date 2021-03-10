@@ -90,7 +90,7 @@ static void turnOnBit(uint8_t* dst, int bitLocation) {
 
 /* ############################################### */
 int EkaHwHashTableLine::print(const char* msg) {
-  EKA_LOG("%s: line %d: validCnt = %u, sum=%u, %jx:%x, %jx:%x, %jx:%x, %jx:%x, %jx:%x",
+  EKA_LOG("%s: line %d: validCnt = %u, sum=%u, %jx:%x, %jx:%x, %jx:%x, %jx:%x",
 	  msg, id, validCnt, sum, 
 	  col[0].secId, col[0].hash,
 	  col[1].secId, col[1].hash,

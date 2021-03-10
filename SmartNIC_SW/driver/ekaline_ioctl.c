@@ -7,6 +7,8 @@ eka_ioctl_t eka_ioctl;
 if (copy_from_user(&eka_ioctl, (void*)data, sizeof(eka_ioctl_t)))  return -EFAULT;
 PRINTK("EKALINE DEBUG: EKA IOCTL to nif %d, session %d, cmd=%u\n",eka_ioctl.nif_num,eka_ioctl.session_num,eka_ioctl.cmd);
 
+uint64_t ekaSnDriverVerNum = EKA_VER_NUM;
+
 eka_session_t* eka_session = &(pDevExt->nif[eka_ioctl.nif_num].eka_private_data->eka_session[eka_ioctl.session_num]);
 char* eka_version = (char*)&(pDevExt->nif[0].eka_private_data->eka_version); // version is taken from feth0
 char* eka_release = (char*)&(pDevExt->nif[0].eka_private_data->eka_release); // release is taken from feth0
@@ -70,11 +72,18 @@ switch (eka_ioctl.cmd) {
      return -EFAULT;
    }	
    PRINTK("EKA_VERSION: %s\n",eka_version);
+
    if ((rc = copy_to_user((void __user *) &(((eka_ioctl_t*)data)->eka_release), eka_release, 256))) {
      PRINTK("EKALINE DEBUG: SMARTNIC_EKALINE_DATA: EKA_RELEASE failed\n");
      return -EFAULT;
    }
    PRINTK("EKA_RELEASE: %s\n",eka_release);
+
+   if ((rc = copy_to_user((void __user *) &(((eka_ioctl_t*)data)->wcattr.bar0_wc_va), &ekaSnDriverVerNum, 8))) {
+     PRINTK("EKALINE DEBUG: SMARTNIC_EKALINE_DATA: EKA_VER_NUM (%d) failed\n",ekaSnDriverVerNum);
+     return -EFAULT;
+   }
+   PRINTK("EKA_VER_NUM: %d\n",ekaSnDriverVerNum);
    break;
  case EKA_DEBUG_ON:
    for (i=0;i<8;i++) pDevExt->nif[i].eka_private_data->eka_debug = 1;

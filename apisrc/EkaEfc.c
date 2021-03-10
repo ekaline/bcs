@@ -262,7 +262,7 @@ int EkaEfc::subscribeSec(uint64_t secId) {
 
   if (numSecurities == EKA_MAX_P4_SUBSCR) {
     EKA_WARN("numSecurities %d  == EKA_MAX_P4_SUBSCR: secId %ju (0x%jx) is ignored",
-	     numSecurities,secId);
+	     numSecurities,secId,secId);
     return -1;
   }
 

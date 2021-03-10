@@ -75,7 +75,7 @@ int printSecCtx(EkaDev* dev, const EfcSecurityCtx* msg) {
 }
 /* ########################################################### */
 int printFireOrder(EkaDev* dev,const EfcFiredOrder* msg) {
-  EKA_LOG("attr = %02x",      msg->attr);
+  EKA_LOG("attr = %02x",      (int)msg->attr.bits);
   EKA_LOG("price = %u",       msg->price);
   EKA_LOG("size = %u",        msg->size);
   EKA_LOG("counter = %u",     msg->counter);
