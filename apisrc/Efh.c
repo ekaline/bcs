@@ -39,7 +39,9 @@ EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhI
   (*ppEfhCtx)->fhId = pEkaDev->numFh;
 
   EkaSource exch = EFH_GET_SRC(pEfhInitCtx->ekaProps->props[0].szKey);
+
   uint8_t fhId = dev->numFh++;
+
   switch (exch) {
   case EkaSource::kNOM_ITTO:
     dev->fh[fhId] = new EkaFhNom();

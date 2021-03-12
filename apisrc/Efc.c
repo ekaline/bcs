@@ -296,8 +296,8 @@ EkaOpResult efcSetGroupSesCtx( EfcCtx* pEfcCtx, uint8_t group, ExcConnHandle hCo
   if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
   EkaDev* dev = pEfcCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
-  EkaEfc* efc = dev->efc;
-  if (efc == NULL) on_error("efc == NULL");
+  /* EkaEfc* efc = dev->efc; */
+  /* if (efc == NULL) on_error("efc == NULL"); */
 
   EkaCoreId coreId = excGetCoreId(hConn);
   if (dev->core[coreId] == NULL) on_error("dev->core[%u] == NULL",coreId);

@@ -116,19 +116,22 @@ bool EkaFhRunGroup::igmpSanityCheck(int grId2check, uint32_t ip, uint16_t port) 
   }
 
   if (coreId != mcState.chState[udpChId].grpHwState[grId2check].coreId) {
-    EKA_WARN("chId %d, grId %d: expected coreId %d != actual %d",
-	     udpChId,grId2check,coreId,mcState.chState[udpChId].grpHwState[grId2check].coreId);
+    EKA_WARN("WARNING: chId %d, grId %d: expected coreId %d != actual %d",
+	     udpChId,
+	     grId2check,
+	     coreId,
+	     mcState.chState[udpChId].grpHwState[grId2check].coreId);
     return false;
   }
 
   if (ip != mcState.chState[udpChId].grpHwState[grId2check].ip || 
       port != mcState.chState[udpChId].grpHwState[grId2check].port) {
-    EKA_WARN("chId %d, grId %d: expected ip:port %s:%u != actual %s:%u",
+    EKA_WARN("WARNING: chId %d, grId %d: expected %s:%u != actual %s:%u",
 	     udpChId,grId2check,
-	     EKA_IP2STR(mcState.chState[udpChId].grpHwState[grId2check].ip),
-	     mcState.chState[udpChId].grpHwState[grId2check].port,
 	     EKA_IP2STR(ip),
-	     port
+	     port,
+	     EKA_IP2STR(mcState.chState[udpChId].grpHwState[grId2check].ip),
+	     mcState.chState[udpChId].grpHwState[grId2check].port
 	     );
     return false;
   }

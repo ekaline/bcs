@@ -143,7 +143,7 @@ class EkaDev {
 
   EkaHwCaps*                ekaHwCaps = NULL;
 
-  EkaEfc*                   efc = NULL;
+  //  EkaEfc*                   efc = NULL;
 
   int64_t                   lastErrno   = 0;
   EfhExchangeErrorCode      lastExchErr = EfhExchangeErrorCode::kNoError;
