@@ -36,11 +36,15 @@ EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhI
   assert (*ppEfhCtx != NULL);
 
   (*ppEfhCtx)->dev  = pEkaDev;
-  (*ppEfhCtx)->fhId = pEkaDev->numFh;
 
   EkaSource exch = EFH_GET_SRC(pEfhInitCtx->ekaProps->props[0].szKey);
 
   uint8_t fhId = dev->numFh++;
+  (*ppEfhCtx)->fhId = fhId;
+
+  EKA_LOG("Creating FH[%u] %s",fhId,EKA_EXCH_SOURCE_DECODE(exch));
+
+  if (dev->fh[fhId] != NULL) on_error("dev->fh[%u] is already inited",fhId);
 
   switch (exch) {
   case EkaSource::kNOM_ITTO:
@@ -84,6 +88,9 @@ EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhI
   dev->fh[fhId]->setId(*ppEfhCtx,exch,fhId);
   dev->fh[fhId]->openGroups(*ppEfhCtx,pEfhInitCtx);
   dev->fh[fhId]->init(pEfhInitCtx,fhId);
+
+  EKA_LOG("Created %s with fhId=%u ppEfhCtx=%p, *ppEfhCtx=%p",
+	  EKA_EXCH_DECODE(exch),fhId,ppEfhCtx,*ppEfhCtx);
 
   return EKA_OPRESULT__OK;
 
@@ -140,8 +147,13 @@ EkaOpResult efhRunGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, void** r
   assert (dev->runGr[runGrId] != NULL);
   dev->mtx.unlock();
 
-  //  EKA_DEBUG("invoking runGroups with runId = %u",runGrId);
-  return (pEfhCtx->dev->fh[pEfhCtx->fhId])->runGroups(pEfhCtx, pEfhRunCtx, runGrId);
+  auto fh = pEfhCtx->dev->fh[pEfhCtx->fhId];
+  if (fh == NULL) on_error("fh == NULL");
+
+  EKA_DEBUG("invoking runGroups: pEfhCtx->fhId = %u, fh->id = %u, runId = %u",
+	    pEfhCtx->fhId,fh->id,runGrId);
+  //  return (pEfhCtx->dev->fh[pEfhCtx->fhId])->runGroups(pEfhCtx, pEfhRunCtx, runGrId);
+  return fh->runGroups(pEfhCtx, pEfhRunCtx, runGrId);
 }
 
 /**

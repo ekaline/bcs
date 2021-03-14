@@ -95,7 +95,7 @@ static McGrpCtx* grCtx[MAX_EXCH][MAX_GROUPS] = {};
 
 struct TestRunGroup {
   std::string optArgStr;
-  EkaGroup    groups[MAX_GROUPS] = {};
+
 };
 
 static bool print_tob_updates = false;
@@ -653,8 +653,8 @@ static int getAttr(int argc, char *argv[],
 }
 
 int createCtxts(std::vector<TestRunGroup>& testRunGroups,
-		std::vector<EfhInitCtx>&  efhInitCtx,
-		std::vector<EfhRunCtx>&   efhRunCtx) {
+		std::vector<EfhInitCtx>&   efhInitCtx,
+		std::vector<EfhRunCtx>&    efhRunCtx) {
   const std::regex rg_regex("([0-9])\\:([A-Z][A-Z])\\:([0-9]+)\\.\\.([0-9]+)");
 
   for (auto &runGr : testRunGroups) {
@@ -675,16 +675,21 @@ int createCtxts(std::vector<TestRunGroup>& testRunGroups,
       .coreId         = coreId,
       .recvSoftwareMd = true,
     };
-    newEfhInitCtx.ekaProps->numProps = feedname2numGroups(feedName);
+    newEfhInitCtx.ekaProps->numProps = feedname2numProps(feedName);
     newEfhInitCtx.ekaProps->props    = feedname2prop(feedName);
 
     efhInitCtx.push_back(newEfhInitCtx);
 
     /* ------------------------------------------------------- */
     int i = 0;
+
+    size_t numRunGroups = lastGrId - firstGrId + 1;
+    auto pGroups = new EkaGroup[numRunGroups];
+    if (pGroups == NULL) on_error("pGroups == NULL");
+
     for (EkaLSI grId = firstGrId; grId <= lastGrId; grId++) {
-      runGr.groups[i].source  = exch;
-      runGr.groups[i].localId = grId;
+      pGroups[i].source  = exch;
+      pGroups[i].localId = grId;
       if (grCtx[(int)exch][grId] != NULL)
 	on_error("grCtx[%d][%d] already exists",(int)exch,grId);
       grCtx[(int)exch][grId] = new McGrpCtx(exch,grId);
@@ -692,9 +697,10 @@ int createCtxts(std::vector<TestRunGroup>& testRunGroups,
 	on_error("failed creating grCtx[%d][%d]",(int)exch,grId);
       i++;
     }
+
     EfhRunCtx newEfhRunCtx = {
-      .groups                      = runGr.groups,
-      .numGroups                   = (size_t) (lastGrId - firstGrId + 1),
+      .groups                      = pGroups,
+      .numGroups                   = numRunGroups,
       .efhRunUserData              = 0,
       .onEfhDefinitionMsgCb        = onDefinition,
       .onEfhTradeMsgCb             = onTrade,
@@ -716,7 +722,7 @@ int createCtxts(std::vector<TestRunGroup>& testRunGroups,
 	     );
     for (size_t j = 0; j < newEfhInitCtx.ekaProps->numProps; j++) {
       if (newEfhInitCtx.ekaProps == NULL) on_error("currEfhInitCtx.ekaProps == NULL");
-      TEST_LOG("%s -- %s",newEfhInitCtx.ekaProps->props[j].szKey,newEfhInitCtx.ekaProps->props[j].szVal);
+      //      TEST_LOG("%s -- %s",newEfhInitCtx.ekaProps->props[j].szKey,newEfhInitCtx.ekaProps->props[j].szVal);
     }
   }
   return 0;
@@ -724,6 +730,7 @@ int createCtxts(std::vector<TestRunGroup>& testRunGroups,
 
 int main(int argc, char *argv[]) {
   std::vector<TestRunGroup> testRunGroups;
+  std::vector<EfhCtx>       efhCtx;
   std::vector<EfhInitCtx>   efhInitCtx;
   std::vector<EfhRunCtx>    efhRunCtx;
 
@@ -753,38 +760,46 @@ int main(int argc, char *argv[]) {
 
   for (size_t i = 0; i < testRunGroups.size(); i++) {
     try {
-      EfhInitCtx currEfhInitCtx = efhInitCtx.at(i);
-      EfhRunCtx  currEfhRunCtx  = efhRunCtx.at(i);
-      EfhCtx*    pEfhCtx        = NULL; 
-      /* ------------------------------------------------------- */
-      if (currEfhInitCtx.ekaProps->numProps == 0) on_error("currEfhInitCtx.ekaProps->numProps == 0");
-      for (size_t j = 0; j < currEfhInitCtx.ekaProps->numProps; j++) {
-	if (currEfhInitCtx.ekaProps == NULL) on_error("currEfhInitCtx.ekaProps == NULL");
-	TEST_LOG("%s -- %s",currEfhInitCtx.ekaProps->props[j].szKey,currEfhInitCtx.ekaProps->props[j].szVal);
-      }
+      auto currEfhInitCtx = efhInitCtx.at(i);
+      auto currEfhRunCtx  = efhRunCtx.at(i);
 
+      EfhCtx* pEfhCtx     = NULL;
+      /* ------------------------------------------------------- */
       efhInit(&pEfhCtx,pEkaDev,&currEfhInitCtx);
       if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
+
+      if (pEfhCtx->fhId >= 16) on_error("pEfhCtx->fhId = %u,pEfhCtx=%p",
+					  pEfhCtx->fhId,pEfhCtx);
+      if (pEfhCtx->fhId != (uint)i) 
+	on_error("i=%jd, fhId = %u, pEfhCtx=%p",i,pEfhCtx->fhId,pEfhCtx);
+
+      TEST_LOG("pEfhCtx->fhId = %u",pEfhCtx->fhId);
       pEfhCtx->printQStatistics = true;
       /* ------------------------------------------------------- */
       for (uint8_t i = 0; i < currEfhRunCtx.numGroups; i++) {
-	printf ("################ Group %u ################\n",i);
-#ifndef EKA_TEST_IGNORE_DEFINITIONS
-	printf ("Skipping Definitions for EKA_TEST_IGNORE_DEFINITIONS\n");
-	continue;
-#endif
-	efhGetDefs(pEfhCtx, &currEfhRunCtx, (EkaGroup*)&currEfhRunCtx.groups[i], NULL);
 	EkaSource exch = currEfhRunCtx.groups[i].source;
 	EkaLSI    grId = currEfhRunCtx.groups[i].localId;
 	auto gr = grCtx[(int)exch][grId];
 	if (gr == NULL) on_error("gr == NULL");
+
+	printf ("################ Group %u: %s:%u ################\n",
+		i,EKA_EXCH_DECODE(exch),grId);
+#ifdef EKA_TEST_IGNORE_DEFINITIONS
+	printf ("Skipping Definitions for EKA_TEST_IGNORE_DEFINITIONS\n");
+#else
+	efhGetDefs(pEfhCtx, &currEfhRunCtx, (EkaGroup*)&currEfhRunCtx.groups[i], NULL);
+#endif
 	fclose (gr->fullDict);
 	fclose (gr->subscrDict);
       }
       /* ------------------------------------------------------- */
+      if (pEfhCtx->fhId >= 16) on_error("pEfhCtx->fhId = %u,pEfhCtx=%p",
+					  pEfhCtx->fhId,pEfhCtx);
+      TEST_LOG("pEfhCtx->fhId = %u",pEfhCtx->fhId);
       std::thread efh_run_thread = std::thread(efhRunGroups,pEfhCtx, &currEfhRunCtx,(void**)NULL);
       efh_run_thread.detach();
       /* ------------------------------------------------------- */
+      //      sleep(10);
     }
     catch (const std::out_of_range& oor) {
       //      std::cerr << "Out of Range error: " << oor.what() << '\n';

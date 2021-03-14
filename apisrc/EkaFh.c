@@ -283,8 +283,8 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       memcpy(batsGr->grpUser,  v[0],strlen(v[0]));
       memcpy(batsGr->grpPasswd,v[1],strlen(v[1]));
 
-      EKA_DEBUG ("%s:%u: %s set to |%s|:|%s|",
-		 k[1],gr,k[5],batsGr->grpUser + '\0',batsGr->grpPasswd + '\0');
+      /* EKA_DEBUG ("%s:%u: %s set to |%s|:|%s|", */
+      /* 		 k[1],gr,k[5],batsGr->grpUser + '\0',batsGr->grpPasswd + '\0'); */
 
       batsGr->grpSet = true;
       fflush(stderr);
@@ -366,7 +366,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
 
       memcpy(&(((EkaFhBatsGr*)b_gr[gr])->sessionSubID),v[0],sizeof(((EkaFhBatsGr*)b_gr[gr])->sessionSubID));
 
-      EKA_DEBUG ("%s:%u: sessionSubID set to %s",k[1],gr,v[0] +'\0');
+      //      EKA_DEBUG ("%s:%u: sessionSubID set to %s",k[1],gr,v[0] +'\0');
       fflush(stderr);
 
       return EkaFhAddConf::CONF_SUCCESS;
@@ -390,7 +390,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
 		 v[0], (int)strlen(v[0]), (int)sizeof(batsGr->grpSessionSubID));
       memcpy(batsGr->grpSessionSubID,v[0],sizeof(batsGr->grpSessionSubID));
 
-      EKA_DEBUG ("%s:%u: grpSessionSubID set to %s",k[1],gr,v[0] +'\0');
+      //      EKA_DEBUG ("%s:%u: grpSessionSubID set to %s",k[1],gr,v[0] +'\0');
       fflush(stderr);
 
       return EkaFhAddConf::CONF_SUCCESS;
@@ -454,8 +454,8 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       batsGr->grpIp = inet_addr(v[0]);
       batsGr->grpPort = be16toh((uint16_t)atoi(v[1]));
 
-      EKA_DEBUG ("%s:%u: %s is set to %s:%u",
-		 k[1],gr,k[5],EKA_IP2STR(batsGr->grpIp),be16toh(batsGr->grpPort));
+      /* EKA_DEBUG ("%s:%u: %s is set to %s:%u", */
+      /* 		 k[1],gr,k[5],EKA_IP2STR(batsGr->grpIp),be16toh(batsGr->grpPort)); */
       fflush(stderr);
       return EkaFhAddConf::CONF_SUCCESS;
     }
@@ -514,7 +514,10 @@ EkaOpResult EkaFh::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
       on_error("pEfhRunCtx->groups[%d].localId = %u doesnt belong to %s",
 	       i,pEfhRunCtx->groups[i].localId,runGr->list2print);
     if (pEfhRunCtx->groups[i].source != exch) 
-      on_error("pEfhRunCtx->groups[i].source != exch");
+      on_error("id=%u,fhId = %u, pEfhRunCtx->groups[i].source %s != exch %s",
+	       id,pEfhCtx->fhId,
+	       EKA_EXCH_SOURCE_DECODE(pEfhRunCtx->groups[i].source),
+	       EKA_EXCH_SOURCE_DECODE(exch));
 
     EkaFhGroup* gr = b_gr[pEfhRunCtx->groups[i].localId];
     if (gr == NULL) on_error ("b_gr[%u] == NULL",pEfhRunCtx->groups[i].localId);
