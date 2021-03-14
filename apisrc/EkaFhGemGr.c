@@ -1,6 +1,6 @@
 #include "EkaFhGemGr.h"
 
-int EkaFhGemGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
+int EkaFhGemGr::bookInit () {
   book = new FhBook(dev,id,exch);
   if (book == NULL) on_error("book = NULL");
 

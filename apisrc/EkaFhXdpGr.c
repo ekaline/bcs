@@ -25,7 +25,7 @@ bool EkaFhXdpGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 
 /* ##################################################################### */
 
-int EkaFhXdpGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
+int EkaFhXdpGr::bookInit () {
   book = new FhBook(dev,id,exch);
   if (book == NULL) on_error("book = NULL");
 

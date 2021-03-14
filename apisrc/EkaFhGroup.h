@@ -37,7 +37,7 @@ class EkaFhGroup {
     pktCnt++;
   }
 
-  virtual int  bookInit(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) = 0;
+  virtual int  bookInit() = 0;
   virtual int  subscribeStaticSecurity(uint64_t        secId,
 				       EfhSecurityType type,
 				       EfhSecUserData  userData,

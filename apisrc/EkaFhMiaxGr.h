@@ -45,8 +45,7 @@ class EkaFhMiaxGr : public EkaFhGroup{
 			     uint64_t          endSeq);
 
 
-  int                  bookInit(EfhCtx* pEfhCtx, 
-				const EfhInitCtx* pEfhInitCtx);
+  int                  bookInit();
 
   int                  subscribeStaticSecurity(uint64_t        securityId, 
 					       EfhSecurityType efhSecurityType,

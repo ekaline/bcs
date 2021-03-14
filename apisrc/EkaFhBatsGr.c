@@ -49,7 +49,7 @@ void EkaFhBatsGr::pushUdpPkt2Q(const uint8_t* pkt,
 
 /* ##################################################################### */
 
-int EkaFhBatsGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
+int EkaFhBatsGr::bookInit () {
   book = new FhBook(dev,id,exch);
   if (book == NULL) on_error("book = NULL");
 

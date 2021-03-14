@@ -21,8 +21,7 @@ class EkaFhXdpGr : public EkaFhGroup{
 				      uint             msgInPkt, 
 				      uint64_t         seq);
 
-  int                  bookInit(EfhCtx* pEfhCtx, 
-				const EfhInitCtx* pEfhInitCtx);
+  int                  bookInit();
 
   int                  subscribeStaticSecurity(uint64_t        securityId, 
 					       EfhSecurityType efhSecurityType,

@@ -299,7 +299,9 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
   auto gr = grCtx[(int)exch][grId];
   if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
 
-  if (pEfhCtx->printQStatistics && (++pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[grId]->upd_ctr % 1000000 == 0)) {
+  auto efhGr = pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[grId];
+
+  if (pEfhCtx->printQStatistics && (++efhGr->upd_ctr % 1000000 == 0)) {
     efhMonitorFhGroupState(pEfhCtx,(EkaGroup*)&msg->header.group);
   }
 
@@ -730,7 +732,6 @@ int createCtxts(std::vector<TestRunGroup>& testRunGroups,
 
 int main(int argc, char *argv[]) {
   std::vector<TestRunGroup> testRunGroups;
-  std::vector<EfhCtx>       efhCtx;
   std::vector<EfhInitCtx>   efhInitCtx;
   std::vector<EfhRunCtx>    efhRunCtx;
 
@@ -756,29 +757,27 @@ int main(int argc, char *argv[]) {
   ekaDevInitCtx.createThread = createThread;
   ekaDevInit(&pEkaDev, (const EkaDevInitCtx*) &ekaDevInitCtx);
 
+  //  std::vector<EfhCtx*>      pEfhCtx[16];
+  EfhCtx*      pEfhCtx[16] = {};
+
 /* ------------------------------------------------------- */
 
-  for (size_t i = 0; i < testRunGroups.size(); i++) {
+  for (size_t r = 0; r < testRunGroups.size(); r++) {
     try {
-      auto currEfhInitCtx = efhInitCtx.at(i);
-      auto currEfhRunCtx  = efhRunCtx.at(i);
+      efhInit(&pEfhCtx[r],pEkaDev,&efhInitCtx.at(r));
+      if (pEfhCtx[r] == NULL) on_error("pEfhCtx[r] == NULL");
+      efhRunCtx.at(r).efhRunUserData = (EfhRunUserData)pEfhCtx[r];
 
-      EfhCtx* pEfhCtx     = NULL;
+      if (pEfhCtx[r]->fhId >= 16) on_error("pEfhCtx[r]->fhId = %u,pEfhCtx[r]=%p",
+					  pEfhCtx[r]->fhId,pEfhCtx[r]);
+      if (pEfhCtx[r]->fhId != (uint)r) 
+	on_error("i=%jd, fhId = %u, pEfhCtx[r]=%p",r,pEfhCtx[r]->fhId,pEfhCtx[r]);
+
+      pEfhCtx[r]->printQStatistics = true;
       /* ------------------------------------------------------- */
-      efhInit(&pEfhCtx,pEkaDev,&currEfhInitCtx);
-      if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
-
-      if (pEfhCtx->fhId >= 16) on_error("pEfhCtx->fhId = %u,pEfhCtx=%p",
-					  pEfhCtx->fhId,pEfhCtx);
-      if (pEfhCtx->fhId != (uint)i) 
-	on_error("i=%jd, fhId = %u, pEfhCtx=%p",i,pEfhCtx->fhId,pEfhCtx);
-
-      TEST_LOG("pEfhCtx->fhId = %u",pEfhCtx->fhId);
-      pEfhCtx->printQStatistics = true;
-      /* ------------------------------------------------------- */
-      for (uint8_t i = 0; i < currEfhRunCtx.numGroups; i++) {
-	EkaSource exch = currEfhRunCtx.groups[i].source;
-	EkaLSI    grId = currEfhRunCtx.groups[i].localId;
+      for (uint8_t i = 0; i < efhRunCtx.at(r).numGroups; i++) {
+	EkaSource exch = efhRunCtx.at(r).groups[i].source;
+	EkaLSI    grId = efhRunCtx.at(r).groups[i].localId;
 	auto gr = grCtx[(int)exch][grId];
 	if (gr == NULL) on_error("gr == NULL");
 
@@ -787,16 +786,19 @@ int main(int argc, char *argv[]) {
 #ifdef EKA_TEST_IGNORE_DEFINITIONS
 	printf ("Skipping Definitions for EKA_TEST_IGNORE_DEFINITIONS\n");
 #else
-	efhGetDefs(pEfhCtx, &currEfhRunCtx, (EkaGroup*)&currEfhRunCtx.groups[i], NULL);
+	efhGetDefs(pEfhCtx[r], &efhRunCtx.at(r), (EkaGroup*)&efhRunCtx.at(r).groups[i], NULL);
 #endif
 	fclose (gr->fullDict);
 	fclose (gr->subscrDict);
       }
       /* ------------------------------------------------------- */
-      if (pEfhCtx->fhId >= 16) on_error("pEfhCtx->fhId = %u,pEfhCtx=%p",
-					  pEfhCtx->fhId,pEfhCtx);
-      TEST_LOG("pEfhCtx->fhId = %u",pEfhCtx->fhId);
-      std::thread efh_run_thread = std::thread(efhRunGroups,pEfhCtx, &currEfhRunCtx,(void**)NULL);
+      if (pEfhCtx[r]->fhId >= 16) on_error("pEfhCtx[r]->fhId = %u,pEfhCtx[r]=%p",
+					  pEfhCtx[r]->fhId,pEfhCtx[r]);
+      /* for (auto k = 0; k < (int)efhRunCtx.at(r).numGroups; k++) { */
+      /* 	EkaSource exch = efhRunCtx.at(r).groups[k].source; */
+      /* 	EkaLSI    grId = efhRunCtx.at(r).groups[k].localId; */
+      /* } */
+      std::thread efh_run_thread = std::thread(efhRunGroups,pEfhCtx[r], &efhRunCtx.at(r),(void**)NULL);
       efh_run_thread.detach();
       /* ------------------------------------------------------- */
       //      sleep(10);

@@ -39,20 +39,33 @@ int EkaIgmp::mcJoin(int epmRegion, EkaCoreId coreId, uint32_t ip, uint16_t port,
   createEntryMtx.lock();
   for (auto i = 0; i < numIgmpEntries; i++) {
     if (igmpEntry[i] == NULL) on_error("igmpEntry[%d] == NULL",i);
-    if (igmpEntry[i]->isMy(coreId,ip,port)) return 0;
+    if (igmpEntry[i]->isMy(coreId,ip,port)) {
+      createEntryMtx.unlock();
+      return 0;
+    }
   }
-  if (numIgmpEntries == MAX_IGMP_ENTRIES) 
-    on_error("numIgmpEntries %d == MAX_IGMP_ENTRIES %d",numIgmpEntries,MAX_IGMP_ENTRIES);
+  if (numIgmpEntriesAtCh[epmRegion] == MAX_ENTRIES_PER_LANE) 
+    on_error("numIgmpEntriesAtCh[%d] %d == MAX_ENTRIES_PER_LANE %d",
+	     epmRegion,numIgmpEntriesAtCh[epmRegion],MAX_ENTRIES_PER_LANE);
 
-  igmpEntry[numIgmpEntries] = new EkaIgmpEntry(dev,epmRegion,coreId,ip,port,vlanTag,pPktCnt);
+  if (numIgmpEntriesAtCore[coreId] == MAX_ENTRIES_PER_LANE) 
+    on_error("numIgmpEntriesAtCore[%d] %d == MAX_ENTRIES_PER_LANE %d",
+	     coreId,numIgmpEntriesAtCore[epmRegion],MAX_ENTRIES_PER_LANE);
+
+  int perChId = numIgmpEntriesAtCh[epmRegion];
+
+  igmpEntry[numIgmpEntries] = new EkaIgmpEntry(dev,epmRegion,coreId,perChId,ip,port,vlanTag,pPktCnt);
   if (igmpEntry[numIgmpEntries] == NULL) on_error("igmpEntry[%d] == NULL",numIgmpEntries);
 
-  EKA_LOG("MC join: %s:%u",EKA_IP2STR(ip),port);
+  EKA_LOG("MC join: chId=%d, coreId=%d, entryId=%d: %s:%u",
+	  epmRegion,coreId,perChId,EKA_IP2STR(ip),port);
 
   numIgmpEntries++;
+  numIgmpEntriesAtCh[epmRegion] ++;
+  numIgmpEntriesAtCore[coreId] ++;
   createEntryMtx.unlock();
 
-  return numIgmpEntries - 1;
+  return perChId;
 }
 
 
@@ -69,7 +82,7 @@ int EkaIgmp::igmpThreadLoop() {
     for (int i = 0; i < numIgmpEntries; i++) {
       igmpEntry[i]->sendIgmpJoin();
       saveMcState(dev,
-		  i,
+		  igmpEntry[i]->perChId,
 		  igmpEntry[i]->udpChId, 
 		  igmpEntry[i]->coreId, 
 		  igmpEntry[i]->ip,
@@ -97,7 +110,7 @@ void* EkaIgmp::igmpThreadLoopCb(void* pEkaIgmp) {
     for (int i = 0; i < igmp->numIgmpEntries; i++) {
       igmp->igmpEntry[i]->sendIgmpJoin();
       saveMcState(dev,
-		  i,
+		  igmp->igmpEntry[i]->perChId,
 		  igmp->igmpEntry[i]->udpChId, 
 		  igmp->igmpEntry[i]->coreId, 
 		  igmp->igmpEntry[i]->ip,

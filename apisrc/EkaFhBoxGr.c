@@ -43,7 +43,7 @@ int EkaFhBoxGr::processFromQ(const EfhRunCtx* pEfhRunCtx) {
 }
 /* ##################################################################### */
 
-int EkaFhBoxGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
+int EkaFhBoxGr::bookInit () {
   book = new FhBook(dev,id,exch);
   if (book == NULL) on_error("book = NULL");
 

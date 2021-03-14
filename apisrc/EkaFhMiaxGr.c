@@ -135,7 +135,7 @@ int EkaFhMiaxGr::closeIncrementalGap(EfhCtx*        pEfhCtx,
   return 0;
 }
 /* ##################################################################### */
-int EkaFhMiaxGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
+int EkaFhMiaxGr::bookInit () {
   book = new FhBook(dev,id,exch);
   if (book == NULL) on_error("book = NULL");
 

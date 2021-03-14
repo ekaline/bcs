@@ -19,8 +19,7 @@ class EkaFhCmeGr : public EkaFhGroup {
     return true;
   }
 
-  int                   bookInit(EfhCtx* pEfhCtx,
-  				 const EfhInitCtx* pEfhInitCtx);
+  int                   bookInit();
 
   int                  subscribeStaticSecurity(uint64_t        securityId, 
 					       EfhSecurityType efhSecurityType,

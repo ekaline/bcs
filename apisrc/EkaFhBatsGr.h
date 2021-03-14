@@ -13,8 +13,7 @@ class EkaFhBatsGr : public EkaFhGroup{
 				 uint64_t         sequence,
 				 EkaFhMode        op);
 
-  int                   bookInit(EfhCtx*           pEfhCtx,
-				 const EfhInitCtx* pEfhInitCtx);
+  int                   bookInit();
 
   int                  subscribeStaticSecurity(uint64_t        securityId, 
 					       EfhSecurityType efhSecurityType,

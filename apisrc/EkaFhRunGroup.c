@@ -92,8 +92,8 @@ bool EkaFhRunGroup::igmpSanityCheck(int grId2check, uint32_t ip, uint16_t port) 
   int rc = ioctl(fd,SMARTNIC_EKALINE_DATA,&state);
   if (rc != 0) on_error("ioctl failed: rc = %d",rc);
 
-  for (auto i = 0; i < 32; i++) {
-    mcState.chState[i].currHwGr = 0;
+  for (auto chId = 0; chId < 32; chId++) {
+    mcState.chState[chId].currHwGr = 0;
   }
 
   for (auto i = 0; i < 512; i++) {
@@ -107,7 +107,15 @@ bool EkaFhRunGroup::igmpSanityCheck(int grId2check, uint32_t ip, uint16_t port) 
       on_error("chId=%d,grId=%d,hwIgmp[%d].positionIndex=%u,group_address=0x%08x",
 	       chId,grId,i,hwIgmp[i].positionIndex,hwIgmp[i].group_address);
 
-    
+    EKA_LOG ("%3d (%3d): pos=%3u, lane=%u, ch=%2u (%d), %s:%u\n",
+	     i, grId,
+	     hwIgmp[i].positionIndex,
+	     hwIgmp[i].lane,
+	     hwIgmp[i].channel,chId,
+	     EKA_IP2STR(be32toh(hwIgmp[i].group_address)),
+	     hwIgmp[i].ip_port_number
+	     );
+
     mcState.chState[chId].grpHwState[grId].coreId        = hwIgmp[i].lane;
     mcState.chState[chId].grpHwState[grId].ip            = be32toh(hwIgmp[i].group_address);
     mcState.chState[chId].grpHwState[grId].port          = hwIgmp[i].ip_port_number;
@@ -143,10 +151,11 @@ int EkaFhRunGroup::igmpMcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag,uint6
   dev->igmpJoinMtx.lock();
   int grId = dev->ekaIgmp->mcJoin(udpChId,coreId,ip,port,vlanTag,pPktCnt);
   udpCh->igmp_mc_join (ip, port, 0);
+  bool sanityCheckPassed = igmpSanityCheck(grId,ip,port);
   EKA_LOG("%d: %s:%u on coreId %d udpChId %u: %s",
 	  grId,
 	  EKA_IP2STR(ip),port,coreId,udpChId,
-	  igmpSanityCheck(grId,ip,port) ? "PASSED" : "FAILED");
+	  sanityCheckPassed ? GRN "PASSED" RESET : RED "FAILED" RESET);
   dev->igmpJoinMtx.unlock();
   return 0;
 }
@@ -171,7 +180,9 @@ int EkaFhRunGroup::checkTimeOut(const EfhRunCtx* pEfhRunCtx) {
     }
 
     if (std::chrono::duration_cast<std::chrono::seconds>(now - gr->lastMdReceived).count() > TimeOutSeconds) {
+#ifndef _DONT_SEND_MDTIMEOUT
       gr->sendNoMdTimeOut(pEfhRunCtx);
+#endif
       gr->lastMdReceived      = now;
     }
 

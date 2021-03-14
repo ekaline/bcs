@@ -48,7 +48,7 @@ void EkaFhPhlxOrdGr::pushUdpPkt2Q(const uint8_t* pkt,
 
 /* ##################################################################### */
 
-int EkaFhPhlxOrdGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
+int EkaFhPhlxOrdGr::bookInit () {
   book = new FhBook(dev,id,exch);
   if (book == NULL) on_error("book = NULL");
 

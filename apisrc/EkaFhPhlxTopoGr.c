@@ -5,7 +5,7 @@ void* getMolUdp64Data(void* attr);
 void* getSoupBinData(void* attr);
 
 
-int EkaFhPhlxTopoGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
+int EkaFhPhlxTopoGr::bookInit () {
   book = new FhBook(dev,id,exch);
   if (book == NULL) on_error("book = NULL");
 

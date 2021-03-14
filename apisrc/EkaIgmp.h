@@ -22,7 +22,10 @@ class EkaIgmp {
   volatile bool        igmpLoopTerminated          = false;
 
  private:
-  static const int  MAX_IGMP_ENTRIES = 64;
+  static const int  MAX_LANES            = 8;
+  static const int  MAX_ENTRIES_PER_LANE = 64;
+  static const int  MAX_IGMP_ENTRIES     = MAX_LANES * MAX_ENTRIES_PER_LANE;
+  static const int  MAX_UDP_CHANNELS     = 32;
 
   static void* igmpThreadLoopCb(void* pEkaIgmp);
   int          igmpThreadLoop();
@@ -38,7 +41,8 @@ class EkaIgmp {
 
   EkaIgmpEntry*         igmpEntry[MAX_IGMP_ENTRIES] = {};
   int                   numIgmpEntries              = 0;
-
+  int                   numIgmpEntriesAtCh[MAX_UDP_CHANNELS] = {};
+  int                   numIgmpEntriesAtCore[MAX_LANES] = {};
   std::mutex            createEntryMtx;
 
   EkaDev*               dev                         = NULL;

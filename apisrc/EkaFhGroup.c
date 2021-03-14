@@ -221,8 +221,8 @@ int EkaFhGroup::init (EfhCtx* _pEfhCtx,
     EKA_LOG("%s:%u created file %s",EKA_EXCH_DECODE(exch),id,parsedMsgFileName.c_str());
   }
 
-  EKA_LOG("%s:%u is initialized, feed_ver=%s",
-	  EKA_EXCH_DECODE(exch),id,EKA_FEED_VER_DECODE(feed_ver));
+  /* EKA_LOG("%s:%u is initialized, feed_ver=%s", */
+  /* 	  EKA_EXCH_DECODE(exch),id,EKA_FEED_VER_DECODE(feed_ver)); */
 
   return 0;
 }

@@ -145,7 +145,7 @@ int EkaFh::openGroups(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
     if (b_gr[i] == NULL) on_error("b_gr[i] == NULL");
 
     b_gr[i]->init(pEfhCtx,pEfhInitCtx,this,i,exch);
-    b_gr[i]->bookInit(pEfhCtx,pEfhInitCtx);
+    //    b_gr[i]->bookInit(pEfhCtx,pEfhInitCtx);
 
     EKA_LOG("%s:%u initialized as %s:%u at runGroups",
 	    EKA_EXCH_DECODE(exch),b_gr[i]->id,EKA_EXCH_DECODE(b_gr[i]->exch),i);
@@ -522,6 +522,7 @@ EkaOpResult EkaFh::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
     EkaFhGroup* gr = b_gr[pEfhRunCtx->groups[i].localId];
     if (gr == NULL) on_error ("b_gr[%u] == NULL",pEfhRunCtx->groups[i].localId);
 
+    b_gr[i]->bookInit();
     gr->createQ(pEfhCtx,qsize);
     gr->expected_sequence = 1;
 

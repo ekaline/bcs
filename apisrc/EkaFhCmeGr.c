@@ -36,7 +36,7 @@ int EkaFhCmeGr::createPktQ() {
 
 /* ##################################################################### */
 
-int EkaFhCmeGr::bookInit (EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
+int EkaFhCmeGr::bookInit () {
   book = new FhBook(dev,id,exch);
   if (book == NULL) on_error("book = NULL");
 
