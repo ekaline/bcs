@@ -50,7 +50,7 @@ int EkaIgmp::mcJoin(int epmRegion, EkaCoreId coreId, uint32_t ip, uint16_t port,
 
   if (numIgmpEntriesAtCore[coreId] == MAX_ENTRIES_PER_LANE) 
     on_error("numIgmpEntriesAtCore[%d] %d == MAX_ENTRIES_PER_LANE %d",
-	     coreId,numIgmpEntriesAtCore[epmRegion],MAX_ENTRIES_PER_LANE);
+	     coreId,numIgmpEntriesAtCore[coreId],MAX_ENTRIES_PER_LANE);
 
   int perChId = numIgmpEntriesAtCh[epmRegion];
 
