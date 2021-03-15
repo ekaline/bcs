@@ -288,6 +288,7 @@ void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fire_report_buf, size_t
 
 void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
+  if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
 
   EkaSource exch = msg->header.group.source;
   EkaLSI    grId = msg->header.group.localId;
@@ -351,6 +352,7 @@ static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
 
 void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
+  if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
 
   EkaSource exch = msg->header.group.source;
   EkaLSI    grId = msg->header.group.localId;
