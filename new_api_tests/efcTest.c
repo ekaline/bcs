@@ -706,7 +706,7 @@ int main(int argc, char *argv[]) {
     on_error ("MC trigger send failed");
 
   efcEnableController(pEfcCtx, 1);
-  sleep(1);
+  sleep(10);
 
 
   // ==============================================

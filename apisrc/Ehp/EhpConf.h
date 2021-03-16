@@ -27,14 +27,14 @@ enum class EhpSidePresence : int8_t {
 struct EhpParseTemplate {
   uint16_t      msgId;       // message Id as appears in the protocol
   EhpOpcode     opcode;      // nop/mul/etc...
-  uint8_t       byteOffs_7;  // 
-  uint8_t       byteOffs_6;  // 
-  uint8_t       byteOffs_5;  // 
-  uint8_t       byteOffs_4;  // 
-  uint8_t       byteOffs_3;  // 
-  uint8_t       byteOffs_2;  // 
-  uint8_t       byteOffs_1;  // 
   uint8_t       byteOffs_0;  // 
+  uint8_t       byteOffs_1;  // 
+  uint8_t       byteOffs_2;  // 
+  uint8_t       byteOffs_3;  // 
+  uint8_t       byteOffs_4;  // 
+  uint8_t       byteOffs_5;  // 
+  uint8_t       byteOffs_6;  // 
+  uint8_t       byteOffs_7;  // 
 } __attribute__((packed));
 
 
