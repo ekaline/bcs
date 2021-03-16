@@ -20,7 +20,7 @@ class EhpNom : public EhpProtocol {
 
  public:
   static const int AddOrderShortMsg = 0;
-  static const int AddOrderLongMsg = 1;
+  static const int AddOrderLongMsg  = 1;
 
 };
 

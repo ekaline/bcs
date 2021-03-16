@@ -3,7 +3,7 @@
 
 #define EhpMaxMsgTypes 8
 
-enum class EhpMultFactor : int8_t {
+enum class EhpOpcode : int8_t {
   NOP = 0,    // copy value as is
     MUL100 = 1  // multiply value by 100
 };
@@ -26,7 +26,7 @@ enum class EhpSidePresence : int8_t {
 */
 struct EhpParseTemplate {
   uint16_t      msgId;       // message Id as appears in the protocol
-  EhpMultFactor mult;        // multiply value by const
+  EhpOpcode     opcode;      // nop/mul/etc...
   uint8_t       byteOffs_7;  // 
   uint8_t       byteOffs_6;  // 
   uint8_t       byteOffs_5;  // 
@@ -87,8 +87,8 @@ struct EhpProtocolParams {
 * - fields: define how to extract every field for every message type
 */
 struct EhpProtocolConf {
-  EhpProtocolParams params;
   EhpFieldParams    fields;
+  EhpProtocolParams params;
 } __attribute__((packed));
 
 #endif
