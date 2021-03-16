@@ -203,7 +203,7 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 
   clearHw();
   eka_write(FPGA_RT_CNTR,getFpgaTimeCycles());
-  //  eka_write(SCRPAD_SW_VER,EKA_CORRECT_SW_VER | hwEnabledCores);
+  eka_write(SCRPAD_SW_VER,EKA_CORRECT_SW_VER | hwEnabledCores);
 
 }
 /* ##################################################################### */
