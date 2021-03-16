@@ -14,6 +14,7 @@ class EkaHwHashTableLine;
 class EkaIgmp;
 class EkaUdpSess;
 class EkaEpmAction;
+class EhpProtocol;
 
 class EkaEfc : public EpmStrategy {
  public:
@@ -66,6 +67,8 @@ class EkaEfc : public EpmStrategy {
   EfcRunCtx           localCopyEfcRunCtx = {};
 
   uint64_t            pktCnt         = 0; // for EFH compatibility
+
+  EhpProtocol*        ehp = NULL;
 
 };
 

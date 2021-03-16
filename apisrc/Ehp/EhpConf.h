@@ -1,19 +1,32 @@
-#ifndef _EKA_HW_PARSER_CONF_H_
-#define _EKA_HW_PARSER_CONF_H_
+#ifndef _EHP_CONF_H_
+#define _EHP_CONF_H_
 
+#define EhpMaxMsgTypes 8
 
-enum class EhpMultFactor : uint8_t {
+enum class EhpMultFactor : int8_t {
   NOP = 0,    // copy value as is
     MUL100 = 1  // multiply value by 100
 };
 
+struct EhpSideEncode {
+  uint8_t ask; 
+  uint8_t bid;
+} __attribute__((packed));
+
+enum class EhpSidePresence : int8_t {
+  HARD_BID = 0,     // Side is BID for this message type
+    HARD_ASK = 1,   // Side is ASK for this message type
+    NONE     = 2,   // no Side at this message type
+    EXPLICIT = 3    // Side is derived from a field
+};
+
 /**
-* Configuration def
+* Configuration defining how to extract a field
 *
 */
 struct EhpParseTemplate {
   uint16_t      msgId;       // message Id as appears in the protocol
-  EhpMultFactor multFactor;  // multiply value by const
+  EhpMultFactor mult;        // multiply value by const
   uint8_t       byteOffs_7;  // 
   uint8_t       byteOffs_6;  // 
   uint8_t       byteOffs_5;  // 
@@ -22,6 +35,19 @@ struct EhpParseTemplate {
   uint8_t       byteOffs_2;  // 
   uint8_t       byteOffs_1;  // 
   uint8_t       byteOffs_0;  // 
+} __attribute__((packed));
+
+
+
+/**
+* Configuration defining how to determine Side
+*
+*/
+struct EhpParseTemplateSide {
+  uint16_t        msgId;        // message Id as appears in the protocol
+  EhpSideEncode   encode;       // byte value encoding Ask and Bid
+  EhpSidePresence presence;     // how Side field appearse in the message
+  uint8_t         byteOffs;     // offset of the Side field (if relevant)
 } __attribute__((packed));
 
 /**
@@ -37,13 +63,19 @@ struct EhpFieldParams {
   EhpParseTemplate     msgLen[EhpMaxMsgTypes];
 } __attribute__((packed));
 
+#define EhpBlankByte 0xFF
+
+struct EhpBytesBeforeReady {
+  uint16_t            msgId;        // message Id as appears in the protocol
+  uint8_t             byteOffs;
+} __attribute__((packed));
 
 struct EhpProtocolParams {
-  EhpBytesBeforeReady bytes4SecLookup;  // bytes to receive before Sec Lookup
-  EhpBytesBeforeReady bytes4Strategy;   // bytes to receive before Strategy eval
-  uint8_t             msgHdrSize   : 4; // message header bytes
-  uint8_t             msgDeltaSize : 4; // extra bytes to offset per message
-  uint8_t             pktHdrLen;        // packet header bytes
+  EhpBytesBeforeReady bytes4SecLookup[EhpMaxMsgTypes]; // bytes to receive before Sec Lookup
+  EhpBytesBeforeReady bytes4Strategy[EhpMaxMsgTypes];  // bytes to receive before Strategy eval
+  uint8_t             bytes4StartMsgProc  : 4;         // message bytes 
+  uint8_t             msgDeltaSize        : 4;         // extra bytes to offset per message
+  uint8_t             pktHdrLen;                       // packet header bytes
 } __attribute__((packed));
 
 
