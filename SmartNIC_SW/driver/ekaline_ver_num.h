@@ -1,1 +1,1 @@
-#define EKA_VER_NUM 0x2
+#define EKA_VER_NUM 0x3
