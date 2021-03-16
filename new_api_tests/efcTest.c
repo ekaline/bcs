@@ -348,7 +348,7 @@ int main(int argc, char *argv[]) {
     if (conn[i] < 0) on_error("excConnect %d %s:%u",
 			      i,EKA_IP2STR(serverAddr.sin_addr.s_addr),be16toh(serverAddr.sin_port));
     const char* pkt = "\n\nThis is 1st TCP packet sent from FPGA TCP client to Kernel TCP server\n\n";
-    excSend (dev, conn[i], pkt, strlen(pkt));
+    excSend (dev, conn[i], pkt, strlen(pkt), 0);
     int bytes_read = 0;
     char rxBuf[2000] = {};
     bytes_read = recv(tcpSock[i], rxBuf, sizeof(rxBuf), 0);

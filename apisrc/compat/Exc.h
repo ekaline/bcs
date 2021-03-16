@@ -75,12 +75,12 @@ ExcConnHandle excReconnect( EkaDev* pEkaDev, ExcConnHandle hConn );
  *                path should be warmed up.
  * @return This will return the values that exhibit the same behavior of linux's send fn.
  */
-ssize_t excSend( EkaDev* pEkaDev, ExcConnHandle hConn, const void* buffer, size_t size );
+ssize_t excSend( EkaDev* pEkaDev, ExcConnHandle hConn, const void* buffer, size_t size, int flags );
 
 /**
  * $$NOTE$$ - This is mutexed to handle single session at a time.
  */
-ssize_t excRecv( EkaDev* pEkaDev, ExcConnHandle hConn, void *buffer, size_t size );
+ssize_t excRecv( EkaDev* pEkaDev, ExcConnHandle hConn, void *buffer, size_t size, int flags );
 
 /*
  *

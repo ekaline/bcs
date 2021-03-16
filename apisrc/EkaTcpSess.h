@@ -23,7 +23,7 @@ class EkaTcpSess {
   int bind();
   int connect();
 
-  int sendPayload(uint thr, void *buf, int len);
+  int sendPayload(uint thr, void *buf, int len, int flags);
   int sendFullPkt(void *buf, int len);
   int sendStackPkt(void *buf, int len);
   int sendThruStack(void *buf, int len);
@@ -34,7 +34,7 @@ class EkaTcpSess {
 
   int preloadNwHeaders();
 
-  ssize_t recv(void *buffer, size_t size);
+  ssize_t recv(void *buffer, size_t size, int flags);
   int     close();
   ExcConnHandle getConnHandle() {
     return coreId * 128 + sessId;
@@ -108,6 +108,8 @@ class EkaTcpSess {
   int  setRemoteSeqWnd2FPGA();
   int  setLocalSeqWnd2FPGA();
   bool isEstablished() const noexcept { return connectionEstablished; }
+  bool isBlocking() const noexcept { return blocking; }
+  int setBlocking(bool);
 
  private:
   typedef union exc_table_desc {
@@ -123,6 +125,7 @@ class EkaTcpSess {
   EkaDev* dev = NULL;
 
   bool connectionEstablished = false;
+  bool blocking = true;
 };
 
 #endif

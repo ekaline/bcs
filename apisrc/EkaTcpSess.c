@@ -87,8 +87,8 @@ EkaTcpSess::EkaTcpSess(EkaDev* pEkaDev, EkaCore* _parent, uint8_t _coreId, uint8
 
 /* ---------------------------------------------------------------- */
 
-ssize_t EkaTcpSess::recv(void *buffer, size_t size) {
-  ssize_t res = lwip_recv(sock, buffer, size, 0);
+ssize_t EkaTcpSess::recv(void *buffer, size_t size, int flags) {
+  ssize_t res = lwip_recv(sock, buffer, size, flags);
   return res;
 }
 
@@ -276,6 +276,20 @@ int EkaTcpSess::setLocalSeqWnd2FPGA() {
     return 0;
 }
 
+int EkaTcpSess::setBlocking(bool b) {
+  int flags = lwip_fcntl(sock, F_GETFL, 0);
+  if (flags == -1)
+    return -1;
+  else if (b)
+    flags &= ~O_NONBLOCK;
+  else
+    flags |= O_NONBLOCK;
+  const int err = lwip_fcntl(sock, F_SETFL, flags);
+  if (!err)
+    blocking = b;
+  return err;
+}
+
 /* ---------------------------------------------------------------- */
 int EkaTcpSess::sendStackPkt(void *pkt, int len) {
   if (EKA_TCP_SYN(pkt)) {
@@ -327,7 +341,10 @@ int EkaTcpSess::sendStackPkt(void *pkt, int len) {
 /* ---------------------------------------------------------------- */
 
 int EkaTcpSess::sendFullPkt(void *buf, int len) {
-  if (! dev->exc_active) return 1;
+  if (! dev->exc_active) {
+    errno = ENETDOWN;
+    return -1;
+  }
 
   if ((uint)len > MAX_PKT_SIZE) 
     on_error("Size (=%d) > MAX_PKT_SIZE (%d)",(int)len,MAX_PKT_SIZE);
@@ -365,8 +382,11 @@ int EkaTcpSess::sendDummyPkt(void *buf, int len) {
 }
 
 /* ---------------------------------------------------------------- */
-int EkaTcpSess::sendPayload(uint thrId, void *buf, int len) {
-  if (! dev->exc_active) return 1;
+int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
+  if (! dev->exc_active) {
+    errno = ENETDOWN;
+    return -1;
+  }
 
   static const uint TrafficMargin = 4*1024; // just a number
 
@@ -377,24 +397,25 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len) {
   /*       usleep(0); */
   /*   return 0; // too high tx rate -- Back Pressure */
   /* } */
-
+  uint payloadSize2send = ((uint)len <= (MAX_PAYLOAD_SIZE + 2)) ? (uint)len : MAX_PAYLOAD_SIZE;
   if (
       ( (fastPathBytes + tcpLocalSeqNumBase - tcpRemoteAckNum) > TrafficMargin ) &&
       ( (fastPathBytes + tcpLocalSeqNumBase - tcpRemoteAckNum) < TrafficMargin*4 ) //and not a wraparound
-      ) {
-    throttleCounter++;
-    if (throttleCounter > maxThrottleCounter) {
-      //      EKA_WARN(YEL "max throttling updated %u" RESET, throttleCounter);
-      maxThrottleCounter = throttleCounter;
-    }
+      )
+    payloadSize2send = 0; // Throttle
 
-    //    EKA_WARN(YEL "throttling %u for %u us" RESET, fastPathBytes + tcpLocalSeqNumBase - tcpRemoteAckNum,throttleCounter);
-    usleep(throttleCounter);
-    return 0;
+  const bool isBlocking = this->blocking && !(flags & MSG_DONTWAIT);
+  if (isBlocking && payloadSize2send != (uint)len) {
+    // FIXME: do something about this
+    EKA_WARN("full blocking emulation is not implemented yet!");
+    errno = ENOSYS;
+    return -1;
   }
-  throttleCounter = 0;
-  uint payloadSize2send = ((uint)len <= (MAX_PAYLOAD_SIZE + 2)) ? (uint)len : MAX_PAYLOAD_SIZE;
-  //  if (payloadSize2send <= 2) on_error("len = %d, payloadSize2send=%u,MAX_PKT_SIZE=%u",len,payloadSize2send,MAX_PAYLOAD_SIZE);
+  else if (len && !payloadSize2send) {
+    errno = EAGAIN;
+    return -1;
+  }
+
   fastPathBytes += payloadSize2send;
 
   fastPathAction->fastSend(buf, payloadSize2send);

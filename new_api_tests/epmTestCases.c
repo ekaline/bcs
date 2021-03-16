@@ -456,7 +456,7 @@ int main(int argc, char *argv[]) {
   ExcConnHandle conn = excConnect(dev,ekaSock,(struct sockaddr*) &serverAddr, sizeof(struct sockaddr_in));
   if (conn < 0) on_error("excConnect %s:%u",EKA_IP2STR(serverAddr.sin_addr.s_addr),be16toh(serverAddr.sin_port));
   const char* pkt = "\n\nThis is 1st TCP packet sent from FPGA TCP client to Kernel TCP server\n\n";
-  excSend (dev, conn, pkt, strlen(pkt));
+  excSend (dev, conn, pkt, strlen(pkt), 0);
 
   int bytes_read = 0;
   char rxBuf[2000] = {};
