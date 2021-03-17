@@ -270,6 +270,13 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
   }
     break;
     /* ----------------------------- */
+  case EfhGroupState::kWarning : {
+    fprintf(gr->MD,"%s: %s : BACK-IN-TIME \n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str());
+    printf ("=========================\n%s: %s: BACK-IN-TIME %ju\n=========================\n",
+	    EKA_PRINT_GRP(&msg->group),eka_get_time().c_str(),msg->code);
+  }
+    break;
+    /* ----------------------------- */
   default:
     on_error("Unexpected EfhGroupState \'%c\'",(char)msg->groupState);
   }

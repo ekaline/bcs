@@ -87,6 +87,8 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
     case EkaFhGroup::GrpState::NORMAL : {
       if (sequence == 0) break; // unsequenced packet
       if (sequence < gr->expected_sequence) {
+	if (gr->expected_sequence == gr->seq_after_snapshot + 1 ||
+	    gr->expected_sequence == gr->recovery_sequence + 1) break; // end of recovery cycle
 	EKA_WARN("%s:%u BACK-IN-TIME WARNING: sequence %ju < expected_sequence %ju",
 		 EKA_EXCH_DECODE(exch),gr_id,sequence,gr->expected_sequence);
 	gr->sendBackInTimeEvent(pEfhRunCtx,sequence);
