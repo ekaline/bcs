@@ -117,6 +117,10 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     } else {
       if (sequence < gr->expected_sequence) {
 	// skip stale
+	EKA_WARN("%s:%u BACK-IN-TIME WARNING: sequence %ju < expected_sequence %ju",
+		 EKA_EXCH_DECODE(exch),gr_id,sequence,gr->expected_sequence);
+	gr->sendBackInTimeEvent(pEfhRunCtx,sequence);
+	//	gr->expected_sequence = sequence;
       } else if (sequence != gr->expected_sequence) {
   	EKA_LOG("%s:%u sequence=%ju,expected_sequence=%ju",
 		EKA_EXCH_DECODE(exch),gr_id, sequence,gr->expected_sequence);

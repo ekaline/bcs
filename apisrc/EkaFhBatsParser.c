@@ -193,8 +193,8 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
 
     memcpy(&msg.opaqueAttrA,message->symbol,6);
 
-    char osi2print[22] = {};
-    memcpy(osi2print,osi,21);
+    /* char osi2print[22] = {}; */
+    /* memcpy(osi2print,osi,21); */
     //    EKA_LOG("OSI: %s, Expiration = %u, strike: %ju",osi2print,msg.expiryDate,msg.strikePrice);
     pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
     return false;

@@ -308,7 +308,7 @@ int main(int argc, char *argv[]) {
     .attrs = {
       .host_ip      = inet_addr(clientIp.c_str()),
       .netmask      = inet_addr("255.255.255.0"),
-      .gateway      = inet_addr(clientIp.c_str()),
+      .gateway      = inet_addr("10.0.0.10"),
       .nexthop_mac  = {}, // resolved by our internal ARP
       .src_mac_addr = {}, // taken from system config
       .dont_garp    = 0

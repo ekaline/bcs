@@ -96,7 +96,7 @@ include .lwip_depend
 	$(CCDEP) $(CFLAGS) -I . -MM $^ > .lwip_depend || rm -f .lwip_depend
 
 ###############################################
-$(EKALIB_OBJ): %.o:
+$(EKALIB_OBJ): %.o: %.c
 	$(CC) $(CC_OPT) -c $< $(GCC_FLAGS) $(INCL) -o $@
 
 
@@ -125,18 +125,18 @@ $(EKAUTILS): %: %.c $(LIBEKALINE).a
 
 eka_tests: $(EKATESTS_EXECS)
 ../new_api_tests/%: ../new_api_tests/%.c $(LIBEKALINE)_test.so
-	$(CC) $< -o $@ $(GCC_FLAGS) $(INCL) $(LLIB_TEST)
+	$(CC) $< -o $@ $(GCC_FLAGS) $(INCL) $(LLIB_TEST)  -static-libstdc++ -static-libgcc
 
 unit_tests: $(UNITTESTS_EXECS)
 ../new_api_tests/unit%: ../new_api_tests/unit%.c $(LIBEKALINE)_test.so
-	$(CC) $< -o $@ $(GCC_FLAGS) $(INCL) $(LLIB_TEST) $(SMARTNIC_LIB)
+	$(CC) $< -o $@ $(GCC_FLAGS) $(INCL) $(LLIB_TEST) $(SMARTNIC_LIB)  -static-libstdc++ -static-libgcc
 
 
 ../pcapParsers/cmePcapParse.o: ../pcapParsers/cmePcapParse.c 
-	$(CC) $(CC_OPT) -c $< $(GCC_FLAGS) $(INCL) -o $@
+	$(CC) $(CC_OPT) -c $< $(GCC_FLAGS) $(INCL) -o $@  -static-libstdc++ -static-libgcc
 
 ../pcapParsers/cmePcapParse: ../pcapParsers/cmePcapParse.o EkaFhCmeParser.o eka_common.o
-	$(CC) -o $@ $^ $(GCC_FLAGS) $(INCL)
+	$(CC) -o $@ $^ $(GCC_FLAGS) $(INCL)  -static-libstdc++ -static-libgcc
 
 clean:
 	rm -f /tmp/core* *.o */*.o *.so *.a *~ core $(EKATESTS_EXECS) $(UNITTESTS_EXECS) $(EKAUTILS_EXECS) */*~ ../*/*~ *.csv *.txt

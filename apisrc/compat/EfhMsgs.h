@@ -20,7 +20,7 @@ enum class EfhMsgType : uint16_t {
                 _x( Quote                  )                                \
                 _x( Order                  )                                \
                 _x( DoneStaticDefs,    50  )                                \
-                _x( GroupStateChanged, 100 )
+                _x( GroupStateChanged, 100 )                                
         EfhMsgType_ENUM_ITER( EKA__ENUM_DEF )
 };
 
@@ -176,6 +176,7 @@ enum class EfhGroupState : char {
   _x( Normal,       'N' )            \
   _x( Gap,          'G' )            \
   _x( Closed,       'C' )            \
+  _x( Warning,      'W' )            \
   _x( Error,        'E' )
   EfhGroupState_ENUM_ITER( EKA__ENUM_DEF )
 };
@@ -201,16 +202,17 @@ enum class EfhGroupState : char {
  *   - DeviceError: an Ekaline device error. The error code is in the
  *     EkaOpResult domain.
  */
-enum class EfhGroupStateErrorDomain : char {
-#define EfhGroupStateErrorDomain_ENUM_ITER( _x ) \
+enum class EfhErrorDomain : char {
+#define EfhErrorDomain_ENUM_ITER( _x ) \
   _x( NoError,         ' ' )              \
   _x( SocketError,     'S' )              \
   _x( OSError,         'O' )              \
   _x( UpdateTimeout,   'T' )              \
   _x( CredentialError, 'C' )              \
   _x( ExchangeError,   'E' )              \
+  _x( BackInTime,      'B' )              \
   _x( DeviceError,     'D' )
-  EfhGroupStateErrorDomain_ENUM_ITER( EKA__ENUM_DEF )
+  EfhErrorDomain_ENUM_ITER( EKA__ENUM_DEF )
 };
 
 typedef char EfhSymbol[8];
@@ -361,7 +363,7 @@ typedef struct {
  * When the groupState is EfhGroupState::Error:
  *
  *   - The error code is copied into "code" and "errorDomain" describes
- *     what kind of error code it is (see EfhGroupStateErrorDomain).
+ *     what kind of error code it is (see EfhErrorDomain).
  *
  *   - If the error is related to a particular service (e.g., a failure on
  *     a recovery service socket), the service that failed is reported
@@ -377,7 +379,7 @@ typedef struct {
                 _x( EkaGroup,                 group )                       \
                 _x( EfhGroupState,            groupState )                  \
                 _x( EfhSystemState,           systemState )                 \
-                _x( EfhGroupStateErrorDomain, errorDomain )                 \
+                _x( EfhErrorDomain,           errorDomain )                 \
                 _x( EkaServiceType,           service )                     \
                 _x( int64_t,                  code )
         EfhGroupStateChangedMsg_FIELD_ITER( EKA__FIELD_DEF )

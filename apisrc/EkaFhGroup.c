@@ -56,7 +56,7 @@ void EkaFhGroup::sendFeedUp(const EfhRunCtx* pEfhRunCtx) {
     {exch, id},
     EfhGroupState::kNormal,   //Initializing
     EfhSystemState::kTrading, // Preopen, Trading, Closed
-    EfhGroupStateErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EfhErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kFeedRecovery, // Unspecified, FeedRecovery
     gapNum // int64_t code
   };
@@ -72,7 +72,7 @@ void EkaFhGroup::sendFeedUpInitial(const EfhRunCtx* pEfhRunCtx) {
     {exch, id},
     EfhGroupState::kNormal,   //Initializing
     EfhSystemState::kInitial, // Preopen, Trading, Closed
-    EfhGroupStateErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EfhErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kFeedSnapshot, // Unspecified, FeedRecovery
     gapNum // int64_t code
   };
@@ -89,7 +89,7 @@ void EkaFhGroup::sendFeedDown(const EfhRunCtx* pEfhRunCtx) {
     {exch, id},
     EfhGroupState::kGap, //Initializing
     EfhSystemState::kTrading, // Preopen, Trading, Closed
-    EfhGroupStateErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EfhErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kFeedRecovery, // Unspecified, FeedRecovery
     ++gapNum // int64_t code
   };
@@ -106,7 +106,7 @@ void EkaFhGroup::sendFeedDownInitial(const EfhRunCtx* pEfhRunCtx) {
     {exch, id},
     EfhGroupState::kInitializing,
     EfhSystemState::kInitial, // Preopen, Trading, Closed
-    EfhGroupStateErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EfhErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kFeedSnapshot, // Unspecified, FeedRecovery
     ++gapNum // int64_t code
   };
@@ -123,9 +123,25 @@ void EkaFhGroup::sendFeedDownClosed(const EfhRunCtx* pEfhRunCtx) {
     {exch, id},
     EfhGroupState::kClosed,
     EfhSystemState::kClosed, // Preopen, Trading, Closed
-    EfhGroupStateErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EfhErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kUnspecified, // Unspecified, FeedRecovery
     ++gapNum // int64_t code
+  };
+  pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
+}
+ /* ##################################################################### */
+
+void EkaFhGroup::sendBackInTimeEvent(const EfhRunCtx* pEfhRunCtx, uint64_t badSequence) {
+  if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
+
+  EfhGroupStateChangedMsg msg = {
+    EfhMsgType::kGroupStateChanged,
+    {exch, id},
+    EfhGroupState::kWarning,
+    EfhSystemState::kTrading, 
+    EfhErrorDomain::kBackInTime, 
+    EkaServiceType::kLiveMarketData,
+    (int64_t)badSequence 
   };
   pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
 }
@@ -140,7 +156,7 @@ void EkaFhGroup::sendNoMdTimeOut(const EfhRunCtx* pEfhRunCtx) {
     {exch, id},
     EfhGroupState::kError,
     EfhSystemState::kUnknown, // Preopen, Trading, Closed
-    EfhGroupStateErrorDomain::kUpdateTimeout, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EfhErrorDomain::kUpdateTimeout, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kUnspecified, // Unspecified, FeedRecovery
     ++gapNum // int64_t code
   };
@@ -157,7 +173,7 @@ void EkaFhGroup::sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx) {
     {exch, id},
     EfhGroupState::kError,
     EfhSystemState::kUnknown, // Preopen, Trading, Closed
-    EfhGroupStateErrorDomain::kExchangeError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EfhErrorDomain::kExchangeError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kFeedRecovery, // Unspecified, FeedRecovery
     (int64_t)dev->lastExchErr
   };
@@ -177,7 +193,7 @@ void EkaFhGroup::sendRetransmitSocketError(const EfhRunCtx* pEfhRunCtx) {
     {exch, id},
     EfhGroupState::kError,
     EfhSystemState::kUnknown, // Preopen, Trading, Closed
-    EfhGroupStateErrorDomain::kSocketError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EfhErrorDomain::kSocketError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kFeedSnapshot, // Unspecified, FeedRecovery
     dev->lastErrno
   };

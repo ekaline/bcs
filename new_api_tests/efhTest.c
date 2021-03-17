@@ -142,38 +142,38 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
     /* ----------------------------- */
   case EfhGroupState::kError :
     switch (msg->errorDomain) {
-    case EfhGroupStateErrorDomain::kUpdateTimeout :
+    case EfhErrorDomain::kUpdateTimeout :
       printf ("=========================\n%s: MdTimeOut\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
       break;
       
-    case EfhGroupStateErrorDomain::kExchangeError :
+    case EfhErrorDomain::kExchangeError :
       printf ("=========================\n%s: ExchangeError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
       if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
       break;
 
-    case EfhGroupStateErrorDomain::kSocketError :
+    case EfhErrorDomain::kSocketError :
       printf ("=========================\n%s: SocketError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
       if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
       break;
 
-    case EfhGroupStateErrorDomain::kCredentialError :
+    case EfhErrorDomain::kCredentialError :
       printf ("=========================\n%s: CredentialError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
       if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
 
       break;
 
-    case EfhGroupStateErrorDomain::kOSError :
+    case EfhErrorDomain::kOSError :
       printf ("=========================\n%s: OSError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
       if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
 
       break;
 
-    case EfhGroupStateErrorDomain::kDeviceError :
+    case EfhErrorDomain::kDeviceError :
       printf ("=========================\n%s: DeviceError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
       if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);

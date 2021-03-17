@@ -54,6 +54,7 @@ class EkaFhGroup {
   void         sendNoMdTimeOut(const EfhRunCtx* EfhRunCtx);
   void         sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx);
   void         sendRetransmitSocketError(const EfhRunCtx* pEfhRunCtx);
+  void         sendBackInTimeEvent(const EfhRunCtx* pEfhRunCtx, uint64_t badSequence);
 
   virtual int closeSnapshotGap(EfhCtx*              pEfhCtx, 
 			       const EfhRunCtx*  pEfhRunCtx, 

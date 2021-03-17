@@ -85,7 +85,15 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       break;
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::NORMAL : {
-      //      if (sequence < gr->expected_sequence) break; // skipping stale messages
+      if (sequence == 0) break; // unsequenced packet
+      if (sequence < gr->expected_sequence) {
+	EKA_WARN("%s:%u BACK-IN-TIME WARNING: sequence %ju < expected_sequence %ju",
+		 EKA_EXCH_DECODE(exch),gr_id,sequence,gr->expected_sequence);
+	gr->sendBackInTimeEvent(pEfhRunCtx,sequence);
+	gr->expected_sequence = sequence;
+	break; 
+      }
+
       if (sequence > gr->expected_sequence) { // GAP
 	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%ju",
 		EKA_EXCH_DECODE(exch),gr_id,gr->expected_sequence,sequence);
