@@ -27,6 +27,12 @@
 
 int createIgmpPkt (char* dst, bool join, uint8_t* macsa, uint32_t ip_src, uint32_t ip_dst);
 
+
+ /* ##################################################################### */
+EkaFhGroup::EkaFhGroup() {
+    connectRetryDelayTime = 15;
+    pktCnt = 0;
+}
  /* ##################################################################### */
 uint         EkaFhGroup::getNumSecurities() {
   return numSecurities;
@@ -231,7 +237,7 @@ int EkaFhGroup::init (EfhCtx* _pEfhCtx,
   id       = gr_id;
   state    = GrpState::INIT;
 
-  if (fh->print_parsed_messages) {
+  if (pInitCtx->printParsedMessages) {
     std::string parsedMsgFileName = std::string(EKA_EXCH_DECODE(exch)) + std::to_string(id) + std::string("_PARSED_MESSAGES.txt");
     if((parser_log = fopen(parsedMsgFileName.c_str(),"w")) == NULL) on_error ("Error %s",parsedMsgFileName.c_str());
     EKA_LOG("%s:%u created file %s",EKA_EXCH_DECODE(exch),id,parsedMsgFileName.c_str());
@@ -277,7 +283,10 @@ EkaFhGroup::~EkaFhGroup () {
   snapshot_active  = false;
   recovery_active  = false;
 
-  if (fh->print_parsed_messages) fclose(parser_log);
+  if (fh->print_parsed_messages) {
+    EKA_LOG("%s:%u: closing parser_log file",EKA_EXCH_DECODE(exch),id);
+    fclose(parser_log);
+  }
 
   if (q != NULL) {
     delete q;

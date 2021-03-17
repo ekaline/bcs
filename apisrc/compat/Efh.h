@@ -36,6 +36,7 @@ enum class EfhFeedVer {
     size_t numOfGroups;
 
     EkaCoreId coreId; // what 10G port to work on
+    bool      printParsedMessages; // used for Ekaline internal testing
 
     /* This is true if we expect to receive marketdata updates when we run efhRun().  If this is false, 
      * we dont expect updates, and so Ekaline can save memory and avoid creating structures that arent needed.  */

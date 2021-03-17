@@ -617,9 +617,10 @@ static int getAttr(int argc, char *argv[],
 		   std::vector<TestRunGroup>& testRunGroups,
 		   std::vector<std::string>&  underlyings,
 		   bool *print_tob_updates,
-		   bool *subscribe_all) {
+		   bool *subscribe_all,
+		   bool *print_parsed_messages) {
   int opt; 
-  while((opt = getopt(argc, argv, ":u:g:hta")) != -1) {  
+  while((opt = getopt(argc, argv, ":u:g:htap")) != -1) {  
     switch(opt) {  
     case 't':  
       printf("Print TOB Updates (EFH)\n");  
@@ -632,6 +633,10 @@ static int getAttr(int argc, char *argv[],
     case 'u':  
       underlyings.push_back(std::string(optarg));
       printf("Underlying to subscribe: %s\n", optarg);  
+      break;  
+    case 'p':  
+      *print_parsed_messages = true;
+      printf("print_parsed_messages = true\n");  
       break;  
     case 'h':  
       print_usage(argv[0]);
@@ -736,8 +741,9 @@ int main(int argc, char *argv[]) {
   std::vector<TestRunGroup> testRunGroups;
   std::vector<EfhInitCtx>   efhInitCtx;
   std::vector<EfhRunCtx>    efhRunCtx;
+  bool print_parsed_messages = false;
 
-  getAttr(argc,argv,testRunGroups,underlyings,&print_tob_updates,&subscribe_all);
+  getAttr(argc,argv,testRunGroups,underlyings,&print_tob_updates,&subscribe_all,&print_parsed_messages);
 
   if (testRunGroups.size() == 0) { 
     TEST_LOG("No test groups passed");
@@ -766,6 +772,7 @@ int main(int argc, char *argv[]) {
 
   for (size_t r = 0; r < testRunGroups.size(); r++) {
     try {
+      efhInitCtx.at(r).printParsedMessages = print_parsed_messages;
       efhInit(&pEfhCtx[r],pEkaDev,&efhInitCtx.at(r));
       if (pEfhCtx[r] == NULL) on_error("pEfhCtx[r] == NULL");
       efhRunCtx.at(r).efhRunUserData = (EfhRunUserData)pEfhCtx[r];
@@ -776,6 +783,7 @@ int main(int argc, char *argv[]) {
 	on_error("i=%jd, fhId = %u, pEfhCtx[r]=%p",r,pEfhCtx[r]->fhId,pEfhCtx[r]);
 
       pEfhCtx[r]->printQStatistics = true;
+
       /* ------------------------------------------------------- */
       for (uint8_t i = 0; i < efhRunCtx.at(r).numGroups; i++) {
 	EkaSource exch = efhRunCtx.at(r).groups[i].source;

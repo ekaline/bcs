@@ -44,7 +44,6 @@ int EkaFh::setId(EfhCtx* pEfhCtx, EkaSource ec, uint8_t numFh) {
   //  full_book = EFH_EXCH2FULL_BOOK(exch);
   id = numFh;
   if (exch == EkaSource::kInvalid) on_error ("exch (%d) == EkaSource::kInvalid",(int)exch);
-  print_parsed_messages = dev->print_parsed_messages;
 
   return 0;
 }
@@ -71,6 +70,8 @@ int EkaFh::init(const EfhInitCtx* pEfhInitCtx, uint8_t numFh) {
 
   assert (pEfhInitCtx->numOfGroups <= EKA_FH_GROUPS);
   groups = pEfhInitCtx->numOfGroups;
+
+  print_parsed_messages = pEfhInitCtx->printParsedMessages;
 
   for (uint i = 0; i < pEfhInitCtx->ekaProps->numProps; i++) {
     EkaProp& ekaProp{ pEfhInitCtx->ekaProps->props[i] };
