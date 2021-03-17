@@ -89,8 +89,10 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
       gr->sendFeedDownInitial(pEfhRunCtx);
       gr->pushUdpPkt2Q(pkt,pktLen);
+      EKA_LOG("%s:%u INIT Gap: pushing sequence %ju to Q",
+		EKA_EXCH_DECODE(exch),gr_id,sequence);
 
-      gr->closeIncrementalGap(pEfhCtx,pEfhRunCtx, (uint64_t)1, sequence);
+      gr->closeIncrementalGap(pEfhCtx,pEfhRunCtx, (uint64_t)1, sequence - 1);
     }
       break;
       //-----------------------------------------------------------------------------
@@ -123,7 +125,7 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	gr->pushUdpPkt2Q(pkt,pktLen);
 
 	gr->sendFeedDown(pEfhRunCtx);
-	gr->closeIncrementalGap(pEfhCtx,pEfhRunCtx,gr->expected_sequence, sequence);
+	gr->closeIncrementalGap(pEfhCtx,pEfhRunCtx,gr->expected_sequence, sequence - 1);
       } else { // NORMAL
 	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,pktLen);      
       }

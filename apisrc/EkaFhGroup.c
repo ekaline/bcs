@@ -49,6 +49,8 @@ int EkaFhGroup::processFromQ(const EfhRunCtx* pEfhRunCtx) {
     parseMsg(pEfhRunCtx,(unsigned char*)buf->data,buf->sequence,EkaFhMode::MCAST);
     expected_sequence = buf->sequence + 1;
   }
+  EKA_LOG("%s:%u: After Q draining expected_sequence = %ju",
+	  EKA_EXCH_DECODE(exch),id,expected_sequence);
   return 0;
 }
 
