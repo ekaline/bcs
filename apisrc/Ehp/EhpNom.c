@@ -10,6 +10,17 @@ EhpNom::EhpNom(EkaDev* dev) : EhpProtocol(dev) {
   conf.params.pktHdrLen          = sizeof(mold_hdr);
   conf.params.msgDeltaSize       = 2; // msgLen of NOM
   conf.params.bytes4StartMsgProc = 3; // msgLen + msgType
+
+  conf.header.sequence[0].msgId      = 0; //Not relevant
+  conf.header.sequence[0].opcode     = EhpOpcode::NOP;
+  conf.header.sequence[0].byteOffs_0 = 17;
+  conf.header.sequence[0].byteOffs_1 = 16;
+  conf.header.sequence[0].byteOffs_2 = 15;
+  conf.header.sequence[0].byteOffs_3 = 14;
+  conf.header.sequence[0].byteOffs_4 = 13;
+  conf.header.sequence[0].byteOffs_5 = 12;
+  conf.header.sequence[0].byteOffs_6 = 11;
+  conf.header.sequence[0].byteOffs_7 = 10;
 }
 
 int EhpNom::init() {
