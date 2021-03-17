@@ -24,7 +24,8 @@ class EkaFhMiax : public EkaFh { // MiaxTom & PearlTom
 			   uint*          msgInPkt, 
 			   int16_t*       pktLen, 
 			   uint64_t*      sequence,
-			   uint8_t*       gr_id);
+			   uint8_t*       gr_id,
+			   bool*          isHeartbeat);
 
 };
 
