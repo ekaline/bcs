@@ -92,6 +92,12 @@ uint64_t getHsvfMsgSequence(const uint8_t* msg) {
   return std::stoul(seqString,nullptr,10);
 }
 
+bool isHeartbeat(const uint8_t* msg) {
+  auto msgHdr {reinterpret_cast<const HsvfMsgHdr*>(&msg[1])};
+  if (memcmp(msgHdr->MsgType,"V ",sizeof(msgHdr->MsgType)) == 0) return true;
+  return false;
+}
+
 uint trailingZeros(const uint8_t* p, uint maxChars) {
   uint idx = 0;
   while (p[idx] == 0x0 && idx < maxChars) {

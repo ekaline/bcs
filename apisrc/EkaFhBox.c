@@ -5,6 +5,7 @@
 
 EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhBoxGr* gr);
 uint64_t getHsvfMsgSequence(const uint8_t* msg);
+bool isHeartbeat(const uint8_t* msg);
 
 /* ##################################################################### */
 EkaFhGroup* EkaFhBox::addGroup() {
@@ -100,11 +101,13 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       if (sequence == 0) break; // unsequenced packet
       if (sequence < gr->expected_sequence) {
 	if (gr->expected_sequence == gr->seq_after_snapshot) break; // end of recovery cycle
-	EKA_WARN("%s:%u BACK-IN-TIME WARNING: sequence %ju < expected_sequence %ju",
-		 EKA_EXCH_DECODE(exch),gr_id,sequence,gr->expected_sequence);
-	gr->sendBackInTimeEvent(pEfhRunCtx,sequence);
-	gr->expected_sequence = sequence;
-	break; 
+	if (! isHeartbeat(pkt)) {
+	  EKA_WARN("%s:%u BACK-IN-TIME WARNING: sequence %ju < expected_sequence %ju",
+		   EKA_EXCH_DECODE(exch),gr_id,sequence,gr->expected_sequence);
+	  gr->sendBackInTimeEvent(pEfhRunCtx,sequence);
+	  gr->expected_sequence = sequence;
+	  break; 
+	}
       }
       if (sequence > gr->expected_sequence) { // GAP
 	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%ju",
