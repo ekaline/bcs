@@ -578,7 +578,12 @@ void sys_mark_tcpip_thread();
  * an upper limit on the MSS advertised by the remote host.
  */
 
-#define TCP_MSS                         (1536)
+
+// Note: our "path MTU" is typically 1500. Setting the TCP MSS to 1440 leaves
+// room for an IPv4 header, a TCP header, and 20 bytes worth of "slack" that
+// can be used by either IP or TCP options (in practice we rarely see any
+// options being used except during the handshake).
+#define TCP_MSS                         (1440)
 
 #define TCP_WND                         (32 * TCP_MSS)
 

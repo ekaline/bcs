@@ -69,9 +69,9 @@ err_t ekaLwipSendRaw(struct netif *netif, struct pbuf *p) {
   EkaCoreId coreId = ((struct LwipNetifState*)netif->state)->lane;
   if (dev == NULL) return ERR_CLSD;
 
-  //  dev->getControlTcpSess(coreId)->sendFullPkt(p->payload,p->len);
+  //  dev->getControlTcpSess(coreId)->sendEthFrame(p->payload,p->len);
   EkaTcpSess* controlTcpSess = dev->core[coreId]->tcpSess[EkaCore::CONTROL_SESS_ID];
-  controlTcpSess->sendFullPkt(p->payload,p->len);
+  controlTcpSess->sendEthFrame(p->payload,p->len);
   return ERR_OK;
 }
 
@@ -94,13 +94,13 @@ err_t ekaLwipSend(struct netif *netif, struct pbuf *p) {
 					   EKA_IPH_DST(pkt),
 					   EKA_TCPH_DST(pkt));
     if (tcpSess != NULL) {
-      tcpSess->sendStackPkt(pkt,p->len);
+      tcpSess->sendStackEthFrame(pkt,p->len);
       return ERR_OK;
     }
   }
 
   EkaTcpSess* controlTcpSess = dev->core[coreId]->tcpSess[EkaCore::CONTROL_SESS_ID];
-  controlTcpSess->sendFullPkt(pkt,p->len);
+  controlTcpSess->sendEthFrame(pkt,p->len);
   return ERR_OK;
 }
 
@@ -135,7 +135,7 @@ int ekaAddArpEntry(EkaDev* dev, EkaCoreId coreId, const uint32_t *protocolAddr,
   netif *const nif = dev->core[coreId]->pLwipNetIf;
   LOCK_TCPIP_CORE();
   const err_t lwipErr =
-      etharp_update_arp_entry(nif, (const ip4_addr_t*) &protocolAddr, (struct eth_addr *)hwAddr,
+      etharp_update_arp_entry(nif, (const ip4_addr_t*) protocolAddr, (struct eth_addr *)hwAddr,
                               (u8_t)(ETHARP_FLAG_TRY_HARD | ETHARP_FLAG_STATIC_ENTRY));
   UNLOCK_TCPIP_CORE();
   if (lwipErr != ERR_OK) {
@@ -265,13 +265,14 @@ void ekaProcessTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
           // of improper-TCP-close errors that cause us to receive a packet not
           // meant for us. Warn and ignore.
           char hexBuf[8192]; // approximate MTU * 4 bytes to hold the hexdump
-          hexBuf[0] = '\0';  // In case something goes wrong.
           if (std::FILE *const hexBufFile = fmemopen(hexBuf, sizeof hexBuf, "w")) {
             hexDump("Unexpected RX TCP pkt",pkt,len,hexBufFile);
             (void)std::fwrite("\0", 1, 1, hexBufFile);
             (void)std::fclose(hexBufFile);
           }
-          EKA_WARN("RX pkt TCP session %s:%u-->%s:%u not found,pkt is:\n%s",
+          else
+            std::snprintf(hexBuf, sizeof hexBuf, "fmemopen error: %s (%d)",strerror(errno),errno);
+          EKA_WARN("RX pkt TCP session %s:%u-->%s:%u not found, pkt is:\n%s",
                    EKA_IP2STR(EKA_IPH_DST(pkt)),EKA_TCPH_DST(pkt),
                    EKA_IP2STR(EKA_IPH_SRC(pkt)),EKA_TCPH_SRC(pkt),
                    hexBuf);

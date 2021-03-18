@@ -289,7 +289,7 @@ int EkaDev::configurePort(const EkaCoreInitCtx* pCoreInit) {
     if (! eka_is_all_zeros((void*)&attrs->nexthop_mac,6)) {
       if (ekaAddArpEntry(this, c, &attrs->gateway, attrs->nexthop_mac.ether_addr_octet) == -1)
         return -1;
-      EKA_LOG("Core %u: Adding GW static APR: %s",c,
+      EKA_LOG("Core %u: Adding GW static ARP: %s",c,
               EKA_MAC2STR(attrs->nexthop_mac.ether_addr_octet));
     }
   }

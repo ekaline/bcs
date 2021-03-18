@@ -382,7 +382,7 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
   return 0;
 }
 /* ----------------------------------------------------- */
-int EkaEpmAction::setFullPkt(const void* buf, uint len) {
+int EkaEpmAction::setEthFrame(const void* buf, uint len) {
   pktSize  = len;
   memcpy(&epm->heap[heapOffs],buf,pktSize);
   copyIndirectBuf2HeapHw_swap4(dev,heapAddr,(uint64_t*) ethHdr, thrId, pktSize);

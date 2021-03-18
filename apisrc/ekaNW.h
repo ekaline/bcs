@@ -142,14 +142,14 @@ struct IgmpPkt {
 
 
 /* Macros to get struct tcp_hdr fields: */
-#define EKA_TCP_FLAGS_MASK 0x3F
+#define EKA_TCP_FLAGS_MASK 0x3FU
 #define EKA_TCPH_HDRLEN(phdr) ((uint16_t)(be16toh((phdr)->_hdrlen_rsvd_flags) >> 12))
 #define EKA_TCPH_HDRLEN_BYTES(phdr) ((uint8_t)(EKA_TCPH_HDRLEN(phdr) << 2))
-#define EKA_TCPH_FLAGS(pkt)  ((uint8_t)((be16toh((EKA_TCPH(pkt))->_hdrlen_rsvd_flags) & EKA_TCP_FLAGS_MASK)))
+#define EKA_TCPH_FLAGS(phdr)  ((uint8_t)((be16toh((phdr)->_hdrlen_rsvd_flags) & EKA_TCP_FLAGS_MASK)))
 
-#define EKA_TCP_SYN(pkt) ((TCPH_FLAGS(EKA_TCPH(pkt)) & TCP_SYN) != 0)
-#define EKA_TCP_FIN(pkt) ((TCPH_FLAGS(EKA_TCPH(pkt)) & TCP_FIN) != 0)
-#define EKA_TCP_ACK(pkt) ((TCPH_FLAGS(EKA_TCPH(pkt)) & TCP_ACK) != 0)
+#define EKA_TCP_SYN(pkt) ((EKA_TCPH_FLAGS(EKA_TCPH(pkt)) & TCP_SYN) != 0)
+#define EKA_TCP_FIN(pkt) ((EKA_TCPH_FLAGS(EKA_TCPH(pkt)) & TCP_FIN) != 0)
+#define EKA_TCP_ACK(pkt) ((EKA_TCPH_FLAGS(EKA_TCPH(pkt)) & TCP_ACK) != 0)
 
 #define EKA_TCPH_SEQNO(pkt) ((uint32_t)(be32toh((EKA_TCPH(pkt))->seqno)))
 #define EKA_TCPH_ACKNO(pkt) ((uint32_t)(be32toh((EKA_TCPH(pkt))->ackno)))

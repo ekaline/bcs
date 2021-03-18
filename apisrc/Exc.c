@@ -299,8 +299,6 @@ ExcConnHandle excConnect( EkaDev* dev, ExcSocketHandle hSocket, const struct soc
 
   if (sess->connect() == -1)
     return -1;
-
-  sess->preloadNwHeaders();
   return sess->getConnHandle();
 }
 

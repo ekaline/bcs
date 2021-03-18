@@ -53,7 +53,8 @@ class EkaDev {
   static const uint MAX_SESS_PER_CORE       = 31;
   static const uint CONTROL_SESS_ID         = MAX_SESS_PER_CORE;
   static const uint TOTAL_SESSIONS_PER_CORE = MAX_SESS_PER_CORE + 1;
-  static const uint MAX_PKT_SIZE            = 1536;
+  static const uint NETWORK_PATH_MTU        = 1500;
+  static const uint MAX_ETH_FRAME_SIZE      = 1536; // NOTE: must be multiple of 64
   static const uint MAX_UDP_CHANNELS        = 32;
 
   static const uint MAX_SEC_CTX             = 768*1024;
