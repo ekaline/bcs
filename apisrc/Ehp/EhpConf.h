@@ -3,7 +3,7 @@
 
 #define EhpMaxMsgTypes 8
 
-enum class EhpMultFactor : int8_t {
+enum class EhpOpcode : int8_t {
   NOP = 0,    // copy value as is
     MUL100 = 1  // multiply value by 100
 };
@@ -26,15 +26,15 @@ enum class EhpSidePresence : int8_t {
 */
 struct EhpParseTemplate {
   uint16_t      msgId;       // message Id as appears in the protocol
-  EhpMultFactor mult;        // multiply value by const
-  uint8_t       byteOffs_7;  // 
-  uint8_t       byteOffs_6;  // 
-  uint8_t       byteOffs_5;  // 
-  uint8_t       byteOffs_4;  // 
-  uint8_t       byteOffs_3;  // 
-  uint8_t       byteOffs_2;  // 
-  uint8_t       byteOffs_1;  // 
+  EhpOpcode     opcode;      // nop/mul/etc...
   uint8_t       byteOffs_0;  // 
+  uint8_t       byteOffs_1;  // 
+  uint8_t       byteOffs_2;  // 
+  uint8_t       byteOffs_3;  // 
+  uint8_t       byteOffs_4;  // 
+  uint8_t       byteOffs_5;  // 
+  uint8_t       byteOffs_6;  // 
+  uint8_t       byteOffs_7;  // 
 } __attribute__((packed));
 
 
@@ -63,6 +63,10 @@ struct EhpFieldParams {
   EhpParseTemplate     msgLen[EhpMaxMsgTypes];
 } __attribute__((packed));
 
+struct EhpHeaderParams {
+  EhpParseTemplate sequence[EhpMaxMsgTypes];;
+} __attribute__((packed));
+
 #define EhpBlankByte 0xFF
 
 struct EhpBytesBeforeReady {
@@ -87,8 +91,9 @@ struct EhpProtocolParams {
 * - fields: define how to extract every field for every message type
 */
 struct EhpProtocolConf {
-  EhpProtocolParams params;
+  EhpHeaderParams   header;
   EhpFieldParams    fields;
+  EhpProtocolParams params;
 } __attribute__((packed));
 
 #endif

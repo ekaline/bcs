@@ -47,7 +47,8 @@ EpmStrategy(epm,id,baseActionIdx,params,hwFeedVer) {
 
   ehp = new EhpNom(dev);
   if (ehp == NULL) on_error("ehp == NULL");
-
+  ehp->init();
+  ehp->download2Hw();
 }
 
 /* ################################################ */
