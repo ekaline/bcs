@@ -99,7 +99,11 @@ static bool sesmCycle(EkaDev* dev,
     while (gr->recovery_active) {
       now = std::chrono::high_resolution_clock::now();
       if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHeartBeatTime).count() > 900) {
-	sendHearBeat(gr->recovery_sock);
+	int r = sendHearBeat(gr->recovery_sock);
+	if (r <= 0) {
+	  EKA_WARN("%s:%u: Heartbeat send failed: r = %d, errno=%d: \'%s\'",
+		   EKA_EXCH_DECODE(gr->exch),gr->id,r,errno,strerror(errno));
+	}
 	lastHeartBeatTime = now;
 	EKA_TRACE("%s:%u: Heartbeat sent",EKA_EXCH_DECODE(gr->exch),gr->id);
       }
@@ -313,6 +317,11 @@ static EkaFhParseResult procSesm(const EfhRunCtx* pEfhRunCtx,
   sesm_header sesm_hdr ={};
   int r = recv(sock,&sesm_hdr,sizeof(sesm_header),MSG_WAITALL);
   if (r <= 0) {
+    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      EKA_WARN("%s:%u failed to receive SESM header: r=%d: %s", 
+	       EKA_EXCH_DECODE(gr->exch),gr->id,r,strerror(dev->lastErrno));
+      return EkaFhParseResult::NotEnd;
+    }
     dev->lastErrno = errno;
     EKA_WARN("%s:%u failed to receive SESM header: r=%d: %s", 
 	     EKA_EXCH_DECODE(gr->exch),gr->id,r,strerror(dev->lastErrno));
@@ -321,14 +330,19 @@ static EkaFhParseResult procSesm(const EfhRunCtx* pEfhRunCtx,
   uint8_t msg[1536] = {};
   uint8_t* m = msg;
 
-  r = recv(sock,msg,sesm_hdr.length - sizeof(sesm_hdr.type),MSG_WAITALL);
-  if (r <= 0) {
-    dev->lastErrno = errno;
-    EKA_WARN("%s:%u failed to receive SESM payload: r=%d: %s", 
-	     EKA_EXCH_DECODE(gr->exch),gr->id,r,strerror(dev->lastErrno));
-    return EkaFhParseResult::SocketError;
+  int payloadLen = sesm_hdr.length - sizeof(sesm_hdr.type);
+  if (payloadLen < 0) on_error("sesm_hdr.length %d < sizeof(sesm_hdr.type) %jd",
+			       sesm_hdr.length,sizeof(sesm_hdr.type));
+  if (payloadLen > 0) {
+    r = recv(sock,msg,payloadLen,MSG_WAITALL);
+    if (r <= 0) {
+      dev->lastErrno = errno;
+      EKA_WARN("%s:%u failed to receive SESM payload of %d bytes: r=%d: errno=%d, \'%s\'", 
+	       EKA_EXCH_DECODE(gr->exch),gr->id,payloadLen,r,errno,strerror(errno));
+      
+      return EkaFhParseResult::SocketError;
+    }
   }
-
   uint64_t sequence = 0;
 
   switch ((EKA_SESM_TYPE)sesm_hdr.type) {
@@ -501,19 +515,19 @@ void* getSesmData(void* attr) {
 }
 
 
-void* heartBeatThread(EkaDev* dev, EkaFhMiaxGr* gr, int sock) {
-  sesm_header heartbeat = {
-    .length		= 1, //sizeof(struct sesm_header) - sizeof(heartbeat.length),
-    .type		= '1'
-  };
+/* void* heartBeatThread(EkaDev* dev, EkaFhMiaxGr* gr, int sock) { */
+/*   sesm_header heartbeat = { */
+/*     .length		= 1, //sizeof(struct sesm_header) - sizeof(heartbeat.length), */
+/*     .type		= '1' */
+/*   }; */
 
-  EKA_LOG("gr=%u to sock = %d",gr->id,sock);
+/*   EKA_LOG("gr=%u to sock = %d",gr->id,sock); */
 
-  while(gr->heartbeat_active) {
-    EKA_LOG("sending SESM hearbeat for gr=%u",gr->id);
-    if(send(sock,&heartbeat,sizeof(sesm_header), 0) < 0) on_error("heartbeat send failed");
-    usleep(900000);
-  }
-  EKA_LOG("SESM hearbeat thread terminated for gr=%u",gr->id);
-  return NULL;
-}
+/*   while(gr->heartbeat_active) { */
+/*     EKA_LOG("sending SESM hearbeat for gr=%u",gr->id); */
+/*     if(send(sock,&heartbeat,sizeof(sesm_header), 0) < 0) on_error("heartbeat send failed"); */
+/*     usleep(900000); */
+/*   } */
+/*   EKA_LOG("SESM hearbeat thread terminated for gr=%u",gr->id); */
+/*   return NULL; */
+/* } */
