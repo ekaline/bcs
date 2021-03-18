@@ -349,7 +349,7 @@ int EkaEfc::setHwStratRegion() {
   struct StratRegion {
     uint8_t region;
     uint8_t strategyIdx;
-  } __attribute__((packed));
+  } __attribute__ ((aligned(sizeof(uint64_t)))) __attribute__((packed));
 
   StratRegion stratRegion[MAX_UDP_SESS] = {};
 

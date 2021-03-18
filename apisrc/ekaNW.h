@@ -50,7 +50,7 @@ struct EkaIpHdr {
   /* source and destination IP addresses */
   uint32_t src;
   uint32_t dest;
-};
+} __attribute__ ((aligned (sizeof(uint16_t))));
 
 struct EkaTcpHdr {
   uint16_t src;

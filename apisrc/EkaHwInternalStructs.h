@@ -38,7 +38,7 @@ struct epm_tcpcs_half_template_t {
 struct epm_tcpcs_template_t {
   struct epm_tcpcs_half_template_t low;
   struct epm_tcpcs_half_template_t high;
-} __attribute__((packed));
+} __attribute__ ((aligned(sizeof(uint64_t)))) __attribute__((packed));
 
 /* FPGA code: */
 /* typedef struct packed { */

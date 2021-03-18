@@ -133,7 +133,7 @@ int createIgmpPkt (char* dst, bool join, uint8_t* macsa, uint32_t ip_src, uint32
     EkaIpHdr     ipHdr;
     uint32_t     ip_options;
     EkaIgmpV2Hdr igmpHdr;
-  } __attribute__((packed));
+  } __attribute__ ((aligned (sizeof(uint16_t)))) __attribute__((packed));
 
   //  TEST_LOG("Creating IGMP %s packet",join ? "JOIN" : "LEAVE");
 

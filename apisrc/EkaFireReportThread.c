@@ -39,7 +39,7 @@ int processEpmReport(EkaDev* dev, const uint8_t* payload,uint len) {
     .preStratEnable  = hwEpmReport->preStratEnable,
     .postStratEnable = hwEpmReport->postStratEnable,
     .user            = hwEpmReport->user,
-    .local           = hwEpmReport->islocal
+    .local           = (bool)hwEpmReport->islocal
   };
 
   if (dev->epm->strategy[strategyId] == NULL) on_error("dev->epm->strategy[%d] = NULL",strategyId);
