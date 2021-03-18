@@ -5,6 +5,7 @@
 
 EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhBoxGr* gr);
 uint64_t getHsvfMsgSequence(const uint8_t* msg);
+bool isHeartbeat(const uint8_t* msg);
 
 /* ##################################################################### */
 EkaFhGroup* EkaFhBox::addGroup() {
@@ -89,14 +90,25 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
       gr->sendFeedDownInitial(pEfhRunCtx);
       gr->pushUdpPkt2Q(pkt,pktLen);
+      EKA_LOG("%s:%u INIT Gap: pushing sequence %ju to Q",
+		EKA_EXCH_DECODE(exch),gr_id,sequence);
 
-      gr->closeIncrementalGap(pEfhCtx,pEfhRunCtx, (uint64_t)1, sequence);
+      gr->closeIncrementalGap(pEfhCtx,pEfhRunCtx, (uint64_t)1, sequence - 1);
     }
       break;
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::NORMAL : {
-      if (sequence < 50) gr->expected_sequence = sequence; // for potential wrap around
-      //      if (sequence < gr->expected_sequence) break; // skipping stale messages
+      if (sequence == 0) break; // unsequenced packet
+      if (sequence < gr->expected_sequence) {
+	if (gr->expected_sequence == gr->seq_after_snapshot) break; // end of recovery cycle
+	if (! isHeartbeat(pkt)) {
+	  EKA_WARN("%s:%u BACK-IN-TIME WARNING: sequence %ju < expected_sequence %ju",
+		   EKA_EXCH_DECODE(exch),gr_id,sequence,gr->expected_sequence);
+	  gr->sendBackInTimeEvent(pEfhRunCtx,sequence);
+	  gr->expected_sequence = sequence;
+	  break; 
+	}
+      }
       if (sequence > gr->expected_sequence) { // GAP
 	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%ju",
 		EKA_EXCH_DECODE(exch),gr_id,gr->expected_sequence,sequence);
@@ -116,7 +128,7 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	gr->pushUdpPkt2Q(pkt,pktLen);
 
 	gr->sendFeedDown(pEfhRunCtx);
-	gr->closeIncrementalGap(pEfhCtx,pEfhRunCtx,gr->expected_sequence, sequence);
+	gr->closeIncrementalGap(pEfhCtx,pEfhRunCtx,gr->expected_sequence, sequence - 1);
       } else { // NORMAL
 	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,pktLen);      
       }

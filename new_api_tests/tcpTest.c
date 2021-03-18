@@ -26,7 +26,7 @@
 #define TCP_TEST_DATA 1
 
 //#define BUF_SIZE 8192
-#define BUF_SIZE 1444
+#define BUF_SIZE (1536 - 14 - 20 - 20)
 
 #define CORES 2
 #define SESSIONS 32
@@ -48,27 +48,6 @@ struct TcpTestPkt {
   char     free_text[EXC_TEST_PKT_FREE_TEXT_SIZE];
 };
 
-
-/* void hexDump (const char* desc, void *addr, int len) { */
-/*     int i; */
-/*     unsigned char buff[17]; */
-/*     unsigned char *pc = (unsigned char*)addr; */
-/*     if (desc != NULL) printf ("%s:\n", desc); */
-/*     if (len == 0) { printf("  ZERO LENGTH\n"); return; } */
-/*     if (len < 0)  { printf("  NEGATIVE LENGTH: %i\n",len); return; } */
-/*     for (i = 0; i < len; i++) { */
-/*         if ((i % 16) == 0) { */
-/*             if (i != 0) printf ("  %s\n", buff); */
-/*             printf ("  %04x ", i); */
-/*         } */
-/*         printf (" %02x", pc[i]); */
-/*         if ((pc[i] < 0x20) || (pc[i] > 0x7e))  buff[i % 16] = '.'; */
-/*         else buff[i % 16] = pc[i]; */
-/*         buff[(i % 16) + 1] = '\0'; */
-/*     } */
-/*     while ((i % 16) != 0) { printf ("   "); i++; } */
-/*     printf ("  %s\n", buff); */
-/* } */
 
 int createThread(const char* name, EkaServiceType type,  void *(*threadRoutine)(void*), void* arg, void* context, uintptr_t *handle) {
   pthread_create ((pthread_t*)handle,NULL,threadRoutine, arg);
@@ -104,7 +83,9 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p
     sprintf(pkt->free_text,"%u_%u_%2u_%08ju",thrId,coreId,sessId,pkt->cnt);
 
 
-    uint pkt_size = rand() % (BUF_SIZE - 2 - sizeof(TcpTestPkt)) + 3;
+    uint pkt_size = 1461; // Ken's magic number
+
+    //    uint pkt_size = rand() % (BUF_SIZE - 2 - sizeof(TcpTestPkt)) + 3;
     //    uint pkt_size = rand() % (BUF_SIZE - 2 - sizeof(TcpTestPkt)) + 3;
     //uint pkt_size = rand() % 2; tx_buf[0] = 0xa1; tx_buf[1] = 0xb2;
     //    if (pkt_size == 0) pkt_size = 2;
@@ -148,7 +129,7 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p
     if (pkt->cnt % STATISTICS_PERIOD == 0) {
       TEST_LOG ("CoreId %u, SessId %u, pkt->cnt: %ju",coreId,sessId,pkt->cnt);
     }
-    usleep (p2p_delay);
+    if (p2p_delay != 0) usleep (p2p_delay);
     pkt->cnt++;
 
     //    if (pkt->cnt > 20000) keep_work = false;
@@ -293,7 +274,7 @@ int main(int argc, char *argv[]) {
   const uint     MaxTestSessions = 16;
   uint     testCores      = 1;
   uint     testSessions   = 2;
-  uint     p2p_delay      = 10; // microseconds
+  uint     p2p_delay      = 0; // microseconds
 
   struct testConnection {
     std::string srcIp;

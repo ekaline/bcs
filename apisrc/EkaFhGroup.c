@@ -27,6 +27,12 @@
 
 int createIgmpPkt (char* dst, bool join, uint8_t* macsa, uint32_t ip_src, uint32_t ip_dst);
 
+
+ /* ##################################################################### */
+EkaFhGroup::EkaFhGroup() {
+    connectRetryDelayTime = 15;
+    pktCnt = 0;
+}
  /* ##################################################################### */
 uint         EkaFhGroup::getNumSecurities() {
   return numSecurities;
@@ -43,6 +49,8 @@ int EkaFhGroup::processFromQ(const EfhRunCtx* pEfhRunCtx) {
     parseMsg(pEfhRunCtx,(unsigned char*)buf->data,buf->sequence,EkaFhMode::MCAST);
     expected_sequence = buf->sequence + 1;
   }
+  EKA_LOG("%s:%u: After Q draining expected_sequence = %ju",
+	  EKA_EXCH_DECODE(exch),id,expected_sequence);
   return 0;
 }
 
@@ -56,7 +64,7 @@ void EkaFhGroup::sendFeedUp(const EfhRunCtx* pEfhRunCtx) {
     {exch, id},
     EfhGroupState::kNormal,   //Initializing
     EfhSystemState::kTrading, // Preopen, Trading, Closed
-    EfhGroupStateErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EfhErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kFeedRecovery, // Unspecified, FeedRecovery
     gapNum // int64_t code
   };
@@ -72,7 +80,7 @@ void EkaFhGroup::sendFeedUpInitial(const EfhRunCtx* pEfhRunCtx) {
     {exch, id},
     EfhGroupState::kNormal,   //Initializing
     EfhSystemState::kInitial, // Preopen, Trading, Closed
-    EfhGroupStateErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EfhErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kFeedSnapshot, // Unspecified, FeedRecovery
     gapNum // int64_t code
   };
@@ -89,7 +97,7 @@ void EkaFhGroup::sendFeedDown(const EfhRunCtx* pEfhRunCtx) {
     {exch, id},
     EfhGroupState::kGap, //Initializing
     EfhSystemState::kTrading, // Preopen, Trading, Closed
-    EfhGroupStateErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EfhErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kFeedRecovery, // Unspecified, FeedRecovery
     ++gapNum // int64_t code
   };
@@ -106,7 +114,7 @@ void EkaFhGroup::sendFeedDownInitial(const EfhRunCtx* pEfhRunCtx) {
     {exch, id},
     EfhGroupState::kInitializing,
     EfhSystemState::kInitial, // Preopen, Trading, Closed
-    EfhGroupStateErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EfhErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kFeedSnapshot, // Unspecified, FeedRecovery
     ++gapNum // int64_t code
   };
@@ -123,9 +131,25 @@ void EkaFhGroup::sendFeedDownClosed(const EfhRunCtx* pEfhRunCtx) {
     {exch, id},
     EfhGroupState::kClosed,
     EfhSystemState::kClosed, // Preopen, Trading, Closed
-    EfhGroupStateErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EfhErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kUnspecified, // Unspecified, FeedRecovery
     ++gapNum // int64_t code
+  };
+  pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
+}
+ /* ##################################################################### */
+
+void EkaFhGroup::sendBackInTimeEvent(const EfhRunCtx* pEfhRunCtx, uint64_t badSequence) {
+  if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
+
+  EfhGroupStateChangedMsg msg = {
+    EfhMsgType::kGroupStateChanged,
+    {exch, id},
+    EfhGroupState::kWarning,
+    EfhSystemState::kTrading, 
+    EfhErrorDomain::kBackInTime, 
+    EkaServiceType::kLiveMarketData,
+    (int64_t)badSequence 
   };
   pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
 }
@@ -140,7 +164,7 @@ void EkaFhGroup::sendNoMdTimeOut(const EfhRunCtx* pEfhRunCtx) {
     {exch, id},
     EfhGroupState::kError,
     EfhSystemState::kUnknown, // Preopen, Trading, Closed
-    EfhGroupStateErrorDomain::kUpdateTimeout, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EfhErrorDomain::kUpdateTimeout, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kUnspecified, // Unspecified, FeedRecovery
     ++gapNum // int64_t code
   };
@@ -157,7 +181,7 @@ void EkaFhGroup::sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx) {
     {exch, id},
     EfhGroupState::kError,
     EfhSystemState::kUnknown, // Preopen, Trading, Closed
-    EfhGroupStateErrorDomain::kExchangeError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EfhErrorDomain::kExchangeError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kFeedRecovery, // Unspecified, FeedRecovery
     (int64_t)dev->lastExchErr
   };
@@ -177,7 +201,7 @@ void EkaFhGroup::sendRetransmitSocketError(const EfhRunCtx* pEfhRunCtx) {
     {exch, id},
     EfhGroupState::kError,
     EfhSystemState::kUnknown, // Preopen, Trading, Closed
-    EfhGroupStateErrorDomain::kSocketError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EfhErrorDomain::kSocketError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
     EkaServiceType::kFeedSnapshot, // Unspecified, FeedRecovery
     dev->lastErrno
   };
@@ -215,7 +239,7 @@ int EkaFhGroup::init (EfhCtx* _pEfhCtx,
   id       = gr_id;
   state    = GrpState::INIT;
 
-  if (fh->print_parsed_messages) {
+  if (pInitCtx->printParsedMessages) {
     std::string parsedMsgFileName = std::string(EKA_EXCH_DECODE(exch)) + std::to_string(id) + std::string("_PARSED_MESSAGES.txt");
     if((parser_log = fopen(parsedMsgFileName.c_str(),"w")) == NULL) on_error ("Error %s",parsedMsgFileName.c_str());
     EKA_LOG("%s:%u created file %s",EKA_EXCH_DECODE(exch),id,parsedMsgFileName.c_str());
@@ -261,7 +285,10 @@ EkaFhGroup::~EkaFhGroup () {
   snapshot_active  = false;
   recovery_active  = false;
 
-  if (fh->print_parsed_messages) fclose(parser_log);
+  if (fh->print_parsed_messages) {
+    EKA_LOG("%s:%u: closing parser_log file",EKA_EXCH_DECODE(exch),id);
+    fclose(parser_log);
+  }
 
   if (q != NULL) {
     delete q;

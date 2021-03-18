@@ -243,5 +243,6 @@ struct EkaMiaxMach {
 #define EKA_GET_MACH_LEN(x) (((EkaMiaxMach*)(x))->length)
 #define EKA_GET_MACH_TYPE(x) ((MiaxMachType)(((EkaMiaxMach*)(x))->type))
 #define EKA_GET_MACH_SESS(x) (((EkaMiaxMach*)(x))->sess)
+#define EKA_IS_MACH_HEARTBEAT(x) ((((EkaMiaxMach*)(x))->type == MiaxMachType::Heartbeat))
 
 #endif

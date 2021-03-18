@@ -428,7 +428,11 @@ static igmp_info_t *insert_group(struct igmp_context *context, uint8_t lane, uin
     size_t i;
 
     // Find first spare slot
-    for (i = 0; i < number_of_elements(context->mgroups); ++i)
+
+    // start of Ekaline fix
+    //    for (i = 0; i < number_of_elements(context->mgroups); ++i)
+    for (i = 64 * lane; i < 64 * (lane + 1); ++i)
+      //end of ekaline fix
     {
         igmp_info_t * pGroup = &context->mgroups[i];
 

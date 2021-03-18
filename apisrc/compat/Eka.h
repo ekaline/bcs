@@ -261,6 +261,7 @@ enum class EkaServiceType : uint8_t {
     _x ( FeedRecovery )                     \
     _x ( IGMP )                             \
     _x ( PacketIO )                         \
+    _x ( LiveMarketData )                   \
     _x ( Heartbeat )
   EkaServiceType_ENUM_ITER( EKA__ENUM_DEF )
 };
