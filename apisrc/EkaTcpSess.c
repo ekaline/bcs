@@ -1,3 +1,5 @@
+#include "assert.h"
+
 #include "lwip/sockets.h"
 #include "lwip/prot/ethernet.h"
 #include "lwip/prot/ip4.h"
@@ -244,6 +246,29 @@ int EkaTcpSess::preloadNwHeaders() {
 
 int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
   tcpRemoteAckNum = EKA_TCPH_ACKNO(pkt);
+  tcpSndWnd = EKA_TCPH_WND(pkt);
+  if (EKA_TCP_SYN(pkt)) {
+    // SYN/ACK part of the handshake contains the peer's TCP session options.
+    assert(EKA_TCP_ACK(pkt));
+    const EkaTcpHdr *const tcpHdr = EKA_TCPH(pkt);
+    if (EKA_TCPH_HDRLEN_BYTES(tcpHdr) > 20) {
+      // Header length > 20, we have TCP options; parse them.
+      auto *opt = (const uint8_t *)(tcpHdr + 1);
+      while (*opt) {
+        switch (*opt) {
+        case 1:  // No-op
+          ++opt;
+          break;
+        case 3: // Send window scale.
+          tcpSndWndShift = opt[2]; [[fallthrough]];
+        default:
+          opt += opt[1];
+          break;
+        }
+      }
+    }
+  }
+
   if ( 
       (tcpRemoteAckNum > tcpLocalSeqNum) && //doesntwork with wraparound
       (!(EKA_TCP_SYN(pkt)))
@@ -258,16 +283,15 @@ int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
 
 /* ---------------------------------------------------------------- */
 int EkaTcpSess::setRemoteSeqWnd2FPGA() {
-    // Update FPGA with tcpRemoteSeqNum and tcpWindow
+    // Update FPGA with tcpRemoteSeqNum and tcpRcvWnd
     exc_table_desc_t desc = {};
     desc.td.source_bank = 0;
     desc.td.source_thread = sessId;
     desc.td.target_idx = (uint32_t)sessId;
 
-    uint64_t tcpWindow_64bit = (uint64_t)tcpWindow;
-    eka_write(dev,0x60000 + 0x1000*coreId + 8 * (sessId*2),tcpRemoteSeqNum | (tcpWindow_64bit << 32) );
+    uint64_t tcpRcvWnd_64bit = (uint64_t)tcpRcvWnd;
+    eka_write(dev,0x60000 + 0x1000*coreId + 8 * (sessId*2),tcpRemoteSeqNum | (tcpRcvWnd_64bit << 32) );
     eka_write(dev,0x6f000 + 0x100*coreId,desc.desc);
-    // Update FPGA with tcpRemoteSeqNum and tcpWindow
     return 0;
 }
 
@@ -281,7 +305,7 @@ int EkaTcpSess::setLocalSeqWnd2FPGA() {
     eka_write(dev,0x30000 + 0x1000*coreId + 8 * (sessId*2),tcpLocalSeqNum);
     eka_write(dev,0x3f000 + 0x100*coreId,desc.desc);
 
-    eka_write(dev,0xe0318,tcpWindow);
+    eka_write(dev,0xe0318,tcpRcvWnd);
     return 0;
 }
 
@@ -304,7 +328,7 @@ int EkaTcpSess::sendStackEthFrame(void *pkt, int len) {
   if (EKA_TCP_SYN(pkt)) {
     tcpLocalSeqNum = EKA_TCPH_SEQNO(pkt) + 1;
     tcpLocalSeqNumBase = EKA_TCPH_SEQNO(pkt) + 1;
-    tcpWindow = EKA_TCPH_WND(pkt);
+    tcpRcvWnd = EKA_TCPH_WND(pkt);
     setLocalSeqWnd2FPGA();
     sendEthFrame(pkt,len);
     return 0;
@@ -318,7 +342,7 @@ int EkaTcpSess::sendStackEthFrame(void *pkt, int len) {
   if (! connectionEstablished) {
     // 1st ACK on SYN-ACK
     tcpRemoteSeqNum = EKA_TCPH_ACKNO(pkt);
-    tcpWindow = EKA_TCPH_WND(pkt);
+    tcpRcvWnd = EKA_TCPH_WND(pkt);
     setRemoteSeqWnd2FPGA();
     sendEthFrame(pkt,len);
     return 0;
@@ -400,12 +424,16 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
   /*       usleep(0); */
   /*   return 0; // too high tx rate -- Back Pressure */
   /* } */
-  uint payloadSize2send = (uint)len <= MAX_PAYLOAD_SIZE ? (uint)len : MAX_PAYLOAD_SIZE;
+  uint payloadSize2send = (uint)len < MAX_PAYLOAD_SIZE ? (uint)len : MAX_PAYLOAD_SIZE;
   if (
       ( (fastPathBytes + tcpLocalSeqNumBase - tcpRemoteAckNum) > TrafficMargin ) &&
       ( (fastPathBytes + tcpLocalSeqNumBase - tcpRemoteAckNum) < TrafficMargin*4 ) //and not a wraparound
       )
     payloadSize2send = 0; // Throttle
+
+  // Don't send more than we're allowed.
+  const auto sndWnd = uint32_t(tcpSndWnd) << tcpSndWndShift;
+  payloadSize2send = std::min(payloadSize2send, sndWnd);
 
   const bool isBlocking = this->blocking && !(flags & MSG_DONTWAIT);
   if (isBlocking && payloadSize2send != (uint)len) {
@@ -420,8 +448,6 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
   }
 
   fastPathBytes += payloadSize2send;
-
   fastPathAction->fastSend(buf, payloadSize2send);
-
   return payloadSize2send;
 }
