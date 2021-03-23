@@ -13,7 +13,7 @@ DRIVERS_INCL:=$(SMARTNIC_ROOT)/driver/
 API_INCL:=$(SMARTNIC_ROOT)/include/
 
 LWIP_INCL:=$(LWIP_ROOT)/lwip/src/include 
-INC=$(DRIVERS_INCL) $(API_INCL) $(LWIP_INCL) $(shell pwd) $(shell pwd)/compat $(shell pwd)/FhBook $(shell pwd)/../pcapParsers
+INC=$(DRIVERS_INCL) $(API_INCL) $(LWIP_INCL) $(shell pwd) $(shell pwd)/compat $(shell pwd)/FhBook $(shell pwd)/Ehp $(shell pwd)/../pcapParsers
 INCL=$(foreach d, $(INC), -I$d)
 INCL+=-Iarch
 
@@ -38,6 +38,7 @@ UNITTESTS_EXECS := $(patsubst %.c,%,$(UNITTESTS_SRCS))
 
 EKALIB_SRCS := $(wildcard e*.c E*.c)
 EKALIB_SRCS += $(wildcard FhBook/*.c)
+EKALIB_SRCS += $(wildcard Ehp/*.c)
 
 EKALIB_FILES := $(patsubst %.c,%,$(EKALIB_SRCS))
 EKALIB_OBJ := $(EKALIB_SRCS:.c=.o)
@@ -52,6 +53,8 @@ CCDEP:=gcc
 LIBEKALINE:=libekaline2
 
 SMARTNIC_LIB_FILES := $(shell ar t $(SMARTNIC_LIB))
+
+
 
 #all:  $(LIBEKALINE) $(EKAUTILS_EXECS) $(EKATESTS_EXECS) 
 all:  eka_utils ekalib ekalib_test eka_tests unit_tests $(LIBEKALINE).a libeka_depend lwip_depend

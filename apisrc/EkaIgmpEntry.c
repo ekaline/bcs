@@ -29,12 +29,12 @@ EkaIgmpEntry::EkaIgmpEntry(EkaDev* _dev, int _udpChId, EkaCoreId _coreId, int _p
   static const bool JOIN  = true;
   static const bool LEAVE = false;
 
-  char igmpJoinPkt[64] = {};
+  char __attribute__ ((aligned(sizeof(uint32_t)))) igmpJoinPkt[64] = {};
   uint igmpJoinPktLen = createIgmpPkt(igmpJoinPkt, JOIN, dev->core[coreId]->macSa, dev->core[coreId]->srcIp, ip);
   igmpJoinAction  = dev->epm->addAction(EkaEpm::ActionType::Igmp,epmActionRegion,0,coreId,0,0);
   igmpJoinAction->setFullPkt(igmpJoinPkt,igmpJoinPktLen);
 
-  char igmpLeavePkt[64] = {};
+  char __attribute__ ((aligned(sizeof(uint32_t)))) igmpLeavePkt[64] = {};
   uint igmpLeavePktLen = createIgmpPkt(igmpLeavePkt, LEAVE, dev->core[coreId]->macSa, dev->core[coreId]->srcIp, ip);
   igmpLeaveAction  = dev->epm->addAction(EkaEpm::ActionType::Igmp,epmActionRegion,0,coreId,0,0);
   igmpLeaveAction->setFullPkt(igmpLeavePkt,igmpLeavePktLen);

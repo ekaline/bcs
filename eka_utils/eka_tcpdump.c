@@ -7,7 +7,6 @@
 #include <endian.h>
 #include <inttypes.h>
 #include <sys/time.h>
-#include <pcap/pcap.h>
 
 #include "eka_macros.h"
 #include "smartnic.h"
