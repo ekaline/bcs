@@ -61,15 +61,29 @@ struct EkaTcpHdr {
   uint16_t wnd;
   uint16_t chksum;
   uint16_t urgp;
-};
+} __attribute__ ((aligned (sizeof(uint16_t))));
 
 struct EkaUdpHdr {
   uint16_t src;
   uint16_t dest;
   uint16_t len;
   uint16_t chksum;
-};
+} __attribute__ ((aligned (sizeof(uint16_t))));
 
+
+struct EkaIgmpV2Hdr {
+  uint8_t  type; // join ? 0x16 : 0x17;
+  uint8_t  code; // = 0
+  uint16_t cksum;
+  uint32_t group;
+} __attribute__ ((aligned (sizeof(uint16_t))));
+
+struct IgmpPkt {
+  EkaEthHdr    ethHdr;
+  EkaIpHdr     ipHdr;
+  uint32_t     ip_options;
+  EkaIgmpV2Hdr igmpHdr;
+} __attribute__ ((aligned (sizeof(uint16_t)))) __attribute__((packed));
 
 /* typedef struct eth_hdr EkaEthHdr; */
 /* typedef struct ip_hdr  EkaIpHdr; */
@@ -182,13 +196,6 @@ struct EkaUdpHdr {
 #define EKA_IS_TCP_PKT(pkt) (EKA_IS_IP4_PKT(pkt) && (EKA_IPH_PROTO(EKA_IPH(pkt)) == EKA_PROTO_TCP))
 #define EKA_IS_UDP_PKT(pkt) (EKA_IS_IP4_PKT(pkt) && (EKA_IPH_PROTO(EKA_IPH(pkt)) == EKA_PROTO_UDP))
 
-
-struct EkaIgmpV2Hdr {
-  uint8_t  type; // join ? 0x16 : 0x17;
-  uint8_t  code; // = 0
-  uint16_t cksum;
-  uint32_t group;
-};
 
 
 // MoldUdp64

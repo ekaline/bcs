@@ -19,8 +19,10 @@ INCL+=-Iarch
 
 include $(SMARTNIC_ROOT)/api/makefile_common
 
+GCC_SUPPRESSED_WARNINGS:=-Wno-unused-function -Wno-packed-not-aligned
+
 #GCC_FLAGS:=-Wall -fpic -pthread -lrt $(EKA_AFFINITY_SET) -lm $(GCC_EXTERNAL_DEFINES) -DBUILD_TIME=`date +%d%m%y_%T`
-GCC_FLAGS:=-Wall -fPIC -pthread -lrt -lm $(GCC_EXTERNAL_DEFINES) -Wno-unused-function -DLIBEKA_GIT_VER=\"$(LIBEKA_GIT_VER)\"
+GCC_FLAGS:=-Wall -fPIC -pthread -lrt -lm $(GCC_EXTERNAL_DEFINES) -DLIBEKA_GIT_VER=\"$(LIBEKA_GIT_VER)\" $(GCC_SUPPRESSED_WARNINGS)
 #LD_FLAGS:=-shared -fpic $(LD_ASAN_OPTIONS) -static-libstdc++ -static-libgcc
 LD_FLAGS:=-shared -fpic $(LD_ASAN_OPTIONS)
 
@@ -72,7 +74,7 @@ use_onload: all
 # LWIP
 
 LWIPDIR?=$(LWIP_ROOT)/lwip/src
-CFLAGS+=-fPIC -I. -Og -I$(LWIPDIR)/include -I./arch -pthread -lrt -D_GNU_SOURCE 
+CFLAGS+=-fPIC -I. -O3 -g -I$(LWIPDIR)/include -I./arch -pthread -lrt -D_GNU_SOURCE 
 
 LDFLAGS+=-lutil -pthread -lrt -fPIC
 
