@@ -637,6 +637,16 @@ void sys_mark_tcpip_thread();
 
 #define LWIP_TCP_TIMESTAMPS             0
 
+/**
+ * LWIP_WND_SCALE and TCP_RCV_SCALE:
+ * Set LWIP_WND_SCALE to 1 to enable window scaling.
+ * Set TCP_RCV_SCALE to the desired scaling factor (shift count in the
+ * range of [0..14]).
+ * When LWIP_WND_SCALE is enabled but TCP_RCV_SCALE is 0, we can use a large
+ * send window while having a small receive window only.
+ */
+#define LWIP_WND_SCALE                  1
+#define TCP_RCV_SCALE                   11
 
 /*
    ----------------------------------
