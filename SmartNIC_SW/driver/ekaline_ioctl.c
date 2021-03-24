@@ -3,30 +3,16 @@
 #define EKA_FPGA_RESET_TIME_THR 50000
 eka_ioctl_t eka_ioctl;
 
-
 if (copy_from_user(&eka_ioctl, (void*)data, sizeof(eka_ioctl_t)))  return -EFAULT;
-PRINTK("EKALINE DEBUG: EKA IOCTL to nif %d, session %d, cmd=%u, data=%p\n",
-       eka_ioctl.nif_num,eka_ioctl.session_num,eka_ioctl.cmd,data);
+PRINTK("EKALINE DEBUG: EKA IOCTL cmd=%u\n",eka_ioctl.cmd);
 
 uint64_t ekaSnDriverVerNum = EKA_VER_NUM;
 
-if (data == NULL) {
-  PRINTK("EKALINE DEBUG: SMARTNIC_EKALINE_DATA: data = NULL");
-  return -EFAULT;
- }
-
 int i;
-eka_ioctl_t dataCopy;
-if ((rc = copy_from_user(&dataCopy,
-			    (void*) data,
-			    sizeof(dataCopy)))) {
-  PRINTK("EKALINE DEBUG: SMARTNIC_EKALINE_DATA: copy_from_user(&dataCopy,(void*) data, sizeof(dataCopy) failed\n");
-  return -EFAULT;
- }
 
 switch (eka_ioctl.cmd) {
  case EKA_DUMP:
-   if ((rc = copy_to_user((void __user *) &(((eka_ioctl_t*)data)->eka_session),
+   if ((rc = copy_to_user((void __user *) &(eka_ioctl.eka_session),
 			  &(pDevExt->nif[eka_ioctl.nif_num].eka_private_data->eka_session[eka_ioctl.session_num]),
 			  sizeof(eka_session_t)))) {
      PRINTK("EKALINE DEBUG: SMARTNIC_EKALINE_DATA: DUMP nif %d, session %d failed\n",
@@ -34,27 +20,27 @@ switch (eka_ioctl.cmd) {
 	    eka_ioctl.session_num);
      return -EFAULT;
    }		
-   if ((rc = copy_to_user((void __user *) &(((eka_ioctl_t*)data)->eka_debug),
+   if ((rc = copy_to_user((void __user *) &(eka_ioctl.eka_debug),
 			  &(pDevExt->nif[eka_ioctl.nif_num].eka_private_data->eka_debug),
 			  sizeof(uint8_t)))) {
      PRINTK("EKALINE DEBUG: SMARTNIC_EKALINE_DATA: DUMP nif %d, session %d failed\n",eka_ioctl.nif_num,eka_ioctl.session_num);
      return -EFAULT;
    }
-   if ((rc = copy_to_user((void __user *) &(((eka_ioctl_t*)data)->drop_igmp),
+   if ((rc = copy_to_user((void __user *) &(eka_ioctl.drop_igmp),
 			  &(pDevExt->nif[eka_ioctl.nif_num].eka_private_data->drop_igmp),
 			  sizeof(uint8_t)))) {
      PRINTK("EKALINE DEBUG: SMARTNIC_EKALINE_DATA: DUMP nif %d, session %d failed\n",
 	    eka_ioctl.nif_num,eka_ioctl.session_num);
      return -EFAULT;
    }
-   if ((rc = copy_to_user((void __user *) &(((eka_ioctl_t*)data)->drop_arp),
+   if ((rc = copy_to_user((void __user *) &(eka_ioctl.drop_arp),
 			  &(pDevExt->nif[eka_ioctl.nif_num].eka_private_data->drop_arp),
 			  sizeof(uint8_t)))) {
      PRINTK("EKALINE DEBUG: SMARTNIC_EKALINE_DATA: DUMP nif %d, session %d failed\n",
 	    eka_ioctl.nif_num,eka_ioctl.session_num);
      return -EFAULT;
    }
-   if ((rc = copy_to_user((void __user *) &(((eka_ioctl_t*)data)->drop_all_rx_udp),
+   if ((rc = copy_to_user((void __user *) &(eka_ioctl.drop_all_rx_udp),
 			  &(pDevExt->nif[eka_ioctl.nif_num].eka_private_data->drop_all_rx_udp),
 			  sizeof(uint8_t)))) {
      PRINTK("EKALINE DEBUG: SMARTNIC_EKALINE_DATA: DUMP nif %d, session %d failed\n",
@@ -63,28 +49,28 @@ switch (eka_ioctl.cmd) {
    }
    break;
  case EKA_GET_NIF_STATE:	
-   if ((rc = copy_to_user((void __user *) &(((eka_ioctl_t*)data)->eka_debug),
+   if ((rc = copy_to_user((void __user *) &(eka_ioctl.eka_debug),
 			  &(pDevExt->nif[eka_ioctl.nif_num].eka_private_data->eka_debug),
 			  sizeof(uint8_t)))) {
      PRINTK("EKALINE DEBUG: SMARTNIC_EKALINE_DATA: DUMP nif %d, session %d failed\n",
 	    eka_ioctl.nif_num,eka_ioctl.session_num);
      return -EFAULT;
    }
-   if ((rc = copy_to_user((void __user *) &(((eka_ioctl_t*)data)->drop_igmp),
+   if ((rc = copy_to_user((void __user *) &(eka_ioctl.drop_igmp),
 			  &(pDevExt->nif[eka_ioctl.nif_num].eka_private_data->drop_igmp),
 			  sizeof(uint8_t)))) {
      PRINTK("EKALINE DEBUG: SMARTNIC_EKALINE_DATA: DUMP nif %d, session %d failed\n",
 	    eka_ioctl.nif_num,eka_ioctl.session_num);
      return -EFAULT;
    }
-   if ((rc = copy_to_user((void __user *) &(((eka_ioctl_t*)data)->drop_arp),
+   if ((rc = copy_to_user((void __user *) &(eka_ioctl.drop_arp),
 			  &(pDevExt->nif[eka_ioctl.nif_num].eka_private_data->drop_arp),
 			  sizeof(uint8_t)))) {
      PRINTK("EKALINE DEBUG: SMARTNIC_EKALINE_DATA: DUMP nif %d, session %d failed\n",
 	    eka_ioctl.nif_num,eka_ioctl.session_num);
      return -EFAULT;
    }
-   if ((rc = copy_to_user((void __user *) &(((eka_ioctl_t*)data)->drop_all_rx_udp),
+   if ((rc = copy_to_user((void __user *) &(eka_ioctl.drop_all_rx_udp),
 			  &(pDevExt->nif[eka_ioctl.nif_num].eka_private_data->drop_all_rx_udp),
 			  sizeof(uint8_t)))) {
      PRINTK("EKALINE DEBUG: SMARTNIC_EKALINE_DATA: DUMP nif %d, session %d failed\n",
@@ -94,7 +80,7 @@ switch (eka_ioctl.cmd) {
    break;
  case EKA_SET:
    if ((rc = copy_from_user(&(pDevExt->nif[eka_ioctl.nif_num].eka_private_data->eka_session[eka_ioctl.session_num]),
-			    (void*) &(((eka_ioctl_t*)data)->eka_session),
+			    (void*) &(eka_ioctl.eka_session),
 			    sizeof(eka_session_t)))) {
      PRINTK("EKALINE DEBUG: SMARTNIC_EKALINE_DATA: SET nif %d, session %d failed\n",
 	    eka_ioctl.nif_num,eka_ioctl.session_num);
@@ -104,7 +90,7 @@ switch (eka_ioctl.cmd) {
 	  eka_ioctl.nif_num,eka_ioctl.session_num,eka_ioctl.eka_session.active);
    break;
  case EKA_VERSION:
-   if ((rc = copy_to_user((void __user *) &(((eka_ioctl_t*)data)->eka_version),
+   if ((rc = copy_to_user((void __user *) &(eka_ioctl.eka_version),
 			  (char*)&(pDevExt->nif[0].eka_private_data->eka_version),
 			  64))) {
      PRINTK("EKALINE DEBUG: SMARTNIC_EKALINE_DATA: EKA_VERSION failed\n");
@@ -112,7 +98,7 @@ switch (eka_ioctl.cmd) {
    }	
    PRINTK("EKA_VERSION: %s\n",(char*)&(pDevExt->nif[0].eka_private_data->eka_version));
 
-   if ((rc = copy_to_user((void __user *) &(((eka_ioctl_t*)data)->eka_release),
+   if ((rc = copy_to_user((void __user *) &(eka_ioctl.eka_release),
 			  (char*)&(pDevExt->nif[0].eka_private_data->eka_release),
 			  256))) {
      PRINTK("EKALINE DEBUG: SMARTNIC_EKALINE_DATA: EKA_RELEASE failed\n");
@@ -120,7 +106,7 @@ switch (eka_ioctl.cmd) {
    }
    PRINTK("EKA_RELEASE: %s\n",(char*)&(pDevExt->nif[0].eka_private_data->eka_release));
 
-   if ((rc = copy_to_user((void __user *) &(((eka_ioctl_t*)data)->wcattr.bar0_wc_va),
+   if ((rc = copy_to_user((void __user *) &(eka_ioctl.wcattr.bar0_wc_va),
 			  &ekaSnDriverVerNum,
 			  8))) {
      PRINTK("EKALINE DEBUG: SMARTNIC_EKALINE_DATA: EKA_VER_NUM (%d) failed\n",ekaSnDriverVerNum);
@@ -161,7 +147,7 @@ switch (eka_ioctl.cmd) {
    PRINTK("EKALINE DEBUG: drop_all_rx_udp = OFF\n");
    break;
  case EKA_IOREMAP_WC: {
-   if ((rc = copy_to_user((void __user *) &(((eka_ioctl_t*)data)->wcattr.bar0_wc_va),
+   if ((rc = copy_to_user((void __user *) &(eka_ioctl.wcattr.bar0_wc_va),
 			  &pDevExt->ekaline_wc_addr,
 			  sizeof(pDevExt->ekaline_wc_addr)))) {
      PRINTK("%s:%u: EKALINE DEBUG: EKA_IOREMAP_WC failed\n",__FILE__,__LINE__);
@@ -171,13 +157,11 @@ switch (eka_ioctl.cmd) {
  }
    break;
  case EKA_GET_IGMP_STATE: {
-   PRINTK("%s:%u: EKALINE DEBUG: EKA_GET_IGMP_STATE: data=%p\n",__FILE__,__LINE__,data);
-
-   struct sc_multicast_subscription_t* dstAddr = (struct sc_multicast_subscription_t*)dataCopy.wcattr.bar0_pa;
+   struct sc_multicast_subscription_t* dstAddr = (struct sc_multicast_subscription_t*)eka_ioctl.wcattr.bar0_pa;
    PRINTK("%s:%u: EKALINE DEBUG: EKA_GET_IGMP_STATE: dstAddr %p == wcattr.bar0_pa 0x%llx\n",
 	  __FILE__,__LINE__,
 	  dstAddr,
-	  dataCopy.wcattr.bar0_pa
+	  eka_ioctl.wcattr.bar0_pa
 	  );
    if ((rc = copy_to_user((void __user *) dstAddr,
 			  &pDevExt->igmpContext.global_subscriber,
