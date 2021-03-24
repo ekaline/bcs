@@ -30,7 +30,7 @@ LD_FLAGS:=-shared -fpic $(LD_ASAN_OPTIONS)
 
 EKAUTILS := $(patsubst %.c,%,$(wildcard ../eka_utils/*.c))
 
-EKATESTS_SRCS := $(wildcard ../new_api_tests/e*.c ../new_api_tests/tcp*.c)
+EKATESTS_SRCS := $(wildcard ../new_api_tests/e*.c ../new_api_tests/tcp*.c ../new_api_tests/parser*.c)
 EKATESTS_EXECS := $(patsubst %.c,%,$(EKATESTS_SRCS))
 
 UNITTESTS_SRCS := $(wildcard ../new_api_tests/unit*.c)

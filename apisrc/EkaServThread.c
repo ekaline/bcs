@@ -100,8 +100,8 @@ void ekaServThread(EkaDev* dev) {
 	  if (sendDummyFastPathPkt(dev,payload) <= 0) break; // LWIP is busy
 	}
 	if (feedbackDmaReport->bitparams.expect_report == 1) {
-	  EKA_LOG("User Report # %u is pushed to Q",
-		  feedbackDmaReport->index);
+	  //	  EKA_LOG("User Report # %u is pushed to Q",
+	  //		  feedbackDmaReport->index);
 	  dev->userReportQ->push(payload,len);
 	}
 	dev->lwipPath->next();

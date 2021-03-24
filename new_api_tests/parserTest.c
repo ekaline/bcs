@@ -62,6 +62,8 @@ static const int      MaxUdpTestSessions     = 64;
 
 static const uint64_t FireEntryHeapSize = 256;
 
+static FILE *subscriptions_file = NULL;
+
 
 /* --------------------------------------------- */
 struct NomAddOrderShortPkt {
@@ -111,11 +113,11 @@ int credRelease(EkaCredentialLease *lease, void* context) {
 void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fireReportBuf, size_t size) {
   EkaDev* dev = pEfcCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
-  EKA_LOG ("FIRE REPORT RECEIVED");
+  //  EKA_LOG ("FIRE REPORT RECEIVED");
   //  hexDump("FireReport",fireReportBuf,size);
-  efcPrintFireReport(pEfcCtx, (const EfcReportHdr*)fireReportBuf,false);
-  EKA_LOG ("Rearming...\n");
-  efcEnableController(pEfcCtx,1);
+  efcPrintFireReport(pEfcCtx, (const EfcReportHdr*)fireReportBuf,true);
+  //  EKA_LOG ("Rearming...\n");
+  //  efcEnableController(pEfcCtx,1);
 }
 
 /* --------------------------------------------- */
@@ -276,12 +278,16 @@ int main(int argc, char *argv[]) {
   std::string serverIp  = "10.0.0.10";      // Ekaline lab default
   std::string clientIp  = "100.0.0.110";    // Ekaline lab default
   std::string triggerIp = "239.255.119.16"; // Ekaline lab default
+  std::string subscriptionFile = "/local/dumps/nasdaq/itto4.0/HW_PARSER/subscription.txt"; // Ekaline lab default
   uint16_t serverTcpBasePort   = 22222;         // Ekaline lab default
   uint16_t numTcpSess = 4;
   uint16_t serverTcpPort = serverTcpBasePort;
   uint16_t triggerUdpPort = 18000;
 
   getAttr(argc,argv,&serverIp,&serverTcpPort,&clientIp,&triggerIp,&triggerUdpPort,&numTcpSess);
+
+  subscriptions_file = fopen(subscriptionFile.c_str(), "r");
+  if (!subscriptions_file) on_error("Couldn't open subscription file %s",subscriptionFile.c_str());
 
   if (numTcpSess > MaxTcpTestSessions) 
     on_error("numTcpSess %d > MaxTcpTestSessions %d",numTcpSess, MaxTcpTestSessions);
@@ -396,7 +402,7 @@ int main(int argc, char *argv[]) {
     .enable_strategy = 1,
     .report_only = 0,
     .debug_always_fire_on_unsubscribed = 0,
-    .debug_always_fire = 0,
+    .debug_always_fire = 1,
     .max_size = 1000,
     .watchdog_timeout_sec = 100000,
   };
@@ -404,6 +410,7 @@ int main(int argc, char *argv[]) {
 
   EfcRunCtx runCtx = {};
   runCtx.onEfcFireReportCb = onFireReport;
+
 
   // ==============================================
   // Subscribing on securities
@@ -415,13 +422,15 @@ int main(int argc, char *argv[]) {
     FixedPrice      askMaxPrice;
     uint8_t         size;
   };
-
-  SecurityCtx security[] = {
-    {0x1111, 0, -1, 100, 200, 1},
-    {0x2222, 1, -1, 300, 400, 1},
-    {0x3333, 2, -1, 500, 600, 1},
-    {0x4444, 3, -1, 700, 800, 1},
-  };
+  //-->
+  /* SecurityCtx security[] = { */
+  /*   {0x1111, 0, -1, 100, 200, 1}, */
+  /*   {0x2222, 1, -1, 300, 400, 1}, */
+  /*   {0x3333, 2, -1, 500, 600, 1}, */
+  /*   {0x4444, 3, -1, 700, 800, 1}, */
+  /* }; */
+  
+ #include "/local/dumps/nasdaq/itto4.0/HW_PARSER/subscription.inc"
 
   uint64_t securityList[std::size(security)] = {};
 
@@ -499,7 +508,8 @@ int main(int argc, char *argv[]) {
     .offset        = heapOffset + nwHdrOffset,               ///< Offset to payload in payload heap
     .length        = (uint32_t)sizeof(fireMsg),              ///< Payload length
     .actionFlags   = AF_Valid,                               ///< Behavior flags (see EpmActionFlag)
-    .nextAction    = chainActionCurrId,                      ///< Next action in sequence, or EPM_LAST_ACTION
+    //    .nextAction    = chainActionCurrId,                      ///< Next action in sequence, or EPM_LAST_ACTION
+    .nextAction    = EPM_LAST_ACTION,                        ///< Next action in sequence, or EPM_LAST_ACTION
     .enable        = AlwaysFire,                             ///< Enable bits
     .postLocalMask = AlwaysFire,                             ///< Post fire: enable & mask -> enable
     .postStratMask = AlwaysFire,                             ///< Post fire: strat-enable & mask -> strat-enable
@@ -560,7 +570,7 @@ int main(int argc, char *argv[]) {
   chainActionCurrId++;
 
   // ==============================================
-  efcEnableController(pEfcCtx, 0);
+//  efcEnableController(pEfcCtx, 0);
   // ==============================================
   efcRun(pEfcCtx, &runCtx );
   // ==============================================
@@ -568,207 +578,15 @@ int main(int argc, char *argv[]) {
   // ==============================================
   // Preparing UDP MC for MD trigger on GR#0
 
-  int triggerSock = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
-  if (triggerSock < 0) on_error("failed to open UDP sock");
-
-  struct sockaddr_in triggerSourceAddr = {};
-  triggerSourceAddr.sin_addr.s_addr = inet_addr(serverIp.c_str());
-  triggerSourceAddr.sin_family      = AF_INET;
-  triggerSourceAddr.sin_port        = 0; //be16toh(serverTcpPort);
-
-  if (bind(triggerSock,(sockaddr*)&triggerSourceAddr, sizeof(sockaddr)) != 0 ) {
-    on_error("failed to bind server triggerSock to %s:%u",
-	     EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),be16toh(triggerSourceAddr.sin_port));
-  } else {
-    EKA_LOG("triggerSock is binded to %s:%u",
-	    EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),be16toh(triggerSourceAddr.sin_port));
-  }
-  struct sockaddr_in triggerMcAddr = {};
-  triggerMcAddr.sin_family      = AF_INET;
-  triggerMcAddr.sin_addr.s_addr = inet_addr(triggerParam[0].mcIp);
-  triggerMcAddr.sin_port        = be16toh(triggerParam[0].mcUdpPort);
-
-  // ==============================================
-  // MD trigger message A on GR#0, security #0
-
-  NomAddOrderShortPkt mdAskShortPkt = {
-    .mold = {
-      .session_id  = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa},
-      .sequence    = be64toh(123),
-      .message_cnt = be16toh(1)
-    },
-    .msgLen = be16toh(sizeof(itto_add_order_short)),
-    .addOrderShort = {
-      .type                  = 'a',
-      .tracking_num          = be16toh(0xbeda),
-      .time_nano             = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66},
-      .order_reference_delta = be64toh(0x1234567890abcdef),
-      .side                  = 'S',
-      .option_id             = be32toh(security[0].id),
-      .price                 = be16toh(security[0].askMaxPrice - 1),
-      .size                  = be16toh(security[0].size)
-    }
-  };
-
-  // ==============================================
-  // Sending MD trigger MC GR#0
-  EKA_LOG("sending AskShort trigger to %s:%u",
-	  EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
-  if (sendto(triggerSock,&mdAskShortPkt,sizeof(mdAskShortPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
-    on_error ("MC trigger send failed");
-
-  efcEnableController(pEfcCtx, 1);
+  //  efcEnableController(pEfcCtx, 1);
   sleep(1);
-
-  // ==============================================
-  // ==============================================
-  // 4 Fires on a MD trigger from MC GR#1 + 4 Cancels
-
-  TEST_LOG("\n===========================\nTEST %d\n===========================\n",++testCase);
-
-  static const int numSessFires = 4;
-
-  epm_actionid_t currActionId = 1;
-  epm_actionid_t nextActionId = chainActionCurrId;
-
-
-  for (auto i = 0; i < numSessFires * 2; i ++) {
-    const EpmAction chainAction {
-    .type          = i < numSessFires ? EpmActionType::SqfFire :  EpmActionType::SqfCancel,
-    .token         = DefaultToken,
-    .hConn         = conn[i],
-    .offset        = heapOffset + nwHdrOffset,
-    .length        = (uint32_t)sizeof(fireMsg),
-    .actionFlags   = AF_Valid,
-    .nextAction    = i == numSessFires * 2 - 1 ? EPM_LAST_ACTION : nextActionId,
-    .enable        = AlwaysFire,
-    .postLocalMask = AlwaysFire,
-    .postStratMask = AlwaysFire,
-    .user          = 0x1234567890abcdef,
-    };
-
-    rc = epmPayloadHeapCopy(dev, 
-			    EFC_STRATEGY,
-			    chainAction.offset,
-			    chainAction.length,
-			    &fireMsg);
-    if (rc != EKA_OPRESULT__OK) 
-      on_error("epmPayloadHeapCopy offset=%u, length=%u rc=%d",
-	       chainAction.offset,chainAction.length,(int)rc);
-    rc = epmSetAction(dev, 
-		      EFC_STRATEGY, 
-		      currActionId, 
-		      &chainAction);
-
-    if (rc != EKA_OPRESULT__OK) on_error("epmSetAction returned %d",(int)rc);
-
-
-    heapOffset += sizeof(chainAction) + nwHdrOffset + fcsOffset;
-    heapOffset += dataAlignment - (heapOffset % dataAlignment);
-
-    currActionId = nextActionId++;
-
-  };
-
-
-  // ==============================================
-  // MD trigger message B on GR#1, security #1
-
-  NomAddOrderLongPkt mdBidLongPkt = {
-    .mold = {
-      .session_id  = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa},
-      .sequence    = be64toh(124),
-      .message_cnt = be16toh(1)
-    },
-    .msgLen = be16toh(sizeof(itto_add_order_long)),
-    .addOrderLong = {
-      .type                  = 'A',
-      .tracking_num          = be16toh(0xbeda),
-      .time_nano             = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66},
-      .order_reference_delta = be64toh(0x1234567890abcdef),
-      .side                  = 'B',
-      .option_id             = be32toh(security[1].id),
-      .price                 = be32toh(security[1].bidMinPrice * 100 + 1),
-      .size                  = be32toh(security[1].size)
-    }
-  };
-
-  // ==============================================
-  // Sending MD trigger MC GR#0
-
-  triggerMcAddr.sin_family      = AF_INET;
-  triggerMcAddr.sin_addr.s_addr = inet_addr(triggerParam[1].mcIp);
-  triggerMcAddr.sin_port        = be16toh(triggerParam[1].mcUdpPort);
-
-  EKA_LOG("sending AskShort trigger to %s:%u",
-	  EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
-  if (sendto(triggerSock,&mdBidLongPkt,sizeof(mdBidLongPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
-    on_error ("MC trigger send failed");
-
-  efcEnableController(pEfcCtx, 1);
-  sleep(10);
-
-
-  // ==============================================
-  // ==============================================
-  // Same chain as previous test, but using SW trigger
-  // 4 SQF Fires + 4 Cancels
-  TEST_LOG("\n===========================\nTEST %d\n===========================\n",++testCase);
-
-  EpmTrigger swTrigger = {
-    .token    = DefaultToken,
-    .strategy = EFC_STRATEGY,
-    .action   = 1
-  };
-
-  rc = epmRaiseTriggers(dev, &swTrigger);
-  if (rc != EKA_OPRESULT__OK) EKA_WARN("epmRaiseTriggers: rc = %d",(int)rc);
-
-  sleep(1);
-
-#if 0
-
-    /* ============================================== */
-  NomAddOrderShortLongPkt mdAskShortBidLongPkt = {
-    .mold = {
-      .session_id  = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa},
-      .sequence    = be64toh(125),
-      .message_cnt = be16toh(2)
-    },
-    .msgLenShort = be16toh(sizeof(itto_add_order_short)),
-    .addOrderShort = {
-      .type                  = 'a',
-      .tracking_num          = be16toh(0xbeda),
-      .time_nano             = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66},
-      .order_reference_delta = be64toh(0x1234567890abcdef),
-      .side                  = 'S',
-      .option_id             = be32toh(TEST_NOM_SEC_ID),
-      .price                 = be16toh(secCtx.askMaxPrice - 1),
-      .size                  = be16toh(secCtx.size)
-    },
-    .msgLenLong = be16toh(sizeof(itto_add_order_long)),
-    .addOrderLong = {
-      .type                  = 'A',
-      .tracking_num          = be16toh(0xbeda),
-      .time_nano             = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66},
-      .order_reference_delta = be64toh(0x1234567890abcdef),
-      .side                  = 'B',
-      .option_id             = be32toh(DUMMY_NOM_SEC_ID),
-      .price                 = be32toh(secCtx.bidMinPrice * 100 + 1),
-      .size                  = be32toh(secCtx.size)
-    }
-  };
-
-#endif
-
-  TEST_LOG("\n===========================\nEND OT TESTS\n===========================\n");
 
 #ifndef _VERILOG_SIM
   sleep(2);
-  EKA_LOG("--Test finished, ctrl-c to end---");
-  keep_work = false;
+  EKA_LOG("--Test configured, tcp_replay now, ctrl-c to end---");
   while (keep_work) { sleep(0); }
 #endif
+
   fflush(stdout);fflush(stderr);
 
 

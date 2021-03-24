@@ -580,17 +580,13 @@ static inline uint64_t get_ts(const uint8_t* m) {
 }
 
 static void eka_print_nom_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t sequence) {
-  fprintf (md_file,"GR%d,%s,SN:%ju,%3s(%c),",gr,(ts_ns2str(get_ts(m))).c_str(),sequence,ITTO_NOM_MSG((char)m[0]),(char)m[0]);
+  
   switch ((char)m[0]) {
-  case 'R': //ITTO_TYPE_OPTION_DIRECTORY 
-    break;
-  case 'M': // END OF SNAPSHOT
-    break;
   case 'a': { //NOM_ADD_ORDER_SHORT
+    fprintf (md_file,"GR%d,SN:%ju,",gr,sequence);
     struct itto_add_order_short *message = (struct itto_add_order_short *)m;
-    fprintf (md_file,"SID:%16u,OID:%16ju,%c,P:%8u,S:%8u",
+    fprintf (md_file,"SID:%16u,%c,P:%8u,S:%8u\n",
 	    be32toh (message->option_id),
-	    be64toh (message->order_reference_delta),
 	    (char)             (message->side),
 	    (uint32_t) be16toh (message->price) * 100 / EFH_PRICE_SCALE,
 	    (uint32_t) be16toh (message->size)
@@ -599,187 +595,226 @@ static void eka_print_nom_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t 
   }
     //--------------------------------------------------------------
   case 'A' : { //NOM_ADD_ORDER_LONG
+    fprintf (md_file,"GR%d,SN:%ju,",gr,sequence);
     struct itto_add_order_long *message = (struct itto_add_order_long *)m;
-    fprintf (md_file,"SID:%16u,OID:%16ju,%c,P:%8u,S:%8u",
+    fprintf (md_file,"SID:%16u,%c,P:%8u,S:%8u\n",
 	    be32toh (message->option_id),
-	    be64toh (message->order_reference_delta),
 	    (char)             (message->side),
 	    be32toh (message->price) / EFH_PRICE_SCALE,
 	    be32toh (message->size)
 	    );
     break;
   }
-  case 'S': //NOM_SYSTEM_EVENT
-    break;
-  case 'L': //NOM_BASE_REF -- do nothing        
-    break;
-  case 'H': { //NOM_TRADING_ACTION 
-    struct itto_trading_action *message = (struct itto_trading_action *)m;
-    fprintf (md_file,"SID:%16u,TS:%c",be32toh(message->option_id),message->trading_state);
-    break;
+  default:
+    break; 
   }
-  case 'O': { //NOM_OPTION_OPEN 
-    struct itto_option_open *message = (struct itto_option_open *)m;
-    fprintf (md_file,"SID:%16u,OS:%c",be32toh(message->option_id),message->open_state);
-    break;
-  }
-    //--------------------------------------------------------------
-  case 'J': {  //NOM_ADD_QUOTE_LONG
-    struct itto_add_quote_long *message = (struct itto_add_quote_long *)m;
-
-    fprintf (md_file,"SID:%16u,BOID:%16ju,BP:%8u,BS:%8u,AOID:%16ju,AP:%8u,AS:%8u",
-	    be32toh (message->option_id),
-	    be64toh (message->bid_reference_delta),
-	    be32toh (message->bid_price) / EFH_PRICE_SCALE,
-	    be32toh (message->bid_size),
-	    be64toh (message->ask_reference_delta),
-	    be32toh (message->ask_price) / EFH_PRICE_SCALE,
-	    be32toh (message->ask_size)
-	    );
-    break;
-  }
-  case 'j': { //NOM_ADD_QUOTE_SHORT
-    struct itto_add_quote_short *message = (struct itto_add_quote_short *)m;
-    
-    fprintf (md_file,"SID:%16u,BOID:%16ju,BP:%8u,BS:%8u,AOID:%16ju,AP:%8u,AS:%8u",
-	    be32toh (message->option_id),
-	    be64toh (message->bid_reference_delta),
-	    (uint32_t) be16toh (message->bid_price) / EFH_PRICE_SCALE,
-	    (uint32_t) be16toh (message->bid_size),
-	    be64toh (message->ask_reference_delta),
-	    (uint32_t) be16toh (message->ask_price) / EFH_PRICE_SCALE,
-	    (uint32_t) be16toh (message->ask_size)
-	    );
-
-    break;
-  }
-
-  case 'E':  { //NOM_SINGLE_SIDE_EXEC
-    struct itto_executed *message = (struct itto_executed *)m;
-    fprintf (md_file,"OID:%16ju,S:%8u",be64toh(message->order_reference_delta),be32toh(message->executed_contracts));
-
-    break;
-  }
-    //--------------------------------------------------------------
-  case 'C': { //NOM_SINGLE_SIDE_EXEC_PRICE
-    struct itto_executed_price *message = (struct itto_executed_price *)m;
-    fprintf (md_file,"OID:%16ju,S:%8u",be64toh(message->order_reference_delta),be32toh(message->size));
-
-    break;
-  }
-
-    //--------------------------------------------------------------
-  case 'X': { //NOM_ORDER_CANCEL
-    struct itto_order_cancel *message = (struct itto_order_cancel *)m;
-    fprintf (md_file,"OID:%16ju,S:%8u",be64toh(message->order_reference_delta),be32toh(message->cancelled_orders));
-
-    break;
-  }
-    //--------------------------------------------------------------
-  case 'u': {  //NOM_SINGLE_SIDE_REPLACE_SHORT
-    struct itto_message_replace_short *message = (struct itto_message_replace_short *)m;
-    fprintf (md_file,"OOID:%16ju,NOID:%16ju,P:%8u,S:%8u",
-	    be64toh (message->original_reference_delta),
-	    be64toh (message->new_reference_delta),
-	    (uint32_t) be16toh (message->price) * 100 / EFH_PRICE_SCALE,
-	    (uint32_t) be16toh (message->size)
-	    );
-    break;
-  }
-    //--------------------------------------------------------------
-  case 'U': { //NOM_SINGLE_SIDE_REPLACE_LONG
-    struct itto_message_replace_long *message = (struct itto_message_replace_long *)m;
-    fprintf (md_file,"OOID:%16ju,NOID:%16ju,P:%8u,S:%8u",
-	    be64toh (message->original_reference_delta),
-	    be64toh (message->new_reference_delta),
-	    be32toh (message->price) / EFH_PRICE_SCALE,
-	    be32toh (message->size)
-	    );
-    break;
-  }
-    //--------------------------------------------------------------
-  case 'D': { //NOM_SINGLE_SIDE_DELETE 
-    struct itto_message_delete *message = (struct itto_message_delete *)m;
-    fprintf (md_file,"OID:%16ju",be64toh(message->reference_delta));
-
-    break;
-  }
-    //--------------------------------------------------------------
-  case 'G': { //NOM_SINGLE_SIDE_UPDATE
-    struct itto_message_update *message = (struct itto_message_update *)m;
-    fprintf (md_file,"OID:%16ju,P:%8u,S:%8u",
-	    be64toh (message->reference_delta),
-	    be32toh (message->price) / EFH_PRICE_SCALE,
-	    be32toh (message->size)
-	    );
-
-    break;
-  }
-    //--------------------------------------------------------------
-  case 'k':   {//NOM_QUOTE_REPLACE_SHORT
-    struct itto_quote_replace_short *message = (struct itto_quote_replace_short *)m;
-    fprintf (md_file,"OBOID:%16ju,NBOID:%16ju,BP:%8u,BS:%8u,OAOID:%16ju,NAOID:%16ju,AP:%8u,AS:%8u",
-	    be64toh (message->original_bid_delta),
-	    be64toh(message->new_bid_delta),
-	    (uint32_t) be16toh (message->bid_price) / EFH_PRICE_SCALE,
-	    (uint32_t) be16toh (message->bid_size),
-
-	    be64toh(message->original_ask_delta),
-	    be64toh(message->new_ask_delta),
-	    (uint32_t) be16toh(message->ask_price) * 100 / EFH_PRICE_SCALE,
-	    (uint32_t) be16toh(message->ask_size)
-	    );
-
-    break;
-  }
-    //--------------------------------------------------------------
-  case 'K': { //NOM_QUOTE_REPLACE_LONG
-    struct itto_quote_replace_long *message = (struct itto_quote_replace_long *)m;
-    fprintf (md_file,"OBOID:%16ju,NBOID:%16ju,BP:%8u,BS:%8u,OAOID:%16ju,NAOID:%16ju,AP:%8u,AS:%8u",
-	    be64toh (message->original_bid_delta),
-	    be64toh (message->new_bid_delta),
-	    be32toh (message->bid_price) * 100 / EFH_PRICE_SCALE,
-	    be32toh (message->bid_size),
-
-	    be64toh (message->original_ask_delta),
-	    be64toh (message->new_ask_delta),
-	    be32toh (message->ask_price) / EFH_PRICE_SCALE,
-	    be32toh (message->ask_size)
-	    );
-    break;
-  }
-    //--------------------------------------------------------------
-
-  case 'Y': { //NOM_QUOTE_DELETE 
-    struct itto_quote_delete *message = (struct itto_quote_delete *)m;
-    fprintf (md_file,"BOID:%16ju,AOID:%16ju",be64toh(message->bid_delta),be64toh(message->ask_delta));
-
-    break;
-  }
-    //--------------------------------------------------------------
-
-  case 'P': { //NOM_OPTIONS_TRADE
-    struct itto_options_trade *message = (struct itto_options_trade *)m;
-    fprintf (md_file,"SID:%16u",be32toh(message->option_id));
-    break;
-  }
-    //--------------------------------------------------------------
-  case 'Q': { //NOM_CROSS_TRADE
-    break;
-  }
-    //--------------------------------------------------------------
-  case 'B': { //NOM_BROKEN_EXEC
-    break;
-  }
-    //--------------------------------------------------------------
-  case 'I': { //NOM_NOII
-    break;
-  }
-  default: 
-    on_error("UNEXPECTED Message type: enc=\'%c\'",(char)m[0]);
-  }
-  fprintf (md_file,"\n");
   fflush(md_file);
   return;
 
 }
+
+
+/* static void eka_print_nom_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t sequence) { */
+/*   fprintf (md_file,"GR%d,%s,SN:%ju,%3s(%c),",gr,(ts_ns2str(get_ts(m))).c_str(),sequence,ITTO_NOM_MSG((char)m[0]),(char)m[0]); */
+/*   switch ((char)m[0]) { */
+/*   case 'R': //ITTO_TYPE_OPTION_DIRECTORY  */
+/*     break; */
+/*   case 'M': // END OF SNAPSHOT */
+/*     break; */
+/*   case 'a': { //NOM_ADD_ORDER_SHORT */
+/*     struct itto_add_order_short *message = (struct itto_add_order_short *)m; */
+/*     fprintf (md_file,"SID:%16u,OID:%16ju,%c,P:%8u,S:%8u", */
+/* 	    be32toh (message->option_id), */
+/* 	    be64toh (message->order_reference_delta), */
+/* 	    (char)             (message->side), */
+/* 	    (uint32_t) be16toh (message->price) * 100 / EFH_PRICE_SCALE, */
+/* 	    (uint32_t) be16toh (message->size) */
+/* 	    ); */
+/*     break; */
+/*   } */
+/*     //-------------------------------------------------------------- */
+/*   case 'A' : { //NOM_ADD_ORDER_LONG */
+/*     struct itto_add_order_long *message = (struct itto_add_order_long *)m; */
+/*     fprintf (md_file,"SID:%16u,OID:%16ju,%c,P:%8u,S:%8u", */
+/* 	    be32toh (message->option_id), */
+/* 	    be64toh (message->order_reference_delta), */
+/* 	    (char)             (message->side), */
+/* 	    be32toh (message->price) / EFH_PRICE_SCALE, */
+/* 	    be32toh (message->size) */
+/* 	    ); */
+/*     break; */
+/*   } */
+/*   case 'S': //NOM_SYSTEM_EVENT */
+/*     break; */
+/*   case 'L': //NOM_BASE_REF -- do nothing         */
+/*     break; */
+/*   case 'H': { //NOM_TRADING_ACTION  */
+/*     struct itto_trading_action *message = (struct itto_trading_action *)m; */
+/*     fprintf (md_file,"SID:%16u,TS:%c",be32toh(message->option_id),message->trading_state); */
+/*     break; */
+/*   } */
+/*   case 'O': { //NOM_OPTION_OPEN  */
+/*     struct itto_option_open *message = (struct itto_option_open *)m; */
+/*     fprintf (md_file,"SID:%16u,OS:%c",be32toh(message->option_id),message->open_state); */
+/*     break; */
+/*   } */
+/*     //-------------------------------------------------------------- */
+/*   case 'J': {  //NOM_ADD_QUOTE_LONG */
+/*     struct itto_add_quote_long *message = (struct itto_add_quote_long *)m; */
+
+/*     fprintf (md_file,"SID:%16u,BOID:%16ju,BP:%8u,BS:%8u,AOID:%16ju,AP:%8u,AS:%8u", */
+/* 	    be32toh (message->option_id), */
+/* 	    be64toh (message->bid_reference_delta), */
+/* 	    be32toh (message->bid_price) / EFH_PRICE_SCALE, */
+/* 	    be32toh (message->bid_size), */
+/* 	    be64toh (message->ask_reference_delta), */
+/* 	    be32toh (message->ask_price) / EFH_PRICE_SCALE, */
+/* 	    be32toh (message->ask_size) */
+/* 	    ); */
+/*     break; */
+/*   } */
+/*   case 'j': { //NOM_ADD_QUOTE_SHORT */
+/*     struct itto_add_quote_short *message = (struct itto_add_quote_short *)m; */
+    
+/*     fprintf (md_file,"SID:%16u,BOID:%16ju,BP:%8u,BS:%8u,AOID:%16ju,AP:%8u,AS:%8u", */
+/* 	    be32toh (message->option_id), */
+/* 	    be64toh (message->bid_reference_delta), */
+/* 	    (uint32_t) be16toh (message->bid_price) / EFH_PRICE_SCALE, */
+/* 	    (uint32_t) be16toh (message->bid_size), */
+/* 	    be64toh (message->ask_reference_delta), */
+/* 	    (uint32_t) be16toh (message->ask_price) / EFH_PRICE_SCALE, */
+/* 	    (uint32_t) be16toh (message->ask_size) */
+/* 	    ); */
+
+/*     break; */
+/*   } */
+
+/*   case 'E':  { //NOM_SINGLE_SIDE_EXEC */
+/*     struct itto_executed *message = (struct itto_executed *)m; */
+/*     fprintf (md_file,"OID:%16ju,S:%8u",be64toh(message->order_reference_delta),be32toh(message->executed_contracts)); */
+
+/*     break; */
+/*   } */
+/*     //-------------------------------------------------------------- */
+/*   case 'C': { //NOM_SINGLE_SIDE_EXEC_PRICE */
+/*     struct itto_executed_price *message = (struct itto_executed_price *)m; */
+/*     fprintf (md_file,"OID:%16ju,S:%8u",be64toh(message->order_reference_delta),be32toh(message->size)); */
+
+/*     break; */
+/*   } */
+
+/*     //-------------------------------------------------------------- */
+/*   case 'X': { //NOM_ORDER_CANCEL */
+/*     struct itto_order_cancel *message = (struct itto_order_cancel *)m; */
+/*     fprintf (md_file,"OID:%16ju,S:%8u",be64toh(message->order_reference_delta),be32toh(message->cancelled_orders)); */
+
+/*     break; */
+/*   } */
+/*     //-------------------------------------------------------------- */
+/*   case 'u': {  //NOM_SINGLE_SIDE_REPLACE_SHORT */
+/*     struct itto_message_replace_short *message = (struct itto_message_replace_short *)m; */
+/*     fprintf (md_file,"OOID:%16ju,NOID:%16ju,P:%8u,S:%8u", */
+/* 	    be64toh (message->original_reference_delta), */
+/* 	    be64toh (message->new_reference_delta), */
+/* 	    (uint32_t) be16toh (message->price) * 100 / EFH_PRICE_SCALE, */
+/* 	    (uint32_t) be16toh (message->size) */
+/* 	    ); */
+/*     break; */
+/*   } */
+/*     //-------------------------------------------------------------- */
+/*   case 'U': { //NOM_SINGLE_SIDE_REPLACE_LONG */
+/*     struct itto_message_replace_long *message = (struct itto_message_replace_long *)m; */
+/*     fprintf (md_file,"OOID:%16ju,NOID:%16ju,P:%8u,S:%8u", */
+/* 	    be64toh (message->original_reference_delta), */
+/* 	    be64toh (message->new_reference_delta), */
+/* 	    be32toh (message->price) / EFH_PRICE_SCALE, */
+/* 	    be32toh (message->size) */
+/* 	    ); */
+/*     break; */
+/*   } */
+/*     //-------------------------------------------------------------- */
+/*   case 'D': { //NOM_SINGLE_SIDE_DELETE  */
+/*     struct itto_message_delete *message = (struct itto_message_delete *)m; */
+/*     fprintf (md_file,"OID:%16ju",be64toh(message->reference_delta)); */
+
+/*     break; */
+/*   } */
+/*     //-------------------------------------------------------------- */
+/*   case 'G': { //NOM_SINGLE_SIDE_UPDATE */
+/*     struct itto_message_update *message = (struct itto_message_update *)m; */
+/*     fprintf (md_file,"OID:%16ju,P:%8u,S:%8u", */
+/* 	    be64toh (message->reference_delta), */
+/* 	    be32toh (message->price) / EFH_PRICE_SCALE, */
+/* 	    be32toh (message->size) */
+/* 	    ); */
+
+/*     break; */
+/*   } */
+/*     //-------------------------------------------------------------- */
+/*   case 'k':   {//NOM_QUOTE_REPLACE_SHORT */
+/*     struct itto_quote_replace_short *message = (struct itto_quote_replace_short *)m; */
+/*     fprintf (md_file,"OBOID:%16ju,NBOID:%16ju,BP:%8u,BS:%8u,OAOID:%16ju,NAOID:%16ju,AP:%8u,AS:%8u", */
+/* 	    be64toh (message->original_bid_delta), */
+/* 	    be64toh(message->new_bid_delta), */
+/* 	    (uint32_t) be16toh (message->bid_price) / EFH_PRICE_SCALE, */
+/* 	    (uint32_t) be16toh (message->bid_size), */
+
+/* 	    be64toh(message->original_ask_delta), */
+/* 	    be64toh(message->new_ask_delta), */
+/* 	    (uint32_t) be16toh(message->ask_price) * 100 / EFH_PRICE_SCALE, */
+/* 	    (uint32_t) be16toh(message->ask_size) */
+/* 	    ); */
+
+/*     break; */
+/*   } */
+/*     //-------------------------------------------------------------- */
+/*   case 'K': { //NOM_QUOTE_REPLACE_LONG */
+/*     struct itto_quote_replace_long *message = (struct itto_quote_replace_long *)m; */
+/*     fprintf (md_file,"OBOID:%16ju,NBOID:%16ju,BP:%8u,BS:%8u,OAOID:%16ju,NAOID:%16ju,AP:%8u,AS:%8u", */
+/* 	    be64toh (message->original_bid_delta), */
+/* 	    be64toh (message->new_bid_delta), */
+/* 	    be32toh (message->bid_price) * 100 / EFH_PRICE_SCALE, */
+/* 	    be32toh (message->bid_size), */
+
+/* 	    be64toh (message->original_ask_delta), */
+/* 	    be64toh (message->new_ask_delta), */
+/* 	    be32toh (message->ask_price) / EFH_PRICE_SCALE, */
+/* 	    be32toh (message->ask_size) */
+/* 	    ); */
+/*     break; */
+/*   } */
+/*     //-------------------------------------------------------------- */
+
+/*   case 'Y': { //NOM_QUOTE_DELETE  */
+/*     struct itto_quote_delete *message = (struct itto_quote_delete *)m; */
+/*     fprintf (md_file,"BOID:%16ju,AOID:%16ju",be64toh(message->bid_delta),be64toh(message->ask_delta)); */
+
+/*     break; */
+/*   } */
+/*     //-------------------------------------------------------------- */
+
+/*   case 'P': { //NOM_OPTIONS_TRADE */
+/*     struct itto_options_trade *message = (struct itto_options_trade *)m; */
+/*     fprintf (md_file,"SID:%16u",be32toh(message->option_id)); */
+/*     break; */
+/*   } */
+/*     //-------------------------------------------------------------- */
+/*   case 'Q': { //NOM_CROSS_TRADE */
+/*     break; */
+/*   } */
+/*     //-------------------------------------------------------------- */
+/*   case 'B': { //NOM_BROKEN_EXEC */
+/*     break; */
+/*   } */
+/*     //-------------------------------------------------------------- */
+/*   case 'I': { //NOM_NOII */
+/*     break; */
+/*   } */
+/*   default:  */
+/*     on_error("UNEXPECTED Message type: enc=\'%c\'",(char)m[0]); */
+/*   } */
+/*   fprintf (md_file,"\n"); */
+/*   fflush(md_file); */
+/*   return; */
+
+/* } */

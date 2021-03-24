@@ -220,7 +220,11 @@ int EkaEfc::subscribeSec(uint64_t secId) {
     uint64_t val = eka_read(dev, SW_STATISTICS);
     val &= 0xFFFFFFFF00000000;
     val |= (uint64_t)(numSecurities);
+    
+#ifndef _VERILOG_SIM
     eka_write(dev, SW_STATISTICS, val);
+#endif
+    
   }
   return 0;
 }

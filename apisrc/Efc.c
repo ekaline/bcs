@@ -345,7 +345,7 @@ EkaOpResult efcRun( EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx ) {
 }
 
 
-EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p ) {
+EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdOnly) {
   if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
   EkaDev* dev = pEfcCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
@@ -378,7 +378,7 @@ EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p ) {
   /* 	  ((EfcReportHdr*)b)->size); */
   b += sizeof(EfcReportHdr);
 
-  EKA_LOG("\tunarm_reason=0x%02x",((EfcControllerState*)b)->unarm_reason);
+  if (!mdOnly) EKA_LOG("\tunarm_reason=0x%02x",((EfcControllerState*)b)->unarm_reason);
   b += sizeof(EfcControllerState);
   total_reports--;
  //--------------------------------------------------------------------------
@@ -415,7 +415,7 @@ EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p ) {
   {
     auto msg{ reinterpret_cast< const EfcSecurityCtx* >( b ) };
 
-    printSecCtx(dev, msg);
+    if (!mdOnly)printSecCtx(dev, msg);
 
     b += sizeof(*msg);
   }

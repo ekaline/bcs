@@ -54,6 +54,7 @@ typedef struct {
                 _x( uint8_t,     side )                                     \
                 _x( uint64_t,    price )                                    \
                 _x( uint64_t,    size )                                     \
+                _x( uint64_t,    security_id )                              \
                 _x( uint8_t,     group_id )                                 \
                 _x( uint8_t,     core_id )
     EfcMdReport_FIELD_ITER( EKA__FIELD_DEF )

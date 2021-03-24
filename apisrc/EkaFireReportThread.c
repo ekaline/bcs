@@ -48,18 +48,43 @@ int processEpmReport(EkaDev* dev, const uint8_t* payload,uint len) {
   return 0;
 }
 /* ########################################################### */
+/* int printMdReport(EkaDev* dev, const EfcMdReport* msg) { */
+/*   //  hexDump("printMdReport",msg,sizeof(EfcMdReport)); */
+
+/*   EKA_LOG("MdReport:"); */
+/*   EKA_LOG("\ttimestamp=0x%jx ", msg->timestamp); */
+/*   EKA_LOG("\tsequence=0x%jx ",  msg->sequence); */
+/*   EKA_LOG("\tside=%c ",       msg->side == 1 ? 'b' : 'a'); */
+/*   EKA_LOG("\tprice = %ju ",   msg->price); */
+/*   EKA_LOG("\tsize=%ju ",      msg->size); */
+/*   EKA_LOG("\tgroup_id=%u ",   msg->group_id); */
+/*   EKA_LOG("\tcore_id=%u ",    msg->core_id); */
+
+/*   return 0; */
+/* } */
 int printMdReport(EkaDev* dev, const EfcMdReport* msg) {
   //  hexDump("printMdReport",msg,sizeof(EfcMdReport));
 
-  EKA_LOG("MdReport:");
-  EKA_LOG("\ttimestamp=0x%jx ", msg->timestamp);
-  EKA_LOG("\tsequence=0x%jx ",  msg->sequence);
-  EKA_LOG("\tside=%c ",       msg->side == 1 ? 'b' : 'a');
-  EKA_LOG("\tprice = %ju ",   msg->price);
-  EKA_LOG("\tsize=%ju ",      msg->size);
-  EKA_LOG("\tgroup_id=%u ",   msg->group_id);
-  EKA_LOG("\tcore_id=%u ",    msg->core_id);
+  //  EKA_LOG("MdReport: timestamp=0x%jx sequence=0x%jx secid=0x%jx side=%c price = %ju size=%ju group_id=%u core_id=%u", 
+  //  EKA_LOG("MdReport: timestamp=%ju sequence=%ju secid=%ju side=%c price=%ju size=%ju group_id=%u core_id=%u", 
+  //	  msg->timestamp,
+  //	  msg->sequence,
+  //	  msg->security_id,
+  //	  msg->side == 1 ? 'b' : 'a',
+  //	  msg->price,
+  //	  msg->size,
+  //	  msg->group_id,
+  //	  msg->core_id
+  //	  );
 
+  printf("MdReport: GR%d,SN:%ju,SID:%16u,%c,P:%8u,S:%8u\n",
+	 msg->group_id,
+	 msg->sequence,
+	 msg->security_id,
+	 msg->side == 1 ? 'B' : 'S',
+	 msg->price,
+	 msg->size);
+  
   return 0;
 }
 /* ########################################################### */
@@ -135,13 +160,14 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len, uint32_t e
   //  printFireOrder(dev,&report->triggerOrder);
 
   auto mdReport { reinterpret_cast<EfcMdReport*>(b) };
-  mdReport->timestamp = report->triggerOrder.timestamp;
-  mdReport->sequence  = report->triggerOrder.sequence;
-  mdReport->side      = report->triggerOrder.attr.bitmap.Side;
-  mdReport->price     = report->triggerOrder.price;
-  mdReport->size      = report->triggerOrder.size;
-  mdReport->group_id  = report->triggerOrder.groupId;
-  mdReport->core_id   = report->triggerOrder.attr.bitmap.CoreID;
+  mdReport->timestamp   = report->triggerOrder.timestamp;
+  mdReport->sequence    = report->triggerOrder.sequence;
+  mdReport->side        = report->triggerOrder.attr.bitmap.Side;
+  mdReport->price       = report->triggerOrder.price;
+  mdReport->size        = report->triggerOrder.size;
+  mdReport->security_id = report->triggerOrder.securityId;
+  mdReport->group_id    = report->triggerOrder.groupId;
+  mdReport->core_id     = report->triggerOrder.attr.bitmap.CoreID;
 
   // printMdReport(dev,mdReport);
 
