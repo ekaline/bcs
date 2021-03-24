@@ -107,7 +107,7 @@ bool EkaFhRunGroup::igmpSanityCheck(int grId2check, uint32_t ip, uint16_t port) 
       on_error("chId=%d,grId=%d,hwIgmp[%d].positionIndex=%u,group_address=0x%08x",
 	       chId,grId,i,hwIgmp[i].positionIndex,hwIgmp[i].group_address);
 
-    EKA_LOG ("%3d (%3d): pos=%3u, lane=%u, ch=%2u (%d), %s:%u\n",
+    EKA_LOG ("%3d (%3d): pos=%3u, lane=%u, ch=%2u (%d), %s:%u",
 	     i, grId,
 	     hwIgmp[i].positionIndex,
 	     hwIgmp[i].lane,

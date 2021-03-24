@@ -58,7 +58,8 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
     const uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&sequence,&gr_id);
     if (pkt == NULL) continue;
 
-    EkaFhPhlxTopoGr* gr = (EkaFhPhlxTopoGr*)b_gr[gr_id];
+    //    EkaFhPhlxTopoGr* gr = (EkaFhPhlxTopoGr*)b_gr[gr_id];
+    auto gr {dynamic_cast<EkaFhPhlxTopoGr*>(b_gr[gr_id])};
     if (gr == NULL) on_error("b_gr[%u] = NULL",gr_id);
 
 #ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
@@ -114,11 +115,12 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       break;
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::SNAPSHOT_GAP : {
-      if (sequence <= gr->recovery_sequence) {
+      if (gr->gapClosed || sequence <= gr->recovery_sequence) {
 	// Recovery feed sequence took over the MCAST sequence
-	gr->expected_sequence = gr->recovery_sequence + 1;
+	
+	gr->expected_sequence = msgInPkt == 0 ? gr->recovery_sequence : gr->recovery_sequence + 1;
 
-	gr->gapClosed = true;
+	//	gr->gapClosed = true;
 	gr->snapshot_active = false;
 
 	gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);

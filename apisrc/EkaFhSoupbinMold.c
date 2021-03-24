@@ -356,25 +356,27 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
 	     strerror(dev->lastErrno));
     return EkaFhParseResult::SocketError;
   }
-  uint8_t soupbin_buf[2000] = {};
   int payloadLen = be16toh(hdr.length) - sizeof(hdr.type);
   if (payloadLen < 0) {
     hexDump("SoupbinHdr",&hdr,sizeof(hdr));
     on_error("payloadLen = %d, hdr.length = %d",
 	     payloadLen,be16toh(hdr.length));
   }
-  r = recv(gr->snapshot_sock,
-	   soupbin_buf,
-	   payloadLen,
-	   MSG_WAITALL);
-  if (r < payloadLen) {
-    dev->lastErrno = errno;
-    EKA_WARN("%s:%u failed to receive SoupbinBuf: received %d, expected %d: %s",
-	     EKA_EXCH_DECODE(gr->exch),gr->id,
-	     r,
+  uint8_t soupbin_buf[2000] = {};
+  if (payloadLen > 0) {
+    r = recv(gr->snapshot_sock,
+	     soupbin_buf,
 	     payloadLen,
-	     strerror(dev->lastErrno));
-    return EkaFhParseResult::SocketError;
+	     MSG_WAITALL);
+    if (r < payloadLen) {
+      dev->lastErrno = errno;
+      EKA_WARN("%s:%u failed to receive SoupbinBuf: received %d, expected %d: %s",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,
+	       r,
+	       payloadLen,
+	       strerror(dev->lastErrno));
+      return EkaFhParseResult::SocketError;
+    }
   }
   bool sequencedPkt = false;
   bool lastMsg      = false;
@@ -383,7 +385,7 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
   case 'H' : // Hearbeat
     if (gr->feed_ver == EfhFeedVer::kPHLX && 
 	(op == EkaFhMode::DEFINITIONS  || op == EkaFhMode::SNAPSHOT) &&
-	++gr->hearbeat_ctr == 5) { 
+	++gr->hearbeat_ctr == 3) { 
       EKA_LOG("%s:%u: End of %s due: 5 Heartbeats received",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
       return EkaFhParseResult::End;
