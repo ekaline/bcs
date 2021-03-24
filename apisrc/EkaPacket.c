@@ -127,17 +127,10 @@ uint32_t calcEmptyPktPseudoCsum (EkaIpHdr* ipHdr, EkaTcpHdr* tcpHdr) {
   return pseudo_csum((unsigned short*)&pseudoPkt,sizeof(pseudoPkt));
 }
 
-int createIgmpPkt (char* dst, bool join, uint8_t* macsa, uint32_t ip_src, uint32_t ip_dst) {
-  struct IgmpPkt {
-    EkaEthHdr    ethHdr;
-    EkaIpHdr     ipHdr;
-    uint32_t     ip_options;
-    EkaIgmpV2Hdr igmpHdr;
-  } __attribute__ ((aligned (sizeof(uint16_t)))) __attribute__((packed));
-
+int createIgmpPkt (IgmpPkt* pkt, bool join, uint8_t* macsa, uint32_t ip_src, uint32_t ip_dst) {
   //  TEST_LOG("Creating IGMP %s packet",join ? "JOIN" : "LEAVE");
 
-  IgmpPkt* pkt = (IgmpPkt*) dst;
+  //  IgmpPkt* pkt = (IgmpPkt*) dst;
 
   uint8_t macda[6] = {0x01, 0x00, 0x5e, 0x00, 0x00, 0x00};
   macda[3] = ((uint8_t*) &ip_dst)[1] & 0x7F;

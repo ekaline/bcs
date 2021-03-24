@@ -805,8 +805,8 @@ int main(int argc, char *argv[]) {
 #else
 	efhGetDefs(pEfhCtx[r], &efhRunCtx.at(r), (EkaGroup*)&efhRunCtx.at(r).groups[i], NULL);
 #endif
-	fclose (gr->fullDict);
-	fclose (gr->subscrDict);
+	/* fclose (gr->fullDict); */
+	/* fclose (gr->subscrDict); */
       }
       /* ------------------------------------------------------- */
       if (pEfhCtx[r]->fhId >= 16) on_error("pEfhCtx[r]->fhId = %u,pEfhCtx[r]=%p",
@@ -834,8 +834,11 @@ int main(int argc, char *argv[]) {
 
   for (auto exch = 0; exch < MAX_EXCH; exch++) {
     for (auto grId = 0; grId < MAX_GROUPS; grId++) {
-      if (grCtx[exch][grId] == NULL) continue;
-      fclose(grCtx[exch][grId]->MD);      
+      auto gr = grCtx[exch][grId];
+      if (gr == NULL) continue;
+      fclose (gr->fullDict);
+      fclose (gr->subscrDict);
+      fclose(gr->MD);      
     }
   }
   printf ("Exitting normally...\n");

@@ -25,8 +25,6 @@
 #include "EkaTcpSess.h"
 #include "eka_fh_q.h"
 
-int createIgmpPkt (char* dst, bool join, uint8_t* macsa, uint32_t ip_src, uint32_t ip_dst);
-
 
  /* ##################################################################### */
 EkaFhGroup::EkaFhGroup() {
