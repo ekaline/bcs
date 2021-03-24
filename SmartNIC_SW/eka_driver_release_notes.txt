@@ -1,1 +1,1 @@
-"EKA DRIVER RELEASE:     3_0_2_RC_WC6 IGMP driver fix 64 mc (3)"
+"EKA DRIVER RELEASE:     3_0_2_RC_WC6 fix for Centos 8 (3)"
