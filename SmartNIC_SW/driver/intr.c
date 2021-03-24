@@ -60,6 +60,8 @@ int send_signal_to_user_process(const device_context_t * pDevExt, pid_t pid, int
     #else
     siginfo_t info;
     #endif
+#else
+    siginfo_t info;
 #endif
     
     /* siginfo_t info; */
