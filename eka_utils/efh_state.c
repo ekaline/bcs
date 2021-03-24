@@ -82,6 +82,8 @@ inline void reg_write(uint64_t addr, uint64_t val) {
 //################################################
 int getSnIgmpCtx(McState* mcState, sc_multicast_subscription_t* hwIgmp) {
   if (hwIgmp == NULL) on_error("hwIgmp == NULL");
+  printf("hwIgmp = %p",hwIgmp);
+  
   memset(hwIgmp,0,sizeof(sc_multicast_subscription_t) * 8 * 64);
 
   int fd = SN_GetFileDescriptor(devId);
@@ -504,7 +506,7 @@ int main(int argc, char *argv[]) {
   McState mcState = {};
 
 
-  sc_multicast_subscription_t hwIgmp[8 * 64] = {};
+  sc_multicast_subscription_t  __attribute__ ((aligned(0x1000))) hwIgmp[8 * 64] = {};
   /* sc_multicast_subscription_t* hwIgmp = (sc_multicast_subscription_t*)malloc(sizeof(sc_multicast_subscription_t) * 8 * 64); */
   /* if (hwIgmp == NULL) on_error("malloc failed"); */
 

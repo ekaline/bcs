@@ -5,7 +5,8 @@ eka_ioctl_t eka_ioctl;
 
 
 if (copy_from_user(&eka_ioctl, (void*)data, sizeof(eka_ioctl_t)))  return -EFAULT;
-PRINTK("EKALINE DEBUG: EKA IOCTL to nif %d, session %d, cmd=%u\n",eka_ioctl.nif_num,eka_ioctl.session_num,eka_ioctl.cmd);
+PRINTK("EKALINE DEBUG: EKA IOCTL to nif %d, session %d, cmd=%u, data=%p\n",
+       eka_ioctl.nif_num,eka_ioctl.session_num,eka_ioctl.cmd,data);
 
 uint64_t ekaSnDriverVerNum = EKA_VER_NUM;
 
@@ -14,13 +15,6 @@ if (data == NULL) {
   return -EFAULT;
  }
 
-/* eka_session_t* eka_session = &(pDevExt->nif[eka_ioctl.nif_num].eka_private_data->eka_session[eka_ioctl.session_num]); */
-/* char* eka_version = (char*)&(pDevExt->nif[0].eka_private_data->eka_version); // version is taken from feth0 */
-/* char* eka_release = (char*)&(pDevExt->nif[0].eka_private_data->eka_release); // release is taken from feth0 */
-/* if (eka_session == NULL) { */
-/*   PRINTK("EKALINE DEBUG: SMARTNIC_EKALINE_DATA: DevExt->nif[2].eka_private_data == NULL\n"); */
-/*   return -EFAULT; */
-/*  } */
 int i;
 
 switch (eka_ioctl.cmd) {
@@ -170,7 +164,7 @@ switch (eka_ioctl.cmd) {
  }
    break;
  case EKA_GET_IGMP_STATE: {
-   PRINTK("%s:%u: EKALINE DEBUG: EKA_GET_IGMP_STATE\n",__FILE__,__LINE__);
+   PRINTK("%s:%u: EKALINE DEBUG: EKA_GET_IGMP_STATE: data=%p\n",__FILE__,__LINE__,data);
 
    struct sc_multicast_subscription_t* dstAddr = (struct sc_multicast_subscription_t*)((eka_ioctl_t*)data)->wcattr.bar0_pa;
    PRINTK("%s:%u: EKALINE DEBUG: EKA_GET_IGMP_STATE: dstAddr %p == wcattr.bar0_pa 0x%llx\n",
