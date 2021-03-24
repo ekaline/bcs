@@ -16,6 +16,13 @@ if (data == NULL) {
  }
 
 int i;
+eka_ioctl_t dataCopy;
+if ((rc = copy_from_user(&dataCopy,
+			    (void*) data,
+			    sizeof(dataCopy)))) {
+  PRINTK("EKALINE DEBUG: SMARTNIC_EKALINE_DATA: copy_from_user(&dataCopy,(void*) data, sizeof(dataCopy) failed\n");
+  return -EFAULT;
+ }
 
 switch (eka_ioctl.cmd) {
  case EKA_DUMP:
@@ -166,11 +173,11 @@ switch (eka_ioctl.cmd) {
  case EKA_GET_IGMP_STATE: {
    PRINTK("%s:%u: EKALINE DEBUG: EKA_GET_IGMP_STATE: data=%p\n",__FILE__,__LINE__,data);
 
-   struct sc_multicast_subscription_t* dstAddr = (struct sc_multicast_subscription_t*)((eka_ioctl_t*)data)->wcattr.bar0_pa;
+   struct sc_multicast_subscription_t* dstAddr = (struct sc_multicast_subscription_t*)dataCopy.wcattr.bar0_pa;
    PRINTK("%s:%u: EKALINE DEBUG: EKA_GET_IGMP_STATE: dstAddr %p == wcattr.bar0_pa 0x%llx\n",
 	  __FILE__,__LINE__,
 	  dstAddr,
-	  ((eka_ioctl_t*)data)->wcattr.bar0_pa
+	  dataCopy.wcattr.bar0_pa
 	  );
    if ((rc = copy_to_user((void __user *) dstAddr,
 			  &pDevExt->igmpContext.global_subscriber,
