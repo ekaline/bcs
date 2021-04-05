@@ -49,7 +49,7 @@ static int sendHearBeat(EkaDev* dev,int sock, uint8_t batsUnit) {
     .unit     = batsUnit,
     .sequence = 0
   };
-  return send(sock,&heartbeat,sizeof(heartbeat), 0);
+  return send(sock,&heartbeat,sizeof(heartbeat), MSG_NOSIGNAL);
 }
 
 /* ##################################################################### */
@@ -86,7 +86,7 @@ static bool sendLogin (EkaDev*     dev,
 	  std::string((const char*)&loginMsg.username,      sizeof(loginMsg.username)).c_str(),
 	  std::string((const char*)&loginMsg.password,      sizeof(loginMsg.password)).c_str()
 	  );
-  if(send(sock,&loginMsg,sizeof(loginMsg), 0) < 0) {
+  if(send(sock,&loginMsg,sizeof(loginMsg), MSG_NOSIGNAL) < 0) {
     dev->lastErrno = errno;
     EKA_WARN("%s:%u: %s Login send failed: %s",
 	     EKA_EXCH_DECODE(exch),id,loginType,strerror(dev->lastErrno));
@@ -285,7 +285,7 @@ static bool sendSpinRequest(EkaDev*   dev,
 	  msg.sequence
 	  );
 
-  if(send(sock,&msg,sizeof(msg), 0) < 0) {
+  if(send(sock,&msg,sizeof(msg), MSG_NOSIGNAL) < 0) {
     dev->lastErrno = errno;
     EKA_WARN("%s:%u: Spin Request send failed: %s",
 	     EKA_EXCH_DECODE(exch),id,strerror(dev->lastErrno));
@@ -747,7 +747,7 @@ static bool sendGapRequest(EkaDev*   dev,
 	  gap_request.sequence,
 	  gap_request.count);
 
-  int size = send(sock,&gap_request,sizeof(gap_request), 0);
+  int size = send(sock,&gap_request,sizeof(gap_request), MSG_NOSIGNAL);
   if(size <= 0) {
     dev->lastErrno = errno;
     EKA_WARN("%s:%u: GRP Request send failed (sent %d bytes): %s",

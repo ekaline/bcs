@@ -124,7 +124,7 @@ static int sendHearBeat(int sock) {
     .type		= 'R'
   };
 
-  return send(sock,&heartbeat,sizeof(heartbeat), 0);
+  return send(sock,&heartbeat,sizeof(heartbeat), MSG_NOSIGNAL);
 }
 
 /* ##################################################################### */
@@ -140,7 +140,7 @@ void* soupbin_heartbeat_thread(void* attr) {
   while(gr->heartbeat_active) {
     /* EKA_TRACE("%s:%u sending Glimpse hearbeat on sock %d, recovery_sequence = %ju, currUdpSequence=%ju", */
     /* 	      EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock,gr->recovery_sequence,gr->q == NULL ? 0 : gr->q->currUdpSequence); */
-    if(send(gr->snapshot_sock,&heartbeat,sizeof(struct soupbin_header), 0) < 0) 
+    if(send(gr->snapshot_sock,&heartbeat,sizeof(struct soupbin_header), MSG_NOSIGNAL) < 0) 
       on_error("%s:%u: heartbeat send failed, gr->snapshot_sock=%d",EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock);
     usleep(900000);
   }
@@ -250,7 +250,7 @@ static bool sendLogin (EkaFhNasdaqGr* gr, uint64_t start_sequence) {
 	  std::string(login_message.sequence,sizeof(login_message.sequence)).c_str()
 	  );
 #endif	
-  if(send(gr->snapshot_sock,&login_message,sizeof(login_message), 0) < 0) {
+  if(send(gr->snapshot_sock,&login_message,sizeof(login_message), MSG_NOSIGNAL) < 0) {
     dev->lastErrno = errno;
     EKA_WARN("%s:%u Login send failed, gr->snapshot_sock = %d: %s",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock,strerror(dev->lastErrno));
@@ -264,7 +264,7 @@ static void sendLogout (EkaFhNasdaqGr* gr) {
   struct soupbin_header logout_request = {};
   logout_request.length		= htons(1);
   logout_request.type		= 'O';
-  if(send(gr->snapshot_sock,&logout_request,sizeof(logout_request) , 0) < 0) {
+  if(send(gr->snapshot_sock,&logout_request,sizeof(logout_request) , MSG_NOSIGNAL) < 0) {
     EKA_WARN("%s:%u Logout send failed, gr->snapshot_sock = %d: %s",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock,strerror(errno));
   } else {

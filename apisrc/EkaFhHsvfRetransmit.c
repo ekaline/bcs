@@ -62,7 +62,7 @@ static bool sendLogin (EkaFhBoxGr* gr) {
   memcpy(msg.ProtocolVersion   , "C7"       , sizeof(msg.ProtocolVersion));
   msg.EoM = HsvfEom;
 
-  if(send(gr->snapshot_sock,&msg,sizeof(msg), 0) <= 0) {
+  if(send(gr->snapshot_sock,&msg,sizeof(msg), MSG_NOSIGNAL) <= 0) {
     dev->lastErrno = errno;
     EKA_WARN("%s:%u: BOX Login send failed: %s",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
@@ -134,7 +134,7 @@ static bool sendRequest(EkaFhBoxGr* gr, uint64_t start, uint64_t end) {
 	  EKA_EXCH_DECODE(gr->exch),gr->id,startStrBuf,endStrBuf);
   return true;
 #endif
-  if(send(gr->snapshot_sock,&msg,sizeof(msg), 0) <= 0) {
+  if(send(gr->snapshot_sock,&msg,sizeof(msg), MSG_NOSIGNAL) <= 0) {
     dev->lastErrno = errno;
     EKA_WARN("%s:%u: Retransmit Request send failed: %s",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
@@ -207,7 +207,7 @@ static bool sendRetransmissionEnd(EkaFhBoxGr* gr) {
   memcpy(msg.hdr.MsgType  , "RE"        , sizeof(msg.hdr.MsgType));
   msg.EoM = HsvfEom;
 
-  if(send(gr->snapshot_sock,&msg,sizeof(msg), 0) < 0) {
+  if(send(gr->snapshot_sock,&msg,sizeof(msg), MSG_NOSIGNAL) < 0) {
     dev->lastErrno = errno;
     EKA_WARN("%s:%u: Retransmission End send failed: %s",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
@@ -237,7 +237,7 @@ static bool sendLogout(EkaFhBoxGr* gr) {
   memcpy(msg.hdr.MsgType  , "LO"        , sizeof(msg.hdr.MsgType));
   msg.EoM = HsvfEom;
 
-  if(send(gr->snapshot_sock,&msg,sizeof(msg), 0) < 0) {
+  if(send(gr->snapshot_sock,&msg,sizeof(msg), MSG_NOSIGNAL) < 0) {
     dev->lastErrno = errno;
     EKA_WARN("%s:%u: Logout send failed: %s",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
