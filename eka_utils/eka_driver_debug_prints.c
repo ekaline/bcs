@@ -31,7 +31,7 @@ int main(int argc, char **argv){
   eka_ioctl_t state = {};
   memset(&state,0,sizeof(eka_ioctl_t));
   for (int i=0; i<2;i++) {
-    state.nif_num = i;
+    state.paramA = i;
     state.cmd = on_off ? EKA_DEBUG_ON : EKA_DEBUG_OFF;
     int rc = ioctl(fd,SC_IOCTL_EKALINE_DATA,&state);
     if (rc < 0) on_error("%s: error ioctl(fd,SC_IOCTL_EKALINE_DATA,&state) EKA_DEBUG_ON/OFF (%d) on feth%u\n",argv[0],state.cmd,i);

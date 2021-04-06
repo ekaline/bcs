@@ -1,1 +1,1 @@
-"EKA DRIVER RELEASE:     3_0_2_RC_WC6 fix for Centos 8 (3)"
+"3_0_2_RC_WC6 ioctl fix for Centos 8 (4)"

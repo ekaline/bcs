@@ -283,7 +283,7 @@ int main(int argc, char *argv[]) {
   };
 
   testConnection conn[MaxTestCores] = {
-    { std::string("100.0.0.110"), std::string("10.0.0.10"), 22222},
+    { std::string("100.0.0.110"), std::string("10.0.0.10"), 60263},
     { std::string("200.0.0.111"), std::string("10.0.0.11"), 22223}
   };
 

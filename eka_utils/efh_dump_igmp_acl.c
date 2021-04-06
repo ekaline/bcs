@@ -89,9 +89,7 @@ int getSnIgmpCtx(McState* mcState, sc_multicast_subscription_t* hwIgmp) {
   eka_ioctl_t __attribute__ ((aligned(0x1000))) state = {};
 
   state.cmd = EKA_GET_IGMP_STATE;
-  state.nif_num = 0;
-  state.session_num = 0;
-  state.wcattr.bar0_pa = (uint64_t)hwIgmp;
+  state.paramA = (uint64_t)hwIgmp;
 
   int rc = ioctl(fd,SMARTNIC_EKALINE_DATA,&state);
   if (rc != 0) on_error("ioctl failed: rc = %d",rc);

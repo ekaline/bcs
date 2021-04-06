@@ -18,7 +18,7 @@ struct udphdr {
   __u16   check;
 };
 bool eka_drop_me = false;
-if(nif->eka_private_data->eka_debug)
+if(pDevExt->eka_debug)
   PRINTK("EKALINE DEBUG: RX: eka_frameHeader=%p, eka_ip=%p,  etherType=0x%04x, eka_ip->protocol=0x%0x\n",
        eka_frameHeader,
        eka_ip,
@@ -27,9 +27,13 @@ if(nif->eka_private_data->eka_debug)
        );
 
 // Dropping all UDP RX
-if (nif->eka_private_data->drop_all_rx_udp == 1 && (((FbEtherFrameHeader *)eka_frameHeader)->etherType==0x0080 || ((FbEtherFrameHeader *)eka_frameHeader)->etherType==0x0081) && eka_ip->protocol == 0x11) {
+//if (nif->eka_private_data->drop_all_rx_udp == 1 &&
+if (pDevExt->eka_drop_all_rx_udp == 1 &&
+    (((FbEtherFrameHeader *)eka_frameHeader)->etherType==0x0080 || ((FbEtherFrameHeader *)eka_frameHeader)->etherType==0x0081) &&
+    eka_ip->protocol == 0x11) {
+  
   struct udphdr* udph = (struct udphdr *)((char*)eka_ip + eka_ip->ihl * sizeof(uint32_t));
-  if(nif->eka_private_data->eka_debug)
+  if(pDevExt->eka_debug)
     PRINTK("EKALINE DEBUG: RX: DROPPING: udph=%p,  %d.%d.%d.%d -> %d.%d.%d.%d : %hu->%hu\n", 
 	 udph,
 	 eka_saddr[0],eka_saddr[1],eka_saddr[2],eka_saddr[3],
@@ -59,7 +63,7 @@ if (eka_ip->protocol == 0x6) { // TCP
 
     nif->eka_private_data->eka_session[eks].tcp_remote_seq_num = ntohl(tcph->seq) + payload_len;
     nif->eka_private_data->eka_session[eks].pkt_rx_cntr++;
-    if(nif->eka_private_data->eka_debug)
+    if(pDevExt->eka_debug)
       PRINTK("EKALINE DEBUG: RX: %s: %d.%d.%d.%d -> %d.%d.%d.%d : %hu->%hu, tcp_local_seq_num: %u, ack: %u, doff: %hu, urg: %hu, FLAGS=%c%c%c%c%c%c, payload_len=%d\n", 
 	     __func__,
 	     eka_saddr[0],eka_saddr[1],eka_saddr[2],eka_saddr[3],eka_daddr[0],eka_daddr[1],eka_daddr[2],eka_daddr[3],
@@ -75,14 +79,14 @@ if (eka_ip->protocol == 0x6) { // TCP
 	     payload_len);
 	
     if ((ntohl(tcph->ack_seq) > nif->eka_private_data->eka_session[eks].tcp_local_seq_num) && !tcph->syn && !tcph->fin) {
-      if(nif->eka_private_data->eka_debug)
+      if(pDevExt->eka_debug)
 	PRINTK("EKALINE DEBUG: RX: %s: expected ACK= %u, received ACK=%u -- DELAYING START\n",__func__,nif->eka_private_data->eka_session[eks].tcp_local_seq_num,ntohl(tcph->ack_seq));
       int cnt = 0;
       uint d = 5;
       while ((ntohl(tcph->ack_seq) > nif->eka_private_data->eka_session[eks].tcp_local_seq_num) && !tcph->syn && !tcph->fin && (cnt++ < 10000)) {
 	udelay (d);
       }
-      if(nif->eka_private_data->eka_debug)
+      if(pDevExt->eka_debug)
 	PRINTK("EKALINE DEBUG: RX: %s: expected ACK= %u, received ACK=%u, delayed %d us -- DELAYING END\n",__func__,nif->eka_private_data->eka_session[eks].tcp_local_seq_num,ntohl(tcph->ack_seq),cnt*d);
     }
 #endif // 0

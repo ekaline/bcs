@@ -174,55 +174,51 @@ class EkaSnDev {
     int fd = SN_GetFileDescriptor(dev_id);
     eka_ioctl_t state = {};
     state.cmd = EKA_SET;
-    state.nif_num = core;
-    state.session_num = sess;
+    state.paramA = core;
+    state.paramB = sess;
     state.eka_session.active = 1;
-    state.eka_session.drop_next_real_tx_pckt = 1;
-    state.eka_session.send_seq2hw = 1;
     state.eka_session.ip_saddr  = srcIp;
     state.eka_session.ip_daddr  = dstIp;
-    /* state.eka_session.tcp_sport = be16toh(srcUdp); */
-    /* state.eka_session.tcp_dport = be16toh(dstUdp); */
-
     state.eka_session.tcp_sport = srcUdp;
     state.eka_session.tcp_dport = dstUdp;
 
     int rc = ioctl(fd,SC_IOCTL_EKALINE_DATA,&state);
     if (rc < 0) on_error("error ioctl(fd,SC_IOCTL_EKALINE_DATA,&state) EKA_SET");
-    EKA_LOG("Fast Session set: core=%u, sess=%u, %s:%u --> %s:%u", core,sess,EKA_IP2STR(srcIp),srcUdp,EKA_IP2STR(dstIp),dstUdp);
+    EKA_LOG("Fast Session set: core=%u, sess=%u, %s:%u --> %s:%u",
+	    core,sess,EKA_IP2STR(srcIp),srcUdp,EKA_IP2STR(dstIp),dstUdp);
 
     return;
   }
   //  void       ioremap_wc_tx_pkts ();
 //################################################
 
-  uint16_t getWindowSize (uint8_t core, uint8_t sess) {
-    int fd = SN_GetFileDescriptor(dev_id);
-    eka_ioctl_t state = {};
-    state.cmd = EKA_DUMP;
-    state.nif_num = core;
-    state.session_num = sess;
-    int rc = ioctl(fd,SMARTNIC_EKALINE_DATA,&state);
-    if (rc < 0) on_error("ioctl(fd,SMARTNIC_EKALINE_DATA,&state) EKA_DUMP");
-    return state.eka_session.tcp_window;
-  }
+  // uint16_t getWindowSize (uint8_t core, uint8_t sess) {
+  //   int fd = SN_GetFileDescriptor(dev_id);
+  //   eka_ioctl_t state = {};
+  //   state.cmd = EKA_DUMP;
+  //   state.nif_num = core;
+  //   state.session_num = sess;
+  //   int rc = ioctl(fd,SMARTNIC_EKALINE_DATA,&state);
+  //   if (rc < 0) on_error("ioctl(fd,SMARTNIC_EKALINE_DATA,&state) EKA_DUMP");
+  //   return state.eka_session.tcp_window;
+  // }
   
   //################################################
 
-  void update_fast_session_params (uint8_t coreId, uint8_t sessId, uint8_t* macSa, uint8_t* macDa) {
-    int fd = SN_GetFileDescriptor(dev_id);
-    eka_ioctl_t state = {};
-    state.cmd = EKA_DUMP;
-    state.nif_num = coreId;
-    state.session_num = sessId;
+  // void update_fast_session_params (uint8_t coreId, uint8_t sessId, uint8_t* macSa, uint8_t* macDa) {
+    // int fd = SN_GetFileDescriptor(dev_id);
+    // eka_ioctl_t state = {};
+    // state.cmd = EKA_DUMP;
+    // state.nif_num = coreId;
+    // state.session_num = sessId;
 
-    int rc = ioctl(fd,SMARTNIC_EKALINE_DATA,&state);
+    // int rc = ioctl(fd,SMARTNIC_EKALINE_DATA,&state);
 
-    if (rc < 0) on_error("error ioctl(fd,SMARTNIC_EKALINE_DATA,&state) EKA_DUMP -> ");
+    // if (rc < 0) on_error("error ioctl(fd,SMARTNIC_EKALINE_DATA,&state) EKA_DUMP -> ");
 
-    memcpy(macSa,state.eka_session.macsa,6);
-    memcpy(macDa,state.eka_session.macda,6);
-  }
+    // memcpy(macSa,state.eka_session.macsa,6);
+    // memcpy(macDa,state.eka_session.macda,6);
+  // }
 
   /* EkaUserChannel*           epmReport = NULL; */
   /* EkaUserChannel*           lwipPath = NULL; */

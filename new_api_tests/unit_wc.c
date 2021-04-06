@@ -31,15 +31,16 @@ int main(int argc, char *argv[]) {
   int fd = SC_GetFileDescriptor(dev_id);
   eka_ioctl_t state = {};
   state.cmd = EKA_IOREMAP_WC;
-  state.nif_num = 0;
-
+  state.paramA = (uint64_t)(new uint64_t);
+  if (state.paramA == 0) on_error("state.paramA == 0");
+  
   int rc = ioctl(fd,SC_IOCTL_EKALINE_DATA,&state);
   if (rc < 0) on_error("error ioctl(fd,SC_IOCTL_EKALINE_DATA,&state) EKA_IOREMAP_WC");
   TEST_LOG("EKA_IOREMAP_WC IOCTL succeeded");
 
 
   volatile uint64_t* a2wr_fromEkalineGetWcBase = EkalineGetWcBase(dev_id);
-  volatile uint64_t* a2wr_fromIOCTL = (volatile uint64_t*)state.wcattr.bar0_wc_va;
+  volatile uint64_t* a2wr_fromIOCTL = (volatile uint64_t*)(*(uint64_t*)state.paramA);
   volatile uint64_t* a2wr = a2wr_fromEkalineGetWcBase;
 
   TEST_LOG("EkalineGetWcBase = %p, state.wcattr.bar0_wc_va = %jx",

@@ -1,5 +1,5 @@
-#ifndef EKA_H
-#define EKA_H
+#ifndef _EKA_H_
+#define _EKA_H_
 
 #include "ekaline_build_time.h"
 #include "ekaline_ver_num.h"
@@ -8,6 +8,8 @@
 #define EKA_WC_REGION_OFFS 0x8000
 #define EKA_WC_REGION_SIZE 0x8000
 
+#define EKA_RELEASE_STRING_LEN 256
+#define EKA_BUILD_TIME_STRING_LEN 256
 
 typedef struct {
   uint8_t active;
@@ -29,14 +31,14 @@ typedef struct {
 } eka_session_t;
 
 typedef struct { // driver's params per NIF
-  char eka_version[64];
-  char eka_release[256];
-  uint8_t eka_debug;
-  uint8_t drop_igmp;
-  uint8_t drop_arp;
-  uint8_t drop_all_rx_udp;
-  uint64_t bar0_va;
-  uint64_t bar0_wc_va;
+  /* char eka_version[64]; */
+  /* char eka_release[256]; */
+  /* uint8_t eka_debug; */
+  /* uint8_t drop_igmp; */
+  /* uint8_t drop_arp; */
+  /* uint8_t drop_all_rx_udp; */
+  /* uint64_t bar0_va; */
+  /* uint64_t bar0_wc_va; */
   eka_session_t eka_session[EKA_SESSIONS_PER_NIF]; // valid only for NIF == 0
 } eka_nif_state_t;
 
@@ -52,17 +54,23 @@ typedef struct {
 
 typedef struct { // struct used to transfer (in both directions) driver's params by IOCTL
   eka_ioctl_cmd_t cmd;
-  uint8_t nif_num;
-  uint8_t session_num;
+  /* uint8_t nif_num; */
+  /* uint8_t session_num; */
 
-  char eka_version[64];
-  char eka_release[256];
-  uint8_t eka_debug;
-  uint8_t drop_igmp;
-  uint8_t drop_arp;
-  uint8_t drop_all_rx_udp;
+  /* char eka_version[64]; */
+  /* char eka_release[256]; */
+  /* uint8_t eka_debug; */
+  /* uint8_t drop_igmp; */
+  /* uint8_t drop_arp; */
+  /* uint8_t drop_all_rx_udp; */
+  /* eka_session_t eka_session; */
+  /* eka_wcattr_t wcattr; */
+
+  uint64_t paramA;
+  uint64_t paramB;
+  uint64_t paramC;
+  uint64_t paramD;
   eka_session_t eka_session;
-  eka_wcattr_t wcattr;
 } eka_ioctl_t;
 
 typedef union table_desc {
