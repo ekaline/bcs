@@ -375,8 +375,13 @@ static EkaFhParseResult procSesm(const EfhRunCtx* pEfhRunCtx,
 
   case EKA_SESM_TYPE::Sequenced : 
     sequence = *(uint64_t*)m;
-    m += sizeof(sequence);
     gr->seq_after_snapshot = sequence;
+    if (payloadLen == sizeof(sequence)) {
+      EKA_WARN("%s:%u SESM Sequenced packet with no msg",
+	       EKA_EXCH_DECODE(gr->exch),gr->id);
+      return EkaFhParseResult::NotEnd;
+    }
+    m += sizeof(sequence);
     if (gr->parseMsg(pEfhRunCtx,m,sequence,op)) {
       EKA_LOG("%s:%u %s End Of Refresh: gr->seq_after_snapshot = %ju",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,
@@ -393,6 +398,11 @@ static EkaFhParseResult procSesm(const EfhRunCtx* pEfhRunCtx,
     case 'R' :
       sequence = ((sesm_unsequenced*)m)->sequence;
       gr->seq_after_snapshot = sequence;
+      if (payloadLen == sizeof(sesm_unsequenced)) {
+	EKA_WARN("%s:%u SESM Unsequenced packet with no msg",
+		 EKA_EXCH_DECODE(gr->exch),gr->id);
+	return EkaFhParseResult::NotEnd;
+      } 
       m += sizeof(sesm_unsequenced);
       if (gr->parseMsg(pEfhRunCtx,m,sequence,op)) {
 	EKA_LOG("%s:%u %s End Of Refresh: gr->seq_after_snapshot = %ju",
