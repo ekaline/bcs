@@ -83,7 +83,7 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p
     sprintf(pkt->free_text,"%u_%u_%2u_%08ju",thrId,coreId,sessId,pkt->cnt);
 
 
-    uint pkt_size = 1461; // Ken's magic number
+    size_t pkt_size = 1461; // Ken's magic number
 
     //    uint pkt_size = rand() % (BUF_SIZE - 2 - sizeof(TcpTestPkt)) + 3;
     //    uint pkt_size = rand() % (BUF_SIZE - 2 - sizeof(TcpTestPkt)) + 3;
@@ -110,10 +110,15 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p
     //   TEST_LOG("RX or %u bytes:",pkt_size);
 #if TCP_TEST_ECHO
     char rx_buf[BUF_SIZE] = {};
-    int rxsize = 0;
+    size_t rxsize = 0;
     do {
-      rxsize = excRecv(pEkaDev,sess_id, rx_buf, pkt_size);
-    } while (keep_work && rxsize < 1);
+      size_t rc = excRecv(pEkaDev,sess_id, &rx_buf[rxsize], pkt_size);
+      if (rc < 0) {
+	TEST_LOG("WARNING: rc = %jd",rc);
+	continue;
+      }
+      rxsize += rc;
+    } while (keep_work && rxsize != pkt_size);
 
     if (! keep_work) return;
     //    hexDump("RCV",rx_buf,rxsize);
@@ -121,7 +126,8 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p
     if (memcmp(tx_buf,rx_buf,pkt_size) != 0) { 
       hexDump("TX_BUF",tx_buf,pkt_size);
       hexDump("RX_BUF",rx_buf,pkt_size);
-      on_error("%u pkt %04ju: RX != TX pkt_size=%u (=0x%x) for coreId %u sessId %u",sessId,pkt->cnt,pkt_size,pkt_size,coreId,sessId);
+      on_error("%u pkt %04ju: RX != TX pkt_size=%jd (=0x%jx) for coreId %u sessId %u",
+	       sessId,pkt->cnt,pkt_size,pkt_size,coreId,sessId);
       TEST_LOG("ERROR: %u %04ju: payload is INCORRECT",sessId,pkt->cnt); fflush(stderr);
 
     } 
