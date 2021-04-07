@@ -21,6 +21,8 @@
 !arch
 !CMakeLists.txt
 !apisrc/FhBook
+SmartNIC_SW/driver/smartnic.mod.c
+SmartNIC_SW/driver/ekaline_build_time.h
 
 
 
