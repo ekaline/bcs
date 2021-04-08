@@ -23,6 +23,7 @@
 !apisrc/FhBook
 SmartNIC_SW/driver/smartnic.mod.c
 SmartNIC_SW/driver/ekaline_build_time.h
+SmartNIC_SW/tools/fbupdate/build-number.txt
 
 
 
