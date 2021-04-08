@@ -115,7 +115,9 @@ void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fireReportBuf, size_t s
   if (dev == NULL) on_error("dev == NULL");
   //  EKA_LOG ("FIRE REPORT RECEIVED");
   //  hexDump("FireReport",fireReportBuf,size);
+
   efcPrintFireReport(pEfcCtx, (const EfcReportHdr*)fireReportBuf,true);
+
   //  EKA_LOG ("Rearming...\n");
   //  efcEnableController(pEfcCtx,1);
 }
@@ -400,7 +402,7 @@ int main(int argc, char *argv[]) {
   // Global EFC config
   EfcStratGlobCtx efcStratGlobCtx = {
     .enable_strategy = 1,
-    .report_only = 0,
+    .report_only = 1,
     .debug_always_fire_on_unsubscribed = 0,
     .debug_always_fire = 1,
     .max_size = 1000,

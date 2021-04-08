@@ -55,6 +55,7 @@ struct EhpParseTemplateSide {
 *
 */
 struct EhpFieldParams {
+  EhpParseTemplate     sequence[EhpMaxMsgTypes];
   EhpParseTemplateSide side[EhpMaxMsgTypes];
   EhpParseTemplate     securityId[EhpMaxMsgTypes];
   EhpParseTemplate     price[EhpMaxMsgTypes];
@@ -63,9 +64,9 @@ struct EhpFieldParams {
   EhpParseTemplate     msgLen[EhpMaxMsgTypes];
 } __attribute__((packed));
 
-struct EhpHeaderParams {
-  EhpParseTemplate sequence[EhpMaxMsgTypes];;
-} __attribute__((packed));
+/* struct EhpHeaderParams { */
+/*   EhpParseTemplate sequence[EhpMaxMsgTypes];; */
+/* } __attribute__((packed)); */
 
 #define EhpBlankByte 0xFF
 
@@ -91,7 +92,7 @@ struct EhpProtocolParams {
 * - fields: define how to extract every field for every message type
 */
 struct EhpProtocolConf {
-  EhpHeaderParams   header;
+  /* EhpHeaderParams   header; */
   EhpFieldParams    fields;
   EhpProtocolParams params;
 } __attribute__((packed));

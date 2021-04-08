@@ -139,7 +139,7 @@ EkaOpResult efcEnableFiringOnSec( EfcCtx* pEfcCtx, const uint64_t* pSecurityIds,
 
   uint64_t* p = (uint64_t*) pSecurityIds;
   for (uint i = 0; i < numSecurityIds; i++) {
-    EKA_LOG("Subscribing on 0x%jx",*p);
+    //    EKA_LOG("Subscribing on 0x%jx",*p);
     efc->subscribeSec(*p);
     p++;
   }
@@ -341,6 +341,8 @@ EkaOpResult efcRun( EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx ) {
 
   //  efc_run(pEfcCtx,pEfcRunCtx);
 
+  eka_write(dev,0xf0f00,0xefa0beda); // REMOVE!!!
+  
   return EKA_OPRESULT__OK;
 }
 

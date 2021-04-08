@@ -214,7 +214,7 @@ int EkaEfc::subscribeSec(uint64_t secId) {
   uint64_t normSecId = normalizeId(secId);
   int      lineIdx   = getLineIdx(normSecId);
 
-  EKA_DEBUG("Subscribing on 0x%jx, lineIdx = 0x%x (%d)",secId,lineIdx,lineIdx);
+  //  EKA_DEBUG("Subscribing on 0x%jx, lineIdx = 0x%x (%d)",secId,lineIdx,lineIdx);
   if (hashLine[lineIdx]->addSecurity(normSecId)) {
     numSecurities++;
     uint64_t val = eka_read(dev, SW_STATISTICS);
