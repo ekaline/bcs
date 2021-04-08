@@ -14,6 +14,7 @@
 #include "EkaEfcDataStructs.h"
 #include "EkaHwCaps.h"
 #include "EhpNom.h"
+#include "EhpPitch.h"
 
 void ekaFireReportThread(EkaDev* dev);
 
@@ -45,7 +46,9 @@ EpmStrategy(epm,id,baseActionIdx,params,hwFeedVer) {
 
   initHwRoundTable();
 
-  ehp = new EhpNom(dev);
+  //  ehp = new EhpNom(dev);
+  ehp = new EhpPitch(dev);
+
   if (ehp == NULL) on_error("ehp == NULL");
   ehp->init();
   ehp->download2Hw();
