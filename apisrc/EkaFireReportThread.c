@@ -77,7 +77,7 @@ int printMdReport(EkaDev* dev, const EfcMdReport* msg) {
   //	  msg->core_id
   //	  );
 
-  printf("MdReport: GR%d,SN:%ju,SID:%16u,%c,P:%8u,S:%8u\n",
+  printf("MdReport: GR%d,SN:%ju,SID:%16ju,%c,P:%8ju,S:%8ju\n",
 	 msg->group_id,
 	 msg->sequence,
 	 msg->security_id,
