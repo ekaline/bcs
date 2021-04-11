@@ -50,6 +50,7 @@ static int fatalErrorCnt = 0;
 static const int MaxFatalErrors = 4;
 
 std::vector<std::string> underlyings;
+std::vector<uint64_t>    securities;
 
 struct TestSecurityCtx {
   std::string avtSecName;
@@ -389,7 +390,9 @@ void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUs
 
 
   if (subscribe_all || (std::find(underlyings.begin(), underlyings.end(), underlyingName) != underlyings.end())) {
-
+    if (std::find(securities.begin(),securities.end(),msg->header.securityId) != securities.end()) return NULL;
+    securities.push_back(msg->header.securityId);
+	
     TestSecurityCtx newSecurity = {
       .avtSecName  = std::string(avtSecName),
       .underlying  = underlyingName,
