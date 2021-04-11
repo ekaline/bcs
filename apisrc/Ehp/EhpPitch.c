@@ -7,6 +7,7 @@
 EhpPitch::EhpPitch(EkaDev* dev) : EhpProtocol(dev) {
   EKA_LOG("EhpPitch is created");
 
+  conf.params.protocolID         = EhpHwProtocol::PITCH;
   conf.params.pktHdrLen          = sizeof(batspitch_sequenced_unit_header);
   conf.params.msgDeltaSize       = 0;
   conf.params.bytes4StartMsgProc = 2; // msgLen + msgType 1

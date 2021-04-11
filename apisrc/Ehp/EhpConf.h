@@ -20,6 +20,11 @@ enum class EhpSidePresence : int8_t {
     EXPLICIT = 3    // Side is derived from a field
 };
 
+enum class EhpHwProtocol : int8_t {
+  NOM = 1,     
+  PITCH = 2
+};
+
 /**
 * Configuration defining how to extract a field
 *
@@ -81,6 +86,7 @@ struct EhpProtocolParams {
   uint8_t             bytes4StartMsgProc  : 4;         // message bytes 
   uint8_t             msgDeltaSize        : 4;         // extra bytes to offset per message
   uint8_t             pktHdrLen;                       // packet header bytes
+  uint8_t             protocolID          : 4;         // 
 } __attribute__((packed));
 
 

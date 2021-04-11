@@ -31,14 +31,15 @@ enum class HwField : uint8_t {
     REMOTE_SEQ   = 2,
     TCP_WINDOW   = 3,
     TCP_CHCK_SUM = 4,
-    SECURITY_ID  = 5,
+    RESERVED     = 5,
     PRICE        = 6,  // for orders use this, for quotes this is buy side
     SIZE         = 7,  // for orders use this, for quotes this is buy side
     SIDE         = 8,
     TIME         = 9,
     APPSEQ       = 10,
     ASK_PRICE    = 11, // for orders use this, for quotes this is ask side
-    ASK_SIZE     = 12  // for orders use this, for quotes this is ask side
+    ASK_SIZE     = 12, // for orders use this, for quotes this is ask side
+    SECURITY_ID  = 13
 };
 
 #define EpmHwField2Str(x) \
