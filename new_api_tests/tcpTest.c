@@ -26,7 +26,8 @@
 #define TCP_TEST_DATA 1
 
 //#define BUF_SIZE 8192
-#define BUF_SIZE (1536 - 14 - 20 - 20)
+//#define BUF_SIZE (1536 - 14 - 20 - 20)
+#define BUF_SIZE 1460
 
 #define CORES 2
 #define SESSIONS 32
@@ -83,9 +84,10 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p
     sprintf(pkt->free_text,"%u_%u_%2u_%08ju",thrId,coreId,sessId,pkt->cnt);
 
 
-    size_t pkt_size = 1461; // Ken's magic number
+    //    size_t pkt_size = 1461; // Ken's magic number
+    //size_t pkt_size = 1000; // Ken's magic number
 
-    //    uint pkt_size = rand() % (BUF_SIZE - 2 - sizeof(TcpTestPkt)) + 3;
+    size_t pkt_size = rand() % (BUF_SIZE - sizeof(TcpTestPkt) - 54) + sizeof(TcpTestPkt);
     //    uint pkt_size = rand() % (BUF_SIZE - 2 - sizeof(TcpTestPkt)) + 3;
     //uint pkt_size = rand() % 2; tx_buf[0] = 0xa1; tx_buf[1] = 0xb2;
     //    if (pkt_size == 0) pkt_size = 2;
@@ -131,7 +133,7 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p
       TEST_LOG("ERROR: %u %04ju: payload is INCORRECT",sessId,pkt->cnt); fflush(stderr);
 
     } 
-#endif
+#endif // TCP_TEST_ECHO
     if (pkt->cnt % STATISTICS_PERIOD == 0) {
       TEST_LOG ("CoreId %u, SessId %u, pkt->cnt: %ju",coreId,sessId,pkt->cnt);
     }
@@ -139,7 +141,7 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p
     pkt->cnt++;
 
     //    if (pkt->cnt > 20000) keep_work = false;
-#endif
+#endif // TCP_TEST_DATA
   }
   TEST_LOG("fastpath_thread_f is terminated"); fflush(stderr);fflush(stdout);
 
@@ -289,7 +291,7 @@ int main(int argc, char *argv[]) {
   };
 
   testConnection conn[MaxTestCores] = {
-    { std::string("100.0.0.110"), std::string("10.0.0.10"), 60263},
+    { std::string("100.0.0.110"), std::string("10.0.0.10"), 55555},
     { std::string("200.0.0.111"), std::string("10.0.0.11"), 22223}
   };
 

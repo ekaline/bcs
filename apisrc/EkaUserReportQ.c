@@ -33,7 +33,7 @@ inline uint32_t EkaUserReportQ::next(uint32_t curr) {
 EkaUserReportElem* EkaUserReportQ::push(const void* payload, uint len) {
   if (isFull()) on_error("User report Q is FULL! (qLen = %ju)",qLen);
   wrPtr = next(wrPtr);
-  if (len > MAX_PAYLOAD_SIZE) on_error("len %u > MAX_PAYLOAD_SIZE %u",len,MAX_PAYLOAD_SIZE);
+  if (len > MAX_ELEM_SIZE) on_error("len %u > MAX_ELEM_SIZE %u",len,MAX_ELEM_SIZE);
   memcpy(&(qElem[wrPtr].hdr), payload,sizeof(qElem[wrPtr].hdr));
   memcpy(&(qElem[wrPtr].data),(uint8_t*)payload + sizeof(qElem[wrPtr].hdr),len - sizeof(qElem[wrPtr].hdr));
 

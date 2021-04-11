@@ -78,7 +78,8 @@ class EkaTcpSess {
 
   uint32_t vlan_tag = 0;
 
-  uint16_t tcpWindow; // new
+  uint16_t tcpWindow; // local
+  uint16_t remoteTcpWindow = 0;
 
   volatile uint32_t tcpLocalSeqNum = 0;
   volatile uint32_t tcpRemoteSeqNum = 0;

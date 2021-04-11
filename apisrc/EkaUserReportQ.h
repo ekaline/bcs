@@ -10,8 +10,8 @@ struct EkaUserReportElem {
 
 class EkaUserReportQ {
  public:
-  const uint MAX_PAYLOAD_SIZE = 1536;
-  const uint Q_ELEMS          = 1024;
+  const uint MAX_ELEM_SIZE = 1536;
+  const uint Q_ELEMS       = 1024;
   
   /* -------------------------------- */
 

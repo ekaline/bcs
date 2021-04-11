@@ -235,6 +235,7 @@ int EkaTcpSess::preloadNwHeaders() {
 
 int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
   tcpRemoteAckNum = EKA_TCPH_ACKNO(pkt);
+  remoteTcpWindow = EKA_TCPH_WND(pkt);
   if ( 
       (tcpRemoteAckNum > tcpLocalSeqNum) && //doesntwork with wraparound
       (!(EKA_TCP_SYN(pkt)))
@@ -378,7 +379,10 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len) {
   /*   return 0; // too high tx rate -- Back Pressure */
   /* } */
 
-  if (
+  int payloadSize2send = len <= (int)MAX_PAYLOAD_SIZE ? len : MAX_PAYLOAD_SIZE;
+  if (payloadSize2send > remoteTcpWindow) return 0;
+  
+  if (   
       ( (fastPathBytes + tcpLocalSeqNumBase - tcpRemoteAckNum) > TrafficMargin ) &&
       ( (fastPathBytes + tcpLocalSeqNumBase - tcpRemoteAckNum) < TrafficMargin*4 ) //and not a wraparound
       ) {
@@ -393,8 +397,7 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len) {
     return 0;
   }
   throttleCounter = 0;
-  uint payloadSize2send = ((uint)len <= (MAX_PAYLOAD_SIZE + 2)) ? (uint)len : MAX_PAYLOAD_SIZE;
-  //  if (payloadSize2send <= 2) on_error("len = %d, payloadSize2send=%u,MAX_PKT_SIZE=%u",len,payloadSize2send,MAX_PAYLOAD_SIZE);
+
   fastPathBytes += payloadSize2send;
 
   fastPathAction->fastSend(buf, payloadSize2send);

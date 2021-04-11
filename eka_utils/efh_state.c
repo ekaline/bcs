@@ -133,7 +133,7 @@ void       getIpMac_ioctl(uint8_t lane, IfParams* params) {
   int           sck, nInterfaces;
 
   std::string portNameFETH   = std::string("feth")   + std::to_string(lane);
-  std::string portNameFPGA0_ = std::string("fpfa0_") + std::to_string(lane);
+  std::string portNameFPGA0 = std::string("fpfa0_") + std::to_string(lane);
 
   /* Get a socket handle. */
   sck = socket(AF_INET, SOCK_DGRAM, 0);
@@ -151,7 +151,7 @@ void       getIpMac_ioctl(uint8_t lane, IfParams* params) {
   for(int i = 0; i < nInterfaces; i++){
     struct ifreq *item = &ifr[i];
     if (strncmp(item->ifr_name,portNameFETH.c_str(),strlen(portNameFETH.c_str())) != 0 &&
-	strncmp(item->ifr_name,portNameFPGA0_.c_str(),strlen(portNameFPGA0_.c_str())) != 0) continue;
+	strncmp(item->ifr_name,portNameFPGA0.c_str(),strlen(portNameFPGA0.c_str())) != 0) continue;
 
     strcpy(params->name,item->ifr_name);
 
@@ -184,7 +184,7 @@ int getNwParams(IfParams coreParams[NUM_OF_CORES]) {
     int           sck, nInterfaces;
 
     std::string portNameFETH   = std::string("feth")   + std::to_string(coreId);
-    std::string portNameFPGA0_ = std::string("fpga0_") + std::to_string(coreId);
+    std::string portNameFPGA0  = std::string("fpga0_") + std::to_string(coreId);
 
     /* Get a socket handle. */
     sck = socket(AF_INET, SOCK_DGRAM, 0);
@@ -202,7 +202,7 @@ int getNwParams(IfParams coreParams[NUM_OF_CORES]) {
     for(int i = 0; i < nInterfaces; i++){
       struct ifreq *item = &ifr[i];
       if (strncmp(item->ifr_name,portNameFETH.c_str(),strlen(portNameFETH.c_str())) != 0 &&
-	  strncmp(item->ifr_name,portNameFPGA0_.c_str(),strlen(portNameFPGA0_.c_str())) != 0) continue;
+	  strncmp(item->ifr_name,portNameFPGA0.c_str(),strlen(portNameFPGA0.c_str())) != 0) continue;
 
       strcpy(coreParams[coreId].name,item->ifr_name);
 
