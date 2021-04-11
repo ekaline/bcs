@@ -56,7 +56,7 @@ class EkaEfc : public EpmStrategy {
   static const int MAX_FIRE_ACTIONS  = 64;
   static const int MAX_CTX_THREADS   = 16;
 
-  EkaHwHashTableLine* hashLine[EKA_SUBSCR_TABLE_ROWS] = {};
+  EkaHwHashTableLine* hashLine[EFC_SUBSCR_TABLE_ROWS] = {};
   int                 numSecurities = 0;
 
   EfcStratGlobCtx     stratGlobCtx = {};

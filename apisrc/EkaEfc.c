@@ -35,7 +35,7 @@ EpmStrategy(epm,id,baseActionIdx,params,hwFeedVer) {
   
   EKA_LOG("Creating EkaEfc: hwFeedVer=%d",(int)hwFeedVer);
   
-  for (auto i = 0; i < EKA_SUBSCR_TABLE_ROWS; i++) {
+  for (auto i = 0; i < EFC_SUBSCR_TABLE_ROWS; i++) {
     hashLine[i] = new EkaHwHashTableLine(dev, hwFeedVer, i);
     if (hashLine[i] == NULL) on_error("hashLine[%d] == NULL",i);
   }
@@ -84,7 +84,7 @@ EkaUdpSess* EkaEfc::findUdpSess(EkaCoreId coreId, uint32_t mcAddr, uint16_t mcPo
 /* ################################################ */
 int EkaEfc::cleanSubscrHwTable() {
   EKA_LOG("Cleaning HW Subscription Table: %d rows, %d words per row",
-	  EKA_SUBSCR_TABLE_ROWS,EKA_SUBSCR_TABLE_COLUMNS);
+	  EFC_SUBSCR_TABLE_ROWS,EFC_SUBSCR_TABLE_COLUMNS);
 
   uint64_t val = eka_read(dev, SW_STATISTICS);
   val &= 0xFFFFFFFF00000000;
@@ -140,7 +140,8 @@ bool EkaEfc::isValidSecId(uint64_t secId) {
 
   case EfhFeedVer::kCBOE:
     if (((char)((secId >> (8 * 5)) & 0xFF) != '0') ||
-	((char)((secId >> (8 * 4)) & 0xFF) != '1') ||
+	//	((char)((secId >> (8 * 4)) & 0xFF) != '1') ||
+	((char)((secId >> (8 * 4)) & 0xFF) != '2') ||
 	! isAscii((char)((secId >> (8 * 3)) & 0xFF)) ||
 	! isAscii((char)((secId >> (8 * 2)) & 0xFF)) ||
 	! isAscii((char)((secId >> (8 * 1)) & 0xFF)) ||
@@ -199,7 +200,8 @@ int EkaEfc::getLineIdx(uint64_t normSecId) {
 /* #ifdef _VERILOG_SIM */
 /*     return (int) normSecId & 0x3F; // Low 6 bits */
 /* #else */
-    return (int) normSecId & 0x7FFF; // Low 15 bits
+//    return (int) normSecId & 0x7FFF; // Low 15 bits
+  return (int) normSecId & (EFC_SUBSCR_TABLE_ROWS - 1);
 /* #endif */
 
 }
@@ -244,11 +246,11 @@ int EkaEfc::getSubscriptionId(uint64_t secId) {
 /* ################################################ */
 int EkaEfc::downloadTable() {
   int sum = 0;
-  for (auto i = 0; i < EKA_SUBSCR_TABLE_ROWS; i++) {
+  for (auto i = 0; i < EFC_SUBSCR_TABLE_ROWS; i++) {
     struct timespec req = {0, 1000};
     struct timespec rem = {};
 
-    sum += hashLine[i]->pack6b(sum);
+    sum += hashLine[i]->pack8b(sum);
     hashLine[i]->downloadPacked();
 
     nanosleep(&req, &rem);  // added due to "too fast" write to card
