@@ -1,2 +1,2 @@
-#define EKA_SN_DRIVER_BUILD_TIME "Wed Apr 7 14:41:02 IDT 2021"
-#define EKA_SN_DRIVER_RELEASE_NOTE "3_0_2_RC_WC6 ioctl fix for Centos 8 (4)"
+#define EKA_SN_DRIVER_BUILD_TIME "Sun Apr 11 16:47:17 IDT 2021"
+#define EKA_SN_DRIVER_RELEASE_NOTE "3_0_2_RC_WC6 63th MC group fix (5)"

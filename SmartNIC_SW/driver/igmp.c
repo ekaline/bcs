@@ -913,7 +913,13 @@ static int insert_subscriber(sc_multicast_subscription_t *list, size_t listLengt
 {
     size_t i;
 
-    for (i = 0; i < listLength; ++i)
+    // start of Ekaline	fix
+    int startIdx = listLength == 64 ? 0  : lane * 64;
+    int endIdx   = listLength == 64 ? 64 : (lane + 1) * 64;
+    for (i = startIdx; i < endIdx; ++i)
+      //    for (i = 0; i < listLength; ++i)
+      // end of Ekaline fix
+
     {
         sc_multicast_subscription_t * pSubscriber = &list[i];
 
@@ -925,7 +931,11 @@ static int insert_subscriber(sc_multicast_subscription_t *list, size_t listLengt
             pSubscriber->channel = channel;
             pSubscriber->vlanTag = vlanTag;
             pSubscriber->lane = lane;
-            pSubscriber->positionIndex = i;
+	    // start of Ekaline	fix
+	    //            pSubscriber->positionIndex = i;
+            pSubscriber->positionIndex = i % 64;
+	    // end of Ekaline fix
+	    
             pSubscriber->enable_multicast_bypass = enableMulticastBypass;
             pSubscriber->update_fpga = true;
             return i;
