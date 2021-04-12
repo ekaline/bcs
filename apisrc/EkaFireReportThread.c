@@ -104,7 +104,7 @@ int printFireOrder(EkaDev* dev,const EfcFiredOrder* msg) {
   EKA_LOG("price = %u",       msg->price);
   EKA_LOG("size = %u",        msg->size);
   EKA_LOG("counter = %u",     msg->counter);
-  EKA_LOG("securityId = %x",  msg->securityId);
+  EKA_LOG("securityId = %jx",  msg->securityId);
   EKA_LOG("groupId = %u",     msg->groupId);
   EKA_LOG("sequence = 0x%jx", msg->sequence);
   EKA_LOG("timestamp = 0x%jx",msg->timestamp);

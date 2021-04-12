@@ -20,7 +20,7 @@ enum class EhpSidePresence : int8_t {
     EXPLICIT = 3    // Side is derived from a field
 };
 
-enum class EhpHwProtocol : int8_t {
+enum class EhpHwProtocol :  uint8_t {
   NOM = 1,     
   PITCH = 2
 };

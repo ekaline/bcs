@@ -432,8 +432,12 @@ int main(int argc, char *argv[]) {
   /*   {0x4444, 3, -1, 700, 800, 1}, */
   /* }; */
   
- #include "/local/dumps/nasdaq/itto4.0/HW_PARSER/subscription.inc"
+  // #include "/local/dumps/nasdaq/itto4.0/HW_PARSER/subscription.inc" //NOM
 
+  SecurityCtx security[] = {
+    {0x000030324e6d3544, 0, -1, 100, 200, 1},
+  };
+  
   uint64_t securityList[std::size(security)] = {};
 
   for (auto i = 0; i < (int)std::size(security); i++) {

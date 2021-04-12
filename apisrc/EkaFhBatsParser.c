@@ -494,140 +494,172 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
 
 static void eka_print_batspitch_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequence,uint64_t ts) {
   EKA_BATS_PITCH_MSG enc = (EKA_BATS_PITCH_MSG)m[1];
-  fprintf(md_file,"%s,%ju,%s(0x%x),",ts_ns2str(ts).c_str(),sequence,EKA_BATS_PITCH_MSG_DECODE(enc),(uint8_t)enc);
+  //  fprintf(md_file,"%s,%ju,%s(0x%x),",ts_ns2str(ts).c_str(),sequence,EKA_BATS_PITCH_MSG_DECODE(enc),(uint8_t)enc);
 
   switch (enc) {
     //--------------------------------------------------------------
   case EKA_BATS_PITCH_MSG::ADD_ORDER_LONG:
-    fprintf(md_file,"%ju,%c,%u,%s (%u),%ju,0x%x\n",
-	    ((batspitch_add_order_long*)m)->order_id,
-	    ((batspitch_add_order_long*)m)->side,
-	    ((batspitch_add_order_long*)m)->size,
-	    EKA_PRINT_BATS_SYMBOL(((batspitch_add_order_long*)m)->symbol),
-	    bats_symbol2optionid(((batspitch_add_order_long*)m)->symbol,6),
-	    ((batspitch_add_order_long*)m)->price,
-	    ((batspitch_add_order_long*)m)->flags
-	    );
+    fprintf (md_file,"SN:%ju,",sequence);
+     fprintf (md_file,"SID:0x%02x%02x%02x%02x%02x%02x%02x%02x,%c,P:%8u,S:%8u\n",
+	     //	     EKA_PRINT_BATS_SYMBOL(((batspitch_add_order_long*)m)->symbol),
+	     0,0,
+	     ((batspitch_add_order_long*)m)->symbol[0],
+	     ((batspitch_add_order_long*)m)->symbol[1],
+	     ((batspitch_add_order_long*)m)->symbol[2],
+	     ((batspitch_add_order_long*)m)->symbol[3],
+	     ((batspitch_add_order_long*)m)->symbol[4],
+	     ((batspitch_add_order_long*)m)->symbol[5],
+	     
+	     ((batspitch_add_order_long*)m)->side,
+	     ((batspitch_add_order_long*)m)->price,
+	     ((batspitch_add_order_long*)m)->size
+	     );
+
+    /* fprintf(md_file,"%ju,%c,%u,%s (%u),%ju,0x%x\n", */
+    /* 	    ((batspitch_add_order_long*)m)->order_id, */
+    /* 	    ((batspitch_add_order_long*)m)->side, */
+    /* 	    ((batspitch_add_order_long*)m)->size, */
+    /* 	    EKA_PRINT_BATS_SYMBOL(((batspitch_add_order_long*)m)->symbol), */
+    /* 	    bats_symbol2optionid(((batspitch_add_order_long*)m)->symbol,6), */
+    /* 	    ((batspitch_add_order_long*)m)->price, */
+    /* 	    ((batspitch_add_order_long*)m)->flags */
+    /* 	    ); */
     break;
 
     //--------------------------------------------------------------
   case EKA_BATS_PITCH_MSG::ADD_ORDER_SHORT:
-    fprintf(md_file,"%ju,%c,%u,%s (%u),%u,0x%x\n",
-	    ((batspitch_add_order_short*)m)->order_id,
-	    ((batspitch_add_order_short*)m)->side,
-	    ((batspitch_add_order_short*)m)->size,
-	    EKA_PRINT_BATS_SYMBOL(((batspitch_add_order_short*)m)->symbol),
-	    bats_symbol2optionid(((batspitch_add_order_short*)m)->symbol,6),
-	    ((batspitch_add_order_short*)m)->price,
-	    ((batspitch_add_order_short*)m)->flags
-	    );
+    fprintf (md_file,"SN:%ju,",sequence);
+    fprintf (md_file,"SID:0x%02x%02x%02x%02x%02x%02x%02x%02x,%c,P:%8u,S:%8u\n",
+	     //	     EKA_PRINT_BATS_SYMBOL(((batspitch_add_order_short*)m)->symbol),
+	     0,0,
+	     ((batspitch_add_order_short*)m)->symbol[0],
+	     ((batspitch_add_order_short*)m)->symbol[1],
+	     ((batspitch_add_order_short*)m)->symbol[2],
+	     ((batspitch_add_order_short*)m)->symbol[3],
+	     ((batspitch_add_order_short*)m)->symbol[4],
+	     ((batspitch_add_order_short*)m)->symbol[5],
+	     
+	     ((batspitch_add_order_short*)m)->side,
+	     ((batspitch_add_order_short*)m)->price,
+	     ((batspitch_add_order_short*)m)->size
+	     );
+
+    /* fprintf(md_file,"%ju,%c,%u,%s (%u),%u,0x%x\n", */
+    /* 	    ((batspitch_add_order_short*)m)->order_id, */
+    /* 	    ((batspitch_add_order_short*)m)->side, */
+    /* 	    ((batspitch_add_order_short*)m)->size, */
+    /* 	    EKA_PRINT_BATS_SYMBOL(((batspitch_add_order_short*)m)->symbol), */
+    /* 	    bats_symbol2optionid(((batspitch_add_order_short*)m)->symbol,6), */
+    /* 	    ((batspitch_add_order_short*)m)->price, */
+    /* 	    ((batspitch_add_order_short*)m)->flags */
+    /* 	    ); */
     break;
 
-    //--------------------------------------------------------------
-  case EKA_BATS_PITCH_MSG::ORDER_EXECUTED:
-    fprintf(md_file,"%ju,%u,%ju,%c\n",
-	    ((batspitch_order_executed*)m)->order_id,
-	    ((batspitch_order_executed*)m)->executed_size,
-	    ((batspitch_order_executed*)m)->execution_id,
-	    ((batspitch_order_executed*)m)->trade_condition
-	    );
-    break;
+  /*   //-------------------------------------------------------------- */
+  /* case EKA_BATS_PITCH_MSG::ORDER_EXECUTED: */
+  /*   fprintf(md_file,"%ju,%u,%ju,%c\n", */
+  /* 	    ((batspitch_order_executed*)m)->order_id, */
+  /* 	    ((batspitch_order_executed*)m)->executed_size, */
+  /* 	    ((batspitch_order_executed*)m)->execution_id, */
+  /* 	    ((batspitch_order_executed*)m)->trade_condition */
+  /* 	    ); */
+  /*   break; */
 
-    //--------------------------------------------------------------
-  case EKA_BATS_PITCH_MSG::ORDER_EXECUTED_AT_PRICE_SIZE:
-    fprintf(md_file,"%ju,%u,%u,%ju,%ju,%c\n",
-	    ((batspitch_order_executed_at_price_size*)m)->order_id,
-	    ((batspitch_order_executed_at_price_size*)m)->executed_size,
-	    ((batspitch_order_executed_at_price_size*)m)->remaining_size,
-	    ((batspitch_order_executed_at_price_size*)m)->execution_id,
-	    ((batspitch_order_executed_at_price_size*)m)->price,
-	    ((batspitch_order_executed_at_price_size*)m)->trade_condition
-	    );
-    break;
+  /*   //-------------------------------------------------------------- */
+  /* case EKA_BATS_PITCH_MSG::ORDER_EXECUTED_AT_PRICE_SIZE: */
+  /*   fprintf(md_file,"%ju,%u,%u,%ju,%ju,%c\n", */
+  /* 	    ((batspitch_order_executed_at_price_size*)m)->order_id, */
+  /* 	    ((batspitch_order_executed_at_price_size*)m)->executed_size, */
+  /* 	    ((batspitch_order_executed_at_price_size*)m)->remaining_size, */
+  /* 	    ((batspitch_order_executed_at_price_size*)m)->execution_id, */
+  /* 	    ((batspitch_order_executed_at_price_size*)m)->price, */
+  /* 	    ((batspitch_order_executed_at_price_size*)m)->trade_condition */
+  /* 	    ); */
+  /*   break; */
 
-    //--------------------------------------------------------------
-  case EKA_BATS_PITCH_MSG::REDUCED_SIZE_LONG:
-    fprintf(md_file,"%ju,%u\n",
-	    ((batspitch_reduced_size_long*)m)->order_id,
-	    ((batspitch_reduced_size_long*)m)->canceled_size
-	    );
-    break;
+  /*   //-------------------------------------------------------------- */
+  /* case EKA_BATS_PITCH_MSG::REDUCED_SIZE_LONG: */
+  /*   fprintf(md_file,"%ju,%u\n", */
+  /* 	    ((batspitch_reduced_size_long*)m)->order_id, */
+  /* 	    ((batspitch_reduced_size_long*)m)->canceled_size */
+  /* 	    ); */
+  /*   break; */
 
-    //--------------------------------------------------------------
-  case EKA_BATS_PITCH_MSG::REDUCED_SIZE_SHORT:
-    fprintf(md_file,"%ju,%u\n",
-	    ((batspitch_reduced_size_short*)m)->order_id,
-	    ((batspitch_reduced_size_short*)m)->canceled_size
-	    );
-    break;
+  /*   //-------------------------------------------------------------- */
+  /* case EKA_BATS_PITCH_MSG::REDUCED_SIZE_SHORT: */
+  /*   fprintf(md_file,"%ju,%u\n", */
+  /* 	    ((batspitch_reduced_size_short*)m)->order_id, */
+  /* 	    ((batspitch_reduced_size_short*)m)->canceled_size */
+  /* 	    ); */
+  /*   break; */
 
-    //--------------------------------------------------------------
-  case EKA_BATS_PITCH_MSG::ORDER_MODIFY_LONG:
-    fprintf(md_file,"%ju,%u,%ju,0x%x\n",
-	    ((batspitch_order_modify_long*)m)->order_id,
-	    ((batspitch_order_modify_long*)m)->size,
-	    ((batspitch_order_modify_long*)m)->price,
-	    ((batspitch_order_modify_long*)m)->flags
-	    );
-    break;
+  /*   //-------------------------------------------------------------- */
+  /* case EKA_BATS_PITCH_MSG::ORDER_MODIFY_LONG: */
+  /*   fprintf(md_file,"%ju,%u,%ju,0x%x\n", */
+  /* 	    ((batspitch_order_modify_long*)m)->order_id, */
+  /* 	    ((batspitch_order_modify_long*)m)->size, */
+  /* 	    ((batspitch_order_modify_long*)m)->price, */
+  /* 	    ((batspitch_order_modify_long*)m)->flags */
+  /* 	    ); */
+  /*   break; */
 
-    //--------------------------------------------------------------
-  case EKA_BATS_PITCH_MSG::ORDER_MODIFY_SHORT:
-    fprintf(md_file,"%ju,%u,%u,0x%x\n",
-	    ((batspitch_order_modify_short*)m)->order_id,
-	    ((batspitch_order_modify_short*)m)->size,
-	    ((batspitch_order_modify_short*)m)->price,
-	    ((batspitch_order_modify_short*)m)->flags
-	    );
-    break;
-    //--------------------------------------------------------------
-  case EKA_BATS_PITCH_MSG::ORDER_DELETE:
-    fprintf(md_file,"%ju\n",
-	    ((batspitch_order_delete*)m)->order_id
-	    );
-    break;
-    //--------------------------------------------------------------
-  case EKA_BATS_PITCH_MSG::TRADE_LONG:
-    fprintf(md_file,"%ju,%c,%u,%s (%u),%ju,%ju,%c\n",
-	    ((batspitch_trade_long*)m)->order_id,
-	    ((batspitch_trade_long*)m)->side,
-	    ((batspitch_trade_long*)m)->size,
-	    EKA_PRINT_BATS_SYMBOL(((batspitch_trade_long*)m)->symbol),
-	    bats_symbol2optionid(((batspitch_trade_long*)m)->symbol,6),
-	    ((batspitch_trade_long*)m)->price,
-	    ((batspitch_trade_long*)m)->execution_id,
-	    ((batspitch_trade_long*)m)->trade_condition
-	    );
-    break;
+  /*   //-------------------------------------------------------------- */
+  /* case EKA_BATS_PITCH_MSG::ORDER_MODIFY_SHORT: */
+  /*   fprintf(md_file,"%ju,%u,%u,0x%x\n", */
+  /* 	    ((batspitch_order_modify_short*)m)->order_id, */
+  /* 	    ((batspitch_order_modify_short*)m)->size, */
+  /* 	    ((batspitch_order_modify_short*)m)->price, */
+  /* 	    ((batspitch_order_modify_short*)m)->flags */
+  /* 	    ); */
+  /*   break; */
+  /*   //-------------------------------------------------------------- */
+  /* case EKA_BATS_PITCH_MSG::ORDER_DELETE: */
+  /*   fprintf(md_file,"%ju\n", */
+  /* 	    ((batspitch_order_delete*)m)->order_id */
+  /* 	    ); */
+  /*   break; */
+  /*   //-------------------------------------------------------------- */
+  /* case EKA_BATS_PITCH_MSG::TRADE_LONG: */
+  /*   fprintf(md_file,"%ju,%c,%u,%s (%u),%ju,%ju,%c\n", */
+  /* 	    ((batspitch_trade_long*)m)->order_id, */
+  /* 	    ((batspitch_trade_long*)m)->side, */
+  /* 	    ((batspitch_trade_long*)m)->size, */
+  /* 	    EKA_PRINT_BATS_SYMBOL(((batspitch_trade_long*)m)->symbol), */
+  /* 	    bats_symbol2optionid(((batspitch_trade_long*)m)->symbol,6), */
+  /* 	    ((batspitch_trade_long*)m)->price, */
+  /* 	    ((batspitch_trade_long*)m)->execution_id, */
+  /* 	    ((batspitch_trade_long*)m)->trade_condition */
+  /* 	    ); */
+  /*   break; */
 
-    //--------------------------------------------------------------
-  case EKA_BATS_PITCH_MSG::TRADE_SHORT:
-    fprintf(md_file,"%ju,%c,%u,%s (%u),%u,%ju,%c\n",
-	    ((batspitch_trade_short*)m)->order_id,
-	    ((batspitch_trade_short*)m)->side,
-	    ((batspitch_trade_short*)m)->size,
-	    EKA_PRINT_BATS_SYMBOL(((batspitch_trade_short*)m)->symbol),
-	    bats_symbol2optionid(((batspitch_trade_short*)m)->symbol,6),
-	    ((batspitch_trade_short*)m)->price,
-	    ((batspitch_trade_short*)m)->execution_id,
-	    ((batspitch_trade_short*)m)->trade_condition
-	    );
-    break;
+  /*   //-------------------------------------------------------------- */
+  /* case EKA_BATS_PITCH_MSG::TRADE_SHORT: */
+  /*   fprintf(md_file,"%ju,%c,%u,%s (%u),%u,%ju,%c\n", */
+  /* 	    ((batspitch_trade_short*)m)->order_id, */
+  /* 	    ((batspitch_trade_short*)m)->side, */
+  /* 	    ((batspitch_trade_short*)m)->size, */
+  /* 	    EKA_PRINT_BATS_SYMBOL(((batspitch_trade_short*)m)->symbol), */
+  /* 	    bats_symbol2optionid(((batspitch_trade_short*)m)->symbol,6), */
+  /* 	    ((batspitch_trade_short*)m)->price, */
+  /* 	    ((batspitch_trade_short*)m)->execution_id, */
+  /* 	    ((batspitch_trade_short*)m)->trade_condition */
+  /* 	    ); */
+  /*   break; */
 
-    //--------------------------------------------------------------
-  case EKA_BATS_PITCH_MSG::TRADING_STATUS:
-    fprintf(md_file,"%s (%u),%c,%c\n",
-	    EKA_PRINT_BATS_SYMBOL(((batspitch_trading_status*)m)->symbol),
-	    bats_symbol2optionid(((batspitch_trading_status*)m)->symbol,6),
-	    ((batspitch_trading_status*)m)->trading_status,
-	    ((batspitch_trading_status*)m)->gth_trading_status
-	    );
-    break;
+  /*   //-------------------------------------------------------------- */
+  /* case EKA_BATS_PITCH_MSG::TRADING_STATUS: */
+  /*   fprintf(md_file,"%s (%u),%c,%c\n", */
+  /* 	    EKA_PRINT_BATS_SYMBOL(((batspitch_trading_status*)m)->symbol), */
+  /* 	    bats_symbol2optionid(((batspitch_trading_status*)m)->symbol,6), */
+  /* 	    ((batspitch_trading_status*)m)->trading_status, */
+  /* 	    ((batspitch_trading_status*)m)->gth_trading_status */
+  /* 	    ); */
+  /*   break; */
 
-    //--------------------------------------------------------------
+  /*   //-------------------------------------------------------------- */
 
   default:
-    fprintf(md_file,"\n");
+    //    fprintf(md_file,"\n");
     break;
   }
 }

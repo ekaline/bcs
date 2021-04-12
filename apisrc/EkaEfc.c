@@ -44,14 +44,18 @@ EpmStrategy(epm,id,baseActionIdx,params,hwFeedVer) {
   cleanSubscrHwTable();
 #endif
 
-  initHwRoundTable();
 
   //  ehp = new EhpNom(dev);
   ehp = new EhpPitch(dev);
+  hwFeedVer = EfhFeedVer::kCBOE;
 
   if (ehp == NULL) on_error("ehp == NULL");
   ehp->init();
+  hwFeedVer = EfhFeedVer::kCBOE;
   ehp->download2Hw();
+  hwFeedVer = EfhFeedVer::kCBOE;
+  TEST_LOG("hwFeedVer = 0x%x",hwFeedVer);
+  initHwRoundTable();
 }
 
 /* ################################################ */
@@ -98,6 +102,8 @@ int EkaEfc::initHwRoundTable() {
 #ifdef _VERILOG_SIM
   return 0;
 #else
+  TEST_LOG("hwFeedVer = 0x%x",hwFeedVer);
+
   for (uint64_t addr = 0; addr < ROUND_2B_TABLE_DEPTH; addr++) {
     uint64_t data = 0;
     switch (hwFeedVer) {

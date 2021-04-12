@@ -93,7 +93,11 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
 #endif
 
     gr->resetNoMdTimer();
-
+    
+#ifdef FH_LAB
+    gr->state = EkaFhGroup::GrpState::NORMAL;
+    gr->processUdpPkt(pEfhRunCtx,pkt,msgInPkt,sequence);
+#else
     //-----------------------------------------------------------------------------
     switch (gr->state) {
       //-----------------------------------------------------------------------------
@@ -166,6 +170,7 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
       on_error("%s:%u: UNEXPECTED GrpState %u",EKA_EXCH_DECODE(exch),gr->id,(uint)gr->state);
       break;
     }
+#endif
     runGr->udpCh->next(); 
   }
   runGr->sendFeedCloseAll(pEfhRunCtx);
