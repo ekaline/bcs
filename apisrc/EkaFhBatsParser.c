@@ -540,7 +540,7 @@ static void eka_print_batspitch_msg(FILE* md_file, uint8_t* m, int gr, uint64_t 
 	     ((batspitch_add_order_short*)m)->symbol[5],
 	     
 	     ((batspitch_add_order_short*)m)->side,
-	     ((batspitch_add_order_short*)m)->price,
+	     ((batspitch_add_order_short*)m)->price * 100 / EFH_PRICE_SCALE,
 	     ((batspitch_add_order_short*)m)->size
 	     );
 

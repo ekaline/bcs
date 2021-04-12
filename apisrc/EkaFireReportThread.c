@@ -77,10 +77,26 @@ int printMdReport(EkaDev* dev, const EfcMdReport* msg) {
   //	  msg->core_id
   //	  );
 
-  printf("MdReport: GR%d,SN:%ju,SID:%16ju,%c,P:%8ju,S:%8ju\n",
+  //NOM
+  /* printf("MdReport: GR%d,SN:%ju,SID:%16ju,%c,P:%8ju,S:%8ju\n", */
+  /* 	 msg->group_id, */
+  /* 	 msg->sequence, */
+  /* 	 msg->security_id, */
+  /* 	 msg->side == 1 ? 'B' : 'S', */
+  /* 	 msg->price, */
+  /* 	 msg->size); */
+  //PITCH
+  printf("MdReport: GR%d,SN:%ju,SID:%c%c%c%c%c%c,%c,P:%8ju,S:%8ju\n",
 	 msg->group_id,
 	 msg->sequence,
-	 msg->security_id,
+
+	 (msg->security_id >> 5*8) & 0xFF,
+	 (msg->security_id >> 4*8) & 0xFF,
+	 (msg->security_id >> 3*8) & 0xFF,
+	 (msg->security_id >> 2*8) & 0xFF,
+	 (msg->security_id >> 1*8) & 0xFF,
+	 (msg->security_id >> 0*8) & 0xFF,
+
 	 msg->side == 1 ? 'B' : 'S',
 	 msg->price,
 	 msg->size);
@@ -169,7 +185,7 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len, uint32_t e
   mdReport->group_id    = report->triggerOrder.groupId;
   mdReport->core_id     = report->triggerOrder.attr.bitmap.CoreID;
 
-  // printMdReport(dev,mdReport);
+  //  printMdReport(dev,mdReport);
 
   b += sizeof(EfcMdReport);
 

@@ -7,17 +7,18 @@
 EhpPitch::EhpPitch(EkaDev* dev) : EhpProtocol(dev) {
   EKA_LOG("EhpPitch is created");
 
-  conf.params.protocolID         = static_cast<decltype(conf.params.protocolID)>(EfhFeedVer::kCBOE);
+  //  conf.params.protocolID         = static_cast<decltype(conf.params.protocolID)>(EfhFeedVer::kCBOE);
+  conf.params.protocolID         = static_cast<decltype(conf.params.protocolID)>(EhpHwProtocol::PITCH);
   conf.params.pktHdrLen          = sizeof(batspitch_sequenced_unit_header);
   conf.params.msgDeltaSize       = 0;
   conf.params.bytes4StartMsgProc = 2; // msgLen + msgType 1
  
   conf.fields.sequence[0].msgId      = 0; //Not relevant
   conf.fields.sequence[0].opcode     = EhpOpcode::NOP;
-  conf.fields.sequence[0].byteOffs_0 = 7;
-  conf.fields.sequence[0].byteOffs_1 = 6;
-  conf.fields.sequence[0].byteOffs_2 = 5;
-  conf.fields.sequence[0].byteOffs_3 = 4;
+  conf.fields.sequence[0].byteOffs_0 = 4;
+  conf.fields.sequence[0].byteOffs_1 = 5;
+  conf.fields.sequence[0].byteOffs_2 = 6;
+  conf.fields.sequence[0].byteOffs_3 = 7;
   conf.fields.sequence[0].byteOffs_4 = EhpBlankByte;
   conf.fields.sequence[0].byteOffs_5 = EhpBlankByte;
   conf.fields.sequence[0].byteOffs_6 = EhpBlankByte;
@@ -27,6 +28,7 @@ EhpPitch::EhpPitch(EkaDev* dev) : EhpProtocol(dev) {
 int EhpPitch::init() {
   createAddOrderShort();
   createAddOrderLong();
+  createAddOrderExpanded();
 
   return 0;
 }
@@ -60,8 +62,8 @@ int EhpPitch::createAddOrderShort() {
 
   conf.fields.price[AddOrderShortMsg].msgId      = msgId;
   conf.fields.price[AddOrderShortMsg].opcode     = EhpOpcode::MUL100;
-  conf.fields.price[AddOrderShortMsg].byteOffs_0 = 24;
-  conf.fields.price[AddOrderShortMsg].byteOffs_1 = 23;
+  conf.fields.price[AddOrderShortMsg].byteOffs_0 = 23;
+  conf.fields.price[AddOrderShortMsg].byteOffs_1 = 24;
   conf.fields.price[AddOrderShortMsg].byteOffs_2 = EhpBlankByte;
   conf.fields.price[AddOrderShortMsg].byteOffs_3 = EhpBlankByte;
   conf.fields.price[AddOrderShortMsg].byteOffs_4 = EhpBlankByte;
@@ -71,8 +73,8 @@ int EhpPitch::createAddOrderShort() {
 
   conf.fields.size[AddOrderShortMsg].msgId      = msgId;
   conf.fields.size[AddOrderShortMsg].opcode     = EhpOpcode::NOP;
-  conf.fields.size[AddOrderShortMsg].byteOffs_0 = 16;
-  conf.fields.size[AddOrderShortMsg].byteOffs_1 = 15;
+  conf.fields.size[AddOrderShortMsg].byteOffs_0 = 15;
+  conf.fields.size[AddOrderShortMsg].byteOffs_1 = 16;
   conf.fields.size[AddOrderShortMsg].byteOffs_2 = EhpBlankByte;
   conf.fields.size[AddOrderShortMsg].byteOffs_3 = EhpBlankByte;
   conf.fields.size[AddOrderShortMsg].byteOffs_4 = EhpBlankByte;
@@ -134,21 +136,21 @@ int EhpPitch::createAddOrderLong() {
 
   conf.fields.price[AddOrderLongMsg].msgId      = msgId;
   conf.fields.price[AddOrderLongMsg].opcode     = EhpOpcode::NOP;
-  conf.fields.price[AddOrderLongMsg].byteOffs_0 = 32;
-  conf.fields.price[AddOrderLongMsg].byteOffs_1 = 31;
-  conf.fields.price[AddOrderLongMsg].byteOffs_2 = 30;
-  conf.fields.price[AddOrderLongMsg].byteOffs_3 = 29;
-  conf.fields.price[AddOrderLongMsg].byteOffs_4 = 28;
-  conf.fields.price[AddOrderLongMsg].byteOffs_5 = 27;
-  conf.fields.price[AddOrderLongMsg].byteOffs_6 = 26;
-  conf.fields.price[AddOrderLongMsg].byteOffs_7 = 25;
+  conf.fields.price[AddOrderLongMsg].byteOffs_0 = 25;
+  conf.fields.price[AddOrderLongMsg].byteOffs_1 = 26;
+  conf.fields.price[AddOrderLongMsg].byteOffs_2 = 27;
+  conf.fields.price[AddOrderLongMsg].byteOffs_3 = 28;
+  conf.fields.price[AddOrderLongMsg].byteOffs_4 = 29;
+  conf.fields.price[AddOrderLongMsg].byteOffs_5 = 30;
+  conf.fields.price[AddOrderLongMsg].byteOffs_6 = 31;
+  conf.fields.price[AddOrderLongMsg].byteOffs_7 = 32;
 
   conf.fields.size[AddOrderLongMsg].msgId      = msgId;
   conf.fields.size[AddOrderLongMsg].opcode     = EhpOpcode::NOP;
-  conf.fields.size[AddOrderLongMsg].byteOffs_0 = 18;
-  conf.fields.size[AddOrderLongMsg].byteOffs_1 = 17;
-  conf.fields.size[AddOrderLongMsg].byteOffs_2 = 16;
-  conf.fields.size[AddOrderLongMsg].byteOffs_3 = 15;
+  conf.fields.size[AddOrderLongMsg].byteOffs_0 = 15;
+  conf.fields.size[AddOrderLongMsg].byteOffs_1 = 16;
+  conf.fields.size[AddOrderLongMsg].byteOffs_2 = 17;
+  conf.fields.size[AddOrderLongMsg].byteOffs_3 = 18;
   conf.fields.size[AddOrderLongMsg].byteOffs_4 = EhpBlankByte;
   conf.fields.size[AddOrderLongMsg].byteOffs_5 = EhpBlankByte;
   conf.fields.size[AddOrderLongMsg].byteOffs_6 = EhpBlankByte;
@@ -175,6 +177,79 @@ int EhpPitch::createAddOrderLong() {
   conf.fields.msgLen[AddOrderLongMsg].byteOffs_5 = EhpBlankByte;
   conf.fields.msgLen[AddOrderLongMsg].byteOffs_6 = EhpBlankByte;
   conf.fields.msgLen[AddOrderLongMsg].byteOffs_7 = EhpBlankByte;
+
+  return 0;
+}
+
+int EhpPitch::createAddOrderExpanded() {
+  uint8_t msgId = 0x2f;
+
+  conf.params.bytes4Strategy[AddOrderExpandedMsg].msgId    = msgId;
+  conf.params.bytes4Strategy[AddOrderExpandedMsg].byteOffs = 35;
+
+  conf.params.bytes4SecLookup[AddOrderExpandedMsg].msgId    = msgId;
+  conf.params.bytes4SecLookup[AddOrderExpandedMsg].byteOffs = 27;
+
+  conf.fields.side[AddOrderExpandedMsg].msgId      = msgId;
+  conf.fields.side[AddOrderExpandedMsg].presence   = EhpSidePresence::EXPLICIT;
+  conf.fields.side[AddOrderExpandedMsg].byteOffs   = 14;
+  conf.fields.side[AddOrderExpandedMsg].encode.ask = 'S';
+  conf.fields.side[AddOrderExpandedMsg].encode.bid = 'B';
+
+  conf.fields.securityId[AddOrderExpandedMsg].msgId      = msgId;
+  conf.fields.securityId[AddOrderExpandedMsg].opcode     = EhpOpcode::NOP;
+  conf.fields.securityId[AddOrderExpandedMsg].byteOffs_0 = 26;
+  conf.fields.securityId[AddOrderExpandedMsg].byteOffs_1 = 25;
+  conf.fields.securityId[AddOrderExpandedMsg].byteOffs_2 = 24;
+  conf.fields.securityId[AddOrderExpandedMsg].byteOffs_3 = 23;
+  conf.fields.securityId[AddOrderExpandedMsg].byteOffs_4 = 22;
+  conf.fields.securityId[AddOrderExpandedMsg].byteOffs_5 = 21;
+  conf.fields.securityId[AddOrderExpandedMsg].byteOffs_6 = 20;
+  conf.fields.securityId[AddOrderExpandedMsg].byteOffs_7 = 19;
+
+  conf.fields.price[AddOrderExpandedMsg].msgId      = msgId;
+  conf.fields.price[AddOrderExpandedMsg].opcode     = EhpOpcode::NOP;
+  conf.fields.price[AddOrderExpandedMsg].byteOffs_0 = 27;
+  conf.fields.price[AddOrderExpandedMsg].byteOffs_1 = 28;
+  conf.fields.price[AddOrderExpandedMsg].byteOffs_2 = 29;
+  conf.fields.price[AddOrderExpandedMsg].byteOffs_3 = 30;
+  conf.fields.price[AddOrderExpandedMsg].byteOffs_4 = 31;
+  conf.fields.price[AddOrderExpandedMsg].byteOffs_5 = 32;
+  conf.fields.price[AddOrderExpandedMsg].byteOffs_6 = 33;
+  conf.fields.price[AddOrderExpandedMsg].byteOffs_7 = 34;
+
+  conf.fields.size[AddOrderExpandedMsg].msgId      = msgId;
+  conf.fields.size[AddOrderExpandedMsg].opcode     = EhpOpcode::NOP;
+  conf.fields.size[AddOrderExpandedMsg].byteOffs_0 = 15;
+  conf.fields.size[AddOrderExpandedMsg].byteOffs_1 = 16;
+  conf.fields.size[AddOrderExpandedMsg].byteOffs_2 = 17;
+  conf.fields.size[AddOrderExpandedMsg].byteOffs_3 = 18;
+  conf.fields.size[AddOrderExpandedMsg].byteOffs_4 = EhpBlankByte;
+  conf.fields.size[AddOrderExpandedMsg].byteOffs_5 = EhpBlankByte;
+  conf.fields.size[AddOrderExpandedMsg].byteOffs_6 = EhpBlankByte;
+  conf.fields.size[AddOrderExpandedMsg].byteOffs_7 = EhpBlankByte;
+
+  conf.fields.msgId[AddOrderExpandedMsg].msgId      = msgId;
+  conf.fields.msgId[AddOrderExpandedMsg].opcode     = EhpOpcode::NOP;
+  conf.fields.msgId[AddOrderExpandedMsg].byteOffs_0 = 1;
+  conf.fields.msgId[AddOrderExpandedMsg].byteOffs_1 = EhpBlankByte;
+  conf.fields.msgId[AddOrderExpandedMsg].byteOffs_2 = EhpBlankByte;
+  conf.fields.msgId[AddOrderExpandedMsg].byteOffs_3 = EhpBlankByte;
+  conf.fields.msgId[AddOrderExpandedMsg].byteOffs_4 = EhpBlankByte;
+  conf.fields.msgId[AddOrderExpandedMsg].byteOffs_5 = EhpBlankByte;
+  conf.fields.msgId[AddOrderExpandedMsg].byteOffs_6 = EhpBlankByte;
+  conf.fields.msgId[AddOrderExpandedMsg].byteOffs_7 = EhpBlankByte;
+
+  conf.fields.msgLen[AddOrderExpandedMsg].msgId      = msgId;
+  conf.fields.msgLen[AddOrderExpandedMsg].opcode     = EhpOpcode::NOP;
+  conf.fields.msgLen[AddOrderExpandedMsg].byteOffs_0 = 0;
+  conf.fields.msgLen[AddOrderExpandedMsg].byteOffs_1 = EhpBlankByte;
+  conf.fields.msgLen[AddOrderExpandedMsg].byteOffs_2 = EhpBlankByte;
+  conf.fields.msgLen[AddOrderExpandedMsg].byteOffs_3 = EhpBlankByte;
+  conf.fields.msgLen[AddOrderExpandedMsg].byteOffs_4 = EhpBlankByte;
+  conf.fields.msgLen[AddOrderExpandedMsg].byteOffs_5 = EhpBlankByte;
+  conf.fields.msgLen[AddOrderExpandedMsg].byteOffs_6 = EhpBlankByte;
+  conf.fields.msgLen[AddOrderExpandedMsg].byteOffs_7 = EhpBlankByte;
 
   return 0;
 }

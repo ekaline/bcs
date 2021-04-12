@@ -210,7 +210,8 @@ int EkaEfc::getLineIdx(uint64_t normSecId) {
 /* ################################################ */
 int EkaEfc::subscribeSec(uint64_t secId) {
   if (! isValidSecId(secId)) 
-    on_error("Security %ju (0x%jx) violates Hash function assumption",secId,secId);
+    return -1;
+  //    on_error("Security %ju (0x%jx) violates Hash function assumption",secId,secId);
 
   if (numSecurities == EKA_MAX_P4_SUBSCR) {
     EKA_WARN("numSecurities %d  == EKA_MAX_P4_SUBSCR: secId %ju (0x%jx) is ignored",
@@ -238,7 +239,8 @@ int EkaEfc::subscribeSec(uint64_t secId) {
 /* ################################################ */
 int EkaEfc::getSubscriptionId(uint64_t secId) {
   if (! isValidSecId(secId)) 
-    on_error("Security %ju (0x%jx) violates Hash function assumption",secId,secId);
+    return -1;
+  //    on_error("Security %ju (0x%jx) violates Hash function assumption",secId,secId);
   uint64_t normSecId = normalizeId(secId);
   int      lineIdx   = getLineIdx(normSecId);
   

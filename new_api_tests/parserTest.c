@@ -373,11 +373,21 @@ int main(int argc, char *argv[]) {
     char      valStr[80];
   };
 
+  //nom
+  /* EpmTriggerParams triggerParam[] = { */
+  /*   {0,"233.54.12.72",18000}, */
+  /*   {0,"233.54.12.73",18001}, */
+  /*   {0,"233.54.12.74",18002}, */
+  /*   {0,"233.54.12.75",18003} */
+  /* }; */
+
+  //pitch
+
   EpmTriggerParams triggerParam[] = {
-    {0,"233.54.12.72",18000},
-    {0,"233.54.12.73",18001},
-    {0,"233.54.12.74",18002},
-    {0,"233.54.12.75",18003}
+    {0,"224.0.74.0",30301},
+    {0,"224.0.74.1",30302},
+    {0,"224.0.74.2",30303},
+    {0,"224.0.74.3",30304}
   };
 
   EfcCtx efcCtx = {};
@@ -433,10 +443,12 @@ int main(int argc, char *argv[]) {
   /* }; */
   
   // #include "/local/dumps/nasdaq/itto4.0/HW_PARSER/subscription.inc" //NOM
+   #include "/local/dumps/cboe_pitch/C1_20210409/pitch_subscr.inc"
+  //SN:5668207,SID:02S2ab,B,P:       8,S:       2
 
-  SecurityCtx security[] = {
-    {0x000030324e6d3544, 0, -1, 100, 200, 1},
-  };
+  /* SecurityCtx security[] = { */
+  /*   {0x0000303253326162, 0, -1, 100, 200, 1}, */
+  /* }; */
   
   uint64_t securityList[std::size(security)] = {};
 
