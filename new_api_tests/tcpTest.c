@@ -103,7 +103,7 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p
     //    TEST_LOG("%u %04ju: sending %u bytes",sessId,pkt->cnt,pkt_size); fflush(stderr);
     int sentBytes = 0;
     while (keep_work && (sentBytes < (int)pkt_size || pkt_size == 0)) {
-      int sent = excSend (pEkaDev, sess_id, pkt, pkt_size);
+      int sent = excSend (pEkaDev, sess_id, pkt, pkt_size, 0);
       //      TEST_LOG("%u %04ju: sent %u out of %u bytes",sessId,pkt->cnt,sent,pkt_size); fflush(stderr);
       if (pkt_size != 0 && sent == 0) usleep(10);
       sentBytes += sent;
@@ -114,7 +114,7 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p
     char rx_buf[BUF_SIZE] = {};
     size_t rxsize = 0;
     do {
-      size_t rc = excRecv(pEkaDev,sess_id, &rx_buf[rxsize], pkt_size);
+      size_t rc = excRecv(pEkaDev,sess_id, &rx_buf[rxsize], pkt_size, 0);
       if (rc < 0) {
 	TEST_LOG("WARNING: rc = %jd",rc);
 	continue;

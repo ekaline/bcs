@@ -23,18 +23,16 @@ class EkaTcpSess {
   int bind();
   int connect();
 
-  int sendPayload(uint thr, void *buf, int len);
-  int sendFullPkt(void *buf, int len);
-  int sendStackPkt(void *buf, int len);
-  int sendThruStack(void *buf, int len);
-
-  int sendDummyPkt(void *buf, int len);
+  int sendPayload(uint thr, void *buf, int len, int flags);
+  int sendEthFrame(void *buf, int len);
+  int sendStackEthFrame(void *buf, int len);
+  int lwipDummyWrite(void *buf, int len);
 
   int updateRx(const uint8_t* pkt, uint32_t len);
 
   int preloadNwHeaders();
 
-  ssize_t recv(void *buffer, size_t size);
+  ssize_t recv(void *buffer, size_t size, int flags);
   int     close();
   ExcConnHandle getConnHandle() {
     return coreId * 128 + sessId;
@@ -55,8 +53,13 @@ class EkaTcpSess {
   static const uint TOTAL_SESSIONS_PER_CORE = EkaDev::TOTAL_SESSIONS_PER_CORE;
   static const uint MAX_CTX_THREADS         = EkaDev::MAX_CTX_THREADS;
 
-  static const uint MAX_PKT_SIZE      = EkaDev::MAX_PKT_SIZE;
-  static const uint MAX_PAYLOAD_SIZE  = MAX_PKT_SIZE - 14 - 20 - 20;
+  static const uint MAX_ETH_FRAME_SIZE      = EkaDev::MAX_ETH_FRAME_SIZE;
+
+  /*
+   * NOTE: MAX_PAYLOAD_SIZE *must* match the value of TCP_MSS but we don't want
+   * to include lwipopts.h here.
+   */
+  static const uint MAX_PAYLOAD_SIZE  = 1440;
   static const uint16_t EkaIpId       = 0x0;
 
   EkaEpmAction* fastPathAction = NULL;
@@ -78,8 +81,9 @@ class EkaTcpSess {
 
   uint32_t vlan_tag = 0;
 
-  uint16_t tcpWindow; // local
-  uint16_t remoteTcpWindow = 0;
+  uint16_t tcpRcvWnd; // new
+  uint16_t tcpSndWnd = 0;
+  uint8_t tcpSndWndShift = 0;
 
   volatile uint32_t tcpLocalSeqNum = 0;
   volatile uint32_t tcpRemoteSeqNum = 0;
@@ -97,7 +101,7 @@ class EkaTcpSess {
 
   volatile uint64_t fastBytesFromUserChannel = 0;
 
-  uint8_t __attribute__ ((aligned(0x100)))  pktBuf[MAX_PKT_SIZE] = {};
+  uint8_t __attribute__ ((aligned(0x100)))  pktBuf[MAX_ETH_FRAME_SIZE] = {};
   EkaEthHdr* ethHdr     = (EkaEthHdr*) pktBuf;
   EkaIpHdr*  ipHdr      = (EkaIpHdr* ) (((uint8_t*)ethHdr) + sizeof(EkaEthHdr));
   EkaTcpHdr* tcpHdr     = (EkaTcpHdr*) (((uint8_t*)ipHdr ) + sizeof(EkaIpHdr));
@@ -109,6 +113,8 @@ class EkaTcpSess {
   int  setRemoteSeqWnd2FPGA();
   int  setLocalSeqWnd2FPGA();
   bool isEstablished() const noexcept { return connectionEstablished; }
+  bool isBlocking() const noexcept { return blocking; }
+  int setBlocking(bool);
 
  private:
   typedef union exc_table_desc {
@@ -124,6 +130,7 @@ class EkaTcpSess {
   EkaDev* dev = NULL;
 
   bool connectionEstablished = false;
+  bool blocking = true;
 };
 
 #endif
