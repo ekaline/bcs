@@ -280,7 +280,7 @@ int main(int argc, char *argv[]) {
   std::string serverIp  = "10.0.0.10";      // Ekaline lab default
   std::string clientIp  = "100.0.0.110";    // Ekaline lab default
   std::string triggerIp = "239.255.119.16"; // Ekaline lab default
-  std::string subscriptionFile = "/local/dumps/nasdaq/itto4.0/HW_PARSER/subscription.txt"; // Ekaline lab default
+  std::string subscriptionFile = "../new_api_tests/ehpSubscr.txt";
   uint16_t serverTcpBasePort   = 22222;         // Ekaline lab default
   uint16_t numTcpSess = 4;
   uint16_t serverTcpPort = serverTcpBasePort;

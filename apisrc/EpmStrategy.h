@@ -41,7 +41,7 @@ class EpmStrategy {
   EpmFireReportCb   reportCb;   ///< Callback function to process fire reports
   void             *cbCtx;
 
-  EfhFeedVer          hwFeedVer  = EfhFeedVer::kInvalid;
+  EfhFeedVer        hwFeedVer  = EfhFeedVer::kInvalid;
 
   EkaUdpSess*       udpSess[EkaEpm::MAX_UDP_SESS] = {};
   int               numUdpSess = 0;

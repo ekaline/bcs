@@ -30,10 +30,11 @@ EkaEfc::EkaEfc(EkaEpm*                  epm,
 	       epm_strategyid_t         id, 
 	       epm_actionid_t           baseActionIdx, 
 	       const EpmStrategyParams* params, 
-	       EfhFeedVer               hwFeedVer) : 
-EpmStrategy(epm,id,baseActionIdx,params,hwFeedVer) {
+	       EfhFeedVer               _hwFeedVer) : 
+EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
   
-  EKA_LOG("Creating EkaEfc: hwFeedVer=%d",(int)hwFeedVer);
+  hwFeedVer = EfhFeedVer::kCBOE;
+  EKA_LOG("Creating EkaEfc: hwFeedVer=%d",(int)_hwFeedVer);
   
   for (auto i = 0; i < EFC_SUBSCR_TABLE_ROWS; i++) {
     hashLine[i] = new EkaHwHashTableLine(dev, hwFeedVer, i);
@@ -47,14 +48,10 @@ EpmStrategy(epm,id,baseActionIdx,params,hwFeedVer) {
 
   //  ehp = new EhpNom(dev);
   ehp = new EhpPitch(dev);
-  hwFeedVer = EfhFeedVer::kCBOE;
 
   if (ehp == NULL) on_error("ehp == NULL");
   ehp->init();
-  hwFeedVer = EfhFeedVer::kCBOE;
   ehp->download2Hw();
-  hwFeedVer = EfhFeedVer::kCBOE;
-  TEST_LOG("hwFeedVer = 0x%x",hwFeedVer);
   initHwRoundTable();
 }
 
@@ -102,7 +99,6 @@ int EkaEfc::initHwRoundTable() {
 #ifdef _VERILOG_SIM
   return 0;
 #else
-  TEST_LOG("hwFeedVer = 0x%x",hwFeedVer);
 
   for (uint64_t addr = 0; addr < ROUND_2B_TABLE_DEPTH; addr++) {
     uint64_t data = 0;
