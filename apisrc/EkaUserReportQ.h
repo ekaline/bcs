@@ -22,18 +22,19 @@ class EkaUserReportQ {
 
   EkaUserReportElem* push(const void* payload, uint len);
   EkaUserReportElem* pop();
-  inline uint32_t           next(uint32_t curr);
+  inline uint32_t    next(uint32_t curr);
 
   /* -------------------------------- */
+ private:
   EkaUserReportElem* qElem = NULL;
 
   uint32_t rdPtr = 0;
   uint32_t wrPtr = 0;
   
-  uint64_t wrCnt = 0;
-  uint64_t rdCnt = 0;
+  volatile uint64_t wrCnt = 0;
+  volatile uint64_t rdCnt = 0;
 
-  uint64_t qLen  = 0;
+  volatile int64_t qLen  = 0;
 
  private:
   EkaDev* dev = NULL;
