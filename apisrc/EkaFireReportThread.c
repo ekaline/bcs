@@ -86,10 +86,12 @@ int printMdReport(EkaDev* dev, const EfcMdReport* msg) {
   /* 	 msg->price, */
   /* 	 msg->size); */
   //PITCH
-  printf("MdReport: GR%d,SN:%ju,SID:%c%c%c%c%c%c,%c,P:%8ju,S:%8ju\n",
+  //  printf("MdReport: GR%d,SN:%ju,SID:%c%c%c%c%c%c,%c,P:%8ju,S:%8ju\n",
+  printf("MdReport: GR%d,SN:%ju,SID:0x%02x%02x%02x%02x%02x%02x%02x%02x,%c,P:%8ju,S:%8ju\n",
 	 msg->group_id,
 	 msg->sequence,
-
+	 0,
+	 0,
 	 (msg->security_id >> 5*8) & 0xFF,
 	 (msg->security_id >> 4*8) & 0xFF,
 	 (msg->security_id >> 3*8) & 0xFF,
