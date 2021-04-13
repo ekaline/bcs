@@ -39,7 +39,7 @@ static int sendHearBeat(int sock) {
     .type		= '1'
   };
 
-  return send(sock,&heartbeat,sizeof(sesm_header), 0);
+  return send(sock,&heartbeat,sizeof(sesm_header), MSG_NOSIGNAL);
 }
 /* ##################################################################### */
 static bool sesmCycle(EkaDev* dev, 
@@ -158,7 +158,7 @@ static bool sendLogin (EkaFhMiaxGr* gr) {
 	  std::string(gr->auth_user,sizeof(gr->auth_user)).c_str(),
 	  std::string(gr->auth_passwd,sizeof(gr->auth_passwd)).c_str()
 	  );	
-  int r = send(gr->recovery_sock,&sesm_login_msg,sizeof(struct sesm_login_req), 0);
+  int r = send(gr->recovery_sock,&sesm_login_msg,sizeof(struct sesm_login_req), MSG_NOSIGNAL);
   if(r < 0) {
     dev->lastErrno = errno;
     EKA_WARN("%s:%u: SESM Login send failed: %s",
@@ -253,7 +253,7 @@ static bool sendRequest(EkaFhMiaxGr* gr, char refreshType) {
   def_request_msg.refresh_type = refreshType;
 
   //  hexDump("MIAX definitions request",(char*) &def_request_msg,sizeof(struct miax_request));
-  int r = send(gr->recovery_sock,&def_request_msg,sizeof(def_request_msg), 0);
+  int r = send(gr->recovery_sock,&def_request_msg,sizeof(def_request_msg), MSG_NOSIGNAL);
   if(r <= 0) {
     dev->lastErrno = errno;
     EKA_WARN("%s:%u: SESM Request send failed: %s",
@@ -275,7 +275,7 @@ static bool sendRetransmitRequest(EkaFhMiaxGr* gr, uint64_t start, uint64_t end)
   retransmit_req.start         = start;
   retransmit_req.end           = end;
 
-  int r = send(gr->recovery_sock,&retransmit_req,sizeof(retransmit_req), 0);
+  int r = send(gr->recovery_sock,&retransmit_req,sizeof(retransmit_req), MSG_NOSIGNAL);
   if(r <= 0) {
     dev->lastErrno = errno;
     EKA_WARN("%s:%u: SESM Retransmit Request send failed: %s",
@@ -297,7 +297,7 @@ static bool sendLogOut(EkaFhMiaxGr* gr) {
   sesm_logout_msg.header.type   = 'X';
   sesm_logout_msg.reason        = ' '; // Graceful Logout (Done for now)
 
-  if(send(gr->recovery_sock,&sesm_logout_msg,sizeof(sesm_logout_req), 0) < 0) {
+  if(send(gr->recovery_sock,&sesm_logout_msg,sizeof(sesm_logout_req), MSG_NOSIGNAL) < 0) {
     dev->lastErrno = errno;
     EKA_WARN("%s:%u: SESM Logout send failed",EKA_EXCH_DECODE(gr->exch),gr->id);
     return false;
@@ -375,8 +375,13 @@ static EkaFhParseResult procSesm(const EfhRunCtx* pEfhRunCtx,
 
   case EKA_SESM_TYPE::Sequenced : 
     sequence = *(uint64_t*)m;
-    m += sizeof(sequence);
     gr->seq_after_snapshot = sequence;
+    if (payloadLen == sizeof(sequence)) {
+      EKA_WARN("%s:%u SESM Sequenced packet with no msg",
+	       EKA_EXCH_DECODE(gr->exch),gr->id);
+      return EkaFhParseResult::NotEnd;
+    }
+    m += sizeof(sequence);
     if (gr->parseMsg(pEfhRunCtx,m,sequence,op)) {
       EKA_LOG("%s:%u %s End Of Refresh: gr->seq_after_snapshot = %ju",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,
@@ -393,6 +398,11 @@ static EkaFhParseResult procSesm(const EfhRunCtx* pEfhRunCtx,
     case 'R' :
       sequence = ((sesm_unsequenced*)m)->sequence;
       gr->seq_after_snapshot = sequence;
+      if (payloadLen == sizeof(sesm_unsequenced)) {
+	EKA_WARN("%s:%u SESM Unsequenced packet with no msg",
+		 EKA_EXCH_DECODE(gr->exch),gr->id);
+	return EkaFhParseResult::NotEnd;
+      } 
       m += sizeof(sesm_unsequenced);
       if (gr->parseMsg(pEfhRunCtx,m,sequence,op)) {
 	EKA_LOG("%s:%u %s End Of Refresh: gr->seq_after_snapshot = %ju",

@@ -33,6 +33,7 @@ class EkaUserReportQ {
   uint32_t rdPtr = 0;
   uint32_t wrPtr = 0;
   
+
   // volatile uint64_t wrCnt = 0;
   // volatile uint64_t rdCnt = 0;
 

@@ -39,7 +39,7 @@ static EkaOpResult sendLogin (EkaFhXdpGr* gr) {
 	
 #ifdef FH_LAB
 #else
-  if(send(gr->snapshot_sock,&loginRequest,sizeof(loginRequest), 0) < 0) {
+  if(send(gr->snapshot_sock,&loginRequest,sizeof(loginRequest), MSG_NOSIGNAL) < 0) {
     EKA_WARN("XDP Login send failed");
     return EKA_OPRESULT__ERR_SYSTEM_ERROR;
   }
@@ -92,7 +92,7 @@ static EkaOpResult sendRequest(EkaFhXdpGr* gr) {
 
   //  hexDump("XDP definitions request",(char*) &defRequest,sizeof(defRequest));
 #ifndef FH_LAB
-  if(send(gr->snapshot_sock,&defRequest,sizeof(defRequest), 0) < 0) {
+  if(send(gr->snapshot_sock,&defRequest,sizeof(defRequest), MSG_NOSIGNAL) < 0) {
     EKA_WARN("%s:%u: XDP Request send failed",EKA_EXCH_DECODE(gr->exch),gr->id);
     return EKA_OPRESULT__ERR_SYSTEM_ERROR;
   }
@@ -109,7 +109,7 @@ static EkaOpResult sendLogOut(EkaFhXdpGr* gr) {
   logOut.hdr.MsgType = EKA_XDP_MSG_TYPE::LOGOUT_REQUEST;
   logOut.hdr.MsgSize = sizeof(logOut);
 
-  if(send(gr->snapshot_sock,&logOut,sizeof(logOut), 0) < 0) {
+  if(send(gr->snapshot_sock,&logOut,sizeof(logOut), MSG_NOSIGNAL) < 0) {
     EKA_WARN("%s:%u: XDP Logout send failed",EKA_EXCH_DECODE(gr->exch),gr->id);
     return EKA_OPRESULT__ERR_SYSTEM_ERROR;
   }
@@ -128,7 +128,7 @@ static EkaOpResult sendHeartbeat(EkaFhXdpGr* gr) {
   hearbeat.hdr.MsgType = EKA_XDP_MSG_TYPE::HEARTBEAT;
   hearbeat.hdr.MsgSize = sizeof(hearbeat);
   memcpy(&hearbeat.SourceID,gr->auth_user,sizeof(hearbeat.SourceID));
-  if(send(gr->snapshot_sock,&hearbeat,sizeof(hearbeat), 0) < (int) sizeof(hearbeat)) {
+  if(send(gr->snapshot_sock,&hearbeat,sizeof(hearbeat), MSG_NOSIGNAL) < (int) sizeof(hearbeat)) {
     EKA_WARN("%s:%u: XDP HEARTBEAT send failed",EKA_EXCH_DECODE(gr->exch),gr->id);
     return EKA_OPRESULT__ERR_SYSTEM_ERROR;
   }

@@ -337,7 +337,7 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
 
   switch (type) {
   case ActionType::TcpFastPath :
-    heapBudget                 = MAX_PKT_SIZE;
+    heapBudget                 = MAX_ETH_FRAME_SIZE;
 
     actionBitParams.bitmap.action_valid = 1;
     actionBitParams.bitmap.israw        = 0;
@@ -348,7 +348,7 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
     break;
 
   case ActionType::TcpFullPkt  :
-    heapBudget                 = MAX_PKT_SIZE;
+    heapBudget                 = MAX_ETH_FRAME_SIZE;
 
     actionBitParams.bitmap.action_valid = 1;
     actionBitParams.bitmap.israw        = 1;
@@ -397,7 +397,7 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
     break;
 
   case ActionType::UserAction :
-    heapBudget                 = MAX_PKT_SIZE;
+    heapBudget                 = MAX_ETH_FRAME_SIZE;
 
     actionBitParams.bitmap.action_valid = 1;
     actionBitParams.bitmap.israw        = 0;

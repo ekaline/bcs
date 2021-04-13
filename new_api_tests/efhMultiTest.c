@@ -50,6 +50,7 @@ static int fatalErrorCnt = 0;
 static const int MaxFatalErrors = 4;
 
 std::vector<std::string> underlyings;
+std::vector<uint64_t>    securities;
 
 struct TestSecurityCtx {
   std::string avtSecName;
@@ -315,7 +316,7 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
 
   if (! print_tob_updates) return NULL;
 
-  fprintf(gr->MD,"%s,%s,%s,%ju,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%d,%d,%s\n",
+  fprintf(gr->MD,"%s,%s,%s,%ju,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%d,%d,%s,%ju\n",
 	  EKA_CTS_SOURCE(msg->header.group.source),
 	  eka_get_date().c_str(),
 	  eka_get_time().c_str(),
@@ -335,7 +336,8 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
 	  EKA_TS_DECODE(msg->tradeStatus),
 	  EKA_TS_DECODE(msg->tradeStatus),
 	  0,0, // Size Breakdown
-	  (ts_ns2str(msg->header.timeStamp)).c_str()
+	  (ts_ns2str(msg->header.timeStamp)).c_str(),
+	  msg->header.timeStamp
 	  );
 
   return NULL;
@@ -388,7 +390,9 @@ void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUs
 
 
   if (subscribe_all || (std::find(underlyings.begin(), underlyings.end(), underlyingName) != underlyings.end())) {
-
+    if (std::find(securities.begin(),securities.end(),msg->header.securityId) != securities.end()) return NULL;
+    securities.push_back(msg->header.securityId);
+	
     TestSecurityCtx newSecurity = {
       .avtSecName  = std::string(avtSecName),
       .underlying  = underlyingName,

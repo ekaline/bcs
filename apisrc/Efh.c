@@ -27,6 +27,12 @@ EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhI
   assert (pEfhInitCtx != NULL);
   EkaDev* dev = pEkaDev;
 
+
+  if (dev->core[pEfhInitCtx->coreId] == NULL) {
+    on_error("I/F %d is not connected or does not have IP addr",
+	     pEfhInitCtx->coreId);
+  }
+  
   if (! pEfhInitCtx->recvSoftwareMd) {
     EKA_LOG("skipping creating FH due to pEfhInitCtx->recvSoftwareMd == false");
     return EKA_OPRESULT__OK;

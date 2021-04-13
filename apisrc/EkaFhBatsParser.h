@@ -46,7 +46,8 @@ enum class EKA_BATS_PITCH_MSG : uint8_t {
 #define EKA_PRINT_BATS_SYMBOL(x) ((std::string((x),6)).c_str())
 
 #define EKA_BATS_PITCH_MSG_DECODE(x)					\
-  x == EKA_BATS_PITCH_MSG::ADD_ORDER_LONG                 ? "ADD_ORDER_LONG" : \
+  x == EKA_BATS_PITCH_MSG::SYMBOL_MAPPING                 ? "SYMBOL_MAPPING" : \
+    x == EKA_BATS_PITCH_MSG::ADD_ORDER_LONG               ? "ADD_ORDER_LONG" : \
     x == EKA_BATS_PITCH_MSG::ADD_ORDER_SHORT              ? "ADD_ORDER_SHORT" :	\
     x == EKA_BATS_PITCH_MSG::ORDER_EXECUTED               ? "ORDER_EXECUTED" : \
     x == EKA_BATS_PITCH_MSG::ORDER_EXECUTED_AT_PRICE_SIZE ? "ORDER_EXECUTED_AT_PRICE_SIZE" : \

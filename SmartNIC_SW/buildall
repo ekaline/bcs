@@ -1,7 +1,8 @@
 #!/bin/bash
 
 DRIVER_BUILD_DATE=`date`
-echo -n '#define EKA_SN_DRIVER_BUILD_TIME "EKA DRIVER BUILD TIME:  ' > ././driver/ekaline_build_time.h; echo -n $DRIVER_BUILD_DATE >> ./driver/ekaline_build_time.h; echo \" >> ./driver/ekaline_build_time.h
+# echo -n '#define EKA_SN_DRIVER_BUILD_TIME "EKA DRIVER BUILD TIME:  ' > ././driver/ekaline_build_time.h; echo -n $DRIVER_BUILD_DATE >> ./driver/ekaline_build_time.h; echo \" >> ./driver/ekaline_build_time.h
+echo -n '#define EKA_SN_DRIVER_BUILD_TIME "' > ././driver/ekaline_build_time.h; echo -n `date` >> ./driver/ekaline_build_time.h; echo \" >> ./driver/ekaline_build_time.h
 
 echo -n '#define EKA_SN_DRIVER_RELEASE_NOTE ' >> ./driver/ekaline_build_time.h
 if [ -e eka_driver_release_notes.txt ] ; then

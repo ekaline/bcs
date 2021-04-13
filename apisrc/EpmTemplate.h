@@ -69,7 +69,7 @@ struct EpmTemplateField {
 
 class EpmTemplate {
  public:
-  static const uint EpmMaxRawTcpSize = EkaEpm::MAX_PKT_SIZE;
+  static const uint EpmMaxRawTcpSize = EkaEpm::MAX_ETH_FRAME_SIZE;
   static const uint EpmNumHwFields   = EkaEpm::EpmNumHwFields;
   static const uint EpmHwFieldSize   = EkaEpm::EpmHwFieldSize;
 

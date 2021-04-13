@@ -39,7 +39,7 @@ class EkaEpmAction {
 		uint16_t srcPort, 
 		uint16_t dstPort);
   /* ----------------------------------------------------- */
-  int setFullPkt(const void* buf, uint len);
+  int setEthFrame(const void* buf, uint len);
   /* ----------------------------------------------------- */
   int updatePayload(uint heapOffset, uint len);
   /* ----------------------------------------------------- */

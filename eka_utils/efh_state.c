@@ -82,7 +82,9 @@ inline void reg_write(uint64_t addr, uint64_t val) {
 //################################################
 int getSnIgmpCtx(McState* mcState, sc_multicast_subscription_t* hwIgmp) {
   if (hwIgmp == NULL) on_error("hwIgmp == NULL");
-  memset(hwIgmp,0,sizeof(sc_multicast_subscription_t) * 8 * 64);
+  printf("hwIgmp = %p",hwIgmp);
+  
+  //  memset(hwIgmp,0,sizeof(sc_multicast_subscription_t) * 8 * 64);
 
   int fd = SN_GetFileDescriptor(devId);
   if (fd < 0) on_error("fd = %d",fd);
@@ -90,9 +92,7 @@ int getSnIgmpCtx(McState* mcState, sc_multicast_subscription_t* hwIgmp) {
   eka_ioctl_t __attribute__ ((aligned(0x1000))) state = {};
 
   state.cmd = EKA_GET_IGMP_STATE;
-  state.nif_num = 0;
-  state.session_num = 0;
-  state.wcattr.bar0_pa = (uint64_t)hwIgmp;
+  state.paramA = (uint64_t)hwIgmp;
 
   int rc = ioctl(fd,SMARTNIC_EKALINE_DATA,&state);
   if (rc != 0) on_error("ioctl failed: rc = %d",rc);
@@ -133,7 +133,7 @@ void       getIpMac_ioctl(uint8_t lane, IfParams* params) {
   int           sck, nInterfaces;
 
   std::string portNameFETH   = std::string("feth")   + std::to_string(lane);
-  std::string portNameFPGA0_ = std::string("fpfa0_") + std::to_string(lane);
+  std::string portNameFPGA0 = std::string("fpfa0_") + std::to_string(lane);
 
   /* Get a socket handle. */
   sck = socket(AF_INET, SOCK_DGRAM, 0);
@@ -151,7 +151,7 @@ void       getIpMac_ioctl(uint8_t lane, IfParams* params) {
   for(int i = 0; i < nInterfaces; i++){
     struct ifreq *item = &ifr[i];
     if (strncmp(item->ifr_name,portNameFETH.c_str(),strlen(portNameFETH.c_str())) != 0 &&
-	strncmp(item->ifr_name,portNameFPGA0_.c_str(),strlen(portNameFPGA0_.c_str())) != 0) continue;
+	strncmp(item->ifr_name,portNameFPGA0.c_str(),strlen(portNameFPGA0.c_str())) != 0) continue;
 
     strcpy(params->name,item->ifr_name);
 
@@ -184,7 +184,7 @@ int getNwParams(IfParams coreParams[NUM_OF_CORES]) {
     int           sck, nInterfaces;
 
     std::string portNameFETH   = std::string("feth")   + std::to_string(coreId);
-    std::string portNameFPGA0_ = std::string("fpga0_") + std::to_string(coreId);
+    std::string portNameFPGA0  = std::string("fpga0_") + std::to_string(coreId);
 
     /* Get a socket handle. */
     sck = socket(AF_INET, SOCK_DGRAM, 0);
@@ -202,7 +202,7 @@ int getNwParams(IfParams coreParams[NUM_OF_CORES]) {
     for(int i = 0; i < nInterfaces; i++){
       struct ifreq *item = &ifr[i];
       if (strncmp(item->ifr_name,portNameFETH.c_str(),strlen(portNameFETH.c_str())) != 0 &&
-	  strncmp(item->ifr_name,portNameFPGA0_.c_str(),strlen(portNameFPGA0_.c_str())) != 0) continue;
+	  strncmp(item->ifr_name,portNameFPGA0.c_str(),strlen(portNameFPGA0.c_str())) != 0) continue;
 
       strcpy(coreParams[coreId].name,item->ifr_name);
 
@@ -504,9 +504,9 @@ int main(int argc, char *argv[]) {
   McState mcState = {};
 
 
-  sc_multicast_subscription_t hwIgmp[8 * 64] = {};
-  /* sc_multicast_subscription_t* hwIgmp = (sc_multicast_subscription_t*)malloc(sizeof(sc_multicast_subscription_t) * 8 * 64); */
-  /* if (hwIgmp == NULL) on_error("malloc failed"); */
+  //  sc_multicast_subscription_t  __attribute__ ((aligned(0x1000))) hwIgmp[8 * 64] = {};
+  auto hwIgmp = new sc_multicast_subscription_t[8 * 64];
+  if (hwIgmp == NULL) on_error("malloc failed");
 
 
   /* ----------------------------------------- */

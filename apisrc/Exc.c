@@ -157,7 +157,17 @@ constexpr int lwipPollEventsToLinux(int lwipEvents) {
   return linuxEvents;
 }
 
-constexpr int O_NONBLOCK_LWIP = 0x1;
+constexpr int MSG_PEEK_LWIP = 0x01;
+constexpr int MSG_DONTWAIT_LWIP = 0x08;
+
+constexpr int linuxMsgFlagsToLWIP(int linuxFlags) {
+  int lwipFlags = 0;
+  if (linuxFlags & MSG_PEEK)
+    lwipFlags |= MSG_PEEK_LWIP;
+  if (linuxFlags & MSG_DONTWAIT)
+    lwipFlags |= MSG_DONTWAIT_LWIP;
+  return lwipFlags;
+}
 
 /**
  * This is a utility function that will return the ExcSessionId from the result of exc_connect.
@@ -289,8 +299,6 @@ ExcConnHandle excConnect( EkaDev* dev, ExcSocketHandle hSocket, const struct soc
 
   if (sess->connect() == -1)
     return -1;
-
-  sess->preloadNwHeaders();
   return sess->getConnHandle();
 }
 
@@ -316,18 +324,19 @@ ExcConnHandle excReconnect( EkaDev* pEkaDev, ExcConnHandle hConn ) {
  *                path should be warmed up.
  * @return This will return the values that exhibit the same behavior of linux's send fn.
  */
-ssize_t excSend( EkaDev* dev, ExcConnHandle hConn, const void* pBuffer, size_t size ) {
-  if (EkaTcpSess *const s = getEkaTcpSess(dev, hConn))
-    return s->sendPayload(s->sessId/* thrId */, (void*) pBuffer, size);
+ssize_t excSend( EkaDev* dev, ExcConnHandle hConn, const void* pBuffer, size_t size, int flags ) {
+  if (EkaTcpSess *const s = getEkaTcpSess(dev, hConn)) {
+    return s->sendPayload(s->sessId/* thrId */, (void*) pBuffer, size, linuxMsgFlagsToLWIP(flags));
+  }
   return -1;
 }
 
 /**
  * $$NOTE$$ - This is mutexed to handle single session at a time.
  */
-ssize_t excRecv( EkaDev* dev, ExcConnHandle hConn, void *pBuffer, size_t size ) {
+ssize_t excRecv( EkaDev* dev, ExcConnHandle hConn, void *pBuffer, size_t size, int flags ) {
   if (EkaTcpSess *const s = getEkaTcpSess(dev, hConn))
-    return s->recv(pBuffer,size);
+    return s->recv(pBuffer,size,linuxMsgFlagsToLWIP(flags));
   return -1;
 }
 
@@ -413,26 +422,22 @@ int excGetPeerName( EkaDev* dev, ExcSocketHandle hSock, sockaddr* addr,
 }
 
 int excGetBlocking( EkaDev* dev, ExcSocketHandle hSock ) {
-  if (checkDevice(dev)) {
-    const int flags = lwip_fcntl(hSock, F_GETFL, 0);
-    return flags != -1
-        ? (flags & O_NONBLOCK_LWIP) ? 0 : 1
-        : -1;
-  }
+  if (!checkDevice(dev))
+    return -1;
+  else if (const EkaTcpSess *const s = dev->findTcpSess(hSock))
+    return s->isBlocking() ? 1 : 0;
+  EKA_WARN("ExcSocketHandle %d not found", hSock);
+  errno = EBADF;
   return -1;
 }
 
 int excSetBlocking( EkaDev* dev, ExcSocketHandle hSock, bool blocking ) {
-  if (checkDevice(dev)) {
-    int flags = lwip_fcntl(hSock, F_GETFL, 0);
-    if (flags == -1)
-      return -1;
-    else if (blocking)
-      flags &= ~O_NONBLOCK_LWIP;
-    else
-      flags |= O_NONBLOCK_LWIP;
-    return lwip_fcntl(hSock, F_SETFL, flags);
-  }
+  if (!checkDevice(dev))
+    return -1;
+  else if (EkaTcpSess *const s = dev->findTcpSess(hSock))
+    return s->setBlocking(blocking);
+  EKA_WARN("ExcSocketHandle %d not found", hSock);
+  errno = EBADF;
   return -1;
 }
 

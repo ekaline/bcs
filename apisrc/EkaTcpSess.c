@@ -1,3 +1,5 @@
+#include "assert.h"
+
 #include "lwip/sockets.h"
 #include "lwip/prot/ethernet.h"
 #include "lwip/prot/ip4.h"
@@ -87,8 +89,8 @@ EkaTcpSess::EkaTcpSess(EkaDev* pEkaDev, EkaCore* _parent, uint8_t _coreId, uint8
 
 /* ---------------------------------------------------------------- */
 
-ssize_t EkaTcpSess::recv(void *buffer, size_t size) {
-  ssize_t res = lwip_recv(sock, buffer, size, 0);
+ssize_t EkaTcpSess::recv(void *buffer, size_t size, int flags) {
+  ssize_t res = lwip_recv(sock, buffer, size, flags);
   return res;
 }
 
@@ -156,6 +158,7 @@ int EkaTcpSess::connect() {
   // FIXME: need LOCK_TCPIP_CORE here? What protects the table?
   uint32_t* ipPtr = NULL;
   uint8_t* macDa_ptr = NULL;
+  char arpInCache = false;
   ssize_t arpEntry = etharp_find_addr(pLwipNetIf,
                                       (const ip4_addr_t*)&nextHopIPv4,
                                       (eth_addr**)&macDa_ptr,
@@ -163,7 +166,8 @@ int EkaTcpSess::connect() {
 
   if (arpEntry == -1) {
     // ARP entry is not cached, send a request on the network.
-    EKA_LOG("Sending ARP request for %s %s from core %u",who,EKA_IP2STR(nextHopIPv4),coreId);
+    EKA_LOG("%s %s hw address not cached; sending ARP request from core %u",who,
+            EKA_IP2STR(nextHopIPv4),coreId);
     LOCK_TCPIP_CORE();
     const err_t arpReqErr = etharp_request(pLwipNetIf, (const ip4_addr_t*)&nextHopIPv4);
     if (arpReqErr != ERR_OK) {
@@ -176,7 +180,7 @@ int EkaTcpSess::connect() {
 
     // Keep looking until we find it, with microsecond sleeps in between, since
     // it may take several milliseconds for the host to respond to us.
-    for (int trials = 0; arpEntry == -1 && dev->servThreadActive && trials < 10000;
+    for (int trials = 0; arpEntry == -1 && dev->servThreadActive && trials < 100000;
          (void)usleep(1), ++trials) {
       arpEntry = etharp_find_addr(pLwipNetIf,
                                   (const ip4_addr_t*)&nextHopIPv4,
@@ -189,6 +193,9 @@ int EkaTcpSess::connect() {
       return -1;
     }
   }
+  else {
+    arpInCache = true;
+  }
 
   if (arpEntry == -1) {
     // Still no ARP resolution after sending an explicit request; we don't
@@ -200,7 +207,11 @@ int EkaTcpSess::connect() {
 
   if (macDa_ptr == NULL) on_error("macDa_ptr == NULL");
   memcpy(macDa,macDa_ptr,6);
-  EKA_LOG("Found %s ARP entry %zd with %s %s",who,arpEntry,EKA_IP2STR(*ipPtr),EKA_MAC2STR(macDa));
+  const char *const arpHow = arpInCache ? "found cached" : "resolved";
+  EKA_LOG("%s %s ARP entry %zd with %s %s",arpHow,who,arpEntry,EKA_IP2STR(*ipPtr),EKA_MAC2STR(macDa));
+
+  // Now that macDa is set, preload the network headers.
+  preloadNwHeaders();
 
   // Consider to move to beginning of connect()
   std::unique_lock<std::mutex> lck{dev->lwipConnectMtx};
@@ -235,6 +246,30 @@ int EkaTcpSess::preloadNwHeaders() {
 
 int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
   tcpRemoteAckNum = EKA_TCPH_ACKNO(pkt);
+
+  tcpSndWnd = EKA_TCPH_WND(pkt);
+  if (EKA_TCP_SYN(pkt)) {
+    // SYN/ACK part of the handshake contains the peer's TCP session options.
+    assert(EKA_TCP_ACK(pkt));
+    const EkaTcpHdr *const tcpHdr = EKA_TCPH(pkt);
+    if (EKA_TCPH_HDRLEN_BYTES(tcpHdr) > 20) {
+      // Header length > 20, we have TCP options; parse them.
+      auto *opt = (const uint8_t *)(tcpHdr + 1);
+      while (*opt) {
+        switch (*opt) {
+        case 1:  // No-op
+          ++opt;
+          break;
+        case 3: // Send window scale.
+          tcpSndWndShift = opt[2]; [[fallthrough]];
+        default:
+          opt += opt[1];
+          break;
+        }
+      }
+    }
+  }
+
   if ( 
       (tcpRemoteAckNum > tcpLocalSeqNum) && //doesntwork with wraparound
       (!(EKA_TCP_SYN(pkt)))
@@ -249,16 +284,15 @@ int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
 
 /* ---------------------------------------------------------------- */
 int EkaTcpSess::setRemoteSeqWnd2FPGA() {
-    // Update FPGA with tcpRemoteSeqNum and tcpWindow
+    // Update FPGA with tcpRemoteSeqNum and tcpRcvWnd
     exc_table_desc_t desc = {};
     desc.td.source_bank = 0;
     desc.td.source_thread = sessId;
     desc.td.target_idx = (uint32_t)sessId;
 
-    uint64_t tcpWindow_64bit = (uint64_t)tcpWindow;
-    eka_write(dev,0x60000 + 0x1000*coreId + 8 * (sessId*2),tcpRemoteSeqNum | (tcpWindow_64bit << 32) );
+    uint64_t tcpRcvWnd_64bit = (uint64_t)tcpRcvWnd;
+    eka_write(dev,0x60000 + 0x1000*coreId + 8 * (sessId*2),tcpRemoteSeqNum | (tcpRcvWnd_64bit << 32) );
     eka_write(dev,0x6f000 + 0x100*coreId,desc.desc);
-    // Update FPGA with tcpRemoteSeqNum and tcpWindow
     return 0;
 }
 
@@ -272,32 +306,46 @@ int EkaTcpSess::setLocalSeqWnd2FPGA() {
     eka_write(dev,0x30000 + 0x1000*coreId + 8 * (sessId*2),tcpLocalSeqNum);
     eka_write(dev,0x3f000 + 0x100*coreId,desc.desc);
 
-    eka_write(dev,0xe0318,tcpWindow);
+    eka_write(dev,0xe0318,tcpRcvWnd);
     return 0;
 }
 
+int EkaTcpSess::setBlocking(bool b) {
+  int flags = lwip_fcntl(sock, F_GETFL, 0);
+  if (flags == -1)
+    return -1;
+  else if (b)
+    flags &= ~O_NONBLOCK;
+  else
+    flags |= O_NONBLOCK;
+  const int err = lwip_fcntl(sock, F_SETFL, flags);
+  if (!err)
+    blocking = b;
+  return err;
+}
+
 /* ---------------------------------------------------------------- */
-int EkaTcpSess::sendStackPkt(void *pkt, int len) {
+int EkaTcpSess::sendStackEthFrame(void *pkt, int len) {
   if (EKA_TCP_SYN(pkt)) {
     tcpLocalSeqNum = EKA_TCPH_SEQNO(pkt) + 1;
     tcpLocalSeqNumBase = EKA_TCPH_SEQNO(pkt) + 1;
-    tcpWindow = EKA_TCPH_WND(pkt);
+    tcpRcvWnd = EKA_TCPH_WND(pkt);
     setLocalSeqWnd2FPGA();
-    sendFullPkt(pkt,len);
+    sendEthFrame(pkt,len);
     return 0;
   } 
   /* -------------------------------------- */
   if (EKA_TCP_FIN(pkt)) {
-    sendFullPkt(pkt,len);
+    sendEthFrame(pkt,len);
     return 0;    
   }
   /* -------------------------------------- */
   if (! connectionEstablished) {
     // 1st ACK on SYN-ACK
     tcpRemoteSeqNum = EKA_TCPH_ACKNO(pkt);
-    tcpWindow = EKA_TCPH_WND(pkt);
+    tcpRcvWnd = EKA_TCPH_WND(pkt);
     setRemoteSeqWnd2FPGA();
-    sendFullPkt(pkt,len);
+    sendEthFrame(pkt,len);
     return 0;
   }
   /* -------------------------------------- */
@@ -305,7 +353,7 @@ int EkaTcpSess::sendStackPkt(void *pkt, int len) {
     // Retransmit
     //    EKA_LOG("Retransmit: Total Len = %u bytes, Seq = %u, tcpLocalSeqNum=%u", len, EKA_TCPH_SEQNO(pkt),tcpLocalSeqNum);
     //    hexDump("RetransmitPkt",pkt,len);
-    sendFullPkt(pkt,len);
+    sendEthFrame(pkt,len);
     return 0;
   }
   /* -------------------------------------- */
@@ -326,30 +374,27 @@ int EkaTcpSess::sendStackPkt(void *pkt, int len) {
 
 /* ---------------------------------------------------------------- */
 
-int EkaTcpSess::sendFullPkt(void *buf, int len) {
-  if (! dev->exc_active) return 1;
+int EkaTcpSess::sendEthFrame(void *buf, int len) {
+  if (! dev->exc_active) {
+    errno = ENETDOWN;
+    return -1;
+  }
 
-  if ((uint)len > MAX_PKT_SIZE) 
-    on_error("Size (=%d) > MAX_PKT_SIZE (%d)",(int)len,MAX_PKT_SIZE);
+  if ((uint)len > MAX_ETH_FRAME_SIZE)
+    on_error("Size %d > MAX_ETH_FRAME_SIZE (%d)",len,MAX_ETH_FRAME_SIZE);
 
-  /* hexDump("sendFullPkt",buf,len); */
-  /* fullPktAction->print("from sendFullPkt:"); */
+  /* hexDump("sendEthFrame",buf,len); */
+  /* fullPktAction->print("from sendEthFrame:"); */
 
-  fullPktAction->setFullPkt(/* thrId, */buf,(uint)len);
+  fullPktAction->setEthFrame(/* thrId, */buf,(uint)len);
   fullPktAction->send();
 
   return 0;
 }
-/* ---------------------------------------------------------------- */
-
-int EkaTcpSess::sendThruStack(void *buf, int len) {
-  int res = lwip_write(sock,buf,len);
-  return res;
-}
 
 /* ---------------------------------------------------------------- */
 
-int EkaTcpSess::sendDummyPkt(void *buf, int len) {
+int EkaTcpSess::lwipDummyWrite(void *buf, int len) {
   if (tcpRemoteAckNum > dummyBytes + tcpLocalSeqNumBase)
     EKA_WARN("tcpRemoteAckNum %u > real dummyBytes %ju, delta = %jd",
 	     tcpRemoteAckNum, 
@@ -357,16 +402,19 @@ int EkaTcpSess::sendDummyPkt(void *buf, int len) {
 	     tcpRemoteAckNum - dummyBytes - tcpLocalSeqNumBase);
 
   int sentBytes = lwip_write(sock,buf,len);
-  if (sentBytes <= 0) return 0;
-  if (sentBytes != len) 
+  if (sentBytes <= 0) return sentBytes;
+  else if (sentBytes != len)
     on_error("Partial Dummy packet: sentBytes %d != len %d",sentBytes, len);
   dummyBytes += len;
   return len;
 }
 
 /* ---------------------------------------------------------------- */
-int EkaTcpSess::sendPayload(uint thrId, void *buf, int len) {
-  if (! dev->exc_active) return 1;
+int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
+  if (! dev->exc_active) {
+    errno = ENETDOWN;
+    return -1;
+  }
 
   static const uint TrafficMargin = 4*1024; // just a number
 
@@ -378,26 +426,30 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len) {
   /*   return 0; // too high tx rate -- Back Pressure */
   /* } */
 
+  uint payloadSize2send = (uint)len < MAX_PAYLOAD_SIZE ? (uint)len : MAX_PAYLOAD_SIZE;
   if (
       ( (fastPathBytes + tcpLocalSeqNumBase - tcpRemoteAckNum) > TrafficMargin ) &&
       ( (fastPathBytes + tcpLocalSeqNumBase - tcpRemoteAckNum) < TrafficMargin*4 ) //and not a wraparound
-      ) {
-    throttleCounter++;
-    if (throttleCounter > maxThrottleCounter) {
-      //      EKA_WARN(YEL "max throttling updated %u" RESET, throttleCounter);
-      maxThrottleCounter = throttleCounter;
-    }
+      )
+    payloadSize2send = 0; // Throttle
 
-    //    EKA_WARN(YEL "throttling %u for %u us" RESET, fastPathBytes + tcpLocalSeqNumBase - tcpRemoteAckNum,throttleCounter);
-    usleep(throttleCounter);
-    return 0;
+  // Don't send more than we're allowed.
+  const auto sndWnd = uint32_t(tcpSndWnd) << tcpSndWndShift;
+  payloadSize2send = std::min(payloadSize2send, sndWnd);
+
+  const bool isBlocking = this->blocking && !(flags & MSG_DONTWAIT);
+  if (isBlocking && payloadSize2send != (uint)len) {
+    // FIXME: do something about this
+    EKA_WARN("full blocking emulation is not implemented yet!");
+    errno = ENOSYS;
+    return -1;
   }
-  throttleCounter = 0;
-  uint payloadSize2send = ((uint)len <= (MAX_PAYLOAD_SIZE + 2)) ? (uint)len : MAX_PAYLOAD_SIZE;
-  //  if (payloadSize2send <= 2) on_error("len = %d, payloadSize2send=%u,MAX_PKT_SIZE=%u",len,payloadSize2send,MAX_PAYLOAD_SIZE);
+  else if (len && !payloadSize2send) {
+    errno = EAGAIN;
+    return -1;
+  }
+
   fastPathBytes += payloadSize2send;
-
   fastPathAction->fastSend(buf, payloadSize2send);
-
   return payloadSize2send;
 }

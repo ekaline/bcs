@@ -26,20 +26,34 @@ EkaHwCaps::EkaHwCaps(EkaDev* _dev) {
   int fd = SN_GetFileDescriptor(DeviceId);
   eka_ioctl_t __attribute__ ((aligned(0x1000))) state = {};
   state.cmd = EKA_VERSION;
-  state.nif_num = 0;
-  state.session_num = 0;
+  
+  auto releaseStr = new char[EKA_RELEASE_STRING_LEN];
+  if (releaseStr == NULL) on_error("releaseStr == NULL");
+  memset(releaseStr,0,EKA_RELEASE_STRING_LEN);
+  state.paramA = (uint64_t)releaseStr;
+
+
+  auto buildTimeStr = new char[EKA_BUILD_TIME_STRING_LEN];
+  if (buildTimeStr == NULL) on_error("buildTimeStr == NULL");
+  memset(buildTimeStr,0,EKA_BUILD_TIME_STRING_LEN);
+  state.paramB = (uint64_t)buildTimeStr;
+  
+  state.paramC = (uint64_t)(new uint64_t);
+  if (state.paramC == 0) on_error("state.paramC == NULL");
+  
   ioctl(fd,SMARTNIC_EKALINE_DATA,&state);
   SN_CloseDevice(DeviceId);
 
-  snDriverVerNum = state.wcattr.bar0_wc_va;
+  snDriverVerNum = *(uint64_t*)state.paramC;
 
   print2buf();
   idx += sprintf(&buf[idx],"Ekaline SN Driver Version\t\t= %ju\n",snDriverVerNum);
   idx += sprintf(&buf[idx],"EKALINE2 LIB GIT:\t\t\t= 0x%s\n",LIBEKA_GIT_VER);
   idx += sprintf(&buf[idx],"EKALINE2 LIB BUILD TIME:\t\t= %s @ %s\n",__DATE__,__TIME__);
 
-  idx += sprintf(&buf[idx],"%s\n",state.eka_version);
-  idx += sprintf(&buf[idx],"%s\n",state.eka_release);
+  idx += sprintf(&buf[idx],"EKA_SN_DRIVER_BUILD_TIME:\t\t= %s\n",  (char*)state.paramA);
+  idx += sprintf(&buf[idx],"EKA_SN_DRIVER_RELEASE_NOTE:\t\t= %s\n",(char*)state.paramB);
+  //  idx += sprintf(&buf[idx],"EKA_RELEASE:\t\t\t\t= %ju\n",          *(uint64_t*)state.paramC);
   if (idx > bufSize) on_error("idx %u > bufSize %u",idx,bufSize);
 }
 

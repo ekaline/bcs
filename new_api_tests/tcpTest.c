@@ -26,7 +26,8 @@
 #define TCP_TEST_DATA 1
 
 //#define BUF_SIZE 8192
-#define BUF_SIZE (1536 - 14 - 20 - 20)
+//#define BUF_SIZE (1536 - 14 - 20 - 20)
+#define BUF_SIZE 1460
 
 #define CORES 2
 #define SESSIONS 32
@@ -83,9 +84,10 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p
     sprintf(pkt->free_text,"%u_%u_%2u_%08ju",thrId,coreId,sessId,pkt->cnt);
 
 
-    uint pkt_size = 1461; // Ken's magic number
+    //    size_t pkt_size = 1461; // Ken's magic number
+    //size_t pkt_size = 1000; // Ken's magic number
 
-    //    uint pkt_size = rand() % (BUF_SIZE - 2 - sizeof(TcpTestPkt)) + 3;
+    size_t pkt_size = rand() % (BUF_SIZE - sizeof(TcpTestPkt) - 54) + sizeof(TcpTestPkt);
     //    uint pkt_size = rand() % (BUF_SIZE - 2 - sizeof(TcpTestPkt)) + 3;
     //uint pkt_size = rand() % 2; tx_buf[0] = 0xa1; tx_buf[1] = 0xb2;
     //    if (pkt_size == 0) pkt_size = 2;
@@ -101,7 +103,7 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p
     //    TEST_LOG("%u %04ju: sending %u bytes",sessId,pkt->cnt,pkt_size); fflush(stderr);
     int sentBytes = 0;
     while (keep_work && (sentBytes < (int)pkt_size || pkt_size == 0)) {
-      int sent = excSend (pEkaDev, sess_id, pkt, pkt_size);
+      int sent = excSend (pEkaDev, sess_id, pkt, pkt_size, 0);
       //      TEST_LOG("%u %04ju: sent %u out of %u bytes",sessId,pkt->cnt,sent,pkt_size); fflush(stderr);
       if (pkt_size != 0 && sent == 0) usleep(10);
       sentBytes += sent;
@@ -110,10 +112,15 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p
     //   TEST_LOG("RX or %u bytes:",pkt_size);
 #if TCP_TEST_ECHO
     char rx_buf[BUF_SIZE] = {};
-    int rxsize = 0;
+    size_t rxsize = 0;
     do {
-      rxsize = excRecv(pEkaDev,sess_id, rx_buf, pkt_size);
-    } while (keep_work && rxsize < 1);
+      size_t rc = excRecv(pEkaDev,sess_id, &rx_buf[rxsize], pkt_size, 0);
+      if (rc < 0) {
+	TEST_LOG("WARNING: rc = %jd",rc);
+	continue;
+      }
+      rxsize += rc;
+    } while (keep_work && rxsize != pkt_size);
 
     if (! keep_work) return;
     //    hexDump("RCV",rx_buf,rxsize);
@@ -121,11 +128,12 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p
     if (memcmp(tx_buf,rx_buf,pkt_size) != 0) { 
       hexDump("TX_BUF",tx_buf,pkt_size);
       hexDump("RX_BUF",rx_buf,pkt_size);
-      on_error("%u pkt %04ju: RX != TX pkt_size=%u (=0x%x) for coreId %u sessId %u",sessId,pkt->cnt,pkt_size,pkt_size,coreId,sessId);
+      on_error("%u pkt %04ju: RX != TX pkt_size=%jd (=0x%jx) for coreId %u sessId %u",
+	       sessId,pkt->cnt,pkt_size,pkt_size,coreId,sessId);
       TEST_LOG("ERROR: %u %04ju: payload is INCORRECT",sessId,pkt->cnt); fflush(stderr);
 
     } 
-#endif
+#endif // TCP_TEST_ECHO
     if (pkt->cnt % STATISTICS_PERIOD == 0) {
       TEST_LOG ("CoreId %u, SessId %u, pkt->cnt: %ju",coreId,sessId,pkt->cnt);
     }
@@ -133,7 +141,7 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p
     pkt->cnt++;
 
     //    if (pkt->cnt > 20000) keep_work = false;
-#endif
+#endif // TCP_TEST_DATA
   }
   TEST_LOG("fastpath_thread_f is terminated"); fflush(stderr);fflush(stdout);
 
@@ -283,7 +291,7 @@ int main(int argc, char *argv[]) {
   };
 
   testConnection conn[MaxTestCores] = {
-    { std::string("100.0.0.110"), std::string("10.0.0.10"), 22222},
+    { std::string("100.0.0.110"), std::string("10.0.0.10"), 55555},
     { std::string("200.0.0.111"), std::string("10.0.0.11"), 22223}
   };
 

@@ -106,12 +106,12 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     }
     //-----------------------------------------------------------------------------
 
-    if (sequence < gr->getExpectedSeq(streamIdx) && ! gr->inGap) {
-      EKA_WARN("%s:%u BACK-IN-TIME WARNING: sequence %ju < expected_sequence %u",
-	       EKA_EXCH_DECODE(exch),gr_id,sequence,gr->getExpectedSeq(streamIdx));
-      gr->sendBackInTimeEvent(pEfhRunCtx,sequence);
-      break; 
-    }
+    /* if (sequence < gr->getExpectedSeq(streamIdx) && ! gr->inGap) { */
+    /*   EKA_WARN("%s:%u BACK-IN-TIME WARNING: sequence %ju < expected_sequence %u", */
+    /* 	       EKA_EXCH_DECODE(exch),gr_id,sequence,gr->getExpectedSeq(streamIdx)); */
+    /*   gr->sendBackInTimeEvent(pEfhRunCtx,sequence); */
+    /*   break;  */
+    /* } */
 
     if (sequence > gr->getExpectedSeq(streamIdx) && ! gr->inGap) {
       gr->sendFeedDown(pEfhRunCtx);

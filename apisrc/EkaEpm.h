@@ -45,7 +45,7 @@ class EkaEpm {
   static const uint MAX_SESS_PER_CORE           = EkaDev::MAX_SESS_PER_CORE;
   static const uint CONTROL_SESS_ID             = EkaDev::CONTROL_SESS_ID;
   static const uint TOTAL_SESSIONS_PER_CORE     = EkaDev::TOTAL_SESSIONS_PER_CORE;
-  static const uint MAX_PKT_SIZE                = EkaDev::MAX_PKT_SIZE;
+  static const uint MAX_ETH_FRAME_SIZE          = EkaDev::MAX_ETH_FRAME_SIZE;
   static const uint TCP_EMPTY_ACK_SIZE          = 64;
   static const uint IGMP_V2_SIZE                = 64;
   static const uint HW_FIRE_MSG_SIZE            = 512;
@@ -201,7 +201,7 @@ class EkaEpm {
  public:
   static const uint EpmNumHwFields   = 16;
   static const uint EpmHwFieldSize   = 16;
-  static const uint EpmMaxRawTcpSize = EkaDev::MAX_PKT_SIZE;
+  static const uint EpmMaxRawTcpSize = EkaDev::MAX_ETH_FRAME_SIZE;
 
   volatile bool active = false;
   EkaDev* dev = NULL;

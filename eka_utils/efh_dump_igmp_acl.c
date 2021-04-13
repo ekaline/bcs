@@ -89,9 +89,7 @@ int getSnIgmpCtx(McState* mcState, sc_multicast_subscription_t* hwIgmp) {
   eka_ioctl_t __attribute__ ((aligned(0x1000))) state = {};
 
   state.cmd = EKA_GET_IGMP_STATE;
-  state.nif_num = 0;
-  state.session_num = 0;
-  state.wcattr.bar0_pa = (uint64_t)hwIgmp;
+  state.paramA = (uint64_t)hwIgmp;
 
   int rc = ioctl(fd,SMARTNIC_EKALINE_DATA,&state);
   if (rc != 0) on_error("ioctl failed: rc = %d",rc);
@@ -144,7 +142,7 @@ void       getIpMac_ioctl(uint8_t lane, IfParams* params) {
   int           sck, nInterfaces;
 
   std::string portNameFETH   = std::string("feth")   + std::to_string(lane);
-  std::string portNameFPGA0_ = std::string("fpfa0_") + std::to_string(lane);
+  std::string portNameFPGA0  = std::string("fpga0_") + std::to_string(lane);
 
   /* Get a socket handle. */
   sck = socket(AF_INET, SOCK_DGRAM, 0);
@@ -162,7 +160,7 @@ void       getIpMac_ioctl(uint8_t lane, IfParams* params) {
   for(int i = 0; i < nInterfaces; i++){
     struct ifreq *item = &ifr[i];
     if (strncmp(item->ifr_name,portNameFETH.c_str(),strlen(portNameFETH.c_str())) != 0 &&
-	strncmp(item->ifr_name,portNameFPGA0_.c_str(),strlen(portNameFPGA0_.c_str())) != 0) continue;
+	strncmp(item->ifr_name,portNameFPGA0.c_str(),strlen(portNameFPGA0.c_str())) != 0) continue;
 
     strcpy(params->name,item->ifr_name);
 
@@ -195,7 +193,7 @@ int getNwParams(IfParams coreParams[NUM_OF_CORES]) {
     int           sck, nInterfaces;
 
     std::string portNameFETH   = std::string("feth")   + std::to_string(coreId);
-    std::string portNameFPGA0_ = std::string("fpga0_") + std::to_string(coreId);
+    std::string portNameFPGA0  = std::string("fpga0_") + std::to_string(coreId);
 
     /* Get a socket handle. */
     sck = socket(AF_INET, SOCK_DGRAM, 0);
@@ -213,7 +211,7 @@ int getNwParams(IfParams coreParams[NUM_OF_CORES]) {
     for(int i = 0; i < nInterfaces; i++){
       struct ifreq *item = &ifr[i];
       if (strncmp(item->ifr_name,portNameFETH.c_str(),strlen(portNameFETH.c_str())) != 0 &&
-	  strncmp(item->ifr_name,portNameFPGA0_.c_str(),strlen(portNameFPGA0_.c_str())) != 0) continue;
+	  strncmp(item->ifr_name,portNameFPGA0.c_str(),strlen(portNameFPGA0.c_str())) != 0) continue;
 
       strcpy(coreParams[coreId].name,item->ifr_name);
 
@@ -237,37 +235,6 @@ int getNwParams(IfParams coreParams[NUM_OF_CORES]) {
     coreParams[coreId].link = s->Link;
   }
   return 0;
-}
-//################################################
-void printTime() {
-  uint64_t rt_counter            = reg_read(ADDR_RT_COUNTER);
-  uint64_t opendev_counter       = reg_read(ADDR_OPENDEV_COUNTER);
-  uint64_t epoch_counter         = reg_read(FPGA_RT_CNTR);
-  //  uint64_t var_nw_general_conf	 = reg_read(ADDR_NW_GENERAL_CONF);
-  uint64_t var_sw_stats_zero	 = reg_read(ADDR_SW_STATS_ZERO);
-
-  uint64_t seconds = rt_counter * (1000.0/FREQUENCY) / 1000000000;
-  uint64_t epcoh_seconds = epoch_counter * (1000.0/FREQUENCY) / 1000000000;
-  time_t raw_time = (time_t) epcoh_seconds;
-  struct tm *timeinfo = localtime (&raw_time);
-  char result[100];
-  strftime(result, sizeof(result), "%a, %d %b %Y, %X", timeinfo);
-  printf("EFH HW time: \t\t %s\n",result);
-  printf("Last Reset Time: \t %dd:%dh:%dm:%ds\n",
-	 (int)seconds/86400,(int)(seconds%86400)/3600,(int)(seconds%3600)/60,(int)seconds%60
-	 );
-
-  seconds = opendev_counter * (1000.0/FREQUENCY) / 1000000000;
-  printf("Open Dev Time: \t\t %dd:%dh:%dm:%ds (%s)\n",
-	 (int)seconds/86400,(int)(seconds%86400)/3600,(int)(seconds%3600)/60,(int)seconds%60,
-	 ((var_sw_stats_zero>>63)&0x1) ? GRN "OPENED" RESET : RED "CLOSED" RESET
-	 );
-}
-//################################################
-void printExceptions() {
-  uint64_t var_global_shadow     = reg_read(ADDR_INTERRUPT_SHADOW_RO);
-  char* is_exception= (var_global_shadow) ? (char*) RED "YES, run sn_exceptions" RESET : (char*) "--";
-  printf("Exceptions:\t\t %s\n",is_exception);
 }
 
 //################################################
@@ -293,204 +260,6 @@ int cleanMcState() {
 
 
 //################################################
-int getMcState(McState* state, IfParams coreParams[NUM_OF_CORES]) {
-  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++)
-    coreParams[coreId].mcGrps = 0;
-
-  state->totalNum = 0;
-  state->maxGrPerCh = 0;
-  for (auto chId = 0; chId < 32; chId++) {
-    state->chState[chId].num = 0;
-    uint64_t chBaseAddr = SCRPAD_MC_STATE_BASE + chId * MAX_MC_GROUPS_PER_UDP_CH * 8;
-    for (auto grId = 0; grId < 64; grId++) {
-      uint64_t addr = chBaseAddr + grId * 8;
-      *(uint64_t*)&state->chState[chId].grpState[grId] = reg_read(addr);
-      if (state->chState[chId].grpState[grId].ip == 0) continue;
-      state->chState[chId].num++;
-      state->totalNum++;
-      uint8_t coreId = state->chState[chId].grpState[grId].coreId;
-      coreParams[coreId].mcGrps++;
-    }
-    if (state->chState[chId].num > state->maxGrPerCh)
-      state->maxGrPerCh = state->chState[chId].num;
-  }
-  return 0;
-}
-//################################################
-int printMcGroups(McState* state) {
-  if (state->totalNum == 0) return 0;
-  printf("\n");
-  printf("   ");
-
-  for (auto chId = 0; chId < 32; chId++) {
-    if (state->chState[chId].num == 0) continue;
-    printf("   Ch%2d : Core %d, MC %2d |",
-	   chId,
-	   state->chState[chId].grpState[0].coreId,
-	   state->chState[chId].num);
-  }
-  printf("\n");
-
-  for (auto grId = 0; grId < state->maxGrPerCh; grId++) {
-    printf ("%2d ",grId);
-    for (auto chId = 0; chId < 32; chId++) {
-      if (state->chState[chId].num == 0) continue;
-      if (state->chState[chId].grpState[grId].ip == 0) {
-	printf ("%24s|"," ");
-	continue;
-      }
-      printf (" %16s:%5u (%16s:%5u) |",
-	      EKA_IP2STR(state->chState[chId].grpState[grId].ip),
-	      state->chState[chId].grpState[grId].port,
-	      EKA_IP2STR(state->chState[chId].grpHwState[grId].ip),
-	      state->chState[chId].grpHwState[grId].port
-	      );
-    }
-    printf("\n");
-  }
-  return 0;
-}
-
-//################################################
-
-int printHeader(IfParams coreParams[NUM_OF_CORES]) {
-  printf("\n");
-  printf("%s",emptyPrefix);
-  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
-    if (! coreParams[coreId].valid) continue;
-
-    std::string nameStr = std::string(coreParams[coreId].name) + "       ";
-    printf (colStringFormat,nameStr.c_str());
-  }
-  printf("\n");
-  /* ----------------------------------------- */
-  printf("%s",std::string(strlen(emptyPrefix),'-').c_str());
-  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
-    if (! coreParams[coreId].valid) continue;
-    printf("+%s", std::string(colLen,'-').c_str());
-  }
-  printf("\n");
-  /* ----------------------------------------- */
-
-  //  printf("%s",emptyPrefix);
-  printf (prefixStrFormat,"Link status");
-
-  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
-    if (! coreParams[coreId].valid) continue;
-
-    if (coreParams[coreId].sfp && coreParams[coreId].link) {
-      printf (colStringFormat,"SFP: YES, LINK: YES");
-    } else {
-      std::string sfpStr = coreParams[coreId].sfp  ? std::string("SFP: YES, ")  : std::string("SFP: NO, ");
-      std::string lnkStr = coreParams[coreId].link ? std::string("LINK: YES ") : std::string("LINK: NO ");
-      printf (colStringFormatRed,(sfpStr + lnkStr).c_str());
-    }
-  }
-  printf("\n");
-  /* ----------------------------------------- */
-  //  printf("%s",emptyPrefix);
-  printf (prefixStrFormat,"IP");
-
-  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
-    if (! coreParams[coreId].valid) continue;
-    if (coreParams[coreId].ip == 0) printf(colStringFormatRed,"NO IP SET  ");
-    else printf (colStringFormat,EKA_IP2STR(coreParams[coreId].ip));
-  }
-  printf("\n");
-  /* ----------------------------------------- */
-  //  printf("%s",emptyPrefix);
-  printf (prefixStrFormat,"MAC");
-
-  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
-    if (! coreParams[coreId].valid) continue;
-
-    if (coreParams[coreId].mac == 0) printf(colStringFormatRed,"NO MAC SET  ");
-    else printf (colStringFormat,EKA_MAC2STR(coreParams[coreId].mac));
-  }
-  printf("\n");
-  /* ----------------------------------------- */
-  //  printf("%s",emptyPrefix);
-  printf (prefixStrFormat,"Joined MC groups");
-
-  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
-    if (! coreParams[coreId].valid) continue;
-
-    //    printf(colSmallNumFieldFormat,"",coreParams[coreId].mcGrps);
-    printf (colformat,coreParams[coreId].mcGrps);
-
-  }
-  printf("\n");
-  /* ----------------------------------------- */
-
-  return 0;
-}
-
-//################################################
-
-int getCurrTraffic(IfParams coreParams[NUM_OF_CORES]) {
-  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
-    if (! coreParams[coreId].valid) continue;
-
-    uint64_t pps = reg_read(ADDR_STATS_RX_PPS + coreId * 0x1000);
-    coreParams[coreId].currPPS = pps & 0xFFFFFFFF;
-    coreParams[coreId].maxPPS  = (pps >> 32) & 0xFFFFFFFF;
-    coreParams[coreId].totalRxBytes = reg_read(ADDR_STATS_RX_BYTES_TOT  + coreId * 0x1000);
-    coreParams[coreId].totalRxPkts  = reg_read(ADDR_STATS_RX_PKTS_TOT   + coreId * 0x1000);
-    coreParams[coreId].currBPS      = reg_read(ADDR_STATS_RX_BPS_CURR   + coreId * 0x1000);
-    coreParams[coreId].maxBPS       = reg_read(ADDR_STATS_RX_BPS_MAX    + coreId * 0x1000);
-  }
-
-  return 0;
-}
-//################################################
-
-int printCurrTraffic(IfParams coreParams[NUM_OF_CORES]) {
-
-  printf (prefixStrFormat,"Current PPS");
-  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
-    if (! coreParams[coreId].valid) continue;
-    printf (colformat,coreParams[coreId].currPPS);
-  }
-  printf("\n");
-
-  printf (prefixStrFormat,"MAX     PPS");
-  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
-    if (! coreParams[coreId].valid) continue;
-    printf (colformat,coreParams[coreId].maxPPS);
-  }
-  printf("\n");
-
-  printf (prefixStrFormat,"Current Bit Rate");
-  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
-    if (! coreParams[coreId].valid) continue;
-    printf (colformat,coreParams[coreId].currBPS * 8);
-  }
-  printf("\n");
-
-  printf (prefixStrFormat,"Max     Bit Rate");
-  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
-    if (! coreParams[coreId].valid) continue;
-    printf (colformat,coreParams[coreId].maxBPS * 8);
-  }
-  printf("\n");
-
-  printf (prefixStrFormat,"Total   RX  Packets");
-  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
-    if (! coreParams[coreId].valid) continue;
-    printf (colformat,coreParams[coreId].totalRxPkts);
-  }
-  printf("\n");
-
-  printf (prefixStrFormat,"Total   RX  Bytes");
-  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
-    if (! coreParams[coreId].valid) continue;
-    printf (colformat,coreParams[coreId].totalRxBytes);
-  }
-  printf("\n");
-
-  return 0;
-}
-//################################################
 
 int main(int argc, char *argv[]) {
   devId = SN_OpenDevice(NULL, NULL);
@@ -509,32 +278,10 @@ int main(int argc, char *argv[]) {
   /* ----------------------------------------- */
   getNwParams(coreParams);
   /* ----------------------------------------- */
-  //  uint64_t cnt = 0;
-  while (1) {
-    printf("\e[1;1H\e[2J"); //	system("clear");
-    /* ----------------------------------------- */
-    /* printTime(); */
-    /* ----------------------------------------- */
-    /* printExceptions(); */
-    /* ----------------------------------------- */
-    /* getMcState(&mcState,coreParams); */
-    /* ----------------------------------------- */
-    getSnIgmpCtx(&mcState,hwIgmp);
-    /* ----------------------------------------- */
-    /* getCurrTraffic(coreParams); */
-    /* ----------------------------------------- */
-    /* printHeader(coreParams); */
-    /* ----------------------------------------- */
-    /* printCurrTraffic(coreParams); */
-    /* ----------------------------------------- */
-    /* printMcGroups(&mcState); */
-    /* ----------------------------------------- */
-    /* if (++cnt % 5 == 0) { */
-    /*   cleanMcState(); */
-    /*   sleep (1); */
-    /* } */
-    sleep(1);
-  }
+  getSnIgmpCtx(&mcState,hwIgmp);
+  /* ----------------------------------------- */
+
+    
   SN_CloseDevice(devId);
   exit(0);
 
