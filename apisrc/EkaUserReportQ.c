@@ -19,7 +19,7 @@ EkaUserReportQ::EkaUserReportQ(EkaDev* _dev) {
 
 /* -------------------------------- */
 bool EkaUserReportQ::isEmpty() {
-  if (rdCnt >= wrCnt)
+  if (rdCnt > wrCnt)
     on_error("rdCnt %ju >= wrCnt %ju",(uint64_t)rdCnt, (uint64_t)wrCnt);
 
   qLen = wrCnt - rdCnt;
