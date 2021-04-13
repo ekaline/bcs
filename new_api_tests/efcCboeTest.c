@@ -336,7 +336,7 @@ int main(int argc, char *argv[]) {
     if (conn[i] < 0) on_error("excConnect %d %s:%u",
 			      i,EKA_IP2STR(serverAddr.sin_addr.s_addr),be16toh(serverAddr.sin_port));
     const char* pkt = "\n\nThis is 1st TCP packet sent from FPGA TCP client to Kernel TCP server\n\n";
-    excSend (dev, conn[i], pkt, strlen(pkt));
+    excSend (dev, conn[i], pkt, strlen(pkt),0);
     int bytes_read = 0;
     char rxBuf[2000] = {};
     bytes_read = recv(tcpSock[i], rxBuf, sizeof(rxBuf), 0);
@@ -364,7 +364,7 @@ int main(int argc, char *argv[]) {
   EfcCtx* pEfcCtx = &efcCtx;
 
   EfcInitCtx initCtx = {
-			.feedVer = EfhFeedVer::kCBOE
+      .feedVer = EfhFeedVer::kCBOE
   };
   
   rc = efcInit(&pEfcCtx,dev,&initCtx);
@@ -401,7 +401,7 @@ int main(int argc, char *argv[]) {
   // ==============================================
   // Subscribing on securities
   struct SecurityCtx {
-    uint64_t        id;
+    char            id[8];
     EkaLSI          groupId;
     EfcSecCtxHandle handle;
     FixedPrice      bidMinPrice;
@@ -410,16 +410,15 @@ int main(int argc, char *argv[]) {
   };
 
   SecurityCtx security[] = {
-    {0x1111, 0, -1, 100, 200, 1},
-    {0x2222, 1, -1, 300, 400, 1},
-    {0x3333, 2, -1, 500, 600, 1},
-    {0x4444, 3, -1, 700, 800, 1},
+      {{'0','2','T','E','S','T'}, 0, -1, 100, 200, 1},
+      {{'T','S','E','T','2','0'}, 0, -1, 300, 400, 1},
   };
 
+//  uint64_t securityList[std::size(security)] = {};
   uint64_t securityList[std::size(security)] = {};
 
   for (auto i = 0; i < (int)std::size(security); i++) {
-    securityList[i] = security[i].id;
+      securityList[i] = *(uint64_t*)security[i].id;
   }
 
   // subscribing on list of securities
@@ -428,9 +427,9 @@ int main(int argc, char *argv[]) {
   // ==============================================
   // setting security contexts
   for (auto i = 0; i < (int)std::size(security); i++) {
-    security[i].handle = getSecCtxHandle(pEfcCtx, security[i].id);
+    security[i].handle = getSecCtxHandle(pEfcCtx, *(uint64_t*)security[i].id);
     if (security[i].handle < 0) {
-      EKA_WARN("Security %ju was not fit into FPGA hash: handle = %jd",
+      EKA_WARN("Security %s was not fit into FPGA hash: handle = %jd",
 	       security[i].id,security[i].handle);
       continue;
     }
@@ -439,7 +438,7 @@ int main(int argc, char *argv[]) {
       .askMaxPrice       = security[i].askMaxPrice,  //x100
       .size              = security[i].size,
       .verNum            = 0xaf,                     // just a number
-      .lowerBytesOfSecId = (uint8_t)(security[i].id & 0xFF)
+      .lowerBytesOfSecId = (uint8_t)security[i].id[0]
     };
     /* EKA_LOG("Setting StaticSecCtx to handle %jd:",security[i].handle); */
     /* hexDump("secCtx",&secCtx,sizeof(secCtx)); */
@@ -449,8 +448,8 @@ int main(int argc, char *argv[]) {
   }
 
   // ==============================================
-  // there is manually prepared FPGA firing template
-  // matching following message format
+  // Manually prepared FPGA firing template
+
   const BoeNewOrderMsg fireMsg = {
       .StartOfMessage    = 0xBABA,
       .MessageLength     = sizeof(BoeNewOrderMsg) - 2,
@@ -472,19 +471,6 @@ int main(int argc, char *argv[]) {
   uint nwHdrOffset   = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_DatagramOffset);
   uint fcsOffset     = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_RequiredTailPadding);
   uint heapOffset    = 0;
-  epm_actionid_t chainActionCurrId = 64; // used to offset "chain" actions from the "first" actions
-  int testCase = 0;
-  // ==============================================
-  // preparing action chain for MC Gr#0:
-  // Single Fire
-
-
-  // ==============================================
-  // ==============================================
-  // 1 Fire + 1 Cancel on a MD trigger from MC GR#0
-
-  TEST_LOG("\n===========================\nTEST %d\n===========================\n",++testCase);
-
 
   const EpmAction fire0 = {
     .type          = EpmActionType::BoeFire,                 ///< Action type
@@ -493,7 +479,7 @@ int main(int argc, char *argv[]) {
     .offset        = heapOffset + nwHdrOffset,               ///< Offset to payload in payload heap
     .length        = (uint32_t)sizeof(fireMsg),              ///< Payload length
     .actionFlags   = AF_Valid,                               ///< Behavior flags (see EpmActionFlag)
-    .nextAction    = chainActionCurrId,                      ///< Next action in sequence, or EPM_LAST_ACTION
+    .nextAction    = EPM_LAST_ACTION,                        ///< Next action in sequence, or EPM_LAST_ACTION
     .enable        = AlwaysFire,                             ///< Enable bits
     .postLocalMask = AlwaysFire,                             ///< Post fire: enable & mask -> enable
     .postStratMask = AlwaysFire,                             ///< Post fire: strat-enable & mask -> strat-enable
@@ -523,8 +509,6 @@ int main(int argc, char *argv[]) {
   efcEnableController(pEfcCtx, 0);
   // ==============================================
   efcRun(pEfcCtx, &runCtx );
-  // ==============================================
-
   // ==============================================
   // Preparing UDP MC for MD trigger on GR#0
 
@@ -571,9 +555,9 @@ int main(int argc, char *argv[]) {
 	  },
 	  .order_id   = 0xaabbccddeeff5566,
 	  .side       = 'S', // 'B',
-	  .size       = 1,
+	  .size       = security[0].size,
 	  .symbol     = {'0','2','T','E','S','T'},
-	  .price      = 400,
+	  .price      = (uint16_t)(security[0].askMaxPrice / 100 - 1),
 	  .flags      = 0xFF 
     }
   };
