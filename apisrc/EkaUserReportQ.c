@@ -3,7 +3,8 @@
 EkaUserReportQ::EkaUserReportQ(EkaDev* _dev) {
   dev = _dev;
 
-  qElem = (EkaUserReportElem*) malloc(Q_ELEMS * sizeof(EkaUserReportElem));
+  //  qElem = (EkaUserReportElem*) malloc(Q_ELEMS * sizeof(EkaUserReportElem));
+  qElem = new EkaUserReportElem[Q_ELEMS];
   if (qElem == NULL) on_error("faild on malloc Q_ELEMS");
   //  memset(qElem,0,Q_ELEMS * sizeof(EkaUserReportElem));
 
@@ -17,11 +18,15 @@ EkaUserReportQ::EkaUserReportQ(EkaDev* _dev) {
 }
 
 /* -------------------------------- */
-bool EkaUserReportQ::isEmpty() { 
+bool EkaUserReportQ::isEmpty() {
+  if (rdCnt >= wrCnt) on_error("rdCnt %ju >= wrCnt %ju",rdCnt, wrCnt);
+
+  qLen = wrCnt - rdCnt;
   return qLen == 0; 
 }
 /* -------------------------------- */
-inline bool EkaUserReportQ::isFull() { 
+inline bool EkaUserReportQ::isFull() {
+  qLen = wrCnt - rdCnt;
   return qLen == Q_ELEMS - 1; 
 }
 /* -------------------------------- */
@@ -31,14 +36,17 @@ inline uint32_t EkaUserReportQ::next(uint32_t curr) {
 /* -------------------------------- */
 
 EkaUserReportElem* EkaUserReportQ::push(const void* payload, uint len) {
-  if (isFull()) on_error("User report Q is FULL! (qLen = %ju)",qLen);
+  if (isFull())
+    on_error("User report Q is FULL! (qLen = %jd)",qLen);
   wrPtr = next(wrPtr);
-  if (len > MAX_PAYLOAD_SIZE) on_error("len %u > MAX_PAYLOAD_SIZE %u",len,MAX_PAYLOAD_SIZE);
+  if (len > MAX_ELEM_SIZE)
+    on_error("len %u > MAX_ELEM_SIZE %u",len,MAX_ELEM_SIZE);
   memcpy(&(qElem[wrPtr].hdr), payload,sizeof(qElem[wrPtr].hdr));
   memcpy(&(qElem[wrPtr].data),(uint8_t*)payload + sizeof(qElem[wrPtr].hdr),len - sizeof(qElem[wrPtr].hdr));
 
   wrCnt++;
   qLen = wrCnt - rdCnt;
+
   return &qElem[wrPtr];
 }
 /* -------------------------------- */
@@ -49,6 +57,7 @@ EkaUserReportElem* EkaUserReportQ::pop() {
   rdPtr = next(rdPtr);
   rdCnt++;
   qLen = wrCnt - rdCnt;
+
   return &qElem[rdPtr];
 }
 
