@@ -1,6 +1,8 @@
 #ifndef _EkaUserReportQ_h_
 #define _EkaUserReportQ_h_
 
+#include <atomic>
+
 #include "EkaDev.h"
 
 struct EkaUserReportElem {
@@ -31,10 +33,14 @@ class EkaUserReportQ {
   uint32_t rdPtr = 0;
   uint32_t wrPtr = 0;
   
-  volatile uint64_t wrCnt = 0;
-  volatile uint64_t rdCnt = 0;
+  // volatile uint64_t wrCnt = 0;
+  // volatile uint64_t rdCnt = 0;
 
-  volatile int64_t qLen  = 0;
+  std::atomic<uint64_t> wrCnt = 0;
+  std::atomic<uint64_t> rdCnt = 0;
+
+  //  volatile int64_t qLen  = 0;
+  std::atomic<int64_t> qLen  = 0;
 
  private:
   EkaDev* dev = NULL;

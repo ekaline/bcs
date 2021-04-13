@@ -19,7 +19,8 @@ EkaUserReportQ::EkaUserReportQ(EkaDev* _dev) {
 
 /* -------------------------------- */
 bool EkaUserReportQ::isEmpty() {
-  if (rdCnt >= wrCnt) on_error("rdCnt %ju >= wrCnt %ju",rdCnt, wrCnt);
+  if (rdCnt >= wrCnt)
+    on_error("rdCnt %ju >= wrCnt %ju",(uint64_t)rdCnt, (uint64_t)wrCnt);
 
   qLen = wrCnt - rdCnt;
   return qLen == 0; 
@@ -37,7 +38,7 @@ inline uint32_t EkaUserReportQ::next(uint32_t curr) {
 
 EkaUserReportElem* EkaUserReportQ::push(const void* payload, uint len) {
   if (isFull())
-    on_error("User report Q is FULL! (qLen = %jd)",qLen);
+    on_error("User report Q is FULL! (qLen = %jd)",(int64_t)qLen);
   wrPtr = next(wrPtr);
   if (len > MAX_ELEM_SIZE)
     on_error("len %u > MAX_ELEM_SIZE %u",len,MAX_ELEM_SIZE);
@@ -52,8 +53,10 @@ EkaUserReportElem* EkaUserReportQ::push(const void* payload, uint len) {
 /* -------------------------------- */
 
 EkaUserReportElem* EkaUserReportQ::pop() {
-  if (isEmpty()) on_error("User report Q is EMPTY! (qLen = %ju)",qLen);
-  if (rdCnt >= wrCnt) on_error("rdCnt %ju >= wrCnt %ju",rdCnt, wrCnt);
+  if (isEmpty())
+    on_error("User report Q is EMPTY! (qLen = %jd)",(int64_t)qLen);
+  if (rdCnt >= wrCnt)
+    on_error("rdCnt %ju >= wrCnt %ju",(uint64_t)rdCnt, (uint64_t)wrCnt);
   rdPtr = next(rdPtr);
   rdCnt++;
   qLen = wrCnt - rdCnt;
