@@ -13,6 +13,7 @@ struct ExcCtx {
 
 struct EfcCtx {
   EkaDev* dev;
+  //  int     feedVer;  // set from EfcInitCtx
 };
 
 struct EfhCtx {

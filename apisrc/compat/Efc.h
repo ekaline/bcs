@@ -21,9 +21,12 @@
  * This function must be called before efcInit().
  */
 struct EfcInitCtx {
-  EkaProps* ekaProps;
+  EfhFeedVer feedVer;  
+
+  // replaced by Trigger config
+  //  EkaProps*  ekaProps;
+  //  EkaCoreId  mdCoreId; // what 10G port get MD on
   
-  EkaCoreId mdCoreId; // what 10G port get MD on -- added by Vitaly
   
   /** This should be a pointer to a valid EfhCtx created by efhInit(). */
   // EfhCtx* efhCtx; -- removed by Vitaly

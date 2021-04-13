@@ -95,6 +95,8 @@ class EkaDev {
   struct EfcRunCtx*         pEfcRunCtx                 = NULL;
   struct EfhRunCtx*         pEfhRunCtx                 = NULL;
 
+  EfhFeedVer                efcFeedVer                 = EfhFeedVer::kInvalid;
+  
   void*                     credContext                = NULL;
   void*                     createThreadContext        = NULL;
 

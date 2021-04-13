@@ -18,6 +18,7 @@
 #include <errno.h>
 #include <thread>
 
+#include "Efh.h"
 #include "Efc.h"
 #include "EkaCtxs.h"
 #include "EkaDev.h"
@@ -43,7 +44,6 @@ int printMdReport(EkaDev* dev, const EfcMdReport* msg);
 
 EkaOpResult efcInit( EfcCtx** ppEfcCtx, EkaDev *pEkaDev, const EfcInitCtx* pEfcInitCtx ) {
   if (pEkaDev == NULL) on_error("pEkaDev == NULL");
-  /* if (pEfcInitCtx == NULL) on_error("pEfcInitCtx == NULL"); */
 
   EkaDev* dev = pEkaDev;
 
@@ -52,12 +52,13 @@ EkaOpResult efcInit( EfcCtx** ppEfcCtx, EkaDev *pEkaDev, const EfcInitCtx* pEfcI
     return EKA_OPRESULT__ERR_EFC_DISABLED;
   }
 
-  /* dev->efc = new EkaEfc(dev,dev->hwFeedVer,pEfcInitCtx); */
-  /* if (dev->efc == NULL) on_error("dev->efc == NULL"); */
-
-  *ppEfcCtx = (EfcCtx*)malloc(sizeof(EfcCtx));
+  //  *ppEfcCtx = (EfcCtx*)malloc(sizeof(EfcCtx));
+  if (pEfcInitCtx == NULL) on_error("pEfcInitCtx == NULL");
+  *ppEfcCtx = new EfcCtx;
   if (*ppEfcCtx == NULL) on_error("*ppEfcCtx == NULL");
+  
   (*ppEfcCtx)->dev = dev;
+  dev->efcFeedVer  = pEfcInitCtx->feedVer;
 
   return EKA_OPRESULT__OK;
 }

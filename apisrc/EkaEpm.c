@@ -11,6 +11,7 @@
 #include "EpmFastPathTemplate.h"
 #include "EpmRawPktTemplate.h"
 #include "EpmFireSqfTemplate.h"
+#include "EpmFireBoeTemplate.h"
 #include "EkaTcpSess.h"
 #include "EkaEpmAction.h"
 #include "EpmStrategy.h"
@@ -261,6 +262,10 @@ int EkaEpm::InitTemplates() {
   case EfhFeedVer::kNASDAQ : 
     hwFire         = new EpmFireSqfTemplate(templatesNum++  ,"EpmFireSqfTemplate" );
     EKA_LOG("Initializing EpmFireSqfTemplate");
+    break;
+  case EfhFeedVer::kCBOE : 
+    hwFire         = new EpmFireBoeTemplate(templatesNum++  ,"EpmFireBoeTemplate" );
+    EKA_LOG("Initializing EpmFireBoeTemplate");
     break;
   default :
     hwFire         = new EpmRawPktTemplate(templatesNum++  ,"PlaceHolderRawPkt" );

@@ -500,7 +500,7 @@ static void eka_print_batspitch_msg(FILE* md_file, uint8_t* m, int gr, uint64_t 
     //--------------------------------------------------------------
   case EKA_BATS_PITCH_MSG::ADD_ORDER_LONG:
     fprintf (md_file,"SN:%ju,",sequence);
-     fprintf (md_file,"SID:0x%02x%02x%02x%02x%02x%02x%02x%02x,%c,P:%8u,S:%8u\n",
+     fprintf (md_file,"SID:0x%02x%02x%02x%02x%02x%02x%02x%02x,%c,P:%8ju,S:%8u\n",
 	     //	     EKA_PRINT_BATS_SYMBOL(((batspitch_add_order_long*)m)->symbol),
 	     0,0,
 	     ((batspitch_add_order_long*)m)->symbol[0],

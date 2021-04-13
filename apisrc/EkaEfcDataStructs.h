@@ -44,6 +44,22 @@ struct SqfShortQuoteBlockMsg {
   char     reentry;
 } __attribute__((packed));
 
+struct BoeNewOrderMsg {
+  uint16_t      StartOfMessage; // 0xBABA
+  uint16_t      MessageLength;  // sizeof(BoeNewOrderMsg) - 2
+  uint8_t       MessageType;    // 0x38
+  uint8_t       MatchingUnit;   // 0
+  uint32_t      SequenceNumber; // 0
+  char          ClOrdID[20];
+  char          Side;           // '1'-Bid, '2'-Ask
+  uint32_t      OrderQty;
+  uint8_t       NumberOfBitfields; // 0x2
+  uint8_t       NewOrderBitfield1; // 0x0
+  uint8_t       NewOrderBitfield2; // 0x41 (Symbol,Capacity)
+  char          Symbol[8];
+  char          Capacity;       // 'C','M','F',etc.
+} __attribute__((packed));
+
 /* FPGA code: */
 /* typedef struct packed { */
 /* 	bit     [7:0]   SecID; */

@@ -36,7 +36,7 @@
 
 #include <fcntl.h>
 #include "ekaNW.h"
-#include "EkaFhNomParser.h"
+#include "EkaFhBatsParser.h"
 
 /* --------------------------------------------- */
 volatile bool keep_work = true;
@@ -51,8 +51,8 @@ static volatile int numFireEvents = 0;
 
 static const int TEST_NUMOFSEC = 1;
 
-static const uint64_t TEST_NOM_SEC_ID =  0x0003c40e;
-static const uint64_t DUMMY_NOM_SEC_ID =  0x0003c40f;
+static const uint64_t TEST_BATS_SEC_ID =  0x0003c40e;
+static const uint64_t DUMMY_BATS_SEC_ID =  0x0003c40f;
 static const uint64_t AlwaysFire      = 0xadcd;
 static const uint64_t DefaultToken    = 0x1122334455667788;
 
@@ -64,23 +64,11 @@ static const uint64_t FireEntryHeapSize = 256;
 
 
 /* --------------------------------------------- */
-struct NomAddOrderShortPkt {
-  mold_hdr             mold;
-  uint16_t             msgLen;
-  itto_add_order_short addOrderShort;
+struct CboePitchAddOrderShortPkt {
+  batspitch_sequenced_unit_header hdr;
+  batspitch_add_order_short       addOrderShort;
 };
-struct NomAddOrderLongPkt {
-  mold_hdr            mold;
-  uint16_t            msgLen;
-  itto_add_order_long addOrderLong;
-};
-struct NomAddOrderShortLongPkt {
-  mold_hdr            mold;
-  uint16_t            msgLenShort;
-  itto_add_order_short addOrderShort;
-  uint16_t            msgLenLong;
-  itto_add_order_long addOrderLong;
-};
+
 /* --------------------------------------------- */
 
 void  INThandler(int sig) {
@@ -376,7 +364,7 @@ int main(int argc, char *argv[]) {
   EfcCtx* pEfcCtx = &efcCtx;
 
   EfcInitCtx initCtx = {
-			.feedVer = EfhFeedVer::kNASDAQ
+			.feedVer = EfhFeedVer::kCBOE
   };
   
   rc = efcInit(&pEfcCtx,dev,&initCtx);
@@ -461,21 +449,22 @@ int main(int argc, char *argv[]) {
   }
 
   // ==============================================
-  // SQF message format used both for Fires and Cancels
-
   // there is manually prepared FPGA firing template
   // matching following message format
-  const SqfShortQuoteBlockMsg fireMsg = {
-    .typeSub    = {'Q','Q'},
-    .badge      = 0x12345678,
-    .messageId  = 0x12345678aabbccdd,
-    .quoteCount = 1,
-    .optionId   = 0,
-    .bidPrice   = 0,
-    .bidSize    = 0,
-    .askPrice   = 0,
-    .askSize    = 0,
-    .reentry    = '1'
+  const BoeNewOrderMsg fireMsg = {
+      .StartOfMessage    = 0xBABA,
+      .MessageLength     = sizeof(BoeNewOrderMsg) - 2,
+      .MessageType       = 0x38,
+      .MatchingUnit      = 0,
+      .SequenceNumber    = 0,
+      .ClOrdID           = {'E','K','A','t','e','s','t'},
+      .Side              = '_',  // '1'-Bid, '2'-Ask
+      .OrderQty          = 0,
+      .NumberOfBitfields = 0x2,
+      .NewOrderBitfield1 = 0x0,
+      .NewOrderBitfield2 = 0x41, // (Symbol,Capacity)
+      .Symbol            = {},
+      .Capacity          = 'C'   // 'C','M','F',etc.
   };
 
   // ==============================================
@@ -487,7 +476,7 @@ int main(int argc, char *argv[]) {
   int testCase = 0;
   // ==============================================
   // preparing action chain for MC Gr#0:
-  // Single Fire + single Cancel
+  // Single Fire
 
 
   // ==============================================
@@ -497,8 +486,8 @@ int main(int argc, char *argv[]) {
   TEST_LOG("\n===========================\nTEST %d\n===========================\n",++testCase);
 
 
-  const EpmAction sqfFire0 = {
-    .type          = EpmActionType::SqfFire,                 ///< Action type
+  const EpmAction fire0 = {
+    .type          = EpmActionType::BoeFire,                 ///< Action type
     .token         = DefaultToken,                           ///< Security token
     .hConn         = conn[0],                                ///< TCP connection where segments will be sent
     .offset        = heapOffset + nwHdrOffset,               ///< Offset to payload in payload heap
@@ -514,55 +503,21 @@ int main(int argc, char *argv[]) {
 
   rc = epmPayloadHeapCopy(dev, 
 			  EFC_STRATEGY,
-			  sqfFire0.offset,
-			  sqfFire0.length,
+			  fire0.offset,
+			  fire0.length,
 			  &fireMsg);
   if (rc != EKA_OPRESULT__OK) 
     on_error("epmPayloadHeapCopy offset=%u, length=%u rc=%d",
-	     sqfFire0.offset,sqfFire0.length,(int)rc);
+	     fire0.offset,fire0.length,(int)rc);
   rc = epmSetAction(dev, 
 		    EFC_STRATEGY, 
 		    0,               // epm_actionid_t must correspond to the MC gr ID
-		    &sqfFire0);
+		    &fire0);
 
   if (rc != EKA_OPRESULT__OK) on_error("epmSetAction returned %d",(int)rc);
 
-  heapOffset += sizeof(sqfFire0) + nwHdrOffset + fcsOffset;
+  heapOffset += sizeof(fire0) + nwHdrOffset + fcsOffset;
   heapOffset += dataAlignment - (heapOffset % dataAlignment);
-
-  const EpmAction sqfCancel0 = {
-    .type          = EpmActionType::SqfCancel,               ///< Action type
-    .token         = DefaultToken,                           ///< Security token
-    .hConn         = conn[0],                                ///< TCP connection where segments will be sent
-    .offset        = heapOffset + nwHdrOffset,               ///< Offset to payload in payload heap
-    .length        = (uint32_t)sizeof(fireMsg),              ///< Payload length
-    .actionFlags   = AF_Valid,                               ///< Behavior flags (see EpmActionFlag)
-    .nextAction    = EPM_LAST_ACTION,                        ///< Next action in sequence, or EPM_LAST_ACTION
-    .enable        = AlwaysFire,                             ///< Enable bits
-    .postLocalMask = AlwaysFire,                             ///< Post fire: enable & mask -> enable
-    .postStratMask = AlwaysFire,                             ///< Post fire: strat-enable & mask -> strat-enable
-    .user          = 0x1234567890abcdef                      ///< Opaque value copied into `EpmFireReport`.
-  };
-
-  rc = epmPayloadHeapCopy(dev, 
-			  EFC_STRATEGY,
-			  sqfCancel0.offset,
-			  sqfCancel0.length,
-			  &fireMsg);
-  if (rc != EKA_OPRESULT__OK) 
-    on_error("epmPayloadHeapCopy offset=%u, length=%u rc=%d",
-	     sqfCancel0.offset,sqfCancel0.length,(int)rc);
-
-  heapOffset += sizeof(sqfCancel0) + nwHdrOffset + fcsOffset;
-  heapOffset += dataAlignment - (heapOffset % dataAlignment);
-
-  rc = epmSetAction(dev, 
-		    EFC_STRATEGY, 
-		    chainActionCurrId,               
-		    &sqfCancel0);
-
-  if (rc != EKA_OPRESULT__OK) on_error("epmSetAction returned %d",(int)rc);
-  chainActionCurrId++;
 
   // ==============================================
   efcEnableController(pEfcCtx, 0);
@@ -596,22 +551,30 @@ int main(int argc, char *argv[]) {
   // ==============================================
   // MD trigger message A on GR#0, security #0
 
-  NomAddOrderShortPkt mdAskShortPkt = {
-    .mold = {
-      .session_id  = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa},
-      .sequence    = be64toh(123),
-      .message_cnt = be16toh(1)
+  struct CboePitchAddOrderShort {
+    batspitch_sequenced_unit_header hdr;
+    batspitch_add_order_short       addOrdShort;
+  } __attribute__((packed));
+  
+  CboePitchAddOrderShort mdAskShortPkt = {
+    .hdr = {
+	    .length   = sizeof(mdAskShortPkt),
+	    .count    = 1,
+	    .unit     = 1, // just a number
+	    .sequence = 5, // just a number
     },
-    .msgLen = be16toh(sizeof(itto_add_order_short)),
-    .addOrderShort = {
-      .type                  = 'a',
-      .tracking_num          = be16toh(0xbeda),
-      .time_nano             = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66},
-      .order_reference_delta = be64toh(0x1234567890abcdef),
-      .side                  = 'S',
-      .option_id             = be32toh(security[0].id),
-      .price                 = be16toh(security[0].askMaxPrice - 1),
-      .size                  = be16toh(security[0].size)
+    .addOrdShort = {
+	  .header = {
+	      .length = sizeof(mdAskShortPkt.addOrdShort),
+	      .type   = (uint8_t)EKA_BATS_PITCH_MSG::ADD_ORDER_SHORT,
+	      .time   = 0x11223344,  // just a number
+	  },
+	  .order_id   = 0xaabbccddeeff5566,
+	  .side       = 'S', // 'B',
+	  .size       = 1,
+	  .symbol     = {'0','2','T','E','S','T'},
+	  .price      = 400,
+	  .flags      = 0xFF 
     }
   };
 
@@ -625,146 +588,6 @@ int main(int argc, char *argv[]) {
   efcEnableController(pEfcCtx, 1);
   sleep(1);
 
-  // ==============================================
-  // ==============================================
-  // 4 Fires on a MD trigger from MC GR#1 + 4 Cancels
-
-  TEST_LOG("\n===========================\nTEST %d\n===========================\n",++testCase);
-
-  static const int numSessFires = 4;
-
-  epm_actionid_t currActionId = 1;
-  epm_actionid_t nextActionId = chainActionCurrId;
-
-
-  for (auto i = 0; i < numSessFires * 2; i ++) {
-    const EpmAction chainAction {
-    .type          = i < numSessFires ? EpmActionType::SqfFire :  EpmActionType::SqfCancel,
-    .token         = DefaultToken,
-    .hConn         = conn[i],
-    .offset        = heapOffset + nwHdrOffset,
-    .length        = (uint32_t)sizeof(fireMsg),
-    .actionFlags   = AF_Valid,
-    .nextAction    = i == numSessFires * 2 - 1 ? EPM_LAST_ACTION : nextActionId,
-    .enable        = AlwaysFire,
-    .postLocalMask = AlwaysFire,
-    .postStratMask = AlwaysFire,
-    .user          = 0x1234567890abcdef,
-    };
-
-    rc = epmPayloadHeapCopy(dev, 
-			    EFC_STRATEGY,
-			    chainAction.offset,
-			    chainAction.length,
-			    &fireMsg);
-    if (rc != EKA_OPRESULT__OK) 
-      on_error("epmPayloadHeapCopy offset=%u, length=%u rc=%d",
-	       chainAction.offset,chainAction.length,(int)rc);
-    rc = epmSetAction(dev, 
-		      EFC_STRATEGY, 
-		      currActionId, 
-		      &chainAction);
-
-    if (rc != EKA_OPRESULT__OK) on_error("epmSetAction returned %d",(int)rc);
-
-
-    heapOffset += sizeof(chainAction) + nwHdrOffset + fcsOffset;
-    heapOffset += dataAlignment - (heapOffset % dataAlignment);
-
-    currActionId = nextActionId++;
-
-  };
-
-
-  // ==============================================
-  // MD trigger message B on GR#1, security #1
-
-  NomAddOrderLongPkt mdBidLongPkt = {
-    .mold = {
-      .session_id  = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa},
-      .sequence    = be64toh(124),
-      .message_cnt = be16toh(1)
-    },
-    .msgLen = be16toh(sizeof(itto_add_order_long)),
-    .addOrderLong = {
-      .type                  = 'A',
-      .tracking_num          = be16toh(0xbeda),
-      .time_nano             = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66},
-      .order_reference_delta = be64toh(0x1234567890abcdef),
-      .side                  = 'B',
-      .option_id             = be32toh(security[1].id),
-      .price                 = be32toh(security[1].bidMinPrice * 100 + 1),
-      .size                  = be32toh(security[1].size)
-    }
-  };
-
-  // ==============================================
-  // Sending MD trigger MC GR#0
-
-  triggerMcAddr.sin_family      = AF_INET;
-  triggerMcAddr.sin_addr.s_addr = inet_addr(triggerParam[1].mcIp);
-  triggerMcAddr.sin_port        = be16toh(triggerParam[1].mcUdpPort);
-
-  EKA_LOG("sending AskShort trigger to %s:%u",
-	  EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
-  if (sendto(triggerSock,&mdBidLongPkt,sizeof(mdBidLongPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
-    on_error ("MC trigger send failed");
-
-  efcEnableController(pEfcCtx, 1);
-  sleep(10);
-
-
-  // ==============================================
-  // ==============================================
-  // Same chain as previous test, but using SW trigger
-  // 4 SQF Fires + 4 Cancels
-  TEST_LOG("\n===========================\nTEST %d\n===========================\n",++testCase);
-
-  EpmTrigger swTrigger = {
-    .token    = DefaultToken,
-    .strategy = EFC_STRATEGY,
-    .action   = 1
-  };
-
-  rc = epmRaiseTriggers(dev, &swTrigger);
-  if (rc != EKA_OPRESULT__OK) EKA_WARN("epmRaiseTriggers: rc = %d",(int)rc);
-
-  sleep(1);
-
-#if 0
-
-    /* ============================================== */
-  NomAddOrderShortLongPkt mdAskShortBidLongPkt = {
-    .mold = {
-      .session_id  = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa},
-      .sequence    = be64toh(125),
-      .message_cnt = be16toh(2)
-    },
-    .msgLenShort = be16toh(sizeof(itto_add_order_short)),
-    .addOrderShort = {
-      .type                  = 'a',
-      .tracking_num          = be16toh(0xbeda),
-      .time_nano             = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66},
-      .order_reference_delta = be64toh(0x1234567890abcdef),
-      .side                  = 'S',
-      .option_id             = be32toh(TEST_NOM_SEC_ID),
-      .price                 = be16toh(secCtx.askMaxPrice - 1),
-      .size                  = be16toh(secCtx.size)
-    },
-    .msgLenLong = be16toh(sizeof(itto_add_order_long)),
-    .addOrderLong = {
-      .type                  = 'A',
-      .tracking_num          = be16toh(0xbeda),
-      .time_nano             = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66},
-      .order_reference_delta = be64toh(0x1234567890abcdef),
-      .side                  = 'B',
-      .option_id             = be32toh(DUMMY_NOM_SEC_ID),
-      .price                 = be32toh(secCtx.bidMinPrice * 100 + 1),
-      .size                  = be32toh(secCtx.size)
-    }
-  };
-
-#endif
 
   TEST_LOG("\n===========================\nEND OT TESTS\n===========================\n");
 

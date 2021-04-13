@@ -33,8 +33,9 @@ EkaEfc::EkaEfc(EkaEpm*                  epm,
 	       EfhFeedVer               _hwFeedVer) : 
 EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
   
-  hwFeedVer = EfhFeedVer::kCBOE;
-  EKA_LOG("Creating EkaEfc: hwFeedVer=%d",(int)_hwFeedVer);
+  hwFeedVer = dev->efcFeedVer;
+  EKA_LOG("Creating EkaEfc: hwFeedVer=%s (%d)",
+	  EKA_FEED_VER_DECODE(hwFeedVer),(int)hwFeedVer);
   
   for (auto i = 0; i < EFC_SUBSCR_TABLE_ROWS; i++) {
     hashLine[i] = new EkaHwHashTableLine(dev, hwFeedVer, i);
