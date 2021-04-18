@@ -390,9 +390,13 @@ int main(int argc, char *argv[]) {
     {0,"224.0.74.3",30304}
   };
 
+  EfcInitCtx initCtx = {
+			.feedVer = EfhFeedVer::kCBOE
+  };
+  
   EfcCtx efcCtx = {};
   EfcCtx* pEfcCtx = &efcCtx;
-  rc = efcInit(&pEfcCtx,dev,NULL /* &initCtx */);
+  rc = efcInit(&pEfcCtx,dev,&initCtx);
   if (rc != EKA_OPRESULT__OK) on_error("efcInit returned %d",(int)rc);
 
   // ==============================================
@@ -412,7 +416,7 @@ int main(int argc, char *argv[]) {
   // Global EFC config
   EfcStratGlobCtx efcStratGlobCtx = {
     .enable_strategy = 1,
-    .report_only = 1,
+    .report_only = 0,
     .debug_always_fire_on_unsubscribed = 0,
     .debug_always_fire = 1,
     .max_size = 1000,
@@ -487,17 +491,33 @@ int main(int argc, char *argv[]) {
 
   // there is manually prepared FPGA firing template
   // matching following message format
-  const SqfShortQuoteBlockMsg fireMsg = {
-    .typeSub    = {'Q','Q'},
-    .badge      = 0x12345678,
-    .messageId  = 0x12345678aabbccdd,
-    .quoteCount = 1,
-    .optionId   = 0,
-    .bidPrice   = 0,
-    .bidSize    = 0,
-    .askPrice   = 0,
-    .askSize    = 0,
-    .reentry    = '1'
+  /* const SqfShortQuoteBlockMsg fireMsg = { */
+  /*   .typeSub    = {'Q','Q'}, */
+  /*   .badge      = 0x12345678, */
+  /*   .messageId  = 0x12345678aabbccdd, */
+  /*   .quoteCount = 1, */
+  /*   .optionId   = 0, */
+  /*   .bidPrice   = 0, */
+  /*   .bidSize    = 0, */
+  /*   .askPrice   = 0, */
+  /*   .askSize    = 0, */
+  /*   .reentry    = '1' */
+  /* }; */
+
+  const BoeNewOrderMsg fireMsg = {
+				  .StartOfMessage = 0xBABA,
+				  .MessageLength  = MessageLength,
+				  .MessageType    = 0x38,
+				  .MatchingUnit   = 0,
+				  .SequenceNumber = 0,
+				  .ClOrdID        = {'E','K','A','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0'},
+				  .Side           = '0',
+				  .OrderQty       = 0,
+				  .NumberOfBitfields = 2,
+				  .NumberOfBitfields = 0,
+				  .NumberOfBitfields = 0x41,
+				  .Symbol         = {'S','Y','M','B','O','L','1','2'},
+				  .Capacity       = 'C'
   };
 
   // ==============================================

@@ -78,7 +78,10 @@ class EkaDev;
     x == 2 ? "PHLX" : \
     x == 3 ? "ISE/GEMX/MRX" : \
     x == 4 ? "BZX/C2/EDGEX" : \
-    "GENERAL FH/EPM"
+    x ==16 ? "Generic unconfigured" : \
+    x ==17 ? "Generic NOM" : \
+    x ==18 ? "Generic PITCH" : \
+    "Unknown"
 
 #define EKA_NIBBLE2CHAR(x) \
   x == 0 ? "0" : \
