@@ -49,6 +49,9 @@ class EkaFhBatsGr : public EkaFhGroup{
 			     uint64_t          startSeq,
 			     uint64_t          endSeq);
 
+
+
+  
   /* ##################################################################### */
 
   char                  sessionSubID[4] = {};  // for BATS Spin
@@ -64,7 +67,7 @@ class EkaFhBatsGr : public EkaFhGroup{
   static const uint   SCALE          = (const uint) 22;
   static const uint   SEC_HASH_SCALE = 17;
 
-  using SecurityIdT = uint32_t;
+  using SecurityIdT = uint64_t;
   using OrderIdT    = uint64_t;
   using PriceT      = uint32_t;
   using SizeT       = uint32_t;
@@ -82,6 +85,11 @@ class EkaFhBatsGr : public EkaFhGroup{
 
   FhBook*   book = NULL;
 
-
+private:
+  /* ------------------------------------------------ */
+  // converting 6 char CBOE symbol to uint64_t
+  inline SecurityIdT symbol2secId(const char* s) {
+    return be64toh(*(uint64_t*)(s - 2)) & 0x0000ffffffffffff;
+  }
 };
 #endif

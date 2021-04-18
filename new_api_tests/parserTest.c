@@ -447,7 +447,8 @@ int main(int argc, char *argv[]) {
   /* }; */
   
   // #include "/local/dumps/nasdaq/itto4.0/HW_PARSER/subscription.inc" //NOM
-   #include "/local/dumps/cboe_pitch/C1_20210409/pitch_subscr.inc"
+  //   #include "/local/dumps/cboe_pitch/C1_20210409/pitch_subscr.inc"
+   #include "C1_20210409_subscr.inc"
   //SN:5668207,SID:02S2ab,B,P:       8,S:       2
 
   /* SecurityCtx security[] = { */
@@ -506,7 +507,7 @@ int main(int argc, char *argv[]) {
 
   const BoeNewOrderMsg fireMsg = {
 				  .StartOfMessage = 0xBABA,
-				  .MessageLength  = MessageLength,
+				  .MessageLength  = sizeof(BoeNewOrderMsg) - 2,
 				  .MessageType    = 0x38,
 				  .MatchingUnit   = 0,
 				  .SequenceNumber = 0,
@@ -514,8 +515,8 @@ int main(int argc, char *argv[]) {
 				  .Side           = '0',
 				  .OrderQty       = 0,
 				  .NumberOfBitfields = 2,
-				  .NumberOfBitfields = 0,
-				  .NumberOfBitfields = 0x41,
+				  .NewOrderBitfield1 = 0,
+				  .NewOrderBitfield2 = 0x41,
 				  .Symbol         = {'S','Y','M','B','O','L','1','2'},
 				  .Capacity       = 'C'
   };

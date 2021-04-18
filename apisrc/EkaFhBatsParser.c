@@ -99,6 +99,7 @@ inline uint32_t bats_symbol2optionid (const char* s, uint symbol_size) {
   if ((compacted_id & 0xffffffff00000000) != 0) on_error("%c%c%c%c%c%c encoding produced 0x%jx exceeding 32bit",s[0],s[1],s[2],s[3],s[4],s[5],compacted_id);
   return (uint32_t) (compacted_id & 0x00000000ffffffff);
 }
+
 /* ------------------------------------------------ */
 
 inline SideT sideDecode(char _side) {
@@ -167,7 +168,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     msg.header.group.source   = exch;
     msg.header.group.localId  = id;
     msg.header.underlyingId   = 0;
-    msg.header.securityId     = (uint64_t) bats_symbol2optionid(message->symbol,6);
+    msg.header.securityId     = symbol2secId(message->symbol);
     msg.header.sequenceNumber = sequence;
     msg.header.timeStamp      = 0;
     msg.header.gapNum         = gapNum;
@@ -222,7 +223,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     //--------------------------------------------------------------
   case EKA_BATS_PITCH_MSG::ADD_ORDER_SHORT:  { 
     batspitch_add_order_short *message = (batspitch_add_order_short *)m;
-    SecurityIdT security_id =  bats_symbol2optionid(message->symbol,6);
+    SecurityIdT security_id =  symbol2secId(message->symbol);
 
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
@@ -239,7 +240,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     //--------------------------------------------------------------
   case EKA_BATS_PITCH_MSG::ADD_ORDER_LONG:  { 
     batspitch_add_order_long *message = (batspitch_add_order_long *)m;
-    SecurityIdT security_id =  bats_symbol2optionid(message->symbol,6);
+    SecurityIdT security_id =  symbol2secId(message->symbol);
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
     book->setSecurityPrevState(s);
@@ -408,7 +409,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     if (o == NULL) return false;
     assert (o->plevel != NULL);
     assert (o->plevel->s != NULL);
-    SecurityIdT security_id =  bats_symbol2optionid(message->symbol,6);
+    SecurityIdT security_id =  symbol2secId(message->symbol);
 
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
@@ -438,7 +439,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     OrderIdT order_id = message->order_id;
     FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
-    SecurityIdT security_id =  bats_symbol2optionid(message->symbol,6);
+    SecurityIdT security_id =  symbol2secId(message->symbol);
 
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
@@ -466,7 +467,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     //--------------------------------------------------------------
   case EKA_BATS_PITCH_MSG::TRADING_STATUS:  { 
     batspitch_trading_status *message = (batspitch_trading_status *)m;
-    SecurityIdT security_id =  bats_symbol2optionid(message->symbol,6);
+    SecurityIdT security_id =  symbol2secId(message->symbol);
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
     book->setSecurityPrevState(s);
