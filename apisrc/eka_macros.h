@@ -41,6 +41,8 @@ class EkaDev;
 
 #define on_warning(...) do { const int err = errno; fprintf(stderr, "EKALINE API LIB WARNING: %s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); if (err) fprintf(stderr, ": %s (%d)", strerror(err), err); fprintf(stderr,"\n"); fflush(stdout); fflush(stderr); } while(0)
 
+#define EKA_TEST(...) do { fprintf(stderr, "%s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); fflush(stdout); fflush(stderr); } while(0)
+
 #if !defined(LOG_TRACE)
 #define EKA_LOG_WARNING 4
 #define EKA_LOG_NOTICE 5

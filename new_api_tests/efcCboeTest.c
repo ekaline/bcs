@@ -401,24 +401,38 @@ int main(int argc, char *argv[]) {
   // ==============================================
   // Subscribing on securities
   struct SecurityCtx {
-    char            id[8];
-    EkaLSI          groupId;
-    EfcSecCtxHandle handle;
-    FixedPrice      bidMinPrice;
-    FixedPrice      askMaxPrice;
-    uint8_t         size;
+      char            id[8];
+      EkaLSI          groupId;
+      FixedPrice      bidMinPrice;
+      FixedPrice      askMaxPrice;
+      uint8_t         size;
   };
 
   SecurityCtx security[] = {
-      {{'0','2','T','E','S','T'}, 0, -1, 100, 200, 1},
-      {{'T','S','E','T','2','0'}, 0, -1, 300, 400, 1},
+      {{'\0','\0','0','2','T','E','S','T'}, 0, 100, 200, 1}, // correct SecID
+      {{'T','S','E','T','2','0','\0','\0'}, 0, 300, 400, 1}, // wrong   SecID
   };
 
-//  uint64_t securityList[std::size(security)] = {};
+
+  // list of secIDs to be passed to efcEnableFiringOnSec()
   uint64_t securityList[std::size(security)] = {};
 
+
+  // This Alphanumeric-to-binary converting is not needed if
+  // binary security ID is received from new version of EFH
   for (auto i = 0; i < (int)std::size(security); i++) {
-      securityList[i] = *(uint64_t*)security[i].id;
+      securityList[i] = be64toh(*(uint64_t*)security[i].id);
+      EKA_TEST("securityList[%d] = '%c%c%c%c%c%c%c%c' =  %016jx",
+	       i,
+	       security[i].id[0],
+	       security[i].id[1],
+	       security[i].id[2],
+	       security[i].id[3],
+	       security[i].id[4],
+	       security[i].id[5],
+	       security[i].id[6],
+	       security[i].id[7],
+	       securityList[i]);
   }
 
   // subscribing on list of securities
@@ -426,11 +440,20 @@ int main(int argc, char *argv[]) {
 
   // ==============================================
   // setting security contexts
-  for (auto i = 0; i < (int)std::size(security); i++) {
-    security[i].handle = getSecCtxHandle(pEfcCtx, *(uint64_t*)security[i].id);
-    if (security[i].handle < 0) {
-      EKA_WARN("Security %s was not fit into FPGA hash: handle = %jd",
-	       security[i].id,security[i].handle);
+  for (auto i = 0; i < (int)std::size(securityList); i++) {
+    auto handle = getSecCtxHandle(pEfcCtx, securityList[i]);
+    if (handle < 0) {
+      EKA_WARN("Security[%d] '%c%c%c%c%c%c%c%c' was not fit into FPGA hash: handle = %jd",
+	       i,
+	       security[i].id[0],
+	       security[i].id[1],
+	       security[i].id[2],
+	       security[i].id[3],
+	       security[i].id[4],
+	       security[i].id[5],
+	       security[i].id[6],
+	       security[i].id[7],
+	       handle);
       continue;
     }
     SecCtx secCtx = {
@@ -438,12 +461,13 @@ int main(int argc, char *argv[]) {
       .askMaxPrice       = security[i].askMaxPrice,  //x100
       .size              = security[i].size,
       .verNum            = 0xaf,                     // just a number
-      .lowerBytesOfSecId = (uint8_t)security[i].id[0]
+      .lowerBytesOfSecId = (uint8_t)(securityList[i] & 0xFF)
     };
-    /* EKA_LOG("Setting StaticSecCtx to handle %jd:",security[i].handle); */
+    EKA_TEST("Setting StaticSecCtx[%d] secId=0x%016jx, handle=%jd",
+	     i,securityList[i],handle);
     /* hexDump("secCtx",&secCtx,sizeof(secCtx)); */
 
-    rc = efcSetStaticSecCtx(pEfcCtx, security[i].handle, &secCtx, 0);
+    rc = efcSetStaticSecCtx(pEfcCtx, handle, &secCtx, 0);
     if (rc != EKA_OPRESULT__OK) on_error ("failed to efcSetStaticSecCtx");
   }
 
