@@ -119,6 +119,7 @@
               x == EfhFeedVer::kPHLX     ? "PHLX"        : \
               x == EfhFeedVer::kMIAX     ? "MIAX"        : \
               x == EfhFeedVer::kBATS     ? "BATS"        : \
+              x == EfhFeedVer::kCBOE     ? "CBOE"        : \
               x == EfhFeedVer::kXDP      ? "XDP"        : \
               x == EfhFeedVer::kBOX      ? "BOX"        : \
               x == EfhFeedVer::kCME      ? "CME"        : \

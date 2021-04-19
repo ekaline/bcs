@@ -11,6 +11,7 @@
 #include "EkaTcpSess.h"
 #include "EkaEpmAction.h"
 #include "EpmFireSqfTemplate.h"
+#include "EpmFireBoeTemplate.h"
 #include "EkaEfcDataStructs.h"
 #include "EkaHwCaps.h"
 #include "EhpNom.h"
@@ -46,10 +47,22 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
   cleanSubscrHwTable();
 #endif
 
-
-  //  ehp = new EhpNom(dev);
-  ehp = new EhpPitch(dev);
-
+  switch (hwFeedVer) {
+  case EfhFeedVer::kNASDAQ : 
+    epm->hwFire  = new EpmFireSqfTemplate(epm->templatesNum++,"EpmFireSqfTemplate" );
+    EKA_LOG("Initializing EpmFireSqfTemplate");
+    ehp = new EhpNom(dev);
+    break;
+  case EfhFeedVer::kCBOE : 
+    epm->hwFire  = new EpmFireBoeTemplate(epm->templatesNum++,"EpmFireBoeTemplate" );
+    EKA_LOG("Initializing EpmFireBoeTemplate");
+    ehp = new EhpPitch(dev);
+    break;
+  default :
+    on_error("Unexpected EFC HW Version: %d",(int)hwFeedVer);
+  }
+  epm->DownloadSingleTemplate2HW(epm->hwFire);
+  
   if (ehp == NULL) on_error("ehp == NULL");
   ehp->init();
   ehp->download2Hw();

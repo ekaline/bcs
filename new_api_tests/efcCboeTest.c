@@ -497,17 +497,17 @@ int main(int argc, char *argv[]) {
   uint heapOffset    = 0;
 
   const EpmAction fire0 = {
-    .type          = EpmActionType::BoeFire,                 ///< Action type
-    .token         = DefaultToken,                           ///< Security token
-    .hConn         = conn[0],                                ///< TCP connection where segments will be sent
-    .offset        = heapOffset + nwHdrOffset,               ///< Offset to payload in payload heap
-    .length        = (uint32_t)sizeof(fireMsg),              ///< Payload length
-    .actionFlags   = AF_Valid,                               ///< Behavior flags (see EpmActionFlag)
-    .nextAction    = EPM_LAST_ACTION,                        ///< Next action in sequence, or EPM_LAST_ACTION
-    .enable        = AlwaysFire,                             ///< Enable bits
-    .postLocalMask = AlwaysFire,                             ///< Post fire: enable & mask -> enable
-    .postStratMask = AlwaysFire,                             ///< Post fire: strat-enable & mask -> strat-enable
-    .user          = 0x1234567890abcdef                      ///< Opaque value copied into `EpmFireReport`.
+    .type          = EpmActionType::BoeFire,        ///< Action type
+    .token         = DefaultToken,                  ///< Security token
+    .hConn         = conn[0],                       ///< TCP connection where segments will be sent
+    .offset        = heapOffset + nwHdrOffset,      ///< Offset to payload in payload heap
+    .length        = (uint32_t)sizeof(fireMsg),     ///< Payload length
+    .actionFlags   = AF_Valid,                      ///< Behavior flags (see EpmActionFlag)
+    .nextAction    = EPM_LAST_ACTION,               ///< Next action in sequence, or EPM_LAST_ACTION
+    .enable        = AlwaysFire,                    ///< Enable bits
+    .postLocalMask = AlwaysFire,                    ///< Post fire: enable & mask -> enable
+    .postStratMask = AlwaysFire,                    ///< Post fire: strat-enable & mask -> strat-enable
+    .user          = 0x1234567890abcdef             ///< Opaque value copied into `EpmFireReport`.
   };
 
 

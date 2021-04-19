@@ -258,20 +258,20 @@ int EkaEpm::InitTemplates() {
   rawPkt         = new EpmRawPktTemplate(templatesNum++  ,"EpmRawPktTemplate" );
   if (rawPkt == NULL) on_error("rawPkt == NULL");
 
-  switch (dev->hwFeedVer) {
-  case EfhFeedVer::kNASDAQ : 
-    hwFire         = new EpmFireSqfTemplate(templatesNum++  ,"EpmFireSqfTemplate" );
-    EKA_LOG("Initializing EpmFireSqfTemplate");
-    break;
-  case EfhFeedVer::kCBOE : 
-    hwFire         = new EpmFireBoeTemplate(templatesNum++  ,"EpmFireBoeTemplate" );
-    EKA_LOG("Initializing EpmFireBoeTemplate");
-    break;
-  default :
-    hwFire         = new EpmRawPktTemplate(templatesNum++  ,"PlaceHolderRawPkt" );
-    EKA_LOG("Initializing PlaceHolderRawPkt -- SHOULD NOT BE USED!!!");
-    break;
-  }
+  /* switch (dev->hwFeedVer) { */
+  /* case EfhFeedVer::kNASDAQ :  */
+  /*   hwFire         = new EpmFireSqfTemplate(templatesNum++  ,"EpmFireSqfTemplate" ); */
+  /*   EKA_LOG("Initializing EpmFireSqfTemplate"); */
+  /*   break; */
+  /* case EfhFeedVer::kCBOE :  */
+  /*   hwFire         = new EpmFireBoeTemplate(templatesNum++  ,"EpmFireBoeTemplate" ); */
+  /*   EKA_LOG("Initializing EpmFireBoeTemplate"); */
+  /*   break; */
+  /* default : */
+  /*   hwFire         = new EpmRawPktTemplate(templatesNum++  ,"PlaceHolderRawPkt" ); */
+  /*   EKA_LOG("Initializing PlaceHolderRawPkt -- SHOULD NOT BE USED!!!"); */
+  /*   break; */
+  /* } */
 
   return 0;
 }
@@ -307,7 +307,7 @@ int EkaEpm::DownloadTemplates2HW() {
 
   DownloadSingleTemplate2HW(tcpFastPathPkt);
   DownloadSingleTemplate2HW(rawPkt);
-  DownloadSingleTemplate2HW(hwFire);
+  //  DownloadSingleTemplate2HW(hwFire);
 
   return 0;
 }
