@@ -53,7 +53,8 @@ class EpmFireBoeTemplate : public EpmTemplate {
       /* --------------------------- */
       {"ClearingFirm" ,                 4, HwField::IMMEDIATE,    false, false },  
       {"ClearingAccount" ,              4, HwField::IMMEDIATE,    false, false },  
-      {"Price" ,                        8, HwField::PRICE,        false, true  },
+      {"PriceStamPatch" ,               4, HwField::PRICE,        false, true  },
+      {"Price" ,                        4, HwField::PRICE,        false, true  },
       {"OrdType" ,                      1, HwField::IMMEDIATE,    false, false },  // '1','2','3','4'
       {"TimeInForce" ,                  1, HwField::IMMEDIATE,    false, false },  // '0'..'7'
       {"Symbol" ,                       6, HwField::SECURITY_ID,  false, true  },
