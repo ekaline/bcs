@@ -475,19 +475,35 @@ int main(int argc, char *argv[]) {
   // Manually prepared FPGA firing template
 
   const BoeNewOrderMsg fireMsg = {
-      .StartOfMessage    = 0xBABA,
-      .MessageLength     = sizeof(BoeNewOrderMsg) - 2,
-      .MessageType       = 0x38,
-      .MatchingUnit      = 0,
-      .SequenceNumber    = 0,
-      .ClOrdID           = {'E','K','A','t','e','s','t'},
-      .Side              = '_',  // '1'-Bid, '2'-Ask
-      .OrderQty          = 0,
-      .NumberOfBitfields = 0x2,
-      .NewOrderBitfield1 = 0x0,
-      .NewOrderBitfield2 = 0x41, // (Symbol,Capacity)
-      .Symbol            = {},
-      .Capacity          = 'C'   // 'C','M','F',etc.
+	  .StartOfMessage    = 0xBABA,
+	  .MessageLength     = sizeof(BoeNewOrderMsg) - 2,
+	  .MessageType       = 0x38,
+	  .MatchingUnit      = 0,
+	  .SequenceNumber    = 0,
+
+	  // low 8 bytes of ClOrdID are replaced at FPGA by AppSeq number
+	  .ClOrdID           = {'E','K','A','t','e','s','t','1','2','3','4','5','6','7','8','9','A','B','C','D'},
+	  
+	  .Side              = '_',  // '1'-Bid, '2'-Ask
+	  .OrderQty          = 0,
+
+	  .NumberOfBitfields = 7, 
+	  .NewOrderBitfield1 = 1 | 2 | 4 | 16 | 32, // ClearingFirm,ClearingAccount,Price,OrdType,TimeInForce
+	  .NewOrderBitfield2 = 1 | 64,              // Symbol,Capacity
+	  .NewOrderBitfield3 = 1,                   // Account
+	  .NewOrderBitfield4 = 0, 
+	  .NewOrderBitfield5 = 0, 
+	  .NewOrderBitfield6 = 0, 
+	  .NewOrderBitfield7 = 0, 
+
+	  .ClearingFirm      = {'C','L','F','M'},
+	  .ClearingAccount   = {'C','L','A','C'},
+	  .Price             = 0,
+	  .OrdType           = '2',                 // '1' = Market,'2' = Limit (default),'3' = Stop,'4' = Stop Limit
+	  .TimeInForce       = '3',                 // '3' - IOC
+	  .Symbol            = {' ',' ',' ',' ',' ',' ',' ',' '}, // last 2 padding chars to be set to ' '
+	  .Capacity          = 'C',                 // 'C','M','F',etc.
+	  .Account           = {'1','2','3','4','5','6','7','8','9','0','A','B','C','D','E','F'}      
   };
 
   // ==============================================
@@ -586,6 +602,15 @@ int main(int argc, char *argv[]) {
     }
   };
 
+  // ==============================================
+  // Sending MD trigger MC GR#0
+  EKA_LOG("sending AskShort trigger to %s:%u",
+	  EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
+  if (sendto(triggerSock,&mdAskShortPkt,sizeof(mdAskShortPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
+    on_error ("MC trigger send failed");
+
+  efcEnableController(pEfcCtx, 1);
+  sleep(1);
   // ==============================================
   // Sending MD trigger MC GR#0
   EKA_LOG("sending AskShort trigger to %s:%u",

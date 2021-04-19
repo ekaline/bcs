@@ -37,16 +37,29 @@ class EpmFireBoeTemplate : public EpmTemplate {
       {"MessageType" ,                  1, HwField::IMMEDIATE,    false, false }, // 0x38 NewOrder
       {"MatchingUnit" ,                 1, HwField::IMMEDIATE,    false, false }, // always 0
       {"SequenceNumber" ,               4, HwField::IMMEDIATE,    false, false }, // 0
-      {"ClOrdID" ,                      20,HwField::IMMEDIATE,    false, false }, // free text
-      {"Side" ,                         2, HwField::SIDE,         false, false }, // '1'-Bid, '2'-Ask
-      {"OrderQty" ,                     4, HwField::SIZE,         false, false },
+      {"ClOrdIDtxt" ,                   12,HwField::IMMEDIATE,    false, false }, // free text
+      {"ClOrdIDseq" ,                   8, HwField::APPSEQ,       false, true },  //
+      {"Side" ,                         1, HwField::SIDE,         false, true },  // '1'-Bid, '2'-Ask
+      {"OrderQty" ,                     4, HwField::SIZE,         false, true },
       /* --------------------------- */
       {"NumberOfBitfields" ,            1, HwField::IMMEDIATE,    false, false }, // 2
-      {"NewOrderBitfield1" ,            2, HwField::IMMEDIATE,    false, false }, // 0
-      {"NewOrderBitfield2" ,            2, HwField::IMMEDIATE,    false, false }, // 0x41 (Symbol,Capacity)
+      {"NewOrderBitfield1" ,            1, HwField::IMMEDIATE,    false, false }, // 0x17
+      {"NewOrderBitfield2" ,            1, HwField::IMMEDIATE,    false, false }, // 0x41
+      {"NewOrderBitfield3" ,            1, HwField::IMMEDIATE,    false, false }, // 0x01
+      {"NewOrderBitfield4" ,            1, HwField::IMMEDIATE,    false, false }, // 0
+      {"NewOrderBitfield5" ,            1, HwField::IMMEDIATE,    false, false }, // 0
+      {"NewOrderBitfield6" ,            1, HwField::IMMEDIATE,    false, false }, // 0
+      {"NewOrderBitfield7" ,            1, HwField::IMMEDIATE,    false, false }, // 0
       /* --------------------------- */
-      {"Symbol" ,                       8, HwField::SECURITY_ID,  false, true },
-      {"Capacity" ,                     1, HwField::IMMEDIATE,    false, true },  // 'C','M','F',etc.
+      {"ClearingFirm" ,                 4, HwField::IMMEDIATE,    false, false },  
+      {"ClearingAccount" ,              4, HwField::IMMEDIATE,    false, false },  
+      {"Price" ,                        8, HwField::PRICE,        false, true  },
+      {"OrdType" ,                      1, HwField::IMMEDIATE,    false, false },  // '1','2','3','4'
+      {"TimeInForce" ,                  1, HwField::IMMEDIATE,    false, false },  // '0'..'7'
+      {"Symbol" ,                       6, HwField::SECURITY_ID,  false, true  },
+      {"SymbolPadding" ,                2, HwField::IMMEDIATE,    false, false },  // right padded by ' '
+      {"Capacity" ,                     1, HwField::IMMEDIATE,    false, false },  // 'C','M','F',etc.
+      {"Account" ,                      16,HwField::IMMEDIATE,    false, false }, 
     };
 
     tSize = sizeof(myTemplateStruct) / sizeof(EpmTemplateField);

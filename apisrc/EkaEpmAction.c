@@ -352,6 +352,8 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
 
   if (heapOffs % 32 != 0) on_error("heapOffs %d (must be X32)",heapOffs);
  
+  hwAction.template_db_ptr       = epmTemplate->getDataTemplateAddr();
+  hwAction.tcpcs_template_db_ptr = epmTemplate->id;
   hwAction.target_core_id        = coreId;
   hwAction.target_session_id     = sessId;
   hwAction.data_db_ptr           = heapAddr;
@@ -361,6 +363,12 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
   hwAction.mask_post_local       = epmAction->postLocalMask;
   hwAction.user                  = epmAction->user;
   hwAction.token                 = epmAction->token;
+  hwAction.tcpCsSizeSource       =
+    type == EpmActionType::UserAction   ||
+    type == EpmActionType::HwFireAction ||
+    type == EpmActionType::BoeFire      ? 
+    TcpCsSizeSource::FROM_ACTION    : TcpCsSizeSource::FROM_DESCR;
+
   if (epmAction->actionFlags == AF_Valid) 
     hwAction.bit_params.bitmap.action_valid = 1;
   else
