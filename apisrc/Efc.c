@@ -432,3 +432,7 @@ EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdO
 
   return EKA_OPRESULT__OK;
 }
+
+EkaOpResult efcClose( EfcCtx* efcCtx ) {
+  return EKA_OPRESULT__OK;
+}

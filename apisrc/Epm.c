@@ -109,7 +109,7 @@ EkaOpResult epmSetStrategyEnableBits(EkaDev *dev,
   return dev->epm->setStrategyEnableBits(strategy,enable);
 }
 
-EkaOpResult epmGetStrategyEnableBits(EkaDev *dev,
+EkaOpResult epmGetStrategyEnableBits(const EkaDev *dev,
                                      epm_strategyid_t strategy,
                                      epm_enablebits_t *enable) {
 
