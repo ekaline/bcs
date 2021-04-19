@@ -39,7 +39,7 @@ class EpmFireBoeTemplate : public EpmTemplate {
       {"SequenceNumber" ,               4, HwField::IMMEDIATE,    false, false }, // 0
       {"ClOrdIDtxt" ,                   12,HwField::IMMEDIATE,    false, false }, // free text
       {"ClOrdIDseq" ,                   8, HwField::APPSEQ,       false, true },  //
-      {"Side" ,                         1, HwField::SIDE,         false, true },  // '1'-Bid, '2'-Ask
+      {"Side" ,                         1, HwField::SIDE,         true, true },  // '1'-Bid, '2'-Ask
       {"OrderQty" ,                     4, HwField::SIZE,         false, true },
       /* --------------------------- */
       {"NumberOfBitfields" ,            1, HwField::IMMEDIATE,    false, false }, // 2
@@ -53,8 +53,8 @@ class EpmFireBoeTemplate : public EpmTemplate {
       /* --------------------------- */
       {"ClearingFirm" ,                 4, HwField::IMMEDIATE,    false, false },  
       {"ClearingAccount" ,              4, HwField::IMMEDIATE,    false, false },  
-      {"PriceStamPatch" ,               4, HwField::PRICE,        false, true  },
-      {"Price" ,                        4, HwField::PRICE,        false, true  },
+      {"PriceStamPatch" ,               4, HwField::IMMEDIATE,    false, false },  
+      {"Price" ,                        4, HwField::PRICE,        false, true  },  
       {"OrdType" ,                      1, HwField::IMMEDIATE,    false, false },  // '1','2','3','4'
       {"TimeInForce" ,                  1, HwField::IMMEDIATE,    false, false },  // '0'..'7'
       {"Symbol" ,                       6, HwField::SECURITY_ID,  false, true  },
