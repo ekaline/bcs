@@ -316,7 +316,7 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
 
   if (! print_tob_updates) return NULL;
 
-  fprintf(gr->MD,"%s,%s,%s,%ju,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%d,%d,%s,%ju\n",
+  fprintf(gr->MD,"%s,%s,%s,%ju,%s,%c,%u,(%u)%.*f,%u,%u,(%u)%.*f,%u,%c,%c,%d,%d,%s,%ju\n",
 	  EKA_CTS_SOURCE(msg->header.group.source),
 	  eka_get_date().c_str(),
 	  eka_get_time().c_str(),
@@ -328,9 +328,11 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
 #endif
 	  '1',
 	  msg->bidSide.size,
+	  msg->bidSide.price,
 	  EKA_DEC_POINTS_10000(msg->bidSide.price), ((float) msg->bidSide.price / 10000),
 	  msg->bidSide.customerSize,
 	  msg->askSide.size,
+	  msg->askSide.price,
 	  EKA_DEC_POINTS_10000(msg->askSide.price), ((float) msg->askSide.price / 10000),
 	  msg->askSide.customerSize,
 	  EKA_TS_DECODE(msg->tradeStatus),

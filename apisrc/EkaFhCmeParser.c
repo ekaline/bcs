@@ -28,6 +28,9 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
   uint64_t  pktTime = pktHdr->time;
   SequenceT pktSeq  = pktHdr->seq;
 
+  if (fh->print_parsed_messages) 
+    fprintf (parser_log,"pktTime=%ju,pktSeq=%u\n",pktTime,pktSeq);
+
   int pos = sizeof(*pktHdr);
 
   while (pos < pktLen) {
@@ -35,7 +38,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
     auto msgHdr {reinterpret_cast<const MsgHdr*>(&pkt[msgPos])};
 
     if (fh->print_parsed_messages) 
-      fprintf (parser_log,"\tMsgId=%d,size=%u,blockLen=%u,schemaId=%u,version=%u",
+      fprintf (parser_log,"\tMsgId=%d,size=%u,blockLen=%u,schemaId=%u,version=%u\n",
 	       (int)msgHdr->templateId,
 	       msgHdr->size,
 	       msgHdr->blockLen,
@@ -55,7 +58,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 
       if (fh->print_parsed_messages) {
 	auto rootBlock {reinterpret_cast<const MDIncrementalRefreshBook46_mainBlock*>(&pkt[rootBlockPos])};
-	fprintf (parser_log,"\t\tIncrementalRefreshBook46: TransactTime=%jx, MatchEventIndicator=0x%x",
+	fprintf (parser_log,"\t\tIncrementalRefreshBook46: TransactTime=%jx, MatchEventIndicator=0x%x\n",
 		  rootBlock->TransactTime,rootBlock->MatchEventIndicator);
       }
       
@@ -129,6 +132,15 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 	  break;
 	default:
 	  on_error("Unexpected MDUpdateActio %u",(uint)e->MDUpdateAction);
+	}
+
+	if (tobChange && fh->print_parsed_messages) {
+	  fprintf(parser_log,"generateOnQuote: BP=%ju,BS=%d,AP=%ju,AS=%d\n",
+		  s->bid->getEntryPrice(0),
+		  s->bid->getEntrySize(0),
+		  s->ask->getEntryPrice(0),
+		  s->ask->getEntrySize(0)
+		  );
 	}
 
 	if (tobChange) book->generateOnQuote (pEfhRunCtx, 
