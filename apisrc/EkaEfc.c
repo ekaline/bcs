@@ -67,6 +67,13 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
   ehp->init();
   ehp->download2Hw();
   initHwRoundTable();
+
+#if EFC_CTX_SANITY_CHECK
+  secIdList = new uint64_t[EFC_SUBSCR_TABLE_ROWS * EFC_SUBSCR_TABLE_COLUMNS];
+  if (secIdList == NULL) on_error("secIdList == NULL");
+  memset(secIdList,0,EFC_SUBSCR_TABLE_ROWS * EFC_SUBSCR_TABLE_COLUMNS);
+#endif
+  
 }
 
 /* ################################################ */
@@ -251,14 +258,20 @@ int EkaEfc::subscribeSec(uint64_t secId) {
   return 0;
 }
 /* ################################################ */
-int EkaEfc::getSubscriptionId(uint64_t secId) {
+EfcSecCtxHandle EkaEfc::getSubscriptionId(uint64_t secId) {
   if (! isValidSecId(secId)) 
     return -1;
   //    on_error("Security %ju (0x%jx) violates Hash function assumption",secId,secId);
   uint64_t normSecId = normalizeId(secId);
   int      lineIdx   = getLineIdx(normSecId);
+
+  auto handle = hashLine[lineIdx]->getSubscriptionId(normSecId);
+
+#if EFC_CTX_SANITY_CHECK
+  secIdList[handle] = secId;
+#endif
   
-  return hashLine[lineIdx]->getSubscriptionId(normSecId);
+  return handle;
 }
 
 /* ################################################ */
@@ -337,12 +350,9 @@ int EkaEfc::setHwGlobalParams() {
   uint64_t p4_strat_conf = eka_read(dev,P4_STRAT_CONF);
   uint64_t p4_watchdog_period = EKA_WATCHDOG_SEC_VAL;
 
-  if (stratGlobCtx.report_only == 1) 
-    p4_strat_conf |= EKA_P4_REPORT_ONLY_BIT;
-  if (stratGlobCtx.debug_always_fire == 1) 
-    p4_strat_conf |= EKA_P4_ALWAYS_FIRE_BIT;
-  if (stratGlobCtx.debug_always_fire_on_unsubscribed == 1) 
-    p4_strat_conf |= EKA_P4_ALWAYS_FIRE_UNSUBS_BIT;
+  if (stratGlobCtx.report_only)                       p4_strat_conf |= EKA_P4_REPORT_ONLY_BIT;
+  if (stratGlobCtx.debug_always_fire)                 p4_strat_conf |= EKA_P4_ALWAYS_FIRE_BIT;
+  if (stratGlobCtx.debug_always_fire_on_unsubscribed) p4_strat_conf |= EKA_P4_ALWAYS_FIRE_UNSUBS_BIT;
   /* if (stratGlobCtx.auto_rearm == 1)  */
   /*   p4_strat_conf |= EKA_P4_AUTO_REARM_BIT; */
   if (stratGlobCtx.watchdog_timeout_sec != 0) 

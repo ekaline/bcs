@@ -117,6 +117,17 @@ int printSecCtx(EkaDev* dev, const EfcSecurityCtx* msg) {
   return 0;
 }
 /* ########################################################### */
+int printControllerStateReport(EkaDev* dev, const EfcControllerState* msg) {
+  EKA_LOG("ControllerState (0x%02x):",msg->fire_reason);
+  EKA_LOG("\tforce_fire = %d", (msg->fire_reason & EFC_FIRE_REASON_FORCE_FIRE) != 0);
+  EKA_LOG("\tpass_bid   = %d", (msg->fire_reason & EFC_FIRE_REASON_PASS_BID) != 0);
+  EKA_LOG("\tpass_ask   = %d", (msg->fire_reason & EFC_FIRE_REASON_PASS_ASK) != 0);
+  EKA_LOG("\tsubscribed = %d", (msg->fire_reason & EFC_FIRE_REASON_SUBSCRIBED) != 0);
+  EKA_LOG("\tarmed      = %d", (msg->fire_reason & EFC_FIRE_REASON_ARMED) != 0);
+
+  return 0;
+}
+/* ########################################################### */
 int printFireOrder(EkaDev* dev,const EfcFiredOrder* msg) {
   EKA_LOG("attr = %02x",      (int)msg->attr.bits);
   EKA_LOG("price = %ju",       msg->price);
@@ -166,6 +177,7 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len, uint32_t e
 
   auto controllerState { reinterpret_cast<EfcControllerState*>(b) };
   controllerState->unarm_reason = 0; // TBD!!! source->normalized_report.last_unarm_reason;
+  controllerState->fire_reason = report->controllerState.fireReason;
   b += sizeof(EfcControllerState);
 
   //--------------------------------------------------------------------------

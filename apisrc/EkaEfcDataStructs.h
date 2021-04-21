@@ -2,6 +2,9 @@
 #define _EKA_EFC_DATA_STRUCTS_H_
 
 #define P4_CTX_PRICE_SCALE 100
+
+#define EFC_CTX_SANITY_CHECK 1
+
 enum {
     MAX_SEC_CTX                 = 768*1024,
     MAX_SESSION_CTX_PER_CORE    = 128,
@@ -156,21 +159,9 @@ typedef union  {
 /*   sp4_order_bitparams_t Bitparams; */
 /* } sp4_order_t;  */
 
-typedef union  {
-  uint8_t bits;
-  struct  {
-    uint8_t ForceFire      : 1;
-    uint8_t PassBuy        : 1;
-    uint8_t PassSell       : 1;
-    uint8_t IsSubscribed   : 1;
-    uint8_t Reserved       : 3;
-    uint8_t IsArmed        : 1;
-  } __attribute__((packed)) bitmap; //must be in 1B resolution
-} __attribute__((packed)) FireReasonBitmap;
-
 
 struct EfcControllerReport {
-  FireReasonBitmap fireReason;
+  uint8_t fireReason;
 } __attribute__((packed));
 
 

@@ -41,6 +41,7 @@
 
 int printSecCtx(EkaDev* dev, const EfcSecurityCtx* msg);
 int printMdReport(EkaDev* dev, const EfcMdReport* msg);
+int printControllerStateReport(EkaDev* dev, const EfcControllerState* msg);
 
 EkaOpResult efcInit( EfcCtx** ppEfcCtx, EkaDev *pEkaDev, const EfcInitCtx* pEfcInitCtx ) {
   if (pEkaDev == NULL) on_error("pEkaDev == NULL");
@@ -167,7 +168,7 @@ EfcSecCtxHandle getSecCtxHandle( EfcCtx* pEfcCtx, uint64_t securityId ) {
   auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
   if (efc == NULL) on_error("efc == NULL");
 
-  return (EfcSecCtxHandle) efc->getSubscriptionId(securityId);
+  return efc->getSubscriptionId(securityId);
 }
 
 /**
@@ -189,6 +190,12 @@ EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx, EfcSecCtxHandle hSecCtx, const 
 
   if (pSecCtx == NULL) on_error("pSecCtx == NULL");
 
+#if EFC_CTX_SANITY_CHECK
+  if (static_cast<uint8_t>(efc->secIdList[hSecCtx] & 0xFF) != pSecCtx->lowerBytesOfSecId)
+    on_error("EFC_CTX_SANITY_CHECK error: secIdList[%jd] 0x%016jx & 0xFF != %02x",
+	     hSecCtx,efc->secIdList[hSecCtx],pSecCtx->lowerBytesOfSecId);
+#endif
+  
   // This copy is needed because EkaHwSecCtx is packed and SecCtx is not!
   const EkaHwSecCtx hwSecCtx = {
     .bidMinPrice       = pSecCtx->bidMinPrice,
@@ -381,8 +388,12 @@ EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdO
   /* 	  ((EfcReportHdr*)b)->size); */
   b += sizeof(EfcReportHdr);
 
-  if (!mdOnly) EKA_LOG("\tunarm_reason=0x%02x",((EfcControllerState*)b)->unarm_reason);
-  b += sizeof(EfcControllerState);
+  {
+    auto msg{ reinterpret_cast< const EfcControllerState* >( b ) };
+
+    if (! mdOnly) printControllerStateReport(dev,msg);
+    b += sizeof(EfcControllerState);
+  }
   total_reports--;
  //--------------------------------------------------------------------------
 
@@ -418,7 +429,7 @@ EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdO
   {
     auto msg{ reinterpret_cast< const EfcSecurityCtx* >( b ) };
 
-    if (!mdOnly)printSecCtx(dev, msg);
+    if (! mdOnly) printSecCtx(dev, msg);
 
     b += sizeof(*msg);
   }

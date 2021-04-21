@@ -41,9 +41,17 @@ typedef struct {
     EfcReportHdr_FIELD_ITER( EKA__FIELD_DEF )
 } EfcReportHdr;
 
+#define EFC_FIRE_REASON_FORCE_FIRE 0x01      
+#define EFC_FIRE_REASON_PASS_BID   0x02
+#define EFC_FIRE_REASON_PASS_ASK   0x04      
+#define EFC_FIRE_REASON_SUBSCRIBED 0x08      
+#define EFC_FIRE_REASON_ARMED      0x80
+
 typedef struct {
     #define EfcControllerState_FIELD_ITER( _x )                             \
-                _x( uint8_t, unarm_reason )
+               /* currently not supported: always 0 */                      \
+               _x( uint8_t, unarm_reason )				    \
+               _x( uint8_t, fire_reason )
     EfcControllerState_FIELD_ITER( EKA__FIELD_DEF )
 } EfcControllerState; // single appearence
 

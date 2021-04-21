@@ -27,26 +27,20 @@ class EkaEfc : public EpmStrategy {
   int downloadTable();
   int subscribeSec(uint64_t secId);
   int cleanSubscrHwTable();
-  int getSubscriptionId(uint64_t secId);
+  EfcSecCtxHandle getSubscriptionId(uint64_t secId);
   int initStrategy(const EfcStratGlobCtx* efcStratGlobCtx);
   int armController();
   int disArmController();
   int run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx);
-  //  EkaEpmAction* createFireAction(epm_actionid_t actionIdx, ExcConnHandle hConn);
-  //  int setActionPayload(ExcConnHandle hConn,const void* fireMsg, size_t fireMsgSize);
 
  private:
   bool          isValidSecId(uint64_t secId);
-  //  int           getMcParams(const EfcInitCtx* pEfcInitCtx);
-  //  int           confParse(const char *key, const char *value);
   int           initHwRoundTable();
   int           normalizeId(uint64_t secId);
   int           getLineIdx(uint64_t normSecId);
   EkaUdpSess*   findUdpSess(EkaCoreId coreId, uint32_t mcAddr, uint16_t mcPort);
   int           setHwGlobalParams();
   int           setHwUdpParams();
-  //  int           igmpJoinAll();
-  //  EkaEpmAction* findFireAction(ExcConnHandle hConn);
   int           setHwStratRegion();
   int           enableRxFire();
 
@@ -69,7 +63,7 @@ class EkaEfc : public EpmStrategy {
   uint64_t            pktCnt         = 0; // for EFH compatibility
 
   EhpProtocol*        ehp = NULL;
-
+  uint64_t*           secIdList = NULL; // array of SecIDs, index is handle
 };
 
 #endif

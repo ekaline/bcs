@@ -16,7 +16,8 @@
 #include "ctls.h"
 #include "eka.h"
 
-#define NUM_OF_CORES EKA_MAX_CORES
+//#define NUM_OF_CORES EKA_MAX_CORES
+#define NUM_OF_CORES 4
 #define FREQUENCY EKA_FPGA_FREQUENCY
 
 #define MASK32 0xffffffff
@@ -52,6 +53,7 @@ struct EfcState {
   uint64_t ordersSubscribed   = 0;
   uint64_t ordersUnsubscribed = 0;
   bool     forceFire          = false;
+  bool     forceFireUnsubscr  = false;
   bool     reportOnly         = false;
   bool     fatalDebug         = false;
 };
@@ -209,10 +211,47 @@ void printTime() {
 	 );
 }
 //################################################
-void printExceptions() {
-  uint64_t var_global_shadow     = reg_read(ADDR_INTERRUPT_SHADOW_RO);
-  char* is_exception= (var_global_shadow) ? (char*) RED "YES, run sn_exceptions" RESET : (char*) "--";
-  printf("Exceptions:\t\t %s\n",is_exception);
+void printExceptions(uint64_t var_global_shadow) {
+
+  printf(RED "\n\nFPGA internal exceptions:\n" RESET);
+  
+  for(auto curr_core = 0; curr_core < NUM_OF_CORES; curr_core++)
+    if ((var_global_shadow>>curr_core)&0x1) printf("Bit %d: Core%d exception, will be resolved below\n",curr_core,curr_core);
+  if ((var_global_shadow>>6)&0x1)  printf("Bit 6: Register access interface became full\n" );
+  if ((var_global_shadow>>10)&0x1) printf("Bit 10: TCPRX[0] data drop\n" );
+  if ((var_global_shadow>>11)&0x1) printf("Bit 11: TCPRX[0] len drop\n" );
+  if ((var_global_shadow>>12)&0x1) printf("Bit 12: TCPRX[1] data drop\n" );
+  if ((var_global_shadow>>13)&0x1) printf("Bit 13: TCPRX[1] len drop\n" );
+  if ((var_global_shadow>>14)&0x1) printf("Bit 14: Sniffer[0] data drop\n" );
+  if ((var_global_shadow>>15)&0x1) printf("Bit 15: Sniffer[0] len drop\n" );
+  if ((var_global_shadow>>16)&0x1) printf("Bit 16: Sniffer[1] data drop\n" );
+  if ((var_global_shadow>>17)&0x1) printf("Bit 17: Sniffer[1] len drop\n" );
+  if ((var_global_shadow>>25)&0x1) printf("Bit 25: Book WD expired\n" );
+  if ((var_global_shadow>>26)&0x1) printf("Bit 26: WD expired\n" );
+  if ((var_global_shadow>>27)&0x1) printf("Bit 27: EPM desc fifo overrun\n" );
+  if ((var_global_shadow>>28)&0x1) printf("Bit 28: EPM Wrong action type\n" );
+  if ((var_global_shadow>>29)&0x1) printf("Bit 29: EPM Wrong action source\n" );
+  if ((var_global_shadow>>32)&0x1) printf("Bit 32: P4 Null session list\n" );
+  if ((var_global_shadow>>33)&0x1) printf("Bit 33: P4 CTX reply overrun\n" );
+  if ((var_global_shadow>>34)&0x1) printf("Bit 34: P4 MD out of sync\n" );
+  if ((var_global_shadow>>35)&0x1) printf("Bit 35: P4 Wrong secid\n" );
+
+  if ((var_global_shadow>>0)&0x3f) printf ("\n--- Core Exceptions --\n");
+  for(auto curr_core = 0; curr_core < NUM_OF_CORES; curr_core++){
+    if ((var_global_shadow>>curr_core)&0x1) {
+      printf("\nResolving exception for Core%d\n",curr_core);
+      uint64_t var_core_shadow = reg_read(EKA_ADDR_INTERRUPT_0_SHADOW_RO+curr_core*0x1000);
+	      
+      if ((var_core_shadow>>0)&0x1)  printf("Bit 0: RX port overrun, at least one packet was dropped\n");
+      if ((var_core_shadow>>1)&0x1)  printf("Bit 1: MD parser error, happens if the MD parser reached unknown state while parsing MD\n");
+      if ((var_core_shadow>>2)&0x1)  printf("Bit 2: Sequence number overflow - sequence number crossed 64bit value\n");
+      if ((var_core_shadow>>3)&0x1)  printf("Bit 3: Overrun in MD fifo, FATAL\n");
+      if ((var_core_shadow>>4)&0x1)  printf("Bit 4: RX CRC error was detected\n");
+      if ((var_core_shadow>>7)&0x1)  printf("Bit 7: Software DirectTCP remote ACK table table update overrun, happens if table is updated too fast\n");
+      if ((var_core_shadow>>8)&0x1)  printf("Bit 8: Software DirectTCP local SEQ table table update overrun, happens if table is updated too fast\n");
+    }
+  }
+
 }
 
 //################################################
@@ -395,16 +434,21 @@ int getEfcState(EfcState* pEfcState) {
   pEfcState->ordersSubscribed   = (var_p4_cont_counter3>>0)  & MASK32;
   pEfcState->ordersUnsubscribed = (var_p4_cont_counter3>>32) & MASK32;
 
-  pEfcState->forceFire          = (var_p4_general_conf>>63)  & 0x1;
-  pEfcState->reportOnly         = (var_p4_general_conf>>0)   & 0x1;
+  /* pEfcState->forceFire          = (var_p4_general_conf>>63)  & 0x1; */
+  /* pEfcState->reportOnly         = (var_p4_general_conf>>0)   & 0x1; */
+
+  pEfcState->forceFire          = (var_p4_general_conf & EKA_P4_ALWAYS_FIRE_BIT)        != 0;
+  pEfcState->forceFireUnsubscr  = (var_p4_general_conf & EKA_P4_ALWAYS_FIRE_UNSUBS_BIT) != 0;
+  pEfcState->reportOnly         = (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT)        != 0;
   pEfcState->fatalDebug         = var_fatal_debug == 0xefa0beda;
   return 0;
 }
 //################################################
 int printEfcState(EfcState* pEfcState) {
-  if (pEfcState->fatalDebug) printf(RED "WARNING: Fatal Debug is Active\n" RESET);
-  printf("Configurations: ForceFire=%d, ReportOnly=%d\n",
-	 pEfcState->forceFire,pEfcState->reportOnly);
+  if (pEfcState->fatalDebug) printf(RED "WARNING: \'Fatal Debug\' is Active\n" RESET);
+  printf("Configurations: ForceFire=%d, ForceFireOnUnsubscribed=%d (effective only if \'Fatal Debug\' is Active)\n",
+	 pEfcState->forceFire,pEfcState->forceFireUnsubscr);
+  printf("\t\tReportOnly=%d\n\n",pEfcState->reportOnly);
   
   printf("Subscribed   MD Orders:\t%ju\n",pEfcState->ordersSubscribed);
   printf("Unsubscribed MD Orders:\t%ju\n",pEfcState->ordersUnsubscribed);
@@ -433,11 +477,11 @@ int main(int argc, char *argv[]) {
     /* ----------------------------------------- */
     getEfcState(pEfcState);
     /* ----------------------------------------- */
+    uint64_t exceptions = reg_read(ADDR_INTERRUPT_SHADOW_RO);
+    /* ----------------------------------------- */
     printf("\e[1;1H\e[2J"); //	system("clear");
     /* ----------------------------------------- */
     printTime();
-    /* ----------------------------------------- */
-    printExceptions();
     /* ----------------------------------------- */
     printHeader(coreParams);
     /* ----------------------------------------- */
@@ -449,6 +493,8 @@ int main(int argc, char *argv[]) {
     printLineSeparator(coreParams,'+','-');
     /* ----------------------------------------- */
     printEfcState(pEfcState);
+    /* ----------------------------------------- */
+    if (exceptions != 0) printExceptions(exceptions);
     /* ----------------------------------------- */
     sleep(1);
   }
