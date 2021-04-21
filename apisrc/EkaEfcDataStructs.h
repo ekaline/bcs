@@ -162,7 +162,7 @@ typedef union  {
     uint8_t ForceFire      : 1;
     uint8_t PassBuy        : 1;
     uint8_t PassSell       : 1;
-    uint8_t HashMatch      : 1;
+    uint8_t IsSubscribed   : 1;
     uint8_t Reserved       : 3;
     uint8_t IsArmed        : 1;
   } __attribute__((packed)) bitmap; //must be in 1B resolution
