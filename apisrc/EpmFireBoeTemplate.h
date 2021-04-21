@@ -57,7 +57,6 @@ class EpmFireBoeTemplate : public EpmTemplate {
       //      {"PriceStamPatch" ,               4, HwField::IMMEDIATE,    false, false },  
       //      {"Price" ,                        8, HwField::PRICE,        false, true  },  
       {"Price" ,                        8, HwField::PRICE,        true, true  },  
-      {"Price" ,                        4, HwField::PRICE,        true, true  },  
       {"OrdType" ,                      1, HwField::IMMEDIATE,    false, false },  // '1','2','3','4'
       {"TimeInForce" ,                  1, HwField::IMMEDIATE,    false, false },  // '0'..'7'
       {"SymbolPadding" ,                2, HwField::IMMEDIATE,    false, false },  // right padded by ' '
