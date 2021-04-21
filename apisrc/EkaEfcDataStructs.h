@@ -156,9 +156,27 @@ typedef union  {
 /*   sp4_order_bitparams_t Bitparams; */
 /* } sp4_order_t;  */
 
+typedef union  {
+  uint8_t bits;
+  struct  {
+    uint8_t ForceFire      : 1;
+    uint8_t PassBuy        : 1;
+    uint8_t PassSell       : 1;
+    uint8_t HashMatch      : 1;
+    uint8_t Reserved       : 3;
+    uint8_t IsArmed        : 1;
+  } __attribute__((packed)) bitmap; //must be in 1B resolution
+} __attribute__((packed)) FireReasonBitmap;
+
+
+struct EfcControllerReport {
+  FireReasonBitmap fireReason;
+} __attribute__((packed));
+
+
 struct EfcFiredOrder {
   EfcFiredOrderBitmap   attr;
-  uint32_t              price;
+  uint64_t              price;
   uint32_t              size;
   uint8_t               counter;
   uint64_t              securityId;
@@ -168,7 +186,8 @@ struct EfcFiredOrder {
 } __attribute__((packed));
 
 struct EfcNormalizedFireReport {
-  char                pad[2];          // = bit [2*8-1:0] padx8
+  char                pad[5];          // = bit [5*8-1:0] padx8
+  EfcControllerReport controllerState; //
   EfcFiredOrder       triggerOrder;    // = sp4_order_t   order_trigger_data 
   uint32_t            securityCtxAddr; // = bit [31:0]    security_context_addr
   EkaHwSecCtx         securityCtx;     // = emc_sec_ctx_s security_context_entry
