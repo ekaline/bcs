@@ -42,6 +42,7 @@
 int printSecCtx(EkaDev* dev, const EfcSecurityCtx* msg);
 int printMdReport(EkaDev* dev, const EfcMdReport* msg);
 int printControllerStateReport(EkaDev* dev, const EfcControllerState* msg);
+int printBoeFire(EkaDev* dev,const BoeNewOrderMsg* msg);
 
 EkaOpResult efcInit( EfcCtx** ppEfcCtx, EkaDev *pEkaDev, const EfcInitCtx* pEfcInitCtx ) {
   if (pEkaDev == NULL) on_error("pEkaDev == NULL");
@@ -188,6 +189,13 @@ EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx, EfcSecCtxHandle hSecCtx, const 
   auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
   if (efc == NULL) on_error("efc == NULL");
 
+  if (hSecCtx < 0) 
+#if EFC_CTX_SANITY_CHECK
+    on_error("hSecCtx = %jd",hSecCtx);
+#else
+    return EKA_OPRESULT__ERR_EFC_SET_CTX_ON_UNSUBSCRIBED_SECURITY;
+#endif
+    
   if (pSecCtx == NULL) on_error("pSecCtx == NULL");
 
 #if EFC_CTX_SANITY_CHECK
@@ -436,7 +444,26 @@ EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdO
   total_reports--;
 
   //--------------------------------------------------------------------------
-
+  if (((EfcReportHdr*)b)->type != EfcReportType::kFirePkt) 
+    on_error("FirePkt report expected, %02x received",
+	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type) );
+    EKA_LOG("\treport_type = %u SecurityCtx, idx=%u, size=%ju",
+  	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ),
+  	  ((EfcReportHdr*)b)->idx,
+  	  ((EfcReportHdr*)b)->size);
+    auto reportSize = ((EfcReportHdr*)b)->size;
+    //    hexDump("FirePkt",b,reportSize);
+    b += sizeof(EfcReportHdr);
+    {
+      // TEMPORARY SOLUTION FOR BOE!!!
+      auto msg {reinterpret_cast<const BoeNewOrderMsg*>(b +
+							sizeof(EkaEthHdr) +
+							sizeof(EkaIpHdr) +
+							sizeof(EkaTcpHdr))};
+      if (! mdOnly) printBoeFire(dev,msg);
+      b += ((EfcReportHdr*)b)->size;
+    }
+  total_reports--;
 
   //--------------------------------------------------------------------------
 

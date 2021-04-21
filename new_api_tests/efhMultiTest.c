@@ -160,6 +160,54 @@ int credRelease(EkaCredentialLease *lease, void* context) {
 }
 
 void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+#if 0
+    EfhCtx* pEfhCtx = (EfhCtx*) userData;
+  if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
+
+  EkaSource exch = msg->header.group.source;
+  EkaLSI    grId = msg->header.group.localId;
+
+#ifndef EKA_TEST_IGNORE_DEFINITIONS
+  int secIdx = (int)secData;
+#endif
+
+  auto gr = grCtx[(int)exch][grId];
+  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+
+  auto efhGr = pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[grId];
+
+  if (pEfhCtx->printQStatistics && (++efhGr->upd_ctr % 1000000 == 0)) {
+    efhMonitorFhGroupState(pEfhCtx,(EkaGroup*)&msg->header.group);
+  }
+
+  if (! print_tob_updates) return NULL;
+
+  fprintf(gr->MD,"%s,%s,%s,%ju,%s,%c,%u,(%u)%.*f,%u,%u,(%u)%.*f,%u,%c,%c,%d,%d,%s,%ju\n",
+	  EKA_CTS_SOURCE(msg->header.group.source),
+	  eka_get_date().c_str(),
+	  eka_get_time().c_str(),
+	  msg->header.securityId,
+#ifdef EKA_TEST_IGNORE_DEFINITIONS
+	  "DEFAULT_UNDERLYING_ID",
+#else
+	  gr->security.at(secIdx).classSymbol.c_str(),
+#endif
+	  '1',
+	  msg->bidSide.size,
+	  msg->bidSide.price,
+	  EKA_DEC_POINTS_10000(msg->bidSide.price), ((float) msg->bidSide.price / 10000),
+	  msg->bidSide.customerSize,
+	  msg->askSide.size,
+	  msg->askSide.price,
+	  EKA_DEC_POINTS_10000(msg->askSide.price), ((float) msg->askSide.price / 10000),
+	  msg->askSide.customerSize,
+	  EKA_TS_DECODE(msg->tradeStatus),
+	  EKA_TS_DECODE(msg->tradeStatus),
+	  0,0, // Size Breakdown
+	  (ts_ns2str(msg->header.timeStamp)).c_str(),
+	  msg->header.timeStamp
+	  );
+#endif
   return NULL;
 }
 

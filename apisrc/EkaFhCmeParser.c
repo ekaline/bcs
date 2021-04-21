@@ -134,19 +134,25 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 	  on_error("Unexpected MDUpdateActio %u",(uint)e->MDUpdateAction);
 	}
 
-	if (tobChange && fh->print_parsed_messages) {
-	  fprintf(parser_log,"generateOnQuote: BP=%ju,BS=%d,AP=%ju,AS=%d\n",
-		  s->bid->getEntryPrice(0),
-		  s->bid->getEntrySize(0),
-		  s->ask->getEntryPrice(0),
-		  s->ask->getEntrySize(0)
-		  );
-	}
+	/* if (tobChange && fh->print_parsed_messages) { */
+	/*   fprintf(parser_log,"generateOnQuote: BP=%ju,BS=%d,AP=%ju,AS=%d\n", */
+	/* 	  s->bid->getEntryPrice(0), */
+	/* 	  s->bid->getEntrySize(0), */
+	/* 	  s->ask->getEntryPrice(0), */
+	/* 	  s->ask->getEntrySize(0) */
+	/* 	  ); */
+	/* } */
 
-	if (tobChange) book->generateOnQuote (pEfhRunCtx, 
+	/* if (tobChange) book->generateOnQuote (pEfhRunCtx,  */
+	/* 				      s,  */
+	/* 				      pktSeq, */
+	/* 				      pktTime,  */
+	/* 				      gapNum); */
+	if (tobChange) book->generateOnOrder (pEfhRunCtx, 
 					      s, 
 					      pktSeq,
-					      pktTime, 
+					      pktTime,
+					      side,
 					      gapNum);
       }
     }

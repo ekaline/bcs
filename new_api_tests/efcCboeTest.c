@@ -487,14 +487,14 @@ int main(int argc, char *argv[]) {
 	  .Side              = '_',  // '1'-Bid, '2'-Ask
 	  .OrderQty          = 0,
 
-	  .NumberOfBitfields = 7, 
+	  .NumberOfBitfields = 4, 
 	  .NewOrderBitfield1 = 1 | 2 | 4 | 16 | 32, // ClearingFirm,ClearingAccount,Price,OrdType,TimeInForce
 	  .NewOrderBitfield2 = 1 | 64,              // Symbol,Capacity
 	  .NewOrderBitfield3 = 1,                   // Account
-	  .NewOrderBitfield4 = 0, 
-	  .NewOrderBitfield5 = 0, 
-	  .NewOrderBitfield6 = 0, 
-	  .NewOrderBitfield7 = 0, 
+	  .NewOrderBitfield4 = 0,
+	  /* .NewOrderBitfield5 = 0,  */
+	  /* .NewOrderBitfield6 = 0,  */
+	  /* .NewOrderBitfield7 = 0, */ 
 
 	  .ClearingFirm      = {'C','L','F','M'},
 	  .ClearingAccount   = {'C','L','A','C'},
@@ -503,7 +503,8 @@ int main(int argc, char *argv[]) {
 	  .TimeInForce       = '3',                 // '3' - IOC
 	  .Symbol            = {' ',' ',' ',' ',' ',' ',' ',' '}, // last 2 padding chars to be set to ' '
 	  .Capacity          = 'C',                 // 'C','M','F',etc.
-	  .Account           = {'1','2','3','4','5','6','7','8','9','0','A','B','C','D','E','F'}      
+	  .Account           = {'1','2','3','4','5','6','7','8','9','0','A','B','C','D','E','F'},
+	  .OpenClose         = 'O'
   };
 
   // ==============================================

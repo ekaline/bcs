@@ -87,14 +87,14 @@ struct BoeNewOrderMsg {
   char          ClOrdID[20];
   char          Side;           // '1'-Bid, '2'-Ask
   uint32_t      OrderQty;
-  uint8_t       NumberOfBitfields; // 0x07
+  uint8_t       NumberOfBitfields; // 0x04
   uint8_t       NewOrderBitfield1; // 0x37 (ClearingFirm,ClearingAccount,Price,OrdType)
   uint8_t       NewOrderBitfield2; // 0x41 (Symbol,Capacity)
   uint8_t       NewOrderBitfield3; // 0x1  (Account)
   uint8_t       NewOrderBitfield4; // 0
-  uint8_t       NewOrderBitfield5; // 0
-  uint8_t       NewOrderBitfield6; // 0
-  uint8_t       NewOrderBitfield7; // 0
+  /* uint8_t       NewOrderBitfield5; // 0 */
+  /* uint8_t       NewOrderBitfield6; // 0 */
+  /* uint8_t       NewOrderBitfield7; // 0 */
   char          ClearingFirm[4];
   char          ClearingAccount[4];
   uint64_t      Price; 
@@ -103,6 +103,7 @@ struct BoeNewOrderMsg {
   char          Symbol[8];
   char          Capacity;       // 'C','M','F',etc.
   char          Account[16];
+  char          OpenClose;
 } __attribute__((packed));
 
 

@@ -140,7 +140,36 @@ int printFireOrder(EkaDev* dev,const EfcFiredOrder* msg) {
 
   return 0;
 }
+/* ########################################################### */
+int printBoeFire(EkaDev* dev,const BoeNewOrderMsg* msg) {
+  EKA_LOG("Fired BOE NewOrder:");
 
+  EKA_LOG("\tStartOfMessage=0x%04x",    msg->StartOfMessage);
+  EKA_LOG("\tMessageLength=0x%04x (%u)",msg->MessageLength,msg->MessageLength);
+  EKA_LOG("\tMessageType=0x%x",         msg->MessageType);
+  EKA_LOG("\tMatchingUnit=%x",          msg->MatchingUnit);
+  EKA_LOG("\tSequenceNumber=%u",        msg->SequenceNumber);
+  EKA_LOG("\tClOrdID=%s",               std::string(msg->ClOrdID,sizeof(msg->ClOrdID)).c_str());
+  EKA_LOG("\tSide=\'%c\'",              msg->Side);
+  EKA_LOG("\tOrderQty=0x%08x (%u)",     msg->OrderQty,msg->OrderQty);
+  EKA_LOG("\tNumberOfBitfields=0x%x",   msg->NumberOfBitfields);
+  EKA_LOG("\tNewOrderBitfield1=0x%x",   msg->NewOrderBitfield1);
+  EKA_LOG("\tNewOrderBitfield2=0x%x",   msg->NewOrderBitfield2);
+  EKA_LOG("\tNewOrderBitfield3=0x%x",   msg->NewOrderBitfield3);
+  EKA_LOG("\tNewOrderBitfield4=0x%x",   msg->NewOrderBitfield4);
+  EKA_LOG("\tClearingFirm=%s",          std::string(msg->ClearingFirm,sizeof(msg->ClearingFirm)).c_str());
+  EKA_LOG("\tClearingAccount=%s",       std::string(msg->ClearingAccount,sizeof(msg->ClearingAccount)).c_str());
+
+  EKA_LOG("\tPrice=0x%016jx (%ju)",     msg->Price,msg->Price);
+  EKA_LOG("\tOrdType=\'%c\'",           msg->OrdType);
+  EKA_LOG("\tTimeInForce=\'%c\'",       msg->TimeInForce);
+  EKA_LOG("\tSymbol=%s",                std::string(msg->Symbol,sizeof(msg->Symbol)).c_str());
+  EKA_LOG("\tCapacity=\'%c\'",          msg->Capacity);
+  EKA_LOG("\tAccount=%s",               std::string(msg->Account,sizeof(msg->Account)).c_str());
+  EKA_LOG("\tOpenClose=\'%c\'",         msg->OpenClose);
+
+  return 0;
+}
 /* ########################################################### */
 
 int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len, uint32_t epmReportIndex) {
@@ -226,6 +255,8 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len, uint32_t e
   ((EfcReportHdr*)b)->size = userReport->hdr.length;
   b += sizeof(EfcReportHdr);
 
+  //  hexDump("processFireReport: userReport->data",&userReport->data,userReport->hdr.length);
+  
   memcpy(b,&userReport->data,userReport->hdr.length);
   b += userReport->hdr.length;
 

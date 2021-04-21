@@ -45,7 +45,8 @@ EkaUserReportElem* EkaUserReportQ::push(const void* payload, uint len) {
   if (len > MAX_ELEM_SIZE)
     on_error("len %u > MAX_ELEM_SIZE %u",len,MAX_ELEM_SIZE);
   memcpy(&(qElem[wrPtr].hdr), payload,sizeof(qElem[wrPtr].hdr));
-  memcpy(&(qElem[wrPtr].data),(uint8_t*)payload + sizeof(qElem[wrPtr].hdr),len - sizeof(qElem[wrPtr].hdr));
+  //  memcpy(&(qElem[wrPtr].data),(uint8_t*)payload + sizeof(qElem[wrPtr].hdr),len - sizeof(qElem[wrPtr].hdr));
+  memcpy(&(qElem[wrPtr].data),(uint8_t*)payload,len);
 
   wrCnt++;
   qLen = wrCnt - rdCnt;

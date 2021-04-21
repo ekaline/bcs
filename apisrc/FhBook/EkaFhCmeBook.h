@@ -2,6 +2,7 @@
 #define _EKA_FH_CME_BOOK_H_
 
 #include "EkaFhBook.h"
+#include "EkaFhTypes.h"
 
 
 template <const uint SEC_HASH_SCALE,
@@ -95,6 +96,57 @@ template <const uint SEC_HASH_SCALE,
 #endif
 
     pEfhRunCtx->onEfhQuoteMsgCb(&msg, (EfhSecUserData)s->efhUserData, pEfhRunCtx->efhRunUserData);
+
+#ifdef EKA_TIME_CHECK
+    auto finish = std::chrono::high_resolution_clock::now();
+    uint duration_ms = (uint) std::chrono::duration_cast<std::chrono::milliseconds>(finish-start).count();
+    if (duration_ms > 5) EKA_WARN("WARNING: onQuote Callback took %u ms",duration_ms);
+#endif
+
+    return 0;
+  }
+    /* ####################################################### */
+
+  int generateOnOrder (const EfhRunCtx* pEfhRunCtx, 
+		       FhSecurity*      s, 
+		       uint64_t         sequence, 
+		       uint64_t         timestamp,
+		       SideT            side,
+		       uint             gapNum) {
+
+    if (s == NULL) on_error("s == NULL");
+
+    if (side != SideT::BID && side != SideT::ASK)
+      on_error("Unexpected side = %d",(int)side);
+    
+    EfhOrderMsg msg = {};
+    msg.header.msgType        = EfhMsgType::kQuote;
+    msg.header.group.source   = exch;
+    msg.header.group.localId  = grId;
+    msg.header.securityId     = s->secId;
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = timestamp;
+    msg.header.queueSize      = 0; //gr->q == NULL ? 0 : gr->q->get_len();
+    msg.header.gapNum         = gapNum;
+    msg.tradeStatus           = s->tradeStatus;
+
+    msg.orderSide             = side == SideT::BID ? EfhOrderSideType::kBid : EfhOrderSideType::kAsk;
+      
+    msg.bookSide.price         = side == SideT::BID ? (uint32_t)(s->bid->getEntryPrice(0) / PRICE_SCALE) :
+      (uint32_t)(s->ask->getEntryPrice(0) / PRICE_SCALE);
+    
+    msg.bookSide.size          = side == SideT::BID ? s->bid->getEntrySize(0) :
+      s->ask->getEntrySize(0);
+
+    if (pEfhRunCtx->onEfhOrderMsgCb == NULL) 
+      on_error("Uninitialized pEfhRunCtx->onEfhQuoteMsgCb");
+
+
+#ifdef EKA_TIME_CHECK
+    auto start = std::chrono::high_resolution_clock::now();
+#endif
+
+    pEfhRunCtx->onEfhOrderMsgCb(&msg, (EfhSecUserData)s->efhUserData, pEfhRunCtx->efhRunUserData);
 
 #ifdef EKA_TIME_CHECK
     auto finish = std::chrono::high_resolution_clock::now();

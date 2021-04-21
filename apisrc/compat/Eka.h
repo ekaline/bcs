@@ -81,6 +81,7 @@ extern "C" {
     EKA_OPRESULT__ERR_NOT_IMPLEMENTED = -104,     // returned when an API call is not implemented
     EKA_OPRESULT__ERR_GROUP_NOT_AVAILABLE = -105, // returned by test feed handler when group not present in capture
     EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION = -106, // returned if exchange retransmit connection failed
+    EKA_OPRESULT__ERR_EFC_SET_CTX_ON_UNSUBSCRIBED_SECURITY = -107,
 
     // EPM specific
     EKA_OPRESULT__ERR_EPM_DISABLED = -201,
