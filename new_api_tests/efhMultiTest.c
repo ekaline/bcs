@@ -422,7 +422,10 @@ void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUs
 
   char avtSecName[SYMBOL_SIZE] = {};
   if (msg->header.group.source  == EkaSource::kCME_SBE && msg->securityType == EfhSecurityType::kOpt) {
-    sprintf(avtSecName,"%s_%d",classSymbol.c_str(),msg->strikePrice);
+    sprintf(avtSecName,"%s_%c%d",
+	    classSymbol.c_str(),
+	    msg->optionType == EfhOptionType::kCall ? 'C' : 'P',
+	    msg->strikePrice);
   } else {
     eka_create_avt_definition(avtSecName,msg);
   }
