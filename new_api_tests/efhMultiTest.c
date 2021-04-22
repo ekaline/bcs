@@ -160,8 +160,8 @@ int credRelease(EkaCredentialLease *lease, void* context) {
 }
 
 void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
-#if 0
-    EfhCtx* pEfhCtx = (EfhCtx*) userData;
+
+  EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
 
   EkaSource exch = msg->header.group.source;
@@ -182,8 +182,7 @@ void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData use
 
   if (! print_tob_updates) return NULL;
 
-  fprintf(gr->MD,"%s,%s,%s,%ju,%s,%c,%u,(%u)%.*f,%u,%u,(%u)%.*f,%u,%c,%c,%d,%d,%s,%ju\n",
-	  EKA_CTS_SOURCE(msg->header.group.source),
+  fprintf(gr->MD,"%s,%s,%ju,%s,%.*f,%u,%c,%s,%ju\n",
 	  eka_get_date().c_str(),
 	  eka_get_time().c_str(),
 	  msg->header.securityId,
@@ -192,22 +191,15 @@ void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData use
 #else
 	  gr->security.at(secIdx).classSymbol.c_str(),
 #endif
-	  '1',
-	  msg->bidSide.size,
-	  msg->bidSide.price,
-	  EKA_DEC_POINTS_10000(msg->bidSide.price), ((float) msg->bidSide.price / 10000),
-	  msg->bidSide.customerSize,
-	  msg->askSide.size,
-	  msg->askSide.price,
-	  EKA_DEC_POINTS_10000(msg->askSide.price), ((float) msg->askSide.price / 10000),
-	  msg->askSide.customerSize,
+	  EKA_DEC_POINTS_10000(msg->bookSide.price), ((float) msg->bookSide.price / 10000),
+	  msg->bookSide.customerSize,
+
 	  EKA_TS_DECODE(msg->tradeStatus),
-	  EKA_TS_DECODE(msg->tradeStatus),
-	  0,0, // Size Breakdown
+
 	  (ts_ns2str(msg->header.timeStamp)).c_str(),
 	  msg->header.timeStamp
 	  );
-#endif
+
   return NULL;
 }
 

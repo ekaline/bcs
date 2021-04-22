@@ -451,7 +451,7 @@ EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdO
   	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ),
   	  ((EfcReportHdr*)b)->idx,
   	  ((EfcReportHdr*)b)->size);
-    auto reportSize = ((EfcReportHdr*)b)->size;
+    //    auto reportSize = ((EfcReportHdr*)b)->size;
     //    hexDump("FirePkt",b,reportSize);
     b += sizeof(EfcReportHdr);
     {
