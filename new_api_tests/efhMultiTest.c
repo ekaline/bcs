@@ -189,7 +189,8 @@ void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData use
 #ifdef EKA_TEST_IGNORE_DEFINITIONS
 	  "DEFAULT_UNDERLYING_ID",
 #else
-	  gr->security.at(secIdx).classSymbol.c_str(),
+	  //	  gr->security.at(secIdx).classSymbol.c_str(),
+	  gr->security.at(secIdx).avtSecName.c_str(),	  
 #endif
 	  EKA_DEC_POINTS_10000(msg->bookSide.price), ((float) msg->bookSide.price / 10000),
 	  msg->bookSide.size,
@@ -420,7 +421,11 @@ void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUs
   classSymbol.resize   (strlen(classSymbol.c_str()));
 
   char avtSecName[SYMBOL_SIZE] = {};
-  eka_create_avt_definition(avtSecName,msg);
+  if (msg->header.group.source  == EkaSource::kCME_SBE && msg->securityType == EfhSecurityType::kOpt) {
+    sprintf(avtSecName,"%s_%d",classSymbol.c_str(),msg->strikePrice);
+  } else {
+    eka_create_avt_definition(avtSecName,msg);
+  }
   fprintf (gr->fullDict,"%s,%ju,%s,%s,%s,%s\n",
 	   avtSecName,
 	   msg->header.securityId,

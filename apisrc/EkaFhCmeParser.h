@@ -3,6 +3,9 @@
 
 #include <inttypes.h>
 
+#define EFH_CME_STRIKE_PRICE_SCALE 1e11
+#define EFH_CME_ORDER_PRICE_SCALE  1e8
+
 
 enum class MsgId : uint16_t {
   ChannelReset4                             = 4,

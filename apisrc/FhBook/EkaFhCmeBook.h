@@ -161,7 +161,7 @@ template <const uint SEC_HASH_SCALE,
 
   
  public:
-  static const uint64_t PRICE_SCALE    = 10000000;
+  static const uint64_t PRICE_SCALE    = 1; // 1e8;
   static const uint64_t SEC_HASH_LINES = 0x1 << SEC_HASH_SCALE;
   static const uint64_t SEC_HASH_MASK  = (0x1 << SEC_HASH_SCALE) - 1;
 
