@@ -229,10 +229,16 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 				      e->MDPriceLevel,
 				      e->MDEntryPx,
 				      e->MDEntrySize);
-	if (tobChange) book->generateOnQuote (pEfhRunCtx, 
+	/* if (tobChange) book->generateOnQuote (pEfhRunCtx,  */
+	/* 				      s,  */
+	/* 				      pktSeq, */
+	/* 				      pktTime,  */
+	/* 				      gapNum); */
+	if (tobChange) book->generateOnOrder (pEfhRunCtx, 
 					      s, 
 					      pktSeq,
-					      pktTime, 
+					      pktTime,
+					      side,
 					      gapNum);
 	if (processedSnapshotMessages >= (int)rootBlock->TotNumReports) return true;
 
@@ -315,7 +321,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       }
 
       if (fh->print_parsed_messages) 
-	fprintf(parser_log,"\t\tDefinitionOption55: \'%s\',\'%s\',\'%s\',%s,\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u\n",
+	fprintf(parser_log,"\t\tDefinitionOption55: \'%s\',\'%s\',\'%s\',%s,\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u, %ju\n",
 		securityExchange.c_str(),
 		asset.c_str(),
 		symbol.c_str(),
@@ -323,7 +329,8 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 		securityType.c_str(),
 		rootBlock->SecurityID,
 		cfiCode.c_str(),
-		pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week
+		pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week,
+		rootBlock->StrikePrice
 		);
 
       EfhDefinitionMsg msg = {};
