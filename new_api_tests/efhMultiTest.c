@@ -192,7 +192,7 @@ void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData use
 	  gr->security.at(secIdx).classSymbol.c_str(),
 #endif
 	  EKA_DEC_POINTS_10000(msg->bookSide.price), ((float) msg->bookSide.price / 10000),
-	  msg->bookSide.customerSize,
+	  msg->bookSide.size,
 
 	  EKA_TS_DECODE(msg->tradeStatus),
 
