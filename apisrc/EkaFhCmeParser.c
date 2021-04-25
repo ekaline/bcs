@@ -144,17 +144,17 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 	/* 	  ); */
 	/* } */
 
-	/* if (tobChange) book->generateOnQuote (pEfhRunCtx,  */
-	/* 				      s,  */
-	/* 				      pktSeq, */
-	/* 				      pktTime,  */
-	/* 				      gapNum); */
-	if (tobChange) book->generateOnOrder (pEfhRunCtx, 
-					      s, 
+	if (tobChange) book->generateOnQuote (pEfhRunCtx,
+					      s,
 					      pktSeq,
 					      pktTime,
-					      side,
 					      gapNum);
+	/* if (tobChange) book->generateOnOrder (pEfhRunCtx,  */
+	/* 				      s,  */
+	/* 				      pktSeq, */
+	/* 				      pktTime, */
+	/* 				      side, */
+	/* 				      gapNum); */
       }
     }
       break;
@@ -231,17 +231,17 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 				      e->MDPriceLevel,
 				      e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE,
 				      e->MDEntrySize);
-	/* if (tobChange) book->generateOnQuote (pEfhRunCtx,  */
-	/* 				      s,  */
-	/* 				      pktSeq, */
-	/* 				      pktTime,  */
-	/* 				      gapNum); */
-	if (tobChange) book->generateOnOrder (pEfhRunCtx, 
-					      s, 
+	if (tobChange) book->generateOnQuote (pEfhRunCtx,
+					      s,
 					      pktSeq,
 					      pktTime,
-					      side,
 					      gapNum);
+	/* if (tobChange) book->generateOnOrder (pEfhRunCtx,  */
+	/* 				      s,  */
+	/* 				      pktSeq, */
+	/* 				      pktTime, */
+	/* 				      side, */
+	/* 				      gapNum); */
 	if (processedSnapshotMessages >= (int)rootBlock->TotNumReports) return true;
 
       } // for MdEntries

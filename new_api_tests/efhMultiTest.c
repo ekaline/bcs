@@ -182,14 +182,15 @@ void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData use
 
   if (! print_tob_updates) return NULL;
 
-  fprintf(gr->MD,"%s,%s,%ju,%s,%.*f,%u,%c,%s,%ju\n",
+  fprintf(gr->MD,"%s,%s,%ju,%s,%s,%.*f,%u,%c,%s,%ju\n",
 	  eka_get_date().c_str(),
 	  eka_get_time().c_str(),
 	  msg->header.securityId,
 #ifdef EKA_TEST_IGNORE_DEFINITIONS
-	  "DEFAULT_UNDERLYING_ID",
+	  "UNDERLYING_ID",
+	  "AVT_SEC_NAME",
 #else
-	  //	  gr->security.at(secIdx).classSymbol.c_str(),
+	  gr->security.at(secIdx).classSymbol.c_str(),
 	  gr->security.at(secIdx).avtSecName.c_str(),	  
 #endif
 	  EKA_DEC_POINTS_10000(msg->bookSide.price), ((float) msg->bookSide.price / 10000),
@@ -387,16 +388,25 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
 }
 
 static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
-  uint8_t y,m,d;
+  if (msg->header.group.source  == EkaSource::kCME_SBE && msg->securityType == EfhSecurityType::kOpt) {
+   std::string classSymbol    = std::string(msg->classSymbol,sizeof(msg->classSymbol));
+   sprintf(dst,"%s_%c%d",
+	    classSymbol.c_str(),
+	    msg->optionType == EfhOptionType::kCall ? 'C' : 'P',
+	    msg->strikePrice);
+  } else {
+  
+    uint8_t y,m,d;
 
-  d = msg->expiryDate % 100;
-  m = ((msg->expiryDate - d) / 100) % 100;
-  y = msg->expiryDate / 10000 - 2000;
+    d = msg->expiryDate % 100;
+    m = ((msg->expiryDate - d) / 100) % 100;
+    y = msg->expiryDate / 10000 - 2000;
 
-  memcpy(dst,msg->underlying,6);
-  for (auto i = 0; i < 6; i++) if (dst[i] == 0 || dst[i] == ' ') dst[i] = '_';
-  char call_put = msg->optionType == EfhOptionType::kCall ? 'C' : 'P';
-  sprintf(dst+6,"%02u%02u%02u%c%08u",y,m,d,call_put,msg->strikePrice);
+    memcpy(dst,msg->underlying,6);
+    for (auto i = 0; i < 6; i++) if (dst[i] == 0 || dst[i] == ' ') dst[i] = '_';
+    char call_put = msg->optionType == EfhOptionType::kCall ? 'C' : 'P';
+    sprintf(dst+6,"%02u%02u%02u%c%08u",y,m,d,call_put,msg->strikePrice);
+  }
   return;
 }
 
@@ -421,14 +431,15 @@ void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUs
   classSymbol.resize   (strlen(classSymbol.c_str()));
 
   char avtSecName[SYMBOL_SIZE] = {};
-  if (msg->header.group.source  == EkaSource::kCME_SBE && msg->securityType == EfhSecurityType::kOpt) {
-    sprintf(avtSecName,"%s_%c%d",
-	    classSymbol.c_str(),
-	    msg->optionType == EfhOptionType::kCall ? 'C' : 'P',
-	    msg->strikePrice);
-  } else {
-    eka_create_avt_definition(avtSecName,msg);
-  }
+  /* if (msg->header.group.source  == EkaSource::kCME_SBE && msg->securityType == EfhSecurityType::kOpt) { */
+  /*   sprintf(avtSecName,"%s_%c%d", */
+  /* 	    classSymbol.c_str(), */
+  /* 	    msg->optionType == EfhOptionType::kCall ? 'C' : 'P', */
+  /* 	    msg->strikePrice); */
+  /* } else { */
+  /*   eka_create_avt_definition(avtSecName,msg); */
+  /* } */
+  eka_create_avt_definition(avtSecName,msg);
   fprintf (gr->fullDict,"%s,%ju,%s,%s,%s,%s\n",
 	   avtSecName,
 	   msg->header.securityId,
@@ -859,23 +870,15 @@ int main(int argc, char *argv[]) {
 #else
 	efhGetDefs(pEfhCtx[r], &efhRunCtx.at(r), (EkaGroup*)&efhRunCtx.at(r).groups[i], NULL);
 #endif
-	/* fclose (gr->fullDict); */
-	/* fclose (gr->subscrDict); */
       }
       /* ------------------------------------------------------- */
       if (pEfhCtx[r]->fhId >= 16) on_error("pEfhCtx[r]->fhId = %u,pEfhCtx[r]=%p",
 					  pEfhCtx[r]->fhId,pEfhCtx[r]);
-      /* for (auto k = 0; k < (int)efhRunCtx.at(r).numGroups; k++) { */
-      /* 	EkaSource exch = efhRunCtx.at(r).groups[k].source; */
-      /* 	EkaLSI    grId = efhRunCtx.at(r).groups[k].localId; */
-      /* } */
       std::thread efh_run_thread = std::thread(efhRunGroups,pEfhCtx[r], &efhRunCtx.at(r),(void**)NULL);
       efh_run_thread.detach();
       /* ------------------------------------------------------- */
-      //      sleep(10);
     }
     catch (const std::out_of_range& oor) {
-      //      std::cerr << "Out of Range error: " << oor.what() << '\n';
       on_error("Out of Range error");
     }
   }
