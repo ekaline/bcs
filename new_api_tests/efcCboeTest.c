@@ -409,7 +409,10 @@ int main(int argc, char *argv[]) {
   };
 
   SecurityCtx security[] = {
+      {{'\0','\0','0','0','T','E','S','T'}, 0, 100, 200, 1}, // correct SecID
+      {{'\0','\0','0','1','T','E','S','T'}, 0, 100, 200, 1}, // correct SecID
       {{'\0','\0','0','2','T','E','S','T'}, 0, 100, 200, 1}, // correct SecID
+      {{'\0','\0','0','3','T','E','S','T'}, 0, 100, 200, 1}, // correct SecID
       {{'T','S','E','T','2','0','\0','\0'}, 0, 300, 400, 1}, // wrong   SecID
   };
 
@@ -614,6 +617,8 @@ int main(int argc, char *argv[]) {
   sleep(1);
   // ==============================================
   // Sending MD trigger MC GR#0
+  mdAskShortPkt.addOrdShort.symbol[1] = '3';
+  
   EKA_LOG("sending AskShort trigger to %s:%u",
 	  EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
   if (sendto(triggerSock,&mdAskShortPkt,sizeof(mdAskShortPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 

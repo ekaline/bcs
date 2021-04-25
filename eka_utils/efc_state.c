@@ -56,6 +56,7 @@ struct EfcState {
   bool     forceFireUnsubscr  = false;
   bool     reportOnly         = false;
   bool     fatalDebug         = false;
+  bool     armed              = false;
 };
 
 
@@ -434,6 +435,8 @@ int getEfcState(EfcState* pEfcState) {
   pEfcState->ordersSubscribed   = (var_p4_cont_counter3>>0)  & MASK32;
   pEfcState->ordersUnsubscribed = (var_p4_cont_counter3>>32) & MASK32;
 
+  pEfcState->armed              = (reg_read(P4_ARM_DISARM) & 0x1) != 0;
+  
   /* pEfcState->forceFire          = (var_p4_general_conf>>63)  & 0x1; */
   /* pEfcState->reportOnly         = (var_p4_general_conf>>0)   & 0x1; */
 
@@ -445,9 +448,19 @@ int getEfcState(EfcState* pEfcState) {
 }
 //################################################
 int printEfcState(EfcState* pEfcState) {
+  if (! pEfcState->armed) {
+    printf (RED "ARMED STATE: UNARMED\n" RESET);
+  } else {
+    if (pEfcState->fatalDebug)
+      printf (RED "ARMED STATE: ARMED -- can be overidden by \'Fatal Debug\' \n" RESET);
+    else 
+      printf (GRN "ARMED STATE: ARMED\n" RESET);
+  }
   if (pEfcState->fatalDebug) printf(RED "WARNING: \'Fatal Debug\' is Active\n" RESET);
-  printf("Configurations: ForceFire=%d, ForceFireOnUnsubscribed=%d (effective only if \'Fatal Debug\' is Active)\n",
-	 pEfcState->forceFire,pEfcState->forceFireUnsubscr);
+  printf("Configurations: ForceFire=%d,              (effective only if \'Fatal Debug\' is Active)\n",
+	 pEfcState->forceFire);
+  printf("\t\tForceFireOnUnsubscribed=%d (effective only if \'Fatal Debug\' and ForceFire are Active)\n",
+	 pEfcState->forceFireUnsubscr);
   printf("\t\tReportOnly=%d\n\n",pEfcState->reportOnly);
   
   printf("Subscribed   MD Orders:\t%ju\n",pEfcState->ordersSubscribed);

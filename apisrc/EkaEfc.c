@@ -148,6 +148,16 @@ int EkaEfc::initHwRoundTable() {
   return 0;
 }
 /* ############################################### */
+static bool isValidCboeSecondByte(char c) {
+  switch (c) {
+  case '0' :
+  case '1' :
+  case '2' :
+    return true;
+  default:
+    return false;
+  }
+}
 
 bool EkaEfc::isValidSecId(uint64_t secId) {
   switch(hwFeedVer) {
@@ -164,7 +174,8 @@ bool EkaEfc::isValidSecId(uint64_t secId) {
   case EfhFeedVer::kCBOE:
     if (((char)((secId >> (8 * 5)) & 0xFF) != '0') ||
 	//	((char)((secId >> (8 * 4)) & 0xFF) != '1') ||
-	((char)((secId >> (8 * 4)) & 0xFF) != '2') ||
+	//	((char)((secId >> (8 * 4)) & 0xFF) != '2') ||
+	! isValidCboeSecondByte((char)((secId >> (8 * 4)) & 0xFF)) ||
 	! isAscii((char)((secId >> (8 * 3)) & 0xFF)) ||
 	! isAscii((char)((secId >> (8 * 2)) & 0xFF)) ||
 	! isAscii((char)((secId >> (8 * 1)) & 0xFF)) ||
@@ -212,6 +223,10 @@ int EkaEfc::normalizeId(uint64_t secId) {
     n = char2num(c)    << (6 * 3);
     res |= n;
 
+    c = (char) ((secId >> (8 * 4)) & 0xFF);
+    n = char2num(c)    << (6 * 4);
+    res |= n;
+
     return res;
   }
   default:
@@ -220,13 +235,7 @@ int EkaEfc::normalizeId(uint64_t secId) {
 }
 /* ################################################ */
 int EkaEfc::getLineIdx(uint64_t normSecId) {
-/* #ifdef _VERILOG_SIM */
-/*     return (int) normSecId & 0x3F; // Low 6 bits */
-/* #else */
-//    return (int) normSecId & 0x7FFF; // Low 15 bits
   return (int) normSecId & (EFC_SUBSCR_TABLE_ROWS - 1);
-/* #endif */
-
 }
 /* ################################################ */
 int EkaEfc::subscribeSec(uint64_t secId) {
@@ -281,7 +290,7 @@ int EkaEfc::downloadTable() {
     struct timespec req = {0, 1000};
     struct timespec rem = {};
 
-    sum += hashLine[i]->pack8b(sum);
+    sum += hashLine[i]->pack(sum);
     hashLine[i]->downloadPacked();
 
     nanosleep(&req, &rem);  // added due to "too fast" write to card
