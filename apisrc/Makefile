@@ -13,7 +13,7 @@ DRIVERS_INCL:=$(SMARTNIC_ROOT)/driver/
 API_INCL:=$(SMARTNIC_ROOT)/include/
 
 LWIP_INCL:=$(LWIP_ROOT)/lwip/src/include 
-INC=$(DRIVERS_INCL) $(API_INCL) $(LWIP_INCL) $(shell pwd) $(shell pwd)/compat $(shell pwd)/FhBook $(shell pwd)/Ehp $(shell pwd)/../pcapParsers
+INC=$(DRIVERS_INCL) $(API_INCL) $(LWIP_INCL) $(shell pwd) $(shell pwd)/compat $(shell pwd)/FhBook $(shell pwd)/Ehp $(shell pwd)/../pcapParsers $(shell pwd)/../new_api_tests
 INCL=$(foreach d, $(INC), -I$d)
 INCL+=-Iarch
 

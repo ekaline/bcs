@@ -71,13 +71,12 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 	auto e {reinterpret_cast<const IncrementaRefreshMdEntry*>(&pkt[entryPos])};
 
 	if (fh->print_parsed_messages) 
-	  fprintf (parser_log,"\t\t\tsecId=%8d,%s,%s,plvl=%u,p=%16jd (%f),s=%d\n",
+	  fprintf (parser_log,"\t\t\tsecId=%8d,%s,%s,plvl=%u,p=%16jd,s=%d\n",
 		   e->SecurityID,
 		   MDpdateAction2STR(e->MDUpdateAction),
 		   MDEntryTypeBook2STR(e->MDEntryType),
 		   e->MDPriceLevel,
 		   e->MDEntryPx,
-		   e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE,
 		   e->MDEntrySize);
 
 	entryPos += pGroupSize->blockLength;
@@ -248,11 +247,10 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 	auto e {reinterpret_cast<const MDSnapshotFullRefreshMdEntry*>(&pkt[entryPos])};
 
 	if (fh->print_parsed_messages) 
-	  fprintf (parser_log,"\t\t\t%s,plvl=%u,p=%16jd (%f),s=%d\n",
+	  fprintf (parser_log,"\t\t\t%s,plvl=%u,p=%16jd,s=%d\n",
 		   MDEntryType2STR(e->MDEntryType),
 		   e->MDPriceLevel,
 		   e->MDEntryPx,
-		   e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE,
 		   e->MDEntrySize
 		   );
 
@@ -390,7 +388,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       }
 
       if (fh->print_parsed_messages) 
-	fprintf(parser_log,"\t\tDefinitionOption55: \'%s\',\'%s\',\'%s\',%s,\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u, %ju (%f)\n",
+	fprintf(parser_log,"\t\tDefinitionOption55: \'%s\',\'%s\',\'%s\',%s,\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u, %ju\n",
 		securityExchange.c_str(),
 		asset.c_str(),
 		symbol.c_str(),
@@ -399,8 +397,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 		rootBlock->SecurityID,
 		cfiCode.c_str(),
 		pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week,
-		rootBlock->StrikePrice,
-		rootBlock->StrikePrice / EFH_CME_STRIKE_PRICE_SCALE
+		rootBlock->StrikePrice
 		);
 
       EfhDefinitionMsg msg = {};
@@ -425,6 +422,9 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       //      memcpy (&msg.classSymbol,rootBlock->Symbol,std::min(sizeof(msg.classSymbol),sizeof(rootBlock->Symbol)));
       for (size_t i = 0; i < sizeof(msg.classSymbol) && rootBlock->Symbol[i] != ' '; i++)
 	msg.classSymbol[i] = rootBlock->Symbol[i];
+
+      msg.opaqueAttrA           = rootBlock->DisplayFactor;
+      msg.opaqueAttrB           = rootBlock->PriceDisplayFormat;
       
       pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
 

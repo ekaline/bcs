@@ -3,8 +3,8 @@
 
 #include <inttypes.h>
 
-#define EFH_CME_STRIKE_PRICE_SCALE 1e11
-#define EFH_CME_ORDER_PRICE_SCALE  1e9
+#define EFH_CME_STRIKE_PRICE_SCALE 1
+#define EFH_CME_ORDER_PRICE_SCALE  1
 
 
 enum class MsgId : uint16_t {

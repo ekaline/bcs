@@ -325,7 +325,7 @@ static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
   memcpy(dst,msg->underlying,6);
   for (auto i = 0; i < 6; i++) if (dst[i] == 0 || dst[i] == ' ') dst[i] = '_';
   char call_put = msg->optionType == EfhOptionType::kCall ? 'C' : 'P';
-  sprintf(dst+6,"%02u%02u%02u%c%08u",y,m,d,call_put,msg->strikePrice / 10);
+  sprintf(dst+6,"%02u%02u%02u%c%08jd",y,m,d,call_put,msg->strikePrice / 10);
   return;
 }
 

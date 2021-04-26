@@ -235,7 +235,7 @@ typedef struct {
                 _x( uint32_t,        expiryDate )                           \
                 _x( uint32_t,        contractSize )                         \
                 /** Divide by EFH_PRICE_SCALE. */                           \
-                _x( uint32_t,        strikePrice )                          \
+                _x( int64_t,         strikePrice )                          \
                 _x( EfhExchange,     exchange )				\
                 _x( EfhOptionType,   optionType )			\
                 _x( uint64_t,        opaqueAttrA )			\
@@ -264,7 +264,7 @@ enum class EfhTradeStatus : char {
 typedef struct {
     #define EfhBookSide_FIELD_ITER( _x )                                    \
                 /** Divide by EFH_PRICE_SCALE. */                           \
-                _x( uint32_t, price )                                       \
+                _x( int64_t,  price )                                       \
                 _x( uint32_t, size )                                        \
                 _x( uint32_t, aoNSize )                                     \
                 _x( uint32_t, customerSize )                                \
