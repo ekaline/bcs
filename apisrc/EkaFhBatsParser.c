@@ -114,6 +114,18 @@ inline SideT sideDecode(char _side) {
 }
 /* ------------------------------------------------ */
 
+inline EfhOrderSideType efhMsgSideDecode(char _side) {
+  switch (_side) {
+  case 'B' :
+    return EfhOrderSideType::kBid;
+  case 'S' :
+    return EfhOrderSideType::kAsk;
+  default:
+    on_error("Unexpected Side \'%c\'",_side);
+  }
+}
+/* ------------------------------------------------ */
+
 bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op) {
   EKA_BATS_PITCH_MSG enc =  (EKA_BATS_PITCH_MSG)m[1];
   //  EKA_LOG("%s:%u: 0x%02x",EKA_EXCH_DECODE(exch),id,enc);
@@ -141,7 +153,8 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
   default: {}
   }
 
-  if (op != EkaFhMode::DEFINITIONS && fh->print_parsed_messages) eka_print_batspitch_msg(parser_log,(uint8_t*)m,id,sequence,msg_timestamp);
+  //  if (op != EkaFhMode::DEFINITIONS && fh->print_parsed_messages) eka_print_batspitch_msg(parser_log,(uint8_t*)m,id,sequence,msg_timestamp);
+  if (fh->print_parsed_messages) sendMdCb(pEfhRunCtx,m,id,sequence,msg_timestamp);
 
   switch (enc) {    
     //--------------------------------------------------------------
@@ -263,7 +276,8 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
 	       message->exp_symbol[0],message->exp_symbol[1],message->exp_symbol[2],message->exp_symbol[3],
 	       message->exp_symbol[4],message->exp_symbol[5],message->exp_symbol[6],message->exp_symbol[7]);
 
-    SecurityIdT security_id =  bats_symbol2optionid(message->exp_symbol,6);
+    //    SecurityIdT security_id =  bats_symbol2optionid(message->exp_symbol,6);
+    SecurityIdT security_id =  be64toh(*(uint64_t*)message->exp_symbol);
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
     book->setSecurityPrevState(s);
@@ -492,6 +506,74 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
   return false;
 }
 
+int EkaFhBatsGr::sendMdCb(const EfhRunCtx* pEfhRunCtx, const uint8_t* m, int gr, uint64_t sequence,uint64_t ts) {
+  if (pEfhRunCtx->onEfhMdCb == NULL) on_error("pEfhRunCtx->onMd == NULL");
+
+  EKA_BATS_PITCH_MSG enc = (EKA_BATS_PITCH_MSG)m[1];
+
+  uint8_t msgBuf[2000] = {};
+  auto hdr {reinterpret_cast<EfhMdHeader*>(msgBuf)};
+
+  hdr->mdRawMsgType   = static_cast<decltype(hdr->mdRawMsgType)>(enc);
+  hdr->group.source   = exch;
+  hdr->group.localId  = id;
+  hdr->sequenceNumber = sequence;
+  hdr->timeStamp      = ts;
+
+  switch (enc) {
+  case EKA_BATS_PITCH_MSG::ADD_ORDER_LONG: {
+    auto srcMsg {const_cast<batspitch_add_order_long*>(reinterpret_cast<const batspitch_add_order_long*>(m))};
+    auto dstMsg {reinterpret_cast<MdNewOrder*>(msgBuf)};
+
+    hdr->mdMsgType  = EfhMdType::NewOrder;
+    hdr->mdMsgSize  = sizeof(MdNewOrder);
+    hdr->securityId = symbol2secId(srcMsg->symbol);
+
+    dstMsg->attr    = srcMsg->flags;
+    dstMsg->orderId = srcMsg->order_id;
+    dstMsg->side    = efhMsgSideDecode(srcMsg->side);
+    dstMsg->price   = srcMsg->price / EFH_PRICE_SCALE;
+    dstMsg->size    = srcMsg->size;
+
+    pEfhRunCtx->onEfhMdCb(hdr,pEfhRunCtx->efhRunUserData);
+  }
+  case EKA_BATS_PITCH_MSG::ADD_ORDER_SHORT: {
+    auto srcMsg {const_cast<batspitch_add_order_short*>(reinterpret_cast<const batspitch_add_order_short*>(m))};
+    auto dstMsg {reinterpret_cast<MdNewOrder*>(msgBuf)};
+
+    hdr->mdMsgType  = EfhMdType::NewOrder;
+    hdr->mdMsgSize  = sizeof(MdNewOrder);
+    hdr->securityId = symbol2secId(srcMsg->symbol);
+
+    dstMsg->attr    = srcMsg->flags;
+    dstMsg->orderId = srcMsg->order_id;
+    dstMsg->side    = efhMsgSideDecode(srcMsg->side);
+    dstMsg->price   = srcMsg->price  * 100 / EFH_PRICE_SCALE;
+    dstMsg->size    = srcMsg->size;
+
+    pEfhRunCtx->onEfhMdCb(hdr,pEfhRunCtx->efhRunUserData);
+  }
+  case EKA_BATS_PITCH_MSG::ADD_ORDER_EXPANDED: {
+    auto srcMsg {const_cast<batspitch_add_order_expanded*>(reinterpret_cast<const batspitch_add_order_expanded*>(m))};
+    auto dstMsg {reinterpret_cast<MdNewOrder*>(msgBuf)};
+
+    hdr->mdMsgType  = EfhMdType::NewOrder;
+    hdr->mdMsgSize  = sizeof(MdNewOrder);
+    hdr->securityId = be64toh(*(uint64_t*)srcMsg->exp_symbol);
+
+    dstMsg->attr    = srcMsg->flags;
+    dstMsg->orderId = srcMsg->order_id;
+    dstMsg->side    = efhMsgSideDecode(srcMsg->side);
+    dstMsg->price   = srcMsg->price / EFH_PRICE_SCALE;
+    dstMsg->size    = srcMsg->size;
+
+    pEfhRunCtx->onEfhMdCb(hdr,pEfhRunCtx->efhRunUserData);
+  }     
+  default:
+    break;
+  }
+  return 0;
+}
 
 static void eka_print_batspitch_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequence,uint64_t ts) {
   EKA_BATS_PITCH_MSG enc = (EKA_BATS_PITCH_MSG)m[1];

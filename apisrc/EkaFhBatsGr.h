@@ -49,11 +49,18 @@ class EkaFhBatsGr : public EkaFhGroup{
 			     uint64_t          startSeq,
 			     uint64_t          endSeq);
 
+private:
+  int    sendMdCb(const EfhRunCtx* pEfhRunCtx,
+		  const uint8_t* m,
+		  int            gr,
+		  uint64_t       sequence,
+		  uint64_t       ts);
 
 
   
   /* ##################################################################### */
 
+public:
   char                  sessionSubID[4] = {};  // for BATS Spin
   uint8_t               batsUnit = 0;
 

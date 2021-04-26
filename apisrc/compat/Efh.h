@@ -125,6 +125,90 @@ EkaOpResult efhSubscribeDynamic( EfhCtx*         efhCtx,
                                  EfhSecUserData  efhSecUserData );
 
 
+/**
+ * EfhMd functionality allows to get callback on every raw market data event
+ *
+ */
+enum class EfhMdType : uint16_t {
+  Invalid       = 0,
+    Generic,
+    Time,
+    Definition,
+    NewOrder,
+    NewQuote,
+    ModifyOrder,
+    ModifyQuote,
+    ReplaceOrder,
+    ReplaceQuote,
+    DeleteOrder,
+    DeleteQuote,
+    NewPlevel,
+    ChangePlevel,
+    DeletePlevel,
+    };
+
+#define DecodeMdType(x)					\
+  x == EfhMdType::Invalid        ? "Invalid"      :	\
+    x == EfhMdType::Generic      ? "Generic"      :	\
+    x == EfhMdType::Time         ? "Time"         :	\
+    x == EfhMdType::Definition   ? "Definition"   :	\
+    x == EfhMdType::NewOrder     ? "NewOrder"     :	\
+    x == EfhMdType::NewQuote     ? "NewQuote"     :	\
+    x == EfhMdType::ModifyOrder  ? "ModifyOrder"  :	\
+    x == EfhMdType::ModifyQuote  ? "ModifyQuote"  :	\
+    x == EfhMdType::ReplaceOrder ? "ReplaceOrder" :	\
+    x == EfhMdType::ReplaceQuote ? "ReplaceQuote" :	\
+    x == EfhMdType::DeleteOrder  ? "DeleteOrder"  :	\
+    x == EfhMdType::DeleteQuote  ? "DeleteQuote"  :	\
+    x == EfhMdType::NewPlevel    ? "NewPlevel"    :	\
+    x == EfhMdType::ChangePlevel ? "ChangePlevel" :	\
+    x == EfhMdType::DeletePlevel ? "DeletePlevel" :	\
+    "UNKNOWN"
+    
+typedef struct {
+  EfhMdType mdMsgType;
+  uint16_t  mdRawMsgType;
+  EkaGroup  group;
+  uint64_t  securityId;
+  uint64_t  sequenceNumber;
+  uint64_t  timeStamp;
+  uint16_t  mdMsgSize; // not including size of EfhMdHeader
+} EfhMdHeader;
+
+typedef struct {
+  EfhMdHeader      hdr;
+  uint64_t         attr;    // raw attribute if relevant
+  uint64_t         orderId; // if relevant
+  EfhOrderSideType side;
+  uint64_t         price;
+  uint32_t         size;
+} MdNewOrder;
+
+typedef struct {
+  EfhMdHeader      hdr;
+  int              pLvl;
+  EfhOrderSideType side;
+  uint64_t         price;
+  uint32_t         size;
+} MdNewPlevel;
+
+typedef struct {
+  EfhMdHeader      hdr;
+  int              pLvl;
+  EfhOrderSideType side;
+  uint64_t         price;
+  uint32_t         size;
+} MdChangePlevel;
+
+typedef struct {
+  EfhMdHeader      hdr;
+  int              pLvl;
+  EfhOrderSideType side;
+} MdDeletePlevel;
+  
+typedef void* (*onEfhMdMsgCb) (const EfhMdHeader* msg, EfhRunUserData efhRunUserData);
+
+  
 /*
  *
  */
@@ -150,6 +234,8 @@ struct EfhRunCtx {
         void ( *onEkaExceptionReportCb )( EkaExceptionReport* msg, 
                                           EfhRunUserData      efhRunUserData );
     #undef _DECL_CALLBACK
+
+  onEfhMdMsgCb onEfhMdCb;
     /**************************************/
 };
 
@@ -189,6 +275,9 @@ EkaOpResult efhMonitorFhGroupState( EfhCtx* efhCtx, EkaGroup* group);
  */
 EkaOpResult efhDestroy( EfhCtx* pEfhCtx );
 
+
+
+  
 } // End of extern "C"
 
 #endif //  __EKALINE_EFH_H__

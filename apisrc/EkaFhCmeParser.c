@@ -135,6 +135,73 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 	  on_error("Unexpected MDUpdateActio %u",(uint)e->MDUpdateAction);
 	}
 
+	if (fh->print_parsed_messages) {
+	  if (pEfhRunCtx->onEfhMdCb == NULL) on_error("pEfhRunCtx->onMd == NULL");
+	  uint8_t msgBuf[2000] = {};
+	  auto hdr {reinterpret_cast<EfhMdHeader*>(msgBuf)};
+
+	  hdr->mdRawMsgType   = static_cast<decltype(hdr->mdRawMsgType)>(e->MDUpdateAction);
+	  hdr->group.source   = exch;
+	  hdr->group.localId  = id;
+	  hdr->sequenceNumber = pktSeq;
+	  hdr->timeStamp      = pktTime;
+	  switch (e->MDUpdateAction) {
+	  case MDUpdateAction_T::New: {
+	    auto dstMsg {reinterpret_cast<MdNewPlevel*>(msgBuf)};
+	    
+	    hdr->mdMsgType  = EfhMdType::NewPlevel;
+	    hdr->mdMsgSize  = sizeof(MdNewPlevel);
+	    hdr->securityId = e->SecurityID;
+
+	    dstMsg->pLvl    = e->MDPriceLevel;
+	    dstMsg->side    = side == SideT::BID ? EfhOrderSideType::kBid : EfhOrderSideType::kAsk;
+	    dstMsg->price   = e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE;
+	    dstMsg->size    = e->MDEntrySize;
+	    
+	    pEfhRunCtx->onEfhMdCb(hdr,pEfhRunCtx->efhRunUserData);
+	  }
+	    break;
+	  case MDUpdateAction_T::Change: {
+	    auto dstMsg {reinterpret_cast<MdChangePlevel*>(msgBuf)};
+	    
+	    hdr->mdMsgType  = EfhMdType::ChangePlevel;
+	    hdr->mdMsgSize  = sizeof(MdChangePlevel);
+	    hdr->securityId = e->SecurityID;
+
+	    dstMsg->pLvl    = e->MDPriceLevel;
+	    dstMsg->side    = side == SideT::BID ? EfhOrderSideType::kBid : EfhOrderSideType::kAsk;
+	    dstMsg->price   = e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE;
+	    dstMsg->size    = e->MDEntrySize;
+	    
+	    pEfhRunCtx->onEfhMdCb(hdr,pEfhRunCtx->efhRunUserData);
+	  }
+
+	    break;
+	  case MDUpdateAction_T::Delete: {
+	    auto dstMsg {reinterpret_cast<MdDeletePlevel*>(msgBuf)};
+	    
+	    hdr->mdMsgType  = EfhMdType::DeletePlevel;
+	    hdr->mdMsgSize  = sizeof(MdDeletePlevel);
+	    hdr->securityId = e->SecurityID;
+
+	    dstMsg->pLvl    = e->MDPriceLevel;
+	    dstMsg->side    = side == SideT::BID ? EfhOrderSideType::kBid : EfhOrderSideType::kAsk;
+	    
+	    pEfhRunCtx->onEfhMdCb(hdr,pEfhRunCtx->efhRunUserData);
+	  }
+
+
+	    break;
+	  case MDUpdateAction_T::DeleteThru:
+	  case MDUpdateAction_T::DeleteFrom:
+	  case MDUpdateAction_T::Overlay:
+	    break;
+	  default:
+	    on_error("Unexpected MDUpdateAction %u",(uint)e->MDUpdateAction);
+	  }
+
+	}
+	
 	/* if (tobChange && fh->print_parsed_messages) { */
 	/*   fprintf(parser_log,"generateOnQuote: BP=%ju,BS=%d,AP=%ju,AS=%d\n", */
 	/* 	  s->bid->getEntryPrice(0), */
