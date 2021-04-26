@@ -135,6 +135,21 @@ int EkaEpmAction::setName() {
   return 0;
 }
 
+/* ---------------------------------------------------- */
+
+static TcpCsSizeSource setTcpCsSizeSource (EpmActionType type) {
+  switch (type) {
+  case EpmActionType::UserAction   :
+  case EpmActionType::HwFireAction :
+  case EpmActionType::BoeFire      :
+  case EpmActionType::BoeCancel    :
+  case EpmActionType::SqfFire      :
+  case EpmActionType::SqfCancel    :
+    return TcpCsSizeSource::FROM_ACTION;
+  default:
+    return TcpCsSizeSource::FROM_DESCR;
+  }
+}
 
 /* ---------------------------------------------------- */
 
@@ -188,8 +203,7 @@ EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
 
   memset(ethHdr,0,sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaTcpHdr));
 
-  hwAction.tcpCsSizeSource          = type == EpmActionType::UserAction || type == EpmActionType::HwFireAction ? 
-    TcpCsSizeSource::FROM_ACTION    : TcpCsSizeSource::FROM_DESCR;
+  hwAction.tcpCsSizeSource          = setTcpCsSizeSource(type);
 
   hwAction.data_db_ptr              = heapAddr;
   hwAction.template_db_ptr          = epmTemplate->getDataTemplateAddr();
@@ -363,12 +377,8 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
   hwAction.mask_post_local       = epmAction->postLocalMask;
   hwAction.user                  = epmAction->user;
   hwAction.token                 = epmAction->token;
-  hwAction.tcpCsSizeSource       =
-    type == EpmActionType::UserAction   ||
-    type == EpmActionType::HwFireAction ||
-    type == EpmActionType::BoeFire      ? 
-    TcpCsSizeSource::FROM_ACTION    : TcpCsSizeSource::FROM_DESCR;
-
+  hwAction.tcpCsSizeSource       = setTcpCsSizeSource(type);
+ 
   if (epmAction->actionFlags == AF_Valid) 
     hwAction.bit_params.bitmap.action_valid = 1;
   else
