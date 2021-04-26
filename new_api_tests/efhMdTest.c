@@ -367,6 +367,59 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
 	    );
   }
     break;
+
+  case EfhMdType::NewPlevel : {
+    auto m {reinterpret_cast<const MdNewPlevel*>(msg)};
+    fprintf(gr->MD,"%s (0x%x),%u,0x%016jx (%ju),%ju,%s,%ju,%c,%u,%ju,%u\n",
+	    DecodeMdType(m->hdr.mdMsgType),
+	    m->hdr.mdRawMsgType,
+	    grId,
+	    m->hdr.securityId,
+	    m->hdr.securityId,
+	    m->hdr.sequenceNumber,
+	    ts_ns2str(m->hdr.timeStamp).c_str(),
+	    m->hdr.timeStamp,
+	    m->side == EfhOrderSideType::kBid ? 'B' : 'A',
+	    m->pLvl,
+	    m->price,
+	    m->size
+	    );
+  }
+    break;
+  case EfhMdType::ChangePlevel : {
+    auto m {reinterpret_cast<const MdChangePlevel*>(msg)};
+    fprintf(gr->MD,"%s (0x%x),%u,0x%016jx (%ju),%ju,%s,%ju,%c,%u,%ju,%u\n",
+	    DecodeMdType(m->hdr.mdMsgType),
+	    m->hdr.mdRawMsgType,
+	    grId,
+	    m->hdr.securityId,
+	    m->hdr.securityId,
+	    m->hdr.sequenceNumber,
+	    ts_ns2str(m->hdr.timeStamp).c_str(),
+	    m->hdr.timeStamp,
+	    m->side == EfhOrderSideType::kBid ? 'B' : 'A',
+	    m->pLvl,
+	    m->price,
+	    m->size
+	    );
+  }
+    break;
+  case EfhMdType::DeletePlevel : {
+    auto m {reinterpret_cast<const MdDeletePlevel*>(msg)};
+    fprintf(gr->MD,"%s (0x%x),%u,0x%016jx (%ju),%ju,%s,%ju,%c,%u\n",
+	    DecodeMdType(m->hdr.mdMsgType),
+	    m->hdr.mdRawMsgType,
+	    grId,
+	    m->hdr.securityId,
+	    m->hdr.securityId,
+	    m->hdr.sequenceNumber,
+	    ts_ns2str(m->hdr.timeStamp).c_str(),
+	    m->hdr.timeStamp,
+	    m->side == EfhOrderSideType::kBid ? 'B' : 'A',
+	    m->pLvl
+	    );
+  }
+    break;     
   default:
     return NULL;
   }

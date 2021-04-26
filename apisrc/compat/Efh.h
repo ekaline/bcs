@@ -186,7 +186,7 @@ typedef struct {
 
 typedef struct {
   EfhMdHeader      hdr;
-  int              pLvl;
+  uint8_t          pLvl;
   EfhOrderSideType side;
   uint64_t         price;
   uint32_t         size;
@@ -194,7 +194,7 @@ typedef struct {
 
 typedef struct {
   EfhMdHeader      hdr;
-  int              pLvl;
+  uint8_t          pLvl;
   EfhOrderSideType side;
   uint64_t         price;
   uint32_t         size;
@@ -202,7 +202,7 @@ typedef struct {
 
 typedef struct {
   EfhMdHeader      hdr;
-  int              pLvl;
+  uint8_t          pLvl;
   EfhOrderSideType side;
 } MdDeletePlevel;
   
