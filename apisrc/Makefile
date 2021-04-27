@@ -117,7 +117,7 @@ $(LIBEKALINE).so: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIP_LIB)
 
 ekalib_test: $(LIBEKALINE)_test.so 
 $(LIBEKALINE)_test.so: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIP_LIB)
-	$(CC) $(EKALIB_OBJ) -L. $(SMARTNIC_LIB) $(LWIP_LIB) -o $(LIBEKALINE)_test.so $(LD_FLAGS)
+	$(CC) $(EKALIB_OBJ) -L. $(SMARTNIC_LIB) $(LWIP_LIB) -o $(LIBEKALINE)_test.so $(LD_FLAGS) -static-libstdc++ -static-libgcc
 
 
 $(LIBEKALINE).a: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIPOBJS)

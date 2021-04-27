@@ -8,7 +8,7 @@
 
 #define EFH_CME_STRIKE_PRICE_SCALE 1
 //#define EFH_CME_ORDER_PRICE_SCALE  100000000
-#define EFH_CME_ORDER_PRICE_SCALE    1000000
+#define EFH_CME_ORDER_PRICE_SCALE    1e9
 
 
 enum class MsgId : uint16_t {
@@ -604,7 +604,12 @@ struct PktHdr {
     x == 'g'   ? "ThresholdLimitsandPriceBandVariation" : \
     "UNEXPECTED_ENTRY_TYPE"
 
-struct IncrementaRefreshMdEntry {
+struct OptionDefinitionUnderlyingEntry {
+  int32                                 UnderlyingSecurityID;
+  UnderlyingSymbol_T                    UnderlyingSymbol;
+} __attribute__((packed));
+
+struct IncrementalRefreshMdEntry {
   PRICENULL_T                   	MDEntryPx;
   Int32NULL_T                   	MDEntrySize;
   Int32_T                       	SecurityID;

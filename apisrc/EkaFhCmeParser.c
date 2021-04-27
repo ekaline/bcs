@@ -68,7 +68,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       /* ------------------------------- */
       uint entryPos = groupSizePos + sizeof(*pGroupSize);
       for (uint i = 0; i < pGroupSize->numInGroup; i++) {
-	auto e {reinterpret_cast<const IncrementaRefreshMdEntry*>(&pkt[entryPos])};
+	auto e {reinterpret_cast<const IncrementalRefreshMdEntry*>(&pkt[entryPos])};
 
 	if (fh->print_parsed_messages) 
 	  fprintf (parser_log,"\t\t\tsecId=%8d,%s,%s,plvl=%u,p=%16jd,s=%d\n",
@@ -76,7 +76,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 		   MDpdateAction2STR(e->MDUpdateAction),
 		   MDEntryTypeBook2STR(e->MDEntryType),
 		   e->MDPriceLevel,
-		   e->MDEntryPx,
+		   (int64_t) (e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE),
 		   e->MDEntrySize);
 
 	entryPos += pGroupSize->blockLength;
@@ -250,7 +250,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 	  fprintf (parser_log,"\t\t\t%s,plvl=%u,p=%16jd,s=%d\n",
 		   MDEntryType2STR(e->MDEntryType),
 		   e->MDPriceLevel,
-		   e->MDEntryPx,
+		   (int64_t) (e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE),
 		   e->MDEntrySize
 		   );
 
@@ -388,7 +388,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       }
 
       if (fh->print_parsed_messages) 
-	fprintf(parser_log,"\t\tDefinitionOption55: \'%s\',\'%s\',\'%s\',%s,\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u, %ju\n",
+	fprintf(parser_log,"\t\tDefinitionOption55: \'%s\',\'%s\',\'%s\',%s,\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u, %ju (%jd)\n",
 		securityExchange.c_str(),
 		asset.c_str(),
 		symbol.c_str(),
@@ -397,7 +397,8 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 		rootBlock->SecurityID,
 		cfiCode.c_str(),
 		pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week,
-		rootBlock->StrikePrice
+		rootBlock->StrikePrice,
+		(int64_t)(rootBlock->StrikePrice / EFH_CME_ORDER_PRICE_SCALE / 1e9 * rootBlock->DisplayFactor)
 		);
 
       EfhDefinitionMsg msg = {};
@@ -416,19 +417,61 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       msg.expiryDate            = pMaturity->year * 10000 + pMaturity->month * 100 + pMaturity->day;
       msg.contractSize          = 0;
       //      msg.strikePrice           = rootBlock->StrikePrice / EFH_CME_STRIKE_PRICE_SCALE;
-      msg.strikePrice           = rootBlock->StrikePrice / rootBlock->DisplayFactor;
+      msg.strikePrice           = rootBlock->StrikePrice / EFH_CME_ORDER_PRICE_SCALE / 1e9 * rootBlock->DisplayFactor;
       msg.exchange              = EfhExchange::kCME;
 
-      memcpy (&msg.underlying, rootBlock->Asset,std::min(sizeof(msg.underlying), sizeof(rootBlock->Asset)));
+      //     memcpy (&msg.underlying, rootBlock->Asset,std::min(sizeof(msg.underlying), sizeof(rootBlock->Asset)));
       //      memcpy (&msg.classSymbol,rootBlock->Symbol,std::min(sizeof(msg.classSymbol),sizeof(rootBlock->Symbol)));
       for (size_t i = 0; i < sizeof(msg.classSymbol) && rootBlock->Symbol[i] != ' '; i++)
 	msg.classSymbol[i] = rootBlock->Symbol[i];
 
       msg.opaqueAttrA           = rootBlock->DisplayFactor;
       //      msg.opaqueAttrB           = rootBlock->PriceDisplayFormat;
-      
-      pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
 
+      uint currPos = rootBlockPos + msgHdr->blockLen;
+      /* ------------------------------- */
+      {
+	auto pGroupSize {reinterpret_cast<const groupSize_T*>(&pkt[currPos])};
+	currPos += sizeof(*pGroupSize);
+	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+	  // skipping "Number of EventType entries"
+	  currPos += pGroupSize->blockLength;
+	}
+      }
+      /* ------------------------------- */
+      {
+	auto pGroupSize {reinterpret_cast<const groupSize_T*>(&pkt[currPos])};
+	currPos += sizeof(*pGroupSize);
+	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+	  // skipping "Number of InstrAttribType entries"
+	  currPos += pGroupSize->blockLength;
+	}
+      }    
+      /* ------------------------------- */
+       {
+	auto pGroupSize {reinterpret_cast<const groupSize_T*>(&pkt[currPos])};
+	currPos += sizeof(*pGroupSize);
+	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+	  // skipping "Number of entries"
+	  currPos += pGroupSize->blockLength;
+	}
+      }    
+      /* ------------------------------- */
+        {
+	auto pGroupSize {reinterpret_cast<const groupSize_T*>(&pkt[currPos])};
+	currPos += sizeof(*pGroupSize);
+	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+	  // "Number of underlying instruments"
+	  auto e {reinterpret_cast<const OptionDefinitionUnderlyingEntry*>(&pkt[currPos])};
+
+	  memcpy (&msg.underlying, e->UnderlyingSymbol,std::min(sizeof(msg.underlying), sizeof(e->UnderlyingSymbol)));
+	  pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+
+	  currPos += pGroupSize->blockLength;
+	}
+      }    
+      /* ------------------------------- */
+                 
       if (processedDefinitionMessages >= (int)rootBlock->TotNumReports) return true;
     }
       break;
