@@ -37,7 +37,9 @@
 #include "EfhXdpProps.h"
 #include "EfhCmeProps.h"
 
+#include "EfhTestTypes.h"
 #include "EfhTestFuncs.h"
+
 
 /* ------------------------------------------------------------ */
 

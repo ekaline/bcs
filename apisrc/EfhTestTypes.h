@@ -32,19 +32,14 @@
 #define MAX_GROUPS 36
 #define MAX_TEST_THREADS 16
 #define SYMBOL_SIZE 32
-
-static volatile bool keep_work = true;
-
-static int fatalErrorCnt = 0;
-static const int MaxFatalErrors = 4;
-
-std::vector<std::string> underlyings;
-std::vector<uint64_t>    securities;
+#define DEFAULT_DISPLAY_PRICE_SCALE 10000
+#define CME_DEFAULT_DISPLAY_PRICE_SCALE 100000000
 
 struct TestSecurityCtx {
   std::string avtSecName;
   std::string underlying;
   std::string classSymbol;
+  int64_t     displayPriceScale = DEFAULT_DISPLAY_PRICE_SCALE;
 };
 
 class McGrpCtx {
@@ -81,15 +76,25 @@ class McGrpCtx {
   std::vector<TestSecurityCtx> security;
 };
 
-static McGrpCtx* grCtx[MAX_EXCH][MAX_GROUPS] = {};
-
 struct TestRunGroup {
   std::string optArgStr;
 
 };
 
-static bool print_tob_updates = false;
-static bool subscribe_all     = false;
+/* ------------------------------------------------------------ */
+
+bool print_tob_updates = false;
+bool subscribe_all     = false;
+volatile bool keep_work = true;
+
+int fatalErrorCnt = 0;
+const int MaxFatalErrors = 4;
+
+std::vector<std::string> underlyings;
+std::vector<uint64_t>    securities;
+
+McGrpCtx* grCtx[MAX_EXCH][MAX_GROUPS] = {};
+
 
 
 #endif

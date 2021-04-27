@@ -328,14 +328,19 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
   EkaSource exch = msg->header.group.source;
   EkaLSI    grId = msg->header.group.localId;
 
-#ifndef EKA_TEST_IGNORE_DEFINITIONS
-  int secIdx = (int)secData;
-#endif
-
   auto gr = grCtx[(int)exch][grId];
   if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  
+  auto efhGr = pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[grId];  
 
-  auto efhGr = pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[grId];
+#ifdef EKA_TEST_IGNORE_DEFINITIONS
+  std::string currClassSymbol = "DEFAULT_UNDERLYING_ID";
+  int64_t priceScaleFactor = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE;
+#else
+  int secIdx                  = (int)secData;
+  std::string currClassSymbol = gr->security.at(secIdx).classSymbol;
+  int64_t priceScaleFactor    = gr->security.at(secIdx).displayPriceScale;
+#endif
 
   if (pEfhCtx->printQStatistics && (++efhGr->upd_ctr % 1000000 == 0)) {
     efhMonitorFhGroupState(pEfhCtx,(EkaGroup*)&msg->header.group);
@@ -343,24 +348,19 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
 
   if (! print_tob_updates) return NULL;
 
-  fprintf(gr->MD,"%s,%s,%s,%ju,%s,%c,%u,(%jd)%.*f,%u,%u,(%jd)%.*f,%u,%c,%c,%d,%d,%s,%ju\n",
-	  EKA_CTS_SOURCE(msg->header.group.source),
+  fprintf(gr->MD,"%s,%s,%ju,%s,%c,%u,(%jd)%.*f,%u,%u,(%jd)%.*f,%u,%c,%c,%d,%d,%s,%ju\n",
 	  eka_get_date().c_str(),
 	  eka_get_time().c_str(),
 	  msg->header.securityId,
-#ifdef EKA_TEST_IGNORE_DEFINITIONS
-	  "DEFAULT_UNDERLYING_ID",
-#else
-	  gr->security.at(secIdx).classSymbol.c_str(),
-#endif
+	  currClassSymbol.c_str(),
 	  '1',
 	  msg->bidSide.size,
 	  msg->bidSide.price,
-	  EKA_DEC_POINTS_10000(msg->bidSide.price), ((float) msg->bidSide.price / 10000),
+	  EKA_DEC_POINTS_10000(msg->bidSide.price), ((float) msg->bidSide.price / priceScaleFactor),
 	  msg->bidSide.customerSize,
 	  msg->askSide.size,
 	  msg->askSide.price,
-	  EKA_DEC_POINTS_10000(msg->askSide.price), ((float) msg->askSide.price / 10000),
+	  EKA_DEC_POINTS_10000(msg->askSide.price), ((float) msg->askSide.price / priceScaleFactor),
 	  msg->askSide.customerSize,
 	  EKA_TS_DECODE(msg->tradeStatus),
 	  EKA_TS_DECODE(msg->tradeStatus),
@@ -442,9 +442,10 @@ void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUs
     securities.push_back(msg->header.securityId);
 	
     TestSecurityCtx newSecurity = {
-      .avtSecName  = std::string(avtSecName),
-      .underlying  = underlyingName,
-      .classSymbol = classSymbol
+      .avtSecName        = std::string(avtSecName),
+      .underlying        = underlyingName,
+      .classSymbol       = classSymbol,
+      .displayPriceScale = exch == EkaSource::kCME_SBE ? (int64_t)msg->opaqueAttrA : DEFAULT_DISPLAY_PRICE_SCALE
     };
     
     gr->security.push_back(newSecurity);
