@@ -381,11 +381,11 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
 
 void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
   if (msg->header.group.source  == EkaSource::kCME_SBE && msg->securityType == EfhSecurityType::kOpt) {
-   std::string classSymbol    = std::string(msg->classSymbol,sizeof(msg->classSymbol));
-   sprintf(dst,"%s_%c%04d",
+    std::string classSymbol    = std::string(msg->classSymbol,sizeof(msg->classSymbol));
+    sprintf(dst,"%s_%c%04jd",
 	    classSymbol.c_str(),
 	    msg->optionType == EfhOptionType::kCall ? 'C' : 'P',
-	   (int)(msg->strikePrice / 10000));
+	    msg->strikePrice);
   } else {
   
     uint8_t y,m,d;

@@ -446,10 +446,19 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 	auto pGroupSize {reinterpret_cast<const groupSize_T*>(&pkt[currPos])};
 	currPos += sizeof(*pGroupSize);
 	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
-	  // skipping "Number of InstrAttribType entries"
+	  // skipping "Number of FeedType entries"
 	  currPos += pGroupSize->blockLength;
 	}
       }    
+      /* ------------------------------- */
+      {
+	auto pGroupSize {reinterpret_cast<const groupSize_T*>(&pkt[currPos])};
+	currPos += sizeof(*pGroupSize);
+	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+	  // skipping "Number of InstrAttribType entries"
+	  currPos += pGroupSize->blockLength;
+	}
+      }
       /* ------------------------------- */
        {
 	auto pGroupSize {reinterpret_cast<const groupSize_T*>(&pkt[currPos])};
@@ -472,7 +481,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 
 	  currPos += pGroupSize->blockLength;
 	}
-      }    
+      }	
       /* ------------------------------- */
                  
       if (processedDefinitionMessages >= (int)rootBlock->TotNumReports) return true;
