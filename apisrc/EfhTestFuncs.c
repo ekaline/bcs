@@ -445,7 +445,8 @@ void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUs
       .avtSecName        = std::string(avtSecName),
       .underlying        = underlyingName,
       .classSymbol       = classSymbol,
-      .displayPriceScale = exch == EkaSource::kCME_SBE ? (int64_t)msg->opaqueAttrA : DEFAULT_DISPLAY_PRICE_SCALE
+      .displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE
+      //      .displayPriceScale = exch == EkaSource::kCME_SBE ? (int64_t)msg->opaqueAttrA : DEFAULT_DISPLAY_PRICE_SCALE
     };
     
     gr->security.push_back(newSecurity);

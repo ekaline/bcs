@@ -415,7 +415,8 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       msg.optionType            = putOrCall;
       msg.expiryDate            = pMaturity->year * 10000 + pMaturity->month * 100 + pMaturity->day;
       msg.contractSize          = 0;
-      msg.strikePrice           = rootBlock->StrikePrice / EFH_CME_STRIKE_PRICE_SCALE;
+      //      msg.strikePrice           = rootBlock->StrikePrice / EFH_CME_STRIKE_PRICE_SCALE;
+      msg.strikePrice           = rootBlock->StrikePrice / rootBlock->DisplayFactor;
       msg.exchange              = EfhExchange::kCME;
 
       memcpy (&msg.underlying, rootBlock->Asset,std::min(sizeof(msg.underlying), sizeof(rootBlock->Asset)));
@@ -424,7 +425,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 	msg.classSymbol[i] = rootBlock->Symbol[i];
 
       msg.opaqueAttrA           = rootBlock->DisplayFactor;
-      msg.opaqueAttrB           = rootBlock->PriceDisplayFormat;
+      //      msg.opaqueAttrB           = rootBlock->PriceDisplayFormat;
       
       pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
 
