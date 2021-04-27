@@ -5,6 +5,7 @@
 #include <endian.h>
 #include <inttypes.h>
 #include <string>
+#include <cmath>
 
 #include "EkaFhCmeParser.h"
 
@@ -113,13 +114,13 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 	case MDUpdateAction_T::New:
 	  tobChange = s->newPlevel(side,
 				   e->MDPriceLevel,
-				   e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE,
+				   (int64_t)std::round(e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE),
 				   e->MDEntrySize);
 	  break;
 	case MDUpdateAction_T::Change:
 	  tobChange = s->changePlevel(side,
 				      e->MDPriceLevel,
-				      e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE,
+				      (int64_t)std::round(e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE),
 				      e->MDEntrySize);
 	  break;
 	case MDUpdateAction_T::Delete:

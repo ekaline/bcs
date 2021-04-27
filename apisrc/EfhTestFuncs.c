@@ -347,7 +347,7 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
   int secIdx                  = (int)secData;
   std::string currAvtSecName  = gr->security.at(secIdx).avtSecName.c_str();	  
   std::string currClassSymbol = gr->security.at(secIdx).classSymbol;
-  int64_t priceScaleFactor    = 10000; //gr->security.at(secIdx).displayPriceScale;
+  int64_t priceScaleFactor    = 100; //gr->security.at(secIdx).displayPriceScale;
 #endif
 
   if (pEfhCtx->printQStatistics && (++efhGr->upd_ctr % 1000000 == 0)) {
