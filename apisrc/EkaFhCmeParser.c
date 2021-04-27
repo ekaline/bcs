@@ -387,7 +387,8 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 	on_error("unexpected PutOrCall %d",(int)rootBlock->PutOrCall);
       }
 
-      if (fh->print_parsed_messages) 
+      if (fh->print_parsed_messages) {
+	hexDump("DefinitionOption55",&pkt[rootBlockPos],msgHdr->size,parser_log);
 	fprintf(parser_log,"\t\tDefinitionOption55: \'%s\',\'%s\',\'%s\',%s,\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u, %ju (%jd)\n",
 		securityExchange.c_str(),
 		asset.c_str(),
@@ -400,7 +401,8 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 		rootBlock->StrikePrice,
 		(int64_t)(rootBlock->StrikePrice / EFH_CME_ORDER_PRICE_SCALE / 1e9 * rootBlock->DisplayFactor)
 		);
-
+      }
+      
       EfhDefinitionMsg msg = {};
       msg.header.msgType        = EfhMsgType::kDefinition;
       msg.header.group.source   = EkaSource::kCME_SBE;
@@ -420,13 +422,14 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       msg.strikePrice           = rootBlock->StrikePrice / EFH_CME_ORDER_PRICE_SCALE / 1e9 * rootBlock->DisplayFactor;
       msg.exchange              = EfhExchange::kCME;
 
-      //     memcpy (&msg.underlying, rootBlock->Asset,std::min(sizeof(msg.underlying), sizeof(rootBlock->Asset)));
+      memcpy (&msg.underlying, rootBlock->Asset,std::min(sizeof(msg.underlying), sizeof(rootBlock->Asset)));
       //      memcpy (&msg.classSymbol,rootBlock->Symbol,std::min(sizeof(msg.classSymbol),sizeof(rootBlock->Symbol)));
       for (size_t i = 0; i < sizeof(msg.classSymbol) && rootBlock->Symbol[i] != ' '; i++)
 	msg.classSymbol[i] = rootBlock->Symbol[i];
 
       msg.opaqueAttrA           = rootBlock->DisplayFactor;
       //      msg.opaqueAttrB           = rootBlock->PriceDisplayFormat;
+      pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
 
       uint currPos = rootBlockPos + msgHdr->blockLen;
       /* ------------------------------- */
