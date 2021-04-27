@@ -213,9 +213,7 @@ int main(int argc, char *argv[]) {
     for (auto grId = 0; grId < MAX_GROUPS; grId++) {
       auto gr = grCtx[exch][grId];
       if (gr == NULL) continue;
-      fclose (gr->fullDict);
-      fclose (gr->subscrDict);
-      fclose(gr->MD);      
+      delete gr;
     }
   }
   printf ("Exitting normally...\n");

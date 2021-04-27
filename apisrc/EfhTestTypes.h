@@ -68,6 +68,12 @@ class McGrpCtx {
     TEST_LOG("%s:%d TestGrCtx created",EKA_EXCH_DECODE(exch),grId);
   }
 
+  ~McGrpCtx() {
+    fclose(fullDict);
+    fclose(subscrDict);
+    fclose(MD); 
+  }
+  
   EkaSource exch = static_cast<EkaSource>(-1);
   EkaLSI    grId = static_cast<EkaLSI>(-1);
 
@@ -77,6 +83,7 @@ class McGrpCtx {
 
   std::vector<TestSecurityCtx> security;
 };
+
 
 struct TestRunGroup {
   std::string optArgStr;
