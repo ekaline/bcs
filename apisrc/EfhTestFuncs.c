@@ -55,6 +55,7 @@ int credRelease(EkaCredentialLease *lease, void* context) {
 }
 
 void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+  if (! keep_work) return NULL;
 
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
@@ -101,6 +102,7 @@ void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData use
 }
 
 void* onTrade(const EfhTradeMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+  if (! keep_work) return NULL;
   return NULL;
 }
 
@@ -222,16 +224,19 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
 }
 
 void onException(EkaExceptionReport* msg, EfhRunUserData efhRunUserData) {
+  if (! keep_work) return;
   printf("%s: Doing nothing\n",__func__);
   return;
 }
 
 void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fire_report_buf, size_t size) {
+  if (! keep_work) return;
   printf ("%s: Doing nothing \n",__func__);
   return;	 
 }
 
 void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
+  if (! keep_work) return NULL;
   EfhCtx* pEfhCtx = (EfhCtx*) efhRunUserData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
 
@@ -322,6 +327,7 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
 }
 
 void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+  if (! keep_work) return NULL;
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
 
@@ -399,6 +405,8 @@ void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
 /* ------------------------------------------------------------ */
 
 void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+  if (! keep_work) return NULL;
+  
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
 
