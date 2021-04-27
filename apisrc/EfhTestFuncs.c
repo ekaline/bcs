@@ -334,10 +334,12 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
   auto efhGr = pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[grId];  
 
 #ifdef EKA_TEST_IGNORE_DEFINITIONS
+  std::string currAvtSecName  = "DEFAULT_AVT_SEC_NAME";
   std::string currClassSymbol = "DEFAULT_UNDERLYING_ID";
   int64_t priceScaleFactor = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE;
 #else
   int secIdx                  = (int)secData;
+  std::string currAvtSecName  = gr->security.at(secIdx).avtSecName.c_str();	  
   std::string currClassSymbol = gr->security.at(secIdx).classSymbol;
   int64_t priceScaleFactor    = gr->security.at(secIdx).displayPriceScale;
 #endif
@@ -348,18 +350,17 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
 
   if (! print_tob_updates) return NULL;
 
-  fprintf(gr->MD,"%s,%s,%ju,%s,%c,%u,(%jd)%.*f,%u,%u,(%jd)%.*f,%u,%c,%c,%d,%d,%s,%ju\n",
+  fprintf(gr->MD,"%s,%s,%ju,%s,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%d,%d,%s,%ju\n",
 	  eka_get_date().c_str(),
 	  eka_get_time().c_str(),
 	  msg->header.securityId,
+	  currAvtSecName.c_str(),
 	  currClassSymbol.c_str(),
 	  '1',
 	  msg->bidSide.size,
-	  msg->bidSide.price,
 	  EKA_DEC_POINTS_10000(msg->bidSide.price), ((float) msg->bidSide.price / priceScaleFactor),
 	  msg->bidSide.customerSize,
 	  msg->askSide.size,
-	  msg->askSide.price,
 	  EKA_DEC_POINTS_10000(msg->askSide.price), ((float) msg->askSide.price / priceScaleFactor),
 	  msg->askSide.customerSize,
 	  EKA_TS_DECODE(msg->tradeStatus),
@@ -375,10 +376,10 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
 void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
   if (msg->header.group.source  == EkaSource::kCME_SBE && msg->securityType == EfhSecurityType::kOpt) {
    std::string classSymbol    = std::string(msg->classSymbol,sizeof(msg->classSymbol));
-   sprintf(dst,"%s_%c%jd",
+   sprintf(dst,"%s_%c%04d",
 	    classSymbol.c_str(),
 	    msg->optionType == EfhOptionType::kCall ? 'C' : 'P',
-	    msg->strikePrice);
+	   (int)(msg->strikePrice / 10000));
   } else {
   
     uint8_t y,m,d;
@@ -416,14 +417,7 @@ void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUs
   classSymbol.resize   (strlen(classSymbol.c_str()));
 
   char avtSecName[SYMBOL_SIZE] = {};
-  /* if (msg->header.group.source  == EkaSource::kCME_SBE && msg->securityType == EfhSecurityType::kOpt) { */
-  /*   sprintf(avtSecName,"%s_%c%d", */
-  /* 	    classSymbol.c_str(), */
-  /* 	    msg->optionType == EfhOptionType::kCall ? 'C' : 'P', */
-  /* 	    msg->strikePrice); */
-  /* } else { */
-  /*   eka_create_avt_definition(avtSecName,msg); */
-  /* } */
+
   eka_create_avt_definition(avtSecName,msg);
   fprintf (gr->fullDict,"%s,%ju,%s,%s,%s,%s,%ju,%ju\n",
 	   avtSecName,
