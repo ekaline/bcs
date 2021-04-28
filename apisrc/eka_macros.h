@@ -5,6 +5,7 @@
 #include <string>
 #include <algorithm>
 #include <errno.h>
+#include <math.h>
 
 #include "ekaNW.h"
 #include "efh_macros.h"
@@ -143,6 +144,17 @@ inline void hexDump (const char *desc, const void *addr, int len, std::FILE *fil
   }
   while ((i % 16) != 0) { std::fprintf (file, "   "); i++; }
   std::fprintf (file, "  %s\n", buff);
+}
+
+
+/* ------------------------------------------------------- */
+
+inline int decPoints(int64_t a, int scaleF) {
+  if (a % 10 != 0) return (int)log10(scaleF);
+  for (int i = 100 ; i <= (int)scaleF/10; i *= 10) {
+    if (a % i != 0) return (int)log10(i) - 1;
+  }
+  return 1;
 }
 
 #endif

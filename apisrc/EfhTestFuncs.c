@@ -89,7 +89,8 @@ void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData use
 	  gr->security.at(secIdx).classSymbol.c_str(),
 	  gr->security.at(secIdx).avtSecName.c_str(),	  
 #endif
-	  EKA_DEC_POINTS_10000(msg->bookSide.price), ((float) msg->bookSide.price / 10000),
+	  //	  EKA_DEC_POINTS_10000(msg->bookSide.price), ((float) msg->bookSide.price / 10000),
+	  decPoints(msg->bookSide.price,10000), ((float) msg->bookSide.price / 10000),
 	  msg->bookSide.size,
 
 	  EKA_TS_DECODE(msg->tradeStatus),
@@ -364,10 +365,10 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
 	  currClassSymbol.c_str(),
 	  '1',
 	  msg->bidSide.size,
-	  EKA_DEC_POINTS_10000(msg->bidSide.price), ((float) msg->bidSide.price / priceScaleFactor),
+	  decPoints(msg->bidSide.price,priceScaleFactor), ((float) msg->bidSide.price / priceScaleFactor),
 	  msg->bidSide.customerSize,
 	  msg->askSide.size,
-	  EKA_DEC_POINTS_10000(msg->askSide.price), ((float) msg->askSide.price / priceScaleFactor),
+	  decPoints(msg->askSide.price,priceScaleFactor), ((float) msg->askSide.price / priceScaleFactor),
 	  msg->askSide.customerSize,
 	  EKA_TS_DECODE(msg->tradeStatus),
 	  EKA_TS_DECODE(msg->tradeStatus),
