@@ -24,44 +24,38 @@ class EpmFireBoeTemplate : public EpmTemplate {
 
       {"src"   , 2 , HwField::IMMEDIATE,    false, false},
       {"dest"  , 2 , HwField::IMMEDIATE,    false, false},
-      {"seqno" , 4 , HwField::LOCAL_SEQ,    false, true},
-      {"ackno" , 4 , HwField::REMOTE_SEQ,   false, true},
+      {"seqno" , 4 , HwField::LOCAL_SEQ,    false, true },
+      {"ackno" , 4 , HwField::REMOTE_SEQ,   false, true },
       {"hdrlen", 2 , HwField::IMMEDIATE,    false, false},
-      {"wnd"   , 2 , HwField::TCP_WINDOW,   false, true},
-      {"chksum", 2 , HwField::TCP_CHCK_SUM, false, true},
+      {"wnd"   , 2 , HwField::TCP_WINDOW,   false, true },
+      {"chksum", 2 , HwField::TCP_CHCK_SUM, false, true },
       {"urgp"  , 2 , HwField::IMMEDIATE,    false, false},
 
-      /* --------------------------- */                        // swap,  clear
+      /* --------------------------- */                         // swap, clear
       {"StartOfMessage" ,               2, HwField::IMMEDIATE,    false, false }, // 0xBABA
       {"MessageLength" ,                2, HwField::IMMEDIATE,    false, false }, // 45
       {"MessageType" ,                  1, HwField::IMMEDIATE,    false, false }, // 0x38 NewOrder
       {"MatchingUnit" ,                 1, HwField::IMMEDIATE,    false, false }, // always 0
       {"SequenceNumber" ,               4, HwField::IMMEDIATE,    false, false }, // 0
       {"ClOrdIDtxt" ,                   12,HwField::IMMEDIATE,    false, false }, // free text
-      {"ClOrdIDseq" ,                   8, HwField::APPSEQ,       false, true },  //
-      {"Side" ,                         1, HwField::SIDE,         true, true },  // '1'-Bid, '2'-Ask
-      //      {"OrderQty" ,                     4, HwField::SIZE,         false, true },
-      {"OrderQty" ,                     4, HwField::SIZE,         true, true },
+      {"ClOrdIDseq" ,                   8, HwField::APPSEQ,       false, true  }, //
+      {"Side" ,                         1, HwField::SIDE,         true,  true  }, // '1'-Bid, '2'-Ask
+      {"OrderQty" ,                     4, HwField::SIZE,         true,  true  },
       /* --------------------------- */
       {"NumberOfBitfields" ,            1, HwField::IMMEDIATE,    false, false }, // 2
       {"NewOrderBitfield1" ,            1, HwField::IMMEDIATE,    false, false }, // 0x17
       {"NewOrderBitfield2" ,            1, HwField::IMMEDIATE,    false, false }, // 0x41
       {"NewOrderBitfield3" ,            1, HwField::IMMEDIATE,    false, false }, // 0x01
       {"NewOrderBitfield4" ,            1, HwField::IMMEDIATE,    false, false }, // 0
-      // {"NewOrderBitfield5" ,            1, HwField::IMMEDIATE,    false, false }, // 0
-      // {"NewOrderBitfield6" ,            1, HwField::IMMEDIATE,    false, false }, // 0
-      // {"NewOrderBitfield7" ,            1, HwField::IMMEDIATE,    false, false }, // 0
       /* --------------------------- */
       {"ClearingFirm" ,                 4, HwField::IMMEDIATE,    false, false },  
       {"ClearingAccount" ,              4, HwField::IMMEDIATE,    false, false },  
-      //      {"PriceStamPatch" ,               4, HwField::IMMEDIATE,    false, false },  
-      //      {"Price" ,                        8, HwField::PRICE,        false, true  },  
-      {"Price" ,                        8, HwField::PRICE,        true, true  },  
-      {"OrdType" ,                      1, HwField::IMMEDIATE,    false, false },  // '1','2','3','4'
-      {"TimeInForce" ,                  1, HwField::IMMEDIATE,    false, false },  // '0'..'7'
-      {"SymbolPadding" ,                2, HwField::IMMEDIATE,    false, false },  // right padded by ' '
+      {"Price" ,                        8, HwField::PRICE,        true,  true  },  
+      {"OrdType" ,                      1, HwField::IMMEDIATE,    false, false }, // '1','2','3','4'
+      {"TimeInForce" ,                  1, HwField::IMMEDIATE,    false, false }, // '0'..'7'
       {"Symbol" ,                       6, HwField::SECURITY_ID,  false, true  },
-      {"Capacity" ,                     1, HwField::IMMEDIATE,    false, false },  // 'C','M','F',etc.
+      {"SymbolPadding" ,                2, HwField::IMMEDIATE,    false, false }, // right padded by ' '
+      {"Capacity" ,                     1, HwField::IMMEDIATE,    false, false }, // 'C','M','F',etc.
       {"Account" ,                      16,HwField::IMMEDIATE,    false, false }, 
       {"OpenClose" ,                    1 ,HwField::IMMEDIATE,    false, false }, 
     };
