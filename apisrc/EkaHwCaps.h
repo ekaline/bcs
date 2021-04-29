@@ -8,8 +8,9 @@ class EkaHwCaps {
 
   struct hw_version_capabilities_t {
     uint8_t  hwcaps;
+    uint8_t  hwparser; //hw engine revision
     uint8_t  strategy;
-    uint8_t  parser;
+    uint8_t  parser; //soft modified
     uint8_t  sniffer;
     uint8_t  dma;
     uint8_t  epm;

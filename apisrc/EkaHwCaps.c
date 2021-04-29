@@ -73,6 +73,7 @@ void EkaHwCaps::print2buf() {
   idx += sprintf(&buf[idx],"hwCaps.version.hwcaps\t\t\t= %ju\n",           (uint64_t)(hwCaps.version.hwcaps));
   idx += sprintf(&buf[idx],"hwCaps.version.strategy\t\t\t= %ju\n",         (uint64_t)(hwCaps.version.strategy));
   idx += sprintf(&buf[idx],"hwCaps.version.parser\t\t\t= %ju (%s)\n",      (uint64_t)(hwCaps.version.parser),EKA_FEED2STRING (hwCaps.version.parser));
+  idx += sprintf(&buf[idx],"hwCaps.version.hwparser\t\t\t= %ju\n",          (uint64_t)(hwCaps.version.hwparser));
   idx += sprintf(&buf[idx],"hwCaps.version.sniffer\t\t\t= %ju\n",          (uint64_t)(hwCaps.version.sniffer));
   idx += sprintf(&buf[idx],"hwCaps.version.dma\t\t\t= %ju\n",              (uint64_t)(hwCaps.version.dma));
   idx += sprintf(&buf[idx],"hwCaps.version.epm\t\t\t= %ju\n",              (uint64_t)(hwCaps.version.epm));
@@ -99,6 +100,10 @@ void EkaHwCaps::printStdout() {
 
 
 bool EkaHwCaps::check() {
+ if (hwCaps.version.hwparser != EKA_EXPECTED_HWPARSER_VERSION) 
+    on_error("hwCaps.version.dma %x != EKA_EXPECTED_HWPARSER_VERSION %x",
+	     hwCaps.version.hwparser,EKA_EXPECTED_HWPARSER_VERSION);
+  
   if (hwCaps.version.epm != EKA_EXPECTED_EPM_VERSION) 
     on_error("hwCaps.version.epm %x != EKA_EXPECTED_EPM_VERSION %x",
 	     hwCaps.version.epm,EKA_EXPECTED_EPM_VERSION);
@@ -126,6 +131,7 @@ bool EkaHwCaps::check() {
   if (hwCaps.epm.numof_actions < EkaEpm::MaxActions)
     on_error("hwCaps.epm.numof_actions %d < EkaEpm::MaxActions %d",
 	     hwCaps.epm.numof_actions, EkaEpm::MaxActions);
+  
     
   return true;
 }

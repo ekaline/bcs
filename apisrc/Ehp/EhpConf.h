@@ -55,18 +55,35 @@ struct EhpParseTemplateSide {
   uint8_t         byteOffs;     // offset of the Side field (if relevant)
 } __attribute__((packed));
 
+
+/**
+* Configuration defining how to determine 4B masked fields
+*
+*/
+struct EhpParseTemplateMasked {
+  uint16_t        msgId;       // message Id as appears in the protocol
+  uint32_t        expected;    // expected value of the extracted field after applying mask
+  uint32_t        mask;        // bitmask to apply for the extracted field
+  uint8_t         byteOffs_0;  // 
+  uint8_t         byteOffs_1;  // 
+  uint8_t         byteOffs_2;  // 
+  uint8_t         byteOffs_3;  // 
+} __attribute__((packed));
+
 /**
 * Set of parsing templates used to extract "relevant" fields
 *
 */
 struct EhpFieldParams {
-  EhpParseTemplate     sequence[EhpMaxMsgTypes];
-  EhpParseTemplateSide side[EhpMaxMsgTypes];
-  EhpParseTemplate     securityId[EhpMaxMsgTypes];
-  EhpParseTemplate     price[EhpMaxMsgTypes];
-  EhpParseTemplate     size[EhpMaxMsgTypes];
-  EhpParseTemplate     msgId[EhpMaxMsgTypes];
-  EhpParseTemplate     msgLen[EhpMaxMsgTypes];
+  EhpParseTemplateMasked miscEnable[EhpMaxMsgTypes];
+  EhpParseTemplateMasked isAON[EhpMaxMsgTypes];
+  EhpParseTemplate       sequence[EhpMaxMsgTypes];
+  EhpParseTemplateSide   side[EhpMaxMsgTypes];
+  EhpParseTemplate       securityId[EhpMaxMsgTypes];
+  EhpParseTemplate       price[EhpMaxMsgTypes];
+  EhpParseTemplate       size[EhpMaxMsgTypes];
+  EhpParseTemplate       msgId[EhpMaxMsgTypes];
+  EhpParseTemplate       msgLen[EhpMaxMsgTypes];
 } __attribute__((packed));
 
 /* struct EhpHeaderParams { */

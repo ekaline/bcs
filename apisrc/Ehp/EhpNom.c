@@ -33,144 +33,182 @@ int EhpNom::init() {
 
 
 int EhpNom::createAddOrderShort() {
-  conf.params.bytes4Strategy[AddOrderShortMsg].msgId    = 'a';
-  conf.params.bytes4Strategy[AddOrderShortMsg].byteOffs = 26+2;
+  uint8_t msgId   = 'a';
+  int     msgType = AddOrderShortMsg;
 
-  conf.params.bytes4SecLookup[AddOrderShortMsg].msgId    = 'a';
-  conf.params.bytes4SecLookup[AddOrderShortMsg].byteOffs = 22+2;
+  conf.params.bytes4Strategy[msgType].msgId    = msgId;
+  conf.params.bytes4Strategy[msgType].byteOffs = 26+2;
 
-  conf.fields.side[AddOrderShortMsg].msgId      = 'a';
-  conf.fields.side[AddOrderShortMsg].presence   = EhpSidePresence::EXPLICIT;
-  conf.fields.side[AddOrderShortMsg].byteOffs   = 17+2;
-  conf.fields.side[AddOrderShortMsg].encode.ask = 'S';
-  conf.fields.side[AddOrderShortMsg].encode.bid = 'B';
+  conf.params.bytes4SecLookup[msgType].msgId    = msgId;
+  conf.params.bytes4SecLookup[msgType].byteOffs = 22+2;
 
-  conf.fields.securityId[AddOrderShortMsg].msgId      = 'a';
-  conf.fields.securityId[AddOrderShortMsg].opcode     = EhpOpcode::NOP;
-  conf.fields.securityId[AddOrderShortMsg].byteOffs_0 = 21+2;
-  conf.fields.securityId[AddOrderShortMsg].byteOffs_1 = 20+2;
-  conf.fields.securityId[AddOrderShortMsg].byteOffs_2 = 19+2;
-  conf.fields.securityId[AddOrderShortMsg].byteOffs_3 = 18+2;
-  conf.fields.securityId[AddOrderShortMsg].byteOffs_4 = EhpBlankByte;
-  conf.fields.securityId[AddOrderShortMsg].byteOffs_5 = EhpBlankByte;
-  conf.fields.securityId[AddOrderShortMsg].byteOffs_6 = EhpBlankByte;
-  conf.fields.securityId[AddOrderShortMsg].byteOffs_7 = EhpBlankByte;
+  conf.fields.side[msgType].msgId      = msgId;
+  conf.fields.side[msgType].presence   = EhpSidePresence::EXPLICIT;
+  conf.fields.side[msgType].byteOffs   = 17+2;
+  conf.fields.side[msgType].encode.ask = 'S';
+  conf.fields.side[msgType].encode.bid = 'B';
 
-  conf.fields.price[AddOrderShortMsg].msgId      = 'a';
-  conf.fields.price[AddOrderShortMsg].opcode     = EhpOpcode::MUL100;
-  conf.fields.price[AddOrderShortMsg].byteOffs_0 = 23+2;
-  conf.fields.price[AddOrderShortMsg].byteOffs_1 = 22+2;
-  conf.fields.price[AddOrderShortMsg].byteOffs_2 = EhpBlankByte;
-  conf.fields.price[AddOrderShortMsg].byteOffs_3 = EhpBlankByte;
-  conf.fields.price[AddOrderShortMsg].byteOffs_4 = EhpBlankByte;
-  conf.fields.price[AddOrderShortMsg].byteOffs_5 = EhpBlankByte;
-  conf.fields.price[AddOrderShortMsg].byteOffs_6 = EhpBlankByte;
-  conf.fields.price[AddOrderShortMsg].byteOffs_7 = EhpBlankByte;
+  conf.fields.isAON[msgType].msgId      = msgId;
+  conf.fields.isAON[msgType].byteOffs_0 = EhpBlankByte;
+  conf.fields.isAON[msgType].byteOffs_1 = EhpBlankByte;
+  conf.fields.isAON[msgType].byteOffs_2 = EhpBlankByte;
+  conf.fields.isAON[msgType].byteOffs_3 = EhpBlankByte;
+  conf.fields.isAON[msgType].mask       = 0x0;    //no AON field
+  conf.fields.isAON[msgType].expected   = 0xFFFF; //no AON field
 
-  conf.fields.size[AddOrderShortMsg].msgId      = 'a';
-  conf.fields.size[AddOrderShortMsg].opcode     = EhpOpcode::NOP;
-  conf.fields.size[AddOrderShortMsg].byteOffs_0 = 25+2;
-  conf.fields.size[AddOrderShortMsg].byteOffs_1 = 24+2;
-  conf.fields.size[AddOrderShortMsg].byteOffs_2 = EhpBlankByte;
-  conf.fields.size[AddOrderShortMsg].byteOffs_3 = EhpBlankByte;
-  conf.fields.size[AddOrderShortMsg].byteOffs_4 = EhpBlankByte;
-  conf.fields.size[AddOrderShortMsg].byteOffs_5 = EhpBlankByte;
-  conf.fields.size[AddOrderShortMsg].byteOffs_6 = EhpBlankByte;
-  conf.fields.size[AddOrderShortMsg].byteOffs_7 = EhpBlankByte;
+  conf.fields.miscEnable[msgType].msgId      = msgId;
+  conf.fields.miscEnable[msgType].byteOffs_0 = EhpBlankByte;
+  conf.fields.miscEnable[msgType].byteOffs_1 = EhpBlankByte;
+  conf.fields.miscEnable[msgType].byteOffs_2 = EhpBlankByte;
+  conf.fields.miscEnable[msgType].byteOffs_3 = EhpBlankByte;
+  conf.fields.miscEnable[msgType].mask       = 0x0; // no special enable fields, so always enable
+  conf.fields.miscEnable[msgType].expected   = 0x0; // no special enable fields, so always enable
 
-  conf.fields.msgId[AddOrderShortMsg].msgId      = 'a';
-  conf.fields.msgId[AddOrderShortMsg].opcode     = EhpOpcode::NOP;
-  conf.fields.msgId[AddOrderShortMsg].byteOffs_0 = 2;
-  conf.fields.msgId[AddOrderShortMsg].byteOffs_1 = EhpBlankByte;
-  conf.fields.msgId[AddOrderShortMsg].byteOffs_2 = EhpBlankByte;
-  conf.fields.msgId[AddOrderShortMsg].byteOffs_3 = EhpBlankByte;
-  conf.fields.msgId[AddOrderShortMsg].byteOffs_4 = EhpBlankByte;
-  conf.fields.msgId[AddOrderShortMsg].byteOffs_5 = EhpBlankByte;
-  conf.fields.msgId[AddOrderShortMsg].byteOffs_6 = EhpBlankByte;
-  conf.fields.msgId[AddOrderShortMsg].byteOffs_7 = EhpBlankByte;
+  conf.fields.securityId[msgType].msgId      = msgId;
+  conf.fields.securityId[msgType].opcode     = EhpOpcode::NOP;
+  conf.fields.securityId[msgType].byteOffs_0 = 21+2;
+  conf.fields.securityId[msgType].byteOffs_1 = 20+2;
+  conf.fields.securityId[msgType].byteOffs_2 = 19+2;
+  conf.fields.securityId[msgType].byteOffs_3 = 18+2;
+  conf.fields.securityId[msgType].byteOffs_4 = EhpBlankByte;
+  conf.fields.securityId[msgType].byteOffs_5 = EhpBlankByte;
+  conf.fields.securityId[msgType].byteOffs_6 = EhpBlankByte;
+  conf.fields.securityId[msgType].byteOffs_7 = EhpBlankByte;
 
-  conf.fields.msgLen[AddOrderShortMsg].msgId      = 'a';
-  conf.fields.msgLen[AddOrderShortMsg].opcode     = EhpOpcode::NOP;
-  conf.fields.msgLen[AddOrderShortMsg].byteOffs_0 = 1;
-  conf.fields.msgLen[AddOrderShortMsg].byteOffs_1 = 0;
-  conf.fields.msgLen[AddOrderShortMsg].byteOffs_2 = EhpBlankByte;
-  conf.fields.msgLen[AddOrderShortMsg].byteOffs_3 = EhpBlankByte;
-  conf.fields.msgLen[AddOrderShortMsg].byteOffs_4 = EhpBlankByte;
-  conf.fields.msgLen[AddOrderShortMsg].byteOffs_5 = EhpBlankByte;
-  conf.fields.msgLen[AddOrderShortMsg].byteOffs_6 = EhpBlankByte;
-  conf.fields.msgLen[AddOrderShortMsg].byteOffs_7 = EhpBlankByte;
+  conf.fields.price[msgType].msgId      = msgId;
+  conf.fields.price[msgType].opcode     = EhpOpcode::MUL100;
+  conf.fields.price[msgType].byteOffs_0 = 23+2;
+  conf.fields.price[msgType].byteOffs_1 = 22+2;
+  conf.fields.price[msgType].byteOffs_2 = EhpBlankByte;
+  conf.fields.price[msgType].byteOffs_3 = EhpBlankByte;
+  conf.fields.price[msgType].byteOffs_4 = EhpBlankByte;
+  conf.fields.price[msgType].byteOffs_5 = EhpBlankByte;
+  conf.fields.price[msgType].byteOffs_6 = EhpBlankByte;
+  conf.fields.price[msgType].byteOffs_7 = EhpBlankByte;
+
+  conf.fields.size[msgType].msgId      = msgId;
+  conf.fields.size[msgType].opcode     = EhpOpcode::NOP;
+  conf.fields.size[msgType].byteOffs_0 = 25+2;
+  conf.fields.size[msgType].byteOffs_1 = 24+2;
+  conf.fields.size[msgType].byteOffs_2 = EhpBlankByte;
+  conf.fields.size[msgType].byteOffs_3 = EhpBlankByte;
+  conf.fields.size[msgType].byteOffs_4 = EhpBlankByte;
+  conf.fields.size[msgType].byteOffs_5 = EhpBlankByte;
+  conf.fields.size[msgType].byteOffs_6 = EhpBlankByte;
+  conf.fields.size[msgType].byteOffs_7 = EhpBlankByte;
+
+  conf.fields.msgId[msgType].msgId      = msgId;
+  conf.fields.msgId[msgType].opcode     = EhpOpcode::NOP;
+  conf.fields.msgId[msgType].byteOffs_0 = 2;
+  conf.fields.msgId[msgType].byteOffs_1 = EhpBlankByte;
+  conf.fields.msgId[msgType].byteOffs_2 = EhpBlankByte;
+  conf.fields.msgId[msgType].byteOffs_3 = EhpBlankByte;
+  conf.fields.msgId[msgType].byteOffs_4 = EhpBlankByte;
+  conf.fields.msgId[msgType].byteOffs_5 = EhpBlankByte;
+  conf.fields.msgId[msgType].byteOffs_6 = EhpBlankByte;
+  conf.fields.msgId[msgType].byteOffs_7 = EhpBlankByte;
+
+  conf.fields.msgLen[msgType].msgId      = msgId;
+  conf.fields.msgLen[msgType].opcode     = EhpOpcode::NOP;
+  conf.fields.msgLen[msgType].byteOffs_0 = 1;
+  conf.fields.msgLen[msgType].byteOffs_1 = 0;
+  conf.fields.msgLen[msgType].byteOffs_2 = EhpBlankByte;
+  conf.fields.msgLen[msgType].byteOffs_3 = EhpBlankByte;
+  conf.fields.msgLen[msgType].byteOffs_4 = EhpBlankByte;
+  conf.fields.msgLen[msgType].byteOffs_5 = EhpBlankByte;
+  conf.fields.msgLen[msgType].byteOffs_6 = EhpBlankByte;
+  conf.fields.msgLen[msgType].byteOffs_7 = EhpBlankByte;
 
   return 0;
 
 }
 
 int EhpNom::createAddOrderLong() {
-  conf.params.bytes4Strategy[AddOrderLongMsg].msgId    = 'A';
-  conf.params.bytes4Strategy[AddOrderLongMsg].byteOffs = 30+2;
+  uint8_t msgId   = 'A';
+  int     msgType = AddOrderLongMsg;
 
-  conf.params.bytes4SecLookup[AddOrderLongMsg].msgId    = 'A';
-  conf.params.bytes4SecLookup[AddOrderLongMsg].byteOffs = 22+2;
+  conf.params.bytes4Strategy[msgType].msgId    = msgId;
+  conf.params.bytes4Strategy[msgType].byteOffs = 30+2;
 
-  conf.fields.side[AddOrderLongMsg].msgId      = 'A';
-  conf.fields.side[AddOrderLongMsg].presence   = EhpSidePresence::EXPLICIT;
-  conf.fields.side[AddOrderLongMsg].byteOffs   = 17+2;
-  conf.fields.side[AddOrderLongMsg].encode.ask = 'S';
-  conf.fields.side[AddOrderLongMsg].encode.bid = 'B';
+  conf.params.bytes4SecLookup[msgType].msgId    = msgId;
+  conf.params.bytes4SecLookup[msgType].byteOffs = 22+2;
 
-  conf.fields.securityId[AddOrderLongMsg].msgId      = 'A';
-  conf.fields.securityId[AddOrderLongMsg].opcode     = EhpOpcode::NOP;
-  conf.fields.securityId[AddOrderLongMsg].byteOffs_0 = 21+2;
-  conf.fields.securityId[AddOrderLongMsg].byteOffs_1 = 20+2;
-  conf.fields.securityId[AddOrderLongMsg].byteOffs_2 = 19+2;
-  conf.fields.securityId[AddOrderLongMsg].byteOffs_3 = 18+2;
-  conf.fields.securityId[AddOrderLongMsg].byteOffs_4 = EhpBlankByte;
-  conf.fields.securityId[AddOrderLongMsg].byteOffs_5 = EhpBlankByte;
-  conf.fields.securityId[AddOrderLongMsg].byteOffs_6 = EhpBlankByte;
-  conf.fields.securityId[AddOrderLongMsg].byteOffs_7 = EhpBlankByte;
+  conf.fields.side[msgType].msgId      = msgId;
+  conf.fields.side[msgType].presence   = EhpSidePresence::EXPLICIT;
+  conf.fields.side[msgType].byteOffs   = 17+2;
+  conf.fields.side[msgType].encode.ask = 'S';
+  conf.fields.side[msgType].encode.bid = 'B';
 
-  conf.fields.price[AddOrderLongMsg].msgId      = 'A';
-  conf.fields.price[AddOrderLongMsg].opcode     = EhpOpcode::NOP;
-  conf.fields.price[AddOrderLongMsg].byteOffs_0 = 25+2;
-  conf.fields.price[AddOrderLongMsg].byteOffs_1 = 24+2;
-  conf.fields.price[AddOrderLongMsg].byteOffs_2 = 23+2;
-  conf.fields.price[AddOrderLongMsg].byteOffs_3 = 22+2;
-  conf.fields.price[AddOrderLongMsg].byteOffs_4 = EhpBlankByte;
-  conf.fields.price[AddOrderLongMsg].byteOffs_5 = EhpBlankByte;
-  conf.fields.price[AddOrderLongMsg].byteOffs_6 = EhpBlankByte;
-  conf.fields.price[AddOrderLongMsg].byteOffs_7 = EhpBlankByte;
+  conf.fields.isAON[msgType].msgId      = msgId;
+  conf.fields.isAON[msgType].byteOffs_0 = EhpBlankByte;
+  conf.fields.isAON[msgType].byteOffs_1 = EhpBlankByte;
+  conf.fields.isAON[msgType].byteOffs_2 = EhpBlankByte;
+  conf.fields.isAON[msgType].byteOffs_3 = EhpBlankByte;
+  conf.fields.isAON[msgType].mask       = 0x0;    //no AON field
+  conf.fields.isAON[msgType].expected   = 0xFFFF; //no AON field
 
-  conf.fields.size[AddOrderLongMsg].msgId      = 'A';
-  conf.fields.size[AddOrderLongMsg].opcode     = EhpOpcode::NOP;
-  conf.fields.size[AddOrderLongMsg].byteOffs_0 = 29+2;
-  conf.fields.size[AddOrderLongMsg].byteOffs_1 = 28+2;
-  conf.fields.size[AddOrderLongMsg].byteOffs_2 = 27+2;
-  conf.fields.size[AddOrderLongMsg].byteOffs_3 = 26+2;
-  conf.fields.size[AddOrderLongMsg].byteOffs_4 = EhpBlankByte;
-  conf.fields.size[AddOrderLongMsg].byteOffs_5 = EhpBlankByte;
-  conf.fields.size[AddOrderLongMsg].byteOffs_6 = EhpBlankByte;
-  conf.fields.size[AddOrderLongMsg].byteOffs_7 = EhpBlankByte;
+  conf.fields.miscEnable[msgType].msgId      = msgId;
+  conf.fields.miscEnable[msgType].byteOffs_0 = EhpBlankByte;
+  conf.fields.miscEnable[msgType].byteOffs_1 = EhpBlankByte;
+  conf.fields.miscEnable[msgType].byteOffs_2 = EhpBlankByte;
+  conf.fields.miscEnable[msgType].byteOffs_3 = EhpBlankByte;
+  conf.fields.miscEnable[msgType].mask       = 0x0; // no special enable fields, so always enable
+  conf.fields.miscEnable[msgType].expected   = 0x0; // no special enable fields, so always enable
 
-  conf.fields.msgId[AddOrderLongMsg].msgId      = 'A';
-  conf.fields.msgId[AddOrderLongMsg].opcode     = EhpOpcode::NOP;
-  conf.fields.msgId[AddOrderLongMsg].byteOffs_0 = 2;
-  conf.fields.msgId[AddOrderLongMsg].byteOffs_1 = EhpBlankByte;
-  conf.fields.msgId[AddOrderLongMsg].byteOffs_2 = EhpBlankByte;
-  conf.fields.msgId[AddOrderLongMsg].byteOffs_3 = EhpBlankByte;
-  conf.fields.msgId[AddOrderLongMsg].byteOffs_4 = EhpBlankByte;
-  conf.fields.msgId[AddOrderLongMsg].byteOffs_5 = EhpBlankByte;
-  conf.fields.msgId[AddOrderLongMsg].byteOffs_6 = EhpBlankByte;
-  conf.fields.msgId[AddOrderLongMsg].byteOffs_7 = EhpBlankByte;
+  conf.fields.securityId[msgType].msgId      = msgId;
+  conf.fields.securityId[msgType].opcode     = EhpOpcode::NOP;
+  conf.fields.securityId[msgType].byteOffs_0 = 21+2;
+  conf.fields.securityId[msgType].byteOffs_1 = 20+2;
+  conf.fields.securityId[msgType].byteOffs_2 = 19+2;
+  conf.fields.securityId[msgType].byteOffs_3 = 18+2;
+  conf.fields.securityId[msgType].byteOffs_4 = EhpBlankByte;
+  conf.fields.securityId[msgType].byteOffs_5 = EhpBlankByte;
+  conf.fields.securityId[msgType].byteOffs_6 = EhpBlankByte;
+  conf.fields.securityId[msgType].byteOffs_7 = EhpBlankByte;
 
-  conf.fields.msgLen[AddOrderLongMsg].msgId      = 'A';
-  conf.fields.msgLen[AddOrderLongMsg].opcode     = EhpOpcode::NOP;
-  conf.fields.msgLen[AddOrderLongMsg].byteOffs_0 = 1;
-  conf.fields.msgLen[AddOrderLongMsg].byteOffs_1 = 0;
-  conf.fields.msgLen[AddOrderLongMsg].byteOffs_2 = EhpBlankByte;
-  conf.fields.msgLen[AddOrderLongMsg].byteOffs_3 = EhpBlankByte;
-  conf.fields.msgLen[AddOrderLongMsg].byteOffs_4 = EhpBlankByte;
-  conf.fields.msgLen[AddOrderLongMsg].byteOffs_5 = EhpBlankByte;
-  conf.fields.msgLen[AddOrderLongMsg].byteOffs_6 = EhpBlankByte;
-  conf.fields.msgLen[AddOrderLongMsg].byteOffs_7 = EhpBlankByte;
+  conf.fields.price[msgType].msgId      = msgId;
+  conf.fields.price[msgType].opcode     = EhpOpcode::NOP;
+  conf.fields.price[msgType].byteOffs_0 = 25+2;
+  conf.fields.price[msgType].byteOffs_1 = 24+2;
+  conf.fields.price[msgType].byteOffs_2 = 23+2;
+  conf.fields.price[msgType].byteOffs_3 = 22+2;
+  conf.fields.price[msgType].byteOffs_4 = EhpBlankByte;
+  conf.fields.price[msgType].byteOffs_5 = EhpBlankByte;
+  conf.fields.price[msgType].byteOffs_6 = EhpBlankByte;
+  conf.fields.price[msgType].byteOffs_7 = EhpBlankByte;
+
+  conf.fields.size[msgType].msgId      = msgId;
+  conf.fields.size[msgType].opcode     = EhpOpcode::NOP;
+  conf.fields.size[msgType].byteOffs_0 = 29+2;
+  conf.fields.size[msgType].byteOffs_1 = 28+2;
+  conf.fields.size[msgType].byteOffs_2 = 27+2;
+  conf.fields.size[msgType].byteOffs_3 = 26+2;
+  conf.fields.size[msgType].byteOffs_4 = EhpBlankByte;
+  conf.fields.size[msgType].byteOffs_5 = EhpBlankByte;
+  conf.fields.size[msgType].byteOffs_6 = EhpBlankByte;
+  conf.fields.size[msgType].byteOffs_7 = EhpBlankByte;
+
+  conf.fields.msgId[msgType].msgId      = msgId;
+  conf.fields.msgId[msgType].opcode     = EhpOpcode::NOP;
+  conf.fields.msgId[msgType].byteOffs_0 = 2;
+  conf.fields.msgId[msgType].byteOffs_1 = EhpBlankByte;
+  conf.fields.msgId[msgType].byteOffs_2 = EhpBlankByte;
+  conf.fields.msgId[msgType].byteOffs_3 = EhpBlankByte;
+  conf.fields.msgId[msgType].byteOffs_4 = EhpBlankByte;
+  conf.fields.msgId[msgType].byteOffs_5 = EhpBlankByte;
+  conf.fields.msgId[msgType].byteOffs_6 = EhpBlankByte;
+  conf.fields.msgId[msgType].byteOffs_7 = EhpBlankByte;
+
+  conf.fields.msgLen[msgType].msgId      = msgId;
+  conf.fields.msgLen[msgType].opcode     = EhpOpcode::NOP;
+  conf.fields.msgLen[msgType].byteOffs_0 = 1;
+  conf.fields.msgLen[msgType].byteOffs_1 = 0;
+  conf.fields.msgLen[msgType].byteOffs_2 = EhpBlankByte;
+  conf.fields.msgLen[msgType].byteOffs_3 = EhpBlankByte;
+  conf.fields.msgLen[msgType].byteOffs_4 = EhpBlankByte;
+  conf.fields.msgLen[msgType].byteOffs_5 = EhpBlankByte;
+  conf.fields.msgLen[msgType].byteOffs_6 = EhpBlankByte;
+  conf.fields.msgLen[msgType].byteOffs_7 = EhpBlankByte;
 
   return 0;
 }
