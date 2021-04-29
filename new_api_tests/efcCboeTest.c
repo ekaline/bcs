@@ -684,25 +684,15 @@ int main(int argc, char *argv[]) {
   // ==============================================
   // Sending MD trigger MC GR#0
   mdAskShortPkt.addOrdShort.symbol[1] = '3';
-  
-  EKA_LOG("sending AskShort trigger to %s:%u",
-	  EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
-  if (sendto(triggerSock,&mdAskShortPkt,sizeof(mdAskShortPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
-    on_error ("MC trigger send failed");
+  for (auto j = 0; j < 10; j++) {
+	  EKA_LOG("sending AskShort trigger to %s:%u",
+		  EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
+	  if (sendto(triggerSock,&mdAskShortPkt,sizeof(mdAskShortPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
+		  on_error ("MC trigger send failed");
 
 //  efcEnableController(pEfcCtx, 1);
-  sleep(1);
-  // ==============================================
-  // Sending MD trigger MC GR#0
-  mdAskShortPkt.addOrdShort.symbol[1] = '3';
-  
-  EKA_LOG("sending AskShort trigger to %s:%u",
-	  EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
-  if (sendto(triggerSock,&mdAskShortPkt,sizeof(mdAskShortPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
-    on_error ("MC trigger send failed");
-
-//  efcEnableController(pEfcCtx, 1);
-  sleep(1);
+	  sleep(1);
+  }
 
 
   TEST_LOG("\n===========================\nEND OT TESTS\n===========================\n");

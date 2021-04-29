@@ -538,6 +538,8 @@ int EkaFhBatsGr::sendMdCb(const EfhRunCtx* pEfhRunCtx, const uint8_t* m, int gr,
 
     pEfhRunCtx->onEfhMdCb(hdr,pEfhRunCtx->efhRunUserData);
   }
+    break;
+    
   case EKA_BATS_PITCH_MSG::ADD_ORDER_SHORT: {
     auto srcMsg {const_cast<batspitch_add_order_short*>(reinterpret_cast<const batspitch_add_order_short*>(m))};
     auto dstMsg {reinterpret_cast<MdNewOrder*>(msgBuf)};
@@ -554,6 +556,8 @@ int EkaFhBatsGr::sendMdCb(const EfhRunCtx* pEfhRunCtx, const uint8_t* m, int gr,
 
     pEfhRunCtx->onEfhMdCb(hdr,pEfhRunCtx->efhRunUserData);
   }
+    break;
+
   case EKA_BATS_PITCH_MSG::ADD_ORDER_EXPANDED: {
     auto srcMsg {const_cast<batspitch_add_order_expanded*>(reinterpret_cast<const batspitch_add_order_expanded*>(m))};
     auto dstMsg {reinterpret_cast<MdNewOrder*>(msgBuf)};
@@ -569,7 +573,9 @@ int EkaFhBatsGr::sendMdCb(const EfhRunCtx* pEfhRunCtx, const uint8_t* m, int gr,
     dstMsg->size    = srcMsg->size;
 
     pEfhRunCtx->onEfhMdCb(hdr,pEfhRunCtx->efhRunUserData);
-  }     
+  }
+    break;
+
   default:
     break;
   }
