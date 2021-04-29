@@ -108,7 +108,7 @@ int credRelease(EkaCredentialLease *lease, void* context) {
   return 0;
 }
 /* --------------------------------------------- */
-void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fireReportBuf, size_t size) {
+void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fireReportBuf, size_t size, void* cbCtx) {
   EkaDev* dev = pEfcCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
   EKA_LOG ("FIRE REPORT RECEIVED");

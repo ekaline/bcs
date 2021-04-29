@@ -18,6 +18,7 @@
 #include "EkaEpmRegion.h"
 #include "EkaIgmp.h"
 #include "EkaEfc.h"
+#include "EkaUdpChannel.h"
 
 uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size);
 void ekaFireReportThread(EkaDev* dev);
@@ -185,6 +186,12 @@ EkaOpResult EkaEpm::initStrategies(const EpmStrategyParams *params,
 
     if (strategy[i] != NULL) on_error("strategy[%d] != NULL",i);
 
+    // allocating UDP Channel to EPM region (preventing collision with EFH)
+    auto udpCh    = new EkaUdpChannel(dev,params[i].triggerParams->coreId,-1);
+    if (udpCh == NULL) on_error("udpCh == NULL");
+    if (udpCh->chId != i) on_error("EPM strategy %d udpCh->chId = %u",i,udpCh->chId);
+  
+    
     if (i == EFC_STRATEGY) {
       strategy[i] = new EkaEfc(this,i,currActionIdx, &params[i],dev->hwFeedVer);
     } else {

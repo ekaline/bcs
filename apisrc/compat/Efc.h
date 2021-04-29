@@ -166,7 +166,8 @@ typedef
   ( 
     EfcCtx*                   efcCtx, 
     const EfcFireReport*      efcFireReport,
-    size_t size 
+    size_t size,
+    void* cbCtx
   );
 
 /*
@@ -176,6 +177,7 @@ struct EfcRunCtx {
     /** These can be either fires or exceptions. */
   OnEkaExceptionReportCb onEkaExceptionReportCb; 
   OnEfcFireReportCb      onEfcFireReportCb;
+  void *cbCtx;
 };
 
 /**

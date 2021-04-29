@@ -41,7 +41,7 @@ int EkaIgmp::mcJoin(int epmRegion, EkaCoreId coreId, uint32_t ip, uint16_t port,
     if (igmpEntry[i] == NULL) on_error("igmpEntry[%d] == NULL",i);
     if (igmpEntry[i]->isMy(coreId,ip,port)) {
       createEntryMtx.unlock();
-      return 0;
+      return i;
     }
   }
   if (numIgmpEntriesAtCh[epmRegion] == MAX_ENTRIES_PER_LANE) 

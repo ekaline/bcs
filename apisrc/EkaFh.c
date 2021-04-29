@@ -62,8 +62,9 @@ uint8_t EkaFh::getGrId(const uint8_t* pkt) {
 }
  /* ##################################################################### */
 int EkaFh::init(const EfhInitCtx* pEfhInitCtx, uint8_t numFh) {
-  c = pEfhInitCtx->coreId;
-
+  c     = pEfhInitCtx->coreId;
+  noTob = pEfhInitCtx->noTob;
+  
   if ((dev->ekaHwCaps->hwCaps.core.bitmap_md_cores & (1 << c)) == 0) {
     on_error("Core %u is not enabled in FPGA for Market Data RX",c);
   }

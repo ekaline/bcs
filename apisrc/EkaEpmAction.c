@@ -588,9 +588,10 @@ int EkaEpmAction::fastSend(const void* buf) {
 
 /* ----------------------------------------------------- */
 void EkaEpmAction::print(const char* msg) {
-  EKA_LOG("%s: %s, idx=%u, localIdx=%u, heapOffs=0x%x, heapAddr=0x%jx,  actionAddr=0x%jx, pktSize=%u ",
+  EKA_LOG("%s: %s, region=%u, idx=%u, localIdx=%u, heapOffs=0x%x, heapAddr=0x%jx,  actionAddr=0x%jx, pktSize=%u ",
 	  msg,
 	  actionName,
+	  region,
 	  idx,
 	  localIdx,
 	  heapOffs,

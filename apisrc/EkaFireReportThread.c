@@ -282,7 +282,8 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len, uint32_t e
     on_error("onFireReportCb == NULL");
   efc->localCopyEfcRunCtx.onEfcFireReportCb(&efc->localCopyEfcCtx,
 					    reinterpret_cast< EfcFireReport* >(reportBuf), 
-					    reportLen);
+					    reportLen,
+					    efc->localCopyEfcRunCtx.cbCtx);
   return 0;
 }
 

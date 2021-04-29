@@ -42,14 +42,12 @@ enum class EfhFeedVer {
      * we dont expect updates, and so Ekaline can save memory and avoid creating structures that arent needed.  */
     bool recvSoftwareMd;
 
-/* Obsolete. Automatically  derived from the Exchange Source */
-//    bool full_book;    
-
 /* Used for Ekaline lab tests only */
     bool subscribe_all; 
-   
-/* Obsolete. Automatically  derived from the Exchange Source */
-//    EfhFeedVer feed_ver;
+
+    /* This is true if we expect to receive raw relevant market data for EFC testing.
+     * noTob = false for regular EFH use   */
+    bool noTob = false;
   };
 
 /**

@@ -33,7 +33,7 @@ EkaEfc::EkaEfc(EkaEpm*                  epm,
 	       const EpmStrategyParams* params, 
 	       EfhFeedVer               _hwFeedVer) : 
 EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
-  
+
   hwFeedVer = dev->efcFeedVer;
   EKA_LOG("Creating EkaEfc: hwFeedVer=%s (%d)",
 	  EKA_FEED_VER_DECODE(hwFeedVer),(int)hwFeedVer);

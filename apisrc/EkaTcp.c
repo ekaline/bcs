@@ -80,6 +80,7 @@ err_t ekaLwipSend(struct netif *netif, struct pbuf *p) {
   EkaDev* dev    = ((struct LwipNetifState*)netif->state)->pEkaDev;
   EkaCoreId coreId = ((struct LwipNetifState*)netif->state)->lane;
   if (dev == NULL) return ERR_CLSD;
+  if (! dev->exc_active) return ERR_CLSD;
   if (dev->core[coreId] == NULL) on_error("dev->core[%u] == NULL",coreId);
 
   if (p == NULL) on_error("struct pbuf *p == NULL");

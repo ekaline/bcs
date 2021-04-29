@@ -119,6 +119,8 @@ class EkaFh {
 
   EkaFhGroup*           b_gr[EKA_FH_GROUPS]   = {};
 
+  bool                  noTob                 = false;
+  
  protected:
   EkaDev*               dev                   = NULL;
 
