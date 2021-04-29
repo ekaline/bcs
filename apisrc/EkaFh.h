@@ -120,6 +120,7 @@ class EkaFh {
   EkaFhGroup*           b_gr[EKA_FH_GROUPS]   = {};
 
   bool                  noTob                 = false;
+  bool                  active                = false;
   
  protected:
   EkaDev*               dev                   = NULL;

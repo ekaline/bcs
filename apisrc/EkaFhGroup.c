@@ -56,7 +56,9 @@ int EkaFhGroup::processFromQ(const EfhRunCtx* pEfhRunCtx) {
 
 void EkaFhGroup::sendFeedUp(const EfhRunCtx* pEfhRunCtx) {
   if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
-
+  if (pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL)
+    on_error("pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL");
+  
   EfhGroupStateChangedMsg msg = {
     EfhMsgType::kGroupStateChanged,
     {exch, id},
@@ -72,7 +74,9 @@ void EkaFhGroup::sendFeedUp(const EfhRunCtx* pEfhRunCtx) {
 
 void EkaFhGroup::sendFeedUpInitial(const EfhRunCtx* pEfhRunCtx) {
   if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
-
+  if (pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL)
+    on_error("pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL");
+  
   EfhGroupStateChangedMsg msg = {
     EfhMsgType::kGroupStateChanged,
     {exch, id},
@@ -89,7 +93,9 @@ void EkaFhGroup::sendFeedUpInitial(const EfhRunCtx* pEfhRunCtx) {
 
 void EkaFhGroup::sendFeedDown(const EfhRunCtx* pEfhRunCtx) {
   if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
-
+  if (pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL)
+    on_error("pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL");
+  
   EfhGroupStateChangedMsg msg = {
     EfhMsgType::kGroupStateChanged,
     {exch, id},
@@ -106,7 +112,9 @@ void EkaFhGroup::sendFeedDown(const EfhRunCtx* pEfhRunCtx) {
 
 void EkaFhGroup::sendFeedDownInitial(const EfhRunCtx* pEfhRunCtx) {
   if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
-
+  if (pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL)
+    on_error("pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL");
+  
   EfhGroupStateChangedMsg msg = {
     EfhMsgType::kGroupStateChanged,
     {exch, id},
@@ -123,7 +131,9 @@ void EkaFhGroup::sendFeedDownInitial(const EfhRunCtx* pEfhRunCtx) {
 
 void EkaFhGroup::sendFeedDownClosed(const EfhRunCtx* pEfhRunCtx) {
   if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
-
+  if (pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL)
+    on_error("pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL");
+  
   EfhGroupStateChangedMsg msg = {
     EfhMsgType::kGroupStateChanged,
     {exch, id},
@@ -139,7 +149,9 @@ void EkaFhGroup::sendFeedDownClosed(const EfhRunCtx* pEfhRunCtx) {
 
 void EkaFhGroup::sendBackInTimeEvent(const EfhRunCtx* pEfhRunCtx, uint64_t badSequence) {
   if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
-
+  if (pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL)
+    on_error("pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL");
+  
   EfhGroupStateChangedMsg msg = {
     EfhMsgType::kGroupStateChanged,
     {exch, id},
@@ -156,7 +168,9 @@ void EkaFhGroup::sendBackInTimeEvent(const EfhRunCtx* pEfhRunCtx, uint64_t badSe
 
 void EkaFhGroup::sendNoMdTimeOut(const EfhRunCtx* pEfhRunCtx) {
   if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
-
+  if (pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL)
+    on_error("pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL");
+  
   EfhGroupStateChangedMsg msg = {
     EfhMsgType::kGroupStateChanged,
     {exch, id},
@@ -173,7 +187,9 @@ void EkaFhGroup::sendNoMdTimeOut(const EfhRunCtx* pEfhRunCtx) {
 
 void EkaFhGroup::sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx) {
   if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
-
+  if (pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL)
+    on_error("pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL");
+  
   EfhGroupStateChangedMsg msg = {
     EfhMsgType::kGroupStateChanged,
     {exch, id},
@@ -193,7 +209,9 @@ void EkaFhGroup::sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx) {
 
 void EkaFhGroup::sendRetransmitSocketError(const EfhRunCtx* pEfhRunCtx) {
   if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
-
+  if (pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL)
+    on_error("pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL");
+  
   EfhGroupStateChangedMsg msg = {
     EfhMsgType::kGroupStateChanged,
     {exch, id},

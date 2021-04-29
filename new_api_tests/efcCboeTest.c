@@ -37,12 +37,13 @@
 #include <fcntl.h>
 #include "ekaNW.h"
 #include "EkaFhBatsParser.h"
+#include "EfhTestFuncs.h"
 
 /* --------------------------------------------- */
 std::string ts_ns2str(uint64_t ts);
 
 /* --------------------------------------------- */
-volatile bool keep_work = true;
+//volatile bool keep_work = true;
 volatile bool serverSet = false;
 volatile bool rxClientReady = false;
 
@@ -154,7 +155,15 @@ void tcpServer(EkaDev* dev, std::string ip, uint16_t port, int* sock, bool* serv
 /* --------------------------------------------- */
 
 void printUsage(char* cmd) {
-  printf("USAGE: %s -s <Connection Server IP> -p <Connection Server TcpPort> -c <Connection Client IP> -t <Trigger IP> -u <Trigger UdpPort> -l <Length of fire chain>\n",cmd);
+  printf("USAGE: %s "
+	 "-s <Connection Server IP>"
+	 "-p <Connection Server TcpPort>"
+	 "-c <Connection Client IP>"
+	 "-t <Trigger IP>"
+	 "-u <Trigger UdpPort>"
+	 "-l <Num of TCP sessions>"
+	 "-f <Run EFH for raw MD>"
+	 "\n",cmd);
   return;
 }
 
@@ -164,45 +173,49 @@ static int getAttr(int argc, char *argv[],
 		   std::string* serverIp, uint16_t* serverTcpPort, 
 		   std::string* clientIp, 
 		   std::string* triggerIp, uint16_t* triggerUdpPort,
-		   uint16_t* numTcpSess) {
-  int opt; 
-  while((opt = getopt(argc, argv, ":c:s:p:u:l:t:h")) != -1) {  
-    switch(opt) {  
-      case 's':  
-	*serverIp = std::string(optarg);
-	printf("serverIp = %s\n", (*serverIp).c_str());  
-	break;  
-      case 'c':  
-	*clientIp = std::string(optarg);
-	printf("clientIp = %s\n", (*clientIp).c_str());  
-	break;  
-      case 'p':  
-	*serverTcpPort = atoi(optarg);
-	printf("serverTcpPort = %u\n", *serverTcpPort);  
-	break;  
-      case 't':  
-	*triggerIp = std::string(optarg);
-	printf("triggerIp = %s\n", (*triggerIp).c_str());  
-	break;  
-      case 'u':  
-	*triggerUdpPort = atoi(optarg);
-	printf("triggerUdpPort = %u\n", *triggerUdpPort);  
-	break;  
-      case 'l':  
-	*numTcpSess = atoi(optarg);
-	printf("numTcpSess = %u\n", *numTcpSess);  
-	break;  
-      case 'h':  
-	printUsage(argv[0]);
-	exit (1);
-	break;  
-      case '?':  
-	printf("unknown option: %c\n", optopt); 
-      break;  
-      }  
-  }  
+		   uint16_t* numTcpSess, bool* runEfh) {
+	int opt; 
+	while((opt = getopt(argc, argv, ":c:s:p:u:l:t:fh")) != -1) {  
+		switch(opt) {  
+		case 's':  
+			*serverIp = std::string(optarg);
+			printf("serverIp = %s\n", (*serverIp).c_str());  
+			break;  
+		case 'c':  
+			*clientIp = std::string(optarg);
+			printf("clientIp = %s\n", (*clientIp).c_str());  
+			break;  
+		case 'p':  
+			*serverTcpPort = atoi(optarg);
+			printf("serverTcpPort = %u\n", *serverTcpPort);  
+			break;  
+		case 't':  
+			*triggerIp = std::string(optarg);
+			printf("triggerIp = %s\n", (*triggerIp).c_str());  
+			break;  
+		case 'u':  
+			*triggerUdpPort = atoi(optarg);
+			printf("triggerUdpPort = %u\n", *triggerUdpPort);  
+			break;  
+		case 'l':  
+			*numTcpSess = atoi(optarg);
+			printf("numTcpSess = %u\n", *numTcpSess);  
+			break;  
+		case 'f':  
+			printf("runEfh = true\n");
+			*runEfh = true;
+			break;
+		case 'h':  
+			printUsage(argv[0]);
+			exit (1);
+			break;  
+		case '?':  
+			printf("unknown option: %c\n", optopt); 
+			break;  
+		}  
+	}  
 
-  return 0;
+	return 0;
 }
 /* --------------------------------------------- */
 
@@ -231,71 +244,16 @@ static std::string action2string(EpmTriggerAction action) {
 };
 /* --------------------------------------------- */
 
-static void printFireReport(EpmFireReport* report) {
-  TEST_LOG("strategyId=%3d,actionId=%3d,action=%20s,error=%d,token=%016jx",
-	   report->strategyId,
-	   report->actionId,
-	   action2string(report->action).c_str(),
-	   report->error,
-	   report->trigger->token
-	   );
-  return;
-}
-
-/* --------------------------------------------- */
-
-static void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
-	if (! keep_work) return NULL;
-	EfhCtx* pEfhCtx = (EfhCtx*) efhRunUserData;
-	if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
-
-	switch (msg->mdMsgType) {
-	case EfhMdType::NewOrder : {
-		auto m {reinterpret_cast<const MdNewOrder*>(msg)};
-		fprintf(stdout,
-			"%s (0x%x),"                /* msg type       */
-			"\'%s\',"                   /* secId string   */
-			"0x%016jx,"                 /* secId hex      */
-			"%ju,"                      /* sequence       */
-			"%s,"                       /* ts string      */
-			"%jx,"                      /* ts hex         */
-			"%ju,"                      /* orderId        */
-			"%c,"                       /* side           */
-			"%ju,"                      /* price          */
-			"%u\n",                     /* size           */
-			DecodeMdType(m->hdr.mdMsgType),	m->hdr.mdRawMsgType,
-			std::string(*(char*)&m->hdr.securityId,sizeof(m->hdr.securityId)).c_str(),
-			m->hdr.securityId,
-			m->hdr.sequenceNumber,
-			ts_ns2str(m->hdr.timeStamp).c_str(),
-			m->hdr.timeStamp,
-			m->orderId,
-			m->side == EfhOrderSideType::kBid ? 'B' : 'A',
-			m->price,
-			m->size
-			);
-	}
-		break;
-	default:
-		return NULL;
-	}
-	return NULL;	 
-}
-
-/* --------------------------------------------- */
-
-/* [6/16 5:33 PM] Igor Galitskiy */
-    
-/* multicast IPs: */
-/* 239.255.119.16 & 239.255.119.17 */
-
-/* nqxlxavt059d */
-/*  publish: sfc0 10.120.115.53 */
-/*  receive: fpga0_0 10.120.115.56 */
-
-/* nqxlxavt061d */
-/*  publish: sfc0 10.120.115.52 */
-/*  receive: fpga0_0 10.120.115.54 */
+/* static void printFireReport(EpmFireReport* report) { */
+/*   TEST_LOG("strategyId=%3d,actionId=%3d,action=%20s,error=%d,token=%016jx", */
+/* 	   report->strategyId, */
+/* 	   report->actionId, */
+/* 	   action2string(report->action).c_str(), */
+/* 	   report->error, */
+/* 	   report->trigger->token */
+/* 	   ); */
+/*   return; */
+/* } */
 
 /* --------------------------------------------- */
 
@@ -306,15 +264,16 @@ int main(int argc, char *argv[]) {
 
   // ==============================================
 
-  std::string serverIp  = "10.0.0.10";      // Ekaline lab default
-  std::string clientIp  = "100.0.0.110";    // Ekaline lab default
-  std::string triggerIp = "224.0.74.0";     // Ekaline lab default (C1 CC feed)
-  uint16_t serverTcpBasePort   = 22222;     // Ekaline lab default
-  uint16_t numTcpSess = 4;
-  uint16_t serverTcpPort = serverTcpBasePort;
-  uint16_t triggerUdpPort = 30301;
-
-  getAttr(argc,argv,&serverIp,&serverTcpPort,&clientIp,&triggerIp,&triggerUdpPort,&numTcpSess);
+  std::string serverIp        = "10.0.0.10";      // Ekaline lab default
+  std::string clientIp        = "100.0.0.110";    // Ekaline lab default
+  std::string triggerIp       = "224.0.74.0";     // Ekaline lab default (C1 CC feed)
+  uint16_t triggerUdpPort     = 30301;            // C1 CC gr#0
+  uint16_t serverTcpBasePort  = 22222;            // Ekaline lab default
+  uint16_t numTcpSess         = 4;
+  uint16_t serverTcpPort      = serverTcpBasePort;
+  bool     runEfh             = false;
+  
+  getAttr(argc,argv,&serverIp,&serverTcpPort,&clientIp,&triggerIp,&triggerUdpPort,&numTcpSess,&runEfh);
 
   if (numTcpSess > MaxTcpTestSessions) 
     on_error("numTcpSess %d > MaxTcpTestSessions %d",numTcpSess, MaxTcpTestSessions);
@@ -454,11 +413,10 @@ int main(int argc, char *argv[]) {
   };
 
   SecurityCtx security[] = {
-      {{'\0','\0','0','0','T','E','S','T'}, 0, 100, 200, 1}, // correct SecID
-      {{'\0','\0','0','1','T','E','S','T'}, 0, 100, 200, 1}, // correct SecID
-      {{'\0','\0','0','2','T','E','S','T'}, 0, 100, 200, 1}, // correct SecID
-      {{'\0','\0','0','3','T','E','S','T'}, 0, 100, 200, 1}, // correct SecID
-      {{'T','S','E','T','2','0','\0','\0'}, 0, 300, 400, 1}, // wrong   SecID
+      {{'\0','\0','0','0','T','E','S','T'}, 0, 1000, 2000, 1}, // correct SecID
+      {{'\0','\0','0','1','T','E','S','T'}, 0, 1000, 2000, 1}, // correct SecID
+      {{'\0','\0','0','2','T','E','S','T'}, 0, 1000, 2000, 1}, // correct SecID
+      {{'\0','\0','0','3','T','E','S','T'}, 0, 1000, 2000, 1}, // correct SecID
   };
 
 
@@ -596,64 +554,67 @@ int main(int argc, char *argv[]) {
 
   // ==============================================
   // Launching EFH for Definitions and onMd callbacks
-#if 0
-  EfhCtx* pEfhCtx = NULL;
-  EkaProp efhBatsC1InitCtxEntries_CC_0[] = {
-	{"efh.C1_PITCH.group.0.unit","1"},
-	{"efh.C1_PITCH.group.0.mcast.addr","224.0.74.0:30301"},
-	{"efh.C1_PITCH.group.0.snapshot.addr","170.137.114.100:18901"}, 	// SPIN 
-	{"efh.C1_PITCH.group.0.snapshot.auth","GTSS:sb2gtss"}, 		// SPIN 
-	{"efh.C1_PITCH.group.0.snapshot.sessionSubID","0432"}, 		// SPIN 
-	{"efh.C1_PITCH.group.0.recovery.addr","224.0.74.37:30301"}, 	// GRP 
-	{"efh.C1_PITCH.group.0.recovery.grpAddr","170.137.114.102:17006"}, 	// GRP TCP
-	{"efh.C1_PITCH.group.0.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
-	{"efh.C1_PITCH.group.0.recovery.grpSessionSubID","0587"}, 	// GRP TCP	
-  };
-  const EkaGroup batsC1Groups[] = {
-    {EkaSource::kC1_PITCH, (EkaLSI)0},
-  };
+  if (runEfh) {
+	  EfhCtx* pEfhCtx = NULL;
+	  EkaProp efhBatsC1InitCtxEntries_CC_0[] = {
+		  {"efh.C1_PITCH.group.0.unit","1"},
+		  {"efh.C1_PITCH.group.0.mcast.addr","224.0.74.0:30301"},
+		  {"efh.C1_PITCH.group.0.snapshot.addr","170.137.114.100:18901"}, 	// SPIN 
+		  {"efh.C1_PITCH.group.0.snapshot.auth","GTSS:sb2gtss"}, 		// SPIN 
+		  {"efh.C1_PITCH.group.0.snapshot.sessionSubID","0432"}, 		// SPIN 
+		  {"efh.C1_PITCH.group.0.recovery.addr","224.0.74.37:30301"}, 	// GRP 
+		  {"efh.C1_PITCH.group.0.recovery.grpAddr","170.137.114.102:17006"}, 	// GRP TCP
+		  {"efh.C1_PITCH.group.0.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
+		  {"efh.C1_PITCH.group.0.recovery.grpSessionSubID","0587"}, 	// GRP TCP	
+	  };
+	  const EkaGroup batsC1Groups[] = {
+		  {EkaSource::kC1_PITCH, (EkaLSI)0},
+	  };
 
-  EkaProps props = {
-	  .numProps = std::size(efhBatsC1InitCtxEntries_CC_0),
-	  .props    = efhBatsC1InitCtxEntries_CC_0
-  };
+	  EkaProps props = {
+		  .numProps = std::size(efhBatsC1InitCtxEntries_CC_0),
+		  .props    = efhBatsC1InitCtxEntries_CC_0
+	  };
   
-  EfhInitCtx efhInitCtx = {
-	  .ekaProps            = &props,
-	  .numOfGroups         = 1,
-	  .coreId              = coreId,
-	  .printParsedMessages = true,
-	  .recvSoftwareMd      = true,
-	  .subscribe_all       = false,
-	  .noTob               = true
-  };
+	  EfhInitCtx efhInitCtx = {
+		  .ekaProps            = &props,
+		  .numOfGroups         = 1,
+		  .coreId              = coreId,
+		  .printParsedMessages = true,
+		  .recvSoftwareMd      = true,
+		  .subscribe_all       = false,
+		  .noTob               = true
+	  };
 
-  efhInit(&pEfhCtx,dev,&efhInitCtx);
+	  efhInit(&pEfhCtx,dev,&efhInitCtx);
 
-  const EfhRunCtx efhRunCtx = {
-	  .groups = batsC1Groups,
-	  .numGroups = std::size(batsC1Groups),
-	  .efhRunUserData              = (EfhRunUserData) pEfhCtx,
-	  .onEfhDefinitionMsgCb        = NULL, //onDefinition,
-	  .onEfhTradeMsgCb             = NULL, //onTrade,
-	  .onEfhQuoteMsgCb             = NULL, //onQuote,
-	  .onEfhOrderMsgCb             = NULL, //onOrder,
-	  .onEfhGroupStateChangedMsgCb = NULL, //onEfhGroupStateChange,
-	  .onEkaExceptionReportCb      = NULL, //onException,
-	  .onEfhMdCb                   = onMd
-  };
+	  const EfhRunCtx efhRunCtx = {
+		  .groups                      = batsC1Groups,
+		  .numGroups                   = std::size(batsC1Groups),
+		  .efhRunUserData              = (EfhRunUserData) pEfhCtx,
+		  .onEfhDefinitionMsgCb        = NULL, //onDefinition,
+		  .onEfhTradeMsgCb             = NULL, //onTrade,
+		  .onEfhQuoteMsgCb             = NULL, //onQuote,
+		  .onEfhOrderMsgCb             = NULL, //onOrder,
+		  .onEfhGroupStateChangedMsgCb = onEfhGroupStateChange,
+		  .onEkaExceptionReportCb      = NULL, //onException,
+		  .onEfhMdCb                   = onMd
+	  };
 
 #ifdef EKA_TEST_IGNORE_DEFINITIONS
-  TEST_LOG("Skipping EFH Definitions");
+	  TEST_LOG("Skipping EFH Definitions");
 #else
-  efhGetDefs(pEfhCtx, &efhRunCtx, (EkaGroup*)&efhRunCtx.groups[0], NULL);
+	  efhGetDefs(pEfhCtx, &efhRunCtx, (EkaGroup*)&efhRunCtx.groups[0], NULL);
 #endif
 
-  std::thread efhRunThread = std::thread(efhRunGroups,pEfhCtx,&efhRunCtx,(void**)NULL);
-  efhRunThread.detach();
+	  std::thread efhRunThread = std::thread(efhRunGroups,pEfhCtx,&efhRunCtx,(void**)NULL);
+	  efhRunThread.detach();
 
-  sleep(10);
-#endif // if 0
+	  auto fh = pEfhCtx->dev->fh[pEfhCtx->fhId];
+	  if (fh == NULL) on_error("fh == NULL");
+	  TEST_LOG("Waiting for EFH active");
+	  while (! fh->active) sleep(0);
+  }
   // ==============================================
   efcEnableController(pEfcCtx, 0);
   // ==============================================
@@ -718,7 +679,7 @@ int main(int argc, char *argv[]) {
   if (sendto(triggerSock,&mdAskShortPkt,sizeof(mdAskShortPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
     on_error ("MC trigger send failed");
 
-  efcEnableController(pEfcCtx, 1);
+//  efcEnableController(pEfcCtx, 1);
   sleep(1);
   // ==============================================
   // Sending MD trigger MC GR#0
@@ -729,7 +690,18 @@ int main(int argc, char *argv[]) {
   if (sendto(triggerSock,&mdAskShortPkt,sizeof(mdAskShortPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
     on_error ("MC trigger send failed");
 
-  efcEnableController(pEfcCtx, 1);
+//  efcEnableController(pEfcCtx, 1);
+  sleep(1);
+  // ==============================================
+  // Sending MD trigger MC GR#0
+  mdAskShortPkt.addOrdShort.symbol[1] = '3';
+  
+  EKA_LOG("sending AskShort trigger to %s:%u",
+	  EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
+  if (sendto(triggerSock,&mdAskShortPkt,sizeof(mdAskShortPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
+    on_error ("MC trigger send failed");
+
+//  efcEnableController(pEfcCtx, 1);
   sleep(1);
 
 
@@ -738,7 +710,7 @@ int main(int argc, char *argv[]) {
 #ifndef _VERILOG_SIM
   sleep(2);
   EKA_LOG("--Test finished, ctrl-c to end---");
-  keep_work = false;
+//  keep_work = false;
   while (keep_work) { sleep(0); }
 #endif
   fflush(stdout);fflush(stderr);

@@ -111,14 +111,20 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
   //  int file_idx = (uint8_t)(msg->group.localId);
   //  EfhCtx* pEfhCtx = (EfhCtx*) userData;
 
+#ifdef FH_LAB
+  FILE* logFile = stdout;
+#else  
   EkaSource exch = msg->group.source;
   EkaLSI    grId = msg->group.localId;
 
   auto gr = grCtx[(int)exch][grId];
   if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  if (gr->MD == NULL) on_error("gr->MD == NULL");
 
+  FILE* logFile = gr->MD;
+#endif
 
-  fprintf(gr->MD,"%s: %s : FeedDown\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str());
+  fprintf(logFile,"%s: %s : FeedDown\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str());
 
   switch (msg->groupState) {
     /* ----------------------------- */
@@ -187,7 +193,7 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
     default:
       gapType = std::string("Unknown Gap");
     }
-    fprintf(gr->MD,"%s: %s : %s FeedDown\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str(),gapType.c_str());
+    fprintf(logFile,"%s: %s : %s FeedDown\n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str(),gapType.c_str());
     printf ("=========================\n%s: %s: %s %ju\n=========================\n",
 	    EKA_PRINT_GRP(&msg->group),eka_get_time().c_str(),gapType.c_str(),msg->code);
   }
@@ -205,14 +211,14 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
     default:
       gapType = std::string("Unknown Gap");
     }
-    fprintf(gr->MD,"%s: %s : %s \n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str(),gapType.c_str());
+    fprintf(logFile,"%s: %s : %s \n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str(),gapType.c_str());
     printf ("=========================\n%s: %s: %s %ju\n=========================\n",
 	    EKA_PRINT_GRP(&msg->group),eka_get_time().c_str(),gapType.c_str(),msg->code);
   }
     break;
     /* ----------------------------- */
   case EfhGroupState::kWarning : {
-    fprintf(gr->MD,"%s: %s : BACK-IN-TIME \n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str());
+    fprintf(logFile,"%s: %s : BACK-IN-TIME \n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str());
     printf ("=========================\n%s: %s: BACK-IN-TIME %ju\n=========================\n",
 	    EKA_PRINT_GRP(&msg->group),eka_get_time().c_str(),msg->code);
   }
@@ -241,40 +247,57 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
   EfhCtx* pEfhCtx = (EfhCtx*) efhRunUserData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
 
+#ifdef FH_LAB
+  FILE* logFile = stdout;
+#else  
   EkaSource exch = msg->group.source;
   EkaLSI    grId = msg->group.localId;
 
   auto gr = grCtx[(int)exch][grId];
   if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
-
   if (gr->MD == NULL) on_error("gr->MD == NULL");
 
+  FILE* logFile = gr->MD;
+#endif
+
+  
   switch (msg->mdMsgType) {
   case EfhMdType::NewOrder : {
     auto m {reinterpret_cast<const MdNewOrder*>(msg)};
-    fprintf(gr->MD,"%s (0x%x),%u,0x%016jx (%ju),%ju,%s,%ju,%ju,%c,%ju,%u\n",
-	    DecodeMdType(m->hdr.mdMsgType),
-	    m->hdr.mdRawMsgType,
-	    grId,
-	    m->hdr.securityId,
+    fflush(stdout);
+    const char* c= (const char*)&m->hdr.securityId;
+    fprintf(stdout,
+	    "%s (0x%x),"                /* msg type       */
+	    "\'%c%c%c%c%c%c%c%c\',"     /* secId string   */
+	    "0x%016jx,"                 /* secId hex      */
+	    "%ju,"                      /* sequence       */
+	    "%s,"                       /* ts string      */
+	    "0x%jx,"                    /* ts hex         */
+	    "0x%jx,"                    /* orderId        */
+	    "\'%c\',"                   /* side           */
+	    "P:%ju (0x%016jx),"         /* price          */
+	    "S:%u (0x%08x)\n",          /* size           */
+	    DecodeMdType(m->hdr.mdMsgType),	m->hdr.mdRawMsgType,
+	    c[0],c[1],c[2],c[3],c[4],c[5],c[6],c[7],
+	    //	    std::string(*(char*)&m->hdr.securityId,sizeof(m->hdr.securityId)).c_str(),
 	    m->hdr.securityId,
 	    m->hdr.sequenceNumber,
 	    ts_ns2str(m->hdr.timeStamp).c_str(),
 	    m->hdr.timeStamp,
 	    m->orderId,
 	    m->side == EfhOrderSideType::kBid ? 'B' : 'A',
-	    m->price,
-	    m->size
+	    m->price,m->price,
+	    m->size,m->size
 	    );
+    fflush(stdout);
   }
     break;
 
   case EfhMdType::NewPlevel : {
     auto m {reinterpret_cast<const MdNewPlevel*>(msg)};
-    fprintf(gr->MD,"%s (0x%x),%u,0x%016jx (%ju),%ju,%s,%ju,%c,%u,%ju,%u\n",
+    fprintf(logFile,"%s (0x%x),0x%016jx (%ju),%ju,%s,%ju,%c,%u,%ju,%u\n",
 	    DecodeMdType(m->hdr.mdMsgType),
 	    m->hdr.mdRawMsgType,
-	    grId,
 	    m->hdr.securityId,
 	    m->hdr.securityId,
 	    m->hdr.sequenceNumber,
@@ -289,10 +312,9 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
     break;
   case EfhMdType::ChangePlevel : {
     auto m {reinterpret_cast<const MdChangePlevel*>(msg)};
-    fprintf(gr->MD,"%s (0x%x),%u,0x%016jx (%ju),%ju,%s,%ju,%c,%u,%ju,%u\n",
+    fprintf(logFile,"%s (0x%x),0x%016jx (%ju),%ju,%s,%ju,%c,%u,%ju,%u\n",
 	    DecodeMdType(m->hdr.mdMsgType),
 	    m->hdr.mdRawMsgType,
-	    grId,
 	    m->hdr.securityId,
 	    m->hdr.securityId,
 	    m->hdr.sequenceNumber,
@@ -307,10 +329,9 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
     break;
   case EfhMdType::DeletePlevel : {
     auto m {reinterpret_cast<const MdDeletePlevel*>(msg)};
-    fprintf(gr->MD,"%s (0x%x),%u,0x%016jx (%ju),%ju,%s,%ju,%c,%u\n",
+    fprintf(logFile,"%s (0x%x),0x%016jx (%ju),%ju,%s,%ju,%c,%u\n",
 	    DecodeMdType(m->hdr.mdMsgType),
 	    m->hdr.mdRawMsgType,
-	    grId,
 	    m->hdr.securityId,
 	    m->hdr.securityId,
 	    m->hdr.sequenceNumber,

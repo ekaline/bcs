@@ -58,6 +58,7 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
   EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u: %s GROUPS ~~~~~~~~~~~~~",
 	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
 
+  active = true;
   while (runGr->thread_active && ! runGr->stoppedByExchange) {
     //-----------------------------------------------------------------------------
     if (runGr->drainQ(pEfhRunCtx)) continue;

@@ -549,8 +549,8 @@ int EkaFhBatsGr::sendMdCb(const EfhRunCtx* pEfhRunCtx, const uint8_t* m, int gr,
     dstMsg->attr    = srcMsg->flags;
     dstMsg->orderId = srcMsg->order_id;
     dstMsg->side    = efhMsgSideDecode(srcMsg->side);
-    dstMsg->price   = srcMsg->price  * 100 / EFH_PRICE_SCALE;
-    dstMsg->size    = srcMsg->size;
+    dstMsg->price   = static_cast<decltype(dstMsg->price)>(srcMsg->price * 100 / EFH_PRICE_SCALE);
+    dstMsg->size    = static_cast<decltype(dstMsg->size) >(srcMsg->size);
 
     pEfhRunCtx->onEfhMdCb(hdr,pEfhRunCtx->efhRunUserData);
   }
