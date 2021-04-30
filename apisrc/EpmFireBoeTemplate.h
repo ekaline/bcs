@@ -54,8 +54,8 @@ class EpmFireBoeTemplate : public EpmTemplate {
       {"OrdType" ,                      1, HwField::IMMEDIATE,    false, false }, // '1','2','3','4'
       {"TimeInForce" ,                  1, HwField::IMMEDIATE,    false, false }, // '0'..'7'
       
+      {"Symbol" ,                       6, HwField::SECURITY_ID,  false, true  },
       {"SymbolPadding" ,                2, HwField::IMMEDIATE,    false, false }, // right padded by ' '
-      {"Symbol" ,                       6, HwField::SECURITY_ID,  true,  true  },
       
       {"Capacity" ,                     1, HwField::IMMEDIATE,    false, false }, // 'C','M','F',etc.
       {"Account" ,                      16,HwField::IMMEDIATE,    false, false }, 
