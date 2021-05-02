@@ -162,6 +162,7 @@ typedef union  {
 
 
 struct EfcControllerReport {
+  uint8_t unarmReason;
   uint8_t fireReason;
 } __attribute__((packed));
 
@@ -178,7 +179,7 @@ struct EfcFiredOrder {
 } __attribute__((packed));
 
 struct EfcNormalizedFireReport {
-  char                pad[5];          // = bit [5*8-1:0] padx8
+  char                pad[4];          // = bit [5*8-1:0] padx8
   EfcControllerReport controllerState; //
   EfcFiredOrder       triggerOrder;    // = sp4_order_t   order_trigger_data 
   uint32_t            securityCtxAddr; // = bit [31:0]    security_context_addr
