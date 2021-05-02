@@ -68,10 +68,36 @@ static const uint64_t FireEntryHeapSize = 256;
 
 
 /* --------------------------------------------- */
-struct CboePitchAddOrderShortPkt {
-  batspitch_sequenced_unit_header hdr;
-  batspitch_add_order_short       addOrderShort;
+
+struct SecurityCtx {
+    char            id[8];
+    EkaLSI          groupId;
+    FixedPrice      bidMinPrice;
+    FixedPrice      askMaxPrice;
+    uint8_t         size;
 };
+
+enum class AddOrder : int {
+    Unknown = 0,
+	Short,
+	Long,
+	Expanded
+};
+
+struct CboePitchAddOrderShort {
+    batspitch_sequenced_unit_header hdr;
+    batspitch_add_order_short       msg;
+} __attribute__((packed));
+
+struct CboePitchAddOrderLong {
+    batspitch_sequenced_unit_header hdr;
+    batspitch_add_order_long        msg;
+} __attribute__((packed));
+
+struct CboePitchAddOrderExpanded {
+    batspitch_sequenced_unit_header hdr;
+    batspitch_add_order_expanded    msg;
+} __attribute__((packed));
 
 /* --------------------------------------------- */
 
@@ -257,6 +283,123 @@ static std::string action2string(EpmTriggerAction action) {
 
 /* --------------------------------------------- */
 
+static int sendAddOrderShort (int sock, const sockaddr_in* addr, char* secId,
+			      uint32_t sequence, char side, uint16_t price, uint16_t size) {
+
+    CboePitchAddOrderShort pkt = {
+	.hdr = {
+	    .length   = sizeof(pkt),
+	    .count    = 1,
+	    .unit     = 1, // just a number
+	    .sequence = sequence,
+	},
+	.msg = {
+	    .header = {
+		.length = sizeof(pkt.msg),
+		.type   = (uint8_t)EKA_BATS_PITCH_MSG::ADD_ORDER_SHORT,
+		.time   = 0x11223344,  // just a number
+	    },
+	    .order_id   = 0xaabbccddeeff5566,
+	    .side       = side,
+	    .size       = size,
+	    .symbol     = {secId[2],secId[3],secId[4],secId[5],secId[6],secId[7]},
+	    .price      = price, //(uint16_t)(security[2].bidMinPrice / 100 + 1),
+	    .flags      = 0xFF,
+	}
+    };
+    TEST_LOG("sending AddOrderShort trigger to %s:%u",
+	    EKA_IP2STR(addr->sin_addr.s_addr),be16toh(addr->sin_port));
+    if (sendto(sock,&pkt,sizeof(pkt),0,(const sockaddr*)addr,sizeof(sockaddr)) < 0) 
+	on_error ("MC trigger send failed");
+
+    return 0;
+}
+/* --------------------------------------------- */
+
+static int sendAddOrderLong (int sock, const sockaddr_in* addr, char* secId,
+			     uint32_t sequence, char side, uint64_t price, uint32_t size) {
+
+    CboePitchAddOrderLong pkt = {
+	.hdr = {
+	    .length   = sizeof(pkt),
+	    .count    = 1,
+	    .unit     = 1, // just a number
+	    .sequence = sequence,
+	},
+	.msg = {
+	    .header = {
+		.length = sizeof(pkt.msg),
+		.type   = (uint8_t)EKA_BATS_PITCH_MSG::ADD_ORDER_LONG,
+		.time   = 0x11223344,  // just a number
+	    },
+	    .order_id   = 0xaabbccddeeff5566,
+	    .side       = side,
+	    .size       = size,
+	    .symbol     = {secId[2],secId[3],secId[4],secId[5],secId[6],secId[7]},
+	    .price      = price, //(uint16_t)(security[2].bidMinPrice / 100 + 1),
+	    .flags      = 0xFF,
+	}
+    };
+    TEST_LOG("sending AddOrderLong trigger to %s:%u",
+	    EKA_IP2STR(addr->sin_addr.s_addr),be16toh(addr->sin_port));
+    if (sendto(sock,&pkt,sizeof(pkt),0,(const sockaddr*)addr,sizeof(sockaddr)) < 0) 
+	on_error ("MC trigger send failed");
+
+    return 0;
+}
+
+/* --------------------------------------------- */
+
+static int sendAddOrderExpanded (int sock, const sockaddr_in* addr, char* secId,
+				 uint32_t sequence, char side, uint16_t price, uint16_t size) {
+
+    CboePitchAddOrderExpanded pkt = {
+	.hdr = {
+	    .length   = sizeof(pkt),
+	    .count    = 1,
+	    .unit     = 1, // just a number
+	    .sequence = sequence,
+	},
+	.msg = {
+	    .header = {
+		.length = sizeof(pkt.msg),
+		.type   = (uint8_t)EKA_BATS_PITCH_MSG::ADD_ORDER_EXPANDED,
+		.time   = 0x11223344,  // just a number
+	    },
+	    .order_id   = 0xaabbccddeeff5566,
+	    .side       = side,
+	    .size       = size,
+	    .exp_symbol = {secId[0],secId[1],secId[2],secId[3],secId[4],secId[5],secId[6],secId[7]},
+	    .price      = price, //(uint16_t)(security[2].bidMinPrice / 100 + 1),
+	    .flags      = 0xFF,
+	}
+    };
+
+    TEST_LOG("sending AddOrderExpanded trigger to %s:%u",
+	    EKA_IP2STR(addr->sin_addr.s_addr),be16toh(addr->sin_port));
+    if (sendto(sock,&pkt,sizeof(pkt),0,(const sockaddr*)addr,sizeof(sockaddr)) < 0) 
+	on_error ("MC trigger send failed");
+
+    return 0;
+}
+/* --------------------------------------------- */
+static int sendAddOrder (AddOrder type, int sock, const sockaddr_in* addr, char* secId,
+			 uint32_t sequence, char side, uint64_t price, uint32_t size) {
+    switch (type) {
+    case AddOrder::Short :
+	return sendAddOrderShort (sock, addr, secId,
+				  sequence, side, price, size);
+    case AddOrder::Long :
+	return sendAddOrderLong (sock, addr, secId,
+				  sequence, side, price, size);
+    case AddOrder::Expanded :
+	return sendAddOrderExpanded (sock, addr, secId,
+				  sequence, side, price, size);
+    default:
+	on_error("Unexpected type %d",(int)type);
+    }
+    return 0;
+}
 
 /* ############################################# */
 int main(int argc, char *argv[]) {
@@ -392,8 +535,8 @@ int main(int argc, char *argv[]) {
   EfcStratGlobCtx efcStratGlobCtx = {
     .enable_strategy = 1,
     .report_only = 0,
-    .debug_always_fire_on_unsubscribed = 0,
-    .debug_always_fire = 0,
+    .debug_always_fire_on_unsubscribed = 1,
+    .debug_always_fire = 1,
     .max_size = 1000,
     .watchdog_timeout_sec = 100000,
   };
@@ -404,19 +547,14 @@ int main(int argc, char *argv[]) {
 
   // ==============================================
   // Subscribing on securities
-  struct SecurityCtx {
-      char            id[8];
-      EkaLSI          groupId;
-      FixedPrice      bidMinPrice;
-      FixedPrice      askMaxPrice;
-      uint8_t         size;
-  };
+
 
   SecurityCtx security[] = {
       {{'\0','\0','0','0','T','E','S','T'}, 0, 1000, 2000, 1}, // correct SecID
-      {{'\0','\0','0','1','T','E','S','T'}, 0, 1000, 2000, 1}, // correct SecID
-      {{'\0','\0','0','2','T','E','S','T'}, 0, 1000, 2000, 1}, // correct SecID
-      {{'\0','\0','0','3','T','E','S','T'}, 0, 1000, 2000, 1}, // correct SecID
+      {{'\0','\0','0','1','T','E','S','T'}, 0, 3000, 4000, 1}, // correct SecID
+      {{'\0','\0','0','2','T','E','S','T'}, 0, 5000, 6000, 1}, // correct SecID
+      {{'\0','\0','0','3','T','E','S','T'}, 0, 7000, 8000, 1}, // correct SecID
+      {{'\0','\0','0','2','A','B','C','D'}, 0, 7000, 8000, 1}, // correct SecID
   };
 
 
@@ -463,11 +601,11 @@ int main(int argc, char *argv[]) {
       continue;
     }
     SecCtx secCtx = {
-      .bidMinPrice       = security[i].bidMinPrice,  //x100, should be nonzero
-      .askMaxPrice       = security[i].askMaxPrice,  //x100
-      .size              = security[i].size,
-      .verNum            = 0xaf,                     // just a number
-      .lowerBytesOfSecId = (uint8_t)(securityList[i] & 0xFF)
+	.bidMinPrice       = static_cast<decltype(secCtx.bidMinPrice)>(security[i].bidMinPrice / 100),  //x100, should be nonzero
+	.askMaxPrice       = static_cast<decltype(secCtx.askMaxPrice)>(security[i].askMaxPrice / 100),  //x100
+	.size              = security[i].size,
+	.verNum            = 0xaf,                     // just a number
+	.lowerBytesOfSecId = (uint8_t)(securityList[i] & 0xFF)
     };
     EKA_TEST("Setting StaticSecCtx[%d] secId=0x%016jx, handle=%jd",
 	     i,securityList[i],handle);
@@ -481,36 +619,36 @@ int main(int argc, char *argv[]) {
   // Manually prepared FPGA firing template
 
   const BoeNewOrderMsg fireMsg = {
-	  .StartOfMessage    = 0xBABA,
-	  .MessageLength     = sizeof(BoeNewOrderMsg) - 2,
-	  .MessageType       = 0x38,
-	  .MatchingUnit      = 0,
-	  .SequenceNumber    = 0,
+      .StartOfMessage    = 0xBABA,
+      .MessageLength     = sizeof(BoeNewOrderMsg) - 2,
+      .MessageType       = 0x38,
+      .MatchingUnit      = 0,
+      .SequenceNumber    = 0,
 
-	  // low 8 bytes of ClOrdID are replaced at FPGA by AppSeq number
-	  .ClOrdID           = {'E','K','A','t','e','s','t','1','2','3','4','5','6','7','8','9','A','B','C','D'},
+      // low 8 bytes of ClOrdID are replaced at FPGA by AppSeq number
+      .ClOrdID           = {'E','K','A','t','e','s','t','1','2','3','4','5','6','7','8','9','A','B','C','D'},
 	  
-	  .Side              = '_',  // '1'-Bid, '2'-Ask
-	  .OrderQty          = 0,
+      .Side              = '_',  // '1'-Bid, '2'-Ask
+      .OrderQty          = 0,
 
-	  .NumberOfBitfields = 4, 
-	  .NewOrderBitfield1 = 1 | 2 | 4 | 16 | 32, // ClearingFirm,ClearingAccount,Price,OrdType,TimeInForce
-	  .NewOrderBitfield2 = 1 | 64,              // Symbol,Capacity
-	  .NewOrderBitfield3 = 1,                   // Account
-	  .NewOrderBitfield4 = 0,
-	  /* .NewOrderBitfield5 = 0,  */
-	  /* .NewOrderBitfield6 = 0,  */
-	  /* .NewOrderBitfield7 = 0, */ 
+      .NumberOfBitfields = 4, 
+      .NewOrderBitfield1 = 1 | 2 | 4 | 16 | 32, // ClearingFirm,ClearingAccount,Price,OrdType,TimeInForce
+      .NewOrderBitfield2 = 1 | 64,              // Symbol,Capacity
+      .NewOrderBitfield3 = 1,                   // Account
+      .NewOrderBitfield4 = 0,
+      /* .NewOrderBitfield5 = 0,  */
+      /* .NewOrderBitfield6 = 0,  */
+      /* .NewOrderBitfield7 = 0, */ 
 
-	  .ClearingFirm      = {'C','L','F','M'},
-	  .ClearingAccount   = {'C','L','A','C'},
-	  .Price             = 0,
-	  .OrdType           = '2',                 // '1' = Market,'2' = Limit (default),'3' = Stop,'4' = Stop Limit
-	  .TimeInForce       = '3',                 // '3' - IOC
-	  .Symbol            = {' ',' ',' ',' ',' ',' ',' ',' '}, // last 2 padding chars to be set to ' '
-	  .Capacity          = 'C',                 // 'C','M','F',etc.
-	  .Account           = {'1','2','3','4','5','6','7','8','9','0','A','B','C','D','E','F'},
-	  .OpenClose         = 'O'
+      .ClearingFirm      = {'C','L','F','M'},
+      .ClearingAccount   = {'C','L','A','C'},
+      .Price             = 0,
+      .OrdType           = '2',                 // '1' = Market,'2' = Limit (default),'3' = Stop,'4' = Stop Limit
+      .TimeInForce       = '3',                 // '3' - IOC
+      .Symbol            = {' ',' ',' ',' ',' ',' ',' ',' '}, // last 2 padding chars to be set to ' '
+      .Capacity          = 'C',                 // 'C','M','F',etc.
+      .Account           = {'1','2','3','4','5','6','7','8','9','0','A','B','C','D','E','F'},
+      .OpenClose         = 'O'
   };
 
   // ==============================================
@@ -643,57 +781,185 @@ int main(int argc, char *argv[]) {
   triggerMcAddr.sin_port        = be16toh(triggerParam[0].mcUdpPort);
 
   // ==============================================
-  // MD trigger message A on GR#0, security #0
 
-  struct CboePitchAddOrderShort {
-    batspitch_sequenced_unit_header hdr;
-    batspitch_add_order_short       addOrdShort;
-  } __attribute__((packed));
+  uint32_t sequence = 32;
+  // ==============================================
+
+  sendAddOrder(AddOrder::Short,triggerSock,&triggerMcAddr,security[2].id,
+	       sequence++,'S',security[2].askMaxPrice / 100 - 1,security[2].size);
   
-  CboePitchAddOrderShort mdAskShortPkt = {
-    .hdr = {
-	    .length   = sizeof(mdAskShortPkt),
-	    .count    = 1,
-	    .unit     = 1, // just a number
-	    .sequence = 5, // just a number
-    },
-    .addOrdShort = {
-	  .header = {
-	      .length = sizeof(mdAskShortPkt.addOrdShort),
-	      .type   = (uint8_t)EKA_BATS_PITCH_MSG::ADD_ORDER_SHORT,
-	      .time   = 0x11223344,  // just a number
+#if 0
+  {
+      CboePitchAddOrderShort pkt = {
+	  .hdr = {
+	      .length   = sizeof(pkt),
+	      .count    = 1,
+	      .unit     = 1, // just a number
+	      .sequence = sequence++,
 	  },
-	  .order_id   = 0xaabbccddeeff5566,
-	  .side       = 'S', // 'B',
-	  .size       = security[0].size,
-	  .symbol     = {'0','2','T','E','S','T'},
-	  .price      = (uint16_t)(security[0].askMaxPrice / 100 - 1),
-	  .flags      = 0xFF 
-    }
-  };
+	  .msg = {
+	      .header = {
+		  .length = sizeof(pkt.msg),
+		  .type   = (uint8_t)EKA_BATS_PITCH_MSG::ADD_ORDER_SHORT,
+		  .time   = 0x11223344,  // just a number
+	      },
+	      .order_id   = 0xaabbccddeeff5566,
+	      .side       = 'S', // 'B',
+	      .size       = security[2].size,
+	      .symbol     = {'0','2','T','E','S','T'},
+	      .price      = (uint16_t)(security[2].askMaxPrice / 100 - 1),
+	      .flags      = 0xFF 
+	  }
+      };
 
-  // ==============================================
-  // Sending MD trigger MC GR#0
-  EKA_LOG("sending AskShort trigger to %s:%u",
-	  EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
-  if (sendto(triggerSock,&mdAskShortPkt,sizeof(mdAskShortPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
-    on_error ("MC trigger send failed");
+      EKA_LOG("sending AskShort trigger to %s:%u",
+	      EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
+      if (sendto(triggerSock,&pkt,sizeof(pkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
+	  on_error ("MC trigger send failed");
 
-//  efcEnableController(pEfcCtx, 1);
-  sleep(1);
-  // ==============================================
-  // Sending MD trigger MC GR#0
-  mdAskShortPkt.addOrdShort.symbol[1] = '3';
-  for (auto j = 0; j < 10; j++) {
-	  EKA_LOG("sending AskShort trigger to %s:%u",
-		  EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
-	  if (sendto(triggerSock,&mdAskShortPkt,sizeof(mdAskShortPkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
-		  on_error ("MC trigger send failed");
-
-//  efcEnableController(pEfcCtx, 1);
-	  sleep(1);
+      sleep(1);
+      efcEnableController(pEfcCtx, 1);
+      sleep(1);
   }
+#endif  
+   // ==============================================
+#if 0
+  {
+      CboePitchAddOrderShort pkt = {
+	  .hdr = {
+	      .length   = sizeof(pkt),
+	      .count    = 1,
+	      .unit     = 1, // just a number
+	      .sequence = sequence++,
+	  },
+	  .msg = {
+	      .header = {
+		  .length = sizeof(pkt.msg),
+		  .type   = (uint8_t)EKA_BATS_PITCH_MSG::ADD_ORDER_SHORT,
+		  .time   = 0x11223344,  // just a number
+	      },
+	      .order_id   = 0xaabbccddeeff5566,
+	      .side       = 'B', // 'S',
+	      .size       = security[2].size,
+	      .symbol     = {'0','2','T','E','S','T'},
+	      .price      = (uint16_t)(security[2].bidMinPrice / 100 + 1),
+	      .flags      = 0xFF,
+	  }
+      };
 
+      EKA_LOG("sending BidShort trigger to %s:%u",
+	      EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
+      if (sendto(triggerSock,&pkt,sizeof(pkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
+	  on_error ("MC trigger send failed");
+
+      sleep(1);
+      efcEnableController(pEfcCtx, 1);
+  }
+#endif
+  // ==============================================
+#if 0
+  {
+      CboePitchAddOrderShort pkt = {
+	  .hdr = {
+	      .length   = sizeof(pkt),
+	      .count    = 1,
+	      .unit     = 1, // just a number
+	      .sequence = sequence++,
+	  },
+	  .msg = {
+	      .header = {
+		  .length = sizeof(pkt.msg),
+		  .type   = (uint8_t)EKA_BATS_PITCH_MSG::ADD_ORDER_SHORT,
+		  .time   = 0x11223344,  // just a number
+	      },
+	      .order_id   = 0xaabbccddeeff5566,
+	      .side       = 'S', // 'B',
+	      .size       = security[4].size,
+	      .symbol     = {'0','2','A','B','C','D'},
+	      .price      = (uint16_t)(security[4].askMaxPrice - 1),
+	      .flags      = 0xFF 
+	  }
+      };
+
+
+      EKA_LOG("sending AskShort trigger to %s:%u",
+	      EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
+      if (sendto(triggerSock,&pkt,sizeof(pkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
+	  on_error ("MC trigger send failed");
+
+      sleep(1);
+      efcEnableController(pEfcCtx, 1);
+  }
+#endif  
+  // ==============================================
+#if 0
+  {
+      CboePitchAddOrderLong pkt = {
+	  .hdr = {
+	      .length   = sizeof(pkt),
+	      .count    = 1,
+	      .unit     = 1, // just a number
+	      .sequence = sequence++,
+	  },
+	  .msg = {
+	      .header = {
+		  .length = sizeof(pkt.msg),
+		  .type   = (uint8_t)EKA_BATS_PITCH_MSG::ADD_ORDER_LONG,
+		  .time   = 0x11223344,  // just a number
+	      },
+	      .order_id   = 0xaabbccddeeff5566,
+	      .side       = 'S', // 'B',
+	      .size       = security[4].size,
+	      .symbol     = {'0','2','A','B','C','D'},
+	      .price      = (uint16_t)(security[4].askMaxPrice - 1),
+	      .flags      = 0xFF 
+	  }
+      };
+
+
+      EKA_LOG("sending AskLong trigger to %s:%u",
+	      EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
+      if (sendto(triggerSock,&pkt,sizeof(pkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
+	  on_error ("MC trigger send failed");
+
+      sleep(1);
+      efcEnableController(pEfcCtx, 1);
+  }
+#endif  
+  // ==============================================
+#if 0
+  {
+      CboePitchAddOrderLong pkt = {
+	  .hdr = {
+	      .length   = sizeof(pkt),
+	      .count    = 1,
+	      .unit     = 1, // just a number
+	      .sequence = sequence++,
+	  },
+	  .msg = {
+	      .header = {
+		  .length = sizeof(pkt.msg),
+		  .type   = (uint8_t)EKA_BATS_PITCH_MSG::ADD_ORDER_LONG,
+		  .time   = 0x11223344,  // just a number
+	      },
+	      .order_id   = 0xaabbccddeeff5566,
+	      .side       = 'S', // 'B',
+	      .size       = security[1].size,
+	      .symbol     = {'0','1','T','E','S','T'},
+	      .price      = (uint16_t)(security[1].bidMinPrice + 1),
+	      .flags      = 0xFF 
+	  }
+      };
+
+      EKA_LOG("sending BidLong trigger to %s:%u",
+	      EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
+      if (sendto(triggerSock,&pkt,sizeof(pkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
+	  on_error ("MC trigger send failed");
+
+      sleep(1);
+      efcEnableController(pEfcCtx, 1);
+  }
+#endif
 
   TEST_LOG("\n===========================\nEND OT TESTS\n===========================\n");
 
@@ -701,8 +967,10 @@ int main(int argc, char *argv[]) {
   sleep(2);
   EKA_LOG("--Test finished, ctrl-c to end---");
 //  keep_work = false;
-  while (keep_work) { sleep(0); }
+//  while (keep_work) { sleep(0); }
 #endif
+
+  sleep(1);
   fflush(stdout);fflush(stderr);
 
 

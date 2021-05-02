@@ -101,7 +101,7 @@ void EkaHwCaps::printStdout() {
 
 bool EkaHwCaps::check() {
  if (hwCaps.version.hwparser != EKA_EXPECTED_HWPARSER_VERSION) 
-    on_error("hwCaps.version.dma %x != EKA_EXPECTED_HWPARSER_VERSION %x",
+    on_error("hwCaps.version.hwparser 0x%x != EKA_EXPECTED_HWPARSER_VERSION 0x%x",
 	     hwCaps.version.hwparser,EKA_EXPECTED_HWPARSER_VERSION);
   
   if (hwCaps.version.epm != EKA_EXPECTED_EPM_VERSION) 

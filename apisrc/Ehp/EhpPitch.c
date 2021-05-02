@@ -240,12 +240,12 @@ int EhpPitch::createAddOrderExpanded() {
   conf.fields.isAON[msgType].expected   = 0x8; //AON is (bit 3 == 1)
 
   conf.fields.miscEnable[msgType].msgId      = msgId;
-  conf.fields.miscEnable[msgType].byteOffs_0 = EhpBlankByte;
+  conf.fields.miscEnable[msgType].byteOffs_0 = 40;
   conf.fields.miscEnable[msgType].byteOffs_1 = EhpBlankByte;
   conf.fields.miscEnable[msgType].byteOffs_2 = EhpBlankByte;
   conf.fields.miscEnable[msgType].byteOffs_3 = EhpBlankByte;
-  conf.fields.miscEnable[msgType].mask       = 0x0; // no special enable fields, so always enable
-  conf.fields.miscEnable[msgType].expected   = 0x0; // no special enable fields, so always enable
+  conf.fields.miscEnable[msgType].mask       = 0xFF; // last Byte
+  conf.fields.miscEnable[msgType].expected   = (uint32_t)'C'; // Customer Order
 
   conf.fields.securityId[msgType].msgId      = msgId;
   conf.fields.securityId[msgType].opcode     = EhpOpcode::NOP;
