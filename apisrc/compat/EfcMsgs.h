@@ -47,6 +47,11 @@ typedef struct {
 #define EFC_FIRE_REASON_SUBSCRIBED 0x08      
 #define EFC_FIRE_REASON_ARMED      0x80
 
+#define EFC_UNARM_REASON_STRATEGY_PASS 0x01      
+#define EFC_UNARM_REASON_WD_EXPIRED    0x02      
+#define EFC_UNARM_REASON_CTX_OVERRUN   0x04      
+#define EFC_UNARM_REASON_HOST_UNARMED  0x08      
+
 typedef struct {
     #define EfcControllerState_FIELD_ITER( _x )                             \
                /* currently not supported: always 0 */                      \
