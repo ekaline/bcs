@@ -241,6 +241,7 @@ void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fire_report_buf, size_t
   printf ("%s: Doing nothing \n",__func__);
   return;	 
 }
+extern FILE* mdFile;
 
 void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
   if (! keep_work) return NULL;
@@ -248,7 +249,7 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
 
 #ifdef FH_LAB
-  FILE* logFile = stdout;
+  FILE* logFile = (FILE*) efhRunUserData; //stdout;
 #else  
   EkaSource exch = msg->group.source;
   EkaLSI    grId = msg->group.localId;
@@ -260,19 +261,23 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
   FILE* logFile = gr->MD;
 #endif
 
-  
+  if (logFile == NULL) on_error("logFile == NULL");
+  fprintf(logFile,
+	  "%ju,"                      /* sequence       */
+	  "%s,"                       /* ts string      */
+	  "0x%jx,",                   /* ts hex         */
+	  msg->sequenceNumber,
+	  ts_ns2str(msg->timeStamp).c_str(),
+	  msg->timeStamp);
+
   switch (msg->mdMsgType) {
   case EfhMdType::NewOrder : {
     auto m {reinterpret_cast<const MdNewOrder*>(msg)};
-    fflush(stdout);
     const char* c= (const char*)&m->hdr.securityId;
-    fprintf(stdout,
+    fprintf(logFile,
 	    "%s (0x%x),"                /* msg type       */
 	    "\'%c%c%c%c%c%c%c%c\',"     /* secId string   */
 	    "0x%016jx,"                 /* secId hex      */
-	    "%ju,"                      /* sequence       */
-	    "%s,"                       /* ts string      */
-	    "0x%jx,"                    /* ts hex         */
 	    "0x%jx,"                    /* orderId        */
 	    "\'%c\',"                   /* side           */
 	    "P:%ju (0x%016jx),"         /* price          */
@@ -281,15 +286,12 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
 	    c[0],c[1],c[2],c[3],c[4],c[5],c[6],c[7],
 	    //	    std::string(*(char*)&m->hdr.securityId,sizeof(m->hdr.securityId)).c_str(),
 	    m->hdr.securityId,
-	    m->hdr.sequenceNumber,
-	    ts_ns2str(m->hdr.timeStamp).c_str(),
-	    m->hdr.timeStamp,
 	    m->orderId,
 	    m->side == EfhOrderSideType::kBid ? 'B' : 'A',
 	    m->price,m->price,
 	    m->size,m->size
 	    );
-    fflush(stdout);
+    fflush(logFile);
   }
     break;
 

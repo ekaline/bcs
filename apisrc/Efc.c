@@ -357,7 +357,7 @@ EkaOpResult efcRun( EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx ) {
 
   //  efc_run(pEfcCtx,pEfcRunCtx);
 
-  eka_write(dev,0xf0f00,0xefa0beda); // REMOVE!!!
+  //  eka_write(dev,0xf0f00,0xefa0beda); // REMOVE!!!
   
   return EKA_OPRESULT__OK;
 }

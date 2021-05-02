@@ -65,7 +65,7 @@ static const int      MaxTcpTestSessions     = 16;
 static const int      MaxUdpTestSessions     = 64;
 
 static const uint64_t FireEntryHeapSize = 256;
-
+FILE*                 mdFile = NULL;
 
 /* --------------------------------------------- */
 
@@ -133,8 +133,8 @@ void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fireReportBuf, size_t s
   EKA_LOG ("FIRE REPORT RECEIVED");
   //  hexDump("FireReport",fireReportBuf,size);
   efcPrintFireReport(pEfcCtx, (const EfcReportHdr*)fireReportBuf,false);
-  EKA_LOG ("Rearming...\n");
-  efcEnableController(pEfcCtx,1);
+  /* EKA_LOG ("Rearming...\n"); */
+  /* efcEnableController(pEfcCtx,1); */
   return;
 }
 
@@ -189,6 +189,7 @@ void printUsage(char* cmd) {
 	 "-u <Trigger UdpPort>"
 	 "-l <Num of TCP sessions>"
 	 "-f <Run EFH for raw MD>"
+	 "-d <FATAL DEBUG ON>"
 	 "\n",cmd);
   return;
 }
@@ -199,9 +200,9 @@ static int getAttr(int argc, char *argv[],
 		   std::string* serverIp, uint16_t* serverTcpPort, 
 		   std::string* clientIp, 
 		   std::string* triggerIp, uint16_t* triggerUdpPort,
-		   uint16_t* numTcpSess, bool* runEfh) {
+		   uint16_t* numTcpSess, bool* runEfh, bool* fatalDebug) {
 	int opt; 
-	while((opt = getopt(argc, argv, ":c:s:p:u:l:t:fh")) != -1) {  
+	while((opt = getopt(argc, argv, ":c:s:p:u:l:t:fdh")) != -1) {  
 		switch(opt) {  
 		case 's':  
 			*serverIp = std::string(optarg);
@@ -230,6 +231,10 @@ static int getAttr(int argc, char *argv[],
 		case 'f':  
 			printf("runEfh = true\n");
 			*runEfh = true;
+			break;
+		case 'd':  
+			printf("fatalDebug = ON\n");
+			*fatalDebug = true;
 			break;
 		case 'h':  
 			printUsage(argv[0]);
@@ -415,8 +420,10 @@ int main(int argc, char *argv[]) {
   uint16_t numTcpSess         = 4;
   uint16_t serverTcpPort      = serverTcpBasePort;
   bool     runEfh             = false;
+  bool     fataDebug          = false;
   
-  getAttr(argc,argv,&serverIp,&serverTcpPort,&clientIp,&triggerIp,&triggerUdpPort,&numTcpSess,&runEfh);
+  getAttr(argc,argv,&serverIp,&serverTcpPort,&clientIp,&triggerIp,&triggerUdpPort,
+	  &numTcpSess,&runEfh,&fataDebug);
 
   if (numTcpSess > MaxTcpTestSessions) 
     on_error("numTcpSess %d > MaxTcpTestSessions %d",numTcpSess, MaxTcpTestSessions);
@@ -535,8 +542,8 @@ int main(int argc, char *argv[]) {
   EfcStratGlobCtx efcStratGlobCtx = {
     .enable_strategy = 1,
     .report_only = 0,
-    .debug_always_fire_on_unsubscribed = 1,
-    .debug_always_fire = 1,
+    .debug_always_fire_on_unsubscribed = 0,
+    .debug_always_fire = 0,
     .max_size = 1000,
     .watchdog_timeout_sec = 100000,
   };
@@ -726,10 +733,15 @@ int main(int argc, char *argv[]) {
 
 	  efhInit(&pEfhCtx,dev,&efhInitCtx);
 
+	  std::string mdFileName = std::string(argv[0]) + "_PARSED_MD.txt";
+	  mdFile = fopen(mdFileName.c_str(),"w");
+	  if (mdFile == NULL) on_error("Failed to open %s",mdFileName.c_str());
+	  TEST_LOG("mdFile = %p",mdFile);
+  
 	  const EfhRunCtx efhRunCtx = {
 		  .groups                      = batsC1Groups,
 		  .numGroups                   = std::size(batsC1Groups),
-		  .efhRunUserData              = (EfhRunUserData) pEfhCtx,
+		  .efhRunUserData              = (EfhRunUserData) pEfhCtx,//mdFile,
 		  .onEfhDefinitionMsgCb        = NULL, //onDefinition,
 		  .onEfhTradeMsgCb             = NULL, //onTrade,
 		  .onEfhQuoteMsgCb             = NULL, //onQuote,
@@ -780,186 +792,63 @@ int main(int argc, char *argv[]) {
   triggerMcAddr.sin_addr.s_addr = inet_addr(triggerParam[0].mcIp);
   triggerMcAddr.sin_port        = be16toh(triggerParam[0].mcUdpPort);
 
-  // ==============================================
-
   uint32_t sequence = 32;
-  // ==============================================
 
+  if (fataDebug) {
+      TEST_LOG(RED "\n=====================\nFATAL DEBUG: ON\n=====================\n" RESET);
+      eka_write(dev,0xf0f00,0xefa0beda);
+  }
+// ==============================================
+#if 0
   sendAddOrder(AddOrder::Short,triggerSock,&triggerMcAddr,security[2].id,
 	       sequence++,'S',security[2].askMaxPrice / 100 - 1,security[2].size);
   
-#if 0
-  {
-      CboePitchAddOrderShort pkt = {
-	  .hdr = {
-	      .length   = sizeof(pkt),
-	      .count    = 1,
-	      .unit     = 1, // just a number
-	      .sequence = sequence++,
-	  },
-	  .msg = {
-	      .header = {
-		  .length = sizeof(pkt.msg),
-		  .type   = (uint8_t)EKA_BATS_PITCH_MSG::ADD_ORDER_SHORT,
-		  .time   = 0x11223344,  // just a number
-	      },
-	      .order_id   = 0xaabbccddeeff5566,
-	      .side       = 'S', // 'B',
-	      .size       = security[2].size,
-	      .symbol     = {'0','2','T','E','S','T'},
-	      .price      = (uint16_t)(security[2].askMaxPrice / 100 - 1),
-	      .flags      = 0xFF 
-	  }
-      };
-
-      EKA_LOG("sending AskShort trigger to %s:%u",
-	      EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
-      if (sendto(triggerSock,&pkt,sizeof(pkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
-	  on_error ("MC trigger send failed");
-
-      sleep(1);
-      efcEnableController(pEfcCtx, 1);
-      sleep(1);
-  }
-#endif  
-   // ==============================================
-#if 0
-  {
-      CboePitchAddOrderShort pkt = {
-	  .hdr = {
-	      .length   = sizeof(pkt),
-	      .count    = 1,
-	      .unit     = 1, // just a number
-	      .sequence = sequence++,
-	  },
-	  .msg = {
-	      .header = {
-		  .length = sizeof(pkt.msg),
-		  .type   = (uint8_t)EKA_BATS_PITCH_MSG::ADD_ORDER_SHORT,
-		  .time   = 0x11223344,  // just a number
-	      },
-	      .order_id   = 0xaabbccddeeff5566,
-	      .side       = 'B', // 'S',
-	      .size       = security[2].size,
-	      .symbol     = {'0','2','T','E','S','T'},
-	      .price      = (uint16_t)(security[2].bidMinPrice / 100 + 1),
-	      .flags      = 0xFF,
-	  }
-      };
-
-      EKA_LOG("sending BidShort trigger to %s:%u",
-	      EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
-      if (sendto(triggerSock,&pkt,sizeof(pkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
-	  on_error ("MC trigger send failed");
-
-      sleep(1);
-      efcEnableController(pEfcCtx, 1);
-  }
+  efcEnableController(pEfcCtx, 1);
+  sleep(1);
 #endif
-  // ==============================================
+// ==============================================
 #if 0
-  {
-      CboePitchAddOrderShort pkt = {
-	  .hdr = {
-	      .length   = sizeof(pkt),
-	      .count    = 1,
-	      .unit     = 1, // just a number
-	      .sequence = sequence++,
-	  },
-	  .msg = {
-	      .header = {
-		  .length = sizeof(pkt.msg),
-		  .type   = (uint8_t)EKA_BATS_PITCH_MSG::ADD_ORDER_SHORT,
-		  .time   = 0x11223344,  // just a number
-	      },
-	      .order_id   = 0xaabbccddeeff5566,
-	      .side       = 'S', // 'B',
-	      .size       = security[4].size,
-	      .symbol     = {'0','2','A','B','C','D'},
-	      .price      = (uint16_t)(security[4].askMaxPrice - 1),
-	      .flags      = 0xFF 
-	  }
-      };
-
-
-      EKA_LOG("sending AskShort trigger to %s:%u",
-	      EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
-      if (sendto(triggerSock,&pkt,sizeof(pkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
-	  on_error ("MC trigger send failed");
-
-      sleep(1);
-      efcEnableController(pEfcCtx, 1);
-  }
+  sendAddOrder(AddOrder::Short,triggerSock,&triggerMcAddr,security[2].id,
+	       sequence++,'B',security[2].bidMinPrice / 100 + 1,security[2].size);
+  
+  efcEnableController(pEfcCtx, 1);
+  sleep(1);
+#endif    
+// ==============================================
+#if 1
+  sendAddOrder(AddOrder::Long,triggerSock,&triggerMcAddr,security[2].id,
+	       sequence++,'S',security[2].askMaxPrice - 1,security[2].size);
+  
+  efcEnableController(pEfcCtx, 1);
+  sleep(1);
 #endif  
-  // ==============================================
+// ==============================================
 #if 0
-  {
-      CboePitchAddOrderLong pkt = {
-	  .hdr = {
-	      .length   = sizeof(pkt),
-	      .count    = 1,
-	      .unit     = 1, // just a number
-	      .sequence = sequence++,
-	  },
-	  .msg = {
-	      .header = {
-		  .length = sizeof(pkt.msg),
-		  .type   = (uint8_t)EKA_BATS_PITCH_MSG::ADD_ORDER_LONG,
-		  .time   = 0x11223344,  // just a number
-	      },
-	      .order_id   = 0xaabbccddeeff5566,
-	      .side       = 'S', // 'B',
-	      .size       = security[4].size,
-	      .symbol     = {'0','2','A','B','C','D'},
-	      .price      = (uint16_t)(security[4].askMaxPrice - 1),
-	      .flags      = 0xFF 
-	  }
-      };
-
-
-      EKA_LOG("sending AskLong trigger to %s:%u",
-	      EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
-      if (sendto(triggerSock,&pkt,sizeof(pkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
-	  on_error ("MC trigger send failed");
-
-      sleep(1);
-      efcEnableController(pEfcCtx, 1);
-  }
-#endif  
-  // ==============================================
-#if 0
-  {
-      CboePitchAddOrderLong pkt = {
-	  .hdr = {
-	      .length   = sizeof(pkt),
-	      .count    = 1,
-	      .unit     = 1, // just a number
-	      .sequence = sequence++,
-	  },
-	  .msg = {
-	      .header = {
-		  .length = sizeof(pkt.msg),
-		  .type   = (uint8_t)EKA_BATS_PITCH_MSG::ADD_ORDER_LONG,
-		  .time   = 0x11223344,  // just a number
-	      },
-	      .order_id   = 0xaabbccddeeff5566,
-	      .side       = 'S', // 'B',
-	      .size       = security[1].size,
-	      .symbol     = {'0','1','T','E','S','T'},
-	      .price      = (uint16_t)(security[1].bidMinPrice + 1),
-	      .flags      = 0xFF 
-	  }
-      };
-
-      EKA_LOG("sending BidLong trigger to %s:%u",
-	      EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
-      if (sendto(triggerSock,&pkt,sizeof(pkt),0,(const sockaddr*)&triggerMcAddr,sizeof(sockaddr)) < 0) 
-	  on_error ("MC trigger send failed");
-
-      sleep(1);
-      efcEnableController(pEfcCtx, 1);
-  }
+  sendAddOrder(AddOrder::Long,triggerSock,&triggerMcAddr,security[2].id,
+	       sequence++,'B',security[2].bidMinPrice + 1,security[2].size);
+  
+  efcEnableController(pEfcCtx, 1);
+  sleep(1);
 #endif
+// ==============================================
+#if 0
+  sendAddOrder(AddOrder::Expanded,triggerSock,&triggerMcAddr,security[2].id,
+	       sequence++,'S',security[2].askMaxPrice - 1,security[2].size);
+  
+  efcEnableController(pEfcCtx, 1);
+  sleep(1);
+#endif  
+// ==============================================
+#if 0
+  sendAddOrder(AddOrder::Expanded,triggerSock,&triggerMcAddr,security[2].id,
+	       sequence++,'B',security[2].bidMinPrice + 1,security[2].size);
+  
+  efcEnableController(pEfcCtx, 1);
+  sleep(1);
+#endif  
+// ==============================================
+
+
 
   TEST_LOG("\n===========================\nEND OT TESTS\n===========================\n");
 
@@ -967,7 +856,7 @@ int main(int argc, char *argv[]) {
   sleep(2);
   EKA_LOG("--Test finished, ctrl-c to end---");
 //  keep_work = false;
-//  while (keep_work) { sleep(0); }
+  while (keep_work) { sleep(0); }
 #endif
 
   sleep(1);
@@ -980,6 +869,7 @@ int main(int argc, char *argv[]) {
 
   ekaDevClose(dev);
   sleep(5);
-
+  if (runEfh) fclose(mdFile);
+  
   return 0;
 }

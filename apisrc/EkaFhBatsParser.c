@@ -536,7 +536,7 @@ int EkaFhBatsGr::sendMdCb(const EfhRunCtx* pEfhRunCtx, const uint8_t* m, int gr,
     dstMsg->price   = srcMsg->price / EFH_PRICE_SCALE;
     dstMsg->size    = srcMsg->size;
 
-    pEfhRunCtx->onEfhMdCb(hdr,pEfhRunCtx->efhRunUserData);
+    pEfhRunCtx->onEfhMdCb(hdr,(EfhRunUserData)parser_log);
   }
     break;
     
@@ -554,7 +554,7 @@ int EkaFhBatsGr::sendMdCb(const EfhRunCtx* pEfhRunCtx, const uint8_t* m, int gr,
     dstMsg->price   = static_cast<decltype(dstMsg->price)>(srcMsg->price * 100 / EFH_PRICE_SCALE);
     dstMsg->size    = static_cast<decltype(dstMsg->size) >(srcMsg->size);
 
-    pEfhRunCtx->onEfhMdCb(hdr,pEfhRunCtx->efhRunUserData);
+    pEfhRunCtx->onEfhMdCb(hdr,(EfhRunUserData)parser_log);
   }
     break;
 
@@ -572,7 +572,7 @@ int EkaFhBatsGr::sendMdCb(const EfhRunCtx* pEfhRunCtx, const uint8_t* m, int gr,
     dstMsg->price   = srcMsg->price / EFH_PRICE_SCALE;
     dstMsg->size    = srcMsg->size;
 
-    pEfhRunCtx->onEfhMdCb(hdr,pEfhRunCtx->efhRunUserData);
+    pEfhRunCtx->onEfhMdCb(hdr,(EfhRunUserData)parser_log);
   }
     break;
 

@@ -456,7 +456,11 @@ int printEfcState(EfcState* pEfcState) {
     else 
       printf (GRN "ARMED STATE: ARMED\n" RESET);
   }
-  if (pEfcState->fatalDebug) printf(RED "WARNING: \'Fatal Debug\' is Active\n" RESET);
+  if (pEfcState->fatalDebug)
+    printf(RED "WARNING: \'Fatal Debug\' is Active\n" RESET);
+  else
+    printf(GRN "WARNING: \'Fatal Debug\' is NOT Active\n" RESET);
+  
   printf("Configurations: ForceFire=%d,              (effective only if \'Fatal Debug\' is Active)\n",
 	 pEfcState->forceFire);
   printf("\t\tForceFireOnUnsubscribed=%d (effective only if \'Fatal Debug\' and ForceFire are Active)\n",
