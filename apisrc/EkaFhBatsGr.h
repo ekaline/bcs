@@ -98,5 +98,11 @@ private:
   inline SecurityIdT symbol2secId(const char* s) {
     return be64toh(*(uint64_t*)(s - 2)) & 0x0000ffffffffffff;
   }
+  inline SecurityIdT expSymbol2secId(const char* s) {
+    if (s[6] != ' ' || s[7] != ' ')
+      on_error("ADD_ORDER_EXPANDED message with \'%c%c%c%c%c%c%c%c\' symbol (longer than 6 chars) not supported",
+	       s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7]);
+    return be64toh(*(uint64_t*)(s - 2)) & 0x0000ffffffffffff;
+  }
 };
 #endif

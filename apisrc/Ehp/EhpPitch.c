@@ -39,7 +39,7 @@ int EhpPitch::createAddOrderShort() {
   int     msgType = AddOrderShortMsg;
 
   conf.params.bytes4Strategy[msgType].msgId    = msgId;
-  conf.params.bytes4Strategy[msgType].byteOffs = 25;
+  conf.params.bytes4Strategy[msgType].byteOffs = 26;
 
   conf.params.bytes4SecLookup[msgType].msgId    = msgId;
   conf.params.bytes4SecLookup[msgType].byteOffs = 23;
@@ -142,7 +142,7 @@ int EhpPitch::createAddOrderLong() {
   conf.fields.side[msgType].encode.bid = 'B';
 
   conf.fields.isAON[msgType].msgId      = msgId;
-  conf.fields.isAON[msgType].byteOffs_0 = 33;
+  conf.fields.isAON[msgType].byteOffs_0 = 34;
   conf.fields.isAON[msgType].byteOffs_1 = EhpBlankByte;
   conf.fields.isAON[msgType].byteOffs_2 = EhpBlankByte;
   conf.fields.isAON[msgType].byteOffs_3 = EhpBlankByte;
@@ -220,7 +220,7 @@ int EhpPitch::createAddOrderExpanded() {
   int     msgType = AddOrderExpandedMsg;
 
   conf.params.bytes4Strategy[msgType].msgId    = msgId;
-  conf.params.bytes4Strategy[msgType].byteOffs = 35;
+  conf.params.bytes4Strategy[msgType].byteOffs = 41;
 
   conf.params.bytes4SecLookup[msgType].msgId    = msgId;
   conf.params.bytes4SecLookup[msgType].byteOffs = 27;
@@ -249,15 +249,16 @@ int EhpPitch::createAddOrderExpanded() {
 
   conf.fields.securityId[msgType].msgId      = msgId;
   conf.fields.securityId[msgType].opcode     = EhpOpcode::NOP;
-  conf.fields.securityId[msgType].byteOffs_0 = 26;
-  conf.fields.securityId[msgType].byteOffs_1 = 25;
-  conf.fields.securityId[msgType].byteOffs_2 = 24;
-  conf.fields.securityId[msgType].byteOffs_3 = 23;
-  conf.fields.securityId[msgType].byteOffs_4 = 22;
-  conf.fields.securityId[msgType].byteOffs_5 = 21;
-  conf.fields.securityId[msgType].byteOffs_6 = 20;
-  conf.fields.securityId[msgType].byteOffs_7 = 19;
-
+  
+  conf.fields.securityId[msgType].byteOffs_0 = 24;
+  conf.fields.securityId[msgType].byteOffs_1 = 23;
+  conf.fields.securityId[msgType].byteOffs_2 = 22;
+  conf.fields.securityId[msgType].byteOffs_3 = 21;
+  conf.fields.securityId[msgType].byteOffs_4 = 20;
+  conf.fields.securityId[msgType].byteOffs_5 = 19;
+  conf.fields.securityId[msgType].byteOffs_6 = EhpBlankByte;
+  conf.fields.securityId[msgType].byteOffs_7 = EhpBlankByte;
+  
   conf.fields.price[msgType].msgId      = msgId;
   conf.fields.price[msgType].opcode     = EhpOpcode::NOP;
   conf.fields.price[msgType].byteOffs_0 = 27;

@@ -272,13 +272,10 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     //--------------------------------------------------------------
   case EKA_BATS_PITCH_MSG::ADD_ORDER_EXPANDED:  { 
     batspitch_add_order_expanded *message = (batspitch_add_order_expanded *)m;
-    if (message->exp_symbol[6] != ' ' || message->exp_symbol[7] != ' ')
-      on_error("ADD_ORDER_EXPANDED message with \'%c%c%c%c%c%c%c%c\' symbol (longer than 6 chars) not supported",
-	       message->exp_symbol[0],message->exp_symbol[1],message->exp_symbol[2],message->exp_symbol[3],
-	       message->exp_symbol[4],message->exp_symbol[5],message->exp_symbol[6],message->exp_symbol[7]);
+
 
     //    SecurityIdT security_id =  bats_symbol2optionid(message->exp_symbol,6);
-    SecurityIdT security_id =  be64toh(*(uint64_t*)message->exp_symbol);
+    SecurityIdT security_id =  expSymbol2secId(message->exp_symbol);
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
     book->setSecurityPrevState(s);
@@ -564,7 +561,7 @@ int EkaFhBatsGr::sendMdCb(const EfhRunCtx* pEfhRunCtx, const uint8_t* m, int gr,
 
     hdr->mdMsgType  = EfhMdType::NewOrder;
     hdr->mdMsgSize  = sizeof(MdNewOrder);
-    hdr->securityId = be64toh(*(uint64_t*)srcMsg->exp_symbol);
+    hdr->securityId = expSymbol2secId(srcMsg->exp_symbol);
 
     dstMsg->attr    = srcMsg->flags;
     dstMsg->orderId = srcMsg->order_id;

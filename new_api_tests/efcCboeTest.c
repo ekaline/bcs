@@ -60,12 +60,11 @@ static const uint64_t DUMMY_BATS_SEC_ID =  0x0003c40f;
 static const uint64_t AlwaysFire      = 0xadcd;
 static const uint64_t DefaultToken    = 0x1122334455667788;
 
-static const int      DatagramOffset  = 54; // 14 + 20 + 20
+//static const int      DatagramOffset  = 54; // 14 + 20 + 20
 static const int      MaxTcpTestSessions     = 16;
 static const int      MaxUdpTestSessions     = 64;
 
 static const uint64_t FireEntryHeapSize = 256;
-FILE*                 mdFile = NULL;
 
 /* --------------------------------------------- */
 
@@ -374,9 +373,13 @@ static int sendAddOrderExpanded (int sock, const sockaddr_in* addr, char* secId,
 	    .order_id   = 0xaabbccddeeff5566,
 	    .side       = side,
 	    .size       = size,
-	    .exp_symbol = {secId[0],secId[1],secId[2],secId[3],secId[4],secId[5],secId[6],secId[7]},
+//	    .exp_symbol = {secId[0],secId[1],secId[2],secId[3],secId[4],secId[5],secId[6],secId[7]},
+	    .exp_symbol = {secId[2],secId[3],secId[4],secId[5],secId[6],secId[7],' ',' '},
 	    .price      = price, //(uint16_t)(security[2].bidMinPrice / 100 + 1),
 	    .flags      = 0xFF,
+	    .participant_id     = {},
+	    .customer_indicator = 'C',
+	    .client_id          = {}
 	}
     };
 
@@ -420,10 +423,10 @@ int main(int argc, char *argv[]) {
   uint16_t numTcpSess         = 4;
   uint16_t serverTcpPort      = serverTcpBasePort;
   bool     runEfh             = false;
-  bool     fataDebug          = false;
+  bool     fatalDebug          = false;
   
   getAttr(argc,argv,&serverIp,&serverTcpPort,&clientIp,&triggerIp,&triggerUdpPort,
-	  &numTcpSess,&runEfh,&fataDebug);
+	  &numTcpSess,&runEfh,&fatalDebug);
 
   if (numTcpSess > MaxTcpTestSessions) 
     on_error("numTcpSess %d > MaxTcpTestSessions %d",numTcpSess, MaxTcpTestSessions);
@@ -542,8 +545,8 @@ int main(int argc, char *argv[]) {
   EfcStratGlobCtx efcStratGlobCtx = {
     .enable_strategy = 1,
     .report_only = 0,
-    .debug_always_fire_on_unsubscribed = 0,
-    .debug_always_fire = 0,
+    .debug_always_fire_on_unsubscribed = 1,
+    .debug_always_fire = 1,
     .max_size = 1000,
     .watchdog_timeout_sec = 100000,
   };
@@ -733,15 +736,10 @@ int main(int argc, char *argv[]) {
 
 	  efhInit(&pEfhCtx,dev,&efhInitCtx);
 
-	  std::string mdFileName = std::string(argv[0]) + "_PARSED_MD.txt";
-	  mdFile = fopen(mdFileName.c_str(),"w");
-	  if (mdFile == NULL) on_error("Failed to open %s",mdFileName.c_str());
-	  TEST_LOG("mdFile = %p",mdFile);
-  
 	  const EfhRunCtx efhRunCtx = {
 		  .groups                      = batsC1Groups,
 		  .numGroups                   = std::size(batsC1Groups),
-		  .efhRunUserData              = (EfhRunUserData) pEfhCtx,//mdFile,
+		  .efhRunUserData              = (EfhRunUserData) pEfhCtx,
 		  .onEfhDefinitionMsgCb        = NULL, //onDefinition,
 		  .onEfhTradeMsgCb             = NULL, //onTrade,
 		  .onEfhQuoteMsgCb             = NULL, //onQuote,
@@ -794,57 +792,57 @@ int main(int argc, char *argv[]) {
 
   uint32_t sequence = 32;
 
-  if (fataDebug) {
+  if (fatalDebug) {
       TEST_LOG(RED "\n=====================\nFATAL DEBUG: ON\n=====================\n" RESET);
       eka_write(dev,0xf0f00,0xefa0beda);
   }
 // ==============================================
-#if 0
+#if 1
   sendAddOrder(AddOrder::Short,triggerSock,&triggerMcAddr,security[2].id,
 	       sequence++,'S',security[2].askMaxPrice / 100 - 1,security[2].size);
   
-  efcEnableController(pEfcCtx, 1);
   sleep(1);
+  efcEnableController(pEfcCtx, 1);
 #endif
 // ==============================================
-#if 0
+#if 1
   sendAddOrder(AddOrder::Short,triggerSock,&triggerMcAddr,security[2].id,
 	       sequence++,'B',security[2].bidMinPrice / 100 + 1,security[2].size);
   
-  efcEnableController(pEfcCtx, 1);
   sleep(1);
+  efcEnableController(pEfcCtx, 1);
 #endif    
 // ==============================================
 #if 1
   sendAddOrder(AddOrder::Long,triggerSock,&triggerMcAddr,security[2].id,
 	       sequence++,'S',security[2].askMaxPrice - 1,security[2].size);
   
-  efcEnableController(pEfcCtx, 1);
   sleep(1);
+  efcEnableController(pEfcCtx, 1);
 #endif  
 // ==============================================
-#if 0
+#if 1
   sendAddOrder(AddOrder::Long,triggerSock,&triggerMcAddr,security[2].id,
 	       sequence++,'B',security[2].bidMinPrice + 1,security[2].size);
   
-  efcEnableController(pEfcCtx, 1);
   sleep(1);
+  efcEnableController(pEfcCtx, 1);
 #endif
 // ==============================================
-#if 0
+#if 1
   sendAddOrder(AddOrder::Expanded,triggerSock,&triggerMcAddr,security[2].id,
 	       sequence++,'S',security[2].askMaxPrice - 1,security[2].size);
   
-  efcEnableController(pEfcCtx, 1);
   sleep(1);
+  efcEnableController(pEfcCtx, 1);
 #endif  
 // ==============================================
-#if 0
+#if 1
   sendAddOrder(AddOrder::Expanded,triggerSock,&triggerMcAddr,security[2].id,
 	       sequence++,'B',security[2].bidMinPrice + 1,security[2].size);
   
-  efcEnableController(pEfcCtx, 1);
   sleep(1);
+  efcEnableController(pEfcCtx, 1);
 #endif  
 // ==============================================
 
@@ -868,8 +866,7 @@ int main(int argc, char *argv[]) {
   printf("Closing device\n");
 
   ekaDevClose(dev);
-  sleep(5);
-  if (runEfh) fclose(mdFile);
+  sleep(1);
   
   return 0;
 }

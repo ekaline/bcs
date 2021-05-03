@@ -291,7 +291,7 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
 	    m->price,m->price,
 	    m->size,m->size
 	    );
-    fflush(logFile);
+    //    fflush(logFile);
   }
     break;
 
