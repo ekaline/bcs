@@ -47,6 +47,7 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
   
 #ifndef _VERILOG_SIM
   cleanSubscrHwTable();
+  eka_write(dev,SCRPAD_EFC_SUBSCR_CNT,0);
 #endif
 
   switch (hwFeedVer) {

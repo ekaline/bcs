@@ -2,6 +2,7 @@
 #define _EKA_HW_CONF_H_
 
 #include "eka_macros.h"
+#include "EkaMcState.h"
 
 #define EKA_MAX_P4_SUBSCR 768*1024
 //#define EKA_MAX_CTX_THREADS 16
@@ -59,12 +60,15 @@
 
 #define EKA_FPGA_FREQUENCY (161.132828125)
 
+#define UDP_CHANNELS 32
 // scratchpad 16bit 64kB address space
 #define SCRATCHPAD_BASE (0x20000)
 #define SCRATCHPAD_SIZE (64 * 1024)
 #define SCRPAD_SW_VER (SCRATCHPAD_BASE)
 #define SCRPAD_MC_STATE_BASE (SCRPAD_SW_VER + 8)
 #define MAX_MC_GROUPS_PER_UDP_CH 64
+#define SCRPAD_MC_STATE_SIZE (UDP_CHANNELS * MAX_MC_GROUPS_PER_UDP_CH * sizeof(EkaMcState))
+#define SCRPAD_EFC_SUBSCR_CNT (SCRPAD_MC_STATE_BASE + SCRPAD_MC_STATE_SIZE)
 
 //#define SW_STATISTICS 0xf0770
 // reset statistic counters

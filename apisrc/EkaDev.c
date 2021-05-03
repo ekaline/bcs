@@ -19,6 +19,7 @@
 #include "EkaUserChannel.h"
 #include "EkaUdpChannel.h"
 #include "EkaIgmp.h"
+#include "EkaEfc.h"
 
 #include "eka_hw_conf.h"
 
@@ -338,6 +339,12 @@ EkaDev::~EkaDev() {
   TEST_LOG("Closing Epm");
   dev->epm->active = false;
 
+  auto efc {dynamic_cast<EkaEfc*>(epm->strategy[EFC_STRATEGY])};
+  if (efc != NULL) {
+    TEST_LOG("Disarming EFC");
+    efc->disArmController();
+  }
+  
   for (auto i = 0; i < numFh; i++) {
     if (fh[i] != NULL) fh[i]->stop();
   }

@@ -23,7 +23,6 @@ class EkaEfc : public EpmStrategy {
 	       epm_actionid_t           baseActionIdx, 
 	       const EpmStrategyParams* params, 
 	       EfhFeedVer               hwFeedVer);
-
   int downloadTable();
   int subscribeSec(uint64_t secId);
   int cleanSubscrHwTable();
@@ -51,11 +50,11 @@ class EkaEfc : public EpmStrategy {
   static const int MAX_CTX_THREADS   = 16;
 
   EkaHwHashTableLine* hashLine[EFC_SUBSCR_TABLE_ROWS] = {};
-  int                 numSecurities = 0;
 
   EfcStratGlobCtx     stratGlobCtx = {};
 
  public:
+  int                 numSecurities = 0;
   int                 ctxWriteBank[MAX_CTX_THREADS] = {};
   EfcCtx              localCopyEfcCtx = {};
   EfcRunCtx           localCopyEfcRunCtx = {};

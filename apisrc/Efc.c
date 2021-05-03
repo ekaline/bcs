@@ -148,6 +148,12 @@ EkaOpResult efcEnableFiringOnSec( EfcCtx* pEfcCtx, const uint64_t* pSecurityIds,
   }
   efc->downloadTable();
 
+  uint64_t subscrCnt = (numSecurityIds << 32) | efc->numSecurities;
+  eka_write(dev,SCRPAD_EFC_SUBSCR_CNT,subscrCnt);
+
+  EKA_LOG("Tried to subscribe on %u, succeeded on %d",
+	  (uint)numSecurityIds,efc->numSecurities);
+  
   return EKA_OPRESULT__OK;
 }
 

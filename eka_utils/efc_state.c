@@ -15,6 +15,7 @@
 #include "EkaMcState.h"
 #include "ctls.h"
 #include "eka.h"
+#include "eka_hw_conf.h"
 
 //#define NUM_OF_CORES EKA_MAX_CORES
 #define NUM_OF_CORES 4
@@ -52,11 +53,14 @@ struct EfcState {
   uint64_t strategyPassed     = 0;
   uint64_t ordersSubscribed   = 0;
   uint64_t ordersUnsubscribed = 0;
+  uint32_t totalSecs          = 0;
+  uint32_t subscribedSecs     = 0;
   bool     forceFire          = false;
   bool     forceFireUnsubscr  = false;
   bool     reportOnly         = false;
   bool     fatalDebug         = false;
   bool     armed              = false;
+  
 };
 
 
@@ -430,6 +434,10 @@ int getEfcState(EfcState* pEfcState) {
   uint64_t var_p4_general_conf	 = reg_read(ADDR_P4_GENERAL_CONF);
   uint64_t var_fatal_debug       = reg_read(ADDR_FATAL_CONF);
 
+  uint64_t subscrCnt             = reg_read(SCRPAD_EFC_SUBSCR_CNT);
+  pEfcState->totalSecs           = (subscrCnt >> 32) & 0xFFFFFFFF;
+  pEfcState->subscribedSecs      = subscrCnt & 0xFFFFFFFF;
+  
   pEfcState->strategyRuns       = (var_p4_cont_counter1>>0)  & MASK32;
   pEfcState->strategyPassed     = (var_p4_cont_counter1>>32) & MASK32;
   pEfcState->ordersSubscribed   = (var_p4_cont_counter3>>0)  & MASK32;
@@ -449,23 +457,25 @@ int getEfcState(EfcState* pEfcState) {
 //################################################
 int printEfcState(EfcState* pEfcState) {
   if (! pEfcState->armed) {
-    printf (RED "ARMED STATE: UNARMED\n" RESET);
+    printf (RED "CONTROLLER STATE: UNARMED\n" RESET);
   } else {
     if (pEfcState->fatalDebug)
-      printf (RED "ARMED STATE: ARMED -- can be overidden by \'Fatal Debug\' \n" RESET);
+      printf (RED "CONTROLLER STATE: ARMED -- can be overidden by \'Fatal Debug\' \n" RESET);
     else 
-      printf (GRN "ARMED STATE: ARMED\n" RESET);
+      printf (GRN "CONTROLLER STATE: ARMED\n" RESET);
   }
   if (pEfcState->fatalDebug)
     printf(RED "WARNING: \'Fatal Debug\' is Active\n" RESET);
-  else
-    printf(GRN "WARNING: \'Fatal Debug\' is NOT Active\n" RESET);
   
   printf("Configurations: ForceFire=%d,              (effective only if \'Fatal Debug\' is Active)\n",
 	 pEfcState->forceFire);
   printf("\t\tForceFireOnUnsubscribed=%d (effective only if \'Fatal Debug\' and ForceFire are Active)\n",
 	 pEfcState->forceFireUnsubscr);
   printf("\t\tReportOnly=%d\n\n",pEfcState->reportOnly);
+
+  printf("Tried     subscribing on %u securities\n",pEfcState->totalSecs);
+  printf("Succeeded subscribing on %u securities\n",pEfcState->subscribedSecs);
+  printf("\n");
   
   printf("Subscribed   MD Orders:\t%ju\n",pEfcState->ordersSubscribed);
   printf("Unsubscribed MD Orders:\t%ju\n",pEfcState->ordersUnsubscribed);
