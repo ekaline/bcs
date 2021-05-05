@@ -86,10 +86,10 @@ EkaOpResult EkaFhMiax::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
 
     gr->resetNoMdTimer();
 
-    if (isHeartbeat) {
-      runGr->udpCh->next(); 
-      continue;
-    }
+    /* if (isHeartbeat) { */
+    /*   runGr->udpCh->next();  */
+    /*   continue; */
+    /* } */
 
     //-----------------------------------------------------------------------------
     switch (gr->state) {
@@ -109,9 +109,11 @@ EkaOpResult EkaFhMiax::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
     case EkaFhGroup::GrpState::NORMAL : {
       if (sequence == 0) break; // unsequenced packet
       if (sequence < gr->expected_sequence) {
-	EKA_WARN("%s:%u BACK-IN-TIME WARNING: sequence %ju < expected_sequence %ju",
-		 EKA_EXCH_DECODE(exch),gr_id,sequence,gr->expected_sequence);
-	gr->sendBackInTimeEvent(pEfhRunCtx,sequence);
+	if (! isHeartbeat) {
+	  EKA_WARN("%s:%u BACK-IN-TIME WARNING: sequence %ju < expected_sequence %ju",
+		   EKA_EXCH_DECODE(exch),gr_id,sequence,gr->expected_sequence);
+	  gr->sendBackInTimeEvent(pEfhRunCtx,sequence);
+	}
 	gr->expected_sequence = sequence;
 	break; 
       }

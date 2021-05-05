@@ -467,11 +467,11 @@ int printEfcState(EfcState* pEfcState) {
   if (pEfcState->fatalDebug)
     printf(RED "WARNING: \'Fatal Debug\' is Active\n" RESET);
   
-  printf("Configurations: ForceFire=%d,              (effective only if \'Fatal Debug\' is Active)\n",
+  printf("Configurations: ForceFire               = %d (effective only if \'Fatal Debug\' is Active)\n",
 	 pEfcState->forceFire);
-  printf("\t\tForceFireOnUnsubscribed=%d (effective only if \'Fatal Debug\' and ForceFire are Active)\n",
+  printf("\t\tForceFireOnUnsubscribed = %d (effective only if \'Fatal Debug\' and ForceFire are Active)\n",
 	 pEfcState->forceFireUnsubscr);
-  printf("\t\tReportOnly=%d\n\n",pEfcState->reportOnly);
+  printf("\t\tReportOnly              = %d (needs re-arming)\n\n",pEfcState->reportOnly);
 
   printf("Tried     subscribing on %u securities\n",pEfcState->totalSecs);
   printf("Succeeded subscribing on %u securities\n",pEfcState->subscribedSecs);
