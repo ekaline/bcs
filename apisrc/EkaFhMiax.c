@@ -109,12 +109,14 @@ EkaOpResult EkaFhMiax::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
     case EkaFhGroup::GrpState::NORMAL : {
       if (sequence == 0) break; // unsequenced packet
       if (sequence < gr->expected_sequence) {
-	if (! isHeartbeat) {
+	if (isHeartbeat) {
+	  gr->expected_sequence = sequence + 1;
+	} else {
 	  EKA_WARN("%s:%u BACK-IN-TIME WARNING: sequence %ju < expected_sequence %ju",
 		   EKA_EXCH_DECODE(exch),gr_id,sequence,gr->expected_sequence);
 	  gr->sendBackInTimeEvent(pEfhRunCtx,sequence);
+	  gr->expected_sequence = sequence;
 	}
-	gr->expected_sequence = sequence;
 	break; 
       }
       if (sequence > gr->expected_sequence) { // GAP

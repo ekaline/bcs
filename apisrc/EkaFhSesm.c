@@ -461,7 +461,7 @@ void* getSesmData(void* attr) {
   if (dev->fh[pEfhCtx->fhId] == NULL) on_error("dev->fh[pEfhCtx->fhId] == NULL for pEfhCtx->fhId = %u",pEfhCtx->fhId);
   if (gr == NULL) on_error("gr == NULL");
 
-  EKA_LOG("%s:%u %s",EKA_EXCH_DECODE(gr->exch),gr->id,op==EkaFhMode::SNAPSHOT ? "GAP_SNAPSHOT" : "DEFINITIONS");
+  EKA_LOG("%s:%u %s",EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
 
   //-----------------------------------------------------------------
   EkaCredentialLease* lease;
