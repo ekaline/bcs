@@ -155,7 +155,12 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
 
   //  if (op != EkaFhMode::DEFINITIONS && fh->print_parsed_messages) eka_print_batspitch_msg(parser_log,(uint8_t*)m,id,sequence,msg_timestamp);
   if (fh->print_parsed_messages) sendMdCb(pEfhRunCtx,m,id,sequence,msg_timestamp);
-  if (fh->noTob && enc != EKA_BATS_PITCH_MSG::TIME) return false;
+  if (fh->noTob &&
+      enc != EKA_BATS_PITCH_MSG::TIME                 &&
+      enc != EKA_BATS_PITCH_MSG::DEFINITIONS_FINISHED &&
+      enc != EKA_BATS_PITCH_MSG::SYMBOL_MAPPING       &&
+      enc != EKA_BATS_PITCH_MSG::SPIN_FINISHED
+      ) return false;
   
   switch (enc) {    
     //--------------------------------------------------------------
