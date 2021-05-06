@@ -312,6 +312,7 @@ int main(int argc, char *argv[]) {
 	  {exch, grId},
       };
       
+      grCtx[(int)exch][grId] = new McGrpCtx(exch,grId);
       if (grCtx[(int)exch][grId] == NULL)
 	  on_error("failed creating grCtx[%d][%d]",(int)exch,grId);
       
