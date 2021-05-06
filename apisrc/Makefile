@@ -1,11 +1,18 @@
-SMARTNIC_ROOT:=../SmartNIC_SW
-LWIP_ROOT:=../lwip
-ARCH_FLAGS := -march=native
-CC_OPT:= -O3 -g
+SMARTNIC_ROOT ?= ../SmartNIC_SW
+LWIP_ROOT ?= ../lwip
+
+CC_OPT ?= -O3
+CXX_STANDARD ?= c++17
+ARCH_FLAGS ?= -march=native
+DEBUG_FLAGS ?= -g
 
 #ARCH_FLAGS := -march=corei7-avx -mmmx -msse -mpreferred-stack-boundary=4
 
-CC := g++ -std=c++17 $(CC_OPT) -frecord-gcc-switches -pipe $(ARCH_FLAGS)
+GCC_FLAGS ?= $(CC_OPT) $(DEBUG_FLAGS) -frecord-gcc-switches -Wall -pipe $(ARCH_FLAGS)
+CXXFLAGS ?= -std=$(CXX_STANDARD)
+LD_FLAGS ?= -static-libstdc++ -static-libgcc $(LD_ASAN_OPTIONS)
+RUNTIME_LD_FLAGS ?= -static-libstdc++ -static-libgcc
+LD_LIBS ?= -pthread -lrt -lm
 
 LIBEKA_GIT_VER:= $(shell git rev-parse --short HEAD)
 
@@ -21,10 +28,7 @@ include $(SMARTNIC_ROOT)/api/makefile_common
 
 GCC_SUPPRESSED_WARNINGS:=-Wno-unused-function -Wno-packed-not-aligned
 
-#GCC_FLAGS:=-Wall -fpic -pthread -lrt $(EKA_AFFINITY_SET) -lm $(GCC_EXTERNAL_DEFINES) -DBUILD_TIME=`date +%d%m%y_%T`
-GCC_FLAGS:=-Wall -fPIC -pthread -lrt -lm $(GCC_EXTERNAL_DEFINES) -DLIBEKA_GIT_VER=\"$(LIBEKA_GIT_VER)\" $(GCC_SUPPRESSED_WARNINGS)
-#LD_FLAGS:=-shared -fpic $(LD_ASAN_OPTIONS) -static-libstdc++ -static-libgcc
-LD_FLAGS:=-shared -fpic $(LD_ASAN_OPTIONS)
+EKALINE_FLAGS := $(GCC_EXTERNAL_DEFINES) -DLIBEKA_GIT_VER=\"$(LIBEKA_GIT_VER)\" $(GCC_SUPPRESSED_WARNINGS)
 
 
 #EKAUTILS_SRCS := $(wildcard ../eka_utils/*.c)
@@ -64,7 +68,6 @@ all:  eka_utils ekalib ekalib_test eka_tests unit_tests $(LIBEKALINE).a libeka_d
 	@echo created: $^
 
 lab: GCC_EXTERNAL_DEFINES=-DEKA_TEST_IGNORE_DEFINITIONS -DEKA_TEST_IGNORE_GAP -DFH_LAB
-lab: GCC_FLAGS= -Wall -fpic -pthread -lrt -lm $(GCC_EXTERNAL_DEFINES)
 lab: all
 
 use_onload: export LD_PRELOAD=libonload.so
@@ -74,9 +77,7 @@ use_onload: all
 # LWIP
 
 LWIPDIR?=$(LWIP_ROOT)/lwip/src
-CFLAGS+=-fPIC -I. -O3 -g -I$(LWIPDIR)/include -I./arch -pthread -lrt -D_GNU_SOURCE 
-
-LDFLAGS+=-lutil -pthread -lrt -fPIC
+CFLAGS+=-I. -I$(LWIPDIR)/include -I./arch -D_GNU_SOURCE 
 
 include $(LWIPDIR)/Filelists.mk
 
@@ -92,59 +93,57 @@ $(LWIPLIBCOMMON): $(LWIPFILES) $(LWIPOBJS)
 
 #$(LWIPOBJS): %.o: $(LWIPFILES)
 $(LWIPOBJS): %.o:
-	$(CCDEP) $(CFLAGS) -c $<
+	$(CCDEP) -fPIC $(CFLAGS) $(GCC_FLAGS) -c $<
 
 lwip_depend: .lwip_depend
 include .lwip_depend
 
 .lwip_depend: $(LWIPFILES)
-	$(CCDEP) $(CFLAGS) -I . -MM $^ > .lwip_depend || rm -f .lwip_depend
+	$(CCDEP) $(CFLAGS) $(GCC_FLAGS) -I . -MM $^ > .lwip_depend || rm -f .lwip_depend
 
 ###############################################
 $(EKALIB_OBJ): %.o: %.c
-	$(CC) $(CC_OPT) -c $< $(GCC_FLAGS) $(INCL) -o $@
+	$(CXX) $(GCC_FLAGS) $(CXXFLAGS) -fPIC -c $< $(EKALINE_FLAGS) $(INCL) -o $@
 
 
 libeka_depend: .libeka_depend
 include .libeka_depend
 
 .libeka_depend: $(EKALIB_SRCS)
-	$(CC) $(INCL) -MM $^ > .libeka_depend || rm -f .libeka_depend
+	$(CXX) $(GCC_FLAGS) $(CXXFLAGS) $(INCL) -MM $^ > .libeka_depend || rm -f .libeka_depend
 
 ekalib: $(LIBEKALINE).so 
 $(LIBEKALINE).so: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIP_LIB)
-	$(CC) $(EKALIB_OBJ) -L. $(SMARTNIC_LIB) $(LWIP_LIB) -o $@ $(LD_FLAGS) -Wl,--version-script=./compat/$(LIBEKALINE).map -static-libstdc++ -static-libgcc
+	$(CXX) $(EKALIB_OBJ) -shared -L. $(SMARTNIC_LIB) $(LWIP_LIB) -o $@ $(LD_FLAGS) $(LD_LIBS) -Wl,--version-script=./compat/$(LIBEKALINE).map
 
 ekalib_test: $(LIBEKALINE)_test.so 
 $(LIBEKALINE)_test.so: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIP_LIB)
-	$(CC) $(EKALIB_OBJ) -L. $(SMARTNIC_LIB) $(LWIP_LIB) -o $(LIBEKALINE)_test.so $(LD_FLAGS) -static-libstdc++ -static-libgcc
+	$(CXX) $(EKALIB_OBJ) -shared -L. $(SMARTNIC_LIB) $(LWIP_LIB) -o $(LIBEKALINE)_test.so $(LD_FLAGS) $(LD_LIBS)
 
 
 $(LIBEKALINE).a: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIPOBJS)
-	ar x $(SMARTNIC_LIB)
-	ar rcs $@ $(EKALIB_OBJ) $(SMARTNIC_LIB_FILES) $(LWIPOBJS)
+	$(AR) x $(SMARTNIC_LIB)
+	$(AR) rcs $@ $(EKALIB_OBJ) $(SMARTNIC_LIB_FILES) $(LWIPOBJS)
 
 eka_utils: $(EKAUTILS)
 $(EKAUTILS): %: %.c $(LIBEKALINE).a
-	$(CC) -o $@ $^ $(GCC_FLAGS) $(INCL) -static-libstdc++ -static-libgcc
+	$(CXX) $(GCC_FLAGS) $(CXXFLAGS) -o $@ $^ $(INCL) $(LD_LIBS) $(RUNTIME_LD_FLAGS)
 
 eka_tests: $(EKATESTS_EXECS)
 ../new_api_tests/%: ../new_api_tests/%.c $(LIBEKALINE)_test.so
-	$(CC) $< -o $@ $(GCC_FLAGS) $(INCL) $(LLIB_TEST)  -static-libstdc++ -static-libgcc
+	$(CXX) $(GCC_FLAGS) $(CXXFLAGS) $< -o $@ $(INCL) $(LD_LIBS) $(LLIB_TEST) $(RUNTIME_LD_FLAGS)
 
 unit_tests: $(UNITTESTS_EXECS)
 ../new_api_tests/unit%: ../new_api_tests/unit%.c $(LIBEKALINE)_test.so
-	$(CC) $< -o $@ $(GCC_FLAGS) $(INCL) $(LLIB_TEST) $(SMARTNIC_LIB)  -static-libstdc++ -static-libgcc
+	$(CXX) $(GCC_FLAGS) $(CXXFLAGS) $< -o $@ $(INCL) $(LD_LIBS) $(LLIB_TEST) $(SMARTNIC_LIB) $(RUNTIME_LD_FLAGS)
 
 
 ../pcapParsers/cmePcapParse.o: ../pcapParsers/cmePcapParse.c 
-	$(CC) $(CC_OPT) -c $< $(GCC_FLAGS) $(INCL) -o $@  -static-libstdc++ -static-libgcc
+	$(CXX) $(GCC_FLAGS) $(CXXFLAGS) -c $< $(INCL) -o $@ $(RUNTIME_LD_FLAGS)
 
 ../pcapParsers/cmePcapParse: ../pcapParsers/cmePcapParse.o EkaFhCmeParser.o eka_common.o
-	$(CC) -o $@ $^ $(GCC_FLAGS) $(INCL)  -static-libstdc++ -static-libgcc
+	$(CXX) $(GCC_FLAGS) -o $@ $^ $(INCL) $(RUNTIME_LD_FLAGS)
 
 clean:
 	rm -f /tmp/core* *.o */*.o *.so *.a *~ core $(EKATESTS_EXECS) $(UNITTESTS_EXECS) $(EKAUTILS_EXECS) */*~ ../*/*~ *.csv *.txt
 #	rm -f /tmp/core* *.o */*.o *.so *.a $(LWIPOBJS) *~ .depend core $(EKATESTS_EXECS) $(UNITTESTS_EXECS) $(EKAUTILS_EXECS) */*~ ../*/*~ *.csv *.txt
-
-
