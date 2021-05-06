@@ -306,10 +306,15 @@ int main(int argc, char *argv[]) {
 	  {"efh.C1_PITCH.group.0.recovery.grpAuth","GTSS:eb3gtss"},
 	  {"efh.C1_PITCH.group.0.recovery.grpSessionSubID","0587"},
       };
+      EkaSource exch = EkaSource::kC1_PITCH;
+      EkaLSI    grId = 0;
       const EkaGroup batsC1Groups[] = {
-	  {EkaSource::kC1_PITCH, (EkaLSI)0},
+	  {exch, grId},
       };
-
+      
+      if (grCtx[(int)exch][grId] == NULL)
+	  on_error("failed creating grCtx[%d][%d]",(int)exch,grId);
+      
       EkaProps props = {
 	  .numProps = std::size(efhBatsC1InitCtxEntries_CC_0),
 	  .props    = efhBatsC1InitCtxEntries_CC_0

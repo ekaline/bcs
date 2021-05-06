@@ -17,8 +17,6 @@ INC=$(DRIVERS_INCL) $(API_INCL) $(LWIP_INCL) $(shell pwd) $(shell pwd)/compat $(
 INCL=$(foreach d, $(INC), -I$d)
 INCL+=-Iarch
 
-include $(SMARTNIC_ROOT)/api/makefile_common
-
 GCC_SUPPRESSED_WARNINGS:=-Wno-unused-function -Wno-packed-not-aligned
 
 #GCC_FLAGS:=-Wall -fpic -pthread -lrt $(EKA_AFFINITY_SET) -lm $(GCC_EXTERNAL_DEFINES) -DBUILD_TIME=`date +%d%m%y_%T`
