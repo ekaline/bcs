@@ -44,18 +44,10 @@
 std::string ts_ns2str(uint64_t ts);
 static const int MaxSecurities = 2000000;
 
+std::vector<uint64_t>    efcSecurities;
 uint64_t* securityList  = NULL;
 int       subscribedNum = 0;
-
-/* --------------------------------------------- */
-
-struct SecurityCtx {
-    char            id[8];
-    EkaLSI          groupId;
-    FixedPrice      bidMinPrice;
-    FixedPrice      askMaxPrice;
-    uint8_t         size;
-};
+FILE*     efcSecuritiesFile;
 
 /* --------------------------------------------- */
 
@@ -86,14 +78,49 @@ int credRelease(EkaCredentialLease *lease, void* context) {
 }
 /* --------------------------------------------- */
 void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fireReportBuf, size_t size, void* cbCtx) {
-  EkaDev* dev = pEfcCtx->dev;
-  if (dev == NULL) on_error("dev == NULL");
-  EKA_LOG ("FIRE REPORT RECEIVED");
-  //  hexDump("FireReport",fireReportBuf,size);
-  efcPrintFireReport(pEfcCtx, (const EfcReportHdr*)fireReportBuf,false);
-  EKA_LOG ("Rearming...\n");
+  /* EkaDev* dev = pEfcCtx->dev; */
+  /* if (dev == NULL) on_error("dev == NULL"); */
+  /* EKA_LOG ("FIRE REPORT RECEIVED"); */
+  /* //  hexDump("FireReport",fireReportBuf,size); */
+  /* efcPrintFireReport(pEfcCtx, (const EfcReportHdr*)fireReportBuf,false); */
+  /* EKA_LOG ("Rearming...\n"); */
   efcEnableController(pEfcCtx,1);
   return;
+}
+/* ------------------------------------------------------------ */
+
+void* onMdTestDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+  if (! keep_work) return NULL;
+  
+  EfhCtx* pEfhCtx = (EfhCtx*) userData;
+  if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
+
+  std::string underlyingName = std::string(msg->underlying, sizeof(msg->underlying));
+  std::string classSymbol    = std::string(msg->classSymbol,sizeof(msg->classSymbol));
+
+  std::replace(underlyingName.begin(), underlyingName.end(), ' ', '\0');
+  std::replace(classSymbol.begin(),    classSymbol.end(),    ' ', '\0');
+  underlyingName.resize(strlen(underlyingName.c_str()));
+  classSymbol.resize   (strlen(classSymbol.c_str()));
+
+  char avtSecName[SYMBOL_SIZE] = {};
+
+  eka_create_avt_definition(avtSecName,msg);
+  fprintf (efcSecuritiesFile,"%s,%ju,%s,%s,%s,%s,%ju,%ju\n",
+	   avtSecName,
+	   msg->header.securityId,
+	   EKA_PRINT_BATS_SYMBOL((char*)&msg->opaqueAttrA),
+	   underlyingName.c_str(),
+	   classSymbol.c_str(),
+	   EKA_PRINT_GRP(&msg->header.group),
+	   msg->opaqueAttrA,
+	   msg->opaqueAttrB
+	   );
+
+
+  efcSecurities.push_back(msg->header.securityId);
+
+  return NULL;
 }
 
 /* --------------------------------------------- */
@@ -196,6 +223,12 @@ int main(int argc, char *argv[]) {
 	  &runEfh,&fatalDebug,
 	  secIdFileName,&reportOnly,&armController);
 
+  const char* efcSecuritiesFileName = "CBOE_EFC_SECURITIES.txt";
+  if((efcSecuritiesFile = fopen(efcSecuritiesFileName,"w")) == NULL)
+      on_error ("Error %s",efcSecuritiesFileName);
+
+  
+  
   // ==============================================
   // EkaDev general setup
   EkaDev*     dev = NULL;
@@ -298,7 +331,7 @@ int main(int argc, char *argv[]) {
 	  .groups                      = batsC1Groups,
 	  .numGroups                   = std::size(batsC1Groups),
 	  .efhRunUserData              = (EfhRunUserData) pEfhCtx,
-	  .onEfhDefinitionMsgCb        = onDefinition,
+	  .onEfhDefinitionMsgCb        = onMdTestDefinition,
 	  .onEfhTradeMsgCb             = NULL, //onTrade,
 	  .onEfhQuoteMsgCb             = NULL, //onQuote,
 	  .onEfhOrderMsgCb             = NULL, //onOrder,
@@ -331,19 +364,25 @@ int main(int argc, char *argv[]) {
   if (securityList == NULL) on_error("securityList == NULL");
   
   if (strlen(secIdFileName) != 0) {
-    std::ifstream file(secIdFileName);
-    if (file.is_open()) {
-      std::string line;
-      while (std::getline(file, line)) {
-	securityList[subscribedNum++] = std::stoul(line,0,0);
+      // security list is passed from arfv[]
+      std::ifstream file(secIdFileName);
+      if (file.is_open()) {
+	  std::string line;
+	  while (std::getline(file, line)) {
+	      securityList[subscribedNum++] = std::stoul(line,0,0);
+	  }
+	  file.close();
+      } else {
+	  on_error("Cannot open %s",secIdFileName);
       }
-      file.close();
-    } else {
-      on_error("Cannot open %s",secIdFileName);
-    }
 
-    efcEnableFiringOnSec(pEfcCtx, securityList, subscribedNum);
-    TEST_LOG("Subscribing on %d securities",subscribedNum);
+      efcEnableFiringOnSec(pEfcCtx, securityList, subscribedNum);
+      TEST_LOG("Subscribing on %d securities",subscribedNum);
+  } else {
+      // security list received from efhGetDefs
+      for (auto &sec : efcSecurities) {
+	  securityList[subscribedNum++] = sec;
+      }
   }
   // ==============================================
   // setting security contexts
@@ -466,7 +505,7 @@ int main(int argc, char *argv[]) {
 
   sleep(1);
   fflush(stdout);fflush(stderr);
-
+  if (efcSecuritiesFile != NULL) fclose(efcSecuritiesFile);
 
   /* ============================================== */
 
