@@ -13,6 +13,7 @@ LIBEKALINE2_1.0	{
 			efcSetFireTemplate;
 			efhInit;
 			efcInitStrategy;
+			efcClose;
 			efhGetSupportedParams;
 			efhGetDefs;
 			efhSubscribeStatic;
