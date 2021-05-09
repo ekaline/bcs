@@ -82,7 +82,7 @@ void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fireReportBuf, size_t s
   /* if (dev == NULL) on_error("dev == NULL"); */
   /* EKA_LOG ("FIRE REPORT RECEIVED"); */
   /* //  hexDump("FireReport",fireReportBuf,size); */
-  efcPrintFireReport(pEfcCtx, (const EfcReportHdr*)fireReportBuf,false);
+  /* efcPrintFireReport(pEfcCtx, (const EfcReportHdr*)fireReportBuf,false); */
   /* EKA_LOG ("Rearming...\n"); */
   efcEnableController(pEfcCtx,1);
   return;
@@ -249,7 +249,7 @@ int main(int argc, char *argv[]) {
   // Setup EFC MC groups
 
   EpmTriggerParams triggerParam[] = {
-      {0,"233.54.12.72",18000},
+      /* {0,"233.54.12.72",18000}, */
     {0,"224.0.74.0",30301},
     {0,"224.0.74.1",30302},
     {0,"224.0.74.2",30303},

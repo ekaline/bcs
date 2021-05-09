@@ -6,8 +6,13 @@
 #include <inttypes.h>
 #include <assert.h>
 
-#include "EkaFhBatsGr.h"
 #include "EkaFhBatsParser.h"
+
+#ifdef _PCAP_TEST_
+#include "batsPcapParse.h"
+#else
+#include "EkaFhBatsGr.h"
+#endif
 
 static void eka_print_batspitch_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequence,uint64_t ts);
 std::string ts_ns2str(uint64_t ts);
@@ -131,7 +136,6 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
   //  EKA_LOG("%s:%u: 0x%02x",EKA_EXCH_DECODE(exch),id,enc);
 
   uint64_t msg_timestamp = 0;
-  FhSecurity* s = NULL;
 
   if (op == EkaFhMode::SNAPSHOT && enc == EKA_BATS_PITCH_MSG::SYMBOL_MAPPING) return false;
   switch (enc) {    
@@ -153,7 +157,12 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
   default: {}
   }
 
-  //  if (op != EkaFhMode::DEFINITIONS && fh->print_parsed_messages) eka_print_batspitch_msg(parser_log,(uint8_t*)m,id,sequence,msg_timestamp);
+#ifdef _PCAP_TEST_
+  eka_print_batspitch_msg(parser_log,(uint8_t*)m,id,sequence,msg_timestamp);
+  return false;
+#else  
+  FhSecurity* s = NULL;
+  
   if (fh->print_parsed_messages) sendMdCb(pEfhRunCtx,m,id,sequence,msg_timestamp);
   if (fh->noTob &&
       enc != EKA_BATS_PITCH_MSG::TIME                 &&
@@ -581,6 +590,8 @@ int EkaFhBatsGr::sendMdCb(const EfhRunCtx* pEfhRunCtx, const uint8_t* m, int gr,
   default:
     break;
   }
+
+#endif // _PCAP_TEST_  
   return 0;
 }
 

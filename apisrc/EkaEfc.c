@@ -156,6 +156,7 @@ static bool isValidCboeSecondByte(char c) {
   case '0' :
   case '1' :
   case '2' :
+  case '3' :
     return true;
   default:
     return false;
@@ -176,8 +177,6 @@ bool EkaEfc::isValidSecId(uint64_t secId) {
 
   case EfhFeedVer::kCBOE:
     if (((char)((secId >> (8 * 5)) & 0xFF) != '0') ||
-	//	((char)((secId >> (8 * 4)) & 0xFF) != '1') ||
-	//	((char)((secId >> (8 * 4)) & 0xFF) != '2') ||
 	! isValidCboeSecondByte((char)((secId >> (8 * 4)) & 0xFF)) ||
 	! isAscii((char)((secId >> (8 * 3)) & 0xFF)) ||
 	! isAscii((char)((secId >> (8 * 2)) & 0xFF)) ||

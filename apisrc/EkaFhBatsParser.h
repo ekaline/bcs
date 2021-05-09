@@ -44,6 +44,7 @@ enum class EKA_BATS_PITCH_MSG : uint8_t {
     };
 
 #define EKA_PRINT_BATS_SYMBOL(x) ((std::string((x),6)).c_str())
+#define EKA_PRINT_BATS_SYMBOL_EXP(x) ((std::string((x),8)).c_str())
 
 #define EKA_BATS_PITCH_MSG_DECODE(x)					\
   x == EKA_BATS_PITCH_MSG::SYMBOL_MAPPING                 ? "SYMBOL_MAPPING" : \

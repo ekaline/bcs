@@ -39,6 +39,8 @@ EKATESTS_EXECS := $(patsubst %.c,%,$(EKATESTS_SRCS))
 UNITTESTS_SRCS := $(wildcard ../new_api_tests/unit*.c)
 UNITTESTS_EXECS := $(patsubst %.c,%,$(UNITTESTS_SRCS))
 
+PCAP_PARSERS := $(patsubst %.c,%,$($(wildcard ../pcapParsers/unit*.c)))
+
 EKALIB_SRCS := $(wildcard e*.c E*.c)
 EKALIB_SRCS += $(wildcard FhBook/*.c)
 EKALIB_SRCS += $(wildcard Ehp/*.c)
@@ -133,13 +135,6 @@ eka_tests: $(EKATESTS_EXECS)
 unit_tests: $(UNITTESTS_EXECS)
 ../new_api_tests/unit%: ../new_api_tests/unit%.c $(LIBEKALINE)_test.so
 	$(CXX) $(GCC_FLAGS) $(CXXFLAGS) $< -o $@ $(INCL) $(LD_LIBS) $(EKALINE_FLAGS) $(LLIB_TEST) $(SMARTNIC_LIB) $(RUNTIME_LD_FLAGS)
-
-
-../pcapParsers/cmePcapParse.o: ../pcapParsers/cmePcapParse.c 
-	$(CXX) $(GCC_FLAGS) $(CXXFLAGS) -c $< $(INCL) -o $@ $(RUNTIME_LD_FLAGS)
-
-../pcapParsers/cmePcapParse: ../pcapParsers/cmePcapParse.o EkaFhCmeParser.o eka_common.o
-	$(CXX) $(GCC_FLAGS) -o $@ $^ $(INCL) $(RUNTIME_LD_FLAGS)
 
 clean:
 	rm -f /tmp/core* *.o */*.o *.so *.a *~ core $(EKATESTS_EXECS) $(UNITTESTS_EXECS) $(EKAUTILS_EXECS) */*~ ../*/*~ *.csv *.txt

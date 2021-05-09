@@ -225,7 +225,7 @@ EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
   setActionBitmap();
   setHwAction();
 
-  print("From constructor");
+  //  print("From constructor");
 }
 /* ----------------------------------------------------- */
 int EkaEpmAction::initEpmActionLocalCopy() {
