@@ -2,6 +2,7 @@
 #define _EkaUserReportQ_h_
 
 #include <atomic>
+#include <mutex>
 
 #include "EkaDev.h"
 
@@ -30,6 +31,8 @@ class EkaUserReportQ {
  private:
   EkaUserReportElem* qElem = NULL;
 
+  std::mutex         mtx;
+  
   uint32_t rdPtr = 0;
   uint32_t wrPtr = 0;
   

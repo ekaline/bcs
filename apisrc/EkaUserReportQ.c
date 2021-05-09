@@ -38,6 +38,8 @@ inline uint32_t EkaUserReportQ::next(uint32_t curr) {
 /* -------------------------------- */
 
 EkaUserReportElem* EkaUserReportQ::push(const void* payload, uint len) {
+  mtx.lock();
+
   if (isFull())
     on_error("User report Q is FULL! (qLen = %jd)",(int64_t)qLen);
 
@@ -50,12 +52,15 @@ EkaUserReportElem* EkaUserReportQ::push(const void* payload, uint len) {
 
   wrCnt++;
   qLen = wrCnt - rdCnt;
+  
+  mtx.unlock();
 
   return &qElem[wrPtr];
 }
 /* -------------------------------- */
 
 EkaUserReportElem* EkaUserReportQ::pop() {
+  mtx.lock();
   if (isEmpty())
     on_error("User report Q is EMPTY! (qLen = %jd)",(int64_t)qLen);
   if (rdCnt >= wrCnt)
@@ -63,6 +68,7 @@ EkaUserReportElem* EkaUserReportQ::pop() {
   rdPtr = next(rdPtr);
   rdCnt++;
   qLen = wrCnt - rdCnt;
+  mtx.unlock();
 
   return &qElem[rdPtr];
 }

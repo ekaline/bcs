@@ -6,7 +6,6 @@ CXX_STANDARD ?= c++17
 ARCH_FLAGS ?= -march=native
 DEBUG_FLAGS ?= -g
 
-#ARCH_FLAGS := -march=corei7-avx -mmmx -msse -mpreferred-stack-boundary=4
 
 GCC_FLAGS ?= $(CC_OPT) $(DEBUG_FLAGS) -frecord-gcc-switches -Wall -pipe $(ARCH_FLAGS)
 CXXFLAGS ?= -std=$(CXX_STANDARD)
@@ -125,15 +124,15 @@ $(LIBEKALINE).a: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIPOBJS)
 
 eka_utils: $(EKAUTILS)
 $(EKAUTILS): %: %.c $(LIBEKALINE).a
-	$(CXX) $(GCC_FLAGS) $(CXXFLAGS) -o $@ $^ $(INCL) $(LD_LIBS) $(RUNTIME_LD_FLAGS)
+	$(CXX) $(GCC_FLAGS) $(CXXFLAGS) -o $@ $^ $(INCL) $(LD_LIBS) $(EKALINE_FLAGS) $(RUNTIME_LD_FLAGS)
 
 eka_tests: $(EKATESTS_EXECS)
 ../new_api_tests/%: ../new_api_tests/%.c $(LIBEKALINE)_test.so
-	$(CXX) $(GCC_FLAGS) $(CXXFLAGS) $< -o $@ $(INCL) $(LD_LIBS) $(LLIB_TEST) $(RUNTIME_LD_FLAGS)
+	$(CXX) $(GCC_FLAGS) $(CXXFLAGS) $< -o $@ $(INCL) $(LD_LIBS) $(EKALINE_FLAGS) $(LLIB_TEST) $(RUNTIME_LD_FLAGS)
 
 unit_tests: $(UNITTESTS_EXECS)
 ../new_api_tests/unit%: ../new_api_tests/unit%.c $(LIBEKALINE)_test.so
-	$(CXX) $(GCC_FLAGS) $(CXXFLAGS) $< -o $@ $(INCL) $(LD_LIBS) $(LLIB_TEST) $(SMARTNIC_LIB) $(RUNTIME_LD_FLAGS)
+	$(CXX) $(GCC_FLAGS) $(CXXFLAGS) $< -o $@ $(INCL) $(LD_LIBS) $(EKALINE_FLAGS) $(LLIB_TEST) $(SMARTNIC_LIB) $(RUNTIME_LD_FLAGS)
 
 
 ../pcapParsers/cmePcapParse.o: ../pcapParsers/cmePcapParse.c 

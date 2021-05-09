@@ -382,14 +382,16 @@ int main(int argc, char *argv[]) {
 	  on_error("Cannot open %s",secIdFileName);
       }
 
-      efcEnableFiringOnSec(pEfcCtx, securityList, subscribedNum);
-      TEST_LOG("Subscribing on %d securities",subscribedNum);
   } else {
       // security list received from efhGetDefs
       for (auto &sec : efcSecurities) {
 	  securityList[subscribedNum++] = sec;
       }
   }
+
+  efcEnableFiringOnSec(pEfcCtx, securityList, subscribedNum);
+  TEST_LOG("Subscribing on %d securities",subscribedNum);
+  
   // ==============================================
   // setting security contexts
   for (auto i = 0; i < subscribedNum; i++) {
@@ -440,7 +442,7 @@ int main(int argc, char *argv[]) {
       .NewOrderBitfield4 = 0,
 
       .ClearingFirm      = {'F','A','K','E'},
-      .ClearingAccount   = {'U','S','S','R'},
+      .ClearingAccount   = {'T','E','S','T'},
       .Price             = 0,
       .OrdType           = '2',     
       .TimeInForce       = '3',     
