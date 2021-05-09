@@ -233,7 +233,7 @@ int EkaEpmAction::initEpmActionLocalCopy() {
   epmActionLocalCopy.enable        = EkaEpm::ALWAYS_ENABLE;
   epmActionLocalCopy.postStratMask = EkaEpm::ALWAYS_ENABLE;
   epmActionLocalCopy.postLocalMask = EkaEpm::ALWAYS_ENABLE;
-
+  epmActionLocalCopy.actionFlags   = AF_Valid;
   return 0;
 }
 
