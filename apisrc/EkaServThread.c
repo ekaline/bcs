@@ -106,10 +106,13 @@ void ekaServThread(EkaDev* dev) {
               (void)std::fwrite("\0", 1, 1, hexBufFile);
               (void)std::fclose(hexBufFile);
             }
-            else
+            else {
               std::snprintf(hexBuf, sizeof hexBuf, "fmemopen error: %s (%d)",strerror(errno),errno);
+	    }
             EKA_WARN("sendDummyFastPathPkt returned error: %s (%d), pkt is:\n%s",
                      strerror(errno), errno, hexBuf);
+
+	    dev->lwipPath->next();
             break;
           }
 	}

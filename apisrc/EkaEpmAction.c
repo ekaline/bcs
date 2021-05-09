@@ -15,27 +15,29 @@ uint16_t udp_checksum(EkaUdpHdr *p_udp_header, size_t len, uint32_t src_addr, ui
 
 /* ---------------------------------------------------- */
 int EkaEpmAction::setActionBitmap() {
+  
+  if (epmActionLocalCopy.actionFlags == AF_Valid) 
+    actionBitParams.bitmap.action_valid = 1;
+  else
+    actionBitParams.bitmap.action_valid = 0;
+
   switch (type) {
   case EpmActionType::TcpFastPath :
-    actionBitParams.bitmap.action_valid = 1;
     actionBitParams.bitmap.israw        = 0;
     actionBitParams.bitmap.report_en    = 0;
     actionBitParams.bitmap.feedbck_en   = 1;
     break;
   case EpmActionType::TcpFullPkt  :
-    actionBitParams.bitmap.action_valid = 1;
     actionBitParams.bitmap.israw        = 1;
     actionBitParams.bitmap.report_en    = 0;
     actionBitParams.bitmap.feedbck_en   = 0;
     break;
   case EpmActionType::TcpEmptyAck :
-    actionBitParams.bitmap.action_valid = 1;
     actionBitParams.bitmap.israw        = 0;
     actionBitParams.bitmap.report_en    = 0;
     actionBitParams.bitmap.feedbck_en   = 0;
     break;
   case EpmActionType::Igmp :
-    actionBitParams.bitmap.action_valid = 1;
     actionBitParams.bitmap.israw        = 1;
     actionBitParams.bitmap.report_en    = 0;
     actionBitParams.bitmap.feedbck_en   = 0;
@@ -45,13 +47,11 @@ int EkaEpmAction::setActionBitmap() {
   case EpmActionType::BoeFire      :
   case EpmActionType::BoeCancel    :
   case EpmActionType::HwFireAction :
-    actionBitParams.bitmap.action_valid = 1;
     actionBitParams.bitmap.israw        = 0;
     actionBitParams.bitmap.report_en    = 1;
     actionBitParams.bitmap.feedbck_en   = 1;
     break;
   case EpmActionType::UserAction :
-    actionBitParams.bitmap.action_valid = 1;
     actionBitParams.bitmap.israw        = 0;
     actionBitParams.bitmap.report_en    = 1;
     actionBitParams.bitmap.feedbck_en   = 1;
@@ -59,6 +59,42 @@ int EkaEpmAction::setActionBitmap() {
   default:
     on_error("Unexpected EkaEpmAction type %d",(int)type);
   }
+  return 0;
+}
+/* ---------------------------------------------------- */
+
+static TcpCsSizeSource setTcpCsSizeSource (EpmActionType type) {
+  switch (type) {
+  case EpmActionType::UserAction   :
+  case EpmActionType::HwFireAction :
+  case EpmActionType::BoeFire      :
+  case EpmActionType::BoeCancel    :
+  case EpmActionType::SqfFire      :
+  case EpmActionType::SqfCancel    :
+    return TcpCsSizeSource::FROM_ACTION;
+  default:
+    return TcpCsSizeSource::FROM_DESCR;
+  }
+}
+/* ---------------------------------------------------- */
+int EkaEpmAction::setHwAction() {
+  hwAction.bit_params            = actionBitParams;
+  hwAction.tcpcs_template_db_ptr = epmTemplate->id;  
+  hwAction.template_db_ptr       = epmTemplate->getDataTemplateAddr();
+  hwAction.data_db_ptr           = heapAddr;
+  hwAction.target_prod_id        = productIdx;  
+  hwAction.target_core_id        = coreId;  
+  hwAction.target_session_id     = sessId;  
+  hwAction.next_action_index     = epmActionLocalCopy.nextAction;
+  hwAction.mask_post_strat       = epmActionLocalCopy.postStratMask;
+  hwAction.mask_post_local       = epmActionLocalCopy.postLocalMask;
+  hwAction.enable_bitmap         = epmActionLocalCopy.enable;
+  hwAction.user                  = epmActionLocalCopy.user;
+  hwAction.token                 = epmActionLocalCopy.token;
+  hwAction.tcpCSum               = tcpCSum;
+  hwAction.payloadSize           = pktSize;
+  hwAction.tcpCsSizeSource       = setTcpCsSizeSource(type);
+
   return 0;
 }
 
@@ -135,21 +171,7 @@ int EkaEpmAction::setName() {
   return 0;
 }
 
-/* ---------------------------------------------------- */
 
-static TcpCsSizeSource setTcpCsSizeSource (EpmActionType type) {
-  switch (type) {
-  case EpmActionType::UserAction   :
-  case EpmActionType::HwFireAction :
-  case EpmActionType::BoeFire      :
-  case EpmActionType::BoeCancel    :
-  case EpmActionType::SqfFire      :
-  case EpmActionType::SqfCancel    :
-    return TcpCsSizeSource::FROM_ACTION;
-  default:
-    return TcpCsSizeSource::FROM_DESCR;
-  }
-}
 
 /* ---------------------------------------------------- */
 
@@ -185,10 +207,6 @@ EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
   actionAddr      = _actionAddr;
   epmTemplate     = _epmTemplate;
 
-
-
-  //  EKA_LOG("%s: idx = %u, localIdx = %u, regionBaseIdx = %u",actionName,idx,localIdx,epm->epmRegion[region]->baseActionIdx ); fflush(stderr);
-
   thrId           = calcThrId(type,sessId,productIdx);
 
   heapOffs        = _heapOffs;
@@ -203,22 +221,20 @@ EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
 
   memset(ethHdr,0,sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaTcpHdr));
 
-  hwAction.tcpCsSizeSource          = setTcpCsSizeSource(type);
+  initEpmActionLocalCopy();
+  setActionBitmap();
+  setHwAction();
 
-  hwAction.data_db_ptr              = heapAddr;
-  hwAction.template_db_ptr          = epmTemplate->getDataTemplateAddr();
-  hwAction.tcpcs_template_db_ptr    = epmTemplate->id;
-  hwAction.bit_params               = actionBitParams;
-  hwAction.target_prod_id           = productIdx;
-  hwAction.target_core_id           = coreId;
-  hwAction.target_session_id        = sessId;
-  hwAction.next_action_index        = EPM_LAST_ACTION; 
+  print("From constructor");
+}
+/* ----------------------------------------------------- */
+int EkaEpmAction::initEpmActionLocalCopy() {
+  epmActionLocalCopy.nextAction    = EPM_LAST_ACTION;
+  epmActionLocalCopy.enable        = EkaEpm::ALWAYS_ENABLE;
+  epmActionLocalCopy.postStratMask = EkaEpm::ALWAYS_ENABLE;
+  epmActionLocalCopy.postLocalMask = EkaEpm::ALWAYS_ENABLE;
 
-  hwAction.mask_post_strat          = EkaEpm::ALWAYS_ENABLE;
-  hwAction.mask_post_local          = EkaEpm::ALWAYS_ENABLE;
-  hwAction.enable_bitmap            = EkaEpm::ALWAYS_ENABLE;
-
-  //  print("From constructor");
+  return 0;
 }
 
 /* ----------------------------------------------------- */
@@ -340,6 +356,8 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
   memcpy (&epmActionLocalCopy,epmAction,sizeof(epmActionLocalCopy));
 
   heapOffs   = epmAction->offset - EkaEpm::DatagramOffset;
+  if (heapOffs % 32 != 0) on_error("heapOffs %d (must be X32)",heapOffs);
+
   heapAddr   = EpmHeapHwBaseAddr + heapOffs;
   coreId     = _coreId;
   sessId     = _sessId;
@@ -364,33 +382,14 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
 
 /* ----------------------------------------------------- */
 
-  if (heapOffs % 32 != 0) on_error("heapOffs %d (must be X32)",heapOffs);
- 
-  hwAction.template_db_ptr       = epmTemplate->getDataTemplateAddr();
-  hwAction.tcpcs_template_db_ptr = epmTemplate->id;
-  hwAction.target_core_id        = coreId;
-  hwAction.target_session_id     = sessId;
-  hwAction.data_db_ptr           = heapAddr;
-  hwAction.next_action_index     = epmAction->nextAction;
-  hwAction.enable_bitmap         = epmAction->enable;
-  hwAction.mask_post_strat       = epmAction->postStratMask;
-  hwAction.mask_post_local       = epmAction->postLocalMask;
-  hwAction.user                  = epmAction->user;
-  hwAction.token                 = epmAction->token;
-  hwAction.tcpCsSizeSource       = setTcpCsSizeSource(type);
- 
-  if (epmAction->actionFlags == AF_Valid) 
-    hwAction.bit_params.bitmap.action_valid = 1;
-  else
-    hwAction.bit_params.bitmap.action_valid = 0;
-
   epmTemplate->clearHwFields(&epm->heap[heapOffs]);
 
   tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,payloadLen);
-  hwAction.tcpCSum      = tcpCSum;
-  hwAction.payloadSize  = pktSize; 
+
+  setHwAction();
       
-  copyBuf2Hw(dev,EkaEpm::EpmActionBase, (uint64_t*)&hwAction,sizeof(hwAction)); //write to scratchpad
+  copyBuf2Hw(dev,EkaEpm::EpmActionBase,
+	     (uint64_t*)&hwAction,sizeof(hwAction)); //write to scratchpad
   atomicIndirectBufWrite(dev, 0xf0238 /* ActionAddr */, 0,0,idx,0);
 
   copyIndirectBuf2HeapHw_swap4(dev,heapAddr,(uint64_t*)&epm->heap[heapOffs],thrId,pktSize);

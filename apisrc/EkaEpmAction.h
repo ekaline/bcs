@@ -60,7 +60,9 @@ class EkaEpmAction {
   int setActionBitmap();
   int setTemplate();
   int setName();
-
+  int initEpmActionLocalCopy();
+  int setHwAction();
+  
   /* ----------------------------------------------------- */
 
  public:
