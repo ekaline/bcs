@@ -284,8 +284,8 @@ int main(int argc, char *argv[]) {
   EfcStratGlobCtx efcStratGlobCtx = {
     .enable_strategy = 0,
     .report_only                       = (uint8_t)reportOnly,
-    .debug_always_fire_on_unsubscribed = 1,
-    .debug_always_fire                 = 1,
+    .debug_always_fire_on_unsubscribed = 0,
+    .debug_always_fire                 = 0,
     .max_size                          = 1000,
     .watchdog_timeout_sec              = 100000,
   };

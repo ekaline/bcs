@@ -52,7 +52,7 @@ EpmStrategy::EpmStrategy(EkaEpm* _epm, epm_strategyid_t _id, epm_actionid_t _bas
 				params->triggerParams[i].coreId,
 				inet_addr(params->triggerParams[i].mcIp),
 				params->triggerParams[i].mcUdpPort); 
-    dev->ekaIgmp->mcJoin(id, // = ChId = epmRegion
+    dev->ekaIgmp->mcJoin(EkaEpm::EpmMcRegion, 
 			 udpSess[i]->coreId, 
 			 udpSess[i]->ip, 
 			 udpSess[i]->port, 

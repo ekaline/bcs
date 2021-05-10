@@ -187,7 +187,7 @@ EkaOpResult EkaEpm::initStrategies(const EpmStrategyParams *params,
     if (strategy[i] != NULL) on_error("strategy[%d] != NULL",i);
 
     // allocating UDP Channel to EPM region (preventing collision with EFH)
-    auto udpCh    = new EkaUdpChannel(dev,params[i].triggerParams->coreId,-1);
+    auto udpCh    = new EkaUdpChannel(dev,params[i].triggerParams->coreId,i);
     if (udpCh == NULL) on_error("udpCh == NULL");
     if (udpCh->chId != i) on_error("EPM strategy %d udpCh->chId = %u",i,udpCh->chId);
   
@@ -204,6 +204,8 @@ EkaOpResult EkaEpm::initStrategies(const EpmStrategyParams *params,
     if (currActionIdx > (int)MaxUserActions) 
       on_error("currActionIdx %d > MaxUserActions %ju",currActionIdx,MaxUserActions);
   }
+  createRegion((uint)EpmMcRegion,currActionIdx);
+
   initialized = true;
   return EKA_OPRESULT__OK;
 }

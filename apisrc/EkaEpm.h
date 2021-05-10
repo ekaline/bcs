@@ -62,7 +62,7 @@ class EkaEpm {
 
   static const uint MaxActions                  = 8 * 1024;
   static const uint MaxActionsPerStrategy       = 256;
-  static const uint64_t MaxStrategies           = EPM_REGIONS - 1;
+  static const uint64_t MaxStrategies           = EPM_REGIONS - 2;
 
 
   static const uint64_t EpmActionBase           = 0x89000;
@@ -84,7 +84,8 @@ class EkaEpm {
 
   static const uint8_t  UserRegion              = 0;
   //  static const uint8_t  ServiceRegion           = 1;
-  static const uint8_t  ServiceRegion           = 31; // EPM_REGIONS - 1;
+  static const uint8_t  ServiceRegion           = EPM_REGIONS - 1; // 31
+  static const uint8_t  EpmMcRegion             = EPM_REGIONS - 2; // 3130;
   static const uint8_t  EfcRegion               = 0;
 
   static const uint     UserActionsBaseIdx      = 0;
