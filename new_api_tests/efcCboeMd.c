@@ -42,13 +42,15 @@
 
 /* --------------------------------------------- */
 std::string ts_ns2str(uint64_t ts);
-static const int MaxSecurities = 2000000;
+
+/* --------------------------------------------- */
+static const int  MaxSecurities   = 2000000;
+static       bool printFireReport = false;
 
 std::vector<uint64_t>    efcSecurities;
 uint64_t* securityList  = NULL;
 int       subscribedNum = 0;
 FILE*     efcSecuritiesFile;
-
 /* --------------------------------------------- */
 
 void  INThandler(int sig) {
@@ -82,7 +84,8 @@ void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fireReportBuf, size_t s
   /* if (dev == NULL) on_error("dev == NULL"); */
   /* EKA_LOG ("FIRE REPORT RECEIVED"); */
   /* //  hexDump("FireReport",fireReportBuf,size); */
-  efcPrintFireReport(pEfcCtx, (const EfcReportHdr*)fireReportBuf,false);
+  if (printFireReport)
+    efcPrintFireReport(pEfcCtx, (const EfcReportHdr*)fireReportBuf,false);
   /* EKA_LOG ("Rearming...\n"); */
   efcEnableController(pEfcCtx,1);
   return;
@@ -131,6 +134,7 @@ void printUsage(char* cmd) {
 	 "\t\t\t\t-f -- Run EFH for raw MD\n"
 	 "\t\t\t\t-r -- Report Only\n"
 	 "\t\t\t\t-a -- Arm EFC\n"
+	 "\t\t\t\t-p -- Print Fire Report\n"
 	 "\t\t\t\t-d -- FATAL DEBUG ON\n"
 	 ,cmd);
   return;
@@ -144,7 +148,7 @@ static int getAttr(int argc, char *argv[],
 		   bool* runEfh, bool* fatalDebug, char* secIdFileName,
 		   bool* reportOnly, bool* armController) {
   int opt; 
-  while((opt = getopt(argc, argv, ":u:s:fdrah")) != -1) {  
+  while((opt = getopt(argc, argv, ":u:s:fdraph")) != -1) {  
     switch(opt) {
     case 'u':  
       underlyings.push_back(std::string(optarg));
@@ -175,6 +179,10 @@ static int getAttr(int argc, char *argv[],
     case 'a':  
       printf("armController = ON\n");
       *armController = true;
+      break;
+    case 'p':  
+      printf("printFireReport = ON\n");
+      printFireReport = true;
       break;
     case 'h':  
       printUsage(argv[0]);

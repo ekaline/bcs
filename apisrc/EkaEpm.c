@@ -177,9 +177,9 @@ EkaOpResult EkaEpm::initStrategies(const EpmStrategyParams *params,
     EKA_LOG("fireReportThread activated");
   }
 
+  createRegion(EpmMcRegion,EpmMcRegion * ActionsPerRegion);
 
   epm_actionid_t currActionIdx = 0;
-  createRegion((uint)EpmMcRegion,currActionIdx);
 
   for (auto i = 0; i < stratNum; i++) {
     EKA_LOG("Imitializing strategy %d, hwFeedVer=%d",i,(int)dev->hwFeedVer);
