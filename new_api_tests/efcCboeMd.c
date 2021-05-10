@@ -84,7 +84,7 @@ void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fireReportBuf, size_t s
   /* //  hexDump("FireReport",fireReportBuf,size); */
   efcPrintFireReport(pEfcCtx, (const EfcReportHdr*)fireReportBuf,false);
   /* EKA_LOG ("Rearming...\n"); */
-  /* efcEnableController(pEfcCtx,1); */
+  efcEnableController(pEfcCtx,1);
   return;
 }
 /* ------------------------------------------------------------ */

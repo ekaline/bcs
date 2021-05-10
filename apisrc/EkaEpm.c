@@ -179,6 +179,8 @@ EkaOpResult EkaEpm::initStrategies(const EpmStrategyParams *params,
 
 
   epm_actionid_t currActionIdx = 0;
+  createRegion((uint)EpmMcRegion,currActionIdx);
+
   for (auto i = 0; i < stratNum; i++) {
     EKA_LOG("Imitializing strategy %d, hwFeedVer=%d",i,(int)dev->hwFeedVer);
     if (epmRegion[i] != NULL) on_error("epmRegion[%d] != NULL",i);
@@ -204,7 +206,6 @@ EkaOpResult EkaEpm::initStrategies(const EpmStrategyParams *params,
     if (currActionIdx > (int)MaxUserActions) 
       on_error("currActionIdx %d > MaxUserActions %ju",currActionIdx,MaxUserActions);
   }
-  createRegion((uint)EpmMcRegion,currActionIdx);
 
   initialized = true;
   return EKA_OPRESULT__OK;
