@@ -131,7 +131,8 @@ void* onMdTestDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, Ef
 void printUsage(char* cmd) {
   printf("USAGE: %s \n"
 	 "\t\t\t\t-s <Securities List file path>\n"
-	 "\t\t\t\t-f -- Run EFH for raw MD\n"
+	 "\t\t\t\t-f -- Run EFH for Definitions\n"
+	 "\t\t\t\t-m -- Run EFH for raw MD\n"
 	 "\t\t\t\t-r -- Report Only\n"
 	 "\t\t\t\t-a -- Arm EFC\n"
 	 "\t\t\t\t-w -- Always Fire\n"
@@ -150,9 +151,9 @@ static int getAttr(int argc, char *argv[],
 		   std::vector<std::string>&  underlyings,
 		   bool* runEfh, bool* fatalDebug, char* secIdFileName,
 		   bool* reportOnly, bool* armController,
-		   uint8_t* alwaysFire,uint8_t* fireUnsubscribed) {
+		   uint8_t* alwaysFire,uint8_t* fireUnsubscribed, bool* runFhGroup) {
   int opt; 
-  while((opt = getopt(argc, argv, ":s:fdrapuwh")) != -1) {  
+  while((opt = getopt(argc, argv, ":s:g:fmdrapuwh")) != -1) {  
     switch(opt) {
     case 'g': {
       TestRunGroup newTestRunGroup = {};
@@ -167,6 +168,10 @@ static int getAttr(int argc, char *argv[],
     case 'f':  
       printf("runEfh = true\n");
       *runEfh = true;
+      break;
+     case 'm':  
+      printf("runFhGroup = true\n");
+      *runFhGroup = true;
       break;
     case 'd':  
       printf("fatalDebug = ON\n");
@@ -233,7 +238,8 @@ int main(int argc, char *argv[]) {
   char     secIdFileName[1024] = {};
   bool     reportOnly          = false;
   bool     armController       = false;
-
+  bool     runFhGroup          = false;
+  
   uint8_t  alwaysFire          = 0;
   uint8_t  fireUnsubscribed    = 0;
   
@@ -241,7 +247,7 @@ int main(int argc, char *argv[]) {
 	  testRunGroups,underlyings,
 	  &runEfh,&fatalDebug,
 	  secIdFileName,&reportOnly,&armController,
-	  &alwaysFire,&fireUnsubscribed);
+	  &alwaysFire,&fireUnsubscribed,&runFhGroup);
 
   const char* efcSecuritiesFileName = "CBOE_EFC_SECURITIES.txt";
   if((efcSecuritiesFile = fopen(efcSecuritiesFileName,"w")) == NULL)
@@ -373,13 +379,15 @@ int main(int argc, char *argv[]) {
       efhGetDefs(pEfhCtx, &efhRunCtx, (EkaGroup*)&efhRunCtx.groups[0], NULL);
 #endif
 
-      std::thread efhRunThread = std::thread(efhRunGroups,pEfhCtx,&efhRunCtx,(void**)NULL);
-      efhRunThread.detach();
+      if (runFhGroup) {
+	std::thread efhRunThread = std::thread(efhRunGroups,pEfhCtx,&efhRunCtx,(void**)NULL);
+	efhRunThread.detach();
 
-      auto fh = pEfhCtx->dev->fh[pEfhCtx->fhId];
-      if (fh == NULL) on_error("fh == NULL");
-      TEST_LOG("Waiting for EFH active");
-      while (! fh->active) sleep(0);
+	auto fh = pEfhCtx->dev->fh[pEfhCtx->fhId];
+	if (fh == NULL) on_error("fh == NULL");
+	TEST_LOG("Waiting for EFH active");
+	while (! fh->active) sleep(0);
+      }
   }
 
 
