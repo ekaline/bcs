@@ -53,7 +53,7 @@ enum addresses {
     P4_CTX_CHANNEL_BUFF = P4_CTX_CHANNEL_SINGLE_SIZE*P4_CTX_BUFFERS_PER_CHANNEL,
     P4_CONFIRM_REG = 0xf0660,
     P4_CTX_CHANNELS_COUNT = 16,
-
+    EFC_DROPPED_PKTS = 0xe0110,  /* + 0x1000*core */
     FH_GROUP_IPPORT = 0xf0500,
 
 // pricing Round down to dime for GEM

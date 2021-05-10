@@ -134,6 +134,9 @@ void printUsage(char* cmd) {
 	 "\t\t\t\t-f -- Run EFH for raw MD\n"
 	 "\t\t\t\t-r -- Report Only\n"
 	 "\t\t\t\t-a -- Arm EFC\n"
+	 "\t\t\t\t-w -- Always Fire\n"
+	 "\t\t\t\t-u -- Fire on Unsubscribed\n"
+	 "\t\t\t\t-a -- Arm EFC\n"
 	 "\t\t\t\t-p -- Print Fire Report\n"
 	 "\t\t\t\t-d -- FATAL DEBUG ON\n"
 	 ,cmd);
@@ -146,14 +149,11 @@ static int getAttr(int argc, char *argv[],
 		   std::vector<TestRunGroup>& testRunGroups,
 		   std::vector<std::string>&  underlyings,
 		   bool* runEfh, bool* fatalDebug, char* secIdFileName,
-		   bool* reportOnly, bool* armController) {
+		   bool* reportOnly, bool* armController,
+		   uint8_t* alwaysFire,uint8_t* fireUnsubscribed) {
   int opt; 
-  while((opt = getopt(argc, argv, ":u:s:fdraph")) != -1) {  
+  while((opt = getopt(argc, argv, ":s:fdrapuwh")) != -1) {  
     switch(opt) {
-    case 'u':  
-      underlyings.push_back(std::string(optarg));
-      printf("Underlying to subscribe: %s\n", optarg);  
-      break;
     case 'g': {
       TestRunGroup newTestRunGroup = {};
       newTestRunGroup.optArgStr = std::string(optarg);
@@ -180,6 +180,14 @@ static int getAttr(int argc, char *argv[],
       printf("armController = ON\n");
       *armController = true;
       break;
+    case 'w':  
+      printf("alwaysFire = ON\n");
+      *alwaysFire = 1;
+      break;
+    case 'u':  
+      printf("fireUnsubscribed = ON\n");
+      *fireUnsubscribed = 1;
+      break;            
     case 'p':  
       printf("printFireReport = ON\n");
       printFireReport = true;
@@ -225,11 +233,15 @@ int main(int argc, char *argv[]) {
   char     secIdFileName[1024] = {};
   bool     reportOnly          = false;
   bool     armController       = false;
+
+  uint8_t  alwaysFire          = 0;
+  uint8_t  fireUnsubscribed    = 0;
   
   getAttr(argc,argv,
 	  testRunGroups,underlyings,
 	  &runEfh,&fatalDebug,
-	  secIdFileName,&reportOnly,&armController);
+	  secIdFileName,&reportOnly,&armController,
+	  &alwaysFire,&fireUnsubscribed);
 
   const char* efcSecuritiesFileName = "CBOE_EFC_SECURITIES.txt";
   if((efcSecuritiesFile = fopen(efcSecuritiesFileName,"w")) == NULL)
@@ -292,8 +304,8 @@ int main(int argc, char *argv[]) {
   EfcStratGlobCtx efcStratGlobCtx = {
     .enable_strategy = 0,
     .report_only                       = (uint8_t)reportOnly,
-    .debug_always_fire_on_unsubscribed = 0,
-    .debug_always_fire                 = 0,
+    .debug_always_fire_on_unsubscribed = fireUnsubscribed,
+    .debug_always_fire                 = alwaysFire,
     .max_size                          = 1000,
     .watchdog_timeout_sec              = 100000,
   };

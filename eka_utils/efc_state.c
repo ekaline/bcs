@@ -43,6 +43,7 @@ struct IfParams {
   uint32_t maxPPS  = 0;
   uint64_t currBPS = 0;
   uint64_t maxBPS = 0;
+  uint64_t droppedPkts = 0;
 };
 
 #define ADDR_P4_CONT_COUNTER1        0xf0340
@@ -374,6 +375,7 @@ int getCurrTraffic(IfParams coreParams[NUM_OF_CORES]) {
     coreParams[coreId].totalRxPkts  = reg_read(ADDR_STATS_RX_PKTS_TOT   + coreId * 0x1000);
     coreParams[coreId].currBPS      = reg_read(ADDR_STATS_RX_BPS_CURR   + coreId * 0x1000);
     coreParams[coreId].maxBPS       = reg_read(ADDR_STATS_RX_BPS_MAX    + coreId * 0x1000);
+    coreParams[coreId].droppedPkts  = reg_read(EFC_DROPPED_PKTS         + coreId * 0x1000) & 0xFFFFFFFF;
   }
 
   return 0;
@@ -421,6 +423,13 @@ int printCurrTraffic(IfParams coreParams[NUM_OF_CORES]) {
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
     printf (colformat,coreParams[coreId].totalRxBytes);
+  }
+  printf("\n");
+
+  printf (prefixStrFormat,"Dropped Pkts ");
+  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
+    if (! coreParams[coreId].valid) continue;
+    printf (colformat,coreParams[coreId].droppedPkts);
   }
   printf("\n");
 

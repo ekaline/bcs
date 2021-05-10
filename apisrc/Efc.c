@@ -405,9 +405,9 @@ EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdO
   {
     auto msg{ reinterpret_cast< const EfcControllerState* >( b ) };
 
-#ifdef FH_LAB
-    /* if ((msg->fire_reason & EFC_FIRE_REASON_SUBSCRIBED) != 0) */
-    /*   return EKA_OPRESULT__OK; */
+#ifdef _PRINT_UNSUBSCRIBED_ONLY
+    if ((msg->fire_reason & EFC_FIRE_REASON_SUBSCRIBED) != 0)
+      return EKA_OPRESULT__OK;
 #endif
     
     if (! mdOnly) printControllerStateReport(dev,msg);
