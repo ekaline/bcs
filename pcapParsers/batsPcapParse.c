@@ -13,7 +13,7 @@
 #include "eka_macros.h"
 #include "EkaFhBatsParser.h"
 
-static int printBatsMsg(uint8_t* msg, uint64_t sequence);
+static int printBatsMsg(uint64_t pktNum,uint8_t* msg, uint64_t sequence);
 
 //###################################################
 struct pcap_file_hdr {
@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
     pos          += sizeof(batspitch_sequenced_unit_header);;
     for (uint msg=0; msg < msgInPkt; msg++) {
       uint8_t msgLen = pkt[pos];
-      printBatsMsg(&pkt[pos],sequence++);
+      printBatsMsg(pktNum,&pkt[pos],sequence++);
       pos += msgLen;
     }
 
@@ -85,9 +85,9 @@ inline uint64_t expSymbol2secId(const char* s) {
   return be64toh(*(uint64_t*)(s - 2)) & 0x0000ffffffffffff;
 }
 
-static int printBatsMsg(uint8_t* msg, uint64_t sequence) {
+static int printBatsMsg(uint64_t pktNum,uint8_t* msg, uint64_t sequence) {
   EKA_BATS_PITCH_MSG enc = (EKA_BATS_PITCH_MSG)msg[1];
-  printf("%10ju,%s(0x%x),",sequence,EKA_BATS_PITCH_MSG_DECODE(enc),(uint8_t)enc);
+  printf("%10ju,%10ju,%s(0x%x),",pktNum,sequence,EKA_BATS_PITCH_MSG_DECODE(enc),(uint8_t)enc);
 
   switch (enc) {
     //--------------------------------------------------------------

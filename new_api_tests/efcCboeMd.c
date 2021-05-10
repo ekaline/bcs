@@ -82,9 +82,9 @@ void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fireReportBuf, size_t s
   /* if (dev == NULL) on_error("dev == NULL"); */
   /* EKA_LOG ("FIRE REPORT RECEIVED"); */
   /* //  hexDump("FireReport",fireReportBuf,size); */
-  /* efcPrintFireReport(pEfcCtx, (const EfcReportHdr*)fireReportBuf,false); */
+  efcPrintFireReport(pEfcCtx, (const EfcReportHdr*)fireReportBuf,false);
   /* EKA_LOG ("Rearming...\n"); */
-  efcEnableController(pEfcCtx,1);
+  /* efcEnableController(pEfcCtx,1); */
   return;
 }
 /* ------------------------------------------------------------ */
@@ -284,7 +284,7 @@ int main(int argc, char *argv[]) {
   EfcStratGlobCtx efcStratGlobCtx = {
     .enable_strategy = 0,
     .report_only                       = (uint8_t)reportOnly,
-    .debug_always_fire_on_unsubscribed = 0,
+    .debug_always_fire_on_unsubscribed = 1,
     .debug_always_fire                 = 1,
     .max_size                          = 1000,
     .watchdog_timeout_sec              = 100000,
