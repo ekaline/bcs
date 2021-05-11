@@ -377,6 +377,13 @@ int EkaEfc::setHwGlobalParams() {
 }
 /* ################################################ */
 int EkaEfc::setHwUdpParams() {
+  for (auto i = 0; i < MAX_UDP_SESS; i++) {
+    uint32_t ip   = 0;
+    uint16_t port = 0;
+    uint64_t tmp_ipport = ((uint64_t)i) << 56 | ((uint64_t)port) << 32 | be32toh(ip);
+    eka_write (dev,FH_GROUP_IPPORT,tmp_ipport);
+  }
+  
   EKA_LOG("downloading %d MC sessions to FPGA",numUdpSess);
   for (auto i = 0; i < numUdpSess; i++) {
     if (udpSess[i] == NULL) on_error("udpSess[%d] == NULL",i);

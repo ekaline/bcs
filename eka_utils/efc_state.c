@@ -426,7 +426,7 @@ int printCurrTraffic(IfParams coreParams[NUM_OF_CORES]) {
   }
   printf("\n");
 
-  printf (prefixStrFormat,"Dropped Pkts ");
+  printf (prefixStrFormat,"Ignored MD  Packets");
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
     printf (colformat,coreParams[coreId].droppedPkts);

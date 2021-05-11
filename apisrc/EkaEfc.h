@@ -42,7 +42,8 @@ class EkaEfc : public EpmStrategy {
   int           setHwUdpParams();
   int           setHwStratRegion();
   int           enableRxFire();
-
+  int           checkSanity();
+  
   /* ----------------------------------------------------- */
   static const int MAX_UDP_SESS      = 64;
   static const int MAX_TCP_SESS      = 64;

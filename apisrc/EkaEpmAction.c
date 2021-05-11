@@ -191,7 +191,8 @@ EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
 
   dev             = _dev;
   strcpy(actionName,_actionName);
-
+  initialized     = false;
+  
   if (dev == NULL) on_error("dev = NULL");
   if (_epmTemplate == NULL) on_error("_epmTemplate == NULL");
 

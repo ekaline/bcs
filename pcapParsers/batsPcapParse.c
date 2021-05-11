@@ -94,7 +94,7 @@ static int printBatsMsg(uint64_t pktNum,uint8_t* msg, uint64_t sequence) {
   case EKA_BATS_PITCH_MSG::ADD_ORDER_LONG: {
     auto m {reinterpret_cast<batspitch_add_order_long*>(msg)};
     
-    printf ("SID:\'%s\'(0x%016jx),\'%c\',P:%8ju,S:%8u\n",
+    printf ("SID:\'%s\'(0x%016jx),\'%c\',P:%8ju,S:%8u",
 	    EKA_PRINT_BATS_SYMBOL(m->symbol),symbol2secId(m->symbol),
 	    m->side,m->price,m->size
 	    );
@@ -104,7 +104,7 @@ static int printBatsMsg(uint64_t pktNum,uint8_t* msg, uint64_t sequence) {
   case EKA_BATS_PITCH_MSG::ADD_ORDER_SHORT: {
     auto m {reinterpret_cast<batspitch_add_order_short*>(msg)};
     
-    printf ("SID:\'%s\'(0x%016jx),\'%c\',P:%8d,S:%8d\n",
+    printf ("SID:\'%s\'(0x%016jx),\'%c\',P:%8d,S:%8d",
 	    EKA_PRINT_BATS_SYMBOL(m->symbol),symbol2secId(m->symbol),
 	    m->side,m->price * 100,m->size
 	    );
@@ -114,7 +114,7 @@ static int printBatsMsg(uint64_t pktNum,uint8_t* msg, uint64_t sequence) {
   case EKA_BATS_PITCH_MSG::ADD_ORDER_EXPANDED: {
     auto m {reinterpret_cast<batspitch_add_order_expanded*>(msg)};
     
-    printf ("SID:\'%s\'(0x%016jx),\'%c\',P:%8ju,S:%8u\n",
+    printf ("SID:\'%s\'(0x%016jx),\'%c\',P:%8ju,S:%8u",
 	    EKA_PRINT_BATS_SYMBOL_EXP(m->exp_symbol),expSymbol2secId(m->exp_symbol),
 	    m->side,m->price,m->size
 	    );

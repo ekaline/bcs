@@ -120,7 +120,7 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx, const EpmAction *ep
   ekaA->setPktPayload(/* thrId,  */&epm->heap[epmAction->offset], epmAction->length);
 
 
-
+  ekaA->initialized = true;
 
   //---------------------------------------------------------
   //  if (id == 4 && actionIdx == 100)

@@ -84,6 +84,9 @@ class EkaEpmAction {
   /* uint     templateId   = -1; */
   EpmTemplate*  epmTemplate = NULL;
 
+
+  bool     initialized  = false;
+  
   uint     thrId        = -1;
 
   EpmAction epmActionLocalCopy = {};

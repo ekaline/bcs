@@ -42,11 +42,26 @@
 
 /* --------------------------------------------- */
 std::string ts_ns2str(uint64_t ts);
+static EkaOpResult printReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdOnly);
+int printSecCtx(EkaDev* dev, const EfcSecurityCtx* msg);
+int printBoeFire(EkaDev* dev,const BoeNewOrderMsg* msg);
+int printMdReport(EkaDev* dev, const EfcMdReport* msg);
+int printControllerStateReport(EkaDev* dev, const EfcControllerState* msg);
 
 /* --------------------------------------------- */
-static const int  MaxSecurities   = 2000000;
-static       bool printFireReport = false;
-
+static const int  MaxSecurities         = 2000000;
+static       bool printFireReport       = false;
+static       bool printUnsubscribedOnly = false;
+static       bool initializeEfh         = false;
+static       bool getExchDefinitions    = false;
+static       bool runFhGroup            = false;
+static       bool fatalDebug            = false;
+static       bool reportOnly            = false;
+static       bool armController         = false;
+  
+static       uint8_t  alwaysFire        = 0;
+static       uint8_t  fireUnsubscribed  = 0;
+  
 std::vector<uint64_t>    efcSecurities;
 uint64_t* securityList  = NULL;
 int       subscribedNum = 0;
@@ -85,7 +100,7 @@ void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fireReportBuf, size_t s
   /* EKA_LOG ("FIRE REPORT RECEIVED"); */
   /* //  hexDump("FireReport",fireReportBuf,size); */
   if (printFireReport)
-    efcPrintFireReport(pEfcCtx, (const EfcReportHdr*)fireReportBuf,false);
+    printReport(pEfcCtx, (const EfcReportHdr*)fireReportBuf,false);
   /* EKA_LOG ("Rearming...\n"); */
   efcEnableController(pEfcCtx,1);
   return;
@@ -126,19 +141,112 @@ void* onMdTestDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, Ef
   return NULL;
 }
 
+/* ------------------------------------------------------------ */
+
+static EkaOpResult printReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdOnly) {
+  if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
+  EkaDev* dev = pEfcCtx->dev;
+  if (dev == NULL) on_error("dev == NULL");
+
+  const uint8_t* b = (const uint8_t*)p;
+ //--------------------------------------------------------------------------
+  if (((EkaContainerGlobalHdr*)b)->type == EkaEventType::kExceptionReport) {
+    EKA_LOG("EXCEPTION_REPORT");
+    return EKA_OPRESULT__OK;
+  }
+ //--------------------------------------------------------------------------
+  if (((EkaContainerGlobalHdr*)b)->type != EkaEventType::kFireReport) 
+    on_error("UNKNOWN Event report: 0x%02x",
+	     static_cast< uint32_t >( ((EkaContainerGlobalHdr*)b)->type ) );
+
+  uint total_reports = ((EkaContainerGlobalHdr*)b)->num_of_reports;
+  b += sizeof(EkaContainerGlobalHdr);
+  //--------------------------------------------------------------------------
+  if (((EfcReportHdr*)b)->type != EfcReportType::kControllerState) 
+    on_error("EfcControllerState report expected, 0x%02x received",
+	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type));
+  b += sizeof(EfcReportHdr);
+  {
+    auto msg{ reinterpret_cast< const EfcControllerState* >( b ) };
+
+    if (printUnsubscribedOnly) {
+      if ((msg->fire_reason & EFC_FIRE_REASON_SUBSCRIBED) != 0)
+	return EKA_OPRESULT__OK;
+    }
+
+    if (! mdOnly) printControllerStateReport(dev,msg);
+    b += sizeof(EfcControllerState);
+  }
+  total_reports--;
+ //--------------------------------------------------------------------------
+
+  if (((EfcReportHdr*)b)->type != EfcReportType::kMdReport) 
+    on_error("MdReport report expected, %02x received",
+	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type) );
+  b += sizeof(EfcReportHdr);
+  {
+    auto msg{ reinterpret_cast< const EfcMdReport* >( b ) };
+
+    printMdReport(dev,msg);
+
+    b += sizeof(*msg);
+  }
+  total_reports--;
+
+  //--------------------------------------------------------------------------
+
+  if (((EfcReportHdr*)b)->type != EfcReportType::kSecurityCtx) 
+    on_error("SecurityCtx report expected, %02x received",
+	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type) );
+  b += sizeof(EfcReportHdr);
+  {
+    auto msg{ reinterpret_cast< const EfcSecurityCtx* >( b ) };
+
+    if (! mdOnly) printSecCtx(dev, msg);
+
+    b += sizeof(*msg);
+  }
+  total_reports--;
+
+  //--------------------------------------------------------------------------
+  if (((EfcReportHdr*)b)->type != EfcReportType::kFirePkt) 
+    on_error("FirePkt report expected, %02x received",
+	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type) );
+    EKA_LOG("\treport_type = %u SecurityCtx, idx=%u, size=%ju",
+  	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ),
+  	  ((EfcReportHdr*)b)->idx,
+  	  ((EfcReportHdr*)b)->size);
+    b += sizeof(EfcReportHdr);
+    {
+      auto msg {reinterpret_cast<const BoeNewOrderMsg*>(b +
+							sizeof(EkaEthHdr) +
+							sizeof(EkaIpHdr) +
+							sizeof(EkaTcpHdr))};
+      if (! mdOnly) printBoeFire(dev,msg);
+      b += ((EfcReportHdr*)b)->size;
+    }
+    total_reports--;
+    
+  //--------------------------------------------------------------------------
+
+  return EKA_OPRESULT__OK;
+}
+
 /* --------------------------------------------- */
 
 void printUsage(char* cmd) {
   printf("USAGE: %s \n"
 	 "\t\t\t\t-s <Securities List file path>\n"
-	 "\t\t\t\t-f -- Run EFH for Definitions\n"
-	 "\t\t\t\t-m -- Run EFH for raw MD\n"
+	 "\t\t\t\t-f -- Initialize EFH\n"
+	 "\t\t\t\t-x -- Get Exchange Definitions\n"
+	 "\t\t\t\t-m -- Run EFH Group (for raw MD callbacks)\n"
 	 "\t\t\t\t-r -- Report Only\n"
 	 "\t\t\t\t-a -- Arm EFC\n"
 	 "\t\t\t\t-w -- Always Fire\n"
 	 "\t\t\t\t-u -- Fire on Unsubscribed\n"
 	 "\t\t\t\t-a -- Arm EFC\n"
 	 "\t\t\t\t-p -- Print Fire Report\n"
+	 "\t\t\t\t-o -- Print Fire Report only for Unsubscribed\n"
 	 "\t\t\t\t-d -- FATAL DEBUG ON\n"
 	 ,cmd);
   return;
@@ -147,55 +255,55 @@ void printUsage(char* cmd) {
 /* --------------------------------------------- */
 
 static int getAttr(int argc, char *argv[],
-		   std::vector<TestRunGroup>& testRunGroups,
 		   std::vector<std::string>&  underlyings,
-		   bool* runEfh, bool* fatalDebug, char* secIdFileName,
-		   bool* reportOnly, bool* armController,
-		   uint8_t* alwaysFire,uint8_t* fireUnsubscribed, bool* runFhGroup) {
+		   char* secIdFileName
+		   ) {
   int opt; 
-  while((opt = getopt(argc, argv, ":s:g:fmdrapuwh")) != -1) {  
+  while((opt = getopt(argc, argv, ":s:xfmdrapuwoh")) != -1) {  
     switch(opt) {
-    case 'g': {
-      TestRunGroup newTestRunGroup = {};
-      newTestRunGroup.optArgStr = std::string(optarg);
-      testRunGroups.push_back(newTestRunGroup);
-      break;  
-    }
     case 's':  
       strcpy(secIdFileName,optarg);
       printf("secIdFileName = %s\n", secIdFileName);  
       break;  			 
     case 'f':  
-      printf("runEfh = true\n");
-      *runEfh = true;
+      printf("initializeEfh = true\n");
+      initializeEfh = true;
       break;
-     case 'm':  
+    case 'x':  
+      printf("getExchDefinitions = true\n");
+      getExchDefinitions = true;
+      break;
+    case 'm':  
       printf("runFhGroup = true\n");
-      *runFhGroup = true;
+      runFhGroup = true;
       break;
     case 'd':  
       printf("fatalDebug = ON\n");
-      *fatalDebug = true;
+      fatalDebug = true;
       break;
     case 'r':  
       printf("reportOnly = ON\n");
-      *reportOnly = true;
+      reportOnly = true;
       break;      
     case 'a':  
       printf("armController = ON\n");
-      *armController = true;
+      armController = true;
       break;
     case 'w':  
       printf("alwaysFire = ON\n");
-      *alwaysFire = 1;
+      alwaysFire = 1;
       break;
     case 'u':  
       printf("fireUnsubscribed = ON\n");
-      *fireUnsubscribed = 1;
+      fireUnsubscribed = 1;
       break;            
     case 'p':  
       printf("printFireReport = ON\n");
       printFireReport = true;
+      break;
+    case 'o':  
+      printf("printUnsubscribedOnly = true\n");
+      printUnsubscribedOnly = true;
       break;
     case 'h':  
       printUsage(argv[0]);
@@ -230,30 +338,13 @@ int main(int argc, char *argv[]) {
   signal(SIGINT, INThandler);
 
   // ==============================================
-  std::vector<TestRunGroup> testRunGroups;
-
-  bool     runEfh             = false;
-  bool     fatalDebug          = false;
-
   char     secIdFileName[1024] = {};
-  bool     reportOnly          = false;
-  bool     armController       = false;
-  bool     runFhGroup          = false;
-  
-  uint8_t  alwaysFire          = 0;
-  uint8_t  fireUnsubscribed    = 0;
-  
-  getAttr(argc,argv,
-	  testRunGroups,underlyings,
-	  &runEfh,&fatalDebug,
-	  secIdFileName,&reportOnly,&armController,
-	  &alwaysFire,&fireUnsubscribed,&runFhGroup);
+
+  getAttr(argc,argv,underlyings,secIdFileName);
 
   const char* efcSecuritiesFileName = "CBOE_EFC_SECURITIES.txt";
   if((efcSecuritiesFile = fopen(efcSecuritiesFileName,"w")) == NULL)
       on_error ("Error %s",efcSecuritiesFileName);
-
-  
   
   // ==============================================
   // EkaDev general setup
@@ -277,9 +368,9 @@ int main(int argc, char *argv[]) {
   EpmTriggerParams triggerParam[] = {
       /* {0,"233.54.12.72",18000}, */
     {0,"224.0.74.0",30301},
-    {0,"224.0.74.1",30302},
-    {0,"224.0.74.2",30303},
-    {0,"224.0.74.3",30304},
+    /* {0,"224.0.74.1",30302}, */
+    /* {0,"224.0.74.2",30303}, */
+    /* {0,"224.0.74.3",30304}, */
   };
 
   EfcCtx efcCtx = {};
@@ -320,7 +411,7 @@ int main(int argc, char *argv[]) {
 
   // ==============================================
   // Launching EFH for Definitions and onMd callbacks
-  if (runEfh) {
+  if (initializeEfh) {
       EfhCtx* pEfhCtx = NULL;
       EkaProp efhBatsC1InitCtxEntries_CC_0[] = {
 	  {"efh.C1_PITCH.group.0.unit","1"},
@@ -373,11 +464,8 @@ int main(int argc, char *argv[]) {
 	  .onEfhMdCb                   = onMd
       };
 
-#ifdef EKA_TEST_IGNORE_DEFINITIONS
-      TEST_LOG("Skipping EFH Definitions");
-#else
-      efhGetDefs(pEfhCtx, &efhRunCtx, (EkaGroup*)&efhRunCtx.groups[0], NULL);
-#endif
+      if (getExchDefinitions)
+	efhGetDefs(pEfhCtx, &efhRunCtx, (EkaGroup*)&efhRunCtx.groups[0], NULL);
 
       if (runFhGroup) {
 	std::thread efhRunThread = std::thread(efhRunGroups,pEfhCtx,&efhRunCtx,(void**)NULL);
