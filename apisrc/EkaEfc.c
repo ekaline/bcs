@@ -325,10 +325,23 @@ int EkaEfc::enableRxFire() {
   return 0;
 }
 /* ################################################ */
+int EkaEfc::checkSanity() {
+  for (auto i = 0; i < EkaEpm::MAX_UDP_SESS; i++) {
+    if (udpSess[i] == NULL) continue;
+    if (! action[i]->initialized)
+      on_error("EFC Trigger (UDP Session) #%d"
+	       "does not have initialized Action",i);
+  }
+  return 0;
+}
+
+/* ################################################ */
 int EkaEfc::run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx) {
+  checkSanity();
+  
   memcpy(&localCopyEfcCtx,   pEfcCtx,   sizeof(EfcCtx));
   memcpy(&localCopyEfcRunCtx,pEfcRunCtx,sizeof(EfcRunCtx));
-
+  
   setHwGlobalParams();
   setHwUdpParams();
   setHwStratRegion();
