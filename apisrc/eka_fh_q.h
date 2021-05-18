@@ -4,7 +4,7 @@
 #include "Efh.h"
 
 class EkaDev;
-class FhGroup;
+class EkaFhGroup;
 
 class fh_msg {
  public:
@@ -21,7 +21,7 @@ class fh_msg {
 class fh_q {
  public:
   enum { MAX_ELEMS = 8 * 1024 * 1024 };
-  fh_q (struct EfhCtx* pEfhCtx,EkaSource exch, FhGroup* gr, uint8_t gr_id, uint qsize);
+  fh_q (struct EfhCtx* pEfhCtx,EkaSource exch, EkaFhGroup* gr, uint8_t gr_id, uint qsize);
   ~fh_q();
   
   fh_msg*      push();
@@ -37,23 +37,17 @@ class fh_q {
   void         reset_max_len();
   uint32_t     get_ever_max_len();
   EkaSource    exch;
-  FhGroup*  gr;
+  EkaFhGroup*  gr;
 
   //  volatile uint64_t     currUdpSequence; // for tracing
 
  private:
   EkaDev*       dev;
 
-  /* // Old way */
-  /* volatile uint32_t     rd; */
-  /* volatile uint32_t     wr; */
-  /* volatile uint32_t     q_len; */
   uint         qsize;
 
   uint32_t     rd;
   uint32_t     wr;
-  /* uint32_t     rd_cnt; */
-  /* uint32_t     wr_cnt; */
   uint         q_len;
 
   fh_msg*      msg;

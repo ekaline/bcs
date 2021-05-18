@@ -8,50 +8,34 @@ class EkaDev;
 
 class EkaUdpSess {
  public:
-
-  EkaUdpSess(EkaDev* pEkaDev, uint idx, uint32_t mcIp, uint16_t mcPort) {
+  EkaUdpSess(EkaDev*   pEkaDev, 
+	     int       _id, 
+	     EkaCoreId _coreId, 
+	     uint32_t  _ip, 
+	     uint16_t  _port) {
     dev  = pEkaDev;
-    ip   = mcIp;
-    port = mcPort;
+    if (dev == NULL) on_error("dev == NULL");
 
-    sessIdx = idx;
-    expectedSeq       = 0;
+    id     = _id;
+    coreId = _coreId;
+    ip     = _ip;
+    port   = _port;
 
-    EKA_LOG("New UDP Sess %u: %s:%u",sessIdx, EKA_IP2STR(ip),port);
+    EKA_LOG("New UDP Sess %u: %s:%u",id, EKA_IP2STR(ip),port);
   }
 
-  inline bool myParams(uint32_t mcIp,uint16_t mcPort) {
-    return (ip == mcIp && port == mcPort);
+  bool myParams(EkaCoreId _coreId, uint32_t _ip,uint16_t _port) {
+    return (coreId == _coreId && ip == _ip && port == _port);
   }
 
-  inline bool myParams(int sock_fd) {
-    return (sock == sock_fd);
-  }
+  uint32_t  ip   = -1;
+  uint16_t  port = -1;
+  int       id   = -1;
+  EkaCoreId coreId = -1;
 
-
-  inline bool isCorrectSeq(uint32_t seq, uint32_t num) {
-    if (expectedSeq == 0) expectedSeq = seq;
-    if (expectedSeq == seq) {
-	expectedSeq = seq + num;
-	return true;
-    }
-    
-    EKA_LOG("ERROR: Sequence GAP: expectedSeq (%u) != seq(%u) while num = %u",expectedSeq,seq,num);
-    expectedSeq = seq + num;
-    return false;
-  }
-
-  int      sock;
-  uint32_t ip;
-  uint16_t port;
-
-  uint     sessIdx;
-
+  //  uint8_t  firstSessId = -1;
  private:
-  uint32_t     expectedSeq;
-
-
-  EkaDev* dev;
+  EkaDev* dev = NULL;
 };
 
 #endif

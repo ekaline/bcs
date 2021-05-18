@@ -19,9 +19,15 @@
 
 class EkaDev;
 
+struct EkaUdpChIgmpEntry {
+  uint32_t ip;
+  uint16_t port;
+  int16_t  vlanTag;
+};
+
 class EkaUdpChannel {
  public:
-  EkaUdpChannel(EkaDev* dev, uint8_t coreId);
+  EkaUdpChannel(EkaDev* dev, uint8_t coreId, int requestedChId);
   ~EkaUdpChannel();
   bool           has_data();
   const uint8_t* get();
@@ -29,23 +35,30 @@ class EkaUdpChannel {
   uint16_t       getUdpPort();
   void           next();
 
-  void igmp_mc_join (uint32_t src_ip, uint32_t mcast_ip, uint16_t port, int16_t vlanTag);
+  void igmp_mc_join (uint32_t mcast_ip, uint16_t port, int16_t vlanTag);
+
+ public:
+  int                     chId               = -1;
 
 
   private:
-  EkaDev* dev;
-  uint8_t core;
+  EkaDev*                 dev                = NULL;
+  uint8_t                 core               = -1;
+
+  static const uint MAX_IGMP_ENTRIES = 64;
+  EkaUdpChIgmpEntry       entry[MAX_IGMP_ENTRIES] = {};
+  uint                    subscribedIgmps = 0;
 
   //  int            sock_fd;   // for SW IGMP
-  uint           ptr_update_ctr;
-  uint64_t       packetBytesTotal;
-  SN_ChannelId   ChannelId;
-  int16_t        payloadLength;
+  uint                    ptr_update_ctr     = 0;
+  uint64_t                packetBytesTotal   = 0;
+  SN_ChannelId            ChannelId;
+  int16_t                 payloadLength      = 0;;
 
-  const uint8_t*          pkt_payload_ptr;
+  const uint8_t*          pkt_payload_ptr    = NULL;
 
-  const SN_Packet * pIncomingUdpPacket;
-  const SN_Packet * pPreviousUdpPacket;
+  const SN_Packet *       pIncomingUdpPacket = NULL;
+  const SN_Packet *       pPreviousUdpPacket = NULL;
 };
 
 

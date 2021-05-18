@@ -20,10 +20,13 @@ enum EfcReportType {
                 _x( ControllerState,    1000 )                              \
                 _x( MdReport,           2000 )                              \
                 _x( SecurityCtx,        3000 )                              \
-                _x( FireReport,         4000 )                              \
-                _x( MiaxSessionCtx,     5001 )                              \
-                _x( SqfSessionCtx,      5002 )                              \
-                _x( ExceptionReport,    6000 )
+                _x( FirePkt,            4000 )                              \
+  /* Following reports components are obsolete          */                  \
+  /* The firing params should be extracted from FirePkt */                  \
+                _x( FireReport,         5000 )                              \
+                _x( MiaxSessionCtx,     6001 )                              \
+                _x( SqfSessionCtx,      6002 )                              \
+                _x( ExceptionReport,    7000 )
     EfcReportType_ENUM_ITER( EKA__ENUM_DEF )
 };
 
@@ -38,9 +41,22 @@ typedef struct {
     EfcReportHdr_FIELD_ITER( EKA__FIELD_DEF )
 } EfcReportHdr;
 
+#define EFC_FIRE_REASON_FORCE_FIRE 0x01      
+#define EFC_FIRE_REASON_PASS_BID   0x02
+#define EFC_FIRE_REASON_PASS_ASK   0x04      
+#define EFC_FIRE_REASON_SUBSCRIBED 0x08      
+#define EFC_FIRE_REASON_ARMED      0x80
+
+#define EFC_UNARM_REASON_STRATEGY_PASS 0x01      
+#define EFC_UNARM_REASON_WD_EXPIRED    0x02      
+#define EFC_UNARM_REASON_CTX_OVERRUN   0x04      
+#define EFC_UNARM_REASON_HOST_UNARMED  0x08      
+
 typedef struct {
     #define EfcControllerState_FIELD_ITER( _x )                             \
-                _x( uint8_t, unarm_reason )
+               /* currently not supported: always 0 */                      \
+               _x( uint8_t, unarm_reason )				    \
+               _x( uint8_t, fire_reason )
     EfcControllerState_FIELD_ITER( EKA__FIELD_DEF )
 } EfcControllerState; // single appearence
 
@@ -51,6 +67,7 @@ typedef struct {
                 _x( uint8_t,     side )                                     \
                 _x( uint64_t,    price )                                    \
                 _x( uint64_t,    size )                                     \
+                _x( uint64_t,    security_id )                              \
                 _x( uint8_t,     group_id )                                 \
                 _x( uint8_t,     core_id )
     EfcMdReport_FIELD_ITER( EKA__FIELD_DEF )

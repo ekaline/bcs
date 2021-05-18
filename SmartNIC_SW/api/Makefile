@@ -123,7 +123,8 @@ COMMON_CFLAGS += -DAPI_TIMING=$(API_TIMING)
 CPPFLAGS := $(COMMON_CFLAGS) -Wno-unknown-pragmas
 CPPFLAGS += $(COMMON_CFLAGS) $(CPP_STANDARD)
 
-CPP := $(CCACHE) g++
+CPP := $(CCACHE) /usr/bin/g++
+#CPP := $(CCACHE) g++
 #CPP := $(CCACHE) clang
 
 # To make a release build run "make" or "make release"

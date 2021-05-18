@@ -35,7 +35,21 @@
  */
 
 #define LWIP_TCPIP_CORE_LOCKING         1
+#ifdef __cplusplus
+extern "C" {
+#endif
+void sys_lock_tcpip_core();
+void sys_unlock_tcpip_core();
+void sys_check_core_locking();
+void sys_mark_tcpip_thread();
+#ifdef __cplusplus
+} // End of extern "C"
+#endif
 
+#define LOCK_TCPIP_CORE() sys_lock_tcpip_core()
+#define UNLOCK_TCPIP_CORE() sys_unlock_tcpip_core()
+#define LWIP_MARK_TCPIP_THREAD() sys_mark_tcpip_thread()
+#define LWIP_ASSERT_CORE_LOCKED() sys_check_core_locking()
 
 /**
  * LWIP_TCPIP_CORE_LOCKING_INPUT: when LWIP_TCPIP_CORE_LOCKING is enabled,
@@ -46,7 +60,7 @@
  * interrupt context!
  */
 
-#define LWIP_TCPIP_CORE_LOCKING_INPUT   0
+#define LWIP_TCPIP_CORE_LOCKING_INPUT   1
 
 /**
  * SYS_LIGHTWEIGHT_PROT==1: enable inter-task protection (and task-vs-interrupt
@@ -158,14 +172,36 @@
 
 #define MEMP_NUM_TCP_PCB_LISTEN         8
 
+/**
+ * MEMP_NUM_TCP_SEG: the number of simultaneously queued TCP segments.
+ * (requires the LWIP_TCP option)
+ */
+
+#define MEMP_NUM_TCP_SEG                256
+
+/**
+ * MEMP_NUM_TCPIP_MSG_API: the number of struct tcpip_msg, which are used
+ * for callback/timeout API communication.
+ * (only needed if you use tcpip.c)
+ */
+
+#define MEMP_NUM_TCPIP_MSG_API          256
 
 /**
  * MEMP_NUM_REASSDATA: the number of IP packets simultaneously queued for
  * reassembly (whole packets, not fragments!)
  */
 
-#define MEMP_NUM_REASSDATA              64
+#define MEMP_NUM_REASSDATA              256
 
+
+/**
+ * MEMP_NUM_TCPIP_MSG_INPKT: the number of struct tcpip_msg, which are used
+ * for incoming packets.
+ * (only needed if you use tcpip.c)
+ */
+
+#define MEMP_NUM_TCPIP_MSG_INPKT        256
 
 
 /**
@@ -374,7 +410,7 @@
  * (PBUF_POOL_SIZE > 2 * IP_REASS_MAX_PBUFS)!
  */
 
-#define IP_REASS_MAX_PBUFS              64
+#define IP_REASS_MAX_PBUFS              256
 
 
 /*
@@ -542,9 +578,14 @@
  * an upper limit on the MSS advertised by the remote host.
  */
 
-#define TCP_MSS                         (1536)
 
-#define TCP_WND                         (4 * TCP_MSS)
+// Note: our "path MTU" is typically 1500. Setting the TCP MSS to 1440 leaves
+// room for an IPv4 header, a TCP header, and 20 bytes worth of "slack" that
+// can be used by either IP or TCP options (in practice we rarely see any
+// options being used except during the handshake).
+#define TCP_MSS                         (1440)
+
+#define TCP_WND                         (32 * TCP_MSS)
 
 /* #define TCP_SNDLOWAT                    (4 * TCP_MSS) */
 
@@ -567,7 +608,7 @@
  * To achieve good performance, this should be at least 2 * TCP_MSS.
  */
 
-#define TCP_SND_BUF                     (4 * TCP_MSS)
+#define TCP_SND_BUF                     (32 * TCP_MSS)
 
 
 /**
@@ -596,6 +637,16 @@
 
 #define LWIP_TCP_TIMESTAMPS             0
 
+/**
+ * LWIP_WND_SCALE and TCP_RCV_SCALE:
+ * Set LWIP_WND_SCALE to 1 to enable window scaling.
+ * Set TCP_RCV_SCALE to the desired scaling factor (shift count in the
+ * range of [0..14]).
+ * When LWIP_WND_SCALE is enabled but TCP_RCV_SCALE is 0, we can use a large
+ * send window while having a small receive window only.
+ */
+#define LWIP_WND_SCALE                  1
+#define TCP_RCV_SCALE                   11
 
 /*
    ----------------------------------
@@ -703,7 +754,7 @@
  * timers running in tcpip_thread from another thread.
  */
 
-#define LWIP_TCPIP_TIMEOUT              1
+#define LWIP_TCPIP_TIMEOUT              0
 
 
 /** LWIP_NETCONN_SEM_PER_THREAD==1: Use one (thread-local) semaphore per
@@ -777,7 +828,7 @@
  * SO_SNDTIMEO processing.
  */
 
-#define LWIP_SO_SNDTIMEO                1
+#define LWIP_SO_SNDTIMEO                0
 
 
 /**
@@ -793,7 +844,7 @@
  * (milliseconds, much like winsock does) instead of a struct timeval (default).
  */
 
-#define LWIP_SO_SNDRCVTIMEO_NONSTANDARD 1
+#define LWIP_SO_SNDRCVTIMEO_NONSTANDARD 0
 
 /**
  * LWIP_SO_RCVBUF==1: Enable SO_RCVBUF processing.
@@ -910,9 +961,8 @@
  * Declare your hook function prototypes in there, you may also \#include all headers
  * providing data types that are need in this file.
  */
-#ifdef __DOXYGEN__
-#define LWIP_HOOK_FILENAME "path/to/my/lwip_hooks.h"
-#endif
+#define LWIP_HOOK_FILENAME "lwiphooks.h"
+#define LWIP_HOOK_IP4_ROUTE_SRC(SRC, DST) eka_route_ipv4_src(SRC, DST)
 
 
 /*

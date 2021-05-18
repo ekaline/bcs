@@ -50,7 +50,7 @@ struct EkaIpHdr {
   /* source and destination IP addresses */
   uint32_t src;
   uint32_t dest;
-};
+} __attribute__ ((aligned (sizeof(uint16_t))));
 
 struct EkaTcpHdr {
   uint16_t src;
@@ -61,15 +61,29 @@ struct EkaTcpHdr {
   uint16_t wnd;
   uint16_t chksum;
   uint16_t urgp;
-};
+} __attribute__ ((aligned (sizeof(uint16_t))));
 
 struct EkaUdpHdr {
   uint16_t src;
   uint16_t dest;
   uint16_t len;
   uint16_t chksum;
-};
+} __attribute__ ((aligned (sizeof(uint16_t))));
 
+
+struct EkaIgmpV2Hdr {
+  uint8_t  type; // join ? 0x16 : 0x17;
+  uint8_t  code; // = 0
+  uint16_t cksum;
+  uint32_t group;
+} __attribute__ ((aligned (sizeof(uint16_t))));
+
+struct IgmpPkt {
+  EkaEthHdr    ethHdr;
+  EkaIpHdr     ipHdr;
+  uint32_t     ip_options;
+  EkaIgmpV2Hdr igmpHdr;
+} __attribute__ ((aligned (sizeof(uint16_t)))) __attribute__((packed));
 
 /* typedef struct eth_hdr EkaEthHdr; */
 /* typedef struct ip_hdr  EkaIpHdr; */
@@ -86,6 +100,10 @@ struct EkaUdpHdr {
 
 #define EKA_PROTO_TCP         0x06
 #define EKA_PROTO_UDP         0x11
+
+#define EKA_TCP_FLG_PSH 0x08U
+#define EKA_TCP_FLG_ACK 0x10U
+
 
 #define EKA_ETH_TYPE(pkt)  ((uint16_t)be16toh((((EkaEthHdr*)pkt)->type)))
 #define EKA_ETH_MACDA(pkt) ((uint8_t*)&(((EkaEthHdr*)pkt)->dest))
@@ -124,14 +142,14 @@ struct EkaUdpHdr {
 
 
 /* Macros to get struct tcp_hdr fields: */
-#define EKA_TCP_FLAGS_MASK 0x3F
+#define EKA_TCP_FLAGS_MASK 0x3FU
 #define EKA_TCPH_HDRLEN(phdr) ((uint16_t)(be16toh((phdr)->_hdrlen_rsvd_flags) >> 12))
 #define EKA_TCPH_HDRLEN_BYTES(phdr) ((uint8_t)(EKA_TCPH_HDRLEN(phdr) << 2))
-#define EKA_TCPH_FLAGS(pkt)  ((uint8_t)((be16toh((EKA_TCPH(pkt))->_hdrlen_rsvd_flags) & EKA_TCP_FLAGS_MASK)))
+#define EKA_TCPH_FLAGS(phdr)  ((uint8_t)((be16toh((phdr)->_hdrlen_rsvd_flags) & EKA_TCP_FLAGS_MASK)))
 
-#define EKA_TCP_SYN(pkt) ((TCPH_FLAGS(EKA_TCPH(pkt)) & TCP_SYN) != 0)
-#define EKA_TCP_FIN(pkt) ((TCPH_FLAGS(EKA_TCPH(pkt)) & TCP_FIN) != 0)
-#define EKA_TCP_ACK(pkt) ((TCPH_FLAGS(EKA_TCPH(pkt)) & TCP_ACK) != 0)
+#define EKA_TCP_SYN(pkt) ((EKA_TCPH_FLAGS(EKA_TCPH(pkt)) & TCP_SYN) != 0)
+#define EKA_TCP_FIN(pkt) ((EKA_TCPH_FLAGS(EKA_TCPH(pkt)) & TCP_FIN) != 0)
+#define EKA_TCP_ACK(pkt) ((EKA_TCPH_FLAGS(EKA_TCPH(pkt)) & TCP_ACK) != 0)
 
 #define EKA_TCPH_SEQNO(pkt) ((uint32_t)(be32toh((EKA_TCPH(pkt))->seqno)))
 #define EKA_TCPH_ACKNO(pkt) ((uint32_t)(be32toh((EKA_TCPH(pkt))->ackno)))
@@ -179,14 +197,8 @@ struct EkaUdpHdr {
 #define EKA_IS_UDP_PKT(pkt) (EKA_IS_IP4_PKT(pkt) && (EKA_IPH_PROTO(EKA_IPH(pkt)) == EKA_PROTO_UDP))
 
 
-struct EkaIgmpV2Hdr {
-  uint8_t  type; // join ? 0x16 : 0x17;
-  uint8_t  code; // = 0
-  uint16_t cksum;
-  uint32_t group;
-};
 
-
+// MoldUdp64
 struct mold_hdr {
   uint8_t	session_id[10];
   uint64_t	sequence;
@@ -195,6 +207,16 @@ struct mold_hdr {
 
 #define EKA_MOLD_SEQUENCE(hdr) (be64toh(((struct mold_hdr *)hdr)->sequence))
 #define EKA_MOLD_MSG_CNT(hdr) (be16toh(((struct mold_hdr *)hdr)->message_cnt))
+
+// Mold for Phlx Orders (MolDUdp)
+struct PhlxMoldHdr { 
+  uint8_t	session_id[10];
+  uint32_t	sequence;
+  uint16_t	message_cnt;
+} __attribute__((packed));
+#define EKA_PHLX_MOLD_SEQUENCE(hdr) (((struct PhlxMoldHdr *)hdr)->sequence)
+#define EKA_PHLX_MOLD_MSG_CNT(hdr) (((struct PhlxMoldHdr *)hdr)->message_cnt)
+
 
 #endif //_EKA_NW_HEADERS_H
 

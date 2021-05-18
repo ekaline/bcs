@@ -6,8 +6,20 @@
 #include "eka_macros.h"
 #include "EkaCtxs.h"
 #include "EkaDev.h"
-#include "eka_fh.h"
-#include "EkaFhRunGr.h"
+#include "EkaFhRunGroup.h"
+#include "EkaFhGroup.h"
+
+#include "EkaFhBats.h"
+#include "EkaFhBox.h"
+#include "EkaFhGem.h"
+#include "EkaFhMiax.h"
+#include "EkaFhNasdaq.h"
+#include "EkaFhNom.h"
+#include "EkaFhPhlxOrd.h"
+#include "EkaFhPhlxTopo.h"
+#include "EkaFhXdp.h"
+#include "EkaFhCme.h"
+
 
 EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhInitCtx ) {
   assert (ppEfhCtx != NULL);
@@ -15,6 +27,12 @@ EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhI
   assert (pEfhInitCtx != NULL);
   EkaDev* dev = pEkaDev;
 
+
+  if (dev->core[pEfhInitCtx->coreId] == NULL) {
+    on_error("I/F %d is not connected or does not have IP addr",
+	     pEfhInitCtx->coreId);
+  }
+  
   if (! pEfhInitCtx->recvSoftwareMd) {
     EKA_LOG("skipping creating FH due to pEfhInitCtx->recvSoftwareMd == false");
     return EKA_OPRESULT__OK;
@@ -24,38 +42,50 @@ EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhI
   assert (*ppEfhCtx != NULL);
 
   (*ppEfhCtx)->dev  = pEkaDev;
-  (*ppEfhCtx)->fhId = pEkaDev->numFh;
 
   EkaSource exch = EFH_GET_SRC(pEfhInitCtx->ekaProps->props[0].szKey);
+
   uint8_t fhId = dev->numFh++;
+  (*ppEfhCtx)->fhId = fhId;
+
+  EKA_LOG("Creating FH[%u] %s",fhId,EKA_EXCH_SOURCE_DECODE(exch));
+
+  if (dev->fh[fhId] != NULL) on_error("dev->fh[%u] is already inited",fhId);
+
   switch (exch) {
   case EkaSource::kNOM_ITTO:
-    dev->fh[fhId] = new FhNom();
+    dev->fh[fhId] = new EkaFhNom();
     break;
   case EkaSource::kGEM_TQF:
   case EkaSource::kISE_TQF:
   case EkaSource::kMRX_TQF:
-    dev->fh[fhId] = new FhGem();
+    dev->fh[fhId] = new EkaFhGem();
     break;
   case EkaSource::kPHLX_TOPO:
-    dev->fh[fhId] = new FhPhlx();
+    dev->fh[fhId] = new EkaFhPhlxTopo();
+    break;
+  case EkaSource::kPHLX_ORD:
+    dev->fh[fhId] = new EkaFhPhlxOrd();
     break;
   case EkaSource::kMIAX_TOM:
   case EkaSource::kPEARL_TOM:
-    dev->fh[fhId] = new FhMiax();
+    dev->fh[fhId] = new EkaFhMiax();
     break;
   case EkaSource::kC1_PITCH:
   case EkaSource::kC2_PITCH:
   case EkaSource::kBZX_PITCH:
   case EkaSource::kEDGX_PITCH:
-    dev->fh[fhId] = new FhBats();
+    dev->fh[fhId] = new EkaFhBats();
     break;
   case EkaSource::kARCA_XDP:
   case EkaSource::kAMEX_XDP:
-    dev->fh[fhId] = new FhXdp();
+    dev->fh[fhId] = new EkaFhXdp();
     break;
   case EkaSource::kBOX_HSVF:
-    dev->fh[fhId] = new FhBox();
+    dev->fh[fhId] = new EkaFhBox();
+    break;
+  case EkaSource::kCME_SBE:
+    dev->fh[fhId] = new EkaFhCme();
     break;
   default:
     on_error ("Invalid Exchange %s from: %s",EKA_EXCH_DECODE(exch),pEfhInitCtx->ekaProps->props[0].szKey);
@@ -64,6 +94,9 @@ EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhI
   dev->fh[fhId]->setId(*ppEfhCtx,exch,fhId);
   dev->fh[fhId]->openGroups(*ppEfhCtx,pEfhInitCtx);
   dev->fh[fhId]->init(pEfhInitCtx,fhId);
+
+  EKA_LOG("Created %s with fhId=%u ppEfhCtx=%p, *ppEfhCtx=%p",
+	  EKA_EXCH_DECODE(exch),fhId,ppEfhCtx,*ppEfhCtx);
 
   return EKA_OPRESULT__OK;
 
@@ -106,9 +139,8 @@ const EfhInitCtx* efhGetSupportedParams( ) {
  *                   will be called as the Ekaline feedhandler processes messages.
  *
  */
-class FhNomGr;
 
-EkaOpResult efhRunGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx ) {
+EkaOpResult efhRunGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, void** retval) {
   assert (pEfhCtx != NULL);
   assert (pEfhRunCtx != NULL);
   assert (pEfhCtx->dev->fh[pEfhCtx->fhId] != NULL);
@@ -117,14 +149,17 @@ EkaOpResult efhRunGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx ) {
   EkaDev* dev = pEfhCtx->dev;
   dev->mtx.lock();
   uint runGrId = dev->numRunGr++;
-  dev->runGr[runGrId] = new FhRunGr(pEfhCtx,pEfhRunCtx,runGrId);
+  dev->runGr[runGrId] = new EkaFhRunGroup(pEfhCtx,pEfhRunCtx,runGrId);
   assert (dev->runGr[runGrId] != NULL);
   dev->mtx.unlock();
 
-  //  EKA_DEBUG("invoking runGroups with runId = %u",runGrId);
-  return ((FhNom*)pEfhCtx->dev->fh[pEfhCtx->fhId])->runGroups(pEfhCtx, pEfhRunCtx, runGrId);
+  auto fh = pEfhCtx->dev->fh[pEfhCtx->fhId];
+  if (fh == NULL) on_error("fh == NULL");
 
-  return EKA_OPRESULT__ERR_NOT_IMPLEMENTED;
+  EKA_DEBUG("invoking runGroups: pEfhCtx->fhId = %u, fh->id = %u, runId = %u",
+	    pEfhCtx->fhId,fh->id,runGrId);
+  //  return (pEfhCtx->dev->fh[pEfhCtx->fhId])->runGroups(pEfhCtx, pEfhRunCtx, runGrId);
+  return fh->runGroups(pEfhCtx, pEfhRunCtx, runGrId);
 }
 
 /**
@@ -172,7 +207,7 @@ EkaOpResult efhStopGroups( EfhCtx* pEfhCtx ) {
  * @param pEfhCtx 
  * @retval [See EkaOpResult].
  */
-EkaOpResult efhGetDefs( EfhCtx* pEfhCtx, const struct EfhRunCtx* pEfhRunCtx, EkaGroup* group) {
+EkaOpResult efhGetDefs( EfhCtx* pEfhCtx, const struct EfhRunCtx* pEfhRunCtx, EkaGroup* group, void** retval) {
   assert (pEfhCtx != NULL);
 
   return pEfhCtx->dev->fh[pEfhCtx->fhId]->getDefinitions(pEfhCtx, pEfhRunCtx, group);

@@ -23,6 +23,13 @@ $sessionSubID = 432;
 
 $exch_name = "C1_PITCH";
 
+$grpIp   = "170.137.114.102";
+$grpPort = 17006;
+$grpUser = "GTSS";
+$grpPswd = "eb3gtss";
+$grpSessionSubId = "0587";
+
+
 print "EkaProp efhBatsC1InitCtxEntries_A[] = {\n";
 
 for ($i=0; $i<35;$i++) {
@@ -42,7 +49,11 @@ for ($i=0; $i<35;$i++) {
     print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"$spin_ip_base$spin_ip_lsb:$spin_port\"\}, \t// SPIN \n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.auth\",\"$auth\"\}, \t\t// SPIN \n";
     printf ("\t\{\"efh.%s.group.%d.snapshot.sessionSubID\",\"%04d\"\}, \t\t// SPIN \n",$exch_name,$i,$sessionSubID);
-    print "\t\{\"efh.$exch_name.group.$i.recovery.addr\",\"$grp_mc_base$grp_mc_lsb:$port\"\}, \t// GRP \n\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.addr\",\"$grp_mc_base$grp_mc_lsb:$port\"\}, \t// GRP MC\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.grpAddr\",\"$grpIp:$grpPort\"\}, \t// GRP TCP\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.grpAuth\",\"$grpUser:$grpPswd\"\}, \t// GRP TCP\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.grpSessionSubID\",\"$grpSessionSubId\"\}, \t// GRP TCP\n";
+    print "\n";
 
     $port++;
     $spin_port++;
@@ -88,7 +99,11 @@ for ($i=0; $i<35;$i++) {
     print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"$spin_ip_base$spin_ip_lsb:$spin_port\"\}, \t// SPIN \n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.auth\",\"$auth\"\}, \t\t// SPIN \n";
     printf ("\t\{\"efh.%s.group.%d.snapshot.sessionSubID\",\"%04d\"\}, \t\t// SPIN \n",$exch_name,$i,$sessionSubID);
-    print "\t\{\"efh.$exch_name.group.$i.recovery.addr\",\"$grp_mc_base$grp_mc_lsb:$port\"\}, \t// GRP \n\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.addr\",\"$grp_mc_base$grp_mc_lsb:$port\"\}, \t// GRP \n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.grpAddr\",\"$grpIp:$grpPort\"\}, \t// GRP TCP\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.grpAuth\",\"$grpUser:$grpPswd\"\}, \t// GRP TCP\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.grpSessionSubID\",\"$grpSessionSubId\"\}, \t// GRP TCP\n";
+    print "\n";
 
     $port++;
     $spin_port++;
@@ -132,7 +147,11 @@ for ($i=0; $i<35;$i++) {
     print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"$spin_ip_base$spin_ip_lsb:$spin_port\"\}, \t// SPIN \n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.auth\",\"$auth\"\}, \t\t// SPIN \n";
     printf ("\t\{\"efh.%s.group.%d.snapshot.sessionSubID\",\"%04d\"\}, \t\t// SPIN \n",$exch_name,$i,$sessionSubID);
-    print "\t\{\"efh.$exch_name.group.$i.recovery.addr\",\"$grp_mc_base$grp_mc_lsb:$port\"\}, \t// GRP \n\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.addr\",\"$grp_mc_base$grp_mc_lsb:$port\"\}, \t// GRP \n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.grpAddr\",\"$grpIp:$grpPort\"\}, \t// GRP TCP\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.grpAuth\",\"$grpUser:$grpPswd\"\}, \t// GRP TCP\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.grpSessionSubID\",\"$grpSessionSubId\"\}, \t// GRP TCP\n";
+    print "\n";
 
     $rt_mc_lsb++;
     $port++;
@@ -177,7 +196,11 @@ for ($i=0; $i<35;$i++) {
     print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"$spin_ip_base$spin_ip_lsb:$spin_port\"\}, \t// SPIN \n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.auth\",\"$auth\"\}, \t\t// SPIN \n";
     printf ("\t\{\"efh.%s.group.%d.snapshot.sessionSubID\",\"%04d\"\}, \t\t// SPIN \n",$exch_name,$i,$sessionSubID);
-    print "\t\{\"efh.$exch_name.group.$i.recovery.addr\",\"$grp_mc_base$grp_mc_lsb:$port\"\}, \t// GRP \n\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.addr\",\"$grp_mc_base$grp_mc_lsb:$port\"\}, \t// GRP \n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.grpAddr\",\"$grpIp:$grpPort\"\}, \t// GRP TCP\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.grpAuth\",\"$grpUser:$grpPswd\"\}, \t// GRP TCP\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.grpSessionSubID\",\"$grpSessionSubId\"\}, \t// GRP TCP\n";
+    print "\n";
 
     $rt_mc_lsb++;
     $port++;
@@ -214,6 +237,11 @@ $spin_port = 15903;
 $sessionSubID = 119;
 
 $exch_name = "BATS_C2";
+$grpIp   = "174.136.168.133";
+$grpPort = 18997;
+$grpUser = "GTSS";
+$grpPswd = "vt1gtss";
+$grpSessionSubId = "0143";
 
 for ($i=0; $i<35;$i++) {
     if ($i > 0 && $i % 4 == 0) {
@@ -230,7 +258,11 @@ for ($i=0; $i<35;$i++) {
     print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"$spin_ip_base$spin_ip_lsb:$spin_port\"\}, \t// SPIN \n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.auth\",\"$auth\"\}, \t\t// SPIN \n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.sessionSubID\",\"0$sessionSubID\"\}, \t\t// SPIN \n";
-    print "\t\{\"efh.$exch_name.group.$i.recovery.addr\",\"$grp_mc_base$grp_mc_lsb:$port\"\}, \t// GRP \n\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.addr\",\"$grp_mc_base$grp_mc_lsb:$port\"\}, \t// GRP \n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.grpAddr\",\"$grpIp:$grpPort\"\}, \t// GRP TCP\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.grpAuth\",\"$grpUser:$grpPswd\"\}, \t// GRP TCP\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.grpSessionSubID\",\"$grpSessionSubId\"\}, \t// GRP TCP\n";
+    print "\n";
 
     $port++;
     $spin_port++;
@@ -260,6 +292,12 @@ $passwd = "so4bcap2";
 
 $exch_name = "BZX_PITCH";
 
+$grpIp   = "174.136.163.133";
+$grpPort = 18997;
+$grpUser = "GTSS";
+$grpPswd = "vo1gtss";
+$grpSessionSubId = "0077";
+
 for ($i=0; $i<32;$i++) {
     if ($i > 0 && $i % 4 == 0) {
 	$rt_mc_lsb++;
@@ -273,7 +311,11 @@ for ($i=0; $i<32;$i++) {
     print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"$spin_ip_base$spin_ip_lsb:$spin_port\"\}, \t// SPIN \n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.auth\",\"${username}:${passwd}\"\}, \t\t// SPIN \n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.sessionSubID\",\"0$sessionSubID\"\}, \t\t// SPIN \n";
-    print "\t\{\"efh.$exch_name.group.$i.recovery.addr\",\"$grp_mc_base$grp_mc_lsb:$port\"\}, \t\t// GRP \n\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.addr\",\"$grp_mc_base$grp_mc_lsb:$port\"\}, \t\t// GRP \n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.grpAddr\",\"$grpIp:$grpPort\"\}, \t// GRP TCP\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.grpAuth\",\"$grpUser:$grpPswd\"\}, \t// GRP TCP\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.grpSessionSubID\",\"$grpSessionSubId\"\}, \t// GRP TCP\n";
+    print "\n";
 
     $port++;
     $spin_port++;

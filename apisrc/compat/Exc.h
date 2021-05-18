@@ -10,6 +10,8 @@
 
 #include "Eka.h"
 
+struct pollfd;
+
 #ifdef __cplusplus
     extern "C" {
 #endif
@@ -44,6 +46,11 @@ EkaCoreId excGetCoreId( ExcConnHandle hConn );
  */
 ExcSocketHandle excSocket( EkaDev* pEkaDev, EkaCoreId coreId , int domain, int type, int protocol );
 
+/**
+ * Close an embryonic socket that did not succesfully connect.
+ */
+int excSocketClose( EkaDev* pEkaDev, ExcSocketHandle hSocket );
+
 /*
  *
  */
@@ -68,25 +75,40 @@ ExcConnHandle excReconnect( EkaDev* pEkaDev, ExcConnHandle hConn );
  *                path should be warmed up.
  * @return This will return the values that exhibit the same behavior of linux's send fn.
  */
-ssize_t excSend( EkaDev* pEkaDev, ExcConnHandle hConn, const void* buffer, size_t size );
+ssize_t excSend( EkaDev* pEkaDev, ExcConnHandle hConn, const void* buffer, size_t size, int flags );
 
 /**
  * $$NOTE$$ - This is mutexed to handle single session at a time.
  */
-ssize_t excRecv( EkaDev* pEkaDev, ExcConnHandle hConn, void *buffer, size_t size );
+ssize_t excRecv( EkaDev* pEkaDev, ExcConnHandle hConn, void *buffer, size_t size, int flags );
 
 /*
  *
  */
 int excClose( EkaDev* pEkaDev, ExcConnHandle hConn );
 
+int excPoll( EkaDev* pEkaDev, struct pollfd *fds, int nfds, int timeout );
 
-/**
- * @param hConn
- * @return This will return true if hConn has data ready to be read.
- */
-int excReadyToRecv( EkaDev* pEkaDev, ExcConnHandle hConn );
+int excGetSockOpt( EkaDev* pEkaDev, ExcSocketHandle hSock, int level, int optname,
+                   void* optval, socklen_t* optlen );
 
+int excSetSockOpt( EkaDev* pEkaDev, ExcSocketHandle hSock, int level, int optname,
+                   const void* optval, socklen_t optlen );
+
+int excIoctl( EkaDev* pEkaDev, ExcSocketHandle hSock, long cmd, void *argp );
+
+int excGetSockName( EkaDev* pEkaDev, ExcSocketHandle hSock, sockaddr *addr,
+                    socklen_t *addrlen );
+
+int excGetPeerName( EkaDev* pEkaDev, ExcSocketHandle hSock, sockaddr *addr,
+                    socklen_t *addrlen );
+
+// 0 -> non-blocking, 1 -> blocking, -1 -> errno is set
+int excGetBlocking( EkaDev* pEkaDev, ExcSocketHandle hConn );
+
+int excSetBlocking( EkaDev* pEkaDev, ExcSocketHandle hConn, bool blocking );
+
+int excShutdown( EkaDev* pEkaDev, ExcConnHandle hConn, int how );
 
 /**
  * Help functions for the tests

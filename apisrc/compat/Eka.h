@@ -20,6 +20,7 @@
 /* #include <netinet/in.h> */
  
 #include "EkaMacro.h"
+#include "EkaCtxs.h"
 
 extern "C" {
 
@@ -79,9 +80,11 @@ extern "C" {
     EKA_OPRESULT__ERR_SYSTEM_ERROR = -103,     // returned when a system call fails and errno is set
     EKA_OPRESULT__ERR_NOT_IMPLEMENTED = -104,     // returned when an API call is not implemented
     EKA_OPRESULT__ERR_GROUP_NOT_AVAILABLE = -105, // returned by test feed handler when group not present in capture
+    EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION = -106, // returned if exchange retransmit connection failed
+    EKA_OPRESULT__ERR_EFC_SET_CTX_ON_UNSUBSCRIBED_SECURITY = -107,
 
     // EPM specific
-    //    EKA_OPRESULT__ERR_BAD_ADDRESS = -201,
+    EKA_OPRESULT__ERR_EPM_DISABLED = -201,
     EKA_OPRESULT__ERR_INVALID_CORE = -202,
     EKA_OPRESULT__ERR_EPM_UNINITALIZED = -203,
     EKA_OPRESULT__ERR_INVALID_STRATEGY = -204,
@@ -91,7 +94,12 @@ extern "C" {
     EKA_OPRESULT__ERR_INVALID_ALIGN = -208,
     EKA_OPRESULT__ERR_INVALID_LENGTH = -209,
     EKA_OPRESULT__ERR_UNKNOWN_FLAG = -210,
-    EKA_OPRESULT__ERR_MAX_STRATEGIES = -211
+    EKA_OPRESULT__ERR_MAX_STRATEGIES = -211,
+
+
+    // EFC specific
+    EKA_OPRESULT__ERR_EFC_DISABLED = -301,
+    EKA_OPRESULT__ERR_EFC_UNINITALIZED = -302,
 
   };
 
@@ -122,6 +130,7 @@ extern "C" {
              _x( ISE_TQF     )				\
              _x( MRX_TQF     )				\
              _x( PHLX_TOPO   )				\
+             _x( PHLX_ORD    )				\
              _x( MIAX_TOM    )				\
              _x( PEARL_TOM   )				\
              _x( ARCA_XDP    )				\
@@ -130,7 +139,8 @@ extern "C" {
              _x( BZX_PITCH   )				\
              _x( C1_PITCH    )				\
              _x( C2_PITCH    )				\
-             _x( BOX_HSVF    )
+             _x( BOX_HSVF    )				\
+             _x( CME_SBE    )
             EkaSource_ENUM_ITER( EKA__ENUM_DEF )
   };
 
@@ -191,8 +201,12 @@ extern "C" {
 /** Only positive values should be used except for special cases like efcEnableControllerexcept for special(). */
 typedef int8_t EkaCoreId;
 
+/* typedef int (*EkaLogCallback) (void* ctx, const char* function, const char* file, */
+/*                                int line, int priority, const char* format, ...); */
+
 typedef int (*EkaLogCallback) (void* ctx, const char* function, const char* file,
-                               int line, int priority, const char* format, ...);
+                               int line, int priority, const char* format, ...)
+                               __attribute__ ((format (printf, 6, 7)));
 
   struct eka_ether_addr { // replicated to avoid #include <net/ethernet.h>
     uint8_t ether_addr_octet[6];
@@ -241,18 +255,19 @@ typedef int (*EkaAcquireCredentialsFn)(EkaCredentialType credType,
 
 typedef int (*EkaReleaseCredentialsFn)(EkaCredentialLease *lease, void* context);
 
-enum class EkaThreadType {
-  #define EkaThreadType_ENUM_ITER(_x)       \
+enum class EkaServiceType : uint8_t {
+  #define EkaServiceType_ENUM_ITER(_x)       \
     _x ( Unspecified, 0 )                   \
     _x ( FeedSnapshot )                     \
     _x ( FeedRecovery )                     \
     _x ( IGMP )                             \
     _x ( PacketIO )                         \
+    _x ( LiveMarketData )                   \
     _x ( Heartbeat )
-  EkaThreadType_ENUM_ITER( EKA__ENUM_DEF )
+  EkaServiceType_ENUM_ITER( EKA__ENUM_DEF )
 };
 
-typedef int (*EkaThreadCreateFn)(const char* name, EkaThreadType type, void *(*start_routine)(void*),void *arg, void *context, uintptr_t *handle);
+typedef int (*EkaThreadCreateFn)(const char* name, EkaServiceType type, void *(*start_routine)(void*),void *arg, void *context, uintptr_t *handle);
 
 struct EkaDevInitCtx {
     #define EkaDevInitCtx_FIELD_ITER( _x )                              \
