@@ -22,9 +22,6 @@ typedef int8_t  ExcSessionId;
 /** Positive values indicate success, negative indicate an error. */
 typedef int32_t ExcSocketHandle;
 
-/** Positive values indicate success, negative indicate an error. */
-typedef int16_t ExcConnHandle;
-
 /**
  * This is a utility function that will return the ExcSessionId from the result of exc_connect.
  *
