@@ -664,6 +664,14 @@ static int sc_init_device(device_context_t * pDevExt, struct pci_dev * pdev)
     pDevExt->free_fifo_entries_normal = MAX_FIFO_ENTRIES;
     pDevExt->free_fifo_entries_priority = MAX_FIFO_ENTRIES;
 
+    // start of ekaline patch
+    pDevExt->ekaline_wc_addr = 0;
+    pDevExt->eka_debug = 0;
+    pDevExt->eka_drop_all_rx_udp = 0;
+    pDevExt->eka_drop_igmp = 0;
+    pDevExt->eka_drop_arp = 0;
+    // end of ekaline patch
+    
     if (pDevExt->mmuSupport)
     {
         if (bufsize > 0)
@@ -1124,11 +1132,11 @@ static int sc_start_device(device_context_t * pDevExt)
 	if (pDevExt->nif[lane].eka_private_data == NULL) {
 	  PRINTK("EKALINE_DEBUG: %s: kmalloc failed...\n",__func__);
 	} else {
-	  memset (pDevExt->nif[lane].eka_private_data->eka_version,0,sizeof(eka_nif_state_t));
-	  memset (pDevExt->nif[lane].eka_private_data->eka_version,0,64);
-	  strcpy(pDevExt->nif[lane].eka_private_data->eka_version,EKA_SN_DRIVER_BUILD_TIME);
-	  memset (pDevExt->nif[lane].eka_private_data->eka_release,0,256);
-	  strcpy(pDevExt->nif[lane].eka_private_data->eka_release,EKA_SN_DRIVER_RELEASE_NOTE);
+	  /* memset (pDevExt->nif[lane].eka_private_data->eka_version,0,sizeof(eka_nif_state_t)); */
+	  /* memset (pDevExt->nif[lane].eka_private_data->eka_version,0,64); */
+	  /* strcpy(pDevExt->nif[lane].eka_private_data->eka_version,EKA_SN_DRIVER_BUILD_TIME); */
+	  /* memset (pDevExt->nif[lane].eka_private_data->eka_release,0,256); */
+	  /* strcpy(pDevExt->nif[lane].eka_private_data->eka_release,EKA_SN_DRIVER_RELEASE_NOTE); */
 	  int eks;
 	  for (eks=0; eks<EKA_SESSIONS_PER_NIF;eks++) {
 	    memset (&(pDevExt->nif[lane].eka_private_data->eka_session[eks]),0,sizeof(eka_session_t));
@@ -3401,7 +3409,7 @@ static int sc_mmap(struct file *filep, struct vm_area_struct *vma)
     }
 
     //fixed by ekaline
-    pDevExt->nif[0].eka_private_data->bar0_va    = (uint64_t)(vma->vm_start + BAR0_REGS_OFFSET);
+    //    pDevExt->eka_bar0_va    = (uint64_t)(vma->vm_start + BAR0_REGS_OFFSET);
 
     // User asked for the registers only
     if (requested_sz <= BAR0_REGS_SIZE)

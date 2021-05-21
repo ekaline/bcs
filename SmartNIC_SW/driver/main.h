@@ -271,7 +271,12 @@ struct __device_context__ // Do not use this name, it is only for forward defini
 
   // fixed by ekaline
   uint64_t ekaline_wc_addr;
+  uint64_t eka_bar0_va;
 
+  int      eka_debug;
+  int      eka_drop_all_rx_udp;
+  int      eka_drop_igmp;
+  int      eka_drop_arp;
 
     int minor;                                  /**< Device minor number */
     fpga_revision_t rev;                        /**< Revision of the fpga image */

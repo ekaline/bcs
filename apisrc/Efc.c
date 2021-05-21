@@ -18,35 +18,16 @@
 #include <errno.h>
 #include <thread>
 
+#include "Efh.h"
 #include "Efc.h"
-
-#include "eka_data_structs.h"
+#include "EkaCtxs.h"
 #include "EkaDev.h"
 #include "EkaSnDev.h"
 #include "EkaCore.h"
 #include "EkaTcpSess.h"
+#include "EkaEfc.h"
 
-void efc_run (EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx);
-void download_conf2hw (EkaDev* dev);
-EkaOpResult efc_init ( EfcCtx** efcCtx, EkaDev *ekaCoreCtx, const EfcInitCtx* efcInitCtx );
-void eka_arm_controller(EkaDev* dev, uint8_t arm);
-uint64_t eka_subscr_security2fire(EkaDev* dev, uint64_t id);
-int eka_init_strategy_params (EkaDev* dev,const struct global_params *params) ;
-
-  void download_subscr_table(EkaDev* dev, bool clear_all);
-  uint32_t get_subscription_id(EkaDev* dev, uint64_t id);
-  int eka_set_security_ctx_with_idx (EkaDev* dev, uint32_t ctx_idx, struct sec_ctx *ctx, uint8_t ch);
-  int eka_set_session_fire_app_ctx(EkaDev* dev, uint16_t sess_id , void *ctx);
-  int eka_set_group_session(EkaDev* dev, uint8_t gr, uint16_t sess_id);
-  int eka_open_udp_sockets(EkaDev* dev);
-//void  eka_set_core_addr(EkaDev* dev, uint8_t core, EkaCoreInitAttrs* attrs);
-  int eka_socket(EkaDev* dev, uint8_t core);
-  uint16_t eka_connect (EkaDev* dev, int sock, const struct sockaddr *dst, socklen_t addrlen);
-  ssize_t eka_send(EkaDev* dev, uint16_t sess_id, void *buf, size_t size);
-  ssize_t eka_recv(EkaDev* dev, uint16_t sess_id, void *buffer, size_t size);
-void print_new_compat_fire_report (EfcCtx* efcCtx, EfcReportHdr* p);
-int eka_socket_close(EkaDev* dev, uint16_t id);
-
+#include "EkaEfcDataStructs.h"
 
 /**
  * This will initialize the Ekaline firing controller.
@@ -58,13 +39,28 @@ int eka_socket_close(EkaDev* dev, uint16_t id);
  * @return This will return an appropriate EkalineOpResult indicating success or an error code.
  */
 
+int printSecCtx(EkaDev* dev, const EfcSecurityCtx* msg);
+int printMdReport(EkaDev* dev, const EfcMdReport* msg);
+int printControllerStateReport(EkaDev* dev, const EfcControllerState* msg);
+int printBoeFire(EkaDev* dev,const BoeNewOrderMsg* msg);
+
 EkaOpResult efcInit( EfcCtx** ppEfcCtx, EkaDev *pEkaDev, const EfcInitCtx* pEfcInitCtx ) {
+  if (pEkaDev == NULL) on_error("pEkaDev == NULL");
 
-  assert (ppEfcCtx != NULL);
-  assert (pEkaDev != NULL);
-  assert (pEfcInitCtx != NULL);
+  EkaDev* dev = pEkaDev;
 
-  //  efc_init(ppEfcCtx,pEkaDev,pEfcInitCtx);
+  if (! dev->epmEnabled) {
+    EKA_WARN("This SW instance cannot run EFC functionality. Check other Ekaline processes running (or suspended) on this machine.");
+    return EKA_OPRESULT__ERR_EFC_DISABLED;
+  }
+
+  //  *ppEfcCtx = (EfcCtx*)malloc(sizeof(EfcCtx));
+  if (pEfcInitCtx == NULL) on_error("pEfcInitCtx == NULL");
+  *ppEfcCtx = new EfcCtx;
+  if (*ppEfcCtx == NULL) on_error("*ppEfcCtx == NULL");
+  
+  (*ppEfcCtx)->dev = dev;
+  dev->efcFeedVer  = pEfcInitCtx->feedVer;
 
   return EKA_OPRESULT__OK;
 }
@@ -79,9 +75,18 @@ EkaOpResult efcInit( EfcCtx** ppEfcCtx, EkaDev *pEkaDev, const EfcInitCtx* pEfcI
  * @return This will return an appropriate EkalineOpResult indicating success or an error code.
  */
 
-EkaOpResult efcInitStrategy( EfcCtx* efcCtx, const EfcStratGlobCtx* efcStratGlobCtx ) {
-  if (sizeof(EfcStratGlobCtx) != sizeof(struct global_params)) on_error("sizeof(EfcStratGlobCtx) != sizeof(struct global_params)");
-  //  eka_init_strategy_params (efcCtx->dev,(const struct global_params *)efcStratGlobCtx);
+EkaOpResult efcInitStrategy( EfcCtx* pEfcCtx, const EfcStratGlobCtx* efcStratGlobCtx ) {
+  if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
+  EkaDev* dev = pEfcCtx->dev;
+  if (dev == NULL) on_error("dev == NULL");
+
+  auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
+  if (efc == NULL) on_error("efc == NULL");
+
+  efc->initStrategy(efcStratGlobCtx);
+
+  EKA_LOG("Initializing EFC global params");
+
   return EKA_OPRESULT__OK;
 }
 
@@ -96,6 +101,16 @@ EkaOpResult efcInitStrategy( EfcCtx* efcCtx, const EfcStratGlobCtx* efcStratGlob
  * @retval [See EkaOpResult].
  */
 EkaOpResult efcEnableController( EfcCtx* pEfcCtx, EkaCoreId primaryCoreId ) {
+  if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
+  EkaDev* dev = pEfcCtx->dev;
+  if (dev == NULL) on_error("dev == NULL");
+
+  auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
+  if (efc == NULL) on_error("efc == NULL");
+
+  if (primaryCoreId < 0) efc->disArmController();
+  else efc->armController();
+
   /* assert (pEfcCtx != NULL); */
   /* download_conf2hw(pEfcCtx->dev); */
   /* if (primaryCoreId < 0) eka_arm_controller(pEfcCtx->dev, 0); */
@@ -116,14 +131,29 @@ EkaOpResult efcEnableController( EfcCtx* pEfcCtx, EkaCoreId primaryCoreId ) {
  * @retval [See EkaOpResult].
  */
 EkaOpResult efcEnableFiringOnSec( EfcCtx* pEfcCtx, const uint64_t* pSecurityIds, size_t numSecurityIds ) {
-  /* assert (pEfcCtx != NULL); */
-  /* assert (pSecurityIds != NULL); */
-  /* uint64_t* p = (uint64_t*) pSecurityIds; */
-  /* for (uint i = 0; i < numSecurityIds; i++) { */
-  /*   eka_subscr_security2fire(pEfcCtx->dev,*p); */
-  /*   p++; */
-  /* } */
-  /* download_subscr_table(pEfcCtx->dev,0); */
+  if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
+  EkaDev* dev = pEfcCtx->dev;
+  if (dev == NULL) on_error("dev == NULL");
+
+  auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
+  if (efc == NULL) on_error("efc == NULL");
+
+  if (pSecurityIds == NULL) on_error("pSecurityIds == NULL");
+
+  uint64_t* p = (uint64_t*) pSecurityIds;
+  for (uint i = 0; i < numSecurityIds; i++) {
+    //    EKA_LOG("Subscribing on 0x%jx",*p);
+    efc->subscribeSec(*p);
+    p++;
+  }
+  efc->downloadTable();
+
+  uint64_t subscrCnt = (numSecurityIds << 32) | efc->numSecurities;
+  eka_write(dev,SCRPAD_EFC_SUBSCR_CNT,subscrCnt);
+
+  EKA_LOG("Tried to subscribe on %u, succeeded on %d",
+	  (uint)numSecurityIds,efc->numSecurities);
+  
   return EKA_OPRESULT__OK;
 }
 
@@ -138,12 +168,14 @@ EkaOpResult efcEnableFiringOnSec( EfcCtx* pEfcCtx, const uint64_t* pSecurityIds,
  * @retval [<0]  On failure this will return a value to be interpreted as an error EkaOpResult.
  */
 EfcSecCtxHandle getSecCtxHandle( EfcCtx* pEfcCtx, uint64_t securityId ) {
-  assert (pEfcCtx != NULL);
-  /* uint32_t res = get_subscription_id(pEfcCtx->dev, securityId); */
-  /* if (res == 0xFFFFFFFF) return -1; */
-  /* return (EfcSecCtxHandle) res; */
-  return (EfcSecCtxHandle) 0;
+  if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
+  EkaDev* dev = pEfcCtx->dev;
+  if (dev == NULL) on_error("dev == NULL");
 
+  auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
+  if (efc == NULL) on_error("efc == NULL");
+
+  return efc->getSubscriptionId(securityId);
 }
 
 /**
@@ -156,19 +188,52 @@ EfcSecCtxHandle getSecCtxHandle( EfcCtx* pEfcCtx, uint64_t securityId ) {
  * @retval [See EkaOpResult].
  */
 EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx, EfcSecCtxHandle hSecCtx, const SecCtx* pSecCtx, uint16_t writeChan ) {
-  /* assert (pEfcCtx != NULL); */
-  /* assert (pSecCtx != NULL); */
+  if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
+  EkaDev* dev = pEfcCtx->dev;
+  if (dev == NULL) on_error("dev == NULL");
 
-  /* struct sec_ctx ctx = {}; */
-  /* ctx.bid_min_price = pSecCtx->bidMinPrice; */
-  /* ctx.ask_max_price = pSecCtx->askMaxPrice; */
-  /* ctx.size = pSecCtx->size; */
-  /* ctx.ver_num = pSecCtx->verNum; */
-  /* ctx.lower_bytes_of_sec_id = pSecCtx->lowerBytesOfSecId; */
+  auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
+  if (efc == NULL) on_error("efc == NULL");
 
-  /* uint32_t ctx_idx = (uint32_t) (hSecCtx & 0xFFFFFFFF); */
- 
-  /* eka_set_security_ctx_with_idx (pEfcCtx->dev, ctx_idx, &ctx, (uint8_t) writeChan); */
+  if (hSecCtx < 0) 
+#if EFC_CTX_SANITY_CHECK
+    on_error("hSecCtx = %jd",hSecCtx);
+#else
+    return EKA_OPRESULT__ERR_EFC_SET_CTX_ON_UNSUBSCRIBED_SECURITY;
+#endif
+    
+  if (pSecCtx == NULL) on_error("pSecCtx == NULL");
+
+#if EFC_CTX_SANITY_CHECK
+  if (static_cast<uint8_t>(efc->secIdList[hSecCtx] & 0xFF) != pSecCtx->lowerBytesOfSecId)
+    on_error("EFC_CTX_SANITY_CHECK error: secIdList[%jd] 0x%016jx & 0xFF != %02x",
+	     hSecCtx,efc->secIdList[hSecCtx],pSecCtx->lowerBytesOfSecId);
+#endif
+  
+  // This copy is needed because EkaHwSecCtx is packed and SecCtx is not!
+  const EkaHwSecCtx hwSecCtx = {
+    .bidMinPrice       = pSecCtx->bidMinPrice,
+    .askMaxPrice       = pSecCtx->askMaxPrice,
+    .size              = pSecCtx->size,
+    .verNum            = pSecCtx->verNum,
+    .lowerBytesOfSecId = pSecCtx->lowerBytesOfSecId
+  };
+
+  uint64_t ctxWrAddr = P4_CTX_CHANNEL_BASE + 
+    writeChan * EKA_BANKS_PER_CTX_THREAD * EKA_WORDS_PER_CTX_BANK * 8 + 
+    efc->ctxWriteBank[writeChan] * EKA_WORDS_PER_CTX_BANK * 8;
+
+  // EkaHwSecCtx is 7 Bytes ==> single write
+  eka_write(dev,ctxWrAddr,*(uint64_t*)&hwSecCtx); 
+
+  union large_table_desc done_val = {};
+  done_val.ltd.src_bank           = efc->ctxWriteBank[writeChan];
+  done_val.ltd.src_thread         = writeChan;
+  done_val.ltd.target_idx         = hSecCtx;
+  eka_write(dev, P4_CONFIRM_REG, done_val.lt_desc);
+
+  efc->ctxWriteBank[writeChan] = (efc->ctxWriteBank[writeChan] + 1) % EKA_BANKS_PER_CTX_THREAD;
+
   return EKA_OPRESULT__OK;
 }
 
@@ -186,10 +251,11 @@ EkaOpResult efcSetDynamicSecCtx( EfcCtx* pEfcCtx, EfcSecCtxHandle hSecCtx, const
  * This is just like setStaticSectx except it is for SesCtxs.
  */
 EkaOpResult efcSetSesCtx( EfcCtx* pEfcCtx, ExcConnHandle hConn, const SesCtx* pSesCtx) {
-  assert (pEfcCtx != NULL);
-  assert (pSesCtx != NULL);
+  on_error("This function is obsolete. Use efcSetFireTemplate()");
+  /* assert (pEfcCtx != NULL); */
+  /* assert (pSesCtx != NULL); */
 
-  assert (pEfcCtx != NULL);
+  /* assert (pEfcCtx != NULL); */
   //  session_fire_app_ctx_t ctx = {};
   /* struct session_fire_app_ctx ctx = {}; */
   /* ctx.clid = pSesCtx->clOrdId; */
@@ -217,6 +283,30 @@ EkaOpResult efcSetSesCtx( EfcCtx* pEfcCtx, ExcConnHandle hConn, const SesCtx* pS
 }
 
 /**
+ * This sets the Fire Message template for the hConn session. The template must populate all
+ * fields that are not managed by FPGA (fields managed by FPGA: size, price, etc.).
+ * @param efcCtx
+ * @param hConn          This is the ExcSessionId that we will be mapping to.
+ * @param fireMsg        Application messge in Exchange specific format: SQF, eQuote, etc.
+ * @param fireMsgSize    Size of the template
+ * @retval [See EkaOpResult].
+ */
+
+EkaOpResult efcSetFireTemplate( EfcCtx* pEfcCtx, ExcConnHandle hConn, const void* fireMsg, size_t fireMsgSize ) {
+  if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
+  EkaDev* dev = pEfcCtx->dev;
+  /* if (dev == NULL) on_error("dev == NULL"); */
+  /* EkaEfc* efc = dev->efc; */
+  /* if (efc == NULL) on_error("efc == NULL"); */
+
+  /* efc->setActionPayload(hConn,fireMsg,fireMsgSize); */
+
+  EKA_WARN("Obsolete function!!!");
+
+  return EKA_OPRESULT__OK;
+}
+
+/**
  * This will tell the controller which Session to first fire on based on the multicast group that the 
  * opportunity arrived on.  
  * @param pEfcCtx
@@ -225,8 +315,20 @@ EkaOpResult efcSetSesCtx( EfcCtx* pEfcCtx, ExcConnHandle hConn, const SesCtx* pS
  * @retval [See EkaOpResult].
  */
 EkaOpResult efcSetGroupSesCtx( EfcCtx* pEfcCtx, uint8_t group, ExcConnHandle hConn ) {
-  assert (pEfcCtx != NULL);
+  if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
+  EkaDev* dev = pEfcCtx->dev;
+  if (dev == NULL) on_error("dev == NULL");
+  /* EkaEfc* efc = dev->efc; */
+  /* if (efc == NULL) on_error("efc == NULL"); */
 
+  EkaCoreId coreId = excGetCoreId(hConn);
+  if (dev->core[coreId] == NULL) on_error("dev->core[%u] == NULL",coreId);
+
+  uint sessId = excGetSessionId(hConn);
+  if (dev->core[coreId]->tcpSess[sessId] == NULL)
+    on_error("hConn 0x%x is not connected",hConn);
+
+  //  efc->createFireAction(group,hConn);
   //  eka_set_group_session(pEfcCtx->dev, group, hConn);
   return EKA_OPRESULT__OK;
 
@@ -247,207 +349,139 @@ EkaOpResult efcSetGroupSesCtx( EfcCtx* pEfcCtx, uint8_t group, ExcConnHandle hCo
  * @retval [See EkaOpResult].
  */
 EkaOpResult efcRun( EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx ) {
+  if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
+  EkaDev* dev = pEfcCtx->dev;
+  if (dev == NULL) on_error("dev == NULL");
+
+  auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
+  if (efc == NULL) on_error("efc == NULL");
+
+  efc->run(pEfcCtx,pEfcRunCtx);
+
   //  eka_open_udp_sockets(pEfcCtx->dev);
   //  download_conf2hw(pEfcCtx->dev);
 
   //  efc_run(pEfcCtx,pEfcRunCtx);
 
+  //  eka_write(dev,0xf0f00,0xefa0beda); // REMOVE!!!
+  
   return EKA_OPRESULT__OK;
 }
 
 
-/**
- * This will initialize a core.  All calls to this must be made before efcInit.
- *
- * @param coreId This is the id of the core that we will be initializing.
- * @retval [See EkaOpResult].
- */
-/* EkaOpResult excInitCore( EfcCtx* pEfcCtx, EkaCoreId coreId, struct exc_init_attrs* attrs ) { */
-/*   /\* static bool eka_device_is_open = false; *\/ */
-/*   /\* if (! eka_device_is_open) { *\/ */
-/*   /\*   pEfcCtx->dev =  eka_open_dev(); *\/ */
-/*   /\*   eka_device_is_open = true; *\/ */
-/*   /\* } *\/ */
-/*   eka_set_core_addr(pEfcCtx->dev,coreId,attrs); */
-/*   return EKA_OPRESULT__OK; */
-/* } */
+EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdOnly) {
+  if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
+  EkaDev* dev = pEfcCtx->dev;
+  if (dev == NULL) on_error("dev == NULL");
 
-/**
- * This is a utility function that will return the ExcSessionId from the result of exc_connect.
- *
- * @param hConnection This is the value returned from exc_connect()
- * @return This will return the ExcSessionId value that corresponds to excSessionId.
- */
-ExcSessionId excGetSessionId( ExcConnHandle hConn ) {
-  return (ExcSessionId) hConn % 128;
+  auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
+  if (efc == NULL) on_error("efc == NULL");
+
+  const uint8_t* b = (const uint8_t*)p;
+ //--------------------------------------------------------------------------
+  if (((EkaContainerGlobalHdr*)b)->type == EkaEventType::kExceptionReport) {
+    EKA_LOG("EXCEPTION_REPORT");
+    return EKA_OPRESULT__OK;
+  }
+ //--------------------------------------------------------------------------
+  if (((EkaContainerGlobalHdr*)b)->type != EkaEventType::kFireReport) 
+    on_error("UNKNOWN Event report: 0x%02x",
+	     static_cast< uint32_t >( ((EkaContainerGlobalHdr*)b)->type ) );
+
+  /* EKA_LOG("\tTotal reports: %u",((EkaContainerGlobalHdr*)b)->num_of_reports); */
+  uint total_reports = ((EkaContainerGlobalHdr*)b)->num_of_reports;
+  b += sizeof(EkaContainerGlobalHdr);
+  //--------------------------------------------------------------------------
+  if (((EfcReportHdr*)b)->type != EfcReportType::kControllerState) 
+    on_error("EfcControllerState report expected, 0x%02x received",
+	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type));
+
+  /* EKA_LOG("\treport_type = %u EfcControllerState, idx=%u, size=%ju", */
+  /* 	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ), */
+  /* 	  ((EfcReportHdr*)b)->idx, */
+  /* 	  ((EfcReportHdr*)b)->size); */
+  b += sizeof(EfcReportHdr);
+
+  {
+    auto msg{ reinterpret_cast< const EfcControllerState* >( b ) };
+
+#ifdef _PRINT_UNSUBSCRIBED_ONLY
+    if ((msg->fire_reason & EFC_FIRE_REASON_SUBSCRIBED) != 0)
+      return EKA_OPRESULT__OK;
+#endif
+    
+    if (! mdOnly) printControllerStateReport(dev,msg);
+    b += sizeof(EfcControllerState);
+  }
+  total_reports--;
+ //--------------------------------------------------------------------------
+
+  if (((EfcReportHdr*)b)->type != EfcReportType::kMdReport) 
+    on_error("MdReport report expected, %02x received",
+	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type) );
+  /* EKA_LOG("\treport_type = %u MdReport, idx=%u, size=%ju", */
+  /* 	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ), */
+  /* 	  ((EfcReportHdr*)b)->idx, */
+  /* 	  ((EfcReportHdr*)b)->size); */
+  b += sizeof(EfcReportHdr);
+
+  {
+    auto msg{ reinterpret_cast< const EfcMdReport* >( b ) };
+
+    printMdReport(dev,msg);
+
+    b += sizeof(*msg);
+  }
+  total_reports--;
+
+  //--------------------------------------------------------------------------
+
+  if (((EfcReportHdr*)b)->type != EfcReportType::kSecurityCtx) 
+    on_error("SecurityCtx report expected, %02x received",
+	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type) );
+  /* EKA_LOG("\treport_type = %u SecurityCtx, idx=%u, size=%ju", */
+  /* 	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ), */
+  /* 	  ((EfcReportHdr*)b)->idx, */
+  /* 	  ((EfcReportHdr*)b)->size); */
+  b += sizeof(EfcReportHdr);
+
+  {
+    auto msg{ reinterpret_cast< const EfcSecurityCtx* >( b ) };
+
+    if (! mdOnly) printSecCtx(dev, msg);
+
+    b += sizeof(*msg);
+  }
+  total_reports--;
+
+  //--------------------------------------------------------------------------
+  if (((EfcReportHdr*)b)->type != EfcReportType::kFirePkt) 
+    on_error("FirePkt report expected, %02x received",
+	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type) );
+    EKA_LOG("\treport_type = %u SecurityCtx, idx=%u, size=%ju",
+  	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ),
+  	  ((EfcReportHdr*)b)->idx,
+  	  ((EfcReportHdr*)b)->size);
+    //    auto reportSize = ((EfcReportHdr*)b)->size;
+    //    hexDump("FirePkt",b,reportSize);
+    b += sizeof(EfcReportHdr);
+    {
+      // TEMPORARY SOLUTION FOR BOE!!!
+      auto msg {reinterpret_cast<const BoeNewOrderMsg*>(b +
+							sizeof(EkaEthHdr) +
+							sizeof(EkaIpHdr) +
+							sizeof(EkaTcpHdr))};
+      if (! mdOnly) printBoeFire(dev,msg);
+      b += ((EfcReportHdr*)b)->size;
+    }
+  total_reports--;
+
+  //--------------------------------------------------------------------------
+
+
+  return EKA_OPRESULT__OK;
 }
 
-/**
- * This is a utility function that will return the coreId from the result of exc_connect.
- *
- * @param hConnection This is the value returned from exc_connect()
- * @return This will return the ExcCoreid that corresponds to excSessionId.
- */
-EkaCoreId excGetCoreId( ExcConnHandle hConn ) {
-  return (EkaCoreId) hConn / 128;
-}
-
-/*
- *
- */  
-ExcSocketHandle excSocket( EkaDev* dev, EkaCoreId coreId , int domain, int type, int protocol ) {
-  assert (dev != NULL);
-  // int domain, int type, int protocol parameters are ignored
-  // always used: socket(AF_INET, SOCK_STREAM, 0)
-
-  if (dev->core[coreId] == NULL) on_error("core %u is not connected",coreId);
-  uint sessId = dev->core[coreId]->addTcpSess();
-  //  return (ExcSocketHandle) (coreId * 128 + sessId);
-  return dev->core[coreId]->tcpSess[sessId]->sock;
-}
-
-/*
- *
- */
-ExcConnHandle excConnect( EkaDev* dev, ExcSocketHandle hSocket, const struct sockaddr *dst, socklen_t addrlen ) {
-  assert (dev != NULL);
-
-  EkaTcpSess* sess = dev->findTcpSess(hSocket);
-  if (sess == NULL) {
-    EKA_WARN("ExcSocketHandle %d not found",hSocket);
-    return -1;
-  }
-  sess->dstIp   = ((sockaddr_in*)dst)->sin_addr.s_addr;
-  sess->dstPort = be16toh(((sockaddr_in*)dst)->sin_port);
-
-  sess->bind();
-  dev->snDev->set_fast_session(sess->coreId,sess->sessId,
-			       sess->srcIp,sess->srcPort,
-			       sess->dstIp,sess->dstPort);
-
-  /* EKA_LOG("on coreId=%u, sessId=%u, sock=%d, %s:%u --> %s:%u", */
-  /* 	  sess->coreId,sess->sessId,sess->sock, */
-  /* 	  EKA_IP2STR(sess->srcIp),sess->srcPort, */
-  /* 	  EKA_IP2STR(sess->dstIp),sess->dstPort); */
-
-  ExcConnHandle rc = sess->connect();
-
-  sess->preloadNwHeaders();
-  
-  return rc;
-}
-
-/**
- * This will be called when we need to reconnect to a socket that has already been disconnected.
- * Behavior is undefined if the firing controller is set up to fire on this socket when this is
- * called.
- */
-ExcConnHandle excReconnect( EkaDev* pEkaDev, ExcConnHandle hConn ) {
-  // TBD
-  return 0;
-}
-
-/**
- * $$NOTE$$ This is mutexed to handle single session at a time.
- * 
- * @param hConn
- * @param pBuffer
- * @param size
- * @param flag    This should either be a standard linux flag, or the result of 
- *                ekaGetCapsResult( kEkaCapsSendWarmupFlag ).  If it's the latter, 
- *                then the packet shouldnt actually go on the wire, but the software
- *                path should be warmed up.
- * @return This will return the values that exhibit the same behavior of linux's send fn.
- */
-ssize_t excSend( EkaDev* dev, ExcConnHandle hConn, const void* pBuffer, size_t size ) {
-  assert (dev != NULL);
-
-  uint coreId = excGetCoreId(hConn);
-  if (dev->core[coreId] == NULL) {
-    EKA_WARN("Core %u of hConn %u is not connected",coreId,hConn);
-    return -1;
-  }
-
-  uint sessId = excGetSessionId(hConn);
-
-  if (dev->core[coreId]->tcpSess[sessId] == NULL) {
-    EKA_WARN("Session %u on Core %u of hConn %u is not connected",sessId,coreId,hConn);
-    return -1;
-  }
-
-  //  EKA_LOG("Sending on coreId=%u, sessId=%u",coreId,sessId);
-  return dev->core[coreId]->tcpSess[sessId]->sendPayload((void*) pBuffer, size);
-}
-
-/**
- * $$NOTE$$ - This is mutexed to handle single session at a time.
- */
-ssize_t excRecv( EkaDev* dev, ExcConnHandle hConn, void *pBuffer, size_t size ) {
-  assert (dev != NULL);
-
-  uint coreId = excGetCoreId(hConn);
-  if (dev->core[coreId] == NULL) {
-    EKA_WARN("Core %u of hConn %u is not connected",coreId,hConn);
-    return -1;
-  }
-
-  uint sessId = excGetSessionId(hConn);
-
-  if (dev->core[coreId]->tcpSess[sessId] == NULL) {
-    EKA_WARN("Session %u on Core %u of hConn %u is not connected",sessId,coreId,hConn);
-    return -1;
-  }
-
-  return dev->core[coreId]->tcpSess[sessId]->recv(pBuffer,size);
-}
-
-/*
- *
- */
-int excClose( EkaDev* dev, ExcConnHandle hConn ) {
-  assert (dev != NULL);
-
-  uint coreId = excGetCoreId(hConn);
-  if (dev->core[coreId] == NULL) {
-    EKA_WARN("Core %u of hConn %u is not connected",coreId,hConn);
-    return -1;
-  }
-
-  uint sessId = excGetSessionId(hConn);
-
-  if (dev->core[coreId]->tcpSess[sessId] == NULL) {
-    EKA_WARN("Session %u on Core %u of hConn %u is not connected",sessId,coreId,hConn);
-    return -1;
-  }
-
-  return dev->core[coreId]->tcpSess[sessId]->close();
-}
-
-/**
- * @param hConnection
- * @return This will return true if hConn has data ready to be read.
- */
-int excReadyToRecv( EkaDev* dev, ExcConnHandle hConn ) {
-  assert (dev != NULL);
-
-  uint coreId = excGetCoreId(hConn);
-  if (dev->core[coreId] == NULL) {
-    EKA_WARN("Core %u of hConn %u is not connected",coreId,hConn);
-    return -1;
-  }
-
-  uint sessId = excGetSessionId(hConn);
-
-  if (dev->core[coreId]->tcpSess[sessId] == NULL) {
-    EKA_WARN("Session %u on Core %u of hConn %u is not connected",sessId,coreId,hConn);
-    return -1;
-  }
-
-  return dev->core[coreId]->tcpSess[sessId]->readyToRecv();
-}
-
-EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, EfcReportHdr* p ) {
-  // PATCH
-  //  print_new_compat_fire_report (pEfcCtx,p);
+EkaOpResult efcClose( EfcCtx* efcCtx ) {
   return EKA_OPRESULT__OK;
 }

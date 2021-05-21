@@ -19,15 +19,12 @@
 #include <assert.h>
 #include <time.h>
 
-#include "eka_data_structs.h"
 #include "EkaDev.h"
 
 #include "eka_fh_q.h"
-#include "eka_fh_group.h"
+#include "EkaFhGroup.h"
 
-#include "eka_macros.h"
-
-fh_q::fh_q(struct EfhCtx* pEfhCtx, EkaSource ec, FhGroup* parent_gr, uint8_t id, uint qs) {
+fh_q::fh_q(struct EfhCtx* pEfhCtx, EkaSource ec, EkaFhGroup* parent_gr, uint8_t id, uint qs) {
   dev = pEfhCtx->dev;
 
   q_len = 0;
@@ -97,7 +94,7 @@ inline bool fh_q::is_full() {
 fh_msg* fh_q::push() {
   //  assert (q_len < qsize);
   if (is_full()) {
-    EKA_WARN("WARNING: %s:%u Q is full -- Too slow Processing (maybe Gap Recovery): q_len (%u) >= qsize (%u) -- emptying Q",
+    on_error("%s:%u Q is full -- Too slow Processing (maybe Gap Recovery): q_len (%u) >= qsize (%u) -- emptying Q",
 	     EKA_EXCH_DECODE(exch),gr_id,get_len(),qsize);
     wr = 0;
     rd = 0;

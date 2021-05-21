@@ -842,7 +842,11 @@ static const struct net_device_ops fbndev_ops =
 #endif
     .ndo_do_ioctl = fb_do_ioctl,
 #if defined(RHEL_RELEASE_CODE) && defined(RHEL_RELEASE_VERSION)
-    #if RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(7, 5)
+    /* start of Ekaline fix*/
+    #if RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(8, 0)
+    /* keep ndo_change_mtu */
+    /* end of Ekaline fix*/
+    #elif RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(7, 5)
         /* Centos 7.5 kernel version 3.10.0-862.11.6.el7.x86_64 has renamed member ndo_change_mtu!!! */
         #define ndo_change_mtu ndo_change_mtu_rh74
     #endif

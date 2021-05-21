@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <shared_mutex>
 #include <thread>
 #include <malloc.h>
 
@@ -13,32 +14,21 @@
 #include "lwip/netifapi.h"
 #include "lwip/api.h"
 
+#include "lwipopts.h"
+
 #include "EkaDev.h"
 #include "EkaTcp.h"
 #include "EkaTcpSess.h"
 #include "EkaCore.h"
 
 #include "eka_hw_conf.h"
-static void hexDump (const char *desc, void *addr, int len) {
-    int i;
-    unsigned char buff[17];
-    unsigned char *pc = (unsigned char*)addr;
-    if (desc != NULL) printf ("%s:\n", desc);
-    if (len == 0) { printf("  ZERO LENGTH\n"); return; }
-    if (len < 0)  { printf("  NEGATIVE LENGTH: %i\n",len); return; }
-    for (i = 0; i < len; i++) {
-        if ((i % 16) == 0) {
-            if (i != 0) printf ("  %s\n", buff);
-            printf ("  %04x ", i);
-        }
-        printf (" %02x", pc[i]);
-        if ((pc[i] < 0x20) || (pc[i] > 0x7e))  buff[i % 16] = '.';
-        else buff[i % 16] = pc[i];
-        buff[(i % 16) + 1] = '\0';
-    }
-    while ((i % 16) != 0) { printf ("   "); i++; }
-    printf ("  %s\n", buff);
-}
+
+// Note: internal flags, must be kept in sync with `lwip/src/core/ipv4/etharp.c`
+#define ETHARP_FLAG_TRY_HARD     1
+#define ETHARP_FLAG_STATIC_ENTRY 4
+
+extern EkaDev *g_allDevs;
+extern std::shared_mutex g_allDevsMtx;
 
 static err_t eka_netif_init (struct netif *netif) {
   //  EkaDev* dev = ((struct LwipNetifState*)netif->state)->pEkaDev;
@@ -47,34 +37,55 @@ static err_t eka_netif_init (struct netif *netif) {
   return ERR_OK;
 }
 
+extern "C" netif* eka_route_ipv4_src(const ip4_addr_t* src, const ip4_addr_t* dst) {
+  std::shared_lock<std::shared_mutex> lck{g_allDevsMtx};
+
+  // For each open device, look through each initialized core, trying to find
+  // the core whose source IP address matches the source IP address of the
+  // packet we're trying to route. If we find a match, tell lwIP to use that
+  // core's associated netif.
+  // FIXME: need to acquire any locks here to protect cores / core members?
+  for (EkaDev *dev = g_allDevs; dev; dev = dev->next) {
+    for (EkaCoreId c = 0; c < EkaDev::MAX_CORES; ++c) {
+      if (dev->core[c] && dev->core[c]->srcIp == src->addr)
+        return dev->core[c]->pLwipNetIf;
+    }
+  }
+
+  return nullptr;
+}
+
 static void ekaLwipInit (void * arg) {
   sys_sem_t *init_sem;
   LWIP_ASSERT("arg != NULL", arg != NULL);
   init_sem = (sys_sem_t*)arg;
   sys_sem_signal(init_sem);
+
   //  printf("%s: Im here\n",__func__);
 }
 
 err_t ekaLwipSendRaw(struct netif *netif, struct pbuf *p) {
   EkaDev* dev    = ((struct LwipNetifState*)netif->state)->pEkaDev;
-  uint8_t coreId = ((struct LwipNetifState*)netif->state)->lane;
+  EkaCoreId coreId = ((struct LwipNetifState*)netif->state)->lane;
   if (dev == NULL) return ERR_CLSD;
 
-  dev->getControlTcpSess(coreId)->sendFullPkt(p->payload,p->len);
+  //  dev->getControlTcpSess(coreId)->sendEthFrame(p->payload,p->len);
+  EkaTcpSess* controlTcpSess = dev->core[coreId]->tcpSess[EkaCore::CONTROL_SESS_ID];
+  controlTcpSess->sendEthFrame(p->payload,p->len);
   return ERR_OK;
 }
 
 err_t ekaLwipSend(struct netif *netif, struct pbuf *p) {
   /* hexDump("ekaLwipSend",p->payload,p->len); */
   EkaDev* dev    = ((struct LwipNetifState*)netif->state)->pEkaDev;
-  uint8_t coreId = ((struct LwipNetifState*)netif->state)->lane;
+  EkaCoreId coreId = ((struct LwipNetifState*)netif->state)->lane;
   if (dev == NULL) return ERR_CLSD;
+  if (! dev->exc_active) return ERR_CLSD;
   if (dev->core[coreId] == NULL) on_error("dev->core[%u] == NULL",coreId);
 
   if (p == NULL) on_error("struct pbuf *p == NULL");
   if (p->len != p->tot_len) 
     on_error("p->len (%u) != p->tot_len (%u): IP fragmentation not supported",p->len,p->tot_len);
-  if (p->len < 1) on_error("p->len < 1");//return ERR_OK;
 
   uint8_t* pkt = (uint8_t*) p->payload;
 
@@ -84,27 +95,58 @@ err_t ekaLwipSend(struct netif *netif, struct pbuf *p) {
 					   EKA_IPH_DST(pkt),
 					   EKA_TCPH_DST(pkt));
     if (tcpSess != NULL) {
-      tcpSess->sendStackPkt(pkt,p->len);
+      tcpSess->sendStackEthFrame(pkt,p->len);
       return ERR_OK;
     }
   }
-  EkaTcpSess* tcpSess = dev->getControlTcpSess(coreId);
-  tcpSess->sendFullPkt(pkt,p->len);
+
+  EkaTcpSess* controlTcpSess = dev->core[coreId]->tcpSess[EkaCore::CONTROL_SESS_ID];
+  controlTcpSess->sendEthFrame(pkt,p->len);
   return ERR_OK;
 }
 
-void setNetifIpSrc(EkaDev* dev, uint8_t coreId, const uint32_t* pSrcIp) {
+void setNetifIpSrc(EkaDev* dev, EkaCoreId coreId, const uint32_t* pSrcIp) {
+  LOCK_TCPIP_CORE();
   netif_set_ipaddr(dev->core[coreId]->pLwipNetIf,(const ip4_addr_t*)pSrcIp); 
+  UNLOCK_TCPIP_CORE();
   return;
 }
 
+void setNetifGw(EkaDev* dev, EkaCoreId coreId, const uint32_t* pGwIp) {
+  LOCK_TCPIP_CORE();
+  netif_set_gw (dev->core[coreId]->pLwipNetIf,(const ip4_addr_t*)pGwIp); 
+  UNLOCK_TCPIP_CORE();
+  return;
+}
 
-void setNetifIpMacSa(EkaDev* dev, uint8_t coreId, const uint8_t* macSa) {
+void setNetifNetmask(EkaDev* dev, EkaCoreId coreId, const uint32_t* pNetmaskIp) {
+  LOCK_TCPIP_CORE();
+  netif_set_netmask (dev->core[coreId]->pLwipNetIf,(const ip4_addr_t*)pNetmaskIp); 
+  UNLOCK_TCPIP_CORE();
+  return;
+}
+
+void setNetifIpMacSa(EkaDev* dev, EkaCoreId coreId, const uint8_t* macSa) {
   memcpy(dev->core[coreId]->pLwipNetIf->hwaddr,macSa,6);
   return;
 }
 
-struct netif* initLwipNetIf(EkaDev* dev, uint8_t coreId, uint8_t* macSa, uint8_t* macDa, uint32_t srcIp) {
+int ekaAddArpEntry(EkaDev* dev, EkaCoreId coreId, const uint32_t *protocolAddr,
+                   const uint8_t *hwAddr) {
+  netif *const nif = dev->core[coreId]->pLwipNetIf;
+  LOCK_TCPIP_CORE();
+  const err_t lwipErr =
+      etharp_update_arp_entry(nif, (const ip4_addr_t*) protocolAddr, (struct eth_addr *)hwAddr,
+                              (u8_t)(ETHARP_FLAG_TRY_HARD | ETHARP_FLAG_STATIC_ENTRY));
+  UNLOCK_TCPIP_CORE();
+  if (lwipErr != ERR_OK) {
+    errno = err_to_errno(lwipErr);
+    return -1;
+  }
+  return 0;
+}
+
+struct netif* initLwipNetIf(EkaDev* dev, EkaCoreId coreId, uint8_t* macSa, uint32_t srcIp) {
   if (dev == NULL) on_error("dev == NULL");
 
   struct netif* netIf = (struct netif*) calloc(1,sizeof(struct netif));
@@ -129,9 +171,10 @@ struct netif* initLwipNetIf(EkaDev* dev, uint8_t coreId, uint8_t* macSa, uint8_t
   netIf->mtu = 1500;
   netIf->hwaddr_len = 6;
 
-  EKA_LOG("running netif_add with ip=%s, macSa=%s, macDa=%s",
-	  EKA_IP2STR(srcIp),EKA_MAC2STR(macSa),EKA_MAC2STR(macDa));
+  EKA_LOG("running netif_add with ip=%s, macSa=%s",
+	  EKA_IP2STR(srcIp),EKA_MAC2STR(macSa));
 
+  LOCK_TCPIP_CORE();
   struct netif* netIf_rc = netif_add(netIf,
 				     (const ip4_addr_t *) & srcIp,
 				     NULL, // netmask
@@ -139,6 +182,7 @@ struct netif* initLwipNetIf(EkaDev* dev, uint8_t coreId, uint8_t* macSa, uint8_t
 				     netIf->state,
 				     eka_netif_init,
 				     tcpip_input);
+
   if (netIf_rc == NULL) 
     on_error("Failed to add netif on core[%u]",coreId);
 
@@ -151,10 +195,10 @@ struct netif* initLwipNetIf(EkaDev* dev, uint8_t coreId, uint8_t* macSa, uint8_t
     NETIF_FLAG_IGMP;
   netIf->output = etharp_output;
 
-  //  netif_set_default (netIf);
-
   netif_set_up(netIf);
   netif_set_link_up(netIf);
+  UNLOCK_TCPIP_CORE();
+
   EKA_LOG("NIC %u: netif->num = %d, I/F is %s, link is %s, MAC = %s",
 	  coreId, netIf->num, netif_is_up(netIf) ? "UP" : "DOWN",netif_is_link_up(netIf)  ? "UP" : "DOWN",
 	  EKA_MAC2STR(netIf->hwaddr));
@@ -188,11 +232,11 @@ void ekaInitLwip (EkaDev* dev) {
   return;
 }
 
-void ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
+void ekaProcessTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
 
   uint8_t broadcastMac[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
   if (memcmp(pkt,broadcastMac,6) == 0) { // broadcast 
-    for (uint8_t rxCoreId = 0; rxCoreId < EkaDev::CONF::MAX_CORES; rxCoreId++) {
+    for (EkaCoreId rxCoreId = 0; rxCoreId < EkaDev::MAX_CORES; rxCoreId++) {
       if (dev->core[rxCoreId] != NULL && dev->core[rxCoreId]->pLwipNetIf != NULL) {
 
 	struct pbuf* p = pbuf_alloc(PBUF_RAW, len, PBUF_RAM);
@@ -201,32 +245,53 @@ void ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
 
 	struct netif* netIf = dev->core[rxCoreId]->pLwipNetIf;
 
-	if (netIf->input(p,netIf) != ERR_OK) 
+	if (netIf->input(p,netIf) != ERR_OK) {
+	  hexDump("Dropping RX pkt",(void*)pkt,len);
 	  pbuf_free(p);
+	}
       }
     }
   } else {
-    uint8_t rxCoreId = dev->findCoreByMacSa(pkt);
-    if (rxCoreId < EkaDev::CONF::MAX_CORES) {
-      if (dev->core[rxCoreId] != NULL && dev->core[rxCoreId]->pLwipNetIf != NULL) {
+    EkaCoreId rxCoreId = dev->findCoreByMacSa(pkt);
+    if (rxCoreId < 0) return; // ignoring "not mine" pkt
 
-	struct netif* netIf = dev->core[rxCoreId]->pLwipNetIf;
+    if (dev->core[rxCoreId] != NULL && dev->core[rxCoreId]->pLwipNetIf != NULL) {
+      struct netif* netIf = dev->core[rxCoreId]->pLwipNetIf;
 	
-	struct pbuf* p = pbuf_alloc(PBUF_RAW, len, PBUF_RAM);
-	if (p == NULL) on_error ("failed to get new PBUF");
-	memcpy(p->payload,pkt,len);
-	
-	netIf->input(p,netIf);
+      if (EKA_IS_TCP_PKT(pkt)) {
+        EkaTcpSess* tcpSess = dev->findTcpSess(EKA_IPH_DST(pkt),EKA_TCPH_DST(pkt),EKA_IPH_SRC(pkt),EKA_TCPH_SRC(pkt));
+        if (!tcpSess) {
+          // TCP packet not corresponding to any session we know about. This could
+          // be a retransmission of a connection that once existed, or any number
+          // of improper-TCP-close errors that cause us to receive a packet not
+          // meant for us. Warn and ignore.
+          char hexBuf[8192]; // approximate MTU * 4 bytes to hold the hexdump
+          if (std::FILE *const hexBufFile = fmemopen(hexBuf, sizeof hexBuf, "w")) {
+            hexDump("Unexpected RX TCP pkt",pkt,len,hexBufFile);
+            (void)std::fwrite("\0", 1, 1, hexBufFile);
+            (void)std::fclose(hexBufFile);
+          }
+          else
+            std::snprintf(hexBuf, sizeof hexBuf, "fmemopen error: %s (%d)",strerror(errno),errno);
+          EKA_WARN("RX pkt TCP session %s:%u-->%s:%u not found, pkt is:\n%s",
+                   EKA_IP2STR(EKA_IPH_DST(pkt)),EKA_TCPH_DST(pkt),
+                   EKA_IP2STR(EKA_IPH_SRC(pkt)),EKA_TCPH_SRC(pkt),
+                   hexBuf);
+          return;
+        }
+
+        tcpSess->updateRx(pkt,len);
       }
-    } else {
-      //hexDump("Ignored RX pkt",(uint8_t*)pkt,len);
-      //      EKA_WARN("Unexpected RX I/F: %s -- ignoring",EKA_MAC2STR(pkt));
-      // Unexpected RX I/F -- Ignoring the pkt
+
+      struct pbuf* p = pbuf_alloc(PBUF_RAW, len, PBUF_RAM);
+      if (p == NULL) on_error ("failed to get new PBUF");
+      memcpy(p->payload,pkt,len);
+
+      if (netIf->input(p,netIf) != ERR_OK) 
+	pbuf_free(p);
     }
   }
   /* hexDump("ekaProcesTcpRx",(void*)pkt,len); */
-
-  return;
 }
 
 

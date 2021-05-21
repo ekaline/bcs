@@ -6,69 +6,38 @@
 #include "EkaCore.h"
 #include "EkaSnDev.h"
 #include "EkaUserChannel.h"
+#include "EkaUdpChannel.h"
+#include "EkaEpm.h"
+#include "EkaUserReportQ.h"
 
 #include "eka_macros.h"
 
-void ekaProcesTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len);
-
-static void hexDump (const char *desc, void *addr, int len) {
-    int i;
-    unsigned char buff[17];
-    unsigned char *pc = (unsigned char*)addr;
-    if (desc != NULL) printf ("%s:\n", desc);
-    if (len == 0) { printf("  ZERO LENGTH\n"); return; }
-    if (len < 0)  { printf("  NEGATIVE LENGTH: %i\n",len); return; }
-    for (i = 0; i < len; i++) {
-        if ((i % 16) == 0) {
-            if (i != 0) printf ("  %s\n", buff);
-            printf ("  %04x ", i);
-        }
-        printf (" %02x", pc[i]);
-        if ((pc[i] < 0x20) || (pc[i] > 0x7e))  buff[i % 16] = '.';
-        else buff[i % 16] = pc[i];
-        buff[(i % 16) + 1] = '\0';
-    }
-    while ((i % 16) != 0) { printf ("   "); i++; }
-    printf ("  %s\n", buff);
-}
-
+void ekaProcessTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len);
 
 /* ----------------------------------------------- */
-static inline void sendDummyFastPathPkt(EkaDev* dev, const uint8_t* payload) {
+static inline int sendDummyFastPathPkt(EkaDev* dev, const uint8_t* payload) {
   uint8_t vlan_size = /* dev->use_vlan ? 4 : */ 0;
 
-  EkaIpHdr*  iph   = (EkaIpHdr*) (payload + sizeof(dma_report_t) + sizeof(EkaEthHdr) + vlan_size);
+  EkaIpHdr*  iph   = (EkaIpHdr*) (payload + sizeof(EkaEthHdr) + vlan_size);
   EkaTcpHdr* tcph = (EkaTcpHdr*) ((uint8_t*)iph + sizeof(EkaIpHdr));
 
   uint8_t* data = (uint8_t*) tcph + sizeof(EkaTcpHdr);
   uint16_t len = be16toh(iph->_len) - sizeof(EkaIpHdr) - sizeof(EkaTcpHdr);
   
-  //  hexDump("sendDummyFastPathPkt: Dummy Pkt to send",(void*)payload, 54);
+  if (len > EkaTcpSess::MAX_PAYLOAD_SIZE)
+    on_error("TCP segment len %hu > TCP_MSS (%u)",len,EkaTcpSess::MAX_PAYLOAD_SIZE);
+  
+  //  hexDump("Dummy Pkt to send",(void*)data, len);
 
   EkaTcpSess* tcpSess = dev->findTcpSess(iph->src, be16toh(tcph->src), iph->dest, be16toh(tcph->dest));
-  if (tcpSess == NULL) 
+  if (tcpSess == NULL) {
+    hexDump("Dummy Pkt with unknown TcpSess",(void*)data, len);fflush (stdout);
+
     on_error("Tcp Session %s:%u --> %s:%u not found",
-	     EKA_IP2STR((iph->src)),be16toh(tcph->src),EKA_IP2STR((iph->dest)),be16toh(tcph->dest));
-  tcpSess->sendDummyPkt(data, len);
+	     EKA_IP2STR((iph->src)),be16toh(tcph->src),EKA_IP2STR((iph->dest)),be16toh(tcph->dest)); 
+  }
 
-  return;
-}
-/* ----------------------------------------------- */
-
-static inline void sendDummyFirePkt(EkaDev* dev, const uint8_t* payload) {
-  //  if (dev->debug_no_tcpsocket == 1) return; //why is that?
-
-  // PATCH
-  uint fireSessId = 7 /* ((fire_report_t*)payload)->normalized_report.common_header.fire_session */;
-  uint fireCoreId = 7 /* ((fire_report_t*)payload)->normalized_report.common_header.fire_ei */;
-
-  if (dev->core[fireCoreId] == NULL) on_error("Wrong fireCoreId %u",fireCoreId);
-  if (dev->core[fireCoreId]->tcpSess[fireSessId] == NULL) on_error("Wrong fireSessId %u",fireSessId);
-
-  char dummyMsg[1024] = {};
-  dev->core[fireCoreId]->tcpSess[fireSessId]->sendDummyPkt(dummyMsg, dev->hwRawFireSize);
-
-  return;
+  return tcpSess->lwipDummyWrite(data, len);
 }
 
 /* ----------------------------------------------- */
@@ -98,57 +67,98 @@ static inline void sendHb2HW(EkaDev* dev) {
 
 void ekaServThread(EkaDev* dev) {
   EKA_LOG("Launching");
-  uint32_t fire_counter = 0;
-  //  uint32_t null_cnt = 0;
+  uint32_t null_cnt = 0;
+
   dev->servThreadActive = true;
-  pthread_t thread = pthread_self();
-  pthread_setname_np(thread,"EkaServThread");
+
+  uint64_t fire_rx_tx_en = eka_read(dev,ENABLE_PORT);
+  fire_rx_tx_en &= ~(1ULL << 32); //turn on tcprx
+  EKA_LOG ("Turning on tcprx = 0x%016jx",fire_rx_tx_en);
+  eka_write(dev,ENABLE_PORT,fire_rx_tx_en);
+  dev->servThreadTerminated = false;
 
   while (dev->servThreadActive) {
     /* ----------------------------------------------- */
 
-    if (dev->snDev->fastPath->hasData()) {
-      const uint8_t* payload = dev->snDev->fastPath->get();
-      uint len = dev->snDev->fastPath->getPayloadSize();
+    if (dev->lwipPath->hasData()) {
+      const uint8_t* payload = dev->lwipPath->get();
+      uint len = dev->lwipPath->getPayloadSize();
+      //      hexDump("Serv Thread Pkt",payload,len);
 
-      /* hexDump("RX pkt",(void*)payload,len); */
-      switch ((EkaUserChannel::DMA_TYPE)((dma_report_t*)payload)->type) {
-      case EkaUserChannel::DMA_TYPE::FAST_PATH_DUMMY_PKT:
-	//	hexDump("FastPathPkt at ekaServThread",(uint8_t*)payload + sizeof(dma_report_t),len - sizeof(dma_report_t));
+      EkaUserChannel::DMA_TYPE dmaType = (EkaUserChannel::DMA_TYPE)(*payload);
 
-	sendDummyFastPathPkt(dev,payload);
-	break;
-      case EkaUserChannel::DMA_TYPE::FIRE:
-	sendDummyFirePkt(dev,payload);
-	fire_counter++;
-	break;
-      default:
-	/* ekaProcesTcpRx (dev, payload, len); */
-	hexDump("RX pkt at FAST_PATH User Channel",(void*)payload,len);
-	on_error("Unexpected packet");
+      switch (dmaType) {
+	/* ----------------------------------------------- */
+      case EkaUserChannel::DMA_TYPE::EPM : {
+	feedback_dma_report_t* feedbackDmaReport = (feedback_dma_report_t*) payload;
+	/* EKA_LOG("EPM PKT: bitparams = 0x%0x, dummy_en = %d, expect_report = %d, type = %d, length = %d, index = %d, dmalen = %d", */
+	/* 	feedbackDmaReport->bitparams,feedbackDmaReport->bitparams.dummy_en,feedbackDmaReport->bitparams.expect_report, */
+	/* 	feedbackDmaReport->type,feedbackDmaReport->length,feedbackDmaReport->index,len); */
+	/* hexDump("Serv Thread EPM Pkt",payload,len);fflush(stdout); */
+
+
+	if (feedbackDmaReport->bitparams.dummy_en == 1) {
+	  if (sendDummyFastPathPkt(dev,payload) <= 0) {
+            // LWIP is busy?
+            char hexBuf[8192];
+            if (std::FILE *const hexBufFile = fmemopen(hexBuf, sizeof hexBuf, "w")) {
+              hexDump("error TCP pkt",payload,len,hexBufFile);
+              (void)std::fwrite("\0", 1, 1, hexBufFile);
+              (void)std::fclose(hexBufFile);
+            }
+            else {
+              std::snprintf(hexBuf, sizeof hexBuf, "fmemopen error: %s (%d)",strerror(errno),errno);
+	    }
+            EKA_WARN("sendDummyFastPathPkt returned error: %s (%d), pkt is:\n%s",
+                     strerror(errno), errno, hexBuf);
+
+	    dev->lwipPath->next();
+            break;
+          }
+	}
+	if (feedbackDmaReport->bitparams.expect_report == 1) {
+	  //	  EKA_LOG("User Report # %u is pushed to Q",
+	  //		  feedbackDmaReport->index);
+	  //	  hexDump("Payload push to Q",payload,len);
+	  dev->userReportQ->push(payload,len);
+	}
+	dev->lwipPath->next();
       }
-      dev->snDev->fastPath->next();
+	break;
+	/* ----------------------------------------------- */
+
+      case EkaUserChannel::DMA_TYPE::TCPRX : {
+	//	tcprx_dma_report_t* tcprxDmaReport = (tcprx_dma_report_t*) payload;
+
+	/* hexDump("ServThread TCPRX Pkt",payload,len); */
+
+	uint8_t* data = (uint8_t*)payload + sizeof(tcprx_dma_report_t);
+	ekaProcessTcpRx (dev, data, len - sizeof(tcprx_dma_report_t));
+	dev->lwipPath->next();
+      }
+	break;
+	/* ----------------------------------------------- */
+      default:
+	hexDump("Unexpected dmaType pkt",payload,64);
+	on_error("Unexpected dmaType %d",(int)dmaType);
+      }
     }
     /* ----------------------------------------------- */
-    if (! dev->servThreadActive) break;
-
-    if (dev->snDev->tcpRx->hasData()) {
-      const uint8_t* payload = dev->snDev->tcpRx->get();
-      uint len = dev->snDev->tcpRx->getPayloadSize();
-
-      /* hexDump("RX pkt",(void*)payload,len); */
-    
-      ekaProcesTcpRx (dev, payload, len - 4 /* FCS */);
-      dev->snDev->tcpRx->next();
+    if ((null_cnt % 3000000)==0) {
+      sendDate2Hw(dev);
+      sendHb2HW(dev);
     }
-    /* ----------------------------------------------- */
-    if (! dev->servThreadActive) break;
-
-    /* if (((null_cnt++)%3000000)==0) { */
-    /*   sendDate2Hw(dev); */
-    /*   sendHb2HW(dev); */
-    /* } */
+    null_cnt++;
   }
+
+  fire_rx_tx_en = eka_read(dev,ENABLE_PORT);
+  fire_rx_tx_en |= (1ULL << 32); //turn off tcprx
+  EKA_LOG ("Turning off tcprx = 0x%016jx",fire_rx_tx_en);
+  eka_write(dev,ENABLE_PORT,fire_rx_tx_en);
+
+  dev->servThreadTerminated = true;
+
   EKA_LOG("Exiting");
   return;
 }
+

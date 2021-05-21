@@ -6,18 +6,15 @@
 #include "eka_macros.h"
 #include "EkaDev.h"
 
-class EkaDev;
-
 #define USR_CH_DECODE(x)					\
-  x == EkaUserChannel::TYPE::FIRE_REPORT ? "FIRE_REPORT" :	\
-    x == EkaUserChannel::TYPE::FAST_PATH   ? "FAST_PATH"   :	\
-    x == EkaUserChannel::TYPE::TCP_RX      ? "TCP_RX"      :	\
+  x == EkaUserChannel::TYPE::EPM_REPORT ? "EPM_REPORT" :	\
+    x == EkaUserChannel::TYPE::LWIP_PATH   ? "LWIP_PATH"   :	\
     "UNKNOWN"
 
 class EkaUserChannel {
  public:
-  enum class TYPE     : uint8_t { FIRE_REPORT = 0, FAST_PATH = 1, TCP_RX = 2 } ;
-  enum class DMA_TYPE : uint8_t { FIRE = 1, FAST_PATH_DUMMY_PKT = 2 };
+  enum class TYPE     : uint8_t { EPM_REPORT = 0, LWIP_PATH = 1/* , TCP_RX = 2 */ } ; //user channel
+  enum class DMA_TYPE : uint8_t { FIRE = 1, EPM = 3, TCPRX = 4 }; // type in descriptor
 
   TYPE type;
 
@@ -25,8 +22,6 @@ class EkaUserChannel {
     type = t;
 
     dev = pEkaDev;
-    if (dev == NULL) on_error("dev == NULL");
-
     EKA_LOG("Openning %s User Channel",USR_CH_DECODE(type));
     fflush(stderr);
     dev_id = devId;
@@ -37,17 +32,28 @@ class EkaUserChannel {
     packetBytesTotal = 0;
 
     ChannelId = SN_AllocateUserLogicChannel(dev_id,(int16_t)type, NULL);
-    if (ChannelId == NULL) on_error("Cannot open User channel for %s",USR_CH_DECODE(type));
+
+    //    if (ChannelId == NULL) on_error("Cannot open User channel for %s",USR_CH_DECODE(type));
+    if (ChannelId == NULL) {
+      EKA_LOG("%s Channel is already acquired by other App instance",USR_CH_DECODE(type));
+      return;
+    }
+
     EKA_LOG("SN_AllocateUserLogicChannel: OK for %s (=%u)",USR_CH_DECODE(type),(int16_t)type);
 
-    if ((pPreviousUdpPacket = SN_GetNextPacket(ChannelId, NULL, SN_TIMEOUT_NONE)) != NULL) on_error("Packet is arriving on User channel before any packet was sent");
+    if ((pPreviousUdpPacket = SN_GetNextPacket(ChannelId, NULL, SN_TIMEOUT_NONE)) != NULL) 
+      on_error("Packet is arriving on User channel before any packet was sent");
     pIncomingUdpPacket = NULL;
   }
 
+  bool isOpen() {
+    EKA_LOG("%s is %s",USR_CH_DECODE(type),ChannelId == NULL ? "CLOSED" : "OPEN");
+    return (ChannelId != NULL);
+  }
 
-  ~EkaUserChannel() {}
+  ~EkaUserChannel();
 
-  bool              hasData() {
+  bool  hasData() {
     pIncomingUdpPacket = SN_GetNextPacket(ChannelId, pPreviousUdpPacket, SN_TIMEOUT_NONE);
     return  pIncomingUdpPacket == NULL ? false : true;
   }

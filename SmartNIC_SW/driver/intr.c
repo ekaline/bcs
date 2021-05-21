@@ -53,7 +53,20 @@
 int send_signal_to_user_process(const device_context_t * pDevExt, pid_t pid, int signalToSend, unsigned int channelNumber, void * pContext)
 {
     int rc = 0;
+    /* start of Ekaline fix*/
+#if defined(RHEL_RELEASE_CODE) && defined(RHEL_RELEASE_VERSION)
+    #if RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(8, 0)
+    struct kernel_siginfo info;
+    #else
     siginfo_t info;
+    #endif
+#else
+    siginfo_t info;
+#endif
+    
+    /* siginfo_t info; */
+    /* end of Ekaline fix*/
+
     struct task_struct * pTask;
     sc_user_logic_interrupt_results * pInterruptResults = (sc_user_logic_interrupt_results *)((uint8_t *)(&info) + sizeof(info) - sizeof(sc_user_logic_interrupt_results));
 

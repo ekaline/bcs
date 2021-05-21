@@ -1,7 +1,7 @@
 #ifndef __EKA_CTXS_H__
 #define __EKA_CTXS_H__
 
-#include "Eka.h"
+class EkaDev;
 
 struct EkaCtx {
   EkaDev* dev;
@@ -13,19 +13,18 @@ struct ExcCtx {
 
 struct EfcCtx {
   EkaDev* dev;
+  //  int     feedVer;  // set from EfcInitCtx
 };
 
 struct EfhCtx {
   EkaDev* dev;
-  EfhFeedVer      feed_ver; // not needed
-  EkaCoreId       coreId;
-  uint8_t         fhId; // free running number for multi-FH solution
+  uint8_t         fhId   = -1; // free running number for multi-FH solution
 
-  bool            dontPrintTobUpd;
-  bool            dontPrintDefinition;
-  bool            printQStatistics;
-  bool            injectTestGaps; // used for Gap recovery testing
-  uint64_t        injectTestGapsPeriod; // spcifying how frequency of the the Gap injections. Measured in raw sequences.
+  bool            dontPrintTobUpd       = false;
+  bool            dontPrintDefinition   = false;
+  bool            printQStatistics      = false;
+  bool            injectTestGaps        = false; // used for Gap recovery testing
+  uint64_t        injectTestGapsPeriod  = false; // frequency of the the Gap injections. Measured in raw sequences.
 };
 
 

@@ -20,5 +20,11 @@
 !new_api_tests
 !arch
 !CMakeLists.txt
-
+!apisrc/FhBook
+!apisrc/Ehp
+!apisrc/ekaline
+apisrc/Ehp/README.txt
+SmartNIC_SW/driver/smartnic.mod.c
+SmartNIC_SW/driver/ekaline_build_time.h
+SmartNIC_SW/tools/fbupdate/build-number.txt
 

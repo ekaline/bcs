@@ -15,16 +15,15 @@
 #include <netinet/in.h>
 #include <stdio.h>
 
-#include "ekaline.h"
 #include "smartnic.h"
 
 #include "EkaDev.h"
 
-bool eka_get_exceptions (eka_dev_t* dev) {
+bool eka_get_exceptions (EkaDev* dev) {
   return eka_read(dev,EKA_ADDR_INTERRUPT_SHADOW_RO) == 0 ? false : true;
 }
 
-void eka_print_exceptions (eka_dev_t* dev) {
+void eka_print_exceptions (EkaDev* dev) {
   uint64_t var_global_shadow = eka_read(dev,EKA_ADDR_INTERRUPT_SHADOW_RO);
   uint64_t var_core_shadow;
   int curr_core;

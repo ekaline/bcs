@@ -21,13 +21,17 @@
  * This function must be called before efcInit().
  */
 struct EfcInitCtx {
-    EkaProps* ekaProps;
+  EfhFeedVer feedVer;  
 
-    /** This should be a pointer to a valid EfhCtx created by efhInit(). */
-    EfhCtx* efhCtx;
-
-   /* This is true if we expect to receive marketdata updates when we run efhRun().  If this is false, 
-    * we dont expect updates, and so Ekaline can save memory and avoid creating structures that arent needed.  */
+  // replaced by Trigger config
+  //  EkaProps*  ekaProps;
+  //  EkaCoreId  mdCoreId; // what 10G port get MD on
+  
+  
+  /** This should be a pointer to a valid EfhCtx created by efhInit(). */
+  // EfhCtx* efhCtx; -- removed by Vitaly
+  
+  /* Efh and Efc must be initialized independently using EfhInitCtx and EfcInitCtx */
 };
 
 /**
@@ -108,9 +112,22 @@ EkaOpResult efcSetStaticSecCtx( EfcCtx* efcCtx, EfcSecCtxHandle hSecCtx, const S
 EkaOpResult efcSetDynamicSecCtx( EfcCtx* efcCtx, EfcSecCtxHandle hSecCtx, const SecCtx* secCtx, uint16_t writeChan );
 
 /**
- * This is just like setStaticSectx except it is for SesCtxs.
+ * This function is OBSOLETE. Use efcSetFireTemplate() below
  */
 EkaOpResult efcSetSesCtx( EfcCtx* efcCtx, ExcConnHandle hConn, const SesCtx* sesCtx );
+
+
+/**
+ * This sets the Fire Message template for the hConn session. The template must populate all
+ * fields that are not managed by FPGA (fields managed by FPGA: size, price, etc.).
+ * @param efcCtx
+ * @param hConn          This is the ExcSessionId that we will be mapping to.
+ * @param fireMsg        Application messge in Exchange specific format: SQF, eQuote, etc.
+ * @param fireMsgSize    Size of the template
+ * @retval [See EkaOpResult].
+ */
+ EkaOpResult efcSetFireTemplate( EfcCtx* efcCtx, ExcConnHandle hConn, const void* fireMsg, size_t fireMsgSize );
+
 
 /**
  * This will tell the controller which Session to first fire on based on the multicast group that the 
@@ -128,7 +145,7 @@ EkaOpResult efcSetGroupSesCtx( EfcCtx* efcCtx, uint8_t group, ExcConnHandle hCon
  * @retval [See EkaOpResult].
  */
 
-EkaOpResult efcPrintFireReport( EfcCtx* efcCtx, EfcReportHdr* p );
+EkaOpResult efcPrintFireReport( EfcCtx* efcCtx, const EfcReportHdr* p, bool mdOnly);
 
 /* ****************************************
  * Declaring callbacks.
@@ -149,7 +166,8 @@ typedef
   ( 
     EfcCtx*                   efcCtx, 
     const EfcFireReport*      efcFireReport,
-    size_t size 
+    size_t size,
+    void* cbCtx
   );
 
 /*
@@ -159,6 +177,7 @@ struct EfcRunCtx {
     /** These can be either fires or exceptions. */
   OnEkaExceptionReportCb onEkaExceptionReportCb; 
   OnEfcFireReportCb      onEfcFireReportCb;
+  void *cbCtx;
 };
 
 /**

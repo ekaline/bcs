@@ -35,6 +35,12 @@ ${EkaSnDir}/*.sh
 #${EkaLibDir}/lib%{name}.so
 #${EkaUtilsDir}/*
 #${EkaInclDir}/*
+${EkaUtilsDir}/eka_tcpdump
+${EkaUtilsDir}/eka_version
+${EkaUtilsDir}/eka_Mold64PcapGap
+${EkaUtilsDir}/efh_dump_igmp_acl
+${EkaUtilsDir}/efh_state
+${EkaUtilsDir}/eka_BoxPcapGap
 
 %post
 
