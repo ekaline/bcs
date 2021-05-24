@@ -137,7 +137,7 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   time_t t;
   srand((unsigned) time(&t));
 
-  epmEnabled = openEpm();
+  openEpm();
 
   ekaIgmp = new EkaIgmp(this);
   if (ekaIgmp == NULL) on_error("ekaIgmp == NULL");
@@ -176,17 +176,6 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   EKA_LOG("genIfIp of %s = %s",genIfName,EKA_IP2STR(genIfIp));
 
 
-  if (epmEnabled) {
-    userReportQ = new EkaUserReportQ(this);
-    if (userReportQ == NULL) on_error("Failed on new EkaUserReportQ");
-    
-    servThreadActive = false;
-    servThread    = std::thread(ekaServThread,this);
-    servThread.detach();
-    while (!servThreadActive /* || !tcpRxThreadActive */) {}
-    EKA_LOG("Serv thread activated");
-  }
-
 /* -------------------------------------------- */
 
 
@@ -208,6 +197,37 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 
 }
 /* ##################################################################### */
+bool EkaDev::initEpmTx() {
+  epmReport = new EkaUserChannel(dev,snDev->dev_id,EkaUserChannel::TYPE::EPM_REPORT);
+  if (epmReport == NULL) on_error("Failed to open epmReport Channel");
+  if (! epmReport->isOpen()) on_error("epmReport Channel is Closed");
+  
+  lwipPath  = new EkaUserChannel(dev,snDev->dev_id,EkaUserChannel::TYPE::LWIP_PATH);
+  if (lwipPath == NULL) on_error("Failed to open epmReport Channel");
+  if (! lwipPath->isOpen()) on_error("lwipPath Channel is Closed");
+
+  ekaInitLwip(this);
+
+  epm->createRegion(EkaEpm::ServiceRegion, EkaEpm::ServiceRegion * EkaEpm::ActionsPerRegion);
+
+  uint64_t fire_rx_tx_en = eka_read(ENABLE_PORT);
+  fire_rx_tx_en |= (1ULL << 32); //turn off tcprx
+  EKA_LOG ("Turning off tcprx = 0x%016jx",fire_rx_tx_en);
+  eka_write(ENABLE_PORT,fire_rx_tx_en);
+
+  userReportQ = new EkaUserReportQ(this);
+  if (userReportQ == NULL) on_error("Failed on new EkaUserReportQ");
+    
+  servThreadActive = false;
+  servThread    = std::thread(ekaServThread,this);
+  servThread.detach();
+  while (!servThreadActive /* || !tcpRxThreadActive */) {}
+  EKA_LOG("Serv thread activated");
+  
+  return true;    
+}
+
+/* ##################################################################### */
 
 bool EkaDev::openEpm() {
   epm = new EkaEpm(this);
@@ -215,31 +235,7 @@ bool EkaDev::openEpm() {
   epm->InitTemplates();
   epm->DownloadTemplates2HW();
 
-  epmReport = new EkaUserChannel(dev,snDev->dev_id,EkaUserChannel::TYPE::EPM_REPORT);
-  if (epmReport == NULL) on_error("Failed to open epmReport Channel");
-
-  if (epmReport->isOpen()) {
-    // EkaCoreId serviceCoreId = 0;
-    // EkaUdpChannel* serviceUdpCh = new EkaUdpChannel(dev,serviceCoreId,EkaEpm::ServiceRegion);
-    epm->createRegion(EkaEpm::ServiceRegion, EkaEpm::ServiceRegion * EkaEpm::ActionsPerRegion);
-
-    uint64_t fire_rx_tx_en = eka_read(ENABLE_PORT);
-    fire_rx_tx_en |= (1ULL << 32); //turn off tcprx
-    EKA_LOG ("Turning off tcprx = 0x%016jx",fire_rx_tx_en);
-    eka_write(ENABLE_PORT,fire_rx_tx_en);
-
-    lwipPath  = new EkaUserChannel(dev,snDev->dev_id,EkaUserChannel::TYPE::LWIP_PATH);
-    if (lwipPath == NULL) on_error("Failed to open epmReport Channel");
-
-    if (! lwipPath->isOpen()) on_error("lwipPath Channel is Closed");
-
-    ekaInitLwip(this);
-    return true;    
-  } else {
-    EKA_LOG("EPM is disabled for current Application");
-    return false;
-  }
-
+  return true;    
 }
 
 /* ##################################################################### */
@@ -264,44 +260,48 @@ int EkaDev::configurePort(const EkaCoreInitCtx* pCoreInit) {
     errno = ENODEV;
     return -1;
   }
-  else if (!epmEnabled) {
-    EKA_WARN("cannot configure port; EPM not enabled");
-    errno = ENOSYS;
-    return -1;
-  }
+  /* else if (!epmEnabled) { */
+  /*   EKA_WARN("cannot configure port; EPM not enabled"); */
+  /*   errno = ENOSYS; */
+  /*   return -1; */
+  /* } */
 
   const EkaCoreInitAttrs* attrs = &pCoreInit->attrs;
 
   if (attrs == NULL) return EKA_OPRESULT__OK;
   if (! eka_is_all_zeros((void*)&attrs->src_mac_addr,6)) {
     for (auto i =0;i<6;i++) core[c]->macSa[i] = ((uint8_t*)&attrs->src_mac_addr)[i];
-    setNetifIpMacSa(dev,c,(const uint8_t*)&attrs->src_mac_addr);
+    memcpy(&core[c]->macSa,&attrs->src_mac_addr,6);
+    //    setNetifIpMacSa(dev,c,(const uint8_t*)&attrs->src_mac_addr);
     EKA_LOG("Core %u: Setting SRC MAC: %s",c,EKA_MAC2STR(core[c]->macSa));
   }
   if (! eka_is_all_zeros((void*)&attrs->host_ip,4)) {
     memcpy(&core[c]->srcIp,&attrs->host_ip,4);
-    setNetifIpSrc(dev,c,&attrs->host_ip);
+    //    setNetifIpSrc(dev,c,&attrs->host_ip);
     EKA_LOG("Core %u: Setting HOST IP: %s",c,EKA_IP2STR(core[c]->srcIp));
+  }
+  if (! eka_is_all_zeros((void *)&attrs->nexthop_mac,6)) {
+    memcpy(&core[c]->macDa,&attrs->nexthop_mac,6);
+    EKA_LOG("Core %u: Setting macDA: %s",c,EKA_MAC2STR(core[c]->macDa));
   }
   if (! eka_is_all_zeros((void*)&attrs->gateway,4)) {
     memcpy(&core[c]->gwIp,&attrs->gateway,4);
-    setNetifGw(dev,c,&attrs->gateway);
+    //    setNetifGw(dev,c,&attrs->gateway);
     EKA_LOG("Core %u: Setting GW: %s",c,EKA_IP2STR(core[c]->gwIp));
-    if (! eka_is_all_zeros((void*)&attrs->nexthop_mac,6)) {
-      if (ekaAddArpEntry(this, c, &attrs->gateway, attrs->nexthop_mac.ether_addr_octet) == -1)
-        return -1;
-      EKA_LOG("Core %u: Adding GW static ARP: %s",c,
-              EKA_MAC2STR(attrs->nexthop_mac.ether_addr_octet));
-    }
-  }
-  else if (! eka_is_all_zeros((void *)&attrs->nexthop_mac,6)) {
+    /* if (! eka_is_all_zeros((void*)&attrs->nexthop_mac,6)) { */
+    /*   if (ekaAddArpEntry(this, c, &attrs->gateway, attrs->nexthop_mac.ether_addr_octet) == -1) */
+    /*     return -1; */
+    /*   EKA_LOG("Core %u: Adding GW static ARP: %s",c, */
+    /*           EKA_MAC2STR(attrs->nexthop_mac.ether_addr_octet)); */
+    /* } */
+  } else if (! eka_is_all_zeros((void *)&attrs->nexthop_mac,6)) {
     EKA_WARN("gateway MAC is specified, but gateway IP not; can't add static ARP");
     errno = EINVAL;
     return -1;
   }
   if (! eka_is_all_zeros((void*)&attrs->netmask,4)) {
     memcpy(&core[c]->netmask,&attrs->netmask,4);
-    setNetifNetmask(dev,c,&attrs->netmask);
+    /* setNetifNetmask(dev,c,&attrs->netmask); */
     EKA_LOG("Core %u: Setting Netmask: %s",c,EKA_IP2STR(core[c]->netmask));
   }
 

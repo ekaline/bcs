@@ -235,6 +235,19 @@ inline EkaTcpSess *getEkaTcpSess(EkaDev* dev, ExcConnHandle hConn) {
  *
  */  
 ExcSocketHandle excSocket( EkaDev* dev, EkaCoreId coreId , int domain, int type, int protocol ) {
+  if (! dev->epmEnabled) {
+    EKA_LOG("Initializing TCP functionality");
+    
+    dev->epmEnabled = dev->initEpmTx();
+    if (! dev->epmEnabled)
+      on_error("TX functionality is not available for this Ekaline SW instance - caught by another process");
+
+    if (! dev->core[coreId])
+      on_error("Lane %u has no link or IP address",coreId);
+
+    dev->core[coreId]->initTcp();
+  }
+  
   EkaCore *const core = getEkaCore(dev, coreId);
   if (!core)
     return -1;

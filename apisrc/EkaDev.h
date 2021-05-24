@@ -38,6 +38,7 @@ class EkaDev {
   uint64_t eka_read(uint64_t addr);
 
   bool        openEpm();
+  bool        initEpmTx();
 
   EkaTcpSess* findTcpSess(uint32_t ipSrc, uint16_t udpSrc, uint32_t ipDst, uint16_t udpDst);
   EkaTcpSess* findTcpSess(int sock);

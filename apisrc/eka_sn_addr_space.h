@@ -19,15 +19,17 @@ enum addresses {
 
 
 
-    EPM_VERSION = 0xf0fe0,         // [23:16] - epm version 
-    EPM_VERSION_MASK    = 0xF0000,
-    EPM_CORRECT_VERSION = 0x40000, 
+    /* EPM_VERSION = 0xf0fe0,         // [23:16] - epm version  */
+    /* EPM_VERSION_MASK    = 0xF0000, */
+    /* EPM_CORRECT_VERSION = 0x40000,  */
 
     SW_STATISTICS = 0xf0770,
 
     // scratchpad
     SW_SCRATCHPAD_BASE = SCRATCHPAD_BASE, //12bit 4kB address space
     SW_SCRATCHPAD_SIZE = SCRATCHPAD_SIZE,
+
+    KILL_SWITCH        = 0xf0fe0,
 
 //P4
     P4_ARM_DISARM = 0xf07c8,

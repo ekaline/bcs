@@ -61,7 +61,7 @@ struct EfcState {
   bool     reportOnly         = false;
   bool     fatalDebug         = false;
   bool     armed              = false;
-  
+  bool     killSwitch         = false;
 };
 
 
@@ -453,7 +453,8 @@ int getEfcState(EfcState* pEfcState) {
   pEfcState->ordersUnsubscribed = (var_p4_cont_counter3>>32) & MASK32;
 
   pEfcState->armed              = (reg_read(P4_ARM_DISARM) & 0x1) != 0;
-  
+  pEfcState->killSwitch         = (reg_read(KILL_SWITCH)   & 0x1) != 0;
+
   /* pEfcState->forceFire          = (var_p4_general_conf>>63)  & 0x1; */
   /* pEfcState->reportOnly         = (var_p4_general_conf>>0)   & 0x1; */
 
@@ -465,6 +466,9 @@ int getEfcState(EfcState* pEfcState) {
 }
 //################################################
 int printEfcState(EfcState* pEfcState) {
+  if (pEfcState->killSwitch) {
+    printf (RED "Fatal KILL SWITCH is turned ON!!! - reload driver is needed!!!\n\n" RESET);
+  }
   if (! pEfcState->armed) {
     printf (RED "CONTROLLER STATE: UNARMED\n" RESET);
   } else {

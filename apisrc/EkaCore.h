@@ -19,6 +19,7 @@ class EkaCore {
 
   ~EkaCore();
 
+  bool        initTcp();
   uint8_t     getFreeTcpSess();
   uint        addTcpSess();
   EkaTcpSess* findTcpSess(uint32_t ipSrc, uint16_t udpSrc, 
@@ -29,7 +30,7 @@ class EkaCore {
 			   uint32_t srcIp,uint16_t srcPort,
 			   uint32_t dstIp,uint16_t dstPort);
 
-  int tcpConnect(uint32_t dstIp, uint16_t port);
+  //  int tcpConnect(uint32_t dstIp, uint16_t port);
 
   static const uint MAX_SESS_PER_CORE       = EkaDev::MAX_SESS_PER_CORE;
   static const uint CONTROL_SESS_ID         = EkaDev::CONTROL_SESS_ID;
@@ -40,10 +41,12 @@ class EkaCore {
   uint32_t      gwIp     = 0;
   uint32_t      netmask  = 0;
   uint8_t       macSa[6] = {};
+  uint8_t       macDa[6] = {};
   uint16_t      vlanTag  = 0;
 
   bool          connected = false;
-
+  bool          isTcpCore = false;
+  
   EkaTcpSess*   tcpSess[MAX_SESS_PER_CORE + 1] = {};
   uint8_t       tcpSessions = 0;
 

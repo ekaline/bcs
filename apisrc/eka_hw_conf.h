@@ -82,7 +82,7 @@
 // global configurations
 #define ADDR_VERSION_ID       0xf0ff0
 #define ADDR_VERSION_HIGH_ID  0xf0ff8
-#define ADDR_VERSION_HIGHTWO_ID 0xf0fe0
+//#define ADDR_VERSION_HIGHTWO_ID 0xf0fe0
 
 //#define ADDR_NW_GENERAL_CONF  0xf0020
 #define ADDR_SW_STATS_ZERO    0xf0770
