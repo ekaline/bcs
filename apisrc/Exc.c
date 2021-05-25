@@ -355,6 +355,10 @@ int excClose( EkaDev* dev, ExcConnHandle hConn ) {
 int excPoll( EkaDev *dev, struct pollfd *fds, int nfds, int timeout ) {
   if (!checkDevice(dev))
     return -1;
+  else if (!nfds) {
+    // lwip_poll asserts if nfds == 0, we just return 0 in that case.
+    return 0;
+  }
 
   auto *const lwipPollFds = static_cast<pollfd *>(alloca(sizeof(pollfd) * nfds));
 
