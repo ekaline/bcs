@@ -15,11 +15,13 @@ LD_LIBS ?= -pthread -lrt -lm
 
 LIBEKA_GIT_VER:= $(shell git rev-parse --short HEAD)
 
-DRIVERS_INCL:=$(SMARTNIC_ROOT)/driver/
-API_INCL:=$(SMARTNIC_ROOT)/include/
+SMARTNIC_DRIVER_INCL ?= $(SMARTNIC_ROOT)/driver
+SMARTNIC_API_INCL ?= $(SMARTNIC_ROOT)/include
+SMARTNIC_LIB ?= $(SMARTNIC_ROOT)/lib/libsmartnic.a
 
 LWIP_INCL:=$(LWIP_ROOT)/lwip/src/include 
-INC=$(DRIVERS_INCL) $(API_INCL) $(LWIP_INCL) $(shell pwd) $(shell pwd)/compat $(shell pwd)/FhBook $(shell pwd)/Ehp $(shell pwd)/../pcapParsers $(shell pwd)/../new_api_tests
+INC=$(SMARTNIC_DRIVER_INCL) $(SMARTNIC_API_INCL) $(LWIP_INCL) $(shell pwd) $(shell pwd)/compat $(shell pwd)/FhBook $(shell pwd)/Ehp $(shell pwd)/../pcapParsers $(shell pwd)/../new_api_tests
+
 INCL=$(foreach d, $(INC), -I$d)
 INCL+=-Iarch
 
@@ -49,7 +51,6 @@ EKALIB_FILES := $(patsubst %.c,%,$(EKALIB_SRCS))
 EKALIB_OBJ := $(EKALIB_SRCS:.c=.o)
 LLIB := -L. -lekaline2
 LLIB_TEST := -L. -lekaline2_test
-SMARTNIC_LIB := $(SMARTNIC_ROOT)/lib/libsmartnic.a
 
 LWIP_LIB := liblwipcommon.a
 

@@ -112,15 +112,17 @@ extern "C" {
  */
  struct EfhCtx;
  struct EfhRunCtx;
+ struct EfcCtx;
 
 /* This will be returned to us with every marketdata update.  It's value will be
  * specified in efhSubscribe(). */
-// using EfhSecUserData = uint64_t;
+ using EfhSecUserData = uintptr_t;
 
 /* This will be passed to efhRun() and returned with each callback. */
- using EfhRunUserData = uint64_t;
+ using EfhRunUserData = uintptr_t;
 
-  struct EfcCtx;
+/** Positive values indicate success, negative indicate an error. */
+ using ExcConnHandle = int16_t;
 
   enum class EkaSource : uint8_t {
        #define EkaSource_ENUM_ITER( _x )		\
@@ -307,23 +309,6 @@ EkaOpResult ekaDevClose( EkaDev* pEkaDev );
  * @retval [See EkaOpResult].
  */
 EkaOpResult ekaDevConfigurePort( EkaDev *pEkaDev, const EkaCoreInitCtx *pCoreInit );
-
-/*
- * Forward declarations of the other API types so they can be used opaquely
- * in downstream headers without exposing the API.
- */
- struct EfhCtx;
- struct EfhRunCtx;
-
-/* This will be returned to us with every marketdata update.  It's value will be
- * specified in efhSubscribe(). */
-
- using EfhSecUserData = uintptr_t;
-
-/* This will be passed to efhRun() and returned with each callback. */
-
- using EfhRunUserData = uintptr_t;
-
  
 /*
  * Values for these must always be >= 0.  If the api returns a negative value, it should
