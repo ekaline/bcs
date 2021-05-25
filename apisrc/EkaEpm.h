@@ -31,11 +31,13 @@ class EkaUdpChannel;
 class EpmStrategy;
 class EkaEpmRegion;
 class EkaIgmp;
+class EkaEpm;
 
 /* ------------------------------------------------ */
 static inline uint64_t strategyEnableAddr(epm_strategyid_t  id) {
   return (uint64_t) (0x85000 + id * 8);
 }
+
 
 /* ------------------------------------------------ */
 
@@ -58,12 +60,11 @@ class EkaEpm {
 
   static const uint64_t ALWAYS_ENABLE           = 0xFFFFFFFFFFFFFFFF;
 
-  static const uint EPM_REGIONS                 = 32;
+  static const int EPM_REGIONS                  = 32;
 
   static const uint MaxActions                  = 8 * 1024;
   static const uint MaxActionsPerStrategy       = 256;
-  static const uint64_t MaxStrategies           = EPM_REGIONS - 2;
-
+  static const int  MaxStrategies               = 4;
 
   static const uint64_t EpmActionBase           = 0x89000;
   static const uint     ActionBudget            = 64;
@@ -83,10 +84,11 @@ class EkaEpm {
 
 
   static const uint8_t  UserRegion              = 0;
-  //  static const uint8_t  ServiceRegion           = 1;
-  static const uint8_t  ServiceRegion           = EPM_REGIONS - 1; // 31
-  static const uint8_t  EpmMcRegion             = EPM_REGIONS - 2; // 3130;
   static const uint8_t  EfcRegion               = 0;
+  static const uint8_t  ServiceRegion           = MaxStrategies;     // 4
+  static const uint8_t  EpmMcRegion             = ServiceRegion + 1; // 5
+  static const int      ReservedRegions         = EpmMcRegion + 1;   // 6
+  static const int      MaxUdpChannelRegions    = EPM_REGIONS - ReservedRegions;
 
   static const uint     UserActionsBaseIdx      = 0;
   static const uint64_t MaxUserActions          = MaxStrategies * MaxActionsPerStrategy;
@@ -286,6 +288,14 @@ inline uint calcThrId (EkaEpm::ActionType actionType, uint8_t sessId, uint intId
   return thrId % MaxNum;
 }
 
+/* ------------------------------------------------ */
+inline int udpCh2epmRegion(int udpChId) {
+  if (udpChId >= EkaEpm::MaxUdpChannelRegions)
+    on_error("udpChId %d exceeds MaxUdpChannelRegions %d",
+	     udpChId,EkaEpm::MaxUdpChannelRegions);
+
+  return udpChId + EkaEpm::ReservedRegions;
+}
 
 #endif
 

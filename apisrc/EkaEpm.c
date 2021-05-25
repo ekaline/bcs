@@ -166,8 +166,9 @@ EkaOpResult EkaEpm::enableController(EkaCoreId coreId, bool enable) {
 
 EkaOpResult EkaEpm::initStrategies(const EpmStrategyParams *params,
 				   epm_strategyid_t numStrategies) {
-  if (numStrategies > (int)MaxStrategies) 
-    on_error("numStrategies %u > MaxStrategies %ju",numStrategies,MaxStrategies);
+  if (numStrategies > MaxStrategies) 
+    on_error("numStrategies %u > MaxStrategies %d",numStrategies,MaxStrategies);
+
   stratNum = numStrategies;
 
   if (! dev->fireReportThreadActive) {
@@ -177,6 +178,12 @@ EkaOpResult EkaEpm::initStrategies(const EpmStrategyParams *params,
     EKA_LOG("fireReportThread activated");
   }
 
+  // allocating UDP Channel to EPM MC region (preventing collision with EFH)
+  /* auto udpCh    = new EkaUdpChannel(dev,params[0].triggerParams->coreId,EpmMcRegion); */
+  /* if (udpCh == NULL) on_error("udpCh == NULL"); */
+  /* if (udpCh->chId != EpmMcRegion) */
+  /*   on_error("EpmMcRegion udpCh->chId %u != %u",udpCh->chId,EpmMcRegion); */
+  
   createRegion(EpmMcRegion,EpmMcRegion * ActionsPerRegion);
 
   epm_actionid_t currActionIdx = 0;
@@ -189,10 +196,8 @@ EkaOpResult EkaEpm::initStrategies(const EpmStrategyParams *params,
     if (strategy[i] != NULL) on_error("strategy[%d] != NULL",i);
 
     // allocating UDP Channel to EPM region (preventing collision with EFH)
-    auto udpCh    = new EkaUdpChannel(dev,params[i].triggerParams->coreId,i);
-    if (udpCh == NULL) on_error("udpCh == NULL");
-    if (udpCh->chId != i) on_error("EPM strategy %d udpCh->chId = %u",i,udpCh->chId);
-  
+    /* auto udpCh    = new EkaUdpChannel(dev,params[i].triggerParams->coreId,-1); */
+    /* if (udpCh == NULL) on_error("udpCh == NULL"); */
     
     if (i == EFC_STRATEGY) {
       strategy[i] = new EkaEfc(this,i,currActionIdx, &params[i],dev->hwFeedVer);

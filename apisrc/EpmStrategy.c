@@ -42,7 +42,9 @@ EpmStrategy::EpmStrategy(EkaEpm* _epm, epm_strategyid_t _id, epm_actionid_t _bas
     on_error("numActions %d > EkaEpm::MaxActionsPerStrategy %d",numActions,EkaEpm::MaxActionsPerStrategy);
 
   for (epm_actionid_t i = 0; i < numActions; i++) {
-    action[i] = dev->epm->addAction(EkaEpm::ActionType::UserAction, id, i, -1,-1,-1);
+    action[i] = dev->epm->addAction(EkaEpm::ActionType::UserAction,
+				    id, i, -1,-1,-1);
+    
     if (action[i] == NULL) on_error("Failed addAction");
   }
   

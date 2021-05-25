@@ -10,7 +10,7 @@ class EkaEpmAction;
 
 class EkaIgmpEntry {
  public:
-  EkaIgmpEntry(EkaDev* _dev, int _udpChId, EkaCoreId _coreId, 
+  EkaIgmpEntry(EkaDev* _dev, int _epmRegion, EkaCoreId _coreId, 
 	       int _perChId, uint32_t _ip, uint16_t _port, 
 	       int16_t _vlanTag, uint64_t* pPktCnt);
 
@@ -18,7 +18,7 @@ class EkaIgmpEntry {
   int    sendIgmpJoin();
   int    sendIgmpLeave();
 
-  int       udpChId = -1;
+  int       epmRegion = -1;
   int       perChId = -1;
   EkaCoreId coreId  = -1;
   uint32_t  ip      = -1;
