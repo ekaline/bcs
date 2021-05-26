@@ -87,22 +87,22 @@ int printMdReport(EkaDev* dev, const EfcMdReport* msg) {
   /* 	 msg->size); */
   //PITCH
   //  printf("MdReport: GR%d,SN:%ju,SID:%c%c%c%c%c%c,%c,P:%8ju,S:%8ju\n",
-  printf("MdReport: GR%d,SN:%ju,SID:0x%02x%02x%02x%02x%02x%02x%02x%02x,%c,P:%8ju,S:%8ju\n",
-	 msg->group_id,
-	 msg->sequence,
-	 (uint8_t)((msg->security_id >> 7*8) & 0xFF),
-	 (uint8_t)((msg->security_id >> 6*8) & 0xFF),
-	 (uint8_t)((msg->security_id >> 5*8) & 0xFF),
-	 (uint8_t)((msg->security_id >> 4*8) & 0xFF),
-	 (uint8_t)((msg->security_id >> 3*8) & 0xFF),
-	 (uint8_t)((msg->security_id >> 2*8) & 0xFF),
-	 (uint8_t)((msg->security_id >> 1*8) & 0xFF),
-	 (uint8_t)((msg->security_id >> 0*8) & 0xFF),
+  EKA_LOG("MdReport:");
+  EKA_LOG("\tGroup = %hhu", msg->group_id);
+  EKA_LOG("\tSequence no = %ju", intmax_t(msg->sequence));
+  EKA_LOG("\tSID = 0x%02x%02x%02x%02x%02x%02x%02x%02x",
+      (uint8_t)((msg->security_id >> 7*8) & 0xFF),
+      (uint8_t)((msg->security_id >> 6*8) & 0xFF),
+      (uint8_t)((msg->security_id >> 5*8) & 0xFF),
+      (uint8_t)((msg->security_id >> 4*8) & 0xFF),
+      (uint8_t)((msg->security_id >> 3*8) & 0xFF),
+      (uint8_t)((msg->security_id >> 2*8) & 0xFF),
+      (uint8_t)((msg->security_id >> 1*8) & 0xFF),
+      (uint8_t)((msg->security_id >> 0*8) & 0xFF));
+  EKA_LOG("\tSide = %c", msg->side == 1 ? 'B' : 'S');
+  EKA_LOG("\tPrice = %8jd", intmax_t(msg->price));
+  EKA_LOG("\tSize = %8ju", intmax_t(msg->size));
 
-	 msg->side == 1 ? 'B' : 'S',
-	 msg->price,
-	 msg->size);
-  
   return 0;
 }
 /* ########################################################### */
