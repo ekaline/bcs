@@ -35,6 +35,14 @@ uint trailingZeros(const uint8_t* p, uint maxChars);
 int EkaFhBoxGr::processFromQ(const EfhRunCtx* pEfhRunCtx) {
   while (! q->is_empty()) {
     fh_msg* buf = q->pop();
+    if (buf->sequence != expected_sequence) {
+	EKA_LOG("%s:%u Gap at processing from Q: expected_sequence=%ju, buf->sequence=%ju",
+		EKA_EXCH_DECODE(exch),id,expected_sequence,buf->sequence);
+	sendFeedDown(pEfhRunCtx);
+	closeIncrementalGap(pEfhCtx,pEfhRunCtx,expected_sequence, buf->sequence);
+	state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
+	return 0;
+    }
     //      EKA_LOG("q_len=%u,buf->sequence=%ju, expected_sequence=%ju",q->get_len(),buf->sequence,expected_sequence);
     parseMsg(pEfhRunCtx,(const unsigned char*)buf->data,buf->sequence,EkaFhMode::MCAST);
     expected_sequence = buf->sequence >= 999999999 ? buf->sequence + 1 - 999999999 : buf->sequence + 1;
