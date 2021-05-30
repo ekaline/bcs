@@ -2,10 +2,9 @@
 #include "EkaUdpChannel.h"
 #include "EkaFhRunGroup.h"
 #include "EkaFhBoxGr.h"
+#include "EkaFhBoxParser.h"
 
 EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhBoxGr* gr);
-uint64_t getHsvfMsgSequence(const uint8_t* msg);
-bool isHeartbeat(const uint8_t* msg);
 
 /* ##################################################################### */
 EkaFhGroup* EkaFhBox::addGroup() {
@@ -24,7 +23,7 @@ const uint8_t* EkaFhBox::getUdpPkt(EkaFhRunGroup* runGr,
 
   *pktLen   = runGr->udpCh->getPayloadLen();
   *gr_id    = getGrId(pkt);
-  *sequence = getHsvfMsgSequence(pkt);
+  *sequence = Hsvf::getHsvfMsgSequence(pkt);
 
   if (*gr_id == 0xFF) {
     runGr->udpCh->next(); 
@@ -79,7 +78,7 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     gr->resetNoMdTimer();
 
 #ifdef FH_LAB
-    gr->state = EkaFhGroup::GrpState::NORMAL;
+    /* gr->state = EkaFhGroup::GrpState::NORMAL; */
 #endif
 
     //-----------------------------------------------------------------------------
@@ -101,7 +100,7 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       if (sequence == 0) break; // unsequenced packet
       if (sequence < gr->expected_sequence) {
 	if (gr->expected_sequence == gr->seq_after_snapshot) break; // end of recovery cycle
-	if (! isHeartbeat(pkt)) {
+	if (! Hsvf::isHeartbeat(pkt)) {
 	  EKA_WARN("%s:%u BACK-IN-TIME WARNING: sequence %ju < expected_sequence %ju",
 		   EKA_EXCH_DECODE(exch),gr_id,sequence,gr->expected_sequence);
 	  gr->sendBackInTimeEvent(pEfhRunCtx,sequence);
@@ -118,9 +117,9 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
 	//	hexDump("Gap Pkt",pkt,pktLen);
 #ifdef FH_LAB
-	gr->sendFeedDown(pEfhRunCtx);
-	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,pktLen);  
-	break;
+	/* gr->sendFeedDown(pEfhRunCtx); */
+	/* runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,pktLen);   */
+	/* break; */
 #endif
 	gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
 	gr->gapClosed = false;
