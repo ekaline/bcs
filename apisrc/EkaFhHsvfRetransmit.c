@@ -29,8 +29,6 @@ using namespace Hsvf;
 
 int ekaTcpConnect(uint32_t ip, uint16_t port);
 
-/* uint getHsvfMsgLen(const uint8_t* pkt, int bytes2run); */
-/* uint64_t getHsvfMsgSequence(const uint8_t* msg); */
 
 /* ----------------------------- */
 
@@ -322,7 +320,7 @@ EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, Eka
       dev->lastErrno = errno;
       return ret;
     }
-    sequence = Hsvf::getHsvfMsgSequence((const uint8_t*)msgBuf);
+    sequence = Hsvf::getMsgSequence((const uint8_t*)msgBuf);
     definitionsDone = gr->parseMsg(pEfhRunCtx,&msgBuf[1],0,EkaFhMode::DEFINITIONS);
   }
   EKA_LOG("%s:%u Dictionary received after %ju messages",EKA_EXCH_DECODE(gr->exch),gr->id,sequence);
@@ -352,11 +350,12 @@ void* getHsvfRetransmit(void* attr) {
   delete params;
 
   EKA_LOG("%s:%u start=%ju, end=%ju, gap=%ju, gapClosed=%d",
-	  EKA_EXCH_DECODE(gr->exch),gr->id,start,end, end - start,gr->gapClosed);
+	  EKA_EXCH_DECODE(gr->exch),gr->id,
+	  start,end, end - start + 1,gr->gapClosed);
 
   
 #ifdef FH_LAB
-  //  sleep(2);
+  sleep(2);
   gr->gapClosed = true;
   gr->seq_after_snapshot = end + 1;
   EKA_LOG("%s:%u LAB Dummy Retransmission completed: gr->seq_after_snapshot = %ju",
@@ -428,7 +427,7 @@ void* getHsvfRetransmit(void* attr) {
       gr->sendRetransmitSocketError(pEfhRunCtx);
     }
 
-    uint64_t sequence = Hsvf::getHsvfMsgSequence((const uint8_t*)msgBuf);
+    uint64_t sequence = Hsvf::getMsgSequence((const uint8_t*)msgBuf);
     //    EKA_LOG("%s:%u got sequence = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,sequence);
     bool endOfTransmition = gr->parseMsg(pEfhRunCtx,&msgBuf[1],sequence,op);
     if (sequence == end || endOfTransmition) {

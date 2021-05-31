@@ -212,12 +212,11 @@ namespace Hsvf {
     if (memcmp(msg,"RE",2) == 0) return 11;
     if (memcmp(msg,"RT",2) == 0) return 31;
     if (memcmp(msg,"U ",2) == 0) return 18;
-    if (memcmp(msg,"ER",2) == 0) return 95;
 
     return 0;
   }
 
-  inline uint getHsvfMsgLen(const uint8_t* pkt, int bytes2run) {
+  inline uint getMsgLen(const uint8_t* pkt, int bytes2run) {
     uint idx = 0;
 
     if (pkt[idx] != HsvfSom) {
@@ -250,7 +249,7 @@ namespace Hsvf {
     return idx + 1;
   }
 
-  inline uint64_t getHsvfMsgSequence(const uint8_t* msg) {
+  inline uint64_t getMsgSequence(const uint8_t* msg) {
     const HsvfMsgHdr* msgHdr = (const HsvfMsgHdr*)&msg[1];
     std::string seqString = std::string(msgHdr->sequence,sizeof(msgHdr->sequence));
     return std::stoul(seqString,nullptr,10);
