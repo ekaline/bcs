@@ -138,7 +138,7 @@ void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fireReportBuf, size_t s
 }
 
 /* --------------------------------------------- */
-void tcpServer(EkaDev* dev, std::string ip, uint16_t port, int* sock, bool* serverSet) {
+void tcpServer(EkaDev* dev, std::string ip, uint16_t port, int* sock, bool* serverSet, volatile bool* serverConnected) {
   pthread_setname_np(pthread_self(),"tcpServerParent");
 
   printf("Starting TCP server: %s:%u\n",ip.c_str(),port);
@@ -171,9 +171,15 @@ void tcpServer(EkaDev* dev, std::string ip, uint16_t port, int* sock, bool* serv
   *sock = accept(sd, (struct sockaddr*)&addr,(socklen_t*) &addr_size);
   EKA_LOG("Connected from: %s:%d -- sock=%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),*sock);
 
+#if 0
   int status = fcntl(*sock, F_SETFL, fcntl(*sock, F_GETFL, 0) | O_NONBLOCK);
   if (status == -1)  on_error("fcntl error");
-
+#endif
+  
+  if (serverConnected != NULL) {
+    *serverConnected = true;
+    TEST_LOG("serverConnected = %d",*serverConnected);
+  }
   return;
 }
 
@@ -420,7 +426,7 @@ int main(int argc, char *argv[]) {
   std::string triggerIp       = "224.0.74.0";     // Ekaline lab default (C1 CC feed)
   uint16_t triggerUdpPort     = 30301;            // C1 CC gr#0
   uint16_t serverTcpBasePort  = 22222;            // Ekaline lab default
-  uint16_t numTcpSess         = 4;
+  uint16_t numTcpSess         = 1;
   uint16_t serverTcpPort      = serverTcpBasePort;
   bool     runEfh             = false;
   bool     fatalDebug          = false;
@@ -472,7 +478,8 @@ int main(int argc, char *argv[]) {
 				     serverIp,
 				     serverTcpBasePort + i,
 				     &tcpSock[i],
-				     &serverSet);
+				     &serverSet,
+				     (volatile bool*)NULL);
     server.detach();
     while (keep_work && ! serverSet) { sleep (0); }
   }
@@ -502,13 +509,13 @@ int main(int argc, char *argv[]) {
 
   // ==============================================
   // Setup EFC MC groups
-  struct IpPort {
-    EkaCoreId coreId;
-    uint32_t  ip;
-    uint16_t  port;
-    char      keyStr[80];
-    char      valStr[80];
-  };
+  /* struct IpPort { */
+  /*   EkaCoreId coreId; */
+  /*   uint32_t  ip; */
+  /*   uint16_t  port; */
+  /*   char      keyStr[80]; */
+  /*   char      valStr[80]; */
+  /* }; */
 
   EpmTriggerParams triggerParam[] = {
     {0,"224.0.74.0",30301},
@@ -667,7 +674,7 @@ int main(int argc, char *argv[]) {
   uint fcsOffset     = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_RequiredTailPadding);
   uint heapOffset    = 0;
 
-  const EpmAction fire0 = {
+  EpmAction fire0 = {
     .type          = EpmActionType::BoeFire,        ///< Action type
     .token         = DefaultToken,                  ///< Security token
     .hConn         = conn[0],                       ///< TCP connection where segments will be sent
@@ -798,30 +805,110 @@ int main(int argc, char *argv[]) {
   }
 // ==============================================
 #if 1
+  TEST_LOG(MAG "Expecting Fire:" RESET);
   sendAddOrder(AddOrder::Short,triggerSock,&triggerMcAddr,security[2].id,
 	       sequence++,'S',security[2].askMaxPrice / 100 - 1,security[2].size);
   
   sleep(1);
   efcEnableController(pEfcCtx, 1);
+  TEST_LOG(MAG "After Expected Fire" RESET);
+
 #endif
-// ==============================================
+  // ==============================================
+  TEST_LOG(MAG "Disabling Fire Action. Sending AddOrder. Expecting NO FIRE" RESET);
+  fire0.actionFlags = AF_InValid;
+  rc = epmSetAction(dev, 
+		    EFC_STRATEGY, 
+		    0,               // epm_actionid_t must correspond to the MC gr ID
+		    &fire0);
+
+  // ==============================================
 #if 1
   sendAddOrder(AddOrder::Short,triggerSock,&triggerMcAddr,security[2].id,
 	       sequence++,'B',security[2].bidMinPrice / 100 + 1,security[2].size);
   
   sleep(1);
   efcEnableController(pEfcCtx, 1);
+  TEST_LOG(MAG "After Unexpected Fire" RESET);
+
 #endif    
-// ==============================================
+  // ==============================================
+  
+  TEST_LOG(MAG "Closing Firing TCP session 0x%02x" RESET, fire0.hConn);
+  excShutdown(dev,fire0.hConn,SHUT_RDWR);
+  excClose   (dev,fire0.hConn);
+  close(tcpSock[0]);
+  
+  TEST_LOG(MAG "Closing Firing TCP session" RESET);
+  // ==============================================
+
+  TEST_LOG(MAG "Establishing New Firing TCP session" RESET);
+
+  int  newServerTcpSock = -1;
+  bool newServerSet = false;
+  volatile bool newServerConnected = false;
+  std::thread newServer = std::thread(tcpServer,
+				      dev,
+				      serverIp,
+				      serverTcpBasePort + 1,
+				      &newServerTcpSock,
+				      &newServerSet,
+				      &newServerConnected);
+  newServer.detach();
+  while (keep_work && ! newServerSet) { sleep (0); }
+  
+  sockaddr_in newServerAddr = {};
+  newServerAddr.sin_family      = AF_INET;
+  newServerAddr.sin_addr.s_addr = inet_addr(serverIp.c_str());
+  newServerAddr.sin_port        = be16toh(serverTcpBasePort + 1);
+
+  int newExcSock = excSocket(dev,coreId,0,0,0);
+  if (newExcSock < 0) on_error("failed to open newExcSock");
+  ExcConnHandle newHconn = excConnect(dev,newExcSock,
+				      (sockaddr*) &newServerAddr,
+				      sizeof(sockaddr_in));
+  if (newHconn < 0) on_error("excConnect %s:%u",
+			     EKA_IP2STR(newServerAddr.sin_addr.s_addr),
+			     be16toh(newServerAddr.sin_port));
+
+  while (keep_work && ! newServerConnected) {
+    TEST_LOG("newServerConnected = %d",newServerConnected);
+    sleep (1);
+  }
+
+  TEST_LOG(MAG "newHconn 0x%0x is connected: newServerTcpSock=%d" RESET,
+	   newHconn,newServerTcpSock);
+  
+  const char* pkt = "\n\nThis is 1st TCP packet sent from NEW FPGA TCP client to Kernel TCP server\n\n";
+  excSend (dev, newHconn, pkt, strlen(pkt),0);
+  int bytes_read = 0;
+  char rxBuf[2000] = {};
+  bytes_read = recv(newServerTcpSock, rxBuf, sizeof(rxBuf), 0);
+  if (bytes_read <= 0)
+    on_error(RED "bytes_read = %d, errno=%d \'%s\'" RESET,
+	     bytes_read,errno,strerror(errno));
+  TEST_LOG(CYN "%d bytes received from newHconn 0x%0x: \'%s\'" RESET,
+	   bytes_read,newHconn,rxBuf);
+  // ==============================================
+  fire0.hConn = newHconn;
+  fire0.actionFlags = AF_Valid;
+  rc = epmSetAction(dev, 
+		    EFC_STRATEGY, 
+		    0,               // epm_actionid_t must correspond to the MC gr ID
+		    &fire0);
+  
+  // ==============================================
 #if 1
+  TEST_LOG(MAG "Firing on NEW Hconn. Expecting Fire" RESET);
   sendAddOrder(AddOrder::Long,triggerSock,&triggerMcAddr,security[2].id,
 	       sequence++,'S',security[2].askMaxPrice - 1,security[2].size);
   
   sleep(1);
   efcEnableController(pEfcCtx, 1);
+  TEST_LOG(MAG "After Expected Fire" RESET);
 #endif  
 // ==============================================
-#if 1
+#if 0
   sendAddOrder(AddOrder::Long,triggerSock,&triggerMcAddr,security[2].id,
 	       sequence++,'B',security[2].bidMinPrice + 1,security[2].size);
   
@@ -829,7 +916,7 @@ int main(int argc, char *argv[]) {
   efcEnableController(pEfcCtx, 1);
 #endif
 // ==============================================
-#if 1
+#if 0
   sendAddOrder(AddOrder::Expanded,triggerSock,&triggerMcAddr,security[2].id,
 	       sequence++,'S',security[2].askMaxPrice - 1,security[2].size);
   
@@ -837,7 +924,7 @@ int main(int argc, char *argv[]) {
   efcEnableController(pEfcCtx, 1);
 #endif  
 // ==============================================
-#if 1
+#if 0
   sendAddOrder(AddOrder::Expanded,triggerSock,&triggerMcAddr,security[2].id,
 	       sequence++,'B',security[2].bidMinPrice + 1,security[2].size);
   

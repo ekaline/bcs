@@ -349,12 +349,12 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
   if (epmAction->offset  < EkaEpm::DatagramOffset) 
     on_error("epmAction->offset %d < EkaEpm::DatagramOffset %ju",epmAction->offset,EkaEpm::DatagramOffset);
 
+  memcpy (&epmActionLocalCopy,epmAction,sizeof(epmActionLocalCopy));
+  
   type = epmAction->type;
   setActionBitmap();
   setTemplate();
   setName();
-
-  memcpy (&epmActionLocalCopy,epmAction,sizeof(epmActionLocalCopy));
 
   heapOffs   = epmAction->offset - EkaEpm::DatagramOffset;
   if (heapOffs % 32 != 0) on_error("heapOffs %d (must be X32)",heapOffs);
@@ -377,6 +377,8 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
 
   setNwHdrs(sess->macDa,sess->macSa,sess->srcIp,sess->dstIp,sess->srcPort,sess->dstPort);
 
+  /* EKA_LOG("%s:%u --> %s:%u",EKA_IP2STR(sess->srcIp),sess->srcPort, */
+  /* 	  EKA_IP2STR(sess->dstIp),sess->dstPort); */
 /* ----------------------------------------------------- */
   payloadLen = epmAction->length;
   pktSize    = EkaEpm::DatagramOffset + payloadLen;
@@ -588,7 +590,7 @@ int EkaEpmAction::fastSend(const void* buf) {
 
 /* ----------------------------------------------------- */
 void EkaEpmAction::print(const char* msg) {
-  EKA_LOG("%s: %s, region=%u, idx=%u, localIdx=%u, heapOffs=0x%x, heapAddr=0x%jx,  actionAddr=0x%jx, pktSize=%u ",
+  EKA_LOG("%s: %s, region=%u, idx=%u, localIdx=%u, heapOffs=0x%x, heapAddr=0x%jx,  actionAddr=0x%jx, pktSize=%u,  ",
 	  msg,
 	  actionName,
 	  region,
