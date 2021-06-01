@@ -76,6 +76,7 @@ struct EpmAction {
 /// Behavior flags for actions
 enum EpmActionFlag {
   AF_Valid = 0x1,              ///< Action chain is valid (see @ref epmGetAction)
+  AF_InValid = 0x0,              ///< Action chain is not valid (see @ref epmGetAction)
 };
 
 /**
