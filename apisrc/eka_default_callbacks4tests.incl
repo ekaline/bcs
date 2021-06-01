@@ -49,7 +49,7 @@ void efhDefaultOnOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUse
 	 msg->header.sequenceNumber,
   	 ts,
   	 msg->header.gapNum,
-	 msg->orderSide == EfhOrderSideType::kBid ? 'B' : 'A',
+	 msg->orderSide == EfhOrderSide::kBid ? 'B' : 'A',
 	 msg->bookSide.price,
 	 msg->bookSide.size
   	 );
@@ -114,7 +114,7 @@ void efhDefaultOnQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUse
 }
 
 
-void efhDefaultOnDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+void efhDefaultOnDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
 
   efhSubscribeStatic(pEfhCtx, (EkaGroup*) &msg->header.group,  msg->header.securityId, EfhSecurityType::kOpt,(EfhSecUserData) 0,0,0);

@@ -31,7 +31,7 @@ class EkaFhSecurity {
 /* --------------------------------------------------------------- */
 
   uint64_t          efhUserData    = 0; // to be returned per TOB update
-  EfhSecurityType   type           = EfhSecurityType::kOpt;
+  EfhSecurityType   type           = EfhSecurityType::kOption;
   EkaFhSecurity*    next           = NULL;
   EfhTradeStatus    trading_action = EfhTradeStatus::kUninit;
   bool              option_open    = false;

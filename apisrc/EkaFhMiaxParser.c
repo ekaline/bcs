@@ -34,8 +34,8 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     uint16_t m = (message->Expiration[4] - '0')*10   + (message->Expiration[5] - '0');
     uint8_t  d = (message->Expiration[6] - '0')*10   + (message->Expiration[7] - '0');
 
-    EfhDefinitionMsg msg = {};
-    msg.header.msgType        = EfhMsgType::kDefinition;
+    EfhOptionDefinitionMsg msg{};
+    msg.header.msgType        = EfhMsgType::kOptionDefinition;
     msg.header.group.source   = exch;
     msg.header.group.localId  = (EkaLSI)id;
 
@@ -46,7 +46,7 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     msg.header.gapNum         = gapNum;
 
     //    msg.secondaryGroup        = {(EkaSource)0,EkaLSI(0)};
-    msg.securityType          = EfhSecurityType::kOpt;
+    msg.securityType          = EfhSecurityType::kOption;
     msg.expiryDate            = y * 10000 + m * 100 + d;
     msg.contractSize          = 0;
     msg.strikePrice           = message->StrikePrice / EFH_STRIKE_PRICE_SCALE;
@@ -68,7 +68,7 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     /* 	      ); */
 	      
 
-    pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+    pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
     return false;
   }
     //--------------------------------------------------------------
@@ -189,7 +189,7 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
 
-    EfhTradeMsg msg = {};
+    EfhTradeMsg msg{};
     msg.header.msgType        = EfhMsgType::kTrade;
     msg.header.group.source   = exch;
     msg.header.group.localId  = (EkaLSI)id;

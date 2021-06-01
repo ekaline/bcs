@@ -33,8 +33,8 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
 
     struct tqf_option_directory *message = (struct tqf_option_directory *)m;
  
-    EfhDefinitionMsg msg = {};
-    msg.header.msgType        = EfhMsgType::kDefinition;
+    EfhOptionDefinitionMsg msg{};
+    msg.header.msgType        = EfhMsgType::kOptionDefinition;
     msg.header.group.source   = exch;
     msg.header.group.localId  = (EkaLSI)id;
     msg.header.underlyingId   = 0;
@@ -44,7 +44,7 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.header.gapNum         = gapNum;
 
     //    msg.secondaryGroup        = 0;
-    msg.securityType          = EfhSecurityType::kOpt;
+    msg.securityType          = EfhSecurityType::kOption;
     msg.expiryDate            = (message->expiration_year + 2000) * 10000 + message->expiration_month * 100 + message->expiration_day;
     msg.contractSize          = 0;
     msg.strikePrice           = be64toh(message->strike_price) / EFH_GEMX_STRIKE_PRICE_SCALE;
@@ -54,7 +54,7 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     memcpy (&msg.underlying,message->underlying_symbol,std::min(sizeof(msg.underlying),sizeof(message->underlying_symbol)));
     memcpy (&msg.classSymbol,message->security_symbol,std::min(sizeof(msg.classSymbol),sizeof(message->security_symbol)));
 
-    pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+    pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
     return false;
 
   }
@@ -143,7 +143,7 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
 
-    EfhTradeMsg msg = {};
+    EfhTradeMsg msg{};
     msg.header.msgType        = EfhMsgType::kTrade;
     msg.header.group.source   = exch;
     msg.header.group.localId  = (EkaLSI)id;

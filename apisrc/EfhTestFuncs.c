@@ -287,7 +287,7 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
 	    //	    std::string(*(char*)&m->hdr.securityId,sizeof(m->hdr.securityId)).c_str(),
 	    m->hdr.securityId,
 	    m->orderId,
-	    m->side == EfhOrderSideType::kBid ? 'B' : 'A',
+	    m->side == EfhOrderSide::kBid ? 'B' : 'A',
 	    m->price,m->price,
 	    m->size,m->size
 	    );
@@ -305,7 +305,7 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
 	    m->hdr.sequenceNumber,
 	    ts_ns2str(m->hdr.timeStamp).c_str(),
 	    m->hdr.timeStamp,
-	    m->side == EfhOrderSideType::kBid ? 'B' : 'A',
+	    m->side == EfhOrderSide::kBid ? 'B' : 'A',
 	    m->pLvl,
 	    m->price,
 	    m->size
@@ -322,7 +322,7 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
 	    m->hdr.sequenceNumber,
 	    ts_ns2str(m->hdr.timeStamp).c_str(),
 	    m->hdr.timeStamp,
-	    m->side == EfhOrderSideType::kBid ? 'B' : 'A',
+	    m->side == EfhOrderSide::kBid ? 'B' : 'A',
 	    m->pLvl,
 	    m->price,
 	    m->size
@@ -339,7 +339,7 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
 	    m->hdr.sequenceNumber,
 	    ts_ns2str(m->hdr.timeStamp).c_str(),
 	    m->hdr.timeStamp,
-	    m->side == EfhOrderSideType::kBid ? 'B' : 'A',
+	    m->side == EfhOrderSide::kBid ? 'B' : 'A',
 	    m->pLvl
 	    );
   }
@@ -403,8 +403,8 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
   return NULL;
 }
 
-void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
-  if (msg->header.group.source  == EkaSource::kCME_SBE && msg->securityType == EfhSecurityType::kOpt) {
+void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg) {
+  if (msg->header.group.source  == EkaSource::kCME_SBE && msg->securityType == EfhSecurityType::kOption) {
     std::string classSymbol    = std::string(msg->classSymbol,sizeof(msg->classSymbol));
     sprintf(dst,"%s_%c%04jd",
 	    classSymbol.c_str(),
@@ -428,7 +428,7 @@ void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
 
 /* ------------------------------------------------------------ */
 
-void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
   if (! keep_work) return NULL;
   
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
@@ -477,7 +477,7 @@ void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUs
     gr->security.push_back(newSecurity);
     auto sec_idx = gr->security.size() - 1;
     
-    efhSubscribeStatic(pEfhCtx, (EkaGroup*)&msg->header.group, msg->header.securityId, EfhSecurityType::kOpt,(EfhSecUserData) sec_idx,0,0);
+    efhSubscribeStatic(pEfhCtx, (EkaGroup*)&msg->header.group, msg->header.securityId, EfhSecurityType::kOption,(EfhSecUserData) sec_idx,0,0);
 
     fprintf (gr->subscrDict,"%s,%ju,%s,%s\n",
 	     avtSecName,
@@ -712,7 +712,7 @@ int createCtxts(std::vector<TestRunGroup>& testRunGroups,
       .groups                      = pGroups,
       .numGroups                   = numRunGroups,
       .efhRunUserData              = 0,
-      .onEfhDefinitionMsgCb        = onDefinition,
+      .onEfhOptionDefinitionMsgCb  = onOptionDefinition,
       .onEfhTradeMsgCb             = onTrade,
       .onEfhQuoteMsgCb             = onQuote,
       .onEfhOrderMsgCb             = onOrder,

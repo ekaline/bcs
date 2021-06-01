@@ -315,7 +315,7 @@ inline int getStatus(FhSecurity* s, char statusMarker) {
 
 /* ----------------------------------------------------------------------- */
 
-static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
+static void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg) {
   uint8_t y,m,d;
 
   d = msg->expiryDate % 100;
@@ -386,8 +386,8 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     
     const char* symb = boxMsg->InstrumentDescription;
 
-    EfhDefinitionMsg msg = {};
-    msg.header.msgType        = EfhMsgType::kDefinition;
+    EfhOptionDefinitionMsg msg{};
+    msg.header.msgType        = EfhMsgType::kOptionDefinition;
     msg.header.group.source   = EkaSource::kBOX_HSVF;
     msg.header.group.localId  = id;
     msg.header.underlyingId   = 0;
@@ -397,7 +397,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.header.gapNum         = gapNum;
 
     //    msg.secondaryGroup        = 0;
-    msg.securityType          = EfhSecurityType::kOpt;
+    msg.securityType          = EfhSecurityType::kOption;
     msg.optionType            = getOptionType(symb);
     msg.expiryDate            = (2000 + getYear(symb)) * 10000 + getMonth(symb,msg.optionType) * 100 + getDay(symb);
     msg.contractSize          = 0;
@@ -414,7 +414,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
 	    std::string(boxMsg->InstrumentDescription,20).c_str(),avtSecName,
 	    msg.header.securityId,msg.header.securityId);
 #endif
-    pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+    pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
     //===================================================
   } else if (memcmp(msgHdr->MsgType,"N ",sizeof(msgHdr->MsgType)) == 0) { // OptionSummary
 

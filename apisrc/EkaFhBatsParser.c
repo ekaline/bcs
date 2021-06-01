@@ -119,12 +119,12 @@ inline SideT sideDecode(char _side) {
 }
 /* ------------------------------------------------ */
 
-inline EfhOrderSideType efhMsgSideDecode(char _side) {
+inline EfhOrderSide efhMsgSideDecode(char _side) {
   switch (_side) {
   case 'B' :
-    return EfhOrderSideType::kBid;
+    return EfhOrderSide::kBid;
   case 'S' :
-    return EfhOrderSideType::kAsk;
+    return EfhOrderSide::kAsk;
   default:
     on_error("Unexpected Side \'%c\'",_side);
   }
@@ -191,8 +191,8 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
 
     char* osi = message->osi_symbol;
 
-    EfhDefinitionMsg msg = {};
-    msg.header.msgType        = EfhMsgType::kDefinition;
+    EfhOptionDefinitionMsg msg{};
+    msg.header.msgType        = EfhMsgType::kOptionDefinition;
     msg.header.group.source   = exch;
     msg.header.group.localId  = id;
     msg.header.underlyingId   = 0;
@@ -201,7 +201,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     msg.header.timeStamp      = 0;
     msg.header.gapNum         = gapNum;
 
-    msg.securityType          = EfhSecurityType::kOpt;
+    msg.securityType          = EfhSecurityType::kOption;
     uint y = (osi[6] -'0') * 10 + (osi[7] -'0');
     uint m = (osi[8] -'0') * 10 + (osi[9] -'0');
     uint d = (osi[10]-'0') * 10 + (osi[11]-'0');
@@ -225,7 +225,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     /* char osi2print[22] = {}; */
     /* memcpy(osi2print,osi,21); */
     //    EKA_LOG("OSI: %s, Expiration = %u, strike: %ju",osi2print,msg.expiryDate,msg.strikePrice);
-    pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+    pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
     return false;
   }
     //--------------------------------------------------------------

@@ -107,7 +107,7 @@ void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fireReportBuf, size_t s
 }
 /* ------------------------------------------------------------ */
 
-void* onMdTestDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+void* onMdTestDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
   if (! keep_work) return NULL;
   
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
@@ -455,7 +455,7 @@ int main(int argc, char *argv[]) {
 	  .groups                      = batsC1Groups,
 	  .numGroups                   = std::size(batsC1Groups),
 	  .efhRunUserData              = (EfhRunUserData) pEfhCtx,
-	  .onEfhDefinitionMsgCb        = onMdTestDefinition,
+	  .onEfhOptionDefinitionMsgCb  = onMdTestDefinition,
 	  .onEfhTradeMsgCb             = NULL, //onTrade,
 	  .onEfhQuoteMsgCb             = NULL, //onQuote,
 	  .onEfhOrderMsgCb             = NULL, //onOrder,

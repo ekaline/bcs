@@ -9,18 +9,22 @@
 #include "Eka.h"
 
 #define EFH__PRICE_SCALE        10000
+#define EFH__MAX_COMPLEX_LEGS   8
 
 /*
  * $$NOTE$$ - All of these messages are standalone and therefore arent contained in a kEkaContainerMsg.
  */
 enum class EfhMsgType : uint16_t {
     #define EfhMsgType_ENUM_ITER( _x )                                      \
-                _x( Definition,        0   )                                \
-                _x( Trade                  )                                \
-                _x( Quote                  )                                \
-                _x( Order                  )                                \
-                _x( DoneStaticDefs,    50  )                                \
-                _x( GroupStateChanged, 100 )                                
+                _x( Invalid, 0        )                                     \
+                _x( OptionDefinition  )                                     \
+                _x( ComplexDefinition )                                     \
+                _x( AuctionDefinition )                                     \
+                _x( Trade             )                                     \
+                _x( Quote             )                                     \
+                _x( Order             )                                     \
+                _x( DoneStaticDefs    )                                     \
+                _x( GroupStateChanged )
         EfhMsgType_ENUM_ITER( EKA__ENUM_DEF )
 };
 
@@ -48,11 +52,12 @@ typedef struct {
  */
 enum class EfhSecurityType : uint8_t {
     #define EfhSecurityType_ENUM_ITER( _x )                                 \
-                _x( Indx, 1 )                                               \
-                _x( Mleg    )                                               \
-                _x( Opt     )                                               \
-                _x( Fut     )                                               \
-                _x( Cs      )
+                _x( Invalid, 0 )                                            \
+                _x( Index      )                                            \
+                _x( Stock      )                                            \
+                _x( Option     )                                            \
+                _x( Future     )                                            \
+                _x( Complex    )
         EfhSecurityType_ENUM_ITER( EKA__ENUM_DEF )
 };
 
@@ -217,11 +222,15 @@ enum class EfhErrorDomain : char {
 
 typedef char EfhSymbol[8];
 
+// Provide a dummy empty type to avoid confusing preprocessor macros that may
+// try to access a type of this name because EfhMsgType::kInvalid exists.
+typedef struct {} EfhInvalidMsg;
+
 /*
  *
  */
 typedef struct {
-    #define EfhDefinitionMsg_FIELD_ITER( _x )                               \
+    #define EfhOptionDefinitionMsg_FIELD_ITER( _x )                         \
                 _x( EfhMsgHeader,    header )                               \
                 /** If this is >= 0, then this is a second group that 
                  *  security updates can come over (useful for exchanges 
@@ -236,12 +245,66 @@ typedef struct {
                 _x( uint32_t,        contractSize )                         \
                 /** Divide by EFH_PRICE_SCALE. */                           \
                 _x( int64_t,         strikePrice )                          \
-                _x( EfhExchange,     exchange )				\
-                _x( EfhOptionType,   optionType )			\
-                _x( uint64_t,        opaqueAttrA )			\
+                _x( EfhExchange,     exchange )                             \
+                _x( EfhOptionType,   optionType )                           \
+                _x( uint64_t,        opaqueAttrA )                          \
                 _x( uint64_t,        opaqueAttrB )
-        EfhDefinitionMsg_FIELD_ITER( EKA__FIELD_DEF )
-} EfhDefinitionMsg;
+        EfhOptionDefinitionMsg_FIELD_ITER( EKA__FIELD_DEF )
+} EfhOptionDefinitionMsg;
+
+typedef struct {
+    #define EfhComplexLeg_FIELD_ITER( _x )                                  \
+                _x( uint64_t,        securityId )                           \
+                _x( EfhSecurityType, type )                                 \
+                _x( int32_t,         ratio )
+        EfhComplexLeg_FIELD_ITER( EKA__FIELD_DEF )
+} EfhComplexLeg;
+
+typedef EfhComplexLeg EfhComplexLegs[EFH__MAX_COMPLEX_LEGS];
+
+typedef struct {
+    #define EfhComplexDefinitionMsg_FIELD_ITER( _x )                        \
+                _x( EfhMsgHeader,   header )                                \
+                _x( EkaGroup,       secondaryGroup )                        \
+                _x( uint8_t,        numLegs )                               \
+                _x( EfhComplexLegs, legs )
+        EfhComplexDefinitionMsg_FIELD_ITER( EKA__FIELD_DEF )
+} EfhComplexDefinitionMsg;
+
+enum class EfhAuctionType : uint8_t {
+    #define EfhAuctionType_ENUM_ITER( _x )                                  \
+                _x( Unknown, 0 )                                            \
+                _x( Complex             )                                   \
+                _x( ComplexSolicitation )                                   \
+                _x( AIM )                                                   \
+                _x( AllOrNone )
+        EfhAuctionType_ENUM_ITER( EKA__ENUM_DEF )
+};
+
+enum class EfhOrderSide : int8_t {
+    #define EfhOrderSide_ENUM_ITER( _x )                                    \
+                _x( Bid,  1  )                                              \
+                _x( Ask,  -1 )
+        EfhOrderSide_ENUM_ITER( EKA__ENUM_DEF )
+};
+
+typedef char EfhCounterparty[8];
+
+typedef struct {
+    #define EfhAuctionDefinitionMsg_FIELD_ITER( _x )                        \
+                _x( EfhMsgHeader,   header )                                \
+                _x( uint64_t,       auctionId)                              \
+                _x( EfhAuctionType, type )                                  \
+                _x( EfhOrderSide,   side )                                  \
+                _x( bool,           customer )                              \
+                /* unused tail padding of 1 byte */                         \
+                _x( uint32_t,       quantity )                              \
+                _x( int64_t,         price )                                \
+                _x( uint64_t,        endTimeNanos )                         \
+                _x( EfhCounterparty, execBroker )                           \
+                _x( EfhCounterparty, client )
+        EfhComplexDefinitionMsg_FIELD_ITER( EKA__FIELD_DEF )
+} EfhAuctionDefinitionMsg;
 
 /*
  *
@@ -337,22 +400,12 @@ typedef struct {
 /*
  *
  */
-enum class EfhOrderSideType {
-    #define EfhOrderSideType_ENUM_ITER( _x )                                \
-                _x( Bid,  1  )                                              \
-                _x( Ask,  -1 )
-        EfhOrderSideType_ENUM_ITER( EKA__ENUM_DEF )
-};
-
-/*
- *
- */
 typedef struct { 
     #define EfhOrderMsg_FIELD_ITER( _x )                                      \
-                _x( EfhMsgHeader,     header )                                \
-                _x( EfhTradeStatus,   tradeStatus )                           \
-                _x( EfhOrderSideType, orderSide )                             \
-                _x( EfhBookSide,      bookSide )
+                _x( EfhMsgHeader,   header )                                  \
+                _x( EfhTradeStatus, tradeStatus )                             \
+                _x( EfhOrderSide,   orderSide )                               \
+                _x( EfhBookSide,    bookSide )
         EfhOrderMsg_FIELD_ITER( EKA__FIELD_DEF )
 } EfhOrderMsg;
 

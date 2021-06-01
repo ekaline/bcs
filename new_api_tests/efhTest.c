@@ -286,7 +286,7 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
   return NULL;
 }
 
-static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
+static void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg) {
   uint8_t y,m,d;
 
   d = msg->expiryDate % 100;
@@ -301,7 +301,7 @@ static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
 }
 
 /* ------------------------------------------------------------ */
-uint testSubscribeSec(int file_idx,const EfhDefinitionMsg* msg, EfhRunUserData userData, char* avtSecName, char* underlyingName, char* classSymbol) {
+uint testSubscribeSec(int file_idx,const EfhOptionDefinitionMsg* msg, EfhRunUserData userData, char* avtSecName, char* underlyingName, char* classSymbol) {
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   uint sec_idx = testFhCtx[file_idx]->subscr_cnt;
 
@@ -316,13 +316,13 @@ uint testSubscribeSec(int file_idx,const EfhDefinitionMsg* msg, EfhRunUserData u
 	   EKA_PRINT_GRP(&msg->header.group)
 	   );
 
-  efhSubscribeStatic(pEfhCtx, (EkaGroup*) &msg->header.group,  msg->header.securityId, EfhSecurityType::kOpt,(EfhSecUserData) sec_idx,0,0);
+  efhSubscribeStatic(pEfhCtx, (EkaGroup*) &msg->header.group,  msg->header.securityId, EfhSecurityType::kOption,(EfhSecUserData) sec_idx,0,0);
   testFhCtx[file_idx]->subscr_cnt++;
   return testFhCtx[file_idx]->subscr_cnt;
 }
 /* ------------------------------------------------------------ */
 
-void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+void* onDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
   //  EfhCtx* pEfhCtx = (EfhCtx*) userData;
 
   char avtSecName[SYMBOL_SIZE] = {};
@@ -626,7 +626,7 @@ int main(int argc, char *argv[]) {
   signal(SIGINT, INThandler);
 
   runCtx.onEfhQuoteMsgCb        = onQuote;
-  runCtx.onEfhDefinitionMsgCb   = onDefinition;
+  runCtx.onEfhOptionDefinitionMsgCb   = onDefinition;
   runCtx.onEfhOrderMsgCb        = onOrder;
   runCtx.onEfhTradeMsgCb        = onTrade;
   runCtx.onEfhGroupStateChangedMsgCb = onEfhGroupStateChange;

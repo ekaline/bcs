@@ -161,7 +161,7 @@ int main(int argc, char *argv[]) {
     EfhRunCtx* pEfhRunCtx = &runCtx[i];
 
     pEfhRunCtx->onEfhQuoteMsgCb        = OnQuote;
-    pEfhRunCtx->onEfhDefinitionMsgCb   = efhDefaultOnDefinition;
+    pEfhRunCtx->onEfhOptionDefinitionMsgCb   = efhDefaultOnDefinition;
     pEfhRunCtx->onEfhOrderMsgCb        = efhDefaultOnOrder;
     pEfhRunCtx->onEfhTradeMsgCb        = efhDefaultOnTrade;
     pEfhRunCtx->onEfhFeedDownMsgCb     = efhDefaultOnFeedDown;
