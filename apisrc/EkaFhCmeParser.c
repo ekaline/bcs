@@ -154,7 +154,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 	    hdr->securityId = e->SecurityID;
 
 	    dstMsg->pLvl    = e->MDPriceLevel;
-	    dstMsg->side    = side == SideT::BID ? EfhOrderSideType::kBid : EfhOrderSideType::kAsk;
+	    dstMsg->side    = side == SideT::BID ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
 	    dstMsg->price   = e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE;
 	    dstMsg->size    = e->MDEntrySize;
 	    
@@ -169,7 +169,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 	    hdr->securityId = e->SecurityID;
 
 	    dstMsg->pLvl    = e->MDPriceLevel;
-	    dstMsg->side    = side == SideT::BID ? EfhOrderSideType::kBid : EfhOrderSideType::kAsk;
+	    dstMsg->side    = side == SideT::BID ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
 	    dstMsg->price   = e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE;
 	    dstMsg->size    = e->MDEntrySize;
 	    
@@ -185,7 +185,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 	    hdr->securityId = e->SecurityID;
 
 	    dstMsg->pLvl    = e->MDPriceLevel;
-	    dstMsg->side    = side == SideT::BID ? EfhOrderSideType::kBid : EfhOrderSideType::kAsk;
+	    dstMsg->side    = side == SideT::BID ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
 	    
 	    pEfhRunCtx->onEfhMdCb(hdr,pEfhRunCtx->efhRunUserData);
 	  }
@@ -338,8 +338,8 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 		 pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week
 		 );
 
-      EfhDefinitionMsg msg = {};
-      msg.header.msgType        = EfhMsgType::kDefinition;
+      EfhOptionDefinitionMsg msg{};
+      msg.header.msgType        = EfhMsgType::kOptionDefinition;
       msg.header.group.source   = EkaSource::kCME_SBE;
       msg.header.group.localId  = id;
       msg.header.underlyingId   = rootBlock->UnderlyingProduct;
@@ -349,7 +349,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       msg.header.gapNum         = gapNum;
 
       //    msg.secondaryGroup        = 0;
-      msg.securityType          = EfhSecurityType::kFut;
+      msg.securityType          = EfhSecurityType::kFuture;
       //      msg.optionType            = putOrCall;
       msg.expiryDate            = pMaturity->year * 10000 + pMaturity->month * 100 + pMaturity->day;
       msg.contractSize          = 0;
@@ -359,7 +359,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       memcpy (&msg.underlying, rootBlock->Symbol,std::min(sizeof(msg.underlying), sizeof(rootBlock->Symbol)));
       memcpy (&msg.classSymbol,rootBlock->Symbol,std::min(sizeof(msg.classSymbol),sizeof(rootBlock->Symbol)));
 
-      pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+      pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
 
       if (processedDefinitionMessages >= (int)rootBlock->TotNumReports) return true;
     }
@@ -404,8 +404,8 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 		);
       }
       
-      EfhDefinitionMsg msg = {};
-      msg.header.msgType        = EfhMsgType::kDefinition;
+      EfhOptionDefinitionMsg msg{};
+      msg.header.msgType        = EfhMsgType::kOptionDefinition;
       msg.header.group.source   = EkaSource::kCME_SBE;
       msg.header.group.localId  = id;
       msg.header.underlyingId   = rootBlock->UnderlyingProduct;
@@ -415,7 +415,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       msg.header.gapNum         = gapNum;
 
       //    msg.secondaryGroup        = 0;
-      msg.securityType          = EfhSecurityType::kOpt;
+      msg.securityType          = EfhSecurityType::kOption;
       msg.optionType            = putOrCall;
       msg.expiryDate            = pMaturity->year * 10000 + pMaturity->month * 100 + pMaturity->day;
       msg.contractSize          = 0;
@@ -430,7 +430,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 
       msg.opaqueAttrA           = rootBlock->DisplayFactor;
       //      msg.opaqueAttrB           = rootBlock->PriceDisplayFormat;
-      pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+      pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
 
       uint currPos = rootBlockPos + msgHdr->blockLen;
       /* ------------------------------- */
@@ -478,7 +478,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 	  auto e {reinterpret_cast<const OptionDefinitionUnderlyingEntry*>(&pkt[currPos])};
 
 	  memcpy (&msg.underlying, e->UnderlyingSymbol,std::min(sizeof(msg.underlying), sizeof(e->UnderlyingSymbol)));
-	  pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+	  pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
 
 	  currPos += pGroupSize->blockLength;
 	}

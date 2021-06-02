@@ -277,7 +277,7 @@ void onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData user
 }
 
 #if 0
-static std::string eka_create_avt_definition (const EfhDefinitionMsg* msg) {
+static std::string eka_create_avt_definition (const EfhOptionDefinitionMsg* msg) {
   uint8_t y,m,d;
   char dst[SYMBOL_SIZE] = {};
   d = msg->expiryDate % 100;
@@ -292,7 +292,7 @@ static std::string eka_create_avt_definition (const EfhDefinitionMsg* msg) {
 }
 #endif 
 
-static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
+static void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg) {
   uint8_t y,m,d;
 
   d = msg->expiryDate % 100;
@@ -307,7 +307,7 @@ static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
 }
 
 
-void onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+void onDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
 #ifdef EKA_TEST_IGNORE_DEFINITIONS
   on_warning("Ignoring Definition");
@@ -534,7 +534,7 @@ int main(int argc, char *argv[]) {
     dev->fh[dev->numFh - 1]->print_parsed_messages = print_parsed_messages;
 
     runCtx[i].onEfhQuoteMsgCb        = onQuote;
-    runCtx[i].onEfhDefinitionMsgCb   = onDefinition;
+    runCtx[i].onEfhOptionDefinitionMsgCb   = onDefinition;
     runCtx[i].onEfhOrderMsgCb        = onOrder;
     runCtx[i].onEfhTradeMsgCb        = onTrade;
     runCtx[i].onEfhFeedDownMsgCb     = onFeedDown;

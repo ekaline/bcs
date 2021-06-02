@@ -74,7 +74,7 @@ void efhDefaultOnQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUse
   EKA_LOG("Fire sent");
   return;
 }
-void efhDefaultOnDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) { return; }
+void efhDefaultOnDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) { return; }
 void efhDefaultOnFeedDown(const EfhFeedDownMsg* msg, EfhSecUserData secData, EfhRunUserData userData) { return; }
 void efhDefaultOnFeedUp(const EfhFeedUpMsg* msg, EfhSecUserData secData, EfhRunUserData userData) { return; }
 void efhDefaultOnException(EkaExceptionReport* msg, EfhRunUserData efhRunUserData) { return; }
@@ -159,7 +159,7 @@ int main(int argc, char *argv[]) {
   pEfhRunCtx->groups = gemGroups;
 
   pEfhRunCtx->onEfhQuoteMsgCb        = efhDefaultOnQuote;
-  pEfhRunCtx->onEfhDefinitionMsgCb   = efhDefaultOnDefinition;
+  pEfhRunCtx->onEfhOptionDefinitionMsgCb   = efhDefaultOnDefinition;
   pEfhRunCtx->onEfhOrderMsgCb        = efhDefaultOnOrder;
   pEfhRunCtx->onEfhTradeMsgCb        = efhDefaultOnTrade;
   pEfhRunCtx->onEfhFeedDownMsgCb     = efhDefaultOnFeedDown;

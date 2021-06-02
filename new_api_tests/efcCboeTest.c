@@ -740,7 +740,7 @@ int main(int argc, char *argv[]) {
 		  .groups                      = batsC1Groups,
 		  .numGroups                   = std::size(batsC1Groups),
 		  .efhRunUserData              = (EfhRunUserData) pEfhCtx,
-		  .onEfhDefinitionMsgCb        = NULL, //onDefinition,
+		  .onEfhOptionDefinitionMsgCb  = NULL, //onDefinition,
 		  .onEfhTradeMsgCb             = NULL, //onTrade,
 		  .onEfhQuoteMsgCb             = NULL, //onQuote,
 		  .onEfhOrderMsgCb             = NULL, //onOrder,

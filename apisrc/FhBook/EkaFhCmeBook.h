@@ -130,7 +130,7 @@ template <const uint SEC_HASH_SCALE,
     msg.header.gapNum         = gapNum;
     msg.tradeStatus           = s->tradeStatus;
 
-    msg.orderSide             = side == SideT::BID ? EfhOrderSideType::kBid : EfhOrderSideType::kAsk;
+    msg.orderSide             = side == SideT::BID ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
       
     msg.bookSide.price         = side == SideT::BID ? (uint32_t)(s->bid->getEntryPrice(0) / PRICE_SCALE) :
       (uint32_t)(s->ask->getEntryPrice(0) / PRICE_SCALE);

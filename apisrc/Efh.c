@@ -201,8 +201,8 @@ EkaOpResult efhStopGroups( EfhCtx* pEfhCtx ) {
   return EKA_OPRESULT__OK;
 }
 /**
- * This function will play back all EfhDefinitionMsg to our callback from EfhRunCtx.  This function will
- * block until the last callback has returned.
+ * This function will play back all EfhOptionDefinitionMsg to our callback from
+ * EfhRunCtx.  This function will block until the last callback has returned.
  *
  * @param pEfhCtx 
  * @retval [See EkaOpResult].
