@@ -72,8 +72,8 @@ EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* ekaDev, const EfhInitCtx* initCt
 const EfhInitCtx* efhGetSupportedParams( );
 
 /**
- * This function will play back all EfhDefinitionMsg to our callback from EfhRunCtx.  This function will
- * block until the last callback has returned.
+ * This function will play back all EfhOptionDefinitionMsg to our callback from EfhRunCtx.  This
+ * function will block until the last callback has returned.
  *
  * @param efhCtx 
  * @retval [See EkaOpResult].
@@ -100,7 +100,7 @@ EkaOpResult efhGetDefs( EfhCtx* efhCtx, const struct EfhRunCtx* efhRunCtx, EkaGr
 
 EkaOpResult efhSubscribeStatic( EfhCtx*         efhCtx,
                                 EkaGroup*       group,
-                                uint64_t        securityId, 
+                                uint64_t        securityId,
                                 EfhSecurityType efhSecurityType,
                                 EfhSecUserData  efhSecUserData,
 				uint64_t        opaqueAttrA,
@@ -174,34 +174,34 @@ typedef struct {
 } EfhMdHeader;
 
 typedef struct {
-  EfhMdHeader      hdr;
-  uint64_t         attr;    // raw attribute if relevant
-  uint64_t         orderId; // if relevant
-  EfhOrderSideType side;
-  uint64_t         price;
-  uint32_t         size;
+  EfhMdHeader  hdr;
+  uint64_t     attr;    // raw attribute if relevant
+  uint64_t     orderId; // if relevant
+  EfhOrderSide side;
+  uint64_t     price;
+  uint32_t     size;
 } MdNewOrder;
 
 typedef struct {
-  EfhMdHeader      hdr;
-  uint8_t          pLvl;
-  EfhOrderSideType side;
-  uint64_t         price;
-  uint32_t         size;
+  EfhMdHeader  hdr;
+  uint8_t      pLvl;
+  EfhOrderSide side;
+  uint64_t     price;
+  uint32_t     size;
 } MdNewPlevel;
 
 typedef struct {
-  EfhMdHeader      hdr;
-  uint8_t          pLvl;
-  EfhOrderSideType side;
-  uint64_t         price;
-  uint32_t         size;
+  EfhMdHeader  hdr;
+  uint8_t      pLvl;
+  EfhOrderSide side;
+  uint64_t     price;
+  uint32_t     size;
 } MdChangePlevel;
 
 typedef struct {
-  EfhMdHeader      hdr;
-  uint8_t          pLvl;
-  EfhOrderSideType side;
+  EfhMdHeader  hdr;
+  uint8_t      pLvl;
+  EfhOrderSide side;
 } MdDeletePlevel;
   
 typedef void* (*onEfhMdMsgCb) (const EfhMdHeader* msg, EfhRunUserData efhRunUserData);

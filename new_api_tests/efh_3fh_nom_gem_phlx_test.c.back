@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
   pPhlxRunCtx->groups = phlxGroups;
 
   pPhlxRunCtx->onEfhQuoteMsgCb        = efhDefaultOnQuote;
-  pPhlxRunCtx->onEfhDefinitionMsgCb   = efhDefaultOnDefinition;
+  pPhlxRunCtx->onEfhOptionDefinitionMsgCb   = efhDefaultOnDefinition;
   pPhlxRunCtx->onEfhOrderMsgCb        = efhDefaultOnOrder;
   pPhlxRunCtx->onEfhTradeMsgCb        = efhDefaultOnTrade;
   pPhlxRunCtx->onEfhFeedDownMsgCb     = efhDefaultOnFeedDown;
@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
     pNomRunCtx[i]->groups = &nomGroups[i];
 
     pNomRunCtx[i]->onEfhQuoteMsgCb        = efhDefaultOnQuote;
-    pNomRunCtx[i]->onEfhDefinitionMsgCb   = efhDefaultOnDefinition;
+    pNomRunCtx[i]->onEfhOptionDefinitionMsgCb   = efhDefaultOnDefinition;
     pNomRunCtx[i]->onEfhOrderMsgCb        = efhDefaultOnOrder;
     pNomRunCtx[i]->onEfhTradeMsgCb        = efhDefaultOnTrade;
     pNomRunCtx[i]->onEfhFeedDownMsgCb     = efhDefaultOnFeedDown;
@@ -258,7 +258,7 @@ int main(int argc, char *argv[]) {
   pGemRunCtx->groups = gemGroups;
 
   pGemRunCtx->onEfhQuoteMsgCb        = efhDefaultOnQuote;
-  pGemRunCtx->onEfhDefinitionMsgCb   = efhDefaultOnDefinition;
+  pGemRunCtx->onEfhOptionDefinitionMsgCb   = efhDefaultOnDefinition;
   pGemRunCtx->onEfhOrderMsgCb        = efhDefaultOnOrder;
   pGemRunCtx->onEfhTradeMsgCb        = efhDefaultOnTrade;
   pGemRunCtx->onEfhFeedDownMsgCb     = efhDefaultOnFeedDown;

@@ -146,7 +146,7 @@ void OnQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData user
   return;
 }
 
-static std::string eka_create_avt_definition (const EfhDefinitionMsg* msg) {
+static std::string eka_create_avt_definition (const EfhOptionDefinitionMsg* msg) {
   uint8_t y,m,d;
   char dst[32] = {};
   d = msg->expiryDate % 100;
@@ -160,7 +160,7 @@ static std::string eka_create_avt_definition (const EfhDefinitionMsg* msg) {
   return std::string(dst);
 }
 
-void OnDefinition2subscr(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+void OnDefinition2subscr(const EfhOptionDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
 
   std::string msg_underlying = std::string(msg->underlying);
@@ -399,7 +399,7 @@ int main(int argc, char *argv[]) {
     EfhRunCtx* pEfhRunCtx = &runCtx[i];
 
     pEfhRunCtx->onEfhQuoteMsgCb        = OnQuote;
-    pEfhRunCtx->onEfhDefinitionMsgCb   = OnDefinition2subscr;
+    pEfhRunCtx->onEfhOptionDefinitionMsgCb   = OnDefinition2subscr;
     pEfhRunCtx->onEfhOrderMsgCb        = efhDefaultOnOrder;
     pEfhRunCtx->onEfhTradeMsgCb        = efhDefaultOnTrade;
     pEfhRunCtx->onEfhFeedDownMsgCb     = efhDefaultOnFeedDown;

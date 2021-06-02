@@ -241,8 +241,8 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
 
       if (AbcGroupID != gr->id) break;
 #endif
-      EfhDefinitionMsg msg = {};
-      msg.header.msgType        = EfhMsgType::kDefinition;
+      EfhOptionDefinitionMsg msg{};
+      msg.header.msgType        = EfhMsgType::kOptionDefinition;
       msg.header.group.source   = gr->exch;
       msg.header.group.localId  = gr->id;
       msg.header.underlyingId   = m->UnderlyingIndex;
@@ -252,7 +252,7 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
       msg.header.gapNum         = 0;
 
       //    msg.secondaryGroup        = 0;
-      msg.securityType          = EfhSecurityType::kOpt;
+      msg.securityType          = EfhSecurityType::kOption;
       msg.expiryDate            = 
 	(2000 + (m->MaturityDate[0] - '0') * 10 + (m->MaturityDate[1] - '0')) * 10000 + 
 	(       (m->MaturityDate[2] - '0') * 10 +  m->MaturityDate[3] - '0')  * 100   +
@@ -280,7 +280,7 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
       msg.opaqueAttrA = attrA.opaqueField;
       msg.opaqueAttrB = attrB.opaqueField;
 
-      pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+      pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
     }
       break;
       /* ***************************************************** */

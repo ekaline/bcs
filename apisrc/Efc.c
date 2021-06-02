@@ -126,7 +126,7 @@ EkaOpResult efcEnableController( EfcCtx* pEfcCtx, EkaCoreId primaryCoreId ) {
  * @param pSecurityIds   This is a pointer to the first member of an array of securities that 
  *                       the firing controller should consider as opportunities.  This value
  *                       should be the exchange specific security id that is returned from 
- *                       EfhDefinitionMsg.
+ *                       EfhOptionDefinitionMsg.
  * @param numSecurityIds This is the number of elements in the array pSecurityIds.
  * @retval [See EkaOpResult].
  */
