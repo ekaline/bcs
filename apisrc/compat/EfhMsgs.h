@@ -224,7 +224,13 @@ typedef char EfhSymbol[8];
 
 // Provide a dummy empty type to avoid confusing preprocessor macros that may
 // try to access a type of this name because EfhMsgType::kInvalid exists.
-typedef struct {} EfhInvalidMsg;
+// FIXME: this should be completely empty but we added a dummy field for now,
+// to avoid confusing some of the preprocessor-based code-generation logic.
+typedef struct {
+    #define EfhInvalidMsg_FIELD_ITER( _x )                                  \
+                _x( int, dummy )
+        EfhInvalidMsg_FIELD_ITER( EKA__FIELD_DEF )
+} EfhInvalidMsg;
 
 /*
  *
@@ -303,7 +309,7 @@ typedef struct {
                 _x( uint64_t,        endTimeNanos )                         \
                 _x( EfhCounterparty, execBroker )                           \
                 _x( EfhCounterparty, client )
-        EfhComplexDefinitionMsg_FIELD_ITER( EKA__FIELD_DEF )
+        EfhAuctionDefinitionMsg_FIELD_ITER( EKA__FIELD_DEF )
 } EfhAuctionDefinitionMsg;
 
 /*
