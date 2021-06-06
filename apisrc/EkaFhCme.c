@@ -90,7 +90,7 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     uint8_t  gr_id = 0xFF;
     int16_t  pktSize = 0; 
 
-    const uint8_t* pkt = getUdpPkt(runGr,&pktSize,&sequence,&gr_id);
+    auto pkt = getUdpPkt(runGr,&pktSize,&sequence,&gr_id);
     if (pkt == NULL) continue;
 
 #ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
@@ -102,7 +102,7 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     }
 #endif
 
-    EkaFhCmeGr* gr = (EkaFhCmeGr*)b_gr[gr_id];
+    auto gr = dynamic_cast<EkaFhCmeGr*>(b_gr[gr_id]);
     if (gr == NULL) on_error("b_gr[%u] == NULL",gr_id);
     gr->resetNoMdTimer();
 
@@ -152,7 +152,7 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
  /* ##################################################################### */
 
 EkaOpResult EkaFhCme::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group) {
-  EkaFhCmeGr* gr = (EkaFhCmeGr*)b_gr[group->localId];
+  auto gr = dynamic_cast<EkaFhCmeGr*>(b_gr[group->localId]);
   if (gr == NULL) on_error("gr[%u] == NULL",(uint8_t)group->localId);
 
   int sock = ekaUdpMcConnect(dev, gr->snapshot_ip, gr->snapshot_port);

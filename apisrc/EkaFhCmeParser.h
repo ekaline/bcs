@@ -541,6 +541,57 @@ struct MDInstrumentDefinitionOption55_mainBlock {
 	LocalMktDate_T                	TradingReferenceDate;
 } __attribute__((packed));
 
+struct MDInstrumentDefinitionSpread56_mainBlock {
+  MatchEventIndicator_T         	MatchEventIndicator;
+  uInt32NULL_T                  	TotNumReports;
+  SecurityUpdateAction_T        	SecurityUpdateAction;
+  uInt64_T                      	LastUpdateTime;
+  SecurityTradingStatus_T       	MDSecurityTradingStatus;
+  Int16_T                       	ApplID;
+  uInt8_T                       	MarketSegmentID;
+  uInt8NULL_T                   	UnderlyingProduct;
+  SecurityExchange_T            	SecurityExchange;
+  SecurityGroup_T               	SecurityGroup;
+  Asset_T                       	Asset;
+  Symbol_T                      	Symbol;
+  Int32_T                       	SecurityID;
+  /* SecurityIDSource_CONST_T            	SecurityIDSource; */
+  SecurityType_T                	SecurityType;
+  CFICode_T                     	CFICode;
+  MaturityMonthYear_T           	MaturityMonthYear;
+  Currency_T                    	Currency;
+  SecuritySubType_T             	SecuritySubType;
+  UserDefinedInstrument_T       	UserDefinedInstrument;
+  CHAR_T                        	MatchAlgorithm;
+  uInt32_T                      	MinTradeVol;
+  uInt32_T                      	MaxTradeVol;
+  PRICENULL9_T                  	MinPriceIncrement;
+  Decimal9_T                    	DisplayFactor;
+  uInt8NULL_T                   	PriceDisplayFormat;
+  PRICENULL9_T                  	PriceRatio;
+  Int8NULL_T                    	TickRule;
+  UnitOfMeasure_T               	UnitOfMeasure;
+  PRICENULL9_T                  	TradingReferencePrice;
+  SettlPriceType_T              	SettlPriceType;
+  Int32NULL_T                   	OpenInterestQty;
+  Int32NULL_T                   	ClearedVolume;
+  PRICENULL9_T                  	HighLimitPrice;
+  PRICENULL9_T                  	LowLimitPrice;
+  PRICENULL9_T                  	MaxPriceVariation;
+  uInt8NULL_T                   	MainFraction;
+  uInt8NULL_T                   	SubFraction;
+  LocalMktDate_T                	TradingReferenceDate;
+} __attribute__((packed));
+
+struct MDInstrumentDefinitionSpread56_legEntry {
+	Int32_T                       	LegSecurityID;
+	/* SecurityIDSource_CONST_T       	LegSecurityIDSource; */
+	LegSide_T                     	LegSide;
+	Int8_T                        	LegRatioQty;
+	PRICENULL9_T                  	LegPrice;
+	DecimalQty_T                  	LegOptionDelta;
+} __attribute__((packed));
+
 struct PktHdr {
   uint32_t seq;
   uint64_t time; // ns since epoch

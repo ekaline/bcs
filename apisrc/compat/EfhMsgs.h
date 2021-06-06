@@ -258,10 +258,18 @@ typedef struct {
         EfhOptionDefinitionMsg_FIELD_ITER( EKA__FIELD_DEF )
 } EfhOptionDefinitionMsg;
 
+enum class EfhOrderSide : int8_t {
+    #define EfhOrderSide_ENUM_ITER( _x )                                    \
+                _x( Bid,  1  )                                              \
+                _x( Ask,  -1 )
+        EfhOrderSide_ENUM_ITER( EKA__ENUM_DEF )
+};
+
 typedef struct {
     #define EfhComplexLeg_FIELD_ITER( _x )                                  \
                 _x( uint64_t,        securityId )                           \
                 _x( EfhSecurityType, type )                                 \
+                _x( EfhOrderSide,    side )                                 \
                 _x( int32_t,         ratio )
         EfhComplexLeg_FIELD_ITER( EKA__FIELD_DEF )
 } EfhComplexLeg;
@@ -285,13 +293,6 @@ enum class EfhAuctionType : uint8_t {
                 _x( AIM )                                                   \
                 _x( AllOrNone )
         EfhAuctionType_ENUM_ITER( EKA__ENUM_DEF )
-};
-
-enum class EfhOrderSide : int8_t {
-    #define EfhOrderSide_ENUM_ITER( _x )                                    \
-                _x( Bid,  1  )                                              \
-                _x( Ask,  -1 )
-        EfhOrderSide_ENUM_ITER( EKA__ENUM_DEF )
 };
 
 typedef char EfhCounterparty[8];

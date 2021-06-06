@@ -320,11 +320,11 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       processedDefinitionMessages++;
       /* ------------------------------- */
       auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionFuture54_mainBlock*>(&pkt[rootBlockPos])};
-      std::string symbol           = std::string(rootBlock->Symbol,          sizeof(rootBlock->Symbol));
-      std::string cfiCode          = std::string(rootBlock->CFICode,         sizeof(rootBlock->CFICode));
-      std::string securityExchange = std::string(rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange));
-      std::string asset            = std::string(rootBlock->Asset,           sizeof(rootBlock->Asset));
-      std::string securityType     = std::string(rootBlock->SecurityType,    sizeof(rootBlock->SecurityType));
+      auto symbol           = std::string(rootBlock->Symbol,          sizeof(rootBlock->Symbol));
+      auto cfiCode          = std::string(rootBlock->CFICode,         sizeof(rootBlock->CFICode));
+      auto securityExchange = std::string(rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange));
+      auto asset            = std::string(rootBlock->Asset,           sizeof(rootBlock->Asset));
+      auto securityType     = std::string(rootBlock->SecurityType,    sizeof(rootBlock->SecurityType));
       auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
 
       if (fh->print_parsed_messages) 
@@ -369,11 +369,11 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       processedDefinitionMessages++;
       /* ------------------------------- */
       auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionOption55_mainBlock*>(&pkt[rootBlockPos])};
-      std::string symbol           = std::string((const char*)&rootBlock->Symbol,          sizeof(rootBlock->Symbol));
-      std::string cfiCode          = std::string((const char*)&rootBlock->CFICode,         sizeof(rootBlock->CFICode));
-      std::string securityExchange = std::string((const char*)&rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange));
-      std::string asset            = std::string((const char*)&rootBlock->Asset,           sizeof(rootBlock->Asset));
-      std::string securityType     = std::string((const char*)&rootBlock->SecurityType,    sizeof(rootBlock->SecurityType));
+      auto symbol           = std::string((const char*)&rootBlock->Symbol,          sizeof(rootBlock->Symbol));
+      auto cfiCode          = std::string((const char*)&rootBlock->CFICode,         sizeof(rootBlock->CFICode));
+      auto securityExchange = std::string((const char*)&rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange));
+      auto asset            = std::string((const char*)&rootBlock->Asset,           sizeof(rootBlock->Asset));
+      auto securityType     = std::string((const char*)&rootBlock->SecurityType,    sizeof(rootBlock->SecurityType));
       auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
 
       EfhOptionType putOrCall;
@@ -490,6 +490,90 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       break;
 
       /* ##################################################################### */
+    case MsgId::MDInstrumentDefinitionSpread56 : {
+      processedDefinitionMessages++;
+      /* ------------------------------- */
+      auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionOption55_mainBlock*>(&pkt[rootBlockPos])};
+      /* auto symbol           = std::string((const char*)&rootBlock->Symbol,          sizeof(rootBlock->Symbol)); */
+      /* auto cfiCode          = std::string((const char*)&rootBlock->CFICode,         sizeof(rootBlock->CFICode)); */
+      /* auto securityExchange = std::string((const char*)&rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange)); */
+      /* auto asset            = std::string((const char*)&rootBlock->Asset,           sizeof(rootBlock->Asset)); */
+      /* auto securityType     = std::string((const char*)&rootBlock->SecurityType,    sizeof(rootBlock->SecurityType)); */
+      /* auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)}; */
+
+      if (processedDefinitionMessages > (int)rootBlock->TotNumReports) return true;
+
+      EfhComplexDefinitionMsg msg{};
+      msg.header.msgType        = EfhMsgType::kComplexDefinition;
+      msg.header.group.source   = EkaSource::kCME_SBE;
+      msg.header.group.localId  = id;
+      msg.header.underlyingId   = rootBlock->UnderlyingProduct;
+      msg.header.securityId     = rootBlock->SecurityID;
+      msg.header.sequenceNumber = pktSeq;
+      msg.header.timeStamp      = pktTime; //rootBlock->LastUpdateTime;
+      msg.header.gapNum         = gapNum;
+
+      //    msg.secondaryGroup        = 0;
+ 
+      uint currPos = rootBlockPos + msgHdr->blockLen;
+      /* ------------------------------- */
+      {
+	auto pGroupSize {reinterpret_cast<const groupSize_T*>(&pkt[currPos])};
+	currPos += sizeof(*pGroupSize);
+	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+	  // skipping "Number of EventType entries"
+	  currPos += pGroupSize->blockLength;
+	}
+      }
+      /* ------------------------------- */
+      {
+	auto pGroupSize {reinterpret_cast<const groupSize_T*>(&pkt[currPos])};
+	currPos += sizeof(*pGroupSize);
+	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+	  // skipping "Number of MDFeedType entries"
+	  currPos += pGroupSize->blockLength;
+	}
+      }
+      /* ------------------------------- */
+      {
+	auto pGroupSize {reinterpret_cast<const groupSize_T*>(&pkt[currPos])};
+	currPos += sizeof(*pGroupSize);
+	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+	  // skipping "Number of InstAttribType entries"
+	  currPos += pGroupSize->blockLength;
+	}
+      }
+      /* ------------------------------- */
+      {
+	auto pGroupSize {reinterpret_cast<const groupSize_T*>(&pkt[currPos])};
+	currPos += sizeof(*pGroupSize);
+	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+	  // skipping "Number of LotTypeRules entries"
+	  currPos += pGroupSize->blockLength;
+	}
+      }
+       /* ------------------------------- */
+      {
+	auto pGroupSize {reinterpret_cast<const groupSize_T*>(&pkt[currPos])};
+	currPos += sizeof(*pGroupSize);
+	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+	  auto e {reinterpret_cast<const MDInstrumentDefinitionSpread56_legEntry*>(&pkt[currPos])};
+	  msg.legs[i].securityId = e->LegSecurityID;
+	  msg.legs[i].type       = EfhSecurityType::kComplex;
+	  msg.legs[i].side       = e->LegSide == LegSide_T::BuySide ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
+	  msg.legs[i].ratio      = std::abs(e->LegRatioQty);
+	  
+	  currPos += pGroupSize->blockLength;
+	}
+	msg.numLegs = pGroupSize->numInGroup;
+      }
+
+      pEfhRunCtx->onEfhComplexDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+
+    }
+      break;
+
+      /* ##################################################################### */     
     default:
 #ifdef _PRINT_ALL_
       //     TEST_LOG ("\t\tMsgId=%u",msgHdr->templateId);
