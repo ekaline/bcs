@@ -19,7 +19,7 @@ enum class EfhMsgType : uint16_t {
                 _x( Invalid, 0        )                                     \
                 _x( OptionDefinition  )                                     \
                 _x( ComplexDefinition )                                     \
-                _x( AuctionDefinition )                                     \
+                _x( AuctionUpdate )                                     \
                 _x( Trade             )                                     \
                 _x( Quote             )                                     \
                 _x( Order             )                                     \
@@ -260,8 +260,9 @@ typedef struct {
 
 enum class EfhOrderSide : int8_t {
     #define EfhOrderSide_ENUM_ITER( _x )                                    \
-                _x( Bid,  1  )                                              \
-                _x( Ask,  -1 )
+                _x( Other,  0 )                                             \
+                _x( Bid,    1 )                                             \
+                _x( Ask,   -1 )
         EfhOrderSide_ENUM_ITER( EKA__ENUM_DEF )
 };
 
@@ -298,20 +299,20 @@ enum class EfhAuctionType : uint8_t {
 typedef char EfhCounterparty[8];
 
 typedef struct {
-    #define EfhAuctionDefinitionMsg_FIELD_ITER( _x )                        \
-                _x( EfhMsgHeader,   header )                                \
-                _x( uint64_t,       auctionId)                              \
-                _x( EfhAuctionType, type )                                  \
-                _x( EfhOrderSide,   side )                                  \
-                _x( bool,           customer )                              \
-                /* unused tail padding of 1 byte */                         \
-                _x( uint32_t,       quantity )                              \
+    #define EfhAuctionUpdateMsg_FIELD_ITER( _x )                        \
+                _x( EfhMsgHeader,    header )                               \
+                _x( uint64_t,        auctionId)                             \
+                _x( EfhAuctionType,  type )                                 \
+                _x( EfhOrderSide,    side )                                 \
+                _x( bool,            customer )                             \
+         	_x( EfhSecurityType, securityType )                         \
+                _x( uint32_t,        quantity )                             \
                 _x( int64_t,         price )                                \
                 _x( uint64_t,        endTimeNanos )                         \
                 _x( EfhCounterparty, execBroker )                           \
                 _x( EfhCounterparty, client )
-        EfhAuctionDefinitionMsg_FIELD_ITER( EKA__FIELD_DEF )
-} EfhAuctionDefinitionMsg;
+        EfhAuctionUpdateMsg_FIELD_ITER( EKA__FIELD_DEF )
+} EfhAuctionUpdateMsg;
 
 /*
  *

@@ -214,8 +214,8 @@ EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx, EfcSecCtxHandle hSecCtx, const 
   const EkaHwSecCtx hwSecCtx = {
     .bidMinPrice       = pSecCtx->bidMinPrice,
     .askMaxPrice       = pSecCtx->askMaxPrice,
-    .size              = pSecCtx->size,
-    .verNum            = pSecCtx->verNum,
+    .bidSize           = pSecCtx->bidSize,
+    .askSize           = pSecCtx->askSize,
     .lowerBytesOfSecId = pSecCtx->lowerBytesOfSecId
   };
 

@@ -96,11 +96,20 @@ class EkaFhCmeGr : public EkaFhGroup {
     
   PktQ*     pktQ       = NULL;
 
-  int       processedDefinitionMessages = 0;
   bool      snapshotClosed = false;
   uint64_t  firstLifeSeq = 0;
   int       processedSnapshotMessages = 0;
 
   volatile bool inGap  = false;
+
+  int       processedDefinitionMessages = 0;  
+
+  // int       processedOptionDefinitionMessages = 0;  
+  // int       processedFutureDefinitionMessages = 0;
+  // int       processedComplexDefinitionMessages = 0;
+
+  // bool      optionDefinitionsDone  = false;
+  // bool      futureDefinitionsDone  = false;
+  // bool      complexDefinitionsDone = false;
 };
 #endif

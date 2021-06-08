@@ -449,8 +449,8 @@ int main(int argc, char *argv[]) {
     SecCtx secCtx = {
       .bidMinPrice       = security[i].bidMinPrice,  //x100, should be nonzero
       .askMaxPrice       = security[i].askMaxPrice,  //x100
-      .size              = security[i].size,
-      .verNum            = 0xaf,                     // just a number
+      .bidSize              = security[i].size,
+      .askSize              = security[i].size,
       .lowerBytesOfSecId = (uint8_t)(security[i].id & 0xFF)
     };
     /* EKA_LOG("Setting StaticSecCtx to handle %jd:",security[i].handle); */

@@ -613,8 +613,8 @@ int main(int argc, char *argv[]) {
     SecCtx secCtx = {
 	.bidMinPrice       = static_cast<decltype(secCtx.bidMinPrice)>(security[i].bidMinPrice / 100),  //x100, should be nonzero
 	.askMaxPrice       = static_cast<decltype(secCtx.askMaxPrice)>(security[i].askMaxPrice / 100),  //x100
-	.size              = security[i].size,
-	.verNum            = 0xaf,                     // just a number
+	.bidSize           = security[i].size,
+	.askSize           = security[i].size,
 	.lowerBytesOfSecId = (uint8_t)(securityList[i] & 0xFF)
     };
     EKA_TEST("Setting StaticSecCtx[%d] secId=0x%016jx, handle=%jd",

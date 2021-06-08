@@ -109,8 +109,8 @@ int printMdReport(EkaDev* dev, const EfcMdReport* msg) {
 int printSecCtx(EkaDev* dev, const EfcSecurityCtx* msg) {
   EKA_LOG("SecurityCtx:");
   EKA_LOG("\tlowerBytesOfSecId = 0x%x ",msg->lower_bytes_of_sec_id);
-  EKA_LOG("\tverNum = %u",              msg->ver_num);
-  EKA_LOG("\tsize = %u",                msg->size);
+  EKA_LOG("\taskSize = %u",             msg->askSize);
+  EKA_LOG("\tbidSize = %u",             msg->bidSize);
   EKA_LOG("\taskMaxPrice = %u (%u)",    msg->ask_max_price, msg->ask_max_price * 100);
   EKA_LOG("\tbidMinPrice = %u (%u)",    msg->bid_min_price, msg->bid_min_price * 100);
 
@@ -246,8 +246,8 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len, uint32_t e
 
   auto secCtxReport { reinterpret_cast<EfcSecurityCtx*>(b) };
   secCtxReport->lower_bytes_of_sec_id = report->securityCtx.lowerBytesOfSecId;
-  secCtxReport->ver_num               = report->securityCtx.verNum;
-  secCtxReport->size                  = report->securityCtx.size;
+  secCtxReport->bidSize               = report->securityCtx.bidSize;
+  secCtxReport->askSize               = report->securityCtx.askSize;
   secCtxReport->ask_max_price         = report->securityCtx.askMaxPrice;
   secCtxReport->bid_min_price         = report->securityCtx.bidMinPrice;
 

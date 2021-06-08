@@ -573,6 +573,38 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
     }
       break;
 
+      /* ##################################################################### */
+    case MsgId::QuoteRequest39 : {
+      //      auto rootBlock {reinterpret_cast<const QuoteRequest39_mainBlock*>(&pkt[rootBlockPos])};
+      uint currPos = rootBlockPos + msgHdr->blockLen;
+
+      {
+	auto pGroupSize {reinterpret_cast<const groupSize_T*>(&pkt[currPos])};
+	currPos += sizeof(*pGroupSize);
+	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+	  auto e {reinterpret_cast<const QuoteRequest39_legEntry*>(&pkt[currPos])};
+	  EfhAuctionUpdateMsg msg{};
+	  msg.header.msgType        = EfhMsgType::kAuctionUpdate;
+	  msg.header.group.source   = EkaSource::kCME_SBE;
+	  msg.header.group.localId  = id;
+	  msg.header.underlyingId   = 0;
+	  msg.header.securityId     = e->SecurityID;
+	  msg.header.sequenceNumber = pktSeq;
+	  msg.header.timeStamp      = pktTime; //rootBlock->LastUpdateTime;
+	  msg.header.gapNum         = gapNum;
+
+	  msg.side     = e->Side == 1 ? EfhOrderSide::kBid : e->Side == 2 ? EfhOrderSide::kAsk : EfhOrderSide::kOther;
+	  msg.quantity = e->OrderQty;
+
+	  pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+
+	  currPos += pGroupSize->blockLength;
+	}
+      }
+      
+
+    }
+      break;
       /* ##################################################################### */     
     default:
 #ifdef _PRINT_ALL_

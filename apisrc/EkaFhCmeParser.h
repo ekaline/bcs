@@ -584,12 +584,26 @@ struct MDInstrumentDefinitionSpread56_mainBlock {
 } __attribute__((packed));
 
 struct MDInstrumentDefinitionSpread56_legEntry {
-	Int32_T                       	LegSecurityID;
-	/* SecurityIDSource_CONST_T       	LegSecurityIDSource; */
-	LegSide_T                     	LegSide;
-	Int8_T                        	LegRatioQty;
-	PRICENULL9_T                  	LegPrice;
-	DecimalQty_T                  	LegOptionDelta;
+  Int32_T                       	LegSecurityID;
+  /* SecurityIDSource_CONST_T       	LegSecurityIDSource; */
+  LegSide_T                     	LegSide;
+  Int8_T                        	LegRatioQty;
+  PRICENULL9_T                  	LegPrice;
+  DecimalQty_T                  	LegOptionDelta;
+} __attribute__((packed));
+
+struct QuoteRequest39_mainBlock {
+  uInt64_T                      	TransactTime;
+  QuoteReqId_T                  	QuoteReqID;
+  MatchEventIndicator_T         	MatchEventIndicator;
+} __attribute__((packed));
+
+struct QuoteRequest39_legEntry {
+  Symbol_T                      	Symbol;
+  Int32_T                       	SecurityID;
+  Int32NULL_T                   	OrderQty;
+  Int8_T                        	QuoteType;
+  Int8NULL_T                    	Side;
 } __attribute__((packed));
 
 struct PktHdr {

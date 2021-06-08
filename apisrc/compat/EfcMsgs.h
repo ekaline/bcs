@@ -76,8 +76,8 @@ typedef struct {
 typedef struct {
     #define EfcSecurityCtx_FIELD_ITER( _x )                                 \
                 _x( uint8_t,  lower_bytes_of_sec_id )                       \
-                _x( uint8_t,  ver_num )                                     \
-                _x( uint8_t,  size )                                        \
+                _x( uint8_t,  askSize )                                     \
+                _x( uint8_t,  bidSize )                                     \
                 _x( uint16_t, ask_max_price )                               \
                 _x( uint16_t, bid_min_price )
     EfcSecurityCtx_FIELD_ITER( EKA__FIELD_DEF )

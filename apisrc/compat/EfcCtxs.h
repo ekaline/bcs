@@ -19,8 +19,8 @@ typedef struct {
     #define SecCtx_FIELD_ITER( _x )                                     \
                 _x( FixedPrice, bidMinPrice    )                        \
                 _x( FixedPrice, askMaxPrice    )                        \
-                _x( uint8_t, size              )                        \
-                _x( uint8_t, verNum            )                        \
+                _x( uint8_t, bidSize           )                        \
+                _x( uint8_t, askSize           )                        \
                 _x( uint8_t, lowerBytesOfSecId )
         SecCtx_FIELD_ITER( EKA__FIELD_DEF ) 
 } SecCtx; 
