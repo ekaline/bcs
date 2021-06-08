@@ -246,7 +246,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     msg.header.securityId     = s->secId;
     msg.header.sequenceNumber = sequence;
     msg.header.timeStamp      = timestamp;
-    msg.header.queueSize      = 0; //gr->q->get_len();
+    msg.header.deltaNs        = 0;
     msg.header.gapNum         = gapNum;
     msg.tradeStatus           = s->trading_action == EfhTradeStatus::kHalted ? EfhTradeStatus::kHalted :
       s->option_open ? s->trading_action : EfhTradeStatus::kClosed;

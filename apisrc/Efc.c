@@ -192,6 +192,10 @@ EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx, EfcSecCtxHandle hSecCtx, const 
   EkaDev* dev = pEfcCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
 
+  if (writeChan >= EkaDev::MAX_CTX_THREADS)
+    on_error("writeChan %u > EkaDev::MAX_CTX_THREADS %u",
+	     writeChan,EkaDev::MAX_CTX_THREADS);
+  
   auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
   if (efc == NULL) on_error("efc == NULL");
 

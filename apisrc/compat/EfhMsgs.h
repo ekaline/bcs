@@ -39,7 +39,7 @@ typedef struct {
                 _x( uint64_t,   securityId )                                \
                 _x( uint64_t,   sequenceNumber )                            \
                 _x( uint64_t,   timeStamp )                                 \
-                _x( uint64_t,   queueSize )                                 \
+                _x( uint64_t,   deltaNs )                                 \
                 /** Incremented each time a new gap is encountered so this 
                  * can be compared  with the latest from 
                  * EfhGroupStateChangedMsg::code. */                        \

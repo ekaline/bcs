@@ -100,13 +100,7 @@ void EkaHwCaps::printStdout() {
 
 
 bool EkaHwCaps::check() {
- if (hwCaps.version.hwparser != EKA_EXPECTED_HWPARSER_VERSION) 
-    on_error("hwCaps.version.hwparser 0x%x != EKA_EXPECTED_HWPARSER_VERSION 0x%x",
-	     hwCaps.version.hwparser,EKA_EXPECTED_HWPARSER_VERSION);
-  
-  if (hwCaps.version.epm != EKA_EXPECTED_EPM_VERSION) 
-    on_error("hwCaps.version.epm %x != EKA_EXPECTED_EPM_VERSION %x",
-	     hwCaps.version.epm,EKA_EXPECTED_EPM_VERSION);
+  errno = ENOSYS;
 
   if (hwCaps.version.dma != EKA_EXPECTED_DMA_VERSION) 
     on_error("hwCaps.version.dma %x != EKA_EXPECTED_DMA_VERSION %x",
@@ -116,13 +110,25 @@ bool EkaHwCaps::check() {
     on_error("snDriverVerNum 0x%jx != EKA_EXPECTED_SN_DRIVER_VERSION 0x%x",
 	     snDriverVerNum,EKA_EXPECTED_SN_DRIVER_VERSION);
 
+  if (hwCaps.version.epm != EKA_EXPECTED_EPM_VERSION) 
+    on_error("hwCaps.version.epm %x != EKA_EXPECTED_EPM_VERSION %x",
+	     hwCaps.version.epm,EKA_EXPECTED_EPM_VERSION);
+  
+  errno = 0;
+
+  return true;
+}
+
+bool EkaHwCaps::checkEpm() {
+  errno = ENOSYS;
+
   if (hwCaps.core.tcp_sessions_percore < EKA_MAX_TCP_SESSIONS_PER_CORE)
     on_error("hwCaps.core.tcp_sessions_percore %d < EKA_MAX_TCP_SESSIONS_PER_CORE %d",
 	     hwCaps.core.tcp_sessions_percore, EKA_MAX_TCP_SESSIONS_PER_CORE);
     
-  if (hwCaps.epm.max_threads < EkaDev::MAX_CTX_THREADS)
-    on_error("hwCaps.epm.max_threads %d < EkaDev::MAX_CTX_THREADS %d",
-	     hwCaps.epm.max_threads, EkaDev::MAX_CTX_THREADS);
+  if (hwCaps.epm.max_threads < EkaEpm::MAX_HEAP_WR_THREADS)
+    on_error("hwCaps.epm.max_threads %d < EkaEpm::MAX_HEAP_WR_THREADS %d",
+	     hwCaps.epm.max_threads, EkaEpm::MAX_HEAP_WR_THREADS);
     
   if (hwCaps.epm.heap_total_bytes < EkaEpm::MaxHeap)
     on_error("hwCaps.epm.heap_total_bytes %d < EkaEpm::MaxHeap %ju",
@@ -131,7 +137,21 @@ bool EkaHwCaps::check() {
   if (hwCaps.epm.numof_actions < EkaEpm::MaxActions)
     on_error("hwCaps.epm.numof_actions %d < EkaEpm::MaxActions %d",
 	     hwCaps.epm.numof_actions, EkaEpm::MaxActions);
+      
+  errno = 0;
+  return true;
+}
+
+bool EkaHwCaps::checkEfc() {
+  errno = ENOSYS;
+  if (hwCaps.version.hwparser != EKA_EXPECTED_HWPARSER_VERSION) 
+    on_error("hwCaps.version.hwparser 0x%x != EKA_EXPECTED_HWPARSER_VERSION 0x%x",
+	     hwCaps.version.hwparser,EKA_EXPECTED_HWPARSER_VERSION);
   
-    
+  if (hwCaps.version.strategy != EKA_EXPECTED_EFC_STRATEGY) 
+    on_error("hwCaps.version.strategy %d != EKA_EXPECTED_EFC_STRATEGY %d",
+	     hwCaps.version.strategy,EKA_EXPECTED_EFC_STRATEGY);
+
+  errno = 0;
   return true;
 }

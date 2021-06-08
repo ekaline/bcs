@@ -61,7 +61,7 @@ class EkaEpm {
   static const uint64_t ALWAYS_ENABLE           = 0xFFFFFFFFFFFFFFFF;
 
   static const int EPM_REGIONS                  = 32;
-
+  static const uint MAX_HEAP_WR_THREADS         = 16;
   static const uint MaxActions                  = 8 * 1024;
   static const uint MaxActionsPerStrategy       = 256;
   static const int  MaxStrategies               = 4;

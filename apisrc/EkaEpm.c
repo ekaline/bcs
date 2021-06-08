@@ -19,6 +19,7 @@
 #include "EkaIgmp.h"
 #include "EkaEfc.h"
 #include "EkaUdpChannel.h"
+#include "EkaHwCaps.h"
 
 uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size);
 void ekaFireReportThread(EkaDev* dev);
@@ -56,7 +57,7 @@ void EkaEpm::initHeap(uint start, uint size, uint regionId) {
     uint8_t pageTmpBuf[HeapPage] = {};
     uint64_t pageStart = EpmHeapHwBaseAddr + start + i * HeapPage;
     //    EKA_LOG("Cleaning pageStart=%ju + %ju",pageStart,HeapPage);
-    uint thrId = regionId % EkaDev::MAX_CTX_THREADS;
+    uint thrId = regionId % MAX_HEAP_WR_THREADS;
     copyIndirectBuf2HeapHw_swap4(dev,pageStart,(uint64_t*)&pageTmpBuf,thrId,HeapPage);
   }
 }
@@ -200,6 +201,7 @@ EkaOpResult EkaEpm::initStrategies(const EpmStrategyParams *params,
     /* if (udpCh == NULL) on_error("udpCh == NULL"); */
     
     if (i == EFC_STRATEGY) {
+      dev->ekaHwCaps->checkEfc();
       strategy[i] = new EkaEfc(this,i,currActionIdx, &params[i],dev->hwFeedVer);
     } else {
       strategy[i] = new EpmStrategy(this,i,currActionIdx, &params[i],dev->hwFeedVer);

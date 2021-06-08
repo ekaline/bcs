@@ -230,6 +230,7 @@ bool EkaDev::initEpmTx() {
 /* ##################################################################### */
 
 bool EkaDev::openEpm() {
+  ekaHwCaps->checkEpm();
   epm = new EkaEpm(this);
   if (epm == NULL) on_error("epm == NULL");
   epm->InitTemplates();
