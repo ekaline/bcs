@@ -39,7 +39,7 @@
  * @return This will return an appropriate EkalineOpResult indicating success or an error code.
  */
 
-int printSecCtx(EkaDev* dev, const EfcSecurityCtx* msg);
+int printSecCtx(EkaDev* dev, const SecCtx* msg);
 int printMdReport(EkaDev* dev, const EfcMdReport* msg);
 int printControllerStateReport(EkaDev* dev, const EfcControllerState* msg);
 int printBoeFire(EkaDev* dev,const BoeNewOrderMsg* msg);
@@ -450,7 +450,7 @@ EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdO
   b += sizeof(EfcReportHdr);
 
   {
-    auto msg{ reinterpret_cast< const EfcSecurityCtx* >( b ) };
+    auto msg{ reinterpret_cast< const SecCtx* >( b ) };
 
     if (! mdOnly) printSecCtx(dev, msg);
 

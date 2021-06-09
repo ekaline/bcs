@@ -106,13 +106,13 @@ int printMdReport(EkaDev* dev, const EfcMdReport* msg) {
   return 0;
 }
 /* ########################################################### */
-int printSecCtx(EkaDev* dev, const EfcSecurityCtx* msg) {
+int printSecCtx(EkaDev* dev, const SecCtx* msg) {
   EKA_LOG("SecurityCtx:");
-  EKA_LOG("\tlowerBytesOfSecId = 0x%x ",msg->lower_bytes_of_sec_id);
+  EKA_LOG("\tlowerBytesOfSecId = 0x%x ",msg->lowerBytesOfSecId);
   EKA_LOG("\taskSize = %u",             msg->askSize);
   EKA_LOG("\tbidSize = %u",             msg->bidSize);
-  EKA_LOG("\taskMaxPrice = %u (%u)",    msg->ask_max_price, msg->ask_max_price * 100);
-  EKA_LOG("\tbidMinPrice = %u (%u)",    msg->bid_min_price, msg->bid_min_price * 100);
+  EKA_LOG("\taskMaxPrice = %u (%u)",    msg->askMaxPrice, msg->askMaxPrice * 100);
+  EKA_LOG("\tbidMinPrice = %u (%u)",    msg->bidMinPrice, msg->bidMinPrice * 100);
 
   return 0;
 }
@@ -241,19 +241,19 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len, uint32_t e
   //--------------------------------------------------------------------------
   ((EfcReportHdr*)b)->type = EfcReportType::kSecurityCtx;
   ((EfcReportHdr*)b)->idx  = ++reportIdx;
-  ((EfcReportHdr*)b)->size = sizeof(EfcSecurityCtx);
+  ((EfcReportHdr*)b)->size = sizeof(SecCtx);
   b += sizeof(EfcReportHdr);
 
-  auto secCtxReport { reinterpret_cast<EfcSecurityCtx*>(b) };
-  secCtxReport->lower_bytes_of_sec_id = report->securityCtx.lowerBytesOfSecId;
-  secCtxReport->bidSize               = report->securityCtx.bidSize;
-  secCtxReport->askSize               = report->securityCtx.askSize;
-  secCtxReport->ask_max_price         = report->securityCtx.askMaxPrice;
-  secCtxReport->bid_min_price         = report->securityCtx.bidMinPrice;
+  auto secCtxReport { reinterpret_cast<SecCtx*>(b) };
+  secCtxReport->lowerBytesOfSecId   = report->securityCtx.lowerBytesOfSecId;
+  secCtxReport->bidSize             = report->securityCtx.bidSize;
+  secCtxReport->askSize             = report->securityCtx.askSize;
+  secCtxReport->askMaxPrice         = report->securityCtx.askMaxPrice;
+  secCtxReport->bidMinPrice         = report->securityCtx.bidMinPrice;
 
   //  printSecCtx  (dev,secCtxReport);
 
-  b += sizeof(EfcSecurityCtx);
+  b += sizeof(SecCtx);
 
   //--------------------------------------------------------------------------
   ((EfcReportHdr*)b)->type = EfcReportType::kFirePkt;

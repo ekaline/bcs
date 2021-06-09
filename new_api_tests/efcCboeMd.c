@@ -43,7 +43,7 @@
 /* --------------------------------------------- */
 std::string ts_ns2str(uint64_t ts);
 static EkaOpResult printReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdOnly);
-int printSecCtx(EkaDev* dev, const EfcSecurityCtx* msg);
+int printSecCtx(EkaDev* dev, const SecCtx* msg);
 int printBoeFire(EkaDev* dev,const BoeNewOrderMsg* msg);
 int printMdReport(EkaDev* dev, const EfcMdReport* msg);
 int printControllerStateReport(EkaDev* dev, const EfcControllerState* msg);
@@ -200,7 +200,7 @@ static EkaOpResult printReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdO
 	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type) );
   b += sizeof(EfcReportHdr);
   {
-    auto msg{ reinterpret_cast< const EfcSecurityCtx* >( b ) };
+    auto msg{ reinterpret_cast< const SecCtx* >( b ) };
 
     if (! mdOnly) printSecCtx(dev, msg);
 
