@@ -99,20 +99,18 @@ static void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* 
 /* ----------------------------------------------------------------------- */
 
 bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence, EkaFhMode op) {
-  uint pos = 0;
-
   FhSecurity* s = NULL;
 
-  const HsvfMsgHdr* msgHdr = (const HsvfMsgHdr*)&m[pos];
-
-  const uint8_t* msgBody = (uint8_t*)msgHdr + sizeof(HsvfMsgHdr);
+  auto msgHdr {reinterpret_cast<const HsvfMsgHdr*>(m)};
+  
+  const uint8_t* msgBody = m + sizeof(HsvfMsgHdr);
 
   //  EKA_LOG("%s:%u: %ju \'%c%c\'",EKA_EXCH_DECODE(exch),id,seq,msgHdr->MsgType[0],msgHdr->MsgType[1]);
   //===================================================
   if (memcmp(msgHdr->MsgType,"F ",sizeof(msgHdr->MsgType)) == 0) { // OptionQuote
     if (op == EkaFhMode::DEFINITIONS) return true; // Dictionary is done
 
-    const HsvfOptionQuote* boxMsg = (const HsvfOptionQuote*)msgBody;
+    auto boxMsg {reinterpret_cast<const HsvfOptionQuote*>(msgBody)};
 
     SecurityIdT security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
 
@@ -149,8 +147,8 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     //    if (op == EkaFhMode::SNAPSHOT) return false;
     if (op != EkaFhMode::DEFINITIONS) return false;
 
-    const HsvfOptionInstrumentKeys* boxMsg = (const HsvfOptionInstrumentKeys*)msgBody;
-    
+    auto boxMsg {reinterpret_cast<const HsvfOptionInstrumentKeys*>(msgBody)};
+
     const char* symb = boxMsg->InstrumentDescription;
 
     EfhOptionDefinitionMsg msg{};
@@ -160,7 +158,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.header.underlyingId   = 0;
     msg.header.securityId     = charSymbol2SecurityId(symb);
     msg.header.sequenceNumber = sequence;
-    msg.header.timeStamp      = 0;
+    msg.header.timeStamp      = gr_ts;
     msg.header.gapNum         = gapNum;
 
     //    msg.secondaryGroup        = 0;
@@ -186,7 +184,28 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   } else if (memcmp(msgHdr->MsgType,"N ",sizeof(msgHdr->MsgType)) == 0) { // OptionSummary
 
     //===================================================
-  } 
+  } else if (memcmp(msgHdr->MsgType,"D ",sizeof(msgHdr->MsgType)) == 0) { // RFQ
+    auto boxMsg {reinterpret_cast<const HsvfRFQ*>(msgBody)};
+
+    SecurityIdT security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
+
+    EfhAuctionUpdateMsg msg{};
+    msg.header.msgType        = EfhMsgType::kAuctionUpdate;
+    msg.header.group.source   = EkaSource::kBOX_HSVF;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.securityId     = security_id;
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = gr_ts;
+    msg.header.gapNum         = gapNum;
+
+    msg.side                  = EfhOrderSide::kOther;
+    msg.auctionId             = security_id;
+    msg.quantity              = getNumField<uint32_t>(boxMsg->RequestedSize,sizeof(boxMsg->RequestedSize));
+
+    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+
+  }
  
   //===================================================
 

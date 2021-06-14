@@ -152,7 +152,11 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
   case EKA_BATS_PITCH_MSG::TRADE_LONG:
   case EKA_BATS_PITCH_MSG::TRADE_SHORT:
   case EKA_BATS_PITCH_MSG::TRADING_STATUS:
-    msg_timestamp = seconds + ((batspitch_generic_header *)m)->time; 
+    msg_timestamp = seconds + ((batspitch_generic_header *)m)->time;
+
+    if (state == GrpState::NORMAL)
+      checkTimeDiff(dev->deltaTimeLogFile,dev->midnightSystemClock,msg_timestamp,sequence);
+    
     break;
   default: {}
   }

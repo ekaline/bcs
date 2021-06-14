@@ -16,6 +16,10 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   //  uint64_t ts = get_ts(m);
   uint64_t ts = EKA_GEM_TS(m);
 
+  if (state == GrpState::NORMAL)
+    checkTimeDiff(dev->deltaTimeLogFile,dev->midnightSystemClock,
+		  ts,sequence);
+    
   char enc =  (char)m[0];
 
   if (fh->print_parsed_messages) eka_print_gem_msg(parser_log,(uint8_t*)m,id,sequence,ts);

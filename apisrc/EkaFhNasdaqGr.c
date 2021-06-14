@@ -19,6 +19,9 @@ bool EkaFhNasdaqGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
     //-----------------------------------------------------------------------------
     if (sequence == expected_sequence){
       if (parseMsg(pEfhRunCtx,msgData,sequence,EkaFhMode::MCAST)) return true;
+    } else {
+      EKA_WARN("WARNING: sequence %ju != expected_sequence %ju",
+	       sequence,expected_sequence);
     }
     //-----------------------------------------------------------------------------
     expected_sequence = sequence + 1;

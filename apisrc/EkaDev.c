@@ -137,6 +137,8 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   time_t t;
   srand((unsigned) time(&t));
 
+  midnightSystemClock = systemClockAtMidnight();
+  
   openEpm();
 
   ekaIgmp = new EkaIgmp(this);
@@ -195,6 +197,18 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   eka_write(FPGA_RT_CNTR,getFpgaTimeCycles());
   eka_write(SCRPAD_SW_VER,EKA_CORRECT_SW_VER | hwEnabledCores);
 
+#ifdef EFH_TIME_CHECK_PERIOD
+  deltaTimeLogFile = fopen("deltaTimeLogFile.csv","w");
+  if (deltaTimeLogFile == NULL)
+    on_error("failed to create deltaTimeLogFile.csv");
+  fprintf(deltaTimeLogFile,"%16s,%16s,%16s,%16s\n",
+	    "sequence",
+	    "currTimeNs",
+	    "exchTimeNs",
+	    "deltaNs");
+
+#endif  
+  
 }
 /* ##################################################################### */
 bool EkaDev::initEpmTx() {
@@ -368,6 +382,10 @@ EkaDev::~EkaDev() {
     core[c] = NULL;
   }
 
+#ifdef EFH_TIME_CHECK_PERIOD
+  fclose(deltaTimeLogFile);
+#endif  
+  
 
   uint64_t val = eka_read(SW_STATISTICS);
   val = val & 0x7fffffffffffffff;

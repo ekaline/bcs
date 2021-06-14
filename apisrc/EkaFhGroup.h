@@ -145,8 +145,8 @@ class EkaFhGroup {
 
   fh_q*                 q                  = NULL;
 
-  uint64_t              gr_ts              = -1;  // time stamp in nano
-  uint64_t              seconds            = -1;  // time stamp in seconds
+  uint64_t              gr_ts              = 0;  // time stamp in nano
+  uint64_t              seconds            = 0;  // time stamp in seconds
   EfhTradeStatus        trade_status       = EfhTradeStatus::kUninit;
 
   uint64_t              upd_ctr            = 0; // used for test periodic printouts

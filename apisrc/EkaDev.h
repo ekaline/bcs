@@ -152,9 +152,15 @@ class EkaDev {
   int64_t                   lastErrno   = 0;
   EfhExchangeErrorCode      lastExchErr = EfhExchangeErrorCode::kNoError;
 
+  //  std::chrono::high_resolution_clock::time_point midnightSystemClock;
+  std::chrono::system_clock::time_point midnightSystemClock;
+  
 #ifdef TEST_PRINT_DICT
   FILE* testDict;
 #endif
+
+  FILE* deltaTimeLogFile = NULL;
+  
   EkaUserReportQ*           userReportQ = NULL;
   EkaDev*                   next = NULL; // Next device in global list
 };
@@ -303,5 +309,48 @@ inline void checkScratchPadAddr(uint64_t addr) {
 	     addr,(uint64_t)SW_SCRATCHPAD_BASE,(uint64_t)SW_SCRATCHPAD_SIZE);
 }
 
+inline std::chrono::system_clock::time_point systemClockAtMidnight() {
+  auto now = std::chrono::system_clock::now();
+
+  time_t tnow = std::chrono::system_clock::to_time_t(now);
+  tm *date = std::localtime(&tnow);
+  date->tm_hour = 0;
+  date->tm_min = 0;
+  date->tm_sec = 0;
+  return std::chrono::system_clock::from_time_t(std::mktime(date));
+}
+
+inline uint64_t nsSinceMidnight() {
+  auto now = std::chrono::system_clock::now();
+
+  time_t tnow = std::chrono::system_clock::to_time_t(now);
+  tm *date = std::localtime(&tnow);
+  date->tm_hour = 0;
+  date->tm_min = 0;
+  date->tm_sec = 0;
+  auto midnight = std::chrono::system_clock::from_time_t(std::mktime(date));
+
+  return (uint64_t) std::chrono::duration_cast<std::chrono::nanoseconds>(now-midnight).count();
+}
+
+inline void checkTimeDiff(FILE* deltaTimeLogFile, std::chrono::system_clock::time_point midnight,
+			  uint64_t exchTimeNs, uint64_t sequence) {
+#ifdef EFH_TIME_CHECK_PERIOD
+  constexpr int period = EFH_TIME_CHECK_PERIOD == 0 ? 1 : EFH_TIME_CHECK_PERIOD;
+  if (sequence % period == 0) {
+    auto now = std::chrono::system_clock::now();
+
+    uint64_t currTimeNs = std::chrono::duration_cast<std::chrono::nanoseconds>(now - midnight).count();
+    int64_t  deltaNs    = currTimeNs - exchTimeNs;
+    
+    fprintf(deltaTimeLogFile,"%16ju,%16ju,%16jd,%16ju\n",
+	    sequence,
+	    currTimeNs,
+	    exchTimeNs,
+	    deltaNs);
+  }
+#endif
+  return;
+}
 
 #endif

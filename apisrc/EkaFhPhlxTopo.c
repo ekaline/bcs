@@ -74,7 +74,10 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
 #endif
 
     gr->resetNoMdTimer();
-
+#if FH_LAB
+    gr->state = EkaFhGroup::GrpState::NORMAL;
+    gr->expected_sequence = sequence;
+#endif    
     //-----------------------------------------------------------------------------
     switch (gr->state) {
     case EkaFhGroup::GrpState::INIT : { 

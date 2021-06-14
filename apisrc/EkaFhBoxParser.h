@@ -168,7 +168,14 @@ namespace Hsvf {
     /* char       EoM; // = HsvfEom; */
   };
 
-
+  struct HsvfRFQ { // "D "
+    /* char       SoM; //  = HsvfSom; */
+    /* HsvfMsgHdr hdr; */
+    char ExchangeID;
+    char InstrumentDescription[20];
+    char RequestedSize[8];
+  };
+  
   struct HsvfSystemTimeStamp { // "Z "
     /* char       SoM; //  = HsvfSom; */
     /* HsvfMsgHdr hdr; */
@@ -405,6 +412,6 @@ inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
 
   }
     
-}
+} // namespace Hsvf
 
 #endif
