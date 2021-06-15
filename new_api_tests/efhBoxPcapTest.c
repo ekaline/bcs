@@ -15,45 +15,7 @@
 
 #include "eka_hsvf_box_messages4pcapTest.h"
 
-//###################################################
-struct pcap_file_hdr {
-        uint32_t magic_number;   /* magic number */
-         uint16_t version_major;  /* major version number */
-         uint16_t version_minor;  /* minor version number */
-         int32_t  thiszone;       /* GMT to local correction */
-         uint32_t sigfigs;        /* accuracy of timestamps */
-         uint32_t snaplen;        /* max length of captured packets, in octets */
-         uint32_t network;        /* data link type */
- };
- struct pcap_rec_hdr {
-         uint32_t ts_sec;         /* timestamp seconds */
-         uint32_t ts_usec;        /* timestamp microseconds */
-         uint32_t cap_len;        /* number of octets of packet saved in file */
-         uint32_t len;            /* actual length of packet */
- };
-//###################################################
-#if 0
-static void hexDump (const char* desc, void *addr, int len) {
-    int i;
-    unsigned char buff[17];
-    unsigned char *pc = (unsigned char*)addr;
-    if (desc != NULL) printf("%s:\n", desc);
-    if (len == 0) { printf("  ZERO LENGTH\n"); return; }
-    if (len < 0)  { printf("  NEGATIVE LENGTH: %i\n",len); return; }
-    for (i = 0; i < len; i++) {
-        if ((i % 16) == 0) {
-            if (i != 0) printf("  %s\n", buff);
-            printf("  %04x ", i);
-        }
-        printf(" %02x", pc[i]);
-        if ((pc[i] < 0x20) || (pc[i] > 0x7e))  buff[i % 16] = '.';
-        else buff[i % 16] = pc[i];
-        buff[(i % 16) + 1] = '\0';
-    }
-    while ((i % 16) != 0) { printf("   "); i++; }
-    printf("  %s\n", buff);
-}
-#endif
+
 //#########################################################
 
 inline int skipChar(char* s, char char2skip) {

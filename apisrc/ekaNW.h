@@ -4,21 +4,21 @@
 #include <sys/types.h>
 
 
-/* struct pcap_file_hdr { */
-/*         uint32_t magic_number;   /\* magic number *\/ */
-/*          uint16_t version_major;  /\* major version number *\/ */
-/*          uint16_t version_minor;  /\* minor version number *\/ */
-/*          int32_t  thiszone;       /\* GMT to local correction *\/ */
-/*          uint32_t sigfigs;        /\* accuracy of timestamps *\/ */
-/*          uint32_t snaplen;        /\* max length of captured packets, in octets *\/ */
-/*          uint32_t network;        /\* data link type *\/ */
-/*  }; */
-/*  struct pcap_rec_hdr { */
-/*          uint32_t ts_sec;         /\* timestamp seconds *\/ */
-/*          uint32_t ts_usec;        /\* timestamp microseconds *\/ */
-/*          uint32_t cap_len;        /\* number of octets of packet saved in file *\/ */
-/*          uint32_t len;            /\* actual length of packet *\/ */
-/*  }; */
+struct pcap_file_hdr {
+        uint32_t magic_number;   /* magic number */
+         uint16_t version_major;  /* major version number */
+         uint16_t version_minor;  /* minor version number */
+         int32_t  thiszone;       /* GMT to local correction */
+         uint32_t sigfigs;        /* accuracy of timestamps */
+         uint32_t snaplen;        /* max length of captured packets, in octets */
+         uint32_t network;        /* data link type */
+ };
+ struct pcap_rec_hdr {
+         uint32_t ts_sec;         /* timestamp seconds */
+         uint32_t ts_usec;        /* timestamp microseconds */
+         uint32_t cap_len;        /* number of octets of packet saved in file */
+         uint32_t len;            /* actual length of packet */
+ };
 
 struct EkaEthHdr {
   uint8_t dest[6];

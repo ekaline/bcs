@@ -343,7 +343,7 @@ inline void checkTimeDiff(FILE* deltaTimeLogFile, std::chrono::system_clock::tim
     uint64_t currTimeNs = std::chrono::duration_cast<std::chrono::nanoseconds>(now - midnight).count();
     int64_t  deltaNs    = currTimeNs - exchTimeNs;
     
-    fprintf(deltaTimeLogFile,"%16ju,%16ju,%16jd,%16ju\n",
+    fprintf(deltaTimeLogFile,"%16ju,%16ju,%16ju,%16jd\n",
 	    sequence,
 	    currTimeNs,
 	    exchTimeNs,

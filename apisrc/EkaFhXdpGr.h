@@ -3,6 +3,9 @@
 
 #include "EkaFhGroup.h"
 #include "EkaFhTobBook.h"
+#include "EkaFhXdpParser.h"
+
+using namespace Xdp;
 
 class EkaFhXdpGr : public EkaFhGroup{
  public:
@@ -38,16 +41,21 @@ class EkaFhXdpGr : public EkaFhGroup{
   }
 
 
-  inline uint     findAndInstallStream(uint streamId, uint32_t curSeq) {
-    for (uint i = 0; i < numStreams; i ++) if (stream[i]->getId() == streamId) return i;
-    if (numStreams == MAX_STREAMS) on_error("numStreams == MAX_STREAMS (%u), cant add stream %u",numStreams,streamId);
+  inline auto findOrInstallStream(int streamId, uint32_t curSeq) {
+    for (auto i = 0; i < numStreams; i ++)
+      if (stream[i]->getId() == streamId) return i;
+    if (numStreams == MAX_STREAMS)
+      on_error("numStreams == MAX_STREAMS (%u), cant add stream %u",
+	       numStreams,streamId);
     stream[numStreams] = new Stream(streamId,curSeq);
+    if (stream[numStreams] == NULL)
+      on_error("stream[%u] == NULL",numStreams);
     return numStreams++;
   }
-  inline uint32_t getExpectedSeq(uint streamIdx) {
+  inline auto getExpectedSeq(uint streamIdx) {
     return stream[streamIdx]->getExpectedSeq();
   }
-  inline uint32_t setExpectedSeq(uint streamIdx,uint32_t seq) {
+  inline auto setExpectedSeq(uint streamIdx,uint32_t seq) {
     return stream[streamIdx]->setExpectedSeq(seq);
   }
   inline void     setGapStart() {
@@ -59,46 +67,22 @@ class EkaFhXdpGr : public EkaFhGroup{
     if (std::chrono::duration_cast<std::chrono::seconds>(finish-gapStart).count() > 120) return true;
     return false;
   }
-  inline uint     getId(uint streamIdx) {
+  inline auto getId(uint streamIdx) {
     return stream[streamIdx]->getId();
   }
-  inline uint32_t resetExpectedSeq(uint streamIdx) {
+  inline auto resetExpectedSeq(int streamIdx) {
     return stream[streamIdx]->resetExpectedSeq();
   }
 
-/* -------------------------------------- */
-  class Stream {
-  public:
-    Stream(uint strId,uint32_t seq) {
-      id = strId;
-      expectedSeq = seq;
-    }
-    inline uint     getId() {
-      return id;
-    }
-    inline uint32_t getExpectedSeq() {
-      return expectedSeq;
-    }
-    inline uint32_t setExpectedSeq(uint32_t seq) {
-      return (expectedSeq = seq);
-    }
-    inline uint32_t resetExpectedSeq() {
-      return (expectedSeq = 2);
-    }
-  private:
-    uint     id;
-    uint32_t expectedSeq;
-  };
 /* -------------------------------------- */
  public:
   bool     inGap = false;
 
  private:
-  static const uint MAX_STREAMS = 16;
   static const uint MAX_UNDERLYINGS = 512;
 
   Stream*  stream[MAX_STREAMS] = {};
-  uint     numStreams = 0;
+  int      numStreams = 0;
 
   std::chrono::high_resolution_clock::time_point gapStart;
 

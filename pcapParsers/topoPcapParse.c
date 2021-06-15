@@ -15,52 +15,36 @@
 
 using namespace TOPO;
 
-//###################################################
-struct pcap_file_hdr {
-        uint32_t magic_number;   /* magic number */
-         uint16_t version_major;  /* major version number */
-         uint16_t version_minor;  /* minor version number */
-         int32_t  thiszone;       /* GMT to local correction */
-         uint32_t sigfigs;        /* accuracy of timestamps */
-         uint32_t snaplen;        /* max length of captured packets, in octets */
-         uint32_t network;        /* data link type */
- };
- struct pcap_rec_hdr {
-         uint32_t ts_sec;         /* timestamp seconds */
-         uint32_t ts_usec;        /* timestamp microseconds */
-         uint32_t cap_len;        /* number of octets of packet saved in file */
-         uint32_t len;            /* actual length of packet */
- };
-
 
 //###################################################
 static char pcapFileName[256] = {};
+static bool printAll = false;
 
 struct GroupAddr {
     uint32_t  ip;
     uint16_t  port;
-    uint64_t  gr_ts;
+    uint64_t  baseTime;
     uint64_t  expectedSeq;
 };
 
 static GroupAddr group[] = {
-	{inet_addr("233.47.179.104"), 18016},
-	{inet_addr("233.47.179.105"), 18017},
-	{inet_addr("233.47.179.106"), 18018},
-	{inet_addr("233.47.179.107"), 18019},
-	{inet_addr("233.47.179.108"), 18020},
-	{inet_addr("233.47.179.109"), 18021},
-	{inet_addr("233.47.179.110"), 18022},
-	{inet_addr("233.47.179.111"), 18023},
+    {inet_addr("233.47.179.104"), 18016, 0, 0},
+    {inet_addr("233.47.179.105"), 18017, 0, 0},
+    {inet_addr("233.47.179.106"), 18018, 0, 0},
+    {inet_addr("233.47.179.107"), 18019, 0, 0},
+    {inet_addr("233.47.179.108"), 18020, 0, 0},
+    {inet_addr("233.47.179.109"), 18021, 0, 0},
+    {inet_addr("233.47.179.110"), 18022, 0, 0},
+    {inet_addr("233.47.179.111"), 18023, 0, 0},
 		     
-	{inet_addr("233.47.179.168"), 18016},
-	{inet_addr("233.47.179.169"), 18017},
-	{inet_addr("233.47.179.170"), 18018},
-	{inet_addr("233.47.179.171"), 18019},
-	{inet_addr("233.47.179.172"), 18020},
-	{inet_addr("233.47.179.173"), 18021},
-	{inet_addr("233.47.179.174"), 18022},
-	{inet_addr("233.47.179.175"), 18023}
+    {inet_addr("233.47.179.168"), 18016, 0, 0},
+    {inet_addr("233.47.179.169"), 18017, 0, 0},
+    {inet_addr("233.47.179.170"), 18018, 0, 0},
+    {inet_addr("233.47.179.171"), 18019, 0, 0},
+    {inet_addr("233.47.179.172"), 18020, 0, 0},
+    {inet_addr("233.47.179.173"), 18021, 0, 0},
+    {inet_addr("233.47.179.174"), 18022, 0, 0},
+    {inet_addr("233.47.179.175"), 18023, 0, 0}
 };
 
 
@@ -77,7 +61,8 @@ int findGrp(uint32_t ip, uint16_t port) {
 
 //###################################################
 void printUsage(char* cmd) {
-  printf("USAGE: %s -f [pcapFile]\n",cmd);
+  printf("USAGE: %s [options] -f [pcapFile]\n",cmd);
+  printf("          -p        Print all messages\n");
 }
 
 //###################################################
@@ -91,7 +76,7 @@ static int getAttr(int argc, char *argv[]) {
 	printf("pcapFile = %s\n", pcapFileName);  
 	break;  
       case 'p':  
-//	printAll = true;
+	printAll = true;
 	printf("printAll\n");
 	break;  
       case 'd':  
@@ -141,25 +126,42 @@ int main(int argc, char *argv[]) {
 	auto p {reinterpret_cast<const uint8_t*>(pkt)};
 	if (! EKA_IS_UDP_PKT(p)) continue;
 	
-	auto gr = findGrp(EKA_IPH_DST(p),EKA_UDPH_DST(p));
-	if (gr < 0) continue;
+	auto grId = findGrp(EKA_IPH_DST(p),EKA_UDPH_DST(p));
+	if (grId < 0) continue;
 
 	p += sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr);
 
 	auto msgCnt = EKA_MOLD_MSG_CNT(p);
 	uint64_t sequence = EKA_MOLD_SEQUENCE(p);
+	if (group[grId].expectedSeq != 0 && group[grId].expectedSeq != sequence) {
+	    printf (RED "%d: expectedSeq %ju != sequence %ju\n" RESET,
+		    grId,group[grId].expectedSeq,sequence);
+	}
 	p += sizeof(mold_hdr);
 
 	for (auto i = 0; i < msgCnt; i++) {
 	    uint16_t msgLen = be16toh(*(uint16_t*)p);
 	    p += sizeof(msgLen);
 	    //-----------------------------------------------------------------------------
-	    auto m {reinterpret_cast<const GenericHdr*>(p)};
-	    printf ("%d: %ju, \'%c\'\n",gr, sequence++,m->message_type);
+	    auto msgType = reinterpret_cast<const GenericHdr*>(p)->message_type;
+	    uint64_t ts = 0;
+	    switch (msgType) {
+	    case 'T': // TimeStamp
+		group[grId].baseTime = be32toh(reinterpret_cast<const TimeStamp*>(p)->time_seconds) * 1e9;
+		ts = group[grId].baseTime;
+		break;
+	    default:
+		ts = group[grId].baseTime + getNs(p);
+		break;
+	    }
+	    if (printAll)
+		printf ("%d: %ju, %ju, \'%c\'\n",grId,ts,sequence,msgType);
+	    sequence++;
 	    //-----------------------------------------------------------------------------
 
 	    p += msgLen;
 	}
+	group[grId].expectedSeq = sequence;
 	
     }
     return 0;

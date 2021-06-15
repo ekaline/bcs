@@ -39,23 +39,6 @@ int timespec2str(char *buf, int len, struct timespec *ts) {
     return 0;
 }
 
-struct pcap_file_hdr {
-        uint32_t magic_number;   /* magic number */
-         uint16_t version_major;  /* major version number */
-         uint16_t version_minor;  /* minor version number */
-         int32_t  thiszone;       /* GMT to local correction */
-         uint32_t sigfigs;        /* accuracy of timestamps */
-         uint32_t snaplen;        /* max length of captured packets, in octets */
-         uint32_t network;        /* data link type */
- };
- struct pcap_rec_hdr {
-         uint32_t ts_sec;         /* timestamp seconds */
-         uint32_t ts_usec;        /* timestamp microseconds */
-         uint32_t incl_len;       /* number of octets of packet saved in file */
-         uint32_t orig_len;       /* actual length of packet */
- };
-
-
 struct GrpState {
   const char* name;
   in_addr_t mc_ip;
@@ -124,8 +107,8 @@ int main(int argc, char *argv[]) {
 
   pcap_rec_hdr recHdr = {};
   while (fread(&recHdr,sizeof(recHdr),1,pcap_file) == 1) {
-    if (fread(buf,recHdr.orig_len,1,pcap_file) != 1) 
-      on_error ("Failed to read %d packet bytes",recHdr.orig_len);
+    if (fread(buf,recHdr.len,1,pcap_file) != 1) 
+      on_error ("Failed to read %d packet bytes",recHdr.len);
 
     if (! EKA_IS_UDP_PKT(buf)) continue;
 

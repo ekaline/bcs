@@ -16,7 +16,7 @@ LIBEKA_GIT_VER:= $(shell git rev-parse --short HEAD)
 
 EKALINE_FLAGS := $(GCC_EXTERNAL_DEFINES) -DLIBEKA_GIT_VER=\"$(LIBEKA_GIT_VER)\" $(GCC_SUPPRESSED_WARNINGS)
 
-all: batsPcapParse topoPcapParse
+all: batsPcapParse topoPcapParse xdpPcapParse
 
 batsPcapParse: batsPcapParse.c ../apisrc/EkaFhBatsParser.h
 	$(CXX) $(GCC_FLAGS) -o $@ $^ $(INCL) $(RUNTIME_LD_FLAGS) $(EKALINE_FLAGS)
@@ -24,5 +24,8 @@ batsPcapParse: batsPcapParse.c ../apisrc/EkaFhBatsParser.h
 topoPcapParse: topoPcapParse.c ../apisrc/EkaFhPhlxTopoParser.h
 	$(CXX) $(GCC_FLAGS) -o $@ $^ $(INCL) $(RUNTIME_LD_FLAGS) $(EKALINE_FLAGS)
 
+xdpPcapParse: xdpPcapParse.c ../apisrc/EkaFhXdpParser.h
+	$(CXX) $(GCC_FLAGS) -o $@ $^ $(INCL) $(RUNTIME_LD_FLAGS) $(EKALINE_FLAGS)
+
 clean:
-	rm -f /tmp/core* batsPcapParse topoPcapParse
+	rm -f /tmp/core* batsPcapParse topoPcapParse xdpPcapParse

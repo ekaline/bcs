@@ -1,6 +1,8 @@
 #include "EkaFhXdpGr.h"
 #include "EkaFhXdpParser.h"
 
+using namespace Xdp;
+
 /* ############################################################## */
 
 bool EkaFhXdpGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
@@ -9,7 +11,7 @@ bool EkaFhXdpGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 			       const uint8_t*   pktPtr, 
 			       uint             msgInPkt, 
 			       uint64_t         seq) {
-  uint8_t* p = (uint8_t*)pktPtr + sizeof(XdpPktHdr);//+sizeof(XdpStreamId);
+  const uint8_t* p = pktPtr + sizeof(XdpPktHdr);//+sizeof(XdpStreamId);
   uint64_t sequence = seq;
   for (uint msg=0; msg < msgInPkt; msg++) {
     uint16_t msg_len = EKA_XDP_MSG_LEN(p);
