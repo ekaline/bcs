@@ -259,7 +259,8 @@ int main(int argc, char *argv[]) {
 
 	    //-----------------------------------------------------------------------------
 	    auto msgType = reinterpret_cast<const XdpMsgHdr*>(p)->MsgType;
-	    uint64_t ts = pktHdr->time.SourceTime * 1e9 + pktHdr->time.SourceTimeNS;
+	    uint64_t msgTs = 0;
+	    uint64_t pktTs = pktHdr->time.SourceTime * 1e9 + pktHdr->time.SourceTimeNS;
 	    switch (msgType) {
 	    case MSG_TYPE::REFRESH_QUOTE :
 	    case MSG_TYPE::QUOTE : 
@@ -280,15 +281,23 @@ int main(int argc, char *argv[]) {
 	    case MSG_TYPE::COMPLEX_REFRESH_QUOTE :
 	    case MSG_TYPE::COMPLEX_REFRESH_TRADE : {
 		auto msgTimeHdr {reinterpret_cast<const XdpTimeHdr*>(p + sizeof(XdpMsgHdr))};
-		ts = msgTimeHdr->SourceTime * 1e9 + msgTimeHdr->SourceTimeNS;
+		msgTs = msgTimeHdr->SourceTime * 1e9 + msgTimeHdr->SourceTimeNS;
 	    }
 		break;
 	    default:
+//		ts = pktHdr->time.SourceTime * 1e9 + pktHdr->time.SourceTimeNS;		
 	    	break;
 	    }
-	    if (printAll)
-	    	printf ("%jd, %d:%d, %ju, %u, \'%u\'\n",
-			pktNum,grId,streamId,ts,sequence,(uint)msgType);
+	    if (printAll) {
+	    	printf ("%jd, %d:%d, %ju, %ju, %u, \'%u\'\n",
+			pktNum,grId,streamId,pktTs,msgTs,sequence,(uint)msgType);
+	    } else {
+		if (msgTs != 0 && msgTs != pktTs)
+		    printf ("%jd, %d:%d, %ju, %ju, %u, \'%u\' : delta = %jd ns\n",
+			    pktNum,grId,streamId,pktTs,msgTs,sequence,(uint)msgType,
+			    pktTs - msgTs
+			);		
+	    }
 	    sequence++;
 	    //-----------------------------------------------------------------------------
 	    stream->setExpectedSeq(sequence);

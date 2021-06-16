@@ -187,8 +187,8 @@ struct IgmpPkt {
 #define EKA_UDPH_SRC(pkt) ((uint16_t)(be16toh((EKA_UDPH(pkt))->src)))
 #define EKA_UDPH_DST(pkt) ((uint16_t)(be16toh((EKA_UDPH(pkt))->dest)))
 
-//#define EKA_UDPHDR_DST(hdr) (uint16_t)be16toh(((EkaUdpHdr*)hdr)->dest)
 #define EKA_UDPHDR_DST(hdr) be16toh(((EkaUdpHdr*)((hdr)))->dest)
+#define EKA_UDPHDR_LEN(hdr) be16toh(((EkaUdpHdr*)((hdr)))->len)
 
 #define EKA_IS_IP4_PKT(pkt) (EKA_ETH_TYPE(pkt) == EKA_ETHTYPE_IP)
 #define EKA_IS_ARP_PKT(pkt) (EKA_ETH_TYPE(pkt) == EKA_ETHTYPE_ARP)
