@@ -9,8 +9,10 @@
 #include "EkaFhGemGr.h"
 #include "EkaFhGemParser.h"
 
-static void eka_print_gem_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequence,uint64_t ts);
+static void eka_print_gem_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t sequence,uint64_t ts);
 std::string ts_ns2str(uint64_t ts);
+
+using namespace Gem;
 
 bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op) {
   //  uint64_t ts = get_ts(m);
@@ -20,7 +22,7 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     checkTimeDiff(dev->deltaTimeLogFile,dev->midnightSystemClock,
 		  ts,sequence);
     
-  char enc =  (char)m[0];
+  auto enc {static_cast<const char>(m[0])};
 
   if (fh->print_parsed_messages) eka_print_gem_msg(parser_log,(uint8_t*)m,id,sequence,ts);
 
@@ -35,8 +37,8 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   switch (enc) {    
   case 'D':  { //GEM_TQF_TYPE_OPTION_DIRECTORY
 
-    struct tqf_option_directory *message = (struct tqf_option_directory *)m;
- 
+    auto message {reinterpret_cast<const option_directory *>(m)};
+
     EfhOptionDefinitionMsg msg{};
     msg.header.msgType        = EfhMsgType::kOptionDefinition;
     msg.header.group.source   = exch;
@@ -63,7 +65,8 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
 
   }
   case 'M': { // END OF SNAPSHOT
-    struct tqf_snapshot_end *message = (struct tqf_snapshot_end *)m;
+    auto message {reinterpret_cast<const snapshot_end *>(m)};
+
     char seq_num_str[21] = {};
     memcpy(seq_num_str, message->sequence_number, 20);
     seq_after_snapshot = strtoul(seq_num_str, NULL, 10);
@@ -71,10 +74,11 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     return true;
   }
 
-  case 'Q':    // tqf_best_bid_and_ask_update_long
-  case 'q':  { // tqf_best_bid_and_ask_update_short 
-    struct tqf_best_bid_and_ask_update_long  *message_long  = (struct tqf_best_bid_and_ask_update_long *)m;
-    struct tqf_best_bid_and_ask_update_short *message_short = (struct tqf_best_bid_and_ask_update_short *)m;
+  case 'Q':    // best_bid_and_ask_update_long
+  case 'q':  { // best_bid_and_ask_update_short 
+    auto message_long  {reinterpret_cast<const best_bid_and_ask_update_long  *>(m)};
+    auto message_short {reinterpret_cast<const best_bid_and_ask_update_short *>(m)};
+
     bool long_form = (enc == 'Q');
 
     SecurityIdT security_id = long_form ? be32toh(message_long->option_id) : be32toh(message_short->option_id);
@@ -105,13 +109,11 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   }
 
   case 'A':
-  case 'B':   // tqf_best_bid_or_ask_update_long
+  case 'B':   // best_bid_or_ask_update_long
   case 'a':
-  case 'b': { // tqf_best_bid_or_ask_update_short
-    //    EKA_LOG("Im here");
-
-    struct tqf_best_bid_or_ask_update_long  *message_long  = (struct tqf_best_bid_or_ask_update_long *)m;
-    struct tqf_best_bid_or_ask_update_short *message_short = (struct tqf_best_bid_or_ask_update_short *)m;
+  case 'b': { // best_bid_or_ask_update_short
+    auto message_long  {reinterpret_cast<const best_bid_or_ask_update_long  *>(m)};
+    auto message_short {reinterpret_cast<const best_bid_or_ask_update_short *>(m)};
 
     bool long_form = (enc == 'A') || (enc == 'B');
 
@@ -140,8 +142,8 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     break;
   }
 
-  case 'T': { // tqf_ticker
-    struct tqf_ticker  *message = (struct tqf_ticker *)m;
+  case 'T': { // ticker
+    auto message {reinterpret_cast<const ticker *>(m)};
 
     SecurityIdT security_id = be32toh(message->option_id);
     s = book->findSecurity(security_id);
@@ -163,8 +165,9 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     return false;
   }
 
-  case 'H': { // tqf_trading_action
-    struct tqf_trading_action  *message = (struct tqf_trading_action *)m;
+  case 'H': { // trading_action
+    auto message {reinterpret_cast<const trading_action *>(m)};
+
     SecurityIdT security_id = be32toh(message->option_id);
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
@@ -175,8 +178,9 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     break;
   }
 
-  case 'O': { // tqf_security_open_close
-    struct tqf_security_open_close  *message = (struct tqf_security_open_close *)m;
+  case 'O': { // security_open_close
+    auto message {reinterpret_cast<const security_open_close *>(m)};
+
     SecurityIdT security_id = be32toh(message->option_id);
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
@@ -210,15 +214,17 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
 /* } */
  /* ##################################################################### */
 
-static void eka_print_gem_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequence,uint64_t ts) {
-  char enc = (char)m[0];
+static void eka_print_gem_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t sequence,uint64_t ts) {
+  auto enc {static_cast<const char>(m[0])};
+
   fprintf(md_file,"%s,%ju,%c,",ts_ns2str(ts).c_str(),sequence,enc);
 
   switch (enc) {
-  case 'Q':    // tqf_best_bid_and_ask_update_long
-  case 'q':  { // tqf_best_bid_and_ask_update_short 
-    tqf_best_bid_and_ask_update_long  *message_long  = (tqf_best_bid_and_ask_update_long *)m;
-    tqf_best_bid_and_ask_update_short *message_short = (tqf_best_bid_and_ask_update_short *)m;
+  case 'Q':    // best_bid_and_ask_update_long
+  case 'q':  { // best_bid_and_ask_update_short 
+    auto message_long  {reinterpret_cast<const best_bid_and_ask_update_long  *>(m)};
+    auto message_short {reinterpret_cast<const best_bid_and_ask_update_short *>(m)};
+
     bool long_form = (enc == 'Q');
     fprintf(md_file,"%u, %u,%u,%u,%u, %u,%u,%u,%u",
 	    long_form ? be32toh(message_long->option_id)          :            be32toh(message_short->option_id),
@@ -237,13 +243,11 @@ static void eka_print_gem_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequen
   }
 
   case 'A':
-  case 'B':   // tqf_best_bid_or_ask_update_long
+  case 'B':   // best_bid_or_ask_update_long
   case 'a':
-  case 'b': { // tqf_best_bid_or_ask_update_short
-    //    EKA_LOG("Im here");
-
-    tqf_best_bid_or_ask_update_long  *message_long  = (tqf_best_bid_or_ask_update_long *)m;
-    tqf_best_bid_or_ask_update_short *message_short = (tqf_best_bid_or_ask_update_short *)m;
+  case 'b': { // best_bid_or_ask_update_short
+    auto message_long  {reinterpret_cast<const best_bid_or_ask_update_long  *>(m)};
+    auto message_short {reinterpret_cast<const best_bid_or_ask_update_short *>(m)};
 
     bool long_form = (enc == 'A') || (enc == 'B');
     fprintf(md_file,"%u, %u,%u,%u,%u",
@@ -257,8 +261,9 @@ static void eka_print_gem_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequen
     break;
   }
 
-  case 'T': { // tqf_ticker
-    tqf_ticker  *message = (tqf_ticker *)m;
+  case 'T': { // ticker
+    auto message {reinterpret_cast<const ticker *>(m)};
+
     fprintf(md_file,"%u,%u,%u,%u,%c",
 	    be32toh(message->option_id),
 	    be32toh(message->last_price),
@@ -269,8 +274,9 @@ static void eka_print_gem_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequen
     break;
   }
 
-  case 'H': { // tqf_trading_action
-    tqf_trading_action  *message = (tqf_trading_action *)m;
+  case 'H': { // trading_action
+    auto message {reinterpret_cast<const trading_action *>(m)};
+
     fprintf(md_file,"%u,%c",
 	    be32toh(message->option_id),
 	    message->current_trading_state
@@ -278,8 +284,9 @@ static void eka_print_gem_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequen
     break;
   }
 
-  case 'O': { // tqf_security_open_close
-    tqf_security_open_close  *message = (tqf_security_open_close *)m;
+  case 'O': { // security_open_close
+    auto message {reinterpret_cast<const security_open_close *>(m)};
+
     fprintf(md_file,"%u,%c",
 	    be32toh(message->option_id),
 	    message->open_state
