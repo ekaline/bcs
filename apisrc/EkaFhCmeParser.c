@@ -16,6 +16,7 @@
 #include "EkaFhCmeGr.h"
 #endif
 
+using namespace Cme;
 
 std::string ts_ns2str(uint64_t ts);
 /* ##################################################################### */

@@ -4,6 +4,8 @@
 #include "EkaFhCmeGr.h"
 #include "EkaFhCmeParser.h"
 
+using namespace Cme;
+
 EkaOpResult getCmeDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhCmeGr* gr,EkaFhMode op);
 int ekaUdpMcConnect(EkaDev* dev, uint32_t ip, uint16_t port);
 
@@ -18,12 +20,11 @@ const uint8_t* EkaFhCme::getUdpPkt(EkaFhRunGroup* runGr,
 			     uint64_t*      sequence,
 			     uint8_t*       gr_id) {
 
-  uint8_t* pkt = (uint8_t*)runGr->udpCh->get();
+  auto pkt = runGr->udpCh->get();
   if (pkt == NULL) on_error("%s: pkt == NULL",EKA_EXCH_DECODE(exch));
   *pktLen   = runGr->udpCh->getPayloadLen();
 
-  const PktHdr* pktHdr = (const PktHdr*)pkt;
-
+  auto pktHdr {reinterpret_cast<const PktHdr*>(pkt)};
 
   *sequence = pktHdr->seq;
   *gr_id    = getGrId(pkt);

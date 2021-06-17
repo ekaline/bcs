@@ -37,5 +37,5 @@ gemPcapParse: gemPcapParse.c ../apisrc/EkaFhGemParser.h
 	$(CXX) $(GCC_FLAGS) -o $@ $^ $(INCL) $(RUNTIME_LD_FLAGS) $(EKALINE_FLAGS)
 
 clean:
-	rm -f /tmp/core* batsPcapParse topoPcapParse xdpPcapParse tomPcapParse nomPcapParse gemPcapParse
+	rm -f /tmp/core* *~ batsPcapParse topoPcapParse xdpPcapParse tomPcapParse nomPcapParse gemPcapParse
 
