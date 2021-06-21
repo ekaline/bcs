@@ -54,23 +54,16 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       break;
       /* ##################################################################### */
     case MsgId::MDInstrumentDefinitionFuture54 :
-      /* processedDefinitionMessages++; */
       process_MDInstrumentDefinitionFuture54(pEfhRunCtx,p,pktTime,pktSeq);
       break;
-      /* if (processedDefinitionMessages >= (int)rootBlock->TotNumReports) return true; */
-
       /* ##################################################################### */
     case MsgId::MDInstrumentDefinitionOption55 :
-      /* processedDefinitionMessages++; */
       process_MDInstrumentDefinitionOption55(pEfhRunCtx,p,pktTime,pktSeq);
       break;
-      /* if (processedDefinitionMessages >= (int)rootBlock->TotNumReports) return true; */
       /* ##################################################################### */
     case MsgId::MDInstrumentDefinitionSpread56 :
-      /* processedDefinitionMessages++; */
-      process_MDInstrumentDefinitionOption55(pEfhRunCtx,p,pktTime,pktSeq);
+      process_MDInstrumentDefinitionSpread56(pEfhRunCtx,p,pktTime,pktSeq);
       break;      
-
       /* ##################################################################### */     
     default:
       break;
