@@ -75,7 +75,8 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 	return true;
 
       if (vanillaOptionsDefinitionsState == DefinitionsCycleState::Done &&
-	  complexOptionsDefinitionsState == DefinitionsCycleState::Done)
+	  (complexOptionsDefinitionsState == DefinitionsCycleState::Done ||
+	   complexOptionsDefinitionsState == DefinitionsCycleState::Init))
 	return true;
     }
   }
