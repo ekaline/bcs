@@ -9,7 +9,7 @@
 #include "EkaFhPktQElem.h"
 
 class EkaFhCmeGr : public EkaFhGroup {
- public:
+public:
   virtual               ~EkaFhCmeGr() {};
 
   bool                  parseMsg(const EfhRunCtx* pEfhRunCtx,
@@ -37,9 +37,9 @@ class EkaFhCmeGr : public EkaFhGroup {
   int                   createPktQ();
 
   bool                  processPkt(const EfhRunCtx* pEfhRunCtx,
-				      const uint8_t*   pkt, 
-				      int16_t          pktLen,
-				      EkaFhMode        op);
+				   const uint8_t*   pkt, 
+				   int16_t          pktLen,
+				   EkaFhMode        op);
   
 
   void                  pushPkt2Q(const uint8_t* pkt, 
@@ -52,20 +52,10 @@ class EkaFhCmeGr : public EkaFhGroup {
 					 const EfhRunCtx* pEfhRunCtx, 
 					 uint64_t          sequence);
 
-  /* bool                  processUdpDefinitionsPkt(const EfhRunCtx* pEfhRunCtx, */
-  /* 						 const uint8_t*   pkt,  */
-  /* 						 int16_t          pktLen, */
-  /* 						 EkaFhMode        op); */
-
-  /* int                   closeIncrementalGap(EfhCtx*           pEfhCtx,  */
-  /* 					   const EfhRunCtx*  pEfhRunCtx,  */
-  /* 					   uint64_t          startSeq, */
-  /* 					   uint64_t          endSeq); */
-
-
 
   /* ##################################################################### */
-
+public:
+  
   static const uint   SEC_HASH_SCALE = 15;
   static const int    QELEM_SIZE     = 2048;
   static const int    MAX_ELEMS      = 1024 * 1024;
@@ -102,14 +92,46 @@ class EkaFhCmeGr : public EkaFhGroup {
 
   volatile bool inGap  = false;
 
-  int       processedDefinitionMessages = 0;  
+  enum class DefinitionsCycleState : int {
+					  Init = 0,
+					  InProgress,
+					  Done
+  };
+  
+  int vanillaOptionsDefinitions = 0;  
+  int complexOptionsDefinitions = 0;
+  int futuresDefinitions        = 0;
+  
+  DefinitionsCycleState vanillaOptionsDefinitionsState = DefinitionsCycleState::Init;
+  DefinitionsCycleState complexOptionsDefinitionsState = DefinitionsCycleState::Init;
+  DefinitionsCycleState futuresDefinitionsState        = DefinitionsCycleState::Init;
 
-  // int       processedOptionDefinitionMessages = 0;  
-  // int       processedFutureDefinitionMessages = 0;
-  // int       processedComplexDefinitionMessages = 0;
+private:
+  int process_QuoteRequest39(const EfhRunCtx* pEfhRunCtx,
+			     const uint8_t*   msg,
+			     uint64_t         pktTime,
+			     SequenceT        pktSeq);
+  int process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
+					 const uint8_t*   msg,
+					 uint64_t         pktTime,
+					 SequenceT        pktSeq);
+  int process_SnapshotFullRefresh52   (const EfhRunCtx* pEfhRunCtx,
+				       const uint8_t*   msg,
+				       uint64_t         pktTime,
+				       SequenceT        pktSeq);
+  int process_MDInstrumentDefinitionFuture54   (const EfhRunCtx* pEfhRunCtx,
+				       const uint8_t*   msg,
+				       uint64_t         pktTime,
+				       SequenceT        pktSeq);
 
-  // bool      optionDefinitionsDone  = false;
-  // bool      futureDefinitionsDone  = false;
-  // bool      complexDefinitionsDone = false;
+   int process_MDInstrumentDefinitionOption55   (const EfhRunCtx* pEfhRunCtx,
+				       const uint8_t*   msg,
+				       uint64_t         pktTime,
+				       SequenceT        pktSeq);
+   int process_MDInstrumentDefinitionSpread56   (const EfhRunCtx* pEfhRunCtx,
+				       const uint8_t*   msg,
+				       uint64_t         pktTime,
+				       SequenceT        pktSeq);
+        
 };
 #endif

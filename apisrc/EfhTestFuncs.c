@@ -425,6 +425,54 @@ void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg) {
   }
   return;
 }
+/* ------------------------------------------------------------ */
+
+void* onComplexDefinition(const EfhComplexDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+  if (! keep_work) return NULL;
+  EfhCtx* pEfhCtx = (EfhCtx*) userData;
+  if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
+
+  EkaSource exch = msg->header.group.source;
+  EkaLSI    grId = msg->header.group.localId;
+
+  auto gr = grCtx[(int)exch][grId];
+  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  
+  fprintf(gr->MD,"ComplexDefinition\n");
+  return NULL;
+}
+/* ------------------------------------------------------------ */
+
+void* onAuctionUpdate(const EfhAuctionUpdateMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+  if (! keep_work) return NULL;
+  EfhCtx* pEfhCtx = (EfhCtx*) userData;
+  if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
+
+  EkaSource exch = msg->header.group.source;
+  EkaLSI    grId = msg->header.group.localId;
+
+  auto gr = grCtx[(int)exch][grId];
+  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  
+  fprintf(gr->MD,"RFQ,");
+  fprintf(gr->MD,"%s,",    eka_get_date().c_str());
+  fprintf(gr->MD,"%s,",    eka_get_time().c_str());
+  fprintf(gr->MD,"%ju,",   msg->header.securityId);
+  fprintf(gr->MD,"%ju,",   msg->auctionId);
+  fprintf(gr->MD,"%d,",    (int)msg->type);
+  fprintf(gr->MD,"%d,",    (int)msg->side);
+  fprintf(gr->MD,"%d,",    (int)msg->customer);
+  fprintf(gr->MD,"%d,",    (int)msg->securityType);
+  fprintf(gr->MD,"%u,",    msg->quantity);
+  fprintf(gr->MD,"%jd,",   msg->price);
+  fprintf(gr->MD,"%ju,",   msg->endTimeNanos);
+  fprintf(gr->MD,"%s,",    std::string(msg->execBroker,sizeof(msg->execBroker)).c_str());
+  fprintf(gr->MD,"%s,",    std::string(msg->client    ,sizeof(msg->client    )).c_str());
+  fprintf(gr->MD,"%s,",    (ts_ns2str(msg->header.timeStamp)).c_str());
+  fprintf(gr->MD,"\n");
+
+  return NULL;
+}
 
 /* ------------------------------------------------------------ */
 
@@ -713,6 +761,8 @@ int createCtxts(std::vector<TestRunGroup>& testRunGroups,
       .numGroups                   = numRunGroups,
       .efhRunUserData              = 0,
       .onEfhOptionDefinitionMsgCb  = onOptionDefinition,
+      .onEfhComplexDefinitionMsgCb = onComplexDefinition,
+      .onEfhAuctionUpdateMsgCb     = onAuctionUpdate,
       .onEfhTradeMsgCb             = onTrade,
       .onEfhQuoteMsgCb             = onQuote,
       .onEfhOrderMsgCb             = onOrder,

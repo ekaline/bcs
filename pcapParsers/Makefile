@@ -8,7 +8,7 @@ CXXFLAGS ?= -std=$(CXX_STANDARD)
 LD_FLAGS ?= -static-libstdc++ -static-libgcc $(LD_ASAN_OPTIONS)
 RUNTIME_LD_FLAGS ?= -static-libstdc++ -static-libgcc
 LD_LIBS ?= -pthread -lrt -lm
-INCL := -I../apisrc
+INCL := -I../apisrc -I../apisrc/compat
 
 GCC_SUPPRESSED_WARNINGS:=-Wno-unused-function -Wno-packed-not-aligned
 
@@ -16,7 +16,7 @@ LIBEKA_GIT_VER:= $(shell git rev-parse --short HEAD)
 
 EKALINE_FLAGS := $(GCC_EXTERNAL_DEFINES) -DLIBEKA_GIT_VER=\"$(LIBEKA_GIT_VER)\" $(GCC_SUPPRESSED_WARNINGS)
 
-all: batsPcapParse topoPcapParse xdpPcapParse tomPcapParse nomPcapParse gemPcapParse
+all: batsPcapParse topoPcapParse xdpPcapParse tomPcapParse nomPcapParse gemPcapParse cmePcapParse
 
 batsPcapParse: batsPcapParse.c ../apisrc/EkaFhBatsParser.h
 	$(CXX) $(GCC_FLAGS) -o $@ $^ $(INCL) $(RUNTIME_LD_FLAGS) $(EKALINE_FLAGS)
@@ -36,6 +36,9 @@ nomPcapParse: nomPcapParse.c ../apisrc/EkaFhNomParser.h
 gemPcapParse: gemPcapParse.c ../apisrc/EkaFhGemParser.h
 	$(CXX) $(GCC_FLAGS) -o $@ $^ $(INCL) $(RUNTIME_LD_FLAGS) $(EKALINE_FLAGS)
 
+cmePcapParse: cmePcapParse.c ../apisrc/EkaFhCmeParser.h
+	$(CXX) $(GCC_FLAGS) -o $@ $^ $(INCL) $(RUNTIME_LD_FLAGS) $(EKALINE_FLAGS)
+
 clean:
-	rm -f /tmp/core* *~ batsPcapParse topoPcapParse xdpPcapParse tomPcapParse nomPcapParse gemPcapParse
+	rm -f /tmp/core* *~ batsPcapParse topoPcapParse xdpPcapParse tomPcapParse nomPcapParse gemPcapParse cmePcapParse
 

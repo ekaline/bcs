@@ -6,7 +6,8 @@
 enum class SideT : int {
   UNINIT = 0,
     BID = 1,
-    ASK = 2
+    ASK = 2,
+    OTHER = 3
     };
 
 enum class FhOrderType : int {

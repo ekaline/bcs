@@ -165,7 +165,14 @@ EkaOpResult EkaFhCme::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
   socklen_t addrlen = sizeof(sockaddr);
 
   gr->snapshot_active = true;
-  gr->processedDefinitionMessages = 0;
+  
+  gr->vanillaOptionsDefinitions = 0;  
+  gr->complexOptionsDefinitions = 0;
+  gr->futuresDefinitions        = 0;
+  gr->vanillaOptionsDefinitionsState = EkaFhCmeGr::DefinitionsCycleState::Init;
+  gr->complexOptionsDefinitionsState = EkaFhCmeGr::DefinitionsCycleState::Init;
+  gr->futuresDefinitionsState        = EkaFhCmeGr::DefinitionsCycleState::Init;
+  
   while (gr->snapshot_active) {
     uint8_t pkt[1536] = {};
     int size = recvfrom(sock, pkt, sizeof(pkt), 0, (sockaddr*) &addr, &addrlen);
@@ -176,8 +183,12 @@ EkaOpResult EkaFhCme::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
   gr->snapshot_active = false;
   gr->snapshotClosed  = true;
 
-  EKA_LOG("%s:%u: %d Definition messages processed",
-	  EKA_EXCH_DECODE(exch),gr->id,gr->processedDefinitionMessages);
+  EKA_LOG("%s:%u: Definitions Done: %d Vanilla Options, %d Complex Options, %d Futures",
+	  EKA_EXCH_DECODE(exch),gr->id,
+	  gr->vanillaOptionsDefinitions,
+	  gr->complexOptionsDefinitions,
+	  gr->futuresDefinitions
+	  );
   close (sock);
   return EKA_OPRESULT__OK;
 

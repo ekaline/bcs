@@ -156,5 +156,22 @@ inline int decPoints(int64_t a, int scaleF) {
   }
   return 1;
 }
+/* ------------------------------------------------------- */
 
+inline std::string ts_ns2str(uint64_t ts) {
+  char dst[32] = {};
+  uint ns = ts % 1000;
+  uint64_t res = (ts - ns) / 1000;
+  uint us = res % 1000;
+  res = (res - us) / 1000;
+  uint ms = res % 1000;
+  res = (res - ms) / 1000;
+  uint s = res % 60;
+  res = (res - s) / 60;
+  uint m = res % 60;
+  res = (res - m) / 60;
+  uint h = res % 24;
+  sprintf (dst,"%02d:%02d:%02d.%03d.%03d.%03d",h,m,s,ms,us,ns);
+  return std::string(dst);
+}
 #endif

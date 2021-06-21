@@ -108,9 +108,7 @@ int EkaFhCmeGr::closeSnapshotGap(EfhCtx*           pEfhCtx,
  /* ##################################################################### */
 
 void* getCmeSnapshot(void* attr) {
-#ifdef FH_LAB
-  return NULL;
-#endif
+
 
   auto params {reinterpret_cast<const EkaFhThreadAttr*>(attr)};
   if (params == NULL) on_error("params == NULL");
@@ -121,6 +119,12 @@ void* getCmeSnapshot(void* attr) {
 
   delete params;
 
+#ifdef FH_LAB
+  gr->snapshotClosed  = true;
+  gr->inGap           = false;
+  return NULL;
+#endif
+  
   pthread_detach(pthread_self());
 
   EkaDev* dev = gr->dev;

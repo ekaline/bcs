@@ -1,7 +1,9 @@
 #ifndef _EKA_FH_CME_PARSER_H_
 #define _EKA_FH_CME_PARSER_H_
 
-#include <inttypes.h>
+#include "EkaFhTypes.h"
+#include "eka_macros.h"
+#include "EfhMsgs.h"
 
 //#define EFH_CME_STRIKE_PRICE_SCALE 1
 //#define EFH_CME_ORDER_PRICE_SCALE  1
@@ -11,37 +13,38 @@
 #define EFH_CME_ORDER_PRICE_SCALE    1e9
 
 namespace Cme {
+
   enum class MsgId : uint16_t {
-    ChannelReset4                             = 4,
-      AdminHeartbeat12                        = 12,
-      AdminLogin15                            = 15,
-      AdminLogout16                           = 16,
-      MDInstrumentDefinitionFuture27          = 27,
-      MDInstrumentDefinitionSpread29          = 29,
-      SecurityStatus30                        = 30,
-      MDIncrementalRefreshBook32              = 32,
-      MDIncrementalRefreshDailyStatistics33   = 33,
-      MDIncrementalRefreshLimitsBanding34     = 34,
-      MDIncrementalRefreshSessionStatistics35 = 35,
-      MDIncrementalRefreshVolume37            = 37,
-      SnapshotFullRefresh38                   = 38,
-      QuoteRequest39                          = 39,
-      MDInstrumentDefinitionOption41          = 41,
-      MDIncrementalRefreshTradeSummary42      = 42,
-      MDIncrementalRefreshOrderBook43         = 43,
-      SnapshotFullRefreshOrderBook44          = 44,
-      MDIncrementalRefreshBook46              = 46,
-      MDIncrementalRefreshOrderBook47         = 47,
-      MDIncrementalRefreshTradeSummary48      = 48,
-      MDIncrementalRefreshDailyStatistics49   = 49,
-      MDIncrementalRefreshLimitsBanding50     = 50,
-      MDIncrementalRefreshSessionStatistics51 = 51,
-      SnapshotFullRefresh52                   = 52,
-      SnapshotFullRefreshOrderBook53          = 53,
-      MDInstrumentDefinitionFuture54          = 54,
-      MDInstrumentDefinitionOption55          = 55,
-      MDInstrumentDefinitionSpread56          = 56,
-      };
+			       ChannelReset4                             = 4,
+			       AdminHeartbeat12                        = 12,
+			       AdminLogin15                            = 15,
+			       AdminLogout16                           = 16,
+			       MDInstrumentDefinitionFuture27          = 27,
+			       MDInstrumentDefinitionSpread29          = 29,
+			       SecurityStatus30                        = 30,
+			       MDIncrementalRefreshBook32              = 32,
+			       MDIncrementalRefreshDailyStatistics33   = 33,
+			       MDIncrementalRefreshLimitsBanding34     = 34,
+			       MDIncrementalRefreshSessionStatistics35 = 35,
+			       MDIncrementalRefreshVolume37            = 37,
+			       SnapshotFullRefresh38                   = 38,
+			       QuoteRequest39                          = 39,
+			       MDInstrumentDefinitionOption41          = 41,
+			       MDIncrementalRefreshTradeSummary42      = 42,
+			       MDIncrementalRefreshOrderBook43         = 43,
+			       SnapshotFullRefreshOrderBook44          = 44,
+			       MDIncrementalRefreshBook46              = 46,
+			       MDIncrementalRefreshOrderBook47         = 47,
+			       MDIncrementalRefreshTradeSummary48      = 48,
+			       MDIncrementalRefreshDailyStatistics49   = 49,
+			       MDIncrementalRefreshLimitsBanding50     = 50,
+			       MDIncrementalRefreshSessionStatistics51 = 51,
+			       SnapshotFullRefresh52                   = 52,
+			       SnapshotFullRefreshOrderBook53          = 53,
+			       MDInstrumentDefinitionFuture54          = 54,
+			       MDInstrumentDefinitionOption55          = 55,
+			       MDInstrumentDefinitionSpread56          = 56,
+  };
 
   typedef uint8_t  uInt8;
   typedef uint8_t  uint8;
@@ -79,7 +82,7 @@ namespace Cme {
   typedef char      	SecurityIDSource_CONST_T;       // length='1',   semanticType='char',         const='8', description='SecurityIDSource'
   typedef char    	SecuritySubType_T[5];           // length='5',   semanticType='String',       const='',  description=''
   typedef char    	SecurityType_T[6];              // length='6',   semanticType='String',       const='',  description='SecurityType'
-  typedef char   	        Symbol_T[20];                   // length='20',  semanticType='String',       const='',  description='Symbol'
+  typedef char   	Symbol_T[20];                   // length='20',  semanticType='String',       const='',  description='Symbol'
   typedef char    	Text_T[180];                    // length='180', semanticType='String',       const='',  description='Text'
   typedef char    	UnderlyingSymbol_T[20];         // length='20',  semanticType='String',       const='',  description=''
   typedef char    	UnitOfMeasure_T[30];            // length='30',  semanticType='String',       const='',  description=''
@@ -151,110 +154,110 @@ namespace Cme {
 
 
   enum class AggressorSide : uInt8NULL_T {
-    NoAggressor = 0,
-      Buy       = 1,
-      Sell      = 2
-      };
+					  NoAggressor = 0,
+					  Buy       = 1,
+					  Sell      = 2
+  };
 
   enum class AggressorSide_T : uInt8 {
-    Activation = 5,
-      LastEligibleTradeDate       = 7,
-      };
+				      Activation = 5,
+				      LastEligibleTradeDate       = 7,
+  };
 
   enum class HaltReason_T : uInt8 {
-    GroupSchedule = 0,
-      SurveillanceIntervention = 1,
-      MarketEvent = 2,
-      InstrumentActivation = 3,
-      InstrumentExpiration = 4,
-      Unknown = 5,
-      RecoveryInProcess = 6
-      };
+				   GroupSchedule = 0,
+				   SurveillanceIntervention = 1,
+				   MarketEvent = 2,
+				   InstrumentActivation = 3,
+				   InstrumentExpiration = 4,
+				   Unknown = 5,
+				   RecoveryInProcess = 6
+  };
 
   enum class LegSide_T : uInt8 {
-    BuySide = 1,
-      SellSide = 2
-      };
+				BuySide = 1,
+				SellSide = 2
+  };
 
   enum class MDEntryType_T : CHAR_T {
-    Bid = '0',
-      Offer = '1',
-      Trade = '2',
-      OpenPrice = '4',
-      SettlementPrice = '6',
-      TradingSessionHighPrice = '7',
-      TradingSessionLowPrice = '8',
-      ClearedVolume = 'B',
-      OpenInterest = 'C',
-      ImpliedBid = 'E',
-      ImpliedOffer = 'F',
-      BookReset = 'J',
-      SessionHighBid = 'N',
-      SessionLowOffer = 'O',
-      FixingPrice = 'W',
-      ElectronicVolume = 'e',
-      ThresholdLimitsandPriceBandVariation = 'g'
-      };
+				     Bid = '0',
+				     Offer = '1',
+				     Trade = '2',
+				     OpenPrice = '4',
+				     SettlementPrice = '6',
+				     TradingSessionHighPrice = '7',
+				     TradingSessionLowPrice = '8',
+				     ClearedVolume = 'B',
+				     OpenInterest = 'C',
+				     ImpliedBid = 'E',
+				     ImpliedOffer = 'F',
+				     BookReset = 'J',
+				     SessionHighBid = 'N',
+				     SessionLowOffer = 'O',
+				     FixingPrice = 'W',
+				     ElectronicVolume = 'e',
+				     ThresholdLimitsandPriceBandVariation = 'g'
+  };
 
   enum class MDEntryTypeBook_T : CHAR_T {
-    Bid = '0',
-      Offer = '1',
-      ImpliedBid = 'E',
-      ImpliedOffer = 'F',
-      BookReset = 'J',
-      };
+					 Bid = '0',
+					 Offer = '1',
+					 ImpliedBid = 'E',
+					 ImpliedOffer = 'F',
+					 BookReset = 'J',
+  };
 
   enum class MDEntryTypeDailyStatistics_T : CHAR_T {
-    SettlementPrice = '6',
-      ClearedVolume = 'B',
-      OpenInterest = 'C',
-      FixingPrice = 'W'
-      };
+						    SettlementPrice = '6',
+						    ClearedVolume = 'B',
+						    OpenInterest = 'C',
+						    FixingPrice = 'W'
+  };
 
   enum class MDEntryTypeStatistics_T : CHAR_T {
-    OpenPrice = '4',
-      HighTrade = '7',
-      LowTrade = '8',
-      HighestBid = 'N',
-      LowestOffer = 'O'
-      };
+					       OpenPrice = '4',
+					       HighTrade = '7',
+					       LowTrade = '8',
+					       HighestBid = 'N',
+					       LowestOffer = 'O'
+  };
 
   enum class MDUpdateAction_T : uInt8 {
-    New = 0,
-      Change = 1,
-      Delete = 2,
-      DeleteThru = 3,
-      DeleteFrom = 4,
-      Overlay = 5
-      };
+				       New = 0,
+				       Change = 1,
+				       Delete = 2,
+				       DeleteThru = 3,
+				       DeleteFrom = 4,
+				       Overlay = 5
+  };
 
   enum class OpenCloseSettlFlag_T : uInt8NULL_T {
-    DailyOpenPrice = 0,
-      IndicativeOpeningPrice = 5
-      };
+						 DailyOpenPrice = 0,
+						 IndicativeOpeningPrice = 5
+  };
 
   enum class OrderUpdateAction_T : uInt8 {
-    New = '0',
-      Update = '1',
-      Delete = '2',
-      };
+					  New = '0',
+					  Update = '1',
+					  Delete = '2',
+  };
 
   enum class PutOrCall_T : uInt8 {
-    Put = 0,
-      Call = 1
-      };
+				  Put = 0,
+				  Call = 1
+  };
 
   inline bool operator==(const PutOrCall_T &lhs, const uint8_t &rhs) noexcept {
-									       return (uint8_t)lhs == rhs;
+    return (uint8_t)lhs == rhs;
   }
   inline bool operator==(const uint8_t &lhs, const PutOrCall_T &rhs) noexcept {
-									       return lhs == (uint8_t)rhs;
+    return lhs == (uint8_t)rhs;
   }
   inline bool operator!=(const PutOrCall_T &lhs, const uint8_t &rhs) noexcept {
-									       return !operator==(lhs, rhs);
+    return !operator==(lhs, rhs);
   }
   inline bool operator!=(const uint8_t &lhs, const PutOrCall_T &rhs) noexcept {
-									       return !operator==(lhs, rhs);
+    return !operator==(lhs, rhs);
   }
   enum class SecurityTradingEvent_T : uInt8 {
 					     NoEvent = 0,
@@ -265,18 +268,18 @@ namespace Cme {
   };
 
   enum class SecurityTradingStatus_T : uInt8NULL_T {
-    TradingHalt = 2,
-      Close = 4,
-      NewPriceIndication = 15,
-      ReadyToTrade = 17,
-      NotAvailableForTrading = 18,
-      UnknownorInvalid = 20,
-      PreOpen = 21,
-      PreCross = 24,
-      Cross = 25,
-      PostClose = 26,
-      NoChange = 103,
-      };
+						    TradingHalt = 2,
+						    Close = 4,
+						    NewPriceIndication = 15,
+						    ReadyToTrade = 17,
+						    NotAvailableForTrading = 18,
+						    UnknownorInvalid = 20,
+						    PreOpen = 21,
+						    PreCross = 24,
+						    Cross = 25,
+						    PostClose = 26,
+						    NoChange = 103,
+  };
 
 #define SecurityTradingStatus2STR(x)					\
   x == SecurityTradingStatus_T::TradingHalt              ? "TradingHalt"	    : \
@@ -294,59 +297,59 @@ namespace Cme {
 
 
   enum class SecurityUpdateAction_T : CHAR_T {
-    Add = 'A',
-      Delete = 'D',
-      Modify = 'M',
-      };
+					      Add = 'A',
+					      Delete = 'D',
+					      Modify = 'M',
+  };
 
   // Bitmap. Fields are bit indxes
   enum class InstAttribValue_T : uInt32 {
-    ElectronicMatchEligible = 0,
-      OrderCrossEligible = 1,
-      BlockTradeEligible = 2,
-      EFPEligible = 3,
-      EBFEligible = 4,
-      EFSEligible = 5,
-      EFREligible = 6,
-      OTCEligible = 7,
-      iLinkIndicativeMassQuotingEligible = 8,
-      NegativeStrikeEligible = 9,
-      NegativePriceOutrightEligible = 10,
-      IsFractional = 11,
-      VolatilityQuotedOption = 12,
-      RFQCrossEligible = 13,
-      ZeroPriceOutrightEligible = 14,
-      DecayingProductEligibility = 15,
-      VariableProductEligibility = 16,
-      DailyProductEligibility = 17,
-      GTOrdersEligibility = 18,
-      ImpliedMatchingEligibility = 19,
-      TriangulationEligible = 20,
-      VariableCabEligible = 21
-      };
+					 ElectronicMatchEligible = 0,
+					 OrderCrossEligible = 1,
+					 BlockTradeEligible = 2,
+					 EFPEligible = 3,
+					 EBFEligible = 4,
+					 EFSEligible = 5,
+					 EFREligible = 6,
+					 OTCEligible = 7,
+					 iLinkIndicativeMassQuotingEligible = 8,
+					 NegativeStrikeEligible = 9,
+					 NegativePriceOutrightEligible = 10,
+					 IsFractional = 11,
+					 VolatilityQuotedOption = 12,
+					 RFQCrossEligible = 13,
+					 ZeroPriceOutrightEligible = 14,
+					 DecayingProductEligibility = 15,
+					 VariableProductEligibility = 16,
+					 DailyProductEligibility = 17,
+					 GTOrdersEligibility = 18,
+					 ImpliedMatchingEligibility = 19,
+					 TriangulationEligible = 20,
+					 VariableCabEligible = 21
+  };
 
   // Bitmap. Fields are bit indxes
   typedef uInt8 MatchEventIndicator_T;
   enum class MatchEventIndicator_Bit : uInt8 {
-    LastTradeMsg     = 0x01, // = 0
-      LastVolumeMsg  = 0x02, // = 1
-      LastQuoteMsg   = 0x04, // = 2
-      LastStatsMsg   = 0x08,  // = 3
-      LastImpliedMsg = 0x10, // = 4
-      RecoveryMsg    = 0x20, // = 5
-      Reserved       = 0x40, // = 6
-      EndOfEvent     = 0x80  // = 7
-      };
+					      LastTradeMsg     = 0x01, // = 0
+					      LastVolumeMsg  = 0x02, // = 1
+					      LastQuoteMsg   = 0x04, // = 2
+					      LastStatsMsg   = 0x08,  // = 3
+					      LastImpliedMsg = 0x10, // = 4
+					      RecoveryMsg    = 0x20, // = 5
+					      Reserved       = 0x40, // = 6
+					      EndOfEvent     = 0x80  // = 7
+  };
 
   // Bitmap. Fields are bit indxes
   enum class SettlPriceType_T: uInt8 {
-    FinalDaily = 0,
-      Actual = 1,
-      Rounded = 2,
-      Intraday = 3,
-      ReservedBits = 4,
-      NullValue = 7,
-      };
+				      FinalDaily = 0,
+				      Actual = 1,
+				      Rounded = 2,
+				      Intraday = 3,
+				      ReservedBits = 4,
+				      NullValue = 7,
+  };
 
 
 
@@ -685,6 +688,12 @@ namespace Cme {
     MDEntryTypeBook_T             	MDEntryType;
   } __attribute__((packed));
 
+  struct OptionDefinition55RelatedInstrumentEntry {
+    Int32_T                       	SecurityID;
+    //SecurityIDSource_CONST_T            	SecurityIDSource;
+    Symbol_T                      	Symbol;
+  } __attribute__((packed));
+
 
   struct MDSnapshotFullRefreshMdEntry {
     PRICENULL9_T                  	MDEntryPx;
@@ -716,6 +725,259 @@ namespace Cme {
     MatchEventIndicator_T MatchEventIndicator;
   } __attribute__((packed));
 
+  inline auto getSide39(int rfqSide) {
+    switch (rfqSide) {
+    case 1 : return EfhOrderSide::kBid;
+    case 2 : return EfhOrderSide::kAsk;
+    case 8 : return EfhOrderSide::kOther; //CROSS
+    default: return EfhOrderSide::kErr;
+    }
+  }
+  
+  inline auto getSide46(MDEntryTypeBook_T mdEntryTypeBook) {
+    switch (mdEntryTypeBook) {
+    case MDEntryTypeBook_T::Bid          : return SideT::BID;
+    case MDEntryTypeBook_T::Offer        : return SideT::ASK;
+
+    case MDEntryTypeBook_T::BookReset    :
+      /* TBD */
+    case MDEntryTypeBook_T::ImpliedBid   :
+    case MDEntryTypeBook_T::ImpliedOffer : return SideT::OTHER;
+    default:
+      on_error("Unexpected MDEntryType \'%c\'",(char)mdEntryTypeBook);
+    }
+    return SideT::OTHER;
+  }
+
+  inline auto getSide52(MDEntryType_T mdEntryType) {
+    switch (mdEntryType) {
+    case MDEntryType_T::Bid   : return SideT::BID;
+    case MDEntryType_T::Offer : return SideT::ASK;
+
+    case MDEntryType_T::Trade :
+    case MDEntryType_T::OpenPrice :
+    case MDEntryType_T::SettlementPrice :
+    case MDEntryType_T::TradingSessionHighPrice :
+    case MDEntryType_T::TradingSessionLowPrice :
+    case MDEntryType_T::ClearedVolume :
+    case MDEntryType_T::OpenInterest :
+    case MDEntryType_T::ImpliedBid :
+    case MDEntryType_T::ImpliedOffer :
+    case MDEntryType_T::SessionHighBid :
+    case MDEntryType_T::SessionLowOffer :
+    case MDEntryType_T::FixingPrice :
+    case MDEntryType_T::ElectronicVolume :
+    case MDEntryType_T::ThresholdLimitsandPriceBandVariation :
+    case MDEntryType_T::BookReset : return SideT::OTHER;
+
+    default:
+      on_error("Unexpected MDEntryType \'%c\'",(char)mdEntryType);
+    } //switch mdEntryType
+    return SideT::OTHER;
+  }
+  
+
+  inline auto getEfhOptionType(PutOrCall_T type) {
+    switch (type) {
+    case PutOrCall_T::Put  : return EfhOptionType::kPut;
+    case PutOrCall_T::Call : return EfhOptionType::kCall;
+    default                : return EfhOptionType::kErr;
+    }
+  }
+
+  inline uint32_t printPkt(const uint8_t* pkt, const int payloadLen) {
+    auto p {pkt};
+    auto pktHdr {reinterpret_cast<const PktHdr*>(p)};
+
+    auto ts        {pktHdr->time};
+    auto sequence  {pktHdr->seq};
+    printf ("pktTime=%ju,pktSeq=%u\n",ts,sequence);
+
+    p += sizeof(*pktHdr);
+
+    while (p - pkt < payloadLen) {
+      auto m {p};
+      auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
+      printf ("\tMsgId=%d,size=%u,blockLen=%u\n",
+	      (int)msgHdr->templateId,
+	      msgHdr->size,
+	      msgHdr->blockLen);
+      m += sizeof(*msgHdr);
+
+      switch (msgHdr->templateId) {
+	/* ##################################################################### */
+      case MsgId::QuoteRequest39 : {
+	auto rootBlock {reinterpret_cast<const QuoteRequest39_mainBlock*>(m)};
+	auto quoteReqID {std::string(rootBlock->QuoteReqID,sizeof(rootBlock->QuoteReqID))};
+
+	printf ("\t\tQuoteRequest39: TransactTime=%jx, MatchEventIndicator=0x%x,quoteReqID=\'%s\'\n",
+		rootBlock->TransactTime,rootBlock->MatchEventIndicator,quoteReqID.c_str());
+	m += msgHdr->blockLen;
+	/* ------------------------------- */
+	auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
+	m += sizeof(*pGroupSize);
+	/* ------------------------------- */
+	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+	  auto e {reinterpret_cast<const QuoteRequest39_legEntry*>(m)};
+	  auto symbol {std::string(e->Symbol,sizeof(e->Symbol))};
+
+	  printf ("\t\t\tSymbol=\'%s\',secId=%8d,QuoteType=0x%x,side=0x%x,size=0x%x\n",
+		  symbol.c_str(),
+		  e->SecurityID,
+		  e->QuoteType,
+		  e->Side,
+		  e->OrderQty);
+
+	  m += pGroupSize->blockLength;
+	}
+      }
+	break;
+	/* ##################################################################### */
+      case MsgId::SnapshotFullRefresh52 : {
+	auto rootBlock {reinterpret_cast<const SnapshotFullRefresh52_mainBlock*>(m)};
+	/* ------------------------------- */
+	printf ("\t\tSnapshotFullRefresh52: secId=%8d,LastMsgSeqNumProcessed=%u,TotNumReports=%u,%s,%s\n",
+		rootBlock->SecurityID,
+		rootBlock->LastMsgSeqNumProcessed,
+		rootBlock->TotNumReports,
+		SecurityTradingStatus2STR(rootBlock->MDSecurityTradingStatus),
+		ts_ns2str(rootBlock->LastUpdateTime).c_str());
+		
+      }
+	break;
+	/* ##################################################################### */
+      case MsgId::MDIncrementalRefreshBook46 : {
+	/* ------------------------------- */
+	auto rootBlock {reinterpret_cast<const MDIncrementalRefreshBook46_mainBlock*>(m)};
+	printf ("\t\tIncrementalRefreshBook46: TransactTime=%jx, MatchEventIndicator=0x%x\n",
+		rootBlock->TransactTime,rootBlock->MatchEventIndicator);
+	m += msgHdr->blockLen;
+	/* ------------------------------- */
+	auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
+	m += sizeof(*pGroupSize);
+	/* ------------------------------- */
+	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+	  auto e {reinterpret_cast<const IncrementalRefreshMdEntry*>(m)};
+	  printf ("\t\t\tsecId=%8d,%6s,%5s,plvl=%u,p=%16jd,s=%d\n",
+		  e->SecurityID,
+		  MDpdateAction2STR(e->MDUpdateAction),
+		  MDEntryTypeBook2STR(e->MDEntryType),
+		  e->MDPriceLevel,
+		  (int64_t) (e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE),
+		  e->MDEntrySize);
+
+	  m += pGroupSize->blockLength;
+	}
+      }
+	break;
+	/* ##################################################################### */
+      case MsgId::MDInstrumentDefinitionFuture54 : {
+	auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionFuture54_mainBlock*>(m)};
+	/* ------------------------------- */
+	auto symbol           {std::string(rootBlock->Symbol,          sizeof(rootBlock->Symbol))};
+	auto cfiCode          {std::string(rootBlock->CFICode,         sizeof(rootBlock->CFICode))};
+	auto securityExchange {std::string(rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange))};
+	auto asset            {std::string(rootBlock->Asset,           sizeof(rootBlock->Asset))};
+	auto securityType     {std::string(rootBlock->SecurityType,    sizeof(rootBlock->SecurityType))};
+	auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
+
+	printf ("\t\tDefinitionFuture54: \'%s\',\'%s\',\'%s\',\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u\n",
+		securityExchange.c_str(),
+		asset.c_str(),
+		symbol.c_str(),
+		securityType.c_str(),
+		rootBlock->SecurityID,
+		cfiCode.c_str(),
+		pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week
+		);
+      }
+	break;
+	/* ##################################################################### */
+      case MsgId::MDInstrumentDefinitionOption55 : {
+	auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionOption55_mainBlock*>(m)};
+	/* ------------------------------- */
+	auto symbol           {std::string(rootBlock->Symbol,	       sizeof(rootBlock->Symbol))};
+	auto cfiCode          {std::string(rootBlock->CFICode,	       sizeof(rootBlock->CFICode))};
+	auto securityExchange {std::string(rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange))};
+	auto asset            {std::string(rootBlock->Asset,	       sizeof(rootBlock->Asset))};
+	auto securityType     {std::string(rootBlock->SecurityType,    sizeof(rootBlock->SecurityType))};
+	auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
+
+	auto putOrCall {getEfhOptionType(rootBlock->PutOrCall)};
+
+	if (putOrCall == EfhOptionType::kErr) {
+	  hexDump("DefinitionOption55",msgHdr,msgHdr->size);	  
+	  on_error("Unexpected rootBlock->PutOrCall = 0x%x",(int)rootBlock->PutOrCall);
+	}
+	printf("\t\tDefinitionOption55: \'%s\',\'%s\',\'%s\',%s,\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u, %ju (%jd)\n",
+	       securityExchange.c_str(),
+	       asset.c_str(),
+	       symbol.c_str(),
+	       putOrCall == EfhOptionType::kPut ? "PUT" : putOrCall == EfhOptionType::kCall ? "CALL" : "ERR",
+	       securityType.c_str(),
+	       rootBlock->SecurityID,
+	       cfiCode.c_str(),
+	       pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week,
+	       rootBlock->StrikePrice,
+	       (int64_t)(rootBlock->StrikePrice / EFH_CME_ORDER_PRICE_SCALE / 1e9 * rootBlock->DisplayFactor)
+	       );
+      }
+	break;
+	/* ##################################################################### */
+      case MsgId::MDInstrumentDefinitionSpread56 : {
+	auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionOption55_mainBlock*>(m)};
+	printf ("\t\tMDInstrumentDefinitionSpread56: MatchEventIndicator=0x%x\n",
+		rootBlock->MatchEventIndicator);
+	m += msgHdr->blockLen;
+
+	/* ------------------------------- */
+	auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
+	m += sizeof(*pGroupSize_EventType);
+	for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++) 
+	  m += pGroupSize_EventType->blockLength;
+	/* ------------------------------- */		
+	auto pGroupSize_MDFeedType {reinterpret_cast<const groupSize_T*>(m)};
+	m += sizeof(*pGroupSize_MDFeedType);
+	for (uint i = 0; i < pGroupSize_MDFeedType->numInGroup; i++) 
+	  m += pGroupSize_MDFeedType->blockLength;
+	/* ------------------------------- */
+	auto pGroupSize_InstAttribType {reinterpret_cast<const groupSize_T*>(m)};
+	m += sizeof(*pGroupSize_InstAttribType);
+	for (uint i = 0; i < pGroupSize_InstAttribType->numInGroup; i++)
+	  m += pGroupSize_InstAttribType->blockLength;
+	/* ------------------------------- */
+	auto pGroupSize_LotTypeRules {reinterpret_cast<const groupSize_T*>(m)};
+	m += sizeof(*pGroupSize_LotTypeRules);
+	for (uint i = 0; i < pGroupSize_LotTypeRules->numInGroup; i++)
+	  m += pGroupSize_LotTypeRules->blockLength;
+	/* ------------------------------- */
+	auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
+	m += sizeof(*pGroupSize);
+	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+	  auto e {reinterpret_cast<const MDInstrumentDefinitionSpread56_legEntry*>(m)};
+	  printf ("\t\t\tsecId=%8d,side=%d,LegRatioQty=%d\n",
+		  e->LegSecurityID,
+		  (int)e->LegSide,
+		  e->LegRatioQty);
+	  m += pGroupSize->blockLength;
+	}
+      }
+	break;
+	/* ##################################################################### */
+		
+      default:
+	break;
+		
+      }
+      /* ----------------------------- */
+
+      p += msgHdr->size;
+    }
+	
+    return sequence;
+  } // printPkt()
+
+  
 } //name space Cme
 
 #endif

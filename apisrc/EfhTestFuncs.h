@@ -19,6 +19,9 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData);
 void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData userData);
 void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg);
 void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData);
+void* onComplexDefinition(const EfhComplexDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData);
+void* onAuctionUpdate(const EfhAuctionUpdateMsg* msg, EfhSecUserData secData, EfhRunUserData userData);
+
 EkaSource feedname2source(std::string feedName);
 static EkaProp* feedname2prop (std::string feedName);
 static size_t feedname2numProps (std::string feedName);

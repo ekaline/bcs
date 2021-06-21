@@ -19,7 +19,7 @@ enum class EfhMsgType : uint16_t {
                 _x( Invalid, 0        )                                     \
                 _x( OptionDefinition  )                                     \
                 _x( ComplexDefinition )                                     \
-                _x( AuctionUpdate )                                     \
+                _x( AuctionUpdate     )                                     \
                 _x( Trade             )                                     \
                 _x( Quote             )                                     \
                 _x( Order             )                                     \
@@ -57,6 +57,7 @@ enum class EfhSecurityType : uint8_t {
                 _x( Stock      )                                            \
                 _x( Option     )                                            \
                 _x( Future     )                                            \
+                _x( Rfq        )                                            \
                 _x( Complex    )
         EfhSecurityType_ENUM_ITER( EKA__ENUM_DEF )
 };
@@ -66,6 +67,7 @@ enum class EfhSecurityType : uint8_t {
  */
 enum class EfhOptionType : uint8_t {
     #define EfhOptionType_ENUM_ITER( _x )                                   \
+                _x( Err,  2 )                                               \
                 _x( Put,  0 )                                               \
                 _x( Call, 1 )
         EfhOptionType_ENUM_ITER( EKA__ENUM_DEF )
@@ -261,6 +263,7 @@ typedef struct {
 enum class EfhOrderSide : int8_t {
     #define EfhOrderSide_ENUM_ITER( _x )                                    \
                 _x( Other,  0 )                                             \
+                _x( Err,    2 )                                             \
                 _x( Bid,    1 )                                             \
                 _x( Ask,   -1 )
         EfhOrderSide_ENUM_ITER( EKA__ENUM_DEF )
