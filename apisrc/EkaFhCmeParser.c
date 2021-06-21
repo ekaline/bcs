@@ -367,7 +367,10 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   m += sizeof(*msgHdr);
   auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionOption55_mainBlock*>(m)};
   m += msgHdr->blockLen;
-  
+
+  if (vanillaOptionsDefinitionsState == DefinitionsCycleState::Done)
+    return msgHdr->size;
+
   /* ------------------------------- */
   auto symbol           {std::string(rootBlock->Symbol,	         sizeof(rootBlock->Symbol))};
   auto cfiCode          {std::string(rootBlock->CFICode,	 sizeof(rootBlock->CFICode))};
@@ -468,6 +471,9 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   m += sizeof(*msgHdr);
   auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionSpread56_mainBlock*>(m)};
   m += msgHdr->blockLen;
+
+  if (complexOptionsDefinitionsState == DefinitionsCycleState::Done)
+    return msgHdr->size;
 
   /* ------------------------------- */
   
