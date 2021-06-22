@@ -41,42 +41,6 @@
 
 /* ------------------------------------------------------------ */
 
-void print_usage(char* cmd) {
-  printf("USAGE: %s -g <RunGroup> <flags> \n",cmd); 
-  printf("\tRunGroup Format: \"[coreId]:[Feed Code]:[First MC Gr ID]..[Last MC Gr ID]\"\n");
-  printf("\tRunGroup Format Example: \"2:CC:0..11\"\n");
-  printf("\t\tSupported Feed Codes:\n"); 
-  printf("\t\t\tNA - NOM       A feed\n"); 
-  printf("\t\t\tNB - NOM       B feed\n"); 
-  printf("\t\t\tGA - GEM       A feed\n"); 
-  printf("\t\t\tGB - GEM       B feed\n"); 
-  printf("\t\t\tIA - ISE       A feed\n"); 
-  printf("\t\t\tIB - ISE       B feed\n"); 
-  printf("\t\t\tTA - PHLX TOPO A feed\n"); 
-  printf("\t\t\tTB - PHLX TOPO B feed\n"); 
-  printf("\t\t\tOA - PHLX ORD  A feed\n"); 
-  printf("\t\t\tOB - PHLX ORD  B feed\n"); 
-  printf("\t\t\tCA - C1        A feed\n"); 
-  printf("\t\t\tCB - C1        B feed\n"); 
-  printf("\t\t\tCC - C1        C feed\n"); 
-  printf("\t\t\tCD - C1        D feed\n"); 
-  printf("\t\t\tMA - MIAX TOM  A feed\n"); 
-  printf("\t\t\tMB - MIAX TOM  B feed\n"); 
-  printf("\t\t\tPA - PEARL TOM A feed\n"); 
-  printf("\t\t\tPB - PEARL TOM B feed\n"); 
-  printf("\t\t\tRA - ARCA      A feed\n"); 
-  printf("\t\t\tRB - ARCA      B feed\n"); 
-  printf("\t\t\tXA - AMEX      A feed\n"); 
-  printf("\t\t\tXB - AMEX      B feed\n"); 
-  printf("\t\t\tBA - BOX       A feed\n"); 
-  printf("\t\t\tEA - CME       A feed\n"); 
-  printf("\t\t\tEB - CME       B feed\n"); 
-  printf("\t-u <Underlying Name> - subscribe on all options belonging to\n");
-  printf("\t-t Print TOB updates (EFH)\n");
-  printf("\t-a subscribe all\n");
-  return;
-}
-
 static int getAttr(int argc, char *argv[],
 		   std::vector<TestRunGroup>& testRunGroups,
 		   std::vector<std::string>&  underlyings,

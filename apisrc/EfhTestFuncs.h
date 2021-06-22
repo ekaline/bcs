@@ -28,4 +28,5 @@ static size_t feedname2numProps (std::string feedName);
 static size_t feedname2numGroups(std::string feedName);
 int createCtxts(std::vector<TestRunGroup>&testRunGroups,std::vector<EfhInitCtx>&efhInitCtx,std::vector<EfhRunCtx>&efhRunCtx);
 
+void print_usage(char* cmd);
 #endif
