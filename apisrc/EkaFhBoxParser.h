@@ -1,6 +1,9 @@
 #ifndef _EKA_HSVF_BOX_MESSAGES_H
 #define _EKA_HSVF_BOX_MESSAGES_H
 
+#include "eka_macros.h"
+#include "Efh.h"
+
 #define EFH_HSV_BOX_STRIKE_PRICE_SCALE 1
 
 typedef char EKA_HSVF_MSG_TYPE[2];
