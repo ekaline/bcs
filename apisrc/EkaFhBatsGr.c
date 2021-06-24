@@ -12,14 +12,15 @@ void* getGrpRetransmitData(void* attr);
 bool EkaFhBatsGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 				const uint8_t*   pkt, 
 				uint             msgInPkt, 
-				uint64_t         seq) {
+				uint64_t         seq,
+				std::chrono::high_resolution_clock::time_point startTime) {
   uint indx = sizeof(batspitch_sequenced_unit_header);
   uint64_t sequence = seq;
   for (uint msg=0; msg < msgInPkt; msg++) {
     uint8_t msg_len = pkt[indx];
     uint8_t* msgData = (uint8_t*)&pkt[indx];
     //-----------------------------------------------------------------------------
-    if (parseMsg(pEfhRunCtx,msgData,sequence,EkaFhMode::MCAST)) return true;
+    if (parseMsg(pEfhRunCtx,msgData,sequence,EkaFhMode::MCAST,startTime)) return true;
     //-----------------------------------------------------------------------------
 
     sequence          = sequence == 4294967295 ? 1 : sequence + 1;

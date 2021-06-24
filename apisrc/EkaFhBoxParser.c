@@ -98,7 +98,7 @@ static void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* 
 
 /* ----------------------------------------------------------------------- */
 
-bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence, EkaFhMode op) {
+bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence, EkaFhMode op,std::chrono::high_resolution_clock::time_point startTime) {
   FhSecurity* s = NULL;
 
   auto msgHdr {reinterpret_cast<const HsvfMsgHdr*>(m)};

@@ -32,7 +32,8 @@ inline SideT sideDecode(char _side) {
 
 /* ####################################################### */
 
-bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op) {
+bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op,
+				 std::chrono::high_resolution_clock::time_point startTime) {
 
 #ifdef EKA_TIME_CHECK
   auto start = std::chrono::high_resolution_clock::now();  

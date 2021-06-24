@@ -11,7 +11,8 @@
 
 using namespace TOPO;
 
-bool EkaFhPhlxTopoGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op) {
+bool EkaFhPhlxTopoGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op,
+				 std::chrono::high_resolution_clock::time_point startTime) {
   char enc =  (char)m[0];
 
   if (op == EkaFhMode::DEFINITIONS && 

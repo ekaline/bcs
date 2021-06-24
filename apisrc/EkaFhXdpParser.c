@@ -11,7 +11,8 @@
 
 using namespace Xdp;
 
-bool EkaFhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op) {
+bool EkaFhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op,
+				 std::chrono::high_resolution_clock::time_point startTime) {
   switch (((XdpMsgHdr*)m)->MsgType) {
     //-----------------------------------------------------------------------------
   case MSG_TYPE::REFRESH_QUOTE :

@@ -40,7 +40,7 @@ class EkaFhGroup {
 				       EfhSecUserData  userData,
 				       uint64_t        opaqueAttrA,
 				       uint64_t        opaqueAttrB) = 0;
-  virtual bool parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op) = 0;
+  virtual bool parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op,std::chrono::high_resolution_clock::time_point startTime={}) = 0;
 
   void         sendFeedUp  (const EfhRunCtx* EfhRunCtx);
   void         sendFeedUpInitial  (const EfhRunCtx* EfhRunCtx);

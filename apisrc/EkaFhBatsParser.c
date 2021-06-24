@@ -131,12 +131,23 @@ inline EfhOrderSide efhMsgSideDecode(char _side) {
 }
 /* ------------------------------------------------ */
 
-bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op) {
+bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
+			   const unsigned char* m,
+			   uint64_t sequence,
+			   EkaFhMode op,
+			   std::chrono::high_resolution_clock::time_point startTime) {
   EKA_BATS_PITCH_MSG enc =  (EKA_BATS_PITCH_MSG)m[1];
   //  EKA_LOG("%s:%u: 0x%02x",EKA_EXCH_DECODE(exch),id,enc);
 
   uint64_t msg_timestamp = 0;
 
+  std::chrono::high_resolution_clock::time_point msgStartTime{};
+#if EFH_TIME_CHECK_PERIOD
+    if (sequence % EFH_TIME_CHECK_PERIOD == 0) {
+      msgStartTime = std::chrono::high_resolution_clock::now();
+    }
+#endif
+    
   if (op == EkaFhMode::SNAPSHOT && enc == EKA_BATS_PITCH_MSG::SYMBOL_MAPPING) return false;
   switch (enc) {    
   case EKA_BATS_PITCH_MSG::ADD_ORDER_LONG:
@@ -154,8 +165,8 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
   case EKA_BATS_PITCH_MSG::TRADING_STATUS:
     msg_timestamp = seconds + ((batspitch_generic_header *)m)->time;
 
-    if (state == GrpState::NORMAL)
-      checkTimeDiff(dev->deltaTimeLogFile,dev->midnightSystemClock,msg_timestamp,sequence);
+    /* if (state == GrpState::NORMAL) */
+    /*   checkTimeDiff(dev->deltaTimeLogFile,dev->midnightSystemClock,msg_timestamp,sequence); */
     
     break;
   default: {}
@@ -517,7 +528,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
   s->option_open = true;
 
   if (! book->isEqualState(s))
-    book->generateOnQuote (pEfhRunCtx, s, sequence, msg_timestamp, gapNum);
+    book->generateOnQuote (pEfhRunCtx, s, sequence, msg_timestamp, gapNum, msgStartTime);
 
   return false;
 }

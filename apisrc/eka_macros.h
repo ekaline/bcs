@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <errno.h>
 #include <math.h>
+#include <chrono>
 
 #include "ekaNW.h"
 #include "eka_hw_conf.h"

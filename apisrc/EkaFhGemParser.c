@@ -14,7 +14,8 @@ std::string ts_ns2str(uint64_t ts);
 
 using namespace Gem;
 
-bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op) {
+bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op,
+				 std::chrono::high_resolution_clock::time_point startTime) {
   //  uint64_t ts = get_ts(m);
   uint64_t ts = EKA_GEM_TS(m);
 
