@@ -75,17 +75,17 @@ static void str_time_from_nano(uint64_t current_time, char* time_str){
 }
 /* ##################################################################### */
 
-static uint64_t getFpgaTimeCycles () { // ignores Application - PCIe - FPGA latency
-  struct timespec t;
-  clock_gettime(CLOCK_REALTIME, &t); // 
-  uint64_t current_time_ns = ((uint64_t)(t.tv_sec) * (uint64_t)1000000000 + (uint64_t)(t.tv_nsec));
-  uint64_t current_time_cycles = (current_time_ns * (EKA_FPGA_FREQUENCY / 1000.0));
-  /* eka_write(dev,FPGA_RT_CNTR,current_time_cycles); */
-  /* char t_str[64] = {}; */
-  /* str_time_from_nano(current_time_ns,t_str); */
-  /* EKA_LOG("setting HW time to %s",t_str); */
-  return current_time_cycles;
-}
+/* static uint64_t getFpgaTimeCycles () { // ignores Application - PCIe - FPGA latency */
+/*   struct timespec t; */
+/*   clock_gettime(CLOCK_REALTIME, &t); //  */
+/*   uint64_t current_time_ns = ((uint64_t)(t.tv_sec) * (uint64_t)1000000000 + (uint64_t)(t.tv_nsec)); */
+/*   uint64_t current_time_cycles = (current_time_ns * (EKA_FPGA_FREQUENCY / 1000.0)); */
+/*   /\* eka_write(dev,FPGA_RT_CNTR,current_time_cycles); *\/ */
+/*   /\* char t_str[64] = {}; *\/ */
+/*   /\* str_time_from_nano(current_time_ns,t_str); *\/ */
+/*   /\* EKA_LOG("setting HW time to %s",t_str); *\/ */
+/*   return current_time_cycles; */
+/* } */
 
 
 /* ##################################################################### */

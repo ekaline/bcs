@@ -8,6 +8,7 @@
 #include <math.h>
 
 #include "ekaNW.h"
+#include "eka_hw_conf.h"
 #include "efh_macros.h"
 
 class EkaDev;
@@ -174,4 +175,72 @@ inline std::string ts_ns2str(uint64_t ts) {
   sprintf (dst,"%02d:%02d:%02d.%03d.%03d.%03d",h,m,s,ms,us,ns);
   return std::string(dst);
 }
+
+/* ------------------------------------------------------- */
+
+inline uint64_t getFpgaTimeCycles () { // ignores Application - PCIe - FPGA latency
+  struct timespec t;
+  clock_gettime(CLOCK_REALTIME, &t); // 
+  uint64_t current_time_ns = ((uint64_t)(t.tv_sec) * (uint64_t)1000000000 + (uint64_t)(t.tv_nsec));
+  uint64_t current_time_cycles = (current_time_ns * (EKA_FPGA_FREQUENCY / 1000.0));
+  /* eka_write(dev,FPGA_RT_CNTR,current_time_cycles); */
+  /* char t_str[64] = {}; */
+  /* str_time_from_nano(current_time_ns,t_str); */
+  /* EKA_LOG("setting HW time to %s",t_str); */
+  return current_time_cycles;
+}
+/* ------------------------------------------------------- */
+
+inline auto getPktTimestampCycles(const uint8_t* pPayload) {
+  auto p {pPayload - sizeof(EkaUdpHdr) - sizeof(EkaIpHdr) - sizeof(EkaEthHdr)};
+
+  uint8_t t[8] = {};
+  t[0] = p[6+1];
+  t[1] = p[6+0];
+  t[2] = p[6+5];
+  t[3] = p[6+4];
+  t[4] = p[6+3];
+  t[5] = p[6+2];
+  t[6] = 0; //p[19];
+  t[7] = 0; //p[18];
+
+  return *(uint64_t*)t;
+}
+
+/* ------------------------------------------------------- */
+inline void printFpgaTime(char* dst, size_t dstSize, uint64_t timeStampCycles) {
+  uint64_t epcoh_seconds = timeStampCycles * (1000.0/EKA_FPGA_FREQUENCY) / 1e9;
+  auto raw_time {static_cast<time_t>(epcoh_seconds)};
+  struct tm *timeinfo = localtime (&raw_time);
+  //  strftime(dst, dstSize, "%a, %d %b %Y, %X", timeinfo);
+  strftime(dst, dstSize, "%X", timeinfo);
+  return;
+}
+/* ------------------------------------------------------- */
+
+inline std::chrono::system_clock::time_point systemClockAtMidnight() {
+  auto now = std::chrono::system_clock::now();
+
+  time_t tnow = std::chrono::system_clock::to_time_t(now);
+  tm *date = std::localtime(&tnow);
+  date->tm_hour = 0;
+  date->tm_min = 0;
+  date->tm_sec = 0;
+  return std::chrono::system_clock::from_time_t(std::mktime(date));
+}
+/* ------------------------------------------------------- */
+
+inline uint64_t nsSinceMidnight() {
+  auto now = std::chrono::system_clock::now();
+
+  time_t tnow = std::chrono::system_clock::to_time_t(now);
+  tm *date = std::localtime(&tnow);
+  date->tm_hour = 0;
+  date->tm_min = 0;
+  date->tm_sec = 0;
+  auto midnight = std::chrono::system_clock::from_time_t(std::mktime(date));
+
+  return (uint64_t) std::chrono::duration_cast<std::chrono::nanoseconds>(now-midnight).count();
+}
+
 #endif

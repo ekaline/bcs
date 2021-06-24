@@ -1,7 +1,7 @@
 #ifndef _EKA_HW_CONF_H_
 #define _EKA_HW_CONF_H_
 
-#include "eka_macros.h"
+//#include "eka_macros.h"
 #include "EkaMcState.h"
 
 #define EKA_MAX_P4_SUBSCR 768*1024
@@ -58,7 +58,12 @@
 #define EKA_ADDR_INTERRUPT_SHADOW_RO       0xf0790
 #define EKA_ADDR_INTERRUPT_0_SHADOW_RO     0xe0150
 
+//#define EKA_FPGA_FREQUENCY (161.13)
 #define EKA_FPGA_FREQUENCY (161.132828125)
+//#define EKA_FPGA_FREQUENCY (161.1328125)
+//#define EKA_FPGA_FREQUENCY (10.0 * 66 / 64 / 64 * 1000)
+
+//constexpr double EKA_FPGA_FREQUENCY = 10.0 * 66 / 64 / 64 * 1000;
 
 #define UDP_CHANNELS 32
 // scratchpad 16bit 64kB address space

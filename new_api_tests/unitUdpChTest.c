@@ -46,6 +46,21 @@ void  INThandler(int sig) {
 
 /* ############################################# */
 
+static void eka_write_devid(SN_DeviceId dev_id, uint64_t addr, uint64_t val) {
+    if (SN_ERR_SUCCESS != SN_WriteUserLogicRegister(dev_id, addr/8, val))
+      on_error("SN_Write returned smartnic error code : %d",SN_GetLastErrorCode());
+}
+
+/* ############################################# */
+
+uint64_t eka_read_devid(SN_DeviceId dev_id, uint64_t addr) {
+  uint64_t ret;
+  if (SN_ERR_SUCCESS != SN_ReadUserLogicRegister(dev_id, addr/8, &ret))
+    on_error("SN_Read returned smartnic error code : %d",SN_GetLastErrorCode());
+  return ret;
+}
+/* ############################################# */
+
 int udpSender(std::string mcIp, uint16_t mcPort, std::string srcIp) {
   struct sockaddr_in mcAddr = {};
   mcAddr.sin_family      = AF_INET;  
@@ -72,10 +87,32 @@ int udpSender(std::string mcIp, uint16_t mcPort, std::string srcIp) {
 
     if (sendto(mcSock,&msg,sizeof(msg),0,(const sockaddr*)&mcAddr,sizeof(sockaddr)) < 0) 
       on_error ("MC trigger send failed");
+
+    usleep(1000000);
   }
   return 0;
 }
 
+/* inline auto getPktTimestamp(const uint8_t* pPayload) { */
+/*   auto pEthHdr {pPayload - sizeof(EkaUdpHdr) - sizeof(EkaIpHdr) - sizeof(EkaEthHdr)}; */
+/*   auto p {pEthHdr}; */
+/*   auto pTimestamp {reinterpret_cast<const uint64_t*>(pEthHdr + 6)}; */
+/*   return *pTimestamp & 0x0000FFFFFFFFFFFF; */
+/*   uint8_t t[8] = {}; */
+/*   t[0] = 0; */
+/*   t[1] = 0; */
+/*   t[2] = p[0]; */
+/*   t[3] = p[1]; */
+/*   t[4] = p[2]; */
+/*   t[5] = p[3]; */
+/*   t[6] = p[4]; */
+/*   t[7] = p[5]; */
+
+/*   //  return be64toh(*pTimestamp) & 0x0000FFFFFFFFFFFF; */
+/*   // return be64toh(*pTimestamp & 0x0000FFFFFFFFFFFF); */
+/*   //  return *pTimestamp & 0x0000FFFFFFFFFFFF; */
+/*   //return be64toh(*pTimestamp & 0xFFFFFFFFFFFF0000); */
+/* } */
 /* ############################################# */
 int main(int argc, char *argv[]) {
   signal(SIGINT, INThandler);
@@ -104,37 +141,53 @@ int main(int argc, char *argv[]) {
   if (pPreviousUdpPacket != NULL) {
     on_warning("pPreviousUdpPacket != NULL: Packet is arriving on UDP channel before any packet was sent");
     SC_UpdateReceivePtr(ChannelId, pPreviousUdpPacket);
- }
+  }
 
   SC_Error errorCode = SC_IgmpJoin(ChannelId,0,(const char*) mcIp.c_str(),0,NULL);
   if (errorCode != SC_ERR_SUCCESS) on_error("Failed to IGMP join %s with error code %d",mcIp.c_str(),errorCode);
   
   const SC_Packet* pIncomingUdpPacket = NULL;
-  uint64_t currSeq = 0;
-  uint64_t maxSeq = 0;
 
+  uint64_t state = eka_read_devid(dev_id,0xf0020);
+  state |= (1ULL << 33);
+  eka_write_devid(dev_id,0xf0020,state);
+
+  uint64_t cyclesSinceMidnight = nsSinceMidnight() * (EKA_FPGA_FREQUENCY / 1000.0);
+  eka_write_devid(dev_id,FPGA_RT_CNTR,cyclesSinceMidnight);
+
+  int i = 0;
+  printf("sample,pktCycles,currNs,pktNs,currNs-pktNs\n");
   /* ============================================== */
   while (keep_work) {
     pIncomingUdpPacket = SC_GetNextPacket(ChannelId, pPreviousUdpPacket, SC_TIMEOUT_NONE);
     if (pIncomingUdpPacket == NULL) continue;
+    
+    auto pPayload {(SC_GetUdpPayload(pIncomingUdpPacket))};
 
-    const McMsg* msg = (const McMsg*) SC_GetUdpPayload(pIncomingUdpPacket);
+    //   printf ("\n------------\n");
 
-    if (currSeq == 0) {
-      TEST_LOG("First sequence: %8ju",msg->seq);      
-    } else {
-      if (msg->seq != currSeq + 1) 
-	on_warning("GAP %ju: msg->seq = %ju,currSeq = %ju",
-		   msg->seq - currSeq, msg->seq, currSeq);
-    }
-    currSeq = msg->seq;
-    if (currSeq <= maxSeq) on_warning("WRAPAROUND!!! currSeq %ju <= maxSeq %ju",currSeq,maxSeq);
-    maxSeq = currSeq;
-    /* ------------------------------------------- */
-    if (currSeq % 2000000 == 0) {
-      TEST_LOG("currSeq = %ju: sleeping %u seconds",currSeq,SleepTime);
-      sleep(SleepTime);
-    }
+    /* uint64_t fpgaCycles = eka_read_devid(dev_id,FPGA_RT_CNTR); */
+    /* char epochTimeString[100] = {}; */
+    /* printFpgaTime(epochTimeString,sizeof(epochTimeString),fpgaCycles); */
+
+    auto pktCycles = getPktTimestampCycles(pPayload);
+    /* char pktTimeStampString[100] = {}; */
+    /* printFpgaTime(pktTimeStampString,sizeof(pktTimeStampString),pktCycles); */
+    /* TEST_LOG("FPGA time: %s, Pkt time: %s\n",epochTimeString,pktTimeStampString); */
+
+    uint64_t pktNs = pktCycles / (EKA_FPGA_FREQUENCY / 1000.0);
+
+    //    auto deltaNs = pktNs - nsSinceMidnight();
+    //   auto deltaNs = nsSinceMidnight() - pktNs;
+
+    /* TEST_LOG("deltaNs = %jd, fpgaCycles=%ju, pktCycles=%ju", */
+    /* 	     deltaNs,fpgaCycles,pktCycles); */
+    auto currNs = nsSinceMidnight();
+
+    printf("%d,%ju,%ju,%ju,%jd\n",
+	   ++i,pktCycles,currNs,pktNs,currNs-pktNs);
+ 
+
 
     /* ------------------------------------------- */
 
@@ -144,9 +197,10 @@ int main(int argc, char *argv[]) {
 
   /* ============================================== */
   errorCode = SC_DeallocateChannel(ChannelId);
-  if (errorCode != SC_ERR_SUCCESS) on_error("SC_DeallocateChannel failed with error code %d", errorCode);
+  if (errorCode != SC_ERR_SUCCESS)
+    on_error("SC_DeallocateChannel failed with error code %d", errorCode);
   if (SC_CloseDevice(dev_id) != SC_ERR_SUCCESS) on_error("Error on SC_CloseDevice");
 
-  TEST_LOG("Last sequence = %ju",currSeq);
+  /* TEST_LOG("Last sequence = %ju",currSeq); */
   return 0;
 }

@@ -184,8 +184,8 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   } else if (memcmp(msgHdr->MsgType,"N ",sizeof(msgHdr->MsgType)) == 0) { // OptionSummary
 
     //===================================================
-  } else if (memcmp(msgHdr->MsgType,"D ",sizeof(msgHdr->MsgType)) == 0) { // RFQ
-    auto boxMsg {reinterpret_cast<const HsvfRFQ*>(msgBody)};
+  } else if (memcmp(msgHdr->MsgType,"M ",sizeof(msgHdr->MsgType)) == 0) { // HsvfRfqStart
+    auto boxMsg {reinterpret_cast<const HsvfRfqStart*>(msgBody)};
 
     SecurityIdT security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
 
@@ -199,12 +199,63 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.header.timeStamp      = gr_ts;
     msg.header.gapNum         = gapNum;
 
-    msg.side                  = EfhOrderSide::kOther;
-    msg.auctionId             = security_id;
-    msg.quantity              = getNumField<uint32_t>(boxMsg->RequestedSize,sizeof(boxMsg->RequestedSize));
+    msg.side                  = getSide(boxMsg->Side);
+    msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
 
+    msg.quantity              = getNumField<uint32_t>(boxMsg->MinimumQuantity,sizeof(boxMsg->MinimumQuantity));
+    msg.price                 = getNumField<uint32_t>(boxMsg->Price,sizeof(boxMsg->Price)) * getFractionIndicator(boxMsg->PriceFractionIndicator);
+    msg.endTimeNanos          = getExpireNs(boxMsg->ExpiryTime);
+      
     pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+  } else if (memcmp(msgHdr->MsgType,"O ",sizeof(msgHdr->MsgType)) == 0) { // HsvfRfqInsert
+    auto boxMsg {reinterpret_cast<const HsvfRfqInsert*>(msgBody)};
 
+    SecurityIdT security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
+
+    EfhAuctionUpdateMsg msg{};
+    msg.header.msgType        = EfhMsgType::kAuctionUpdate;
+    msg.header.group.source   = EkaSource::kBOX_HSVF;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.securityId     = security_id;
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = gr_ts;
+    msg.header.gapNum         = gapNum;
+
+    msg.side                  = getSide(boxMsg->OrderSide);
+    msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
+    msg.quantity              = getNumField<uint32_t>(boxMsg->Size,sizeof(boxMsg->Size));
+    msg.price                 = getNumField<uint32_t>(boxMsg->LimitPrice,sizeof(boxMsg->LimitPrice)) * getFractionIndicator(boxMsg->LimitPriceFractionIndicator);
+    msg.endTimeNanos          = getExpireNs(boxMsg->EndOfExposition);
+      
+    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+  } else if (memcmp(msgHdr->MsgType,"T ",sizeof(msgHdr->MsgType)) == 0) { // HsvfRfqDelete
+    auto boxMsg {reinterpret_cast<const HsvfRfqDelete*>(msgBody)};
+
+    if (boxMsg->DeletionType != '3') return false;
+
+    // '3' = Deletion of all orders
+
+    SecurityIdT security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
+
+    EfhAuctionUpdateMsg msg{};
+    msg.header.msgType        = EfhMsgType::kAuctionUpdate;
+    msg.header.group.source   = EkaSource::kBOX_HSVF;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.securityId     = security_id;
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = gr_ts;
+    msg.header.gapNum         = gapNum;
+
+    msg.side                  = getSide(boxMsg->OrderSide);
+    msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
+
+    msg.quantity              = 0;
+    msg.price                 = 0;
+    msg.endTimeNanos          = 0;
+      
+    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
   }
  
   //===================================================

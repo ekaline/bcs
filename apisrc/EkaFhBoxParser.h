@@ -178,6 +178,86 @@ namespace Hsvf {
     char InstrumentDescription[20];
     char RequestedSize[8];
   };
+
+  struct HsvfRfqStart { // "M "
+    /* char       SoM; //  = HsvfSom; */
+    /* HsvfMsgHdr hdr; */
+    char ExchangeID;
+    char InstrumentDescription[20];
+    char RfqId[6]; // Improvement Phase Sequential Number
+                   // Indicates the number of an Improvement Phase.
+                   // Sequential number unique per Instrument and per
+                   // trading day
+    char Price[6];
+    char PriceFractionIndicator;
+    char Size[8];
+    char Side;     // Indicates the dealer side of the Initial Order
+                   // 'B' = Buy
+                   // 'S' = Sell
+    char ExpiryTime[8];     // HHMMSSCC
+    char ExpiryDuration[4]; //     SSCC
+    char MinimumQuantity[8];
+    char Percentage[8];// Ex: 00040.00 stands for 40.00 %
+    char AuctionType;  // 'G' = Regular PIP,'B' = Solicitation, 'C' = Facilitation
+    char Filler;
+  };
+
+  struct HsvfRfqInsert { // "O "
+    /* char       SoM; //  = HsvfSom; */
+    /* HsvfMsgHdr hdr; */
+    char ExchangeID;
+    char InstrumentDescription[20];
+    char OrderSide;    // The "must be filled" side ("B" for Buy, "S" for Sell)
+    char OrderType;    // Type of limit entered: 'A'=Initial, 'P'=Exposed
+    char LimitPrice[6];
+    char LimitPriceFractionIndicator;
+    char Size[8];
+    char OrderSequence[6];
+
+    char RfqId[6]; // Improvement Phase Sequential Number
+                   // Indicates the number of an Improvement Phase.
+                   // Sequential number unique per Instrument and per
+                   // trading day
+    char ClearingType; // Indicates the account type for which an order
+                       // was entered using the clearing house member's
+                       // account typology.
+                       // When “Type of Order” is equal to “A”,
+                       // the Account Type is for the InitO
+                       // (Auction initiator or dealer side).
+                       //    6 =Public Customer
+                       //    7 = Broker Dealer
+                       //    8 = Market Maker
+                       //    T = Professional Customer
+                       //    W = Broker Dealer cleared as Customer
+                       //    X = Away Market Maker
+    char Filler;
+    char EndOfExposition[8]; // HHMMSSCC - '0' filled for PIP messages
+    char AuctionType;  // 'G' = Regular PIP,'F' = Exposed Order
+    char FirmId[4];
+    char CMTA[4];
+  };
+
+
+  struct HsvfRfqDelete { // "T "
+    /* char       SoM; //  = HsvfSom; */
+    /* HsvfMsgHdr hdr; */
+    char ExchangeID;
+    char InstrumentDescription[20];
+    char DeletionType; // '1' = Deletion of a precise order
+                       // '2' = Deletion of all previous orders
+                       //       in the specified side
+                       // '3' = Deletion of all orders
+    char OrderSequence[6];
+    char OrderSide;    // The "must be filled" side ("B" for Buy, "S" for Sell)
+    char RfqId[6]; // Improvement Phase Sequential Number
+                   // Not relevant when the message refers to an Exposed Order
+                   // Sequential number unique per Instrument and per
+                   // trading day
+    char AuctionType;  // 'G' = Regular PIP,
+                       // 'B' = Solicitation
+                       // 'C' = Facilitation
+                       // 'F' = Exposed Order
+  };
   
   struct HsvfSystemTimeStamp { // "Z "
     /* char       SoM; //  = HsvfSom; */
@@ -414,7 +494,30 @@ inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
     }
 
   }
-    
+
+  inline auto getSide(const char hsvfSide) {
+    switch (hsvfSide) {
+    case 'B' : return EfhOrderSide::kBid;
+    case 'S' : return EfhOrderSide::kAsk;
+    default:
+      on_error("Unexpected hsvfSide \'%c\'",hsvfSide);
+    }
+  }
+
+  inline auto getExpireNs(const char* t) {
+    // HHMMSSCC
+    int hour {(t[0] - '0') * 10  + (t[1] - '0')};
+    int min  {(t[2] - '0') * 10  + (t[3] - '0')};
+    int sec  {(t[4] - '0') * 10  + (t[4] - '0')};
+    int ms   {(t[6] - '0') * 100 + (t[7] - '0') * 10};
+
+    uint64_t ns = hour * 60 * 60 * 1e9 +
+      min * 60 * 1e9 +
+      sec * 1e9 +
+      ms  * 1e6;
+
+    return ns;
+  }
 } // namespace Hsvf
 
 #endif

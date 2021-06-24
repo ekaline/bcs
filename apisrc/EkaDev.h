@@ -65,6 +65,8 @@ class EkaDev {
   EkaDev*                   dev = NULL; // pointer to myself
   EkaSnDev*                 snDev = NULL;
 
+  // constexpr double EKA_FPGA_FREQUENCY = 10.0 * 66 / 64 / 64 * 1000;
+  
   bool                      epmEnabled = false;
   EkaUserChannel*           epmReport = NULL;
   EkaUserChannel*           lwipPath = NULL;
@@ -309,29 +311,29 @@ inline void checkScratchPadAddr(uint64_t addr) {
 	     addr,(uint64_t)SW_SCRATCHPAD_BASE,(uint64_t)SW_SCRATCHPAD_SIZE);
 }
 
-inline std::chrono::system_clock::time_point systemClockAtMidnight() {
-  auto now = std::chrono::system_clock::now();
+// inline std::chrono::system_clock::time_point systemClockAtMidnight() {
+//   auto now = std::chrono::system_clock::now();
 
-  time_t tnow = std::chrono::system_clock::to_time_t(now);
-  tm *date = std::localtime(&tnow);
-  date->tm_hour = 0;
-  date->tm_min = 0;
-  date->tm_sec = 0;
-  return std::chrono::system_clock::from_time_t(std::mktime(date));
-}
+//   time_t tnow = std::chrono::system_clock::to_time_t(now);
+//   tm *date = std::localtime(&tnow);
+//   date->tm_hour = 0;
+//   date->tm_min = 0;
+//   date->tm_sec = 0;
+//   return std::chrono::system_clock::from_time_t(std::mktime(date));
+// }
 
-inline uint64_t nsSinceMidnight() {
-  auto now = std::chrono::system_clock::now();
+// inline uint64_t nsSinceMidnight() {
+//   auto now = std::chrono::system_clock::now();
 
-  time_t tnow = std::chrono::system_clock::to_time_t(now);
-  tm *date = std::localtime(&tnow);
-  date->tm_hour = 0;
-  date->tm_min = 0;
-  date->tm_sec = 0;
-  auto midnight = std::chrono::system_clock::from_time_t(std::mktime(date));
+//   time_t tnow = std::chrono::system_clock::to_time_t(now);
+//   tm *date = std::localtime(&tnow);
+//   date->tm_hour = 0;
+//   date->tm_min = 0;
+//   date->tm_sec = 0;
+//   auto midnight = std::chrono::system_clock::from_time_t(std::mktime(date));
 
-  return (uint64_t) std::chrono::duration_cast<std::chrono::nanoseconds>(now-midnight).count();
-}
+//   return (uint64_t) std::chrono::duration_cast<std::chrono::nanoseconds>(now-midnight).count();
+// }
 
 inline void checkTimeDiff(FILE* deltaTimeLogFile, std::chrono::system_clock::time_point midnight,
 			  uint64_t exchTimeNs, uint64_t sequence) {
