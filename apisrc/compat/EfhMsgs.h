@@ -223,6 +223,7 @@ enum class EfhErrorDomain : char {
 };
 
 typedef char EfhSymbol[8];
+typedef char ExchSecurityName[6];
 
 // Provide a dummy empty type to avoid confusing preprocessor macros that may
 // try to access a type of this name because EfhMsgType::kInvalid exists.
@@ -255,6 +256,7 @@ typedef struct {
                 _x( int64_t,         strikePrice )                          \
                 _x( EfhExchange,     exchange )                             \
                 _x( EfhOptionType,   optionType )                           \
+                _x( ExchSecurityName,exchSecurityName )                     \
                 _x( uint64_t,        opaqueAttrA )                          \
                 _x( uint64_t,        opaqueAttrB )
         EfhOptionDefinitionMsg_FIELD_ITER( EKA__FIELD_DEF )

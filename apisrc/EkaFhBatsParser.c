@@ -234,6 +234,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 
     memcpy (&msg.underlying,message->underlying,std::min(sizeof(msg.underlying),sizeof(message->underlying)));
     memcpy (&msg.classSymbol,osi,6);
+    memcpy (&msg.exchSecurityName,message->symbol,std::min(sizeof(msg.exchSecurityName),sizeof(message->symbol)));
 
     memcpy(&msg.opaqueAttrA,message->symbol,6);
 

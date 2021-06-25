@@ -499,7 +499,8 @@ inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
     switch (hsvfSide) {
     case 'B' : return EfhOrderSide::kBid;
     case 'S' : return EfhOrderSide::kAsk;
-    default:
+    case ' ' : return EfhOrderSide::kOther; // Both
+    default  : 
       on_error("Unexpected hsvfSide \'%c\'",hsvfSide);
     }
   }

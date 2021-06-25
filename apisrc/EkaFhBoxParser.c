@@ -172,6 +172,9 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     memcpy (&msg.underlying,boxMsg->UnderlyingSymbolRoot,std::min(sizeof(msg.underlying),sizeof(boxMsg->UnderlyingSymbolRoot)));
     memcpy (&msg.classSymbol,&symb[0],6);
 
+    memcpy(msg.exchSecurityName,                                  boxMsg->GroupInstrument,sizeof(boxMsg->GroupInstrument));
+    memcpy(msg.exchSecurityName + sizeof(boxMsg->GroupInstrument),boxMsg->Instrument,     sizeof(boxMsg->Instrument));
+
 #ifdef TEST_PRINT_DICT
     char avtSecName[32] = {};
     eka_create_avt_definition(avtSecName,&msg);
@@ -227,7 +230,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.quantity              = getNumField<uint32_t>(boxMsg->Size,sizeof(boxMsg->Size));
     msg.price                 = getNumField<uint32_t>(boxMsg->LimitPrice,sizeof(boxMsg->LimitPrice)) * getFractionIndicator(boxMsg->LimitPriceFractionIndicator);
     msg.endTimeNanos          = getExpireNs(boxMsg->EndOfExposition);
-      
+
     pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
   } else if (memcmp(msgHdr->MsgType,"T ",sizeof(msgHdr->MsgType)) == 0) { // HsvfRfqDelete
     auto boxMsg {reinterpret_cast<const HsvfRfqDelete*>(msgBody)};
