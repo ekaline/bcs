@@ -119,24 +119,35 @@ inline SideT sideDecode(char _side) {
 }
 /* ------------------------------------------------ */
 
-inline EfhOrderSideType efhMsgSideDecode(char _side) {
+inline EfhOrderSide efhMsgSideDecode(char _side) {
   switch (_side) {
   case 'B' :
-    return EfhOrderSideType::kBid;
+    return EfhOrderSide::kBid;
   case 'S' :
-    return EfhOrderSideType::kAsk;
+    return EfhOrderSide::kAsk;
   default:
     on_error("Unexpected Side \'%c\'",_side);
   }
 }
 /* ------------------------------------------------ */
 
-bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op) {
+bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
+			   const unsigned char* m,
+			   uint64_t sequence,
+			   EkaFhMode op,
+			   std::chrono::high_resolution_clock::time_point startTime) {
   EKA_BATS_PITCH_MSG enc =  (EKA_BATS_PITCH_MSG)m[1];
   //  EKA_LOG("%s:%u: 0x%02x",EKA_EXCH_DECODE(exch),id,enc);
 
   uint64_t msg_timestamp = 0;
 
+  std::chrono::high_resolution_clock::time_point msgStartTime{};
+#if EFH_TIME_CHECK_PERIOD
+    if (sequence % EFH_TIME_CHECK_PERIOD == 0) {
+      msgStartTime = std::chrono::high_resolution_clock::now();
+    }
+#endif
+    
   if (op == EkaFhMode::SNAPSHOT && enc == EKA_BATS_PITCH_MSG::SYMBOL_MAPPING) return false;
   switch (enc) {    
   case EKA_BATS_PITCH_MSG::ADD_ORDER_LONG:
@@ -152,7 +163,11 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
   case EKA_BATS_PITCH_MSG::TRADE_LONG:
   case EKA_BATS_PITCH_MSG::TRADE_SHORT:
   case EKA_BATS_PITCH_MSG::TRADING_STATUS:
-    msg_timestamp = seconds + ((batspitch_generic_header *)m)->time; 
+    msg_timestamp = seconds + ((batspitch_generic_header *)m)->time;
+
+    /* if (state == GrpState::NORMAL) */
+    /*   checkTimeDiff(dev->deltaTimeLogFile,dev->midnightSystemClock,msg_timestamp,sequence); */
+    
     break;
   default: {}
   }
@@ -191,8 +206,8 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
 
     char* osi = message->osi_symbol;
 
-    EfhDefinitionMsg msg = {};
-    msg.header.msgType        = EfhMsgType::kDefinition;
+    EfhOptionDefinitionMsg msg{};
+    msg.header.msgType        = EfhMsgType::kOptionDefinition;
     msg.header.group.source   = exch;
     msg.header.group.localId  = id;
     msg.header.underlyingId   = 0;
@@ -201,7 +216,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     msg.header.timeStamp      = 0;
     msg.header.gapNum         = gapNum;
 
-    msg.securityType          = EfhSecurityType::kOpt;
+    msg.securityType          = EfhSecurityType::kOption;
     uint y = (osi[6] -'0') * 10 + (osi[7] -'0');
     uint m = (osi[8] -'0') * 10 + (osi[9] -'0');
     uint d = (osi[10]-'0') * 10 + (osi[11]-'0');
@@ -219,13 +234,14 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
 
     memcpy (&msg.underlying,message->underlying,std::min(sizeof(msg.underlying),sizeof(message->underlying)));
     memcpy (&msg.classSymbol,osi,6);
+    memcpy (&msg.exchSecurityName,message->symbol,std::min(sizeof(msg.exchSecurityName),sizeof(message->symbol)));
 
     memcpy(&msg.opaqueAttrA,message->symbol,6);
 
     /* char osi2print[22] = {}; */
     /* memcpy(osi2print,osi,21); */
     //    EKA_LOG("OSI: %s, Expiration = %u, strike: %ju",osi2print,msg.expiryDate,msg.strikePrice);
-    pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+    pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
     return false;
   }
     //--------------------------------------------------------------
@@ -513,7 +529,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
   s->option_open = true;
 
   if (! book->isEqualState(s))
-    book->generateOnQuote (pEfhRunCtx, s, sequence, msg_timestamp, gapNum);
+    book->generateOnQuote (pEfhRunCtx, s, sequence, msg_timestamp, gapNum, msgStartTime);
 
   return false;
 }

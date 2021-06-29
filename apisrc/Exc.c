@@ -235,6 +235,19 @@ inline EkaTcpSess *getEkaTcpSess(EkaDev* dev, ExcConnHandle hConn) {
  *
  */  
 ExcSocketHandle excSocket( EkaDev* dev, EkaCoreId coreId , int domain, int type, int protocol ) {
+  if (! dev->epmEnabled) {
+    EKA_LOG("Initializing TCP functionality");
+    
+    dev->epmEnabled = dev->initEpmTx();
+    if (! dev->epmEnabled)
+      on_error("TX functionality is not available for this Ekaline SW instance - caught by another process");
+
+    if (! dev->core[coreId])
+      on_error("Lane %u has no link or IP address",coreId);
+
+    dev->core[coreId]->initTcp();
+  }
+  
   EkaCore *const core = getEkaCore(dev, coreId);
   if (!core)
     return -1;
@@ -355,6 +368,10 @@ int excClose( EkaDev* dev, ExcConnHandle hConn ) {
 int excPoll( EkaDev *dev, struct pollfd *fds, int nfds, int timeout ) {
   if (!checkDevice(dev))
     return -1;
+  else if (!nfds) {
+    // lwip_poll asserts if nfds == 0, we just return 0 in that case.
+    return 0;
+  }
 
   auto *const lwipPollFds = static_cast<pollfd *>(alloca(sizeof(pollfd) * nfds));
 

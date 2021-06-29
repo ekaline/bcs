@@ -10,241 +10,8 @@
 #include "EkaFhBoxGr.h"
 #include "EkaFhBoxParser.h"
 
-/* ----------------------------------------------------------------------- */
+using namespace Hsvf;
 
-inline uint hsvfTableLen(const uint8_t* msg) {
-  if (memcmp(msg,"V ",2) == 0) return 17;
-  if (memcmp(msg,"Z ",2) == 0) return 20;
-  if (memcmp(msg,"C ",2) == 0) return 76;
-  if (memcmp(msg,"CS",2) == 0) return 79;
-  if (memcmp(msg,"D ",2) == 0) return 40;
-  if (memcmp(msg,"F ",2) == 0) return 68;
-  if (memcmp(msg,"FS",2) == 0) return 79;
-  if (memcmp(msg,"GC",2) == 0) return 25;
-  if (memcmp(msg,"GR",2) == 0) return 19;
-  if (memcmp(msg,"GS",2) == 0) return 15;
-  if (memcmp(msg,"I ",2) == 0) return 68;
-  if (memcmp(msg,"IS",2) == 0) return 71;
-  if (memcmp(msg,"J ",2) == 0) return 119;
-  if (memcmp(msg,"L ",2) == 0) return 93;
-  if (memcmp(msg,"N ",2) == 0) return 127;
-  if (memcmp(msg,"NS",2) == 0) return 116;
-  if (memcmp(msg,"Q ",2) == 0) return 12;
-  if (memcmp(msg,"QS",2) == 0) return 12;
-  if (memcmp(msg,"S ",2) == 0) return 18;
-  if (memcmp(msg,"M ",2) == 0) return 84;
-  if (memcmp(msg,"MS",2) == 0) return 94;
-  if (memcmp(msg,"O ",2) == 0) return 80;
-  if (memcmp(msg,"OS",2) == 0) return 91;
-  if (memcmp(msg,"T ",2) == 0) return 47;
-  if (memcmp(msg,"TS",2) == 0) return 57;
-
-  if (memcmp(msg,"ER",2) == 0) return 95;
-  if (memcmp(msg,"KI",2) == 0) return 11;
-  if (memcmp(msg,"KO",2) == 0) return 11;
-  if (memcmp(msg,"LI",2) == 0) return 51;
-  if (memcmp(msg,"LO",2) == 0) return 11;
-  if (memcmp(msg,"RB",2) == 0) return 11;
-  if (memcmp(msg,"RE",2) == 0) return 11;
-  if (memcmp(msg,"RT",2) == 0) return 31;
-  if (memcmp(msg,"U ",2) == 0) return 18;
-  if (memcmp(msg,"ER",2) == 0) return 95;
-
-  return 0;
-}
-
-uint getHsvfMsgLen(const uint8_t* pkt, int bytes2run) {
-  uint idx = 0;
-
-  if (pkt[idx] != HsvfSom) {
-    hexDump("Msg with no HsvfSom (0x2)",(void*)pkt,bytes2run);
-    on_error("0x%x met while HsvfSom 0x%x is expected",pkt[idx],HsvfSom);
-    return 0;
-  }
-
-  const uint8_t* msg = &pkt[10];
-  uint tableLen = hsvfTableLen(msg);
-
-  if (tableLen != 0) {
-    if (pkt[tableLen+1] != HsvfEom) {
-      hexDump("Hsvf Msg with wrong hsvfTableLen",pkt,bytes2run);
-      on_error("tableLen of \'%c%c\' = %u, but last char = 0x%x",
-	       (char)msg[0],(char)msg[1],tableLen,pkt[tableLen+1]);
-    }
-    return tableLen + 2;
-  }
-
-
-  do {
-    idx++;
-    if ((int)idx > bytes2run) {
-      hexDump("Msg with no HsvfEom (0x3)",(void*)pkt,bytes2run);
-      on_error("HsvfEom not met after %u characters",idx);
-    }
-  } while (pkt[idx] != HsvfEom);
-
-  return idx + 1;
-}
-
-uint64_t getHsvfMsgSequence(const uint8_t* msg) {
-  const HsvfMsgHdr* msgHdr = (const HsvfMsgHdr*)&msg[1];
-  std::string seqString = std::string(msgHdr->sequence,sizeof(msgHdr->sequence));
-  return std::stoul(seqString,nullptr,10);
-}
-
-bool isHeartbeat(const uint8_t* msg) {
-  auto msgHdr {reinterpret_cast<const HsvfMsgHdr*>(&msg[1])};
-  if (memcmp(msgHdr->MsgType,"V ",sizeof(msgHdr->MsgType)) == 0) return true;
-  return false;
-}
-
-uint trailingZeros(const uint8_t* p, uint maxChars) {
-  uint idx = 0;
-  while (p[idx] == 0x0 && idx < maxChars) {
-    idx++; // skipping trailing '\0' chars
-  }
-  if (idx > 2) {
-    hexDump("Msg with unexpected trailing zeros",p,maxChars);
-    on_error("unexpected %u trailing Zeros",idx);
-  }
-  return idx;
-}
-
-inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
-  uint64_t hashRes = 0;
-  uint shiftBits = 0;
-
-  uint64_t fieldSize = 0;
-  uint64_t fieldMask = 0;
-
-  uint64_t f = 0;
-
-  /* // 5 letters * 5 bits = 25 bits */
-  /* fieldSize = 5; */
-  /* fieldMask = (0x1 << fieldSize) - 1; */
-  /* for (int i = 0; i < 5; i++) { */
-  /*   uint64_t nameLetter = (charSymbol[i] - 'A') & fieldMask; */
-  /*   f = nameLetter << shiftBits; */
-  /*   hashRes |=  f; */
-  /*   // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes); */
-  /*   shiftBits += fieldSize; */
-  /* }  */
-  /* // shiftBits = 25; */
-
-  // 5 bits
-  fieldSize = 5;
-  fieldMask = (0x1 << fieldSize) - 1;
-  uint64_t month = (charSymbol[6] - 'A') & fieldMask;
-  f = month << shiftBits;
-  hashRes |= f;
-  // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
-  shiftBits += fieldSize;
-  // shiftBits = 30;
-
-  // 9,999,999 = 24 bits
-  fieldSize = 24;
-  fieldMask = (0x1 << fieldSize) - 1;
-  std::string priceStr = std::string(&charSymbol[8],7);
-  uint64_t price = std::stoul(priceStr,nullptr,10) & fieldMask;
-  f = price << shiftBits;
-  hashRes |= f;
-  // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
-  shiftBits += fieldSize;
-  // shiftBits = 54;
-
-  // 'A' .. 'G' = 3 bits
-  fieldSize = 3;
-  fieldMask = (0x1 << fieldSize) - 1;
-  uint64_t priceFractionIndicator = (charSymbol[15] - 'A') & fieldMask;
-  f = priceFractionIndicator << shiftBits;
-  hashRes |= f;
-  // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
-  shiftBits += fieldSize;
-  // shiftBits = 57;
-
-  // year offset = 2 bits
-  fieldSize = 2;
-  fieldMask = (0x1 << fieldSize) - 1;
-  std::string yearStr = std::string(&charSymbol[16],2);
-  uint64_t year = (std::stoi(yearStr,nullptr,10) - 20) & fieldMask;
-  f = year << shiftBits;
-  hashRes |= f;
-  // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
-  shiftBits += fieldSize;
-  // shiftBits = 59;
-
-  // 5 bits
-  fieldSize = 5;
-  fieldMask = (0x1 << fieldSize) - 1;
-  std::string dayStr = std::string(&charSymbol[18],2);
-  uint64_t day = std::stoi(dayStr,nullptr,10) & fieldMask;
-  f = day << shiftBits;
-  hashRes |= f;
-  // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
-  shiftBits += fieldSize;
-  // shiftBits = 64;
-
-
-  // 5 letters * 5 bits = 25 bits
-  fieldSize = 5;
-  fieldMask = (0x1 << fieldSize) - 1;
-  for (int i = 0; i < 5; i++) {
-    uint64_t nameLetter = (charSymbol[i] - 'A') & fieldMask;
-    f = nameLetter << shiftBits;
-    hashRes |=  f;
-    // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
-    shiftBits += fieldSize;
-  } 
-  // shiftBits = 25;
-
-  return hashRes;
-}
-
-/* ----------------------------------------------------------------------- */
-
-template <class T> inline T getNumField(const char* f, size_t fSize) {
-  std::string fieldString = std::string(f,fSize);
-  return static_cast<T>(std::stoul(fieldString,nullptr,10));
-}
-
-/* ----------------------------------------------------------------------- */
-EfhOptionType getOptionType(const char* c) {
-  if (c[6] >= 'A' && c[6] <= 'L') return EfhOptionType::kCall;
-  if (c[6] >= 'M' && c[6] <= 'X') return EfhOptionType::kPut;
-  on_error("Unexpected Month Code \'%c\'",c[6]);
-}
-
-/* ----------------------------------------------------------------------- */
-uint64_t getMonth(const char* c, EfhOptionType optType) {
-  if (optType == EfhOptionType::kCall) return c[6] - 'A' + 1;
-  return c[6] - 'M' + 1;
-}
-/* ----------------------------------------------------------------------- */
-uint64_t getYear(const char* c) {
-  return getNumField<uint64_t>(c + 16,2);
-}
-/* ----------------------------------------------------------------------- */
-uint64_t getDay(const char* c) {
-  return getNumField<uint64_t>(c + 18,2);
-}
-/* ----------------------------------------------------------------------- */
-inline uint32_t getFractionIndicator(char FI) {
-  switch (FI) {
-  case '0' : return 1e0;
-  case '1' : return 1e1;
-  case '2' : return 1e2;
-  case '3' : return 1e3;
-  case '4' : return 1e4;
-  case '5' : return 1e5;
-  case '6' : return 1e6;
-  case '7' : return 1e7;
-  case '8' : return 1e8;
-  case '9' : return 1e9;
-  default:
-    on_error("Unexpected FractionIndicator \'%c\'",FI);
-  }
-
-}
 /* ----------------------------------------------------------------------- */
 template <class FhSecurity> 
 inline int getStatus(FhSecurity* s, char statusMarker) {
@@ -315,7 +82,7 @@ inline int getStatus(FhSecurity* s, char statusMarker) {
 
 /* ----------------------------------------------------------------------- */
 
-static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
+static void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg) {
   uint8_t y,m,d;
 
   d = msg->expiryDate % 100;
@@ -331,21 +98,19 @@ static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
 
 /* ----------------------------------------------------------------------- */
 
-bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence, EkaFhMode op) {
-  uint pos = 0;
-
+bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence, EkaFhMode op,std::chrono::high_resolution_clock::time_point startTime) {
   FhSecurity* s = NULL;
 
-  const HsvfMsgHdr* msgHdr = (const HsvfMsgHdr*)&m[pos];
-
-  const uint8_t* msgBody = (uint8_t*)msgHdr + sizeof(HsvfMsgHdr);
+  auto msgHdr {reinterpret_cast<const HsvfMsgHdr*>(m)};
+  
+  const uint8_t* msgBody = m + sizeof(HsvfMsgHdr);
 
   //  EKA_LOG("%s:%u: %ju \'%c%c\'",EKA_EXCH_DECODE(exch),id,seq,msgHdr->MsgType[0],msgHdr->MsgType[1]);
   //===================================================
   if (memcmp(msgHdr->MsgType,"F ",sizeof(msgHdr->MsgType)) == 0) { // OptionQuote
     if (op == EkaFhMode::DEFINITIONS) return true; // Dictionary is done
 
-    const HsvfOptionQuote* boxMsg = (const HsvfOptionQuote*)msgBody;
+    auto boxMsg {reinterpret_cast<const HsvfOptionQuote*>(msgBody)};
 
     SecurityIdT security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
 
@@ -382,22 +147,22 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     //    if (op == EkaFhMode::SNAPSHOT) return false;
     if (op != EkaFhMode::DEFINITIONS) return false;
 
-    const HsvfOptionInstrumentKeys* boxMsg = (const HsvfOptionInstrumentKeys*)msgBody;
-    
+    auto boxMsg {reinterpret_cast<const HsvfOptionInstrumentKeys*>(msgBody)};
+
     const char* symb = boxMsg->InstrumentDescription;
 
-    EfhDefinitionMsg msg = {};
-    msg.header.msgType        = EfhMsgType::kDefinition;
+    EfhOptionDefinitionMsg msg{};
+    msg.header.msgType        = EfhMsgType::kOptionDefinition;
     msg.header.group.source   = EkaSource::kBOX_HSVF;
     msg.header.group.localId  = id;
     msg.header.underlyingId   = 0;
     msg.header.securityId     = charSymbol2SecurityId(symb);
     msg.header.sequenceNumber = sequence;
-    msg.header.timeStamp      = 0;
+    msg.header.timeStamp      = gr_ts;
     msg.header.gapNum         = gapNum;
 
     //    msg.secondaryGroup        = 0;
-    msg.securityType          = EfhSecurityType::kOpt;
+    msg.securityType          = EfhSecurityType::kOption;
     msg.optionType            = getOptionType(symb);
     msg.expiryDate            = (2000 + getYear(symb)) * 10000 + getMonth(symb,msg.optionType) * 100 + getDay(symb);
     msg.contractSize          = 0;
@@ -407,6 +172,9 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     memcpy (&msg.underlying,boxMsg->UnderlyingSymbolRoot,std::min(sizeof(msg.underlying),sizeof(boxMsg->UnderlyingSymbolRoot)));
     memcpy (&msg.classSymbol,&symb[0],6);
 
+    memcpy(msg.exchSecurityName,                                  boxMsg->GroupInstrument,sizeof(boxMsg->GroupInstrument));
+    memcpy(msg.exchSecurityName + sizeof(boxMsg->GroupInstrument),boxMsg->Instrument,     sizeof(boxMsg->Instrument));
+
 #ifdef TEST_PRINT_DICT
     char avtSecName[32] = {};
     eka_create_avt_definition(avtSecName,&msg);
@@ -414,12 +182,84 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
 	    std::string(boxMsg->InstrumentDescription,20).c_str(),avtSecName,
 	    msg.header.securityId,msg.header.securityId);
 #endif
-    pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+    pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
     //===================================================
   } else if (memcmp(msgHdr->MsgType,"N ",sizeof(msgHdr->MsgType)) == 0) { // OptionSummary
 
     //===================================================
-  } 
+  } else if (memcmp(msgHdr->MsgType,"M ",sizeof(msgHdr->MsgType)) == 0) { // HsvfRfqStart
+    auto boxMsg {reinterpret_cast<const HsvfRfqStart*>(msgBody)};
+
+    SecurityIdT security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
+
+    EfhAuctionUpdateMsg msg{};
+    msg.header.msgType        = EfhMsgType::kAuctionUpdate;
+    msg.header.group.source   = EkaSource::kBOX_HSVF;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.securityId     = security_id;
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = gr_ts;
+    msg.header.gapNum         = gapNum;
+
+    msg.side                  = getSide(boxMsg->Side);
+    msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
+
+    msg.quantity              = getNumField<uint32_t>(boxMsg->MinimumQuantity,sizeof(boxMsg->MinimumQuantity));
+    msg.price                 = getNumField<uint32_t>(boxMsg->Price,sizeof(boxMsg->Price)) * getFractionIndicator(boxMsg->PriceFractionIndicator);
+    msg.endTimeNanos          = getExpireNs(boxMsg->ExpiryTime);
+      
+    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+  } else if (memcmp(msgHdr->MsgType,"O ",sizeof(msgHdr->MsgType)) == 0) { // HsvfRfqInsert
+    auto boxMsg {reinterpret_cast<const HsvfRfqInsert*>(msgBody)};
+
+    SecurityIdT security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
+
+    EfhAuctionUpdateMsg msg{};
+    msg.header.msgType        = EfhMsgType::kAuctionUpdate;
+    msg.header.group.source   = EkaSource::kBOX_HSVF;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.securityId     = security_id;
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = gr_ts;
+    msg.header.gapNum         = gapNum;
+
+    msg.side                  = getSide(boxMsg->OrderSide);
+    msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
+    msg.quantity              = getNumField<uint32_t>(boxMsg->Size,sizeof(boxMsg->Size));
+    msg.price                 = getNumField<uint32_t>(boxMsg->LimitPrice,sizeof(boxMsg->LimitPrice)) * getFractionIndicator(boxMsg->LimitPriceFractionIndicator);
+    msg.endTimeNanos          = getExpireNs(boxMsg->EndOfExposition);
+
+    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+  } else if (memcmp(msgHdr->MsgType,"T ",sizeof(msgHdr->MsgType)) == 0) { // HsvfRfqDelete
+    auto boxMsg {reinterpret_cast<const HsvfRfqDelete*>(msgBody)};
+
+    if (boxMsg->DeletionType != '3') return false;
+
+    // '3' = Deletion of all orders
+
+    SecurityIdT security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
+
+    EfhAuctionUpdateMsg msg{};
+    msg.header.msgType        = EfhMsgType::kAuctionUpdate;
+    msg.header.group.source   = EkaSource::kBOX_HSVF;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.securityId     = security_id;
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = gr_ts;
+    msg.header.gapNum         = gapNum;
+
+    msg.side                  = getSide(boxMsg->OrderSide);
+    msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
+
+    msg.quantity              = 0;
+    msg.price                 = 0;
+    msg.endTimeNanos          = 0;
+      
+    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+  }
  
   //===================================================
 

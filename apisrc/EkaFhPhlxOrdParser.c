@@ -22,7 +22,8 @@ inline SideT sideDecode(char _side) {
 }
 /* ######################################################### */
 
-bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op) {
+bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op,
+				 std::chrono::high_resolution_clock::time_point startTime) {
   char enc =  (char)m[0];
 
   if (op == EkaFhMode::DEFINITIONS && 
@@ -49,8 +50,8 @@ bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m
   case 'D':  { // phlx_ord_option_directory
     phlx_ord_option_directory  *message = (phlx_ord_option_directory *)m;
 
-    EfhDefinitionMsg msg = {};
-    msg.header.msgType        = EfhMsgType::kDefinition;
+    EfhOptionDefinitionMsg msg{};
+    msg.header.msgType        = EfhMsgType::kOptionDefinition;
     msg.header.group.source   = exch;
     msg.header.group.localId  = (EkaLSI)id;
     msg.header.underlyingId   = 0;
@@ -60,7 +61,7 @@ bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m
     msg.header.gapNum         = gapNum;
 
     //    msg.secondaryGroup        = 0;
-    msg.securityType          = EfhSecurityType::kOpt;
+    msg.securityType          = EfhSecurityType::kOption;
     // (message->expiration Denotes the explicit expiration date of the option.
     // Bits 0-6 = Year (0-99)
     // Bits 7-10 = Month (1-12)
@@ -82,7 +83,7 @@ bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m
     memcpy (&msg.underlying, message->underlying_symbol,std::min(sizeof(msg.underlying), sizeof(message->underlying_symbol)));
     memcpy (&msg.classSymbol,message->security_symbol,  std::min(sizeof(msg.classSymbol),sizeof(message->security_symbol)));
 
-    pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+    pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
     return false;
   }
 

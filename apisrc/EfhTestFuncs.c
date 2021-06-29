@@ -287,7 +287,7 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
 	    //	    std::string(*(char*)&m->hdr.securityId,sizeof(m->hdr.securityId)).c_str(),
 	    m->hdr.securityId,
 	    m->orderId,
-	    m->side == EfhOrderSideType::kBid ? 'B' : 'A',
+	    m->side == EfhOrderSide::kBid ? 'B' : 'A',
 	    m->price,m->price,
 	    m->size,m->size
 	    );
@@ -305,7 +305,7 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
 	    m->hdr.sequenceNumber,
 	    ts_ns2str(m->hdr.timeStamp).c_str(),
 	    m->hdr.timeStamp,
-	    m->side == EfhOrderSideType::kBid ? 'B' : 'A',
+	    m->side == EfhOrderSide::kBid ? 'B' : 'A',
 	    m->pLvl,
 	    m->price,
 	    m->size
@@ -322,7 +322,7 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
 	    m->hdr.sequenceNumber,
 	    ts_ns2str(m->hdr.timeStamp).c_str(),
 	    m->hdr.timeStamp,
-	    m->side == EfhOrderSideType::kBid ? 'B' : 'A',
+	    m->side == EfhOrderSide::kBid ? 'B' : 'A',
 	    m->pLvl,
 	    m->price,
 	    m->size
@@ -339,7 +339,7 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
 	    m->hdr.sequenceNumber,
 	    ts_ns2str(m->hdr.timeStamp).c_str(),
 	    m->hdr.timeStamp,
-	    m->side == EfhOrderSideType::kBid ? 'B' : 'A',
+	    m->side == EfhOrderSide::kBid ? 'B' : 'A',
 	    m->pLvl
 	    );
   }
@@ -403,8 +403,8 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
   return NULL;
 }
 
-void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
-  if (msg->header.group.source  == EkaSource::kCME_SBE && msg->securityType == EfhSecurityType::kOpt) {
+void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg) {
+  if (msg->header.group.source  == EkaSource::kCME_SBE && msg->securityType == EfhSecurityType::kOption) {
     std::string classSymbol    = std::string(msg->classSymbol,sizeof(msg->classSymbol));
     sprintf(dst,"%s_%c%04jd",
 	    classSymbol.c_str(),
@@ -425,10 +425,58 @@ void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
   }
   return;
 }
+/* ------------------------------------------------------------ */
+
+void* onComplexDefinition(const EfhComplexDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+  if (! keep_work) return NULL;
+  EfhCtx* pEfhCtx = (EfhCtx*) userData;
+  if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
+
+  EkaSource exch = msg->header.group.source;
+  EkaLSI    grId = msg->header.group.localId;
+
+  auto gr = grCtx[(int)exch][grId];
+  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  
+  fprintf(gr->MD,"ComplexDefinition\n");
+  return NULL;
+}
+/* ------------------------------------------------------------ */
+
+void* onAuctionUpdate(const EfhAuctionUpdateMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+  if (! keep_work) return NULL;
+  EfhCtx* pEfhCtx = (EfhCtx*) userData;
+  if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
+
+  EkaSource exch = msg->header.group.source;
+  EkaLSI    grId = msg->header.group.localId;
+
+  auto gr = grCtx[(int)exch][grId];
+  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  
+  fprintf(gr->MD,"RFQ,");
+  fprintf(gr->MD,"%s,",    eka_get_date().c_str());
+  fprintf(gr->MD,"%s,",    eka_get_time().c_str());
+  fprintf(gr->MD,"%ju,",   msg->header.securityId);
+  fprintf(gr->MD,"%ju,",   msg->auctionId);
+  fprintf(gr->MD,"%d,",    (int)msg->type);
+  fprintf(gr->MD,"%d,",    (int)msg->side);
+  fprintf(gr->MD,"%d,",    (int)msg->customer);
+  fprintf(gr->MD,"%d,",    (int)msg->securityType);
+  fprintf(gr->MD,"%u,",    msg->quantity);
+  fprintf(gr->MD,"%jd,",   msg->price);
+  fprintf(gr->MD,"%ju,",   msg->endTimeNanos);
+  fprintf(gr->MD,"%s,",    std::string(msg->execBroker,sizeof(msg->execBroker)).c_str());
+  fprintf(gr->MD,"%s,",    std::string(msg->client    ,sizeof(msg->client    )).c_str());
+  fprintf(gr->MD,"%s,",    (ts_ns2str(msg->header.timeStamp)).c_str());
+  fprintf(gr->MD,"\n");
+
+  return NULL;
+}
 
 /* ------------------------------------------------------------ */
 
-void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
   if (! keep_work) return NULL;
   
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
@@ -477,7 +525,7 @@ void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUs
     gr->security.push_back(newSecurity);
     auto sec_idx = gr->security.size() - 1;
     
-    efhSubscribeStatic(pEfhCtx, (EkaGroup*)&msg->header.group, msg->header.securityId, EfhSecurityType::kOpt,(EfhSecUserData) sec_idx,0,0);
+    efhSubscribeStatic(pEfhCtx, (EkaGroup*)&msg->header.group, msg->header.securityId, EfhSecurityType::kOption,(EfhSecUserData) sec_idx,0,0);
 
     fprintf (gr->subscrDict,"%s,%ju,%s,%s\n",
 	     avtSecName,
@@ -511,6 +559,8 @@ EkaSource feedname2source(std::string feedName) {
   /* ------------------------------------------------------- */
   if (feedName == std::string("BA")) return EkaSource::kBOX_HSVF;
   if (feedName == std::string("BB")) return EkaSource::kBOX_HSVF;
+  if (feedName == std::string("BC")) return EkaSource::kBOX_HSVF;
+  if (feedName == std::string("BD")) return EkaSource::kBOX_HSVF;
   /* ------------------------------------------------------- */
   if (feedName == std::string("NA")) return EkaSource::kNOM_ITTO;
   if (feedName == std::string("NB")) return EkaSource::kNOM_ITTO;
@@ -554,6 +604,8 @@ static EkaProp* feedname2prop (std::string feedName) {
   /* ------------------------------------------------------- */
   if (feedName == std::string("BA")) return efhBoxInitCtxEntries_A;
   if (feedName == std::string("BB")) return efhBoxInitCtxEntries_B;
+  if (feedName == std::string("BC")) return efhBoxInitCtxEntries_C;
+  if (feedName == std::string("BD")) return efhBoxInitCtxEntries_D;
   /* ------------------------------------------------------- */
   if (feedName == std::string("NA")) return efhNomInitCtxEntries_A;
   if (feedName == std::string("NB")) return efhNomInitCtxEntries_B;
@@ -597,6 +649,8 @@ static size_t feedname2numProps (std::string feedName) {
   /* ------------------------------------------------------- */
   if (feedName == std::string("BA")) return std::size(efhBoxInitCtxEntries_A);
   if (feedName == std::string("BB")) return std::size(efhBoxInitCtxEntries_B);
+  if (feedName == std::string("BC")) return std::size(efhBoxInitCtxEntries_C);
+  if (feedName == std::string("BD")) return std::size(efhBoxInitCtxEntries_D);
   /* ------------------------------------------------------- */
   if (feedName == std::string("NA")) return std::size(efhNomInitCtxEntries_A);
   if (feedName == std::string("NB")) return std::size(efhNomInitCtxEntries_B);
@@ -640,6 +694,8 @@ static size_t feedname2numGroups(std::string feedName) {
   /* ------------------------------------------------------- */
   if (feedName == std::string("BA")) return std::size(boxGroups);
   if (feedName == std::string("BB")) return std::size(boxGroups);
+  if (feedName == std::string("BC")) return std::size(boxGroups);
+  if (feedName == std::string("BD")) return std::size(boxGroups);
   /* ------------------------------------------------------- */
   if (feedName == std::string("NA")) return std::size(nomGroups);
   if (feedName == std::string("NB")) return std::size(nomGroups);
@@ -712,7 +768,9 @@ int createCtxts(std::vector<TestRunGroup>& testRunGroups,
       .groups                      = pGroups,
       .numGroups                   = numRunGroups,
       .efhRunUserData              = 0,
-      .onEfhDefinitionMsgCb        = onDefinition,
+      .onEfhOptionDefinitionMsgCb  = onOptionDefinition,
+      .onEfhComplexDefinitionMsgCb = onComplexDefinition,
+      .onEfhAuctionUpdateMsgCb     = onAuctionUpdate,
       .onEfhTradeMsgCb             = onTrade,
       .onEfhQuoteMsgCb             = onQuote,
       .onEfhOrderMsgCb             = onOrder,
@@ -737,4 +795,45 @@ int createCtxts(std::vector<TestRunGroup>& testRunGroups,
     }
   }
   return 0;
+}
+
+/* ------------------------------------------------------------ */
+
+void print_usage(char* cmd) {
+  printf("USAGE: %s -g <RunGroup> <flags> \n",cmd); 
+  printf("\tRunGroup Format: \"[coreId]:[Feed Code]:[First MC Gr ID]..[Last MC Gr ID]\"\n");
+  printf("\tRunGroup Format Example: \"2:CC:0..11\"\n");
+  printf("\t\tSupported Feed Codes:\n"); 
+  printf("\t\t\tNA - NOM         A feed\n"); 
+  printf("\t\t\tNB - NOM         B feed\n"); 
+  printf("\t\t\tGA - GEM         A feed\n"); 
+  printf("\t\t\tGB - GEM         B feed\n"); 
+  printf("\t\t\tIA - ISE         A feed\n"); 
+  printf("\t\t\tIB - ISE         B feed\n"); 
+  printf("\t\t\tTA - PHLX TOPO   A feed\n"); 
+  printf("\t\t\tTB - PHLX TOPO   B feed\n"); 
+  printf("\t\t\tOA - PHLX ORD    A feed\n"); 
+  printf("\t\t\tOB - PHLX ORD    B feed\n"); 
+  printf("\t\t\tCA - C1          A feed\n"); 
+  printf("\t\t\tCB - C1          B feed\n"); 
+  printf("\t\t\tCC - C1          C feed\n"); 
+  printf("\t\t\tCD - C1          D feed\n"); 
+  printf("\t\t\tMA - MIAX TOM    A feed\n"); 
+  printf("\t\t\tMB - MIAX TOM    B feed\n"); 
+  printf("\t\t\tPA - PEARL TOM   A feed\n"); 
+  printf("\t\t\tPB - PEARL TOM   B feed\n"); 
+  printf("\t\t\tRA - ARCA        A feed\n"); 
+  printf("\t\t\tRB - ARCA        B feed\n"); 
+  printf("\t\t\tXA - AMEX        A feed\n"); 
+  printf("\t\t\tXB - AMEX        B feed\n"); 
+  printf("\t\t\tBA - BOX vanilla A feed\n"); 
+  printf("\t\t\tBB - BOX vanilla B feed\n"); 
+  printf("\t\t\tBC - BOX RFQ(PIP)A feed\n"); 
+  printf("\t\t\tBD - BOX Complex A feed\n"); 
+  printf("\t\t\tEA - CME         A feed\n"); 
+  printf("\t\t\tEB - CME         B feed\n"); 
+  printf("\t-u <Underlying Name> - subscribe on all options belonging to\n");
+  printf("\t-t Print TOB updates (EFH)\n");
+  printf("\t-a subscribe all\n");
+  return;
 }

@@ -10,138 +10,10 @@
 #include <fcntl.h>
 #include <arpa/inet.h>
 
-//#include "ekaNW.h"
-//#include "eka_macros.h"
+#include "eka_macros.h"
 
 #include "eka_hsvf_box_messages4pcapTest.h"
 
-#define on_error(...) { fprintf(stderr, "EKALINE API LIB FATAL ERROR: %s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n");perror(""); fflush(stdout); fflush(stderr); exit(1); }
-
-#define EKA_IP2STR(x)  ((std::to_string((x >> 0) & 0xFF) + '.' + std::to_string((x >> 8) & 0xFF) + '.' + std::to_string((x >> 16) & 0xFF) + '.' + std::to_string((x >> 24) & 0xFF)).c_str())
-
-//###################################################
-struct pcap_file_hdr {
-        uint32_t magic_number;   /* magic number */
-         uint16_t version_major;  /* major version number */
-         uint16_t version_minor;  /* minor version number */
-         int32_t  thiszone;       /* GMT to local correction */
-         uint32_t sigfigs;        /* accuracy of timestamps */
-         uint32_t snaplen;        /* max length of captured packets, in octets */
-         uint32_t network;        /* data link type */
- };
- struct pcap_rec_hdr {
-         uint32_t ts_sec;         /* timestamp seconds */
-         uint32_t ts_usec;        /* timestamp microseconds */
-         uint32_t cap_len;        /* number of octets of packet saved in file */
-         uint32_t len;            /* actual length of packet */
- };
-
-struct EkaEthHdr {
-  uint8_t dest[6];
-  uint8_t src[6];
-  uint16_t type;
-};
-
-struct EkaIpHdr {
-  /* version / header length */
-  uint8_t _v_hl;
-  /* type of service */
-  uint8_t _tos;
-  /* total length */
-  uint16_t _len;
-  /* identification */
-  uint16_t _id;
-  /* fragment offset field */
-  uint16_t _offset;
-/* #define IP_RF 0x8000U        /\* reserved fragment flag *\/ */
-/* #define IP_DF 0x4000U        /\* don't fragment flag *\/ */
-/* #define IP_MF 0x2000U        /\* more fragments flag *\/ */
-#define EKA_IP_OFFMASK 0x1fffU   /* mask for fragmenting bits */
-  /* time to live */
-  uint8_t _ttl;
-  /* protocol*/
-  uint8_t _proto;
-  /* checksum */
-  uint16_t _chksum;
-  /* source and destination IP addresses */
-  uint32_t src;
-  uint32_t dest;
-};
-
-struct EkaTcpHdr {
-  uint16_t src;
-  uint16_t dest;
-  uint32_t seqno;
-  uint32_t ackno;
-  uint16_t _hdrlen_rsvd_flags;
-  uint16_t wnd;
-  uint16_t chksum;
-  uint16_t urgp;
-};
-
-struct EkaUdpHdr {
-  uint16_t src;
-  uint16_t dest;
-  uint16_t len;
-  uint16_t chksum;
-};
-
-#define EKA_ETHTYPE_IP        0x0800
-#define EKA_ETHTYPE_VLAN      0x8100
-
-
-#define EKA_PROTO_TCP         0x06
-#define EKA_PROTO_UDP         0x11
-
-#define EKA_IPH_PROTO(hdr) ((hdr)->_proto)
-
-#define EKA_ETH_TYPE(pkt)  ((uint16_t)be16toh((((EkaEthHdr*)pkt)->type)))
-
-#define EKA_ETHER_VLAN(pkt) (EKA_ETH_TYPE(pkt) == EKA_ETHTYPE_VLAN)
-
-#define EKA_IPH(buf)  ((EkaIpHdr*)  (((uint8_t*)buf) + sizeof(EkaEthHdr) + 4 * EKA_ETHER_VLAN(buf)))
-#define EKA_TCPH(buf) ((EkaTcpHdr*) (((uint8_t*)EKA_IPH(buf) + sizeof(EkaIpHdr))))
-#define EKA_UDPH(buf) ((EkaUdpHdr*) (((uint8_t*)EKA_IPH(buf) + sizeof(EkaIpHdr))))
-
-
-#define EKA_ETH_TYPE(pkt)  ((uint16_t)be16toh((((EkaEthHdr*)pkt)->type)))
-#define EKA_ETH_MACDA(pkt) ((uint8_t*)&(((EkaEthHdr*)pkt)->dest))
-#define EKA_ETH_MACSA(pkt) ((uint8_t*)&(((EkaEthHdr*)pkt)->src))
-
-#define EKA_IS_IP4_PKT(pkt) (EKA_ETH_TYPE(pkt) == EKA_ETHTYPE_IP)
-#define EKA_IS_UDP_PKT(pkt) (EKA_IS_IP4_PKT(pkt) && (EKA_IPH_PROTO(EKA_IPH(pkt)) == EKA_PROTO_UDP))
-
-
-#define EKA_IPH_SRC(hdr) ((EKA_IPH(hdr))->src)
-#define EKA_IPH_DST(hdr) ((EKA_IPH(hdr))->dest)
-
-#define EKA_UDPH_SRC(pkt) ((uint16_t)(be16toh((EKA_UDPH(pkt))->src)))
-#define EKA_UDPH_DST(pkt) ((uint16_t)(be16toh((EKA_UDPH(pkt))->dest)))
-
-
-//###################################################
-#if 1
-static void hexDump (const char* desc, void *addr, int len) {
-    int i;
-    unsigned char buff[17];
-    unsigned char *pc = (unsigned char*)addr;
-    if (desc != NULL) printf("%s:\n", desc);
-    if (len == 0) { printf("  ZERO LENGTH\n"); return; }
-    if (len < 0)  { printf("  NEGATIVE LENGTH: %i\n",len); return; }
-    for (i = 0; i < len; i++) {
-        if ((i % 16) == 0) {
-            if (i != 0) printf("  %s\n", buff);
-            printf("  %04x ", i);
-        }
-        printf(" %02x", pc[i]);
-        if ((pc[i] < 0x20) || (pc[i] > 0x7e))  buff[i % 16] = '.';
-        else buff[i % 16] = pc[i];
-        buff[(i % 16) + 1] = '\0';
-    }
-    while ((i % 16) != 0) { printf("   "); i++; }
-    printf("  %s\n", buff);
-}
-#endif
 //#########################################################
 uint getHsvfMsgLen(char* pkt, int bytes2run) {
   uint idx = 0;
@@ -293,7 +165,7 @@ int main(int argc, char *argv[]) {
     //    TEST_LOG("pkt = %ju, pktLen = %u",pktNum, pktLen);
 
     int pos = 0;
-    if (EKA_ETHER_VLAN(pkt)) pos += 4;
+
     if (! EKA_IS_UDP_PKT(&pkt[pos])) {
       continue;
     }

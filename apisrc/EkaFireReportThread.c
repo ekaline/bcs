@@ -87,32 +87,32 @@ int printMdReport(EkaDev* dev, const EfcMdReport* msg) {
   /* 	 msg->size); */
   //PITCH
   //  printf("MdReport: GR%d,SN:%ju,SID:%c%c%c%c%c%c,%c,P:%8ju,S:%8ju\n",
-  printf("MdReport: GR%d,SN:%ju,SID:0x%02x%02x%02x%02x%02x%02x%02x%02x,%c,P:%8ju,S:%8ju\n",
-	 msg->group_id,
-	 msg->sequence,
-	 (uint8_t)((msg->security_id >> 7*8) & 0xFF),
-	 (uint8_t)((msg->security_id >> 6*8) & 0xFF),
-	 (uint8_t)((msg->security_id >> 5*8) & 0xFF),
-	 (uint8_t)((msg->security_id >> 4*8) & 0xFF),
-	 (uint8_t)((msg->security_id >> 3*8) & 0xFF),
-	 (uint8_t)((msg->security_id >> 2*8) & 0xFF),
-	 (uint8_t)((msg->security_id >> 1*8) & 0xFF),
-	 (uint8_t)((msg->security_id >> 0*8) & 0xFF),
+  EKA_LOG("MdReport:");
+  EKA_LOG("\tGroup = %hhu", msg->group_id);
+  EKA_LOG("\tSequence no = %ju", intmax_t(msg->sequence));
+  EKA_LOG("\tSID = 0x%02x%02x%02x%02x%02x%02x%02x%02x",
+      (uint8_t)((msg->security_id >> 7*8) & 0xFF),
+      (uint8_t)((msg->security_id >> 6*8) & 0xFF),
+      (uint8_t)((msg->security_id >> 5*8) & 0xFF),
+      (uint8_t)((msg->security_id >> 4*8) & 0xFF),
+      (uint8_t)((msg->security_id >> 3*8) & 0xFF),
+      (uint8_t)((msg->security_id >> 2*8) & 0xFF),
+      (uint8_t)((msg->security_id >> 1*8) & 0xFF),
+      (uint8_t)((msg->security_id >> 0*8) & 0xFF));
+  EKA_LOG("\tSide = %c", msg->side == 1 ? 'B' : 'S');
+  EKA_LOG("\tPrice = %8jd", intmax_t(msg->price));
+  EKA_LOG("\tSize = %8ju", intmax_t(msg->size));
 
-	 msg->side == 1 ? 'B' : 'S',
-	 msg->price,
-	 msg->size);
-  
   return 0;
 }
 /* ########################################################### */
-int printSecCtx(EkaDev* dev, const EfcSecurityCtx* msg) {
+int printSecCtx(EkaDev* dev, const SecCtx* msg) {
   EKA_LOG("SecurityCtx:");
-  EKA_LOG("\tlowerBytesOfSecId = 0x%x ",msg->lower_bytes_of_sec_id);
-  EKA_LOG("\tverNum = %u",              msg->ver_num);
-  EKA_LOG("\tsize = %u",                msg->size);
-  EKA_LOG("\taskMaxPrice = %u (%u)",    msg->ask_max_price, msg->ask_max_price * 100);
-  EKA_LOG("\tbidMinPrice = %u (%u)",    msg->bid_min_price, msg->bid_min_price * 100);
+  EKA_LOG("\tlowerBytesOfSecId = 0x%x ",msg->lowerBytesOfSecId);
+  EKA_LOG("\taskSize = %u",             msg->askSize);
+  EKA_LOG("\tbidSize = %u",             msg->bidSize);
+  EKA_LOG("\taskMaxPrice = %u (%u)",    msg->askMaxPrice, msg->askMaxPrice * 100);
+  EKA_LOG("\tbidMinPrice = %u (%u)",    msg->bidMinPrice, msg->bidMinPrice * 100);
 
   return 0;
 }
@@ -241,19 +241,19 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len, uint32_t e
   //--------------------------------------------------------------------------
   ((EfcReportHdr*)b)->type = EfcReportType::kSecurityCtx;
   ((EfcReportHdr*)b)->idx  = ++reportIdx;
-  ((EfcReportHdr*)b)->size = sizeof(EfcSecurityCtx);
+  ((EfcReportHdr*)b)->size = sizeof(SecCtx);
   b += sizeof(EfcReportHdr);
 
-  auto secCtxReport { reinterpret_cast<EfcSecurityCtx*>(b) };
-  secCtxReport->lower_bytes_of_sec_id = report->securityCtx.lowerBytesOfSecId;
-  secCtxReport->ver_num               = report->securityCtx.verNum;
-  secCtxReport->size                  = report->securityCtx.size;
-  secCtxReport->ask_max_price         = report->securityCtx.askMaxPrice;
-  secCtxReport->bid_min_price         = report->securityCtx.bidMinPrice;
+  auto secCtxReport { reinterpret_cast<SecCtx*>(b) };
+  secCtxReport->lowerBytesOfSecId   = report->securityCtx.lowerBytesOfSecId;
+  secCtxReport->bidSize             = report->securityCtx.bidSize;
+  secCtxReport->askSize             = report->securityCtx.askSize;
+  secCtxReport->askMaxPrice         = report->securityCtx.askMaxPrice;
+  secCtxReport->bidMinPrice         = report->securityCtx.bidMinPrice;
 
   //  printSecCtx  (dev,secCtxReport);
 
-  b += sizeof(EfcSecurityCtx);
+  b += sizeof(SecCtx);
 
   //--------------------------------------------------------------------------
   ((EfcReportHdr*)b)->type = EfcReportType::kFirePkt;

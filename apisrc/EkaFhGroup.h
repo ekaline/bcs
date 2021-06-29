@@ -40,7 +40,7 @@ class EkaFhGroup {
 				       EfhSecUserData  userData,
 				       uint64_t        opaqueAttrA,
 				       uint64_t        opaqueAttrB) = 0;
-  virtual bool parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op) = 0;
+  virtual bool parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op,std::chrono::high_resolution_clock::time_point startTime={}) = 0;
 
   void         sendFeedUp  (const EfhRunCtx* EfhRunCtx);
   void         sendFeedUpInitial  (const EfhRunCtx* EfhRunCtx);
@@ -145,8 +145,8 @@ class EkaFhGroup {
 
   fh_q*                 q                  = NULL;
 
-  uint64_t              gr_ts              = -1;  // time stamp in nano
-  uint64_t              seconds            = -1;  // time stamp in seconds
+  uint64_t              gr_ts              = 0;  // time stamp in nano
+  uint64_t              seconds            = 0;  // time stamp in seconds
   EfhTradeStatus        trade_status       = EfhTradeStatus::kUninit;
 
   uint64_t              upd_ctr            = 0; // used for test periodic printouts

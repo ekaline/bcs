@@ -25,10 +25,10 @@
 #include "EkaFhThreadAttr.h"
 #include "EkaFhBoxParser.h"
 
+using namespace Hsvf;
+
 int ekaTcpConnect(uint32_t ip, uint16_t port);
 
-uint getHsvfMsgLen(const uint8_t* pkt, int bytes2run);
-uint64_t getHsvfMsgSequence(const uint8_t* msg);
 
 /* ----------------------------- */
 
@@ -320,7 +320,7 @@ EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, Eka
       dev->lastErrno = errno;
       return ret;
     }
-    sequence = getHsvfMsgSequence((const uint8_t*)msgBuf);
+    sequence = Hsvf::getMsgSequence((const uint8_t*)msgBuf);
     definitionsDone = gr->parseMsg(pEfhRunCtx,&msgBuf[1],0,EkaFhMode::DEFINITIONS);
   }
   EKA_LOG("%s:%u Dictionary received after %ju messages",EKA_EXCH_DECODE(gr->exch),gr->id,sequence);
@@ -336,10 +336,6 @@ EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, Eka
 }
 
 void* getHsvfRetransmit(void* attr) {
-#ifdef FH_LAB
-  return NULL;
-#endif
-
   pthread_detach(pthread_self());
 
   auto params {reinterpret_cast<EkaFhThreadAttr*>(attr)};
@@ -353,12 +349,26 @@ void* getHsvfRetransmit(void* attr) {
   EkaFhMode  op             = params->op;
   delete params;
 
+  EKA_LOG("%s:%u start=%ju, end=%ju, gap=%ju, gapClosed=%d",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,
+	  start,end, end - start + 1,gr->gapClosed);
+
+  
+#ifdef FH_LAB
+  sleep(2);
+  gr->gapClosed = true;
+  gr->seq_after_snapshot = end + 1;
+  EKA_LOG("%s:%u LAB Dummy Retransmission completed: gr->seq_after_snapshot = %ju",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot);
+  return NULL;
+#endif
+
+
+  
   if (gr->recovery_sock != -1) on_error("%s:%u gr->recovery_sock != -1",EKA_EXCH_DECODE(gr->exch),gr->id);
   //  EkaOpResult ret = EKA_OPRESULT__OK;
 
 
-  EKA_LOG("%s:%u start=%ju, end=%ju, gap=%ju",
-	  EKA_EXCH_DECODE(gr->exch),gr->id,start,end, end - start);
   //-----------------------------------------------------------------
   EkaCredentialLease* lease;
   gr->credentialAcquire(gr->auth_user,sizeof(gr->auth_user),&lease);
@@ -417,7 +427,7 @@ void* getHsvfRetransmit(void* attr) {
       gr->sendRetransmitSocketError(pEfhRunCtx);
     }
 
-    uint64_t sequence = getHsvfMsgSequence((const uint8_t*)msgBuf);
+    uint64_t sequence = Hsvf::getMsgSequence((const uint8_t*)msgBuf);
     //    EKA_LOG("%s:%u got sequence = %ju",EKA_EXCH_DECODE(gr->exch),gr->id,sequence);
     bool endOfTransmition = gr->parseMsg(pEfhRunCtx,&msgBuf[1],sequence,op);
     if (sequence == end || endOfTransmition) {

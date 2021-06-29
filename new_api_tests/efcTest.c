@@ -67,19 +67,19 @@ static const uint64_t FireEntryHeapSize = 256;
 struct NomAddOrderShortPkt {
   mold_hdr             mold;
   uint16_t             msgLen;
-  itto_add_order_short addOrderShort;
+  Nom::add_order_short addOrderShort;
 };
 struct NomAddOrderLongPkt {
   mold_hdr            mold;
   uint16_t            msgLen;
-  itto_add_order_long addOrderLong;
+  Nom::add_order_long addOrderLong;
 };
 struct NomAddOrderShortLongPkt {
   mold_hdr            mold;
   uint16_t            msgLenShort;
-  itto_add_order_short addOrderShort;
+  Nom::add_order_short addOrderShort;
   uint16_t            msgLenLong;
-  itto_add_order_long addOrderLong;
+  Nom::add_order_long addOrderLong;
 };
 /* --------------------------------------------- */
 
@@ -449,8 +449,8 @@ int main(int argc, char *argv[]) {
     SecCtx secCtx = {
       .bidMinPrice       = security[i].bidMinPrice,  //x100, should be nonzero
       .askMaxPrice       = security[i].askMaxPrice,  //x100
-      .size              = security[i].size,
-      .verNum            = 0xaf,                     // just a number
+      .bidSize              = security[i].size,
+      .askSize              = security[i].size,
       .lowerBytesOfSecId = (uint8_t)(security[i].id & 0xFF)
     };
     /* EKA_LOG("Setting StaticSecCtx to handle %jd:",security[i].handle); */
@@ -602,7 +602,7 @@ int main(int argc, char *argv[]) {
       .sequence    = be64toh(123),
       .message_cnt = be16toh(1)
     },
-    .msgLen = be16toh(sizeof(itto_add_order_short)),
+    .msgLen = be16toh(sizeof(Nom::add_order_short)),
     .addOrderShort = {
       .type                  = 'a',
       .tracking_num          = be16toh(0xbeda),
@@ -685,7 +685,7 @@ int main(int argc, char *argv[]) {
       .sequence    = be64toh(124),
       .message_cnt = be16toh(1)
     },
-    .msgLen = be16toh(sizeof(itto_add_order_long)),
+    .msgLen = be16toh(sizeof(Nom::add_order_long)),
     .addOrderLong = {
       .type                  = 'A',
       .tracking_num          = be16toh(0xbeda),
@@ -740,7 +740,7 @@ int main(int argc, char *argv[]) {
       .sequence    = be64toh(125),
       .message_cnt = be16toh(2)
     },
-    .msgLenShort = be16toh(sizeof(itto_add_order_short)),
+    .msgLenShort = be16toh(sizeof(Nom::add_order_short)),
     .addOrderShort = {
       .type                  = 'a',
       .tracking_num          = be16toh(0xbeda),
@@ -751,7 +751,7 @@ int main(int argc, char *argv[]) {
       .price                 = be16toh(secCtx.askMaxPrice - 1),
       .size                  = be16toh(secCtx.size)
     },
-    .msgLenLong = be16toh(sizeof(itto_add_order_long)),
+    .msgLenLong = be16toh(sizeof(Nom::add_order_long)),
     .addOrderLong = {
       .type                  = 'A',
       .tracking_num          = be16toh(0xbeda),

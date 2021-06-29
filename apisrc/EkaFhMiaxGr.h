@@ -8,7 +8,7 @@
 
 class Underlying {
  public:
-  Underlying(char* _name,size_t size) {
+  Underlying(const char* _name,size_t size) {
     memset(name,0,sizeof(name));
     memcpy(name,_name,size);
     tradeStatus = EfhTradeStatus::kNormal;
@@ -26,7 +26,7 @@ class EkaFhMiaxGr : public EkaFhGroup{
   bool                  parseMsg(const EfhRunCtx* pEfhRunCtx,
 				 const unsigned char* m,
 				 uint64_t sequence,
-				 EkaFhMode op);
+				 EkaFhMode op,std::chrono::high_resolution_clock::time_point startTime={});
 
   bool                  processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 				      const uint8_t*   pkt, 
@@ -64,7 +64,7 @@ class EkaFhMiaxGr : public EkaFhGroup{
 /* ####################################################### */
 
  private:
-  inline int findUnderlying(char* name, size_t size) {
+  inline auto findUnderlying(const char* name, size_t size) {
     for (int i = 0; i < (int)underlyingNum; i ++) {
       /* TEST_LOG("Comparing \'%s\' vs \'%s\'",name,underlying[i]->name); */
       /* if (memcmp(&underlying[i]->name,name,size) == 0) return i; */
@@ -75,7 +75,7 @@ class EkaFhMiaxGr : public EkaFhGroup{
     return -1;
   }
 
-  inline uint addUnderlying(char* name, size_t size) {
+  inline auto addUnderlying(const char* name, size_t size) {
     int u = findUnderlying(name,size);
     if (u >= 0) return (uint)u;
 

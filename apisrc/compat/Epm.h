@@ -7,6 +7,7 @@
 #ifndef __EKALINE_EPM_H__
 #define __EKALINE_EPM_H__
 
+#include "Eka.h"
 
 extern "C" {
 
@@ -22,7 +23,7 @@ typedef int32_t epm_actionid_t;
 #define EFC_STRATEGY 0
 
 /// Eklaine device limitations
-enum EpmDeviceCapability {
+enum EpmDeviceCapability : int {
   EHC_PayloadMemorySize,       ///< Bytes available for payload packets
   EHC_PayloadAlignment,        ///< Payload memory bufs must have this alignment
   EHC_DatagramOffset,          ///< Payload buf offset where UDP datagram starts
@@ -75,6 +76,7 @@ struct EpmAction {
 /// Behavior flags for actions
 enum EpmActionFlag {
   AF_Valid = 0x1,              ///< Action chain is valid (see @ref epmGetAction)
+  AF_InValid = 0x0,              ///< Action chain is not valid (see @ref epmGetAction)
 };
 
 /**

@@ -51,11 +51,11 @@ EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
   char name[50] = {};
   sprintf(name,"RunGr%u",runId);
 
-  uint epmRegion = udpChId;
+  epmRegion = udpCh2epmRegion(udpChId);
   dev->epm->createRegion(epmRegion, epmRegion * EkaEpm::ActionsPerRegion);
 
-  EKA_LOG("%s: coreId = %u, runId = %u, udpChId = %d, MC groups: %s",
-	  EKA_EXCH_DECODE(exch),coreId,runId,udpChId, list2print);
+  EKA_LOG("%s: coreId = %u, runId = %u, udpChId = %d, epmRegion = %d, MC groups: %s",
+	  EKA_EXCH_DECODE(exch),coreId,runId,udpChId,epmRegion,list2print);
 
 }
 /* ##################################################################### */
@@ -95,7 +95,7 @@ bool EkaFhRunGroup::igmpSanityCheck(int grId2check, uint32_t ip, uint16_t port) 
   }
 
   for (auto i = 0; i < 512; i++) {
-    int chId = hwIgmp[i].channel - 32;
+    int chId = udpCh2epmRegion(hwIgmp[i].channel - 32);
     if ((hwIgmp[i].group_address != 0) && (chId < 0 || chId > 31)) 
       on_error("chId=%d,hwIgmp[%d].channel=%u",chId,i,hwIgmp[i].channel);
     if (hwIgmp[i].group_address == 0) continue;
@@ -121,23 +121,23 @@ bool EkaFhRunGroup::igmpSanityCheck(int grId2check, uint32_t ip, uint16_t port) 
     mcState.chState[chId].currHwGr++;
   }
 
-  if (coreId != mcState.chState[udpChId].grpHwState[grId2check].coreId) {
+  if (coreId != mcState.chState[epmRegion].grpHwState[grId2check].coreId) {
     EKA_WARN("WARNING: chId %d, grId %d: expected coreId %d != actual %d",
-	     udpChId,
+	     epmRegion,
 	     grId2check,
 	     coreId,
-	     mcState.chState[udpChId].grpHwState[grId2check].coreId);
+	     mcState.chState[epmRegion].grpHwState[grId2check].coreId);
     return false;
   }
 
-  if (ip != mcState.chState[udpChId].grpHwState[grId2check].ip || 
-      port != mcState.chState[udpChId].grpHwState[grId2check].port) {
+  if (ip != mcState.chState[epmRegion].grpHwState[grId2check].ip || 
+      port != mcState.chState[epmRegion].grpHwState[grId2check].port) {
     EKA_WARN("WARNING: chId %d, grId %d: expected %s:%u != actual %s:%u",
-	     udpChId,grId2check,
+	     epmRegion,grId2check,
 	     EKA_IP2STR(ip),
 	     port,
-	     EKA_IP2STR(mcState.chState[udpChId].grpHwState[grId2check].ip),
-	     mcState.chState[udpChId].grpHwState[grId2check].port
+	     EKA_IP2STR(mcState.chState[epmRegion].grpHwState[grId2check].ip),
+	     mcState.chState[epmRegion].grpHwState[grId2check].port
 	     );
     return false;
   }
@@ -147,12 +147,12 @@ bool EkaFhRunGroup::igmpSanityCheck(int grId2check, uint32_t ip, uint16_t port) 
 /* ##################################################################### */
 int EkaFhRunGroup::igmpMcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag,uint64_t* pPktCnt) {
   dev->igmpJoinMtx.lock();
-  int grId = dev->ekaIgmp->mcJoin(udpChId,coreId,ip,port,vlanTag,pPktCnt);
+  int grId = dev->ekaIgmp->mcJoin(epmRegion,coreId,ip,port,vlanTag,pPktCnt);
   udpCh->igmp_mc_join (ip, port, 0);
   bool sanityCheckPassed = igmpSanityCheck(grId,ip,port);
-  EKA_LOG("%d: %s:%u on coreId %d udpChId %u: %s",
+  EKA_LOG("%d: %s:%u on coreId %d epmRegion %d: %s",
 	  grId,
-	  EKA_IP2STR(ip),port,coreId,udpChId,
+	  EKA_IP2STR(ip),port,coreId,epmRegion,
 	  sanityCheckPassed ? GRN "PASSED" RESET : RED "FAILED" RESET);
   dev->igmpJoinMtx.unlock();
   return 0;

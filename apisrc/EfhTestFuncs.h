@@ -17,12 +17,16 @@ void onException(EkaExceptionReport* msg, EfhRunUserData efhRunUserData);
 void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fire_report_buf, size_t size);
 void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData);
 void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData userData);
-void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg);
-void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData);
+void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg);
+void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData);
+void* onComplexDefinition(const EfhComplexDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData);
+void* onAuctionUpdate(const EfhAuctionUpdateMsg* msg, EfhSecUserData secData, EfhRunUserData userData);
+
 EkaSource feedname2source(std::string feedName);
 static EkaProp* feedname2prop (std::string feedName);
 static size_t feedname2numProps (std::string feedName);
 static size_t feedname2numGroups(std::string feedName);
 int createCtxts(std::vector<TestRunGroup>&testRunGroups,std::vector<EfhInitCtx>&efhInitCtx,std::vector<EfhRunCtx>&efhRunCtx);
 
+void print_usage(char* cmd);
 #endif

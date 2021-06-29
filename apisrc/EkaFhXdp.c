@@ -6,6 +6,8 @@
 
 EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhXdpGr* gr,EkaFhMode op);
 
+using namespace Xdp;
+
 /* ##################################################################### */
 EkaFhGroup* EkaFhXdp::addGroup() {
   return new EkaFhXdpGr();
@@ -89,14 +91,14 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 #endif
     gr->resetNoMdTimer();
 
-    uint streamIdx = gr->findAndInstallStream(streamId, sequence);
+    auto streamIdx = gr->findOrInstallStream(streamId, sequence);
 
     /* EKA_LOG("%s:%u Seq=%ju,expSeq=%ju, pktSize=%u msgInPkt =%u",EKA_EXCH_DECODE(exch),gr_id, */
     /* 	    sequence,gr->getExpectedSeq(streamIdx),pktSize,msgInPkt); */
 
 
     //-----------------------------------------------------------------------------
-    if (pktType == (uint8_t)EKA_XDP_DELIVERY_FLAG::SequenceReset) gr->resetExpectedSeq(streamIdx);
+    if (pktType == (uint8_t)DELIVERY_FLAG::SequenceReset) gr->resetExpectedSeq(streamIdx);
     //-----------------------------------------------------------------------------
     if (gr->inGap) {
       if (gr->isGapOver()) {

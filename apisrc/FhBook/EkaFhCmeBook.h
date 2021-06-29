@@ -77,7 +77,7 @@ template <const uint SEC_HASH_SCALE,
     msg.header.securityId     = s->secId;
     msg.header.sequenceNumber = sequence;
     msg.header.timeStamp      = timestamp;
-    msg.header.queueSize      = 0; //gr->q == NULL ? 0 : gr->q->get_len();
+    msg.header.deltaNs        = 0;
     msg.header.gapNum         = gapNum;
     msg.tradeStatus           = s->tradeStatus;
 
@@ -126,11 +126,11 @@ template <const uint SEC_HASH_SCALE,
     msg.header.securityId     = s->secId;
     msg.header.sequenceNumber = sequence;
     msg.header.timeStamp      = timestamp;
-    msg.header.queueSize      = 0; //gr->q == NULL ? 0 : gr->q->get_len();
+    msg.header.deltaNs        = 0;
     msg.header.gapNum         = gapNum;
     msg.tradeStatus           = s->tradeStatus;
 
-    msg.orderSide             = side == SideT::BID ? EfhOrderSideType::kBid : EfhOrderSideType::kAsk;
+    msg.orderSide             = side == SideT::BID ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
       
     msg.bookSide.price         = side == SideT::BID ? (uint32_t)(s->bid->getEntryPrice(0) / PRICE_SCALE) :
       (uint32_t)(s->ask->getEntryPrice(0) / PRICE_SCALE);

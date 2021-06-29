@@ -23,8 +23,10 @@
 #include "EkaHsvfTcp.h"
 #include "EkaFhBoxParser.h"
 
-uint trailingZeros(const uint8_t* p, uint maxChars);
-void hexDump (const char* desc, void *addr, int len);
+using namespace Hsvf;
+
+/* uint trailingZeros(const uint8_t* p, uint maxChars); */
+/* void hexDump (const char* desc, void *addr, int len); */
 
 EkaHsvfTcp::EkaHsvfTcp(EkaDev* _dev, int sock) {
   dev              = _dev;

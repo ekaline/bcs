@@ -63,6 +63,8 @@ class EkaHwCaps {
   void printStdout();
 
   bool check();
+  bool checkEpm();
+  bool checkEfc();
 
   hw_capabilities_t hwCaps = {};
 

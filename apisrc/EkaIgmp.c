@@ -83,7 +83,7 @@ int EkaIgmp::igmpThreadLoop() {
       igmpEntry[i]->sendIgmpJoin();
       saveMcState(dev,
 		  igmpEntry[i]->perChId,
-		  igmpEntry[i]->udpChId, 
+		  igmpEntry[i]->epmRegion, 
 		  igmpEntry[i]->coreId, 
 		  igmpEntry[i]->ip,
 		  igmpEntry[i]->port,
@@ -111,7 +111,7 @@ void* EkaIgmp::igmpThreadLoopCb(void* pEkaIgmp) {
       igmp->igmpEntry[i]->sendIgmpJoin();
       saveMcState(dev,
 		  igmp->igmpEntry[i]->perChId,
-		  igmp->igmpEntry[i]->udpChId, 
+		  igmp->igmpEntry[i]->epmRegion, 
 		  igmp->igmpEntry[i]->coreId, 
 		  igmp->igmpEntry[i]->ip,
 		  igmp->igmpEntry[i]->port,

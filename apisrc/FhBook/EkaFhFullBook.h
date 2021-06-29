@@ -233,7 +233,8 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
 		       FhSecurity* s, 
 		       uint64_t sequence, 
 		       uint64_t timestamp,
-		       uint gapNum) {
+		       uint gapNum,
+		       std::chrono::high_resolution_clock::time_point startTime={}) {
     if (s == NULL) test_error("s == NULL");
 
     FhPlevel* topBid = s->bid;
@@ -246,7 +247,15 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     msg.header.securityId     = s->secId;
     msg.header.sequenceNumber = sequence;
     msg.header.timeStamp      = timestamp;
-    msg.header.queueSize      = 0; //gr->q->get_len();
+
+#ifdef EFH_TIME_CHECK_PERIOD
+    if (EFH_TIME_CHECK_PERIOD && sequence % EFH_TIME_CHECK_PERIOD == 0) {
+      auto now = std::chrono::high_resolution_clock::now();
+      msg.header.deltaNs        = std::chrono::duration_cast<std::chrono::nanoseconds>(now - startTime).count();
+      fprintf(dev->deltaTimeLogFile,"%ju,%jd\n",sequence,msg.header.deltaNs);
+    }
+#endif
+    
     msg.header.gapNum         = gapNum;
     msg.tradeStatus           = s->trading_action == EfhTradeStatus::kHalted ? EfhTradeStatus::kHalted :
       s->option_open ? s->trading_action : EfhTradeStatus::kClosed;

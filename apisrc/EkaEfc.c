@@ -329,7 +329,7 @@ int EkaEfc::checkSanity() {
   for (auto i = 0; i < EkaEpm::MAX_UDP_SESS; i++) {
     if (udpSess[i] == NULL) continue;
     if (! action[i]->initialized)
-      on_error("EFC Trigger (UDP Session) #%d"
+      on_error("EFC Trigger (UDP Session) #%d "
 	       "does not have initialized Action",i);
   }
   return 0;

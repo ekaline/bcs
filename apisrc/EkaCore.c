@@ -8,6 +8,14 @@
 
 struct netif* initLwipNetIf(EkaDev* dev, EkaCoreId coreId, uint8_t* macSa, uint32_t srcIp);
 
+void ekaInitLwip (EkaDev* dev);
+void setNetifIpMacSa (EkaDev* dev, EkaCoreId coreId, const uint8_t*  macSa);
+void setNetifIpSrc   (EkaDev* dev, EkaCoreId coreId, const uint32_t* srcIp);
+void setNetifGw      (EkaDev* dev, EkaCoreId coreId, const uint32_t* pGwIp);
+void setNetifNetmask (EkaDev* dev, EkaCoreId coreId, const uint32_t* pNetmaskIp);
+int ekaAddArpEntry   (EkaDev* dev, EkaCoreId coreId, const uint32_t* protocolAddr,
+                      const uint8_t* hwAddr);
+
 /* ------------------------------------------------------------- */
 
 EkaCore::EkaCore(EkaDev* pEkaDev, uint8_t lane, uint32_t ip, uint8_t* mac, bool epmEnabled) {
@@ -18,7 +26,7 @@ EkaCore::EkaCore(EkaDev* pEkaDev, uint8_t lane, uint32_t ip, uint8_t* mac, bool 
     connected = true;
     vlanTag = 0;
 
-    bool isTcpCore = dev->ekaHwCaps->hwCaps.core.bitmap_tcp_cores & (1 << coreId);
+    isTcpCore = dev->ekaHwCaps->hwCaps.core.bitmap_tcp_cores & (1 << coreId);
 
     EKA_LOG("%s Core %u: %s %s",
 	    isTcpCore ? "TCP Enabled" : "NON TCP",
@@ -27,16 +35,47 @@ EkaCore::EkaCore(EkaDev* pEkaDev, uint8_t lane, uint32_t ip, uint8_t* mac, bool 
     tcpSessions = 0;
 
 
-    if (! isTcpCore || ! epmEnabled) return;
-
-    tcpSess[CONTROL_SESS_ID] = new EkaTcpSess(dev, this, coreId, CONTROL_SESS_ID,
-					      0 /* srcIp */, 0 /* dstIp */, 0 /* dstPort */, 
-					      macSa);
-
-    pLwipNetIf = initLwipNetIf(dev,coreId,macSa,srcIp);
-
+    return;
 }
 
+/* ------------------------------------------------------------- */
+bool EkaCore::initTcp() {
+  if (! isTcpCore) {
+    on_error("TCP functionality is disabled for lane %u",coreId);
+    return false;
+  }
+
+  EKA_LOG("Initializing TCP for lane %u: "
+	  "macSa=%s, srcIp=%s, gwIp=%s",
+	  coreId,EKA_MAC2STR(macSa),EKA_IP2STR(srcIp),EKA_IP2STR(gwIp));
+
+
+  pLwipNetIf = initLwipNetIf(dev,coreId,macSa,srcIp);
+
+  setNetifIpMacSa(dev,coreId,macSa);
+  setNetifIpSrc(dev,coreId,&srcIp);
+  
+  if (gwIp != 0)    setNetifGw(dev,coreId,&gwIp);
+  if (netmask != 0) setNetifNetmask(dev,coreId,&netmask);
+  if (! eka_is_all_zeros(&macDa,6)) {
+      if (ekaAddArpEntry(dev, coreId, &gwIp, macDa) == -1)
+	on_error("Failed to add static ARP entry for lane %u: %s --> %s",
+		 coreId,EKA_IP2STR(gwIp),EKA_MAC2STR(macDa));
+      EKA_LOG("Lane %u: Adding GW static ARP: %s",
+	      coreId,EKA_MAC2STR(macDa));
+  }
+
+    
+  tcpSess[CONTROL_SESS_ID] = new EkaTcpSess(dev,
+					    this,
+					    coreId,
+					    CONTROL_SESS_ID,
+					    0 /* srcIp */,
+					    0 /* dstIp */,
+					    0 /* dstPort */, 
+					    macSa);
+  return true;  
+}
 /* ------------------------------------------------------------- */
 
 EkaCore::~EkaCore() {
@@ -114,40 +153,40 @@ void EkaCore::suppressOldTcpSess(uint8_t newSessId,
   return;
 }
 /* ------------------------------------------------------------- */
-int EkaCore::tcpConnect(uint32_t dstIp, uint16_t dstPort) {
-  dev->addTcpSessMtx.lock();
-  if (tcpSessions == MAX_SESS_PER_CORE) 
-    on_error("tcpSessions = %u",tcpSessions);
+/* int EkaCore::tcpConnect(uint32_t dstIp, uint16_t dstPort) { */
+/*   dev->addTcpSessMtx.lock(); */
+/*   if (tcpSessions == MAX_SESS_PER_CORE)  */
+/*     on_error("tcpSessions = %u",tcpSessions); */
 
-  uint8_t sessId = getFreeTcpSess();
-  tcpSessions++;
-  EKA_LOG("Opening TCP session %u from core %u, srcIp = %s",sessId,coreId,EKA_IP2STR(srcIp));
+/*   uint8_t sessId = getFreeTcpSess(); */
+/*   tcpSessions++; */
+/*   EKA_LOG("Opening TCP session %u from core %u, srcIp = %s",sessId,coreId,EKA_IP2STR(srcIp)); */
 
-  tcpSess[sessId] = new EkaTcpSess(dev, this, coreId, sessId, srcIp, dstIp, dstPort, macSa);
-  tcpSess[sessId]->bind();
+/*   tcpSess[sessId] = new EkaTcpSess(dev, this, coreId, sessId, srcIp, dstIp, dstPort, macSa); */
+/*   tcpSess[sessId]->bind(); */
 
-  suppressOldTcpSess(sessId,
-		     tcpSess[sessId]->srcIp,tcpSess[sessId]->srcPort,
-		     tcpSess[sessId]->dstIp,tcpSess[sessId]->dstPort);
+/*   suppressOldTcpSess(sessId, */
+/* 		     tcpSess[sessId]->srcIp,tcpSess[sessId]->srcPort, */
+/* 		     tcpSess[sessId]->dstIp,tcpSess[sessId]->dstPort); */
 
 
-  dev->snDev->set_fast_session(coreId,sessId,
-			       tcpSess[sessId]->srcIp,tcpSess[sessId]->srcPort,
-			       tcpSess[sessId]->dstIp,tcpSess[sessId]->dstPort);
+/*   dev->snDev->set_fast_session(coreId,sessId, */
+/* 			       tcpSess[sessId]->srcIp,tcpSess[sessId]->srcPort, */
+/* 			       tcpSess[sessId]->dstIp,tcpSess[sessId]->dstPort); */
 
-  tcpSess[sessId]->connect();
+/*   tcpSess[sessId]->connect(); */
 
-  tcpSess[sessId]->preloadNwHeaders();
+/*   tcpSess[sessId]->preloadNwHeaders(); */
 
-  uint64_t val = eka_read(dev, SW_STATISTICS);
+/*   uint64_t val = eka_read(dev, SW_STATISTICS); */
 
-  val = val & 0xffffffffffffff0f;
-  val = val | ((++dev->totalNumTcpSess) & 0xf)<<4;
-  eka_write(dev, SW_STATISTICS, val);
-  dev->addTcpSessMtx.unlock();
+/*   val = val & 0xffffffffffffff0f; */
+/*   val = val | ((++dev->totalNumTcpSess) & 0xf)<<4; */
+/*   eka_write(dev, SW_STATISTICS, val); */
+/*   dev->addTcpSessMtx.unlock(); */
 
-  return tcpSess[sessId]->sock;
-}
+/*   return tcpSess[sessId]->sock; */
+/* } */
 /* ------------------------------------------------------------- */
 /* uint EkaCore::addUdpSess(uint32_t ip, uint16_t port) { */
 /*   for (uint i = 0; i < udpSessions; i++) { */

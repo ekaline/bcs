@@ -24,6 +24,8 @@
 
 int ekaTcpConnect(uint32_t ip, uint16_t port);
 
+using namespace Xdp;
+
 /* ##################################################################### */
 
 static EkaOpResult sendLogin (EkaFhXdpGr* gr) {
@@ -33,7 +35,7 @@ static EkaOpResult sendLogin (EkaFhXdpGr* gr) {
 
   XdpLoginRequest loginRequest = {};
   loginRequest.hdr.MsgSize = sizeof(loginRequest);
-  loginRequest.hdr.MsgType = EKA_XDP_MSG_TYPE::LOGIN_REQUEST;
+  loginRequest.hdr.MsgType = MSG_TYPE::LOGIN_REQUEST;
   memcpy(loginRequest.SourceID,gr->auth_user,sizeof(loginRequest.SourceID));
   memcpy(loginRequest.Password,gr->auth_passwd,sizeof(loginRequest.Password));
 	
@@ -60,8 +62,8 @@ static EkaOpResult getLoginResponse(EkaFhXdpGr* gr) {
     return EKA_OPRESULT__ERR_SYSTEM_ERROR;
   }
 
-  if (loginResponse.hdr.MsgType != EKA_XDP_MSG_TYPE::LOGIN_RESPONSE) 
-    on_error("loginResponse.hdr.MsgType %u != %u ",(uint)loginResponse.hdr.MsgType,(uint)EKA_XDP_MSG_TYPE::LOGIN_RESPONSE);
+  if (loginResponse.hdr.MsgType != MSG_TYPE::LOGIN_RESPONSE) 
+    on_error("loginResponse.hdr.MsgType %u != %u ",(uint)loginResponse.hdr.MsgType,(uint)MSG_TYPE::LOGIN_RESPONSE);
 
   if (loginResponse.ResponseCode != 'A' || loginResponse.RejectCode != ' ') {
     if (loginResponse.ResponseCode != 'B') EKA_WARN("Unexpected loginResponse.ResponseCode %c",loginResponse.ResponseCode);
@@ -84,7 +86,7 @@ static EkaOpResult sendRequest(EkaFhXdpGr* gr) {
 
   XdpSeriesIndexMappingRequest defRequest  = {};
   defRequest.hdr.MsgSize = sizeof(defRequest);
-  defRequest.hdr.MsgType = EKA_XDP_MSG_TYPE::SERIES_INDEX_MAPPING_REQUEST;
+  defRequest.hdr.MsgType = MSG_TYPE::SERIES_INDEX_MAPPING_REQUEST;
 
   defRequest.SeriesIndex = 0; // ALL
   memcpy(defRequest.SourceID,gr->auth_user,sizeof(defRequest.SourceID));
@@ -106,7 +108,7 @@ static EkaOpResult sendLogOut(EkaFhXdpGr* gr) {
   EkaDev* dev = gr->dev;
 #ifndef FH_LAB
   XdpLogoutRequest logOut = {};
-  logOut.hdr.MsgType = EKA_XDP_MSG_TYPE::LOGOUT_REQUEST;
+  logOut.hdr.MsgType = MSG_TYPE::LOGOUT_REQUEST;
   logOut.hdr.MsgSize = sizeof(logOut);
 
   if(send(gr->snapshot_sock,&logOut,sizeof(logOut), MSG_NOSIGNAL) < 0) {
@@ -125,7 +127,7 @@ static EkaOpResult sendHeartbeat(EkaFhXdpGr* gr) {
   EkaDev* dev = gr->dev;
 
   XdpHeartbeat hearbeat = {};
-  hearbeat.hdr.MsgType = EKA_XDP_MSG_TYPE::HEARTBEAT;
+  hearbeat.hdr.MsgType = MSG_TYPE::HEARTBEAT;
   hearbeat.hdr.MsgSize = sizeof(hearbeat);
   memcpy(&hearbeat.SourceID,gr->auth_user,sizeof(hearbeat.SourceID));
   if(send(gr->snapshot_sock,&hearbeat,sizeof(hearbeat), MSG_NOSIGNAL) < (int) sizeof(hearbeat)) {
@@ -172,7 +174,7 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
     //-----------------------------------------------------------------
     switch (((XdpMsgHdr*)hdr)->MsgType) {
       /* ***************************************************** */
-    case EKA_XDP_MSG_TYPE::REQUEST_RESPONSE : 
+    case MSG_TYPE::REQUEST_RESPONSE : 
       EKA_LOG("%s:%u: REQUEST_RESPONSE: SourceID = |%s|, ChannelID = %u, Status = %u",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,
 	      ((XdpRequestResponse*)hdr)->SourceID,
@@ -220,11 +222,11 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
       }
       break;
       /* ***************************************************** */
-    case EKA_XDP_MSG_TYPE::HEARTBEAT : 
+    case MSG_TYPE::HEARTBEAT : 
       if ((ret = sendHeartbeat(gr))        != EKA_OPRESULT__OK) return ret;
       break;
       /* ***************************************************** */
-    case EKA_XDP_MSG_TYPE::SERIES_INDEX_MAPPING : {
+    case MSG_TYPE::SERIES_INDEX_MAPPING : {
       XdpSeriesMapping* m = (XdpSeriesMapping*) hdr;
       if (m->ChannelID < XDP_TOP_FEED_BASE) break;
 
@@ -241,8 +243,8 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
 
       if (AbcGroupID != gr->id) break;
 #endif
-      EfhDefinitionMsg msg = {};
-      msg.header.msgType        = EfhMsgType::kDefinition;
+      EfhOptionDefinitionMsg msg{};
+      msg.header.msgType        = EfhMsgType::kOptionDefinition;
       msg.header.group.source   = gr->exch;
       msg.header.group.localId  = gr->id;
       msg.header.underlyingId   = m->UnderlyingIndex;
@@ -252,7 +254,7 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
       msg.header.gapNum         = 0;
 
       //    msg.secondaryGroup        = 0;
-      msg.securityType          = EfhSecurityType::kOpt;
+      msg.securityType          = EfhSecurityType::kOption;
       msg.expiryDate            = 
 	(2000 + (m->MaturityDate[0] - '0') * 10 + (m->MaturityDate[1] - '0')) * 10000 + 
 	(       (m->MaturityDate[2] - '0') * 10 +  m->MaturityDate[3] - '0')  * 100   +
@@ -280,13 +282,13 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
       msg.opaqueAttrA = attrA.opaqueField;
       msg.opaqueAttrB = attrB.opaqueField;
 
-      pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+      pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
     }
       break;
       /* ***************************************************** */
 
     default:
-      EKA_TRACE("%s:%u: ignored EKA_XDP_MSG_TYPE %u",
+      EKA_TRACE("%s:%u: ignored MSG_TYPE %u",
 		EKA_EXCH_DECODE(gr->exch),gr->id,
 		(uint)((XdpMsgHdr*)hdr)->MsgType);
     }

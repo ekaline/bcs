@@ -12,8 +12,10 @@
 #include "EkaFhFullBook.h"
 
 static void eka_print_nom_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t sequence);
-static inline uint64_t get_ts(const uint8_t* m);
+//static inline uint64_t get_ts(const uint8_t* m);
 std::string ts_ns2str(uint64_t ts);
+
+using namespace Nom;
 
 /* ####################################################### */
 inline SideT sideDecode(char _side) {
@@ -30,26 +32,28 @@ inline SideT sideDecode(char _side) {
 
 /* ####################################################### */
 
-bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op) {
+bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op,
+				 std::chrono::high_resolution_clock::time_point startTime) {
 
 #ifdef EKA_TIME_CHECK
   auto start = std::chrono::high_resolution_clock::now();  
 #endif
 
-  char enc =  (char)m[0];
-  uint64_t msg_timestamp = get_ts(m);
+  auto enc {static_cast<const char>(m[0])};
+  auto msg_timestamp = get_ts(m);
 
-  if (op == EkaFhMode::DEFINITIONS && enc == 'M') return true;
-  if ((op == EkaFhMode::DEFINITIONS && enc != 'R') || (op == EkaFhMode::SNAPSHOT    && enc == 'R')) return false;
+  if (op == EkaFhMode::DEFINITIONS  && enc == 'M') return true;
+  if ((op == EkaFhMode::DEFINITIONS && enc != 'R') ||
+      (op == EkaFhMode::SNAPSHOT    && enc == 'R')) return false;
 
   FhSecurity* s = NULL;
 
   switch (enc) {    
   case 'R':  { //ITTO_TYPE_OPTION_DIRECTORY 
-    struct itto_definition *message = (struct itto_definition *)m;
+    auto message {reinterpret_cast<const definition *>(m)};
 
-    EfhDefinitionMsg msg = {};
-    msg.header.msgType        = EfhMsgType::kDefinition;
+    EfhOptionDefinitionMsg msg{};
+    msg.header.msgType        = EfhMsgType::kOptionDefinition;
     msg.header.group.source   = EkaSource::kNOM_ITTO;
     msg.header.group.localId  = id;
     msg.header.underlyingId   = 0;
@@ -59,7 +63,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.header.gapNum         = gapNum;
 
     //    msg.secondaryGroup        = 0;
-    msg.securityType          = EfhSecurityType::kOpt;
+    msg.securityType          = EfhSecurityType::kOption;
     msg.expiryDate            = (2000 + message->expiration_year) * 10000 + message->expiration_month * 100 + message->expiration_day;
     msg.contractSize          = 0;
     msg.strikePrice           = be32toh(message->strike_price) / EFH_NOM_STRIKE_PRICE_SCALE;
@@ -69,11 +73,12 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     memcpy (&msg.underlying,message->underlying_symbol,std::min(sizeof(msg.underlying),sizeof(message->underlying_symbol)));
     memcpy (&msg.classSymbol,message->security_symbol,std::min(sizeof(msg.classSymbol),sizeof(message->security_symbol)));
 
-    pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+    pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
     return false;
   }
   case 'M': { // END OF SNAPSHOT
-    struct itto_end_of_snapshot *message = (struct itto_end_of_snapshot*)m;
+    auto message {reinterpret_cast<const end_of_snapshot *>(m)};
+
     char seq_num_str[21] = {};
     memcpy(seq_num_str, message->sequence_number, 20);
     seq_after_snapshot = (op == EkaFhMode::SNAPSHOT) ? strtoul(seq_num_str, NULL, 10) : 0;
@@ -82,7 +87,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   }
     //--------------------------------------------------------------
   case 'a':  {  //NOM_ADD_ORDER_SHORT
-    struct itto_add_order_short *message = (struct itto_add_order_short *)m;
+    auto message {reinterpret_cast<const add_order_short *>(m)};
+    
     SecurityIdT security_id = be32toh(message->option_id);
     s = book->findSecurity(security_id);
     if (s == NULL) {
@@ -103,7 +109,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   }
     //--------------------------------------------------------------
   case 'A' : { //NOM_ADD_ORDER_LONG
-    struct itto_add_order_long *message = (struct itto_add_order_long *)m;
+    auto message {reinterpret_cast<const add_order_long *>(m)};
+
     SecurityIdT security_id = be32toh(message->option_id);
     s = book->findSecurity(security_id);
     if (s == NULL) {
@@ -132,7 +139,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   }
     //--------------------------------------------------------------
   case 'H': { //NOM_TRADING_ACTION 
-    struct itto_trading_action *message = (struct itto_trading_action *)m;
+    auto message {reinterpret_cast<const trading_action *>(m)};
+    
     SecurityIdT security_id = be32toh(message->option_id);
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
@@ -142,7 +150,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     break;
   }
   case 'O': { //NOM_OPTION_OPEN 
-    struct itto_option_open *message = (struct itto_option_open *)m;
+    auto message {reinterpret_cast<const option_open *>(m)};
+
     SecurityIdT security_id = be32toh(message->option_id);
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
@@ -154,7 +163,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   }
     //--------------------------------------------------------------
   case 'J': {  //NOM_ADD_QUOTE_LONG
-    struct itto_add_quote_long *message = (struct itto_add_quote_long *)m;
+    auto message {reinterpret_cast<const add_quote_long *>(m)};
 
     SecurityIdT security_id  = be32toh(message->option_id);
     s = book->findSecurity(security_id);
@@ -174,19 +183,14 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     SizeT    ask_size     = be32toh(message->ask_size);
 
     book->setSecurityPrevState(s);
-    /* FhOrder* bid_o =  */
     book->addOrder(s,bid_order_id,FhOrderType::BD,bid_price,bid_size,SideT::BID);
-    /* bid_o->plevel->print("NOM_ADD_QUOTE_LONG BID"); */
-
-    /* FhOrder* ask_o =  */
     book->addOrder(s,ask_order_id,FhOrderType::BD,ask_price,ask_size,SideT::ASK);
-    /* ask_o->plevel->print("NOM_ADD_QUOTE_LONG ASK"); */
 
     break;
   }
     //--------------------------------------------------------------
   case 'j': { //NOM_ADD_QUOTE_SHORT
-    struct itto_add_quote_short *message = (struct itto_add_quote_short *)m;
+    auto message {reinterpret_cast<const add_quote_short *>(m)};
 
     SecurityIdT security_id = be32toh(message->option_id);
     s = book->findSecurity(security_id);
@@ -218,7 +222,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   }
     //--------------------------------------------------------------
   case 'E':  { //NOM_SINGLE_SIDE_EXEC
-    struct itto_executed *message = (struct itto_executed *)m;
+    auto message {reinterpret_cast<const executed *>(m)};
+
     OrderIdT order_id   = be64toh(message->order_reference_delta);
     SizeT    delta_size = be32toh(message->executed_contracts);
 
@@ -242,7 +247,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   }
     //--------------------------------------------------------------
   case 'C': { //NOM_SINGLE_SIDE_EXEC_PRICE
-    struct itto_executed_price *message = (struct itto_executed_price *)m;
+    auto message {reinterpret_cast<const executed_price *>(m)};
+
     OrderIdT order_id   = be64toh(message->order_reference_delta);
     SizeT  delta_size   = be32toh(message->size);
 
@@ -267,7 +273,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
 
   //--------------------------------------------------------------
   case 'X': { //NOM_ORDER_CANCEL
-    struct itto_order_cancel *message = (struct itto_order_cancel *)m;
+    auto message {reinterpret_cast<const order_cancel *>(m)};
+    
     OrderIdT order_id = be64toh(message->order_reference_delta);
     SizeT delta_size  = be32toh(message->cancelled_orders);
  
@@ -293,7 +300,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   }
 //--------------------------------------------------------------
   case 'u': {  //NOM_SINGLE_SIDE_REPLACE_SHORT
-    struct itto_message_replace_short *message = (struct itto_message_replace_short *)m;
+    auto message {reinterpret_cast<const order_replace_short *>(m)};
+    
     OrderIdT old_order_id = be64toh(message->original_reference_delta);
     OrderIdT new_order_id = be64toh(message->new_reference_delta); 
     PriceT   price        = be16toh(message->price) * 100 / EFH_PRICE_SCALE;
@@ -315,7 +323,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   }
 //--------------------------------------------------------------
   case 'U': { //NOM_SINGLE_SIDE_REPLACE_LONG
-    struct itto_message_replace_long *message = (struct itto_message_replace_long *)m;
+    auto message {reinterpret_cast<const order_replace_long *>(m)};
+
     OrderIdT old_order_id = be64toh(message->original_reference_delta);
     OrderIdT new_order_id = be64toh(message->new_reference_delta); 
     PriceT price          = be32toh(message->price) / EFH_PRICE_SCALE;
@@ -336,7 +345,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   }
 //--------------------------------------------------------------
   case 'D': { //NOM_SINGLE_SIDE_DELETE 
-    struct itto_message_delete *message = (struct itto_message_delete *)m;
+    auto message {reinterpret_cast<const order_delete *>(m)};
+
     OrderIdT order_id = be64toh(message->reference_delta);
     FhOrder* o        = book->findOrder(order_id);
     if (o == NULL) return false;
@@ -349,7 +359,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   }
 //--------------------------------------------------------------
   case 'G': { //NOM_SINGLE_SIDE_UPDATE
-    struct itto_message_update *message = (struct itto_message_update *)m;
+    auto message {reinterpret_cast<const order_update *>(m)};
+    
     OrderIdT order_id = be64toh(message->reference_delta);
     PriceT price      = be32toh(message->price) / EFH_PRICE_SCALE;
     SizeT size        = be32toh(message->size);
@@ -367,8 +378,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   }
 //--------------------------------------------------------------
   case 'k':   {//NOM_QUOTE_REPLACE_SHORT
-    struct itto_quote_replace_short *message = (struct itto_quote_replace_short *)m;
-    
+    auto message {reinterpret_cast<const quote_replace_short *>(m)};
+
     OrderIdT old_bid_order_id   = be64toh(message->original_bid_delta);
     OrderIdT new_bid_order_id   = be64toh(message->new_bid_delta);
     PriceT   bid_price          = (uint32_t)be16toh(message->bid_price) * 100 / EFH_PRICE_SCALE;
@@ -411,8 +422,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   }
 //--------------------------------------------------------------
   case 'K': { //NOM_QUOTE_REPLACE_LONG
-    struct itto_quote_replace_long *message = (struct itto_quote_replace_long *)m;
-    
+    auto message {reinterpret_cast<const quote_replace_long *>(m)};
+
     OrderIdT old_bid_order_id   = be64toh(message->original_bid_delta);
     OrderIdT new_bid_order_id   = be64toh(message->new_bid_delta);
     PriceT   bid_price          = be32toh(message->bid_price) / EFH_PRICE_SCALE;
@@ -455,7 +466,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   }
 //--------------------------------------------------------------
   case 'Y': { //NOM_QUOTE_DELETE 
-    struct itto_quote_delete *message = (struct itto_quote_delete *)m;
+    auto message {reinterpret_cast<const quote_delete *>(m)};
+
     OrderIdT bid_order_id = be64toh(message->bid_delta);
     OrderIdT ask_order_id = be64toh(message->ask_delta);
 
@@ -492,7 +504,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   }
 //--------------------------------------------------------------
   case 'P': { //NOM_OPTIONS_TRADE
-    struct itto_options_trade *message = (struct itto_options_trade *)m;
+    auto message {reinterpret_cast<const options_trade *>(m)};
+
     SecurityIdT security_id = be32toh(message->option_id);
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
@@ -573,18 +586,14 @@ static void print_sec_state(fh_b_security* s) {
 }
 #endif
 
-static inline uint64_t get_ts(const uint8_t* m) {
-  uint64_t ts_tmp = 0;
-  memcpy((uint8_t*)&ts_tmp+2,m+3,6);
-  return be64toh(ts_tmp);
-}
 
 static void eka_print_nom_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t sequence) {
   
   switch ((char)m[0]) {
   case 'a': { //NOM_ADD_ORDER_SHORT
     fprintf (md_file,"GR%d,SN:%ju,",gr,sequence);
-    struct itto_add_order_short *message = (struct itto_add_order_short *)m;
+    auto message {reinterpret_cast<const add_order_short *>(m)};
+
     fprintf (md_file,"SID:%16u,%c,P:%8u,S:%8u\n",
 	    be32toh (message->option_id),
 	    (char)             (message->side),
@@ -596,7 +605,8 @@ static void eka_print_nom_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t 
     //--------------------------------------------------------------
   case 'A' : { //NOM_ADD_ORDER_LONG
     fprintf (md_file,"GR%d,SN:%ju,",gr,sequence);
-    struct itto_add_order_long *message = (struct itto_add_order_long *)m;
+    auto message {reinterpret_cast<const add_order_long *>(m)};
+    
     fprintf (md_file,"SID:%16u,%c,P:%8u,S:%8u\n",
 	    be32toh (message->option_id),
 	    (char)             (message->side),

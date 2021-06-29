@@ -25,19 +25,39 @@
 
 #include "eka_fh_q.h"
 
+using namespace Hsvf;
+
 void* getHsvfRetransmit(void* attr);
-uint getHsvfMsgLen(const uint8_t* pkt, int bytes2run);
-uint64_t getHsvfMsgSequence(const uint8_t* msg);
-uint trailingZeros(const uint8_t* p, uint maxChars);
 
 /* ##################################################################### */
 
 int EkaFhBoxGr::processFromQ(const EfhRunCtx* pEfhRunCtx) {
+  if (! q->is_empty()) {
+    EKA_LOG("%s:%u Q len = %u, 1st element Sequence=%ju",
+	    EKA_EXCH_DECODE(exch),id,q->get_len(),q->get_1st_seq());
+  }
   while (! q->is_empty()) {
-    fh_msg* buf = q->pop();
-    //      EKA_LOG("q_len=%u,buf->sequence=%ju, expected_sequence=%ju",q->get_len(),buf->sequence,expected_sequence);
-    parseMsg(pEfhRunCtx,(const unsigned char*)buf->data,buf->sequence,EkaFhMode::MCAST);
-    expected_sequence = buf->sequence >= 999999999 ? buf->sequence + 1 - 999999999 : buf->sequence + 1;
+    auto buf = q->pop();
+    if (buf->sequence < expected_sequence) {
+      EKA_WARN("%s:%u buf->sequence %ju < expected_sequence %ju",
+	       EKA_EXCH_DECODE(exch),id,buf->sequence,expected_sequence);
+    } else if (buf->sequence > expected_sequence) {
+      	gapClosed = false;
+
+	EKA_LOG("%s:%u Gap at Q: buf->sequence %ju > expected_sequence %ju, lost %jd",
+		EKA_EXCH_DECODE(exch),id,
+		buf->sequence,expected_sequence, buf->sequence - expected_sequence);
+	sendFeedDown(pEfhRunCtx);
+	closeIncrementalGap(pEfhCtx,pEfhRunCtx,expected_sequence, buf->sequence);
+	state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
+	return 0;
+    } else {
+      /* EKA_LOG("q_len=%u,buf->sequence=%ju, expected_sequence=%ju", */
+      /* 	      q->get_len(),buf->sequence,expected_sequence); */
+      if (buf->type == fh_msg::MsgType::REAL)
+	parseMsg(pEfhRunCtx,(const unsigned char*)buf->data,buf->sequence,EkaFhMode::MCAST);
+      expected_sequence = buf->sequence >= 999999999 ? buf->sequence + 1 - 999999999 : buf->sequence + 1;
+    }
   }
   EKA_LOG("%s:%u: After Q draining expected_sequence = %ju",
 	  EKA_EXCH_DECODE(exch),id,expected_sequence);
@@ -63,11 +83,11 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
   lastPktLen    = pktLen;
   lastPktMsgCnt = 0;
 
-  uint64_t firstMsgSeq   = getHsvfMsgSequence(&pkt[idx]);
+  uint64_t firstMsgSeq   = Hsvf::getMsgSequence(&pkt[idx]);
 
   while (idx < pktLen) {
-    uint     msgLen   = getHsvfMsgLen(&pkt[idx],pktLen-idx);
-    uint64_t msgSeq   = getHsvfMsgSequence(&pkt[idx]);
+    uint     msgLen   = Hsvf::getMsgLen(&pkt[idx],pktLen-idx);
+    uint64_t msgSeq   = Hsvf::getMsgSequence(&pkt[idx]);
     if (idx + (int)msgLen > pktLen) {
       hexDump("Pkt with wrong msgLen",pkt,pktLen);
       on_error("idx %d + msgLen %u > pktLen %d",idx,msgLen,pktLen);
@@ -99,18 +119,28 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
  
 /* ##################################################################### */
 void EkaFhBoxGr::pushUdpPkt2Q(const uint8_t* pkt, uint pktLen) {
-  const uint8_t* p = pkt;
+  auto p = pkt;
   uint idx = 0;
   while (idx < pktLen) {
-    char*    msgType = ((HsvfMsgHdr*)&p[idx+1])->MsgType;
-    uint     msgLen  = getHsvfMsgLen(&p[idx],pktLen - idx);    
-    uint64_t msgSeq  = getHsvfMsgSequence(&p[idx]);
+    auto msgType = ((HsvfMsgHdr*)&p[idx+1])->MsgType;
+    auto msgSeq  = Hsvf::getMsgSequence(&p[idx]);
+    auto msgLen  = Hsvf::getMsgLen(&p[idx],pktLen - idx);    
     if (memcmp(msgType,"F ",2) == 0 ||  // Quote
-	memcmp(msgType,"Z ",2) == 0) {  // Time
+    	memcmp(msgType,"Z ",2) == 0) {  // Time
       if (msgLen > fh_msg::MSG_SIZE) 
-	on_error("msgLen %u > fh_msg::MSG_SIZE %u",msgLen,fh_msg::MSG_SIZE);
-      fh_msg* n = q->push();
+	on_error("\'%c\%c\' msgLen %u > fh_msg::MSG_SIZE %u",
+		 msgType[0],msgType[1],msgLen,fh_msg::MSG_SIZE);
+      auto n = q->push();
+      n->type = fh_msg::MsgType::REAL;
       memcpy (n->data,&p[idx+1],msgLen - 1);
+      n->sequence = msgSeq;
+      n->gr_id    = id;
+    } else if (memcmp(msgType,"V ",2) == 0) {  // Heartbeat
+      // dont put Heartbeat into the Q
+    } else {
+      auto n = q->push();
+      n->type = fh_msg::MsgType::DUMMY;
+      // dont copy Msg payload
       n->sequence = msgSeq;
       n->gr_id    = id;
     }
@@ -130,12 +160,12 @@ int EkaFhBoxGr::closeIncrementalGap(EfhCtx*          pEfhCtx,
   
 
   std::string threadName = std::string("ST_") + std::string(EKA_EXCH_SOURCE_DECODE(exch)) + '_' + std::to_string(id);
-  EkaFhThreadAttr* attr  = new EkaFhThreadAttr(pEfhCtx, 
-					       (const EfhRunCtx*)pEfhRunCtx, 
-					       this, 
-					       startSeq, 
-					       endSeq,  
-					       EkaFhMode::RECOVERY);
+  auto attr  = new EkaFhThreadAttr(pEfhCtx, 
+				   (const EfhRunCtx*)pEfhRunCtx, 
+				   this, 
+				   startSeq, 
+				   endSeq,  
+				   EkaFhMode::RECOVERY);
   if (attr == NULL) on_error("attr = NULL");
     
   dev->createThread(threadName.c_str(),

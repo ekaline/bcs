@@ -21,6 +21,7 @@ SMARTNIC_LIB ?= $(SMARTNIC_ROOT)/lib/libsmartnic.a
 
 LWIP_INCL:=$(LWIP_ROOT)/lwip/src/include 
 INC=$(SMARTNIC_DRIVER_INCL) $(SMARTNIC_API_INCL) $(LWIP_INCL) $(shell pwd) $(shell pwd)/compat $(shell pwd)/FhBook $(shell pwd)/Ehp $(shell pwd)/../pcapParsers $(shell pwd)/../new_api_tests
+
 INCL=$(foreach d, $(INC), -I$d)
 INCL+=-Iarch
 

@@ -355,6 +355,7 @@ static bool spinCycle(EfhRunCtx*   pEfhRunCtx,
 			 EKA_EXCH_DECODE(gr->exch),gr->id);
 
   static const int TimeOut = 5; // seconds
+
   struct timeval tv = {
     .tv_sec = TimeOut
   }; 
@@ -532,6 +533,7 @@ static bool grpCycle(EfhRunCtx*   pEfhRunCtx,
 			    EKA_EXCH_DECODE(gr->exch),gr->id);
 
   static const int TimeOut = 5; // seconds
+
   struct timeval tv = {
     .tv_sec = TimeOut
   }; 
@@ -541,6 +543,7 @@ static bool grpCycle(EfhRunCtx*   pEfhRunCtx,
   if (udpSock < 0) on_error("%s:%u: failed to open UDP socket",
 			    EKA_EXCH_DECODE(gr->exch),gr->id);
   static const int udpTimeOut = 5; // seconds
+
   struct timeval udpTv = {
     .tv_sec = udpTimeOut
   }; 

@@ -77,22 +77,22 @@ void  INThandler(int sig) {
   return;
 }
 
-static inline std::string ts_ns2str(uint64_t ts) {
-  char dst[SYMBOL_SIZE] = {};
-  uint ns = ts % 1000;
-  uint64_t res = (ts - ns) / 1000;
-  uint us = res % 1000;
-  res = (res - us) / 1000;
-  uint ms = res % 1000;
-  res = (res - ms) / 1000;
-  uint s = res % 60;
-  res = (res - s) / 60;
-  uint m = res % 60;
-  res = (res - m) / 60;
-  uint h = res % 24;
-  sprintf (dst,"%02d:%02d:%02d.%03d.%03d.%03d",h,m,s,ms,us,ns);
-  return std::string(dst);
-}
+/* static inline std::string ts_ns2str(uint64_t ts) { */
+/*   char dst[SYMBOL_SIZE] = {}; */
+/*   uint ns = ts % 1000; */
+/*   uint64_t res = (ts - ns) / 1000; */
+/*   uint us = res % 1000; */
+/*   res = (res - us) / 1000; */
+/*   uint ms = res % 1000; */
+/*   res = (res - ms) / 1000; */
+/*   uint s = res % 60; */
+/*   res = (res - s) / 60; */
+/*   uint m = res % 60; */
+/*   res = (res - m) / 60; */
+/*   uint h = res % 24; */
+/*   sprintf (dst,"%02d:%02d:%02d.%03d.%03d.%03d",h,m,s,ms,us,ns); */
+/*   return std::string(dst); */
+/* } */
 
 static std::string eka_get_date () {
   const char* months[] = {"JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"};
@@ -286,7 +286,7 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
   return NULL;
 }
 
-static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
+static void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg) {
   uint8_t y,m,d;
 
   d = msg->expiryDate % 100;
@@ -301,7 +301,7 @@ static void eka_create_avt_definition (char* dst, const EfhDefinitionMsg* msg) {
 }
 
 /* ------------------------------------------------------------ */
-uint testSubscribeSec(int file_idx,const EfhDefinitionMsg* msg, EfhRunUserData userData, char* avtSecName, char* underlyingName, char* classSymbol) {
+uint testSubscribeSec(int file_idx,const EfhOptionDefinitionMsg* msg, EfhRunUserData userData, char* avtSecName, char* underlyingName, char* classSymbol) {
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   uint sec_idx = testFhCtx[file_idx]->subscr_cnt;
 
@@ -316,13 +316,13 @@ uint testSubscribeSec(int file_idx,const EfhDefinitionMsg* msg, EfhRunUserData u
 	   EKA_PRINT_GRP(&msg->header.group)
 	   );
 
-  efhSubscribeStatic(pEfhCtx, (EkaGroup*) &msg->header.group,  msg->header.securityId, EfhSecurityType::kOpt,(EfhSecUserData) sec_idx,0,0);
+  efhSubscribeStatic(pEfhCtx, (EkaGroup*) &msg->header.group,  msg->header.securityId, EfhSecurityType::kOption,(EfhSecUserData) sec_idx,0,0);
   testFhCtx[file_idx]->subscr_cnt++;
   return testFhCtx[file_idx]->subscr_cnt;
 }
 /* ------------------------------------------------------------ */
 
-void* onDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+void* onDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
   //  EfhCtx* pEfhCtx = (EfhCtx*) userData;
 
   char avtSecName[SYMBOL_SIZE] = {};
@@ -626,7 +626,7 @@ int main(int argc, char *argv[]) {
   signal(SIGINT, INThandler);
 
   runCtx.onEfhQuoteMsgCb        = onQuote;
-  runCtx.onEfhDefinitionMsgCb   = onDefinition;
+  runCtx.onEfhOptionDefinitionMsgCb   = onDefinition;
   runCtx.onEfhOrderMsgCb        = onOrder;
   runCtx.onEfhTradeMsgCb        = onTrade;
   runCtx.onEfhGroupStateChangedMsgCb = onEfhGroupStateChange;

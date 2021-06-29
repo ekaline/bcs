@@ -39,7 +39,7 @@
  * @return This will return an appropriate EkalineOpResult indicating success or an error code.
  */
 
-int printSecCtx(EkaDev* dev, const EfcSecurityCtx* msg);
+int printSecCtx(EkaDev* dev, const SecCtx* msg);
 int printMdReport(EkaDev* dev, const EfcMdReport* msg);
 int printControllerStateReport(EkaDev* dev, const EfcControllerState* msg);
 int printBoeFire(EkaDev* dev,const BoeNewOrderMsg* msg);
@@ -126,7 +126,7 @@ EkaOpResult efcEnableController( EfcCtx* pEfcCtx, EkaCoreId primaryCoreId ) {
  * @param pSecurityIds   This is a pointer to the first member of an array of securities that 
  *                       the firing controller should consider as opportunities.  This value
  *                       should be the exchange specific security id that is returned from 
- *                       EfhDefinitionMsg.
+ *                       EfhOptionDefinitionMsg.
  * @param numSecurityIds This is the number of elements in the array pSecurityIds.
  * @retval [See EkaOpResult].
  */
@@ -192,6 +192,10 @@ EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx, EfcSecCtxHandle hSecCtx, const 
   EkaDev* dev = pEfcCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
 
+  if (writeChan >= EkaDev::MAX_CTX_THREADS)
+    on_error("writeChan %u > EkaDev::MAX_CTX_THREADS %u",
+	     writeChan,EkaDev::MAX_CTX_THREADS);
+  
   auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
   if (efc == NULL) on_error("efc == NULL");
 
@@ -214,8 +218,8 @@ EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx, EfcSecCtxHandle hSecCtx, const 
   const EkaHwSecCtx hwSecCtx = {
     .bidMinPrice       = pSecCtx->bidMinPrice,
     .askMaxPrice       = pSecCtx->askMaxPrice,
-    .size              = pSecCtx->size,
-    .verNum            = pSecCtx->verNum,
+    .bidSize           = pSecCtx->bidSize,
+    .askSize           = pSecCtx->askSize,
     .lowerBytesOfSecId = pSecCtx->lowerBytesOfSecId
   };
 
@@ -446,7 +450,7 @@ EkaOpResult efcPrintFireReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdO
   b += sizeof(EfcReportHdr);
 
   {
-    auto msg{ reinterpret_cast< const EfcSecurityCtx* >( b ) };
+    auto msg{ reinterpret_cast< const SecCtx* >( b ) };
 
     if (! mdOnly) printSecCtx(dev, msg);
 

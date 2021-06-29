@@ -9,33 +9,36 @@
 #include "EkaFhMiaxParser.h"
 #include "EkaFhMiaxGr.h"
 
-bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op) {
+using namespace Tom;
 
-  EKA_MIAX_TOM_MSG enc =  (EKA_MIAX_TOM_MSG)m[0];
+bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op,
+				 std::chrono::high_resolution_clock::time_point startTime) {
+
+  auto enc {static_cast<const TOM_MSG>(*m)};
 
   uint64_t ts = 0;
 
-  if (enc != EKA_MIAX_TOM_MSG::EndOfRefresh) ts = gr_ts + ((TomCommon*) m)->Timestamp;
+  if (enc != TOM_MSG::EndOfRefresh) ts = gr_ts + ((TomCommon*) m)->Timestamp;
 
   FhSecurity* s = NULL;
 
   switch (enc) {    
     //--------------------------------------------------------------
-  case EKA_MIAX_TOM_MSG::Time : {
-    //    gr_ts = (((TomCommon*) m)->Timestamp - 5 * 60 * 60) * SEC_TO_NANO; // shifted 5 hours for UTC
-    gr_ts = ((TomCommon*) m)->Timestamp * SEC_TO_NANO; 
+  case TOM_MSG::Time : {
+    auto message {reinterpret_cast<const TomCommon*>(m)};
+    gr_ts = message->Timestamp * SEC_TO_NANO; 
     return false;
   }
     //--------------------------------------------------------------
-  case EKA_MIAX_TOM_MSG::SeriesUpdate : {
-    TomSeriesUpdate *message = (TomSeriesUpdate*) m;
+  case TOM_MSG::SeriesUpdate : {
+    auto message {reinterpret_cast<const TomSeriesUpdate*>(m)};
 
     uint32_t y = (message->Expiration[0] - '0')*1000 + (message->Expiration[1] - '0')*100 + (message->Expiration[2] - '0')*10 + (message->Expiration[3] - '0');
     uint16_t m = (message->Expiration[4] - '0')*10   + (message->Expiration[5] - '0');
     uint8_t  d = (message->Expiration[6] - '0')*10   + (message->Expiration[7] - '0');
 
-    EfhDefinitionMsg msg = {};
-    msg.header.msgType        = EfhMsgType::kDefinition;
+    EfhOptionDefinitionMsg msg{};
+    msg.header.msgType        = EfhMsgType::kOptionDefinition;
     msg.header.group.source   = exch;
     msg.header.group.localId  = (EkaLSI)id;
 
@@ -46,7 +49,7 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     msg.header.gapNum         = gapNum;
 
     //    msg.secondaryGroup        = {(EkaSource)0,EkaLSI(0)};
-    msg.securityType          = EfhSecurityType::kOpt;
+    msg.securityType          = EfhSecurityType::kOption;
     msg.expiryDate            = y * 10000 + m * 100 + d;
     msg.contractSize          = 0;
     msg.strikePrice           = message->StrikePrice / EFH_STRIKE_PRICE_SCALE;
@@ -68,30 +71,34 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     /* 	      ); */
 	      
 
-    pEfhRunCtx->onEfhDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+    pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
     return false;
   }
     //--------------------------------------------------------------
-  case EKA_MIAX_TOM_MSG::SystemState : 
-    if (((TomSystemState*)m)->SystemStatus == 'S') market_open = true;
-    if (((TomSystemState*)m)->SystemStatus == 'C') market_open = false;
+  case TOM_MSG::SystemState : {
+    auto message {reinterpret_cast<const TomSystemState*>(m)};
+
+    if (message->SystemStatus == 'S') market_open = true;
+    if (message->SystemStatus == 'C') market_open = false;
     return false;
+  }
     //--------------------------------------------------------------
-  case EKA_MIAX_TOM_MSG::UnderlyingTradingStatus : {
-    
+  case TOM_MSG::UnderlyingTradingStatus : {
+    auto message {reinterpret_cast<const TomUnderlyingTradingStatus*>(m)};
+
     char name2print[16] = {};
-    memcpy(name2print,((TomUnderlyingTradingStatus*)m)->underlying,sizeof(((TomUnderlyingTradingStatus*)m)->underlying));
-    int underlIdx = findUnderlying(((TomUnderlyingTradingStatus*)m)->underlying,
-					 std::min(sizeof(((TomUnderlyingTradingStatus*)m)->underlying),sizeof(EfhSymbol)));
+    memcpy(name2print,message->underlying,sizeof(message->underlying));
+    int underlIdx = findUnderlying(message->underlying,
+				   std::min(sizeof(message->underlying),sizeof(EfhSymbol)));
     if (underlIdx < 0) {
       EKA_LOG("%s:%u \'%s\' 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x (size = %ju) is not found (size for strncmp = %ju:",
 	      EKA_EXCH_DECODE(exch),id,name2print,
-	      ((TomUnderlyingTradingStatus*)m)->underlying[0],((TomUnderlyingTradingStatus*)m)->underlying[1],
-	      ((TomUnderlyingTradingStatus*)m)->underlying[2],((TomUnderlyingTradingStatus*)m)->underlying[3],
-	      ((TomUnderlyingTradingStatus*)m)->underlying[4],((TomUnderlyingTradingStatus*)m)->underlying[5],
-	      ((TomUnderlyingTradingStatus*)m)->underlying[6],((TomUnderlyingTradingStatus*)m)->underlying[7],
-	      sizeof(((TomUnderlyingTradingStatus*)m)->underlying),
-	      std::min(sizeof(((TomUnderlyingTradingStatus*)m)->underlying),sizeof(EfhSymbol))
+	      message->underlying[0],message->underlying[1],
+	      message->underlying[2],message->underlying[3],
+	      message->underlying[4],message->underlying[5],
+	      message->underlying[6],message->underlying[7],
+	      sizeof(message->underlying),
+	      std::min(sizeof(message->underlying),sizeof(EfhSymbol))
 	      );
 
       for (uint u = 0; u < underlyingNum; u++) {
@@ -104,20 +111,20 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
       on_error("Underlying \'%s\' is not found",name2print);
     }
 
-    underlying[underlIdx]->tradeStatus = ((TomUnderlyingTradingStatus*)m)->trading_status == 'H' ? EfhTradeStatus::kHalted : EfhTradeStatus::kNormal;
+    underlying[underlIdx]->tradeStatus = message->trading_status == 'H' ? EfhTradeStatus::kHalted : EfhTradeStatus::kNormal;
 
-    //    EKA_LOG("UnderlyingTradingStatus of %s : \'%c\'", name2print,((TomUnderlyingTradingStatus*)m)->trading_status);
+    //    EKA_LOG("UnderlyingTradingStatus of %s : \'%c\'", name2print,message->trading_status);
     return false;
   }
     //--------------------------------------------------------------
-  case EKA_MIAX_TOM_MSG::BestBidShort : 
-  case EKA_MIAX_TOM_MSG::BestAskShort : 
-  case EKA_MIAX_TOM_MSG::BestBidLong : 
-  case EKA_MIAX_TOM_MSG::BestAskLong : {
-    TomBestBidOrOfferLong  *message_long  = (TomBestBidOrOfferLong  *)m;
-    TomBestBidOrOfferShort *message_short = (TomBestBidOrOfferShort *)m;
+  case TOM_MSG::BestBidShort : 
+  case TOM_MSG::BestAskShort : 
+  case TOM_MSG::BestBidLong : 
+  case TOM_MSG::BestAskLong : {
+    auto message_long {reinterpret_cast <const TomBestBidOrOfferLong* >(m)};
+    auto message_short {reinterpret_cast<const TomBestBidOrOfferShort*>(m)};
 
-    bool long_form = (enc == EKA_MIAX_TOM_MSG::BestBidLong) || (enc == EKA_MIAX_TOM_MSG::BestAskLong);
+    bool long_form = (enc == TOM_MSG::BestBidLong) || (enc == TOM_MSG::BestAskLong);
 
     SecurityIdT security_id = long_form ? message_long->security_id : message_short->security_id;
 
@@ -127,7 +134,7 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     if (underlying[s->underlyingIdx] == NULL)
       on_error("underlying[%u] == NULL",s->underlyingIdx);
 
-    if (enc == EKA_MIAX_TOM_MSG::BestBidShort || enc == EKA_MIAX_TOM_MSG::BestBidLong) {
+    if (enc == TOM_MSG::BestBidShort || enc == TOM_MSG::BestBidLong) {
       //      if (ts < s->bid_ts) return false; // Back-in-time from Recovery
       s->bid_size       = long_form ? message_long->size           : (uint32_t)  message_short->size;
       s->bid_cust_size  = long_form ? message_long->customer_size  : (uint32_t)  message_short->customer_size;
@@ -149,12 +156,12 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
   }
     //--------------------------------------------------------------
 
-  case EKA_MIAX_TOM_MSG::BestBidAskShort :   
-  case EKA_MIAX_TOM_MSG::BestBidAskLong :  { 
-    TomBestBidAndOfferLong  *message_long  = (TomBestBidAndOfferLong  *)m;
-    TomBestBidAndOfferShort *message_short = (TomBestBidAndOfferShort *)m;
+  case TOM_MSG::BestBidAskShort :   
+  case TOM_MSG::BestBidAskLong :  { 
+    auto message_long {reinterpret_cast <const TomBestBidAndOfferLong* >(m)};
+    auto message_short {reinterpret_cast<const TomBestBidAndOfferShort*>(m)};
 
-    bool long_form = enc == EKA_MIAX_TOM_MSG::BestBidAskLong;
+    bool long_form = enc == TOM_MSG::BestBidAskLong;
 
     SecurityIdT security_id = long_form ? message_long->security_id : message_short->security_id;
     s = book->findSecurity(security_id);
@@ -182,14 +189,14 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     break;
   }
     //--------------------------------------------------------------
-  case EKA_MIAX_TOM_MSG::Trade: { 
-    TomTrade *message = (TomTrade *)m;
+  case TOM_MSG::Trade: { 
+    auto message {reinterpret_cast<const TomTrade*>(m)};
 
     SecurityIdT security_id = message->security_id;
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
 
-    EfhTradeMsg msg = {};
+    EfhTradeMsg msg{};
     msg.header.msgType        = EfhMsgType::kTrade;
     msg.header.group.source   = exch;
     msg.header.group.localId  = (EkaLSI)id;
@@ -205,10 +212,10 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     return false;
   }
     //--------------------------------------------------------------
-  case EKA_MIAX_TOM_MSG::TradeCancel : 
+  case TOM_MSG::TradeCancel : 
     return false;
     //--------------------------------------------------------------
-  case EKA_MIAX_TOM_MSG::EndOfRefresh : 
+  case TOM_MSG::EndOfRefresh : 
     EKA_LOG("%s:%u End Of Refresh of \'%c\' Request",EKA_EXCH_DECODE(exch),id,m[1]);
     return true;
     //--------------------------------------------------------------

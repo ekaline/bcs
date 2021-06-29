@@ -512,9 +512,9 @@ int main(int argc, char *argv[]) {
 
   EpmTriggerParams triggerParam[] = {
     {0,"224.0.74.0",30301},
-    {0,"224.0.74.1",30302},
-    {0,"224.0.74.2",30303},
-    {0,"224.0.74.3",30304},
+    /* {0,"224.0.74.1",30302}, */
+    /* {0,"224.0.74.2",30303}, */
+    /* {0,"224.0.74.3",30304}, */
   };
 
   EfcCtx efcCtx = {};
@@ -613,8 +613,8 @@ int main(int argc, char *argv[]) {
     SecCtx secCtx = {
 	.bidMinPrice       = static_cast<decltype(secCtx.bidMinPrice)>(security[i].bidMinPrice / 100),  //x100, should be nonzero
 	.askMaxPrice       = static_cast<decltype(secCtx.askMaxPrice)>(security[i].askMaxPrice / 100),  //x100
-	.size              = security[i].size,
-	.verNum            = 0xaf,                     // just a number
+	.bidSize           = security[i].size,
+	.askSize           = security[i].size,
 	.lowerBytesOfSecId = (uint8_t)(securityList[i] & 0xFF)
     };
     EKA_TEST("Setting StaticSecCtx[%d] secId=0x%016jx, handle=%jd",
@@ -740,7 +740,7 @@ int main(int argc, char *argv[]) {
 		  .groups                      = batsC1Groups,
 		  .numGroups                   = std::size(batsC1Groups),
 		  .efhRunUserData              = (EfhRunUserData) pEfhCtx,
-		  .onEfhDefinitionMsgCb        = NULL, //onDefinition,
+		  .onEfhOptionDefinitionMsgCb  = NULL, //onDefinition,
 		  .onEfhTradeMsgCb             = NULL, //onTrade,
 		  .onEfhQuoteMsgCb             = NULL, //onQuote,
 		  .onEfhOrderMsgCb             = NULL, //onOrder,

@@ -4,6 +4,8 @@
 #include "EkaFhCmeGr.h"
 #include "EkaFhCmeParser.h"
 
+using namespace Cme;
+
 EkaOpResult getCmeDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhCmeGr* gr,EkaFhMode op);
 int ekaUdpMcConnect(EkaDev* dev, uint32_t ip, uint16_t port);
 
@@ -18,12 +20,11 @@ const uint8_t* EkaFhCme::getUdpPkt(EkaFhRunGroup* runGr,
 			     uint64_t*      sequence,
 			     uint8_t*       gr_id) {
 
-  uint8_t* pkt = (uint8_t*)runGr->udpCh->get();
+  auto pkt = runGr->udpCh->get();
   if (pkt == NULL) on_error("%s: pkt == NULL",EKA_EXCH_DECODE(exch));
   *pktLen   = runGr->udpCh->getPayloadLen();
 
-  const PktHdr* pktHdr = (const PktHdr*)pkt;
-
+  auto pktHdr {reinterpret_cast<const PktHdr*>(pkt)};
 
   *sequence = pktHdr->seq;
   *gr_id    = getGrId(pkt);
@@ -90,7 +91,7 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     uint8_t  gr_id = 0xFF;
     int16_t  pktSize = 0; 
 
-    const uint8_t* pkt = getUdpPkt(runGr,&pktSize,&sequence,&gr_id);
+    auto pkt = getUdpPkt(runGr,&pktSize,&sequence,&gr_id);
     if (pkt == NULL) continue;
 
 #ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
@@ -102,7 +103,7 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     }
 #endif
 
-    EkaFhCmeGr* gr = (EkaFhCmeGr*)b_gr[gr_id];
+    auto gr = dynamic_cast<EkaFhCmeGr*>(b_gr[gr_id]);
     if (gr == NULL) on_error("b_gr[%u] == NULL",gr_id);
     gr->resetNoMdTimer();
 
@@ -152,7 +153,7 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
  /* ##################################################################### */
 
 EkaOpResult EkaFhCme::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group) {
-  EkaFhCmeGr* gr = (EkaFhCmeGr*)b_gr[group->localId];
+  auto gr = dynamic_cast<EkaFhCmeGr*>(b_gr[group->localId]);
   if (gr == NULL) on_error("gr[%u] == NULL",(uint8_t)group->localId);
 
   int sock = ekaUdpMcConnect(dev, gr->snapshot_ip, gr->snapshot_port);
@@ -164,7 +165,14 @@ EkaOpResult EkaFhCme::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
   socklen_t addrlen = sizeof(sockaddr);
 
   gr->snapshot_active = true;
-  gr->processedDefinitionMessages = 0;
+  
+  gr->vanillaOptionsDefinitions = 0;  
+  gr->complexOptionsDefinitions = 0;
+  gr->futuresDefinitions        = 0;
+  gr->vanillaOptionsDefinitionsState = EkaFhCmeGr::DefinitionsCycleState::Init;
+  gr->complexOptionsDefinitionsState = EkaFhCmeGr::DefinitionsCycleState::Init;
+  gr->futuresDefinitionsState        = EkaFhCmeGr::DefinitionsCycleState::Init;
+  
   while (gr->snapshot_active) {
     uint8_t pkt[1536] = {};
     int size = recvfrom(sock, pkt, sizeof(pkt), 0, (sockaddr*) &addr, &addrlen);
@@ -175,8 +183,12 @@ EkaOpResult EkaFhCme::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
   gr->snapshot_active = false;
   gr->snapshotClosed  = true;
 
-  EKA_LOG("%s:%u: %d Definition messages processed",
-	  EKA_EXCH_DECODE(exch),gr->id,gr->processedDefinitionMessages);
+  EKA_LOG("%s:%u: Definitions Done: %d Vanilla Options, %d Complex Options, %d Futures",
+	  EKA_EXCH_DECODE(exch),gr->id,
+	  gr->vanillaOptionsDefinitions,
+	  gr->complexOptionsDefinitions,
+	  gr->futuresDefinitions
+	  );
   close (sock);
   return EKA_OPRESULT__OK;
 

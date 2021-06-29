@@ -25,21 +25,24 @@ typedef uint16_t       EpmFieldSize;
 /* parameter EPM_SRC_APP_SEQ      = 10; */
 /* parameter EPM_SRC_ASK_PRICE    = 11;// for orders use this, for quotes this is ask side */
 /* parameter EPM_SRC_ASK_SIZE     = 12;// for orders use this, for quotes this is ask side */
+// parameter EPM_SRC_ASCII_CNT    = 14;
+
 enum class HwField : uint8_t {
-  IMMEDIATE      = 0,
-    LOCAL_SEQ    = 1,
-    REMOTE_SEQ   = 2,
-    TCP_WINDOW   = 3,
-    TCP_CHCK_SUM = 4,
-    RESERVED     = 5,
-    PRICE        = 6,  // for orders use this, for quotes this is buy side
-    SIZE         = 7,  // for orders use this, for quotes this is buy side
-    SIDE         = 8,
-    TIME         = 9,
-    APPSEQ       = 10,
-    ASK_PRICE    = 11, // for orders use this, for quotes this is ask side
-    ASK_SIZE     = 12, // for orders use this, for quotes this is ask side
-    SECURITY_ID  = 13
+    IMMEDIATE     = 0,
+    LOCAL_SEQ     = 1,
+    REMOTE_SEQ    = 2,
+    TCP_WINDOW    = 3,
+    TCP_CHCK_SUM  = 4,
+    RESERVED      = 5,
+    PRICE         = 6,  // for orders use this, for quotes this is buy side
+    SIZE          = 7,  // for orders use this, for quotes this is buy side
+    SIDE          = 8,
+    TIME          = 9,
+    APPSEQ        = 10,
+    ASK_PRICE     = 11, // for orders use this, for quotes this is ask side
+    ASK_SIZE      = 12, // for orders use this, for quotes this is ask side
+    SECURITY_ID   = 13,
+    APP_SEQ_ASCII = 14
 };
 
 #define EpmHwField2Str(x) \

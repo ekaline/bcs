@@ -31,6 +31,9 @@ static bool sendRequest(EkaFhMiaxGr* gr, char refreshType);
 static bool sendLogOut(EkaFhMiaxGr* gr);
 static EkaFhParseResult procSesm(const EfhRunCtx* pEfhRunCtx,int sock,EkaFhMiaxGr* gr,EkaFhMode op);
 
+
+using namespace Tom;
+
 /* ##################################################################### */
 
 static int sendHearBeat(int sock) {

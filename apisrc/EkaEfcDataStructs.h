@@ -119,8 +119,8 @@ struct BoeNewOrderMsg {
 struct EkaHwSecCtx {
   FixedPrice bidMinPrice;
   FixedPrice askMaxPrice;
-  uint8_t    size;
-  uint8_t    verNum;
+  uint8_t    bidSize;
+  uint8_t    askSize;
   uint8_t    lowerBytesOfSecId;
 } __attribute__ ((packed));
 

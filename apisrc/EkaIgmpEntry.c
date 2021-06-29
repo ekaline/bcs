@@ -6,17 +6,15 @@
 int createIgmpPkt (IgmpPkt* dst, bool join, uint8_t* macsa, uint32_t ip_src, uint32_t ip_dst);
 /* -------------------------------------------- */
 
-EkaIgmpEntry::EkaIgmpEntry(EkaDev* _dev, int _udpChId, EkaCoreId _coreId, int _perChId, uint32_t _ip, uint16_t _port, int16_t _vlanTag, uint64_t* _pPktCnt) {
-  dev     = _dev;
-  udpChId = _udpChId;
-  perChId = _perChId;
-  ip      = _ip;
-  port    = _port;
-  vlanTag = _vlanTag;
-  coreId  = _coreId;
-  pPktCnt = _pPktCnt;
-
-  if (udpChId < 0 || udpChId >= (int)EkaEpm::EPM_REGIONS) on_error("bad udpChId %d",udpChId);
+EkaIgmpEntry::EkaIgmpEntry(EkaDev* _dev, int _epmRegion, EkaCoreId _coreId, int _perChId, uint32_t _ip, uint16_t _port, int16_t _vlanTag, uint64_t* _pPktCnt) {
+  dev       = _dev;
+  epmRegion = _epmRegion;
+  perChId   = _perChId;
+  ip        = _ip;
+  port      = _port;
+  vlanTag   = _vlanTag;
+  coreId    = _coreId;
+  pPktCnt   = _pPktCnt;
 
   if (dev->core[coreId] == NULL) on_error("dev->core[%u] == NULL",coreId);
 
@@ -24,21 +22,19 @@ EkaIgmpEntry::EkaIgmpEntry(EkaDev* _dev, int _udpChId, EkaCoreId _coreId, int _p
   
   if (noIgmp) return;
 
-  uint epmActionRegion = (uint)udpChId;
-
   static const bool JOIN  = true;
   static const bool LEAVE = false;
 
   //  char __attribute__ ((aligned(sizeof(uint32_t)))) igmpJoinPkt[64] = {};
   IgmpPkt igmpJoinPkt = {};
   uint igmpJoinPktLen = createIgmpPkt(&igmpJoinPkt, JOIN, dev->core[coreId]->macSa, dev->core[coreId]->srcIp, ip);
-  igmpJoinAction  = dev->epm->addAction(EkaEpm::ActionType::Igmp,epmActionRegion,0,coreId,0,0);
+  igmpJoinAction  = dev->epm->addAction(EkaEpm::ActionType::Igmp,epmRegion,0,coreId,0,0);
   igmpJoinAction->setEthFrame((uint8_t*)&igmpJoinPkt,igmpJoinPktLen);
 
   //  char __attribute__ ((aligned(sizeof(uint32_t)))) igmpLeavePkt[64] = {};
   IgmpPkt igmpLeavePkt = {};
   uint igmpLeavePktLen = createIgmpPkt(&igmpLeavePkt, LEAVE, dev->core[coreId]->macSa, dev->core[coreId]->srcIp, ip);
-  igmpLeaveAction  = dev->epm->addAction(EkaEpm::ActionType::Igmp,epmActionRegion,0,coreId,0,0);
+  igmpLeaveAction  = dev->epm->addAction(EkaEpm::ActionType::Igmp,epmRegion,0,coreId,0,0);
   igmpLeaveAction->setEthFrame((uint8_t*)&igmpLeavePkt,igmpLeavePktLen);
 }
 /* -------------------------------------------- */

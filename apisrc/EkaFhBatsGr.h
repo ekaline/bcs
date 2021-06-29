@@ -1,6 +1,8 @@
 #ifndef _EKA_FH_BATS_GR_H_
 #define _EKA_FH_BATS_GR_H_
 
+#include <chrono>
+
 #include "EkaFhGroup.h"
 #include "EkaFhFullBook.h"
 
@@ -11,7 +13,8 @@ class EkaFhBatsGr : public EkaFhGroup{
   bool                  parseMsg(const EfhRunCtx* pEfhRunCtx,
 				 const unsigned char*   m,
 				 uint64_t         sequence,
-				 EkaFhMode        op);
+				 EkaFhMode        op,
+				 std::chrono::high_resolution_clock::time_point startTime={});
 
   int                   bookInit();
 
@@ -32,7 +35,8 @@ class EkaFhBatsGr : public EkaFhGroup{
   bool                  processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 				      const uint8_t*   pkt, 
 				      uint             msgInPkt, 
-				      uint64_t         seq);
+				      uint64_t         seq,
+				      std::chrono::high_resolution_clock::time_point start={});
 
   void                 pushUdpPkt2Q(const uint8_t* pkt, 
 				    uint           msgInPkt, 

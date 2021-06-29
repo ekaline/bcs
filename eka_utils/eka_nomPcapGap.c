@@ -15,29 +15,6 @@
 
 #define on_error(...) { fprintf(stderr, "EKALINE API LIB FATAL ERROR: %s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n");perror(""); fflush(stdout); fflush(stderr); exit(1); }
 
-/* struct mold_hdr { */
-/*   uint8_t       session_id[10]; */
-/*   uint64_t      sequence; */
-/*   uint16_t      message_cnt; */
-/* } __attribute__((packed)); */
-
-struct pcap_file_hdr {
-        uint32_t magic_number;   /* magic number */
-         uint16_t version_major;  /* major version number */
-         uint16_t version_minor;  /* minor version number */
-         int32_t  thiszone;       /* GMT to local correction */
-         uint32_t sigfigs;        /* accuracy of timestamps */
-         uint32_t snaplen;        /* max length of captured packets, in octets */
-         uint32_t network;        /* data link type */
- };
- struct pcap_rec_hdr {
-         uint32_t ts_sec;         /* timestamp seconds */
-         uint32_t ts_usec;        /* timestamp microseconds */
-         uint32_t incl_len;       /* number of octets of packet saved in file */
-         uint32_t orig_len;       /* actual length of packet */
- };
-
-
 struct itto_grp_state {
   in_addr_t mc_ip;
   uint16_t  port;
@@ -127,9 +104,9 @@ int main(int argc, char *argv[]) {
   if ((pcap_file = fopen(argv[1], "rb")) == NULL) on_error("Failed to open dump file %s",argv[1]);
   if (fread(buf,sizeof(struct pcap_file_hdr),1,pcap_file) != 1) on_error ("Failed to read pcap_file_hdr from the pcap file");
 
-  while (fread(buf,sizeof(struct pcap_rec_hdr),1,pcap_file) == 1) {
-    struct pcap_rec_hdr *pcap_rec_hdr_ptr = (struct pcap_rec_hdr *) buf;
-    if (fread(buf,pcap_rec_hdr_ptr->orig_len,1,pcap_file) != 1) on_error ("Failed to read %d packet bytes",pcap_rec_hdr_ptr->orig_len);
+  while (fread(buf,sizeof(pcap_rec_hdr),1,pcap_file) == 1) {
+    const pcap_rec_hdr *pcap_rec_hdr_ptr = (pcap_rec_hdr *) buf;
+    if (fread(buf,pcap_rec_hdr_ptr->len,1,pcap_file) != 1) on_error ("Failed to read %d packet bytes",pcap_rec_hdr_ptr->len);
 
     if (! EKA_IS_UDP_PKT(buf)) continue;
 

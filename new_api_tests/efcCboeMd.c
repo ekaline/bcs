@@ -43,7 +43,7 @@
 /* --------------------------------------------- */
 std::string ts_ns2str(uint64_t ts);
 static EkaOpResult printReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdOnly);
-int printSecCtx(EkaDev* dev, const EfcSecurityCtx* msg);
+int printSecCtx(EkaDev* dev, const SecCtx* msg);
 int printBoeFire(EkaDev* dev,const BoeNewOrderMsg* msg);
 int printMdReport(EkaDev* dev, const EfcMdReport* msg);
 int printControllerStateReport(EkaDev* dev, const EfcControllerState* msg);
@@ -107,7 +107,7 @@ void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fireReportBuf, size_t s
 }
 /* ------------------------------------------------------------ */
 
-void* onMdTestDefinition(const EfhDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+void* onMdTestDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
   if (! keep_work) return NULL;
   
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
@@ -200,7 +200,7 @@ static EkaOpResult printReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdO
 	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type) );
   b += sizeof(EfcReportHdr);
   {
-    auto msg{ reinterpret_cast< const EfcSecurityCtx* >( b ) };
+    auto msg{ reinterpret_cast< const SecCtx* >( b ) };
 
     if (! mdOnly) printSecCtx(dev, msg);
 
@@ -455,7 +455,7 @@ int main(int argc, char *argv[]) {
 	  .groups                      = batsC1Groups,
 	  .numGroups                   = std::size(batsC1Groups),
 	  .efhRunUserData              = (EfhRunUserData) pEfhCtx,
-	  .onEfhDefinitionMsgCb        = onMdTestDefinition,
+	  .onEfhOptionDefinitionMsgCb  = onMdTestDefinition,
 	  .onEfhTradeMsgCb             = NULL, //onTrade,
 	  .onEfhQuoteMsgCb             = NULL, //onQuote,
 	  .onEfhOrderMsgCb             = NULL, //onOrder,
@@ -521,8 +521,8 @@ int main(int argc, char *argv[]) {
     SecCtx secCtx = {
 	.bidMinPrice       = static_cast<decltype(secCtx.bidMinPrice)>(1),
 	.askMaxPrice       = static_cast<decltype(secCtx.askMaxPrice)>(0xFFFF),  
-	.size              = 1,
-	.verNum            = 0xaf,                     // just a number
+	.bidSize              = 1,
+	.askSize              = 1,
 	.lowerBytesOfSecId = (uint8_t)(securityList[i] & 0xFF)
     };
     /* EKA_TEST("Setting StaticSecCtx[%d] secId=0x%016jx, handle=%jd", */

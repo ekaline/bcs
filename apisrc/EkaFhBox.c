@@ -2,10 +2,9 @@
 #include "EkaUdpChannel.h"
 #include "EkaFhRunGroup.h"
 #include "EkaFhBoxGr.h"
+#include "EkaFhBoxParser.h"
 
 EkaOpResult getHsvfDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhBoxGr* gr);
-uint64_t getHsvfMsgSequence(const uint8_t* msg);
-bool isHeartbeat(const uint8_t* msg);
 
 /* ##################################################################### */
 EkaFhGroup* EkaFhBox::addGroup() {
@@ -19,12 +18,12 @@ const uint8_t* EkaFhBox::getUdpPkt(EkaFhRunGroup* runGr,
 			     int16_t*      pktLen, 
 			     uint64_t*      sequence, 
 			     uint8_t*       gr_id) {
-  const uint8_t* pkt = (uint8_t*)runGr->udpCh->get();
+  auto pkt = runGr->udpCh->get();
   if (pkt == NULL) on_error("%s: pkt == NULL",EKA_EXCH_DECODE(exch));
 
   *pktLen   = runGr->udpCh->getPayloadLen();
   *gr_id    = getGrId(pkt);
-  *sequence = getHsvfMsgSequence(pkt);
+  *sequence = Hsvf::getMsgSequence(pkt);
 
   if (*gr_id == 0xFF) {
     runGr->udpCh->next(); 
@@ -35,9 +34,13 @@ const uint8_t* EkaFhBox::getUdpPkt(EkaFhRunGroup* runGr,
 
 /* ##################################################################### */
 EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId ) {
-  EkaFhRunGroup* runGr = dev->runGr[runGrId];
+  auto runGr = dev->runGr[runGrId];
   if (runGr == NULL) on_error("runGr == NULL");
 
+#ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
+  int64_t pktCnt = 0;
+#endif
+  
   EKA_DEBUG("Initializing %s Run Group %u: %s GROUPS",
 	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
   initGroups(pEfhCtx, pEfhRunCtx, runGr);
@@ -54,23 +57,25 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       runGr->checkTimeOut(pEfhRunCtx);
       continue;
     }
-    uint8_t            gr_id = 0xFF;
-    int16_t            pktLen = 0;
-    uint64_t           sequence = 0;
+    uint8_t  gr_id = 0xFF;
+    int16_t  pktLen = 0;
+    uint64_t sequence = 0;
 
-    const uint8_t* pkt = getUdpPkt(runGr,&pktLen,&sequence,&gr_id);
+    auto pkt = getUdpPkt(runGr,&pktLen,&sequence,&gr_id);
     if (pkt == NULL) continue;
 
-
-    EkaFhBoxGr* gr = (EkaFhBoxGr*)b_gr[gr_id];
+    auto gr {dynamic_cast<EkaFhBoxGr*>(b_gr[gr_id])};
     if (gr == NULL) on_error("gr == NULL");
 
 #ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
-    if (gr->state == EkaFhGroup::GrpState::NORMAL && 
-	sequence != 0 && 
-	sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
-      EKA_WARN("%s:%u: TEST GAP INJECTED: (GAP_INJECT_INTERVAL = %d): pkt sequence %ju with unknown number of messages dropped",
-	       EKA_EXCH_DECODE(exch),gr_id, _EFH_TEST_GAP_INJECT_INTERVAL_,sequence);
+    pktCnt++;
+    if ((gr->state == EkaFhGroup::GrpState::NORMAL ||
+	 gr->state == EkaFhGroup::GrpState::RETRANSMIT_GAP) && 
+	(sequence != 0) && 
+	((pktCnt       % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) ||
+	 ((pktCnt - 2) % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0))) {
+      EKA_WARN("%s:%u: TEST GAP INJECTED: (GAP_INJECT_INTERVAL = %d): pktCnt=%jd, sequence %ju",
+	       EKA_EXCH_DECODE(exch),gr_id, _EFH_TEST_GAP_INJECT_INTERVAL_,pktCnt,sequence);
       runGr->udpCh->next(); 
       continue;
     }
@@ -79,7 +84,7 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     gr->resetNoMdTimer();
 
 #ifdef FH_LAB
-    gr->state = EkaFhGroup::GrpState::NORMAL;
+    /* gr->state = EkaFhGroup::GrpState::NORMAL; */
 #endif
 
     //-----------------------------------------------------------------------------
@@ -101,7 +106,7 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       if (sequence == 0) break; // unsequenced packet
       if (sequence < gr->expected_sequence) {
 	if (gr->expected_sequence == gr->seq_after_snapshot) break; // end of recovery cycle
-	if (! isHeartbeat(pkt)) {
+	if (! Hsvf::isHeartbeat(pkt)) {
 	  EKA_WARN("%s:%u BACK-IN-TIME WARNING: sequence %ju < expected_sequence %ju",
 		   EKA_EXCH_DECODE(exch),gr_id,sequence,gr->expected_sequence);
 	  gr->sendBackInTimeEvent(pEfhRunCtx,sequence);
@@ -110,17 +115,18 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	}
       }
       if (sequence > gr->expected_sequence) { // GAP
-	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%ju",
-		EKA_EXCH_DECODE(exch),gr_id,gr->expected_sequence,sequence);
+	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%ju, lost %jd",
+		EKA_EXCH_DECODE(exch),gr_id,
+		gr->expected_sequence,sequence,sequence - gr->expected_sequence);
 
 	EKA_LOG("%s:%u lastPktLen = %u, lastPktMsgCnt=%u, lastProcessedSeq=%ju",
 		EKA_EXCH_DECODE(exch),gr_id,gr->lastPktLen,gr->lastPktMsgCnt,gr->lastProcessedSeq);
 
 	//	hexDump("Gap Pkt",pkt,pktLen);
 #ifdef FH_LAB
-	gr->sendFeedDown(pEfhRunCtx);
-	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,pktLen);  
-	break;
+	/* gr->sendFeedDown(pEfhRunCtx); */
+	/* runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,pktLen);   */
+	/* break; */
 #endif
 	gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
 	gr->gapClosed = false;

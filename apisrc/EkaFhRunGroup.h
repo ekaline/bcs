@@ -50,6 +50,7 @@ class EkaFhRunGroup {
   uint8_t               runId             = -1;
   EkaUdpChannel*        udpCh             = NULL;
   int                   udpChId           = -1;
+  int                   epmRegion         = -1;
 
   EkaSource             exch              = EkaSource::kInvalid;
   EkaFh*                fh                = NULL;
