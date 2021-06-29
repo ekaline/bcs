@@ -899,6 +899,9 @@ namespace Cme {
 	auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
 	m += sizeof(*pGroupSize);
 	/* ------------------------------- */
+	if (pGroupSize->numInGroup != 1)
+	  printf(YEL "WARNING: MDIncrementalRefreshTradeSummary48: numInGroup = %d\n" RESET,
+		 pGroupSize->numInGroup);
 	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
 	  auto e {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mdEntry*>(m)};
 	  printf ("\t\t\t");
