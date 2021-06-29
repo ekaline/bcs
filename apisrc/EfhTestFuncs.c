@@ -828,8 +828,8 @@ void print_usage(char* cmd) {
   printf("\t\t\tXB - AMEX        B feed\n"); 
   printf("\t\t\tBA - BOX vanilla A feed\n"); 
   printf("\t\t\tBB - BOX vanilla B feed\n"); 
-  printf("\t\t\tBA - BOX RFQ(PIP)A feed\n"); 
-  printf("\t\t\tBA - BOX Complex A feed\n"); 
+  printf("\t\t\tBC - BOX RFQ(PIP)A feed\n"); 
+  printf("\t\t\tBD - BOX Complex A feed\n"); 
   printf("\t\t\tEA - CME         A feed\n"); 
   printf("\t\t\tEB - CME         B feed\n"); 
   printf("\t-u <Underlying Name> - subscribe on all options belonging to\n");

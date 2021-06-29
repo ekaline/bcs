@@ -725,6 +725,24 @@ namespace Cme {
     MatchEventIndicator_T MatchEventIndicator;
   } __attribute__((packed));
 
+
+  struct MDIncrementalRefreshTradeSummary48_mainBlock {
+    uint64_t              TransactTime;
+    MatchEventIndicator_T MatchEventIndicator;
+  } __attribute__((packed));
+
+  struct MDIncrementalRefreshTradeSummary48_mdEntry {
+    PRICE9_T                      	MDEntryPx;
+    Int32_T                       	MDEntrySize;
+    Int32_T                       	SecurityID;
+    uInt32_T                      	RptSeq;
+    Int32_T                       	NumberOfOrders;
+    AggressorSide_T               	AggressorSide;
+    MDUpdateAction_T              	MDUpdateAction;
+    //    MDEntryTypeTrade_CONST_T            	MDEntryType;
+    uInt32NULL_T                  	MDTradeEntryID;
+  } __attribute__((packed));
+
   inline auto getSide39(int rfqSide) {
     switch (rfqSide) {
     case 1 : return EfhOrderSide::kBid;
@@ -870,6 +888,29 @@ namespace Cme {
 	}
       }
 	break;
+	/* ##################################################################### */
+      case MsgId::MDIncrementalRefreshTradeSummary48 : {
+	/* ------------------------------- */
+	auto rootBlock {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mainBlock*>(m)};
+	printf ("\t\tIncrementalRefreshTradeSummary48: TransactTime=%jx, MatchEventIndicator=0x%x\n",
+		rootBlock->TransactTime,rootBlock->MatchEventIndicator);
+	m += msgHdr->blockLen;
+	/* ------------------------------- */
+	auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
+	m += sizeof(*pGroupSize);
+	/* ------------------------------- */
+	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+	  auto e {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mdEntry*>(m)};
+	  printf ("\t\t\t");
+	  printf ("secId=%8d,",e->SecurityID);
+	  printf ("%16jd,",(int64_t) (e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE));
+	  printf ("%d,",e->MDEntrySize);
+	  printf ("%s",MDpdateAction2STR(e->MDUpdateAction));
+	  printf ("\n");
+	  m += pGroupSize->blockLength;
+	}
+      }
+	break;	
 	/* ##################################################################### */
       case MsgId::MDInstrumentDefinitionFuture54 : {
 	auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionFuture54_mainBlock*>(m)};
