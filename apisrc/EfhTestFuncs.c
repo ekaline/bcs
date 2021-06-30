@@ -403,28 +403,28 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
   return NULL;
 }
 
-void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg) {
-  if (msg->header.group.source  == EkaSource::kCME_SBE && msg->securityType == EfhSecurityType::kOption) {
-    std::string classSymbol    = std::string(msg->classSymbol,sizeof(msg->classSymbol));
-    sprintf(dst,"%s_%c%04jd",
-	    classSymbol.c_str(),
-	    msg->optionType == EfhOptionType::kCall ? 'C' : 'P',
-	    msg->strikePrice);
-  } else {
+/* void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg) { */
+/*   if (msg->header.group.source  == EkaSource::kCME_SBE && msg->securityType == EfhSecurityType::kOption) { */
+/*     std::string classSymbol    = std::string(msg->classSymbol,sizeof(msg->classSymbol)); */
+/*     sprintf(dst,"%s_%c%04jd", */
+/* 	    classSymbol.c_str(), */
+/* 	    msg->optionType == EfhOptionType::kCall ? 'C' : 'P', */
+/* 	    msg->strikePrice); */
+/*   } else { */
   
-    uint8_t y,m,d;
+/*     uint8_t y,m,d; */
 
-    d = msg->expiryDate % 100;
-    m = ((msg->expiryDate - d) / 100) % 100;
-    y = msg->expiryDate / 10000 - 2000;
+/*     d = msg->expiryDate % 100; */
+/*     m = ((msg->expiryDate - d) / 100) % 100; */
+/*     y = msg->expiryDate / 10000 - 2000; */
 
-    memcpy(dst,msg->underlying,6);
-    for (auto i = 0; i < 6; i++) if (dst[i] == 0 || dst[i] == ' ') dst[i] = '_';
-    char call_put = msg->optionType == EfhOptionType::kCall ? 'C' : 'P';
-    sprintf(dst+6,"%02u%02u%02u%c%08jd",y,m,d,call_put,msg->strikePrice);
-  }
-  return;
-}
+/*     memcpy(dst,msg->underlying,6); */
+/*     for (auto i = 0; i < 6; i++) if (dst[i] == 0 || dst[i] == ' ') dst[i] = '_'; */
+/*     char call_put = msg->optionType == EfhOptionType::kCall ? 'C' : 'P'; */
+/*     sprintf(dst+6,"%02u%02u%02u%c%08jd",y,m,d,call_put,msg->strikePrice); */
+/*   } */
+/*   return; */
+/* } */
 /* ------------------------------------------------------------ */
 
 void* onComplexDefinition(const EfhComplexDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {

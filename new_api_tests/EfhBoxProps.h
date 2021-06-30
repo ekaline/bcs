@@ -118,49 +118,57 @@ const EkaGroup boxGroups[] = {
 // RFQ (PIP A)
 EkaProp efhBoxInitCtxEntries_C[] = {
 	{"efh.BOX_HSVF.group.0.mcast.addr"   ,"224.0.124.17:21403"},
-	{"efh.BOX_HSVF.group.0.mcast.line"   ,"1P"},
+	//	{"efh.BOX_HSVF.group.0.mcast.line"   ,"1P"},
+	{"efh.BOX_HSVF.group.0.mcast.line"   ,"11"},
 	{"efh.BOX_HSVF.group.0.snapshot.addr","198.235.27.47:21410"}, 	// RECOVERY 
 	{"efh.BOX_HSVF.group.0.snapshot.auth","  :  "}, 			// RECOVERY 
 	{"efh.BOX_HSVF.group.0.recovery.addr","198.235.27.47:21410"}, 	// RECOVERY 
 
 	{"efh.BOX_HSVF.group.1.mcast.addr"   ,"224.0.124.18:22403"},
-	{"efh.BOX_HSVF.group.1.mcast.line"   ,"2P"},
+	//	{"efh.BOX_HSVF.group.1.mcast.line"   ,"2P"},
+	{"efh.BOX_HSVF.group.1.mcast.line"   ,"21"},
 	{"efh.BOX_HSVF.group.1.snapshot.addr","198.235.27.47:22410"}, 	// RECOVERY 
 	{"efh.BOX_HSVF.group.1.snapshot.auth","  :  "}, 			// RECOVERY 
 	{"efh.BOX_HSVF.group.1.recovery.addr","198.235.27.47:22410"}, 	// RECOVERY 
 
 	{"efh.BOX_HSVF.group.2.mcast.addr"   ,"224.0.124.19:23403"},
-	{"efh.BOX_HSVF.group.2.mcast.line"   ,"3P"},
+	//	{"efh.BOX_HSVF.group.2.mcast.line"   ,"3P"},
+	{"efh.BOX_HSVF.group.2.mcast.line"   ,"31"},
 	{"efh.BOX_HSVF.group.2.snapshot.addr","198.235.27.47:23410"}, 	// RECOVERY 
 	{"efh.BOX_HSVF.group.2.snapshot.auth","  :  "}, 			// RECOVERY 
 	{"efh.BOX_HSVF.group.2.recovery.addr","198.235.27.47:23410"}, 	// RECOVERY 
 
 	{"efh.BOX_HSVF.group.3.mcast.addr"   ,"224.0.124.20:24403"},
-	{"efh.BOX_HSVF.group.3.mcast.line"   ,"4P"},
+	//	{"efh.BOX_HSVF.group.3.mcast.line"   ,"4P"},
+	{"efh.BOX_HSVF.group.3.mcast.line"   ,"41"},
 	{"efh.BOX_HSVF.group.3.snapshot.addr","198.235.27.47:24410"}, 	// RECOVERY 
 	{"efh.BOX_HSVF.group.3.snapshot.auth","  :  "}, 			// RECOVERY 
 	{"efh.BOX_HSVF.group.3.recovery.addr","198.235.27.47:24410"}, 	// RECOVERY 
 
 	{"efh.BOX_HSVF.group.4.mcast.addr"   ,"224.0.124.21:25403"},
-	{"efh.BOX_HSVF.group.4.mcast.line"   ,"5P"},
+	//	{"efh.BOX_HSVF.group.4.mcast.line"   ,"5P"},
+	{"efh.BOX_HSVF.group.4.mcast.line"   ,"51"},
 	{"efh.BOX_HSVF.group.4.snapshot.addr","198.235.27.47:25410"}, 	// RECOVERY 
 	{"efh.BOX_HSVF.group.4.snapshot.auth","  :  "}, 			// RECOVERY 
 	{"efh.BOX_HSVF.group.4.recovery.addr","198.235.27.47:25410"}, 	// RECOVERY 
 
 	{"efh.BOX_HSVF.group.5.mcast.addr"   ,"224.0.124.22:26403"},
-	{"efh.BOX_HSVF.group.5.mcast.line"   ,"6P"},
+	//	{"efh.BOX_HSVF.group.5.mcast.line"   ,"6P"},
+	{"efh.BOX_HSVF.group.5.mcast.line"   ,"61"},
 	{"efh.BOX_HSVF.group.5.snapshot.addr","198.235.27.47:26410"}, 	// RECOVERY 
 	{"efh.BOX_HSVF.group.5.snapshot.auth","  :  "}, 			// RECOVERY 
 	{"efh.BOX_HSVF.group.5.recovery.addr","198.235.27.47:26410"}, 	// RECOVERY 
 
 	{"efh.BOX_HSVF.group.6.mcast.addr"   ,"224.0.124.23:27403"},
-	{"efh.BOX_HSVF.group.6.mcast.line"   ,"7P"},
+	//	{"efh.BOX_HSVF.group.6.mcast.line"   ,"7P"},
+	{"efh.BOX_HSVF.group.6.mcast.line"   ,"71"},
 	{"efh.BOX_HSVF.group.6.snapshot.addr","198.235.27.47:27410"}, 	// RECOVERY 
 	{"efh.BOX_HSVF.group.6.snapshot.auth","  :  "}, 			// RECOVERY 
 	{"efh.BOX_HSVF.group.6.recovery.addr","198.235.27.47:27410"}, 	// RECOVERY 
 
 	{"efh.BOX_HSVF.group.7.mcast.addr"   ,"224.0.124.24:28403"},
-	{"efh.BOX_HSVF.group.7.mcast.line"   ,"8P"},
+	//	{"efh.BOX_HSVF.group.7.mcast.line"   ,"8P"},
+	{"efh.BOX_HSVF.group.7.mcast.line"   ,"81"},
 	{"efh.BOX_HSVF.group.7.snapshot.addr","198.235.27.47:28410"}, 	// RECOVERY 
 	{"efh.BOX_HSVF.group.7.snapshot.auth","  :  "}, 			// RECOVERY 
 	{"efh.BOX_HSVF.group.7.recovery.addr","198.235.27.47:28410"}, 	// RECOVERY 
