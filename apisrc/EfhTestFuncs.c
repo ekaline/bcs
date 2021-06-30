@@ -502,10 +502,10 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
 
-  EkaSource exch = msg->header.group.source;
-  EkaLSI    grId = msg->header.group.localId;
+  auto exch {msg->header.group.source};
+  auto grId {msg->header.group.localId};
 
-  auto gr = grCtx[(int)exch][grId];
+  auto gr {grCtx[(int)exch][grId]};
   if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
 
   std::string underlyingName = std::string(msg->underlying, sizeof(msg->underlying));
@@ -540,7 +540,8 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
 	.avtSecName        = std::string(avtSecName),
 	.underlying        = underlyingName,
 	.classSymbol       = classSymbol,
-	.displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE
+	.exch              = msg->exchange,
+	.displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE,
     };
     
     gr->security.push_back(newSecurity);

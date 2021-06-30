@@ -321,21 +321,31 @@ namespace Hsvf {
   //   return static_cast<T>(atol(str));    
   // }
 
+  // template <class T>
+  // inline T getNumField(const char* s, size_t fSize) {
+  //   T acc = 0;
+  //   int mult = 1;
+  //   for (auto i = fSize - 1; i >= 0; i--) {
+  //     if (s[i] == ' ') return acc;
+  //     if (s[i] < '0' || s[i] > '9')
+  // 	on_error("unexpected char \'%c\'",s[i]);
+
+  //     acc += (s[i] - '0') * mult;
+  //     mult *= 10;
+  //   }
+  //   return acc;
+  // }
   template <class T>
   inline T getNumField(const char* s, size_t fSize) {
     T acc = 0;
-    int mult = 1;
-    for (auto i = fSize - 1; i >= 0; i--) {
-      if (s[i] == ' ') return acc;
-      if (s[i] < '0' || s[i] > '9')
-	on_error("unexpected char \'%c\'",s[i]);
-
-      acc += (s[i] - '0') * mult;
-      mult *= 10;
-    }
+    for (size_t i = 0; i < fSize; i++) {
+      if (s[i] == '.') continue;
+      if (s[i] < '0' || s[i] > '9') return acc;
+      int digit = s[i] - '0';
+      acc = (10 * acc) + digit;
+    }   
     return acc;
   }
-  
   inline uint getMsgLen(const uint8_t* pkt, int bytes2run) {
     uint idx = 0;
 
