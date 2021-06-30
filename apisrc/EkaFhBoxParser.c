@@ -103,7 +103,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
 
   auto msgHdr {reinterpret_cast<const HsvfMsgHdr*>(m)};
   
-  const uint8_t* msgBody = m + sizeof(HsvfMsgHdr);
+  auto msgBody {m + sizeof(*msgHdr)};
 
   //  EKA_LOG("%s:%u: %ju \'%c%c\'",EKA_EXCH_DECODE(exch),id,seq,msgHdr->MsgType[0],msgHdr->MsgType[1]);
   //===================================================
