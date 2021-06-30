@@ -578,8 +578,12 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
 	.avtSecName        = std::string(avtSecName),
 	.underlying        = underlyingName,
 	.classSymbol       = classSymbol,
+<<<<<<< HEAD
 	.exch              = msg->commonDef.exchange,
 	.displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE,
+=======
+	.displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE
+>>>>>>> Box rfq test printouts
     };
     
     gr->security.push_back(newSecurity);
