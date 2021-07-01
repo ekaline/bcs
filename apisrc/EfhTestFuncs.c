@@ -479,8 +479,9 @@ void* onAuctionUpdate(const EfhAuctionUpdateMsg* msg, EfhSecUserData secData, Ef
   fprintf(gr->MD,"%s,",    currAvtSecName.c_str());
   fprintf(gr->MD,"%*.f,",  decPoints(msg->price,priceScaleFactor), ((float) msg->price / priceScaleFactor));
   fprintf(gr->MD,"%u,",    msg->quantity);
-  fprintf(gr->MD,"%ju,",   msg->endTimeNanos);
-  fprintf(gr->MD,"%d,",    (int)msg->side);
+  fprintf(gr->MD,"%s,",    ts_ns2str(msg->endTimeNanos).c_str());
+
+  fprintf(gr->MD,"%c,",    msg->side == EfhOrderSide::kBid ? 'B' : 'S');
   fprintf(gr->MD,"%c,",    (char)exchName);
   fprintf(gr->MD,"%d,",    (int)msg->type);
   fprintf(gr->MD,"%d,",    (int)msg->customer);
