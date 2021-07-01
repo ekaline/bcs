@@ -19,12 +19,14 @@ using namespace Hsvf;
 //###################################################
 static char pcapFileName[256] = {};
 static bool printAll = false;
+static bool printRfq = false;
 
 struct GroupAddr {
-    uint32_t  ip;
-    uint16_t  port;
-    char      timestamp[9];
-    uint64_t  expectedSeq;
+  uint32_t  ip;
+  uint16_t  port;
+  char      timestamp[9];
+  uint64_t  ts = 0;
+  uint64_t  expectedSeq;
 };
 
 static GroupAddr group[] = {
@@ -86,13 +88,14 @@ int findGrp(uint32_t ip, uint16_t port) {
 void printUsage(char* cmd) {
   printf("USAGE: %s [options] -f [pcapFile]\n",cmd);
   printf("          -p        Print all messages\n");
+  printf("          -r        Print RFQ messages\n");
 }
 
 //###################################################
 
 static int getAttr(int argc, char *argv[]) {
   int opt; 
-  while((opt = getopt(argc, argv, ":f:d:ph")) != -1) {  
+  while((opt = getopt(argc, argv, ":f:d:prh")) != -1) {  
     switch(opt) {  
       case 'f':
 	strcpy(pcapFileName,optarg);
@@ -101,7 +104,11 @@ static int getAttr(int argc, char *argv[]) {
       case 'p':  
 	printAll = true;
 	printf("printAll\n");
-	break;  
+	break;
+      case 'r':  
+	printRfq = true;
+	printf("printRfq\n");
+	break;  	
       case 'd':  
 //	pkt2dump = atoi(optarg);
 //	printf("pkt2dump = %ju\n",pkt2dump);  
@@ -117,7 +124,144 @@ static int getAttr(int argc, char *argv[]) {
   }  
   return 0;
 }
+//###################################################
+void printAuctionUpdateMsg(const EfhAuctionUpdateMsg* msg) {
+  //  RfqTable5,date,time,QuoteID,Name,Security,Price,Size,Capacity,ExpirationTime,Side,Exchange,Type,ActionType,Customer,Imbalance
+  //  RfqTable5,20210628,10:48:20.030.380,l6s01552,TSLA,TSLA__210702P00650000,5.5,67,C,,B,B,D,N,0333SF3,0
+  static const int priceScaleFactor = 100;
+  const char exchName = 'B';
+  printf("RfqTable5,");
+  /* printf("%s,",    eka_get_date().c_str()); */
+  /* printf("%s,",    eka_get_time().c_str()); */
+  printf("%ju,",   msg->auctionId);
+  /* printf("%s,",    currClassSymbol.c_str()); */
+  /* printf("%s,",    currAvtSecName.c_str()); */
+  printf("%.*f,",  decPoints(msg->price,priceScaleFactor), ((float) msg->price / priceScaleFactor));
+  printf("%u,",    msg->quantity);
+  printf("%s,",   ts_ns2str(msg->endTimeNanos).c_str());
+  printf("%c,", msg->side == EfhOrderSide::kBid ? 'B' : 'S');
+  printf("%c,",    exchName);
+  printf("%d,",    (int)msg->type);
+  /* printf("%d,",    (int)msg->customer); */
+  /* printf("%d,",    (int)msg->securityType); */
 
+  /* printf("%s,",    std::string(msg->execBroker,sizeof(msg->execBroker)).c_str()); */
+  /* printf("%s,",    std::string(msg->client    ,sizeof(msg->client    )).c_str()); */
+  /* printf("%s,",    (ts_ns2str(msg->header.timeStamp)).c_str()); */
+  printf("\n");
+
+  return;
+}
+
+//###################################################
+
+void processRfqStart(const uint8_t* msgBody, uint8_t id, uint64_t sequence, uint64_t gr_ts) {
+  auto boxMsg {reinterpret_cast<const HsvfRfqStart*>(msgBody)};
+
+  uint64_t security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
+
+  EfhAuctionUpdateMsg msg{};
+  msg.header.msgType        = EfhMsgType::kAuctionUpdate;
+  msg.header.group.source   = EkaSource::kBOX_HSVF;
+  msg.header.group.localId  = id;
+  msg.header.underlyingId   = 0;
+  msg.header.securityId     = security_id;
+  msg.header.sequenceNumber = sequence;
+  msg.header.timeStamp      = gr_ts;
+
+  msg.side                  = getSide(boxMsg->Side);
+  msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
+
+  msg.quantity              = getNumField<uint32_t>(boxMsg->Size, sizeof(boxMsg->Size));
+  msg.price                 = getNumField<uint32_t>(boxMsg->Price,sizeof(boxMsg->Price));
+  msg.endTimeNanos          = getExpireNs(boxMsg->ExpiryTime);
+
+  printf("processRfqStart: ");
+  printf("%s,",std::string(boxMsg->InstrumentDescription,sizeof(boxMsg->InstrumentDescription)).c_str());
+  printf("%s,",std::string(boxMsg->RfqId,                sizeof(boxMsg->RfqId)).c_str());
+  printf("%jd,",msg.price);
+  printf("%s,",std::string(boxMsg->Size,                 sizeof(boxMsg->Size)).c_str());
+  printf("\'%c\',",boxMsg->Side);
+  printf("\n");
+  printAuctionUpdateMsg(&msg);
+  return;
+}
+
+//###################################################
+
+void processRfqInsert(const uint8_t* msgBody, uint8_t id, uint64_t sequence, uint64_t gr_ts) {
+  auto boxMsg {reinterpret_cast<const HsvfRfqInsert*>(msgBody)};
+
+  uint64_t security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
+
+  EfhAuctionUpdateMsg msg{};
+  msg.header.msgType        = EfhMsgType::kAuctionUpdate;
+  msg.header.group.source   = EkaSource::kBOX_HSVF;
+  msg.header.group.localId  = id;
+  msg.header.underlyingId   = 0;
+  msg.header.securityId     = security_id;
+  msg.header.sequenceNumber = sequence;
+  msg.header.timeStamp      = gr_ts;
+
+  msg.side                  = getSide(boxMsg->OrderSide);
+
+  msg.quantity              = getNumField<uint32_t>(boxMsg->Size,sizeof(boxMsg->Size));
+  msg.price                 = getNumField<uint32_t>(boxMsg->LimitPrice,sizeof(boxMsg->LimitPrice));
+  msg.endTimeNanos          = getExpireNs(boxMsg->EndOfExposition);
+
+  if (boxMsg->OrderType == 'A') { // Initial
+    msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
+  } else if (boxMsg->OrderType == 'P') { // Exposed
+    msg.auctionId             = getNumField<uint32_t>(boxMsg->OrderSequence,sizeof(boxMsg->OrderSequence));
+  } else {
+    on_error("Unexpected OrderType == \'%c\'",boxMsg->OrderType);
+  }
+  
+  printf("processRfqInsert: ");
+  printf("%s,",std::string(boxMsg->InstrumentDescription,sizeof(boxMsg->InstrumentDescription)).c_str());
+  printf("%s,",std::string(boxMsg->RfqId,                sizeof(boxMsg->RfqId)).c_str());
+  printf("%jd,",msg.price);
+  printf("%d,",msg.quantity);
+  printf("\'%c\',",boxMsg->OrderSide);
+  printf("\n");
+  printAuctionUpdateMsg(&msg);
+  return;
+}
+
+//###################################################
+
+void processRfqDelete(const uint8_t* msgBody, uint8_t id, uint64_t sequence, uint64_t gr_ts) {
+  auto boxMsg {reinterpret_cast<const HsvfRfqDelete*>(msgBody)};
+
+  uint64_t security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
+
+  EfhAuctionUpdateMsg msg{};
+  msg.header.msgType        = EfhMsgType::kAuctionUpdate;
+  msg.header.group.source   = EkaSource::kBOX_HSVF;
+  msg.header.group.localId  = id;
+  msg.header.underlyingId   = 0;
+  msg.header.securityId     = security_id;
+  msg.header.sequenceNumber = sequence;
+  msg.header.timeStamp      = gr_ts;
+
+  msg.side                  = getSide(boxMsg->OrderSide);
+  msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
+
+  msg.quantity              = 0;
+  msg.price                 = 0;
+  msg.endTimeNanos          = 0;
+  
+  printf("processRfqDelete: ");
+  printf("%s,",std::string(boxMsg->InstrumentDescription,sizeof(boxMsg->InstrumentDescription)).c_str());
+  printf("%s,",std::string(boxMsg->RfqId,                sizeof(boxMsg->RfqId)).c_str());
+  printf("%jd,",msg.price);
+  printf("%d,",msg.quantity);
+  printf("\'%c\',",boxMsg->OrderSide);
+  printf("\'%c\',",boxMsg->AuctionType);
+  printf("\n");
+  printAuctionUpdateMsg(&msg);
+  return;
+}
 //###################################################
 
 int main(int argc, char *argv[]) {
@@ -171,12 +315,24 @@ int main(int argc, char *argv[]) {
 
 	    auto msgLen   {getMsgLen     (p,payloadLen-(p - payloadStart))};
 	    auto sequence {getMsgSequence(p)};
-	    
-	    auto msgHdr   {reinterpret_cast<const HsvfMsgHdr*>(p+1)};
+
+
+	    auto m {p + sizeof(HsvfSom)};
+	    auto msgHdr   {reinterpret_cast<const HsvfMsgHdr*>(m)};
+
+	    m += sizeof(*msgHdr);
 	    
 	    if (memcmp(msgHdr->MsgType,"Z ",sizeof(msgHdr->MsgType)) == 0) { // SystemTimeStamp
-		auto msg {reinterpret_cast<const HsvfSystemTimeStamp*>(p + sizeof(HsvfSom) + sizeof(*msgHdr))};
-		memcpy(group[grId].timestamp,msg->TimeStamp,sizeof(msg->TimeStamp));
+	      auto msg {reinterpret_cast<const HsvfSystemTimeStamp*>(p + sizeof(HsvfSom) + sizeof(*msgHdr))};
+	      memcpy(group[grId].timestamp,msg->TimeStamp,sizeof(msg->TimeStamp));
+
+	      const char* timeStamp = msg->TimeStamp;
+	      uint64_t hour = getNumField<uint64_t>(&timeStamp[0],2);
+	      uint64_t min  = getNumField<uint64_t>(&timeStamp[2],2);
+	      uint64_t sec  = getNumField<uint64_t>(&timeStamp[4],2);
+	      uint64_t ms   = getNumField<uint64_t>(&timeStamp[6],3);
+    
+	      group[grId].ts = ((hour * 3600 + min * 60 + sec) * 1000 + ms) * 1000000;
 	    } 
 
 	    printf("\t%8ju,",sequence);
@@ -187,6 +343,15 @@ int main(int argc, char *argv[]) {
 		   group[grId].timestamp[6],group[grId].timestamp[7],group[grId].timestamp[8]);
 	    printf("\'%c%c\'\n",msgHdr->MsgType[0],msgHdr->MsgType[1]);
 
+	    if (printRfq) {
+	      if (memcmp(msgHdr->MsgType,"M ",sizeof(msgHdr->MsgType)) == 0) // HsvfRfqStart
+		processRfqStart(m,grId,sequence,group[grId].ts);
+	      if (memcmp(msgHdr->MsgType,"O ",sizeof(msgHdr->MsgType)) == 0) // HsvfRfqInsert
+	      	processRfqInsert(m,grId,sequence,group[grId].ts);
+	      if (memcmp(msgHdr->MsgType,"T ",sizeof(msgHdr->MsgType)) == 0) // HsvfRfqDelete
+	      	processRfqDelete(m,grId,sequence,group[grId].ts);
+	    }
+	    
 	    group[grId].expectedSeq = sequence + 1;
 
 	    p += msgLen;

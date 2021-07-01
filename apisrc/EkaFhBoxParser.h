@@ -339,7 +339,7 @@ namespace Hsvf {
   inline T getNumField(const char* s, size_t fSize) {
     T acc = 0;
     for (size_t i = 0; i < fSize; i++) {
-      if (s[i] == '.') continue;
+      //if (s[i] == '.') continue; // To be checked
       if (s[i] < '0' || s[i] > '9') return acc;
       int digit = s[i] - '0';
       acc = (10 * acc) + digit;
