@@ -82,19 +82,19 @@ inline int getStatus(FhSecurity* s, char statusMarker) {
 
 /* ----------------------------------------------------------------------- */
 
-static void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg) {
-  uint8_t y,m,d;
+/* static void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg) { */
+/*   uint8_t y,m,d; */
 
-  d = msg->expiryDate % 100;
-  m = ((msg->expiryDate - d) / 100) % 100;
-  y = msg->expiryDate / 10000 - 2000;
+/*   d = msg->expiryDate % 100; */
+/*   m = ((msg->expiryDate - d) / 100) % 100; */
+/*   y = msg->expiryDate / 10000 - 2000; */
 
-  memcpy(dst,msg->underlying,6);
-  for (auto i = 0; i < 6; i++) if (dst[i] == 0 || dst[i] == ' ') dst[i] = '_';
-  char call_put = msg->optionType == EfhOptionType::kCall ? 'C' : 'P';
-  sprintf(dst+6,"%02u%02u%02u%c%08jd",y,m,d,call_put,msg->strikePrice / 10);
-  return;
-}
+/*   memcpy(dst,msg->underlying,6); */
+/*   for (auto i = 0; i < 6; i++) if (dst[i] == 0 || dst[i] == ' ') dst[i] = '_'; */
+/*   char call_put = msg->optionType == EfhOptionType::kCall ? 'C' : 'P'; */
+/*   sprintf(dst+6,"%02u%02u%02u%c%08jd",y,m,d,call_put,msg->strikePrice / 10); */
+/*   return; */
+/* } */
 
 /* ----------------------------------------------------------------------- */
 
@@ -103,7 +103,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
 
   auto msgHdr {reinterpret_cast<const HsvfMsgHdr*>(m)};
   
-  const uint8_t* msgBody = m + sizeof(HsvfMsgHdr);
+  auto msgBody {m + sizeof(*msgHdr)};
 
   //  EKA_LOG("%s:%u: %ju \'%c%c\'",EKA_EXCH_DECODE(exch),id,seq,msgHdr->MsgType[0],msgHdr->MsgType[1]);
   //===================================================
@@ -133,7 +133,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
 
     //===================================================
   } else if (memcmp(msgHdr->MsgType,"Z ",sizeof(msgHdr->MsgType)) == 0) { // SystemTimeStamp
-    char* timeStamp = ((HsvfSystemTimeStamp*)msgBody)->TimeStamp;
+    const char* timeStamp = ((HsvfSystemTimeStamp*)msgBody)->TimeStamp;
     uint64_t hour = getNumField<uint64_t>(&timeStamp[0],2);
     uint64_t min  = getNumField<uint64_t>(&timeStamp[2],2);
     uint64_t sec  = getNumField<uint64_t>(&timeStamp[4],2);
@@ -178,7 +178,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
 #ifdef TEST_PRINT_DICT
     char avtSecName[32] = {};
     eka_create_avt_definition(avtSecName,&msg);
-    fprintf(dev->testDict,"\'%s\', %s, 0x%016jx,%ju\n",
+    fprintf(stderr,"\'%s\', %s, 0x%016jx,%ju\n",
 	    std::string(boxMsg->InstrumentDescription,20).c_str(),avtSecName,
 	    msg.header.securityId,msg.header.securityId);
 #endif
@@ -205,8 +205,8 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.side                  = getSide(boxMsg->Side);
     msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
 
-    msg.quantity              = getNumField<uint32_t>(boxMsg->MinimumQuantity,sizeof(boxMsg->MinimumQuantity));
-    msg.price                 = getNumField<uint32_t>(boxMsg->Price,sizeof(boxMsg->Price)) * getFractionIndicator(boxMsg->PriceFractionIndicator);
+    msg.quantity              = getNumField<uint32_t>(boxMsg->Size,sizeof(boxMsg->Size));
+    msg.price                 = getNumField<uint32_t>(boxMsg->Price,sizeof(boxMsg->Price));
     msg.endTimeNanos          = getExpireNs(boxMsg->ExpiryTime);
       
     pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
@@ -226,18 +226,23 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.header.gapNum         = gapNum;
 
     msg.side                  = getSide(boxMsg->OrderSide);
-    msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
     msg.quantity              = getNumField<uint32_t>(boxMsg->Size,sizeof(boxMsg->Size));
-    msg.price                 = getNumField<uint32_t>(boxMsg->LimitPrice,sizeof(boxMsg->LimitPrice)) * getFractionIndicator(boxMsg->LimitPriceFractionIndicator);
+    msg.price                 = getNumField<uint32_t>(boxMsg->LimitPrice,sizeof(boxMsg->LimitPrice));
     msg.endTimeNanos          = getExpireNs(boxMsg->EndOfExposition);
 
+    if (boxMsg->OrderType == 'A') { // Initial
+      msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
+    } else if (boxMsg->OrderType == 'P') { // Exposed
+      msg.auctionId             = getNumField<uint32_t>(boxMsg->OrderSequence,sizeof(boxMsg->OrderSequence));
+    } else {
+      on_error("Unexpected OrderType == \'%c\'",boxMsg->OrderType);
+    }
     pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
   } else if (memcmp(msgHdr->MsgType,"T ",sizeof(msgHdr->MsgType)) == 0) { // HsvfRfqDelete
     auto boxMsg {reinterpret_cast<const HsvfRfqDelete*>(msgBody)};
 
-    if (boxMsg->DeletionType != '3') return false;
-
-    // '3' = Deletion of all orders
+    if (boxMsg->DeletionType != '3') return false; // We are only interested in the PIP end ('3' = Deletion of all orders)
+    if (boxMsg->AuctionType  == 'F') return false; // This is an exposed order deletion
 
     SecurityIdT security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
 

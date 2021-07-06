@@ -38,9 +38,11 @@
 //#define CME_DEFAULT_DISPLAY_PRICE_SCALE 10000
 
 struct TestSecurityCtx {
+  uint64_t    securityId;
   std::string avtSecName;
   std::string underlying;
   std::string classSymbol;
+  EfhExchange exch;
   int64_t     displayPriceScale = DEFAULT_DISPLAY_PRICE_SCALE;
 };
 
@@ -72,6 +74,14 @@ class McGrpCtx {
     fclose(fullDict);
     fclose(subscrDict);
     fclose(MD); 
+  }
+
+  inline const TestSecurityCtx* getSecurityCtx (uint64_t securityId) const {
+    for (const auto& sec : security) {
+      if (sec.securityId == securityId)
+	return &sec;
+    }
+    return static_cast<const TestSecurityCtx*>(nullptr);
   }
   
   EkaSource exch = static_cast<EkaSource>(-1);

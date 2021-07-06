@@ -403,28 +403,28 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
   return NULL;
 }
 
-void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg) {
-  if (msg->header.group.source  == EkaSource::kCME_SBE && msg->securityType == EfhSecurityType::kOption) {
-    std::string classSymbol    = std::string(msg->classSymbol,sizeof(msg->classSymbol));
-    sprintf(dst,"%s_%c%04jd",
-	    classSymbol.c_str(),
-	    msg->optionType == EfhOptionType::kCall ? 'C' : 'P',
-	    msg->strikePrice);
-  } else {
+/* void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg) { */
+/*   if (msg->header.group.source  == EkaSource::kCME_SBE && msg->securityType == EfhSecurityType::kOption) { */
+/*     std::string classSymbol    = std::string(msg->classSymbol,sizeof(msg->classSymbol)); */
+/*     sprintf(dst,"%s_%c%04jd", */
+/* 	    classSymbol.c_str(), */
+/* 	    msg->optionType == EfhOptionType::kCall ? 'C' : 'P', */
+/* 	    msg->strikePrice); */
+/*   } else { */
   
-    uint8_t y,m,d;
+/*     uint8_t y,m,d; */
 
-    d = msg->expiryDate % 100;
-    m = ((msg->expiryDate - d) / 100) % 100;
-    y = msg->expiryDate / 10000 - 2000;
+/*     d = msg->expiryDate % 100; */
+/*     m = ((msg->expiryDate - d) / 100) % 100; */
+/*     y = msg->expiryDate / 10000 - 2000; */
 
-    memcpy(dst,msg->underlying,6);
-    for (auto i = 0; i < 6; i++) if (dst[i] == 0 || dst[i] == ' ') dst[i] = '_';
-    char call_put = msg->optionType == EfhOptionType::kCall ? 'C' : 'P';
-    sprintf(dst+6,"%02u%02u%02u%c%08jd",y,m,d,call_put,msg->strikePrice);
-  }
-  return;
-}
+/*     memcpy(dst,msg->underlying,6); */
+/*     for (auto i = 0; i < 6; i++) if (dst[i] == 0 || dst[i] == ' ') dst[i] = '_'; */
+/*     char call_put = msg->optionType == EfhOptionType::kCall ? 'C' : 'P'; */
+/*     sprintf(dst+6,"%02u%02u%02u%c%08jd",y,m,d,call_put,msg->strikePrice); */
+/*   } */
+/*   return; */
+/* } */
 /* ------------------------------------------------------------ */
 
 void* onComplexDefinition(const EfhComplexDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
@@ -451,21 +451,42 @@ void* onAuctionUpdate(const EfhAuctionUpdateMsg* msg, EfhSecUserData secData, Ef
   EkaSource exch = msg->header.group.source;
   EkaLSI    grId = msg->header.group.localId;
 
-  auto gr = grCtx[(int)exch][grId];
+  auto gr {grCtx[(int)exch][grId]};
   if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+
+  auto secCtx = gr->getSecurityCtx(msg->header.securityId);
+
+  std::string currAvtSecName  = "DEFAULT_AVT_SEC_NAME";
+  std::string currClassSymbol = "DEFAULT_UNDERLYING_ID";
+  int64_t priceScaleFactor = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE;
+  EfhExchange exchName = EfhExchange::kUnknown;
   
-  fprintf(gr->MD,"RFQ,");
+  if (secCtx != nullptr) {
+      currAvtSecName   = secCtx->avtSecName;
+      currClassSymbol  = secCtx->classSymbol;
+      priceScaleFactor = secCtx->displayPriceScale;
+      exchName         = secCtx->exch;
+  }
+   
+  
+  //  RfqTable5,date,time,QuoteID,Name,Security,Price,Size,Capacity,ExpirationTime,Side,Exchange,Type,ActionType,Customer,Imbalance
+  //  RfqTable5,20210628,10:48:20.030.380,l6s01552,TSLA,TSLA__210702P00650000,5.5,67,C,,B,B,D,N,0333SF3,0
+  fprintf(gr->MD,"RfqTable5,");
   fprintf(gr->MD,"%s,",    eka_get_date().c_str());
   fprintf(gr->MD,"%s,",    eka_get_time().c_str());
-  fprintf(gr->MD,"%ju,",   msg->header.securityId);
   fprintf(gr->MD,"%ju,",   msg->auctionId);
+  fprintf(gr->MD,"%s,",    currClassSymbol.c_str());
+  fprintf(gr->MD,"%s,",    currAvtSecName.c_str());
+  fprintf(gr->MD,"%*.f,",  decPoints(msg->price,priceScaleFactor), ((float) msg->price / priceScaleFactor));
+  fprintf(gr->MD,"%u,",    msg->quantity);
+  fprintf(gr->MD,"%s,",    ts_ns2str(msg->endTimeNanos).c_str());
+
+  fprintf(gr->MD,"%c,",    msg->side == EfhOrderSide::kBid ? 'B' : 'S');
+  fprintf(gr->MD,"%c,",    (char)exchName);
   fprintf(gr->MD,"%d,",    (int)msg->type);
-  fprintf(gr->MD,"%d,",    (int)msg->side);
   fprintf(gr->MD,"%d,",    (int)msg->customer);
   fprintf(gr->MD,"%d,",    (int)msg->securityType);
-  fprintf(gr->MD,"%u,",    msg->quantity);
-  fprintf(gr->MD,"%jd,",   msg->price);
-  fprintf(gr->MD,"%ju,",   msg->endTimeNanos);
+
   fprintf(gr->MD,"%s,",    std::string(msg->execBroker,sizeof(msg->execBroker)).c_str());
   fprintf(gr->MD,"%s,",    std::string(msg->client    ,sizeof(msg->client    )).c_str());
   fprintf(gr->MD,"%s,",    (ts_ns2str(msg->header.timeStamp)).c_str());
@@ -482,10 +503,10 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
 
-  EkaSource exch = msg->header.group.source;
-  EkaLSI    grId = msg->header.group.localId;
+  auto exch {msg->header.group.source};
+  auto grId {msg->header.group.localId};
 
-  auto gr = grCtx[(int)exch][grId];
+  auto gr {grCtx[(int)exch][grId]};
   if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
 
   std::string underlyingName = std::string(msg->underlying, sizeof(msg->underlying));
@@ -516,10 +537,12 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
     securities.push_back(msg->header.securityId);
 	
     TestSecurityCtx newSecurity = {
-      .avtSecName        = std::string(avtSecName),
-      .underlying        = underlyingName,
-      .classSymbol       = classSymbol,
-      .displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE
+	.securityId        = msg->header.securityId,
+	.avtSecName        = std::string(avtSecName),
+	.underlying        = underlyingName,
+	.classSymbol       = classSymbol,
+	.exch              = msg->exchange,
+	.displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE,
     };
     
     gr->security.push_back(newSecurity);

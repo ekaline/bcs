@@ -306,6 +306,46 @@ namespace Hsvf {
     return 0;
   }
 
+  
+  // template <class T> inline T getNumField(const char* f, size_t fSize) {
+  //   // std::string fieldString = std::string(f,fSize);
+  //   // return static_cast<T>(std::stoul(fieldString,nullptr,10));
+
+  //   static const size_t strLen = 17;
+  //   if (fSize > strLen - 1)
+  //     on_error("fSize %ju > strLen %ju - 1",fSize,strLen);
+
+  //   char str[strLen];
+  //   memcpy(str,f,fSize);
+  //   str[fSize] = '\0';
+  //   return static_cast<T>(atol(str));    
+  // }
+
+  // template <class T>
+  // inline T getNumField(const char* s, size_t fSize) {
+  //   T acc = 0;
+  //   int mult = 1;
+  //   for (auto i = fSize - 1; i >= 0; i--) {
+  //     if (s[i] == ' ') return acc;
+  //     if (s[i] < '0' || s[i] > '9')
+  // 	on_error("unexpected char \'%c\'",s[i]);
+
+  //     acc += (s[i] - '0') * mult;
+  //     mult *= 10;
+  //   }
+  //   return acc;
+  // }
+  template <class T>
+  inline T getNumField(const char* s, size_t fSize) {
+    T acc = 0;
+    for (size_t i = 0; i < fSize; i++) {
+      //if (s[i] == '.') continue; // To be checked
+      if (s[i] < '0' || s[i] > '9') return acc;
+      int digit = s[i] - '0';
+      acc = (10 * acc) + digit;
+    }   
+    return acc;
+  }
   inline uint getMsgLen(const uint8_t* pkt, int bytes2run) {
     uint idx = 0;
 
@@ -340,9 +380,11 @@ namespace Hsvf {
   }
 
   inline uint64_t getMsgSequence(const uint8_t* msg) {
-    const HsvfMsgHdr* msgHdr = (const HsvfMsgHdr*)&msg[1];
-    std::string seqString = std::string(msgHdr->sequence,sizeof(msgHdr->sequence));
-    return std::stoul(seqString,nullptr,10);
+    auto msgHdr {reinterpret_cast<const HsvfMsgHdr*>(&msg[1])};
+    // std::string seqString = std::string(msgHdr->sequence,sizeof(msgHdr->sequence));
+    // return std::stoul(seqString,nullptr,10);
+
+    return getNumField<uint64_t>(msgHdr->sequence,sizeof(msgHdr->sequence));
   }
 
   inline bool isHeartbeat(const uint8_t* msg) {
@@ -363,102 +405,7 @@ namespace Hsvf {
     return idx;
   }
 
-inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
-  uint64_t hashRes = 0;
-  uint shiftBits = 0;
-
-  uint64_t fieldSize = 0;
-  uint64_t fieldMask = 0;
-
-  uint64_t f = 0;
-
-  /* // 5 letters * 5 bits = 25 bits */
-  /* fieldSize = 5; */
-  /* fieldMask = (0x1 << fieldSize) - 1; */
-  /* for (int i = 0; i < 5; i++) { */
-  /*   uint64_t nameLetter = (charSymbol[i] - 'A') & fieldMask; */
-  /*   f = nameLetter << shiftBits; */
-  /*   hashRes |=  f; */
-  /*   // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes); */
-  /*   shiftBits += fieldSize; */
-  /* }  */
-  /* // shiftBits = 25; */
-
-  // 5 bits
-  fieldSize = 5;
-  fieldMask = (0x1 << fieldSize) - 1;
-  uint64_t month = (charSymbol[6] - 'A') & fieldMask;
-  f = month << shiftBits;
-  hashRes |= f;
-  // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
-  shiftBits += fieldSize;
-  // shiftBits = 30;
-
-  // 9,999,999 = 24 bits
-  fieldSize = 24;
-  fieldMask = (0x1 << fieldSize) - 1;
-  std::string priceStr = std::string(&charSymbol[8],7);
-  uint64_t price = std::stoul(priceStr,nullptr,10) & fieldMask;
-  f = price << shiftBits;
-  hashRes |= f;
-  // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
-  shiftBits += fieldSize;
-  // shiftBits = 54;
-
-  // 'A' .. 'G' = 3 bits
-  fieldSize = 3;
-  fieldMask = (0x1 << fieldSize) - 1;
-  uint64_t priceFractionIndicator = (charSymbol[15] - 'A') & fieldMask;
-  f = priceFractionIndicator << shiftBits;
-  hashRes |= f;
-  // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
-  shiftBits += fieldSize;
-  // shiftBits = 57;
-
-  // year offset = 2 bits
-  fieldSize = 2;
-  fieldMask = (0x1 << fieldSize) - 1;
-  std::string yearStr = std::string(&charSymbol[16],2);
-  uint64_t year = (std::stoi(yearStr,nullptr,10) - 20) & fieldMask;
-  f = year << shiftBits;
-  hashRes |= f;
-  // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
-  shiftBits += fieldSize;
-  // shiftBits = 59;
-
-  // 5 bits
-  fieldSize = 5;
-  fieldMask = (0x1 << fieldSize) - 1;
-  std::string dayStr = std::string(&charSymbol[18],2);
-  uint64_t day = std::stoi(dayStr,nullptr,10) & fieldMask;
-  f = day << shiftBits;
-  hashRes |= f;
-  // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
-  shiftBits += fieldSize;
-  // shiftBits = 64;
-
-
-  // 5 letters * 5 bits = 25 bits
-  fieldSize = 5;
-  fieldMask = (0x1 << fieldSize) - 1;
-  for (int i = 0; i < 5; i++) {
-    uint64_t nameLetter = (charSymbol[i] - 'A') & fieldMask;
-    f = nameLetter << shiftBits;
-    hashRes |=  f;
-    // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
-    shiftBits += fieldSize;
-  } 
-  // shiftBits = 25;
-
-  return hashRes;
-}
-
-  template <class T> inline T getNumField(const char* f, size_t fSize) {
-    std::string fieldString = std::string(f,fSize);
-    return static_cast<T>(std::stoul(fieldString,nullptr,10));
-  }
-
-  inline EfhOptionType getOptionType(const char* c) {
+    inline EfhOptionType getOptionType(const char* c) {
     if (c[6] >= 'A' && c[6] <= 'L') return EfhOptionType::kCall;
     if (c[6] >= 'M' && c[6] <= 'X') return EfhOptionType::kPut;
     on_error("Unexpected Month Code \'%c\'",c[6]);
@@ -476,6 +423,103 @@ inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
   inline uint64_t getDay(const char* c) {
     return getNumField<uint64_t>(c + 18,2);
   }
+  
+  inline uint64_t charSymbol2SecurityId(const char* charSymbol) {
+    uint64_t hashRes = 0;
+    uint shiftBits = 0;
+
+    uint64_t fieldSize = 0;
+    uint64_t fieldMask = 0;
+
+    uint64_t f = 0;
+
+    /* // 5 letters * 5 bits = 25 bits */
+    /* fieldSize = 5; */
+    /* fieldMask = (0x1 << fieldSize) - 1; */
+    /* for (int i = 0; i < 5; i++) { */
+    /*   uint64_t nameLetter = (charSymbol[i] - 'A') & fieldMask; */
+    /*   f = nameLetter << shiftBits; */
+    /*   hashRes |=  f; */
+    /*   // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes); */
+    /*   shiftBits += fieldSize; */
+    /* }  */
+    /* // shiftBits = 25; */
+
+    // 5 bits
+    fieldSize = 5;
+    fieldMask = (0x1 << fieldSize) - 1;
+    uint64_t month = (charSymbol[6] - 'A') & fieldMask;
+    f = month << shiftBits;
+    hashRes |= f;
+    // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
+    shiftBits += fieldSize;
+    // shiftBits = 30;
+
+    // 9,999,999 = 24 bits
+    fieldSize = 24;
+    fieldMask = (0x1 << fieldSize) - 1;
+    // std::string priceStr = std::string(&charSymbol[8],7);
+    // uint64_t price = std::stoul(priceStr,nullptr,10) & fieldMask;
+    uint64_t price = getNumField<uint64_t>(&charSymbol[8],7);
+    f = price << shiftBits;
+    hashRes |= f;
+    // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
+    shiftBits += fieldSize;
+    // shiftBits = 54;
+
+    // 'A' .. 'G' = 3 bits
+    fieldSize = 3;
+    fieldMask = (0x1 << fieldSize) - 1;
+    uint64_t priceFractionIndicator = (charSymbol[15] - 'A') & fieldMask;
+    f = priceFractionIndicator << shiftBits;
+    hashRes |= f;
+    // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
+    shiftBits += fieldSize;
+    // shiftBits = 57;
+
+    // year offset = 2 bits
+    fieldSize = 2;
+    fieldMask = (0x1 << fieldSize) - 1;
+    // std::string yearStr = std::string(&charSymbol[16],2);
+    // uint64_t year = (std::stoi(yearStr,nullptr,10) - 20) & fieldMask;
+    //  uint64_t year = getNumField<uint64_t>(&charSymbol[16],2) & fieldMask;
+    auto year {getYear(charSymbol) & fieldMask};
+    f = year << shiftBits;
+    hashRes |= f;
+    // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
+    shiftBits += fieldSize;
+    // shiftBits = 59;
+
+    // 5 bits
+    fieldSize = 5;
+    fieldMask = (0x1 << fieldSize) - 1;
+    // std::string dayStr = std::string(&charSymbol[18],2);
+    // uint64_t day = std::stoi(dayStr,nullptr,10) & fieldMask;
+    //    uint64_t day = getNumField<uint64_t>(&charSymbol[18],2) & fieldMask;
+    uint64_t day {getDay(charSymbol) & fieldMask};
+
+    f = day << shiftBits;
+    hashRes |= f;
+    // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
+    shiftBits += fieldSize;
+    // shiftBits = 64;
+
+
+    // 5 letters * 5 bits = 25 bits
+    fieldSize = 5;
+    fieldMask = (0x1 << fieldSize) - 1;
+    for (int i = 0; i < 5; i++) {
+      uint64_t nameLetter = (charSymbol[i] - 'A') & fieldMask;
+      f = nameLetter << shiftBits;
+      hashRes |=  f;
+      // TEST_LOG("shiftBits = %2u, f = 0x%016jx, hashRes = 0x%016jx", shiftBits, f, hashRes);
+      shiftBits += fieldSize;
+    } 
+    // shiftBits = 25;
+
+    return hashRes;
+  }
+
 
   inline uint32_t getFractionIndicator(char FI) {
     switch (FI) {
