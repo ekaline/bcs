@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <string.h>
+#include <strings.h>
 #include <endian.h>
 #include <inttypes.h>
 #include <assert.h>
@@ -191,6 +192,9 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     auto boxMsg {reinterpret_cast<const HsvfRfqStart*>(msgBody)};
 
     SecurityIdT security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
+    s = book->findSecurity(security_id);
+    if (!s)
+      return false;
 
     EfhAuctionUpdateMsg msg{};
     msg.header.msgType        = EfhMsgType::kAuctionUpdate;
@@ -202,18 +206,30 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.header.timeStamp      = gr_ts;
     msg.header.gapNum         = gapNum;
 
-    msg.side                  = getSide(boxMsg->Side);
     msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
-
+    msg.updateType            = EfhAuctionUpdateType::kNew;
+    msg.side                  = getSide(boxMsg->Side, /*flipSide*/ true);
+    msg.capacity              = EfhOrderCapacity::kBrokerDealer;
     msg.quantity              = getNumField<uint32_t>(boxMsg->Size,sizeof(boxMsg->Size));
-    msg.price                 = getNumField<uint32_t>(boxMsg->Price,sizeof(boxMsg->Price));
+    msg.price                 = getNumField<uint32_t>(boxMsg->Price,sizeof(boxMsg->Price)) * getFractionIndicator(boxMsg->PriceFractionIndicator);
     msg.endTimeNanos          = getExpireNs(boxMsg->ExpiryTime);
-      
-    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+
+    switch (boxMsg->AuctionType) {
+    case 'G': msg.auctionType = EfhAuctionType::kPriceImprovementPeriod; break;
+    case 'B': msg.auctionType = EfhAuctionType::kSolicitation; break;
+    case 'C': msg.auctionType = EfhAuctionType::kFacilitation; break;
+    default:
+      on_error("Unexpected AuctionType == \'%c\'",boxMsg->AuctionType);
+    }
+
+    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
   } else if (memcmp(msgHdr->MsgType,"O ",sizeof(msgHdr->MsgType)) == 0) { // HsvfRfqInsert
     auto boxMsg {reinterpret_cast<const HsvfRfqInsert*>(msgBody)};
 
     SecurityIdT security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
+    s = book->findSecurity(security_id);
+    if (!s)
+      return false;
 
     EfhAuctionUpdateMsg msg{};
     msg.header.msgType        = EfhMsgType::kAuctionUpdate;
@@ -225,19 +241,35 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.header.timeStamp      = gr_ts;
     msg.header.gapNum         = gapNum;
 
-    msg.side                  = getSide(boxMsg->OrderSide);
+    msg.updateType            = EfhAuctionUpdateType::kNew;
+    msg.side                  = getSide(boxMsg->OrderSide, /*flipSide*/ boxMsg->OrderType != 'E');
     msg.quantity              = getNumField<uint32_t>(boxMsg->Size,sizeof(boxMsg->Size));
-    msg.price                 = getNumField<uint32_t>(boxMsg->LimitPrice,sizeof(boxMsg->LimitPrice));
+    msg.price                 = getNumField<uint32_t>(boxMsg->LimitPrice,sizeof(boxMsg->LimitPrice)) * getFractionIndicator(boxMsg->LimitPriceFractionIndicator);
     msg.endTimeNanos          = getExpireNs(boxMsg->EndOfExposition);
 
     if (boxMsg->OrderType == 'A') { // Initial
       msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
+      msg.auctionType           = EfhAuctionType::kPriceImprovementPeriod;
     } else if (boxMsg->OrderType == 'P') { // Exposed
       msg.auctionId             = getNumField<uint32_t>(boxMsg->OrderSequence,sizeof(boxMsg->OrderSequence));
+      msg.auctionType           = EfhAuctionType::kExposed;
     } else {
       on_error("Unexpected OrderType == \'%c\'",boxMsg->OrderType);
     }
-    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+
+    switch (boxMsg->ClearingType) {
+    case '6': msg.capacity = EfhOrderCapacity::kCustomer; break;
+    case '7': msg.capacity = EfhOrderCapacity::kBrokerDealer; break;
+    case '8': msg.capacity = EfhOrderCapacity::kMarketMaker; break;
+    case 'T': msg.capacity = EfhOrderCapacity::kProfessionalCustomer; break;
+    case 'W': msg.capacity = EfhOrderCapacity::kBrokerDealerAsCustomer; break;
+    case 'X': msg.capacity = EfhOrderCapacity::kAwayMarketMaker; break;
+    default:
+      on_error("Unexpected ClearingType == \'%c\'",boxMsg->ClearingType);
+    }
+
+    *stpncpy(msg.firmId, boxMsg->FirmId, sizeof boxMsg->FirmId) = '\0';
+    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
   } else if (memcmp(msgHdr->MsgType,"T ",sizeof(msgHdr->MsgType)) == 0) { // HsvfRfqDelete
     auto boxMsg {reinterpret_cast<const HsvfRfqDelete*>(msgBody)};
 
@@ -245,6 +277,9 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     if (boxMsg->AuctionType  == 'F') return false; // This is an exposed order deletion
 
     SecurityIdT security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
+    s = book->findSecurity(security_id);
+    if (!s)
+      return false;
 
     EfhAuctionUpdateMsg msg{};
     msg.header.msgType        = EfhMsgType::kAuctionUpdate;
@@ -256,14 +291,23 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.header.timeStamp      = gr_ts;
     msg.header.gapNum         = gapNum;
 
-    msg.side                  = getSide(boxMsg->OrderSide);
     msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
+    msg.updateType            = EfhAuctionUpdateType::kDelete;
+    msg.side                  = getSide(boxMsg->OrderSide, /*flipSide*/ true);
 
     msg.quantity              = 0;
     msg.price                 = 0;
     msg.endTimeNanos          = 0;
-      
-    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+
+    switch (boxMsg->AuctionType) {
+    case 'G': msg.auctionType = EfhAuctionType::kPriceImprovementPeriod; break;
+    case 'B': msg.auctionType = EfhAuctionType::kSolicitation; break;
+    case 'C': msg.auctionType = EfhAuctionType::kFacilitation; break;
+    default:
+      on_error("Unexpected AuctionType == \'%c\'",boxMsg->AuctionType);
+    }
+
+    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
   }
  
   //===================================================

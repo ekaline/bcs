@@ -291,31 +291,59 @@ typedef struct {
         EfhComplexDefinitionMsg_FIELD_ITER( EKA__FIELD_DEF )
 } EfhComplexDefinitionMsg;
 
-enum class EfhAuctionType : uint8_t {
+enum class EfhAuctionType : char {
     #define EfhAuctionType_ENUM_ITER( _x )                                  \
-                _x( Unknown, 0 )                                            \
-                _x( Complex             )                                   \
-                _x( ComplexSolicitation )                                   \
-                _x( AIM )                                                   \
-                _x( AllOrNone )
+                _x( Unknown, ' ' )                                          \
+                /* Price Improvement Period (PIP) is used on BOX */         \
+                _x( PriceImprovementPeriod, 'Q' )                           \
+                _x( Facilitation, 'F' )                                     \
+                _x( Solicitation, 'S' )                                     \
+                _x( Exposed,      'E' )
         EfhAuctionType_ENUM_ITER( EKA__ENUM_DEF )
+};
+
+enum class EfhAuctionUpdateType : char {
+    #define EfhAuctionUpdateType_ENUM_ITER( _x )                            \
+                _x( Unknown, 'U' )                                          \
+                _x( New,     'N' )                                          \
+                _x( Replace, 'R' )                                          \
+                _x( Delete,  'D' )
+        EfhAuctionUpdateType_ENUM_ITER( EKA__ENUM_DEF )
+};
+
+enum class EfhOrderCapacity : char {
+    #define EfhOrderCapacity_ENUM_ITER( _x )                                \
+                _x( Unknown, 'U' )                                          \
+                _x( Customer, 'C' )                                         \
+                _x( BrokerDealer, 'B' )                                     \
+                _x( BrokerDealerAsCustomer, 'W' )                           \
+                _x( AwayBrokerDealerAsCustomer, 'V' )                       \
+                _x( AwayBrokerDealer, 'Y' )                                 \
+                _x( AwayNotAffiliatedMarketMaker, 'Z' )                     \
+                _x( Agency, 'A' )                                           \
+                _x( Principal, 'P' )                                        \
+                _x( MarketMaker, 'M' )                                      \
+                _x( AwayMarketMaker, 'N' )                                  \
+                _x( ProfessionalCustomer, 'D' )                             \
+                _x( Proprietary, 'E' )
+        EfhOrderCapacity_ENUM_ITER( EKA__ENUM_DEF )
 };
 
 typedef char EfhCounterparty[8];
 
 typedef struct {
-    #define EfhAuctionUpdateMsg_FIELD_ITER( _x )                        \
-                _x( EfhMsgHeader,    header )                               \
-                _x( uint64_t,        auctionId)                             \
-                _x( EfhAuctionType,  type )                                 \
-                _x( EfhOrderSide,    side )                                 \
-                _x( bool,            customer )                             \
-         	_x( EfhSecurityType, securityType )                         \
-                _x( uint32_t,        quantity )                             \
-                _x( int64_t,         price )                                \
-                _x( uint64_t,        endTimeNanos )                         \
-                _x( EfhCounterparty, execBroker )                           \
-                _x( EfhCounterparty, client )
+    #define EfhAuctionUpdateMsg_FIELD_ITER( _x )                            \
+                _x( EfhMsgHeader,         header )                          \
+                _x( uint64_t,             auctionId )                       \
+                _x( EfhAuctionType,       auctionType )                     \
+                _x( EfhAuctionUpdateType, updateType)                       \
+                _x( EfhOrderSide,         side )                            \
+                _x( EfhOrderCapacity,     capacity )                        \
+                _x( EfhSecurityType,      securityType )                    \
+                _x( uint32_t,             quantity )                        \
+                _x( int64_t,              price )                           \
+                _x( uint64_t,             endTimeNanos )                    \
+                _x( EfhCounterparty,      firmId )
         EfhAuctionUpdateMsg_FIELD_ITER( EKA__FIELD_DEF )
 } EfhAuctionUpdateMsg;
 
@@ -323,15 +351,15 @@ typedef struct {
  *
  */
 enum class EfhTradeStatus : char {
-    #define EfhTradeStatus_ENUM_ITER( _x )                              \
-                _x( GapRecover,        'G' )                            \
-		  _x( Uninit,            '_' )				\
-		  _x( Halted,            'H' )				\
-		  _x( Preopen,           'P' )				\
-		  _x( OpeningRotation,   'O' )				\
-		  _x( Normal,            'N' )				\
-		  _x( Closed,            'C' )
-  EfhTradeStatus_ENUM_ITER( EKA__ENUM_DEF )
+    #define EfhTradeStatus_ENUM_ITER( _x )                                  \
+                _x( GapRecover,        'G' )                                \
+                _x( Uninit,            '_' )                                \
+                _x( Halted,            'H' )                                \
+                _x( Preopen,           'P' )                                \
+                _x( OpeningRotation,   'O' )                                \
+                _x( Normal,            'N' )                                \
+                _x( Closed,            'C' )
+        EfhTradeStatus_ENUM_ITER( EKA__ENUM_DEF )
 };
 
 /*
