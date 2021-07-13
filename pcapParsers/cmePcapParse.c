@@ -51,6 +51,8 @@ int findGrp(uint32_t ip, uint16_t port) {
 void printUsage(char* cmd) {
   printf("USAGE: %s [options] -f [pcapFile]\n",cmd);
   printf("          -p        Print all messages\n");
+  printf("          -t        Print strategy trigger\n");
+
 }
 
 //###################################################
