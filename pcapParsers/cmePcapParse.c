@@ -32,7 +32,10 @@ static GroupAddr group[] = {
     {inet_addr("224.0.31.2"), 14311, 0, 0},     // incrementFeed
     {inet_addr("224.0.31.1"), 14310, 0, 0},     // incrementFeed
     {inet_addr("224.0.32.2"), 15311, 0, 0},     // incrementFeed
-    {inet_addr("224.0.32.1"), 15310, 0, 0},     // incrementFeed   
+    {inet_addr("224.0.32.1"), 15310, 0, 0},     // incrementFeed
+
+    {inet_addr("224.0.32.66"), 14342, 0, 0},    // Patrick
+
 };
 
 
