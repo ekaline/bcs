@@ -802,6 +802,54 @@ namespace Cme {
     default                : return EfhOptionType::kErr;
     }
   }
+  
+  inline uint32_t printTrigger(const uint8_t* pkt, const int payloadLen) {
+    auto p {pkt};
+    auto pktHdr {reinterpret_cast<const PktHdr*>(p)};
+
+    p += sizeof(*pktHdr);
+
+    //    while (p - pkt < payloadLen) { // 1st msg only
+    auto m {p};
+    auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
+
+    m += sizeof(*msgHdr);
+
+    switch (msgHdr->templateId) {
+      /* ##################################################################### */
+    case MsgId::MDIncrementalRefreshTradeSummary48 : {
+      /* ------------------------------- */
+      //      auto rootBlock {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mainBlock*>(m)};
+
+      m += msgHdr->blockLen;
+      /* ------------------------------- */
+      auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
+      if (pGroupSize->numInGroup == 0) break;
+      
+      m += sizeof(*pGroupSize);
+      auto e {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mdEntry*>(m)};
+
+      printf("Trigger,");
+      printf("ts:%s,",           ts_ns2str(pktHdr->time).c_str());
+      printf("seq:%u,",          pktHdr->seq);
+      printf("msgSize:%u,",      msgHdr->size);
+      printf("numInGroup:%u,",   pGroupSize->numInGroup);
+      printf("firstPrice:%16jd,",(int64_t) (e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE));
+      printf("\n");
+
+    }
+      break;	
+      /* ##################################################################### */
+    default:
+      break;
+		
+    }
+    /* ----------------------------- */
+
+    p += msgHdr->size;
+    //    } //  while (p - pkt < payloadLen)
+    return 0;
+  } // printTrigger()
 
   inline uint32_t printPkt(const uint8_t* pkt, const int payloadLen) {
     auto p {pkt};

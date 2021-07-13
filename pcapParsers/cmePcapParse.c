@@ -19,6 +19,7 @@ using namespace Cme;
 //###################################################
 static char pcapFileName[256] = {};
 static bool printAll = false;
+static bool printTrig = false;
 
 struct GroupAddr {
     uint32_t  ip;
@@ -56,28 +57,32 @@ void printUsage(char* cmd) {
 
 static int getAttr(int argc, char *argv[]) {
   int opt; 
-  while((opt = getopt(argc, argv, ":f:d:ph")) != -1) {  
+  while((opt = getopt(argc, argv, ":f:d:tph")) != -1) {  
     switch(opt) {  
-      case 'f':
-	strcpy(pcapFileName,optarg);
-	printf("pcapFile = %s\n", pcapFileName);  
-	break;  
-      case 'p':  
-	printAll = true;
-	printf("printAll\n");
-	break;  
-      case 'd':  
-//	pkt2dump = atoi(optarg);
-//	printf("pkt2dump = %ju\n",pkt2dump);  
-	break;  
-      case 'h':  
-	printUsage(argv[0]);
-	exit (1);
-	break;  
-      case '?':  
-	printf("unknown option: %c\n", optopt); 
+    case 'f':
+      strcpy(pcapFileName,optarg);
+      printf("pcapFile = %s\n", pcapFileName);  
       break;  
-      }  
+    case 'p':  
+      printAll = true;
+      printf("printAll\n");
+      break;  
+    case 't':  
+      printTrig = true;
+      printf("printTrig\n");
+      break;  
+    case 'd':  
+      //	pkt2dump = atoi(optarg);
+      //	printf("pkt2dump = %ju\n",pkt2dump);  
+      break;  
+    case 'h':  
+      printUsage(argv[0]);
+      exit (1);
+      break;  
+    case '?':  
+      printf("unknown option: %c\n", optopt); 
+      break;  
+    }  
   }  
   return 0;
 }
@@ -121,14 +126,21 @@ int main(int argc, char *argv[]) {
 	p += sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr);
 
 	/* -------------------------------------------------- */
-	auto sequence = printPkt(p, payloadLen);
+	if (printAll) {
+	  auto sequence = printPkt(p, payloadLen);
+
+	  if (group[grId].expectedSeq != 0 &&
+	      group[grId].expectedSeq != sequence) {
+	    printf (RED "%d: expectedSeq %ju != sequence %u\n" RESET,
+		    grId,group[grId].expectedSeq,sequence);
+	  }
+	}
+	/* -------------------------------------------------- */
+	if (printTrig) {
+	  printTrigger(p, payloadLen);
+	}
 	/* -------------------------------------------------- */
 
-	if (group[grId].expectedSeq != 0 &&
-	    group[grId].expectedSeq != sequence) {
-	  printf (RED "%d: expectedSeq %ju != sequence %u\n" RESET,
-		  grId,group[grId].expectedSeq,sequence);
-	}
     }
     
     return 0;
