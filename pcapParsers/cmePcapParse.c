@@ -20,6 +20,8 @@ using namespace Cme;
 static char pcapFileName[256] = {};
 static bool printAll = false;
 static bool printTrig = false;
+static int  numPriceLevels = 1;
+static int  maxMsgSize = 1500;
 
 struct GroupAddr {
     uint32_t  ip;
@@ -53,6 +55,8 @@ int findGrp(uint32_t ip, uint16_t port) {
 //###################################################
 void printUsage(char* cmd) {
   printf("USAGE: %s [options] -f [pcapFile]\n",cmd);
+  printf("          -l [Number of Price Levels] -- default 1\n");
+  printf("          -s [Max Message Size]       -- default 1500\n");
   printf("          -p        Print all messages\n");
   printf("          -t        Print strategy trigger\n");
 
@@ -62,11 +66,19 @@ void printUsage(char* cmd) {
 
 static int getAttr(int argc, char *argv[]) {
   int opt; 
-  while((opt = getopt(argc, argv, ":f:d:tph")) != -1) {  
+  while((opt = getopt(argc, argv, ":f:d:l:s:tph")) != -1) {  
     switch(opt) {  
     case 'f':
       strcpy(pcapFileName,optarg);
       printf("pcapFile = %s\n", pcapFileName);  
+      break;
+    case 'l':
+      numPriceLevels = atoi(optarg);
+      printf("numPriceLevels = %d\n", numPriceLevels);  
+      break;
+    case 's':
+      maxMsgSize = atoi(optarg);
+      printf("maxMsgSize = %d\n", maxMsgSize);  
       break;  
     case 'p':  
       printAll = true;
@@ -94,6 +106,57 @@ static int getAttr(int argc, char *argv[]) {
 
 //###################################################
 
+inline uint32_t printTrigger(const uint8_t* pkt, const int payloadLen,
+			     int pLevels, int maxMsgSize) {
+    auto p {pkt};
+    auto pktHdr {reinterpret_cast<const PktHdr*>(p)};
+
+    p += sizeof(*pktHdr);
+
+    //    while (p - pkt < payloadLen) { // 1st msg only
+    auto m {p};
+    auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
+
+    m += sizeof(*msgHdr);
+
+    switch (msgHdr->templateId) {
+      /* ##################################################################### */
+    case MsgId::MDIncrementalRefreshTradeSummary48 : {
+      /* ------------------------------- */
+      //      auto rootBlock {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mainBlock*>(m)};
+
+      m += msgHdr->blockLen;
+      /* ------------------------------- */
+      auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
+      if (pGroupSize->numInGroup < pLevels) break;
+      if (msgHdr->size > maxMsgSize) break;
+	
+      m += sizeof(*pGroupSize);
+      auto e {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mdEntry*>(m)};
+
+      printf("Trigger,");
+      printf("%s,", ts_ns2str(pktHdr->time).c_str());
+      printf("%u,", pktHdr->seq);
+      printf("%u,", msgHdr->size);
+      printf("%u,", pGroupSize->numInGroup);
+      printf("%16jd,",(int64_t) (e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE));
+      printf("\n");
+
+    }
+      break;	
+      /* ##################################################################### */
+    default:
+      break;
+		
+    }
+    /* ----------------------------- */
+
+    p += msgHdr->size;
+    //    } //  while (p - pkt < payloadLen)
+    return 0;
+  } // printTrigger()
+//###################################################
+
 int main(int argc, char *argv[]) {
     char buf[1600] = {};
     FILE *pcapFile;
@@ -108,7 +171,9 @@ int main(int argc, char *argv[]) {
 	on_error ("Failed to read pcap_file_hdr from the pcap file");
 
     uint64_t pktNum {0};
-
+    if (printTrig) {
+      printf("Trigger,ts,seq,msgSize,numInGroup,firstPrice\n"); 
+    }
     while (fread(buf,sizeof(pcap_rec_hdr),1,pcapFile) == 1) {
 	auto pcap_rec_hdr_ptr {reinterpret_cast<const pcap_rec_hdr*>(buf)};
 	uint pktLen = pcap_rec_hdr_ptr->len;
@@ -142,7 +207,7 @@ int main(int argc, char *argv[]) {
 	}
 	/* -------------------------------------------------- */
 	if (printTrig) {
-	  printTrigger(p, payloadLen);
+	  printTrigger(p, payloadLen, numPriceLevels, maxMsgSize);
 	}
 	/* -------------------------------------------------- */
 
