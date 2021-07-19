@@ -224,6 +224,7 @@ enum class EfhErrorDomain : char {
 
 typedef char EfhSymbol[8];
 typedef char ExchSecurityName[6];
+typedef char ExchLongName[20];
 
 // Provide a dummy empty type to avoid confusing preprocessor macros that may
 // try to access a type of this name because EfhMsgType::kInvalid exists.
@@ -285,6 +286,8 @@ typedef EfhComplexLeg EfhComplexLegs[EFH__MAX_COMPLEX_LEGS];
 typedef struct {
     #define EfhComplexDefinitionMsg_FIELD_ITER( _x )                        \
                 _x( EfhMsgHeader,   header )                                \
+                _x( ExchLongName,   exchSymbolName )                        \
+                _x( ExchLongName,   exchAssetName )                         \
                 _x( EkaGroup,       secondaryGroup )                        \
                 _x( uint8_t,        numLegs )                               \
                 _x( EfhComplexLegs, legs )

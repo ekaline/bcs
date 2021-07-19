@@ -488,6 +488,10 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   msg.header.timeStamp      = pktTime; //rootBlock->LastUpdateTime;
   msg.header.gapNum         = gapNum;
 
+  memcpy(msg.exchSymbolName,rootBlock->Symbol,
+	 std::min(sizeof(msg.exchSymbolName),sizeof(rootBlock->Symbol)));
+  memcpy(msg.exchSymbolName,rootBlock->Asset,
+	 std::min(sizeof(msg.exchSymbolName),sizeof(rootBlock->Asset)));
   /* ------------------------------- */
   auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize_EventType);
