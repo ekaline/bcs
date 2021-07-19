@@ -54,11 +54,11 @@ int findGrp(uint32_t ip, uint16_t port) {
 
 //###################################################
 void printUsage(char* cmd) {
-  printf("USAGE: %s [options] -f [pcapFile]\n",cmd);
-  printf("          -l [Number of Price Levels] -- default 1\n");
-  printf("          -s [Max Message Size]       -- default 1500\n");
-  printf("          -p        Print all messages\n");
-  printf("          -t        Print strategy trigger\n");
+  fprintf(stderr,"USAGE: %s [options] -f [pcapFile]\n",cmd);
+  fprintf(stderr,"          -l [Number of Price Levels] -- default 1\n");
+  fprintf(stderr,"          -s [Max Message Size]       -- default 1500\n");
+  fprintf(stderr,"          -p        Print all messages\n");
+  fprintf(stderr,"          -t        Print strategy trigger\n");
 
 }
 
@@ -70,23 +70,23 @@ static int getAttr(int argc, char *argv[]) {
     switch(opt) {  
     case 'f':
       strcpy(pcapFileName,optarg);
-      printf("pcapFile = %s\n", pcapFileName);  
+      fprintf(stderr,"pcapFile = %s\n", pcapFileName);  
       break;
     case 'l':
       numPriceLevels = atoi(optarg);
-      printf("numPriceLevels = %d\n", numPriceLevels);  
+      fprintf(stderr,"numPriceLevels = %d\n", numPriceLevels);  
       break;
     case 's':
       maxMsgSize = atoi(optarg);
-      printf("maxMsgSize = %d\n", maxMsgSize);  
+      fprintf(stderr,"maxMsgSize = %d\n", maxMsgSize);  
       break;  
     case 'p':  
       printAll = true;
-      printf("printAll\n");
+      fprintf(stderr,"printAll\n");
       break;  
     case 't':  
       printTrig = true;
-      printf("printTrig\n");
+      fprintf(stderr,"printTrig\n");
       break;  
     case 'd':  
       //	pkt2dump = atoi(optarg);
@@ -97,7 +97,7 @@ static int getAttr(int argc, char *argv[]) {
       exit (1);
       break;  
     case '?':  
-      printf("unknown option: %c\n", optopt); 
+      fprintf(stderr,"unknown option: %c\n", optopt); 
       break;  
     }  
   }  
@@ -107,7 +107,7 @@ static int getAttr(int argc, char *argv[]) {
 //###################################################
 
 inline uint32_t printTrigger(const uint8_t* pkt, const int payloadLen,
-			     int pLevels, int maxMsgSize) {
+			     uint64_t pktNum, int pLevels, int maxMsgSize) {
     auto p {pkt};
     auto pktHdr {reinterpret_cast<const PktHdr*>(p)};
 
@@ -135,11 +135,13 @@ inline uint32_t printTrigger(const uint8_t* pkt, const int payloadLen,
       auto e {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mdEntry*>(m)};
 
       printf("Trigger,");
+      printf("%ju,", pktNum);
       printf("%s,", ts_ns2str(pktHdr->time).c_str());
       printf("%u,", pktHdr->seq);
       printf("%u,", msgHdr->size);
       printf("%u,", pGroupSize->numInGroup);
-      printf("%16jd,",(int64_t) (e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE));
+      //      printf("%16jd,",(int64_t) (e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE));
+      printf("%16jd,",(int64_t) e->MDEntryPx );
       printf("\n");
 
     }
@@ -163,7 +165,7 @@ int main(int argc, char *argv[]) {
     getAttr(argc,argv);
 
     if ((pcapFile = fopen(pcapFileName, "rb")) == NULL) {
-	printf("Failed to open dump file %s\n",pcapFileName);
+	fprintf(stderr,"Failed to open dump file %s\n",pcapFileName);
 	printUsage(argv[0]);
 	exit(1);
     }
@@ -172,7 +174,7 @@ int main(int argc, char *argv[]) {
 
     uint64_t pktNum {0};
     if (printTrig) {
-      printf("Trigger,ts,seq,msgSize,numInGroup,firstPrice\n"); 
+      printf("Trigger,pkt,ts,seq,msgSize,numInGroup,firstPrice\n"); 
     }
     while (fread(buf,sizeof(pcap_rec_hdr),1,pcapFile) == 1) {
 	auto pcap_rec_hdr_ptr {reinterpret_cast<const pcap_rec_hdr*>(buf)};
@@ -197,7 +199,7 @@ int main(int argc, char *argv[]) {
 
 	/* -------------------------------------------------- */
 	if (printAll) {
-	  auto sequence = printPkt(p, payloadLen);
+	  auto sequence = printPkt(p, payloadLen, pktNum);
 
 	  if (group[grId].expectedSeq != 0 &&
 	      group[grId].expectedSeq != sequence) {
@@ -207,7 +209,7 @@ int main(int argc, char *argv[]) {
 	}
 	/* -------------------------------------------------- */
 	if (printTrig) {
-	  printTrigger(p, payloadLen, numPriceLevels, maxMsgSize);
+	  printTrigger(p, payloadLen, pktNum, numPriceLevels, maxMsgSize);
 	}
 	/* -------------------------------------------------- */
 
