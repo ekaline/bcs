@@ -476,10 +476,10 @@ void* onComplexDefinition(const EfhComplexDefinitionMsg* msg, EfhSecUserData sec
   auto gr = grCtx[(int)exch][grId];
   if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
   
-  fprintf(gr->MD,"ComplexDefinition:");
-  fprintf(gr->MD,"%s",std::string(msg->exchSymbolName,sizeof(msg->exchSymbolName)).c_str());
-  fprintf(gr->MD,"%s",std::string(msg->exchAssetName,sizeof(msg->exchAssetName)).c_str());
-  fprintf(gr->MD,"%ju",msg->header.securityId);
+  fprintf(gr->MD,"ComplexDefinition,");
+  fprintf(gr->MD,"\'%s\',",std::string(msg->exchSymbolName,sizeof(msg->exchSymbolName)).c_str());
+  fprintf(gr->MD,"\'%s\',",std::string(msg->exchAssetName,sizeof(msg->exchAssetName)).c_str());
+  fprintf(gr->MD,"%ju,",msg->header.securityId);
   fprintf(gr->MD,"\n");
 
   return NULL;
