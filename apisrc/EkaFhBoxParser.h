@@ -541,8 +541,8 @@ namespace Hsvf {
 
   inline auto getSide(const char hsvfSide, bool flipSide) {
     switch (hsvfSide) {
-    case 'B' : return flipSide ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
-    case 'S' : return flipSide ? EfhOrderSide::kAsk : EfhOrderSide::kBid;
+    case 'B' : return flipSide ? EfhOrderSide::kAsk : EfhOrderSide::kBid;
+    case 'S' : return flipSide ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
     case ' ' : return EfhOrderSide::kOther; // Both
     default  :
       on_error("Unexpected hsvfSide \'%c\'",hsvfSide);

@@ -242,7 +242,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.header.gapNum         = gapNum;
 
     msg.updateType            = EfhAuctionUpdateType::kNew;
-    msg.side                  = getSide(boxMsg->OrderSide, /*flipSide*/ boxMsg->OrderType != 'E');
+    msg.side                  = getSide(boxMsg->OrderSide, /*flipSide*/ boxMsg->OrderType == 'E');
     msg.quantity              = getNumField<uint32_t>(boxMsg->Size,sizeof(boxMsg->Size));
     msg.price                 = getNumField<uint32_t>(boxMsg->LimitPrice,sizeof(boxMsg->LimitPrice)) * getFractionIndicator(boxMsg->LimitPriceFractionIndicator);
     msg.endTimeNanos          = getExpireNs(boxMsg->EndOfExposition);
