@@ -104,6 +104,44 @@ void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData use
 
 void* onTrade(const EfhTradeMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
   if (! keep_work) return NULL;
+
+  EfhCtx* pEfhCtx = (EfhCtx*) userData;
+  if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
+
+  EkaSource exch = msg->header.group.source;
+  EkaLSI    grId = msg->header.group.localId;
+
+  auto gr = grCtx[(int)exch][grId];
+  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  
+  //  auto efhGr = pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[grId];  
+
+#ifdef EKA_TEST_IGNORE_DEFINITIONS
+  std::string currAvtSecName  = "DEFAULT_AVT_SEC_NAME";
+  std::string currClassSymbol = "DEFAULT_UNDERLYING_ID";
+  //  int64_t priceScaleFactor = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE;
+#else
+  int secIdx                  = (int)secData;
+  std::string currAvtSecName  = gr->security.at(secIdx).avtSecName.c_str();	  
+  std::string currClassSymbol = gr->security.at(secIdx).classSymbol;
+  //  int64_t priceScaleFactor    = 100; //gr->security.at(secIdx).displayPriceScale;
+#endif
+
+  if (! print_tob_updates) return NULL;
+
+  fprintf(gr->MD,"Trade,");
+  fprintf(gr->MD,"%s," ,eka_get_date().c_str());
+  fprintf(gr->MD,"%s," ,eka_get_time().c_str());
+  fprintf(gr->MD,"%ju,",msg->header.securityId);
+  fprintf(gr->MD,"%s," ,currAvtSecName.c_str());
+  fprintf(gr->MD,"%s," ,currClassSymbol.c_str());
+  fprintf(gr->MD,"%u," ,msg->price);
+  fprintf(gr->MD,"%u," ,msg->size);
+  fprintf(gr->MD,"%d," ,(int)msg->tradeCond);
+  fprintf(gr->MD,"%s," ,ts_ns2str(msg->header.timeStamp).c_str());
+  fprintf(gr->MD,"%ju,",msg->header.timeStamp);
+  fprintf(gr->MD,"\n");
+
   return NULL;
 }
 
