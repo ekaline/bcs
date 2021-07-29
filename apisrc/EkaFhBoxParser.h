@@ -171,6 +171,26 @@ namespace Hsvf {
     /* char       EoM; // = HsvfEom; */
   };
 
+  struct HsvfOptionTrade { // "C "
+    /* char       SoM; //  = HsvfSom; */
+    /* HsvfMsgHdr hdr; */
+    char ExchangeID;
+    char InstrumentDescription[20];
+    char Volume[8];
+    char TradePrice[6];
+    char TradePriceFractionIndicator;
+    char NetChangeSign;
+    char NetChange[6];
+    char NetChangeFractionIndicator;
+    char Filler6[6];
+    char Timestamp[6];
+    char OpenInterest[7];
+    char Filler;
+    char PriceIndicatorMarker;
+    /* char       EoM; // = HsvfEom; */
+  };
+
+  
   struct HsvfRFQ { // "D "
     /* char       SoM; //  = HsvfSom; */
     /* HsvfMsgHdr hdr; */

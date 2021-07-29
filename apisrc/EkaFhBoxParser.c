@@ -130,7 +130,29 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     getStatus<FhSecurity>(s,boxMsg->InstrumentStatusMarker);
     if (op != EkaFhMode::SNAPSHOT)
       book->generateOnQuote (pEfhRunCtx, s, sequence, gr_ts, gapNum);
+    //===================================================
+  } else if (memcmp(msgHdr->MsgType,"C ",sizeof(msgHdr->MsgType)) == 0) { // Option Trade
+    auto boxMsg {reinterpret_cast<const HsvfOptionTrade*>(msgBody)};
+    SecurityIdT security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
+    s = book->findSecurity(security_id);
+    if (s == NULL) return false;
 
+    EfhTradeMsg msg = {};
+    msg.header.msgType        = EfhMsgType::kTrade;
+    msg.header.group.source   = EkaSource::kBOX_HSVF;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.securityId     = charSymbol2SecurityId(boxMsg->InstrumentDescription);
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = gr_ts;
+    msg.header.gapNum         = gapNum;
+
+    msg.price = getNumField<uint32_t>(boxMsg->TradePrice,sizeof(boxMsg->TradePrice)) *
+      getFractionIndicator(boxMsg->TradePriceFractionIndicator);
+    msg.size = getNumField<uint32_t>(boxMsg->Volume,sizeof(boxMsg->Volume));
+    msg.tradeCond = EfhTradeCond::kUnmapped;
+
+    pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
     //===================================================
   } else if (memcmp(msgHdr->MsgType,"Z ",sizeof(msgHdr->MsgType)) == 0) { // SystemTimeStamp
     const char* timeStamp = ((HsvfSystemTimeStamp*)msgBody)->TimeStamp;
