@@ -391,37 +391,47 @@ typedef struct {
 } EfhQuoteMsg;
 
 /*
- *
+ * Trade condition is based on OPRA Last Sale "Message Type", from OPRA
+ * binary specification 3.6a, section 5.01.
  */
-enum class EfhTradeCond {
+enum class EfhTradeCond : char {
     #define EfhTradeCond_ENUM_ITER( _x )                                    \
-                _x( Unmapped, 0 )                                           \
-                _x( Reg, 1 )                                                \
-                _x( Canc   )                                                \
-                _x( Oseq   )                                                \
-                _x( Cncl   )                                                \
-                _x( Late   )                                                \
-                _x( Cnco   )                                                \
-                _x( Open   )                                                \
-                _x( Cnol   )                                                \
-                _x( Opnl   )                                                \
-                _x( Auto   )                                                \
-                _x( Reop   )                                                \
-                _x( Ajst   )                                                \
-                _x( Sprd   )                                                \
-                _x( Stdl   )                                                \
-                _x( Stdp   )                                                \
-                _x( Cstp   )                                                \
-                _x( Cmbo   )                                                \
-                _x( Spim   )                                                \
-                _x( Isoi   )                                                \
-                _x( Bnmt   )                                                \
-                _x( Xmpt   )                                                \
-                _x( Blkt   )                                                \
-                _x( Exph   )                                                \
-                _x( Cncp   )                                                \
-                _x( Blkp   )                                                \
-                _x( Expp   )   
+                _x( Unmapped, '\0' )                                        \
+                _x( REG,  ' ' )                                             \
+                _x( CANC, 'A' )                                             \
+                _x( OSEQ, 'B' )                                             \
+                _x( CNCL, 'C' )                                             \
+                _x( LATE, 'D' )                                             \
+                _x( CNCO, 'E' )                                             \
+                _x( OPEN, 'F' )                                             \
+                _x( CNOL, 'G' )                                             \
+                _x( OPNL, 'H' )                                             \
+                _x( AUTO, 'I' )                                             \
+                _x( REOP, 'J' )                                             \
+                _x( ISOI, 'S' )                                             \
+                _x( SLAN, 'a' )                                             \
+                _x( SLAI, 'b' )                                             \
+                _x( SLCN, 'c' )                                             \
+                _x( SLCI, 'd' )                                             \
+                _x( SLFT, 'e' )                                             \
+                _x( MLET, 'f' )                                             \
+                _x( MLAT, 'g' )                                             \
+                _x( MLCT, 'h' )                                             \
+                _x( MLFT, 'i' )                                             \
+                _x( MESL, 'j' )                                             \
+                _x( TLAT, 'k' )                                             \
+                _x( MASL, 'l' )                                             \
+                _x( MFSL, 'm' )                                             \
+                _x( TLET, 'n' )                                             \
+                _x( TLCT, 'o' )                                             \
+                _x( TLFT, 'p' )                                             \
+                _x( TESL, 'q' )                                             \
+                _x( TASL, 'r' )                                             \
+                _x( TFSL, 's' )                                             \
+                _x( CMBO, 't' )                                             \
+                _x( MCTP, 'u' )                                             \
+                /* Not a real OPRA code, Outside-Hours trade on BOX */      \
+                _x( OSHT, 'z' )
         EfhTradeCond_ENUM_ITER( EKA__ENUM_DEF )
 };
 
@@ -434,6 +444,7 @@ typedef struct {
                 /** Divide by EFH_PRICE_SCALE. */                           \
                 _x( uint32_t,     price )                                   \
                 _x( uint32_t,     size )                                    \
+                _x( EfhTradeStatus, tradeStatus )                           \
                 _x( EfhTradeCond, tradeCond )
         EfhTradeMsg_FIELD_ITER( EKA__FIELD_DEF )
 } EfhTradeMsg;

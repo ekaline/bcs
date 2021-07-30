@@ -209,9 +209,8 @@ namespace Tom {
 
 
 #define EKA_MIAX_TRADE_COND(x)			\
-  x == ' ' ? EfhTradeCond::kReg :		\
-    x == 'S' ? EfhTradeCond::kSprd :		\
-    x == 'I' ? EfhTradeCond::kIsoi :		\
+  x == ' ' ? EfhTradeCond::kREG :		\
+    x == 'I' ? EfhTradeCond::kISOI :		\
     EfhTradeCond::kUnmapped
 
 

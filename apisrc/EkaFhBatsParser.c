@@ -469,6 +469,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 	gapNum },
       price,
       size,
+      s->trading_action,
       EKA_BATS_TRADE_COND(message->trade_condition)
     };
     pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
@@ -501,6 +502,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 	gapNum },
       price,
       size,
+      s->trading_action,
       EKA_BATS_TRADE_COND(message->trade_condition)
     };
     pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);

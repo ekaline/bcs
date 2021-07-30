@@ -136,29 +136,6 @@
     x == EfhTradeStatus::kClosed     ? 'C' :	\
     'X'
 
-#define EKA_OPRA_TC_DECODE(x)	\
-  x == ' ' ? EfhTradeCond::kReg :		\
-    x == 'A' ? EfhTradeCond::kCanc :		\
-    x == 'B' ? EfhTradeCond::kOseq :		\
-    x == 'C' ? EfhTradeCond::kCncl :		\
-    x == 'D' ? EfhTradeCond::kLate :		\
-    x == 'F' ? EfhTradeCond::kOpen :		\
-    x == 'G' ? EfhTradeCond::kCnol :		\
-    x == 'H' ? EfhTradeCond::kOpnl :		\
-    x == 'I' ? EfhTradeCond::kAuto :		\
-    x == 'J' ? EfhTradeCond::kReop :		\
-    x == 'K' ? EfhTradeCond::kAjst :		\
-    x == 'L' ? EfhTradeCond::kSprd :		\
-    x == 'M' ? EfhTradeCond::kStdl :		\
-    x == 'N' ? EfhTradeCond::kStdp :		\
-    x == 'O' ? EfhTradeCond::kCstp :		\
-    x == 'Q' ? EfhTradeCond::kCmbo :		\
-    x == 'R' ? EfhTradeCond::kSpim :		\
-    x == 'S' ? EfhTradeCond::kIsoi :		\
-    x == 'T' ? EfhTradeCond::kBnmt :		\
-    x == 'X' ? EfhTradeCond::kXmpt :		\
-    EfhTradeCond::kUnmapped
-
 inline int strikePriceScaleFactor (EkaSource exch) {
   switch (EFH_EXCH2FEED(exch)) {
   case EfhFeedVer::kBATS:

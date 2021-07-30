@@ -78,7 +78,8 @@ bool EkaFhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
 	gapNum },
       msg->Price,
       msg->Volume,
-      EfhTradeCond::kReg
+      s->trading_action,
+      EfhTradeCond::kREG
     };
     pEfhRunCtx->onEfhTradeMsgCb(&efhTradeMsg, s->efhUserData, pEfhRunCtx->efhRunUserData);
   }
