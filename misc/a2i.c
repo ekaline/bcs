@@ -12,6 +12,8 @@
 
 #define on_error(...) do { const int err = errno; fprintf(stderr, "EKALINE API LIB FATAL ERROR: %s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); if (err) fprintf(stderr, ": %s (%d)", strerror(err), err); fprintf(stderr, "\n"); fflush(stdout); fflush(stderr); exit(1); } while(0)
 
+#define _INLINE_ 0
+
 static const uint64_t kStrLen = 8;
 
 constexpr int32_t 
@@ -86,16 +88,18 @@ getNumField8Avx1( const char* s ) {
     return result;
 }
 
-
-inline int32_t getUnrolledLoop8(const char* s) {
+#if _INLINE_
+inline
+#endif
+int32_t getUnrolledLoop8(const char* s) {
   return 
-    (s[0] - '0') * static_cast<uint32_t>(1e7) +
-    (s[1] - '0') * static_cast<uint32_t>(1e6) +
-    (s[2] - '0') * static_cast<uint32_t>(1e5) +
-    (s[3] - '0') * static_cast<uint32_t>(1e4) +
-    (s[4] - '0') * static_cast<uint32_t>(1e3) +
-    (s[5] - '0') * static_cast<uint32_t>(1e2) +
-    (s[6] - '0') * static_cast<uint32_t>(10) +
+    (s[0] - '0') * static_cast<int32_t>(1e7) +
+    (s[1] - '0') * static_cast<int32_t>(1e6) +
+    (s[2] - '0') * static_cast<int32_t>(1e5) +
+    (s[3] - '0') * static_cast<int32_t>(1e4) +
+    (s[4] - '0') * static_cast<int32_t>(1e3) +
+    (s[5] - '0') * static_cast<int32_t>(1e2) +
+    (s[6] - '0') * static_cast<int32_t>(10) +
     (s[7] - '0');
 }
 
@@ -111,7 +115,8 @@ inline int32_t digit_0_string8(const char c) {
     case '7' : return 70000000;
     case '8' : return 80000000;
     case '9' : return 90000000;
-    default: on_error("unexpected char \'%c\'",c);
+    default  : return 0;
+    //    default: on_error("unexpected char \'%c\'",c);
     }
 }
 
@@ -127,7 +132,8 @@ inline int32_t digit_1_string8(const char c) {
     case '7' : return 7000000;
     case '8' : return 8000000;
     case '9' : return 9000000;
-    default: on_error("unexpected char \'%c\'",c);
+    default  : return 0;
+    //    default: on_error("unexpected char \'%c\'",c);
     }
 }
 
@@ -143,7 +149,8 @@ inline int32_t digit_2_string8(const char c) {
     case '7' : return 700000;
     case '8' : return 800000;
     case '9' : return 900000;
-    default: on_error("unexpected char \'%c\'",c);
+    default  : return 0;
+    //    default: on_error("unexpected char \'%c\'",c);
     }
 }
 
@@ -159,7 +166,8 @@ inline int32_t digit_3_string8(const char c) {
     case '7' : return 70000;
     case '8' : return 80000;
     case '9' : return 90000;
-    default: on_error("unexpected char \'%c\'",c);
+    default  : return 0;
+    //    default: on_error("unexpected char \'%c\'",c);
     }
 }
 
@@ -175,7 +183,8 @@ inline int32_t digit_4_string8(const char c) {
     case '7' : return 7000;
     case '8' : return 8000;
     case '9' : return 9000;
-    default: on_error("unexpected char \'%c\'",c);
+    default  : return 0;
+    //    default: on_error("unexpected char \'%c\'",c);
     }
 }
 
@@ -191,7 +200,8 @@ inline int32_t digit_5_string8(const char c) {
     case '7' : return 700;
     case '8' : return 800;
     case '9' : return 900;
-    default: on_error("unexpected char \'%c\'",c);
+    default  : return 0;
+    //    default: on_error("unexpected char \'%c\'",c);
     }
 }
 
@@ -207,7 +217,8 @@ inline int32_t digit_6_string8(const char c) {
     case '7' : return 70;
     case '8' : return 80;
     case '9' : return 90;
-    default: on_error("unexpected char \'%c\'",c);
+    default  : return 0;
+    //    default: on_error("unexpected char \'%c\'",c);
     }
 }
 
@@ -223,11 +234,15 @@ inline int32_t digit_7_string8(const char c) {
     case '7' : return 7;
     case '8' : return 8;
     case '9' : return 9;
-    default: on_error("unexpected char \'%c\'",c);
+    default  : return 0;
+    //    default: on_error("unexpected char \'%c\'",c);
     }
 }
 
-inline int32_t getUnrolledLoop8_predefined(const char* s) {
+#if _INLINE_
+inline
+#endif
+int32_t getUnrolledLoop8_predefined(const char* s) {
     return 
     digit_0_string8(s[0]) +
     digit_1_string8(s[1]) +
@@ -239,7 +254,10 @@ inline int32_t getUnrolledLoop8_predefined(const char* s) {
     digit_7_string8(s[7]);
 }
 
-inline int32_t getLoop8(const char* s) {
+#if _INLINE_
+inline
+#endif
+int32_t getLoop8(const char* s) {
   int32_t acc = 0;
   for (auto i = 0; i < 8; i++) {
     int digit = s[i] - '0';
