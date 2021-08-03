@@ -266,6 +266,14 @@ int32_t getLoop8(const char* s) {
   return acc;
 }
 
+#if _INLINE_
+inline
+#endif
+int32_t getStToI8(const char* s) {
+    auto str = std::string(s,8);
+    return std::stoi(str,nullptr);
+}
+
 typedef int32_t (*A2I_F) (const char* s);
 
 template <const size_t TestIter, const size_t StringLen>
@@ -317,10 +325,14 @@ int main(int argc, char *argv[]) {
     t.push_back(Test("Loop8",getLoop8));
     t.push_back(Test("UnrolledLoop8",getUnrolledLoop8));
     t.push_back(Test("UnrolledLoop8_predefined",getUnrolledLoop8_predefined));
+    t.push_back(Test("stoi",getStToI8));
 
-    for (auto& tst : t) {
-	tst.run();
-	tst.printResults();
+    for (auto j = 0; j < 2; j++) {
+	printf ("%d: ============================\n",j);
+	for (auto& tst : t) {
+	    tst.run();
+	    tst.printResults();
+	}
     }
     return 0;
 }
