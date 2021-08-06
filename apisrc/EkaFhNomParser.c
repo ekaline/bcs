@@ -521,7 +521,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
 	gapNum },
       be32toh(message->price) / EFH_PRICE_SCALE,
       be32toh(message->size),
-      EfhTradeCond::kReg
+      s->trading_action,
+      EfhTradeCond::kREG
     };
     pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
 

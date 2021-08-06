@@ -131,7 +131,86 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     getStatus<FhSecurity>(s,boxMsg->InstrumentStatusMarker);
     if (op != EkaFhMode::SNAPSHOT)
       book->generateOnQuote (pEfhRunCtx, s, sequence, gr_ts, gapNum);
+    //===================================================
+  } else if (memcmp(msgHdr->MsgType,"C ",sizeof(msgHdr->MsgType)) == 0) { // Option Trade
+    auto boxMsg {reinterpret_cast<const HsvfOptionTrade*>(msgBody)};
+    SecurityIdT security_id = charSymbol2SecurityId(boxMsg->InstrumentDescription);
+    s = book->findSecurity(security_id);
+    if (s == NULL) return false;
 
+    EfhTradeMsg msg = {};
+    msg.header.msgType        = EfhMsgType::kTrade;
+    msg.header.group.source   = EkaSource::kBOX_HSVF;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.securityId     = charSymbol2SecurityId(boxMsg->InstrumentDescription);
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = gr_ts;
+    msg.header.gapNum         = gapNum;
+
+    msg.price = getNumField<uint32_t>(boxMsg->TradePrice,sizeof(boxMsg->TradePrice)) *
+      getFractionIndicator(boxMsg->TradePriceFractionIndicator);
+    msg.size = getNumField<uint32_t>(boxMsg->Volume,sizeof(boxMsg->Volume));
+    msg.tradeStatus = s->trading_action;
+    switch (boxMsg->PriceIndicatorMarker) {
+    case ' ':
+      // Actual transaction took place
+      msg.tradeCond = EfhTradeCond::kREG;
+      break;
+
+    case 'C':
+      // Trades performed at the end  of a PIP allocation phase -> SLAN
+      // (Single Leg Auction Non ISO)
+      msg.tradeCond = EfhTradeCond::kSLAN;
+      break;
+
+    case 'L':
+      // Late trade (Transaction is  being reported late and is out of
+      // sequence) -> OSEQ (same definition)
+      msg.tradeCond = EfhTradeCond::kOSEQ;
+      break;
+
+    case 'O':
+      // Trades performed during the opening -> OSHT (code is not part
+      // of OPRA, we made it up to map to AVT's "outside hours trade."
+      msg.tradeCond = EfhTradeCond::kOSHT;
+      break;
+
+    case 'W':
+      // Trades resulting from the transmission of an ISO Inbound order -> ISOI
+      msg.tradeCond = EfhTradeCond::kISOI;
+      break;
+
+    case 'X':
+      // Trades performed when the market is closed or crossed -> REG
+      // FIXME: this is wrong, but it is what the old feed handler did.
+      msg.tradeCond = EfhTradeCond::kREG;
+      break;
+
+    case 'P':
+      // Trade done on a Complex Order Instrument -> MLET (Multi Leg
+      // auto-electronic trade)
+      // FIXME: not sure if this is correct
+      msg.tradeCond = EfhTradeCond::kMLET;
+      break;
+
+    case 'I':
+      // Trade involving an implied order or Leg Trade of a Complex Order
+      // instrument -> TESL (Stock Options auto-electronic trade against
+      // against single leg(s))
+      // FIXME: not sure if this is correct
+      msg.tradeCond = EfhTradeCond::kTESL;
+      break;
+
+    case 'S': /* Reference price (volume field zero filled) */
+    case 'V': /* Volume adjustment -- was this deprecated? */
+    case 'G': /* Contingent Trade, price of the trade was not controlled against the NBBO. */
+    default:
+      msg.tradeCond = EfhTradeCond::kUnmapped;
+      break;
+    }
+
+    pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
     //===================================================
   } else if (memcmp(msgHdr->MsgType,"Z ",sizeof(msgHdr->MsgType)) == 0) { // SystemTimeStamp
     const char* timeStamp = ((HsvfSystemTimeStamp*)msgBody)->TimeStamp;

@@ -206,7 +206,7 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     msg.header.gapNum         = gapNum;
     msg.price                 = message->price;
     msg.size                  = message->size;
-    msg.tradeCond             = EKA_OPRA_TC_DECODE(message->trade_condition);
+    msg.tradeCond             = static_cast<EfhTradeCond>(message->trade_condition);
 
     pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
     return false;
