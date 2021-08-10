@@ -436,9 +436,8 @@ struct batspitch_instrument_definition_finished { // 0x86
 } __attribute__((packed));
 
 #define EKA_BATS_TRADE_COND(x)		 \
-  x == ' ' ? EfhTradeCond::kReg :	 \
-    x == 'S' ? EfhTradeCond::kSprd :	 \
-    x == 'I' ? EfhTradeCond::kIsoi :	 \
+  x == ' ' ? EfhTradeCond::kREG :	 \
+    x == 'I' ? EfhTradeCond::kISOI :	 \
     EfhTradeCond::kUnmapped
 
 

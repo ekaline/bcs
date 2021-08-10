@@ -559,12 +559,12 @@ namespace Hsvf {
 
   }
 
-  inline auto getSide(const char hsvfSide) {
+  inline auto getSide(const char hsvfSide, bool flipSide) {
     switch (hsvfSide) {
-    case 'B' : return EfhOrderSide::kBid;
-    case 'S' : return EfhOrderSide::kAsk;
+    case 'B' : return flipSide ? EfhOrderSide::kAsk : EfhOrderSide::kBid;
+    case 'S' : return flipSide ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
     case ' ' : return EfhOrderSide::kOther; // Both
-    default  : 
+    default  :
       on_error("Unexpected hsvfSide \'%c\'",hsvfSide);
     }
   }
@@ -573,7 +573,7 @@ namespace Hsvf {
     // HHMMSSCC
     int hour {(t[0] - '0') * 10  + (t[1] - '0')};
     int min  {(t[2] - '0') * 10  + (t[3] - '0')};
-    int sec  {(t[4] - '0') * 10  + (t[4] - '0')};
+    int sec  {(t[4] - '0') * 10  + (t[5] - '0')};
     int ms   {(t[6] - '0') * 100 + (t[7] - '0') * 10};
 
     uint64_t ns = hour * 60 * 60 * 1e9 +

@@ -136,29 +136,6 @@
     x == EfhTradeStatus::kClosed     ? 'C' :	\
     'X'
 
-#define EKA_OPRA_TC_DECODE(x)	\
-  x == ' ' ? EfhTradeCond::kReg :		\
-    x == 'A' ? EfhTradeCond::kCanc :		\
-    x == 'B' ? EfhTradeCond::kOseq :		\
-    x == 'C' ? EfhTradeCond::kCncl :		\
-    x == 'D' ? EfhTradeCond::kLate :		\
-    x == 'F' ? EfhTradeCond::kOpen :		\
-    x == 'G' ? EfhTradeCond::kCnol :		\
-    x == 'H' ? EfhTradeCond::kOpnl :		\
-    x == 'I' ? EfhTradeCond::kAuto :		\
-    x == 'J' ? EfhTradeCond::kReop :		\
-    x == 'K' ? EfhTradeCond::kAjst :		\
-    x == 'L' ? EfhTradeCond::kSprd :		\
-    x == 'M' ? EfhTradeCond::kStdl :		\
-    x == 'N' ? EfhTradeCond::kStdp :		\
-    x == 'O' ? EfhTradeCond::kCstp :		\
-    x == 'Q' ? EfhTradeCond::kCmbo :		\
-    x == 'R' ? EfhTradeCond::kSpim :		\
-    x == 'S' ? EfhTradeCond::kIsoi :		\
-    x == 'T' ? EfhTradeCond::kBnmt :		\
-    x == 'X' ? EfhTradeCond::kXmpt :		\
-    EfhTradeCond::kUnmapped
-
 inline int strikePriceScaleFactor (EkaSource exch) {
   switch (EFH_EXCH2FEED(exch)) {
   case EfhFeedVer::kBATS:
@@ -182,6 +159,32 @@ inline void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* 
     m = ((msg->expiryDate - d) / 100) % 100;
     y = msg->expiryDate / 10000 - 2000;
 
+    //<<<<<<< HEAD
+// inline int strikePriceScaleFactor (EkaSource exch) {
+//   switch (EFH_EXCH2FEED(exch)) {
+//   case EfhFeedVer::kBATS:
+//   case EfhFeedVer::kBOX  : return 10;
+//   case EfhFeedVer::kGEMX : return 10000;
+//   default:                 return 1;    
+//   }
+// }
+
+// inline void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg) {
+//   if (msg->header.group.source  == EkaSource::kCME_SBE && msg->securityType == EfhSecurityType::kOption) {
+//     std::string classSymbol    = std::string(msg->classSymbol,sizeof(msg->classSymbol));
+//     sprintf(dst,"%s_%c%04jd",
+// 	    classSymbol.c_str(),
+// 	    msg->optionType == EfhOptionType::kCall ? 'C' : 'P',
+// 	    msg->strikePrice);
+//   } else {
+//     uint8_t y,m,d;
+
+//     d = msg->expiryDate % 100;
+//     m = ((msg->expiryDate - d) / 100) % 100;
+//     y = msg->expiryDate / 10000 - 2000;
+
+// =======
+// >>>>>>> c2f70d1cd99f8e175b9495a9838cdfa88a65f98f
     memcpy(dst,msg->underlying,6);
     for (auto i = 0; i < 6; i++) if (dst[i] == 0 || dst[i] == ' ') dst[i] = '_';
     char call_put = msg->optionType == EfhOptionType::kCall ? 'C' : 'P';

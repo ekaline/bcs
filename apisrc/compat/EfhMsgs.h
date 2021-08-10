@@ -294,31 +294,59 @@ typedef struct {
         EfhComplexDefinitionMsg_FIELD_ITER( EKA__FIELD_DEF )
 } EfhComplexDefinitionMsg;
 
-enum class EfhAuctionType : uint8_t {
+enum class EfhAuctionType : char {
     #define EfhAuctionType_ENUM_ITER( _x )                                  \
-                _x( Unknown, 0 )                                            \
-                _x( Complex             )                                   \
-                _x( ComplexSolicitation )                                   \
-                _x( AIM )                                                   \
-                _x( AllOrNone )
+                _x( Unknown, ' ' )                                          \
+                /* Price Improvement Period (PIP) is used on BOX */         \
+                _x( PriceImprovementPeriod, 'Q' )                           \
+                _x( Facilitation, 'F' )                                     \
+                _x( Solicitation, 'S' )                                     \
+                _x( Exposed,      'E' )
         EfhAuctionType_ENUM_ITER( EKA__ENUM_DEF )
+};
+
+enum class EfhAuctionUpdateType : char {
+    #define EfhAuctionUpdateType_ENUM_ITER( _x )                            \
+                _x( Unknown, 'U' )                                          \
+                _x( New,     'N' )                                          \
+                _x( Replace, 'R' )                                          \
+                _x( Delete,  'D' )
+        EfhAuctionUpdateType_ENUM_ITER( EKA__ENUM_DEF )
+};
+
+enum class EfhOrderCapacity : char {
+    #define EfhOrderCapacity_ENUM_ITER( _x )                                \
+                _x( Unknown, 'U' )                                          \
+                _x( Customer, 'C' )                                         \
+                _x( BrokerDealer, 'B' )                                     \
+                _x( BrokerDealerAsCustomer, 'W' )                           \
+                _x( AwayBrokerDealerAsCustomer, 'V' )                       \
+                _x( AwayBrokerDealer, 'Y' )                                 \
+                _x( AwayNotAffiliatedMarketMaker, 'Z' )                     \
+                _x( Agency, 'A' )                                           \
+                _x( Principal, 'P' )                                        \
+                _x( MarketMaker, 'M' )                                      \
+                _x( AwayMarketMaker, 'N' )                                  \
+                _x( ProfessionalCustomer, 'D' )                             \
+                _x( Proprietary, 'E' )
+        EfhOrderCapacity_ENUM_ITER( EKA__ENUM_DEF )
 };
 
 typedef char EfhCounterparty[8];
 
 typedef struct {
-    #define EfhAuctionUpdateMsg_FIELD_ITER( _x )                        \
-                _x( EfhMsgHeader,    header )                               \
-                _x( uint64_t,        auctionId)                             \
-                _x( EfhAuctionType,  type )                                 \
-                _x( EfhOrderSide,    side )                                 \
-                _x( bool,            customer )                             \
-         	_x( EfhSecurityType, securityType )                         \
-                _x( uint32_t,        quantity )                             \
-                _x( int64_t,         price )                                \
-                _x( uint64_t,        endTimeNanos )                         \
-                _x( EfhCounterparty, execBroker )                           \
-                _x( EfhCounterparty, client )
+    #define EfhAuctionUpdateMsg_FIELD_ITER( _x )                            \
+                _x( EfhMsgHeader,         header )                          \
+                _x( uint64_t,             auctionId )                       \
+                _x( EfhAuctionType,       auctionType )                     \
+                _x( EfhAuctionUpdateType, updateType)                       \
+                _x( EfhOrderSide,         side )                            \
+                _x( EfhOrderCapacity,     capacity )                        \
+                _x( EfhSecurityType,      securityType )                    \
+                _x( uint32_t,             quantity )                        \
+                _x( int64_t,              price )                           \
+                _x( uint64_t,             endTimeNanos )                    \
+                _x( EfhCounterparty,      firmId )
         EfhAuctionUpdateMsg_FIELD_ITER( EKA__FIELD_DEF )
 } EfhAuctionUpdateMsg;
 
@@ -326,15 +354,15 @@ typedef struct {
  *
  */
 enum class EfhTradeStatus : char {
-    #define EfhTradeStatus_ENUM_ITER( _x )                              \
-                _x( GapRecover,        'G' )                            \
-		  _x( Uninit,            '_' )				\
-		  _x( Halted,            'H' )				\
-		  _x( Preopen,           'P' )				\
-		  _x( OpeningRotation,   'O' )				\
-		  _x( Normal,            'N' )				\
-		  _x( Closed,            'C' )
-  EfhTradeStatus_ENUM_ITER( EKA__ENUM_DEF )
+    #define EfhTradeStatus_ENUM_ITER( _x )                                  \
+                _x( GapRecover,        'G' )                                \
+                _x( Uninit,            '_' )                                \
+                _x( Halted,            'H' )                                \
+                _x( Preopen,           'P' )                                \
+                _x( OpeningRotation,   'O' )                                \
+                _x( Normal,            'N' )                                \
+                _x( Closed,            'C' )
+        EfhTradeStatus_ENUM_ITER( EKA__ENUM_DEF )
 };
 
 /*
@@ -366,37 +394,47 @@ typedef struct {
 } EfhQuoteMsg;
 
 /*
- *
+ * Trade condition is based on OPRA Last Sale "Message Type", from OPRA
+ * binary specification 3.6a, section 5.01.
  */
-enum class EfhTradeCond {
+enum class EfhTradeCond : char {
     #define EfhTradeCond_ENUM_ITER( _x )                                    \
-                _x( Unmapped, 0 )                                           \
-                _x( Reg, 1 )                                                \
-                _x( Canc   )                                                \
-                _x( Oseq   )                                                \
-                _x( Cncl   )                                                \
-                _x( Late   )                                                \
-                _x( Cnco   )                                                \
-                _x( Open   )                                                \
-                _x( Cnol   )                                                \
-                _x( Opnl   )                                                \
-                _x( Auto   )                                                \
-                _x( Reop   )                                                \
-                _x( Ajst   )                                                \
-                _x( Sprd   )                                                \
-                _x( Stdl   )                                                \
-                _x( Stdp   )                                                \
-                _x( Cstp   )                                                \
-                _x( Cmbo   )                                                \
-                _x( Spim   )                                                \
-                _x( Isoi   )                                                \
-                _x( Bnmt   )                                                \
-                _x( Xmpt   )                                                \
-                _x( Blkt   )                                                \
-                _x( Exph   )                                                \
-                _x( Cncp   )                                                \
-                _x( Blkp   )                                                \
-                _x( Expp   )   
+                _x( Unmapped, '\0' )                                        \
+                _x( REG,  ' ' )                                             \
+                _x( CANC, 'A' )                                             \
+                _x( OSEQ, 'B' )                                             \
+                _x( CNCL, 'C' )                                             \
+                _x( LATE, 'D' )                                             \
+                _x( CNCO, 'E' )                                             \
+                _x( OPEN, 'F' )                                             \
+                _x( CNOL, 'G' )                                             \
+                _x( OPNL, 'H' )                                             \
+                _x( AUTO, 'I' )                                             \
+                _x( REOP, 'J' )                                             \
+                _x( ISOI, 'S' )                                             \
+                _x( SLAN, 'a' )                                             \
+                _x( SLAI, 'b' )                                             \
+                _x( SLCN, 'c' )                                             \
+                _x( SLCI, 'd' )                                             \
+                _x( SLFT, 'e' )                                             \
+                _x( MLET, 'f' )                                             \
+                _x( MLAT, 'g' )                                             \
+                _x( MLCT, 'h' )                                             \
+                _x( MLFT, 'i' )                                             \
+                _x( MESL, 'j' )                                             \
+                _x( TLAT, 'k' )                                             \
+                _x( MASL, 'l' )                                             \
+                _x( MFSL, 'm' )                                             \
+                _x( TLET, 'n' )                                             \
+                _x( TLCT, 'o' )                                             \
+                _x( TLFT, 'p' )                                             \
+                _x( TESL, 'q' )                                             \
+                _x( TASL, 'r' )                                             \
+                _x( TFSL, 's' )                                             \
+                _x( CMBO, 't' )                                             \
+                _x( MCTP, 'u' )                                             \
+                /* Not a real OPRA code, Outside-Hours trade on BOX */      \
+                _x( OSHT, 'z' )
         EfhTradeCond_ENUM_ITER( EKA__ENUM_DEF )
 };
 
@@ -409,6 +447,7 @@ typedef struct {
                 /** Divide by EFH_PRICE_SCALE. */                           \
                 _x( uint32_t,     price )                                   \
                 _x( uint32_t,     size )                                    \
+                _x( EfhTradeStatus, tradeStatus )                           \
                 _x( EfhTradeCond, tradeCond )
         EfhTradeMsg_FIELD_ITER( EKA__FIELD_DEF )
 } EfhTradeMsg;
