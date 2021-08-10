@@ -24,7 +24,7 @@ inline int getStatus(FhSecurity* s, char statusMarker) {
 
   case 'O' : // Opening phase
     s->option_open    = true;
-    s->trading_action = EfhTradeStatus::kNormal;
+    s->trading_action = EfhTradeStatus::kOpeningRotation;
     break;
 
   case 'T' : // Opened for Trading
