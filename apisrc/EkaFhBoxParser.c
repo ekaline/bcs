@@ -24,7 +24,7 @@ inline int getStatus(FhSecurity* s, char statusMarker) {
 
   case 'O' : // Opening phase
     s->option_open    = true;
-    s->trading_action = EfhTradeStatus::kNormal;
+    s->trading_action = EfhTradeStatus::kOpeningRotation;
     break;
 
   case 'T' : // Opened for Trading
@@ -214,12 +214,12 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     //===================================================
   } else if (memcmp(msgHdr->MsgType,"Z ",sizeof(msgHdr->MsgType)) == 0) { // SystemTimeStamp
     const char* timeStamp = ((HsvfSystemTimeStamp*)msgBody)->TimeStamp;
-    uint64_t hour = getNumField<uint64_t>(&timeStamp[0],2);
-    uint64_t min  = getNumField<uint64_t>(&timeStamp[2],2);
-    uint64_t sec  = getNumField<uint64_t>(&timeStamp[4],2);
-    uint64_t ms   = getNumField<uint64_t>(&timeStamp[6],3);
-    
-    gr_ts = ((hour * 3600 + min * 60 + sec) * 1000 + ms) * 1000000;
+    this->localTimeComponents.tm_hour = getNumField<uint64_t>(&timeStamp[0],2);
+    this->localTimeComponents.tm_min  = getNumField<uint64_t>(&timeStamp[2],2);
+    this->localTimeComponents.tm_sec  = getNumField<uint64_t>(&timeStamp[4],2);
+    const uint64_t millis             = getNumField<uint64_t>(&timeStamp[6],3);
+
+    gr_ts = std::mktime(&this->localTimeComponents) * 1'000'000'000 + millis * 1'000'000;
   } else if (memcmp(msgHdr->MsgType,"U ",sizeof(msgHdr->MsgType)) == 0) { // EndOfTransmission
     EKA_LOG("%s:%u End Of Transmission",EKA_EXCH_DECODE(exch),id);
     return true;
