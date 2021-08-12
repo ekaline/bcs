@@ -36,7 +36,7 @@ namespace Plr {
   inline std::string deliveryFlag2str (uint8_t flag) {
     switch (static_cast<DeliveryFlag>(flag)) {
     case DeliveryFlag::Heartbeat :
-      return std::string("");
+      return std::string("Heartbeat");
     case DeliveryFlag::Failover :
       return std::string("Failover");
     case DeliveryFlag::Original :
@@ -147,15 +147,13 @@ namespace Plr {
     auto pktHdr {reinterpret_cast<const PktHdr*>(p)};
 
     uint64_t ts = pktHdr->seconds * 1e9 + pktHdr->ns;
-    printf ("%u,%s",pktHdr->seqNum,ts_ns2str(ts).c_str());
-
+    printf ("%u,",pktHdr->seqNum);
+    printf ("%s,",ts_ns2str(ts).c_str());
+    printf ("%s,",deliveryFlag2str(pktHdr->deliveryFlag).c_str());
+    printf("\n");
+    
     p += sizeof(*pktHdr);
 
-    if (pktHdr->numMsgs == 0)
-      printf(", Heartbeat\n");
-    else
-      printf("\n");
-    
     for (auto i = 0; i < pktHdr->numMsgs; i++) {
       auto msgHdr {reinterpret_cast<const MsgHdr*>(p)};
       printf ("\t%s\n",msgType2str(msgHdr->type).c_str());
