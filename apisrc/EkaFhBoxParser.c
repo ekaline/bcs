@@ -291,7 +291,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.capacity              = EfhOrderCapacity::kBrokerDealer;
     msg.quantity              = getNumField<uint32_t>(boxMsg->Size,sizeof(boxMsg->Size));
     msg.price                 = getNumField<uint32_t>(boxMsg->Price,sizeof(boxMsg->Price)) * getFractionIndicator(boxMsg->PriceFractionIndicator);
-    msg.endTimeNanos          = getExpireNs(boxMsg->ExpiryTime);
+    msg.endTimeNanos          = getExpireNs(&localTimeComponents, boxMsg->ExpiryTime);
 
     switch (boxMsg->AuctionType) {
     case 'G': msg.auctionType = EfhAuctionType::kPriceImprovementPeriod; break;
@@ -324,7 +324,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.side                  = getSide(boxMsg->OrderSide, /*flipSide*/ boxMsg->OrderType == 'E');
     msg.quantity              = getNumField<uint32_t>(boxMsg->Size,sizeof(boxMsg->Size));
     msg.price                 = getNumField<uint32_t>(boxMsg->LimitPrice,sizeof(boxMsg->LimitPrice)) * getFractionIndicator(boxMsg->LimitPriceFractionIndicator);
-    msg.endTimeNanos          = getExpireNs(boxMsg->EndOfExposition);
+    msg.endTimeNanos          = getExpireNs(&localTimeComponents, boxMsg->EndOfExposition);
 
     if (boxMsg->OrderType == 'A') { // Initial
       msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
