@@ -19,6 +19,7 @@
 #include <assert.h>
 #include <sched.h>
 
+#include "EkaFhParserCommon.h"
 #include "EkaFhXdpGr.h"
 #include "EkaFhXdpParser.h"
 
@@ -253,21 +254,20 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
       msg.header.timeStamp      = 0;
       msg.header.gapNum         = 0;
 
-      //    msg.secondaryGroup        = 0;
-      msg.securityType          = EfhSecurityType::kOption;
-      msg.expiryDate            = 
+      msg.commonDef.securityType   = EfhSecurityType::kOption;
+      msg.commonDef.exchange       = EKA_GRP_SRC2EXCH(gr->exch);
+      msg.commonDef.underlyingType = EfhSecurityType::kStock;
+      msg.commonDef.expiryDate     =
 	(2000 + (m->MaturityDate[0] - '0') * 10 + (m->MaturityDate[1] - '0')) * 10000 + 
 	(       (m->MaturityDate[2] - '0') * 10 +  m->MaturityDate[3] - '0')  * 100   +
 	(        m->MaturityDate[4] - '0') * 10 +  m->MaturityDate[5] - '0';
-
-      msg.contractSize          = m->ContractMultiplier;
+      msg.commonDef.contractSize          = m->ContractMultiplier;
       
       msg.strikePrice           = (uint64_t) (strtof(m->StrikePrice,NULL) * 10000); //  / EFH_XDP_STRIKE_PRICE_SCALE;
-      msg.exchange              = EKA_GRP_SRC2EXCH(gr->exch);
       msg.optionType            = m->PutOrCall ?  EfhOptionType::kCall : EfhOptionType::kPut;
 
-      memcpy (&msg.underlying, m->UnderlyingSymbol,std::min(sizeof(msg.underlying), sizeof(m->UnderlyingSymbol)));
-      memcpy (&msg.classSymbol,m->OptionSymbolRoot,std::min(sizeof(msg.classSymbol),sizeof(m->OptionSymbolRoot)));
+      copySymbol(msg.commonDef.underlying, m->UnderlyingSymbol);
+      copySymbol(msg.commonDef.classSymbol,m->OptionSymbolRoot);
 
       XdpAuxAttrA attrA = {};
       attrA.attr.StreamID       = m->StreamID;

@@ -207,8 +207,8 @@ EkaOpResult efhStopGroups( EfhCtx* pEfhCtx ) {
  * @param pEfhCtx 
  * @retval [See EkaOpResult].
  */
-EkaOpResult efhGetDefs( EfhCtx* pEfhCtx, const struct EfhRunCtx* pEfhRunCtx, EkaGroup* group, void** retval) {
-  assert (pEfhCtx != NULL);
+EkaOpResult efhGetDefs( EfhCtx* pEfhCtx, const struct EfhRunCtx* pEfhRunCtx, const EkaGroup* group, void** retval) {
+  assert (pEfhCtx != NULL && group != NULL);
 
   return pEfhCtx->dev->fh[pEfhCtx->fhId]->getDefinitions(pEfhCtx, pEfhRunCtx, group);
   //  eka_fh_request_group_definitions(pEfhCtx, pEfhRunCtx, group);
@@ -235,7 +235,7 @@ EkaOpResult efhGetDefs( EfhCtx* pEfhCtx, const struct EfhRunCtx* pEfhRunCtx, Eka
 /*   //  return eka_fh_subscribe_static(pEfhCtx, group->localId, securityId, efhSecurityType, efhSecUserData); */
 /* } */
 
-EkaOpResult efhSubscribeStatic( EfhCtx* pEfhCtx, EkaGroup* group, uint64_t securityId, EfhSecurityType efhSecurityType,EfhSecUserData efhSecUserData,uint64_t opaqueAttrA,uint64_t opaqueAttrB) {
+EkaOpResult efhSubscribeStatic( EfhCtx* pEfhCtx, const EkaGroup* group, uint64_t securityId, EfhSecurityType efhSecurityType,EfhSecUserData efhSecUserData,uint64_t opaqueAttrA,uint64_t opaqueAttrB) {
   assert (pEfhCtx != NULL);
 
   return pEfhCtx->dev->fh[pEfhCtx->fhId]->subscribeStaticSecurity(group->localId, securityId, efhSecurityType, efhSecUserData,opaqueAttrA,opaqueAttrB);
@@ -258,6 +258,10 @@ EkaOpResult efhSubscribeDynamic(EfhCtx* pEfhCtx, uint64_t securityId, EfhSecurit
   assert (pEfhCtx != NULL);
 
   return EKA_OPRESULT__ERR_NOT_IMPLEMENTED;
+}
+
+EkaOpResult efhSetTradeTimeCtx(EfhCtx* pEfhCtx, void* tradeTimeCtx) {
+  return pEfhCtx->dev->fh[pEfhCtx->fhId]->setTradeTimeCtx(tradeTimeCtx);
 }
 
 /**

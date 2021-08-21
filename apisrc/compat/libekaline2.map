@@ -18,6 +18,7 @@ LIBEKALINE2_1.0	{
 			efhGetDefs;
 			efhSubscribeStatic;
 			efhSubscribeDynamic;
+			efhSetTradeTimeCtx;
 			efhRunGroups;
 			ekaGetCapsResult;
 			excInit;

@@ -6,6 +6,7 @@
 #include <inttypes.h>
 #include <assert.h>
 
+#include "EkaFhParserCommon.h"
 #include "EkaFhPhlxOrdGr.h"
 #include "EkaFhPhlxOrdParser.h"
 
@@ -60,8 +61,9 @@ bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m
     msg.header.timeStamp      = 0;
     msg.header.gapNum         = gapNum;
 
-    //    msg.secondaryGroup        = 0;
-    msg.securityType          = EfhSecurityType::kOption;
+    msg.commonDef.securityType   = EfhSecurityType::kOption;
+    msg.commonDef.exchange       = EfhExchange::kPHLX;
+    msg.commonDef.underlyingType = EfhSecurityType::kStock;
     // (message->expiration Denotes the explicit expiration date of the option.
     // Bits 0-6 = Year (0-99)
     // Bits 7-10 = Month (1-12)
@@ -72,16 +74,16 @@ bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m
     uint16_t year  = (expiration >> 9) & 0x007F;
     uint16_t month = (expiration >> 5) & 0x000F;
     uint16_t day   = (expiration     ) & 0x001F;
-    msg.expiryDate            = (2000 + year) * 10000 + month * 100 + day;
-    msg.contractSize          = 0;
+    msg.commonDef.expiryDate     = (2000 + year) * 10000 + month * 100 + day;
+    msg.commonDef.contractSize   = 0;
+
     msg.strikePrice           = be32toh(message->strike_price) / EFH_PHLX_STRIKE_PRICE_SCALE;
-    msg.exchange              = EfhExchange::kPHLX;
     if (message->option_type != 'C' &&  message->option_type != 'P') 
       on_error("Unexpected message->option_type == \'%c\'",message->option_type);
     msg.optionType            = message->option_type == 'C' ?  EfhOptionType::kCall : EfhOptionType::kPut;
 
-    memcpy (&msg.underlying, message->underlying_symbol,std::min(sizeof(msg.underlying), sizeof(message->underlying_symbol)));
-    memcpy (&msg.classSymbol,message->security_symbol,  std::min(sizeof(msg.classSymbol),sizeof(message->security_symbol)));
+    copySymbol(msg.commonDef.underlying, message->underlying_symbol);
+    copySymbol(msg.commonDef.classSymbol,message->security_symbol);
 
     pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
     return false;

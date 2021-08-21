@@ -71,7 +71,7 @@ class EkaFh {
 
   virtual EkaOpResult     getDefinitions(EfhCtx*          pEfhCtx, 
 					 const EfhRunCtx* pEfhRunCtx, 
-					 EkaGroup*        group) = 0;
+					 const EkaGroup*  group) = 0;
   
   //  void                send_igmp(bool join_leave, volatile bool igmp_thread_active);
   EkaFhAddConf        conf_parse(const char *key, const char *value);
@@ -83,6 +83,13 @@ class EkaFh {
 						      uint64_t opaqueAttrB);
 
   EkaFhGroup*         nextGrToProcess(uint first, uint numGroups);
+
+  int                 getTradeTime(const EfhDateComponents* dateComponents,
+                                   uint32_t* iso8601Date,
+                                   time_t* time);
+
+  EkaOpResult         setTradeTimeCtx(void* ctx);
+
   //-----------------------------------------------------------------------------
 
  protected:
@@ -128,6 +135,8 @@ class EkaFh {
   static const uint64_t TimeCheckRate = 1000;
   bool                  tradingHours = false;
   uint64_t              timeCheckCnt = 0;
+  EfhGetTradeTimeFn     getTradeTimeCb;
+  void*                 getTradeTimeCtx;
 };
 
 #endif
