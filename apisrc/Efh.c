@@ -18,6 +18,7 @@
 #include "EkaFhPhlxOrd.h"
 #include "EkaFhPhlxTopo.h"
 #include "EkaFhXdp.h"
+#include "EkaFhPlr.h"
 #include "EkaFhCme.h"
 
 
@@ -80,6 +81,10 @@ EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhI
   case EkaSource::kARCA_XDP:
   case EkaSource::kAMEX_XDP:
     dev->fh[fhId] = new EkaFhXdp();
+    break;
+  case EkaSource::kARCA_PLR:
+  case EkaSource::kAMEX_PLR:
+    dev->fh[fhId] = new EkaFhPlr();
     break;
   case EkaSource::kBOX_HSVF:
     dev->fh[fhId] = new EkaFhBox();
