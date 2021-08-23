@@ -22,6 +22,8 @@
 			(std::regex_search(std::string(x),std::regex("EDGX_PITCH")) == true) ? EkaSource::kEDGX_PITCH  : \
 			(std::regex_search(std::string(x),std::regex("ARCA_XDP"))   == true) ? EkaSource::kARCA_XDP  : \
 			(std::regex_search(std::string(x),std::regex("AMEX_XDP"))   == true) ? EkaSource::kAMEX_XDP  : \
+			(std::regex_search(std::string(x),std::regex("ARCA_PLR"))   == true) ? EkaSource::kARCA_PLR  : \
+			(std::regex_search(std::string(x),std::regex("AMEX_PLR"))   == true) ? EkaSource::kAMEX_PLR  : \
 			(std::regex_search(std::string(x),std::regex("BOX_HSVF"))   == true) ? EkaSource::kBOX_HSVF  : \
 			(std::regex_search(std::string(x),std::regex("CME_SBE"))    == true) ? EkaSource::kCME_SBE  : \
 			EkaSource::kInvalid)
@@ -33,6 +35,8 @@
   (x == EkaSource::kMRX_TQF)    ? EfhFeedVer::kGEMX :	\
   (x == EkaSource::kARCA_XDP)   ? EfhFeedVer::kXDP :	\
   (x == EkaSource::kAMEX_XDP)   ? EfhFeedVer::kXDP :	\
+  (x == EkaSource::kARCA_PLR)   ? EfhFeedVer::kPLR :	\
+  (x == EkaSource::kAMEX_PLR)   ? EfhFeedVer::kPLR :	\
   (x == EkaSource::kPHLX_TOPO)  ? EfhFeedVer::kPHLX :	\
   (x == EkaSource::kPHLX_ORD)   ? EfhFeedVer::kPHLX :	\
   (x == EkaSource::kMIAX_TOM)   ? EfhFeedVer::kMIAX :	\
@@ -56,6 +60,8 @@
   (x == EkaSource::kPHLX_ORD)   ? "PHLX_ORD"   :	   \
   (x == EkaSource::kARCA_XDP)   ? "ARCA_XDP"   :	   \
   (x == EkaSource::kAMEX_XDP)   ? "AMEX_XDP"   :	   \
+  (x == EkaSource::kARCA_PLR)   ? "ARCA_PLR"   :	   \
+  (x == EkaSource::kAMEX_PLR)   ? "AMEX_PLR"   :	   \
   (x == EkaSource::kC1_PITCH)   ? "C1_PITCH"   :	   \
   (x == EkaSource::kC2_PITCH)   ? "C2_PITCH"   :	   \
   (x == EkaSource::kBZX_PITCH)  ? "BZX_PITCH"  :	   \
@@ -75,6 +81,8 @@
 				   (x == EkaSource::kPHLX_ORD)   ? "PHLX_ORD"  : \
 				   (x == EkaSource::kARCA_XDP)   ? "ARCA"   : \
 				   (x == EkaSource::kAMEX_XDP)   ? "AMEX"   : \
+				   (x == EkaSource::kARCA_PLR)   ? "ARCA"   : \
+				   (x == EkaSource::kAMEX_PLR)   ? "AMEX"   : \
 				   (x == EkaSource::kC1_PITCH)   ? "C1"   : \
 				   (x == EkaSource::kC2_PITCH)   ? "C2"   : \
 				   (x == EkaSource::kBZX_PITCH)  ? "BZX"  : \
@@ -101,6 +109,8 @@
   (x == EkaSource::kEDGX_PITCH) ? EfhExchange::kEDGX  :	   \
   (x == EkaSource::kAMEX_XDP)   ? EfhExchange::kAOE   :	   \
   (x == EkaSource::kARCA_XDP)   ? EfhExchange::kPCX   :	   \
+  (x == EkaSource::kAMEX_PLR)   ? EfhExchange::kAOE   :	   \
+  (x == EkaSource::kARCA_PLR)   ? EfhExchange::kPCX   :	   \
   (x == EkaSource::kBOX_HSVF)   ? EfhExchange::kBOX   :	   \
   (x == EkaSource::kCME_SBE)    ? EfhExchange::kCME   :	   \
    EfhExchange::kUnknown)
@@ -124,6 +134,7 @@
               x == EfhFeedVer::kBATS     ? "BATS"        : \
               x == EfhFeedVer::kCBOE     ? "CBOE"        : \
               x == EfhFeedVer::kXDP      ? "XDP"        : \
+              x == EfhFeedVer::kPLR      ? "PLR"        : \
               x == EfhFeedVer::kBOX      ? "BOX"        : \
               x == EfhFeedVer::kCME      ? "CME"        : \
                                            "UNKNOWN"

@@ -21,6 +21,7 @@ enum class EfhFeedVer {
 	   _x( GEMX             )			\
 	   _x( BATS             )			\
 	   _x( XDP              )			\
+	   _x( PLR              )			\
 	   _x( BOX              )			\
 	   _x( CME              )			\
 	   _x( CBOE             )                                

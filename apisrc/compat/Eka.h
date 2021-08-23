@@ -137,6 +137,8 @@ extern "C" {
              _x( PEARL_TOM   )				\
              _x( ARCA_XDP    )				\
              _x( AMEX_XDP    )				\
+             _x( ARCA_PLR    )				\
+             _x( AMEX_PLR    )				\
              _x( EDGX_PITCH  )				\
              _x( BZX_PITCH   )				\
              _x( C1_PITCH    )				\
