@@ -14,8 +14,7 @@ public:
 				 const unsigned char*   m,
 				 uint64_t         sequence,
 				 EkaFhMode        op,
-				 std::chrono::high_resolution_clock::time_point startTime={})
-  {return false;}
+				 std::chrono::high_resolution_clock::time_point startTime={});
 
   int                   bookInit()
   {return 0;}
