@@ -65,19 +65,19 @@ namespace Plr {
   enum class MsgType : uint16_t {
     // Control
     SequenceNumberReset = 1,
-      TimeReferenceMessage = 2,
+      TimeReference = 2,
       SymbolIndexMapping = 3,
-      RetransmissionRequestMessage = 10,
-      RequestResponseMessage = 11,
-      HeartbeatResponseMessage = 12,
-      SymbolIndexMappingRequestMessage = 13,
-      RefreshRequestMessage = 15,
-      MessageUnavailable = 31,
+      RetransmissionRequest = 10,
+      RequestResponse = 11,
+      HeartbeatResponse = 12,
+      SymbolIndexMappingRequest = 13,
+      RefreshRequest = 15,
+      Unavailable = 31,
       SymbolClear = 32,
-      SecurityStatusMessage = 34,
-      RefreshHeaderMessage = 35,
+      SecurityStatus = 34,
+      RefreshHeader = 35,
       OutrightSeriesIndexMapping = 50,
-      OptionsStatusMessage = 51,
+      OptionsStatus = 51,
 
       // Top
       Quote = 340,
@@ -93,30 +93,30 @@ namespace Plr {
     switch (static_cast<MsgType>(type)) {
     case MsgType::SequenceNumberReset :
       return std::string("SequenceNumberReset");
-    case MsgType::TimeReferenceMessage :
-      return std::string("TimeReferenceMessage");
+    case MsgType::TimeReference :
+      return std::string("TimeReference");
     case MsgType::SymbolIndexMapping :
       return std::string("SymbolIndexMapping");
-    case MsgType::RetransmissionRequestMessage :
-      return std::string("RetransmissionRequestMessage");
-    case MsgType::RequestResponseMessage :
-      return std::string("RequestResponseMessage");            
-    case MsgType::SymbolIndexMappingRequestMessage :
-      return std::string("SymbolIndexMappingRequestMessage");
-    case MsgType::RefreshRequestMessage :
-      return std::string("RefreshRequestMessage");
-    case MsgType::MessageUnavailable :
+    case MsgType::RetransmissionRequest :
+      return std::string("RetransmissionRequest");
+    case MsgType::RequestResponse :
+      return std::string("RequestResponse");            
+    case MsgType::SymbolIndexMappingRequest :
+      return std::string("SymbolIndexMappingRequest");
+    case MsgType::RefreshRequest :
+      return std::string("RefreshRequest");
+    case MsgType::Unavailable :
       return std::string("MessageUnavailable");
     case MsgType::SymbolClear :
       return std::string("SymbolClear");            
-    case MsgType::SecurityStatusMessage :
-      return std::string("SecurityStatusMessage");            
-    case MsgType::RefreshHeaderMessage :
-      return std::string("RefreshHeaderMessage");            
+    case MsgType::SecurityStatus :
+      return std::string("SecurityStatus");            
+    case MsgType::RefreshHeader :
+      return std::string("RefreshHeader");            
     case MsgType::OutrightSeriesIndexMapping :
       return std::string("OutrightSeriesIndexMapping");            
-    case MsgType::OptionsStatusMessage :
-      return std::string("OptionsStatusMessage");            
+    case MsgType::OptionsStatus :
+      return std::string("OptionsStatus");            
     case MsgType::Quote :
       return std::string("Quote");            
     case MsgType::Trade :
@@ -221,7 +221,7 @@ namespace Plr {
     uint32_t sourceTimeNs;
     uint32_t SymbolIndex;
     uint32_t SymbolSeqNum;
-    char     SecurityStatus; // The new status that this security is transitioning to.
+    char     securityStatus; // The new status that this security is transitioning to.
     // The following are Halt Status Codes:
     //   ▪ 4 - Trading Halt
     //   ▪ 5 - Resume
@@ -319,13 +319,13 @@ namespace Plr {
   };
 
 
-  struct OptionStatus { // 51
+  struct OptionsStatus { // 51
     MsgHdr   hdr;
     uint32_t sourceTimeSec;
     uint32_t sourceTimeNs;
-    uint32_t SeriesIndex;
+    uint32_t seriesIndex;
     uint32_t SeriesSeqNum;
-    char     SeriesStatus; // The new status that this series is transitioning to.
+    char     seriesStatus; // The new status that this series is transitioning to.
     // The following are Halt Status Codes:
     // ▪ 4 - Trading Halt
     // ▪ 5 - Resume
@@ -379,15 +379,15 @@ namespace Plr {
     uint32_t seriesIndex;
     uint32_t seriesSeqNum;
     uint32_t askPrice;
-    uint32_t askSize;
+    uint32_t askVolume;
     uint32_t bidPrice;
-    uint32_t bidSize;
+    uint32_t bidVolume;
     char     quoteCondition; // ▪ '1' – Regular Trading
                              // ▪ '2' – Rotation
                              // ▪ '3' – Trading Halted
     char     reserved;
-    uint32_t askCustomerSize;
-    uint32_t bidCustomerSize;   
+    uint32_t askCustomerVolume;
+    uint32_t bidCustomerVolume;   
   };
 
   
@@ -400,7 +400,7 @@ namespace Plr {
       
     uint32_t tradeId;
     uint32_t price;
-    uint32_t size;
+    uint32_t volume;
       
     char     tradeCond1;
     // Settlement related conditions. Valid values:
