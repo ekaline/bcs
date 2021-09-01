@@ -46,15 +46,34 @@ static bool getRefreshResponse(EkaFhPlrGr* gr, int sock, EkaFhMode op) {
   struct timeval tv = {.tv_sec = TimeOut}; 
   setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
-  int rc = recv(sock,buf,sizeof(buf),MSG_WAITALL);
-  if (rc <= 0)
-    on_error("connection reset by peer: rc=%d, \'%s\'",rc,strerror(errno));
+  bool responseAccepted = false;
+  while (!responseAccepted ) {
+    int rc = recv(sock,buf,sizeof(buf),MSG_WAITALL);
+    if (rc <= 0)
+      on_error("connection reset by peer: rc=%d, \'%s\'",rc,strerror(errno));
+
+    auto hdr {reinterpret_cast<const MsgHdr*>(buf)};
+    EKA_LOG("Received MsgType %u (%s)",hdr->type,msgType2str(hdr->type).c_str());
+    
+    switch (static_cast<MsgType>(hdr->type)) {
+    case MsgType::SequenceNumberReset : {
+      auto msg {reinterpret_cast<const SequenceNumberReset*>(buf)};
+
+      EKA_LOG("SequenceNumberReset: SeriesIndex=%u,ProductID=%u,ChannelID=%u",
+	      msg->SeriesIndex,msg->ProductID,msg->ChannelID);
+    }
+      break;
+    case MsgType::RequestResponse :
+      responseAccepted = true;
+      break;
+    default :
+      break;
+    }
+
+  }
+
   auto msg {reinterpret_cast<const RequestResponse*>(buf)};
 
-  if (msg->hdr.type != static_cast<decltype(msg->hdr.type)>(MsgType::RequestResponse))
-    on_error("Received MsgType %d (%s) != Expected MsgType %d (%s)",
-	     (int)msg->hdr.type,msgType2str(msg->hdr.type).c_str(),
-	     (int)MsgType::RequestResponse,msgType2str((uint16_t)MsgType::RequestResponse).c_str());
   switch(msg->Status) {
   case '0' :
     EKA_LOG("Message was accepted");
@@ -91,7 +110,7 @@ static bool getRefreshResponse(EkaFhPlrGr* gr, int sock, EkaFhMode op) {
 
 static bool definitionsRefreshTcp(EkaFhPlrGr* gr, int sock) {
   if (!gr) on_error("gr == NULL");
-  auto dev {gr->dev};
+//  auto dev {gr->dev};
   if (! sendSymbolIndexMappingRequest(gr,sock))
     on_error("sendSymbolIndexMappingRequest failed");
   if (! getRefreshResponse(gr,sock,EkaFhMode::DEFINITIONS))
