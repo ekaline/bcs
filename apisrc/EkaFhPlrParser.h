@@ -10,6 +10,8 @@
 #include "eka_macros.h"
 
 namespace Plr {
+    const uint8_t NYSE_ARCA_BBO_ProductId = 162;
+    
     struct PktHdr {
 	uint16_t pktSize;
 	uint8_t  deliveryFlag;
