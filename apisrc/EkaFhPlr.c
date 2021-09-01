@@ -7,7 +7,7 @@
 
 using namespace Plr;
 
-void* getSpinData(void* attr);
+void* getPlrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op);
 
 /* ##################################################################### */
 EkaFhGroup* EkaFhPlr::addGroup() {
@@ -181,12 +181,10 @@ EkaOpResult EkaFhPlr::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 /* ##################################################################### */
 
 EkaOpResult EkaFhPlr::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group) {
-  EkaFhThreadAttr* attr = new EkaFhThreadAttr(pEfhCtx, 
-					      pEfhRunCtx, 
-					      b_gr[(uint8_t)group->localId], 
-					      1, 0, 
-					      EkaFhMode::DEFINITIONS);
-  getSpinData(attr);
-
+  auto gr {dynamic_cast<EkaFhPlrGr*>(b_gr[(uint8_t)group->localId])};
+  if (! gr) on_error("gr == NULL");
+  
+  getPlrRecovery(pEfhRunCtx, gr, EkaFhMode::DEFINITIONS);
+		 
   return EKA_OPRESULT__OK;
 }
