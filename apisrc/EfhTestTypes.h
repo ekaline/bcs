@@ -24,6 +24,7 @@
 #include "EfhPhlxTopoProps.h"
 #include "EfhXdpProps.h"
 #include "EfhCmeProps.h"
+#include "EfhPlrProps.h"
 
 
 #define MAX_SECURITIES 600000
