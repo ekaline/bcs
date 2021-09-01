@@ -109,8 +109,8 @@ void* getPlrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op) 
   char buf[2000] = {};
   uint32_t udpIp   = 0;
   uint16_t udpPort = 0;
-  uint32_t tcpIp   = 0;
-  uint16_t tcpPort = 0;
+  uint32_t tcpIp   = gr->refreshTcpIp;
+  uint16_t tcpPort = gr->refreshTcpPort;
   
   switch (op) {
   case EkaFhMode::DEFINITIONS :
