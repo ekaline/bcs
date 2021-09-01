@@ -149,15 +149,14 @@ void* getPlrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op) 
 
   switch (op) {
   case EkaFhMode::DEFINITIONS :
-
+    if (! definitionsRefreshTcp(gr,tcpSock))
+      on_error("Definitions Failed");
     break;
   case EkaFhMode::SNAPSHOT    :
-    udpIp   = gr->refreshUdpIp;
-    udpPort = gr->refreshUdpPort;
+
     break;
   case EkaFhMode::RECOVERY    :
-    udpIp   = gr->retransUdpIp;
-    udpPort = gr->retransUdpPort;
+
     break;
   default:
     on_error("Unexpected recovery op %d",(int)op);
