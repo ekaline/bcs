@@ -673,6 +673,12 @@ static EkaProp* feedname2prop (std::string feedName) {
   if (feedName == std::string("XA")) return efhAmexInitCtxEntries_A;
   if (feedName == std::string("XB")) return efhAmexInitCtxEntries_B;
   /* ------------------------------------------------------- */
+  if (feedName == std::string("RPA")) return efhArcaPlrInitCtxEntries_A;
+  if (feedName == std::string("RPB")) return efhArcaPlrInitCtxEntries_B;
+
+  if (feedName == std::string("XPA")) return efhAmexPlrInitCtxEntries_A;
+  if (feedName == std::string("XPB")) return efhAmexPlrInitCtxEntries_B;
+  /* ------------------------------------------------------- */
   if (feedName == std::string("BA")) return efhBoxInitCtxEntries_A;
   if (feedName == std::string("BB")) return efhBoxInitCtxEntries_B;
   if (feedName == std::string("BC")) return efhBoxInitCtxEntries_C;
@@ -718,6 +724,12 @@ static size_t feedname2numProps (std::string feedName) {
   if (feedName == std::string("XA")) return std::size(efhAmexInitCtxEntries_A);
   if (feedName == std::string("XB")) return std::size(efhAmexInitCtxEntries_B);
   /* ------------------------------------------------------- */
+  if (feedName == std::string("RPA")) return std::size(efhArcaPlrInitCtxEntries_A);
+  if (feedName == std::string("RPB")) return std::size(efhArcaPlrInitCtxEntries_B);
+
+  if (feedName == std::string("XPA")) return std::size(efhAmexPlrInitCtxEntries_A);
+  if (feedName == std::string("XPB")) return std::size(efhAmexPlrInitCtxEntries_B);
+  /* ------------------------------------------------------- */
   if (feedName == std::string("BA")) return std::size(efhBoxInitCtxEntries_A);
   if (feedName == std::string("BB")) return std::size(efhBoxInitCtxEntries_B);
   if (feedName == std::string("BC")) return std::size(efhBoxInitCtxEntries_C);
@@ -757,6 +769,12 @@ static size_t feedname2numGroups(std::string feedName) {
   if (feedName == std::string("PA")) return std::size(pearlGroups);
   if (feedName == std::string("PB")) return std::size(pearlGroups);
   /* ------------------------------------------------------- */
+  if (feedName == std::string("RPA")) return std::size(arcaPlrGroups);
+  if (feedName == std::string("RPB")) return std::size(arcaPlrGroups);
+
+  if (feedName == std::string("XPA")) return std::size(amexPlrGroups);
+  if (feedName == std::string("XPB")) return std::size(amexPlrGroups);
+  /* ------------------------------------------------------- */
   if (feedName == std::string("RA")) return std::size(arcaGroups);
   if (feedName == std::string("RB")) return std::size(arcaGroups);
 
@@ -792,7 +810,7 @@ static size_t feedname2numGroups(std::string feedName) {
 int createCtxts(std::vector<TestRunGroup>& testRunGroups,
 		std::vector<EfhInitCtx>&   efhInitCtx,
 		std::vector<EfhRunCtx>&    efhRunCtx) {
-  const std::regex rg_regex("([0-9])\\:([A-Z][A-Z])\\:([0-9]+)\\.\\.([0-9]+)");
+  const std::regex rg_regex("([0-9])\\:([A-Z][A-Z][A-Z]*)\\:([0-9]+)\\.\\.([0-9]+)");
 
   for (auto &runGr : testRunGroups) {
     std::smatch base_match;

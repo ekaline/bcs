@@ -16,8 +16,7 @@ public:
 				 EkaFhMode        op,
 				 std::chrono::high_resolution_clock::time_point startTime={});
 
-  int                   bookInit()
-  {return 0;}
+  int                   bookInit();
 
   int                  subscribeStaticSecurity(uint64_t        securityId, 
 					       EfhSecurityType efhSecurityType,
@@ -37,15 +36,11 @@ public:
 				      const uint8_t*   pkt, 
 				      uint             msgInPkt, 
 				      uint64_t         seq,
-				      std::chrono::high_resolution_clock::time_point start={})
-      {return false;}
-
+				      std::chrono::high_resolution_clock::time_point start={});
 
   void                 pushUdpPkt2Q(const uint8_t* pkt, 
 				    uint           msgInPkt, 
-				    uint64_t       sequence)
-  {}
-
+				    uint64_t       sequence);
 
   int    closeSnapshotGap(EfhCtx*              pEfhCtx, 
 			  const EfhRunCtx* pEfhRunCtx, 
@@ -75,15 +70,16 @@ private:
   /* ##################################################################### */
 
 public:
-  char                  sessionSubID[4] = {};  // for PLR Spin
-  uint8_t               plrUnit = 0;
-
-  char                  grpSessionSubID[4] = {'0','5','8','7'};  // C1 default
-  uint32_t              grpIp         = 0x667289aa;              // C1 default "170.137.114.102"
-  uint16_t              grpPort       = 0x6e42;                  // C1 default be16toh(17006)
-  char                  grpUser[4]    = {'G','T','S','S'};       // C1 default
-  char                  grpPasswd[10] = {'e','b','3','g','t','s','s',' ',' ',' '}; // C1 default
-  bool                  grpSet        = false;
+  char     sourceId[10]     = {};
+  int      channelId   = 0;
+  uint32_t refreshTcpIp     = 0;
+  uint16_t refreshTcpPort   = 0;
+  uint32_t retransTcpIp     = 0;
+  uint16_t retransTcpPort   = 0;
+  uint32_t refreshUdpIp     = 0;
+  uint16_t refreshUdpPort   = 0;
+  uint32_t retransUdpIp     = 0;
+  uint16_t retransUdpPort   = 0;
 
   static const uint   SCALE          = 22;
   static const uint   SEC_HASH_SCALE = 17;
