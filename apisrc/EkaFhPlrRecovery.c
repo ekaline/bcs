@@ -14,23 +14,33 @@ static bool sendSymbolIndexMappingRequest(EkaFhPlrGr* gr, int sock) {
   if (!gr) on_error("gr == NULL");
   auto dev {gr->dev};
 
-  SymbolIndexMappingRequest msg{};
+  uint8_t pkt[1500] = {};
+  auto pktHdr {reinterpret_cast<PktHdr*>(pkt)};
+  auto msg {reinterpret_cast<SymbolIndexMappingRequest*>(pkt + sizeof(*pktHdr))};
 
-  msg.hdr.size = sizeof(msg);
-  msg.hdr.type = static_cast<decltype(msg.hdr.type)>(MsgType::SymbolIndexMappingRequest);
-  msg.SymbolIndex = 0;
-  memcpy(msg.SourceID,gr->sourceId,
-	 std::min(sizeof(msg.SourceID),sizeof(gr->sourceId)));
-  msg.ProductID = 0;
-  msg.ChannelID = gr->channelId;
-  msg.RetransmitMethod = 0;
+  pktHdr->pktSize      = sizeof(*pktHdr) + sizeof(*msg);
+  pktHdr->deliveryFlag = static_cast<decltype(pktHdr->deliveryFlag)>(DeliveryFlag::Original);
+  pktHdr->numMsgs      = 1;
+  pktHdr->seqNum       = 1;
+  pktHdr->seconds      = 0;
+  pktHdr->ns           = 0;
+
+
+  msg->hdr.size = sizeof(*msg);
+  msg->hdr.type = static_cast<decltype(msg->hdr.type)>(MsgType::SymbolIndexMappingRequest);
+  msg->SymbolIndex = 0;
+  memcpy(msg->SourceID,gr->sourceId,
+	 std::min(sizeof(msg->SourceID),sizeof(gr->sourceId)));
+  msg->ProductID = 0;
+  msg->ChannelID = gr->channelId;
+  msg->RetransmitMethod = 0;
 
   EKA_LOG("Sending SymbolIndexMappingRequest: SymbolIndex=%u,SourceID=\'%s\',ProductID=%u,ChannelID=%u",
-	  msg.SymbolIndex,msg.SourceID,msg.ProductID,msg.ChannelID);
-  int rc = send(sock,&msg,sizeof(msg),0);
+	  msg->SymbolIndex,msg->SourceID,msg->ProductID,msg->ChannelID);
+  int rc = send(sock,pkt,pktHdr->pktSize,0);
   if (rc <= 0) {
     EKA_WARN("Tcp send of msg size %d to sock %d returned rc = %d",
-	     (int)sizeof(msg),sock,rc);
+	     pktHdr->pktSize,sock,rc);
     return false;
   }
   return true;
@@ -52,10 +62,12 @@ static bool getRefreshResponse(EkaFhPlrGr* gr, int sock, EkaFhMode op) {
     if (rc <= 0)
       on_error("connection reset by peer: rc=%d, \'%s\'",rc,strerror(errno));
 
-    auto hdr {reinterpret_cast<const MsgHdr*>(buf)};
-    EKA_LOG("Received MsgType %u (%s)",hdr->type,msgType2str(hdr->type).c_str());
+    auto pktHdr {reinterpret_cast<PktHdr*>(buf)};
+    auto msgHdr {reinterpret_cast<const MsgHdr*>(buf + sizeof(*pktHdr))};
+    EKA_LOG("Received Pkt Size %d bytes (%u), MsgType %u (%s)",
+	    rc, pktHdr->pktSize, msgHdr->type,msgType2str(msgHdr->type).c_str());
     
-    switch (static_cast<MsgType>(hdr->type)) {
+    switch (static_cast<MsgType>(msgHdr->type)) {
     case MsgType::SequenceNumberReset : {
       auto msg {reinterpret_cast<const SequenceNumberReset*>(buf)};
 
@@ -72,7 +84,7 @@ static bool getRefreshResponse(EkaFhPlrGr* gr, int sock, EkaFhMode op) {
 
   }
 
-  auto msg {reinterpret_cast<const RequestResponse*>(buf)};
+  auto msg {reinterpret_cast<const RequestResponse*>(buf + sizeof(PktHdr))};
 
   switch(msg->Status) {
   case '0' :
