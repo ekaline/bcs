@@ -72,6 +72,7 @@ static bool sendHeartbeatResponse(EkaFhPlrGr* gr, int sock) {
 	     pktHdr->pktSize,sock,rc);
     return false;
   }
+  EKA_LOG("Heartbeat response sent");
   return true;
 }
 

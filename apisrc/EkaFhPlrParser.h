@@ -559,7 +559,6 @@ namespace Plr {
 	char     SourceID[10];
 	uint8_t  ProductID;
 	uint8_t  ChannelID;
-	uint8_t  RetransmitMethod = 0;
 	char     Status;        // Valid values:
 	// ▪ 0 – Message was accepted
 	// ▪ 1 – Rejected due to an Invalid Source ID
