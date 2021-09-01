@@ -121,7 +121,7 @@ static bool getRefreshResponse(EkaFhPlrGr* gr, int sock, EkaFhMode op) {
       switch(msg->Status) {
       case '0' :
 	EKA_LOG("Message was accepted");
-	break;
+	return true;
       case '1' :
 	EKA_LOG("Rejected due to an Invalid Source ID");
 	return false;
