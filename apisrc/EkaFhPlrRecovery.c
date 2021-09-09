@@ -323,7 +323,21 @@ void* getPlrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op, 
   default:
     on_error("Unexpected recovery op %d",(int)op);
   }
-  
+
+  while (1) {
+    rc = recvfrom(udpSock, buf, sizeof(buf), MSG_WAITALL, NULL, NULL);
+    if (rc <= 0)
+      on_error("Failed to get UDP pkt (rc = %d) from %s:%u",
+	       rc,EKA_IP2STR(udpIp),udpPort);
+    auto p {buf};
+    auto pktHdr {reinterpret_cast<const PktHdr*>(p)};
+    p += sizeof(*pktHdr);
+    for (auto i = 0; i < pktHdr->numMsgs; i++) {
+      auto msgHdr {reinterpret_cast<const MsgHdr*>(p)};
+      printf ("\t%s\n",msgType2str(msgHdr->type).c_str());
+      p += msgHdr->size;
+    }
+  }
   return NULL;
 }
 
