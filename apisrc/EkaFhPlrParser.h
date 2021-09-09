@@ -578,7 +578,16 @@ namespace Plr {
 	MsgHdr   hdr;
 	char     SourceID[10];
     };
-  
+
+    struct RetransmissionRequest { // 10
+	MsgHdr   hdr;
+	uint32_t BeginSeqNum;   // The beginning sequence number of the unavailable range of messages.    
+	uint32_t EndSeqNum;     // The ending sequence number of the unavailable range of messages.
+	char     SourceID[10];
+	uint8_t  ProductID;
+	uint8_t  ChannelID;
+    };
+
     struct SymbolIndexMappingRequest { // 13
 	MsgHdr   hdr;
 	uint32_t SymbolIndex;
