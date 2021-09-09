@@ -233,18 +233,11 @@ EkaOpResult efhGetDefs( EfhCtx* pEfhCtx, const struct EfhRunCtx* pEfhRunCtx, Eka
  * @retval [See EkaOpResult].
  */
 
-/* EkaOpResult efhSubscribeStatic( EfhCtx* pEfhCtx, EkaGroup* group, uint64_t securityId, EfhSecurityType efhSecurityType,EfhSecUserData efhSecUserData) { */
-/*   assert (pEfhCtx != NULL); */
-
-/*   return pEfhCtx->dev->fh[pEfhCtx->fhId]->subscribeStaticSecurity(group->localId, securityId, efhSecurityType, efhSecUserData); */
-/*   //  return eka_fh_subscribe_static(pEfhCtx, group->localId, securityId, efhSecurityType, efhSecUserData); */
-/* } */
 
 EkaOpResult efhSubscribeStatic( EfhCtx* pEfhCtx, EkaGroup* group, uint64_t securityId, EfhSecurityType efhSecurityType,EfhSecUserData efhSecUserData,uint64_t opaqueAttrA,uint64_t opaqueAttrB) {
   assert (pEfhCtx != NULL);
 
   return pEfhCtx->dev->fh[pEfhCtx->fhId]->subscribeStaticSecurity(group->localId, securityId, efhSecurityType, efhSecUserData,opaqueAttrA,opaqueAttrB);
-  //  return eka_fh_subscribe_static(pEfhCtx, group->localId, securityId, efhSecurityType, efhSecUserData);
 }
 
 /**
@@ -256,21 +249,10 @@ EkaOpResult efhSubscribeStatic( EfhCtx* pEfhCtx, EkaGroup* group, uint64_t secur
 /* } */
 
 /**
- * This is just like efhSubscribeStatic() except it is for dynamic securities.
- * This must be called after efhDoneStaticSubscriptions().
+ * This is just like efhSubscribeStatic()
  */
-EkaOpResult efhSubscribeDynamic(EfhCtx* pEfhCtx, uint64_t securityId, EfhSecurityType efhSecurityType, EfhSecUserData efhSecUserData ) {
+EkaOpResult efhSubscribeDynamic( EfhCtx* pEfhCtx, EkaGroup* group, uint64_t securityId, EfhSecurityType efhSecurityType,EfhSecUserData efhSecUserData,uint64_t opaqueAttrA,uint64_t opaqueAttrB) {
   assert (pEfhCtx != NULL);
 
-  return EKA_OPRESULT__ERR_NOT_IMPLEMENTED;
+  return pEfhCtx->dev->fh[pEfhCtx->fhId]->subscribeStaticSecurity(group->localId, securityId, efhSecurityType, efhSecUserData,opaqueAttrA,opaqueAttrB);
 }
-
-/**
- * This function will run the ekaline Fh on the current thread and make callbacks for messages processed.
- * This function should not return until we shut the Ekaline system down via ekaClose().
- *
- * @param pEfhCtx 
- * @param pEfhRunCtx This is a pointer to the callbacks (and possibly other information needed) that
- *                   will be called as the Ekaline feedhandler processes messages.
- * @retval [See EkaOpResult].
- */

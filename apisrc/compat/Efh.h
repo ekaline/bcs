@@ -118,12 +118,13 @@ EkaOpResult efhDoneStaticSubscriptions( EfhCtx* efhCtx );
  * This is just like efhSubscribeStatic() except it is for dynamic securities.
  * This must be called after efhDoneStaticSubscriptions().
  */
-EkaOpResult efhSubscribeDynamic( EfhCtx*         efhCtx, 
-                                 uint64_t        securityId, 
-                                 EfhSecurityType efhSecurityType,
-                                 EfhSecUserData  efhSecUserData );
-
-
+EkaOpResult efhSubscribeDynamic( EfhCtx*         efhCtx,
+                                EkaGroup*       group,
+                                uint64_t        securityId,
+                                EfhSecurityType efhSecurityType,
+                                EfhSecUserData  efhSecUserData,
+				uint64_t        opaqueAttrA,
+				uint64_t        opaqueAttrB );
 /**
  * EfhMd functionality allows to get callback on every raw market data event
  *
