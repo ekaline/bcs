@@ -63,13 +63,13 @@ static bool sendRefreshRequest(EkaFhPlrGr* gr, int sock) {
   pktHdr->ns           = 0;
 
 
-  msg->hdr.size = sizeof(*msg);
-  msg->hdr.type = static_cast<decltype(msg->hdr.type)>(MsgType::RefreshRequest);
+  msg->hdr.size    = sizeof(*msg);
+  msg->hdr.type    = static_cast<decltype(msg->hdr.type)>(MsgType::RefreshRequest);
   msg->SymbolIndex = 0;
   memcpy(msg->SourceID,gr->sourceId,
 	 std::min(sizeof(msg->SourceID),sizeof(gr->sourceId)));
-  msg->ProductID = NYSE_ARCA_BBO_ProductId;
-  msg->ChannelID = gr->channelId;
+  msg->ProductID   = NYSE_ARCA_BBO_ProductId;
+  msg->ChannelID   = gr->channelId;
 
   EKA_LOG("Sending RefreshRequest: SymbolIndex=%u,SourceID=\'%s\',ProductID=%u,ChannelID=%u",
 	  msg->SymbolIndex,msg->SourceID,msg->ProductID,msg->ChannelID);
@@ -98,14 +98,14 @@ static bool sendRetransmissionRequest(EkaFhPlrGr* gr, int sock, uint32_t start, 
   pktHdr->ns           = 0;
 
 
-  msg->hdr.size = sizeof(*msg);
-  msg->hdr.type = static_cast<decltype(msg->hdr.type)>(MsgType::RetransmissionRequest);
+  msg->hdr.size    = sizeof(*msg);
+  msg->hdr.type    = static_cast<decltype(msg->hdr.type)>(MsgType::RetransmissionRequest);
   msg->BeginSeqNum = start;
   msg->EndSeqNum   = end;
   memcpy(msg->SourceID,gr->sourceId,
 	 std::min(sizeof(msg->SourceID),sizeof(gr->sourceId)));
-  msg->ProductID = NYSE_ARCA_BBO_ProductId;
-  msg->ChannelID = gr->channelId;
+  msg->ProductID   = NYSE_ARCA_BBO_ProductId;
+  msg->ChannelID   = gr->channelId;
 
   EKA_LOG("Sending RetransmissionRequest: BeginSeqNum=%u,EndSeqNum=%u,SourceID=\'%s\',ProductID=%u,ChannelID=%u",
 	  msg->BeginSeqNum,msg->EndSeqNum,

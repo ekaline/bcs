@@ -127,6 +127,8 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 	  break;
       default : on_error("Unexpected seriesStatus \'%c\'",m->seriesStatus);
       }
+      book->generateOnQuote (pEfhRunCtx, s, m->SeriesSeqNum,
+			     gr_ts + m->sourceTimeNs, gapNum);  
   }
       break;
       
