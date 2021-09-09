@@ -1,8 +1,11 @@
 #include "EkaFhPlrGr.h"
 #include "EkaFhPlrParser.h"
 #include "eka_fh_q.h"
+#include "EkaFhThreadAttr.h"
 
 using namespace Plr;
+void* runPlrRecoveryThread(void* attr);
+
 
 /* ##################################################################### */
 
@@ -17,9 +20,9 @@ int EkaFhPlrGr::bookInit () {
 /* ##################################################################### */
 
 bool EkaFhPlrGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
-				const uint8_t*   pkt, 
-				uint             msgInPkt, 
-				uint64_t         seq,
+				const uint8_t*  pkt, 
+				uint            msgInPkt, 
+				uint64_t        seq,
 				std::chrono::high_resolution_clock::time_point startTime) {
   auto pktHdr {reinterpret_cast<const PktHdr*>(pkt)};
   auto p = pkt + sizeof(*pktHdr);
@@ -37,8 +40,8 @@ bool EkaFhPlrGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 }
 /* ##################################################################### */
 void EkaFhPlrGr::pushUdpPkt2Q(const uint8_t* pkt, 
-			       uint           msgInPkt, 
-			       uint64_t       seq) {
+			       uint          msgInPkt, 
+			       uint64_t      seq) {
   auto pktHdr {reinterpret_cast<const PktHdr*>(pkt)};
   auto p = pkt + sizeof(*pktHdr);
   
@@ -57,4 +60,55 @@ void EkaFhPlrGr::pushUdpPkt2Q(const uint8_t* pkt,
   return;
 }
 
+/* ##################################################################### */
+
+
+int EkaFhPlrGr::closeSnapshotGap(EfhCtx*          pEfhCtx, 
+				 const EfhRunCtx* pEfhRunCtx, 
+				 uint64_t         startSeq,
+				 uint64_t         endSeq) {
+  
+  std::string threadName = std::string("ST_") + std::string(EKA_EXCH_SOURCE_DECODE(exch)) + '_' + std::to_string(id);
+  auto attr  = new EkaFhThreadAttr(pEfhCtx, 
+				   pEfhRunCtx, 
+				   this, 
+				   startSeq, 
+				   endSeq, 
+				   EkaFhMode::SNAPSHOT);
+  if (attr == NULL) on_error("attr = NULL");
+  
+  dev->createThread(threadName.c_str(),
+		    EkaServiceType::kFeedSnapshot,
+		    runPlrRecoveryThread,        
+		    attr,
+		    dev->createThreadContext,
+		    (uintptr_t*)&snapshot_thread);   
+
+  return 0;
+}
+
+/* ##################################################################### */
+
+int EkaFhPlrGr::closeIncrementalGap(EfhCtx*          pEfhCtx, 
+				    const EfhRunCtx* pEfhRunCtx, 
+				    uint64_t         startSeq,
+				    uint64_t         endSeq) {
+  std::string threadName = std::string("ST_") + std::string(EKA_EXCH_SOURCE_DECODE(exch)) + '_' + std::to_string(id);
+  auto attr  = new EkaFhThreadAttr(pEfhCtx, 
+				   pEfhRunCtx, 
+				   this, 
+				   startSeq, 
+				   endSeq, 
+				   EkaFhMode::RECOVERY);
+  if (attr == NULL) on_error("attr = NULL");
+  
+  dev->createThread(threadName.c_str(),
+		    EkaServiceType::kFeedSnapshot,
+		    runPlrRecoveryThread,        
+		    attr,
+		    dev->createThreadContext,
+		    (uintptr_t*)&snapshot_thread);   
+
+  return 0;
+}
 /* ##################################################################### */

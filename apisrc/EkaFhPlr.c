@@ -7,7 +7,7 @@
 
 using namespace Plr;
 
-void* getPlrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op);
+void* getPlrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op,uint64_t start, uint64_t end);
 
 /* ##################################################################### */
 EkaFhGroup* EkaFhPlr::addGroup() {
@@ -184,7 +184,7 @@ EkaOpResult EkaFhPlr::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
   auto gr {dynamic_cast<EkaFhPlrGr*>(b_gr[(uint8_t)group->localId])};
   if (! gr) on_error("gr == NULL");
   
-  getPlrRecovery(pEfhRunCtx, gr, EkaFhMode::DEFINITIONS);
+  getPlrRecovery(pEfhRunCtx, gr, EkaFhMode::DEFINITIONS,0,0);
 		 
   return EKA_OPRESULT__OK;
 }

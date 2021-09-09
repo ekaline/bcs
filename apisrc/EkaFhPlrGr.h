@@ -45,16 +45,12 @@ public:
   int    closeSnapshotGap(EfhCtx*              pEfhCtx, 
 			  const EfhRunCtx* pEfhRunCtx, 
 			  uint64_t          startSeq,
-			  uint64_t          endSeq)
-      {return 0;}
-
+			  uint64_t          endSeq);
 
   int    closeIncrementalGap(EfhCtx*           pEfhCtx, 
 			     const EfhRunCtx* pEfhRunCtx, 
 			     uint64_t          startSeq,
-			     uint64_t          endSeq)
-      {return 0;}
-
+			     uint64_t          endSeq);
 
 private:
   int    sendMdCb(const EfhRunCtx* pEfhRunCtx,

@@ -4,6 +4,7 @@
 
 #include "EkaFhPlrGr.h"
 #include "EkaFhPlrParser.h"
+#include "EkaFhThreadAttr.h"
 
 int ekaUdpMcConnect(EkaDev* dev, uint32_t ip, uint16_t port);
 int ekaTcpConnect(uint32_t ip, uint16_t port);
@@ -46,6 +47,78 @@ static bool sendSymbolIndexMappingRequest(EkaFhPlrGr* gr, int sock) {
   return true;
 }
 
+static bool sendRefreshRequest(EkaFhPlrGr* gr, int sock) {
+  if (!gr) on_error("gr == NULL");
+  auto dev {gr->dev};
+
+  uint8_t pkt[1500] = {};
+  auto pktHdr {reinterpret_cast<PktHdr*>(pkt)};
+  auto msg {reinterpret_cast<RefreshRequest*>(pkt + sizeof(*pktHdr))};
+
+  pktHdr->pktSize      = sizeof(*pktHdr) + sizeof(*msg);
+  pktHdr->deliveryFlag = static_cast<decltype(pktHdr->deliveryFlag)>(DeliveryFlag::Original);
+  pktHdr->numMsgs      = 1;
+  pktHdr->seqNum       = 1;
+  pktHdr->seconds      = 0;
+  pktHdr->ns           = 0;
+
+
+  msg->hdr.size = sizeof(*msg);
+  msg->hdr.type = static_cast<decltype(msg->hdr.type)>(MsgType::RefreshRequest);
+  msg->SymbolIndex = 0;
+  memcpy(msg->SourceID,gr->sourceId,
+	 std::min(sizeof(msg->SourceID),sizeof(gr->sourceId)));
+  msg->ProductID = NYSE_ARCA_BBO_ProductId;
+  msg->ChannelID = gr->channelId;
+
+  EKA_LOG("Sending RefreshRequest: SymbolIndex=%u,SourceID=\'%s\',ProductID=%u,ChannelID=%u",
+	  msg->SymbolIndex,msg->SourceID,msg->ProductID,msg->ChannelID);
+  int rc = send(sock,pkt,pktHdr->pktSize,0);
+  if (rc <= 0) {
+    EKA_WARN("Tcp send of msg size %d to sock %d returned rc = %d",
+	     pktHdr->pktSize,sock,rc);
+    return false;
+  }
+  return true;
+}
+
+static bool sendRetransmissionRequest(EkaFhPlrGr* gr, int sock, uint32_t start, uint32_t end) {
+  if (!gr) on_error("gr == NULL");
+  auto dev {gr->dev};
+
+  uint8_t pkt[1500] = {};
+  auto pktHdr {reinterpret_cast<PktHdr*>(pkt)};
+  auto msg {reinterpret_cast<RetransmissionRequest*>(pkt + sizeof(*pktHdr))};
+
+  pktHdr->pktSize      = sizeof(*pktHdr) + sizeof(*msg);
+  pktHdr->deliveryFlag = static_cast<decltype(pktHdr->deliveryFlag)>(DeliveryFlag::Original);
+  pktHdr->numMsgs      = 1;
+  pktHdr->seqNum       = 1;
+  pktHdr->seconds      = 0;
+  pktHdr->ns           = 0;
+
+
+  msg->hdr.size = sizeof(*msg);
+  msg->hdr.type = static_cast<decltype(msg->hdr.type)>(MsgType::RetransmissionRequest);
+  msg->BeginSeqNum = start;
+  msg->EndSeqNum   = end;
+  memcpy(msg->SourceID,gr->sourceId,
+	 std::min(sizeof(msg->SourceID),sizeof(gr->sourceId)));
+  msg->ProductID = NYSE_ARCA_BBO_ProductId;
+  msg->ChannelID = gr->channelId;
+
+  EKA_LOG("Sending RetransmissionRequest: BeginSeqNum=%u,EndSeqNum=%u,SourceID=\'%s\',ProductID=%u,ChannelID=%u",
+	  msg->BeginSeqNum,msg->EndSeqNum,
+	  msg->SourceID,msg->ProductID,msg->ChannelID);
+  int rc = send(sock,pkt,pktHdr->pktSize,0);
+  if (rc <= 0) {
+    EKA_WARN("Tcp send of msg size %d to sock %d returned rc = %d",
+	     pktHdr->pktSize,sock,rc);
+    return false;
+  }
+  return true;
+}
+
 static bool sendHeartbeatResponse(EkaFhPlrGr* gr, int sock) {
   if (!gr) on_error("gr == NULL");
   auto dev {gr->dev};
@@ -76,7 +149,7 @@ static bool sendHeartbeatResponse(EkaFhPlrGr* gr, int sock) {
   return true;
 }
 
-static bool getRefreshResponse(EkaFhPlrGr* gr, int sock, EkaFhMode op) {
+static bool getRequestResponse(EkaFhPlrGr* gr, int sock, EkaFhMode op) {
   if (!gr) on_error("gr == NULL");
   auto dev {gr->dev};
   EKA_LOG("Waiting for %s Refresh Response",EkaFhMode2STR(op));
@@ -159,13 +232,35 @@ static bool definitionsRefreshTcp(EkaFhPlrGr* gr, int sock) {
 //  auto dev {gr->dev};
   if (! sendSymbolIndexMappingRequest(gr,sock))
     on_error("sendSymbolIndexMappingRequest failed");
-  if (! getRefreshResponse(gr,sock,EkaFhMode::DEFINITIONS))
-    on_error("getRefreshResponse failed");
+  if (! getRequestResponse(gr,sock,EkaFhMode::DEFINITIONS))
+    on_error("getRequestResponse failed");
   
   return true;
 }
 
-void* getPlrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op) {
+static bool snapshotRefreshTcp(EkaFhPlrGr* gr, int sock) {
+  if (!gr) on_error("gr == NULL");
+//  auto dev {gr->dev};
+  if (! sendRefreshRequest(gr,sock))
+    on_error("sendRefreshRequest failed");
+  if (! getRequestResponse(gr,sock,EkaFhMode::DEFINITIONS))
+    on_error("getRequestResponse failed");
+  
+  return true;
+}
+
+static bool recoveryRetransmitTcp(EkaFhPlrGr* gr, int sock, uint32_t start, uint32_t end) {
+  if (!gr) on_error("gr == NULL");
+//  auto dev {gr->dev};
+  if (! sendRetransmissionRequest(gr,sock,start,end))
+    on_error("RetransmissionRequest failed");
+  if (! getRequestResponse(gr,sock,EkaFhMode::DEFINITIONS))
+    on_error("getRequestResponse failed");
+  
+  return true;
+}
+
+void* getPlrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op, uint64_t start, uint64_t end) {
   if (!gr) on_error("gr == NULL");
   auto dev {gr->dev};
 
@@ -218,10 +313,12 @@ void* getPlrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op) 
       on_error("Definitions Failed");
     break;
   case EkaFhMode::SNAPSHOT    :
-
+    if (! snapshotRefreshTcp(gr,tcpSock))
+      on_error("Snapshot Failed");
     break;
   case EkaFhMode::RECOVERY    :
-
+    if (! recoveryRetransmitTcp(gr,tcpSock,start,end))
+      on_error("Recovery Failed");
     break;
   default:
     on_error("Unexpected recovery op %d",(int)op);
@@ -230,5 +327,30 @@ void* getPlrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op) 
   return NULL;
 }
 
+void* runPlrRecoveryThread(void* attr) {
+#ifdef FH_LAB
+  pthread_detach(pthread_self());
+  return NULL;
+#endif
+  auto params {reinterpret_cast<EkaFhThreadAttr*>(attr)};
+  auto gr     {reinterpret_cast<EkaFhPlrGr*>(params->gr)};
+  if (gr == NULL) on_error("gr == NULL");
 
+  EfhRunCtx*   pEfhRunCtx = params->pEfhRunCtx;
+  EkaFhMode    op         = params->op;
+  uint32_t     start      = static_cast<decltype(start)>(params->startSeq);
+  uint32_t     end        = static_cast<decltype(end)>  (params->endSeq);
+  delete params;
+
+  EkaDev* dev = gr->dev;
+
+  EKA_LOG("%s:%u: PlrRecoveryThread %s at %s:%d",
+	  EKA_EXCH_DECODE(gr->exch),gr->id, 
+	  EkaFhMode2STR(op),
+	  EKA_IP2STR(gr->snapshot_ip),be16toh(gr->snapshot_port));
+
+  getPlrRecovery(pEfhRunCtx, gr, op, start, end);
+
+  return NULL;
+}
 
