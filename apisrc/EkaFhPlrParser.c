@@ -66,11 +66,11 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     gr_ts = m->sourceTimeSec * SEC_TO_NANO;
   }
     break;
-#if 0
-  case MsgType::SecurityStatus : {
+  case MsgType::SecurityStatus : 
 #ifdef PLR_CERT
       printf (YEL "MsgType::SecurityStatus\n" RESET);
 #endif  
+#if 0
       auto m {reinterpret_cast<const SecurityStatus*>(msgHdr)};
       FhSecurity* s = book->findSecurity(m->seriesIndex);
       if (s == NULL) return false;
@@ -106,9 +106,9 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 	  break;
       default : on_error("Unexpected seriesStatus \'%c\'",m->seriesStatus);
       }
-  }
-      break;
+      
 #endif // 0
+      break;
       
   case MsgType::OptionsStatus : {
       auto m {reinterpret_cast<const OptionsStatus*>(msgHdr)};
