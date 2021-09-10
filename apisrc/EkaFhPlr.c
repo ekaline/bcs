@@ -162,7 +162,7 @@ EkaOpResult EkaFhPlr::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
 	runGr->setGrAfterGap(gr->id);
 	gr->expected_sequence = gr->seq_after_snapshot;
-#ifdef PLR_CER
+#ifdef PLR_CERT
 	uint64_t gapStart = gr->seq_after_snapshot - 10;
 	uint64_t gapEnd   = gapStart + 5;
 	EKA_LOG("#############\nPLR_CER artificial GAP closure: %ju..%ju\n#############",gapStart,gapEnd);
