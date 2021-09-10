@@ -68,7 +68,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     break;
   case MsgType::SecurityStatus : 
 #ifdef PLR_CERT
-      printf (YEL "MsgType::SecurityStatus\n" RESET);
+//      printf (YEL "MsgType::SecurityStatus\n" RESET);
 #endif  
 #if 0
       auto m {reinterpret_cast<const SecurityStatus*>(msgHdr)};
