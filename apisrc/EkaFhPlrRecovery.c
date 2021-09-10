@@ -314,6 +314,8 @@ void* getPlrRefresh(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op) {
     auto msgHdr {reinterpret_cast<const MsgHdr*>(p)};
     if (static_cast<MsgType>(msgHdr->type) == MsgType::RefreshHeader) {
       auto refreshHeader {reinterpret_cast<const RefreshHeader*>(p)};
+      if (firstPkt && msgHdr->size == sizeof(RefreshHeader))
+	gr->seq_after_snapshot = refreshHeader->LastSeqNum + 1;
       EKA_LOG("%s with RefreshHdr: RefreshState=\'%s\', UDP DeliveryFlag=\'%s\', Pkts: %u / %u %s",
 	      EkaFhMode2STR(op),
 	      refreshState2str(state).c_str(),
