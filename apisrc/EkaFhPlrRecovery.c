@@ -303,11 +303,6 @@ void* getPlrRefresh(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op) {
     if (static_cast<DeliveryFlag>(pktHdr->deliveryFlag) == DeliveryFlag::Heartbeat)
       continue; // next Pkt
 
-    auto msgHdr {reinterpret_cast<const MsgHdr*>(p)};
-    if (static_cast<MsgType>(msgHdr->type) != MsgType::RefreshHeader)
-      on_error("Unexpected MsgType %u",msgHdr->type);
-    auto refreshHeader {reinterpret_cast<const RefreshHeader*>(p)};
-
     bool firstPkt =
       static_cast<DeliveryFlag>(pktHdr->deliveryFlag) == DeliveryFlag::SinglePktRefresh ||
       static_cast<DeliveryFlag>(pktHdr->deliveryFlag) == DeliveryFlag::StratOfRefresh;
@@ -315,16 +310,27 @@ void* getPlrRefresh(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op) {
     bool lastPkt =
       static_cast<DeliveryFlag>(pktHdr->deliveryFlag) == DeliveryFlag::SinglePktRefresh ||
       static_cast<DeliveryFlag>(pktHdr->deliveryFlag) == DeliveryFlag::EndOfRefresh;
-      
-    EKA_LOG("%s: RefreshState=\'%s\', UDP DeliveryFlag=\'%s\', Pkts: %u / %u %s",
-	    EkaFhMode2STR(op),
-	    refreshState2str(state).c_str(),
-	    deliveryFlag2str(pktHdr->deliveryFlag).c_str(),
-	    refreshHeader->CurrentRefreshPkt,
-	    refreshHeader->TotalRefreshPkts,
-	    lastPkt ? "LastPkt" : ""
-	    );
 
+    auto msgHdr {reinterpret_cast<const MsgHdr*>(p)};
+    if (static_cast<MsgType>(msgHdr->type) == MsgType::RefreshHeader) {
+      auto refreshHeader {reinterpret_cast<const RefreshHeader*>(p)};
+      EKA_LOG("%s with RefreshHdr: RefreshState=\'%s\', UDP DeliveryFlag=\'%s\', Pkts: %u / %u %s",
+	      EkaFhMode2STR(op),
+	      refreshState2str(state).c_str(),
+	      deliveryFlag2str(pktHdr->deliveryFlag).c_str(),
+	      refreshHeader->CurrentRefreshPkt,
+	      refreshHeader->TotalRefreshPkts,
+	      lastPkt ? "LastPkt" : ""
+	      );
+    } else {      
+      EKA_LOG("%s with NO RefreshHdr : RefreshState=\'%s\', UDP DeliveryFlag=\'%s\', %s",
+	      EkaFhMode2STR(op),
+	      refreshState2str(state).c_str(),
+	      deliveryFlag2str(pktHdr->deliveryFlag).c_str(),
+	      lastPkt ? "LastPkt" : ""
+	      );
+    }
+    
     if (state == RefreshState::NotStarted) {
       if (firstPkt) state = RefreshState::InProgress;
     } else {
@@ -343,7 +349,8 @@ void* getPlrRefresh(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op) {
     if (lastPkt) break;
   } // while (1)
   gr->gapClosed = true;
-  
+  close(tcpSock);
+  close(udpSock);
   return NULL;
 }
 
@@ -422,7 +429,8 @@ void* getPlrRetrans(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op, u
   } // while (1)
  GAP_CLOSED: 
   gr->gapClosed = true;
-  
+  close(tcpSock);
+  close(udpSock);
   return NULL;
 }
 
