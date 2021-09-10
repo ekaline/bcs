@@ -260,148 +260,172 @@ static bool recoveryRetransmitTcp(EkaFhPlrGr* gr, int sock, uint32_t start, uint
   return true;
 }
 
-void* getPlrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op, uint64_t start, uint64_t end) {
+void* getPlrRefresh(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op) {
   if (!gr) on_error("gr == NULL");
   auto dev {gr->dev};
-
   int rc = 0;
-
   char buf[2000] = {};
-  uint32_t udpIp   = 0;
-  uint16_t udpPort = 0;
-  uint32_t tcpIp   = gr->refreshTcpIp;
-  uint16_t tcpPort = gr->refreshTcpPort;
-  
-  switch (op) {
-  case EkaFhMode::DEFINITIONS :
-  case EkaFhMode::SNAPSHOT    :
-    udpIp   = gr->refreshUdpIp;
-    udpPort = gr->refreshUdpPort;
-    break;
-  case EkaFhMode::RECOVERY    :
-    udpIp   = gr->retransUdpIp;
-    udpPort = gr->retransUdpPort;
-    break;
-  default:
-    on_error("Unexpected recovery op %d",(int)op);
-  }
-  int udpSock = ekaUdpMcConnect(dev,udpIp,udpPort);
+
+  int udpSock = ekaUdpMcConnect(dev,gr->refreshUdpIp,gr->refreshUdpPort);
   if (udpSock < 0)
     on_error("%s:%u: failed to open UDP socket %s:%u",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,
-	     EKA_IP2STR(udpIp),udpPort);
+	     EKA_IP2STR(gr->refreshUdpIp),gr->refreshUdpPort);
   
   EKA_LOG("Waiting for UDP RX pkt before sending request");
   rc = recvfrom(udpSock, buf, sizeof(buf), MSG_WAITALL, NULL, NULL);
-  if (rc <= 0)
-    on_error("Failed to get UDP pkt (rc = %d) from %s:%u",
-	     rc,EKA_IP2STR(udpIp),udpPort);
+  if (rc <= 0) on_error("Failed UDP recv (rc = %d) from %s:%u",
+			rc,EKA_IP2STR(gr->refreshUdpIp),gr->refreshUdpPort);
   
   EKA_LOG("%s:%u: Connecting to TCP server %s:%u",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,
-	  EKA_IP2STR(tcpIp),tcpPort);
+	  EKA_IP2STR(gr->refreshTcpIp),gr->refreshTcpPort);
   
-  int tcpSock = ekaTcpConnect(tcpIp,tcpPort);
-  if (tcpSock < 0)
-    on_error("%s:%u: failed to open TCP socket %s:%u",
-	     EKA_EXCH_DECODE(gr->exch),gr->id,
-	     EKA_IP2STR(tcpIp),tcpPort);
+  int tcpSock = ekaTcpConnect(gr->refreshTcpIp,gr->refreshTcpPort);
+  if (tcpSock < 0) on_error("%s:%u: failed to open TCP socket %s:%u",
+			    EKA_EXCH_DECODE(gr->exch),gr->id,
+			    EKA_IP2STR(gr->refreshTcpIp),gr->refreshTcpPort);
 
-  RecoveryState state = RecoveryState::Invalid;
-  switch (op) {
-  case EkaFhMode::DEFINITIONS :
-    if (! definitionsRefreshTcp(gr,tcpSock))
-      on_error("Definitions Failed");
-    state = RecoveryState::DefinitionsInit;
-    break;
-  case EkaFhMode::SNAPSHOT    :
-    if (! snapshotRefreshTcp(gr,tcpSock))
-      on_error("Snapshot Failed");
-    state = RecoveryState::SnapshotInit;
-    break;
-  case EkaFhMode::RECOVERY    :
-    if (! recoveryRetransmitTcp(gr,tcpSock,start,end))
-      on_error("Recovery Failed");
-    state = RecoveryState::RetransInit;
-    break;
-  default:
-    on_error("Unexpected recovery op %d",(int)op);
+  if (op == EkaFhMode::DEFINITIONS) {
+    if (! definitionsRefreshTcp(gr,tcpSock)) on_error("Definitions Failed");
+  } else {
+    if (! snapshotRefreshTcp(gr,tcpSock))    on_error("Snapshot Failed");
   }
 
+  RefreshState state = RefreshState::NotStarted;
+  while (1) {
+    rc = recvfrom(udpSock, buf, sizeof(buf), MSG_WAITALL, NULL, NULL);
+    if (rc <= 0) on_error("Failed UDP recv (rc = %d) from %s:%u",
+			  rc,EKA_IP2STR(gr->refreshUdpIp),gr->refreshUdpPort);
+    auto p      {reinterpret_cast<const uint8_t*>(buf)};
+    auto pktHdr {reinterpret_cast<const PktHdr* >(p)};
+    p += sizeof(*pktHdr);
+    if (static_cast<DeliveryFlag>(pktHdr->deliveryFlag) == DeliveryFlag::Heartbeat)
+      continue; // next Pkt
+
+    auto msgHdr {reinterpret_cast<const MsgHdr*>(p)};
+    if (static_cast<MsgType>(msgHdr->type) != MsgType::RefreshHeader)
+      on_error("Unexpected MsgType %u",msgHdr->type);
+    auto refreshHeader {reinterpret_cast<const RefreshHeader*>(p)};
+
+    bool firstPkt =
+      static_cast<DeliveryFlag>(pktHdr->deliveryFlag) == DeliveryFlag::SinglePktRefresh ||
+      static_cast<DeliveryFlag>(pktHdr->deliveryFlag) == DeliveryFlag::StratOfRefresh;
+
+    bool lastPkt =
+      static_cast<DeliveryFlag>(pktHdr->deliveryFlag) == DeliveryFlag::SinglePktRefresh ||
+      static_cast<DeliveryFlag>(pktHdr->deliveryFlag) == DeliveryFlag::EndOfRefresh;
+      
+    EKA_LOG("%s: RefreshState=\'%s\', UDP DeliveryFlag=\'%s\', Pkts: %u / %u %s",
+	    EkaFhMode2STR(op),
+	    refreshState2str(state).c_str(),
+	    deliveryFlag2str(pktHdr->deliveryFlag).c_str(),
+	    refreshHeader->CurrentRefreshPkt,
+	    refreshHeader->TotalRefreshPkts,
+	    lastPkt ? "LastPkt" : ""
+	    );
+
+    if (state == RefreshState::NotStarted) {
+      if (firstPkt) state = RefreshState::InProgress;
+    } else {
+      if (firstPkt) on_error("firstPkt at RefreshState::%s",refreshState2str(state).c_str());
+    }
+
+    for (auto i = 0; i < pktHdr->numMsgs; i++) {
+      auto msgHdr {reinterpret_cast<const MsgHdr*>(p)};
+      //      printf ("\t%s\n",msgType2str(msgHdr->type).c_str());
+
+      gr->parseMsg(pEfhRunCtx,p,0,op);
+      
+      p += msgHdr->size;
+    } // for messages
+
+    if (lastPkt) break;
+  } // while (1)
+  gr->gapClosed = true;
+  
+  return NULL;
+}
+
+void* getPlrRetrans(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op, uint64_t start, uint64_t end) {
+  if (!gr) on_error("gr == NULL");
+  auto dev {gr->dev};
+  int rc = 0;
+  char buf[2000] = {};
+
+  int udpSock = ekaUdpMcConnect(dev,gr->retransUdpIp,gr->retransUdpPort);
+  if (udpSock < 0)
+    on_error("%s:%u: failed to open UDP socket %s:%u",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,
+	     EKA_IP2STR(gr->retransUdpIp),gr->retransUdpPort);
+  
+  EKA_LOG("Waiting for UDP RX pkt before sending request");
+  rc = recvfrom(udpSock, buf, sizeof(buf), MSG_WAITALL, NULL, NULL);
+  if (rc <= 0) on_error("Failed UDP recv (rc = %d) from %s:%u",
+			rc,EKA_IP2STR(gr->retransUdpIp),gr->retransUdpPort);
+  
+  EKA_LOG("%s:%u: Connecting to TCP server %s:%u",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,
+	  EKA_IP2STR(gr->retransTcpIp),gr->retransTcpPort);
+  
+  int tcpSock = ekaTcpConnect(gr->retransTcpIp,gr->retransTcpPort);
+  if (tcpSock < 0) on_error("%s:%u: failed to open TCP socket %s:%u",
+			    EKA_EXCH_DECODE(gr->exch),gr->id,
+			    EKA_IP2STR(gr->retransTcpIp),gr->retransTcpPort);
+
+  if (! recoveryRetransmitTcp(gr, tcpSock, start, end)) on_error("Retrans Failed");
+
+  uint32_t expectedSeq = start;
   
   while (1) {
     rc = recvfrom(udpSock, buf, sizeof(buf), MSG_WAITALL, NULL, NULL);
-    if (rc <= 0)
-      on_error("Failed to get UDP pkt (rc = %d) from %s:%u",
-	       rc,EKA_IP2STR(udpIp),udpPort);
-    auto p {buf};
-    auto pktHdr {reinterpret_cast<const PktHdr*>(p)};
+    if (rc <= 0) on_error("Failed UDP recv (rc = %d) from %s:%u",
+			  rc,EKA_IP2STR(gr->retransUdpIp),gr->retransUdpPort);
+    auto p      {reinterpret_cast<const uint8_t*>(buf)};
+    auto pktHdr {reinterpret_cast<const PktHdr* >(p)};
     p += sizeof(*pktHdr);
-    EKA_LOG("RecoveryState=\'%s\', UDP recovery DeliveryFlag=\'%s\'",
-	    recoveryState2str(state).c_str(),
-	    deliveryFlag2str(pktHdr->deliveryFlag).c_str());
+    if (static_cast<DeliveryFlag>(pktHdr->deliveryFlag) == DeliveryFlag::Heartbeat)
+      continue; // next Pkt
 
+    if (static_cast<DeliveryFlag>(pktHdr->deliveryFlag) != DeliveryFlag::MsgUnavail &&
+	static_cast<DeliveryFlag>(pktHdr->deliveryFlag) != DeliveryFlag::SinglePktRetransmit &&
+	static_cast<DeliveryFlag>(pktHdr->deliveryFlag) != DeliveryFlag::PartOfRetransmit)
+      on_error("Unexpected DeliveryFlag %u (%s)",
+	       pktHdr->deliveryFlag,deliveryFlag2str(pktHdr->deliveryFlag).c_str());
     
-    switch (static_cast<DeliveryFlag>(pktHdr->deliveryFlag)) {
-    case DeliveryFlag::Heartbeat :
-      break;
-    case DeliveryFlag::Failover :
-      break;
-    case DeliveryFlag::Original :
-      break;
-    case DeliveryFlag::SeqReset :
-      break;
-    case DeliveryFlag::SinglePktRetransmit :
-      return NULL;
-      break;
-    case DeliveryFlag::PartOfRetransmit :
-      break;
-    case DeliveryFlag::SinglePktRefresh :
-      return NULL;
-      break;
-    case DeliveryFlag::StratOfRefresh :
-      break;
-    case DeliveryFlag::PartOfRefresh :
-      break;
-    case DeliveryFlag::EndOfRefresh :
-      return NULL;
-      break;
-    case DeliveryFlag::MsgUnavail :
-      break;
-    default :
-      on_error("Unexpected DeliveryFlag %u",pktHdr->deliveryFlag);
-    } // switch(pktHdr->deliveryFlag)
-      
-    switch (state) {
-    case RecoveryState::DefinitionsInit :
-      break;
-    case RecoveryState::SnapshotInit :
-      break;
-	
-    case RecoveryState::RetransInit :
-      break;
-	
-    case RecoveryState::DefinitionsInProgress :
-      break;
-	
-    case RecoveryState::SnapshotInProgress :
-      break;
-	
-    case RecoveryState::RetransInProgress :
-      break;
-	
-    default :
-      on_error("Unexpected RecoveryState %d",(int)state);
-    } // switch(state)
-      
+    EKA_LOG("%s: UDP DeliveryFlag=\'%s\',start=%ju,end=%ju,expectedSeq=%u,pktSeq=%u,numMsgs=%u",
+	    EkaFhMode2STR(op),
+	    deliveryFlag2str(pktHdr->deliveryFlag).c_str(),
+	    start,end,expectedSeq,
+	    pktHdr->seqNum, pktHdr->numMsgs);
+
+    uint32_t msgSeq = pktHdr->seqNum;
     for (auto i = 0; i < pktHdr->numMsgs; i++) {
       auto msgHdr {reinterpret_cast<const MsgHdr*>(p)};
-      printf ("\t%s\n",msgType2str(msgHdr->type).c_str());
+      if (static_cast<MsgType>(msgHdr->type) == MsgType::MessageUnavailable) {
+	auto m {reinterpret_cast<const MessageUnavailable*>(msgHdr)};
+	EKA_WARN("MessageUnavailable range: %u..%u during recovery %ju..%ju",
+		 m->BeginSeqNum,m->EndSeqNum,start,end);
+	if (expectedSeq == m->BeginSeqNum) {
+	  expectedSeq = m->BeginSeqNum + 1;
+	  if (expectedSeq > end) goto GAP_CLOSED;
+	}
+      } else if (msgSeq == expectedSeq) {	
+	gr->parseMsg(pEfhRunCtx,p,msgSeq,op);
+	if (msgSeq == end) goto GAP_CLOSED;
+	msgSeq++;
+	expectedSeq++;
+      }
       p += msgHdr->size;
     } // for messages
+
   } // while (1)
+ GAP_CLOSED: 
+  gr->gapClosed = true;
+  
   return NULL;
 }
+
 
 void* runPlrRecoveryThread(void* attr) {
 #ifdef FH_LAB
@@ -425,8 +449,11 @@ void* runPlrRecoveryThread(void* attr) {
 	  EkaFhMode2STR(op),
 	  EKA_IP2STR(gr->snapshot_ip),be16toh(gr->snapshot_port));
 
-  getPlrRecovery(pEfhRunCtx, gr, op, start, end);
-
+  if (op == EkaFhMode::RECOVERY) 
+    getPlrRetrans(pEfhRunCtx, gr, op, start, end);
+  else
+    getPlrRefresh(pEfhRunCtx, gr, op);
+    
   return NULL;
 }
 

@@ -50,7 +50,17 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
   }
     break;
+     case MsgType::SymbolClear : {
+#ifdef PLR_CERT
+      printf (YEL "MsgType::SymbolClear\n" RESET);
+#endif      
+
+  }
+    break; 
   case MsgType::TimeReference : {
+#ifdef PLR_CERT
+      printf (YEL "MsgType::TimeReference\n" RESET);
+#endif      
     auto m {reinterpret_cast<const SourceTimeReference*>(msgHdr)};
     seconds = m->sourceTimeSec;
     gr_ts = m->sourceTimeSec * SEC_TO_NANO;
@@ -58,6 +68,9 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     break;
 #if 0
   case MsgType::SecurityStatus : {
+#ifdef PLR_CERT
+      printf (YEL "MsgType::SecurityStatus\n" RESET);
+#endif  
       auto m {reinterpret_cast<const SecurityStatus*>(msgHdr)};
       FhSecurity* s = book->findSecurity(m->seriesIndex);
       if (s == NULL) return false;
@@ -127,7 +140,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 	  break;
       default : on_error("Unexpected seriesStatus \'%c\'",m->seriesStatus);
       }
-      book->generateOnQuote (pEfhRunCtx, s, m->SeriesSeqNum,
+      book->generateOnQuote (pEfhRunCtx, s, sequence,
 			     gr_ts + m->sourceTimeNs, gapNum);  
   }
       break;
@@ -147,7 +160,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 
     s->trading_action = quoteCondition(m->quoteCondition);
     
-    book->generateOnQuote (pEfhRunCtx, s, m->seriesSeqNum,
+    book->generateOnQuote (pEfhRunCtx, s, sequence,
 			   gr_ts + m->sourceTimeNs, gapNum);    
   }
     break;
@@ -161,7 +174,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 	  {exch,(EkaLSI)id}, // group
 	  0,  // underlyingId
 	  (uint64_t) m->seriesIndex,
-	  m->seriesSeqNum,
+	  sequence,
 	  m->sourceTimeSec * static_cast<uint64_t>(SEC_TO_NANO) + m->sourceTimeNs,
 	  gapNum },
 	m->price,
