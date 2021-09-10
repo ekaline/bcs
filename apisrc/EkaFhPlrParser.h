@@ -20,7 +20,29 @@ namespace Plr {
 	uint32_t seconds;
 	uint32_t ns;
     };
-
+    
+    enum class RecoveryState : int  {
+	Invalid = 0,
+	DefinitionsInit,
+	SnapshotInit,
+	RetransInit,
+	DefinitionsInProgress,
+	SnapshotInProgress,
+	RetransInProgress
+    };
+    
+    inline std::string recoveryState2str (RecoveryState state) {
+	switch (state) {
+	case RecoveryState::DefinitionsInit       : return std::string("DefinitionsInit");
+	case RecoveryState::SnapshotInit          : return std::string("SnapshotInit");
+	case RecoveryState::RetransInit           : return std::string("RetransInit");
+	case RecoveryState::DefinitionsInProgress : return std::string("DefinitionsInProgress");
+	case RecoveryState::SnapshotInProgress    : return std::string("SnapshotInProgress");
+	case RecoveryState::RetransInProgress     : return std::string("RetransInProgress");
+	default : on_error("Unexpected RecoveryState %d",(int)state);
+	} // switch(state)      
+    }
+    
     enum class DeliveryFlag : uint8_t  {
 	Heartbeat = 1,
 	Failover = 10,
@@ -320,7 +342,20 @@ namespace Plr {
 	char     SessionState; // Unused. Defaulted to 0x00.
     };
 
+    struct RefreshHeader { // 35
+	MsgHdr   hdr;
+	uint16_t CurrentRefreshPkt;
+	uint16_t TotalRefreshPkts;
+	uint32_t LastSeqNum;
+	uint32_t LastSymbolSeqNum;
+    };
 
+    struct ShortRefreshHeader { // 35
+	MsgHdr   hdr;
+	uint16_t CurrentRefreshPkt;
+	uint16_t TotalRefreshPkts;
+    };
+    
     struct OptionsStatus { // 51
 	MsgHdr   hdr;
 	uint32_t sourceTimeSec;
