@@ -316,21 +316,23 @@ void* getPlrRefresh(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op) {
       auto refreshHeader {reinterpret_cast<const RefreshHeader*>(p)};
       if (firstPkt && msgHdr->size == sizeof(RefreshHeader))
 	gr->seq_after_snapshot = refreshHeader->LastSeqNum + 1;
-      EKA_LOG("%s with RefreshHdr: RefreshState=\'%s\', UDP DeliveryFlag=\'%s\', Pkts: %u / %u %s",
-	      EkaFhMode2STR(op),
-	      refreshState2str(state).c_str(),
-	      deliveryFlag2str(pktHdr->deliveryFlag).c_str(),
-	      refreshHeader->CurrentRefreshPkt,
-	      refreshHeader->TotalRefreshPkts,
-	      lastPkt ? "LastPkt" : ""
-	      );
+      EKA_LOG("gr->seq_after_snapshot = %ju",gr->seq_after_snapshot);
+      
+      /* EKA_LOG("%s with RefreshHdr: RefreshState=\'%s\', UDP DeliveryFlag=\'%s\', Pkts: %u / %u %s", */
+      /* 	      EkaFhMode2STR(op), */
+      /* 	      refreshState2str(state).c_str(), */
+      /* 	      deliveryFlag2str(pktHdr->deliveryFlag).c_str(), */
+      /* 	      refreshHeader->CurrentRefreshPkt, */
+      /* 	      refreshHeader->TotalRefreshPkts, */
+      /* 	      lastPkt ? "LastPkt" : "" */
+      /* 	      ); */
     } else {      
-      EKA_LOG("%s with NO RefreshHdr : RefreshState=\'%s\', UDP DeliveryFlag=\'%s\', %s",
-	      EkaFhMode2STR(op),
-	      refreshState2str(state).c_str(),
-	      deliveryFlag2str(pktHdr->deliveryFlag).c_str(),
-	      lastPkt ? "LastPkt" : ""
-	      );
+      /* EKA_LOG("%s with NO RefreshHdr : RefreshState=\'%s\', UDP DeliveryFlag=\'%s\', %s", */
+      /* 	      EkaFhMode2STR(op), */
+      /* 	      refreshState2str(state).c_str(), */
+      /* 	      deliveryFlag2str(pktHdr->deliveryFlag).c_str(), */
+      /* 	      lastPkt ? "LastPkt" : "" */
+      /* 	      ); */
     }
     
     if (state == RefreshState::NotStarted) {
