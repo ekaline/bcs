@@ -21,39 +21,35 @@ namespace Plr {
 	uint32_t ns;
     };
     
-    enum class RecoveryState : int  {
-	Invalid = 0,
-	DefinitionsInit,
-	SnapshotInit,
-	RetransInit,
-	DefinitionsInProgress,
-	SnapshotInProgress,
-	RetransInProgress
+    
+    enum class RefreshState : int  {
+	NotStarted = 0,
+	InProgress,
     };
     
-    inline std::string recoveryState2str (RecoveryState state) {
+    inline std::string refreshState2str (RefreshState state) {
 	switch (state) {
-	case RecoveryState::DefinitionsInit       : return std::string("DefinitionsInit");
-	case RecoveryState::SnapshotInit          : return std::string("SnapshotInit");
-	case RecoveryState::RetransInit           : return std::string("RetransInit");
-	case RecoveryState::DefinitionsInProgress : return std::string("DefinitionsInProgress");
-	case RecoveryState::SnapshotInProgress    : return std::string("SnapshotInProgress");
-	case RecoveryState::RetransInProgress     : return std::string("RetransInProgress");
-	default : on_error("Unexpected RecoveryState %d",(int)state);
+	case RefreshState::NotStarted : return std::string("NotStarted");
+	case RefreshState::InProgress : return std::string("InProgress");
+
+	default : on_error("Unexpected RefreshState %d",(int)state);
 	} // switch(state)      
     }
-    
+
     enum class DeliveryFlag : uint8_t  {
 	Heartbeat = 1,
 	Failover = 10,
 	Original = 11,
 	SeqReset = 12,
+	
 	SinglePktRetransmit = 13,
 	PartOfRetransmit = 15,
+	
 	SinglePktRefresh = 17,
 	StratOfRefresh = 18,
 	PartOfRefresh = 19,
 	EndOfRefresh = 20,
+	
 	MsgUnavail = 21
     };
 
