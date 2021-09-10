@@ -307,23 +307,28 @@ void* getPlrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op, 
 	     EKA_EXCH_DECODE(gr->exch),gr->id,
 	     EKA_IP2STR(tcpIp),tcpPort);
 
+  RecoveryState state = RecoveryState::Invalid;
   switch (op) {
   case EkaFhMode::DEFINITIONS :
     if (! definitionsRefreshTcp(gr,tcpSock))
       on_error("Definitions Failed");
+    state = RecoveryState::DefinitionsInit;
     break;
   case EkaFhMode::SNAPSHOT    :
     if (! snapshotRefreshTcp(gr,tcpSock))
       on_error("Snapshot Failed");
+    state = RecoveryState::SnapshotInit;
     break;
   case EkaFhMode::RECOVERY    :
     if (! recoveryRetransmitTcp(gr,tcpSock,start,end))
       on_error("Recovery Failed");
+    state = RecoveryState::RetransInit;
     break;
   default:
     on_error("Unexpected recovery op %d",(int)op);
   }
 
+  
   while (1) {
     rc = recvfrom(udpSock, buf, sizeof(buf), MSG_WAITALL, NULL, NULL);
     if (rc <= 0)
@@ -332,12 +337,69 @@ void* getPlrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op, 
     auto p {buf};
     auto pktHdr {reinterpret_cast<const PktHdr*>(p)};
     p += sizeof(*pktHdr);
+    EKA_LOG("RecoveryState=\'%s\', UDP recovery DeliveryFlag=\'%s\'",
+	    recoveryState2str(state).c_str(),
+	    deliveryFlag2str(pktHdr->deliveryFlag).c_str());
+
+    
+    switch (static_cast<DeliveryFlag>(pktHdr->deliveryFlag)) {
+    case DeliveryFlag::Heartbeat :
+      break;
+    case DeliveryFlag::Failover :
+      break;
+    case DeliveryFlag::Original :
+      break;
+    case DeliveryFlag::SeqReset :
+      break;
+    case DeliveryFlag::SinglePktRetransmit :
+      return NULL;
+      break;
+    case DeliveryFlag::PartOfRetransmit :
+      break;
+    case DeliveryFlag::SinglePktRefresh :
+      return NULL;
+      break;
+    case DeliveryFlag::StratOfRefresh :
+      break;
+    case DeliveryFlag::PartOfRefresh :
+      break;
+    case DeliveryFlag::EndOfRefresh :
+      return NULL;
+      break;
+    case DeliveryFlag::MsgUnavail :
+      break;
+    default :
+      on_error("Unexpected DeliveryFlag %u",pktHdr->deliveryFlag);
+    } // switch(pktHdr->deliveryFlag)
+      
+    switch (state) {
+    case RecoveryState::DefinitionsInit :
+      break;
+    case RecoveryState::SnapshotInit :
+      break;
+	
+    case RecoveryState::RetransInit :
+      break;
+	
+    case RecoveryState::DefinitionsInProgress :
+      break;
+	
+    case RecoveryState::SnapshotInProgress :
+      break;
+	
+    case RecoveryState::RetransInProgress :
+      break;
+	
+    default :
+      on_error("Unexpected RecoveryState %d",(int)state);
+    } // switch(state)
+      
     for (auto i = 0; i < pktHdr->numMsgs; i++) {
       auto msgHdr {reinterpret_cast<const MsgHdr*>(p)};
       printf ("\t%s\n",msgType2str(msgHdr->type).c_str());
       p += msgHdr->size;
-    }
-  }
+    } // for messages
+  } // while (1)
   return NULL;
 }
 
