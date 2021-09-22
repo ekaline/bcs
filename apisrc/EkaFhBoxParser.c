@@ -6,6 +6,7 @@
 #include <endian.h>
 #include <inttypes.h>
 #include <assert.h>
+#include <cctype>
 #include <string>
 
 #include "EkaFhParserCommon.h"
@@ -253,6 +254,17 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.strikePrice           = getNumField<uint32_t>(&symb[8],7) * getFractionIndicator(symb[15]) / EFH_HSV_BOX_STRIKE_PRICE_SCALE;
 
     copySymbol(msg.commonDef.underlying,boxMsg->UnderlyingSymbolRoot);
+
+    // In HSVF, we're given the "underlying symbol root," i.e., it might
+    // contain a contract adjustment, e.g., ABBV1 instead of ABBV. This
+    // is not what we expect in our API (the contract adjustment should
+    // only be present in classSymbol, not underlying), so remove it.
+    for (char *s = std::end(msg.commonDef.underlying) - 1;
+         s >= std::begin(msg.commonDef.underlying); --s) {
+      if (std::isdigit(*s))
+        *s = '\0';
+    }
+
     {
       char *s = stpncpy(msg.commonDef.classSymbol,symb,6);
       *s-- = '\0';
