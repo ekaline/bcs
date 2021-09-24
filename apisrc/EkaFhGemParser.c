@@ -6,6 +6,7 @@
 #include <inttypes.h>
 #include <assert.h>
 
+#include "EkaFhParserCommon.h"
 #include "EkaFhGemGr.h"
 #include "EkaFhGemParser.h"
 
@@ -50,16 +51,17 @@ bool EkaFhGemGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.header.timeStamp      = 0;
     msg.header.gapNum         = gapNum;
 
-    //    msg.secondaryGroup        = 0;
-    msg.securityType          = EfhSecurityType::kOption;
-    msg.expiryDate            = (message->expiration_year + 2000) * 10000 + message->expiration_month * 100 + message->expiration_day;
-    msg.contractSize          = 0;
+    msg.commonDef.securityType   = EfhSecurityType::kOption;
+    msg.commonDef.exchange       = EKA_GRP_SRC2EXCH(exch);
+    msg.commonDef.underlyingType = EfhSecurityType::kStock;
+    msg.commonDef.expiryDate     = (message->expiration_year + 2000) * 10000 + message->expiration_month * 100 + message->expiration_day;
+    msg.commonDef.contractSize   = 0;
+
     msg.strikePrice           = be64toh(message->strike_price) / EFH_GEMX_STRIKE_PRICE_SCALE;
-    msg.exchange              = EKA_GRP_SRC2EXCH(exch);
     msg.optionType            = message->option_type == 'C' ?  EfhOptionType::kCall : EfhOptionType::kPut;
 
-    memcpy (&msg.underlying,message->underlying_symbol,std::min(sizeof(msg.underlying),sizeof(message->underlying_symbol)));
-    memcpy (&msg.classSymbol,message->security_symbol,std::min(sizeof(msg.classSymbol),sizeof(message->security_symbol)));
+    copySymbol(msg.commonDef.underlying,message->underlying_symbol);
+    copySymbol(msg.commonDef.classSymbol,message->security_symbol);
 
     pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
     return false;

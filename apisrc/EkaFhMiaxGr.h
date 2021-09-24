@@ -8,13 +8,12 @@
 
 class Underlying {
  public:
-  Underlying(const char* _name,size_t size) {
-    memset(name,0,sizeof(name));
-    memcpy(name,_name,size);
+  Underlying(const char* _name) {
+    strncpy(name,_name,sizeof name);
     tradeStatus = EfhTradeStatus::kNormal;
   }
   
-  EfhSymbol name = {};
+  EfhSymbol name;
   EfhTradeStatus tradeStatus = EfhTradeStatus::kNormal;
 };
  /* ##################################################################### */
@@ -64,19 +63,19 @@ class EkaFhMiaxGr : public EkaFhGroup{
 /* ####################################################### */
 
  private:
-  inline auto findUnderlying(const char* name, size_t size) {
+  inline auto findUnderlying(const char* name) {
     for (int i = 0; i < (int)underlyingNum; i ++) {
       /* TEST_LOG("Comparing \'%s\' vs \'%s\'",name,underlying[i]->name); */
       /* if (memcmp(&underlying[i]->name,name,size) == 0) return i; */
       /* TEST_LOG("memcmp - FALSE"); */
-      if (strncmp(underlying[i]->name,name,size) == 0) return i;
+      if (strcmp(underlying[i]->name,name) == 0) return i;
       /* TEST_LOG("strncmp - FALSE"); */
     }
     return -1;
   }
 
-  inline auto addUnderlying(const char* name, size_t size) {
-    int u = findUnderlying(name,size);
+  inline auto addUnderlying(const char* name) {
+    int u = findUnderlying(name);
     if (u >= 0) return (uint)u;
 
     if (underlyingNum == UndelyingsPerGroup) 
@@ -84,7 +83,7 @@ class EkaFhMiaxGr : public EkaFhGroup{
 
     uint newUnderlying = underlyingNum++;
 
-    underlying[newUnderlying] = new Underlying(name,size);
+    underlying[newUnderlying] = new Underlying(name);
     if (underlying[newUnderlying] == NULL) on_error("cannot create new Underlying %s",name);
 #if 0
     char name2print[16] = {};

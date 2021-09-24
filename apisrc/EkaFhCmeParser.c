@@ -7,6 +7,7 @@
 #include <string>
 #include <cmath>
 
+#include "EkaFhParserCommon.h"
 #include "EkaFhCmeParser.h"
 
 #include "EkaFhRunGroup.h"
@@ -15,6 +16,16 @@
 using namespace Cme;
 
 std::string ts_ns2str(uint64_t ts);
+
+enum DayOfWeek : uint8_t {
+  DOW_Sunday = 0,
+  DOW_Monday,
+  DOW_Tuesday,
+  DOW_Wednesday,
+  DOW_Thursday,
+  DOW_Friday,
+  DOW_Saturday
+};
 
 /* ##################################################################### */
 
@@ -81,6 +92,74 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
     }
   }
   return false;
+}
+
+void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity,
+                                        const char* symbol,
+                                        uint32_t* iso8601Date,
+                                        time_t* time) {
+  EfhDateComponents dc = {
+    .year = maturity->year,
+    .month = maturity->month,
+    .tz = "America/New_York"
+  };
+
+  // This hard-coded product knowledge originally comes from here:
+  //
+  //   avtus/Source/Cme/java/com/lehman/eqd/cme/depthmdp/DefinitionMessageProcessor.java
+  //
+  // It's not clear how to do this correctly in the general case.
+  if (symbol[2] == 'A') {
+    // E1A | S2A | Q4A
+    // Monday 1600 hours
+    dc.dayMethod = EfhDayMethod::kWeekWeekday;
+    dc.week = symbol[1] - '0';
+    dc.weekday = DOW_Monday;
+    dc.hour = 16;
+    dc.holiday = 1;
+  }
+  else if (symbol[2] == 'C') {
+    // E1C | S2C | Q4C
+    // Wednesday 1600 hours
+    dc.dayMethod = EfhDayMethod::kWeekWeekday;
+    dc.week = symbol[1] - '0';
+    dc.weekday = DOW_Wednesday;
+    dc.hour = 16;
+    dc.holiday = -1;
+  }
+  else if (symbol[2] >= '1' && symbol[2] <= '5') {
+    // EW1 | EV2 | QN3
+    // Weekly Friday 1600 hours
+    dc.dayMethod = EfhDayMethod::kWeekWeekday;
+    dc.week = symbol[2] - '0';
+    dc.weekday = DOW_Friday;
+    dc.hour = 16;
+    dc.holiday = -1;
+  }
+  else if ((symbol[1] == 'W' || symbol[1] == 'V') ||
+           strcmp(symbol, "QNE") == 0) {
+    // EW | EV | QNE
+    // Month-end 1600 hours
+    dc.dayMethod = EfhDayMethod::kMonthLastTradeDay;
+    dc.hour = 16;
+  }
+  else {
+    // Most products expire on the third Friday of the month at 9:30
+    dc.dayMethod = EfhDayMethod::kWeekWeekday;
+    dc.week = 3;
+    dc.weekday = DOW_Friday;
+    dc.hour = 9;
+    dc.minute = 30;
+    dc.holiday = -1;
+  }
+
+  if (this->fh->getTradeTime(&dc, iso8601Date, time) == -1) {
+    on_error("unable to translate date components (year=%hu,month=%hhu,day=%hhu,"
+             "week=%hhu,weekday=%hhu,dayMethod=%hhu,hour=%hhu,minute=%hhu"
+             "second=%hhu,holiday=%hhd,tz=%s)", dc.year, dc.month, dc.day,
+             dc.week, dc.weekday, uint8_t(dc.dayMethod), dc.hour, dc.minute,
+             dc.second, dc.holiday, dc.tz);
+  }
 }
 
 /* ##################################################################### */
@@ -316,35 +395,29 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionFuture54_mainBlock*>(m)};
   m += msgHdr->blockLen;
   /* ------------------------------- */
-  auto symbol           {std::string(rootBlock->Symbol,          sizeof(rootBlock->Symbol))};
-  auto cfiCode          {std::string(rootBlock->CFICode,         sizeof(rootBlock->CFICode))};
-  auto securityExchange {std::string(rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange))};
-  auto asset            {std::string(rootBlock->Asset,           sizeof(rootBlock->Asset))};
-  auto securityType     {std::string(rootBlock->SecurityType,    sizeof(rootBlock->SecurityType))};
   auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
 
-  EfhOptionDefinitionMsg msg{};
-  msg.header.msgType        = EfhMsgType::kOptionDefinition; // FUTURE DEFINITION!!!
+  EfhFutureDefinitionMsg msg{};
+  msg.header.msgType        = EfhMsgType::kFutureDefinition;
   msg.header.group.source   = EkaSource::kCME_SBE;
   msg.header.group.localId  = id;
-  msg.header.underlyingId   = rootBlock->UnderlyingProduct;
+  msg.header.underlyingId   = 0; // Stock index technically an underlying, but no id.
   msg.header.securityId     = rootBlock->SecurityID;
   msg.header.sequenceNumber = pktSeq;
   msg.header.timeStamp      = pktTime; //rootBlock->LastUpdateTime;
   msg.header.gapNum         = gapNum;
 
-  //    msg.secondaryGroup        = 0;
-  msg.securityType          = EfhSecurityType::kFuture;
-  //      msg.optionType            = putOrCall;
-  msg.expiryDate            = pMaturity->year * 10000 + pMaturity->month * 100 + pMaturity->day;
-  msg.contractSize          = 0;
-  //      msg.strikePrice           = rootBlock->StrikePrice;
-  msg.exchange              = EfhExchange::kCME;
+  msg.commonDef.securityType   = EfhSecurityType::kFuture;
+  msg.commonDef.exchange       = EfhExchange::kCME;
+  msg.commonDef.underlyingType = EfhSecurityType::kIndex;
+  msg.commonDef.contractSize   = 0;
+  getCMEProductTradeTime(pMaturity, rootBlock->Symbol, &msg.commonDef.expiryDate, &msg.commonDef.expiryTime);
 
-  memcpy (&msg.underlying, rootBlock->Symbol,std::min(sizeof(msg.underlying), sizeof(rootBlock->Symbol)));
-  memcpy (&msg.classSymbol,rootBlock->Symbol,std::min(sizeof(msg.classSymbol),sizeof(rootBlock->Symbol)));
+  copySymbol(msg.commonDef.underlying, rootBlock->Asset);
+  copySymbol(msg.commonDef.classSymbol, rootBlock->Asset);
+  copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
 
-  pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+  pEfhRunCtx->onEfhFutureDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
 
 
   /* ------------------------------- */
@@ -371,6 +444,11 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
 
   if (vanillaOptionsDefinitionsState == DefinitionsCycleState::Done)
     return msgHdr->size;
+  else if (rootBlock->CFICode[0] != 'O' || rootBlock->CFICode[3] != 'F') {
+    // Not an option-on-future, we don't care about this.
+    EKA_WARN("found non-option-on-future security `%s`", rootBlock->Symbol);
+    return msgHdr->size;
+  }
 
   /* ------------------------------- */
   auto symbol           {std::string(rootBlock->Symbol,	         sizeof(rootBlock->Symbol))};
@@ -391,29 +469,24 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   msg.header.msgType        = EfhMsgType::kOptionDefinition;
   msg.header.group.source   = EkaSource::kCME_SBE;
   msg.header.group.localId  = id;
-  msg.header.underlyingId   = rootBlock->UnderlyingProduct;
+  msg.header.underlyingId   = 0; // Not given to us.
   msg.header.securityId     = rootBlock->SecurityID;
   msg.header.sequenceNumber = pktSeq;
   msg.header.timeStamp      = pktTime; //rootBlock->LastUpdateTime;
   msg.header.gapNum         = gapNum;
 
-  //    msg.secondaryGroup        = 0;
-  msg.securityType          = EfhSecurityType::kOption;
-  msg.optionType            = putOrCall;
-  msg.expiryDate            = pMaturity->year * 10000 + pMaturity->month * 100 + pMaturity->day;
-  msg.contractSize          = 0;
-  //      msg.strikePrice           = rootBlock->StrikePrice / EFH_CME_STRIKE_PRICE_SCALE;
-  msg.strikePrice           = rootBlock->StrikePrice / EFH_CME_ORDER_PRICE_SCALE / 1e9 * rootBlock->DisplayFactor;
-  msg.exchange              = EfhExchange::kCME;
+  msg.commonDef.securityType   = EfhSecurityType::kOption;
+  msg.commonDef.exchange       = EfhExchange::kCME;
+  msg.commonDef.underlyingType = EfhSecurityType::kFuture;
+  msg.commonDef.contractSize   = 0;
+  getCMEProductTradeTime(pMaturity, rootBlock->Symbol, &msg.commonDef.expiryDate, &msg.commonDef.expiryTime);
+  copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
 
-  memcpy (&msg.underlying, rootBlock->Asset,std::min(sizeof(msg.underlying), sizeof(rootBlock->Asset)));
-  //      memcpy (&msg.classSymbol,rootBlock->Symbol,std::min(sizeof(msg.classSymbol),sizeof(rootBlock->Symbol)));
-  for (size_t i = 0; i < sizeof(msg.classSymbol) && rootBlock->Symbol[i] != ' '; i++)
-    msg.classSymbol[i] = rootBlock->Symbol[i];
+  msg.optionType            = putOrCall;
+  msg.strikePrice           = rootBlock->StrikePrice / EFH_CME_ORDER_PRICE_SCALE / 1e9 * rootBlock->DisplayFactor * EFH__PRICE_SCALE;
 
   msg.opaqueAttrA           = rootBlock->DisplayFactor;
   //      msg.opaqueAttrB           = rootBlock->PriceDisplayFormat;
-  pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
 
   /* ------------------------------- */
   auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
@@ -438,8 +511,13 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   /* ------------------------------- */
   auto pGroupSize_Underlyings {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize_Underlyings);
-  for (uint i = 0; i < pGroupSize_Underlyings->numInGroup; i++)
+  for (uint i = 0; i < pGroupSize_Underlyings->numInGroup; i++) {
+    auto underlyingBlock{reinterpret_cast<const OptionDefinitionUnderlyingEntry*>(m)};
+    msg.header.underlyingId = underlyingBlock->UnderlyingSecurityID;
+    copySymbol(msg.commonDef.underlying, underlyingBlock->UnderlyingSymbol);
+    copySymbol(msg.commonDef.classSymbol, underlyingBlock->UnderlyingSymbol);
     m += pGroupSize_Underlyings->blockLength;
+  }
   /* ------------------------------- */
   auto pGroupSize_RelatedInstruments {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize_RelatedInstruments);
@@ -447,11 +525,14 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
     auto e {reinterpret_cast<const OptionDefinition55RelatedInstrumentEntry*>(m)};
 
     msg.header.securityId = e->SecurityID;
-    memcpy (&msg.underlying, e->Symbol,std::min(sizeof(msg.underlying), sizeof(e->Symbol)));
+    copySymbol(msg.commonDef.underlying, e->Symbol);
     pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
 
     m += pGroupSize_RelatedInstruments->blockLength;
   }
+
+  pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+
   /* ------------------------------- */
   vanillaOptionsDefinitions++;
   vanillaOptionsDefinitionsState = DefinitionsCycleState::InProgress;
@@ -473,6 +554,14 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionSpread56_mainBlock*>(m)};
   m += msgHdr->blockLen;
 
+  if (rootBlock->CFICode[0] == 'F' && rootBlock->CFICode[1] == 'M') {
+    // This is an intramarket spread, also referred to as a calendar spread.
+    // It involves buying a futures contract in one month while simultaneously
+    // selling the same contract in a different month. We do not care about
+    // these for now, we are only looking for options spreads.
+    return msgHdr->size;
+  }
+
   if (complexOptionsDefinitionsState == DefinitionsCycleState::Done)
     return msgHdr->size;
 
@@ -487,6 +576,17 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   msg.header.sequenceNumber = pktSeq;
   msg.header.timeStamp      = pktTime; //rootBlock->LastUpdateTime;
   msg.header.gapNum         = gapNum;
+
+  msg.commonDef.securityType   = EfhSecurityType::kComplex;
+  msg.commonDef.exchange       = EfhExchange::kCME;
+  msg.commonDef.underlyingType = EfhSecurityType::kInvalid;
+  msg.commonDef.expiryDate     = 0; // FIXME: for completeness only, could be "today"
+  msg.commonDef.expiryTime     = 0;
+  msg.commonDef.contractSize   = 0;
+
+  copySymbol(msg.commonDef.underlying, rootBlock->Asset);
+  copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
+  copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
 
   /* ------------------------------- */
   auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
@@ -511,11 +611,17 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   /* ------------------------------- */
   auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize);
+  if (pGroupSize->numInGroup >= EFH__MAX_COMPLEX_LEGS) {
+    on_error("complex security `%s` contains %hhu legs, maximum number of %u",
+             rootBlock->Symbol, pGroupSize->numInGroup, EFH__MAX_COMPLEX_LEGS);
+  }
   for (uint i = 0; i < pGroupSize->numInGroup; i++) {
     auto e {reinterpret_cast<const MDInstrumentDefinitionSpread56_legEntry*>(m)};
 
+    // We don't know the security type because we cannot look up the
+    // security by ID here; the client will need to do it.
     msg.legs[i].securityId = e->LegSecurityID;
-    msg.legs[i].type       = EfhSecurityType::kComplex;
+    msg.legs[i].type       = EfhSecurityType::kInvalid;
     msg.legs[i].side       = e->LegSide == LegSide_T::BuySide ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
     msg.legs[i].ratio      = std::abs(e->LegRatioQty);
 	  

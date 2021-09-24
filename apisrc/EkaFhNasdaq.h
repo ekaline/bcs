@@ -15,7 +15,7 @@ class EkaFhNasdaq : public EkaFh { // base class for Nom, Gem, Ise, Phlx
 
   EkaOpResult         getDefinitions (EfhCtx*          pEfhCtx, 
 				      const EfhRunCtx* pEfhRunCtx, 
-				      EkaGroup*        group);
+				      const EkaGroup*  group);
 
  protected:
   const uint8_t* getUdpPkt(EkaFhRunGroup* runGr, 

@@ -82,6 +82,7 @@ extern "C" {
     EKA_OPRESULT__ERR_GROUP_NOT_AVAILABLE = -105, // returned by test feed handler when group not present in capture
     EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION = -106, // returned if exchange retransmit connection failed
     EKA_OPRESULT__ERR_EFC_SET_CTX_ON_UNSUBSCRIBED_SECURITY = -107,
+    EKA_OPRESULT__ERR_STRIKE_PRICE_OVERFLOW = -108,
 
     // EPM specific
     EKA_OPRESULT__ERR_EPM_DISABLED = -201,

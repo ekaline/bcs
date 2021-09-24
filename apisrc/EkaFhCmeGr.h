@@ -8,6 +8,10 @@
 #include "EkaFhPktQ.h"
 #include "EkaFhPktQElem.h"
 
+namespace Cme {
+  struct MaturityMonthYear_T;
+}
+
 class EkaFhCmeGr : public EkaFhGroup {
 public:
   virtual               ~EkaFhCmeGr() {};
@@ -107,6 +111,11 @@ public:
   DefinitionsCycleState futuresDefinitionsState        = DefinitionsCycleState::Init;
 
 private:
+  void getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity,
+                              const char* symbol,
+                              uint32_t* iso8601Date,
+                              time_t* time);
+
   int process_QuoteRequest39(const EfhRunCtx* pEfhRunCtx,
 			     const uint8_t*   msg,
 			     uint64_t         pktTime,

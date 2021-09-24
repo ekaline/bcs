@@ -113,8 +113,8 @@ void* onMdTestDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
 
-  std::string underlyingName = std::string(msg->underlying, sizeof(msg->underlying));
-  std::string classSymbol    = std::string(msg->classSymbol,sizeof(msg->classSymbol));
+  std::string underlyingName = std::string(msg->commonDef.underlying, sizeof(msg->commonDef.underlying));
+  std::string classSymbol    = std::string(msg->commonDef.classSymbol,sizeof(msg->commonDef.classSymbol));
 
   std::replace(underlyingName.begin(), underlyingName.end(), ' ', '\0');
   std::replace(classSymbol.begin(),    classSymbol.end(),    ' ', '\0');

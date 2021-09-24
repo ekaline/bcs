@@ -146,8 +146,8 @@ inline int strikePriceScaleFactor (EkaSource exch) {
 }
 
 inline void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg) {
-  if (msg->header.group.source  == EkaSource::kCME_SBE && msg->securityType == EfhSecurityType::kOption) {
-    std::string classSymbol    = std::string(msg->classSymbol,sizeof(msg->classSymbol));
+  if (msg->header.group.source  == EkaSource::kCME_SBE && msg->commonDef.securityType == EfhSecurityType::kOption) {
+    std::string classSymbol    = std::string(msg->commonDef.classSymbol,sizeof(msg->commonDef.classSymbol));
     sprintf(dst,"%s_%c%04jd",
 	    classSymbol.c_str(),
 	    msg->optionType == EfhOptionType::kCall ? 'C' : 'P',
@@ -155,11 +155,11 @@ inline void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* 
   } else {
     uint8_t y,m,d;
 
-    d = msg->expiryDate % 100;
-    m = ((msg->expiryDate - d) / 100) % 100;
-    y = msg->expiryDate / 10000 - 2000;
+    d = msg->commonDef.expiryDate % 100;
+    m = ((msg->commonDef.expiryDate - d) / 100) % 100;
+    y = msg->commonDef.expiryDate / 10000 - 2000;
 
-    memcpy(dst,msg->underlying,6);
+    memcpy(dst,msg->commonDef.underlying,6);
     for (auto i = 0; i < 6; i++) if (dst[i] == 0 || dst[i] == ' ') dst[i] = '_';
     char call_put = msg->optionType == EfhOptionType::kCall ? 'C' : 'P';
     sprintf(dst+6,"%02u%02u%02u%c%08jd",y,m,d,call_put,msg->strikePrice / strikePriceScaleFactor(msg->header.group.source));

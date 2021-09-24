@@ -6,8 +6,10 @@
 #include <endian.h>
 #include <inttypes.h>
 #include <assert.h>
+#include <cctype>
 #include <string>
 
+#include "EkaFhParserCommon.h"
 #include "EkaFhBoxGr.h"
 #include "EkaFhBoxParser.h"
 
@@ -242,18 +244,36 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.header.gapNum         = gapNum;
 
     //    msg.secondaryGroup        = 0;
-    msg.securityType          = EfhSecurityType::kOption;
+    msg.commonDef.securityType   = EfhSecurityType::kOption;
+    msg.commonDef.exchange       = EfhExchange::kBOX;
+    msg.commonDef.underlyingType = EfhSecurityType::kStock;
+    msg.commonDef.expiryDate     = (2000 + getYear(symb)) * 10000 + getMonth(symb,getOptionType(symb)) * 100 + getDay(symb);
+    msg.commonDef.contractSize   = 0;
+
     msg.optionType            = getOptionType(symb);
-    msg.expiryDate            = (2000 + getYear(symb)) * 10000 + getMonth(symb,msg.optionType) * 100 + getDay(symb);
-    msg.contractSize          = 0;
     msg.strikePrice           = getNumField<uint32_t>(&symb[8],7) * getFractionIndicator(symb[15]) / EFH_HSV_BOX_STRIKE_PRICE_SCALE;
-    msg.exchange              = EfhExchange::kBOX;
 
-    memcpy (&msg.underlying,boxMsg->UnderlyingSymbolRoot,std::min(sizeof(msg.underlying),sizeof(boxMsg->UnderlyingSymbolRoot)));
-    memcpy (&msg.classSymbol,&symb[0],6);
+    copySymbol(msg.commonDef.underlying,boxMsg->UnderlyingSymbolRoot);
 
-    memcpy(msg.exchSecurityName,                                  boxMsg->GroupInstrument,sizeof(boxMsg->GroupInstrument));
-    memcpy(msg.exchSecurityName + sizeof(boxMsg->GroupInstrument),boxMsg->Instrument,     sizeof(boxMsg->Instrument));
+    // In HSVF, we're given the "underlying symbol root," i.e., it might
+    // contain a contract adjustment, e.g., ABBV1 instead of ABBV. This
+    // is not what we expect in our API (the contract adjustment should
+    // only be present in classSymbol, not underlying), so remove it.
+    for (char *s = std::end(msg.commonDef.underlying) - 1;
+         s >= std::begin(msg.commonDef.underlying); --s) {
+      if (std::isdigit(*s))
+        *s = '\0';
+    }
+
+    {
+      char *s = stpncpy(msg.commonDef.classSymbol,symb,6);
+      *s-- = '\0';
+      while (*s == ' ')
+        *s-- = '\0';
+    }
+
+    memcpy(msg.commonDef.exchSecurityName,boxMsg->GroupInstrument,sizeof(boxMsg->GroupInstrument));
+    memcpy(msg.commonDef.exchSecurityName + sizeof(boxMsg->GroupInstrument),boxMsg->Instrument,     sizeof(boxMsg->Instrument));
 
 #ifdef TEST_PRINT_DICT
     char avtSecName[32] = {};
@@ -347,7 +367,6 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
       on_error("Unexpected ClearingType == \'%c\'",boxMsg->ClearingType);
     }
 
-    *stpncpy(msg.firmId, boxMsg->FirmId, sizeof boxMsg->FirmId) = '\0';
     pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
   } else if (memcmp(msgHdr->MsgType,"T ",sizeof(msgHdr->MsgType)) == 0) { // HsvfRfqDelete
     auto boxMsg {reinterpret_cast<const HsvfRfqDelete*>(msgBody)};
