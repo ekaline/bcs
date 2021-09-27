@@ -18,6 +18,7 @@
 #include "EkaFhPhlxOrd.h"
 #include "EkaFhPhlxTopo.h"
 #include "EkaFhXdp.h"
+#include "EkaFhPlr.h"
 #include "EkaFhCme.h"
 
 
@@ -80,6 +81,10 @@ EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhI
   case EkaSource::kARCA_XDP:
   case EkaSource::kAMEX_XDP:
     dev->fh[fhId] = new EkaFhXdp();
+    break;
+  case EkaSource::kARCA_PLR:
+  case EkaSource::kAMEX_PLR:
+    dev->fh[fhId] = new EkaFhPlr();
     break;
   case EkaSource::kBOX_HSVF:
     dev->fh[fhId] = new EkaFhBox();
@@ -228,18 +233,11 @@ EkaOpResult efhGetDefs( EfhCtx* pEfhCtx, const struct EfhRunCtx* pEfhRunCtx, con
  * @retval [See EkaOpResult].
  */
 
-/* EkaOpResult efhSubscribeStatic( EfhCtx* pEfhCtx, EkaGroup* group, uint64_t securityId, EfhSecurityType efhSecurityType,EfhSecUserData efhSecUserData) { */
-/*   assert (pEfhCtx != NULL); */
-
-/*   return pEfhCtx->dev->fh[pEfhCtx->fhId]->subscribeStaticSecurity(group->localId, securityId, efhSecurityType, efhSecUserData); */
-/*   //  return eka_fh_subscribe_static(pEfhCtx, group->localId, securityId, efhSecurityType, efhSecUserData); */
-/* } */
 
 EkaOpResult efhSubscribeStatic( EfhCtx* pEfhCtx, const EkaGroup* group, uint64_t securityId, EfhSecurityType efhSecurityType,EfhSecUserData efhSecUserData,uint64_t opaqueAttrA,uint64_t opaqueAttrB) {
   assert (pEfhCtx != NULL);
 
   return pEfhCtx->dev->fh[pEfhCtx->fhId]->subscribeStaticSecurity(group->localId, securityId, efhSecurityType, efhSecUserData,opaqueAttrA,opaqueAttrB);
-  //  return eka_fh_subscribe_static(pEfhCtx, group->localId, securityId, efhSecurityType, efhSecUserData);
 }
 
 /**
@@ -251,13 +249,12 @@ EkaOpResult efhSubscribeStatic( EfhCtx* pEfhCtx, const EkaGroup* group, uint64_t
 /* } */
 
 /**
- * This is just like efhSubscribeStatic() except it is for dynamic securities.
- * This must be called after efhDoneStaticSubscriptions().
+ * This is just like efhSubscribeStatic()
  */
-EkaOpResult efhSubscribeDynamic(EfhCtx* pEfhCtx, uint64_t securityId, EfhSecurityType efhSecurityType, EfhSecUserData efhSecUserData ) {
+EkaOpResult efhSubscribeDynamic( EfhCtx* pEfhCtx, EkaGroup* group, uint64_t securityId, EfhSecurityType efhSecurityType,EfhSecUserData efhSecUserData,uint64_t opaqueAttrA,uint64_t opaqueAttrB) {
   assert (pEfhCtx != NULL);
 
-  return EKA_OPRESULT__ERR_NOT_IMPLEMENTED;
+  return pEfhCtx->dev->fh[pEfhCtx->fhId]->subscribeStaticSecurity(group->localId, securityId, efhSecurityType, efhSecUserData,opaqueAttrA,opaqueAttrB);
 }
 
 EkaOpResult efhSetTradeTimeCtx(EfhCtx* pEfhCtx, void* tradeTimeCtx) {

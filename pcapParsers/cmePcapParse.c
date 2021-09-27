@@ -19,6 +19,9 @@ using namespace Cme;
 //###################################################
 static char pcapFileName[256] = {};
 static bool printAll = false;
+static bool printTrig = false;
+static int  numPriceLevels = 1;
+static int  maxMsgSize = 1500;
 
 struct GroupAddr {
     uint32_t  ip;
@@ -31,7 +34,10 @@ static GroupAddr group[] = {
     {inet_addr("224.0.31.2"), 14311, 0, 0},     // incrementFeed
     {inet_addr("224.0.31.1"), 14310, 0, 0},     // incrementFeed
     {inet_addr("224.0.32.2"), 15311, 0, 0},     // incrementFeed
-    {inet_addr("224.0.32.1"), 15310, 0, 0},     // incrementFeed   
+    {inet_addr("224.0.32.1"), 15310, 0, 0},     // incrementFeed
+
+    {inet_addr("224.0.31.66"), 14342, 0, 0},    // Patrick
+
 };
 
 
@@ -48,40 +54,109 @@ int findGrp(uint32_t ip, uint16_t port) {
 
 //###################################################
 void printUsage(char* cmd) {
-  printf("USAGE: %s [options] -f [pcapFile]\n",cmd);
-  printf("          -p        Print all messages\n");
+  fprintf(stderr,"USAGE: %s [options] -f [pcapFile]\n",cmd);
+  fprintf(stderr,"          -l [Number of Price Levels] -- default 1\n");
+  fprintf(stderr,"          -s [Max Message Size]       -- default 1500\n");
+  fprintf(stderr,"          -p        Print all messages\n");
+  fprintf(stderr,"          -t        Print strategy trigger\n");
+
 }
 
 //###################################################
 
 static int getAttr(int argc, char *argv[]) {
   int opt; 
-  while((opt = getopt(argc, argv, ":f:d:ph")) != -1) {  
+  while((opt = getopt(argc, argv, ":f:d:l:s:tph")) != -1) {  
     switch(opt) {  
-      case 'f':
-	strcpy(pcapFileName,optarg);
-	printf("pcapFile = %s\n", pcapFileName);  
-	break;  
-      case 'p':  
-	printAll = true;
-	printf("printAll\n");
-	break;  
-      case 'd':  
-//	pkt2dump = atoi(optarg);
-//	printf("pkt2dump = %ju\n",pkt2dump);  
-	break;  
-      case 'h':  
-	printUsage(argv[0]);
-	exit (1);
-	break;  
-      case '?':  
-	printf("unknown option: %c\n", optopt); 
+    case 'f':
+      strcpy(pcapFileName,optarg);
+      fprintf(stderr,"pcapFile = %s\n", pcapFileName);  
+      break;
+    case 'l':
+      numPriceLevels = atoi(optarg);
+      fprintf(stderr,"numPriceLevels = %d\n", numPriceLevels);  
+      break;
+    case 's':
+      maxMsgSize = atoi(optarg);
+      fprintf(stderr,"maxMsgSize = %d\n", maxMsgSize);  
       break;  
-      }  
+    case 'p':  
+      printAll = true;
+      fprintf(stderr,"printAll\n");
+      break;  
+    case 't':  
+      printTrig = true;
+      fprintf(stderr,"printTrig\n");
+      break;  
+    case 'd':  
+      //	pkt2dump = atoi(optarg);
+      //	printf("pkt2dump = %ju\n",pkt2dump);  
+      break;  
+    case 'h':  
+      printUsage(argv[0]);
+      exit (1);
+      break;  
+    case '?':  
+      fprintf(stderr,"unknown option: %c\n", optopt); 
+      break;  
+    }  
   }  
   return 0;
 }
 
+//###################################################
+
+inline uint32_t printTrigger(const uint8_t* pkt, const int payloadLen,
+			     uint64_t pktNum, int pLevels, int maxMsgSize) {
+    auto p {pkt};
+    auto pktHdr {reinterpret_cast<const PktHdr*>(p)};
+
+    p += sizeof(*pktHdr);
+
+    //    while (p - pkt < payloadLen) { // 1st msg only
+    auto m {p};
+    auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
+
+    m += sizeof(*msgHdr);
+
+    switch (msgHdr->templateId) {
+      /* ##################################################################### */
+    case MsgId::MDIncrementalRefreshTradeSummary48 : {
+      /* ------------------------------- */
+      //      auto rootBlock {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mainBlock*>(m)};
+
+      m += msgHdr->blockLen;
+      /* ------------------------------- */
+      auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
+      if (pGroupSize->numInGroup < pLevels) break;
+      if (msgHdr->size > maxMsgSize) break;
+	
+      m += sizeof(*pGroupSize);
+      auto e {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mdEntry*>(m)};
+
+      printf("Trigger,");
+      printf("%ju,", pktNum);
+      printf("%s,", ts_ns2str(pktHdr->time).c_str());
+      printf("%u,", pktHdr->seq);
+      printf("%u,", msgHdr->size);
+      printf("%u,", pGroupSize->numInGroup);
+      //      printf("%16jd,",(int64_t) (e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE));
+      printf("%16jd,",(int64_t) e->MDEntryPx );
+      printf("\n");
+
+    }
+      break;	
+      /* ##################################################################### */
+    default:
+      break;
+		
+    }
+    /* ----------------------------- */
+
+    p += msgHdr->size;
+    //    } //  while (p - pkt < payloadLen)
+    return 0;
+  } // printTrigger()
 //###################################################
 
 int main(int argc, char *argv[]) {
@@ -90,7 +165,7 @@ int main(int argc, char *argv[]) {
     getAttr(argc,argv);
 
     if ((pcapFile = fopen(pcapFileName, "rb")) == NULL) {
-	printf("Failed to open dump file %s\n",pcapFileName);
+	fprintf(stderr,"Failed to open dump file %s\n",pcapFileName);
 	printUsage(argv[0]);
 	exit(1);
     }
@@ -98,7 +173,9 @@ int main(int argc, char *argv[]) {
 	on_error ("Failed to read pcap_file_hdr from the pcap file");
 
     uint64_t pktNum {0};
-
+    if (printTrig) {
+      printf("Trigger,pkt,ts,seq,msgSize,numInGroup,firstPrice\n"); 
+    }
     while (fread(buf,sizeof(pcap_rec_hdr),1,pcapFile) == 1) {
 	auto pcap_rec_hdr_ptr {reinterpret_cast<const pcap_rec_hdr*>(buf)};
 	uint pktLen = pcap_rec_hdr_ptr->len;
@@ -121,14 +198,21 @@ int main(int argc, char *argv[]) {
 	p += sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr);
 
 	/* -------------------------------------------------- */
-	auto sequence = printPkt(p, payloadLen);
+	if (printAll) {
+	  auto sequence = printPkt(p, payloadLen, pktNum);
+
+	  if (group[grId].expectedSeq != 0 &&
+	      group[grId].expectedSeq != sequence) {
+	    printf (RED "%d: expectedSeq %ju != sequence %u\n" RESET,
+		    grId,group[grId].expectedSeq,sequence);
+	  }
+	}
+	/* -------------------------------------------------- */
+	if (printTrig) {
+	  printTrigger(p, payloadLen, pktNum, numPriceLevels, maxMsgSize);
+	}
 	/* -------------------------------------------------- */
 
-	if (group[grId].expectedSeq != 0 &&
-	    group[grId].expectedSeq != sequence) {
-	  printf (RED "%d: expectedSeq %ju != sequence %u\n" RESET,
-		  grId,group[grId].expectedSeq,sequence);
-	}
     }
     
     return 0;

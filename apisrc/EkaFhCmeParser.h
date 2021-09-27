@@ -803,13 +803,14 @@ namespace Cme {
     }
   }
 
-  inline uint32_t printPkt(const uint8_t* pkt, const int payloadLen) {
+  inline uint32_t printPkt(const uint8_t* pkt, const int payloadLen, uint64_t pktNum) {
     auto p {pkt};
     auto pktHdr {reinterpret_cast<const PktHdr*>(p)};
 
     auto ts        {pktHdr->time};
     auto sequence  {pktHdr->seq};
-    printf ("pktTime=%ju,pktSeq=%u\n",ts,sequence);
+    printf ("pktNum=%ju,pktTime=%ju,pktSeq=%u\n",
+	    pktNum,ts,sequence);
 
     p += sizeof(*pktHdr);
 

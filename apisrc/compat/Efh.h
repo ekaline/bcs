@@ -21,6 +21,7 @@ enum class EfhFeedVer {
 	   _x( GEMX             )			\
 	   _x( BATS             )			\
 	   _x( XDP              )			\
+	   _x( PLR              )			\
 	   _x( BOX              )			\
 	   _x( CME              )			\
 	   _x( CBOE             )                                
@@ -117,20 +118,18 @@ EkaOpResult efhSubscribeStatic( EfhCtx*         efhCtx,
  */
 EkaOpResult efhDoneStaticSubscriptions( EfhCtx* efhCtx );
 
-/**
- * This function is not needed for EFH, as efhSubscribeStatic() can be run any time during the day
- * This is just like efhSubscribeStatic() except it is for dynamic securities.
- * This must be called after efhDoneStaticSubscriptions().
- */
-EkaOpResult efhSubscribeDynamic( EfhCtx*         efhCtx, 
-                                 uint64_t        securityId, 
-                                 EfhSecurityType efhSecurityType,
-                                 EfhSecUserData  efhSecUserData );
 
 EkaOpResult efhSetTradeTimeCtx( EfhCtx* efhCtx,
                                 void*   tradeTimeCtx );
 
 
+EkaOpResult efhSubscribeDynamic( EfhCtx*         efhCtx,
+                                EkaGroup*       group,
+                                uint64_t        securityId,
+                                EfhSecurityType efhSecurityType,
+                                EfhSecUserData  efhSecUserData,
+				uint64_t        opaqueAttrA,
+				uint64_t        opaqueAttrB );
 /**
  * EfhMd functionality allows to get callback on every raw market data event
  *

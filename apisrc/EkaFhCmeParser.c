@@ -60,6 +60,10 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       process_MDIncrementalRefreshBook46(pEfhRunCtx,p,pktTime,pktSeq);
       break;
       /* ##################################################################### */
+    case MsgId::MDIncrementalRefreshTradeSummary48 :
+      process_MDIncrementalRefreshTradeSummary48(pEfhRunCtx,p,pktTime,pktSeq);
+      break;
+      /* ##################################################################### */
     case MsgId::SnapshotFullRefresh52 : 
       process_SnapshotFullRefresh52(pEfhRunCtx,p,pktTime,pktSeq);
       break;
@@ -340,6 +344,43 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
   return msgHdr->size;
 }
 
+/* ##################################################################### */     
+int EkaFhCmeGr::process_MDIncrementalRefreshTradeSummary48(const EfhRunCtx* pEfhRunCtx,
+							   const uint8_t*   pMsg,
+							   const uint64_t   pktTime,
+							   const SequenceT  pktSeq) {
+    auto m      {pMsg};
+    auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
+    m += sizeof(*msgHdr);
+    //  auto rootBlock {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mainBlock*>(m)};
+    m += msgHdr->blockLen;
+    /* ------------------------------- */
+    auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
+    m += sizeof(*pGroupSize);
+    /* ------------------------------- */
+    for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+	auto e {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mdEntry*>(m)};
+	m += pGroupSize->blockLength;
+	
+	FhSecurity* s = book->findSecurity(e->SecurityID);
+	if (s == NULL) continue;
+	const EfhTradeMsg msg = {
+	    { EfhMsgType::kTrade,
+	      {exch,(EkaLSI)id}, // group
+	      0,  // underlyingId
+	      (uint64_t) e->SecurityID,
+	      pktSeq,
+	      pktTime,
+	      gapNum },
+	    (uint32_t)(e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE),
+	    (uint32_t)e->MDEntrySize,
+	    EfhTradeStatus::kNormal,
+	    EfhTradeCond::kREG
+	};
+	pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
+    }  
+    return msgHdr->size;
+}
 /* ##################################################################### */     
 
 int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,

@@ -476,7 +476,12 @@ void* onComplexDefinition(const EfhComplexDefinitionMsg* msg, EfhSecUserData sec
   auto gr = grCtx[(int)exch][grId];
   if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
   
-  fprintf(gr->MD,"ComplexDefinition\n");
+  fprintf(gr->MD,"ComplexDefinition,");
+  fprintf(gr->MD,"\'%s\',",std::string(msg->exchSymbolName,sizeof(msg->exchSymbolName)).c_str());
+  fprintf(gr->MD,"\'%s\',",std::string(msg->exchAssetName,sizeof(msg->exchAssetName)).c_str());
+  fprintf(gr->MD,"%ju,",msg->header.securityId);
+  fprintf(gr->MD,"\n");
+
   return NULL;
 }
 /* ------------------------------------------------------------ */
@@ -521,11 +526,13 @@ void* onAuctionUpdate(const EfhAuctionUpdateMsg* msg, EfhSecUserData secData, Ef
 
   fprintf(gr->MD,"%c,",    msg->side == EfhOrderSide::kBid ? 'B' : 'S');
   fprintf(gr->MD,"%c,",    (char)exchName);
+
   fprintf(gr->MD,"%c,",    (char)msg->auctionType);
   fprintf(gr->MD,"%c,",    (char)msg->capacity);
   fprintf(gr->MD,"%d,",    (int)msg->securityType);
 
   fprintf(gr->MD,"%s,",    std::string(msg->firmId,sizeof msg->firmId).c_str());
+
   fprintf(gr->MD,"%s,",    (ts_ns2str(msg->header.timeStamp)).c_str());
   fprintf(gr->MD,"\n");
 
@@ -617,6 +624,12 @@ EkaSource feedname2source(std::string feedName) {
   if (feedName == std::string("XA")) return EkaSource::kAMEX_XDP;
   if (feedName == std::string("XB")) return EkaSource::kAMEX_XDP;
   /* ------------------------------------------------------- */
+  if (feedName == std::string("RPA")) return EkaSource::kARCA_PLR;
+  if (feedName == std::string("RPB")) return EkaSource::kARCA_PLR;
+
+  if (feedName == std::string("XPA")) return EkaSource::kAMEX_PLR;
+  if (feedName == std::string("XPB")) return EkaSource::kAMEX_PLR;
+  /* ------------------------------------------------------- */
   if (feedName == std::string("BA")) return EkaSource::kBOX_HSVF;
   if (feedName == std::string("BB")) return EkaSource::kBOX_HSVF;
   if (feedName == std::string("BC")) return EkaSource::kBOX_HSVF;
@@ -661,6 +674,12 @@ static EkaProp* feedname2prop (std::string feedName) {
 
   if (feedName == std::string("XA")) return efhAmexInitCtxEntries_A;
   if (feedName == std::string("XB")) return efhAmexInitCtxEntries_B;
+  /* ------------------------------------------------------- */
+  if (feedName == std::string("RPA")) return efhArcaPlrInitCtxEntries_A;
+  if (feedName == std::string("RPB")) return efhArcaPlrInitCtxEntries_B;
+
+  if (feedName == std::string("XPA")) return efhAmexPlrInitCtxEntries_A;
+  if (feedName == std::string("XPB")) return efhAmexPlrInitCtxEntries_B;
   /* ------------------------------------------------------- */
   if (feedName == std::string("BA")) return efhBoxInitCtxEntries_A;
   if (feedName == std::string("BB")) return efhBoxInitCtxEntries_B;
@@ -707,6 +726,12 @@ static size_t feedname2numProps (std::string feedName) {
   if (feedName == std::string("XA")) return std::size(efhAmexInitCtxEntries_A);
   if (feedName == std::string("XB")) return std::size(efhAmexInitCtxEntries_B);
   /* ------------------------------------------------------- */
+  if (feedName == std::string("RPA")) return std::size(efhArcaPlrInitCtxEntries_A);
+  if (feedName == std::string("RPB")) return std::size(efhArcaPlrInitCtxEntries_B);
+
+  if (feedName == std::string("XPA")) return std::size(efhAmexPlrInitCtxEntries_A);
+  if (feedName == std::string("XPB")) return std::size(efhAmexPlrInitCtxEntries_B);
+  /* ------------------------------------------------------- */
   if (feedName == std::string("BA")) return std::size(efhBoxInitCtxEntries_A);
   if (feedName == std::string("BB")) return std::size(efhBoxInitCtxEntries_B);
   if (feedName == std::string("BC")) return std::size(efhBoxInitCtxEntries_C);
@@ -746,6 +771,12 @@ static size_t feedname2numGroups(std::string feedName) {
   if (feedName == std::string("PA")) return std::size(pearlGroups);
   if (feedName == std::string("PB")) return std::size(pearlGroups);
   /* ------------------------------------------------------- */
+  if (feedName == std::string("RPA")) return std::size(arcaPlrGroups);
+  if (feedName == std::string("RPB")) return std::size(arcaPlrGroups);
+
+  if (feedName == std::string("XPA")) return std::size(amexPlrGroups);
+  if (feedName == std::string("XPB")) return std::size(amexPlrGroups);
+  /* ------------------------------------------------------- */
   if (feedName == std::string("RA")) return std::size(arcaGroups);
   if (feedName == std::string("RB")) return std::size(arcaGroups);
 
@@ -781,7 +812,7 @@ static size_t feedname2numGroups(std::string feedName) {
 int createCtxts(std::vector<TestRunGroup>& testRunGroups,
 		std::vector<EfhInitCtx>&   efhInitCtx,
 		std::vector<EfhRunCtx>&    efhRunCtx) {
-  const std::regex rg_regex("([0-9])\\:([A-Z][A-Z])\\:([0-9]+)\\.\\.([0-9]+)");
+  const std::regex rg_regex("([0-9])\\:([A-Z][A-Z][A-Z]*)\\:([0-9]+)\\.\\.([0-9]+)");
 
   for (auto &runGr : testRunGroups) {
     std::smatch base_match;
@@ -864,34 +895,38 @@ void print_usage(char* cmd) {
   printf("\tRunGroup Format: \"[coreId]:[Feed Code]:[First MC Gr ID]..[Last MC Gr ID]\"\n");
   printf("\tRunGroup Format Example: \"2:CC:0..11\"\n");
   printf("\t\tSupported Feed Codes:\n"); 
-  printf("\t\t\tNA - NOM         A feed\n"); 
-  printf("\t\t\tNB - NOM         B feed\n"); 
-  printf("\t\t\tGA - GEM         A feed\n"); 
-  printf("\t\t\tGB - GEM         B feed\n"); 
-  printf("\t\t\tIA - ISE         A feed\n"); 
-  printf("\t\t\tIB - ISE         B feed\n"); 
-  printf("\t\t\tTA - PHLX TOPO   A feed\n"); 
-  printf("\t\t\tTB - PHLX TOPO   B feed\n"); 
-  printf("\t\t\tOA - PHLX ORD    A feed\n"); 
-  printf("\t\t\tOB - PHLX ORD    B feed\n"); 
-  printf("\t\t\tCA - C1          A feed\n"); 
-  printf("\t\t\tCB - C1          B feed\n"); 
-  printf("\t\t\tCC - C1          C feed\n"); 
-  printf("\t\t\tCD - C1          D feed\n"); 
-  printf("\t\t\tMA - MIAX TOM    A feed\n"); 
-  printf("\t\t\tMB - MIAX TOM    B feed\n"); 
-  printf("\t\t\tPA - PEARL TOM   A feed\n"); 
-  printf("\t\t\tPB - PEARL TOM   B feed\n"); 
-  printf("\t\t\tRA - ARCA        A feed\n"); 
-  printf("\t\t\tRB - ARCA        B feed\n"); 
-  printf("\t\t\tXA - AMEX        A feed\n"); 
-  printf("\t\t\tXB - AMEX        B feed\n"); 
-  printf("\t\t\tBA - BOX vanilla A feed\n"); 
-  printf("\t\t\tBB - BOX vanilla B feed\n"); 
-  printf("\t\t\tBC - BOX RFQ(PIP)A feed\n"); 
-  printf("\t\t\tBD - BOX Complex A feed\n"); 
-  printf("\t\t\tEA - CME         A feed\n"); 
-  printf("\t\t\tEB - CME         B feed\n"); 
+  printf("\t\t\tNA  - NOM         A feed\n"); 
+  printf("\t\t\tNB  - NOM         B feed\n"); 
+  printf("\t\t\tGA  - GEM         A feed\n"); 
+  printf("\t\t\tGB  - GEM         B feed\n"); 
+  printf("\t\t\tIA  - ISE         A feed\n"); 
+  printf("\t\t\tIB  - ISE         B feed\n"); 
+  printf("\t\t\tTA  - PHLX TOPO   A feed\n"); 
+  printf("\t\t\tTB  - PHLX TOPO   B feed\n"); 
+  printf("\t\t\tOA  - PHLX ORD    A feed\n"); 
+  printf("\t\t\tOB  - PHLX ORD    B feed\n"); 
+  printf("\t\t\tCA  - C1          A feed\n"); 
+  printf("\t\t\tCB  - C1          B feed\n"); 
+  printf("\t\t\tCC  - C1          C feed\n"); 
+  printf("\t\t\tCD  - C1          D feed\n"); 
+  printf("\t\t\tMA  - MIAX TOM    A feed\n"); 
+  printf("\t\t\tMB  - MIAX TOM    B feed\n"); 
+  printf("\t\t\tPA  - PEARL TOM   A feed\n"); 
+  printf("\t\t\tPB  - PEARL TOM   B feed\n"); 
+  printf("\t\t\tRA  - ARCA XDP    A feed\n"); 
+  printf("\t\t\tRB  - ARCA XDP    B feed\n"); 
+  printf("\t\t\tXA  - AMEX XDP    A feed\n"); 
+  printf("\t\t\tXB  - AMEX XDP    B feed\n"); 
+  printf("\t\t\tRPA - ARCA PLR    A feed\n"); 
+  printf("\t\t\tRPB - ARCA PLR    B feed\n"); 
+  printf("\t\t\tXPA - AMEX PLR    A feed\n"); 
+  printf("\t\t\tXPB - AMEX PLR    B feed\n");
+  printf("\t\t\tBA  - BOX vanilla A feed\n"); 
+  printf("\t\t\tBB  - BOX vanilla B feed\n"); 
+  printf("\t\t\tBC  - BOX RFQ(PIP)A feed\n"); 
+  printf("\t\t\tBD  - BOX Complex A feed\n"); 
+  printf("\t\t\tEA  - CME         A feed\n"); 
+  printf("\t\t\tEB  - CME         B feed\n"); 
   printf("\t-u <Underlying Name> - subscribe on all options belonging to\n");
   printf("\t-t Print TOB updates (EFH)\n");
   printf("\t-a subscribe all\n");

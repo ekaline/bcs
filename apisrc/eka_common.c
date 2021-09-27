@@ -89,25 +89,6 @@ void eka_get_time (char* t) {
 }
 /* ##################################################################### */
 
-/* std::string ts_ns2str(uint64_t ts) { */
-/*   char dst[32] = {}; */
-/*   uint ns = ts % 1000; */
-/*   uint64_t res = (ts - ns) / 1000; */
-/*   uint us = res % 1000; */
-/*   res = (res - us) / 1000; */
-/*   uint ms = res % 1000; */
-/*   res = (res - ms) / 1000; */
-/*   uint s = res % 60; */
-/*   res = (res - s) / 60; */
-/*   uint m = res % 60; */
-/*   res = (res - m) / 60; */
-/*   uint h = res % 24; */
-/*   sprintf (dst,"%02d:%02d:%02d.%03d.%03d.%03d",h,m,s,ms,us,ns); */
-/*   return std::string(dst); */
-/* } */
-
-/* ##################################################################### */
-
 int ekaTcpConnect(uint32_t ip, uint16_t port) {
 #ifdef FH_LAB
   TEST_LOG("Dummy FH_LAB TCP connect to %s:%u",EKA_IP2STR(ip),port);

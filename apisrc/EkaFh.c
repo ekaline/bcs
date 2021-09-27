@@ -26,6 +26,7 @@
 
 #include "EkaFhBoxGr.h"
 #include "EkaFhBatsGr.h"
+#include "EkaFhPlrGr.h"
 
 #include "EkaCore.h"
 #include "eka_fh_q.h"
@@ -535,6 +536,162 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }
+  //---------------------------------------------------------------------
+  // efh.ARCA_PLR.group.X.refresh.tcpAddr, x.x.x.x:xxxx
+  // k[0] k[1]   k[2]  k[3] k[4] k[5]
+  if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"refresh")==0) && (strcmp(k[5],"tcpAddr")==0)) {
+    if (EFH_GET_SRC(k[1]) == exch) {
+      uint8_t gr = (uint8_t) atoi(k[3]);
+      if (gr >= groups) {
+	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+	return EkaFhAddConf::CONF_SUCCESS;
+      }
+      auto plrGr {dynamic_cast<EkaFhPlrGr*>(b_gr[gr])};
+      if (plrGr == NULL) on_error("b_gr[%u] == NULL",gr);
+      
+      plrGr->refreshTcpIp   = inet_addr(v[0]);
+      plrGr->refreshTcpPort = be16toh((uint16_t)atoi(v[1]));
+
+      EKA_DEBUG ("%s:%u: %s is set to %s:%u",
+      		 k[1],gr,k[5],EKA_IP2STR(plrGr->refreshTcpIp),be16toh(plrGr->refreshTcpPort));
+      fflush(stderr);
+      return EkaFhAddConf::CONF_SUCCESS;
+    }
+  }
+  //---------------------------------------------------------------------
+  // efh.ARCA_PLR.group.X.refresh.udpAddr, x.x.x.x:xxxx
+  // k[0] k[1]   k[2]  k[3] k[4] k[5]
+  if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"refresh")==0) && (strcmp(k[5],"udpAddr")==0)) {
+    if (EFH_GET_SRC(k[1]) == exch) {
+      uint8_t gr = (uint8_t) atoi(k[3]);
+      if (gr >= groups) {
+	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+	return EkaFhAddConf::CONF_SUCCESS;
+      }
+      auto plrGr {dynamic_cast<EkaFhPlrGr*>(b_gr[gr])};
+      if (plrGr == NULL) on_error("b_gr[%u] == NULL",gr);
+      
+      plrGr->refreshUdpIp   = inet_addr(v[0]);
+      plrGr->refreshUdpPort = be16toh((uint16_t)atoi(v[1]));
+
+      EKA_DEBUG ("%s:%u: %s is set to %s:%u",
+      		 k[1],gr,k[5],EKA_IP2STR(plrGr->refreshUdpIp),be16toh(plrGr->refreshUdpPort));
+      fflush(stderr);
+      return EkaFhAddConf::CONF_SUCCESS;
+    }
+  }
+  //---------------------------------------------------------------------
+  // efh.ARCA_PLR.group.X.retrans.tcpAddr, x.x.x.x:xxxx
+  // k[0] k[1]   k[2]  k[3] k[4] k[5]
+  if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"retrans")==0) && (strcmp(k[5],"tcpAddr")==0)) {
+    if (EFH_GET_SRC(k[1]) == exch) {
+      uint8_t gr = (uint8_t) atoi(k[3]);
+      if (gr >= groups) {
+	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+	return EkaFhAddConf::CONF_SUCCESS;
+      }
+      auto plrGr {dynamic_cast<EkaFhPlrGr*>(b_gr[gr])};
+      if (plrGr == NULL) on_error("b_gr[%u] == NULL",gr);
+      
+      plrGr->retransTcpIp   = inet_addr(v[0]);
+      plrGr->retransTcpPort = be16toh((uint16_t)atoi(v[1]));
+
+      EKA_DEBUG ("%s:%u: %s is set to %s:%u",
+      		 k[1],gr,k[5],EKA_IP2STR(plrGr->retransTcpIp),be16toh(plrGr->retransTcpPort));
+      fflush(stderr);
+      return EkaFhAddConf::CONF_SUCCESS;
+    }
+  }
+  //---------------------------------------------------------------------
+  // efh.ARCA_PLR.group.X.retrans.udpAddr, x.x.x.x:xxxx
+  // k[0] k[1]   k[2]  k[3] k[4] k[5]
+  if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"retrans")==0) && (strcmp(k[5],"udpAddr")==0)) {
+    if (EFH_GET_SRC(k[1]) == exch) {
+      uint8_t gr = (uint8_t) atoi(k[3]);
+      if (gr >= groups) {
+	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+	return EkaFhAddConf::CONF_SUCCESS;
+      }
+      auto plrGr {dynamic_cast<EkaFhPlrGr*>(b_gr[gr])};
+      if (plrGr == NULL) on_error("b_gr[%u] == NULL",gr);
+      
+      plrGr->retransUdpIp   = inet_addr(v[0]);
+      plrGr->retransUdpPort = be16toh((uint16_t)atoi(v[1]));
+
+      EKA_DEBUG ("%s:%u: %s is set to %s:%u",
+      		 k[1],gr,k[5],EKA_IP2STR(plrGr->retransUdpIp),be16toh(plrGr->retransUdpPort));
+      fflush(stderr);
+      return EkaFhAddConf::CONF_SUCCESS;
+    }
+  } 
+  //---------------------------------------------------------------------
+  // efh.ARCA_PLR.group.X.retrans.udpAddr, x.x.x.x:xxxx
+  // k[0] k[1]   k[2]  k[3] k[4] k[5]
+  if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"retrans")==0) && (strcmp(k[5],"udpAddr")==0)) {
+    if (EFH_GET_SRC(k[1]) == exch) {
+      uint8_t gr = (uint8_t) atoi(k[3]);
+      if (gr >= groups) {
+	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+	return EkaFhAddConf::CONF_SUCCESS;
+      }
+      auto plrGr {dynamic_cast<EkaFhPlrGr*>(b_gr[gr])};
+      if (plrGr == NULL) on_error("b_gr[%u] == NULL",gr);
+      
+      plrGr->retransUdpIp   = inet_addr(v[0]);
+      plrGr->retransUdpPort = be16toh((uint16_t)atoi(v[1]));
+
+      EKA_DEBUG ("%s:%u: %s is set to %s:%u",
+      		 k[1],gr,k[5],EKA_IP2STR(plrGr->retransUdpIp),be16toh(plrGr->retransUdpPort));
+      fflush(stderr);
+      return EkaFhAddConf::CONF_SUCCESS;
+    }
+  }
+  //---------------------------------------------------------------------
+  // efh.ARCA_PLR.group.X.SourceId, xxxx
+  // k[0] k[1]    k[2] k[3] k[4]    v[0]
+  if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"SourceId")==0)) {
+    if (EFH_GET_SRC(k[1]) == exch) {
+      uint8_t gr = (uint8_t) atoi(k[3]);
+      if (gr >= groups) {
+	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+	return EkaFhAddConf::CONF_SUCCESS;
+      }
+      auto plrGr {dynamic_cast<EkaFhPlrGr*>(b_gr[gr])};
+      if (plrGr == NULL) on_error("b_gr[%u] == NULL",gr);
+
+      if (strlen(v[0]) > sizeof(plrGr->sourceId))
+	on_error("strlen(\'%s\') %d > sizeof(sourceId) %d",
+		 v[0],(int)strlen(v[0]),(int)sizeof(plrGr->sourceId));
+      memcpy(plrGr->sourceId,v[0],strlen(v[0]));
+      
+      EKA_DEBUG ("%s:%u: %s is set to \'%s\'",
+      		 k[1],gr,k[4],plrGr->sourceId);
+      fflush(stderr);
+      return EkaFhAddConf::CONF_SUCCESS;
+    }
+  }
+  //---------------------------------------------------------------------
+  // efh.ARCA_PLR.group.X.ChannelId, x
+  // k[0] k[1]    k[2] k[3] k[4]    v[0]
+  if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"ChannelId")==0)) {
+    if (EFH_GET_SRC(k[1]) == exch) {
+      uint8_t gr = (uint8_t) atoi(k[3]);
+      if (gr >= groups) {
+	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+	return EkaFhAddConf::CONF_SUCCESS;
+      }
+      auto plrGr {dynamic_cast<EkaFhPlrGr*>(b_gr[gr])};
+      if (plrGr == NULL) on_error("b_gr[%u] == NULL",gr);
+
+      plrGr->channelId = atoi(v[0]);
+      
+      EKA_DEBUG ("%s:%u: ChannelId is set to %d",
+      		 k[1],gr,plrGr->channelId);
+      fflush(stderr);
+      return EkaFhAddConf::CONF_SUCCESS;
+    }
+  }
+
   //---------------------------------------------------------------------
   return EkaFhAddConf::UNKNOWN_KEY;
 }
