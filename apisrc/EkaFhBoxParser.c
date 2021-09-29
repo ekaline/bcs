@@ -6,8 +6,10 @@
 #include <endian.h>
 #include <inttypes.h>
 #include <assert.h>
+#include <cctype>
 #include <string>
 
+#include "EkaFhParserCommon.h"
 #include "EkaFhBoxGr.h"
 #include "EkaFhBoxParser.h"
 
@@ -24,7 +26,7 @@ inline int getStatus(FhSecurity* s, char statusMarker) {
 
   case 'O' : // Opening phase
     s->option_open    = true;
-    s->trading_action = EfhTradeStatus::kNormal;
+    s->trading_action = EfhTradeStatus::kOpeningRotation;
     break;
 
   case 'T' : // Opened for Trading
@@ -215,12 +217,12 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     //===================================================
   } else if (memcmp(msgHdr->MsgType,"Z ",sizeof(msgHdr->MsgType)) == 0) { // SystemTimeStamp
     const char* timeStamp = ((HsvfSystemTimeStamp*)msgBody)->TimeStamp;
-    uint64_t hour = getNumField<uint64_t>(&timeStamp[0],2);
-    uint64_t min  = getNumField<uint64_t>(&timeStamp[2],2);
-    uint64_t sec  = getNumField<uint64_t>(&timeStamp[4],2);
-    uint64_t ms   = getNumField<uint64_t>(&timeStamp[6],3);
-    
-    gr_ts = ((hour * 3600 + min * 60 + sec) * 1000 + ms) * 1000000;
+    this->localTimeComponents.tm_hour = getNumField<uint64_t>(&timeStamp[0],2);
+    this->localTimeComponents.tm_min  = getNumField<uint64_t>(&timeStamp[2],2);
+    this->localTimeComponents.tm_sec  = getNumField<uint64_t>(&timeStamp[4],2);
+    const uint64_t millis             = getNumField<uint64_t>(&timeStamp[6],3);
+
+    gr_ts = std::mktime(&this->localTimeComponents) * 1'000'000'000 + millis * 1'000'000;
   } else if (memcmp(msgHdr->MsgType,"U ",sizeof(msgHdr->MsgType)) == 0) { // EndOfTransmission
     EKA_LOG("%s:%u End Of Transmission",EKA_EXCH_DECODE(exch),id);
     return true;
@@ -243,18 +245,36 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.header.gapNum         = gapNum;
 
     //    msg.secondaryGroup        = 0;
-    msg.securityType          = EfhSecurityType::kOption;
+    msg.commonDef.securityType   = EfhSecurityType::kOption;
+    msg.commonDef.exchange       = EfhExchange::kBOX;
+    msg.commonDef.underlyingType = EfhSecurityType::kStock;
+    msg.commonDef.expiryDate     = (2000 + getYear(symb)) * 10000 + getMonth(symb,getOptionType(symb)) * 100 + getDay(symb);
+    msg.commonDef.contractSize   = 0;
+
     msg.optionType            = getOptionType(symb);
-    msg.expiryDate            = (2000 + getYear(symb)) * 10000 + getMonth(symb,msg.optionType) * 100 + getDay(symb);
-    msg.contractSize          = 0;
     msg.strikePrice           = getNumField<uint32_t>(&symb[8],7) * getFractionIndicator(symb[15]) / EFH_HSV_BOX_STRIKE_PRICE_SCALE;
-    msg.exchange              = EfhExchange::kBOX;
 
-    memcpy (&msg.underlying,boxMsg->UnderlyingSymbolRoot,std::min(sizeof(msg.underlying),sizeof(boxMsg->UnderlyingSymbolRoot)));
-    memcpy (&msg.classSymbol,&symb[0],6);
+    copySymbol(msg.commonDef.underlying,boxMsg->UnderlyingSymbolRoot);
 
-    memcpy(msg.exchSecurityName,                                  boxMsg->GroupInstrument,sizeof(boxMsg->GroupInstrument));
-    memcpy(msg.exchSecurityName + sizeof(boxMsg->GroupInstrument),boxMsg->Instrument,     sizeof(boxMsg->Instrument));
+    // In HSVF, we're given the "underlying symbol root," i.e., it might
+    // contain a contract adjustment, e.g., ABBV1 instead of ABBV. This
+    // is not what we expect in our API (the contract adjustment should
+    // only be present in classSymbol, not underlying), so remove it.
+    for (char *s = std::end(msg.commonDef.underlying) - 1;
+         s >= std::begin(msg.commonDef.underlying); --s) {
+      if (std::isdigit(*s))
+        *s = '\0';
+    }
+
+    {
+      char *s = stpncpy(msg.commonDef.classSymbol,symb,6);
+      *s-- = '\0';
+      while (*s == ' ')
+        *s-- = '\0';
+    }
+
+    memcpy(msg.commonDef.exchSecurityName,boxMsg->GroupInstrument,sizeof(boxMsg->GroupInstrument));
+    memcpy(msg.commonDef.exchSecurityName + sizeof(boxMsg->GroupInstrument),boxMsg->Instrument,     sizeof(boxMsg->Instrument));
 
 #ifdef TEST_PRINT_DICT
     char avtSecName[32] = {};
@@ -293,8 +313,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.capacity              = EfhOrderCapacity::kBrokerDealer;
     msg.quantity              = getNumField<uint32_t>(boxMsg->Size,sizeof(boxMsg->Size));
     msg.price                 = getNumField<uint32_t>(boxMsg->Price,sizeof(boxMsg->Price)) * getFractionIndicator(boxMsg->PriceFractionIndicator);
-
-    msg.endTimeNanos          = getExpireNs(boxMsg->ExpiryTime);
+    msg.endTimeNanos          = getExpireNs(&localTimeComponents, boxMsg->ExpiryTime);
 
     switch (boxMsg->AuctionType) {
     case 'G': msg.auctionType = EfhAuctionType::kPriceImprovementPeriod; break;
@@ -327,8 +346,8 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.side                  = getSide(boxMsg->OrderSide, /*flipSide*/ boxMsg->OrderType == 'E');
 
     msg.quantity              = getNumField<uint32_t>(boxMsg->Size,sizeof(boxMsg->Size));
-    msg.price                 = getNumField<uint32_t>(boxMsg->LimitPrice,sizeof(boxMsg->LimitPrice));
-    msg.endTimeNanos          = getExpireNs(boxMsg->EndOfExposition);
+    msg.price                 = getNumField<uint32_t>(boxMsg->LimitPrice,sizeof(boxMsg->LimitPrice)) * getFractionIndicator(boxMsg->LimitPriceFractionIndicator);
+    msg.endTimeNanos          = getExpireNs(&localTimeComponents, boxMsg->EndOfExposition);
 
     if (boxMsg->OrderType == 'A') { // Initial
       msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
@@ -352,7 +371,6 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
       on_error("Unexpected ClearingType == \'%c\'",boxMsg->ClearingType);
     }
 
-    *stpncpy(msg.firmId, boxMsg->FirmId, sizeof boxMsg->FirmId) = '\0';
     pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
 
   } else if (memcmp(msgHdr->MsgType,"T ",sizeof(msgHdr->MsgType)) == 0) { // HsvfRfqDelete

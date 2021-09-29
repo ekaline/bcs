@@ -3,6 +3,7 @@
 
 #include "eka_macros.h"
 #include "Efh.h"
+#include <ctime>
 
 #define EFH_HSV_BOX_STRIKE_PRICE_SCALE 1
 
@@ -569,19 +570,13 @@ namespace Hsvf {
     }
   }
 
-  inline auto getExpireNs(const char* t) {
+  inline auto getExpireNs(std::tm* localTime, const char* t) {
     // HHMMSSCC
-    int hour {(t[0] - '0') * 10  + (t[1] - '0')};
-    int min  {(t[2] - '0') * 10  + (t[3] - '0')};
-    int sec  {(t[4] - '0') * 10  + (t[5] - '0')};
-    int ms   {(t[6] - '0') * 100 + (t[7] - '0') * 10};
-
-    uint64_t ns = hour * 60 * 60 * 1e9 +
-      min * 60 * 1e9 +
-      sec * 1e9 +
-      ms  * 1e6;
-
-    return ns;
+    localTime->tm_hour = (t[0] - '0') * 10  + (t[1] - '0');
+    localTime->tm_min  = (t[2] - '0') * 10  + (t[3] - '0');
+    localTime->tm_sec  = (t[4] - '0') * 10  + (t[5] - '0');
+    const uint64_t ms  = (t[6] - '0') * 100 + (t[7] - '0') * 10;
+    return std::mktime(localTime) * 1'000'000'000 + ms * 1'000'000;
   }
 } // namespace Hsvf
 

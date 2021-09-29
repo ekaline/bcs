@@ -228,7 +228,6 @@ int EkaTcpSess::connect() {
 
 EkaTcpSess::~EkaTcpSess() {
   EKA_LOG("Closing socket %d for core%u sess%u",sock,coreId,sessId);
-  lwip_shutdown(sock,SHUT_RDWR);
   lwip_close(sock);
   EKA_LOG("Closed socket %d for core%u sess%u maxThrottle %juus",
 	  sock,coreId,sessId,maxThrottleCounter);

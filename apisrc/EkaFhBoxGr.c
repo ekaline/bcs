@@ -31,6 +31,13 @@ void* getHsvfRetransmit(void* attr);
 
 /* ##################################################################### */
 
+EkaFhBoxGr::EkaFhBoxGr() {
+  const std::time_t nowEpoch =  std::time(nullptr);
+  if (nowEpoch == -1)
+    on_error("unable to get epoch time: %s (%d)", strerror(errno), errno);
+  (void)localtime_r(&nowEpoch, &this->localTimeComponents);
+}
+
 int EkaFhBoxGr::processFromQ(const EfhRunCtx* pEfhRunCtx) {
   if (! q->is_empty()) {
     EKA_LOG("%s:%u Q len = %u, 1st element Sequence=%ju",
@@ -54,8 +61,10 @@ int EkaFhBoxGr::processFromQ(const EfhRunCtx* pEfhRunCtx) {
     } else {
       /* EKA_LOG("q_len=%u,buf->sequence=%ju, expected_sequence=%ju", */
       /* 	      q->get_len(),buf->sequence,expected_sequence); */
-      if (buf->type == fh_msg::MsgType::REAL)
+      if (buf->type == fh_msg::MsgType::REAL) {
+	this->gr_ts = buf->push_ts;
 	parseMsg(pEfhRunCtx,(const unsigned char*)buf->data,buf->sequence,EkaFhMode::MCAST);
+      }
       expected_sequence = buf->sequence >= 999999999 ? buf->sequence + 1 - 999999999 : buf->sequence + 1;
     }
   }
@@ -79,10 +88,12 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 			       const uint8_t*   pkt, 
 			       int16_t          pktLen) {
   int idx = 0;
-
   lastPktLen    = pktLen;
   lastPktMsgCnt = 0;
 
+  timespec now;
+  if (clock_gettime(CLOCK_REALTIME, &now) == -1)
+    on_error("clock_gettime failed: %s (%d)", strerror(errno), errno);
   uint64_t firstMsgSeq   = Hsvf::getMsgSequence(&pkt[idx]);
 
   while (idx < pktLen) {
@@ -96,6 +107,7 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
     lastProcessedSeq = msgSeq;
 
     if (msgSeq >= expected_sequence) {
+      this->gr_ts = now.tv_sec * 1'000'000'000 + now.tv_nsec;
       if (parseMsg(pEfhRunCtx,&pkt[idx+1],msgSeq,EkaFhMode::MCAST)) {
 	EKA_WARN("Exiting in the middle of the packet");
 	return true;
@@ -121,6 +133,9 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 void EkaFhBoxGr::pushUdpPkt2Q(const uint8_t* pkt, uint pktLen) {
   auto p = pkt;
   uint idx = 0;
+  timespec now;
+  if (clock_gettime(CLOCK_REALTIME, &now) == -1)
+    on_error("clock_gettime failed: %s (%d)", strerror(errno), errno);
   while (idx < pktLen) {
     auto msgType = ((HsvfMsgHdr*)&p[idx+1])->MsgType;
     auto msgSeq  = Hsvf::getMsgSequence(&p[idx]);
@@ -135,6 +150,7 @@ void EkaFhBoxGr::pushUdpPkt2Q(const uint8_t* pkt, uint pktLen) {
       memcpy (n->data,&p[idx+1],msgLen - 1);
       n->sequence = msgSeq;
       n->gr_id    = id;
+      n->push_ts  = now.tv_sec * 1'000'000'000 + now.tv_nsec;
     } else if (memcmp(msgType,"V ",2) == 0) {  // Heartbeat
       // dont put Heartbeat into the Q
     } else {

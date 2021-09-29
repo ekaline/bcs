@@ -452,9 +452,9 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
   
 /*     uint8_t y,m,d; */
 
-/*     d = msg->expiryDate % 100; */
-/*     m = ((msg->expiryDate - d) / 100) % 100; */
-/*     y = msg->expiryDate / 10000 - 2000; */
+/*     d = msg->commonDef.expiryDate % 100; */
+/*     m = ((msg->commonDef.expiryDate - d) / 100) % 100; */
+/*     y = msg->commonDef.expiryDate / 10000 - 2000; */
 
 /*     memcpy(dst,msg->underlying,6); */
 /*     for (auto i = 0; i < 6; i++) if (dst[i] == 0 || dst[i] == ' ') dst[i] = '_'; */
@@ -553,8 +553,8 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
   auto gr {grCtx[(int)exch][grId]};
   if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
 
-  std::string underlyingName = std::string(msg->underlying, sizeof(msg->underlying));
-  std::string classSymbol    = std::string(msg->classSymbol,sizeof(msg->classSymbol));
+  std::string underlyingName = std::string(msg->commonDef.underlying, sizeof(msg->commonDef.underlying));
+  std::string classSymbol    = std::string(msg->commonDef.classSymbol,sizeof(msg->commonDef.classSymbol));
 
   std::replace(underlyingName.begin(), underlyingName.end(), ' ', '\0');
   std::replace(classSymbol.begin(),    classSymbol.end(),    ' ', '\0');
@@ -585,7 +585,7 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
 	.avtSecName        = std::string(avtSecName),
 	.underlying        = underlyingName,
 	.classSymbol       = classSymbol,
-	.exch              = msg->exchange,
+	.exch              = msg->commonDef.exchange,
 	.displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE,
     };
     

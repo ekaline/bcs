@@ -6,6 +6,7 @@
 #include <inttypes.h>
 #include <assert.h>
 
+#include "EkaFhParserCommon.h"
 #include "EkaFhBatsParser.h"
 
 #ifdef _PCAP_TEST_
@@ -216,25 +217,31 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.header.timeStamp      = 0;
     msg.header.gapNum         = gapNum;
 
-    msg.securityType          = EfhSecurityType::kOption;
+    msg.commonDef.securityType   = EfhSecurityType::kOption;
+    msg.commonDef.exchange       = EKA_GRP_SRC2EXCH(exch);
+    msg.commonDef.underlyingType = EfhSecurityType::kStock;
     uint y = (osi[6] -'0') * 10 + (osi[7] -'0');
     uint m = (osi[8] -'0') * 10 + (osi[9] -'0');
     uint d = (osi[10]-'0') * 10 + (osi[11]-'0');
+    msg.commonDef.expiryDate     = (2000 + y) * 10000 + m * 100 + d;
 
-    msg.expiryDate            = (2000 + y) * 10000 + m * 100 + d;
     char strike_price_str[9] = {};
     memcpy(strike_price_str,&osi[13],8);
     strike_price_str[8] = '\0';
 
     //    msg.strikePrice           = strtoull(strike_price_str,NULL,10) / EFH_STRIKE_PRICE_SCALE;
     msg.strikePrice           = strtoull(strike_price_str,NULL,10) * EFH_PITCH_STRIKE_PRICE_SCALE; // per Ken's request
-    msg.exchange              = EKA_GRP_SRC2EXCH(exch);
 
     msg.optionType            = osi[12] == 'C' ?  EfhOptionType::kCall : EfhOptionType::kPut;
 
-    memcpy (&msg.underlying,message->underlying,std::min(sizeof(msg.underlying),sizeof(message->underlying)));
-    memcpy (&msg.classSymbol,osi,6);
-    memcpy (&msg.exchSecurityName,message->symbol,std::min(sizeof(msg.exchSecurityName),sizeof(message->symbol)));
+    copySymbol(msg.commonDef.underlying,message->underlying);
+    {
+      char *s = stpncpy(msg.commonDef.classSymbol,osi,6);
+      *s-- = '\0';
+      while (*s == ' ')
+        *s-- = '\0';
+    }
+    copySymbol(msg.commonDef.exchSecurityName, message->symbol);
 
     memcpy(&msg.opaqueAttrA,message->symbol,6);
 

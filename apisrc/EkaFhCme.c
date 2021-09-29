@@ -152,7 +152,7 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 }
  /* ##################################################################### */
 
-EkaOpResult EkaFhCme::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group) {
+EkaOpResult EkaFhCme::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, const EkaGroup* group) {
   auto gr = dynamic_cast<EkaFhCmeGr*>(b_gr[group->localId]);
   if (gr == NULL) on_error("gr[%u] == NULL",(uint8_t)group->localId);
 

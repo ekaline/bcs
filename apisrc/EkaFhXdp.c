@@ -137,7 +137,7 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 }
  /* ##################################################################### */
 
-EkaOpResult EkaFhXdp::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaGroup* group) {
+EkaOpResult EkaFhXdp::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, const EkaGroup* group) {
   return getXdpDefinitions(pEfhCtx,
 			   pEfhRunCtx,
 			   (EkaFhXdpGr*)b_gr[(uint8_t)group->localId],

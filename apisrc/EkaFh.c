@@ -63,8 +63,10 @@ uint8_t EkaFh::getGrId(const uint8_t* pkt) {
 }
  /* ##################################################################### */
 int EkaFh::init(const EfhInitCtx* pEfhInitCtx, uint8_t numFh) {
-  c     = pEfhInitCtx->coreId;
-  noTob = pEfhInitCtx->noTob;
+  c               = pEfhInitCtx->coreId;
+  noTob           = pEfhInitCtx->noTob;
+  getTradeTimeCb  = pEfhInitCtx->getTradeTime;
+  getTradeTimeCtx = pEfhInitCtx->getTradeTimeCtx;
   
   if ((dev->ekaHwCaps->hwCaps.core.bitmap_md_cores & (1 << c)) == 0) {
     on_error("Core %u is not enabled in FPGA for Market Data RX",c);
@@ -202,6 +204,34 @@ EkaOpResult EkaFh::subscribeStaticSecurity(uint8_t groupNum,
 					  opaqueAttrB);
 
   b_gr[groupNum]->numSecurities++;
+  return EKA_OPRESULT__OK;
+}
+
+int EkaFh::getTradeTime(const EfhDateComponents* dateComponents,
+                        uint32_t* iso8601Date,
+                        time_t* time) {
+  if (!this->getTradeTimeCb) {
+    // We don't have the getTradeTimeFn function available. In one corner case,
+    // when the day is explicitly specified, we can still compute iso8601Date.
+    if (dateComponents->dayMethod == EfhDayMethod::kDirectDay) {
+      *iso8601Date = dateComponents->year * 10'000 + dateComponents->month * 100 +
+          dateComponents->day;
+    }
+    else
+      *iso8601Date = 0;
+    // FIXME: we can approximate the time with localtime_r and some basic
+    // algorithms. This would work except we don't know the holiday schedule.
+    // For now, just rely on getTradeTime support.
+    *time = 0;
+    errno = ENOSYS;
+    return -1;
+  }
+
+  return getTradeTimeCb(dateComponents, iso8601Date, time, getTradeTimeCtx);
+}
+
+EkaOpResult EkaFh::setTradeTimeCtx(void *ctx) {
+  getTradeTimeCtx = ctx;
   return EKA_OPRESULT__OK;
 }
 

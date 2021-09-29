@@ -1,6 +1,8 @@
 #ifndef _EKA_FH_BOX_GR_H_
 #define _EKA_FH_BOX_GR_H_
 
+#include <ctime>
+
 #include "EkaFhGroup.h"
 #include "EkaFhTobBook.h"
 
@@ -8,6 +10,8 @@ class EkaHsvfTcp;
 
 class EkaFhBoxGr : public EkaFhGroup{
  public:
+  EkaFhBoxGr();
+
   virtual               ~EkaFhBoxGr() {};
 
   bool                  parseMsg(const EfhRunCtx* pEfhRunCtx,
@@ -70,5 +74,6 @@ class EkaFhBoxGr : public EkaFhGroup{
   uint        lastPktMsgCnt = 0;
   uint64_t    lastProcessedSeq = 0;
 
+  std::tm     localTimeComponents;
 };
 #endif

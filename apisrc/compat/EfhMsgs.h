@@ -6,10 +6,11 @@
 #ifndef __EFH_MSGS_H__
 #define __EFH_MSGS_H__
 
+#include <time.h>
 #include "Eka.h"
 
 #define EFH__PRICE_SCALE        10000
-#define EFH__MAX_COMPLEX_LEGS   8
+#define EFH__MAX_COMPLEX_LEGS   32u
 
 /*
  * $$NOTE$$ - All of these messages are standalone and therefore arent contained in a kEkaContainerMsg.
@@ -18,6 +19,7 @@ enum class EfhMsgType : uint16_t {
     #define EfhMsgType_ENUM_ITER( _x )                                      \
                 _x( Invalid, 0        )                                     \
                 _x( OptionDefinition  )                                     \
+                _x( FutureDefinition  )                                     \
                 _x( ComplexDefinition )                                     \
                 _x( AuctionUpdate     )                                     \
                 _x( Trade             )                                     \
@@ -39,7 +41,7 @@ typedef struct {
                 _x( uint64_t,   securityId )                                \
                 _x( uint64_t,   sequenceNumber )                            \
                 _x( uint64_t,   timeStamp )                                 \
-                _x( uint64_t,   deltaNs )                                 \
+                _x( uint64_t,   deltaNs )                                   \
                 /** Incremented each time a new gap is encountered so this 
                  * can be compared  with the latest from 
                  * EfhGroupStateChangedMsg::code. */                        \
@@ -222,9 +224,39 @@ enum class EfhErrorDomain : char {
   EfhErrorDomain_ENUM_ITER( EKA__ENUM_DEF )
 };
 
+enum class EfhDayMethod : uint8_t {
+#define EfhDayMethod_ENUM_ITER( _x )           \
+  _x( Invalid,            0   )                \
+  /* Day specified directly */                 \
+  _x( DirectDay,          1 )                  \
+  /* (week, day of week) e.g. (3, Monday) */   \
+  _x( WeekWeekday,        2 )                  \
+  /* First business day of the month */        \
+  _x( MonthFirstTradeDay, 3 )                  \
+  /* Last business day of the month */         \
+  _x( MonthLastTradeDay,  4 )
+  EfhDayMethod_ENUM_ITER( EKA__ENUM_DEF )
+};
+
+typedef struct {
+    #define EfhDateComponents_FIELD_ITER( _x )                              \
+                _x( uint16_t,     year )                                    \
+                _x( uint8_t,      month )                                   \
+                _x( uint8_t,      day )                                     \
+                _x( uint8_t,      week )                                    \
+                _x( uint8_t,      weekday )                                 \
+                _x( EfhDayMethod, dayMethod )                               \
+                _x( uint8_t,      hour )                                    \
+                _x( uint8_t,      minute )                                  \
+                _x( uint8_t,      second )                                  \
+                _x( int8_t,       holiday )                                 \
+                /* IANA name of timezone where date/time specified */       \
+                _x( const char *, tz )
+        EfhDateComponents_FIELD_ITER( EKA__FIELD_DEF )
+} EfhDateComponents;
+
 typedef char EfhSymbol[8];
-typedef char ExchSecurityName[6];
-typedef char ExchLongName[20];
+typedef char ExchSecurityName[16];
 
 // Provide a dummy empty type to avoid confusing preprocessor macros that may
 // try to access a type of this name because EfhMsgType::kInvalid exists.
@@ -236,32 +268,49 @@ typedef struct {
         EfhInvalidMsg_FIELD_ITER( EKA__FIELD_DEF )
 } EfhInvalidMsg;
 
+// Common fields for all security types
+typedef struct {
+    #define EfhSecurityDef_FIELD_ITER( _x )                                 \
+                _x( EfhSecurityType,  securityType )                        \
+                _x( EfhExchange,      exchange )                            \
+                /** If this is >= 0, then this is a second group that
+                 *  security updates can come over (useful for exchanges
+                 *  where we subscribe to both TOB and Orders. */           \
+                _x( EkaGroup,         secondaryGroup )                      \
+                _x( EfhSecurityType,  underlyingType )                      \
+                _x( EfhSymbol,        classSymbol )                         \
+                _x( EfhSymbol,        underlying )                          \
+                _x( ExchSecurityName, exchSecurityName )                    \
+                /** Full UNIX epoch time of expiry, can be 0 */             \
+                _x( time_t,           expiryTime )                          \
+                /** Formatted as YYYYMMDD if expiryTime not avail */        \
+                _x( uint32_t,         expiryDate )                          \
+                _x( uint32_t,         contractSize )
+        EfhSecurityDef_FIELD_ITER( EKA__FIELD_DEF )
+} EfhSecurityDef;
+
 /*
  *
  */
 typedef struct {
     #define EfhOptionDefinitionMsg_FIELD_ITER( _x )                         \
                 _x( EfhMsgHeader,    header )                               \
-                /** If this is >= 0, then this is a second group that 
-                 *  security updates can come over (useful for exchanges 
-                 *  where we subscribe to both TOB and Orders. */           \
-                _x( EkaGroup,        secondaryGroup )                       \
-                _x( EfhSecurityType, securityType )                         \
-                _x( EfhSecurityType, underlyingType )                       \
-                _x( EfhSymbol,       classSymbol )                          \
-                _x( EfhSymbol,       underlying )                           \
-                /** Formatted as YYYYMMDD. */                               \
-                _x( uint32_t,        expiryDate )                           \
-                _x( uint32_t,        contractSize )                         \
+                /* This must be the 2nd field in any definition message */  \
+                _x( EfhSecurityDef,  commonDef )                            \
                 /** Divide by EFH_PRICE_SCALE. */                           \
                 _x( int64_t,         strikePrice )                          \
-                _x( EfhExchange,     exchange )                             \
                 _x( EfhOptionType,   optionType )                           \
-                _x( ExchSecurityName,exchSecurityName )                     \
                 _x( uint64_t,        opaqueAttrA )                          \
                 _x( uint64_t,        opaqueAttrB )
         EfhOptionDefinitionMsg_FIELD_ITER( EKA__FIELD_DEF )
 } EfhOptionDefinitionMsg;
+
+typedef struct {
+    #define EfhFutureDefinitionMsg_FIELD_ITER( _x )                         \
+                _x( EfhMsgHeader,    header )                               \
+                _x( EfhSecurityDef,  commonDef )
+        EfhFutureDefinitionMsg_FIELD_ITER( EKA__FIELD_DEF )
+} EfhFutureDefinitionMsg;
 
 enum class EfhOrderSide : int8_t {
     #define EfhOrderSide_ENUM_ITER( _x )                                    \
@@ -286,9 +335,7 @@ typedef EfhComplexLeg EfhComplexLegs[EFH__MAX_COMPLEX_LEGS];
 typedef struct {
     #define EfhComplexDefinitionMsg_FIELD_ITER( _x )                        \
                 _x( EfhMsgHeader,   header )                                \
-                _x( ExchLongName,   exchSymbolName )                        \
-                _x( ExchLongName,   exchAssetName )                         \
-                _x( EkaGroup,       secondaryGroup )                        \
+                _x( EfhSecurityDef, commonDef )                             \
                 _x( uint8_t,        numLegs )                               \
                 _x( EfhComplexLegs, legs )
         EfhComplexDefinitionMsg_FIELD_ITER( EKA__FIELD_DEF )

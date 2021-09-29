@@ -33,20 +33,48 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.header.timeStamp      = 0;
     msg.header.gapNum         = 0;
 
-    msg.securityType          = EfhSecurityType::kOption;
-    msg.expiryDate            = 
+    msg.commonDef.securityType   = EfhSecurityType::kOption;
+    msg.commonDef.exchange       = EKA_GRP_SRC2EXCH(gr->exch);
+    msg.commonDef.underlyingType = EfhSecurityType::kStock;
+    msg.commonDef.expiryDate    =
       (2000 + (m->MaturityDate[0] - '0') * 10 + (m->MaturityDate[1] - '0')) * 10000 + 
       (       (m->MaturityDate[2] - '0') * 10 +  m->MaturityDate[3] - '0')  * 100   +
       (        m->MaturityDate[4] - '0') * 10 +  m->MaturityDate[5] - '0';
-
-    msg.contractSize          = m->ContractMultiplier;
+    msg.commonDef.contractSize   = m->ContractMultiplier;
       
-    msg.strikePrice           = (uint64_t) (strtof(m->StrikePrice,NULL) * 10000); //  / EFH_XDP_STRIKE_PRICE_SCALE;
-    msg.exchange              = EKA_GRP_SRC2EXCH(exch);
     msg.optionType            = m->PutOrCall ?  EfhOptionType::kCall : EfhOptionType::kPut;
 
-    memcpy (&msg.underlying, m->UnderlyingSymbol,std::min(sizeof(msg.underlying), sizeof(m->UnderlyingSymbol)));
-    memcpy (&msg.classSymbol,m->OptionSymbolRoot,std::min(sizeof(msg.classSymbol),sizeof(m->OptionSymbolRoot)));
+    // Strike price is given to us as a null-terminted string which may have a
+    // decimal point, e.g, `35.375`. In previous versions, strtof(3) was used,
+    // but there can be precision problems.
+    char *scanFraction;
+    msg.strikePrice = strtol(m->StrikePrice, &scanFraction, 10) * EFH__PRICE_SCALE;
+    if (*scanFraction == '.') {
+      // A fractional price is present, we'll convert it manually.
+      ++scanFraction; // Consume '.'
+      const int64_t sign = msg.strikePrice >= 0 ? 1 : -1;
+
+      for (int64_t residualMultipler = EFH__PRICE_SCALE / 10;
+           std::isdigit(*scanFraction) && residualMultipler;
+           ++scanFraction, residualMultipler /= 10) {
+        msg.strikePrice += sign * (*scanFraction - '0') * residualMultipler;
+      }
+
+      if (std::isdigit(*scanFraction)) {
+        EKA_WARN("price of `%s` expiry %d %s is `%s` which exceeds integral price "
+                 "precision of %d", msg.commonDef.classSymbol,
+                 msg.commonDef.expiryDate,
+                 msg.optionType == EfhOptionType::kCall ? "call" : "put",
+                 m->StrikePrice, EFH__PRICE_SCALE);
+        // The whole call will fail now that we have a single security
+        // that cannot be faithfully represented.
+        result = EKA_OPRESULT__ERR_STRIKE_PRICE_OVERFLOW;
+      }
+    }
+
+    copySymbol(msg.commonDef.underlying, m->UnderlyingSymbol);
+    copySymbol(msg.commonDef.classSymbol,m->OptionSymbolRoot);
+
     pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
   }
     break;

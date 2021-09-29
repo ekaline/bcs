@@ -6,6 +6,7 @@
 #include <inttypes.h>
 #include <assert.h>
 
+#include "EkaFhParserCommon.h"
 #include "EkaFhMiaxParser.h"
 #include "EkaFhMiaxGr.h"
 
@@ -48,18 +49,19 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     msg.header.timeStamp      = 0;
     msg.header.gapNum         = gapNum;
 
-    //    msg.secondaryGroup        = {(EkaSource)0,EkaLSI(0)};
-    msg.securityType          = EfhSecurityType::kOption;
-    msg.expiryDate            = y * 10000 + m * 100 + d;
-    msg.contractSize          = 0;
+    msg.commonDef.securityType   = EfhSecurityType::kOption;
+    msg.commonDef.exchange       = EKA_GRP_SRC2EXCH(exch); //EfhExchange::kMIAX;
+    msg.commonDef.underlyingType = EfhSecurityType::kStock;
+    msg.commonDef.expiryDate     = y * 10000 + m * 100 + d;
+    msg.commonDef.contractSize   = 0;
+
     msg.strikePrice           = message->StrikePrice / EFH_STRIKE_PRICE_SCALE;
-    msg.exchange              = EKA_GRP_SRC2EXCH(exch); //EfhExchange::kMIAX;
     msg.optionType            = message->CallOrPut == 'P' ?  EfhOptionType::kPut : EfhOptionType::kCall;
 
-    memcpy (&msg.underlying, message->UnderlyingSymbol,std::min(sizeof(msg.underlying), sizeof(message->UnderlyingSymbol)));
-    memcpy (&msg.classSymbol,message->SecuritySymbol,  std::min(sizeof(msg.classSymbol),sizeof(message->SecuritySymbol)));
+    copySymbol(msg.commonDef.underlying, message->UnderlyingSymbol);
+    copySymbol(msg.commonDef.classSymbol,message->SecuritySymbol);
 
-    uint underlyingIdx = addUnderlying(msg.underlying, sizeof(msg.underlying));
+    uint underlyingIdx = addUnderlying(msg.commonDef.underlying);
     msg.opaqueAttrB = (uint64_t)underlyingIdx;
 
     /* EKA_TRACE("UnderlyingSymbol = %s, SecuritySymbol = %s,  message->Expiration = %s = %u,  message->security_id = %ju", */
@@ -87,9 +89,9 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     auto message {reinterpret_cast<const TomUnderlyingTradingStatus*>(m)};
 
     char name2print[16] = {};
-    memcpy(name2print,message->underlying,sizeof(message->underlying));
-    int underlIdx = findUnderlying(message->underlying,
-				   std::min(sizeof(message->underlying),sizeof(EfhSymbol)));
+    EfhSymbol underlyingSymbol;
+    copySymbol(underlyingSymbol, message->underlying);
+    int underlIdx = findUnderlying(underlyingSymbol);
     if (underlIdx < 0) {
       EKA_LOG("%s:%u \'%s\' 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x (size = %ju) is not found (size for strncmp = %ju:",
 	      EKA_EXCH_DECODE(exch),id,name2print,

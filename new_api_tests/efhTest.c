@@ -342,8 +342,8 @@ void* onDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secData, Ef
   char classSymbol[SYMBOL_SIZE] = {};
   char underlyingName[SYMBOL_SIZE] = {};
 
-  memcpy(underlyingName,msg->underlying,sizeof(msg->underlying));
-  memcpy(classSymbol,msg->classSymbol,sizeof(msg->classSymbol));
+  memcpy(underlyingName,msg->commonDef.underlying,sizeof(msg->commonDef.underlying));
+  memcpy(classSymbol,msg->commonDef.classSymbol,sizeof(msg->commonDef.classSymbol));
   for (uint i=0; i < SYMBOL_SIZE; i++) {
     if (underlyingName[i] == ' ') underlyingName[i] = '\0';
     if (classSymbol[i]    == ' ') classSymbol[i]    = '\0';

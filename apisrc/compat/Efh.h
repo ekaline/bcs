@@ -28,6 +28,9 @@ enum class EfhFeedVer {
 	 EfhFeedVer_ENUM_ITER( EKA__ENUM_DEF )
 };
 
+typedef int (*EfhGetTradeTimeFn)(const EfhDateComponents *, uint32_t* iso8601Date,
+                                 time_t *epochTime, void* ctx);
+
 /**
  * This is passed to EfhInit().  This will replace the eka_conf values that we passed in the old api.  
  * This function must be called before efcInit().
@@ -36,8 +39,10 @@ enum class EfhFeedVer {
     EkaProps* ekaProps;
     size_t numOfGroups;
 
-    EkaCoreId coreId; // what 10G port to work on
-    bool      printParsedMessages; // used for Ekaline internal testing
+    EkaCoreId coreId; // what port to work on
+    EfhGetTradeTimeFn getTradeTime; // Used to map a CME-style expiration to a trading date/time
+    void* getTradeTimeCtx;          // Context object passed into getTradeTime
+    bool printParsedMessages;       // used for Ekaline internal testing
 
     /* This is true if we expect to receive marketdata updates when we run efhRun().  If this is false, 
      * we dont expect updates, and so Ekaline can save memory and avoid creating structures that arent needed.  */
@@ -79,7 +84,7 @@ const EfhInitCtx* efhGetSupportedParams( );
  * @param efhCtx 
  * @retval [See EkaOpResult].
  */
-EkaOpResult efhGetDefs( EfhCtx* efhCtx, const struct EfhRunCtx* efhRunCtx, EkaGroup* group, void** retval );
+EkaOpResult efhGetDefs( EfhCtx* efhCtx, const struct EfhRunCtx* efhRunCtx, const EkaGroup* group, void** retval );
 
 /**
  * This function will tell the Ekaline feedhandler that we are interested in updates for a specific static
@@ -100,7 +105,7 @@ EkaOpResult efhGetDefs( EfhCtx* efhCtx, const struct EfhRunCtx* efhRunCtx, EkaGr
 /*                                 EfhSecUserData  efhSecUserData ); */
 
 EkaOpResult efhSubscribeStatic( EfhCtx*         efhCtx,
-                                EkaGroup*       group,
+                                const EkaGroup* group,
                                 uint64_t        securityId,
                                 EfhSecurityType efhSecurityType,
                                 EfhSecUserData  efhSecUserData,
@@ -113,11 +118,11 @@ EkaOpResult efhSubscribeStatic( EfhCtx*         efhCtx,
  */
 EkaOpResult efhDoneStaticSubscriptions( EfhCtx* efhCtx );
 
-/**
- * This function is not needed for EFH, as efhSubscribeStatic() can be run any time during the day
- * This is just like efhSubscribeStatic() except it is for dynamic securities.
- * This must be called after efhDoneStaticSubscriptions().
- */
+
+EkaOpResult efhSetTradeTimeCtx( EfhCtx* efhCtx,
+                                void*   tradeTimeCtx );
+
+
 EkaOpResult efhSubscribeDynamic( EfhCtx*         efhCtx,
                                 EkaGroup*       group,
                                 uint64_t        securityId,

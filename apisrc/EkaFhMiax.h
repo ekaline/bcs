@@ -11,7 +11,7 @@ class EkaFhMiax : public EkaFh { // MiaxTom & PearlTom
 
   EkaOpResult getDefinitions (EfhCtx*          pEfhCtx, 
 			      const EfhRunCtx* pEfhRunCtx, 
-			      EkaGroup*        group);
+			      const EkaGroup*  group);
 
   EkaOpResult runGroups(EfhCtx*          pEfhCtx, 
 			const EfhRunCtx* pEfhRunCtx, 

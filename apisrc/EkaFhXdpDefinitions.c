@@ -14,11 +14,14 @@
 #include <net/if.h>
 #include <netinet/in.h>
 #include <stdio.h>
+#include <cctype>
 #include <thread>
 #include <iostream>
 #include <assert.h>
 #include <sched.h>
+#include <memory>
 
+#include "EkaFhParserCommon.h"
 #include "EkaFhXdpGr.h"
 #include "EkaFhXdpParser.h"
 
@@ -158,6 +161,23 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
   if ((ret = sendRequest(gr))      != EKA_OPRESULT__OK) return ret;
   //-----------------------------------------------------------------
   
+  // We need to reply to the heartbeats as they come in or we'll be
+  // disconnected, but the definition callback can be slow, which may cause
+  // the heartbeat to sit in the socket buffer for too long. If it sits
+  // for too long, we won't reply to it in time and will be disconnected.
+  // To prevent this, buffer up the SERIES_INDEX_MAPPING messages in an
+  // array and replay them later, when we no longer need the connection.
+  size_t nDefinitionBufs = (1 << 17);
+  size_t nDefinitions = 0;
+  auto mallocDeleter = [] (XdpSeriesMapping *m) {free(m);};
+  std::unique_ptr<XdpSeriesMapping, decltype(mallocDeleter)> definitionBufs {
+      static_cast<XdpSeriesMapping *>(malloc(nDefinitionBufs * sizeof(XdpSeriesMapping))),
+      mallocDeleter };
+  if (!definitionBufs)
+    on_error("XdpSeriesMapping allocation error for %zu bufs", nDefinitionBufs);
+
+  EkaOpResult result;
+
   while (1) { 
     uint8_t buf[1536] = {};
     uint8_t* hdr = buf;
@@ -210,7 +230,8 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
 	if ((ret = sendLogOut(gr))        != EKA_OPRESULT__OK) return ret;
 	close(gr->snapshot_sock);
 	//-------------------------------------------------------
-	return EKA_OPRESULT__OK;
+	result = EKA_OPRESULT__OK;
+        goto CopyOutDefinitions;
       case 10 :
 	EKA_LOG("%s:%u: Complex download complete",
 		EKA_EXCH_DECODE(gr->exch),gr->id);
@@ -218,7 +239,8 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
       default:
 	EKA_WARN("%s:%u: Unexpected (XdpRequestResponse*)hdr)->Status = %u",
 		 EKA_EXCH_DECODE(gr->exch),gr->id,((XdpRequestResponse*)hdr)->Status);
-	return EKA_OPRESULT__ERR_SYSTEM_ERROR;
+	result = EKA_OPRESULT__ERR_SYSTEM_ERROR;
+        goto CopyOutDefinitions;
       }
       break;
       /* ***************************************************** */
@@ -227,62 +249,16 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
       break;
       /* ***************************************************** */
     case MSG_TYPE::SERIES_INDEX_MAPPING : {
-      XdpSeriesMapping* m = (XdpSeriesMapping*) hdr;
-      if (m->ChannelID < XDP_TOP_FEED_BASE) break;
-
-      uint8_t AbcGroupID = m->OptionSymbolRoot[0] - 'A';
-
-#if 0
-      // an old assumption about AbcGroupID is WRONG!!!
-      if ((int)AbcGroupID != (int)(m->ChannelID - XDP_TOP_FEED_BASE))
-	on_error("m->ChannelID (%u) != AbcGroupID (%u) for OptionSymbolRoot = %s",
-		 m->ChannelID,
-		 AbcGroupID,
-		 std::string(m->OptionSymbolRoot,sizeof(m->OptionSymbolRoot)).c_str()
-		 );
-
-      if (AbcGroupID != gr->id) break;
-#endif
-      EfhOptionDefinitionMsg msg{};
-      msg.header.msgType        = EfhMsgType::kOptionDefinition;
-      msg.header.group.source   = gr->exch;
-      msg.header.group.localId  = gr->id;
-      msg.header.underlyingId   = m->UnderlyingIndex;
-      msg.header.securityId     = m->SeriesIndex;
-      msg.header.sequenceNumber = 0;
-      msg.header.timeStamp      = 0;
-      msg.header.gapNum         = 0;
-
-      //    msg.secondaryGroup        = 0;
-      msg.securityType          = EfhSecurityType::kOption;
-      msg.expiryDate            = 
-	(2000 + (m->MaturityDate[0] - '0') * 10 + (m->MaturityDate[1] - '0')) * 10000 + 
-	(       (m->MaturityDate[2] - '0') * 10 +  m->MaturityDate[3] - '0')  * 100   +
-	(        m->MaturityDate[4] - '0') * 10 +  m->MaturityDate[5] - '0';
-
-      msg.contractSize          = m->ContractMultiplier;
-      
-      msg.strikePrice           = (uint64_t) (strtof(m->StrikePrice,NULL) * 10000); //  / EFH_XDP_STRIKE_PRICE_SCALE;
-      msg.exchange              = EKA_GRP_SRC2EXCH(gr->exch);
-      msg.optionType            = m->PutOrCall ?  EfhOptionType::kCall : EfhOptionType::kPut;
-
-      memcpy (&msg.underlying, m->UnderlyingSymbol,std::min(sizeof(msg.underlying), sizeof(m->UnderlyingSymbol)));
-      memcpy (&msg.classSymbol,m->OptionSymbolRoot,std::min(sizeof(msg.classSymbol),sizeof(m->OptionSymbolRoot)));
-
-      XdpAuxAttrA attrA = {};
-      attrA.attr.StreamID       = m->StreamID;
-      attrA.attr.ChannelID      = m->ChannelID;
-      attrA.attr.PriceScaleCode = m->PriceScaleCode;
-      attrA.attr.GroupID        = m->GroupID;
-
-      XdpAuxAttrB attrB = {};
-      attrB.attr.UnderlIdx  = m->UnderlyingIndex;
-      attrB.attr.AbcGroupID = AbcGroupID;
-
-      msg.opaqueAttrA = attrA.opaqueField;
-      msg.opaqueAttrB = attrB.opaqueField;
-
-      pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+      if (reinterpret_cast<const XdpSeriesMapping *>(hdr)->ChannelID  < XDP_TOP_FEED_BASE)
+        break;
+      else if (nDefinitions == nDefinitionBufs) {
+        nDefinitionBufs *= 2;
+        definitionBufs.reset(static_cast<XdpSeriesMapping *>(reallocarray(definitionBufs.get(), nDefinitionBufs, sizeof(XdpSeriesMapping))));
+        if (!definitionBufs)
+          on_error("XdpSeriesMapping reallocarray error for %zu bufs", nDefinitionBufs);
+      }
+      memcpy(definitionBufs.get() + nDefinitions, hdr, sizeof *definitionBufs.get());
+      ++nDefinitions;
     }
       break;
       /* ***************************************************** */
@@ -293,6 +269,80 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
 		(uint)((XdpMsgHdr*)hdr)->MsgType);
     }
   }
-  return EKA_OPRESULT__OK;
 
+CopyOutDefinitions:
+  EKA_LOG("Copying out %zu buffered definitions for %s:%u",nDefinitions,EKA_EXCH_DECODE(gr->exch),gr->id);
+  const auto *const endDefinitions = definitionBufs.get() + nDefinitions;
+  for (XdpSeriesMapping *m = definitionBufs.get(); m != endDefinitions; ++m) {
+    uint8_t AbcGroupID = m->OptionSymbolRoot[0] - 'A';
+
+    EfhOptionDefinitionMsg msg{};
+    msg.header.msgType        = EfhMsgType::kOptionDefinition;
+    msg.header.group.source   = gr->exch;
+    msg.header.group.localId  = gr->id;
+    msg.header.underlyingId   = m->UnderlyingIndex;
+    msg.header.securityId     = m->SeriesIndex;
+    msg.header.sequenceNumber = 0;
+    msg.header.timeStamp      = 0;
+    msg.header.gapNum         = 0;
+
+    msg.commonDef.securityType   = EfhSecurityType::kOption;
+    msg.commonDef.exchange       = EKA_GRP_SRC2EXCH(gr->exch);
+    msg.commonDef.underlyingType = EfhSecurityType::kStock;
+    msg.commonDef.expiryDate     =
+        (2000 + (m->MaturityDate[0] - '0') * 10 + (m->MaturityDate[1] - '0')) * 10000 +
+        (       (m->MaturityDate[2] - '0') * 10 +  m->MaturityDate[3] - '0')  * 100   +
+        (        m->MaturityDate[4] - '0') * 10 +  m->MaturityDate[5] - '0';
+    msg.commonDef.contractSize          = m->ContractMultiplier;
+
+    msg.optionType            = m->PutOrCall ?  EfhOptionType::kCall : EfhOptionType::kPut;
+
+    copySymbol(msg.commonDef.underlying, m->UnderlyingSymbol);
+    copySymbol(msg.commonDef.classSymbol,m->OptionSymbolRoot);
+
+    // Strike price is given to us as a null-terminted string which may have a
+    // decimal point, e.g, `35.375`. In previous versions, strtof(3) was used,
+    // but there can be precision problems.
+    char *scanFraction;
+    msg.strikePrice = strtol(m->StrikePrice, &scanFraction, 10) * EFH__PRICE_SCALE;
+    if (*scanFraction == '.') {
+      // A fractional price is present, we'll convert it manually.
+      ++scanFraction; // Consume '.'
+      const int64_t sign = msg.strikePrice >= 0 ? 1 : -1;
+
+      for (int64_t residualMultipler = EFH__PRICE_SCALE / 10;
+           std::isdigit(*scanFraction) && residualMultipler;
+           ++scanFraction, residualMultipler /= 10) {
+        msg.strikePrice += sign * (*scanFraction - '0') * residualMultipler;
+      }
+
+      if (std::isdigit(*scanFraction)) {
+        EKA_WARN("price of `%s` expiry %d %s is `%s` which exceeds integral price "
+                 "precision of %d", msg.commonDef.classSymbol,
+                 msg.commonDef.expiryDate,
+                 msg.optionType == EfhOptionType::kCall ? "call" : "put",
+                 m->StrikePrice, EFH__PRICE_SCALE);
+        // The whole call will fail now that we have a single security
+        // that cannot be faithfully represented.
+        result = EKA_OPRESULT__ERR_STRIKE_PRICE_OVERFLOW;
+      }
+    }
+
+    XdpAuxAttrA attrA = {};
+    attrA.attr.StreamID       = m->StreamID;
+    attrA.attr.ChannelID      = m->ChannelID;
+    attrA.attr.PriceScaleCode = m->PriceScaleCode;
+    attrA.attr.GroupID        = m->GroupID;
+
+    XdpAuxAttrB attrB = {};
+    attrB.attr.UnderlIdx  = m->UnderlyingIndex;
+    attrB.attr.AbcGroupID = AbcGroupID;
+
+    msg.opaqueAttrA = attrA.opaqueField;
+    msg.opaqueAttrB = attrB.opaqueField;
+
+    pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+  }
+
+  return result;
 }
