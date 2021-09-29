@@ -1,6 +1,8 @@
 #include "EkaFhPlrParser.h"
 #include "EkaFhPlrGr.h"
 
+#include "EkaFhParserCommon.h"
+
 using namespace Plr;
 
 inline EfhTradeStatus quoteCondition(const char c) {
@@ -34,7 +36,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.header.gapNum         = 0;
 
     msg.commonDef.securityType   = EfhSecurityType::kOption;
-    msg.commonDef.exchange       = EKA_GRP_SRC2EXCH(gr->exch);
+    msg.commonDef.exchange       = EKA_GRP_SRC2EXCH(exch);
     msg.commonDef.underlyingType = EfhSecurityType::kStock;
     msg.commonDef.expiryDate    =
       (2000 + (m->MaturityDate[0] - '0') * 10 + (m->MaturityDate[1] - '0')) * 10000 + 
@@ -68,7 +70,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
                  m->StrikePrice, EFH__PRICE_SCALE);
         // The whole call will fail now that we have a single security
         // that cannot be faithfully represented.
-        result = EKA_OPRESULT__ERR_STRIKE_PRICE_OVERFLOW;
+	//        result = EKA_OPRESULT__ERR_STRIKE_PRICE_OVERFLOW;
       }
     }
 
