@@ -9,7 +9,7 @@
 
 #include "eka_macros.h"
 
-#define PLR_CERT 1
+// #define PLR_CERT 1
 
 namespace Plr {
     const uint8_t NYSE_ARCA_BBO_ProductId = 162;
