@@ -54,6 +54,11 @@ int credRelease(EkaCredentialLease *lease, void* context) {
   return 0;
 }
 
+int getTradeTimeCb (const EfhDateComponents *, uint32_t* iso8601Date,
+		     time_t *epochTime, void* ctx) {
+  return 0;
+}
+
 void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
   if (! keep_work) return NULL;
 
@@ -828,6 +833,7 @@ int createCtxts(std::vector<TestRunGroup>& testRunGroups,
       .ekaProps       = new EkaProps(),
       .numOfGroups    = feedname2numGroups(feedName),
       .coreId         = coreId,
+      .getTradeTime   = getTradeTimeCb,
       .recvSoftwareMd = true,
     };
     newEfhInitCtx.ekaProps->numProps = feedname2numProps(feedName);
@@ -865,7 +871,7 @@ int createCtxts(std::vector<TestRunGroup>& testRunGroups,
       .onEfhOrderMsgCb             = onOrder,
       .onEfhGroupStateChangedMsgCb = onEfhGroupStateChange,
       .onEkaExceptionReportCb      = onException,
-      .onEfhMdCb                   = onMd
+      .onEfhMdCb                   = onMd,
     };
     efhRunCtx.push_back(newEfhRunCtx);
 
