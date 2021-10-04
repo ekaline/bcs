@@ -95,20 +95,8 @@ public:
   int       processedSnapshotMessages = 0;
 
   volatile bool inGap  = false;
-
-  enum class DefinitionsCycleState : int {
-					  Init = 0,
-					  InProgress,
-					  Done
-  };
   
-  int vanillaOptionsDefinitionsCnt = 0;  
-  int complexOptionsDefinitionsCnt = 0;
-  int futuresDefinitionsCnt        = 0;
-  
-  DefinitionsCycleState vanillaOptionsDefinitionsState = DefinitionsCycleState::Init;
-  DefinitionsCycleState complexOptionsDefinitionsState = DefinitionsCycleState::Init;
-  DefinitionsCycleState futuresDefinitionsState        = DefinitionsCycleState::Init;
+  int iterationsCnt = 0;  
 
 private:
   void getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity,

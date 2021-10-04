@@ -166,12 +166,7 @@ EkaOpResult EkaFhCme::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
 
   gr->snapshot_active = true;
   
-  gr->vanillaOptionsDefinitionsCnt = 0;  
-  gr->complexOptionsDefinitionsCnt = 0;
-  gr->futuresDefinitionsCnt        = 0;
-  gr->vanillaOptionsDefinitionsState = EkaFhCmeGr::DefinitionsCycleState::Init;
-  gr->complexOptionsDefinitionsState = EkaFhCmeGr::DefinitionsCycleState::Init;
-  gr->futuresDefinitionsState        = EkaFhCmeGr::DefinitionsCycleState::Init;
+  gr->iterationsCnt = 0;  
   
   while (gr->snapshot_active) {
     uint8_t pkt[1536] = {};
@@ -183,12 +178,6 @@ EkaOpResult EkaFhCme::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
   gr->snapshot_active = false;
   gr->snapshotClosed  = true;
 
-  EKA_LOG("%s:%u: Definitions Done: %d Vanilla Options, %d Complex Options, %d Futures",
-	  EKA_EXCH_DECODE(exch),gr->id,
-	  gr->vanillaOptionsDefinitionsCnt,
-	  gr->complexOptionsDefinitionsCnt,
-	  gr->futuresDefinitionsCnt
-	  );
   close (sock);
   return EKA_OPRESULT__OK;
 

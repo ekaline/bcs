@@ -87,17 +87,19 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
     default:
       break;
     }
+    if (op == EkaFhMode::DEFINITIONS && isDefinitionMsg(msgHdr->templateId)) {
+      auto root {reinterpret_cast<const Definition_commonMainBlock*>(p)};
+      int totalIterations = root->TotNumReports;
+      if (++iterationsCnt == totalIterations) return true;
+    }
+    if (op == EkaFhMode::SNAPSHOT && isSnapshotMsg(msgHdr->templateId)) {
+      auto root {reinterpret_cast<const Refresh_commonMainBlock*>(p)};
+      int totalIterations = root->TotNumReports;
+      if (++iterationsCnt == totalIterations) return true;
+    }
+
     p += msgHdr->size;
     
-    if (op == EkaFhMode::DEFINITIONS) {
-      if (futuresDefinitionsState == DefinitionsCycleState::Done)
-	return true;
-
-      if (vanillaOptionsDefinitionsState == DefinitionsCycleState::Done &&
-	  (complexOptionsDefinitionsState == DefinitionsCycleState::Done ||
-	   complexOptionsDefinitionsState == DefinitionsCycleState::Init))
-	return true;
-    }
   }
   return false;
 }
@@ -431,47 +433,9 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture27(const EfhRunCtx* pEfhRunC
 						       const uint8_t*   pMsg,
 						       const uint64_t   pktTime,
 						       const SequenceT  pktSeq) {
-  if (futuresDefinitionsState == DefinitionsCycleState::Done)
-    on_error("futuresDefinitionsState == DefinitionsCycleState::Done");
-
+  // not used
   auto m      {pMsg};
   auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
-  m += sizeof(*msgHdr);
-  auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionFuture54_mainBlock*>(m)};
-  m += msgHdr->blockLen;
-  /* ------------------------------- */
-  /* auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)}; */
-
-  /* EfhFutureDefinitionMsg msg{}; */
-  /* msg.header.msgType        = EfhMsgType::kFutureDefinition; */
-  /* msg.header.group.source   = EkaSource::kCME_SBE; */
-  /* msg.header.group.localId  = id; */
-  /* msg.header.underlyingId   = 0; // Stock index technically an underlying, but no id. */
-  /* msg.header.securityId     = rootBlock->SecurityID; */
-  /* msg.header.sequenceNumber = pktSeq; */
-  /* msg.header.timeStamp      = pktTime; //rootBlock->LastUpdateTime; */
-  /* msg.header.gapNum         = gapNum; */
-
-  /* msg.commonDef.securityType   = EfhSecurityType::kFuture; */
-  /* msg.commonDef.exchange       = EfhExchange::kCME; */
-  /* msg.commonDef.underlyingType = EfhSecurityType::kIndex; */
-  /* msg.commonDef.contractSize   = 0; */
-  /* getCMEProductTradeTime(pMaturity, rootBlock->Symbol, &msg.commonDef.expiryDate, &msg.commonDef.expiryTime); */
-
-  /* copySymbol(msg.commonDef.underlying, rootBlock->Asset); */
-  /* copySymbol(msg.commonDef.classSymbol, rootBlock->Asset); */
-  /* copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol); */
-
-  /* pEfhRunCtx->onEfhFutureDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData); */
-
-
-  /* ------------------------------- */
-  futuresDefinitionsCnt++;
-  futuresDefinitionsState = DefinitionsCycleState::InProgress;
-  if (futuresDefinitionsCnt == (int)rootBlock->TotNumReports)
-    futuresDefinitionsState = DefinitionsCycleState::Done;
-
-  EKA_LOG("futuresDefinitionsCnt = %d, rootBlock->TotNumReports=%d",futuresDefinitionsCnt,(int)rootBlock->TotNumReports);
   return msgHdr->size;
 }
 /* ##################################################################### */     
@@ -481,9 +445,6 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
 						       const uint8_t*   pMsg,
 						       const uint64_t   pktTime,
 						       const SequenceT  pktSeq) {
-  if (futuresDefinitionsState == DefinitionsCycleState::Done)
-    on_error("futuresDefinitionsState == DefinitionsCycleState::Done");
-
   auto m      {pMsg};
   auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
   m += sizeof(*msgHdr);
@@ -513,15 +474,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
 
   pEfhRunCtx->onEfhFutureDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
-
-
-  /* ------------------------------- */
-  futuresDefinitionsCnt++;
-  futuresDefinitionsState = DefinitionsCycleState::InProgress;
-  if (futuresDefinitionsCnt == (int)rootBlock->TotNumReports)
-    futuresDefinitionsState = DefinitionsCycleState::Done;
-
-  EKA_LOG("futuresDefinitionsCnt = %d, rootBlock->TotNumReports=%d",futuresDefinitionsCnt,(int)rootBlock->TotNumReports);
+  
   return msgHdr->size;
 }
 
@@ -538,9 +491,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionOption55_mainBlock*>(m)};
   m += msgHdr->blockLen;
 
-  if (vanillaOptionsDefinitionsState == DefinitionsCycleState::Done)
-    return msgHdr->size;
-  else if (rootBlock->CFICode[0] != 'O' || rootBlock->CFICode[3] != 'F') {
+  if (rootBlock->CFICode[0] != 'O' || rootBlock->CFICode[3] != 'F') {
     // Not an option-on-future, we don't care about this.
     EKA_WARN("found non-option-on-future security `%s`", rootBlock->Symbol);
     return msgHdr->size;
@@ -629,12 +580,6 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
 
   pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
 
-  /* ------------------------------- */
-  vanillaOptionsDefinitionsCnt++;
-  vanillaOptionsDefinitionsState = DefinitionsCycleState::InProgress;
-  if (vanillaOptionsDefinitionsCnt == (int)rootBlock->TotNumReports)
-    vanillaOptionsDefinitionsState = DefinitionsCycleState::Done;
-  /* ------------------------------- */
   return msgHdr->size;
 }
 
@@ -657,9 +602,6 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
     // these for now, we are only looking for options spreads.
     return msgHdr->size;
   }
-
-  if (complexOptionsDefinitionsState == DefinitionsCycleState::Done)
-    return msgHdr->size;
 
   /* ------------------------------- */
   
@@ -728,14 +670,6 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   if (pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL)
     on_error("pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL");
   pEfhRunCtx->onEfhComplexDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
-
-  /* ------------------------------- */
-  complexOptionsDefinitionsCnt++;
-  complexOptionsDefinitionsState = DefinitionsCycleState::InProgress;
-  if (complexOptionsDefinitionsCnt == (int)rootBlock->TotNumReports)
-    complexOptionsDefinitionsState = DefinitionsCycleState::Done;
-  /* ------------------------------- */
-  EKA_LOG("complexOptionsDefinitionsCnt = %d, rootBlock->TotNumReports=%d",complexOptionsDefinitionsCnt,(int)rootBlock->TotNumReports);
 
   return msgHdr->size;
 }
