@@ -352,7 +352,15 @@ namespace Cme {
   };
 
 
-
+  struct Definition_commonMainBlock {
+    MatchEventIndicator_T         	MatchEventIndicator;
+    uInt32NULL_T                  	TotNumReports;
+  };
+  struct Refresh_commonMainBlock {
+    uInt32_T                      	LastMsgSeqNumProcessed;
+    uInt32_T                      	TotNumReports;
+  };
+  
   struct MDInstrumentDefinitionFuture27_mainBlock {
     MatchEventIndicator_T         	MatchEventIndicator;
     uInt32NULL_T                  	TotNumReports;
@@ -1013,16 +1021,42 @@ namespace Cme {
       default:
 	break;
 		
-      }
+      } // switch()
       /* ----------------------------- */
 
       p += msgHdr->size;
-    }
+    } // while()
 	
     return sequence;
   } // printPkt()
 
-  
+  inline bool isDefinitionMsg(MsgId msgId) {
+    switch (msgId) {
+    case MsgId::MDInstrumentDefinitionFuture27 :
+    case MsgId::MDInstrumentDefinitionSpread29 :
+    case MsgId::MDInstrumentDefinitionOption41 :
+    case MsgId::MDInstrumentDefinitionFuture54 :
+    case MsgId::MDInstrumentDefinitionOption55 :
+    case MsgId::MDInstrumentDefinitionSpread56 :
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  inline bool isSnapshotMsg(MsgId msgId) {
+    switch (msgId) {
+    case MsgId::SnapshotFullRefresh38 :
+    case MsgId::SnapshotFullRefreshOrderBook44 :
+    case MsgId::SnapshotFullRefresh52 :
+    case MsgId::SnapshotFullRefreshOrderBook53 :
+      return true;
+    default:
+      return false;
+    }
+  }
+
 } //name space Cme
+
 
 #endif

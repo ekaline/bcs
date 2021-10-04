@@ -139,6 +139,7 @@ void* getCmeSnapshot(void* attr) {
   socklen_t addrlen = sizeof(sockaddr);
 
   gr->snapshot_active = true;
+  gr->iterationsCnt = 0;  
 
   while (gr->snapshot_active) {
     uint8_t pkt[1536] = {};
