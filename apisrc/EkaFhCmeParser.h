@@ -355,7 +355,8 @@ namespace Cme {
   struct Definition_commonMainBlock {
     MatchEventIndicator_T         	MatchEventIndicator;
     uInt32NULL_T                  	TotNumReports;
-  };
+  } __attribute__((packed));
+  
   struct Refresh_commonMainBlock {
     uInt32_T                      	LastMsgSeqNumProcessed;
     uInt32_T                      	TotNumReports;
