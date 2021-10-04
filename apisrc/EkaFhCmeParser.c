@@ -735,5 +735,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   if (complexOptionsDefinitionsCnt == (int)rootBlock->TotNumReports)
     complexOptionsDefinitionsState = DefinitionsCycleState::Done;
   /* ------------------------------- */
+  EKA_LOG("complexOptionsDefinitionsCnt = %d, rootBlock->TotNumReports=%d",complexOptionsDefinitionsCnt,(int)rootBlock->TotNumReports);
+
   return msgHdr->size;
 }
