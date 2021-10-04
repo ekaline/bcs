@@ -467,6 +467,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   if (futuresDefinitionsCnt == (int)rootBlock->TotNumReports)
     futuresDefinitionsState = DefinitionsCycleState::Done;
 
+  EKA_LOG("futuresDefinitionsCnt = %d, rootBlock->TotNumReports=%d",futuresDefinitionsCnt,(int)rootBlock->TotNumReports);
   return msgHdr->size;
 }
 
