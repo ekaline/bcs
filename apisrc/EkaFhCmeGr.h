@@ -102,9 +102,9 @@ public:
 					  Done
   };
   
-  int vanillaOptionsDefinitions = 0;  
-  int complexOptionsDefinitions = 0;
-  int futuresDefinitions        = 0;
+  int vanillaOptionsDefinitionsCnt = 0;  
+  int complexOptionsDefinitionsCnt = 0;
+  int futuresDefinitionsCnt        = 0;
   
   DefinitionsCycleState vanillaOptionsDefinitionsState = DefinitionsCycleState::Init;
   DefinitionsCycleState complexOptionsDefinitionsState = DefinitionsCycleState::Init;
