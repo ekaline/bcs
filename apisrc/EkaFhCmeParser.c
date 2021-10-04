@@ -88,12 +88,12 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       break;
     }
     if (op == EkaFhMode::DEFINITIONS && isDefinitionMsg(msgHdr->templateId)) {
-      auto root {reinterpret_cast<const Definition_commonMainBlock*>(p)};
+      auto root {reinterpret_cast<const Definition_commonMainBlock*>(p + sizeof(*msgHdr))};
       int totalIterations = root->TotNumReports;
       if (++iterationsCnt == totalIterations) return true;
     }
     if (op == EkaFhMode::SNAPSHOT && isSnapshotMsg(msgHdr->templateId)) {
-      auto root {reinterpret_cast<const Refresh_commonMainBlock*>(p)};
+      auto root {reinterpret_cast<const Refresh_commonMainBlock*>(p + sizeof(*msgHdr))};
       int totalIterations = root->TotNumReports;
       if (++iterationsCnt == totalIterations) return true;
     }
