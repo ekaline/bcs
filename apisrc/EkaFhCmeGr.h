@@ -132,11 +132,17 @@ private:
 				    const uint8_t*   msg,
 				    uint64_t         pktTime,
 				    SequenceT        pktSeq);
-  int process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunCtx,
+
+  int process_MDInstrumentDefinitionFuture27(const EfhRunCtx* pEfhRunCtx,
 					     const uint8_t*   msg,
 					     uint64_t         pktTime,
 					     SequenceT        pktSeq);
 
+   int process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunCtx,
+					     const uint8_t*   msg,
+					     uint64_t         pktTime,
+					     SequenceT        pktSeq);
+ 
   int process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunCtx,
 					     const uint8_t*   msg,
 					     uint64_t         pktTime,

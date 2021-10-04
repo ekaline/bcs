@@ -68,6 +68,10 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       process_SnapshotFullRefresh52(pEfhRunCtx,p,pktTime,pktSeq);
       break;
       /* ##################################################################### */
+    case MsgId::MDInstrumentDefinitionFuture27 :
+      process_MDInstrumentDefinitionFuture27(pEfhRunCtx,p,pktTime,pktSeq);
+      break;
+      /* ##################################################################### */
     case MsgId::MDInstrumentDefinitionFuture54 :
       process_MDInstrumentDefinitionFuture54(pEfhRunCtx,p,pktTime,pktSeq);
       break;
@@ -420,6 +424,56 @@ int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
   return msgHdr->size;
 }
 
+/* ##################################################################### */     
+
+
+int EkaFhCmeGr::process_MDInstrumentDefinitionFuture27(const EfhRunCtx* pEfhRunCtx,
+						       const uint8_t*   pMsg,
+						       const uint64_t   pktTime,
+						       const SequenceT  pktSeq) {
+  if (futuresDefinitionsState == DefinitionsCycleState::Done)
+    on_error("futuresDefinitionsState == DefinitionsCycleState::Done");
+
+  auto m      {pMsg};
+  auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
+  m += sizeof(*msgHdr);
+  auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionFuture54_mainBlock*>(m)};
+  m += msgHdr->blockLen;
+  /* ------------------------------- */
+  /* auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)}; */
+
+  /* EfhFutureDefinitionMsg msg{}; */
+  /* msg.header.msgType        = EfhMsgType::kFutureDefinition; */
+  /* msg.header.group.source   = EkaSource::kCME_SBE; */
+  /* msg.header.group.localId  = id; */
+  /* msg.header.underlyingId   = 0; // Stock index technically an underlying, but no id. */
+  /* msg.header.securityId     = rootBlock->SecurityID; */
+  /* msg.header.sequenceNumber = pktSeq; */
+  /* msg.header.timeStamp      = pktTime; //rootBlock->LastUpdateTime; */
+  /* msg.header.gapNum         = gapNum; */
+
+  /* msg.commonDef.securityType   = EfhSecurityType::kFuture; */
+  /* msg.commonDef.exchange       = EfhExchange::kCME; */
+  /* msg.commonDef.underlyingType = EfhSecurityType::kIndex; */
+  /* msg.commonDef.contractSize   = 0; */
+  /* getCMEProductTradeTime(pMaturity, rootBlock->Symbol, &msg.commonDef.expiryDate, &msg.commonDef.expiryTime); */
+
+  /* copySymbol(msg.commonDef.underlying, rootBlock->Asset); */
+  /* copySymbol(msg.commonDef.classSymbol, rootBlock->Asset); */
+  /* copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol); */
+
+  /* pEfhRunCtx->onEfhFutureDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData); */
+
+
+  /* ------------------------------- */
+  futuresDefinitionsCnt++;
+  futuresDefinitionsState = DefinitionsCycleState::InProgress;
+  if (futuresDefinitionsCnt == (int)rootBlock->TotNumReports)
+    futuresDefinitionsState = DefinitionsCycleState::Done;
+
+  EKA_LOG("futuresDefinitionsCnt = %d, rootBlock->TotNumReports=%d",futuresDefinitionsCnt,(int)rootBlock->TotNumReports);
+  return msgHdr->size;
+}
 /* ##################################################################### */     
 
 
