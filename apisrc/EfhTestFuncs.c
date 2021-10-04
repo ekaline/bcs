@@ -543,7 +543,71 @@ void* onAuctionUpdate(const EfhAuctionUpdateMsg* msg, EfhSecUserData secData, Ef
 
   return NULL;
 }
+/* ------------------------------------------------------------ */
 
+void* onFutureDefinition(const EfhFutureDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+  if (! keep_work) return NULL;
+  
+  /* EfhCtx* pEfhCtx = (EfhCtx*) userData; */
+  /* if (pEfhCtx == NULL) on_error("pEfhCtx == NULL"); */
+
+  /* auto exch {msg->header.group.source}; */
+  /* auto grId {msg->header.group.localId}; */
+
+  /* auto gr {grCtx[(int)exch][grId]}; */
+  /* if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId); */
+
+  /* std::string underlyingName = std::string(msg->commonDef.underlying, sizeof(msg->commonDef.underlying)); */
+  /* std::string classSymbol    = std::string(msg->commonDef.classSymbol,sizeof(msg->commonDef.classSymbol)); */
+
+  /* std::replace(underlyingName.begin(), underlyingName.end(), ' ', '\0'); */
+  /* std::replace(classSymbol.begin(),    classSymbol.end(),    ' ', '\0'); */
+  /* underlyingName.resize(strlen(underlyingName.c_str())); */
+  /* classSymbol.resize   (strlen(classSymbol.c_str())); */
+
+  /* char avtSecName[SYMBOL_SIZE] = {}; */
+
+  /* eka_create_avt_definition(avtSecName,msg); */
+  /* fprintf (gr->fullDict,"%s,%ju,%s,%s,%s,%s,%ju,%ju\n", */
+  /* 	   avtSecName, */
+  /* 	   msg->header.securityId, */
+  /* 	   exch == EkaSource::kC1_PITCH ? EKA_PRINT_BATS_SYMBOL((char*)&msg->opaqueAttrA) : " ", */
+  /* 	   underlyingName.c_str(), */
+  /* 	   classSymbol.c_str(), */
+  /* 	   EKA_PRINT_GRP(&msg->header.group), */
+  /* 	   msg->opaqueAttrA, */
+  /* 	   msg->opaqueAttrB */
+  /* 	   ); */
+
+
+  /* if (subscribe_all || (std::find(underlyings.begin(), underlyings.end(), underlyingName) != underlyings.end())) { */
+  /*   if (std::find(securities.begin(),securities.end(),msg->header.securityId) != securities.end()) return NULL; */
+  /*   securities.push_back(msg->header.securityId); */
+	
+  /*   TestSecurityCtx newSecurity = { */
+  /* 	.securityId        = msg->header.securityId, */
+  /* 	.avtSecName        = std::string(avtSecName), */
+  /* 	.underlying        = underlyingName, */
+  /* 	.classSymbol       = classSymbol, */
+  /* 	.exch              = msg->commonDef.exchange, */
+  /* 	.displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE, */
+  /*   }; */
+    
+  /*   gr->security.push_back(newSecurity); */
+  /*   auto sec_idx = gr->security.size() - 1; */
+    
+  /*   efhSubscribeStatic(pEfhCtx, (EkaGroup*)&msg->header.group, msg->header.securityId, EfhSecurityType::kOption,(EfhSecUserData) sec_idx,0,0); */
+
+  /*   fprintf (gr->subscrDict,"%s,%ju,%s,%s\n", */
+  /* 	     avtSecName, */
+  /* 	     msg->header.securityId, */
+  /* 	     exch == EkaSource::kC1_PITCH ? EKA_PRINT_BATS_SYMBOL((char*)&msg->opaqueAttrA) : " ", */
+  /* 	     EKA_PRINT_GRP(&msg->header.group) */
+  /* 	     ); */
+  /* } */
+
+  return NULL;
+}
 /* ------------------------------------------------------------ */
 
 void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
@@ -866,6 +930,7 @@ int createCtxts(std::vector<TestRunGroup>& testRunGroups,
       .numGroups                   = numRunGroups,
       .efhRunUserData              = 0,
       .onEfhOptionDefinitionMsgCb  = onOptionDefinition,
+      .onEfhFutureDefinitionMsgCb  = onFutureDefinition,
       .onEfhComplexDefinitionMsgCb = onComplexDefinition,
       .onEfhAuctionUpdateMsgCb     = onAuctionUpdate,
       .onEfhTradeMsgCb             = onTrade,

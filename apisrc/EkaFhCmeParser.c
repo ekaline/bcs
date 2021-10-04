@@ -462,9 +462,9 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
 
 
   /* ------------------------------- */
-  futuresDefinitions++;
+  futuresDefinitionsCnt++;
   futuresDefinitionsState = DefinitionsCycleState::InProgress;
-  if (futuresDefinitions == (int)rootBlock->TotNumReports)
+  if (futuresDefinitionsCnt == (int)rootBlock->TotNumReports)
     futuresDefinitionsState = DefinitionsCycleState::Done;
 
   return msgHdr->size;
@@ -575,9 +575,9 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
 
   /* ------------------------------- */
-  vanillaOptionsDefinitions++;
+  vanillaOptionsDefinitionsCnt++;
   vanillaOptionsDefinitionsState = DefinitionsCycleState::InProgress;
-  if (vanillaOptionsDefinitions == (int)rootBlock->TotNumReports)
+  if (vanillaOptionsDefinitionsCnt == (int)rootBlock->TotNumReports)
     vanillaOptionsDefinitionsState = DefinitionsCycleState::Done;
   /* ------------------------------- */
   return msgHdr->size;
@@ -675,9 +675,9 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   pEfhRunCtx->onEfhComplexDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
 
   /* ------------------------------- */
-  complexOptionsDefinitions++;
+  complexOptionsDefinitionsCnt++;
   complexOptionsDefinitionsState = DefinitionsCycleState::InProgress;
-  if (complexOptionsDefinitions == (int)rootBlock->TotNumReports)
+  if (complexOptionsDefinitionsCnt == (int)rootBlock->TotNumReports)
     complexOptionsDefinitionsState = DefinitionsCycleState::Done;
   /* ------------------------------- */
   return msgHdr->size;
