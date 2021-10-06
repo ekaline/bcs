@@ -27,6 +27,7 @@ class EkaFhSecurity {
   virtual uint64_t  getTopPrice(SideT side) { return 0;}
   virtual uint32_t  getTopTotalSize(SideT side) { return 0;}
   virtual uint32_t  getTopTotalCustomerSize(SideT side) { return 0;}
+  virtual bool      crossedPrice() {return false;}
 
 /* --------------------------------------------------------------- */
 
