@@ -564,6 +564,20 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   if (duration_ns > 50000) EKA_WARN("WARNING: \'%c\' processing took %ju ns",enc, duration_ns);
 #endif
 
+  if (s->crossedPrice()) {
+    char hexBuf[16000]; // approximate max NOM message size
+    if (std::FILE *const hexBufFile = fmemopen(hexBuf, sizeof hexBuf, "w")) {
+      hexDump("Msg caused CROSS PRICE",m,getMsgLen(enc),hexBufFile);
+      (void)std::fwrite("\0", 1, 1, hexBufFile);
+
+      book->printSecurity(s,hexBufFile);
+      (void)std::fclose(hexBufFile);
+    }
+    
+    EKA_WARN("WARNING PRICE CROSS: %s_%u at %s after \'%c\' : %s",
+	     EKA_EXCH_DECODE(exch),id, EkaFhMode2STR(op),enc,
+	     hexBuf);
+  }
   if (! book->isEqualState(s))
     book->generateOnQuote (pEfhRunCtx, s, sequence, msg_timestamp,gapNum);
 
