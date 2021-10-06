@@ -568,9 +568,9 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     char hexBuf[16000]; // approximate max NOM message size
     if (std::FILE *const hexBufFile = fmemopen(hexBuf, sizeof hexBuf, "w")) {
       hexDump("Msg caused CROSS PRICE",m,getMsgLen(enc),hexBufFile);
+      book->printSecurity(s,hexBufFile);
       (void)std::fwrite("\0", 1, 1, hexBufFile);
 
-      book->printSecurity(s,hexBufFile);
       (void)std::fclose(hexBufFile);
     }
     
