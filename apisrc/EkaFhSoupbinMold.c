@@ -794,9 +794,13 @@ void* getMolUdp64Data(void* attr) {
     cnt2ask -= message_cnt;
     seq2ask += message_cnt;
   } // while loop
+
+  if (sequence < end)
+    on_error("%s:%u: Mold recovery ERROR sequence %ju < end %ju",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,sequence,end);
   gr->seq_after_snapshot = sequence;
-  EKA_LOG("%s:%u: Mold recovery finished: next expected_sequence = %ju",
-	  EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot);
+  EKA_LOG("%s:%u: Mold recovery finished: next expected_sequence = %ju, end=%ju",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot,end);
   close(udpSock);
 
   gr->gapClosed = true;

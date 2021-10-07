@@ -560,6 +560,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   if (duration_ns > 50000) EKA_WARN("WARNING: \'%c\' processing took %ju ns",enc, duration_ns);
 #endif
 
+#if 0  
   if (s->crossedPrice()) {
     char hexBuf[16000]; // approximate max NOM message size
     if (std::FILE *const hexBufFile = fmemopen(hexBuf, sizeof hexBuf, "w")) {
@@ -574,6 +575,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
 	     EKA_EXCH_DECODE(exch),id, EkaFhMode2STR(op),enc,
 	     hexBuf);
   }
+#endif
+  
   if (! book->isEqualState(s))
     book->generateOnQuote (pEfhRunCtx, s, sequence, msg_timestamp,gapNum);
 
