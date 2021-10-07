@@ -613,7 +613,11 @@ void* getMolUdp64Data(void* attr) {
   delete params;
 
   EkaDev* dev = gr->dev;
-  assert (dev != NULL);
+  if (!dev) on_error("dev == NULL");
+
+  EKA_LOG("%s:%u MolUdp64 gap recovery: start=%ju, end=%ju,cnt=%ju",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,start,end,end-start+1);
+  
   int udpSock = socket(AF_INET,SOCK_DGRAM,0);
   if (udpSock < 0) 
     on_error("%s:%u: Failed to open socket: %s",
@@ -647,7 +651,7 @@ void* getMolUdp64Data(void* attr) {
 	  EKA_EXCH_DECODE(gr->exch),gr->id,
 	  EKA_IP2STR(local2bind.sin_addr.s_addr),be16toh(local2bind.sin_port));
 
-
+#if 0
   ifreq ifr = {};
   memset(&ifr, 0, sizeof(ifreq));
   snprintf(ifr.ifr_name, sizeof(ifr.ifr_name), dev->genIfName);
@@ -660,7 +664,8 @@ void* getMolUdp64Data(void* attr) {
     EKA_LOG("%s:%u: Mold UDP sock is binded to %s (len=%d)",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,dev->genIfName,(int)strlen(dev->genIfName)+1);
   }
-
+#endif
+  
   static const int TimeOut = 1; // seconds
   struct timeval tv = {
     .tv_sec = TimeOut
@@ -773,10 +778,15 @@ void* getMolUdp64Data(void* attr) {
     uint indx = sizeof(mold_hdr); // pointer to the start of 1st message in the packet
     uint16_t message_cnt = EKA_MOLD_MSG_CNT(buf);
     sequence = EKA_MOLD_SEQUENCE(buf);
+    EKA_LOG("%s:%u: Mold response: sequence=%ju, start=%ju, end=%ju, message_cnt=%u",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,sequence,start,end,message_cnt);
+    if (sequence < start)
+      on_error("%s:%u: Mold sequence %ju < start %ju",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,sequence,start);
     for (uint msg=0; msg < message_cnt; msg++) {
       uint16_t msg_len = be16toh((uint16_t) *(uint16_t*)&(buf[indx]));
       //-----------------------------------------------------------------
-      if (sequence >= start) gr->parseMsg(pEfhRunCtx,(unsigned char*)&buf[indx+2],sequence++,EkaFhMode::MCAST);
+      gr->parseMsg(pEfhRunCtx,(unsigned char*)&buf[indx+2],sequence++,EkaFhMode::RECOVERY);
       //-----------------------------------------------------------------
       indx += msg_len + sizeof(msg_len); 
     }
@@ -787,12 +797,12 @@ void* getMolUdp64Data(void* attr) {
   gr->seq_after_snapshot = sequence;
   EKA_LOG("%s:%u: Mold recovery finished: next expected_sequence = %ju",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot);
-  gr->gapClosed = true;
-
   close(udpSock);
 
+  gr->gapClosed = true;
+
   return NULL;
-}
+} //getMolUdp64Data
 
 void* getMolUdpPlxOrdData(void* attr) {
 #ifdef FH_LAB
