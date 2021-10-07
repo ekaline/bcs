@@ -438,8 +438,6 @@ void* getHsvfRetransmit(void* attr) {
       break;
     }
   }
-  gr->gapClosed = true;
-
   //-----------------------------------------------------------------
   sendRetransmissionEnd(gr);
   //-----------------------------------------------------------------
@@ -455,6 +453,7 @@ void* getHsvfRetransmit(void* attr) {
 
   close(gr->snapshot_sock);
   delete gr->hsvfTcp;
+  gr->gapClosed = true;
 
   return NULL;
 }

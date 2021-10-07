@@ -22,9 +22,11 @@ enum class EkaFhAddConf {CONF_SUCCESS=0, IGNORED=1, UNKNOWN_KEY=2, WRONG_VALUE=3
 enum class EkaFhMode : uint8_t {UNINIT = 0, DEFINITIONS, SNAPSHOT, MCAST, RECOVERY};
 
 #define EkaFhMode2STR(x) \
+  x == EkaFhMode::UNINIT ? "UNINIT" : \
   x == EkaFhMode::DEFINITIONS ? "DEFINITIONS" : \
     x == EkaFhMode::SNAPSHOT ? "SNAPSHOT" : \
     x == EkaFhMode::RECOVERY ? "RECOVERY" : \
+    x == EkaFhMode::MCAST ? "MCAST" : \
     "UNEXPECTED"
 
 
