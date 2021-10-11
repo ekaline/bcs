@@ -521,7 +521,48 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
     break;
   }
+    //--------------------------------------------------------------
+  case MsgId::COMPLEX_INSTRUMENT_DEFINITION_EXPANDED : { // 0x9A
+    auto root {reinterpret_cast<const ComplexInstrumentDefinitionExpanded_root*>(m)};
 
+    EfhComplexDefinitionMsg msg{};
+    msg.header.msgType        = EfhMsgType::kComplexDefinition;
+    msg.header.group.source   = exch;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.securityId     = 0;
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = 0;
+    msg.header.gapNum         = gapNum;
+
+    msg.commonDef.securityType   = EfhSecurityType::kComplex;
+    msg.commonDef.exchange       = EKA_GRP_SRC2EXCH(exch);
+
+    msg.commonDef.underlyingType = EfhSecurityType::kStock;
+    msg.commonDef.expiryDate     = 0; // FIXME: for completeness only, could be "today"
+    msg.commonDef.expiryTime     = 0;
+    msg.commonDef.contractSize   = 0;
+
+    copySymbol(msg.commonDef.underlying,       root->ComplexInstrumentUnderlying);
+    copySymbol(msg.commonDef.classSymbol,      root->ComplexInstrumentUnderlying);
+    copySymbol(msg.commonDef.exchSecurityName, root->ComplexInstrumentId);
+
+    msg.numLegs = root->LegCount;
+
+    auto leg  {reinterpret_cast<const ComplexInstrumentDefinitionExpanded_leg*>(m + sizeof(*root))};
+    for (uint i = 0; i < msg.numLegs; i++) {
+      msg.legs[i].securityId = expSymbol2secId(leg->LegSymbol);
+      msg.legs[i].type       = getComplexSecurityType(leg->LegSecurityType);
+      msg.legs[i].ratio      = leg->LegRatio;	 
+    }
+    if (pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL)
+      on_error("pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL");
+    pEfhRunCtx->onEfhComplexDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+
+    leg ++; //+= sizeof(*leg);
+
+    break;
+  }
     //--------------------------------------------------------------
 
   default:
