@@ -54,7 +54,9 @@ namespace Bats {
 			      AUCTION_TRADE  = 0xAF,
 			      RETAIL_PRICE_IMPROVEMENT = 0x98,
 			      SOQ_STRIKE_RANGE_UPDATE = 0x9D,
-			      CONSTITUENT_SYMBOL_MAPPING = 0x9E
+			      CONSTITUENT_SYMBOL_MAPPING = 0x9E,
+
+			      COMPLEX_INSTRUMENT_DEFINITION_EXPANDED = 0x9A
   };
 
 #define EKA_PRINT_BATS_SYMBOL(x) ((std::string((x),6)).c_str())
@@ -90,6 +92,7 @@ namespace Bats {
     x == MsgId::UNIT_CLEAR                   ? "UNIT_CLEAR" :		\
     x == MsgId::TRANSACTION_BEGIN            ? "TRANSACTION_BEGIN" :	\
     x == MsgId::TRANSACTION_END              ? "TRANSACTION_END" :	\
+    x == MsgId::COMPLEX_INSTRUMENT_DEFINITION_EXPANDED ? "COMPLEX_INSTRUMENT_DEFINITION_EXPANDED" :	\
     "NON_INTERESTING"
 
   inline bool operator==(const MsgId lhs, const uint8_t rhs) noexcept {
@@ -489,6 +492,37 @@ namespace Bats {
     }
   }
   
+  //-----------------------------------------------
+
+  inline EfhSecurityType getComplexSecurityType(char type) {
+    switch (type) {
+    case 'O' : return EfhSecurityType::kOption;
+    case 'E' : return EfhSecurityType::kStock;
+    default  : on_error("Unexpected LegSecurityType \'%c\'",type);
+    }
+  }
+  
+  struct ComplexInstrumentDefinitionExpanded_leg {
+    char     LegSymbol[8];
+    uint32_t LegRatio;
+    char     LegSecurityType; // 'O' = Leg is an Option instrument
+                              //  E = Leg is an Equity instrument
+  } __attribute__((packed));
+
+  struct ComplexInstrumentDefinitionExpanded_root {
+    GenericHeader header;
+    char ComplexInstrumentId[6];
+    char ComplexInstrumentUnderlying[8];
+    char ComplexInstrumentType[4]; // 4 character field; each field describes a characteristic.
+                                   // Character 1: Complex Option Type
+                                   //  'O' = All legs are options
+                                   //  'E' = One leg is an equity leg
+                                   // Characters 2-4: Reserved
+    uint8_t LegCount;
+    
+  } __attribute__((packed));
+
+
   //-----------------------------------------------
   // SPIN and GRP messages
   //-----------------------------------------------

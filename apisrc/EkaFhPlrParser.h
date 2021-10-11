@@ -619,6 +619,15 @@ namespace Plr {
     //                     Note: This field is only used for CUBE/COA
   };
 
+  
+  inline EfhSecurityType getComplexSecurityType(char type) {
+    switch (type) {
+    case 'O' : return EfhSecurityType::kOption;
+    case 'E' : return EfhSecurityType::kStock;
+    default  : on_error("Unexpected LegSecurityType \'%c\'",type);
+    }
+  }
+  
   struct ComplexDefinitionLeg {
     uint32_t SymbolIndex; // This field will repeat for each leg:
                           // • Series index if Security type is Option
@@ -635,9 +644,9 @@ namespace Plr {
     char     SecurityType;// Leg Security Type. This filed will repeat for each leg:
                           // • 'O' (Options Series leg)
                           // • 'E' (Equity stock leg)
-  };
+  } __attribute__((packed));
   
-  struct ComplexSeriesIndexMappingRoot { // ComplexDefinition = 60
+  struct ComplexSeriesIndexMapping_root { // ComplexDefinition = 60
     MsgHdr   hdr;
     uint32_t seriesIndex;
     uint16_t MarketID; // ID of the Originating Market:
@@ -650,7 +659,7 @@ namespace Plr {
     
     //     ComplexDefinitionLeg leg[NoOfLegs];
 
-  };
+  } __attribute__((packed));
   
     struct RequestResponse { // 11
 	MsgHdr   hdr;

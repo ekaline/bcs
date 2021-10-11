@@ -85,7 +85,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     break;
     // #####################################################
   case MsgType::ComplexSeriesIndexMapping : { // ComplexDefinition
-    auto root {reinterpret_cast<const ComplexSeriesIndexMappingRoot*>(pMsg)};
+    auto root {reinterpret_cast<const ComplexSeriesIndexMapping_root*>(pMsg)};
 
     EfhComplexDefinitionMsg msg{};
     msg.header.msgType        = EfhMsgType::kComplexDefinition;
@@ -116,9 +116,9 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     auto leg  {reinterpret_cast<const ComplexDefinitionLeg*>(pMsg + sizeof(*root))};
     for (uint i = 0; i < root->NoOfLegs; i++) {
       msg.legs[i].securityId = leg->SymbolIndex;
-      msg.legs[i].type       = leg->SecurityType == 'E' ? EfhSecurityType::kStock :
-	leg->SecurityType == 'O' ? EfhSecurityType::kOption : EfhSecurityType::kInvalid;
-      if (leg->SecurityType == 'E') msg.header.underlyingId = leg->SymbolIndex;
+      msg.legs[i].type       = getComplexSecurityType(leg->SecurityType);
+      if (msg.legs[i].type == EfhSecurityType::kStock)
+	msg.header.underlyingId = leg->SymbolIndex;
 
       msg.legs[i].side       = getSide(leg->side);
       msg.legs[i].ratio      = leg->LegRatioQty;	 
