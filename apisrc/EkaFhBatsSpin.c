@@ -171,7 +171,7 @@ static bool getSpinImageSeq(EkaFhBatsGr* gr, int sock, int64_t* imageSequence) {
     for (uint i = 0; gr->snapshot_active && i < hdr.count; i ++) {
       if (size <= 0) on_error("%s:%u: remaining buff size = %d",
 			      EKA_EXCH_DECODE(gr->exch),gr->id,size);
-      const dummy_header* msgHdr = (const dummy_header*) ptr;
+      auto msgHdr {reinterpret_cast<const DummyHeader*>(ptr)};
       if ((MsgId)msgHdr->type == MsgId::SPIN_IMAGE_AVAILABLE) {
 	EKA_LOG("%s:%u Spin Image Available at Sequence = %u",
 		EKA_EXCH_DECODE(gr->exch),gr->id,((const SpinImageAvailable*)ptr)->sequence);
@@ -219,9 +219,10 @@ static bool getSpinResponse(EkaDev*   dev,
     uint8_t* ptr = &buf[0];
     for (uint i = 0; *snapshot_active && i < hdr.count; i ++) {
       if (size <= 0) on_error("%s:%u: remaining buff size = %d",EKA_EXCH_DECODE(exch),id,size);
-      const dummy_header* msg_hdr = (const dummy_header*) ptr;
-      if ((MsgId)msg_hdr->type == MsgId::SNAPSHOT_RESPONSE ||
-	  (MsgId)msg_hdr->type == MsgId::DEFINITIONS_RESPONSE
+      auto msgHdr {reinterpret_cast<const DummyHeader*>(ptr)};
+
+      if ((MsgId)msgHdr->type == MsgId::SNAPSHOT_RESPONSE ||
+	  (MsgId)msgHdr->type == MsgId::DEFINITIONS_RESPONSE
 	  ) {
 	switch (((const SpinResponse*)ptr)->status) {
 	case 'A' : // Accepted
@@ -246,7 +247,7 @@ static bool getSpinResponse(EkaDev*   dev,
 	  return false;
 	}
       }
-      ptr += msg_hdr->length;
+      ptr += msgHdr->length;
       //-----------------------------------------------------------------
     }
   }
@@ -330,7 +331,7 @@ static EkaFhParseResult procSpin(const EfhRunCtx* pEfhRunCtx,
   for (uint i = 0; *snapshot_active && i < hdr.count; i ++) {
     if (size <= 0) on_error("%s:%u: remaining buff size = %d",
 			    EKA_EXCH_DECODE(gr->exch),gr->id,size);
-    auto msgHdr {reinterpret_cast<const dummy_header*>(ptr)};
+    auto msgHdr {reinterpret_cast<const DummyHeader*>(ptr)};
     size -= msgHdr->length;
 
     if (gr->parseMsg(pEfhRunCtx,ptr,sequence++,op))
@@ -501,7 +502,7 @@ static EkaFhParseResult procGrp(const EfhRunCtx* pEfhRunCtx,
     if (size <= 0) on_error("%s:%u: size = %d",
 			    EKA_EXCH_DECODE(gr->exch),gr->id,size);
 
-    auto msgHdr {reinterpret_cast<const dummy_header*>(ptr)};
+    auto msgHdr {reinterpret_cast<const DummyHeader*>(ptr)};
 
     if (sequence >= start) gr->parseMsg(pEfhRunCtx,ptr,sequence,EkaFhMode::RECOVERY);
     sequence++;
@@ -812,8 +813,8 @@ static bool getGapResponse(EkaDev*        dev,
     uint8_t* msg = &buf[sizeof(sequenced_unit_header)];
 
     for (auto i = 0; *recovery_active && i < hdr->count; i ++) {
-      uint8_t msgType = ((dummy_header*)msg)->type;
-      uint8_t msgLen  = ((dummy_header*)msg)->length;
+      uint8_t msgType = ((DummyHeader*)msg)->type;
+      uint8_t msgLen  = ((DummyHeader*)msg)->length;
 
       if (msgType != MsgId::GAP_RESPONSE) {
 	EKA_LOG("%s:%u: Ignoring Msg 0x%02x at pkt %d, msg %d",

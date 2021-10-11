@@ -53,7 +53,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   case MsgId::TRADE_LONG:
   case MsgId::TRADE_SHORT:
   case MsgId::TRADING_STATUS:
-    msg_timestamp = seconds + ((generic_header *)m)->time;
+    msg_timestamp = seconds + ((const GenericHeader *)m)->time;
 
     /* if (state == GrpState::NORMAL) */
     /*   checkTimeDiff(dev->deltaTimeLogFile,dev->midnightSystemClock,msg_timestamp,sequence); */
@@ -92,9 +92,9 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   }
     //--------------------------------------------------------------
   case MsgId::SYMBOL_MAPPING :  {
-    symbol_mapping* message = (symbol_mapping*)m;
+    auto message {reinterpret_cast<const SymbolMapping*>(m)};
 
-    char* osi = message->osi_symbol;
+    const char* osi = message->osi_symbol;
 
     EfhOptionDefinitionMsg msg{};
     msg.header.msgType        = EfhMsgType::kOptionDefinition;
@@ -157,7 +157,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   }
     //--------------------------------------------------------------
   case MsgId::TIME:  { 
-    seconds = ((generic_header *)m)->time * SEC_TO_NANO;
+    seconds = ((const GenericHeader *)m)->time * SEC_TO_NANO;
     return false;
   }
     //--------------------------------------------------------------
@@ -465,7 +465,7 @@ int EkaFhBatsGr::sendMdCb(const EfhRunCtx* pEfhRunCtx, const uint8_t* m, int gr,
 
   switch (enc) {
   case MsgId::ADD_ORDER_LONG: {
-    auto srcMsg {const_cast<add_order_long*>(reinterpret_cast<const add_order_long*>(m))};
+    auto srcMsg {reinterpret_cast<const add_order_long*>(m)};
     auto dstMsg {reinterpret_cast<MdNewOrder*>(msgBuf)};
 
     hdr->mdMsgType  = EfhMdType::NewOrder;
@@ -483,7 +483,7 @@ int EkaFhBatsGr::sendMdCb(const EfhRunCtx* pEfhRunCtx, const uint8_t* m, int gr,
     break;
     
   case MsgId::ADD_ORDER_SHORT: {
-    auto srcMsg {const_cast<add_order_short*>(reinterpret_cast<const add_order_short*>(m))};
+    auto srcMsg {reinterpret_cast<const add_order_short*>(m)};
     auto dstMsg {reinterpret_cast<MdNewOrder*>(msgBuf)};
 
     hdr->mdMsgType  = EfhMdType::NewOrder;
@@ -501,7 +501,7 @@ int EkaFhBatsGr::sendMdCb(const EfhRunCtx* pEfhRunCtx, const uint8_t* m, int gr,
     break;
 
   case MsgId::ADD_ORDER_EXPANDED: {
-    auto srcMsg {const_cast<add_order_expanded*>(reinterpret_cast<const add_order_expanded*>(m))};
+    auto srcMsg {reinterpret_cast<const add_order_expanded*>(m)};
     auto dstMsg {reinterpret_cast<MdNewOrder*>(msgBuf)};
 
     hdr->mdMsgType  = EfhMdType::NewOrder;

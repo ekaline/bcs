@@ -225,19 +225,19 @@ inline EfhOrderSide efhMsgSideDecode(char _side) {
 #define EKA_BATS_SEQUENCE(x) ((((sequenced_unit_header*)x)->sequence))
 #define EKA_BATS_UNIT(x)     ((((sequenced_unit_header*)x)->unit))
 
-  struct dummy_header { // presents at all messages
+  struct DummyHeader { // presents at all messages
     uint8_t	length;   // 1
     uint8_t       type;     // 1
   }__attribute__((packed));
 
-  struct generic_header { // presents at all messages excepting "Symbol Mapping"
+  struct GenericHeader { // presents at all messages excepting "Symbol Mapping"
     uint8_t	length;   // 1
     uint8_t       type;     // 1
     uint32_t	time;     // 4
   } __attribute__((packed));
 
   struct trading_status { // 0x31
-    struct generic_header header;
+    struct GenericHeader header;
     char          symbol[6];      // 6 right padded with spaces
     char          reserved1[2];   // 2
     char          trading_status; // 1
@@ -255,27 +255,27 @@ inline EfhOrderSide efhMsgSideDecode(char _side) {
   } __attribute__((packed));
 
   struct time { // 0x20
-    struct generic_header header;
+    struct GenericHeader header;
   } __attribute__((packed));
 
   struct unit_clear { // 0x97
-    struct generic_header header;
+    struct GenericHeader header;
   } __attribute__((packed));
 
   struct transaction_begin { // 0xBC
-    struct generic_header header;
+    struct GenericHeader header;
   } __attribute__((packed));
 
   struct transaction_end { // 0xBD
-    struct generic_header header;
+    struct GenericHeader header;
   } __attribute__((packed));
 
   struct end_of_session { // 0x2D
-    struct generic_header header;
+    struct GenericHeader header;
   } __attribute__((packed));
 
   struct add_order_long { // 0x21
-    struct generic_header header;
+    struct GenericHeader header;
     uint64_t	order_id; // 8
     char		side;     // 1 'B' or 'S'
     uint32_t	size;     // 4
@@ -285,7 +285,7 @@ inline EfhOrderSide efhMsgSideDecode(char _side) {
   } __attribute__((packed));
 
   struct add_order_short { // 0x22
-    struct generic_header header;
+    struct GenericHeader header;
     uint64_t	order_id; // 8
     char		side;     // 1 'B' or 'S'
     uint16_t	size;     // 2
@@ -295,7 +295,7 @@ inline EfhOrderSide efhMsgSideDecode(char _side) {
   } __attribute__((packed));
 
   struct add_order_expanded { // 0x2F
-    struct generic_header header;
+    struct GenericHeader header;
     uint64_t	order_id;           // 8
     char		side;               // 1 'B' or 'S'
     uint32_t	size;               // 4
@@ -308,7 +308,7 @@ inline EfhOrderSide efhMsgSideDecode(char _side) {
   } __attribute__((packed));
 
   struct order_executed { // 0x23
-    struct generic_header header;
+    struct GenericHeader header;
     uint64_t	order_id;           // 8
     uint32_t	executed_size;      // 4
     uint64_t	execution_id;       // 8
@@ -322,7 +322,7 @@ inline EfhOrderSide efhMsgSideDecode(char _side) {
   } __attribute__((packed));
 
   struct order_executed_at_price_size { // 0x24
-    struct generic_header header;
+    struct GenericHeader header;
     uint64_t	order_id;           // 8
     uint32_t	executed_size;      // 4
     uint32_t	remaining_size;     // 4 -- IGNORED IN THE BOOK LOGIC!!!
@@ -338,19 +338,19 @@ inline EfhOrderSide efhMsgSideDecode(char _side) {
   } __attribute__((packed));
 
   struct reduced_size_long { // 0x25
-    struct generic_header header;
+    struct GenericHeader header;
     uint64_t	order_id;           // 8
     uint32_t	canceled_size;      // 4
   } __attribute__((packed));
 
   struct reduced_size_short { // 0x26
-    struct generic_header header;
+    struct GenericHeader header;
     uint64_t	order_id;           // 8
     uint16_t	canceled_size;      // 2
   } __attribute__((packed));
 
   struct order_modify_long { // 0x27
-    struct generic_header header;
+    struct GenericHeader header;
     uint64_t	order_id;           // 8
     uint32_t	size;               // 4 (= new size)
     uint64_t	price;              // 8 (= new price)
@@ -361,7 +361,7 @@ inline EfhOrderSide efhMsgSideDecode(char _side) {
   } __attribute__((packed));
 
   struct order_modify_short { // 0x28
-    struct generic_header header;
+    struct GenericHeader header;
     uint64_t	order_id;           // 8
     uint16_t	size;               // 2 (= new size)
     uint16_t	price;              // 2 (= new price)
@@ -372,12 +372,12 @@ inline EfhOrderSide efhMsgSideDecode(char _side) {
   } __attribute__((packed));
 
   struct order_delete { // 0x29
-    struct generic_header header;
+    struct GenericHeader header;
     uint64_t	order_id;           // 8
   } __attribute__((packed));
 
   struct trade_long { // 0x2A
-    struct generic_header header;
+    struct GenericHeader header;
     uint64_t	order_id;           // 8
     char		side;               // 1 Always 'B'
     uint32_t	size;               // 4
@@ -394,7 +394,7 @@ inline EfhOrderSide efhMsgSideDecode(char _side) {
   } __attribute__((packed));
 
   struct trade_short { // 0x2B
-    struct generic_header header;
+    struct GenericHeader header;
     uint64_t	order_id;           // 8
     char		side;               // 1 Always 'B'
     uint16_t	size;               // 2
@@ -411,7 +411,7 @@ inline EfhOrderSide efhMsgSideDecode(char _side) {
   } __attribute__((packed));
 
   struct trade_expanded { // 0x30
-    struct generic_header header;
+    struct GenericHeader header;
     uint64_t	order_id;           // 8
     char		side;               // 1 Always 'B'
     uint32_t	size;               // 4
@@ -428,11 +428,11 @@ inline EfhOrderSide efhMsgSideDecode(char _side) {
   } __attribute__((packed));
 
   struct trade_break { // 0x2C
-    struct generic_header header;
+    struct GenericHeader header;
     uint64_t	execution_id;       // 8
   } __attribute__((packed));
 
-  struct symbol_mapping { // 0x2E
+  struct SymbolMapping { // 0x2E
     uint8_t	length;           // 1
     uint8_t       type;             // 1
     char          symbol[6];        // 6  right padded with spaces
