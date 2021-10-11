@@ -106,55 +106,32 @@ namespace Bats {
   }
 
   /* ------------------------------------------------ */
-static inline EfhTradeStatus tradeAction(EfhTradeStatus prevTradeAction, char msgTradeStatus) {
-  switch (msgTradeStatus) {
-  case 'A' : // Accepting Orders for Queuing
-    break; // To be confirmed!!!
-  case 'Q' : // Quote-Only
-    return EfhTradeStatus::kPreopen;
-  case 'R' : // Opening-Rotation
-    return EfhTradeStatus::kOpeningRotation;
-  case 'H' : // Halted
-  case 'S' : // Exchange Specific Suspension
-    return EfhTradeStatus::kHalted;
-  case 'T' : // Trading
-    return EfhTradeStatus::kNormal;
-  default:
-    on_error("Unexpected trade status \'%c\'",msgTradeStatus);
+  static inline EfhTradeStatus tradeAction(EfhTradeStatus prevTradeAction, char msgTradeStatus) {
+    switch (msgTradeStatus) {
+    case 'A' : // Accepting Orders for Queuing
+      break; // To be confirmed!!!
+    case 'Q' : // Quote-Only
+      return EfhTradeStatus::kPreopen;
+    case 'R' : // Opening-Rotation
+      return EfhTradeStatus::kOpeningRotation;
+    case 'H' : // Halted
+    case 'S' : // Exchange Specific Suspension
+      return EfhTradeStatus::kHalted;
+    case 'T' : // Trading
+      return EfhTradeStatus::kNormal;
+    default:
+      on_error("Unexpected trade status \'%c\'",msgTradeStatus);
+    }
+    return prevTradeAction;
   }
-  return prevTradeAction;
-}
-/* ------------------------------------------------ */
+  /* ------------------------------------------------ */
   inline int checkPriceLengh(uint64_t price,int priceScale = 1) {
     if (((price / priceScale) & 0xFFFFFFFF00000000) != 0) return -1;
     return 0;
   }
 
-/* ------------------------------------------------ */
-inline FhOrderType addFlags2orderType(uint8_t flags) {
-  switch (flags) {
-    /* case 0x01 : // bit #0 */
-    /*   return FhOrderType::BD; */
-  case 0x08 : // bit #3
-  case 0x09 : // bit #0 & #3
-    return FhOrderType::BD_AON;
-  default:
-    return FhOrderType::OTHER;
-  }
-}
-/* ------------------------------------------------ */
-inline FhOrderType addFlagsCustomerIndicator2orderType(uint8_t flags, char customerIndicator) {
-  if (customerIndicator == 'C') {
-    switch (flags) {
-      /* case 0x01 : // bit #0 */
-      /*   return FhOrderType::BD; */
-    case 0x08 : // bit #3
-    case 0x09 : // bit #0 & #3
-      return FhOrderType::CUSTOMER_AON;
-    default:
-      return FhOrderType::CUSTOMER;
-    }
-  } else {
+  /* ------------------------------------------------ */
+  inline FhOrderType addFlags2orderType(uint8_t flags) {
     switch (flags) {
       /* case 0x01 : // bit #0 */
       /*   return FhOrderType::BD; */
@@ -162,57 +139,80 @@ inline FhOrderType addFlagsCustomerIndicator2orderType(uint8_t flags, char custo
     case 0x09 : // bit #0 & #3
       return FhOrderType::BD_AON;
     default:
-      return FhOrderType::BD;
+      return FhOrderType::OTHER;
     }
   }
-}
-
-/* ------------------------------------------------ */
-
-inline uint32_t normalize_bats_symbol_char(char c) {
-  if (c >= '0' && c <= '9') return (uint32_t)(0  + (c - '0')); // 0..9
-  if (c >= 'A' && c <= 'Z') return (uint32_t)(10 + (c - 'A')); // 10..35
-  if (c >= 'a' && c <= 'z') return (uint32_t)(36 + (c - 'a')); // 36..61
-  on_error ("Unexpected symbol |%c|",c);
-}
-/* ------------------------------------------------ */
-
-inline uint32_t bats_symbol2optionid (const char* s, uint symbol_size) {
-  uint64_t compacted_id = 0;
-  if (s[0] != '0') on_error("%c%c%c%c%c%c doesnt have \"0\" prefix",s[0],s[1],s[2],s[3],s[4],s[5]);
-  for (uint i = 1; i < symbol_size; i++) {
-    //    printf ("s[%i] = %c, normalize_bats_symbol_char = %u = 0x%x\n",i,s[i], normalize_bats_symbol_char(s[i]), normalize_bats_symbol_char(s[i]));
-    compacted_id |= normalize_bats_symbol_char(s[i]) << ((symbol_size - i - 1) * symbol_size);
+  /* ------------------------------------------------ */
+  inline FhOrderType addFlagsCustomerIndicator2orderType(uint8_t flags, char customerIndicator) {
+    if (customerIndicator == 'C') {
+      switch (flags) {
+	/* case 0x01 : // bit #0 */
+	/*   return FhOrderType::BD; */
+      case 0x08 : // bit #3
+      case 0x09 : // bit #0 & #3
+	return FhOrderType::CUSTOMER_AON;
+      default:
+	return FhOrderType::CUSTOMER;
+      }
+    } else {
+      switch (flags) {
+	/* case 0x01 : // bit #0 */
+	/*   return FhOrderType::BD; */
+      case 0x08 : // bit #3
+      case 0x09 : // bit #0 & #3
+	return FhOrderType::BD_AON;
+      default:
+	return FhOrderType::BD;
+      }
+    }
   }
-  if ((compacted_id & 0xffffffff00000000) != 0) on_error("%c%c%c%c%c%c encoding produced 0x%jx exceeding 32bit",s[0],s[1],s[2],s[3],s[4],s[5],compacted_id);
-  return (uint32_t) (compacted_id & 0x00000000ffffffff);
-}
 
-/* ------------------------------------------------ */
+  /* ------------------------------------------------ */
 
-inline SideT sideDecode(char _side) {
-  switch (_side) {
-  case 'B' :
-    return SideT::BID;
-  case 'S' :
-    return SideT::ASK;
-  default:
-    on_error("Unexpected Side \'%c\'",_side);
+  inline uint32_t normalize_bats_symbol_char(char c) {
+    if (c >= '0' && c <= '9') return (uint32_t)(0  + (c - '0')); // 0..9
+    if (c >= 'A' && c <= 'Z') return (uint32_t)(10 + (c - 'A')); // 10..35
+    if (c >= 'a' && c <= 'z') return (uint32_t)(36 + (c - 'a')); // 36..61
+    on_error ("Unexpected symbol |%c|",c);
   }
-}
-/* ------------------------------------------------ */
+  /* ------------------------------------------------ */
 
-inline EfhOrderSide efhMsgSideDecode(char _side) {
-  switch (_side) {
-  case 'B' :
-    return EfhOrderSide::kBid;
-  case 'S' :
-    return EfhOrderSide::kAsk;
-  default:
-    on_error("Unexpected Side \'%c\'",_side);
+  inline uint32_t bats_symbol2optionid (const char* s, uint symbol_size) {
+    uint64_t compacted_id = 0;
+    if (s[0] != '0') on_error("%c%c%c%c%c%c doesnt have \"0\" prefix",s[0],s[1],s[2],s[3],s[4],s[5]);
+    for (uint i = 1; i < symbol_size; i++) {
+      //    printf ("s[%i] = %c, normalize_bats_symbol_char = %u = 0x%x\n",i,s[i], normalize_bats_symbol_char(s[i]), normalize_bats_symbol_char(s[i]));
+      compacted_id |= normalize_bats_symbol_char(s[i]) << ((symbol_size - i - 1) * symbol_size);
+    }
+    if ((compacted_id & 0xffffffff00000000) != 0) on_error("%c%c%c%c%c%c encoding produced 0x%jx exceeding 32bit",s[0],s[1],s[2],s[3],s[4],s[5],compacted_id);
+    return (uint32_t) (compacted_id & 0x00000000ffffffff);
   }
-}
-/* ------------------------------------------------ */
+
+  /* ------------------------------------------------ */
+
+  inline SideT sideDecode(char _side) {
+    switch (_side) {
+    case 'B' :
+      return SideT::BID;
+    case 'S' :
+      return SideT::ASK;
+    default:
+      on_error("Unexpected Side \'%c\'",_side);
+    }
+  }
+  /* ------------------------------------------------ */
+
+  inline EfhOrderSide efhMsgSideDecode(char _side) {
+    switch (_side) {
+    case 'B' :
+      return EfhOrderSide::kBid;
+    case 'S' :
+      return EfhOrderSide::kAsk;
+    default:
+      on_error("Unexpected Side \'%c\'",_side);
+    }
+  }
+  /* ------------------------------------------------ */
 
   struct sequenced_unit_header { // 
     uint16_t	length;   // 2 -- length of entire block of messages including this header
@@ -376,7 +376,7 @@ inline EfhOrderSide efhMsgSideDecode(char _side) {
     uint64_t	order_id;           // 8
   } __attribute__((packed));
 
-  struct trade_long { // 0x2A
+  struct TradeLong { // 0x2A
     struct GenericHeader header;
     uint64_t	order_id;           // 8
     char		side;               // 1 Always 'B'
@@ -393,7 +393,7 @@ inline EfhOrderSide efhMsgSideDecode(char _side) {
     /* 'K' - Cabinet trade */
   } __attribute__((packed));
 
-  struct trade_short { // 0x2B
+  struct TradeShort { // 0x2B
     struct GenericHeader header;
     uint64_t	order_id;           // 8
     char		side;               // 1 Always 'B'
@@ -410,7 +410,7 @@ inline EfhOrderSide efhMsgSideDecode(char _side) {
     /* 'K' - Cabinet trade */
   } __attribute__((packed));
 
-  struct trade_expanded { // 0x30
+  struct TradeExpanded { // 0x30
     struct GenericHeader header;
     uint64_t	order_id;           // 8
     char		side;               // 1 Always 'B'
@@ -441,6 +441,54 @@ inline EfhOrderSide efhMsgSideDecode(char _side) {
     char          underlying[8];    // 8  right padded with spaces
   } __attribute__((packed));
 
+  //-----------------------------------------------
+  // RFQ messages
+  //-----------------------------------------------
+
+  struct AuctionNotification { // 0xAD
+    GenericHeader header;
+    char        symbol[6];
+    uint64_t    auctionId;
+    char        auctionType; // 'B' = Bats Auction Mechanism (BAM) (EDGX Only) or AIM (C1 Only)
+                             // 'S' = Solicitation Auction Mechanism (C1 Only)
+                             // 'T' = Step Up Mechanism (SUM)
+                             // 'A' = SUM All or None
+    char        side;  // 'B' or 'S'      
+    uint64_t    price;
+    uint32_t    contracts;
+    char        customerIndicator; // 'N' = Non-Customer 'C' = Customer
+    uint32_t    participantId;
+    uint32_t    auctionEndOffset; // Nanosecond offset from last timestamp
+    uint32_t    clientId;
+  } __attribute__((packed));
+
+  struct OptionsAuctionUpdate { // 0xD1
+    GenericHeader header;
+    char        symbol[8];
+    char        auctionType;
+    uint64_t    referencePrice;
+    uint32_t    buyContracts;
+    uint32_t    sellContracts;
+    uint64_t    indicativePrice;
+    uint64_t    auctionOnlyPrice;
+    char        openningCondition;
+    uint64_t    compositeMarketBidPrice;
+    uint64_t    compositeMarketOfferPrice;
+  } __attribute__((packed));
+
+  struct AuctionCancel { // 0xAE
+    GenericHeader header;
+    uint64_t    auctionId;
+  } __attribute__((packed));
+
+  inline EfhOrderCapacity getRfqCapacity(char customerIndicator) {
+    switch (customerIndicator) {
+    case 'N' : return EfhOrderCapacity::kBrokerDealer;
+    case 'C' : return EfhOrderCapacity::kCustomer;
+    default  : on_error("Unexpected customerIndicator\'%c\'",customerIndicator);
+    }
+  }
+  
   //-----------------------------------------------
   // SPIN and GRP messages
   //-----------------------------------------------
@@ -531,6 +579,26 @@ inline EfhOrderSide efhMsgSideDecode(char _side) {
     uint8_t       type;               // 1 
   } __attribute__((packed));
 
+
+  /* ------------------------------------------------ */
+  // converting 6 char CBOE symbol to uint64_t
+  inline uint64_t symbol2secId(const char* s) {
+    return be64toh(*(uint64_t*)(s - 2)) & 0x0000ffffffffffff;
+  }
+  inline uint64_t expSymbol2secId(const char* s) {
+    if (s[6] != ' ' || s[7] != ' ')
+      on_error("ADD_ORDER_EXPANDED message with \'%c%c%c%c%c%c%c%c\' symbol (longer than 6 chars) not supported",
+	       s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7]);
+    return be64toh(*(uint64_t*)(s - 2)) & 0x0000ffffffffffff;
+  }
+
+  inline EfhOrderSide getSide(char side) {
+    switch (side) {
+    case 'B' : return EfhOrderSide::kBid;
+    case 'S' : return EfhOrderSide::kAsk;
+    default  : on_error("Unexpected side \'%c\'",side);
+    }
+  }
 } // namespace Bats
 
 #define EKA_BATS_TRADE_COND(x)		 \
