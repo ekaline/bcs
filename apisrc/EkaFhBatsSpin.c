@@ -24,6 +24,8 @@
 #include "EkaFhBatsGr.h"
 #include "EkaFhThreadAttr.h"
 
+using namespace Bats;
+
 int ekaTcpConnect(uint32_t ip, uint16_t port);
 //int ekaUdpConnect(EkaDev* dev, uint32_t ip, uint16_t port);
 int ekaUdpMcConnect(EkaDev* dev, uint32_t ip, uint16_t port);
@@ -43,8 +45,8 @@ static bool getGapResponse(EkaDev*        dev,
 			   volatile bool* recovery_active);
 /* ##################################################################### */
 static int sendHearBeat(EkaDev* dev,int sock, uint8_t batsUnit) {
-  batspitch_sequenced_unit_header heartbeat = {
-    .length   = sizeof(batspitch_sequenced_unit_header),
+  sequenced_unit_header heartbeat = {
+    .length   = sizeof(sequenced_unit_header),
     .count    = 0,
     .unit     = batsUnit,
     .sequence = 0
@@ -64,7 +66,7 @@ static bool sendLogin (EkaDev*     dev,
 		       EkaSource   exch,
 		       EkaLSI      id
 		       ) {
-  batspitch_login_request loginMsg = {};
+  LoginRequest loginMsg = {};
   memset(&loginMsg,' ',sizeof(loginMsg));
   loginMsg.hdr.length   = sizeof(loginMsg);
   loginMsg.hdr.count    = 1;
@@ -72,7 +74,7 @@ static bool sendLogin (EkaDev*     dev,
   loginMsg.hdr.sequence = 0;
 
   loginMsg.length       = sizeof(loginMsg) - sizeof(loginMsg.hdr);
-  loginMsg.type         = (uint8_t)EKA_BATS_PITCH_MSG::LOGIN_REQUEST;
+  loginMsg.type         = (uint8_t)MsgId::LOGIN_REQUEST;
 
   memcpy(loginMsg.username,       userName,     sizeof(loginMsg.username));
   memcpy(loginMsg.password,       passwd,       sizeof(loginMsg.password));
@@ -104,14 +106,14 @@ static bool getLoginResponse(EkaDev*     dev,
 			     const char* loginType,
 			     EkaSource   exch,
 			     EkaLSI      id) {
-  batspitch_login_response login_response ={};
+  LoginResponse login_response ={};
   if (recv(sock,&login_response,sizeof(login_response),MSG_WAITALL) <= 0) {
     dev->lastErrno = errno;
     EKA_WARN("%s:%u: %s connection reset by peer after Login (failed to receive Login Response): %s",
 	     EKA_EXCH_DECODE(exch),id,loginType,strerror(dev->lastErrno));
     return false;
   }
-  if (login_response.type != EKA_BATS_PITCH_MSG::LOGIN_RESPONSE) 
+  if (login_response.type != MsgId::LOGIN_RESPONSE) 
     on_error ("%s:%u: Unexpected %s Login response type 0x%02x",
 	      EKA_EXCH_DECODE(exch),id,loginType,login_response.type);
 
@@ -148,7 +150,7 @@ static bool getSpinImageSeq(EkaFhBatsGr* gr, int sock, int64_t* imageSequence) {
 
   static const int MaxLocalTrials = 4;
   for (auto localTrial = 0; localTrial < MaxLocalTrials && gr->snapshot_active; localTrial++) {
-    batspitch_sequenced_unit_header hdr = {};
+    sequenced_unit_header hdr = {};
     const int r = recv(sock,&hdr,sizeof(hdr),MSG_WAITALL);
     if (r < (int) sizeof(hdr)) {
       dev->lastErrno = errno;
@@ -169,11 +171,11 @@ static bool getSpinImageSeq(EkaFhBatsGr* gr, int sock, int64_t* imageSequence) {
     for (uint i = 0; gr->snapshot_active && i < hdr.count; i ++) {
       if (size <= 0) on_error("%s:%u: remaining buff size = %d",
 			      EKA_EXCH_DECODE(gr->exch),gr->id,size);
-      const batspitch_dummy_header* msgHdr = (const batspitch_dummy_header*) ptr;
-      if ((EKA_BATS_PITCH_MSG)msgHdr->type == EKA_BATS_PITCH_MSG::SPIN_IMAGE_AVAILABLE) {
+      const dummy_header* msgHdr = (const dummy_header*) ptr;
+      if ((MsgId)msgHdr->type == MsgId::SPIN_IMAGE_AVAILABLE) {
 	EKA_LOG("%s:%u Spin Image Available at Sequence = %u",
-		EKA_EXCH_DECODE(gr->exch),gr->id,((batspitch_spin_image_available*)ptr)->sequence);
-	*imageSequence = ((batspitch_spin_image_available*)ptr)->sequence;
+		EKA_EXCH_DECODE(gr->exch),gr->id,((const SpinImageAvailable*)ptr)->sequence);
+	*imageSequence = ((const SpinImageAvailable*)ptr)->sequence;
 	return true;
       }
       ptr += msgHdr->length;
@@ -197,7 +199,7 @@ static bool getSpinResponse(EkaDev*   dev,
 
   static const int MaxLocalTrials = 4;
   for (auto localTrial = 0; localTrial < MaxLocalTrials && *snapshot_active; localTrial++) {
-    batspitch_sequenced_unit_header hdr = {};
+    sequenced_unit_header hdr = {};
     int size = recv(sock,&hdr,sizeof(hdr),MSG_WAITALL);
     if (size < (int) sizeof(hdr)) {
       dev->lastErrno = errno;
@@ -217,16 +219,16 @@ static bool getSpinResponse(EkaDev*   dev,
     uint8_t* ptr = &buf[0];
     for (uint i = 0; *snapshot_active && i < hdr.count; i ++) {
       if (size <= 0) on_error("%s:%u: remaining buff size = %d",EKA_EXCH_DECODE(exch),id,size);
-      const batspitch_dummy_header* msg_hdr = (const batspitch_dummy_header*) ptr;
-      if ((EKA_BATS_PITCH_MSG)msg_hdr->type == EKA_BATS_PITCH_MSG::SNAPSHOT_RESPONSE ||
-	  (EKA_BATS_PITCH_MSG)msg_hdr->type == EKA_BATS_PITCH_MSG::DEFINITIONS_RESPONSE
+      const dummy_header* msg_hdr = (const dummy_header*) ptr;
+      if ((MsgId)msg_hdr->type == MsgId::SNAPSHOT_RESPONSE ||
+	  (MsgId)msg_hdr->type == MsgId::DEFINITIONS_RESPONSE
 	  ) {
-	switch (((batspitch_spin_response*)ptr)->status) {
+	switch (((const SpinResponse*)ptr)->status) {
 	case 'A' : // Accepted
 	  EKA_LOG("%s:%u Spin %s Request Accepted: Count=%u, Sequence=%u",
 		  EKA_EXCH_DECODE(exch),id,
 		  op == EkaFhMode::DEFINITIONS ? "Definitions" : "Snapshot",
-		  ((batspitch_spin_response*)ptr)->count,((batspitch_spin_response*)ptr)->sequence);
+		  ((const SpinResponse*)ptr)->count,((const SpinResponse*)ptr)->sequence);
 	  return true;
 	case 'O' : 
 	  dev->lastExchErr = EfhExchangeErrorCode::kInvalidSequenceRange;
@@ -240,7 +242,7 @@ static bool getSpinResponse(EkaDev*   dev,
 	  return false;
 	default  : 
 	  on_error("%s:%u: Spin request rejected with unknown status |%c|",
-		   EKA_EXCH_DECODE(exch),id,((batspitch_spin_response*)ptr)->status);
+		   EKA_EXCH_DECODE(exch),id,((const SpinResponse*)ptr)->status);
 	  return false;
 	}
       }
@@ -267,15 +269,15 @@ static bool sendSpinRequest(EkaDev*   dev,
     on_error("%s:%u: spinImageSequence %ju exceeds 32bit",
 	     EKA_EXCH_DECODE(exch),id,spinImageSequence);
 
-  batspitch_spin_request msg = {};
+  SpinRequest msg = {};
   msg.hdr.length = sizeof(msg);
   msg.hdr.count = 1;
   msg.hdr.unit = batsUnit;
   msg.hdr.sequence = 0;
 
   msg.length   = sizeof(msg) - sizeof(msg.hdr);
-  msg.type     = op == EkaFhMode::DEFINITIONS ? (uint8_t) EKA_BATS_PITCH_MSG::DEFINITIONS_REQUEST : 
-    (uint8_t) EKA_BATS_PITCH_MSG::SNAPSHOT_REQUEST;
+  msg.type     = op == EkaFhMode::DEFINITIONS ? (uint8_t) MsgId::DEFINITIONS_REQUEST : 
+    (uint8_t) MsgId::SNAPSHOT_REQUEST;
   msg.sequence = op == EkaFhMode::DEFINITIONS ? 0 : spinImageSequence;
   EKA_LOG("%s:%u Sending %s Request, msg.type = 0x%02x, msg.sequence = %u",
 	  EKA_EXCH_DECODE(exch),
@@ -302,7 +304,7 @@ static EkaFhParseResult procSpin(const EfhRunCtx* pEfhRunCtx,
 				 EkaFhMode        op,
 				 volatile bool*   snapshot_active) {
   EkaDev* dev = gr->dev;
-  batspitch_sequenced_unit_header hdr = {};
+  sequenced_unit_header hdr = {};
   int size = recv(sock,&hdr,sizeof(hdr),MSG_WAITALL);
   if (size < (int) sizeof(hdr)) {
     dev->lastErrno = errno;
@@ -328,7 +330,7 @@ static EkaFhParseResult procSpin(const EfhRunCtx* pEfhRunCtx,
   for (uint i = 0; *snapshot_active && i < hdr.count; i ++) {
     if (size <= 0) on_error("%s:%u: remaining buff size = %d",
 			    EKA_EXCH_DECODE(gr->exch),gr->id,size);
-    auto msgHdr {reinterpret_cast<const batspitch_dummy_header*>(ptr)};
+    auto msgHdr {reinterpret_cast<const dummy_header*>(ptr)};
     size -= msgHdr->length;
 
     if (gr->parseMsg(pEfhRunCtx,ptr,sequence++,op))
@@ -487,7 +489,7 @@ static EkaFhParseResult procGrp(const EfhRunCtx* pEfhRunCtx,
     return EkaFhParseResult::SocketError;
   }
 
-  auto hdr { reinterpret_cast<const batspitch_sequenced_unit_header*>(buf)};
+  auto hdr { reinterpret_cast<const sequenced_unit_header*>(buf)};
   EKA_LOG("%s:%u: UdpPkt accepted: unit=%u, sequence=%u, msgCnt=%u, length=%u",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,hdr->unit,hdr->sequence,hdr->count,hdr->length);
   if (hdr->unit != gr->batsUnit) return EkaFhParseResult::NotEnd;
@@ -499,7 +501,7 @@ static EkaFhParseResult procGrp(const EfhRunCtx* pEfhRunCtx,
     if (size <= 0) on_error("%s:%u: size = %d",
 			    EKA_EXCH_DECODE(gr->exch),gr->id,size);
 
-    auto msgHdr {reinterpret_cast<const batspitch_dummy_header*>(ptr)};
+    auto msgHdr {reinterpret_cast<const dummy_header*>(ptr)};
 
     if (sequence >= start) gr->parseMsg(pEfhRunCtx,ptr,sequence,EkaFhMode::RECOVERY);
     sequence++;
@@ -730,15 +732,15 @@ static bool sendGapRequest(EkaDev*   dev,
 			   EkaLSI    id
 ) {
 
-  const batspitch_gap_request gap_request = {
+  const GapRequest gap_request = {
     .hdr = {
-      .length   = sizeof(batspitch_gap_request),
+      .length   = sizeof(gap_request),
       .count    = 1,
       .unit     = batsUnit,
       .sequence = 0
     },
-    .length   = (uint8_t)(sizeof(batspitch_gap_request) - sizeof(batspitch_sequenced_unit_header)),
-    .type     = (uint8_t) EKA_BATS_PITCH_MSG::GAP_REQUEST,
+    .length   = (uint8_t)(sizeof(gap_request) - sizeof(sequenced_unit_header)),
+    .type     = (uint8_t) MsgId::GAP_REQUEST,
     .unit     = batsUnit,
     .sequence = (uint32_t)start,
     .count    = (uint16_t) (end - start)
@@ -775,7 +777,7 @@ static bool getGapResponse(EkaDev*        dev,
 
     int bytes = recv(sock,
 		     buf,
-		     sizeof(batspitch_sequenced_unit_header),
+		     sizeof(sequenced_unit_header),
 		     MSG_WAITALL);
     if (bytes <= 0) {
       dev->lastErrno = errno;
@@ -783,11 +785,11 @@ static bool getGapResponse(EkaDev*        dev,
 	       EKA_EXCH_DECODE(exch),id,strerror(dev->lastErrno));
       return false;
     }
-    batspitch_sequenced_unit_header* hdr = (batspitch_sequenced_unit_header*)&buf[0];
+    sequenced_unit_header* hdr = (sequenced_unit_header*)&buf[0];
 
     bytes = recv(sock,
-		 &buf[sizeof(batspitch_sequenced_unit_header)],
-		 hdr->length - sizeof(batspitch_sequenced_unit_header),
+		 &buf[sizeof(sequenced_unit_header)],
+		 hdr->length - sizeof(sequenced_unit_header),
 		 MSG_WAITALL);
 
     if (bytes <= 0) {
@@ -807,19 +809,19 @@ static bool getGapResponse(EkaDev*        dev,
       return false;
     }
 
-    uint8_t* msg = &buf[sizeof(batspitch_sequenced_unit_header)];
+    uint8_t* msg = &buf[sizeof(sequenced_unit_header)];
 
     for (auto i = 0; *recovery_active && i < hdr->count; i ++) {
-      uint8_t msgType = ((batspitch_dummy_header*)msg)->type;
-      uint8_t msgLen  = ((batspitch_dummy_header*)msg)->length;
+      uint8_t msgType = ((dummy_header*)msg)->type;
+      uint8_t msgLen  = ((dummy_header*)msg)->length;
 
-      if (msgType != EKA_BATS_PITCH_MSG::GAP_RESPONSE) {
+      if (msgType != MsgId::GAP_RESPONSE) {
 	EKA_LOG("%s:%u: Ignoring Msg 0x%02x at pkt %d, msg %d",
 		EKA_EXCH_DECODE(exch),id,msgType, j,i);
 	msg += msgLen;
 	continue;
       }
-      batspitch_gap_response* gap_response = (batspitch_gap_response*)msg;
+      auto gap_response {reinterpret_cast<const GapResponse*>(msg)};
       if (gap_response->unit != 0 && gap_response->unit != batsUnit) {
 	EKA_WARN("%s:%u: msgType = 0x%x, gap_response->unit %u != batsUnit %u",
 		 EKA_EXCH_DECODE(exch),id,msgType,gap_response->unit, batsUnit);

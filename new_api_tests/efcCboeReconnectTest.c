@@ -39,6 +39,8 @@
 #include "EkaFhBatsParser.h"
 #include "EfhTestFuncs.h"
 
+using namespace Bats;
+
 /* --------------------------------------------- */
 std::string ts_ns2str(uint64_t ts);
 
@@ -84,18 +86,18 @@ enum class AddOrder : int {
 };
 
 struct CboePitchAddOrderShort {
-    batspitch_sequenced_unit_header hdr;
-    batspitch_add_order_short       msg;
+    sequenced_unit_header hdr;
+    add_order_short       msg;
 } __attribute__((packed));
 
 struct CboePitchAddOrderLong {
-    batspitch_sequenced_unit_header hdr;
-    batspitch_add_order_long        msg;
+    sequenced_unit_header hdr;
+    add_order_long        msg;
 } __attribute__((packed));
 
 struct CboePitchAddOrderExpanded {
-    batspitch_sequenced_unit_header hdr;
-    batspitch_add_order_expanded    msg;
+    sequenced_unit_header hdr;
+    add_order_expanded    msg;
 } __attribute__((packed));
 
 /* --------------------------------------------- */
@@ -306,7 +308,7 @@ static int sendAddOrderShort (int sock, const sockaddr_in* addr, char* secId,
 	.msg = {
 	    .header = {
 		.length = sizeof(pkt.msg),
-		.type   = (uint8_t)EKA_BATS_PITCH_MSG::ADD_ORDER_SHORT,
+		.type   = (uint8_t)MsgId::ADD_ORDER_SHORT,
 		.time   = 0x11223344,  // just a number
 	    },
 	    .order_id   = 0xaabbccddeeff5566,
@@ -339,7 +341,7 @@ static int sendAddOrderLong (int sock, const sockaddr_in* addr, char* secId,
 	.msg = {
 	    .header = {
 		.length = sizeof(pkt.msg),
-		.type   = (uint8_t)EKA_BATS_PITCH_MSG::ADD_ORDER_LONG,
+		.type   = (uint8_t)MsgId::ADD_ORDER_LONG,
 		.time   = 0x11223344,  // just a number
 	    },
 	    .order_id   = 0xaabbccddeeff5566,
@@ -373,7 +375,7 @@ static int sendAddOrderExpanded (int sock, const sockaddr_in* addr, char* secId,
 	.msg = {
 	    .header = {
 		.length = sizeof(pkt.msg),
-		.type   = (uint8_t)EKA_BATS_PITCH_MSG::ADD_ORDER_EXPANDED,
+		.type   = (uint8_t)MsgId::ADD_ORDER_EXPANDED,
 		.time   = 0x11223344,  // just a number
 	    },
 	    .order_id   = 0xaabbccddeeff5566,
