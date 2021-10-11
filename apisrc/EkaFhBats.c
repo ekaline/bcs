@@ -5,6 +5,8 @@
 #include "EkaFhThreadAttr.h"
 #include "EkaFhBatsParser.h"
 
+using namespace Bats;
+
 void* getSpinData(void* attr);
 
 /* ##################################################################### */

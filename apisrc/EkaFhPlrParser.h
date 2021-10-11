@@ -55,34 +55,42 @@ namespace Plr {
 	MsgUnavail = 21
     };
 
-    inline std::string deliveryFlag2str (uint8_t flag) {
-	switch (static_cast<DeliveryFlag>(flag)) {
-	case DeliveryFlag::Heartbeat :
-	    return std::string("Heartbeat");
-	case DeliveryFlag::Failover :
-	    return std::string("Failover");
-	case DeliveryFlag::Original :
-	    return std::string("Original");
-	case DeliveryFlag::SeqReset :
-	    return std::string("SeqReset");
-	case DeliveryFlag::SinglePktRetransmit :
-	    return std::string("SinglePktRetransmit");
-	case DeliveryFlag::PartOfRetransmit :
-	    return std::string("PartOfRetransmit");
-	case DeliveryFlag::SinglePktRefresh :
-	    return std::string("SinglePktRefresh");
-	case DeliveryFlag::StratOfRefresh :
-	    return std::string("StratOfRefresh");
-	case DeliveryFlag::PartOfRefresh :
-	    return std::string("PartOfRefresh");
-	case DeliveryFlag::EndOfRefresh :
-	    return std::string("EndOfRefresh");
-	case DeliveryFlag::MsgUnavail :
-	    return std::string("MsgUnavail");
-	default:
-	    on_error("Unexpected DeliveryFlag %u",flag);
-	}
+  inline EfhOrderSide getSide(char side) {
+    switch (side) {
+    case 'B' : return EfhOrderSide::kBid;
+    case 'S' : return EfhOrderSide::kAsk;
+    default  : return EfhOrderSide::kErr;
     }
+  }
+
+  inline std::string deliveryFlag2str (uint8_t flag) {
+    switch (static_cast<DeliveryFlag>(flag)) {
+    case DeliveryFlag::Heartbeat :
+      return std::string("Heartbeat");
+    case DeliveryFlag::Failover :
+      return std::string("Failover");
+    case DeliveryFlag::Original :
+      return std::string("Original");
+    case DeliveryFlag::SeqReset :
+      return std::string("SeqReset");
+    case DeliveryFlag::SinglePktRetransmit :
+      return std::string("SinglePktRetransmit");
+    case DeliveryFlag::PartOfRetransmit :
+      return std::string("PartOfRetransmit");
+    case DeliveryFlag::SinglePktRefresh :
+      return std::string("SinglePktRefresh");
+    case DeliveryFlag::StratOfRefresh :
+      return std::string("StratOfRefresh");
+    case DeliveryFlag::PartOfRefresh :
+      return std::string("PartOfRefresh");
+    case DeliveryFlag::EndOfRefresh :
+      return std::string("EndOfRefresh");
+    case DeliveryFlag::MsgUnavail :
+      return std::string("MsgUnavail");
+    default:
+      on_error("Unexpected DeliveryFlag %u",flag);
+    }
+  }
 
     enum class MsgType : uint16_t {
 	// Control
@@ -108,7 +116,10 @@ namespace Plr {
 	TradeCorrection = 322,
 	Imbalance = 305,
 	SeriesRfq = 307,
-	SeriesSummary = 323
+	SeriesSummary = 323,
+
+	// Complex
+	ComplexSeriesIndexMapping = 60
     };
 
     inline std::string msgType2str (uint16_t type) {
@@ -532,50 +543,115 @@ namespace Plr {
 	// • 5 - Auction will not run because market maker quote is not received
 
     };
+  
+  inline EfhOrderCapacity getRfqCapacity(char capacity) {
+    switch (capacity) {
+    case ' ' : return EfhOrderCapacity::kUnknown;
+    case '1' : return EfhOrderCapacity::kAgency; // Firm
+    case '2' : return EfhOrderCapacity::kBrokerDealer;
+    case '3' : return EfhOrderCapacity::kMarketMaker;
+    case '8' : return EfhOrderCapacity::kProfessionalCustomer;
+    default  :
+      on_error("Unexpected RFQ capacity \'%c\'",capacity);
+    }
+  }
 
-    struct Rfq { // 307
-	MsgHdr   hdr;
-	uint32_t sourceTimeSec;
-	uint32_t sourceTimeNs;
-	uint32_t seriesIndex;
-	uint32_t seriesSeqNum;
+  inline EfhAuctionType getAuctionType (char auctionType) {
+    switch (auctionType) {
+    case 'P' : return EfhAuctionType::kPriceImprovementPeriod;
+    case 'F' : return EfhAuctionType::kFacilitation;
+    case 'S' : return EfhAuctionType::kSolicitation;
+    case 'B' : return EfhAuctionType::kUnknown; // Bold (Outright only)
+    case 'C' : return EfhAuctionType::kUnknown; // COA (Complex only)
+    default  :
+      on_error("Unexpected auctionType \'%c\'",auctionType);
+    }
+  }
+
+  inline EfhAuctionUpdateType getAuctionUpdateType (char auctionUpdateType) {
+    switch (auctionUpdateType) {
+    case 'O' : return EfhAuctionUpdateType::kNew;
+    case 'Q' : return EfhAuctionUpdateType::kDelete;
+    default  :
+      on_error("Unexpected auctionUpdateType (\'RFQ Status\') \'%c\'",auctionUpdateType);
+    }
+  }
+  struct Rfq { // 307
+    MsgHdr   hdr;
+    uint32_t sourceTimeSec;
+    uint32_t sourceTimeNs;
+    uint32_t seriesIndex;
+    uint32_t seriesSeqNum;
       
-	char     side; // Side of the RFQ
-	// 'B' = Buy 'S' = Sell
-	// 		     For Complex series, when a complex
-	// 		     instrument is traded, the seller
-	// 		     Sells the legs with Side = S and
-	// 		     Buys the legs with Side = B
-	// 		     The buyer
-	// 		     Buys the legs with Side = S and
-	// 		     Sells the legs with Side = B
+    char     side; // Side of the RFQ
+    // 'B' = Buy 'S' = Sell
+    // 		     For Complex series, when a complex
+    // 		     instrument is traded, the seller
+    // 		     Sells the legs with Side = S and
+    // 		     Buys the legs with Side = B
+    // 		     The buyer
+    // 		     Buys the legs with Side = S and
+    // 		     Sells the legs with Side = B
 
-	char     type;  // Order Type of CUBE/Bold/COA
-	//                'P' = Price Improvement
-	// 		      'F' = Facilitation
-	// 		      'S' = Solicitation
-	// 		      'B' = Bold (Outright only)
-	//                'C' = COA (Complex only)
+    char     type;  // Order Type of CUBE/Bold/COA
+    //                'P' = Price Improvement
+    // 		      'F' = Facilitation
+    // 		      'S' = Solicitation
+    // 		      'B' = Bold (Outright only)
+    //                'C' = COA (Complex only)
 
-	char     capacity; // Customer or Firm capacity specified with the order.
-	// Values include:
-	//                   • (blank) = information not specified
-	// 			 • 0 = Customer
-	// 			 • 1 = Firm
-	// 			 • 2 = Broker Dealer
-	// 			 • 3 = Market Maker
-	// 			 • 8 = Professional Customer
-	// 			 Note: This field is used for BOLD only
+    char     capacity; // Customer or Firm capacity specified with the order.
+    // Values include:
+    //                   • (blank) = information not specified
+    // 			 • 0 = Customer
+    // 			 • 1 = Firm
+    // 			 • 2 = Broker Dealer
+    // 			 • 3 = Market Maker
+    // 			 • 8 = Professional Customer
+    // 			 Note: This field is used for BOLD only
 
-	uint32_t size;
-	int32_t  price;
-	uint32_t participant;
-	uint64_t auctionId;
-	char     rfqStatus; // 'O' - Start of RFQ Auction
-	//                     'Q' - End of RFQ Auction
-	//                     Note: This field is only used for CUBE/COA
-    };
+    uint32_t totalQuantity;
+    int32_t  workingPrice;
+    uint32_t participant;
+    uint64_t auctionId;
+    char     rfqStatus; // 'O' - Start of RFQ Auction
+    //                     'Q' - End of RFQ Auction
+    //                     Note: This field is only used for CUBE/COA
+  };
 
+  struct ComplexDefinitionLeg {
+    uint32_t SymbolIndex; // This field will repeat for each leg:
+                          // • Series index if Security type is Option
+                          // • Underlying index if Security type is Equity
+    
+    uint16_t LegRatioQty; // Leg Ratio. This filed will repeat for each leg
+                          // The maximum ratio between the smallest component
+                          // leg quantity to the largest leg component
+                          // quantity cannot exceed 3:1 or 1:3
+    
+    char     side;        // Leg side. This filed will repeat for each leg:
+	                  // 'B' = Buy 'S' = Sell
+    
+    char     SecurityType;// Leg Security Type. This filed will repeat for each leg:
+                          // • 'O' (Options Series leg)
+                          // • 'E' (Equity stock leg)
+  };
+  
+  struct ComplexSeriesIndexMappingRoot { // ComplexDefinition = 60
+    MsgHdr   hdr;
+    uint32_t seriesIndex;
+    uint16_t MarketID; // ID of the Originating Market:
+                       // • 4 – NYSE Arca Options
+                       // • 8 – NYSE American Options
+    
+    uint8_t  SystemID; // ID of the Originating matching engine server
+    
+    uint16_t NoOfLegs; // Number of legs in complex symbol: 2..12
+    
+    //     ComplexDefinitionLeg leg[NoOfLegs];
+
+  };
+  
     struct RequestResponse { // 11
 	MsgHdr   hdr;
 	uint32_t RequestSeqNum; // The sequence number of the request message sent by the client.

@@ -4,12 +4,14 @@
 #include "EhpPitch.h"
 #include "EkaFhBatsParser.h"
 
+using namespace Bats;
+
 EhpPitch::EhpPitch(EkaDev* dev) : EhpProtocol(dev) {
   EKA_LOG("EhpPitch is created");
 
   //  conf.params.protocolID         = static_cast<decltype(conf.params.protocolID)>(EfhFeedVer::kCBOE);
   conf.params.protocolID         = static_cast<decltype(conf.params.protocolID)>(EhpHwProtocol::PITCH);
-  conf.params.pktHdrLen          = sizeof(batspitch_sequenced_unit_header);
+  conf.params.pktHdrLen          = sizeof(sequenced_unit_header);
   conf.params.msgDeltaSize       = 0;
   conf.params.bytes4StartMsgProc = 2; // msgLen + msgType 1
  
