@@ -24,7 +24,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 
   switch (static_cast<MsgType>(msgHdr->type)) {
   case MsgType::OutrightSeriesIndexMapping : {
-    auto m {reinterpret_cast<const OutrightSeriesIndexMapping*>(msgHdr)};
+    auto m {reinterpret_cast<const OutrightSeriesIndexMapping*>(pMsg)};
     EfhOptionDefinitionMsg msg{};
     msg.header.msgType        = EfhMsgType::kOptionDefinition;
     msg.header.group.source   = exch;
@@ -80,28 +80,68 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
   }
     break;
-     case MsgType::SymbolClear : {
-#ifdef PLR_CERT
-      printf (YEL "MsgType::SymbolClear\n" RESET);
-#endif      
+    // #####################################################
+  case MsgType::ComplexSeriesIndexMapping : { // ComplexDefinition
+    auto root {reinterpret_cast<const ComplexSeriesIndexMapping_root*>(pMsg)};
 
+    EfhComplexDefinitionMsg msg{};
+    msg.header.msgType        = EfhMsgType::kComplexDefinition;
+    msg.header.group.source   = exch;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.securityId     = 0;
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = 0;
+    msg.header.gapNum         = gapNum;
+
+    msg.commonDef.securityType   = EfhSecurityType::kComplex;
+    msg.commonDef.exchange       = EKA_GRP_SRC2EXCH(exch);
+    /* msg.commonDef.exchange       = root->MarketID == 4 ? EfhExchange::kPCX : */
+    /*   root->MarketID == 8 ? EfhExchange::kAOE : EfhExchange::kUnknown; */
+
+    msg.commonDef.underlyingType = EfhSecurityType::kStock;
+    msg.commonDef.expiryDate     = 0; // FIXME: for completeness only, could be "today"
+    msg.commonDef.expiryTime     = 0;
+    msg.commonDef.contractSize   = 0;
+
+    /* copySymbol(msg.commonDef.underlying, rootBlock->Asset); */
+    /* copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup); */
+    /* copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol); */
+
+    msg.numLegs = root->NoOfLegs;
+
+    auto leg  {reinterpret_cast<const ComplexDefinitionLeg*>(pMsg + sizeof(*root))};
+    for (uint i = 0; i < root->NoOfLegs; i++) {
+      msg.legs[i].securityId = leg->SymbolIndex;
+      msg.legs[i].type       = getComplexSecurityType(leg->SecurityType);
+      if (msg.legs[i].type == EfhSecurityType::kStock)
+	msg.header.underlyingId = leg->SymbolIndex;
+
+      msg.legs[i].side       = getSide(leg->side);
+      msg.legs[i].ratio      = leg->LegRatioQty;	 
+    }
+    if (pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL)
+      on_error("pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL");
+    pEfhRunCtx->onEfhComplexDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+
+    leg ++; //+= sizeof(*leg);
+  }
+    break;
+    // #####################################################
+  case MsgType::SymbolClear : { // 32
   }
     break; 
-  case MsgType::TimeReference : {
-#ifdef PLR_CERT
-      printf (YEL "MsgType::TimeReference\n" RESET);
-#endif      
-    auto m {reinterpret_cast<const SourceTimeReference*>(msgHdr)};
+    // #####################################################
+  case MsgType::TimeReference : { // 2
+    auto m {reinterpret_cast<const SourceTimeReference*>(pMsg)};
     seconds = m->sourceTimeSec;
     gr_ts = m->sourceTimeSec * SEC_TO_NANO;
   }
     break;
-  case MsgType::SecurityStatus : 
-#ifdef PLR_CERT
-//      printf (YEL "MsgType::SecurityStatus\n" RESET);
-#endif  
+    // #####################################################
+  case MsgType::SecurityStatus : // 34 -- NOT USED!
 #if 0
-      auto m {reinterpret_cast<const SecurityStatus*>(msgHdr)};
+      auto m {reinterpret_cast<const SecurityStatus*>(pMsg)};
       FhSecurity* s = book->findSecurity(m->seriesIndex);
       if (s == NULL) return false;
       switch (m->securityStatus) {
@@ -140,43 +180,45 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 #endif // 0
       break;
       
-  case MsgType::OptionsStatus : {
-      auto m {reinterpret_cast<const OptionsStatus*>(msgHdr)};
-      FhSecurity* s = book->findSecurity(m->seriesIndex);
-      if (s == NULL) return false;
-      switch (m->seriesStatus) {
-      case '4' : // Trading Halt
-      case '6' : // Suspend
-	  s->trading_action = EfhTradeStatus::kHalted;
-	  break;
-      case '5' : // Resume
-	  s->trading_action = EfhTradeStatus::kNormal;
-	  s->option_open    = true;
-	  break;
-      case 'P' : // Pre-Open
-	  s->trading_action = EfhTradeStatus::kPreopen;
-	  break;	  
-      case 'B' : // Begin Accepting orders
-	  s->trading_action = EfhTradeStatus::kOpeningRotation;
-	  break;
-      case 'O' : // Core session
-	  break;
-      case 'X' : // Closed
-	  s->trading_action = EfhTradeStatus::kClosed;
-	  s->option_open    = false;
-	  break;
-      case 'I' : // Halt Resume Price Indication
-      case 'G' : // Pre-Opening Price Indication
-	  break;
-      default : on_error("Unexpected seriesStatus \'%c\'",m->seriesStatus);
-      }
-      book->generateOnQuote (pEfhRunCtx, s, sequence,
-			     gr_ts + m->sourceTimeNs, gapNum);  
-  }
+    // #####################################################
+  case MsgType::OptionsStatus : { // 51
+    auto m {reinterpret_cast<const OptionsStatus*>(pMsg)};
+    FhSecurity* s = book->findSecurity(m->seriesIndex);
+    if (s == NULL) return false;
+    switch (m->seriesStatus) {
+    case '4' : // Trading Halt
+    case '6' : // Suspend
+      s->trading_action = EfhTradeStatus::kHalted;
       break;
+    case '5' : // Resume
+      s->trading_action = EfhTradeStatus::kNormal;
+      s->option_open    = true;
+      break;
+    case 'P' : // Pre-Open
+      s->trading_action = EfhTradeStatus::kPreopen;
+      break;	  
+    case 'B' : // Begin Accepting orders
+      s->trading_action = EfhTradeStatus::kOpeningRotation;
+      break;
+    case 'O' : // Core session
+      break;
+    case 'X' : // Closed
+      s->trading_action = EfhTradeStatus::kClosed;
+      s->option_open    = false;
+      break;
+    case 'I' : // Halt Resume Price Indication
+    case 'G' : // Pre-Opening Price Indication
+      break;
+    default : on_error("Unexpected seriesStatus \'%c\'",m->seriesStatus);
+    }
+    book->generateOnQuote (pEfhRunCtx, s, sequence,
+			   gr_ts + m->sourceTimeNs, gapNum);  
+  }
+    break;
       
-  case MsgType::Quote : {
-    auto m {reinterpret_cast<const Quote*>(msgHdr)};
+    // #####################################################
+  case MsgType::Quote : { // 340
+    auto m {reinterpret_cast<const Quote*>(pMsg)};
     FhSecurity* s = book->findSecurity(m->seriesIndex);
     if (s == NULL) return false;
 
@@ -194,9 +236,10 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 			   gr_ts + m->sourceTimeNs, gapNum);    
   }
     break;
+    // #####################################################
     
-  case MsgType::Trade : {
-    auto m {reinterpret_cast<const Trade*>(msgHdr)};
+  case MsgType::Trade : { // 320
+    auto m {reinterpret_cast<const Trade*>(pMsg)};
     FhSecurity* s = book->findSecurity(m->seriesIndex);
     if (s == NULL) return false;
     const EfhTradeMsg msg = {
@@ -215,6 +258,37 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
   }
     break;
+     // #####################################################
+    
+  case MsgType::SeriesRfq : { // 307
+    auto m {reinterpret_cast<const Rfq*>(pMsg)};
+
+    EfhAuctionUpdateMsg msg{};
+    msg.header.msgType        = EfhMsgType::kAuctionUpdate;
+    msg.header.group.source   = exch;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = m->sourceTimeSec * static_cast<uint64_t>(SEC_TO_NANO) + m->sourceTimeNs;
+    msg.header.gapNum         = gapNum;
+
+    msg.auctionId         = m->auctionId;
+    msg.auctionType       = getAuctionType(m->type);
+    msg.updateType        = getAuctionUpdateType(m->rfqStatus);
+    msg.securityType      = EfhSecurityType::kRfq;
+    msg.header.securityId = (uint64_t) m->seriesIndex;
+    msg.side              = getSide(m->side);
+    msg.capacity          = getRfqCapacity(m->capacity);
+    msg.price             = m->workingPrice;
+    msg.quantity          = m->totalQuantity;
+    sprintf(msg.firmId,"%u",m->participant);
+    if (pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL)
+      on_error("pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL");
+    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+    
+  }
+    break;   
+    // #####################################################
     
   default:
     break;

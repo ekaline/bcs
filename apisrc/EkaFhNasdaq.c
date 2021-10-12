@@ -74,8 +74,8 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
     if (gr->state == EkaFhGroup::GrpState::NORMAL && 
 	sequence != 0 && 
 	sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
-      EKA_WARN("%s:%u: TEST GAP INJECTED: (GAP_INJECT_INTERVAL = %d): pkt sequence %ju with unknown number of messages dropped",
-	       EKA_EXCH_DECODE(exch),gr_id, _EFH_TEST_GAP_INJECT_INTERVAL_,sequence);
+      EKA_WARN("%s:%u: TEST GAP INJECTED: (GAP_INJECT_INTERVAL = %d): pkt sequence %ju with %u messages dropped",
+	       EKA_EXCH_DECODE(exch),gr_id, _EFH_TEST_GAP_INJECT_INTERVAL_,sequence,msgInPkt);
       runGr->udpCh->next(); 
       continue;
     }
@@ -107,8 +107,9 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
 	break; 
       }
       if (sequence > gr->expected_sequence) { // GAP
-	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%ju",
-		EKA_EXCH_DECODE(exch),gr_id,gr->expected_sequence,sequence);
+	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%ju, gap=%ju",
+		EKA_EXCH_DECODE(exch),gr_id,gr->expected_sequence,sequence,
+		sequence - gr->expected_sequence);
 	gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
 	gr->gapClosed = false;
 
@@ -141,8 +142,8 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
     case EkaFhGroup::GrpState::RETRANSMIT_GAP : {
       gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
       if (gr->gapClosed) {
-	EKA_LOG("%s:%u: RETRANSMIT_GAP Closed, switching to fetch from Q",
-		EKA_EXCH_DECODE(exch),gr->id);
+	EKA_LOG("%s:%u: RETRANSMIT_GAP Closed, switching to fetch from Q: next sequence from Q = %ju",
+		EKA_EXCH_DECODE(exch),gr->id,gr->seq_after_snapshot);
 	gr->state = EkaFhGroup::GrpState::NORMAL;
 	gr->sendFeedUp(pEfhRunCtx);
 	runGr->setGrAfterGap(gr->id);

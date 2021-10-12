@@ -38,11 +38,16 @@ uint         EkaFhGroup::getNumSecurities() {
  /* ##################################################################### */
 
 int EkaFhGroup::processFromQ(const EfhRunCtx* pEfhRunCtx) {
+  bool firstMsg = true;
   while (! q->is_empty()) {
     fh_msg* buf = q->pop();
     /* EKA_LOG("q_len=%u,buf->sequence=%ju, expected_sequence=%ju", */
     /* 	    q->get_len(),buf->sequence,expected_sequence); */
-
+    if (firstMsg) {
+      firstMsg = false;
+      EKA_LOG("%s:%u: 1st Q msg sequence = %ju",
+	  EKA_EXCH_DECODE(exch),id,buf->sequence);
+    }
     if (buf->sequence < expected_sequence) continue;
     parseMsg(pEfhRunCtx,(unsigned char*)buf->data,buf->sequence,EkaFhMode::MCAST);
     expected_sequence = buf->sequence + 1;
