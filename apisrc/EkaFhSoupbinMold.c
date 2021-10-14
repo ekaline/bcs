@@ -419,7 +419,10 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
     }
 
     if (end_sequence != 0 && gr->recovery_sequence >= end_sequence) {
-      gr->seq_after_snapshot = gr->recovery_sequence;
+      if (op != EkaFhMode::DEFINITIONS) {
+	gr->seq_after_snapshot = gr->recovery_sequence;
+	gr->parserSeq = gr->recovery_sequence;
+      }
       EKA_LOG("%s:%u Snapshot Gap is closed: recovery_sequence == end_sequence %ju",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,end_sequence);
       return EkaFhParseResult::End;
@@ -428,7 +431,7 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
     /* ------------ */
   } // switch (hdr.type)
   return EkaFhParseResult::NotEnd;
-}
+} // procSoupbinPkt()
 
 /* ##################################################################### */
 static bool soupbinCycle(EkaDev*        dev, 

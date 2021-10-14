@@ -158,6 +158,7 @@ class EkaFhGroup {
 
   FILE*                 parser_log = NULL; // used with PRINT_PARSED_MESSAGES define
 
+  uint64_t              parserSeq = 0; // used for the sanity check
  private:
 
  protected:
