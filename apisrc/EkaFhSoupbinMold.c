@@ -633,7 +633,7 @@ void* getMolUdp64Data(void* attr) {
   if (!dev) on_error("dev == NULL");
 
   EKA_LOG("%s:%u MolUdp64 gap recovery: start=%ju, end=%ju,cnt=%ju",
-	  EKA_EXCH_DECODE(gr->exch),gr->id,start,end,end-start+1);
+	  EKA_EXCH_DECODE(gr->exch),gr->id,start,end,end-start);
   
   int udpSock = socket(AF_INET,SOCK_DGRAM,0);
   if (udpSock < 0) 
