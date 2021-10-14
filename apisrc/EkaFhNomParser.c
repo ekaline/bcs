@@ -36,6 +36,11 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   auto start = std::chrono::high_resolution_clock::now();  
 #endif
 
+  if (parserSeq != 0 && parserSeq != sequence)
+    EKA_WARN("WARNING: %s %s:%u parserSeq %ju != sequence %ju",
+	     EkaFhMode2STR(op),EKA_EXCH_DECODE(exch),id,parserSeq,sequence);
+  parserSeq = sequence + 1;
+  
   auto enc {static_cast<const char>(m[0])};
   auto msg_timestamp = get_ts(m);
 
