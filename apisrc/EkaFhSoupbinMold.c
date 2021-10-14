@@ -415,14 +415,27 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
       //      gr->seq_after_snapshot = gr->recovery_sequence + 1;
       EKA_LOG("%s:%u After lastMsg message: seq_after_snapshot = %ju, recovery_sequence = %ju",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot,gr->recovery_sequence);
+      gr->parserSeq = gr->seq_after_snapshot;
       return EkaFhParseResult::End;
     }
 
     if (end_sequence != 0 && gr->recovery_sequence >= end_sequence) {
-      if (op != EkaFhMode::DEFINITIONS) {
+      switch (op) {
+      case EkaFhMode::DEFINITIONS :
+	break;
+      case EkaFhMode::RECOVERY :
 	gr->seq_after_snapshot = gr->recovery_sequence;
-	gr->parserSeq = gr->recovery_sequence;
+	break;
+      case EkaFhMode::SNAPSHOT :
+	gr->parserSeq = gr->seq_after_snapshot; // set from the parser 'M' msg
+	break;
+      default:
+	on_error("Unexpected op %d",(int)op);
       }
+      /* if (op != EkaFhMode::DEFINITIONS) { */
+      /* 	gr->seq_after_snapshot = gr->recovery_sequence; */
+      /* 	gr->parserSeq = gr->recovery_sequence; */
+      /* } */
       EKA_LOG("%s:%u Snapshot Gap is closed: recovery_sequence == end_sequence %ju",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,end_sequence);
       return EkaFhParseResult::End;
