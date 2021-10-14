@@ -421,7 +421,6 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
     }
 
     if (end_sequence != 0 && gr->recovery_sequence >= end_sequence) {
-<<<<<<< HEAD
       switch (op) {
       case EkaFhMode::DEFINITIONS :
 	break;
@@ -438,12 +437,6 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
       /* 	gr->seq_after_snapshot = gr->recovery_sequence; */
       /* 	gr->parserSeq = gr->recovery_sequence; */
       /* } */
-=======
-      if (op != EkaFhMode::DEFINITIONS) {
-	gr->seq_after_snapshot = gr->recovery_sequence;
-	gr->parserSeq = gr->recovery_sequence;
-      }
->>>>>>> adding Sanity equence check at NomParser
       EKA_LOG("%s:%u Snapshot Gap is closed: recovery_sequence == end_sequence %ju",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,end_sequence);
       return EkaFhParseResult::End;
