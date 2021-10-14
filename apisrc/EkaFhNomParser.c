@@ -86,7 +86,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     char seq_num_str[21] = {};
     memcpy(seq_num_str, message->sequence_number, 20);
     seq_after_snapshot = (op == EkaFhMode::SNAPSHOT) ? strtoul(seq_num_str, NULL, 10) : 0;
-    EKA_LOG("Glimpse snapshot_end_message (\'M\'): fh->gr[%u].seq_after_snapshot = %ju",id,seq_after_snapshot);
+    EKA_LOG("Glimpse snapshot_end_message (\'M\'): fh->gr[%u].seq_after_snapshot = %ju (\'%s\')",
+	    id,seq_after_snapshot,seq_num_str);
     return true;
   }
     //--------------------------------------------------------------

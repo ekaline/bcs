@@ -96,7 +96,7 @@ class EkaFhGroup {
   EfhFeedVer            feed_ver            = EfhFeedVer::kInvalid;
   EkaSource             exch                = EkaSource::kInvalid;
 
-  volatile uint64_t     seq_after_snapshot  = -1; // set from end of snapshot
+  volatile uint64_t     seq_after_snapshot  = 0; // set from end of snapshot
 
   uint64_t              expected_sequence   = 1; 
   volatile bool         heartbeat_active    = false; // Glimpse Heartbeat
