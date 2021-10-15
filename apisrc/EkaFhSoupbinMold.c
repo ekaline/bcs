@@ -413,13 +413,30 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
 
     if (lastMsg) {
       //      gr->seq_after_snapshot = gr->recovery_sequence + 1;
-      EKA_LOG("%s:%u After lastMsg message: seq_after_snapshot = %ju, recovery_sequence = %ju",
-	      EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot,gr->recovery_sequence);
+      EKA_LOG("%s:%u %s After lastMsg message: seq_after_snapshot = %ju (0x%jx), recovery_sequence = %ju",
+	      EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op),
+	      gr->seq_after_snapshot,gr->seq_after_snapshot,gr->recovery_sequence);
+      gr->parserSeq = gr->seq_after_snapshot;
       return EkaFhParseResult::End;
     }
 
     if (end_sequence != 0 && gr->recovery_sequence >= end_sequence) {
-      gr->seq_after_snapshot = gr->recovery_sequence;
+      switch (op) {
+      case EkaFhMode::DEFINITIONS :
+	break;
+      case EkaFhMode::RECOVERY :
+	gr->seq_after_snapshot = gr->recovery_sequence;
+	break;
+      case EkaFhMode::SNAPSHOT :
+	gr->parserSeq = gr->seq_after_snapshot; // set from the parser 'M' msg
+	break;
+      default:
+	on_error("Unexpected op %d",(int)op);
+      }
+      /* if (op != EkaFhMode::DEFINITIONS) { */
+      /* 	gr->seq_after_snapshot = gr->recovery_sequence; */
+      /* 	gr->parserSeq = gr->recovery_sequence; */
+      /* } */
       EKA_LOG("%s:%u Snapshot Gap is closed: recovery_sequence == end_sequence %ju",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,end_sequence);
       return EkaFhParseResult::End;
@@ -428,7 +445,7 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
     /* ------------ */
   } // switch (hdr.type)
   return EkaFhParseResult::NotEnd;
-}
+} // procSoupbinPkt()
 
 /* ##################################################################### */
 static bool soupbinCycle(EkaDev*        dev, 
@@ -616,7 +633,7 @@ void* getMolUdp64Data(void* attr) {
   if (!dev) on_error("dev == NULL");
 
   EKA_LOG("%s:%u MolUdp64 gap recovery: start=%ju, end=%ju,cnt=%ju",
-	  EKA_EXCH_DECODE(gr->exch),gr->id,start,end,end-start+1);
+	  EKA_EXCH_DECODE(gr->exch),gr->id,start,end,end-start);
   
   int udpSock = socket(AF_INET,SOCK_DGRAM,0);
   if (udpSock < 0) 

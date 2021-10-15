@@ -36,6 +36,11 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   auto start = std::chrono::high_resolution_clock::now();  
 #endif
 
+  if (parserSeq != 0 && parserSeq != sequence)
+    EKA_WARN("WARNING: %s %s:%u parserSeq %ju != sequence %ju",
+	     EkaFhMode2STR(op),EKA_EXCH_DECODE(exch),id,parserSeq,sequence);
+  parserSeq = sequence + 1;
+  
   auto enc {static_cast<const char>(m[0])};
   auto msg_timestamp = get_ts(m);
 
@@ -81,7 +86,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     char seq_num_str[21] = {};
     memcpy(seq_num_str, message->sequence_number, 20);
     seq_after_snapshot = (op == EkaFhMode::SNAPSHOT) ? strtoul(seq_num_str, NULL, 10) : 0;
-    EKA_LOG("Glimpse snapshot_end_message (\'M\'): fh->gr[%u].seq_after_snapshot = %ju",id,seq_after_snapshot);
+    EKA_LOG("Glimpse snapshot_end_message (\'M\'): fh->gr[%u].seq_after_snapshot = %ju (\'%s\')",
+	    id,seq_after_snapshot,seq_num_str);
     return true;
   }
     //--------------------------------------------------------------
