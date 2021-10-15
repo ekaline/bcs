@@ -189,8 +189,13 @@ EkaOpResult EkaFhPlr::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 EkaOpResult EkaFhPlr::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, const EkaGroup* group) {
   auto gr {dynamic_cast<EkaFhPlrGr*>(b_gr[(uint8_t)group->localId])};
   if (! gr) on_error("gr == NULL");
-  
+  else if (gr->productMask == PM_VanillaTrades) {
+    // The trades channel does not give definitions and we'll wait forever
+    // if we try to receive them.
+    EKA_DEBUG("%s:%u: skipping definitions for trade group",EKA_EXCH_DECODE(exch),gr->id);
+    return EKA_OPRESULT__OK;
+  }
   getPlrRefresh(pEfhRunCtx, gr, EkaFhMode::DEFINITIONS);
-		 
+
   return EKA_OPRESULT__OK;
 }

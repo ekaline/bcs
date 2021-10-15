@@ -12,7 +12,9 @@
 // #define PLR_CERT 1
 
 namespace Plr {
-  const uint8_t NYSE_ARCA_BBO_ProductId = 162;
+  const uint8_t NYSE_BBO_ProductId = 162;
+  const uint8_t NYSE_Trades_ProductId = 165;
+  const uint8_t NYSE_Auction_ProductId = 164;
     
   struct PktHdr {
     uint16_t pktSize;

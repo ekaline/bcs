@@ -11,6 +11,20 @@ int ekaTcpConnect(uint32_t ip, uint16_t port);
 
 using namespace Plr;
 
+static int getPillarProductIdFromProductMask(int productMask) {
+  switch (productMask) {
+  case PM_VanillaBook:
+    return NYSE_BBO_ProductId;
+  case PM_VanillaTrades:
+    return NYSE_Trades_ProductId;
+  case PM_ComplexAuction:
+    return NYSE_Auction_ProductId;
+  default:
+    on_error("unexpected product mask %d, only vanilla_book, vanilla_trades, "
+             "and complex_auction are allowed", productMask);
+  }
+}
+
 static bool sendSymbolIndexMappingRequest(EkaFhPlrGr* gr, int sock) {
   if (!gr) on_error("gr == NULL");
   auto dev {gr->dev};
@@ -31,7 +45,7 @@ static bool sendSymbolIndexMappingRequest(EkaFhPlrGr* gr, int sock) {
   msg->hdr.type = static_cast<decltype(msg->hdr.type)>(MsgType::SymbolIndexMappingRequest);
   msg->SymbolIndex = 0;
   strncpy(msg->SourceID,gr->sourceId,sizeof msg->SourceID);
-  msg->ProductID = NYSE_ARCA_BBO_ProductId;
+  msg->ProductID   = getPillarProductIdFromProductMask(gr->productMask);
   msg->ChannelID = gr->channelId;
   msg->RetransmitMethod = 0;
 
@@ -66,7 +80,7 @@ static bool sendRefreshRequest(EkaFhPlrGr* gr, int sock) {
   msg->hdr.type    = static_cast<decltype(msg->hdr.type)>(MsgType::RefreshRequest);
   msg->SymbolIndex = 0;
   strncpy(msg->SourceID,gr->sourceId,sizeof msg->SourceID);
-  msg->ProductID   = NYSE_ARCA_BBO_ProductId;
+  msg->ProductID   = getPillarProductIdFromProductMask(gr->productMask);
   msg->ChannelID   = gr->channelId;
 
   EKA_LOG("Sending RefreshRequest: SymbolIndex=%u,SourceID=\'%s\',ProductID=%u,ChannelID=%u",
@@ -101,7 +115,7 @@ static bool sendRetransmissionRequest(EkaFhPlrGr* gr, int sock, uint32_t start, 
   msg->BeginSeqNum = start;
   msg->EndSeqNum   = end;
   strncpy(msg->SourceID,gr->sourceId,sizeof msg->SourceID);
-  msg->ProductID   = NYSE_ARCA_BBO_ProductId;
+  msg->ProductID   = getPillarProductIdFromProductMask(gr->productMask);
   msg->ChannelID   = gr->channelId;
 
   EKA_LOG("Sending RetransmissionRequest: BeginSeqNum=%u,EndSeqNum=%u,SourceID=\'%s\',ProductID=%u,ChannelID=%u",
