@@ -30,8 +30,7 @@ static bool sendSymbolIndexMappingRequest(EkaFhPlrGr* gr, int sock) {
   msg->hdr.size = sizeof(*msg);
   msg->hdr.type = static_cast<decltype(msg->hdr.type)>(MsgType::SymbolIndexMappingRequest);
   msg->SymbolIndex = 0;
-  memcpy(msg->SourceID,gr->sourceId,
-	 std::min(sizeof(msg->SourceID),sizeof(gr->sourceId)));
+  strncpy(msg->SourceID,gr->sourceId,sizeof msg->SourceID);
   msg->ProductID = NYSE_ARCA_BBO_ProductId;
   msg->ChannelID = gr->channelId;
   msg->RetransmitMethod = 0;
@@ -66,8 +65,7 @@ static bool sendRefreshRequest(EkaFhPlrGr* gr, int sock) {
   msg->hdr.size    = sizeof(*msg);
   msg->hdr.type    = static_cast<decltype(msg->hdr.type)>(MsgType::RefreshRequest);
   msg->SymbolIndex = 0;
-  memcpy(msg->SourceID,gr->sourceId,
-	 std::min(sizeof(msg->SourceID),sizeof(gr->sourceId)));
+  strncpy(msg->SourceID,gr->sourceId,sizeof msg->SourceID);
   msg->ProductID   = NYSE_ARCA_BBO_ProductId;
   msg->ChannelID   = gr->channelId;
 
@@ -102,8 +100,7 @@ static bool sendRetransmissionRequest(EkaFhPlrGr* gr, int sock, uint32_t start, 
   msg->hdr.type    = static_cast<decltype(msg->hdr.type)>(MsgType::RetransmissionRequest);
   msg->BeginSeqNum = start;
   msg->EndSeqNum   = end;
-  memcpy(msg->SourceID,gr->sourceId,
-	 std::min(sizeof(msg->SourceID),sizeof(gr->sourceId)));
+  strncpy(msg->SourceID,gr->sourceId,sizeof msg->SourceID);
   msg->ProductID   = NYSE_ARCA_BBO_ProductId;
   msg->ChannelID   = gr->channelId;
 
@@ -136,8 +133,7 @@ static bool sendHeartbeatResponse(EkaFhPlrGr* gr, int sock) {
 
   msg->hdr.size = sizeof(*msg);
   msg->hdr.type = static_cast<decltype(msg->hdr.type)>(MsgType::HeartbeatResponse);
-  memcpy(msg->SourceID,gr->sourceId,
-	 std::min(sizeof(msg->SourceID),sizeof(gr->sourceId)));
+  strncpy(msg->SourceID,gr->sourceId,sizeof msg->SourceID);
 
   int rc = send(sock,pkt,pktHdr->pktSize,0);
   if (rc <= 0) {
@@ -270,21 +266,21 @@ void* getPlrRefresh(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op) {
   if (udpSock < 0)
     on_error("%s:%u: failed to open UDP socket %s:%u",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,
-	     EKA_IP2STR(gr->refreshUdpIp),gr->refreshUdpPort);
+	     EKA_IP2STR(gr->refreshUdpIp),be16toh(gr->refreshUdpPort));
   
   EKA_LOG("Waiting for UDP RX pkt before sending request");
   rc = recvfrom(udpSock, buf, sizeof(buf), MSG_WAITALL, NULL, NULL);
   if (rc <= 0) on_error("Failed UDP recv (rc = %d) from %s:%u",
-			rc,EKA_IP2STR(gr->refreshUdpIp),gr->refreshUdpPort);
+			rc,EKA_IP2STR(gr->refreshUdpIp),be16toh(gr->refreshUdpPort));
   
   EKA_LOG("%s:%u: Connecting to TCP server %s:%u",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,
-	  EKA_IP2STR(gr->refreshTcpIp),gr->refreshTcpPort);
+	  EKA_IP2STR(gr->refreshTcpIp),be16toh(gr->refreshTcpPort));
   
   int tcpSock = ekaTcpConnect(gr->refreshTcpIp,gr->refreshTcpPort);
   if (tcpSock < 0) on_error("%s:%u: failed to open TCP socket %s:%u",
 			    EKA_EXCH_DECODE(gr->exch),gr->id,
-			    EKA_IP2STR(gr->refreshTcpIp),gr->refreshTcpPort);
+			    EKA_IP2STR(gr->refreshTcpIp),be16toh(gr->refreshTcpPort));
 
   if (op == EkaFhMode::DEFINITIONS) {
     if (! definitionsRefreshTcp(gr,tcpSock)) on_error("Definitions Failed");
@@ -296,7 +292,7 @@ void* getPlrRefresh(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op) {
   while (1) {
     rc = recvfrom(udpSock, buf, sizeof(buf), MSG_WAITALL, NULL, NULL);
     if (rc <= 0) on_error("Failed UDP recv (rc = %d) from %s:%u",
-			  rc,EKA_IP2STR(gr->refreshUdpIp),gr->refreshUdpPort);
+			  rc,EKA_IP2STR(gr->refreshUdpIp),be16toh(gr->refreshUdpPort));
     auto p      {reinterpret_cast<const uint8_t*>(buf)};
     auto pktHdr {reinterpret_cast<const PktHdr* >(p)};
     p += sizeof(*pktHdr);
@@ -368,21 +364,21 @@ void* getPlrRetrans(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op, u
   if (udpSock < 0)
     on_error("%s:%u: failed to open UDP socket %s:%u",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,
-	     EKA_IP2STR(gr->retransUdpIp),gr->retransUdpPort);
+	     EKA_IP2STR(gr->retransUdpIp),be16toh(gr->retransUdpPort));
   
   EKA_LOG("Waiting for UDP RX pkt before sending request");
   rc = recvfrom(udpSock, buf, sizeof(buf), MSG_WAITALL, NULL, NULL);
   if (rc <= 0) on_error("Failed UDP recv (rc = %d) from %s:%u",
-			rc,EKA_IP2STR(gr->retransUdpIp),gr->retransUdpPort);
+			rc,EKA_IP2STR(gr->retransUdpIp),be16toh(gr->retransUdpPort));
   
   EKA_LOG("%s:%u: Connecting to TCP server %s:%u",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,
-	  EKA_IP2STR(gr->retransTcpIp),gr->retransTcpPort);
+	  EKA_IP2STR(gr->retransTcpIp),be16toh(gr->retransTcpPort));
   
   int tcpSock = ekaTcpConnect(gr->retransTcpIp,gr->retransTcpPort);
   if (tcpSock < 0) on_error("%s:%u: failed to open TCP socket %s:%u",
 			    EKA_EXCH_DECODE(gr->exch),gr->id,
-			    EKA_IP2STR(gr->retransTcpIp),gr->retransTcpPort);
+			    EKA_IP2STR(gr->retransTcpIp),be16toh(gr->retransTcpPort));
 
   if (! recoveryRetransmitTcp(gr, tcpSock, start, end)) on_error("Retrans Failed");
 
@@ -391,7 +387,7 @@ void* getPlrRetrans(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op, u
   while (1) {
     rc = recvfrom(udpSock, buf, sizeof(buf), MSG_WAITALL, NULL, NULL);
     if (rc <= 0) on_error("Failed UDP recv (rc = %d) from %s:%u",
-			  rc,EKA_IP2STR(gr->retransUdpIp),gr->retransUdpPort);
+			  rc,EKA_IP2STR(gr->retransUdpIp),be16toh(gr->retransUdpPort));
     auto p      {reinterpret_cast<const uint8_t*>(buf)};
     auto pktHdr {reinterpret_cast<const PktHdr* >(p)};
     p += sizeof(*pktHdr);
