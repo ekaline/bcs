@@ -12,6 +12,19 @@
 class fh_q;
 class EkaFhBook;
 
+// Bitmask that tells us the product information carried on this group
+enum ProductMask {
+  PM_NoInfo         = 0,       // No information available
+  PM_VanillaBook    = 1 << 0,  // Vanilla option book prices
+  PM_VanillaTrades  = 1 << 1,  // Vanilla option trades
+  PM_VanillaAuction = 1 << 2,  // Vanilla option RFQs
+  PM_ComplexBook    = 1 << 3,  // Complex option book prices
+  PM_ComplexTrades  = 1 << 4,  // Complex option trades
+  PM_ComplexAuction = 1 << 5,  // Complex option RFQs
+  PM_FutureBook     = 1 << 6,  // Future book prices
+  PM_FutureTrades   = 1 << 7,  // Future trades
+  PM_FutureAuction  = 1 << 8   // Future RFQs (spreads)
+};
 
 class EkaFhGroup {
  protected:
@@ -159,6 +172,7 @@ class EkaFhGroup {
   FILE*                 parser_log = NULL; // used with PRINT_PARSED_MESSAGES define
 
   uint64_t              parserSeq = 0; // used for the sanity check
+  int                   productMask = PM_NoInfo;
  private:
 
  protected:

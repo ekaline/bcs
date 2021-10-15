@@ -32,6 +32,72 @@
 #include "eka_fh_q.h"
 #include "EkaHwCaps.h"
 
+namespace {
+
+struct ProductNameToMaskEntry {
+  const char *name;
+  int mask;
+};
+
+constexpr ProductNameToMaskEntry ProductNameToMaskMap[] = {
+  {
+    .name = "vanilla_book",
+    .mask = PM_VanillaBook
+  },
+
+  {
+    .name = "vanilla_trades",
+    .mask = PM_VanillaTrades
+  },
+
+  {
+    .name = "vanilla_auction",
+    .mask = PM_VanillaAuction
+  },
+
+  {
+    .name = "complex_book",
+    .mask = PM_ComplexBook
+  },
+
+  {
+    .name = "complex_trades",
+    .mask = PM_ComplexTrades
+  },
+
+  {
+    .name = "complex_auction",
+    .mask = PM_ComplexAuction
+  },
+
+  {
+    .name = "future_book",
+    .mask = PM_FutureBook
+  },
+
+  {
+    .name = "future_trades",
+    .mask = PM_FutureTrades
+  },
+
+  {
+    .name = "future_auction",
+    .mask = PM_FutureAuction
+  },
+};
+
+constexpr int NoSuchProduct = -1;
+
+int lookupProductMask(const char *productName) {
+  for (const auto [n, m] : ProductNameToMaskMap) {
+    if (!strcmp(productName, n))
+      return m;
+  }
+  return NoSuchProduct;
+}
+
+} // End of anonymous namespace
+
 
  /* ##################################################################### */
 
@@ -511,6 +577,36 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       b_gr[gr]->recovery_set  = true;
       //      EKA_DEBUG ("%s %s for %s:%u is set to %s:%u",k[4],k[5],k[1],gr,v[0],(uint16_t)atoi(v[1]));
       fflush(stderr);
+      return EkaFhAddConf::CONF_SUCCESS;
+    }
+  }
+  //---------------------------------------------------------------------
+  // efh.<exch>.group.X.products, <comma-separated-product-keys>
+  // k[0] k[1]   k[2]  k[3] k[4]
+  if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"products")==0)) {
+    if (EFH_GET_SRC(k[1]) == exch) {
+      uint8_t gr = (uint8_t) atoi(k[3]);
+      //      if (gr >= groups) on_error("%s -- %s : group_id %d >= groups (=%u)",key, value,gr,groups);
+      if (gr >= groups) {
+	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+	return EkaFhAddConf::CONF_SUCCESS;
+      }
+      if (b_gr[gr] == NULL) on_error("b_gr[%u] == NULL, groups = %u",gr,groups);
+
+      size_t nProducts = 0;
+      v[nProducts++] = strtok(strcpy(val_buf,value), ",");
+      char *tok;
+      while ((tok = strtok(nullptr,",")))
+        v[nProducts++] = tok;
+
+      for (size_t i = 0; i < nProducts; ++i) {
+        const int mask = lookupProductMask(v[i]);
+        if (mask == NoSuchProduct)
+          on_error("product token `%s` not recognized",v[i]);
+        b_gr[gr]->productMask |= mask;
+      }
+      EKA_DEBUG ("%s:%u: ProductMask is set to %x",
+                 k[1],gr,b_gr[gr]->productMask);
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }
