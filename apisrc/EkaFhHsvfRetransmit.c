@@ -173,7 +173,7 @@ static bool getRetransmissionBegins(EkaFhBoxGr* gr) {
       std::string errorMsg  = std::string(msg->ErrorMsg, sizeof(msg->ErrorMsg));
 
       dev->lastExchErr = EfhExchangeErrorCode::kExplicitBoxError;
-      EKA_WARN("%s:%u Login Response Error: ErrorCode=\'%s\', ErrorMsg=\'%s\'",
+      EKA_WARN("%s:%u Begin Retransmision Response Error: ErrorCode=\'%s\', ErrorMsg=\'%s\'",
 	       EKA_EXCH_DECODE(gr->exch),gr->id, errorCode.c_str(),errorMsg.c_str());
 
       return false;

@@ -469,7 +469,7 @@ static bool soupbinCycle(EkaDev*        dev,
   if (gr->snapshot_sock < 0) on_error("%s:%u: failed to open TCP socket",
 				      EKA_EXCH_DECODE(gr->exch),gr->id);
 
-  static const int TimeOut = 1; // seconds
+  static const int TimeOut = 10; // seconds
   struct timeval tv = {
     .tv_sec = TimeOut
   }; 
