@@ -166,6 +166,8 @@ namespace Plr {
       return std::string("SeriesRfq");
     case MsgType::SeriesSummary :
       return std::string("SeriesSummary");
+    case MsgType::ComplexSeriesIndexMapping :
+      return std::string("ComplexSeriesIndexMapping");
     default:
       on_error("Unexpected MsgType %u",type);
     }
