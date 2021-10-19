@@ -17,6 +17,12 @@ using namespace Cme;
 
 std::string ts_ns2str(uint64_t ts);
 
+static_assert(EFH_CME_STRIKE_PRICE_SCALE >= EFH__PRICE_SCALE);
+static_assert(EFH_CME_ORDER_PRICE_SCALE >= EFH__PRICE_SCALE);
+
+constexpr int64_t StrikePriceFactor = EFH_CME_STRIKE_PRICE_SCALE / EFH__PRICE_SCALE;
+constexpr int64_t OtderPriceFactor = EFH_CME_ORDER_PRICE_SCALE / EFH__PRICE_SCALE;
+
 enum DayOfWeek : uint8_t {
   DOW_Sunday = 0,
   DOW_Monday,
@@ -525,12 +531,12 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   msg.commonDef.securityType   = EfhSecurityType::kOption;
   msg.commonDef.exchange       = EfhExchange::kCME;
   msg.commonDef.underlyingType = EfhSecurityType::kFuture;
-  msg.commonDef.contractSize   = 0;
+  msg.commonDef.contractSize   = rootBlock->UnitOfMeasureQty / EFH_CME_STRIKE_PRICE_SCALE;
   getCMEProductTradeTime(pMaturity, rootBlock->Symbol, &msg.commonDef.expiryDate, &msg.commonDef.expiryTime);
   copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
 
   msg.optionType            = putOrCall;
-  msg.strikePrice           = rootBlock->StrikePrice / EFH_CME_ORDER_PRICE_SCALE / 1e9 * rootBlock->DisplayFactor * EFH__PRICE_SCALE;
+  msg.strikePrice           = rootBlock->StrikePrice / StrikePriceFactor;
 
   msg.opaqueAttrA           = rootBlock->DisplayFactor;
   //      msg.opaqueAttrB           = rootBlock->PriceDisplayFormat;
