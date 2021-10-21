@@ -24,9 +24,9 @@ EkaProp efhArcaPlrInitCtxEntries_A[] = {
     {"efh.ARCA_PLR.group.2.products","complex_book"},
     {"efh.ARCA_PLR.group.2.mcast.addr",      "224.0.60.27:41071"},
     {"efh.ARCA_PLR.group.2.refresh.tcpAddr", "162.68.19.122:35050"},
-    {"efh.ARCA_PLR.group.2.refresh.udpAddr", "224.0.60.26:41063"},
+    {"efh.ARCA_PLR.group.2.refresh.udpAddr", "224.0.60.33:41077"},
     {"efh.ARCA_PLR.group.2.retrans.tcpAddr", "162.68.19.122:35050"},
-    {"efh.ARCA_PLR.group.2.retrans.udpAddr", "224.0.60.25:41062"},
+    {"efh.ARCA_PLR.group.2.retrans.udpAddr", "224.0.60.30:41074"},
     {"efh.ARCA_PLR.group.2.ChannelId","51"},
     {"efh.ARCA_PLR.group.2.SourceId","ARGTSXD01"},
                
