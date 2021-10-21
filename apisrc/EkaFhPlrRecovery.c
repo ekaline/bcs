@@ -16,8 +16,10 @@ static int getPillarProductIdFromProductMask(int productMask) {
       return NYSE_BBO_ProductId;
   if (productMask & PM_VanillaTrades)
     return NYSE_Trades_ProductId;
-  if (productMask & PM_ComplexAuction || productMask & PM_ComplexBook)
+  if (productMask & PM_ComplexAuction)
     return NYSE_Auction_ProductId;
+  if (productMask & PM_ComplexBook)
+    return NYSE_Complex_ProductId;
   on_error("unexpected product mask %d: only vanilla_book, vanilla_trades, "
 	   "complex_book and complex_auction are allowed", productMask);
   /* switch (productMask) { */
