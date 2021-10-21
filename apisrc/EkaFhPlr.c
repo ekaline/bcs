@@ -199,3 +199,54 @@ EkaOpResult EkaFhPlr::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
 
   return EKA_OPRESULT__OK;
 }
+ /* ##################################################################### */
+
+EkaOpResult EkaFhPlr::subscribeStaticSecurity(uint8_t groupNum, 
+					   uint64_t securityId, 
+					   EfhSecurityType efhSecurityType,
+					   EfhSecUserData efhSecUserData,
+					   uint64_t opaqueAttrA,
+					   uint64_t opaqueAttrB) {
+  if (groupNum >= groups) on_error("groupNum (%u) >= groups (%u)",groupNum,groups);
+
+  auto gr {dynamic_cast<EkaFhPlrGr*>(b_gr[groupNum])};
+  if (! gr)
+    on_error("b_gr[%u] == NULL",groupNum);
+
+  if (! (gr->productMask & PM_VanillaBook))
+    on_error("%s:%u: Trying subscribe on Non MD group (productMask=0x%x)",
+	     EKA_EXCH_DECODE(exch),gr->id,gr->productMask);
+  gr->subscribeStaticSecurity(securityId, 
+					  efhSecurityType,
+					  efhSecUserData,
+					  opaqueAttrA,
+					  opaqueAttrB);
+
+  gr->numSecurities++;
+
+  auto tradesGroup = findTradesGroup();
+  if (! tradesGroup) {
+    EKA_WARN("%s:%u: WARNING no trades group found",
+	     EKA_EXCH_DECODE(exch),gr->id);
+  } else {
+    tradesGroup->subscribeStaticSecurity(securityId, 
+					 efhSecurityType,
+					 efhSecUserData,
+					 opaqueAttrA,
+					 opaqueAttrB);
+    tradesGroup->numSecurities++;
+  }
+  return EKA_OPRESULT__OK;
+}
+ /* ##################################################################### */
+
+EkaFhPlrGr* EkaFhPlr::findTradesGroup() {
+  for (uint i = 0; i < groups; i++) {
+    auto gr {dynamic_cast<EkaFhPlrGr*>(b_gr[i])};
+    if (! gr)
+      on_error("b_gr[%u] == NULL",i);
+    if (gr->productMask & ProductMask::PM_VanillaTrades)
+      return gr;
+  }
+  return NULL;
+}

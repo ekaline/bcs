@@ -27,7 +27,13 @@ class EkaFhPlr : public EkaFh {
 			   uint64_t       sequence,
 			   uint8_t        gr_id);
 
-
+  EkaOpResult subscribeStaticSecurity(uint8_t groupNum, 
+				      uint64_t securityId, 
+				      EfhSecurityType efhSecurityType,
+				      EfhSecUserData efhSecUserData,
+				      uint64_t opaqueAttrA,
+				      uint64_t opaqueAttrB);
+  
   virtual ~EkaFhPlr() {};
  private:
 
@@ -36,6 +42,8 @@ class EkaFhPlr : public EkaFh {
 			     uint32_t*      sequence,
 			     uint8_t*       gr_id,
 			     uint8_t*       pktType);
+
+  EkaFhPlrGr* findTradesGroup();
 
 };
 #endif
