@@ -13,6 +13,7 @@
 
 namespace Plr {
   const uint8_t NYSE_BBO_ProductId = 162;
+  const uint8_t NYSE_Complex_ProductId = 163;
   const uint8_t NYSE_Trades_ProductId = 165;
   const uint8_t NYSE_Auction_ProductId = 164;
     
