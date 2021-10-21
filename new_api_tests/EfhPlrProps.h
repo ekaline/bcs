@@ -67,8 +67,12 @@ EkaProp efhAmexPlrInitCtxEntries_B[] = {
 
 const EkaGroup arcaPlrGroups[] = {
 	{EkaSource::kARCA_PLR, (EkaLSI)0},
+	{EkaSource::kARCA_PLR, (EkaLSI)1},
+	{EkaSource::kARCA_PLR, (EkaLSI)2},
 };
 const EkaGroup amexPlrGroups[] = {
 	{EkaSource::kAMEX_PLR, (EkaLSI)0},
+	{EkaSource::kAMEX_PLR, (EkaLSI)1},
+	{EkaSource::kAMEX_PLR, (EkaLSI)2},
 };
 #endif

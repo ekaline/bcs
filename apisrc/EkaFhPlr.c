@@ -188,7 +188,8 @@ EkaOpResult EkaFhPlr::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
 EkaOpResult EkaFhPlr::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, const EkaGroup* group) {
   auto gr {dynamic_cast<EkaFhPlrGr*>(b_gr[(uint8_t)group->localId])};
-  if (! gr) on_error("gr == NULL");
+  if (! gr)
+    on_error("%s:%u Group does not exist (gr == NULL)",EKA_EXCH_DECODE(exch),gr->id);
   else if (gr->productMask == PM_VanillaTrades) {
     // The trades channel does not give definitions and we'll wait forever
     // if we try to receive them.
