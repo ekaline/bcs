@@ -12,17 +12,25 @@ int ekaTcpConnect(uint32_t ip, uint16_t port);
 using namespace Plr;
 
 static int getPillarProductIdFromProductMask(int productMask) {
-  switch (productMask) {
-  case PM_VanillaBook:
-    return NYSE_BBO_ProductId;
-  case PM_VanillaTrades:
+  if (productMask & PM_VanillaBook)
+      return NYSE_BBO_ProductId;
+  if (productMask & PM_VanillaTrades)
     return NYSE_Trades_ProductId;
-  case PM_ComplexAuction:
+  if (productMask & PM_ComplexAuction)
     return NYSE_Auction_ProductId;
-  default:
-    on_error("unexpected product mask %d, only vanilla_book, vanilla_trades, "
-             "and complex_auction are allowed", productMask);
-  }
+  on_error("unexpected product mask %d, only vanilla_book, vanilla_trades, "
+	   "and complex_auction are allowed", productMask);
+  /* switch (productMask) { */
+  /* case PM_VanillaBook: */
+  /*   return NYSE_BBO_ProductId; */
+  /* case PM_VanillaTrades: */
+  /*   return NYSE_Trades_ProductId; */
+  /* case PM_ComplexAuction: */
+  /*   return NYSE_Auction_ProductId; */
+  /* default: */
+  /*   on_error("unexpected product mask %d, only vanilla_book, vanilla_trades, " */
+  /*            "and complex_auction are allowed", productMask); */
+  /* } */
 }
 
 static bool sendSymbolIndexMappingRequest(EkaFhPlrGr* gr, int sock) {
@@ -313,14 +321,51 @@ void* getPlrRefresh(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op) {
     if (static_cast<DeliveryFlag>(pktHdr->deliveryFlag) == DeliveryFlag::Heartbeat)
       continue; // next Pkt
 
-    bool firstPkt =
-      static_cast<DeliveryFlag>(pktHdr->deliveryFlag) == DeliveryFlag::SinglePktRefresh ||
-      static_cast<DeliveryFlag>(pktHdr->deliveryFlag) == DeliveryFlag::StratOfRefresh;
+    bool firstPkt = false;
+    bool lastPkt = false;
 
-    bool lastPkt =
-      static_cast<DeliveryFlag>(pktHdr->deliveryFlag) == DeliveryFlag::SinglePktRefresh ||
-      static_cast<DeliveryFlag>(pktHdr->deliveryFlag) == DeliveryFlag::EndOfRefresh;
-
+    switch (static_cast<DeliveryFlag>(pktHdr->deliveryFlag)) {
+      /* ------------------------------------------ */
+    case DeliveryFlag::Heartbeat :
+      if (pktHdr->numMsgs != 0)
+	on_error("deliveryFlag == DeliveryFlag::Heartbeat, but numMsgs = %u",
+		 pktHdr->numMsgs);
+      break;
+      /* ------------------------------------------ */
+    case DeliveryFlag::Failover :
+    case DeliveryFlag::SeqReset :
+      EKA_WARN("WARNING DeliveryFlag %u (%s) at Re-trans: seqNum=%u, numMsgs=%u",
+	       pktHdr->deliveryFlag,deliveryFlag2str(pktHdr->deliveryFlag).c_str(),
+	       pktHdr->seqNum, pktHdr->numMsgs);
+      break;
+      /* ------------------------------------------ */
+    case DeliveryFlag::SinglePktRefresh :
+      firstPkt = true;
+      lastPkt  = true;
+      break;
+      /* ------------------------------------------ */
+    case DeliveryFlag::StratOfRefresh :
+      firstPkt = true;
+      break;
+      /* ------------------------------------------ */
+    case DeliveryFlag::PartOfRefresh :
+      break;
+      /* ------------------------------------------ */
+    case DeliveryFlag::EndOfRefresh :
+      lastPkt = true;
+      break;
+      /* ------------------------------------------ */
+    case DeliveryFlag::SinglePktRetransmit :
+    case DeliveryFlag::PartOfRetransmit :
+    case DeliveryFlag::Original :
+    case DeliveryFlag::MsgUnavail :
+      /* ------------------------------------------ */
+    default :
+      on_error("Unexpected DeliveryFlag %u (%s) at Refresh: seqNum=%u, numMsgs=%u",
+	       pktHdr->deliveryFlag,deliveryFlag2str(pktHdr->deliveryFlag).c_str(),
+	       pktHdr->seqNum, pktHdr->numMsgs);
+    }
+	
     auto msgHdr {reinterpret_cast<const MsgHdr*>(p)};
     if (static_cast<MsgType>(msgHdr->type) == MsgType::RefreshHeader) {
       auto refreshHeader {reinterpret_cast<const RefreshHeader*>(p)};
@@ -348,7 +393,8 @@ void* getPlrRefresh(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op) {
     if (state == RefreshState::NotStarted) {
       if (firstPkt) state = RefreshState::InProgress;
     } else {
-      if (firstPkt) on_error("firstPkt at RefreshState::%s",refreshState2str(state).c_str());
+      if (firstPkt)
+	on_error("firstPkt at RefreshState::%s",refreshState2str(state).c_str());
     }
 
     for (auto i = 0; i < pktHdr->numMsgs; i++) {
@@ -362,9 +408,9 @@ void* getPlrRefresh(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op) {
 
     if (lastPkt) break;
   } // while (1)
-  gr->gapClosed = true;
   close(tcpSock);
   close(udpSock);
+  gr->gapClosed = true;
   return NULL;
 }
 
@@ -405,22 +451,47 @@ void* getPlrRetrans(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op, u
     auto p      {reinterpret_cast<const uint8_t*>(buf)};
     auto pktHdr {reinterpret_cast<const PktHdr* >(p)};
     p += sizeof(*pktHdr);
-    if (static_cast<DeliveryFlag>(pktHdr->deliveryFlag) == DeliveryFlag::Heartbeat)
-      continue; // next Pkt
 
-    if (static_cast<DeliveryFlag>(pktHdr->deliveryFlag) != DeliveryFlag::MsgUnavail &&
-	static_cast<DeliveryFlag>(pktHdr->deliveryFlag) != DeliveryFlag::SinglePktRetransmit &&
-	static_cast<DeliveryFlag>(pktHdr->deliveryFlag) != DeliveryFlag::PartOfRetransmit)
-      on_error("Unexpected DeliveryFlag %u (%s)",
-	       pktHdr->deliveryFlag,deliveryFlag2str(pktHdr->deliveryFlag).c_str());
-    
-    EKA_LOG("%s: UDP DeliveryFlag=\'%s\',start=%ju,end=%ju,expectedSeq=%u,pktSeq=%u,numMsgs=%u",
+    uint32_t msgSeq = pktHdr->seqNum;
+
+    switch (static_cast<DeliveryFlag>(pktHdr->deliveryFlag)) {
+      /* ------------------------------------------ */
+    case DeliveryFlag::Heartbeat :
+      if (pktHdr->numMsgs != 0)
+	on_error("deliveryFlag == DeliveryFlag::Heartbeat, but numMsgs = %u",
+		 pktHdr->numMsgs);
+      break;
+      /* ------------------------------------------ */
+    case DeliveryFlag::Failover :
+    case DeliveryFlag::SeqReset :
+      EKA_WARN("WARNING DeliveryFlag %u (%s) at Re-trans: seqNum=%u, numMsgs=%u",
+	       pktHdr->deliveryFlag,deliveryFlag2str(pktHdr->deliveryFlag).c_str(),
+	       pktHdr->seqNum, pktHdr->numMsgs);
+      break;
+      /* ------------------------------------------ */
+    case DeliveryFlag::SinglePktRetransmit :
+    case DeliveryFlag::PartOfRetransmit :
+      break;
+      /* ------------------------------------------ */
+    case DeliveryFlag::Original :
+    case DeliveryFlag::SinglePktRefresh :
+    case DeliveryFlag::StratOfRefresh :
+    case DeliveryFlag::PartOfRefresh :
+    case DeliveryFlag::EndOfRefresh :
+    case DeliveryFlag::MsgUnavail :
+      /* ------------------------------------------ */
+    default :
+      on_error("Unexpected DeliveryFlag %u (%s) at Re-trans: seqNum=%u, numMsgs=%u",
+	       pktHdr->deliveryFlag,deliveryFlag2str(pktHdr->deliveryFlag).c_str(),
+	       pktHdr->seqNum, pktHdr->numMsgs);
+    }
+
+    EKA_LOG("%s: Re-trans UDP DeliveryFlag=\'%s\',start=%ju,end=%ju,expectedSeq=%u,pktSeq=%u,numMsgs=%u",
 	    EkaFhMode2STR(op),
 	    deliveryFlag2str(pktHdr->deliveryFlag).c_str(),
 	    start,end,expectedSeq,
 	    pktHdr->seqNum, pktHdr->numMsgs);
 
-    uint32_t msgSeq = pktHdr->seqNum;
     for (auto i = 0; i < pktHdr->numMsgs; i++) {
       auto msgHdr {reinterpret_cast<const MsgHdr*>(p)};
       if (static_cast<MsgType>(msgHdr->type) == MsgType::MessageUnavailable) {
@@ -442,9 +513,9 @@ void* getPlrRetrans(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op, u
 
   } // while (1)
  GAP_CLOSED: 
-  gr->gapClosed = true;
   close(tcpSock);
   close(udpSock);
+  gr->gapClosed = true;
   return NULL;
 }
 

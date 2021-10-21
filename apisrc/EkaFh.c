@@ -600,6 +600,9 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
         v[nProducts++] = tok;
 
       for (size_t i = 0; i < nProducts; ++i) {
+	while (*v[i] == ' ') { // skipping leading spaces
+	  v[i]++;
+	}
         const int mask = lookupProductMask(v[i]);
         if (mask == NoSuchProduct)
           on_error("product token `%s` not recognized",v[i]);

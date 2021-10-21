@@ -201,6 +201,8 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
       s->trading_action = EfhTradeStatus::kOpeningRotation;
       break;
     case 'O' : // Core session
+      s->option_open    = true;
+      s->trading_action = EfhTradeStatus::kNormal;
       break;
     case 'X' : // Closed
       s->trading_action = EfhTradeStatus::kClosed;
