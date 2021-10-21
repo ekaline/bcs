@@ -214,9 +214,11 @@ EkaOpResult EkaFhPlr::subscribeStaticSecurity(uint8_t groupNum,
   if (! gr)
     on_error("b_gr[%u] == NULL",groupNum);
 
-  if (! (gr->productMask & PM_VanillaBook))
-    on_error("%s:%u: Trying subscribe on Non MD group (productMask=0x%x)",
+  if (! (gr->productMask & PM_VanillaBook)) {
+    EKA_WARN("%s:%u: Trying subscribe on Non MD group (productMask=0x%x)",
 	     EKA_EXCH_DECODE(exch),gr->id,gr->productMask);
+
+  }
   gr->subscribeStaticSecurity(securityId, 
 					  efhSecurityType,
 					  efhSecUserData,
@@ -229,6 +231,7 @@ EkaOpResult EkaFhPlr::subscribeStaticSecurity(uint8_t groupNum,
   if (! tradesGroup) {
     EKA_WARN("%s:%u: WARNING no trades group found",
 	     EKA_EXCH_DECODE(exch),gr->id);
+    return EKA_OPRESULT__OK;
   } else {
     tradesGroup->subscribeStaticSecurity(securityId, 
 					 efhSecurityType,
