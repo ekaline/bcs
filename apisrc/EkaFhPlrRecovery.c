@@ -288,9 +288,9 @@ static bool establishConnections(EkaFhPlrGr* gr, EkaFhMode op,
   int rc = 0;
   char buf[2000] = {};
   uint16_t udpPort = op == EkaFhMode::RECOVERY ? gr->retransUdpPort : gr->refreshUdpPort;
-  uint16_t udpIp   = op == EkaFhMode::RECOVERY ? gr->retransUdpIp   : gr->refreshUdpIp;
+  uint32_t udpIp   = op == EkaFhMode::RECOVERY ? gr->retransUdpIp   : gr->refreshUdpIp;
   uint16_t tcpPort = op == EkaFhMode::RECOVERY ? gr->retransTcpPort : gr->refreshTcpPort;
-  uint16_t tcpIp   = op == EkaFhMode::RECOVERY ? gr->retransTcpIp   : gr->refreshTcpIp;
+  uint32_t tcpIp   = op == EkaFhMode::RECOVERY ? gr->retransTcpIp   : gr->refreshTcpIp;
 
   EKA_LOG("%s:%u: Connecting to %s UDP %s:%u",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op),
