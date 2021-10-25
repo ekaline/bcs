@@ -130,6 +130,26 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     leg ++; //+= sizeof(*leg);
   }
     break;
+        // #####################################################
+  case MsgType::MessageUnavailable : { // 31
+    auto m {reinterpret_cast<const MessageUnavailable*>(pMsg)};
+    EKA_WARN("WARNING: %s:%u MessageUnavailable at %s: %u..%u,"
+	     "ProductID=%u,ChannelID=%u",
+	     EKA_EXCH_DECODE(exch),id,EkaFhMode2STR(op),
+	     m->BeginSeqNum,m->EndSeqNum,m->ProductID,m->ChannelID);
+    
+  }
+    break; 
+    // #####################################################
+  case MsgType::RefreshHeader : { // 35
+    auto m {reinterpret_cast<const RefreshHeader*>(pMsg)};
+    if (msgHdr->size == sizeof(RefreshHeader)) { // Full (=1st) Refresh Header
+	seq_after_snapshot = m->LastSeqNum + 1;
+	EKA_LOG("Full (=1st) Refresh Header: seq_after_snapshot = %ju",
+		seq_after_snapshot);
+      }
+  }
+    break; 
     // #####################################################
   case MsgType::SymbolClear : { // 32
   }
