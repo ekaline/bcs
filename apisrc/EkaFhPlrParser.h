@@ -25,21 +25,6 @@ namespace Plr {
     uint32_t seconds;
     uint32_t ns;
   } __attribute__((packed));
-    
-    
-  enum class RefreshState : int  {
-				  NotStarted = 0,
-				  InProgress,
-  };
-    
-  inline std::string refreshState2str (RefreshState state) {
-    switch (state) {
-    case RefreshState::NotStarted : return std::string("NotStarted");
-    case RefreshState::InProgress : return std::string("InProgress");
-
-    default : on_error("Unexpected RefreshState %d",(int)state);
-    } // switch(state)      
-  }
 
   enum class DeliveryFlag : uint8_t  {
 				      Heartbeat = 1,
@@ -58,6 +43,19 @@ namespace Plr {
 				      MsgUnavail = 21
   };
 
+  inline bool operator==(const DeliveryFlag lhs, const uint8_t rhs) noexcept {
+    return ((uint8_t)lhs) == rhs;
+  }
+  inline bool operator==(const uint8_t lhs, const DeliveryFlag rhs) noexcept {
+    return lhs == (uint8_t)rhs;
+  }
+  inline bool operator!=(const DeliveryFlag lhs, const uint8_t rhs) noexcept {
+    return ((uint8_t)lhs) != rhs;
+  }
+  inline bool operator!=(const uint8_t lhs, const DeliveryFlag rhs) noexcept {
+    return lhs != (uint8_t)rhs;
+  }
+  
   inline EfhOrderSide getSide(char side) {
     switch (side) {
     case 'B' : return EfhOrderSide::kBid;
@@ -124,7 +122,19 @@ namespace Plr {
 				 // Complex
 				 ComplexSeriesIndexMapping = 60
   };
-
+  
+  inline bool operator==(const MsgType lhs, const uint16_t rhs) noexcept {
+    return ((uint16_t)lhs) == rhs;
+  }
+  inline bool operator==(const uint16_t lhs, const MsgType rhs) noexcept {
+    return lhs == (uint16_t)rhs;
+  }
+  inline bool operator!=(const MsgType lhs, const uint16_t rhs) noexcept {
+    return ((uint16_t)lhs) != rhs;
+  }
+  inline bool operator!=(const uint16_t lhs, const MsgType rhs) noexcept {
+    return lhs != (uint16_t)rhs;
+  }
   inline std::string msgType2str (uint16_t type) {
     switch (static_cast<MsgType>(type)) {
     case MsgType::SequenceNumberReset :
