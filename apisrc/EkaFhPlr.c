@@ -99,6 +99,9 @@ EkaOpResult EkaFhPlr::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     gr->state = EkaFhGroup::GrpState::NORMAL;
     gr->processUdpPkt(pEfhRunCtx,pkt,msgInPkt,sequence,startTime);
 #else
+
+    if (msgInPkt == 0) goto SKIP; // Heartbeat
+    
     //-----------------------------------------------------------------------------
     switch (gr->state) {
       //-----------------------------------------------------------------------------
@@ -123,8 +126,8 @@ EkaOpResult EkaFhPlr::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	break; 
       }
       if (sequence > gr->expected_sequence) { // GAP
-	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%u",
-		EKA_EXCH_DECODE(exch),gr_id,gr->expected_sequence,sequence);
+	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%u, msgInPkt=%u",
+		EKA_EXCH_DECODE(exch),gr_id,gr->expected_sequence,sequence,msgInPkt);
 	gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
 	gr->gapClosed = false;
 
@@ -176,10 +179,11 @@ EkaOpResult EkaFhPlr::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     default:
       on_error("%s:%u: UNEXPECTED GrpState %u",EKA_EXCH_DECODE(exch),gr->id,(uint)gr->state);
       break;
-    }
+    } // switch
 #endif
+  SKIP:    
     runGr->udpCh->next(); 
-  }
+  } // while()
   runGr->sendFeedCloseAll(pEfhRunCtx);
 
   return EKA_OPRESULT__OK;
@@ -214,11 +218,11 @@ EkaOpResult EkaFhPlr::subscribeStaticSecurity(uint8_t groupNum,
   if (! gr)
     on_error("b_gr[%u] == NULL",groupNum);
 
-  if (! (gr->productMask & PM_VanillaBook)) {
-    EKA_WARN("%s:%u: Trying subscribe on Non MD group (productMask=0x%x)",
-	     EKA_EXCH_DECODE(exch),gr->id,gr->productMask);
+  /* if (! (gr->productMask & PM_VanillaBook)) { */
+  /*   EKA_WARN("%s:%u: Trying subscribe on Non MD group (productMask=0x%x)", */
+  /* 	     EKA_EXCH_DECODE(exch),gr->id,gr->productMask); */
 
-  }
+  /* } */
   gr->subscribeStaticSecurity(securityId, 
 					  efhSecurityType,
 					  efhSecUserData,
