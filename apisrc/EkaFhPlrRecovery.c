@@ -178,7 +178,7 @@ static bool getRequestResponse(EkaFhPlrGr* gr, int sock, EkaFhMode op) {
   struct timeval tv = {.tv_sec = TimeOut}; 
   setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
   
-  while (1) {
+  while (gr->snapshot_active || gr->recovery_active) {
     PktHdr pktHdr{};
     int rc = recv(sock,&pktHdr,sizeof(pktHdr),MSG_WAITALL);
     if (rc <= 0) on_error("\'%s\', rc=%d",strerror(errno),rc);
@@ -243,7 +243,7 @@ static bool getRequestResponse(EkaFhPlrGr* gr, int sock, EkaFhMode op) {
 	on_error("Unexpected response Status: \'%c\'",msg->Status);
       }
     } // for
-  } // while (1)
+  } // while ()
   return false;
 }
 
@@ -410,6 +410,7 @@ static bool processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
   if (op == EkaFhMode::SNAPSHOT && firstMsgHdr->type != MsgType::RefreshHeader)
     return false;
   
+  //  switch (pktHdr->deliveryFlag) {
   switch (static_cast<DeliveryFlag>(pktHdr->deliveryFlag)) {
     /* ------------------------------------------ */
   case DeliveryFlag::StartOfRefresh :
@@ -481,11 +482,14 @@ bool plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op,
   if (!gr) on_error("gr == NULL");
   auto dev {gr->dev};
 
+  gr->snapshot_active = true;
+  gr->recovery_active = true;
+  
   EKA_LOG("\n-----------------------------------------------\n%s:%u %s started",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
   establishConnections(gr,op,start,end,&udpSock,&tcpSock);
   
-  while (1) {
+  while (gr->snapshot_active || gr->recovery_active) {
     char buf[2000] = {};
     int rc = recvfrom(udpSock, buf, sizeof(buf), MSG_WAITALL, NULL, NULL);
     if (rc < 0)
@@ -499,16 +503,18 @@ bool plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op,
 
     if (op ==  EkaFhMode::RECOVERY) {
       if (processRetransUdpPkt(pEfhRunCtx,gr,p,op,start,end))
-	break; // while(1)
+	break; // while()
     } else {
       if (processRefreshUdpPkt(pEfhRunCtx,gr,p,op,&myRefreshStarted))
-	break; // while(1)
+	break; // while()
     }
-  } // while(1)
+  } // while()
   close(udpSock);
   close(tcpSock);
   EKA_LOG("%s:%u %s completed\n-----------------------------------------------\n",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
+  gr->snapshot_active = false;
+  gr->recovery_active = false;
   return true;
 }
 
