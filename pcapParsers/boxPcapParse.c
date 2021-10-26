@@ -174,7 +174,8 @@ void processRfqStart(const uint8_t* msgBody, uint8_t id, uint64_t sequence, uint
 
   msg.quantity              = getNumField<uint32_t>(boxMsg->Size, sizeof(boxMsg->Size));
   msg.price                 = getNumField<uint32_t>(boxMsg->Price,sizeof(boxMsg->Price));
-  msg.endTimeNanos          = getExpireNs(boxMsg->ExpiryTime);
+  //  msg.endTimeNanos          = getExpireNs(boxMsg->ExpiryTime);
+  msg.endTimeNanos          = 0; //PATCH
 
   printf("processRfqStart: ");
   printf("%s,",std::string(boxMsg->InstrumentDescription,sizeof(boxMsg->InstrumentDescription)).c_str());
@@ -207,8 +208,10 @@ void processRfqInsert(const uint8_t* msgBody, uint8_t id, uint64_t sequence, uin
 
   msg.quantity              = getNumField<uint32_t>(boxMsg->Size,sizeof(boxMsg->Size));
   msg.price                 = getNumField<uint32_t>(boxMsg->LimitPrice,sizeof(boxMsg->LimitPrice));
-  msg.endTimeNanos          = getExpireNs(boxMsg->EndOfExposition);
-
+  /* msg.endTimeNanos          = getExpireNs(boxMsg->EndOfExposition); */
+  /* msg.endTimeNanos          = getExpireNs(&localTimeComponents, boxMsg->ExpiryTime); */
+  msg.endTimeNanos          = 0; //PATCH
+  
   if (boxMsg->OrderType == 'A') { // Initial
     msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
   } else if (boxMsg->OrderType == 'P') { // Exposed

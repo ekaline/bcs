@@ -28,21 +28,30 @@ struct GroupAddr {
 };
 
 static GroupAddr group[] = {
-    //CERT Real Time
+    //CERT BBO Real Time
     {inet_addr("224.0.60.9" ), 41021, 0, 0},
     {inet_addr("224.0.60.10"), 41022, 0, 0},
     {inet_addr("224.0.60.11"), 41023, 0, 0},
 
-    //CERT Re-transmit
+    //CERT BBO Re-transmit
     {inet_addr("224.0.60.12"), 41024, 0, 0},
     {inet_addr("224.0.60.13"), 41025, 0, 0},
     {inet_addr("224.0.60.14"), 41026, 0, 0},
 
-    //CERT Refresh
+    //CERT BBO Refresh
     {inet_addr("224.0.60.15"), 41027, 0, 0},
     {inet_addr("224.0.60.16"), 41028, 0, 0},
     {inet_addr("224.0.60.17"), 41029, 0, 0},
 
+    //CERT Trades Real Time
+    {inet_addr("224.0.60.18"), 41041, 0, 0},
+
+    //CERT Trades Re-transmit
+    {inet_addr("224.0.60.19"), 41042, 0, 0},
+
+    //CERT Trades Refresh
+    {inet_addr("224.0.60.20"), 41043, 0, 0},
+    
     //Production ARCA BBO Real Time
     {inet_addr("224.0.96.48"), 41051, 0, 0},
     {inet_addr("224.0.96.49"), 41052, 0, 0},
