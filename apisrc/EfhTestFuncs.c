@@ -412,6 +412,10 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
   int64_t priceScaleFactor = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE;
 #else
   int secIdx                  = (int)secData;
+  if (secIdx < 0 || secIdx >= gr->security.size())
+    on_error("Bad secIdx = %d, gr->security.size() = %d",
+	     secIdx, (int)gr->security.size());
+  
   std::string currAvtSecName  = gr->security.at(secIdx).avtSecName.c_str();	  
   std::string currClassSymbol = gr->security.at(secIdx).classSymbol;
   int64_t priceScaleFactor    = 100; //gr->security.at(secIdx).displayPriceScale;
