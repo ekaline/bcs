@@ -356,7 +356,7 @@ static bool processRetransUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
   case DeliveryFlag::MsgUnavail : // TO BE FIXED!!!
     break;
     /* ------------------------------------------ */
-  case DeliveryFlag::StratOfRefresh :
+  case DeliveryFlag::StartOfRefresh :
   case DeliveryFlag::PartOfRefresh :
   case DeliveryFlag::EndOfRefresh :
   case DeliveryFlag::Heartbeat :
@@ -412,15 +412,15 @@ static bool processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
   
   switch (static_cast<DeliveryFlag>(pktHdr->deliveryFlag)) {
     /* ------------------------------------------ */
-  case DeliveryFlag::StratOfRefresh :
+  case DeliveryFlag::StartOfRefresh :
     firstPkt = true;
     if (*myRefreshStarted)
-      on_error("%s:%u DeliveryFlag::StratOfRefresh accepted during "
+      on_error("%s:%u DeliveryFlag::StartOfRefresh accepted during "
 	       "active %s Refresh cycle",
 	       EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
     
     *myRefreshStarted = true;
-    EKA_LOG("%s:%u StratOfRefresh: myRefreshStarted = %d",
+    EKA_LOG("%s:%u StartOfRefresh: myRefreshStarted = %d",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,(int)*myRefreshStarted);
     break;
     /* ------------------------------------------ */

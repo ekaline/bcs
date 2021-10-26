@@ -36,7 +36,7 @@ namespace Plr {
 				      PartOfRetransmit = 15,
 	
 				      SinglePktRefresh = 17,
-				      StratOfRefresh = 18,
+				      StartOfRefresh = 18,
 				      PartOfRefresh = 19,
 				      EndOfRefresh = 20,
 	
@@ -80,8 +80,8 @@ namespace Plr {
       return std::string("PartOfRetransmit");
     case DeliveryFlag::SinglePktRefresh :
       return std::string("SinglePktRefresh");
-    case DeliveryFlag::StratOfRefresh :
-      return std::string("StratOfRefresh");
+    case DeliveryFlag::StartOfRefresh :
+      return std::string("StartOfRefresh");
     case DeliveryFlag::PartOfRefresh :
       return std::string("PartOfRefresh");
     case DeliveryFlag::EndOfRefresh :
