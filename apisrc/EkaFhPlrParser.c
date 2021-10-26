@@ -142,6 +142,9 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     break; 
     // #####################################################
   case MsgType::RefreshHeader : { // 35
+    if (op != EkaFhMode::SNAPSHOT)
+      on_error("RefreshHeader met at %s",EkaFhMode2STR(op));
+    
     auto m {reinterpret_cast<const RefreshHeader*>(pMsg)};
     if (msgHdr->size == sizeof(RefreshHeader)) { // Full (=1st) Refresh Header
 	seq_after_snapshot = m->LastSeqNum + 1;

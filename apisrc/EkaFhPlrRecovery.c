@@ -403,6 +403,13 @@ static bool processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
   bool firstPkt = false;
   bool lastPkt  = false;
 
+  auto firstMsgHdr {reinterpret_cast<const MsgHdr*>(p)};
+  if (op == EkaFhMode::DEFINITIONS && firstMsgHdr->type == MsgType::RefreshHeader)
+    return false;
+  
+  if (op == EkaFhMode::SNAPSHOT && firstMsgHdr->type != MsgType::RefreshHeader)
+    return false;
+  
   switch (static_cast<DeliveryFlag>(pktHdr->deliveryFlag)) {
     /* ------------------------------------------ */
   case DeliveryFlag::StratOfRefresh :
@@ -444,12 +451,7 @@ static bool processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
 	     pktHdr->seqNum, pktHdr->numMsgs);
   }
 
-  auto firstMsgHdr {reinterpret_cast<const MsgHdr*>(p)};
-  if (op == EkaFhMode::DEFINITIONS && firstMsgHdr->type == MsgType::RefreshHeader)
-    return false;
 
-  if (op == EkaFhMode::SNAPSHOT && firstMsgHdr->type != MsgType::RefreshHeader)
-    return false;
 
   if (firstPkt && op == EkaFhMode::SNAPSHOT) {
     if (firstMsgHdr->size != sizeof(RefreshHeader))
