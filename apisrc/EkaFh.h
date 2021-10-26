@@ -49,6 +49,85 @@ static inline bool isTradingHours(int startHour, int startMinute, int endHour, i
   return false;
 }
 /* ##################################################################### */
+// Bitmask that tells us the product information carried on this group
+enum ProductMask {
+  PM_NoInfo         = 0,       // No information available
+  PM_VanillaBook    = 1 << 0,  // Vanilla option book prices
+  PM_VanillaTrades  = 1 << 1,  // Vanilla option trades
+  PM_VanillaAuction = 1 << 2,  // Vanilla option RFQs
+  PM_ComplexBook    = 1 << 3,  // Complex option book prices
+  PM_ComplexTrades  = 1 << 4,  // Complex option trades
+  PM_ComplexAuction = 1 << 5,  // Complex option RFQs
+  PM_FutureBook     = 1 << 6,  // Future book prices
+  PM_FutureTrades   = 1 << 7,  // Future trades
+  PM_FutureAuction  = 1 << 8   // Future RFQs (spreads)
+};
+
+namespace {
+
+struct ProductNameToMaskEntry {
+  const char *name;
+  int mask;
+};
+
+constexpr ProductNameToMaskEntry ProductNameToMaskMap[] = {
+  {
+    .name = "vanilla_book",
+    .mask = PM_VanillaBook
+  },
+
+  {
+    .name = "vanilla_trades",
+    .mask = PM_VanillaTrades
+  },
+
+  {
+    .name = "vanilla_auction",
+    .mask = PM_VanillaAuction
+  },
+
+  {
+    .name = "complex_book",
+    .mask = PM_ComplexBook
+  },
+
+  {
+    .name = "complex_trades",
+    .mask = PM_ComplexTrades
+  },
+
+  {
+    .name = "complex_auction",
+    .mask = PM_ComplexAuction
+  },
+
+  {
+    .name = "future_book",
+    .mask = PM_FutureBook
+  },
+
+  {
+    .name = "future_trades",
+    .mask = PM_FutureTrades
+  },
+
+  {
+    .name = "future_auction",
+    .mask = PM_FutureAuction
+  },
+};
+
+constexpr int NoSuchProduct = -1;
+
+int lookupProductMask(const char *productName) {
+  for (const auto [n, m] : ProductNameToMaskMap) {
+    if (!strcmp(productName, n))
+      return m;
+  }
+  return NoSuchProduct;
+}
+
+} // End of anonymous namespace
 
 class EkaFh {
  protected:

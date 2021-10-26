@@ -13,18 +13,18 @@ class fh_q;
 class EkaFhBook;
 
 // Bitmask that tells us the product information carried on this group
-enum ProductMask {
-  PM_NoInfo         = 0,       // No information available
-  PM_VanillaBook    = 1 << 0,  // Vanilla option book prices
-  PM_VanillaTrades  = 1 << 1,  // Vanilla option trades
-  PM_VanillaAuction = 1 << 2,  // Vanilla option RFQs
-  PM_ComplexBook    = 1 << 3,  // Complex option book prices
-  PM_ComplexTrades  = 1 << 4,  // Complex option trades
-  PM_ComplexAuction = 1 << 5,  // Complex option RFQs
-  PM_FutureBook     = 1 << 6,  // Future book prices
-  PM_FutureTrades   = 1 << 7,  // Future trades
-  PM_FutureAuction  = 1 << 8   // Future RFQs (spreads)
-};
+// enum ProductMask {
+//   PM_NoInfo         = 0,       // No information available
+//   PM_VanillaBook    = 1 << 0,  // Vanilla option book prices
+//   PM_VanillaTrades  = 1 << 1,  // Vanilla option trades
+//   PM_VanillaAuction = 1 << 2,  // Vanilla option RFQs
+//   PM_ComplexBook    = 1 << 3,  // Complex option book prices
+//   PM_ComplexTrades  = 1 << 4,  // Complex option trades
+//   PM_ComplexAuction = 1 << 5,  // Complex option RFQs
+//   PM_FutureBook     = 1 << 6,  // Future book prices
+//   PM_FutureTrades   = 1 << 7,  // Future trades
+//   PM_FutureAuction  = 1 << 8   // Future RFQs (spreads)
+// };
 
 class EkaFhGroup {
  protected:
@@ -86,10 +86,19 @@ class EkaFhGroup {
 				size_t               credNameSize,
 				EkaCredentialLease** lease);
 
-  /* virtual bool        processUdpPkt(const EfhRunCtx* pEfhRunCtx, */
-  /* 				    const uint8_t*   pkt,  */
-  /* 				    uint             msgInPkt,  */
-  /* 				    uint64_t         sequence); */
+  virtual int printConfig() {
+    EKA_LOG("%s:%u : MCAST: %s:%u, SNAPSHOT: %s:%u, RECOVERY: %s:%u, "
+	    "AUTH: %s:%s, connectRetryDelayTime=%d",
+	    EKA_EXCH_DECODE(exch),id,
+	    EKA_IP2STR(mcast_ip),   mcast_port,
+	    EKA_IP2STR(snapshot_ip),be16toh(snapshot_port),
+	    EKA_IP2STR(recovery_ip),be16toh(recovery_port),
+	    auth_set ? std::string(auth_user,sizeof(auth_user)).c_str() : "NOT SET",
+	    auth_set ? std::string(auth_passwd,sizeof(auth_passwd)).c_str() : "NOT SET",
+	    connectRetryDelayTime
+	    );
+    return 0;
+  }
 
   //----------------------------------------------------------
   enum class GrpState { UNINIT = 0,INIT, GAP, SNAPSHOT_GAP, RETRANSMIT_GAP, NORMAL, PHLX_SNAPSHOT_GAP };
