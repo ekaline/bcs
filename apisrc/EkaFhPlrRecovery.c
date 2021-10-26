@@ -407,7 +407,14 @@ static bool processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
     /* ------------------------------------------ */
   case DeliveryFlag::StratOfRefresh :
     firstPkt = true;
-    EKA_LOG("%s:%u StratOfRefresh",EKA_EXCH_DECODE(gr->exch),gr->id);
+    if (*myRefreshStarted)
+      on_error("%s:%u DeliveryFlag::StratOfRefresh accepted during "
+	       "active %s Refresh cycle",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
+    
+    *myRefreshStarted = true;
+    EKA_LOG("%s:%u StratOfRefresh: myRefreshStarted = %d",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,(int)*myRefreshStarted);
     break;
     /* ------------------------------------------ */
   case DeliveryFlag::PartOfRefresh :
@@ -415,8 +422,10 @@ static bool processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
     break;
     /* ------------------------------------------ */
   case DeliveryFlag::EndOfRefresh :
+    EKA_LOG("%s:%u EndOfRefresh: myRefreshStarted = %d",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,(int)*myRefreshStarted);
+    if (! *myRefreshStarted) return false;    
     lastPkt = true;
-    EKA_LOG("%s:%u EndOfRefresh",EKA_EXCH_DECODE(gr->exch),gr->id);
     break;
     /* ------------------------------------------ */
   case DeliveryFlag::Heartbeat :
@@ -435,20 +444,6 @@ static bool processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
 	     pktHdr->seqNum, pktHdr->numMsgs);
   }
 
-  auto msgHdr {reinterpret_cast<const MsgHdr*>(p)};
-  if (msgHdr->type == MsgType::RefreshHeader)
-    return false; // RefreshHeader means Snapshot refresh
-
-  if (firstPkt) {
-    if (*myRefreshStarted)
-      on_error("%s:%u DeliveryFlag::StratOfRefresh accepted during "
-	       "active %s Refresh cycle",
-	       EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
-    EKA_LOG("%s:%u %s myRefreshStarted",
-	    EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
-    *myRefreshStarted = true;
-  }
-  
   auto firstMsgHdr {reinterpret_cast<const MsgHdr*>(p)};
   if (op == EkaFhMode::DEFINITIONS && firstMsgHdr->type == MsgType::RefreshHeader)
     return false;
