@@ -142,8 +142,8 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     auto m {reinterpret_cast<const RefreshHeader*>(pMsg)};
     if (msgHdr->size == sizeof(RefreshHeader)) { // Full (=1st) Refresh Header
 	seq_after_snapshot = m->LastSeqNum + 1;
-	EKA_LOG("Full (=1st) Refresh Header: seq_after_snapshot = %ju",
-		seq_after_snapshot);
+	/* EKA_LOG("Full (=1st) Refresh Header: seq_after_snapshot = %ju", */
+	/* 	seq_after_snapshot); */
       }
   }
     break; 

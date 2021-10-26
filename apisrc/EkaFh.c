@@ -32,71 +32,71 @@
 #include "eka_fh_q.h"
 #include "EkaHwCaps.h"
 
-namespace {
+/* namespace { */
 
-struct ProductNameToMaskEntry {
-  const char *name;
-  int mask;
-};
+/* struct ProductNameToMaskEntry { */
+/*   const char *name; */
+/*   int mask; */
+/* }; */
 
-constexpr ProductNameToMaskEntry ProductNameToMaskMap[] = {
-  {
-    .name = "vanilla_book",
-    .mask = PM_VanillaBook
-  },
+/* constexpr ProductNameToMaskEntry ProductNameToMaskMap[] = { */
+/*   { */
+/*     .name = "vanilla_book", */
+/*     .mask = PM_VanillaBook */
+/*   }, */
 
-  {
-    .name = "vanilla_trades",
-    .mask = PM_VanillaTrades
-  },
+/*   { */
+/*     .name = "vanilla_trades", */
+/*     .mask = PM_VanillaTrades */
+/*   }, */
 
-  {
-    .name = "vanilla_auction",
-    .mask = PM_VanillaAuction
-  },
+/*   { */
+/*     .name = "vanilla_auction", */
+/*     .mask = PM_VanillaAuction */
+/*   }, */
 
-  {
-    .name = "complex_book",
-    .mask = PM_ComplexBook
-  },
+/*   { */
+/*     .name = "complex_book", */
+/*     .mask = PM_ComplexBook */
+/*   }, */
 
-  {
-    .name = "complex_trades",
-    .mask = PM_ComplexTrades
-  },
+/*   { */
+/*     .name = "complex_trades", */
+/*     .mask = PM_ComplexTrades */
+/*   }, */
 
-  {
-    .name = "complex_auction",
-    .mask = PM_ComplexAuction
-  },
+/*   { */
+/*     .name = "complex_auction", */
+/*     .mask = PM_ComplexAuction */
+/*   }, */
 
-  {
-    .name = "future_book",
-    .mask = PM_FutureBook
-  },
+/*   { */
+/*     .name = "future_book", */
+/*     .mask = PM_FutureBook */
+/*   }, */
 
-  {
-    .name = "future_trades",
-    .mask = PM_FutureTrades
-  },
+/*   { */
+/*     .name = "future_trades", */
+/*     .mask = PM_FutureTrades */
+/*   }, */
 
-  {
-    .name = "future_auction",
-    .mask = PM_FutureAuction
-  },
-};
+/*   { */
+/*     .name = "future_auction", */
+/*     .mask = PM_FutureAuction */
+/*   }, */
+/* }; */
 
-constexpr int NoSuchProduct = -1;
+/* constexpr int NoSuchProduct = -1; */
 
-int lookupProductMask(const char *productName) {
-  for (const auto [n, m] : ProductNameToMaskMap) {
-    if (!strcmp(productName, n))
-      return m;
-  }
-  return NoSuchProduct;
-}
+/* int lookupProductMask(const char *productName) { */
+/*   for (const auto [n, m] : ProductNameToMaskMap) { */
+/*     if (!strcmp(productName, n)) */
+/*       return m; */
+/*   } */
+/*   return NoSuchProduct; */
+/* } */
 
-} // End of anonymous namespace
+/* } // End of anonymous namespace */
 
 
  /* ##################################################################### */
@@ -154,17 +154,18 @@ int EkaFh::init(const EfhInitCtx* pEfhInitCtx, uint8_t numFh) {
       memcpy(b_gr[i]->auth_passwd,auth_passwd,sizeof(auth_passwd));
       b_gr[i]->auth_set = true;
     }
-    EKA_DEBUG("initializing FH coreId=%d %s:%u: MCAST: %s:%u, SNAPSHOT: %s:%u, RECOVERY: %s:%u, AUTH: %s:%s, connectRetryDelayTime=%d",
-	      c,
-	      EKA_EXCH_DECODE(b_gr[i]->exch),
-	      b_gr[i]->id,
-	      EKA_IP2STR(b_gr[i]->mcast_ip),   b_gr[i]->mcast_port,
-	      EKA_IP2STR(b_gr[i]->snapshot_ip),be16toh(b_gr[i]->snapshot_port),
-	      EKA_IP2STR(b_gr[i]->recovery_ip),be16toh(b_gr[i]->recovery_port),
-	      b_gr[i]->auth_set ? std::string(b_gr[i]->auth_user,sizeof(b_gr[i]->auth_user)).c_str() : "NOT SET",
-	      b_gr[i]->auth_set ? std::string(b_gr[i]->auth_passwd,sizeof(b_gr[i]->auth_passwd)).c_str() : "NOT SET",
-	      b_gr[i]->connectRetryDelayTime
-	      );
+    b_gr[i]->printConfig();
+    /* EKA_DEBUG("initializing FH coreId=%d %s:%u: MCAST: %s:%u, SNAPSHOT: %s:%u, RECOVERY: %s:%u, AUTH: %s:%s, connectRetryDelayTime=%d", */
+    /* 	      c, */
+    /* 	      EKA_EXCH_DECODE(b_gr[i]->exch), */
+    /* 	      b_gr[i]->id, */
+    /* 	      EKA_IP2STR(b_gr[i]->mcast_ip),   b_gr[i]->mcast_port, */
+    /* 	      EKA_IP2STR(b_gr[i]->snapshot_ip),be16toh(b_gr[i]->snapshot_port), */
+    /* 	      EKA_IP2STR(b_gr[i]->recovery_ip),be16toh(b_gr[i]->recovery_port), */
+    /* 	      b_gr[i]->auth_set ? std::string(b_gr[i]->auth_user,sizeof(b_gr[i]->auth_user)).c_str() : "NOT SET", */
+    /* 	      b_gr[i]->auth_set ? std::string(b_gr[i]->auth_passwd,sizeof(b_gr[i]->auth_passwd)).c_str() : "NOT SET", */
+    /* 	      b_gr[i]->connectRetryDelayTime */
+    /* 	      ); */
   }
   any_group_getting_snapshot = false;
 

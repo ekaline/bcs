@@ -51,6 +51,31 @@ public:
 			     const EfhRunCtx* pEfhRunCtx, 
 			     uint64_t          startSeq,
 			     uint64_t          endSeq);
+  int printConfig() {
+    EKA_LOG("%s:%u : productMask: 0x%x"
+	    "MCAST: %s:%u, "
+	    "Refresh Tcp: %s:%u, "
+	    "Refresh Udp: %s:%u, "
+	    "ReTrans Tcp: %s:%u, "
+	    "ReTrans Udp: %s:%u, "
+
+	    "Source ID: %s "
+	    "Channel: %d, "
+	    "connectRetryDelayTime: %d",
+	    EKA_EXCH_DECODE(exch),id,
+	    productMask,
+	    EKA_IP2STR(mcast_ip),   mcast_port,
+	    EKA_IP2STR(refreshTcpIp),be16toh(refreshTcpPort),
+	    EKA_IP2STR(refreshUdpIp),be16toh(refreshUdpPort),
+	    EKA_IP2STR(retransTcpIp),be16toh(retransTcpPort),
+	    EKA_IP2STR(retransUdpIp),be16toh(retransUdpPort),
+	    std::string(sourceId,sizeof(sourceId)).c_str(),
+	    channelId,
+	    connectRetryDelayTime
+	    );
+    return 0;
+  }
+
 
 private:
   int    sendMdCb(const EfhRunCtx* pEfhRunCtx,
