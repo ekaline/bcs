@@ -756,6 +756,8 @@ namespace Plr {
     printf("%u,",pktHdr->seqNum);
     printf("%s,",ts_ns2str(ts).c_str());
     printf("%s,",deliveryFlag2str(pktHdr->deliveryFlag).c_str());
+    printf("PktSize:%u,",pktHdr->pktSize);
+    printf("NumMsgs:%u,",pktHdr->numMsgs);
     printf("\n");
     
     p += sizeof(*pktHdr);
