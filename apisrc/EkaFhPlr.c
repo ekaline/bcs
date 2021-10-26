@@ -100,8 +100,6 @@ EkaOpResult EkaFhPlr::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     gr->processUdpPkt(pEfhRunCtx,pkt,msgInPkt,sequence,startTime);
 #else
 
-    if (msgInPkt == 0) goto SKIP; // Heartbeat
-    
     //-----------------------------------------------------------------------------
     switch (gr->state) {
       //-----------------------------------------------------------------------------
@@ -125,6 +123,8 @@ EkaOpResult EkaFhPlr::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	gr->expected_sequence = sequence;
 	break; 
       }
+      if (msgInPkt == 0) break; // Heartbeat    
+
       if (sequence > gr->expected_sequence) { // GAP
 	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%u, msgInPkt=%u",
 		EKA_EXCH_DECODE(exch),gr_id,gr->expected_sequence,sequence,msgInPkt);
@@ -181,7 +181,6 @@ EkaOpResult EkaFhPlr::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       break;
     } // switch
 #endif
-  SKIP:    
     runGr->udpCh->next(); 
   } // while()
   runGr->sendFeedCloseAll(pEfhRunCtx);
