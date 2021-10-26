@@ -194,12 +194,13 @@ EkaOpResult EkaFhPlr::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
   auto gr {dynamic_cast<EkaFhPlrGr*>(b_gr[(uint8_t)group->localId])};
   if (! gr)
     on_error("%s:%u Group does not exist (gr == NULL)",EKA_EXCH_DECODE(exch),gr->id);
-  else if (gr->productMask == PM_VanillaTrades) {
-    // The trades channel does not give definitions and we'll wait forever
-    // if we try to receive them.
-    EKA_DEBUG("%s:%u: skipping definitions for trade group",EKA_EXCH_DECODE(exch),gr->id);
-    return EKA_OPRESULT__OK;
-  }
+  
+  /* if (gr->productMask == PM_VanillaTrades) { */
+  /*   // The trades channel does not give definitions and we'll wait forever */
+  /*   // if we try to receive them. */
+  /*   EKA_DEBUG("%s:%u: skipping definitions for trade group",EKA_EXCH_DECODE(exch),gr->id); */
+  /*   return EKA_OPRESULT__OK; */
+  /* } */
   plrRecovery(pEfhRunCtx, gr, EkaFhMode::DEFINITIONS, 0,0);
   return EKA_OPRESULT__OK;
 }
