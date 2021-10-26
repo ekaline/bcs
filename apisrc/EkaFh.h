@@ -119,14 +119,22 @@ constexpr ProductNameToMaskEntry ProductNameToMaskMap[] = {
 
 constexpr int NoSuchProduct = -1;
 
-int lookupProductMask(const char *productName) {
-  for (const auto [n, m] : ProductNameToMaskMap) {
-    if (!strcmp(productName, n))
-      return m;
+  inline int lookupProductMask(const char *productName) {
+    for (const auto [n, m] : ProductNameToMaskMap) {
+      if (!strcmp(productName, n))
+	return m;
+    }
+    return NoSuchProduct;
   }
-  return NoSuchProduct;
-}
 
+  // returns only one name
+  inline const char* lookupProductName(int productMask) {
+    for (const auto [n, m] : ProductNameToMaskMap) {
+      if (productMask & m)
+	return n;
+    }
+    return "UnInitialized";
+  }
 } // End of anonymous namespace
 
 class EkaFh {
