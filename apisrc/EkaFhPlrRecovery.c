@@ -263,7 +263,7 @@ static bool snapshotRefreshTcp(EkaFhPlrGr* gr, int sock) {
 //  auto dev {gr->dev};
   if (! sendRefreshRequest(gr,sock))
     on_error("sendRefreshRequest failed");
-  if (! getRequestResponse(gr,sock,EkaFhMode::DEFINITIONS))
+  if (! getRequestResponse(gr,sock,EkaFhMode::SNAPSHOT))
     on_error("getRequestResponse failed");
   
   return true;
@@ -274,7 +274,7 @@ static bool recoveryRetransmitTcp(EkaFhPlrGr* gr, int sock, uint32_t start, uint
 //  auto dev {gr->dev};
   if (! sendRetransmissionRequest(gr,sock,start,end))
     on_error("RetransmissionRequest failed");
-  if (! getRequestResponse(gr,sock,EkaFhMode::DEFINITIONS))
+  if (! getRequestResponse(gr,sock,EkaFhMode::RECOVERY))
     on_error("getRequestResponse failed");
   
   return true;
@@ -407,6 +407,7 @@ static bool processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
     /* ------------------------------------------ */
   case DeliveryFlag::StratOfRefresh :
     firstPkt = true;
+    EKA_LOG("%s:%u StratOfRefresh",EKA_EXCH_DECODE(gr->exch),gr->id);
     break;
     /* ------------------------------------------ */
   case DeliveryFlag::PartOfRefresh :
@@ -415,6 +416,7 @@ static bool processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
     /* ------------------------------------------ */
   case DeliveryFlag::EndOfRefresh :
     lastPkt = true;
+    EKA_LOG("%s:%u EndOfRefresh",EKA_EXCH_DECODE(gr->exch),gr->id);
     break;
     /* ------------------------------------------ */
   case DeliveryFlag::Heartbeat :
@@ -442,6 +444,8 @@ static bool processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
       on_error("%s:%u DeliveryFlag::StratOfRefresh accepted during "
 	       "active %s Refresh cycle",
 	       EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
+    EKA_LOG("%s:%u %s myRefreshStarted",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
     *myRefreshStarted = true;
   }
   
@@ -506,7 +510,7 @@ bool plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op,
   } // while(1)
   close(udpSock);
   close(tcpSock);
-  EKA_LOG("\n-----------------------------------------------\n%s:%u %s completed",
+  EKA_LOG("%s:%u %s completed\n-----------------------------------------------\n",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
   return true;
 }
