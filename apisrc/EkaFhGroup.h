@@ -73,9 +73,15 @@ class EkaFhGroup {
 				EkaCredentialLease** lease);
 
   virtual int printConfig() {
-    EKA_LOG("%s:%u : MCAST: %s:%u, SNAPSHOT: %s:%u, RECOVERY: %s:%u, "
-	    "AUTH: %s:%s, connectRetryDelayTime=%d",
+    EKA_LOG("%s:%u : "
+	    "productMask: \'%s\' (0x%x) "
+	    "MCAST: %s:%u, "
+	    "SNAPSHOT: %s:%u, "
+	    "RECOVERY: %s:%u, "
+	    "AUTH: %s:%s, "
+	    "connectRetryDelayTime=%d",
 	    EKA_EXCH_DECODE(exch),id,
+	    lookupProductName(productMask), productMask,
 	    EKA_IP2STR(mcast_ip),   mcast_port,
 	    EKA_IP2STR(snapshot_ip),be16toh(snapshot_port),
 	    EKA_IP2STR(recovery_ip),be16toh(recovery_port),

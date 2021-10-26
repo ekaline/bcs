@@ -529,10 +529,9 @@ void* runPlrRecoveryThread(void* attr) {
 
   EkaDev* dev = gr->dev;
 
-  EKA_LOG("%s:%u: PlrRecoveryThread %s at %s:%d",
+  EKA_LOG("%s:%u: Start of PlrRecoveryThread %s",
 	  EKA_EXCH_DECODE(gr->exch),gr->id, 
-	  EkaFhMode2STR(op),
-	  EKA_IP2STR(gr->snapshot_ip),be16toh(gr->snapshot_port));
+	  EkaFhMode2STR(op));
 
   if (plrRecovery(pEfhRunCtx, gr, op, start, end)) {
     EKA_LOG("%s:%u: End Of PlrRecoveryThread: seq_after_snapshot = %ju",
