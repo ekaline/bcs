@@ -479,7 +479,9 @@ bool plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op,
 
   if (!gr) on_error("gr == NULL");
   auto dev {gr->dev};
-  
+
+  EKA_LOG("\n-----------------------------------------------\n%s:%u %s started",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
   establishConnections(gr,op,start,end,&udpSock,&tcpSock);
   
   while (1) {
@@ -504,6 +506,8 @@ bool plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op,
   } // while(1)
   close(udpSock);
   close(tcpSock);
+  EKA_LOG("\n-----------------------------------------------\n%s:%u %s completed",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
   return true;
 }
 
