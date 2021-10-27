@@ -438,7 +438,7 @@ static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
     /* ------------------------------------------ */
   case DeliveryFlag::Heartbeat :
     if (*myRefreshStarted) {
-      EKA_LOG("%s:%u Heartbeat during active Refresh cycle - UDP packets dropped",
+      EKA_WARN("%s:%u WARNING: Heartbeat during active Refresh cycle - UDP packets dropped",
 	    EKA_EXCH_DECODE(gr->exch),gr->id);
       return EKA_OPRESULT__ERR_RECOVERY_FAILED;
     }
