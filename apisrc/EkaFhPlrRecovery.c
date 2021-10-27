@@ -338,7 +338,7 @@ static bool establishConnections(EkaFhPlrGr* gr, EkaFhMode op,
   return false;
 }
 
-static bool processRetransUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
+static EkaOpResult processRetransUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
 				 const uint8_t* p,EkaFhMode op,
 				 uint64_t start, uint64_t end) {
   if (!gr) on_error("gr == NULL");
@@ -364,7 +364,7 @@ static bool processRetransUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
   case DeliveryFlag::SeqReset :
   case DeliveryFlag::SinglePktRefresh :
   case DeliveryFlag::Original :
-    return false; // ignore the packet
+    return EKA_OPRESULT__RECOVERY_IN_PROGRESS; // ignore the packet
     /* ------------------------------------------ */
   default :
     on_error("Unexpected DeliveryFlag %u (%s) at Retrans: seqNum=%u, numMsgs=%u",
@@ -382,17 +382,17 @@ static bool processRetransUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
     auto msgHdr {reinterpret_cast<const MsgHdr*>(p)};
     if (gr->expected_sequence == msgSeq) {
       gr->parseMsg(pEfhRunCtx,p,msgSeq,op);
-      if (msgSeq == end) return true;
+      if (msgSeq == end) return EKA_OPRESULT__OK;
       msgSeq++;
       gr->expected_sequence++;
     }
     p += msgHdr->size;
   }
 
-  return false;
+  return EKA_OPRESULT__RECOVERY_IN_PROGRESS;
 }
 
-static bool processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
+static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
 				 const uint8_t* p,EkaFhMode op, bool* myRefreshStarted) {
   if (!gr) on_error("gr == NULL");
   auto dev {gr->dev};
@@ -405,10 +405,10 @@ static bool processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
 
   auto firstMsgHdr {reinterpret_cast<const MsgHdr*>(p)};
   if (op == EkaFhMode::DEFINITIONS && firstMsgHdr->type == MsgType::RefreshHeader)
-    return false;
+    return EKA_OPRESULT__RECOVERY_IN_PROGRESS;
   
   if (op == EkaFhMode::SNAPSHOT && firstMsgHdr->type != MsgType::RefreshHeader)
-    return false;
+    return EKA_OPRESULT__RECOVERY_IN_PROGRESS;
   
   //  switch (pktHdr->deliveryFlag) {
   switch (static_cast<DeliveryFlag>(pktHdr->deliveryFlag)) {
@@ -426,17 +426,22 @@ static bool processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
     break;
     /* ------------------------------------------ */
   case DeliveryFlag::PartOfRefresh :
-    if (! *myRefreshStarted) return false;    
+    if (! *myRefreshStarted) return EKA_OPRESULT__RECOVERY_IN_PROGRESS;    
     break;
     /* ------------------------------------------ */
   case DeliveryFlag::EndOfRefresh :
     EKA_LOG("%s:%u EndOfRefresh: myRefreshStarted = %d",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,(int)*myRefreshStarted);
-    if (! *myRefreshStarted) return false;    
+    if (! *myRefreshStarted) return EKA_OPRESULT__RECOVERY_IN_PROGRESS;    
     lastPkt = true;
     break;
     /* ------------------------------------------ */
   case DeliveryFlag::Heartbeat :
+    if (*myRefreshStarted) {
+      EKA_LOG("%s:%u Heartbeat during active Refresh cycle - UDP packets dropped",
+	    EKA_EXCH_DECODE(gr->exch),gr->id);
+      return EKA_OPRESULT__ERR_RECOVERY_FAILED;
+    }
   case DeliveryFlag::Failover :
   case DeliveryFlag::SeqReset :
   case DeliveryFlag::SinglePktRefresh : // Single pkt refresh means "Single symbol", we use "All symbols"
@@ -444,7 +449,7 @@ static bool processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
   case DeliveryFlag::PartOfRetransmit :
   case DeliveryFlag::Original :
   case DeliveryFlag::MsgUnavail :
-    return false; // ignore the packet
+    return EKA_OPRESULT__RECOVERY_IN_PROGRESS; // ignore the packet
     /* ------------------------------------------ */
   default :
     on_error("Unexpected DeliveryFlag %u (%s) at Refresh: seqNum=%u, numMsgs=%u",
@@ -470,11 +475,11 @@ static bool processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
     gr->parseMsg(pEfhRunCtx,p,0,op);
     p += msgHdr->size;
   }
-  if (lastPkt) return true;
-  return false;
+  if (lastPkt) return EKA_OPRESULT__OK;
+  return EKA_OPRESULT__RECOVERY_IN_PROGRESS;
 }
 
-bool plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op,
+EkaOpResult plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op,
 		 uint64_t start, uint64_t end) {
   int udpSock,tcpSock;
   bool myRefreshStarted = false;
@@ -488,7 +493,8 @@ bool plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op,
   EKA_LOG("\n-----------------------------------------------\n%s:%u %s started",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
   establishConnections(gr,op,start,end,&udpSock,&tcpSock);
-  
+
+  EkaOpResult result = EKA_OPRESULT__OK;
   while (gr->snapshot_active || gr->recovery_active) {
     char buf[2000] = {};
     int rc = recvfrom(udpSock, buf, sizeof(buf), MSG_WAITALL, NULL, NULL);
@@ -501,21 +507,34 @@ bool plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op,
 
     auto p {reinterpret_cast<const uint8_t*>(buf)};
 
-    if (op ==  EkaFhMode::RECOVERY) {
-      if (processRetransUdpPkt(pEfhRunCtx,gr,p,op,start,end))
-	break; // while()
-    } else {
-      if (processRefreshUdpPkt(pEfhRunCtx,gr,p,op,&myRefreshStarted))
-	break; // while()
+    result = op == EkaFhMode::RECOVERY ?
+      processRetransUdpPkt(pEfhRunCtx,gr,p,op,start,end) :
+      processRefreshUdpPkt(pEfhRunCtx,gr,p,op,&myRefreshStarted);
+
+    switch (result) {
+    case EKA_OPRESULT__OK :
+      EKA_LOG("%s:%u %s completed\n-----------------------------------------------\n",
+	      EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
+      goto EXIT_RECOVERY;
+    case EKA_OPRESULT__ERR_RECOVERY_FAILED :
+      EKA_LOG("%s:%u %s FAILED\n-----------------------------------------------\n",
+	      EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
+      goto EXIT_RECOVERY;
+    case EKA_OPRESULT__RECOVERY_IN_PROGRESS :
+      break;
+    default:
+      on_error("Unexpected return code %d",result);
     }
+
   } // while()
+
+ EXIT_RECOVERY:  
   close(udpSock);
   close(tcpSock);
-  EKA_LOG("%s:%u %s completed\n-----------------------------------------------\n",
-	  EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
+
   gr->snapshot_active = false;
   gr->recovery_active = false;
-  return true;
+  return result;
 }
 
 void* runPlrRecoveryThread(void* attr) {
@@ -541,10 +560,12 @@ void* runPlrRecoveryThread(void* attr) {
 	  EKA_EXCH_DECODE(gr->exch),gr->id, 
 	  EkaFhMode2STR(op));
 
-  if (plrRecovery(pEfhRunCtx, gr, op, start, end)) {
+  if (plrRecovery(pEfhRunCtx, gr, op, start, end) == EKA_OPRESULT__OK) {
     EKA_LOG("%s:%u: End Of PlrRecoveryThread: seq_after_snapshot = %ju",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot);
     gr->gapClosed = true;
+  } else {
+    EKA_WARN("%s:%u: Recovery FAILED",EKA_EXCH_DECODE(gr->exch),gr->id);
   }
    
   return NULL;

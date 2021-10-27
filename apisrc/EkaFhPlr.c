@@ -7,7 +7,7 @@
 
 using namespace Plr;
 
-bool plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op,
+EkaOpResult plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op,
 		 uint64_t start, uint64_t end);
 
 /* ##################################################################### */
@@ -201,8 +201,7 @@ EkaOpResult EkaFhPlr::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
   /*   EKA_DEBUG("%s:%u: skipping definitions for trade group",EKA_EXCH_DECODE(exch),gr->id); */
   /*   return EKA_OPRESULT__OK; */
   /* } */
-  plrRecovery(pEfhRunCtx, gr, EkaFhMode::DEFINITIONS, 0,0);
-  return EKA_OPRESULT__OK;
+  return plrRecovery(pEfhRunCtx, gr, EkaFhMode::DEFINITIONS, 0,0);
 }
  /* ##################################################################### */
 
