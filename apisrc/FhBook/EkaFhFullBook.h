@@ -42,8 +42,8 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
 
   /* ####################################################### */
 
-  void printPlevel(FhPlevel* p, const char* msg) {
-    printf("\t\t%s %s,%s,%ju,%u,BD size:%ju,Cust size: %ju\n",
+  void printPlevel(FhPlevel* p, const char* msg, std::FILE *file = stdout) {
+    fprintf(file,"\t\t%s %s,%s,%ju,%u,BD size:%ju,Cust size: %ju\n",
 	   msg,
 	   side2str(p->side).c_str(),
 	   p->top ? "TOB" : "NOT TOB",
@@ -55,25 +55,25 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     if (p->side != SideT::ASK && p->side != SideT::BID) on_error("bad side");
   }
   /* ####################################################### */
-  void printSecurity(FhSecurity* s) {
-    printf("%ju :\n",(uint64_t)s->secId);
-    printf("\tBID:\n");
+  void printSecurity(FhSecurity* s, std::FILE *file = stdout) {
+    fprintf(file,"%ju :\n",(uint64_t)s->secId);
+    fprintf(file,"\tBID:\n");
     for (FhPlevel* p = s->bid; p != NULL; p = p->next) {
-      printPlevel(p, " ");
+      printPlevel(p, " ",file);
     }
-    printf("\tASK:\n");
+    fprintf(file,"\tASK:\n");
     for (FhPlevel* p = s->ask; p != NULL; p = p->next) {
-      printPlevel(p, " ");
+      printPlevel(p, " ",file);
     }
-    printf("###############\n");
+    fprintf(file,"###############\n");
   }
 
   /* ####################################################### */
 
-  void printAll() {
+  void printAll(std::FILE *file = stdout) {
     for (uint i = 0; i < SEC_HASH_LINES; i ++) {
       for (FhSecurity* s = (FhSecurity*)sec[i]; s != NULL; s = (FhSecurity*)s->next) {
-	printSecurity(s);
+	printSecurity(s,file);
       }
     }
   }

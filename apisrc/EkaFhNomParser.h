@@ -5,8 +5,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "eka_macros.h"
+
 //#define EFH_NOM_STRIKE_PRICE_SCALE 10
 #define EFH_NOM_STRIKE_PRICE_SCALE 1
+#define EFH_NOM_PRICE_SCALE 1
 
 #define EKA_NOM_TS(x) (be64toh(*(uint64_t*)(x+1) & 0xffffffffffff0000))
 
@@ -286,6 +289,79 @@ namespace Nom {
 
   } __attribute__((packed));
 
+
+  inline size_t getMsgLen(const unsigned char* m) {
+    return be16toh(*(uint16_t*)(m-2));
+  }
+
+
+  inline void printMsg(FILE* md_file, const uint8_t* m, int gr, uint64_t sequence, uint64_t ts) {
+  
+    fprintf (md_file,"GR%d,%s,%ju,\'%c\',",
+	     gr,ts_ns2str(ts).c_str(),sequence,(char)m[0]);
+    switch ((char)m[0]) {
+    case 'a': { //NOM_ADD_ORDER_SHORT
+      auto message {reinterpret_cast<const add_order_short *>(m)};
+
+      fprintf (md_file,"SID:%16u,%c,P:%8u,S:%8u\n",
+	       be32toh (message->option_id),
+	       (char)             (message->side),
+	       (uint32_t) be16toh (message->price) * 100 / EFH_NOM_PRICE_SCALE,
+	       (uint32_t) be16toh (message->size)
+	       );
+      break;
+    }
+      //--------------------------------------------------------------
+    case 'A' : { //NOM_ADD_ORDER_LONG
+      fprintf (md_file,"GR%d,SN:%ju,",gr,sequence);
+      auto message {reinterpret_cast<const add_order_long *>(m)};
+    
+      fprintf (md_file,"SID:%16u,%c,P:%8u,S:%8u\n",
+	       be32toh (message->option_id),
+	       (char)             (message->side),
+	       be32toh (message->price) / EFH_NOM_PRICE_SCALE,
+	       be32toh (message->size)
+	       );
+      break;
+    }
+      //--------------------------------------------------------------
+    case 'J': {  //NOM_ADD_QUOTE_LONG
+      auto message {reinterpret_cast<const add_quote_long *>(m)};
+
+      fprintf (md_file,"SID:%16u,BOID:%16ju,BP:%8u,BS:%8u,AOID:%16ju,AP:%8u,AS:%8u",
+	       be32toh (message->option_id),
+	       be64toh (message->bid_reference_delta),
+	       be32toh (message->bid_price) / EFH_NOM_PRICE_SCALE,
+	       be32toh (message->bid_size),
+	       be64toh (message->ask_reference_delta),
+	       be32toh (message->ask_price) / EFH_NOM_PRICE_SCALE,
+	       be32toh (message->ask_size)
+	       );
+      break;
+    }
+    case 'j': { //NOM_ADD_QUOTE_SHORT
+      auto message {reinterpret_cast<const add_quote_short *>(m)};
+
+      fprintf (md_file,"SID:%16u,BOID:%16ju,BP:%8u,BS:%8u,AOID:%16ju,AP:%8u,AS:%8u",
+	       be32toh (message->option_id),
+	       be64toh (message->bid_reference_delta),
+	       (uint32_t) be16toh (message->bid_price) / EFH_NOM_PRICE_SCALE,
+	       (uint32_t) be16toh (message->bid_size),
+	       be64toh (message->ask_reference_delta),
+	       (uint32_t) be16toh (message->ask_price) / EFH_NOM_PRICE_SCALE,
+	       (uint32_t) be16toh (message->ask_size)
+	       );
+
+      break;
+    }     
+    default:
+      break; 
+    }
+    fprintf (md_file,"\n");
+    fflush(md_file);
+    return;
+
+  }
 } // Nom namespace
 
 #define ITTO_NOM_MSG(x)					\

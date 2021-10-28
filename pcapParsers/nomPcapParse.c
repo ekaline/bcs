@@ -135,10 +135,9 @@ int main(int argc, char *argv[]) {
 	    uint16_t msgLen = be16toh(*(uint16_t*)p);
 	    p += sizeof(msgLen);
 	    //-----------------------------------------------------------------------------
-	    auto msgType = reinterpret_cast<const GenericHdr*>(p)->message_type;
 	    uint64_t ts = get_ts(p);
 	    if (printAll)
-		printf ("%d: %ju, %ju, \'%c\'\n",grId,ts,sequence,msgType);
+	      printMsg(stdout,p,grId,sequence,ts);
 	    sequence++;
 	    //-----------------------------------------------------------------------------
 

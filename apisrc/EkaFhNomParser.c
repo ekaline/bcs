@@ -12,10 +12,6 @@
 #include "EkaFhNomParser.h"
 #include "EkaFhFullBook.h"
 
-static void eka_print_nom_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t sequence);
-//static inline uint64_t get_ts(const uint8_t* m);
-std::string ts_ns2str(uint64_t ts);
-
 using namespace Nom;
 
 /* ####################################################### */
@@ -40,6 +36,11 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   auto start = std::chrono::high_resolution_clock::now();  
 #endif
 
+  if (parserSeq != 0 && parserSeq != sequence)
+    EKA_WARN("WARNING: %s %s:%u parserSeq %ju != sequence %ju",
+	     EkaFhMode2STR(op),EKA_EXCH_DECODE(exch),id,parserSeq,sequence);
+  parserSeq = sequence + 1;
+  
   auto enc {static_cast<const char>(m[0])};
   auto msg_timestamp = get_ts(m);
 
@@ -85,7 +86,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     char seq_num_str[21] = {};
     memcpy(seq_num_str, message->sequence_number, 20);
     seq_after_snapshot = (op == EkaFhMode::SNAPSHOT) ? strtoul(seq_num_str, NULL, 10) : 0;
-    EKA_LOG("Glimpse snapshot_end_message (\'M\'): fh->gr[%u].seq_after_snapshot = %ju",id,seq_after_snapshot);
+    EKA_LOG("Glimpse snapshot_end_message (\'M\'): fh->gr[%u].seq_after_snapshot = %ju (\'%s\')",
+	    id,seq_after_snapshot,seq_num_str);
     return true;
   }
     //--------------------------------------------------------------
@@ -498,7 +500,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     }
     if (ask_o != NULL) {
       if (book->deleteOrder(ask_o) < 0) {
-	eka_print_nom_msg(stderr,(uint8_t*)m,id,sequence); fflush(stderr);
+	printMsg(stderr,(uint8_t*)m,id,sequence,msg_timestamp); fflush(stderr);
 	EKA_WARN("NOM_QUOTE_DELETE failed for OrderId %ju",ask_order_id);
 	return true;
       }
@@ -522,7 +524,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
 	sequence,
 	msg_timestamp,
 	gapNum },
-      be32toh(message->price) / EFH_PRICE_SCALE,
+      be32toh(message->price) / EFH_NOM_PRICE_SCALE,
       be32toh(message->size),
       s->trading_action,
       EfhTradeCond::kREG
@@ -551,8 +553,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   s->bid_ts = msg_timestamp;
   s->ask_ts = msg_timestamp;
 
-  if (fh->print_parsed_messages) eka_print_nom_msg(parser_log,(uint8_t*)m,id,sequence);
-  //  eka_print_nom_msg(stderr,(uint8_t*)m,id,sequence); fflush(stderr);
+  if (fh->print_parsed_messages) printMsg(parser_log,(uint8_t*)m,id,sequence,msg_timestamp);
+  //  printMsg(stderr,(uint8_t*)m,id,sequence,msg_timestamp); fflush(stderr);
   //  book->printAll();
   //  book->printSecurity(s);
 
@@ -564,6 +566,23 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   if (duration_ns > 50000) EKA_WARN("WARNING: \'%c\' processing took %ju ns",enc, duration_ns);
 #endif
 
+#if 0  
+  if (s->crossedPrice()) {
+    char hexBuf[16000]; // approximate max NOM message size
+    if (std::FILE *const hexBufFile = fmemopen(hexBuf, sizeof hexBuf, "w")) {
+      hexDump("Msg caused CROSS PRICE",m,getMsgLen(m),hexBufFile);
+      book->printSecurity(s,hexBufFile);
+      (void)std::fwrite("\0", 1, 1, hexBufFile);
+
+      (void)std::fclose(hexBufFile);
+    }
+    
+    EKA_WARN("WARNING PRICE CROSS: %s_%u at %s after \'%c\' : %s",
+	     EKA_EXCH_DECODE(exch),id, EkaFhMode2STR(op),enc,
+	     hexBuf);
+  }
+#endif
+  
   if (! book->isEqualState(s))
     book->generateOnQuote (pEfhRunCtx, s, sequence, msg_timestamp,gapNum);
 
@@ -591,41 +610,7 @@ static void print_sec_state(fh_b_security* s) {
 #endif
 
 
-static void eka_print_nom_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t sequence) {
-  
-  switch ((char)m[0]) {
-  case 'a': { //NOM_ADD_ORDER_SHORT
-    fprintf (md_file,"GR%d,SN:%ju,",gr,sequence);
-    auto message {reinterpret_cast<const add_order_short *>(m)};
 
-    fprintf (md_file,"SID:%16u,%c,P:%8u,S:%8u\n",
-	    be32toh (message->option_id),
-	    (char)             (message->side),
-	    (uint32_t) be16toh (message->price) * 100 / EFH_PRICE_SCALE,
-	    (uint32_t) be16toh (message->size)
-	    );
-    break;
-  }
-    //--------------------------------------------------------------
-  case 'A' : { //NOM_ADD_ORDER_LONG
-    fprintf (md_file,"GR%d,SN:%ju,",gr,sequence);
-    auto message {reinterpret_cast<const add_order_long *>(m)};
-    
-    fprintf (md_file,"SID:%16u,%c,P:%8u,S:%8u\n",
-	    be32toh (message->option_id),
-	    (char)             (message->side),
-	    be32toh (message->price) / EFH_PRICE_SCALE,
-	    be32toh (message->size)
-	    );
-    break;
-  }
-  default:
-    break; 
-  }
-  fflush(md_file);
-  return;
-
-}
 
 
 /* static void eka_print_nom_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t sequence) { */
@@ -641,7 +626,7 @@ static void eka_print_nom_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t 
 /* 	    be32toh (message->option_id), */
 /* 	    be64toh (message->order_reference_delta), */
 /* 	    (char)             (message->side), */
-/* 	    (uint32_t) be16toh (message->price) * 100 / EFH_PRICE_SCALE, */
+/* 	    (uint32_t) be16toh (message->price) * 100 / EFH_NOM_PRICE_SCALE, */
 /* 	    (uint32_t) be16toh (message->size) */
 /* 	    ); */
 /*     break; */
@@ -653,7 +638,7 @@ static void eka_print_nom_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t 
 /* 	    be32toh (message->option_id), */
 /* 	    be64toh (message->order_reference_delta), */
 /* 	    (char)             (message->side), */
-/* 	    be32toh (message->price) / EFH_PRICE_SCALE, */
+/* 	    be32toh (message->price) / EFH_NOM_PRICE_SCALE, */
 /* 	    be32toh (message->size) */
 /* 	    ); */
 /*     break; */
@@ -679,10 +664,10 @@ static void eka_print_nom_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t 
 /*     fprintf (md_file,"SID:%16u,BOID:%16ju,BP:%8u,BS:%8u,AOID:%16ju,AP:%8u,AS:%8u", */
 /* 	    be32toh (message->option_id), */
 /* 	    be64toh (message->bid_reference_delta), */
-/* 	    be32toh (message->bid_price) / EFH_PRICE_SCALE, */
+/* 	    be32toh (message->bid_price) / EFH_NOM_PRICE_SCALE, */
 /* 	    be32toh (message->bid_size), */
 /* 	    be64toh (message->ask_reference_delta), */
-/* 	    be32toh (message->ask_price) / EFH_PRICE_SCALE, */
+/* 	    be32toh (message->ask_price) / EFH_NOM_PRICE_SCALE, */
 /* 	    be32toh (message->ask_size) */
 /* 	    ); */
 /*     break; */
@@ -693,10 +678,10 @@ static void eka_print_nom_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t 
 /*     fprintf (md_file,"SID:%16u,BOID:%16ju,BP:%8u,BS:%8u,AOID:%16ju,AP:%8u,AS:%8u", */
 /* 	    be32toh (message->option_id), */
 /* 	    be64toh (message->bid_reference_delta), */
-/* 	    (uint32_t) be16toh (message->bid_price) / EFH_PRICE_SCALE, */
+/* 	    (uint32_t) be16toh (message->bid_price) / EFH_NOM_PRICE_SCALE, */
 /* 	    (uint32_t) be16toh (message->bid_size), */
 /* 	    be64toh (message->ask_reference_delta), */
-/* 	    (uint32_t) be16toh (message->ask_price) / EFH_PRICE_SCALE, */
+/* 	    (uint32_t) be16toh (message->ask_price) / EFH_NOM_PRICE_SCALE, */
 /* 	    (uint32_t) be16toh (message->ask_size) */
 /* 	    ); */
 
@@ -730,7 +715,7 @@ static void eka_print_nom_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t 
 /*     fprintf (md_file,"OOID:%16ju,NOID:%16ju,P:%8u,S:%8u", */
 /* 	    be64toh (message->original_reference_delta), */
 /* 	    be64toh (message->new_reference_delta), */
-/* 	    (uint32_t) be16toh (message->price) * 100 / EFH_PRICE_SCALE, */
+/* 	    (uint32_t) be16toh (message->price) * 100 / EFH_NOM_PRICE_SCALE */
 /* 	    (uint32_t) be16toh (message->size) */
 /* 	    ); */
 /*     break; */
@@ -741,7 +726,7 @@ static void eka_print_nom_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t 
 /*     fprintf (md_file,"OOID:%16ju,NOID:%16ju,P:%8u,S:%8u", */
 /* 	    be64toh (message->original_reference_delta), */
 /* 	    be64toh (message->new_reference_delta), */
-/* 	    be32toh (message->price) / EFH_PRICE_SCALE, */
+/* 	    be32toh (message->price) / EFH_NOM_PRICE_SCALE */
 /* 	    be32toh (message->size) */
 /* 	    ); */
 /*     break; */
@@ -758,7 +743,7 @@ static void eka_print_nom_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t 
 /*     struct itto_message_update *message = (struct itto_message_update *)m; */
 /*     fprintf (md_file,"OID:%16ju,P:%8u,S:%8u", */
 /* 	    be64toh (message->reference_delta), */
-/* 	    be32toh (message->price) / EFH_PRICE_SCALE, */
+/* 	    be32toh (message->price) / EFH_NOM_PRICE_SCALE */
 /* 	    be32toh (message->size) */
 /* 	    ); */
 
@@ -770,12 +755,12 @@ static void eka_print_nom_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t 
 /*     fprintf (md_file,"OBOID:%16ju,NBOID:%16ju,BP:%8u,BS:%8u,OAOID:%16ju,NAOID:%16ju,AP:%8u,AS:%8u", */
 /* 	    be64toh (message->original_bid_delta), */
 /* 	    be64toh(message->new_bid_delta), */
-/* 	    (uint32_t) be16toh (message->bid_price) / EFH_PRICE_SCALE, */
+/* 	    (uint32_t) be16toh (message->bid_price) / EFH_NOM_PRICE_SCALE */
 /* 	    (uint32_t) be16toh (message->bid_size), */
 
 /* 	    be64toh(message->original_ask_delta), */
 /* 	    be64toh(message->new_ask_delta), */
-/* 	    (uint32_t) be16toh(message->ask_price) * 100 / EFH_PRICE_SCALE, */
+/* 	    (uint32_t) be16toh(message->ask_price) * 100 / EFH_NOM_PRICE_SCALE */
 /* 	    (uint32_t) be16toh(message->ask_size) */
 /* 	    ); */
 
@@ -787,12 +772,12 @@ static void eka_print_nom_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t 
 /*     fprintf (md_file,"OBOID:%16ju,NBOID:%16ju,BP:%8u,BS:%8u,OAOID:%16ju,NAOID:%16ju,AP:%8u,AS:%8u", */
 /* 	    be64toh (message->original_bid_delta), */
 /* 	    be64toh (message->new_bid_delta), */
-/* 	    be32toh (message->bid_price) * 100 / EFH_PRICE_SCALE, */
+/* 	    be32toh (message->bid_price) * 100 / EFH_NOM_PRICE_SCALE */
 /* 	    be32toh (message->bid_size), */
 
 /* 	    be64toh (message->original_ask_delta), */
 /* 	    be64toh (message->new_ask_delta), */
-/* 	    be32toh (message->ask_price) / EFH_PRICE_SCALE, */
+/* 	    be32toh (message->ask_price) / EFH_NOM_PRICE_SCALE */
 /* 	    be32toh (message->ask_size) */
 /* 	    ); */
 /*     break; */

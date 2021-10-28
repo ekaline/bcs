@@ -16,33 +16,29 @@ class FhPlevel,
   class SizeT>
   class EkaFhFbSecurity : public EkaFhSecurity {
  public:
-    EkaFhFbSecurity(SecurityIdT     _secId,
-		    EfhSecurityType _type,
-		    EfhSecUserData  _userData,
-		    uint64_t        _opaqueAttrA,
-		    uint64_t        _opaqueAttrB) : 
+  EkaFhFbSecurity(SecurityIdT     _secId,
+		  EfhSecurityType _type,
+		  EfhSecUserData  _userData,
+		  uint64_t        _opaqueAttrA,
+		  uint64_t        _opaqueAttrB) : 
     EkaFhSecurity(_type,_userData,_opaqueAttrA,_opaqueAttrB) {
-      secId         = _secId;
-      numBidPlevels = 0;
-      numAskPlevels = 0;
-      bid           = NULL;
-      ask           = NULL;
-    }
+    secId         = _secId;
+    numBidPlevels = 0;
+    numAskPlevels = 0;
+    bid           = NULL;
+    ask           = NULL;
+  }
 
-/* /\* --------------------------------------------------------------- *\/ */
-/*     uint64_t  getTopPrice(SideT side) {  */
-/*       switch (side) { */
-/*       case SideT::BID : */
-/* 	if (bid == NULL) return 0; */
-/* 	return bid->price; */
-/*       case SideT::ASK : */
-/* 	if (ask == NULL) return 0; */
-/* 	return ask->price; */
-/*       default: */
-/* 	on_error("Unexpected Side %d",(int)side); */
-/*       } */
-/*     } */
-/* /\* --------------------------------------------------------------- *\/ */
+  /* --------------------------------------------------------------- */
+
+  bool crossedPrice() {
+    if (!bid || !ask)                       return false;
+    if (bid->price == 0 || ask->price == 0) return false;
+    if (bid->price > ask->price)            return true;
+    return false;
+  }
+  
+/* --------------------------------------------------------------- */
 
 /*     uint32_t  getTopTotalSize(SideT side) {  */
 /*       switch (side) { */
