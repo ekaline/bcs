@@ -199,7 +199,7 @@ EkaOpResult EkaFhPlr::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
     // The trades channel does not give definitions and we'll wait forever
     // if we try to receive them.
     EKA_DEBUG("%s:%u: skipping definitions for trade group",EKA_EXCH_DECODE(exch),gr->id);
-    return EKA_OPRESULT__OK;
+    //    return EKA_OPRESULT__OK;
   }
   return plrRecovery(pEfhRunCtx, gr, EkaFhMode::DEFINITIONS, 0,0);
 }
