@@ -402,6 +402,8 @@ static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
   auto pktHdr {reinterpret_cast<const PktHdr* >(p)};
   p += sizeof(*pktHdr);
 
+  static uint32_t msgSeq = 0;
+    
   bool firstPkt = false;
   bool lastPkt  = false;
 
@@ -442,8 +444,9 @@ static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
     /* ------------------------------------------ */
   case DeliveryFlag::Heartbeat :
     if (*myRefreshStarted) {
-      EKA_WARN("%s:%u WARNING: Heartbeat during active Refresh cycle - UDP packets dropped",
-	    EKA_EXCH_DECODE(gr->exch),gr->id);
+      EKA_WARN("%s:%u WARNING: Heartbeat during active Refresh cycle - UDP packets dropped: "
+	       "last processed msgSeq = %u, current msgSeq = %u",
+	       EKA_EXCH_DECODE(gr->exch),gr->id, msgSeq, pktHdr->seqNum);
       return EKA_OPRESULT__ERR_RECOVERY_FAILED;
     }
   case DeliveryFlag::Failover :
@@ -484,6 +487,8 @@ static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
     }
     p += msgHdr->size;
   }
+
+  msgSeq = pktHdr->seqNum + pktHdr->numMsgs;
   if (lastPkt) return EKA_OPRESULT__OK;
   return EKA_OPRESULT__RECOVERY_IN_PROGRESS;
 }
@@ -525,19 +530,18 @@ EkaOpResult plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode o
 
     switch (result) {
     case EKA_OPRESULT__OK :
+    case EKA_OPRESULT__ERR_RECOVERY_FAILED :
       if (op == EkaFhMode::DEFINITIONS) {
 	EKA_LOG("%s:%u Sending out buffered Defintions",
 	      EKA_EXCH_DECODE(gr->exch),gr->id);
 	for (auto &def : vanillaDefinitions) {
 	  gr->parseMsg(pEfhRunCtx,reinterpret_cast<const uint8_t*>(&def),0,op);
 	}
+	vanillaDefinitions.clear();
       }
-      EKA_LOG("%s:%u %s completed\n-----------------------------------------------\n",
-	      EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
-      goto EXIT_RECOVERY;
-    case EKA_OPRESULT__ERR_RECOVERY_FAILED :
-      EKA_LOG("%s:%u %s FAILED\n-----------------------------------------------\n",
-	      EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
+      EKA_LOG("%s:%u %s %s\n-----------------------------------------------\n",
+	      EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op),
+	      result == EKA_OPRESULT__OK ? "completed" : "FAILED");
       goto EXIT_RECOVERY;
     case EKA_OPRESULT__RECOVERY_IN_PROGRESS :
       break;
