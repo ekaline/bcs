@@ -2,6 +2,7 @@
 #define _EKA_FH_PLR_GR_H_
 
 #include <chrono>
+#include <deque>
 
 #include "EkaFhGroup.h"
 #include "EkaFhTobBook.h"

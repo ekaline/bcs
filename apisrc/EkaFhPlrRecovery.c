@@ -1,6 +1,7 @@
 #include <net/if.h>
 #include <netinet/in.h>
 #include <stdio.h>
+#include <deque>
 
 #include "EkaFhPlrGr.h"
 #include "EkaFhPlrParser.h"
@@ -393,7 +394,8 @@ static EkaOpResult processRetransUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
 }
 
 static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
-				 const uint8_t* p,EkaFhMode op, bool* myRefreshStarted) {
+					const uint8_t* p,EkaFhMode op, bool* myRefreshStarted,
+					std::deque <OutrightSeriesIndexMapping> &vanillaDefinitions) {
   if (!gr) on_error("gr == NULL");
   auto dev {gr->dev};
   
@@ -426,13 +428,15 @@ static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
     break;
     /* ------------------------------------------ */
   case DeliveryFlag::PartOfRefresh :
-    if (! *myRefreshStarted) return EKA_OPRESULT__RECOVERY_IN_PROGRESS;    
+    if (! *myRefreshStarted)
+      return EKA_OPRESULT__RECOVERY_IN_PROGRESS;    
     break;
     /* ------------------------------------------ */
   case DeliveryFlag::EndOfRefresh :
     EKA_LOG("%s:%u EndOfRefresh: myRefreshStarted = %d",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,(int)*myRefreshStarted);
-    if (! *myRefreshStarted) return EKA_OPRESULT__RECOVERY_IN_PROGRESS;    
+    if (! *myRefreshStarted)
+      return EKA_OPRESULT__RECOVERY_IN_PROGRESS;    
     lastPkt = true;
     break;
     /* ------------------------------------------ */
@@ -472,7 +476,12 @@ static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
   
   for (auto i = 0; i < pktHdr->numMsgs; i++) {
     auto msgHdr {reinterpret_cast<const MsgHdr*>(p)};
-    gr->parseMsg(pEfhRunCtx,p,0,op);
+    if (op == EkaFhMode::DEFINITIONS) {
+      if (msgHdr->type == MsgType::OutrightSeriesIndexMapping)
+	vanillaDefinitions.push_back(*reinterpret_cast<const OutrightSeriesIndexMapping*>(msgHdr));
+    } else {
+      gr->parseMsg(pEfhRunCtx,p,0,op);
+    }
     p += msgHdr->size;
   }
   if (lastPkt) return EKA_OPRESULT__OK;
@@ -495,6 +504,9 @@ EkaOpResult plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode o
   establishConnections(gr,op,start,end,&udpSock,&tcpSock);
 
   EkaOpResult result = EKA_OPRESULT__OK;
+
+  std::deque <OutrightSeriesIndexMapping> vanillaDefinitions;  
+
   while (gr->snapshot_active || gr->recovery_active) {
     char buf[2000] = {};
     int rc = recvfrom(udpSock, buf, sizeof(buf), MSG_WAITALL, NULL, NULL);
@@ -509,10 +521,17 @@ EkaOpResult plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode o
 
     result = op == EkaFhMode::RECOVERY ?
       processRetransUdpPkt(pEfhRunCtx,gr,p,op,start,end) :
-      processRefreshUdpPkt(pEfhRunCtx,gr,p,op,&myRefreshStarted);
+      processRefreshUdpPkt(pEfhRunCtx,gr,p,op,&myRefreshStarted,vanillaDefinitions);
 
     switch (result) {
     case EKA_OPRESULT__OK :
+      if (op == EkaFhMode::DEFINITIONS) {
+	EKA_LOG("%s:%u Sending out buffered Defintions",
+	      EKA_EXCH_DECODE(gr->exch),gr->id);
+	for (auto &def : vanillaDefinitions) {
+	  gr->parseMsg(pEfhRunCtx,reinterpret_cast<const uint8_t*>(&def),0,op);
+	}
+      }
       EKA_LOG("%s:%u %s completed\n-----------------------------------------------\n",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
       goto EXIT_RECOVERY;

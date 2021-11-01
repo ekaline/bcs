@@ -24,6 +24,8 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 
   switch (static_cast<MsgType>(msgHdr->type)) {
   case MsgType::OutrightSeriesIndexMapping : {
+    if (op != EkaFhMode::DEFINITIONS) break;
+    
     auto m {reinterpret_cast<const OutrightSeriesIndexMapping*>(pMsg)};
     EfhOptionDefinitionMsg msg{};
     msg.header.msgType        = EfhMsgType::kOptionDefinition;
