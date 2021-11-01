@@ -16,7 +16,9 @@ namespace Plr {
   const uint8_t NYSE_Complex_ProductId = 163;
   const uint8_t NYSE_Trades_ProductId = 165;
   const uint8_t NYSE_Auction_ProductId = 164;
-    
+
+  const size_t MaxVanillaDefinitions = 1'500'000;
+  
   struct PktHdr {
     uint16_t pktSize;
     uint8_t  deliveryFlag;

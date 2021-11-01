@@ -7,6 +7,7 @@
 #include "EkaFhPlrGr.h"
 #include "EkaFhPlrParser.h"
 #include "EkaFhThreadAttr.h"
+#include "EfhFastBuffer.h"
 
 int ekaUdpMcConnect(EkaDev* dev, uint32_t ip, uint16_t port);
 int ekaTcpConnect(uint32_t ip, uint16_t port);
@@ -396,7 +397,8 @@ static EkaOpResult processRetransUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
 
 static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr,
 					const uint8_t* p,EkaFhMode op, bool* myRefreshStarted,
-					std::vector <OutrightSeriesIndexMapping> *pVanillaDefinitions) {
+					EfhFastBuffer <OutrightSeriesIndexMapping,MaxVanillaDefinitions> *pVanillaDefinitions) {
+  //					std::vector <OutrightSeriesIndexMapping> *pVanillaDefinitions) {
   //					std::deque <OutrightSeriesIndexMapping> &vanillaDefinitions) {
   if (!gr) on_error("gr == NULL");
   auto dev {gr->dev};
@@ -448,7 +450,7 @@ static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
     if (*myRefreshStarted) {
       EKA_WARN("%s:%u WARNING: Heartbeat during active Refresh cycle - UDP packets dropped: "
 	       "last processed msgSeq = %u, current msgSeq = %u, dropped %d",
-	       EKA_EXCH_DECODE(gr->exch),gr->id, msgSeq, pktHdr->seqNum, msgSeq - pktHdr->seqNum);
+	       EKA_EXCH_DECODE(gr->exch),gr->id, msgSeq, pktHdr->seqNum, pktHdr->seqNum - msgSeq);
       return EKA_OPRESULT__ERR_RECOVERY_FAILED;
     }
   case DeliveryFlag::Failover :
@@ -483,7 +485,8 @@ static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
     auto msgHdr {reinterpret_cast<const MsgHdr*>(p)};
     if (op == EkaFhMode::DEFINITIONS) {
       if (msgHdr->type == MsgType::OutrightSeriesIndexMapping)
-	pVanillaDefinitions->push_back(*reinterpret_cast<const OutrightSeriesIndexMapping*>(msgHdr));
+	//	pVanillaDefinitions->push_back(*reinterpret_cast<const OutrightSeriesIndexMapping*>(msgHdr));
+	pVanillaDefinitions->push(reinterpret_cast<const OutrightSeriesIndexMapping*>(msgHdr));
     } else {
       gr->parseMsg(pEfhRunCtx,p,0,op);
     }
@@ -513,9 +516,13 @@ EkaOpResult plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode o
   EkaOpResult result = EKA_OPRESULT__OK;
 
   //  std::deque <OutrightSeriesIndexMapping> vanillaDefinitions;  
-  auto pVanillaDefinitions = new std::vector <OutrightSeriesIndexMapping> (1'500'000);  
-  if (!pVanillaDefinitions)
-    on_error("Failed creating VanillaDefinitions vector");
+  //  auto pVanillaDefinitions = new std::vector <OutrightSeriesIndexMapping> (1'500'000);
+  EfhFastBuffer<OutrightSeriesIndexMapping,MaxVanillaDefinitions> *pVanillaDefinitions = NULL;
+  if (op == EkaFhMode::DEFINITIONS) {    
+    pVanillaDefinitions = new EfhFastBuffer<OutrightSeriesIndexMapping,MaxVanillaDefinitions>;  
+    if (!pVanillaDefinitions)
+      on_error("Failed creating VanillaDefinitions vector");
+  }
   
   while (gr->snapshot_active || gr->recovery_active) {
     char buf[2000] = {};
@@ -539,10 +546,13 @@ EkaOpResult plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode o
       if (op == EkaFhMode::DEFINITIONS) {
 	EKA_LOG("%s:%u Sending out buffered Defintions",
 	      EKA_EXCH_DECODE(gr->exch),gr->id);
-	for (auto &def : *pVanillaDefinitions) {
-	  gr->parseMsg(pEfhRunCtx,reinterpret_cast<const uint8_t*>(&def),0,op);
+	//	for (auto &def : *pVanillaDefinitions) {
+	for (size_t i = 0; i < pVanillaDefinitions->getSize(); i++) {
+	  auto def = pVanillaDefinitions->pop();
+	  gr->parseMsg(pEfhRunCtx,reinterpret_cast<const uint8_t*>(def),0,op);
 	}
-	pVanillaDefinitions->clear();
+	//	pVanillaDefinitions->clear();
+	delete pVanillaDefinitions;
       }
       EKA_LOG("%s:%u %s %s\n-----------------------------------------------\n",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op),
