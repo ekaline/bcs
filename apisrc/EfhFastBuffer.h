@@ -12,10 +12,6 @@ template <class T, const size_t size>
     rd = 0;
   }
 
-  /* ~EfhFastBuffer() { */
-  /*   delete buf[]; */
-  /* } */
-  
   void push (const T* e) {
     if (wr == size)
       on_error("trying to push %ju elements",wr);
@@ -29,11 +25,11 @@ template <class T, const size_t size>
   size_t getSize() const {
     return wr;
   }
-
   
  private:
-  T buf[size];
-  size_t wr, rd;
+  T buf[size] = {};
+  size_t wr = 0;
+  size_t rd = 0;
 };
 
 #endif
