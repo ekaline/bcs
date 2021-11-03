@@ -39,6 +39,13 @@ static GroupAddr group[] = {
     {inet_addr("224.0.31.43"), 14310, 0, 0},     // Futures definitionFeed A
     {inet_addr("224.0.31.22"), 14310, 0, 0},     // Futures snapshotFeed A
 
+    {inet_addr("224.0.31.10"), 14319, 0, 0},     // Options excludes E-mini S&P incrementFeed A
+    {inet_addr("224.0.31.52"), 14319, 0, 0},     // Options excludes E-mini S&P definitionFeed A
+    {inet_addr("224.0.31.31"), 14319, 0, 0},     // Options excludes E-mini S&P snapshotFeed A
+
+    {inet_addr("224.0.31.9"),  14318, 0, 0},     // Futures excludes E-mini S&P incrementFeed A
+    {inet_addr("224.0.31.51"), 14318, 0, 0},     // Futures excludes E-mini S&P definitionFeed A
+    {inet_addr("224.0.31.30"), 14318, 0, 0},     // Futures excludes E-mini S&P snapshotFeed A
 
     {inet_addr("224.0.32.1"),  15310, 0, 0},     // Futures incrementFeed B
     {inet_addr("224.0.32.2"),  15311, 0, 0},     // Options incrementFeed B
