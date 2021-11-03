@@ -31,12 +31,19 @@ struct GroupAddr {
 };
 
 static GroupAddr group[] = {
-    {inet_addr("224.0.31.2"), 14311, 0, 0},     // incrementFeed
-    {inet_addr("224.0.31.1"), 14310, 0, 0},     // incrementFeed
-    {inet_addr("224.0.32.2"), 15311, 0, 0},     // incrementFeed
-    {inet_addr("224.0.32.1"), 15310, 0, 0},     // incrementFeed
+    {inet_addr("224.0.31.2"),  14311, 0, 0},     // Options incrementFeed A
+    {inet_addr("224.0.31.44"), 14311, 0, 0},     // Options definitionFeed A
+    {inet_addr("224.0.31.23"), 14311, 0, 0},     // Options snapshotFeed A
 
-    {inet_addr("224.0.31.66"), 14342, 0, 0},    // Patrick
+    {inet_addr("224.0.31.1"),  14310, 0, 0},     // Futures incrementFeed A
+    {inet_addr("224.0.31.43"), 14310, 0, 0},     // Futures definitionFeed A
+    {inet_addr("224.0.31.22"), 14310, 0, 0},     // Futures snapshotFeed A
+
+
+    {inet_addr("224.0.32.1"),  15310, 0, 0},     // Futures incrementFeed B
+    {inet_addr("224.0.32.2"),  15311, 0, 0},     // Options incrementFeed B
+    
+    {inet_addr("224.0.31.66"), 14342, 0, 0},     // Patrick
 
 };
 
