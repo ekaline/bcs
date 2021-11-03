@@ -619,7 +619,10 @@ namespace Cme {
     uint64_t time; // ns since epoch
   } __attribute__((packed));
   
-
+  inline uint32_t getPktSeq(const uint8_t* p) {
+    return reinterpret_cast<const PktHdr*>(p)->seq;
+  }
+  
 #define MDpdateAction2STR(x)				\
   x ==  MDUpdateAction_T::New         ? "New"        :	\
     x == MDUpdateAction_T::Change     ? "Change"     :	\

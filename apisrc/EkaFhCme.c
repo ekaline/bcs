@@ -167,11 +167,19 @@ EkaOpResult EkaFhCme::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
   gr->snapshot_active = true;
   
   gr->iterationsCnt = 0;  
+
+  uint32_t expectedPktSeq = 0;
   
   while (gr->snapshot_active) {
     uint8_t pkt[1536] = {};
     int size = recvfrom(sock, pkt, sizeof(pkt), 0, (sockaddr*) &addr, &addrlen);
     if (size < 0) on_error("size = %d",size);
+
+    if (expectedPktSeq == 0)
+      expectedPktSeq = getPktSeq(pkt);
+    if (expectedPktSeq != getPktSeq(pkt))
+      EKA_WARN("ERROR: expectedPktSeq=%u, getPktSeq(pkt)=%u",
+	       expectedPktSeq,getPktSeq(pkt));
     if (gr->processPkt(pEfhRunCtx,pkt,size,EkaFhMode::DEFINITIONS)) break;
     
   }
