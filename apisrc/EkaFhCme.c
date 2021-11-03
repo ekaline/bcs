@@ -181,7 +181,8 @@ EkaOpResult EkaFhCme::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
       EKA_WARN("ERROR: expectedPktSeq=%u, getPktSeq(pkt)=%u",
 	       expectedPktSeq,getPktSeq(pkt));
     if (gr->processPkt(pEfhRunCtx,pkt,size,EkaFhMode::DEFINITIONS)) break;
-    
+    expectedPktSeq ++;
+
   }
   gr->snapshot_active = false;
   gr->snapshotClosed  = true;
