@@ -144,16 +144,16 @@ void* getCmeSnapshot(void* attr) {
   gr->snapshot_active = true;
   gr->iterationsCnt = 0;  
 
-  uint32_t expectedPktSeq = 0;
+  uint32_t expectedPktSeq = 1;
 
   while (gr->snapshot_active) {
     uint8_t pkt[1536] = {};
     int size = recvfrom(sock, pkt, sizeof(pkt), 0, (sockaddr*) &addr, &addrlen);
     if (size < 0) on_error("size = %d",size);
-    if (expectedPktSeq == 0) {
-      expectedPktSeq = getPktSeq(pkt);
-      EKA_LOG("1st getPktSeq(pkt) = %u",expectedPktSeq);
-    }
+    
+    if (expectedPktSeq == 1 && getPktSeq(pkt) != 1)
+      continue;
+    
     if (expectedPktSeq != getPktSeq(pkt))
       EKA_WARN("ERROR: expectedPktSeq=%u, getPktSeq(pkt)=%u",
 	       expectedPktSeq,getPktSeq(pkt));
