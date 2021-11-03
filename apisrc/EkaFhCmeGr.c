@@ -156,7 +156,7 @@ void* getCmeSnapshot(void* attr) {
       EKA_WARN("ERROR: expectedPktSeq=%u, getPktSeq(pkt)=%u",
 	       expectedPktSeq,getPktSeq(pkt));
     if (gr->processPkt(pEfhRunCtx,pkt,size,EkaFhMode::SNAPSHOT)) break;
-    
+    expectedPktSeq ++;
   }
   gr->snapshot_active = false;
   gr->snapshotClosed  = true;
