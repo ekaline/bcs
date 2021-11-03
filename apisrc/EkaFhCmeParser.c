@@ -95,13 +95,19 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
     }
     if (op == EkaFhMode::DEFINITIONS && isDefinitionMsg(msgHdr->templateId)) {
       auto root {reinterpret_cast<const Definition_commonMainBlock*>(p + sizeof(*msgHdr))};
+      ++iterationsCnt;
       int totalIterations = root->TotNumReports;
-      if (++iterationsCnt == totalIterations) return true;
+      EKA_LOG("pktSeq = %u, iteration %d out of %d",
+	      getPktSeq(p),iterationsCnt,totalIterations);
+      if (iterationsCnt == totalIterations) return true;
     }
     if (op == EkaFhMode::SNAPSHOT && isSnapshotMsg(msgHdr->templateId)) {
       auto root {reinterpret_cast<const Refresh_commonMainBlock*>(p + sizeof(*msgHdr))};
+      ++iterationsCnt;
       int totalIterations = root->TotNumReports;
-      if (++iterationsCnt == totalIterations) return true;
+      EKA_LOG("pktSeq = %u, iteration %d out of %d",
+	      getPktSeq(p),iterationsCnt,totalIterations);
+      if (iterationsCnt == totalIterations) return true;
     }
 
     p += msgHdr->size;
