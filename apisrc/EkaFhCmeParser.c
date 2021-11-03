@@ -92,7 +92,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       ++iterationsCnt;
       int totalIterations = root->TotNumReports;
       EKA_LOG("pktSeq = %u, iteration %d out of %d",
-	      getPktSeq(p),iterationsCnt,totalIterations);
+	      getPktSeq(pkt),iterationsCnt,totalIterations);
       if (iterationsCnt == totalIterations) return true;
     }
     if (op == EkaFhMode::SNAPSHOT && isSnapshotMsg(msgHdr->templateId)) {
@@ -100,7 +100,7 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       ++iterationsCnt;
       int totalIterations = root->TotNumReports;
       EKA_LOG("pktSeq = %u, iteration %d out of %d",
-	      getPktSeq(p),iterationsCnt,totalIterations);
+	      getPktSeq(pkt),iterationsCnt,totalIterations);
       if (iterationsCnt == totalIterations) return true;
     }
 
