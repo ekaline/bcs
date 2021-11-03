@@ -47,10 +47,20 @@ EkaProp efhCmeInitCtxEntries_A[] = {
   {"efh.CME_SBE.group.0.snapshot.addr","224.0.31.44:14311"}, 	// definitionFeed
   {"efh.CME_SBE.group.0.recovery.addr","224.0.31.23:14311"}, 	// snapshotFeed
 
-  //Futures
+  // Futures
   {"efh.CME_SBE.group.1.mcast.addr"   ,"224.0.31.1:14310"},     // incrementFeed
   {"efh.CME_SBE.group.1.snapshot.addr","224.0.31.43:14310"}, 	// definitionFeed 
-  {"efh.CME_SBE.group.1.recovery.addr","224.0.31.22:14310"}, 	// snapshotFeed 
+  {"efh.CME_SBE.group.1.recovery.addr","224.0.31.22:14310"}, 	// snapshotFeed
+
+   // Options excludes E-mini S&P
+  {"efh.CME_SBE.group.0.mcast.addr"   ,"224.0.31.10:14319"},     // incrementFeed
+  {"efh.CME_SBE.group.0.snapshot.addr","224.0.31.52:14319"}, 	// definitionFeed
+  {"efh.CME_SBE.group.0.recovery.addr","224.0.31.31:14319"}, 	// snapshotFeed
+
+  // Futures excludes E-mini S&P
+  {"efh.CME_SBE.group.1.mcast.addr"   ,"224.0.31.9:14318"},     // incrementFeed
+  {"efh.CME_SBE.group.1.snapshot.addr","224.0.31.51:14318"}, 	// definitionFeed 
+  {"efh.CME_SBE.group.1.recovery.addr","224.0.31.30:14318"}, 	// snapshotFeed  
 };
 
 EkaProp efhCmeInitCtxEntries_B[] = {
