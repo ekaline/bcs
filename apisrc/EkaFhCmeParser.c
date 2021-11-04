@@ -69,15 +69,18 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       break;
       /* ##################################################################### */
     case MsgId::MDInstrumentDefinitionFuture27 :
-      process_MDInstrumentDefinitionFuture27(pEfhRunCtx,p,pktTime,pktSeq);
+      if (op == EkaFhMode::DEFINITIONS)
+	process_MDInstrumentDefinitionFuture27(pEfhRunCtx,p,pktTime,pktSeq);
       break;
       /* ##################################################################### */
     case MsgId::MDInstrumentDefinitionFuture54 :
-      process_MDInstrumentDefinitionFuture54(pEfhRunCtx,p,pktTime,pktSeq);
+      if (op == EkaFhMode::DEFINITIONS)
+	process_MDInstrumentDefinitionFuture54(pEfhRunCtx,p,pktTime,pktSeq);
       break;
       /* ##################################################################### */
     case MsgId::MDInstrumentDefinitionOption55 :
-      process_MDInstrumentDefinitionOption55(pEfhRunCtx,p,pktTime,pktSeq);
+      if (op == EkaFhMode::DEFINITIONS)
+	process_MDInstrumentDefinitionOption55(pEfhRunCtx,p,pktTime,pktSeq);
       break;
       /* ##################################################################### */
     case MsgId::MDInstrumentDefinitionSpread56 :
@@ -90,17 +93,17 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
     if (op == EkaFhMode::DEFINITIONS && isDefinitionMsg(msgHdr->templateId)) {
       auto root {reinterpret_cast<const Definition_commonMainBlock*>(p + sizeof(*msgHdr))};
       ++iterationsCnt;
-      int totalIterations = root->TotNumReports;
-      EKA_LOG("pktSeq = %u, iteration %d out of %d",
-	      getPktSeq(pkt),iterationsCnt,totalIterations);
+      totalIterations = root->TotNumReports;
+      /* EKA_LOG("pktSeq = %u, iteration %d out of %d", */
+      /* 	      getPktSeq(pkt),iterationsCnt,totalIterations); */
       if (iterationsCnt == totalIterations) return true;
     }
     if (op == EkaFhMode::SNAPSHOT && isSnapshotMsg(msgHdr->templateId)) {
       auto root {reinterpret_cast<const Refresh_commonMainBlock*>(p + sizeof(*msgHdr))};
       ++iterationsCnt;
-      int totalIterations = root->TotNumReports;
-      EKA_LOG("pktSeq = %u, iteration %d out of %d",
-	      getPktSeq(pkt),iterationsCnt,totalIterations);
+      totalIterations = root->TotNumReports;
+      /* EKA_LOG("pktSeq = %u, iteration %d out of %d", */
+      /* 	      getPktSeq(pkt),iterationsCnt,totalIterations); */
       if (iterationsCnt == totalIterations) return true;
     }
 

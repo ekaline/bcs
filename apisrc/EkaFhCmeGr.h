@@ -92,11 +92,11 @@ public:
 
   bool      snapshotClosed = false;
   uint64_t  firstLifeSeq = 0;
-  int       processedSnapshotMessages = 0;
+  int       iterationsCnt = 0;
+  int       totalIterations = 0;  
 
   volatile bool inGap  = false;
   
-  int iterationsCnt = 0;  
 
 private:
   void getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity,
