@@ -85,7 +85,6 @@ int EkaFhCmeGr::closeSnapshotGap(EfhCtx*           pEfhCtx,
 				 const EfhRunCtx*  pEfhRunCtx, 
 				 uint64_t          sequence) {
   firstLifeSeq = sequence;
-  processedSnapshotMessages = 0;
 
   std::string threadName = std::string("ST_") + 
     std::string(EKA_EXCH_SOURCE_DECODE(exch)) + 
@@ -116,8 +115,8 @@ void* getCmeSnapshot(void* attr) {
   auto params {reinterpret_cast<const EkaFhThreadAttr*>(attr)};
   if (params == NULL) on_error("params == NULL");
 
-  EfhRunCtx* pEfhRunCtx     = params->pEfhRunCtx;
-  auto gr {reinterpret_cast<EkaFhCmeGr*>(params->gr)};
+  auto pEfhRunCtx {params->pEfhRunCtx};
+  auto gr {dynamic_cast<EkaFhCmeGr*>(params->gr)};
   if (gr == NULL) on_error("gr == NULL");
 
   delete params;
@@ -164,8 +163,8 @@ void* getCmeSnapshot(void* attr) {
   gr->snapshotClosed  = true;
   gr->inGap           = false;
 
-  EKA_LOG("%s:%u: %d Snapshot messages processed",
-	  EKA_EXCH_DECODE(gr->exch),gr->id,gr->processedSnapshotMessages);
+  EKA_LOG("%s:%u: %d / %d Snapshot messages processed",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,gr->iterationsCnt,gr->totalIterations);
   close (sock);
 
   return NULL;
