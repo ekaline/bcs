@@ -526,6 +526,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 #endif
     EKA_WARN("WARNING: AUCTION_CANCEL is not supported by EFH yet");
     //    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
+    return false;
     break;
   }
     //--------------------------------------------------------------
