@@ -485,7 +485,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   getCMEProductTradeTime(pMaturity, rootBlock->Symbol, &msg.commonDef.expiryDate, &msg.commonDef.expiryTime);
 
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
-  copySymbol(msg.commonDef.classSymbol, rootBlock->Asset);
+  copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
   copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
 
   pEfhRunCtx->onEfhFutureDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
@@ -543,6 +543,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   msg.commonDef.contractSize   = rootBlock->UnitOfMeasureQty / EFH_CME_STRIKE_PRICE_SCALE;
   getCMEProductTradeTime(pMaturity, rootBlock->Symbol, &msg.commonDef.expiryDate, &msg.commonDef.expiryTime);
   copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
+  copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
 
   msg.optionType            = putOrCall;
   msg.strikePrice           = rootBlock->StrikePrice / StrikePriceFactor;
@@ -577,7 +578,6 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
     auto underlyingBlock{reinterpret_cast<const OptionDefinitionUnderlyingEntry*>(m)};
     msg.header.underlyingId = underlyingBlock->UnderlyingSecurityID;
     copySymbol(msg.commonDef.underlying, underlyingBlock->UnderlyingSymbol);
-    copySymbol(msg.commonDef.classSymbol, underlyingBlock->UnderlyingSymbol);
     m += pGroupSize_Underlyings->blockLength;
   }
   /* ------------------------------- */
@@ -677,7 +677,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
     msg.legs[i].type       = EfhSecurityType::kInvalid;
     msg.legs[i].side       = e->LegSide == LegSide_T::BuySide ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
     msg.legs[i].ratio      = std::abs(e->LegRatioQty);
-	  
+
     m += pGroupSize->blockLength;
   }
   msg.numLegs = pGroupSize->numInGroup;
