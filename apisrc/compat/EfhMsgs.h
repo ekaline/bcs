@@ -75,6 +75,16 @@ enum class EfhOptionType : uint8_t {
         EfhOptionType_ENUM_ITER( EKA__ENUM_DEF )
 };
 
+// These characters are chosen to match the CME CFI code.
+enum class EfhOptionStyle : char {
+#define EfhOptionStyle_ENUM_ITER( _x )          \
+  _x( Invalid,  char(0) )                       \
+  _x( Unknown,  'X' )                           \
+  _x( American, 'A' )                           \
+  _x( European, 'E' )
+EfhOptionStyle_ENUM_ITER( EKA__ENUM_DEF )
+};
+
 /*
  *
  */
@@ -300,6 +310,7 @@ typedef struct {
                 /** Divide by EFH_PRICE_SCALE. */                           \
                 _x( int64_t,         strikePrice )                          \
                 _x( EfhOptionType,   optionType )                           \
+                _x( EfhOptionStyle,  optionStyle )                          \
                 _x( uint64_t,        opaqueAttrA )                          \
                 _x( uint64_t,        opaqueAttrB )
         EfhOptionDefinitionMsg_FIELD_ITER( EKA__FIELD_DEF )

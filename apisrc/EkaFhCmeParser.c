@@ -548,6 +548,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
 
   msg.optionType            = putOrCall;
+  msg.optionStyle           = static_cast<EfhOptionStyle>(rootBlock->CFICode[2]);
   msg.strikePrice           = rootBlock->StrikePrice / StrikePriceFactor;
 
   msg.opaqueAttrA           = rootBlock->DisplayFactor;
