@@ -215,12 +215,14 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
       auto e {reinterpret_cast<const QuoteRequest39_legEntry*>(m)};
 
       msg.securityType      = EfhSecurityType::kRfq;
+      auto s {book->findSecurity(e->SecurityID)};
+      if (! s) continue;
       msg.header.securityId = e->SecurityID;
       msg.side              = getSide39(e->Side);
       msg.quantity          = e->OrderQty;
       if (pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL)
 	on_error("pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL");
-      pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+      pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
 
       m += pGroupSize->blockLength;    
     }
