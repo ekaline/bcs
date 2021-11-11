@@ -157,42 +157,4 @@ EkaOpResult EkaFhCme::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
   if (gr == NULL) on_error("gr[%u] == NULL",(uint8_t)group->localId);
 
   return gr->recoveryLoop(pEfhRunCtx, EkaFhMode::DEFINITIONS);
-  
-  /* int sock = ekaUdpMcConnect(dev, gr->snapshot_ip, gr->snapshot_port); */
-  /* if (sock < 0) on_error ("sock = %d",sock); */
-
-  /* sockaddr_in addr = {}; */
-  /* addr.sin_addr.s_addr = gr->snapshot_ip; */
-  /* addr.sin_port        = gr->snapshot_port; */
-  /* socklen_t addrlen = sizeof(sockaddr); */
-
-  /* gr->snapshot_active = true; */
-  
-  /* gr->iterationsCnt = 0;   */
-
-  /* uint32_t expectedPktSeq = 1; */
-  
-  /* while (gr->snapshot_active) { */
-  /*   uint8_t pkt[1536] = {}; */
-  /*   int size = recvfrom(sock, pkt, sizeof(pkt), 0, (sockaddr*) &addr, &addrlen); */
-  /*   if (size < 0) on_error("size = %d",size); */
-    
-  /*   if (expectedPktSeq == 1 && getPktSeq(pkt) != 1) */
-  /*     continue; */
-
-  /*   if (expectedPktSeq != 1 && getPktSeq(pkt) == 1) */
-  /*     break; */
-    
-  /*   if (expectedPktSeq != getPktSeq(pkt)) */
-  /*     EKA_WARN("ERROR: expectedPktSeq=%u, getPktSeq(pkt)=%u", */
-  /* 	       expectedPktSeq,getPktSeq(pkt)); */
-  /*   if (gr->processPkt(pEfhRunCtx,pkt,size,EkaFhMode::DEFINITIONS)) break; */
-  /*   expectedPktSeq = getPktSeq(pkt) + 1; */
-  /* } */
-  /* gr->snapshot_active = false; */
-  /* gr->snapshotClosed  = true; */
-
-  /* close (sock); */
-  /* return EKA_OPRESULT__OK; */
-
 }

@@ -133,41 +133,6 @@ void* getCmeSnapshot(void* attr) {
   if (dev == NULL) on_error ("dev == NULL");
 
   gr->recoveryLoop(pEfhRunCtx, EkaFhMode::SNAPSHOT);
-  
-  /* int sock = ekaUdpMcConnect(dev, gr->recovery_ip, gr->recovery_port); */
-  /* if (sock < 0) on_error ("sock = %d",sock); */
-
-  /* sockaddr_in addr = {}; */
-  /* addr.sin_addr.s_addr = gr->recovery_ip; */
-  /* addr.sin_port        = gr->recovery_port; */
-  /* socklen_t addrlen = sizeof(sockaddr); */
-
-  /* gr->snapshot_active = true; */
-  /* gr->iterationsCnt = 0;   */
-
-  /* uint32_t expectedPktSeq = 1; */
-
-  /* while (gr->snapshot_active) { */
-  /*   uint8_t pkt[1536] = {}; */
-  /*   int size = recvfrom(sock, pkt, sizeof(pkt), 0, (sockaddr*) &addr, &addrlen); */
-  /*   if (size < 0) on_error("size = %d",size); */
-    
-  /*   if (expectedPktSeq == 1 && getPktSeq(pkt) != 1) */
-  /*     continue; */
-    
-  /*   if (expectedPktSeq != getPktSeq(pkt)) */
-  /*     EKA_WARN("ERROR: expectedPktSeq=%u, getPktSeq(pkt)=%u", */
-  /* 	       expectedPktSeq,getPktSeq(pkt)); */
-  /*   if (gr->processPkt(pEfhRunCtx,pkt,size,EkaFhMode::SNAPSHOT)) break; */
-  /*   expectedPktSeq = getPktSeq(pkt) + 1; */
-  /* } */
-  /* gr->snapshot_active = false; */
-  /* gr->snapshotClosed  = true; */
-  /* gr->inGap           = false; */
-
-  /* EKA_LOG("%s:%u: %d / %d Snapshot messages processed", */
-  /* 	  EKA_EXCH_DECODE(gr->exch),gr->id,gr->iterationsCnt,gr->totalIterations); */
-  /* close (sock); */
 
   return NULL;
 }
@@ -180,6 +145,7 @@ EkaOpResult EkaFhCmeGr::recoveryLoop(const EfhRunCtx* pEfhRunCtx, EkaFhMode op) 
   if (sock < 0) on_error ("sock = %d",sock);
     
   snapshot_active = true;
+  snapshotClosed = false;
   iterationsCnt = 0; 
   uint32_t expectedPktSeq = 1;
 
