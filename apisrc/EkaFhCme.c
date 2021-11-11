@@ -133,7 +133,7 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	}
 
 	gr->pushPkt2Q(pkt,pktSize,sequence);
-	
+	gr->expected_sequence = sequence;
 	gr->inGap = true;
 	gr->closeSnapshotGap(pEfhCtx, pEfhRunCtx, sequence); 
       } else {
