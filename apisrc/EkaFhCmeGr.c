@@ -195,8 +195,8 @@ EkaOpResult EkaFhCmeGr::recoveryLoop(const EfhRunCtx* pEfhRunCtx, EkaFhMode op) 
       break;
     
     if (expectedPktSeq != getPktSeq(pkt))
-      EKA_WARN("ERROR: expectedPktSeq=%u, getPktSeq(pkt)=%u, %d / %d %s messages processed",
-	       expectedPktSeq,getPktSeq(pkt),
+      EKA_WARN("ERROR: %s:%u: expectedPktSeq=%u, getPktSeq(pkt)=%u, %d / %d %s messages processed",
+	       EKA_EXCH_DECODE(exch),id,expectedPktSeq,getPktSeq(pkt),
 	       iterationsCnt,totalIterations,EkaFhMode2STR(op));
     if (processPkt(pEfhRunCtx,pkt,size,EkaFhMode::DEFINITIONS)) break;
     expectedPktSeq = getPktSeq(pkt) + 1;
