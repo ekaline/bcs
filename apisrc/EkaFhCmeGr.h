@@ -56,6 +56,8 @@ public:
 					 const EfhRunCtx* pEfhRunCtx, 
 					 uint64_t          sequence);
 
+  EkaOpResult           recoveryLoop(const EfhRunCtx* pEfhRunCtx,
+				     EkaFhMode op);
 
   /* ##################################################################### */
 public:
