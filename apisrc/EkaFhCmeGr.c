@@ -67,9 +67,14 @@ void EkaFhCmeGr::pushPkt2Q(const uint8_t*       pkt,
  /* ##################################################################### */
 
 int EkaFhCmeGr::processFromQ(const EfhRunCtx* pEfhRunCtx) {
+  bool firstPkt = true;
   while (! pktQ->is_empty()) {
     PktElem* buf = pktQ->pop();
-
+    if (firstPkt) {
+      firstPkt = false;
+      EKA_LOG("%s:%u: 1st Q pkt sequence = %ju",
+	  EKA_EXCH_DECODE(exch),id,buf->sequence);
+    }
     if (buf->sequence < expected_sequence) continue;
     processPkt(pEfhRunCtx,
 	       buf->data,
@@ -77,6 +82,8 @@ int EkaFhCmeGr::processFromQ(const EfhRunCtx* pEfhRunCtx) {
 	       EkaFhMode::MCAST);
     expected_sequence = buf->sequence + 1;
   }
+  EKA_LOG("%s:%u: After Q draining expected_sequence = %ju",
+	  EKA_EXCH_DECODE(exch),id,expected_sequence);
   return 0;
 }
 
@@ -91,7 +98,7 @@ int EkaFhCmeGr::closeSnapshotGap(EfhCtx*           pEfhCtx,
     '_' + 
     std::to_string(id);
   EkaFhThreadAttr* attr  = new EkaFhThreadAttr(pEfhCtx, 
-					       (const EfhRunCtx*)pEfhRunCtx, 
+					       pEfhRunCtx, 
 					       this, 
 					       sequence, 
 					       0, 

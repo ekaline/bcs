@@ -43,8 +43,8 @@ EkaOpResult EkaFhCme::initGroups(EfhCtx*          pEfhCtx,
     if (pEfhRunCtx->groups[i].source != exch) 
       on_error("pEfhRunCtx->groups[i].source != exch");
 
-    auto gr = reinterpret_cast<EkaFhCmeGr*>(b_gr[pEfhRunCtx->groups[i].localId]);
-    if (gr == NULL) on_error ("b_gr[%u] == NULL",pEfhRunCtx->groups[i].localId);
+    auto gr = dynamic_cast<EkaFhCmeGr*>(b_gr[pEfhRunCtx->groups[i].localId]);
+    if (! gr) on_error ("b_gr[%u] == NULL",pEfhRunCtx->groups[i].localId);
 
     gr->createPktQ();
     gr->expected_sequence = 0;
@@ -56,7 +56,7 @@ EkaOpResult EkaFhCme::initGroups(EfhCtx*          pEfhCtx,
 	      EKA_IP2STR(gr->mcast_ip),   gr->mcast_port,
 	      EKA_IP2STR(gr->recovery_ip),gr->recovery_port,
 	      gr->getNumSecurities());
-    gr->sendFeedDownInitial(pEfhRunCtx);
+    //    gr->sendFeedDownInitial(pEfhRunCtx);
   }
   return EKA_OPRESULT__OK;
 }
