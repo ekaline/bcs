@@ -1,3 +1,5 @@
+#include <limits>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -21,7 +23,7 @@ static_assert(EFH_CME_STRIKE_PRICE_SCALE >= EFH__PRICE_SCALE);
 static_assert(EFH_CME_ORDER_PRICE_SCALE >= EFH__PRICE_SCALE);
 
 constexpr int64_t StrikePriceFactor = EFH_CME_STRIKE_PRICE_SCALE / EFH__PRICE_SCALE;
-constexpr int64_t OtderPriceFactor = EFH_CME_ORDER_PRICE_SCALE / EFH__PRICE_SCALE;
+constexpr int64_t OrderPriceFactor = EFH_CME_ORDER_PRICE_SCALE / EFH__PRICE_SCALE;
 
 enum DayOfWeek : uint8_t {
   DOW_Sunday = 0,
@@ -256,13 +258,13 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
     case MDUpdateAction_T::New:
       tobChange = s->newPlevel(side,
 			       e->MDPriceLevel,
-			       (int64_t)std::round(e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE),
+			       e->MDEntryPx / OrderPriceFactor,
 			       e->MDEntrySize);
       break;
     case MDUpdateAction_T::Change:
       tobChange = s->changePlevel(side,
 				  e->MDPriceLevel,
-				  (int64_t)std::round(e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE),
+				  e->MDEntryPx / OrderPriceFactor,
 				  e->MDEntrySize);
       break;
     case MDUpdateAction_T::Delete:
@@ -318,7 +320,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
 
 	dstMsg->pLvl    = e->MDPriceLevel;
 	dstMsg->side    = side == SideT::BID ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
-	dstMsg->price   = e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE;
+	dstMsg->price   = e->MDEntryPx / OrderPriceFactor;
 	dstMsg->size    = e->MDEntrySize;
 	    
 	pEfhRunCtx->onEfhMdCb(hdr,pEfhRunCtx->efhRunUserData);
@@ -333,7 +335,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
 
 	dstMsg->pLvl    = e->MDPriceLevel;
 	dstMsg->side    = side == SideT::BID ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
-	dstMsg->price   = e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE;
+	dstMsg->price   = e->MDEntryPx / OrderPriceFactor;
 	dstMsg->size    = e->MDEntrySize;
 	    
 	pEfhRunCtx->onEfhMdCb(hdr,pEfhRunCtx->efhRunUserData);
@@ -395,7 +397,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshTradeSummary48(const EfhRunCtx* pEfh
 	      pktSeq,
 	      pktTime,
 	      gapNum },
-	    (uint32_t)(e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE),
+	    (uint32_t)(e->MDEntryPx / OrderPriceFactor),
 	    (uint32_t)e->MDEntrySize,
 	    EfhTradeStatus::kNormal,
 	    EfhTradeCond::kREG
@@ -431,7 +433,7 @@ int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
 
     bool tobChange = s->newPlevel(side,
 				  e->MDPriceLevel,
-				  e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE,
+				  e->MDEntryPx / OrderPriceFactor,
 				  e->MDEntrySize);
     if (tobChange) book->generateOnQuote (pEfhRunCtx,
 					  s,
@@ -676,10 +678,14 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
 
     // We don't know the security type because we cannot look up the
     // security by ID here; the client will need to do it.
-    msg.legs[i].securityId = e->LegSecurityID;
-    msg.legs[i].type       = EfhSecurityType::kInvalid;
-    msg.legs[i].side       = e->LegSide == LegSide_T::BuySide ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
-    msg.legs[i].ratio      = std::abs(e->LegRatioQty);
+    msg.legs[i].securityId  = e->LegSecurityID;
+    msg.legs[i].type        = EfhSecurityType::kInvalid;
+    msg.legs[i].side        = e->LegSide == LegSide_T::BuySide ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
+    msg.legs[i].ratio       = e->LegRatioQty;
+    msg.legs[i].optionDelta = e->LegOptionDelta != std::numeric_limits<DecimalQty_T>::max() ? e->LegOptionDelta : 0;
+    msg.legs[i].price       = e->LegPrice != std::numeric_limits<PRICENULL9_T>::max()
+        ? e->LegPrice / OrderPriceFactor
+        : 0;
 
     m += pGroupSize->blockLength;
   }

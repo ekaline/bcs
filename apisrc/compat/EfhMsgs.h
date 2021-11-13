@@ -337,7 +337,9 @@ typedef struct {
                 _x( uint64_t,        securityId )                           \
                 _x( EfhSecurityType, type )                                 \
                 _x( EfhOrderSide,    side )                                 \
-                _x( int32_t,         ratio )
+                _x( int32_t,         ratio )                                \
+                _x( int32_t,         optionDelta )                          \
+                _x( int64_t,         price )
         EfhComplexLeg_FIELD_ITER( EKA__FIELD_DEF )
 } EfhComplexLeg;
 
