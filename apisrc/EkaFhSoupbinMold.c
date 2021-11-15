@@ -469,6 +469,7 @@ static bool soupbinCycle(EkaDev*        dev,
   if (gr->snapshot_sock < 0) on_error("%s:%u: failed to open TCP socket",
 				      EKA_EXCH_DECODE(gr->exch),gr->id);
 
+  static const int loginDelay = 1;
   static const int TimeOut = 10; // seconds
   struct timeval tv = {
     .tv_sec = TimeOut
@@ -489,6 +490,9 @@ static bool soupbinCycle(EkaDev*        dev,
 
     goto ITERATION_FAIL;
   }
+  //-----------------------------------------------------------------
+  EKA_LOG("Delaying Glimpse login by %d seconds to get fresher snapshot",loginDelay);
+  sleep(loginDelay);
   //-----------------------------------------------------------------
   if (! sendLogin(gr, start_sequence)) goto ITERATION_FAIL;
   //-----------------------------------------------------------------
