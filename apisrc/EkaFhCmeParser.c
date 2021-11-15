@@ -397,7 +397,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshTradeSummary48(const EfhRunCtx* pEfh
 	      pktSeq,
 	      pktTime,
 	      gapNum },
-	    (uint32_t)(e->MDEntryPx / OrderPriceFactor),
+	    e->MDEntryPx / OrderPriceFactor,
 	    (uint32_t)e->MDEntrySize,
 	    EfhTradeStatus::kNormal,
 	    EfhTradeCond::kREG
