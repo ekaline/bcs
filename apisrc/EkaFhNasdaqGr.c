@@ -84,7 +84,7 @@ int EkaFhNasdaqGr::closeIncrementalGap(EfhCtx*          pEfhCtx,
     '_' + 
     std::to_string(id);
 
-  bool useSoupbin = (endSeq == 0) || (endSeq == 1) || (endSeq - startSeq < 100);
+  bool useSoupbin = endSeq - startSeq > 100;
 
   EkaFhThreadAttr* attr  = new EkaFhThreadAttr(pEfhCtx, 
 					       pEfhRunCtx, 
