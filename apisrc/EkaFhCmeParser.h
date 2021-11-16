@@ -5,8 +5,14 @@
 #include "eka_macros.h"
 #include "EfhMsgs.h"
 
-#define EFH_CME_ORDER_PRICE_SCALE  1000000000L
-#define EFH_CME_STRIKE_PRICE_SCALE EFH_CME_ORDER_PRICE_SCALE
+#define EFH_CME_STRIKE_PRICE_SCALE 1'000'000'000L // PRICENULL9 (1e9)
+#define EFH_CME_ORDER_PRICE_SCALE  1'000'000'000L
+
+static_assert(EFH_CME_STRIKE_PRICE_SCALE >= EFH__PRICE_SCALE);
+static_assert(EFH_CME_ORDER_PRICE_SCALE >= EFH__PRICE_SCALE);
+
+constexpr int64_t StrikePriceFactor = EFH_CME_STRIKE_PRICE_SCALE / EFH__PRICE_SCALE;
+constexpr int64_t OrderPriceFactor = EFH_CME_ORDER_PRICE_SCALE / EFH__PRICE_SCALE;
 
 namespace Cme {
 

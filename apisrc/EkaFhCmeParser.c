@@ -19,12 +19,6 @@ using namespace Cme;
 
 std::string ts_ns2str(uint64_t ts);
 
-static_assert(EFH_CME_STRIKE_PRICE_SCALE >= EFH__PRICE_SCALE);
-static_assert(EFH_CME_ORDER_PRICE_SCALE >= EFH__PRICE_SCALE);
-
-constexpr int64_t StrikePriceFactor = EFH_CME_STRIKE_PRICE_SCALE / EFH__PRICE_SCALE;
-constexpr int64_t OrderPriceFactor = EFH_CME_ORDER_PRICE_SCALE / EFH__PRICE_SCALE;
-
 enum DayOfWeek : uint8_t {
   DOW_Sunday = 0,
   DOW_Monday,

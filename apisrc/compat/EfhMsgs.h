@@ -505,7 +505,7 @@ typedef struct {
     #define EfhTradeMsg_FIELD_ITER( _x )                                    \
                 _x( EfhMsgHeader,      header )                             \
                 /** Divide by EFH_PRICE_SCALE. */                           \
-                _x( uint32_t,     price )                                   \
+                _x( int64_t,     price )                                    \
                 _x( uint32_t,     size )                                    \
                 _x( EfhTradeStatus, tradeStatus )                           \
                 _x( EfhTradeCond, tradeCond )

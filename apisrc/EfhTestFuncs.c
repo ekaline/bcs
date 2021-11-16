@@ -142,7 +142,7 @@ void* onTrade(const EfhTradeMsg* msg, EfhSecUserData secData, EfhRunUserData use
   fprintf(gr->MD,"%ju,",msg->header.securityId);
   fprintf(gr->MD,"%s," ,currAvtSecName.c_str());
   fprintf(gr->MD,"%s," ,currClassSymbol.c_str());
-  fprintf(gr->MD,"%u," ,msg->price);
+  fprintf(gr->MD,"%ld,",msg->price);
   fprintf(gr->MD,"%u," ,msg->size);
   fprintf(gr->MD,"%d," ,(int)msg->tradeCond);
   fprintf(gr->MD,"%s," ,ts_ns2str(msg->header.timeStamp).c_str());
