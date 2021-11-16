@@ -41,6 +41,8 @@
 
 using namespace Bats;
 
+extern TestCtx testCtx;
+
 /* --------------------------------------------- */
 std::string ts_ns2str(uint64_t ts);
 
@@ -104,7 +106,7 @@ struct CboePitchAddOrderExpanded {
 
 void  INThandler(int sig) {
   signal(sig, SIG_IGN);
-  keep_work = false;
+  testCtx.keep_work = false;
   TEST_LOG("Ctrl-C detected: keep_work = false, exitting..."); fflush(stdout);
   return;
 }
@@ -411,8 +413,10 @@ static int sendAddOrder (AddOrder type, int sock, const sockaddr_in* addr, char*
     return 0;
 }
 
+
 /* ############################################# */
 int main(int argc, char *argv[]) {
+  
   signal(SIGINT, INThandler);
 
   // ==============================================
@@ -476,7 +480,7 @@ int main(int argc, char *argv[]) {
 				     &tcpSock[i],
 				     &serverSet);
     server.detach();
-    while (keep_work && ! serverSet) { sleep (0); }
+    while (testCtx.keep_work && ! serverSet) { sleep (0); }
   }
   // ==============================================
   // Establishing EXC connections for EPM/EFC fires 
@@ -855,8 +859,8 @@ int main(int argc, char *argv[]) {
 #ifndef _VERILOG_SIM
   sleep(2);
   EKA_LOG("--Test finished, ctrl-c to end---");
-//  keep_work = false;
-  while (keep_work) { sleep(0); }
+//  testCtx.keep_work = false;
+  while (testCtx.keep_work) { sleep(0); }
 #endif
 
   sleep(1);

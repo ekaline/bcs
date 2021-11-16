@@ -40,6 +40,8 @@
 #include "EkaFhBatsParser.h"
 #include "EfhTestFuncs.h"
 
+extern TestCtx testCtx;
+
 /* --------------------------------------------- */
 std::string ts_ns2str(uint64_t ts);
 static EkaOpResult printReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdOnly);
@@ -70,7 +72,7 @@ FILE*     efcSecuritiesFile;
 
 void  INThandler(int sig) {
   signal(sig, SIG_IGN);
-  keep_work = false;
+  testCtx.keep_work = false;
   TEST_LOG("Ctrl-C detected: keep_work = false, exitting..."); fflush(stdout);
   return;
 }
@@ -108,7 +110,7 @@ void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fireReportBuf, size_t s
 /* ------------------------------------------------------------ */
 
 void* onMdTestDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
-  if (! keep_work) return NULL;
+  if (! testCtx.keep_work) return NULL;
   
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
@@ -340,7 +342,7 @@ int main(int argc, char *argv[]) {
   // ==============================================
   char     secIdFileName[1024] = {};
 
-  getAttr(argc,argv,underlyings,secIdFileName);
+  getAttr(argc,argv,testCtx.underlyings,secIdFileName);
 
   const char* efcSecuritiesFileName = "CBOE_EFC_SECURITIES.txt";
   if((efcSecuritiesFile = fopen(efcSecuritiesFileName,"w")) == NULL)
@@ -430,9 +432,9 @@ int main(int argc, char *argv[]) {
 	  {exch, grId},
       };
       
-      grCtx[(int)exch][grId] = new McGrpCtx(exch,grId);
-      if (grCtx[(int)exch][grId] == NULL)
-	  on_error("failed creating grCtx[%d][%d]",(int)exch,grId);
+      testCtx.grCtx[(int)exch][grId] = new McGrpCtx(exch,grId);
+      if (testCtx.grCtx[(int)exch][grId] == NULL)
+	  on_error("failed creating testCtx.grCtx[%d][%d]",(int)exch,grId);
       
       EkaProps props = {
 	  .numProps = std::size(efhBatsC1InitCtxEntries_CC_0),
@@ -626,7 +628,7 @@ int main(int argc, char *argv[]) {
 
   TEST_LOG("\n===========================\nWORKING\n===========================\n");
 
-  while (keep_work) { sleep(0); }
+  while (testCtx.keep_work) { sleep(0); }
 
   sleep(1);
   fflush(stdout);fflush(stderr);
