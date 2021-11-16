@@ -94,6 +94,7 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
     case EkaFhGroup::GrpState::INIT : {
       EKA_LOG("%s:%u 1st MC msq sequence=%ju",
 	      EKA_EXCH_DECODE(exch),gr_id,sequence);
+      gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
       gr->gapClosed = false;
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
       gr->sendFeedDownInitial(pEfhRunCtx);
