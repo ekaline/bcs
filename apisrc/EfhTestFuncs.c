@@ -14,9 +14,11 @@
 
 #include "EfhTestFuncs.h"
 
+//TestCtx testCtx;
+
 void  INThandler(int sig) {
   signal(sig, SIG_IGN);
-  keep_work = false;
+  testCtx.keep_work = false;
   printf("%s: Ctrl-C detected:  exitting...\n",__func__);
   fflush(stdout);
   return;
@@ -60,7 +62,7 @@ int getTradeTimeCb (const EfhDateComponents *, uint32_t* iso8601Date,
 }
 
 void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
-  if (! keep_work) return NULL;
+  if (! testCtx.keep_work) return NULL;
 
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
@@ -72,8 +74,8 @@ void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData use
   int secIdx = (int)secData;
 #endif
 
-  auto gr = grCtx[(int)exch][grId];
-  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  auto gr = testCtx.grCtx[(int)exch][grId];
+  if (gr == NULL) on_error("Uninitialized testCtx.grCtx[%d][%d]",(int)exch,grId);
 
   auto efhGr = pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[grId];
 
@@ -81,7 +83,7 @@ void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData use
     efhMonitorFhGroupState(pEfhCtx,(EkaGroup*)&msg->header.group);
   }
 
-  if (! print_tob_updates) return NULL;
+  if (! testCtx.print_tob_updates) return NULL;
 
   fprintf(gr->MD,"%s,%s,%ju,%s,%s,%.*f,%u,%c,%s,%ju\n",
 	  eka_get_date().c_str(),
@@ -108,7 +110,7 @@ void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData use
 }
 
 void* onTrade(const EfhTradeMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
-  if (! keep_work) return NULL;
+  if (! testCtx.keep_work) return NULL;
 
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
@@ -116,8 +118,8 @@ void* onTrade(const EfhTradeMsg* msg, EfhSecUserData secData, EfhRunUserData use
   EkaSource exch = msg->header.group.source;
   EkaLSI    grId = msg->header.group.localId;
 
-  auto gr = grCtx[(int)exch][grId];
-  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  auto gr = testCtx.grCtx[(int)exch][grId];
+  if (gr == NULL) on_error("Uninitialized testCtx.grCtx[%d][%d]",(int)exch,grId);
   
   //  auto efhGr = pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[grId];  
 
@@ -132,7 +134,7 @@ void* onTrade(const EfhTradeMsg* msg, EfhSecUserData secData, EfhRunUserData use
   //  int64_t priceScaleFactor    = 100; //gr->security.at(secIdx).displayPriceScale;
 #endif
 
-  if (! print_tob_updates) return NULL;
+  if (! testCtx.print_tob_updates) return NULL;
 
   fprintf(gr->MD,"Trade,");
   fprintf(gr->MD,"%s," ,eka_get_date().c_str());
@@ -160,8 +162,8 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
   EkaSource exch = msg->group.source;
   EkaLSI    grId = msg->group.localId;
 
-  auto gr = grCtx[(int)exch][grId];
-  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  auto gr = testCtx.grCtx[(int)exch][grId];
+  if (gr == NULL) on_error("Uninitialized testCtx.grCtx[%d][%d]",(int)exch,grId);
   if (gr->MD == NULL) on_error("gr->MD == NULL");
 
   FILE* logFile = gr->MD;
@@ -181,33 +183,33 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
     case EfhErrorDomain::kExchangeError :
       printf ("=========================\n%s: ExchangeError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
-      if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
+      if (++testCtx.fatalErrorCnt == testCtx.MaxFatalErrors) on_error("testCtx.MaxFatalErrors %d reached",testCtx.MaxFatalErrors);
       break;
 
     case EfhErrorDomain::kSocketError :
       printf ("=========================\n%s: SocketError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
-      if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
+      if (++testCtx.fatalErrorCnt == testCtx.MaxFatalErrors) on_error("testCtx.MaxFatalErrors %d reached",testCtx.MaxFatalErrors);
       break;
 
     case EfhErrorDomain::kCredentialError :
       printf ("=========================\n%s: CredentialError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
-      if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
+      if (++testCtx.fatalErrorCnt == testCtx.MaxFatalErrors) on_error("testCtx.MaxFatalErrors %d reached",testCtx.MaxFatalErrors);
 
       break;
 
     case EfhErrorDomain::kOSError :
       printf ("=========================\n%s: OSError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
-      if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
+      if (++testCtx.fatalErrorCnt == testCtx.MaxFatalErrors) on_error("testCtx.MaxFatalErrors %d reached",testCtx.MaxFatalErrors);
 
       break;
 
     case EfhErrorDomain::kDeviceError :
       printf ("=========================\n%s: DeviceError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
-      if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
+      if (++testCtx.fatalErrorCnt == testCtx.MaxFatalErrors) on_error("testCtx.MaxFatalErrors %d reached",testCtx.MaxFatalErrors);
 
       break;
 
@@ -274,20 +276,20 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
 }
 
 void onException(EkaExceptionReport* msg, EfhRunUserData efhRunUserData) {
-  if (! keep_work) return;
+  if (! testCtx.keep_work) return;
   printf("%s: Doing nothing\n",__func__);
   return;
 }
 
 void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fire_report_buf, size_t size) {
-  if (! keep_work) return;
+  if (! testCtx.keep_work) return;
   printf ("%s: Doing nothing \n",__func__);
   return;	 
 }
 extern FILE* mdFile;
 
 void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
-  if (! keep_work) return NULL;
+  if (! testCtx.keep_work) return NULL;
   EfhCtx* pEfhCtx = (EfhCtx*) efhRunUserData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
 
@@ -297,8 +299,8 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
   EkaSource exch = msg->group.source;
   EkaLSI    grId = msg->group.localId;
 
-  auto gr = grCtx[(int)exch][grId];
-  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  auto gr = testCtx.grCtx[(int)exch][grId];
+  if (gr == NULL) on_error("Uninitialized testCtx.grCtx[%d][%d]",(int)exch,grId);
   if (gr->MD == NULL) on_error("gr->MD == NULL");
 
   FILE* logFile = gr->MD;
@@ -394,15 +396,15 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
 }
 
 void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
-  if (! keep_work) return NULL;
+  if (! testCtx.keep_work) return NULL;
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
 
   EkaSource exch = msg->header.group.source;
   EkaLSI    grId = msg->header.group.localId;
 
-  auto gr = grCtx[(int)exch][grId];
-  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  auto gr = testCtx.grCtx[(int)exch][grId];
+  if (gr == NULL) on_error("Uninitialized testCtx.grCtx[%d][%d]",(int)exch,grId);
   
   auto efhGr = pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[grId];  
 
@@ -425,7 +427,7 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
     efhMonitorFhGroupState(pEfhCtx,(EkaGroup*)&msg->header.group);
   }
 
-  if (! print_tob_updates) return NULL;
+  if (! testCtx.print_tob_updates) return NULL;
 
   fprintf(gr->MD,"%s,%s,%ju,%s,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%d,%d,%s,%ju\n",
 	  eka_get_date().c_str(),
@@ -475,15 +477,15 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
 /* ------------------------------------------------------------ */
 
 void* onComplexDefinition(const EfhComplexDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
-  if (! keep_work) return NULL;
+  if (! testCtx.keep_work) return NULL;
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
 
   EkaSource exch = msg->header.group.source;
   EkaLSI    grId = msg->header.group.localId;
 
-  auto gr = grCtx[(int)exch][grId];
-  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  auto gr = testCtx.grCtx[(int)exch][grId];
+  if (gr == NULL) on_error("Uninitialized testCtx.grCtx[%d][%d]",(int)exch,grId);
   
   fprintf(gr->MD,"ComplexDefinition,");
   /* fprintf(gr->MD,"\'%s\',",std::string(msg->exchSymbolName,sizeof(msg->exchSymbolName)).c_str()); */
@@ -496,15 +498,15 @@ void* onComplexDefinition(const EfhComplexDefinitionMsg* msg, EfhSecUserData sec
 /* ------------------------------------------------------------ */
 
 void* onAuctionUpdate(const EfhAuctionUpdateMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
-  if (! keep_work) return NULL;
+  if (! testCtx.keep_work) return NULL;
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
 
   EkaSource exch = msg->header.group.source;
   EkaLSI    grId = msg->header.group.localId;
 
-  auto gr {grCtx[(int)exch][grId]};
-  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  auto gr {testCtx.grCtx[(int)exch][grId]};
+  if (gr == NULL) on_error("Uninitialized testCtx.grCtx[%d][%d]",(int)exch,grId);
 
   auto secCtx = gr->getSecurityCtx(msg->header.securityId);
 
@@ -550,7 +552,7 @@ void* onAuctionUpdate(const EfhAuctionUpdateMsg* msg, EfhSecUserData secData, Ef
 /* ------------------------------------------------------------ */
 
 void* onFutureDefinition(const EfhFutureDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
-  if (! keep_work) return NULL;
+  if (! testCtx.keep_work) return NULL;
   
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
@@ -558,8 +560,8 @@ void* onFutureDefinition(const EfhFutureDefinitionMsg* msg, EfhSecUserData secDa
   auto exch {msg->header.group.source};
   auto grId {msg->header.group.localId};
 
-  auto gr {grCtx[(int)exch][grId]};
-  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  auto gr {testCtx.grCtx[(int)exch][grId]};
+  if (gr == NULL) on_error("Uninitialized testCtx.grCtx[%d][%d]",(int)exch,grId);
 
   std::string underlyingName = std::string(msg->commonDef.underlying, sizeof(msg->commonDef.underlying));
   std::string classSymbol    = std::string(msg->commonDef.classSymbol,sizeof(msg->commonDef.classSymbol));
@@ -581,9 +583,9 @@ void* onFutureDefinition(const EfhFutureDefinitionMsg* msg, EfhSecUserData secDa
   	   );
 
 
-  if (subscribe_all || (std::find(underlyings.begin(), underlyings.end(), underlyingName) != underlyings.end())) {
-    if (std::find(securities.begin(),securities.end(),msg->header.securityId) != securities.end()) return NULL;
-    securities.push_back(msg->header.securityId);
+  if (testCtx.subscribe_all || (std::find(testCtx.underlyings.begin(), testCtx.underlyings.end(), underlyingName) != testCtx.underlyings.end())) {
+    if (std::find(testCtx.securities.begin(),testCtx.securities.end(),msg->header.securityId) != testCtx.securities.end()) return NULL;
+    testCtx.securities.push_back(msg->header.securityId);
 	
     TestSecurityCtx newSecurity = {
   	.securityId        = msg->header.securityId,
@@ -611,7 +613,7 @@ void* onFutureDefinition(const EfhFutureDefinitionMsg* msg, EfhSecUserData secDa
 /* ------------------------------------------------------------ */
 
 void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
-  if (! keep_work) return NULL;
+  if (! testCtx.keep_work) return NULL;
   
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
@@ -619,8 +621,8 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
   auto exch {msg->header.group.source};
   auto grId {msg->header.group.localId};
 
-  auto gr {grCtx[(int)exch][grId]};
-  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  auto gr {testCtx.grCtx[(int)exch][grId]};
+  if (gr == NULL) on_error("Uninitialized testCtx.grCtx[%d][%d]",(int)exch,grId);
 
   std::string underlyingName = std::string(msg->commonDef.underlying, sizeof(msg->commonDef.underlying));
   std::string classSymbol    = std::string(msg->commonDef.classSymbol,sizeof(msg->commonDef.classSymbol));
@@ -645,9 +647,9 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
 	   );
 
 
-  if (subscribe_all || (std::find(underlyings.begin(), underlyings.end(), underlyingName) != underlyings.end())) {
-    if (std::find(securities.begin(),securities.end(),msg->header.securityId) != securities.end()) return NULL;
-    securities.push_back(msg->header.securityId);
+  if (testCtx.subscribe_all || (std::find(testCtx.underlyings.begin(), testCtx.underlyings.end(), underlyingName) != testCtx.underlyings.end())) {
+    if (std::find(testCtx.securities.begin(),testCtx.securities.end(),msg->header.securityId) != testCtx.securities.end()) return NULL;
+    testCtx.securities.push_back(msg->header.securityId);
 	
     TestSecurityCtx newSecurity = {
 	.securityId        = msg->header.securityId,
@@ -917,11 +919,11 @@ int createCtxts(std::vector<TestRunGroup>& testRunGroups,
     for (EkaLSI grId = firstGrId; grId <= lastGrId; grId++) {
       pGroups[i].source  = exch;
       pGroups[i].localId = grId;
-      if (grCtx[(int)exch][grId] != NULL)
-	on_error("grCtx[%d][%d] already exists",(int)exch,grId);
-      grCtx[(int)exch][grId] = new McGrpCtx(exch,grId);
-      if (grCtx[(int)exch][grId] == NULL)
-	on_error("failed creating grCtx[%d][%d]",(int)exch,grId);
+      if (testCtx.grCtx[(int)exch][grId] != NULL)
+	on_error("testCtx.grCtx[%d][%d] already exists",(int)exch,grId);
+      testCtx.grCtx[(int)exch][grId] = new McGrpCtx(exch,grId);
+      if (testCtx.grCtx[(int)exch][grId] == NULL)
+	on_error("failed creating testCtx.grCtx[%d][%d]",(int)exch,grId);
       i++;
     }
 

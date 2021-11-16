@@ -39,6 +39,7 @@
 
 #include "EfhTestFuncs.h"
 
+extern TestCtx testCtx;
 /* ------------------------------------------------------------ */
 
 static int getAttr(int argc, char *argv[],
@@ -95,7 +96,7 @@ int main(int argc, char *argv[]) {
   std::vector<EfhRunCtx>    efhRunCtx;
   bool print_parsed_messages = false;
 
-  getAttr(argc,argv,testRunGroups,underlyings,&print_tob_updates,&subscribe_all,&print_parsed_messages);
+  getAttr(argc,argv,testRunGroups,testCtx.underlyings,&testCtx.print_tob_updates,&testCtx.subscribe_all,&print_parsed_messages);
 
   if (testRunGroups.size() == 0) { 
     TEST_LOG("No test groups passed");
@@ -140,7 +141,7 @@ int main(int argc, char *argv[]) {
       for (uint8_t i = 0; i < efhRunCtx.at(r).numGroups; i++) {
 	EkaSource exch = efhRunCtx.at(r).groups[i].source;
 	EkaLSI    grId = efhRunCtx.at(r).groups[i].localId;
-	auto gr = grCtx[(int)exch][grId];
+	auto gr = testCtx.grCtx[(int)exch][grId];
 	if (gr == NULL) on_error("gr == NULL");
 
 	printf ("################ Group %u: %s:%u ################\n",
@@ -165,13 +166,13 @@ int main(int argc, char *argv[]) {
 
   /* ------------------------------------------------------- */
 
-  while (keep_work) usleep(0);
+  while (testCtx.keep_work) usleep(0);
 
   ekaDevClose(pEkaDev);
 
   for (auto exch = 0; exch < MAX_EXCH; exch++) {
     for (auto grId = 0; grId < MAX_GROUPS; grId++) {
-      auto gr = grCtx[exch][grId];
+      auto gr = testCtx.grCtx[exch][grId];
       if (gr == NULL) continue;
       fclose (gr->fullDict);
       fclose (gr->subscrDict);
