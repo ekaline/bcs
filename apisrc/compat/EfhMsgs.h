@@ -295,7 +295,9 @@ typedef struct {
                 _x( time_t,           expiryTime )                          \
                 /** Formatted as YYYYMMDD if expiryTime not avail */        \
                 _x( uint32_t,         expiryDate )                          \
-                _x( uint32_t,         contractSize )
+                _x( uint32_t,         contractSize )                        \
+                _x( uint64_t,         opaqueAttrA )                         \
+                _x( uint64_t,         opaqueAttrB )
         EfhSecurityDef_FIELD_ITER( EKA__FIELD_DEF )
 } EfhSecurityDef;
 
@@ -310,9 +312,7 @@ typedef struct {
                 /** Divide by EFH_PRICE_SCALE. */                           \
                 _x( int64_t,         strikePrice )                          \
                 _x( EfhOptionType,   optionType )                           \
-                _x( EfhOptionStyle,  optionStyle )                          \
-                _x( uint64_t,        opaqueAttrA )                          \
-                _x( uint64_t,        opaqueAttrB )
+                _x( EfhOptionStyle,  optionStyle )
         EfhOptionDefinitionMsg_FIELD_ITER( EKA__FIELD_DEF )
 } EfhOptionDefinitionMsg;
 

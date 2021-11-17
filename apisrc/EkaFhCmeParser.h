@@ -5,14 +5,10 @@
 #include "eka_macros.h"
 #include "EfhMsgs.h"
 
-#define EFH_CME_STRIKE_PRICE_SCALE 1'000'000'000L // PRICENULL9 (1e9)
-#define EFH_CME_ORDER_PRICE_SCALE  1'000'000'000L
+#define EFH_CME_PRICE_SCALE  1'000'000'000L // PRICENULL9 (1e9)
 
-static_assert(EFH_CME_STRIKE_PRICE_SCALE >= EFH__PRICE_SCALE);
-static_assert(EFH_CME_ORDER_PRICE_SCALE >= EFH__PRICE_SCALE);
-
-constexpr int64_t StrikePriceFactor = EFH_CME_STRIKE_PRICE_SCALE / EFH__PRICE_SCALE;
-constexpr int64_t OrderPriceFactor = EFH_CME_ORDER_PRICE_SCALE / EFH__PRICE_SCALE;
+static_assert(EFH_CME_PRICE_SCALE >= EFH__PRICE_SCALE);
+constexpr int64_t CMEPriceFactor = EFH_CME_PRICE_SCALE / EFH__PRICE_SCALE;
 
 namespace Cme {
 
@@ -896,7 +892,7 @@ namespace Cme {
 		  MDpdateAction2STR(e->MDUpdateAction),
 		  MDEntryTypeBook2STR(e->MDEntryType),
 		  e->MDPriceLevel,
-		  (int64_t) (e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE),
+		  (int64_t) (e->MDEntryPx / EFH_CME_PRICE_SCALE),
 		  e->MDEntrySize);
 
 	  m += pGroupSize->blockLength;
@@ -921,7 +917,7 @@ namespace Cme {
 	  auto e {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mdEntry*>(m)};
 	  printf ("\t\t\t");
 	  printf ("secId=%8d,",e->SecurityID);
-	  printf ("%16jd,",(int64_t) (e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE));
+	  printf ("%16jd,",(int64_t) (e->MDEntryPx / EFH_CME_PRICE_SCALE));
 	  printf ("%d,",e->MDEntrySize);
 	  printf ("%s",MDpdateAction2STR(e->MDUpdateAction));
 	  printf ("\n");
@@ -978,7 +974,7 @@ namespace Cme {
 	       cfiCode.c_str(),
 	       pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week,
 	       rootBlock->StrikePrice,
-	       (int64_t)(rootBlock->StrikePrice / EFH_CME_ORDER_PRICE_SCALE / 1e9 * rootBlock->DisplayFactor)
+	       (int64_t)((rootBlock->StrikePrice / EFH_CME_PRICE_SCALE) * (rootBlock->DisplayFactor / 1e9))
 	       );
       }
 	break;

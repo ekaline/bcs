@@ -29,6 +29,19 @@ enum DayOfWeek : uint8_t {
   DOW_Saturday
 };
 
+static uint64_t computeFinalPriceFactor(Decimal9_T displayFactor) {
+  // Returns the number we need to divide the protocol message prices by to
+  // get an EFH__PRICE_SCALE scaled price.
+  if (displayFactor > 1'000'000'000L) {
+    // We expect the display factor to always be less than or equal to 1e9,
+    // i.e., that it is used to indicate a fraction. If it is not, we wouldn't
+    // be able to represent the scale factor as an integer, which is what we
+    // expect.
+    on_error("displayFactor %ld would saturate to zero", displayFactor);
+  }
+  return (1'000'000'000L / displayFactor) * CMEPriceFactor;
+}
+
 /* ##################################################################### */
 
 bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
@@ -245,20 +258,21 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
     auto s {book->findSecurity(e->SecurityID)};
     if (s == NULL) break;
 
-    auto side {getSide46(e->MDEntryType)};
+    const auto side {getSide46(e->MDEntryType)};
     if (side == SideT::OTHER) return msgHdr->size;
+    const auto finalPriceFactor {s->getFinalPriceFactor()};
     bool tobChange = false;
     switch (e->MDUpdateAction) {
     case MDUpdateAction_T::New:
       tobChange = s->newPlevel(side,
 			       e->MDPriceLevel,
-			       e->MDEntryPx / OrderPriceFactor,
+			       e->MDEntryPx / finalPriceFactor,
 			       e->MDEntrySize);
       break;
     case MDUpdateAction_T::Change:
       tobChange = s->changePlevel(side,
 				  e->MDPriceLevel,
-				  e->MDEntryPx / OrderPriceFactor,
+				  e->MDEntryPx / finalPriceFactor,
 				  e->MDEntrySize);
       break;
     case MDUpdateAction_T::Delete:
@@ -314,7 +328,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
 
 	dstMsg->pLvl    = e->MDPriceLevel;
 	dstMsg->side    = side == SideT::BID ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
-	dstMsg->price   = e->MDEntryPx / OrderPriceFactor;
+	dstMsg->price   = e->MDEntryPx / finalPriceFactor;
 	dstMsg->size    = e->MDEntrySize;
 	    
 	pEfhRunCtx->onEfhMdCb(hdr,pEfhRunCtx->efhRunUserData);
@@ -329,7 +343,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
 
 	dstMsg->pLvl    = e->MDPriceLevel;
 	dstMsg->side    = side == SideT::BID ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
-	dstMsg->price   = e->MDEntryPx / OrderPriceFactor;
+	dstMsg->price   = e->MDEntryPx / finalPriceFactor;
 	dstMsg->size    = e->MDEntrySize;
 	    
 	pEfhRunCtx->onEfhMdCb(hdr,pEfhRunCtx->efhRunUserData);
@@ -391,7 +405,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshTradeSummary48(const EfhRunCtx* pEfh
 	      pktSeq,
 	      pktTime,
 	      gapNum },
-	    e->MDEntryPx / OrderPriceFactor,
+	    e->MDEntryPx / s->getFinalPriceFactor(),
 	    (uint32_t)e->MDEntrySize,
 	    EfhTradeStatus::kNormal,
 	    EfhTradeCond::kREG
@@ -422,12 +436,13 @@ int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
   for (uint i = 0; i < pGroupSize->numInGroup; i++) {
     auto e {reinterpret_cast<const MDSnapshotFullRefreshMdEntry*>(m)};
     
-    auto side {getSide52(e->MDEntryType)};
+    const auto side {getSide52(e->MDEntryType)};
     if (side == SideT::OTHER) continue;
+    const auto finalPriceFactor {s->getFinalPriceFactor()};
 
     bool tobChange = s->newPlevel(side,
 				  e->MDPriceLevel,
-				  e->MDEntryPx / OrderPriceFactor,
+				  e->MDEntryPx / finalPriceFactor,
 				  e->MDEntrySize);
     if (tobChange) book->generateOnQuote (pEfhRunCtx,
 					  s,
@@ -480,6 +495,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   msg.commonDef.exchange       = EfhExchange::kCME;
   msg.commonDef.underlyingType = EfhSecurityType::kIndex;
   msg.commonDef.contractSize   = 0;
+  msg.commonDef.opaqueAttrA    = computeFinalPriceFactor(rootBlock->DisplayFactor);
   getCMEProductTradeTime(pMaturity, rootBlock->Symbol, &msg.commonDef.expiryDate, &msg.commonDef.expiryTime);
 
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
@@ -518,7 +534,8 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   auto securityType     {std::string(rootBlock->SecurityType,    sizeof(rootBlock->SecurityType))};
   auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
 
-  auto putOrCall {getEfhOptionType(rootBlock->PutOrCall)};
+  const auto putOrCall {getEfhOptionType(rootBlock->PutOrCall)};
+  const int64_t priceAdjustFactor {computeFinalPriceFactor(rootBlock->DisplayFactor)};
 
   if (putOrCall == EfhOptionType::kErr) {
     //    hexDump("DefinitionOption55",msgHdr,msgHdr->size);	  
@@ -538,16 +555,16 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   msg.commonDef.securityType   = EfhSecurityType::kOption;
   msg.commonDef.exchange       = EfhExchange::kCME;
   msg.commonDef.underlyingType = EfhSecurityType::kFuture;
-  msg.commonDef.contractSize   = rootBlock->UnitOfMeasureQty / EFH_CME_STRIKE_PRICE_SCALE;
+  msg.commonDef.contractSize   = rootBlock->UnitOfMeasureQty / EFH_CME_PRICE_SCALE;
+  msg.commonDef.opaqueAttrA    = priceAdjustFactor;
   getCMEProductTradeTime(pMaturity, rootBlock->Symbol, &msg.commonDef.expiryDate, &msg.commonDef.expiryTime);
   copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
   copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
 
   msg.optionType            = putOrCall;
   msg.optionStyle           = static_cast<EfhOptionStyle>(rootBlock->CFICode[2]);
-  msg.strikePrice           = rootBlock->StrikePrice / StrikePriceFactor;
+  msg.strikePrice           = rootBlock->StrikePrice / priceAdjustFactor;
 
-  msg.opaqueAttrA           = rootBlock->DisplayFactor;
   //      msg.opaqueAttrB           = rootBlock->PriceDisplayFormat;
 
   /* ------------------------------- */
@@ -619,6 +636,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
 
   /* ------------------------------- */
   
+  const int64_t priceAdjustFactor {computeFinalPriceFactor(rootBlock->DisplayFactor)};
   EfhComplexDefinitionMsg msg{};
   msg.header.msgType        = EfhMsgType::kComplexDefinition;
   msg.header.group.source   = EkaSource::kCME_SBE;
@@ -635,6 +653,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   msg.commonDef.expiryDate     = 0; // FIXME: for completeness only, could be "today"
   msg.commonDef.expiryTime     = 0;
   msg.commonDef.contractSize   = 0;
+  msg.commonDef.opaqueAttrA    = priceAdjustFactor;
 
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
   copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
@@ -678,7 +697,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
     msg.legs[i].ratio       = e->LegRatioQty;
     msg.legs[i].optionDelta = e->LegOptionDelta != std::numeric_limits<DecimalQty_T>::max() ? e->LegOptionDelta : 0;
     msg.legs[i].price       = e->LegPrice != std::numeric_limits<PRICENULL9_T>::max()
-        ? e->LegPrice / OrderPriceFactor
+        ? e->LegPrice / priceAdjustFactor
         : 0;
 
     m += pGroupSize->blockLength;

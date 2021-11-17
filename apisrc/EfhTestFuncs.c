@@ -636,12 +636,12 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
   fprintf (gr->fullDict,"%s,%ju,%s,%s,%s,%s,%ju,%ju\n",
 	   avtSecName,
 	   msg->header.securityId,
-	   exch == EkaSource::kC1_PITCH ? EKA_PRINT_BATS_SYMBOL((char*)&msg->opaqueAttrA) : " ",
+	   exch == EkaSource::kC1_PITCH ? EKA_PRINT_BATS_SYMBOL((char*)&msg->commonDef.opaqueAttrA) : " ",
 	   underlyingName.c_str(),
 	   classSymbol.c_str(),
 	   EKA_PRINT_GRP(&msg->header.group),
-	   msg->opaqueAttrA,
-	   msg->opaqueAttrB
+	   msg->commonDef.opaqueAttrA,
+	   msg->commonDef.opaqueAttrB
 	   );
 
 
@@ -666,7 +666,7 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
     fprintf (gr->subscrDict,"%s,%ju,%s,%s\n",
 	     avtSecName,
 	     msg->header.securityId,
-	     exch == EkaSource::kC1_PITCH ? EKA_PRINT_BATS_SYMBOL((char*)&msg->opaqueAttrA) : " ",
+	     exch == EkaSource::kC1_PITCH ? EKA_PRINT_BATS_SYMBOL((char*)&msg->commonDef.opaqueAttrA) : " ",
 	     EKA_PRINT_GRP(&msg->header.group)
 	     );
   }

@@ -137,7 +137,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     }
     copySymbol(msg.commonDef.exchSecurityName, message->symbol);
 
-    memcpy(&msg.opaqueAttrA,message->symbol,6);
+    memcpy(&msg.commonDef.opaqueAttrA,message->symbol,6);
 
     /* char osi2print[22] = {}; */
     /* memcpy(osi2print,osi,21); */
