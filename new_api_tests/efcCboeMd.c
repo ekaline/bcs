@@ -151,12 +151,12 @@ static EkaOpResult printReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdO
   if (dev == NULL) on_error("dev == NULL");
 
   const uint8_t* b = (const uint8_t*)p;
- //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
   if (((EkaContainerGlobalHdr*)b)->type == EkaEventType::kExceptionReport) {
     EKA_LOG("EXCEPTION_REPORT");
     return EKA_OPRESULT__OK;
   }
- //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
   if (((EkaContainerGlobalHdr*)b)->type != EkaEventType::kFireReport) 
     on_error("UNKNOWN Event report: 0x%02x",
 	     static_cast< uint32_t >( ((EkaContainerGlobalHdr*)b)->type ) );
@@ -180,7 +180,7 @@ static EkaOpResult printReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdO
     b += sizeof(EfcControllerState);
   }
   total_reports--;
- //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
 
   if (((EfcReportHdr*)b)->type != EfcReportType::kMdReport) 
     on_error("MdReport report expected, %02x received",
@@ -214,20 +214,20 @@ static EkaOpResult printReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdO
   if (((EfcReportHdr*)b)->type != EfcReportType::kFirePkt) 
     on_error("FirePkt report expected, %02x received",
 	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type) );
-    EKA_LOG("\treport_type = %u SecurityCtx, idx=%u, size=%ju",
+  EKA_LOG("\treport_type = %u SecurityCtx, idx=%u, size=%ju",
   	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ),
   	  ((EfcReportHdr*)b)->idx,
   	  ((EfcReportHdr*)b)->size);
-    b += sizeof(EfcReportHdr);
-    {
-      auto msg {reinterpret_cast<const BoeNewOrderMsg*>(b +
-							sizeof(EkaEthHdr) +
-							sizeof(EkaIpHdr) +
-							sizeof(EkaTcpHdr))};
-      if (! mdOnly) printBoeFire(dev,msg);
-      b += ((EfcReportHdr*)b)->size;
-    }
-    total_reports--;
+  b += sizeof(EfcReportHdr);
+  {
+    auto msg {reinterpret_cast<const BoeNewOrderMsg*>(b +
+						      sizeof(EkaEthHdr) +
+						      sizeof(EkaIpHdr) +
+						      sizeof(EkaTcpHdr))};
+    if (! mdOnly) printBoeFire(dev,msg);
+    b += ((EfcReportHdr*)b)->size;
+  }
+  total_reports--;
     
   //--------------------------------------------------------------------------
 
