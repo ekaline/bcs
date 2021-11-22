@@ -226,6 +226,7 @@ class EkaFh {
   uint64_t              timeCheckCnt = 0;
   EfhGetTradeTimeFn     getTradeTimeCb;
   void*                 getTradeTimeCtx;
+  bool                  pinPacketBuffer = false;
 };
 
 #endif

@@ -74,6 +74,7 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
 
   //-----------------------------------------------------------------------------
+  uint8_t inlinePktBuf[1500];
 
   while (runGr->thread_active) {
     //-----------------------------------------------------------------------------
@@ -93,6 +94,8 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
     auto pkt = getUdpPkt(runGr,&pktSize,&sequence,&gr_id);
     if (pkt == NULL) continue;
+    else if (pinPacketBuffer)
+      pkt = static_cast<uint8_t *>(std::memcpy(inlinePktBuf, pkt, pktSize));
 
 #ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
     if (sequence != 0 && sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {

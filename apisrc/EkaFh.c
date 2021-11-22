@@ -253,6 +253,14 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
   char* k[10];
   k[i] = strtok(key_buf,".");
   while(k[i]!=NULL) k[++i] = strtok(NULL,".");
+
+  //---------------------------------------------------------------------
+  // efh.pin_packet_buffer
+  // k[0] k[1]   k[2] k[3] k[4]   k[5]
+  if ((strcmp(k[0],"efh")==0) && (strcmp(k[1],"pin_packet_buffer")==0)) {
+    this->pinPacketBuffer = strcmp(value, "true") == 0;
+    return EkaFhAddConf::CONF_SUCCESS;
+  }
   //---------------------------------------------------------------------
   // efh.NOM_ITTO.group.X.snapshot.connectRetryDelayTime, <numSec>
   // k[0] k[1]   k[2] k[3] k[4]   k[5]
