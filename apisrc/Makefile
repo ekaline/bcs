@@ -2,7 +2,7 @@ SMARTNIC_ROOT ?= ../SmartNIC_SW
 LWIP_ROOT ?= ../lwip
 
 CC_OPT ?= -O3
-CXX_STANDARD ?= c++17
+CXX_STANDARD ?= c++23
 ARCH_FLAGS ?= -march=native
 DEBUG_FLAGS ?= -g
 
