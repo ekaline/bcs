@@ -326,6 +326,7 @@ typedef struct {
 enum class EfhOrderSide : int8_t {
     #define EfhOrderSide_ENUM_ITER( _x )                                    \
                 _x( Other,  0 )                                             \
+                _x( Cross,  3 )                                             \
                 _x( Err,    2 )                                             \
                 _x( Bid,    1 )                                             \
                 _x( Ask,   -1 )
@@ -361,7 +362,8 @@ enum class EfhAuctionType : char {
                 _x( PriceImprovementPeriod, 'Q' )                           \
                 _x( Facilitation, 'F' )                                     \
                 _x( Solicitation, 'S' )                                     \
-                _x( Exposed,      'E' )
+                _x( Exposed,      'E' )                                     \
+                _x( Notification, 'N' )
         EfhAuctionType_ENUM_ITER( EKA__ENUM_DEF )
 };
 

@@ -1,3 +1,4 @@
+#include <charconv>
 #include <limits>
 
 #include <stdio.h>
@@ -211,6 +212,11 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
     m += sizeof(*pGroupSize);
     /* ------------------------------- */
 
+    if (!std::string_view{rootBlock->QuoteReqID}.starts_with("CME")) {
+      on_error("quote request id `%s` does not have the expected form",
+               rootBlock->QuoteReqID);
+    }
+
     EfhAuctionUpdateMsg msg{};
     msg.header.msgType        = EfhMsgType::kAuctionUpdate;
     msg.header.group.source   = EkaSource::kCME_SBE;
@@ -219,7 +225,18 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
     msg.header.sequenceNumber = pktSeq;
     msg.header.timeStamp      = pktTime; //rootBlock->LastUpdateTime;
     msg.header.gapNum         = gapNum;
-  
+
+    const char *const auctionIdEnd = rootBlock->QuoteReqID +
+        std::strlen(rootBlock->QuoteReqID);
+    const auto [parseEnd, errc] = std::from_chars(rootBlock->QuoteReqID + 3,
+        auctionIdEnd, msg.auctionId);
+    if (parseEnd != auctionIdEnd || int(errc)) {
+      on_error("quote request id `%s` does not have expected form",
+               rootBlock->QuoteReqID);
+    }
+    msg.auctionType = EfhAuctionType::kNotification;
+    msg.updateType = EfhAuctionUpdateType::kNew;
+
     /* ------------------------------- */
     for (uint i = 0; i < pGroupSize->numInGroup; i++) {
       auto e {reinterpret_cast<const QuoteRequest39_legEntry*>(m)};
@@ -229,7 +246,8 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
       if (! s) continue;
       msg.header.securityId = e->SecurityID;
       msg.side              = getSide39(e->Side);
-      msg.quantity          = e->OrderQty;
+      msg.quantity          = e->OrderQty == std::numeric_limits<decltype(e->OrderQty)>::max()
+          ? 0 : e->OrderQty;
       if (pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL)
 	on_error("pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL");
       pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
@@ -261,7 +279,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
 
     const auto side {getSide46(e->MDEntryType)};
     if (side == SideT::OTHER) return msgHdr->size;
-    const auto finalPriceFactor {s->getFinalPriceFactor()};
+    const int64_t finalPriceFactor = s->getFinalPriceFactor();
     bool tobChange = false;
     switch (e->MDUpdateAction) {
     case MDUpdateAction_T::New:
@@ -406,7 +424,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshTradeSummary48(const EfhRunCtx* pEfh
 	      pktSeq,
 	      pktTime,
 	      gapNum },
-	    static_cast<std::int64_t>(e->MDEntryPx / s->getFinalPriceFactor()),
+	    e->MDEntryPx / static_cast<std::int64_t>(s->getFinalPriceFactor()),
 	    (uint32_t)e->MDEntrySize,
 	    EfhTradeStatus::kNormal,
 	    EfhTradeCond::kREG
@@ -439,7 +457,7 @@ int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
     
     const auto side {getSide52(e->MDEntryType)};
     if (side == SideT::OTHER) continue;
-    const auto finalPriceFactor {s->getFinalPriceFactor()};
+    const int64_t finalPriceFactor = s->getFinalPriceFactor();
 
     bool tobChange = s->newPlevel(side,
 				  e->MDPriceLevel,
@@ -536,7 +554,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
 
   const auto putOrCall {getEfhOptionType(rootBlock->PutOrCall)};
-  const int64_t priceAdjustFactor {computeFinalPriceFactor(rootBlock->DisplayFactor)};
+  const int64_t priceAdjustFactor = computeFinalPriceFactor(rootBlock->DisplayFactor);
 
   if (putOrCall == EfhOptionType::kErr) {
     //    hexDump("DefinitionOption55",msgHdr,msgHdr->size);	  
@@ -637,7 +655,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
 
   /* ------------------------------- */
   
-  const int64_t priceAdjustFactor {computeFinalPriceFactor(rootBlock->DisplayFactor)};
+  const int64_t priceAdjustFactor = computeFinalPriceFactor(rootBlock->DisplayFactor);
   EfhComplexDefinitionMsg msg{};
   msg.header.msgType        = EfhMsgType::kComplexDefinition;
   msg.header.group.source   = EkaSource::kCME_SBE;

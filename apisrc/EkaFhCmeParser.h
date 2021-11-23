@@ -757,8 +757,8 @@ namespace Cme {
     switch (rfqSide) {
     case 1 : return EfhOrderSide::kBid;
     case 2 : return EfhOrderSide::kAsk;
-    case 8 : return EfhOrderSide::kOther; //CROSS
-    default: return EfhOrderSide::kErr;
+    case 8 : return EfhOrderSide::kCross;
+    default: return EfhOrderSide::kOther;
     }
   }
   
