@@ -204,6 +204,7 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
     auto m      {pMsg};
     auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
     m += sizeof(*msgHdr);
+    auto rootBlock {reinterpret_cast<const QuoteRequest39_mainBlock*>(m)};
     m += msgHdr->blockLen;
     /* ------------------------------- */
     auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
