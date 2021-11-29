@@ -84,6 +84,8 @@ int EkaFhNasdaqGr::closeIncrementalGap(EfhCtx*          pEfhCtx,
     '_' + 
     std::to_string(id);
 
+  bool useSoupbin = endSeq - startSeq > 100;
+
   EkaFhThreadAttr* attr  = new EkaFhThreadAttr(pEfhCtx, 
 					       pEfhRunCtx, 
 					       this, 
@@ -94,7 +96,7 @@ int EkaFhNasdaqGr::closeIncrementalGap(EfhCtx*          pEfhCtx,
     
   dev->createThread(threadName.c_str(),
 		    EkaServiceType::kFeedSnapshot,
-		    getMolUdp64Data,        
+		    useSoupbin ? getSoupBinData : getMolUdp64Data,
 		    attr,
 		    dev->createThreadContext,
 		    (uintptr_t*)&snapshot_thread);   

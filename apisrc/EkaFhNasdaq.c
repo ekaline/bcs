@@ -8,8 +8,9 @@ void* getSoupBinData(void* attr);
 
 /* ##################################################################### */
 const uint8_t* EkaFhNasdaq::getUdpPkt(EkaFhRunGroup* runGr, uint* msgInPkt, uint64_t* sequence,uint8_t* gr_id) {
-  uint8_t* pkt = (uint8_t*)runGr->udpCh->get();
-  if (pkt == NULL) on_error("%s: pkt == NULL",EKA_EXCH_DECODE(exch));
+  auto pkt = runGr->udpCh->get();
+  if (!pkt)
+    on_error("%s: pkt == NULL",EKA_EXCH_DECODE(exch));
   uint msgCnt = EKA_MOLD_MSG_CNT(pkt);
   uint8_t grId = getGrId(pkt);
   if (msgCnt == 0xFFFF) {
@@ -21,13 +22,14 @@ const uint8_t* EkaFhNasdaq::getUdpPkt(EkaFhRunGroup* runGr, uint* msgInPkt, uint
     runGr->udpCh->next(); 
     return NULL;
   }
-  EkaFhNasdaqGr* gr = dynamic_cast<EkaFhNasdaqGr*>(b_gr[grId]);
-  if (gr == NULL) on_error("gr[%u ] == NULL",grId);
+  auto gr = dynamic_cast<EkaFhNasdaqGr*>(b_gr[grId]);
+  if (!gr) on_error("gr[%u ] == NULL",grId);
 
   if (gr->firstPkt) {
-    memcpy((uint8_t*)gr->session_id,((struct mold_hdr*)pkt)->session_id,10);
+    memcpy((uint8_t*)gr->session_id,((const mold_hdr*)pkt)->session_id,10);
     gr->firstPkt = false;
-    EKA_LOG("%s:%u session_id is set to %s",EKA_EXCH_DECODE(exch),grId,(char*)gr->session_id + '\0');
+    EKA_LOG("%s:%u session_id is set to %s",
+	    EKA_EXCH_DECODE(exch),grId,(char*)gr->session_id + '\0');
   }
   *msgInPkt = msgCnt;
   *sequence = EKA_MOLD_SEQUENCE(pkt);
@@ -64,11 +66,11 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
     uint64_t sequence = 0;
     uint8_t  gr_id    = 0xFF;
 
-    const uint8_t* pkt = getUdpPkt(runGr,&msgInPkt,&sequence,&gr_id);
-    if (pkt == NULL) continue;
+    auto pkt = getUdpPkt(runGr,&msgInPkt,&sequence,&gr_id);
+    if (!pkt) continue;
 
-    EkaFhNasdaqGr* gr = (EkaFhNasdaqGr*)b_gr[gr_id];
-    if (gr == NULL) on_error("b_gr[%u] = NULL",gr_id);
+    auto gr {dynamic_cast<EkaFhNasdaqGr*>(b_gr[gr_id])};
+    if (!gr) on_error("b_gr[%u] = NULL",gr_id);
 
 #ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
     if (gr->state == EkaFhGroup::GrpState::NORMAL && 
@@ -89,7 +91,10 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
 #else
     //-----------------------------------------------------------------------------
     switch (gr->state) {
-    case EkaFhGroup::GrpState::INIT : { 
+    case EkaFhGroup::GrpState::INIT : {
+      EKA_LOG("%s:%u 1st MC msq sequence=%ju",
+	      EKA_EXCH_DECODE(exch),gr_id,sequence);
+      gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
       gr->gapClosed = false;
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
       gr->sendFeedDownInitial(pEfhRunCtx);

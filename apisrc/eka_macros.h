@@ -47,6 +47,7 @@ class EkaDev;
 #define EKA_TEST(...) do { fprintf(stderr, "%s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); fflush(stdout); fflush(stderr); } while(0)
 
 #if !defined(LOG_TRACE)
+#define EKA_LOG_ERROR 3
 #define EKA_LOG_WARNING 4
 #define EKA_LOG_NOTICE 5
 #define EKA_LOG_INFO 6
@@ -54,6 +55,7 @@ class EkaDev;
 #define EKA_LOG_TRACE 8
 #endif
 
+#define EKA_ERROR(...)   dev->logCB(dev->logCtx, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_ERROR, __VA_ARGS__)
 #define EKA_WARN(...)   dev->logCB(dev->logCtx, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_WARNING, __VA_ARGS__)
 #define EKA_NOTICE(...)   dev->logCB(dev->logCtx, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_NOTICE, __VA_ARGS__)
 #define EKA_INFO(...)   dev->logCB(dev->logCtx, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_INFO, __VA_ARGS__)
