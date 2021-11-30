@@ -36,6 +36,14 @@ struct soupbin_login_req {
   char			sequence[20];
 } __attribute__((packed));
 
+
+struct SoupBinLoginAccepted {
+  uint16_t len;
+  char     status; // 'A'
+  char     sessionId[10];
+  char     firstSeqNum[20];
+};
+
 static bool sendLogin (EkaFhNasdaqGr* gr, uint64_t start_sequence);
 static void sendLogout (EkaFhNasdaqGr* gr);
 static bool getLoginResponse(EkaFhNasdaqGr* gr);
@@ -321,6 +329,7 @@ static bool getLoginResponse(EkaFhNasdaqGr* gr) {
 
   case 'A' : {
     auto loginAccepted {reinterpret_cast<const SoupBinLoginAccepted*>(soupbin_buf)};
+    memcpy(gr->session_id,loginAccepted->sessionId,sizeof(loginAccepted->sessionId));
     gr->firstSoupbinSeq = std::stoul(std::string(loginAccepted->firstSeqNum,sizeof(loginAccepted->firstSeqNum)));
     gr->recovery_sequence = gr->firstSoupbinSeq;
   

@@ -25,12 +25,12 @@ const uint8_t* EkaFhNasdaq::getUdpPkt(EkaFhRunGroup* runGr, uint* msgInPkt, uint
   auto gr = dynamic_cast<EkaFhNasdaqGr*>(b_gr[grId]);
   if (!gr) on_error("gr[%u ] == NULL",grId);
 
-  if (gr->firstPkt) {
-    memcpy((uint8_t*)gr->session_id,((const mold_hdr*)pkt)->session_id,10);
-    gr->firstPkt = false;
-    EKA_LOG("%s:%u session_id is set to %s",
-	    EKA_EXCH_DECODE(exch),grId,(char*)gr->session_id + '\0');
-  }
+  /* if (gr->firstPkt) { */
+  /*   memcpy((uint8_t*)gr->session_id,((const mold_hdr*)pkt)->session_id,10); */
+  /*   gr->firstPkt = false; */
+  /*   EKA_LOG("%s:%u session_id is set to %s", */
+  /* 	    EKA_EXCH_DECODE(exch),grId,(char*)gr->session_id + '\0'); */
+  /* } */
   *msgInPkt = msgCnt;
   *sequence = EKA_MOLD_SEQUENCE(pkt);
   *gr_id    = grId;
