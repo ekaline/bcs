@@ -126,8 +126,10 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	gr->sendBackInTimeEvent(pEfhRunCtx,sequence);
 	//	gr->expected_sequence = sequence;
       } else if (sequence != gr->expected_sequence) {
-  	EKA_LOG("%s:%u sequence=%ju,expected_sequence=%ju",
-		EKA_EXCH_DECODE(exch),gr_id, sequence,gr->expected_sequence);
+  	EKA_LOG("%s:%u %s GAP: sequence %ju != expected_sequence %ju, lost %jd",
+		EKA_EXCH_DECODE(exch),gr_id,
+		gr->expected_sequence ? "REAL" : "INITIAL",
+		sequence,gr->expected_sequence, sequence - gr->expected_sequence);
 
 	if (gr->expected_sequence == 0) {
 	  gr->sendFeedDownInitial(pEfhRunCtx);
