@@ -42,7 +42,7 @@ struct SoupBinLoginAccepted {
   char     status; // 'A'
   char     sessionId[10];
   char     firstSeqNum[20];
-};
+} __attribute__((packed));
 
 static bool sendLogin (EkaFhNasdaqGr* gr, uint64_t start_sequence);
 static void sendLogout (EkaFhNasdaqGr* gr);
@@ -282,6 +282,14 @@ static void sendLogout (EkaFhNasdaqGr* gr) {
   return;
 }
 /* ##################################################################### */
+static void copySessionId(char* dst, const char* src, size_t len) {
+  int j = len - 1;
+  for (int i = len - 1; i >= 0; i--) {
+    if (src[i] != ' ') {
+      dst[j--] = src[i];      
+    }
+  }
+}
 
 static bool getLoginResponse(EkaFhNasdaqGr* gr) {
   EkaDev* dev = gr->dev;
@@ -329,13 +337,15 @@ static bool getLoginResponse(EkaFhNasdaqGr* gr) {
 
   case 'A' : {
     auto loginAccepted {reinterpret_cast<const SoupBinLoginAccepted*>(soupbin_buf)};
-    memcpy(gr->session_id,loginAccepted->sessionId,sizeof(loginAccepted->sessionId));
+    //    memcpy(gr->session_id,loginAccepted->sessionId,sizeof(loginAccepted->sessionId));
+    copySessionId(gr->session_id,loginAccepted->sessionId,sizeof(loginAccepted->sessionId));
     gr->firstSoupbinSeq = std::stoul(std::string(loginAccepted->firstSeqNum,sizeof(loginAccepted->firstSeqNum)));
     gr->recovery_sequence = gr->firstSoupbinSeq;
   
-    EKA_LOG("%s:%u Login accepted for session_id=\'%s\', first_seq= \'%s\' (=%ju)",
+    EKA_LOG("%s:%u Login accepted for session_id=\'%s\' (\'%s\'), first_seq= \'%s\' (=%ju)",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,
 	    std::string(loginAccepted->sessionId,  sizeof(loginAccepted->sessionId)  ).c_str(),
+	    std::string(gr->session_id,            sizeof(gr->session_id)            ).c_str(),
 	    std::string(loginAccepted->firstSeqNum,sizeof(loginAccepted->firstSeqNum)).c_str(),
 	    gr->recovery_sequence);
   }
