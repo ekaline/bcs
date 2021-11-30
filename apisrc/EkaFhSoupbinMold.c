@@ -241,8 +241,7 @@ static bool sendLogin (EkaFhNasdaqGr* gr, uint64_t start_sequence) {
   struct soupbin_login_req login_message = {};
   login_message.header.length = htons(sizeof(struct soupbin_login_req)-sizeof(header.length));
   login_message.header.type		= 'L';
-  memcpy(login_message.session,(const char*)gr->session_id,sizeof(login_message.session));
-  //memset(login_message.session,' ',sizeof(login_message.session));
+  memset(login_message.session,' ',sizeof(login_message.session));
   //  memcpy(login_message.sequence, "                   1", sizeof(login_message.sequence));
 
   char tmp_start_sequence_str[21];
@@ -338,7 +337,7 @@ static bool getLoginResponse(EkaFhNasdaqGr* gr) {
   case 'A' : {
     auto loginAccepted {reinterpret_cast<const SoupBinLoginAccepted*>(soupbin_buf)};
     //    memcpy(gr->session_id,loginAccepted->sessionId,sizeof(loginAccepted->sessionId));
-    copySessionId(gr->session_id,loginAccepted->sessionId,sizeof(loginAccepted->sessionId));
+    //copySessionId(gr->session_id,loginAccepted->sessionId,sizeof(loginAccepted->sessionId));
     gr->firstSoupbinSeq = std::stoul(std::string(loginAccepted->firstSeqNum,sizeof(loginAccepted->firstSeqNum)));
     gr->recovery_sequence = gr->firstSoupbinSeq;
   
