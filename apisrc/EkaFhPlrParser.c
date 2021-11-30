@@ -40,15 +40,13 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.commonDef.securityType   = EfhSecurityType::kOption;
     msg.commonDef.exchange       = EKA_GRP_SRC2EXCH(exch);
     msg.commonDef.underlyingType = EfhSecurityType::kStock;
-    msg.commonDef.expiryDate    =
+    msg.commonDef.expiryDate     =
       (2000 + (m->MaturityDate[0] - '0') * 10 + (m->MaturityDate[1] - '0')) * 10000 + 
       (       (m->MaturityDate[2] - '0') * 10 +  m->MaturityDate[3] - '0')  * 100   +
       (        m->MaturityDate[4] - '0') * 10 +  m->MaturityDate[5] - '0';
 
-    msg.contractSize          = m->ContractMultiplier;
+    msg.commonDef.contractSize   = m->ContractMultiplier;
       
-    msg.strikePrice           = (uint64_t) (strtof(m->StrikePrice,NULL) * 10000); //  / EFH_XDP_STRIKE_PRICE_SCALE;
-    msg.exchange              = EKA_GRP_SRC2EXCH(exch);
     msg.optionType            = m->PutOrCall ?  EfhOptionType::kCall : EfhOptionType::kPut;
 
     // Strike price is given to us as a null-terminted string which may have a
