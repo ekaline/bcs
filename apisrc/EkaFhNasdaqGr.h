@@ -3,6 +3,13 @@
 
 #include "EkaFhGroup.h"
 
+struct SoupBinLoginAccepted {
+  uint16_t len;
+  char     status; // 'A'
+  char     sessionId[10];
+  char     firstSeqNum[20];
+};
+
 class EkaFhNasdaqGr : public EkaFhGroup {
  public:
   virtual             ~EkaFhNasdaqGr() {};
@@ -28,7 +35,7 @@ class EkaFhNasdaqGr : public EkaFhGroup {
   
   /* ##################################################################### */
 
-  volatile char session_id[10] = {};   // Mold Session Id
+  volatile char session_id[10] = {' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};   // Mold Session Id
   bool          firstPkt       = true; // to get session_id
   static const int MoldLocalRetryAttempts = 5;
   uint64_t      firstSoupbinSeq = 0;
