@@ -24,9 +24,7 @@ const uint8_t* EkaFhCme::getUdpPkt(EkaFhRunGroup* runGr,
   if (pkt == NULL) on_error("%s: pkt == NULL",EKA_EXCH_DECODE(exch));
   *pktLen   = runGr->udpCh->getPayloadLen();
 
-  auto pktHdr {reinterpret_cast<const PktHdr*>(pkt)};
-
-  *sequence = pktHdr->seq;
+  *sequence = getPktSeq(pkt);
   *gr_id    = getGrId(pkt);
 
   return pkt;
