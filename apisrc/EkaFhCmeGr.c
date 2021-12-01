@@ -180,7 +180,7 @@ EkaOpResult EkaFhCmeGr::recoveryLoop(const EfhRunCtx* pEfhRunCtx, EkaFhMode op) 
   
   snapshot_active = false;
   snapshotClosed  = true;
-  inGap           = false;
+  //  inGap           = false;
   
   close (sock);
   return EKA_OPRESULT__OK;
