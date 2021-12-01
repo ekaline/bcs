@@ -191,41 +191,43 @@ int main(int argc, char *argv[]) {
       printf("Trigger,pkt,ts,seq,msgSize,numInGroup,firstPrice\n"); 
     }
     while (fread(buf,sizeof(pcap_rec_hdr),1,pcapFile) == 1) {
-	auto pcap_rec_hdr_ptr {reinterpret_cast<const pcap_rec_hdr*>(buf)};
-	uint pktLen = pcap_rec_hdr_ptr->len;
-	if (pktLen > 1536)
-	    on_error("Probably wrong PCAP format: pktLen = %u ",pktLen);
+      auto pcap_rec_hdr_ptr {reinterpret_cast<const pcap_rec_hdr*>(buf)};
+      uint pktLen = pcap_rec_hdr_ptr->len;
+      if (pktLen > 1536)
+	on_error("Probably wrong PCAP format: pktLen = %u ",pktLen);
 
-	char pkt[1536] = {};
-	if (fread(pkt,pktLen,1,pcapFile) != 1) 
-	    on_error ("Failed to read %d packet bytes at pkt %ju",pktLen,pktNum);
-	pktNum++;
+      char pkt[1536] = {};
+      if (fread(pkt,pktLen,1,pcapFile) != 1) 
+	on_error ("Failed to read %d packet bytes at pkt %ju",pktLen,pktNum);
+      pktNum++;
 
-	auto p {reinterpret_cast<const uint8_t*>(pkt)};
-	if (! EKA_IS_UDP_PKT(p)) continue;
+      auto p {reinterpret_cast<const uint8_t*>(pkt)};
+      if (! EKA_IS_UDP_PKT(p)) continue;
 	
-	auto grId = findGrp(EKA_IPH_DST(p),EKA_UDPH_DST(p));
-	if (grId < 0) continue;
+      auto grId = findGrp(EKA_IPH_DST(p),EKA_UDPH_DST(p));
+      if (grId < 0) continue;
 
-	auto udpHdr {p + sizeof(EkaEthHdr) + sizeof(EkaIpHdr)};
-	int payloadLen = EKA_UDPHDR_LEN(udpHdr) - sizeof(EkaUdpHdr);
-	p += sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr);
+      auto udpHdr {p + sizeof(EkaEthHdr) + sizeof(EkaIpHdr)};
+      int payloadLen = EKA_UDPHDR_LEN(udpHdr) - sizeof(EkaUdpHdr);
+      p += sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr);
 
-	/* -------------------------------------------------- */
-	if (printAll) {
-	  auto sequence = printPkt(p, payloadLen, pktNum);
-
-	  if (group[grId].expectedSeq != 0 &&
-	      group[grId].expectedSeq != sequence) {
-	    printf (RED "%d: expectedSeq %ju != sequence %u\n" RESET,
-		    grId,group[grId].expectedSeq,sequence);
-	  }
-	}
-	/* -------------------------------------------------- */
-	if (printTrig) {
-	  printTrigger(p, payloadLen, pktNum, numPriceLevels, maxMsgSize);
-	}
-	/* -------------------------------------------------- */
+      auto sequence = getPktSeq(p);
+      /* -------------------------------------------------- */
+      if (group[grId].expectedSeq != 0 &&
+	  group[grId].expectedSeq != sequence) {
+	printf (RED "%d: expectedSeq %ju != sequence %u\n" RESET,
+		grId,group[grId].expectedSeq,sequence);
+      }
+      /* -------------------------------------------------- */
+      if (printAll) {
+	printf("GR%-2d: ",grId);
+	printPkt(p, payloadLen, pktNum);
+      }
+      /* -------------------------------------------------- */
+      if (printTrig) {
+	printTrigger(p, payloadLen, pktNum, numPriceLevels, maxMsgSize);
+      }
+      /* -------------------------------------------------- */
 
     }
     
