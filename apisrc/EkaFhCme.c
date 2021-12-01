@@ -115,7 +115,8 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	gr->processFromQ(pEfhRunCtx);
 	gr->inGap = false;
 	gr->sendFeedUp(pEfhRunCtx);
-	runGr->setGrAfterGap(gr->id);
+	//	runGr->setGrAfterGap(gr->id);
+	gr->snapshotClosed = false;
       }
     } else {
       if (sequence < gr->expected_sequence) {
@@ -139,6 +140,7 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	gr->pushPkt2Q(pkt,pktSize,sequence);
 	gr->expected_sequence = sequence;
 	gr->inGap = true;
+	gr->snapshotClosed = false;
 	gr->closeSnapshotGap(pEfhCtx, pEfhRunCtx, sequence); 
       } else {
 	//-----------------------------------------------------------------------------
