@@ -76,7 +76,7 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
   while (runGr->thread_active) {
     //-----------------------------------------------------------------------------
-    if (runGr->drainQ(pEfhRunCtx)) continue;
+    //  if (runGr->drainQ(pEfhRunCtx)) continue;
     //-----------------------------------------------------------------------------
     if (! runGr->udpCh->has_data()) {
       if (++timeCheckCnt % TimeCheckRate == 0) {
@@ -112,6 +112,7 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     if (gr->inGap) {
       gr->pushPkt2Q(pkt,pktSize,sequence);
       if (gr->snapshotClosed) {
+	gr->processFromQ(pEfhRunCtx);
 	gr->inGap = false;
 	gr->sendFeedUp(pEfhRunCtx);
 	runGr->setGrAfterGap(gr->id);
