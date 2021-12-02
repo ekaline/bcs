@@ -312,7 +312,7 @@ uint testSubscribeSec(int file_idx,const EfhOptionDefinitionMsg* msg, EfhRunUser
   fprintf (subscrDict,"%s,%ju,%s,%s\n",
 	   avtSecName,
 	   msg->header.securityId,
-	   EKA_PRINT_BATS_SYMBOL((char*)&msg->opaqueAttrA),
+	   EKA_PRINT_BATS_SYMBOL((char*)&msg->commonDef.opaqueAttrA),
 	   EKA_PRINT_GRP(&msg->header.group)
 	   );
 
@@ -330,7 +330,7 @@ void* onDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secData, Ef
   fprintf (fullDict,"%s,%ju,%s,%s\n",
 	   avtSecName,
 	   msg->header.securityId,
-	   EKA_PRINT_BATS_SYMBOL((char*)&msg->opaqueAttrA),
+	   EKA_PRINT_BATS_SYMBOL((char*)&msg->commonDef.opaqueAttrA),
 	   EKA_PRINT_GRP(&msg->header.group)
 	   );
 

@@ -338,8 +338,8 @@ CopyOutDefinitions:
     attrB.attr.UnderlIdx  = m->UnderlyingIndex;
     attrB.attr.AbcGroupID = AbcGroupID;
 
-    msg.opaqueAttrA = attrA.opaqueField;
-    msg.opaqueAttrB = attrB.opaqueField;
+    msg.commonDef.opaqueAttrA = attrA.opaqueField;
+    msg.commonDef.opaqueAttrB = attrB.opaqueField;
 
     pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
   }

@@ -1,14 +1,15 @@
-#ifndef _EKA_FH_BATS_GR_H_
-#define _EKA_FH_BATS_GR_H_
+#ifndef _EKA_FH_PLR_GR_H_
+#define _EKA_FH_PLR_GR_H_
 
 #include <chrono>
+#include <deque>
 
 #include "EkaFhGroup.h"
-#include "EkaFhFullBook.h"
+#include "EkaFhTobBook.h"
 
-class EkaFhBatsGr : public EkaFhGroup{
- public:
-  virtual               ~EkaFhBatsGr() {};
+class EkaFhPlrGr : public EkaFhGroup{
+public:
+  virtual               ~EkaFhPlrGr() {};
 
   bool                  parseMsg(const EfhRunCtx* pEfhRunCtx,
 				 const unsigned char*   m,
@@ -42,7 +43,6 @@ class EkaFhBatsGr : public EkaFhGroup{
 				    uint           msgInPkt, 
 				    uint64_t       sequence);
 
-
   int    closeSnapshotGap(EfhCtx*              pEfhCtx, 
 			  const EfhRunCtx* pEfhRunCtx, 
 			  uint64_t          startSeq,
@@ -52,80 +52,71 @@ class EkaFhBatsGr : public EkaFhGroup{
 			     const EfhRunCtx* pEfhRunCtx, 
 			     uint64_t          startSeq,
 			     uint64_t          endSeq);
-
-    int printConfig() {
+  int printConfig() {
     EKA_LOG("%s:%u : "
 	    "productMask: \'%s\' (0x%x) "
-	    
 	    "MCAST: %s:%u, "
-	    "Spin Tcp: %s:%u, "
-	    "GRP Tcp: %s:%u, "
-	    "GRP Udp: %s:%u, "
+	    "Refresh Tcp: %s:%u, "
+	    "Refresh Udp: %s:%u, "
+	    "ReTrans Tcp: %s:%u, "
+	    "ReTrans Udp: %s:%u, "
 
-	    "grpSessionSubID: \'%s\' "
-	    "BatsUnit: %u, "
-	    
-	    "User: \'%s\' "
-	    "Pswd: \'%s\' "
-
+	    "Source ID: \'%s\' "
+	    "Channel: %d, "
 	    "connectRetryDelayTime: %d",
 	    EKA_EXCH_DECODE(exch),id,
 	    lookupProductName(productMask), productMask,
-	    
 	    EKA_IP2STR(mcast_ip),   mcast_port,
-	    EKA_IP2STR(snapshot_ip),be16toh(snapshot_port),
-	    EKA_IP2STR(grpIp),      be16toh(grpPort),
-	    EKA_IP2STR(recovery_ip),be16toh(recovery_port),
-
-	    std::string(grpSessionSubID,sizeof(grpSessionSubID)).c_str(),
-	    batsUnit,
-	    std::string(grpUser,  sizeof(grpUser)  ).c_str(),
-	    std::string(grpPasswd,sizeof(grpPasswd)).c_str(),
-
+	    EKA_IP2STR(refreshTcpIp),be16toh(refreshTcpPort),
+	    EKA_IP2STR(refreshUdpIp),be16toh(refreshUdpPort),
+	    EKA_IP2STR(retransTcpIp),be16toh(retransTcpPort),
+	    EKA_IP2STR(retransUdpIp),be16toh(retransUdpPort),
+	    std::string(sourceId,sizeof(sourceId)).c_str(),
+	    channelId,
 	    connectRetryDelayTime
 	    );
     return 0;
   }
+
+
 private:
   int    sendMdCb(const EfhRunCtx* pEfhRunCtx,
 		  const uint8_t* m,
 		  int            gr,
 		  uint64_t       sequence,
-		  uint64_t       ts);
+		  uint64_t       ts)
+      {return 0;}
+
 
 
   
   /* ##################################################################### */
 
 public:
-  char                  sessionSubID[4] = {};  // for BATS Spin
-  uint8_t               batsUnit = 0;
+  char     sourceId[10]     = {};
+  int      channelId   = 0;
+  uint32_t refreshTcpIp     = 0;
+  uint16_t refreshTcpPort   = 0;
+  uint32_t retransTcpIp     = 0;
+  uint16_t retransTcpPort   = 0;
+  uint32_t refreshUdpIp     = 0;
+  uint16_t refreshUdpPort   = 0;
+  uint32_t retransUdpIp     = 0;
+  uint16_t retransUdpPort   = 0;
 
-  char                  grpSessionSubID[4] = {'0','5','8','7'};  // C1 default
-  uint32_t              grpIp         = 0x667289aa;              // C1 default "170.137.114.102"
-  uint16_t              grpPort       = 0x6e42;                  // C1 default be16toh(17006)
-  char                  grpUser[4]    = {'G','T','S','S'};       // C1 default
-  char                  grpPasswd[10] = {'e','b','3','g','t','s','s',' ',' ',' '}; // C1 default
-  bool                  grpSet        = false;
-
-  static const uint   SCALE          = (const uint) 22;
+  static const uint   SCALE          = 22;
   static const uint   SEC_HASH_SCALE = 17;
 
-  using SecurityIdT = uint64_t;
-  using OrderIdT    = uint64_t;
+  using SecurityIdT = uint32_t;
   using PriceT      = uint32_t;
   using SizeT       = uint32_t;
 
-  using FhPlevel     = EkaFhPlevel      <                                                   PriceT, SizeT>;
-  using FhSecurity   = EkaFhFbSecurity  <EkaFhPlevel<PriceT, SizeT>, SecurityIdT, OrderIdT, PriceT, SizeT>;
-  using FhOrder      = EkaFhOrder       <EkaFhPlevel<PriceT, SizeT>,              OrderIdT,         SizeT>;
-
-  using FhBook      = EkaFhFullBook<
-    SCALE,SEC_HASH_SCALE,
-    EkaFhFbSecurity  <EkaFhPlevel<PriceT, SizeT>,SecurityIdT, OrderIdT, PriceT, SizeT>,
-    EkaFhPlevel      <PriceT, SizeT>,
-    EkaFhOrder       <EkaFhPlevel<PriceT, SizeT>,OrderIdT,SizeT>,
-    SecurityIdT, OrderIdT, PriceT, SizeT>;
+  using FhSecurity  = EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>;
+  using FhBook      = EkaFhTobBook<SEC_HASH_SCALE,
+				   EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>,
+				   SecurityIdT,
+				   PriceT,
+				   SizeT>;
 
   FhBook*   book = NULL;
 

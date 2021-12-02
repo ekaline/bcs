@@ -24,6 +24,7 @@
 #include "EfhPhlxTopoProps.h"
 #include "EfhXdpProps.h"
 #include "EfhCmeProps.h"
+#include "EfhPlrProps.h"
 
 
 #define MAX_SECURITIES 600000
@@ -100,20 +101,21 @@ struct TestRunGroup {
 
 };
 
+struct TestCtx {
+  bool print_tob_updates = false;
+  bool subscribe_all     = false;
+  volatile bool keep_work = true;
+
+  int fatalErrorCnt = 0;
+  const int MaxFatalErrors = 4;
+
+  std::vector<std::string> underlyings;
+  std::vector<uint64_t>    securities;
+
+  McGrpCtx* grCtx[MAX_EXCH][MAX_GROUPS] = {};
+
+};
+
 /* ------------------------------------------------------------ */
-
-bool print_tob_updates = false;
-bool subscribe_all     = false;
-volatile bool keep_work = true;
-
-int fatalErrorCnt = 0;
-const int MaxFatalErrors = 4;
-
-std::vector<std::string> underlyings;
-std::vector<uint64_t>    securities;
-
-McGrpCtx* grCtx[MAX_EXCH][MAX_GROUPS] = {};
-
-
 
 #endif

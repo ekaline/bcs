@@ -22,6 +22,9 @@
 
 #include "EkaFhThreadAttr.h"
 #include "EkaFhCmeGr.h"
+#include "EkaFhCmeParser.h"
+
+using namespace Cme;
 
 void* getCmeSnapshot(void* attr);
 int ekaUdpMcConnect(EkaDev* dev, uint32_t ip, uint16_t port);
@@ -64,9 +67,14 @@ void EkaFhCmeGr::pushPkt2Q(const uint8_t*       pkt,
  /* ##################################################################### */
 
 int EkaFhCmeGr::processFromQ(const EfhRunCtx* pEfhRunCtx) {
+  bool firstPkt = true;
   while (! pktQ->is_empty()) {
     PktElem* buf = pktQ->pop();
-
+    if (firstPkt) {
+      firstPkt = false;
+      EKA_LOG("%s:%u: 1st Q pkt sequence = %ju",
+	  EKA_EXCH_DECODE(exch),id,buf->sequence);
+    }
     if (buf->sequence < expected_sequence) continue;
     processPkt(pEfhRunCtx,
 	       buf->data,
@@ -74,6 +82,8 @@ int EkaFhCmeGr::processFromQ(const EfhRunCtx* pEfhRunCtx) {
 	       EkaFhMode::MCAST);
     expected_sequence = buf->sequence + 1;
   }
+  EKA_LOG("%s:%u: After Q draining expected_sequence = %ju",
+	  EKA_EXCH_DECODE(exch),id,expected_sequence);
   return 0;
 }
 
@@ -82,14 +92,13 @@ int EkaFhCmeGr::closeSnapshotGap(EfhCtx*           pEfhCtx,
 				 const EfhRunCtx*  pEfhRunCtx, 
 				 uint64_t          sequence) {
   firstLifeSeq = sequence;
-  processedSnapshotMessages = 0;
 
   std::string threadName = std::string("ST_") + 
     std::string(EKA_EXCH_SOURCE_DECODE(exch)) + 
     '_' + 
     std::to_string(id);
   EkaFhThreadAttr* attr  = new EkaFhThreadAttr(pEfhCtx, 
-					       (const EfhRunCtx*)pEfhRunCtx, 
+					       pEfhRunCtx, 
 					       this, 
 					       sequence, 
 					       0, 
@@ -113,8 +122,8 @@ void* getCmeSnapshot(void* attr) {
   auto params {reinterpret_cast<const EkaFhThreadAttr*>(attr)};
   if (params == NULL) on_error("params == NULL");
 
-  EfhRunCtx* pEfhRunCtx     = params->pEfhRunCtx;
-  auto gr {reinterpret_cast<EkaFhCmeGr*>(params->gr)};
+  auto pEfhRunCtx {params->pEfhRunCtx};
+  auto gr {dynamic_cast<EkaFhCmeGr*>(params->gr)};
   if (gr == NULL) on_error("gr == NULL");
 
   delete params;
@@ -130,30 +139,49 @@ void* getCmeSnapshot(void* attr) {
   EkaDev* dev = gr->dev;
   if (dev == NULL) on_error ("dev == NULL");
 
-  int sock = ekaUdpMcConnect(dev, gr->recovery_ip, gr->recovery_port);
-  if (sock < 0) on_error ("sock = %d",sock);
-
-  sockaddr_in addr = {};
-  addr.sin_addr.s_addr = gr->recovery_ip;
-  addr.sin_port        = gr->recovery_port;
-  socklen_t addrlen = sizeof(sockaddr);
-
-  gr->snapshot_active = true;
-
-  while (gr->snapshot_active) {
-    uint8_t pkt[1536] = {};
-    int size = recvfrom(sock, pkt, sizeof(pkt), 0, (sockaddr*) &addr, &addrlen);
-    if (size < 0) on_error("size = %d",size);
-    if (gr->processPkt(pEfhRunCtx,pkt,size,EkaFhMode::SNAPSHOT)) break;
-    
-  }
-  gr->snapshot_active = false;
-  gr->snapshotClosed  = true;
-  gr->inGap           = false;
-
-  EKA_LOG("%s:%u: %d Snapshot messages processed",
-	  EKA_EXCH_DECODE(gr->exch),gr->id,gr->processedSnapshotMessages);
-  close (sock);
+  gr->recoveryLoop(pEfhRunCtx, EkaFhMode::SNAPSHOT);
 
   return NULL;
+}
+
+EkaOpResult EkaFhCmeGr::recoveryLoop(const EfhRunCtx* pEfhRunCtx, EkaFhMode op) {
+  auto ip   = op == EkaFhMode::DEFINITIONS ? snapshot_ip   : recovery_ip;
+  auto port = op == EkaFhMode::DEFINITIONS ? snapshot_port : recovery_port;
+
+  int sock = ekaUdpMcConnect(dev, ip, port);
+  if (sock < 0) on_error ("sock = %d",sock);
+    
+  snapshot_active = true;
+  snapshotClosed = false;
+  iterationsCnt = 0; 
+  uint32_t expectedPktSeq = 1;
+
+  while (snapshot_active) {
+    uint8_t pkt[1536] = {};
+    int size = recvfrom(sock, pkt, sizeof(pkt), 0, NULL, NULL);
+    if (size < 0) on_error("size = %d",size);
+    
+    if (expectedPktSeq == 1 && getPktSeq(pkt) != 1)
+      continue;
+
+    if (expectedPktSeq != 1 && getPktSeq(pkt) == 1)
+      break;
+    
+    if (expectedPktSeq != getPktSeq(pkt))
+      EKA_WARN("ERROR: %s:%u: expectedPktSeq=%u, getPktSeq(pkt)=%u, %d / %d %s messages processed",
+	       EKA_EXCH_DECODE(exch),id,expectedPktSeq,getPktSeq(pkt),
+	       iterationsCnt,totalIterations,EkaFhMode2STR(op));
+    if (processPkt(pEfhRunCtx,pkt,size,op)) break;
+    expectedPktSeq = getPktSeq(pkt) + 1;
+  }
+  EKA_LOG("%s:%u: %d / %d %s messages processed",
+	  EKA_EXCH_DECODE(exch),id,
+	  iterationsCnt,totalIterations,EkaFhMode2STR(op));
+  
+  snapshot_active = false;
+  snapshotClosed  = true;
+  //  inGap           = false;
+  
+  close (sock);
+  return EKA_OPRESULT__OK;
 }

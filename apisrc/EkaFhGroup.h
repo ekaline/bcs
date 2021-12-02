@@ -12,7 +12,6 @@
 class fh_q;
 class EkaFhBook;
 
-
 class EkaFhGroup {
  protected:
   EkaFhGroup();
@@ -73,10 +72,25 @@ class EkaFhGroup {
 				size_t               credNameSize,
 				EkaCredentialLease** lease);
 
-  /* virtual bool        processUdpPkt(const EfhRunCtx* pEfhRunCtx, */
-  /* 				    const uint8_t*   pkt,  */
-  /* 				    uint             msgInPkt,  */
-  /* 				    uint64_t         sequence); */
+  virtual int printConfig() {
+    EKA_LOG("%s:%u : "
+	    "productMask: \'%s\' (0x%x) "
+	    "MCAST: %s:%u, "
+	    "SNAPSHOT: %s:%u, "
+	    "RECOVERY: %s:%u, "
+	    "AUTH: %s:%s, "
+	    "connectRetryDelayTime=%d",
+	    EKA_EXCH_DECODE(exch),id,
+	    lookupProductName(productMask), productMask,
+	    EKA_IP2STR(mcast_ip),   mcast_port,
+	    EKA_IP2STR(snapshot_ip),be16toh(snapshot_port),
+	    EKA_IP2STR(recovery_ip),be16toh(recovery_port),
+	    auth_set ? std::string(auth_user,sizeof(auth_user)).c_str() : "NOT SET",
+	    auth_set ? std::string(auth_passwd,sizeof(auth_passwd)).c_str() : "NOT SET",
+	    connectRetryDelayTime
+	    );
+    return 0;
+  }
 
   //----------------------------------------------------------
   enum class GrpState { UNINIT = 0,INIT, GAP, SNAPSHOT_GAP, RETRANSMIT_GAP, NORMAL, PHLX_SNAPSHOT_GAP };
@@ -159,6 +173,7 @@ class EkaFhGroup {
   FILE*                 parser_log = NULL; // used with PRINT_PARSED_MESSAGES define
 
   uint64_t              parserSeq = 0; // used for the sanity check
+  int                   productMask = PM_NoInfo;
  private:
 
  protected:

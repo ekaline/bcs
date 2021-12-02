@@ -122,7 +122,7 @@ struct EkaHwSecCtx {
   uint8_t    bidSize;
   uint8_t    askSize;
   uint8_t    lowerBytesOfSecId;
-} __attribute__ ((packed));
+} __attribute__ ((packed)) __attribute__ ((aligned (sizeof(uint64_t))));
 
 
 /* FPGA code: */

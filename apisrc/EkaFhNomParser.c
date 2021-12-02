@@ -589,7 +589,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
 	     hexBuf);
   }
 #endif
-  
+
   if (! book->isEqualState(s))
     book->generateOnQuote (pEfhRunCtx, s, sequence, msg_timestamp,gapNum);
 

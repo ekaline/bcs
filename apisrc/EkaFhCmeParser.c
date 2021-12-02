@@ -1,3 +1,6 @@
+#include <charconv>
+#include <limits>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -26,6 +29,19 @@ enum DayOfWeek : uint8_t {
   DOW_Friday,
   DOW_Saturday
 };
+
+static uint64_t computeFinalPriceFactor(Decimal9_T displayFactor) {
+  // Returns the number we need to divide the protocol message prices by to
+  // get an EFH__PRICE_SCALE scaled price.
+  if (displayFactor > 1'000'000'000L) {
+    // We expect the display factor to always be less than or equal to 1e9,
+    // i.e., that it is used to indicate a fraction. If it is not, we wouldn't
+    // be able to represent the scale factor as an integer, which is what we
+    // expect.
+    on_error("displayFactor %ld would saturate to zero", displayFactor);
+  }
+  return (1'000'000'000L / displayFactor) * CMEPriceFactor;
+}
 
 /* ##################################################################### */
 
@@ -60,16 +76,27 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       process_MDIncrementalRefreshBook46(pEfhRunCtx,p,pktTime,pktSeq);
       break;
       /* ##################################################################### */
+    case MsgId::MDIncrementalRefreshTradeSummary48 :
+      process_MDIncrementalRefreshTradeSummary48(pEfhRunCtx,p,pktTime,pktSeq);
+      break;
+      /* ##################################################################### */
     case MsgId::SnapshotFullRefresh52 : 
       process_SnapshotFullRefresh52(pEfhRunCtx,p,pktTime,pktSeq);
       break;
       /* ##################################################################### */
+    case MsgId::MDInstrumentDefinitionFuture27 :
+      if (op == EkaFhMode::DEFINITIONS)
+	process_MDInstrumentDefinitionFuture27(pEfhRunCtx,p,pktTime,pktSeq);
+      break;
+      /* ##################################################################### */
     case MsgId::MDInstrumentDefinitionFuture54 :
-      process_MDInstrumentDefinitionFuture54(pEfhRunCtx,p,pktTime,pktSeq);
+      if (op == EkaFhMode::DEFINITIONS)
+	process_MDInstrumentDefinitionFuture54(pEfhRunCtx,p,pktTime,pktSeq);
       break;
       /* ##################################################################### */
     case MsgId::MDInstrumentDefinitionOption55 :
-      process_MDInstrumentDefinitionOption55(pEfhRunCtx,p,pktTime,pktSeq);
+      if (op == EkaFhMode::DEFINITIONS)
+	process_MDInstrumentDefinitionOption55(pEfhRunCtx,p,pktTime,pktSeq);
       break;
       /* ##################################################################### */
     case MsgId::MDInstrumentDefinitionSpread56 :
@@ -79,17 +106,25 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
     default:
       break;
     }
+    if (op == EkaFhMode::DEFINITIONS && isDefinitionMsg(msgHdr->templateId)) {
+      auto root {reinterpret_cast<const Definition_commonMainBlock*>(p + sizeof(*msgHdr))};
+      ++iterationsCnt;
+      totalIterations = root->TotNumReports;
+      /* EKA_LOG("pktSeq = %u, iteration %d out of %d", */
+      /* 	      getPktSeq(pkt),iterationsCnt,totalIterations); */
+      if (iterationsCnt == totalIterations) return true;
+    }
+    if (op == EkaFhMode::SNAPSHOT && isSnapshotMsg(msgHdr->templateId)) {
+      auto root {reinterpret_cast<const Refresh_commonMainBlock*>(p + sizeof(*msgHdr))};
+      ++iterationsCnt;
+      totalIterations = root->TotNumReports;
+      /* EKA_LOG("pktSeq = %u, iteration %d out of %d", */
+      /* 	      getPktSeq(pkt),iterationsCnt,totalIterations); */
+      if (iterationsCnt == totalIterations) return true;
+    }
+
     p += msgHdr->size;
     
-    if (op == EkaFhMode::DEFINITIONS) {
-      if (futuresDefinitionsState == DefinitionsCycleState::Done)
-	return true;
-
-      if (vanillaOptionsDefinitionsState == DefinitionsCycleState::Done &&
-	  (complexOptionsDefinitionsState == DefinitionsCycleState::Done ||
-	   complexOptionsDefinitionsState == DefinitionsCycleState::Init))
-	return true;
-    }
   }
   return false;
 }
@@ -170,11 +205,17 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
     auto m      {pMsg};
     auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
     m += sizeof(*msgHdr);
+    auto rootBlock {reinterpret_cast<const QuoteRequest39_mainBlock*>(m)};
     m += msgHdr->blockLen;
     /* ------------------------------- */
     auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
     m += sizeof(*pGroupSize);
     /* ------------------------------- */
+
+    if (!std::string_view{rootBlock->QuoteReqID}.starts_with("CME")) {
+      on_error("quote request id `%s` does not have the expected form",
+               rootBlock->QuoteReqID);
+    }
 
     EfhAuctionUpdateMsg msg{};
     msg.header.msgType        = EfhMsgType::kAuctionUpdate;
@@ -184,18 +225,32 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
     msg.header.sequenceNumber = pktSeq;
     msg.header.timeStamp      = pktTime; //rootBlock->LastUpdateTime;
     msg.header.gapNum         = gapNum;
-  
+
+    const char *const auctionIdEnd = rootBlock->QuoteReqID +
+        std::strlen(rootBlock->QuoteReqID);
+    const auto [parseEnd, errc] = std::from_chars(rootBlock->QuoteReqID + 3,
+        auctionIdEnd, msg.auctionId);
+    if (parseEnd != auctionIdEnd || int(errc)) {
+      on_error("quote request id `%s` does not have expected form",
+               rootBlock->QuoteReqID);
+    }
+    msg.auctionType = EfhAuctionType::kNotification;
+    msg.updateType = EfhAuctionUpdateType::kNew;
+
     /* ------------------------------- */
     for (uint i = 0; i < pGroupSize->numInGroup; i++) {
       auto e {reinterpret_cast<const QuoteRequest39_legEntry*>(m)};
 
       msg.securityType      = EfhSecurityType::kRfq;
+      auto s {book->findSecurity(e->SecurityID)};
+      if (! s) continue;
       msg.header.securityId = e->SecurityID;
       msg.side              = getSide39(e->Side);
-      msg.quantity          = e->OrderQty;
+      msg.quantity          = e->OrderQty == std::numeric_limits<decltype(e->OrderQty)>::max()
+          ? 0 : e->OrderQty;
       if (pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL)
 	on_error("pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL");
-      pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+      pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
 
       m += pGroupSize->blockLength;    
     }
@@ -222,20 +277,21 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
     auto s {book->findSecurity(e->SecurityID)};
     if (s == NULL) break;
 
-    auto side {getSide46(e->MDEntryType)};
+    const auto side {getSide46(e->MDEntryType)};
     if (side == SideT::OTHER) return msgHdr->size;
+    const int64_t finalPriceFactor = s->getFinalPriceFactor();
     bool tobChange = false;
     switch (e->MDUpdateAction) {
     case MDUpdateAction_T::New:
       tobChange = s->newPlevel(side,
 			       e->MDPriceLevel,
-			       (int64_t)std::round(e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE),
+			       e->MDEntryPx / finalPriceFactor,
 			       e->MDEntrySize);
       break;
     case MDUpdateAction_T::Change:
       tobChange = s->changePlevel(side,
 				  e->MDPriceLevel,
-				  (int64_t)std::round(e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE),
+				  e->MDEntryPx / finalPriceFactor,
 				  e->MDEntrySize);
       break;
     case MDUpdateAction_T::Delete:
@@ -291,7 +347,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
 
 	dstMsg->pLvl    = e->MDPriceLevel;
 	dstMsg->side    = side == SideT::BID ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
-	dstMsg->price   = e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE;
+	dstMsg->price   = e->MDEntryPx / finalPriceFactor;
 	dstMsg->size    = e->MDEntrySize;
 	    
 	pEfhRunCtx->onEfhMdCb(hdr,pEfhRunCtx->efhRunUserData);
@@ -306,7 +362,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
 
 	dstMsg->pLvl    = e->MDPriceLevel;
 	dstMsg->side    = side == SideT::BID ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
-	dstMsg->price   = e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE;
+	dstMsg->price   = e->MDEntryPx / finalPriceFactor;
 	dstMsg->size    = e->MDEntrySize;
 	    
 	pEfhRunCtx->onEfhMdCb(hdr,pEfhRunCtx->efhRunUserData);
@@ -341,6 +397,43 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
 }
 
 /* ##################################################################### */     
+int EkaFhCmeGr::process_MDIncrementalRefreshTradeSummary48(const EfhRunCtx* pEfhRunCtx,
+							   const uint8_t*   pMsg,
+							   const uint64_t   pktTime,
+							   const SequenceT  pktSeq) {
+    auto m      {pMsg};
+    auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
+    m += sizeof(*msgHdr);
+    //  auto rootBlock {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mainBlock*>(m)};
+    m += msgHdr->blockLen;
+    /* ------------------------------- */
+    auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
+    m += sizeof(*pGroupSize);
+    /* ------------------------------- */
+    for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+	auto e {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mdEntry*>(m)};
+	m += pGroupSize->blockLength;
+	
+	FhSecurity* s = book->findSecurity(e->SecurityID);
+	if (s == NULL) continue;
+	const EfhTradeMsg msg = {
+	    { EfhMsgType::kTrade,
+	      {exch,(EkaLSI)id}, // group
+	      0,  // underlyingId
+	      (uint64_t) e->SecurityID,
+	      pktSeq,
+	      pktTime,
+	      gapNum },
+	    e->MDEntryPx / static_cast<std::int64_t>(s->getFinalPriceFactor()),
+	    (uint32_t)e->MDEntrySize,
+	    EfhTradeStatus::kNormal,
+	    EfhTradeCond::kREG
+	};
+	pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
+    }  
+    return msgHdr->size;
+}
+/* ##################################################################### */     
 
 int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
 						   const uint8_t*   pMsg,
@@ -362,12 +455,13 @@ int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
   for (uint i = 0; i < pGroupSize->numInGroup; i++) {
     auto e {reinterpret_cast<const MDSnapshotFullRefreshMdEntry*>(m)};
     
-    auto side {getSide52(e->MDEntryType)};
+    const auto side {getSide52(e->MDEntryType)};
     if (side == SideT::OTHER) continue;
+    const int64_t finalPriceFactor = s->getFinalPriceFactor();
 
     bool tobChange = s->newPlevel(side,
 				  e->MDPriceLevel,
-				  e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE,
+				  e->MDEntryPx / finalPriceFactor,
 				  e->MDEntrySize);
     if (tobChange) book->generateOnQuote (pEfhRunCtx,
 					  s,
@@ -382,13 +476,22 @@ int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
 /* ##################################################################### */     
 
 
+int EkaFhCmeGr::process_MDInstrumentDefinitionFuture27(const EfhRunCtx* pEfhRunCtx,
+						       const uint8_t*   pMsg,
+						       const uint64_t   pktTime,
+						       const SequenceT  pktSeq) {
+  // not used
+  auto m      {pMsg};
+  auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
+  return msgHdr->size;
+}
+/* ##################################################################### */     
+
+
 int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunCtx,
 						       const uint8_t*   pMsg,
 						       const uint64_t   pktTime,
 						       const SequenceT  pktSeq) {
-  if (futuresDefinitionsState == DefinitionsCycleState::Done)
-    on_error("futuresDefinitionsState == DefinitionsCycleState::Done");
-
   auto m      {pMsg};
   auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
   m += sizeof(*msgHdr);
@@ -411,21 +514,15 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   msg.commonDef.exchange       = EfhExchange::kCME;
   msg.commonDef.underlyingType = EfhSecurityType::kIndex;
   msg.commonDef.contractSize   = 0;
+  msg.commonDef.opaqueAttrA    = computeFinalPriceFactor(rootBlock->DisplayFactor);
   getCMEProductTradeTime(pMaturity, rootBlock->Symbol, &msg.commonDef.expiryDate, &msg.commonDef.expiryTime);
 
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
-  copySymbol(msg.commonDef.classSymbol, rootBlock->Asset);
+  copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
   copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
 
   pEfhRunCtx->onEfhFutureDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
-
-
-  /* ------------------------------- */
-  futuresDefinitions++;
-  futuresDefinitionsState = DefinitionsCycleState::InProgress;
-  if (futuresDefinitions == (int)rootBlock->TotNumReports)
-    futuresDefinitionsState = DefinitionsCycleState::Done;
-
+  
   return msgHdr->size;
 }
 
@@ -442,9 +539,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionOption55_mainBlock*>(m)};
   m += msgHdr->blockLen;
 
-  if (vanillaOptionsDefinitionsState == DefinitionsCycleState::Done)
-    return msgHdr->size;
-  else if (rootBlock->CFICode[0] != 'O' || rootBlock->CFICode[3] != 'F') {
+  if (rootBlock->CFICode[0] != 'O' || rootBlock->CFICode[3] != 'F') {
     // Not an option-on-future, we don't care about this.
     EKA_WARN("found non-option-on-future security `%s`", rootBlock->Symbol);
     return msgHdr->size;
@@ -458,7 +553,8 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   auto securityType     {std::string(rootBlock->SecurityType,    sizeof(rootBlock->SecurityType))};
   auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
 
-  auto putOrCall {getEfhOptionType(rootBlock->PutOrCall)};
+  const auto putOrCall {getEfhOptionType(rootBlock->PutOrCall)};
+  const int64_t priceAdjustFactor = computeFinalPriceFactor(rootBlock->DisplayFactor);
 
   if (putOrCall == EfhOptionType::kErr) {
     //    hexDump("DefinitionOption55",msgHdr,msgHdr->size);	  
@@ -478,14 +574,16 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   msg.commonDef.securityType   = EfhSecurityType::kOption;
   msg.commonDef.exchange       = EfhExchange::kCME;
   msg.commonDef.underlyingType = EfhSecurityType::kFuture;
-  msg.commonDef.contractSize   = 0;
+  msg.commonDef.contractSize   = rootBlock->UnitOfMeasureQty / EFH_CME_PRICE_SCALE;
+  msg.commonDef.opaqueAttrA    = priceAdjustFactor;
   getCMEProductTradeTime(pMaturity, rootBlock->Symbol, &msg.commonDef.expiryDate, &msg.commonDef.expiryTime);
   copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
+  copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
 
   msg.optionType            = putOrCall;
-  msg.strikePrice           = rootBlock->StrikePrice / EFH_CME_ORDER_PRICE_SCALE / 1e9 * rootBlock->DisplayFactor * EFH__PRICE_SCALE;
+  msg.optionStyle           = static_cast<EfhOptionStyle>(rootBlock->CFICode[2]);
+  msg.strikePrice           = rootBlock->StrikePrice / priceAdjustFactor;
 
-  msg.opaqueAttrA           = rootBlock->DisplayFactor;
   //      msg.opaqueAttrB           = rootBlock->PriceDisplayFormat;
 
   /* ------------------------------- */
@@ -515,7 +613,6 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
     auto underlyingBlock{reinterpret_cast<const OptionDefinitionUnderlyingEntry*>(m)};
     msg.header.underlyingId = underlyingBlock->UnderlyingSecurityID;
     copySymbol(msg.commonDef.underlying, underlyingBlock->UnderlyingSymbol);
-    copySymbol(msg.commonDef.classSymbol, underlyingBlock->UnderlyingSymbol);
     m += pGroupSize_Underlyings->blockLength;
   }
   /* ------------------------------- */
@@ -533,12 +630,6 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
 
   pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
 
-  /* ------------------------------- */
-  vanillaOptionsDefinitions++;
-  vanillaOptionsDefinitionsState = DefinitionsCycleState::InProgress;
-  if (vanillaOptionsDefinitions == (int)rootBlock->TotNumReports)
-    vanillaOptionsDefinitionsState = DefinitionsCycleState::Done;
-  /* ------------------------------- */
   return msgHdr->size;
 }
 
@@ -562,11 +653,9 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
     return msgHdr->size;
   }
 
-  if (complexOptionsDefinitionsState == DefinitionsCycleState::Done)
-    return msgHdr->size;
-
   /* ------------------------------- */
   
+  const int64_t priceAdjustFactor = computeFinalPriceFactor(rootBlock->DisplayFactor);
   EfhComplexDefinitionMsg msg{};
   msg.header.msgType        = EfhMsgType::kComplexDefinition;
   msg.header.group.source   = EkaSource::kCME_SBE;
@@ -583,6 +672,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   msg.commonDef.expiryDate     = 0; // FIXME: for completeness only, could be "today"
   msg.commonDef.expiryTime     = 0;
   msg.commonDef.contractSize   = 0;
+  msg.commonDef.opaqueAttrA    = priceAdjustFactor;
 
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
   copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
@@ -620,11 +710,15 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
 
     // We don't know the security type because we cannot look up the
     // security by ID here; the client will need to do it.
-    msg.legs[i].securityId = e->LegSecurityID;
-    msg.legs[i].type       = EfhSecurityType::kInvalid;
-    msg.legs[i].side       = e->LegSide == LegSide_T::BuySide ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
-    msg.legs[i].ratio      = std::abs(e->LegRatioQty);
-	  
+    msg.legs[i].securityId  = e->LegSecurityID;
+    msg.legs[i].type        = EfhSecurityType::kInvalid;
+    msg.legs[i].side        = e->LegSide == LegSide_T::BuySide ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
+    msg.legs[i].ratio       = e->LegRatioQty;
+    msg.legs[i].optionDelta = e->LegOptionDelta != std::numeric_limits<DecimalQty_T>::max() ? e->LegOptionDelta : 0;
+    msg.legs[i].price       = e->LegPrice != std::numeric_limits<PRICENULL9_T>::max()
+        ? e->LegPrice / priceAdjustFactor
+        : 0;
+
     m += pGroupSize->blockLength;
   }
   msg.numLegs = pGroupSize->numInGroup;
@@ -633,11 +727,5 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
     on_error("pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL");
   pEfhRunCtx->onEfhComplexDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
 
-  /* ------------------------------- */
-  complexOptionsDefinitions++;
-  complexOptionsDefinitionsState = DefinitionsCycleState::InProgress;
-  if (complexOptionsDefinitions == (int)rootBlock->TotNumReports)
-    complexOptionsDefinitionsState = DefinitionsCycleState::Done;
-  /* ------------------------------- */
   return msgHdr->size;
 }

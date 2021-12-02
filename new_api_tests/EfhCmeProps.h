@@ -42,15 +42,29 @@ CmeDerivatives.CMEFFTOP3.tcpRrecovery.0.port.secondary = 10000
 */
 
 EkaProp efhCmeInitCtxEntries_A[] = {
-  // Options
-  {"efh.CME_SBE.group.0.mcast.addr"   ,"224.0.31.2:14311"},     // incrementFeed
-  {"efh.CME_SBE.group.0.snapshot.addr","224.0.31.44:14311"}, 	// definitionFeed
-  {"efh.CME_SBE.group.0.recovery.addr","224.0.31.23:14311"}, 	// snapshotFeed
+    // Options
+    {"efh.CME_SBE.group.0.products","vanilla_book"},	    
+    {"efh.CME_SBE.group.0.mcast.addr"   ,"224.0.31.2:14311"},     // incrementFeed
+    {"efh.CME_SBE.group.0.snapshot.addr","224.0.31.44:14311"}, 	// definitionFeed
+    {"efh.CME_SBE.group.0.recovery.addr","224.0.31.23:14311"}, 	// snapshotFeed
 
-  //Futures
-  {"efh.CME_SBE.group.1.mcast.addr"   ,"224.0.31.1:14310"},     // incrementFeed
-  {"efh.CME_SBE.group.1.snapshot.addr","224.0.31.43:14310"}, 	// definitionFeed 
-  {"efh.CME_SBE.group.1.recovery.addr","224.0.31.22:14310"}, 	// snapshotFeed 
+    // Futures
+    {"efh.CME_SBE.group.1.products","future_book"},	    
+    {"efh.CME_SBE.group.1.mcast.addr"   ,"224.0.31.1:14310"},     // incrementFeed
+    {"efh.CME_SBE.group.1.snapshot.addr","224.0.31.43:14310"}, 	// definitionFeed 
+    {"efh.CME_SBE.group.1.recovery.addr","224.0.31.22:14310"}, 	// snapshotFeed
+
+    // Options excludes E-mini S&P
+    {"efh.CME_SBE.group.2.products","vanilla_book"},	    
+    {"efh.CME_SBE.group.2.mcast.addr"   ,"224.0.31.10:14319"},     // incrementFeed
+    {"efh.CME_SBE.group.2.snapshot.addr","224.0.31.52:14319"}, 	// definitionFeed
+    {"efh.CME_SBE.group.2.recovery.addr","224.0.31.31:14319"}, 	// snapshotFeed
+
+    // Futures excludes E-mini S&P
+    {"efh.CME_SBE.group.3.products","future_book"},	    
+    {"efh.CME_SBE.group.3.mcast.addr"   ,"224.0.31.9:14318"},     // incrementFeed
+    {"efh.CME_SBE.group.3.snapshot.addr","224.0.31.51:14318"}, 	// definitionFeed 
+    {"efh.CME_SBE.group.3.recovery.addr","224.0.31.30:14318"}, 	// snapshotFeed  
 };
 
 EkaProp efhCmeInitCtxEntries_B[] = {
@@ -68,6 +82,8 @@ EkaProp efhCmeInitCtxEntries_B[] = {
 const EkaGroup cmeGroups[] = {
 	{EkaSource::kCME_SBE, (EkaLSI)0},
 	{EkaSource::kCME_SBE, (EkaLSI)1},
+	{EkaSource::kCME_SBE, (EkaLSI)2},
+	{EkaSource::kCME_SBE, (EkaLSI)3},
 };
 
 #endif

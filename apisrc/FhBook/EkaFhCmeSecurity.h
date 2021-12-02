@@ -28,6 +28,8 @@ class PriceLevetT,
       ask           = new EkaFhCmeBookSide<PriceLevetT,PriceT,SizeT>(SideT::ASK);
     }
 
+    uint64_t getFinalPriceFactor() const noexcept { return this->opaqueAttrA; }
+
     /* --------------------------------------------------------------- */
     inline bool newPlevel(SideT         side,
 			 PriceLevetT   pLevelIdx,

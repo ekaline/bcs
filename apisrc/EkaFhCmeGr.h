@@ -56,6 +56,8 @@ public:
 					 const EfhRunCtx* pEfhRunCtx, 
 					 uint64_t          sequence);
 
+  EkaOpResult           recoveryLoop(const EfhRunCtx* pEfhRunCtx,
+				     EkaFhMode op);
 
   /* ##################################################################### */
 public:
@@ -92,23 +94,11 @@ public:
 
   bool      snapshotClosed = false;
   uint64_t  firstLifeSeq = 0;
-  int       processedSnapshotMessages = 0;
+  int       iterationsCnt = 0;
+  int       totalIterations = 0;  
 
   volatile bool inGap  = false;
-
-  enum class DefinitionsCycleState : int {
-					  Init = 0,
-					  InProgress,
-					  Done
-  };
   
-  int vanillaOptionsDefinitions = 0;  
-  int complexOptionsDefinitions = 0;
-  int futuresDefinitions        = 0;
-  
-  DefinitionsCycleState vanillaOptionsDefinitionsState = DefinitionsCycleState::Init;
-  DefinitionsCycleState complexOptionsDefinitionsState = DefinitionsCycleState::Init;
-  DefinitionsCycleState futuresDefinitionsState        = DefinitionsCycleState::Init;
 
 private:
   void getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity,
@@ -124,23 +114,33 @@ private:
 					 const uint8_t*   msg,
 					 uint64_t         pktTime,
 					 SequenceT        pktSeq);
-  int process_SnapshotFullRefresh52   (const EfhRunCtx* pEfhRunCtx,
-				       const uint8_t*   msg,
-				       uint64_t         pktTime,
-				       SequenceT        pktSeq);
-  int process_MDInstrumentDefinitionFuture54   (const EfhRunCtx* pEfhRunCtx,
-				       const uint8_t*   msg,
-				       uint64_t         pktTime,
-				       SequenceT        pktSeq);
+  int process_MDIncrementalRefreshTradeSummary48(const EfhRunCtx* pEfhRunCtx,
+						 const uint8_t*   msg,
+						 uint64_t         pktTime,
+						 SequenceT        pktSeq);
+  int process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
+				    const uint8_t*   msg,
+				    uint64_t         pktTime,
+				    SequenceT        pktSeq);
 
-   int process_MDInstrumentDefinitionOption55   (const EfhRunCtx* pEfhRunCtx,
-				       const uint8_t*   msg,
-				       uint64_t         pktTime,
-				       SequenceT        pktSeq);
-   int process_MDInstrumentDefinitionSpread56   (const EfhRunCtx* pEfhRunCtx,
-				       const uint8_t*   msg,
-				       uint64_t         pktTime,
-				       SequenceT        pktSeq);
+  int process_MDInstrumentDefinitionFuture27(const EfhRunCtx* pEfhRunCtx,
+					     const uint8_t*   msg,
+					     uint64_t         pktTime,
+					     SequenceT        pktSeq);
+
+   int process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunCtx,
+					     const uint8_t*   msg,
+					     uint64_t         pktTime,
+					     SequenceT        pktSeq);
+ 
+  int process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunCtx,
+					     const uint8_t*   msg,
+					     uint64_t         pktTime,
+					     SequenceT        pktSeq);
+  int process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunCtx,
+					     const uint8_t*   msg,
+					     uint64_t         pktTime,
+					     SequenceT        pktSeq);
         
 };
 #endif

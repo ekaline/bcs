@@ -5,12 +5,10 @@
 #include "eka_macros.h"
 #include "EfhMsgs.h"
 
-//#define EFH_CME_STRIKE_PRICE_SCALE 1
-//#define EFH_CME_ORDER_PRICE_SCALE  1
+#define EFH_CME_PRICE_SCALE  1'000'000'000L // PRICENULL9 (1e9)
 
-#define EFH_CME_STRIKE_PRICE_SCALE 1
-//#define EFH_CME_ORDER_PRICE_SCALE  100000000
-#define EFH_CME_ORDER_PRICE_SCALE    1e9
+static_assert(EFH_CME_PRICE_SCALE >= EFH__PRICE_SCALE);
+constexpr int64_t CMEPriceFactor = EFH_CME_PRICE_SCALE / EFH__PRICE_SCALE;
 
 namespace Cme {
 
@@ -352,7 +350,16 @@ namespace Cme {
   };
 
 
-
+  struct Definition_commonMainBlock {
+    MatchEventIndicator_T         	MatchEventIndicator;
+    uInt32NULL_T                  	TotNumReports;
+  } __attribute__((packed));
+  
+  struct Refresh_commonMainBlock {
+    uInt32_T                      	LastMsgSeqNumProcessed;
+    uInt32_T                      	TotNumReports;
+  };
+  
   struct MDInstrumentDefinitionFuture27_mainBlock {
     MatchEventIndicator_T         	MatchEventIndicator;
     uInt32NULL_T                  	TotNumReports;
@@ -614,7 +621,10 @@ namespace Cme {
     uint64_t time; // ns since epoch
   } __attribute__((packed));
   
-
+  inline uint32_t getPktSeq(const uint8_t* p) {
+    return reinterpret_cast<const PktHdr*>(p)->seq;
+  }
+  
 #define MDpdateAction2STR(x)				\
   x ==  MDUpdateAction_T::New         ? "New"        :	\
     x == MDUpdateAction_T::Change     ? "Change"     :	\
@@ -747,8 +757,8 @@ namespace Cme {
     switch (rfqSide) {
     case 1 : return EfhOrderSide::kBid;
     case 2 : return EfhOrderSide::kAsk;
-    case 8 : return EfhOrderSide::kOther; //CROSS
-    default: return EfhOrderSide::kErr;
+    case 8 : return EfhOrderSide::kCross;
+    default: return EfhOrderSide::kOther;
     }
   }
   
@@ -803,13 +813,14 @@ namespace Cme {
     }
   }
 
-  inline uint32_t printPkt(const uint8_t* pkt, const int payloadLen) {
+  inline uint32_t printPkt(const uint8_t* pkt, const int payloadLen, uint64_t pktNum) {
     auto p {pkt};
     auto pktHdr {reinterpret_cast<const PktHdr*>(p)};
 
     auto ts        {pktHdr->time};
     auto sequence  {pktHdr->seq};
-    printf ("pktTime=%ju,pktSeq=%u\n",ts,sequence);
+    printf ("pktNum=%ju,pktTime=%ju,pktSeq=%u\n",
+	    pktNum,ts,sequence);
 
     p += sizeof(*pktHdr);
 
@@ -881,7 +892,7 @@ namespace Cme {
 		  MDpdateAction2STR(e->MDUpdateAction),
 		  MDEntryTypeBook2STR(e->MDEntryType),
 		  e->MDPriceLevel,
-		  (int64_t) (e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE),
+		  (int64_t) (e->MDEntryPx / EFH_CME_PRICE_SCALE),
 		  e->MDEntrySize);
 
 	  m += pGroupSize->blockLength;
@@ -906,7 +917,7 @@ namespace Cme {
 	  auto e {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mdEntry*>(m)};
 	  printf ("\t\t\t");
 	  printf ("secId=%8d,",e->SecurityID);
-	  printf ("%16jd,",(int64_t) (e->MDEntryPx / EFH_CME_ORDER_PRICE_SCALE));
+	  printf ("%16jd,",(int64_t) (e->MDEntryPx / EFH_CME_PRICE_SCALE));
 	  printf ("%d,",e->MDEntrySize);
 	  printf ("%s",MDpdateAction2STR(e->MDUpdateAction));
 	  printf ("\n");
@@ -963,7 +974,7 @@ namespace Cme {
 	       cfiCode.c_str(),
 	       pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week,
 	       rootBlock->StrikePrice,
-	       (int64_t)(rootBlock->StrikePrice / EFH_CME_ORDER_PRICE_SCALE / 1e9 * rootBlock->DisplayFactor)
+	       (int64_t)((rootBlock->StrikePrice / EFH_CME_PRICE_SCALE) * (rootBlock->DisplayFactor / 1e9))
 	       );
       }
 	break;
@@ -1012,16 +1023,42 @@ namespace Cme {
       default:
 	break;
 		
-      }
+      } // switch()
       /* ----------------------------- */
 
       p += msgHdr->size;
-    }
+    } // while()
 	
     return sequence;
   } // printPkt()
 
-  
+  inline bool isDefinitionMsg(MsgId msgId) {
+    switch (msgId) {
+    case MsgId::MDInstrumentDefinitionFuture27 :
+    case MsgId::MDInstrumentDefinitionSpread29 :
+    case MsgId::MDInstrumentDefinitionOption41 :
+    case MsgId::MDInstrumentDefinitionFuture54 :
+    case MsgId::MDInstrumentDefinitionOption55 :
+    case MsgId::MDInstrumentDefinitionSpread56 :
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  inline bool isSnapshotMsg(MsgId msgId) {
+    switch (msgId) {
+    case MsgId::SnapshotFullRefresh38 :
+    case MsgId::SnapshotFullRefreshOrderBook44 :
+    case MsgId::SnapshotFullRefresh52 :
+    case MsgId::SnapshotFullRefreshOrderBook53 :
+      return true;
+    default:
+      return false;
+    }
+  }
+
 } //name space Cme
+
 
 #endif

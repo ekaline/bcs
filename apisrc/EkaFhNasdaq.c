@@ -29,7 +29,7 @@ const uint8_t* EkaFhNasdaq::getUdpPkt(EkaFhRunGroup* runGr, uint* msgInPkt, uint
     memcpy((uint8_t*)gr->session_id,((const mold_hdr*)pkt)->session_id,10);
     gr->firstPkt = false;
     EKA_LOG("%s:%u session_id is set to %s",
-	    EKA_EXCH_DECODE(exch),grId,(char*)gr->session_id + '\0');
+  	    EKA_EXCH_DECODE(exch),grId,(char*)gr->session_id + '\0');
   }
   *msgInPkt = msgCnt;
   *sequence = EKA_MOLD_SEQUENCE(pkt);
@@ -76,8 +76,8 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
     if (gr->state == EkaFhGroup::GrpState::NORMAL && 
 	sequence != 0 && 
 	sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
-      EKA_WARN("%s:%u: TEST GAP INJECTED: (GAP_INJECT_INTERVAL = %d): pkt sequence %ju with unknown number of messages dropped",
-	       EKA_EXCH_DECODE(exch),gr_id, _EFH_TEST_GAP_INJECT_INTERVAL_,sequence);
+      EKA_WARN("%s:%u: TEST GAP INJECTED: (GAP_INJECT_INTERVAL = %d): pkt sequence %ju with %u messages dropped",
+	       EKA_EXCH_DECODE(exch),gr_id, _EFH_TEST_GAP_INJECT_INTERVAL_,sequence,msgInPkt);
       runGr->udpCh->next(); 
       continue;
     }

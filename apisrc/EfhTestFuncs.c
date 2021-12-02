@@ -14,9 +14,12 @@
 
 #include "EfhTestFuncs.h"
 
+//TestCtx testCtx;
+TestCtx* testCtx;
+
 void  INThandler(int sig) {
   signal(sig, SIG_IGN);
-  keep_work = false;
+  testCtx->keep_work = false;
   printf("%s: Ctrl-C detected:  exitting...\n",__func__);
   fflush(stdout);
   return;
@@ -54,8 +57,13 @@ int credRelease(EkaCredentialLease *lease, void* context) {
   return 0;
 }
 
+int getTradeTimeCb (const EfhDateComponents *, uint32_t* iso8601Date,
+		     time_t *epochTime, void* ctx) {
+  return 0;
+}
+
 void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
-  if (! keep_work) return NULL;
+  if (! testCtx->keep_work) return NULL;
 
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
@@ -67,8 +75,8 @@ void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData use
   int secIdx = (int)secData;
 #endif
 
-  auto gr = grCtx[(int)exch][grId];
-  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  auto gr = testCtx->grCtx[(int)exch][grId];
+  if (gr == NULL) on_error("Uninitialized testCtx->grCtx[%d][%d]",(int)exch,grId);
 
   auto efhGr = pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[grId];
 
@@ -76,7 +84,7 @@ void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData use
     efhMonitorFhGroupState(pEfhCtx,(EkaGroup*)&msg->header.group);
   }
 
-  if (! print_tob_updates) return NULL;
+  if (! testCtx->print_tob_updates) return NULL;
 
   fprintf(gr->MD,"%s,%s,%ju,%s,%s,%.*f,%u,%c,%s,%ju\n",
 	  eka_get_date().c_str(),
@@ -103,7 +111,7 @@ void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData use
 }
 
 void* onTrade(const EfhTradeMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
-  if (! keep_work) return NULL;
+  if (! testCtx->keep_work) return NULL;
 
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
@@ -111,8 +119,8 @@ void* onTrade(const EfhTradeMsg* msg, EfhSecUserData secData, EfhRunUserData use
   EkaSource exch = msg->header.group.source;
   EkaLSI    grId = msg->header.group.localId;
 
-  auto gr = grCtx[(int)exch][grId];
-  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  auto gr = testCtx->grCtx[(int)exch][grId];
+  if (gr == NULL) on_error("Uninitialized testCtx->grCtx[%d][%d]",(int)exch,grId);
   
   //  auto efhGr = pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[grId];  
 
@@ -127,7 +135,7 @@ void* onTrade(const EfhTradeMsg* msg, EfhSecUserData secData, EfhRunUserData use
   //  int64_t priceScaleFactor    = 100; //gr->security.at(secIdx).displayPriceScale;
 #endif
 
-  if (! print_tob_updates) return NULL;
+  if (! testCtx->print_tob_updates) return NULL;
 
   fprintf(gr->MD,"Trade,");
   fprintf(gr->MD,"%s," ,eka_get_date().c_str());
@@ -135,7 +143,7 @@ void* onTrade(const EfhTradeMsg* msg, EfhSecUserData secData, EfhRunUserData use
   fprintf(gr->MD,"%ju,",msg->header.securityId);
   fprintf(gr->MD,"%s," ,currAvtSecName.c_str());
   fprintf(gr->MD,"%s," ,currClassSymbol.c_str());
-  fprintf(gr->MD,"%u," ,msg->price);
+  fprintf(gr->MD,"%ld,",msg->price);
   fprintf(gr->MD,"%u," ,msg->size);
   fprintf(gr->MD,"%d," ,(int)msg->tradeCond);
   fprintf(gr->MD,"%s," ,ts_ns2str(msg->header.timeStamp).c_str());
@@ -155,8 +163,8 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
   EkaSource exch = msg->group.source;
   EkaLSI    grId = msg->group.localId;
 
-  auto gr = grCtx[(int)exch][grId];
-  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  auto gr = testCtx->grCtx[(int)exch][grId];
+  if (gr == NULL) on_error("Uninitialized testCtx->grCtx[%d][%d]",(int)exch,grId);
   if (gr->MD == NULL) on_error("gr->MD == NULL");
 
   FILE* logFile = gr->MD;
@@ -176,33 +184,33 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
     case EfhErrorDomain::kExchangeError :
       printf ("=========================\n%s: ExchangeError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
-      if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
+      if (++testCtx->fatalErrorCnt == testCtx->MaxFatalErrors) on_error("testCtx->MaxFatalErrors %d reached",testCtx->MaxFatalErrors);
       break;
 
     case EfhErrorDomain::kSocketError :
       printf ("=========================\n%s: SocketError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
-      if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
+      if (++testCtx->fatalErrorCnt == testCtx->MaxFatalErrors) on_error("testCtx->MaxFatalErrors %d reached",testCtx->MaxFatalErrors);
       break;
 
     case EfhErrorDomain::kCredentialError :
       printf ("=========================\n%s: CredentialError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
-      if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
+      if (++testCtx->fatalErrorCnt == testCtx->MaxFatalErrors) on_error("testCtx->MaxFatalErrors %d reached",testCtx->MaxFatalErrors);
 
       break;
 
     case EfhErrorDomain::kOSError :
       printf ("=========================\n%s: OSError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
-      if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
+      if (++testCtx->fatalErrorCnt == testCtx->MaxFatalErrors) on_error("testCtx->MaxFatalErrors %d reached",testCtx->MaxFatalErrors);
 
       break;
 
     case EfhErrorDomain::kDeviceError :
       printf ("=========================\n%s: DeviceError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
-      if (++fatalErrorCnt == MaxFatalErrors) on_error("MaxFatalErrors %d reached",MaxFatalErrors);
+      if (++testCtx->fatalErrorCnt == testCtx->MaxFatalErrors) on_error("testCtx->MaxFatalErrors %d reached",testCtx->MaxFatalErrors);
 
       break;
 
@@ -269,20 +277,20 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
 }
 
 void onException(EkaExceptionReport* msg, EfhRunUserData efhRunUserData) {
-  if (! keep_work) return;
+  if (! testCtx->keep_work) return;
   printf("%s: Doing nothing\n",__func__);
   return;
 }
 
 void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fire_report_buf, size_t size) {
-  if (! keep_work) return;
+  if (! testCtx->keep_work) return;
   printf ("%s: Doing nothing \n",__func__);
   return;	 
 }
 extern FILE* mdFile;
 
 void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
-  if (! keep_work) return NULL;
+  if (! testCtx->keep_work) return NULL;
   EfhCtx* pEfhCtx = (EfhCtx*) efhRunUserData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
 
@@ -292,8 +300,8 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
   EkaSource exch = msg->group.source;
   EkaLSI    grId = msg->group.localId;
 
-  auto gr = grCtx[(int)exch][grId];
-  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  auto gr = testCtx->grCtx[(int)exch][grId];
+  if (gr == NULL) on_error("Uninitialized testCtx->grCtx[%d][%d]",(int)exch,grId);
   if (gr->MD == NULL) on_error("gr->MD == NULL");
 
   FILE* logFile = gr->MD;
@@ -389,15 +397,15 @@ void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData) {
 }
 
 void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
-  if (! keep_work) return NULL;
+  if (! testCtx->keep_work) return NULL;
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
 
   EkaSource exch = msg->header.group.source;
   EkaLSI    grId = msg->header.group.localId;
 
-  auto gr = grCtx[(int)exch][grId];
-  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  auto gr = testCtx->grCtx[(int)exch][grId];
+  if (gr == NULL) on_error("Uninitialized testCtx->grCtx[%d][%d]",(int)exch,grId);
   
   auto efhGr = pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[grId];  
 
@@ -407,6 +415,10 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
   int64_t priceScaleFactor = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE;
 #else
   int secIdx                  = (int)secData;
+  if (secIdx < 0 || secIdx >= (int)gr->security.size())
+    on_error("Bad secIdx = %d, gr->security.size() = %d",
+	     secIdx, (int)gr->security.size());
+  
   std::string currAvtSecName  = gr->security.at(secIdx).avtSecName.c_str();	  
   std::string currClassSymbol = gr->security.at(secIdx).classSymbol;
   int64_t priceScaleFactor    = 100; //gr->security.at(secIdx).displayPriceScale;
@@ -416,7 +428,7 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
     efhMonitorFhGroupState(pEfhCtx,(EkaGroup*)&msg->header.group);
   }
 
-  if (! print_tob_updates) return NULL;
+  if (! testCtx->print_tob_updates) return NULL;
 
   fprintf(gr->MD,"%s,%s,%ju,%s,%s,%c,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%d,%d,%s,%ju\n",
 	  eka_get_date().c_str(),
@@ -466,31 +478,36 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
 /* ------------------------------------------------------------ */
 
 void* onComplexDefinition(const EfhComplexDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
-  if (! keep_work) return NULL;
+  if (! testCtx->keep_work) return NULL;
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
 
   EkaSource exch = msg->header.group.source;
   EkaLSI    grId = msg->header.group.localId;
 
-  auto gr = grCtx[(int)exch][grId];
-  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  auto gr = testCtx->grCtx[(int)exch][grId];
+  if (gr == NULL) on_error("Uninitialized testCtx->grCtx[%d][%d]",(int)exch,grId);
   
-  fprintf(gr->MD,"ComplexDefinition\n");
+  fprintf(gr->MD,"ComplexDefinition,");
+  /* fprintf(gr->MD,"\'%s\',",std::string(msg->exchSymbolName,sizeof(msg->exchSymbolName)).c_str()); */
+  /* fprintf(gr->MD,"\'%s\',",std::string(msg->exchAssetName,sizeof(msg->exchAssetName)).c_str()); */
+  /* fprintf(gr->MD,"%ju,",msg->header.securityId); */
+  fprintf(gr->MD,"\n");
+
   return NULL;
 }
 /* ------------------------------------------------------------ */
 
 void* onAuctionUpdate(const EfhAuctionUpdateMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
-  if (! keep_work) return NULL;
+  if (! testCtx->keep_work) return NULL;
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
 
   EkaSource exch = msg->header.group.source;
   EkaLSI    grId = msg->header.group.localId;
 
-  auto gr {grCtx[(int)exch][grId]};
-  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  auto gr {testCtx->grCtx[(int)exch][grId]};
+  if (gr == NULL) on_error("Uninitialized testCtx->grCtx[%d][%d]",(int)exch,grId);
 
   auto secCtx = gr->getSecurityCtx(msg->header.securityId);
 
@@ -531,11 +548,10 @@ void* onAuctionUpdate(const EfhAuctionUpdateMsg* msg, EfhSecUserData secData, Ef
 
   return NULL;
 }
-
 /* ------------------------------------------------------------ */
 
-void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
-  if (! keep_work) return NULL;
+void* onFutureDefinition(const EfhFutureDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+  if (! testCtx->keep_work) return NULL;
   
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
@@ -543,8 +559,69 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
   auto exch {msg->header.group.source};
   auto grId {msg->header.group.localId};
 
-  auto gr {grCtx[(int)exch][grId]};
-  if (gr == NULL) on_error("Uninitialized grCtx[%d][%d]",(int)exch,grId);
+  auto gr {testCtx->grCtx[(int)exch][grId]};
+  if (gr == NULL) on_error("Uninitialized testCtx->grCtx[%d][%d]",(int)exch,grId);
+
+  std::string underlyingName = std::string(msg->commonDef.underlying, sizeof(msg->commonDef.underlying));
+  std::string classSymbol    = std::string(msg->commonDef.classSymbol,sizeof(msg->commonDef.classSymbol));
+
+  std::replace(underlyingName.begin(), underlyingName.end(), ' ', '\0');
+  std::replace(classSymbol.begin(),    classSymbol.end(),    ' ', '\0');
+  underlyingName.resize(strlen(underlyingName.c_str()));
+  classSymbol.resize   (strlen(classSymbol.c_str()));
+
+  char avtSecName[SYMBOL_SIZE] = "Future";
+
+  //  eka_create_avt_definition(avtSecName,msg);
+  fprintf (gr->fullDict,"%s,%ju,%s,%s,%s\n",
+  	   avtSecName,
+  	   msg->header.securityId,
+  	   underlyingName.c_str(),
+  	   classSymbol.c_str(),
+  	   EKA_PRINT_GRP(&msg->header.group)
+  	   );
+
+
+  if (testCtx->subscribe_all || (std::find(testCtx->underlyings.begin(), testCtx->underlyings.end(), underlyingName) != testCtx->underlyings.end())) {
+    if (std::find(testCtx->securities.begin(),testCtx->securities.end(),msg->header.securityId) != testCtx->securities.end()) return NULL;
+    testCtx->securities.push_back(msg->header.securityId);
+	
+    TestSecurityCtx newSecurity = {
+  	.securityId        = msg->header.securityId,
+  	.avtSecName        = std::string(avtSecName),
+  	.underlying        = underlyingName,
+  	.classSymbol       = classSymbol,
+  	.exch              = msg->commonDef.exchange,
+  	.displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE,
+    };
+    
+    gr->security.push_back(newSecurity);
+    auto sec_idx = gr->security.size() - 1;
+    
+    efhSubscribeStatic(pEfhCtx, (EkaGroup*)&msg->header.group, msg->header.securityId, EfhSecurityType::kOption,(EfhSecUserData) sec_idx,0,0);
+
+    fprintf (gr->subscrDict,"%s,%ju%s\n",
+  	     avtSecName,
+  	     msg->header.securityId,
+  	     EKA_PRINT_GRP(&msg->header.group)
+  	     );
+  }
+
+  return NULL;
+}
+/* ------------------------------------------------------------ */
+
+void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+  if (! testCtx->keep_work) return NULL;
+  
+  EfhCtx* pEfhCtx = (EfhCtx*) userData;
+  if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
+
+  auto exch {msg->header.group.source};
+  auto grId {msg->header.group.localId};
+
+  auto gr {testCtx->grCtx[(int)exch][grId]};
+  if (gr == NULL) on_error("Uninitialized testCtx->grCtx[%d][%d]",(int)exch,grId);
 
   std::string underlyingName = std::string(msg->commonDef.underlying, sizeof(msg->commonDef.underlying));
   std::string classSymbol    = std::string(msg->commonDef.classSymbol,sizeof(msg->commonDef.classSymbol));
@@ -560,18 +637,18 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
   fprintf (gr->fullDict,"%s,%ju,%s,%s,%s,%s,%ju,%ju\n",
 	   avtSecName,
 	   msg->header.securityId,
-	   exch == EkaSource::kC1_PITCH ? EKA_PRINT_BATS_SYMBOL((char*)&msg->opaqueAttrA) : " ",
+	   exch == EkaSource::kC1_PITCH ? EKA_PRINT_BATS_SYMBOL((char*)&msg->commonDef.opaqueAttrA) : " ",
 	   underlyingName.c_str(),
 	   classSymbol.c_str(),
 	   EKA_PRINT_GRP(&msg->header.group),
-	   msg->opaqueAttrA,
-	   msg->opaqueAttrB
+	   msg->commonDef.opaqueAttrA,
+	   msg->commonDef.opaqueAttrB
 	   );
 
 
-  if (subscribe_all || (std::find(underlyings.begin(), underlyings.end(), underlyingName) != underlyings.end())) {
-    if (std::find(securities.begin(),securities.end(),msg->header.securityId) != securities.end()) return NULL;
-    securities.push_back(msg->header.securityId);
+  if (testCtx->subscribe_all || (std::find(testCtx->underlyings.begin(), testCtx->underlyings.end(), underlyingName) != testCtx->underlyings.end())) {
+    if (std::find(testCtx->securities.begin(),testCtx->securities.end(),msg->header.securityId) != testCtx->securities.end()) return NULL;
+    testCtx->securities.push_back(msg->header.securityId);
 	
     TestSecurityCtx newSecurity = {
 	.securityId        = msg->header.securityId,
@@ -579,7 +656,7 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
 	.underlying        = underlyingName,
 	.classSymbol       = classSymbol,
 	.exch              = msg->commonDef.exchange,
-	.displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE,
+	.displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE
     };
     
     gr->security.push_back(newSecurity);
@@ -590,7 +667,7 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
     fprintf (gr->subscrDict,"%s,%ju,%s,%s\n",
 	     avtSecName,
 	     msg->header.securityId,
-	     exch == EkaSource::kC1_PITCH ? EKA_PRINT_BATS_SYMBOL((char*)&msg->opaqueAttrA) : " ",
+	     exch == EkaSource::kC1_PITCH ? EKA_PRINT_BATS_SYMBOL((char*)&msg->commonDef.opaqueAttrA) : " ",
 	     EKA_PRINT_GRP(&msg->header.group)
 	     );
   }
@@ -616,6 +693,12 @@ EkaSource feedname2source(std::string feedName) {
 
   if (feedName == std::string("XA")) return EkaSource::kAMEX_XDP;
   if (feedName == std::string("XB")) return EkaSource::kAMEX_XDP;
+  /* ------------------------------------------------------- */
+  if (feedName == std::string("RPA")) return EkaSource::kARCA_PLR;
+  if (feedName == std::string("RPB")) return EkaSource::kARCA_PLR;
+
+  if (feedName == std::string("XPA")) return EkaSource::kAMEX_PLR;
+  if (feedName == std::string("XPB")) return EkaSource::kAMEX_PLR;
   /* ------------------------------------------------------- */
   if (feedName == std::string("BA")) return EkaSource::kBOX_HSVF;
   if (feedName == std::string("BB")) return EkaSource::kBOX_HSVF;
@@ -662,6 +745,12 @@ static EkaProp* feedname2prop (std::string feedName) {
   if (feedName == std::string("XA")) return efhAmexInitCtxEntries_A;
   if (feedName == std::string("XB")) return efhAmexInitCtxEntries_B;
   /* ------------------------------------------------------- */
+  if (feedName == std::string("RPA")) return efhArcaPlrInitCtxEntries_A;
+  if (feedName == std::string("RPB")) return efhArcaPlrInitCtxEntries_B;
+
+  if (feedName == std::string("XPA")) return efhAmexPlrInitCtxEntries_A;
+  if (feedName == std::string("XPB")) return efhAmexPlrInitCtxEntries_B;
+  /* ------------------------------------------------------- */
   if (feedName == std::string("BA")) return efhBoxInitCtxEntries_A;
   if (feedName == std::string("BB")) return efhBoxInitCtxEntries_B;
   if (feedName == std::string("BC")) return efhBoxInitCtxEntries_C;
@@ -707,6 +796,12 @@ static size_t feedname2numProps (std::string feedName) {
   if (feedName == std::string("XA")) return std::size(efhAmexInitCtxEntries_A);
   if (feedName == std::string("XB")) return std::size(efhAmexInitCtxEntries_B);
   /* ------------------------------------------------------- */
+  if (feedName == std::string("RPA")) return std::size(efhArcaPlrInitCtxEntries_A);
+  if (feedName == std::string("RPB")) return std::size(efhArcaPlrInitCtxEntries_B);
+
+  if (feedName == std::string("XPA")) return std::size(efhAmexPlrInitCtxEntries_A);
+  if (feedName == std::string("XPB")) return std::size(efhAmexPlrInitCtxEntries_B);
+  /* ------------------------------------------------------- */
   if (feedName == std::string("BA")) return std::size(efhBoxInitCtxEntries_A);
   if (feedName == std::string("BB")) return std::size(efhBoxInitCtxEntries_B);
   if (feedName == std::string("BC")) return std::size(efhBoxInitCtxEntries_C);
@@ -746,6 +841,12 @@ static size_t feedname2numGroups(std::string feedName) {
   if (feedName == std::string("PA")) return std::size(pearlGroups);
   if (feedName == std::string("PB")) return std::size(pearlGroups);
   /* ------------------------------------------------------- */
+  if (feedName == std::string("RPA")) return std::size(arcaPlrGroups);
+  if (feedName == std::string("RPB")) return std::size(arcaPlrGroups);
+
+  if (feedName == std::string("XPA")) return std::size(amexPlrGroups);
+  if (feedName == std::string("XPB")) return std::size(amexPlrGroups);
+  /* ------------------------------------------------------- */
   if (feedName == std::string("RA")) return std::size(arcaGroups);
   if (feedName == std::string("RB")) return std::size(arcaGroups);
 
@@ -781,7 +882,7 @@ static size_t feedname2numGroups(std::string feedName) {
 int createCtxts(std::vector<TestRunGroup>& testRunGroups,
 		std::vector<EfhInitCtx>&   efhInitCtx,
 		std::vector<EfhRunCtx>&    efhRunCtx) {
-  const std::regex rg_regex("([0-9])\\:([A-Z][A-Z])\\:([0-9]+)\\.\\.([0-9]+)");
+  const std::regex rg_regex("([0-9])\\:([A-Z][A-Z][A-Z]*)\\:([0-9]+)\\.\\.([0-9]+)");
 
   for (auto &runGr : testRunGroups) {
     std::smatch base_match;
@@ -799,6 +900,7 @@ int createCtxts(std::vector<TestRunGroup>& testRunGroups,
       .ekaProps       = new EkaProps(),
       .numOfGroups    = feedname2numGroups(feedName),
       .coreId         = coreId,
+      .getTradeTime   = getTradeTimeCb,
       .recvSoftwareMd = true,
     };
     newEfhInitCtx.ekaProps->numProps = feedname2numProps(feedName);
@@ -816,11 +918,11 @@ int createCtxts(std::vector<TestRunGroup>& testRunGroups,
     for (EkaLSI grId = firstGrId; grId <= lastGrId; grId++) {
       pGroups[i].source  = exch;
       pGroups[i].localId = grId;
-      if (grCtx[(int)exch][grId] != NULL)
-	on_error("grCtx[%d][%d] already exists",(int)exch,grId);
-      grCtx[(int)exch][grId] = new McGrpCtx(exch,grId);
-      if (grCtx[(int)exch][grId] == NULL)
-	on_error("failed creating grCtx[%d][%d]",(int)exch,grId);
+      if (testCtx->grCtx[(int)exch][grId] != NULL)
+	on_error("testCtx->grCtx[%d][%d] already exists",(int)exch,grId);
+      testCtx->grCtx[(int)exch][grId] = new McGrpCtx(exch,grId);
+      if (testCtx->grCtx[(int)exch][grId] == NULL)
+	on_error("failed creating testCtx->grCtx[%d][%d]",(int)exch,grId);
       i++;
     }
 
@@ -829,6 +931,7 @@ int createCtxts(std::vector<TestRunGroup>& testRunGroups,
       .numGroups                   = numRunGroups,
       .efhRunUserData              = 0,
       .onEfhOptionDefinitionMsgCb  = onOptionDefinition,
+      .onEfhFutureDefinitionMsgCb  = onFutureDefinition,
       .onEfhComplexDefinitionMsgCb = onComplexDefinition,
       .onEfhAuctionUpdateMsgCb     = onAuctionUpdate,
       .onEfhTradeMsgCb             = onTrade,
@@ -836,7 +939,7 @@ int createCtxts(std::vector<TestRunGroup>& testRunGroups,
       .onEfhOrderMsgCb             = onOrder,
       .onEfhGroupStateChangedMsgCb = onEfhGroupStateChange,
       .onEkaExceptionReportCb      = onException,
-      .onEfhMdCb                   = onMd
+      .onEfhMdCb                   = onMd,
     };
     efhRunCtx.push_back(newEfhRunCtx);
 
@@ -864,34 +967,38 @@ void print_usage(char* cmd) {
   printf("\tRunGroup Format: \"[coreId]:[Feed Code]:[First MC Gr ID]..[Last MC Gr ID]\"\n");
   printf("\tRunGroup Format Example: \"2:CC:0..11\"\n");
   printf("\t\tSupported Feed Codes:\n"); 
-  printf("\t\t\tNA - NOM         A feed\n"); 
-  printf("\t\t\tNB - NOM         B feed\n"); 
-  printf("\t\t\tGA - GEM         A feed\n"); 
-  printf("\t\t\tGB - GEM         B feed\n"); 
-  printf("\t\t\tIA - ISE         A feed\n"); 
-  printf("\t\t\tIB - ISE         B feed\n"); 
-  printf("\t\t\tTA - PHLX TOPO   A feed\n"); 
-  printf("\t\t\tTB - PHLX TOPO   B feed\n"); 
-  printf("\t\t\tOA - PHLX ORD    A feed\n"); 
-  printf("\t\t\tOB - PHLX ORD    B feed\n"); 
-  printf("\t\t\tCA - C1          A feed\n"); 
-  printf("\t\t\tCB - C1          B feed\n"); 
-  printf("\t\t\tCC - C1          C feed\n"); 
-  printf("\t\t\tCD - C1          D feed\n"); 
-  printf("\t\t\tMA - MIAX TOM    A feed\n"); 
-  printf("\t\t\tMB - MIAX TOM    B feed\n"); 
-  printf("\t\t\tPA - PEARL TOM   A feed\n"); 
-  printf("\t\t\tPB - PEARL TOM   B feed\n"); 
-  printf("\t\t\tRA - ARCA        A feed\n"); 
-  printf("\t\t\tRB - ARCA        B feed\n"); 
-  printf("\t\t\tXA - AMEX        A feed\n"); 
-  printf("\t\t\tXB - AMEX        B feed\n"); 
-  printf("\t\t\tBA - BOX vanilla A feed\n"); 
-  printf("\t\t\tBB - BOX vanilla B feed\n"); 
-  printf("\t\t\tBC - BOX RFQ(PIP)A feed\n"); 
-  printf("\t\t\tBD - BOX Complex A feed\n"); 
-  printf("\t\t\tEA - CME         A feed\n"); 
-  printf("\t\t\tEB - CME         B feed\n"); 
+  printf("\t\t\tNA  - NOM         A feed\n"); 
+  printf("\t\t\tNB  - NOM         B feed\n"); 
+  printf("\t\t\tGA  - GEM         A feed\n"); 
+  printf("\t\t\tGB  - GEM         B feed\n"); 
+  printf("\t\t\tIA  - ISE         A feed\n"); 
+  printf("\t\t\tIB  - ISE         B feed\n"); 
+  printf("\t\t\tTA  - PHLX TOPO   A feed\n"); 
+  printf("\t\t\tTB  - PHLX TOPO   B feed\n"); 
+  printf("\t\t\tOA  - PHLX ORD    A feed\n"); 
+  printf("\t\t\tOB  - PHLX ORD    B feed\n"); 
+  printf("\t\t\tCA  - C1          A feed\n"); 
+  printf("\t\t\tCB  - C1          B feed\n"); 
+  printf("\t\t\tCC  - C1          C feed\n"); 
+  printf("\t\t\tCD  - C1          D feed\n"); 
+  printf("\t\t\tMA  - MIAX TOM    A feed\n"); 
+  printf("\t\t\tMB  - MIAX TOM    B feed\n"); 
+  printf("\t\t\tPA  - PEARL TOM   A feed\n"); 
+  printf("\t\t\tPB  - PEARL TOM   B feed\n"); 
+  printf("\t\t\tRA  - ARCA XDP    A feed\n"); 
+  printf("\t\t\tRB  - ARCA XDP    B feed\n"); 
+  printf("\t\t\tXA  - AMEX XDP    A feed\n"); 
+  printf("\t\t\tXB  - AMEX XDP    B feed\n"); 
+  printf("\t\t\tRPA - ARCA PLR    A feed\n"); 
+  printf("\t\t\tRPB - ARCA PLR    B feed\n"); 
+  printf("\t\t\tXPA - AMEX PLR    A feed\n"); 
+  printf("\t\t\tXPB - AMEX PLR    B feed\n");
+  printf("\t\t\tBA  - BOX vanilla A feed\n"); 
+  printf("\t\t\tBB  - BOX vanilla B feed\n"); 
+  printf("\t\t\tBC  - BOX RFQ(PIP)A feed\n"); 
+  printf("\t\t\tBD  - BOX Complex A feed\n"); 
+  printf("\t\t\tEA  - CME         A feed\n"); 
+  printf("\t\t\tEB  - CME         B feed\n"); 
   printf("\t-u <Underlying Name> - subscribe on all options belonging to\n");
   printf("\t-t Print TOB updates (EFH)\n");
   printf("\t-a subscribe all\n");

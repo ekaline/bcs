@@ -75,6 +75,16 @@ enum class EfhOptionType : uint8_t {
         EfhOptionType_ENUM_ITER( EKA__ENUM_DEF )
 };
 
+// These characters are chosen to match the CME CFI code.
+enum class EfhOptionStyle : char {
+#define EfhOptionStyle_ENUM_ITER( _x )          \
+  _x( Invalid,  char(0) )                       \
+  _x( Unknown,  'X' )                           \
+  _x( American, 'A' )                           \
+  _x( European, 'E' )
+EfhOptionStyle_ENUM_ITER( EKA__ENUM_DEF )
+};
+
 /*
  *
  */
@@ -285,7 +295,9 @@ typedef struct {
                 _x( time_t,           expiryTime )                          \
                 /** Formatted as YYYYMMDD if expiryTime not avail */        \
                 _x( uint32_t,         expiryDate )                          \
-                _x( uint32_t,         contractSize )
+                _x( uint32_t,         contractSize )                        \
+                _x( uint64_t,         opaqueAttrA )                         \
+                _x( uint64_t,         opaqueAttrB )
         EfhSecurityDef_FIELD_ITER( EKA__FIELD_DEF )
 } EfhSecurityDef;
 
@@ -300,8 +312,7 @@ typedef struct {
                 /** Divide by EFH_PRICE_SCALE. */                           \
                 _x( int64_t,         strikePrice )                          \
                 _x( EfhOptionType,   optionType )                           \
-                _x( uint64_t,        opaqueAttrA )                          \
-                _x( uint64_t,        opaqueAttrB )
+                _x( EfhOptionStyle,  optionStyle )
         EfhOptionDefinitionMsg_FIELD_ITER( EKA__FIELD_DEF )
 } EfhOptionDefinitionMsg;
 
@@ -315,6 +326,7 @@ typedef struct {
 enum class EfhOrderSide : int8_t {
     #define EfhOrderSide_ENUM_ITER( _x )                                    \
                 _x( Other,  0 )                                             \
+                _x( Cross,  3 )                                             \
                 _x( Err,    2 )                                             \
                 _x( Bid,    1 )                                             \
                 _x( Ask,   -1 )
@@ -326,7 +338,9 @@ typedef struct {
                 _x( uint64_t,        securityId )                           \
                 _x( EfhSecurityType, type )                                 \
                 _x( EfhOrderSide,    side )                                 \
-                _x( int32_t,         ratio )
+                _x( int32_t,         ratio )                                \
+                _x( int32_t,         optionDelta )                          \
+                _x( int64_t,         price )
         EfhComplexLeg_FIELD_ITER( EKA__FIELD_DEF )
 } EfhComplexLeg;
 
@@ -348,7 +362,8 @@ enum class EfhAuctionType : char {
                 _x( PriceImprovementPeriod, 'Q' )                           \
                 _x( Facilitation, 'F' )                                     \
                 _x( Solicitation, 'S' )                                     \
-                _x( Exposed,      'E' )
+                _x( Exposed,      'E' )                                     \
+                _x( Notification, 'N' )
         EfhAuctionType_ENUM_ITER( EKA__ENUM_DEF )
 };
 
@@ -492,7 +507,7 @@ typedef struct {
     #define EfhTradeMsg_FIELD_ITER( _x )                                    \
                 _x( EfhMsgHeader,      header )                             \
                 /** Divide by EFH_PRICE_SCALE. */                           \
-                _x( uint32_t,     price )                                   \
+                _x( int64_t,     price )                                    \
                 _x( uint32_t,     size )                                    \
                 _x( EfhTradeStatus, tradeStatus )                           \
                 _x( EfhTradeCond, tradeCond )

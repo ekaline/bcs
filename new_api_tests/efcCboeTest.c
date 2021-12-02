@@ -39,6 +39,10 @@
 #include "EkaFhBatsParser.h"
 #include "EfhTestFuncs.h"
 
+using namespace Bats;
+
+extern TestCtx* testCtx;
+
 /* --------------------------------------------- */
 std::string ts_ns2str(uint64_t ts);
 
@@ -84,25 +88,25 @@ enum class AddOrder : int {
 };
 
 struct CboePitchAddOrderShort {
-    batspitch_sequenced_unit_header hdr;
-    batspitch_add_order_short       msg;
+    sequenced_unit_header hdr;
+    add_order_short       msg;
 } __attribute__((packed));
 
 struct CboePitchAddOrderLong {
-    batspitch_sequenced_unit_header hdr;
-    batspitch_add_order_long        msg;
+    sequenced_unit_header hdr;
+    add_order_long        msg;
 } __attribute__((packed));
 
 struct CboePitchAddOrderExpanded {
-    batspitch_sequenced_unit_header hdr;
-    batspitch_add_order_expanded    msg;
+    sequenced_unit_header hdr;
+    add_order_expanded    msg;
 } __attribute__((packed));
 
 /* --------------------------------------------- */
 
 void  INThandler(int sig) {
   signal(sig, SIG_IGN);
-  keep_work = false;
+  testCtx->keep_work = false;
   TEST_LOG("Ctrl-C detected: keep_work = false, exitting..."); fflush(stdout);
   return;
 }
@@ -300,7 +304,7 @@ static int sendAddOrderShort (int sock, const sockaddr_in* addr, char* secId,
 	.msg = {
 	    .header = {
 		.length = sizeof(pkt.msg),
-		.type   = (uint8_t)EKA_BATS_PITCH_MSG::ADD_ORDER_SHORT,
+		.type   = (uint8_t)MsgId::ADD_ORDER_SHORT,
 		.time   = 0x11223344,  // just a number
 	    },
 	    .order_id   = 0xaabbccddeeff5566,
@@ -333,7 +337,7 @@ static int sendAddOrderLong (int sock, const sockaddr_in* addr, char* secId,
 	.msg = {
 	    .header = {
 		.length = sizeof(pkt.msg),
-		.type   = (uint8_t)EKA_BATS_PITCH_MSG::ADD_ORDER_LONG,
+		.type   = (uint8_t)MsgId::ADD_ORDER_LONG,
 		.time   = 0x11223344,  // just a number
 	    },
 	    .order_id   = 0xaabbccddeeff5566,
@@ -367,7 +371,7 @@ static int sendAddOrderExpanded (int sock, const sockaddr_in* addr, char* secId,
 	.msg = {
 	    .header = {
 		.length = sizeof(pkt.msg),
-		.type   = (uint8_t)EKA_BATS_PITCH_MSG::ADD_ORDER_EXPANDED,
+		.type   = (uint8_t)MsgId::ADD_ORDER_EXPANDED,
 		.time   = 0x11223344,  // just a number
 	    },
 	    .order_id   = 0xaabbccddeeff5566,
@@ -409,10 +413,13 @@ static int sendAddOrder (AddOrder type, int sock, const sockaddr_in* addr, char*
     return 0;
 }
 
+
 /* ############################################# */
 int main(int argc, char *argv[]) {
+  
   signal(SIGINT, INThandler);
-
+  testCtx = new TestCtx;
+  if (!testCtx) on_error("testCtx == NULL");
   // ==============================================
 
   std::string serverIp        = "10.0.0.10";      // Ekaline lab default
@@ -474,7 +481,7 @@ int main(int argc, char *argv[]) {
 				     &tcpSock[i],
 				     &serverSet);
     server.detach();
-    while (keep_work && ! serverSet) { sleep (0); }
+    while (testCtx->keep_work && ! serverSet) { sleep (0); }
   }
   // ==============================================
   // Establishing EXC connections for EPM/EFC fires 
@@ -853,8 +860,8 @@ int main(int argc, char *argv[]) {
 #ifndef _VERILOG_SIM
   sleep(2);
   EKA_LOG("--Test finished, ctrl-c to end---");
-//  keep_work = false;
-  while (keep_work) { sleep(0); }
+//  testCtx->keep_work = false;
+  while (testCtx->keep_work) { sleep(0); }
 #endif
 
   sleep(1);

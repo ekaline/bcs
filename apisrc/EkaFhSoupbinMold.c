@@ -36,6 +36,14 @@ struct soupbin_login_req {
   char			sequence[20];
 } __attribute__((packed));
 
+
+struct SoupBinLoginAccepted {
+  uint16_t len;
+  char     status; // 'A'
+  char     sessionId[10];
+  char     firstSeqNum[20];
+} __attribute__((packed));
+
 static bool sendLogin (EkaFhNasdaqGr* gr, uint64_t start_sequence);
 static void sendLogout (EkaFhNasdaqGr* gr);
 static bool getLoginResponse(EkaFhNasdaqGr* gr);
@@ -162,7 +170,7 @@ uint64_t getMostRecentSeq (EkaFhNasdaqGr* gr) {
   if (gr->snapshot_sock < 0) on_error("%s:%u: failed to open TCP socket",
 				      EKA_EXCH_DECODE(gr->exch),gr->id);
 
-  static const int TimeOut = 1; // seconds
+  static const int TimeOut = 10; // seconds
   struct timeval tv = {
     .tv_sec = TimeOut
   }; 
@@ -273,6 +281,14 @@ static void sendLogout (EkaFhNasdaqGr* gr) {
   return;
 }
 /* ##################################################################### */
+static void copySessionId(char* dst, const char* src, size_t len) {
+  int j = len - 1;
+  for (int i = len - 1; i >= 0; i--) {
+    if (src[i] != ' ') {
+      dst[j--] = src[i];      
+    }
+  }
+}
 
 static bool getLoginResponse(EkaFhNasdaqGr* gr) {
   EkaDev* dev = gr->dev;
@@ -291,8 +307,6 @@ static bool getLoginResponse(EkaFhNasdaqGr* gr) {
 	     EKA_EXCH_DECODE(gr->exch),gr->id,gr->snapshot_sock);
     return false;
   }
-  char* session_id = soupbin_buf;
-
   switch (soupbin_hdr.type) {
   case 'J' : 
     switch (soupbin_buf[0]) {
@@ -321,13 +335,18 @@ static bool getLoginResponse(EkaFhNasdaqGr* gr) {
     return false;
 
   case 'A' : {
-    char first_seq[20] = {};
-    memcpy(first_seq,session_id+10,sizeof(first_seq));
-    gr->firstSoupbinSeq = strtoul(first_seq, NULL, 10);
+    auto loginAccepted {reinterpret_cast<const SoupBinLoginAccepted*>(soupbin_buf)};
+    //    memcpy(gr->session_id,loginAccepted->sessionId,sizeof(loginAccepted->sessionId));
+    //copySessionId(gr->session_id,loginAccepted->sessionId,sizeof(loginAccepted->sessionId));
+    gr->firstSoupbinSeq = std::stoul(std::string(loginAccepted->firstSeqNum,sizeof(loginAccepted->firstSeqNum)));
     gr->recovery_sequence = gr->firstSoupbinSeq;
   
-    EKA_LOG("%s:%u Login accepted for session_id=\'%s\', first_seq= \'%s\' (=%ju)",
-	    EKA_EXCH_DECODE(gr->exch),gr->id,session_id,first_seq,gr->recovery_sequence);
+    EKA_LOG("%s:%u Login accepted for session_id=\'%s\' (\'%s\'), first_seq= \'%s\' (=%ju)",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,
+	    std::string(loginAccepted->sessionId,  sizeof(loginAccepted->sessionId)  ).c_str(),
+	    std::string(gr->session_id,            sizeof(gr->session_id)            ).c_str(),
+	    std::string(loginAccepted->firstSeqNum,sizeof(loginAccepted->firstSeqNum)).c_str(),
+	    gr->recovery_sequence);
   }
     break;
 

@@ -141,7 +141,7 @@ void printAuctionUpdateMsg(const EfhAuctionUpdateMsg* msg) {
   printf("%s,",   ts_ns2str(msg->endTimeNanos).c_str());
   printf("%c,", msg->side == EfhOrderSide::kBid ? 'B' : 'S');
   printf("%c,",    exchName);
-  printf("%d,",    (int)msg->type);
+  /* printf("%d,",    (int)msg->type); */
   /* printf("%d,",    (int)msg->customer); */
   /* printf("%d,",    (int)msg->securityType); */
 
@@ -169,12 +169,13 @@ void processRfqStart(const uint8_t* msgBody, uint8_t id, uint64_t sequence, uint
   msg.header.sequenceNumber = sequence;
   msg.header.timeStamp      = gr_ts;
 
-  msg.side                  = getSide(boxMsg->Side);
+  msg.side                  = getSide(boxMsg->Side,false);
   msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
 
   msg.quantity              = getNumField<uint32_t>(boxMsg->Size, sizeof(boxMsg->Size));
   msg.price                 = getNumField<uint32_t>(boxMsg->Price,sizeof(boxMsg->Price));
-  msg.endTimeNanos          = getExpireNs(boxMsg->ExpiryTime);
+  //  msg.endTimeNanos          = getExpireNs(boxMsg->ExpiryTime);
+  msg.endTimeNanos          = 0; //PATCH
 
   printf("processRfqStart: ");
   printf("%s,",std::string(boxMsg->InstrumentDescription,sizeof(boxMsg->InstrumentDescription)).c_str());
@@ -203,12 +204,14 @@ void processRfqInsert(const uint8_t* msgBody, uint8_t id, uint64_t sequence, uin
   msg.header.sequenceNumber = sequence;
   msg.header.timeStamp      = gr_ts;
 
-  msg.side                  = getSide(boxMsg->OrderSide);
+  msg.side                  = getSide(boxMsg->OrderSide,false);
 
   msg.quantity              = getNumField<uint32_t>(boxMsg->Size,sizeof(boxMsg->Size));
   msg.price                 = getNumField<uint32_t>(boxMsg->LimitPrice,sizeof(boxMsg->LimitPrice));
-  msg.endTimeNanos          = getExpireNs(boxMsg->EndOfExposition);
-
+  /* msg.endTimeNanos          = getExpireNs(boxMsg->EndOfExposition); */
+  /* msg.endTimeNanos          = getExpireNs(&localTimeComponents, boxMsg->ExpiryTime); */
+  msg.endTimeNanos          = 0; //PATCH
+  
   if (boxMsg->OrderType == 'A') { // Initial
     msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
   } else if (boxMsg->OrderType == 'P') { // Exposed
@@ -244,7 +247,7 @@ void processRfqDelete(const uint8_t* msgBody, uint8_t id, uint64_t sequence, uin
   msg.header.sequenceNumber = sequence;
   msg.header.timeStamp      = gr_ts;
 
-  msg.side                  = getSide(boxMsg->OrderSide);
+  msg.side                  = getSide(boxMsg->OrderSide,false);
   msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
 
   msg.quantity              = 0;

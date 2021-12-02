@@ -40,6 +40,8 @@
 #include "EkaFhBatsParser.h"
 #include "EfhTestFuncs.h"
 
+extern TestCtx* testCtx;
+
 /* --------------------------------------------- */
 std::string ts_ns2str(uint64_t ts);
 static EkaOpResult printReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdOnly);
@@ -70,7 +72,7 @@ FILE*     efcSecuritiesFile;
 
 void  INThandler(int sig) {
   signal(sig, SIG_IGN);
-  keep_work = false;
+  testCtx->keep_work = false;
   TEST_LOG("Ctrl-C detected: keep_work = false, exitting..."); fflush(stdout);
   return;
 }
@@ -108,7 +110,7 @@ void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fireReportBuf, size_t s
 /* ------------------------------------------------------------ */
 
 void* onMdTestDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
-  if (! keep_work) return NULL;
+  if (! testCtx->keep_work) return NULL;
   
   EfhCtx* pEfhCtx = (EfhCtx*) userData;
   if (pEfhCtx == NULL) on_error("pEfhCtx == NULL");
@@ -127,12 +129,12 @@ void* onMdTestDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
   fprintf (efcSecuritiesFile,"%s,%ju,%s,%s,%s,%s,%ju,%ju\n",
 	   avtSecName,
 	   msg->header.securityId,
-	   EKA_PRINT_BATS_SYMBOL((char*)&msg->opaqueAttrA),
+	   EKA_PRINT_BATS_SYMBOL((char*)&msg->commonDef.opaqueAttrA),
 	   underlyingName.c_str(),
 	   classSymbol.c_str(),
 	   EKA_PRINT_GRP(&msg->header.group),
-	   msg->opaqueAttrA,
-	   msg->opaqueAttrB
+	   msg->commonDef.opaqueAttrA,
+	   msg->commonDef.opaqueAttrB
 	   );
 
 
@@ -149,12 +151,12 @@ static EkaOpResult printReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdO
   if (dev == NULL) on_error("dev == NULL");
 
   const uint8_t* b = (const uint8_t*)p;
- //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
   if (((EkaContainerGlobalHdr*)b)->type == EkaEventType::kExceptionReport) {
     EKA_LOG("EXCEPTION_REPORT");
     return EKA_OPRESULT__OK;
   }
- //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
   if (((EkaContainerGlobalHdr*)b)->type != EkaEventType::kFireReport) 
     on_error("UNKNOWN Event report: 0x%02x",
 	     static_cast< uint32_t >( ((EkaContainerGlobalHdr*)b)->type ) );
@@ -178,7 +180,7 @@ static EkaOpResult printReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdO
     b += sizeof(EfcControllerState);
   }
   total_reports--;
- //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
 
   if (((EfcReportHdr*)b)->type != EfcReportType::kMdReport) 
     on_error("MdReport report expected, %02x received",
@@ -212,20 +214,20 @@ static EkaOpResult printReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdO
   if (((EfcReportHdr*)b)->type != EfcReportType::kFirePkt) 
     on_error("FirePkt report expected, %02x received",
 	     static_cast< uint32_t >( ((EfcReportHdr*)b)->type) );
-    EKA_LOG("\treport_type = %u SecurityCtx, idx=%u, size=%ju",
+  EKA_LOG("\treport_type = %u SecurityCtx, idx=%u, size=%ju",
   	  static_cast< uint32_t >( ((EfcReportHdr*)b)->type ),
   	  ((EfcReportHdr*)b)->idx,
   	  ((EfcReportHdr*)b)->size);
-    b += sizeof(EfcReportHdr);
-    {
-      auto msg {reinterpret_cast<const BoeNewOrderMsg*>(b +
-							sizeof(EkaEthHdr) +
-							sizeof(EkaIpHdr) +
-							sizeof(EkaTcpHdr))};
-      if (! mdOnly) printBoeFire(dev,msg);
-      b += ((EfcReportHdr*)b)->size;
-    }
-    total_reports--;
+  b += sizeof(EfcReportHdr);
+  {
+    auto msg {reinterpret_cast<const BoeNewOrderMsg*>(b +
+						      sizeof(EkaEthHdr) +
+						      sizeof(EkaIpHdr) +
+						      sizeof(EkaTcpHdr))};
+    if (! mdOnly) printBoeFire(dev,msg);
+    b += ((EfcReportHdr*)b)->size;
+  }
+  total_reports--;
     
   //--------------------------------------------------------------------------
 
@@ -340,7 +342,7 @@ int main(int argc, char *argv[]) {
   // ==============================================
   char     secIdFileName[1024] = {};
 
-  getAttr(argc,argv,underlyings,secIdFileName);
+  getAttr(argc,argv,testCtx->underlyings,secIdFileName);
 
   const char* efcSecuritiesFileName = "CBOE_EFC_SECURITIES.txt";
   if((efcSecuritiesFile = fopen(efcSecuritiesFileName,"w")) == NULL)
@@ -430,9 +432,9 @@ int main(int argc, char *argv[]) {
 	  {exch, grId},
       };
       
-      grCtx[(int)exch][grId] = new McGrpCtx(exch,grId);
-      if (grCtx[(int)exch][grId] == NULL)
-	  on_error("failed creating grCtx[%d][%d]",(int)exch,grId);
+      testCtx->grCtx[(int)exch][grId] = new McGrpCtx(exch,grId);
+      if (testCtx->grCtx[(int)exch][grId] == NULL)
+	  on_error("failed creating testCtx->grCtx[%d][%d]",(int)exch,grId);
       
       EkaProps props = {
 	  .numProps = std::size(efhBatsC1InitCtxEntries_CC_0),
@@ -626,7 +628,7 @@ int main(int argc, char *argv[]) {
 
   TEST_LOG("\n===========================\nWORKING\n===========================\n");
 
-  while (keep_work) { sleep(0); }
+  while (testCtx->keep_work) { sleep(0); }
 
   sleep(1);
   fflush(stdout);fflush(stderr);
