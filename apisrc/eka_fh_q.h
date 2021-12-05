@@ -48,8 +48,17 @@ class fh_q {
   }
   
   ~fh_q() {
-    delete msg;
-    EKA_LOG("%s:%u deleted",EKA_EXCH_DECODE(exch),gr_id);
+    delete[] msg;
+    EKA_LOG("%s:%u Q deleted",EKA_EXCH_DECODE(exch),gr_id);
+  }
+
+  int invalidate() {
+    delete[] msg;
+    msg          = new fh_msg[qsize];
+    wr           = 0;
+    rd           = 0;
+    EKA_LOG("%s:%u Q invalidated",EKA_EXCH_DECODE(exch),gr_id);
+    return 0;
   }
 
   inline auto next   (uint32_t curr) { return (curr + 1) % qsize; }  

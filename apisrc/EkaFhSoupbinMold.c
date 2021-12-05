@@ -578,7 +578,8 @@ void* getSoupBinData(void* attr) {
   delete params;
 
   if (op != EkaFhMode::DEFINITIONS) pthread_detach(pthread_self());
-
+  gr->recoveryThreadDone = false;
+  
   EkaDev* dev = pEfhCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
   if (dev->fh[pEfhCtx->fhId] == NULL) 
@@ -635,7 +636,7 @@ void* getSoupBinData(void* attr) {
     on_error("%s:%u Failed after %d trials. Exiting...",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
   }
-  gr->snapshotThreadDone = true;
+  gr->recoveryThreadDone = true;
   return NULL;
 }
 
@@ -654,6 +655,8 @@ void* getMolUdp64Data(void* attr) {
 
   EkaDev* dev = gr->dev;
   if (!dev) on_error("dev == NULL");
+
+  gr->recoveryThreadDone = false;
 
   EKA_LOG("%s:%u MolUdp64 gap recovery: start=%ju, end=%ju,cnt=%ju",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,start,end,end-start);
@@ -844,6 +847,7 @@ void* getMolUdp64Data(void* attr) {
   close(udpSock);
 
   gr->gapClosed = true;
+  gr->recoveryThreadDone = true;
 
   return NULL;
 } //getMolUdp64Data

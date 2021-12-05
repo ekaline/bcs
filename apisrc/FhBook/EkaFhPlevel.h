@@ -96,7 +96,6 @@ template <class PriceT, class SizeT>
   }
   //----------------------------------------------------------
 
-
  private:
   //----------------------------------------------------------
   inline SizeT* getSizePtr(FhOrderType t) {

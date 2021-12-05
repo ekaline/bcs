@@ -14,6 +14,8 @@ class EkaFhNomGr : public EkaFhNasdaqGr {
 				EkaFhMode op,std::chrono::high_resolution_clock::time_point startTime={});
 
   int                  bookInit();
+  int                  invalidateQ();
+  int                  invalidateBook();
 
   int                  subscribeStaticSecurity(uint64_t        securityId, 
 					       EfhSecurityType efhSecurityType,
