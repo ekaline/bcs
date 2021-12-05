@@ -8,18 +8,7 @@
 #include "EkaFhPlevel.h"
 #include "EkaFhOrder.h"
 
-/* ####################################################### */
-template <class OrderIdT>
-inline uint32_t getOrderHashIdx(OrderIdT orderId, uint64_t MAX_ORDERS, uint ORDERS_HASH_MASK) {
-  if ((orderId & ORDERS_HASH_MASK) > MAX_ORDERS) 
-    on_error("orderId (%jx) & ORDERS_HASH_MASK (%x) (=%jx)  > MAX_ORDERS(%jx)",	      
-	     (uint64_t)orderId,
-	     ORDERS_HASH_MASK,
-	     (uint64_t)orderId & ORDERS_HASH_MASK,
-	     MAX_ORDERS
-	     );
-  return orderId & ORDERS_HASH_MASK;
-}
+
 /* ####################################################### */
 
 template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class FhPlevel, class FhOrder,class SecurityIdT, class OrderIdT, class PriceT, class SizeT>
@@ -120,7 +109,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
 
   /* ####################################################### */
   FhOrder*  findOrder(OrderIdT orderId) {
-    uint32_t index = getOrderHashIdx<OrderIdT>(orderId,MAX_ORDERS,ORDERS_HASH_MASK);
+    uint32_t index = getOrderHashIdx(orderId);
     FhOrder* o = ord[index];
     while (o != NULL) {
       if (o->orderId == orderId) {
@@ -225,8 +214,43 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     return o->size;
   }
   /* ####################################################### */
-  int             invalidate() {
-    return 0; // TBD
+  int invalidate() {
+    int secCnt = 0;
+    int plvlCnt = 0;
+    int ordCnt = 0;
+    for (size_t hashLine = 0; hashLine < SEC_HASH_LINES; hashLine++) {
+      auto s {dynamic_cast<FhSecurity*>(sec[hashLine])};      
+      while (s != NULL) {
+	plvlCnt += s->invalidate();
+	secCnt++;
+	s = (FhSecurity*)s->next;
+      }
+    }
+
+    for (size_t hasLine = 0; hasLine < ORDERS_HASH_LINES; hasLine++) {
+      auto o = ord[hasLine];
+
+      while (o) {
+	auto n = o->next;
+	releaseOrder(o);
+	o = n;
+	ordCnt++;
+      }
+      ord[hasLine] = NULL;
+    }
+    
+    EKA_LOG("%d securities, "
+	    "%d released + %d free == %d == allocated %ju pLevels"
+	    "%d released + %d free == %d == allocated %ju orders",
+	    secCnt,
+	    plvlCnt,freePlevels,plvlCnt+freePlevels,MAX_PLEVELS,
+	    ordCnt,freeOrders,ordCnt+freeOrders,MAX_ORDERS
+	    );
+    
+    freeOrders = MAX_ORDERS;
+    numOrders  = 0;
+    
+    return 0; 
   }
   /* ####################################################### */
   int generateOnQuote (const EfhRunCtx* pEfhRunCtx, 
@@ -327,6 +351,18 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   }
   /* ####################################################### */
  private:
+  /* ####################################################### */  
+  inline uint32_t getOrderHashIdx(OrderIdT orderId) const {
+    uint32_t idx = orderId & ORDERS_HASH_MASK;
+    if ( idx > ORDERS_HASH_LINES) 
+      on_error("orderId (%jx) & ORDERS_HASH_MASK (%jx) (=%x)  > ORDERS_HASH_LINES(%jx)",	      
+	       (uint64_t)orderId,
+	       ORDERS_HASH_MASK,
+	       idx,
+	       ORDERS_HASH_LINES
+	       );
+    return idx;
+  }  
   /* ####################################################### */
   FhPlevel*    getNewPlevel() {
     if (numPlevels++ == MAX_PLEVELS) 
@@ -334,6 +370,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
 	       EKA_EXCH_DECODE(exch),grId,numPlevels,MAX_PLEVELS);
 
     if (numPlevels > maxNumPlevels) maxNumPlevels = numPlevels;
+    freePlevels--;
     FhPlevel* p = plevelFreeHead;
     if (p == NULL) on_error("p == NULL");
     plevelFreeHead = plevelFreeHead->next;
@@ -350,12 +387,14 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     FhOrder* o = orderFreeHead;
     if (o == NULL) on_error("o == NULL, numOrders=%u",numOrders);
     orderFreeHead = orderFreeHead->next;
+    freeOrders --;
     return o;
   }
   /* ####################################################### */
   int            releasePlevel(FhPlevel* p) {
     if (p == NULL) test_error("p == NULL");
     if (numPlevels-- == 0) test_error("numPlevels == 0 before releasing new element for GR%u",grId);
+    freePlevels++;
     p->next = plevelFreeHead;
     plevelFreeHead = p;
     p->reset();
@@ -429,12 +468,13 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     orderFreeHead = o;
     o->orderId    = 0;
     o->size       = 0;
-    o->plevel     = NULL; 
+    o->plevel     = NULL;
+    freeOrders++;
     return 0;
   }
   /* ####################################################### */
   int            deleteOrderFromHash(OrderIdT orderId) {
-    uint32_t index = getOrderHashIdx<OrderIdT>(orderId,MAX_ORDERS,ORDERS_HASH_MASK);
+    uint32_t index = getOrderHashIdx(orderId);
     if (ord[index] == NULL) test_error("ord[%u] == NULL",index);
 
     if ((ord[index]->orderId == orderId) && (ord[index]->next == NULL)) {
@@ -459,7 +499,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
 
     uint64_t orderId = o->orderId;
 
-    uint32_t index = getOrderHashIdx<OrderIdT>(orderId,MAX_ORDERS,ORDERS_HASH_MASK);
+    uint32_t index = getOrderHashIdx(orderId);
     FhOrder** curr = &(ord[index]);
     o->next = NULL;
 
@@ -563,7 +603,8 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   }
   /* ####################################################### */
   int  allocateResources() {
-    for (uint i = 0; i < MAX_ORDERS; i++) ord[i]=NULL;
+    for (uint i = 0; i < ORDERS_HASH_LINES; i++)
+      ord[i]=NULL;
     //----------------------------------------------------------
     EKA_LOG("%s:%u: preallocating %ju free orders",EKA_EXCH_DECODE(exch),grId,MAX_ORDERS);
     FhOrder** o = (FhOrder**)&orderFreeHead;
@@ -572,6 +613,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
       if (*o == NULL) on_error("constructing new Order failed");
       o = (FhOrder**)&(*o)->next;
     }
+    freeOrders = MAX_ORDERS;
     //----------------------------------------------------------
     EKA_LOG("%s:%u: preallocating %ju free Plevels",EKA_EXCH_DECODE(exch),grId,MAX_PLEVELS);
     FhPlevel** p = (FhPlevel**)&plevelFreeHead;
@@ -591,13 +633,15 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   //----------------------------------------------------------
 
  public:
-  FhOrder*        orderFreeHead = NULL; // head pointer to free list of preallocated FhOrder elements
-  uint            numOrders     = 0;    // counter of currently used orders (for statistics only)
-  uint            maxNumOrders  = 0;    // highest value of numOrders ever reached (for statistics only)
+  FhOrder*       orderFreeHead = NULL; // head pointer to free list of preallocated FhOrder elements
+  int            numOrders     = 0;    // counter of currently used orders (for statistics only)
+  int            freeOrders    = MAX_ORDERS;   // counter of currently free orders (for sanity check only)
+  int            maxNumOrders  = 0;    // highest value of numOrders ever reached (for statistics only)
 
-  FhPlevel*       plevelFreeHead = NULL; // head pointer to free list of preallocated FhPlevel elements
-  uint            numPlevels     = 0;    // counter of currently used plevels (for statistics only)
-  uint            maxNumPlevels  = 0;    // highest value of numPlevels ever reached (for statistics only)
+  FhPlevel*      plevelFreeHead = NULL; // head pointer to free list of preallocated FhPlevel elements
+  int            numPlevels     = 0;    // counter of currently used plevels (for statistics only)
+  int            freePlevels    = MAX_PLEVELS;   // counter of currently free plevels (for sanity check only)
+  int            maxNumPlevels  = 0;    // highest value of numPlevels ever reached (for statistics only)
 
  private:
   static const uint     BOOK_SCALE  = 22; //
@@ -612,15 +656,18 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   //         ORDERS_HASH_MASK = 0xFFFF
 
   static const uint64_t MAX_ORDERS       = (1 << SCALE);            
-  static const uint64_t MAX_PLEVELS      = (1 << (SCALE - 1));      
-  static const uint64_t ORDERS_HASH_MASK = ((1 << (SCALE - 3)) - 1);
+  static const uint64_t MAX_PLEVELS      = (1 << (SCALE - 1));
+
+  static const uint64_t ORDERS_HASH_SCALE = SCALE - 3;
+  static const uint64_t ORDERS_HASH_MASK = ((1 << ORDERS_HASH_SCALE) - 1);
+  static const uint64_t ORDERS_HASH_LINES = 0x1 << ORDERS_HASH_SCALE;
 
   static const uint64_t SEC_HASH_LINES = 0x1 << SEC_HASH_SCALE;
   static const uint64_t SEC_HASH_MASK  = (0x1 << SEC_HASH_SCALE) - 1;
 
   FhSecurity*     sec[SEC_HASH_LINES] = {}; // array of pointers to Securities
 
-  FhOrder*        ord[MAX_ORDERS] = {};
+  FhOrder*        ord[ORDERS_HASH_LINES] = {};
 
 
   //----------------------------------------------------------

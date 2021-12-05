@@ -37,7 +37,24 @@ class FhPlevel,
     if (bid->price > ask->price)            return true;
     return false;
   }
-  
+
+  int invalidate() {
+    int cnt = 0;
+    for (auto const& side : {bid, ask}) {
+      auto p  = side;
+      while (p) {
+	auto n = p->next;
+	p->reset();
+	p = n;
+	cnt++;
+      }
+    }
+    numBidPlevels = 0;
+    numAskPlevels = 0;
+    bid           = NULL;
+    ask           = NULL;
+    return cnt;
+  }
 /* --------------------------------------------------------------- */
 
 /*     uint32_t  getTopTotalSize(SideT side) {  */

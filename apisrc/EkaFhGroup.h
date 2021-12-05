@@ -92,6 +92,27 @@ class EkaFhGroup {
     return 0;
   }
 
+  inline const char* printGrpState() const {
+    switch (state) {
+    case GrpState::UNINIT:
+      return "UNINIT";
+    case GrpState::INIT:
+      return "INIT";
+    case GrpState::GAP:
+      return "GAP";
+    case GrpState::SNAPSHOT_GAP:
+      return "SNAPSHOT_GAP";
+    case GrpState::RETRANSMIT_GAP:
+      return "RETRANSMIT_GAP";
+    case GrpState::NORMAL:
+      return "NORMAL";
+    case GrpState::PHLX_SNAPSHOT_GAP:
+      return "PHLX_SNAPSHOT_GAP";
+    default:
+      return "UNKNOWN";
+    }
+  }
+
   //----------------------------------------------------------
   enum class GrpState { UNINIT = 0,INIT, GAP, SNAPSHOT_GAP, RETRANSMIT_GAP, NORMAL, PHLX_SNAPSHOT_GAP };
   enum class DIAGNOSTICS : uint64_t { SAMPLE_PERIOD = 10000, PUSH2POP_SLACK = 10 * 1000 * 1000 /* 10 ms */ };
@@ -117,7 +138,7 @@ class EkaFhGroup {
   volatile bool         snapshot_active     = false; // Glimpse/Spin recovery thread
   volatile bool         recovery_active     = false; // Mold/Grp/Sesm/... thread
 
-  volatile bool         snapshotThreadDone  = false; // thread join() replacement
+  volatile bool         recoveryThreadDone  = false; // thread join() replacement
   volatile bool         heartbeatThreadDone = false; // thread join() replacement
 
   volatile bool         gapClosed           = false;
