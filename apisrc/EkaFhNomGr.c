@@ -19,7 +19,5 @@ int EkaFhNomGr::invalidateQ () {
 int EkaFhNomGr::invalidateBook () {
   if (! book)
     on_error("book does not exist");
-  const size_t bufLen = 2048;
-  char resultMsg[bufLen] = {};
   return book->invalidate();
 }
