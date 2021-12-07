@@ -220,6 +220,8 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     int ordCnt = 0;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    EKA_LOG("%s:%u: invalidating %d numPlevels",
+	    EKA_EXCH_DECODE(exch),grId,numPlevels);
     for (size_t hashLine = 0; hashLine < SEC_HASH_LINES; hashLine++) {
       auto s {dynamic_cast<FhSecurity*>(sec[hashLine])};      
       while (s != NULL) {
@@ -243,6 +245,8 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     freePlevels = MAX_PLEVELS;
     
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    EKA_LOG("%s:%u: invalidating %d numOrders",
+	    EKA_EXCH_DECODE(exch),grId,numOrders);
     for (size_t hasLine = 0; hasLine < ORDERS_HASH_LINES; hasLine++) {
       auto o = ord[hasLine];
 
