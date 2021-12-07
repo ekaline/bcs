@@ -76,6 +76,20 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     }
 #endif
 
+       
+#ifdef _EFH_UNRECOVERABLE_TEST_GAP_INJECT_INTERVAL_
+    if (gr->state == EkaFhGroup::GrpState::NORMAL && 
+	sequence != 0 && 
+	sequence % _EFH_UNRECOVERABLE_TEST_GAP_INJECT_INTERVAL_ == 0) {
+      EKA_WARN("%s:%u: UNRECOVERABLE TEST GAP INJECTED: (_EFH_UNRECOVERABLE_TEST_GAP_INJECT_INTERVAL_ = %d): pkt sequence %ju with %u messages dropped",
+	       EKA_EXCH_DECODE(exch),gr_id, _EFH_UNRECOVERABLE_TEST_GAP_INJECT_INTERVAL_,sequence,msgInPkt);
+      gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
+      gr->gapClosed = false;
+      runGr->udpCh->next(); 
+      continue;
+    }
+#endif
+    
     gr->resetNoMdTimer();
 
 #ifdef FH_LAB
