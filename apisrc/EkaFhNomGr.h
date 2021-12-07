@@ -6,10 +6,7 @@
 
 class EkaFhNomGr : public EkaFhNasdaqGr {
  public:
-  virtual              ~EkaFhNomGr() {
-    invalidateQ();
-    invalidateBook();
-  };
+  virtual              ~EkaFhNomGr() {};
 
   bool                 parseMsg(const EfhRunCtx* pEfhRunCtx,
 				const unsigned char* m,
