@@ -23,10 +23,7 @@ class FhPlevel,
 		  uint64_t        _opaqueAttrB) : 
     EkaFhSecurity(_type,_userData,_opaqueAttrA,_opaqueAttrB) {
     secId         = _secId;
-    numBidPlevels = 0;
-    numAskPlevels = 0;
-    bid           = NULL;
-    ask           = NULL;
+    reset();
   }
 
   /* --------------------------------------------------------------- */
@@ -38,7 +35,7 @@ class FhPlevel,
     return false;
   }
 
-  int invalidate() {
+  int reset() {
     int cnt = 0;
     for (auto const& side : {bid, ask}) {
       auto p  = side;

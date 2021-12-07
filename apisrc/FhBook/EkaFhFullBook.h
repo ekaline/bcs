@@ -218,10 +218,23 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     int secCnt = 0;
     int plvlCnt = 0;
     int ordCnt = 0;
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     for (size_t hashLine = 0; hashLine < SEC_HASH_LINES; hashLine++) {
       auto s {dynamic_cast<FhSecurity*>(sec[hashLine])};      
       while (s != NULL) {
-	plvlCnt += s->invalidate();
+	for (auto const& side : {s->bid, s->ask}) {
+	  auto p  = side;
+	  while (p) {
+	    auto n = p->next;
+	    p->reset();
+	    releasePlevel(p);
+	    p = n;
+	    plvlCnt++;
+	  }
+	}
+	
+	s->reset();
 	secCnt++;
 	s = (FhSecurity*)s->next;
       }
@@ -229,6 +242,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     numPlevels = 0;
     freePlevels = MAX_PLEVELS;
     
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     for (size_t hasLine = 0; hasLine < ORDERS_HASH_LINES; hasLine++) {
       auto o = ord[hasLine];
 
