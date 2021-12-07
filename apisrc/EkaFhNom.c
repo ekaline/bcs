@@ -84,7 +84,9 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     if (gr->state == EkaFhGroup::GrpState::NORMAL && 
 	sequence != 0 && 
 	sequence % _EFH_UNRECOVERABLE_TEST_GAP_INJECT_INTERVAL_ == 0) {
-      EKA_WARN("%s:%u: UNRECOVERABLE TEST GAP INJECTED: (_EFH_UNRECOVERABLE_TEST_GAP_INJECT_INTERVAL_ = %d): pkt sequence %ju with %u messages dropped",
+      EKA_WARN("\n=====================\n"
+	       "%s:%u: UNRECOVERABLE TEST GAP INJECTED: (_EFH_UNRECOVERABLE_TEST_GAP_INJECT_INTERVAL_ = %d): pkt sequence %ju with %u messages dropped"
+	       "\n=====================",
 	       EKA_EXCH_DECODE(exch),gr_id, _EFH_UNRECOVERABLE_TEST_GAP_INJECT_INTERVAL_,sequence,msgInPkt);
       gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
       gr->gapClosed = false;
@@ -129,6 +131,7 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     case EkaFhGroup::GrpState::RETRANSMIT_GAP :
     case EkaFhGroup::GrpState::SNAPSHOT_GAP :
       if (mcGap) {
+	mcGap = false;
 	EKA_LOG("%s:%u: Gap in %s: invalidating Group and getting full Glimpse Snapshot",
 		EKA_EXCH_DECODE(exch),gr->id,gr->printGrpState());
 	gr->recovery_active = false;

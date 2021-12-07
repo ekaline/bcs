@@ -226,7 +226,9 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
 	s = (FhSecurity*)s->next;
       }
     }
-
+    numPlevels = 0;
+    freePlevels = MAX_PLEVELS;
+    
     for (size_t hasLine = 0; hasLine < ORDERS_HASH_LINES; hasLine++) {
       auto o = ord[hasLine];
 
@@ -240,10 +242,10 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     }
     
     EKA_LOG("%d securities, "
-	    "%d released + %d free == %d == allocated %ju pLevels"
-	    "%d released + %d free == %d == allocated %ju orders",
+	    "%d released + %d free == %d (== allocated %ju pLevels), numPlevels=%d, freePlevels=%d"
+	    "%d released + %d free == %d (== allocated %ju orders)",
 	    secCnt,
-	    plvlCnt,freePlevels,plvlCnt+freePlevels,MAX_PLEVELS,
+	    plvlCnt,freePlevels,plvlCnt+freePlevels,MAX_PLEVELS,numPlevels, freePlevels,
 	    ordCnt,freeOrders,ordCnt+freeOrders,MAX_ORDERS
 	    );
     
