@@ -39,13 +39,16 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
     auto pkt = getUdpPkt(runGr,&msgInPkt,&sequence,&gr_id);
     if (!pkt) continue;
+
+    auto gr {dynamic_cast<EkaFhNomGr*>(b_gr[gr_id])};
+    if (!gr) on_error("b_gr[%u] = NULL",gr_id);
+
+    gr->resetNoMdTimer();
+
     if (sequence == 0 || msgInPkt == 0) {
       runGr->udpCh->next(); 
       continue; // unsequenced packet or heartbeat
     }
-
-    auto gr {dynamic_cast<EkaFhNomGr*>(b_gr[gr_id])};
-    if (!gr) on_error("b_gr[%u] = NULL",gr_id);
 
     
     if (mcExpectedSeq == 1) mcExpectedSeq = sequence;
@@ -85,13 +88,12 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	       EKA_EXCH_DECODE(exch),gr_id, _EFH_UNRECOVERABLE_TEST_GAP_INJECT_INTERVAL_,sequence,msgInPkt);
       gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
       gr->gapClosed = false;
+      mcGap = true;
       runGr->udpCh->next(); 
       continue;
     }
 #endif
     
-    gr->resetNoMdTimer();
-
 #ifdef FH_LAB
     gr->state = EkaFhGroup::GrpState::NORMAL;
     gr->processUdpPkt(pEfhRunCtx,pkt,msgInPkt,sequence);
