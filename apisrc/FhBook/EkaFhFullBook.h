@@ -32,6 +32,24 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   ~EkaFhFullBook() {
     EKA_LOG("Invalidating book before deleting");
     invalidate();
+    //----------------------------------------------------------
+    delete[] plevelFreeHead;
+    //----------------------------------------------------------
+    auto o = orderFreeHead;
+    while (o) {
+      auto n = o->next;
+      delete o;
+      o = n;
+    }
+    //----------------------------------------------------------
+    for (size_t hashLine = 0; hashLine < SEC_HASH_LINES; hashLine++) {
+      auto s = sec[hashLine];
+      while (s) {
+	auto n = s->next;
+	delete s;
+	s = dynamic_cast<FhSecurity*>(n);
+      }
+    }
   }
   /* ####################################################### */
 
@@ -220,40 +238,23 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   /* ####################################################### */
   inline int invalidate() {
     int secCnt = 0;
-    int plvlCnt = 0;
     int ordCnt = 0;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    EKA_LOG("%s:%u: invalidating %d numPlevels",
-	    EKA_EXCH_DECODE(exch),grId,numPlevels);
+    EKA_LOG("%s:%u: invalidating %d Securities, %d Plevels, %d Orders",
+	    EKA_EXCH_DECODE(exch),grId,
+	    numSecurities,numPlevels,numOrders);
     
     for (size_t hashLine = 0; hashLine < SEC_HASH_LINES; hashLine++) {
-      auto s {dynamic_cast<FhSecurity*>(sec[hashLine])};      
-      while (s != NULL) {
-	EKA_LOG("hashLine %4jd: Invalidating %5d / %5d Securities, numPlevels=%d"
-		"sizeof(FhPlevel) = %jd, sizeof(FhOrder) = %jd",
-		hashLine,secCnt+1,numSecurities,numPlevels,
-		sizeof(FhPlevel),sizeof(FhOrder)
-		);
-#if 1
-	for (auto const& side : {s->bid, s->ask}) {
-	  auto p  = side;
-	  while (p) {
-	    auto n = p->next;
-	    releasePlevel(p);
-	    p = n;
-	    plvlCnt++;
-	  }
-	}
-#endif	
+      auto s = sec[hashLine];      
+      while (s) {
+	auto n = s->next;
 	s->reset();
 	secCnt++;
-	s = (FhSecurity*)s->next;
+	s = dynamic_cast<FhSecurity*>(n);
       }
     }
-    // numPlevels = 0;
-    // freePlevels = MAX_PLEVELS;
-    
+
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     EKA_LOG("%s:%u: invalidating %d numOrders",
 	    EKA_EXCH_DECODE(exch),grId,numOrders);
@@ -269,17 +270,18 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
       ord[hasLine] = NULL;
     }
     
-    EKA_LOG("%d securities, "
-	    "%d released + %d free == %d (== allocated %ju pLevels), numPlevels=%d, freePlevels=%d"
-	    "%d released + %d free == %d (== allocated %ju orders)",
-	    secCnt,
-	    plvlCnt,freePlevels,plvlCnt+freePlevels,MAX_PLEVELS,numPlevels, freePlevels,
-	    ordCnt,freeOrders,ordCnt+freeOrders,MAX_ORDERS
+    EKA_LOG("%s:%u: invalidated %d Securities, ALL Plevels, %d Orders)",
+	    EKA_EXCH_DECODE(exch),grId,
+	    secCnt,ordCnt
 	    );
     
-    freeOrders = MAX_ORDERS;
-    numOrders  = 0;
-    
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    EKA_LOG("%s:%u: invalidating %d numPlevels",
+	    EKA_EXCH_DECODE(exch),grId,numPlevels);
+    carvePlevels();
+
+    EKA_LOG("%s:%u: book is invalidated",
+	    EKA_EXCH_DECODE(exch),grId);
     return 0; 
   }
   /* ####################################################### */
@@ -632,6 +634,20 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     return newP;
   }
   /* ####################################################### */
+  int  carvePlevels() {
+    EKA_LOG("%s:%u: carving Plevels array",EKA_EXCH_DECODE(exch),grId);
+    auto p = plevelFreeHead;
+    for (size_t i = 0; i < MAX_PLEVELS; i++) {
+      p->reset();
+      if (i != MAX_PLEVELS - 1)
+	p->next = p + 1;
+      p++;
+    }
+    numPlevels  = 0;
+    freePlevels = MAX_PLEVELS; 
+    return 0;
+  }
+  /* ####################################################### */
   int  allocateResources() {
     for (uint i = 0; i < ORDERS_HASH_LINES; i++)
       ord[i]=NULL;
@@ -646,12 +662,10 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     freeOrders = MAX_ORDERS;
     //----------------------------------------------------------
     EKA_LOG("%s:%u: preallocating %ju free Plevels",EKA_EXCH_DECODE(exch),grId,MAX_PLEVELS);
-    FhPlevel** p = (FhPlevel**)&plevelFreeHead;
-    for (uint i = 0; i < MAX_PLEVELS; i++) {
-      *p = new FhPlevel();
-      if (*p == NULL) on_error("constructing new Plevel failed");
-      p = (FhPlevel**)&(*p)->next;
-    }
+    plevelFreeHead = new FhPlevel[MAX_PLEVELS];
+    if (! plevelFreeHead)
+      on_error("failed to allocate %ju MAX_PLEVELS",MAX_PLEVELS);
+    carvePlevels();
     //----------------------------------------------------------
     EKA_LOG("%s:%u: completed",EKA_EXCH_DECODE(exch),grId);
 

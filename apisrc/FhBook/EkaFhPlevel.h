@@ -17,6 +17,9 @@ inline std::string side2str(SideT side) {
 template <class PriceT, class SizeT>
   class alignas(64) EkaFhPlevel {
  public:
+  EkaFhPlevel() {
+    reset();
+  }
   //----------------------------------------------------------
   inline bool isEmpty() {
     return cnt == 0;

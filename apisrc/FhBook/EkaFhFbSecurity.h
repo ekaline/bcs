@@ -26,6 +26,7 @@ class FhPlevel,
     reset();
   }
 
+  ~EkaFhFbSecurity() {};
   /* --------------------------------------------------------------- */
 
   inline bool crossedPrice() {
