@@ -33,7 +33,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     EKA_LOG("Invalidating book before deleting");
     invalidate();
     //----------------------------------------------------------
-    delete[] plevelFreeHead;
+    delete[] pLevelsPool;
     //----------------------------------------------------------
     auto o = orderFreeHead;
     while (o) {
@@ -636,13 +636,14 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   /* ####################################################### */
   int  carvePlevels() {
     EKA_LOG("%s:%u: carving Plevels array",EKA_EXCH_DECODE(exch),grId);
-    auto p = plevelFreeHead;
+    auto p = pLevelsPool;
     for (size_t i = 0; i < MAX_PLEVELS; i++) {
       p->reset();
       if (i != MAX_PLEVELS - 1)
 	p->next = p + 1;
       p++;
     }
+    plevelFreeHead = pLevelsPool;
     numPlevels  = 0;
     freePlevels = MAX_PLEVELS; 
     return 0;
@@ -662,8 +663,8 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     freeOrders = MAX_ORDERS;
     //----------------------------------------------------------
     EKA_LOG("%s:%u: preallocating %ju free Plevels",EKA_EXCH_DECODE(exch),grId,MAX_PLEVELS);
-    plevelFreeHead = new FhPlevel[MAX_PLEVELS];
-    if (! plevelFreeHead)
+    pLevelsPool = new FhPlevel[MAX_PLEVELS];
+    if (! pLevelsPool)
       on_error("failed to allocate %ju MAX_PLEVELS",MAX_PLEVELS);
     carvePlevels();
     //----------------------------------------------------------
@@ -709,10 +710,11 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   static const uint64_t SEC_HASH_LINES = 0x1 << SEC_HASH_SCALE;
   static const uint64_t SEC_HASH_MASK  = (0x1 << SEC_HASH_SCALE) - 1;
 
-  FhSecurity*     sec[SEC_HASH_LINES] = {}; // array of pointers to Securities
+  FhSecurity*  sec[SEC_HASH_LINES] = {}; // array of pointers to Securities
 
-  FhOrder*        ord[ORDERS_HASH_LINES] = {};
+  FhOrder*     ord[ORDERS_HASH_LINES] = {};
 
+  FhPlevel*    pLevelsPool = NULL;
 
   //----------------------------------------------------------
 
