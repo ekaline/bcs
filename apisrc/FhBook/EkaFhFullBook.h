@@ -30,8 +30,10 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   }
   /* ####################################################### */
   ~EkaFhFullBook() {
-    EKA_LOG("Invalidating book before deleting");
-    invalidate();
+    EKA_LOG("%s:%u: Deleting Book",EKA_EXCH_DECODE(exch),grId);
+    
+    // EKA_LOG("Invalidating book before deleting");
+    // invalidate();
     //----------------------------------------------------------
     delete[] pLevelsPool;
     //----------------------------------------------------------
