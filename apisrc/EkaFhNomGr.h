@@ -6,7 +6,12 @@
 
 class EkaFhNomGr : public EkaFhNasdaqGr {
  public:
-  virtual              ~EkaFhNomGr() {};
+  ~EkaFhNomGr() {
+    if (book) {
+      delete book;
+      EKA_DEBUG("%s:%u Book is deleted",EKA_EXCH_DECODE(exch),id);
+    }
+  };
 
   bool                 parseMsg(const EfhRunCtx* pEfhRunCtx,
 				const unsigned char* m,

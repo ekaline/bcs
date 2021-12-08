@@ -311,11 +311,12 @@ EkaFhGroup::~EkaFhGroup () {
     fclose(parser_log);
   }
 
-  if (q != NULL) {
+  if (q) {
     delete q;
     EKA_DEBUG("%s:%u Q is deleted",EKA_EXCH_DECODE(exch),id);
     //    book->invalidate();
   }
+
   EKA_DEBUG("%s:%u closed",EKA_EXCH_DECODE(exch),id);
 }
 

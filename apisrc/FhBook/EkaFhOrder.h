@@ -6,7 +6,7 @@
 
 // ###############################################################
 template <class FhPlevel, class OrderIdT, class SizeT>
-  class EkaFhOrder{
+class alignas(64) EkaFhOrder{
  public:
     EkaFhOrder() {
       type    = FhOrderType::UNINIT;
