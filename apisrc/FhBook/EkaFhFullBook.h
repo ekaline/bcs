@@ -28,7 +28,11 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     allocateResources();
     return 0;
   }
-
+  /* ####################################################### */
+  ~EkaFhFullBook() {
+    EKA_LOG("Invalidating book before deleting");
+    invalidate();
+  }
   /* ####################################################### */
 
   void printPlevel(FhPlevel* p, const char* msg, std::FILE *file = stdout) {
@@ -68,7 +72,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   }
   /* ####################################################### */
 
-  FhSecurity*  findSecurity(SecurityIdT secId) {
+  inline FhSecurity*  findSecurity(SecurityIdT secId) {
     uint32_t index =  secId & SEC_HASH_MASK;
     if (index >= SEC_HASH_LINES) on_error("index = %u >= SEC_HASH_LINES %ju",index,SEC_HASH_LINES);
     if (sec[index] == NULL) return NULL;
@@ -84,7 +88,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   }
   /* ####################################################### */
 
-  FhSecurity*  subscribeSecurity(SecurityIdT     secId,
+  inline FhSecurity*  subscribeSecurity(SecurityIdT     secId,
 				    EfhSecurityType type,
 				    EfhSecUserData  userData,
 				    uint64_t        opaqueAttrA,
@@ -103,12 +107,12 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
       while (sp->next != NULL) sp = (FhSecurity*)sp->next;
       sp->next = s;
     }
-    //    numSecurities++;
+    numSecurities++;
     return s;
   }
 
   /* ####################################################### */
-  FhOrder*  findOrder(OrderIdT orderId) {
+  inline FhOrder*  findOrder(OrderIdT orderId) {
     uint32_t index = getOrderHashIdx(orderId);
     FhOrder* o = ord[index];
     while (o != NULL) {
@@ -128,7 +132,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
 
   /* ####################################################### */
 
-  FhOrder*    addOrder(FhSecurity*     s,
+  inline FhOrder* addOrder(FhSecurity*     s,
 		       OrderIdT        _orderId,
 		       FhOrderType     _type, 
 		       PriceT          _price, 
@@ -152,7 +156,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
 
   /* ####################################################### */
 
-  int modifyOrder(FhOrder* o, PriceT price,SizeT size) {
+  inline int modifyOrder(FhOrder* o, PriceT price,SizeT size) {
     FhPlevel* p = o->plevel;
     if (p->price == price) {
       if (p->deductSize(o->type,o->size) < 0) 
@@ -184,7 +188,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     return 0;
   }
   /* ####################################################### */
-  int deleteOrder(FhOrder* o) {
+  inline int deleteOrder(FhOrder* o) {
     if (o == NULL) test_error("o == NULL for GR%u",grId);
     FhPlevel* p = o->plevel;
     if (p == NULL) on_error("p == NULL");
@@ -207,14 +211,14 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     return 0;
   }
   /* ####################################################### */
-  int reduceOrderSize(FhOrder* o, SizeT deltaSize) {
+  inline int reduceOrderSize(FhOrder* o, SizeT deltaSize) {
     if (o->size < deltaSize) test_error("o->size %d < deltaSize %d",(int)o->size, (int)deltaSize);
    
     o->size -= deltaSize;
     return o->size;
   }
   /* ####################################################### */
-  int invalidate() {
+  inline int invalidate() {
     int secCnt = 0;
     int plvlCnt = 0;
     int ordCnt = 0;
@@ -222,27 +226,33 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     EKA_LOG("%s:%u: invalidating %d numPlevels",
 	    EKA_EXCH_DECODE(exch),grId,numPlevels);
+    
     for (size_t hashLine = 0; hashLine < SEC_HASH_LINES; hashLine++) {
       auto s {dynamic_cast<FhSecurity*>(sec[hashLine])};      
       while (s != NULL) {
+	EKA_LOG("hashLine %4jd: Invalidating %5d / %5d Securities, numPlevels=%d"
+		"sizeof(FhPlevel) = %jd, sizeof(FhOrder) = %jd",
+		hashLine,secCnt+1,numSecurities,numPlevels,
+		sizeof(FhPlevel),sizeof(FhOrder)
+		);
+#if 1
 	for (auto const& side : {s->bid, s->ask}) {
 	  auto p  = side;
 	  while (p) {
 	    auto n = p->next;
-	    p->reset();
 	    releasePlevel(p);
 	    p = n;
 	    plvlCnt++;
 	  }
 	}
-	
+#endif	
 	s->reset();
 	secCnt++;
 	s = (FhSecurity*)s->next;
       }
     }
-    numPlevels = 0;
-    freePlevels = MAX_PLEVELS;
+    // numPlevels = 0;
+    // freePlevels = MAX_PLEVELS;
     
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     EKA_LOG("%s:%u: invalidating %d numOrders",
@@ -273,7 +283,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     return 0; 
   }
   /* ####################################################### */
-  int generateOnQuote (const EfhRunCtx* pEfhRunCtx, 
+  inline int generateOnQuote (const EfhRunCtx* pEfhRunCtx, 
 		       FhSecurity* s, 
 		       uint64_t sequence, 
 		       uint64_t timestamp,
@@ -384,7 +394,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     return idx;
   }  
   /* ####################################################### */
-  FhPlevel*    getNewPlevel() {
+  inline FhPlevel*    getNewPlevel() {
     if (numPlevels++ == MAX_PLEVELS) 
       on_error("%s:%u: out of preallocated FhPlevels: numPlevels=%u MAX_PLEVELS=%ju",
 	       EKA_EXCH_DECODE(exch),grId,numPlevels,MAX_PLEVELS);
@@ -398,7 +408,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     return p;
   }
   /* ####################################################### */
-  FhOrder*     getNewOrder() {
+  inline FhOrder*     getNewOrder() {
     if (++numOrders == MAX_ORDERS) 
       on_error("%s:%u: out of preallocated FhOrders: numOrders=%u MAX_ORDERS=%ju",
 	       EKA_EXCH_DECODE(exch),grId,numOrders,MAX_ORDERS);
@@ -411,7 +421,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     return o;
   }
   /* ####################################################### */
-  int            releasePlevel(FhPlevel* p) {
+  inline int releasePlevel(FhPlevel* p) {
     if (p == NULL) test_error("p == NULL");
     if (numPlevels-- == 0) test_error("numPlevels == 0 before releasing new element for GR%u",grId);
     freePlevels++;
@@ -422,7 +432,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   }
 
   /* ####################################################### */
-  int deletePlevel(FhPlevel* p) {
+  inline int deletePlevel(FhPlevel* p) {
     /* TEST_LOG("%s %u %s %u cust_size=%u, bd_size=%u, p->next=%p", */
     /* 	     side2str(p->side).c_str(), */
     /* 	     p->price, */
@@ -481,7 +491,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   }
 
   /* ####################################################### */
-  int releaseOrder(FhOrder* o) {
+  inline int releaseOrder(FhOrder* o) {
     if (o == NULL) test_error("o == NULL");
     if (numOrders-- == 0) test_error("numOrders == 0 before releasing new element for GR%u",grId);
     o->next       = orderFreeHead;
@@ -493,7 +503,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     return 0;
   }
   /* ####################################################### */
-  int            deleteOrderFromHash(OrderIdT orderId) {
+  inline int deleteOrderFromHash(OrderIdT orderId) {
     uint32_t index = getOrderHashIdx(orderId);
     if (ord[index] == NULL) test_error("ord[%u] == NULL",index);
 
@@ -514,7 +524,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     return 0;
   }
   /* ####################################################### */
-  int            addOrder2Hash (FhOrder* o) {
+  inline int addOrder2Hash (FhOrder* o) {
     if (o == NULL) test_error("o==NULL");
 
     uint64_t orderId = o->orderId;
@@ -533,7 +543,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     return 0;
   }
   /* ####################################################### */
-  FhPlevel* findOrAddPlevel (FhSecurity* s,   
+  inline FhPlevel* findOrAddPlevel (FhSecurity* s,   
 				PriceT     _price, 
 				SideT      _side) {
     FhPlevel** pTob = NULL;
@@ -560,7 +570,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     return NULL;
   }
   /* ####################################################### */
-  FhPlevel* addPlevelAfterTob(FhSecurity* s,
+  inline FhPlevel* addPlevelAfterTob(FhSecurity* s,
 			      PriceT     _price, 
 			      SideT      _side) {
     FhPlevel* newP = getNewPlevel();
@@ -594,9 +604,9 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     return newP;
   }
   /* ####################################################### */
-  FhPlevel*    addPlevelAfterP  (FhSecurity* s,
-				 FhPlevel* p,     
-				 PriceT _price) {
+  inline FhPlevel* addPlevelAfterP  (FhSecurity* s,
+				     FhPlevel* p,     
+				     PriceT _price) {
     FhPlevel* newP = getNewPlevel();
     if (newP == NULL) on_error("newP == NULL");
     newP->price =_price;
@@ -701,7 +711,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   PriceT	prevBestAskPrice      = 0;
   SizeT  	prevBestAskTotalSize  = 0;
 
-
+  int           numSecurities = 0;
 };
 
 #endif

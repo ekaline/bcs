@@ -28,14 +28,14 @@ class FhPlevel,
 
   /* --------------------------------------------------------------- */
 
-  bool crossedPrice() {
+  inline bool crossedPrice() {
     if (!bid || !ask)                       return false;
     if (bid->price == 0 || ask->price == 0) return false;
     if (bid->price > ask->price)            return true;
     return false;
   }
 
-  int reset() {
+  inline int reset() {
     int cnt = 0;
     for (auto const& side : {bid, ask}) {
       auto p  = side;
