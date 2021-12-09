@@ -338,7 +338,7 @@ static EkaFhParseResult procSesm(const EfhRunCtx* pEfhRunCtx,
 			       sesm_hdr.length,sizeof(sesm_hdr.type));
   if (payloadLen > 0) {
     r = recv(sock,msg,payloadLen,MSG_WAITALL);
-    if (r <= 0) {
+    if (r <= 0 || r != payloadLen) {
       dev->lastErrno = errno;
       EKA_WARN("%s:%u failed to receive SESM payload of %d bytes: r=%d: errno=%d, \'%s\'", 
 	       EKA_EXCH_DECODE(gr->exch),gr->id,payloadLen,r,errno,strerror(errno));
