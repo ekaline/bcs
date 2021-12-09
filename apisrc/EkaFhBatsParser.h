@@ -75,6 +75,7 @@ namespace Bats {
     x == MsgId::ORDER_DELETE                 ? "ORDER_DELETE" :		\
     x == MsgId::TRADE_LONG                   ? "TRADE_LONG" :		\
     x == MsgId::TRADE_SHORT                  ? "TRADE_SHORT" :		\
+    x == MsgId::TRADE_EXPANDED               ? "TRADE_EXPANDED" :	\
     x == MsgId::TRADE_BREAK                  ? "TRADE_BREAK" :		\
     x == MsgId::ADD_ORDER_EXPANDED           ? "ADD_ORDER_EXPANDED" :	\
     x == MsgId::TRADING_STATUS               ? "TRADING_STATUS" :	\

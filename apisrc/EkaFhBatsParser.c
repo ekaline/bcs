@@ -359,11 +359,11 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   case MsgId::TRADE_SHORT:  { 
     auto message {reinterpret_cast<const TradeShort *>(m)};
 
-    OrderIdT order_id = message->order_id;
-    FhOrder* o = book->findOrder(order_id);
-    if (o == NULL) return false;
-    assert (o->plevel != NULL);
-    assert (o->plevel->s != NULL);
+    /* OrderIdT order_id = message->order_id; */
+    /* FhOrder* o = book->findOrder(order_id); */
+    /* if (o == NULL) return false; */
+    /* assert (o->plevel != NULL); */
+    /* assert (o->plevel->s != NULL); */
     SecurityIdT security_id =  symbol2secId(message->symbol);
 
     s = book->findSecurity(security_id);
@@ -392,9 +392,9 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   case MsgId::TRADE_LONG:  { 
     auto message {reinterpret_cast<const TradeLong *>(m)};
 
-    OrderIdT order_id = message->order_id;
-    FhOrder* o = book->findOrder(order_id);
-    if (o == NULL) return false;
+    /* OrderIdT order_id = message->order_id; */
+    /* FhOrder* o = book->findOrder(order_id); */
+    /* if (o == NULL) return false; */
     SecurityIdT security_id =  symbol2secId(message->symbol);
 
     s = book->findSecurity(security_id);
