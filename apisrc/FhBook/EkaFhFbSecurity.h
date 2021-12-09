@@ -14,7 +14,7 @@ class FhPlevel,
   class OrderIdT, 
   class PriceT, 
   class SizeT>
-  class EkaFhFbSecurity : public EkaFhSecurity {
+class alignas(64) EkaFhFbSecurity : public EkaFhSecurity {
  public:
   EkaFhFbSecurity(SecurityIdT     _secId,
 		  EfhSecurityType _type,
