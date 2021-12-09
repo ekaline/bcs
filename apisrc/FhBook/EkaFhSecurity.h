@@ -8,7 +8,7 @@ class FhPlevel;
 
 /* ####################################################### */
 
-class EkaFhSecurity {
+class alignas(64) EkaFhSecurity {
  protected:
   EkaFhSecurity(EfhSecurityType _type,
 		EfhSecUserData  _userData,
