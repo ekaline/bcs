@@ -53,7 +53,7 @@ void EkaFhBatsGr::pushUdpPkt2Q(const uint8_t* pkt,
 
 int EkaFhBatsGr::bookInit () {
   book = new FhBook(dev,id,exch);
-  if (book == NULL) on_error("book = NULL");
+  if (! book) on_error("book = NULL");
 
   book->init();
 
@@ -61,18 +61,18 @@ int EkaFhBatsGr::bookInit () {
 }
 /* ##################################################################### */
 int EkaFhBatsGr::closeSnapshotGap(EfhCtx*            pEfhCtx, 
-				    const EfhRunCtx* pEfhRunCtx, 
-				    uint64_t         startSeq,
-				    uint64_t         endSeq) {
+				  const EfhRunCtx* pEfhRunCtx, 
+				  uint64_t         startSeq,
+				  uint64_t         endSeq) {
   
   std::string threadName = std::string("ST_") + std::string(EKA_EXCH_SOURCE_DECODE(exch)) + '_' + std::to_string(id);
-  EkaFhThreadAttr* attr  = new EkaFhThreadAttr(pEfhCtx, 
-					       (const EfhRunCtx*)pEfhRunCtx, 
-					       this, 
-					       startSeq, 
-					       endSeq, 
-					       EkaFhMode::SNAPSHOT);
-  if (attr == NULL) on_error("attr = NULL");
+  auto attr  = new EkaFhThreadAttr(pEfhCtx, 
+				   pEfhRunCtx, 
+				   this, 
+				   startSeq, 
+				   endSeq, 
+				   EkaFhMode::SNAPSHOT);
+  if (! attr) on_error("attr = NULL");
   
   dev->createThread(threadName.c_str(),
 		    EkaServiceType::kFeedSnapshot,
@@ -85,19 +85,19 @@ int EkaFhBatsGr::closeSnapshotGap(EfhCtx*            pEfhCtx,
 }
 /* ##################################################################### */
 int EkaFhBatsGr::closeIncrementalGap(EfhCtx*            pEfhCtx, 
-				       const EfhRunCtx* pEfhRunCtx, 
-				       uint64_t         startSeq,
-				       uint64_t         endSeq) {
+				     const EfhRunCtx* pEfhRunCtx, 
+				     uint64_t         startSeq,
+				     uint64_t         endSeq) {
   
 
   std::string threadName = std::string("ST_") + std::string(EKA_EXCH_SOURCE_DECODE(exch)) + '_' + std::to_string(id);
-  EkaFhThreadAttr* attr  = new EkaFhThreadAttr(pEfhCtx, 
-					       (const EfhRunCtx*)pEfhRunCtx, 
-					       this, 
-					       startSeq, 
-					       endSeq,  
-					       EkaFhMode::RECOVERY);
-  if (attr == NULL) on_error("attr = NULL");
+  auto attr  = new EkaFhThreadAttr(pEfhCtx, 
+				   pEfhRunCtx, 
+				   this, 
+				   startSeq, 
+				   endSeq,  
+				   EkaFhMode::RECOVERY);
+  if (! attr) on_error("attr = NULL");
     
   dev->createThread(threadName.c_str(),
 		    EkaServiceType::kFeedSnapshot,
