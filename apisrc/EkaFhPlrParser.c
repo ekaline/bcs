@@ -112,21 +112,19 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 
     msg.numLegs = root->NoOfLegs;
 
-    auto leg  {reinterpret_cast<const ComplexDefinitionLeg*>(pMsg + sizeof(*root))};
+    auto legs  {reinterpret_cast<const ComplexDefinitionLeg*>(pMsg + sizeof(*root))};
     for (uint i = 0; i < root->NoOfLegs; i++) {
-      msg.legs[i].securityId = leg->SymbolIndex;
-      msg.legs[i].type       = getComplexSecurityType(leg->SecurityType);
+      msg.legs[i].securityId = legs[i].SymbolIndex;
+      msg.legs[i].type       = getComplexSecurityType(legs[i].SecurityType);
       if (msg.legs[i].type == EfhSecurityType::kStock)
-	msg.header.underlyingId = leg->SymbolIndex;
+	msg.header.underlyingId = legs[i].SymbolIndex;
 
-      msg.legs[i].side       = getSide(leg->side);
-      msg.legs[i].ratio      = leg->LegRatioQty;	 
+      msg.legs[i].side       = getSide(legs[i].side);
+      msg.legs[i].ratio      = legs[i].LegRatioQty;
     }
     if (pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL)
       on_error("pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL");
     pEfhRunCtx->onEfhComplexDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
-
-    leg ++; //+= sizeof(*leg);
   }
     break;
         // #####################################################
