@@ -16,7 +16,7 @@ class fh_msg {
   char        pad[2];
   int32_t     push_cpu_id;
   uint64_t    push_ts;
-  enum { MSG_SIZE = (128 - sizeof(sequence) - sizeof(gr_id) - sizeof(pad) - sizeof(push_cpu_id) - sizeof(push_ts))};
+  enum { MSG_SIZE = (256 - sizeof(sequence) - sizeof(gr_id) - sizeof(pad) - sizeof(push_cpu_id) - sizeof(push_ts))};
 
   char        data[MSG_SIZE]; // MSG_SIZE = 104 bytes
 };
