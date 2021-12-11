@@ -14,6 +14,15 @@ inline EfhTradeStatus quoteCondition(const char c) {
   }
 }
 
+inline EfhTradeCond getTradeCondition(const Trade* trade) {
+  // FIXME: there is a lot more to do here...
+  switch (trade->tradeCond1) {
+  case 'e': return EfhTradeCond::kSLFT;
+  case 'S': return EfhTradeCond::kISOI;
+  default: return EfhTradeCond::kREG;
+  }
+}
+
 bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 			  const unsigned char*   pMsg,
 			  uint64_t         sequence,
@@ -278,7 +287,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 	m->price,
 	m->volume,
 	s->trading_action,
-	EfhTradeCond::kREG
+	getTradeCondition(m)
     };
     pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
   }
