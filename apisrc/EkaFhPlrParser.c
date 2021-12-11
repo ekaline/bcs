@@ -287,6 +287,8 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     
   case MsgType::SeriesRfq : { // 307
     auto m {reinterpret_cast<const Rfq*>(pMsg)};
+    FhSecurity* s = book->findSecurity(m->seriesIndex);
+    if (s == NULL) return false;
 
     EfhAuctionUpdateMsg msg{};
     msg.header.msgType        = EfhMsgType::kAuctionUpdate;
@@ -309,7 +311,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     sprintf(msg.firmId,"%u",m->participant);
     if (pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL)
       on_error("pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL");
-    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
     
   }
     break;   
