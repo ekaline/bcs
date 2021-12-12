@@ -49,7 +49,7 @@ void EkaFhPlrGr::pushUdpPkt2Q(const uint8_t* pkt,
   for (uint msg=0; msg < msgInPkt; msg++) {
     auto msgHdr {reinterpret_cast<const MsgHdr*>(p)};
     if (msgHdr->size > fh_msg::MSG_SIZE)
-      on_error("msgHdr->size %u > fh_msg::MSG_SIZE %u",
+      on_error("msgHdr->size %u > fh_msg::MSG_SIZE %jd",
 	       msgHdr->size,fh_msg::MSG_SIZE);
     fh_msg* n = q->push();
     memcpy (n->data,p,msgHdr->size);

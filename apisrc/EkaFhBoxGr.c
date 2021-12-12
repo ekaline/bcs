@@ -143,7 +143,7 @@ void EkaFhBoxGr::pushUdpPkt2Q(const uint8_t* pkt, uint pktLen) {
     if (memcmp(msgType,"F ",2) == 0 ||  // Quote
     	memcmp(msgType,"Z ",2) == 0) {  // Time
       if (msgLen > fh_msg::MSG_SIZE) 
-	on_error("\'%c\%c\' msgLen %u > fh_msg::MSG_SIZE %u",
+	on_error("\'%c\%c\' msgLen %u > fh_msg::MSG_SIZE %jd",
 		 msgType[0],msgType[1],msgLen,fh_msg::MSG_SIZE);
       auto n = q->push();
       n->type = fh_msg::MsgType::REAL;

@@ -6,7 +6,8 @@
 class EkaDev;
 class EkaFhGroup;
 
-class fh_msg {
+static const size_t FH_MSG_ELEM_SIZE = 256;
+class alignas(FH_MSG_ELEM_SIZE) fh_msg {
  public:
   enum class MsgType : uint8_t { REAL = 0, DUMMY = 1 };
   
@@ -16,9 +17,15 @@ class fh_msg {
   char        pad[2];
   int32_t     push_cpu_id;
   uint64_t    push_ts;
-  enum { MSG_SIZE = (256 - sizeof(sequence) - sizeof(gr_id) - sizeof(pad) - sizeof(push_cpu_id) - sizeof(push_ts))};
 
-  char        data[MSG_SIZE]; // MSG_SIZE = 104 bytes
+  static const size_t MSG_SIZE = FH_MSG_ELEM_SIZE -
+    sizeof(sequence) -
+    sizeof(gr_id) -
+    sizeof(pad) -
+    sizeof(push_cpu_id) -
+    sizeof(push_ts);
+
+  char        data[MSG_SIZE]; // MSG_SIZE = 232 bytes
 };
 
 class fh_q {
