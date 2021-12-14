@@ -16,7 +16,17 @@
 volatile bool keep_work = true;
 /* --------------------------------------------- */
 
-extern void  INThandler(int sig);
+// static so that we link locally to this one but we do not export it, otherwise
+// we'll have multiple definition errors against EfhTestFuncs.c
+static void INThandler(int sig) {
+  signal(sig, SIG_IGN);
+  keep_work = false;
+  printf("%s:Ctrl-C detected\n",__func__);
+  printf ("%s: exitting...\n",__func__);
+  fflush(stdout);
+  return;
+}
+/* --------------------------------------------- */
 
 struct PcapFileHdr {
     uint32_t magic_number;

@@ -19,9 +19,9 @@ TestCtx* testCtx;
 
 void  INThandler(int sig) {
   signal(sig, SIG_IGN);
-  testCtx->keep_work = false;
-  printf("%s: Ctrl-C detected:  exitting...\n",__func__);
-  fflush(stdout);
+  if (testCtx)
+    testCtx->keep_work = false;
+  fprintf(stderr, "%s: Ctrl-C detected:  exitting...\n",__func__);
   return;
 }
 
