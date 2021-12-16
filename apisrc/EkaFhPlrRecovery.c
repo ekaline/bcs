@@ -644,20 +644,27 @@ void* runPlrRecoveryThread(void* attr) {
   //-----------------------------------------------------------------
   gr->snapshot_active = true;
   const int MaxTrials = 4;
+  EkaOpResult result = EKA_OPRESULT__OK;
   //-----------------------------------------------------------------
   for (auto trial = 0; trial < MaxTrials && gr->snapshot_active; trial++) {
     EKA_LOG("%s:%d %s cycle: trial: %d / %d",
-	    EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op),trial,MaxTrials);
+	    EKA_EXCH_DECODE(gr->exch),gr->id,
+	    EkaFhMode2STR(op),trial,MaxTrials);
 
+    result = plrRecovery(pEfhRunCtx, gr, op, start, end);
 
-    if (plrRecovery(pEfhRunCtx, gr, op, start, end) == EKA_OPRESULT__OK) {
+    if (result == EKA_OPRESULT__OK) {
       EKA_LOG("%s:%u: End Of PlrRecoveryThread: seq_after_snapshot = %ju",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot);
       gr->gapClosed = true;
       goto SUCCESS;
     } else {
       EKA_WARN("%s:%u: Recovery FAILED",EKA_EXCH_DECODE(gr->exch),gr->id);
-     }
+      if (result == EKA_OPRESULT__ERR_PROTOCOL)
+	gr->sendRetransmitExchangeError(pEfhRunCtx);
+      else
+	gr->sendRetransmitSocketError(pEfhRunCtx);
+    }
   }
  SUCCESS:
   int rc = dev->credRelease(lease, dev->credContext);
