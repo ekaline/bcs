@@ -479,7 +479,10 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     SecurityIdT security_id =  symbol2secId(message->symbol);
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
-    
+
+    AuctionIdT auctionId = message->auctionId;
+    auctionMap[auctionId] = security_id;
+        
     EfhAuctionUpdateMsg msg{};
     msg.header.msgType        = EfhMsgType::kAuctionUpdate;
     msg.header.group.source   = exch;
@@ -499,33 +502,35 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.price                 = message->price;
     msg.endTimeNanos          = msg_timestamp + message->auctionEndOffset;
 
-    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
+    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg,s->efhUserData, pEfhRunCtx->efhRunUserData);
     break;
   }
     //--------------------------------------------------------------
   case MsgId::AUCTION_CANCEL : { // 0xAE
-#if 0
+
     auto message {reinterpret_cast<const AuctionCancel *>(m)};
-    /* SecurityIdT security_id =  symbol2secId(message->symbol); */
-    /* s = book->findSecurity(security_id); */
-    /* if (s == NULL) return false; */
+
+    AuctionIdT auctionId = message->auctionId;
+    auto auctionSearch = auctionMap.find(auctionId);
+    if (auctionSearch == auctionMap.end()) return false;
+    
+    SecurityIdT security_id = auctionSearch->second;
+    s = book->findSecurity(security_id);
+    if (! s) return false;
     
     EfhAuctionUpdateMsg msg{};
     msg.header.msgType        = EfhMsgType::kAuctionUpdate;
     msg.header.group.source   = exch;
     msg.header.group.localId  = id;
     msg.header.underlyingId   = 0;
-    msg.header.securityId     = 0;
+    msg.header.securityId     = security_id;
     msg.header.sequenceNumber = sequence;
     msg.header.timeStamp      = msg_timestamp;
     msg.header.gapNum         = gapNum;
-
     msg.auctionId             = message->auctionId;
-
     msg.updateType            = EfhAuctionUpdateType::kDelete;
-#endif
-    EKA_WARN("WARNING: AUCTION_CANCEL is not supported by EFH yet");
-    //    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
+
+    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg,s->efhUserData,pEfhRunCtx->efhRunUserData);
     return false;
     break;
   }

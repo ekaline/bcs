@@ -2,6 +2,7 @@
 #define _EKA_FH_BATS_GR_H_
 
 #include <chrono>
+#include <map>
 
 #include "EkaFhGroup.h"
 #include "EkaFhFullBook.h"
@@ -111,6 +112,7 @@ public:
   static const uint   SCALE          = (const uint) 22;
   static const uint   SEC_HASH_SCALE = 17;
 
+  using AuctionIdT = uint64_t;
   using SecurityIdT = uint64_t;
   using OrderIdT    = uint64_t;
   using PriceT      = uint32_t;
@@ -128,6 +130,7 @@ public:
     SecurityIdT, OrderIdT, PriceT, SizeT>;
 
   FhBook*   book = NULL;
+  std::map<AuctionIdT,SecurityIdT> auctionMap;
 
 private:
 
