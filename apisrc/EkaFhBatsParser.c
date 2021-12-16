@@ -515,9 +515,13 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     if (auctionSearch == auctionMap.end()) return false;
     
     SecurityIdT security_id = auctionSearch->second;
-    auctionMap.erase(auctionId);
+    //    auctionMap.erase(auctionId);
+    auctionMap.erase(auctionSearch);
     s = book->findSecurity(security_id);
-    if (! s) return false;
+    if (! s) {
+      EKA_WARN("WARNING: auctionId %ju with no security_id",auctionId);
+      return false;
+    }
     
     EfhAuctionUpdateMsg msg{};
     msg.header.msgType        = EfhMsgType::kAuctionUpdate;
