@@ -515,6 +515,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     if (auctionSearch == auctionMap.end()) return false;
     
     SecurityIdT security_id = auctionSearch->second;
+    auctionMap.erase(auctionId);
     s = book->findSecurity(security_id);
     if (! s) return false;
     
