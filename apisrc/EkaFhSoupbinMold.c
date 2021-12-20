@@ -838,12 +838,17 @@ void* getMolUdp64Data(void* attr) {
     seq2ask += message_cnt;
   } // while loop
 
-  if (sequence < end)
-    on_error("%s:%u: Mold recovery ERROR sequence %ju < end %ju",
-	     EKA_EXCH_DECODE(gr->exch),gr->id,sequence,end);
-  gr->seq_after_snapshot = sequence;
-  EKA_LOG("%s:%u: Mold recovery finished: next expected_sequence = %ju, end=%ju",
-	  EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot,end);
+  if (! gr->recovery_active) {
+    EKA_LOG("%s:%u: Mold recovery canceled due Gap-in-gap",
+	    EKA_EXCH_DECODE(gr->exch),gr->id);
+  } else {
+    if (sequence < end)
+      on_error("%s:%u: Mold recovery ERROR sequence %ju < end %ju",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,sequence,end);
+    gr->seq_after_snapshot = sequence;
+    EKA_LOG("%s:%u: Mold recovery finished: next expected_sequence = %ju, end=%ju",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot,end);
+  }
   close(udpSock);
 
   gr->gapClosed = true;
