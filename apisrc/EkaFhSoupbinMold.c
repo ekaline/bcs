@@ -209,7 +209,7 @@ uint64_t getMostRecentSeq (EkaFhNasdaqGr* gr) {
   }
   //-----------------------------------------------------------------
 
-  rc = dev->credRelease(lease, dev->credContext);
+  rc = gr->credentialRelease(lease);
   if (rc != 0) on_error("%s:%u Failed to credRelease",
 			EKA_EXCH_DECODE(gr->exch),gr->id);
   EKA_LOG("%s:%u Soupbin Credentials Released",
@@ -224,7 +224,7 @@ uint64_t getMostRecentSeq (EkaFhNasdaqGr* gr) {
  SUCCESS:
   sendLogout(gr);
   close(gr->snapshot_sock);
-  rc = dev->credRelease(lease, dev->credContext);
+  rc = gr->credentialRelease(lease);
   if (rc != 0) on_error("%s:%u Failed to credRelease",
 			EKA_EXCH_DECODE(gr->exch),gr->id);
   EKA_LOG("%s:%u Soupbin Credentials Released",
@@ -616,7 +616,7 @@ void* getSoupBinData(void* attr) {
     if (dev->lastErrno   != 0)                              gr->sendRetransmitSocketError(pEfhRunCtx);
   }
   //-----------------------------------------------------------------
-  int rc = dev->credRelease(lease, dev->credContext);
+  int rc = gr->credentialRelease(lease);
   if (rc != 0) on_error("%s:%u Failed to credRelease",
 			EKA_EXCH_DECODE(gr->exch),gr->id);
   EKA_LOG("%s:%u Soupbin Credentials Released",
