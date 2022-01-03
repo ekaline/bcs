@@ -64,6 +64,7 @@ namespace Bats {
 
 #define EKA_BATS_PITCH_MSG_DECODE(x)					\
   x == MsgId::SYMBOL_MAPPING                 ? "SYMBOL_MAPPING" :	\
+    x == MsgId::TIME                         ? "TIME" :			\
     x == MsgId::ADD_ORDER_LONG               ? "ADD_ORDER_LONG" :	\
     x == MsgId::ADD_ORDER_SHORT              ? "ADD_ORDER_SHORT" :	\
     x == MsgId::ORDER_EXECUTED               ? "ORDER_EXECUTED" :	\

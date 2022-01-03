@@ -356,7 +356,7 @@ void EkaFhGroup::print_q_state() {
 			    dev->credContext,
 			    lease);
   if (rc != 0) 
-    on_error("%s:%u Failed to credAcquire for \'%s\'",
-			EKA_EXCH_DECODE(exch),id,name);
+    on_error("%s:%u Failed to credAcquire for \'%s\' rc=%d \'%s\'",
+	     EKA_EXCH_DECODE(exch),id,name,rc,strerror(errno));
   return rc;
  }
