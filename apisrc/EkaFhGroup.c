@@ -340,23 +340,45 @@ void EkaFhGroup::print_q_state() {
  int EkaFhGroup::credentialAcquire(const char* credName,
 				   size_t      credNameSize,
 				   EkaCredentialLease** lease) {
+   if (credentialsAcquired) {
+     EKA_WARN("%s:%u Credentials is already acquired",EKA_EXCH_DECODE(exch),id);
+     return 0;
+   }
+   const struct timespec leaseTime = {.tv_sec = 180, .tv_nsec = 0};
+   const struct timespec timeout   = {.tv_sec = 60, .tv_nsec = 0};
 
-  const struct timespec leaseTime = {.tv_sec = 180, .tv_nsec = 0};
-  const struct timespec timeout   = {.tv_sec = 60, .tv_nsec = 0};
+   char                  name[7] = {};
 
-  char                  name[7] = {};
+   memcpy (name,credName,std::min(sizeof(name),credNameSize) - 1);
+   const EkaGroup group {exch,id};
+   int rc = dev->credAcquire(EkaCredentialType::kSnapshot, 
+			     group, 
+			     name, 
+			     &leaseTime,
+			     &timeout,
+			     dev->credContext,
+			     lease);
+   if (rc == 0)
+     credentialsAcquired = true;
+  
+   if (rc != 0) 
+     on_error("%s:%u Failed to credAcquire for \'%s\' rc=%d \'%s\'",
+	      EKA_EXCH_DECODE(exch),id,name,rc,strerror(errno));
+   return rc;
+ }
+/* ##################################################################### */
 
-  memcpy (name,credName,std::min(sizeof(name),credNameSize) - 1);
-  const EkaGroup group {exch,id};
-  int rc = dev->credAcquire(EkaCredentialType::kSnapshot, 
-			    group, 
-			    name, 
-			    &leaseTime,
-			    &timeout,
-			    dev->credContext,
-			    lease);
-  if (rc != 0) 
-    on_error("%s:%u Failed to credAcquire for \'%s\' rc=%d \'%s\'",
-	     EKA_EXCH_DECODE(exch),id,name,rc,strerror(errno));
-  return rc;
+ int EkaFhGroup::credentialRelease(EkaCredentialLease* lease) {
+   if (! credentialsAcquired) {
+     EKA_WARN("%s:%u Credentials is already released",EKA_EXCH_DECODE(exch),id);
+     return 0;
+   }
+   int rc = dev->credRelease(lease, dev->credContext);
+   if (rc == 0)
+     credentialsAcquired = false;
+
+   if (rc != 0) 
+    on_error("%s:%u Failed to credRelease rc=%d \'%s\'",
+	     EKA_EXCH_DECODE(exch),id,rc,strerror(errno));
+   return rc;
  }

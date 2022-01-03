@@ -71,6 +71,7 @@ class EkaFhGroup {
   int         credentialAcquire(const char*          credName,
 				size_t               credNameSize,
 				EkaCredentialLease** lease);
+  int         credentialRelease(EkaCredentialLease* lease);
 
   virtual int printConfig() {
     EKA_LOG("%s:%u : "
@@ -195,6 +196,8 @@ class EkaFhGroup {
 
   uint64_t              parserSeq = 0; // used for the sanity check
   int                   productMask = PM_NoInfo;
+
+  bool                  credentialsAcquired = false;
  private:
 
  protected:
