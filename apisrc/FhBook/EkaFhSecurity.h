@@ -8,7 +8,7 @@ class FhPlevel;
 
 /* ####################################################### */
 
-class EkaFhSecurity {
+class alignas(64) EkaFhSecurity {
  protected:
   EkaFhSecurity(EfhSecurityType _type,
 		EfhSecUserData  _userData,
@@ -24,6 +24,8 @@ class EkaFhSecurity {
 /* --------------------------------------------------------------- */
 
  public:
+  virtual ~EkaFhSecurity() {};
+
   virtual uint64_t  getTopPrice(SideT side) { return 0;}
   virtual uint32_t  getTopTotalSize(SideT side) { return 0;}
   virtual uint32_t  getTopTotalCustomerSize(SideT side) { return 0;}

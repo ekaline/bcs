@@ -71,6 +71,7 @@ class EkaFhGroup {
   int         credentialAcquire(const char*          credName,
 				size_t               credNameSize,
 				EkaCredentialLease** lease);
+  int         credentialRelease(EkaCredentialLease* lease);
 
   virtual int printConfig() {
     EKA_LOG("%s:%u : "
@@ -90,6 +91,27 @@ class EkaFhGroup {
 	    connectRetryDelayTime
 	    );
     return 0;
+  }
+
+  inline const char* printGrpState() const {
+    switch (state) {
+    case GrpState::UNINIT:
+      return "UNINIT";
+    case GrpState::INIT:
+      return "INIT";
+    case GrpState::GAP:
+      return "GAP";
+    case GrpState::SNAPSHOT_GAP:
+      return "SNAPSHOT_GAP";
+    case GrpState::RETRANSMIT_GAP:
+      return "RETRANSMIT_GAP";
+    case GrpState::NORMAL:
+      return "NORMAL";
+    case GrpState::PHLX_SNAPSHOT_GAP:
+      return "PHLX_SNAPSHOT_GAP";
+    default:
+      return "UNKNOWN";
+    }
   }
 
   //----------------------------------------------------------
@@ -117,7 +139,7 @@ class EkaFhGroup {
   volatile bool         snapshot_active     = false; // Glimpse/Spin recovery thread
   volatile bool         recovery_active     = false; // Mold/Grp/Sesm/... thread
 
-  volatile bool         snapshotThreadDone  = false; // thread join() replacement
+  volatile bool         recoveryThreadDone  = false; // thread join() replacement
   volatile bool         heartbeatThreadDone = false; // thread join() replacement
 
   volatile bool         gapClosed           = false;
@@ -174,6 +196,8 @@ class EkaFhGroup {
 
   uint64_t              parserSeq = 0; // used for the sanity check
   int                   productMask = PM_NoInfo;
+
+  bool                  credentialsAcquired = false;
  private:
 
  protected:

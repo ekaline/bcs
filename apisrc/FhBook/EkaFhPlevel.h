@@ -15,15 +15,18 @@ inline std::string side2str(SideT side) {
 // ##########################################################
 
 template <class PriceT, class SizeT>
-  class EkaFhPlevel {
+  class alignas(64) EkaFhPlevel {
  public:
+  EkaFhPlevel() {
+    reset();
+  }
   //----------------------------------------------------------
   inline bool isEmpty() {
     return cnt == 0;
   }
   //----------------------------------------------------------
 
-  bool worsePriceThan(PriceT _price) {
+  inline bool worsePriceThan(PriceT _price) {
     switch (side) {
     case SideT::BID : return (price < _price);
     case SideT::ASK : return (price > _price);
@@ -95,7 +98,6 @@ template <class PriceT, class SizeT>
     other_size    = 0;
   }
   //----------------------------------------------------------
-
 
  private:
   //----------------------------------------------------------

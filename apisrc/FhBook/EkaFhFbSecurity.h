@@ -14,7 +14,7 @@ class FhPlevel,
   class OrderIdT, 
   class PriceT, 
   class SizeT>
-  class EkaFhFbSecurity : public EkaFhSecurity {
+class alignas(64) EkaFhFbSecurity : public EkaFhSecurity {
  public:
   EkaFhFbSecurity(SecurityIdT     _secId,
 		  EfhSecurityType _type,
@@ -23,21 +23,36 @@ class FhPlevel,
 		  uint64_t        _opaqueAttrB) : 
     EkaFhSecurity(_type,_userData,_opaqueAttrA,_opaqueAttrB) {
     secId         = _secId;
-    numBidPlevels = 0;
-    numAskPlevels = 0;
-    bid           = NULL;
-    ask           = NULL;
+    reset();
   }
 
+  ~EkaFhFbSecurity() {};
   /* --------------------------------------------------------------- */
 
-  bool crossedPrice() {
+  inline bool crossedPrice() {
     if (!bid || !ask)                       return false;
     if (bid->price == 0 || ask->price == 0) return false;
     if (bid->price > ask->price)            return true;
     return false;
   }
-  
+
+  inline int reset() {
+    int cnt = 0;
+    for (auto const& side : {bid, ask}) {
+      auto p  = side;
+      while (p) {
+	auto n = p->next;
+	p->reset();
+	p = n;
+	cnt++;
+      }
+    }
+    numBidPlevels = 0;
+    numAskPlevels = 0;
+    bid           = NULL;
+    ask           = NULL;
+    return cnt;
+  }
 /* --------------------------------------------------------------- */
 
 /*     uint32_t  getTopTotalSize(SideT side) {  */

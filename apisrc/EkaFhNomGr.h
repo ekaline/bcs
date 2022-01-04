@@ -6,7 +6,12 @@
 
 class EkaFhNomGr : public EkaFhNasdaqGr {
  public:
-  virtual              ~EkaFhNomGr() {};
+  ~EkaFhNomGr() {
+    if (book) {
+      delete book;
+      EKA_DEBUG("%s:%u Book is deleted",EKA_EXCH_DECODE(exch),id);
+    }
+  };
 
   bool                 parseMsg(const EfhRunCtx* pEfhRunCtx,
 				const unsigned char* m,
@@ -14,6 +19,8 @@ class EkaFhNomGr : public EkaFhNasdaqGr {
 				EkaFhMode op,std::chrono::high_resolution_clock::time_point startTime={});
 
   int                  bookInit();
+  int                  invalidateQ();
+  int                  invalidateBook();
 
   int                  subscribeStaticSecurity(uint64_t        securityId, 
 					       EfhSecurityType efhSecurityType,

@@ -109,10 +109,11 @@ bool EkaHwCaps::check() {
   if (snDriverVerNum != 0 && snDriverVerNum != EKA_EXPECTED_SN_DRIVER_VERSION)
     on_error("snDriverVerNum 0x%jx != EKA_EXPECTED_SN_DRIVER_VERSION 0x%x",
 	     snDriverVerNum,EKA_EXPECTED_SN_DRIVER_VERSION);
-
+#ifndef FH_LAB
   if (hwCaps.version.epm != EKA_EXPECTED_EPM_VERSION) 
     on_error("hwCaps.version.epm %x != EKA_EXPECTED_EPM_VERSION %x",
 	     hwCaps.version.epm,EKA_EXPECTED_EPM_VERSION);
+#endif
   
   errno = 0;
 
