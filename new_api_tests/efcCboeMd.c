@@ -129,12 +129,12 @@ void* onMdTestDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
   fprintf (efcSecuritiesFile,"%s,%ju,%s,%s,%s,%s,%ju,%ju\n",
 	   avtSecName,
 	   msg->header.securityId,
-	   EKA_PRINT_BATS_SYMBOL((char*)&msg->opaqueAttrA),
+	   EKA_PRINT_BATS_SYMBOL((char*)&msg->commonDef.opaqueAttrA),
 	   underlyingName.c_str(),
 	   classSymbol.c_str(),
 	   EKA_PRINT_GRP(&msg->header.group),
-	   msg->opaqueAttrA,
-	   msg->opaqueAttrB
+	   msg->commonDef.opaqueAttrA,
+	   msg->commonDef.opaqueAttrB
 	   );
 
 

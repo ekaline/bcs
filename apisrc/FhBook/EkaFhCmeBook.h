@@ -81,10 +81,10 @@ template <const uint SEC_HASH_SCALE,
     msg.header.gapNum         = gapNum;
     msg.tradeStatus           = s->tradeStatus;
 
-    msg.bidSide.price         = (uint32_t)(s->bid->getEntryPrice(0) / PRICE_SCALE);
+    msg.bidSide.price         = s->bid->getEntryPrice(0) / PRICE_SCALE;
     msg.bidSide.size          = s->bid->getEntrySize(0);
 
-    msg.askSide.price         = (uint32_t)(s->ask->getEntryPrice(0) / PRICE_SCALE);
+    msg.askSide.price         = s->ask->getEntryPrice(0) / PRICE_SCALE;
     msg.askSide.size          = s->ask->getEntrySize(0);
 
     if (pEfhRunCtx->onEfhQuoteMsgCb == NULL) 
@@ -132,8 +132,8 @@ template <const uint SEC_HASH_SCALE,
 
     msg.orderSide             = side == SideT::BID ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
       
-    msg.bookSide.price         = side == SideT::BID ? (uint32_t)(s->bid->getEntryPrice(0) / PRICE_SCALE) :
-      (uint32_t)(s->ask->getEntryPrice(0) / PRICE_SCALE);
+    msg.bookSide.price         = side == SideT::BID ? (s->bid->getEntryPrice(0) / PRICE_SCALE) :
+      (s->ask->getEntryPrice(0) / PRICE_SCALE);
     
     msg.bookSide.size          = side == SideT::BID ? s->bid->getEntrySize(0) :
       s->ask->getEntrySize(0);

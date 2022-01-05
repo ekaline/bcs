@@ -19,9 +19,9 @@ TestCtx* testCtx;
 
 void  INThandler(int sig) {
   signal(sig, SIG_IGN);
-  testCtx->keep_work = false;
-  printf("%s: Ctrl-C detected:  exitting...\n",__func__);
-  fflush(stdout);
+  if (testCtx)
+    testCtx->keep_work = false;
+  fprintf(stderr, "%s: Ctrl-C detected:  exitting...\n",__func__);
   return;
 }
 
@@ -143,7 +143,7 @@ void* onTrade(const EfhTradeMsg* msg, EfhSecUserData secData, EfhRunUserData use
   fprintf(gr->MD,"%ju,",msg->header.securityId);
   fprintf(gr->MD,"%s," ,currAvtSecName.c_str());
   fprintf(gr->MD,"%s," ,currClassSymbol.c_str());
-  fprintf(gr->MD,"%u," ,msg->price);
+  fprintf(gr->MD,"%ld,",msg->price);
   fprintf(gr->MD,"%u," ,msg->size);
   fprintf(gr->MD,"%d," ,(int)msg->tradeCond);
   fprintf(gr->MD,"%s," ,ts_ns2str(msg->header.timeStamp).c_str());
@@ -639,12 +639,12 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
   fprintf (gr->fullDict,"%s,%ju,%s,%s,%s,%s,%ju,%ju\n",
 	   avtSecName,
 	   msg->header.securityId,
-	   exch == EkaSource::kC1_PITCH ? EKA_PRINT_BATS_SYMBOL((char*)&msg->opaqueAttrA) : " ",
+	   exch == EkaSource::kC1_PITCH ? EKA_PRINT_BATS_SYMBOL((char*)&msg->commonDef.opaqueAttrA) : " ",
 	   underlyingName.c_str(),
 	   classSymbol.c_str(),
 	   EKA_PRINT_GRP(&msg->header.group),
-	   msg->opaqueAttrA,
-	   msg->opaqueAttrB
+	   msg->commonDef.opaqueAttrA,
+	   msg->commonDef.opaqueAttrB
 	   );
 
 
@@ -658,7 +658,7 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
 	.underlying        = underlyingName,
 	.classSymbol       = classSymbol,
 	.exch              = msg->commonDef.exchange,
-	.displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE,
+	.displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE
     };
     
     gr->security.push_back(newSecurity);
@@ -669,7 +669,7 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
     fprintf (gr->subscrDict,"%s,%ju,%s,%s\n",
 	     avtSecName,
 	     msg->header.securityId,
-	     exch == EkaSource::kC1_PITCH ? EKA_PRINT_BATS_SYMBOL((char*)&msg->opaqueAttrA) : " ",
+	     exch == EkaSource::kC1_PITCH ? EKA_PRINT_BATS_SYMBOL((char*)&msg->commonDef.opaqueAttrA) : " ",
 	     EKA_PRINT_GRP(&msg->header.group)
 	     );
   }

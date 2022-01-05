@@ -118,18 +118,17 @@ EkaOpResult efhSubscribeStatic( EfhCtx*         efhCtx,
  */
 EkaOpResult efhDoneStaticSubscriptions( EfhCtx* efhCtx );
 
-
-EkaOpResult efhSetTradeTimeCtx( EfhCtx* efhCtx,
-                                void*   tradeTimeCtx );
-
-
-EkaOpResult efhSubscribeDynamic( EfhCtx*         efhCtx,
-                                EkaGroup*       group,
+EkaOpResult efhSubscribeDynamic(EfhCtx*         efhCtx,
+                                const EkaGroup* group,
                                 uint64_t        securityId,
                                 EfhSecurityType efhSecurityType,
                                 EfhSecUserData  efhSecUserData,
 				uint64_t        opaqueAttrA,
 				uint64_t        opaqueAttrB );
+
+EkaOpResult efhSetTradeTimeCtx( EfhCtx* efhCtx,
+                                void*   tradeTimeCtx );
+
 /**
  * EfhMd functionality allows to get callback on every raw market data event
  *

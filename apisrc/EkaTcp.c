@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <stdlib.h>
 #include <shared_mutex>
 #include <thread>
@@ -39,6 +40,12 @@ static err_t eka_netif_init (struct netif *netif) {
 
 extern "C" netif* eka_route_ipv4_src(const ip4_addr_t* src, const ip4_addr_t* dst) {
   std::shared_lock<std::shared_mutex> lck{g_allDevsMtx};
+
+  if (!g_allDevs) {
+    std::fprintf(stderr, "error: lwIP source-based routing function called, "
+                 "but no open Ekaline devices exist\n");
+    return nullptr;
+  }
 
   // For each open device, look through each initialized core, trying to find
   // the core whose source IP address matches the source IP address of the

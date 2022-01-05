@@ -40,6 +40,7 @@ static int getPillarProductIdFromProductMask(int productMask) {
 
 static EkaOpResult sendSymbolIndexMappingRequest(EkaFhPlrGr* gr, int sock) {
   if (!gr) on_error("!gr");
+
   auto dev {gr->dev};
 
   uint8_t pkt[1500] = {};
@@ -75,6 +76,7 @@ static EkaOpResult sendSymbolIndexMappingRequest(EkaFhPlrGr* gr, int sock) {
 
 static EkaOpResult sendRefreshRequest(EkaFhPlrGr* gr, int sock) {
   if (!gr) on_error("!gr");
+
   auto dev {gr->dev};
 
   uint8_t pkt[1500] = {};
@@ -108,6 +110,7 @@ static EkaOpResult sendRefreshRequest(EkaFhPlrGr* gr, int sock) {
 }
 
 static EkaOpResult sendRetransmissionRequest(EkaFhPlrGr* gr, int sock, uint32_t start, uint32_t end) {
+
   if (!gr) on_error("gr == NULL");
   auto dev {gr->dev};
 
@@ -174,6 +177,7 @@ static bool sendHeartbeatResponse(EkaFhPlrGr* gr, int sock) {
 
 static EkaOpResult getRequestResponse(EkaFhPlrGr* gr, int sock, EkaFhMode op) {
   if (!gr) on_error("!gr");
+
   auto dev {gr->dev};
   EKA_LOG("Waiting for %s Refresh Response",EkaFhMode2STR(op));
   
@@ -184,10 +188,12 @@ static EkaOpResult getRequestResponse(EkaFhPlrGr* gr, int sock, EkaFhMode op) {
   while (gr->snapshot_active || gr->recovery_active) {
     PktHdr pktHdr{};
     int rc = recv(sock,&pktHdr,sizeof(pktHdr),MSG_WAITALL);
+
     if (rc <= 0) {
       EKA_WARN("\'%s\', rc=%d",strerror(errno),rc);
       return EKA_OPRESULT__ERR_TCP_SOCKET;
     }
+
     
     EKA_LOG("Received Pkt Hdr: pktSize = %u, DeliveryFlag = %s, numMsgs = %u",
 	    pktHdr.pktSize,deliveryFlag2str(pktHdr.deliveryFlag).c_str(),pktHdr.numMsgs);
@@ -211,11 +217,11 @@ static EkaOpResult getRequestResponse(EkaFhPlrGr* gr, int sock, EkaFhMode op) {
 	return EKA_OPRESULT__ERR_TCP_SOCKET;
       }
     
-	
       EKA_LOG("MsgType %u (%s)",msgHdr->type,msgType2str(msgHdr->type).c_str());
 
       char* msgData = msgBuf + sizeof(*msgHdr);
       rc = recv(sock,msgData,msgHdr->size,MSG_WAITALL);
+
       if (rc <= 0) {
 	EKA_WARN("\'%s\', rc=%d",strerror(errno),rc);
 	return EKA_OPRESULT__ERR_TCP_SOCKET;
@@ -253,6 +259,7 @@ static EkaOpResult getRequestResponse(EkaFhPlrGr* gr, int sock, EkaFhMode op) {
       case '9' :
 	EKA_LOG("Rejected due to: 1) Invalid MsgType, or 2) Mismatch between MsgType and MsgSize");
 	return EKA_OPRESULT__ERR_PROTOCOL;
+
       default :
 	on_error("Unexpected response Status: \'%c\'",msg->Status);
       }
@@ -316,6 +323,7 @@ static EkaOpResult recoveryRetransmitTcp(EkaFhPlrGr* gr, int sock, uint32_t star
 }
 
 static EkaOpResult establishConnections(EkaFhPlrGr* gr, EkaFhMode op,
+
 				 uint64_t start, uint64_t end,
 				 int* udpSock, int* tcpSock) {
   if (!gr) on_error("gr == NULL");
@@ -326,7 +334,7 @@ static EkaOpResult establishConnections(EkaFhPlrGr* gr, EkaFhMode op,
   uint32_t udpIp   = op == EkaFhMode::RECOVERY ? gr->retransUdpIp   : gr->refreshUdpIp;
   uint16_t tcpPort = op == EkaFhMode::RECOVERY ? gr->retransTcpPort : gr->refreshTcpPort;
   uint32_t tcpIp   = op == EkaFhMode::RECOVERY ? gr->retransTcpIp   : gr->refreshTcpIp;
-  
+
   EKA_LOG("%s:%u: Connecting to %s UDP %s:%u",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op),
 	  EKA_IP2STR(udpIp),be16toh(udpPort));
@@ -346,6 +354,7 @@ static EkaOpResult establishConnections(EkaFhPlrGr* gr, EkaFhMode op,
 	     rc,EKA_IP2STR(udpIp),be16toh(udpPort));
     return EKA_OPRESULT__ERR_UDP_SOCKET;
   }
+
   EKA_LOG("%s:%u: Connecting to %s TCP server %s:%u",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op),
 	  EKA_IP2STR(tcpIp),be16toh(tcpPort));
@@ -370,6 +379,7 @@ static EkaOpResult establishConnections(EkaFhPlrGr* gr, EkaFhMode op,
   default:
     on_error("Unexpected op = %d (%s)",(int)op,EkaFhMode2STR(op));
   }
+
   if (result == EKA_OPRESULT__OK)
     EKA_LOG("%s TCP handshake succeeded",EkaFhMode2STR(op));
   else
@@ -549,7 +559,6 @@ EkaOpResult plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode o
   
   EKA_LOG("\n-----------------------------------------------\n%s:%u %s started",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
-  
   EkaOpResult result = establishConnections(gr,op,start,end,&udpSock,&tcpSock);
   if (result != EKA_OPRESULT__OK) {
     return result;
@@ -670,6 +679,7 @@ void* runPlrRecoveryThread(void* attr) {
   int rc = gr->credentialRelease(lease);
   if (rc != 0) on_error("%s:%u Failed to credRelease",
 			EKA_EXCH_DECODE(gr->exch),gr->id);
+
   return NULL;
 }
 

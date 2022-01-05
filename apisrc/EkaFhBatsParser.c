@@ -138,7 +138,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     }
     copySymbol(msg.commonDef.exchSecurityName, message->symbol);
 
-    memcpy(&msg.opaqueAttrA,message->symbol,6);
+    memcpy(&msg.commonDef.opaqueAttrA,message->symbol,6);
 
     /* char osi2print[22] = {}; */
     /* memcpy(osi2print,osi,21); */
@@ -233,7 +233,6 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     //--------------------------------------------------------------
   case MsgId::ORDER_EXECUTED: {
     auto message {reinterpret_cast<const order_executed *>(m)};
-
     OrderIdT order_id   = message->order_id;
     SizeT    delta_size = message->executed_size;
     FhOrder* o = book->findOrder(order_id);
@@ -503,7 +502,6 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     SecurityIdT security_id =  symbol2secId(message->symbol);
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
-
     AuctionIdT auctionId = message->auctionId;
     auctionMap[auctionId] = security_id;
         
@@ -531,7 +529,6 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   }
     //--------------------------------------------------------------
   case MsgId::AUCTION_CANCEL : { // 0xAE
-
     auto message {reinterpret_cast<const AuctionCancel *>(m)};
 
     AuctionIdT auctionId = message->auctionId;

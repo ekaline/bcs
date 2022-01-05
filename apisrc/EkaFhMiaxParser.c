@@ -61,8 +61,8 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     copySymbol(msg.commonDef.underlying, message->UnderlyingSymbol);
     copySymbol(msg.commonDef.classSymbol,message->SecuritySymbol);
 
-    uint underlyingIdx = addUnderlying(msg.commonDef.underlying);
-    msg.opaqueAttrB = (uint64_t)underlyingIdx;
+    const uint underlyingIdx  = addUnderlying(msg.commonDef.underlying);
+    msg.commonDef.opaqueAttrB = (uint64_t)underlyingIdx;
 
     /* EKA_TRACE("UnderlyingSymbol = %s, SecuritySymbol = %s,  message->Expiration = %s = %u,  message->security_id = %ju", */
     /* 	      (std::string(message->UnderlyingSymbol,sizeof(message->UnderlyingSymbol))).c_str(), */
