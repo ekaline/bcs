@@ -667,7 +667,7 @@ void* runPlrRecoveryThread(void* attr) {
     }
   }
  SUCCESS:
-  int rc = dev->credRelease(lease, dev->credContext);
+  int rc = gr->credentialRelease(lease);
   if (rc != 0) on_error("%s:%u Failed to credRelease",
 			EKA_EXCH_DECODE(gr->exch),gr->id);
   return NULL;
