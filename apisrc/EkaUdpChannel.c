@@ -50,7 +50,7 @@ void EkaUdpChannel::next() {
   return;
 }
 
-EkaUdpChannel::EkaUdpChannel(EkaDev* ekaDev, uint8_t coreId) {
+EkaUdpChannel::EkaUdpChannel(EkaDev* ekaDev, uint8_t coreId, int requestedChId) {
   dev = ekaDev;
   pkt_payload_ptr = NULL;
 
@@ -61,36 +61,43 @@ EkaUdpChannel::EkaUdpChannel(EkaDev* ekaDev, uint8_t coreId) {
   pIncomingUdpPacket = NULL;
   if (!SN_IsUdpLane(dev->snDev->dev_id, core)) on_error("Lane %u is not configured as an UDP lane!",core);
 
-  ChannelId = SN_AllocateUdpChannel(dev->snDev->dev_id, core, -1, NULL);
+  ChannelId = SN_AllocateUdpChannel(dev->snDev->dev_id, core, requestedChId, NULL);
   if (ChannelId == NULL) on_error("Cannot open UDP channel");
 
-  const SN_Packet * pPreviousUdpPacket = SN_GetNextPacket(ChannelId, NULL, SN_TIMEOUT_NONE);
-  if (pPreviousUdpPacket != NULL) {
-    delete dev;
-    on_error("pIncomingUdpPacket != NULL: Packet is arriving on UDP channel before any packet was sent");
+  chId = SC_GetChannelNumber(ChannelId);
+  if (requestedChId != -1 && requestedChId != chId) {
+    on_error("requestedChId %d != chId %d",requestedChId, chId);
   }
-  EKA_LOG("UDP channel for lane %u is opened",core);  
+
+  while (1) {
+    pPreviousUdpPacket = SC_GetNextPacket(ChannelId, pPreviousUdpPacket, SC_TIMEOUT_NONE);      
+    if (pPreviousUdpPacket == NULL) break;
+    if (SC_UpdateReceivePtr(ChannelId, pPreviousUdpPacket) != SN_ERR_SUCCESS) 
+      on_error ("Failed to sync DMA ReceivePtr");
+  }
+
+  EKA_LOG("UDP channel %d for lane %u is opened",chId,core);  
 }
 
-void EkaUdpChannel::igmp_mc_join (uint32_t src_ip, uint32_t mcast_ip, uint16_t mcast_port, int16_t vlanTag) {
-  static uint acl_num = 0;
-  assert (acl_num < 64);
+void EkaUdpChannel::igmp_mc_join (uint32_t mcast_ip, uint16_t mcast_port, int16_t vlanTag) {
+  // MC Port here is in BE (Human) format
 
   SN_IgmpOptions igmpOptions = {};
   igmpOptions.StructSize = sizeof(igmpOptions);
   igmpOptions.EnableMulticastBypass = true;
   igmpOptions.VLanTag = vlanTag;
 
-
   char ip[20] = {};
   sprintf (ip, "%s",EKA_IP2STR(mcast_ip));
 
-  SN_Error errorCode = SN_IgmpJoin(ChannelId,core,(const char*)ip,be16toh(mcast_port), vlanTag ? &igmpOptions : NULL);
+  SN_Error errorCode = SN_IgmpJoin(ChannelId,core,(const char*)ip,mcast_port, NULL /* vlanTag ? &igmpOptions : NULL */);
   if (errorCode != SN_ERR_SUCCESS) 
     on_error("Failed to join on core %u MC %s:%u, vlanTag=%d, error code %d",
-	     core,ip,be16toh(mcast_port),vlanTag,(int)errorCode);
-  EKA_LOG("IGMP joined %s:%u for HW UDP Channel from coreId = %u, ip = %s, vlanTag = %d",
-	  ip,be16toh(mcast_port),core,EKA_IP2STR(src_ip),vlanTag);
+	     core,ip,mcast_port,vlanTag,(int)errorCode);
+  EKA_LOG("IGMP joined %s:%u for HW UDP Channel %d from coreId = %u",
+	  ip,mcast_port,chId,core);
+
+  /* saveMcStat(dev,core,mcast_ip); */
 
   //----------------------------------------------
   /* struct ip_mreq mreq = {}; */

@@ -4,9 +4,13 @@
 #include <string>
 #include <regex>
 
+#include "EfhMsgs.h"
+#include "Efh.h"
+
 #define EFH_GET_SRC(x) (						\
 			(std::regex_search(std::string(x),std::regex("NOM_ITTO"))   == true) ? EkaSource::kNOM_ITTO   : \
 			(std::regex_search(std::string(x),std::regex("PHLX_TOPO"))  == true) ? EkaSource::kPHLX_TOPO  : \
+			(std::regex_search(std::string(x),std::regex("PHLX_ORD" ))  == true) ? EkaSource::kPHLX_ORD   : \
 			(std::regex_search(std::string(x),std::regex("GEM_TQF"))    == true) ? EkaSource::kGEM_TQF    : \
 			(std::regex_search(std::string(x),std::regex("ISE_TQF"))    == true) ? EkaSource::kISE_TQF    : \
 			(std::regex_search(std::string(x),std::regex("MRX_TQF"))    == true) ? EkaSource::kMRX_TQF    : \
@@ -18,7 +22,10 @@
 			(std::regex_search(std::string(x),std::regex("EDGX_PITCH")) == true) ? EkaSource::kEDGX_PITCH  : \
 			(std::regex_search(std::string(x),std::regex("ARCA_XDP"))   == true) ? EkaSource::kARCA_XDP  : \
 			(std::regex_search(std::string(x),std::regex("AMEX_XDP"))   == true) ? EkaSource::kAMEX_XDP  : \
+			(std::regex_search(std::string(x),std::regex("ARCA_PLR"))   == true) ? EkaSource::kARCA_PLR  : \
+			(std::regex_search(std::string(x),std::regex("AMEX_PLR"))   == true) ? EkaSource::kAMEX_PLR  : \
 			(std::regex_search(std::string(x),std::regex("BOX_HSVF"))   == true) ? EkaSource::kBOX_HSVF  : \
+			(std::regex_search(std::string(x),std::regex("CME_SBE"))    == true) ? EkaSource::kCME_SBE  : \
 			EkaSource::kInvalid)
 
 #define EFH_EXCH2FEED(x)			(	\
@@ -28,7 +35,10 @@
   (x == EkaSource::kMRX_TQF)    ? EfhFeedVer::kGEMX :	\
   (x == EkaSource::kARCA_XDP)   ? EfhFeedVer::kXDP :	\
   (x == EkaSource::kAMEX_XDP)   ? EfhFeedVer::kXDP :	\
+  (x == EkaSource::kARCA_PLR)   ? EfhFeedVer::kPLR :	\
+  (x == EkaSource::kAMEX_PLR)   ? EfhFeedVer::kPLR :	\
   (x == EkaSource::kPHLX_TOPO)  ? EfhFeedVer::kPHLX :	\
+  (x == EkaSource::kPHLX_ORD)   ? EfhFeedVer::kPHLX :	\
   (x == EkaSource::kMIAX_TOM)   ? EfhFeedVer::kMIAX :	\
   (x == EkaSource::kPEARL_TOM)  ? EfhFeedVer::kMIAX :	\
   (x == EkaSource::kC1_PITCH)   ? EfhFeedVer::kBATS :	\
@@ -36,6 +46,7 @@
   (x == EkaSource::kBZX_PITCH)  ? EfhFeedVer::kBATS :	\
   (x == EkaSource::kEDGX_PITCH) ? EfhFeedVer::kBATS :	\
   (x == EkaSource::kBOX_HSVF)   ? EfhFeedVer::kBOX :	\
+  (x == EkaSource::kCME_SBE)    ? EfhFeedVer::kCME :	\
   EfhFeedVer::kInvalid)
 
 #define EFH_EXCH2FULL_BOOK(x) ((x == EkaSource::kNOM_ITTO) || (x == EkaSource::kC2_PITCH) || (x == EkaSource::kBZX_PITCH) || (x == EkaSource::kEDGX_PITCH))
@@ -46,15 +57,19 @@
   (x == EkaSource::kISE_TQF)    ? "ISE_TQF"    :	   \
   (x == EkaSource::kMRX_TQF)    ? "MRX_TQF"    :	   \
   (x == EkaSource::kPHLX_TOPO)  ? "PHLX_TOPO"  :	   \
+  (x == EkaSource::kPHLX_ORD)   ? "PHLX_ORD"   :	   \
   (x == EkaSource::kARCA_XDP)   ? "ARCA_XDP"   :	   \
   (x == EkaSource::kAMEX_XDP)   ? "AMEX_XDP"   :	   \
+  (x == EkaSource::kARCA_PLR)   ? "ARCA_PLR"   :	   \
+  (x == EkaSource::kAMEX_PLR)   ? "AMEX_PLR"   :	   \
   (x == EkaSource::kC1_PITCH)   ? "C1_PITCH"   :	   \
   (x == EkaSource::kC2_PITCH)   ? "C2_PITCH"   :	   \
   (x == EkaSource::kBZX_PITCH)  ? "BZX_PITCH"  :	   \
   (x == EkaSource::kEDGX_PITCH) ? "EDGX_PITCH" :	   \
   (x == EkaSource::kMIAX_TOM)   ? "MIAX_TOM"   :	   \
   (x == EkaSource::kPEARL_TOM)  ? "PEARL_TOM"  :	   \
-  (x == EkaSource::kBOX_HSVF)   ? "BOX_HSVF"  :	   \
+  (x == EkaSource::kBOX_HSVF)   ? "BOX_HSVF"   :	   \
+  (x == EkaSource::kCME_SBE)    ? "CME_SBE"    :	   \
   "UNKNOWN")
 
 #define EKA_EXCH_SOURCE_DECODE(x) (					\
@@ -63,8 +78,11 @@
 				   (x == EkaSource::kISE_TQF)    ? "ISE"    : \
 				   (x == EkaSource::kMRX_TQF)    ? "MRX"    : \
 				   (x == EkaSource::kPHLX_TOPO)  ? "PHLX"  : \
+				   (x == EkaSource::kPHLX_ORD)   ? "PHLX_ORD"  : \
 				   (x == EkaSource::kARCA_XDP)   ? "ARCA"   : \
 				   (x == EkaSource::kAMEX_XDP)   ? "AMEX"   : \
+				   (x == EkaSource::kARCA_PLR)   ? "ARCA"   : \
+				   (x == EkaSource::kAMEX_PLR)   ? "AMEX"   : \
 				   (x == EkaSource::kC1_PITCH)   ? "C1"   : \
 				   (x == EkaSource::kC2_PITCH)   ? "C2"   : \
 				   (x == EkaSource::kBZX_PITCH)  ? "BZX"  : \
@@ -72,6 +90,7 @@
 				   (x == EkaSource::kMIAX_TOM)   ? "MIAX"   : \
 				   (x == EkaSource::kPEARL_TOM)  ? "PEARL"  : \
 				   (x == EkaSource::kBOX_HSVF)   ? "BOX"  : \
+				   (x == EkaSource::kCME_SBE)    ? "CME"  : \
 				   "UNKNOWN")
 
 
@@ -81,6 +100,7 @@
   (x == EkaSource::kISE_TQF)    ? EfhExchange::kISE   :	   \
   (x == EkaSource::kMRX_TQF)    ? EfhExchange::kMCRY  :	   \
   (x == EkaSource::kPHLX_TOPO)  ? EfhExchange::kPHLX  :	   \
+  (x == EkaSource::kPHLX_ORD)   ? EfhExchange::kPHLX  :	   \
   (x == EkaSource::kMIAX_TOM)   ? EfhExchange::kMIAX  :	   \
   (x == EkaSource::kPEARL_TOM)  ? EfhExchange::kPEARL :	   \
   (x == EkaSource::kC1_PITCH)   ? EfhExchange::kCboe  :	   \
@@ -89,7 +109,10 @@
   (x == EkaSource::kEDGX_PITCH) ? EfhExchange::kEDGX  :	   \
   (x == EkaSource::kAMEX_XDP)   ? EfhExchange::kAOE   :	   \
   (x == EkaSource::kARCA_XDP)   ? EfhExchange::kPCX   :	   \
+  (x == EkaSource::kAMEX_PLR)   ? EfhExchange::kAOE   :	   \
+  (x == EkaSource::kARCA_PLR)   ? EfhExchange::kPCX   :	   \
   (x == EkaSource::kBOX_HSVF)   ? EfhExchange::kBOX   :	   \
+  (x == EkaSource::kCME_SBE)    ? EfhExchange::kCME   :	   \
    EfhExchange::kUnknown)
 
 #define EKA_CTS_SOURCE(x)						\
@@ -109,8 +132,11 @@
               x == EfhFeedVer::kPHLX     ? "PHLX"        : \
               x == EfhFeedVer::kMIAX     ? "MIAX"        : \
               x == EfhFeedVer::kBATS     ? "BATS"        : \
+              x == EfhFeedVer::kCBOE     ? "CBOE"        : \
               x == EfhFeedVer::kXDP      ? "XDP"        : \
+              x == EfhFeedVer::kPLR      ? "PLR"        : \
               x == EfhFeedVer::kBOX      ? "BOX"        : \
+              x == EfhFeedVer::kCME      ? "CME"        : \
                                            "UNKNOWN"
 #define EKA_TS_DECODE(x) \
   x == EfhTradeStatus::kUninit       ? '_' :	\
@@ -121,27 +147,60 @@
     x == EfhTradeStatus::kClosed     ? 'C' :	\
     'X'
 
-#define EKA_OPRA_TC_DECODE(x)	\
-  x == ' ' ? EfhTradeCond::kReg :		\
-    x == 'A' ? EfhTradeCond::kCanc :		\
-    x == 'B' ? EfhTradeCond::kOseq :		\
-    x == 'C' ? EfhTradeCond::kCncl :		\
-    x == 'D' ? EfhTradeCond::kLate :		\
-    x == 'F' ? EfhTradeCond::kOpen :		\
-    x == 'G' ? EfhTradeCond::kCnol :		\
-    x == 'H' ? EfhTradeCond::kOpnl :		\
-    x == 'I' ? EfhTradeCond::kAuto :		\
-    x == 'J' ? EfhTradeCond::kReop :		\
-    x == 'K' ? EfhTradeCond::kAjst :		\
-    x == 'L' ? EfhTradeCond::kSprd :		\
-    x == 'M' ? EfhTradeCond::kStdl :		\
-    x == 'N' ? EfhTradeCond::kStdp :		\
-    x == 'O' ? EfhTradeCond::kCstp :		\
-    x == 'Q' ? EfhTradeCond::kCmbo :		\
-    x == 'R' ? EfhTradeCond::kSpim :		\
-    x == 'S' ? EfhTradeCond::kIsoi :		\
-    x == 'T' ? EfhTradeCond::kBnmt :		\
-    x == 'X' ? EfhTradeCond::kXmpt :		\
-    EfhTradeCond::kUnmapped
+inline int strikePriceScaleFactor (EkaSource exch) {
+  switch (EFH_EXCH2FEED(exch)) {
+  case EfhFeedVer::kBATS:
+  case EfhFeedVer::kBOX  : return 10;
+  case EfhFeedVer::kGEMX : return 10000;
+  default:                 return 1;    
+  }
+}
 
+inline void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg) {
+  if (msg->header.group.source  == EkaSource::kCME_SBE && msg->commonDef.securityType == EfhSecurityType::kOption) {
+    std::string classSymbol    = std::string(msg->commonDef.classSymbol,sizeof(msg->commonDef.classSymbol));
+    sprintf(dst,"%s_%c%04jd",
+	    classSymbol.c_str(),
+	    msg->optionType == EfhOptionType::kCall ? 'C' : 'P',
+	    msg->strikePrice);
+  } else {
+    uint8_t y,m,d;
+
+    d = msg->commonDef.expiryDate % 100;
+    m = ((msg->commonDef.expiryDate - d) / 100) % 100;
+    y = msg->commonDef.expiryDate / 10000 - 2000;
+
+    memcpy(dst,msg->commonDef.underlying,6);
+    //<<<<<<< HEAD
+// inline int strikePriceScaleFactor (EkaSource exch) {
+//   switch (EFH_EXCH2FEED(exch)) {
+//   case EfhFeedVer::kBATS:
+//   case EfhFeedVer::kBOX  : return 10;
+//   case EfhFeedVer::kGEMX : return 10000;
+//   default:                 return 1;    
+//   }
+// }
+
+// inline void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg) {
+//   if (msg->header.group.source  == EkaSource::kCME_SBE && msg->securityType == EfhSecurityType::kOption) {
+//     std::string classSymbol    = std::string(msg->classSymbol,sizeof(msg->classSymbol));
+//     sprintf(dst,"%s_%c%04jd",
+// 	    classSymbol.c_str(),
+// 	    msg->optionType == EfhOptionType::kCall ? 'C' : 'P',
+// 	    msg->strikePrice);
+//   } else {
+//     uint8_t y,m,d;
+
+//     d = msg->expiryDate % 100;
+//     m = ((msg->expiryDate - d) / 100) % 100;
+//     y = msg->expiryDate / 10000 - 2000;
+
+// =======
+// >>>>>>> c2f70d1cd99f8e175b9495a9838cdfa88a65f98f
+    for (auto i = 0; i < 6; i++) if (dst[i] == 0 || dst[i] == ' ') dst[i] = '_';
+    char call_put = msg->optionType == EfhOptionType::kCall ? 'C' : 'P';
+    sprintf(dst+6,"%02u%02u%02u%c%08jd",y,m,d,call_put,msg->strikePrice / strikePriceScaleFactor(msg->header.group.source));
+  }
+  return;
+}
 #endif

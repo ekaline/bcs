@@ -158,7 +158,15 @@ sleep 1
 # of the driver unit numbers for the interfaces to bring up, e.g., "0_0 1_0"
 # will configure fpga0_0 and fpga1_0.
 if test -z "$EKALINE_IF_DEVICES"; then
-    EKALINE_IF_DEVICES="0_0" # We only bring up the first port if not set.
+    # Any port with an IP address - jnunez@striketechnologies.com - 11/13/2020
+    for fgpa_s in `/bin/ls /etc/sysconfig/network-scripts/ifcfg-fpga?_?`; do
+        declare -i is_valid=$(/bin/grep -c IPADDR $fgpa_s)
+        if [ $is_valid -eq 1 ]; then
+            new_dev=$(/usr/bin/grep DEVICE "$fgpa_s"| /bin/cut -f2 -d'='| /bin/sed 's#fpga##')
+            EKALINE_IF_DEVICES="$new_dev $EKALINE_IF_DEVICES"
+        fi
+    done
+    # EKALINE_IF_DEVICES="0_0" # We only bring up the first port if not set.
 fi
 
 for u in $EKALINE_IF_DEVICES; do
