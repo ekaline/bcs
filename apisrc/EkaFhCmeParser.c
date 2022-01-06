@@ -85,17 +85,17 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       break;
       /* ##################################################################### */
     case MsgId::MDInstrumentDefinitionFuture27 :
-      if (op == EkaFhMode::DEFINITIONS)
+      //      if (op == EkaFhMode::DEFINITIONS)
 	process_MDInstrumentDefinitionFuture27(pEfhRunCtx,p,pktTime,pktSeq);
       break;
       /* ##################################################################### */
     case MsgId::MDInstrumentDefinitionFuture54 :
-      if (op == EkaFhMode::DEFINITIONS)
+      //      if (op == EkaFhMode::DEFINITIONS)
 	process_MDInstrumentDefinitionFuture54(pEfhRunCtx,p,pktTime,pktSeq);
       break;
       /* ##################################################################### */
     case MsgId::MDInstrumentDefinitionOption55 :
-      if (op == EkaFhMode::DEFINITIONS)
+      //      if (op == EkaFhMode::DEFINITIONS)
 	process_MDInstrumentDefinitionOption55(pEfhRunCtx,p,pktTime,pktSeq);
       break;
       /* ##################################################################### */
@@ -486,7 +486,6 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture27(const EfhRunCtx* pEfhRunC
   return msgHdr->size;
 }
 /* ##################################################################### */     
-
 
 int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunCtx,
 						       const uint8_t*   pMsg,

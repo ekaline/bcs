@@ -460,7 +460,9 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
 	      EKA_EXCH_DECODE(gr->exch),gr->id,end_sequence);
       return EkaFhParseResult::End;
     }
-    if (sequencedPkt) gr->recovery_sequence++;
+    auto temp = gr->recovery_sequence;
+    if (sequencedPkt) gr->recovery_sequence = temp + 1;
+    //    if (sequencedPkt) gr->recovery_sequence++;
     /* ------------ */
   } // switch (hdr.type)
   return EkaFhParseResult::NotEnd;

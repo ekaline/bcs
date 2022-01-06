@@ -538,11 +538,13 @@ void* onAuctionUpdate(const EfhAuctionUpdateMsg* msg, EfhSecUserData secData, Ef
 
   fprintf(gr->MD,"%c,",    msg->side == EfhOrderSide::kBid ? 'B' : 'S');
   fprintf(gr->MD,"%c,",    (char)exchName);
+
   fprintf(gr->MD,"%c,",    (char)msg->auctionType);
   fprintf(gr->MD,"%c,",    (char)msg->capacity);
   fprintf(gr->MD,"%d,",    (int)msg->securityType);
 
   fprintf(gr->MD,"%s,",    std::string(msg->firmId,sizeof msg->firmId).c_str());
+
   fprintf(gr->MD,"%s,",    (ts_ns2str(msg->header.timeStamp)).c_str());
   fprintf(gr->MD,"\n");
 

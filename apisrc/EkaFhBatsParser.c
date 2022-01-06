@@ -52,6 +52,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   case MsgId::ORDER_DELETE:
   case MsgId::TRADE_LONG:
   case MsgId::TRADE_SHORT:
+  case MsgId::TRADE_EXPANDED:
   case MsgId::TRADING_STATUS:
     
   case MsgId::AUCTION_UPDATE:
@@ -230,13 +231,29 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     break;
   }
     //--------------------------------------------------------------
-  case MsgId::ORDER_EXECUTED: { 
-    order_executed *message = (order_executed *)m;
+  case MsgId::ORDER_EXECUTED: {
+    auto message {reinterpret_cast<const order_executed *>(m)};
     OrderIdT order_id   = message->order_id;
     SizeT    delta_size = message->executed_size;
     FhOrder* o = book->findOrder(order_id);
-    if (o == NULL) return false;
+    if (! o) return false;
     s = (FhSecurity*)o->plevel->s;
+    
+    const EfhTradeMsg msg = {
+      { EfhMsgType::kTrade,
+	{exch,(EkaLSI)id}, // group
+	0,  // underlyingId
+	(uint64_t) s->secId, 
+	sequence,
+	msg_timestamp,
+	gapNum },
+      o->plevel->price,
+      message->executed_size,
+      s->trading_action,
+      EKA_BATS_TRADE_COND(message->trade_condition)
+    };
+    pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
+
     book->setSecurityPrevState(s);
 
     if (book->reduceOrderSize(o,delta_size) == 0) {
@@ -244,17 +261,33 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     } else {
       o->plevel->deductSize (o->type,delta_size);
     }
-
+    
     break;
   }
     //--------------------------------------------------------------
   case MsgId::ORDER_EXECUTED_AT_PRICE_SIZE:  { 
-    order_executed_at_price_size *message = (order_executed_at_price_size *)m;
+    auto message {reinterpret_cast<const order_executed_at_price_size *>(m)};
     OrderIdT order_id   = message->order_id;
     SizeT    delta_size = message->executed_size;
     FhOrder* o = book->findOrder(order_id);
     if (o == NULL) return false;
     s = (FhSecurity*)o->plevel->s;
+
+    const EfhTradeMsg msg = {
+	{ EfhMsgType::kTrade,
+	  {exch,(EkaLSI)id}, // group
+	  0,  // underlyingId
+	  (uint64_t) s->secId, 
+	  sequence,
+	  msg_timestamp,
+	  gapNum },
+	(uint32_t)message->price,
+	message->executed_size,
+	s->trading_action,
+	EKA_BATS_TRADE_COND(message->trade_condition)
+    };
+    pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
+
     book->setSecurityPrevState(s);
 
     if (book->reduceOrderSize(o,delta_size) == 0) {
@@ -358,12 +391,6 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     //--------------------------------------------------------------
   case MsgId::TRADE_SHORT:  { 
     auto message {reinterpret_cast<const TradeShort *>(m)};
-
-    OrderIdT order_id = message->order_id;
-    FhOrder* o = book->findOrder(order_id);
-    if (o == NULL) return false;
-    assert (o->plevel != NULL);
-    assert (o->plevel->s != NULL);
     SecurityIdT security_id =  symbol2secId(message->symbol);
 
     s = book->findSecurity(security_id);
@@ -391,10 +418,6 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     //--------------------------------------------------------------
   case MsgId::TRADE_LONG:  { 
     auto message {reinterpret_cast<const TradeLong *>(m)};
-
-    OrderIdT order_id = message->order_id;
-    FhOrder* o = book->findOrder(order_id);
-    if (o == NULL) return false;
     SecurityIdT security_id =  symbol2secId(message->symbol);
 
     s = book->findSecurity(security_id);
@@ -479,7 +502,9 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     SecurityIdT security_id =  symbol2secId(message->symbol);
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
-    
+    AuctionIdT auctionId = message->auctionId;
+    auctionMap[auctionId] = security_id;
+        
     EfhAuctionUpdateMsg msg{};
     msg.header.msgType        = EfhMsgType::kAuctionUpdate;
     msg.header.group.source   = exch;
@@ -499,33 +524,39 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.price                 = message->price;
     msg.endTimeNanos          = msg_timestamp + message->auctionEndOffset;
 
-    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
+    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg,s->efhUserData, pEfhRunCtx->efhRunUserData);
     break;
   }
     //--------------------------------------------------------------
   case MsgId::AUCTION_CANCEL : { // 0xAE
-#if 0
     auto message {reinterpret_cast<const AuctionCancel *>(m)};
-    /* SecurityIdT security_id =  symbol2secId(message->symbol); */
-    /* s = book->findSecurity(security_id); */
-    /* if (s == NULL) return false; */
+
+    AuctionIdT auctionId = message->auctionId;
+    auto auctionSearch = auctionMap.find(auctionId);
+    if (auctionSearch == auctionMap.end()) return false;
+    
+    SecurityIdT security_id = auctionSearch->second;
+    //    auctionMap.erase(auctionId);
+    auctionMap.erase(auctionSearch);
+    s = book->findSecurity(security_id);
+    if (! s) {
+      EKA_WARN("WARNING: auctionId %ju with no security_id",auctionId);
+      return false;
+    }
     
     EfhAuctionUpdateMsg msg{};
     msg.header.msgType        = EfhMsgType::kAuctionUpdate;
     msg.header.group.source   = exch;
     msg.header.group.localId  = id;
     msg.header.underlyingId   = 0;
-    msg.header.securityId     = 0;
+    msg.header.securityId     = security_id;
     msg.header.sequenceNumber = sequence;
     msg.header.timeStamp      = msg_timestamp;
     msg.header.gapNum         = gapNum;
-
     msg.auctionId             = message->auctionId;
-
     msg.updateType            = EfhAuctionUpdateType::kDelete;
-#endif
-    EKA_WARN("WARNING: AUCTION_CANCEL is not supported by EFH yet");
-    //    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
+
+    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg,s->efhUserData,pEfhRunCtx->efhRunUserData);
     return false;
     break;
   }

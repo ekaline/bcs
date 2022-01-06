@@ -304,10 +304,18 @@ int EkaEpm::DownloadSingleTemplate2HW(EpmTemplate* t) {
   // TCP CS template
   for (uint f = 0; f < EpmNumHwFields; f++) {
     for (uint b = 0; b < EpmHwFieldSize; b++) {
-      if (t->hwField[f].cksmMSB[b])
-	hw_tcpcs_template.high.field[f].bitmap |= ((uint16_t)1)<<b;
-      if (t->hwField[f].cksmLSB[b])
-	hw_tcpcs_template.low.field[f].bitmap  |= ((uint16_t)1)<<b;
+      if (t->hwField[f].cksmMSB[b]) {
+	uint16_t temp = hw_tcpcs_template.high.field[f].bitmap |
+	  ((uint16_t)1)<<b;
+	hw_tcpcs_template.high.field[f].bitmap = temp;
+	//	hw_tcpcs_template.high.field[f].bitmap |= ((uint16_t)1)<<b;
+      }
+      if (t->hwField[f].cksmLSB[b]) {
+	uint16_t temp = hw_tcpcs_template.low.field[f].bitmap |
+	  ((uint16_t)1)<<b;
+	hw_tcpcs_template.low.field[f].bitmap = temp;
+	//	hw_tcpcs_template.low.field[f].bitmap  |= ((uint16_t)1)<<b;
+      }
     }
   }
 

@@ -87,7 +87,9 @@ void fireReportCb (const EpmFireReport *report, int nReports, void *ctx) {
     if (FireEvent[numFireEvents] == NULL) on_error("failed on malloc");
     
     memcpy((void*)FireEvent[numFireEvents],report,sizeof(EpmFireReport));
-    numFireEvents++;
+    auto temp = numFireEvents;
+    numFireEvents = temp + 1;
+    //    numFireEvents++;
   }
 
 #if 1

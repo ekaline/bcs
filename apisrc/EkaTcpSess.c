@@ -366,7 +366,9 @@ int EkaTcpSess::sendStackEthFrame(void *pkt, int len) {
     emptyAckAction->send(); //
   }
   tcpLocalSeqNum = EKA_TCPH_SEQNO(pkt) + EKA_TCP_PAYLOAD_LEN(pkt);
-  txDriverBytes += EKA_TCP_PAYLOAD_LEN(pkt);
+  auto temp = txDriverBytes + EKA_TCP_PAYLOAD_LEN(pkt);
+  txDriverBytes = temp;
+  //  txDriverBytes += EKA_TCP_PAYLOAD_LEN(pkt);
 
   return 0;
 }
@@ -404,7 +406,9 @@ int EkaTcpSess::lwipDummyWrite(void *buf, int len) {
   if (sentBytes <= 0) return sentBytes;
   else if (sentBytes != len)
     on_error("Partial Dummy packet: sentBytes %d != len %d",sentBytes, len);
-  dummyBytes += len;
+  auto temp = dummyBytes + len;
+  dummyBytes = temp;
+  //  dummyBytes += len;
   return len;
 }
 
@@ -448,7 +452,9 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
     return -1;
   }
 
-  fastPathBytes += payloadSize2send;
+  auto temp = fastPathBytes + payloadSize2send;
+  fastPathBytes = temp;
+  //  fastPathBytes += payloadSize2send;
   fastPathAction->fastSend(buf, payloadSize2send);
   return payloadSize2send;
 }

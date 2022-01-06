@@ -40,11 +40,10 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.commonDef.securityType   = EfhSecurityType::kOption;
     msg.commonDef.exchange       = EKA_GRP_SRC2EXCH(exch);
     msg.commonDef.underlyingType = EfhSecurityType::kStock;
-    msg.commonDef.expiryDate     =
+    msg.commonDef.expiryDate    =
       (2000 + (m->MaturityDate[0] - '0') * 10 + (m->MaturityDate[1] - '0')) * 10000 + 
       (       (m->MaturityDate[2] - '0') * 10 +  m->MaturityDate[3] - '0')  * 100   +
       (        m->MaturityDate[4] - '0') * 10 +  m->MaturityDate[5] - '0';
-
     msg.commonDef.contractSize   = m->ContractMultiplier;
       
     msg.optionType            = m->PutOrCall ?  EfhOptionType::kCall : EfhOptionType::kPut;

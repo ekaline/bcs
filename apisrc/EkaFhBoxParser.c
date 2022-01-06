@@ -153,6 +153,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.price = getNumField<uint32_t>(boxMsg->TradePrice,sizeof(boxMsg->TradePrice)) *
       getFractionIndicator(boxMsg->TradePriceFractionIndicator);
     msg.size = getNumField<uint32_t>(boxMsg->Volume,sizeof(boxMsg->Volume));
+
     msg.tradeStatus = s->trading_action;
     switch (boxMsg->PriceIndicatorMarker) {
     case ' ':
@@ -306,6 +307,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.header.gapNum         = gapNum;
 
     msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
+
     msg.updateType            = EfhAuctionUpdateType::kNew;
     msg.side                  = getSide(boxMsg->Side, /*flipSide*/ true);
     msg.capacity              = EfhOrderCapacity::kBrokerDealer;
@@ -342,12 +344,14 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
 
     msg.updateType            = EfhAuctionUpdateType::kNew;
     msg.side                  = getSide(boxMsg->OrderSide, /*flipSide*/ boxMsg->OrderType == 'E');
+
     msg.quantity              = getNumField<uint32_t>(boxMsg->Size,sizeof(boxMsg->Size));
     msg.price                 = getNumField<uint32_t>(boxMsg->LimitPrice,sizeof(boxMsg->LimitPrice)) * getFractionIndicator(boxMsg->LimitPriceFractionIndicator);
     msg.endTimeNanos          = getExpireNs(&localTimeComponents, boxMsg->EndOfExposition);
 
     if (boxMsg->OrderType == 'A') { // Initial
       msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
+
       msg.auctionType           = EfhAuctionType::kPriceImprovementPeriod;
     } else if (boxMsg->OrderType == 'P') { // Exposed
       msg.auctionId             = getNumField<uint32_t>(boxMsg->OrderSequence,sizeof(boxMsg->OrderSequence));
@@ -368,6 +372,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     }
 
     pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
+
   } else if (memcmp(msgHdr->MsgType,"T ",sizeof(msgHdr->MsgType)) == 0) { // HsvfRfqDelete
     auto boxMsg {reinterpret_cast<const HsvfRfqDelete*>(msgBody)};
 
