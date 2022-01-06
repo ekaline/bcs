@@ -46,7 +46,8 @@ EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhI
 
   EkaSource exch = EFH_GET_SRC(pEfhInitCtx->ekaProps->props[0].szKey);
 
-  uint8_t fhId = dev->numFh++;
+  uint8_t fhId = dev->numFh;
+  dev->numFh = fhId + 1; //  warning: ‘++’ expression of ‘volatile’-qualified type is deprecated [-Wvolatile]
   (*ppEfhCtx)->fhId = fhId;
 
   EKA_LOG("Creating FH[%u] %s",fhId,EKA_EXCH_SOURCE_DECODE(exch));
@@ -153,7 +154,8 @@ EkaOpResult efhRunGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, void** r
   
   EkaDev* dev = pEfhCtx->dev;
   dev->mtx.lock();
-  uint runGrId = dev->numRunGr++;
+  uint runGrId = dev->numRunGr;
+  dev->numRunGr = runGrId + 1; //warning: ‘++’ expression of ‘volatile’-qualified type is deprecated [-Wvolatile]
   dev->runGr[runGrId] = new EkaFhRunGroup(pEfhCtx,pEfhRunCtx,runGrId);
   assert (dev->runGr[runGrId] != NULL);
   dev->mtx.unlock();
