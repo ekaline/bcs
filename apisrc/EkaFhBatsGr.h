@@ -137,7 +137,7 @@ public:
     SecurityIdT, OrderIdT, PriceT, SizeT>;
 
   FhBook*   book = NULL;
-  std::map<AuctionIdT,SecurityIdT> auctionMap;
+  std::unordered_map<AuctionIdT,SecurityIdT> auctionMap;
 
 private:
 
