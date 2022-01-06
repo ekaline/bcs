@@ -59,15 +59,17 @@ class EkaFhBatsGr : public EkaFhGroup{
 	    "productMask: \'%s\' (0x%x) "
 	    
 	    "MCAST: %s:%u, "
+	    
 	    "Spin Tcp: %s:%u, "
+	    "Spin User:Pswd: \'%s\':\'%s\'"
+	    
 	    "GRP Tcp: %s:%u, "
 	    "GRP Udp: %s:%u, "
 
 	    "grpSessionSubID: \'%s\' "
 	    "BatsUnit: %u, "
-	    
-	    "User: \'%s\' "
-	    "Pswd: \'%s\' "
+
+	    "GRP User:Pswd: \'%s\':\'%s\'"
 
 	    "connectRetryDelayTime: %d",
 	    EKA_EXCH_DECODE(exch),id,
@@ -75,11 +77,16 @@ class EkaFhBatsGr : public EkaFhGroup{
 	    
 	    EKA_IP2STR(mcast_ip),   mcast_port,
 	    EKA_IP2STR(snapshot_ip),be16toh(snapshot_port),
+	    
+	    std::string(auth_user,sizeof(auth_user)).c_str(),
+	    std::string(auth_passwd,sizeof(auth_passwd)).c_str(),
+	    
 	    EKA_IP2STR(grpIp),      be16toh(grpPort),
 	    EKA_IP2STR(recovery_ip),be16toh(recovery_port),
 
 	    std::string(grpSessionSubID,sizeof(grpSessionSubID)).c_str(),
 	    batsUnit,
+	    
 	    std::string(grpUser,  sizeof(grpUser)  ).c_str(),
 	    std::string(grpPasswd,sizeof(grpPasswd)).c_str(),
 
