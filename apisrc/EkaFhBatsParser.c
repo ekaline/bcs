@@ -1,3 +1,4 @@
+#include <cmath>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -106,7 +107,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.header.msgType        = EfhMsgType::kOptionDefinition;
     msg.header.group.source   = exch;
     msg.header.group.localId  = id;
-    msg.header.underlyingId   = 0;
+    msg.header.underlyingId   = expSymbol2secId(message->underlying);
     msg.header.securityId     = symbol2secId(message->symbol);
     msg.header.sequenceNumber = sequence;
     msg.header.timeStamp      = 0;
@@ -568,7 +569,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.header.msgType        = EfhMsgType::kComplexDefinition;
     msg.header.group.source   = exch;
     msg.header.group.localId  = id;
-    msg.header.underlyingId   = 0;
+    msg.header.underlyingId   = expSymbol2secId(root->ComplexInstrumentUnderlying);
     msg.header.securityId     = symbol2secId(root->ComplexInstrumentId);
     msg.header.sequenceNumber = sequence;
     msg.header.timeStamp      = 0;
@@ -588,20 +589,17 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 
     msg.numLegs = root->LegCount;
 
-    auto leg  {reinterpret_cast<const ComplexInstrumentDefinitionExpanded_leg*>(m + sizeof(*root))};
+    const auto* leg  {reinterpret_cast<const ComplexInstrumentDefinitionExpanded_leg*>(m + sizeof(*root))};
     for (uint i = 0; i < msg.numLegs; i++) {
-      msg.legs[i].securityId = expSymbol2secId(leg->LegSymbol);
-      msg.legs[i].type       = getComplexSecurityType(leg->LegSecurityType);
-      msg.legs[i].ratio      = leg->LegRatio;	 
+      msg.legs[i].securityId = expSymbol2secId(leg[i].LegSymbol);
+      msg.legs[i].type       = getComplexSecurityType(leg[i].LegSecurityType);
+      msg.legs[i].side       = leg[i].LegRatio > 0 ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
+      msg.legs[i].ratio      = std::abs(leg[i].LegRatio);
     }
     if (pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL)
       on_error("pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL");
     pEfhRunCtx->onEfhComplexDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
-
-    leg ++; //+= sizeof(*leg);
     return false;
-
-    break;
   }
     //--------------------------------------------------------------
 
