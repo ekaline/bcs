@@ -496,10 +496,12 @@ static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
     /* ------------------------------------------ */
   case DeliveryFlag::Heartbeat :
     if (*myRefreshStarted) {
-      EKA_WARN("%s:%u WARNING: Heartbeat during active Refresh cycle - UDP packets dropped: "
-	       "last processed msgSeq = %u, current msgSeq = %u, dropped %d",
-	       EKA_EXCH_DECODE(gr->exch),gr->id, msgSeq, pktHdr->seqNum, pktHdr->seqNum - msgSeq);
-      return EKA_OPRESULT__ERR_RECOVERY_FAILED;
+      EKA_WARN("%s:%u Heartbeat during active Refresh cycle: last processed msgSeq = %u, current msgSeq = %u",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,msgSeq,pktHdr->seqNum);
+      /* EKA_WARN("%s:%u WARNING: Heartbeat during active Refresh cycle - UDP packets dropped: " */
+      /* 	       "last processed msgSeq = %u, current msgSeq = %u, dropped %d", */
+      /* 	       EKA_EXCH_DECODE(gr->exch),gr->id, msgSeq, pktHdr->seqNum, pktHdr->seqNum - msgSeq); */
+      /* return EKA_OPRESULT__ERR_RECOVERY_FAILED; */
     }
   case DeliveryFlag::Failover :
   case DeliveryFlag::SeqReset :
