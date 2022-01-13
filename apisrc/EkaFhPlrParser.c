@@ -14,6 +14,15 @@ inline EfhTradeStatus quoteCondition(const char c) {
   }
 }
 
+inline EfhTradeCond getTradeCondition(const Trade* trade) {
+  // FIXME: there is a lot more to do here...
+  switch (trade->tradeCond1) {
+  case 'e': return EfhTradeCond::kSLFT;
+  case 'S': return EfhTradeCond::kISOI;
+  default: return EfhTradeCond::kREG;
+  }
+}
+
 bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 			  const unsigned char*   pMsg,
 			  uint64_t         sequence,
@@ -112,21 +121,19 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 
     msg.numLegs = root->NoOfLegs;
 
-    auto leg  {reinterpret_cast<const ComplexDefinitionLeg*>(pMsg + sizeof(*root))};
+    auto legs  {reinterpret_cast<const ComplexDefinitionLeg*>(pMsg + sizeof(*root))};
     for (uint i = 0; i < root->NoOfLegs; i++) {
-      msg.legs[i].securityId = leg->SymbolIndex;
-      msg.legs[i].type       = getComplexSecurityType(leg->SecurityType);
+      msg.legs[i].securityId = legs[i].SymbolIndex;
+      msg.legs[i].type       = getComplexSecurityType(legs[i].SecurityType);
       if (msg.legs[i].type == EfhSecurityType::kStock)
-	msg.header.underlyingId = leg->SymbolIndex;
+	msg.header.underlyingId = legs[i].SymbolIndex;
 
-      msg.legs[i].side       = getSide(leg->side);
-      msg.legs[i].ratio      = leg->LegRatioQty;	 
+      msg.legs[i].side       = getSide(legs[i].side);
+      msg.legs[i].ratio      = legs[i].LegRatioQty;
     }
     if (pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL)
       on_error("pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL");
     pEfhRunCtx->onEfhComplexDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
-
-    leg ++; //+= sizeof(*leg);
   }
     break;
         // #####################################################
@@ -280,7 +287,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 	m->price,
 	m->volume,
 	s->trading_action,
-	EfhTradeCond::kREG
+	getTradeCondition(m)
     };
     pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
   }
@@ -289,6 +296,8 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     
   case MsgType::SeriesRfq : { // 307
     auto m {reinterpret_cast<const Rfq*>(pMsg)};
+    FhSecurity* s = book->findSecurity(m->seriesIndex);
+    if (s == NULL) return false;
 
     EfhAuctionUpdateMsg msg{};
     msg.header.msgType        = EfhMsgType::kAuctionUpdate;
@@ -311,7 +320,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     sprintf(msg.firmId,"%u",m->participant);
     if (pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL)
       on_error("pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL");
-    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
     
   }
     break;   
