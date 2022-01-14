@@ -123,6 +123,7 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	gr->sendFeedDown(pEfhRunCtx);
 	gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
 	gr->closeIncrementalGap(pEfhCtx, pEfhRunCtx, gr->expected_sequence, sequence);
+	mcGap = false; // to prevent immediate gap-in-gap
       } else { // NORMAL
 	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,msgInPkt,sequence);      
       }    
