@@ -850,10 +850,10 @@ void* getMolUdp64Data(void* attr) {
     gr->seq_after_snapshot = sequence;
     EKA_LOG("%s:%u: Mold recovery finished: next expected_sequence = %ju, end=%ju",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot,end);
+    gr->gapClosed = true;
   }
   close(udpSock);
 
-  gr->gapClosed = true;
   gr->recoveryThreadDone = true;
 
   return NULL;
