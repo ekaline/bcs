@@ -340,6 +340,10 @@ void EkaFhGroup::print_q_state() {
  int EkaFhGroup::credentialAcquire(const char* credName,
 				   size_t      credNameSize,
 				   EkaCredentialLease** lease) {
+   
+   EKA_LOG("%s:%u trying to acquire %s credentials for threadId %ld",
+	   EKA_EXCH_DECODE(exch),id,credName,syscall(SYS_gettid));
+     
    if (credentialsAcquired) {
      EKA_WARN("%s:%u Credentials is already acquired",EKA_EXCH_DECODE(exch),id);
      return 0;
@@ -369,6 +373,9 @@ void EkaFhGroup::print_q_state() {
 /* ##################################################################### */
 
  int EkaFhGroup::credentialRelease(EkaCredentialLease* lease) {
+   EKA_LOG("%s:%u trying to release credentials for threadId %ld",
+	   EKA_EXCH_DECODE(exch),id,syscall(SYS_gettid));
+   
    if (! credentialsAcquired) {
      EKA_WARN("%s:%u Credentials is already released",EKA_EXCH_DECODE(exch),id);
      return 0;

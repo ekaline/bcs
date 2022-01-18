@@ -19,6 +19,7 @@
 #include <assert.h>
 #include <sched.h>
 #include <time.h>
+#include <sys/syscall.h>
 
 #include "EkaFhNasdaqGr.h"
 #include "EkaFhThreadAttr.h"
@@ -587,6 +588,10 @@ void* getSoupBinData(void* attr) {
   if (! dev->fh[pEfhCtx->fhId]) 
     on_error("! dev->fh[%u]",pEfhCtx->fhId);
 
+  EKA_LOG("%s:%u starting Soupbin (Glimpse) threadId %ld",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,
+	  syscall(SYS_gettid));
+  
   EKA_LOG("%s:%u %s : start_sequence=%ju, end_sequence=%ju",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,
 	  EkaFhMode2STR(op),
@@ -640,6 +645,9 @@ void* getSoupBinData(void* attr) {
 	     EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
   }
   gr->recoveryThreadDone = true;
+  EKA_LOG("%s:%u closing Soupbin (Glimpse) threadId %ld",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,
+	  syscall(SYS_gettid));
   return NULL;
 }
 
