@@ -415,10 +415,13 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
   int64_t priceScaleFactor = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE;
 #else
   int secIdx                  = (int)secData;
-  if (secIdx < 0 || secIdx >= (int)gr->security.size())
-    on_error("Bad secIdx = %d, gr->security.size() = %d",
-	     secIdx, (int)gr->security.size());
-  
+  if (secIdx < 0 || secIdx >= (int)gr->security.size()) {
+    /* on_error("Bad secIdx = %d, gr->security.size() = %d", */
+    /* 	     secIdx, (int)gr->security.size()); */
+      on_warning("Bad secIdx = %d, gr->security.size() = %d, msg->header.securityId = %ju",
+		 secIdx, (int)gr->security.size(),msg->header.securityId);
+      return NULL;
+  }
   std::string currAvtSecName  = gr->security.at(secIdx).avtSecName.c_str();	  
   std::string currClassSymbol = gr->security.at(secIdx).classSymbol;
   int64_t priceScaleFactor    = 100; //gr->security.at(secIdx).displayPriceScale;
@@ -487,7 +490,14 @@ void* onComplexDefinition(const EfhComplexDefinitionMsg* msg, EfhSecUserData sec
 
   auto gr = testCtx->grCtx[(int)exch][grId];
   if (gr == NULL) on_error("Uninitialized testCtx->grCtx[%d][%d]",(int)exch,grId);
-  
+
+  printf("ComplexDefinition,");
+  printf("%ju,",msg->header.securityId);
+  printf("\'%s\',",std::string(msg->commonDef.underlying,sizeof(msg->commonDef.underlying)).c_str());
+  printf("\'%s\',",std::string(msg->commonDef.classSymbol,sizeof(msg->commonDef.classSymbol)).c_str());
+  printf("\'%s\',",std::string(msg->commonDef.exchSecurityName,sizeof(msg->commonDef.exchSecurityName)).c_str());
+  printf("\n");
+ 
   fprintf(gr->MD,"ComplexDefinition,");
   fprintf(gr->MD,"%ju,",msg->header.securityId);
   fprintf(gr->MD,"\'%s\',",std::string(msg->commonDef.underlying,sizeof(msg->commonDef.underlying)).c_str());

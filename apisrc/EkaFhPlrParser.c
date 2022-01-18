@@ -121,6 +121,9 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 
     msg.numLegs = root->NoOfLegs;
 
+    EKA_LOG("%s:%u: ComplexDefinition:  securityId=%ju",
+	    EKA_EXCH_DECODE(exch),id,msg.header.securityId);
+    
     auto legs  {reinterpret_cast<const ComplexDefinitionLeg*>(pMsg + sizeof(*root))};
     for (uint i = 0; i < root->NoOfLegs; i++) {
       msg.legs[i].securityId = legs[i].SymbolIndex;
