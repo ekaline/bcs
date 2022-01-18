@@ -45,6 +45,7 @@ struct TestSecurityCtx {
   std::string classSymbol;
   EfhExchange exch;
   int64_t     displayPriceScale = DEFAULT_DISPLAY_PRICE_SCALE;
+  bool isCompllex = false;
 };
 
 class McGrpCtx {

@@ -496,6 +496,21 @@ void* onComplexDefinition(const EfhComplexDefinitionMsg* msg, EfhSecUserData sec
 
   fprintf(gr->MD,"\n");
 
+  TestSecurityCtx newSecurity = {
+      .securityId        = msg->header.securityId,
+      .avtSecName        = std::string(msg->commonDef.exchSecurityName,sizeof(msg->commonDef.exchSecurityName)),
+      .underlying        = std::string(msg->commonDef.underlying,sizeof(msg->commonDef.underlying)),
+      .classSymbol       = std::string(msg->commonDef.classSymbol,sizeof(msg->commonDef.classSymbol)),
+      .exch              = msg->commonDef.exchange,
+      .displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE,
+      .isCompllex        = true
+  };
+    
+    gr->security.push_back(newSecurity);
+    auto sec_idx = gr->security.size() - 1;
+    
+    efhSubscribeStatic(pEfhCtx, (EkaGroup*)&msg->header.group, msg->header.securityId, EfhSecurityType::kOption,(EfhSecUserData) sec_idx,0,0);
+
   return NULL;
 }
 /* ------------------------------------------------------------ */
@@ -597,6 +612,7 @@ void* onFutureDefinition(const EfhFutureDefinitionMsg* msg, EfhSecUserData secDa
   	.classSymbol       = classSymbol,
   	.exch              = msg->commonDef.exchange,
   	.displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE,
+	.isCompllex        = false
     };
     
     gr->security.push_back(newSecurity);
@@ -660,7 +676,8 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
 	.underlying        = underlyingName,
 	.classSymbol       = classSymbol,
 	.exch              = msg->commonDef.exchange,
-	.displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE
+	.displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE,
+	.isCompllex        = false
     };
     
     gr->security.push_back(newSecurity);
