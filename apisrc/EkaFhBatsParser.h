@@ -285,7 +285,7 @@ namespace Bats {
     char		side;     // 1 'B' or 'S'
     uint32_t	size;     // 4
     char          symbol[6];// 6  right padded with spaces
-    uint64_t	price;    // 8
+    int64_t	price;    // 8
     uint8_t	flags;    // 1
   } __attribute__((packed));
 
@@ -295,7 +295,7 @@ namespace Bats {
     char		side;     // 1 'B' or 'S'
     uint16_t	size;     // 2
     char          symbol[6];// 6  right padded with spaces
-    uint16_t	price;    // 2
+    int16_t	price;    // 2
     uint8_t	flags;    // 1
   } __attribute__((packed));
 
