@@ -260,12 +260,15 @@ for ($i=0; $i<35;$i++) {
     
     print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"${spin_ip}:${spin_port}\"\}, \t// Complex SPIN\n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.auth\",\"${spinUsername}:${spinPasswd}\"\}, \t\t// Complex SPIN \n";
-    print "\t\{\"efh.$exch_name.group.$i.snapshot.sessionSubID\",\"$sessionSubID\"\}, \t\t// Complex SPIN \n";
-    
+#    print "\t\{\"efh.$exch_name.group.$i.snapshot.sessionSubID\",\"$sessionSubID\"\}, \t\t// Complex SPIN \n";
+    printf ("\t\{\"efh.%s.group.%d.snapshot.sessionSubID\",\"%04d\"\}, \t\t// Complex SPIN \n",$exch_name,$i,$sessionSubID);
+
     print "\t\{\"efh.$exch_name.group.$i.recovery.addr\",\"$grp_mc:$port\"\}, \t\t// Complex GRP UDP\n";
     print "\t\{\"efh.$exch_name.group.$i.recovery.grpAddr\",\"$grpIp:$grpPort\"\}, \t// Complex GRP TCP\n";
     print "\t\{\"efh.$exch_name.group.$i.recovery.grpAuth\",\"$grpUser:$grpPswd\"\}, \t// Complex GRP TCP\n";
+#    print "\t\{\"efh.$exch_name.group.$i.recovery.grpSessionSubID\",\"$grpSessionSubId\"\}, \t// Complex GRP TCP\n";
     print "\t\{\"efh.$exch_name.group.$i.recovery.grpSessionSubID\",\"$grpSessionSubId\"\}, \t// Complex GRP TCP\n";
+
     print "\n";
 
     $port++;
