@@ -209,6 +209,72 @@ for ($i=0; $i<35;$i++) {
     $sessionSubID += 2;
 }
 print "};\n\n";
+
+
+
+#####################################################
+
+# CAC C1 Complex feed
+# C1_D
+print "EkaProp efhBatsC1InitCtxEntries_CAC[] = {\n";
+
+$port = 30351;
+$unit = 1;
+
+$spin_port = 18701;
+
+$sessionSubID = 502;
+
+$spinUsername  = "GTSS";
+$spinPasswd = "cb2gtss";
+
+$exch_name = "C1_PITCH";
+
+$grpIp   = "170.137.114.108";
+$grpPort = 17045;
+
+$grpUser = "GTSS";
+$grpPswd = "cgb1gtss";
+
+$grpSessionSubId = "0879";
+
+for ($i=0; $i<35;$i++) {
+    if ($i < 17) {
+	$rt_mc  = "224.0.74.80";
+	$grp_mc = "224.0.74.82";
+    } else {
+	$rt_mc  = "224.0.74.81";
+	$grp_mc = "224.0.74.83";
+    }
+    
+    if ($i < 13) {
+	$spin_ip = "170.137.114.106";
+    } elsif ($i < 25) {
+	$spin_ip = "170.137.114.107";
+    } else {
+	$spin_ip = "170.137.114.108";
+    }
+
+    print "\t\{\"efh.$exch_name.group.$i.unit\",\"$unit\"\},\n";
+    print "\t\{\"efh.$exch_name.group.$i.mcast.addr\",\"$rt_mc:$port\"\},\n";
+    
+    print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"${spin_ip}:${spin_port}\"\}, \t// Complex SPIN\n";
+    print "\t\{\"efh.$exch_name.group.$i.snapshot.auth\",\"${spinUsername}:${spinPasswd}\"\}, \t\t// Complex SPIN \n";
+    print "\t\{\"efh.$exch_name.group.$i.snapshot.sessionSubID\",\"$sessionSubID\"\}, \t\t// Complex SPIN \n";
+    
+    print "\t\{\"efh.$exch_name.group.$i.recovery.addr\",\"$grp_mc:$port\"\}, \t\t// Complex GRP UDP\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.grpAddr\",\"$grpIp:$grpPort\"\}, \t// Complex GRP TCP\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.grpAuth\",\"$grpUser:$grpPswd\"\}, \t// Complex GRP TCP\n";
+    print "\t\{\"efh.$exch_name.group.$i.recovery.grpSessionSubID\",\"$grpSessionSubId\"\}, \t// Complex GRP TCP\n";
+    print "\n";
+
+    $port++;
+    $spin_port++;
+    $unit++;
+    $sessionSubID += 2;
+}
+print "};\n\n";
+
 #####################################################
 print "const EkaGroup batsC1Groups[] = {\n";
 for ($i=0; $i<35;$i++) {
@@ -220,109 +286,3 @@ print "};\n\n";
 print "#endif\n";
 
 exit;
-
-#####################################################
-# C2
-
-$port = 30201;
-$unit = 1;
-$rt_mc_base  = "233.130.124.";
-$rt_mc_lsb = 208;
-$grp_mc_base = "233.130.124.";
-$grp_mc_lsb = 224;
-
-$spin_ip_base = "174.136.168.";
-$spin_port = 15903;
-
-$sessionSubID = 119;
-
-$exch_name = "BATS_C2";
-$grpIp   = "174.136.168.133";
-$grpPort = 18997;
-$grpUser = "GTSS";
-$grpPswd = "vt1gtss";
-$grpSessionSubId = "0143";
-
-for ($i=0; $i<35;$i++) {
-    if ($i > 0 && $i % 4 == 0) {
-	$rt_mc_lsb++;
-	$grp_mc_lsb++;
-    }
-
-    $spin_ip_lsb = $i < 16 ? 132 : 134;
-
-#    print "$unit: RT MC: $rt_mc_base$rt_mc_lsb:$port, GRP MC: $grp_mc_base$grp_mc_lsb:$port, spin: $spin_ip_base${spin_ip_lsb}:$spin_port\n";
-
-    print "\t\{\"efh.$exch_name.group.$i.unit\",\"$unit\"\},\n";
-    print "\t\{\"efh.$exch_name.group.$i.mcast.addr\",\"$rt_mc_base$rt_mc_lsb:$port\"\},\n";
-    print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"$spin_ip_base$spin_ip_lsb:$spin_port\"\}, \t// SPIN \n";
-    print "\t\{\"efh.$exch_name.group.$i.snapshot.auth\",\"$auth\"\}, \t\t// SPIN \n";
-    print "\t\{\"efh.$exch_name.group.$i.snapshot.sessionSubID\",\"0$sessionSubID\"\}, \t\t// SPIN \n";
-    print "\t\{\"efh.$exch_name.group.$i.recovery.addr\",\"$grp_mc_base$grp_mc_lsb:$port\"\}, \t// GRP \n";
-    print "\t\{\"efh.$exch_name.group.$i.recovery.grpAddr\",\"$grpIp:$grpPort\"\}, \t// GRP TCP\n";
-    print "\t\{\"efh.$exch_name.group.$i.recovery.grpAuth\",\"$grpUser:$grpPswd\"\}, \t// GRP TCP\n";
-    print "\t\{\"efh.$exch_name.group.$i.recovery.grpSessionSubID\",\"$grpSessionSubId\"\}, \t// GRP TCP\n";
-    print "\n";
-
-    $port++;
-    $spin_port++;
-    $unit++;
-    $sessionSubID += 2;
-}
-print "#" x 40,"\n";
-
-#####################################################
-
-# BZX
-
-$port = 30101;
-$unit = 1;
-$rt_mc_base  = "224.0.131.";
-$rt_mc_lsb = 32;
-$grp_mc_base = "224.0.131.";
-$grp_mc_lsb = 48;
-
-$spin_ip_base = "174.136.163.";
-$spin_port = 15935;
-
-$sessionSubID = 223;
-
-$username  = "BCAP";
-$passwd = "so4bcap2";
-
-$exch_name = "BZX_PITCH";
-
-$grpIp   = "174.136.163.133";
-$grpPort = 18997;
-$grpUser = "GTSS";
-$grpPswd = "vo1gtss";
-$grpSessionSubId = "0077";
-
-for ($i=0; $i<32;$i++) {
-    if ($i > 0 && $i % 4 == 0) {
-	$rt_mc_lsb++;
-	$grp_mc_lsb++;
-    }
-    $spin_ip_lsb = $i < 16 ? 149 : 150;
-#    print "$unit: RT MC: $rt_mc_base$rt_mc_lsb:$port, GRP MC: $grp_mc_base$grp_mc_lsb:$port, spin: $spin_ip_base${spin_ip_lsb}:$spin_port\n";
-
-    print "\t\{\"efh.$exch_name.group.$i.unit\",\"$unit\"\},\n";
-    print "\t\{\"efh.$exch_name.group.$i.mcast.addr\",\"$rt_mc_base$rt_mc_lsb:$port\"\},\n";
-    print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"$spin_ip_base$spin_ip_lsb:$spin_port\"\}, \t// SPIN \n";
-    print "\t\{\"efh.$exch_name.group.$i.snapshot.auth\",\"${username}:${passwd}\"\}, \t\t// SPIN \n";
-    print "\t\{\"efh.$exch_name.group.$i.snapshot.sessionSubID\",\"0$sessionSubID\"\}, \t\t// SPIN \n";
-    print "\t\{\"efh.$exch_name.group.$i.recovery.addr\",\"$grp_mc_base$grp_mc_lsb:$port\"\}, \t\t// GRP \n";
-    print "\t\{\"efh.$exch_name.group.$i.recovery.grpAddr\",\"$grpIp:$grpPort\"\}, \t// GRP TCP\n";
-    print "\t\{\"efh.$exch_name.group.$i.recovery.grpAuth\",\"$grpUser:$grpPswd\"\}, \t// GRP TCP\n";
-    print "\t\{\"efh.$exch_name.group.$i.recovery.grpSessionSubID\",\"$grpSessionSubId\"\}, \t// GRP TCP\n";
-    print "\n";
-
-    $port++;
-    $spin_port++;
-    $unit++;
-    $sessionSubID += 2;
-}
-
-
-
-

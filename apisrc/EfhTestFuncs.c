@@ -489,9 +489,11 @@ void* onComplexDefinition(const EfhComplexDefinitionMsg* msg, EfhSecUserData sec
   if (gr == NULL) on_error("Uninitialized testCtx->grCtx[%d][%d]",(int)exch,grId);
   
   fprintf(gr->MD,"ComplexDefinition,");
-  /* fprintf(gr->MD,"\'%s\',",std::string(msg->exchSymbolName,sizeof(msg->exchSymbolName)).c_str()); */
-  /* fprintf(gr->MD,"\'%s\',",std::string(msg->exchAssetName,sizeof(msg->exchAssetName)).c_str()); */
-  /* fprintf(gr->MD,"%ju,",msg->header.securityId); */
+  fprintf(gr->MD,"%ju,",msg->header.securityId);
+  fprintf(gr->MD,"\'%s\',",std::string(msg->commonDef.underlying,sizeof(msg->commonDef.underlying)).c_str());
+  fprintf(gr->MD,"\'%s\',",std::string(msg->commonDef.classSymbol,sizeof(msg->commonDef.classSymbol)).c_str());
+  fprintf(gr->MD,"\'%s\',",std::string(msg->commonDef.exchSecurityName,sizeof(msg->commonDef.exchSecurityName)).c_str());
+
   fprintf(gr->MD,"\n");
 
   return NULL;
@@ -683,7 +685,9 @@ EkaSource feedname2source(std::string feedName) {
   if (feedName == std::string("CB")) return EkaSource::kC1_PITCH;
   if (feedName == std::string("CC")) return EkaSource::kC1_PITCH;
   if (feedName == std::string("CD")) return EkaSource::kC1_PITCH;
-  /* ------------------------------------------------------- */
+
+  if (feedName == std::string("CAC")) return EkaSource::kC1_PITCH;
+/* ------------------------------------------------------- */
   if (feedName == std::string("MA")) return EkaSource::kMIAX_TOM;
   if (feedName == std::string("MB")) return EkaSource::kMIAX_TOM;
 
@@ -734,6 +738,8 @@ static EkaProp* feedname2prop (std::string feedName) {
   if (feedName == std::string("CB")) return efhBatsC1InitCtxEntries_B;
   if (feedName == std::string("CC")) return efhBatsC1InitCtxEntries_C;
   if (feedName == std::string("CD")) return efhBatsC1InitCtxEntries_D;
+
+  if (feedName == std::string("CAC")) return efhBatsC1InitCtxEntries_CAC;
   /* ------------------------------------------------------- */
   if (feedName == std::string("MA")) return efhMiaxInitCtxEntries_A;
   if (feedName == std::string("MB")) return efhMiaxInitCtxEntries_B;
@@ -785,6 +791,8 @@ static size_t feedname2numProps (std::string feedName) {
   if (feedName == std::string("CB")) return std::size(efhBatsC1InitCtxEntries_B);
   if (feedName == std::string("CC")) return std::size(efhBatsC1InitCtxEntries_C);
   if (feedName == std::string("CD")) return std::size(efhBatsC1InitCtxEntries_D);
+
+  if (feedName == std::string("CAC")) return std::size(efhBatsC1InitCtxEntries_CAC);
   /* ------------------------------------------------------- */
   if (feedName == std::string("MA")) return std::size(efhMiaxInitCtxEntries_A);
   if (feedName == std::string("MB")) return std::size(efhMiaxInitCtxEntries_B);
@@ -836,6 +844,8 @@ static size_t feedname2numGroups(std::string feedName) {
   if (feedName == std::string("CB")) return std::size(batsC1Groups);
   if (feedName == std::string("CC")) return std::size(batsC1Groups);
   if (feedName == std::string("CD")) return std::size(batsC1Groups);
+
+  if (feedName == std::string("CAC")) return std::size(batsC1Groups);  
   /* ------------------------------------------------------- */
   if (feedName == std::string("MA")) return std::size(miaxGroups);
   if (feedName == std::string("MB")) return std::size(miaxGroups);
@@ -981,8 +991,9 @@ void print_usage(char* cmd) {
   printf("\t\t\tOB  - PHLX ORD    B feed\n"); 
   printf("\t\t\tCA  - C1          A feed\n"); 
   printf("\t\t\tCB  - C1          B feed\n"); 
-  printf("\t\t\tCC  - C1          C feed\n"); 
+  printf("\t\t\tCC  - C1          C feed -- main feed for EFH CBOE vanilla testing\n"); 
   printf("\t\t\tCD  - C1          D feed\n"); 
+  printf("\t\t\tCAC - C1        CAC feed -- main feed for EFH CBOE Complex testing\n"); 
   printf("\t\t\tMA  - MIAX TOM    A feed\n"); 
   printf("\t\t\tMB  - MIAX TOM    B feed\n"); 
   printf("\t\t\tPA  - PEARL TOM   A feed\n"); 

@@ -569,7 +569,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.header.group.source   = exch;
     msg.header.group.localId  = id;
     msg.header.underlyingId   = 0;
-    msg.header.securityId     = 0;
+    msg.header.securityId     = symbol2secId(root->ComplexInstrumentId);
     msg.header.sequenceNumber = sequence;
     msg.header.timeStamp      = 0;
     msg.header.gapNum         = gapNum;
