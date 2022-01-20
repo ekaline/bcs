@@ -34,7 +34,8 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     uint     msgInPkt = 0;
     uint64_t sequence = 0;
     uint8_t  gr_id    = 0xFF;
-
+    bool     skipNextOnUdpCh = false;
+    
     auto pkt = getUdpPkt(runGr,&msgInPkt,&sequence,&gr_id);
     if (!pkt) continue;
 
@@ -132,6 +133,7 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	gr->startTrackingGapInGap(sequence, msgInPkt);
 	gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
 	gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 1, 0);
+	skipNextOnUdpCh = true;
       } else {      
 	gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
 	if (gr->gapClosed) {
@@ -153,7 +155,8 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       break;
     }
 #endif
-    runGr->udpCh->next(); 
+    if (! skipNextOnUdpCh)
+      runGr->udpCh->next();
   }
   EKA_INFO("%s RunGroup %u EndOfSession",EKA_EXCH_DECODE(exch),runGrId);
 
