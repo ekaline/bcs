@@ -45,9 +45,21 @@ int16_t EkaUdpChannel::getPayloadLen() {
 void EkaUdpChannel::next() {
   if (pIncomingUdpPacket == NULL) on_error("pIncomingUdpPacket == NULL");
 
-  if (++ptr_update_ctr % 1000 == 0) if (SN_UpdateReceivePtr(ChannelId, pIncomingUdpPacket) != SN_ERR_SUCCESS) on_error ("PIZDETS");
+  if (++ptr_update_ctr % 1000 == 0)
+    if (SN_UpdateReceivePtr(ChannelId, pIncomingUdpPacket) != SN_ERR_SUCCESS)
+      on_error ("PIZDETS");
   pPreviousUdpPacket = pIncomingUdpPacket;
   return;
+}
+
+uint64_t EkaUdpChannel::emptyBuffer() {
+  uint64_t pktCtr = 0;
+  while (has_data()) {
+    get();
+    next();
+    pktCtr++;
+  }
+  return pktCtr;
 }
 
 EkaUdpChannel::EkaUdpChannel(EkaDev* ekaDev, uint8_t coreId, int requestedChId) {
