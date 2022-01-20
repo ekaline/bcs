@@ -53,12 +53,13 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     bool dropMe = false;
     switch (gr->state) {
     case EkaFhGroup::GrpState::NORMAL :
-      if (sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ < 20)
+      if (sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0)
 	dropMe = true;
       break;
-    case EkaFhGroup::GrpState::RETRANSMIT_GAP :
     case EkaFhGroup::GrpState::SNAPSHOT_GAP :
-      if (sequence % (_EFH_TEST_GAP_INJECT_INTERVAL_ + _EFH_TEST_GAP_INJECT_DELTA_) < 20)
+      break;
+    case EkaFhGroup::GrpState::RETRANSMIT_GAP :
+      if (sequence % (_EFH_TEST_GAP_INJECT_INTERVAL_ + _EFH_TEST_GAP_INJECT_DELTA_) == 0)
 	dropMe = true;
       break;
     default:
@@ -66,7 +67,8 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     }
     if (dropMe) {
       EKA_WARN("%s:%u: TEST GAP INJECTED: (INTERVAL = %d, DELTA = %d): sequence %ju with %u messages dropped",
-	       EKA_EXCH_DECODE(exch),gr_id, _EFH_TEST_GAP_INJECT_INTERVAL_,sequence,msgInPkt);
+	       EKA_EXCH_DECODE(exch),gr_id,
+	       _EFH_TEST_GAP_INJECT_INTERVAL_,_EFH_TEST_GAP_INJECT_DELTA_,sequence,msgInPkt);
       runGr->udpCh->next(); 
       continue;
     }

@@ -124,8 +124,9 @@ public:
 
     bool hasGapInGap(uint64_t sequence, uint msgInPkt) {
 	if (sequence < expectedSeqGapInGap) {
-	    on_error("%s:%u BACK-IN-TIME: sequence %ju < expectedSeqGapInGap %ju",
-		     EKA_EXCH_DECODE(exch),id,sequence,expectedSeqGapInGap);
+	    on_error("%s:%u BACK-IN-TIME at %s: sequence %ju < expectedSeqGapInGap %ju",
+		     EKA_EXCH_DECODE(exch),id,
+		     printGrpState(),sequence,expectedSeqGapInGap);
 	}
 	if (sequence > expectedSeqGapInGap) {
 	    EKA_LOG("%s:%u: Gap-In-Gap at %s: expectedSeqGapInGap %ju != sequence %ju, lost %ju",
