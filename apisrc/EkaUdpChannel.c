@@ -62,7 +62,7 @@ uint64_t EkaUdpChannel::emptyBuffer() {
     pktCtr++;
 
   }
-
+  pIncomingUdpPacket = NULL;
   return pktCtr;
 }
 
