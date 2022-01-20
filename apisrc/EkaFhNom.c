@@ -23,6 +23,10 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
   EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u: %s GROUPS ~~~~~~~~~~~~~",
 	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
 
+#ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
+    uint64_t firstDropSeq = 0;
+#endif
+    
   while (runGr->thread_active && ! runGr->stoppedByExchange) {
     if (! runGr->udpCh->has_data()) {
       if (++timeCheckCnt % TimeCheckRate == 0) {
@@ -51,7 +55,6 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
 #ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
     bool dropMe = false;
-    uint64_t firstDropSeq = 0;
     switch (gr->state) {
     case EkaFhGroup::GrpState::NORMAL :
       if (sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
