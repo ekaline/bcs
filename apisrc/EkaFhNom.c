@@ -51,15 +51,18 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
 #ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
     bool dropMe = false;
+    uint64_t firstDropSeq = 0;
     switch (gr->state) {
     case EkaFhGroup::GrpState::NORMAL :
-      if (sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0)
+      if (sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
 	dropMe = true;
+	firstDropSeq = sequence;
+      }
       break;
     case EkaFhGroup::GrpState::SNAPSHOT_GAP :
       break;
     case EkaFhGroup::GrpState::RETRANSMIT_GAP :
-      if (sequence % (_EFH_TEST_GAP_INJECT_INTERVAL_ + _EFH_TEST_GAP_INJECT_DELTA_) == 0)
+      if (sequence - firstDropSeq == _EFH_TEST_GAP_INJECT_DELTA_)
 	dropMe = true;
       break;
     default:
