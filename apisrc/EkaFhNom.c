@@ -49,30 +49,28 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     }
 
 #ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
-    if (gr->state == EkaFhGroup::GrpState::NORMAL && 
-	sequence != 0 && 
-	sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
-      EKA_WARN("%s:%u: TEST GAP INJECTED: (GAP_INJECT_INTERVAL = %d): pkt sequence %ju with %u messages dropped",
+    bool dropMe = false;
+    switch (gr->state) {
+    case EkaFhGroup::GrpState::NORMAL :
+      if (sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0)
+	dropMe = true;
+      break;
+    case EkaFhGroup::GrpState::RETRANSMIT_GAP :
+    case EkaFhGroup::GrpState::SNAPSHOT_GAP :
+      if (sequence % (_EFH_TEST_GAP_INJECT_INTERVAL_ + _EFH_TEST_GAP_INJECT_DELTA_) == 0)
+	dropMe = true;
+      break;
+    default:
+      dropMe = false;
+    }
+    if (dropMe) {
+      EKA_WARN("%s:%u: TEST GAP INJECTED: (INTERVAL = %d, DELTA = %d): sequence %ju with %u messages dropped",
 	       EKA_EXCH_DECODE(exch),gr_id, _EFH_TEST_GAP_INJECT_INTERVAL_,sequence,msgInPkt);
       runGr->udpCh->next(); 
       continue;
     }
 #endif
-#ifdef _EFH_UNRECOVERABLE_TEST_GAP_INJECT_INTERVAL_
-    if (gr->state == EkaFhGroup::GrpState::NORMAL && 
-	sequence != 0 && 
-	sequence % _EFH_UNRECOVERABLE_TEST_GAP_INJECT_INTERVAL_ == 0) {
-      EKA_WARN("\n=====================\n"
-	       "%s:%u: UNRECOVERABLE TEST GAP INJECTED: (_EFH_UNRECOVERABLE_TEST_GAP_INJECT_INTERVAL_ = %d): pkt sequence %ju with %u messages dropped"
-	       "\n=====================",
-	       EKA_EXCH_DECODE(exch),gr_id, _EFH_UNRECOVERABLE_TEST_GAP_INJECT_INTERVAL_,sequence,msgInPkt);
-      gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
-      gr->gapClosed = false;
-      mcGap = true;
-      runGr->udpCh->next(); 
-      continue;
-    }
-#endif
+
 #ifdef FH_LAB
     gr->state = EkaFhGroup::GrpState::NORMAL;
     gr->processUdpPkt(pEfhRunCtx,pkt,msgInPkt,sequence);
