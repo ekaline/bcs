@@ -52,12 +52,12 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     bool dropMe = false;
     switch (gr->state) {
     case EkaFhGroup::GrpState::NORMAL :
-      if (sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0)
+      if (sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ < 20)
 	dropMe = true;
       break;
     case EkaFhGroup::GrpState::RETRANSMIT_GAP :
     case EkaFhGroup::GrpState::SNAPSHOT_GAP :
-      if (sequence % (_EFH_TEST_GAP_INJECT_INTERVAL_ + _EFH_TEST_GAP_INJECT_DELTA_) == 0)
+      if (sequence % (_EFH_TEST_GAP_INJECT_INTERVAL_ + _EFH_TEST_GAP_INJECT_DELTA_) < 20)
 	dropMe = true;
       break;
     default:
