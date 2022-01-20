@@ -72,7 +72,9 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       dropMe = false;
     }
     if (dropMe) {
-      EKA_WARN("%s:%u: TEST GAP INJECTED: (INTERVAL = %d, DELTA = %d): sequence %ju with %u messages dropped",
+      EKA_WARN("\n---------------\n"
+	       "%s:%u: TEST GAP INJECTED: (INTERVAL = %d, DELTA = %d): sequence %ju with %u messages dropped"
+	       "\n---------------",
 	       EKA_EXCH_DECODE(exch),gr_id,
 	       _EFH_TEST_GAP_INJECT_INTERVAL_,_EFH_TEST_GAP_INJECT_DELTA_,sequence,msgInPkt);
       runGr->udpCh->next(); 

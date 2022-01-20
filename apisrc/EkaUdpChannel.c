@@ -54,20 +54,16 @@ void EkaUdpChannel::next() {
 
 uint64_t EkaUdpChannel::emptyBuffer() {
   uint64_t pktCtr = 0;
-  pPreviousUdpPacket = pIncomingUdpPacket;
-  ptr_update_ctr = 0;
-
-  while (1) {
-    pPreviousUdpPacket = SC_GetNextPacket(ChannelId, pPreviousUdpPacket, SC_TIMEOUT_NONE);      
-    if (pPreviousUdpPacket == NULL) break;
+  while (pPreviousUdpPacket) {
+    pIncomingUdpPacket = SC_GetNextPacket(ChannelId, pPreviousUdpPacket, SC_TIMEOUT_NONE);      
+    pPreviousUdpPacket = pIncomingUdpPacket;
 
     if (++ptr_update_ctr % 1000 == 0)
-      if (SC_UpdateReceivePtr(ChannelId, pPreviousUdpPacket) != SN_ERR_SUCCESS) 
+      if (SC_UpdateReceivePtr(ChannelId, pIncomingUdpPacket) != SN_ERR_SUCCESS) 
 	on_error ("Failed to sync DMA ReceivePtr");
-    pktCtr++;
 
+    pktCtr++;
   }
-  pIncomingUdpPacket = NULL;
   return pktCtr;
 }
 
