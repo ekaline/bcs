@@ -127,6 +127,7 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	
 	EKA_LOG("%s:%u: GapInGap: flushing UdpChannel buffer",
 		EKA_EXCH_DECODE(exch),gr->id);
+	runGr->udpCh->next();
 	auto flushedPckts = runGr->udpCh->emptyBuffer();
 	EKA_LOG("%s:%u: GapInGap: %ju packet were flushed from UdpChannel buffer",
 		EKA_EXCH_DECODE(exch),gr->id,flushedPckts);
