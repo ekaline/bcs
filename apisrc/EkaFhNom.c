@@ -125,16 +125,16 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	gr->recovery_active = false;
 	gr->snapshot_active = false;
 	
+	while (! gr->recoveryThreadDone)
+	  sleep(0);
+		
 	EKA_LOG("%s:%u: GapInGap: flushing UdpChannel buffer",
 		EKA_EXCH_DECODE(exch),gr->id);
 	runGr->udpCh->next();
 	auto flushedPckts = runGr->udpCh->emptyBuffer();
 	EKA_LOG("%s:%u: GapInGap: %ju packet were flushed from UdpChannel buffer",
 		EKA_EXCH_DECODE(exch),gr->id,flushedPckts);
-	
-	while (! gr->recoveryThreadDone)
-	  sleep(0);
-	
+
 	EKA_LOG("%s:%u: GapInGap: invalidating Group and getting full Glimpse Snapshot",
 		EKA_EXCH_DECODE(exch),gr->id);
 	
