@@ -119,32 +119,9 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     case EkaFhGroup::GrpState::RETRANSMIT_GAP :
     case EkaFhGroup::GrpState::SNAPSHOT_GAP :
       if (gr->hasGapInGap(sequence, msgInPkt)) {
-
-	EKA_LOG("%s:%u: GapInGap: stopping current %s thread",
+	EKA_LOG("%s:%u: GapInGap in %s",
 		EKA_EXCH_DECODE(exch),gr->id,gr->printGrpState());
-	gr->recovery_active = false;
-	gr->snapshot_active = false;
-	
-	while (! gr->recoveryThreadDone)
-	  sleep(0);
-		
-	EKA_LOG("%s:%u: GapInGap: flushing UdpChannel buffer",
-		EKA_EXCH_DECODE(exch),gr->id);
-	runGr->udpCh->next();
-	auto flushedPckts = runGr->udpCh->emptyBuffer();
-	EKA_LOG("%s:%u: GapInGap: %ju packet were flushed from UdpChannel buffer",
-		EKA_EXCH_DECODE(exch),gr->id,flushedPckts);
-
-	EKA_LOG("%s:%u: GapInGap: invalidating Group and getting full Glimpse Snapshot",
-		EKA_EXCH_DECODE(exch),gr->id);
-	
-	gr->invalidateBook();
-	gr->invalidateQ();
-	gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
-	gr->startTrackingGapInGap(sequence, msgInPkt);
-	gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
-	gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 1, 0);
-	skipNextOnUdpCh = true;
+	gr->state = EkaFhGroup::GrpState::GAP_IN_GAP;
       } else {      
 	gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
 	if (gr->gapClosed) {
@@ -158,6 +135,34 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 		  EKA_EXCH_DECODE(exch),gr->id,gr->printGrpState(),gr->expected_sequence);
 	}
       }
+      break;
+    case EkaFhGroup::GrpState::GAP_IN_GAP : {
+      EKA_LOG("%s:%u: GapInGap: stopping current recovery thread",
+	      EKA_EXCH_DECODE(exch),gr->id);
+      gr->recovery_active = false;
+      gr->snapshot_active = false;
+	
+      while (! gr->recoveryThreadDone)
+	sleep(0);
+		
+      EKA_LOG("%s:%u: GapInGap: flushing UdpChannel buffer",
+	      EKA_EXCH_DECODE(exch),gr->id);
+
+      auto flushedPckts = runGr->udpCh->emptyBuffer();
+      EKA_LOG("%s:%u: GapInGap: %ju packet were flushed from UdpChannel buffer",
+	      EKA_EXCH_DECODE(exch),gr->id,flushedPckts);
+
+      EKA_LOG("%s:%u: GapInGap: invalidating Group and getting full Glimpse Snapshot",
+	      EKA_EXCH_DECODE(exch),gr->id);
+	
+      gr->invalidateBook();
+      gr->invalidateQ();
+      gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
+      gr->startTrackingGapInGap(sequence, msgInPkt);
+      gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
+      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 1, 0);
+      //      skipNextOnUdpCh = true;
+    }
       break;
       //-----------------------------------------------------------------------------
     default:
