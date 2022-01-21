@@ -160,6 +160,7 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
       EKA_LOG("%s:%u: GapInGap: startTrackingGapInGap(0, 0)",EKA_EXCH_DECODE(exch),gr->id);
       gr->startTrackingGapInGap(0, 0);
+      gr->gapClosed = false;
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
       gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 1, 0);
       skipNextOnUdpCh = true;
