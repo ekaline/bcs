@@ -141,7 +141,9 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	      EKA_EXCH_DECODE(exch),gr->id);
       gr->recovery_active = false;
       gr->snapshot_active = false;
-	
+
+      runGr->udpCh->next();
+      
       while (! gr->recoveryThreadDone)
 	sleep(0);
 		
