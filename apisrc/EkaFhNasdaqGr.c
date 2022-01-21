@@ -37,7 +37,9 @@ void EkaFhNasdaqGr::pushUdpPkt2Q(const uint8_t* pkt,
   uint indx = sizeof(mold_hdr);
   for (uint msg=0; msg < msgInPkt; msg++) {
     uint16_t msg_len = be16toh((uint16_t) *(uint16_t*)&(pkt[indx]));
-    if (msg_len > fh_msg::MSG_SIZE) on_error("msg_len > fh_msg::MSG_SIZE");
+    if (msg_len > fh_msg::MSG_SIZE)
+      on_error("msg_len %u > fh_msg::MSG_SIZE %ju",
+	       msg_len,fh_msg::MSG_SIZE);
     
     fh_msg* n = q->push();
     memcpy (n->data,&pkt[indx+sizeof(msg_len)],msg_len);
