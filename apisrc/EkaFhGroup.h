@@ -116,28 +116,35 @@ public:
 	}
     }
 
-    void startTrackingGapInGap(uint64_t sequence, uint msgInPkt) {
-	expectedSeqGapInGap = sequence + msgInPkt;
-	EKA_LOG("%s:%u: expectedSeqGapInGap at %s =  %ju",
-		EKA_EXCH_DECODE(exch),id,printGrpState(),expectedSeqGapInGap);
-    }
+  void startTrackingGapInGap(uint64_t sequence, uint msgInPkt) {
+    expectedSeqGapInGap = sequence + msgInPkt;
+    EKA_LOG("%s:%u: expectedSeqGapInGap at %s =  %ju",
+	    EKA_EXCH_DECODE(exch),id,printGrpState(),expectedSeqGapInGap);
+  }
 
-    bool hasGapInGap(uint64_t sequence, uint msgInPkt) {
-	if (sequence < expectedSeqGapInGap) {
-	    on_error("%s:%u BACK-IN-TIME: sequence %ju < expectedSeqGapInGap %ju",
-		     EKA_EXCH_DECODE(exch),id,sequence,expectedSeqGapInGap);
-	}
-	if (sequence > expectedSeqGapInGap) {
-	    EKA_LOG("%s:%u: Gap-In-Gap at %s: expectedSeqGapInGap %ju != sequence %ju, lost %ju",
-		    EKA_EXCH_DECODE(exch),id,
-		    printGrpState(),
-		    expectedSeqGapInGap, sequence, sequence - expectedSeqGapInGap);
-	    expectedSeqGapInGap = 0;
-	    return true;
-	}
-	expectedSeqGapInGap = sequence + msgInPkt;
-	return false;
+  inline bool hasGapInGap(uint64_t sequence, uint msgInPkt) {
+    if (expectedSeqGapInGap == 0) {
+      expectedSeqGapInGap = sequence + msgInPkt;
+      EKA_LOG("%s:%u: first expectedSeqGapInGap at %s =  %ju",
+	    EKA_EXCH_DECODE(exch),id,printGrpState(),expectedSeqGapInGap);
+      return false;
     }
+    if (sequence < expectedSeqGapInGap) {
+      on_error("%s:%u BACK-IN-TIME at %s: sequence %ju < expectedSeqGapInGap %ju",
+	       EKA_EXCH_DECODE(exch),id,
+	       printGrpState(),sequence,expectedSeqGapInGap);
+    }
+    if (sequence > expectedSeqGapInGap) {
+      EKA_LOG("%s:%u: Gap-In-Gap at %s: expectedSeqGapInGap %ju != sequence %ju, lost %ju",
+	      EKA_EXCH_DECODE(exch),id,
+	      printGrpState(),
+	      expectedSeqGapInGap, sequence, sequence - expectedSeqGapInGap);
+      expectedSeqGapInGap = 0;
+      return true;
+    }
+    expectedSeqGapInGap = sequence + msgInPkt;
+    return false;
+  }
     
     //----------------------------------------------------------
     enum class GrpState {

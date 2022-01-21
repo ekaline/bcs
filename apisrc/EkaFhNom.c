@@ -23,6 +23,10 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
   EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u: %s GROUPS ~~~~~~~~~~~~~",
 	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
 
+#ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
+    uint64_t firstDropSeq = 0;
+#endif
+    
   while (runGr->thread_active && ! runGr->stoppedByExchange) {
     if (! runGr->udpCh->has_data()) {
       if (++timeCheckCnt % TimeCheckRate == 0) {
@@ -34,7 +38,8 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     uint     msgInPkt = 0;
     uint64_t sequence = 0;
     uint8_t  gr_id    = 0xFF;
-
+    bool     skipNextOnUdpCh = false;
+    
     auto pkt = getUdpPkt(runGr,&msgInPkt,&sequence,&gr_id);
     if (!pkt) continue;
 
@@ -49,30 +54,34 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     }
 
 #ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
-    if (gr->state == EkaFhGroup::GrpState::NORMAL && 
-	sequence != 0 && 
-	sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
-      EKA_WARN("%s:%u: TEST GAP INJECTED: (GAP_INJECT_INTERVAL = %d): pkt sequence %ju with %u messages dropped",
-	       EKA_EXCH_DECODE(exch),gr_id, _EFH_TEST_GAP_INJECT_INTERVAL_,sequence,msgInPkt);
+    bool dropMe = false;
+    switch (gr->state) {
+    case EkaFhGroup::GrpState::NORMAL :
+      if (sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
+	dropMe = true;
+	firstDropSeq = sequence;
+      }
+      break;
+    case EkaFhGroup::GrpState::SNAPSHOT_GAP :
+      break;
+    case EkaFhGroup::GrpState::RETRANSMIT_GAP :
+      if (sequence - firstDropSeq == _EFH_TEST_GAP_INJECT_DELTA_)
+	dropMe = true;
+      break;
+    default:
+      dropMe = false;
+    }
+    if (dropMe) {
+      EKA_WARN("\n---------------\n"
+	       "%s:%u: TEST GAP INJECTED: (INTERVAL = %d, DELTA = %d): sequence %ju with %u messages dropped"
+	       "\n---------------",
+	       EKA_EXCH_DECODE(exch),gr_id,
+	       _EFH_TEST_GAP_INJECT_INTERVAL_,_EFH_TEST_GAP_INJECT_DELTA_,sequence,msgInPkt);
       runGr->udpCh->next(); 
       continue;
     }
 #endif
-#ifdef _EFH_UNRECOVERABLE_TEST_GAP_INJECT_INTERVAL_
-    if (gr->state == EkaFhGroup::GrpState::NORMAL && 
-	sequence != 0 && 
-	sequence % _EFH_UNRECOVERABLE_TEST_GAP_INJECT_INTERVAL_ == 0) {
-      EKA_WARN("\n=====================\n"
-	       "%s:%u: UNRECOVERABLE TEST GAP INJECTED: (_EFH_UNRECOVERABLE_TEST_GAP_INJECT_INTERVAL_ = %d): pkt sequence %ju with %u messages dropped"
-	       "\n=====================",
-	       EKA_EXCH_DECODE(exch),gr_id, _EFH_UNRECOVERABLE_TEST_GAP_INJECT_INTERVAL_,sequence,msgInPkt);
-      gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
-      gr->gapClosed = false;
-      mcGap = true;
-      runGr->udpCh->next(); 
-      continue;
-    }
-#endif
+
 #ifdef FH_LAB
     gr->state = EkaFhGroup::GrpState::NORMAL;
     gr->processUdpPkt(pEfhRunCtx,pkt,msgInPkt,sequence);
@@ -110,30 +119,9 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     case EkaFhGroup::GrpState::RETRANSMIT_GAP :
     case EkaFhGroup::GrpState::SNAPSHOT_GAP :
       if (gr->hasGapInGap(sequence, msgInPkt)) {
-
-	EKA_LOG("%s:%u: GapInGap: stopping current %s thread",
+	EKA_LOG("%s:%u: GapInGap in %s",
 		EKA_EXCH_DECODE(exch),gr->id,gr->printGrpState());
-	gr->recovery_active = false;
-	gr->snapshot_active = false;
-	
-	EKA_LOG("%s:%u: GapInGap: flushing UdpChannel buffer",
-		EKA_EXCH_DECODE(exch),gr->id);
-	auto flushedPckts = runGr->udpCh->emptyBuffer();
-	EKA_LOG("%s:%u: GapInGap: %ju packet were flushed from UdpChannel buffer",
-		EKA_EXCH_DECODE(exch),gr->id,flushedPckts);
-	
-	while (! gr->recoveryThreadDone)
-	  sleep(0);
-	
-	EKA_LOG("%s:%u: GapInGap: invalidating Group and getting full Glimpse Snapshot",
-		EKA_EXCH_DECODE(exch),gr->id);
-	
-	gr->invalidateBook();
-	gr->invalidateQ();
-	gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
-	gr->startTrackingGapInGap(sequence, msgInPkt);
-	gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
-	gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 1, 0);
+	gr->state = EkaFhGroup::GrpState::GAP_IN_GAP;
       } else {      
 	gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
 	if (gr->gapClosed) {
@@ -148,6 +136,38 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	}
       }
       break;
+    case EkaFhGroup::GrpState::GAP_IN_GAP : {
+      EKA_LOG("%s:%u: GapInGap: stopping current recovery thread",
+	      EKA_EXCH_DECODE(exch),gr->id);
+      gr->recovery_active = false;
+      gr->snapshot_active = false;
+
+      runGr->udpCh->next();
+      
+      while (! gr->recoveryThreadDone)
+	sleep(0);
+		
+      EKA_LOG("%s:%u: GapInGap: flushing UdpChannel buffer",
+	      EKA_EXCH_DECODE(exch),gr->id);
+
+      auto flushedPckts = runGr->udpCh->emptyBuffer();
+      EKA_LOG("%s:%u: GapInGap: %ju packet were flushed from UdpChannel buffer",
+	      EKA_EXCH_DECODE(exch),gr->id,flushedPckts);
+
+      EKA_LOG("%s:%u: GapInGap: invalidating Group and getting full Glimpse Snapshot",
+	      EKA_EXCH_DECODE(exch),gr->id);
+	
+      gr->invalidateBook();
+      gr->invalidateQ();
+      gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
+      EKA_LOG("%s:%u: GapInGap: startTrackingGapInGap(0, 0)",EKA_EXCH_DECODE(exch),gr->id);
+      gr->startTrackingGapInGap(0, 0);
+      gr->gapClosed = false;
+      gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
+      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 1, 0);
+      skipNextOnUdpCh = true;
+    }
+      break;
       //-----------------------------------------------------------------------------
     default:
       on_error("%s:%u: UNEXPECTED GrpState %u",
@@ -155,7 +175,8 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       break;
     }
 #endif
-    runGr->udpCh->next(); 
+    if (! skipNextOnUdpCh)
+      runGr->udpCh->next();
   }
   EKA_INFO("%s RunGroup %u EndOfSession",EKA_EXCH_DECODE(exch),runGrId);
 
