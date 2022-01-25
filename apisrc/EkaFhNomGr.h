@@ -37,7 +37,7 @@ class EkaFhNomGr : public EkaFhNasdaqGr {
   }
 
   static const uint   SCALE          = (const uint) 24;
-  static const uint   SEC_HASH_SCALE = 17;
+  static const uint   SEC_HASH_SCALE = 19;
 
   using SecurityIdT = uint32_t;
   using OrderIdT    = uint64_t;

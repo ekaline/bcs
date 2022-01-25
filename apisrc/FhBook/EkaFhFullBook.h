@@ -705,7 +705,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   static const uint64_t MAX_ORDERS       = (1 << SCALE);            
   static const uint64_t MAX_PLEVELS      = (1 << (SCALE - 1));
 
-  static const uint64_t ORDERS_HASH_SCALE = SCALE - 3;
+  static const uint64_t ORDERS_HASH_SCALE = SCALE - 1;
   static const uint64_t ORDERS_HASH_MASK = ((1 << ORDERS_HASH_SCALE) - 1);
   static const uint64_t ORDERS_HASH_LINES = 0x1 << ORDERS_HASH_SCALE;
 
