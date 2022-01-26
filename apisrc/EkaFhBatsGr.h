@@ -124,7 +124,7 @@ public:
   using AuctionIdT = uint64_t;
   using SecurityIdT = uint64_t;
   using OrderIdT    = uint64_t;
-  using PriceT      = uint32_t;
+  using PriceT      = int64_t;
   using SizeT       = uint32_t;
 
   using FhPlevel     = EkaFhPlevel      <                                                   PriceT, SizeT>;
