@@ -38,7 +38,7 @@ class EkaFhNomGr : public EkaFhNasdaqGr {
 
   void print_q_state();
   
-  static const uint   SCALE          = (const uint) 28;
+  static const uint   SCALE          = (const uint) 24;
   static const uint   SEC_HASH_SCALE = 19;
 
   using SecurityIdT = uint32_t;
