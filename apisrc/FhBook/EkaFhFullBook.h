@@ -388,7 +388,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   /* ####################################################### */  
   inline uint32_t getOrderHashIdx(OrderIdT orderId) const {
     uint32_t idx = orderId & ORDERS_HASH_MASK;
-    if ( idx > ORDERS_HASH_LINES) 
+    if ( idx >= ORDERS_HASH_LINES) 
       on_error("orderId (%jx) & ORDERS_HASH_MASK (%jx) (=%x)  > ORDERS_HASH_LINES(%jx)",	      
 	       (uint64_t)orderId,
 	       ORDERS_HASH_MASK,
@@ -641,7 +641,9 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     auto p = pLevelsPool;
     for (size_t i = 0; i < MAX_PLEVELS; i++) {
       p->reset();
-      if (i != MAX_PLEVELS - 1)
+      if (i == MAX_PLEVELS - 1)
+	p->next = NULL;
+      else
 	p->next = p + 1;
       p++;
     }
@@ -690,7 +692,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   int            freePlevels    = MAX_PLEVELS;   // counter of currently free plevels (for sanity check only)
   int            maxNumPlevels  = 0;    // highest value of numPlevels ever reached (for statistics only)
 
- private:
+  // private:
   static const uint     BOOK_SCALE  = 22; //
   // for SCALE = 22 (BATS): 
   //         MAX_ORDERS       = 1M

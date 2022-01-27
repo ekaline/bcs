@@ -22,7 +22,7 @@ public:
     int          stop();
     int          init(EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx, EkaFh* fh,uint8_t gr_id,EkaSource exch);
 
-    void         print_q_state();
+    virtual void         print_q_state();
 
     uint         getNumSecurities();
 

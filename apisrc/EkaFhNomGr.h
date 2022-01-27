@@ -36,6 +36,8 @@ class EkaFhNomGr : public EkaFhNasdaqGr {
     return 0;
   }
 
+  void print_q_state();
+  
   static const uint   SCALE          = (const uint) 24;
   static const uint   SEC_HASH_SCALE = 19;
 
