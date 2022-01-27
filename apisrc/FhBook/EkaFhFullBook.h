@@ -36,13 +36,14 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     // invalidate();
     //----------------------------------------------------------
     delete[] pLevelsPool;
+    delete[] ordersPool;
     //----------------------------------------------------------
-    auto o = orderFreeHead;
-    while (o) {
-      auto n = o->next;
-      delete o;
-      o = n;
-    }
+    // auto o = orderFreeHead;
+    // while (o) {
+    //   auto n = o->next;
+    //   delete o;
+    //   o = n;
+    // }
     //----------------------------------------------------------
     for (size_t hashLine = 0; hashLine < SEC_HASH_LINES; hashLine++) {
       auto s = sec[hashLine];
@@ -261,20 +262,21 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     EKA_LOG("%s:%u: invalidating %d numOrders",
 	    EKA_EXCH_DECODE(exch),grId,numOrders);
     for (size_t hasLine = 0; hasLine < ORDERS_HASH_LINES; hasLine++) {
-      auto o = ord[hasLine];
+      // auto o = ord[hasLine];
 
-      while (o) {
-	auto n = o->next;
-	releaseOrder(o);
-	o = n;
-	ordCnt++;
-      }
+      // while (o) {
+      // 	auto n = o->next;
+      // 	releaseOrder(o);
+      // 	o = n;
+      // 	ordCnt++;
+      // }
       ord[hasLine] = NULL;
     }
-    
-    EKA_LOG("%s:%u: invalidated %d Securities, ALL Plevels, %d Orders)",
+    carveOrders();
+
+    EKA_LOG("%s:%u: invalidated %d Securities, ALL Plevels, ALL Orders)",
 	    EKA_EXCH_DECODE(exch),grId,
-	    secCnt,ordCnt
+	    secCnt
 	    );
     
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -652,19 +654,42 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     freePlevels = MAX_PLEVELS; 
     return 0;
   }
+    /* ####################################################### */
+  int  carveOrders() {
+    EKA_LOG("%s:%u: carving Orders array",EKA_EXCH_DECODE(exch),grId);
+    auto o = ordersPool;
+    for (size_t i = 0; i < MAX_ORDERS; i++) {
+      o->reset();
+      if (i == MAX_ORDERS - 1)
+	o->next = NULL;
+      else
+	o->next = o + 1;
+      o++;
+    }
+    orderFreeHead = ordersPool;
+    numOrders  = 0;
+    freeOrders = MAX_ORDERS; 
+    return 0;
+  }
   /* ####################################################### */
   int  allocateResources() {
     for (uint i = 0; i < ORDERS_HASH_LINES; i++)
       ord[i]=NULL;
-    //----------------------------------------------------------
     EKA_LOG("%s:%u: preallocating %ju free orders",EKA_EXCH_DECODE(exch),grId,MAX_ORDERS);
-    FhOrder** o = (FhOrder**)&orderFreeHead;
-    for (uint i = 0; i < MAX_ORDERS; i++) {
-      *o = new FhOrder();
-      if (*o == NULL) on_error("constructing new Order failed");
-      o = (FhOrder**)&(*o)->next;
-    }
-    freeOrders = MAX_ORDERS;
+    ordersPool = new FhOrder[MAX_ORDERS];
+    if (! ordersPool)
+      on_error("failed to allocate %ju MAX_ORDERS",MAX_ORDERS);
+    carveOrders();
+    
+    //----------------------------------------------------------
+    // FhOrder** o = (FhOrder**)&orderFreeHead;
+    // for (uint i = 0; i < MAX_ORDERS; i++) {
+    //   *o = new FhOrder();
+    //   if (*o == NULL) on_error("constructing new Order failed");
+    //   o = (FhOrder**)&(*o)->next;
+    // }
+    // freeOrders = MAX_ORDERS;
+    
     //----------------------------------------------------------
     EKA_LOG("%s:%u: preallocating %ju free Plevels",EKA_EXCH_DECODE(exch),grId,MAX_PLEVELS);
     pLevelsPool = new FhPlevel[MAX_PLEVELS];
@@ -719,7 +744,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   FhOrder*     ord[ORDERS_HASH_LINES] = {};
 
   FhPlevel*    pLevelsPool = NULL;
-
+  FhOrder*     ordersPool = NULL;
   //----------------------------------------------------------
 
   EfhTradeStatus prevTradingAction = EfhTradeStatus::kUninit;
