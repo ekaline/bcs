@@ -30,6 +30,8 @@ void EkaFhNomGr::print_q_state () {
   static int everCriticalOrdCollisions = 0;
 
   int maxSecCollisions = 0;
+  int maxOrdCollisions = 0;
+  
   int criticalSecCollisions = 0;
   for (uint64_t i = 0; i < book->SEC_HASH_LINES; i++) {
     if (! book->sec[i]) continue;
@@ -50,7 +52,6 @@ void EkaFhNomGr::print_q_state () {
       everCriticalSecCollisions = criticalSecCollisions;
   }
 
-  int maxOrdCollisions = 0;
   int criticalOrdCollisions = 0;
   for (uint64_t i = 0; i < book->ORDERS_HASH_LINES; i++) {
     if (! book->ord[i]) continue;
@@ -71,18 +72,18 @@ void EkaFhNomGr::print_q_state () {
       everCriticalOrdCollisions = criticalOrdCollisions;
   }
   EKA_LOG("\n========================\n"
-	  "%s:%u: gaps %4u\n"
+	  "%s:%u: gaps %4u, Subscribed Securities: %u\n"
 	  "Securities Hash: %ju (0x%jx) lines, collisions: "
-	  "max %d, critical %d, ever max %d, ever critical %d"
+	  "max %d, critical (> %d) %d, ever max %d, ever critical %d"
 	  "\n"
 	  "Orders Hash: %ju (0x%jx) lines, collisions: "
-	  "max %d, critical %d, ever max %d, ever critical %d",
-	  EKA_EXCH_DECODE(exch),id,gapNum,
+	  "max %d, critical (> %d) %d, ever max %d, ever critical %d",
+	  EKA_EXCH_DECODE(exch),id,gapNum,numSecurities,
 	  book->SEC_HASH_LINES,book->SEC_HASH_LINES,
-	  maxSecCollisions,criticalSecCollisions,
+	  maxSecCollisions,CriticalCollisionsNum,criticalSecCollisions,
 	  everMaxSecCollisions,everCriticalSecCollisions,
 	  book->ORDERS_HASH_LINES,book->ORDERS_HASH_LINES,
-	  maxOrdCollisions,criticalOrdCollisions,
+	  maxOrdCollisions,CriticalCollisionsNum,criticalOrdCollisions,
 	  everMaxOrdCollisions,everCriticalOrdCollisions
 	  );
   fflush(stdout);
