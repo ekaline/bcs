@@ -76,8 +76,8 @@ void EkaFhNomGr::print_q_state () {
 	  "Securities Hash: %ju (0x%jx) lines, collisions: "
 	  "max %d, critical (> %d) %d, ever max %d, ever critical %d"
 	  "\n"
-	  "OrdersInUse: %d, OrdersPreallocated %ju"
-	  "Orders Hash: %ju (0x%jx) lines, collisions: "
+	  "OrdersInUse: %d, OrdersPreallocated %ju, "
+	  "Orders Hash lines: %ju (0x%jx), collisions: "
 	  "max %d, critical (> %d) %d, ever max %d, ever critical %d",
 	  EKA_EXCH_DECODE(exch),id,gapNum,numSecurities,
 	  book->SEC_HASH_LINES,book->SEC_HASH_LINES,

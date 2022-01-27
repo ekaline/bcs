@@ -105,6 +105,7 @@ struct TestRunGroup {
 struct TestCtx {
   bool print_tob_updates = false;
   bool subscribe_all     = false;
+  bool verbose_statistics = false;
   volatile bool keep_work = true;
 
   int fatalErrorCnt = 0;

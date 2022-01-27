@@ -81,7 +81,7 @@ void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData use
   auto efhGr = pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[grId];
 
   if (pEfhCtx->printQStatistics && (++efhGr->upd_ctr % 1000000 == 0)) {
-    efhMonitorFhGroupState(pEfhCtx,(EkaGroup*)&msg->header.group);
+    efhMonitorFhGroupState(pEfhCtx,(EkaGroup*)&msg->header.group,testCtx->verbose_statistics);
   }
 
   if (! testCtx->print_tob_updates) return NULL;
@@ -428,7 +428,7 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
 #endif
 
   if (pEfhCtx->printQStatistics && (++efhGr->upd_ctr % 1000000 == 0)) {
-    efhMonitorFhGroupState(pEfhCtx,(EkaGroup*)&msg->header.group);
+    efhMonitorFhGroupState(pEfhCtx,(EkaGroup*)&msg->header.group,testCtx->verbose_statistics);
   }
 
   if (! testCtx->print_tob_updates) return NULL;
@@ -1042,5 +1042,6 @@ void print_usage(char* cmd) {
   printf("\t-u <Underlying Name> - subscribe on all options belonging to\n");
   printf("\t-t Print TOB updates (EFH)\n");
   printf("\t-a subscribe all\n");
+  printf("\t-v verbose statistics\n");
   return;
 }

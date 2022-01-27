@@ -174,7 +174,7 @@ EkaOpResult efhRunGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, void** r
  * Used for tests and diagnostics only
  */
 
-EkaOpResult efhMonitorFhGroupState( EfhCtx* pEfhCtx, EkaGroup* group) { 
+EkaOpResult efhMonitorFhGroupState( EfhCtx* pEfhCtx, EkaGroup* group, bool verbose) { 
   assert (pEfhCtx != NULL);
   assert (group->localId < pEfhCtx->dev->fh[pEfhCtx->fhId]->groups);
   fprintf (stderr,"%s:%u: gapNum=%4u, seq=%10ju, ",
@@ -186,8 +186,11 @@ EkaOpResult efhMonitorFhGroupState( EfhCtx* pEfhCtx, EkaGroup* group) {
   //  uint8_t gr2monitor_q = group->source == EkaSource::kNOM_ITTO ? group->localId : 0;
   uint8_t gr2monitor_q = group->localId;
 
-  pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[gr2monitor_q]->print_q_state(); // tmp patch
-
+  if (verbose)
+    pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[gr2monitor_q]->print_q_state(); // tmp patch
+  else
+    fprintf (stderr,"\n");
+  
   return EKA_OPRESULT__OK;
 }
 
