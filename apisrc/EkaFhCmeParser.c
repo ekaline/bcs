@@ -700,7 +700,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   /* ------------------------------- */
   auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize);
-  if (pGroupSize->numInGroup >= EFH__MAX_COMPLEX_LEGS) {
+  if (pGroupSize->numInGroup > EFH__MAX_COMPLEX_LEGS) {
     on_error("complex security `%s` contains %hhu legs, maximum number of %u",
              rootBlock->Symbol, pGroupSize->numInGroup, EFH__MAX_COMPLEX_LEGS);
   }

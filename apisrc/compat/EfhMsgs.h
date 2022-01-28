@@ -10,7 +10,7 @@
 #include "Eka.h"
 
 #define EFH__PRICE_SCALE        10000
-#define EFH__MAX_COMPLEX_LEGS   32u
+#define EFH__MAX_COMPLEX_LEGS   40u
 
 /*
  * $$NOTE$$ - All of these messages are standalone and therefore arent contained in a kEkaContainerMsg.
