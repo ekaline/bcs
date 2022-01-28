@@ -37,6 +37,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     //----------------------------------------------------------
     delete[] pLevelsPool;
     delete[] ordersPool;
+    delete[] sec;
     //----------------------------------------------------------
     // auto o = orderFreeHead;
     // while (o) {
@@ -45,14 +46,14 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     //   o = n;
     // }
     //----------------------------------------------------------
-    for (size_t hashLine = 0; hashLine < SEC_HASH_LINES; hashLine++) {
-      auto s = sec[hashLine];
-      while (s) {
-	auto n = s->next;
-	delete s;
-	s = dynamic_cast<FhSecurity*>(n);
-      }
-    }
+    // for (size_t hashLine = 0; hashLine < SEC_HASH_LINES; hashLine++) {
+    //   auto s = sec[hashLine];
+    //   while (s) {
+    // 	auto n = s->next;
+    // 	delete s;
+    // 	s = dynamic_cast<FhSecurity*>(n);
+    //   }
+    // }
   }
   /* ####################################################### */
 
@@ -95,13 +96,15 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
 
   inline FhSecurity*  findSecurity(SecurityIdT secId) {
     uint32_t index =  secId & SEC_HASH_MASK;
-    if (index >= SEC_HASH_LINES) on_error("index = %u >= SEC_HASH_LINES %ju",index,SEC_HASH_LINES);
-    if (sec[index] == NULL) return NULL;
+    if (index >= SEC_HASH_LINES)
+      on_error("index %u >= SEC_HASH_LINES %ju",index,SEC_HASH_LINES);
+    //    if (! sec[index]->valid) return NULL;
 
-    FhSecurity* s = sec[index];
+    FhSecurity* s = &sec[index];
 
     while (s != NULL) {
-      if (s->secId == secId) return s;
+      if (s->valid && s->secId == secId)
+	return s;
       s = (FhSecurity*)s->next;
     }
 
@@ -113,23 +116,35 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
 				    EfhSecurityType type,
 				    EfhSecUserData  userData,
 				    uint64_t        opaqueAttrA,
-				    uint64_t        opaqueAttrB) {
-    FhSecurity* s = new FhSecurity(secId,type,userData,opaqueAttrA,opaqueAttrB);
-    if (s == NULL) on_error("s == NULL, new FhSecurity failed");
+					uint64_t        opaqueAttrB) {
+    // FhSecurity* s = new FhSecurity(secId,type,userData,opaqueAttrA,opaqueAttrB);
+    // if (s == NULL) on_error("s == NULL, new FhSecurity failed");
   
     uint32_t index = secId & SEC_HASH_MASK;
     if (index >= SEC_HASH_LINES) 
       on_error("index = %u >= SEC_HASH_LINES %ju",index,SEC_HASH_LINES);
 
-    if (sec[index] == NULL) {
-      sec[index] = s; // empty bucket
-    } else {
-      FhSecurity* sp = sec[index];
-      while (sp->next != NULL) sp = (FhSecurity*)sp->next;
-      sp->next = s;
-    }
     numSecurities++;
-    return s;
+    FhSecurity* s = &sec[index];
+    if (! s->valid) { // empty bucket
+      s->secId       = secId;
+      s->type        = type;
+      s->efhUserData = userData;
+      s->opaqueAttrA = opaqueAttrA;
+      s->opaqueAttrB = opaqueAttrB;
+      s->valid       = true;
+      return s;
+    } else { // not empty bucket
+      while (s->next != NULL)
+	s = (FhSecurity*)s->next;
+      
+      s->next = new FhSecurity(secId,type,userData,opaqueAttrA,opaqueAttrB);
+      if (! s->next)
+	on_error("new FhSecurity failed");
+      s->next->valid = true;
+      return (FhSecurity*) s->next;
+    }
+    
   }
 
   /* ####################################################### */
@@ -241,7 +256,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   /* ####################################################### */
   inline int invalidate() {
     int secCnt = 0;
-    int ordCnt = 0;
+    //    int ordCnt = 0;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     EKA_LOG("%s:%u: invalidating %d Securities, %d Plevels, %d Orders",
@@ -249,7 +264,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
 	    numSecurities,numPlevels,numOrders);
     
     for (size_t hashLine = 0; hashLine < SEC_HASH_LINES; hashLine++) {
-      auto s = sec[hashLine];      
+      auto s = &sec[hashLine];      
       while (s) {
 	auto n = s->next;
 	s->reset();
@@ -673,6 +688,13 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   }
   /* ####################################################### */
   int  allocateResources() {
+
+    sec = new FhSecurity[SEC_HASH_LINES];
+    if (! sec)
+      on_error("failed to allocate %ju Securities",SEC_HASH_LINES);
+    for (uint i = 0; i < SEC_HASH_LINES; i++)
+      sec[i].valid = false;
+      
     for (uint i = 0; i < ORDERS_HASH_LINES; i++)
       ord[i]=NULL;
     EKA_LOG("%s:%u: preallocating %ju free orders",EKA_EXCH_DECODE(exch),grId,MAX_ORDERS);
@@ -739,7 +761,8 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   static const uint64_t SEC_HASH_LINES = 0x1 << SEC_HASH_SCALE;
   static const uint64_t SEC_HASH_MASK  = (0x1 << SEC_HASH_SCALE) - 1;
 
-  FhSecurity*  sec[SEC_HASH_LINES] = {}; // array of pointers to Securities
+  //  FhSecurity*  sec[SEC_HASH_LINES] = {}; // array of pointers to Securities
+  FhSecurity*  sec = NULL; //
 
   FhOrder*     ord[ORDERS_HASH_LINES] = {};
 
