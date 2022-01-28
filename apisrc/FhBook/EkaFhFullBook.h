@@ -241,7 +241,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   /* ####################################################### */
   inline int invalidate() {
     int secCnt = 0;
-    int ordCnt = 0;
+    //    int ordCnt = 0;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     EKA_LOG("%s:%u: invalidating %d Securities, %d Plevels, %d Orders",

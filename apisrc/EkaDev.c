@@ -371,6 +371,8 @@ EkaDev::~EkaDev() {
 
   for (auto i = 0; i < numFh; i++) {
     if (fh[i] == NULL) continue;
+    while (! fh[i]->terminated)
+      sleep(0);
     delete fh[i];
     fh[i] = NULL;
     usleep(10);
