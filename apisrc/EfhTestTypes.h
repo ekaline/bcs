@@ -45,6 +45,7 @@ struct TestSecurityCtx {
   std::string classSymbol;
   EfhExchange exch;
   int64_t     displayPriceScale = DEFAULT_DISPLAY_PRICE_SCALE;
+  bool isCompllex = false;
 };
 
 class McGrpCtx {
@@ -104,6 +105,7 @@ struct TestRunGroup {
 struct TestCtx {
   bool print_tob_updates = false;
   bool subscribe_all     = false;
+  bool verbose_statistics = false;
   volatile bool keep_work = true;
 
   int fatalErrorCnt = 0;

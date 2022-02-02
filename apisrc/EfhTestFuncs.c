@@ -81,7 +81,7 @@ void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData use
   auto efhGr = pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[grId];
 
   if (pEfhCtx->printQStatistics && (++efhGr->upd_ctr % 1000000 == 0)) {
-    efhMonitorFhGroupState(pEfhCtx,(EkaGroup*)&msg->header.group);
+    efhMonitorFhGroupState(pEfhCtx,(EkaGroup*)&msg->header.group,testCtx->verbose_statistics);
   }
 
   if (! testCtx->print_tob_updates) return NULL;
@@ -415,17 +415,20 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
   int64_t priceScaleFactor = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE;
 #else
   int secIdx                  = (int)secData;
-  if (secIdx < 0 || secIdx >= (int)gr->security.size())
-    on_error("Bad secIdx = %d, gr->security.size() = %d",
-	     secIdx, (int)gr->security.size());
-  
+  if (secIdx < 0 || secIdx >= (int)gr->security.size()) {
+    /* on_error("Bad secIdx = %d, gr->security.size() = %d", */
+    /* 	     secIdx, (int)gr->security.size()); */
+      on_warning("Bad secIdx = %d, gr->security.size() = %d, msg->header.securityId = %ju",
+		 secIdx, (int)gr->security.size(),msg->header.securityId);
+      return NULL;
+  }
   std::string currAvtSecName  = gr->security.at(secIdx).avtSecName.c_str();	  
   std::string currClassSymbol = gr->security.at(secIdx).classSymbol;
-  int64_t priceScaleFactor    = 100; //gr->security.at(secIdx).displayPriceScale;
+  int64_t priceScaleFactor    = gr->security.at(secIdx).displayPriceScale; // 100
 #endif
 
   if (pEfhCtx->printQStatistics && (++efhGr->upd_ctr % 1000000 == 0)) {
-    efhMonitorFhGroupState(pEfhCtx,(EkaGroup*)&msg->header.group);
+    efhMonitorFhGroupState(pEfhCtx,(EkaGroup*)&msg->header.group,testCtx->verbose_statistics);
   }
 
   if (! testCtx->print_tob_updates) return NULL;
@@ -487,12 +490,36 @@ void* onComplexDefinition(const EfhComplexDefinitionMsg* msg, EfhSecUserData sec
 
   auto gr = testCtx->grCtx[(int)exch][grId];
   if (gr == NULL) on_error("Uninitialized testCtx->grCtx[%d][%d]",(int)exch,grId);
-  
+
+  printf("ComplexDefinition,");
+  printf("%ju,",msg->header.securityId);
+  printf("\'%s\',",std::string(msg->commonDef.underlying,sizeof(msg->commonDef.underlying)).c_str());
+  printf("\'%s\',",std::string(msg->commonDef.classSymbol,sizeof(msg->commonDef.classSymbol)).c_str());
+  printf("\'%s\',",std::string(msg->commonDef.exchSecurityName,sizeof(msg->commonDef.exchSecurityName)).c_str());
+  printf("\n");
+ 
   fprintf(gr->MD,"ComplexDefinition,");
-  /* fprintf(gr->MD,"\'%s\',",std::string(msg->exchSymbolName,sizeof(msg->exchSymbolName)).c_str()); */
-  /* fprintf(gr->MD,"\'%s\',",std::string(msg->exchAssetName,sizeof(msg->exchAssetName)).c_str()); */
-  /* fprintf(gr->MD,"%ju,",msg->header.securityId); */
+  fprintf(gr->MD,"%ju,",msg->header.securityId);
+  fprintf(gr->MD,"\'%s\',",std::string(msg->commonDef.underlying,sizeof(msg->commonDef.underlying)).c_str());
+  fprintf(gr->MD,"\'%s\',",std::string(msg->commonDef.classSymbol,sizeof(msg->commonDef.classSymbol)).c_str());
+  fprintf(gr->MD,"\'%s\',",std::string(msg->commonDef.exchSecurityName,sizeof(msg->commonDef.exchSecurityName)).c_str());
+
   fprintf(gr->MD,"\n");
+
+  TestSecurityCtx newSecurity = {
+      .securityId        = msg->header.securityId,
+      .avtSecName        = std::string(msg->commonDef.exchSecurityName,sizeof(msg->commonDef.exchSecurityName)),
+      .underlying        = std::string(msg->commonDef.underlying,sizeof(msg->commonDef.underlying)),
+      .classSymbol       = std::string(msg->commonDef.classSymbol,sizeof(msg->commonDef.classSymbol)),
+      .exch              = msg->commonDef.exchange,
+      .displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE,
+      .isCompllex        = true
+  };
+    
+    gr->security.push_back(newSecurity);
+    auto sec_idx = gr->security.size() - 1;
+    
+    efhSubscribeStatic(pEfhCtx, (EkaGroup*)&msg->header.group, msg->header.securityId, EfhSecurityType::kOption,(EfhSecUserData) sec_idx,0,0);
 
   return NULL;
 }
@@ -595,6 +622,7 @@ void* onFutureDefinition(const EfhFutureDefinitionMsg* msg, EfhSecUserData secDa
   	.classSymbol       = classSymbol,
   	.exch              = msg->commonDef.exchange,
   	.displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE,
+	.isCompllex        = false
     };
     
     gr->security.push_back(newSecurity);
@@ -658,7 +686,8 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
 	.underlying        = underlyingName,
 	.classSymbol       = classSymbol,
 	.exch              = msg->commonDef.exchange,
-	.displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE
+	.displayPriceScale = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE,
+	.isCompllex        = false
     };
     
     gr->security.push_back(newSecurity);
@@ -683,7 +712,9 @@ EkaSource feedname2source(std::string feedName) {
   if (feedName == std::string("CB")) return EkaSource::kC1_PITCH;
   if (feedName == std::string("CC")) return EkaSource::kC1_PITCH;
   if (feedName == std::string("CD")) return EkaSource::kC1_PITCH;
-  /* ------------------------------------------------------- */
+
+  if (feedName == std::string("CAC")) return EkaSource::kC1_PITCH;
+/* ------------------------------------------------------- */
   if (feedName == std::string("MA")) return EkaSource::kMIAX_TOM;
   if (feedName == std::string("MB")) return EkaSource::kMIAX_TOM;
 
@@ -734,6 +765,8 @@ static EkaProp* feedname2prop (std::string feedName) {
   if (feedName == std::string("CB")) return efhBatsC1InitCtxEntries_B;
   if (feedName == std::string("CC")) return efhBatsC1InitCtxEntries_C;
   if (feedName == std::string("CD")) return efhBatsC1InitCtxEntries_D;
+
+  if (feedName == std::string("CAC")) return efhBatsC1InitCtxEntries_CAC;
   /* ------------------------------------------------------- */
   if (feedName == std::string("MA")) return efhMiaxInitCtxEntries_A;
   if (feedName == std::string("MB")) return efhMiaxInitCtxEntries_B;
@@ -785,6 +818,8 @@ static size_t feedname2numProps (std::string feedName) {
   if (feedName == std::string("CB")) return std::size(efhBatsC1InitCtxEntries_B);
   if (feedName == std::string("CC")) return std::size(efhBatsC1InitCtxEntries_C);
   if (feedName == std::string("CD")) return std::size(efhBatsC1InitCtxEntries_D);
+
+  if (feedName == std::string("CAC")) return std::size(efhBatsC1InitCtxEntries_CAC);
   /* ------------------------------------------------------- */
   if (feedName == std::string("MA")) return std::size(efhMiaxInitCtxEntries_A);
   if (feedName == std::string("MB")) return std::size(efhMiaxInitCtxEntries_B);
@@ -836,6 +871,8 @@ static size_t feedname2numGroups(std::string feedName) {
   if (feedName == std::string("CB")) return std::size(batsC1Groups);
   if (feedName == std::string("CC")) return std::size(batsC1Groups);
   if (feedName == std::string("CD")) return std::size(batsC1Groups);
+
+  if (feedName == std::string("CAC")) return std::size(batsC1Groups);  
   /* ------------------------------------------------------- */
   if (feedName == std::string("MA")) return std::size(miaxGroups);
   if (feedName == std::string("MB")) return std::size(miaxGroups);
@@ -981,8 +1018,9 @@ void print_usage(char* cmd) {
   printf("\t\t\tOB  - PHLX ORD    B feed\n"); 
   printf("\t\t\tCA  - C1          A feed\n"); 
   printf("\t\t\tCB  - C1          B feed\n"); 
-  printf("\t\t\tCC  - C1          C feed\n"); 
+  printf("\t\t\tCC  - C1          C feed -- main feed for EFH CBOE vanilla testing\n"); 
   printf("\t\t\tCD  - C1          D feed\n"); 
+  printf("\t\t\tCAC - C1        CAC feed -- main feed for EFH CBOE Complex testing\n"); 
   printf("\t\t\tMA  - MIAX TOM    A feed\n"); 
   printf("\t\t\tMB  - MIAX TOM    B feed\n"); 
   printf("\t\t\tPA  - PEARL TOM   A feed\n"); 
@@ -1004,5 +1042,6 @@ void print_usage(char* cmd) {
   printf("\t-u <Underlying Name> - subscribe on all options belonging to\n");
   printf("\t-t Print TOB updates (EFH)\n");
   printf("\t-a subscribe all\n");
+  printf("\t-v verbose statistics\n");
   return;
 }

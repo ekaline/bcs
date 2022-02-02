@@ -196,7 +196,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     PriceT   price    = message->price / EFH_PRICE_SCALE;
 
     if (checkPriceLengh(message->price,EFH_PRICE_SCALE)) 
-      EKA_WARN("%s %s seq=%ju Long price(%ju) exceeds 32bit",
+      EKA_WARN("%s %s seq=%ju Long price(%jd) exceeds 32bit",
 	       std::string(message->symbol,sizeof(message->symbol)).c_str(),
 	       ts_ns2str(msg_timestamp).c_str(),
 	       sequence,
@@ -569,7 +569,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.header.group.source   = exch;
     msg.header.group.localId  = id;
     msg.header.underlyingId   = 0;
-    msg.header.securityId     = 0;
+    msg.header.securityId     = symbol2secId(root->ComplexInstrumentId);
     msg.header.sequenceNumber = sequence;
     msg.header.timeStamp      = 0;
     msg.header.gapNum         = gapNum;
@@ -599,6 +599,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     pEfhRunCtx->onEfhComplexDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
 
     leg ++; //+= sizeof(*leg);
+    return false;
 
     break;
   }

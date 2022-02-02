@@ -10,6 +10,9 @@ class FhPlevel;
 
 class alignas(64) EkaFhSecurity {
  protected:
+  EkaFhSecurity() {
+    valid = false;
+  }
   EkaFhSecurity(EfhSecurityType _type,
 		EfhSecUserData  _userData,
 		uint64_t        _opaqueAttrA,
@@ -47,6 +50,7 @@ class alignas(64) EkaFhSecurity {
   uint64_t          bid_ts         = 0;
   uint64_t          ask_ts         = 0;
 
+  bool              valid = false; // temporarily used for Full Book only 
 };
 
 #endif

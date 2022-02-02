@@ -149,6 +149,7 @@
 
 inline int strikePriceScaleFactor (EkaSource exch) {
   switch (EFH_EXCH2FEED(exch)) {
+  case EfhFeedVer::kNASDAQ:
   case EfhFeedVer::kBATS:
   case EfhFeedVer::kBOX  : return 10;
   case EfhFeedVer::kGEMX : return 10000;

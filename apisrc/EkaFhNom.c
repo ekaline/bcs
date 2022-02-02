@@ -26,6 +26,8 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 #ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
     uint64_t firstDropSeq = 0;
 #endif
+
+    terminated = false;
     
   while (runGr->thread_active && ! runGr->stoppedByExchange) {
     if (! runGr->udpCh->has_data()) {
@@ -181,5 +183,17 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 
   runGr->sendFeedCloseAll(pEfhRunCtx);
 
+#ifdef EKA_NOM_LATENCY_CHECK
+  const char* fileName = "NOM_latencies.csv";
+  FILE* latenciesFile = fopen(fileName,"w");
+  if(! latenciesFile)
+    on_error ("cannot open %s",fileName);
+  for (auto const& p : latencies) {
+    fprintf(latenciesFile,"%c,%9ju\n", p.first,p.second);
+  }
+  fclose(latenciesFile);
+#endif
+  terminated = true;
+  
   return EKA_OPRESULT__OK;
 }

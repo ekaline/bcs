@@ -32,7 +32,7 @@ inline SideT sideDecode(char _side) {
 bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op,
 				 std::chrono::high_resolution_clock::time_point startTime) {
 
-#ifdef EKA_TIME_CHECK
+#ifdef EKA_NOM_LATENCY_CHECK
   auto start = std::chrono::high_resolution_clock::now();  
 #endif
 
@@ -48,7 +48,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   /* } */
   /* parserSeq = sequence + 1; */
   
-  auto enc {static_cast<const char>(m[0])};
+  char enc = static_cast<const char>(m[0]);
   auto msg_timestamp = get_ts(m);
 
   if (op == EkaFhMode::DEFINITIONS  && enc == 'M') return true;
@@ -567,12 +567,6 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
 
  /* ##################################################################### */
 
-#ifdef EKA_TIME_CHECK
-  auto finish = std::chrono::high_resolution_clock::now();
-  uint64_t duration_ns = (uint64_t) std::chrono::duration_cast<std::chrono::nanoseconds>(finish-start).count();
-  if (duration_ns > 50000) EKA_WARN("WARNING: \'%c\' processing took %ju ns",enc, duration_ns);
-#endif
-
 #if 0  
   if (s->crossedPrice()) {
     char hexBuf[16000]; // approximate max NOM message size
@@ -590,9 +584,16 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
   }
 #endif
 
-  if (! book->isEqualState(s))
+  if (! book->isEqualState(s)) {
+#ifdef EKA_NOM_LATENCY_CHECK
+    auto finish = std::chrono::high_resolution_clock::now();
+    uint64_t duration_ns = (uint64_t) std::chrono::duration_cast<std::chrono::nanoseconds>(finish-start).count();
+    //    if (duration_ns > 5000) EKA_WARN("WARNING: \'%c\' processing took %ju ns",enc, duration_ns);
+    fh->latencies.push_back(std::make_pair(enc,duration_ns));
+#else
     book->generateOnQuote (pEfhRunCtx, s, sequence, msg_timestamp,gapNum);
-
+#endif  
+  }
   return false;
 }
 
