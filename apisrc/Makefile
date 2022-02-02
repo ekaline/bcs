@@ -54,7 +54,8 @@ LLIB_TEST := -L. -lekaline2_test
 
 LWIP_LIB := liblwipcommon.a
 
-CCDEP:=gcc
+#CCDEP:=gcc
+#CCDEP:=$GCC
 
 LIBEKALINE:=libekaline2
 
