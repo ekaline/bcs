@@ -178,4 +178,31 @@ inline void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* 
   }
   return;
 }
+
+inline char printEfhSecurityType(EfhSecurityType t) {
+  switch (t) {
+  case EfhSecurityType::kInvalid : return ' ';
+  case EfhSecurityType::kIndex   : return 'I';
+  case EfhSecurityType::kStock   : return 'S';
+  case EfhSecurityType::kOption  : return 'O';
+  case EfhSecurityType::kFuture  : return 'F';
+  case EfhSecurityType::kRfq     : return 'R';
+  case EfhSecurityType::kComplex : return 'C';
+  default:
+    return '-';
+  }
+}
+
+inline char printEfhOrderSide(EfhOrderSide s) {
+  switch (s) {
+  case EfhOrderSide::kOther : return 'O';
+  case EfhOrderSide::kCross : return 'C';
+  case EfhOrderSide::kErr   : return 'E';
+  case EfhOrderSide::kBid   : return 'B';
+  case EfhOrderSide::kAsk   : return 'A';
+  default :
+    return '-';
+  }
+}
+
 #endif
