@@ -77,6 +77,24 @@ void EkaFhGroup::sendFeedUp(const EfhRunCtx* pEfhRunCtx) {
 }
  /* ##################################################################### */
 
+void EkaFhGroup::sendProgressingFeedUp(const EfhRunCtx* pEfhRunCtx) {
+  if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
+  if (pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL)
+    on_error("pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL");
+  
+  EfhGroupStateChangedMsg msg = {
+    EfhMsgType::kGroupStateChanged,
+    {exch, id},
+    EfhGroupState::kProgressing, // Securities getting TOB update become Up (valid)
+    EfhSystemState::kTrading, // Preopen, Trading, Closed
+    EfhErrorDomain::kNoError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EkaServiceType::kFeedRecovery, // Unspecified, FeedRecovery
+    gapNum // int64_t code
+  };
+  pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
+}
+ /* ##################################################################### */
+
 void EkaFhGroup::sendFeedUpInitial(const EfhRunCtx* pEfhRunCtx) {
   if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
   if (pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL)

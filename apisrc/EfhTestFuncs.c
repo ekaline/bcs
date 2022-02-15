@@ -245,6 +245,14 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
   }
     break;
     /* ----------------------------- */
+  case EfhGroupState::kProgressing : {
+    std::string gapType = std::string("Progressing");
+    fprintf(logFile,"%s: %s : %s \n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str(),gapType.c_str());
+    printf ("=========================\n%s: %s: %s %ju\n=========================\n",
+	    EKA_PRINT_GRP(&msg->group),eka_get_time().c_str(),gapType.c_str(),msg->code);
+  }
+    break;
+    /* ----------------------------- */
   case EfhGroupState::kNormal : {
     std::string gapType = std::string("Unknown");
     switch (msg->systemState) {

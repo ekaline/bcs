@@ -91,14 +91,24 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     switch (gr->state) {
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::INIT : {
-      gr->gapClosed = false;
-      gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
-      gr->sendFeedDownInitial(pEfhRunCtx);
-      gr->pushUdpPkt2Q(pkt,pktLen);
-      EKA_LOG("%s:%u INIT Gap: pushing sequence %ju to Q",
+      if (isTradingHours(8,30,16,00)) {
+	gr->gapClosed = true;
+	gr->state = EkaFhGroup::GrpState::NORMAL;
+	EKA_LOG("%s:%u INIT Gap at Trading hours: \'Progressing\' FeedUp",
+		EKA_EXCH_DECODE(exch),gr_id);
+	gr->expected_sequence = sequence + 1;
+	gr->sendFeedDownInitial(pEfhRunCtx);
+	gr->sendProgressingFeedUp(pEfhRunCtx);
+      } else {
+	gr->gapClosed = false;
+	gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
+	gr->sendFeedDownInitial(pEfhRunCtx);
+	gr->pushUdpPkt2Q(pkt,pktLen);
+	EKA_LOG("%s:%u INIT Gap: pushing sequence %ju to Q",
 		EKA_EXCH_DECODE(exch),gr_id,sequence);
 
-      gr->closeIncrementalGap(pEfhCtx,pEfhRunCtx, (uint64_t)1, sequence - 1);
+	gr->closeIncrementalGap(pEfhCtx,pEfhRunCtx, (uint64_t)1, sequence - 1);
+      }
     }
       break;
       //-----------------------------------------------------------------------------

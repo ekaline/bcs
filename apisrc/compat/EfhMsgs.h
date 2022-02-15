@@ -193,6 +193,7 @@ enum class EfhGroupState : char {
 #define EfhGroupState_ENUM_ITER( _x ) \
   _x( Initializing, 'I' )            \
   _x( Normal,       'N' )            \
+  _x( Progressing,  'P' )            \
   _x( Gap,          'G' )            \
   _x( Closed,       'C' )            \
   _x( Warning,      'W' )            \
