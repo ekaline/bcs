@@ -182,6 +182,9 @@ enum class EfhSystemState : char {
  *
  *   - 'N' (Normal): the group is completely recovered and operating normally.
  *
+ *   - 'P' (Progressing Feed Up): the group is in recovering from MC market data:
+ *         Securities become valid after getting a TOB update
+ *
  *   - 'G' (Gap): a gap was detected and recovery is in progress. If an error
  *         occurs that prevents the gap from closing, it will enter the error
  *         state.
