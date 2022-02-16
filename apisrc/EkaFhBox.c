@@ -91,7 +91,7 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     switch (gr->state) {
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::INIT : {
-      if (isTradingHours(8,30,16,00)) {
+      if (isTradingHours(9,30,16,00)) {
 	gr->gapClosed = true;
 	gr->state = EkaFhGroup::GrpState::NORMAL;
 	EKA_LOG("%s:%u INIT Gap at Trading hours: \'Progressing\' FeedUp",
