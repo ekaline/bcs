@@ -1,6 +1,9 @@
 SMARTNIC_ROOT ?= ../SmartNIC_SW
 LWIP_ROOT ?= ../lwip
 
+CCDEP:=gcc
+#CCDEP:=$GCC
+
 CC_OPT ?= -O3
 CXX_STANDARD ?= c++23
 ARCH_FLAGS ?= -march=native
@@ -53,9 +56,6 @@ LLIB := -L. -lekaline2
 LLIB_TEST := -L. -lekaline2_test
 
 LWIP_LIB := liblwipcommon.a
-
-#CCDEP:=gcc
-#CCDEP:=$GCC
 
 LIBEKALINE:=libekaline2
 
