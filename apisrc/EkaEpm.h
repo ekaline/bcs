@@ -198,7 +198,25 @@ class EkaEpm {
   bool validStrategyIdx(epm_strategyid_t strategyIdx) {
     return (strategyIdx < stratNum) && (strategy[strategyIdx] != NULL);
   }
-
+  inline uint getHeapBudget(EpmActionType     type) {
+    switch (type) {
+    case EpmActionType::TcpFastPath :
+      return MAX_ETH_FRAME_SIZE;
+    case EpmActionType::TcpFullPkt  :
+      return MAX_ETH_FRAME_SIZE;
+    case EpmActionType::TcpEmptyAck :
+      return TCP_EMPTY_ACK_SIZE;
+    case EpmActionType::Igmp :
+      return IGMP_V2_SIZE;
+    case EpmActionType::HwFireAction :
+      return HW_FIRE_MSG_SIZE;
+    case EpmActionType::UserAction :
+      return MAX_ETH_FRAME_SIZE;
+    default:
+      on_error("Unexpected EkaEpmAction type %d",(int)type);
+    }
+    return (uint)(-1);
+  }
   /* ---------------------------------------------------------- */
 
  public:

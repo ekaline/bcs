@@ -334,6 +334,7 @@ int EkaEpm::DownloadTemplates2HW() {
 
   return 0;
 }
+
 /* ---------------------------------------------------- */
 
 EkaEpmAction* EkaEpm::addAction(ActionType     type, 
@@ -346,11 +347,7 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
   if (actionRegion >= EPM_REGIONS || epmRegion[actionRegion] == NULL) 
     on_error("wrong epmRegion[%u] = %p",actionRegion,epmRegion[actionRegion]);
 
-  uint            heapBudget      = (uint)(-1);
-  EpmActionBitmap actionBitParams = {};
-  EpmTemplate*    pEpmTemplate    = NULL;
-
-  char            actionName[30]  = {};
+  uint            heapBudget      = getHeapBudget(type);
 
   createActionMtx.lock();
 
@@ -358,92 +355,10 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
   epm_actionid_t  actionIdx      = epmRegion[actionRegion]->baseActionIdx + localActionIdx;
   uint            heapOffs       = epmRegion[actionRegion]->heapOffs;
 
-  switch (type) {
-  case ActionType::TcpFastPath :
-    heapBudget                 = MAX_ETH_FRAME_SIZE;
-
-    actionBitParams.bitmap.action_valid = 1;
-    actionBitParams.bitmap.israw        = 0;
-    actionBitParams.bitmap.report_en    = 0;
-    actionBitParams.bitmap.feedbck_en   = 1;
-    pEpmTemplate                        = tcpFastPathPkt;
-    strcpy(actionName,"TcpFastPath");
-    break;
-
-  case ActionType::TcpFullPkt  :
-    heapBudget                 = MAX_ETH_FRAME_SIZE;
-
-    actionBitParams.bitmap.action_valid = 1;
-    actionBitParams.bitmap.israw        = 1;
-    actionBitParams.bitmap.report_en    = 0;
-    actionBitParams.bitmap.feedbck_en   = 0;
-    pEpmTemplate                        = rawPkt;
-
-    strcpy(actionName,"TcpFullPkt");
-    break;
-
-  case ActionType::TcpEmptyAck :
-    heapBudget                 = TCP_EMPTY_ACK_SIZE;
-
-    actionBitParams.bitmap.action_valid = 1;
-    actionBitParams.bitmap.israw        = 0;
-    actionBitParams.bitmap.report_en    = 0;
-    actionBitParams.bitmap.feedbck_en   = 0;
-    pEpmTemplate                        = tcpFastPathPkt;
-
-    strcpy(actionName,"TcpEmptyAck");
-    break;
-
-  case ActionType::Igmp :
-    heapBudget                 = IGMP_V2_SIZE;
-
-    actionBitParams.bitmap.action_valid = 1;
-    actionBitParams.bitmap.israw        = 1;
-    actionBitParams.bitmap.report_en    = 0;
-    actionBitParams.bitmap.feedbck_en   = 0;
-    pEpmTemplate                        = rawPkt;
-
-    strcpy(actionName,"Igmp");
-    break;
-
-
-  case ActionType::HwFireAction :
-    heapBudget                 = HW_FIRE_MSG_SIZE;
-
-    actionBitParams.bitmap.action_valid = 1;
-    actionBitParams.bitmap.israw        = 0;
-    actionBitParams.bitmap.report_en    = 1;
-    actionBitParams.bitmap.feedbck_en   = 1;
-    pEpmTemplate                        = hwFire;
-
-    strcpy(actionName,"HwFire");
-    break;
-
-  case ActionType::UserAction :
-    heapBudget                 = MAX_ETH_FRAME_SIZE;
-
-    actionBitParams.bitmap.action_valid = 1;
-    actionBitParams.bitmap.israw        = 0;
-    actionBitParams.bitmap.report_en    = 1;
-    actionBitParams.bitmap.feedbck_en   = 1;
-
-    actionBitParams.bitmap.empty_report_en = 1;
-    pEpmTemplate                        = tcpFastPathPkt;
-
-    strcpy(actionName,"UserAction");
-    break;
-
-  default:
-    on_error("Unexpected EkaEpmAction type %d",(int)type);
-  }
-
-  if (pEpmTemplate == NULL) on_error("pEpmTemplate == NULL for %s",actionName);
-
   uint64_t actionAddr = EpmActionBase + actionIdx * ActionBudget;
   epmRegion[actionRegion]->heapOffs += heapBudget;
 
   EkaEpmAction* action = new EkaEpmAction(dev,
-					  actionName,
 					  type,
 					  actionIdx,
 					  localActionIdx,
@@ -451,10 +366,8 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
 					  _coreId,
 					  _sessId,
 					  _auxIdx,
-					  actionBitParams,
 					  heapOffs,					  
-					  actionAddr,
-					  pEpmTemplate
+					  actionAddr
 					  );
 
   if (action ==NULL) on_error("new EkaEpmAction = NULL");

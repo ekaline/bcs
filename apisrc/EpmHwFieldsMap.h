@@ -89,7 +89,7 @@ class EpmHwFieldsMap {
     map[(int)HwField::APPSEQ].size = 8;
     
     map[(int)HwField::ASK_PRICE].size = 8;
-    map[(int)HwField::SIZE].size = 8;
+    map[(int)HwField::ASK_SIZE].size = 8;
     
     map[(int)HwField::SECURITY_ID].size = 8;
     map[(int)HwField::ASCII_CNT].size = 8;
@@ -100,7 +100,7 @@ class EpmHwFieldsMap {
       map[i].start = i == 0 ? 0 : map[i-1].start + map[i-1].size;
     }
 
-    //    print();
+    print();
   }
 
   void print() {

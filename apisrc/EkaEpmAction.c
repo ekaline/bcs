@@ -42,11 +42,12 @@ int EkaEpmAction::setActionBitmap() {
     actionBitParams.bitmap.report_en    = 0;
     actionBitParams.bitmap.feedbck_en   = 0;
     break;
-  case EpmActionType::SqfFire      :
-  case EpmActionType::SqfCancel    :
+  case EpmActionType::HwFireAction :
   case EpmActionType::BoeFire      :
   case EpmActionType::BoeCancel    :
-  case EpmActionType::HwFireAction :
+    actionBitParams.bitmap.app_seq_inc  = 1;
+  case EpmActionType::SqfFire      :
+  case EpmActionType::SqfCancel    :
     actionBitParams.bitmap.israw        = 0;
     actionBitParams.bitmap.report_en    = 1;
     actionBitParams.bitmap.feedbck_en   = 1;
@@ -128,7 +129,7 @@ int EkaEpmAction::setTemplate() {
   }
   if (epmTemplate == NULL) 
     on_error("type %d: epmTemplate == NULL ",(int)type);
-  EKA_LOG("Teplate set to: \'%s\'",epmTemplate->name);
+  //  EKA_LOG("Teplate set to: \'%s\'",epmTemplate->name);
   return 0;
 }
 
@@ -170,13 +171,11 @@ int EkaEpmAction::setName() {
   }
   return 0;
 }
-
-
+/* ---------------------------------------------------- */
 
 /* ---------------------------------------------------- */
 
 EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
-			   char*                   _actionName,
 			   EkaEpm::ActionType      _type,
 			   uint                    _idx,
 			   uint                    _localIdx,
@@ -184,17 +183,13 @@ EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
 			   uint8_t                 _coreId,
 			   uint8_t                 _sessId,
 			   uint                    _auxIdx,
-			   EpmActionBitmap         _actionBitParams,
 			   uint  		   _heapOffs,
-			   uint64_t		   _actionAddr,
-			   EpmTemplate*            _epmTemplate) {
+			   uint64_t		   _actionAddr) {
 
   dev             = _dev;
-  strcpy(actionName,_actionName);
   initialized     = false;
   
   if (dev == NULL) on_error("dev = NULL");
-  if (_epmTemplate == NULL) on_error("_epmTemplate == NULL");
 
   epm             =  dev->epm;
   type            = _type;
@@ -204,9 +199,7 @@ EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
   coreId          = _coreId;
   sessId          = _sessId;
   productIdx      = _auxIdx;
-  actionBitParams = _actionBitParams;
   actionAddr      = _actionAddr;
-  epmTemplate     = _epmTemplate;
 
   thrId           = calcThrId(type,sessId,productIdx);
 
@@ -223,9 +216,10 @@ EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
   memset(ethHdr,0,sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaTcpHdr));
 
   initEpmActionLocalCopy();
+  setTemplate();
   setActionBitmap();
   setHwAction();
-
+  setName();
   //  print("From constructor");
 }
 /* ----------------------------------------------------- */
@@ -355,7 +349,7 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
   setActionBitmap();
   setTemplate();
   setName();
-
+  
   heapOffs   = epmAction->offset - EkaEpm::DatagramOffset;
   if (heapOffs % 32 != 0) on_error("heapOffs %d (must be X32)",heapOffs);
 
