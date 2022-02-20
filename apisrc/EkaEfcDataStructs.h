@@ -121,6 +121,7 @@ struct EkaHwSecCtx {
   FixedPrice askMaxPrice;
   uint8_t    bidSize;
   uint8_t    askSize;
+  uint8_t    versionKey;
   uint8_t    lowerBytesOfSecId;
 } __attribute__ ((packed)) __attribute__ ((aligned (sizeof(uint64_t))));
 
@@ -179,7 +180,7 @@ struct EfcFiredOrder {
 } __attribute__((packed));
 
 struct EfcNormalizedFireReport {
-  char                pad[4];          // = bit [5*8-1:0] padx8
+  char                pad[3];          // = bit [5*8-1:0] padx8
   EfcControllerReport controllerState; //
   EfcFiredOrder       triggerOrder;    // = sp4_order_t   order_trigger_data 
   uint32_t            securityCtxAddr; // = bit [31:0]    security_context_addr

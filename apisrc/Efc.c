@@ -220,6 +220,7 @@ EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx, EfcSecCtxHandle hSecCtx, const 
     .askMaxPrice       = pSecCtx->askMaxPrice,
     .bidSize           = pSecCtx->bidSize,
     .askSize           = pSecCtx->askSize,
+    .versionKey        = pSecCtx->versionKey,
     .lowerBytesOfSecId = pSecCtx->lowerBytesOfSecId
   };
 
@@ -227,7 +228,7 @@ EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx, EfcSecCtxHandle hSecCtx, const 
     writeChan * EKA_BANKS_PER_CTX_THREAD * EKA_WORDS_PER_CTX_BANK * 8 + 
     efc->ctxWriteBank[writeChan] * EKA_WORDS_PER_CTX_BANK * 8;
 
-  // EkaHwSecCtx is 7 Bytes ==> single write
+  // EkaHwSecCtx is 8 Bytes ==> single write
   eka_write(dev,ctxWrAddr,*(uint64_t*)&hwSecCtx); 
 
   union large_table_desc done_val = {};
