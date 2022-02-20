@@ -4,26 +4,95 @@
 #include "eka_macros.h"
 #include "EkaDev.h"
 
-EpmTemplate::EpmTemplate (uint idx, const char* _name) {
+EpmTemplate::EpmTemplate (uint idx) {
   memset(&data,0,sizeof(data));
   memset(&hwField,0,sizeof(hwField));
   id = idx;
-  strcpy(name,_name);
-  
-  //TEST_LOG("Creating template %u \'%s\'",id,name);
 }
 
+#define _EPM_TEMPLATE_DEBUG_PRINTOUT_ 1
+
 int EpmTemplate::init() {
+  TEST_LOG("\n================================\n%s with %u fields\n================================",name,tSize);
+
+  fMap = new(EpmHwFieldsMap);
+  if (! fMap) on_error("! fMap");
+  
+  uint idx = 0;
+  EpmTemplateField* t = templateStruct;
+  byteSize = 0;
+
+  for (int i = 0; i < (int)tSize; i++) {
+    EpmTemplateField* f = &t[i];
+
+    /* TEST_LOG("%2d: %s: start=%u size = %u, source = %s, swap = %d", */
+    /* 	     i,f->name,idx,f->size, */
+    /* 	     f->source == HwField::IMMEDIATE ? "IMM" : "HW", */
+    /* 	     f->swap); */
+
+    auto fType = f->source;
+    if (fType !=  HwField::IMMEDIATE && f->size != fMap->map[(int)fType].size)
+      TEST_LOG("WARNING: %s template field %s size %d != HW field size %d",
+	       name,fMap->map[(int)fType].name,f->size,fMap->map[(int)fType].size);
+
+    for (uint16_t b = 0; b < f->size; b++) {
+      if (f->source == HwField::IMMEDIATE) {
+	data[idx] = (uint8_t)(idx % 8);
+      } else {
+	auto hwFiledByteIdx = f->swap ? fMap->map[(int)fType].start + b :
+	  fMap->map[(int)fType].start + fMap->map[(int)fType].size - b - 1;
+	data[idx] = (uint8_t)hwFiledByteIdx;
+	if (f->source != HwField::TCP_CHCK_SUM)
+	  setCsBitmap(idx,hwFiledByteIdx);
+      }
+      idx++;
+    }    
+    byteSize += f->size;
+  }
+
+  TEST_LOG("%s byteSize = %u",name,byteSize);
+
+#if 0
+  
+  for (uint i = 0; i < byteSize; i++) {
+    if (i % 8 == 0) printf ("\n");
+    printf ("0x%02x,",
+	    data[i]);
+  }
+  printf ("\n\n");
+  TEST_LOG("Im here");
+#endif
+
+#if 0
+  for (int i = 0; i < EpmNumHwFields; i++) {
+    printf ("%-20s: ",EpmHwField2Str((HwField)i));
+    for (int b = EpmHwFieldSize - 1; b >= 0; b--) {
+      printf ("%c, ",hwField[i].cksmMSB[b] ? 'M' : '-');
+    }
+    printf ("   ");
+
+    for (int b = EpmHwFieldSize - 1; b >= 0; b--) {
+      printf ("%c, ",hwField[i].cksmLSB[b] ? 'L' : '-');
+    }
+    printf ("\n");
+  }
+#endif
+
+  return 0;
+}
+
+int EpmTemplate::init_old() {
   //TEST_LOG("%s with %u fields",name,tSize);
   uint idx = 0;
   EpmTemplateField* t = templateStruct;
-  EpmTemplateField* f = (EpmTemplateField*)t;
+  EpmTemplateField* f = t;
   for (int i = 0; i < (int)tSize; i++) {
-    /* EKA_LOG("%2d: %s: size = %u, source = %s, swap = %d", */
-    /* 	   i,f->name,f->size, */
-    /* 	    f->source == HwField::IMMEDIATE ? "IMM" : "HW", */
-    /* 	    f->swap); */
+    /* TEST_LOG("%2d: %s: size = %u, source = %s, swap = %d", */
+    /* 	     i,f->name,f->size, */
+    /* 	     f->source == HwField::IMMEDIATE ? "IMM" : "HW", */
+    /* 	     f->swap); */
 
+    byteSize += f->size;
     for (uint16_t b = 0; b < f->size; b++) {
       uint8_t shiftedSrc = ((uint8_t)f->source) << 4;
       uint8_t byteOffs   = (f->swap)? (b) & 0xf : (f->size - b - 1) & 0xf;
@@ -75,10 +144,9 @@ int EpmTemplate::init() {
 
 int EpmTemplate::clearHwFields(uint8_t* pkt) {
   //  hexDump("Packet before",pkt,256);
-  EpmTemplateField* t = templateStruct;
   uint idx = 0;
-  EpmTemplateField* f = (EpmTemplateField*)t;
-  for (int i = 0; i < (int)tSize; i++) {
+  EpmTemplateField* f = templateStruct;
+  for (size_t i = 0; i < tSize; i++) {
     for (uint16_t b = 0; b < f->size; b++) {
       if (f->clear) pkt[idx] = 0;
       idx++;

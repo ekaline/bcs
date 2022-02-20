@@ -52,12 +52,12 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
 
   switch (hwFeedVer) {
   case EfhFeedVer::kNASDAQ : 
-    epm->hwFire  = new EpmFireSqfTemplate(epm->templatesNum++,"EpmFireSqfTemplate" );
+    epm->hwFire  = new EpmFireSqfTemplate(epm->templatesNum++);
     EKA_LOG("Initializing EpmFireSqfTemplate");
     ehp = new EhpNom(dev);
     break;
   case EfhFeedVer::kCBOE : 
-    epm->hwFire  = new EpmFireBoeTemplate(epm->templatesNum++,"EpmFireBoeTemplate" );
+    epm->hwFire  = new EpmFireBoeTemplate(epm->templatesNum++);
     EKA_LOG("Initializing EpmFireBoeTemplate");
     ehp = new EhpPitch(dev);
     break;

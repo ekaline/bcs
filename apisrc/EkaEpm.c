@@ -267,13 +267,11 @@ EkaOpResult EkaEpm::payloadHeapCopy(epm_strategyid_t strategyIdx,
 int EkaEpm::InitTemplates() {
   templatesNum   = 0;
 
-  EKA_LOG("Initializing EpmFastPathTemplate");
-  tcpFastPathPkt = new EpmFastPathTemplate(templatesNum++,"EpmFastPathTemplate");
-  if (tcpFastPathPkt == NULL) on_error("tcpFastPathPkt == NULL");
+  tcpFastPathPkt = new EpmFastPathTemplate(templatesNum++);
+  if (! tcpFastPathPkt) on_error("! tcpFastPathPkt");
 
-  EKA_LOG("Initializing EpmRawPktTemplate");
-  rawPkt         = new EpmRawPktTemplate(templatesNum++  ,"EpmRawPktTemplate" );
-  if (rawPkt == NULL) on_error("rawPkt == NULL");
+  rawPkt         = new EpmRawPktTemplate(templatesNum++);
+  if (! rawPkt) on_error("! rawPkt");
 
   /* switch (dev->hwFeedVer) { */
   /* case EfhFeedVer::kNASDAQ :  */
@@ -299,28 +297,28 @@ int EkaEpm::DownloadSingleTemplate2HW(EpmTemplate* t) {
 
   EKA_LOG("Downloading %s, id=%u, getDataTemplateAddr=%jx, getCsumTemplateAddr=%jx ",
 	  t->name,t->id,t->getDataTemplateAddr(),t->getCsumTemplateAddr());
-  volatile epm_tcpcs_template_t hw_tcpcs_template = {};
+  /* volatile epm_tcpcs_template_t hw_tcpcs_template = {}; */
 
   // TCP CS template
-  for (uint f = 0; f < EpmNumHwFields; f++) {
-    for (uint b = 0; b < EpmHwFieldSize; b++) {
-      if (t->hwField[f].cksmMSB[b]) {
-	uint16_t temp = hw_tcpcs_template.high.field[f].bitmap |
-	  ((uint16_t)1)<<b;
-	hw_tcpcs_template.high.field[f].bitmap = temp;
-	//	hw_tcpcs_template.high.field[f].bitmap |= ((uint16_t)1)<<b;
-      }
-      if (t->hwField[f].cksmLSB[b]) {
-	uint16_t temp = hw_tcpcs_template.low.field[f].bitmap |
-	  ((uint16_t)1)<<b;
-	hw_tcpcs_template.low.field[f].bitmap = temp;
-	//	hw_tcpcs_template.low.field[f].bitmap  |= ((uint16_t)1)<<b;
-      }
-    }
-  }
+  /* for (uint f = 0; f < EpmNumHwFields; f++) { */
+  /*   for (uint b = 0; b < EpmHwFieldSize; b++) { */
+  /*     if (t->hwField[f].cksmMSB[b]) { */
+  /* 	uint16_t temp = hw_tcpcs_template.high.field[f].bitmap | */
+  /* 	  ((uint16_t)1)<<b; */
+  /* 	hw_tcpcs_template.high.field[f].bitmap = temp; */
+  /* 	//	hw_tcpcs_template.high.field[f].bitmap |= ((uint16_t)1)<<b; */
+  /*     } */
+  /*     if (t->hwField[f].cksmLSB[b]) { */
+  /* 	uint16_t temp = hw_tcpcs_template.low.field[f].bitmap | */
+  /* 	  ((uint16_t)1)<<b; */
+  /* 	hw_tcpcs_template.low.field[f].bitmap = temp; */
+  /* 	//	hw_tcpcs_template.low.field[f].bitmap  |= ((uint16_t)1)<<b; */
+  /*     } */
+  /*   } */
+  /* } */
 
-  copyBuf2Hw_swap4(dev,t->getDataTemplateAddr(),(uint64_t*) t->data             ,EpmMaxRawTcpSize);
-  copyBuf2Hw      (dev,t->getCsumTemplateAddr(),(uint64_t*) &hw_tcpcs_template  ,sizeof(epm_tcpcs_template_t));
+  copyBuf2Hw_swap4(dev,t->getDataTemplateAddr(),(uint64_t*) t->data                ,EpmMaxRawTcpSize);
+  copyBuf2Hw      (dev,t->getCsumTemplateAddr(),(uint64_t*) &t->hw_tcpcs_template  ,sizeof(t->hw_tcpcs_template));
 
   return 0;
 }

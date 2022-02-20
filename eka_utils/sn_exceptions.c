@@ -24,6 +24,10 @@
 #define WHT   "\x1B[37m"
 #define RESET "\x1B[0m"
 
+#ifndef on_error
+#define on_error(...) do { const int err = errno; fprintf(stderr, "EKALINE API LIB FATAL ERROR: %s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); if (err) fprintf(stderr, ": %s (%d)", strerror(err), err); fprintf(stderr, "\n"); fflush(stdout); fflush(stderr); exit(1); } while(0)
+#endif
+
 void die(char *msg)
 {
     perror(msg);
@@ -111,7 +115,7 @@ int main(int argc, char *argv[])
     return 0;
   }
 
-  system("clear");
+  if (system("clear") < 0) on_error("failed");
 
   int animation = 0;
 
@@ -121,8 +125,8 @@ int main(int argc, char *argv[])
       uint64_t var_global_shadow         = reg_read(ADDR_INTERRUPT_SHADOW_RO);
       uint64_t var_core_shadow;
 
-      system("clear");
-	  
+      if (system("clear") < 0) on_error("failed");
+  
       if (var_global_shadow)
 	{
 	  printf ("--- Global Exceptions --\n\n");

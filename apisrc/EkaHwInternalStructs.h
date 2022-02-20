@@ -32,7 +32,7 @@ struct epm_tcpcs_field_template_t {
 } __attribute__((packed));
 
 struct epm_tcpcs_half_template_t {
-  struct epm_tcpcs_field_template_t field[16];
+  struct epm_tcpcs_field_template_t row[16];
 } __attribute__((packed));
 
 struct epm_tcpcs_template_t {

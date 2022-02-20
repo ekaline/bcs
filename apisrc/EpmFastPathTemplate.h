@@ -5,7 +5,7 @@
 
 class EpmFastPathTemplate : public EpmTemplate {
  public:
- EpmFastPathTemplate(uint idx, const char* _name) : EpmTemplate(idx,_name) {
+ EpmFastPathTemplate(uint idx) : EpmTemplate(idx) {
     EpmTemplateField myTemplateStruct[] = {
       {"macDa"  , 6, HwField::IMMEDIATE,    false, false},
       {"macSa"  , 6, HwField::IMMEDIATE,    false, false},
@@ -38,6 +38,8 @@ class EpmFastPathTemplate : public EpmTemplate {
     tSize = sizeof(myTemplateStruct) / sizeof(EpmTemplateField);
     if (tSize > MAX_FIELDS) on_error ("tSize %u > MAX_FIELDS %u",tSize, MAX_FIELDS);
     memcpy(templateStruct,myTemplateStruct,sizeof(myTemplateStruct));
+    strcpy(name,"EpmFastPathTemplate");
+
     init();
   }
 

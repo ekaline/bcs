@@ -69,6 +69,10 @@
 #define MASK4  0xf
 #define MASK1  0x1
 
+#ifndef on_error
+#define on_error(...) do { const int err = errno; fprintf(stderr, "EKALINE API LIB FATAL ERROR: %s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); if (err) fprintf(stderr, ": %s (%d)", strerror(err), err); fprintf(stderr, "\n"); fflush(stdout); fflush(stderr); exit(1); } while(0)
+#endif
+
 SN_DeviceId DeviceId;
 
 uint64_t reg_read (uint32_t addr)
@@ -172,8 +176,8 @@ int main(int argc, char *argv[]){
 
     while (1)
       {
-	system("clear");
-	
+	if (system("clear") < 0) on_error("failed");
+
 	// Reading All central regs
 	uint64_t rt_counter              = reg_read(ADDR_RT_COUNTER);
 	uint64_t var_global_shadow       = reg_read(ADDR_INTERRUPT_SHADOW_RO);
