@@ -113,6 +113,7 @@ int printSecCtx(EkaDev* dev, const SecCtx* msg) {
   EKA_LOG("\tbidSize = %u",             msg->bidSize);
   EKA_LOG("\taskMaxPrice = %u (%u)",    msg->askMaxPrice, msg->askMaxPrice * 100);
   EKA_LOG("\tbidMinPrice = %u (%u)",    msg->bidMinPrice, msg->bidMinPrice * 100);
+  EKA_LOG("\tversionKey = %u (0x%x)",   msg->versionKey, msg->versionKey);
 
   return 0;
 }
@@ -250,6 +251,7 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len, uint32_t e
   secCtxReport->askSize             = report->securityCtx.askSize;
   secCtxReport->askMaxPrice         = report->securityCtx.askMaxPrice;
   secCtxReport->bidMinPrice         = report->securityCtx.bidMinPrice;
+  secCtxReport->versionKey          = report->securityCtx.versionKey;
 
   //  printSecCtx  (dev,secCtxReport);
 

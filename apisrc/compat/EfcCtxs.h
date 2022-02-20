@@ -21,6 +21,7 @@ typedef struct {
                 _x( FixedPrice, askMaxPrice    )                        \
                 _x( uint8_t, bidSize           )                        \
                 _x( uint8_t, askSize           )                        \
+                _x( uint8_t, versionKey        )                        \
                 _x( uint8_t, lowerBytesOfSecId )
         SecCtx_FIELD_ITER( EKA__FIELD_DEF ) 
 } SecCtx; 
