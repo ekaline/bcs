@@ -50,6 +50,7 @@ class EpmCancelSqfTemplate : public EpmTemplate {
     tSize = sizeof(myTemplateStruct) / sizeof(EpmTemplateField);
     if (tSize > MAX_FIELDS) on_error ("tSize %u > MAX_FIELDS %u",tSize, MAX_FIELDS);
     memcpy(templateStruct,myTemplateStruct,sizeof(myTemplateStruct));
+    strcpy(name,"EpmCancelSqfTemplate");
     init();
   }
 

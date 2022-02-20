@@ -5,7 +5,7 @@
 
 class EpmFireBoeTemplate : public EpmTemplate {
  public:
- EpmFireBoeTemplate(uint idx, const char* _name) : EpmTemplate(idx,_name) {
+ EpmFireBoeTemplate(uint idx) : EpmTemplate(idx) {
       EpmTemplateField myTemplateStruct[] = {
       {"macDa"  , 6, HwField::IMMEDIATE,    false, false},
       {"macSa"  , 6, HwField::IMMEDIATE,    false, false},
@@ -38,7 +38,7 @@ class EpmFireBoeTemplate : public EpmTemplate {
       {"MatchingUnit" ,                 1, HwField::IMMEDIATE,    false, false }, // always 0
       {"SequenceNumber" ,               4, HwField::IMMEDIATE,    false, false }, // 0
       {"ClOrdIDtxt" ,                   12,HwField::IMMEDIATE,    false, false }, // free text
-      {"ClOrdIDseq" ,                   8, HwField::APP_SEQ_ASCII,false, true  }, //
+      {"ClOrdIDseq" ,                   8, HwField::ASCII_CNT,false, true  }, //
       
       {"Side" ,                         1, HwField::SIDE,         true,  true  }, // '1'-Bid, '2'-Ask
       {"OrderQty" ,                     4, HwField::SIZE,         true,  true  },
@@ -66,6 +66,7 @@ class EpmFireBoeTemplate : public EpmTemplate {
     tSize = sizeof(myTemplateStruct) / sizeof(EpmTemplateField);
     if (tSize > MAX_FIELDS) on_error ("tSize %u > MAX_FIELDS %u",tSize, MAX_FIELDS);
     memcpy(templateStruct,myTemplateStruct,sizeof(myTemplateStruct));
+    strcpy(name,"EpmFireBoeTemplate");
     init();
   }
 
