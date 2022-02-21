@@ -2,6 +2,109 @@
  * @file
  *
  * This header file covers the API for the Ekaline Prepared Message (EPM) feature.
+ *
+ * The Ekaline Prepared Message is a feature that allows for a low-latency message sending (within an open TCP session).
+ * Low latency comes from the message sending being triggered in the HW, which eliminates the need to go through PCIE.
+ *
+ * It consists of the folowing:
+ *   Ekaline Socket (exc) that must operate in TCP mode (managed by EXC part of the API)
+ *   EPM Strategy (created by a |epmInitStrategies| call) that binds triggers, strategy list and a callback
+ *     Triggers (a trigger is a source of UDP traffic - physical port x UDP multicast address x IP port)
+ *   Actions that represent what the system should do, when the desired conditions arise. A valid action
+ *       is a prescription to send some kind of message through the associated TCP stream. Note that the TCP stream
+ *       writer[s] must operate in the right mode (write messages in atomic manner) for this to work.
+ *
+ * The client code should look like the following:
+ *
+ * int returnZero(...) { return 0; }
+ * EkaDev *device = nullptr;
+ * EkaDevInitCtx initCtx{
+ *   .logCallback = nullptr,
+ *   .logContext = nullptr,
+ *   .credAcquire = returnZero,
+ *   .credRelease = returnZero,
+ *   .credContext = nullptr,
+ *   .createThread = createPthread,
+ *   .createThreadContext = nullptr,
+ * };  // TODO(twozniak): how to obtain an instance?
+ * ekaDevInit(&device, &initCtx);
+ *
+ * EkaCoreId phyPort{0}; // Physical port index
+ * EkaCoreInitCtx portInitCtx{
+ *   .coreId = phyPort,
+ *   .attrs = { .host_ip = inet_addr("???"), .netmask = inet_addr("255.255.255.0"), .gateway = inet_addr("???"),
+                //.nexthop_mac   resolved internally
+                //.src_mac_addr  resolved internally
+                //.dont_garp     what is it? }
+ * };
+ * ekaDevConfigurePort(device, &portInitCtx);
+ *
+ * ExcSocketHandle hSocket = excSocket(device, coreId, AF_INET, SOCK_STREAM, IPPROTO_TCP);
+ *
+ * //struct sockaddr_in myAddr{ .sin_family = AF_INET, .sin_port = 0x0102, .sin_addr = { .s_addr = 0x01020304 } };
+ * //bind(hSocket, (const struct sockaddr *)&myAddr, sizeof(myAddr));
+ * struct sockaddr_in peer{ .sin_family = AF_INET, .sin_port = 0x0102, .sin_addr = { .s_addr = 0x01020304 } };
+ * ExcConnHandle hConnection = excConnect(device, hSocket, (const struct sockaddr *)&peer, sizeof(peer));
+ *
+ * void fireReportCallback(const EpmFireReport *reports, int nReports, void *ctx) {
+ *   for (int idx = 0; idx < nReports; ++idx) {
+ *     EpmFireReport const *report = &reports[idx];
+ *     // work the |report|
+ *   }
+ * }
+ *
+ * EpmTriggerParams triggerSources[] = {{
+ *   .coreId = phyPort,       // cable plug index
+ *   .mcIp = "69.50.112.174", // CME
+ *   .mcUdpPort = 61891       // CME
+ * }};
+ * EpmStrategyParams strategies{
+ *   .numActions = 1,
+ *   .triggerParams = triggerSources,
+ *   .numTriggers = ARRAY_SIZE(triggerSources),
+ *   .reportCb = fireReportCallback,
+ *   .cbCtx = nullptr, // no user context
+ * };
+ * epmInitStrategies(device, &strategies, ARRAY_SIZE(strategies));
+ *
+ * epmEnableController(device, phyPort, true);
+ * epm_enablebits_t enableBitmap = 0x01;
+ * epmSetStrategyEnableBits(device, strategyId, enableBitmap);
+ *
+ * const void *cmeMassCancelMessageTemplateBytes = ;
+ * uint32_t cmeMassCancelMessageTemplateSize = ;
+ * uint32_t cmeMassCancelHeapOffset = ;
+ * int strategyId = 0;
+ * epmPayloadHeapCopy(device, strategyId,
+ *      cmeMassCancelHeapOffset, cmeMassCancelMessageTemplateSize, cmeMassCancelMessageTemplateBytes);
+ *
+ * EpmAction actions[] = {{
+ *   .type = CmeCancel,
+ *   .token = ???,
+ *   .hConn = hConnection,
+ *   .offset = cmeMassCancelHeapOffset,
+ *   .length = cmeMassCancelMessageTemplateSize,
+ *   .actionFlags = AF_Valid,
+ *   .nextAction = EPM_LAST_ACTION,
+ *   .enable = 0x01,
+ *   .postLocalMask = 0x01,
+ *   .postStratMask = 0x01,
+ *   .user = 0,  // just a single user
+ * }};
+ * EkaOpResult epmSetAction(device, strategyId, 0, &actions[0]);
+ *
+ *
+ * Please note the implicit connection between the first trigger (embedded in the |strategies[0].triggerParams|)
+ * and the first action (actions[0]). Each trigger (once activated) invokes an action chain,
+ * starting with an action of the same index. Thus, all the triggers are directly tied to the firrst actions (as many as there are triggers).
+ * There may be more actions, as a single trigger may start multiple actions (an action chain).
+ *
+ * The action chain is a list of actions chained by the |nextAction| field. It is not specified what happens when
+ * the chain contains a loop, multiple chains have a commin tail or a chain is broken (an index outside the action array).
+ *
+ * It is not clear what the controller state may/must be for the configuration to take place.
+ * It is not clear if/how the strategy list can be altered (can init be called many times?)
+ * TODO(twozniak): the security token
  */
 
 #ifndef __EKALINE_EPM_H__
@@ -22,9 +125,10 @@ typedef int32_t epm_actionid_t;
 
 #define EFC_STRATEGY 0
 
-/// Eklaine device limitations
+/// Ekaline device limitations
 enum EpmDeviceCapability : int {
-  EHC_PayloadMemorySize,       ///< Bytes available for payload packets
+  // TODO(twozniak): is this per session, or shared among all ekaline clients?
+  EHC_PayloadMemorySize,       ///< Total bytes available for payload packets (heap size)
   EHC_PayloadAlignment,        ///< Payload memory bufs must have this alignment
   EHC_DatagramOffset,          ///< Payload buf offset where UDP datagram starts
   EHC_RequiredTailPadding,     ///< Payload buf must be oversized to hold padding
@@ -51,6 +155,8 @@ enum class EpmActionType : int {
     SqfCancel    = 23,
     BoeFire      = 24,
     BoeCancel    = 25,
+    CmeFire      = 26,
+    CmeCancel    = 27,
 
     CmeHwCancel  = 31,          ///< propagating App sequence
     CmeSwFire    = 32,          ///< propagating App sequence
