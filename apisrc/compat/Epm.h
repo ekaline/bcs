@@ -14,19 +14,32 @@
  *       is a prescription to send some kind of message through the associated TCP stream. Note that the TCP stream
  *       writer[s] must operate in the right mode (write messages in atomic manner) for this to work.
  *
+ * The rough idea of operation is to set up a startegy with triggers and actions all attached to a TCP socket.
+ * If a trigger conditions are met, then a chain of actions is invoked (they boil down to sending messages into the TCP stream).
+ * The messages are Ethernet frames with IPv4 and TCP Segmnent headers (produced by the ekaline library) containing tcp data
+ * (so called payload) that is supplied by the ekaline client (and possibly instantiated by ekaline, depending on message type).
+ *
+ * Messages are prepared in advance - client code provides payload type and content, that is stored into ekaline internal memory.
+ * This memory (called heap or payload memory) is managed by the client, with limitations indicated by how the heap is used.
+ * Client-provided payload data is sandwitched by ekaline-provided headers and trailers (inaccessible by the application):
+ *  - prefixed by Ethernet, IP and TCP headers (at least 54 bytes)
+ *  - potentially suffixed by some other data (CRC, timestamps and such)
+ * On top of that, each prepared message (including all headers and trailers) must be start-aligned.
+ * The heap size, message alignment, header and trailer sizes can be retrieved by calls to |epmGetDeviceCapability|.
+ *
+ *
  * The client code should look like the following:
  *
- * int returnZero(...) { return 0; }
  * EkaDev *device = nullptr;
- * EkaDevInitCtx initCtx{
- *   .logCallback = nullptr,
- *   .logContext = nullptr,
- *   .credAcquire = returnZero,
- *   .credRelease = returnZero,
+ * EkaDevInitCtx initCtx {
+ *   .logCallback = nullptr, // TODO(twozniak): supply this, maybe
+ *   .logContext = nullptr,  // TODO(twozniak): supply this, maybe
+ *   .credAcquire = nullptr,
+ *   .credRelease = nullptr,
  *   .credContext = nullptr,
  *   .createThread = createPthread,
  *   .createThreadContext = nullptr,
- * };  // TODO(twozniak): how to obtain an instance?
+ * };
  * ekaDevInit(&device, &initCtx);
  *
  * EkaCoreId phyPort{0}; // Physical port index
@@ -104,7 +117,7 @@
  *
  * It is not clear what the controller state may/must be for the configuration to take place.
  * It is not clear if/how the strategy list can be altered (can init be called many times?)
- * TODO(twozniak): the security token
+ * TODO(twozniak): the security token (zero should be OK for the test)
  */
 
 #ifndef __EKALINE_EPM_H__
@@ -125,13 +138,35 @@ typedef int32_t epm_actionid_t;
 
 #define EFC_STRATEGY 0
 
+// TODO(twozniak): provide the packet surrounding layout/diagram on the heap
+
+/* The ekaline library provides the internal memory pool (heap) that is divided into two parts:
+ *  - implicit used for actions (not directly accessible by applications)
+ *  - explicit (managed by calls to epmPayloadHeapCopy) with prepared messages' data
+ *
+ * Each message (on the explicit heap) follows the layout depicted below.
+ * Note: all packets share header, trailer and alignment, but each packet may have different payload size:
+ * ------------------------------------------------------------------
+ * |<--    single message address range      -->|     Unused        |
+ * |<-- this address must be a multiple of alignment from heap begin
+ * | Headers     |    Payload    |   Trailers   | Alignment padding |
+ * ------------------------------------------------------------------
+ * | ^Ekaline    |^client-provi- | ^ekaline data|                   |
+ * | generated   |ded data (each |              |                   |
+ * |  headers    | time altered) |              |                   |
+ * ------------------------------------------------------------------
+ * |<- EHC_Data- | Provided for  |<-EHC_Required| Implicit: begin of
+ *  gramOffset-->| each message  | TailPadding_>| next message minus end of trailers
+ * |<--------------- multiple of EHC_PayloadAlignment ------------->|
+ * headers(sent) |TCP data (sent)| (not sent)   | (not sent)        |
+ * */
 /// Ekaline device limitations
 enum EpmDeviceCapability : int {
   // TODO(twozniak): is this per session, or shared among all ekaline clients?
   EHC_PayloadMemorySize,       ///< Total bytes available for payload packets (heap size)
-  EHC_PayloadAlignment,        ///< Payload memory bufs must have this alignment
-  EHC_DatagramOffset,          ///< Payload buf offset where UDP datagram starts
-  EHC_RequiredTailPadding,     ///< Payload buf must be oversized to hold padding
+  EHC_PayloadAlignment,        ///< Every payload item must have this starting alignment (i.e.: a multiple of 64)
+  EHC_DatagramOffset,          ///< Payload buf offset where TCP/UDP datagram starts, relative to a message start
+  EHC_RequiredTailPadding,     ///< Payload buf must be oversized to hold padding (after each payload this much bytes need to be reserved on the heap)
   EHC_MaxStrategies,           ///< Total no. of strategies available
   EHC_MaxActions               ///< Total no. of actions (shared by all strats)
 };
