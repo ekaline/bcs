@@ -160,7 +160,6 @@ typedef int32_t epm_actionid_t;
  * */
 /// Ekaline device limitations
 enum EpmDeviceCapability : int {
-  // TODO(twozniak): is this per session, or shared among all ekaline clients?
   EHC_PayloadMemorySize,       ///< Total bytes available for messages, including headers, trailers and alignment (heap size).
   EHC_PayloadAlignment,        ///< Every message must be start-aligned to multiple of this value relative to heap start.
   EHC_DatagramOffset,          ///< TCP/UDP payload offset relative to a message start.
