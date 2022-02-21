@@ -138,8 +138,6 @@ typedef int32_t epm_actionid_t;
 
 #define EFC_STRATEGY 0
 
-// TODO(twozniak): provide the packet surrounding layout/diagram on the heap
-
 /* The ekaline library provides the internal memory pool (heap) that is divided into two parts:
  *  - implicit used for actions (not directly accessible by applications)
  *  - explicit (managed by calls to epmPayloadHeapCopy) with prepared messages' data
@@ -163,12 +161,13 @@ typedef int32_t epm_actionid_t;
 /// Ekaline device limitations
 enum EpmDeviceCapability : int {
   // TODO(twozniak): is this per session, or shared among all ekaline clients?
-  EHC_PayloadMemorySize,       ///< Total bytes available for payload packets (heap size)
-  EHC_PayloadAlignment,        ///< Every payload item must have this starting alignment (i.e.: a multiple of 64)
-  EHC_DatagramOffset,          ///< Payload buf offset where TCP/UDP datagram starts, relative to a message start
-  EHC_RequiredTailPadding,     ///< Payload buf must be oversized to hold padding (after each payload this much bytes need to be reserved on the heap)
-  EHC_MaxStrategies,           ///< Total no. of strategies available
-  EHC_MaxActions               ///< Total no. of actions (shared by all strats)
+  EHC_PayloadMemorySize,       ///< Total bytes available for messages, including headers, trailers and alignment (heap size).
+  EHC_PayloadAlignment,        ///< Every message must be start-aligned to multiple of this value relative to heap start.
+  EHC_DatagramOffset,          ///< TCP/UDP payload offset relative to a message start.
+  EHC_RequiredTailPadding,     ///< Reserved space after payload within a packet (after each payload this much bytes
+                               ///< need to be reserved on the heap for ekaline internal use)
+  EHC_MaxStrategies,           ///< Total strategy capacity (maximal number of strategies that may be created at the same time)
+  EHC_MaxActions               ///< Total action capacity (maximal number of actions - shared by all strategies)
 };
 
 enum class EpmActionType : int {
