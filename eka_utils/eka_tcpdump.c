@@ -16,7 +16,7 @@
 volatile bool keep_work = true;
 /* --------------------------------------------- */
 
-void  INThandler(int sig) {
+static void  INThandler(int sig) {
   signal(sig, SIG_IGN);
   keep_work = false;
   printf("%s:Ctrl-C detected\n",__func__);
