@@ -28,8 +28,7 @@
 #define ETHARP_FLAG_TRY_HARD     1
 #define ETHARP_FLAG_STATIC_ENTRY 4
 
-extern EkaDev *g_allDevs;
-extern std::shared_mutex g_allDevsMtx;
+extern EkaDev *g_ekaDev;
 
 static err_t eka_netif_init (struct netif *netif) {
   //  EkaDev* dev = ((struct LwipNetifState*)netif->state)->pEkaDev;
@@ -39,24 +38,20 @@ static err_t eka_netif_init (struct netif *netif) {
 }
 
 extern "C" netif* eka_route_ipv4_src(const ip4_addr_t* src, const ip4_addr_t* dst) {
-  std::shared_lock<std::shared_mutex> lck{g_allDevsMtx};
-
-  if (!g_allDevs) {
+  if (!g_ekaDev) {
     std::fprintf(stderr, "error: lwIP source-based routing function called, "
                  "but no open Ekaline devices exist\n");
     return nullptr;
   }
-
-  // For each open device, look through each initialized core, trying to find
+  auto dev = g_ekaDev;
+  // Look through each initialized core, trying to find
   // the core whose source IP address matches the source IP address of the
   // packet we're trying to route. If we find a match, tell lwIP to use that
   // core's associated netif.
   // FIXME: need to acquire any locks here to protect cores / core members?
-  for (EkaDev *dev = g_allDevs; dev; dev = dev->next) {
-    for (EkaCoreId c = 0; c < EkaDev::MAX_CORES; ++c) {
-      if (dev->core[c] && dev->core[c]->srcIp == src->addr)
-        return dev->core[c]->pLwipNetIf;
-    }
+  for (EkaCoreId c = 0; c < EkaDev::MAX_CORES; ++c) {
+    if (dev->core[c] && dev->core[c]->srcIp == src->addr)
+      return dev->core[c]->pLwipNetIf;
   }
 
   return nullptr;
