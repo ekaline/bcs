@@ -383,18 +383,15 @@ EkaDev::~EkaDev() {
     delete core[c];
     core[c] = NULL;
   }
-
 #ifdef EFH_TIME_CHECK_PERIOD
   fclose(deltaTimeLogFile);
-#endif  
-  
+#endif    
 
   uint64_t val = eka_read(SW_STATISTICS);
   val = val & 0x7fffffffffffffff;
   eka_write(SW_STATISTICS, val);
 
-  //  delete snDev;
-
+  delete snDev;
 }
 /* ##################################################################### */
 
