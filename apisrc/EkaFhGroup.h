@@ -42,6 +42,7 @@ public:
     virtual bool parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op,std::chrono::high_resolution_clock::time_point startTime={}) = 0;
 
     void         sendFeedUp  (const EfhRunCtx* EfhRunCtx);
+    void         sendProgressingFeedUp  (const EfhRunCtx* EfhRunCtx);
     void         sendFeedUpInitial  (const EfhRunCtx* EfhRunCtx);
     void         sendFeedDown(const EfhRunCtx* EfhRunCtx);
     void         sendFeedDownInitial(const EfhRunCtx* EfhRunCtx);

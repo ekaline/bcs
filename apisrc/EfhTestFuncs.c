@@ -245,6 +245,14 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
   }
     break;
     /* ----------------------------- */
+  case EfhGroupState::kProgressing : {
+    std::string gapType = std::string("Progressing");
+    fprintf(logFile,"%s: %s : %s \n",EKA_PRINT_GRP(&msg->group), eka_get_time().c_str(),gapType.c_str());
+    printf ("=========================\n%s: %s: %s %ju\n=========================\n",
+	    EKA_PRINT_GRP(&msg->group),eka_get_time().c_str(),gapType.c_str(),msg->code);
+  }
+    break;
+    /* ----------------------------- */
   case EfhGroupState::kNormal : {
     std::string gapType = std::string("Unknown");
     switch (msg->systemState) {
@@ -490,20 +498,19 @@ void* onComplexDefinition(const EfhComplexDefinitionMsg* msg, EfhSecUserData sec
 
   auto gr = testCtx->grCtx[(int)exch][grId];
   if (gr == NULL) on_error("Uninitialized testCtx->grCtx[%d][%d]",(int)exch,grId);
-
-  printf("ComplexDefinition,");
-  printf("%ju,",msg->header.securityId);
-  printf("\'%s\',",std::string(msg->commonDef.underlying,sizeof(msg->commonDef.underlying)).c_str());
-  printf("\'%s\',",std::string(msg->commonDef.classSymbol,sizeof(msg->commonDef.classSymbol)).c_str());
-  printf("\'%s\',",std::string(msg->commonDef.exchSecurityName,sizeof(msg->commonDef.exchSecurityName)).c_str());
-  printf("\n");
  
   fprintf(gr->MD,"ComplexDefinition,");
   fprintf(gr->MD,"%ju,",msg->header.securityId);
   fprintf(gr->MD,"\'%s\',",std::string(msg->commonDef.underlying,sizeof(msg->commonDef.underlying)).c_str());
   fprintf(gr->MD,"\'%s\',",std::string(msg->commonDef.classSymbol,sizeof(msg->commonDef.classSymbol)).c_str());
   fprintf(gr->MD,"\'%s\',",std::string(msg->commonDef.exchSecurityName,sizeof(msg->commonDef.exchSecurityName)).c_str());
-
+  for (auto i = 0; i < msg->numLegs; i++) {
+    auto leg {&msg->legs[i]};
+    fprintf(gr->MD,"{%ju(0x%jx),",leg->securityId,leg->securityId);
+    fprintf(gr->MD,"%c,%c,",printEfhSecurityType(leg->type),printEfhOrderSide(leg->side));
+    fprintf(gr->MD,"%d,%d,",leg->ratio,leg->optionDelta);
+    fprintf(gr->MD,"%jd},",leg->price);
+  }
   fprintf(gr->MD,"\n");
 
   TestSecurityCtx newSecurity = {

@@ -1,4 +1,5 @@
-#!/usr/bin/python3.6
+
+# /usr/bin/python3
 
 import matplotlib.pyplot as plt
 import sys

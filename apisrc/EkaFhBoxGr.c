@@ -88,13 +88,11 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 			       const uint8_t*   pkt, 
 			       int16_t          pktLen) {
   int idx = 0;
-  lastPktLen    = pktLen;
-  lastPktMsgCnt = 0;
 
-  timespec now;
-  if (clock_gettime(CLOCK_REALTIME, &now) == -1)
-    on_error("clock_gettime failed: %s (%d)", strerror(errno), errno);
-  uint64_t firstMsgSeq   = Hsvf::getMsgSequence(&pkt[idx]);
+  /* SEEMS TO BE A NOT NEEDED ARTIFACT */
+  /* timespec now; */
+  /* if (clock_gettime(CLOCK_REALTIME, &now) == -1) */
+  /*   on_error("clock_gettime failed: %s (%d)", strerror(errno), errno); */
 
   while (idx < pktLen) {
     uint     msgLen   = Hsvf::getMsgLen(&pkt[idx],pktLen-idx);
@@ -104,28 +102,19 @@ bool EkaFhBoxGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
       on_error("idx %d + msgLen %u > pktLen %d",idx,msgLen,pktLen);
     }
 
-    lastProcessedSeq = msgSeq;
-
-    if (msgSeq >= expected_sequence) {
-      this->gr_ts = now.tv_sec * 1'000'000'000 + now.tv_nsec;
-      if (parseMsg(pEfhRunCtx,&pkt[idx+1],msgSeq,EkaFhMode::MCAST)) {
-	EKA_WARN("Exiting in the middle of the packet");
-	return true;
-      }
-      expected_sequence = msgSeq >= 999999999 ?  msgSeq + 1 - 999999999 : msgSeq + 1;
-    } 
+    /* SEEMS TO BE A NOT NEEDED ARTIFACT */
+    /* this->gr_ts = now.tv_sec * 1'000'000'000 + now.tv_nsec; */
+    
+    if (parseMsg(pEfhRunCtx,&pkt[idx+1],msgSeq,EkaFhMode::MCAST)) {
+      EKA_WARN("Exiting in the middle of the packet");
+      return true;
+    }
+    expected_sequence = msgSeq == 999'999'999 ?  0 : msgSeq + 1;
 
     idx += msgLen;
     idx += trailingZeros(&pkt[idx],pktLen-idx );    
-    lastPktMsgCnt++;
   }
 
-  if (expected_sequence != lastProcessedSeq + 1) 
-    on_error("expected_sequence %ju != lastProcessedSeq %ju + 1",expected_sequence,lastProcessedSeq);
-
-  if (lastProcessedSeq - firstMsgSeq != lastPktMsgCnt - 1)
-    EKA_WARN("lastProcessedSeq %ju - firstMsgSeq %ju != lastPktMsgCnt %u - 1",
-	     lastProcessedSeq,firstMsgSeq,lastPktMsgCnt);
   return false;
 }
  
