@@ -10,7 +10,7 @@ LIBDIR += $(TOPDIR)/apisrc
 
 LIBRARIES += ekaline2 gtest pthread
 
-CXXFLAGS += -ggdb3 -O0 -Wall -Werror -std=c++2x
+CXXFLAGS += -ggdb3 -O0 -Wall -Werror -std=c++20
 CFLAGS += -ggdb3 -O0 -Wall -Werror
 
 CFLAGS += $(foreach incdir,$(INCLUDEDIR),-I $(incdir))
@@ -37,7 +37,7 @@ debug-make:
 .PHONY: default all dep build test clean
 # TODO(twozniak): depend
 
-build: test_epm_local
+build: test_epm_local Makefile
 #test_epm_remote
 
 test: build

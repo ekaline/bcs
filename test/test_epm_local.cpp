@@ -189,21 +189,21 @@ class Strategy {
     return scenarios_.at(scenarioIdx).first;
   }
   Action &action(int scenarioIdx, int actionIdx) {
-    assert(scenarioIdx < scenarios_.size());
+    assert((size_t)scenarioIdx < scenarios_.size());
     Scenario &scenario{scenarios_[scenarioIdx]};
-    assert(actionIdx < scenario.second.size());
+    assert((size_t)actionIdx < scenario.second.size());
     return scenario.second[actionIdx];
   }
   const Scenario *getScenarioForAction(int &combinedActionNo) {
     assert(combinedActionNo >= 0);
     int scenarioIdx = 0;
     int combinedActionCount = 0;
-    while (scenarioIdx < scenarios_.size() &&
-           combinedActionNo >= combinedActionCount + scenarios_[scenarioIdx].second.size()) {
+    while ((size_t)scenarioIdx < scenarios_.size() &&
+        (size_t)combinedActionNo >= combinedActionCount + scenarios_[scenarioIdx].second.size()) {
       combinedActionCount += scenarios_[scenarioIdx].second.size();
       ++scenarioIdx;
     }
-    if (scenarioIdx < scenarios_.size()) {
+    if ((size_t)scenarioIdx < scenarios_.size()) {
       combinedActionNo -= combinedActionCount;
       return &scenarios_.at(scenarioIdx);
     }
@@ -237,10 +237,10 @@ class Strategy {
       epmActions.back().nextAction = EPM_LAST_ACTION;
     }
     // Copy the rest of the action chains (the first action from each chain has been handled above)
-    for (int idx = 0; idx < scenarios_.size(); ++idx) {
+    for (int idx = 0; idx < (int)scenarios_.size(); ++idx) {
       int lastActionInChainIdx = idx;
       auto &actionChain = scenarios_[idx].second;
-      for (int inChainIdx = 1; inChainIdx < actionChain.size(); ++inChainIdx) {
+      for (int inChainIdx = 1; inChainIdx < (int)actionChain.size(); ++inChainIdx) {
         int thisActionIdx = epmActions.size();
         epmActions[lastActionInChainIdx].nextAction = thisActionIdx;
         lastActionInChainIdx = thisActionIdx;
@@ -349,6 +349,16 @@ class EkalinePMFixture : public ::testing::Test {
 
   EkalinePMFixture() : ekaDevice_{nullptr, releaseDevice} {}
 
+  void SetUp() override {
+    if (!initDevice()) {
+      std::cerr << "Failed to initialize ekaline device\n";
+      std::abort();
+    }
+    if (!initPort()) {
+      std::cerr << "Failed to initialize port " << phyPort << "on ekaline device\n";
+      std::abort();
+    }
+  }
   EkaDev *device() { assert(ekaDevice_ != nullptr); return ekaDevice_.get(); }
   bool initDevice() {
     EkaDev *device = nullptr;
@@ -441,10 +451,10 @@ class EkalinePMFixture : public ::testing::Test {
     }
 
     bool failed = false;
-    for (int strategyIdx = 0; !failed && (strategyIdx < builder.epmStrategies.size()); ++strategyIdx) {
+    for (int strategyIdx = 0; !failed && (strategyIdx < (int)builder.epmStrategies.size()); ++strategyIdx) {
       Strategy &strategy = strategies_[strategyIdx];
       auto &strategyActions{builder.epmActions[strategyIdx]};
-      for (int actionIdx = 0; actionIdx < strategyActions.size(); ++actionIdx) {
+      for (int actionIdx = 0; actionIdx < (int)strategyActions.size(); ++actionIdx) {
         EpmAction &epmAction{strategyActions[actionIdx]};
         int actionIndexInScenario = actionIdx;
         const Scenario *scenario = strategy.getScenarioForAction(actionIndexInScenario);
@@ -595,7 +605,7 @@ class EkalinePMFixture : public ::testing::Test {
     ASSERT_TRUE(strategy.addAction(scenarioIdx, action));
   }
   bool triggerScenario(int strategyIdx, int scenarioIdx) {
-    if (strategyIdx >= strategies_.size())
+    if (strategyIdx >= (int)strategies_.size())
       return false;
 
     Strategy &strategy{strategies_[strategyIdx]};
@@ -609,7 +619,7 @@ class EkalinePMFixture : public ::testing::Test {
 //  epmTriggerUsed_ = epmTrigger;
     bool failed = false;
     auto &[ trigger, actionChain ] = strategy.scenario(scenarioIdx);
-    for (int actionIdx = 0; actionIdx < actionChain.size() ; ++actionIdx) {
+    for (int actionIdx = 0; actionIdx < (int)actionChain.size() ; ++actionIdx) {
       EpmTrigger actionToTrigger{
         .token = Action::ACTION_TOKEN,
         .strategy = strategyIdx,
@@ -701,7 +711,7 @@ class EkalinePMFixture : public ::testing::Test {
         FAIL() << ss.str();
       }
     }
-    for (int reportIdx = 0; reportIdx < fireReports_.size(); ++reportIdx) {
+    for (int reportIdx = 0; reportIdx < (int)fireReports_.size(); ++reportIdx) {
       // TODO(twozniak): verify against epmTriggerInvoked_
       // TODO(twozniak): perhaps 'Sent' is not the only valid outcome
       EXPECT_EQ(fireReports_[reportIdx].action, EpmTriggerAction::Sent);
@@ -784,6 +794,7 @@ TEST_F(EkalinePMFixture, EPMCreate) {
   Action action{EpmActionType::UserAction, connection(), message1,
                 options.flags, options.enableBits, options.actionMask, options.strategyMask, reportCookie};
   int scenarioIdx = strategy.createScenario(Trigger(portIdx(), ipMcastString(), udpPort()), {action});
+  ASSERT_GE(scenarioIdx, 0);
   EXPECT_TRUE(deployStrategies());
 }
 
