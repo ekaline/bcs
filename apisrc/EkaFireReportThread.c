@@ -167,8 +167,15 @@ int printBoeFire(EkaDev* dev,const BoeNewOrderMsg* msg) {
   EKA_LOG("\tPrice=0x%016jx (%ju)",     msg->Price,msg->Price);
   EKA_LOG("\tOrdType=\'%c\'",           msg->OrdType);
   EKA_LOG("\tTimeInForce=\'%c\'",       msg->TimeInForce);
-  EKA_LOG("\tSymbol=\'%s\' (0x%016jx)",
-	  std::string(msg->Symbol,sizeof(msg->Symbol)).c_str(),
+  EKA_LOG("\tSymbol=\'%c%c%c%c%c%c%c%c\' (0x%016jx)",
+	  msg->Symbol[7],
+	  msg->Symbol[6],
+	  msg->Symbol[5],
+	  msg->Symbol[4],
+	  msg->Symbol[3],
+	  msg->Symbol[2],
+	  msg->Symbol[1],
+	  msg->Symbol[0],
 	  *(uint64_t*)msg->Symbol);
   EKA_LOG("\tCapacity=\'%c\'",          msg->Capacity);
   EKA_LOG("\tAccount=\'%s\'",
