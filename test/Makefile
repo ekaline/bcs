@@ -44,6 +44,10 @@ test: build
 	@echo "Executing gtest tests"
 	LD_LIBRARY_PATH=$(TOPDIR)/apisrc:$(GCC_LIBDIR):${LD_LIBRARY_PATH} ./test_epm_local
 
-test_epm_local: test_epm_local.cpp
+test_epm_local.o: test_epm_local.cpp common.h Action.h Strategy.h StrategyManager.h Trigger.h
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-test_epm_remote:  test_epm_remote.cpp
+test_epm_local: test_epm_local.o
+	$(CXX) $(LDFLAGS) -o $@ $<
+
+#test_epm_remote:  test_epm_remote.cpp
