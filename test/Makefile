@@ -1,5 +1,8 @@
 TOPDIR := $(shell realpath ..)
 
+BUILD_DATE := \"$(shell date +%y%m%d_%H%M%S)\"
+GIT_REVISION := \"$(shell git log -1 --pretty=oneline | cut -c1-8)\"
+
 GCC_LIBDIR ?= /srv/opt/gcc/gcc-11.2.0/lib64/
 
 TESTS := test_epm_local
@@ -10,8 +13,8 @@ LIBDIR += $(TOPDIR)/apisrc
 
 LIBRARIES += ekaline2 gtest pthread
 
-CXXFLAGS += -ggdb3 -O0 -Wall -Werror -std=c++20
-CFLAGS += -ggdb3 -O0 -Wall -Werror
+CXXFLAGS += -ggdb3 -O0 -Wall -Werror -std=c++20 -DBUILD_DATE=$(BUILD_DATE) -DGIT_REVISION=$(GIT_REVISION)
+CFLAGS += -ggdb3 -O0 -Wall -Werror  -DBUILD_DATE=$(BUILD_DATE) -DGIT_REVISION=$(GIT_REVISION)
 
 CFLAGS += $(foreach incdir,$(INCLUDEDIR),-I $(incdir))
 CXXFLAGS += $(foreach incdir,$(INCLUDEDIR),-I $(incdir))
@@ -26,6 +29,8 @@ clean:
 
 debug-make:
 	@echo "TOPDIR = $(TOPDIR)"
+	@echo "BUILD_DATE = $(BUILD_DATE)"
+	@echo "GIT_REVISION = $(GIT_REVISION)"
 	@echo "INCLUDEDIR = $(INCLUDEDIR)"
 	@echo "LIBDIR = $(LIBDIR)"
 	@echo "LIBRARIES = $(LIBRARIES)"

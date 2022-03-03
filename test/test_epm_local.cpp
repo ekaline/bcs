@@ -459,7 +459,8 @@ TEST_F(EkalinePMFixture, MultipleMessages) {
 }  // anonymous namespace
 
 int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+  std::cout << "Build date " << BUILD_DATE << ", git revision " << GIT_REVISION << "\n";
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }
 
