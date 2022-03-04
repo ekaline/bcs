@@ -3,7 +3,9 @@
 #include <compat/Eka.h>
 #include <compat/Epm.h>
 #include <sstream>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string>
 
 namespace gts {
@@ -15,23 +17,25 @@ using u32 = uint32_t;
 
 using bitsT = epm_enablebits_t;
 
-void doLog(file, format, ...) {
-  va_arg args;
+void doLog(FILE* file, const char *format, ...) {
+  va_list args;
   va_start(args, format);
-  vfprintf(file, format, va_args);
+  vfprintf(file, format, args);
   va_end(args);
 }
 
-#define ERROR(fmt, ...) do { \
-  doLog(stderr, "[ERROR] %s:%d " fmt, __FILE__, __LINE__, __VA_ARGS__); \
+#define ERROR(format, ...) do { \
+  doLog(stderr, "[ERROR] %s:%d " format, __FILE__, __LINE__ __VA_OPT__(,) __VA_ARGS__); \
 } while (0)
-#define WARN(fmt, ...) do { \
-  doLog(stderr, "[WARNING] %s:%d " fmt, __FILE__, __LINE__, __VA_ARGS__); \
+#define WARN(format, ...) do { \
+  doLog(stderr, "[WARNING] %s:%d " format, __FILE__, __LINE__ __VA_OPT__(,) __VA_ARGS__); \
 } while (0)
-#define INFO(fmt, ...) do { \
-  doLog(stdout, "[INFO] %s:%d " fmt, __FILE__, __LINE__, __VA_ARGS__); \
+#define INFO(format, ...) do { \
+  doLog(stdout, "[INFO] %s:%d " format, __FILE__, __LINE__ __VA_OPT__(,) __VA_ARGS__); \
 } while (0)
 
+//template <typename T>
+//FILE *operator*(File *file, )
 
 template <typename T>
 T alignUpTo(T value, T alignment) {

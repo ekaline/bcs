@@ -78,7 +78,7 @@ class EkalinePMFixture : public ::testing::Test {
       WARN("Attempted to init already init'ed device");
       return true;
     }
-    EkaDevice device = nullptr;
+    EkaDev *device = nullptr;
     EkaDevInitCtx initCtx {
       .logCallback = nullptr, // TODO(twozniak): supply this, maybe
       .logContext = nullptr,  // TODO(twozniak): supply this, maybe
@@ -92,7 +92,7 @@ class EkalinePMFixture : public ::testing::Test {
     if (!isResultOk(result)) {
       ERROR("ekaDevInit() failed with ", result);
     } else {
-      ekaDevice_ = device;
+      ekaDevice_.reset(device);
     }
     return isResultOk(result);
   }
@@ -285,18 +285,18 @@ class EkalinePMFixture : public ::testing::Test {
     const Trigger &scenarioTrigger{reportedScenario->first};
     EpmTriggerParams triggerParams{scenarioTrigger.build()};
     if (*epmTriggerUsed_ != triggerParams) {
-      ERROR("Reported trigger ", *triggerParams, " differs from used to trigger ", *epmTriggerUsed_);
+      ERROR("Reported trigger ", triggerParams, " differs from used to trigger ", *epmTriggerUsed_);
       failed = true;
     }
 
     const Action &triggeredAction = reportedScenario->second[actionIndex];
     EpmAction epmAction{triggeredAction.build()};
     if (epmAction.token != report.trigger->token) {
-      ERROR("token mismatch; expected: ", epmAction.token, ", have ", report.token);
+      ERROR("token mismatch; expected: ", epmAction.token, ", have ", report.trigger->token);
       failed = true;
     }
     if (epmAction.user != report.user) {
-      ERROR("'user' cookie does not match; expected: ", epmAction.user, ", have: ", eport.user);
+      ERROR("'user' cookie does not match; expected: ", epmAction.user, ", have: ", report.user);
       failed = true;
     }
 //    if (epmAction.hConn != report.hConnection) {
