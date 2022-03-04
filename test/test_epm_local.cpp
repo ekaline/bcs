@@ -62,6 +62,7 @@ class EkalinePMFixture : public ::testing::Test {
   EkalinePMFixture() : ekaDevice_{nullptr, releaseDevice} {}
 
   void SetUp() override {
+    INFO("SetUp called");
     if (!initDevice()) {
       std::cerr << "Failed to initialize ekaline device\n";
       std::abort();

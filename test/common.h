@@ -28,6 +28,9 @@ void doLog(file, format, ...) {
 #define WARN(fmt, ...) do { \
   doLog(stderr, "[WARNING] %s:%d " fmt, __FILE__, __LINE__, __VA_ARGS__); \
 } while (0)
+#define INFO(fmt, ...) do { \
+  doLog(stdout, "[INFO] %s:%d " fmt, __FILE__, __LINE__, __VA_ARGS__); \
+} while (0)
 
 
 template <typename T>
