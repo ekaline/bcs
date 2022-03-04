@@ -15,7 +15,19 @@ using u32 = uint32_t;
 
 using bitsT = epm_enablebits_t;
 
-#define ERROR(fmt, ...) do {} while (0)
+void doLog(file, format, ...) {
+  va_arg args;
+  va_start(args, format);
+  vfprintf(file, format, va_args);
+  va_end(args);
+}
+
+#define ERROR(fmt, ...) do { \
+  doLog(stderr, "[ERROR] %s:%d " fmt, __FILE__, __LINE__, __VA_ARGS__); \
+} while (0)
+#define WARN(fmt, ...) do { \
+  doLog(stderr, "[WARNING] %s:%d " fmt, __FILE__, __LINE__, __VA_ARGS__); \
+} while (0)
 
 
 template <typename T>

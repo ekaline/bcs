@@ -73,7 +73,11 @@ class EkalinePMFixture : public ::testing::Test {
   }
   EkaDev *device() { assert(ekaDevice_ != nullptr); return ekaDevice_.get(); }
   bool initDevice() {
-    EkaDev *device = nullptr;
+    if (ekaDevice_ != nullptr) {
+      WARN("Attempted to init already init'ed device");
+      return true;
+    }
+    EkaDevice device = nullptr;
     EkaDevInitCtx initCtx {
       .logCallback = nullptr, // TODO(twozniak): supply this, maybe
       .logContext = nullptr,  // TODO(twozniak): supply this, maybe
@@ -84,6 +88,11 @@ class EkalinePMFixture : public ::testing::Test {
       .createThreadContext = nullptr,
     };
     EkaOpResult result = ekaDevInit(&device, &initCtx);
+    if (!isResultOk(result)) {
+      ERROR("ekaDevInit() failed with ", result);
+    } else {
+      ekaDevice_ = device;
+    }
     return isResultOk(result);
   }
   bool initPort() {
@@ -403,6 +412,7 @@ TEST_F(EkalinePMFixture, SocketCreateBindConnect) {
   auto [ peerIp, peerPort ] = connectAddress();
   EXPECT_TRUE(createTCPSocket(localIp, localPort, peerIp, peerPort));
 }
+
 // defaultActionOptions() options.flags, options.enableBits, options.actionMask, options.strategyMask
 TEST_F(EkalinePMFixture, EPMCreate) {
   CreateDefaultSocket();
