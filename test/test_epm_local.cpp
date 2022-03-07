@@ -182,7 +182,7 @@ class EkalinePMFixture : public ::testing::Test {
     struct sockaddr_in peer{ .sin_family = AF_INET, .sin_port = htons(port), .sin_addr = { .s_addr = ipv4 } };
     ExcConnHandle hConnection = excConnect(device, hSocket, (const struct sockaddr *)&peer, sizeof(peer));
     if (hConnection < 0)
-      fprintf(stderr, "connect(%s:%d) failed\n", inet_ntoa(*(in_addr *)&peer), port);
+      fprintf(stderr, "connect(%s:%d) failed\n", inet_ntoa(*(in_addr *)&peer.sin_addr), port);
     return hConnection;
   }
   static std::pair<std::string_view, u16> bindAddress() {
