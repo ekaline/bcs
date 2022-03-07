@@ -67,6 +67,11 @@ class EkalinePMFixture : public ::testing::Test {
       std::cerr << "Failed to initialize ekaline device\n";
       std::abort();
     }
+    auto [ ipAddr, ipPort ] = bindAddress();
+    ekalineIPAddr_ = ipAddr;
+    ekalineIPMask_ = "255.255.255.0";
+    ekalineIPGateway_ = ekalineIPAddr_;
+
     if (!initPort()) {
       std::cerr << "Failed to initialize port " << phyPort << "on ekaline device\n";
       std::abort();
@@ -163,7 +168,7 @@ class EkalinePMFixture : public ::testing::Test {
   }
 
   static bool bindSocket(ExcSocketHandle hSocket, u32 ipv4, u16 port) {
-    struct sockaddr_in myAddr{ .sin_family = AF_INET, .sin_port = port, .sin_addr = { .s_addr = ipv4 } };
+    struct sockaddr_in myAddr{ .sin_family = AF_INET, .sin_port = htons(port), .sin_addr = { .s_addr = ipv4 } };
     if (bind(hSocket, (const struct sockaddr *)&myAddr, sizeof(myAddr)) < 0) {
       int binErrno = errno;
       //in_addr
@@ -173,18 +178,32 @@ class EkalinePMFixture : public ::testing::Test {
     return true;
   }
   static ExcConnHandle connectTo(EkaDev *device, ExcSocketHandle hSocket, u32 ipv4, u16 port) {
-    struct sockaddr_in peer{ .sin_family = AF_INET, .sin_port = port, .sin_addr = { .s_addr = ipv4 } };
+    struct sockaddr_in peer{ .sin_family = AF_INET, .sin_port = htons(port), .sin_addr = { .s_addr = ipv4 } };
     ExcConnHandle hConnection = excConnect(device, hSocket, (const struct sockaddr *)&peer, sizeof(peer));
     if (hConnection < 0)
       fprintf(stderr, "connect(%s:%d) failed\n", inet_ntoa(*(in_addr *)&peer), port);
     return hConnection;
   }
   static std::pair<std::string_view, u16> bindAddress() {
-    return {"192.168.0.1", 4712};
+    return {"10.120.10.51", 49420};
   }
   static std::pair<std::string_view, u16> connectAddress() {
     return {"10.120.15.83", 7060};
   }
+//  bool configurePort(ExcSocketHandle hSocket, ) {
+//    EkaCoreInitCtx ekaCoreInitCtx = {
+//        .coreId = phyPort,
+//        .attrs = {
+//            .host_ip      = inet_addr(clientIp.c_str()),
+//            .netmask      = inet_addr("255.255.255.0"),
+//            .gateway      = inet_addr(clientIp.c_str()),
+//            .nexthop_mac  = {}, // resolved by our internal ARP
+//            .src_mac_addr = {}, // taken from system config
+//            .dont_garp    = 0
+//        }
+//    };
+//    ekaDevConfigurePort (dev, (const EkaCoreInitCtx*) &ekaCoreInitCtx);
+//  }
   bool createTCPSocket(std::string_view bindIp, u16 bindPort, std::string_view peerIp, u16 peerPort) {
     bool failed = false;
     bound_ = false;
