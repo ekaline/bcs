@@ -128,7 +128,7 @@ class PriceLevetT,
     entry[ENTRIES - 1].valid = false;
     entry[ENTRIES - 1].size  = 0; 
     entry[ENTRIES - 1].price = 0;     
-    return idx == 0 && entry[0].valid;
+    return idx == 0;// && entry[0].valid;
   }
 
   /* ----------------------------------------------------- */
