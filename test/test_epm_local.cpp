@@ -112,9 +112,9 @@ class EkalinePMFixture : public ::testing::Test {
                  .gateway = inet_addr(ekalineIPGateway_.c_str())
                }
     };
-    ether_addr gatewayMAC;
-    ether_aton_r(ekalineGatewayMAC_.c_str(), &gatewayMAC);
-    memcpy(&portInitCtx.attrs.nexthop_mac, &gatewayMAC, sizeof(portInitCtx.attrs.nexthop_mac));
+//    ether_addr gatewayMAC;
+//    ether_aton_r(ekalineGatewayMAC_.c_str(), &gatewayMAC);
+//    memcpy(&portInitCtx.attrs.nexthop_mac, &gatewayMAC, sizeof(portInitCtx.attrs.nexthop_mac));
     EkaOpResult result = ekaDevConfigurePort(device(), &portInitCtx);
     return isResultOk(result);
   }
