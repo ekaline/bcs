@@ -839,8 +839,9 @@ namespace Cme {
 	auto rootBlock {reinterpret_cast<const QuoteRequest39_mainBlock*>(m)};
 	auto quoteReqID {std::string(rootBlock->QuoteReqID,sizeof(rootBlock->QuoteReqID))};
 
-	printf ("\t\tQuoteRequest39: TransactTime=%jx, MatchEventIndicator=0x%x,quoteReqID=\'%s\'\n",
-		rootBlock->TransactTime,rootBlock->MatchEventIndicator,quoteReqID.c_str());
+	printf ("\t\tQuoteRequest39: TransactTime=%s (%ju), MatchEventIndicator=0x%x,quoteReqID=\'%s\'\n",
+		ts_ns2str(rootBlock->TransactTime).c_str(),rootBlock->TransactTime,
+		rootBlock->MatchEventIndicator,quoteReqID.c_str());
 	m += msgHdr->blockLen;
 	/* ------------------------------- */
 	auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
@@ -878,8 +879,9 @@ namespace Cme {
       case MsgId::MDIncrementalRefreshBook46 : {
 	/* ------------------------------- */
 	auto rootBlock {reinterpret_cast<const MDIncrementalRefreshBook46_mainBlock*>(m)};
-	printf ("\t\tIncrementalRefreshBook46: TransactTime=%jx, MatchEventIndicator=0x%x\n",
-		rootBlock->TransactTime,rootBlock->MatchEventIndicator);
+	printf ("\t\tIncrementalRefreshBook46: TransactTime=%s (%ju), MatchEventIndicator=0x%x\n",
+		ts_ns2str(rootBlock->TransactTime).c_str(),rootBlock->TransactTime,
+		rootBlock->MatchEventIndicator);
 	m += msgHdr->blockLen;
 	/* ------------------------------- */
 	auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
@@ -903,8 +905,9 @@ namespace Cme {
       case MsgId::MDIncrementalRefreshTradeSummary48 : {
 	/* ------------------------------- */
 	auto rootBlock {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mainBlock*>(m)};
-	printf ("\t\tIncrementalRefreshTradeSummary48: TransactTime=%jx, MatchEventIndicator=0x%x\n",
-		rootBlock->TransactTime,rootBlock->MatchEventIndicator);
+	printf ("\t\tIncrementalRefreshTradeSummary48: TransactTime=%s (%ju), MatchEventIndicator=0x%x\n",
+		ts_ns2str(rootBlock->TransactTime).c_str(),rootBlock->TransactTime,
+		rootBlock->MatchEventIndicator);
 	m += msgHdr->blockLen;
 	/* ------------------------------- */
 	auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
