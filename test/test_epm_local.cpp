@@ -1,5 +1,6 @@
 #include <arpa/inet.h>
 #include <gtest/gtest.h>
+#include <netinet/ether.h>
 #include <optional>
 #include <pthread.h>
 #include <tuple>
@@ -68,10 +69,11 @@ class EkalinePMFixture : public ::testing::Test {
       std::abort();
     }
     auto [ ipAddr, ipPort ] = bindAddress();
-    auto [ peerIp, peerPort] = connectAddress();
+//    auto [ peerIp, peerPort] = connectAddress();
     ekalineIPAddr_ = ipAddr;
     ekalineIPMask_ = "255.255.255.0";
-    ekalineIPGateway_ = peerIp;
+    ekalineIPGateway_ = "0.0.0.0";
+    ekalineGatewayMAC_ = "00:0f:53:42:97:20";
 
     if (!initPort()) {
       std::cerr << "Failed to initialize port " << phyPort << "on ekaline device\n";
@@ -107,8 +109,12 @@ class EkalinePMFixture : public ::testing::Test {
       .coreId = phyPort,
       .attrs = { .host_ip = inet_addr(ekalineIPAddr_.c_str()),
                  .netmask = inet_addr(ekalineIPMask_.c_str()),
-                 .gateway = inet_addr(ekalineIPGateway_.c_str()) }
+                 .gateway = inet_addr(ekalineIPGateway_.c_str())
+               }
     };
+    ether_addr gatewayMAC;
+    ether_aton_r(ekalineGatewayMAC_.c_str(), &gatewayMAC);
+    memcpy(&portInitCtx.attrs.nexthop_mac, &gatewayMAC, sizeof(portInitCtx.attrs.nexthop_mac));
     EkaOpResult result = ekaDevConfigurePort(device(), &portInitCtx);
     return isResultOk(result);
   }
@@ -393,6 +399,7 @@ class EkalinePMFixture : public ::testing::Test {
   std::string ekalineIPAddr_;
   std::string ekalineIPMask_;
   std::string ekalineIPGateway_;
+  std::string ekalineGatewayMAC_;
 
   u32 localTCP_   = 0;
   u16 localPort_  = 0;
