@@ -112,7 +112,7 @@ class EkalinePMFixture : public ::testing::Test {
     return strategies_.back();
   }
   bool deployStrategies() {
-    assert(bound_);
+//    assert(bound_);
     assert(connected_);
 
     StrategyManager man;
@@ -183,18 +183,21 @@ class EkalinePMFixture : public ::testing::Test {
     return {"192.168.0.1", 4712};
   }
   static std::pair<std::string_view, u16> connectAddress() {
-    return {"127.0.0.1", 0};
+    return {"10.120.15.83", 7060};
   }
   bool createTCPSocket(std::string_view peerIp, u16 peerPort, std::string_view bindIp, u16 bindPort) {
+    bool failed = false;
     bound_ = false;
     connected_ = false;
 
     ExcSocketHandle hSocket = excSocket(device(), phyPort, AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (!bindIp.empty()) {
-      struct in_addr bindIpAddr;
-      if (inet_aton(std::string(bindIp).c_str(), &bindIpAddr)) {
-        bound_ = bindSocket(hSocket, bindIpAddr.s_addr, bindPort);
-      }
+      WARN("Local socket binding not supported, skipping");
+//      struct in_addr bindIpAddr;
+//      if (inet_aton(std::string(bindIp).c_str(), &bindIpAddr)) {
+//        bound_ = bindSocket(hSocket, bindIpAddr.s_addr, bindPort);
+//      }
+//      failed |= !bound;
     }
     if (!peerIp.empty() && peerPort != 0) {
       struct in_addr peerIpAddr;
@@ -202,10 +205,11 @@ class EkalinePMFixture : public ::testing::Test {
         hConnection_ = connectTo(device(), hSocket, peerIpAddr.s_addr, peerPort);
         connected_ = hConnection_ >= 0;
       }
+      failed |= !connected_;
     }
 
     hSocket_ = hSocket;
-    return hSocket_ > 0;
+    return !failed && (hSocket_ > 0);
   }
   void CreateDefaultSocket() {
     auto[localIp, localPort] = bindAddress();
