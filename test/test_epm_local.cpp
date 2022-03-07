@@ -72,7 +72,7 @@ class EkalinePMFixture : public ::testing::Test {
 //    auto [ peerIp, peerPort] = connectAddress();
     ekalineIPAddr_ = ipAddr;
     ekalineIPMask_ = "255.255.255.0";
-    ekalineIPGateway_ = ipAddr;
+    ekalineIPGateway_ = "10.120.10.1";
     ekalineGatewayMAC_ = "00:0f:53:42:97:20";
 
     if (!initPort()) {
