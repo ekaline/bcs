@@ -185,7 +185,7 @@ class EkalinePMFixture : public ::testing::Test {
   static std::pair<std::string_view, u16> connectAddress() {
     return {"10.120.15.83", 7060};
   }
-  bool createTCPSocket(std::string_view peerIp, u16 peerPort, std::string_view bindIp, u16 bindPort) {
+  bool createTCPSocket(std::string_view bindIp, u16 bindPort, std::string_view peerIp, u16 peerPort) {
     bool failed = false;
     bound_ = false;
     connected_ = false;
