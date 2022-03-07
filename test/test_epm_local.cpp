@@ -68,9 +68,10 @@ class EkalinePMFixture : public ::testing::Test {
       std::abort();
     }
     auto [ ipAddr, ipPort ] = bindAddress();
+    auto [ peerIp, peerPort] = connectAddress();
     ekalineIPAddr_ = ipAddr;
     ekalineIPMask_ = "255.255.255.0";
-    ekalineIPGateway_ = ekalineIPAddr_;
+    ekalineIPGateway_ = peerIp;
 
     if (!initPort()) {
       std::cerr << "Failed to initialize port " << phyPort << "on ekaline device\n";
@@ -190,20 +191,6 @@ class EkalinePMFixture : public ::testing::Test {
   static std::pair<std::string_view, u16> connectAddress() {
     return {"10.120.15.83", 7060};
   }
-//  bool configurePort(ExcSocketHandle hSocket, ) {
-//    EkaCoreInitCtx ekaCoreInitCtx = {
-//        .coreId = phyPort,
-//        .attrs = {
-//            .host_ip      = inet_addr(clientIp.c_str()),
-//            .netmask      = inet_addr("255.255.255.0"),
-//            .gateway      = inet_addr(clientIp.c_str()),
-//            .nexthop_mac  = {}, // resolved by our internal ARP
-//            .src_mac_addr = {}, // taken from system config
-//            .dont_garp    = 0
-//        }
-//    };
-//    ekaDevConfigurePort (dev, (const EkaCoreInitCtx*) &ekaCoreInitCtx);
-//  }
   bool createTCPSocket(std::string_view bindIp, u16 bindPort, std::string_view peerIp, u16 peerPort) {
     bool failed = false;
     bound_ = false;
