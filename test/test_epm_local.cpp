@@ -80,6 +80,25 @@ class EkalinePMFixture : public ::testing::Test {
       std::abort();
     }
   }
+  void TearDown() {
+    if (hConnection_ != -1) {
+      INFO("Closing connection ", hConnection_, " of socket ", hSocket_);
+      if (excClose(device(), hConnection_)) {
+        WARN("excClose(", hConnection_, ") failed with ", result);
+      } else {
+        hConnection_ = -1;
+        hSocket_ = -1;
+      }
+    }
+    if (hSocket_ != -1) {
+      INFO("Closing socket ", hSocket_);
+      int result = excSocketClose(device(), hSocket_);
+      if (result != 0)
+        WARN("excSocketClose(", hSocket_, ") failed with ", result);
+      else
+        hSocket_ = -1;
+    }
+  }
   EkaDev *device() { assert(ekaDevice_ != nullptr); return ekaDevice_.get(); }
   bool initDevice() {
     if (ekaDevice_ != nullptr) {
@@ -117,6 +136,23 @@ class EkalinePMFixture : public ::testing::Test {
 //    memcpy(&portInitCtx.attrs.nexthop_mac, &gatewayMAC, sizeof(portInitCtx.attrs.nexthop_mac));
     EkaOpResult result = ekaDevConfigurePort(device(), &portInitCtx);
     return isResultOk(result);
+  }
+  bool initFiringController(EkaDev *device) {
+    const EfcInitCtx efcInitCtx = {
+        .feedVer = EfhFeedVer::kCME
+    };
+    EfcCtx *efcCtx = nullptr;
+    EkaOpResult result = efcInit(&efcCtx, device, &efcInitCtx);
+    if (!isResultOk(result)) {
+      ERROR("Failed to initialize firing controller (result ", (int)result, ")");
+      return false;
+    }
+    assert(efcCtx != nullptr);
+    result = efcEnableController(efcCtx, phyPort);
+    if (!isResultOk(result)) {
+      ERROR("failed to enable firing controller (result ", (int)result, ")");
+      return false;
+    }
   }
 
   Strategy &addStrategy(bitsT enableBits) {
