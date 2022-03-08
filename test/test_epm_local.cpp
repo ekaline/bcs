@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <sstream>
 
+#include <compat/Efc.h>
 #include <compat/Eka.h>
 #include <compat/Epm.h>
 #include <compat/Exc.h>
@@ -83,7 +84,8 @@ class EkalinePMFixture : public ::testing::Test {
   void TearDown() {
     if (hConnection_ != -1) {
       INFO("Closing connection ", hConnection_, " of socket ", hSocket_);
-      if (excClose(device(), hConnection_)) {
+      int result = excClose(device(), hConnection_);
+      if (result != 0) {
         WARN("excClose(", hConnection_, ") failed with ", result);
       } else {
         hConnection_ = -1;
