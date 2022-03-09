@@ -19,6 +19,7 @@
 #include <assert.h>
 #include <sched.h>
 #include <time.h>
+#include <vector>
 
 #include "EkaFhThreadAttr.h"
 #include "EkaFhCmeGr.h"
@@ -72,10 +73,10 @@ int EkaFhCmeGr::processFromQ(const EfhRunCtx* pEfhRunCtx) {
     PktElem* buf = pktQ->pop();
     if (firstPkt) {
       firstPkt = false;
-      EKA_LOG("%s:%u: 1st Q pkt sequence = %ju",
-	  EKA_EXCH_DECODE(exch),id,buf->sequence);
+      EKA_LOG("%s:%u: 1st Q pkt sequence = %ju, seq_after_snapshot = %ju",
+	      EKA_EXCH_DECODE(exch),id,buf->sequence,seq_after_snapshot);
     }
-    if (buf->sequence < expected_sequence) continue;
+    if (buf->sequence < seq_after_snapshot) continue;
     processPkt(pEfhRunCtx,
 	       buf->data,
 	       buf->pktSize,
@@ -148,32 +149,59 @@ EkaOpResult EkaFhCmeGr::recoveryLoop(const EfhRunCtx* pEfhRunCtx, EkaFhMode op) 
   auto ip   = op == EkaFhMode::DEFINITIONS ? snapshot_ip   : recovery_ip;
   auto port = op == EkaFhMode::DEFINITIONS ? snapshot_port : recovery_port;
 
+  struct RecoveryPkt {
+    size_t  size;
+    uint8_t data[1536];
+  };
+  
+  std::vector<RecoveryPkt>recoveryPkt;
+
   int sock = ekaUdpMcConnect(dev, ip, port);
   if (sock < 0) on_error ("sock = %d",sock);
     
   snapshot_active = true;
   snapshotClosed = false;
-  iterationsCnt = 0; 
-  uint32_t expectedPktSeq = 1;
 
-  while (snapshot_active) {
-    uint8_t pkt[1536] = {};
-    int size = recvfrom(sock, pkt, sizeof(pkt), 0, NULL, NULL);
-    if (size < 0) on_error("size = %d",size);
-    
-    if (expectedPktSeq == 1 && getPktSeq(pkt) != 1)
-      continue;
+  bool recovered = false;
 
-    if (expectedPktSeq != 1 && getPktSeq(pkt) == 1)
-      break;
+  while (!recovered && snapshot_active) {
+    recoveryPkt.clear();
+    iterationsCnt = 0; 
+    uint32_t expectedPktSeq = 1;
+    while (snapshot_active) {
+      uint8_t pkt[1536] = {};
+      int size = recvfrom(sock, pkt, sizeof(pkt), 0, NULL, NULL);
+      if (size < 0) on_error("size = %d",size);
     
-    if (expectedPktSeq != getPktSeq(pkt))
-      EKA_WARN("ERROR: %s:%u: expectedPktSeq=%u, getPktSeq(pkt)=%u, %d / %d %s messages processed",
-	       EKA_EXCH_DECODE(exch),id,expectedPktSeq,getPktSeq(pkt),
-	       iterationsCnt,totalIterations,EkaFhMode2STR(op));
-    if (processPkt(pEfhRunCtx,pkt,size,op)) break;
-    expectedPktSeq = getPktSeq(pkt) + 1;
+      if (expectedPktSeq == 1 && getPktSeq(pkt) != 1) // recovery Loop not started yet
+	continue;
+
+      if (expectedPktSeq != 1 && getPktSeq(pkt) == 1) {// end of recovery Loop
+	recovered = true;
+	break;
+      }
+    
+      if (expectedPktSeq != getPktSeq(pkt)) { // gap in recovery Loop
+	EKA_WARN("ERROR: %s:%u: expectedPktSeq=%u, getPktSeq(pkt)=%u, %d / %d %s messages processed",
+		 EKA_EXCH_DECODE(exch),id,expectedPktSeq,getPktSeq(pkt),
+		 iterationsCnt,totalIterations,EkaFhMode2STR(op));
+	break;
+      }
+
+      // normal
+      RecoveryPkt pkt2push = {};
+      pkt2push.size = size;
+      memcpy(pkt2push.data,pkt,size);
+      
+      recoveryPkt.push_back(pkt2push);
+      
+      expectedPktSeq = getPktSeq(pkt) + 1;
+    }
   }
+  for (auto const& p : recoveryPkt) {
+      if (processPkt(pEfhRunCtx,p.data,p.size,op)) break;
+  }
+  
   EKA_LOG("%s:%u: %d / %d %s messages processed",
 	  EKA_EXCH_DECODE(exch),id,
 	  iterationsCnt,totalIterations,EkaFhMode2STR(op));

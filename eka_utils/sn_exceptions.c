@@ -24,8 +24,7 @@
 #define WHT   "\x1B[37m"
 #define RESET "\x1B[0m"
 
-void die(char *msg)
-{
+void die(const char *msg) {
     perror(msg);
     exit(1);
 }
@@ -111,7 +110,7 @@ int main(int argc, char *argv[])
     return 0;
   }
 
-  system("clear");
+  if (system("clear")) die("\'clear\' failed");
 
   int animation = 0;
 
@@ -121,8 +120,8 @@ int main(int argc, char *argv[])
       uint64_t var_global_shadow         = reg_read(ADDR_INTERRUPT_SHADOW_RO);
       uint64_t var_core_shadow;
 
-      system("clear");
-	  
+      if (system("clear")) die("\'clear\' failed");;
+
       if (var_global_shadow)
 	{
 	  printf ("--- Global Exceptions --\n\n");

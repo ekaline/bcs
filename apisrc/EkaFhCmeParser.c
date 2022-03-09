@@ -445,6 +445,8 @@ int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
   auto rootBlock {reinterpret_cast<const SnapshotFullRefresh52_mainBlock*>(m)};
   m += msgHdr->blockLen;
 
+  seq_after_snapshot = rootBlock->LastMsgSeqNumProcessed + 1;
+  
   auto s {book->findSecurity(rootBlock->SecurityID)};
   if (s == NULL) return msgHdr->size;
   
