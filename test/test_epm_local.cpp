@@ -66,7 +66,7 @@ class EkalinePMFixture : public ::testing::Test {
   void SetUp() override {
     INFO("SetUp called");
     if (!initDevice()) {
-      std::cerr << "Failed to initialize ekaline device\n";
+      ERROR("Failed to initialize ekaline device");
       std::abort();
     }
     auto [ ipAddr, ipPort ] = bindAddress();
@@ -77,11 +77,25 @@ class EkalinePMFixture : public ::testing::Test {
     ekalineGatewayMAC_ = "00:0f:53:42:97:20";
 
     if (!initPort()) {
-      std::cerr << "Failed to initialize port " << phyPort << "on ekaline device\n";
+      ERROR("Failed to initialize port ", phyPort, "on ekaline device");
+      TearDown();
+      std::abort();
+    }
+    if (!initFiringController()) {
+      ERROR("Failed to init Ekaline Firing Controller");
+      TearDown();
       std::abort();
     }
   }
   void TearDown() {
+    if (efcCtx_ != nullptr) {
+      int result = efcClose(efcCtx_);
+      if (result != 0) {
+        ERROR("Failed to close firing controller: efcClose(", efcCtx_, ") with", result);
+      } else {
+        efcCtx_ = nullptr;
+      }
+    }
     if (hConnection_ != -1) {
       INFO("Closing connection ", hConnection_, " of socket ", hSocket_);
       int result = excClose(device(), hConnection_);
@@ -139,12 +153,12 @@ class EkalinePMFixture : public ::testing::Test {
     EkaOpResult result = ekaDevConfigurePort(device(), &portInitCtx);
     return isResultOk(result);
   }
-  bool initFiringController(EkaDev *device) {
+  bool initFiringController() {
     const EfcInitCtx efcInitCtx = {
         .feedVer = EfhFeedVer::kCME
     };
     EfcCtx *efcCtx = nullptr;
-    EkaOpResult result = efcInit(&efcCtx, device, &efcInitCtx);
+    EkaOpResult result = efcInit(&efcCtx, device(), &efcInitCtx);
     if (!isResultOk(result)) {
       ERROR("Failed to initialize firing controller (result ", (int)result, ")");
       return false;
@@ -155,6 +169,8 @@ class EkalinePMFixture : public ::testing::Test {
       ERROR("failed to enable firing controller (result ", (int)result, ")");
       return false;
     }
+    efcCtx_ = efcCtx;
+    return true;
   }
 
   Strategy &addStrategy(bitsT enableBits) {
@@ -449,6 +465,7 @@ class EkalinePMFixture : public ::testing::Test {
 
   ExcSocketHandle hSocket_  = -1;
   ExcConnHandle hConnection_ = -1;
+  EfcCtx *efcCtx_ = nullptr;
 
   Strategy::ReportCbFn callback_;
   std::vector<Strategy> strategies_;
