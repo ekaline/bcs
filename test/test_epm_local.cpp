@@ -81,11 +81,6 @@ class EkalinePMFixture : public ::testing::Test {
       TearDown();
       std::abort();
     }
-    if (!initFiringController()) {
-      ERROR("Failed to init Ekaline Firing Controller");
-      TearDown();
-      std::abort();
-    }
   }
   void TearDown() {
     if (efcCtx_ != nullptr) {
@@ -153,7 +148,10 @@ class EkalinePMFixture : public ::testing::Test {
     EkaOpResult result = ekaDevConfigurePort(device(), &portInitCtx);
     return isResultOk(result);
   }
-  bool initFiringController() {
+  bool initFiringControllerMaybe() {
+    if (efcCtx_ != nullptr)
+      return true;
+
     const EfcInitCtx efcInitCtx = {
         .feedVer = EfhFeedVer::kCME
     };
@@ -273,8 +271,15 @@ class EkalinePMFixture : public ::testing::Test {
       }
       failed |= !connected_;
     }
-
     hSocket_ = hSocket;
+
+    if (!failed) {
+      if (!initFiringControllerMaybe()) {
+        ERROR("Failed to init Ekaline Firing Controller");
+        failed = true;
+      }
+    }
+
     return !failed && (hSocket_ > 0);
   }
   void CreateDefaultSocket() {
