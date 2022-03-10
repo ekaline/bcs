@@ -906,6 +906,7 @@ namespace Cme {
 		  e->MDPriceLevel,
 		  (int64_t) (e->MDEntryPx / EFH_CME_PRICE_SCALE),
 		  e->MDEntrySize);
+	  m += pGroupSize->blockLength;    
 	}
       }
 	break;
