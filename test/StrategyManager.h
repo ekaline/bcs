@@ -51,6 +51,7 @@ class StrategyManager {
   };
 
   bool deployStrategies(EkaDev *device, EkaCoreId phyPort, std::vector<Strategy> &strategies) {
+    INFO("deploy startegies (dev, port ", phyPort, ", {} * ", strategies.size(), ")");
     EpmStrategyBuilder builder;
     if (!builder.build(device, strategies)) {
       ERROR("Failed to serialize EPM strategies for ekaline API");
@@ -63,7 +64,7 @@ class StrategyManager {
 
     auto result = epmInitStrategies(device, builder.epmStrategies.data(), builder.epmStrategies.size());
     if (!isResultOk(result)) {
-      // Bad
+      ERROR("Failed to epmInitStrategies(_, _, ", builder.epmStrategies.size(), ") with ", result);
       return false;
     }
 
@@ -76,22 +77,26 @@ class StrategyManager {
         int actionIndexInScenario = actionIdx;
         const Strategy::Scenario *scenario = strategy.getScenarioForAction(actionIndexInScenario);
         if (!scenario) {
-          // Bad
+          ERROR("Failed to retrieve scenario #", actionIndexInScenario, " in action #", strategyIdx);
+          return false;
         }
         const Message &message{scenario->second.at(actionIndexInScenario).message()};
-        if (!isResultOk(epmPayloadHeapCopy(device, strategyIdx, message.heapOffset(), message.size(), message.data()))) {
-          // Bad
+        EkaOpResult result = epmPayloadHeapCopy(device, strategyIdx, message.heapOffset(), message.size(), message.data());
+        if (!isResultOk(result)) {
+          ERROR("Failed to upload payload (device, idx ", strategyIdx, ", ofs ", message.heapOffset(),
+                ", size ", message.size(), ") with ", (int)result);
           failed = true;
           break;
         }
         if (!isResultOk(epmSetAction(device, strategyIdx, actionIdx, &epmAction))) {
-          // Bad
+          ERROR("Failed to set { action ", actionIdx, ", for strategy ", strategyIdx, ", type ", (int)epmAction.type,
+                ", ofs ", epmAction.offset, ", size ", epmAction.length, "}");
           failed = true;
           break;
         }
       }
       if (!isResultOk(epmSetStrategyEnableBits(device, strategyIdx, builder.enableBits[strategyIdx]))) {
-        // Bad
+        ERROR("Failed to enable strategy ", strategyIdx, ", bits ", toHexString(builder.enableBits[strategyIdx]).c_str());
         failed = true;
         break;
       }
