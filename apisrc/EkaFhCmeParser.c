@@ -418,6 +418,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshTradeSummary48(const EfhRunCtx* pEfh
 	
 	FhSecurity* s = book->findSecurity(e->SecurityID);
 	if (s == NULL) continue;
+
 	const EfhTradeMsg msg = {
 	    { EfhMsgType::kTrade,
 	      {exch,(EkaLSI)id}, // group
@@ -451,7 +452,8 @@ int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
   
   auto s {book->findSecurity(rootBlock->SecurityID)};
   if (s == NULL) return msgHdr->size;
-  
+
+  s->tradeStatus = setEfhTradeStatus(rootBlock->MDSecurityTradingStatus);
   /* ------------------------------- */
   auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize);

@@ -279,6 +279,27 @@ namespace Cme {
 						    NoChange = 103,
   };
 
+  inline EfhTradeStatus setEfhTradeStatus(SecurityTradingStatus_T status) {
+    switch (status) {
+    case SecurityTradingStatus_T::TradingHalt :
+    case SecurityTradingStatus_T::NotAvailableForTrading :
+      return EfhTradeStatus::kHalted;
+    case SecurityTradingStatus_T::Close :
+    case SecurityTradingStatus_T::PostClose :
+      return EfhTradeStatus::kClosed;
+    case SecurityTradingStatus_T::PreOpen :
+      return EfhTradeStatus::kPreopen;
+    case SecurityTradingStatus_T::PreCross :
+    case SecurityTradingStatus_T::Cross :
+    case SecurityTradingStatus_T::NoChange :
+    case SecurityTradingStatus_T::NewPriceIndication :
+    case SecurityTradingStatus_T::ReadyToTrade :
+      return EfhTradeStatus::kNormal;
+    default :
+      on_error("Unexpected SecurityTradingStatus %u",(uint)status);
+    }
+  }
+  
 #define SecurityTradingStatus2STR(x)					\
   x == SecurityTradingStatus_T::TradingHalt              ? "TradingHalt"	    : \
     x == SecurityTradingStatus_T::Close                  ? "Close"                  : \
@@ -866,13 +887,26 @@ namespace Cme {
       case MsgId::SnapshotFullRefresh52 : {
 	auto rootBlock {reinterpret_cast<const SnapshotFullRefresh52_mainBlock*>(m)};
 	/* ------------------------------- */
-	printf ("\t\tSnapshotFullRefresh52: secId=%8d,LastMsgSeqNumProcessed=%u,TotNumReports=%u,%s,%s\n",
-		rootBlock->SecurityID,
-		rootBlock->LastMsgSeqNumProcessed,
-		rootBlock->TotNumReports,
-		SecurityTradingStatus2STR(rootBlock->MDSecurityTradingStatus),
-		ts_ns2str(rootBlock->LastUpdateTime).c_str());
-		
+	printf("\t\tSnapshotFullRefresh52: secId=%8d,LastMsgSeqNumProcessed=%u,"
+	       "TotNumReports=%u,%s,%s\n",
+	       rootBlock->SecurityID,
+	       rootBlock->LastMsgSeqNumProcessed,
+	       rootBlock->TotNumReports,
+	       SecurityTradingStatus2STR(rootBlock->MDSecurityTradingStatus),
+	       ts_ns2str(rootBlock->LastUpdateTime).c_str());
+	m += msgHdr->blockLen;
+	/* ------------------------------- */
+	auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
+	m += sizeof(*pGroupSize);
+	/* ------------------------------- */
+	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+	  auto e {reinterpret_cast<const MDSnapshotFullRefreshMdEntry*>(m)};
+	  printf ("\t\t\t%5s,plvl=%u,p=%16jd,s=%d\n",
+		  MDEntryType2STR(e->MDEntryType),
+		  e->MDPriceLevel,
+		  (int64_t) (e->MDEntryPx / EFH_CME_PRICE_SCALE),
+		  e->MDEntrySize);
+	}
       }
 	break;
 	/* ##################################################################### */
