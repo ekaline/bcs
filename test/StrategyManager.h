@@ -51,7 +51,7 @@ class StrategyManager {
   };
 
   bool deployStrategies(EkaDev *device, EkaCoreId phyPort, std::vector<Strategy> &strategies) {
-    INFO("deploy startegies (dev, port ", phyPort, ", {} * ", strategies.size(), ")");
+    INFO("deploy strategies (dev, port ", phyPort, ", {} * ", strategies.size(), ")");
     EpmStrategyBuilder builder;
     if (!builder.build(device, strategies)) {
       ERROR("Failed to serialize EPM strategies for ekaline API");
@@ -72,6 +72,7 @@ class StrategyManager {
     for (int strategyIdx = 0; !failed && (strategyIdx < (int)builder.epmStrategies.size()); ++strategyIdx) {
       Strategy &strategy = strategies[strategyIdx];
       auto &strategyActions{builder.epmActions[strategyIdx]};
+      INFO("Strategy[", strategyIdx, "]: ", strategyActions.size(), " actions");
       for (int actionIdx = 0; actionIdx < (int)strategyActions.size(); ++actionIdx) {
         EpmAction &epmAction{strategyActions[actionIdx]};
         int actionIndexInScenario = actionIdx;
@@ -106,13 +107,10 @@ class StrategyManager {
     if (!failed) {
       deployed = isResultOk(epmEnableController(device, phyPort, true));
       if (!deployed)
-        // Bad
-        ;
+        ERROR("Failed to epmEnableController(dev, port ", phyPort, ", enable true)");
     }
     return deployed;
   }
-
- private:
 };
 
 }  // namespace gts::ekaline
