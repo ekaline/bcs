@@ -284,16 +284,10 @@ class EkalinePMFixture : public ::testing::Test {
 
     return !failed && (hSocket_ > 0);
   }
-  void CreateDefaultSocket(bool disableEfcInit = false) {
+  void CreateDefaultSocket() {
     auto[localIp, localPort] = bindAddress();
     auto[peerIp, peerPort] = connectAddress();
     ASSERT_TRUE(createTCPSocket(std::string(localIp), localPort, std::string(peerIp), peerPort));
-
-    if (!disableEfcInit) {
-      if (!initFiringControllerMaybe()) {
-        ERROR("Failed to init Ekaline Firing Controller");
-      }
-    }
   }
 
   struct ActionDefaults {
