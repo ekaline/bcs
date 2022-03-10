@@ -81,6 +81,11 @@ class EkalinePMFixture : public ::testing::Test {
       TearDown();
       std::abort();
     }
+    if (!initFiringControllerMaybe()) {
+      ERROR("Failed to init EFC");
+      TearDown();
+      std::abort();
+    }
   }
   void TearDown() {
     if (efcCtx_ != nullptr) {
@@ -162,12 +167,15 @@ class EkalinePMFixture : public ::testing::Test {
       return false;
     }
     assert(efcCtx != nullptr);
-    result = efcEnableController(efcCtx, phyPort);
+    efcCtx_ = efcCtx;
+    return true;
+  }
+  bool enableFiringController() {
+    EkaOpResult result = efcEnableController(efcCtx_, phyPort);
     if (!isResultOk(result)) {
       ERROR("failed to enable firing controller (result ", (int)result, ")");
       return false;
     }
-    efcCtx_ = efcCtx;
     return true;
   }
 
@@ -176,7 +184,6 @@ class EkalinePMFixture : public ::testing::Test {
     return strategies_.back();
   }
   bool deployStrategies() {
-//    assert(bound_);
     assert(connected_);
 
     StrategyManager man;
@@ -185,8 +192,8 @@ class EkalinePMFixture : public ::testing::Test {
       ERROR("Failed to deploy strategies");
       return false;
     }
-    if (!initFiringControllerMaybe()) {
-      ERROR("Failed to init EFC");
+    if (!enableFiringController()) {
+      ERROR("Failed to enable EFC");
       return false;
     }
     return true;
@@ -277,12 +284,14 @@ class EkalinePMFixture : public ::testing::Test {
       if (inet_aton(std::string(peerIp).c_str(), &peerIpAddr)) {
         hConnection_ = connectTo(device(), hSocket, peerIpAddr.s_addr, peerPort);
         connected_ = hConnection_ >= 0;
+        if (!connected_)
+          ERROR("Failed to connect to {", std::string(peerIp).c_str(), ":", peerPort, "}");
       }
       failed |= !connected_;
     }
     hSocket_ = hSocket;
 
-    return !failed && (hSocket_ > 0);
+    return !failed && (hSocket_ >= 0);
   }
   void CreateDefaultSocket() {
     auto[localIp, localPort] = bindAddress();
