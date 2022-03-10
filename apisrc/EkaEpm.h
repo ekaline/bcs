@@ -104,24 +104,6 @@ class EkaEpm {
   static const uint     UserHeapBaseOffs        = 0;
   static const uint     ServiceHeapBaseOffs     = MaxUserHeap;
 
-
-
-  /* enum class ActionType : int { */
-  /*   INVALID = 0, */
-  /*     // Service Actions */
-  /*     TcpFullPkt, */
-  /*     TcpFastPath, */
-  /*     TcpEmptyAck, */
-  /*     Igmp, */
-
-  /*     // Efc */
-  /*     HwFireAction, */
-
-  /*     // User Actions */
-  /*     UserAction */
-  /* }; */
-
-
   using ActionType = EpmActionType;
 
   EkaEpm(EkaDev* _dev);
@@ -210,6 +192,9 @@ class EkaEpm {
       return IGMP_V2_SIZE;
     case EpmActionType::HwFireAction :
       return HW_FIRE_MSG_SIZE;
+    case EpmActionType::CmeHwCancel :
+    case EpmActionType::CmeSwFire :
+    case EpmActionType::CmeSwHeartbeat :
     case EpmActionType::UserAction :
       return MAX_ETH_FRAME_SIZE;
     default:
@@ -230,6 +215,8 @@ class EkaEpm {
   EpmTemplate*      tcpFastPathPkt          = NULL;
   EpmTemplate*      rawPkt                  = NULL;
   EpmTemplate*      hwFire                  = NULL;
+  EpmTemplate*      cmeILink                = NULL;
+  
   uint              templatesNum            = 0;
 
   bool              initialized             = false;
@@ -298,6 +285,9 @@ inline uint calcThrId (EkaEpm::ActionType actionType, uint8_t sessId, uint intId
     thrId = UserBase + intIdx % UserNum;
     break;
   case EkaEpm::ActionType::HwFireAction:
+  case EkaEpm::ActionType::CmeHwCancel:
+  case EkaEpm::ActionType::CmeSwFire:
+  case EkaEpm::ActionType::CmeSwHeartbeat:
     thrId = UserBase + intIdx % UserNum; // TO BE CHECKED!!!
     break;
   default :

@@ -823,7 +823,7 @@ int main(int argc, char *argv[]) {
   triggerMcAddr.sin_addr.s_addr = inet_addr(triggerParam[0].mcIp);
   triggerMcAddr.sin_port        = be16toh(triggerParam[0].mcUdpPort);
 
-  uint32_t sequence = 32;
+  //  uint32_t sequence = 32;
 
   if (fatalDebug) {
       TEST_LOG(RED "\n=====================\nFATAL DEBUG: ON\n=====================\n" RESET);

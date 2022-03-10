@@ -45,9 +45,16 @@ int EkaEpmAction::setActionBitmap() {
   case EpmActionType::HwFireAction :
   case EpmActionType::BoeFire      :
   case EpmActionType::BoeCancel    :
+
+  case EpmActionType::CmeHwCancel    :
+  case EpmActionType::CmeSwFire    :
+    
     actionBitParams.bitmap.app_seq_inc  = 1;
   case EpmActionType::SqfFire      :
   case EpmActionType::SqfCancel    :
+
+  case EpmActionType::CmeSwHeartbeat :
+    
     actionBitParams.bitmap.israw        = 0;
     actionBitParams.bitmap.report_en    = 1;
     actionBitParams.bitmap.feedbck_en   = 1;
@@ -72,6 +79,7 @@ static TcpCsSizeSource setTcpCsSizeSource (EpmActionType type) {
   case EpmActionType::BoeCancel    :
   case EpmActionType::SqfFire      :
   case EpmActionType::SqfCancel    :
+  case EpmActionType::CmeHwCancel    :
     return TcpCsSizeSource::FROM_ACTION;
   default:
     return TcpCsSizeSource::FROM_DESCR;
@@ -119,8 +127,12 @@ int EkaEpmAction::setTemplate() {
   case EpmActionType::BoeFire      :
   case EpmActionType::BoeCancel    :
   case EpmActionType::HwFireAction :
+  case EpmActionType::CmeHwCancel  :
+  case EpmActionType::CmeSwFire    :
+  case EpmActionType::CmeSwHeartbeat :
     epmTemplate                        = epm->hwFire;
     break;
+
   case EpmActionType::UserAction :
     epmTemplate                        = epm->tcpFastPathPkt;
     break;
@@ -159,6 +171,15 @@ int EkaEpmAction::setName() {
     break;
   case EpmActionType::BoeCancel    :
     strcpy(actionName,"BoeCancel");
+    break;
+  case EpmActionType::CmeHwCancel    :
+    strcpy(actionName,"CmeHwCancel");
+    break;
+  case EpmActionType::CmeSwFire    :
+    strcpy(actionName,"CmeSwFire");
+    break;
+  case EpmActionType::CmeSwHeartbeat    :
+    strcpy(actionName,"CmeSwHeartbeat");
     break;
   case EpmActionType::HwFireAction :
     strcpy(actionName,"HwFire");
