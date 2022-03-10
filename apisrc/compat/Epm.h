@@ -52,6 +52,10 @@ enum class EpmActionType : int {
     BoeFire      = 24,
     BoeCancel    = 25,
 
+    CmeHwCancel  = 31,          ///< propagating App sequence
+    CmeSwFire    = 32,          ///< propagating App sequence
+    CmeSwHeartbeat = 33,        ///< not propagating App sequence
+    
     // User Actions
     UserAction   = 100          ///< EPM fire. No fields managed by HW
  };
@@ -459,6 +463,9 @@ EkaOpResult epmSetStrategyEnableBits(EkaDev *ekaDev,
  */
 EkaOpResult epmRaiseTriggers(EkaDev *ekaDev,
                              const EpmTrigger *trigger);
+
+
+
 } // End of extern "C"
 
 #endif
