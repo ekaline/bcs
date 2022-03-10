@@ -178,13 +178,16 @@ EkaOpResult EkaFhCmeGr::recoveryLoop(const EfhRunCtx* pEfhRunCtx, EkaFhMode op) 
 
       if (expectedPktSeq != 1 && getPktSeq(pkt) == 1) {// end of recovery Loop
 	recovered = true;
+	EKA_LOG("%s:%u: recording %s %jd packets completed",
+		EKA_EXCH_DECODE(exch),id,EkaFhMode2STR(op),recoveryPkt.size());
 	break;
       }
     
       if (expectedPktSeq != getPktSeq(pkt)) { // gap in recovery Loop
-	EKA_WARN("ERROR: %s:%u: expectedPktSeq=%u, getPktSeq(pkt)=%u, %d / %d %s messages processed",
-		 EKA_EXCH_DECODE(exch),id,expectedPktSeq,getPktSeq(pkt),
-		 iterationsCnt,totalIterations,EkaFhMode2STR(op));
+	EKA_WARN("ERROR: %s:%u: Gap during %s: expectedPktSeq=%u, getPktSeq(pkt)=%u: restarting the %s loop",
+		 EKA_EXCH_DECODE(exch),id,EkaFhMode2STR(op),
+		 expectedPktSeq,getPktSeq(pkt),
+		 EkaFhMode2STR(op));
 	break;
       }
 
@@ -198,8 +201,10 @@ EkaOpResult EkaFhCmeGr::recoveryLoop(const EfhRunCtx* pEfhRunCtx, EkaFhMode op) 
       expectedPktSeq = getPktSeq(pkt) + 1;
     }
   }
+  EKA_LOG("%s:%u: executing %s %jd packets",
+	  EKA_EXCH_DECODE(exch),id,EkaFhMode2STR(op),recoveryPkt.size());
   for (auto const& p : recoveryPkt) {
-      if (processPkt(pEfhRunCtx,p.data,p.size,op)) break;
+    processPkt(pEfhRunCtx,p.data,p.size,op);
   }
   
   EKA_LOG("%s:%u: %d / %d %s messages processed",

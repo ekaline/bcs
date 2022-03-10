@@ -73,7 +73,8 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       break;
       /* ##################################################################### */
     case MsgId::MDIncrementalRefreshBook46 :
-      process_MDIncrementalRefreshBook46(pEfhRunCtx,p,pktTime,pktSeq);
+      if (op == EkaFhMode::MCAST)
+	process_MDIncrementalRefreshBook46(pEfhRunCtx,p,pktTime,pktSeq);
       break;
       /* ##################################################################### */
     case MsgId::MDIncrementalRefreshTradeSummary48 :
@@ -81,7 +82,8 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       break;
       /* ##################################################################### */
     case MsgId::SnapshotFullRefresh52 : 
-      process_SnapshotFullRefresh52(pEfhRunCtx,p,pktTime,pktSeq);
+      if (op == EkaFhMode::SNAPSHOT)
+	process_SnapshotFullRefresh52(pEfhRunCtx,p,pktTime,pktSeq);
       break;
       /* ##################################################################### */
     case MsgId::MDInstrumentDefinitionFuture27 :
@@ -301,9 +303,9 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
     case MDUpdateAction_T::DeleteThru:
     case MDUpdateAction_T::DeleteFrom:
     case MDUpdateAction_T::Overlay:
-      break;
     default:
-      on_error("Unexpected MDUpdateActio %u",(uint)e->MDUpdateAction);
+      on_error("Unexpected MDUpdateAction %s (%u)",
+	       MDpdateAction2STR(e->MDUpdateAction),(uint)e->MDUpdateAction);
     }
     /* if (tobChange && fh->print_parsed_messages) { */
     /*   fprintf(parser_log,"generateOnQuote: BP=%ju,BS=%d,AP=%ju,AS=%d\n", */
@@ -387,9 +389,9 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
       case MDUpdateAction_T::DeleteThru:
       case MDUpdateAction_T::DeleteFrom:
       case MDUpdateAction_T::Overlay:
-	break;
       default:
-	on_error("Unexpected MDUpdateAction %u",(uint)e->MDUpdateAction);
+	on_error("Unexpected MDUpdateAction %s (%u)",
+		 MDpdateAction2STR(e->MDUpdateAction),(uint)e->MDUpdateAction);
       }
     }	
   }
