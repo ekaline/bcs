@@ -81,11 +81,6 @@ class EkalinePMFixture : public ::testing::Test {
       TearDown();
       std::abort();
     }
-    if (!initFiringControllerMaybe()) {
-      ERROR("Failed to init EFC");
-      TearDown();
-      std::abort();
-    }
   }
   void TearDown() {
     if (efcCtx_ != nullptr) {
@@ -297,6 +292,11 @@ class EkalinePMFixture : public ::testing::Test {
     auto[localIp, localPort] = bindAddress();
     auto[peerIp, peerPort] = connectAddress();
     ASSERT_TRUE(createTCPSocket(std::string(localIp), localPort, std::string(peerIp), peerPort));
+    if (!initFiringControllerMaybe()) {
+      ERROR("Failed to init EFC");
+      TearDown();
+      std::abort();
+    }
   }
 
   struct ActionDefaults {
