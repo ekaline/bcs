@@ -791,7 +791,8 @@ namespace Cme {
     case MDEntryTypeBook_T::BookReset    :
       /* TBD */
     case MDEntryTypeBook_T::ImpliedBid   :
-    case MDEntryTypeBook_T::ImpliedOffer : return SideT::OTHER;
+    case MDEntryTypeBook_T::ImpliedOffer :
+      return SideT::OTHER;
     default:
       on_error("Unexpected MDEntryType \'%c\'",(char)mdEntryTypeBook);
     }
@@ -817,7 +818,8 @@ namespace Cme {
     case MDEntryType_T::FixingPrice :
     case MDEntryType_T::ElectronicVolume :
     case MDEntryType_T::ThresholdLimitsandPriceBandVariation :
-    case MDEntryType_T::BookReset : return SideT::OTHER;
+    case MDEntryType_T::BookReset :
+      return SideT::OTHER;
 
     default:
       on_error("Unexpected MDEntryType \'%c\'",(char)mdEntryType);

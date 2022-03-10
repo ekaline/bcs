@@ -279,6 +279,9 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
     auto s {book->findSecurity(e->SecurityID)};
     if (s == NULL) break;
 
+    if (e->MDEntryType == MDEntryTypeBook_T::BookReset)
+      on_error("MDEntryTypeBook_T::BookReset not supported for MDIncrementalRefreshBook46");
+
     const auto side {getSide46(e->MDEntryType)};
     if (side == SideT::OTHER) return msgHdr->size;
     const int64_t finalPriceFactor = s->getFinalPriceFactor();
