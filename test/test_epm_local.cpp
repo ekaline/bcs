@@ -180,7 +180,16 @@ class EkalinePMFixture : public ::testing::Test {
     assert(connected_);
 
     StrategyManager man;
-    return man.deployStrategies(device(), phyPort, strategies_);
+    bool result = man.deployStrategies(device(), phyPort, strategies_);
+    if (!result) {
+      ERROR("Failed to deploy strategies");
+      return false;
+    }
+    if (!initFiringControllerMaybe()) {
+      ERROR("Failed to init EFC");
+      return false;
+    }
+    return true;
   }
 
   void fireReportCallback(const EpmFireReport *reports, int nReports) {
