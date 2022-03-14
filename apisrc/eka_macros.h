@@ -83,6 +83,7 @@ class EkaDev;
     x == 2 ? "PHLX" : \
     x == 3 ? "ISE/GEMX/MRX" : \
     x == 4 ? "BZX/C2/EDGEX" : \
+    x == 9 ? "CME" : \
     x ==16 ? "Generic unconfigured" : \
     x ==17 ? "Generic NOM" : \
     x ==18 ? "Generic PITCH" : \

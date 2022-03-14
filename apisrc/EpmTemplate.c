@@ -50,7 +50,7 @@ int EpmTemplate::init() {
     byteSize += f->size;
   }
 
-  TEST_LOG("%s byteSize = %u",name,byteSize);
+  //  TEST_LOG("%s byteSize = %u",name,byteSize);
 
 #if 0
   
@@ -63,9 +63,9 @@ int EpmTemplate::init() {
   TEST_LOG("Im here");
 #endif
   
-#if 1
+#if 0
   printf ("%s HW bytes map:\n",name);
-  for (int i = 0; i < byteSize; i++) {
+  for (uint i = 0; i < byteSize; i++) {
     if (i % 8 == 0) printf ("\n");
     //    printf ("{%14s, %2d} (0x%02x),",EpmHwField2Str((HwField)(data[i] >> 4)), data[i] & 0xf,data[i]);
     printf ("0x%02x ",data[i]);

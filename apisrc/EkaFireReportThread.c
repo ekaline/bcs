@@ -17,6 +17,8 @@
 #include "EkaUserReportQ.h"
 
 int processEpmReport(EkaDev* dev, const uint8_t* payload,uint len) {
+  hexDump("SW triggered fire",payload,len);
+#if 0  
   hw_epm_report_t* hwEpmReport = (hw_epm_report_t*) (payload + sizeof(report_dma_report_t));
 
   epm_strategyid_t strategyId = hwEpmReport->strategyId;
@@ -44,7 +46,8 @@ int processEpmReport(EkaDev* dev, const uint8_t* payload,uint len) {
 
   if (dev->epm->strategy[strategyId] == NULL) on_error("dev->epm->strategy[%d] = NULL",strategyId);
   dev->epm->strategy[strategyId]->reportCb(&epmReport,1,dev->epm->strategy[strategyId]->cbCtx);
-
+#endif
+  
   return 0;
 }
 /* ########################################################### */
