@@ -373,6 +373,8 @@ void EkaFhGroup::print_q_state() {
 
    memcpy (name,credName,std::min(sizeof(name),credNameSize) - 1);
    const EkaGroup group {exch,id};
+   if (! dev->credAcquire)
+     on_error("credAcquire is not initialized");
    int rc = dev->credAcquire(EkaCredentialType::kSnapshot, 
 			     group, 
 			     name, 
@@ -398,6 +400,8 @@ void EkaFhGroup::print_q_state() {
      EKA_WARN("%s:%u Credentials is already released",EKA_EXCH_DECODE(exch),id);
      return 0;
    }
+   if (! dev->credRelease)
+     on_error("credRelease is not initialized");
    int rc = dev->credRelease(lease, dev->credContext);
    if (rc == 0)
      credentialsAcquired = false;

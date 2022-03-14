@@ -59,6 +59,7 @@ class EkaEpm {
   /* static const uint MAX_IGMP_ACTIONS            = EkaDev::MAX_UDP_CHANNELS; */
 
   static const uint64_t ALWAYS_ENABLE           = 0xFFFFFFFFFFFFFFFF;
+  static const uint64_t DefaultToken            = 0x1122334455667788;
 
   static const int EPM_REGIONS                  = 32;
   static const uint MAX_HEAP_WR_THREADS         = 16;
