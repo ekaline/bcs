@@ -282,15 +282,17 @@ namespace Cme {
   inline EfhTradeStatus setEfhTradeStatus(SecurityTradingStatus_T status) {
     switch (status) {
     case SecurityTradingStatus_T::TradingHalt :
-    case SecurityTradingStatus_T::NotAvailableForTrading :
       return EfhTradeStatus::kHalted;
     case SecurityTradingStatus_T::Close :
     case SecurityTradingStatus_T::PostClose :
+    case SecurityTradingStatus_T::UnknownorInvalid :
+    case SecurityTradingStatus_T::NotAvailableForTrading :
+    case SecurityTradingStatus_T::PreCross :
+    case SecurityTradingStatus_T::Cross :
       return EfhTradeStatus::kClosed;
     case SecurityTradingStatus_T::PreOpen :
       return EfhTradeStatus::kPreopen;
-    case SecurityTradingStatus_T::PreCross :
-    case SecurityTradingStatus_T::Cross :
+
     case SecurityTradingStatus_T::NoChange :
     case SecurityTradingStatus_T::NewPriceIndication :
     case SecurityTradingStatus_T::ReadyToTrade :
