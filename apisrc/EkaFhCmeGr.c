@@ -90,21 +90,18 @@ int EkaFhCmeGr::processFromQ(const EfhRunCtx* pEfhRunCtx) {
 
  /* ##################################################################### */
 int EkaFhCmeGr::closeSnapshotGap(EfhCtx*           pEfhCtx, 
-				 const EfhRunCtx*  pEfhRunCtx, 
-				 uint64_t          sequence) {
-  firstLifeSeq = sequence;
-
+				 const EfhRunCtx*  pEfhRunCtx) {
   std::string threadName = std::string("ST_") + 
     std::string(EKA_EXCH_SOURCE_DECODE(exch)) + 
     '_' + 
     std::to_string(id);
-  EkaFhThreadAttr* attr  = new EkaFhThreadAttr(pEfhCtx, 
-					       pEfhRunCtx, 
-					       this, 
-					       sequence, 
-					       0, 
-					       EkaFhMode::SNAPSHOT);
-  if (attr == NULL) on_error("attr = NULL");
+  auto attr  = new EkaFhThreadAttr(pEfhCtx, 
+				   pEfhRunCtx, 
+				   this, 
+				   0, 
+				   0, 
+				   EkaFhMode::SNAPSHOT);
+  if (!attr) on_error("!attr");
   
   dev->createThread(threadName.c_str(),
 		    EkaServiceType::kFeedSnapshot,
@@ -146,6 +143,10 @@ void* getCmeSnapshot(void* attr) {
 }
 
 EkaOpResult EkaFhCmeGr::recoveryLoop(const EfhRunCtx* pEfhRunCtx, EkaFhMode op) {
+#ifdef FH_LAB
+  return EKA_OPRESULT__OK;
+#endif
+  
   auto ip   = op == EkaFhMode::DEFINITIONS ? snapshot_ip   : recovery_ip;
   auto port = op == EkaFhMode::DEFINITIONS ? snapshot_port : recovery_port;
 

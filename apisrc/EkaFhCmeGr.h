@@ -53,8 +53,7 @@ public:
   int                   processFromQ(const EfhRunCtx* pEfhRunCtx);
 
   int                   closeSnapshotGap(EfhCtx*           pEfhCtx, 
-					 const EfhRunCtx* pEfhRunCtx, 
-					 uint64_t          sequence);
+					 const EfhRunCtx* pEfhRunCtx);
 
   EkaOpResult           recoveryLoop(const EfhRunCtx* pEfhRunCtx,
 				     EkaFhMode op);
@@ -93,7 +92,6 @@ public:
   PktQ*     pktQ       = NULL;
 
   bool      snapshotClosed = false;
-  uint64_t  firstLifeSeq = 0;
   int       iterationsCnt = 0;
   int       totalIterations = 0;  
 
