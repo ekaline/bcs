@@ -214,6 +214,7 @@ EkaOpResult EkaFhCmeGr::recoveryLoop(const EfhRunCtx* pEfhRunCtx, EkaFhMode op) 
   
   snapshot_active = false;
   snapshotClosed  = true;
+  gapClosed = true;
   //  inGap           = false;
   
   close (sock);
