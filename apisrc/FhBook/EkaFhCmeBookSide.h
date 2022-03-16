@@ -12,9 +12,12 @@ class PriceLevetT,
  public:
   static const PriceLevetT ENTRIES = 10; 
   
-  EkaFhCmeBookSide(SideT _side) {
+  EkaFhCmeBookSide(SideT _side, PriceLevetT _ActiveEntries) {
     side       = _side;
     tob        = 0;
+    ActiveEntries = _ActiveEntries;
+    if (ActiveEntries <= 0 || ActiveEntries > ENTRIES)
+      on_error("ActiveEntries %d is out of range",ActiveEntries);
     //    TEST_LOG("Creating %s side",side == SideT::BID ? "BID" : "ASK");
     for (auto i = 0; i < ENTRIES; i++) {
       entry[i].valid   = 0;
@@ -47,7 +50,7 @@ class PriceLevetT,
 
   inline bool checkIntegrity() { 
     bool res = true;
-    for (auto idx = 0; idx < ENTRIES - 1; idx ++) {
+    for (auto idx = 0; idx < ActiveEntries - 1; idx ++) {
       /* if (! isValid(idx) && isValid(idx + 1)) { */
       /*   EKA_WARN("%s entry %u not valid, but entry %u is valid", */
       /* 	   side == SideT::BID ? "BID" : "ASK", idx, idx + 1); */
@@ -69,13 +72,13 @@ class PriceLevetT,
   void printSide() {
     if (side == SideT::ASK) {
       printf("ASK:\n");
-      for (int idx = ENTRIES - 1; idx >= 0; idx --) {
+      for (int idx = ActiveEntries - 1; idx >= 0; idx --) {
 	if (! entry[idx].valid) continue;
 	printf("%4u@%4u (%ju)\n",entry[idx].size,idx,entry[idx].price);
       }
     } else {
       printf("\t\t\t\tBID:\n");
-      for (auto idx = 0; idx < ENTRIES; idx ++) {
+      for (auto idx = 0; idx < ActiveEntries; idx ++) {
 	if (! entry[idx].valid) continue;
 	printf("\t\t\t\t%4u@%4u (%ju)\n", entry[idx].size,idx,entry[idx].price);
       }
@@ -84,7 +87,7 @@ class PriceLevetT,
   /* ----------------------------------------------------- */
 
   inline PriceLevetT priceLevel2idx(PriceLevetT priceLevel) {
-    if (priceLevel == 0 || priceLevel > ENTRIES )
+    if (priceLevel == 0 || priceLevel > ActiveEntries )
       on_error("Invalid priceLevel %u",priceLevel);
     return (priceLevel - 1);
   }
@@ -95,7 +98,7 @@ class PriceLevetT,
 		       PriceT price,
 		       SizeT  size) {
     PriceLevetT idx = priceLevel2idx(pLevelIdx);
-    for (auto i = ENTRIES - 1; i > idx; i--)
+    for (auto i = ActiveEntries - 1; i > idx; i--)
       memcpy(&entry[i],&entry[i-1],sizeof(entry[0]));
     entry[idx].size  = size;
     entry[idx].price = price;
@@ -123,11 +126,11 @@ class PriceLevetT,
   inline bool deletePlevel(PriceLevetT pLevelIdx) {
     PriceLevetT idx = priceLevel2idx(pLevelIdx);
     
-    for (auto i = idx; i < ENTRIES - 1; i ++)
+    for (auto i = idx; i < ActiveEntries - 1; i ++)
       memcpy(&entry[i],&entry[i+1],sizeof(entry[0]));
-    entry[ENTRIES - 1].valid = false;
-    entry[ENTRIES - 1].size  = 0; 
-    entry[ENTRIES - 1].price = 0;     
+    entry[ActiveEntries - 1].valid = false;
+    entry[ActiveEntries - 1].size  = 0; 
+    entry[ActiveEntries - 1].price = 0;     
     return idx == 0;// && entry[0].valid;
   }
 
@@ -136,6 +139,7 @@ class PriceLevetT,
  private:
   SideT       side = SideT::UNINIT;
   EkaFhCmeBookEntry <PriceT,SizeT> entry[ENTRIES] = {};
+  PriceLevetT ActiveEntries = 0; 
 
   PriceLevetT      tob = 0; // pointer to best price entry
 

@@ -727,6 +727,11 @@ namespace Cme {
     Symbol_T                      	Symbol;
   } __attribute__((packed));
 
+  struct DefinitionFeedTypeEntry {
+    MDFeedType_T                       	MDFeedType;
+    Int8_T                      	MarketDepth;
+  } __attribute__((packed));
+
 
   struct MDSnapshotFullRefreshMdEntry {
     PRICENULL9_T                  	MDEntryPx;
@@ -970,6 +975,7 @@ namespace Cme {
 	/* ##################################################################### */
       case MsgId::MDInstrumentDefinitionFuture54 : {
 	auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionFuture54_mainBlock*>(m)};
+	m += msgHdr->blockLen;
 	/* ------------------------------- */
 	auto symbol           {std::string(rootBlock->Symbol,          sizeof(rootBlock->Symbol))};
 	auto cfiCode          {std::string(rootBlock->CFICode,         sizeof(rootBlock->CFICode))};
@@ -978,7 +984,7 @@ namespace Cme {
 	auto securityType     {std::string(rootBlock->SecurityType,    sizeof(rootBlock->SecurityType))};
 	auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
 
-	printf ("\t\tDefinitionFuture54: \'%s\',\'%s\',\'%s\',\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u\n",
+	printf ("\t\tDefinitionFuture54: \'%s\',\'%s\',\'%s\',\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u,",
 		securityExchange.c_str(),
 		asset.c_str(),
 		symbol.c_str(),
@@ -987,11 +993,30 @@ namespace Cme {
 		cfiCode.c_str(),
 		pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week
 		);
+
+
+	/* ------------------------------- */
+	auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
+	m += sizeof(*pGroupSize_EventType);
+	for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++) 
+	  m += pGroupSize_EventType->blockLength;
+	/* ------------------------------- */
+	auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)};
+	m += sizeof(*pGroupSize_FeedType);
+	for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) {
+	  auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)};
+	  printf("MarketDepth=%d,",e->MarketDepth);
+	  m += pGroupSize_FeedType->blockLength;
+	}
+	/* ------------------------------- */
+	printf("\n");
       }
 	break;
 	/* ##################################################################### */
       case MsgId::MDInstrumentDefinitionOption55 : {
 	auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionOption55_mainBlock*>(m)};
+	m += msgHdr->blockLen;
+
 	/* ------------------------------- */
 	auto symbol           {std::string(rootBlock->Symbol,	       sizeof(rootBlock->Symbol))};
 	auto cfiCode          {std::string(rootBlock->CFICode,	       sizeof(rootBlock->CFICode))};
@@ -1006,7 +1031,7 @@ namespace Cme {
 	  hexDump("DefinitionOption55",msgHdr,msgHdr->size);	  
 	  on_error("Unexpected rootBlock->PutOrCall = 0x%x",(int)rootBlock->PutOrCall);
 	}
-	printf("\t\tDefinitionOption55: \'%s\',\'%s\',\'%s\',%s,\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u, %ju (%jd)\n",
+	printf("\t\tDefinitionOption55: \'%s\',\'%s\',\'%s\',%s,\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u, %ju (%jd),",
 	       securityExchange.c_str(),
 	       asset.c_str(),
 	       symbol.c_str(),
@@ -1018,12 +1043,55 @@ namespace Cme {
 	       rootBlock->StrikePrice,
 	       (int64_t)((rootBlock->StrikePrice / EFH_CME_PRICE_SCALE) * (rootBlock->DisplayFactor / 1e9))
 	       );
+	/* ------------------------------- */
+	auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
+	m += sizeof(*pGroupSize_EventType);
+	for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++)
+	  m += pGroupSize_EventType->blockLength;
+	/* ------------------------------- */
+	auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)};
+	m += sizeof(*pGroupSize_FeedType);
+	for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) {
+	  auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)};
+	  printf("MarketDepth=%d,",e->MarketDepth);
+	  m += pGroupSize_FeedType->blockLength;
+	}
+	/* ------------------------------- */
+	auto pGroupSize_InstrAttribType {reinterpret_cast<const groupSize_T*>(m)};
+	m += sizeof(*pGroupSize_InstrAttribType);
+	for (uint i = 0; i < pGroupSize_InstrAttribType->numInGroup; i++)
+	  m += pGroupSize_InstrAttribType->blockLength;
+	/* ------------------------------- */
+	auto pGroupSize_LotType {reinterpret_cast<const groupSize_T*>(m)};
+	m += sizeof(*pGroupSize_LotType);
+	for (uint i = 0; i < pGroupSize_LotType->numInGroup; i++)
+	  m += pGroupSize_LotType->blockLength;
+	/* ------------------------------- */
+	auto pGroupSize_Underlyings {reinterpret_cast<const groupSize_T*>(m)};
+	m += sizeof(*pGroupSize_Underlyings);
+	for (uint i = 0; i < pGroupSize_Underlyings->numInGroup; i++) {
+	  auto underlyingBlock{reinterpret_cast<const OptionDefinitionUnderlyingEntry*>(m)};
+	  printf("UnderlyingSymbol=%s,",
+		 std::string(underlyingBlock->UnderlyingSymbol,
+			     sizeof(underlyingBlock->UnderlyingSymbol)).c_str());
+	  m += pGroupSize_Underlyings->blockLength;
+	}
+	/* ------------------------------- */
+	auto pGroupSize_RelatedInstruments {reinterpret_cast<const groupSize_T*>(m)};
+	m += sizeof(*pGroupSize_RelatedInstruments);
+	for (uint i = 0; i < pGroupSize_RelatedInstruments->numInGroup; i++) {
+	  auto e {reinterpret_cast<const OptionDefinition55RelatedInstrumentEntry*>(m)};
+
+	  printf("Related SecurityID=%d,",e->SecurityID);
+	  m += pGroupSize_RelatedInstruments->blockLength;
+	}
+	printf("\n");
       }
 	break;
 	/* ##################################################################### */
       case MsgId::MDInstrumentDefinitionSpread56 : {
 	auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionOption55_mainBlock*>(m)};
-	printf ("\t\tMDInstrumentDefinitionSpread56: MatchEventIndicator=0x%x\n",
+	printf ("\t\tMDInstrumentDefinitionSpread56: MatchEventIndicator=0x%x,",
 		rootBlock->MatchEventIndicator);
 	m += msgHdr->blockLen;
 
@@ -1032,11 +1100,14 @@ namespace Cme {
 	m += sizeof(*pGroupSize_EventType);
 	for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++) 
 	  m += pGroupSize_EventType->blockLength;
-	/* ------------------------------- */		
-	auto pGroupSize_MDFeedType {reinterpret_cast<const groupSize_T*>(m)};
-	m += sizeof(*pGroupSize_MDFeedType);
-	for (uint i = 0; i < pGroupSize_MDFeedType->numInGroup; i++) 
-	  m += pGroupSize_MDFeedType->blockLength;
+	/* ------------------------------- */
+	auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)};
+	m += sizeof(*pGroupSize_FeedType);
+	for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) {
+	  auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)};
+	  printf("MarketDepth=%d,",e->MarketDepth);
+	  m += pGroupSize_FeedType->blockLength;
+	}	
 	/* ------------------------------- */
 	auto pGroupSize_InstAttribType {reinterpret_cast<const groupSize_T*>(m)};
 	m += sizeof(*pGroupSize_InstAttribType);
@@ -1058,6 +1129,8 @@ namespace Cme {
 		  e->LegRatioQty);
 	  m += pGroupSize->blockLength;
 	}
+	printf("\n");
+
       }
 	break;
 	/* ##################################################################### */

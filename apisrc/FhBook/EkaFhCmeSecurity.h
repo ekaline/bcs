@@ -24,11 +24,12 @@ class PriceLevetT,
       secId         = _secId;
       numBidPlevels = 0;
       numAskPlevels = 0;
-      bid           = new EkaFhCmeBookSide<PriceLevetT,PriceT,SizeT>(SideT::BID);
-      ask           = new EkaFhCmeBookSide<PriceLevetT,PriceT,SizeT>(SideT::ASK);
+      bid           = new EkaFhCmeBookSide<PriceLevetT,PriceT,SizeT>(SideT::BID,getActivePriceLevels());
+      ask           = new EkaFhCmeBookSide<PriceLevetT,PriceT,SizeT>(SideT::ASK,getActivePriceLevels());
     }
 
     uint64_t getFinalPriceFactor() const noexcept { return this->opaqueAttrA; }
+    uint64_t getActivePriceLevels() const noexcept { return this->opaqueAttrB; }
 
     /* --------------------------------------------------------------- */
     inline bool newPlevel(SideT         side,

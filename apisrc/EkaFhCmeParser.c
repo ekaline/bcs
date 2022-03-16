@@ -523,12 +523,27 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   msg.commonDef.underlyingType = EfhSecurityType::kIndex;
   msg.commonDef.contractSize   = 0;
   msg.commonDef.opaqueAttrA    = computeFinalPriceFactor(rootBlock->DisplayFactor);
+  msg.commonDef.opaqueAttrB    = 10; // default Market Depth for Futures
   getCMEProductTradeTime(pMaturity, rootBlock->Symbol, &msg.commonDef.expiryDate, &msg.commonDef.expiryTime);
 
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
   copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
   copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
-
+  
+  /* ------------------------------- */
+  auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
+  m += sizeof(*pGroupSize_EventType);
+  for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++)
+    m += pGroupSize_EventType->blockLength;
+  /* ------------------------------- */
+  auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)};
+  m += sizeof(*pGroupSize_FeedType);
+  for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) {
+    auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)};
+    msg.commonDef.opaqueAttrB = e->MarketDepth;
+    m += pGroupSize_FeedType->blockLength;
+  }
+  /* ------------------------------- */
   pEfhRunCtx->onEfhFutureDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
   
   return msgHdr->size;
@@ -592,7 +607,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   msg.optionStyle           = static_cast<EfhOptionStyle>(rootBlock->CFICode[2]);
   msg.strikePrice           = rootBlock->StrikePrice / priceAdjustFactor;
 
-  //      msg.opaqueAttrB           = rootBlock->PriceDisplayFormat;
+  msg.commonDef.opaqueAttrB = 3; // default MarketDepth for Options
 
   /* ------------------------------- */
   auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
@@ -602,8 +617,11 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   /* ------------------------------- */
   auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize_FeedType);
-  for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++)
+  for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) {
+    auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)};
+    msg.commonDef.opaqueAttrB = e->MarketDepth;
     m += pGroupSize_FeedType->blockLength;
+  }
   /* ------------------------------- */
   auto pGroupSize_InstrAttribType {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize_InstrAttribType);
@@ -681,6 +699,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   msg.commonDef.expiryTime     = 0;
   msg.commonDef.contractSize   = 0;
   msg.commonDef.opaqueAttrA    = priceAdjustFactor;
+  msg.commonDef.opaqueAttrB    = 3; // Market Depth
 
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
   copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
@@ -692,10 +711,13 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++) 
     m += pGroupSize_EventType->blockLength;
   /* ------------------------------- */		
-  auto pGroupSize_MDFeedType {reinterpret_cast<const groupSize_T*>(m)};
-  m += sizeof(*pGroupSize_MDFeedType);
-  for (uint i = 0; i < pGroupSize_MDFeedType->numInGroup; i++) 
-    m += pGroupSize_MDFeedType->blockLength;
+  auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)};
+  m += sizeof(*pGroupSize_FeedType);
+  for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) {
+    auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)};
+    msg.commonDef.opaqueAttrB = e->MarketDepth;
+    m += pGroupSize_FeedType->blockLength;
+  }
   /* ------------------------------- */
   auto pGroupSize_InstAttribType {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize_InstAttribType);
