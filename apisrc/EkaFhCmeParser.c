@@ -544,6 +544,8 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
     m += pGroupSize_FeedType->blockLength;
   }
   /* ------------------------------- */
+  if (msg.commonDef.opaqueAttrB < 3) printMDInstrumentDefinitionFuture54(pMsg,msgHdr);
+
   pEfhRunCtx->onEfhFutureDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
   
   return msgHdr->size;
@@ -653,6 +655,8 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
 
     m += pGroupSize_RelatedInstruments->blockLength;
   }
+  
+  if (msg.commonDef.opaqueAttrB < 3) printMDInstrumentDefinitionOption55(pMsg,msgHdr);
 
   pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
 
@@ -753,6 +757,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   }
   msg.numLegs = pGroupSize->numInGroup;
 
+  if (msg.commonDef.opaqueAttrB < 3) printMDInstrumentDefinitionSpread56(pMsg,msgHdr);
   if (pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL)
     on_error("pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL");
   pEfhRunCtx->onEfhComplexDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);

@@ -843,110 +843,90 @@ namespace Cme {
     }
   }
 
-  inline uint32_t printPkt(const uint8_t* pkt, const int payloadLen, uint64_t pktNum) {
-    auto p {pkt};
-    auto pktHdr {reinterpret_cast<const PktHdr*>(p)};
+  inline void printQuoteRequest39(const uint8_t* msg,const MsgHdr* msgHdr) {
+    auto m {msg};
+    auto rootBlock {reinterpret_cast<const QuoteRequest39_mainBlock*>(m)};
+    auto quoteReqID {std::string(rootBlock->QuoteReqID,sizeof(rootBlock->QuoteReqID))};
 
-    auto ts        {pktHdr->time};
-    auto sequence  {pktHdr->seq};
-    printf ("pktNum=%ju,pktTime=%ju,pktSeq=%u\n",
-	    pktNum,ts,sequence);
+    printf ("\t\tQuoteRequest39: TransactTime=%s (%ju), MatchEventIndicator=0x%x,quoteReqID=\'%s\'\n",
+	    ts_ns2str(rootBlock->TransactTime).c_str(),rootBlock->TransactTime,
+	    rootBlock->MatchEventIndicator,quoteReqID.c_str());
+    m += msgHdr->blockLen;
+    /* ------------------------------- */
+    auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
+    m += sizeof(*pGroupSize);
+    /* ------------------------------- */
+    for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+      auto e {reinterpret_cast<const QuoteRequest39_legEntry*>(m)};
+      auto symbol {std::string(e->Symbol,sizeof(e->Symbol))};
 
-    p += sizeof(*pktHdr);
+      printf ("\t\t\tSymbol=\'%s\',secId=%8d,QuoteType=0x%x,side=0x%x,size=0x%x\n",
+	      symbol.c_str(),
+	      e->SecurityID,
+	      e->QuoteType,
+	      e->Side,
+	      e->OrderQty);
 
-    while (p - pkt < payloadLen) {
-      auto m {p};
-      auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
-      printf ("\tMsgId=%d,size=%u,blockLen=%u\n",
-	      (int)msgHdr->templateId,
-	      msgHdr->size,
-	      msgHdr->blockLen);
-      m += sizeof(*msgHdr);
-
-      switch (msgHdr->templateId) {
-	/* ##################################################################### */
-      case MsgId::QuoteRequest39 : {
-	auto rootBlock {reinterpret_cast<const QuoteRequest39_mainBlock*>(m)};
-	auto quoteReqID {std::string(rootBlock->QuoteReqID,sizeof(rootBlock->QuoteReqID))};
-
-	printf ("\t\tQuoteRequest39: TransactTime=%s (%ju), MatchEventIndicator=0x%x,quoteReqID=\'%s\'\n",
-		ts_ns2str(rootBlock->TransactTime).c_str(),rootBlock->TransactTime,
-		rootBlock->MatchEventIndicator,quoteReqID.c_str());
-	m += msgHdr->blockLen;
-	/* ------------------------------- */
-	auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
-	m += sizeof(*pGroupSize);
-	/* ------------------------------- */
-	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
-	  auto e {reinterpret_cast<const QuoteRequest39_legEntry*>(m)};
-	  auto symbol {std::string(e->Symbol,sizeof(e->Symbol))};
-
-	  printf ("\t\t\tSymbol=\'%s\',secId=%8d,QuoteType=0x%x,side=0x%x,size=0x%x\n",
-		  symbol.c_str(),
-		  e->SecurityID,
-		  e->QuoteType,
-		  e->Side,
-		  e->OrderQty);
-
-	  m += pGroupSize->blockLength;
-	}
+      m += pGroupSize->blockLength;
+    }
+  }
+    
+  
+    inline void printSnapshotFullRefresh52(const uint8_t* msg,const MsgHdr* msgHdr) {
+     auto m {msg};
+     auto rootBlock {reinterpret_cast<const SnapshotFullRefresh52_mainBlock*>(m)};
+      /* ------------------------------- */
+      printf("\t\tSnapshotFullRefresh52: secId=%8d,LastMsgSeqNumProcessed=%u,"
+	     "TotNumReports=%u,%s,%s\n",
+	     rootBlock->SecurityID,
+	     rootBlock->LastMsgSeqNumProcessed,
+	     rootBlock->TotNumReports,
+	     SecurityTradingStatus2STR(rootBlock->MDSecurityTradingStatus),
+	     ts_ns2str(rootBlock->LastUpdateTime).c_str());
+      m += msgHdr->blockLen;
+      /* ------------------------------- */
+      auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
+      m += sizeof(*pGroupSize);
+      /* ------------------------------- */
+      for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+	auto e {reinterpret_cast<const MDSnapshotFullRefreshMdEntry*>(m)};
+	printf ("\t\t\t%5s,plvl=%u,p=%16jd,s=%d\n",
+		MDEntryType2STR(e->MDEntryType),
+		e->MDPriceLevel,
+		(int64_t) (e->MDEntryPx / EFH_CME_PRICE_SCALE),
+		e->MDEntrySize);
+	m += pGroupSize->blockLength;    
       }
-	break;
-	/* ##################################################################### */
-      case MsgId::SnapshotFullRefresh52 : {
-	auto rootBlock {reinterpret_cast<const SnapshotFullRefresh52_mainBlock*>(m)};
-	/* ------------------------------- */
-	printf("\t\tSnapshotFullRefresh52: secId=%8d,LastMsgSeqNumProcessed=%u,"
-	       "TotNumReports=%u,%s,%s\n",
-	       rootBlock->SecurityID,
-	       rootBlock->LastMsgSeqNumProcessed,
-	       rootBlock->TotNumReports,
-	       SecurityTradingStatus2STR(rootBlock->MDSecurityTradingStatus),
-	       ts_ns2str(rootBlock->LastUpdateTime).c_str());
-	m += msgHdr->blockLen;
-	/* ------------------------------- */
-	auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
-	m += sizeof(*pGroupSize);
-	/* ------------------------------- */
-	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
-	  auto e {reinterpret_cast<const MDSnapshotFullRefreshMdEntry*>(m)};
-	  printf ("\t\t\t%5s,plvl=%u,p=%16jd,s=%d\n",
-		  MDEntryType2STR(e->MDEntryType),
-		  e->MDPriceLevel,
-		  (int64_t) (e->MDEntryPx / EFH_CME_PRICE_SCALE),
-		  e->MDEntrySize);
-	  m += pGroupSize->blockLength;    
-	}
-      }
-	break;
-	/* ##################################################################### */
-      case MsgId::MDIncrementalRefreshBook46 : {
-	/* ------------------------------- */
-	auto rootBlock {reinterpret_cast<const MDIncrementalRefreshBook46_mainBlock*>(m)};
-	printf ("\t\tIncrementalRefreshBook46: TransactTime=%s (%ju), MatchEventIndicator=0x%x\n",
-		ts_ns2str(rootBlock->TransactTime).c_str(),rootBlock->TransactTime,
-		rootBlock->MatchEventIndicator);
-	m += msgHdr->blockLen;
-	/* ------------------------------- */
-	auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
-	m += sizeof(*pGroupSize);
-	/* ------------------------------- */
-	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
-	  auto e {reinterpret_cast<const IncrementalRefreshMdEntry*>(m)};
-	  printf ("\t\t\tsecId=%8d,%6s,%5s,plvl=%u,p=%16jd,s=%d\n",
-		  e->SecurityID,
-		  MDpdateAction2STR(e->MDUpdateAction),
-		  MDEntryTypeBook2STR(e->MDEntryType),
-		  e->MDPriceLevel,
-		  (int64_t) (e->MDEntryPx / EFH_CME_PRICE_SCALE),
-		  e->MDEntrySize);
+    }
 
-	  m += pGroupSize->blockLength;
-	}
-      }
-	break;
-	/* ##################################################################### */
-      case MsgId::MDIncrementalRefreshTradeSummary48 : {
+  inline void printMDIncrementalRefreshBook46(const uint8_t* msg,const MsgHdr* msgHdr) {
+     auto m {msg};
+   /* ------------------------------- */
+    auto rootBlock {reinterpret_cast<const MDIncrementalRefreshBook46_mainBlock*>(m)};
+    printf ("\t\tIncrementalRefreshBook46: TransactTime=%s (%ju), MatchEventIndicator=0x%x\n",
+	    ts_ns2str(rootBlock->TransactTime).c_str(),rootBlock->TransactTime,
+	    rootBlock->MatchEventIndicator);
+    m += msgHdr->blockLen;
+    /* ------------------------------- */
+    auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
+    m += sizeof(*pGroupSize);
+    /* ------------------------------- */
+    for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+      auto e {reinterpret_cast<const IncrementalRefreshMdEntry*>(m)};
+      printf ("\t\t\tsecId=%8d,%6s,%5s,plvl=%u,p=%16jd,s=%d\n",
+	      e->SecurityID,
+	      MDpdateAction2STR(e->MDUpdateAction),
+	      MDEntryTypeBook2STR(e->MDEntryType),
+	      e->MDPriceLevel,
+	      (int64_t) (e->MDEntryPx / EFH_CME_PRICE_SCALE),
+	      e->MDEntrySize);
+
+      m += pGroupSize->blockLength;
+    }
+  }
+
+    inline void printMDIncrementalRefreshTradeSummary48(const uint8_t* msg,const MsgHdr* msgHdr) {
+     auto m {msg};
 	/* ------------------------------- */
 	auto rootBlock {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mainBlock*>(m)};
 	printf ("\t\tIncrementalRefreshTradeSummary48: TransactTime=%s (%ju), MatchEventIndicator=0x%x\n",
@@ -971,167 +951,216 @@ namespace Cme {
 	  m += pGroupSize->blockLength;
 	}
       }
+
+  inline void printMDInstrumentDefinitionFuture54(const uint8_t* msg,const MsgHdr* msgHdr) {
+    auto m {msg};
+    auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionFuture54_mainBlock*>(m)};
+    m += msgHdr->blockLen;
+    /* ------------------------------- */
+    auto symbol           {std::string(rootBlock->Symbol,          sizeof(rootBlock->Symbol))};
+    auto cfiCode          {std::string(rootBlock->CFICode,         sizeof(rootBlock->CFICode))};
+    auto securityExchange {std::string(rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange))};
+    auto asset            {std::string(rootBlock->Asset,           sizeof(rootBlock->Asset))};
+    auto securityType     {std::string(rootBlock->SecurityType,    sizeof(rootBlock->SecurityType))};
+    auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
+
+    printf ("\t\tDefinitionFuture54: \'%s\',\'%s\',\'%s\',\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u,",
+	    securityExchange.c_str(),
+	    asset.c_str(),
+	    symbol.c_str(),
+	    securityType.c_str(),
+	    rootBlock->SecurityID,
+	    cfiCode.c_str(),
+	    pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week
+	    );
+
+
+    /* ------------------------------- */
+    auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
+    m += sizeof(*pGroupSize_EventType);
+    for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++) 
+      m += pGroupSize_EventType->blockLength;
+    /* ------------------------------- */
+    auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)};
+    m += sizeof(*pGroupSize_FeedType);
+    for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) {
+      auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)};
+      printf("MarketDepth=%d,",e->MarketDepth);
+      m += pGroupSize_FeedType->blockLength;
+    }
+    /* ------------------------------- */
+    printf("\n");
+  }
+
+  inline void printMDInstrumentDefinitionOption55(const uint8_t* msg,const MsgHdr* msgHdr) {
+    auto m {msg};
+    auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionOption55_mainBlock*>(m)};
+    m += msgHdr->blockLen;
+
+    /* ------------------------------- */
+    auto symbol           {std::string(rootBlock->Symbol,	       sizeof(rootBlock->Symbol))};
+    auto cfiCode          {std::string(rootBlock->CFICode,	       sizeof(rootBlock->CFICode))};
+    auto securityExchange {std::string(rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange))};
+    auto asset            {std::string(rootBlock->Asset,	       sizeof(rootBlock->Asset))};
+    auto securityType     {std::string(rootBlock->SecurityType,    sizeof(rootBlock->SecurityType))};
+    auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
+
+    auto putOrCall {getEfhOptionType(rootBlock->PutOrCall)};
+
+    if (putOrCall == EfhOptionType::kErr) {
+      hexDump("DefinitionOption55",msgHdr,msgHdr->size);	  
+      on_error("Unexpected rootBlock->PutOrCall = 0x%x",(int)rootBlock->PutOrCall);
+    }
+    printf("\t\tDefinitionOption55: \'%s\',\'%s\',\'%s\',%s,\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u, %ju (%jd),",
+	   securityExchange.c_str(),
+	   asset.c_str(),
+	   symbol.c_str(),
+	   putOrCall == EfhOptionType::kPut ? "PUT" : putOrCall == EfhOptionType::kCall ? "CALL" : "ERR",
+	   securityType.c_str(),
+	   rootBlock->SecurityID,
+	   cfiCode.c_str(),
+	   pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week,
+	   rootBlock->StrikePrice,
+	   (int64_t)((rootBlock->StrikePrice / EFH_CME_PRICE_SCALE) * (rootBlock->DisplayFactor / 1e9))
+	   );
+    /* ------------------------------- */
+    auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
+    m += sizeof(*pGroupSize_EventType);
+    for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++)
+      m += pGroupSize_EventType->blockLength;
+    /* ------------------------------- */
+    auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)};
+    m += sizeof(*pGroupSize_FeedType);
+    for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) {
+      auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)};
+      printf("MarketDepth=%d,",e->MarketDepth);
+      m += pGroupSize_FeedType->blockLength;
+    }
+    /* ------------------------------- */
+    auto pGroupSize_InstrAttribType {reinterpret_cast<const groupSize_T*>(m)};
+    m += sizeof(*pGroupSize_InstrAttribType);
+    for (uint i = 0; i < pGroupSize_InstrAttribType->numInGroup; i++)
+      m += pGroupSize_InstrAttribType->blockLength;
+    /* ------------------------------- */
+    auto pGroupSize_LotType {reinterpret_cast<const groupSize_T*>(m)};
+    m += sizeof(*pGroupSize_LotType);
+    for (uint i = 0; i < pGroupSize_LotType->numInGroup; i++)
+      m += pGroupSize_LotType->blockLength;
+    /* ------------------------------- */
+    auto pGroupSize_Underlyings {reinterpret_cast<const groupSize_T*>(m)};
+    m += sizeof(*pGroupSize_Underlyings);
+    for (uint i = 0; i < pGroupSize_Underlyings->numInGroup; i++) {
+      auto underlyingBlock{reinterpret_cast<const OptionDefinitionUnderlyingEntry*>(m)};
+      printf("UnderlyingSymbol=%s,",
+	     std::string(underlyingBlock->UnderlyingSymbol,
+			 sizeof(underlyingBlock->UnderlyingSymbol)).c_str());
+      m += pGroupSize_Underlyings->blockLength;
+    }
+    /* ------------------------------- */
+    auto pGroupSize_RelatedInstruments {reinterpret_cast<const groupSize_T*>(m)};
+    m += sizeof(*pGroupSize_RelatedInstruments);
+    for (uint i = 0; i < pGroupSize_RelatedInstruments->numInGroup; i++) {
+      auto e {reinterpret_cast<const OptionDefinition55RelatedInstrumentEntry*>(m)};
+
+      printf("Related SecurityID=%d,",e->SecurityID);
+      m += pGroupSize_RelatedInstruments->blockLength;
+    }
+    printf("\n");
+  }
+  inline void printMDInstrumentDefinitionSpread56(const uint8_t* msg,const MsgHdr* msgHdr) {
+    auto m {msg};
+    auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionSpread56_mainBlock*>(m)};
+    printf ("\t\tMDInstrumentDefinitionSpread56: MatchEventIndicator=0x%x,",
+	    rootBlock->MatchEventIndicator);
+    m += msgHdr->blockLen;
+
+    /* ------------------------------- */
+    auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
+    m += sizeof(*pGroupSize_EventType);
+    for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++) 
+      m += pGroupSize_EventType->blockLength;
+    /* ------------------------------- */
+    auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)};
+    m += sizeof(*pGroupSize_FeedType);
+    for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) {
+      auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)};
+      printf("MarketDepth=%d,",e->MarketDepth);
+      m += pGroupSize_FeedType->blockLength;
+    }	
+    /* ------------------------------- */
+    auto pGroupSize_InstAttribType {reinterpret_cast<const groupSize_T*>(m)};
+    m += sizeof(*pGroupSize_InstAttribType);
+    for (uint i = 0; i < pGroupSize_InstAttribType->numInGroup; i++)
+      m += pGroupSize_InstAttribType->blockLength;
+    /* ------------------------------- */
+    auto pGroupSize_LotTypeRules {reinterpret_cast<const groupSize_T*>(m)};
+    m += sizeof(*pGroupSize_LotTypeRules);
+    for (uint i = 0; i < pGroupSize_LotTypeRules->numInGroup; i++)
+      m += pGroupSize_LotTypeRules->blockLength;
+    /* ------------------------------- */
+    auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
+    m += sizeof(*pGroupSize);
+    for (uint i = 0; i < pGroupSize->numInGroup; i++) {
+      auto e {reinterpret_cast<const MDInstrumentDefinitionSpread56_legEntry*>(m)};
+      printf ("\t\t\tsecId=%8d,side=%d,LegRatioQty=%d\n",
+	      e->LegSecurityID,
+	      (int)e->LegSide,
+	      e->LegRatioQty);
+      m += pGroupSize->blockLength;
+    }
+    printf("\n");
+
+  }
+
+  
+  inline uint32_t printPkt(const uint8_t* pkt, const int payloadLen, uint64_t pktNum) {
+    auto p {pkt};
+    auto pktHdr {reinterpret_cast<const PktHdr*>(p)};
+
+    auto ts        {pktHdr->time};
+    auto sequence  {pktHdr->seq};
+    printf ("pktNum=%ju,pktTime=%ju,pktSeq=%u\n",
+	    pktNum,ts,sequence);
+
+    p += sizeof(*pktHdr);
+
+    while (p - pkt < payloadLen) {
+      auto m {p};
+      auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
+      printf ("\tMsgId=%d,size=%u,blockLen=%u\n",
+	      (int)msgHdr->templateId,
+	      msgHdr->size,
+	      msgHdr->blockLen);
+      m += sizeof(*msgHdr);
+
+      switch (msgHdr->templateId) {
+	/* ##################################################################### */
+      case MsgId::QuoteRequest39 :
+	printQuoteRequest39(m,msgHdr);
+	break;
+	/* ##################################################################### */
+      case MsgId::SnapshotFullRefresh52 : 
+	printSnapshotFullRefresh52(m,msgHdr);
+	break;
+	/* ##################################################################### */
+      case MsgId::MDIncrementalRefreshBook46 : 
+	printMDIncrementalRefreshBook46(m,msgHdr);
+	break;
+	/* ##################################################################### */
+      case MsgId::MDIncrementalRefreshTradeSummary48 : 
+	printMDIncrementalRefreshTradeSummary48(m,msgHdr);
 	break;	
 	/* ##################################################################### */
-      case MsgId::MDInstrumentDefinitionFuture54 : {
-	auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionFuture54_mainBlock*>(m)};
-	m += msgHdr->blockLen;
-	/* ------------------------------- */
-	auto symbol           {std::string(rootBlock->Symbol,          sizeof(rootBlock->Symbol))};
-	auto cfiCode          {std::string(rootBlock->CFICode,         sizeof(rootBlock->CFICode))};
-	auto securityExchange {std::string(rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange))};
-	auto asset            {std::string(rootBlock->Asset,           sizeof(rootBlock->Asset))};
-	auto securityType     {std::string(rootBlock->SecurityType,    sizeof(rootBlock->SecurityType))};
-	auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
-
-	printf ("\t\tDefinitionFuture54: \'%s\',\'%s\',\'%s\',\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u,",
-		securityExchange.c_str(),
-		asset.c_str(),
-		symbol.c_str(),
-		securityType.c_str(),
-		rootBlock->SecurityID,
-		cfiCode.c_str(),
-		pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week
-		);
-
-
-	/* ------------------------------- */
-	auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
-	m += sizeof(*pGroupSize_EventType);
-	for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++) 
-	  m += pGroupSize_EventType->blockLength;
-	/* ------------------------------- */
-	auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)};
-	m += sizeof(*pGroupSize_FeedType);
-	for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) {
-	  auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)};
-	  printf("MarketDepth=%d,",e->MarketDepth);
-	  m += pGroupSize_FeedType->blockLength;
-	}
-	/* ------------------------------- */
-	printf("\n");
-      }
+      case MsgId::MDInstrumentDefinitionFuture54 :
+	printMDInstrumentDefinitionFuture54(m,msgHdr);
 	break;
 	/* ##################################################################### */
-      case MsgId::MDInstrumentDefinitionOption55 : {
-	auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionOption55_mainBlock*>(m)};
-	m += msgHdr->blockLen;
-
-	/* ------------------------------- */
-	auto symbol           {std::string(rootBlock->Symbol,	       sizeof(rootBlock->Symbol))};
-	auto cfiCode          {std::string(rootBlock->CFICode,	       sizeof(rootBlock->CFICode))};
-	auto securityExchange {std::string(rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange))};
-	auto asset            {std::string(rootBlock->Asset,	       sizeof(rootBlock->Asset))};
-	auto securityType     {std::string(rootBlock->SecurityType,    sizeof(rootBlock->SecurityType))};
-	auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
-
-	auto putOrCall {getEfhOptionType(rootBlock->PutOrCall)};
-
-	if (putOrCall == EfhOptionType::kErr) {
-	  hexDump("DefinitionOption55",msgHdr,msgHdr->size);	  
-	  on_error("Unexpected rootBlock->PutOrCall = 0x%x",(int)rootBlock->PutOrCall);
-	}
-	printf("\t\tDefinitionOption55: \'%s\',\'%s\',\'%s\',%s,\'%s\',%d,\'%s\',%04u-%02u-%02u--%02u, %ju (%jd),",
-	       securityExchange.c_str(),
-	       asset.c_str(),
-	       symbol.c_str(),
-	       putOrCall == EfhOptionType::kPut ? "PUT" : putOrCall == EfhOptionType::kCall ? "CALL" : "ERR",
-	       securityType.c_str(),
-	       rootBlock->SecurityID,
-	       cfiCode.c_str(),
-	       pMaturity->year,pMaturity->month,pMaturity->day,pMaturity->week,
-	       rootBlock->StrikePrice,
-	       (int64_t)((rootBlock->StrikePrice / EFH_CME_PRICE_SCALE) * (rootBlock->DisplayFactor / 1e9))
-	       );
-	/* ------------------------------- */
-	auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
-	m += sizeof(*pGroupSize_EventType);
-	for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++)
-	  m += pGroupSize_EventType->blockLength;
-	/* ------------------------------- */
-	auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)};
-	m += sizeof(*pGroupSize_FeedType);
-	for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) {
-	  auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)};
-	  printf("MarketDepth=%d,",e->MarketDepth);
-	  m += pGroupSize_FeedType->blockLength;
-	}
-	/* ------------------------------- */
-	auto pGroupSize_InstrAttribType {reinterpret_cast<const groupSize_T*>(m)};
-	m += sizeof(*pGroupSize_InstrAttribType);
-	for (uint i = 0; i < pGroupSize_InstrAttribType->numInGroup; i++)
-	  m += pGroupSize_InstrAttribType->blockLength;
-	/* ------------------------------- */
-	auto pGroupSize_LotType {reinterpret_cast<const groupSize_T*>(m)};
-	m += sizeof(*pGroupSize_LotType);
-	for (uint i = 0; i < pGroupSize_LotType->numInGroup; i++)
-	  m += pGroupSize_LotType->blockLength;
-	/* ------------------------------- */
-	auto pGroupSize_Underlyings {reinterpret_cast<const groupSize_T*>(m)};
-	m += sizeof(*pGroupSize_Underlyings);
-	for (uint i = 0; i < pGroupSize_Underlyings->numInGroup; i++) {
-	  auto underlyingBlock{reinterpret_cast<const OptionDefinitionUnderlyingEntry*>(m)};
-	  printf("UnderlyingSymbol=%s,",
-		 std::string(underlyingBlock->UnderlyingSymbol,
-			     sizeof(underlyingBlock->UnderlyingSymbol)).c_str());
-	  m += pGroupSize_Underlyings->blockLength;
-	}
-	/* ------------------------------- */
-	auto pGroupSize_RelatedInstruments {reinterpret_cast<const groupSize_T*>(m)};
-	m += sizeof(*pGroupSize_RelatedInstruments);
-	for (uint i = 0; i < pGroupSize_RelatedInstruments->numInGroup; i++) {
-	  auto e {reinterpret_cast<const OptionDefinition55RelatedInstrumentEntry*>(m)};
-
-	  printf("Related SecurityID=%d,",e->SecurityID);
-	  m += pGroupSize_RelatedInstruments->blockLength;
-	}
-	printf("\n");
-      }
+      case MsgId::MDInstrumentDefinitionOption55 : 
+	printMDInstrumentDefinitionOption55(m,msgHdr);
 	break;
 	/* ##################################################################### */
-      case MsgId::MDInstrumentDefinitionSpread56 : {
-	auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionOption55_mainBlock*>(m)};
-	printf ("\t\tMDInstrumentDefinitionSpread56: MatchEventIndicator=0x%x,",
-		rootBlock->MatchEventIndicator);
-	m += msgHdr->blockLen;
-
-	/* ------------------------------- */
-	auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
-	m += sizeof(*pGroupSize_EventType);
-	for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++) 
-	  m += pGroupSize_EventType->blockLength;
-	/* ------------------------------- */
-	auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)};
-	m += sizeof(*pGroupSize_FeedType);
-	for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) {
-	  auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)};
-	  printf("MarketDepth=%d,",e->MarketDepth);
-	  m += pGroupSize_FeedType->blockLength;
-	}	
-	/* ------------------------------- */
-	auto pGroupSize_InstAttribType {reinterpret_cast<const groupSize_T*>(m)};
-	m += sizeof(*pGroupSize_InstAttribType);
-	for (uint i = 0; i < pGroupSize_InstAttribType->numInGroup; i++)
-	  m += pGroupSize_InstAttribType->blockLength;
-	/* ------------------------------- */
-	auto pGroupSize_LotTypeRules {reinterpret_cast<const groupSize_T*>(m)};
-	m += sizeof(*pGroupSize_LotTypeRules);
-	for (uint i = 0; i < pGroupSize_LotTypeRules->numInGroup; i++)
-	  m += pGroupSize_LotTypeRules->blockLength;
-	/* ------------------------------- */
-	auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
-	m += sizeof(*pGroupSize);
-	for (uint i = 0; i < pGroupSize->numInGroup; i++) {
-	  auto e {reinterpret_cast<const MDInstrumentDefinitionSpread56_legEntry*>(m)};
-	  printf ("\t\t\tsecId=%8d,side=%d,LegRatioQty=%d\n",
-		  e->LegSecurityID,
-		  (int)e->LegSide,
-		  e->LegRatioQty);
-	  m += pGroupSize->blockLength;
-	}
-	printf("\n");
-
-      }
+      case MsgId::MDInstrumentDefinitionSpread56 : 
+	printMDInstrumentDefinitionSpread56(m,msgHdr);
 	break;
 	/* ##################################################################### */
 		

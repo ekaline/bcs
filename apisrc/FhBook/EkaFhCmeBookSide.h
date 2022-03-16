@@ -88,7 +88,8 @@ class PriceLevetT,
 
   inline PriceLevetT priceLevel2idx(PriceLevetT priceLevel) {
     if (priceLevel == 0 || priceLevel > ActiveEntries )
-      on_error("Invalid priceLevel %u",priceLevel);
+      on_error("Invalid priceLevel %u (ActiveEntries = %u)",
+	       priceLevel,ActiveEntries);
     return (priceLevel - 1);
   }
 
