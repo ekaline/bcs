@@ -531,20 +531,20 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
   
   /* ------------------------------- */
-  auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
-  m += sizeof(*pGroupSize_EventType);
-  for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++)
-    m += pGroupSize_EventType->blockLength;
+  /* auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)}; */
+  /* m += sizeof(*pGroupSize_EventType); */
+  /* for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++) */
+  /*   m += pGroupSize_EventType->blockLength; */
+  /* /\* ------------------------------- *\/ */
+  /* auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)}; */
+  /* m += sizeof(*pGroupSize_FeedType); */
+  /* for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) { */
+  /*   auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)}; */
+  /*   msg.commonDef.opaqueAttrB = e->MarketDepth; */
+  /*   m += pGroupSize_FeedType->blockLength; */
+  /* } */
   /* ------------------------------- */
-  auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)};
-  m += sizeof(*pGroupSize_FeedType);
-  for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) {
-    auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)};
-    msg.commonDef.opaqueAttrB = e->MarketDepth;
-    m += pGroupSize_FeedType->blockLength;
-  }
-  /* ------------------------------- */
-  if (msg.commonDef.opaqueAttrB < 3) printMDInstrumentDefinitionFuture54(pMsg,msgHdr);
+  if (msg.commonDef.opaqueAttrB < 3) printMDInstrumentDefinitionFuture54(pMsg);
 
   pEfhRunCtx->onEfhFutureDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
   
@@ -656,7 +656,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
     m += pGroupSize_RelatedInstruments->blockLength;
   }
   
-  if (msg.commonDef.opaqueAttrB < 3) printMDInstrumentDefinitionOption55(pMsg,msgHdr);
+  if (msg.commonDef.opaqueAttrB < 3) printMDInstrumentDefinitionOption55(pMsg);
 
   pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
 
@@ -757,7 +757,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   }
   msg.numLegs = pGroupSize->numInGroup;
 
-  if (msg.commonDef.opaqueAttrB < 3) printMDInstrumentDefinitionSpread56(pMsg,msgHdr);
+  if (msg.commonDef.opaqueAttrB < 3) printMDInstrumentDefinitionSpread56(pMsg);
   if (pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL)
     on_error("pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL");
   pEfhRunCtx->onEfhComplexDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
