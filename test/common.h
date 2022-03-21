@@ -25,17 +25,14 @@ void doLog(FILE* file, const char *format, ...) {
 }
 
 #define ERROR(format, ...) do { \
-  doLog(stderr, "[ERROR] %s:%d " format, __FILE__, __LINE__ __VA_OPT__(,) __VA_ARGS__); \
+  doLog(stderr, "[ERROR] %s:%d " format "\n", __FILE__, __LINE__ __VA_OPT__(,) __VA_ARGS__); \
 } while (0)
 #define WARN(format, ...) do { \
-  doLog(stderr, "[WARNING] %s:%d " format, __FILE__, __LINE__ __VA_OPT__(,) __VA_ARGS__); \
+  doLog(stderr, "[WARNING] %s:%d " format "\n", __FILE__, __LINE__ __VA_OPT__(,) __VA_ARGS__); \
 } while (0)
 #define INFO(format, ...) do { \
-  doLog(stdout, "[INFO] %s:%d " format, __FILE__, __LINE__ __VA_OPT__(,) __VA_ARGS__); \
+  doLog(stdout, "[INFO] %s:%d " format "\n", __FILE__, __LINE__ __VA_OPT__(,) __VA_ARGS__); \
 } while (0)
-
-//template <typename T>
-//FILE *operator*(File *file, )
 
 template <typename T>
 T alignUpTo(T value, T alignment) {

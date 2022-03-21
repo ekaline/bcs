@@ -84,7 +84,7 @@ class StrategyManager {
         const Message &message{scenario->second.at(actionIndexInScenario).message()};
         WARN("Uploading payload (device, idx ", strategyIdx, ", ofs ", message.heapOffset(),
              ", size ", message.size(), ") with ", (int)result);
-        usleep(100);
+        usleep(200);
         EkaOpResult result = epmPayloadHeapCopy(device, strategyIdx, message.heapOffset(), message.size(), message.data());
         if (!isResultOk(result)) {
           ERROR("Failed to upload payload (device, idx ", strategyIdx, ", ofs ", message.heapOffset(),
