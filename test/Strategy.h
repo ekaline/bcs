@@ -19,7 +19,7 @@ class HeapManager {
     if (MessageAlignment == 0) MessageAlignment = 1;
     MessageHeaderSize = epmGetDeviceCapability(device, EpmDeviceCapability::EHC_DatagramOffset);
     MessageTrailerSize = epmGetDeviceCapability(device, EpmDeviceCapability::EHC_RequiredTailPadding);
-    current_ = MessageHeaderSize;
+    current_ = 0;
     return TotalHeapSize > 0 &&
            MessageAlignment > 0 &&
            MessageHeaderSize >= 0 &&
