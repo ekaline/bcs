@@ -51,7 +51,7 @@ class StrategyManager {
   };
 
   bool deployStrategies(EkaDev *device, EkaCoreId phyPort, std::vector<Strategy> &strategies) {
-    WARN("deploy strategies (dev, port ", phyPort, ", {} * ", strategies.size(), ")");
+    WARN("deploy strategies (dev, port %d, , {} * %d, , )", phyPort, strategies.size());
     EpmStrategyBuilder builder;
     if (!builder.build(device, strategies)) {
       ERROR("Failed to serialize EPM strategies for ekaline API");
@@ -64,7 +64,7 @@ class StrategyManager {
 
     auto result = epmInitStrategies(device, builder.epmStrategies.data(), builder.epmStrategies.size());
     if (!isResultOk(result)) {
-      ERROR("Failed to epmInitStrategies(_, _, ", builder.epmStrategies.size(), ") with ", result);
+      ERROR("Failed to epmInitStrategies(_, _, %ld, _) with %d", builder.epmStrategies.size(), result);
       return false;
     }
 
@@ -72,35 +72,35 @@ class StrategyManager {
     for (int strategyIdx = 0; !failed && (strategyIdx < (int)builder.epmStrategies.size()); ++strategyIdx) {
       Strategy &strategy = strategies[strategyIdx];
       auto &strategyActions{builder.epmActions[strategyIdx]};
-      WARN("Strategy[", strategyIdx, "]: ", strategyActions.size(), " actions");
+      WARN("Strategy[%d, %d]: actions", strategyIdx, strategyActions.size());
       for (int actionIdx = 0; actionIdx < (int)strategyActions.size(); ++actionIdx) {
         EpmAction &epmAction{strategyActions[actionIdx]};
         int actionIndexInScenario = actionIdx;
         const Strategy::Scenario *scenario = strategy.getScenarioForAction(actionIndexInScenario);
         if (!scenario) {
-          ERROR("Failed to retrieve scenario #", actionIndexInScenario, " in action #", strategyIdx);
+          ERROR("Failed to retrieve scenario #%d in action #%d", actionIndexInScenario, strategyIdx);
           return false;
         }
         const Message &message{scenario->second.at(actionIndexInScenario).message()};
-        WARN("Uploading payload (device, idx ", strategyIdx, ", ofs ", message.heapOffset(),
-             ", size ", message.size(), ") with ", (int)result);
+        WARN("Uploading payload (device, idx %d, ofs %d, size %d, _) with %d",
+             strategyIdx, message.heapOffset(), message.size(), (int)result);
         usleep(200);
         EkaOpResult result = epmPayloadHeapCopy(device, strategyIdx, message.heapOffset(), message.size(), message.data());
         if (!isResultOk(result)) {
-          ERROR("Failed to upload payload (device, idx ", strategyIdx, ", ofs ", message.heapOffset(),
-                ", size ", message.size(), ") with ", (int)result);
+          ERROR("Failed to upload payload (device, idx %d, ofs %d, size %d, _) with %d",
+                strategyIdx, message.heapOffset(),message.size(), (int)result);
           failed = true;
           break;
         }
         if (!isResultOk(epmSetAction(device, strategyIdx, actionIdx, &epmAction))) {
-          ERROR("Failed to set { action ", actionIdx, ", for strategy ", strategyIdx, ", type ", (int)epmAction.type,
-                ", ofs ", epmAction.offset, ", size ", epmAction.length, "}");
+          ERROR("Failed to set { action %d, for strategy %d, type %d, ofs %d, , size %d, , }",
+                actionIdx, strategyIdx, (int)epmAction.type, epmAction.offset, epmAction.length);
           failed = true;
           break;
         }
       }
       if (!isResultOk(epmSetStrategyEnableBits(device, strategyIdx, builder.enableBits[strategyIdx]))) {
-        ERROR("Failed to enable strategy ", strategyIdx, ", bits ", toHexString(builder.enableBits[strategyIdx]).c_str());
+        ERROR("Failed to enable strategy %d, bits %s", strategyIdx, toHexString(builder.enableBits[strategyIdx]).c_str());
         failed = true;
         break;
       }
@@ -110,7 +110,7 @@ class StrategyManager {
     if (!failed) {
       deployed = isResultOk(epmEnableController(device, phyPort, true));
       if (!deployed)
-        ERROR("Failed to epmEnableController(dev, port ", phyPort, ", enable true)");
+        ERROR("Failed to epmEnableController(dev, port %d, enable true)", phyPort);
     }
     return deployed;
   }

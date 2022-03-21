@@ -6,6 +6,7 @@
 #include <tuple>
 #include <vector>
 #include <stdio.h>
+#include <string>
 #include <sstream>
 
 #include <compat/Efc.h>
@@ -77,7 +78,7 @@ class EkalinePMFixture : public ::testing::Test {
     ekalineGatewayMAC_ = "00:0f:53:42:97:20";
 
     if (!initPort()) {
-      ERROR("Failed to initialize port ", phyPort, "on ekaline device");
+      ERROR("Failed to initialize port %d on ekaline device", phyPort);
       TearDown();
       std::abort();
     }
@@ -86,26 +87,26 @@ class EkalinePMFixture : public ::testing::Test {
     if (efcCtx_ != nullptr) {
       int result = efcClose(efcCtx_);
       if (result != 0) {
-        ERROR("Failed to close firing controller: efcClose(", efcCtx_, ") with", result);
+        ERROR("Failed to close firing controller: efcClose(%p) with %d", efcCtx_, result);
       } else {
         efcCtx_ = nullptr;
       }
     }
     if (hConnection_ != -1) {
-      INFO("Closing connection ", hConnection_, " of socket ", hSocket_);
+      INFO("Closing connection %d of socket %d", hConnection_, hSocket_);
       int result = excClose(device(), hConnection_);
       if (result != 0) {
-        WARN("excClose(", hConnection_, ") failed with ", result);
+        WARN("excClose(%d) failed with %d", hConnection_, result);
       } else {
         hConnection_ = -1;
         hSocket_ = -1;
       }
     }
     if (hSocket_ != -1) {
-      INFO("Closing socket ", hSocket_);
+      INFO("Closing socket %d", hSocket_);
       int result = excSocketClose(device(), hSocket_);
       if (result != 0)
-        WARN("excSocketClose(", hSocket_, ") failed with ", result);
+        WARN("excSocketClose(%d) failed with %d", hSocket_, result);
       else
         hSocket_ = -1;
     }
@@ -128,7 +129,7 @@ class EkalinePMFixture : public ::testing::Test {
     };
     EkaOpResult result = ekaDevInit(&device, &initCtx);
     if (!isResultOk(result)) {
-      ERROR("ekaDevInit() failed with ", result);
+      ERROR("ekaDevInit() failed with %d", result);
     } else {
       ekaDevice_.reset(device);
     }
@@ -158,7 +159,7 @@ class EkalinePMFixture : public ::testing::Test {
     EfcCtx *efcCtx = nullptr;
     EkaOpResult result = efcInit(&efcCtx, device(), &efcInitCtx);
     if (!isResultOk(result)) {
-      ERROR("Failed to initialize firing controller (result ", (int)result, ")");
+      ERROR("Failed to initialize firing controller (result %d)", (int)result);
       return false;
     }
     assert(efcCtx != nullptr);
@@ -168,7 +169,7 @@ class EkalinePMFixture : public ::testing::Test {
   bool enableFiringController() {
     EkaOpResult result = efcEnableController(efcCtx_, phyPort);
     if (!isResultOk(result)) {
-      ERROR("failed to enable firing controller (result ", (int)result, ")");
+      ERROR("failed to enable firing controller (result %d)", (int)result);
       return false;
     }
     return true;
@@ -242,7 +243,7 @@ class EkalinePMFixture : public ::testing::Test {
     if (bind(hSocket, (const struct sockaddr *)&myAddr, sizeof(myAddr)) < 0) {
       int binErrno = errno;
       //in_addr
-      fprintf(stderr, "error on bind(%s:%d) : %s\n", inet_ntoa(*(in_addr *)&myAddr), port, strerror(binErrno));
+      ERROR("Failed to bind(%s:%d) : %s\n", inet_ntoa(*(in_addr *)&myAddr), port, strerror(binErrno));
       return false;
     }
     return true;
@@ -251,7 +252,7 @@ class EkalinePMFixture : public ::testing::Test {
     struct sockaddr_in peer{ .sin_family = AF_INET, .sin_port = htons(port), .sin_addr = { .s_addr = ipv4 } };
     ExcConnHandle hConnection = excConnect(device, hSocket, (const struct sockaddr *)&peer, sizeof(peer));
     if (hConnection < 0)
-      fprintf(stderr, "connect(%s:%d) failed\n", inet_ntoa(*(in_addr *)&peer.sin_addr), port);
+      ERROR("failed to connect(%s:%d)\n", inet_ntoa(*(in_addr *)&peer.sin_addr), port);
     return hConnection;
   }
   static std::pair<std::string_view, u16> bindAddress() {
@@ -280,7 +281,7 @@ class EkalinePMFixture : public ::testing::Test {
         hConnection_ = connectTo(device(), hSocket, peerIpAddr.s_addr, peerPort);
         connected_ = hConnection_ >= 0;
         if (!connected_)
-          ERROR("Failed to connect to {", std::string(peerIp).c_str(), ":", peerPort, "}");
+          ERROR("Failed to connect to {%s:%d}", std::string(peerIp).c_str(), peerPort);
       }
       failed |= !connected_;
     }
@@ -363,7 +364,7 @@ class EkalinePMFixture : public ::testing::Test {
     int actionIndex = report.actionId;
     const Scenario *reportedScenario = strategy.getScenarioForAction(actionIndex);
     if (reportedScenario == nullptr) {
-      ERROR("strategy ", report.strategyId, ", action ", report.actionId, " out of bounds");
+      ERROR("strategy %d, action %d out of bounds", report.strategyId, report.actionId);
       return false;
     }
 
@@ -371,18 +372,18 @@ class EkalinePMFixture : public ::testing::Test {
     const Trigger &scenarioTrigger{reportedScenario->first};
     EpmTriggerParams triggerParams{scenarioTrigger.build()};
     if (*epmTriggerUsed_ != triggerParams) {
-      ERROR("Reported trigger ", triggerParams, " differs from used to trigger ", *epmTriggerUsed_);
+      ERROR("Reported trigger %s differs from used to trigger %s", triggerParams, *epmTriggerUsed_);
       failed = true;
     }
 
     const Action &triggeredAction = reportedScenario->second[actionIndex];
     EpmAction epmAction{triggeredAction.build()};
     if (epmAction.token != report.trigger->token) {
-      ERROR("token mismatch; expected: ", epmAction.token, ", have ", report.trigger->token);
+      ERROR("token mismatch; expected: %ld, have %ld", epmAction.token, report.trigger->token);
       failed = true;
     }
     if (epmAction.user != report.user) {
-      ERROR("'user' cookie does not match; expected: ", epmAction.user, ", have: ", report.user);
+      ERROR("'user' cookie does not match; expected: %p, have: %p", epmAction.user, report.user);
       failed = true;
     }
 //    if (epmAction.hConn != report.hConnection) {
@@ -394,16 +395,16 @@ class EkalinePMFixture : public ::testing::Test {
 //      failed = true;
 //    }
     if (expectation.actionMask != report.preLocalEnable) {
-      ERROR("pre local mask mismatch; expected: ", expectation.actionMask, ", have: ", report.preLocalEnable);
+      ERROR("pre local mask mismatch; expected: %lx, have: %lx", expectation.actionMask, report.preLocalEnable);
       failed = true;
     }
     bitsT postActionEnable = expectation.actionMask & expectation.enableBits;
     if (postActionEnable != report.postLocalEnable) {
-      ERROR("post local mask mismatch; expected: ", postActionEnable, ", have: ", report.postLocalEnable);
+      ERROR("post local mask mismatch; expected: %lx, have: %lx", postActionEnable, report.postLocalEnable);
       failed = true;
     }
     if (expectation.strategyMask != report.preStratEnable) {
-      ERROR("pre strategy mask mismatch; expected: ", expectation.strategyMask, ", have: ", report.preStratEnable);
+      ERROR("pre strategy mask mismatch; expected: %lx, have: %lx", expectation.strategyMask, report.preStratEnable);
       failed = true;
     }
     return !failed;
