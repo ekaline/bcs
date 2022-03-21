@@ -56,6 +56,13 @@ class StrategyManager {
     if (!builder.build(device, strategies)) {
       ERROR("Failed to serialize EPM strategies for ekaline API");
       return false;
+    } else {
+      int strategyCount = (int)strategies.size();
+      int epmStrategyCount = (int)builder.epmStrategies.size();
+      INFO("%d strategies, %d epm ones\n\tfirst callback: <fn %p, cts %p>",
+           strategyCount, epmStrategyCount,
+           epmStrategyCount ? builder.epmStrategies[0].reportCb : nullptr,
+           epmStrategyCount ? builder.epmStrategies[0].cbCtx : nullptr);
     }
 
     if (!isResultOk(epmEnableController(device, phyPort, false))) {

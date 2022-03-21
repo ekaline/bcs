@@ -181,6 +181,7 @@ class EkalinePMFixture : public ::testing::Test {
   }
   bool deployStrategies() {
     assert(connected_);
+    INFO("Expected callback <fn %p, ctx %p>", fireReportCallbackShim, this);
 
     StrategyManager man;
     bool result = man.deployStrategies(device(), phyPort, strategies_);
@@ -209,6 +210,7 @@ class EkalinePMFixture : public ::testing::Test {
     }
   }
   static void fireReportCallbackShim(const EpmFireReport *reports, int nReports, void *ctx) {
+    WARN("fire report cb called <fn %p, ctx %p> (%p, %d)", fireReportCallbackShim, ctx, reports, nReports);
     EkalinePMFixture *thiz = reinterpret_cast<EkalinePMFixture *>(ctx);
     thiz->fireReportCallback(reports, nReports);
   }
