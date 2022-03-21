@@ -26,7 +26,10 @@ class HeapManager {
            MessageTrailerSize >= 0;
   }
 
-  u32 offset() const { return current_; }
+  u32 offset() const {
+    assert(current_ % MessageAlignment == 0);
+    return current_;
+  }
 
   u32 insert(u32 size) {
     assert(current_ % MessageAlignment == 0);
