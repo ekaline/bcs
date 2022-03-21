@@ -70,7 +70,8 @@ public:
   using SizeT       = int32_t;
 
   using SequenceT   = uint32_t;
-  using PriceLevetT = uint8_t;
+  //  using PriceLevetT = uint8_t;
+  using PriceLevetT = ssize_t;
 
   using FhSecurity  = EkaFhCmeSecurity  <
     PriceLevetT,

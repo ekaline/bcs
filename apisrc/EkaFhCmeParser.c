@@ -277,8 +277,15 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
     auto e {reinterpret_cast<const IncrementalRefreshMdEntry*>(m)};
     m += pGroupSize->blockLength;
     auto s {book->findSecurity(e->SecurityID)};
-    if (s == NULL) break;
-
+    if (!s)
+#ifdef FH_SUBSCRIBE_ALL
+      s = book->subscribeSecurity(e->SecurityID,
+				  (EfhSecurityType)1,
+				  (EfhSecUserData)0,
+				  1,3);
+#else      
+      break;
+#endif
     if (e->MDEntryType == MDEntryTypeBook_T::BookReset)
       on_error("MDEntryTypeBook_T::BookReset not supported for MDIncrementalRefreshBook46");
 
@@ -301,7 +308,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
       break;
     case MDUpdateAction_T::Delete:
       tobChange = s->deletePlevel(side,
-				  e->MDPriceLevel);
+				  e->MDPriceLevel);     
       break;
     case MDUpdateAction_T::DeleteThru:
     case MDUpdateAction_T::DeleteFrom:
@@ -310,6 +317,13 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
       on_error("Unexpected MDUpdateAction %s (%u)",
 	       MDpdateAction2STR(e->MDUpdateAction),(uint)e->MDUpdateAction);
     }
+#ifdef _EKA_CHECK_BOOK_INTEGRITY
+      if (! s->checkBookIntegrity()) {
+	TEST_LOG("ERROR after: %s for SecurityID %d",
+		 MDpdateAction2STR(e->MDUpdateAction),e->SecurityID);
+	printMDIncrementalRefreshBook46(pMsg);
+      }
+#endif   
     /* if (tobChange && fh->print_parsed_messages) { */
     /*   fprintf(parser_log,"generateOnQuote: BP=%ju,BS=%d,AP=%ju,AS=%d\n", */
     /* 	  s->bid->getEntryPrice(0), */

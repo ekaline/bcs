@@ -21,7 +21,7 @@ template <const uint SEC_HASH_SCALE,
   FhSecurity*  findSecurity(SecurityIdT secId) {
     uint32_t index =  secId & SEC_HASH_MASK;
     if (index >= SEC_HASH_LINES) on_error("index = %u >= SEC_HASH_LINES %ju",index,SEC_HASH_LINES);
-    if (sec[index] == NULL) return NULL;
+    if (! sec[index]) return NULL;
 
     FhSecurity* sp = sec[index];
 
@@ -39,13 +39,13 @@ template <const uint SEC_HASH_SCALE,
 				 uint64_t        opaqueAttrA,
 				 uint64_t        opaqueAttrB) {
     FhSecurity* s = new FhSecurity(secId,type,userData,opaqueAttrA,opaqueAttrB);
-    if (s == NULL) on_error("s == NULL, new FhSecurity failed");
+    if (!s) on_error("!s, new FhSecurity failed");
   
     uint32_t index = secId & SEC_HASH_MASK;
     if (index >= SEC_HASH_LINES) 
       on_error("index = %u >= SEC_HASH_LINES %ju",index,SEC_HASH_LINES);
 
-    if (sec[index] == NULL) {
+    if (! sec[index]) {
       sec[index] = s; // empty bucket
     } else {
       FhSecurity *sp = sec[index];
@@ -56,8 +56,9 @@ template <const uint SEC_HASH_SCALE,
     return s;
   }
   /* ####################################################### */
-  void            init() {
-    EKA_LOG("%s:%u : CME book with preallocated: %ju Securities Hash lines, no PLEVELS, no ORDERS",
+  void init() {
+    EKA_LOG("%s:%u : CME book with preallocated: "
+	    "%ju Securities Hash lines, no PLEVELS, no ORDERS",
 	  EKA_EXCH_DECODE(exch),grId,SEC_HASH_LINES);
   }
   /* ####################################################### */
@@ -68,7 +69,7 @@ template <const uint SEC_HASH_SCALE,
 		       uint64_t         timestamp,
 		       uint             gapNum) {
 
-    if (s == NULL) on_error("s == NULL");
+    if (!s) on_error("!s");
 
     EfhQuoteMsg msg = {};
     msg.header.msgType        = EfhMsgType::kQuote;
@@ -114,7 +115,7 @@ template <const uint SEC_HASH_SCALE,
 		       SideT            side,
 		       uint             gapNum) {
 
-    if (s == NULL) on_error("s == NULL");
+    if (!s) on_error("!s");
 
     if (side != SideT::BID && side != SideT::ASK)
       on_error("Unexpected side = %d",(int)side);
@@ -132,7 +133,7 @@ template <const uint SEC_HASH_SCALE,
 
     msg.orderSide             = side == SideT::BID ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
       
-    msg.bookSide.price         = side == SideT::BID ? (s->bid->getEntryPrice(0) / PRICE_SCALE) :
+    msg.bookSide.price        = side == SideT::BID ? (s->bid->getEntryPrice(0) / PRICE_SCALE) :
       (s->ask->getEntryPrice(0) / PRICE_SCALE);
     
     msg.bookSide.size          = side == SideT::BID ? s->bid->getEntrySize(0) :
