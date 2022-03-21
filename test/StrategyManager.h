@@ -82,8 +82,8 @@ class StrategyManager {
           return false;
         }
         const Message &message{scenario->second.at(actionIndexInScenario).message()};
-        WARN("Uploading payload (device, idx %d, ofs %d, size %d, _) with %d",
-             strategyIdx, message.heapOffset(), message.size(), (int)result);
+        WARN("Uploading payload (device, idx %d, ofs %d, size %d, _)",
+             strategyIdx, message.heapOffset(), message.size());
         usleep(200);
         EkaOpResult result = epmPayloadHeapCopy(device, strategyIdx, message.heapOffset(), message.size(), message.data());
         if (!isResultOk(result)) {

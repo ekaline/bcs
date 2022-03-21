@@ -19,16 +19,17 @@ class HeapManager {
     if (MessageAlignment == 0) MessageAlignment = 1;
     MessageHeaderSize = epmGetDeviceCapability(device, EpmDeviceCapability::EHC_DatagramOffset);
     MessageTrailerSize = epmGetDeviceCapability(device, EpmDeviceCapability::EHC_RequiredTailPadding);
-    current_ = 0;
+    current_ = MessageHeaderSize;
     return TotalHeapSize > 0 &&
            MessageAlignment > 0 &&
            MessageHeaderSize >= 0 &&
            MessageTrailerSize >= 0;
   }
 
-  u32 offset() const {
+  u32 payloadOffset() const {
     assert(current_ % MessageAlignment == 0);
-    return current_;
+    assert(current_ + alignUpTo(MessageHeaderSize + MessageTrailerSize,MessageAlignment)  <= TotalHeapSize);
+    return current_ + MessageHeaderSize;
   }
 
   u32 insert(u32 size) {
@@ -36,11 +37,14 @@ class HeapManager {
     u32 totalSize = MessageHeaderSize + size + MessageTrailerSize;
     u32 alignedSize = alignUpTo(totalSize, MessageAlignment);
     current_ += alignedSize;
+    assert(current_ < TotalHeapSize);
+    if (current_ >= TotalHeapSize)
+      return 0;
     return current_;
   }
 
  private:
-  u32 current_ = 0;
+  u32 current_ = -1;
 
   u32 TotalHeapSize = 0;
   u32 MessageAlignment = -1;
@@ -103,7 +107,7 @@ class Strategy {
     for (auto &scenario : scenarios_) {
       ActionChain &actions{scenario.second};
       for (auto &action : actions) {
-        action.message().setHeapOffset(heap.offset());
+        action.message().setHeapOffset(heap.payloadOffset());
         if (!heap.insert(action.message().size()))
           return false;
       }
