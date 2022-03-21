@@ -36,8 +36,11 @@ class HeapManager {
     assert(current_ % MessageAlignment == 0);
     u32 totalSize = MessageHeaderSize + size + MessageTrailerSize;
     u32 alignedSize = alignUpTo(totalSize, MessageAlignment);
+    u32 oldCurr = current_;
     current_ += alignedSize;
     assert(current_ < TotalHeapSize);
+    INFO("Heap: curr %d, head %d, size %d, trail %d, align %d, msgTotal %d, msgAlgnSize %d, new %d",
+         oldCurr, MessageHeaderSize, size, MessageTrailerSize, MessageAlignment, totalSize, alignedSize, current_);
     if (current_ >= TotalHeapSize)
       return 0;
     return current_;
