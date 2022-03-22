@@ -7,6 +7,8 @@
 #ifndef __EFC_CME_H__
 #define __EFC_CME_H__
 
+#include "../eka_macros.h"
+
 #include "Epm.h"
 
 extern "C" {

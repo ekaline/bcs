@@ -13,8 +13,8 @@ LIBDIR += $(TOPDIR)/apisrc
 
 LIBRARIES += ekaline2 gtest pthread
 
-CXXFLAGS += -ggdb3 -O0 -Wall -Werror -std=c++20 -DBUILD_DATE=$(BUILD_DATE) -DGIT_REVISION=$(GIT_REVISION)
-CFLAGS += -ggdb3 -O0 -Wall -Werror  -DBUILD_DATE=$(BUILD_DATE) -DGIT_REVISION=$(GIT_REVISION)
+CXXFLAGS += -ggdb3 -O0 -Wall -Werror -std=c++20 -DBUILD_DATE=$(BUILD_DATE) -DGIT_REVISION=$(GIT_REVISION) -Wno-packed-not-aligned
+CFLAGS += -ggdb3 -O0 -Wall -Werror  -DBUILD_DATE=$(BUILD_DATE) -DGIT_REVISION=$(GIT_REVISION) -Wno-packed-not-aligned
 
 CFLAGS += $(foreach incdir,$(INCLUDEDIR),-I $(incdir))
 CXXFLAGS += $(foreach incdir,$(INCLUDEDIR),-I $(incdir))

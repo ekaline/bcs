@@ -1,5 +1,6 @@
 #pragma once
 
+#include <compat/Efc.h>
 #include <compat/Eka.h>
 #include <compat/Epm.h>
 #include <string>
@@ -50,7 +51,7 @@ class StrategyManager {
     std::vector<bitsT> enableBits;
   };
 
-  bool deployStrategies(EkaDev *device, EkaCoreId phyPort, std::vector<Strategy> &strategies) {
+  bool deployStrategies(EkaDev *device, EkaCoreId phyPort, EfcCtx *efcCtx, std::vector<Strategy> &strategies) {
     WARN("deploy strategies (dev, port %d, , {} * %d, , )", phyPort, strategies.size());
     EpmStrategyBuilder builder;
     if (!builder.build(device, strategies)) {
@@ -66,12 +67,24 @@ class StrategyManager {
     }
 
     if (!isResultOk(epmEnableController(device, phyPort, false))) {
-      // Warn
+      ERROR("Failed to disable EPM for port %d", phyPort);
+      return false;
     }
 
     auto result = epmInitStrategies(device, builder.epmStrategies.data(), builder.epmStrategies.size());
     if (!isResultOk(result)) {
       ERROR("Failed to epmInitStrategies(_, _, %ld, _) with %d", builder.epmStrategies.size(), result);
+      return false;
+    }
+
+    EfcStratGlobCtx efcStratGlobCtx = {
+        .enable_strategy      = 1,
+        .report_only          = 0,
+        .watchdog_timeout_sec = 60,
+    };
+    result = efcInitStrategy(efcCtx, &efcStratGlobCtx);
+    if (!isResultOk(result)) {
+      ERROR("Failed to init (default?) strategy; error = %d", result);
       return false;
     }
 

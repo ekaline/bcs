@@ -11,6 +11,7 @@
 #include <sstream>
 
 #include <compat/Efc.h>
+#include <compat/EfcCme.h>
 #include <compat/Eka.h>
 #include <compat/Epm.h>
 #include <compat/Exc.h>
@@ -210,6 +211,19 @@ class EkalinePMFixture : public ::testing::Test {
     }
     return true;
   }
+  bool fastCancelInit() {
+    const EfcCmeFastCancelParams fastCancelConfig = {
+        .maxMsgSize     = CmeFastCancelMaxMsgSize,
+        .minNoMDEntries = CmeFastCancelMinNoMDEntries,
+        .token          = Action::ACTION_TOKEN
+    };
+    auto result = efcCmeFastCancelInit(device(), &fastCancelConfig);
+    if (!isResultOk(result)) {
+      ERROR("Failed to init CME fast cancel, error %d", result);
+      return false;
+    }
+    return true;
+  }
 
   Strategy &addStrategy(bitsT enableBits) {
     strategies_.emplace_back(fireReportCallbackShim, this, enableBits);
@@ -220,9 +234,13 @@ class EkalinePMFixture : public ::testing::Test {
     INFO("Expected callback <fn %p, ctx %p>", fireReportCallbackShim, this);
 
     StrategyManager man;
-    bool result = man.deployStrategies(device(), phyPort, strategies_);
+    bool result = man.deployStrategies(device(), phyPort, efcCtx_, strategies_);
     if (!result) {
       ERROR("Failed to deploy strategies");
+      return false;
+    }
+    if (!fastCancelInit()) {
+      ERROR("Failed to init fast cancel");
       return false;
     }
     if (!enableFiringController()) {
@@ -382,6 +400,7 @@ class EkalinePMFixture : public ::testing::Test {
       if (isResultOk(epmRaiseTriggers(device(), &actionToTrigger))) {
         epmTriggerInvoked_.push_back(actionToTrigger);
       } else {
+        ERROR("Trigger failed to be raised for (, )");
         failed = true;
       }
     }
@@ -509,6 +528,9 @@ class EkalinePMFixture : public ::testing::Test {
   std::string ekalineIPMask_;
   std::string ekalineIPGateway_;
   std::string ekalineGatewayMAC_;
+
+  static constexpr u16 CmeFastCancelMaxMsgSize = 1300;
+  static constexpr u8  CmeFastCancelMinNoMDEntries = 1;
 
   u32 localTCP_   = 0;
   u16 localPort_  = 0;
