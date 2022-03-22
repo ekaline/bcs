@@ -183,22 +183,18 @@ class EkalinePMFixture : public ::testing::Test {
     assert(size > 0);
     INFO("EFC exception callback called");
   }
-  void efcRunThread() {
+  bool efcRunThread() {
     EfcRunCtx efcRunCtx {
       .onEkaExceptionReportCb = efcExceptionHandler,
       .onEfcFireReportCb = efcFireReportHandler,
       .cbCtx = this
     };
-    efcRunState_ = 0;
-    INFO("Calling efcRun(_, _)");
     auto result = efcRun(efcCtx_, &efcRunCtx);
     if (!isResultOk(result)) {
-      efcRunState_ = -1;
       ERROR("efcRun() failed with %d", (int)result);
-    } else {
-      efcRunState_ = 1;
-      INFO("efcRun exitted");
+      return false;
     }
+    return true;
   }
   bool enableFiringController() {
     EkaOpResult result = efcEnableController(efcCtx_, phyPort);
@@ -206,16 +202,11 @@ class EkalinePMFixture : public ::testing::Test {
       ERROR("failed to enable firing controller (result %d)", (int)result);
       return false;
     }
-    efcRunState_ = 0;
-    efcThread_ = std::jthread(
-        &EkalinePMFixture::efcRunThread, this
-    );
-    if (efcThread_.get_id() == std::thread::id()) {
-      ERROR("Failed to create therad for EFC");
+    if (!efcRunThread()) {
+      ERROR("Failed to run EFC");
       return false;
     }
-    usleep(5'000);
-    return efcRunState_ == 0;
+    return true;
   }
 
   Strategy &addStrategy(bitsT enableBits) {
@@ -528,8 +519,6 @@ class EkalinePMFixture : public ::testing::Test {
   ExcSocketHandle hSocket_  = -1;
   ExcConnHandle hConnection_ = -1;
   EfcCtx *efcCtx_ = nullptr;
-  std::jthread efcThread_;
-  int efcRunState_;
 
   Strategy::ReportCbFn callback_;
   std::vector<Strategy> strategies_;

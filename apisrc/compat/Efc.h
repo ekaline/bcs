@@ -181,12 +181,12 @@ struct EfcRunCtx {
 };
 
 /**
- * This function will run the ekaline Fh on the current thread and make callbacks for messages processed.
- * This function should not return until we shut the Ekaline system down via ekaClose().
+ * This function will start - the EFC thread, used for callbacks, exceptions and such.
+ * The underlying thread is created by std::thread call.
  *
  * @param efcCtx 
- * @param efcRunCtx This is a pointer to the callbacks (and possibly other information needed) that
- *                   will be called as the Ekaline feedhandler processes messages.
+ * @param efcRunCtx This is a pointer to the callbacks and user context.
+ *                   Note: the report callback provides the context, while the exception callback does not.
  * @retval [See EkaOpResult].
  */
 EkaOpResult efcRun( EfcCtx* efcCtx, const EfcRunCtx* efcRunCtx );
@@ -194,7 +194,7 @@ EkaOpResult efcRun( EfcCtx* efcCtx, const EfcRunCtx* efcRunCtx );
 /**
  * This will close an Ekaline firing controller created with efcInit.
  *
- * @oaram efcCtx  An initialized EfcCtx* obtained from efhInit.
+ * @oaram efcCtx  An initialized EfcCtx* obtained from efcInit.
  * @return        An EkalineOpResult indicating success or an error in closing the controller.
  */
 EkaOpResult efcClose( EfcCtx* efcCtx );
