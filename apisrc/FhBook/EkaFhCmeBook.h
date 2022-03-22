@@ -4,7 +4,6 @@
 #include "EkaFhBook.h"
 #include "EkaFhTypes.h"
 
-
 template <const uint SEC_HASH_SCALE,
   class FhSecurity, 
   class SecurityIdT, 
@@ -18,9 +17,11 @@ template <const uint SEC_HASH_SCALE,
 	      EkaSource   _exch) 
    : EkaFhBook (_dev,_grId,_exch) {}
   /* ####################################################### */
-  FhSecurity*  findSecurity(SecurityIdT secId) {
+  inline FhSecurity*  findSecurity(SecurityIdT secId) {
     uint32_t index =  secId & SEC_HASH_MASK;
-    if (index >= SEC_HASH_LINES) on_error("index = %u >= SEC_HASH_LINES %ju",index,SEC_HASH_LINES);
+    if (index >= SEC_HASH_LINES)
+      on_error("index = %u >= SEC_HASH_LINES %ju",
+	       index,SEC_HASH_LINES);
     if (! sec[index]) return NULL;
 
     FhSecurity* sp = sec[index];
@@ -33,7 +34,35 @@ template <const uint SEC_HASH_SCALE,
     return NULL;
   }
   /* ####################################################### */
-  FhSecurity*  subscribeSecurity(SecurityIdT     secId,
+  inline int invalidate(const EfhRunCtx* pEfhRunCtx,
+			uint64_t         pktSeq, 
+			uint64_t         pktTime,
+			uint             gapNum) {
+    EKA_LOG("%s:%u: invalidating Channel (full book)",
+	    EKA_EXCH_DECODE(exch),grId);
+    int secCnt = 0;
+    
+    for (size_t hashLine = 0; hashLine < SEC_HASH_LINES; hashLine++) {
+      auto s = dynamic_cast<FhSecurity*>(sec[hashLine]);      
+      while (s) {
+	auto n = s->next;
+	dynamic_cast<FhSecurity*>(s)->reset();
+	generateOnQuote (pEfhRunCtx,
+			 s,
+			 pktSeq,
+			 pktTime,
+			 gapNum);
+	secCnt++;
+	s = dynamic_cast<FhSecurity*>(n);
+      }
+    }
+    EKA_LOG("%s:%u: %d Securities invalidated",
+	    EKA_EXCH_DECODE(exch),grId,secCnt);
+    return secCnt;
+  }
+  
+  /* ####################################################### */
+  inline FhSecurity*  subscribeSecurity(SecurityIdT     secId,
 				 EfhSecurityType type,
 				 EfhSecUserData  userData,
 				 uint64_t        opaqueAttrA,
@@ -63,7 +92,7 @@ template <const uint SEC_HASH_SCALE,
   }
   /* ####################################################### */
 
-  int generateOnQuote (const EfhRunCtx* pEfhRunCtx, 
+  inline int generateOnQuote (const EfhRunCtx* pEfhRunCtx, 
 		       FhSecurity*      s, 
 		       uint64_t         sequence, 
 		       uint64_t         timestamp,

@@ -14,7 +14,7 @@ class PriceLevetT,
   
   EkaFhCmeBookSide(SideT _side, PriceLevetT _ActiveEntries) {
     side       = _side;
-    tob        = 0;
+    //    tob        = 0;
     ActiveEntries = _ActiveEntries;
     if (ActiveEntries <= 0 || ActiveEntries > ENTRIES)
       on_error("ActiveEntries %jd is out of range",ActiveEntries);
@@ -27,6 +27,15 @@ class PriceLevetT,
     }
   }
 
+  inline void resetSide() {
+    for (PriceLevetT i = 0; i < ENTRIES; i++) {
+      entry[i].valid   = 0;
+      entry[i].price   = 0;
+      entry[i].size    = 0;
+      entry[i].accSize = 0;
+    }
+  }
+  
   inline bool isValid(PriceLevetT idx) const{
     return entry[idx].valid;
   }
@@ -86,8 +95,6 @@ class PriceLevetT,
     if (side == SideT::ASK) {
       printf("ASK:\n");
       for (PriceLevetT idx = ENTRIES - 1; idx >= 0; idx --) {
-	printf("idx = %jd\n",idx);
-
 	if (! entry[idx].valid) continue;
 	printf("%4u@%4jd (%ju)\n",entry[idx].size,idx,entry[idx].price);
       }
@@ -158,7 +165,7 @@ class PriceLevetT,
   EkaFhCmeBookEntry <PriceT,SizeT> entry[ENTRIES] = {};
   PriceLevetT ActiveEntries = 0; 
 
-  PriceLevetT      tob = 0; // pointer to best price entry
+  //  PriceLevetT      tob = 0; // pointer to best price entry
 
   };
 

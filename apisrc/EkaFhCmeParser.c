@@ -68,6 +68,14 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 
     switch (msgHdr->templateId) {
       /* ##################################################################### */
+    case MsgId::ChannelReset4 :
+      process_ChannelReset4(pEfhRunCtx,p,pktTime,pktSeq);
+      break;
+      /* ##################################################################### */
+    case MsgId::SecurityStatus30 :
+      process_SecurityStatus30(pEfhRunCtx,p,pktTime,pktSeq);
+      break;
+      /* ##################################################################### */
     case MsgId::QuoteRequest39 :
       process_QuoteRequest39(pEfhRunCtx,p,pktTime,pktSeq);
       break;
@@ -434,7 +442,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshTradeSummary48(const EfhRunCtx* pEfh
 	m += pGroupSize->blockLength;
 	
 	FhSecurity* s = book->findSecurity(e->SecurityID);
-	if (s == NULL) continue;
+	if (!s) continue;
 
 	const EfhTradeMsg msg = {
 	    { EfhMsgType::kTrade,
@@ -455,6 +463,44 @@ int EkaFhCmeGr::process_MDIncrementalRefreshTradeSummary48(const EfhRunCtx* pEfh
 }
 /* ##################################################################### */     
 
+int EkaFhCmeGr::process_ChannelReset4(const EfhRunCtx* pEfhRunCtx,
+					 const uint8_t*   pMsg,
+					 const uint64_t   pktTime,
+					 const SequenceT  pktSeq) {
+  auto m      {pMsg};
+  auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
+  m += sizeof(*msgHdr);
+  book->invalidate(pEfhRunCtx,pktSeq,pktTime,gapNum);
+  return msgHdr->size;
+}
+
+/* ##################################################################### */     
+
+int EkaFhCmeGr::process_SecurityStatus30(const EfhRunCtx* pEfhRunCtx,
+					 const uint8_t*   pMsg,
+					 const uint64_t   pktTime,
+					 const SequenceT  pktSeq) {
+  auto m      {pMsg};
+  auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
+  m += sizeof(*msgHdr);
+
+  auto rootBlock {reinterpret_cast<const SecurityStatus30_mainBlock*>(m)};
+
+  auto s {book->findSecurity(rootBlock->SecurityID)};
+  if (!s) return msgHdr->size;
+
+  s->tradeStatus = setEfhTradeStatus(rootBlock->SecurityTradingStatus);
+
+  book->generateOnQuote (pEfhRunCtx,
+			 s,
+			 pktSeq,
+			 pktTime,
+			 gapNum);
+
+  return msgHdr->size;
+}
+/* ##################################################################### */     
+
 int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
 						   const uint8_t*   pMsg,
 						   const uint64_t   pktTime,
@@ -468,7 +514,7 @@ int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
   seq_after_snapshot = rootBlock->LastMsgSeqNumProcessed + 1;
   
   auto s {book->findSecurity(rootBlock->SecurityID)};
-  if (s == NULL) return msgHdr->size;
+  if (!s) return msgHdr->size;
 
   s->tradeStatus = setEfhTradeStatus(rootBlock->MDSecurityTradingStatus);
   /* ------------------------------- */
@@ -558,7 +604,8 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   /*   m += pGroupSize_FeedType->blockLength; */
   /* } */
   /* ------------------------------- */
-  if (msg.commonDef.opaqueAttrB < 3) printMDInstrumentDefinitionFuture54(pMsg);
+  if (msg.commonDef.opaqueAttrB < 3)
+    print_MDInstrumentDefinitionFuture54(pMsg);
 
   pEfhRunCtx->onEfhFutureDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
   
@@ -670,7 +717,8 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
     m += pGroupSize_RelatedInstruments->blockLength;
   }
   
-  if (msg.commonDef.opaqueAttrB < 3) printMDInstrumentDefinitionOption55(pMsg);
+  if (msg.commonDef.opaqueAttrB < 3)
+    print_MDInstrumentDefinitionOption55(pMsg);
 
   pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
 
@@ -771,7 +819,8 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   }
   msg.numLegs = pGroupSize->numInGroup;
 
-  if (msg.commonDef.opaqueAttrB < 3) printMDInstrumentDefinitionSpread56(pMsg);
+  if (msg.commonDef.opaqueAttrB < 3)
+    print_MDInstrumentDefinitionSpread56(pMsg);
   if (pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL)
     on_error("pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL");
   pEfhRunCtx->onEfhComplexDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);

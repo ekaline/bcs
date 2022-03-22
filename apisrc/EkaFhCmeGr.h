@@ -105,6 +105,16 @@ private:
                               uint32_t* iso8601Date,
                               time_t* time);
 
+  int process_ChannelReset4(const EfhRunCtx* pEfhRunCtx,
+			    const uint8_t*   msg,
+			    uint64_t         pktTime,
+			    SequenceT        pktSeq);
+    
+  int process_SecurityStatus30(const EfhRunCtx* pEfhRunCtx,
+			       const uint8_t*   msg,
+			       uint64_t         pktTime,
+			       SequenceT        pktSeq);
+  
   int process_QuoteRequest39(const EfhRunCtx* pEfhRunCtx,
 			     const uint8_t*   msg,
 			     uint64_t         pktTime,

@@ -22,8 +22,8 @@ public:
 		   uint64_t        _opaqueAttrB) : 
     EkaFhSecurity(_type,_userData,_opaqueAttrA,_opaqueAttrB) {
     secId         = _secId;
-    numBidPlevels = 0;
-    numAskPlevels = 0;
+    //    numBidPlevels = 0;
+    //    numAskPlevels = 0;
     bid           = new EkaFhCmeBookSide<PriceLevetT,PriceT,SizeT>
       (SideT::BID,getActivePriceLevels());
     ask           = new EkaFhCmeBookSide<PriceLevetT,PriceT,SizeT>
@@ -92,15 +92,22 @@ public:
     }
     return true;
   }
+  /* --------------------------------------------------------------- */
 
+  inline int reset() {
+    for (auto const& testSide : {bid, ask})
+      testSide->resetSide();
+    tradeStatus   = EfhTradeStatus::kClosed;
+    return 0;
+  }
   /* ####################################################### */
 
   using BookSide  = EkaFhCmeBookSide  <PriceLevetT,PriceT,SizeT>;
 
   SecurityIdT      secId         = 0;
   EfhTradeStatus   tradeStatus   = EfhTradeStatus::kNormal;
-  PriceLevetT      numBidPlevels = 0;
-  PriceLevetT      numAskPlevels = 0;
+  // PriceLevetT      numBidPlevels = 0;
+  // PriceLevetT      numAskPlevels = 0;
     
   BookSide*        bid           = NULL;
   BookSide*        ask           = NULL;

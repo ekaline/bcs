@@ -382,7 +382,19 @@ namespace Cme {
     uInt32_T                      	LastMsgSeqNumProcessed;
     uInt32_T                      	TotNumReports;
   };
-  
+
+  struct SecurityStatus30_mainBlock {
+    uInt64_T                      	TransactTime;
+    SecurityGroup_T               	SecurityGroup;
+    Asset_T                       	Asset;
+    Int32NULL_T                   	SecurityID;
+    LocalMktDate_T                	TradeDate;
+    MatchEventIndicator_T         	MatchEventIndicator;
+    SecurityTradingStatus_T       	SecurityTradingStatus;
+    HaltReason_T                  	HaltReason;
+    SecurityTradingEvent_T        	SecurityTradingEvent;
+  } __attribute__((packed));
+
   struct MDInstrumentDefinitionFuture27_mainBlock {
     MatchEventIndicator_T         	MatchEventIndicator;
     uInt32NULL_T                  	TotNumReports;
@@ -843,7 +855,7 @@ namespace Cme {
     }
   }
 
-  inline void printQuoteRequest39(const uint8_t* msg) {
+  inline void print_QuoteRequest39(const uint8_t* msg) {
     auto msgHdr {reinterpret_cast<const MsgHdr*>(msg)};
     auto m {msg + sizeof(*msgHdr)};
     auto rootBlock {reinterpret_cast<const QuoteRequest39_mainBlock*>(m)};
@@ -871,9 +883,21 @@ namespace Cme {
       m += pGroupSize->blockLength;
     }
   }
-    
-  
-  inline void printSnapshotFullRefresh52(const uint8_t* msg) {
+
+  inline void print_ChannelReset4(const uint8_t* msg) {
+    printf("\t\tChannelReset4\n");
+  }
+
+  inline void print_SecurityStatus30(const uint8_t* msg) {
+    auto msgHdr {reinterpret_cast<const MsgHdr*>(msg)};
+    auto m {msg + sizeof(*msgHdr)};
+    auto rootBlock {reinterpret_cast<const SecurityStatus30_mainBlock*>(m)};
+
+    printf("\t\tSecurityStatus30: secId=%8d,SecurityTradingStatus=%s\n",
+	   rootBlock->SecurityID,
+	   SecurityTradingStatus2STR(rootBlock->SecurityTradingStatus));
+  }  
+  inline void print_SnapshotFullRefresh52(const uint8_t* msg) {
     auto msgHdr {reinterpret_cast<const MsgHdr*>(msg)};
     auto m {msg + sizeof(*msgHdr)};
     auto rootBlock {reinterpret_cast<const SnapshotFullRefresh52_mainBlock*>(m)};
@@ -901,7 +925,7 @@ namespace Cme {
     }
   }
 
-  inline void printMDIncrementalRefreshBook46(const uint8_t* msg) {
+  inline void print_MDIncrementalRefreshBook46(const uint8_t* msg) {
     auto msgHdr {reinterpret_cast<const MsgHdr*>(msg)};
     auto m {msg + sizeof(*msgHdr)};
     /* ------------------------------- */
@@ -928,7 +952,7 @@ namespace Cme {
     }
   }
 
-  inline void printMDIncrementalRefreshTradeSummary48(const uint8_t* msg) {
+  inline void print_MDIncrementalRefreshTradeSummary48(const uint8_t* msg) {
     auto msgHdr {reinterpret_cast<const MsgHdr*>(msg)};
     auto m {msg + sizeof(*msgHdr)};
     /* ------------------------------- */
@@ -956,7 +980,7 @@ namespace Cme {
     }
   }
 
-  inline void printMDInstrumentDefinitionFuture54(const uint8_t* msg) {
+  inline void print_MDInstrumentDefinitionFuture54(const uint8_t* msg) {
     auto msgHdr {reinterpret_cast<const MsgHdr*>(msg)};
     auto m {msg + sizeof(*msgHdr)};
     /* ------------------------------- */
@@ -998,7 +1022,7 @@ namespace Cme {
     printf("\n");
   }
 
-  inline void printMDInstrumentDefinitionOption55(const uint8_t* msg) {
+  inline void print_MDInstrumentDefinitionOption55(const uint8_t* msg) {
     auto msgHdr {reinterpret_cast<const MsgHdr*>(msg)};
     auto m {msg + sizeof(*msgHdr)};
     /* ------------------------------- */
@@ -1076,7 +1100,7 @@ namespace Cme {
     printf("\n");
   }
   
-  inline void printMDInstrumentDefinitionSpread56(const uint8_t* msg) {
+  inline void print_MDInstrumentDefinitionSpread56(const uint8_t* msg) {
     auto msgHdr {reinterpret_cast<const MsgHdr*>(msg)};
     auto m {msg + sizeof(*msgHdr)};
     /* ------------------------------- */
@@ -1145,32 +1169,36 @@ namespace Cme {
 
       switch (msgHdr->templateId) {
 	/* ##################################################################### */
+      case MsgId::SecurityStatus30 :
+	print_SecurityStatus30(m);
+	break;
+	/* ##################################################################### */
       case MsgId::QuoteRequest39 :
-	printQuoteRequest39(m);
+	print_QuoteRequest39(m);
 	break;
 	/* ##################################################################### */
       case MsgId::SnapshotFullRefresh52 : 
-	printSnapshotFullRefresh52(m);
+	print_SnapshotFullRefresh52(m);
 	break;
 	/* ##################################################################### */
       case MsgId::MDIncrementalRefreshBook46 : 
-	printMDIncrementalRefreshBook46(m);
+	print_MDIncrementalRefreshBook46(m);
 	break;
 	/* ##################################################################### */
       case MsgId::MDIncrementalRefreshTradeSummary48 : 
-	printMDIncrementalRefreshTradeSummary48(m);
+	print_MDIncrementalRefreshTradeSummary48(m);
 	break;	
 	/* ##################################################################### */
       case MsgId::MDInstrumentDefinitionFuture54 :
-	printMDInstrumentDefinitionFuture54(m);
+	print_MDInstrumentDefinitionFuture54(m);
 	break;
 	/* ##################################################################### */
       case MsgId::MDInstrumentDefinitionOption55 : 
-	printMDInstrumentDefinitionOption55(m);
+	print_MDInstrumentDefinitionOption55(m);
 	break;
 	/* ##################################################################### */
       case MsgId::MDInstrumentDefinitionSpread56 : 
-	printMDInstrumentDefinitionSpread56(m);
+	print_MDInstrumentDefinitionSpread56(m);
 	break;
 	/* ##################################################################### */
 		
