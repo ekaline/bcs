@@ -193,6 +193,8 @@ class EkalinePMFixture : public ::testing::Test {
     if (!isResultOk(result)) {
       ERROR("efcRun() failed with %d", (int)result);
       return false;
+    } else {
+      INFO("efcRun() succeeded");
     }
     return true;
   }
