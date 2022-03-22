@@ -334,6 +334,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
 		 );
 	print_MDIncrementalRefreshBook46(pMsg);
 	s->printSecurityBook();
+	on_error("End of test");
       }
 #endif   
     /* if (tobChange && fh->print_parsed_messages) { */
