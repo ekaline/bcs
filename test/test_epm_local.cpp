@@ -3,6 +3,7 @@
 #include <netinet/ether.h>
 #include <optional>
 #include <pthread.h>
+#include <thread>
 #include <tuple>
 #include <vector>
 #include <stdio.h>
@@ -166,13 +167,55 @@ class EkalinePMFixture : public ::testing::Test {
     efcCtx_ = efcCtx;
     return true;
   }
+  static void efcFireReportHandler(
+      EfcCtx *efcCtx, const EfcFireReport *efcFireReport,
+      size_t size, void* cbCtx) {
+    assert(efcCtx != nullptr);
+    assert(efcFireReport != nullptr);
+    assert(size > 0);
+    assert(cbCtx != nullptr);
+    INFO("EFC fire report callback(_, _, size %d, _)", size);
+  }
+  static void efcExceptionHandler(
+      EfcCtx *efcCtx, const EkaExceptionReport *report, size_t size) {
+    assert(efcCtx != nullptr);
+    assert(report != nullptr);
+    assert(size > 0);
+    INFO("EFC exception callback called");
+  }
+  void efcRunThread() {
+    EfcRunCtx efcRunCtx {
+      .onEkaExceptionReportCb = efcExceptionHandler,
+      .onEfcFireReportCb = efcFireReportHandler,
+      .cbCtx = this
+    };
+    efcRunState_ = 0;
+    INFO("Calling efcRun(_, _)");
+    auto result = efcRun(efcCtx_, &efcRunCtx);
+    if (!isResultOk(result)) {
+      efcRunState_ = -1;
+      ERROR("efcRun() failed with %d", (int)result);
+    } else {
+      efcRunState_ = 1;
+      INFO("efcRun exitted");
+    }
+  }
   bool enableFiringController() {
     EkaOpResult result = efcEnableController(efcCtx_, phyPort);
     if (!isResultOk(result)) {
       ERROR("failed to enable firing controller (result %d)", (int)result);
       return false;
     }
-    return true;
+    efcRunState_ = 0;
+    efcThread_ = std::jthread(
+        &EkalinePMFixture::efcRunThread, this
+    );
+    if (efcThread_.get_id() == std::thread::id()) {
+      ERROR("Failed to create therad for EFC");
+      return false;
+    }
+    usleep(5'000);
+    return efcRunState_ == 0;
   }
 
   Strategy &addStrategy(bitsT enableBits) {
@@ -485,6 +528,8 @@ class EkalinePMFixture : public ::testing::Test {
   ExcSocketHandle hSocket_  = -1;
   ExcConnHandle hConnection_ = -1;
   EfcCtx *efcCtx_ = nullptr;
+  std::jthread efcThread_;
+  int efcRunState_;
 
   Strategy::ReportCbFn callback_;
   std::vector<Strategy> strategies_;
@@ -565,4 +610,3 @@ int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-
