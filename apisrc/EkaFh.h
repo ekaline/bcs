@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include <string>
 #include <regex>
+#include <vector>
 
 #include "eka_hw_conf.h"
 #include "Efh.h"
@@ -217,6 +218,11 @@ class EkaFh {
 
   bool                  noTob                 = false;
   bool                  active                = false;
+
+  volatile bool        terminated            = true;
+#ifdef EKA_NOM_LATENCY_CHECK
+    std::vector<std::pair<char,uint64_t>> latencies = {};
+#endif
   
  protected:
   EkaDev*               dev                   = NULL;

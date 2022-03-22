@@ -16,6 +16,7 @@ class FhPlevel,
   class SizeT>
 class alignas(64) EkaFhFbSecurity : public EkaFhSecurity {
  public:
+  EkaFhFbSecurity() {}
   EkaFhFbSecurity(SecurityIdT     _secId,
 		  EfhSecurityType _type,
 		  EfhSecUserData  _userData,

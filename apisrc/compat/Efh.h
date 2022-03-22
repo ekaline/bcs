@@ -269,7 +269,7 @@ EkaOpResult efhStopGroups( EfhCtx* efhCtx );
  * Used for tests and diagnostics only
  */
 
-EkaOpResult efhMonitorFhGroupState( EfhCtx* efhCtx, EkaGroup* group);
+  EkaOpResult efhMonitorFhGroupState( EfhCtx* efhCtx, EkaGroup* group, bool verbose=false );
 
 /**
  * This will destroy an Ekaline feedhandler created with efhInit.

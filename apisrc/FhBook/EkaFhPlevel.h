@@ -69,10 +69,10 @@ template <class PriceT, class SizeT>
   }
   //----------------------------------------------------------
   int print (const char* msg) {
-    TEST_LOG("%32s: %s, price %6ju, cnt = %u,CUSTOMER = %3ju, BD = %3ju, CUSTOMER_AON = %3ju, BD_AON = %3ju, OTHER = %3ju",
+    TEST_LOG("%32s: %s, price %6jd, cnt = %u,CUSTOMER = %3ju, BD = %3ju, CUSTOMER_AON = %3ju, BD_AON = %3ju, OTHER = %3ju",
 	     msg,  
 	     side2str(side).c_str(),
-	     (uint64_t)price,
+	     (int64_t)price,
 	     cnt,
 	     (uint64_t)cust_size,
 	     (uint64_t)bd_size,

@@ -292,7 +292,7 @@ static std::string action2string(EpmTriggerAction action) {
 /* --------------------------------------------- */
 
 static int sendAddOrderShort (int sock, const sockaddr_in* addr, char* secId,
-			      uint32_t sequence, char side, uint16_t price, uint16_t size) {
+			      uint32_t sequence, char side, int16_t price, uint16_t size) {
 
     CboePitchAddOrderShort pkt = {
 	.hdr = {
@@ -325,7 +325,7 @@ static int sendAddOrderShort (int sock, const sockaddr_in* addr, char* secId,
 /* --------------------------------------------- */
 
 static int sendAddOrderLong (int sock, const sockaddr_in* addr, char* secId,
-			     uint32_t sequence, char side, uint64_t price, uint32_t size) {
+			     uint32_t sequence, char side, int64_t price, uint32_t size) {
 
     CboePitchAddOrderLong pkt = {
 	.hdr = {

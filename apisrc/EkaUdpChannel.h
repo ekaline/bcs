@@ -34,7 +34,8 @@ class EkaUdpChannel {
   int16_t        getPayloadLen();
   uint16_t       getUdpPort();
   void           next();
-
+  uint64_t       emptyBuffer();
+  
   void igmp_mc_join (uint32_t mcast_ip, uint16_t port, int16_t vlanTag);
 
  public:

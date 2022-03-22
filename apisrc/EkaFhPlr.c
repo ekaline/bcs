@@ -87,7 +87,7 @@ EkaOpResult EkaFhPlr::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	sequence != 0 && 
 	sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
       EKA_WARN("%s:%u: TEST GAP INJECTED: (GAP_INJECT_INTERVAL = %d): "
-	       "pkt sequence %ju with unknown number of messages dropped",
+	       "pkt sequence %u with unknown number of messages dropped",
 	       EKA_EXCH_DECODE(exch),gr_id, _EFH_TEST_GAP_INJECT_INTERVAL_,sequence);
       runGr->udpCh->next(); 
       continue;

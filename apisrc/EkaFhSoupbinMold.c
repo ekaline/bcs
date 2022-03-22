@@ -19,6 +19,7 @@
 #include <assert.h>
 #include <sched.h>
 #include <time.h>
+#include <sys/syscall.h>
 
 #include "EkaFhNasdaqGr.h"
 #include "EkaFhThreadAttr.h"
@@ -569,7 +570,7 @@ void* getSoupBinData(void* attr) {
 
   auto params {reinterpret_cast<EkaFhThreadAttr*>(attr)};
   auto gr     {reinterpret_cast<EkaFhNasdaqGr*>(params->gr)};
-  if (gr == NULL) on_error("gr == NULL");
+  if (!gr) on_error("!gr");
 
   EfhCtx*    pEfhCtx        = params->pEfhCtx;
   EfhRunCtx* pEfhRunCtx     = params->pEfhRunCtx;
@@ -583,11 +584,14 @@ void* getSoupBinData(void* attr) {
   gr->recoveryThreadDone = false;
   
   EkaDev* dev = pEfhCtx->dev;
-  if (dev == NULL) on_error("dev == NULL");
-  if (dev->fh[pEfhCtx->fhId] == NULL) 
-    on_error("dev->fh[pEfhCtx->fhId] == NULL for pEfhCtx->fhId = %u",pEfhCtx->fhId);
-  if (gr == NULL) on_error("gr == NULL");
+  if (! dev) on_error("!dev");
+  if (! dev->fh[pEfhCtx->fhId]) 
+    on_error("! dev->fh[%u]",pEfhCtx->fhId);
 
+  EKA_LOG("%s:%u starting Soupbin (Glimpse) threadId %ld",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,
+	  syscall(SYS_gettid));
+  
   EKA_LOG("%s:%u %s : start_sequence=%ju, end_sequence=%ju",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,
 	  EkaFhMode2STR(op),
@@ -614,8 +618,10 @@ void* getSoupBinData(void* attr) {
 			   end_sequence,
 			   MaxTrials);
     if (success) break;
-    if (dev->lastExchErr != EfhExchangeErrorCode::kNoError) gr->sendRetransmitExchangeError(pEfhRunCtx);
-    if (dev->lastErrno   != 0)                              gr->sendRetransmitSocketError(pEfhRunCtx);
+    if (dev->lastExchErr != EfhExchangeErrorCode::kNoError)
+      gr->sendRetransmitExchangeError(pEfhRunCtx);
+    if (dev->lastErrno   != 0)
+      gr->sendRetransmitSocketError(pEfhRunCtx);
   }
   //-----------------------------------------------------------------
   int rc = gr->credentialRelease(lease);
@@ -639,6 +645,9 @@ void* getSoupBinData(void* attr) {
 	     EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
   }
   gr->recoveryThreadDone = true;
+  EKA_LOG("%s:%u closing Soupbin (Glimpse) threadId %ld",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,
+	  syscall(SYS_gettid));
   return NULL;
 }
 
@@ -648,7 +657,7 @@ void* getMolUdp64Data(void* attr) {
 
   auto params {reinterpret_cast<EkaFhThreadAttr*>(attr)};
   auto gr     {reinterpret_cast<EkaFhNasdaqGr*>(params->gr)};
-  if (gr == NULL) on_error("gr == NULL");
+  if (!gr) on_error("!gr");
 
   EfhRunCtx*   pEfhRunCtx = params->pEfhRunCtx;
   uint64_t     start      = params->startSeq;
@@ -656,7 +665,7 @@ void* getMolUdp64Data(void* attr) {
   delete params;
 
   EkaDev* dev = gr->dev;
-  if (!dev) on_error("dev == NULL");
+  if (!dev) on_error("!dev");
 
   gr->recoveryThreadDone = false;
 
@@ -695,21 +704,6 @@ void* getMolUdp64Data(void* attr) {
   EKA_LOG("%s:%u: Udp recovery socket is binded to: %s:%u",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,
 	  EKA_IP2STR(local2bind.sin_addr.s_addr),be16toh(local2bind.sin_port));
-
-#if 0
-  ifreq ifr = {};
-  memset(&ifr, 0, sizeof(ifreq));
-  snprintf(ifr.ifr_name, sizeof(ifr.ifr_name), dev->genIfName);
-  ioctl(udpSock, SIOCGIFINDEX, &ifr);
-  if (setsockopt(udpSock, SOL_SOCKET, SO_BINDTODEVICE,  (void*)&ifr, sizeof(ifreq)) < 0) {
-  //  if (setsockopt(udpSock, SOL_SOCKET, SO_BINDTODEVICE, dev->genIfName, strlen(dev->genIfName)+1) < 0) {
-    EKA_WARN("%s:%u: setsockopt SO_BINDTODEVICE failed binding to %s (len=%d), errno=%d (%s)",
-	     EKA_EXCH_DECODE(gr->exch),gr->id,dev->genIfName,(int)strlen(dev->genIfName)+1,errno,strerror(errno));
-  } else {
-    EKA_LOG("%s:%u: Mold UDP sock is binded to %s (len=%d)",
-	    EKA_EXCH_DECODE(gr->exch),gr->id,dev->genIfName,(int)strlen(dev->genIfName)+1);
-  }
-#endif
   
   static const int TimeOut = 1; // seconds
   struct timeval tv = {
@@ -850,10 +844,10 @@ void* getMolUdp64Data(void* attr) {
     gr->seq_after_snapshot = sequence;
     EKA_LOG("%s:%u: Mold recovery finished: next expected_sequence = %ju, end=%ju",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot,end);
+    gr->gapClosed = true;
   }
   close(udpSock);
 
-  gr->gapClosed = true;
   gr->recoveryThreadDone = true;
 
   return NULL;

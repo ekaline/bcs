@@ -197,7 +197,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     PriceT   price    = message->price / EFH_PRICE_SCALE;
 
     if (checkPriceLengh(message->price,EFH_PRICE_SCALE)) 
-      EKA_WARN("%s %s seq=%ju Long price(%ju) exceeds 32bit",
+      EKA_WARN("%s %s seq=%ju Long price(%jd) exceeds 32bit",
 	       std::string(message->symbol,sizeof(message->symbol)).c_str(),
 	       ts_ns2str(msg_timestamp).c_str(),
 	       sequence,

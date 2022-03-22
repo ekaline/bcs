@@ -47,9 +47,10 @@ static int getAttr(int argc, char *argv[],
 		   std::vector<std::string>&  underlyings,
 		   bool *print_tob_updates,
 		   bool *subscribe_all,
-		   bool *print_parsed_messages) {
+		   bool *print_parsed_messages,
+		   bool *verbose_statistics) {
   int opt; 
-  while((opt = getopt(argc, argv, ":u:g:htap")) != -1) {  
+  while((opt = getopt(argc, argv, ":u:g:htavp")) != -1) {  
     switch(opt) {  
     case 't':  
       printf("Print TOB Updates (EFH)\n");  
@@ -67,6 +68,10 @@ static int getAttr(int argc, char *argv[],
       *print_parsed_messages = true;
       printf("print_parsed_messages = true\n");  
       break;  
+    case 'v':  
+      *verbose_statistics = true;
+      printf("verbose_statistics = true\n");  
+      break;
     case 'h':  
       print_usage(argv[0]);
       exit (1);
@@ -98,8 +103,9 @@ int main(int argc, char *argv[]) {
   std::vector<EfhInitCtx>   efhInitCtx;
   std::vector<EfhRunCtx>    efhRunCtx;
   bool print_parsed_messages = false;
-
-  getAttr(argc,argv,testRunGroups,testCtx->underlyings,&testCtx->print_tob_updates,&testCtx->subscribe_all,&print_parsed_messages);
+  
+  getAttr(argc,argv,testRunGroups,testCtx->underlyings,&testCtx->print_tob_updates,
+	  &testCtx->subscribe_all,&print_parsed_messages,&testCtx->verbose_statistics);
 
   if (testRunGroups.size() == 0) { 
     TEST_LOG("No test groups passed");
