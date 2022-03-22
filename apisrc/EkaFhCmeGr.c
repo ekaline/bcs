@@ -171,7 +171,7 @@ EkaOpResult EkaFhCmeGr::recoveryLoop(const EfhRunCtx* pEfhRunCtx, EkaFhMode op) 
     uint32_t expectedPktSeq = 1;
     while (snapshot_active) {
       uint8_t pkt[1536] = {};
-      EKA_LOG("Waiting for UDP pkt...");
+      //      EKA_LOG("Waiting for UDP pkt...");
       
       int size = recvfrom(sock, pkt, sizeof(pkt), 0, NULL, NULL);
       if (size < 0) on_error("size = %d",size);
