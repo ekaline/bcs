@@ -161,8 +161,6 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::SNAPSHOT_GAP : 
     case EkaFhGroup::GrpState::RETRANSMIT_GAP : {
-      gr->pushPkt2Q(pkt,pktSize,sequence);
-
       if (gr->gapClosed) {
 	gr->expected_sequence = gr->seq_after_snapshot;
 	gr->processFromQ(pEfhRunCtx);
@@ -171,6 +169,16 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	gr->sendFeedUpInitial(pEfhRunCtx);
 	EKA_LOG("%s:%u: SNAPSHOT_GAP Closed - expected_sequence=%ju",
 		EKA_EXCH_DECODE(exch),gr->id,gr->expected_sequence);
+	if (sequence != gr->expected_sequence) {
+	  EKA_WARN("%s:%u: 1st MC sequence %ju != expected_sequence %ju",
+		   EKA_EXCH_DECODE(exch),gr->id,sequence,gr->expected_sequence);
+	}
+	EKA_LOG("%s:%u: executing 1st MC sequence %ju",
+		EKA_EXCH_DECODE(exch),gr->id,sequence);
+	gr->processPkt(pEfhRunCtx,pkt,pktSize,EkaFhMode::MCAST);
+	gr->expected_sequence = sequence + 1;
+      } else {
+	gr->pushPkt2Q(pkt,pktSize,sequence);
       }
     }
       break;

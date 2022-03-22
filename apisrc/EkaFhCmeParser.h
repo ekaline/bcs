@@ -1154,7 +1154,7 @@ namespace Cme {
 
     auto ts        {pktHdr->time};
     auto sequence  {pktHdr->seq};
-    printf ("pktNum=%ju,pktTime=%ju,pktSeq=%u\n",
+    printf ("pktNum=%ju,pktTime=%ju,pktSeq=%u,\n",
 	    pktNum,ts,sequence);
 
     p += sizeof(*pktHdr);

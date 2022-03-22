@@ -122,7 +122,7 @@ void* getCmeSnapshot(void* attr) {
 
   auto pEfhRunCtx {params->pEfhRunCtx};
   auto gr {dynamic_cast<EkaFhCmeGr*>(params->gr)};
-  if (gr == NULL) on_error("gr == NULL");
+  if (!gr) on_error("!gr");
 
   delete params;
 
@@ -135,7 +135,7 @@ void* getCmeSnapshot(void* attr) {
   pthread_detach(pthread_self());
 
   EkaDev* dev = gr->dev;
-  if (dev == NULL) on_error ("dev == NULL");
+  if (!dev) on_error ("!dev");
 
   gr->recoveryLoop(pEfhRunCtx, EkaFhMode::SNAPSHOT);
 
@@ -171,6 +171,8 @@ EkaOpResult EkaFhCmeGr::recoveryLoop(const EfhRunCtx* pEfhRunCtx, EkaFhMode op) 
     uint32_t expectedPktSeq = 1;
     while (snapshot_active) {
       uint8_t pkt[1536] = {};
+      EKA_LOG("Waiting for UDP pkt...");
+      
       int size = recvfrom(sock, pkt, sizeof(pkt), 0, NULL, NULL);
       if (size < 0) on_error("size = %d",size);
     

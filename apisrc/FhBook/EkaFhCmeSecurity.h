@@ -80,6 +80,11 @@ public:
     }
   }
   /* --------------------------------------------------------------- */
+  inline void printSecurityBook() {
+    for (auto const& testSide : {bid, ask})
+      testSide->printSide();
+  }
+  /* --------------------------------------------------------------- */
 
   inline bool checkBookIntegrity() {
     for (auto const& testSide : {bid, ask}) {

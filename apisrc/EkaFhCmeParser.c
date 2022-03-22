@@ -327,9 +327,13 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
     }
 #ifdef _EKA_CHECK_BOOK_INTEGRITY
       if (! s->checkBookIntegrity()) {
-	TEST_LOG("ERROR after: %s for SecurityID %d",
-		 MDpdateAction2STR(e->MDUpdateAction),e->SecurityID);
+	TEST_LOG("ERROR after: %s for SecurityID %d (leg %d / %d),pktSeq=%d",
+		 MDpdateAction2STR(e->MDUpdateAction),e->SecurityID,
+		 i,pGroupSize->numInGroup,
+		 pktSeq
+		 );
 	print_MDIncrementalRefreshBook46(pMsg);
+	s->printSecurityBook();
       }
 #endif   
     /* if (tobChange && fh->print_parsed_messages) { */

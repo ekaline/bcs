@@ -80,11 +80,11 @@ class PriceLevetT,
       }
       if (isValid(idx) && isValid(idx + 1) &&
 	  isPriceWorseThan(getEntryPrice(idx),getEntryPrice(idx + 1))) {
-	TEST_LOG("%s: price %8ju at level %2jd "
-		 "is worse than price %8ju at level %2jd",
-		 side == SideT::BID ? "BID" : "ASK",
-		 getEntryPrice(idx), idx,
-		 getEntryPrice(idx + 1), idx + 1);
+	// TEST_LOG("%s: price %8ju at level %2jd "
+	// 	 "is worse than price %8ju at level %2jd",
+	// 	 side == SideT::BID ? "BID" : "ASK",
+	// 	 getEntryPrice(idx), idx,
+	// 	 getEntryPrice(idx + 1), idx + 1);
 	res = false;
       }
     }
