@@ -329,7 +329,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
       if (! s->checkBookIntegrity()) {
 	TEST_LOG("ERROR after: %s for SecurityID %d",
 		 MDpdateAction2STR(e->MDUpdateAction),e->SecurityID);
-	printMDIncrementalRefreshBook46(pMsg);
+	print_MDIncrementalRefreshBook46(pMsg);
       }
 #endif   
     /* if (tobChange && fh->print_parsed_messages) { */
