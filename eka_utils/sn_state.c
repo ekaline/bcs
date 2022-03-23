@@ -172,7 +172,7 @@ int main(int argc, char *argv[]){
 
     while (1)
       {
-	system("clear");
+	if (! system("clear")) exit(1);
 	
 	// Reading All central regs
 	uint64_t rt_counter              = reg_read(ADDR_RT_COUNTER);

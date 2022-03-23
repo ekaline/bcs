@@ -526,7 +526,7 @@ void* onComplexDefinition(const EfhComplexDefinitionMsg* msg, EfhSecUserData sec
     gr->security.push_back(newSecurity);
     auto sec_idx = gr->security.size() - 1;
     
-    efhSubscribeStatic(pEfhCtx, (EkaGroup*)&msg->header.group, msg->header.securityId, EfhSecurityType::kOption,(EfhSecUserData) sec_idx,0,0);
+    efhSubscribeStatic(pEfhCtx, (EkaGroup*)&msg->header.group, msg->header.securityId, EfhSecurityType::kOption,(EfhSecUserData) sec_idx,msg->commonDef.opaqueAttrA,msg->commonDef.opaqueAttrB);
 
   return NULL;
 }
@@ -635,7 +635,7 @@ void* onFutureDefinition(const EfhFutureDefinitionMsg* msg, EfhSecUserData secDa
     gr->security.push_back(newSecurity);
     auto sec_idx = gr->security.size() - 1;
     
-    efhSubscribeStatic(pEfhCtx, (EkaGroup*)&msg->header.group, msg->header.securityId, EfhSecurityType::kOption,(EfhSecUserData) sec_idx,0,0);
+    efhSubscribeStatic(pEfhCtx, (EkaGroup*)&msg->header.group, msg->header.securityId, EfhSecurityType::kOption,(EfhSecUserData) sec_idx,msg->commonDef.opaqueAttrA,msg->commonDef.opaqueAttrB);
 
     fprintf (gr->subscrDict,"%s,%ju%s\n",
   	     avtSecName,
@@ -700,7 +700,7 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
     gr->security.push_back(newSecurity);
     auto sec_idx = gr->security.size() - 1;
     
-    efhSubscribeStatic(pEfhCtx, (EkaGroup*)&msg->header.group, msg->header.securityId, EfhSecurityType::kOption,(EfhSecUserData) sec_idx,0,0);
+    efhSubscribeStatic(pEfhCtx, (EkaGroup*)&msg->header.group, msg->header.securityId, EfhSecurityType::kOption,(EfhSecUserData) sec_idx, msg->commonDef.opaqueAttrA,msg->commonDef.opaqueAttrB);
 
     fprintf (gr->subscrDict,"%s,%ju,%s,%s\n",
 	     avtSecName,

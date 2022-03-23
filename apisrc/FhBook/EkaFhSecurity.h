@@ -33,7 +33,8 @@ class alignas(64) EkaFhSecurity {
   virtual uint32_t  getTopTotalSize(SideT side) { return 0;}
   virtual uint32_t  getTopTotalCustomerSize(SideT side) { return 0;}
   virtual bool      crossedPrice() {return false;}
-
+  virtual int       reset() {return 0;}
+  
 /* --------------------------------------------------------------- */
 
   uint64_t          efhUserData    = 0; // to be returned per TOB update
