@@ -950,6 +950,7 @@ namespace Cme {
       printf ("%u: ",pktSeq);
       printf ("%s, ",ts_ns2str(rootBlock->TransactTime).c_str());
       printf ("%8d :",e->SecurityID);
+      printf ("%8s ",MDpdateAction2STR(e->MDUpdateAction));
       printf ("%5s ",MDEntryTypeBook2STR(e->MDEntryType));
       printf ("%u:%4d@%-8jd",
 	      e->MDPriceLevel,
