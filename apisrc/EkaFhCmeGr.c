@@ -71,18 +71,21 @@ int EkaFhCmeGr::processFromQ(const EfhRunCtx* pEfhRunCtx) {
   int qPktCnt = 0;
   while (! pktQ->is_empty()) {
     PktElem* buf = pktQ->pop();
-    if (qPktCnt == 0)
-      EKA_LOG("%s:%u: 1st Q pkt sequence = %ju, seq_after_snapshot = %ju",
-	      EKA_EXCH_DECODE(exch),id,buf->sequence,seq_after_snapshot);
+    if (qPktCnt == 0) {
+      /* EKA_LOG("%s:%u: 1st Q pkt sequence = %ju, seq_after_snapshot = %ju", */
+      /* 	      EKA_EXCH_DECODE(exch),id,buf->sequence,seq_after_snapshot); */
+      EKA_LOG("%s:%u: 1st Q pkt sequence = %ju",
+	      EKA_EXCH_DECODE(exch),id,buf->sequence);
+    }
     qPktCnt++;
       
-    if (buf->sequence < seq_after_snapshot) continue;
-#ifdef _EKA_CHECK_BOOK_INTEGRITY
-    EKA_LOG("%s:%u: processing pkt %d,  sequence = %ju from Q",
-	    EKA_EXCH_DECODE(exch),id,
-	    qPktCnt,buf->sequence);
-    printPkt(buf->data,buf->pktSize, qPktCnt);
-#endif    
+/*     if (buf->sequence < seq_after_snapshot) continue; */
+/* #ifdef _EKA_CHECK_BOOK_INTEGRITY */
+/*     EKA_LOG("%s:%u: processing pkt %d,  sequence = %ju from Q", */
+/* 	    EKA_EXCH_DECODE(exch),id, */
+/* 	    qPktCnt,buf->sequence); */
+/*     printPkt(buf->data,buf->pktSize, qPktCnt); */
+/* #endif   */  
     processPkt(pEfhRunCtx,
 	       buf->data,
 	       buf->pktSize,

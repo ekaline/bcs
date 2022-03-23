@@ -30,7 +30,7 @@ public:
 					       EfhSecUserData  efhSecUserData,
 					       uint64_t        opaqueAttrA,
 					       uint64_t        opaqueAttrB) {
-    if (book == NULL) on_error("%s:%u book == NULL",EKA_EXCH_DECODE(exch),id);
+    if (!book) on_error("%s:%u !book",EKA_EXCH_DECODE(exch),id);
     book->subscribeSecurity(securityId, 
 			    efhSecurityType,
 			    efhSecUserData,
@@ -77,10 +77,11 @@ public:
     PriceLevetT,
     SecurityIdT, 
     PriceT, 
-    SizeT>;
+    SizeT,
+    SequenceT>;
   using FhBook      = EkaFhCmeBook      <
     SEC_HASH_SCALE,
-    EkaFhCmeSecurity  <PriceLevetT,SecurityIdT, PriceT, SizeT>,
+    EkaFhCmeSecurity  <PriceLevetT,SecurityIdT, PriceT, SizeT,SequenceT>,
     SecurityIdT, 
     PriceT, 
     SizeT>;

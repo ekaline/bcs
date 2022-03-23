@@ -162,7 +162,7 @@ EkaOpResult EkaFhCme::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     case EkaFhGroup::GrpState::SNAPSHOT_GAP : 
     case EkaFhGroup::GrpState::RETRANSMIT_GAP : {
       if (gr->gapClosed) {
-	gr->expected_sequence = gr->seq_after_snapshot;
+	//	gr->expected_sequence = gr->seq_after_snapshot;
 	gr->processFromQ(pEfhRunCtx);
 
 	gr->state = EkaFhGroup::GrpState::NORMAL;

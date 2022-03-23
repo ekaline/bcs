@@ -12,7 +12,8 @@ template <
 class PriceLevetT,
   class SecurityIdT, 
   class PriceT, 
-  class SizeT>
+  class SizeT,
+  class SequenceT>
 class EkaFhCmeSecurity : public EkaFhSecurity {
 public:
   EkaFhCmeSecurity(SecurityIdT     _secId,
@@ -103,6 +104,7 @@ public:
     for (auto const& testSide : {bid, ask})
       testSide->resetSide();
     tradeStatus   = EfhTradeStatus::kClosed;
+    lastMsgSeqNumProcessed = 0;
     return 0;
   }
   /* ####################################################### */
@@ -116,6 +118,8 @@ public:
     
   BookSide*        bid           = NULL;
   BookSide*        ask           = NULL;
+
+  SequenceT        lastMsgSeqNumProcessed = 0;
 };
 
 #endif

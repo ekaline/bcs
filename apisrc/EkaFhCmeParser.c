@@ -292,11 +292,18 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
 				  (EfhSecUserData)0,
 				  1,3);
 #else      
-      break;
+    continue; // next IncrementalRefreshMdEntry
 #endif
     if (e->MDEntryType == MDEntryTypeBook_T::BookReset)
       on_error("MDEntryTypeBook_T::BookReset not supported for MDIncrementalRefreshBook46");
 
+    if (s->lastMsgSeqNumProcessed != 0) { // after Snapshot
+      if (pktSeq <= s->lastMsgSeqNumProcessed)
+	continue; // skip buffered messages
+      else
+	s->lastMsgSeqNumProcessed = 0;
+    }
+    
     const auto side {getSide46(e->MDEntryType)};
     if (side == SideT::OTHER) return msgHdr->size;
     const int64_t finalPriceFactor = s->getFinalPriceFactor();
@@ -516,11 +523,13 @@ int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
   auto rootBlock {reinterpret_cast<const SnapshotFullRefresh52_mainBlock*>(m)};
   m += msgHdr->blockLen;
 
-  seq_after_snapshot = rootBlock->LastMsgSeqNumProcessed + 1;
+  //  seq_after_snapshot = rootBlock->LastMsgSeqNumProcessed + 1;
   
   auto s {book->findSecurity(rootBlock->SecurityID)};
   if (!s) return msgHdr->size;
 
+  s->lastMsgSeqNumProcessed = rootBlock->LastMsgSeqNumProcessed;
+  
   s->tradeStatus = setEfhTradeStatus(rootBlock->MDSecurityTradingStatus);
   /* ------------------------------- */
   auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
