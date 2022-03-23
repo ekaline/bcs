@@ -920,6 +920,7 @@ namespace Cme {
       printf ("\t");
       printf ("%u: ",pktSeq);
       printf ("%s, ",ts_ns2str(rootBlock->TransactTime).c_str());
+      printf ("%8d :",rootBlock->SecurityID);
       printf ("%5s ",MDEntryType2STR(e->MDEntryType));
       printf ("%u:%4d@%-8jd",
 	      e->MDPriceLevel,
@@ -948,6 +949,7 @@ namespace Cme {
       printf ("\t");
       printf ("%u: ",pktSeq);
       printf ("%s, ",ts_ns2str(rootBlock->TransactTime).c_str());
+      printf ("%8d :",e->SecurityID);
       printf ("%5s ",MDEntryTypeBook2STR(e->MDEntryType));
       printf ("%u:%4d@%-8jd",
 	      e->MDPriceLevel,
