@@ -37,7 +37,8 @@ template <const uint SEC_HASH_SCALE,
   inline int invalidate(const EfhRunCtx* pEfhRunCtx,
 			uint64_t         pktSeq, 
 			uint64_t         pktTime,
-			uint             gapNum) {
+			uint             gapNum,
+			bool             sendTobUpdate) {
     EKA_LOG("%s:%u: invalidating Channel (full book)",
 	    EKA_EXCH_DECODE(exch),grId);
     int secCnt = 0;
@@ -47,11 +48,12 @@ template <const uint SEC_HASH_SCALE,
       while (s) {
 	auto n = s->next;
 	dynamic_cast<FhSecurity*>(s)->reset();
-	generateOnQuote (pEfhRunCtx,
-			 s,
-			 pktSeq,
-			 pktTime,
-			 gapNum);
+	if (sendTobUpdate)
+	  generateOnQuote (pEfhRunCtx,
+			   s,
+			   pktSeq,
+			   pktTime,
+			   gapNum);
 	secCnt++;
 	s = dynamic_cast<FhSecurity*>(n);
       }

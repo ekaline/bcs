@@ -475,7 +475,7 @@ int EkaFhCmeGr::process_ChannelReset4(const EfhRunCtx* pEfhRunCtx,
   auto m      {pMsg};
   auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
   m += sizeof(*msgHdr);
-  book->invalidate(pEfhRunCtx,pktSeq,pktTime,gapNum);
+  book->invalidate(pEfhRunCtx,pktSeq,pktTime,gapNum,true);
   return msgHdr->size;
 }
 
@@ -533,7 +533,7 @@ int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
     if (side == SideT::OTHER) continue;
     const int64_t finalPriceFactor = s->getFinalPriceFactor();
 
-    bool tobChange = s->newPlevel(side,
+    bool tobChange = s->changePlevel(side,
 				  e->MDPriceLevel,
 				  e->MDEntryPx / finalPriceFactor,
 				  e->MDEntrySize);

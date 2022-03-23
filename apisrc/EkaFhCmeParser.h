@@ -1147,7 +1147,6 @@ namespace Cme {
 
   }
 
-  
   inline uint32_t printPkt(const uint8_t* pkt, const int payloadLen, uint64_t pktNum) {
     auto p {pkt};
     auto pktHdr {reinterpret_cast<const PktHdr*>(p)};

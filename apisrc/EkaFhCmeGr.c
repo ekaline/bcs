@@ -68,23 +68,28 @@ void EkaFhCmeGr::pushPkt2Q(const uint8_t*       pkt,
  /* ##################################################################### */
 
 int EkaFhCmeGr::processFromQ(const EfhRunCtx* pEfhRunCtx) {
-  bool firstPkt = true;
+  int qPktCnt = 0;
   while (! pktQ->is_empty()) {
     PktElem* buf = pktQ->pop();
-    if (firstPkt) {
-      firstPkt = false;
+    if (qPktCnt == 0)
       EKA_LOG("%s:%u: 1st Q pkt sequence = %ju, seq_after_snapshot = %ju",
 	      EKA_EXCH_DECODE(exch),id,buf->sequence,seq_after_snapshot);
-    }
+    qPktCnt++;
+      
     if (buf->sequence < seq_after_snapshot) continue;
+#ifdef _EKA_CHECK_BOOK_INTEGRITY
+    EKA_LOG("%s:%u: processing pkt sequence = %ju from Q",
+	    EKA_EXCH_DECODE(exch),id,buf->sequence);
+    printPkt(buf->data,buf->pktSize, qPktCnt);
+#endif    
     processPkt(pEfhRunCtx,
 	       buf->data,
 	       buf->pktSize,
 	       EkaFhMode::MCAST);
     expected_sequence = buf->sequence + 1;
   }
-  EKA_LOG("%s:%u: After Q draining expected_sequence = %ju",
-	  EKA_EXCH_DECODE(exch),id,expected_sequence);
+  EKA_LOG("%s:%u: After Q draining %d packets expected_sequence = %ju",
+	  EKA_EXCH_DECODE(exch),id,qPktCnt,expected_sequence);
   return 0;
 }
 
@@ -164,6 +169,7 @@ EkaOpResult EkaFhCmeGr::recoveryLoop(const EfhRunCtx* pEfhRunCtx, EkaFhMode op) 
   snapshotClosed = false;
 
   bool recovered = false;
+  book->invalidate(NULL,0,0,0,false);
 
   while (!recovered && snapshot_active) {
     recoveryPkt.clear();
