@@ -81,7 +81,7 @@ public:
   }
   /* --------------------------------------------------------------- */
   inline void printSecurityBook() {
-    for (auto const& testSide : {bid, ask})
+    for (auto const& testSide : {ask,bid})
       testSide->printSide();
   }
   /* --------------------------------------------------------------- */
@@ -89,9 +89,9 @@ public:
   inline bool checkBookIntegrity() {
     for (auto const& testSide : {bid, ask}) {
       if (!testSide->checkIntegrity()) {
-	TEST_LOG("%s side checkIntegrity failed",
-		 testSide->getSide() == SideT::BID ? "BID" : "ASK");
-	testSide->printSide();
+	// TEST_LOG("%s side checkIntegrity failed",
+	// 	 testSide->getSide() == SideT::BID ? "BID" : "ASK");
+	// testSide->printSide();
 	return false;
       }
     }

@@ -897,7 +897,8 @@ namespace Cme {
 	   rootBlock->SecurityID,
 	   SecurityTradingStatus2STR(rootBlock->SecurityTradingStatus));
   }  
-  inline void print_SnapshotFullRefresh52(const uint8_t* msg) {
+
+  inline void print_SnapshotFullRefresh52(const uint8_t* msg,uint pktSeq) {
     auto msgHdr {reinterpret_cast<const MsgHdr*>(msg)};
     auto m {msg + sizeof(*msgHdr)};
     auto rootBlock {reinterpret_cast<const SnapshotFullRefresh52_mainBlock*>(m)};
@@ -916,16 +917,20 @@ namespace Cme {
     /* ------------------------------- */
     for (uint i = 0; i < pGroupSize->numInGroup; i++) {
       auto e {reinterpret_cast<const MDSnapshotFullRefreshMdEntry*>(m)};
-      printf ("\t\t\t%5s,plvl=%u,p=%16jd,s=%d\n",
-	      MDEntryType2STR(e->MDEntryType),
+      printf ("\t");
+      printf ("%u: ",pktSeq);
+      printf ("%s, ",ts_ns2str(rootBlock->TransactTime).c_str());
+      printf ("%5s ",MDEntryType2STR(e->MDEntryType));
+      printf ("%u:%4d@%-8jd",
 	      e->MDPriceLevel,
-	      (int64_t) (e->MDEntryPx / EFH_CME_PRICE_SCALE),
-	      e->MDEntrySize);
+	      e->MDEntrySize,
+	      (int64_t) (e->MDEntryPx / EFH_CME_PRICE_SCALE));
+      printf ("\n");
       m += pGroupSize->blockLength;    
     }
   }
 
-  inline void print_MDIncrementalRefreshBook46(const uint8_t* msg) {
+  inline void print_MDIncrementalRefreshBook46(const uint8_t* msg,uint pktSeq) {
     auto msgHdr {reinterpret_cast<const MsgHdr*>(msg)};
     auto m {msg + sizeof(*msgHdr)};
     /* ------------------------------- */
@@ -940,14 +945,15 @@ namespace Cme {
     /* ------------------------------- */
     for (uint i = 0; i < pGroupSize->numInGroup; i++) {
       auto e {reinterpret_cast<const IncrementalRefreshMdEntry*>(m)};
-      printf ("\t\t\tsecId=%8d,%6s,%5s,plvl=%u,p=%16jd,s=%d\n",
-	      e->SecurityID,
-	      MDpdateAction2STR(e->MDUpdateAction),
-	      MDEntryTypeBook2STR(e->MDEntryType),
+      printf ("\t");
+      printf ("%u: ",pktSeq);
+      printf ("%s, ",ts_ns2str(rootBlock->TransactTime).c_str());
+      printf ("%5s ",MDEntryTypeBook2STR(e->MDEntryType));
+      printf ("%u:%4d@%-8jd",
 	      e->MDPriceLevel,
-	      (int64_t) (e->MDEntryPx / EFH_CME_PRICE_SCALE),
-	      e->MDEntrySize);
-
+	      e->MDEntrySize,
+	      (int64_t) (e->MDEntryPx / EFH_CME_PRICE_SCALE));
+      printf ("\n");
       m += pGroupSize->blockLength;
     }
   }
@@ -1153,8 +1159,9 @@ namespace Cme {
 
     auto ts        {pktHdr->time};
     auto sequence  {pktHdr->seq};
-    printf ("pktNum=%ju,pktTime=%ju,pktSeq=%u,\n",
-	    pktNum,ts,sequence);
+    printf ("pktNum=%ju,pktTime=%s(%ju),pktSeq=%u,\n",
+	    pktNum,
+	    ts_ns2str(ts).c_str(),ts,sequence);
 
     p += sizeof(*pktHdr);
 
@@ -1177,11 +1184,11 @@ namespace Cme {
 	break;
 	/* ##################################################################### */
       case MsgId::SnapshotFullRefresh52 : 
-	print_SnapshotFullRefresh52(m);
+	print_SnapshotFullRefresh52(m,sequence);
 	break;
 	/* ##################################################################### */
       case MsgId::MDIncrementalRefreshBook46 : 
-	print_MDIncrementalRefreshBook46(m);
+	print_MDIncrementalRefreshBook46(m,sequence);
 	break;
 	/* ##################################################################### */
       case MsgId::MDIncrementalRefreshTradeSummary48 : 

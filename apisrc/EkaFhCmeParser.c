@@ -332,7 +332,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
 		 i,pGroupSize->numInGroup,
 		 pktSeq
 		 );
-	print_MDIncrementalRefreshBook46(pMsg);
+	print_MDIncrementalRefreshBook46(pMsg,pktSeq);
 	s->printSecurityBook();
 	on_error("End of test");
       }

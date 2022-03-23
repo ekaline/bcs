@@ -78,8 +78,9 @@ int EkaFhCmeGr::processFromQ(const EfhRunCtx* pEfhRunCtx) {
       
     if (buf->sequence < seq_after_snapshot) continue;
 #ifdef _EKA_CHECK_BOOK_INTEGRITY
-    EKA_LOG("%s:%u: processing pkt sequence = %ju from Q",
-	    EKA_EXCH_DECODE(exch),id,buf->sequence);
+    EKA_LOG("%s:%u: processing pkt %d,  sequence = %ju from Q",
+	    EKA_EXCH_DECODE(exch),id,
+	    qPktCnt,buf->sequence);
     printPkt(buf->data,buf->pktSize, qPktCnt);
 #endif    
     processPkt(pEfhRunCtx,
