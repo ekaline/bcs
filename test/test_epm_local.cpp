@@ -204,6 +204,8 @@ class EkalinePMFixture : public ::testing::Test {
     if (!isResultOk(result)) {
       ERROR("failed to enable firing controller (result %d)", (int)result);
       return false;
+    } else {
+      INFO("EFC controller enabled OK");
     }
     if (!efcRunThread()) {
       ERROR("Failed to run EFC");
@@ -221,6 +223,8 @@ class EkalinePMFixture : public ::testing::Test {
     if (!isResultOk(result)) {
       ERROR("Failed to init CME fast cancel, error %d", result);
       return false;
+    } else {
+      INFO("EFC CME FastCancel init OK");
     }
     return true;
   }
