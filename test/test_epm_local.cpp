@@ -123,9 +123,8 @@ class EkalinePMFixture : public ::testing::Test {
         hSocket_ = -1;
     }
     if (device() != nullptr) {
-      ekaDevClose(device());
+      ekaDevice_.reset();
       INFO("Closed ekaline device");
-      ekaDevice_ = nullptr;
     }
   }
   EkaDev *device() { assert(ekaDevice_ != nullptr); return ekaDevice_.get(); }
