@@ -289,6 +289,16 @@ namespace Bats {
     uint8_t	flags;    // 1
   } __attribute__((packed));
 
+  struct add_order_long_complex { // 0x21
+    struct GenericHeader header;
+    uint64_t	order_id; // 8
+    char		side;     // 1 'B' or 'S'
+    uint32_t	size;     // 4
+    char          symbol[6];// 6  right padded with spaces
+    int64_t	price;    // 8
+    uint8_t	flags;    // 1
+  } __attribute__((packed));
+  
   struct add_order_short { // 0x22
     struct GenericHeader header;
     uint64_t	order_id; // 8
@@ -299,6 +309,16 @@ namespace Bats {
     uint8_t	flags;    // 1
   } __attribute__((packed));
 
+  struct add_order_short_complex { // 0x22
+    struct GenericHeader header;
+    uint64_t	order_id; // 8
+    char		side;     // 1 'B' or 'S'
+    uint16_t	size;     // 2
+    char          symbol[6];// 6  right padded with spaces
+    int16_t	price;    // 2
+    uint8_t	flags;    // 1
+  } __attribute__((packed));
+
   struct add_order_expanded { // 0x2F
     struct GenericHeader header;
     uint64_t	order_id;           // 8
@@ -306,6 +326,19 @@ namespace Bats {
     uint32_t	size;               // 4
     char          exp_symbol[8];      // 8  right padded with spaces
     uint64_t	price;              // 8
+    uint8_t	flags;              // 1
+    char          participant_id[4];  // 4
+    char          customer_indicator; // 1 'N' - Non-Customer, 'C' - Customer
+    char          client_id[4];       // 4
+  } __attribute__((packed));
+
+    struct add_order_expanded_complex { // 0x2F
+    struct GenericHeader header;
+    uint64_t	order_id;           // 8
+    char		side;               // 1 'B' or 'S'
+    uint32_t	size;               // 4
+    char          exp_symbol[8];      // 8  right padded with spaces
+    int64_t	price;              // 8
     uint8_t	flags;              // 1
     char          participant_id[4];  // 4
     char          customer_indicator; // 1 'N' - Non-Customer, 'C' - Customer
@@ -365,6 +398,17 @@ namespace Bats {
     /*   bits 2-7 - Reserved */
   } __attribute__((packed));
 
+  struct order_modify_long_complex { // 0x27
+    struct GenericHeader header;
+    uint64_t	order_id;           // 8
+    uint32_t	size;               // 4 (= new size)
+    int64_t	price;              // 8 (= new price)
+    uint8_t  	flags;              // 1
+    /* bit 0 - Display: '0' - not aggregated, '1' - aggregated */
+    /*   bit 1 - Maintain Priority: '0' - Reset Priority, '1' - Maintain Priority */
+    /*   bits 2-7 - Reserved */
+  } __attribute__((packed));
+  
   struct order_modify_short { // 0x28
     struct GenericHeader header;
     uint64_t	order_id;           // 8
@@ -376,12 +420,40 @@ namespace Bats {
     /*   bits 2-7 - Reserved */
   } __attribute__((packed));
 
+  struct order_modify_short_complex { // 0x28
+    struct GenericHeader header;
+    uint64_t	order_id;           // 8
+    uint16_t	size;               // 2 (= new size)
+    int16_t	price;              // 2 (= new price)
+    uint8_t  	flags;              // 1
+    /* bit 0 - Display: '0' - not aggregated, '1' - aggregated */
+    /*   bit 1 - Maintain Priority: '0' - Reset Priority, '1' - Maintain Priority */
+    /*   bits 2-7 - Reserved */
+  } __attribute__((packed));
+
   struct order_delete { // 0x29
     struct GenericHeader header;
     uint64_t	order_id;           // 8
   } __attribute__((packed));
 
-  struct TradeLong { // 0x2A
+   struct TradeLong { // 0x2A
+    struct GenericHeader header;
+    uint64_t	order_id;           // 8
+    char	side;               // 1 Always 'B'
+    uint32_t	size;               // 4
+    char        symbol[6];          // 6  right padded with spaces
+    uint64_t	price;              // 8
+    uint64_t	execution_id;       // 8
+    char  	trade_condition;    // 1
+    /* ' ' (Space) - Normal Trade */
+    /* 'O' - Opening trade */
+    /* 'S' - Spread trade */
+    /* 'A' - SPIM trade */
+    /* 'I' - ISO trade */
+    /* 'K' - Cabinet trade */
+  } __attribute__((packed));
+ 
+  struct TradeLong_complex { // 0x2A
     struct GenericHeader header;
     uint64_t	order_id;           // 8
     char	side;               // 1 Always 'B'
@@ -415,13 +487,47 @@ namespace Bats {
     /* 'K' - Cabinet trade */
   } __attribute__((packed));
 
+  struct TradeShort_complex { // 0x2B
+    struct GenericHeader header;
+    uint64_t	order_id;           // 8
+    char	side;               // 1 Always 'B'
+    uint16_t	size;               // 2
+    char        symbol[6];          // 6  right padded with spaces
+    int16_t	price;              // 2
+    uint64_t	execution_id;       // 8
+    char  	trade_condition;    // 1
+    /* ' ' (Space) - Normal Trade */
+    /* 'O' - Opening trade */
+    /* 'S' - Spread trade */
+    /* 'A' - SPIM trade */
+    /* 'I' - ISO trade */
+    /* 'K' - Cabinet trade */
+  } __attribute__((packed));
+
   struct TradeExpanded { // 0x30
     struct GenericHeader header;
     uint64_t	order_id;           // 8
-    char		side;               // 1 Always 'B'
+    char	side;               // 1 Always 'B'
     uint32_t	size;               // 4
-    char          symbol[8];          // 8  right padded with spaces
+    char        symbol[8];          // 8  right padded with spaces
     uint64_t	price;              // 8
+    uint64_t	execution_id;       // 8
+    char  	trade_condition;    // 1
+    /* ' ' (Space) - Normal Trade */
+    /* 'O' - Opening trade */
+    /* 'S' - Spread trade */
+    /* 'A' - SPIM trade */
+    /* 'I' - ISO trade */
+    /* 'K' - Cabinet trade */
+  } __attribute__((packed));
+
+  struct TradeExpanded_complex { // 0x30
+    struct GenericHeader header;
+    uint64_t	order_id;           // 8
+    char	side;               // 1 Always 'B'
+    uint32_t	size;               // 4
+    char        symbol[8];          // 8  right padded with spaces
+    int64_t	price;              // 8
     uint64_t	execution_id;       // 8
     char  	trade_condition;    // 1
     /* ' ' (Space) - Normal Trade */
@@ -460,6 +566,23 @@ namespace Bats {
                              // 'A' = SUM All or None
     char        side;  // 'B' or 'S'      
     uint64_t    price;
+    uint32_t    contracts;
+    char        customerIndicator; // 'N' = Non-Customer 'C' = Customer
+    uint32_t    participantId;
+    uint32_t    auctionEndOffset; // Nanosecond offset from last timestamp
+    uint32_t    clientId;
+  } __attribute__((packed));
+
+  struct AuctionNotification_complex { // 0xAD
+    GenericHeader header;
+    char        symbol[6];
+    uint64_t    auctionId;
+    char        auctionType; // 'B' = Bats Auction Mechanism (BAM) (EDGX Only) or AIM (C1 Only)
+                             // 'S' = Solicitation Auction Mechanism (C1 Only)
+                             // 'T' = Step Up Mechanism (SUM)
+                             // 'A' = SUM All or None
+    char        side;  // 'B' or 'S'      
+    int64_t     price;
     uint32_t    contracts;
     char        customerIndicator; // 'N' = Non-Customer 'C' = Customer
     uint32_t    participantId;

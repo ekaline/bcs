@@ -9,22 +9,24 @@
 
 class EkaFhBatsGr : public EkaFhGroup{
  public:
-  virtual               ~EkaFhBatsGr() {};
+  virtual ~EkaFhBatsGr() {};
 
-  bool                  parseMsg(const EfhRunCtx* pEfhRunCtx,
-				 const unsigned char*   m,
-				 uint64_t         sequence,
-				 EkaFhMode        op,
-				 std::chrono::high_resolution_clock::time_point startTime={});
+  bool parseMsg(const EfhRunCtx* pEfhRunCtx,
+		const unsigned char*   m,
+		uint64_t         sequence,
+		EkaFhMode        op,
+		std::chrono::high_resolution_clock::time_point startTime={});
 
-  int                   bookInit();
+  int bookInit();
 
-  int                  subscribeStaticSecurity(uint64_t        securityId, 
-					       EfhSecurityType efhSecurityType,
-					       EfhSecUserData  efhSecUserData,
-					       uint64_t        opaqueAttrA,
-					       uint64_t        opaqueAttrB) {
-    if (book == NULL) on_error("%s:%u book == NULL",EKA_EXCH_DECODE(exch),id);
+  int subscribeStaticSecurity(uint64_t        securityId, 
+			      EfhSecurityType efhSecurityType,
+			      EfhSecUserData  efhSecUserData,
+			      uint64_t        opaqueAttrA,
+			      uint64_t        opaqueAttrB) {
+    if (!book)
+      on_error("%s:%u !book",EKA_EXCH_DECODE(exch),id);
+    
     book->subscribeSecurity(securityId, 
 			    efhSecurityType,
 			    efhSecUserData,
@@ -33,28 +35,28 @@ class EkaFhBatsGr : public EkaFhGroup{
     return 0;
   }
 
-  bool                  processUdpPkt(const EfhRunCtx* pEfhRunCtx,
-				      const uint8_t*   pkt, 
-				      uint             msgInPkt, 
-				      uint64_t         seq,
-				      std::chrono::high_resolution_clock::time_point start={});
-
-  void                 pushUdpPkt2Q(const uint8_t* pkt, 
-				    uint           msgInPkt, 
-				    uint64_t       sequence);
-
-
-  int    closeSnapshotGap(EfhCtx*              pEfhCtx, 
+  bool processUdpPkt(const EfhRunCtx* pEfhRunCtx,
+		     const uint8_t*   pkt, 
+		     uint             msgInPkt, 
+		     uint64_t         seq,
+		     std::chrono::high_resolution_clock::time_point start={});
+  
+  void pushUdpPkt2Q(const uint8_t* pkt, 
+		    uint           msgInPkt, 
+		    uint64_t       sequence);
+  
+  
+  int closeSnapshotGap(EfhCtx*              pEfhCtx, 
+		       const EfhRunCtx* pEfhRunCtx, 
+		       uint64_t          startSeq,
+		       uint64_t          endSeq);
+  
+  int closeIncrementalGap(EfhCtx*           pEfhCtx, 
 			  const EfhRunCtx* pEfhRunCtx, 
 			  uint64_t          startSeq,
 			  uint64_t          endSeq);
 
-  int    closeIncrementalGap(EfhCtx*           pEfhCtx, 
-			     const EfhRunCtx* pEfhRunCtx, 
-			     uint64_t          startSeq,
-			     uint64_t          endSeq);
-
-    int printConfig() {
+  int printConfig() {
     EKA_LOG("%s:%u : "
 	    "productMask: \'%s\' (0x%x) "
 	    
@@ -97,12 +99,6 @@ class EkaFhBatsGr : public EkaFhGroup{
     return 0;
   }
 private:
-  int    sendMdCb(const EfhRunCtx* pEfhRunCtx,
-		  const uint8_t* m,
-		  int            gr,
-		  uint64_t       sequence,
-		  uint64_t       ts);
-
 
   
   /* ##################################################################### */
@@ -142,6 +138,17 @@ public:
   std::unordered_map<AuctionIdT,SecurityIdT> auctionMap;
 
 private:
-
+  int sendMdCb(const EfhRunCtx* pEfhRunCtx,
+	       const uint8_t* m,
+	       int            gr,
+	       uint64_t       sequence,
+	       uint64_t       ts);
+  
+  bool process_Definition(const EfhRunCtx* pEfhRunCtx,
+			  const unsigned char* m,
+			  uint64_t sequence,
+			  EkaFhMode op);
+  template <class SecurityT, class OrderMsgT>
+  SecurityT* process_AddOrderShort(const uint8_t* m);
 };
 #endif
