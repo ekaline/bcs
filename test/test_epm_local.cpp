@@ -91,9 +91,19 @@ class EkalinePMFixture : public ::testing::Test {
       if (result != 0) {
         ERROR("Failed to close firing controller: efcClose(%p) with %d", efcCtx_, result);
       } else {
+        INFO("EFC close called");
         efcCtx_ = nullptr;
       }
     }
+    if (epmEnabled_) {
+      auto epmResult = epmEnableController(device(), phyPort, false);
+      if (!isResultOk(epmResult)) {
+        ERROR("EPM controller disable failed with %d", (int)epmResult);
+      } else {
+        epmEnabled_ = false;
+      }
+    }
+
     if (hConnection_ != -1) {
       INFO("Closing connection %d of socket %d", hConnection_, hSocket_);
       int result = excClose(device(), hConnection_);
@@ -111,6 +121,10 @@ class EkalinePMFixture : public ::testing::Test {
         WARN("excSocketClose(%d) failed with %d", hSocket_, result);
       else
         hSocket_ = -1;
+    }
+    if (device() != nullptr) {
+      ekaDevice_.reset();
+      INFO("Closed ekaline device");
     }
   }
   EkaDev *device() { assert(ekaDevice_ != nullptr); return ekaDevice_.get(); }
@@ -134,6 +148,7 @@ class EkalinePMFixture : public ::testing::Test {
       ERROR("ekaDevInit() failed with %d", result);
     } else {
       ekaDevice_.reset(device);
+      INFO("Ekaline device initialized OK");
     }
     return isResultOk(result);
   }
@@ -163,6 +178,8 @@ class EkalinePMFixture : public ::testing::Test {
     if (!isResultOk(result)) {
       ERROR("Failed to initialize firing controller (result %d)", (int)result);
       return false;
+    } else {
+      INFO("EFC initialized OK");
     }
     assert(efcCtx != nullptr);
     efcCtx_ = efcCtx;
@@ -242,6 +259,8 @@ class EkalinePMFixture : public ::testing::Test {
     if (!result) {
       ERROR("Failed to deploy strategies");
       return false;
+    } else {
+      epmEnabled_ = true;
     }
     if (!fastCancelInit()) {
       ERROR("Failed to init fast cancel");
@@ -287,7 +306,9 @@ class EkalinePMFixture : public ::testing::Test {
     return result;
   }
 
-  static void releaseDevice(EkaDev *device) { ekaDevClose(device); }
+  static void releaseDevice(EkaDev *device) {
+    if (device != nullptr) ekaDevClose(device);
+  }
 
   // Channel ID 310, Label "CME Globex Equity Futures"
   // Note: ES and 0ES only
@@ -340,8 +361,16 @@ class EkalinePMFixture : public ::testing::Test {
       if (inet_aton(std::string(peerIp).c_str(), &peerIpAddr)) {
         hConnection_ = connectTo(device(), hSocket, peerIpAddr.s_addr, peerPort);
         connected_ = hConnection_ >= 0;
-        if (!connected_)
+        if (!connected_) {
           ERROR("Failed to connect to {%s:%d}", std::string(peerIp).c_str(), peerPort);
+        } else{
+          const char message[] = "Hello from ekaline!\n";
+          auto result = excSend(device(), hConnection_, message, sizeof(message), 0);
+          if (result != sizeof(message)) {
+            ERROR("Failed to send %d bytes of message (result %d)", sizeof(message), result);
+            failed = true;
+          }
+        }
       }
       failed |= !connected_;
     }
@@ -402,9 +431,12 @@ class EkalinePMFixture : public ::testing::Test {
         .action = strategyPrevActionCount + actionIdx
       };
       if (isResultOk(epmRaiseTriggers(device(), &actionToTrigger))) {
+        INFO("EPM trigger raised (startegy %d, action %d, token 0x%lx)",
+             actionToTrigger.strategy, actionToTrigger.action, actionToTrigger.token);
         epmTriggerInvoked_.push_back(actionToTrigger);
       } else {
-        ERROR("Trigger failed to be raised for (, )");
+        ERROR("Trigger failed to be raised for (startegy %d, action %d, token 0x%lx)",
+              actionToTrigger.strategy, actionToTrigger.action, actionToTrigger.token);
         failed = true;
       }
     }
@@ -543,6 +575,7 @@ class EkalinePMFixture : public ::testing::Test {
 
   bool bound_     = false;
   bool connected_ = false;
+  bool epmEnabled_ = false;
 
   ExcSocketHandle hSocket_  = -1;
   ExcConnHandle hConnection_ = -1;
