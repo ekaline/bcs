@@ -285,7 +285,7 @@ namespace Bats {
     char		side;     // 1 'B' or 'S'
     uint32_t	size;     // 4
     char          symbol[6];// 6  right padded with spaces
-    int64_t	price;    // 8
+    uint64_t	price;    // 8
     uint8_t	flags;    // 1
   } __attribute__((packed));
 
@@ -295,7 +295,7 @@ namespace Bats {
     char		side;     // 1 'B' or 'S'
     uint16_t	size;     // 2
     char          symbol[6];// 6  right padded with spaces
-    int16_t	price;    // 2
+    uint16_t	price;    // 2
     uint8_t	flags;    // 1
   } __attribute__((packed));
 
@@ -305,7 +305,7 @@ namespace Bats {
     char		side;               // 1 'B' or 'S'
     uint32_t	size;               // 4
     char          exp_symbol[8];      // 8  right padded with spaces
-    int64_t	price;              // 8
+    uint64_t	price;              // 8
     uint8_t	flags;              // 1
     char          participant_id[4];  // 4
     char          customer_indicator; // 1 'N' - Non-Customer, 'C' - Customer
@@ -332,7 +332,7 @@ namespace Bats {
     uint32_t	executed_size;      // 4
     uint32_t	remaining_size;     // 4 -- IGNORED IN THE BOOK LOGIC!!!
     uint64_t	execution_id;       // 8
-    int64_t	price;              // 8
+    uint64_t	price;              // 8
     char  	trade_condition;    // 1
     /* ' ' (Space) - Normal Trade */
     /* 'O' - Opening trade */
@@ -358,7 +358,7 @@ namespace Bats {
     struct GenericHeader header;
     uint64_t	order_id;           // 8
     uint32_t	size;               // 4 (= new size)
-    int64_t	price;              // 8 (= new price)
+    uint64_t	price;              // 8 (= new price)
     uint8_t  	flags;              // 1
     /* bit 0 - Display: '0' - not aggregated, '1' - aggregated */
     /*   bit 1 - Maintain Priority: '0' - Reset Priority, '1' - Maintain Priority */
@@ -369,7 +369,7 @@ namespace Bats {
     struct GenericHeader header;
     uint64_t	order_id;           // 8
     uint16_t	size;               // 2 (= new size)
-    int16_t	price;              // 2 (= new price)
+    uint16_t	price;              // 2 (= new price)
     uint8_t  	flags;              // 1
     /* bit 0 - Display: '0' - not aggregated, '1' - aggregated */
     /*   bit 1 - Maintain Priority: '0' - Reset Priority, '1' - Maintain Priority */

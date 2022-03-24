@@ -4,7 +4,6 @@
 #include "EkaFhBook.h"
 #include "EkaFhTypes.h"
 
-
 template <const uint SEC_HASH_SCALE,
   class FhSecurity, 
   class SecurityIdT, 
@@ -18,10 +17,12 @@ template <const uint SEC_HASH_SCALE,
 	      EkaSource   _exch) 
    : EkaFhBook (_dev,_grId,_exch) {}
   /* ####################################################### */
-  FhSecurity*  findSecurity(SecurityIdT secId) {
+  inline FhSecurity*  findSecurity(SecurityIdT secId) {
     uint32_t index =  secId & SEC_HASH_MASK;
-    if (index >= SEC_HASH_LINES) on_error("index = %u >= SEC_HASH_LINES %ju",index,SEC_HASH_LINES);
-    if (sec[index] == NULL) return NULL;
+    if (index >= SEC_HASH_LINES)
+      on_error("index = %u >= SEC_HASH_LINES %ju",
+	       index,SEC_HASH_LINES);
+    if (! sec[index]) return NULL;
 
     FhSecurity* sp = sec[index];
 
@@ -33,19 +34,49 @@ template <const uint SEC_HASH_SCALE,
     return NULL;
   }
   /* ####################################################### */
-  FhSecurity*  subscribeSecurity(SecurityIdT     secId,
+  inline int invalidate(const EfhRunCtx* pEfhRunCtx,
+			uint64_t         pktSeq, 
+			uint64_t         pktTime,
+			uint             gapNum,
+			bool             sendTobUpdate) {
+    EKA_LOG("%s:%u: invalidating Channel (full book)",
+	    EKA_EXCH_DECODE(exch),grId);
+    int secCnt = 0;
+    
+    for (size_t hashLine = 0; hashLine < SEC_HASH_LINES; hashLine++) {
+      auto s = dynamic_cast<FhSecurity*>(sec[hashLine]);      
+      while (s) {
+	auto n = s->next;
+	dynamic_cast<FhSecurity*>(s)->reset();
+	if (sendTobUpdate)
+	  generateOnQuote (pEfhRunCtx,
+			   s,
+			   pktSeq,
+			   pktTime,
+			   gapNum);
+	secCnt++;
+	s = dynamic_cast<FhSecurity*>(n);
+      }
+    }
+    EKA_LOG("%s:%u: %d Securities invalidated",
+	    EKA_EXCH_DECODE(exch),grId,secCnt);
+    return secCnt;
+  }
+  
+  /* ####################################################### */
+  inline FhSecurity*  subscribeSecurity(SecurityIdT     secId,
 				 EfhSecurityType type,
 				 EfhSecUserData  userData,
 				 uint64_t        opaqueAttrA,
 				 uint64_t        opaqueAttrB) {
     FhSecurity* s = new FhSecurity(secId,type,userData,opaqueAttrA,opaqueAttrB);
-    if (s == NULL) on_error("s == NULL, new FhSecurity failed");
+    if (!s) on_error("!s, new FhSecurity failed");
   
     uint32_t index = secId & SEC_HASH_MASK;
     if (index >= SEC_HASH_LINES) 
       on_error("index = %u >= SEC_HASH_LINES %ju",index,SEC_HASH_LINES);
 
-    if (sec[index] == NULL) {
+    if (! sec[index]) {
       sec[index] = s; // empty bucket
     } else {
       FhSecurity *sp = sec[index];
@@ -56,19 +87,20 @@ template <const uint SEC_HASH_SCALE,
     return s;
   }
   /* ####################################################### */
-  void            init() {
-    EKA_LOG("%s:%u : CME book with preallocated: %ju Securities Hash lines, no PLEVELS, no ORDERS",
+  void init() {
+    EKA_LOG("%s:%u : CME book with preallocated: "
+	    "%ju Securities Hash lines, no PLEVELS, no ORDERS",
 	  EKA_EXCH_DECODE(exch),grId,SEC_HASH_LINES);
   }
   /* ####################################################### */
 
-  int generateOnQuote (const EfhRunCtx* pEfhRunCtx, 
+  inline int generateOnQuote (const EfhRunCtx* pEfhRunCtx, 
 		       FhSecurity*      s, 
 		       uint64_t         sequence, 
 		       uint64_t         timestamp,
 		       uint             gapNum) {
 
-    if (s == NULL) on_error("s == NULL");
+    if (!s) on_error("!s");
 
     EfhQuoteMsg msg = {};
     msg.header.msgType        = EfhMsgType::kQuote;
@@ -114,7 +146,7 @@ template <const uint SEC_HASH_SCALE,
 		       SideT            side,
 		       uint             gapNum) {
 
-    if (s == NULL) on_error("s == NULL");
+    if (!s) on_error("!s");
 
     if (side != SideT::BID && side != SideT::ASK)
       on_error("Unexpected side = %d",(int)side);
@@ -132,7 +164,7 @@ template <const uint SEC_HASH_SCALE,
 
     msg.orderSide             = side == SideT::BID ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
       
-    msg.bookSide.price         = side == SideT::BID ? (s->bid->getEntryPrice(0) / PRICE_SCALE) :
+    msg.bookSide.price        = side == SideT::BID ? (s->bid->getEntryPrice(0) / PRICE_SCALE) :
       (s->ask->getEntryPrice(0) / PRICE_SCALE);
     
     msg.bookSide.size          = side == SideT::BID ? s->bid->getEntrySize(0) :

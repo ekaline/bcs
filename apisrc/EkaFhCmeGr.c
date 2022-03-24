@@ -19,6 +19,7 @@
 #include <assert.h>
 #include <sched.h>
 #include <time.h>
+#include <vector>
 
 #include "EkaFhThreadAttr.h"
 #include "EkaFhCmeGr.h"
@@ -67,43 +68,49 @@ void EkaFhCmeGr::pushPkt2Q(const uint8_t*       pkt,
  /* ##################################################################### */
 
 int EkaFhCmeGr::processFromQ(const EfhRunCtx* pEfhRunCtx) {
-  bool firstPkt = true;
+  int qPktCnt = 0;
   while (! pktQ->is_empty()) {
     PktElem* buf = pktQ->pop();
-    if (firstPkt) {
-      firstPkt = false;
+    if (qPktCnt == 0) {
+      /* EKA_LOG("%s:%u: 1st Q pkt sequence = %ju, seq_after_snapshot = %ju", */
+      /* 	      EKA_EXCH_DECODE(exch),id,buf->sequence,seq_after_snapshot); */
       EKA_LOG("%s:%u: 1st Q pkt sequence = %ju",
-	  EKA_EXCH_DECODE(exch),id,buf->sequence);
+	      EKA_EXCH_DECODE(exch),id,buf->sequence);
     }
-    if (buf->sequence < expected_sequence) continue;
+    qPktCnt++;
+      
+/*     if (buf->sequence < seq_after_snapshot) continue; */
+/* #ifdef _EKA_CHECK_BOOK_INTEGRITY */
+/*     EKA_LOG("%s:%u: processing pkt %d,  sequence = %ju from Q", */
+/* 	    EKA_EXCH_DECODE(exch),id, */
+/* 	    qPktCnt,buf->sequence); */
+/*     printPkt(buf->data,buf->pktSize, qPktCnt); */
+/* #endif   */  
     processPkt(pEfhRunCtx,
 	       buf->data,
 	       buf->pktSize,
 	       EkaFhMode::MCAST);
     expected_sequence = buf->sequence + 1;
   }
-  EKA_LOG("%s:%u: After Q draining expected_sequence = %ju",
-	  EKA_EXCH_DECODE(exch),id,expected_sequence);
+  EKA_LOG("%s:%u: After Q draining %d packets expected_sequence = %ju",
+	  EKA_EXCH_DECODE(exch),id,qPktCnt,expected_sequence);
   return 0;
 }
 
  /* ##################################################################### */
 int EkaFhCmeGr::closeSnapshotGap(EfhCtx*           pEfhCtx, 
-				 const EfhRunCtx*  pEfhRunCtx, 
-				 uint64_t          sequence) {
-  firstLifeSeq = sequence;
-
+				 const EfhRunCtx*  pEfhRunCtx) {
   std::string threadName = std::string("ST_") + 
     std::string(EKA_EXCH_SOURCE_DECODE(exch)) + 
     '_' + 
     std::to_string(id);
-  EkaFhThreadAttr* attr  = new EkaFhThreadAttr(pEfhCtx, 
-					       pEfhRunCtx, 
-					       this, 
-					       sequence, 
-					       0, 
-					       EkaFhMode::SNAPSHOT);
-  if (attr == NULL) on_error("attr = NULL");
+  auto attr  = new EkaFhThreadAttr(pEfhCtx, 
+				   pEfhRunCtx, 
+				   this, 
+				   0, 
+				   0, 
+				   EkaFhMode::SNAPSHOT);
+  if (!attr) on_error("!attr");
   
   dev->createThread(threadName.c_str(),
 		    EkaServiceType::kFeedSnapshot,
@@ -124,7 +131,7 @@ void* getCmeSnapshot(void* attr) {
 
   auto pEfhRunCtx {params->pEfhRunCtx};
   auto gr {dynamic_cast<EkaFhCmeGr*>(params->gr)};
-  if (gr == NULL) on_error("gr == NULL");
+  if (!gr) on_error("!gr");
 
   delete params;
 
@@ -137,7 +144,7 @@ void* getCmeSnapshot(void* attr) {
   pthread_detach(pthread_self());
 
   EkaDev* dev = gr->dev;
-  if (dev == NULL) on_error ("dev == NULL");
+  if (!dev) on_error ("!dev");
 
   gr->recoveryLoop(pEfhRunCtx, EkaFhMode::SNAPSHOT);
 
@@ -145,41 +152,81 @@ void* getCmeSnapshot(void* attr) {
 }
 
 EkaOpResult EkaFhCmeGr::recoveryLoop(const EfhRunCtx* pEfhRunCtx, EkaFhMode op) {
+#ifdef FH_LAB
+  return EKA_OPRESULT__OK;
+#endif
+  
   auto ip   = op == EkaFhMode::DEFINITIONS ? snapshot_ip   : recovery_ip;
   auto port = op == EkaFhMode::DEFINITIONS ? snapshot_port : recovery_port;
+
+  struct RecoveryPkt {
+    size_t  size;
+    uint8_t data[1536];
+  };
+  
+  std::vector<RecoveryPkt>recoveryPkt;
 
   int sock = ekaUdpMcConnect(dev, ip, port);
   if (sock < 0) on_error ("sock = %d",sock);
     
   snapshot_active = true;
   snapshotClosed = false;
-  iterationsCnt = 0; 
-  uint32_t expectedPktSeq = 1;
 
-  while (snapshot_active) {
-    uint8_t pkt[1536] = {};
-    int size = recvfrom(sock, pkt, sizeof(pkt), 0, NULL, NULL);
-    if (size < 0) on_error("size = %d",size);
-    
-    if (expectedPktSeq == 1 && getPktSeq(pkt) != 1)
-      continue;
+  bool recovered = false;
+  book->invalidate(NULL,0,0,0,false);
 
-    if (expectedPktSeq != 1 && getPktSeq(pkt) == 1)
-      break;
+  while (!recovered && snapshot_active) {
+    recoveryPkt.clear();
+    iterationsCnt = 0; 
+    uint32_t expectedPktSeq = 1;
+    while (snapshot_active) {
+      uint8_t pkt[1536] = {};
+      //      EKA_LOG("Waiting for UDP pkt...");
+      
+      int size = recvfrom(sock, pkt, sizeof(pkt), 0, NULL, NULL);
+      if (size < 0) on_error("size = %d",size);
     
-    if (expectedPktSeq != getPktSeq(pkt))
-      EKA_WARN("ERROR: %s:%u: expectedPktSeq=%u, getPktSeq(pkt)=%u, %d / %d %s messages processed",
-	       EKA_EXCH_DECODE(exch),id,expectedPktSeq,getPktSeq(pkt),
-	       iterationsCnt,totalIterations,EkaFhMode2STR(op));
-    if (processPkt(pEfhRunCtx,pkt,size,op)) break;
-    expectedPktSeq = getPktSeq(pkt) + 1;
+      if (expectedPktSeq == 1 && getPktSeq(pkt) != 1) // recovery Loop not started yet
+	continue;
+
+      if (expectedPktSeq != 1 && getPktSeq(pkt) == 1) {// end of recovery Loop
+	recovered = true;
+	EKA_LOG("%s:%u: recording %s %jd packets completed",
+		EKA_EXCH_DECODE(exch),id,EkaFhMode2STR(op),recoveryPkt.size());
+	break;
+      }
+    
+      if (expectedPktSeq != getPktSeq(pkt)) { // gap in recovery Loop
+	EKA_WARN("ERROR: %s:%u: Gap during %s: expectedPktSeq=%u, getPktSeq(pkt)=%u: restarting the %s loop",
+		 EKA_EXCH_DECODE(exch),id,EkaFhMode2STR(op),
+		 expectedPktSeq,getPktSeq(pkt),
+		 EkaFhMode2STR(op));
+	break;
+      }
+
+      // normal
+      RecoveryPkt pkt2push = {};
+      pkt2push.size = size;
+      memcpy(pkt2push.data,pkt,size);
+      
+      recoveryPkt.push_back(pkt2push);
+      
+      expectedPktSeq = getPktSeq(pkt) + 1;
+    }
   }
+  EKA_LOG("%s:%u: executing %s %jd packets",
+	  EKA_EXCH_DECODE(exch),id,EkaFhMode2STR(op),recoveryPkt.size());
+  for (auto const& p : recoveryPkt) {
+    processPkt(pEfhRunCtx,p.data,p.size,op);
+  }
+  
   EKA_LOG("%s:%u: %d / %d %s messages processed",
 	  EKA_EXCH_DECODE(exch),id,
 	  iterationsCnt,totalIterations,EkaFhMode2STR(op));
   
   snapshot_active = false;
   snapshotClosed  = true;
+  gapClosed = true;
   //  inGap           = false;
   
   close (sock);

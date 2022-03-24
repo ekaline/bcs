@@ -362,6 +362,8 @@ int EkaEfc::run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx) {
     dev->fireReportThread.detach();
     while (! dev->fireReportThreadActive) sleep(0);
     EKA_LOG("fireReportThread activated");
+  } else {
+    EKA_LOG("fireReportThread already active");
   }
 
   return 0;

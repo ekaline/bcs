@@ -308,6 +308,7 @@ static int sendCmeTradeMsg(std::string serverIp,
 	    EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
     if (sendto(triggerSock,pkt,payloadLen,0,(const sockaddr*)&triggerMcAddr,sizeof(triggerMcAddr)) < 0) 
 	on_error ("MC trigger send failed");
+    return 0;
 }
 
 /* ############################################# */

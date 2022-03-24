@@ -68,12 +68,21 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 
     switch (msgHdr->templateId) {
       /* ##################################################################### */
+    case MsgId::ChannelReset4 :
+      process_ChannelReset4(pEfhRunCtx,p,pktTime,pktSeq);
+      break;
+      /* ##################################################################### */
+    case MsgId::SecurityStatus30 :
+      process_SecurityStatus30(pEfhRunCtx,p,pktTime,pktSeq);
+      break;
+      /* ##################################################################### */
     case MsgId::QuoteRequest39 :
       process_QuoteRequest39(pEfhRunCtx,p,pktTime,pktSeq);
       break;
       /* ##################################################################### */
     case MsgId::MDIncrementalRefreshBook46 :
-      process_MDIncrementalRefreshBook46(pEfhRunCtx,p,pktTime,pktSeq);
+      if (op == EkaFhMode::MCAST)
+	process_MDIncrementalRefreshBook46(pEfhRunCtx,p,pktTime,pktSeq);
       break;
       /* ##################################################################### */
     case MsgId::MDIncrementalRefreshTradeSummary48 :
@@ -81,7 +90,8 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
       break;
       /* ##################################################################### */
     case MsgId::SnapshotFullRefresh52 : 
-      process_SnapshotFullRefresh52(pEfhRunCtx,p,pktTime,pktSeq);
+      if (op == EkaFhMode::SNAPSHOT)
+	process_SnapshotFullRefresh52(pEfhRunCtx,p,pktTime,pktSeq);
       break;
       /* ##################################################################### */
     case MsgId::MDInstrumentDefinitionFuture27 :
@@ -275,8 +285,25 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
     auto e {reinterpret_cast<const IncrementalRefreshMdEntry*>(m)};
     m += pGroupSize->blockLength;
     auto s {book->findSecurity(e->SecurityID)};
-    if (s == NULL) break;
+    if (!s)
+#ifdef FH_SUBSCRIBE_ALL
+      s = book->subscribeSecurity(e->SecurityID,
+				  (EfhSecurityType)1,
+				  (EfhSecUserData)0,
+				  1,3);
+#else      
+    continue; // next IncrementalRefreshMdEntry
+#endif
+    if (e->MDEntryType == MDEntryTypeBook_T::BookReset)
+      on_error("MDEntryTypeBook_T::BookReset not supported for MDIncrementalRefreshBook46");
 
+    if (s->lastMsgSeqNumProcessed != 0) { // after Snapshot
+      if (pktSeq <= s->lastMsgSeqNumProcessed)
+	continue; // skip buffered messages
+      else
+	s->lastMsgSeqNumProcessed = 0;
+    }
+    
     const auto side {getSide46(e->MDEntryType)};
     if (side == SideT::OTHER) return msgHdr->size;
     const int64_t finalPriceFactor = s->getFinalPriceFactor();
@@ -296,15 +323,27 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
       break;
     case MDUpdateAction_T::Delete:
       tobChange = s->deletePlevel(side,
-				  e->MDPriceLevel);
+				  e->MDPriceLevel);     
       break;
     case MDUpdateAction_T::DeleteThru:
     case MDUpdateAction_T::DeleteFrom:
     case MDUpdateAction_T::Overlay:
-      break;
     default:
-      on_error("Unexpected MDUpdateActio %u",(uint)e->MDUpdateAction);
+      on_error("Unexpected MDUpdateAction %s (%u)",
+	       MDpdateAction2STR(e->MDUpdateAction),(uint)e->MDUpdateAction);
     }
+#ifdef _EKA_CHECK_BOOK_INTEGRITY
+      if (! s->checkBookIntegrity()) {
+	TEST_LOG("ERROR after: %s for SecurityID %d (leg %d / %d),pktSeq=%d",
+		 MDpdateAction2STR(e->MDUpdateAction),e->SecurityID,
+		 i,pGroupSize->numInGroup,
+		 pktSeq
+		 );
+	print_MDIncrementalRefreshBook46(pMsg,pktSeq);
+	s->printSecurityBook();
+	on_error("End of test");
+      }
+#endif   
     /* if (tobChange && fh->print_parsed_messages) { */
     /*   fprintf(parser_log,"generateOnQuote: BP=%ju,BS=%d,AP=%ju,AS=%d\n", */
     /* 	  s->bid->getEntryPrice(0), */
@@ -387,9 +426,9 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
       case MDUpdateAction_T::DeleteThru:
       case MDUpdateAction_T::DeleteFrom:
       case MDUpdateAction_T::Overlay:
-	break;
       default:
-	on_error("Unexpected MDUpdateAction %u",(uint)e->MDUpdateAction);
+	on_error("Unexpected MDUpdateAction %s (%u)",
+		 MDpdateAction2STR(e->MDUpdateAction),(uint)e->MDUpdateAction);
       }
     }	
   }
@@ -415,7 +454,8 @@ int EkaFhCmeGr::process_MDIncrementalRefreshTradeSummary48(const EfhRunCtx* pEfh
 	m += pGroupSize->blockLength;
 	
 	FhSecurity* s = book->findSecurity(e->SecurityID);
-	if (s == NULL) continue;
+	if (!s) continue;
+
 	const EfhTradeMsg msg = {
 	    { EfhMsgType::kTrade,
 	      {exch,(EkaLSI)id}, // group
@@ -435,6 +475,44 @@ int EkaFhCmeGr::process_MDIncrementalRefreshTradeSummary48(const EfhRunCtx* pEfh
 }
 /* ##################################################################### */     
 
+int EkaFhCmeGr::process_ChannelReset4(const EfhRunCtx* pEfhRunCtx,
+					 const uint8_t*   pMsg,
+					 const uint64_t   pktTime,
+					 const SequenceT  pktSeq) {
+  auto m      {pMsg};
+  auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
+  m += sizeof(*msgHdr);
+  book->invalidate(pEfhRunCtx,pktSeq,pktTime,gapNum,true);
+  return msgHdr->size;
+}
+
+/* ##################################################################### */     
+
+int EkaFhCmeGr::process_SecurityStatus30(const EfhRunCtx* pEfhRunCtx,
+					 const uint8_t*   pMsg,
+					 const uint64_t   pktTime,
+					 const SequenceT  pktSeq) {
+  auto m      {pMsg};
+  auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
+  m += sizeof(*msgHdr);
+
+  auto rootBlock {reinterpret_cast<const SecurityStatus30_mainBlock*>(m)};
+
+  auto s {book->findSecurity(rootBlock->SecurityID)};
+  if (!s) return msgHdr->size;
+
+  s->tradeStatus = setEfhTradeStatus(rootBlock->SecurityTradingStatus);
+
+  book->generateOnQuote (pEfhRunCtx,
+			 s,
+			 pktSeq,
+			 pktTime,
+			 gapNum);
+
+  return msgHdr->size;
+}
+/* ##################################################################### */     
+
 int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
 						   const uint8_t*   pMsg,
 						   const uint64_t   pktTime,
@@ -445,9 +523,14 @@ int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
   auto rootBlock {reinterpret_cast<const SnapshotFullRefresh52_mainBlock*>(m)};
   m += msgHdr->blockLen;
 
-  auto s {book->findSecurity(rootBlock->SecurityID)};
-  if (s == NULL) return msgHdr->size;
+  //  seq_after_snapshot = rootBlock->LastMsgSeqNumProcessed + 1;
   
+  auto s {book->findSecurity(rootBlock->SecurityID)};
+  if (!s) return msgHdr->size;
+
+  s->lastMsgSeqNumProcessed = rootBlock->LastMsgSeqNumProcessed;
+  
+  s->tradeStatus = setEfhTradeStatus(rootBlock->MDSecurityTradingStatus);
   /* ------------------------------- */
   auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize);
@@ -459,7 +542,7 @@ int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
     if (side == SideT::OTHER) continue;
     const int64_t finalPriceFactor = s->getFinalPriceFactor();
 
-    bool tobChange = s->newPlevel(side,
+    bool tobChange = s->changePlevel(side,
 				  e->MDPriceLevel,
 				  e->MDEntryPx / finalPriceFactor,
 				  e->MDEntrySize);
@@ -514,11 +597,29 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   msg.commonDef.underlyingType = EfhSecurityType::kIndex;
   msg.commonDef.contractSize   = 0;
   msg.commonDef.opaqueAttrA    = computeFinalPriceFactor(rootBlock->DisplayFactor);
+  msg.commonDef.opaqueAttrB    = 10; // default Market Depth for Futures
   getCMEProductTradeTime(pMaturity, rootBlock->Symbol, &msg.commonDef.expiryDate, &msg.commonDef.expiryTime);
 
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
   copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
   copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
+  
+  /* ------------------------------- */
+  /* auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)}; */
+  /* m += sizeof(*pGroupSize_EventType); */
+  /* for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++) */
+  /*   m += pGroupSize_EventType->blockLength; */
+  /* /\* ------------------------------- *\/ */
+  /* auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)}; */
+  /* m += sizeof(*pGroupSize_FeedType); */
+  /* for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) { */
+  /*   auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)}; */
+  /*   msg.commonDef.opaqueAttrB = e->MarketDepth; */
+  /*   m += pGroupSize_FeedType->blockLength; */
+  /* } */
+  /* ------------------------------- */
+  if (msg.commonDef.opaqueAttrB < 3)
+    print_MDInstrumentDefinitionFuture54(pMsg);
 
   pEfhRunCtx->onEfhFutureDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
   
@@ -583,7 +684,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   msg.optionStyle           = static_cast<EfhOptionStyle>(rootBlock->CFICode[2]);
   msg.strikePrice           = rootBlock->StrikePrice / priceAdjustFactor;
 
-  //      msg.opaqueAttrB           = rootBlock->PriceDisplayFormat;
+  msg.commonDef.opaqueAttrB = 3; // default MarketDepth for Options
 
   /* ------------------------------- */
   auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
@@ -593,8 +694,11 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   /* ------------------------------- */
   auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize_FeedType);
-  for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++)
+  for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) {
+    auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)};
+    msg.commonDef.opaqueAttrB = e->MarketDepth;
     m += pGroupSize_FeedType->blockLength;
+  }
   /* ------------------------------- */
   auto pGroupSize_InstrAttribType {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize_InstrAttribType);
@@ -626,6 +730,9 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
 
     m += pGroupSize_RelatedInstruments->blockLength;
   }
+  
+  if (msg.commonDef.opaqueAttrB < 3)
+    print_MDInstrumentDefinitionOption55(pMsg);
 
   pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
 
@@ -672,6 +779,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   msg.commonDef.expiryTime     = 0;
   msg.commonDef.contractSize   = 0;
   msg.commonDef.opaqueAttrA    = priceAdjustFactor;
+  msg.commonDef.opaqueAttrB    = 3; // Market Depth
 
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
   copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
@@ -683,10 +791,13 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++) 
     m += pGroupSize_EventType->blockLength;
   /* ------------------------------- */		
-  auto pGroupSize_MDFeedType {reinterpret_cast<const groupSize_T*>(m)};
-  m += sizeof(*pGroupSize_MDFeedType);
-  for (uint i = 0; i < pGroupSize_MDFeedType->numInGroup; i++) 
-    m += pGroupSize_MDFeedType->blockLength;
+  auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)};
+  m += sizeof(*pGroupSize_FeedType);
+  for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) {
+    auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)};
+    msg.commonDef.opaqueAttrB = e->MarketDepth;
+    m += pGroupSize_FeedType->blockLength;
+  }
   /* ------------------------------- */
   auto pGroupSize_InstAttribType {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize_InstAttribType);
@@ -722,6 +833,8 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   }
   msg.numLegs = pGroupSize->numInGroup;
 
+  if (msg.commonDef.opaqueAttrB < 3)
+    print_MDInstrumentDefinitionSpread56(pMsg);
   if (pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL)
     on_error("pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL");
   pEfhRunCtx->onEfhComplexDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
