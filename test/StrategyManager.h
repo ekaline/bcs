@@ -105,7 +105,8 @@ class StrategyManager {
         WARN("Uploading payload (device, idx %d, ofs %d, size %d, _)",
              strategyIdx, message.heapOffset(), message.size());
         usleep(200);
-        EkaOpResult result = epmPayloadHeapCopy(device, strategyIdx, message.heapOffset(), message.size(), message.data());
+        EkaOpResult result = epmPayloadHeapCopy(device, strategyIdx,
+                                                message.heapOffset(), message.size(), message.data());
         if (!isResultOk(result)) {
           ERROR("Failed to upload payload (device, idx %d, ofs %d, size %d, _) with %d",
                 strategyIdx, message.heapOffset(),message.size(), (int)result);
@@ -117,12 +118,18 @@ class StrategyManager {
                 actionIdx, strategyIdx, (int)epmAction.type, epmAction.offset, epmAction.length);
           failed = true;
           break;
+        } else {
+          INFO("EPM action set (strategy %d, action %d, {type %d, token 0x%lx, ofs %d, len %d, valid %d, enable 0x%x})",
+               strategyIdx, actionIdx, epmAction.type, epmAction.token, epmAction.offset, epmAction.length,
+               epmAction.actionFlags, epmAction.enable);
         }
       }
       if (!isResultOk(epmSetStrategyEnableBits(device, strategyIdx, builder.enableBits[strategyIdx]))) {
         ERROR("Failed to enable strategy %d, bits %s", strategyIdx, toHexString(builder.enableBits[strategyIdx]).c_str());
         failed = true;
         break;
+      } else {
+        INFO("strategy enable bits set (strategy %d, bits %s)", strategyIdx, toHexString(builder.enableBits[strategyIdx]).c_str());
       }
     }
 
@@ -131,6 +138,8 @@ class StrategyManager {
       deployed = isResultOk(epmEnableController(device, phyPort, true));
       if (!deployed)
         ERROR("Failed to epmEnableController(dev, port %d, enable true)", phyPort);
+    } else {
+      INFO("EPM controller enabled on port %d", phyPort);
     }
     return deployed;
   }
