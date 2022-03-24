@@ -30,7 +30,7 @@ public:
 					       EfhSecUserData  efhSecUserData,
 					       uint64_t        opaqueAttrA,
 					       uint64_t        opaqueAttrB) {
-    if (book == NULL) on_error("%s:%u book == NULL",EKA_EXCH_DECODE(exch),id);
+    if (!book) on_error("%s:%u !book",EKA_EXCH_DECODE(exch),id);
     book->subscribeSecurity(securityId, 
 			    efhSecurityType,
 			    efhSecUserData,
@@ -53,8 +53,7 @@ public:
   int                   processFromQ(const EfhRunCtx* pEfhRunCtx);
 
   int                   closeSnapshotGap(EfhCtx*           pEfhCtx, 
-					 const EfhRunCtx* pEfhRunCtx, 
-					 uint64_t          sequence);
+					 const EfhRunCtx* pEfhRunCtx);
 
   EkaOpResult           recoveryLoop(const EfhRunCtx* pEfhRunCtx,
 				     EkaFhMode op);
@@ -71,16 +70,18 @@ public:
   using SizeT       = int32_t;
 
   using SequenceT   = uint32_t;
-  using PriceLevetT = uint8_t;
+  //  using PriceLevetT = uint8_t;
+  using PriceLevetT = ssize_t;
 
   using FhSecurity  = EkaFhCmeSecurity  <
     PriceLevetT,
     SecurityIdT, 
     PriceT, 
-    SizeT>;
+    SizeT,
+    SequenceT>;
   using FhBook      = EkaFhCmeBook      <
     SEC_HASH_SCALE,
-    EkaFhCmeSecurity  <PriceLevetT,SecurityIdT, PriceT, SizeT>,
+    EkaFhCmeSecurity  <PriceLevetT,SecurityIdT, PriceT, SizeT,SequenceT>,
     SecurityIdT, 
     PriceT, 
     SizeT>;
@@ -93,7 +94,6 @@ public:
   PktQ*     pktQ       = NULL;
 
   bool      snapshotClosed = false;
-  uint64_t  firstLifeSeq = 0;
   int       iterationsCnt = 0;
   int       totalIterations = 0;  
 
@@ -106,6 +106,16 @@ private:
                               uint32_t* iso8601Date,
                               time_t* time);
 
+  int process_ChannelReset4(const EfhRunCtx* pEfhRunCtx,
+			    const uint8_t*   msg,
+			    uint64_t         pktTime,
+			    SequenceT        pktSeq);
+    
+  int process_SecurityStatus30(const EfhRunCtx* pEfhRunCtx,
+			       const uint8_t*   msg,
+			       uint64_t         pktTime,
+			       SequenceT        pktSeq);
+  
   int process_QuoteRequest39(const EfhRunCtx* pEfhRunCtx,
 			     const uint8_t*   msg,
 			     uint64_t         pktTime,
