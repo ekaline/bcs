@@ -68,11 +68,9 @@ class StrategyManager {
            epmStrategyCount ? builder.epmStrategies[0].cbCtx : nullptr);
     }
 
-    if (0) {
-      if (!isResultOk(epmEnableController(device, phyPort, false))) {
-        ERROR("Failed to disable EPM for port %d", phyPort);
-        return false;
-      }
+    if (!isResultOk(epmEnableController(device, phyPort, false))) {
+      ERROR("Failed to disable EPM for port %d", phyPort);
+      return false;
     }
 
     int strategyIdx = 0;
@@ -91,7 +89,7 @@ class StrategyManager {
     EfcStratGlobCtx efcStratGlobCtx = {
         .enable_strategy      = 1,
         .report_only          = 0,
-        .watchdog_timeout_sec = 60,
+        .watchdog_timeout_sec = 100'000,//60,
     };
     result = efcInitStrategy(efcCtx, &efcStratGlobCtx);
     if (!isResultOk(result)) {
@@ -115,7 +113,6 @@ class StrategyManager {
         const Message &message{scenario->second.at(actionIndexInScenario).message()};
         WARN("Uploading payload (device, idx %d, ofs %d, size %d, _)",
              strategyIdx, message.heapOffset(), message.size());
-        usleep(200);
         EkaOpResult result = epmPayloadHeapCopy(device, strategyIdx,
                                                 message.heapOffset(), message.size(), message.data());
         if (!isResultOk(result)) {
@@ -146,7 +143,7 @@ class StrategyManager {
 
     bool deployed = false;
     if (!failed) {
-      deployed = true;//isResultOk(epmEnableController(device, phyPort, true));
+      deployed = isResultOk(epmEnableController(device, phyPort, true));
       if (!deployed)
         ERROR("Failed to epmEnableController(dev, port %d, enable true)", phyPort);
     } else {

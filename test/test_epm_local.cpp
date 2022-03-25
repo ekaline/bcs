@@ -238,10 +238,12 @@ class EkalinePMFixture : public ::testing::Test {
     };
     auto result = efcCmeFastCancelInit(device(), &fastCancelConfig);
     if (!isResultOk(result)) {
-      ERROR("Failed to init CME fast cancel, error %d", result);
+      ERROR("Failed to init(max msg %d, min no MD entries %d, token 0x%lx) CME fast cancel, error %d",
+            fastCancelConfig.maxMsgSize, fastCancelConfig.minNoMDEntries, fastCancelConfig.token, result);
       return false;
     } else {
-      INFO("EFC CME FastCancel init OK");
+      INFO("EFC CME FastCancel init (max msg %d, min no MD entries %d, token 0x%lx) OK",
+           fastCancelConfig.maxMsgSize, fastCancelConfig.minNoMDEntries, fastCancelConfig.token);
     }
     return true;
   }
@@ -439,6 +441,10 @@ class EkalinePMFixture : public ::testing::Test {
               actionToTrigger.strategy, actionToTrigger.action, actionToTrigger.token);
         failed = true;
       }
+    }
+    if (!failed) {
+      INFO("Delaying for 1'000us so that callback reports reach us");
+      usleep(1'000);
     }
     return !failed;
   }
