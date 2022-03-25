@@ -162,9 +162,10 @@ static int getAttr(int argc, char *argv[],
 		   std::string* serverIp, uint16_t* serverTcpPort, 
 		   std::string* clientIp, 
 		   std::string* triggerIp, uint16_t* triggerUdpPort,
-		   uint16_t* numTcpSess, bool* runEfh, bool* fatalDebug) {
+		   uint16_t* numTcpSess, bool* runEfh,
+       bool *receiveOnConnect, bool* fatalDebug) {
 	int opt; 
-	while((opt = getopt(argc, argv, ":c:s:p:u:l:t:fdh")) != -1) {  
+	while((opt = getopt(argc, argv, ":c:s:p:u:l:t:fdhr")) != -1) {
 		switch(opt) {  
 		case 's':  
 			*serverIp = std::string(optarg);
@@ -198,11 +199,15 @@ static int getAttr(int argc, char *argv[],
 			printf("fatalDebug = ON\n");
 			*fatalDebug = true;
 			break;
-		case 'h':  
+    case 'r':
+      printf("receive on connect = OFF");
+      *receiveOnConnect = false;
+      break;
+		case 'h':
 			printUsage(argv[0]);
 			exit (1);
-			break;  
-		case '?':  
+			break;
+		case '?':
 			printf("unknown option: %c\n", optopt); 
 			break;  
 		}  
@@ -326,10 +331,11 @@ int main(int argc, char *argv[]) {
     uint16_t numTcpSess         = 1;
     uint16_t serverTcpPort      = serverTcpBasePort;
     bool     runEfh             = false;
-    bool     fatalDebug          = false;
+    bool     fatalDebug         = false;
+    bool     receiveOnConnect   = true;
   
     getAttr(argc,argv,&serverIp,&serverTcpPort,&clientIp,&triggerIp,&triggerUdpPort,
-	    &numTcpSess,&runEfh,&fatalDebug);
+	    &numTcpSess,&runEfh,&receiveOnConnect,&fatalDebug);
 
     if (numTcpSess > MaxTcpTestSessions) 
 	on_error("numTcpSess %d > MaxTcpTestSessions %d",numTcpSess, MaxTcpTestSessions);
@@ -379,22 +385,25 @@ int main(int argc, char *argv[]) {
     ExcConnHandle conn[MaxTcpTestSessions]    = {};
 
     for (auto i = 0; i < numTcpSess; i++) {
-	struct sockaddr_in serverAddr = {};
-	serverAddr.sin_family      = AF_INET;
-	serverAddr.sin_addr.s_addr = inet_addr(serverIp.c_str());
-	serverAddr.sin_port        = be16toh(serverTcpBasePort + i);
+      struct sockaddr_in serverAddr = {};
+      serverAddr.sin_family      = AF_INET;
+      serverAddr.sin_addr.s_addr = inet_addr(serverIp.c_str());
+      serverAddr.sin_port        = be16toh(serverTcpBasePort + i);
 
-	int excSock = excSocket(dev,coreId,0,0,0);
-	if (excSock < 0) on_error("failed to open sock %d",i);
-	conn[i] = excConnect(dev,excSock,(sockaddr*) &serverAddr, sizeof(sockaddr_in));
-	if (conn[i] < 0) on_error("excConnect %d %s:%u",
-				  i,EKA_IP2STR(serverAddr.sin_addr.s_addr),be16toh(serverAddr.sin_port));
-	const char* pkt = "\n\nThis is 1st TCP packet sent from FPGA TCP client to Kernel TCP server\n\n";
-	excSend (dev, conn[i], pkt, strlen(pkt),0);
-	int bytes_read = 0;
-	char rxBuf[2000] = {};
-	bytes_read = recv(tcpSock[i], rxBuf, sizeof(rxBuf), 0);
-	if (bytes_read > 0) EKA_LOG("\n%s",rxBuf);
+      int excSock = excSocket(dev,coreId,0,0,0);
+      if (excSock < 0) on_error("failed to open sock %d",i);
+      conn[i] = excConnect(dev,excSock,(sockaddr*) &serverAddr, sizeof(sockaddr_in));
+      if (conn[i] < 0) on_error("excConnect %d %s:%u",
+              i,EKA_IP2STR(serverAddr.sin_addr.s_addr),be16toh(serverAddr.sin_port));
+      const char* pkt = "\n\nThis is 1st TCP packet sent from FPGA TCP client to Kernel TCP server\n\n";
+      excSend(dev, conn[i], pkt, strlen(pkt),0);
+      if (receiveOnConnect) {
+        int bytes_read = 0;
+        char rxBuf[2000] = {};
+        bytes_read = recv(tcpSock[i], rxBuf, sizeof(rxBuf), 0);
+        if (bytes_read > 0)
+          EKA_LOG("\n%s", rxBuf);
+      }
     }
 
     // ==============================================
