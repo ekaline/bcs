@@ -372,7 +372,7 @@ int main(int argc, char *argv[]) {
 	std::thread server = std::thread(tcpServer,
 					 dev,
 					 serverIp,
-					 serverTcpBasePort + i,
+           serverTcpPort + i,
 					 &tcpSock[i],
 					 &serverSet);
 	server.detach();
@@ -388,7 +388,7 @@ int main(int argc, char *argv[]) {
       struct sockaddr_in serverAddr = {};
       serverAddr.sin_family      = AF_INET;
       serverAddr.sin_addr.s_addr = inet_addr(serverIp.c_str());
-      serverAddr.sin_port        = be16toh(serverTcpBasePort + i);
+      serverAddr.sin_port        = be16toh(serverTcpPort + i);
 
       int excSock = excSocket(dev,coreId,0,0,0);
       if (excSock < 0) on_error("failed to open sock %d",i);
