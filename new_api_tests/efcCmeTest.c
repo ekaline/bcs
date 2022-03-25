@@ -163,9 +163,10 @@ static int getAttr(int argc, char *argv[],
 		   std::string* clientIp, 
 		   std::string* triggerIp, uint16_t* triggerUdpPort,
 		   uint16_t* numTcpSess, bool* runEfh,
-       bool *receiveOnConnect, bool* fatalDebug) {
+       bool *receiveOnConnect, bool *cmePreSend,
+       bool* fatalDebug) {
 	int opt; 
-	while((opt = getopt(argc, argv, ":c:s:p:u:l:t:fdhr")) != -1) {
+	while((opt = getopt(argc, argv, ":c:s:p:u:l:t:fdhrS")) != -1) {
 		switch(opt) {  
 		case 's':  
 			*serverIp = std::string(optarg);
@@ -202,6 +203,10 @@ static int getAttr(int argc, char *argv[],
     case 'r':
       printf("receive on connect = OFF");
       *receiveOnConnect = false;
+      break;
+    case 'S':
+      printf("CME pre send = ON");
+      *cmePreSend = true;
       break;
 		case 'h':
 			printUsage(argv[0]);
@@ -333,9 +338,10 @@ int main(int argc, char *argv[]) {
     bool     runEfh             = false;
     bool     fatalDebug         = false;
     bool     receiveOnConnect   = true;
+    bool     cmePreSend         = false;
   
     getAttr(argc,argv,&serverIp,&serverTcpPort,&clientIp,&triggerIp,&triggerUdpPort,
-	    &numTcpSess,&runEfh,&receiveOnConnect,&fatalDebug);
+	    &numTcpSess,&runEfh,&receiveOnConnect,&cmePreSend,&fatalDebug);
 
     if (numTcpSess > MaxTcpTestSessions) 
 	on_error("numTcpSess %d > MaxTcpTestSessions %d",numTcpSess, MaxTcpTestSessions);
@@ -503,12 +509,12 @@ int main(int argc, char *argv[]) {
 			    CmeTestFastCancelMsg);
     cmeAction[(size_t)EfcCmeActionId::HwCancel].length = strlen(CmeTestFastCancelMsg);
     epmSetAction(dev,EFC_STRATEGY,(epm_actionid_t)EfcCmeActionId::HwCancel,
-		 &cmeAction[(size_t)EfcCmeActionId::HwCancel]);
+		             &cmeAction[(size_t)EfcCmeActionId::HwCancel]);
     
     if (rc != EKA_OPRESULT__OK) 
-	on_error("epmPayloadHeapCopy offset=%u, length=%u rc=%d",
-		 cmeAction[(size_t)EfcCmeActionId::HwCancel].offset,
-		 (uint)strlen(CmeTestFastCancelMsg),(int)rc);
+	    on_error("epmPayloadHeapCopy offset=%u, length=%u rc=%d",
+		           cmeAction[(size_t)EfcCmeActionId::HwCancel].offset,
+		           (uint)strlen(CmeTestFastCancelMsg),(int)rc);
 
     // ==============================================
     efcCmeFastCancelInit(dev,&params);
@@ -523,29 +529,36 @@ int main(int argc, char *argv[]) {
 	.strategy = EFC_STRATEGY,                ///< Strategy this trigger applies to
 	.action = (epm_actionid_t)EfcCmeActionId::HwCancel       ///< First action in linked sequence
     };
-    const char* swMsg = "CME Fast SW Msg: Sequence = |____| : expected incremented Sequence";
-    const char* swHB  = "CME SW Heartbeat:Sequence = |____| : expected NOT incremented Sequence";
-    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
-    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
-    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
+    if (cmePreSend) {
+      const char *swMsg = "CME Fast SW Msg: Sequence = |____| : expected incremented Sequence";
+      const char *swHB = "CME SW Heartbeat:Sequence = |____| : expected NOT incremented Sequence";
+      efcCmeSend(dev, conn[0], swMsg, strlen(swMsg), 0, true);
+      efcCmeSend(dev, conn[0], swMsg, strlen(swMsg), 0, true);
+      efcCmeSend(dev, conn[0], swMsg, strlen(swMsg), 0, true);
+
+      efcCmeSend(dev, conn[0], swHB, strlen(swMsg), 0, false);
+      efcCmeSend(dev, conn[0], swHB, strlen(swMsg), 0, false);
+      efcCmeSend(dev, conn[0], swHB, strlen(swMsg), 0, false);
+      efcCmeSend(dev, conn[0], swHB, strlen(swMsg), 0, false);
+      efcCmeSend(dev, conn[0], swHB, strlen(swMsg), 0, false);
+    }
     
-    efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
-    efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
-    efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
-    efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
-    efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
-    
     epmRaiseTriggers(dev,&cmeTrigger);
+    cmeTrigger.action = 1;
     epmRaiseTriggers(dev,&cmeTrigger);
+    cmeTrigger.action = 2;
     epmRaiseTriggers(dev,&cmeTrigger);
+    cmeTrigger.action = 0;
     epmRaiseTriggers(dev,&cmeTrigger);
 
-    sendCmeTradeMsg(serverIp,triggerIp,triggerUdpPort,
-		    CmeTestFastCancelMaxMsgSize - 1, CmeTestFastCancelMinNoMDEntries + 1);
+    if (0) {
+      sendCmeTradeMsg(serverIp, triggerIp, triggerUdpPort,
+                      CmeTestFastCancelMaxMsgSize - 1, CmeTestFastCancelMinNoMDEntries + 1);
+    }
 
     if (fatalDebug) {
-	TEST_LOG(RED "\n=====================\nFATAL DEBUG: ON\n=====================\n" RESET);
-	eka_write(dev,0xf0f00,0xefa0beda);
+	    TEST_LOG(RED "\n=====================\nFATAL DEBUG: ON\n=====================\n" RESET);
+	    eka_write(dev,0xf0f00,0xefa0beda);
     }
 
 // ==============================================

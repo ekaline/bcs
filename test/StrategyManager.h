@@ -68,9 +68,11 @@ class StrategyManager {
            epmStrategyCount ? builder.epmStrategies[0].cbCtx : nullptr);
     }
 
-    if (!isResultOk(epmEnableController(device, phyPort, false))) {
-      ERROR("Failed to disable EPM for port %d", phyPort);
-      return false;
+    if (0) {
+      if (!isResultOk(epmEnableController(device, phyPort, false))) {
+        ERROR("Failed to disable EPM for port %d", phyPort);
+        return false;
+      }
     }
 
     int strategyIdx = 0;
@@ -144,7 +146,7 @@ class StrategyManager {
 
     bool deployed = false;
     if (!failed) {
-      deployed = isResultOk(epmEnableController(device, phyPort, true));
+      deployed = true;//isResultOk(epmEnableController(device, phyPort, true));
       if (!deployed)
         ERROR("Failed to epmEnableController(dev, port %d, enable true)", phyPort);
     } else {
