@@ -635,6 +635,34 @@ TEST_F(EkalinePMFixture, SmokeTest) {
   verifyOutcome();
 }
 
+TEST_F(EkalinePMFixture, EfcCmeTest) {
+  CreateDefaultSocket();
+  Strategy &strategy{addStrategy(0x1234'5678'9abc'def1ULL)};
+  Message message{"Some tem10plated m20essage  30. This m40ust be l50arge eno60ugh to f70it CME t80emplate.90"};
+  auto options{defaultActionOptions()};
+  uintptr_t reportCookie{0xfee10bad'00000002};
+  std::vector<Action> actions;
+
+  actions.emplace_back(EpmActionType::CmeHwCancel, connection(), message,
+                       options.flags, options.enableBits, options.actionMask, options.strategyMask, reportCookie);
+  actions.emplace_back(EpmActionType::CmeSwFire, connection(), message,
+                       options.flags, options.enableBits, options.actionMask, options.strategyMask, reportCookie);
+  actions.emplace_back(EpmActionType::CmeSwHeartbeat, connection(), message,
+                       options.flags, options.enableBits, options.actionMask, options.strategyMask, reportCookie);
+
+  int scenarioIdx = strategy.createScenario(Trigger(portIdx(), ipMcastString(), udpPort()), std::move(actions));
+  ASSERT_TRUE(deployStrategies());
+
+  auto &trigger{strategy.trigger(0)};
+  EpmTriggerParams epmTriggerParams{trigger.build()};
+  expectTriggerFire(epmTriggerParams, connection(), message,
+                    options.flags, options.enableBits,
+                    options.actionMask, options.strategyMask,
+                    reportCookie, true);
+  ASSERT_TRUE(triggerScenario(0, scenarioIdx));
+  verifyOutcome();
+}
+
 TEST_F(EkalinePMFixture, MultipleMessages) {
   CreateDefaultSocket();
   Strategy &strategy{addStrategy(0x1234'5678'9abc'def1ULL)};

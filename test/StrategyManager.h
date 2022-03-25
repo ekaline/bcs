@@ -13,6 +13,8 @@ namespace gts::ekaline {
 
 class StrategyManager {
  public:
+  static constexpr int MIN_STRATEGY_ACTIONS = 256;
+
   struct EpmStrategyBuilder {
     using bitsT = epm_enablebits_t;
 
@@ -71,6 +73,13 @@ class StrategyManager {
       return false;
     }
 
+    int strategyIdx = 0;
+    for (auto &strategy: builder.epmStrategies) {
+      if (strategy.numActions < MIN_STRATEGY_ACTIONS) {
+        WARN("Strategy %d has %d actions, bumping up to %d", strategyIdx, strategy.numActions, MIN_STRATEGY_ACTIONS);
+        strategy.numActions = MIN_STRATEGY_ACTIONS;
+      }
+    }
     auto result = epmInitStrategies(device, builder.epmStrategies.data(), builder.epmStrategies.size());
     if (!isResultOk(result)) {
       ERROR("Failed to epmInitStrategies(_, _, %ld, _) with %d", builder.epmStrategies.size(), result);
