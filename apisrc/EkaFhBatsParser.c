@@ -128,52 +128,21 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     if (! s) return false;
     break;
     //--------------------------------------------------------------
-  case MsgId::ADD_ORDER_LONG:  { 
-    add_order_long *message = (add_order_long *)m;
-    SecurityIdT security_id =  symbol2secId(message->symbol);
-    s = book->findSecurity(security_id);
-    if (s == NULL) return false;
-    book->setSecurityPrevState(s);
-
-    OrderIdT order_id = message->order_id;
-    SizeT    size     = message->size;
-    PriceT   price    = message->price / EFH_PRICE_SCALE;
-
-    if (checkPriceLengh(message->price,EFH_PRICE_SCALE)) 
-      EKA_WARN("%s %s seq=%ju Long price(%jd) exceeds 32bit",
-	       std::string(message->symbol,sizeof(message->symbol)).c_str(),
-	       ts_ns2str(msg_timestamp).c_str(),
-	       sequence,
-	       message->price);
-    SideT    side     = sideDecode(message->side);
-    book->addOrder(s,order_id,addFlags2orderType(message->flags),price,size,side);
+  case MsgId::ADD_ORDER_LONG:
+    if (productMask & PM_ComplexBook)
+      s = process_AddOrderLong<FhSecurity,add_order_long_complex>(m);
+    else
+      s = process_AddOrderLong<FhSecurity,add_order_long>(m);
+    if (! s) return false;
     break;
-  }
     //--------------------------------------------------------------
-  case MsgId::ADD_ORDER_EXPANDED:  { 
-    add_order_expanded *message = (add_order_expanded *)m;
-
-
-    //    SecurityIdT security_id =  bats_symbol2optionid(message->exp_symbol,6);
-    SecurityIdT security_id =  expSymbol2secId(message->exp_symbol);
-    s = book->findSecurity(security_id);
-    if (s == NULL) return false;
-    book->setSecurityPrevState(s);
-
-    OrderIdT order_id = message->order_id;
-    SizeT    size     = message->size;
-    PriceT   price    = message->price / EFH_PRICE_SCALE;
-
-    if (checkPriceLengh(message->price,EFH_PRICE_SCALE)) 
-      EKA_WARN("%s: %s seq=%ju Long price(%ju) exceeds 32bit",
-	       std::string(message->exp_symbol,sizeof(message->exp_symbol)).c_str(),
-	       ts_ns2str(msg_timestamp).c_str(),
-	       sequence,
-	       message->price);
-    SideT    side     = sideDecode(message->side);
-    book->addOrder(s,order_id,addFlagsCustomerIndicator2orderType(message->flags,message->customer_indicator),price,size,side);
+  case MsgId::ADD_ORDER_EXPANDED:
+    if (productMask & PM_ComplexBook)
+      s = process_AddOrderExpanded<FhSecurity,add_order_expanded_complex>(m);
+    else
+      s = process_AddOrderExpanded<FhSecurity,add_order_expanded>(m);
+    if (! s) return false;
     break;
-  }
     //--------------------------------------------------------------
   case MsgId::ORDER_EXECUTED: {
     auto message {reinterpret_cast<const order_executed *>(m)};
@@ -281,43 +250,21 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     break;
   }
     //--------------------------------------------------------------
-  case MsgId::ORDER_MODIFY_SHORT:  { 
-    order_modify_short  *message = (order_modify_short *)m;
-
-    OrderIdT order_id = message->order_id;
-    SizeT    size     = message->size;
-    PriceT   price    = message->price * 100 / EFH_PRICE_SCALE; // Short Price representation
-
-    FhOrder* o = book->findOrder(order_id);
-    if (o == NULL) return false;
-    s = (FhSecurity*)o->plevel->s;
-
-    book->setSecurityPrevState(s);
-    book->modifyOrder (o,price,size); // modify order for price and size
+  case MsgId::ORDER_MODIFY_SHORT:
+    if (productMask & PM_ComplexBook)
+      s = process_OrderModifyShort<FhSecurity,order_modify_short_complex>(m);
+    else
+      s = process_OrderModifyShort<FhSecurity,order_modify_short>(m);
+    if (! s) return false;
     break;
-  }
     //--------------------------------------------------------------
-  case MsgId::ORDER_MODIFY_LONG:  { 
-
-    order_modify_long  *message = (order_modify_long *)m;
-
-    OrderIdT order_id = message->order_id;
-    SizeT    size     = message->size;
-    PriceT   price    = message->price / EFH_PRICE_SCALE;
-    if (checkPriceLengh(message->price,EFH_PRICE_SCALE)) 
-      EKA_WARN("ORDER_MODIFY_LONG: %s seq=%ju Long price(%ju) exceeds 32bit",
-	       ts_ns2str(msg_timestamp).c_str(),
-	       sequence,
-	       message->price);
-    FhOrder* o = book->findOrder(order_id);
-    if (o == NULL) return false;
-    s = (FhSecurity*)o->plevel->s;
-
-    book->setSecurityPrevState(s);
-    book->modifyOrder (o,price,size); // modify order for price and size
-
-    break;
-  }
+  case MsgId::ORDER_MODIFY_LONG:
+    if (productMask & PM_ComplexBook)
+      s = process_OrderModifyLong<FhSecurity,order_modify_long_complex>(m);
+    else
+      s = process_OrderModifyLong<FhSecurity,order_modify_long>(m);
+    if (! s) return false;
+    break;   
     //--------------------------------------------------------------
   case MsgId::ORDER_DELETE:  { 
     order_delete  *message = (order_delete *)m;
@@ -333,102 +280,44 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   }
 
     //--------------------------------------------------------------
-  case MsgId::TRADE_SHORT:  { 
-    auto message {reinterpret_cast<const TradeShort *>(m)};
-    SecurityIdT security_id =  symbol2secId(message->symbol);
-
-    s = book->findSecurity(security_id);
-    if (s == NULL) return false;
-
-    PriceT price = message->price * 100 / EFH_PRICE_SCALE; // Short Price representation
-    SizeT  size  = message->size;
-
-    const EfhTradeMsg msg = {
-      { EfhMsgType::kTrade,
-	{exch,(EkaLSI)id}, // group
-	0,  // underlyingId
-	(uint64_t) security_id, 
-	sequence,
-	msg_timestamp,
-	gapNum },
-      price,
-      size,
-      s->trading_action,
-      EKA_BATS_TRADE_COND(message->trade_condition)
-    };
-    pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
+  case MsgId::TRADE_SHORT:
+    if (productMask & PM_ComplexBook)
+      s = process_TradeShort<FhSecurity,TradeShort_complex>(pEfhRunCtx,
+							    sequence,
+							    msg_timestamp,
+							    m);
+    else
+      s = process_TradeShort<FhSecurity,TradeShort>(pEfhRunCtx,
+						    sequence,
+						    msg_timestamp,
+						    m);
     return false;
-  }
     //--------------------------------------------------------------
-  case MsgId::TRADE_LONG:  { 
-    auto message {reinterpret_cast<const TradeLong *>(m)};
-    SecurityIdT security_id =  symbol2secId(message->symbol);
-
-    s = book->findSecurity(security_id);
-    if (s == NULL) return false;
-
-    PriceT price = message->price / EFH_PRICE_SCALE;
-    if (checkPriceLengh(message->price,EFH_PRICE_SCALE)) 
-      EKA_WARN("%s %s seq=%ju Long price(%ju) exceeds 32bit",
-	       std::string(message->symbol,sizeof(message->symbol)).c_str(),
-	       ts_ns2str(msg_timestamp).c_str(),
-	       sequence,
-	       message->price);
-    SizeT size =  message->size;
-
-    const EfhTradeMsg msg = {
-      { EfhMsgType::kTrade,
-	{exch,(EkaLSI)id}, // group
-	0,  // underlyingId
-	(uint64_t) security_id, 
-	sequence,
-	msg_timestamp,
-	gapNum },
-      price,
-      size,
-      s->trading_action,
-      EKA_BATS_TRADE_COND(message->trade_condition)
-    };
-    pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
+  case MsgId::TRADE_LONG:
+    if (productMask & PM_ComplexBook)
+      s = process_TradeLong<FhSecurity,TradeLong_complex>(pEfhRunCtx,
+							   sequence,
+							   msg_timestamp,
+							   m);
+    else
+      s = process_TradeLong<FhSecurity,TradeLong>(pEfhRunCtx,
+						   sequence,
+						   msg_timestamp,
+						   m);
     return false;
-  }
       //--------------------------------------------------------------
-  case MsgId::TRADE_EXPANDED:  { 
-    auto message {reinterpret_cast<const TradeExpanded *>(m)};
-
-    OrderIdT order_id = message->order_id;
-    FhOrder* o = book->findOrder(order_id);
-    if (o == NULL) return false;
-    SecurityIdT security_id =  expSymbol2secId(message->symbol);
-
-    s = book->findSecurity(security_id);
-    if (s == NULL) return false;
-
-    PriceT price = message->price / EFH_PRICE_SCALE;
-    if (checkPriceLengh(message->price,EFH_PRICE_SCALE)) 
-      EKA_WARN("%s %s seq=%ju Long price(%ju) exceeds 32bit",
-	       std::string(message->symbol,sizeof(message->symbol)).c_str(),
-	       ts_ns2str(msg_timestamp).c_str(),
-	       sequence,
-	       message->price);
-    SizeT size =  message->size;
-
-    const EfhTradeMsg msg = {
-      { EfhMsgType::kTrade,
-	{exch,(EkaLSI)id}, // group
-	0,  // underlyingId
-	(uint64_t) security_id, 
-	sequence,
-	msg_timestamp,
-	gapNum },
-      price,
-      size,
-      s->trading_action,
-      EKA_BATS_TRADE_COND(message->trade_condition)
-    };
-    pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
+  case MsgId::TRADE_EXPANDED:
+    if (productMask & PM_ComplexBook)
+      s = process_TradeExpanded<FhSecurity,TradeExpanded_complex>(pEfhRunCtx,
+								  sequence,
+								  msg_timestamp,
+								  m);
+    else
+      s = process_TradeExpanded<FhSecurity,TradeExpanded>(pEfhRunCtx,
+							  sequence,
+							  msg_timestamp,
+							  m);
     return false;
-  }  
     //--------------------------------------------------------------
   case MsgId::TRADING_STATUS:  { 
     auto message {reinterpret_cast<const trading_status *>(m)};
@@ -877,5 +766,204 @@ SecurityT* EkaFhBatsGr::process_AddOrderShort(const uint8_t* m) {
   SideT    side     = sideDecode(message->side);
 
   book->addOrder(s,order_id,addFlags2orderType(message->flags),price,size,side);
+  return s;
+}
+
+template <class SecurityT,class OrderMsgT>
+SecurityT* EkaFhBatsGr::process_AddOrderLong(const uint8_t* m) { 
+  auto *message = reinterpret_cast<const OrderMsgT *>(m);
+  SecurityIdT security_id =  symbol2secId(message->symbol);
+
+  SecurityT* s = book->findSecurity(security_id);
+  if (!s) return NULL;
+  book->setSecurityPrevState(s);
+
+  OrderIdT order_id = message->order_id;
+  SizeT    size     = message->size;
+  PriceT   price    = message->price / EFH_PRICE_SCALE;
+  SideT    side     = sideDecode(message->side);
+
+  /* if (checkPriceLengh(message->price,EFH_PRICE_SCALE))  */
+  /*   EKA_WARN("%s %s seq=%ju Long price(%jd) exceeds 32bit", */
+  /* 	     std::string(message->symbol,sizeof(message->symbol)).c_str(), */
+  /* 	     ts_ns2str(msg_timestamp).c_str(), */
+  /* 	     sequence, */
+  /* 	     message->price); */
+  book->addOrder(s,order_id,addFlags2orderType(message->flags),price,size,side);
+  return s;
+}
+
+template <class SecurityT,class OrderMsgT>
+  SecurityT* EkaFhBatsGr::process_AddOrderExpanded(const uint8_t* m) { 
+  auto *message = reinterpret_cast<const OrderMsgT *>(m);
+  SecurityIdT security_id =  expSymbol2secId(message->exp_symbol);
+
+  SecurityT* s = book->findSecurity(security_id);
+  if (!s) return NULL;
+  book->setSecurityPrevState(s);
+
+  OrderIdT order_id = message->order_id;
+  SizeT    size     = message->size;
+  PriceT   price    = message->price / EFH_PRICE_SCALE;
+  SideT    side     = sideDecode(message->side);
+
+  /* if (checkPriceLengh(message->price,EFH_PRICE_SCALE))  */
+  /*   EKA_WARN("%s %s seq=%ju Long price(%jd) exceeds 32bit", */
+  /* 	     std::string(message->symbol,sizeof(message->symbol)).c_str(), */
+  /* 	     ts_ns2str(msg_timestamp).c_str(), */
+  /* 	     sequence, */
+  /* 	     message->price); */
+  book->addOrder(s,order_id,
+		 addFlagsCustomerIndicator2orderType(message->flags,
+						     message->customer_indicator),
+		 price,size,side);
+  return s;
+}
+
+template <class SecurityT,class OrderMsgT>
+SecurityT* EkaFhBatsGr::process_OrderModifyShort(const uint8_t* m) { 
+  auto *message = reinterpret_cast<const OrderMsgT *>(m);
+
+  OrderIdT order_id = message->order_id;
+  SizeT    size     = message->size;
+  PriceT   price    = message->price * 100 / EFH_PRICE_SCALE; // Short Price representation
+
+  FhOrder* o = book->findOrder(order_id);
+  if (!o) return NULL;
+  SecurityT* s = (FhSecurity*)o->plevel->s;
+  book->setSecurityPrevState(s);
+
+  book->modifyOrder (o,price,size); // modify order for price and size
+  return s;
+}
+
+template <class SecurityT,class OrderMsgT>
+SecurityT* EkaFhBatsGr::process_OrderModifyLong(const uint8_t* m) { 
+  auto *message = reinterpret_cast<const OrderMsgT *>(m);
+
+  OrderIdT order_id = message->order_id;
+  SizeT    size     = message->size;
+  PriceT   price    = message->price / EFH_PRICE_SCALE;
+
+  /* if (checkPriceLengh(message->price,EFH_PRICE_SCALE))  */
+  /*   EKA_WARN("ORDER_MODIFY_LONG: %s seq=%ju Long price(%ju) exceeds 32bit", */
+  /* 	     ts_ns2str(msg_timestamp).c_str(), */
+  /* 	     sequence, */
+  /* 	     message->price); */
+  
+  FhOrder* o = book->findOrder(order_id);
+  if (!o) return NULL;
+  SecurityT* s = (FhSecurity*)o->plevel->s;
+  book->setSecurityPrevState(s);
+
+  book->modifyOrder (o,price,size); // modify order for price and size
+  return s;
+}
+
+
+template <class SecurityT,class OrderMsgT>
+SecurityT* EkaFhBatsGr::process_TradeShort(const EfhRunCtx* pEfhRunCtx,
+					   uint64_t sequence,
+					   uint64_t msg_timestamp,
+					   const uint8_t* m) { 
+    auto message {reinterpret_cast<const TradeShort *>(m)};
+    SecurityIdT security_id =  symbol2secId(message->symbol);
+
+    SecurityT* s = book->findSecurity(security_id);
+    if (!s) return NULL;
+    
+    PriceT price = message->price * 100 / EFH_PRICE_SCALE; // Short Price representation
+    SizeT  size  = message->size;
+
+    const EfhTradeMsg msg = {
+      { EfhMsgType::kTrade,
+	{exch,(EkaLSI)id}, // group
+	0,  // underlyingId
+	(uint64_t) security_id, 
+	sequence,
+	msg_timestamp,
+	gapNum },
+      price,
+      size,
+      s->trading_action,
+      EKA_BATS_TRADE_COND(message->trade_condition)
+    };
+    pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
+    return s;
+  }
+
+template <class SecurityT,class OrderMsgT>
+SecurityT* EkaFhBatsGr::process_TradeLong(const EfhRunCtx* pEfhRunCtx,
+					   uint64_t sequence,
+					   uint64_t msg_timestamp,
+					   const uint8_t* m) { 
+    auto message {reinterpret_cast<const TradeLong *>(m)};
+    SecurityIdT security_id =  symbol2secId(message->symbol);
+
+    SecurityT* s = book->findSecurity(security_id);
+    if (!s) return NULL;
+    
+    PriceT price = message->price / EFH_PRICE_SCALE; 
+    SizeT  size  = message->size;
+
+    /* if (checkPriceLengh(message->price,EFH_PRICE_SCALE))  */
+    /*   EKA_WARN("%s %s seq=%ju Long price(%ju) exceeds 32bit", */
+    /* 	       std::string(message->symbol,sizeof(message->symbol)).c_str(), */
+    /* 	       ts_ns2str(msg_timestamp).c_str(), */
+    /* 	       sequence, */
+    /* 	       message->price); */
+    
+    const EfhTradeMsg msg = {
+      { EfhMsgType::kTrade,
+	{exch,(EkaLSI)id}, // group
+	0,  // underlyingId
+	(uint64_t) security_id, 
+	sequence,
+	msg_timestamp,
+	gapNum },
+      price,
+      size,
+      s->trading_action,
+      EKA_BATS_TRADE_COND(message->trade_condition)
+    };
+    pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
+    return s;
+  }
+
+template <class SecurityT,class OrderMsgT>
+  SecurityT* EkaFhBatsGr::process_TradeExpanded(const EfhRunCtx* pEfhRunCtx,
+						uint64_t sequence,
+						uint64_t msg_timestamp,
+						const uint8_t* m) { 
+  auto message {reinterpret_cast<const TradeExpanded *>(m)};
+  SecurityIdT security_id =  symbol2secId(message->symbol);
+
+  SecurityT* s = book->findSecurity(security_id);
+  if (!s) return NULL;
+    
+  PriceT price = message->price / EFH_PRICE_SCALE; 
+  SizeT  size  = message->size;
+
+  /* if (checkPriceLengh(message->price,EFH_PRICE_SCALE))  */
+  /*   EKA_WARN("%s %s seq=%ju Long price(%ju) exceeds 32bit", */
+  /* 	       std::string(message->symbol,sizeof(message->symbol)).c_str(), */
+  /* 	       ts_ns2str(msg_timestamp).c_str(), */
+  /* 	       sequence, */
+  /* 	       message->price); */
+    
+  const EfhTradeMsg msg = {
+			   { EfhMsgType::kTrade,
+			     {exch,(EkaLSI)id}, // group
+			     0,  // underlyingId
+			     (uint64_t) security_id, 
+			     sequence,
+			     msg_timestamp,
+			     gapNum },
+			   price,
+			   size,
+			   s->trading_action,
+			   EKA_BATS_TRADE_COND(message->trade_condition)
+  };
+  pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
   return s;
 }

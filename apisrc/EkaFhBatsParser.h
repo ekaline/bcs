@@ -130,9 +130,8 @@ namespace Bats {
     return prevTradeAction;
   }
   /* ------------------------------------------------ */
-  inline int checkPriceLengh(uint64_t price,int priceScale = 1) {
-    if (((price / priceScale) & 0xFFFFFFFF00000000) != 0) return -1;
-    return 0;
+  inline bool checkPriceLengh(uint64_t price,int priceScale = 1) {
+    return ((price / priceScale) & 0x9000000000000000) != 0;
   }
 
   /* ------------------------------------------------ */

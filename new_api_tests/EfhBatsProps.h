@@ -2,6 +2,7 @@
 #define _EFH_BATS_PROPS_H
 
 EkaProp efhBatsC1InitCtxEntries_A[] = {
+	{"efh.C1_PITCH.group.0.products","vanilla_book"},
 	{"efh.C1_PITCH.group.0.unit","1"},
 	{"efh.C1_PITCH.group.0.mcast.addr","224.0.74.46:30301"},
 	{"efh.C1_PITCH.group.0.snapshot.addr","170.137.114.100:18901"}, 	// SPIN 
@@ -12,6 +13,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.0.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.0.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.1.products","vanilla_book"},
 	{"efh.C1_PITCH.group.1.unit","2"},
 	{"efh.C1_PITCH.group.1.mcast.addr","224.0.74.46:30302"},
 	{"efh.C1_PITCH.group.1.snapshot.addr","170.137.114.100:18902"}, 	// SPIN 
@@ -22,6 +24,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.1.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.1.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.2.products","vanilla_book"},
 	{"efh.C1_PITCH.group.2.unit","3"},
 	{"efh.C1_PITCH.group.2.mcast.addr","224.0.74.46:30303"},
 	{"efh.C1_PITCH.group.2.snapshot.addr","170.137.114.100:18903"}, 	// SPIN 
@@ -32,6 +35,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.2.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.2.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.3.products","vanilla_book"},
 	{"efh.C1_PITCH.group.3.unit","4"},
 	{"efh.C1_PITCH.group.3.mcast.addr","224.0.74.46:30304"},
 	{"efh.C1_PITCH.group.3.snapshot.addr","170.137.114.100:18904"}, 	// SPIN 
@@ -42,6 +46,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.3.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.3.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.4.products","vanilla_book"},
 	{"efh.C1_PITCH.group.4.unit","5"},
 	{"efh.C1_PITCH.group.4.mcast.addr","224.0.74.47:30305"},
 	{"efh.C1_PITCH.group.4.snapshot.addr","170.137.114.100:18905"}, 	// SPIN 
@@ -52,6 +57,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.4.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.4.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.5.products","vanilla_book"},
 	{"efh.C1_PITCH.group.5.unit","6"},
 	{"efh.C1_PITCH.group.5.mcast.addr","224.0.74.47:30306"},
 	{"efh.C1_PITCH.group.5.snapshot.addr","170.137.114.100:18906"}, 	// SPIN 
@@ -62,6 +68,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.5.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.5.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.6.products","vanilla_book"},
 	{"efh.C1_PITCH.group.6.unit","7"},
 	{"efh.C1_PITCH.group.6.mcast.addr","224.0.74.47:30307"},
 	{"efh.C1_PITCH.group.6.snapshot.addr","170.137.114.100:18907"}, 	// SPIN 
@@ -72,6 +79,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.6.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.6.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.7.products","vanilla_book"},
 	{"efh.C1_PITCH.group.7.unit","8"},
 	{"efh.C1_PITCH.group.7.mcast.addr","224.0.74.47:30308"},
 	{"efh.C1_PITCH.group.7.snapshot.addr","170.137.114.100:18908"}, 	// SPIN 
@@ -82,6 +90,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.7.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.7.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.8.products","vanilla_book"},
 	{"efh.C1_PITCH.group.8.unit","9"},
 	{"efh.C1_PITCH.group.8.mcast.addr","224.0.74.48:30309"},
 	{"efh.C1_PITCH.group.8.snapshot.addr","170.137.114.100:18909"}, 	// SPIN 
@@ -92,6 +101,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.8.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.8.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.9.products","vanilla_book"},
 	{"efh.C1_PITCH.group.9.unit","10"},
 	{"efh.C1_PITCH.group.9.mcast.addr","224.0.74.48:30310"},
 	{"efh.C1_PITCH.group.9.snapshot.addr","170.137.114.100:18910"}, 	// SPIN 
@@ -102,6 +112,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.9.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.9.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.10.products","vanilla_book"},
 	{"efh.C1_PITCH.group.10.unit","11"},
 	{"efh.C1_PITCH.group.10.mcast.addr","224.0.74.48:30311"},
 	{"efh.C1_PITCH.group.10.snapshot.addr","170.137.114.100:18911"}, 	// SPIN 
@@ -112,6 +123,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.10.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.10.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.11.products","vanilla_book"},
 	{"efh.C1_PITCH.group.11.unit","12"},
 	{"efh.C1_PITCH.group.11.mcast.addr","224.0.74.48:30312"},
 	{"efh.C1_PITCH.group.11.snapshot.addr","170.137.114.100:18912"}, 	// SPIN 
@@ -122,6 +134,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.11.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.11.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.12.products","vanilla_book"},
 	{"efh.C1_PITCH.group.12.unit","13"},
 	{"efh.C1_PITCH.group.12.mcast.addr","224.0.74.49:30313"},
 	{"efh.C1_PITCH.group.12.snapshot.addr","170.137.114.101:18913"}, 	// SPIN 
@@ -132,6 +145,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.12.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.12.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.13.products","vanilla_book"},
 	{"efh.C1_PITCH.group.13.unit","14"},
 	{"efh.C1_PITCH.group.13.mcast.addr","224.0.74.49:30314"},
 	{"efh.C1_PITCH.group.13.snapshot.addr","170.137.114.101:18914"}, 	// SPIN 
@@ -142,6 +156,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.13.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.13.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.14.products","vanilla_book"},
 	{"efh.C1_PITCH.group.14.unit","15"},
 	{"efh.C1_PITCH.group.14.mcast.addr","224.0.74.49:30315"},
 	{"efh.C1_PITCH.group.14.snapshot.addr","170.137.114.101:18915"}, 	// SPIN 
@@ -152,6 +167,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.14.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.14.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.15.products","vanilla_book"},
 	{"efh.C1_PITCH.group.15.unit","16"},
 	{"efh.C1_PITCH.group.15.mcast.addr","224.0.74.49:30316"},
 	{"efh.C1_PITCH.group.15.snapshot.addr","170.137.114.101:18916"}, 	// SPIN 
@@ -162,6 +178,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.15.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.15.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.16.products","vanilla_book"},
 	{"efh.C1_PITCH.group.16.unit","17"},
 	{"efh.C1_PITCH.group.16.mcast.addr","224.0.74.50:30317"},
 	{"efh.C1_PITCH.group.16.snapshot.addr","170.137.114.101:18917"}, 	// SPIN 
@@ -172,6 +189,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.16.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.16.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.17.products","vanilla_book"},
 	{"efh.C1_PITCH.group.17.unit","18"},
 	{"efh.C1_PITCH.group.17.mcast.addr","224.0.74.50:30318"},
 	{"efh.C1_PITCH.group.17.snapshot.addr","170.137.114.101:18918"}, 	// SPIN 
@@ -182,6 +200,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.17.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.17.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.18.products","vanilla_book"},
 	{"efh.C1_PITCH.group.18.unit","19"},
 	{"efh.C1_PITCH.group.18.mcast.addr","224.0.74.50:30319"},
 	{"efh.C1_PITCH.group.18.snapshot.addr","170.137.114.101:18919"}, 	// SPIN 
@@ -192,6 +211,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.18.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.18.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.19.products","vanilla_book"},
 	{"efh.C1_PITCH.group.19.unit","20"},
 	{"efh.C1_PITCH.group.19.mcast.addr","224.0.74.50:30320"},
 	{"efh.C1_PITCH.group.19.snapshot.addr","170.137.114.101:18920"}, 	// SPIN 
@@ -202,6 +222,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.19.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.19.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.20.products","vanilla_book"},
 	{"efh.C1_PITCH.group.20.unit","21"},
 	{"efh.C1_PITCH.group.20.mcast.addr","224.0.74.51:30321"},
 	{"efh.C1_PITCH.group.20.snapshot.addr","170.137.114.101:18921"}, 	// SPIN 
@@ -212,6 +233,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.20.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.20.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.21.products","vanilla_book"},
 	{"efh.C1_PITCH.group.21.unit","22"},
 	{"efh.C1_PITCH.group.21.mcast.addr","224.0.74.51:30322"},
 	{"efh.C1_PITCH.group.21.snapshot.addr","170.137.114.101:18922"}, 	// SPIN 
@@ -222,6 +244,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.21.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.21.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.22.products","vanilla_book"},
 	{"efh.C1_PITCH.group.22.unit","23"},
 	{"efh.C1_PITCH.group.22.mcast.addr","224.0.74.51:30323"},
 	{"efh.C1_PITCH.group.22.snapshot.addr","170.137.114.101:18923"}, 	// SPIN 
@@ -232,6 +255,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.22.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.22.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.23.products","vanilla_book"},
 	{"efh.C1_PITCH.group.23.unit","24"},
 	{"efh.C1_PITCH.group.23.mcast.addr","224.0.74.51:30324"},
 	{"efh.C1_PITCH.group.23.snapshot.addr","170.137.114.101:18924"}, 	// SPIN 
@@ -242,6 +266,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.23.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.23.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.24.products","vanilla_book"},
 	{"efh.C1_PITCH.group.24.unit","25"},
 	{"efh.C1_PITCH.group.24.mcast.addr","224.0.74.52:30325"},
 	{"efh.C1_PITCH.group.24.snapshot.addr","170.137.114.102:18925"}, 	// SPIN 
@@ -252,6 +277,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.24.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.24.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.25.products","vanilla_book"},
 	{"efh.C1_PITCH.group.25.unit","26"},
 	{"efh.C1_PITCH.group.25.mcast.addr","224.0.74.52:30326"},
 	{"efh.C1_PITCH.group.25.snapshot.addr","170.137.114.102:18926"}, 	// SPIN 
@@ -262,6 +288,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.25.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.25.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.26.products","vanilla_book"},
 	{"efh.C1_PITCH.group.26.unit","27"},
 	{"efh.C1_PITCH.group.26.mcast.addr","224.0.74.52:30327"},
 	{"efh.C1_PITCH.group.26.snapshot.addr","170.137.114.102:18927"}, 	// SPIN 
@@ -272,6 +299,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.26.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.26.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.27.products","vanilla_book"},
 	{"efh.C1_PITCH.group.27.unit","28"},
 	{"efh.C1_PITCH.group.27.mcast.addr","224.0.74.52:30328"},
 	{"efh.C1_PITCH.group.27.snapshot.addr","170.137.114.102:18928"}, 	// SPIN 
@@ -282,6 +310,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.27.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.27.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.28.products","vanilla_book"},
 	{"efh.C1_PITCH.group.28.unit","29"},
 	{"efh.C1_PITCH.group.28.mcast.addr","224.0.74.53:30329"},
 	{"efh.C1_PITCH.group.28.snapshot.addr","170.137.114.102:18929"}, 	// SPIN 
@@ -292,6 +321,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.28.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.28.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.29.products","vanilla_book"},
 	{"efh.C1_PITCH.group.29.unit","30"},
 	{"efh.C1_PITCH.group.29.mcast.addr","224.0.74.53:30330"},
 	{"efh.C1_PITCH.group.29.snapshot.addr","170.137.114.102:18930"}, 	// SPIN 
@@ -302,6 +332,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.29.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.29.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.30.products","vanilla_book"},
 	{"efh.C1_PITCH.group.30.unit","31"},
 	{"efh.C1_PITCH.group.30.mcast.addr","224.0.74.53:30331"},
 	{"efh.C1_PITCH.group.30.snapshot.addr","170.137.114.102:18931"}, 	// SPIN 
@@ -312,6 +343,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.30.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.30.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.31.products","vanilla_book"},
 	{"efh.C1_PITCH.group.31.unit","32"},
 	{"efh.C1_PITCH.group.31.mcast.addr","224.0.74.53:30332"},
 	{"efh.C1_PITCH.group.31.snapshot.addr","170.137.114.102:18932"}, 	// SPIN 
@@ -322,6 +354,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.31.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.31.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.32.products","vanilla_book"},
 	{"efh.C1_PITCH.group.32.unit","33"},
 	{"efh.C1_PITCH.group.32.mcast.addr","224.0.74.54:30333"},
 	{"efh.C1_PITCH.group.32.snapshot.addr","170.137.114.102:18933"}, 	// SPIN 
@@ -332,6 +365,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.32.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.32.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.33.products","vanilla_book"},
 	{"efh.C1_PITCH.group.33.unit","34"},
 	{"efh.C1_PITCH.group.33.mcast.addr","224.0.74.54:30334"},
 	{"efh.C1_PITCH.group.33.snapshot.addr","170.137.114.102:18934"}, 	// SPIN 
@@ -342,6 +376,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 	{"efh.C1_PITCH.group.33.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.33.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.34.products","vanilla_book"},
 	{"efh.C1_PITCH.group.34.unit","35"},
 	{"efh.C1_PITCH.group.34.mcast.addr","224.0.74.54:30335"},
 	{"efh.C1_PITCH.group.34.snapshot.addr","170.137.114.102:18935"}, 	// SPIN 
@@ -355,6 +390,7 @@ EkaProp efhBatsC1InitCtxEntries_A[] = {
 };
 
 EkaProp efhBatsC1InitCtxEntries_B[] = {
+	{"efh.C1_PITCH.group.0.products","vanilla_book"},
 	{"efh.C1_PITCH.group.0.unit","1"},
 	{"efh.C1_PITCH.group.0.mcast.addr","233.182.199.174:30301"},
 	{"efh.C1_PITCH.group.0.snapshot.addr","170.137.114.100:18901"}, 	// SPIN 
@@ -365,6 +401,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.0.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.0.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.1.products","vanilla_book"},
 	{"efh.C1_PITCH.group.1.unit","2"},
 	{"efh.C1_PITCH.group.1.mcast.addr","233.182.199.174:30302"},
 	{"efh.C1_PITCH.group.1.snapshot.addr","170.137.114.100:18902"}, 	// SPIN 
@@ -375,6 +412,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.1.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.1.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.2.products","vanilla_book"},
 	{"efh.C1_PITCH.group.2.unit","3"},
 	{"efh.C1_PITCH.group.2.mcast.addr","233.182.199.174:30303"},
 	{"efh.C1_PITCH.group.2.snapshot.addr","170.137.114.100:18903"}, 	// SPIN 
@@ -385,6 +423,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.2.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.2.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.3.products","vanilla_book"},
 	{"efh.C1_PITCH.group.3.unit","4"},
 	{"efh.C1_PITCH.group.3.mcast.addr","233.182.199.174:30304"},
 	{"efh.C1_PITCH.group.3.snapshot.addr","170.137.114.100:18904"}, 	// SPIN 
@@ -395,6 +434,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.3.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.3.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.4.products","vanilla_book"},
 	{"efh.C1_PITCH.group.4.unit","5"},
 	{"efh.C1_PITCH.group.4.mcast.addr","233.182.199.175:30305"},
 	{"efh.C1_PITCH.group.4.snapshot.addr","170.137.114.100:18905"}, 	// SPIN 
@@ -405,6 +445,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.4.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.4.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.5.products","vanilla_book"},
 	{"efh.C1_PITCH.group.5.unit","6"},
 	{"efh.C1_PITCH.group.5.mcast.addr","233.182.199.175:30306"},
 	{"efh.C1_PITCH.group.5.snapshot.addr","170.137.114.100:18906"}, 	// SPIN 
@@ -415,6 +456,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.5.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.5.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.6.products","vanilla_book"},
 	{"efh.C1_PITCH.group.6.unit","7"},
 	{"efh.C1_PITCH.group.6.mcast.addr","233.182.199.175:30307"},
 	{"efh.C1_PITCH.group.6.snapshot.addr","170.137.114.100:18907"}, 	// SPIN 
@@ -425,6 +467,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.6.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.6.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.7.products","vanilla_book"},
 	{"efh.C1_PITCH.group.7.unit","8"},
 	{"efh.C1_PITCH.group.7.mcast.addr","233.182.199.175:30308"},
 	{"efh.C1_PITCH.group.7.snapshot.addr","170.137.114.100:18908"}, 	// SPIN 
@@ -435,6 +478,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.7.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.7.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.8.products","vanilla_book"},
 	{"efh.C1_PITCH.group.8.unit","9"},
 	{"efh.C1_PITCH.group.8.mcast.addr","233.182.199.176:30309"},
 	{"efh.C1_PITCH.group.8.snapshot.addr","170.137.114.100:18909"}, 	// SPIN 
@@ -445,6 +489,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.8.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.8.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.9.products","vanilla_book"},
 	{"efh.C1_PITCH.group.9.unit","10"},
 	{"efh.C1_PITCH.group.9.mcast.addr","233.182.199.176:30310"},
 	{"efh.C1_PITCH.group.9.snapshot.addr","170.137.114.100:18910"}, 	// SPIN 
@@ -455,6 +500,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.9.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.9.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.10.products","vanilla_book"},
 	{"efh.C1_PITCH.group.10.unit","11"},
 	{"efh.C1_PITCH.group.10.mcast.addr","233.182.199.176:30311"},
 	{"efh.C1_PITCH.group.10.snapshot.addr","170.137.114.100:18911"}, 	// SPIN 
@@ -465,6 +511,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.10.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.10.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.11.products","vanilla_book"},
 	{"efh.C1_PITCH.group.11.unit","12"},
 	{"efh.C1_PITCH.group.11.mcast.addr","233.182.199.176:30312"},
 	{"efh.C1_PITCH.group.11.snapshot.addr","170.137.114.100:18912"}, 	// SPIN 
@@ -475,6 +522,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.11.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.11.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.12.products","vanilla_book"},
 	{"efh.C1_PITCH.group.12.unit","13"},
 	{"efh.C1_PITCH.group.12.mcast.addr","233.182.199.177:30313"},
 	{"efh.C1_PITCH.group.12.snapshot.addr","170.137.114.101:18913"}, 	// SPIN 
@@ -485,6 +533,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.12.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.12.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.13.products","vanilla_book"},
 	{"efh.C1_PITCH.group.13.unit","14"},
 	{"efh.C1_PITCH.group.13.mcast.addr","233.182.199.177:30314"},
 	{"efh.C1_PITCH.group.13.snapshot.addr","170.137.114.101:18914"}, 	// SPIN 
@@ -495,6 +544,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.13.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.13.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.14.products","vanilla_book"},
 	{"efh.C1_PITCH.group.14.unit","15"},
 	{"efh.C1_PITCH.group.14.mcast.addr","233.182.199.177:30315"},
 	{"efh.C1_PITCH.group.14.snapshot.addr","170.137.114.101:18915"}, 	// SPIN 
@@ -505,6 +555,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.14.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.14.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.15.products","vanilla_book"},
 	{"efh.C1_PITCH.group.15.unit","16"},
 	{"efh.C1_PITCH.group.15.mcast.addr","233.182.199.177:30316"},
 	{"efh.C1_PITCH.group.15.snapshot.addr","170.137.114.101:18916"}, 	// SPIN 
@@ -515,6 +566,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.15.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.15.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.16.products","vanilla_book"},
 	{"efh.C1_PITCH.group.16.unit","17"},
 	{"efh.C1_PITCH.group.16.mcast.addr","233.182.199.178:30317"},
 	{"efh.C1_PITCH.group.16.snapshot.addr","170.137.114.101:18917"}, 	// SPIN 
@@ -525,6 +577,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.16.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.16.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.17.products","vanilla_book"},
 	{"efh.C1_PITCH.group.17.unit","18"},
 	{"efh.C1_PITCH.group.17.mcast.addr","233.182.199.178:30318"},
 	{"efh.C1_PITCH.group.17.snapshot.addr","170.137.114.101:18918"}, 	// SPIN 
@@ -535,6 +588,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.17.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.17.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.18.products","vanilla_book"},
 	{"efh.C1_PITCH.group.18.unit","19"},
 	{"efh.C1_PITCH.group.18.mcast.addr","233.182.199.178:30319"},
 	{"efh.C1_PITCH.group.18.snapshot.addr","170.137.114.101:18919"}, 	// SPIN 
@@ -545,6 +599,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.18.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.18.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.19.products","vanilla_book"},
 	{"efh.C1_PITCH.group.19.unit","20"},
 	{"efh.C1_PITCH.group.19.mcast.addr","233.182.199.178:30320"},
 	{"efh.C1_PITCH.group.19.snapshot.addr","170.137.114.101:18920"}, 	// SPIN 
@@ -555,6 +610,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.19.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.19.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.20.products","vanilla_book"},
 	{"efh.C1_PITCH.group.20.unit","21"},
 	{"efh.C1_PITCH.group.20.mcast.addr","233.182.199.179:30321"},
 	{"efh.C1_PITCH.group.20.snapshot.addr","170.137.114.101:18921"}, 	// SPIN 
@@ -565,6 +621,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.20.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.20.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.21.products","vanilla_book"},
 	{"efh.C1_PITCH.group.21.unit","22"},
 	{"efh.C1_PITCH.group.21.mcast.addr","233.182.199.179:30322"},
 	{"efh.C1_PITCH.group.21.snapshot.addr","170.137.114.101:18922"}, 	// SPIN 
@@ -575,6 +632,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.21.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.21.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.22.products","vanilla_book"},
 	{"efh.C1_PITCH.group.22.unit","23"},
 	{"efh.C1_PITCH.group.22.mcast.addr","233.182.199.179:30323"},
 	{"efh.C1_PITCH.group.22.snapshot.addr","170.137.114.101:18923"}, 	// SPIN 
@@ -585,6 +643,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.22.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.22.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.23.products","vanilla_book"},
 	{"efh.C1_PITCH.group.23.unit","24"},
 	{"efh.C1_PITCH.group.23.mcast.addr","233.182.199.179:30324"},
 	{"efh.C1_PITCH.group.23.snapshot.addr","170.137.114.101:18924"}, 	// SPIN 
@@ -595,6 +654,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.23.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.23.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.24.products","vanilla_book"},
 	{"efh.C1_PITCH.group.24.unit","25"},
 	{"efh.C1_PITCH.group.24.mcast.addr","233.182.199.180:30325"},
 	{"efh.C1_PITCH.group.24.snapshot.addr","170.137.114.102:18925"}, 	// SPIN 
@@ -605,6 +665,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.24.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.24.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.25.products","vanilla_book"},
 	{"efh.C1_PITCH.group.25.unit","26"},
 	{"efh.C1_PITCH.group.25.mcast.addr","233.182.199.180:30326"},
 	{"efh.C1_PITCH.group.25.snapshot.addr","170.137.114.102:18926"}, 	// SPIN 
@@ -615,6 +676,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.25.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.25.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.26.products","vanilla_book"},
 	{"efh.C1_PITCH.group.26.unit","27"},
 	{"efh.C1_PITCH.group.26.mcast.addr","233.182.199.180:30327"},
 	{"efh.C1_PITCH.group.26.snapshot.addr","170.137.114.102:18927"}, 	// SPIN 
@@ -625,6 +687,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.26.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.26.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.27.products","vanilla_book"},
 	{"efh.C1_PITCH.group.27.unit","28"},
 	{"efh.C1_PITCH.group.27.mcast.addr","233.182.199.180:30328"},
 	{"efh.C1_PITCH.group.27.snapshot.addr","170.137.114.102:18928"}, 	// SPIN 
@@ -635,6 +698,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.27.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.27.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.28.products","vanilla_book"},
 	{"efh.C1_PITCH.group.28.unit","29"},
 	{"efh.C1_PITCH.group.28.mcast.addr","233.182.199.181:30329"},
 	{"efh.C1_PITCH.group.28.snapshot.addr","170.137.114.102:18929"}, 	// SPIN 
@@ -645,6 +709,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.28.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.28.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.29.products","vanilla_book"},
 	{"efh.C1_PITCH.group.29.unit","30"},
 	{"efh.C1_PITCH.group.29.mcast.addr","233.182.199.181:30330"},
 	{"efh.C1_PITCH.group.29.snapshot.addr","170.137.114.102:18930"}, 	// SPIN 
@@ -655,6 +720,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.29.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.29.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.30.products","vanilla_book"},
 	{"efh.C1_PITCH.group.30.unit","31"},
 	{"efh.C1_PITCH.group.30.mcast.addr","233.182.199.181:30331"},
 	{"efh.C1_PITCH.group.30.snapshot.addr","170.137.114.102:18931"}, 	// SPIN 
@@ -665,6 +731,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.30.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.30.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.31.products","vanilla_book"},
 	{"efh.C1_PITCH.group.31.unit","32"},
 	{"efh.C1_PITCH.group.31.mcast.addr","233.182.199.181:30332"},
 	{"efh.C1_PITCH.group.31.snapshot.addr","170.137.114.102:18932"}, 	// SPIN 
@@ -675,6 +742,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.31.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.31.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.32.products","vanilla_book"},
 	{"efh.C1_PITCH.group.32.unit","33"},
 	{"efh.C1_PITCH.group.32.mcast.addr","233.182.199.182:30333"},
 	{"efh.C1_PITCH.group.32.snapshot.addr","170.137.114.102:18933"}, 	// SPIN 
@@ -685,6 +753,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.32.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.32.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.33.products","vanilla_book"},
 	{"efh.C1_PITCH.group.33.unit","34"},
 	{"efh.C1_PITCH.group.33.mcast.addr","233.182.199.182:30334"},
 	{"efh.C1_PITCH.group.33.snapshot.addr","170.137.114.102:18934"}, 	// SPIN 
@@ -695,6 +764,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 	{"efh.C1_PITCH.group.33.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.33.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.34.products","vanilla_book"},
 	{"efh.C1_PITCH.group.34.unit","35"},
 	{"efh.C1_PITCH.group.34.mcast.addr","233.182.199.182:30335"},
 	{"efh.C1_PITCH.group.34.snapshot.addr","170.137.114.102:18935"}, 	// SPIN 
@@ -708,6 +778,7 @@ EkaProp efhBatsC1InitCtxEntries_B[] = {
 };
 
 EkaProp efhBatsC1InitCtxEntries_C[] = {
+	{"efh.C1_PITCH.group.0.products","vanilla_book"},
 	{"efh.C1_PITCH.group.0.unit","1"},
 	{"efh.C1_PITCH.group.0.mcast.addr","224.0.74.0:30301"},
 	{"efh.C1_PITCH.group.0.snapshot.addr","170.137.114.100:18901"}, 	// SPIN 
@@ -718,6 +789,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.0.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.0.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.1.products","vanilla_book"},
 	{"efh.C1_PITCH.group.1.unit","2"},
 	{"efh.C1_PITCH.group.1.mcast.addr","224.0.74.1:30302"},
 	{"efh.C1_PITCH.group.1.snapshot.addr","170.137.114.100:18902"}, 	// SPIN 
@@ -728,6 +800,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.1.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.1.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.2.products","vanilla_book"},
 	{"efh.C1_PITCH.group.2.unit","3"},
 	{"efh.C1_PITCH.group.2.mcast.addr","224.0.74.2:30303"},
 	{"efh.C1_PITCH.group.2.snapshot.addr","170.137.114.100:18903"}, 	// SPIN 
@@ -738,6 +811,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.2.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.2.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.3.products","vanilla_book"},
 	{"efh.C1_PITCH.group.3.unit","4"},
 	{"efh.C1_PITCH.group.3.mcast.addr","224.0.74.3:30304"},
 	{"efh.C1_PITCH.group.3.snapshot.addr","170.137.114.100:18904"}, 	// SPIN 
@@ -748,6 +822,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.3.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.3.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.4.products","vanilla_book"},
 	{"efh.C1_PITCH.group.4.unit","5"},
 	{"efh.C1_PITCH.group.4.mcast.addr","224.0.74.4:30305"},
 	{"efh.C1_PITCH.group.4.snapshot.addr","170.137.114.100:18905"}, 	// SPIN 
@@ -758,6 +833,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.4.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.4.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.5.products","vanilla_book"},
 	{"efh.C1_PITCH.group.5.unit","6"},
 	{"efh.C1_PITCH.group.5.mcast.addr","224.0.74.5:30306"},
 	{"efh.C1_PITCH.group.5.snapshot.addr","170.137.114.100:18906"}, 	// SPIN 
@@ -768,6 +844,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.5.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.5.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.6.products","vanilla_book"},
 	{"efh.C1_PITCH.group.6.unit","7"},
 	{"efh.C1_PITCH.group.6.mcast.addr","224.0.74.6:30307"},
 	{"efh.C1_PITCH.group.6.snapshot.addr","170.137.114.100:18907"}, 	// SPIN 
@@ -778,6 +855,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.6.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.6.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.7.products","vanilla_book"},
 	{"efh.C1_PITCH.group.7.unit","8"},
 	{"efh.C1_PITCH.group.7.mcast.addr","224.0.74.7:30308"},
 	{"efh.C1_PITCH.group.7.snapshot.addr","170.137.114.100:18908"}, 	// SPIN 
@@ -788,6 +866,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.7.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.7.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.8.products","vanilla_book"},
 	{"efh.C1_PITCH.group.8.unit","9"},
 	{"efh.C1_PITCH.group.8.mcast.addr","224.0.74.8:30309"},
 	{"efh.C1_PITCH.group.8.snapshot.addr","170.137.114.100:18909"}, 	// SPIN 
@@ -798,6 +877,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.8.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.8.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.9.products","vanilla_book"},
 	{"efh.C1_PITCH.group.9.unit","10"},
 	{"efh.C1_PITCH.group.9.mcast.addr","224.0.74.9:30310"},
 	{"efh.C1_PITCH.group.9.snapshot.addr","170.137.114.100:18910"}, 	// SPIN 
@@ -808,6 +888,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.9.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.9.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.10.products","vanilla_book"},
 	{"efh.C1_PITCH.group.10.unit","11"},
 	{"efh.C1_PITCH.group.10.mcast.addr","224.0.74.10:30311"},
 	{"efh.C1_PITCH.group.10.snapshot.addr","170.137.114.100:18911"}, 	// SPIN 
@@ -818,6 +899,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.10.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.10.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.11.products","vanilla_book"},
 	{"efh.C1_PITCH.group.11.unit","12"},
 	{"efh.C1_PITCH.group.11.mcast.addr","224.0.74.11:30312"},
 	{"efh.C1_PITCH.group.11.snapshot.addr","170.137.114.100:18912"}, 	// SPIN 
@@ -828,6 +910,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.11.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.11.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.12.products","vanilla_book"},
 	{"efh.C1_PITCH.group.12.unit","13"},
 	{"efh.C1_PITCH.group.12.mcast.addr","224.0.74.12:30313"},
 	{"efh.C1_PITCH.group.12.snapshot.addr","170.137.114.101:18913"}, 	// SPIN 
@@ -838,6 +921,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.12.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.12.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.13.products","vanilla_book"},
 	{"efh.C1_PITCH.group.13.unit","14"},
 	{"efh.C1_PITCH.group.13.mcast.addr","224.0.74.13:30314"},
 	{"efh.C1_PITCH.group.13.snapshot.addr","170.137.114.101:18914"}, 	// SPIN 
@@ -848,6 +932,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.13.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.13.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.14.products","vanilla_book"},
 	{"efh.C1_PITCH.group.14.unit","15"},
 	{"efh.C1_PITCH.group.14.mcast.addr","224.0.74.14:30315"},
 	{"efh.C1_PITCH.group.14.snapshot.addr","170.137.114.101:18915"}, 	// SPIN 
@@ -858,6 +943,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.14.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.14.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.15.products","vanilla_book"},
 	{"efh.C1_PITCH.group.15.unit","16"},
 	{"efh.C1_PITCH.group.15.mcast.addr","224.0.74.15:30316"},
 	{"efh.C1_PITCH.group.15.snapshot.addr","170.137.114.101:18916"}, 	// SPIN 
@@ -868,6 +954,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.15.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.15.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.16.products","vanilla_book"},
 	{"efh.C1_PITCH.group.16.unit","17"},
 	{"efh.C1_PITCH.group.16.mcast.addr","224.0.74.16:30317"},
 	{"efh.C1_PITCH.group.16.snapshot.addr","170.137.114.101:18917"}, 	// SPIN 
@@ -878,6 +965,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.16.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.16.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.17.products","vanilla_book"},
 	{"efh.C1_PITCH.group.17.unit","18"},
 	{"efh.C1_PITCH.group.17.mcast.addr","224.0.74.17:30318"},
 	{"efh.C1_PITCH.group.17.snapshot.addr","170.137.114.101:18918"}, 	// SPIN 
@@ -888,6 +976,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.17.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.17.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.18.products","vanilla_book"},
 	{"efh.C1_PITCH.group.18.unit","19"},
 	{"efh.C1_PITCH.group.18.mcast.addr","224.0.74.18:30319"},
 	{"efh.C1_PITCH.group.18.snapshot.addr","170.137.114.101:18919"}, 	// SPIN 
@@ -898,6 +987,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.18.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.18.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.19.products","vanilla_book"},
 	{"efh.C1_PITCH.group.19.unit","20"},
 	{"efh.C1_PITCH.group.19.mcast.addr","224.0.74.19:30320"},
 	{"efh.C1_PITCH.group.19.snapshot.addr","170.137.114.101:18920"}, 	// SPIN 
@@ -908,6 +998,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.19.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.19.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.20.products","vanilla_book"},
 	{"efh.C1_PITCH.group.20.unit","21"},
 	{"efh.C1_PITCH.group.20.mcast.addr","224.0.74.20:30321"},
 	{"efh.C1_PITCH.group.20.snapshot.addr","170.137.114.101:18921"}, 	// SPIN 
@@ -918,6 +1009,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.20.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.20.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.21.products","vanilla_book"},
 	{"efh.C1_PITCH.group.21.unit","22"},
 	{"efh.C1_PITCH.group.21.mcast.addr","224.0.74.21:30322"},
 	{"efh.C1_PITCH.group.21.snapshot.addr","170.137.114.101:18922"}, 	// SPIN 
@@ -928,6 +1020,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.21.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.21.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.22.products","vanilla_book"},
 	{"efh.C1_PITCH.group.22.unit","23"},
 	{"efh.C1_PITCH.group.22.mcast.addr","224.0.74.22:30323"},
 	{"efh.C1_PITCH.group.22.snapshot.addr","170.137.114.101:18923"}, 	// SPIN 
@@ -938,6 +1031,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.22.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.22.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.23.products","vanilla_book"},
 	{"efh.C1_PITCH.group.23.unit","24"},
 	{"efh.C1_PITCH.group.23.mcast.addr","224.0.74.23:30324"},
 	{"efh.C1_PITCH.group.23.snapshot.addr","170.137.114.101:18924"}, 	// SPIN 
@@ -948,6 +1042,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.23.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.23.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.24.products","vanilla_book"},
 	{"efh.C1_PITCH.group.24.unit","25"},
 	{"efh.C1_PITCH.group.24.mcast.addr","224.0.74.24:30325"},
 	{"efh.C1_PITCH.group.24.snapshot.addr","170.137.114.102:18925"}, 	// SPIN 
@@ -958,6 +1053,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.24.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.24.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.25.products","vanilla_book"},
 	{"efh.C1_PITCH.group.25.unit","26"},
 	{"efh.C1_PITCH.group.25.mcast.addr","224.0.74.25:30326"},
 	{"efh.C1_PITCH.group.25.snapshot.addr","170.137.114.102:18926"}, 	// SPIN 
@@ -968,6 +1064,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.25.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.25.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.26.products","vanilla_book"},
 	{"efh.C1_PITCH.group.26.unit","27"},
 	{"efh.C1_PITCH.group.26.mcast.addr","224.0.74.26:30327"},
 	{"efh.C1_PITCH.group.26.snapshot.addr","170.137.114.102:18927"}, 	// SPIN 
@@ -978,6 +1075,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.26.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.26.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.27.products","vanilla_book"},
 	{"efh.C1_PITCH.group.27.unit","28"},
 	{"efh.C1_PITCH.group.27.mcast.addr","224.0.74.27:30328"},
 	{"efh.C1_PITCH.group.27.snapshot.addr","170.137.114.102:18928"}, 	// SPIN 
@@ -988,6 +1086,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.27.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.27.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.28.products","vanilla_book"},
 	{"efh.C1_PITCH.group.28.unit","29"},
 	{"efh.C1_PITCH.group.28.mcast.addr","224.0.74.28:30329"},
 	{"efh.C1_PITCH.group.28.snapshot.addr","170.137.114.102:18929"}, 	// SPIN 
@@ -998,6 +1097,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.28.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.28.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.29.products","vanilla_book"},
 	{"efh.C1_PITCH.group.29.unit","30"},
 	{"efh.C1_PITCH.group.29.mcast.addr","224.0.74.29:30330"},
 	{"efh.C1_PITCH.group.29.snapshot.addr","170.137.114.102:18930"}, 	// SPIN 
@@ -1008,6 +1108,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.29.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.29.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.30.products","vanilla_book"},
 	{"efh.C1_PITCH.group.30.unit","31"},
 	{"efh.C1_PITCH.group.30.mcast.addr","224.0.74.30:30331"},
 	{"efh.C1_PITCH.group.30.snapshot.addr","170.137.114.102:18931"}, 	// SPIN 
@@ -1018,6 +1119,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.30.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.30.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.31.products","vanilla_book"},
 	{"efh.C1_PITCH.group.31.unit","32"},
 	{"efh.C1_PITCH.group.31.mcast.addr","224.0.74.31:30332"},
 	{"efh.C1_PITCH.group.31.snapshot.addr","170.137.114.102:18932"}, 	// SPIN 
@@ -1028,6 +1130,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.31.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.31.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.32.products","vanilla_book"},
 	{"efh.C1_PITCH.group.32.unit","33"},
 	{"efh.C1_PITCH.group.32.mcast.addr","224.0.74.32:30333"},
 	{"efh.C1_PITCH.group.32.snapshot.addr","170.137.114.102:18933"}, 	// SPIN 
@@ -1038,6 +1141,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.32.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.32.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.33.products","vanilla_book"},
 	{"efh.C1_PITCH.group.33.unit","34"},
 	{"efh.C1_PITCH.group.33.mcast.addr","224.0.74.33:30334"},
 	{"efh.C1_PITCH.group.33.snapshot.addr","170.137.114.102:18934"}, 	// SPIN 
@@ -1048,6 +1152,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 	{"efh.C1_PITCH.group.33.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.33.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.34.products","vanilla_book"},
 	{"efh.C1_PITCH.group.34.unit","35"},
 	{"efh.C1_PITCH.group.34.mcast.addr","224.0.74.34:30335"},
 	{"efh.C1_PITCH.group.34.snapshot.addr","170.137.114.102:18935"}, 	// SPIN 
@@ -1061,6 +1166,7 @@ EkaProp efhBatsC1InitCtxEntries_C[] = {
 };
 
 EkaProp efhBatsC1InitCtxEntries_D[] = {
+	{"efh.C1_PITCH.group.0.products","vanilla_book"},
 	{"efh.C1_PITCH.group.0.unit","1"},
 	{"efh.C1_PITCH.group.0.mcast.addr","233.182.199.128:30301"},
 	{"efh.C1_PITCH.group.0.snapshot.addr","174.137.114.100:18901"}, 	// SPIN 
@@ -1071,6 +1177,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.0.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.0.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.1.products","vanilla_book"},
 	{"efh.C1_PITCH.group.1.unit","2"},
 	{"efh.C1_PITCH.group.1.mcast.addr","233.182.199.129:30302"},
 	{"efh.C1_PITCH.group.1.snapshot.addr","174.137.114.100:18902"}, 	// SPIN 
@@ -1081,6 +1188,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.1.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.1.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.2.products","vanilla_book"},
 	{"efh.C1_PITCH.group.2.unit","3"},
 	{"efh.C1_PITCH.group.2.mcast.addr","233.182.199.130:30303"},
 	{"efh.C1_PITCH.group.2.snapshot.addr","174.137.114.100:18903"}, 	// SPIN 
@@ -1091,6 +1199,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.2.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.2.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.3.products","vanilla_book"},
 	{"efh.C1_PITCH.group.3.unit","4"},
 	{"efh.C1_PITCH.group.3.mcast.addr","233.182.199.131:30304"},
 	{"efh.C1_PITCH.group.3.snapshot.addr","174.137.114.100:18904"}, 	// SPIN 
@@ -1101,6 +1210,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.3.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.3.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.4.products","vanilla_book"},
 	{"efh.C1_PITCH.group.4.unit","5"},
 	{"efh.C1_PITCH.group.4.mcast.addr","233.182.199.132:30305"},
 	{"efh.C1_PITCH.group.4.snapshot.addr","174.137.114.100:18905"}, 	// SPIN 
@@ -1111,6 +1221,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.4.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.4.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.5.products","vanilla_book"},
 	{"efh.C1_PITCH.group.5.unit","6"},
 	{"efh.C1_PITCH.group.5.mcast.addr","233.182.199.133:30306"},
 	{"efh.C1_PITCH.group.5.snapshot.addr","174.137.114.100:18906"}, 	// SPIN 
@@ -1121,6 +1232,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.5.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.5.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.6.products","vanilla_book"},
 	{"efh.C1_PITCH.group.6.unit","7"},
 	{"efh.C1_PITCH.group.6.mcast.addr","233.182.199.134:30307"},
 	{"efh.C1_PITCH.group.6.snapshot.addr","174.137.114.100:18907"}, 	// SPIN 
@@ -1131,6 +1243,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.6.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.6.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.7.products","vanilla_book"},
 	{"efh.C1_PITCH.group.7.unit","8"},
 	{"efh.C1_PITCH.group.7.mcast.addr","233.182.199.135:30308"},
 	{"efh.C1_PITCH.group.7.snapshot.addr","174.137.114.100:18908"}, 	// SPIN 
@@ -1141,6 +1254,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.7.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.7.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.8.products","vanilla_book"},
 	{"efh.C1_PITCH.group.8.unit","9"},
 	{"efh.C1_PITCH.group.8.mcast.addr","233.182.199.136:30309"},
 	{"efh.C1_PITCH.group.8.snapshot.addr","174.137.114.100:18909"}, 	// SPIN 
@@ -1151,6 +1265,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.8.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.8.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.9.products","vanilla_book"},
 	{"efh.C1_PITCH.group.9.unit","10"},
 	{"efh.C1_PITCH.group.9.mcast.addr","233.182.199.137:30310"},
 	{"efh.C1_PITCH.group.9.snapshot.addr","174.137.114.100:18910"}, 	// SPIN 
@@ -1161,6 +1276,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.9.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.9.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.10.products","vanilla_book"},
 	{"efh.C1_PITCH.group.10.unit","11"},
 	{"efh.C1_PITCH.group.10.mcast.addr","233.182.199.138:30311"},
 	{"efh.C1_PITCH.group.10.snapshot.addr","174.137.114.100:18911"}, 	// SPIN 
@@ -1171,6 +1287,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.10.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.10.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.11.products","vanilla_book"},
 	{"efh.C1_PITCH.group.11.unit","12"},
 	{"efh.C1_PITCH.group.11.mcast.addr","233.182.199.139:30312"},
 	{"efh.C1_PITCH.group.11.snapshot.addr","174.137.114.100:18912"}, 	// SPIN 
@@ -1181,6 +1298,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.11.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.11.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.12.products","vanilla_book"},
 	{"efh.C1_PITCH.group.12.unit","13"},
 	{"efh.C1_PITCH.group.12.mcast.addr","233.182.199.140:30313"},
 	{"efh.C1_PITCH.group.12.snapshot.addr","174.137.114.101:18913"}, 	// SPIN 
@@ -1191,6 +1309,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.12.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.12.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.13.products","vanilla_book"},
 	{"efh.C1_PITCH.group.13.unit","14"},
 	{"efh.C1_PITCH.group.13.mcast.addr","233.182.199.141:30314"},
 	{"efh.C1_PITCH.group.13.snapshot.addr","174.137.114.101:18914"}, 	// SPIN 
@@ -1201,6 +1320,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.13.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.13.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.14.products","vanilla_book"},
 	{"efh.C1_PITCH.group.14.unit","15"},
 	{"efh.C1_PITCH.group.14.mcast.addr","233.182.199.142:30315"},
 	{"efh.C1_PITCH.group.14.snapshot.addr","174.137.114.101:18915"}, 	// SPIN 
@@ -1211,6 +1331,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.14.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.14.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.15.products","vanilla_book"},
 	{"efh.C1_PITCH.group.15.unit","16"},
 	{"efh.C1_PITCH.group.15.mcast.addr","233.182.199.143:30316"},
 	{"efh.C1_PITCH.group.15.snapshot.addr","174.137.114.101:18916"}, 	// SPIN 
@@ -1221,6 +1342,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.15.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.15.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.16.products","vanilla_book"},
 	{"efh.C1_PITCH.group.16.unit","17"},
 	{"efh.C1_PITCH.group.16.mcast.addr","233.182.199.144:30317"},
 	{"efh.C1_PITCH.group.16.snapshot.addr","174.137.114.101:18917"}, 	// SPIN 
@@ -1231,6 +1353,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.16.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.16.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.17.products","vanilla_book"},
 	{"efh.C1_PITCH.group.17.unit","18"},
 	{"efh.C1_PITCH.group.17.mcast.addr","233.182.199.145:30318"},
 	{"efh.C1_PITCH.group.17.snapshot.addr","174.137.114.101:18918"}, 	// SPIN 
@@ -1241,6 +1364,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.17.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.17.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.18.products","vanilla_book"},
 	{"efh.C1_PITCH.group.18.unit","19"},
 	{"efh.C1_PITCH.group.18.mcast.addr","233.182.199.146:30319"},
 	{"efh.C1_PITCH.group.18.snapshot.addr","174.137.114.101:18919"}, 	// SPIN 
@@ -1251,6 +1375,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.18.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.18.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.19.products","vanilla_book"},
 	{"efh.C1_PITCH.group.19.unit","20"},
 	{"efh.C1_PITCH.group.19.mcast.addr","233.182.199.147:30320"},
 	{"efh.C1_PITCH.group.19.snapshot.addr","174.137.114.101:18920"}, 	// SPIN 
@@ -1261,6 +1386,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.19.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.19.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.20.products","vanilla_book"},
 	{"efh.C1_PITCH.group.20.unit","21"},
 	{"efh.C1_PITCH.group.20.mcast.addr","233.182.199.148:30321"},
 	{"efh.C1_PITCH.group.20.snapshot.addr","174.137.114.101:18921"}, 	// SPIN 
@@ -1271,6 +1397,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.20.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.20.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.21.products","vanilla_book"},
 	{"efh.C1_PITCH.group.21.unit","22"},
 	{"efh.C1_PITCH.group.21.mcast.addr","233.182.199.149:30322"},
 	{"efh.C1_PITCH.group.21.snapshot.addr","174.137.114.101:18922"}, 	// SPIN 
@@ -1281,6 +1408,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.21.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.21.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.22.products","vanilla_book"},
 	{"efh.C1_PITCH.group.22.unit","23"},
 	{"efh.C1_PITCH.group.22.mcast.addr","233.182.199.150:30323"},
 	{"efh.C1_PITCH.group.22.snapshot.addr","174.137.114.101:18923"}, 	// SPIN 
@@ -1291,6 +1419,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.22.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.22.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.23.products","vanilla_book"},
 	{"efh.C1_PITCH.group.23.unit","24"},
 	{"efh.C1_PITCH.group.23.mcast.addr","233.182.199.151:30324"},
 	{"efh.C1_PITCH.group.23.snapshot.addr","174.137.114.101:18924"}, 	// SPIN 
@@ -1301,6 +1430,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.23.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.23.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.24.products","vanilla_book"},
 	{"efh.C1_PITCH.group.24.unit","25"},
 	{"efh.C1_PITCH.group.24.mcast.addr","233.182.199.152:30325"},
 	{"efh.C1_PITCH.group.24.snapshot.addr","174.137.114.102:18925"}, 	// SPIN 
@@ -1311,6 +1441,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.24.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.24.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.25.products","vanilla_book"},
 	{"efh.C1_PITCH.group.25.unit","26"},
 	{"efh.C1_PITCH.group.25.mcast.addr","233.182.199.153:30326"},
 	{"efh.C1_PITCH.group.25.snapshot.addr","174.137.114.102:18926"}, 	// SPIN 
@@ -1321,6 +1452,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.25.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.25.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.26.products","vanilla_book"},
 	{"efh.C1_PITCH.group.26.unit","27"},
 	{"efh.C1_PITCH.group.26.mcast.addr","233.182.199.154:30327"},
 	{"efh.C1_PITCH.group.26.snapshot.addr","174.137.114.102:18927"}, 	// SPIN 
@@ -1331,6 +1463,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.26.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.26.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.27.products","vanilla_book"},
 	{"efh.C1_PITCH.group.27.unit","28"},
 	{"efh.C1_PITCH.group.27.mcast.addr","233.182.199.155:30328"},
 	{"efh.C1_PITCH.group.27.snapshot.addr","174.137.114.102:18928"}, 	// SPIN 
@@ -1341,6 +1474,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.27.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.27.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.28.products","vanilla_book"},
 	{"efh.C1_PITCH.group.28.unit","29"},
 	{"efh.C1_PITCH.group.28.mcast.addr","233.182.199.156:30329"},
 	{"efh.C1_PITCH.group.28.snapshot.addr","174.137.114.102:18929"}, 	// SPIN 
@@ -1351,6 +1485,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.28.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.28.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.29.products","vanilla_book"},
 	{"efh.C1_PITCH.group.29.unit","30"},
 	{"efh.C1_PITCH.group.29.mcast.addr","233.182.199.157:30330"},
 	{"efh.C1_PITCH.group.29.snapshot.addr","174.137.114.102:18930"}, 	// SPIN 
@@ -1361,6 +1496,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.29.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.29.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.30.products","vanilla_book"},
 	{"efh.C1_PITCH.group.30.unit","31"},
 	{"efh.C1_PITCH.group.30.mcast.addr","233.182.199.158:30331"},
 	{"efh.C1_PITCH.group.30.snapshot.addr","174.137.114.102:18931"}, 	// SPIN 
@@ -1371,6 +1507,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.30.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.30.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.31.products","vanilla_book"},
 	{"efh.C1_PITCH.group.31.unit","32"},
 	{"efh.C1_PITCH.group.31.mcast.addr","233.182.199.159:30332"},
 	{"efh.C1_PITCH.group.31.snapshot.addr","174.137.114.102:18932"}, 	// SPIN 
@@ -1381,6 +1518,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.31.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.31.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.32.products","vanilla_book"},
 	{"efh.C1_PITCH.group.32.unit","33"},
 	{"efh.C1_PITCH.group.32.mcast.addr","233.182.199.160:30333"},
 	{"efh.C1_PITCH.group.32.snapshot.addr","174.137.114.102:18933"}, 	// SPIN 
@@ -1391,6 +1529,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.32.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.32.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.33.products","vanilla_book"},
 	{"efh.C1_PITCH.group.33.unit","34"},
 	{"efh.C1_PITCH.group.33.mcast.addr","233.182.199.161:30334"},
 	{"efh.C1_PITCH.group.33.snapshot.addr","174.137.114.102:18934"}, 	// SPIN 
@@ -1401,6 +1540,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 	{"efh.C1_PITCH.group.33.recovery.grpAuth","GTSS:eb3gtss"}, 	// GRP TCP
 	{"efh.C1_PITCH.group.33.recovery.grpSessionSubID","0587"}, 	// GRP TCP
 
+	{"efh.C1_PITCH.group.34.products","vanilla_book"},
 	{"efh.C1_PITCH.group.34.unit","35"},
 	{"efh.C1_PITCH.group.34.mcast.addr","233.182.199.162:30335"},
 	{"efh.C1_PITCH.group.34.snapshot.addr","174.137.114.102:18935"}, 	// SPIN 
@@ -1414,6 +1554,7 @@ EkaProp efhBatsC1InitCtxEntries_D[] = {
 };
 
 EkaProp efhBatsC1InitCtxEntries_CAC[] = {
+	{"efh.C1_PITCH.group.0.products","complex_book"},
 	{"efh.C1_PITCH.group.0.unit","1"},
 	{"efh.C1_PITCH.group.0.mcast.addr","224.0.74.80:30351"},
 	{"efh.C1_PITCH.group.0.snapshot.addr","170.137.114.106:18701"}, 	// Complex SPIN
@@ -1424,6 +1565,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.0.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.0.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.1.products","complex_book"},
 	{"efh.C1_PITCH.group.1.unit","2"},
 	{"efh.C1_PITCH.group.1.mcast.addr","224.0.74.80:30352"},
 	{"efh.C1_PITCH.group.1.snapshot.addr","170.137.114.106:18702"}, 	// Complex SPIN
@@ -1434,6 +1576,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.1.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.1.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.2.products","complex_book"},
 	{"efh.C1_PITCH.group.2.unit","3"},
 	{"efh.C1_PITCH.group.2.mcast.addr","224.0.74.80:30353"},
 	{"efh.C1_PITCH.group.2.snapshot.addr","170.137.114.106:18703"}, 	// Complex SPIN
@@ -1444,6 +1587,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.2.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.2.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.3.products","complex_book"},
 	{"efh.C1_PITCH.group.3.unit","4"},
 	{"efh.C1_PITCH.group.3.mcast.addr","224.0.74.80:30354"},
 	{"efh.C1_PITCH.group.3.snapshot.addr","170.137.114.106:18704"}, 	// Complex SPIN
@@ -1454,6 +1598,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.3.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.3.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.4.products","complex_book"},
 	{"efh.C1_PITCH.group.4.unit","5"},
 	{"efh.C1_PITCH.group.4.mcast.addr","224.0.74.80:30355"},
 	{"efh.C1_PITCH.group.4.snapshot.addr","170.137.114.106:18705"}, 	// Complex SPIN
@@ -1464,6 +1609,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.4.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.4.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.5.products","complex_book"},
 	{"efh.C1_PITCH.group.5.unit","6"},
 	{"efh.C1_PITCH.group.5.mcast.addr","224.0.74.80:30356"},
 	{"efh.C1_PITCH.group.5.snapshot.addr","170.137.114.106:18706"}, 	// Complex SPIN
@@ -1474,6 +1620,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.5.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.5.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.6.products","complex_book"},
 	{"efh.C1_PITCH.group.6.unit","7"},
 	{"efh.C1_PITCH.group.6.mcast.addr","224.0.74.80:30357"},
 	{"efh.C1_PITCH.group.6.snapshot.addr","170.137.114.106:18707"}, 	// Complex SPIN
@@ -1484,6 +1631,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.6.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.6.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.7.products","complex_book"},
 	{"efh.C1_PITCH.group.7.unit","8"},
 	{"efh.C1_PITCH.group.7.mcast.addr","224.0.74.80:30358"},
 	{"efh.C1_PITCH.group.7.snapshot.addr","170.137.114.106:18708"}, 	// Complex SPIN
@@ -1494,6 +1642,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.7.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.7.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.8.products","complex_book"},
 	{"efh.C1_PITCH.group.8.unit","9"},
 	{"efh.C1_PITCH.group.8.mcast.addr","224.0.74.80:30359"},
 	{"efh.C1_PITCH.group.8.snapshot.addr","170.137.114.106:18709"}, 	// Complex SPIN
@@ -1504,6 +1653,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.8.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.8.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.9.products","complex_book"},
 	{"efh.C1_PITCH.group.9.unit","10"},
 	{"efh.C1_PITCH.group.9.mcast.addr","224.0.74.80:30360"},
 	{"efh.C1_PITCH.group.9.snapshot.addr","170.137.114.106:18710"}, 	// Complex SPIN
@@ -1514,6 +1664,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.9.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.9.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.10.products","complex_book"},
 	{"efh.C1_PITCH.group.10.unit","11"},
 	{"efh.C1_PITCH.group.10.mcast.addr","224.0.74.80:30361"},
 	{"efh.C1_PITCH.group.10.snapshot.addr","170.137.114.106:18711"}, 	// Complex SPIN
@@ -1524,6 +1675,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.10.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.10.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.11.products","complex_book"},
 	{"efh.C1_PITCH.group.11.unit","12"},
 	{"efh.C1_PITCH.group.11.mcast.addr","224.0.74.80:30362"},
 	{"efh.C1_PITCH.group.11.snapshot.addr","170.137.114.106:18712"}, 	// Complex SPIN
@@ -1534,6 +1686,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.11.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.11.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.12.products","complex_book"},
 	{"efh.C1_PITCH.group.12.unit","13"},
 	{"efh.C1_PITCH.group.12.mcast.addr","224.0.74.80:30363"},
 	{"efh.C1_PITCH.group.12.snapshot.addr","170.137.114.106:18713"}, 	// Complex SPIN
@@ -1544,6 +1697,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.12.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.12.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.13.products","complex_book"},
 	{"efh.C1_PITCH.group.13.unit","14"},
 	{"efh.C1_PITCH.group.13.mcast.addr","224.0.74.80:30364"},
 	{"efh.C1_PITCH.group.13.snapshot.addr","170.137.114.107:18714"}, 	// Complex SPIN
@@ -1554,6 +1708,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.13.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.13.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.14.products","complex_book"},
 	{"efh.C1_PITCH.group.14.unit","15"},
 	{"efh.C1_PITCH.group.14.mcast.addr","224.0.74.80:30365"},
 	{"efh.C1_PITCH.group.14.snapshot.addr","170.137.114.107:18715"}, 	// Complex SPIN
@@ -1564,6 +1719,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.14.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.14.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.15.products","complex_book"},
 	{"efh.C1_PITCH.group.15.unit","16"},
 	{"efh.C1_PITCH.group.15.mcast.addr","224.0.74.80:30366"},
 	{"efh.C1_PITCH.group.15.snapshot.addr","170.137.114.107:18716"}, 	// Complex SPIN
@@ -1574,6 +1730,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.15.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.15.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.16.products","complex_book"},
 	{"efh.C1_PITCH.group.16.unit","17"},
 	{"efh.C1_PITCH.group.16.mcast.addr","224.0.74.80:30367"},
 	{"efh.C1_PITCH.group.16.snapshot.addr","170.137.114.107:18717"}, 	// Complex SPIN
@@ -1584,6 +1741,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.16.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.16.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.17.products","complex_book"},
 	{"efh.C1_PITCH.group.17.unit","18"},
 	{"efh.C1_PITCH.group.17.mcast.addr","224.0.74.81:30368"},
 	{"efh.C1_PITCH.group.17.snapshot.addr","170.137.114.107:18718"}, 	// Complex SPIN
@@ -1594,6 +1752,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.17.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.17.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.18.products","complex_book"},
 	{"efh.C1_PITCH.group.18.unit","19"},
 	{"efh.C1_PITCH.group.18.mcast.addr","224.0.74.81:30369"},
 	{"efh.C1_PITCH.group.18.snapshot.addr","170.137.114.107:18719"}, 	// Complex SPIN
@@ -1604,6 +1763,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.18.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.18.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.19.products","complex_book"},
 	{"efh.C1_PITCH.group.19.unit","20"},
 	{"efh.C1_PITCH.group.19.mcast.addr","224.0.74.81:30370"},
 	{"efh.C1_PITCH.group.19.snapshot.addr","170.137.114.107:18720"}, 	// Complex SPIN
@@ -1614,6 +1774,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.19.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.19.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.20.products","complex_book"},
 	{"efh.C1_PITCH.group.20.unit","21"},
 	{"efh.C1_PITCH.group.20.mcast.addr","224.0.74.81:30371"},
 	{"efh.C1_PITCH.group.20.snapshot.addr","170.137.114.107:18721"}, 	// Complex SPIN
@@ -1624,6 +1785,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.20.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.20.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.21.products","complex_book"},
 	{"efh.C1_PITCH.group.21.unit","22"},
 	{"efh.C1_PITCH.group.21.mcast.addr","224.0.74.81:30372"},
 	{"efh.C1_PITCH.group.21.snapshot.addr","170.137.114.107:18722"}, 	// Complex SPIN
@@ -1634,6 +1796,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.21.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.21.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.22.products","complex_book"},
 	{"efh.C1_PITCH.group.22.unit","23"},
 	{"efh.C1_PITCH.group.22.mcast.addr","224.0.74.81:30373"},
 	{"efh.C1_PITCH.group.22.snapshot.addr","170.137.114.107:18723"}, 	// Complex SPIN
@@ -1644,6 +1807,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.22.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.22.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.23.products","complex_book"},
 	{"efh.C1_PITCH.group.23.unit","24"},
 	{"efh.C1_PITCH.group.23.mcast.addr","224.0.74.81:30374"},
 	{"efh.C1_PITCH.group.23.snapshot.addr","170.137.114.107:18724"}, 	// Complex SPIN
@@ -1654,6 +1818,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.23.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.23.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.24.products","complex_book"},
 	{"efh.C1_PITCH.group.24.unit","25"},
 	{"efh.C1_PITCH.group.24.mcast.addr","224.0.74.81:30375"},
 	{"efh.C1_PITCH.group.24.snapshot.addr","170.137.114.107:18725"}, 	// Complex SPIN
@@ -1664,6 +1829,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.24.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.24.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.25.products","complex_book"},
 	{"efh.C1_PITCH.group.25.unit","26"},
 	{"efh.C1_PITCH.group.25.mcast.addr","224.0.74.81:30376"},
 	{"efh.C1_PITCH.group.25.snapshot.addr","170.137.114.108:18726"}, 	// Complex SPIN
@@ -1674,6 +1840,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.25.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.25.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.26.products","complex_book"},
 	{"efh.C1_PITCH.group.26.unit","27"},
 	{"efh.C1_PITCH.group.26.mcast.addr","224.0.74.81:30377"},
 	{"efh.C1_PITCH.group.26.snapshot.addr","170.137.114.108:18727"}, 	// Complex SPIN
@@ -1684,6 +1851,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.26.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.26.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.27.products","complex_book"},
 	{"efh.C1_PITCH.group.27.unit","28"},
 	{"efh.C1_PITCH.group.27.mcast.addr","224.0.74.81:30378"},
 	{"efh.C1_PITCH.group.27.snapshot.addr","170.137.114.108:18728"}, 	// Complex SPIN
@@ -1694,6 +1862,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.27.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.27.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.28.products","complex_book"},
 	{"efh.C1_PITCH.group.28.unit","29"},
 	{"efh.C1_PITCH.group.28.mcast.addr","224.0.74.81:30379"},
 	{"efh.C1_PITCH.group.28.snapshot.addr","170.137.114.108:18729"}, 	// Complex SPIN
@@ -1704,6 +1873,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.28.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.28.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.29.products","complex_book"},
 	{"efh.C1_PITCH.group.29.unit","30"},
 	{"efh.C1_PITCH.group.29.mcast.addr","224.0.74.81:30380"},
 	{"efh.C1_PITCH.group.29.snapshot.addr","170.137.114.108:18730"}, 	// Complex SPIN
@@ -1714,6 +1884,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.29.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.29.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.30.products","complex_book"},
 	{"efh.C1_PITCH.group.30.unit","31"},
 	{"efh.C1_PITCH.group.30.mcast.addr","224.0.74.81:30381"},
 	{"efh.C1_PITCH.group.30.snapshot.addr","170.137.114.108:18731"}, 	// Complex SPIN
@@ -1724,6 +1895,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.30.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.30.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.31.products","complex_book"},
 	{"efh.C1_PITCH.group.31.unit","32"},
 	{"efh.C1_PITCH.group.31.mcast.addr","224.0.74.81:30382"},
 	{"efh.C1_PITCH.group.31.snapshot.addr","170.137.114.108:18732"}, 	// Complex SPIN
@@ -1734,6 +1906,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.31.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.31.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.32.products","complex_book"},
 	{"efh.C1_PITCH.group.32.unit","33"},
 	{"efh.C1_PITCH.group.32.mcast.addr","224.0.74.81:30383"},
 	{"efh.C1_PITCH.group.32.snapshot.addr","170.137.114.108:18733"}, 	// Complex SPIN
@@ -1744,6 +1917,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.32.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.32.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.33.products","complex_book"},
 	{"efh.C1_PITCH.group.33.unit","34"},
 	{"efh.C1_PITCH.group.33.mcast.addr","224.0.74.81:30384"},
 	{"efh.C1_PITCH.group.33.snapshot.addr","170.137.114.108:18734"}, 	// Complex SPIN
@@ -1754,6 +1928,7 @@ EkaProp efhBatsC1InitCtxEntries_CAC[] = {
 	{"efh.C1_PITCH.group.33.recovery.grpAuth","GTSS:cgb1gtss"}, 	// Complex GRP TCP
 	{"efh.C1_PITCH.group.33.recovery.grpSessionSubID","0879"}, 	// Complex GRP TCP
 
+	{"efh.C1_PITCH.group.34.products","complex_book"},
 	{"efh.C1_PITCH.group.34.unit","35"},
 	{"efh.C1_PITCH.group.34.mcast.addr","224.0.74.81:30385"},
 	{"efh.C1_PITCH.group.34.snapshot.addr","170.137.114.108:18735"}, 	// Complex SPIN

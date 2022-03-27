@@ -148,7 +148,39 @@ private:
 			  const unsigned char* m,
 			  uint64_t sequence,
 			  EkaFhMode op);
+  
   template <class SecurityT, class OrderMsgT>
   SecurityT* process_AddOrderShort(const uint8_t* m);
+  
+  template <class SecurityT, class OrderMsgT>
+  SecurityT* process_AddOrderLong(const uint8_t* m);
+   
+  template <class SecurityT, class OrderMsgT>
+  SecurityT* process_AddOrderExpanded(const uint8_t* m);
+
+   template <class SecurityT, class OrderMsgT>
+  SecurityT* process_OrderModifyShort(const uint8_t* m);
+  
+  template <class SecurityT, class OrderMsgT>
+  SecurityT* process_OrderModifyLong(const uint8_t* m);
+
+  template <class SecurityT, class OrderMsgT>
+  SecurityT* process_TradeShort(const EfhRunCtx* pEfhRunCtx,
+				uint64_t sequence,
+				uint64_t msg_timestamp,
+				const uint8_t* m);
+  
+  template <class SecurityT, class OrderMsgT>
+  SecurityT* process_TradeLong(const EfhRunCtx* pEfhRunCtx,
+			       uint64_t sequence,
+			       uint64_t msg_timestamp,
+			       const uint8_t* m);
+  
+  template <class SecurityT, class OrderMsgT>
+  SecurityT* process_TradeExpanded(const EfhRunCtx* pEfhRunCtx,
+				   uint64_t sequence,
+				   uint64_t msg_timestamp,
+				   const uint8_t* m);
+
 };
 #endif
