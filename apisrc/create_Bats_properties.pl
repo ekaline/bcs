@@ -44,6 +44,7 @@ for ($i=0; $i<35;$i++) {
 
 #    print "$unit: RT MC: $rt_mc_base$rt_mc_lsb:$port, GRP MC: $grp_mc_base$grp_mc_lsb:$port, spin: $spin_ip_base${spin_ip_lsb}:$spin_port\n";
 
+    print "\t\{\"efh.$exch_name.group.$i.products\",\"vanilla_book\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.unit\",\"$unit\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\",\"$rt_mc_base$rt_mc_lsb:$port\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"$spin_ip_base$spin_ip_lsb:$spin_port\"\}, \t// SPIN \n";
@@ -94,6 +95,7 @@ for ($i=0; $i<35;$i++) {
 
 #    print "$unit: RT MC: $rt_mc_base$rt_mc_lsb:$port, GRP MC: $grp_mc_base$grp_mc_lsb:$port, spin: $spin_ip_base${spin_ip_lsb}:$spin_port\n";
 
+    print "\t\{\"efh.$exch_name.group.$i.products\",\"vanilla_book\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.unit\",\"$unit\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\",\"$rt_mc_base$rt_mc_lsb:$port\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"$spin_ip_base$spin_ip_lsb:$spin_port\"\}, \t// SPIN \n";
@@ -142,6 +144,7 @@ for ($i=0; $i<35;$i++) {
 
 #    print "$unit: RT MC: $rt_mc_base$rt_mc_lsb:$port, GRP MC: $grp_mc_base$grp_mc_lsb:$port, spin: $spin_ip_base${spin_ip_lsb}:$spin_port\n";
 
+    print "\t\{\"efh.$exch_name.group.$i.products\",\"vanilla_book\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.unit\",\"$unit\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\",\"$rt_mc_base$rt_mc_lsb:$port\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"$spin_ip_base$spin_ip_lsb:$spin_port\"\}, \t// SPIN \n";
@@ -191,6 +194,7 @@ for ($i=0; $i<35;$i++) {
 
 #    print "$unit: RT MC: $rt_mc_base$rt_mc_lsb:$port, GRP MC: $grp_mc_base$grp_mc_lsb:$port, spin: $spin_ip_base${spin_ip_lsb}:$spin_port\n";
 
+    print "\t\{\"efh.$exch_name.group.$i.products\",\"vanilla_book\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.unit\",\"$unit\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\",\"$rt_mc_base$rt_mc_lsb:$port\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"$spin_ip_base$spin_ip_lsb:$spin_port\"\}, \t// SPIN \n";
@@ -255,6 +259,7 @@ for ($i=0; $i<35;$i++) {
 	$spin_ip = "170.137.114.108";
     }
 
+    print "\t\{\"efh.$exch_name.group.$i.products\",\"complex_book\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.unit\",\"$unit\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\",\"$rt_mc:$port\"\},\n";
     
