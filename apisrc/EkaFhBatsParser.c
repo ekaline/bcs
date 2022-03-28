@@ -98,60 +98,8 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     return true;
   }
     //--------------------------------------------------------------
-<<<<<<< HEAD
-  case MsgId::SYMBOL_MAPPING :  {
-    auto message {reinterpret_cast<const SymbolMapping*>(m)};
-
-    const char* osi = message->osi_symbol;
-
-    EfhOptionDefinitionMsg msg{};
-    msg.header.msgType        = EfhMsgType::kOptionDefinition;
-    msg.header.group.source   = exch;
-    msg.header.group.localId  = id;
-    msg.header.underlyingId   = expSymbol2secId(message->underlying);
-    msg.header.securityId     = symbol2secId(message->symbol);
-    msg.header.sequenceNumber = sequence;
-    msg.header.timeStamp      = 0;
-    msg.header.gapNum         = gapNum;
-
-    msg.commonDef.securityType   = EfhSecurityType::kOption;
-    msg.commonDef.exchange       = EKA_GRP_SRC2EXCH(exch);
-    msg.commonDef.underlyingType = EfhSecurityType::kStock;
-    uint y = (osi[6] -'0') * 10 + (osi[7] -'0');
-    uint m = (osi[8] -'0') * 10 + (osi[9] -'0');
-    uint d = (osi[10]-'0') * 10 + (osi[11]-'0');
-    msg.commonDef.expiryDate     = (2000 + y) * 10000 + m * 100 + d;
-
-    char strike_price_str[9] = {};
-    memcpy(strike_price_str,&osi[13],8);
-    strike_price_str[8] = '\0';
-
-    //    msg.strikePrice           = strtoull(strike_price_str,NULL,10) / EFH_STRIKE_PRICE_SCALE;
-    msg.strikePrice           = strtoull(strike_price_str,NULL,10) * EFH_PITCH_STRIKE_PRICE_SCALE; // per Ken's request
-
-    msg.optionType            = osi[12] == 'C' ?  EfhOptionType::kCall : EfhOptionType::kPut;
-
-    copySymbol(msg.commonDef.underlying,message->underlying);
-    {
-      char *s = stpncpy(msg.commonDef.classSymbol,osi,6);
-      *s-- = '\0';
-      while (*s == ' ')
-        *s-- = '\0';
-    }
-    copySymbol(msg.commonDef.exchSecurityName, message->symbol);
-
-    memcpy(&msg.commonDef.opaqueAttrA,message->symbol,6);
-
-    /* char osi2print[22] = {}; */
-    /* memcpy(osi2print,osi,21); */
-    //    EKA_LOG("OSI: %s, Expiration = %u, strike: %ju",osi2print,msg.expiryDate,msg.strikePrice);
-    pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
-    return false;
-  }
-=======
   case MsgId::SYMBOL_MAPPING :
     return process_Definition(pEfhRunCtx,m,sequence,op);
->>>>>>> origin/vsukonik/GTSAVTAMER-7895-cboe-signed-prices-for-complex-instruments
     //--------------------------------------------------------------
   case MsgId::TRANSACTION_BEGIN:  { 
     //    market_open = true;
@@ -764,7 +712,7 @@ bool EkaFhBatsGr::process_Definition(const EfhRunCtx* pEfhRunCtx,
   msg.header.msgType        = EfhMsgType::kOptionDefinition;
   msg.header.group.source   = exch;
   msg.header.group.localId  = id;
-  msg.header.underlyingId   = 0;
+  msg.header.underlyingId   = expSymbol2secId(message->underlying);
   msg.header.securityId     = symbol2secId(message->symbol);
   msg.header.sequenceNumber = sequence;
   msg.header.timeStamp      = 0;
