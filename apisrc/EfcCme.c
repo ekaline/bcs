@@ -1,6 +1,9 @@
 #include "EkaEfc.h"
 #include "EfcCme.h"
 #include "EkaEpmAction.h"
+#include "EkaTcpSess.h"
+
+int getSessAppSeqId(EkaDev* dev, ExcConnHandle hConn);
 
 EkaOpResult efcCmeFastCancelInit(EkaDev *dev,
 				 const EfcCmeFastCancelParams* params) {
@@ -58,3 +61,14 @@ ssize_t efcCmeSend(EkaDev* dev, ExcConnHandle hConn,
     }
     return ekaA->fastSend(buffer, size);
 }
+
+
+EkaOpResult efcCmeSetILinkAppseq(EkaDev *dev,
+				 ExcConnHandle hCon,
+				 int32_t appSequence) {
+  auto sessAppSeqId = getSessAppSeqId(dev,hCon);  
+  dev->eka_write(0x86000 + sessAppSeqId * 8,appSequence);
+  
+  return EKA_OPRESULT__OK;
+}
+  

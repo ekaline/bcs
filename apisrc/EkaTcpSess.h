@@ -85,6 +85,8 @@ class EkaTcpSess {
   uint16_t tcpSndWnd = 0;
   uint8_t tcpSndWndShift = 0;
 
+  int appSeqId = 0;
+  
   volatile uint32_t tcpLocalSeqNum = 0;
   volatile uint32_t tcpRemoteSeqNum = 0;
   volatile uint32_t tcpRemoteAckNum = 0;

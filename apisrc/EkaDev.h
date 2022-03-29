@@ -42,6 +42,7 @@ class EkaDev {
 
   EkaTcpSess* findTcpSess(uint32_t ipSrc, uint16_t udpSrc, uint32_t ipDst, uint16_t udpDst);
   EkaTcpSess* findTcpSess(int sock);
+  EkaTcpSess* findTcpSess(ExcConnHandle hCon);
   EkaTcpSess* getControlTcpSess(EkaCoreId coreId);
   EkaCoreId   findCoreByMacSa(const uint8_t* macSa);
 
@@ -161,6 +162,9 @@ class EkaDev {
   FILE* testDict;
 #endif
 
+  const int MaxAppSeqSessions = 8;
+  int       numAppSeqSessions = 0;
+  
   FILE* deltaTimeLogFile = NULL;
   
   EkaUserReportQ*           userReportQ = NULL;

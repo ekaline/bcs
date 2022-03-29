@@ -517,6 +517,9 @@ int main(int argc, char *argv[]) {
     };
     const char* swMsg = "CME Fast SW Msg: Sequence = |____| : expected incremented Sequence";
     const char* swHB  = "CME SW Heartbeat:Sequence = |____| : expected NOT incremented Sequence";
+
+    efcCmeSetILinkAppseq(dev,conn[0],0x1);
+
     efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
     efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
     efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
