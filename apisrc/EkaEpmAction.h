@@ -59,6 +59,7 @@ class EkaEpmAction {
   int setName();
   int initEpmActionLocalCopy();
   int setHwAction();
+  void setIpTtl ();
   
   /* ----------------------------------------------------- */
 

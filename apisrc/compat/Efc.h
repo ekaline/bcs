@@ -12,6 +12,9 @@
 #include "Exc.h"
 #include "Efh.h"
 
+#define EFC_HW_TTL 0x55
+#define EFC_HW_ID  0xabcd
+
 #ifdef __cplusplus
     extern "C" {
 #endif

@@ -71,6 +71,24 @@ int EkaEpmAction::setActionBitmap() {
 }
 /* ---------------------------------------------------- */
 
+void EkaEpmAction::setIpTtl() {
+  switch (type) {
+  case EpmActionType::UserAction   :
+  case EpmActionType::HwFireAction :
+  case EpmActionType::BoeFire      :
+  case EpmActionType::BoeCancel    :
+  case EpmActionType::SqfFire      :
+  case EpmActionType::SqfCancel    :
+  case EpmActionType::CmeHwCancel    :
+    ipHdr->_ttl = EFC_HW_TTL;
+    ipHdr->_id  = EFC_HW_ID;
+      return;
+  default:
+    return;
+  }
+}
+/* ---------------------------------------------------- */
+
 static TcpCsSizeSource setTcpCsSizeSource (EpmActionType type) {
   switch (type) {
   case EpmActionType::UserAction   :
@@ -240,6 +258,7 @@ EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
   setTemplate();
   setActionBitmap();
   setHwAction();
+  setIpTtl();
   setName();
   //  print("From constructor");
 }
@@ -348,7 +367,7 @@ int EkaEpmAction::setNwHdrs(uint8_t* macDa,
   pktSize = sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaTcpHdr) + payloadLen;
 
   //---------------------------------------------------------
-
+  setIpTtl();
   tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,payloadLen);
   //---------------------------------------------------------
 
@@ -401,7 +420,8 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
 /* ----------------------------------------------------- */
 
   epmTemplate->clearHwFields(&epm->heap[heapOffs]);
-
+  setIpTtl();
+  
   tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,payloadLen);
 
   setHwAction();
@@ -466,6 +486,7 @@ int EkaEpmAction::setPktPayload(const void* buf, uint len) {
   }
 
   if (! same) {
+    setIpTtl();
     tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,payloadLen);
     if (hwAction.tcpCsSizeSource == TcpCsSizeSource::FROM_ACTION) {
       hwAction.tcpCSum      = tcpCSum;
@@ -494,6 +515,7 @@ int EkaEpmAction::updatePayload(uint offset, uint len) {
 
   epmTemplate->clearHwFields(&epm->heap[heapOffs]);
 
+  setIpTtl();
   tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,payloadLen);
   copyIndirectBuf2HeapHw_swap4(dev,heapAddr, (uint64_t*) &epm->heap[heapOffs], thrId, pktSize);
 
