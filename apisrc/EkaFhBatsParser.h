@@ -628,7 +628,7 @@ namespace Bats {
   
   struct ComplexInstrumentDefinitionExpanded_leg {
     char     LegSymbol[8];
-    uint32_t LegRatio;
+    int32_t  LegRatio;
     char     LegSecurityType; // 'O' = Leg is an Option instrument
                               //  E = Leg is an Equity instrument
   } __attribute__((packed));
