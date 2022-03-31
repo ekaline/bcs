@@ -12,6 +12,7 @@
 #include "EkaEpmAction.h"
 #include "EpmFireSqfTemplate.h"
 #include "EpmFireBoeTemplate.h"
+#include "EpmCmeILinkTemplate.h"
 #include "EkaEfcDataStructs.h"
 #include "EkaHwCaps.h"
 #include "EhpNom.h"
@@ -52,25 +53,32 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
 
   switch (hwFeedVer) {
   case EfhFeedVer::kNASDAQ : 
-    epm->hwFire  = new EpmFireSqfTemplate(epm->templatesNum++,"EpmFireSqfTemplate" );
+    epm->hwFire  = new EpmFireSqfTemplate(epm->templatesNum++);
     EKA_LOG("Initializing EpmFireSqfTemplate");
     ehp = new EhpNom(dev);
     break;
   case EfhFeedVer::kCBOE : 
-    epm->hwFire  = new EpmFireBoeTemplate(epm->templatesNum++,"EpmFireBoeTemplate" );
+    epm->hwFire  = new EpmFireBoeTemplate(epm->templatesNum++);
     EKA_LOG("Initializing EpmFireBoeTemplate");
     ehp = new EhpPitch(dev);
+    break;
+  case EfhFeedVer::kCME : 
+    epm->hwFire  = new EpmCmeILinkTemplate(epm->templatesNum++);
+    EKA_LOG("Initializing EpmCmeILinkTemplate");
+    //ehp = new EhpCme(dev);
+    ehp = NULL;
+    EKA_LOG("NO EHP for CME - using hardcoded CME Fast cancel parser");
     break;
   default :
     on_error("Unexpected EFC HW Version: %d",(int)hwFeedVer);
   }
   epm->DownloadSingleTemplate2HW(epm->hwFire);
   
-  if (ehp == NULL) on_error("ehp == NULL");
-  ehp->init();
-  ehp->download2Hw();
-  initHwRoundTable();
-
+  if (ehp) {
+    ehp->init();
+    ehp->download2Hw();
+    initHwRoundTable();
+  }
 #if EFC_CTX_SANITY_CHECK
   secIdList = new uint64_t[EFC_SUBSCR_TABLE_ROWS * EFC_SUBSCR_TABLE_COLUMNS];
   if (secIdList == NULL) on_error("secIdList == NULL");
@@ -354,6 +362,8 @@ int EkaEfc::run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx) {
     dev->fireReportThread.detach();
     while (! dev->fireReportThreadActive) sleep(0);
     EKA_LOG("fireReportThread activated");
+  } else {
+    EKA_LOG("fireReportThread already active");
   }
 
   return 0;

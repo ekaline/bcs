@@ -145,9 +145,17 @@ bool EkaHwCaps::checkEpm() {
 
 bool EkaHwCaps::checkEfc() {
   errno = ENOSYS;
-  if (hwCaps.version.hwparser != EKA_EXPECTED_HWPARSER_VERSION) 
-    on_error("hwCaps.version.hwparser 0x%x != EKA_EXPECTED_HWPARSER_VERSION 0x%x",
-	     hwCaps.version.hwparser,EKA_EXPECTED_HWPARSER_VERSION);
+  if (hwCaps.version.parser < 16) {
+    // HW parser is not Generic, checking for CME
+    if (hwCaps.version.parser != EKA_EXPECTED_NONGENERIC_PARSER_VERSION) 
+      on_error("hwCaps.version.parser 0x%x != EKA_EXPECTED_NONGENERIC_PARSER_VERSION 0x%x",
+	       hwCaps.version.parser,EKA_EXPECTED_NONGENERIC_PARSER_VERSION);
+  } else {
+    // HW parser is Generic
+    if (hwCaps.version.hwparser != EKA_EXPECTED_GENERIC_PARSER_VERSION) 
+      on_error("hwCaps.version.hwparser 0x%x != EKA_EXPECTED_GENERIC_PARSER_VERSION 0x%x",
+	       hwCaps.version.hwparser,EKA_EXPECTED_GENERIC_PARSER_VERSION);
+  }
   
   if (hwCaps.version.strategy != EKA_EXPECTED_EFC_STRATEGY) 
     on_error("hwCaps.version.strategy %d != EKA_EXPECTED_EFC_STRATEGY %d",

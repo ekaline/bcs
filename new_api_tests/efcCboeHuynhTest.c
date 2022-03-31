@@ -395,6 +395,30 @@ static int sendAddOrderExpanded (int sock, const sockaddr_in* addr, char* secId,
     return 0;
 }
 /* --------------------------------------------- */
+
+static int sendPreloadedPkt (int sock, const sockaddr_in* addr,
+			     const char* pkt, size_t size) {
+  struct CboePitchAddOrderExpanded {
+    sequenced_unit_header hdr;
+    add_order_expanded    msg;
+  } __attribute__((packed));
+
+  TEST_LOG("preloadedPkt = \'%s\'",pkt);
+  uint8_t bytes[1536] = {};
+  std::string hex = std::string(pkt);
+  for (unsigned int i = 0; i < hex.length(); i += 2) {
+    std::string byteString = hex.substr(i, 2);
+    bytes[i/2] = (uint8_t) strtol(byteString.c_str(), NULL, 16);
+  }
+  hexDump("preloadedPkt",bytes,size/2);
+  TEST_LOG("sending preloaded pkt to %s:%u",
+	   EKA_IP2STR(addr->sin_addr.s_addr),be16toh(addr->sin_port));
+  if (sendto(sock,bytes,size/2,0,(const sockaddr*)addr,sizeof(sockaddr)) < 0) 
+    on_error ("MC trigger send failed");
+
+  return 0;
+}
+/* --------------------------------------------- */
 static int sendAddOrder (AddOrder type, int sock, const sockaddr_in* addr, char* secId,
 			 uint32_t sequence, char side, uint64_t price, uint32_t size) {
     switch (type) {
@@ -572,6 +596,7 @@ int main(int argc, char *argv[]) {
       {{'\0','\0','0','2','T','E','S','T'}, 0, 5000, 6000, 1}, // correct SecID
       {{'\0','\0','0','3','T','E','S','T'}, 0, 7000, 8000, 1}, // correct SecID
       {{'\0','\0','0','2','A','B','C','D'}, 0, 7000, 8000, 1}, // correct SecID
+      {{'\0','\0','0','2','g','I','P','T'}, 0, 64090, 65010, 1}, // correct SecID
   };
 
 
@@ -798,14 +823,14 @@ int main(int argc, char *argv[]) {
   triggerMcAddr.sin_addr.s_addr = inet_addr(triggerParam[0].mcIp);
   triggerMcAddr.sin_port        = be16toh(triggerParam[0].mcUdpPort);
 
-  uint32_t sequence = 32;
+  //  uint32_t sequence = 32;
 
   if (fatalDebug) {
       TEST_LOG(RED "\n=====================\nFATAL DEBUG: ON\n=====================\n" RESET);
       eka_write(dev,0xf0f00,0xefa0beda);
   }
 // ==============================================
-#if 1
+#if 0
   sendAddOrder(AddOrder::Short,triggerSock,&triggerMcAddr,security[2].id,
 	       sequence++,'S',security[2].askMaxPrice / 100 - 1,security[2].size);
   
@@ -813,7 +838,7 @@ int main(int argc, char *argv[]) {
   efcEnableController(pEfcCtx, 1);
 #endif
 // ==============================================
-#if 1
+#if 0
   sendAddOrder(AddOrder::Short,triggerSock,&triggerMcAddr,security[2].id,
 	       sequence++,'B',security[2].bidMinPrice / 100 + 1,security[2].size);
   
@@ -821,7 +846,7 @@ int main(int argc, char *argv[]) {
   efcEnableController(pEfcCtx, 1);
 #endif    
 // ==============================================
-#if 1
+#if 0
   sendAddOrder(AddOrder::Long,triggerSock,&triggerMcAddr,security[2].id,
 	       sequence++,'S',security[2].askMaxPrice - 1,security[2].size);
   
@@ -829,7 +854,7 @@ int main(int argc, char *argv[]) {
   efcEnableController(pEfcCtx, 1);
 #endif  
 // ==============================================
-#if 1
+#if 0
   sendAddOrder(AddOrder::Long,triggerSock,&triggerMcAddr,security[2].id,
 	       sequence++,'B',security[2].bidMinPrice + 1,security[2].size);
   
@@ -837,7 +862,7 @@ int main(int argc, char *argv[]) {
   efcEnableController(pEfcCtx, 1);
 #endif
 // ==============================================
-#if 1
+#if 0
   sendAddOrder(AddOrder::Expanded,triggerSock,&triggerMcAddr,security[2].id,
 	       sequence++,'S',security[2].askMaxPrice - 1,security[2].size);
   
@@ -845,9 +870,38 @@ int main(int argc, char *argv[]) {
   efcEnableController(pEfcCtx, 1);
 #endif  
 // ==============================================
-#if 1
+#if 0
   sendAddOrder(AddOrder::Expanded,triggerSock,&triggerMcAddr,security[2].id,
 	       sequence++,'B',security[2].bidMinPrice + 1,security[2].size);
+  
+  sleep(1);
+  efcEnableController(pEfcCtx, 1);
+#endif  
+// ==============================================
+#if 1
+  const char* pkt = "2c000201819613000a2022dd0000723f19621a22d0a29b0f035fb7086eca2f024221003032674950548a0201";
+
+ /* sequenced_unit_header: */
+ /*   length  = 2c00 */
+ /*   count   = 02 */
+ /*   unit    = 01 */
+ /*   sequence = 81961300 */
+ /* GenericHeader #0: */
+ /*   length = 0a */
+ /*   type   = 20  // Time */
+ /*   time   = 22dd0000 */
+ /* Payload #0: */
+ /*  723f1962 */
+    
+ /* GenericHeader #1: */
+ /*   length = 1a */
+ /*   type   = 22 */
+ /*   time   = d0a29b0f */
+ /* Payload #1: */
+ /*     03 5f b7 08 6e ca 2f 02 42 21 00 30 32 67 49 50 54 8a 02 01 */
+
+       
+  sendPreloadedPkt(triggerSock,&triggerMcAddr,pkt,strlen(pkt));
   
   sleep(1);
   efcEnableController(pEfcCtx, 1);

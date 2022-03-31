@@ -1,11 +1,11 @@
-#ifndef _EPM_CANCEL_SQF_TEMPLATE_H_
-#define _EPM_CANCEL_SQF_TEMPLATE_H_
+#ifndef _EPM_CME_ILINK_TEMPLATE_H_
+#define _EPM_CME_ILINK_TEMPLATE_H_
 
 #include "EpmTemplate.h"
 
-class EpmCancelSqfTemplate : public EpmTemplate {
+class EpmCmeILinkTemplate : public EpmTemplate {
  public:
- EpmCancelSqfTemplate(uint idx, const char* _name) : EpmTemplate(idx,_name) {
+ EpmCmeILinkTemplate(uint idx) : EpmTemplate(idx) {
       EpmTemplateField myTemplateStruct[] = {
       {"macDa"  , 6, HwField::IMMEDIATE,    false, false},
       {"macSa"  , 6, HwField::IMMEDIATE,    false, false},
@@ -24,33 +24,32 @@ class EpmCancelSqfTemplate : public EpmTemplate {
 
       {"src"   , 2 , HwField::IMMEDIATE,    false, false},
       {"dest"  , 2 , HwField::IMMEDIATE,    false, false},
-      {"seqno" , 4 , HwField::LOCAL_SEQ,    false, true},
-      {"ackno" , 4 , HwField::REMOTE_SEQ,   false, true},
+      {"seqno" , 4 , HwField::LOCAL_SEQ,    false, true },
+      {"ackno" , 4 , HwField::REMOTE_SEQ,   false, true },
       {"hdrlen", 2 , HwField::IMMEDIATE,    false, false},
-      {"wnd"   , 2 , HwField::TCP_WINDOW,   false, true},
-      {"chksum", 2 , HwField::TCP_CHCK_SUM, false, true},
+      {"wnd"   , 2 , HwField::TCP_WINDOW,   false, true },
+      {"chksum", 2 , HwField::TCP_CHCK_SUM, false, true },
       {"urgp"  , 2 , HwField::IMMEDIATE,    false, false},
-
       /* --------------------------- */
-      {"typeSub" ,                                2, HwField::IMMEDIATE,    false, false }, //swap,clear
-      {"badge" ,                                  4, HwField::IMMEDIATE,    false, false },
-      {"messageId" ,                              8, HwField::IMMEDIATE,    false, false },
-      {"quoteCount" ,                             2, HwField::IMMEDIATE,    false, false },
+      
+      /* --------------------------- */                        // swap, clear
+      {"MessageSize" ,                 2, HwField::IMMEDIATE,    false, false },
+      {"EncodingType" ,                2, HwField::IMMEDIATE,    false, false },
+      {"BlockLength" ,                 2, HwField::IMMEDIATE,    false, false },
+      {"TemplateID" ,                  2, HwField::IMMEDIATE,    false, false },
+      {"SchemaID" ,                    2, HwField::IMMEDIATE,    false, false },
+      {"Version" ,                     2, HwField::IMMEDIATE,    false, false },
       /* --------------------------- */
-      {"optionId" ,                               4, HwField::SECURITY_ID,  false, true  },
+      {"Prefix" ,                      17, HwField::IMMEDIATE,    false, false }, // common prefix at all ILink msgs
+      {"SeqNum",                        4, HwField::APPSEQ,       true,  true  },
+      {"Trailing" ,                  1000, HwField::IMMEDIATE,    false, false }, // common trailing at all ILink msgs
 
-      {"bidPrice",                                4, HwField::IMMEDIATE,    false, false },
-      {"bidSize",                                 4, HwField::IMMEDIATE,    false, false },
-      {"askPrice",                                4, HwField::IMMEDIATE,    false, false },
-      {"askSize",                                 4, HwField::IMMEDIATE,    false, false },
-
-      {"reentry",                                 1, HwField::IMMEDIATE,    false, false },
     };
 
     tSize = sizeof(myTemplateStruct) / sizeof(EpmTemplateField);
     if (tSize > MAX_FIELDS) on_error ("tSize %u > MAX_FIELDS %u",tSize, MAX_FIELDS);
     memcpy(templateStruct,myTemplateStruct,sizeof(myTemplateStruct));
-    strcpy(name,"EpmCancelSqfTemplate");
+    strcpy(name,"EpmCmeILinkTemplate");
     init();
   }
 

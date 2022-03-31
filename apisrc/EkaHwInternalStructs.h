@@ -32,7 +32,7 @@ struct epm_tcpcs_field_template_t {
 } __attribute__((packed));
 
 struct epm_tcpcs_half_template_t {
-  struct epm_tcpcs_field_template_t field[16];
+  struct epm_tcpcs_field_template_t row[16];
 } __attribute__((packed));
 
 struct epm_tcpcs_template_t {
@@ -47,7 +47,7 @@ struct epm_tcpcs_template_t {
 /*         bit action_valid; */
 /*         bit dummy_en; */
 /*         bit empty_report_en; */
-/*         bit reserved5; */
+/*         bit app_seq_inc; */
 /*         bit reserved6; */
 /*         bit reserved7; */
 /* } epm_action_bp_t; //must be in 1B resolution */
@@ -58,7 +58,7 @@ typedef union  {
   struct  {
     uint8_t reserved7        : 1;
     uint8_t reserved6        : 1;
-    uint8_t reserved5        : 1;
+    uint8_t app_seq_inc      : 1;
     uint8_t empty_report_en  : 1;
     uint8_t feedbck_en       : 1; //should HW send packet feedback to libary
     uint8_t action_valid     : 1;

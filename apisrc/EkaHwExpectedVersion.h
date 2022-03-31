@@ -1,11 +1,21 @@
 #ifndef _EKA_HW_EXPECTED_VERSION_H_
 #define _EKA_HW_EXPECTED_VERSION_H_
 
-#define EKA_EXPECTED_HWPARSER_VERSION       0x1
-#define EKA_EXPECTED_EPM_VERSION       0x6
+// Generic EHP based P4 HW Parser
+#define EKA_EXPECTED_GENERIC_PARSER_VERSION       0x1
+
+// CME Fast Cancel HW not generic Parser
+#define EKA_EXPECTED_NONGENERIC_PARSER_VERSION       0x9 //cme
+
+#define EKA_EXPECTED_EPM_VERSION       0x7
 #define EKA_EXPECTED_DMA_VERSION       0x1
 #define EKA_EXPECTED_SNIFFER_VERSION   0x3
 #define EKA_EXPECTED_SN_DRIVER_VERSION 0x5
-#define EKA_EXPECTED_EFC_STRATEGY      0x41
+
+// Generic P4 Strategy
+//#define EKA_EXPECTED_EFC_STRATEGY      0x42
+
+// CME Fast Cancel Strategy
+#define EKA_EXPECTED_EFC_STRATEGY      0x43
 
 #endif

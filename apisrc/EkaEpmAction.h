@@ -6,7 +6,6 @@
 class EkaEpmAction {
  public:
   EkaEpmAction(EkaDev*                 _dev,
-	       char*                   _actionName,
 	       EkaEpm::ActionType      _type,
 	       uint                    _idx,
 	       uint                    _localIdx,
@@ -14,10 +13,8 @@ class EkaEpmAction {
 	       uint8_t                 _coreId,
 	       uint8_t                 _sessId,
 	       uint                    _auxIdx,
-	       EpmActionBitmap         _actionBitParams,
 	       uint		       _heapOffs,
-	       uint64_t		       _actionAddr,
-	       EpmTemplate*            _epmTemplate);
+	       uint64_t		       _actionAddr);
 
   /* ----------------------------------------------------- */
   int updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction *epmAction);
@@ -62,6 +59,7 @@ class EkaEpmAction {
   int setName();
   int initEpmActionLocalCopy();
   int setHwAction();
+  void setIpTtl ();
   
   /* ----------------------------------------------------- */
 

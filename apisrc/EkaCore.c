@@ -79,10 +79,12 @@ bool EkaCore::initTcp() {
 /* ------------------------------------------------------------- */
 
 EkaCore::~EkaCore() {
+  EKA_LOG("deleting core %d",coreId);
+
   for (uint i = 0; i < MAX_SESS_PER_CORE; i++) {
-    if (tcpSess[i] == NULL) continue;
-    delete tcpSess[i];
+    if (tcpSess[i]) delete tcpSess[i];
   }
+  
   /* if (stratUdpChannel != NULL) delete stratUdpChannel; */
   /* if (feedServerUdpChannel != NULL) delete feedServerUdpChannel; */
 }

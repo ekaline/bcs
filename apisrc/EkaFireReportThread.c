@@ -17,6 +17,8 @@
 #include "EkaUserReportQ.h"
 
 int processEpmReport(EkaDev* dev, const uint8_t* payload,uint len) {
+  hexDump("SW triggered fire",payload,len);
+#if 0  
   hw_epm_report_t* hwEpmReport = (hw_epm_report_t*) (payload + sizeof(report_dma_report_t));
 
   epm_strategyid_t strategyId = hwEpmReport->strategyId;
@@ -44,7 +46,8 @@ int processEpmReport(EkaDev* dev, const uint8_t* payload,uint len) {
 
   if (dev->epm->strategy[strategyId] == NULL) on_error("dev->epm->strategy[%d] = NULL",strategyId);
   dev->epm->strategy[strategyId]->reportCb(&epmReport,1,dev->epm->strategy[strategyId]->cbCtx);
-
+#endif
+  
   return 0;
 }
 /* ########################################################### */
@@ -113,6 +116,7 @@ int printSecCtx(EkaDev* dev, const SecCtx* msg) {
   EKA_LOG("\tbidSize = %u",             msg->bidSize);
   EKA_LOG("\taskMaxPrice = %u (%u)",    msg->askMaxPrice, msg->askMaxPrice * 100);
   EKA_LOG("\tbidMinPrice = %u (%u)",    msg->bidMinPrice, msg->bidMinPrice * 100);
+  EKA_LOG("\tversionKey = %u (0x%x)",   msg->versionKey, msg->versionKey);
 
   return 0;
 }
@@ -166,8 +170,15 @@ int printBoeFire(EkaDev* dev,const BoeNewOrderMsg* msg) {
   EKA_LOG("\tPrice=0x%016jx (%ju)",     msg->Price,msg->Price);
   EKA_LOG("\tOrdType=\'%c\'",           msg->OrdType);
   EKA_LOG("\tTimeInForce=\'%c\'",       msg->TimeInForce);
-  EKA_LOG("\tSymbol=\'%s\' (0x%016jx)",
-	  std::string(msg->Symbol,sizeof(msg->Symbol)).c_str(),
+  EKA_LOG("\tSymbol=\'%c%c%c%c%c%c%c%c\' (0x%016jx)",
+	  msg->Symbol[7],
+	  msg->Symbol[6],
+	  msg->Symbol[5],
+	  msg->Symbol[4],
+	  msg->Symbol[3],
+	  msg->Symbol[2],
+	  msg->Symbol[1],
+	  msg->Symbol[0],
 	  *(uint64_t*)msg->Symbol);
   EKA_LOG("\tCapacity=\'%c\'",          msg->Capacity);
   EKA_LOG("\tAccount=\'%s\'",
@@ -250,6 +261,7 @@ int processFireReport(EkaDev* dev, const uint8_t* srcReport,uint len, uint32_t e
   secCtxReport->askSize             = report->securityCtx.askSize;
   secCtxReport->askMaxPrice         = report->securityCtx.askMaxPrice;
   secCtxReport->bidMinPrice         = report->securityCtx.bidMinPrice;
+  secCtxReport->versionKey          = report->securityCtx.versionKey;
 
   //  printSecCtx  (dev,secCtxReport);
 
