@@ -352,7 +352,8 @@ int EkaEfc::run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx) {
   
   setHwGlobalParams();
   setHwUdpParams();
-  setHwStratRegion();
+  if (hwFeedVer != EfhFeedVer::kCME)
+    setHwStratRegion();
   //  igmpJoinAll();
 
   enableRxFire();

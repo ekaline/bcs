@@ -459,10 +459,11 @@ int main(int argc, char *argv[]) {
     // ==============================================
     // CME FastCancel EFC config
     static const uint64_t CmeTestFastCancelAlwaysFire = 0xadcd;
-    static const uint64_t CmeTestFastCancelToken = 0x1122334455667788;
+    //    static const uint64_t CmeTestFastCancelToken = 0x1122334455667788;
+    static const uint64_t CmeTestFastCancelToken = 0;
     static const uint64_t CmeTestFastCancelUser  = 0xaabbccddeeff0011;
     static const uint16_t CmeTestFastCancelMaxMsgSize = 1300;
-    static const uint8_t  CmeTestFastCancelMinNoMDEntries = 1;
+    static const uint8_t  CmeTestFastCancelMinNoMDEntries = 0;
 
     const EfcCmeFastCancelParams params = {
 	.maxMsgSize     = CmeTestFastCancelMaxMsgSize,
@@ -523,6 +524,8 @@ int main(int argc, char *argv[]) {
     efcRun(pEfcCtx, &runCtx );
     // ==============================================
 
+    efcCmeSetILinkAppseq(dev,conn[0],0x1);
+#if 0
     EpmTrigger cmeTrigger = {
 	.token = CmeTestFastCancelToken,         ///< Security token
 	.strategy = EFC_STRATEGY,                ///< Strategy this trigger applies to
@@ -531,8 +534,6 @@ int main(int argc, char *argv[]) {
     const char* swMsg = "CME Fast SW Msg: Sequence = |____| : expected incremented Sequence";
     const char* swHB  = "CME SW Heartbeat:Sequence = |____| : expected NOT incremented Sequence";
 
-    efcCmeSetILinkAppseq(dev,conn[0],0x1);
-
     efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
     efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
     efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
@@ -547,7 +548,8 @@ int main(int argc, char *argv[]) {
     epmRaiseTriggers(dev,&cmeTrigger);
     epmRaiseTriggers(dev,&cmeTrigger);
     epmRaiseTriggers(dev,&cmeTrigger);
-
+#endif
+    
     sendCmeTradeMsg(serverIp,triggerIp,triggerUdpPort,
 		    CmeTestFastCancelMaxMsgSize - 1, CmeTestFastCancelMinNoMDEntries + 1);
 

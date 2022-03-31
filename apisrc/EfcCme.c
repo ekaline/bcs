@@ -20,24 +20,31 @@ EkaOpResult efcCmeFastCancelInit(EkaDev *dev,
 /* } sh_cancels_param_t; */
 
   struct EfcCmeFastCancelStrategyConf {
+//      uint8_t        pad[2];      
       uint8_t        minNoMDEntries;
       uint16_t       maxMsgSize;
       uint64_t       token;
       uint16_t       fireActionId;
       uint8_t        strategyId;
-      uint8_t        pad[2];      
-  } __attribute__((packed));
+  } __attribute__ ((aligned(sizeof(uint64_t)))) __attribute__((packed));
 
   const EfcCmeFastCancelStrategyConf conf = {
-      params->minNoMDEntries,
-      params->maxMsgSize,
-      params->token,
-      (uint16_t)EfcCmeActionId::HwCancel,
-      EFC_STRATEGY
+//      .pad            = {},
+      .minNoMDEntries = params->minNoMDEntries,
+      .maxMsgSize     = params->maxMsgSize,
+      .token          = params->token,
+      .fireActionId   = (uint16_t)EfcCmeActionId::HwCancel,
+      .strategyId     = (uint8_t)EFC_STRATEGY
   };
 
-  copyHw2Buf(dev,(uint64_t *)&conf,0x83000,sizeof(conf));
-  
+  EKA_LOG("Configuring Cme Fast Cancel FPGA: minNoMDEntries=%d,maxMsgSize=%u,token=0x%jx,fireActionId=%d,strategyId=%d",
+	  conf.minNoMDEntries,
+	  conf.maxMsgSize,
+	  conf.token,
+	  conf.fireActionId,
+	  conf.strategyId);
+  hexDump("EfcCmeFastCancelStrategyConf",&conf,sizeof(conf));
+  copyBuf2Hw(dev,0x83000,(uint64_t *)&conf,sizeof(conf));
   return EKA_OPRESULT__OK;
 }
 
