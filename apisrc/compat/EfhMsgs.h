@@ -316,7 +316,8 @@ typedef struct {
                 /** Divide by EFH_PRICE_SCALE. */                           \
                 _x( int64_t,         strikePrice )                          \
                 _x( EfhOptionType,   optionType )                           \
-                _x( EfhOptionStyle,  optionStyle )
+                _x( EfhOptionStyle,  optionStyle )                          \
+                _x( uint32_t,        segmentId )
         EfhOptionDefinitionMsg_FIELD_ITER( EKA__FIELD_DEF )
 } EfhOptionDefinitionMsg;
 

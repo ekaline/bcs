@@ -607,7 +607,8 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   msg.commonDef.securityType   = EfhSecurityType::kFuture;
   msg.commonDef.exchange       = EfhExchange::kCME;
   msg.commonDef.underlyingType = EfhSecurityType::kIndex;
-  msg.commonDef.contractSize   = replaceIntNullWith(rootBlock->UnitOfMeasureQty, 0);
+  msg.commonDef.contractSize   = replaceIntNullWith(rootBlock->UnitOfMeasureQty,
+                                                    rootBlock->UnitOfMeasureQty / EFH_CME_PRICE_SCALE, 0);
   msg.commonDef.opaqueAttrA    = computeFinalPriceFactor(rootBlock->DisplayFactor);
   msg.commonDef.opaqueAttrB    = 10; // default Market Depth for Futures
   getCMEProductTradeTime(pMaturity, rootBlock->Symbol, &msg.commonDef.expiryDate, &msg.commonDef.expiryTime);
@@ -695,6 +696,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   msg.optionType            = putOrCall;
   msg.optionStyle           = static_cast<EfhOptionStyle>(rootBlock->CFICode[2]);
   msg.strikePrice           = rootBlock->StrikePrice / priceAdjustFactor;
+  msg.segmentId             = rootBlock->MarketSegmentID;
 
   msg.commonDef.opaqueAttrB = 3; // default MarketDepth for Options
 
