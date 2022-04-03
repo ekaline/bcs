@@ -78,36 +78,36 @@ int credRelease(EkaCredentialLease *lease, void* context) {
 }
 /* --------------------------------------------- */
 
-void fireReportCb (const EpmFireReport *report, int nReports, void *ctx) {
-  TEST_LOG("numFireEvents = %d",numFireEvents);
-  for (auto i = 0; i < nReports; i++) {
-    if (numFireEvents > MaxFireEvents) on_error("numFireEvents %d > MaxFireEvents %d",numFireEvents, MaxFireEvents);
+/* void fireReportCb (const EpmFireReport *report, int nReports, void *ctx) { */
+/*   TEST_LOG("numFireEvents = %d",numFireEvents); */
+/*   for (auto i = 0; i < nReports; i++) { */
+/*     if (numFireEvents > MaxFireEvents) on_error("numFireEvents %d > MaxFireEvents %d",numFireEvents, MaxFireEvents); */
 
-    FireEvent[numFireEvents] = (EpmFireReport*) malloc(sizeof(EpmFireReport));
-    if (FireEvent[numFireEvents] == NULL) on_error("failed on malloc");
+/*     FireEvent[numFireEvents] = (EpmFireReport*) malloc(sizeof(EpmFireReport)); */
+/*     if (FireEvent[numFireEvents] == NULL) on_error("failed on malloc"); */
     
-    memcpy((void*)FireEvent[numFireEvents],report,sizeof(EpmFireReport));
-    auto temp = numFireEvents;
-    numFireEvents = temp + 1;
-    //    numFireEvents++;
-  }
+/*     memcpy((void*)FireEvent[numFireEvents],report,sizeof(EpmFireReport)); */
+/*     auto temp = numFireEvents; */
+/*     numFireEvents = temp + 1; */
+/*     //    numFireEvents++; */
+/*   } */
 
-#if 1
-  TEST_LOG("StrategyId=%d,ActionId=%d,TriggerActionId=%d,TriggerSource=%s,token=%016jx,user=%016jx,"
-  	   "preLocalEnable=%016jx,postLocalEnable=%016jx,preStratEnable=%016jx,postStratEnable=%016jx",
-  	   report->strategyId,
-  	   report->actionId,
-  	   report->trigger->action,
-  	   report->local ? "FROM SW" : "FROM UDP",
-  	   report->trigger->token,
-  	   report->user,
-  	   report->preLocalEnable,
-  	   report->postLocalEnable,
-  	   report->preStratEnable,
-  	   report->postStratEnable
-  	   );
-#endif
-}
+/* #if 1 */
+/*   TEST_LOG("StrategyId=%d,ActionId=%d,TriggerActionId=%d,TriggerSource=%s,token=%016jx,user=%016jx," */
+/*   	   "preLocalEnable=%016jx,postLocalEnable=%016jx,preStratEnable=%016jx,postStratEnable=%016jx", */
+/*   	   report->strategyId, */
+/*   	   report->actionId, */
+/*   	   report->trigger->action, */
+/*   	   report->local ? "FROM SW" : "FROM UDP", */
+/*   	   report->trigger->token, */
+/*   	   report->user, */
+/*   	   report->preLocalEnable, */
+/*   	   report->postLocalEnable, */
+/*   	   report->preStratEnable, */
+/*   	   report->postStratEnable */
+/*   	   ); */
+/* #endif */
+/* } */
 
 /* --------------------------------------------- */
 void tcpServer(EkaDev* dev, std::string ip, uint16_t port, int* sock) {
@@ -226,7 +226,7 @@ static void printFireReport(EpmFireReport* report) {
 	   report->actionId,
 	   action2string(report->action).c_str(),
 	   report->error,
-	   report->trigger->token
+	   report->triggerToken
 	   );
 }
 
@@ -480,7 +480,7 @@ int main(int argc, char *argv[]) {
   for (auto i = 0; i < numStrategies; i++) {
     strategyParams[i].numActions  = numActions;
     //    strategyParams[i].triggerAddr = reinterpret_cast<const sockaddr*>(&triggerMcAddr);
-    strategyParams[i].reportCb    = fireReportCb;
+    strategyParams[i].reportCb    = efcPrintFireReport;//fireReportCb;
   }
 
   EKA_LOG("Configuring %u Strategies with up %u Actions per Strategy",numStrategies,numActions);

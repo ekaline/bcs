@@ -89,16 +89,7 @@ int credRelease(EkaCredentialLease *lease, void* context) {
   return 0;
 }
 /* --------------------------------------------- */
-void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fireReportBuf, size_t size, void* cbCtx) {
-  EkaDev* dev = pEfcCtx->dev;
-  if (dev == NULL) on_error("dev == NULL");
-  EKA_LOG ("FIRE REPORT RECEIVED");
-  //  hexDump("FireReport",fireReportBuf,size);
-  efcPrintFireReport(pEfcCtx, (const EfcReportHdr*)fireReportBuf,false);
-  /* EKA_LOG ("Rearming...\n"); */
-  /* efcEnableController(pEfcCtx,1); */
-  return;
-}
+
 
 /* --------------------------------------------- */
 void tcpServer(EkaDev* dev, std::string ip, uint16_t port, int* sock, bool* serverSet) {
@@ -455,7 +446,7 @@ int main(int argc, char *argv[]) {
     efcInitStrategy(pEfcCtx, &efcStratGlobCtx);
 
     EfcRunCtx runCtx = {};
-    runCtx.onEfcFireReportCb = onFireReport;
+    runCtx.onEfcFireReportCb = efcPrintFireReport;
     // ==============================================
     // CME FastCancel EFC config
     static const uint64_t CmeTestFastCancelAlwaysFire = 0xadcd;

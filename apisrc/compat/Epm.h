@@ -254,9 +254,10 @@ enum EpmTriggerAction : int {
 /// Every trigger generates one of these events and is reported to the caller
 /// via an @ref EpmFireReportCb callback.
 struct EpmFireReport {
-  const EpmTrigger *trigger;          ///< Contents of the trigger message
   epm_strategyid_t strategyId;        ///< Strategy ID the report corresponds to
   epm_actionid_t   actionId;          ///< Action ID the report corresponds to
+  epm_actionid_t   triggerActionId;   ///< Action ID of the Trigger
+  epm_token_t      triggerToken;      ///< Security token of the Trigger
   EpmTriggerAction action;            ///< What device did in response to trigger
   EkaOpResult error;                  ///< Error code for SendError
   epm_enablebits_t preLocalEnable;    ///< Action-level enable bits before fire
@@ -294,7 +295,8 @@ struct EpmStrategyParams {
   epm_actionid_t numActions;   ///< No. of actions entries used by this strategy
   const EpmTriggerParams *triggerParams; ///< list of triggers belonging to this strategy
   size_t numTriggers;          ///< size of triggerParams list
-  EpmFireReportCb reportCb;    ///< Callback function to process fire reports
+  //  EpmFireReportCb reportCb;    ///< Callback function to process fire reports
+  OnReportCb reportCb;    ///< Callback function to process fire reports
   void *cbCtx;                 ///< Opaque value passed into reportCb
 };
 

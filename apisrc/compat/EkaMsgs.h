@@ -15,13 +15,22 @@
 /*
  *
  */
+
 enum class EkaEventType {
     #define EkaEventType__ENUM_ITER( _x )                                   \
         _x( FireReport,      1 )                                            \
-        _x( ExceptionReport, 2 )
+        _x( EpmReport,       2 )                                            \
+        _x( ExceptionReport, 3 )
     EkaEventType__ENUM_ITER( EKA__ENUM_DEF )
 };
 
+#define EkaEventType2STR(x)				     \
+      x == EkaEventType::kFireReport        ? "FireReport" :	\
+	x == EkaEventType::kEpmReport       ? "EpmReport" :		\
+	x == EkaEventType::kExceptionReport ? "ExceptionReport" :	\
+	"UnknownReport"
+      
+      
 /*
  *
  */

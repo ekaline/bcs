@@ -26,8 +26,8 @@
 
 int ekaDefaultLog (void* /*unused*/, const char* function, const char* file, int line, int priority, const char* format, ...);
 int ekaDefaultCreateThread(const char* name, EkaServiceType type,  void *(*threadRoutine)(void*), void* arg, void* context, uintptr_t *handle);
-OnEfcFireReportCb* efcDefaultOnFireReportCb (EfcCtx* efcCtx, const EfcFireReport* efcFireReport, size_t size);
-OnEkaExceptionReportCb* efhDefaultOnException(EkaExceptionReport* msg, EfhRunUserData efhRunUserData);
+/* OnEfcFireReportCb* efcDefaultOnFireReportCb (EfcCtx* efcCtx, const EfcFireReport* efcFireReport, size_t size); */
+/* OnEkaExceptionReportCb* efhDefaultOnException(EkaExceptionReport* msg, EfhRunUserData efhRunUserData); */
 //void eka_write(EkaDev* dev, uint64_t addr, uint64_t val);
 //uint64_t eka_read(eka_dev_t* dev, uint64_t addr);
 bool eka_is_all_zeros (const void* buf, ssize_t size);
@@ -182,11 +182,12 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 
 
 
-  pEfcRunCtx = (EfcRunCtx*) calloc(1, sizeof(EfcRunCtx));
+  pEfcRunCtx = new EfcRunCtx;
   assert (pEfcRunCtx != NULL);
-
-  pEfcRunCtx->onEkaExceptionReportCb = (OnEkaExceptionReportCb) efhDefaultOnException;
-  pEfcRunCtx->onEfcFireReportCb      = (OnEfcFireReportCb)      efcDefaultOnFireReportCb;
+  pEfcRunCtx = {};
+  
+  /* pEfcRunCtx->onEkaExceptionReportCb = (OnEkaExceptionReportCb) efhDefaultOnException; */
+  /* pEfcRunCtx->onEfcFireReportCb      = (OnEfcFireReportCb)      efcDefaultOnFireReportCb; */
 
   EKA_LOG("EKALINE2 LIB BUILD TIME: %s @ %s",__DATE__,__TIME__);
   EKA_LOG("EKALINE2 LIB GIT: %s",LIBEKA_GIT_VER);

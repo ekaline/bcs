@@ -222,6 +222,9 @@ typedef int (*EkaLogCallback) (void* ctx, const char* function, const char* file
                                int line, int priority, const char* format, ...)
                                __attribute__ ((format (printf, 6, 7)));
 
+
+typedef void (*OnReportCb)(const void *report, size_t len, void *ctx);
+
   struct eka_ether_addr { // replicated to avoid #include <net/ethernet.h>
     uint8_t ether_addr_octet[6];
   } __attribute__ ((__packed__));

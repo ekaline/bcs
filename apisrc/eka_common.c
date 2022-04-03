@@ -32,15 +32,15 @@ void ekaLwipPollThread (EkaDev* dev);
 void ekaExcInitLwip (EkaDev* dev);
 void eka_close_tcp ( EkaDev* pEkaDev);
 
-OnEkaExceptionReportCb* efhDefaultOnException(EkaExceptionReport* msg, EfhRunUserData efhRunUserData) {
-  printf("%s: Doing nothing\n",__func__);
-  return NULL;
-}
+/* OnEkaExceptionReportCb* efhDefaultOnException(EkaExceptionReport* msg, EfhRunUserData efhRunUserData) { */
+/*   printf("%s: Doing nothing\n",__func__); */
+/*   return NULL; */
+/* } */
 
-OnEfcFireReportCb* efcDefaultOnFireReportCb (EfcCtx* efcCtx, const EfcFireReport* efcFireReport, size_t size) {
-  printf("%s: Doing nothing\n",__func__);
-  return NULL;
-}
+/* OnEfcFireReportCb* efcDefaultOnFireReportCb (EfcCtx* efcCtx, const EfcFireReport* efcFireReport, size_t size) { */
+/*   printf("%s: Doing nothing\n",__func__); */
+/*   return NULL; */
+/* } */
 
 int ekaDefaultLog (void* /*unused*/, const char* function, const char* file, int line, int priority, const char* format, ...) {
   va_list ap;

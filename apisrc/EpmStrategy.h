@@ -38,7 +38,8 @@ class EpmStrategy {
   epm_actionid_t    baseActionIdx;
   epm_actionid_t    numActions; ///< No. of actions entries used by this strategy
   const sockaddr   *triggerAddr;///< Address to receive trigger packets
-  EpmFireReportCb   reportCb;   ///< Callback function to process fire reports
+  //  EpmFireReportCb   reportCb;   ///< Callback function to process fire reports
+  OnReportCb       reportCb;   ///< Callback function to process fire reports
   void             *cbCtx;
 
   EfhFeedVer        hwFeedVer  = EfhFeedVer::kInvalid;

@@ -290,7 +290,8 @@ void onException(EkaExceptionReport* msg, EfhRunUserData efhRunUserData) {
   return;
 }
 
-void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fire_report_buf, size_t size) {
+/* void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fire_report_buf, size_t size) { */
+void onFireReport (const void* fire_report_buf, size_t size) {
   if (! testCtx->keep_work) return;
   printf ("%s: Doing nothing \n",__func__);
   return;	 

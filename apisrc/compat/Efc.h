@@ -148,12 +148,19 @@ EkaOpResult efcSetGroupSesCtx( EfcCtx* efcCtx, uint8_t group, ExcConnHandle hCon
  * @retval [See EkaOpResult].
  */
 
-EkaOpResult efcPrintFireReport( EfcCtx* efcCtx, const EfcReportHdr* p, bool mdOnly);
 
 /* ****************************************
  * Declaring callbacks.
  * ****************************************/
 
+/* ****************************************
+ * OnEkaExceptionReportCb and OnEfcFireReportCb
+ * callbacks are obsolete!!!
+ * replaced by onReportCb defined in Eka.h
+ * ****************************************/
+void efcPrintFireReport(const void* p, size_t len, void* ctx);
+
+#if 0      
 typedef 
   void 
   ( *OnEkaExceptionReportCb )
@@ -168,18 +175,22 @@ typedef
   ( *OnEfcFireReportCb )
   ( 
     EfcCtx*                   efcCtx, 
-    const EfcFireReport*      efcFireReport,
+    /* const EfcFireReport*      efcFireReport, */
+    const void*               efcFireReport,
     size_t size,
     void* cbCtx
   );
-
+#endif
+      
 /*
  * 
  */
 struct EfcRunCtx {
     /** These can be either fires or exceptions. */
-  OnEkaExceptionReportCb onEkaExceptionReportCb; 
-  OnEfcFireReportCb      onEfcFireReportCb;
+  /* OnEkaExceptionReportCb onEkaExceptionReportCb;  */
+  /* OnEfcFireReportCb      onEfcFireReportCb; */
+  OnReportCb      onEkaExceptionReportCb; 
+  OnReportCb      onEfcFireReportCb;  
   void *cbCtx;
 };
 
