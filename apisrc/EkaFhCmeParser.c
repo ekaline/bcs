@@ -269,7 +269,7 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
       if (! s) continue;
       msg.header.securityId = e->SecurityID;
       msg.side              = getSide39(e->Side);
-      msg.quantity          = replaceIntNullWith(e->OrderQty, 0);
+      msg.quantity          = replaceIntNullWith<Int32NULL_T>(e->OrderQty, 0);
       if (pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL)
 	on_error("pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL");
       pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
@@ -607,8 +607,8 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   msg.commonDef.securityType   = EfhSecurityType::kFuture;
   msg.commonDef.exchange       = EfhExchange::kCME;
   msg.commonDef.underlyingType = EfhSecurityType::kIndex;
-  msg.commonDef.contractSize   = replaceIntNullWith(rootBlock->UnitOfMeasureQty,
-                                                    rootBlock->UnitOfMeasureQty / EFH_CME_PRICE_SCALE, 0);
+  msg.commonDef.contractSize   = replaceIntNullWith<Decimal9NULL_T>(
+      rootBlock->UnitOfMeasureQty, rootBlock->UnitOfMeasureQty / EFH_CME_PRICE_SCALE, 0);
   msg.commonDef.opaqueAttrA    = computeFinalPriceFactor(rootBlock->DisplayFactor);
   msg.commonDef.opaqueAttrB    = 10; // default Market Depth for Futures
   getCMEProductTradeTime(pMaturity, rootBlock->Symbol, &msg.commonDef.expiryDate, &msg.commonDef.expiryTime);
@@ -838,8 +838,9 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
     msg.legs[i].type        = EfhSecurityType::kInvalid;
     msg.legs[i].side        = e->LegSide == LegSide_T::BuySide ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
     msg.legs[i].ratio       = e->LegRatioQty;
-    msg.legs[i].optionDelta = replaceIntNullWith(e->LegOptionDelta, 0);
-    msg.legs[i].price       = replaceIntNullWith(e->LegPrice, e->LegPrice / priceAdjustFactor, 0);
+    msg.legs[i].optionDelta = replaceIntNullWith<DecimalQty_T>(e->LegOptionDelta, 0);
+    msg.legs[i].price       = replaceIntNullWith<PRICENULL9_T>(e->LegPrice,
+                                                               e->LegPrice / priceAdjustFactor, 0);
 
     m += pGroupSize->blockLength;
   }
