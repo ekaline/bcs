@@ -133,13 +133,15 @@ void tcpServer(EkaDev* dev, std::string ip, uint16_t port, int* sock) {
   addr.sin_port = be16toh(port);
   addr.sin_addr.s_addr = INADDR_ANY;
   if (bind(sd,(struct sockaddr*)&addr, sizeof(addr)) != 0 ) 
-    on_error("failed to bind server sock to %s:%u",EKA_IP2STR(addr.sin_addr.s_addr),be16toh(addr.sin_port));
+    on_error("failed to bind server sock to %s:%u",
+	     EKA_IP2STR(addr.sin_addr.s_addr),be16toh(addr.sin_port));
   if ( listen(sd, 20) != 0 ) on_error("Listen");
   serverSet = true;
 
   int addr_size = sizeof(addr);
   *sock = accept(sd, (struct sockaddr*)&addr,(socklen_t*) &addr_size);
-  EKA_LOG("Connected from: %s:%d -- sock=%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),*sock);
+  EKA_LOG("Connected from: %s:%d -- sock=%d\n",
+	  inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),*sock);
 
   int status = fcntl(*sock, F_SETFL, fcntl(*sock, F_GETFL, 0) | O_NONBLOCK);
   if (status == -1)  on_error("fcntl error");
@@ -229,24 +231,6 @@ static void printFireReport(EpmFireReport* report) {
 	   report->triggerToken
 	   );
 }
-
-/* --------------------------------------------- */
-
-
-/* --------------------------------------------- */
-
-/* [6/16 5:33 PM] Igor Galitskiy */
-    
-/* multicast IPs: */
-/* 239.255.119.16 & 239.255.119.17 */
-
-/* nqxlxavt059d */
-/*  publish: sfc0 10.120.115.53 */
-/*  receive: fpga0_0 10.120.115.56 */
-
-/* nqxlxavt061d */
-/*  publish: sfc0 10.120.115.52 */
-/*  receive: fpga0_0 10.120.115.54 */
 
 /* --------------------------------------------- */
 static const int NumActionsPerTestCase = 10;
@@ -431,19 +415,21 @@ int main(int argc, char *argv[]) {
 
   while (keep_work && ! serverSet) { sleep (0); }
 
-  EkaCoreInitCtx ekaCoreInitCtx = {
+  const EkaCoreInitCtx ekaCoreInitCtx = {
     .coreId = coreId,
     .attrs = {
       .host_ip      = inet_addr(clientIp.c_str()),
       .netmask      = inet_addr("255.255.255.0"),
-      .gateway      = inet_addr(clientIp.c_str()),
+      .gateway      = inet_addr(serverIp.c_str()),
       .nexthop_mac  = {}, // resolved by our internal ARP
       .src_mac_addr = {}, // taken from system config
       .dont_garp    = 0
     }
   };
-  ekaDevConfigurePort (dev, (const EkaCoreInitCtx*) &ekaCoreInitCtx);
+  ekaDevConfigurePort (dev, &ekaCoreInitCtx);
 
+  TEST_LOG("FPGA port %u is set to %s",
+	   ekaCoreInitCtx.coreId,EKA_IP2STR(ekaCoreInitCtx.attrs.host_ip));
 
   /* ============================================== */
   /* Establishing TCP connection for EPM fires */
@@ -456,7 +442,10 @@ int main(int argc, char *argv[]) {
   int ekaSock = excSocket(dev,coreId,0,0,0);
   if (ekaSock < 0) on_error("failed to open sock");
   ExcConnHandle conn = excConnect(dev,ekaSock,(struct sockaddr*) &serverAddr, sizeof(struct sockaddr_in));
-  if (conn < 0) on_error("excConnect %s:%u",EKA_IP2STR(serverAddr.sin_addr.s_addr),be16toh(serverAddr.sin_port));
+  if (conn < 0)
+    on_error("excConnect %s:%u",
+	     EKA_IP2STR(serverAddr.sin_addr.s_addr),
+	     be16toh(serverAddr.sin_port));
   const char* pkt = "\n\nThis is 1st TCP packet sent from FPGA TCP client to Kernel TCP server\n\n";
   excSend (dev, conn, pkt, strlen(pkt), 0);
 
@@ -466,6 +455,18 @@ int main(int argc, char *argv[]) {
   bytes_read = recv(tcpServerSock, rxBuf, sizeof(rxBuf), 0);
   if (bytes_read > 0) EKA_LOG("\n%s",rxBuf);
 
+  // ==============================================
+  // Configuring EFC for a CME (just an artifact)
+  EfcCtx efcCtx = {};
+  EfcCtx* pEfcCtx = &efcCtx;
+  
+  EfcInitCtx initCtx = {
+      .feedVer = EfhFeedVer::kCME
+  };  
+  ekaRC = efcInit(&pEfcCtx,dev,&initCtx);
+  if (ekaRC != EKA_OPRESULT__OK)
+      on_error("efcInit returned %d",(int)ekaRC);
+  
   /* ============================================== */
   /* Configuring Strategies */
 
@@ -474,28 +475,38 @@ int main(int argc, char *argv[]) {
   triggerMcAddr.sin_addr.s_addr = inet_addr(triggerIp.c_str());
   triggerMcAddr.sin_port        = be16toh(triggerUdpPort);
 
-  const epm_strategyid_t numStrategies = 7;
-  const epm_actionid_t   numActions    = 110;
-  EpmStrategyParams strategyParams[numStrategies] = {};
-  for (auto i = 0; i < numStrategies; i++) {
-    strategyParams[i].numActions  = numActions;
+  const epm_strategyid_t NumStrategies = 4;
+  const epm_actionid_t   NumActions    = 110;
+
+  EpmStrategyParams strategyParams[NumStrategies] = {};
+  for (auto i = 0; i < NumStrategies; i++) {
+    strategyParams[i].numActions  = NumActions;
     //    strategyParams[i].triggerAddr = reinterpret_cast<const sockaddr*>(&triggerMcAddr);
     strategyParams[i].reportCb    = efcPrintFireReport;//fireReportCb;
   }
 
-  EKA_LOG("Configuring %u Strategies with up %u Actions per Strategy",numStrategies,numActions);
-  ekaRC = epmInitStrategies(dev, strategyParams, numStrategies);
-  if (ekaRC != EKA_OPRESULT__OK) on_error("epmInitStrategies failed: ekaRC = %d",ekaRC);
+  
+
+  EKA_LOG("Configuring %u Strategies with %u Actions per Strategy",
+	  NumStrategies,NumActions);
+  ekaRC = epmInitStrategies(dev, strategyParams, NumStrategies);
+  if (ekaRC != EKA_OPRESULT__OK)
+    on_error("epmInitStrategies failed: ekaRC = %d",ekaRC);
 
   /* ============================================== */
   /* Opening UDP MC socket to send Epm Triggers */
 
   int triggerSock = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
-  if (triggerSock < 0) on_error("failed to open UDP sock");
+  if (triggerSock < 0)
+      on_error("failed to open UDP sock");
   if (bind(triggerSock,(sockaddr*)&serverAddr, sizeof(sockaddr)) != 0 ) {
-    on_error("failed to bind server triggerSock to %s:%u",EKA_IP2STR(serverAddr.sin_addr.s_addr),be16toh(serverAddr.sin_port));
+    on_error("failed to bind server triggerSock to %s:%u",
+	     EKA_IP2STR(serverAddr.sin_addr.s_addr),
+	     be16toh(serverAddr.sin_port));
   } else {
-    EKA_LOG("triggerSock is binded to %s:%u",EKA_IP2STR(serverAddr.sin_addr.s_addr),be16toh(serverAddr.sin_port));
+    EKA_LOG("triggerSock is binded to %s:%u",
+	    EKA_IP2STR(serverAddr.sin_addr.s_addr),
+	    be16toh(serverAddr.sin_port));
   }
 
 

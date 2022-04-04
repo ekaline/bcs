@@ -115,13 +115,15 @@ void tcpServer(EkaDev* dev, std::string ip, uint16_t port, int* sock, bool* serv
   addr.sin_port = be16toh(port);
   addr.sin_addr.s_addr = INADDR_ANY;
   if (bind(sd,(struct sockaddr*)&addr, sizeof(addr)) != 0 ) 
-    on_error("failed to bind server sock to %s:%u",EKA_IP2STR(addr.sin_addr.s_addr),be16toh(addr.sin_port));
+    on_error("failed to bind server sock to %s:%u",
+	     EKA_IP2STR(addr.sin_addr.s_addr),be16toh(addr.sin_port));
   if ( listen(sd, 20) != 0 ) on_error("Listen");
   *serverSet = true;
 
   int addr_size = sizeof(addr);
   *sock = accept(sd, (struct sockaddr*)&addr,(socklen_t*) &addr_size);
-  EKA_LOG("Connected from: %s:%d -- sock=%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),*sock);
+  EKA_LOG("Connected from: %s:%d -- sock=%d\n",
+	  inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),*sock);
 
   int status = fcntl(*sock, F_SETFL, fcntl(*sock, F_GETFL, 0) | O_NONBLOCK);
   if (status == -1)  on_error("fcntl error");
@@ -390,8 +392,10 @@ int main(int argc, char *argv[]) {
 	int excSock = excSocket(dev,coreId,0,0,0);
 	if (excSock < 0) on_error("failed to open sock %d",i);
 	conn[i] = excConnect(dev,excSock,(sockaddr*) &serverAddr, sizeof(sockaddr_in));
-	if (conn[i] < 0) on_error("excConnect %d %s:%u",
-				  i,EKA_IP2STR(serverAddr.sin_addr.s_addr),be16toh(serverAddr.sin_port));
+	if (conn[i] < 0)
+	  on_error("excConnect %d %s:%u",
+		   i,EKA_IP2STR(serverAddr.sin_addr.s_addr),
+		   be16toh(serverAddr.sin_port));
 	const char* pkt = "\n\nThis is 1st TCP packet sent from FPGA TCP client to Kernel TCP server\n\n";
 	excSend (dev, conn[i], pkt, strlen(pkt),0);
 	int bytes_read = 0;
