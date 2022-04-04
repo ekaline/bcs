@@ -2,6 +2,7 @@
 #define _EHP_CONF_H_
 
 #define EhpMaxMsgTypes 8
+#define EhpNoMsgSize 0xF
 
 enum class EhpOpcode : int8_t {
   NOP = 0,    // copy value as is
@@ -21,8 +22,9 @@ enum class EhpSidePresence : int8_t {
 };
 
 enum class EhpHwProtocol :  uint8_t {
-  NOM = 1,     
-  PITCH = 2
+  NOM   = 1,     
+  PITCH = 2,
+  CMEFC = 15
 };
 
 /**
