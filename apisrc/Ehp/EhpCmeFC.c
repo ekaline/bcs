@@ -2,17 +2,14 @@
 #include "ekaNW.h"
 
 #include "EhpCmeFC.h"
-//#include "EkaFhBatsParser.h"
-
-//using namespace Bats;
 
 EhpCmeFC::EhpCmeFC(EkaDev* dev) : EhpProtocol(dev) {
   EKA_LOG("EhpCmeFC is created");
 
   conf.params.protocolID         = static_cast<decltype(conf.params.protocolID)>(EhpHwProtocol::CMEFC);
-  conf.params.pktHdrLen          = sizeof(sequenced_unit_header);
+  conf.params.pktHdrLen          = 12;
   conf.params.msgDeltaSize       = EhpNoMsgSize;
-  conf.params.bytes4StartMsgProc = 18; // MHeaderTemplateId
+  conf.params.bytes4StartMsgProc = 6; // MHeaderTemplateId
  
   conf.fields.sequence[0].msgId      = 0; //Not relevant
   conf.fields.sequence[0].opcode     = EhpOpcode::NOP;
@@ -39,7 +36,7 @@ int EhpCmeFC::createFastCancel() {
   int     msgType = FastCancelMsg;
 
   conf.params.bytes4Strategy[msgType].msgId    = msgId;
-  conf.params.bytes4Strategy[msgType].byteOffs = 36;
+  conf.params.bytes4Strategy[msgType].byteOffs = 24;
 
   conf.params.bytes4SecLookup[msgType].msgId    = msgId;
   conf.params.bytes4SecLookup[msgType].byteOffs = 255; //no lookup
@@ -84,7 +81,7 @@ int EhpCmeFC::createFastCancel() {
   //GNumInGroup
   conf.fields.price[msgType].msgId      = msgId;
   conf.fields.price[msgType].opcode     = EhpOpcode::NOP;
-  conf.fields.price[msgType].byteOffs_0 = 35;
+  conf.fields.price[msgType].byteOffs_0 = 23;
   conf.fields.price[msgType].byteOffs_1 = EhpBlankByte;
   conf.fields.price[msgType].byteOffs_2 = EhpBlankByte;
   conf.fields.price[msgType].byteOffs_3 = EhpBlankByte;
@@ -96,8 +93,8 @@ int EhpCmeFC::createFastCancel() {
   //MHeaderSize
   conf.fields.size[msgType].msgId      = msgId;
   conf.fields.size[msgType].opcode     = EhpOpcode::NOP;
-  conf.fields.size[msgType].byteOffs_0 = 12;
-  conf.fields.size[msgType].byteOffs_1 = 13;
+  conf.fields.size[msgType].byteOffs_0 = 0;
+  conf.fields.size[msgType].byteOffs_1 = 1;
   conf.fields.size[msgType].byteOffs_2 = EhpBlankByte;
   conf.fields.size[msgType].byteOffs_3 = EhpBlankByte;
   conf.fields.size[msgType].byteOffs_4 = EhpBlankByte;
@@ -108,8 +105,8 @@ int EhpCmeFC::createFastCancel() {
   //MHeaderTemplateId
   conf.fields.msgId[msgType].msgId      = msgId;
   conf.fields.msgId[msgType].opcode     = EhpOpcode::NOP;
-  conf.fields.msgId[msgType].byteOffs_0 = 16;
-  conf.fields.msgId[msgType].byteOffs_1 = 17;
+  conf.fields.msgId[msgType].byteOffs_0 = 4;
+  conf.fields.msgId[msgType].byteOffs_1 = 5;
   conf.fields.msgId[msgType].byteOffs_2 = EhpBlankByte;
   conf.fields.msgId[msgType].byteOffs_3 = EhpBlankByte;
   conf.fields.msgId[msgType].byteOffs_4 = EhpBlankByte;
