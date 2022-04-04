@@ -43,6 +43,19 @@ static uint64_t computeFinalPriceFactor(Decimal9_T displayFactor) {
   return (1'000'000'000L / displayFactor) * CMEPriceFactor;
 }
 
+template<typename T>
+constexpr T replaceIntNullWith(T num, T adjusted, T fallback) {
+  if (num == std::numeric_limits<T>::max()) {
+    return fallback;
+  }
+  return adjusted;
+}
+
+template<typename T>
+constexpr T replaceIntNullWith(T num, T fallback) {
+  return replaceIntNullWith(num, num, fallback);
+}
+
 /* ##################################################################### */
 
 bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
@@ -256,8 +269,7 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
       if (! s) continue;
       msg.header.securityId = e->SecurityID;
       msg.side              = getSide39(e->Side);
-      msg.quantity          = e->OrderQty == std::numeric_limits<decltype(e->OrderQty)>::max()
-          ? 0 : e->OrderQty;
+      msg.quantity          = replaceIntNullWith<Int32NULL_T>(e->OrderQty, 0);
       if (pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL)
 	on_error("pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL");
       pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
@@ -568,7 +580,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture27(const EfhRunCtx* pEfhRunC
   auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
   return msgHdr->size;
 }
-/* ##################################################################### */     
+/* ##################################################################### */
 
 int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunCtx,
 						       const uint8_t*   pMsg,
@@ -595,7 +607,8 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   msg.commonDef.securityType   = EfhSecurityType::kFuture;
   msg.commonDef.exchange       = EfhExchange::kCME;
   msg.commonDef.underlyingType = EfhSecurityType::kIndex;
-  msg.commonDef.contractSize   = 0;
+  msg.commonDef.contractSize   = replaceIntNullWith<Decimal9NULL_T>(
+      rootBlock->UnitOfMeasureQty, rootBlock->UnitOfMeasureQty / EFH_CME_PRICE_SCALE, 0);
   msg.commonDef.opaqueAttrA    = computeFinalPriceFactor(rootBlock->DisplayFactor);
   msg.commonDef.opaqueAttrB    = 10; // default Market Depth for Futures
   getCMEProductTradeTime(pMaturity, rootBlock->Symbol, &msg.commonDef.expiryDate, &msg.commonDef.expiryTime);
@@ -683,6 +696,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   msg.optionType            = putOrCall;
   msg.optionStyle           = static_cast<EfhOptionStyle>(rootBlock->CFICode[2]);
   msg.strikePrice           = rootBlock->StrikePrice / priceAdjustFactor;
+  msg.segmentId             = rootBlock->MarketSegmentID;
 
   msg.commonDef.opaqueAttrB = 3; // default MarketDepth for Options
 
@@ -824,10 +838,9 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
     msg.legs[i].type        = EfhSecurityType::kInvalid;
     msg.legs[i].side        = e->LegSide == LegSide_T::BuySide ? EfhOrderSide::kBid : EfhOrderSide::kAsk;
     msg.legs[i].ratio       = e->LegRatioQty;
-    msg.legs[i].optionDelta = e->LegOptionDelta != std::numeric_limits<DecimalQty_T>::max() ? e->LegOptionDelta : 0;
-    msg.legs[i].price       = e->LegPrice != std::numeric_limits<PRICENULL9_T>::max()
-        ? e->LegPrice / priceAdjustFactor
-        : 0;
+    msg.legs[i].optionDelta = replaceIntNullWith<DecimalQty_T>(e->LegOptionDelta, 0);
+    msg.legs[i].price       = replaceIntNullWith<PRICENULL9_T>(e->LegPrice,
+                                                               e->LegPrice / priceAdjustFactor, 0);
 
     m += pGroupSize->blockLength;
   }
