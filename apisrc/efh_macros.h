@@ -15,6 +15,7 @@
 			(std::regex_search(std::string(x),std::regex("ISE_TQF"))    == true) ? EkaSource::kISE_TQF    : \
 			(std::regex_search(std::string(x),std::regex("MRX_TQF"))    == true) ? EkaSource::kMRX_TQF    : \
 			(std::regex_search(std::string(x),std::regex("MIAX_TOM"))   == true) ? EkaSource::kMIAX_TOM   : \
+			(std::regex_search(std::string(x),std::regex("EMLD_TOM"))   == true) ? EkaSource::kEMLD_TOM   : \
 			(std::regex_search(std::string(x),std::regex("PEARL_TOM"))  == true) ? EkaSource::kPEARL_TOM  : \
 			(std::regex_search(std::string(x),std::regex("C1_PITCH"))   == true) ? EkaSource::kC1_PITCH    : \
 			(std::regex_search(std::string(x),std::regex("C2_PITCH"))   == true) ? EkaSource::kC2_PITCH    : \
@@ -67,6 +68,7 @@
   (x == EkaSource::kBZX_PITCH)  ? "BZX_PITCH"  :	   \
   (x == EkaSource::kEDGX_PITCH) ? "EDGX_PITCH" :	   \
   (x == EkaSource::kMIAX_TOM)   ? "MIAX_TOM"   :	   \
+  (x == EkaSource::kEMLD_TOM)   ? "EMLD_TOM"   :	   \
   (x == EkaSource::kPEARL_TOM)  ? "PEARL_TOM"  :	   \
   (x == EkaSource::kBOX_HSVF)   ? "BOX_HSVF"   :	   \
   (x == EkaSource::kCME_SBE)    ? "CME_SBE"    :	   \
