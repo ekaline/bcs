@@ -153,9 +153,11 @@ static int getAttr(int argc, char *argv[],
 		   std::string* serverIp, uint16_t* serverTcpPort, 
 		   std::string* clientIp, 
 		   std::string* triggerIp, uint16_t* triggerUdpPort,
-		   uint16_t* numTcpSess, bool* runEfh, bool* fatalDebug) {
+		   uint16_t* numTcpSess, bool* runEfh,
+       bool *receiveOnConnect, bool *cmePreSend,
+       bool* fatalDebug) {
 	int opt; 
-	while((opt = getopt(argc, argv, ":c:s:p:u:l:t:fdh")) != -1) {  
+	while((opt = getopt(argc, argv, ":c:s:p:u:l:t:fdhrS")) != -1) {
 		switch(opt) {  
 		case 's':  
 			*serverIp = std::string(optarg);
@@ -189,11 +191,19 @@ static int getAttr(int argc, char *argv[],
 			printf("fatalDebug = ON\n");
 			*fatalDebug = true;
 			break;
-		case 'h':  
+    case 'r':
+      printf("receive on connect = OFF");
+      *receiveOnConnect = false;
+      break;
+    case 'S':
+      printf("CME pre send = ON");
+      *cmePreSend = true;
+      break;
+		case 'h':
 			printUsage(argv[0]);
 			exit (1);
-			break;  
-		case '?':  
+			break;
+		case '?':
 			printf("unknown option: %c\n", optopt); 
 			break;  
 		}  
@@ -331,10 +341,12 @@ int main(int argc, char *argv[]) {
     uint16_t numTcpSess         = 1;
     uint16_t serverTcpPort      = serverTcpBasePort;
     bool     runEfh             = false;
-    bool     fatalDebug          = false;
+    bool     fatalDebug         = false;
+    bool     receiveOnConnect   = true;
+    bool     cmePreSend         = false;
   
     getAttr(argc,argv,&serverIp,&serverTcpPort,&clientIp,&triggerIp,&triggerUdpPort,
-	    &numTcpSess,&runEfh,&fatalDebug);
+	    &numTcpSess,&runEfh,&receiveOnConnect,&cmePreSend,&fatalDebug);
 
     if (numTcpSess > MaxTcpTestSessions) 
 	on_error("numTcpSess %d > MaxTcpTestSessions %d",numTcpSess, MaxTcpTestSessions);
@@ -354,7 +366,7 @@ int main(int argc, char *argv[]) {
 	.attrs = {
 	    .host_ip      = inet_addr(clientIp.c_str()),
 	    .netmask      = inet_addr("255.255.255.0"),
-	    .gateway      = inet_addr("10.0.0.10"),
+	    .gateway      = inet_addr("10.120.10.1"), // from nqxlxavt060p
 	    .nexthop_mac  = {}, // resolved by our internal ARP
 	    .src_mac_addr = {}, // taken from system config
 	    .dont_garp    = 0
@@ -371,7 +383,7 @@ int main(int argc, char *argv[]) {
 	std::thread server = std::thread(tcpServer,
 					 dev,
 					 serverIp,
-					 serverTcpBasePort + i,
+           serverTcpPort + i,
 					 &tcpSock[i],
 					 &serverSet);
 	server.detach();
@@ -384,22 +396,25 @@ int main(int argc, char *argv[]) {
     ExcConnHandle conn[MaxTcpTestSessions]    = {};
 
     for (auto i = 0; i < numTcpSess; i++) {
-	struct sockaddr_in serverAddr = {};
-	serverAddr.sin_family      = AF_INET;
-	serverAddr.sin_addr.s_addr = inet_addr(serverIp.c_str());
-	serverAddr.sin_port        = be16toh(serverTcpBasePort + i);
+      struct sockaddr_in serverAddr = {};
+      serverAddr.sin_family      = AF_INET;
+      serverAddr.sin_addr.s_addr = inet_addr(serverIp.c_str());
+      serverAddr.sin_port        = be16toh(serverTcpPort + i);
 
-	int excSock = excSocket(dev,coreId,0,0,0);
-	if (excSock < 0) on_error("failed to open sock %d",i);
-	conn[i] = excConnect(dev,excSock,(sockaddr*) &serverAddr, sizeof(sockaddr_in));
-	if (conn[i] < 0) on_error("excConnect %d %s:%u",
-				  i,EKA_IP2STR(serverAddr.sin_addr.s_addr),be16toh(serverAddr.sin_port));
-	const char* pkt = "\n\nThis is 1st TCP packet sent from FPGA TCP client to Kernel TCP server\n\n";
-	excSend (dev, conn[i], pkt, strlen(pkt),0);
-	int bytes_read = 0;
-	char rxBuf[2000] = {};
-	bytes_read = recv(tcpSock[i], rxBuf, sizeof(rxBuf), 0);
-	if (bytes_read > 0) EKA_LOG("\n%s",rxBuf);
+      int excSock = excSocket(dev,coreId,0,0,0);
+      if (excSock < 0) on_error("failed to open sock %d",i);
+      conn[i] = excConnect(dev,excSock,(sockaddr*) &serverAddr, sizeof(sockaddr_in));
+      if (conn[i] < 0) on_error("excConnect %d %s:%u",
+              i,EKA_IP2STR(serverAddr.sin_addr.s_addr),be16toh(serverAddr.sin_port));
+      const char* pkt = "\n\nThis is 1st TCP packet sent from FPGA TCP client to Kernel TCP server\n\n";
+      excSend(dev, conn[i], pkt, strlen(pkt),0);
+      if (receiveOnConnect) {
+        int bytes_read = 0;
+        char rxBuf[2000] = {};
+        bytes_read = recv(tcpSock[i], rxBuf, sizeof(rxBuf), 0);
+        if (bytes_read > 0)
+          EKA_LOG("\n%s", rxBuf);
+      }
     }
 
     // ==============================================
@@ -499,12 +514,12 @@ int main(int argc, char *argv[]) {
 			    CmeTestFastCancelMsg);
     cmeAction[(size_t)EfcCmeActionId::HwCancel].length = strlen(CmeTestFastCancelMsg);
     epmSetAction(dev,EFC_STRATEGY,(epm_actionid_t)EfcCmeActionId::HwCancel,
-		 &cmeAction[(size_t)EfcCmeActionId::HwCancel]);
+		             &cmeAction[(size_t)EfcCmeActionId::HwCancel]);
     
     if (rc != EKA_OPRESULT__OK) 
-	on_error("epmPayloadHeapCopy offset=%u, length=%u rc=%d",
-		 cmeAction[(size_t)EfcCmeActionId::HwCancel].offset,
-		 (uint)strlen(CmeTestFastCancelMsg),(int)rc);
+	    on_error("epmPayloadHeapCopy offset=%u, length=%u rc=%d",
+		           cmeAction[(size_t)EfcCmeActionId::HwCancel].offset,
+		           (uint)strlen(CmeTestFastCancelMsg),(int)rc);
 
     // ==============================================
     efcCmeFastCancelInit(dev,&params);
@@ -519,6 +534,7 @@ int main(int argc, char *argv[]) {
 	.strategy = EFC_STRATEGY,                ///< Strategy this trigger applies to
 	.action = (epm_actionid_t)EfcCmeActionId::HwCancel       ///< First action in linked sequence
     };
+#if 0
     const char* swMsg = "CME Fast SW Msg: Sequence = |____| : expected incremented Sequence";
     const char* swHB  = "CME SW Heartbeat:Sequence = |____| : expected NOT incremented Sequence";
 
@@ -533,18 +549,37 @@ int main(int argc, char *argv[]) {
     efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
     efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
     efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
+#endif
+    if (cmePreSend) {
+      const char *swMsg = "CME Fast SW Msg: Sequence = |____| : expected incremented Sequence";
+      const char *swHB = "CME SW Heartbeat:Sequence = |____| : expected NOT incremented Sequence";
+      efcCmeSend(dev, conn[0], swMsg, strlen(swMsg), 0, true);
+      efcCmeSend(dev, conn[0], swMsg, strlen(swMsg), 0, true);
+      efcCmeSend(dev, conn[0], swMsg, strlen(swMsg), 0, true);
+
+      efcCmeSend(dev, conn[0], swHB, strlen(swMsg), 0, false);
+      efcCmeSend(dev, conn[0], swHB, strlen(swMsg), 0, false);
+      efcCmeSend(dev, conn[0], swHB, strlen(swMsg), 0, false);
+      efcCmeSend(dev, conn[0], swHB, strlen(swMsg), 0, false);
+      efcCmeSend(dev, conn[0], swHB, strlen(swMsg), 0, false);
+    }
     
     epmRaiseTriggers(dev,&cmeTrigger);
+    cmeTrigger.action = 1;
     epmRaiseTriggers(dev,&cmeTrigger);
+    cmeTrigger.action = 2;
     epmRaiseTriggers(dev,&cmeTrigger);
+    cmeTrigger.action = 0;
     epmRaiseTriggers(dev,&cmeTrigger);
 
-    sendCmeTradeMsg(serverIp,triggerIp,triggerUdpPort,
-		    CmeTestFastCancelMaxMsgSize - 1, CmeTestFastCancelMinNoMDEntries + 1);
+    if (0) {
+      sendCmeTradeMsg(serverIp, triggerIp, triggerUdpPort,
+                      CmeTestFastCancelMaxMsgSize - 1, CmeTestFastCancelMinNoMDEntries + 1);
+    }
 
     if (fatalDebug) {
-	TEST_LOG(RED "\n=====================\nFATAL DEBUG: ON\n=====================\n" RESET);
-	eka_write(dev,0xf0f00,0xefa0beda);
+	    TEST_LOG(RED "\n=====================\nFATAL DEBUG: ON\n=====================\n" RESET);
+	    eka_write(dev,0xf0f00,0xefa0beda);
     }
 
 // ==============================================

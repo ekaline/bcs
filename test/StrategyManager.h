@@ -13,6 +13,8 @@ namespace gts::ekaline {
 
 class StrategyManager {
  public:
+  static constexpr int MIN_STRATEGY_ACTIONS = 256;
+
   struct EpmStrategyBuilder {
     using bitsT = epm_enablebits_t;
 
@@ -71,6 +73,13 @@ class StrategyManager {
       return false;
     }
 
+    int strategyIdx = 0;
+    for (auto &strategy: builder.epmStrategies) {
+      if (strategy.numActions < MIN_STRATEGY_ACTIONS) {
+        WARN("Strategy %d has %d actions, bumping up to %d", strategyIdx, strategy.numActions, MIN_STRATEGY_ACTIONS);
+        strategy.numActions = MIN_STRATEGY_ACTIONS;
+      }
+    }
     auto result = epmInitStrategies(device, builder.epmStrategies.data(), builder.epmStrategies.size());
     if (!isResultOk(result)) {
       ERROR("Failed to epmInitStrategies(_, _, %ld, _) with %d", builder.epmStrategies.size(), result);
@@ -80,7 +89,7 @@ class StrategyManager {
     EfcStratGlobCtx efcStratGlobCtx = {
         .enable_strategy      = 1,
         .report_only          = 0,
-        .watchdog_timeout_sec = 60,
+        .watchdog_timeout_sec = 100'000,//60,
     };
     result = efcInitStrategy(efcCtx, &efcStratGlobCtx);
     if (!isResultOk(result)) {
@@ -104,7 +113,6 @@ class StrategyManager {
         const Message &message{scenario->second.at(actionIndexInScenario).message()};
         WARN("Uploading payload (device, idx %d, ofs %d, size %d, _)",
              strategyIdx, message.heapOffset(), message.size());
-        usleep(200);
         EkaOpResult result = epmPayloadHeapCopy(device, strategyIdx,
                                                 message.heapOffset(), message.size(), message.data());
         if (!isResultOk(result)) {
