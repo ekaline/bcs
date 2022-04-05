@@ -169,9 +169,13 @@ public:
 
     EkaLSI                id                  = -1; // MC group ID: 1-4 for ITTO
     uint                  gapNum              = 0; // num of Gaps
-    uint                  gapsLimit           = 1; // num of Gaps to switch to
+#ifdef _EKA_SKIP_RECOVERY  
+  uint                  gapsLimit           = 1; // num of Gaps to switch to
                                                    // "Progressing Recovery"
-
+                                                   // 0 - means never skip
+#else
+  uint                  gapsLimit           = 0;
+#endif  
     EkaFh*                fh                  = NULL; // parent FH
 
     volatile bool         thread_active       = false; // FH thread
