@@ -19,14 +19,14 @@ class EkaFhBoxGr : public EkaFhGroup{
 				 uint64_t sequence,
 				 EkaFhMode op,std::chrono::high_resolution_clock::time_point startTime={});
 
-  int                   bookInit();
+  int bookInit();
 
-  int                  subscribeStaticSecurity(uint64_t        securityId, 
-					       EfhSecurityType efhSecurityType,
-					       EfhSecUserData  efhSecUserData,
-					       uint64_t        opaqueAttrA,
-					       uint64_t        opaqueAttrB) {
-    if (book == NULL) on_error("%s:%u book == NULL",EKA_EXCH_DECODE(exch),id);
+  int subscribeStaticSecurity(uint64_t        securityId, 
+			      EfhSecurityType efhSecurityType,
+			      EfhSecUserData  efhSecUserData,
+			      uint64_t        opaqueAttrA,
+			      uint64_t        opaqueAttrB) {
+    if (!book) on_error("%s:%u !book",EKA_EXCH_DECODE(exch),id);
     book->subscribeSecurity(securityId, 
 			    efhSecurityType,
 			    efhSecUserData,
@@ -35,23 +35,26 @@ class EkaFhBoxGr : public EkaFhGroup{
     return 0;
   }
 
-  bool                  processUdpPkt(const EfhRunCtx* pEfhRunCtx,
-				      const uint8_t*   pkt, 
-				      int16_t          pktLen);
+  bool processUdpPkt(const EfhRunCtx* pEfhRunCtx,
+		     const uint8_t*   pkt, 
+		     int16_t          pktLen);
   
+  
+  void pushUdpPkt2Q(const uint8_t* pkt, 
+		    uint           pktLen);
 
-  void                  pushUdpPkt2Q(const uint8_t* pkt, 
-				     uint           pktLen);
-
-  int                   processFromQ(const EfhRunCtx* pEfhRunCtx);
-
-
-  int                  closeIncrementalGap(EfhCtx*           pEfhCtx, 
-					   const EfhRunCtx*  pEfhRunCtx, 
-					   uint64_t          startSeq,
-					   uint64_t          endSeq);
+  int processFromQ(const EfhRunCtx* pEfhRunCtx);
 
 
+  int closeIncrementalGap(EfhCtx*           pEfhCtx, 
+			  const EfhRunCtx*  pEfhRunCtx, 
+			  uint64_t          startSeq,
+			  uint64_t          endSeq);
+
+  bool skipRecovery() const {
+    if (gapsLimit == 0) return false;
+    return gapsLimit == 1 || gapNum > gapsLimit;
+  }
 
   /* ##################################################################### */
 

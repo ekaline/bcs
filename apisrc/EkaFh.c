@@ -352,7 +352,24 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
     }
   }
   //---------------------------------------------------------------------
-
+  //---------------------------------------------------------------------
+  // efh.BOX_HSVF.group.X.gapsLimit, "1"
+  // k[0] k[1]     k[2] k[3] k[4]   k[5]
+  if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"gapsLimit")==0)) {
+    if (EFH_GET_SRC(k[1]) == exch) {
+      uint8_t grId = (uint8_t) atoi(k[3]);
+      if (grId >= groups) {
+	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",
+		   key, value,grId,groups);
+	return EkaFhAddConf::CONF_SUCCESS;
+      }
+      auto gr = b_gr[grId];
+      if (!gr) on_error("! b_gr[%u]",grId);
+      gr->gapsLimit = (uint) strtoul(v[0],NULL,10);
+      fflush(stderr);
+      return EkaFhAddConf::CONF_SUCCESS;
+    }
+  }  
   //---------------------------------------------------------------------
   // efh.C1_PITCH.group.X.unit, "1"
   // k[0] k[1]     k[2] k[3] k[4]   k[5]
