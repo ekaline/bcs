@@ -143,6 +143,7 @@ int EkaEfc::initHwRoundTable() {
     case EfhFeedVer::kNASDAQ: 
     case EfhFeedVer::kMIAX:
     case EfhFeedVer::kCBOE:
+    case EfhFeedVer::kCME:
       data = addr;
       break;
     default:
