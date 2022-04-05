@@ -169,6 +169,8 @@ public:
 
     EkaLSI                id                  = -1; // MC group ID: 1-4 for ITTO
     uint                  gapNum              = 0; // num of Gaps
+    uint                  gapsLimit           = 1; // num of Gaps to switch to
+                                                   // "Progressing Recovery"
 
     EkaFh*                fh                  = NULL; // parent FH
 
