@@ -16,6 +16,9 @@
 //#define EKA_EXPECTED_EFC_STRATEGY      0x42
 
 // CME Fast Cancel Strategy
-#define EKA_EXPECTED_EFC_STRATEGY      0x43
+//#define EKA_EXPECTED_EFC_STRATEGY      0x43
+
+// P4 + FastCancel
+#define EKA_EXPECTED_EFC_STRATEGY      128
 
 #endif
