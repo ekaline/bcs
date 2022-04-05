@@ -52,7 +52,8 @@ class EkaFhBoxGr : public EkaFhGroup{
 			  uint64_t          endSeq);
 
   bool skipRecovery() const {
-    return gapsLimit != 0 && gapNum > gapsLimit;
+    if (gapsLimit == 0) return false;
+    return gapsLimit == 1 || gapNum > gapsLimit;
   }
 
   /* ##################################################################### */
