@@ -43,8 +43,8 @@ EkaOpResult efcCmeFastCancelInit(EkaDev *dev,
 	  conf.token,
 	  conf.fireActionId,
 	  conf.strategyId);
-  hexDump("EfcCmeFastCancelStrategyConf",&conf,sizeof(conf));
-  copyBuf2Hw(dev,0x83000,(uint64_t *)&conf,sizeof(conf));
+  //  hexDump("EfcCmeFastCancelStrategyConf",&conf,sizeof(conf));
+  copyBuf2Hw(dev,0x84000,(uint64_t *)&conf,sizeof(conf));
   return EKA_OPRESULT__OK;
 }
 
