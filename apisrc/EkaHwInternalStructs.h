@@ -257,7 +257,21 @@ typedef struct __attribute__((packed)) {
   char     pad[32 - 2];
 } tcprx_dma_report_t;
 
+/* typedef struct packed { */
+/*         bit [7:0] strategy_region;   */
+/*         bit [15:0] strategy_index;   */
+/*         bit [63:0] token;   */
+/* 	bit [15:0] max_header_size; */
+/* 	bit [7:0] min_num_in_group; */
+/* } sh_cancels_param_t; */
 
+  struct EfcCmeFastCancelStrategyConf {
+      uint8_t        minNoMDEntries;
+      uint16_t       maxMsgSize;
+      uint64_t       token;
+      uint16_t       fireActionId;
+      uint8_t        strategyId;
+  } __attribute__ ((aligned(sizeof(uint64_t)))) __attribute__((packed));
 
 
 

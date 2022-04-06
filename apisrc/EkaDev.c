@@ -22,6 +22,7 @@
 #include "EkaEfc.h"
 
 #include "eka_hw_conf.h"
+#include "EkaHwInternalStructs.h"
 
 
 int ekaDefaultLog (void* /*unused*/, const char* function, const char* file, int line, int priority, const char* format, ...);
@@ -452,6 +453,9 @@ int EkaDev::clearHw() {
 
   for (uint64_t p = 0; p < SW_SCRATCHPAD_SIZE/8; p++) 
     eka_write(SW_SCRATCHPAD_BASE +8*p,(uint64_t) 0);
+
+  const EfcCmeFastCancelStrategyConf conf = {};
+  copyBuf2Hw(dev,0x84000,(uint64_t *)&conf,sizeof(conf));
 
   // Open Dev indication
   eka_write(SW_STATISTICS, (1ULL<<63));
