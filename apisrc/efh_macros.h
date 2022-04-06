@@ -15,6 +15,7 @@
 			(std::regex_search(std::string(x),std::regex("ISE_TQF"))    == true) ? EkaSource::kISE_TQF    : \
 			(std::regex_search(std::string(x),std::regex("MRX_TQF"))    == true) ? EkaSource::kMRX_TQF    : \
 			(std::regex_search(std::string(x),std::regex("MIAX_TOM"))   == true) ? EkaSource::kMIAX_TOM   : \
+			(std::regex_search(std::string(x),std::regex("EMLD_TOM"))   == true) ? EkaSource::kEMLD_TOM   : \
 			(std::regex_search(std::string(x),std::regex("PEARL_TOM"))  == true) ? EkaSource::kPEARL_TOM  : \
 			(std::regex_search(std::string(x),std::regex("C1_PITCH"))   == true) ? EkaSource::kC1_PITCH    : \
 			(std::regex_search(std::string(x),std::regex("C2_PITCH"))   == true) ? EkaSource::kC2_PITCH    : \
@@ -39,8 +40,9 @@
   (x == EkaSource::kAMEX_PLR)   ? EfhFeedVer::kPLR :	\
   (x == EkaSource::kPHLX_TOPO)  ? EfhFeedVer::kPHLX :	\
   (x == EkaSource::kPHLX_ORD)   ? EfhFeedVer::kPHLX :	\
-  (x == EkaSource::kMIAX_TOM)   ? EfhFeedVer::kMIAX :	\
-  (x == EkaSource::kPEARL_TOM)  ? EfhFeedVer::kMIAX :	\
+  (x == EkaSource::kMIAX_TOM)   ? EfhFeedVer::kMIAX :   \
+  (x == EkaSource::kEMLD_TOM)   ? EfhFeedVer::kMIAX :   \
+  (x == EkaSource::kPEARL_TOM)  ? EfhFeedVer::kMIAX :   \
   (x == EkaSource::kC1_PITCH)   ? EfhFeedVer::kBATS :	\
   (x == EkaSource::kC2_PITCH)   ? EfhFeedVer::kBATS :	\
   (x == EkaSource::kBZX_PITCH)  ? EfhFeedVer::kBATS :	\
@@ -51,47 +53,49 @@
 
 #define EFH_EXCH2FULL_BOOK(x) ((x == EkaSource::kNOM_ITTO) || (x == EkaSource::kC2_PITCH) || (x == EkaSource::kBZX_PITCH) || (x == EkaSource::kEDGX_PITCH))
 
-#define EKA_EXCH_DECODE(x) (				   \
-  (x == EkaSource::kNOM_ITTO)   ? "NOM_ITTO"   :	   \
-  (x == EkaSource::kGEM_TQF)    ? "GEM_TQF"    :	   \
-  (x == EkaSource::kISE_TQF)    ? "ISE_TQF"    :	   \
-  (x == EkaSource::kMRX_TQF)    ? "MRX_TQF"    :	   \
-  (x == EkaSource::kPHLX_TOPO)  ? "PHLX_TOPO"  :	   \
-  (x == EkaSource::kPHLX_ORD)   ? "PHLX_ORD"   :	   \
-  (x == EkaSource::kARCA_XDP)   ? "ARCA_XDP"   :	   \
-  (x == EkaSource::kAMEX_XDP)   ? "AMEX_XDP"   :	   \
-  (x == EkaSource::kARCA_PLR)   ? "ARCA_PLR"   :	   \
-  (x == EkaSource::kAMEX_PLR)   ? "AMEX_PLR"   :	   \
-  (x == EkaSource::kC1_PITCH)   ? "C1_PITCH"   :	   \
-  (x == EkaSource::kC2_PITCH)   ? "C2_PITCH"   :	   \
-  (x == EkaSource::kBZX_PITCH)  ? "BZX_PITCH"  :	   \
-  (x == EkaSource::kEDGX_PITCH) ? "EDGX_PITCH" :	   \
-  (x == EkaSource::kMIAX_TOM)   ? "MIAX_TOM"   :	   \
-  (x == EkaSource::kPEARL_TOM)  ? "PEARL_TOM"  :	   \
-  (x == EkaSource::kBOX_HSVF)   ? "BOX_HSVF"   :	   \
-  (x == EkaSource::kCME_SBE)    ? "CME_SBE"    :	   \
+#define EKA_EXCH_DECODE(x) (                     \
+  (x == EkaSource::kNOM_ITTO)   ? "NOM_ITTO"   : \
+  (x == EkaSource::kGEM_TQF)    ? "GEM_TQF"    : \
+  (x == EkaSource::kISE_TQF)    ? "ISE_TQF"    : \
+  (x == EkaSource::kMRX_TQF)    ? "MRX_TQF"    : \
+  (x == EkaSource::kPHLX_TOPO)  ? "PHLX_TOPO"  : \
+  (x == EkaSource::kPHLX_ORD)   ? "PHLX_ORD"   : \
+  (x == EkaSource::kARCA_XDP)   ? "ARCA_XDP"   : \
+  (x == EkaSource::kAMEX_XDP)   ? "AMEX_XDP"   : \
+  (x == EkaSource::kARCA_PLR)   ? "ARCA_PLR"   : \
+  (x == EkaSource::kAMEX_PLR)   ? "AMEX_PLR"   : \
+  (x == EkaSource::kC1_PITCH)   ? "C1_PITCH"   : \
+  (x == EkaSource::kC2_PITCH)   ? "C2_PITCH"   : \
+  (x == EkaSource::kBZX_PITCH)  ? "BZX_PITCH"  : \
+  (x == EkaSource::kEDGX_PITCH) ? "EDGX_PITCH" : \
+  (x == EkaSource::kMIAX_TOM)   ? "MIAX_TOM"   : \
+  (x == EkaSource::kEMLD_TOM)   ? "EMLD_TOM"   : \
+  (x == EkaSource::kPEARL_TOM)  ? "PEARL_TOM"  : \
+  (x == EkaSource::kBOX_HSVF)   ? "BOX_HSVF"   : \
+  (x == EkaSource::kCME_SBE)    ? "CME_SBE"    : \
   "UNKNOWN")
 
-#define EKA_EXCH_SOURCE_DECODE(x) (					\
-				   (x == EkaSource::kNOM_ITTO)   ? "NOM"   : \
-				   (x == EkaSource::kGEM_TQF)    ? "GEM"    : \
-				   (x == EkaSource::kISE_TQF)    ? "ISE"    : \
-				   (x == EkaSource::kMRX_TQF)    ? "MRX"    : \
-				   (x == EkaSource::kPHLX_TOPO)  ? "PHLX"  : \
-				   (x == EkaSource::kPHLX_ORD)   ? "PHLX_ORD"  : \
-				   (x == EkaSource::kARCA_XDP)   ? "ARCA"   : \
-				   (x == EkaSource::kAMEX_XDP)   ? "AMEX"   : \
-				   (x == EkaSource::kARCA_PLR)   ? "ARCA"   : \
-				   (x == EkaSource::kAMEX_PLR)   ? "AMEX"   : \
-				   (x == EkaSource::kC1_PITCH)   ? "C1"   : \
-				   (x == EkaSource::kC2_PITCH)   ? "C2"   : \
-				   (x == EkaSource::kBZX_PITCH)  ? "BZX"  : \
-				   (x == EkaSource::kEDGX_PITCH) ? "EDGX" : \
-				   (x == EkaSource::kMIAX_TOM)   ? "MIAX"   : \
-				   (x == EkaSource::kPEARL_TOM)  ? "PEARL"  : \
-				   (x == EkaSource::kBOX_HSVF)   ? "BOX"  : \
-				   (x == EkaSource::kCME_SBE)    ? "CME"  : \
-				   "UNKNOWN")
+#define EKA_EXCH_SOURCE_DECODE(x) (            \
+  (x == EkaSource::kNOM_ITTO)   ? "NOM"      : \
+  (x == EkaSource::kGEM_TQF)    ? "GEM"      : \
+  (x == EkaSource::kISE_TQF)    ? "ISE"      : \
+  (x == EkaSource::kMRX_TQF)    ? "MRX"      : \
+  (x == EkaSource::kPHLX_TOPO)  ? "PHLX"     : \
+  (x == EkaSource::kPHLX_ORD)   ? "PHLX_ORD" : \
+  (x == EkaSource::kARCA_XDP)   ? "ARCA"     : \
+  (x == EkaSource::kAMEX_XDP)   ? "AMEX"     : \
+  (x == EkaSource::kARCA_PLR)   ? "ARCA"     : \
+  (x == EkaSource::kAMEX_PLR)   ? "AMEX"     : \
+  (x == EkaSource::kC1_PITCH)   ? "C1"       : \
+  (x == EkaSource::kC2_PITCH)   ? "C2"       : \
+  (x == EkaSource::kBZX_PITCH)  ? "BZX"      : \
+  (x == EkaSource::kEDGX_PITCH) ? "EDGX"     : \
+  (x == EkaSource::kMIAX_TOM)   ? "MIAX"     : \
+  (x == EkaSource::kEMLD_TOM)   ? "EMLD"     : \
+  (x == EkaSource::kPEARL_TOM)  ? "PEARL"    : \
+  (x == EkaSource::kBOX_HSVF)   ? "BOX"      : \
+  (x == EkaSource::kCME_SBE)    ? "CME"      : \
+  "UNKNOWN")
 
 
 #define EKA_GRP_SRC2EXCH(x) (				   \
@@ -102,6 +106,7 @@
   (x == EkaSource::kPHLX_TOPO)  ? EfhExchange::kPHLX  :	   \
   (x == EkaSource::kPHLX_ORD)   ? EfhExchange::kPHLX  :	   \
   (x == EkaSource::kMIAX_TOM)   ? EfhExchange::kMIAX  :	   \
+  (x == EkaSource::kEMLD_TOM)   ? EfhExchange::kEMLD  :	   \
   (x == EkaSource::kPEARL_TOM)  ? EfhExchange::kPEARL :	   \
   (x == EkaSource::kC1_PITCH)   ? EfhExchange::kCboe  :	   \
   (x == EkaSource::kC2_PITCH)   ? EfhExchange::kCboe2 :	   \
@@ -127,25 +132,25 @@
 #define EKA_PRINT_GRP(x) ((std::string(EKA_EXCH_DECODE((EkaSource)(((EkaGroup*)x)->source))) + '_' + std::to_string((uint)((EkaGroup*)x)->localId)).c_str())
 
 #define EKA_FEED_VER_DECODE(x) \
-              x == EfhFeedVer::kNASDAQ   ? "NASDAQ"      : \
-              x == EfhFeedVer::kGEMX     ? "GEMX"        : \
-              x == EfhFeedVer::kPHLX     ? "PHLX"        : \
-              x == EfhFeedVer::kMIAX     ? "MIAX"        : \
-              x == EfhFeedVer::kBATS     ? "BATS"        : \
-              x == EfhFeedVer::kCBOE     ? "CBOE"        : \
-              x == EfhFeedVer::kXDP      ? "XDP"        : \
-              x == EfhFeedVer::kPLR      ? "PLR"        : \
-              x == EfhFeedVer::kBOX      ? "BOX"        : \
-              x == EfhFeedVer::kCME      ? "CME"        : \
-                                           "UNKNOWN"
+  x == EfhFeedVer::kNASDAQ   ? "NASDAQ"      : \
+  x == EfhFeedVer::kGEMX     ? "GEMX"        : \
+  x == EfhFeedVer::kPHLX     ? "PHLX"        : \
+  x == EfhFeedVer::kMIAX     ? "MIAX"        : \
+  x == EfhFeedVer::kBATS     ? "BATS"        : \
+  x == EfhFeedVer::kCBOE     ? "CBOE"        : \
+  x == EfhFeedVer::kXDP      ? "XDP"         : \
+  x == EfhFeedVer::kPLR      ? "PLR"         : \
+  x == EfhFeedVer::kBOX      ? "BOX"         : \
+  x == EfhFeedVer::kCME      ? "CME"         : \
+                               "UNKNOWN"
 #define EKA_TS_DECODE(x) \
-  x == EfhTradeStatus::kUninit       ? '_' :	\
-    x == EfhTradeStatus::kGapRecover ? 'G' :	\
-    x == EfhTradeStatus::kHalted     ? 'H' :	\
-    x == EfhTradeStatus::kPreopen    ? 'P' :	\
-    x == EfhTradeStatus::kNormal     ? 'N' :	\
-    x == EfhTradeStatus::kClosed     ? 'C' :	\
-    'X'
+  x == EfhTradeStatus::kUninit     ? '_' : \
+  x == EfhTradeStatus::kGapRecover ? 'G' : \
+  x == EfhTradeStatus::kHalted     ? 'H' : \
+  x == EfhTradeStatus::kPreopen    ? 'P' : \
+  x == EfhTradeStatus::kNormal     ? 'N' : \
+  x == EfhTradeStatus::kClosed     ? 'C' : \
+  'X'
 
 inline int strikePriceScaleFactor (EkaSource exch) {
   switch (EFH_EXCH2FEED(exch)) {
