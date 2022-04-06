@@ -266,6 +266,7 @@ struct TestCase {
 };
 /* ############################################# */
 bool runTestCase(EkaDev *dev, TestCase *testCase) {
+  TEST_LOG("\n==============\nExecuting: \'%s\'\n==============",testCase->testCaseName);
   uint dataAlignment = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_PayloadAlignment);
   uint nwHdrOffset   = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_DatagramOffset);
   uint fcsOffset     = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_RequiredTailPadding);
@@ -292,16 +293,17 @@ bool runTestCase(EkaDev *dev, TestCase *testCase) {
     heapOffset = heapOffset + dataAlignment - (heapOffset % dataAlignment) + nwHdrOffset;
 
     EpmAction epmAction = {
-      .token         = currAction->token,                      ///< Security token
-      .hConn         = testCase->conn,                         ///< TCP connection where segments will be sent
-      .offset        = heapOffset,                             ///< Offset to payload in payload heap
-      .length        = (uint32_t)strlen(pkt2send),             ///< Payload length
-      .actionFlags   = currAction->validFlag,                  ///< Behavior flags (see EpmActionFlag)
-      .nextAction    = nextActionId,                           ///< Next action in sequence, or EPM_LAST_ACTION
-      .enable        = currAction->enableBitmap,               ///< Enable bits
-      .postLocalMask = currAction->postLocalMask,              ///< Post fire: enable & mask -> enable
-      .postStratMask = currAction->postStratMask,              ///< Post fire: strat-enable & mask -> strat-enable
-      .user          = static_cast<uintptr_t>(testCase->user)  ///< Opaque value copied into `EpmFireReport`.
+	.type          = EpmActionType::UserAction,
+	.token         = currAction->token,                      ///< Security token
+	.hConn         = testCase->conn,                         ///< TCP connection where segments will be sent
+	.offset        = heapOffset,                             ///< Offset to payload in payload heap
+	.length        = (uint32_t)strlen(pkt2send),             ///< Payload length
+	.actionFlags   = currAction->validFlag,                  ///< Behavior flags (see EpmActionFlag)
+	.nextAction    = nextActionId,                           ///< Next action in sequence, or EPM_LAST_ACTION
+	.enable        = currAction->enableBitmap,               ///< Enable bits
+	.postLocalMask = currAction->postLocalMask,              ///< Post fire: enable & mask -> enable
+	.postStratMask = currAction->postStratMask,              ///< Post fire: strat-enable & mask -> strat-enable
+	.user          = static_cast<uintptr_t>(testCase->user)  ///< Opaque value copied into `EpmFireReport`.
     };
     ekaRC = epmPayloadHeapCopy(dev,
 			       static_cast<epm_strategyid_t>(testCase->testStrategy.id),
@@ -361,7 +363,9 @@ bool runTestCase(EkaDev *dev, TestCase *testCase) {
 
   if (testCase->expectedAction[numFireEvents] != 0) {
       testPassed = false;
-      TEST_FAILED("Expected more events than fired: %d",numFireEvents);
+      TEST_FAILED("Expected: %d, fired: %d",
+		  NumActionsPerTestCase,
+		  numFireEvents);
   }
 
   /* ============================================== */
