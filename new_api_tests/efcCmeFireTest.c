@@ -453,10 +453,12 @@ int main(int argc, char *argv[]) {
     // CME FastCancel EFC config
     static const uint64_t CmeTestFastCancelAlwaysFire = 0xadcd;
     static const uint64_t CmeTestFastCancelToken = 0x1122334455667788;
-    //static const uint64_t CmeTestFastCancelToken = 0;
     static const uint64_t CmeTestFastCancelUser  = 0xaabbccddeeff0011;
-    static const uint16_t CmeTestFastCancelMaxMsgSize = 1300;
-    static const uint8_t  CmeTestFastCancelMinNoMDEntries = 0;
+    static const uint16_t CmeTestFastCancelMaxMsgSize     = 97; //">96"
+    static const uint8_t  CmeTestFastCancelMinNoMDEntries = 0; //"<1"
+
+    static const uint16_t CmeTestFastCancelMaxMsgSizeTicker     = 96; //HARDCODED, not used by tickersend
+    static const uint8_t  CmeTestFastCancelMinNoMDEntriesTicker = 1;  //HARDCODED, not used by tickersend
 
     const EfcCmeFastCancelParams params = {
 	.maxMsgSize     = CmeTestFastCancelMaxMsgSize,
@@ -544,7 +546,7 @@ int main(int argc, char *argv[]) {
 #endif
     
     sendCmeTradeMsg(serverIp,triggerIp,triggerUdpPort,
-		    CmeTestFastCancelMaxMsgSize - 1, CmeTestFastCancelMinNoMDEntries + 1);
+		    CmeTestFastCancelMaxMsgSizeTicker, CmeTestFastCancelMinNoMDEntriesTicker);
 
     if (fatalDebug) {
 	TEST_LOG(RED "\n=====================\nFATAL DEBUG: ON\n=====================\n" RESET);

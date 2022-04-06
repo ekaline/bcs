@@ -2,6 +2,7 @@
 #include "EfcCme.h"
 #include "EkaEpmAction.h"
 #include "EkaTcpSess.h"
+#include "EkaHwInternalStructs.h"
 
 int getSessAppSeqId(EkaDev* dev, ExcConnHandle hConn);
 
@@ -11,22 +12,7 @@ EkaOpResult efcCmeFastCancelInit(EkaDev *dev,
   if (! dev) on_error("! dev");
   if (! params) on_error("! params");
 
-/* typedef struct packed { */
-/*         bit [7:0] strategy_region;   */
-/*         bit [15:0] strategy_index;   */
-/*         bit [63:0] token;   */
-/* 	bit [15:0] max_header_size; */
-/* 	bit [7:0] min_num_in_group; */
-/* } sh_cancels_param_t; */
 
-  struct EfcCmeFastCancelStrategyConf {
-//      uint8_t        pad[2];      
-      uint8_t        minNoMDEntries;
-      uint16_t       maxMsgSize;
-      uint64_t       token;
-      uint16_t       fireActionId;
-      uint8_t        strategyId;
-  } __attribute__ ((aligned(sizeof(uint64_t)))) __attribute__((packed));
 
   const EfcCmeFastCancelStrategyConf conf = {
 //      .pad            = {},
@@ -43,8 +29,8 @@ EkaOpResult efcCmeFastCancelInit(EkaDev *dev,
 	  conf.token,
 	  conf.fireActionId,
 	  conf.strategyId);
-  hexDump("EfcCmeFastCancelStrategyConf",&conf,sizeof(conf));
-  copyBuf2Hw(dev,0x83000,(uint64_t *)&conf,sizeof(conf));
+  //  hexDump("EfcCmeFastCancelStrategyConf",&conf,sizeof(conf));
+  copyBuf2Hw(dev,0x84000,(uint64_t *)&conf,sizeof(conf));
   return EKA_OPRESULT__OK;
 }
 
