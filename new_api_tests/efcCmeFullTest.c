@@ -70,7 +70,7 @@ void  INThandler(int sig) {
 }
 
 /* --------------------------------------------- */
-void tcpServer(EkaDev* dev, std::string ip, uint16_t port, int* sock, bool* serverSet) {
+void tcpServer(EkaDev* dev, std::string ip, uint16_t port, bool* serverSet) {
   pthread_setname_np(pthread_self(),"tcpServerParent");
 
   printf("Starting TCP server: %s:%u\n",ip.c_str(),port);
@@ -101,19 +101,26 @@ void tcpServer(EkaDev* dev, std::string ip, uint16_t port, int* sock, bool* serv
   *serverSet = true;
 
   int addr_size = sizeof(addr);
-  *sock = accept(sd, (struct sockaddr*)&addr,(socklen_t*) &addr_size);
-  EKA_LOG("Connected from: %s:%d -- sock=%d\n",
-	  inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),*sock);
+  int tcpSock = socket(PF_INET, SOCK_STREAM, 0);
+  if (tcpSock < 0) on_error("Socket");
 
-  int status = fcntl(*sock, F_SETFL, fcntl(*sock, F_GETFL, 0) | O_NONBLOCK);
-  if (status == -1)  on_error("fcntl error");
+  tcpSock = accept(sd, (struct sockaddr*)&addr,(socklen_t*) &addr_size);
+  EKA_LOG("Connected from: %s:%d -- sock=%d\n",
+	  inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),tcpSock);
+
+  int status = fcntl(tcpSock, F_SETFL, fcntl(tcpSock, F_GETFL, 0) | O_NONBLOCK);
+  if (status < 0)  on_error("fcntl error");
   do {
       char line[1536] = {};
-      int bytes_read = recv(*sock, line, sizeof(line), 0);
+      int bytes_read = recv(tcpSock, line, sizeof(line), 0);
+      if (bytes_read < 0) {
+	  if (errno != EAGAIN && errno != EWOULDBLOCK)
+	      on_error("bytes_read = %d",bytes_read);
+      }
       if (bytes_read > 0) {
-	  /* TEST_LOG ("recived pkt: %s",line); */
-	  /* fflush(stderr); */
-	  send(*sock, line, bytes_read, 0);
+	  TEST_LOG ("recived pkt: %s",line);
+	  fflush(stderr);
+	  send(tcpSock, line, bytes_read, 0);
       }
   } while (keep_work);
   return;
@@ -251,8 +258,8 @@ static int sendCmeTradeMsg(std::string serverIp,
     	on_error("failed to bind server triggerSock to %s:%u",
     		 EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),be16toh(triggerSourceAddr.sin_port));
     } else {
-    	TEST_LOG("triggerSock is binded to %s:%u",
-    		EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),be16toh(triggerSourceAddr.sin_port));
+    	/* TEST_LOG("triggerSock is binded to %s:%u", */
+    	/* 	EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),be16toh(triggerSourceAddr.sin_port)); */
     }
     struct sockaddr_in triggerMcAddr = {};
     triggerMcAddr.sin_family      = AF_INET;
@@ -300,6 +307,7 @@ static int sendCmeTradeMsg(std::string serverIp,
 	    EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
     if (sendto(triggerSock,pkt,payloadLen,0,(const sockaddr*)&triggerMcAddr,sizeof(triggerMcAddr)) < 0) 
 	on_error ("MC trigger send failed");
+    close(triggerSock);
     return 0;
 }
 
@@ -376,20 +384,15 @@ int main(int argc, char *argv[]) {
     // ==============================================
     // Launching TCP test Servers
     if (isEkalineLocal()) {
-	int tcpSock[MaxTcpTestSessions] = {};
-
-	for (auto i = 0; i < numTcpSess; i++) {
-	    bool serverSet = false;
-	    std::thread server = std::thread(tcpServer,
-					     dev,
-					     serverIp,
-					     serverTcpPort + i,
-					     &tcpSock[i],
-					     &serverSet);
-	    server.detach();
-	    while (keep_work && ! serverSet)
-		sleep (0);
-	}
+	bool serverSet = false;
+	std::thread server = std::thread(tcpServer,
+					 dev,
+					 serverIp,
+					 serverTcpPort,
+					 &serverSet);
+	server.detach();
+	while (keep_work && ! serverSet)
+	    sleep (0);
     }
     
     // ==============================================
@@ -411,10 +414,13 @@ int main(int argc, char *argv[]) {
 		   i,EKA_IP2STR(serverAddr.sin_addr.s_addr),
 		   be16toh(serverAddr.sin_port));
 	const char* pkt = "\n\nThis is 1st TCP packet sent from FPGA TCP client to Kernel TCP server\n\n";
+	excSetBlocking(dev, excSock, false);
+	
 	excSend (dev, conn[i], pkt, strlen(pkt),0);
 	int bytes_read = 0;
 	char rxBuf[2000] = {};
 //	bytes_read = recv(tcpSock[i], rxBuf, sizeof(rxBuf), 0);
+	EKA_LOG("Sent: %s\n waiting for the echo...",pkt);
 	bytes_read = excRecv(dev,conn[i], rxBuf, sizeof(rxBuf), 0);
 	if (bytes_read > 0) EKA_LOG("\n%s",rxBuf);
     }
@@ -575,20 +581,33 @@ int main(int argc, char *argv[]) {
 	     "Waiting for Market data to Fire on"
 	     "\n===========================\n");
 
-    
-#ifndef _VERILOG_SIM
-    while (keep_work) {
-	int bytes_read = 0;
-	char rxBuf[2000] = {};
-	bytes_read = excRecv(dev,conn[0], rxBuf, sizeof(rxBuf), 0);
-	if (bytes_read > 0)
-	    hexDump("Echoed back Fired Pkt:",rxBuf,bytes_read);
+    if (isEkalineLocal()) {
+	static const int FireIterations = 10000;
+	static const uint16_t CmeTestFastCancelMaxMsgSizeTicker     = 100;
+	static const uint8_t  CmeTestFastCancelMinNoMDEntriesTicker = 2;
+	for (int i  = 0; i < FireIterations && keep_work; i++) {
+	    printf ("===============================\n");
+	    printf ("============ %5d ============\n",i);
+	    printf ("===============================\n");
+	    sendCmeTradeMsg(serverIp,triggerIp,triggerUdpPort,
+			    CmeTestFastCancelMaxMsgSizeTicker,
+			    CmeTestFastCancelMinNoMDEntriesTicker);
+	    char rxBuf[2000] = {};
+	    int bytes_read = -1;
+	    do {
+		bytes_read = excRecv(dev,conn[0], rxBuf, sizeof(rxBuf), 0);
+		if (bytes_read > 0)
+		    hexDump("Echoed back Fired Pkt:",rxBuf,bytes_read);
+	    } while (bytes_read <= 0);
+	}
+    } else {    
+	while (keep_work) {
+	    char rxBuf[2000] = {};
+	    int bytes_read = excRecv(dev,conn[0], rxBuf, sizeof(rxBuf), 0);
+	    if (bytes_read > 0)
+		hexDump("Echoed back Fired Pkt:",rxBuf,bytes_read);
+	}
     }
-#endif
-
-    sleep(1);
-    fflush(stdout);fflush(stderr);
-
 
     /* ============================================== */
 
