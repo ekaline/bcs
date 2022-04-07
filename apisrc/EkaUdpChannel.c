@@ -28,7 +28,9 @@
 void hexDump (const char* desc, void *addr, int len);
 
 bool EkaUdpChannel::has_data() {
-  pIncomingUdpPacket = SN_GetNextPacket(ChannelId, pPreviousUdpPacket, SN_TIMEOUT_NONE);
+  pIncomingUdpPacket = SN_GetNextPacket(ChannelId,
+					pPreviousUdpPacket,
+					SN_TIMEOUT_NONE);
   return  pIncomingUdpPacket == NULL ? false : true;
 }
 
@@ -43,11 +45,12 @@ int16_t EkaUdpChannel::getPayloadLen() {
 }
 
 void EkaUdpChannel::next() {
-  if (pIncomingUdpPacket == NULL) on_error("pIncomingUdpPacket == NULL");
+  if (pIncomingUdpPacket == NULL)
+    on_error("pIncomingUdpPacket == NULL");
 
   if (++ptr_update_ctr % 1000 == 0)
     if (SN_UpdateReceivePtr(ChannelId, pIncomingUdpPacket) != SN_ERR_SUCCESS)
-      on_error ("PIZDETS");
+      on_error ("Failed on SN_UpdateReceivePtr");
   pPreviousUdpPacket = pIncomingUdpPacket;
   return;
 }
@@ -71,7 +74,8 @@ uint64_t EkaUdpChannel::emptyBuffer() {
   return pktCtr;
 }
 
-EkaUdpChannel::EkaUdpChannel(EkaDev* ekaDev, uint8_t coreId, int requestedChId) {
+EkaUdpChannel::EkaUdpChannel(EkaDev* ekaDev, uint8_t coreId,
+			     int requestedChId) {
   dev = ekaDev;
   pkt_payload_ptr = NULL;
 
@@ -80,10 +84,13 @@ EkaUdpChannel::EkaUdpChannel(EkaDev* ekaDev, uint8_t coreId, int requestedChId) 
   packetBytesTotal = 0;
   pPreviousUdpPacket = NULL;
   pIncomingUdpPacket = NULL;
-  if (!SN_IsUdpLane(dev->snDev->dev_id, core)) on_error("Lane %u is not configured as an UDP lane!",core);
+  if (!SN_IsUdpLane(dev->snDev->dev_id, core))
+    on_error("Lane %u is not configured as an UDP lane!",core);
 
-  ChannelId = SN_AllocateUdpChannel(dev->snDev->dev_id, core, requestedChId, NULL);
-  if (ChannelId == NULL) on_error("Cannot open UDP channel");
+  ChannelId = SN_AllocateUdpChannel(dev->snDev->dev_id, core,
+				    requestedChId, NULL);
+  if (ChannelId == NULL)
+    on_error("Cannot open UDP channel");
 
   chId = SC_GetChannelNumber(ChannelId);
   if (requestedChId != -1 && requestedChId != chId) {
@@ -91,7 +98,9 @@ EkaUdpChannel::EkaUdpChannel(EkaDev* ekaDev, uint8_t coreId, int requestedChId) 
   }
 
   while (1) {
-    pPreviousUdpPacket = SC_GetNextPacket(ChannelId, pPreviousUdpPacket, SC_TIMEOUT_NONE);      
+    pPreviousUdpPacket = SC_GetNextPacket(ChannelId,
+					  pPreviousUdpPacket,
+					  SC_TIMEOUT_NONE);      
     if (pPreviousUdpPacket == NULL) break;
     if (SC_UpdateReceivePtr(ChannelId, pPreviousUdpPacket) != SN_ERR_SUCCESS) 
       on_error ("Failed to sync DMA ReceivePtr");
@@ -134,5 +143,7 @@ void EkaUdpChannel::igmp_mc_join (uint32_t mcast_ip, uint16_t mcast_port, int16_
 
 EkaUdpChannel::~EkaUdpChannel() {
   SN_Error errorCode = SN_DeallocateChannel(ChannelId);
-  if (errorCode != SN_ERR_SUCCESS) on_error("SN_DeallocateChannel failed with error code %d", errorCode);
+  if (errorCode != SN_ERR_SUCCESS)
+    on_error("SN_DeallocateChannel failed with error code %d",
+	     errorCode);
 }

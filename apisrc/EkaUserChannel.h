@@ -13,8 +13,13 @@
 
 class EkaUserChannel {
  public:
-  enum class TYPE     : uint8_t { EPM_REPORT = 0, LWIP_PATH = 1/* , TCP_RX = 2 */ } ; //user channel
-  enum class DMA_TYPE : uint8_t { FIRE = 1, EPM = 3, TCPRX = 4 }; // type in descriptor
+  enum class TYPE     : uint8_t {
+				 EPM_REPORT = 0,
+				 LWIP_PATH = 1} ; //user channel
+  enum class DMA_TYPE : uint8_t {
+				 FIRE = 1,
+				 EPM = 3,
+				 TCPRX = 4 }; // type in descriptor
 
   TYPE type;
 
@@ -32,6 +37,7 @@ class EkaUserChannel {
     packetBytesTotal = 0;
 
     pIncomingUdpPacket = NULL;
+    pPreviousUdpPacket = NULL;
 
     ChannelId = SN_AllocateUserLogicChannel(dev_id,(int16_t)type, NULL);
 
@@ -45,7 +51,8 @@ class EkaUserChannel {
 	    USR_CH_DECODE(type),(int16_t)type);
 
     while (1) {
-      pPreviousUdpPacket = SC_GetNextPacket(ChannelId, pPreviousUdpPacket,
+      pPreviousUdpPacket = SC_GetNextPacket(ChannelId,
+					    pPreviousUdpPacket,
 					    SC_TIMEOUT_NONE);      
       if (pPreviousUdpPacket == NULL) break;
       if (SC_UpdateReceivePtr(ChannelId, pPreviousUdpPacket) != SN_ERR_SUCCESS) 
@@ -68,7 +75,8 @@ class EkaUserChannel {
 
   bool  hasData() {
     pIncomingUdpPacket = SN_GetNextPacket(ChannelId,
-					  pPreviousUdpPacket, SN_TIMEOUT_NONE);
+					  pPreviousUdpPacket,
+					  SN_TIMEOUT_NONE);
     return  pIncomingUdpPacket == NULL ? false : true;
   }
 
@@ -77,30 +85,30 @@ class EkaUserChannel {
     return pkt_payload_ptr;
   }
 
-  uint              getPayloadSize() {
+  uint getPayloadSize() {
     return SN_GetUserLogicPayloadLength(pIncomingUdpPacket);
   }
 
-  void              next() {
+  void next() {
     if (pIncomingUdpPacket == NULL)
       on_error("pIncomingUdpPacket == NULL");
     if (SN_UpdateReceivePtr(ChannelId, pIncomingUdpPacket) != SN_ERR_SUCCESS)
-      on_error ("PIZDETS");
+      on_error ("Failed on SN_UpdateReceivePtr");
     pPreviousUdpPacket = pIncomingUdpPacket;
   }
 
   private:
-  EkaDev*           dev;
+  EkaDev*           dev = NULL;
   SN_DeviceId       dev_id;
 
-  uint              ptr_update_ctr;
-  uint64_t          packetBytesTotal;
+  uint              ptr_update_ctr = 0;
+  uint64_t          packetBytesTotal = 0;
   SN_ChannelId      ChannelId;
 
-  const uint8_t*    pkt_payload_ptr;
+  const uint8_t*    pkt_payload_ptr = NULL;
 
-  const SN_Packet * pIncomingUdpPacket;
-  const SN_Packet * pPreviousUdpPacket;
+  const SN_Packet * pIncomingUdpPacket = NULL;
+  const SN_Packet * pPreviousUdpPacket = NULL;
 };
 
 #endif

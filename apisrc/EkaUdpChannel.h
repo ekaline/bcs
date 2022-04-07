@@ -54,7 +54,7 @@ class EkaUdpChannel {
   uint                    ptr_update_ctr     = 0;
   uint64_t                packetBytesTotal   = 0;
   SN_ChannelId            ChannelId;
-  int16_t                 payloadLength      = 0;;
+  int16_t                 payloadLength      = 0;
 
   const uint8_t*          pkt_payload_ptr    = NULL;
 
