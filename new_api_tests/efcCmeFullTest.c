@@ -127,7 +127,15 @@ void tcpServer(EkaDev* dev, std::string ip, uint16_t port, int* sock, bool* serv
 
   int status = fcntl(*sock, F_SETFL, fcntl(*sock, F_GETFL, 0) | O_NONBLOCK);
   if (status == -1)  on_error("fcntl error");
-
+  do {
+      char line[1536] = {};
+      int bytes_read = recv(*sock, line, sizeof(line), 0);
+      if (bytes_read > 0) {
+	  /* TEST_LOG ("recived pkt: %s",line); */
+	  /* fflush(stderr); */
+	  send(*sock, line, bytes_read, 0);
+      }
+  } while (testCtx->keep_work);
   return;
 }
 
@@ -316,6 +324,14 @@ static int sendCmeTradeMsg(std::string serverIp,
 }
 
 /* ############################################# */
+static bool isEkalineLocal() {
+    for (auto const& ekaLabMachine : {"xn01", "xn04"})
+	if (! strcmp(std::getenv("HOSTNAME"),ekaLabMachine))
+	    return true;
+    return false;
+}
+
+/* ############################################# */
 int main(int argc, char *argv[]) {
   
     signal(SIGINT, INThandler);
@@ -327,9 +343,8 @@ int main(int argc, char *argv[]) {
     std::string clientIp        = "100.0.0.110";    // Ekaline lab default
     std::string triggerIp       = "224.0.74.0";     // Ekaline lab default (C1 CC feed)
     uint16_t triggerUdpPort     = 30301;            // C1 CC gr#0
-    uint16_t serverTcpBasePort  = 22345;            // Ekaline lab default
+    uint16_t serverTcpPort      = 22345;            // Ekaline lab default
     uint16_t numTcpSess         = 1;
-    uint16_t serverTcpPort      = serverTcpBasePort;
     bool     runEfh             = false;
     bool     fatalDebug          = false;
   
@@ -349,39 +364,39 @@ int main(int argc, char *argv[]) {
 
     // ==============================================
     // 10G Port (core) setup
-    for (auto const& ekaLabMachine : {"xn01", "xn04"}) {
-	if (! strcmp(std::getenv("HOSTNAME"),ekaLabMachine)) {
-	    const EkaCoreInitCtx ekaCoreInitCtx = {
-		.coreId = coreId,
-		.attrs = {
-		    .host_ip      = inet_addr(clientIp.c_str()),
-		    .netmask      = inet_addr("255.255.255.0"),
-		    .gateway      = inet_addr(serverIp.c_str()),
-		    .nexthop_mac  = {}, // resolved by our internal ARP
-		    .src_mac_addr = {}, // taken from system config
-		    .dont_garp    = 0
-		}
-	    };
-	    ekaDevConfigurePort (dev, &ekaCoreInitCtx);
-	    break;
-	}
+    if (isEkalineLocal()) {
+	const EkaCoreInitCtx ekaCoreInitCtx = {
+	    .coreId = coreId,
+	    .attrs = {
+		.host_ip      = inet_addr(clientIp.c_str()),
+		.netmask      = inet_addr("255.255.255.0"),
+		.gateway      = inet_addr(serverIp.c_str()),
+		.nexthop_mac  = {}, // resolved by our internal ARP
+		.src_mac_addr = {}, // taken from system config
+		.dont_garp    = 0
+	    }
+	};
+	ekaDevConfigurePort (dev, &ekaCoreInitCtx);
     }
     // ==============================================
     // Launching TCP test Servers
-    int tcpSock[MaxTcpTestSessions] = {};
+    if (isEkalineLocal()) {
+	int tcpSock[MaxTcpTestSessions] = {};
 
-    for (auto i = 0; i < numTcpSess; i++) {
-	bool serverSet = false;
-	std::thread server = std::thread(tcpServer,
-					 dev,
-					 serverIp,
-					 serverTcpBasePort + i,
-					 &tcpSock[i],
-					 &serverSet);
-	server.detach();
-	while (testCtx->keep_work && ! serverSet)
-	    sleep (0);
+	for (auto i = 0; i < numTcpSess; i++) {
+	    bool serverSet = false;
+	    std::thread server = std::thread(tcpServer,
+					     dev,
+					     serverIp,
+					     serverTcpPort + i,
+					     &tcpSock[i],
+					     &serverSet);
+	    server.detach();
+	    while (testCtx->keep_work && ! serverSet)
+		sleep (0);
+	}
     }
+    
     // ==============================================
     // Establishing EXC connections for EPM/EFC fires 
 
@@ -391,7 +406,7 @@ int main(int argc, char *argv[]) {
 	struct sockaddr_in serverAddr = {};
 	serverAddr.sin_family      = AF_INET;
 	serverAddr.sin_addr.s_addr = inet_addr(serverIp.c_str());
-	serverAddr.sin_port        = be16toh(serverTcpBasePort + i);
+	serverAddr.sin_port        = be16toh(serverTcpPort + i);
 
 	int excSock = excSocket(dev,coreId,0,0,0);
 	if (excSock < 0) on_error("failed to open sock %d",i);
@@ -404,7 +419,8 @@ int main(int argc, char *argv[]) {
 	excSend (dev, conn[i], pkt, strlen(pkt),0);
 	int bytes_read = 0;
 	char rxBuf[2000] = {};
-	bytes_read = recv(tcpSock[i], rxBuf, sizeof(rxBuf), 0);
+//	bytes_read = recv(tcpSock[i], rxBuf, sizeof(rxBuf), 0);
+	bytes_read = excRecv(dev,conn[i], rxBuf, sizeof(rxBuf), 0);
 	if (bytes_read > 0) EKA_LOG("\n%s",rxBuf);
     }
 
@@ -554,15 +570,14 @@ int main(int argc, char *argv[]) {
 		    CmeTestFastCancelMaxMsgSizeTicker, CmeTestFastCancelMinNoMDEntriesTicker);
 
 #endif
-    // ==============================================
 
     if (fatalDebug) {
 	TEST_LOG(RED "\n=====================\nFATAL DEBUG: ON\n=====================\n" RESET);
 	eka_write(dev,0xf0f00,0xefa0beda);
     }
 
-// ==============================================
 
+    
 
     TEST_LOG("\n===========================\nEND OT TESTS\n===========================\n");
 
