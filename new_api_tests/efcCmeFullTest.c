@@ -585,7 +585,14 @@ int main(int argc, char *argv[]) {
     sleep(2);
     EKA_LOG("--Test finished, ctrl-c to end---");
 //  testCtx->keep_work = false;
-    while (testCtx->keep_work) { sleep(0); }
+    while (testCtx->keep_work) {
+	int bytes_read = 0;
+	char rxBuf[2000] = {};
+	bytes_read = excRecv(dev,conn[0], rxBuf, sizeof(rxBuf), 0);
+	if (bytes_read > 0)
+	    EKA_LOG("Echoed back Fired Pkt:\n%s",rxBuf);
+//	sleep(0);
+    }
 #endif
 
     sleep(1);
