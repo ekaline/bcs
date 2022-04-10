@@ -9,7 +9,7 @@ EhpNews::EhpNews(EkaDev* dev) : EhpProtocol(dev) {
   conf.params.protocolID         = static_cast<decltype(conf.params.protocolID)>(EhpHwProtocol::NEWS);
   conf.params.pktHdrLen          = 0;
   conf.params.msgDeltaSize       = EhpNoMsgSize;
-  conf.params.bytes4StartMsgProc = 16;
+  conf.params.bytes4StartMsgProc = 4; //stam - no msgid in protocol
  
   conf.fields.sequence[0].msgId      = 0; //Not relevant
   conf.fields.sequence[0].opcode     = EhpOpcode::NOP;
@@ -36,7 +36,7 @@ int EhpNews::createNews() {
   int      msgType = NewsMsg;
 
   conf.params.bytes4Strategy[msgType].msgId    = msgId; // !!! only this  msgid is used to detect template
-  conf.params.bytes4Strategy[msgType].byteOffs = 24;
+  conf.params.bytes4Strategy[msgType].byteOffs = 16;
 
   conf.params.bytes4SecLookup[msgType].msgId    = msgId;
   conf.params.bytes4SecLookup[msgType].byteOffs = 255; //no lookup
