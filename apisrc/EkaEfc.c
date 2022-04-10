@@ -349,13 +349,10 @@ int EkaEfc::checkSanity() {
 int EkaEfc::run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx) {
   checkSanity();
   
-  /* memcpy(&localCopyEfcCtx,   pEfcCtx,   sizeof(EfcCtx)); */
-  /* memcpy(&localCopyEfcRunCtx,pEfcRunCtx,sizeof(EfcRunCtx)); */
-
   reportCb   = pEfcRunCtx->onEfcFireReportCb ? pEfcRunCtx->onEfcFireReportCb :
     efcPrintFireReport;
-  cbCtx      = pEfcRunCtx->cbCtx ? pEfcRunCtx->cbCtx : dev;
-  
+  cbCtx      = pEfcRunCtx->cbCtx;
+
   setHwGlobalParams();
   setHwUdpParams();
   if (hwFeedVer != EfhFeedVer::kCME)

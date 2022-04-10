@@ -320,6 +320,39 @@ static bool isEkalineLocal() {
 }
 
 /* ############################################# */
+void sendCmeTradeMsgsLoop(int msgCnt, std::string srcIp,
+		      std::string dstIp, uint16_t dstPort,
+		      uint16_t cmeTradeMsgLen,
+		      uint8_t cmeNoMDEntriesTicker) {
+	for (int i  = 0; i < msgCnt && keep_work; i++) {
+	    /* printf ("===============================\n"); */
+	    /* printf ("========== %7d ============\n",i); */
+	    /* printf ("===============================\n"); */
+	  printf (".");
+	  if (i % 40 == 0) printf ("\n");
+	    sendCmeTradeMsg(srcIp,dstIp,dstPort,
+			    cmeTradeMsgLen,cmeNoMDEntriesTicker);
+	    sleep(0);
+	}
+}
+
+/* ############################################# */
+
+void excRecvLoop(EkaDev* dev, ExcConnHandle conn) {
+  const char* fileName = "testExcRecv.log";
+  std::FILE* file = fopen(fileName,"w");
+  if (!file) on_error("Failed to create %s",fileName);
+  
+    while (keep_work) {
+      char rxBuf[2000] = {};
+      int bytes_read = excRecv(dev,conn,rxBuf,sizeof(rxBuf),0);
+      if (bytes_read > 0)
+	hexDump("Echoed back Fired Pkt",rxBuf,bytes_read,file);
+    }
+    fclose(file);
+}
+
+/* ############################################# */
 
 void efcOnFireReportDummy(const void* p, size_t len, void* ctx) {}
     
@@ -327,6 +360,10 @@ void efcOnFireReportDummy(const void* p, size_t len, void* ctx) {}
 int main(int argc, char *argv[]) {
   
     signal(SIGINT, INThandler);
+
+    const char* fireReportLogFileName = "fireReport.log";
+    FILE* fireReportLog = fopen(fireReportLogFileName,"w");
+    if (!fireReportLog) on_error("Failed to create %s",fireReportLogFileName);
 
     // ==============================================
 
@@ -475,7 +512,8 @@ int main(int argc, char *argv[]) {
 
     EfcRunCtx runCtx = {};
     runCtx.onEfcFireReportCb = efcPrintFireReport; // default print out routine
-//    runCtx.onEfcFireReportCb = efcOnFireReportDummy; // Empty callback
+    runCtx.cbCtx = fireReportLog;
+    //    runCtx.onEfcFireReportCb = efcOnFireReportDummy; // Empty callback
     // ==============================================
     // CME FastCancel EFC config
     static const uint64_t CmeTestFastCancelAlwaysFire = 0xadcd;
@@ -586,40 +624,34 @@ int main(int argc, char *argv[]) {
 	     "Waiting for Market data to Fire on"
 	     "\n===========================\n");
 
+    std::thread tradeMsgGeneratorThr;
     if (isEkalineLocal()) {
-	static const int FireIterations = 1000000;
-	static const uint16_t CmeTestFastCancelMaxMsgSizeTicker     = 100;
-	static const uint8_t  CmeTestFastCancelMinNoMDEntriesTicker = 2;
-	for (int i  = 0; i < FireIterations && keep_work; i++) {
-	    printf ("===============================\n");
-	    printf ("========== %7d ============\n",i);
-	    printf ("===============================\n");
-	    sendCmeTradeMsg(serverIp,triggerIp,triggerUdpPort,
-			    CmeTestFastCancelMaxMsgSizeTicker,
-			    CmeTestFastCancelMinNoMDEntriesTicker);
-	    char rxBuf[2000] = {};
-	    int bytes_read = -1;
-	    do {
-		bytes_read = excRecv(dev,conn[0], rxBuf, sizeof(rxBuf), 0);
-		/* if (bytes_read > 0) */
-		/*     hexDump("Echoed back Fired Pkt:",rxBuf,bytes_read); */
-	    } while (keep_work && bytes_read <= 0);
-	}
-    } else {    
-	while (keep_work) {
-	    char rxBuf[2000] = {};
-	    int bytes_read = excRecv(dev,conn[0], rxBuf, sizeof(rxBuf), 0);
-	    if (bytes_read > 0)
-		hexDump("Echoed back Fired Pkt:",rxBuf,bytes_read);
-	}
-    }
+	static const int msgCnt = 1000000;
+	static const uint16_t cmeTradeMsgLen     = 100;
+	static const uint8_t  cmeNoMDEntriesTicker = 2;
 
+	tradeMsgGeneratorThr = std::thread(sendCmeTradeMsgsLoop,
+					   msgCnt,serverIp,
+					   triggerIp,triggerUdpPort,
+					   cmeTradeMsgLen,
+					   cmeNoMDEntriesTicker);
+    }    
+
+    auto excRecvThr = std::thread(excRecvLoop,dev,conn[0]);
+    
+    while (keep_work) { sleep (0); }
+    /* ============================================== */
+
+    excRecvThr.join();
+    if (isEkalineLocal()) {
+      tradeMsgGeneratorThr.join();
+    }
     /* ============================================== */
 
     printf("Closing device\n");
 
     ekaDevClose(dev);
-    sleep(1);
-  
+    
+    fclose(fireReportLog);
     return 0;
 }

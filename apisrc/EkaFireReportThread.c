@@ -265,7 +265,8 @@ void ekaFireReportThread(EkaDev* dev) {
 	on_error("!strategy[%d]",strategyId);
     if (! reportedStrategy->reportCb)
 	on_error("reportCb is not defined");
-    reportedStrategy->reportCb(reportBuf,reportLen,dev);
+    reportedStrategy->reportCb(reportBuf,reportLen,
+			       reportedStrategy->cbCtx);
     epmReportCh->next();
     
   }

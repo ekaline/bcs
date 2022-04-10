@@ -18,63 +18,66 @@
 #include <errno.h>
 #include <thread>
 
+#include "eka_macros.h"
+
 #include "Efh.h"
 #include "Efc.h"
-#include "EkaCtxs.h"
-#include "EkaDev.h"
-#include "EkaSnDev.h"
-#include "EkaCore.h"
-#include "EkaTcpSess.h"
-#include "EkaEfc.h"
+#include "Epm.h"
+/* #include "EkaCtxs.h" */
+/* #include "EkaDev.h" */
+/* #include "EkaSnDev.h" */
+/* #include "EkaCore.h" */
+/* #include "EkaTcpSess.h" */
+/* #include "EkaEfc.h" */
 
 #include "EkaEfcDataStructs.h"
 
 /* ########################################################### */
-inline size_t printContainerGlobalHdr(EkaDev* dev, const uint8_t* b) {
+inline size_t printContainerGlobalHdr(FILE* file, const uint8_t* b) {
   auto containerHdr {reinterpret_cast<const EkaContainerGlobalHdr*>(b)};
-  EKA_LOG("%s with %d reports",
+  fprintf(file,"%s with %d reports\n",
 	  EkaEventType2STR(containerHdr->type),
 	  containerHdr->num_of_reports);
 
   return sizeof(*containerHdr);
 }
 /* ########################################################### */
-inline size_t printControllerState(EkaDev* dev, const uint8_t* b) {
+inline size_t printControllerState(FILE* file, const uint8_t* b) {
   auto controllerState {reinterpret_cast<const EfcControllerState*>(b)};
-  EKA_LOG("ControllerState (0x%02x):",controllerState->fire_reason);
-  EKA_LOG("\tforce_fire = %d", (controllerState->fire_reason & EFC_FIRE_REASON_FORCE_FIRE) != 0);
-  EKA_LOG("\tpass_bid   = %d", (controllerState->fire_reason & EFC_FIRE_REASON_PASS_BID) != 0);
-  EKA_LOG("\tpass_ask   = %d", (controllerState->fire_reason & EFC_FIRE_REASON_PASS_ASK) != 0);
-  EKA_LOG("\tsubscribed = %d", (controllerState->fire_reason & EFC_FIRE_REASON_SUBSCRIBED) != 0);
-  EKA_LOG("\tarmed      = %d", (controllerState->fire_reason & EFC_FIRE_REASON_ARMED) != 0);
+  fprintf(file,"ControllerState (0x%02x):\n",controllerState->fire_reason);
+  fprintf(file,"\tforce_fire = %d\n", (controllerState->fire_reason & EFC_FIRE_REASON_FORCE_FIRE) != 0);
+  fprintf(file,"\tpass_bid   = %d\n", (controllerState->fire_reason & EFC_FIRE_REASON_PASS_BID) != 0);
+  fprintf(file,"\tpass_ask   = %d\n", (controllerState->fire_reason & EFC_FIRE_REASON_PASS_ASK) != 0);
+  fprintf(file,"\tsubscribed = %d\n", (controllerState->fire_reason & EFC_FIRE_REASON_SUBSCRIBED) != 0);
+  fprintf(file,"\tarmed      = %d\n", (controllerState->fire_reason & EFC_FIRE_REASON_ARMED) != 0);
 
   return sizeof(*controllerState);
 }
 /* ########################################################### */
-inline size_t printExceptionReport(EkaDev* dev, const uint8_t* b) {
+inline size_t printExceptionReport(FILE* file, const uint8_t* b) {
 
   return sizeof(EfcControllerState);
 }
 /* ########################################################### */
-size_t printSecurityCtx(EkaDev* dev, const uint8_t* b) {
+size_t printSecurityCtx(FILE* file, const uint8_t* b) {
   auto secCtxReport {reinterpret_cast<const SecCtx*>(b)};
-  EKA_LOG("SecurityCtx:");
-  EKA_LOG("\tlowerBytesOfSecId = 0x%x ",secCtxReport->lowerBytesOfSecId);
-  EKA_LOG("\taskSize = %u",             secCtxReport->askSize);
-  EKA_LOG("\tbidSize = %u",             secCtxReport->bidSize);
-  EKA_LOG("\taskMaxPrice = %u (%u)",    secCtxReport->askMaxPrice, secCtxReport->askMaxPrice * 100);
-  EKA_LOG("\tbidMinPrice = %u (%u)",    secCtxReport->bidMinPrice, secCtxReport->bidMinPrice * 100);
-  EKA_LOG("\tversionKey = %u (0x%x)",   secCtxReport->versionKey,  secCtxReport->versionKey);
+  fprintf(file,"SecurityCtx:");
+  fprintf(file,"\tlowerBytesOfSecId = 0x%x \n",secCtxReport->lowerBytesOfSecId);
+  fprintf(file,"\taskSize = %u\n",             secCtxReport->askSize);
+  fprintf(file,"\tbidSize = %u\n",             secCtxReport->bidSize);
+  fprintf(file,"\taskMaxPrice = %u (%u)\n",    secCtxReport->askMaxPrice, secCtxReport->askMaxPrice * 100);
+  fprintf(file,"\tbidMinPrice = %u (%u)\n",    secCtxReport->bidMinPrice, secCtxReport->bidMinPrice * 100);
+  fprintf(file,"\tversionKey = %u (0x%x)\n",   secCtxReport->versionKey,  secCtxReport->versionKey);
 
   return sizeof(*secCtxReport);
 }
 /* ########################################################### */
-size_t printMdReport(EkaDev* dev, const uint8_t* b) {
+size_t printMdReport(FILE* file, const uint8_t* b) {
   auto mdReport {reinterpret_cast<const EfcMdReport*>(b)};
-  EKA_LOG("MdReport:");
-  EKA_LOG("\tGroup = %hhu", mdReport->group_id);
-  EKA_LOG("\tSequence no = %ju", intmax_t(mdReport->sequence));
-  EKA_LOG("\tSID = 0x%02x%02x%02x%02x%02x%02x%02x%02x",
+  fprintf(file,"MdReport:");
+  fprintf(file,"\tGroup = %hhu\n", mdReport->group_id);
+  fprintf(file,"\tSequence no = %ju\n", intmax_t(mdReport->sequence));
+  fprintf(file,"\tSID = 0x%02x%02x%02x%02x%02x%02x%02x%02x\n",
       (uint8_t)((mdReport->security_id >> 7*8) & 0xFF),
       (uint8_t)((mdReport->security_id >> 6*8) & 0xFF),
       (uint8_t)((mdReport->security_id >> 5*8) & 0xFF),
@@ -83,40 +86,40 @@ size_t printMdReport(EkaDev* dev, const uint8_t* b) {
       (uint8_t)((mdReport->security_id >> 2*8) & 0xFF),
       (uint8_t)((mdReport->security_id >> 1*8) & 0xFF),
       (uint8_t)((mdReport->security_id >> 0*8) & 0xFF));
-  EKA_LOG("\tSide = %c",    mdReport->side == 1 ? 'B' : 'S');
-  EKA_LOG("\tPrice = %8jd", intmax_t(mdReport->price));
-  EKA_LOG("\tSize = %8ju",  intmax_t(mdReport->size));
+  fprintf(file,"\tSide = %c\n",    mdReport->side == 1 ? 'B' : 'S');
+  fprintf(file,"\tPrice = %8jd\n", intmax_t(mdReport->price));
+  fprintf(file,"\tSize = %8ju\n",  intmax_t(mdReport->size));
 
   return sizeof(*mdReport);
 }
 /* ########################################################### */
-int printBoeFire(EkaDev* dev,const uint8_t* b) {
+int printBoeFire(FILE* file,const uint8_t* b) {
   auto boeOrder {reinterpret_cast<const BoeNewOrderMsg*>(b)};
-  EKA_LOG("Fired BOE NewOrder:");
+  fprintf(file,"Fired BOE NewOrder:");
 
-  EKA_LOG("\tStartOfMessage=0x%04x",    boeOrder->StartOfMessage);
-  EKA_LOG("\tMessageLength=0x%04x (%u)",boeOrder->MessageLength,boeOrder->MessageLength);
-  EKA_LOG("\tMessageType=0x%x",         boeOrder->MessageType);
-  EKA_LOG("\tMatchingUnit=%x",          boeOrder->MatchingUnit);
-  EKA_LOG("\tSequenceNumber=%u",        boeOrder->SequenceNumber);
-  EKA_LOG("\tClOrdID=\'%s\'",
+  fprintf(file,"\tStartOfMessage=0x%04x\n",    boeOrder->StartOfMessage);
+  fprintf(file,"\tMessageLength=0x%04x (%u)\n",boeOrder->MessageLength,boeOrder->MessageLength);
+  fprintf(file,"\tMessageType=0x%x\n",         boeOrder->MessageType);
+  fprintf(file,"\tMatchingUnit=%x\n",          boeOrder->MatchingUnit);
+  fprintf(file,"\tSequenceNumber=%u\n",        boeOrder->SequenceNumber);
+  fprintf(file,"\tClOrdID=\'%s\'\n",
 	  std::string(boeOrder->ClOrdID,sizeof(boeOrder->ClOrdID)).c_str());
-  EKA_LOG("\tSide=\'%c\'",              boeOrder->Side);
-  EKA_LOG("\tOrderQty=0x%08x (%u)",     boeOrder->OrderQty,boeOrder->OrderQty);
-  EKA_LOG("\tNumberOfBitfields=0x%x",   boeOrder->NumberOfBitfields);
-  EKA_LOG("\tNewOrderBitfield1=0x%x",   boeOrder->NewOrderBitfield1);
-  EKA_LOG("\tNewOrderBitfield2=0x%x",   boeOrder->NewOrderBitfield2);
-  EKA_LOG("\tNewOrderBitfield3=0x%x",   boeOrder->NewOrderBitfield3);
-  EKA_LOG("\tNewOrderBitfield4=0x%x",   boeOrder->NewOrderBitfield4);
-  EKA_LOG("\tClearingFirm=\'%s\'",
+  fprintf(file,"\tSide=\'%c\'\n",              boeOrder->Side);
+  fprintf(file,"\tOrderQty=0x%08x (%u)\n",     boeOrder->OrderQty,boeOrder->OrderQty);
+  fprintf(file,"\tNumberOfBitfields=0x%x\n",   boeOrder->NumberOfBitfields);
+  fprintf(file,"\tNewOrderBitfield1=0x%x\n",   boeOrder->NewOrderBitfield1);
+  fprintf(file,"\tNewOrderBitfield2=0x%x\n",   boeOrder->NewOrderBitfield2);
+  fprintf(file,"\tNewOrderBitfield3=0x%x\n",   boeOrder->NewOrderBitfield3);
+  fprintf(file,"\tNewOrderBitfield4=0x%x\n",   boeOrder->NewOrderBitfield4);
+  fprintf(file,"\tClearingFirm=\'%s\'\n",
 	  std::string(boeOrder->ClearingFirm,sizeof(boeOrder->ClearingFirm)).c_str());
-  EKA_LOG("\tClearingAccount=\'%s\'",
+  fprintf(file,"\tClearingAccount=\'%s\'\n",
 	  std::string(boeOrder->ClearingAccount,sizeof(boeOrder->ClearingAccount)).c_str());
 
-  EKA_LOG("\tPrice=0x%016jx (%ju)",     boeOrder->Price,boeOrder->Price);
-  EKA_LOG("\tOrdType=\'%c\'",           boeOrder->OrdType);
-  EKA_LOG("\tTimeInForce=\'%c\'",       boeOrder->TimeInForce);
-  EKA_LOG("\tSymbol=\'%c%c%c%c%c%c%c%c\' (0x%016jx)",
+  fprintf(file,"\tPrice=0x%016jx (%ju)\n",     boeOrder->Price,boeOrder->Price);
+  fprintf(file,"\tOrdType=\'%c\'\n",           boeOrder->OrdType);
+  fprintf(file,"\tTimeInForce=\'%c\'\n",       boeOrder->TimeInForce);
+  fprintf(file,"\tSymbol=\'%c%c%c%c%c%c%c%c\' (0x%016jx)\n",
 	  boeOrder->Symbol[7],
 	  boeOrder->Symbol[6],
 	  boeOrder->Symbol[5],
@@ -126,85 +129,79 @@ int printBoeFire(EkaDev* dev,const uint8_t* b) {
 	  boeOrder->Symbol[1],
 	  boeOrder->Symbol[0],
 	  *(uint64_t*)boeOrder->Symbol);
-  EKA_LOG("\tCapacity=\'%c\'",          boeOrder->Capacity);
-  EKA_LOG("\tAccount=\'%s\'",
+  fprintf(file,"\tCapacity=\'%c\'\n",          boeOrder->Capacity);
+  fprintf(file,"\tAccount=\'%s\'\n",
 	  std::string(boeOrder->Account,sizeof(boeOrder->Account)).c_str());
-  EKA_LOG("\tOpenClose=\'%c\'",         boeOrder->OpenClose);
+  fprintf(file,"\tOpenClose=\'%c\'\n",         boeOrder->OpenClose);
 
   return 0;
 }
 
 /* ########################################################### */
-size_t printFirePkt(EkaDev* dev, const uint8_t* b, size_t size,EfhFeedVer hwFeedVer) {
-  EKA_LOG("FirePktReport:");
+size_t printFirePkt(FILE* file, const uint8_t* b, size_t size,EfhFeedVer hwFeedVer) {
+  fprintf(file,"FirePktReport:");
   switch (hwFeedVer) {
   case EfhFeedVer::kCBOE :
-    printBoeFire(dev,b);
+    printBoeFire(file,b);
   default:
-    hexDump("Fired Pkt:",b,size);
+    hexDump("Fired Pkt",b,size,file);
   }
   return size;
 }
 /* ########################################################### */
-int printEpmReport(EkaDev* dev,const uint8_t* b) {
+int printEpmReport(FILE* file,const uint8_t* b) {
   auto epmReport {reinterpret_cast<const EpmFireReport*>(b)};
 
-  EKA_LOG("StrategyId=%d,ActionId=%d,TriggerActionId=%d,"
+  fprintf(file,"StrategyId=%d,ActionId=%d,TriggerActionId=%d,"
 	  "TriggerSource=%s,triggerToken=%016jx,user=%016jx,"
 	  "preLocalEnable=%016jx,postLocalEnable=%016jx,"
-	  "preStratEnable=%016jx,postStratEnable=%016jx",
-  	   epmReport->strategyId,
-  	   epmReport->actionId,
-  	   epmReport->action,
-  	   epmReport->local ? "FROM SW" : "FROM UDP",
-  	   epmReport->triggerToken,
-  	   epmReport->user,
-  	   epmReport->preLocalEnable,
-  	   epmReport->postLocalEnable,
-  	   epmReport->preStratEnable,
-  	   epmReport->postStratEnable
-  	   );
+	  "preStratEnable=%016jx,postStratEnable=%016jx\n",
+	  epmReport->strategyId,
+	  epmReport->actionId,
+	  epmReport->action,
+	  epmReport->local ? "FROM SW" : "FROM UDP\n",
+	  epmReport->triggerToken,
+	  epmReport->user,
+	  epmReport->preLocalEnable,
+	  epmReport->postLocalEnable,
+	  epmReport->preStratEnable,
+	  epmReport->postStratEnable
+	  );
   return sizeof(*epmReport);
 }
 /* ########################################################### */
 
 void efcPrintFireReport(const void* p, size_t len, void* ctx) {
-  auto dev {reinterpret_cast<EkaDev*>(ctx)};
-  if (!dev) on_error("!dev");
-
-  auto epm {dynamic_cast<EkaEpm*>(dev->epm)};
-  if (!epm) on_error("!epm");
-  
-  auto efc {dynamic_cast<EkaEfc*>(epm->strategy[EFC_STRATEGY])};
-  if (!efc) on_error("!efc");
+  auto file {reinterpret_cast<std::FILE*>(ctx)};
+  if (!file) file = stdout;
 
   auto b = static_cast<const uint8_t*>(p);
 
   //--------------------------------------------------------------------------
   auto containerHdr {reinterpret_cast<const EkaContainerGlobalHdr*>(b)};
-  b += printContainerGlobalHdr(dev,b);
+  b += printContainerGlobalHdr(file,b);
   //--------------------------------------------------------------------------
   for (uint i = 0; i < containerHdr->num_of_reports; i++) {
     auto reportHdr {reinterpret_cast<const EfcReportHdr*>(b)};
     b += sizeof(*reportHdr);
     switch (reportHdr->type) {
     case EfcReportType::kControllerState:
-      b += printControllerState(dev,b);
+      b += printControllerState(file,b);
       break;
     case EfcReportType::kExceptionReport:
-      b += printExceptionReport(dev,b);
+      b += printExceptionReport(file,b);
       break;
     case EfcReportType::kMdReport:
-      b += printMdReport(dev,b);
+      b += printMdReport(file,b);
       break;
     case EfcReportType::kSecurityCtx:
-      b += printSecurityCtx(dev,b);
+      b += printSecurityCtx(file,b);
       break;
     case EfcReportType::kFirePkt:
-      b += printFirePkt(dev,b,reportHdr->size,efc->hwFeedVer);
+      b += printFirePkt(file,b,reportHdr->size,EfhFeedVer::kInvalid);
       break;
     case EfcReportType::kEpmReport:
-      b += printEpmReport(dev,b);
+      b += printEpmReport(file,b);
       break;
     default:
       on_error("Unexpected reportHdr->type %d",
