@@ -603,7 +603,7 @@ int main(int argc, char *argv[]) {
 		bytes_read = excRecv(dev,conn[0], rxBuf, sizeof(rxBuf), 0);
 		/* if (bytes_read > 0) */
 		/*     hexDump("Echoed back Fired Pkt:",rxBuf,bytes_read); */
-	    } while (bytes_read <= 0);
+	    } while (keep_work && bytes_read <= 0);
 	}
     } else {    
 	while (keep_work) {

@@ -209,7 +209,7 @@ void ekaFireReportThread(EkaDev* dev) {
 
   while (dev->fireReportThreadActive) {
     /* ----------------------------------------------- */
-    if (! epmReportCh->hasData()) continue;
+    if (! epmReportCh->has_data()) continue;
     auto data = epmReportCh->get();
     auto len  = epmReportCh->getPayloadSize();
 
