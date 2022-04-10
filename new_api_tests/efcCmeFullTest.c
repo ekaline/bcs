@@ -118,8 +118,8 @@ void tcpServer(EkaDev* dev, std::string ip, uint16_t port, bool* serverSet) {
 	      on_error("bytes_read = %d",bytes_read);
       }
       if (bytes_read > 0) {
-	  TEST_LOG ("recived pkt: %s",line);
-	  fflush(stderr);
+	  /* TEST_LOG ("recived pkt: %s",line); */
+	  /* fflush(stderr); */
 	  send(tcpSock, line, bytes_read, 0);
       }
   } while (keep_work);
@@ -303,8 +303,8 @@ static int sendCmeTradeMsg(std::string serverIp,
     size_t payloadLen = std::size(pkt);
 #endif  
  
-    TEST_LOG("sending MDIncrementalRefreshTradeSummary48 trigger to %s:%u",
-	    EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
+    /* TEST_LOG("sending MDIncrementalRefreshTradeSummary48 trigger to %s:%u", */
+    /* 	    EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port)); */
     if (sendto(triggerSock,pkt,payloadLen,0,(const sockaddr*)&triggerMcAddr,sizeof(triggerMcAddr)) < 0) 
 	on_error ("MC trigger send failed");
     close(triggerSock);
@@ -319,6 +319,10 @@ static bool isEkalineLocal() {
     return false;
 }
 
+/* ############################################# */
+
+void efcOnFireReportDummy(const void* p, size_t len, void* ctx) {}
+    
 /* ############################################# */
 int main(int argc, char *argv[]) {
   
@@ -471,6 +475,7 @@ int main(int argc, char *argv[]) {
 
     EfcRunCtx runCtx = {};
     runCtx.onEfcFireReportCb = efcPrintFireReport; // default print out routine
+//    runCtx.onEfcFireReportCb = efcOnFireReportDummy; // Empty callback
     // ==============================================
     // CME FastCancel EFC config
     static const uint64_t CmeTestFastCancelAlwaysFire = 0xadcd;
@@ -582,12 +587,12 @@ int main(int argc, char *argv[]) {
 	     "\n===========================\n");
 
     if (isEkalineLocal()) {
-	static const int FireIterations = 10000;
+	static const int FireIterations = 1000000;
 	static const uint16_t CmeTestFastCancelMaxMsgSizeTicker     = 100;
 	static const uint8_t  CmeTestFastCancelMinNoMDEntriesTicker = 2;
 	for (int i  = 0; i < FireIterations && keep_work; i++) {
 	    printf ("===============================\n");
-	    printf ("============ %5d ============\n",i);
+	    printf ("========== %7d ============\n",i);
 	    printf ("===============================\n");
 	    sendCmeTradeMsg(serverIp,triggerIp,triggerUdpPort,
 			    CmeTestFastCancelMaxMsgSizeTicker,
@@ -596,8 +601,8 @@ int main(int argc, char *argv[]) {
 	    int bytes_read = -1;
 	    do {
 		bytes_read = excRecv(dev,conn[0], rxBuf, sizeof(rxBuf), 0);
-		if (bytes_read > 0)
-		    hexDump("Echoed back Fired Pkt:",rxBuf,bytes_read);
+		/* if (bytes_read > 0) */
+		/*     hexDump("Echoed back Fired Pkt:",rxBuf,bytes_read); */
 	    } while (bytes_read <= 0);
 	}
     } else {    
