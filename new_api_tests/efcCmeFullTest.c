@@ -37,18 +37,17 @@
 
 #include <fcntl.h>
 #include "ekaNW.h"
-#include "EfhTestFuncs.h"
 #include "EfcCme.h"
 
-using namespace Bats;
+#include "EfcTestsCallbacks.h"
 
-extern TestCtx* testCtx;
+using namespace Cme;
 
 /* --------------------------------------------- */
 std::string ts_ns2str(uint64_t ts);
 
 /* --------------------------------------------- */
-//volatile bool keep_work = true;
+volatile bool keep_work = true;
 volatile bool serverSet = false;
 volatile bool rxClientReady = false;
 
@@ -65,32 +64,13 @@ static const int      MaxUdpTestSessions     = 64;
 
 void  INThandler(int sig) {
   signal(sig, SIG_IGN);
-  testCtx->keep_work = false;
+  keep_work = false;
   TEST_LOG("Ctrl-C detected: keep_work = false, exitting..."); fflush(stdout);
   return;
 }
 
 /* --------------------------------------------- */
-
-int createThread(const char* name, EkaServiceType type,  void *(*threadRoutine)(void*), void* arg, void* context, uintptr_t *handle) {
-  pthread_create ((pthread_t*)handle,NULL,threadRoutine, arg);
-  pthread_setname_np((pthread_t)*handle,name);
-  return 0;
-}
-/* --------------------------------------------- */
-
-int credAcquire(EkaCredentialType credType, EkaGroup group, const char *user, const struct timespec *leaseTime, const struct timespec *timeout, void* context, EkaCredentialLease **lease) {
-  printf ("Credential with USER %s is acquired for %s:%hhu\n",user,EKA_EXCH_DECODE(group.source),group.localId);
-  return 0;
-}
-/* --------------------------------------------- */
-
-int credRelease(EkaCredentialLease *lease, void* context) {
-  return 0;
-}
-
-/* --------------------------------------------- */
-void tcpServer(EkaDev* dev, std::string ip, uint16_t port, int* sock, bool* serverSet) {
+void tcpServer(EkaDev* dev, std::string ip, uint16_t port, bool* serverSet) {
   pthread_setname_np(pthread_self(),"tcpServerParent");
 
   printf("Starting TCP server: %s:%u\n",ip.c_str(),port);
@@ -121,13 +101,28 @@ void tcpServer(EkaDev* dev, std::string ip, uint16_t port, int* sock, bool* serv
   *serverSet = true;
 
   int addr_size = sizeof(addr);
-  *sock = accept(sd, (struct sockaddr*)&addr,(socklen_t*) &addr_size);
+  int tcpSock = socket(PF_INET, SOCK_STREAM, 0);
+  if (tcpSock < 0) on_error("Socket");
+
+  tcpSock = accept(sd, (struct sockaddr*)&addr,(socklen_t*) &addr_size);
   EKA_LOG("Connected from: %s:%d -- sock=%d\n",
-	  inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),*sock);
+	  inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),tcpSock);
 
-  int status = fcntl(*sock, F_SETFL, fcntl(*sock, F_GETFL, 0) | O_NONBLOCK);
-  if (status == -1)  on_error("fcntl error");
-
+  int status = fcntl(tcpSock, F_SETFL, fcntl(tcpSock, F_GETFL, 0) | O_NONBLOCK);
+  if (status < 0)  on_error("fcntl error");
+  do {
+      char line[1536] = {};
+      int bytes_read = recv(tcpSock, line, sizeof(line), 0);
+      if (bytes_read < 0) {
+	  if (errno != EAGAIN && errno != EWOULDBLOCK)
+	      on_error("bytes_read = %d",bytes_read);
+      }
+      if (bytes_read > 0) {
+	  TEST_LOG ("recived pkt: %s",line);
+	  fflush(stderr);
+	  send(tcpSock, line, bytes_read, 0);
+      }
+  } while (keep_work);
   return;
 }
 
@@ -263,15 +258,15 @@ static int sendCmeTradeMsg(std::string serverIp,
     	on_error("failed to bind server triggerSock to %s:%u",
     		 EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),be16toh(triggerSourceAddr.sin_port));
     } else {
-    	TEST_LOG("triggerSock is binded to %s:%u",
-    		EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),be16toh(triggerSourceAddr.sin_port));
+    	/* TEST_LOG("triggerSock is binded to %s:%u", */
+    	/* 	EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),be16toh(triggerSourceAddr.sin_port)); */
     }
     struct sockaddr_in triggerMcAddr = {};
     triggerMcAddr.sin_family      = AF_INET;
     triggerMcAddr.sin_addr.s_addr = inet_addr(dstIp.c_str());
     triggerMcAddr.sin_port        = be16toh(dstPort);
 
-#if 0    
+#if 1
     uint8_t pkt[1536] = {};
 
     auto p {pkt};
@@ -312,27 +307,50 @@ static int sendCmeTradeMsg(std::string serverIp,
 	    EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
     if (sendto(triggerSock,pkt,payloadLen,0,(const sockaddr*)&triggerMcAddr,sizeof(triggerMcAddr)) < 0) 
 	on_error ("MC trigger send failed");
+    close(triggerSock);
     return 0;
+}
+
+/* ############################################# */
+static bool isEkalineLocal() {
+    for (auto const& ekaLabMachine : {"xn01", "xn04"})
+	if (! strcmp(std::getenv("HOSTNAME"),ekaLabMachine))
+	    return true;
+    return false;
 }
 
 /* ############################################# */
 int main(int argc, char *argv[]) {
   
     signal(SIGINT, INThandler);
-    testCtx = new TestCtx;
-    if (!testCtx) on_error("testCtx == NULL");
+
     // ==============================================
 
     std::string serverIp        = "10.0.0.10";      // Ekaline lab default
     std::string clientIp        = "100.0.0.110";    // Ekaline lab default
-    std::string triggerIp       = "224.0.74.0";     // Ekaline lab default (C1 CC feed)
-    uint16_t triggerUdpPort     = 30301;            // C1 CC gr#0
-    uint16_t serverTcpBasePort  = 22345;            // Ekaline lab default
+    std::string triggerIp       = "224.0.31.2";     // Ekaline lab default (Cme Vanilla Options feed)
+    uint16_t triggerUdpPort     = 14311;            // Cme Vanilla Options feed
+    uint16_t serverTcpPort      = 22345;            // Ekaline lab default
     uint16_t numTcpSess         = 1;
-    uint16_t serverTcpPort      = serverTcpBasePort;
     bool     runEfh             = false;
     bool     fatalDebug          = false;
-  
+
+#ifdef _RUN_EFH
+    EkaProp efhProp[] = {
+	{"efh.CME_SBE.group.0.products","vanilla_book"},	    
+	{"efh.CME_SBE.group.0.mcast.addr","224.0.31.2:14311"},     // incrementFeed
+	{"efh.CME_SBE.group.0.snapshot.addr","224.0.31.44:14311"}, // definitionFeed
+	{"efh.CME_SBE.group.0.recovery.addr","224.0.31.23:14311"}, // snapshotFeed
+    };
+    EkaProps efhProps = {
+	.numProps = std::size(efhProp),
+	.props = efhProp
+    };
+    
+    const EkaGroup cmeGroups[] = {
+	{EkaSource::kCME_SBE, (EkaLSI)0},
+    };
+#endif    
     getAttr(argc,argv,&serverIp,&serverTcpPort,&clientIp,&triggerIp,&triggerUdpPort,
 	    &numTcpSess,&runEfh,&fatalDebug);
 
@@ -349,35 +367,34 @@ int main(int argc, char *argv[]) {
 
     // ==============================================
     // 10G Port (core) setup
-    const EkaCoreInitCtx ekaCoreInitCtx = {
-	.coreId = coreId,
-	.attrs = {
-	    .host_ip      = inet_addr(clientIp.c_str()),
-	    .netmask      = inet_addr("255.255.255.0"),
-	    .gateway      = inet_addr("10.0.0.10"),
-	    .nexthop_mac  = {}, // resolved by our internal ARP
-	    .src_mac_addr = {}, // taken from system config
-	    .dont_garp    = 0
-	}
-    };
-    ekaDevConfigurePort (dev, &ekaCoreInitCtx);
-
+    if (isEkalineLocal()) {
+	const EkaCoreInitCtx ekaCoreInitCtx = {
+	    .coreId = coreId,
+	    .attrs = {
+		.host_ip      = inet_addr(clientIp.c_str()),
+		.netmask      = inet_addr("255.255.255.0"),
+		.gateway      = inet_addr(serverIp.c_str()),
+		.nexthop_mac  = {}, // resolved by our internal ARP
+		.src_mac_addr = {}, // taken from system config
+		.dont_garp    = 0
+	    }
+	};
+	ekaDevConfigurePort (dev, &ekaCoreInitCtx);
+    }
     // ==============================================
     // Launching TCP test Servers
-    int tcpSock[MaxTcpTestSessions] = {};
-
-    for (auto i = 0; i < numTcpSess; i++) {
+    if (isEkalineLocal()) {
 	bool serverSet = false;
 	std::thread server = std::thread(tcpServer,
 					 dev,
 					 serverIp,
-					 serverTcpBasePort + i,
-					 &tcpSock[i],
+					 serverTcpPort,
 					 &serverSet);
 	server.detach();
-	while (testCtx->keep_work && ! serverSet)
+	while (keep_work && ! serverSet)
 	    sleep (0);
     }
+    
     // ==============================================
     // Establishing EXC connections for EPM/EFC fires 
 
@@ -387,7 +404,7 @@ int main(int argc, char *argv[]) {
 	struct sockaddr_in serverAddr = {};
 	serverAddr.sin_family      = AF_INET;
 	serverAddr.sin_addr.s_addr = inet_addr(serverIp.c_str());
-	serverAddr.sin_port        = be16toh(serverTcpBasePort + i);
+	serverAddr.sin_port        = be16toh(serverTcpPort + i);
 
 	int excSock = excSocket(dev,coreId,0,0,0);
 	if (excSock < 0) on_error("failed to open sock %d",i);
@@ -397,10 +414,14 @@ int main(int argc, char *argv[]) {
 		   i,EKA_IP2STR(serverAddr.sin_addr.s_addr),
 		   be16toh(serverAddr.sin_port));
 	const char* pkt = "\n\nThis is 1st TCP packet sent from FPGA TCP client to Kernel TCP server\n\n";
+	excSetBlocking(dev, excSock, false);
+	
 	excSend (dev, conn[i], pkt, strlen(pkt),0);
 	int bytes_read = 0;
 	char rxBuf[2000] = {};
-	bytes_read = recv(tcpSock[i], rxBuf, sizeof(rxBuf), 0);
+//	bytes_read = recv(tcpSock[i], rxBuf, sizeof(rxBuf), 0);
+	EKA_LOG("Sent: %s\n waiting for the echo...",pkt);
+	bytes_read = excRecv(dev,conn[i], rxBuf, sizeof(rxBuf), 0);
 	if (bytes_read > 0) EKA_LOG("\n%s",rxBuf);
     }
 
@@ -408,7 +429,8 @@ int main(int argc, char *argv[]) {
     // Setup EFC MC groups
 
     EpmTriggerParams triggerParam[] = {
-	{0,"224.0.74.0",30301},
+	{0,triggerIp.c_str(),triggerUdpPort},
+	/* {0,"224.0.74.0",30301}, */
 	/* {0,"224.0.74.1",30302}, */
 	/* {0,"224.0.74.2",30303}, */
 	/* {0,"224.0.74.3",30304}, */
@@ -454,11 +476,8 @@ int main(int argc, char *argv[]) {
     static const uint64_t CmeTestFastCancelAlwaysFire = 0xadcd;
     static const uint64_t CmeTestFastCancelToken = 0x1122334455667788;
     static const uint64_t CmeTestFastCancelUser  = 0xaabbccddeeff0011;
-    static const uint16_t CmeTestFastCancelMaxMsgSize     = 97; //">96"
-    static const uint8_t  CmeTestFastCancelMinNoMDEntries = 0; //"<1"
-
-    static const uint16_t CmeTestFastCancelMaxMsgSizeTicker     = 96; //HARDCODED, not used by tickersend
-    static const uint8_t  CmeTestFastCancelMinNoMDEntriesTicker = 1;  //HARDCODED, not used by tickersend
+    static const uint16_t CmeTestFastCancelMaxMsgSize     = 1400; // Allowing Firing on all messages
+    static const uint8_t  CmeTestFastCancelMinNoMDEntries = 0; // Allowing Firing on all messages
 
     const EfcCmeFastCancelParams params = {
 	.maxMsgSize     = CmeTestFastCancelMaxMsgSize,
@@ -518,56 +537,77 @@ int main(int argc, char *argv[]) {
     // ==============================================
     efcRun(pEfcCtx, &runCtx );
     // ==============================================
-
     efcCmeSetILinkAppseq(dev,conn[0],0x1);
-#if 0
-    EpmTrigger cmeTrigger = {
-	.token = CmeTestFastCancelToken,         ///< Security token
-	.strategy = EFC_STRATEGY,                ///< Strategy this trigger applies to
-	.action = (epm_actionid_t)EfcCmeActionId::HwCancel       ///< First action in linked sequence
+
+#ifdef _RUN_EFH   
+    TEST_LOG("\n===========================\n"
+	     "Configuring EFH to run on %s:%u"
+	     "\n===========================\n",
+	     triggerIp.c_str(),triggerUdpPort);
+
+    
+    EfhInitCtx efhInitCtx = {
+      .ekaProps       = &efhProps,
+      .numOfGroups    = 1,
+      .coreId         = 0,
+      .getTradeTime   = getTradeTimeCb,
+      .recvSoftwareMd = true,
     };
-    const char* swMsg = "CME Fast SW Msg: Sequence = |____| : expected incremented Sequence";
-    const char* swHB  = "CME SW Heartbeat:Sequence = |____| : expected NOT incremented Sequence";
 
-    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
-    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
-    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
-    
-    efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
-    efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
-    efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
-    efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
-    efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
-    
-    epmRaiseTriggers(dev,&cmeTrigger);
-    epmRaiseTriggers(dev,&cmeTrigger);
-    epmRaiseTriggers(dev,&cmeTrigger);
-    epmRaiseTriggers(dev,&cmeTrigger);
-#endif
-    
-    sendCmeTradeMsg(serverIp,triggerIp,triggerUdpPort,
-		    CmeTestFastCancelMaxMsgSizeTicker, CmeTestFastCancelMinNoMDEntriesTicker);
+    EfhCtx* pEfhCtx = NULL;
+    efhInit(&pEfhCtx,dev,&efhInitCtx);
 
-    if (fatalDebug) {
-	TEST_LOG(RED "\n=====================\nFATAL DEBUG: ON\n=====================\n" RESET);
-	eka_write(dev,0xf0f00,0xefa0beda);
+    EfhRunCtx efhRunCtx = {
+      .groups                      = cmeGroups,
+      .numGroups                   = std::size(cmeGroups),
+      .efhRunUserData              = 0,
+      .onEfhOptionDefinitionMsgCb  = onOptionDefinition,
+      .onEfhFutureDefinitionMsgCb  = onFutureDefinition,
+      .onEfhComplexDefinitionMsgCb = onComplexDefinition,
+      .onEfhAuctionUpdateMsgCb     = onAuctionUpdate,
+      .onEfhTradeMsgCb             = onTrade,
+      .onEfhQuoteMsgCb             = onQuote,
+      .onEfhOrderMsgCb             = onOrder,
+      .onEfhGroupStateChangedMsgCb = onEfhGroupStateChange,
+      .onEkaExceptionReportCb      = onException,
+      .onEfhMdCb                   = onMd,
+    };
+
+    std::thread efh_run_thread = std::thread(efhRunGroups,pEfhCtx,
+					     &efhRunCtx,(void**)NULL);
+    efh_run_thread.detach();
+#endif      
+    TEST_LOG("\n===========================\n"
+	     "Waiting for Market data to Fire on"
+	     "\n===========================\n");
+
+    if (isEkalineLocal()) {
+	static const int FireIterations = 10000;
+	static const uint16_t CmeTestFastCancelMaxMsgSizeTicker     = 100;
+	static const uint8_t  CmeTestFastCancelMinNoMDEntriesTicker = 2;
+	for (int i  = 0; i < FireIterations && keep_work; i++) {
+	    printf ("===============================\n");
+	    printf ("============ %5d ============\n",i);
+	    printf ("===============================\n");
+	    sendCmeTradeMsg(serverIp,triggerIp,triggerUdpPort,
+			    CmeTestFastCancelMaxMsgSizeTicker,
+			    CmeTestFastCancelMinNoMDEntriesTicker);
+	    char rxBuf[2000] = {};
+	    int bytes_read = -1;
+	    do {
+		bytes_read = excRecv(dev,conn[0], rxBuf, sizeof(rxBuf), 0);
+		if (bytes_read > 0)
+		    hexDump("Echoed back Fired Pkt:",rxBuf,bytes_read);
+	    } while (bytes_read <= 0);
+	}
+    } else {    
+	while (keep_work) {
+	    char rxBuf[2000] = {};
+	    int bytes_read = excRecv(dev,conn[0], rxBuf, sizeof(rxBuf), 0);
+	    if (bytes_read > 0)
+		hexDump("Echoed back Fired Pkt:",rxBuf,bytes_read);
+	}
     }
-
-// ==============================================
-
-
-    TEST_LOG("\n===========================\nEND OT TESTS\n===========================\n");
-
-#ifndef _VERILOG_SIM
-    sleep(2);
-    EKA_LOG("--Test finished, ctrl-c to end---");
-//  testCtx->keep_work = false;
-    while (testCtx->keep_work) { sleep(0); }
-#endif
-
-    sleep(1);
-    fflush(stdout);fflush(stderr);
-
 
     /* ============================================== */
 

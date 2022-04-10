@@ -52,6 +52,8 @@ static GroupAddr group[] = {
     
     {inet_addr("224.0.31.66"), 14342, 0, 0},     // Patrick
 
+    {inet_addr("224.0.74.0"),  30301, 0, 0},     // Fast Cancels
+
 };
 
 
