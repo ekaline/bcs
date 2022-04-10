@@ -81,14 +81,14 @@ int EhpNews::createNews() {
   //NA
   conf.fields.price[msgType].msgId      = msgId;
   conf.fields.price[msgType].opcode     = EhpOpcode::NOP;
-  conf.fields.price[msgType].byteOffs_0 = EhpBlankByte;
-  conf.fields.price[msgType].byteOffs_1 = EhpBlankByte;
-  conf.fields.price[msgType].byteOffs_2 = EhpBlankByte;
-  conf.fields.price[msgType].byteOffs_3 = EhpBlankByte;
-  conf.fields.price[msgType].byteOffs_4 = EhpBlankByte;
-  conf.fields.price[msgType].byteOffs_5 = EhpBlankByte;
-  conf.fields.price[msgType].byteOffs_6 = EhpBlankByte;
   conf.fields.price[msgType].byteOffs_7 = EhpBlankByte;
+  conf.fields.price[msgType].byteOffs_6 = EhpBlankByte;
+  conf.fields.price[msgType].byteOffs_5 = EhpBlankByte;
+  conf.fields.price[msgType].byteOffs_4 = EhpBlankByte;
+  conf.fields.price[msgType].byteOffs_3 = EhpBlankByte;
+  conf.fields.price[msgType].byteOffs_2 = EhpBlankByte;
+  conf.fields.price[msgType].byteOffs_1 = EhpBlankByte;
+  conf.fields.price[msgType].byteOffs_0 = EhpBlankByte;
 
   //Action index + region
   conf.fields.size[msgType].msgId      = msgId;

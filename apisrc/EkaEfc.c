@@ -18,6 +18,7 @@
 #include "EhpNom.h"
 #include "EhpPitch.h"
 #include "EhpCmeFC.h"
+#include "EhpNews.h"
 
 void ekaFireReportThread(EkaDev* dev);
 
@@ -69,6 +70,11 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
     ehp = new EhpCmeFC(dev);
     //ehp = NULL;
     //EKA_LOG("NO EHP for CME - using hardcoded CME Fast cancel parser");
+    break;
+  case EfhFeedVer::kNEWS : 
+    epm->hwFire  = new EpmCmeILinkTemplate(epm->templatesNum++); //TBD
+    EKA_LOG("Initializing dummy EpmCmeILinkTemplate (news)");
+    ehp = new EhpNews(dev);
     break;
   default :
     on_error("Unexpected EFC HW Version: %d",(int)hwFeedVer);
@@ -144,6 +150,7 @@ int EkaEfc::initHwRoundTable() {
     case EfhFeedVer::kMIAX:
     case EfhFeedVer::kCBOE:
     case EfhFeedVer::kCME:
+    case EfhFeedVer::kNEWS:
       data = addr;
       break;
     default:
