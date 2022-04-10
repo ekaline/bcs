@@ -2,7 +2,8 @@
 #define _EHP_CONF_H_
 
 #define EhpMaxMsgTypes 8
-#define EhpNoMsgSize 0xF
+#define EhpNoMsgSize   0xF
+#define EhpNoMsgID     0xFFFF
 
 enum class EhpOpcode : int8_t {
   NOP = 0,    // copy value as is
@@ -24,7 +25,8 @@ enum class EhpSidePresence : int8_t {
 enum class EhpHwProtocol :  uint8_t {
   NOM   = 1,     
   PITCH = 2,
-  CMEFC = 15
+  NEWS  = 14, // hardcoded in HW to trigger news strategy
+  CMEFC = 15 // hardcoded in HW to trigger fast cancel strategy
 };
 
 /**
