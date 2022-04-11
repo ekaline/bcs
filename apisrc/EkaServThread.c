@@ -80,7 +80,7 @@ void ekaServThread(EkaDev* dev) {
   while (dev->servThreadActive) {
     /* ----------------------------------------------- */
 
-    if (dev->lwipPath->hasData()) {
+    if (dev->lwipPath->has_data()) {
       const uint8_t* payload = dev->lwipPath->get();
       uint len = dev->lwipPath->getPayloadSize();
       //      hexDump("Serv Thread Pkt",payload,len);

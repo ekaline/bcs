@@ -68,6 +68,55 @@ void  INThandler(int sig) {
   TEST_LOG("Ctrl-C detected: keep_work = false, exitting..."); fflush(stdout);
   return;
 }
+/* --------------------------------------------- */
+
+static int ekaUdpMcConnect(uint32_t mcIp, uint16_t mcPort,
+			   uint32_t srcIp) {
+  int sock = socket(AF_INET, SOCK_DGRAM, 0);
+  if (sock < 0) on_error("failed to open UDP socket");
+
+  TEST_LOG("Subscribing on Kernel UDP MC group %s:%u from %s",
+	  EKA_IP2STR(mcIp),mcPort,
+	  EKA_IP2STR(srcIp));
+
+  int const_one = 1;
+  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &const_one, sizeof(int)) < 0) 
+    on_error("setsockopt(SO_REUSEADDR) failed");
+  if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &const_one, sizeof(int)) < 0) 
+    on_error("setsockopt(SO_REUSEPORT) failed");
+
+  struct sockaddr_in mcast = {};
+  mcast.sin_family=AF_INET;
+  mcast.sin_addr.s_addr = mcIp; // INADDR_ANY
+  mcast.sin_port = be16toh(mcPort);
+  if (bind(sock,(struct sockaddr*) &mcast, sizeof(struct sockaddr)) < 0) 
+    on_error("Failed to bind to %d",be16toh(mcast.sin_port));
+
+  struct ip_mreq mreq = {};
+  mreq.imr_interface.s_addr = srcIp; //INADDR_ANY;
+  mreq.imr_multiaddr.s_addr = mcIp;
+
+  if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) 
+    on_error("Failed to join  %s",EKA_IP2STR(mreq.imr_multiaddr.s_addr));
+
+  TEST_LOG("Kernel joined MC group %s:%u from %s",
+	  EKA_IP2STR(mreq.imr_multiaddr.s_addr),be16toh(mcast.sin_port),
+	  EKA_IP2STR(mcIp));
+  return sock;
+}
+/* --------------------------------------------- */
+void readMcLoop(uint32_t mcIp, uint16_t mcPort,uint32_t srcIp) {
+  int mcSock = ekaUdpMcConnect(mcIp,mcPort,srcIp);
+  if (mcSock < 0) on_error("Failed openning mcSock");
+  while (keep_work) {
+    uint8_t pkt[1536] = {};
+    //      EKA_LOG("Waiting for UDP pkt...");
+      
+    int size = recvfrom(mcSock, pkt, sizeof(pkt), 0, NULL, NULL);
+    if (size < 0) on_error("size = %d",size);
+  }
+  
+}
 
 /* --------------------------------------------- */
 void tcpServer(EkaDev* dev, std::string ip, uint16_t port, bool* serverSet) {
@@ -105,7 +154,7 @@ void tcpServer(EkaDev* dev, std::string ip, uint16_t port, bool* serverSet) {
   if (tcpSock < 0) on_error("Socket");
 
   tcpSock = accept(sd, (struct sockaddr*)&addr,(socklen_t*) &addr_size);
-  EKA_LOG("Connected from: %s:%d -- sock=%d\n",
+  TEST_LOG("Connected from: %s:%d -- sock=%d\n",
 	  inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),tcpSock);
 
   int status = fcntl(tcpSock, F_SETFL, fcntl(tcpSock, F_GETFL, 0) | O_NONBLOCK);
@@ -118,8 +167,8 @@ void tcpServer(EkaDev* dev, std::string ip, uint16_t port, bool* serverSet) {
 	      on_error("bytes_read = %d",bytes_read);
       }
       if (bytes_read > 0) {
-	  TEST_LOG ("recived pkt: %s",line);
-	  fflush(stderr);
+	  /* TEST_LOG ("recived pkt: %s",line); */
+	  /* fflush(stderr); */
 	  send(tcpSock, line, bytes_read, 0);
       }
   } while (keep_work);
@@ -303,8 +352,8 @@ static int sendCmeTradeMsg(std::string serverIp,
     size_t payloadLen = std::size(pkt);
 #endif  
  
-    TEST_LOG("sending MDIncrementalRefreshTradeSummary48 trigger to %s:%u",
-	    EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
+    /* TEST_LOG("sending MDIncrementalRefreshTradeSummary48 trigger to %s:%u", */
+    /* 	    EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port)); */
     if (sendto(triggerSock,pkt,payloadLen,0,(const sockaddr*)&triggerMcAddr,sizeof(triggerMcAddr)) < 0) 
 	on_error ("MC trigger send failed");
     close(triggerSock);
@@ -320,9 +369,50 @@ static bool isEkalineLocal() {
 }
 
 /* ############################################# */
+void sendCmeTradeMsgsLoop(int msgCnt, std::string srcIp,
+		      std::string dstIp, uint16_t dstPort,
+		      uint16_t cmeTradeMsgLen,
+		      uint8_t cmeNoMDEntriesTicker) {
+	for (int i  = 0; i < msgCnt && keep_work; i++) {
+	    /* printf ("===============================\n"); */
+	    /* printf ("========== %7d ============\n",i); */
+	    /* printf ("===============================\n"); */
+	  printf (".");
+	  if (i % 40 == 0) printf ("\n");
+	    sendCmeTradeMsg(srcIp,dstIp,dstPort,
+			    cmeTradeMsgLen,cmeNoMDEntriesTicker);
+	    sleep(0);
+	}
+}
+
+/* ############################################# */
+
+void excRecvLoop(EkaDev* dev, ExcConnHandle conn) {
+  const char* fileName = "testExcRecv.log";
+  std::FILE* file = fopen(fileName,"w");
+  if (!file) on_error("Failed to create %s",fileName);
+  
+    while (keep_work) {
+      char rxBuf[2000] = {};
+      int bytes_read = excRecv(dev,conn,rxBuf,sizeof(rxBuf),0);
+      if (bytes_read > 0)
+	hexDump("Echoed back Fired Pkt",rxBuf,bytes_read,file);
+    }
+    fclose(file);
+}
+
+/* ############################################# */
+
+void efcOnFireReportDummy(const void* p, size_t len, void* ctx) {}
+    
+/* ############################################# */
 int main(int argc, char *argv[]) {
   
     signal(SIGINT, INThandler);
+
+    const char* fireReportLogFileName = "fireReport.log";
+    FILE* fireReportLog = fopen(fireReportLogFileName,"w");
+    if (!fireReportLog) on_error("Failed to create %s",fireReportLogFileName);
 
     // ==============================================
 
@@ -420,9 +510,9 @@ int main(int argc, char *argv[]) {
 	int bytes_read = 0;
 	char rxBuf[2000] = {};
 //	bytes_read = recv(tcpSock[i], rxBuf, sizeof(rxBuf), 0);
-	EKA_LOG("Sent: %s\n waiting for the echo...",pkt);
+	TEST_LOG("Sent: %s\n waiting for the echo...",pkt);
 	bytes_read = excRecv(dev,conn[i], rxBuf, sizeof(rxBuf), 0);
-	if (bytes_read > 0) EKA_LOG("\n%s",rxBuf);
+	if (bytes_read > 0) TEST_LOG("\n%s",rxBuf);
     }
 
     // ==============================================
@@ -471,6 +561,8 @@ int main(int argc, char *argv[]) {
 
     EfcRunCtx runCtx = {};
     runCtx.onEfcFireReportCb = efcPrintFireReport; // default print out routine
+    runCtx.cbCtx = fireReportLog;
+    //    runCtx.onEfcFireReportCb = efcOnFireReportDummy; // Empty callback
     // ==============================================
     // CME FastCancel EFC config
     static const uint64_t CmeTestFastCancelAlwaysFire = 0xadcd;
@@ -535,6 +627,13 @@ int main(int argc, char *argv[]) {
     // ==============================================
     efcEnableController(pEfcCtx, 0);
     // ==============================================
+    // TEMP solution to test the DMA CH issue
+    auto mcDoNothingThr = std::thread(readMcLoop,
+				      inet_addr(triggerIp.c_str()),
+				      triggerUdpPort,
+				      inet_addr(clientIp.c_str()));
+    
+    // ==============================================		   
     efcRun(pEfcCtx, &runCtx );
     // ==============================================
     efcCmeSetILinkAppseq(dev,conn[0],0x1);
@@ -581,40 +680,34 @@ int main(int argc, char *argv[]) {
 	     "Waiting for Market data to Fire on"
 	     "\n===========================\n");
 
+    std::thread tradeMsgGeneratorThr;
     if (isEkalineLocal()) {
-	static const int FireIterations = 10000;
-	static const uint16_t CmeTestFastCancelMaxMsgSizeTicker     = 100;
-	static const uint8_t  CmeTestFastCancelMinNoMDEntriesTicker = 2;
-	for (int i  = 0; i < FireIterations && keep_work; i++) {
-	    printf ("===============================\n");
-	    printf ("============ %5d ============\n",i);
-	    printf ("===============================\n");
-	    sendCmeTradeMsg(serverIp,triggerIp,triggerUdpPort,
-			    CmeTestFastCancelMaxMsgSizeTicker,
-			    CmeTestFastCancelMinNoMDEntriesTicker);
-	    char rxBuf[2000] = {};
-	    int bytes_read = -1;
-	    do {
-		bytes_read = excRecv(dev,conn[0], rxBuf, sizeof(rxBuf), 0);
-		if (bytes_read > 0)
-		    hexDump("Echoed back Fired Pkt:",rxBuf,bytes_read);
-	    } while (bytes_read <= 0);
-	}
-    } else {    
-	while (keep_work) {
-	    char rxBuf[2000] = {};
-	    int bytes_read = excRecv(dev,conn[0], rxBuf, sizeof(rxBuf), 0);
-	    if (bytes_read > 0)
-		hexDump("Echoed back Fired Pkt:",rxBuf,bytes_read);
-	}
-    }
+	static const int msgCnt = 10000000;
+	static const uint16_t cmeTradeMsgLen     = 100;
+	static const uint8_t  cmeNoMDEntriesTicker = 2;
 
+	tradeMsgGeneratorThr = std::thread(sendCmeTradeMsgsLoop,
+					   msgCnt,serverIp,
+					   triggerIp,triggerUdpPort,
+					   cmeTradeMsgLen,
+					   cmeNoMDEntriesTicker);
+    }    
+
+    auto excRecvThr = std::thread(excRecvLoop,dev,conn[0]);
+    
+    while (keep_work) { sleep (0); }
+    /* ============================================== */
+    mcDoNothingThr.join();
+    excRecvThr.join();
+    if (isEkalineLocal()) {
+      tradeMsgGeneratorThr.join();
+    }
     /* ============================================== */
 
     printf("Closing device\n");
 
     ekaDevClose(dev);
-    sleep(1);
-  
+    
+    fclose(fireReportLog);
     return 0;
 }

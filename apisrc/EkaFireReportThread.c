@@ -208,8 +208,9 @@ void ekaFireReportThread(EkaDev* dev) {
   if (!epmReportCh) on_error("!epmReportCh");
 
   while (dev->fireReportThreadActive) {
+    //    continue; // PATCH TO TEST A DMA CH OVERRUN!!!!
     /* ----------------------------------------------- */
-    if (! epmReportCh->hasData()) continue;
+    if (! epmReportCh->has_data()) continue;
     auto data = epmReportCh->get();
     auto len  = epmReportCh->getPayloadSize();
 
@@ -265,7 +266,8 @@ void ekaFireReportThread(EkaDev* dev) {
 	on_error("!strategy[%d]",strategyId);
     if (! reportedStrategy->reportCb)
 	on_error("reportCb is not defined");
-    reportedStrategy->reportCb(reportBuf,reportLen,dev);
+    reportedStrategy->reportCb(reportBuf,reportLen,
+			       reportedStrategy->cbCtx);
     epmReportCh->next();
     
   }
