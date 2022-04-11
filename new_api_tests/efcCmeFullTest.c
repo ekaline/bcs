@@ -104,7 +104,19 @@ static int ekaUdpMcConnect(uint32_t mcIp, uint16_t mcPort,
 	  EKA_IP2STR(mcIp));
   return sock;
 }
-
+/* --------------------------------------------- */
+void readMcLoop(uint32_t mcIp, uint16_t mcPort,uint32_t srcIp) {
+  int mcSock = ekaUdpMcConnect(mcIp,mcPort,srcIp);
+  if (mcSock < 0) on_error("Failed openning mcSock");
+  while (keep_work) {
+    uint8_t pkt[1536] = {};
+    //      EKA_LOG("Waiting for UDP pkt...");
+      
+    int size = recvfrom(mcSock, pkt, sizeof(pkt), 0, NULL, NULL);
+    if (size < 0) on_error("size = %d",size);
+  }
+  
+}
 
 /* --------------------------------------------- */
 void tcpServer(EkaDev* dev, std::string ip, uint16_t port, bool* serverSet) {
@@ -616,7 +628,11 @@ int main(int argc, char *argv[]) {
     efcEnableController(pEfcCtx, 0);
     // ==============================================
     // TEMP solution to test the DMA CH issue
-    ekaUdpMcConnect(inet_addr(triggerIp.c_str()),triggerUdpPort,inet_addr(clientIp.c_str()));
+    auto mcDoNothingThr = std::thread(readMcLoop,
+				      inet_addr(triggerIp.c_str()),
+				      triggerUdpPort,
+				      inet_addr(clientIp.c_str()));
+    
     // ==============================================		   
     efcRun(pEfcCtx, &runCtx );
     // ==============================================
@@ -681,7 +697,7 @@ int main(int argc, char *argv[]) {
     
     while (keep_work) { sleep (0); }
     /* ============================================== */
-
+    mcDoNothingThr.join();
     excRecvThr.join();
     if (isEkalineLocal()) {
       tradeMsgGeneratorThr.join();
