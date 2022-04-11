@@ -68,6 +68,43 @@ void  INThandler(int sig) {
   TEST_LOG("Ctrl-C detected: keep_work = false, exitting..."); fflush(stdout);
   return;
 }
+/* --------------------------------------------- */
+
+static int ekaUdpMcConnect(uint32_t mcIp, uint16_t mcPort,
+			   uint32_t srcIp) {
+  int sock = socket(AF_INET, SOCK_DGRAM, 0);
+  if (sock < 0) on_error("failed to open UDP socket");
+
+  TEST_LOG("Subscribing on Kernel UDP MC group %s:%u from %s",
+	  EKA_IP2STR(mcIp),mcPort,
+	  EKA_IP2STR(srcIp));
+
+  int const_one = 1;
+  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &const_one, sizeof(int)) < 0) 
+    on_error("setsockopt(SO_REUSEADDR) failed");
+  if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &const_one, sizeof(int)) < 0) 
+    on_error("setsockopt(SO_REUSEPORT) failed");
+
+  struct sockaddr_in mcast = {};
+  mcast.sin_family=AF_INET;
+  mcast.sin_addr.s_addr = mcIp; // INADDR_ANY
+  mcast.sin_port = be16toh(mcPort);
+  if (bind(sock,(struct sockaddr*) &mcast, sizeof(struct sockaddr)) < 0) 
+    on_error("Failed to bind to %d",be16toh(mcast.sin_port));
+
+  struct ip_mreq mreq = {};
+  mreq.imr_interface.s_addr = srcIp; //INADDR_ANY;
+  mreq.imr_multiaddr.s_addr = mcIp;
+
+  if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) 
+    on_error("Failed to join  %s",EKA_IP2STR(mreq.imr_multiaddr.s_addr));
+
+  TEST_LOG("Kernel joined MC group %s:%u from %s",
+	  EKA_IP2STR(mreq.imr_multiaddr.s_addr),be16toh(mcast.sin_port),
+	  EKA_IP2STR(mcIp));
+  return sock;
+}
+
 
 /* --------------------------------------------- */
 void tcpServer(EkaDev* dev, std::string ip, uint16_t port, bool* serverSet) {
@@ -105,7 +142,7 @@ void tcpServer(EkaDev* dev, std::string ip, uint16_t port, bool* serverSet) {
   if (tcpSock < 0) on_error("Socket");
 
   tcpSock = accept(sd, (struct sockaddr*)&addr,(socklen_t*) &addr_size);
-  EKA_LOG("Connected from: %s:%d -- sock=%d\n",
+  TEST_LOG("Connected from: %s:%d -- sock=%d\n",
 	  inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),tcpSock);
 
   int status = fcntl(tcpSock, F_SETFL, fcntl(tcpSock, F_GETFL, 0) | O_NONBLOCK);
@@ -461,9 +498,9 @@ int main(int argc, char *argv[]) {
 	int bytes_read = 0;
 	char rxBuf[2000] = {};
 //	bytes_read = recv(tcpSock[i], rxBuf, sizeof(rxBuf), 0);
-	EKA_LOG("Sent: %s\n waiting for the echo...",pkt);
+	TEST_LOG("Sent: %s\n waiting for the echo...",pkt);
 	bytes_read = excRecv(dev,conn[i], rxBuf, sizeof(rxBuf), 0);
-	if (bytes_read > 0) EKA_LOG("\n%s",rxBuf);
+	if (bytes_read > 0) TEST_LOG("\n%s",rxBuf);
     }
 
     // ==============================================
@@ -578,6 +615,9 @@ int main(int argc, char *argv[]) {
     // ==============================================
     efcEnableController(pEfcCtx, 0);
     // ==============================================
+    // TEMP solution to test the DMA CH issue
+    ekaUdpMcConnect(inet_addr(triggerIp.c_str()),triggerUdpPort,inet_addr(clientIp.c_str()));
+    // ==============================================		   
     efcRun(pEfcCtx, &runCtx );
     // ==============================================
     efcCmeSetILinkAppseq(dev,conn[0],0x1);
@@ -626,7 +666,7 @@ int main(int argc, char *argv[]) {
 
     std::thread tradeMsgGeneratorThr;
     if (isEkalineLocal()) {
-	static const int msgCnt = 1000000;
+	static const int msgCnt = 10000000;
 	static const uint16_t cmeTradeMsgLen     = 100;
 	static const uint8_t  cmeNoMDEntriesTicker = 2;
 

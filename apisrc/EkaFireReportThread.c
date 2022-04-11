@@ -208,6 +208,7 @@ void ekaFireReportThread(EkaDev* dev) {
   if (!epmReportCh) on_error("!epmReportCh");
 
   while (dev->fireReportThreadActive) {
+    //    continue; // PATCH TO TEST A DMA CH OVERRUN!!!!
     /* ----------------------------------------------- */
     if (! epmReportCh->has_data()) continue;
     auto data = epmReportCh->get();
