@@ -138,8 +138,16 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
  /* ##################################################################### */
 
 EkaOpResult EkaFhXdp::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, const EkaGroup* group) {
-  return getXdpDefinitions(pEfhCtx,
-			   pEfhRunCtx,
-			   (EkaFhXdpGr*)b_gr[(uint8_t)group->localId],
-			   EkaFhMode::DEFINITIONS);
+  static const int ReTryAttempts = 10;
+  auto gr {dynamic_cast<EkaFhXdpGr*>(b_gr[(uint8_t)group->localId])};
+  for (auto i = 0; i < ReTryAttempts; i++) {
+    auto rc = getXdpDefinitions(pEfhCtx,
+				pEfhRunCtx,
+				gr,
+				EkaFhMode::DEFINITIONS);
+    EKA_LOG("%s:%u Definitions attempt %d/%d failed: waiting %d seconds to retry",
+	    exch,gr->id,i,ReTryAttempts,gr->connectRetryDelayTime);
+    if (rc == EKA_OPRESULT__OK)
+      return rc;
+  }
 }
