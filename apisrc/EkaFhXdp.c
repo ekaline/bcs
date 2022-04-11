@@ -145,10 +145,9 @@ EkaOpResult EkaFhXdp::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
 				pEfhRunCtx,
 				gr,
 				EkaFhMode::DEFINITIONS);
+    if (rc == EKA_OPRESULT__OK) return rc;
     EKA_LOG("%s:%u Definitions attempt %d/%d failed: waiting %d seconds to retry",
 	    EKA_EXCH_DECODE(exch),gr->id,i,ReTryAttempts,gr->connectRetryDelayTime);
-    sleep(gr->connectRetryDelayTime);
-    if (rc == EKA_OPRESULT__OK)
-      return rc;
+    sleep(gr->connectRetryDelayTime);    
   }
 }
