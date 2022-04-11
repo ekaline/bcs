@@ -23,14 +23,12 @@
 #include "Efh.h"
 #include "Efc.h"
 #include "Epm.h"
-/* #include "EkaCtxs.h" */
-/* #include "EkaDev.h" */
-/* #include "EkaSnDev.h" */
-/* #include "EkaCore.h" */
-/* #include "EkaTcpSess.h" */
-/* #include "EkaEfc.h" */
+#include "EkaDev.h"
+#include "EkaEfc.h"
 
 #include "EkaEfcDataStructs.h"
+
+extern EkaDev *g_ekaDev;
 
 /* ########################################################### */
 inline size_t printContainerGlobalHdr(FILE* file, const uint8_t* b) {
@@ -138,9 +136,15 @@ int printBoeFire(FILE* file,const uint8_t* b) {
 }
 
 /* ########################################################### */
-size_t printFirePkt(FILE* file, const uint8_t* b, size_t size,EfhFeedVer hwFeedVer) {
+size_t printFirePkt(FILE* file, const uint8_t* b, size_t size) {
+  auto dev = g_ekaDev;
+  if (!dev) on_error("!g_ekaDev");
+  auto epm {static_cast<const EkaEpm*>(dev->epm)};
+  if (!epm) on_error("!epm");
+  auto efc {static_cast<const EkaEfc*>(epm->strategy[EFC_STRATEGY])};
+  
   fprintf(file,"FirePktReport:");
-  switch (hwFeedVer) {
+  switch (efc->hwFeedVer) {
   case EfhFeedVer::kCBOE :
     printBoeFire(file,b);
   default:
@@ -198,7 +202,7 @@ void efcPrintFireReport(const void* p, size_t len, void* ctx) {
       b += printSecurityCtx(file,b);
       break;
     case EfcReportType::kFirePkt:
-      b += printFirePkt(file,b,reportHdr->size,EfhFeedVer::kInvalid);
+      b += printFirePkt(file,b,reportHdr->size);
       break;
     case EfcReportType::kEpmReport:
       b += printEpmReport(file,b);
