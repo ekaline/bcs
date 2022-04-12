@@ -42,8 +42,9 @@ typedef struct {
 } EkaContainerGlobalHdr;
 
 typedef struct {
+  // exception vector from FPGA HW diagnostics
     #define EkaExceptionReport_FIELD_ITER( _x )                            \
-            _x( int32_t, error_code )
+            _x( uint64_t, error_code )
     EkaExceptionReport_FIELD_ITER( EKA__FIELD_DEF )
 } EkaExceptionReport;
 

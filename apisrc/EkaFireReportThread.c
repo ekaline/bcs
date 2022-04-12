@@ -98,6 +98,22 @@ inline size_t pushFiredPkt(int reportIdx, uint8_t* dst,
     
     return b - dst;
 }
+inline size_t pushExceptionReport(int reportIdx, uint8_t* dst,
+				  uint64_t exceptionVector) {
+  auto b = dst;
+  auto exceptionReportHdr {reinterpret_cast<EfcReportHdr*>(b)};
+  exceptionReportHdr->type = EfcReportType::kExceptionReport;
+  exceptionReportHdr->idx  = reportIdx;
+  exceptionReportHdr->size = sizeof(EkaExceptionReport);
+  b += sizeof(*exceptionReportHdr);
+  //--------------------------------------------------------------------------
+  auto exceptionReport {reinterpret_cast<EkaExceptionReport*>(b)};
+  b += sizeof(*exceptionReport);
+  //--------------------------------------------------------------------------
+  exceptionReport->error_code = exceptionVector;
+  //--------------------------------------------------------------------------
+  return b - dst;
+}
 
 inline size_t pushEpmReport(int reportIdx, uint8_t* dst,
 			   const hw_epm_report_t* hwEpmReport) {
@@ -147,10 +163,19 @@ std::pair<int,size_t> processEpmReport(EkaDev* dev,
     //--------------------------------------------------------------------------
     auto hwEpmReport {reinterpret_cast<const hw_epm_report_t*>(srcReport)};
 
-    b += pushEpmReport(++reportIdx,b,hwEpmReport);
-
-    b += pushFiredPkt(++reportIdx,b,firedPkt,firedPktLen);
-
+    switch (static_cast<HwEpmActionStatus>(hwEpmReport->action)) {
+    case HwEpmActionStatus::Sent : 
+      b += pushEpmReport(++reportIdx,b,hwEpmReport);
+      b += pushFiredPkt (++reportIdx,b,firedPkt,firedPktLen);
+      break;
+    case HwEpmActionStatus::HWPeriodicStatus :
+      // Exception vector is copied by FPGA to hwEpmReport->user
+      b += pushExceptionReport(++reportIdx,b,hwEpmReport->user);
+      break;
+    default:
+      // Broken EPM send reported by hwEpmReport->action
+      b += pushEpmReport(++reportIdx,b,hwEpmReport);
+    } 
     //--------------------------------------------------------------------------
     containerHdr->num_of_reports = reportIdx;
 

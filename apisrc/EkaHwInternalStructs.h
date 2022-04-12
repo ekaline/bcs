@@ -171,6 +171,26 @@ struct hw_epm_report_t {
   uint8_t   islocal;
 } __attribute__((packed));
 
+/* parameter EKA_ACTIONRESULT_Unknown          = 0;  ///< Zero initialization yields an invalid value */
+/* parameter EKA_ACTIONRESULT_Sent             = 1;  ///< All action payloads sent successfully */
+/* parameter EKA_ACTIONRESULT_InvalidToken     = 2;  ///< Trigger security token did not match action token */
+/* parameter EKA_ACTIONRESULT_InvalidStrategy  = 3;  ///< Strategy id was not valid */
+/* parameter EKA_ACTIONRESULT_InvalidAction    = 4;  ///< Action id was not valid */
+/* parameter EKA_ACTIONRESULT_DisabledAction   = 5;  ///< Did not fire because an enable bit was not set */
+/* parameter EKA_ACTIONRESULT_SendError        = 6;  ///< Send error occured (e.g., TCP session closed) */
+/* parameter EKA_ACTIONRESULT_HWPeriodicStatus = 255; ///< HW generated periodic status */
+
+enum class HwEpmActionStatus : uint8_t {
+  Unknown = 0,
+    Sent             = 1,
+    InvalidToken     = 2,
+    InvalidStrategy  = 3,
+    InvalidAction    = 4,
+    DisabledAction   = 5,
+    SendError        = 6,
+    HWPeriodicStatus = 255
+};
+
 struct hw_epm_capabilities_t {
   uint16_t numof_actions;
   uint8_t tcpcs_numof_templates;
