@@ -627,12 +627,14 @@ int main(int argc, char *argv[]) {
     // ==============================================
     efcEnableController(pEfcCtx, 0);
     // ==============================================
-    // TEMP solution to test the DMA CH issue
-    auto mcDoNothingThr = std::thread(readMcLoop,
-				      inet_addr(triggerIp.c_str()),
-				      triggerUdpPort,
-				      inet_addr(clientIp.c_str()));
-    
+    std::thread mcDoNothingThr;
+    if (! isEkalineLocal()) {
+      // TEMP solution to test the DMA CH issue
+      mcDoNothingThr = std::thread(readMcLoop,
+				   inet_addr(triggerIp.c_str()),
+				   triggerUdpPort,
+				   inet_addr(clientIp.c_str()));
+    }
     // ==============================================		   
     efcRun(pEfcCtx, &runCtx );
     // ==============================================
@@ -697,7 +699,7 @@ int main(int argc, char *argv[]) {
     
     while (keep_work) { sleep (0); }
     /* ============================================== */
-    mcDoNothingThr.join();
+    if (! isEkalineLocal()) mcDoNothingThr.join();
     excRecvThr.join();
     if (isEkalineLocal()) {
       tradeMsgGeneratorThr.join();

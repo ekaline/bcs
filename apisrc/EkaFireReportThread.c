@@ -85,19 +85,30 @@ inline size_t pushSecCtx(int reportIdx, uint8_t* dst,
 }
 
 inline size_t pushFiredPkt(int reportIdx, uint8_t* dst,
-			   const uint8_t* src, size_t len) {
-    auto b = dst;
-    auto firePktHdr {reinterpret_cast<EfcReportHdr*>(b)};
-    firePktHdr->type = EfcReportType::kFirePkt;
-    firePktHdr->idx  = reportIdx;
-    firePktHdr->size = len;
-    b += sizeof(EfcReportHdr);
+			   EkaUserReportQ* q, uint32_t dmaIdx) {
 
-    memcpy(b,src,len);
-    b += len;
+  while (q->isEmpty()) {}
+  auto firePkt = q->pop();
+  auto firePktIndex = firePkt->hdr.index;
     
-    return b - dst;
+  if (firePktIndex != dmaIdx) {
+    on_error("firePktIndex %u (0x%x) != dmaIdx %u (0x%x)",
+	     firePktIndex,firePktIndex,dmaIdx,dmaIdx);
+  }
+    
+  auto b = dst;
+  auto firePktHdr {reinterpret_cast<EfcReportHdr*>(b)};
+  firePktHdr->type = EfcReportType::kFirePkt;
+  firePktHdr->idx  = reportIdx;
+  firePktHdr->size = firePkt->hdr.length;
+  b += sizeof(EfcReportHdr);
+
+  memcpy(b,firePkt->data,firePkt->hdr.length);
+  b += firePkt->hdr.length;
+    
+  return b - dst;
 }
+
 inline size_t pushExceptionReport(int reportIdx, uint8_t* dst,
 				  uint64_t exceptionVector) {
   auto b = dst;
@@ -146,51 +157,55 @@ inline size_t pushEpmReport(int reportIdx, uint8_t* dst,
 /* ########################################################### */
 
 std::pair<int,size_t> processEpmReport(EkaDev* dev,
-				       const uint8_t* srcReport,
-				       uint           srcReportLen,		
-				       const uint8_t* firedPkt,
-				       size_t         firedPktLen,
-				       uint8_t*       reportBuf) {
+				       const uint8_t*  srcReport,
+				       uint            srcReportLen,
+				       EkaUserReportQ* q,
+				       uint32_t        dmaIdx,
+				       uint8_t*        reportBuf) {
 
-    //--------------------------------------------------------------------------
-    uint8_t* b =  reportBuf;
-    uint reportIdx = 0;
-    //--------------------------------------------------------------------------
-    auto containerHdr {reinterpret_cast<EkaContainerGlobalHdr*>(b)};
-    containerHdr->type = EkaEventType::kEpmEvent;
-    containerHdr->num_of_reports = 0; // to be overwritten at the end
-    b += sizeof(*containerHdr);
-    //--------------------------------------------------------------------------
-    auto hwEpmReport {reinterpret_cast<const hw_epm_report_t*>(srcReport)};
+  int strategyId2ret = EPM_INVALID_STRATEGY;
+  //--------------------------------------------------------------------------
+  uint8_t* b =  reportBuf;
+  uint reportIdx = 0;
+  //--------------------------------------------------------------------------
+  auto containerHdr {reinterpret_cast<EkaContainerGlobalHdr*>(b)};
+  containerHdr->type = EkaEventType::kEpmEvent;
+  containerHdr->num_of_reports = 0; // to be overwritten at the end
+  b += sizeof(*containerHdr);
+  //--------------------------------------------------------------------------
+  auto hwEpmReport {reinterpret_cast<const hw_epm_report_t*>(srcReport)};
 
-    switch (static_cast<HwEpmActionStatus>(hwEpmReport->action)) {
-    case HwEpmActionStatus::Sent : 
-      b += pushEpmReport(++reportIdx,b,hwEpmReport);
-      b += pushFiredPkt (++reportIdx,b,firedPkt,firedPktLen);
-      break;
-    case HwEpmActionStatus::HWPeriodicStatus :
-      // Exception vector is copied by FPGA to hwEpmReport->user
+  switch (static_cast<HwEpmActionStatus>(hwEpmReport->action)) {
+  case HwEpmActionStatus::Sent : 
+    b += pushEpmReport(++reportIdx,b,hwEpmReport);
+    b += pushFiredPkt (++reportIdx,b,q,dmaIdx);
+    strategyId2ret = hwEpmReport->strategyId;
+    break;
+  case HwEpmActionStatus::HWPeriodicStatus :
+    EKA_LOG("hwEpmReport->action = %d",(int)hwEpmReport->action);
+    // Exception vector is copied by FPGA to hwEpmReport->user
+    if (hwEpmReport->user)
       b += pushExceptionReport(++reportIdx,b,hwEpmReport->user);
-      break;
-    default:
-      // Broken EPM send reported by hwEpmReport->action
-      b += pushEpmReport(++reportIdx,b,hwEpmReport);
-    } 
-    //--------------------------------------------------------------------------
-    containerHdr->num_of_reports = reportIdx;
+    break;
+  default:
+    // Broken EPM send reported by hwEpmReport->action
+    b += pushEpmReport(++reportIdx,b,hwEpmReport);
+  } 
+  //--------------------------------------------------------------------------
+  containerHdr->num_of_reports = reportIdx;
 
-    return {hwEpmReport->strategyId,b-reportBuf};
+  return {strategyId2ret,b-reportBuf};
 }
 
 /* ########################################################### */
 
 
-std::pair<int,size_t> processFireReport(EkaDev* dev,
-					const uint8_t* srcReport,
-					uint           srcReportLen,		
-					const uint8_t* firedPkt,
-					size_t         firedPktLen,
-					uint8_t*       reportBuf) {
+std::pair<int,size_t> processFireReport(EkaDev*         dev,
+					const uint8_t*  srcReport,
+					uint            srcReportLen,
+					EkaUserReportQ* q,
+					uint32_t        dmaIdx,
+					uint8_t*        reportBuf) {
   //--------------------------------------------------------------------------
 
   uint8_t* b =  reportBuf;
@@ -209,12 +224,38 @@ std::pair<int,size_t> processFireReport(EkaDev* dev,
 
   b += pushSecCtx(++reportIdx,b,hwReport);
 
-  b += pushFiredPkt(++reportIdx,b,firedPkt,firedPktLen);
+  b += pushFiredPkt (++reportIdx,b,q,dmaIdx);
+
   //--------------------------------------------------------------------------
   containerHdr->num_of_reports = reportIdx;
 
   return {EFC_STRATEGY,b-reportBuf};
 }
+
+/* ----------------------------------------------- */
+static inline void sendDate2Hw(EkaDev* dev) {
+  struct timespec t;
+  clock_gettime(CLOCK_REALTIME, &t); 
+  uint64_t current_time_ns = ((uint64_t)(t.tv_sec) * (uint64_t)1000000000 + (uint64_t)(t.tv_nsec));
+  current_time_ns += static_cast<uint64_t>(6*60*60) * static_cast<uint64_t>(1e9); //+6h UTC time
+  int current_time_seconds = current_time_ns/(1000*1000*1000);
+  time_t tmp = current_time_seconds;
+  struct tm lt;
+  (void) localtime_r(&tmp, &lt);
+  char result[32] = {};
+  strftime(result, sizeof(result), "%Y%m%d-%H:%M:%S.000", &lt); //20191206-20:17:32.131 
+  uint64_t* wr_ptr = (uint64_t*) &result;
+  for (int z=0; z<3; z++) {
+    eka_write(dev,0xf0300+z*8,*wr_ptr++); //data
+  }
+  return;
+}
+/* ----------------------------------------------- */
+
+static inline void sendHb2HW(EkaDev* dev) {
+  eka_read(dev,0xf0f08);
+}
+/* ----------------------------------------------- */
 
 /* ########################################################### */
 
@@ -224,7 +265,8 @@ void ekaFireReportThread(EkaDev* dev) {
   pthread_t thread = pthread_self();
   pthread_setname_np(thread,"EkaFireReportThread");
   dev->fireReportThreadTerminated = false;
-
+  int64_t updCnt = 0;
+  
   auto epmReportCh {dev->epmReport};
 
   auto epm {dev->epm};
@@ -233,7 +275,12 @@ void ekaFireReportThread(EkaDev* dev) {
   if (!epmReportCh) on_error("!epmReportCh");
 
   while (dev->fireReportThreadActive) {
-    //    continue; // PATCH TO TEST A DMA CH OVERRUN!!!!
+    if ((updCnt++ % 0x300000)==0) {
+      sendDate2Hw(dev);
+      //      sendHb2HW(dev);
+    }    
+    /* ----------------------------------------------- */
+    //        continue; // PATCH TO TEST A DMA CH OVERRUN!!!!
     /* ----------------------------------------------- */
     if (! epmReportCh->has_data()) continue;
     auto data = epmReportCh->get();
@@ -246,37 +293,25 @@ void ekaFireReportThread(EkaDev* dev) {
       on_error("DMA length mismatch %u != %u",
 	       dmaReportHdr->length,len);
     }
-
-    auto epmReportIndex = dmaReportHdr->feedbackDmaIndex;
-    while (dev->userReportQ->isEmpty()) {}
-    EkaUserReportElem* userReport = dev->userReportQ->pop();
-    uint32_t userReportIndex = userReport->hdr.index;
-    
-    if (userReportIndex != epmReportIndex) {
-	hexDump("Fire Report with wrong Index",data,len);
-	on_error("userReportIndex %u (0x%x) != epmReportIndex %u (0x%x)",
-		 userReportIndex,userReportIndex,
-		 epmReportIndex,epmReportIndex);
-    }
     
     auto payload = data + sizeof(*dmaReportHdr);
     uint8_t reportBuf[4000] = {};
     std::pair<int,size_t> r;
     switch ((EkaUserChannel::DMA_TYPE)dmaReportHdr->type) {
     case EkaUserChannel::DMA_TYPE::EPM:
-	r = processEpmReport(dev,payload,len,
-                             userReport->data,
-                             userReport->hdr.length,
-			     reportBuf);
-	break;
+      r = processEpmReport(dev,payload,len,
+			   dev->userReportQ,
+			   dmaReportHdr->feedbackDmaIndex,
+			   reportBuf);
+      break;
     case EkaUserChannel::DMA_TYPE::FIRE:
-	r = processFireReport(dev,payload,len,
-			      userReport->data,
-                              userReport->hdr.length,
-                              reportBuf);
-	break;
+      r = processFireReport(dev,payload,len,
+			    dev->userReportQ,
+			    dmaReportHdr->feedbackDmaIndex,
+			    reportBuf);
+      break;
     default:
-	on_error("Unexpected DMA type 0x%x",dmaReportHdr->type);
+      on_error("Unexpected DMA type 0x%x",dmaReportHdr->type);
     }
 
     int    strategyId = r.first;
@@ -286,15 +321,19 @@ void ekaFireReportThread(EkaDev* dev) {
     on_error("reportLen %jd > sizeof(reportBuf) %jd",
 	     reportLen,sizeof(reportBuf));
 
-    auto reportedStrategy {epm->strategy[strategyId]};
-    if (!reportedStrategy)
+    if (strategyId != EPM_INVALID_STRATEGY) {
+      auto reportedStrategy {epm->strategy[strategyId]};
+      if (!reportedStrategy) {
+	hexDump("Bad Report",reportBuf,reportLen);
 	on_error("!strategy[%d]",strategyId);
-    if (! reportedStrategy->reportCb)
+      }
+      if (!reportedStrategy->reportCb)
 	on_error("reportCb is not defined");
-    reportedStrategy->reportCb(reportBuf,reportLen,
-			       reportedStrategy->cbCtx);
+      reportedStrategy->reportCb(reportBuf,reportLen,
+				 reportedStrategy->cbCtx);
+    }
     epmReportCh->next();
-    
+
   }
   dev->fireReportThreadTerminated = true;
   EKA_LOG("Terminated");

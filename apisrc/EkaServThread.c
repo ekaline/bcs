@@ -40,34 +40,9 @@ static inline int sendDummyFastPathPkt(EkaDev* dev, const uint8_t* payload) {
   return tcpSess->lwipDummyWrite(data, len);
 }
 
-/* ----------------------------------------------- */
-static inline void sendDate2Hw(EkaDev* dev) {
-  struct timespec t;
-  clock_gettime(CLOCK_REALTIME, &t); 
-  uint64_t current_time_ns = ((uint64_t)(t.tv_sec) * (uint64_t)1000000000 + (uint64_t)(t.tv_nsec));
-  current_time_ns += static_cast<uint64_t>(6*60*60) * static_cast<uint64_t>(1e9); //+6h UTC time
-  int current_time_seconds = current_time_ns/(1000*1000*1000);
-  time_t tmp = current_time_seconds;
-  struct tm lt;
-  (void) localtime_r(&tmp, &lt);
-  char result[32] = {};
-  strftime(result, sizeof(result), "%Y%m%d-%H:%M:%S.000", &lt); //20191206-20:17:32.131 
-  uint64_t* wr_ptr = (uint64_t*) &result;
-  for (int z=0; z<3; z++) {
-    eka_write(dev,0xf0300+z*8,*wr_ptr++); //data
-  }
-  return;
-}
-/* ----------------------------------------------- */
-
-static inline void sendHb2HW(EkaDev* dev) {
-  eka_read(dev,0xf0f08);
-}
-/* ----------------------------------------------- */
 
 void ekaServThread(EkaDev* dev) {
   EKA_LOG("Launching");
-  uint32_t null_cnt = 0;
 
   dev->servThreadActive = true;
 
@@ -143,12 +118,7 @@ void ekaServThread(EkaDev* dev) {
 	on_error("Unexpected dmaType %d",(int)dmaType);
       }
     }
-    /* ----------------------------------------------- */
-    if ((null_cnt % 3000000)==0) {
-      sendDate2Hw(dev);
-      sendHb2HW(dev);
-    }
-    null_cnt++;
+
   }
 
   fire_rx_tx_en = eka_read(dev,ENABLE_PORT);
