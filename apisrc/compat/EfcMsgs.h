@@ -69,6 +69,12 @@ typedef struct {
     EfcMdReport_FIELD_ITER( EKA__FIELD_DEF )
 } EfcMdReport; // single appearence
 
+#define EFC_MAX_CORES 4      
+      
+struct EfcExceptionsReport {
+  uint64_t globalExcpt = 0;
+  uint64_t coreExcpt[EFC_MAX_CORES] = {};
+};
       // Replaced by   SecCtx    
 /* typedef struct { */
 /*     #define EfcSecurityCtx_FIELD_ITER( _x )                                 \ */

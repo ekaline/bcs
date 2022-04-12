@@ -27,6 +27,7 @@
 #include "EkaEfc.h"
 
 #include "EkaEfcDataStructs.h"
+#include "EkaHwExceptionsDecode.h"
 
 extern EkaDev *g_ekaDev;
 
@@ -53,8 +54,15 @@ inline size_t printControllerState(FILE* file, const uint8_t* b) {
 }
 /* ########################################################### */
 inline size_t printExceptionReport(FILE* file, const uint8_t* b) {
-
-  return sizeof(EfcControllerState);
+  auto exceptionsReport {reinterpret_cast<const EfcExceptionsReport*>(b)};
+  char excptBuf[2048] = {};
+  int decodeSize = ekaDecodeExceptions(excptBuf,exceptionsReport);
+  if ((uint64_t)decodeSize > sizeof(excptBuf))
+    on_error("decodeSize %d > sizeof(excptBuf) %jd",
+	     decodeSize,sizeof(excptBuf));
+  fprintf(file,"ExceptionsReport:\n");
+  fprintf(file,"%s\n",excptBuf);
+  return sizeof(*exceptionsReport);
 }
 /* ########################################################### */
 size_t printSecurityCtx(FILE* file, const uint8_t* b) {

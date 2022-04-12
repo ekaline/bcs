@@ -110,7 +110,7 @@ inline size_t pushFiredPkt(int reportIdx, uint8_t* dst,
 }
 
 inline size_t pushExceptionReport(int reportIdx, uint8_t* dst,
-				  uint64_t exceptionVector) {
+				  EfcExceptionsReport* src) {
   auto b = dst;
   auto exceptionReportHdr {reinterpret_cast<EfcReportHdr*>(b)};
   exceptionReportHdr->type = EfcReportType::kExceptionReport;
@@ -118,10 +118,10 @@ inline size_t pushExceptionReport(int reportIdx, uint8_t* dst,
   exceptionReportHdr->size = sizeof(EkaExceptionReport);
   b += sizeof(*exceptionReportHdr);
   //--------------------------------------------------------------------------
-  auto exceptionReport {reinterpret_cast<EkaExceptionReport*>(b)};
+  auto exceptionReport {reinterpret_cast<EfcExceptionsReport*>(b)};
   b += sizeof(*exceptionReport);
   //--------------------------------------------------------------------------
-  exceptionReport->error_code = exceptionVector;
+  memcpy(exceptionReport,src,sizeof(*exceptionReport));
   //--------------------------------------------------------------------------
   return b - dst;
 }
@@ -155,6 +155,13 @@ inline size_t pushEpmReport(int reportIdx, uint8_t* dst,
     return b - dst;
 }
 /* ########################################################### */
+void getExceptionsReport(EkaDev* dev,EfcExceptionsReport* excpt) {
+  excpt->globalExcpt = eka_read(dev,ADDR_INTERRUPT_SHADOW_RO);
+  for (int i = 0; i < EFC_MAX_CORES; i++) {
+    excpt->coreExcpt[i] = eka_read(dev,EKA_ADDR_INTERRUPT_0_SHADOW_RO + i * 0x1000);
+  }
+}
+/* ########################################################### */
 
 std::pair<int,size_t> processEpmReport(EkaDev* dev,
 				       const uint8_t*  srcReport,
@@ -184,8 +191,11 @@ std::pair<int,size_t> processEpmReport(EkaDev* dev,
   case HwEpmActionStatus::HWPeriodicStatus :
     EKA_LOG("hwEpmReport->action = %d",(int)hwEpmReport->action);
     // Exception vector is copied by FPGA to hwEpmReport->user
-    if (hwEpmReport->user)
-      b += pushExceptionReport(++reportIdx,b,hwEpmReport->user);
+    if (hwEpmReport->user) {
+      EfcExceptionsReport exceptReport = {};
+      getExceptionsReport(dev,&exceptReport);
+      b += pushExceptionReport(++reportIdx,b,&exceptReport);
+    }
     break;
   default:
     // Broken EPM send reported by hwEpmReport->action
@@ -280,7 +290,7 @@ void ekaFireReportThread(EkaDev* dev) {
       //      sendHb2HW(dev);
     }    
     /* ----------------------------------------------- */
-    //        continue; // PATCH TO TEST A DMA CH OVERRUN!!!!
+    //       continue; // PATCH TO TEST A DMA CH OVERRUN!!!!
     /* ----------------------------------------------- */
     if (! epmReportCh->has_data()) continue;
     auto data = epmReportCh->get();

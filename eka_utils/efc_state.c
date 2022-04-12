@@ -17,6 +17,8 @@
 #include "eka.h"
 #include "eka_hw_conf.h"
 #include "EkaHwCaps.h"
+#include "EfcMsgs.h"
+#include "EkaHwExceptionsDecode.h"
 
 //#define NUM_OF_CORES EKA_MAX_CORES
 #define NUM_OF_CORES 4
@@ -94,6 +96,18 @@ inline uint64_t reg_read (uint32_t addr) {
     if (SN_ERR_SUCCESS != SN_ReadUserLogicRegister (devId, addr/8, &value))
       on_error("SN_Read returned smartnic error code : %d",SN_GetLastErrorCode());    
     return value;
+}
+//################################################
+
+inline void getExceptions(EfcExceptionsReport* excpt, uint8_t coresBitmap) {
+  excpt->globalExcpt = reg_read(ADDR_INTERRUPT_SHADOW_RO);
+  for (int i = 0; i < EFC_MAX_CORES; i++) {
+    if (((0x01 << i) & 0xFF) & coresBitmap) {
+      excpt->coreExcpt[i] = reg_read(EKA_ADDR_INTERRUPT_0_SHADOW_RO + i * 0x1000);
+    } else {
+      excpt->coreExcpt[i] = 0;
+    }
+  }
 }
 //################################################
 
@@ -229,54 +243,6 @@ void printTime() {
 	 ((var_sw_stats_zero>>63)&0x1) ? GRN "OPENED" RESET : RED "CLOSED" RESET
 	 );
 }
-//################################################
-void printExceptions(uint64_t var_global_shadow) {
-
-  printf(RED "\n\nFPGA internal exceptions:\n" RESET);
-  
-  for(auto curr_core = 0; curr_core < NUM_OF_CORES; curr_core++)
-    if ((var_global_shadow>>curr_core)&0x1) printf("Bit %d: Core%d exception, will be resolved below\n",curr_core,curr_core);
-  if ((var_global_shadow>>6)&0x1)  printf("Bit 6: Register access interface became full\n" );
-  if ((var_global_shadow>>10)&0x1) printf("Bit 10: TCPRX[0] data drop\n" );
-  if ((var_global_shadow>>11)&0x1) printf("Bit 11: TCPRX[0] descriptor drop\n" );
-  if ((var_global_shadow>>12)&0x1) printf("Bit 12: TCPRX[1] data drop\n" );
-  if ((var_global_shadow>>13)&0x1) printf("Bit 13: TCPRX[1] descriptor drop\n" );
-  if ((var_global_shadow>>14)&0x1) printf("Bit 14: Sniffer[0] data drop\n" );
-  if ((var_global_shadow>>15)&0x1) printf("Bit 15: Sniffer[0] descriptor drop\n" );
-  if ((var_global_shadow>>16)&0x1) printf("Bit 16: Sniffer[1] data drop\n" );
-  if ((var_global_shadow>>17)&0x1) printf("Bit 17: Sniffer[1] descriptor drop\n" );
-  if ((var_global_shadow>>18)&0x1) printf("Bit 18: LWIP DMA data drop\n" );
-  if ((var_global_shadow>>19)&0x1) printf("Bit 19: LWIP DMA descriptor drop\n" );
-  if ((var_global_shadow>>20)&0x1) printf("Bit 20: Report DMA data drop\n" );
-  if ((var_global_shadow>>21)&0x1) printf("Bit 21: Report DMA descriptor drop\n" );
-  if ((var_global_shadow>>26)&0x1) printf("Bit 26: WD expired\n" );
-  if ((var_global_shadow>>27)&0x1) printf("Bit 27: EPM desc fifo overrun\n" );
-  if ((var_global_shadow>>28)&0x1) printf("Bit 28: EPM Wrong action type\n" );
-  if ((var_global_shadow>>29)&0x1) printf("Bit 29: EPM Wrong action source\n" );
-  if ((var_global_shadow>>30)&0x1) printf("Bit 30: Fire protection: no arming between two fires\n" );
-  if ((var_global_shadow>>32)&0x1) printf("Bit 32: P4 Null session list\n" );
-  if ((var_global_shadow>>33)&0x1) printf("Bit 33: P4 CTX reply overrun\n" );
-  if ((var_global_shadow>>34)&0x1) printf("Bit 34: P4 MD out of sync\n" );
-  if ((var_global_shadow>>35)&0x1) printf("Bit 35: P4 Wrong secid\n" );
-
-  if ((var_global_shadow>>0)&0x3f) printf ("\n--- Core Exceptions --\n");
-  for(auto curr_core = 0; curr_core < NUM_OF_CORES; curr_core++){
-    if ((var_global_shadow>>curr_core)&0x1) {
-      printf("\nResolving exception for Core%d\n",curr_core);
-      uint64_t var_core_shadow = reg_read(EKA_ADDR_INTERRUPT_0_SHADOW_RO+curr_core*0x1000);
-	      
-      if ((var_core_shadow>>0)&0x1)  printf("Bit 0: RX port overrun, at least one packet was dropped\n");
-      if ((var_core_shadow>>1)&0x1)  printf("Bit 1: MD parser error, happens if the MD parser reached unknown state while parsing MD\n");
-      if ((var_core_shadow>>2)&0x1)  printf("Bit 2: Sequence number overflow - sequence number crossed 64bit value\n");
-      if ((var_core_shadow>>3)&0x1)  printf("Bit 3: Overrun in MD fifo, FATAL\n");
-      if ((var_core_shadow>>4)&0x1)  printf("Bit 4: RX CRC error was detected\n");
-      if ((var_core_shadow>>7)&0x1)  printf("Bit 7: Software DirectTCP remote ACK table table update overrun, happens if table is updated too fast\n");
-      if ((var_core_shadow>>8)&0x1)  printf("Bit 8: Software DirectTCP local SEQ table table update overrun, happens if table is updated too fast\n");
-    }
-  }
-
-}
-
 //################################################
 void checkVer() {
   uint64_t swVer = reg_read(SCRPAD_SW_VER);
@@ -578,7 +544,7 @@ int main(int argc, char *argv[]) {
   auto pEfcState = new EfcState;
   auto pFastCancelState = new FastCancelState;
   auto pNewsState = new NewsState;
-  
+  auto pEfcExceptionsReport = new EfcExceptionsReport;
   /* ----------------------------------------- */
   checkVer();
   /* ----------------------------------------- */
@@ -601,7 +567,9 @@ int main(int argc, char *argv[]) {
       break;
     }
     /* ----------------------------------------- */
-    uint64_t exceptions = reg_read(ADDR_INTERRUPT_SHADOW_RO);
+    getExceptions(pEfcExceptionsReport,
+		  ekaHwCaps->hwCaps.core.bitmap_tcp_cores |
+		  ekaHwCaps->hwCaps.core.bitmap_md_cores);
     /* ----------------------------------------- */
     printf("\e[1;1H\e[2J"); //	system("clear");
     /* ----------------------------------------- */
@@ -629,7 +597,12 @@ int main(int argc, char *argv[]) {
     }
 
     /* ----------------------------------------- */
-    if (exceptions != 0) printExceptions(exceptions);
+    char excptBuf[8192] = {};
+    int decodeSize = ekaDecodeExceptions(excptBuf,pEfcExceptionsReport);
+    if ((uint64_t)decodeSize > sizeof(excptBuf))
+      on_error("decodeSize %d > sizeof(excptBuf) %jd",
+	       decodeSize,sizeof(excptBuf));
+    printf("%s\n",excptBuf);
     /* ----------------------------------------- */
     sleep(1);
   }
