@@ -57,6 +57,20 @@ EkaHwCaps::EkaHwCaps(EkaDev* _dev) {
   if (idx > bufSize) on_error("idx %u > bufSize %u",idx,bufSize);
 }
 
+void EkaHwCaps::refresh() {
+  SN_DeviceId DeviceId = SN_OpenDevice(NULL, NULL);
+  if (DeviceId == NULL) on_error("failed on SN_OpenDevice");
+
+  uint words2read = sizeof(hwCaps) / 8 + !!(sizeof(hwCaps) % 8);
+  uint64_t srcAddr = HwCapabilitiesAddr / 8;
+  uint64_t* dstAddr = (uint64_t*)&hwCaps;
+  for (uint w = 0; w < words2read; w++)
+    SN_ReadUserLogicRegister(DeviceId, srcAddr++, dstAddr++);
+
+  SN_CloseDevice(DeviceId);
+
+}
+
 void EkaHwCaps::print2buf() {
   idx += sprintf(&buf[idx],"\n");
   idx += sprintf(&buf[idx],"hwCaps.core.bitmap_md_cores\t\t= 0x%jx\n",     (uint64_t)(hwCaps.core.bitmap_md_cores));  

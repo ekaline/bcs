@@ -587,6 +587,7 @@ int main(int argc, char *argv[]) {
   //  uint64_t cnt = 0;
   while (1) {
     getCurrTraffic(coreParams);
+    ekaHwCaps->refresh();
     /* ----------------------------------------- */
     switch (ekaHwCaps->hwCaps.version.parser) {
     case 30:
