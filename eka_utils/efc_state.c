@@ -16,6 +16,7 @@
 #include "ctls.h"
 #include "eka.h"
 #include "eka_hw_conf.h"
+#include "EkaHwCaps.h"
 
 //#define NUM_OF_CORES EKA_MAX_CORES
 #define NUM_OF_CORES 4
@@ -62,6 +63,18 @@ struct EfcState {
   bool     fatalDebug         = false;
   bool     armed              = false;
   bool     killSwitch         = false;
+};
+
+struct FastCancelState {
+  uint64_t strategyRuns       = 0;
+  uint64_t strategyPassed     = 0;
+  bool     reportOnly         = false;
+};
+
+struct NewsState {
+  uint64_t strategyRuns       = 0;
+  uint64_t strategyPassed     = 0;
+  bool     reportOnly         = false;
 };
 
 
@@ -468,8 +481,39 @@ int getEfcState(EfcState* pEfcState) {
   pEfcState->fatalDebug         = var_fatal_debug == 0xefa0beda;
   return 0;
 }
+
+//################################################
+int getFastCancelState(FastCancelState* pFastCancelState) {
+
+  uint64_t var_fc_cont_counter1  = reg_read(0xf0800);
+
+  uint64_t var_p4_general_conf	 = reg_read(ADDR_P4_GENERAL_CONF);
+
+  pFastCancelState->strategyRuns       = (var_fc_cont_counter1>>32)& MASK32;
+  pFastCancelState->strategyPassed     = (var_fc_cont_counter1>>0) & MASK32;
+
+  pFastCancelState->reportOnly         = (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT)        != 0;
+  return 0;
+}
+
+//################################################
+int getNewsState(NewsState* pNewsState) {
+
+  uint64_t var_news_cont_counter1  = reg_read(0xf0808);
+
+  uint64_t var_p4_general_conf	 = reg_read(ADDR_P4_GENERAL_CONF);
+
+  pNewsState->strategyRuns       = (var_news_cont_counter1>>32)& MASK32;
+  pNewsState->strategyPassed     = (var_news_cont_counter1>>0) & MASK32;
+
+  pNewsState->reportOnly         = (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT)        != 0;
+  return 0;
+}
+
+
 //################################################
 int printEfcState(EfcState* pEfcState) {
+  printf("Efc P4 state\n");
   if (pEfcState->killSwitch) {
     printf (RED "Fatal KILL SWITCH is turned ON!!! - reload driver is needed!!!\n\n" RESET);
   }
@@ -503,12 +547,37 @@ int printEfcState(EfcState* pEfcState) {
 }
 
 //################################################
+int printFastCancelState(FastCancelState* pFastCancelState) {
+  printf("Generic parser template: CME Fast Cancel\n\n"); 
+  printf("ReportOnly              = %d (needs re-arming)\n\n",pFastCancelState->reportOnly);
+
+  printf("Evaluated   strategies:\t%ju\n",pFastCancelState->strategyRuns);
+  printf("Passed      strategies:\t%ju\n",pFastCancelState->strategyPassed);
+
+  return 0;
+}
+
+//################################################
+int printNewsState(NewsState* pNewsState) {
+  printf("Generic parser template: NEWS\n\n");  
+  printf("ReportOnly              = %d (needs re-arming)\n\n",pNewsState->reportOnly);
+
+  printf("Evaluated   strategies:\t%ju\n",pNewsState->strategyRuns);
+  printf("Passed      strategies:\t%ju\n",pNewsState->strategyPassed);
+
+  return 0;
+}
+
+//################################################
 
 int main(int argc, char *argv[]) {
   devId = SN_OpenDevice(NULL, NULL);
   if (devId == NULL) on_error ("Cannot open FiberBlaze device. Is driver loaded?");
   IfParams coreParams[NUM_OF_CORES] = {};
+  EkaHwCaps* ekaHwCaps = new EkaHwCaps(NULL);
   auto pEfcState = new EfcState;
+  auto pFastCancelState = new FastCancelState;
+  auto pNewsState = new NewsState;
   
   /* ----------------------------------------- */
   checkVer();
@@ -519,7 +588,17 @@ int main(int argc, char *argv[]) {
   while (1) {
     getCurrTraffic(coreParams);
     /* ----------------------------------------- */
-    getEfcState(pEfcState);
+    switch (ekaHwCaps->hwCaps.version.parser) {
+    case 30:
+      getNewsState(pNewsState);
+      break;
+    case 31:
+      getFastCancelState(pFastCancelState);
+      break;
+    default:
+      getEfcState(pEfcState);
+      break;
+    }
     /* ----------------------------------------- */
     uint64_t exceptions = reg_read(ADDR_INTERRUPT_SHADOW_RO);
     /* ----------------------------------------- */
@@ -536,7 +615,18 @@ int main(int argc, char *argv[]) {
     printLineSeparator(coreParams,'+','-');
     printLineSeparator(coreParams,'+','-');
     /* ----------------------------------------- */
-    printEfcState(pEfcState);
+    switch (ekaHwCaps->hwCaps.version.parser) {
+    case 30:
+      printNewsState(pNewsState);
+      break;
+    case 31:
+      printFastCancelState(pFastCancelState);
+      break;
+    default:
+      printEfcState(pEfcState);
+      break;
+    }
+
     /* ----------------------------------------- */
     if (exceptions != 0) printExceptions(exceptions);
     /* ----------------------------------------- */
