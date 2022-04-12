@@ -101,7 +101,7 @@ static int ekaUdpMcConnect(uint32_t mcIp, uint16_t mcPort,
 
   TEST_LOG("Kernel joined MC group %s:%u from %s",
 	  EKA_IP2STR(mreq.imr_multiaddr.s_addr),be16toh(mcast.sin_port),
-	  EKA_IP2STR(mcIp));
+	  EKA_IP2STR(mreq.imr_interface.s_addr));
   return sock;
 }
 /* --------------------------------------------- */
