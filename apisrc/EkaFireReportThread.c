@@ -189,7 +189,6 @@ std::pair<int,size_t> processEpmReport(EkaDev* dev,
     strategyId2ret = hwEpmReport->strategyId;
     break;
   case HwEpmActionStatus::HWPeriodicStatus :
-    EKA_LOG("hwEpmReport->action = %d",(int)hwEpmReport->action);
     // Exception vector is copied by FPGA to hwEpmReport->user
     if (hwEpmReport->user) {
       EfcExceptionsReport exceptReport = {};
@@ -290,14 +289,13 @@ void ekaFireReportThread(EkaDev* dev) {
       //      sendHb2HW(dev);
     }    
     /* ----------------------------------------------- */
-    //       continue; // PATCH TO TEST A DMA CH OVERRUN!!!!
-    /* ----------------------------------------------- */
     if (! epmReportCh->has_data()) continue;
     auto data = epmReportCh->get();
     auto len  = epmReportCh->getPayloadSize();
 
     auto dmaReportHdr {reinterpret_cast<const report_dma_report_t*>(data)};
-    
+    //    hexDump("------------\ndmaReportHdr",dmaReportHdr,sizeof(*dmaReportHdr));
+
     if (dmaReportHdr->length + sizeof(*dmaReportHdr) != len) {
       hexDump("EPM report",data,len); fflush(stdout);
       on_error("DMA length mismatch %u != %u",
@@ -305,6 +303,8 @@ void ekaFireReportThread(EkaDev* dev) {
     }
     
     auto payload = data + sizeof(*dmaReportHdr);
+    //    hexDump("------------\ndmaReportData",payload,dmaReportHdr->length);
+
     uint8_t reportBuf[4000] = {};
     std::pair<int,size_t> r;
     switch ((EkaUserChannel::DMA_TYPE)dmaReportHdr->type) {

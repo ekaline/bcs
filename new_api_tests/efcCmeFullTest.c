@@ -338,7 +338,8 @@ static int sendCmeTradeMsg(std::string serverIp,
     strcpy ((char*)p,data);
     p += strlen(data);
 
-    size_t payloadLen = p - pkt;
+    const size_t SbePktLen = 1400;
+    size_t payloadLen = SbePktLen ? SbePktLen : p - pkt;
 #else    
     const uint8_t pkt[] =
       {0x22, 0xa5, 0x0d, 0x02, 0xa5, 0x6f, 0x01, 0x38, 0xca, 0x42, 0xdc, 0x16, 0x60, 0x00, 0x0b, 0x00,
@@ -682,28 +683,40 @@ int main(int argc, char *argv[]) {
 	     "Waiting for Market data to Fire on"
 	     "\n===========================\n");
 
+#ifndef _VERILOG_SIM
     std::thread tradeMsgGeneratorThr;
     if (isEkalineLocal()) {
-	static const int msgCnt = 10000000;
-	static const uint16_t cmeTradeMsgLen     = 100;
-	static const uint8_t  cmeNoMDEntriesTicker = 2;
+      static const int msgCnt = 1000000;
+      static const uint16_t cmeTradeMsgLen     = 100;
+      static const uint8_t  cmeNoMDEntriesTicker = 2;
 
-	tradeMsgGeneratorThr = std::thread(sendCmeTradeMsgsLoop,
-					   msgCnt,serverIp,
-					   triggerIp,triggerUdpPort,
-					   cmeTradeMsgLen,
-					   cmeNoMDEntriesTicker);
+      tradeMsgGeneratorThr = std::thread(sendCmeTradeMsgsLoop,
+					 msgCnt,serverIp,
+					 triggerIp,triggerUdpPort,
+					 cmeTradeMsgLen,
+					 cmeNoMDEntriesTicker);
     }    
 
     auto excRecvThr = std::thread(excRecvLoop,dev,conn[0]);
+#endif
     
+#ifdef _VERILOG_SIM
+    keep_work = false;
+    sleep(1);
+    fflush(stdout);
+    fflush(stderr);
+#endif
     while (keep_work) { sleep (0); }
     /* ============================================== */
+
+#ifndef _VERILOG_SIM
     if (! isEkalineLocal()) mcDoNothingThr.join();
     excRecvThr.join();
     if (isEkalineLocal()) {
       tradeMsgGeneratorThr.join();
     }
+#endif
+
     /* ============================================== */
 
     printf("Closing device\n");

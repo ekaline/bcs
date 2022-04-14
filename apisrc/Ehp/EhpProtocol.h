@@ -17,7 +17,7 @@ class EhpProtocol {
   /* ------------------------------------- */
  public:
   
-  EhpProtocolConf conf = {};
+  volatile EhpProtocolConf conf = {};
   static const uint64_t EhpConfAddr = 0x10000;
 
  private:

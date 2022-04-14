@@ -14,7 +14,7 @@ EkaOpResult efcCmeFastCancelInit(EkaDev *dev,
 
 
 
-  const EfcCmeFastCancelStrategyConf conf = {
+  volatile EfcCmeFastCancelStrategyConf conf = {
 //      .pad            = {},
       .minNoMDEntries = params->minNoMDEntries,
       .maxMsgSize     = params->maxMsgSize,
@@ -29,7 +29,7 @@ EkaOpResult efcCmeFastCancelInit(EkaDev *dev,
 	  conf.token,
 	  conf.fireActionId,
 	  conf.strategyId);
-  //  hexDump("EfcCmeFastCancelStrategyConf",&conf,sizeof(conf));
+  //  hexDump("EfcCmeFastCancelStrategyConf",&conf,sizeof(conf),stderr);
   copyBuf2Hw(dev,0x84000,(uint64_t *)&conf,sizeof(conf));
   return EKA_OPRESULT__OK;
 }

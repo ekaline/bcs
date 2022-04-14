@@ -835,11 +835,13 @@ int main(int argc, char *argv[]) {
 #endif  
 // ==============================================
 #if 1
-  sendAddOrder(AddOrder::Expanded,triggerSock,&triggerMcAddr,security[2].id,
-	       sequence++,'B',security[2].bidMinPrice + 1,security[2].size);
+  while (testCtx->keep_work) {
+    sendAddOrder(AddOrder::Expanded,triggerSock,&triggerMcAddr,security[2].id,
+		 sequence++,'B',security[2].bidMinPrice + 1,security[2].size);
   
-  sleep(1);
-  efcEnableController(pEfcCtx, 1);
+    sleep(1);
+    efcEnableController(pEfcCtx, 1);
+  }
 #endif  
 // ==============================================
 
