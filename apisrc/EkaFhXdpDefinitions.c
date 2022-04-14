@@ -184,12 +184,14 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
     if (recv(gr->snapshot_sock,hdr,sizeof(XdpMsgHdr),MSG_WAITALL) < (int)sizeof(XdpMsgHdr)) {
       EKA_WARN("%s:%u: Request Server connection reset by peer (failed to read XdpMsgHdr)",
 	       EKA_EXCH_DECODE(gr->exch),gr->id);
-      return EKA_OPRESULT__ERR_SYSTEM_ERROR;
+      return EKA_OPRESULT__ERR_TCP_SOCKET;
+      //      return EKA_OPRESULT__ERR_SYSTEM_ERROR;
     }
     if (recv(gr->snapshot_sock,hdr + sizeof(XdpMsgHdr),((XdpMsgHdr*)hdr)->MsgSize - sizeof(XdpMsgHdr),MSG_WAITALL) < (int)(((XdpMsgHdr*)hdr)->MsgSize - sizeof(XdpMsgHdr))) {
       EKA_WARN("%s:%u: Request Server connection reset by peer (failed to read Msg Body for MsgType = %u)",
 	       EKA_EXCH_DECODE(gr->exch),gr->id,(uint)((XdpMsgHdr*)hdr)->MsgType);
-      return EKA_OPRESULT__ERR_SYSTEM_ERROR;
+      return EKA_OPRESULT__ERR_TCP_SOCKET;
+      //      return EKA_OPRESULT__ERR_SYSTEM_ERROR;
     }
     //-----------------------------------------------------------------
     switch (((XdpMsgHdr*)hdr)->MsgType) {
