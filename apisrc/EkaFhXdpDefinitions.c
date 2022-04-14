@@ -137,7 +137,7 @@ static EkaOpResult sendHeartbeat(EkaFhXdpGr* gr) {
     EKA_WARN("%s:%u: XDP HEARTBEAT send failed",EKA_EXCH_DECODE(gr->exch),gr->id);
     return EKA_OPRESULT__ERR_SYSTEM_ERROR;
   }
-  EKA_TRACE("%s:%u: XDP HEARTBEAT sent",EKA_EXCH_DECODE(gr->exch),gr->id);
+  EKA_LOG("%s:%u: XDP HEARTBEAT sent",EKA_EXCH_DECODE(gr->exch),gr->id);
     
   return EKA_OPRESULT__OK;
 }
