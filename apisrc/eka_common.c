@@ -107,6 +107,19 @@ int ekaTcpConnect(uint32_t ip, uint16_t port) {
 #endif
 }
 /* ##################################################################### */
+int recvTcpSegment(int sock, void* buf, int segSize) {
+  auto d = static_cast<uint8_t*>(buf);
+  int received = 0;
+  do {
+    int r = recv(sock,d,segSize - received,MSG_WAITALL);
+    if (r <= 0) return r;
+    d += r;
+    received += r;
+  } while (received != segSize);
+  return received;
+}
+
+/* ##################################################################### */
 uint32_t getIfIp(const char* ifName) {
   int sck = socket(AF_INET, SOCK_DGRAM, 0);
   if(sck < 0) on_error ("%s: failed on socket(AF_INET, SOCK_DGRAM, 0) -> ",__func__);

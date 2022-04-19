@@ -26,6 +26,7 @@
 #include "EkaFhXdpParser.h"
 
 int ekaTcpConnect(uint32_t ip, uint16_t port);
+int recvTcpSegment(int sock, void* buf, int segSize);
 
 using namespace Xdp;
 
@@ -142,18 +143,6 @@ static EkaOpResult sendHeartbeat(EkaFhXdpGr* gr) {
   return EKA_OPRESULT__OK;
 }
 
-/* ##################################################################### */
-static int recvTcpSegment(int sock, void* buf, int segSize) {
-  auto d = static_cast<uint8_t*>(buf);
-  int received = 0;
-  do {
-    int r = recv(sock,d,segSize - received,MSG_WAITALL);
-    if (r <= 0) return r;
-    d += r;
-    received += r;
-  } while (received != segSize);
-  return received;
-}
 
 /* ##################################################################### */
 
@@ -209,15 +198,14 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
     }
     uint8_t* msgPayload = buf + sizeof(*hdr);
     int msgPayloadSize = hdr->MsgSize - sizeof(*hdr);
-    /* rc = recv(gr->snapshot_sock,hdr + sizeof(XdpMsgHdr), */
-    /* 	      ((XdpMsgHdr*)hdr)->MsgSize - sizeof(XdpMsgHdr), */
-    /* 	      MSG_WAITALL); */
+
     rc = recvTcpSegment(gr->snapshot_sock,msgPayload,msgPayloadSize);
     if (rc <= 0) {
       EKA_WARN("%s:%u: Request Server connection reset by peer"
-	       "(failed to read Msg Body for MsgType = %u), rc = %d: %s",
+	       "(failed to read Msg Body for MsgType = %u, msgPayloadSize=%d), rc = %d: %s",
 	       EKA_EXCH_DECODE(gr->exch),gr->id,
 	       (uint)((XdpMsgHdr*)hdr)->MsgType,
+	       msgPayloadSize,
 	       rc,strerror(errno));
       return EKA_OPRESULT__ERR_TCP_SOCKET;
       //      return EKA_OPRESULT__ERR_SYSTEM_ERROR;

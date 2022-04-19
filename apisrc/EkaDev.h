@@ -210,7 +210,10 @@ inline bool eka_is_all_zeros (const void* buf, ssize_t size) {
   return true;
 }
 
-inline void copyBuf2Hw(EkaDev* dev,uint64_t dstAddr,uint64_t* srcAddr,uint msgSize) {
+inline void
+__attribute__((optimize(2)))
+copyBuf2Hw(EkaDev* dev,uint64_t dstAddr,
+	   uint64_t* srcAddr,uint msgSize) {
   //  EKA_LOG("dstAddr=0x%jx, srcAddr=%p, msgSize=%u",dstAddr,srcAddr,msgSize);
   uint words2write = msgSize / 8 + !!(msgSize % 8);
   for (uint w = 0; w < words2write; w++)
