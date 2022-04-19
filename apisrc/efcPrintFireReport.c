@@ -62,7 +62,7 @@ inline size_t printExceptionReport(FILE* file, const uint8_t* b) {
 	     decodeSize,sizeof(excptBuf));
   fprintf(file,"ExceptionsReport:\n");
   fprintf(file,"%s\n",excptBuf);
-  fprintf(stderr,RED"%s\n"RESET,excptBuf);
+  fprintf(stderr,RED "%s\n" RESET,excptBuf);
   return sizeof(*exceptionsReport);
 }
 /* ########################################################### */
