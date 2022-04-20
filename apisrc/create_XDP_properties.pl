@@ -19,7 +19,10 @@ $exch_name = "ARCA_XDP";
 $user   = "stkxdp01";
 $passwd = "stkxdp01";
 
+$connectRetryDelayTime = $ARGV[0] || 15;
+
 for ($i=0; $i<26;$i++) {
+    print "\t\{\"efh.$exch_name.group.X.snapshot.connectRetryDelayTime\",\"$connectRetryDelayTime\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\",\"$rt_mc_base$rt_mc_lsb:$port\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"159.125.66.225:51700\"\}, // Definitions \n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.auth\",\"${user}:${passwd}\"\}, \t// Definitions \n";
@@ -47,6 +50,7 @@ $user   = "stkxdp01";
 $passwd = "stkxdp01";
 
 for ($i=0; $i<26;$i++) {
+    print "\t\{\"efh.$exch_name.group.X.snapshot.connectRetryDelayTime\",\"$connectRetryDelayTime\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\",\"$rt_mc_base$rt_mc_lsb:$port\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"159.125.66.225:51700\"\}, // Definitions \n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.auth\",\"${user}:${passwd}\"\}, \t// Definitions \n";
@@ -74,6 +78,7 @@ $passwd = "stkxdp01";
 
 
 for ($i=0; $i<26;$i++) {
+    print "\t\{\"efh.$exch_name.group.X.snapshot.connectRetryDelayTime\",\"$connectRetryDelayTime\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\",\"$rt_mc_base$rt_mc_lsb:$port\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"159.125.66.227:51700\"\}, // Definitions \n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.auth\",\"${user}:${passwd}\"\}, \t// Definitions \n";
@@ -100,6 +105,7 @@ $user   = "stkxdp01";
 $passwd = "stkxdp01";
 
 for ($i=0; $i<26;$i++) {
+    print "\t\{\"efh.$exch_name.group.X.snapshot.connectRetryDelayTime\",\"$connectRetryDelayTime\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\",\"$rt_mc_base$rt_mc_lsb:$port\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"159.125.66.227:51700\"\}, // Definitions \n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.auth\",\"${user}:${passwd}\"\}, \t// Definitions \n";
