@@ -164,7 +164,7 @@ uint64_t getMostRecentSeq (EkaFhNasdaqGr* gr) {
   EkaDev* dev = gr->dev;
   //-----------------------------------------------------------------
   EkaCredentialLease* lease;
-  gr->credentialAcquire(gr->auth_user,sizeof(gr->auth_user),&lease);
+  gr->credentialAcquire(EkaCredentialType::kSnapshot, gr->auth_user, sizeof(gr->auth_user), &lease);
   //-----------------------------------------------------------------
 
   gr->snapshot_sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -599,7 +599,7 @@ void* getSoupBinData(void* attr) {
 	  );
   //-----------------------------------------------------------------
   EkaCredentialLease* lease;
-  gr->credentialAcquire(gr->auth_user,sizeof(gr->auth_user),&lease);
+  gr->credentialAcquire(EkaCredentialType::kSnapshot, gr->auth_user, sizeof(gr->auth_user), &lease);
 
   //-----------------------------------------------------------------
   const int MaxTrials = 4;

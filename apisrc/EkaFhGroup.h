@@ -69,7 +69,8 @@ public:
 
     virtual int processFromQ(const EfhRunCtx* pEfhRunCtx);
 
-    int         credentialAcquire(const char*          credName,
+    int         credentialAcquire(EkaCredentialType    credType,
+                                  const char*          credName,
 				  size_t               credNameSize,
 				  EkaCredentialLease** lease);
     int         credentialRelease(EkaCredentialLease* lease);
