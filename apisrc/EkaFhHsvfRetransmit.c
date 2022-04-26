@@ -371,7 +371,7 @@ void* getHsvfRetransmit(void* attr) {
 
   //-----------------------------------------------------------------
   EkaCredentialLease* lease;
-  gr->credentialAcquire(gr->auth_user,sizeof(gr->auth_user),&lease);
+  gr->credentialAcquire(EkaCredentialType::kSnapshot, gr->auth_user, sizeof(gr->auth_user), &lease);
 
   //-----------------------------------------------------------------
   gr->snapshot_active = true;

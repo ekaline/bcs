@@ -355,7 +355,8 @@ void EkaFhGroup::print_q_state() {
 }
  /* ##################################################################### */
 
- int EkaFhGroup::credentialAcquire(const char* credName,
+ int EkaFhGroup::credentialAcquire(EkaCredentialType credType,
+                                   const char* credName,
 				   size_t      credNameSize,
 				   EkaCredentialLease** lease) {
    
@@ -369,15 +370,15 @@ void EkaFhGroup::print_q_state() {
    const struct timespec leaseTime = {.tv_sec = 180, .tv_nsec = 0};
    const struct timespec timeout   = {.tv_sec = 60, .tv_nsec = 0};
 
-   char                  name[7] = {};
+   char name[10] = {};
+   memcpy(name, credName, std::min(sizeof(name) - 1, credNameSize));
 
-   memcpy (name,credName,std::min(sizeof(name),credNameSize) - 1);
    const EkaGroup group {exch,id};
    if (! dev->credAcquire)
      on_error("credAcquire is not initialized");
-   int rc = dev->credAcquire(EkaCredentialType::kSnapshot, 
-			     group, 
-			     name, 
+   int rc = dev->credAcquire(credType,
+			     group,
+			     name,
 			     &leaseTime,
 			     &timeout,
 			     dev->credContext,

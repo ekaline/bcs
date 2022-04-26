@@ -686,7 +686,7 @@ void* getSpinData(void* attr) {
 	  EKA_IP2STR(gr->snapshot_ip),be16toh(gr->snapshot_port));
   //-----------------------------------------------------------------
   EkaCredentialLease* lease;
-  gr->credentialAcquire(gr->auth_user,sizeof(gr->auth_user),&lease);
+  gr->credentialAcquire(EkaCredentialType::kSnapshot, gr->auth_user, sizeof(gr->auth_user), &lease);
 
   //-----------------------------------------------------------------
   gr->snapshot_active = true;
@@ -912,7 +912,7 @@ void* getGrpRetransmitData(void* attr) {
 
   //-----------------------------------------------------------------
   EkaCredentialLease* lease;
-  gr->credentialAcquire(gr->grpUser,sizeof(gr->grpUser),&lease);
+  gr->credentialAcquire(EkaCredentialType::kRecovery, gr->grpUser, sizeof(gr->grpUser), &lease);
 
   //-----------------------------------------------------------------
   gr->recovery_active = true;

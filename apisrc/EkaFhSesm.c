@@ -468,7 +468,7 @@ void* getSesmData(void* attr) {
 
   //-----------------------------------------------------------------
   EkaCredentialLease* lease;
-  gr->credentialAcquire(gr->auth_user,sizeof(gr->auth_user),&lease);
+  gr->credentialAcquire(EkaCredentialType::kSnapshot, gr->auth_user, sizeof(gr->auth_user), &lease);
 
   //-----------------------------------------------------------------
   const int MaxTrials = 4;
