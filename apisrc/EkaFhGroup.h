@@ -147,7 +147,20 @@ public:
     expectedSeqGapInGap = sequence + msgInPkt;
     return false;
   }
-    
+
+  std::string getDefinitionsFileName() const {
+    const int MAXLEN = 10;
+    char s[MAXLEN] = {};
+    time_t t = time(0);
+    strftime(s, MAXLEN, "%Y%m%d", localtime(&t));
+    return
+      std::string("definitionsFile") +
+      '.' +
+      std::string(EKA_EXCH_DECODE(exch)) +
+      std::to_string(id) +
+      '.' +
+      std::string(s);
+  }
     //----------------------------------------------------------
     enum class GrpState {
 	UNINIT = 0,
