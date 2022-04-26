@@ -146,11 +146,14 @@ EkaOpResult EkaFhXdp::getDefinitions (EfhCtx* pEfhCtx,
   EkaOpResult rc;
 
   auto definitionsFileName = gr->getDefinitionsFileName();
-  FILE* definitionsFile = fopen(definitionsFileName.c_str(),"rb");
-  if (definitionsFile) {
+  FILE* definitionsFile = NULL;
+  if (gr->useDefinitionsFile)
+    definitionsFile = fopen(definitionsFileName.c_str(),"rb");
+  
+  if (gr->useDefinitionsFile && definitionsFile) {
     EKA_LOG("%s:%u extracting Definitions from file: %s",
 	    EKA_EXCH_DECODE(exch),gr->id,definitionsFileName.c_str());
-
+    
     EfhOptionDefinitionMsg msg{};
 
     while (fread(&msg,sizeof(msg),1,definitionsFile) == 1) {

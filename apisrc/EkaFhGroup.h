@@ -264,6 +264,8 @@ public:
     uint64_t              expectedSeqGapInGap = 1;
     
     bool                  credentialsAcquired = false;
+
+    bool                  useDefinitionsFile = false;
 private:
 
 protected:

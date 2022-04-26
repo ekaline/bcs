@@ -298,13 +298,15 @@ CopyOutDefinitions:
   EKA_LOG("Copying out %zu buffered definitions for %s:%u",nDefinitions,EKA_EXCH_DECODE(gr->exch),gr->id);
   const auto *const endDefinitions = definitionBufs.get() + nDefinitions;
 
-  auto definitionsFileName = gr->getDefinitionsFileName();
-  FILE* definitionsFile = fopen(definitionsFileName.c_str(),"w");
-  EKA_LOG("%s:%u creating Definitions from file: %s",
+  FILE* definitionsFile = NULL;
+  if (gr->useDefinitionsFile) {
+    auto definitionsFileName = gr->getDefinitionsFileName();
+    definitionsFile = fopen(definitionsFileName.c_str(),"w");
+    EKA_LOG("%s:%u creating Definitions file: %s",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,definitionsFileName.c_str());
-  if (!definitionsFile)
-    on_error("Failed creating %s",definitionsFileName.c_str());
-  
+    if (!definitionsFile)
+      on_error("Failed creating %s",definitionsFileName.c_str());
+  }
   for (XdpSeriesMapping *m = definitionBufs.get(); m != endDefinitions; ++m) {
     uint8_t AbcGroupID = m->OptionSymbolRoot[0] - 'A';
 
@@ -375,8 +377,10 @@ CopyOutDefinitions:
 
     pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
 
-    fwrite(&msg,sizeof(msg),1,definitionsFile);
+    if (gr->useDefinitionsFile)
+      fwrite(&msg,sizeof(msg),1,definitionsFile);
   }
-  fclose(definitionsFile);
+  if (gr->useDefinitionsFile)
+    fclose(definitionsFile);
   return result;
 }
