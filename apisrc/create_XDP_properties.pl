@@ -21,7 +21,10 @@ $passwd = "stkxdp01";
 
 $connectRetryDelayTime = $ARGV[0] || 15;
 
+$useDefinitionsFile = 1;
+    
 for ($i=0; $i<26;$i++) {
+    print "\t\{\"efh.$exch_name.group.$i.useDefinitionsFile\",\"$useDefinitionsFile\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.connectRetryDelayTime\",\"$connectRetryDelayTime\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\",\"$rt_mc_base$rt_mc_lsb:$port\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"159.125.66.225:51700\"\}, // Definitions \n";
@@ -76,8 +79,10 @@ $exch_name = "AMEX_XDP";
 $user   = "stkxdp01";
 $passwd = "stkxdp01";
 
+$useDefinitionsFile = 0;
 
 for ($i=0; $i<26;$i++) {
+    print "\t\{\"efh.$exch_name.group.$i.useDefinitionsFile\",\"$useDefinitionsFile\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.connectRetryDelayTime\",\"$connectRetryDelayTime\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\",\"$rt_mc_base$rt_mc_lsb:$port\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"159.125.66.227:51700\"\}, // Definitions \n";
