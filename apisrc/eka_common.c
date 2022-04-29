@@ -32,15 +32,15 @@ void ekaLwipPollThread (EkaDev* dev);
 void ekaExcInitLwip (EkaDev* dev);
 void eka_close_tcp ( EkaDev* pEkaDev);
 
-OnEkaExceptionReportCb* efhDefaultOnException(EkaExceptionReport* msg, EfhRunUserData efhRunUserData) {
-  printf("%s: Doing nothing\n",__func__);
-  return NULL;
-}
+/* OnEkaExceptionReportCb* efhDefaultOnException(EkaExceptionReport* msg, EfhRunUserData efhRunUserData) { */
+/*   printf("%s: Doing nothing\n",__func__); */
+/*   return NULL; */
+/* } */
 
-OnEfcFireReportCb* efcDefaultOnFireReportCb (EfcCtx* efcCtx, const EfcFireReport* efcFireReport, size_t size) {
-  printf("%s: Doing nothing\n",__func__);
-  return NULL;
-}
+/* OnEfcFireReportCb* efcDefaultOnFireReportCb (EfcCtx* efcCtx, const EfcFireReport* efcFireReport, size_t size) { */
+/*   printf("%s: Doing nothing\n",__func__); */
+/*   return NULL; */
+/* } */
 
 int ekaDefaultLog (void* /*unused*/, const char* function, const char* file, int line, int priority, const char* format, ...) {
   va_list ap;
@@ -106,6 +106,19 @@ int ekaTcpConnect(uint32_t ip, uint16_t port) {
   return sock;
 #endif
 }
+/* ##################################################################### */
+int recvTcpSegment(int sock, void* buf, int segSize) {
+  auto d = static_cast<uint8_t*>(buf);
+  int received = 0;
+  do {
+    int r = recv(sock,d,segSize - received,MSG_WAITALL);
+    if (r <= 0) return r;
+    d += r;
+    received += r;
+  } while (received != segSize);
+  return received;
+}
+
 /* ##################################################################### */
 uint32_t getIfIp(const char* ifName) {
   int sck = socket(AF_INET, SOCK_DGRAM, 0);

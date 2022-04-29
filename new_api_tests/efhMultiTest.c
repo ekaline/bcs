@@ -158,7 +158,10 @@ int main(int argc, char *argv[]) {
 #ifdef EKA_TEST_IGNORE_DEFINITIONS
 	printf ("Skipping Definitions for EKA_TEST_IGNORE_DEFINITIONS\n");
 #else
-	efhGetDefs(pEfhCtx[r], &efhRunCtx.at(r), (EkaGroup*)&efhRunCtx.at(r).groups[i], NULL);
+	auto rc = efhGetDefs(pEfhCtx[r], &efhRunCtx.at(r),
+			     (EkaGroup*)&efhRunCtx.at(r).groups[i], NULL);
+	if (rc != EKA_OPRESULT__OK)
+	  on_error("efhGetDefs failed with rc=%d",rc);
 #endif
       }
       /* ------------------------------------------------------- */

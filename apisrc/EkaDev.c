@@ -22,12 +22,13 @@
 #include "EkaEfc.h"
 
 #include "eka_hw_conf.h"
+#include "EkaHwInternalStructs.h"
 
 
 int ekaDefaultLog (void* /*unused*/, const char* function, const char* file, int line, int priority, const char* format, ...);
 int ekaDefaultCreateThread(const char* name, EkaServiceType type,  void *(*threadRoutine)(void*), void* arg, void* context, uintptr_t *handle);
-OnEfcFireReportCb* efcDefaultOnFireReportCb (EfcCtx* efcCtx, const EfcFireReport* efcFireReport, size_t size);
-OnEkaExceptionReportCb* efhDefaultOnException(EkaExceptionReport* msg, EfhRunUserData efhRunUserData);
+/* OnEfcFireReportCb* efcDefaultOnFireReportCb (EfcCtx* efcCtx, const EfcFireReport* efcFireReport, size_t size); */
+/* OnEkaExceptionReportCb* efhDefaultOnException(EkaExceptionReport* msg, EfhRunUserData efhRunUserData); */
 //void eka_write(EkaDev* dev, uint64_t addr, uint64_t val);
 //uint64_t eka_read(eka_dev_t* dev, uint64_t addr);
 bool eka_is_all_zeros (const void* buf, ssize_t size);
@@ -182,11 +183,12 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 
 
 
-  pEfcRunCtx = (EfcRunCtx*) calloc(1, sizeof(EfcRunCtx));
+  pEfcRunCtx = new EfcRunCtx;
   assert (pEfcRunCtx != NULL);
-
-  pEfcRunCtx->onEkaExceptionReportCb = (OnEkaExceptionReportCb) efhDefaultOnException;
-  pEfcRunCtx->onEfcFireReportCb      = (OnEfcFireReportCb)      efcDefaultOnFireReportCb;
+  pEfcRunCtx = {};
+  
+  /* pEfcRunCtx->onEkaExceptionReportCb = (OnEkaExceptionReportCb) efhDefaultOnException; */
+  /* pEfcRunCtx->onEfcFireReportCb      = (OnEfcFireReportCb)      efcDefaultOnFireReportCb; */
 
   EKA_LOG("EKALINE2 LIB BUILD TIME: %s @ %s",__DATE__,__TIME__);
   EKA_LOG("EKALINE2 LIB GIT: %s",LIBEKA_GIT_VER);
@@ -383,18 +385,15 @@ EkaDev::~EkaDev() {
     delete core[c];
     core[c] = NULL;
   }
-
 #ifdef EFH_TIME_CHECK_PERIOD
   fclose(deltaTimeLogFile);
-#endif  
-  
+#endif    
 
   uint64_t val = eka_read(SW_STATISTICS);
   val = val & 0x7fffffffffffffff;
   eka_write(SW_STATISTICS, val);
 
-  //  delete snDev;
-
+  delete snDev;
 }
 /* ##################################################################### */
 
@@ -454,6 +453,9 @@ int EkaDev::clearHw() {
 
   for (uint64_t p = 0; p < SW_SCRATCHPAD_SIZE/8; p++) 
     eka_write(SW_SCRATCHPAD_BASE +8*p,(uint64_t) 0);
+
+  const EfcCmeFastCancelStrategyConf conf = {};
+  copyBuf2Hw(dev,0x84000,(uint64_t *)&conf,sizeof(conf));
 
   // Open Dev indication
   eka_write(SW_STATISTICS, (1ULL<<63));

@@ -14,7 +14,8 @@ void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData use
 void* onTrade(const EfhTradeMsg* msg, EfhSecUserData secData, EfhRunUserData userData);
 void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData secData, EfhRunUserData userData);
 void onException(EkaExceptionReport* msg, EfhRunUserData efhRunUserData);
-void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fire_report_buf, size_t size);
+//void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fire_report_buf, size_t size);
+void onFireReport (const EfcFireReport* fire_report_buf, size_t size);
 void* onMd(const EfhMdHeader* msg, EfhRunUserData efhRunUserData);
 void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData userData);
 void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg);

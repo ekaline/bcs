@@ -61,6 +61,7 @@ class EkaHwCaps {
   EkaHwCaps(EkaDev* _dev);
   void print();
   void printStdout();
+  void refresh();
 
   bool check();
   bool checkEpm();

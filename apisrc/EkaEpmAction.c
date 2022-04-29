@@ -42,11 +42,19 @@ int EkaEpmAction::setActionBitmap() {
     actionBitParams.bitmap.report_en    = 0;
     actionBitParams.bitmap.feedbck_en   = 0;
     break;
-  case EpmActionType::SqfFire      :
-  case EpmActionType::SqfCancel    :
+  case EpmActionType::HwFireAction :
   case EpmActionType::BoeFire      :
   case EpmActionType::BoeCancel    :
-  case EpmActionType::HwFireAction :
+
+  case EpmActionType::CmeHwCancel    :
+  case EpmActionType::CmeSwFire    :
+    
+    actionBitParams.bitmap.app_seq_inc  = 1;
+  case EpmActionType::SqfFire      :
+  case EpmActionType::SqfCancel    :
+
+  case EpmActionType::CmeSwHeartbeat :
+    
     actionBitParams.bitmap.israw        = 0;
     actionBitParams.bitmap.report_en    = 1;
     actionBitParams.bitmap.feedbck_en   = 1;
@@ -63,6 +71,24 @@ int EkaEpmAction::setActionBitmap() {
 }
 /* ---------------------------------------------------- */
 
+void EkaEpmAction::setIpTtl() {
+  switch (type) {
+  case EpmActionType::UserAction   :
+  case EpmActionType::HwFireAction :
+  case EpmActionType::BoeFire      :
+  case EpmActionType::BoeCancel    :
+  case EpmActionType::SqfFire      :
+  case EpmActionType::SqfCancel    :
+  case EpmActionType::CmeHwCancel    :
+    ipHdr->_ttl = EFC_HW_TTL;
+    ipHdr->_id  = EFC_HW_ID;
+      return;
+  default:
+    return;
+  }
+}
+/* ---------------------------------------------------- */
+
 static TcpCsSizeSource setTcpCsSizeSource (EpmActionType type) {
   switch (type) {
   case EpmActionType::UserAction   :
@@ -71,6 +97,7 @@ static TcpCsSizeSource setTcpCsSizeSource (EpmActionType type) {
   case EpmActionType::BoeCancel    :
   case EpmActionType::SqfFire      :
   case EpmActionType::SqfCancel    :
+  case EpmActionType::CmeHwCancel    :
     return TcpCsSizeSource::FROM_ACTION;
   default:
     return TcpCsSizeSource::FROM_DESCR;
@@ -118,8 +145,12 @@ int EkaEpmAction::setTemplate() {
   case EpmActionType::BoeFire      :
   case EpmActionType::BoeCancel    :
   case EpmActionType::HwFireAction :
+  case EpmActionType::CmeHwCancel  :
+  case EpmActionType::CmeSwFire    :
+  case EpmActionType::CmeSwHeartbeat :
     epmTemplate                        = epm->hwFire;
     break;
+
   case EpmActionType::UserAction :
     epmTemplate                        = epm->tcpFastPathPkt;
     break;
@@ -128,7 +159,7 @@ int EkaEpmAction::setTemplate() {
   }
   if (epmTemplate == NULL) 
     on_error("type %d: epmTemplate == NULL ",(int)type);
-  EKA_LOG("Teplate set to: \'%s\'",epmTemplate->name);
+  //  EKA_LOG("Teplate set to: \'%s\'",epmTemplate->name);
   return 0;
 }
 
@@ -159,6 +190,15 @@ int EkaEpmAction::setName() {
   case EpmActionType::BoeCancel    :
     strcpy(actionName,"BoeCancel");
     break;
+  case EpmActionType::CmeHwCancel    :
+    strcpy(actionName,"CmeHwCancel");
+    break;
+  case EpmActionType::CmeSwFire    :
+    strcpy(actionName,"CmeSwFire");
+    break;
+  case EpmActionType::CmeSwHeartbeat    :
+    strcpy(actionName,"CmeSwHeartbeat");
+    break;
   case EpmActionType::HwFireAction :
     strcpy(actionName,"HwFire");
     break;
@@ -170,13 +210,11 @@ int EkaEpmAction::setName() {
   }
   return 0;
 }
-
-
+/* ---------------------------------------------------- */
 
 /* ---------------------------------------------------- */
 
 EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
-			   char*                   _actionName,
 			   EkaEpm::ActionType      _type,
 			   uint                    _idx,
 			   uint                    _localIdx,
@@ -184,17 +222,13 @@ EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
 			   uint8_t                 _coreId,
 			   uint8_t                 _sessId,
 			   uint                    _auxIdx,
-			   EpmActionBitmap         _actionBitParams,
 			   uint  		   _heapOffs,
-			   uint64_t		   _actionAddr,
-			   EpmTemplate*            _epmTemplate) {
+			   uint64_t		   _actionAddr) {
 
   dev             = _dev;
-  strcpy(actionName,_actionName);
   initialized     = false;
   
   if (dev == NULL) on_error("dev = NULL");
-  if (_epmTemplate == NULL) on_error("_epmTemplate == NULL");
 
   epm             =  dev->epm;
   type            = _type;
@@ -204,9 +238,7 @@ EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
   coreId          = _coreId;
   sessId          = _sessId;
   productIdx      = _auxIdx;
-  actionBitParams = _actionBitParams;
   actionAddr      = _actionAddr;
-  epmTemplate     = _epmTemplate;
 
   thrId           = calcThrId(type,sessId,productIdx);
 
@@ -223,9 +255,11 @@ EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
   memset(ethHdr,0,sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaTcpHdr));
 
   initEpmActionLocalCopy();
+  setTemplate();
   setActionBitmap();
   setHwAction();
-
+  setIpTtl();
+  setName();
   //  print("From constructor");
 }
 /* ----------------------------------------------------- */
@@ -333,7 +367,7 @@ int EkaEpmAction::setNwHdrs(uint8_t* macDa,
   pktSize = sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaTcpHdr) + payloadLen;
 
   //---------------------------------------------------------
-
+  setIpTtl();
   tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,payloadLen);
   //---------------------------------------------------------
 
@@ -355,7 +389,7 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
   setActionBitmap();
   setTemplate();
   setName();
-
+  
   heapOffs   = epmAction->offset - EkaEpm::DatagramOffset;
   if (heapOffs % 32 != 0) on_error("heapOffs %d (must be X32)",heapOffs);
 
@@ -386,7 +420,8 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
 /* ----------------------------------------------------- */
 
   epmTemplate->clearHwFields(&epm->heap[heapOffs]);
-
+  setIpTtl();
+  
   tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,payloadLen);
 
   setHwAction();
@@ -451,6 +486,7 @@ int EkaEpmAction::setPktPayload(const void* buf, uint len) {
   }
 
   if (! same) {
+    setIpTtl();
     tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,payloadLen);
     if (hwAction.tcpCsSizeSource == TcpCsSizeSource::FROM_ACTION) {
       hwAction.tcpCSum      = tcpCSum;
@@ -479,6 +515,7 @@ int EkaEpmAction::updatePayload(uint offset, uint len) {
 
   epmTemplate->clearHwFields(&epm->heap[heapOffs]);
 
+  setIpTtl();
   tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,payloadLen);
   copyIndirectBuf2HeapHw_swap4(dev,heapAddr, (uint64_t*) &epm->heap[heapOffs], thrId, pktSize);
 
@@ -571,7 +608,7 @@ int EkaEpmAction::send(uint32_t _tcpCSum) {
   eka_write(dev,EPM_TRIGGER_DESC_ADDR,epm_trig_desc.desc);
 
   //  print("EkaEpmAction::send");
-  return 0;
+  return pktSize;
 }
 /* ----------------------------------------------------- */
 

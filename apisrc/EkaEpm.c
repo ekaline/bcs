@@ -267,13 +267,11 @@ EkaOpResult EkaEpm::payloadHeapCopy(epm_strategyid_t strategyIdx,
 int EkaEpm::InitTemplates() {
   templatesNum   = 0;
 
-  EKA_LOG("Initializing EpmFastPathTemplate");
-  tcpFastPathPkt = new EpmFastPathTemplate(templatesNum++,"EpmFastPathTemplate");
-  if (tcpFastPathPkt == NULL) on_error("tcpFastPathPkt == NULL");
+  tcpFastPathPkt = new EpmFastPathTemplate(templatesNum++);
+  if (! tcpFastPathPkt) on_error("! tcpFastPathPkt");
 
-  EKA_LOG("Initializing EpmRawPktTemplate");
-  rawPkt         = new EpmRawPktTemplate(templatesNum++  ,"EpmRawPktTemplate" );
-  if (rawPkt == NULL) on_error("rawPkt == NULL");
+  rawPkt         = new EpmRawPktTemplate(templatesNum++);
+  if (! rawPkt) on_error("! rawPkt");
 
   /* switch (dev->hwFeedVer) { */
   /* case EfhFeedVer::kNASDAQ :  */
@@ -299,28 +297,28 @@ int EkaEpm::DownloadSingleTemplate2HW(EpmTemplate* t) {
 
   EKA_LOG("Downloading %s, id=%u, getDataTemplateAddr=%jx, getCsumTemplateAddr=%jx ",
 	  t->name,t->id,t->getDataTemplateAddr(),t->getCsumTemplateAddr());
-  volatile epm_tcpcs_template_t hw_tcpcs_template = {};
+  /* volatile epm_tcpcs_template_t hw_tcpcs_template = {}; */
 
   // TCP CS template
-  for (uint f = 0; f < EpmNumHwFields; f++) {
-    for (uint b = 0; b < EpmHwFieldSize; b++) {
-      if (t->hwField[f].cksmMSB[b]) {
-	uint16_t temp = hw_tcpcs_template.high.field[f].bitmap |
-	  ((uint16_t)1)<<b;
-	hw_tcpcs_template.high.field[f].bitmap = temp;
-	//	hw_tcpcs_template.high.field[f].bitmap |= ((uint16_t)1)<<b;
-      }
-      if (t->hwField[f].cksmLSB[b]) {
-	uint16_t temp = hw_tcpcs_template.low.field[f].bitmap |
-	  ((uint16_t)1)<<b;
-	hw_tcpcs_template.low.field[f].bitmap = temp;
-	//	hw_tcpcs_template.low.field[f].bitmap  |= ((uint16_t)1)<<b;
-      }
-    }
-  }
+  /* for (uint f = 0; f < EpmNumHwFields; f++) { */
+  /*   for (uint b = 0; b < EpmHwFieldSize; b++) { */
+  /*     if (t->hwField[f].cksmMSB[b]) { */
+  /* 	uint16_t temp = hw_tcpcs_template.high.field[f].bitmap | */
+  /* 	  ((uint16_t)1)<<b; */
+  /* 	hw_tcpcs_template.high.field[f].bitmap = temp; */
+  /* 	//	hw_tcpcs_template.high.field[f].bitmap |= ((uint16_t)1)<<b; */
+  /*     } */
+  /*     if (t->hwField[f].cksmLSB[b]) { */
+  /* 	uint16_t temp = hw_tcpcs_template.low.field[f].bitmap | */
+  /* 	  ((uint16_t)1)<<b; */
+  /* 	hw_tcpcs_template.low.field[f].bitmap = temp; */
+  /* 	//	hw_tcpcs_template.low.field[f].bitmap  |= ((uint16_t)1)<<b; */
+  /*     } */
+  /*   } */
+  /* } */
 
-  copyBuf2Hw_swap4(dev,t->getDataTemplateAddr(),(uint64_t*) t->data             ,EpmMaxRawTcpSize);
-  copyBuf2Hw      (dev,t->getCsumTemplateAddr(),(uint64_t*) &hw_tcpcs_template  ,sizeof(epm_tcpcs_template_t));
+  copyBuf2Hw_swap4(dev,t->getDataTemplateAddr(),(uint64_t*) t->data                ,EpmMaxRawTcpSize);
+  copyBuf2Hw      (dev,t->getCsumTemplateAddr(),(uint64_t*) &t->hw_tcpcs_template  ,sizeof(t->hw_tcpcs_template));
 
   return 0;
 }
@@ -336,6 +334,7 @@ int EkaEpm::DownloadTemplates2HW() {
 
   return 0;
 }
+
 /* ---------------------------------------------------- */
 
 EkaEpmAction* EkaEpm::addAction(ActionType     type, 
@@ -348,11 +347,7 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
   if (actionRegion >= EPM_REGIONS || epmRegion[actionRegion] == NULL) 
     on_error("wrong epmRegion[%u] = %p",actionRegion,epmRegion[actionRegion]);
 
-  uint            heapBudget      = (uint)(-1);
-  EpmActionBitmap actionBitParams = {};
-  EpmTemplate*    pEpmTemplate    = NULL;
-
-  char            actionName[30]  = {};
+  uint            heapBudget      = getHeapBudget(type);
 
   createActionMtx.lock();
 
@@ -360,92 +355,10 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
   epm_actionid_t  actionIdx      = epmRegion[actionRegion]->baseActionIdx + localActionIdx;
   uint            heapOffs       = epmRegion[actionRegion]->heapOffs;
 
-  switch (type) {
-  case ActionType::TcpFastPath :
-    heapBudget                 = MAX_ETH_FRAME_SIZE;
-
-    actionBitParams.bitmap.action_valid = 1;
-    actionBitParams.bitmap.israw        = 0;
-    actionBitParams.bitmap.report_en    = 0;
-    actionBitParams.bitmap.feedbck_en   = 1;
-    pEpmTemplate                        = tcpFastPathPkt;
-    strcpy(actionName,"TcpFastPath");
-    break;
-
-  case ActionType::TcpFullPkt  :
-    heapBudget                 = MAX_ETH_FRAME_SIZE;
-
-    actionBitParams.bitmap.action_valid = 1;
-    actionBitParams.bitmap.israw        = 1;
-    actionBitParams.bitmap.report_en    = 0;
-    actionBitParams.bitmap.feedbck_en   = 0;
-    pEpmTemplate                        = rawPkt;
-
-    strcpy(actionName,"TcpFullPkt");
-    break;
-
-  case ActionType::TcpEmptyAck :
-    heapBudget                 = TCP_EMPTY_ACK_SIZE;
-
-    actionBitParams.bitmap.action_valid = 1;
-    actionBitParams.bitmap.israw        = 0;
-    actionBitParams.bitmap.report_en    = 0;
-    actionBitParams.bitmap.feedbck_en   = 0;
-    pEpmTemplate                        = tcpFastPathPkt;
-
-    strcpy(actionName,"TcpEmptyAck");
-    break;
-
-  case ActionType::Igmp :
-    heapBudget                 = IGMP_V2_SIZE;
-
-    actionBitParams.bitmap.action_valid = 1;
-    actionBitParams.bitmap.israw        = 1;
-    actionBitParams.bitmap.report_en    = 0;
-    actionBitParams.bitmap.feedbck_en   = 0;
-    pEpmTemplate                        = rawPkt;
-
-    strcpy(actionName,"Igmp");
-    break;
-
-
-  case ActionType::HwFireAction :
-    heapBudget                 = HW_FIRE_MSG_SIZE;
-
-    actionBitParams.bitmap.action_valid = 1;
-    actionBitParams.bitmap.israw        = 0;
-    actionBitParams.bitmap.report_en    = 1;
-    actionBitParams.bitmap.feedbck_en   = 1;
-    pEpmTemplate                        = hwFire;
-
-    strcpy(actionName,"HwFire");
-    break;
-
-  case ActionType::UserAction :
-    heapBudget                 = MAX_ETH_FRAME_SIZE;
-
-    actionBitParams.bitmap.action_valid = 1;
-    actionBitParams.bitmap.israw        = 0;
-    actionBitParams.bitmap.report_en    = 1;
-    actionBitParams.bitmap.feedbck_en   = 1;
-
-    actionBitParams.bitmap.empty_report_en = 1;
-    pEpmTemplate                        = tcpFastPathPkt;
-
-    strcpy(actionName,"UserAction");
-    break;
-
-  default:
-    on_error("Unexpected EkaEpmAction type %d",(int)type);
-  }
-
-  if (pEpmTemplate == NULL) on_error("pEpmTemplate == NULL for %s",actionName);
-
   uint64_t actionAddr = EpmActionBase + actionIdx * ActionBudget;
   epmRegion[actionRegion]->heapOffs += heapBudget;
 
   EkaEpmAction* action = new EkaEpmAction(dev,
-					  actionName,
 					  type,
 					  actionIdx,
 					  localActionIdx,
@@ -453,10 +366,8 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
 					  _coreId,
 					  _sessId,
 					  _auxIdx,
-					  actionBitParams,
 					  heapOffs,					  
-					  actionAddr,
-					  pEpmTemplate
+					  actionAddr
 					  );
 
   if (action ==NULL) on_error("new EkaEpmAction = NULL");

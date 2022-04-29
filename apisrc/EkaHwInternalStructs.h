@@ -32,7 +32,7 @@ struct epm_tcpcs_field_template_t {
 } __attribute__((packed));
 
 struct epm_tcpcs_half_template_t {
-  struct epm_tcpcs_field_template_t field[16];
+  struct epm_tcpcs_field_template_t row[16];
 } __attribute__((packed));
 
 struct epm_tcpcs_template_t {
@@ -47,7 +47,7 @@ struct epm_tcpcs_template_t {
 /*         bit action_valid; */
 /*         bit dummy_en; */
 /*         bit empty_report_en; */
-/*         bit reserved5; */
+/*         bit app_seq_inc; */
 /*         bit reserved6; */
 /*         bit reserved7; */
 /* } epm_action_bp_t; //must be in 1B resolution */
@@ -58,7 +58,7 @@ typedef union  {
   struct  {
     uint8_t reserved7        : 1;
     uint8_t reserved6        : 1;
-    uint8_t reserved5        : 1;
+    uint8_t app_seq_inc      : 1;
     uint8_t empty_report_en  : 1;
     uint8_t feedbck_en       : 1; //should HW send packet feedback to libary
     uint8_t action_valid     : 1;
@@ -171,6 +171,26 @@ struct hw_epm_report_t {
   uint8_t   islocal;
 } __attribute__((packed));
 
+/* parameter EKA_ACTIONRESULT_Unknown          = 0;  ///< Zero initialization yields an invalid value */
+/* parameter EKA_ACTIONRESULT_Sent             = 1;  ///< All action payloads sent successfully */
+/* parameter EKA_ACTIONRESULT_InvalidToken     = 2;  ///< Trigger security token did not match action token */
+/* parameter EKA_ACTIONRESULT_InvalidStrategy  = 3;  ///< Strategy id was not valid */
+/* parameter EKA_ACTIONRESULT_InvalidAction    = 4;  ///< Action id was not valid */
+/* parameter EKA_ACTIONRESULT_DisabledAction   = 5;  ///< Did not fire because an enable bit was not set */
+/* parameter EKA_ACTIONRESULT_SendError        = 6;  ///< Send error occured (e.g., TCP session closed) */
+/* parameter EKA_ACTIONRESULT_HWPeriodicStatus = 255; ///< HW generated periodic status */
+
+enum class HwEpmActionStatus : uint8_t {
+  Unknown = 0,
+    Sent             = 1,
+    InvalidToken     = 2,
+    InvalidStrategy  = 3,
+    InvalidAction    = 4,
+    DisabledAction   = 5,
+    SendError        = 6,
+    HWPeriodicStatus = 255
+};
+
 struct hw_epm_capabilities_t {
   uint16_t numof_actions;
   uint8_t tcpcs_numof_templates;
@@ -257,7 +277,21 @@ typedef struct __attribute__((packed)) {
   char     pad[32 - 2];
 } tcprx_dma_report_t;
 
+/* typedef struct packed { */
+/*         bit [7:0] strategy_region;   */
+/*         bit [15:0] strategy_index;   */
+/*         bit [63:0] token;   */
+/* 	bit [15:0] max_header_size; */
+/* 	bit [7:0] min_num_in_group; */
+/* } sh_cancels_param_t; */
 
+  struct EfcCmeFastCancelStrategyConf {
+      uint8_t        minNoMDEntries;
+      uint16_t       maxMsgSize;
+      uint64_t       token;
+      uint16_t       fireActionId;
+      uint8_t        strategyId;
+  } __attribute__ ((aligned(sizeof(uint64_t)))) __attribute__((packed));
 
 
 

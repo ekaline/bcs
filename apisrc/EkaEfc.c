@@ -12,10 +12,13 @@
 #include "EkaEpmAction.h"
 #include "EpmFireSqfTemplate.h"
 #include "EpmFireBoeTemplate.h"
+#include "EpmCmeILinkTemplate.h"
 #include "EkaEfcDataStructs.h"
 #include "EkaHwCaps.h"
 #include "EhpNom.h"
 #include "EhpPitch.h"
+#include "EhpCmeFC.h"
+#include "EhpNews.h"
 
 void ekaFireReportThread(EkaDev* dev);
 
@@ -52,25 +55,37 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
 
   switch (hwFeedVer) {
   case EfhFeedVer::kNASDAQ : 
-    epm->hwFire  = new EpmFireSqfTemplate(epm->templatesNum++,"EpmFireSqfTemplate" );
+    epm->hwFire  = new EpmFireSqfTemplate(epm->templatesNum++);
     EKA_LOG("Initializing EpmFireSqfTemplate");
     ehp = new EhpNom(dev);
     break;
   case EfhFeedVer::kCBOE : 
-    epm->hwFire  = new EpmFireBoeTemplate(epm->templatesNum++,"EpmFireBoeTemplate" );
+    epm->hwFire  = new EpmFireBoeTemplate(epm->templatesNum++);
     EKA_LOG("Initializing EpmFireBoeTemplate");
     ehp = new EhpPitch(dev);
+    break;
+  case EfhFeedVer::kCME : 
+    epm->hwFire  = new EpmCmeILinkTemplate(epm->templatesNum++);
+    EKA_LOG("Initializing EpmCmeILinkTemplate");
+    ehp = new EhpCmeFC(dev);
+    //ehp = NULL;
+    //EKA_LOG("NO EHP for CME - using hardcoded CME Fast cancel parser");
+    break;
+  case EfhFeedVer::kNEWS : 
+    epm->hwFire  = new EpmCmeILinkTemplate(epm->templatesNum++); //TBD
+    EKA_LOG("Initializing dummy EpmCmeILinkTemplate (news)");
+    ehp = new EhpNews(dev);
     break;
   default :
     on_error("Unexpected EFC HW Version: %d",(int)hwFeedVer);
   }
   epm->DownloadSingleTemplate2HW(epm->hwFire);
   
-  if (ehp == NULL) on_error("ehp == NULL");
-  ehp->init();
-  ehp->download2Hw();
-  initHwRoundTable();
-
+  if (ehp) {
+    ehp->init();
+    ehp->download2Hw();
+    initHwRoundTable();
+  }
 #if EFC_CTX_SANITY_CHECK
   secIdList = new uint64_t[EFC_SUBSCR_TABLE_ROWS * EFC_SUBSCR_TABLE_COLUMNS];
   if (secIdList == NULL) on_error("secIdList == NULL");
@@ -134,6 +149,8 @@ int EkaEfc::initHwRoundTable() {
     case EfhFeedVer::kNASDAQ: 
     case EfhFeedVer::kMIAX:
     case EfhFeedVer::kCBOE:
+    case EfhFeedVer::kCME:
+    case EfhFeedVer::kNEWS:
       data = addr;
       break;
     default:
@@ -339,12 +356,14 @@ int EkaEfc::checkSanity() {
 int EkaEfc::run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx) {
   checkSanity();
   
-  memcpy(&localCopyEfcCtx,   pEfcCtx,   sizeof(EfcCtx));
-  memcpy(&localCopyEfcRunCtx,pEfcRunCtx,sizeof(EfcRunCtx));
-  
+  reportCb   = pEfcRunCtx->onEfcFireReportCb ? pEfcRunCtx->onEfcFireReportCb :
+    efcPrintFireReport;
+  cbCtx      = pEfcRunCtx->cbCtx;
+
   setHwGlobalParams();
   setHwUdpParams();
-  setHwStratRegion();
+  if (hwFeedVer != EfhFeedVer::kCME)
+    setHwStratRegion();
   //  igmpJoinAll();
 
   enableRxFire();
@@ -354,6 +373,8 @@ int EkaEfc::run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx) {
     dev->fireReportThread.detach();
     while (! dev->fireReportThreadActive) sleep(0);
     EKA_LOG("fireReportThread activated");
+  } else {
+    EKA_LOG("fireReportThread already active");
   }
 
   return 0;
@@ -393,20 +414,28 @@ int EkaEfc::setHwUdpParams() {
   for (auto i = 0; i < MAX_UDP_SESS; i++) {
     uint32_t ip   = 0;
     uint16_t port = 0;
-    uint64_t tmp_ipport = ((uint64_t)i) << 56 | ((uint64_t)port) << 32 | be32toh(ip);
+    uint64_t tmp_ipport =
+      ((uint64_t)i)    << 56 |
+      ((uint64_t)port) << 32 |
+      be32toh(ip);
     eka_write (dev,FH_GROUP_IPPORT,tmp_ipport);
   }
   
   EKA_LOG("downloading %d MC sessions to FPGA",numUdpSess);
   for (auto i = 0; i < numUdpSess; i++) {
-    if (udpSess[i] == NULL) on_error("udpSess[%d] == NULL",i);
+    if (!udpSess[i]) on_error("!udpSess[%d]",i);
 
-    EKA_LOG("configuring IP:UDP_PORT %s:%u for MD for group:%d",EKA_IP2STR(udpSess[i]->ip),udpSess[i]->port,i);
+    EKA_LOG("configuring IP:UDP_PORT %s:%u for MD for group:%d",
+	    EKA_IP2STR(udpSess[i]->ip),udpSess[i]->port,i);
     uint32_t ip   = udpSess[i]->ip;
     uint16_t port = udpSess[i]->port;
 
-    uint64_t tmp_ipport = ((uint64_t)i) << 56 | ((uint64_t)port) << 32 | be32toh(ip);
-    //  EKA_LOG("HW Port-IP register = 0x%016jx (%x : %x)",tmp_ipport,ip,port);
+    uint64_t tmp_ipport =
+      ((uint64_t)i)    << 56 |
+      ((uint64_t)port) << 32 |
+      be32toh(ip);
+    //  EKA_LOG("HW Port-IP register = 0x%016jx (%x : %x)",
+    //  tmp_ipport,ip,port);
     eka_write (dev,FH_GROUP_IPPORT,tmp_ipport);
 
   }
@@ -431,70 +460,3 @@ int EkaEfc::setHwStratRegion() {
   return 0;
 }
 /* ################################################ */
-
-/* EkaEpmAction* EkaEfc::createFireAction(epm_actionid_t actionIdx, ExcConnHandle hConn) { */
-/*   if (numFireActions == MAX_FIRE_ACTIONS)  */
-/*     on_error("numFireActions == MAX_FIRE_ACTIONS %d",numFireActions); */
-
-/*   EkaCoreId   myCoreId  = excGetCoreId(hConn); */
-/*   uint        mySessId  = excGetSessionId(hConn); */
-/*   if (dev->core[myCoreId] == NULL) on_error("dev->core[%u] == NULL",myCoreId); */
-/*   EkaTcpSess* myTcpSess = dev->core[myCoreId]->tcpSess[mySessId]; */
-/*   if (myTcpSess == NULL) on_error("myTcpSess == NULL"); */
-  
-/*   if (fireCoreId == -1) { */
-/*     fireCoreId = myCoreId; */
-/*   } else { */
-/*     if (fireCoreId != myCoreId)  */
-/*       on_error("fireCoreId %d != myCoreId %d",fireCoreId, myCoreId); */
-/*   } */
-
-/*   //  udpSess[group]->firstSessId = mySessId; */
-
-/*   int newActionId = numFireActions; */
-  
-/*   fireAction[newActionId] = dev->epm->addAction(EkaEpm::ActionType::HwFireAction, */
-/* 						   EkaEpm::EfcRegion, */
-/* 						   actionIdx, //localIdx */
-/* 						   myCoreId, */
-/* 						   mySessId, */
-/* 						   0 //auxIdx */
-/* 						   ); */
-
-/*   fireAction[newActionId]->setNwHdrs(myTcpSess->macDa, */
-/* 					myTcpSess->macSa, */
-/* 					myTcpSess->srcIp, */
-/* 					myTcpSess->dstIp, */
-/* 					myTcpSess->srcPort, */
-/* 					myTcpSess->dstPort); */
-
-
-/*   EKA_LOG("Created FireAction: on fireCoreId %d %s:%u --> %s:%u ", */
-/* 	  fireCoreId, */
-/* 	  EKA_IP2STR(myTcpSess->srcIp),myTcpSess->srcPort, */
-/* 	  EKA_IP2STR(myTcpSess->dstIp),myTcpSess->dstPort); */
-/*   numFireActions++; */
-/*   return fireAction[newActionId]; */
-/* } */
-
-/* ################################################ */
-/* EkaEpmAction* EkaEfc::findFireAction(ExcConnHandle hConn) { */
-/*   EkaCoreId   myCoreId  = excGetCoreId(hConn); */
-/*   uint        mySessId  = excGetSessionId(hConn); */
-/*   for (auto i = 0; i < numFireActions; i++) { */
-/*     if (fireAction[i] == NULL) on_error("fireAction[%d] == NULL",i); */
-/*     if (fireAction[i]->coreId == myCoreId && fireAction[i]->sessId == mySessId) */
-/*       return fireAction[i]; */
-/*   } */
-/*   return NULL; */
-/* } */
-
-/* /\* ################################################ *\/ */
-/* int EkaEfc::setActionPayload(ExcConnHandle hConn,const void* fireMsg, size_t fireMsgSize) { */
-/*   EkaEpmAction* myAction = findFireAction(hConn); */
-/*   if (myAction == NULL) on_error("myAction == NULL"); */
-
-/*   myAction->setPktPayload(fireMsg,fireMsgSize); */
-
-/*   return 0; */
-/* } */

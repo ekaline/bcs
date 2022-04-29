@@ -26,6 +26,7 @@
 #include "EkaFhXdpParser.h"
 
 int ekaTcpConnect(uint32_t ip, uint16_t port);
+int recvTcpSegment(int sock, void* buf, int segSize);
 
 using namespace Xdp;
 
@@ -137,10 +138,11 @@ static EkaOpResult sendHeartbeat(EkaFhXdpGr* gr) {
     EKA_WARN("%s:%u: XDP HEARTBEAT send failed",EKA_EXCH_DECODE(gr->exch),gr->id);
     return EKA_OPRESULT__ERR_SYSTEM_ERROR;
   }
-  EKA_TRACE("%s:%u: XDP HEARTBEAT sent",EKA_EXCH_DECODE(gr->exch),gr->id);
+  EKA_LOG("%s:%u: XDP HEARTBEAT sent",EKA_EXCH_DECODE(gr->exch),gr->id);
     
   return EKA_OPRESULT__OK;
 }
+
 
 /* ##################################################################### */
 
@@ -177,19 +179,41 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
     on_error("XdpSeriesMapping allocation error for %zu bufs", nDefinitionBufs);
 
   EkaOpResult result;
-
+  auto lastHeartBeatTime = std::chrono::high_resolution_clock::now();
+  std::chrono::high_resolution_clock::time_point now;
+  
   while (1) { 
     uint8_t buf[1536] = {};
-    uint8_t* hdr = buf;
-    if (recv(gr->snapshot_sock,hdr,sizeof(XdpMsgHdr),MSG_WAITALL) < (int)sizeof(XdpMsgHdr)) {
-      EKA_WARN("%s:%u: Request Server connection reset by peer (failed to read XdpMsgHdr)",
-	       EKA_EXCH_DECODE(gr->exch),gr->id);
-      return EKA_OPRESULT__ERR_SYSTEM_ERROR;
+    auto hdr {reinterpret_cast<XdpMsgHdr*>(buf)};
+    int rc;
+    //    rc = recv(gr->snapshot_sock,hdr,sizeof(XdpMsgHdr),MSG_WAITALL);
+    rc = recvTcpSegment(gr->snapshot_sock,hdr,sizeof(*hdr));
+    if (rc <= 0) {
+      EKA_WARN("%s:%u: Request Server connection reset by peer"
+	       "(failed to read XdpMsgHdr), rc=%d: %s",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,
+	       rc,strerror(errno));
+      return EKA_OPRESULT__ERR_TCP_SOCKET;
+      //      return EKA_OPRESULT__ERR_SYSTEM_ERROR;
     }
-    if (recv(gr->snapshot_sock,hdr + sizeof(XdpMsgHdr),((XdpMsgHdr*)hdr)->MsgSize - sizeof(XdpMsgHdr),MSG_WAITALL) < (int)(((XdpMsgHdr*)hdr)->MsgSize - sizeof(XdpMsgHdr))) {
-      EKA_WARN("%s:%u: Request Server connection reset by peer (failed to read Msg Body for MsgType = %u)",
-	       EKA_EXCH_DECODE(gr->exch),gr->id,(uint)((XdpMsgHdr*)hdr)->MsgType);
-      return EKA_OPRESULT__ERR_SYSTEM_ERROR;
+    uint8_t* msgPayload = buf + sizeof(*hdr);
+    int msgPayloadSize = hdr->MsgSize - sizeof(*hdr);
+
+    rc = recvTcpSegment(gr->snapshot_sock,msgPayload,msgPayloadSize);
+    if (rc <= 0) {
+      EKA_WARN("%s:%u: Request Server connection reset by peer"
+	       "(failed to read Msg Body for MsgType = %u, msgPayloadSize=%d), rc = %d: %s",
+	       EKA_EXCH_DECODE(gr->exch),gr->id,
+	       (uint)((XdpMsgHdr*)hdr)->MsgType,
+	       msgPayloadSize,
+	       rc,strerror(errno));
+      return EKA_OPRESULT__ERR_TCP_SOCKET;
+      //      return EKA_OPRESULT__ERR_SYSTEM_ERROR;
+    }
+    now = std::chrono::high_resolution_clock::now();
+    if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHeartBeatTime).count() > 900) {
+      if ((ret = sendHeartbeat(gr))        != EKA_OPRESULT__OK) return ret;
+      lastHeartBeatTime = now;
     }
     //-----------------------------------------------------------------
     switch (((XdpMsgHdr*)hdr)->MsgType) {

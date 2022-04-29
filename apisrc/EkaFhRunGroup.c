@@ -34,7 +34,7 @@ EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
     n += sprintf (&list2print[n], "%d,", groupList[i]);
   }
 
-  udpCh    = new EkaUdpChannel(dev,coreId,-1);
+  udpCh    = new EkaUdpChannel(dev,dev->snDev->dev_id,coreId,-1);
   if (udpCh == NULL) on_error("udpCh == NULL");
 
   udpChId            = udpCh->chId;

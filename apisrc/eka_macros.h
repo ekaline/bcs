@@ -83,9 +83,12 @@ class EkaDev;
     x == 2 ? "PHLX" : \
     x == 3 ? "ISE/GEMX/MRX" : \
     x == 4 ? "BZX/C2/EDGEX" : \
-    x ==16 ? "Generic unconfigured" : \
-    x ==17 ? "Generic NOM" : \
-    x ==18 ? "Generic PITCH" : \
+    x == 9 ? "CME" : \
+    x ==(16+0)  ? "Generic unconfigured" :	\
+    x ==(16+1)  ? "Generic NOM" :			\
+    x ==(16+2)  ? "Generic PITCH" :		\
+    x ==(16+14) ? "Generic News" :		\
+    x ==(16+15) ? "Generic CME Fast Cancel" :		\
     "Unknown"
 
 #define EKA_NIBBLE2CHAR(x) \

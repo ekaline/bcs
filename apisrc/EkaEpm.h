@@ -59,6 +59,7 @@ class EkaEpm {
   /* static const uint MAX_IGMP_ACTIONS            = EkaDev::MAX_UDP_CHANNELS; */
 
   static const uint64_t ALWAYS_ENABLE           = 0xFFFFFFFFFFFFFFFF;
+  static const uint64_t DefaultToken            = 0x1122334455667788;
 
   static const int EPM_REGIONS                  = 32;
   static const uint MAX_HEAP_WR_THREADS         = 16;
@@ -103,24 +104,6 @@ class EkaEpm {
 
   static const uint     UserHeapBaseOffs        = 0;
   static const uint     ServiceHeapBaseOffs     = MaxUserHeap;
-
-
-
-  /* enum class ActionType : int { */
-  /*   INVALID = 0, */
-  /*     // Service Actions */
-  /*     TcpFullPkt, */
-  /*     TcpFastPath, */
-  /*     TcpEmptyAck, */
-  /*     Igmp, */
-
-  /*     // Efc */
-  /*     HwFireAction, */
-
-  /*     // User Actions */
-  /*     UserAction */
-  /* }; */
-
 
   using ActionType = EpmActionType;
 
@@ -198,7 +181,28 @@ class EkaEpm {
   bool validStrategyIdx(epm_strategyid_t strategyIdx) {
     return (strategyIdx < stratNum) && (strategy[strategyIdx] != NULL);
   }
-
+  inline uint getHeapBudget(EpmActionType     type) {
+    switch (type) {
+    case EpmActionType::TcpFastPath :
+      return MAX_ETH_FRAME_SIZE;
+    case EpmActionType::TcpFullPkt  :
+      return MAX_ETH_FRAME_SIZE;
+    case EpmActionType::TcpEmptyAck :
+      return TCP_EMPTY_ACK_SIZE;
+    case EpmActionType::Igmp :
+      return IGMP_V2_SIZE;
+    case EpmActionType::HwFireAction :
+      return HW_FIRE_MSG_SIZE;
+    case EpmActionType::CmeHwCancel :
+    case EpmActionType::CmeSwFire :
+    case EpmActionType::CmeSwHeartbeat :
+    case EpmActionType::UserAction :
+      return MAX_ETH_FRAME_SIZE;
+    default:
+      on_error("Unexpected EkaEpmAction type %d",(int)type);
+    }
+    return (uint)(-1);
+  }
   /* ---------------------------------------------------------- */
 
  public:
@@ -212,6 +216,8 @@ class EkaEpm {
   EpmTemplate*      tcpFastPathPkt          = NULL;
   EpmTemplate*      rawPkt                  = NULL;
   EpmTemplate*      hwFire                  = NULL;
+  EpmTemplate*      cmeILink                = NULL;
+  
   uint              templatesNum            = 0;
 
   bool              initialized             = false;
@@ -280,6 +286,9 @@ inline uint calcThrId (EkaEpm::ActionType actionType, uint8_t sessId, uint intId
     thrId = UserBase + intIdx % UserNum;
     break;
   case EkaEpm::ActionType::HwFireAction:
+  case EkaEpm::ActionType::CmeHwCancel:
+  case EkaEpm::ActionType::CmeSwFire:
+  case EkaEpm::ActionType::CmeSwHeartbeat:
     thrId = UserBase + intIdx % UserNum; // TO BE CHECKED!!!
     break;
   default :

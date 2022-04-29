@@ -95,18 +95,7 @@ int credAcquire(EkaCredentialType credType, EkaGroup group, const char *user, co
 int credRelease(EkaCredentialLease *lease, void* context) {
   return 0;
 }
-/* --------------------------------------------- */
-void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fireReportBuf, size_t size, void* cbCtx) {
-  /* EkaDev* dev = pEfcCtx->dev; */
-  /* if (dev == NULL) on_error("dev == NULL"); */
-  /* EKA_LOG ("FIRE REPORT RECEIVED"); */
-  /* //  hexDump("FireReport",fireReportBuf,size); */
-  if (printFireReport)
-    printReport(pEfcCtx, (const EfcReportHdr*)fireReportBuf,false);
-  /* EKA_LOG ("Rearming...\n"); */
-  efcEnableController(pEfcCtx,1);
-  return;
-}
+
 /* ------------------------------------------------------------ */
 
 void* onMdTestDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
@@ -144,7 +133,7 @@ void* onMdTestDefinition(const EfhOptionDefinitionMsg* msg, EfhSecUserData secDa
 }
 
 /* ------------------------------------------------------------ */
-
+#if 0
 static EkaOpResult printReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdOnly) {
   if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
   EkaDev* dev = pEfcCtx->dev;
@@ -233,7 +222,7 @@ static EkaOpResult printReport( EfcCtx* pEfcCtx, const EfcReportHdr* p, bool mdO
 
   return EKA_OPRESULT__OK;
 }
-
+#endif
 /* --------------------------------------------- */
 
 void printUsage(char* cmd) {
@@ -611,7 +600,7 @@ int main(int argc, char *argv[]) {
   
   // ==============================================
   EfcRunCtx efcRunCtx = {};
-  efcRunCtx.onEfcFireReportCb = onFireReport;
+  efcRunCtx.onEfcFireReportCb = efcPrintFireReport;
   
   if (fatalDebug) {
     TEST_LOG(RED "\n=====================\n"

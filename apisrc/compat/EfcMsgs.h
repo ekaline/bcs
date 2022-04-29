@@ -20,13 +20,9 @@ enum EfcReportType {
                 _x( ControllerState,    1000 )                              \
                 _x( MdReport,           2000 )                              \
                 _x( SecurityCtx,        3000 )                              \
-                _x( FirePkt,            4000 )                              \
-  /* Following reports components are obsolete          */                  \
-  /* The firing params should be extracted from FirePkt */                  \
-                _x( FireReport,         5000 )                              \
-                _x( MiaxSessionCtx,     6001 )                              \
-                _x( SqfSessionCtx,      6002 )                              \
-                _x( ExceptionReport,    7000 )
+                _x( ExceptionReport,    4000 )                              \
+                _x( FirePkt,            5000 )                              \
+                _x( EpmReport,          6000 )                              
     EfcReportType_ENUM_ITER( EKA__ENUM_DEF )
 };
 
@@ -73,6 +69,12 @@ typedef struct {
     EfcMdReport_FIELD_ITER( EKA__FIELD_DEF )
 } EfcMdReport; // single appearence
 
+#define EFC_MAX_CORES 4      
+      
+struct EfcExceptionsReport {
+  uint64_t globalExcpt = 0;
+  uint64_t coreExcpt[EFC_MAX_CORES] = {};
+};
       // Replaced by   SecCtx    
 /* typedef struct { */
 /*     #define EfcSecurityCtx_FIELD_ITER( _x )                                 \ */

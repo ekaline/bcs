@@ -129,17 +129,6 @@ int credAcquire(EkaCredentialType credType, EkaGroup group, const char *user, co
 int credRelease(EkaCredentialLease *lease, void* context) {
   return 0;
 }
-/* --------------------------------------------- */
-void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fireReportBuf, size_t size, void* cbCtx) {
-  EkaDev* dev = pEfcCtx->dev;
-  if (dev == NULL) on_error("dev == NULL");
-  EKA_LOG ("FIRE REPORT RECEIVED");
-  //  hexDump("FireReport",fireReportBuf,size);
-  efcPrintFireReport(pEfcCtx, (const EfcReportHdr*)fireReportBuf,false);
-  /* EKA_LOG ("Rearming...\n"); */
-  /* efcEnableController(pEfcCtx,1); */
-  return;
-}
 
 /* --------------------------------------------- */
 void tcpServer(EkaDev* dev, std::string ip, uint16_t port, int* sock, bool* serverSet) {
@@ -560,7 +549,7 @@ int main(int argc, char *argv[]) {
   efcInitStrategy(pEfcCtx, &efcStratGlobCtx);
 
   EfcRunCtx runCtx = {};
-  runCtx.onEfcFireReportCb = onFireReport;
+  runCtx.onEfcFireReportCb = efcPrintFireReport;
 
   // ==============================================
   // Subscribing on securities
@@ -622,6 +611,7 @@ int main(int argc, char *argv[]) {
 	.askMaxPrice       = static_cast<decltype(secCtx.askMaxPrice)>(security[i].askMaxPrice / 100),  //x100
 	.bidSize           = security[i].size,
 	.askSize           = security[i].size,
+	.versionKey        = (uint8_t)i,
 	.lowerBytesOfSecId = (uint8_t)(securityList[i] & 0xFF)
     };
     EKA_TEST("Setting StaticSecCtx[%d] secId=0x%016jx, handle=%jd",
@@ -845,11 +835,13 @@ int main(int argc, char *argv[]) {
 #endif  
 // ==============================================
 #if 1
-  sendAddOrder(AddOrder::Expanded,triggerSock,&triggerMcAddr,security[2].id,
-	       sequence++,'B',security[2].bidMinPrice + 1,security[2].size);
+  while (testCtx->keep_work) {
+    sendAddOrder(AddOrder::Expanded,triggerSock,&triggerMcAddr,security[2].id,
+		 sequence++,'B',security[2].bidMinPrice + 1,security[2].size);
   
-  sleep(1);
-  efcEnableController(pEfcCtx, 1);
+    sleep(1);
+    efcEnableController(pEfcCtx, 1);
+  }
 #endif  
 // ==============================================
 

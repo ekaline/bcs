@@ -2,6 +2,122 @@
  * @file
  *
  * This header file covers the API for the Ekaline Prepared Message (EPM) feature.
+ *
+ * The Ekaline Prepared Message is a feature that allows for a low-latency message sending (within an open TCP session).
+ * Low latency comes from the message sending being triggered in the HW, which eliminates the need to go through PCIE.
+ *
+ * It consists of the folowing:
+ *   Ekaline Socket (exc) that must operate in TCP mode (managed by EXC part of the API)
+ *   EPM Strategy (created by a |epmInitStrategies| call) that binds triggers, strategy list and a callback
+ *     Triggers (a trigger is a source of UDP traffic - physical port x UDP multicast address x IP port)
+ *   Actions that represent what the system should do, when the desired conditions arise. A valid action
+ *       is a prescription to send some kind of message through the associated TCP stream. Note that the TCP stream
+ *       writer[s] must operate in the right mode (write messages in atomic manner) for this to work.
+ *
+ * The rough idea of operation is to set up a startegy with triggers and actions all attached to a TCP socket.
+ * If a trigger conditions are met, then a chain of actions is invoked (they boil down to sending messages into the TCP stream).
+ * The messages are Ethernet frames with IPv4 and TCP Segmnent headers (produced by the ekaline library) containing tcp data
+ * (so called payload) that is supplied by the ekaline client (and possibly instantiated by ekaline, depending on message type).
+ *
+ * Messages are prepared in advance - client code provides payload type and content, that is stored into ekaline internal memory.
+ * This memory (called heap or payload memory) is managed by the client, with limitations indicated by how the heap is used.
+ * Client-provided payload data is sandwitched by ekaline-provided headers and trailers (inaccessible by the application):
+ *  - prefixed by Ethernet, IP and TCP headers (at least 54 bytes)
+ *  - potentially suffixed by some other data (CRC, timestamps and such)
+ * On top of that, each prepared message (including all headers and trailers) must be start-aligned.
+ * The heap size, message alignment, header and trailer sizes can be retrieved by calls to |epmGetDeviceCapability|.
+ *
+ *
+ * The client code should look like the following:
+ *
+ * EkaDev *device = nullptr;
+ * EkaDevInitCtx initCtx {
+ *   .logCallback = nullptr, // TODO(twozniak): supply this, maybe
+ *   .logContext = nullptr,  // TODO(twozniak): supply this, maybe
+ *   .credAcquire = nullptr,
+ *   .credRelease = nullptr,
+ *   .credContext = nullptr,
+ *   .createThread = createPthread,
+ *   .createThreadContext = nullptr,
+ * };
+ * ekaDevInit(&device, &initCtx);
+ *
+ * EkaCoreId phyPort{0}; // Physical port index
+ * EkaCoreInitCtx portInitCtx{
+ *   .coreId = phyPort,
+ *   .attrs = { .host_ip = inet_addr("???"), .netmask = inet_addr("255.255.255.0"), .gateway = inet_addr("???"),
+                //.nexthop_mac   resolved internally
+                //.src_mac_addr  resolved internally
+                //.dont_garp     what is it? }
+ * };
+ * ekaDevConfigurePort(device, &portInitCtx);
+ *
+ * ExcSocketHandle hSocket = excSocket(device, coreId, AF_INET, SOCK_STREAM, IPPROTO_TCP);
+ *
+ * //struct sockaddr_in myAddr{ .sin_family = AF_INET, .sin_port = 0x0102, .sin_addr = { .s_addr = 0x01020304 } };
+ * //bind(hSocket, (const struct sockaddr *)&myAddr, sizeof(myAddr));
+ * struct sockaddr_in peer{ .sin_family = AF_INET, .sin_port = 0x0102, .sin_addr = { .s_addr = 0x01020304 } };
+ * ExcConnHandle hConnection = excConnect(device, hSocket, (const struct sockaddr *)&peer, sizeof(peer));
+ *
+ * void fireReportCallback(const EpmFireReport *reports, int nReports, void *ctx) {
+ *   for (int idx = 0; idx < nReports; ++idx) {
+ *     EpmFireReport const *report = &reports[idx];
+ *     // work the |report|
+ *   }
+ * }
+ *
+ * EpmTriggerParams triggerSources[] = {{
+ *   .coreId = phyPort,       // cable plug index
+ *   .mcIp = "69.50.112.174", // CME
+ *   .mcUdpPort = 61891       // CME
+ * }};
+ * EpmStrategyParams strategies{
+ *   .numActions = 1,
+ *   .triggerParams = triggerSources,
+ *   .numTriggers = ARRAY_SIZE(triggerSources),
+ *   .reportCb = fireReportCallback,
+ *   .cbCtx = nullptr, // no user context
+ * };
+ * epmInitStrategies(device, &strategies, ARRAY_SIZE(strategies));
+ *
+ * epmEnableController(device, phyPort, true);
+ * epm_enablebits_t enableBitmap = 0x01;
+ * epmSetStrategyEnableBits(device, strategyId, enableBitmap);
+ *
+ * const void *cmeMassCancelMessageTemplateBytes = ;
+ * uint32_t cmeMassCancelMessageTemplateSize = ;
+ * uint32_t cmeMassCancelHeapOffset = ;
+ * int strategyId = 0;
+ * epmPayloadHeapCopy(device, strategyId,
+ *      cmeMassCancelHeapOffset, cmeMassCancelMessageTemplateSize, cmeMassCancelMessageTemplateBytes);
+ *
+ * EpmAction actions[] = {{
+ *   .type = CmeCancel,
+ *   .token = ???,
+ *   .hConn = hConnection,
+ *   .offset = cmeMassCancelHeapOffset,
+ *   .length = cmeMassCancelMessageTemplateSize,
+ *   .actionFlags = AF_Valid,
+ *   .nextAction = EPM_LAST_ACTION,
+ *   .enable = 0x01,
+ *   .postLocalMask = 0x01,
+ *   .postStratMask = 0x01,
+ *   .user = 0,  // just a single user
+ * }};
+ * EkaOpResult epmSetAction(device, strategyId, 0, &actions[0]);
+ *
+ *
+ * Please note the implicit connection between the first trigger (embedded in the |strategies[0].triggerParams|)
+ * and the first action (actions[0]). Each trigger (once activated) invokes an action chain,
+ * starting with an action of the same index. Thus, all the triggers are directly tied to the firrst actions (as many as there are triggers).
+ * There may be more actions, as a single trigger may start multiple actions (an action chain).
+ *
+ * The action chain is a list of actions chained by the |nextAction| field. It is not specified what happens when
+ * the chain contains a loop, multiple chains have a commin tail or a chain is broken (an index outside the action array).
+ *
+ * It is not clear what the controller state may/must be for the configuration to take place.
+ * It is not clear if/how the strategy list can be altered (can init be called many times?)
+ * TODO(twozniak): the security token (zero should be OK for the test)
  */
 
 #ifndef __EKALINE_EPM_H__
@@ -21,15 +137,37 @@ typedef int32_t epm_actionid_t;
 #define EPM_LAST_ACTION 0xFFFF
 
 #define EFC_STRATEGY 0
+#define EPM_INVALID_STRATEGY 255
 
-/// Eklaine device limitations
+/* The ekaline library provides the internal memory pool (heap) that is divided into two parts:
+ *  - implicit used for actions (not directly accessible by applications)
+ *  - explicit (managed by calls to epmPayloadHeapCopy) with prepared messages' data
+ *
+ * Each message (on the explicit heap) follows the layout depicted below.
+ * Note: all packets share header, trailer and alignment, but each packet may have different payload size:
+ * ------------------------------------------------------------------
+ * |<--    single message address range      -->|     Unused        |
+ * |<-- this address must be a multiple of alignment from heap begin
+ * | Headers     |    Payload    |   Trailers   | Alignment padding |
+ * ------------------------------------------------------------------
+ * | ^Ekaline    |^client-provi- | ^ekaline data|                   |
+ * | generated   |ded data (each |              |                   |
+ * |  headers    | time altered) |              |                   |
+ * ------------------------------------------------------------------
+ * |<- EHC_Data- | Provided for  |<-EHC_Required| Implicit: begin of
+ *  gramOffset-->| each message  | TailPadding_>| next message minus end of trailers
+ * |<--------------- multiple of EHC_PayloadAlignment ------------->|
+ * headers(sent) |TCP data (sent)| (not sent)   | (not sent)        |
+ * */
+/// Ekaline device limitations
 enum EpmDeviceCapability : int {
-  EHC_PayloadMemorySize,       ///< Bytes available for payload packets
-  EHC_PayloadAlignment,        ///< Payload memory bufs must have this alignment
-  EHC_DatagramOffset,          ///< Payload buf offset where UDP datagram starts
-  EHC_RequiredTailPadding,     ///< Payload buf must be oversized to hold padding
-  EHC_MaxStrategies,           ///< Total no. of strategies available
-  EHC_MaxActions               ///< Total no. of actions (shared by all strats)
+  EHC_PayloadMemorySize,       ///< Total bytes available for messages, including headers, trailers and alignment (heap size).
+  EHC_PayloadAlignment,        ///< Every message must be start-aligned to multiple of this value relative to heap start.
+  EHC_DatagramOffset,          ///< TCP/UDP payload offset relative to a message start.
+  EHC_RequiredTailPadding,     ///< Reserved space after payload within a packet (after each payload this much bytes
+                               ///< need to be reserved on the heap for ekaline internal use)
+  EHC_MaxStrategies,           ///< Total strategy capacity (maximal number of strategies that may be created at the same time)
+  EHC_MaxActions               ///< Total action capacity (maximal number of actions - shared by all strategies)
 };
 
 enum class EpmActionType : int {
@@ -51,7 +189,13 @@ enum class EpmActionType : int {
     SqfCancel    = 23,
     BoeFire      = 24,
     BoeCancel    = 25,
+    CmeFire      = 26,
+    CmeCancel    = 27,
 
+    CmeHwCancel  = 31,          ///< propagating App sequence
+    CmeSwFire    = 32,          ///< propagating App sequence
+    CmeSwHeartbeat = 33,        ///< not propagating App sequence
+    
     // User Actions
     UserAction   = 100          ///< EPM fire. No fields managed by HW
  };
@@ -111,9 +255,10 @@ enum EpmTriggerAction : int {
 /// Every trigger generates one of these events and is reported to the caller
 /// via an @ref EpmFireReportCb callback.
 struct EpmFireReport {
-  const EpmTrigger *trigger;          ///< Contents of the trigger message
   epm_strategyid_t strategyId;        ///< Strategy ID the report corresponds to
   epm_actionid_t   actionId;          ///< Action ID the report corresponds to
+  epm_actionid_t   triggerActionId;   ///< Action ID of the Trigger
+  epm_token_t      triggerToken;      ///< Security token of the Trigger
   EpmTriggerAction action;            ///< What device did in response to trigger
   EkaOpResult error;                  ///< Error code for SendError
   epm_enablebits_t preLocalEnable;    ///< Action-level enable bits before fire
@@ -151,7 +296,8 @@ struct EpmStrategyParams {
   epm_actionid_t numActions;   ///< No. of actions entries used by this strategy
   const EpmTriggerParams *triggerParams; ///< list of triggers belonging to this strategy
   size_t numTriggers;          ///< size of triggerParams list
-  EpmFireReportCb reportCb;    ///< Callback function to process fire reports
+  //  EpmFireReportCb reportCb;    ///< Callback function to process fire reports
+  OnReportCb reportCb;    ///< Callback function to process fire reports
   void *cbCtx;                 ///< Opaque value passed into reportCb
 };
 
@@ -459,6 +605,9 @@ EkaOpResult epmSetStrategyEnableBits(EkaDev *ekaDev,
  */
 EkaOpResult epmRaiseTriggers(EkaDev *ekaDev,
                              const EpmTrigger *trigger);
+
+
+
 } // End of extern "C"
 
 #endif

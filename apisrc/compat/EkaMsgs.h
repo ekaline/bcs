@@ -15,13 +15,22 @@
 /*
  *
  */
+
 enum class EkaEventType {
     #define EkaEventType__ENUM_ITER( _x )                                   \
-        _x( FireReport,      1 )                                            \
-        _x( ExceptionReport, 2 )
+        _x( FireEvent,      1 )                                            \
+        _x( EpmEvent,       2 )                                            \
+        _x( ExceptionEvent, 3 )
     EkaEventType__ENUM_ITER( EKA__ENUM_DEF )
 };
 
+#define EkaEventType2STR(x)				     \
+      x == EkaEventType::kFireEvent        ? "FireEvent" :	\
+	x == EkaEventType::kEpmEvent       ? "EpmEvent" :		\
+	x == EkaEventType::kExceptionEvent ? "ExceptionEvent" :	\
+	"UnknownReport"
+      
+      
 /*
  *
  */
@@ -33,8 +42,9 @@ typedef struct {
 } EkaContainerGlobalHdr;
 
 typedef struct {
+  // exception vector from FPGA HW diagnostics
     #define EkaExceptionReport_FIELD_ITER( _x )                            \
-            _x( int32_t, error_code )
+            _x( uint64_t, error_code )
     EkaExceptionReport_FIELD_ITER( EKA__FIELD_DEF )
 } EkaExceptionReport;
 

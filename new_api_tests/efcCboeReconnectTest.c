@@ -135,7 +135,8 @@ void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport* fireReportBuf, size_t s
   if (dev == NULL) on_error("dev == NULL");
   EKA_LOG ("FIRE REPORT RECEIVED");
   //  hexDump("FireReport",fireReportBuf,size);
-  efcPrintFireReport(pEfcCtx, (const EfcReportHdr*)fireReportBuf,false);
+  //  efcPrintFireReport(pEfcCtx, (const EfcReportHdr*)fireReportBuf,false);
+  efcPrintFireReport(fireReportBuf,size,dev);
   /* EKA_LOG ("Rearming...\n"); */
   /* efcEnableController(pEfcCtx,1); */
   return;
@@ -566,7 +567,7 @@ int main(int argc, char *argv[]) {
   efcInitStrategy(pEfcCtx, &efcStratGlobCtx);
 
   EfcRunCtx runCtx = {};
-  runCtx.onEfcFireReportCb = onFireReport;
+  runCtx.onEfcFireReportCb = efcPrintFireReport;//onFireReport;
 
   // ==============================================
   // Subscribing on securities

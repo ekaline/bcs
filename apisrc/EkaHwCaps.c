@@ -57,6 +57,20 @@ EkaHwCaps::EkaHwCaps(EkaDev* _dev) {
   if (idx > bufSize) on_error("idx %u > bufSize %u",idx,bufSize);
 }
 
+void EkaHwCaps::refresh() {
+  SN_DeviceId DeviceId = SN_OpenDevice(NULL, NULL);
+  if (DeviceId == NULL) on_error("failed on SN_OpenDevice");
+
+  uint words2read = sizeof(hwCaps) / 8 + !!(sizeof(hwCaps) % 8);
+  uint64_t srcAddr = HwCapabilitiesAddr / 8;
+  uint64_t* dstAddr = (uint64_t*)&hwCaps;
+  for (uint w = 0; w < words2read; w++)
+    SN_ReadUserLogicRegister(DeviceId, srcAddr++, dstAddr++);
+
+  SN_CloseDevice(DeviceId);
+
+}
+
 void EkaHwCaps::print2buf() {
   idx += sprintf(&buf[idx],"\n");
   idx += sprintf(&buf[idx],"hwCaps.core.bitmap_md_cores\t\t= 0x%jx\n",     (uint64_t)(hwCaps.core.bitmap_md_cores));  
@@ -145,9 +159,17 @@ bool EkaHwCaps::checkEpm() {
 
 bool EkaHwCaps::checkEfc() {
   errno = ENOSYS;
-  if (hwCaps.version.hwparser != EKA_EXPECTED_HWPARSER_VERSION) 
-    on_error("hwCaps.version.hwparser 0x%x != EKA_EXPECTED_HWPARSER_VERSION 0x%x",
-	     hwCaps.version.hwparser,EKA_EXPECTED_HWPARSER_VERSION);
+  if (hwCaps.version.parser < 16) {
+    // HW parser is not Generic, checking for CME
+    if (hwCaps.version.parser != EKA_EXPECTED_NONGENERIC_PARSER_VERSION) 
+      on_error("hwCaps.version.parser 0x%x != EKA_EXPECTED_NONGENERIC_PARSER_VERSION 0x%x",
+	       hwCaps.version.parser,EKA_EXPECTED_NONGENERIC_PARSER_VERSION);
+  } else {
+    // HW parser is Generic
+    if (hwCaps.version.hwparser != EKA_EXPECTED_GENERIC_PARSER_VERSION) 
+      on_error("hwCaps.version.hwparser 0x%x != EKA_EXPECTED_GENERIC_PARSER_VERSION 0x%x",
+	       hwCaps.version.hwparser,EKA_EXPECTED_GENERIC_PARSER_VERSION);
+  }
   
   if (hwCaps.version.strategy != EKA_EXPECTED_EFC_STRATEGY) 
     on_error("hwCaps.version.strategy %d != EKA_EXPECTED_EFC_STRATEGY %d",

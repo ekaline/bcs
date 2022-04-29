@@ -4,8 +4,8 @@
 #include <string>
 #include <regex>
 
-#include "EfhMsgs.h"
-#include "Efh.h"
+#include "compat/EfhMsgs.h"
+#include "compat/Efh.h"
 
 #define EFH_GET_SRC(x) (						\
 			(std::regex_search(std::string(x),std::regex("NOM_ITTO"))   == true) ? EkaSource::kNOM_ITTO   : \
@@ -143,6 +143,7 @@
   x == EfhFeedVer::kBOX      ? "BOX"         : \
   x == EfhFeedVer::kCME      ? "CME"         : \
                                "UNKNOWN"
+
 #define EKA_TS_DECODE(x) \
   x == EfhTradeStatus::kUninit     ? '_' : \
   x == EfhTradeStatus::kGapRecover ? 'G' : \
