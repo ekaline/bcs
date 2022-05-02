@@ -20,6 +20,7 @@
 #include "EkaFhXdp.h"
 #include "EkaFhPlr.h"
 #include "EkaFhCme.h"
+#include "EkaFhBx.h"
 
 
 EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhInitCtx ) {
@@ -93,6 +94,9 @@ EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhI
     break;
   case EkaSource::kCME_SBE:
     dev->fh[fhId] = new EkaFhCme();
+    break;
+  case EkaSource::kBX_DPTH:
+    dev->fh[fhId] = new EkaFhBx();
     break;
   default:
     on_error ("Invalid Exchange %s from: %s",EKA_EXCH_DECODE(exch),pEfhInitCtx->ekaProps->props[0].szKey);

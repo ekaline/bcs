@@ -36,6 +36,7 @@
 #include "EfhPhlxTopoProps.h"
 #include "EfhXdpProps.h"
 #include "EfhCmeProps.h"
+#include "EfhBxProps.h"
 
 #include "EfhTestFuncs.h"
 

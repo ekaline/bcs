@@ -9,6 +9,7 @@
 
 #define EFH_GET_SRC(x) (						\
 			(std::regex_search(std::string(x),std::regex("NOM_ITTO"))   == true) ? EkaSource::kNOM_ITTO   : \
+			(std::regex_search(std::string(x),std::regex("BX_DPTH"))    == true) ? EkaSource::kBX_DPTH    : \
 			(std::regex_search(std::string(x),std::regex("PHLX_TOPO"))  == true) ? EkaSource::kPHLX_TOPO  : \
 			(std::regex_search(std::string(x),std::regex("PHLX_ORD" ))  == true) ? EkaSource::kPHLX_ORD   : \
 			(std::regex_search(std::string(x),std::regex("GEM_TQF"))    == true) ? EkaSource::kGEM_TQF    : \
@@ -31,6 +32,7 @@
 
 #define EFH_EXCH2FEED(x)			(	\
   (x == EkaSource::kNOM_ITTO)   ? EfhFeedVer::kNASDAQ :	\
+  (x == EkaSource::kBX_DPTH)    ? EfhFeedVer::kBX :	\
   (x == EkaSource::kGEM_TQF)    ? EfhFeedVer::kGEMX :	\
   (x == EkaSource::kISE_TQF)    ? EfhFeedVer::kGEMX :	\
   (x == EkaSource::kMRX_TQF)    ? EfhFeedVer::kGEMX :	\
@@ -51,10 +53,11 @@
   (x == EkaSource::kCME_SBE)    ? EfhFeedVer::kCME :	\
   EfhFeedVer::kInvalid)
 
-#define EFH_EXCH2FULL_BOOK(x) ((x == EkaSource::kNOM_ITTO) || (x == EkaSource::kC2_PITCH) || (x == EkaSource::kBZX_PITCH) || (x == EkaSource::kEDGX_PITCH))
+#define EFH_EXCH2FULL_BOOK(x) ((x == EkaSource::kNOM_ITTO) || (x == EkaSource::kBX_DPTH) || (x == EkaSource::kC2_PITCH) || (x == EkaSource::kBZX_PITCH) || (x == EkaSource::kEDGX_PITCH))
 
 #define EKA_EXCH_DECODE(x) (                     \
   (x == EkaSource::kNOM_ITTO)   ? "NOM_ITTO"   : \
+  (x == EkaSource::kBX_DPTH)    ? "BX_DPTH"    : \
   (x == EkaSource::kGEM_TQF)    ? "GEM_TQF"    : \
   (x == EkaSource::kISE_TQF)    ? "ISE_TQF"    : \
   (x == EkaSource::kMRX_TQF)    ? "MRX_TQF"    : \
@@ -77,6 +80,7 @@
 
 #define EKA_EXCH_SOURCE_DECODE(x) (            \
   (x == EkaSource::kNOM_ITTO)   ? "NOM"      : \
+  (x == EkaSource::kBX_DPTH)    ? "BX"       : \
   (x == EkaSource::kGEM_TQF)    ? "GEM"      : \
   (x == EkaSource::kISE_TQF)    ? "ISE"      : \
   (x == EkaSource::kMRX_TQF)    ? "MRX"      : \
@@ -100,6 +104,7 @@
 
 #define EKA_GRP_SRC2EXCH(x) (				   \
   (x == EkaSource::kNOM_ITTO)   ? EfhExchange::kNOM   :	   \
+  (x == EkaSource::kBX_DPTH)    ? EfhExchange::kBX    :	   \
   (x == EkaSource::kGEM_TQF)    ? EfhExchange::kGEM   :	   \
   (x == EkaSource::kISE_TQF)    ? EfhExchange::kISE   :	   \
   (x == EkaSource::kMRX_TQF)    ? EfhExchange::kMCRY  :	   \

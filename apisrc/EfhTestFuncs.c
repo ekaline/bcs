@@ -749,6 +749,9 @@ EkaSource feedname2source(std::string feedName) {
   if (feedName == std::string("NA")) return EkaSource::kNOM_ITTO;
   if (feedName == std::string("NB")) return EkaSource::kNOM_ITTO;
   /* ------------------------------------------------------- */
+  if (feedName == std::string("BXA")) return EkaSource::kBX_DPTH;
+  if (feedName == std::string("BXB")) return EkaSource::kBX_DPTH;
+  /* ------------------------------------------------------- */
   if (feedName == std::string("GA")) return EkaSource::kGEM_TQF;
   if (feedName == std::string("GB")) return EkaSource::kGEM_TQF;
   /* ------------------------------------------------------- */
@@ -801,6 +804,9 @@ static EkaProp* feedname2prop (std::string feedName) {
   /* ------------------------------------------------------- */
   if (feedName == std::string("NA")) return efhNomInitCtxEntries_A;
   if (feedName == std::string("NB")) return efhNomInitCtxEntries_B;
+  /* ------------------------------------------------------- */
+  if (feedName == std::string("BXA")) return efhBxInitCtxEntries_A;
+  if (feedName == std::string("BXB")) return efhBxInitCtxEntries_B;
   /* ------------------------------------------------------- */
   if (feedName == std::string("GA")) return efhGemInitCtxEntries_A;
   if (feedName == std::string("GB")) return efhGemInitCtxEntries_B;
@@ -855,6 +861,9 @@ static size_t feedname2numProps (std::string feedName) {
   if (feedName == std::string("NA")) return std::size(efhNomInitCtxEntries_A);
   if (feedName == std::string("NB")) return std::size(efhNomInitCtxEntries_B);
   /* ------------------------------------------------------- */
+  if (feedName == std::string("BXA")) return std::size(efhBxInitCtxEntries_A);
+  if (feedName == std::string("BXB")) return std::size(efhBxInitCtxEntries_B);
+  /* ------------------------------------------------------- */
   if (feedName == std::string("GA")) return std::size(efhGemInitCtxEntries_A);
   if (feedName == std::string("GB")) return std::size(efhGemInitCtxEntries_B);
   /* ------------------------------------------------------- */
@@ -907,6 +916,9 @@ static size_t feedname2numGroups(std::string feedName) {
   /* ------------------------------------------------------- */
   if (feedName == std::string("NA")) return std::size(nomGroups);
   if (feedName == std::string("NB")) return std::size(nomGroups);
+  /* ------------------------------------------------------- */
+  if (feedName == std::string("BXA")) return std::size(bxGroups);
+  if (feedName == std::string("BXB")) return std::size(bxGroups);
   /* ------------------------------------------------------- */
   if (feedName == std::string("GA")) return std::size(gemGroups);
   if (feedName == std::string("GB")) return std::size(gemGroups);
@@ -1016,6 +1028,8 @@ void print_usage(char* cmd) {
   printf("\t\tSupported Feed Codes:\n"); 
   printf("\t\t\tNA  - NOM         A feed\n"); 
   printf("\t\t\tNB  - NOM         B feed\n"); 
+  printf("\t\t\tBXA - BX          A feed\n"); 
+  printf("\t\t\tBXB - BX          B feed\n"); 
   printf("\t\t\tGA  - GEM         A feed\n"); 
   printf("\t\t\tGB  - GEM         B feed\n"); 
   printf("\t\t\tIA  - ISE         A feed\n"); 
