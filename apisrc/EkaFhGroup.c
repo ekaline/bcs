@@ -360,8 +360,8 @@ void EkaFhGroup::print_q_state() {
 				   size_t      credNameSize,
 				   EkaCredentialLease** lease) {
    
-   EKA_LOG("%s:%u trying to acquire %s credentials for threadId %ld",
-	   EKA_EXCH_DECODE(exch),id,credName,syscall(SYS_gettid));
+   EKA_LOG("%s:%u trying to acquire %.*s credentials for threadId %ld",
+	   EKA_EXCH_DECODE(exch),id,(int)credNameSize,credName,syscall(SYS_gettid));
      
    if (credentialsAcquired) {
      EKA_WARN("%s:%u Credentials is already acquired",EKA_EXCH_DECODE(exch),id);
