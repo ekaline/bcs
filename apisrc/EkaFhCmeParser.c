@@ -654,7 +654,8 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
 
   if (rootBlock->CFICode[0] != 'O' || rootBlock->CFICode[3] != 'F') {
     // Not an option-on-future, we don't care about this.
-    EKA_WARN("found non-option-on-future security `%s`", rootBlock->Symbol);
+    EKA_WARN("found non-option-on-future security `%s` (CFI: %.6s)",
+             rootBlock->Symbol, rootBlock->CFICode);
     return msgHdr->size;
   }
 
