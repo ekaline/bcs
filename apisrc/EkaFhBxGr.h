@@ -64,6 +64,11 @@ private:
   SecurityT* processTrade(const unsigned char* m,
 			  uint64_t sequence,uint64_t msgTs,
 			  const EfhRunCtx* pEfhRunCtx);
+
+  template <class SecurityT, class Msg>
+  SecurityT* processAuctionUpdate(const unsigned char* m,
+				  uint64_t sequence,uint64_t msgTs,
+				  const EfhRunCtx* pEfhRunCtx);  
   template <class Msg>
   void processDefinition(const unsigned char* m,
 			 const EfhRunCtx* pEfhRunCtx);

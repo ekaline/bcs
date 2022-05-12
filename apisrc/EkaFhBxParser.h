@@ -427,7 +427,8 @@ namespace Bx {
     }
   }
 
-  template <class T> inline FhOrderType getOrderType(const uint8_t* m) {
+  template <class T>
+  inline FhOrderType getOrderType(const uint8_t* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     switch (msg->side) {
     case 'B' :
@@ -441,5 +442,69 @@ namespace Bx {
     }
   }
 
+  template <class T>
+  inline EfhAuctionUpdateType getAuctionUpdateType(const char* m) {
+    switch (reinterpret_cast<const T*>(m)->auctionType) {
+    case 'I' : // “I” = Order Exposure
+      return EfhAuctionUpdateType::kNew; 
+    case 'O' : // “O” = Opening
+    case 'R' : // “R” = Reopening
+    case 'P' : // “P” = Price Improvement (PRISM) Auction
+    case 'B' : // “B” = Block Auction
+      return EfhAuctionUpdateType::kUnknown;
+    default :
+      on_error("Unexpected auctionType \'%c\'",
+	       reinterpret_cast<const T*>(m)->auctionType);
+    }
+  }
+
+  template <class T>
+  inline uint32_t getAuctionId(const uint8_t* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return be32toh(msg->auctionId);
+  }
+
+  template <class T>
+  inline SideT getAuctionSide(const uint8_t* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    switch (msg->imbalanceDirection) {
+    case 'B' :
+      return SideT::BID;
+    case 'S' :
+      return SideT::ASK;
+    default :
+      on_error("Unexpected side \'%c\'",msg->side);
+    }
+  }
+
+  template <class T> inline EfhOrderCapacity getAuctionOrderCapacity(const uint8_t* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    switch (msg->customerFirmIndicator) {
+    case 'C' : // “C” = Customer
+      return EfhOrderCapacity::kCustomer;
+    case 'F' : // “F” = Firm/ Joint Back Office (JBO)
+      return EfhOrderCapacity::kAgency;
+    case 'M' : // “M” = On-floor Market Maker
+      return EfhOrderCapacity::kMarketMaker;
+    case 'P' : // “P” = Professional Customer
+      return EfhOrderCapacity::kProfessionalCustomer;
+    case 'B' : // “B” = Broker Dealer/ Non Registered Market Maker
+      return EfhOrderCapacity::kBrokerDealer;
+    default :
+      on_error("Unexpected customerFirmIndicator \'%c\'",msg->customerFirmIndicator);
+    }
+  }
+
+ 
+  template <class T> inline uint32_t getAuctionPrice(const uint8_t* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return be32toh(msg->imbalancePrice);
+  }
+  
+  template <class T> inline uint32_t getAuctionSize(const uint8_t* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return be32toh(msg->imbalanceVolume);
+  }
+ 
 } // namespace Bx
 #endif

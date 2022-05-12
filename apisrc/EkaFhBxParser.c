@@ -175,7 +175,10 @@ template <class SecurityT, class Msg>
     case 'X' : //  ”X” = Closed
 	s->trading_action = EfhTradeStatus::kClosed;
 	s->option_open    = false;
-	break;		
+	break;
+    default:
+	on_error("Unexpected TradingAction state \'%c\'",
+		 reinterpret_cast<const Msg*>(m)->state);
     }
     return s;
 }
@@ -375,6 +378,43 @@ template <class SecurityT, class Msg>
 				pEfhRunCtx->efhRunUserData);
 
     return NULL;
+}
+
+template <class SecurityT, class Msg>
+  inline SecurityT* EkaFhBxGr::processAuctionUpdate(const unsigned char* m,
+						    uint64_t sequence,
+						    uint64_t msgTs,
+						    const EfhRunCtx* pEfhRunCtx) {
+  auto auctionUpdateType = getAuctionUpdateType<Msg>(m);
+  if (auctionUpdateType == EfhAuctionUpdateType::kUnknown) return NULL;
+
+  SecurityIdT securityId = getInstrumentId<Msg>(m);
+  SecurityT* s = book->findSecurity(securityId);
+  if (!s) return NULL;
+  
+  EfhAuctionUpdateMsg msg{};
+  msg.header.msgType        = EfhMsgType::kAuctionUpdate;
+  msg.header.group.source   = exch;
+  msg.header.group.localId  = id;
+  msg.header.underlyingId   = 0;
+  msg.header.securityId     = securityId;
+  msg.header.sequenceNumber = sequence;
+  msg.header.timeStamp      = gr_ts;
+  msg.header.gapNum         = gapNum;
+
+  msg.auctionId             = getAuctionId<Msg>(m);
+
+  msg.updateType            = auctionUpdateType;
+  msg.side                  = getAuctionSide<Msg>(m);
+  msg.capacity              = getAuctionOrderCapacity<Msg>(m);
+  msg.quantity              = getAuctionSize<Msg>(m);
+  msg.price                 = getAuctionPrice<Msg>(m);
+  msg.endTimeNanos          = 0;
+
+  pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData,
+				      pEfhRunCtx->efhRunUserData);
+  
+  return NULL;
 }
 
 inline uint64_t EkaFhBxGr::processEndOfSnapshot(const unsigned char* m,
