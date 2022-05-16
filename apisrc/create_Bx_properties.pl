@@ -15,18 +15,18 @@ $exch_name = "BX_DPTH";
 
 $mc_port            = 18000;
 $mc_base            = "233.54.12.";
-$mc_lsb_base        = 72;
+$mc_lsb_base        = 52;
 
-$snapshot_ip        = "206.200.43.";
-$snapshot_lsb_base  = 72;
+$snapshot_ip        = "206.200.131.";
+$snapshot_lsb_base  = 164;
 $snapshot_port      = 18300;
 
-$recovery_ip        = "206.200.43.";
-$recovery_lsb_base  = 64;
+$recovery_ip        = "206.200.131.";
+$recovery_lsb_base  = 160;
 $recovery_port      = 18100;
 
-$username = "NGBAR2";
-$passwd   = "HY4VXK";
+$username = "BLZ001";
+$passwd   = "KRDIOASF";
 
 print "EkaProp efhBxInitCtxEntries_A[] = {\n";
 for ($i=0; $i<$groups;$i++) {    
@@ -34,8 +34,9 @@ for ($i=0; $i<$groups;$i++) {
     $snapshot_lsb  = $snapshot_lsb_base + $i;
     $recovery_lsb  = $recovery_lsb_base + $i;
 
+    print "\t\{\"efh.$exch_name.group.$i.products\",\"vanilla_book\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\"   ,\"$mc_base$mc_lsb:$mc_port\"\},\n";
-    print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"$snapshot_ip$snapshot_lsb:$snapshot_port\"\}, \t// TCP SOUPBIN\n";
+    print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"$snapshot_ip$snapshot_lsb:$snapshot_port\"\}, \t// TCP GLIMPSE\n";
     print "\t\{\"efh.$exch_name.group.$i.recovery.addr\",\"$recovery_ip$recovery_lsb:$recovery_port\"\}, \t// MOLD RECOVERY\n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.auth\",\"$username:$passwd\"\},\n";
     print "\n";
@@ -50,8 +51,8 @@ $mc_port            = 18000;
 $mc_base            = "233.49.196.";
 $mc_lsb_base        = 72;
 
-$snapshot_ip        = "206.200.43.";
-$snapshot_lsb_base  = 72;
+$snapshot_ip        = "206.200.131.";
+$snapshot_lsb_base  = 196;
 $snapshot_port      = 18300;
 
 $recovery_ip        = "206.200.43.";
@@ -64,8 +65,9 @@ for ($i=0; $i<$groups;$i++) {
     $snapshot_lsb  = $snapshot_lsb_base + $i;
     $recovery_lsb  = $recovery_lsb_base + $i;
 
+    print "\t\{\"efh.$exch_name.group.$i.products\",\"vanilla_book\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\"   ,\"$mc_base$mc_lsb:$mc_port\"\},\n";
-    print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"$snapshot_ip$snapshot_lsb:$snapshot_port\"\}, \t// TCP SOUPBIN\n";
+    print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"$snapshot_ip$snapshot_lsb:$snapshot_port\"\}, \t// TCP GLIMPSE\n";
     print "\t\{\"efh.$exch_name.group.$i.recovery.addr\",\"$recovery_ip$recovery_lsb:$recovery_port\"\}, \t// MOLD RECOVERY\n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.auth\",\"$username:$passwd\"\},\n";
     print "\n";

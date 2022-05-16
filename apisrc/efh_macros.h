@@ -138,6 +138,7 @@
 
 #define EKA_FEED_VER_DECODE(x) \
   x == EfhFeedVer::kNASDAQ   ? "NASDAQ"      : \
+  x == EfhFeedVer::kBX       ? "BX"          : \
   x == EfhFeedVer::kGEMX     ? "GEMX"        : \
   x == EfhFeedVer::kPHLX     ? "PHLX"        : \
   x == EfhFeedVer::kMIAX     ? "MIAX"        : \
