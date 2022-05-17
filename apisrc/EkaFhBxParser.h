@@ -504,7 +504,101 @@ namespace Bx {
   template <class T> inline uint32_t getAuctionSize(const uint8_t* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return be32toh(msg->imbalanceVolume);
+  }  
+
+  template <class T> inline size_t printGenericMsg(const uint8_t* m) {
+    printf ("\n");
+    return sizeof(T);
   }
- 
+  
+  inline int printMsg(uint64_t sequence, const uint8_t* m) {
+    auto genericHdr {reinterpret_cast<const GenericHdr*>(m)};
+    char enc = genericHdr->type;
+    uint64_t msgTs = be64toh(genericHdr->ts);
+
+    printf("\t");
+    printf("%s,",ts_ns2str(msgTs).c_str());
+    printf ("%-8ju,",sequence);
+    switch (enc) {
+      //--------------------------------------------------------------
+    case 'H':  // TradingAction
+      return printGenericMsg<TradingAction>(m);
+      //      return printTradingAction<TradingAction>(m);
+    case 'a':  // AddOrderShort
+      return printGenericMsg<AddOrderShort>(m);
+      //      return printAddOrder<AddOrderShort>(m);
+    case 'A':  // AddOrderLong
+      return printGenericMsg<AddOrderLong>(m);
+      //      return printAddOrder<AddOrderLong>(m);
+    case 'j':  // AddQuoteShort
+      return printGenericMsg<AddQuoteShort>(m);
+      //      return printAddQuote<AddQuoteShort>(m);
+    case 'J':  // AddQuoteLong
+      return printGenericMsg<AddQuoteLong>(m);
+      //      return printAddQuote<AddQuoteLong>(m);
+    case 'E':  // OrderExecuted
+      return printGenericMsg<OrderExecuted>(m);
+      //      return printOrderExecuted<OrderExecuted>(m);
+    case 'C':  // OrderExecutedPrice
+      return printGenericMsg<OrderExecutedPrice>(m);
+      //      return printOrderExecuted<OrderExecutedPrice>(m);
+    case 'X':  // OrderCancel
+      return printGenericMsg<OrderCancel>(m);
+      //      return printOrderExecuted<OrderCancel>(m);
+    case 'u':  // ReplaceOrderShort
+      return printGenericMsg<ReplaceOrderShort>(m);
+      //      return printReplaceOrder<ReplaceOrderShort>(m);
+    case 'U':  // ReplaceOrderLong
+      return printGenericMsg<ReplaceOrderLong>(m);
+      //      return printReplaceOrder<ReplaceOrderLong>(m);
+    case 'G':  // SingleSideUpdate
+      return printGenericMsg<SingleSideUpdate>(m);
+      //      return printSingleSideUpdate<SingleSideUpdate>(m);
+    case 'k':  // QuoteReplaceShort
+      return printGenericMsg<QuoteReplaceShort>(m);
+      //      return printReplaceQuote<QuoteReplaceShort>(m);
+    case 'K':  // QuoteReplaceLong
+      return printGenericMsg<QuoteReplaceLong>(m);
+      //      return printReplaceQuote<QuoteReplaceLong>(m);
+    case 'Y':  // QuoteDelete
+      return printGenericMsg<QuoteDelete>(m);
+      //      return printDeleteQuote<QuoteDelete>(m);
+    case 'Q':  // Trade
+      return printGenericMsg<Trade>(m);
+      //      return printTrade<Trade>(m);
+    case 'S':  // SystemEvent
+      return printGenericMsg<SystemEvent>(m);
+    case 'B':  // BrokenTrade
+      return printGenericMsg<BrokenTrade>(m);
+    case 'I':  // NOII
+      return printGenericMsg<NOII>(m);
+    case 'M':  // EndOfSnapshot
+      return printGenericMsg<EndOfSnapshot>(m);
+    case 'R':  // Directory
+      return printGenericMsg<Directory>(m);
+    default: 
+      on_error("UNEXPECTED Message type: enc=\'%c\'",enc);
+    }
+    return 0;
+  }
+      
+  inline ssize_t printPkt(const uint8_t* pkt) {
+    auto p {pkt};
+    auto moldHdr {reinterpret_cast<const mold_hdr*>(p)};
+    auto sequence = be64toh(moldHdr->sequence);
+    auto msgCnt   = be16toh(moldHdr->message_cnt);
+    p += sizeof(*moldHdr);
+    for (auto i = 0; i < msgCnt; i++) {
+      auto msgLenRaw = reinterpret_cast<const uint16_t*>(p);
+      auto msgLen = be16toh(*msgLenRaw);
+      p += sizeof(*msgLenRaw);
+      auto parsedMsgLen = printMsg(sequence,p);
+      if (parsedMsgLen != msgLen)
+	on_error("parsedMsgLen %d != msgLen %d",parsedMsgLen,msgLen);
+      sequence++;
+      p += msgLen;
+    }
+    return p - pkt;
+  }
 } // namespace Bx
 #endif

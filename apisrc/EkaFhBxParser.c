@@ -20,126 +20,129 @@ bool EkaFhBxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 			 EkaFhMode op,
 			 std::chrono::high_resolution_clock::time_point
 			 startTime) {
-    auto genericHdr {reinterpret_cast<const GenericHdr*>(m)};
-    char enc = genericHdr->type;
-    uint64_t msgTs = op == EkaFhMode::DEFINITIONS ? 0 : be64toh(genericHdr->ts);
+  auto genericHdr {reinterpret_cast<const GenericHdr*>(m)};
+  char enc = genericHdr->type;
 
-    if (op == EkaFhMode::DEFINITIONS  && enc == 'M') return true;
-    if ((op == EkaFhMode::DEFINITIONS && enc != 'R') ||
-	(op == EkaFhMode::SNAPSHOT    && enc == 'R')) return false;
+  if (op == EkaFhMode::DEFINITIONS && enc != 'R') return false;
   
-    FhSecurity* s = NULL;
-
-    switch (enc) {
-	//--------------------------------------------------------------
-    case 'H':  // TradingAction
-	s = processTradingAction<FhSecurity,TradingAction>(m);
-	if (!s) return false;
-	break; 
-	//--------------------------------------------------------------
-    case 'a':  // AddOrderShort
-	s = processAddOrder<FhSecurity,AddOrderShort>(m);
-	if (!s) return false;
-	break;
-	//--------------------------------------------------------------
-    case 'A':  // AddOrderLong
-	s = processAddOrder<FhSecurity,AddOrderLong>(m);
-	if (!s) return false;
-	break;
-	//--------------------------------------------------------------
-    case 'j':  // AddQuoteShort
-	s = processAddQuote<FhSecurity,AddQuoteShort>(m);
-	if (!s) return false;
-	break;
-	//--------------------------------------------------------------
-    case 'J':  // AddQuoteLong
-	s = processAddQuote<FhSecurity,AddQuoteLong>(m);
-	if (!s) return false;
-	break;
-	//--------------------------------------------------------------
-    case 'E':  // OrderExecuted
-	s = processOrderExecuted<FhSecurity,OrderExecuted>(m);
-	if (!s) return false;
-	break;
-	//--------------------------------------------------------------
-    case 'C':  // OrderExecutedPrice
-	s = processOrderExecuted<FhSecurity,OrderExecutedPrice>(m);
-	if (!s) return false;
-	break;
-	//--------------------------------------------------------------
-    case 'X':  // OrderCancel
-	s = processOrderExecuted<FhSecurity,OrderCancel>(m);
-	if (!s) return false;
-	break;
-	//--------------------------------------------------------------
-    case 'u':  // ReplaceOrderShort
-	s = processReplaceOrder<FhSecurity,ReplaceOrderShort>(m);
-	if (!s) return false;
-	break;
-	//--------------------------------------------------------------
-    case 'U':  // ReplaceOrderLong
-	s = processReplaceOrder<FhSecurity,ReplaceOrderLong>(m);
-	if (!s) return false;
-	break;
-	//--------------------------------------------------------------
-    case 'G':  // SingleSideUpdate
-	s = processSingleSideUpdate<FhSecurity,SingleSideUpdate>(m);
-	if (!s) return false;
-	break;
-	//--------------------------------------------------------------
-    case 'k':  // QuoteReplaceShort
-	s = processReplaceQuote<FhSecurity,QuoteReplaceShort>(m);
-	if (!s) return false;
-	break;
-	//--------------------------------------------------------------
-    case 'K':  // QuoteReplaceLong
-	s = processReplaceQuote<FhSecurity,QuoteReplaceLong>(m);
-	if (!s) return false;
-	break;
-	//--------------------------------------------------------------
-    case 'Y':  // QuoteDelete
-	s = processDeleteQuote<FhSecurity,QuoteDelete>(m);
-	if (!s) return false;
-	break;
-	//--------------------------------------------------------------
-    case 'Q':  // Trade
-	s = processTrade<FhSecurity,Trade>(m,sequence,msgTs,pEfhRunCtx);
-	if (!s) return false;
-	break;
-	//--------------------------------------------------------------
-    case 'S':  // SystemEvent
-	// Backed by instrument TradingAction message
-	return false;
-	//--------------------------------------------------------------
-    case 'B':  // BrokenTrade
-	// DO NOTHING
-	return false;
-	//--------------------------------------------------------------
-    case 'I':  // NOII
-	// TO BE IMPLEMENTED!!!
-	return false;
-	//--------------------------------------------------------------
-    case 'M':  // EndOfSnapshot
-	this->seq_after_snapshot = processEndOfSnapshot(m,op);
-	return true;
-	//--------------------------------------------------------------
-    case 'R':  // Directory
-	processDefinition<Directory>(m,pEfhRunCtx);
-	return false;
-    default: 
-	on_error("UNEXPECTED Message type: enc=\'%c\'",enc);
-    }
-
-    if (!s)
-	on_error("Uninitialized Security after message \'%c\'",enc);
-    s->bid_ts = msgTs;
-    s->ask_ts = msgTs;
-
-    if (! book->isEqualState(s)) {
-	book->generateOnQuote (pEfhRunCtx, s,
-			       sequence, msgTs,gapNum);
-    }
+  FhSecurity* s = NULL;
+  uint64_t msgTs = 0;
+  
+  switch (enc) {
+    //--------------------------------------------------------------
+  case 'H':  // TradingAction
+    s = processTradingAction<FhSecurity,TradingAction>(m);
+    if (!s) return false;
+    break; 
+    //--------------------------------------------------------------
+  case 'a':  // AddOrderShort
+    s = processAddOrder<FhSecurity,AddOrderShort>(m);
+    if (!s) return false;
+    break;
+    //--------------------------------------------------------------
+  case 'A':  // AddOrderLong
+    s = processAddOrder<FhSecurity,AddOrderLong>(m);
+    if (!s) return false;
+    break;
+    //--------------------------------------------------------------
+  case 'j':  // AddQuoteShort
+    s = processAddQuote<FhSecurity,AddQuoteShort>(m);
+    if (!s) return false;
+    break;
+    //--------------------------------------------------------------
+  case 'J':  // AddQuoteLong
+    s = processAddQuote<FhSecurity,AddQuoteLong>(m);
+    if (!s) return false;
+    break;
+    //--------------------------------------------------------------
+  case 'E':  // OrderExecuted
+    s = processOrderExecuted<FhSecurity,OrderExecuted>(m);
+    if (!s) return false;
+    break;
+    //--------------------------------------------------------------
+  case 'C':  // OrderExecutedPrice
+    s = processOrderExecuted<FhSecurity,OrderExecutedPrice>(m);
+    if (!s) return false;
+    break;
+    //--------------------------------------------------------------
+  case 'X':  // OrderCancel
+    s = processOrderExecuted<FhSecurity,OrderCancel>(m);
+    if (!s) return false;
+    break;
+    //--------------------------------------------------------------
+  case 'u':  // ReplaceOrderShort
+    s = processReplaceOrder<FhSecurity,ReplaceOrderShort>(m);
+    if (!s) return false;
+    break;
+    //--------------------------------------------------------------
+  case 'U':  // ReplaceOrderLong
+    s = processReplaceOrder<FhSecurity,ReplaceOrderLong>(m);
+    if (!s) return false;
+    break;
+    //--------------------------------------------------------------
+  case 'G':  // SingleSideUpdate
+    s = processSingleSideUpdate<FhSecurity,SingleSideUpdate>(m);
+    if (!s) return false;
+    break;
+    //--------------------------------------------------------------
+  case 'k':  // QuoteReplaceShort
+    s = processReplaceQuote<FhSecurity,QuoteReplaceShort>(m);
+    if (!s) return false;
+    break;
+    //--------------------------------------------------------------
+  case 'K':  // QuoteReplaceLong
+    s = processReplaceQuote<FhSecurity,QuoteReplaceLong>(m);
+    if (!s) return false;
+    break;
+    //--------------------------------------------------------------
+  case 'Y':  // QuoteDelete
+    s = processDeleteQuote<FhSecurity,QuoteDelete>(m);
+    if (!s) return false;
+    break;
+    //--------------------------------------------------------------
+  case 'Q':  // Trade
+    msgTs = be64toh(genericHdr->ts);
+    s = processTrade<FhSecurity,Trade>(m,sequence,msgTs,pEfhRunCtx);
+    if (!s) return false;
+    break;
+    //--------------------------------------------------------------
+  case 'S':  // SystemEvent
+    // Backed by instrument TradingAction message
     return false;
+    //--------------------------------------------------------------
+  case 'B':  // BrokenTrade
+    // DO NOTHING
+    return false;
+    //--------------------------------------------------------------
+  case 'I':  // NOII
+    // TO BE IMPLEMENTED!!!
+    return false;
+    //--------------------------------------------------------------
+  case 'M':  // EndOfSnapshot
+    if (op == EkaFhMode::DEFINITIONS) return true;
+    this->seq_after_snapshot = processEndOfSnapshot(m,op);
+    return true;
+    //--------------------------------------------------------------
+  case 'R':  // Directory
+    if (op == EkaFhMode::SNAPSHOT) return false;
+    processDefinition<Directory>(m,pEfhRunCtx);
+    return false;
+  default: 
+    on_error("UNEXPECTED Message type: enc=\'%c\'",enc);
+  }
+
+  if (!s)
+    on_error("Uninitialized Security after message \'%c\'",enc);
+  msgTs = be64toh(genericHdr->ts);
+
+  s->bid_ts = msgTs;
+  s->ask_ts = msgTs;
+
+  if (! book->isEqualState(s)) {
+    book->generateOnQuote (pEfhRunCtx, s,
+			   sequence, msgTs,gapNum);
+  }
+  return false;
 }
 
 template <class SecurityT, class Msg>
