@@ -3,32 +3,61 @@
 
 #include "EkaFhNasdaqGr.h"
 #include "EkaFhFullBook.h"
+#include "EkaFhNomParser.h"
 
 class EkaFhNomGr : public EkaFhNasdaqGr {
- public:
-  virtual ~EkaFhNomGr() {
+public:
+  static const uint   SCALE          = (const uint) 24;
+  static const uint   SEC_HASH_SCALE = 19;
+
+  using SecurityIdT = uint32_t;
+  using OrderIdT    = uint64_t;
+  using PriceT      = uint32_t;
+  using SizeT       = uint32_t;
+
+  using FhPlevel    = EkaFhPlevel<PriceT, SizeT>;
+  using FhSecurity  = EkaFhFbSecurity<FhPlevel,SecurityIdT,OrderIdT,PriceT,SizeT>;
+  using FhOrder     = EkaFhOrder<FhPlevel,OrderIdT,SizeT>;
+
+  using FhBook      = EkaFhFullBook<
+    SCALE,SEC_HASH_SCALE,
+    FhSecurity,
+    FhPlevel,
+    FhOrder,
+    SecurityIdT, OrderIdT, PriceT, SizeT>;
+
+  FhBook*   book = NULL;
+
+private:
+  using Feed = Nom;
+
+public:
+    virtual ~EkaFhNomGr() {
     if (book) {
       delete book;
-      EKA_DEBUG("%s:%u Book is deleted",EKA_EXCH_DECODE(exch),id);
+      EKA_DEBUG("%s:%u Book is deleted",
+		EKA_EXCH_DECODE(exch),id);
     }
   };
 
-  virtual bool parseMsg(const EfhRunCtx* pEfhRunCtx,
-			const unsigned char* m,
-			uint64_t sequence,
-			EkaFhMode op,
-			std::chrono::high_resolution_clock::time_point startTime={});
+  bool parseMsg(const EfhRunCtx* pEfhRunCtx,
+		const unsigned char* m,
+		uint64_t sequence,
+		EkaFhMode op,
+		std::chrono::high_resolution_clock::time_point
+		startTime={});
 
-  int                  bookInit();
-  int                  invalidateQ();
-  int                  invalidateBook();
+  int bookInit();
+  int invalidateQ();
+  int invalidateBook();
 
-  int                  subscribeStaticSecurity(uint64_t        securityId, 
-					       EfhSecurityType efhSecurityType,
-					       EfhSecUserData  efhSecUserData,
-					       uint64_t        opaqueAttrA,
-					       uint64_t        opaqueAttrB) {
-    if (book == NULL) on_error("%s:%u book == NULL",EKA_EXCH_DECODE(exch),id);
+  int subscribeStaticSecurity(uint64_t securityId, 
+			      EfhSecurityType efhSecurityType,
+			      EfhSecUserData  efhSecUserData,
+			      uint64_t        opaqueAttrA,
+			      uint64_t        opaqueAttrB) {
+    if (!book)
+      on_error("%s:%u !book",EKA_EXCH_DECODE(exch),id);
     book->subscribeSecurity(securityId, 
 			    efhSecurityType,
 			    efhSecUserData,
@@ -39,27 +68,57 @@ class EkaFhNomGr : public EkaFhNasdaqGr {
 
   void print_q_state();
   
-  static const uint   SCALE          = (const uint) 24;
-  static const uint   SEC_HASH_SCALE = 19;
+  
+protected:
+  template <class SecurityT, class Msg>
+  SecurityT* processTradingAction(const unsigned char* m);
+  
+  template <class SecurityT, class Msg>
+  SecurityT* processOptionOpen(const unsigned char* m);
+ 
+  template <class SecurityT, class Msg>
+  SecurityT* processAddOrder(const unsigned char* m);
 
-  using SecurityIdT = uint32_t;
-  using OrderIdT    = uint64_t;
-  using PriceT      = uint32_t;
-  using SizeT       = uint32_t;
+  template <class SecurityT, class Msg>
+  SecurityT* processAddQuote(const unsigned char* m);
+  
+  template <class SecurityT, class Msg>
+  SecurityT* processOrderExecuted(const unsigned char* m);
 
-  using FhPlevel     = EkaFhPlevel      <                                                   PriceT, SizeT>;
-  using FhSecurity   = EkaFhFbSecurity  <EkaFhPlevel<PriceT, SizeT>, SecurityIdT, OrderIdT, PriceT, SizeT>;
-  using FhOrder      = EkaFhOrder       <EkaFhPlevel<PriceT, SizeT>,              OrderIdT,         SizeT>;
+  template <class SecurityT, class Msg>
+  SecurityT* processReplaceOrder(const unsigned char* m);
 
-  using FhBook      = EkaFhFullBook<
-    SCALE,SEC_HASH_SCALE,
-    EkaFhFbSecurity  <EkaFhPlevel<PriceT, SizeT>,SecurityIdT, OrderIdT, PriceT, SizeT>,
-    EkaFhPlevel      <PriceT, SizeT>,
-    EkaFhOrder       <EkaFhPlevel<PriceT, SizeT>,OrderIdT,SizeT>,
-    SecurityIdT, OrderIdT, PriceT, SizeT>;
+  template <class SecurityT, class Msg>
+  SecurityT* processSingleSideUpdate(const unsigned char* m);
 
-  FhBook*   book = NULL;
+  template <class SecurityT, class Msg>
+  SecurityT* processReplaceQuote(const unsigned char* m);
 
+  template <class SecurityT, class Msg>
+  SecurityT* processDeleteQuote(const unsigned char* m);
+
+  template <class SecurityT, class Msg>
+  SecurityT* processTrade(const unsigned char* m,
+			  uint64_t sequence,uint64_t msgTs,
+			  const EfhRunCtx* pEfhRunCtx);
+
+  template <class SecurityT, class Msg>
+  SecurityT* processTradeQ(const unsigned char* m,
+			   uint64_t sequence,uint64_t msgTs,
+			   const EfhRunCtx* pEfhRunCtx);
+  
+  template <class SecurityT, class Msg>
+  SecurityT* processAuctionUpdate(const unsigned char* m,
+				  uint64_t sequence,uint64_t msgTs,
+				  const EfhRunCtx* pEfhRunCtx);  
+  template <class Msg>
+  void processDefinition(const unsigned char* m,
+			 const EfhRunCtx* pEfhRunCtx);
+  
+  template <class Msg>
+  inline uint64_t processEndOfSnapshot(const unsigned char* m,
+				       EkaFhMode op);
+     
 };
 
 #endif
