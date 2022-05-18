@@ -10,10 +10,14 @@
 #include <fcntl.h>
 #include <arpa/inet.h>
 
+#include "EkaFhTypes.h"
 #include "EkaFhNomParser.h"
 #include "eka_macros.h"
 
-using namespace Nom;
+//using namespace Nom;
+#include "EkaFhNasdaqCommonParser.h"
+
+using namespace EfhNasdaqCommon;
 
 
 //###################################################
@@ -123,27 +127,30 @@ int main(int argc, char *argv[]) {
 
 	p += sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr);
 
-	auto msgCnt = EKA_MOLD_MSG_CNT(p);
-	uint64_t sequence = EKA_MOLD_SEQUENCE(p);
-	if (group[grId].expectedSeq != 0 && group[grId].expectedSeq != sequence) {
-	    printf (RED "%d: expectedSeq %ju != sequence %ju\n" RESET,
-		    grId,group[grId].expectedSeq,sequence);
-	}
-	p += sizeof(mold_hdr);
+	/* auto msgCnt = EKA_MOLD_MSG_CNT(p); */
+	/* uint64_t sequence = EKA_MOLD_SEQUENCE(p); */
+	/* if (group[grId].expectedSeq != 0 && group[grId].expectedSeq != sequence) { */
+	/*     printf (RED "%d: expectedSeq %ju != sequence %ju\n" RESET, */
+	/* 	    grId,group[grId].expectedSeq,sequence); */
+	/* } */
+	/* p += sizeof(mold_hdr); */
 
-	for (auto i = 0; i < msgCnt; i++) {
-	    uint16_t msgLen = be16toh(*(uint16_t*)p);
-	    p += sizeof(msgLen);
-	    //-----------------------------------------------------------------------------
-	    uint64_t ts = get_ts(p);
-	    if (printAll)
-	      printMsg(stdout,p,grId,sequence,ts);
-	    sequence++;
-	    //-----------------------------------------------------------------------------
+	/* for (auto i = 0; i < msgCnt; i++) { */
+	/*     uint16_t msgLen = be16toh(*(uint16_t*)p); */
+	/*     p += sizeof(msgLen); */
+	/*     //----------------------------------------------------------------------------- */
+	/*     uint64_t ts = get_ts(p); */
+	/*     if (printAll) */
+	/*       printMsg(stdout,p,grId,sequence,ts); */
+	/*     sequence++; */
+	/*     //----------------------------------------------------------------------------- */
 
-	    p += msgLen;
-	}
-	group[grId].expectedSeq = sequence;
+	/*     p += msgLen; */
+	/* } */
+
+	printPkt<Nom>(stdout,p);
+	
+	//	group[grId].expectedSeq = sequence;
 	
     }
     return 0;

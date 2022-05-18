@@ -31,6 +31,9 @@ public:
   FhBook*   book = NULL;
 
   template <class SecurityT, class Msg>
+  SecurityT* processDeleteOrder(const unsigned char* m);
+
+  template <class SecurityT, class Msg>
   SecurityT* processOrderExecuted(const unsigned char* m);
 
   template <class SecurityT, class Msg>

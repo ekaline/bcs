@@ -44,6 +44,23 @@ template <class SecurityT, class Msg>
 }
 
 template <class SecurityT, class Msg>
+  inline SecurityT* EkaFhNomGr::processDeleteOrder(const unsigned char* m) {
+  SecurityIdT securityId = getInstrumentId<Msg>(m);
+  SecurityT* s = book->findSecurity(securityId);
+  if (!s) return NULL;
+
+  OrderIdT orderId   = getOrderId<Msg>(m);
+  FhOrder* o = book->findOrder(orderId);
+  if (!o) return NULL;
+
+  book->setSecurityPrevState(s);
+
+  book->deleteOrder(o);
+  
+  return s;
+}
+
+template <class SecurityT, class Msg>
     inline SecurityT* EkaFhBxGr::processReplaceOrder(const unsigned char* m) {
   
     SecurityIdT securityId = getInstrumentId<Msg>(m);

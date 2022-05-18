@@ -9,6 +9,7 @@
 #include "eka_macros.h"
 
 class Bx {
+ public:
   struct GenericHdr { // Dummy
     char	  type;        // 1
     uint16_t      trackingNum; // 2 Integer Internal system tracking number
@@ -61,7 +62,12 @@ class Bx {
                            //  ”T” = Continuous Trading
                            //  ”X” = Closed
   } __attribute__((packed));
-  
+
+  struct OptionOpen { // 'O' -- DOES NOT EXIST!!!
+    GenericHdr hdr;        // 9
+
+  } __attribute__((packed));
+
   struct AddOrderShort { // 'a'
     GenericHdr hdr;        // 11
     uint32_t instrumentId; // 4

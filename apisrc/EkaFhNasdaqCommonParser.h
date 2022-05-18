@@ -6,7 +6,33 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "EkaFhTypes.h"
 #include "eka_macros.h"
+
+#define ITTO_NOM_MSG(x)					\
+  x == 'S' ? "SYSTEM_EVENT" :				\
+    x == 'R' ? "DIRECTORY"       :			\
+    x == 'H' ? "TRADING_ACTION"  :			\
+    x == 'O' ? "OPTION_OPEN"     :			\
+    x == 'a' ? "ADD_ORDER_SHORT" :			\
+    x == 'A' ? "ADD_ORDER_LONG"  :			\
+    x == 'j' ? "ADD_QUOTE_SHORT" :			\
+    x == 'J' ? "ADD_QUOTE_LONG"  :			\
+    x == 'E' ? "SINGLE_SIDE_EXEC"  :			\
+    x == 'C' ? "SINGLE_SIDE_EXEC_PRICE"  :		\
+    x == 'u' ? "SINGLE_SIDE_REPLACE_SHORT" :		\
+    x == 'U' ? "SINGLE_SIDE_REPLACE_LONG"  :		\
+    x == 'D' ? "SINGLE_SIDE_DELETE" :			\
+    x == 'G' ? "SINGLE_SIDE_UPDATE" :			\
+    x == 'k' ? "QUOTE_REPLACE_SHORT" :			\
+    x == 'K' ? "QUOTE_REPLACE_LONG" :			\
+    x == 'Y' ? "QUOTE_DELETE"  :			\
+    x == 'P' ? "TRADE"  :				\
+    x == 'Q' ? "CROSS_TRADE"  :				\
+    x == 'B' ? "BROKEN_TRADE"  :			\
+    x == 'I' ? "NOII"  :				\
+    x == 'M' ? "END_OF_SNAPSHOT"  :			\
+    "UNKNOWN"
 
 namespace EfhNasdaqCommon {
   template <class T>
@@ -16,53 +42,56 @@ namespace EfhNasdaqCommon {
   }
 
   template <class T>
-  inline uint32_t getOrderId(const uint8_t* m) {
+  inline uint64_t getOrderId(const uint8_t* m) {
     auto msg {reinterpret_cast <const T*>(m)};
-    return be32toh(msg->orderId);
+    return be64toh(msg->orderId);
   }
   
   template <class T>
-  inline uint32_t getBidOrderId(const uint8_t* m) {
+  inline uint64_t getBidOrderId(const uint8_t* m) {
     auto msg {reinterpret_cast <const T*>(m)};
-    return be32toh(msg->bidOrderId);
+    //    printf("bidOrderId = 0x%016jx\n",msg->bidOrderId);
+    return be64toh(msg->bidOrderId);
   }
   
   template <class T>
-  inline uint32_t getAskOrderId(const uint8_t* m) {
+  inline uint64_t getAskOrderId(const uint8_t* m) {
     auto msg {reinterpret_cast <const T*>(m)};
-    return be32toh(msg->askOrderId);
+    return be64toh(msg->askOrderId);
   }
   
   template <class T>
-  inline uint32_t getOldOrderId(const uint8_t* m) {
+  inline uint64_t getOldOrderId(const uint8_t* m) {
     auto msg {reinterpret_cast <const T*>(m)};
-    return be32toh(msg->oldOrderId);
-  }
-  
-  template <class T> inline uint32_t getNewOrderId(const uint8_t* m) {
-    auto msg {reinterpret_cast <const T*>(m)};
-    return be32toh(msg->newOrderId);
-  }
-  template <class T>
-  inline uint32_t getOldBidOrderId(const uint8_t* m) {
-    auto msg {reinterpret_cast <const T*>(m)};
-    return be32toh(msg->oldBidOrderId);
+    return be64toh(msg->oldOrderId);
   }
   
   template <class T>
-  inline uint32_t getOldAskOrderId(const uint8_t* m) {
+  inline uint64_t getNewOrderId(const uint8_t* m) {
     auto msg {reinterpret_cast <const T*>(m)};
-    return be32toh(msg->oldAskOrderId);
+    return be64toh(msg->newOrderId);
   }
-  template <class T> inline uint32_t getNewBidOrderId(const uint8_t* m) {
+  template <class T>
+  inline uint64_t getOldBidOrderId(const uint8_t* m) {
     auto msg {reinterpret_cast <const T*>(m)};
-    return be32toh(msg->newBidOrderId);
+    return be64toh(msg->oldBidOrderId);
   }
   
   template <class T>
-  inline uint32_t getNewAskOrderId(const uint8_t* m) {
+  inline uint64_t getOldAskOrderId(const uint8_t* m) {
     auto msg {reinterpret_cast <const T*>(m)};
-    return be32toh(msg->newAskOrderId);
+    return be64toh(msg->oldAskOrderId);
+  }
+  template <class T>
+  inline uint64_t getNewBidOrderId(const uint8_t* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return be64toh(msg->newBidOrderId);
+  }
+  
+  template <class T>
+  inline uint64_t getNewAskOrderId(const uint8_t* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return be64toh(msg->newAskOrderId);
   }
   
   inline uint32_t interpretVolume(uint32_t v) {
@@ -215,86 +244,159 @@ namespace EfhNasdaqCommon {
   }
   
 
-  template <class T>
-  inline size_t printGenericMsg(const uint8_t* m) {
-    printf ("\n");
-    return sizeof(T);
+  template <class Msg>
+  inline size_t printGenericMsg(FILE* fd, const uint8_t* m) {
+    fprintf (fd,"\n");
+    return sizeof(Msg);
+  }
+
+   
+  template <class Msg>
+  inline int printAddOrder(FILE* fd, const uint8_t* m) {
+    fprintf(fd,"%u,",getInstrumentId<Msg>(m));
+    fprintf(fd,"%ju,",getOrderId<Msg>(m));
+    fprintf(fd,"\'%c\',",reinterpret_cast<const Msg*>(m)->side);
+    fprintf(fd,"%u,",getPrice<Msg>(m));
+    fprintf(fd,"%u,",getSize<Msg>(m));
+    fprintf (fd,"\n");
+    return sizeof(Msg);
+  }
+
+  template <class Msg>
+  inline int printAddQuote(FILE* fd, const uint8_t* m) {
+    fprintf(fd,"%u,",getInstrumentId<Msg>(m));
+    fprintf(fd,"%ju,",getBidOrderId<Msg>(m));
+    fprintf(fd,"%u,",getBidPrice<Msg>(m));
+    fprintf(fd,"%u,",getBidSize<Msg>(m));
+    fprintf(fd,"%ju,",getAskOrderId<Msg>(m));
+    fprintf(fd,"%u,",getAskPrice<Msg>(m));
+    fprintf(fd,"%u,",getAskSize<Msg>(m));
+    fprintf (fd,"\n");
+    return sizeof(Msg);
+  }
+
+  template <class Msg>
+  inline int printReplaceOrder(FILE* fd, const uint8_t* m) {
+    fprintf(fd,"%ju,",getOldOrderId<Msg>(m));
+    fprintf(fd,"%ju,",getNewOrderId<Msg>(m));
+    fprintf(fd,"%u,",getPrice<Msg>(m));
+    fprintf(fd,"%u,",getSize<Msg>(m));
+    fprintf (fd,"\n");
+    return sizeof(Msg);
+  }
+
+  template <class Msg>
+  inline int printReplaceQuote(FILE* fd, const uint8_t* m) {
+    fprintf(fd,"%ju,",getOldBidOrderId<Msg>(m));
+    fprintf(fd,"%ju,",getNewBidOrderId<Msg>(m));
+    fprintf(fd,"%u,",getBidPrice<Msg>(m));
+    fprintf(fd,"%u,",getBidSize<Msg>(m));
+    fprintf(fd,"%ju,",getOldAskOrderId<Msg>(m));
+    fprintf(fd,"%ju,",getNewAskOrderId<Msg>(m));
+    fprintf(fd,"%u,",getAskPrice<Msg>(m));
+    fprintf(fd,"%u,",getAskSize<Msg>(m));    fprintf (fd,"\n");
+    return sizeof(Msg);
   }
   
-  inline int printMsg(uint64_t sequence, const uint8_t* m) {
-#if 0    
-    auto genericHdr {reinterpret_cast<const GenericHdr*>(m)};
-    char enc = genericHdr->type;
-    uint64_t msgTs = be64toh(genericHdr->ts);
+  template <class Msg>
+  inline int printOrderExecuted(FILE* fd, const uint8_t* m) {
+    fprintf(fd,"%ju,",getOrderId<Msg>(m));
+    fprintf(fd,"%u,",getSize<Msg>(m));
+    fprintf (fd,"\n");
+    return sizeof(Msg);
+  }
+  
+  template <class Msg>
+  inline int printDeleteOrder(FILE* fd, const uint8_t* m) {
+    fprintf(fd,"%ju,",getOrderId<Msg>(m));
+    fprintf (fd,"\n");
+    return sizeof(Msg);
+  }
+  
+  template <class Msg>
+  inline int printSingleSideUpdate(FILE* fd, const uint8_t* m) {
+    fprintf(fd,"%ju,",getOrderId<Msg>(m));
+    fprintf(fd,"%u,",getPrice<Msg>(m));
+    fprintf(fd,"%u,",getSize<Msg>(m));
+    fprintf (fd,"\n");
+    return sizeof(Msg);
+  }
 
-    printf("\t");
-    printf("%s,",ts_ns2str(msgTs).c_str());
-    printf ("%-8ju,",sequence);
+  template <class Msg>
+  inline int printDeleteQuote(FILE* fd, const uint8_t* m) {
+    fprintf(fd,"%ju,",getBidOrderId<Msg>(m));
+    fprintf(fd,"%ju,",getAskOrderId<Msg>(m));
+    fprintf (fd,"\n");
+    //   hexDump("DeleteQuote",m,sizeof(Msg));
+    return sizeof(Msg);
+  }
+  
+  template <class Feed>
+  inline int printMsg(FILE* fd, uint64_t sequence, const uint8_t* m) {
+    auto genericHdr {reinterpret_cast<const typename Feed::GenericHdr*>(m)};
+    char enc = genericHdr->type;
+    uint64_t msgTs = Feed::getTs(m);
+
+    fprintf(fd,"\t");
+    fprintf(fd,"%s,",ts_ns2str(msgTs).c_str());
+    fprintf (fd,"%-8ju,",sequence);
+    fprintf (fd,"\'%c\',",enc);
+    fprintf (fd,"%s,",ITTO_NOM_MSG(enc));
     switch (enc) {
       //--------------------------------------------------------------
     case 'H':  // TradingAction
-      return printGenericMsg<TradingAction>(m);
-      //      return printTradingAction<TradingAction>(m);
+      return printGenericMsg<typename Feed::TradingAction>(fd,m);
+    case 'O':  // OptionOpen -- NOM only
+      return printGenericMsg<typename Feed::OptionOpen>(fd,m);
     case 'a':  // AddOrderShort
-      return printGenericMsg<AddOrderShort>(m);
-      //      return printAddOrder<AddOrderShort>(m);
+      return printAddOrder<typename Feed::AddOrderShort>(fd,m);
     case 'A':  // AddOrderLong
-      return printGenericMsg<AddOrderLong>(m);
-      //      return printAddOrder<AddOrderLong>(m);
+      return printAddOrder<typename Feed::AddOrderLong>(fd,m);
     case 'j':  // AddQuoteShort
-      return printGenericMsg<AddQuoteShort>(m);
-      //      return printAddQuote<AddQuoteShort>(m);
+      return printAddQuote<typename Feed::AddQuoteShort>(fd,m);
     case 'J':  // AddQuoteLong
-      return printGenericMsg<AddQuoteLong>(m);
-      //      return printAddQuote<AddQuoteLong>(m);
+      return printAddQuote<typename Feed::AddQuoteLong>(fd,m);
     case 'E':  // OrderExecuted
-      return printGenericMsg<OrderExecuted>(m);
-      //      return printOrderExecuted<OrderExecuted>(m);
+      return printOrderExecuted<typename Feed::OrderExecuted>(fd,m);
     case 'C':  // OrderExecutedPrice
-      return printGenericMsg<OrderExecutedPrice>(m);
-      //      return printOrderExecuted<OrderExecutedPrice>(m);
+      return printOrderExecuted<typename Feed::OrderExecutedPrice>(fd,m);
     case 'X':  // OrderCancel
-      return printGenericMsg<OrderCancel>(m);
-      //      return printOrderExecuted<OrderCancel>(m);
+      return printOrderExecuted<typename Feed::OrderCancel>(fd,m);
     case 'u':  // ReplaceOrderShort
-      return printGenericMsg<ReplaceOrderShort>(m);
-      //      return printReplaceOrder<ReplaceOrderShort>(m);
+      return printReplaceOrder<typename Feed::ReplaceOrderShort>(fd,m);
     case 'U':  // ReplaceOrderLong
-      return printGenericMsg<ReplaceOrderLong>(m);
-      //      return printReplaceOrder<ReplaceOrderLong>(m);
+      return printReplaceOrder<typename Feed::ReplaceOrderLong>(fd,m);
+    case 'D':  // DeleteOrder
+      return printDeleteOrder<typename Feed::SingleSideDelete>(fd,m);
     case 'G':  // SingleSideUpdate
-      return printGenericMsg<SingleSideUpdate>(m);
-      //      return printSingleSideUpdate<SingleSideUpdate>(m);
+      return printSingleSideUpdate<typename Feed::SingleSideUpdate>(fd,m);
     case 'k':  // QuoteReplaceShort
-      return printGenericMsg<QuoteReplaceShort>(m);
-      //      return printReplaceQuote<QuoteReplaceShort>(m);
+      return printReplaceQuote<typename Feed::QuoteReplaceShort>(fd,m);
     case 'K':  // QuoteReplaceLong
-      return printGenericMsg<QuoteReplaceLong>(m);
-      //      return printReplaceQuote<QuoteReplaceLong>(m);
+      return printReplaceQuote<typename Feed::QuoteReplaceLong>(fd,m);
     case 'Y':  // QuoteDelete
-      return printGenericMsg<QuoteDelete>(m);
-      //      return printDeleteQuote<QuoteDelete>(m);
+      return printDeleteQuote<typename Feed::QuoteDelete>(fd,m);
     case 'Q':  // Trade
-      return printGenericMsg<Trade>(m);
-      //      return printTrade<Trade>(m);
+      return printGenericMsg<typename Feed::Trade>(fd,m);
+      //      return printTrade<typename Feed::Trade>(fd,m);
     case 'S':  // SystemEvent
-      return printGenericMsg<SystemEvent>(m);
+      return printGenericMsg<typename Feed::SystemEvent>(fd,m);
     case 'B':  // BrokenTrade
-      return printGenericMsg<BrokenTrade>(m);
+      return printGenericMsg<typename Feed::BrokenTrade>(fd,m);
     case 'I':  // NOII
-      return printGenericMsg<NOII>(m);
+      return printGenericMsg<typename Feed::NOII>(fd,m);
     case 'M':  // EndOfSnapshot
-      return printGenericMsg<EndOfSnapshot>(m);
+      return printGenericMsg<typename Feed::EndOfSnapshot>(fd,m);
     case 'R':  // Directory
-      return printGenericMsg<Directory>(m);
+      return printGenericMsg<typename Feed::Directory>(fd,m);
     default: 
       on_error("UNEXPECTED Message type: enc=\'%c\'",enc);
     }
-#endif    
     return 0;
   }
-      
-  inline ssize_t printPkt(const uint8_t* pkt) {
+
+  template <class T>
+  inline ssize_t printPkt(FILE* fd, const uint8_t* pkt) {
     auto p {pkt};
     auto moldHdr {reinterpret_cast<const mold_hdr*>(p)};
     auto sequence = be64toh(moldHdr->sequence);
@@ -304,7 +406,7 @@ namespace EfhNasdaqCommon {
       auto msgLenRaw = reinterpret_cast<const uint16_t*>(p);
       auto msgLen = be16toh(*msgLenRaw);
       p += sizeof(*msgLenRaw);
-      auto parsedMsgLen = printMsg(sequence,p);
+      auto parsedMsgLen = printMsg<T>(fd,sequence,p);
       if (parsedMsgLen != msgLen)
 	on_error("parsedMsgLen %d != msgLen %d",parsedMsgLen,msgLen);
       sequence++;

@@ -400,33 +400,4 @@ class Nom {
   }
 }; // Class Nom
 
-#define ITTO_NOM_MSG(x)					\
-  x == 'S' ? "SYSTEM_EVENT" :				\
-    x == 'R' ? "DIRECTORY"       :			\
-    x == 'H' ? "TRADING_ACTION"  :			\
-    x == 'O' ? "OPTION_OPEN"     :			\
-    x == 'a' ? "ADD_ORDER_SHORT" :			\
-    x == 'A' ? "ADD_ORDER_LONG"  :			\
-    x == 'j' ? "ADD_QUOTE_SHORT" :			\
-    x == 'J' ? "ADD_QUOTE_LONG"  :			\
-    x == 'E' ? "SINGLE_SIDE_EXEC"  :			\
-    x == 'C' ? "SINGLE_SIDE_EXEC_PRICE"  :		\
-    x == 'u' ? "SINGLE_SIDE_REPLACE_SHORT" :		\
-    x == 'U' ? "SINGLE_SIDE_REPLACE_LONG"  :		\
-    x == 'D' ? "SINGLE_SIDE_DELETE" :			\
-    x == 'G' ? "SINGLE_SIDE_UPDATE" :			\
-    x == 'k' ? "QUOTE_REPLACE_SHORT" :			\
-    x == 'K' ? "QUOTE_REPLACE_LONG" :			\
-    x == 'Y' ? "QUOTE_DELETE"  :			\
-    x == 'P' ? "TRADE"  :				\
-    x == 'Q' ? "CROSS_TRADE"  :				\
-    x == 'B' ? "BROKEN_TRADE"  :			\
-    x == 'I' ? "NOII"  :				\
-    x == 'M' ? "END_OF_SNAPSHOT"  :			\
-    "UNKNOWN"
-
-#define ITTO_NOM_TRADING_ACTION(x)					\
-  x == 'T' ? EfhTradeStatus::kNormal : EfhTradeStatus::kHalted
-
-
 #endif

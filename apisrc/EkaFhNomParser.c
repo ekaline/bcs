@@ -42,6 +42,11 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   auto start = std::chrono::high_resolution_clock::now();  
 #endif
 
+  if (fh->print_parsed_messages) {
+    printMsg<Feed>(parser_log,sequence,m);
+    fflush(parser_log);
+  }
+  
   auto genericHdr {reinterpret_cast<const Feed::GenericHdr *>(m)};
   char enc = genericHdr->type;
 
@@ -96,6 +101,10 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   case 'U':  // ReplaceOrderLong
     s = processReplaceOrder<FhSecurity,Feed::ReplaceOrderLong>(m);
     break;
+    //--------------------------------------------------------------
+  case 'D':  // SingleSideDelete
+    s = processDeleteOrder<FhSecurity,Feed::SingleSideDelete>(m);
+    break;        
     //--------------------------------------------------------------
   case 'G':  // SingleSideUpdate
     s = processSingleSideUpdate<FhSecurity,Feed::SingleSideUpdate>(m);
@@ -169,8 +178,6 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     book->generateOnQuote (pEfhRunCtx, s,
 			   sequence, msgTs,gapNum);
   }
-  /* if (fh->print_parsed_messages) */
-  /*   printMsg(parser_log,(uint8_t*)m,id,sequence,msgTs); */
 
   /* ##################################################################### */
 
@@ -309,6 +316,21 @@ template <class SecurityT, class Msg>
 }
 
 template <class SecurityT, class Msg>
+  inline SecurityT* EkaFhNomGr::processDeleteOrder(const unsigned char* m) {
+  OrderIdT orderId   = getOrderId<Msg>(m);
+  FhOrder* o = book->findOrder(orderId);
+  if (!o) return NULL;
+
+  SecurityT* s = (FhSecurity*)o->plevel->s;
+
+  book->setSecurityPrevState(s);
+
+  book->deleteOrder(o);
+  
+  return s;
+}
+
+template <class SecurityT, class Msg>
   inline SecurityT* EkaFhNomGr::processReplaceOrder(const unsigned char* m) {
 
   OrderIdT oldOrderId   = getOldOrderId  <Msg>(m);
@@ -386,10 +408,14 @@ template <class SecurityT, class Msg>
 
   if (!bid_o && !ask_o) return NULL;
   SecurityT* s = NULL;
-    
+
+  if (bid_o)
+    s = (FhSecurity*)bid_o->plevel->s;
+  if (ask_o)
+    s = (FhSecurity*)ask_o->plevel->s;
+  
   book->setSecurityPrevState(s);
   if (bid_o) {
-    s = (FhSecurity*)bid_o->plevel->s;
     FhOrderType t          = bid_o->type;
     OrderIdT newBidOrderId = getNewBidOrderId<Msg>(m);
     SizeT    bidSize       = getBidSize   <Msg>(m);
@@ -398,8 +424,7 @@ template <class SecurityT, class Msg>
     book->deleteOrder(bid_o);
     book->addOrder(s,newBidOrderId,t,bidPrice,bidSize,SideT::BID);
   }
-  if (ask_o) {
-    s = (FhSecurity*)ask_o->plevel->s;
+  if (ask_o) {    
     FhOrderType t          = ask_o->type;
     OrderIdT newAskOrderId = getNewAskOrderId<Msg>(m);
     SizeT    askSize       = getAskSize   <Msg>(m);

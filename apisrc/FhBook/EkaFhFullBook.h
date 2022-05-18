@@ -227,7 +227,8 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
   inline int deleteOrder(FhOrder* o) {
     if (o == NULL) test_error("o == NULL for GR%u",grId);
     FhPlevel* p = o->plevel;
-    if (p == NULL) on_error("p == NULL");
+    if (p == NULL)
+      on_error("p == NULL for orderId %ju",(uint64_t)o->orderId);
   
     /* TEST_LOG("%ju: price = %u, plevel->cnt = %u", */
     /* 	     o->orderId, p->price,p->cnt); */

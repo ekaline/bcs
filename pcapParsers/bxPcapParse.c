@@ -10,10 +10,14 @@
 #include <fcntl.h>
 #include <arpa/inet.h>
 
+#include "EkaFhTypes.h"
 #include "EkaFhBxParser.h"
 #include "eka_macros.h"
 
-using namespace Bx;
+//using namespace Nom;
+#include "EkaFhNasdaqCommonParser.h"
+
+using namespace EfhNasdaqCommon;
 
 
 //###################################################
@@ -28,16 +32,15 @@ struct GroupAddr {
 };
 
 static GroupAddr group[] = {
-    // A side
-    {inet_addr("233.54.12.52"),  18000, 0, 0},
-    {inet_addr("233.54.12.53"),  18001, 0, 0},
-    {inet_addr("233.54.12.54"),  18002, 0, 0},
-    {inet_addr("233.54.12.55"),  18003, 0, 0},
-    // B side
+    {inet_addr("233.54.12.72"), 18000, 0, 0},
+    {inet_addr("233.54.12.73"), 18001, 0, 0},
+    {inet_addr("233.54.12.74"), 18002, 0, 0},
+    {inet_addr("233.54.12.75"), 18003, 0, 0},
     {inet_addr("233.49.196.72"), 18000, 0, 0},
     {inet_addr("233.49.196.73"), 18001, 0, 0},
     {inet_addr("233.49.196.74"), 18002, 0, 0},
     {inet_addr("233.49.196.75"), 18003, 0, 0},
+   
 };
 
 
@@ -118,17 +121,37 @@ int main(int argc, char *argv[]) {
 
 	auto p {reinterpret_cast<const uint8_t*>(pkt)};
 	if (! EKA_IS_UDP_PKT(p)) continue;
-
-	uint32_t ip = EKA_IPH_DST(p);
-	uint16_t port = EKA_UDPH_DST(p);
-	auto grId = findGrp(ip,port);
+	
+	auto grId = findGrp(EKA_IPH_DST(p),EKA_UDPH_DST(p));
 	if (grId < 0) continue;
 
 	p += sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr);
 
-	printf ("%d: %s:%u, %ju,",grId,EKA_IP2STR(ip),port,pktNum);
-	printPkt(p);
+	/* auto msgCnt = EKA_MOLD_MSG_CNT(p); */
+	/* uint64_t sequence = EKA_MOLD_SEQUENCE(p); */
+	/* if (group[grId].expectedSeq != 0 && group[grId].expectedSeq != sequence) { */
+	/*     printf (RED "%d: expectedSeq %ju != sequence %ju\n" RESET, */
+	/* 	    grId,group[grId].expectedSeq,sequence); */
+	/* } */
+	/* p += sizeof(mold_hdr); */
 
+	/* for (auto i = 0; i < msgCnt; i++) { */
+	/*     uint16_t msgLen = be16toh(*(uint16_t*)p); */
+	/*     p += sizeof(msgLen); */
+	/*     //----------------------------------------------------------------------------- */
+	/*     uint64_t ts = get_ts(p); */
+	/*     if (printAll) */
+	/*       printMsg(stdout,p,grId,sequence,ts); */
+	/*     sequence++; */
+	/*     //----------------------------------------------------------------------------- */
+
+	/*     p += msgLen; */
+	/* } */
+
+	printPkt<Bx>(stdout,p);
+	
+	//	group[grId].expectedSeq = sequence;
+	
     }
     return 0;
 }

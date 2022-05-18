@@ -89,6 +89,9 @@ protected:
   SecurityT* processReplaceOrder(const unsigned char* m);
 
   template <class SecurityT, class Msg>
+  SecurityT* processDeleteOrder(const unsigned char* m);
+
+  template <class SecurityT, class Msg>
   SecurityT* processSingleSideUpdate(const unsigned char* m);
 
   template <class SecurityT, class Msg>
