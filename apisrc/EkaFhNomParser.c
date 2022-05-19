@@ -17,19 +17,6 @@
 using namespace EfhNasdaqCommon;
 
 /* ####################################################### */
-inline SideT sideDecode(char _side) {
-  switch (_side) {
-  case 'B' :
-    return SideT::BID;
-  case 'S' :
-    return SideT::ASK;
-  default:
-    on_error("Unexpected Side \'%c\'",_side);
-  }
-}
-
-
-/* ####################################################### */
 
 bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 			  const unsigned char* m,
@@ -43,13 +30,15 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 #endif
 
   if (fh->print_parsed_messages) {
-    printMsg<Feed>(parser_log,sequence,m);
+    printMsg<NomFeed>(parser_log,sequence,m);
     fflush(parser_log);
   }
   
-  auto genericHdr {reinterpret_cast<const Feed::GenericHdr *>(m)};
+  auto genericHdr {reinterpret_cast<const NomFeed::GenericHdr *>(m)};
   char enc = genericHdr->type;
 
+  if (sizeof(*genericHdr) != 9) on_error("sizeof(*genericHdr) = %ju",sizeof(*genericHdr));
+  
   if (op == EkaFhMode::DEFINITIONS && enc != 'R')
     return false;
   
@@ -59,78 +48,76 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   switch (enc) {
     //--------------------------------------------------------------
   case 'H':  // TradingAction
-    s = processTradingAction<FhSecurity,Feed::TradingAction>(m);
+    s = processTradingAction<FhSecurity,NomFeed::TradingAction>(m);
     break; 
     //--------------------------------------------------------------
   case 'O':  // OptionOpen -- NOM only
-    s = processOptionOpen<FhSecurity,Feed::OptionOpen>(m);
+    s = processOptionOpen<FhSecurity,NomFeed::OptionOpen>(m);
     break; 
     //--------------------------------------------------------------
   case 'a':  // AddOrderShort
-    s = processAddOrder<FhSecurity,Feed::AddOrderShort>(m);
+    s = processAddOrder<FhSecurity,NomFeed::AddOrderShort>(m);
     break;
     //--------------------------------------------------------------
   case 'A':  // AddOrderLong
-    s = processAddOrder<FhSecurity,Feed::AddOrderLong>(m);
+    s = processAddOrder<FhSecurity,NomFeed::AddOrderLong>(m);
     break;
     //--------------------------------------------------------------
   case 'j':  // AddQuoteShort
-    s = processAddQuote<FhSecurity,Feed::AddQuoteShort>(m);
+    s = processAddQuote<FhSecurity,NomFeed::AddQuoteShort>(m);
     break;
     //--------------------------------------------------------------
   case 'J':  // AddQuoteLong
-    s = processAddQuote<FhSecurity,Feed::AddQuoteLong>(m);
+    s = processAddQuote<FhSecurity,NomFeed::AddQuoteLong>(m);
     break;
     //--------------------------------------------------------------
   case 'E':  // OrderExecuted
-    s = processOrderExecuted<FhSecurity,Feed::OrderExecuted>(m);
+    s = processOrderExecuted<FhSecurity,NomFeed::OrderExecuted>(m);
     break;
     //--------------------------------------------------------------
   case 'C':  // OrderExecutedPrice
-    s = processOrderExecuted<FhSecurity,Feed::OrderExecutedPrice>(m);
+    s = processOrderExecuted<FhSecurity,NomFeed::OrderExecutedPrice>(m);
     break;
     //--------------------------------------------------------------
   case 'X':  // OrderCancel
-    s = processOrderExecuted<FhSecurity,Feed::OrderCancel>(m);
+    s = processOrderExecuted<FhSecurity,NomFeed::OrderCancel>(m);
     break;
     //--------------------------------------------------------------
   case 'u':  // ReplaceOrderShort
-    s = processReplaceOrder<FhSecurity,Feed::ReplaceOrderShort>(m);
+    s = processReplaceOrder<FhSecurity,NomFeed::ReplaceOrderShort>(m);
     break;
     //--------------------------------------------------------------
   case 'U':  // ReplaceOrderLong
-    s = processReplaceOrder<FhSecurity,Feed::ReplaceOrderLong>(m);
+    s = processReplaceOrder<FhSecurity,NomFeed::ReplaceOrderLong>(m);
     break;
     //--------------------------------------------------------------
   case 'D':  // SingleSideDelete
-    s = processDeleteOrder<FhSecurity,Feed::SingleSideDelete>(m);
+    s = processDeleteOrder<FhSecurity,NomFeed::SingleSideDelete>(m);
     break;        
     //--------------------------------------------------------------
   case 'G':  // SingleSideUpdate
-    s = processSingleSideUpdate<FhSecurity,Feed::SingleSideUpdate>(m);
+    s = processSingleSideUpdate<FhSecurity,NomFeed::SingleSideUpdate>(m);
     break;
     //--------------------------------------------------------------
   case 'k':  // QuoteReplaceShort
-    s = processReplaceQuote<FhSecurity,Feed::QuoteReplaceShort>(m);
+    s = processReplaceQuote<FhSecurity,NomFeed::QuoteReplaceShort>(m);
     break;
     //--------------------------------------------------------------
   case 'K':  // QuoteReplaceLong
-    s = processReplaceQuote<FhSecurity,Feed::QuoteReplaceLong>(m);
+    s = processReplaceQuote<FhSecurity,NomFeed::QuoteReplaceLong>(m);
     break;
     //--------------------------------------------------------------
   case 'Y':  // QuoteDelete
-    s = processDeleteQuote<FhSecurity,Feed::QuoteDelete>(m);
+    s = processDeleteQuote<FhSecurity,NomFeed::QuoteDelete>(m);
     break;
     //--------------------------------------------------------------
-  case 'Q':  // Trade for BX
-    msgTs = Feed::getTs(m);
-    s = processTradeQ<FhSecurity,Feed::Trade>(m,sequence,
-					      msgTs,pEfhRunCtx);
-    break;
+  case 'Q':  // Cross Trade
+    // DO NOTHING
+    return false;
     //--------------------------------------------------------------
   case 'P':  // Trade for NOM
-    msgTs = Feed::getTs(m);
-    s = processTrade<FhSecurity,Feed::Trade>(m,sequence,
+    msgTs = NomFeed::getTs(m);
+    s = processTrade<FhSecurity,NomFeed::Trade>(m,sequence,
 					     msgTs,pEfhRunCtx);
     break;
     //--------------------------------------------------------------
@@ -148,19 +135,19 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     //--------------------------------------------------------------
   case 'M':  // EndOfSnapshot
     if (op == EkaFhMode::DEFINITIONS) return true;
-    this->seq_after_snapshot = processEndOfSnapshot<Feed::EndOfSnapshot>(m,op);
+    this->seq_after_snapshot = processEndOfSnapshot<NomFeed::EndOfSnapshot>(m,op);
     return true;
     //--------------------------------------------------------------
   case 'R':  // Directory
     if (op == EkaFhMode::SNAPSHOT) return false;
-    processDefinition<Feed::Directory>(m,pEfhRunCtx);
+    processDefinition<NomFeed::Directory>(m,pEfhRunCtx);
     return false;
   default: 
     on_error("UNEXPECTED Message type: enc=\'%c\'",enc);
   }
   if (!s) return false;
 
-  msgTs = Feed::getTs(m);
+  msgTs = NomFeed::getTs(m);
 
   s->bid_ts = msgTs;
   s->ask_ts = msgTs;
@@ -492,15 +479,6 @@ template <class SecurityT, class Msg>
 }
 
 template <class SecurityT, class Msg>
-  inline SecurityT* EkaFhNomGr::processTradeQ(const unsigned char* m,
-					      uint64_t sequence,
-					      uint64_t msgTs,
-					      const EfhRunCtx* pEfhRunCtx) {
-  // Ignoring Auction Cross trade for NOM
-  return NULL;
-}
-
-template <class SecurityT, class Msg>
   inline SecurityT* EkaFhNomGr::processAuctionUpdate(const unsigned char* m,
 						     uint64_t sequence,
 						     uint64_t msgTs,
@@ -551,14 +529,6 @@ inline uint64_t EkaFhNomGr::processEndOfSnapshot(const unsigned char* m,
   return (op == EkaFhMode::SNAPSHOT) ? num : 0;
 }
 
-inline EfhOptionType decodeOptionType(char c) {
-  switch (c) {
-  case 'C' : return EfhOptionType::kCall;
-  case 'P' : return EfhOptionType::kPut;
-  default :
-    on_error("Unexpected Option Type \'%c\'",c);
-  }
-}
 
 template <class Msg>
 inline void EkaFhNomGr::processDefinition(const unsigned char* m,
@@ -616,210 +586,3 @@ static void print_sec_state(fh_b_security* s) {
 #endif
 
 
-
-
-
-/* static void eka_print_nom_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t sequence) { */
-/*   fprintf (md_file,"GR%d,%s,SN:%ju,%3s(%c),",gr,(ts_ns2str(get_ts(m))).c_str(),sequence,ITTO_NOM_MSG((char)m[0]),(char)m[0]); */
-/*   switch ((char)m[0]) { */
-/*   case 'R': //ITTO_TYPE_OPTION_DIRECTORY  */
-/*     break; */
-/*   case 'M': // END OF SNAPSHOT */
-/*     break; */
-/*   case 'a': { //NOM_ADD_ORDER_SHORT */
-/*     struct itto_add_order_short *message = (struct itto_add_order_short *)m; */
-/*     fprintf (md_file,"SID:%16u,OID:%16ju,%c,P:%8u,S:%8u", */
-/* 	    be32toh (message->option_id), */
-/* 	    be64toh (message->order_reference_delta), */
-/* 	    (char)             (message->side), */
-/* 	    (uint32_t) be16toh (message->price) * 100 / EFH_NOM_PRICE_SCALE, */
-/* 	    (uint32_t) be16toh (message->size) */
-/* 	    ); */
-/*     break; */
-/*   } */
-/*     //-------------------------------------------------------------- */
-/*   case 'A' : { //NOM_ADD_ORDER_LONG */
-/*     struct itto_add_order_long *message = (struct itto_add_order_long *)m; */
-/*     fprintf (md_file,"SID:%16u,OID:%16ju,%c,P:%8u,S:%8u", */
-/* 	    be32toh (message->option_id), */
-/* 	    be64toh (message->order_reference_delta), */
-/* 	    (char)             (message->side), */
-/* 	    be32toh (message->price) / EFH_NOM_PRICE_SCALE, */
-/* 	    be32toh (message->size) */
-/* 	    ); */
-/*     break; */
-/*   } */
-/*   case 'S': //NOM_SYSTEM_EVENT */
-/*     break; */
-/*   case 'L': //NOM_BASE_REF -- do nothing         */
-/*     break; */
-/*   case 'H': { //NOM_TRADING_ACTION  */
-/*     struct itto_trading_action *message = (struct itto_trading_action *)m; */
-/*     fprintf (md_file,"SID:%16u,TS:%c",be32toh(message->option_id),message->trading_state); */
-/*     break; */
-/*   } */
-/*   case 'O': { //NOM_OPTION_OPEN  */
-/*     struct itto_option_open *message = (struct itto_option_open *)m; */
-/*     fprintf (md_file,"SID:%16u,OS:%c",be32toh(message->option_id),message->open_state); */
-/*     break; */
-/*   } */
-/*     //-------------------------------------------------------------- */
-/*   case 'J': {  //NOM_ADD_QUOTE_LONG */
-/*     struct itto_add_quote_long *message = (struct itto_add_quote_long *)m; */
-
-/*     fprintf (md_file,"SID:%16u,BOID:%16ju,BP:%8u,BS:%8u,AOID:%16ju,AP:%8u,AS:%8u", */
-/* 	    be32toh (message->option_id), */
-/* 	    be64toh (message->bid_reference_delta), */
-/* 	    be32toh (message->bid_price) / EFH_NOM_PRICE_SCALE, */
-/* 	    be32toh (message->bid_size), */
-/* 	    be64toh (message->ask_reference_delta), */
-/* 	    be32toh (message->ask_price) / EFH_NOM_PRICE_SCALE, */
-/* 	    be32toh (message->ask_size) */
-/* 	    ); */
-/*     break; */
-/*   } */
-/*   case 'j': { //NOM_ADD_QUOTE_SHORT */
-/*     struct itto_add_quote_short *message = (struct itto_add_quote_short *)m; */
-    
-/*     fprintf (md_file,"SID:%16u,BOID:%16ju,BP:%8u,BS:%8u,AOID:%16ju,AP:%8u,AS:%8u", */
-/* 	    be32toh (message->option_id), */
-/* 	    be64toh (message->bid_reference_delta), */
-/* 	    (uint32_t) be16toh (message->bid_price) / EFH_NOM_PRICE_SCALE, */
-/* 	    (uint32_t) be16toh (message->bid_size), */
-/* 	    be64toh (message->ask_reference_delta), */
-/* 	    (uint32_t) be16toh (message->ask_price) / EFH_NOM_PRICE_SCALE, */
-/* 	    (uint32_t) be16toh (message->ask_size) */
-/* 	    ); */
-
-/*     break; */
-/*   } */
-
-/*   case 'E':  { //NOM_SINGLE_SIDE_EXEC */
-/*     struct itto_executed *message = (struct itto_executed *)m; */
-/*     fprintf (md_file,"OID:%16ju,S:%8u",be64toh(message->order_reference_delta),be32toh(message->executed_contracts)); */
-
-/*     break; */
-/*   } */
-/*     //-------------------------------------------------------------- */
-/*   case 'C': { //NOM_SINGLE_SIDE_EXEC_PRICE */
-/*     struct itto_executed_price *message = (struct itto_executed_price *)m; */
-/*     fprintf (md_file,"OID:%16ju,S:%8u",be64toh(message->order_reference_delta),be32toh(message->size)); */
-
-/*     break; */
-/*   } */
-
-/*     //-------------------------------------------------------------- */
-/*   case 'X': { //NOM_ORDER_CANCEL */
-/*     struct itto_order_cancel *message = (struct itto_order_cancel *)m; */
-/*     fprintf (md_file,"OID:%16ju,S:%8u",be64toh(message->order_reference_delta),be32toh(message->cancelled_orders)); */
-
-/*     break; */
-/*   } */
-/*     //-------------------------------------------------------------- */
-/*   case 'u': {  //NOM_SINGLE_SIDE_REPLACE_SHORT */
-/*     struct itto_message_replace_short *message = (struct itto_message_replace_short *)m; */
-/*     fprintf (md_file,"OOID:%16ju,NOID:%16ju,P:%8u,S:%8u", */
-/* 	    be64toh (message->original_reference_delta), */
-/* 	    be64toh (message->new_reference_delta), */
-/* 	    (uint32_t) be16toh (message->price) * 100 / EFH_NOM_PRICE_SCALE */
-/* 	    (uint32_t) be16toh (message->size) */
-/* 	    ); */
-/*     break; */
-/*   } */
-/*     //-------------------------------------------------------------- */
-/*   case 'U': { //NOM_SINGLE_SIDE_REPLACE_LONG */
-/*     struct itto_message_replace_long *message = (struct itto_message_replace_long *)m; */
-/*     fprintf (md_file,"OOID:%16ju,NOID:%16ju,P:%8u,S:%8u", */
-/* 	    be64toh (message->original_reference_delta), */
-/* 	    be64toh (message->new_reference_delta), */
-/* 	    be32toh (message->price) / EFH_NOM_PRICE_SCALE */
-/* 	    be32toh (message->size) */
-/* 	    ); */
-/*     break; */
-/*   } */
-/*     //-------------------------------------------------------------- */
-/*   case 'D': { //NOM_SINGLE_SIDE_DELETE  */
-/*     struct itto_message_delete *message = (struct itto_message_delete *)m; */
-/*     fprintf (md_file,"OID:%16ju",be64toh(message->reference_delta)); */
-
-/*     break; */
-/*   } */
-/*     //-------------------------------------------------------------- */
-/*   case 'G': { //NOM_SINGLE_SIDE_UPDATE */
-/*     struct itto_message_update *message = (struct itto_message_update *)m; */
-/*     fprintf (md_file,"OID:%16ju,P:%8u,S:%8u", */
-/* 	    be64toh (message->reference_delta), */
-/* 	    be32toh (message->price) / EFH_NOM_PRICE_SCALE */
-/* 	    be32toh (message->size) */
-/* 	    ); */
-
-/*     break; */
-/*   } */
-/*     //-------------------------------------------------------------- */
-/*   case 'k':   {//NOM_QUOTE_REPLACE_SHORT */
-/*     struct itto_quote_replace_short *message = (struct itto_quote_replace_short *)m; */
-/*     fprintf (md_file,"OBOID:%16ju,NBOID:%16ju,BP:%8u,BS:%8u,OAOID:%16ju,NAOID:%16ju,AP:%8u,AS:%8u", */
-/* 	    be64toh (message->original_bid_delta), */
-/* 	    be64toh(message->new_bid_delta), */
-/* 	    (uint32_t) be16toh (message->bid_price) / EFH_NOM_PRICE_SCALE */
-/* 	    (uint32_t) be16toh (message->bid_size), */
-
-/* 	    be64toh(message->original_ask_delta), */
-/* 	    be64toh(message->new_ask_delta), */
-/* 	    (uint32_t) be16toh(message->ask_price) * 100 / EFH_NOM_PRICE_SCALE */
-/* 	    (uint32_t) be16toh(message->ask_size) */
-/* 	    ); */
-
-/*     break; */
-/*   } */
-/*     //-------------------------------------------------------------- */
-/*   case 'K': { //NOM_QUOTE_REPLACE_LONG */
-/*     struct itto_quote_replace_long *message = (struct itto_quote_replace_long *)m; */
-/*     fprintf (md_file,"OBOID:%16ju,NBOID:%16ju,BP:%8u,BS:%8u,OAOID:%16ju,NAOID:%16ju,AP:%8u,AS:%8u", */
-/* 	    be64toh (message->original_bid_delta), */
-/* 	    be64toh (message->new_bid_delta), */
-/* 	    be32toh (message->bid_price) * 100 / EFH_NOM_PRICE_SCALE */
-/* 	    be32toh (message->bid_size), */
-
-/* 	    be64toh (message->original_ask_delta), */
-/* 	    be64toh (message->new_ask_delta), */
-/* 	    be32toh (message->ask_price) / EFH_NOM_PRICE_SCALE */
-/* 	    be32toh (message->ask_size) */
-/* 	    ); */
-/*     break; */
-/*   } */
-/*     //-------------------------------------------------------------- */
-
-/*   case 'Y': { //NOM_QUOTE_DELETE  */
-/*     struct itto_quote_delete *message = (struct itto_quote_delete *)m; */
-/*     fprintf (md_file,"BOID:%16ju,AOID:%16ju",be64toh(message->bid_delta),be64toh(message->ask_delta)); */
-
-/*     break; */
-/*   } */
-/*     //-------------------------------------------------------------- */
-
-/*   case 'P': { //NOM_OPTIONS_TRADE */
-/*     struct itto_options_trade *message = (struct itto_options_trade *)m; */
-/*     fprintf (md_file,"SID:%16u",be32toh(message->option_id)); */
-/*     break; */
-/*   } */
-/*     //-------------------------------------------------------------- */
-/*   case 'Q': { //NOM_CROSS_TRADE */
-/*     break; */
-/*   } */
-/*     //-------------------------------------------------------------- */
-/*   case 'B': { //NOM_BROKEN_EXEC */
-/*     break; */
-/*   } */
-/*     //-------------------------------------------------------------- */
-/*   case 'I': { //NOM_NOII */
-/*     break; */
-/*   } */
-/*   default:  */
-/*     on_error("UNEXPECTED Message type: enc=\'%c\'",(char)m[0]); */
-/*   } */
-/*   fprintf (md_file,"\n"); */
-/*   fflush(md_file); */
-/*   return; */
-
-/* } */

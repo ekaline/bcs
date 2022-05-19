@@ -8,6 +8,13 @@ class EkaFhBxGr : public EkaFhNomGr {
 public:
   virtual ~EkaFhBxGr() {}
 
+  bool parseMsg(const EfhRunCtx* pEfhRunCtx,
+		const unsigned char* m,
+		uint64_t sequence,
+		EkaFhMode op,
+		std::chrono::high_resolution_clock::time_point
+		startTime={});
+  
 public:
   static const uint   SCALE          = (const uint) 24;
   static const uint   SEC_HASH_SCALE = 19;
@@ -30,6 +37,16 @@ public:
 
   FhBook*   book = NULL;
 
+
+  template <class SecurityT, class Msg>
+  SecurityT* processTradingAction(const unsigned char* m);
+
+  template <class SecurityT, class Msg>
+  SecurityT* processAddOrder(const unsigned char* m);
+
+  template <class SecurityT, class Msg>
+  SecurityT* processAddQuote(const unsigned char* m);
+  
   template <class SecurityT, class Msg>
   SecurityT* processDeleteOrder(const unsigned char* m);
 
@@ -49,12 +66,21 @@ public:
   SecurityT* processDeleteQuote(const unsigned char* m);
 
   template <class SecurityT, class Msg>
-  SecurityT* processTradeQ(const unsigned char* m,
+  SecurityT* processTrade(const unsigned char* m,
 			  uint64_t sequence,uint64_t msgTs,
 			  const EfhRunCtx* pEfhRunCtx);
 
-private:
-  using Feed = Bx;
+  template <class SecurityT, class Msg>
+  SecurityT* processAuctionUpdate(const unsigned char* m,
+				  uint64_t sequence,uint64_t msgTs,
+				  const EfhRunCtx* pEfhRunCtx);  
+  template <class Msg>
+  void processDefinition(const unsigned char* m,
+			 const EfhRunCtx* pEfhRunCtx);
   
+  template <class Msg>
+  uint64_t processEndOfSnapshot(const unsigned char* m,
+				EkaFhMode op);
+     
 };
 #endif

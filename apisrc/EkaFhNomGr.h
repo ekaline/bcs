@@ -28,11 +28,8 @@ public:
 
   FhBook*   book = NULL;
 
-private:
-  using Feed = Nom;
-
 public:
-    virtual ~EkaFhNomGr() {
+  virtual ~EkaFhNomGr() {
     if (book) {
       delete book;
       EKA_DEBUG("%s:%u Book is deleted",
@@ -106,11 +103,6 @@ protected:
 			  const EfhRunCtx* pEfhRunCtx);
 
   template <class SecurityT, class Msg>
-  SecurityT* processTradeQ(const unsigned char* m,
-			   uint64_t sequence,uint64_t msgTs,
-			   const EfhRunCtx* pEfhRunCtx);
-  
-  template <class SecurityT, class Msg>
   SecurityT* processAuctionUpdate(const unsigned char* m,
 				  uint64_t sequence,uint64_t msgTs,
 				  const EfhRunCtx* pEfhRunCtx);  
@@ -119,8 +111,8 @@ protected:
 			 const EfhRunCtx* pEfhRunCtx);
   
   template <class Msg>
-  inline uint64_t processEndOfSnapshot(const unsigned char* m,
-				       EkaFhMode op);
+  uint64_t processEndOfSnapshot(const unsigned char* m,
+				EkaFhMode op);
      
 };
 

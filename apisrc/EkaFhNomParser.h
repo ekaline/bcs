@@ -13,7 +13,7 @@
 
 #define EKA_NOM_TS(x) (be64toh(*(uint64_t*)(x+1) & 0xffffffffffff0000))
 
-class Nom {
+class NomFeed {
  public:
   struct GenericHdr { // Dummy
     char	  type;            // 1

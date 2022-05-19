@@ -192,6 +192,15 @@ namespace EfhNasdaqCommon {
     }
   }
 
+  inline EfhOptionType decodeOptionType(char c) {
+    switch (c) {
+    case 'C' : return EfhOptionType::kCall;
+    case 'P' : return EfhOptionType::kPut;
+    default :
+      on_error("Unexpected Option Type \'%c\'",c);
+    }
+  }
+
   template <class T>
   inline uint32_t getAuctionId(const uint8_t* m) {
     auto msg {reinterpret_cast <const T*>(m)};

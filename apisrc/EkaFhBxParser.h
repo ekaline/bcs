@@ -8,7 +8,7 @@
 
 #include "eka_macros.h"
 
-class Bx {
+class BxFeed {
  public:
   struct GenericHdr { // Dummy
     char	  type;        // 1

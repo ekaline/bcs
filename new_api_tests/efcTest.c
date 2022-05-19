@@ -67,19 +67,19 @@ static const uint64_t FireEntryHeapSize = 256;
 struct NomAddOrderShortPkt {
   mold_hdr             mold;
   uint16_t             msgLen;
-  Nom::AddOrderShort addOrderShort;
+  NomFeed::AddOrderShort addOrderShort;
 };
 struct NomAddOrderLongPkt {
   mold_hdr            mold;
   uint16_t            msgLen;
-  Nom::AddOrderLong addOrderLong;
+  NomFeed::AddOrderLong addOrderLong;
 };
 struct NomAddOrderShortLongPkt {
   mold_hdr            mold;
   uint16_t            msgLenShort;
-  Nom::AddOrderShort addOrderShort;
+  NomFeed::AddOrderShort addOrderShort;
   uint16_t            msgLenLong;
-  Nom::AddOrderLong addOrderLong;
+  NomFeed::AddOrderLong addOrderLong;
 };
 /* --------------------------------------------- */
 
@@ -578,7 +578,7 @@ int main(int argc, char *argv[]) {
       .sequence    = be64toh(123),
       .message_cnt = be16toh(1)
     },
-    .msgLen = be16toh(sizeof(Nom::AddOrderShort)),
+    .msgLen = be16toh(sizeof(NomFeed::AddOrderShort)),
     .addOrderShort = {
 	  .hdr= {
 	      .type                  = 'a',
@@ -663,7 +663,7 @@ int main(int argc, char *argv[]) {
       .sequence    = be64toh(124),
       .message_cnt = be16toh(1)
     },
-    .msgLen = be16toh(sizeof(Nom::AddOrderLong)),
+    .msgLen = be16toh(sizeof(NomFeed::AddOrderLong)),
     .addOrderLong = {
 	  .hdr = {
 	      .type                  = 'A',
@@ -720,7 +720,7 @@ int main(int argc, char *argv[]) {
 	  .sequence    = be64toh(125),
 	  .message_cnt = be16toh(2)
       },
-      .msgLenShort = be16toh(sizeof(Nom::AddOrderShort)),
+      .msgLenShort = be16toh(sizeof(NomFeed::AddOrderShort)),
       .addOrderShort = {
 	  .hdr = {
 	      .type                 = 'a',
@@ -733,7 +733,7 @@ int main(int argc, char *argv[]) {
 	  .price                    = be16toh(secCtx.askMaxPrice - 1),
 	  .volume                   = be16toh(secCtx.size)
       },
-      .msgLenLong = be16toh(sizeof(Nom::AddOrderLong)),
+      .msgLenLong = be16toh(sizeof(NomFeed::AddOrderLong)),
       .addOrderLong = {
 	  .hdr = {
 	      .type                 = 'A',
