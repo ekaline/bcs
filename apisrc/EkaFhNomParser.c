@@ -37,7 +37,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   auto genericHdr {reinterpret_cast<const NomFeed::GenericHdr *>(m)};
   char enc = genericHdr->type;
 
-  if (sizeof(*genericHdr) != 9) on_error("sizeof(*genericHdr) = %ju",sizeof(*genericHdr));
+  //  if (sizeof(*genericHdr) != 9) on_error("sizeof(*genericHdr) = %ju",sizeof(*genericHdr));
   
   if (op == EkaFhMode::DEFINITIONS && enc != 'R')
     return false;

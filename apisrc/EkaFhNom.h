@@ -3,8 +3,6 @@
 
 #include "EkaFhNasdaq.h"
 
-class EkaFhNomGr;
-
 class EkaFhNom : public EkaFhNasdaq {
   static const uint QSIZE = 2 * 1024 * 1024;
 public:

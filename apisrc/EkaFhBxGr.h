@@ -1,20 +1,12 @@
 #ifndef _EKA_FH_BX_GR_H_
 #define _EKA_FH_BX_GR_H_
 
-#include "EkaFhNomGr.h"
+
+#include "EkaFhNasdaqGr.h"
+#include "EkaFhFullBook.h"
 #include "EkaFhBxParser.h"
 
-class EkaFhBxGr : public EkaFhNomGr {
-public:
-  virtual ~EkaFhBxGr() {}
-
-  bool parseMsg(const EfhRunCtx* pEfhRunCtx,
-		const unsigned char* m,
-		uint64_t sequence,
-		EkaFhMode op,
-		std::chrono::high_resolution_clock::time_point
-		startTime={});
-  
+class EkaFhBxGr : public EkaFhNasdaqGr {
 public:
   static const uint   SCALE          = (const uint) 24;
   static const uint   SEC_HASH_SCALE = 19;
@@ -37,7 +29,44 @@ public:
 
   FhBook*   book = NULL;
 
+  public:
+  virtual ~EkaFhBxGr() {
+    if (book) {
+      delete book;
+      EKA_DEBUG("%s:%u Book is deleted",
+		EKA_EXCH_DECODE(exch),id);
+    }
+  };
 
+  bool parseMsg(const EfhRunCtx* pEfhRunCtx,
+		const unsigned char* m,
+		uint64_t sequence,
+		EkaFhMode op,
+		std::chrono::high_resolution_clock::time_point
+		startTime={});
+
+  int bookInit();
+  int invalidateQ();
+  int invalidateBook();
+
+  int subscribeStaticSecurity(uint64_t securityId, 
+			      EfhSecurityType efhSecurityType,
+			      EfhSecUserData  efhSecUserData,
+			      uint64_t        opaqueAttrA,
+			      uint64_t        opaqueAttrB) {
+    if (!book)
+      on_error("%s:%u !book",EKA_EXCH_DECODE(exch),id);
+    book->subscribeSecurity(securityId, 
+			    efhSecurityType,
+			    efhSecUserData,
+			    opaqueAttrA,
+			    opaqueAttrB);
+    return 0;
+  }
+
+  void print_q_state();
+  
+private:
   template <class SecurityT, class Msg>
   SecurityT* processTradingAction(const unsigned char* m);
 

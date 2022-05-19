@@ -31,7 +31,7 @@ bool EkaFhBxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   auto genericHdr {reinterpret_cast<const BxFeed::GenericHdr *>(m)};
   char enc = genericHdr->type;
 
-  if (sizeof(*genericHdr) != 11) on_error("sizeof(*genericHdr) = %ju",sizeof(*genericHdr));
+  //  if (sizeof(*genericHdr) != 11) on_error("sizeof(*genericHdr) = %ju",sizeof(*genericHdr));
   
   if (op == EkaFhMode::DEFINITIONS && enc != 'R')
     return false;
@@ -146,6 +146,95 @@ bool EkaFhBxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   return false;
 }
   /* ##################################################################### */
+template <class SecurityT, class Msg>
+  inline SecurityT* EkaFhBxGr::processTradingAction(const unsigned char* m) {
+  SecurityIdT securityId = getInstrumentId<Msg>(m);
+  SecurityT* s = book->findSecurity(securityId);
+  if (!s) return NULL;
+
+  book->setSecurityPrevState(s);
+
+  switch (reinterpret_cast<const Msg*>(m)->state) {
+  case 'H' : // "H” = Halt in effect
+  case 'B' : // “B” = Buy Side Trading Suspended 
+  case 'S' : // ”S” = Sell Side Trading Suspended
+    s->trading_action = EfhTradeStatus::kHalted;
+    break;
+  case 'I' : //  ”I” = Pre Open
+    s->trading_action = EfhTradeStatus::kPreopen;
+    s->option_open    = false;
+    break;
+  case 'O' : //  ”O” = Opening Auction
+    s->trading_action = EfhTradeStatus::kOpeningRotation;
+    s->option_open    = true;
+    break;
+  case 'R' : //  ”R” = Re-Opening
+    s->trading_action = EfhTradeStatus::kNormal;
+    s->option_open    = true;
+    break;
+  case 'T' : //  ”T” = Continuous Trading
+    s->trading_action = EfhTradeStatus::kNormal;
+    s->option_open    = true;
+    break;
+  case 'X' : //  ”X” = Closed
+    s->trading_action = EfhTradeStatus::kClosed;
+    s->option_open    = false;
+    break;
+  default:
+    on_error("Unexpected TradingAction state \'%c\'",
+	     reinterpret_cast<const Msg*>(m)->state);
+  }
+  return s;
+}
+
+template <class SecurityT, class Msg>
+  inline SecurityT* EkaFhBxGr::processAddOrder(const unsigned char* m) {
+  SecurityIdT securityId = getInstrumentId<Msg>(m);
+  SecurityT* s = book->findSecurity(securityId);
+  if (!s) {
+#ifdef FH_SUBSCRIBE_ALL
+    s = book->subscribeSecurity(securityId,
+				(EfhSecurityType)1,
+				(EfhSecUserData)0,0,0);
+#else  
+    return NULL;
+#endif
+  }
+  OrderIdT    orderId   = getOrderId  <Msg>(m);
+  SizeT       size      = getSize     <Msg>(m);
+  PriceT      price     = getPrice    <Msg>(m);
+  SideT       side      = getSide     <Msg>(m);
+  FhOrderType orderType = getOrderType<Msg>(m);
+  book->setSecurityPrevState(s);
+  book->addOrder(s,orderId,orderType,price,size,side);
+  return s;
+}
+
+template <class SecurityT, class Msg>
+  inline SecurityT* EkaFhBxGr::processAddQuote(const unsigned char* m) {
+  SecurityIdT securityId = getInstrumentId<Msg>(m);
+  SecurityT* s = book->findSecurity(securityId);
+  if (!s) {
+#ifdef FH_SUBSCRIBE_ALL
+    s = book->subscribeSecurity(securityId,
+				(EfhSecurityType)1,
+				(EfhSecUserData)0,0,0);
+#else  
+    return NULL;
+#endif
+  }
+  OrderIdT bidOrderId   = getBidOrderId<Msg>(m);
+  SizeT    bidSize      = getBidSize   <Msg>(m);
+  PriceT   bidPrice     = getBidPrice  <Msg>(m);
+  OrderIdT askOrderId   = getAskOrderId<Msg>(m);
+  SizeT    askSize      = getAskSize   <Msg>(m);
+  PriceT   askPrice     = getAskPrice  <Msg>(m);
+
+  book->setSecurityPrevState(s);
+  book->addOrder(s,bidOrderId,FhOrderType::BD,bidPrice,bidSize,SideT::BID);
+  book->addOrder(s,askOrderId,FhOrderType::BD,askPrice,askSize,SideT::ASK);
+  return s;
+}
 
 template <class SecurityT, class Msg>
   inline SecurityT* EkaFhBxGr::processOrderExecuted(const unsigned char* m) {
@@ -378,4 +467,39 @@ inline uint64_t EkaFhBxGr::processEndOfSnapshot(const unsigned char* m,
 	  EkaFhMode2STR(op),
 	  num,seqNumStr);
   return (op == EkaFhMode::SNAPSHOT) ? num : 0;
+}
+
+template <class Msg>
+inline void EkaFhBxGr::processDefinition(const unsigned char* m,
+					  const EfhRunCtx* pEfhRunCtx) {
+  auto msg {reinterpret_cast<const Msg*>(m)};
+  EfhOptionDefinitionMsg definitionMsg{};
+  definitionMsg.header.msgType        = EfhMsgType::kOptionDefinition;
+  definitionMsg.header.group.source   = exch;
+  definitionMsg.header.group.localId  = id;
+  definitionMsg.header.underlyingId   = 0;
+  definitionMsg.header.securityId     = (uint64_t) getInstrumentId<Msg>(m);
+  definitionMsg.header.sequenceNumber = 0;
+  definitionMsg.header.timeStamp      = 0;
+  definitionMsg.header.gapNum         = this->gapNum;
+
+  //    definitionMsg.secondaryGroup        = 0;
+  definitionMsg.commonDef.securityType   = EfhSecurityType::kOption;
+  definitionMsg.commonDef.exchange       = EfhExchange::kBX;
+  definitionMsg.commonDef.underlyingType = EfhSecurityType::kStock;
+  definitionMsg.commonDef.expiryDate     =
+    (2000 + msg->expYear) * 10000 +
+    msg->expMonth * 100 +
+    msg->expDate;
+  definitionMsg.commonDef.contractSize   = 0;
+
+  definitionMsg.strikePrice           = getPrice<Msg>(m);
+  definitionMsg.optionType            = decodeOptionType(msg->optionType);
+
+  copySymbol(definitionMsg.commonDef.underlying,msg->underlying);
+  copySymbol(definitionMsg.commonDef.classSymbol,msg->symbol);
+
+  pEfhRunCtx->onEfhOptionDefinitionMsgCb(&definitionMsg,
+					 (EfhSecUserData) 0,
+					 pEfhRunCtx->efhRunUserData);
 }

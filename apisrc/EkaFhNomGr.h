@@ -66,7 +66,7 @@ public:
   void print_q_state();
   
   
-protected:
+private:
   template <class SecurityT, class Msg>
   SecurityT* processTradingAction(const unsigned char* m);
   
