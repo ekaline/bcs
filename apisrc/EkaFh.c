@@ -573,6 +573,30 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }
+    //---------------------------------------------------------------------
+  // efh.<exch>.group.X.useDefinitionsFile, "0" or "1"
+  // k[0] k[1]  k[2] k[3] k[4]
+  if ((strcmp(k[0],"efh")==0) &&
+      (strcmp(k[2],"group")==0) &&
+      (strcmp(k[4],"useDefinitionsFile")==0)) {
+    if (EFH_GET_SRC(k[1]) == exch) {
+      uint8_t gr = (uint8_t) atoi(k[3]);
+
+      if (gr >= groups) {
+	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",
+		   key, value,gr,groups);
+	return EkaFhAddConf::CONF_SUCCESS;
+      }
+      if (!b_gr[gr])
+	on_error("!b_gr[%u], groups = %u",gr,groups);
+
+      b_gr[gr]->useDefinitionsFile = (atoi(v[0]) != 0);
+
+      EKA_DEBUG ("%s:%u: useDefinitionsFile is set to %d",
+                 k[1],gr,b_gr[gr]->useDefinitionsFile);
+      return EkaFhAddConf::CONF_SUCCESS;
+    }
+  }
   //---------------------------------------------------------------------
   // efh.BOX_HSVF.group.X.mcast.line   ,"11"
   // k[0] k[1]    k[2] k[3] k[4]   k[5]

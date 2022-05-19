@@ -137,20 +137,43 @@ EkaOpResult EkaFhXdp::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 }
  /* ##################################################################### */
 
-EkaOpResult EkaFhXdp::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, const EkaGroup* group) {
+EkaOpResult EkaFhXdp::getDefinitions (EfhCtx* pEfhCtx,
+				      const EfhRunCtx* pEfhRunCtx,
+				      const EkaGroup* group) {
   static const int ReTryAttempts = 10;
   auto gr {dynamic_cast<EkaFhXdpGr*>(b_gr[(uint8_t)group->localId])};
   if (!gr) on_error("!gr[%u]",(uint8_t)group->localId);
   EkaOpResult rc;
-  for (auto i = 0; i < ReTryAttempts; i++) {
-    rc = getXdpDefinitions(pEfhCtx,
-			   pEfhRunCtx,
-			   gr,
-			   EkaFhMode::DEFINITIONS);
-    if (rc == EKA_OPRESULT__OK) return rc;
-    EKA_LOG("%s:%u Definitions attempt %d/%d failed: waiting %d seconds to retry",
-	    EKA_EXCH_DECODE(exch),gr->id,i,ReTryAttempts,gr->connectRetryDelayTime);
-    sleep(gr->connectRetryDelayTime);    
+
+  auto definitionsFileName = gr->getDefinitionsFileName();
+  FILE* definitionsFile = NULL;
+  if (gr->useDefinitionsFile)
+    definitionsFile = fopen(definitionsFileName.c_str(),"rb");
+  
+  if (gr->useDefinitionsFile && definitionsFile) {
+    EKA_LOG("%s:%u extracting Definitions from file: %s",
+	    EKA_EXCH_DECODE(exch),gr->id,definitionsFileName.c_str());
+    
+    EfhOptionDefinitionMsg msg{};
+
+    while (fread(&msg,sizeof(msg),1,definitionsFile) == 1) {
+      pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg,
+					     (EfhSecUserData) 0,
+					     pEfhRunCtx->efhRunUserData);
+    }
+    fclose(definitionsFile);
+    return EKA_OPRESULT__OK;
+  } else {
+    for (auto i = 0; i < ReTryAttempts; i++) {
+      rc = getXdpDefinitions(pEfhCtx,
+			     pEfhRunCtx,
+			     gr,
+			     EkaFhMode::DEFINITIONS);
+      if (rc == EKA_OPRESULT__OK) return rc;
+      EKA_LOG("%s:%u Definitions attempt %d/%d failed: waiting %d seconds to retry",
+	      EKA_EXCH_DECODE(exch),gr->id,i,ReTryAttempts,gr->connectRetryDelayTime);
+      sleep(gr->connectRetryDelayTime);    
+    }
   }
   return rc;
 }

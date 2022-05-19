@@ -11,7 +11,7 @@
 #include <arpa/inet.h>
 
 #include "EkaFhTypes.h"
-#include "EkaFhNomParser.h"
+#include "EkaFhBxParser.h"
 #include "eka_macros.h"
 
 //using namespace Nom;
@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
 	/*     p += msgLen; */
 	/* } */
 
-	printPkt<Nom>(stdout,p);
+	printPkt<Bx>(stdout,p);
 	
 	//	group[grId].expectedSeq = sequence;
 	

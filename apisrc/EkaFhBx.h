@@ -1,9 +1,9 @@
-#ifndef _EKA_FH_NOM_H_
-#define _EKA_FH_NOM_H_
+#ifndef _EKA_FH_BX_H_
+#define _EKA_FH_BX_H_
 
 #include "EkaFhNasdaq.h"
 
-class EkaFhNom : public EkaFhNasdaq {
+class EkaFhBx : public EkaFhNasdaq {
   static const uint QSIZE = 2 * 1024 * 1024;
 public:
   EkaFhGroup* addGroup();
@@ -11,7 +11,7 @@ public:
 			 const EfhRunCtx* pEfhRunCtx,
 			 uint8_t runGrId);
   
-  virtual ~EkaFhNom() {};
+  virtual ~EkaFhBx() {};
 private:
   
 };
