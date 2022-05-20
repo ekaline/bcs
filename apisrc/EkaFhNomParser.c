@@ -37,10 +37,8 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   auto genericHdr {reinterpret_cast<const NomFeed::GenericHdr *>(m)};
   char enc = genericHdr->type;
 
-  //  if (sizeof(*genericHdr) != 9) on_error("sizeof(*genericHdr) = %ju",sizeof(*genericHdr));
-  
-  if (op == EkaFhMode::DEFINITIONS && enc != 'R')
-    return false;
+  if (op == EkaFhMode::DEFINITIONS &&
+      (enc != 'R') && (enc != 'M')) return false;
   
   FhSecurity* s = NULL;
   uint64_t msgTs = 0;
@@ -134,6 +132,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     return false;
     //--------------------------------------------------------------
   case 'M':  // EndOfSnapshot
+    EKA_LOG("%s:%u Glimpse EndOfSnapshot",EKA_EXCH_DECODE(exch),id);
     if (op == EkaFhMode::DEFINITIONS) return true;
     this->seq_after_snapshot = processEndOfSnapshot<NomFeed::EndOfSnapshot>(m,op);
     return true;
