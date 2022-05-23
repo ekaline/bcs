@@ -688,7 +688,8 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   msg.commonDef.securityType   = EfhSecurityType::kOption;
   msg.commonDef.exchange       = EfhExchange::kCME;
   msg.commonDef.underlyingType = EfhSecurityType::kFuture;
-  msg.commonDef.contractSize   = rootBlock->UnitOfMeasureQty / EFH_CME_PRICE_SCALE;
+  msg.commonDef.contractSize   = replaceIntNullWith<Decimal9NULL_T>(
+      rootBlock->UnitOfMeasureQty, rootBlock->UnitOfMeasureQty / EFH_CME_PRICE_SCALE, 0);
   msg.commonDef.opaqueAttrA    = priceAdjustFactor;
   getCMEProductTradeTime(pMaturity, rootBlock->Symbol, &msg.commonDef.expiryDate, &msg.commonDef.expiryTime);
   copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
