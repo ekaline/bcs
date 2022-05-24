@@ -653,8 +653,9 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   m += msgHdr->blockLen;
 
   if (rootBlock->CFICode[0] != 'O' || rootBlock->CFICode[3] != 'F') {
-    EKA_INFO("found non-option-on-future security `%s` (CFI: %.6s)",
-             rootBlock->Symbol, rootBlock->CFICode);
+    EKA_WARN("found non-option-on-future security `%s` (CFI: '%.6s', SecurityType: '%.6s', UnderlyingProduct: %hhu)",
+             rootBlock->Symbol, rootBlock->CFICode, rootBlock->SecurityType, rootBlock->UnderlyingProduct);
+    return msgHdr->size;
   }
 
   auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
