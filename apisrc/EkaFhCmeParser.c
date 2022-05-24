@@ -652,7 +652,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionOption55_mainBlock*>(m)};
   m += msgHdr->blockLen;
 
-  if (strcmp(rootBlock->SecurityType, "OOF") != 0) {
+  if (strncmp(rootBlock->SecurityType, "OOF", sizeof(rootBlock->SecurityType)) != 0) {
     // Not an option-on-future, we don't care about this.
     EKA_WARN("found non-option-on-future security `%s` (CFI: '%.6s', SecurityType: '%.6s', UnderlyingProduct: %hhu)",
              rootBlock->Symbol, rootBlock->CFICode, rootBlock->SecurityType, rootBlock->UnderlyingProduct);
