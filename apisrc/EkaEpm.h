@@ -217,6 +217,7 @@ class EkaEpm {
   EpmTemplate*      rawPkt                  = NULL;
   EpmTemplate*      hwFire                  = NULL;
   EpmTemplate*      cmeILink                = NULL;
+  EpmTemplate*      cmeHb                   = NULL;
   
   uint              templatesNum            = 0;
 
