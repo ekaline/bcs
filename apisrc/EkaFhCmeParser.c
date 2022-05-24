@@ -653,18 +653,10 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   m += msgHdr->blockLen;
 
   if (rootBlock->CFICode[0] != 'O' || rootBlock->CFICode[3] != 'F') {
-    // Not an option-on-future, we don't care about this.
-    EKA_WARN("found non-option-on-future security `%s` (CFI: %.6s)",
+    EKA_INFO("found non-option-on-future security `%s` (CFI: %.6s)",
              rootBlock->Symbol, rootBlock->CFICode);
-    return msgHdr->size;
   }
 
-  /* ------------------------------- */
-  auto symbol           {std::string(rootBlock->Symbol,	         sizeof(rootBlock->Symbol))};
-  auto cfiCode          {std::string(rootBlock->CFICode,	 sizeof(rootBlock->CFICode))};
-  auto securityExchange {std::string(rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange))};
-  auto asset            {std::string(rootBlock->Asset,	         sizeof(rootBlock->Asset))};
-  auto securityType     {std::string(rootBlock->SecurityType,    sizeof(rootBlock->SecurityType))};
   auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
 
   const auto putOrCall {getEfhOptionType(rootBlock->PutOrCall)};
