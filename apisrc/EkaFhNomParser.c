@@ -208,11 +208,11 @@ template <class SecurityT, class Msg>
     break;
   case 'O' : //  ”O” = Opening Auction
     s->trading_action = EfhTradeStatus::kOpeningRotation;
-    s->option_open    = true;
+    //    s->option_open    = true;
     break;
   case 'R' : //  ”R” = Re-Opening
-    s->trading_action = EfhTradeStatus::kNormal;
-    s->option_open    = true;
+    //    s->trading_action = EfhTradeStatus::kNormal;
+    //    s->option_open    = true;
     break;
   case 'T' : //  ”T” = Continuous Trading
     s->trading_action = EfhTradeStatus::kNormal;
