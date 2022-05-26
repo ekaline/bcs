@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
 	/*     p += msgLen; */
 	/* } */
 
-	printPkt<Bx>(stdout,p);
+	printPkt<BxFeed>(stdout,p);
 	
 	//	group[grId].expectedSeq = sequence;
 	
