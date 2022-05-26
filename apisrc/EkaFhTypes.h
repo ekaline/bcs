@@ -5,18 +5,18 @@
 
 enum class SideT : int {
   UNINIT = 0,
-    BID = 1,
-    ASK = 2,
-    OTHER = 3
-    };
+  BID = 1,
+  ASK = 2,
+  OTHER = 3
+};
 
 enum class FhOrderType : int {
   UNINIT = 0,
-    CUSTOMER, 
-    BD, 
-    CUSTOMER_AON,
-    BD_AON,
-    OTHER
-    };
+  CUSTOMER,
+  BD,
+  CUSTOMER_AON,
+  BD_AON,
+  OTHER
+};
 
 #endif

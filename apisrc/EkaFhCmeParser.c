@@ -652,18 +652,13 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionOption55_mainBlock*>(m)};
   m += msgHdr->blockLen;
 
-  if (rootBlock->CFICode[0] != 'O' || rootBlock->CFICode[3] != 'F') {
+  if (strncmp(rootBlock->SecurityType, "OOF", sizeof(rootBlock->SecurityType)) != 0) {
     // Not an option-on-future, we don't care about this.
-    EKA_WARN("found non-option-on-future security `%s`", rootBlock->Symbol);
+    EKA_WARN("found non-option-on-future security `%s` (CFI: '%.6s', SecurityType: '%.6s', UnderlyingProduct: %hhu)",
+             rootBlock->Symbol, rootBlock->CFICode, rootBlock->SecurityType, rootBlock->UnderlyingProduct);
     return msgHdr->size;
   }
 
-  /* ------------------------------- */
-  auto symbol           {std::string(rootBlock->Symbol,	         sizeof(rootBlock->Symbol))};
-  auto cfiCode          {std::string(rootBlock->CFICode,	 sizeof(rootBlock->CFICode))};
-  auto securityExchange {std::string(rootBlock->SecurityExchange,sizeof(rootBlock->SecurityExchange))};
-  auto asset            {std::string(rootBlock->Asset,	         sizeof(rootBlock->Asset))};
-  auto securityType     {std::string(rootBlock->SecurityType,    sizeof(rootBlock->SecurityType))};
   auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
 
   const auto putOrCall {getEfhOptionType(rootBlock->PutOrCall)};
@@ -711,7 +706,8 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   m += sizeof(*pGroupSize_FeedType);
   for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) {
     auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)};
-    msg.commonDef.opaqueAttrB = e->MarketDepth;
+    // Leave the depth at its default value
+    // msg.commonDef.opaqueAttrB = e->MarketDepth;
     m += pGroupSize_FeedType->blockLength;
   }
   /* ------------------------------- */
@@ -810,7 +806,8 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   m += sizeof(*pGroupSize_FeedType);
   for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) {
     auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)};
-    msg.commonDef.opaqueAttrB = e->MarketDepth;
+    // Leave the depth at its default value
+    // msg.commonDef.opaqueAttrB = e->MarketDepth;
     m += pGroupSize_FeedType->blockLength;
   }
   /* ------------------------------- */
