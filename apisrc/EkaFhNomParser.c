@@ -216,7 +216,6 @@ template <class SecurityT, class Msg>
     break;
   case 'T' : //  ”T” = Continuous Trading
     s->trading_action = EfhTradeStatus::kNormal;
-    s->option_open    = true;
     break;
   case 'X' : //  ”X” = Closed
     s->trading_action = EfhTradeStatus::kClosed;
