@@ -259,7 +259,23 @@ namespace EfhNasdaqCommon {
     return sizeof(Msg);
   }
 
-   
+  template <class Msg>
+  inline int printTradingAction(FILE* fd, const uint8_t* m) {
+    fprintf(fd,"%u,",getInstrumentId<Msg>(m));
+    fprintf(fd,"\'%c\',",reinterpret_cast<const Msg*>(m)->state);
+    fprintf (fd,"\n");
+    return sizeof(Msg);
+  }
+
+
+  template <class Msg>
+  inline int printOptionOpen(FILE* fd, const uint8_t* m) {
+    fprintf(fd,"%u,",getInstrumentId<Msg>(m));
+    fprintf(fd,"\'%c\',",reinterpret_cast<const Msg*>(m)->state);
+    fprintf (fd,"\n");
+    return sizeof(Msg);
+  }
+  
   template <class Msg>
   inline int printAddOrder(FILE* fd, const uint8_t* m) {
     fprintf(fd,"%u,",getInstrumentId<Msg>(m));
@@ -354,9 +370,9 @@ namespace EfhNasdaqCommon {
     switch (enc) {
       //--------------------------------------------------------------
     case 'H':  // TradingAction
-      return printGenericMsg<typename Feed::TradingAction>(fd,m);
+      return printTradingAction<typename Feed::TradingAction>(fd,m);
     case 'O':  // OptionOpen -- NOM only
-      return printGenericMsg<typename Feed::OptionOpen>(fd,m);
+      return printOptionOpen<typename Feed::OptionOpen>(fd,m);
     case 'a':  // AddOrderShort
       return printAddOrder<typename Feed::AddOrderShort>(fd,m);
     case 'A':  // AddOrderLong
