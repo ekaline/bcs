@@ -177,15 +177,17 @@ namespace EfhNasdaqCommon {
   }
 
   template <class T>
-  inline EfhAuctionUpdateType getAuctionUpdateType(const char* m) {
+  inline EfhAuctionType getAuctionType(const uint8_t* m) {
     switch (reinterpret_cast<const T*>(m)->auctionType) {
     case 'I' : // “I” = Order Exposure
-      return EfhAuctionUpdateType::kNew; 
+      return EfhAuctionType::kExposed; 
     case 'O' : // “O” = Opening
     case 'R' : // “R” = Reopening
+      return EfhAuctionType::kNotification; 
     case 'P' : // “P” = Price Improvement (PRISM) Auction
+      return EfhAuctionType::kPriceImprovementPeriod; 
     case 'B' : // “B” = Block Auction
-      return EfhAuctionUpdateType::kUnknown;
+      return EfhAuctionType::kFacilitation;
     default :
       on_error("Unexpected auctionType \'%c\'",
 	       reinterpret_cast<const T*>(m)->auctionType);
@@ -208,15 +210,16 @@ namespace EfhNasdaqCommon {
   }
 
   template <class T>
-  inline SideT getAuctionSide(const uint8_t* m) {
+  inline EfhOrderSide getAuctionSide(const uint8_t* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     switch (msg->imbalanceDirection) {
     case 'B' :
-      return SideT::BID;
+      return EfhOrderSide::kBid;
     case 'S' :
-      return SideT::ASK;
+      return EfhOrderSide::kAsk;
     default :
-      on_error("Unexpected side \'%c\'",msg->side);
+      on_error("Unexpected imbalanceDirection \'%c\'",
+	       msg->imbalanceDirection);
     }
   }
 
@@ -228,13 +231,20 @@ namespace EfhNasdaqCommon {
   }
   
   template <class T>
-  inline uint32_t getAuctionSize(const uint8_t* m) {
+  inline uint32_t getImbalanceSize(const uint8_t* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return be32toh(msg->imbalanceVolume);
   }
-
+  
   template <class T>
-  inline EfhOrderCapacity getAuctionOrderCapacity(const uint8_t* m) {
+  inline uint32_t getPairedSize(const uint8_t* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return be32toh(msg->pairedQuantity);
+  }
+  
+  template <class T>
+  inline EfhOrderCapacity
+  getAuctionOrderCapacity(const uint8_t* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     switch (msg->customerFirmIndicator) {
     case 'C' : // “C” = Customer
@@ -248,7 +258,8 @@ namespace EfhNasdaqCommon {
     case 'B' : // “B” = Broker Dealer/ Non Registered Market Maker
       return EfhOrderCapacity::kBrokerDealer;
     default :
-      on_error("Unexpected customerFirmIndicator \'%c\'",msg->customerFirmIndicator);
+      on_error("Unexpected customerFirmIndicator \'%c\'",
+	       msg->customerFirmIndicator);
     }
   }
   
@@ -357,8 +368,10 @@ namespace EfhNasdaqCommon {
   }
   
   template <class Feed>
-  inline int printMsg(FILE* fd, uint64_t sequence, const uint8_t* m) {
-    auto genericHdr {reinterpret_cast<const typename Feed::GenericHdr*>(m)};
+  inline int
+  printMsg(FILE* fd, uint64_t sequence, const uint8_t* m) {
+    auto genericHdr {reinterpret_cast
+		     <const typename Feed::GenericHdr*>(m)};
     char enc = genericHdr->type;
     uint64_t msgTs = Feed::getTs(m);
 
@@ -433,7 +446,8 @@ namespace EfhNasdaqCommon {
       p += sizeof(*msgLenRaw);
       auto parsedMsgLen = printMsg<T>(fd,sequence,p);
       if (parsedMsgLen != msgLen)
-	on_error("parsedMsgLen %d != msgLen %d",parsedMsgLen,msgLen);
+	on_error("parsedMsgLen %d != msgLen %d",
+		 parsedMsgLen,msgLen);
       sequence++;
       p += msgLen;
     }

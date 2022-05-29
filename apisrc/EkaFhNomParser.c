@@ -204,15 +204,12 @@ template <class SecurityT, class Msg>
     break;
   case 'I' : //  ”I” = Pre Open
     s->trading_action = EfhTradeStatus::kPreopen;
-    s->option_open    = false;
     break;
   case 'O' : //  ”O” = Opening Auction
     s->trading_action = EfhTradeStatus::kOpeningRotation;
-    //    s->option_open    = true;
     break;
   case 'R' : //  ”R” = Re-Opening
     //    s->trading_action = EfhTradeStatus::kNormal;
-    //    s->option_open    = true;
     break;
   case 'T' : //  ”T” = Continuous Trading
     s->trading_action = EfhTradeStatus::kNormal;
