@@ -169,6 +169,33 @@ struct hw_epm_report_t {
   uint16_t  postStratEnable;
   uint64_t  user;
   uint8_t   islocal;
+} __attribute__((packed)); //do not use directly
+
+struct hw_epm_exception_report_t {
+  uint8_t         interrupt_vector;
+  uint8_t         b32_padding[31];
+  hw_epm_report_t epm;
+} __attribute__((packed));
+
+struct hw_epm_news_report_t {
+  uint16_t        strategy_index;
+  uint8_t         strategy_region;
+  uint64_t        token;
+  uint8_t         b32_padding[21];
+  hw_epm_report_t epm;
+} __attribute__((packed));
+
+struct hw_epm_fast_cancel_report_t {
+  uint8_t         num_in_group;
+  uint16_t        header_size;
+  uint32_t        sequence_number;
+  uint8_t         b32_padding[25];
+  hw_epm_report_t epm;
+} __attribute__((packed));
+
+struct hw_epm_sw_trigger_report_t {
+  uint8_t         b32_padding[32];
+  hw_epm_report_t epm;
 } __attribute__((packed));
 
 /* parameter EKA_ACTIONRESULT_Unknown          = 0;  ///< Zero initialization yields an invalid value */

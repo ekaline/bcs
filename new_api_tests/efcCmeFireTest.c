@@ -520,7 +520,7 @@ int main(int argc, char *argv[]) {
     // ==============================================
 
     efcCmeSetILinkAppseq(dev,conn[0],0x1);
-#if 1
+#if 0
     EpmTrigger cmeTrigger = {
 	.token = CmeTestFastCancelToken,         ///< Security token
 	.strategy = EFC_STRATEGY,                ///< Strategy this trigger applies to
