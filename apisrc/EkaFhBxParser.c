@@ -8,33 +8,27 @@
 #include <algorithm>
 
 #include "EkaFhParserCommon.h"
-#include "EkaFhNomGr.h"
-#include "EkaFhNomParser.h"
+#include "EkaFhBxGr.h"
+#include "EkaFhBxParser.h"
 #include "EkaFhFullBook.h"
 
 #include "EkaFhNasdaqCommonParser.h"
 
 using namespace EfhNasdaqCommon;
 
-/* ####################################################### */
-
-bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
-			  const unsigned char* m,
-			  uint64_t sequence,
-			  EkaFhMode op,
-			  std::chrono::high_resolution_clock::time_point
-			  startTime) {
-
-#ifdef EKA_NOM_LATENCY_CHECK
-  auto start = std::chrono::high_resolution_clock::now();  
-#endif
-
+bool EkaFhBxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
+			 const unsigned char* m,
+			 uint64_t sequence,
+			 EkaFhMode op,
+			 std::chrono::high_resolution_clock::time_point
+			 startTime) {
+  
   if (fh->print_parsed_messages) {
-    printMsg<NomFeed>(parser_log,sequence,m);
+    printMsg<BxFeed>(parser_log,sequence,m);
     fflush(parser_log);
   }
   
-  auto genericHdr {reinterpret_cast<const NomFeed::GenericHdr *>(m)};
+  auto genericHdr {reinterpret_cast<const BxFeed::GenericHdr *>(m)};
   char enc = genericHdr->type;
 
   if (op == EkaFhMode::DEFINITIONS &&
@@ -46,77 +40,69 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   switch (enc) {
     //--------------------------------------------------------------
   case 'H':  // TradingAction
-    s = processTradingAction<FhSecurity,NomFeed::TradingAction>(m);
-    break; 
-    //--------------------------------------------------------------
-  case 'O':  // OptionOpen -- NOM only
-    s = processOptionOpen<FhSecurity,NomFeed::OptionOpen>(m);
+    s = processTradingAction<FhSecurity,BxFeed::TradingAction>(m);
     break; 
     //--------------------------------------------------------------
   case 'a':  // AddOrderShort
-    s = processAddOrder<FhSecurity,NomFeed::AddOrderShort>(m);
+    s = processAddOrder<FhSecurity,BxFeed::AddOrderShort>(m);
     break;
     //--------------------------------------------------------------
   case 'A':  // AddOrderLong
-    s = processAddOrder<FhSecurity,NomFeed::AddOrderLong>(m);
+    s = processAddOrder<FhSecurity,BxFeed::AddOrderLong>(m);
     break;
     //--------------------------------------------------------------
   case 'j':  // AddQuoteShort
-    s = processAddQuote<FhSecurity,NomFeed::AddQuoteShort>(m);
+    s = processAddQuote<FhSecurity,BxFeed::AddQuoteShort>(m);
     break;
     //--------------------------------------------------------------
   case 'J':  // AddQuoteLong
-    s = processAddQuote<FhSecurity,NomFeed::AddQuoteLong>(m);
+    s = processAddQuote<FhSecurity,BxFeed::AddQuoteLong>(m);
     break;
     //--------------------------------------------------------------
   case 'E':  // OrderExecuted
-    s = processOrderExecuted<FhSecurity,NomFeed::OrderExecuted>(m);
+    s = processOrderExecuted<FhSecurity,BxFeed::OrderExecuted>(m);
     break;
     //--------------------------------------------------------------
   case 'C':  // OrderExecutedPrice
-    s = processOrderExecuted<FhSecurity,NomFeed::OrderExecutedPrice>(m);
+    s = processOrderExecuted<FhSecurity,BxFeed::OrderExecutedPrice>(m);
     break;
     //--------------------------------------------------------------
   case 'X':  // OrderCancel
-    s = processOrderExecuted<FhSecurity,NomFeed::OrderCancel>(m);
+    s = processOrderExecuted<FhSecurity,BxFeed::OrderCancel>(m);
     break;
     //--------------------------------------------------------------
   case 'u':  // ReplaceOrderShort
-    s = processReplaceOrder<FhSecurity,NomFeed::ReplaceOrderShort>(m);
+    s = processReplaceOrder<FhSecurity,BxFeed::ReplaceOrderShort>(m);
     break;
     //--------------------------------------------------------------
   case 'U':  // ReplaceOrderLong
-    s = processReplaceOrder<FhSecurity,NomFeed::ReplaceOrderLong>(m);
+    s = processReplaceOrder<FhSecurity,BxFeed::ReplaceOrderLong>(m);
     break;
     //--------------------------------------------------------------
   case 'D':  // SingleSideDelete
-    s = processDeleteOrder<FhSecurity,NomFeed::SingleSideDelete>(m);
+    s = processDeleteOrder<FhSecurity,BxFeed::SingleSideDelete>(m);
     break;        
     //--------------------------------------------------------------
   case 'G':  // SingleSideUpdate
-    s = processSingleSideUpdate<FhSecurity,NomFeed::SingleSideUpdate>(m);
+    s = processSingleSideUpdate<FhSecurity,BxFeed::SingleSideUpdate>(m);
     break;
     //--------------------------------------------------------------
   case 'k':  // QuoteReplaceShort
-    s = processReplaceQuote<FhSecurity,NomFeed::QuoteReplaceShort>(m);
+    s = processReplaceQuote<FhSecurity,BxFeed::QuoteReplaceShort>(m);
     break;
     //--------------------------------------------------------------
   case 'K':  // QuoteReplaceLong
-    s = processReplaceQuote<FhSecurity,NomFeed::QuoteReplaceLong>(m);
+    s = processReplaceQuote<FhSecurity,BxFeed::QuoteReplaceLong>(m);
     break;
     //--------------------------------------------------------------
   case 'Y':  // QuoteDelete
-    s = processDeleteQuote<FhSecurity,NomFeed::QuoteDelete>(m);
+    s = processDeleteQuote<FhSecurity,BxFeed::QuoteDelete>(m);
     break;
     //--------------------------------------------------------------
-  case 'Q':  // Cross Trade
-    // DO NOTHING
-    return false;
-    //--------------------------------------------------------------
-  case 'P':  // Trade for NOM
-    msgTs = NomFeed::getTs(m);
-    s = processTrade<FhSecurity,NomFeed::Trade>(m,sequence,
-					     msgTs,pEfhRunCtx);
+  case 'Q':  // Trade for BX
+    msgTs = BxFeed::getTs(m);
+    s = processTrade<FhSecurity,BxFeed::Trade>(m,sequence,
+					       msgTs,pEfhRunCtx);
     break;
     //--------------------------------------------------------------
   case 'S':  // SystemEvent
@@ -128,68 +114,43 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     return false;
     //--------------------------------------------------------------
   case 'I':  // NOII
-    // TO BE IMPLEMENTED!!!
+    msgTs = BxFeed::getTs(m);
+    processAuctionUpdate<FhSecurity,BxFeed::NOII>(m,sequence,
+						  msgTs,
+						  pEfhRunCtx);
     return false;
     //--------------------------------------------------------------
   case 'M':  // EndOfSnapshot
     EKA_LOG("%s:%u Glimpse EndOfSnapshot",EKA_EXCH_DECODE(exch),id);
     if (op == EkaFhMode::DEFINITIONS) return true;
-    this->seq_after_snapshot = processEndOfSnapshot<NomFeed::EndOfSnapshot>(m,op);
+    this->seq_after_snapshot = processEndOfSnapshot<BxFeed::EndOfSnapshot>(m,op);
     return true;
     //--------------------------------------------------------------
   case 'R':  // Directory
     if (op == EkaFhMode::SNAPSHOT) return false;
-    processDefinition<NomFeed::Directory>(m,pEfhRunCtx);
+    processDefinition<BxFeed::Directory>(m,pEfhRunCtx);
     return false;
   default: 
     on_error("UNEXPECTED Message type: enc=\'%c\'",enc);
   }
   if (!s) return false;
 
-  msgTs = NomFeed::getTs(m);
+  msgTs = BxFeed::getTs(m);
 
   s->bid_ts = msgTs;
   s->ask_ts = msgTs;
 
-  if (! book->isEqualState(s)) {
-#ifdef EKA_NOM_LATENCY_CHECK
-    auto finish = std::chrono::high_resolution_clock::now();
-    uint64_t duration_ns = (uint64_t) std::chrono::duration_cast
-      <std::chrono::nanoseconds>(finish-start).count();
-    //    if (duration_ns > 5000)
-    //        EKA_WARN("WARNING: \'%c\' processing took %ju ns",
-    //                 enc, duration_ns);
-    fh->latencies.push_back(std::make_pair(enc,duration_ns));
-#endif    
+  if (! book->isEqualState(s)) { 
     book->generateOnQuote (pEfhRunCtx, s,
 			   sequence, msgTs,gapNum);
   }
 
-  /* ##################################################################### */
-
-#if 0  
-  if (s->crossedPrice()) {
-    char hexBuf[16000]; // approximate max NOM message size
-    if (std::FILE *const hexBufFile = fmemopen(hexBuf, sizeof hexBuf, "w")) {
-      hexDump("Msg caused CROSS PRICE",m,getMsgLen(m),hexBufFile);
-      book->printSecurity(s,hexBufFile);
-      (void)std::fwrite("\0", 1, 1, hexBufFile);
-
-      (void)std::fclose(hexBufFile);
-    }
-    
-    EKA_WARN("WARNING PRICE CROSS: %s_%u at %s after \'%c\' : %s",
-	     EKA_EXCH_DECODE(exch),id, EkaFhMode2STR(op),enc,
-	     hexBuf);
-  }
-#endif
-
   return false;
 }
-
-
+/* ##################################################################### */
 template <class SecurityT, class Msg>
-  inline SecurityT* EkaFhNomGr::processTradingAction(const unsigned char* m) {
+  inline SecurityT*
+  EkaFhBxGr::processTradingAction(const unsigned char* m) {
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
   if (!s) return NULL;
@@ -209,7 +170,7 @@ template <class SecurityT, class Msg>
     s->trading_action = EfhTradeStatus::kOpeningRotation;
     break;
   case 'R' : //  ”R” = Re-Opening
-    //    s->trading_action = EfhTradeStatus::kNormal;
+    s->trading_action = EfhTradeStatus::kPreopen;
     break;
   case 'T' : //  ”T” = Continuous Trading
     s->trading_action = EfhTradeStatus::kNormal;
@@ -225,31 +186,9 @@ template <class SecurityT, class Msg>
   return s;
 }
 
-
 template <class SecurityT, class Msg>
-  inline SecurityT* EkaFhNomGr::processOptionOpen(const unsigned char* m) {
-  SecurityIdT securityId = getInstrumentId<Msg>(m);
-  SecurityT* s = book->findSecurity(securityId);
-  if (!s) return NULL;
-  book->setSecurityPrevState(s);
-
-  switch (reinterpret_cast<const Msg*>(m)->state) {
-  case 'Y' :
-    s->option_open = true;
-    break;
-  case 'N' :
-    s->option_open = false;
-    s->trading_action = EfhTradeStatus::kClosed;
-    break;
-  default :
-    on_error("Unexpected OptionOpen state \'%c\'",
-	     reinterpret_cast<const Msg*>(m)->state);
-  }
-  return s;
-}
-
-template <class SecurityT, class Msg>
-  inline SecurityT* EkaFhNomGr::processAddOrder(const unsigned char* m) {
+  inline SecurityT*
+  EkaFhBxGr::processAddOrder(const unsigned char* m) {
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
   if (!s) {
@@ -272,7 +211,8 @@ template <class SecurityT, class Msg>
 }
 
 template <class SecurityT, class Msg>
-  inline SecurityT* EkaFhNomGr::processAddQuote(const unsigned char* m) {
+  inline SecurityT*
+  EkaFhBxGr::processAddQuote(const unsigned char* m) {
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
   if (!s) {
@@ -298,12 +238,43 @@ template <class SecurityT, class Msg>
 }
 
 template <class SecurityT, class Msg>
-  inline SecurityT* EkaFhNomGr::processDeleteOrder(const unsigned char* m) {
+  inline SecurityT*
+  EkaFhBxGr::processOrderExecuted(const unsigned char* m) {
+  SecurityIdT securityId = getInstrumentId<Msg>(m);
+  SecurityT* s = book->findSecurity(securityId);
+  if (!s) return NULL;
+
+  OrderIdT    orderId   = getOrderId  <Msg>(m);
+  auto o = book->findOrder(orderId);
+  if (!o) return NULL;
+
+  SizeT  deltaSize   = getSize<Msg>(m);  
+  auto p = o->plevel;
+
+  book->setSecurityPrevState(s);
+
+  if (o->size < deltaSize) {
+    on_error("o->size %u < deltaSize %u",o->size,deltaSize);
+  } else if (o->size == deltaSize) {
+    book->deleteOrder(o);
+  } else {
+    book->reduceOrderSize(o,deltaSize);
+    p->deductSize (o->type,deltaSize);
+  }
+  
+  return s;
+}
+
+template <class SecurityT, class Msg>
+  inline SecurityT*
+  EkaFhBxGr::processDeleteOrder(const unsigned char* m) {
+  SecurityIdT securityId = getInstrumentId<Msg>(m);
+  SecurityT* s = book->findSecurity(securityId);
+  if (!s) return NULL;
+
   OrderIdT orderId   = getOrderId<Msg>(m);
   FhOrder* o = book->findOrder(orderId);
   if (!o) return NULL;
-
-  SecurityT* s = (FhSecurity*)o->plevel->s;
 
   book->setSecurityPrevState(s);
 
@@ -313,13 +284,16 @@ template <class SecurityT, class Msg>
 }
 
 template <class SecurityT, class Msg>
-  inline SecurityT* EkaFhNomGr::processReplaceOrder(const unsigned char* m) {
+  inline SecurityT*
+  EkaFhBxGr::processReplaceOrder(const unsigned char* m) {
+  
+  SecurityIdT securityId = getInstrumentId<Msg>(m);
+  SecurityT* s = book->findSecurity(securityId);
+  if (!s) return NULL;
 
   OrderIdT oldOrderId   = getOldOrderId  <Msg>(m);
   auto o = book->findOrder(oldOrderId);
   if (!o) return NULL;
-
-  SecurityT* s = (FhSecurity*)o->plevel->s;
 
   FhOrderType t    = o->type;
   SideT       side = o->plevel->side;
@@ -337,33 +311,11 @@ template <class SecurityT, class Msg>
 }
 
 template <class SecurityT, class Msg>
-    inline SecurityT* EkaFhNomGr::processOrderExecuted(const unsigned char* m) {
-
-    OrderIdT    orderId   = getOrderId  <Msg>(m);
-    auto o = book->findOrder(orderId);
-    if (!o) return NULL;
-    
-    SecurityT* s = (FhSecurity*)o->plevel->s;
-
-    SizeT  deltaSize   = getSize<Msg>(m);  
-    auto p = o->plevel;
-
-    book->setSecurityPrevState(s);
-
-    if (o->size < deltaSize) {
-	on_error("o->size %u < deltaSize %u",o->size,deltaSize);
-    } else if (o->size == deltaSize) {
-	book->deleteOrder(o);
-    } else {
-	book->reduceOrderSize(o,deltaSize);
-	p->deductSize (o->type,deltaSize);
-    }
-  
-    return s;
-}
-
-template <class SecurityT, class Msg>
-  inline SecurityT* EkaFhNomGr::processSingleSideUpdate(const unsigned char* m) {
+  inline SecurityT*
+  EkaFhBxGr::processSingleSideUpdate(const unsigned char* m) {
+  SecurityIdT securityId = getInstrumentId<Msg>(m);
+  SecurityT* s = book->findSecurity(securityId);
+  if (!s) return NULL;
   
   OrderIdT orderId   = getOrderId<Msg>(m);
   FhOrder* o         = book->findOrder(orderId);
@@ -371,8 +323,6 @@ template <class SecurityT, class Msg>
 
   SizeT       size  = getSize <Msg>(m);
   PriceT      price = getPrice<Msg>(m);
-    
-  SecurityT* s = (FhSecurity*)o->plevel->s;
 
   book->setSecurityPrevState(s);
   book->modifyOrder(o,price,size);
@@ -381,21 +331,19 @@ template <class SecurityT, class Msg>
 }
 
 template <class SecurityT, class Msg>
-  inline SecurityT* EkaFhNomGr::processReplaceQuote(const unsigned char* m) {
-
+  inline SecurityT*
+  EkaFhBxGr::processReplaceQuote(const unsigned char* m) {
+  SecurityIdT securityId = getInstrumentId<Msg>(m);
+  SecurityT* s = book->findSecurity(securityId);
+  if (!s) return NULL;
+  
   OrderIdT oldBidOrderId   = getOldBidOrderId<Msg>(m);
   OrderIdT oldAskOrderId   = getOldAskOrderId<Msg>(m);
   FhOrder* bid_o = book->findOrder(oldBidOrderId);
   FhOrder* ask_o = book->findOrder(oldAskOrderId);
 
   if (!bid_o && !ask_o) return NULL;
-  SecurityT* s = NULL;
 
-  if (bid_o)
-    s = (FhSecurity*)bid_o->plevel->s;
-  if (ask_o)
-    s = (FhSecurity*)ask_o->plevel->s;
-  
   book->setSecurityPrevState(s);
   if (bid_o) {
     FhOrderType t          = bid_o->type;
@@ -406,7 +354,7 @@ template <class SecurityT, class Msg>
     book->deleteOrder(bid_o);
     book->addOrder(s,newBidOrderId,t,bidPrice,bidSize,SideT::BID);
   }
-  if (ask_o) {    
+  if (ask_o) {
     FhOrderType t          = ask_o->type;
     OrderIdT newAskOrderId = getNewAskOrderId<Msg>(m);
     SizeT    askSize       = getAskSize   <Msg>(m);
@@ -420,17 +368,18 @@ template <class SecurityT, class Msg>
 }
 
 template <class SecurityT, class Msg>
-  inline SecurityT* EkaFhNomGr::processDeleteQuote(const unsigned char* m) {
-  SecurityT* s = NULL;
-
+  inline SecurityT*
+  EkaFhBxGr::processDeleteQuote(const unsigned char* m) {
+  SecurityIdT securityId = getInstrumentId<Msg>(m);
+  SecurityT* s = book->findSecurity(securityId);
+  if (!s) return NULL;
+  
   OrderIdT bidOrderId   = getBidOrderId<Msg>(m);
   OrderIdT askOrderId   = getAskOrderId<Msg>(m);
 
   FhOrder* bid_o = book->findOrder(bidOrderId);
   FhOrder* ask_o = book->findOrder(askOrderId);
-  if (bid_o) s = (FhSecurity*)bid_o->plevel->s;
-  if (ask_o) s = (FhSecurity*)ask_o->plevel->s;
-      
+  
   if (!bid_o && !ask_o) return NULL;
 
   book->setSecurityPrevState(s);
@@ -441,11 +390,15 @@ template <class SecurityT, class Msg>
   return s;
 }
 
+
+
+
 template <class SecurityT, class Msg>
-  inline SecurityT* EkaFhNomGr::processTrade(const unsigned char* m,
-					     uint64_t sequence,
-					     uint64_t msgTs,
-					     const EfhRunCtx* pEfhRunCtx) {
+  inline SecurityT*
+  EkaFhBxGr::processTrade(const unsigned char* m,
+			  uint64_t sequence,
+			  uint64_t msgTs,
+			  const EfhRunCtx* pEfhRunCtx) {
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
   if (!s) return NULL;
@@ -455,7 +408,7 @@ template <class SecurityT, class Msg>
 
   const EfhTradeMsg msg = {
 			   {EfhMsgType::kTrade,
-			    {this->exch,(EkaLSI)this->id}, // group
+			    {this->exch,(EkaLSI)this->id},
 			    0,  // underlyingId
 			    (uint64_t) securityId, 
 			    sequence,
@@ -474,13 +427,11 @@ template <class SecurityT, class Msg>
 }
 
 template <class SecurityT, class Msg>
-  inline SecurityT* EkaFhNomGr::processAuctionUpdate(const unsigned char* m,
-						     uint64_t sequence,
-						     uint64_t msgTs,
-						     const EfhRunCtx* pEfhRunCtx) {
-  auto auctionUpdateType = getAuctionUpdateType<Msg>(m);
-  if (auctionUpdateType == EfhAuctionUpdateType::kUnknown) return NULL;
-
+  inline SecurityT*
+  EkaFhBxGr::processAuctionUpdate(const unsigned char* m,
+				  uint64_t sequence,
+				  uint64_t msgTs,
+				  const EfhRunCtx* pEfhRunCtx) {
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
   if (!s) return NULL;
@@ -496,11 +447,13 @@ template <class SecurityT, class Msg>
   msg.header.gapNum         = gapNum;
 
   msg.auctionId             = getAuctionId<Msg>(m);
+  msg.auctionType           = getAuctionType<Msg>(m);;
 
-  msg.updateType            = auctionUpdateType;
+  msg.updateType            = EfhAuctionUpdateType::kNew;
   msg.side                  = getAuctionSide<Msg>(m);
   msg.capacity              = getAuctionOrderCapacity<Msg>(m);
-  msg.quantity              = getAuctionSize<Msg>(m);
+  msg.quantity              = getImbalanceSize<Msg>(m) +
+    getPairedSize<Msg>(m);
   msg.price                 = getAuctionPrice<Msg>(m);
   msg.endTimeNanos          = 0;
 
@@ -511,8 +464,9 @@ template <class SecurityT, class Msg>
 }
 
 template <class Msg>
-inline uint64_t EkaFhNomGr::processEndOfSnapshot(const unsigned char* m,
-						 EkaFhMode op) {
+inline uint64_t
+EkaFhBxGr::processEndOfSnapshot(const unsigned char* m,
+				EkaFhMode op) {
   auto msg {reinterpret_cast<const Msg*>(m)};
   char seqNumStr[sizeof(msg->nextLifeSequence)+1] = {};
   memcpy(seqNumStr, msg->nextLifeSequence, sizeof(msg->nextLifeSequence));
@@ -524,10 +478,9 @@ inline uint64_t EkaFhNomGr::processEndOfSnapshot(const unsigned char* m,
   return (op == EkaFhMode::SNAPSHOT) ? num : 0;
 }
 
-
 template <class Msg>
-inline void EkaFhNomGr::processDefinition(const unsigned char* m,
-					  const EfhRunCtx* pEfhRunCtx) {
+inline void EkaFhBxGr::processDefinition(const unsigned char* m,
+					 const EfhRunCtx* pEfhRunCtx) {
   auto msg {reinterpret_cast<const Msg*>(m)};
   EfhOptionDefinitionMsg definitionMsg{};
   definitionMsg.header.msgType        = EfhMsgType::kOptionDefinition;
@@ -559,25 +512,3 @@ inline void EkaFhNomGr::processDefinition(const unsigned char* m,
 					 (EfhSecUserData) 0,
 					 pEfhRunCtx->efhRunUserData);
 }
-
-
-#if 0
-static void print_sec_state(fh_b_security* s) {
-  printf ("SecID: %u, num_of_buy_plevels: %u, num_of_sell_plevels: %u\n",s->security_id,s->num_of_buy_plevels,s->num_of_sell_plevels);
-  printf ("BUY Side:\n");
-  fh_b_plevel* p = s->buy;
-  for (auto i = 0; i < s->num_of_buy_plevels; i++) {
-    printf ("\t %d: price = %u, cnt = %u, size = %u, o_size = %u\n",i,p->price,p->cnt,p->size,p->o_size);
-    p = p->next;
-  }
-  printf ("SELL Side:\n");
-  p = s->sell;
-  for (auto i = 0; i < s->num_of_sell_plevels; i++) {
-    printf ("\t %d: price = %u, cnt = %u, size = %u, o_size = %u\n",i,p->price,p->cnt,p->size,p->o_size);
-    p = p->next;
-  }
-  fflush(stdout);
-}
-#endif
-
-

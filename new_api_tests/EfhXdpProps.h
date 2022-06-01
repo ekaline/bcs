@@ -2,156 +2,182 @@
 #define _EFH_XDP_PROPS_H
 
 EkaProp efhArcaInitCtxEntries_A[] = {
+	{"efh.ARCA_XDP.group.0.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.0.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.0.mcast.addr","224.0.41.32:11032"},
 	{"efh.ARCA_XDP.group.0.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.0.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.0.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.1.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.1.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.1.mcast.addr","224.0.41.33:11033"},
 	{"efh.ARCA_XDP.group.1.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.1.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.1.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.2.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.2.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.2.mcast.addr","224.0.41.34:11034"},
 	{"efh.ARCA_XDP.group.2.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.2.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.2.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.3.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.3.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.3.mcast.addr","224.0.41.35:11035"},
 	{"efh.ARCA_XDP.group.3.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.3.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.3.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.4.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.4.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.4.mcast.addr","224.0.41.36:11036"},
 	{"efh.ARCA_XDP.group.4.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.4.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.4.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.5.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.5.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.5.mcast.addr","224.0.41.37:11037"},
 	{"efh.ARCA_XDP.group.5.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.5.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.5.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.6.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.6.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.6.mcast.addr","224.0.41.38:11038"},
 	{"efh.ARCA_XDP.group.6.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.6.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.6.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.7.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.7.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.7.mcast.addr","224.0.41.39:11039"},
 	{"efh.ARCA_XDP.group.7.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.7.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.7.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.8.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.8.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.8.mcast.addr","224.0.41.40:11040"},
 	{"efh.ARCA_XDP.group.8.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.8.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.8.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.9.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.9.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.9.mcast.addr","224.0.41.41:11041"},
 	{"efh.ARCA_XDP.group.9.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.9.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.9.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.10.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.10.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.10.mcast.addr","224.0.41.42:11042"},
 	{"efh.ARCA_XDP.group.10.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.10.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.10.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.11.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.11.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.11.mcast.addr","224.0.41.43:11043"},
 	{"efh.ARCA_XDP.group.11.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.11.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.11.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.12.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.12.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.12.mcast.addr","224.0.41.44:11044"},
 	{"efh.ARCA_XDP.group.12.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.12.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.12.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.13.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.13.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.13.mcast.addr","224.0.41.45:11045"},
 	{"efh.ARCA_XDP.group.13.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.13.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.13.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.14.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.14.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.14.mcast.addr","224.0.41.46:11046"},
 	{"efh.ARCA_XDP.group.14.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.14.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.14.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.15.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.15.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.15.mcast.addr","224.0.41.47:11047"},
 	{"efh.ARCA_XDP.group.15.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.15.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.15.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.16.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.16.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.16.mcast.addr","224.0.41.48:11048"},
 	{"efh.ARCA_XDP.group.16.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.16.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.16.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.17.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.17.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.17.mcast.addr","224.0.41.49:11049"},
 	{"efh.ARCA_XDP.group.17.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.17.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.17.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.18.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.18.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.18.mcast.addr","224.0.41.50:11050"},
 	{"efh.ARCA_XDP.group.18.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.18.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.18.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.19.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.19.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.19.mcast.addr","224.0.41.51:11051"},
 	{"efh.ARCA_XDP.group.19.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.19.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.19.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.20.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.20.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.20.mcast.addr","224.0.41.52:11052"},
 	{"efh.ARCA_XDP.group.20.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.20.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.20.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.21.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.21.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.21.mcast.addr","224.0.41.53:11053"},
 	{"efh.ARCA_XDP.group.21.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.21.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.21.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.22.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.22.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.22.mcast.addr","224.0.41.54:11054"},
 	{"efh.ARCA_XDP.group.22.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.22.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.22.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.23.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.23.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.23.mcast.addr","224.0.41.55:11055"},
 	{"efh.ARCA_XDP.group.23.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.23.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.23.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.24.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.24.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.24.mcast.addr","224.0.41.56:11056"},
 	{"efh.ARCA_XDP.group.24.snapshot.addr","159.125.66.225:51700"}, // Definitions 
 	{"efh.ARCA_XDP.group.24.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.ARCA_XDP.group.24.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.ARCA_XDP.group.25.useDefinitionsFile","1"},
 	{"efh.ARCA_XDP.group.25.snapshot.connectRetryDelayTime","15"},
 	{"efh.ARCA_XDP.group.25.mcast.addr","224.0.41.57:11057"},
 	{"efh.ARCA_XDP.group.25.snapshot.addr","159.125.66.225:51700"}, // Definitions 
@@ -320,156 +346,182 @@ EkaProp efhArcaInitCtxEntries_B[] = {
 };
 
 EkaProp efhAmexInitCtxEntries_A[] = {
+	{"efh.AMEX_XDP.group.0.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.0.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.0.mcast.addr","224.0.58.32:11032"},
 	{"efh.AMEX_XDP.group.0.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.0.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.0.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.1.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.1.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.1.mcast.addr","224.0.58.33:11033"},
 	{"efh.AMEX_XDP.group.1.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.1.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.1.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.2.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.2.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.2.mcast.addr","224.0.58.34:11034"},
 	{"efh.AMEX_XDP.group.2.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.2.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.2.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.3.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.3.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.3.mcast.addr","224.0.58.35:11035"},
 	{"efh.AMEX_XDP.group.3.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.3.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.3.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.4.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.4.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.4.mcast.addr","224.0.58.36:11036"},
 	{"efh.AMEX_XDP.group.4.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.4.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.4.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.5.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.5.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.5.mcast.addr","224.0.58.37:11037"},
 	{"efh.AMEX_XDP.group.5.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.5.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.5.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.6.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.6.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.6.mcast.addr","224.0.58.38:11038"},
 	{"efh.AMEX_XDP.group.6.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.6.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.6.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.7.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.7.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.7.mcast.addr","224.0.58.39:11039"},
 	{"efh.AMEX_XDP.group.7.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.7.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.7.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.8.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.8.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.8.mcast.addr","224.0.58.40:11040"},
 	{"efh.AMEX_XDP.group.8.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.8.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.8.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.9.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.9.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.9.mcast.addr","224.0.58.41:11041"},
 	{"efh.AMEX_XDP.group.9.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.9.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.9.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.10.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.10.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.10.mcast.addr","224.0.58.42:11042"},
 	{"efh.AMEX_XDP.group.10.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.10.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.10.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.11.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.11.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.11.mcast.addr","224.0.58.43:11043"},
 	{"efh.AMEX_XDP.group.11.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.11.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.11.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.12.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.12.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.12.mcast.addr","224.0.58.44:11044"},
 	{"efh.AMEX_XDP.group.12.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.12.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.12.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.13.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.13.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.13.mcast.addr","224.0.58.45:11045"},
 	{"efh.AMEX_XDP.group.13.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.13.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.13.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.14.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.14.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.14.mcast.addr","224.0.58.46:11046"},
 	{"efh.AMEX_XDP.group.14.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.14.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.14.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.15.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.15.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.15.mcast.addr","224.0.58.47:11047"},
 	{"efh.AMEX_XDP.group.15.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.15.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.15.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.16.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.16.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.16.mcast.addr","224.0.58.48:11048"},
 	{"efh.AMEX_XDP.group.16.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.16.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.16.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.17.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.17.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.17.mcast.addr","224.0.58.49:11049"},
 	{"efh.AMEX_XDP.group.17.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.17.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.17.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.18.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.18.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.18.mcast.addr","224.0.58.50:11050"},
 	{"efh.AMEX_XDP.group.18.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.18.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.18.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.19.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.19.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.19.mcast.addr","224.0.58.51:11051"},
 	{"efh.AMEX_XDP.group.19.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.19.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.19.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.20.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.20.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.20.mcast.addr","224.0.58.52:11052"},
 	{"efh.AMEX_XDP.group.20.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.20.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.20.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.21.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.21.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.21.mcast.addr","224.0.58.53:11053"},
 	{"efh.AMEX_XDP.group.21.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.21.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.21.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.22.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.22.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.22.mcast.addr","224.0.58.54:11054"},
 	{"efh.AMEX_XDP.group.22.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.22.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.22.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.23.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.23.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.23.mcast.addr","224.0.58.55:11055"},
 	{"efh.AMEX_XDP.group.23.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.23.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.23.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.24.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.24.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.24.mcast.addr","224.0.58.56:11056"},
 	{"efh.AMEX_XDP.group.24.snapshot.addr","159.125.66.227:51700"}, // Definitions 
 	{"efh.AMEX_XDP.group.24.snapshot.auth","stkxdp01:stkxdp01"}, 	// Definitions 
 	{"efh.AMEX_XDP.group.24.recovery.addr","0.0.0.0:0"}, 		// Not used 
 
+	{"efh.AMEX_XDP.group.25.useDefinitionsFile","0"},
 	{"efh.AMEX_XDP.group.25.snapshot.connectRetryDelayTime","15"},
 	{"efh.AMEX_XDP.group.25.mcast.addr","224.0.58.57:11057"},
 	{"efh.AMEX_XDP.group.25.snapshot.addr","159.125.66.227:51700"}, // Definitions 

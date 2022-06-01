@@ -67,19 +67,19 @@ static const uint64_t FireEntryHeapSize = 256;
 struct NomAddOrderShortPkt {
   mold_hdr             mold;
   uint16_t             msgLen;
-  Nom::add_order_short addOrderShort;
+  NomFeed::AddOrderShort addOrderShort;
 };
 struct NomAddOrderLongPkt {
   mold_hdr            mold;
   uint16_t            msgLen;
-  Nom::add_order_long addOrderLong;
+  NomFeed::AddOrderLong addOrderLong;
 };
 struct NomAddOrderShortLongPkt {
   mold_hdr            mold;
   uint16_t            msgLenShort;
-  Nom::add_order_short addOrderShort;
+  NomFeed::AddOrderShort addOrderShort;
   uint16_t            msgLenLong;
-  Nom::add_order_long addOrderLong;
+  NomFeed::AddOrderLong addOrderLong;
 };
 /* --------------------------------------------- */
 
@@ -578,16 +578,18 @@ int main(int argc, char *argv[]) {
       .sequence    = be64toh(123),
       .message_cnt = be16toh(1)
     },
-    .msgLen = be16toh(sizeof(Nom::add_order_short)),
+    .msgLen = be16toh(sizeof(NomFeed::AddOrderShort)),
     .addOrderShort = {
-      .type                  = 'a',
-      .tracking_num          = be16toh(0xbeda),
-      .time_nano             = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66},
-      .order_reference_delta = be64toh(0x1234567890abcdef),
+	  .hdr= {
+	      .type                  = 'a',
+	      .trackingNum          = be16toh(0xbeda),
+	      .timeNano             = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66}
+	  },
+      .orderId = be64toh(0x1234567890abcdef),
       .side                  = 'S',
-      .option_id             = be32toh(security[0].id),
+      .instrumentId             = be32toh(security[0].id),
       .price                 = be16toh(security[0].askMaxPrice - 1),
-      .size                  = be16toh(security[0].size)
+      .volume                  = be16toh(security[0].size)
     }
   };
 
@@ -661,16 +663,18 @@ int main(int argc, char *argv[]) {
       .sequence    = be64toh(124),
       .message_cnt = be16toh(1)
     },
-    .msgLen = be16toh(sizeof(Nom::add_order_long)),
+    .msgLen = be16toh(sizeof(NomFeed::AddOrderLong)),
     .addOrderLong = {
-      .type                  = 'A',
-      .tracking_num          = be16toh(0xbeda),
-      .time_nano             = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66},
-      .order_reference_delta = be64toh(0x1234567890abcdef),
+	  .hdr = {
+	      .type                  = 'A',
+	      .trackingNum          = be16toh(0xbeda),
+	      .timeNano             = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66}
+	  },
+      .orderId = be64toh(0x1234567890abcdef),
       .side                  = 'B',
-      .option_id             = be32toh(security[1].id),
+      .instrumentId             = be32toh(security[1].id),
       .price                 = be32toh(security[1].bidMinPrice * 100 + 1),
-      .size                  = be32toh(security[1].size)
+      .volume                  = be32toh(security[1].size)
     }
   };
 
@@ -711,33 +715,37 @@ int main(int argc, char *argv[]) {
 
     /* ============================================== */
   NomAddOrderShortLongPkt mdAskShortBidLongPkt = {
-    .mold = {
-      .session_id  = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa},
-      .sequence    = be64toh(125),
-      .message_cnt = be16toh(2)
-    },
-    .msgLenShort = be16toh(sizeof(Nom::add_order_short)),
-    .addOrderShort = {
-      .type                  = 'a',
-      .tracking_num          = be16toh(0xbeda),
-      .time_nano             = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66},
-      .order_reference_delta = be64toh(0x1234567890abcdef),
-      .side                  = 'S',
-      .option_id             = be32toh(TEST_NOM_SEC_ID),
-      .price                 = be16toh(secCtx.askMaxPrice - 1),
-      .size                  = be16toh(secCtx.size)
-    },
-    .msgLenLong = be16toh(sizeof(Nom::add_order_long)),
-    .addOrderLong = {
-      .type                  = 'A',
-      .tracking_num          = be16toh(0xbeda),
-      .time_nano             = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66},
-      .order_reference_delta = be64toh(0x1234567890abcdef),
-      .side                  = 'B',
-      .option_id             = be32toh(DUMMY_NOM_SEC_ID),
-      .price                 = be32toh(secCtx.bidMinPrice * 100 + 1),
-      .size                  = be32toh(secCtx.size)
-    }
+      .mold = {
+	  .session_id  = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa},
+	  .sequence    = be64toh(125),
+	  .message_cnt = be16toh(2)
+      },
+      .msgLenShort = be16toh(sizeof(NomFeed::AddOrderShort)),
+      .addOrderShort = {
+	  .hdr = {
+	      .type                 = 'a',
+	      .trackingNum          = be16toh(0xbeda),
+	      .timeNano             = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66}
+	  },
+	  .orderId = be64toh(0x1234567890abcdef),
+	  .side                     = 'S',
+	  .instrumentId             = be32toh(TEST_NOM_SEC_ID),
+	  .price                    = be16toh(secCtx.askMaxPrice - 1),
+	  .volume                   = be16toh(secCtx.size)
+      },
+      .msgLenLong = be16toh(sizeof(NomFeed::AddOrderLong)),
+      .addOrderLong = {
+	  .hdr = {
+	      .type                 = 'A',
+	      .trackingNum          = be16toh(0xbeda),
+	      .timeNano             = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66}
+	  },
+	  .orderId = be64toh(0x1234567890abcdef),
+	  .side                     = 'B',
+	  .instrumentId             = be32toh(DUMMY_NOM_SEC_ID),
+	  .price                    = be32toh(secCtx.bidMinPrice * 100 + 1),
+	  .volume                   = be32toh(secCtx.size)
+      }
   };
 
 #endif

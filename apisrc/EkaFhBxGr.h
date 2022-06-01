@@ -1,11 +1,12 @@
-#ifndef _EKA_FH_NOM_GR_H_
-#define _EKA_FH_NOM_GR_H_
+#ifndef _EKA_FH_BX_GR_H_
+#define _EKA_FH_BX_GR_H_
+
 
 #include "EkaFhNasdaqGr.h"
 #include "EkaFhFullBook.h"
-#include "EkaFhNomParser.h"
+#include "EkaFhBxParser.h"
 
-class EkaFhNomGr : public EkaFhNasdaqGr {
+class EkaFhBxGr : public EkaFhNasdaqGr {
 public:
   static const uint   SCALE          = (const uint) 24;
   static const uint   SEC_HASH_SCALE = 19;
@@ -28,8 +29,8 @@ public:
 
   FhBook*   book = NULL;
 
-public:
-  virtual ~EkaFhNomGr() {
+  public:
+  virtual ~EkaFhBxGr() {
     if (book) {
       delete book;
       EKA_DEBUG("%s:%u Book is deleted",
@@ -65,14 +66,10 @@ public:
 
   void print_q_state();
   
-  
 private:
   template <class SecurityT, class Msg>
   SecurityT* processTradingAction(const unsigned char* m);
-  
-  template <class SecurityT, class Msg>
-  SecurityT* processOptionOpen(const unsigned char* m);
- 
+
   template <class SecurityT, class Msg>
   SecurityT* processAddOrder(const unsigned char* m);
 
@@ -80,13 +77,13 @@ private:
   SecurityT* processAddQuote(const unsigned char* m);
   
   template <class SecurityT, class Msg>
+  SecurityT* processDeleteOrder(const unsigned char* m);
+
+  template <class SecurityT, class Msg>
   SecurityT* processOrderExecuted(const unsigned char* m);
 
   template <class SecurityT, class Msg>
   SecurityT* processReplaceOrder(const unsigned char* m);
-
-  template <class SecurityT, class Msg>
-  SecurityT* processDeleteOrder(const unsigned char* m);
 
   template <class SecurityT, class Msg>
   SecurityT* processSingleSideUpdate(const unsigned char* m);
@@ -115,5 +112,4 @@ private:
 				EkaFhMode op);
      
 };
-
 #endif
