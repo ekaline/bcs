@@ -14,9 +14,11 @@ class EkaUserChannel : public EkaDmaChannel<16> {
 				 EPM_REPORT = 0,
 				 LWIP_PATH  = 1} ; //user channel
   enum class DMA_TYPE : uint8_t {
-	      //		 EPM  = 3,
-                                 FIRE         = 1,
+                                 //below are used only in lwip channel
+                                 EPM          = 3,
  			         TCPRX        = 4,
+                                 //below are used only in report channel
+                                 FIRE         = 1,
 				 EXCEPTION    = 6,
 				 FAST_CANCEL  = 7,
 				 NEWS         = 8,
