@@ -264,8 +264,8 @@ std::pair<int,size_t> processExceptionReport(EkaDev* dev,
 
   switch (static_cast<HwEpmActionStatus>(hwEpmReport->epm.action)) {
   case HwEpmActionStatus::HWPeriodicStatus :
-    EKA_LOG("Processgin HwEpmActionStatus::HWPeriodicStatus, len=%d",srcReportLen);
     if (hwEpmReport->interrupt_vector) {
+    EKA_LOG("Processgin HwEpmActionStatus::HWPeriodicStatus, len=%d hwEpmReport->interrupt_vector=0x%jx",srcReportLen,hwEpmReport->interrupt_vector);
       EfcExceptionsReport exceptReport = {};
       getExceptionsReport(dev,&exceptReport); //Per core
       exceptReport.globalExcpt = hwEpmReport->interrupt_vector;
@@ -465,7 +465,6 @@ void ekaFireReportThread(EkaDev* dev) {
     uint8_t reportBuf[4000] = {};
     std::pair<int,size_t> r;
     switch ((EkaUserChannel::DMA_TYPE)dmaReportHdr->type) {
-//  case EkaUserChannel::DMA_TYPE::EPM:
     case EkaUserChannel::DMA_TYPE::SW_TRIGGERED:
       r = processSwTriggeredReport(dev,payload,len,
 				   dev->userReportQ,

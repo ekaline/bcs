@@ -172,8 +172,8 @@ struct hw_epm_report_t {
 } __attribute__((packed));
 
 struct hw_epm_exception_report_t {
-  uint8_t         interrupt_vector;
-  uint8_t         b32_padding[31];
+  uint64_t        interrupt_vector;
+  uint8_t         b32_padding[24];
   hw_epm_report_t epm;
 } __attribute__((packed));
 
