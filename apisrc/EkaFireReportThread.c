@@ -159,7 +159,7 @@ inline size_t pushFastCancelReport(int reportIdx, uint8_t* dst,
 			   const hw_epm_fast_cancel_report_t* hwEpmReport) {
     auto b = dst;
     auto epmReportHdr {reinterpret_cast<EfcReportHdr*>(b)};
-    epmReportHdr->type = EfcReportType::FastCancelReport;
+    epmReportHdr->type = EfcReportType::kFastCancelReport;
     epmReportHdr->idx  = reportIdx;
     epmReportHdr->size = sizeof(EpmFastCancelReport);
     b += sizeof(*epmReportHdr);
@@ -179,7 +179,7 @@ inline size_t pushNewsReport(int reportIdx, uint8_t* dst,
 			     const hw_epm_news_report_t* hwEpmReport) {
     auto b = dst;
     auto epmReportHdr {reinterpret_cast<EfcReportHdr*>(b)};
-    epmReportHdr->type = EfcReportType::NewsReport;
+    epmReportHdr->type = EfcReportType::kNewsReport;
     epmReportHdr->idx  = reportIdx;
     epmReportHdr->size = sizeof(EpmNewsReport);
     b += sizeof(*epmReportHdr);
@@ -225,7 +225,7 @@ std::pair<int,size_t> processSwTriggeredReport(EkaDev* dev,
 
   switch (static_cast<HwEpmActionStatus>(hwEpmReport->epm.action)) {
   case HwEpmActionStatus::Sent : 
-    b += pushEpmReport(++reportIdx,b,hwEpmReport->epm); 
+    b += pushEpmReport(++reportIdx,b,&hwEpmReport->epm); 
     b += pushFiredPkt (++reportIdx,b,q,dmaIdx);
     strategyId2ret = hwEpmReport->epm.strategyId;
     EKA_LOG("processEpmReport HwEpmActionStatus::Sent, len=%d",srcReportLen);
@@ -233,7 +233,7 @@ std::pair<int,size_t> processSwTriggeredReport(EkaDev* dev,
   default:
     // Broken EPM send reported by hwEpmReport->action
     EKA_LOG("Processgin HwEpmActionStatus::Garbage, len=%d",srcReportLen);
-    b += pushEpmReport(++reportIdx,b,hwEpmReport->epm);
+    b += pushEpmReport(++reportIdx,b,&hwEpmReport->epm);
   } 
   //--------------------------------------------------------------------------
   containerHdr->num_of_reports = reportIdx;
@@ -275,7 +275,7 @@ std::pair<int,size_t> processExceptionReport(EkaDev* dev,
   default:
     // Broken EPM 
     EKA_LOG("Processgin HwEpmActionStatus::Garbage, len=%d",srcReportLen);
-    b += pushEpmReport(++reportIdx,b,hwEpmReport->epm);
+    b += pushEpmReport(++reportIdx,b,&hwEpmReport->epm);
   } 
   //--------------------------------------------------------------------------
   containerHdr->num_of_reports = reportIdx;
@@ -306,7 +306,7 @@ std::pair<int,size_t> processFastCancelReport(EkaDev* dev,
 
   switch (static_cast<HwEpmActionStatus>(hwEpmReport->epm.action)) {
   case HwEpmActionStatus::Sent : 
-    b += pushEpmReport(++reportIdx,b,hwEpmReport->epm);
+    b += pushEpmReport(++reportIdx,b,&hwEpmReport->epm);
     b += pushFastCancelReport(++reportIdx,b,hwEpmReport);
     b += pushFiredPkt (++reportIdx,b,q,dmaIdx);
     strategyId2ret = hwEpmReport->epm.strategyId;
@@ -315,7 +315,7 @@ std::pair<int,size_t> processFastCancelReport(EkaDev* dev,
   default:
     // Broken EPM send reported by hwEpmReport->action
     EKA_LOG("Processgin HwEpmActionStatus::Garbage, len=%d",srcReportLen);
-    b += pushEpmReport(++reportIdx,b,hwEpmReport->epm);
+    b += pushEpmReport(++reportIdx,b,&hwEpmReport->epm);
   } 
   //--------------------------------------------------------------------------
   containerHdr->num_of_reports = reportIdx;
@@ -346,7 +346,7 @@ std::pair<int,size_t> processNewsReport(EkaDev* dev,
 
   switch (static_cast<HwEpmActionStatus>(hwEpmReport->epm.action)) {
   case HwEpmActionStatus::Sent : 
-    b += pushEpmReport(++reportIdx,b,hwEpmReport->epm);
+    b += pushEpmReport(++reportIdx,b,&hwEpmReport->epm);
     b += pushNewsReport(++reportIdx,b,hwEpmReport);
     b += pushFiredPkt (++reportIdx,b,q,dmaIdx); 
     strategyId2ret = hwEpmReport->epm.strategyId;
@@ -355,7 +355,7 @@ std::pair<int,size_t> processNewsReport(EkaDev* dev,
   default:
     // Broken EPM send reported by hwEpmReport->action
     EKA_LOG("Processgin HwEpmActionStatus::Garbage, len=%d",srcReportLen);
-    b += pushEpmReport(++reportIdx,b,hwEpmReport->epm);
+    b += pushEpmReport(++reportIdx,b,&hwEpmReport->epm);
   } 
   //--------------------------------------------------------------------------
   containerHdr->num_of_reports = reportIdx;

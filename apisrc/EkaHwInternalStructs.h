@@ -169,7 +169,7 @@ struct hw_epm_report_t {
   uint16_t  postStratEnable;
   uint64_t  user;
   uint8_t   islocal;
-} __attribute__((packed)); //do not use directly
+} __attribute__((packed));
 
 struct hw_epm_exception_report_t {
   uint8_t         interrupt_vector;
