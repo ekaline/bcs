@@ -155,6 +155,47 @@ inline size_t pushEpmReport(int reportIdx, uint8_t* dst,
     return b - dst;
 }
 /* ########################################################### */
+inline size_t pushFastCancelReport(int reportIdx, uint8_t* dst,
+			   const hw_epm_fast_cancel_report_t* hwEpmReport) {
+    auto b = dst;
+    auto epmReportHdr {reinterpret_cast<EfcReportHdr*>(b)};
+    epmReportHdr->type = EfcReportType::FastCancelReport;
+    epmReportHdr->idx  = reportIdx;
+    epmReportHdr->size = sizeof(EpmFastCancelReport);
+    b += sizeof(*epmReportHdr);
+    //--------------------------------------------------------------------------
+
+    auto epmReport {reinterpret_cast<EpmFastCancelReport*>(b)};
+    b += sizeof(*epmReport);
+    //--------------------------------------------------------------------------
+    epmReport->numInGroup     = hwEpmReport->num_in_group;
+    epmReport->headerSize     = hwEpmReport->header_size;
+    epmReport->sequenceNumber = hwEpmReport->sequence_number;
+    
+    return b - dst;
+}
+/* ########################################################### */
+inline size_t pushNewsReport(int reportIdx, uint8_t* dst,
+			     const hw_epm_news_report_t* hwEpmReport) {
+    auto b = dst;
+    auto epmReportHdr {reinterpret_cast<EfcReportHdr*>(b)};
+    epmReportHdr->type = EfcReportType::NewsReport;
+    epmReportHdr->idx  = reportIdx;
+    epmReportHdr->size = sizeof(EpmNewsReport);
+    b += sizeof(*epmReportHdr);
+    //--------------------------------------------------------------------------
+
+    auto epmReport {reinterpret_cast<EpmNewsReport*>(b)};
+    b += sizeof(*epmReport);
+    //--------------------------------------------------------------------------
+    epmReport->strategyIndex  = hwEpmReport->strategy_index;
+    epmReport->strategyRegion = hwEpmReport->strategy_region;
+    epmReport->token          = hwEpmReport->token;
+    
+    return b - dst;
+}
+
+/* ########################################################### */
 void getExceptionsReport(EkaDev* dev,EfcExceptionsReport* excpt) {
   excpt->globalExcpt = eka_read(dev,ADDR_INTERRUPT_SHADOW_RO);
   for (int i = 0; i < EFC_MAX_CORES; i++) {
@@ -184,7 +225,7 @@ std::pair<int,size_t> processSwTriggeredReport(EkaDev* dev,
 
   switch (static_cast<HwEpmActionStatus>(hwEpmReport->epm.action)) {
   case HwEpmActionStatus::Sent : 
-    b += pushEpmReport(++reportIdx,b,hwEpmReport); //TBD
+    b += pushEpmReport(++reportIdx,b,hwEpmReport->epm); 
     b += pushFiredPkt (++reportIdx,b,q,dmaIdx);
     strategyId2ret = hwEpmReport->epm.strategyId;
     EKA_LOG("processEpmReport HwEpmActionStatus::Sent, len=%d",srcReportLen);
@@ -192,7 +233,7 @@ std::pair<int,size_t> processSwTriggeredReport(EkaDev* dev,
   default:
     // Broken EPM send reported by hwEpmReport->action
     EKA_LOG("Processgin HwEpmActionStatus::Garbage, len=%d",srcReportLen);
-    b += pushEpmReport(++reportIdx,b,hwEpmReport);
+    b += pushEpmReport(++reportIdx,b,hwEpmReport->epm);
   } 
   //--------------------------------------------------------------------------
   containerHdr->num_of_reports = reportIdx;
@@ -215,7 +256,7 @@ std::pair<int,size_t> processExceptionReport(EkaDev* dev,
   uint reportIdx = 0;
   //--------------------------------------------------------------------------
   auto containerHdr {reinterpret_cast<EkaContainerGlobalHdr*>(b)};
-  containerHdr->type = EkaEventType::kEpmEvent;
+  containerHdr->type = EkaEventType::kExceptionEvent;
   containerHdr->num_of_reports = 0; // to be overwritten at the end
   b += sizeof(*containerHdr);
   //--------------------------------------------------------------------------
@@ -225,15 +266,16 @@ std::pair<int,size_t> processExceptionReport(EkaDev* dev,
   case HwEpmActionStatus::HWPeriodicStatus :
     EKA_LOG("Processgin HwEpmActionStatus::HWPeriodicStatus, len=%d",srcReportLen);
     if (hwEpmReport->interrupt_vector) {
-      EfcExceptionsReport exceptReport = {}; //TBD
-      getExceptionsReport(dev,&exceptReport); //TBD
+      EfcExceptionsReport exceptReport = {};
+      getExceptionsReport(dev,&exceptReport); //Per core
+      exceptReport.globalExcpt = hwEpmReport->interrupt_vector;
       b += pushExceptionReport(++reportIdx,b,&exceptReport);
     }
     break;
   default:
     // Broken EPM 
     EKA_LOG("Processgin HwEpmActionStatus::Garbage, len=%d",srcReportLen);
-    b += pushEpmReport(++reportIdx,b,hwEpmReport);
+    b += pushEpmReport(++reportIdx,b,hwEpmReport->epm);
   } 
   //--------------------------------------------------------------------------
   containerHdr->num_of_reports = reportIdx;
@@ -256,7 +298,7 @@ std::pair<int,size_t> processFastCancelReport(EkaDev* dev,
   uint reportIdx = 0;
   //--------------------------------------------------------------------------
   auto containerHdr {reinterpret_cast<EkaContainerGlobalHdr*>(b)};
-  containerHdr->type = EkaEventType::kEpmEvent;
+  containerHdr->type = EkaEventType::kFastCancelEvent;
   containerHdr->num_of_reports = 0; // to be overwritten at the end
   b += sizeof(*containerHdr);
   //--------------------------------------------------------------------------
@@ -264,7 +306,8 @@ std::pair<int,size_t> processFastCancelReport(EkaDev* dev,
 
   switch (static_cast<HwEpmActionStatus>(hwEpmReport->epm.action)) {
   case HwEpmActionStatus::Sent : 
-    b += pushEpmReport(++reportIdx,b,hwEpmReport); //TBD
+    b += pushEpmReport(++reportIdx,b,hwEpmReport->epm);
+    b += pushFastCancelReport(++reportIdx,b,hwEpmReport);
     b += pushFiredPkt (++reportIdx,b,q,dmaIdx);
     strategyId2ret = hwEpmReport->epm.strategyId;
     EKA_LOG("Processgin HwEpmActionStatus::Sent, len=%d",srcReportLen);
@@ -272,7 +315,7 @@ std::pair<int,size_t> processFastCancelReport(EkaDev* dev,
   default:
     // Broken EPM send reported by hwEpmReport->action
     EKA_LOG("Processgin HwEpmActionStatus::Garbage, len=%d",srcReportLen);
-    b += pushEpmReport(++reportIdx,b,hwEpmReport);
+    b += pushEpmReport(++reportIdx,b,hwEpmReport->epm);
   } 
   //--------------------------------------------------------------------------
   containerHdr->num_of_reports = reportIdx;
@@ -295,7 +338,7 @@ std::pair<int,size_t> processNewsReport(EkaDev* dev,
   uint reportIdx = 0;
   //--------------------------------------------------------------------------
   auto containerHdr {reinterpret_cast<EkaContainerGlobalHdr*>(b)};
-  containerHdr->type = EkaEventType::kEpmEvent;
+  containerHdr->type = EkaEventType::kNewsEvent;
   containerHdr->num_of_reports = 0; // to be overwritten at the end
   b += sizeof(*containerHdr);
   //--------------------------------------------------------------------------
@@ -303,15 +346,16 @@ std::pair<int,size_t> processNewsReport(EkaDev* dev,
 
   switch (static_cast<HwEpmActionStatus>(hwEpmReport->epm.action)) {
   case HwEpmActionStatus::Sent : 
-    b += pushEpmReport(++reportIdx,b,hwEpmReport);
-    b += pushFiredPkt (++reportIdx,b,q,dmaIdx); //TBD
-    strategyId2ret = hwEpmReport->epm.strategyId; //TBD
+    b += pushEpmReport(++reportIdx,b,hwEpmReport->epm);
+    b += pushNewsReport(++reportIdx,b,hwEpmReport);
+    b += pushFiredPkt (++reportIdx,b,q,dmaIdx); 
+    strategyId2ret = hwEpmReport->epm.strategyId;
     EKA_LOG("Processgin HwEpmActionStatus::Sent, len=%d",srcReportLen);
     break;
   default:
     // Broken EPM send reported by hwEpmReport->action
     EKA_LOG("Processgin HwEpmActionStatus::Garbage, len=%d",srcReportLen);
-    b += pushEpmReport(++reportIdx,b,hwEpmReport);
+    b += pushEpmReport(++reportIdx,b,hwEpmReport->epm);
   } 
   //--------------------------------------------------------------------------
   containerHdr->num_of_reports = reportIdx;

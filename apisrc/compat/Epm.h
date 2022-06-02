@@ -269,6 +269,17 @@ struct EpmFireReport {
   bool local;                         ///< True -> called from epmRaiseTrigger
 };
 
+struct EpmFastCancelReport {
+  uint8_t         numInGroup;        ///< Field from trigger MD
+  uint16_t        headerSize;        ///< Field from trigger MD
+  uint32_t        sequenceNumber;    ///< Field from trigger MD
+};
+
+struct EpmNewsReport {
+  uint16_t        strategyIndex;      ///< Field from trigger MD
+  uint8_t         strategyRegion;     ///< Field from trigger MD
+  uint64_t        token;              ///< Field from trigger MD
+};
 typedef void (*EpmFireReportCb)(const EpmFireReport *report, int nReports, void *ctx);
 
 /**
