@@ -103,7 +103,8 @@ public:
   inline int reset() {
     for (auto const& testSide : {bid, ask})
       testSide->resetSide();
-    tradeStatus   = EfhTradeStatus::kClosed;
+    // ChannelReset4 shouldn't change tradeStatus 
+    //    tradeStatus   = EfhTradeStatus::kClosed;
     lastMsgSeqNumProcessed = 0;
     return 0;
   }
