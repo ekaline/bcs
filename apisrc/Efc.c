@@ -358,6 +358,12 @@ EkaOpResult efcRun( EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx ) {
   EkaDev* dev = pEfcCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
 
+  dev->pEfcRunCtx = new EfcRunCtx;
+  if (!dev->pEfcRunCtx) on_error("fauiled on new EfcRunCtx");
+
+  memcpy (dev->pEfcRunCtx,pEfcRunCtx,sizeof(*pEfcRunCtx));
+
+
   auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
   if (efc == NULL) on_error("efc == NULL");
 

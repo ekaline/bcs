@@ -189,7 +189,7 @@ struct EfcRunCtx {
     /** These can be either fires or exceptions. */
   /* OnEkaExceptionReportCb onEkaExceptionReportCb;  */
   /* OnEfcFireReportCb      onEfcFireReportCb; */
-  OnReportCb      onEkaExceptionReportCb; 
+  OnReportCb      onEkaExceptionReportCb; //Not to be used
   OnReportCb      onEfcFireReportCb;  
   void *cbCtx;
 };

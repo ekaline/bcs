@@ -280,6 +280,9 @@ std::pair<int,size_t> processExceptionReport(EkaDev* dev,
   //--------------------------------------------------------------------------
   containerHdr->num_of_reports = reportIdx;
 
+  if (containerHdr->num_of_reports)
+    strategyId2ret = EPM_NO_STRATEGY;
+
   return {strategyId2ret,b-reportBuf};
 }
 
@@ -441,7 +444,7 @@ void ekaFireReportThread(EkaDev* dev) {
   if (!epmReportCh) on_error("!epmReportCh");
 
   while (dev->fireReportThreadActive) {
-    if ((updCnt++ % 0x300000)==0) {
+    if ((updCnt++ % 0x2000000)==0) {
       sendDate2Hw(dev);
       //      sendHb2HW(dev);
     }    
@@ -507,15 +510,24 @@ void ekaFireReportThread(EkaDev* dev) {
 	     reportLen,sizeof(reportBuf));
 
     if (strategyId != EPM_INVALID_STRATEGY) {
-      auto reportedStrategy {epm->strategy[strategyId]};
-      if (!reportedStrategy) {
-	hexDump("Bad Report",reportBuf,reportLen);
-	on_error("!strategy[%d]",strategyId);
+      if (strategyId != EPM_NO_STRATEGY) { //valid strategy
+	auto reportedStrategy {epm->strategy[strategyId]};
+	if (!reportedStrategy) {
+	  hexDump("Bad Report",reportBuf,reportLen);
+	  on_error("!strategy[%d]",strategyId);
+	}
+	if (!reportedStrategy->reportCb)
+	  on_error("reportCb is not defined");
+	reportedStrategy->reportCb(reportBuf,reportLen,
+				   reportedStrategy->cbCtx);
       }
-      if (!reportedStrategy->reportCb)
-	on_error("reportCb is not defined");
-      reportedStrategy->reportCb(reportBuf,reportLen,
-				 reportedStrategy->cbCtx);
+      else { //no strategy, as exception
+	if (!dev->pEfcRunCtx || !dev->pEfcRunCtx->onEfcFireReportCb)
+	  EKA_WARN("dev->pEfcRunCtx->reportCb is not defined");
+	else
+	  dev->pEfcRunCtx->onEfcFireReportCb(reportBuf,reportLen,
+					     dev->pEfcRunCtx->cbCtx);
+      }
     }
     epmReportCh->next();
 

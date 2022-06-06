@@ -138,6 +138,7 @@ typedef int32_t epm_actionid_t;
 
 #define EFC_STRATEGY 0
 #define EPM_INVALID_STRATEGY 255
+#define EPM_NO_STRATEGY 254
 
 /* The ekaline library provides the internal memory pool (heap) that is divided into two parts:
  *  - implicit used for actions (not directly accessible by applications)
