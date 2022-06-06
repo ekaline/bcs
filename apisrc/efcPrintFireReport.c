@@ -101,7 +101,7 @@ size_t printMdReport(FILE* file, const uint8_t* b) {
 }
 /* ########################################################### */
 int printBoeFire(FILE* file,const uint8_t* b) {
-  auto boeOrder {reinterpret_cast<const BoeNewOrderMsg*>(b)};
+  auto boeOrder {reinterpret_cast<const BoeNewOrderMsg*>(b+sizeof(EkaEthHdr)+sizeof(EkaIpHdr)+sizeof(EkaTcpHdr))};
   fprintf(file,"Fired BOE NewOrder:");
 
   fprintf(file,"\tStartOfMessage=0x%04x\n",    boeOrder->StartOfMessage);

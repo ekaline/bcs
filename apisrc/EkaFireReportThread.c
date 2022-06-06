@@ -105,7 +105,8 @@ inline size_t pushFiredPkt(int reportIdx, uint8_t* dst,
 
   memcpy(b,firePkt->data,firePkt->hdr.length);
   b += firePkt->hdr.length;
-    
+  //  hexDump("pushFiredPkt",firePkt->data,firePkt->hdr.length);
+
   return b - dst;
 }
 
