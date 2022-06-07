@@ -193,6 +193,17 @@ int printFastCancelReport(FILE* file,const uint8_t* b) {
 	  );
   return sizeof(*epmReport);
 }
+/* ########################################################### */
+int printNewsReport(FILE* file,const uint8_t* b) {
+  auto epmReport {reinterpret_cast<const EpmNewsReport*>(b)};
+  
+  fprintf(file,"strategyIndex=%d,strategyRegion=%d,token=0x%jx\n",
+	  epmReport->strategyIndex,
+	  epmReport->strategyRegion,
+	  epmReport->token
+	  );
+  return sizeof(*epmReport);
+}
 
 /* ########################################################### */
 
@@ -230,6 +241,9 @@ void efcPrintFireReport(const void* p, size_t len, void* ctx) {
       break;
     case EfcReportType::kFastCancelReport:
       b += printFastCancelReport(file,b);
+      break;
+    case EfcReportType::kNewsReport:
+      b += printNewsReport(file,b);
       break;
     default:
       on_error("Unexpected reportHdr->type %d",
