@@ -7,7 +7,6 @@
 #ifndef __EFC_CME_H__
 #define __EFC_CME_H__
 
-#include "../eka_macros.h"
 #include "Epm.h"
 
 extern "C" {
@@ -31,7 +30,7 @@ extern "C" {
     case EfcCmeActionId::Heartbeat :
       return EpmActionType::CmeSwHeartbeat;
     default:
-      on_error("Unexpected EfcCmeActionId id %u",(uint)id);                  
+      return EpmActionType::INVALID;
     }
   }
   
