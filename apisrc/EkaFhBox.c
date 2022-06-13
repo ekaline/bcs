@@ -113,7 +113,6 @@ EkaOpResult EkaFhBox::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
       break;
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::NORMAL : {
-      if (sequence == 0) break; // unsequenced packet
       if (sequence < gr->expected_sequence) {
 	if (gr->expected_sequence == gr->seq_after_snapshot) break; // end of recovery cycle
 	if (! Hsvf::isHeartbeat(pkt)) {
