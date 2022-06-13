@@ -258,8 +258,10 @@ namespace EfhNasdaqCommon {
     case 'B' : // “B” = Broker Dealer/ Non Registered Market Maker
       return EfhOrderCapacity::kBrokerDealer;
     default :
-      on_error("Unexpected customerFirmIndicator \'%c\'",
-	       msg->customerFirmIndicator);
+      // for all non EfhAuctionType::kExposed RFQs
+      return EfhOrderCapacity::kUnknown;
+      // on_error("Unexpected customerFirmIndicator \'%c\'",
+      // 	       msg->customerFirmIndicator);
     }
   }
   

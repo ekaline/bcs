@@ -13,6 +13,7 @@
 #include "EpmFireSqfTemplate.h"
 #include "EpmFireBoeTemplate.h"
 #include "EpmCmeILinkTemplate.h"
+#include "EpmCmeILinkHbTemplate.h"
 #include "EkaEfcDataStructs.h"
 #include "EkaHwCaps.h"
 #include "EhpNom.h"
@@ -67,6 +68,10 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
   case EfhFeedVer::kCME : 
     epm->hwFire  = new EpmCmeILinkTemplate(epm->templatesNum++);
     EKA_LOG("Initializing EpmCmeILinkTemplate");
+    epm->cmeHb  = new EpmCmeILinkHbTemplate(epm->templatesNum++);
+    EKA_LOG("Initializing EpmCmeILinkHbTemplate");
+    epm->DownloadSingleTemplate2HW(epm->cmeHb);
+
     ehp = new EhpCmeFC(dev);
     //ehp = NULL;
     //EKA_LOG("NO EHP for CME - using hardcoded CME Fast cancel parser");
