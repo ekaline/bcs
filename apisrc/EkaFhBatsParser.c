@@ -350,7 +350,9 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.header.gapNum         = gapNum;
 
     msg.auctionId             = message->auctionId;
-
+    msg.auctionType           = productMask & PM_ComplexBook ?
+      getComplexAuctionType(message->auctionType) : getVanillaAuctionType(message->auctionType);
+    
     msg.updateType            = EfhAuctionUpdateType::kNew;
     msg.side                  = getSide(message->side);
     msg.capacity              = getRfqCapacity(message->customerIndicator);
