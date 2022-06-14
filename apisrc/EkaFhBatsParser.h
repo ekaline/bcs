@@ -171,12 +171,12 @@ namespace Bats {
     }
   }
   /* ------------------------------------------------ */
-  inline EfhAuctionType getVanillaAuctionType(char msgAuctionType) {
+  inline EfhAuctionType getVanillaAuctionType(char msgAuctionType, bool useAIM) {
     switch (msgAuctionType) {
-    case 'B' : return EfhAuctionType::kAIM;
-    case 'S' : return EfhAuctionType::kSOLICITATION;
-    case 'T' : return EfhAuctionType::kSUM;
-    case 'A' : return EfhAuctionType::kALL_OR_NONE;
+    case 'B' : return useAIM ? EfhAuctionType::kAIM : EfhAuctionType::kBatsAuctionMechanism;
+    case 'S' : return EfhAuctionType::kSolicitation;
+    case 'T' : return EfhAuctionType::kStepUpMechanism;
+    case 'A' : return EfhAuctionType::kAllOrNone;
     default  : return EfhAuctionType::kUnknown;
     }
   }
@@ -184,10 +184,10 @@ namespace Bats {
   /* ------------------------------------------------ */
   inline EfhAuctionType getComplexAuctionType (char msgAuctionType) {
     switch (msgAuctionType) {
-    case 'C' : return EfhAuctionType::kCOA;
-    case 'S' : return EfhAuctionType::kSOLICITATION;
+    case 'C' : return EfhAuctionType::kComplexOrderAuction;
+    case 'S' : return EfhAuctionType::kSolicitation;
     case 'B' : return EfhAuctionType::kAIM;
-    case 'O' : return EfhAuctionType::kALL_OR_NONE;
+    case 'O' : return EfhAuctionType::kAllOrNone;
     default  : return EfhAuctionType::kUnknown;
     }
   }

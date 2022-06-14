@@ -257,7 +257,7 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
       on_error("quote request id `%s` does not have expected form",
                rootBlock->QuoteReqID);
     }
-    msg.auctionType = EfhAuctionType::kNotification;
+    msg.auctionType = EfhAuctionType::kSpreadSolicitation;
     msg.updateType = EfhAuctionUpdateType::kNew;
 
     /* ------------------------------- */

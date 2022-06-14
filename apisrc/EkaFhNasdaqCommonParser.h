@@ -180,12 +180,13 @@ namespace EfhNasdaqCommon {
   inline EfhAuctionType getAuctionType(const uint8_t* m) {
     switch (reinterpret_cast<const T*>(m)->auctionType) {
     case 'I' : // “I” = Order Exposure
-      return EfhAuctionType::kExposed; 
+      return EfhAuctionType::kExposed;
     case 'O' : // “O” = Opening
+      return EfhAuctionType::kOpen;
     case 'R' : // “R” = Reopening
-      return EfhAuctionType::kNotification; 
+      return EfhAuctionType::kReopen;
     case 'P' : // “P” = Price Improvement (PRISM) Auction
-      return EfhAuctionType::kPriceImprovementPeriod; 
+      return EfhAuctionType::kPrism;
     case 'B' : // “B” = Block Auction
       return EfhAuctionType::kFacilitation;
     default :

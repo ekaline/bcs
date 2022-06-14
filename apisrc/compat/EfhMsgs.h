@@ -361,49 +361,29 @@ typedef struct {
 } EfhComplexDefinitionMsg;
 
 enum class EfhAuctionType : char {
-#define EfhAuctionType_ENUM_ITER( _x )			\
-  _x( Unknown, ' ' )					\
-    /* Price Improvement Period (PIP) is used on BOX */	\
-    _x( PriceImprovementPeriod, 'Q' )			\
-    _x( Facilitation, 'F' )				\
-    _x( Solicitation, 'S' )				\
-    _x( Exposed,      'E' )				     \
-    _x( Notification, 'N' )				     \
-    /* Below encodings are copied from the Java */		\
-    /* Some of them are replicating the original enums above */	\
-    _x( ALL_OR_NONE, 'A' )					\
-    _x( BLOCK, 'B' )						\
-    _x( CROSS, 'C' )						\
-    _x( FACILITATION, 'F' )                                     \
-    _x( NORMAL, '_' )						\
-    _x( PIM, 'P' )						\
-    _x( PIP, 'Q' )						\
-    _x( PRIME, 'R' )						\
-    _x( ROUTE, 'G' )						\
-    _x( SUM, 'V' )						\
-    _x( BAM, 'K' )						\
-    _x( CUBE, 'U' )						\
-    _x( DIRECTED, 'D' )						\
-    _x( HAL, 'H' )						\
-    _x( SOLICITATION, 'S' )                                     \
-    _x( AIM, 'M' )						\
-    _x( COA, 'O' )						\
-    _x( FLASH, 'L' )						       \
-    _x( SPREAD_FACILITATION, 'f' )                                     \
-    _x( SPREAD_SOLICITATION, 's' )                                     \
-    _x( EXPOSED, 'E' )						       \
-    _x( SAL, 'Z' )						       \
-    _x( PIXL, 'X' )						       \
-    _x( OPEN, 'o' )						       \
-    _x( REOPEN, 'r' )						       \
-    _x( MKT_EXHAUST, 'T' )					       \
-    _x( SOR, 'W' )						       \
-    _x( NXP, 'N' )						       \
-    _x( IB, 'I' )						       \
-    _x( UNINITIALIZED, '2' )					       
-  
-    EfhAuctionType_ENUM_ITER( EKA__ENUM_DEF )
-    };
+    #define EfhAuctionType_ENUM_ITER( _x )                                  \
+                _x( Unknown, ' ' )                                          \
+                /* Below encodings are based on the Java class */           \
+                /* com.lehman.cmte.amm.exchange.QuoteRequestType */         \
+                _x( AllOrNone,              'A' )                           \
+                _x( Exposed,                'E' )                           \
+                _x( Facilitation,           'F' )                           \
+                _x( Solicitation,           'S' )                           \
+                _x( Open,                   'o' )                           \
+                _x( Reopen,                 'r' )                           \
+                /* Improvement Period (PIP) is used on BOX */               \
+                _x( PriceImprovementPeriod, 'Q' )                           \
+                _x( Prism,                  'p' )                           \
+                _x( Cube,                   'U' )                           \
+                _x( StepUpMechanism,        'V' )                           \
+                _x( BatsAuctionMechanism,   'K' )                           \
+                _x( AIM,                    'M' )                           \
+                _x( ComplexOrderAuction,    'O' )                           \
+                _x( SpreadFacilitation,     'f' )                           \
+                _x( SpreadSolicitation,     's' )
+
+        EfhAuctionType_ENUM_ITER( EKA__ENUM_DEF )
+};
 
 enum class EfhAuctionUpdateType : char {
     #define EfhAuctionUpdateType_ENUM_ITER( _x )                            \
