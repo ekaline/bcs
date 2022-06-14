@@ -520,7 +520,7 @@ int main(int argc, char *argv[]) {
     // ==============================================
 
     efcCmeSetILinkAppseq(dev,conn[0],0x1);
-#if 0
+#if 1
     EpmTrigger cmeTrigger = {
 	.token = CmeTestFastCancelToken,         ///< Security token
 	.strategy = EFC_STRATEGY,                ///< Strategy this trigger applies to
@@ -529,6 +529,8 @@ int main(int argc, char *argv[]) {
     const char* swMsg = "CME Fast SW Msg: Sequence = |____| : expected incremented Sequence";
     const char* swHB  = "CME SW Heartbeat:Sequence = |____| : expected NOT incremented Sequence";
 
+    const size_t HbLen = 26;
+    
     efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
     efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
     efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
@@ -538,6 +540,13 @@ int main(int argc, char *argv[]) {
     efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
     efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
     efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
+
+    efcCmeSend(dev,conn[0],swHB,HbLen,0,false);
+    efcCmeSend(dev,conn[0],swHB,HbLen,0,false);
+    efcCmeSend(dev,conn[0],swHB,HbLen,0,false);
+    efcCmeSend(dev,conn[0],swHB,HbLen,0,false);
+    efcCmeSend(dev,conn[0],swHB,HbLen,0,false);
+ 
     
     epmRaiseTriggers(dev,&cmeTrigger);
     epmRaiseTriggers(dev,&cmeTrigger);

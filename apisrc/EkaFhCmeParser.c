@@ -705,7 +705,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize_FeedType);
   for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) {
-    auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)};
+    //    auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)};
     // Leave the depth at its default value
     // msg.commonDef.opaqueAttrB = e->MarketDepth;
     m += pGroupSize_FeedType->blockLength;
@@ -805,7 +805,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize_FeedType);
   for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) {
-    auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)};
+    //    auto e {reinterpret_cast<const DefinitionFeedTypeEntry*>(m)};
     // Leave the depth at its default value
     // msg.commonDef.opaqueAttrB = e->MarketDepth;
     m += pGroupSize_FeedType->blockLength;
