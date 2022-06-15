@@ -11,52 +11,52 @@
 namespace Bats {
 
   enum class MsgId : uint8_t {
-			      TIME = 0x20,
-			      ADD_ORDER_LONG = 0x21,
-			      ADD_ORDER_SHORT = 0x22,
-			      ORDER_EXECUTED = 0x23,
-			      ORDER_EXECUTED_AT_PRICE_SIZE = 0x24,
-			      REDUCED_SIZE_LONG = 0x25,
-			      REDUCED_SIZE_SHORT = 0x26,
-			      ORDER_MODIFY_LONG = 0x27,
-			      ORDER_MODIFY_SHORT = 0x28,
-			      ORDER_DELETE = 0x29,
-			      TRADE_LONG = 0x2A,
-			      TRADE_SHORT = 0x2B,
-			      TRADE_BREAK = 0x2C,
-			      END_OF_SESSION = 0x2D,
-			      SYMBOL_MAPPING = 0x2E,
-			      ADD_ORDER_EXPANDED = 0x2F,
-			      TRADE_EXPANDED = 0x30,
-			      TRADING_STATUS = 0x31,
-			      UNIT_CLEAR = 0x97,
-			      TRANSACTION_BEGIN = 0xBC,
-			      TRANSACTION_END = 0xBD,
+    TIME = 0x20,
+    ADD_ORDER_LONG = 0x21,
+    ADD_ORDER_SHORT = 0x22,
+    ORDER_EXECUTED = 0x23,
+    ORDER_EXECUTED_AT_PRICE_SIZE = 0x24,
+    REDUCED_SIZE_LONG = 0x25,
+    REDUCED_SIZE_SHORT = 0x26,
+    ORDER_MODIFY_LONG = 0x27,
+    ORDER_MODIFY_SHORT = 0x28,
+    ORDER_DELETE = 0x29,
+    TRADE_LONG = 0x2A,
+    TRADE_SHORT = 0x2B,
+    TRADE_BREAK = 0x2C,
+    END_OF_SESSION = 0x2D,
+    SYMBOL_MAPPING = 0x2E,
+    ADD_ORDER_EXPANDED = 0x2F,
+    TRADE_EXPANDED = 0x30,
+    TRADING_STATUS = 0x31,
+    UNIT_CLEAR = 0x97,
+    TRANSACTION_BEGIN = 0xBC,
+    TRANSACTION_END = 0xBD,
 
-			      LOGIN_REQUEST = 0x01,
-			      LOGIN_RESPONSE = 0x02,
-			      GAP_REQUEST = 0x03,
-			      GAP_RESPONSE = 0x04,
-			      SPIN_IMAGE_AVAILABLE = 0x80,
-			      SNAPSHOT_REQUEST = 0x81,
-			      SNAPSHOT_RESPONSE = 0x82,
-			      DEFINITIONS_REQUEST = 0x84,
-			      DEFINITIONS_RESPONSE = 0x85,
-			      SPIN_FINISHED = 0x83,
-			      DEFINITIONS_FINISHED = 0x86,
+    LOGIN_REQUEST = 0x01,
+    LOGIN_RESPONSE = 0x02,
+    GAP_REQUEST = 0x03,
+    GAP_RESPONSE = 0x04,
+    SPIN_IMAGE_AVAILABLE = 0x80,
+    SNAPSHOT_REQUEST = 0x81,
+    SNAPSHOT_RESPONSE = 0x82,
+    DEFINITIONS_REQUEST = 0x84,
+    DEFINITIONS_RESPONSE = 0x85,
+    SPIN_FINISHED = 0x83,
+    DEFINITIONS_FINISHED = 0x86,
 
-			      WIDTH_UPDATE = 0xD2,
-			      AUCTION_UPDATE = 0x95,
-			      OPTIONS_AUCTION_UPDATE = 0xD1,
-			      AUCTION_SUMMARY = 0x96,
-			      AUCTION_NOTIFICATION = 0xAD,
-			      AUCTION_CANCEL = 0xAE,
-			      AUCTION_TRADE  = 0xAF,
-			      RETAIL_PRICE_IMPROVEMENT = 0x98,
-			      SOQ_STRIKE_RANGE_UPDATE = 0x9D,
-			      CONSTITUENT_SYMBOL_MAPPING = 0x9E,
+    WIDTH_UPDATE = 0xD2,
+    AUCTION_UPDATE = 0x95,
+    OPTIONS_AUCTION_UPDATE = 0xD1,
+    AUCTION_SUMMARY = 0x96,
+    AUCTION_NOTIFICATION = 0xAD,
+    AUCTION_CANCEL = 0xAE,
+    AUCTION_TRADE  = 0xAF,
+    RETAIL_PRICE_IMPROVEMENT = 0x98,
+    SOQ_STRIKE_RANGE_UPDATE = 0x9D,
+    CONSTITUENT_SYMBOL_MAPPING = 0x9E,
 
-			      COMPLEX_INSTRUMENT_DEFINITION_EXPANDED = 0x9A
+    COMPLEX_INSTRUMENT_DEFINITION_EXPANDED = 0x9A
   };
 
 #define EKA_PRINT_BATS_SYMBOL(x) ((std::string((x),6)).c_str())
@@ -123,6 +123,7 @@ namespace Bats {
     case 'S' : // Exchange Specific Suspension
       return EfhTradeStatus::kHalted;
     case 'T' : // Trading
+    case 'L' : // Curb
       return EfhTradeStatus::kNormal;
     default:
       on_error("Unexpected trade status \'%c\'",msgTradeStatus);
