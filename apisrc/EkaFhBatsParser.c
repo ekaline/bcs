@@ -338,7 +338,8 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     if (s == NULL) return false;
     AuctionIdT auctionId = message->auctionId;
     auctionMap[auctionId] = security_id;
-        
+    const bool useAIM = exch == EkaSource::kC1_PITCH;
+
     EfhAuctionUpdateMsg msg{};
     msg.header.msgType        = EfhMsgType::kAuctionUpdate;
     msg.header.group.source   = exch;
@@ -350,7 +351,9 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.header.gapNum         = gapNum;
 
     msg.auctionId             = message->auctionId;
-
+    msg.auctionType           = productMask & PM_ComplexBook ?
+      getComplexAuctionType(message->auctionType) : getVanillaAuctionType(message->auctionType, useAIM);
+    
     msg.updateType            = EfhAuctionUpdateType::kNew;
     msg.side                  = getSide(message->side);
     msg.capacity              = getRfqCapacity(message->customerIndicator);

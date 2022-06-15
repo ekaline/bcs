@@ -575,11 +575,11 @@ namespace Plr {
 
   inline EfhAuctionType getAuctionType (char auctionType) {
     switch (auctionType) {
-    case 'P' : return EfhAuctionType::kPriceImprovementPeriod;
+    case 'P' : return EfhAuctionType::kCube;
     case 'F' : return EfhAuctionType::kFacilitation;
     case 'S' : return EfhAuctionType::kSolicitation;
-    case 'B' : return EfhAuctionType::kUnknown; // Bold (Outright only)
-    case 'C' : return EfhAuctionType::kUnknown; // COA (Complex only)
+    case 'B' : return EfhAuctionType::kExposed; // Bold (Outright only)
+    case 'C' : return EfhAuctionType::kComplexOrderAuction; // COA (Complex only)
     default  :
       on_error("Unexpected auctionType \'%c\'",auctionType);
     }

@@ -170,6 +170,27 @@ namespace Bats {
       }
     }
   }
+  /* ------------------------------------------------ */
+  inline EfhAuctionType getVanillaAuctionType(char msgAuctionType, bool useAIM) {
+    switch (msgAuctionType) {
+    case 'B' : return useAIM ? EfhAuctionType::kAIM : EfhAuctionType::kBatsAuctionMechanism;
+    case 'S' : return EfhAuctionType::kSolicitation;
+    case 'T' : return EfhAuctionType::kStepUpMechanism;
+    case 'A' : return EfhAuctionType::kAllOrNone;
+    default  : return EfhAuctionType::kUnknown;
+    }
+  }
+
+  /* ------------------------------------------------ */
+  inline EfhAuctionType getComplexAuctionType (char msgAuctionType) {
+    switch (msgAuctionType) {
+    case 'C' : return EfhAuctionType::kComplexOrderAuction;
+    case 'S' : return EfhAuctionType::kSolicitation;
+    case 'B' : return EfhAuctionType::kAIM;
+    case 'O' : return EfhAuctionType::kAllOrNone;
+    default  : return EfhAuctionType::kUnknown;
+    }
+  }
 
   /* ------------------------------------------------ */
 

@@ -363,12 +363,25 @@ typedef struct {
 enum class EfhAuctionType : char {
     #define EfhAuctionType_ENUM_ITER( _x )                                  \
                 _x( Unknown, ' ' )                                          \
-                /* Price Improvement Period (PIP) is used on BOX */         \
+                /* Below encodings are based on the Java class */           \
+                /* com.lehman.cmte.amm.exchange.QuoteRequestType */         \
+                _x( AllOrNone,              'A' )                           \
+                _x( Exposed,                'E' )                           \
+                _x( Facilitation,           'F' )                           \
+                _x( Solicitation,           'S' )                           \
+                _x( Open,                   'o' )                           \
+                _x( Reopen,                 'r' )                           \
+                /* Improvement Period (PIP) is used on BOX */               \
                 _x( PriceImprovementPeriod, 'Q' )                           \
-                _x( Facilitation, 'F' )                                     \
-                _x( Solicitation, 'S' )                                     \
-                _x( Exposed,      'E' )                                     \
-                _x( Notification, 'N' )
+                _x( Prism,                  'p' )                           \
+                _x( Cube,                   'U' )                           \
+                _x( StepUpMechanism,        'V' )                           \
+                _x( BatsAuctionMechanism,   'K' )                           \
+                _x( AIM,                    'M' )                           \
+                _x( ComplexOrderAuction,    'O' )                           \
+                _x( SpreadFacilitation,     'f' )                           \
+                _x( SpreadSolicitation,     's' )
+
         EfhAuctionType_ENUM_ITER( EKA__ENUM_DEF )
 };
 
