@@ -83,7 +83,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
       enc != MsgId::SPIN_FINISHED
       ) return false;
   
-  switch (enc) {    
+  switch (enc) {
     //--------------------------------------------------------------
   case MsgId::DEFINITIONS_FINISHED : {
     EKA_LOG("%s:%u: DEFINITIONS_FINISHED",EKA_EXCH_DECODE(exch),id);
@@ -359,7 +359,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.capacity              = getRfqCapacity(message->customerIndicator);
     msg.quantity              = message->contracts;
     msg.price                 = message->price;
-    msg.endTimeNanos          = msg_timestamp + message->auctionEndOffset;
+    msg.endTimeNanos          = seconds + message->auctionEndOffset;
 
     pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg,s->efhUserData, pEfhRunCtx->efhRunUserData);
     break;
