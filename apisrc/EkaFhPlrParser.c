@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "EkaFhPlrParser.h"
 #include "EkaFhPlrGr.h"
 
@@ -118,6 +120,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     /* copySymbol(msg.commonDef.underlying, rootBlock->Asset); */
     /* copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup); */
     /* copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol); */
+    sprintf(msg.commonDef.exchSecurityName, "%d", root->seriesIndex);
 
     msg.numLegs = root->NoOfLegs;
 
