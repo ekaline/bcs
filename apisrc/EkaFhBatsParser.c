@@ -392,6 +392,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.header.gapNum         = gapNum;
     msg.auctionId             = message->auctionId;
     msg.updateType            = EfhAuctionUpdateType::kDelete;
+    msg.auctionType           = EfhAuctionType::kUnknown;
 
     pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg,s->efhUserData,pEfhRunCtx->efhRunUserData);
     return false;
