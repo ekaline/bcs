@@ -40,8 +40,10 @@ class EpmCmeILinkTemplate : public EpmTemplate {
       {"SchemaID" ,                    2, HwField::IMMEDIATE,    false, false },
       {"Version" ,                     2, HwField::IMMEDIATE,    false, false },
       /* --------------------------- */
-      {"Prefix" ,                      17, HwField::IMMEDIATE,    false, false }, // common prefix at all ILink msgs
-      {"SeqNum",                        4, HwField::APPSEQ,       true,  true  },
+      {"PartyDetailsListReqID" ,       8, HwField::IMMEDIATE,    false, false }, 
+      {"SendingTimeEpoch" ,            8, HwField::TIME,         false, true  }, 
+      {"ManualOrderIndicator" ,        1, HwField::IMMEDIATE,    false, false }, 
+      {"SeqNum",                       4, HwField::APPSEQ,       true,  true  },
       {"Trailing" ,                  1000, HwField::IMMEDIATE,    false, false }, // common trailing at all ILink msgs
 
     };

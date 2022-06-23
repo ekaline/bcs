@@ -245,18 +245,13 @@ std::pair<int,size_t> processFireReport(EkaDev*         dev,
 static inline void sendDate2Hw(EkaDev* dev) {
   struct timespec t;
   clock_gettime(CLOCK_REALTIME, &t); 
-  uint64_t current_time_ns = ((uint64_t)(t.tv_sec) * (uint64_t)1000000000 + (uint64_t)(t.tv_nsec));
-  current_time_ns += static_cast<uint64_t>(6*60*60) * static_cast<uint64_t>(1e9); //+6h UTC time
-  int current_time_seconds = current_time_ns/(1000*1000*1000);
-  time_t tmp = current_time_seconds;
-  struct tm lt;
-  (void) localtime_r(&tmp, &lt);
-  char result[32] = {};
-  strftime(result, sizeof(result), "%Y%m%d-%H:%M:%S.000", &lt); //20191206-20:17:32.131 
-  uint64_t* wr_ptr = (uint64_t*) &result;
-  for (int z=0; z<3; z++) {
-    eka_write(dev,0xf0300+z*8,*wr_ptr++); //data
-  }
+  uint64_t current_time_ns = ((uint64_t)(t.tv_sec) * (uint64_t)1000'000'000
+			      + (uint64_t)(t.tv_nsec));
+
+  eka_write(dev,0xf0300+0*8,be64toh(current_time_ns)); //data
+  eka_write(dev,0xf0300+1*8,0);
+  eka_write(dev,0xf0300+2*8,0);
+  
   return;
 }
 /* ----------------------------------------------- */
@@ -283,8 +278,9 @@ void ekaFireReportThread(EkaDev* dev) {
 
   if (!epmReportCh) on_error("!epmReportCh");
 
+  const int64_t HwDateUpdatePeriod = 1024 * 1024;
   while (dev->fireReportThreadActive) {
-    if ((updCnt++ % 0x300000)==0) {
+    if ((updCnt++ % HwDateUpdatePeriod)==0) {
       sendDate2Hw(dev);
       //      sendHb2HW(dev);
     }    
