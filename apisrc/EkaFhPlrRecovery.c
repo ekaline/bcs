@@ -134,9 +134,9 @@ static EkaOpResult sendRetransmissionRequest(EkaFhPlrGr* gr, int sock, uint32_t 
   msg->ProductID   = getPillarProductIdFromProductMask(gr->productMask);
   msg->ChannelID   = gr->channelId;
 
-  EKA_LOG("Sending RetransmissionRequest: BeginSeqNum=%u,EndSeqNum=%u,SourceID=\'%s\',ProductID=%u,ChannelID=%u",
+  EKA_LOG("Sending RetransmissionRequest: BeginSeqNum=%u,EndSeqNum=%u,SourceID=\'%.*s\',ProductID=%u,ChannelID=%u",
 	  msg->BeginSeqNum,msg->EndSeqNum,
-	  msg->SourceID,msg->ProductID,msg->ChannelID);
+          sizeof(msg->SourceID),msg->SourceID,msg->ProductID,msg->ChannelID);
   int rc = send(sock,pkt,pktHdr->pktSize,0);
   if (rc <= 0) {
     EKA_WARN("Tcp send of msg size %d to sock %d returned rc = %d",

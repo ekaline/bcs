@@ -161,7 +161,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     //                 enc, duration_ns);
     fh->latencies.push_back(std::make_pair(enc,duration_ns));
 #endif    
-    book->generateOnQuote (pEfhRunCtx, s,
+    book->generateOnQuote (pEfhRunCtx, s, {},
 			   sequence, msgTs,gapNum);
   }
 

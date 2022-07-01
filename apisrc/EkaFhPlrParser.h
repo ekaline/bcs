@@ -441,9 +441,9 @@ namespace Plr {
     uint32_t sourceTimeNs;
     uint32_t seriesIndex;
     uint32_t seriesSeqNum;
-    uint32_t askPrice;
+    int32_t  askPrice;
     uint32_t askVolume;
-    uint32_t bidPrice;
+    int32_t  bidPrice;
     uint32_t bidVolume;
     char     quoteCondition; // ▪ '1' – Regular Trading
     // ▪ '2' – Rotation

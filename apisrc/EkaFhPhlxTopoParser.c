@@ -197,7 +197,7 @@ bool EkaFhPhlxTopoGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* 
   }
   if (s == NULL) on_error ("Trying to generate TOB update from s == NULL");
   if (op != EkaFhMode::SNAPSHOT)
-    book->generateOnQuote (pEfhRunCtx, s, sequence, ts,gapNum);
+    book->generateOnQuote (pEfhRunCtx, s, {}, sequence, ts,gapNum);
 
   return false;
 }

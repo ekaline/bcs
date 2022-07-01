@@ -36,4 +36,8 @@ class EkaFhBook {
 
 };
 
+struct EkaFhNoopQuotePostProc {
+  inline bool operator()(EfhQuoteMsg*) { return true; }
+};
+
 #endif

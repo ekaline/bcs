@@ -229,7 +229,7 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
   if (op == EkaFhMode::DEFINITIONS) return false;
 
   if (s == NULL) on_error ("Trying to generate TOB update from s == NULL");
-  book->generateOnQuote (pEfhRunCtx, s, sequence, ts,gapNum);
+  book->generateOnQuote (pEfhRunCtx, s, {}, sequence, ts,gapNum);
 
   return false;
 }

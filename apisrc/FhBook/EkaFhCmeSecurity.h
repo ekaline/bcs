@@ -9,7 +9,7 @@
 /* ####################################################### */
 
 template <
-class PriceLevetT,
+  class PriceLevetT,
   class SecurityIdT, 
   class PriceT, 
   class SizeT,

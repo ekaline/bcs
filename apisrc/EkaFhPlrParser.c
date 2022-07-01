@@ -25,6 +25,13 @@ inline EfhTradeCond getTradeCondition(const Trade* trade) {
   }
 }
 
+bool EkaFhPlrQuotePostProc::operator()(EfhQuoteMsg* msg) {
+  if (isComplex) {
+    // TODO: Correct exchange's complex price conventions to match our own
+  }
+  return true;
+}
+
 bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 			  const unsigned char*   pMsg,
 			  uint64_t         sequence,
@@ -251,7 +258,10 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
       break;
     default : on_error("Unexpected seriesStatus \'%c\'",m->seriesStatus);
     }
-    book->generateOnQuote (pEfhRunCtx, s, sequence,
+    EkaFhPlrQuotePostProc postProc {
+      .isComplex = bool(productMask & PM_ComplexBook),
+    };
+    book->generateOnQuote (pEfhRunCtx, s, postProc, sequence,
 			   gr_ts + m->sourceTimeNs, gapNum);  
   }
     break;
@@ -262,17 +272,32 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     FhSecurity* s = book->findSecurity(m->seriesIndex);
     if (s == NULL) return false;
 
-    s->bid_price     = m->bidPrice;
-    s->bid_size      = m->bidVolume;
-    s->bid_cust_size = m->bidCustomerVolume;
+    if (productMask & PM_ComplexBook) {
+      // Complex
+      s->bid_price     = m->bidPrice;
+      s->bid_size      = m->bidVolume;
+      s->bid_cust_size = m->bidCustomerVolume;
 
-    s->ask_price     = m->askPrice;
-    s->ask_size      = m->askVolume;
-    s->ask_cust_size = m->askCustomerVolume;
+      s->ask_price     = m->askPrice;
+      s->ask_size      = m->askVolume;
+      s->ask_cust_size = m->askCustomerVolume;
+    } else {
+      // Vanilla
+      s->bid_price     = m->bidPrice;
+      s->bid_size      = m->bidVolume;
+      s->bid_cust_size = m->bidCustomerVolume;
+
+      s->ask_price     = m->askPrice;
+      s->ask_size      = m->askVolume;
+      s->ask_cust_size = m->askCustomerVolume;
+    }
 
     s->trading_action = quoteCondition(m->quoteCondition);
-    
-    book->generateOnQuote (pEfhRunCtx, s, sequence,
+
+    EkaFhPlrQuotePostProc postProc {
+      .isComplex = bool(productMask & PM_ComplexBook),
+    };
+    book->generateOnQuote (pEfhRunCtx, s, postProc, sequence,
 			   gr_ts + m->sourceTimeNs, gapNum);    
   }
     break;

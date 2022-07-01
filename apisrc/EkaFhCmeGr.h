@@ -12,6 +12,11 @@ namespace Cme {
   struct MaturityMonthYear_T;
 }
 
+struct EkaFhCmeQuotePostProc {
+  bool isComplex;
+  bool operator()(EfhQuoteMsg*);
+};
+
 class EkaFhCmeGr : public EkaFhGroup {
 public:
   virtual               ~EkaFhCmeGr() {};
@@ -82,6 +87,7 @@ public:
   using FhBook      = EkaFhCmeBook      <
     SEC_HASH_SCALE,
     EkaFhCmeSecurity  <PriceLevetT,SecurityIdT, PriceT, SizeT,SequenceT>,
+    EkaFhCmeQuotePostProc,
     SecurityIdT, 
     PriceT, 
     SizeT>;

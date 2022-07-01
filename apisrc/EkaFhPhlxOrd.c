@@ -128,7 +128,7 @@ EkaOpResult EkaFhPhlxOrd::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
 
 	/* EKA_DEBUG("%s:%u Generating TOB quote for every Security", */
 	/* 	  EKA_EXCH_DECODE(gr->exch),gr->id); */
-	/* ((TobBook*)gr->book)->sendTobImage(pEfhRunCtx); */
+	/* ((TobBook*)gr->book)->sendTobImage(pEfhRunCtx, {}); */
       }
 
       if (gr->gapClosed) {

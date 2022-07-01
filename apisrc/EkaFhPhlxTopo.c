@@ -130,7 +130,7 @@ EkaOpResult EkaFhPhlxTopo::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunC
 
 	EKA_DEBUG("%s:%u Generating TOB quote for every Security",
 		  EKA_EXCH_DECODE(gr->exch),gr->id);
-	gr->book->sendTobImage(pEfhRunCtx);
+	gr->book->sendTobImage(pEfhRunCtx, {});
 	gr->state = EkaFhGroup::GrpState::NORMAL;
 	gr->sendFeedUp(pEfhRunCtx);
 	runGr->setGrAfterGap(gr->id);
