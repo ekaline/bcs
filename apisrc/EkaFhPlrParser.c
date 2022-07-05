@@ -273,25 +273,13 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     FhSecurity* s = book->findSecurity(m->seriesIndex);
     if (s == NULL) return false;
 
-    if (productMask & PM_ComplexBook) {
-      // Complex
-      s->bid_price     = m->bidPrice;
-      s->bid_size      = m->bidVolume;
-      s->bid_cust_size = m->bidCustomerVolume;
+    s->bid_price     = m->bidPrice;
+    s->bid_size      = m->bidVolume;
+    s->bid_cust_size = m->bidCustomerVolume;
 
-      s->ask_price     = m->askPrice;
-      s->ask_size      = m->askVolume;
-      s->ask_cust_size = m->askCustomerVolume;
-    } else {
-      // Vanilla
-      s->bid_price     = m->bidPrice;
-      s->bid_size      = m->bidVolume;
-      s->bid_cust_size = m->bidCustomerVolume;
-
-      s->ask_price     = m->askPrice;
-      s->ask_size      = m->askVolume;
-      s->ask_cust_size = m->askCustomerVolume;
-    }
+    s->ask_price     = m->askPrice;
+    s->ask_size      = m->askVolume;
+    s->ask_cust_size = m->askCustomerVolume;
 
     s->trading_action = quoteCondition(m->quoteCondition);
 
