@@ -7,8 +7,8 @@
 
 /* ####################################################### */
 
-template <class SecurityIdT, 
-  class PriceT, 
+template <class SecurityIdT,
+  class PriceT,
   class SizeT>
   class EkaFhTobSecurity : public EkaFhSecurity {
  public:
