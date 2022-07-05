@@ -58,7 +58,7 @@ bool EkaFhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
       hexDump("Bad Msg",m,sizeof(XdpQuote));
       on_error("Unexpected QuoteCondition: \'%c\' (0x%x)",msg->QuoteCondition,msg->QuoteCondition);
     }
-    book->generateOnQuote (pEfhRunCtx, s, {}, sequence, msg->time.SourceTime * SEC_TO_NANO + msg->time.SourceTimeNS, gapNum);
+    book->generateOnQuote (pEfhRunCtx, s, sequence, msg->time.SourceTime * SEC_TO_NANO + msg->time.SourceTimeNS, gapNum);
   }
     break;
     //-----------------------------------------------------------------------------
@@ -108,7 +108,7 @@ bool EkaFhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     default:
       return false;
     }
-    book->generateOnQuote (pEfhRunCtx, s, {}, sequence, msg->time.SourceTime * SEC_TO_NANO + msg->time.SourceTimeNS, gapNum);
+    book->generateOnQuote (pEfhRunCtx, s, sequence, msg->time.SourceTime * SEC_TO_NANO + msg->time.SourceTimeNS, gapNum);
   }
     break;
 

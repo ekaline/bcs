@@ -36,7 +36,6 @@ template <const uint SEC_HASH_SCALE,
   }
   /* ####################################################### */
   inline int invalidate(const EfhRunCtx* pEfhRunCtx,
-                        QuotePostProc    postProc,
 			uint64_t         pktSeq, 
 			uint64_t         pktTime,
 			uint             gapNum,
@@ -53,7 +52,6 @@ template <const uint SEC_HASH_SCALE,
 	if (sendTobUpdate)
 	  generateOnQuote (pEfhRunCtx,
 			   s,
-                           postProc,
 			   pktSeq,
 			   pktTime,
 			   gapNum);
@@ -99,7 +97,6 @@ template <const uint SEC_HASH_SCALE,
 
   inline int generateOnQuote (const EfhRunCtx* pEfhRunCtx,
                               FhSecurity*      s,
-                              QuotePostProc    postProc,
                               uint64_t         sequence,
                               uint64_t         timestamp,
                               uint             gapNum) {
@@ -123,7 +120,8 @@ template <const uint SEC_HASH_SCALE,
     msg.askSide.price         = s->ask->getEntryPrice(0) / PRICE_SCALE;
     msg.askSide.size          = s->ask->getEntrySize(0);
 
-    if (!postProc(&msg)) {
+    QuotePostProc postProc{};
+    if (!postProc(static_cast<const EkaFhSecurity*>(s), &msg)) {
       return 0;
     }
 

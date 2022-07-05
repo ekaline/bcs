@@ -25,8 +25,8 @@ inline EfhTradeCond getTradeCondition(const Trade* trade) {
   }
 }
 
-bool EkaFhPlrQuotePostProc::operator()(EfhQuoteMsg* msg) {
-  if (isComplex) {
+bool EkaFhPlrQuotePostProc::operator()(const EkaFhSecurity* sec, EfhQuoteMsg* msg) {
+  if (sec->type == EfhSecurityType::kComplex) {
     // Correct exchange's complex price conventions to match our own
     const auto bidPrice = -msg->askSide.price;
     const auto askPrice = -msg->bidSide.price;
@@ -262,10 +262,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
       break;
     default : on_error("Unexpected seriesStatus \'%c\'",m->seriesStatus);
     }
-    EkaFhPlrQuotePostProc postProc {
-      .isComplex = bool(productMask & PM_ComplexBook),
-    };
-    book->generateOnQuote (pEfhRunCtx, s, postProc, sequence,
+    book->generateOnQuote (pEfhRunCtx, s, sequence,
 			   gr_ts + m->sourceTimeNs, gapNum);  
   }
     break;
@@ -298,10 +295,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 
     s->trading_action = quoteCondition(m->quoteCondition);
 
-    EkaFhPlrQuotePostProc postProc {
-      .isComplex = bool(productMask & PM_ComplexBook),
-    };
-    book->generateOnQuote (pEfhRunCtx, s, postProc, sequence,
+    book->generateOnQuote (pEfhRunCtx, s, sequence,
 			   gr_ts + m->sourceTimeNs, gapNum);    
   }
     break;

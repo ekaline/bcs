@@ -141,7 +141,7 @@ bool EkaFhBxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   s->ask_ts = msgTs;
 
   if (! book->isEqualState(s)) { 
-    book->generateOnQuote (pEfhRunCtx, s, {},
+    book->generateOnQuote (pEfhRunCtx, s,
 			   sequence, msgTs,gapNum);
   }
 

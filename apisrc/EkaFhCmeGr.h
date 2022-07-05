@@ -13,8 +13,7 @@ namespace Cme {
 }
 
 struct EkaFhCmeQuotePostProc {
-  bool isComplex;
-  bool operator()(EfhQuoteMsg*);
+  bool operator()(const EkaFhSecurity*, EfhQuoteMsg*);
 };
 
 class EkaFhCmeGr : public EkaFhGroup {

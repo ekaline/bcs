@@ -58,8 +58,8 @@ constexpr T replaceIntNullWith(T num, T fallback) {
 
 /* ##################################################################### */
 
-bool EkaFhCmeQuotePostProc::operator()(EfhQuoteMsg* msg) {
-  if (isComplex) {
+bool EkaFhCmeQuotePostProc::operator()(const EkaFhSecurity* sec, EfhQuoteMsg* msg) {
+  if (sec->type == EfhSecurityType::kComplex) {
     // Correct exchange's complex price conventions to match our own
     msg->askSide.price = -msg->askSide.price;
   }
@@ -374,12 +374,8 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
     /* } */
 
     if (tobChange) {
-      EkaFhCmeQuotePostProc postProc {
-        .isComplex = bool(productMask & PM_ComplexBook),
-      };
       book->generateOnQuote (pEfhRunCtx,
                              s,
-                             postProc,
                              pktSeq,
                              pktTime,
                              gapNum);
@@ -508,10 +504,7 @@ int EkaFhCmeGr::process_ChannelReset4(const EfhRunCtx* pEfhRunCtx,
   auto m      {pMsg};
   auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
   m += sizeof(*msgHdr);
-  EkaFhCmeQuotePostProc postProc {
-    .isComplex = bool(productMask & PM_ComplexBook),
-  };
-  book->invalidate(pEfhRunCtx,postProc,pktSeq,pktTime,gapNum,true);
+  book->invalidate(pEfhRunCtx,pktSeq,pktTime,gapNum,true);
   return msgHdr->size;
 }
 
@@ -532,12 +525,8 @@ int EkaFhCmeGr::process_SecurityStatus30(const EfhRunCtx* pEfhRunCtx,
 
   s->tradeStatus = setEfhTradeStatus(rootBlock->SecurityTradingStatus);
 
-  EkaFhCmeQuotePostProc postProc {
-    .isComplex = bool(productMask & PM_ComplexBook),
-  };
   book->generateOnQuote (pEfhRunCtx,
 			 s,
-                         postProc,
 			 pktSeq,
 			 pktTime,
 			 gapNum);
@@ -580,12 +569,8 @@ int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
 				  e->MDEntryPx / finalPriceFactor,
 				  e->MDEntrySize);
     if (tobChange) {
-      EkaFhCmeQuotePostProc postProc {
-        .isComplex = bool(productMask & PM_ComplexBook),
-      };
       book->generateOnQuote (pEfhRunCtx,
                              s,
-                             postProc,
                              pktSeq,
                              pktTime,
                              gapNum);

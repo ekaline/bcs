@@ -65,7 +65,6 @@ template <const uint SEC_HASH_SCALE,class FhSecurity, class QuotePostProc, class
 
   int generateOnQuote (const EfhRunCtx* pEfhRunCtx, 
 		       FhSecurity*      s,
-                       QuotePostProc    postProc,
 		       uint64_t         sequence, 
 		       uint64_t         timestamp,
 		       uint             gapNum) {
@@ -94,7 +93,8 @@ template <const uint SEC_HASH_SCALE,class FhSecurity, class QuotePostProc, class
     msg.askSide.customerSize  = s->ask_cust_size;
     msg.askSide.bdSize        = s->ask_bd_size;
 
-    if (!postProc(&msg)) {
+    QuotePostProc postProc{};
+    if (!postProc(static_cast<const EkaFhSecurity*>(s), &msg)) {
       return 0;
     }
 
@@ -115,12 +115,12 @@ template <const uint SEC_HASH_SCALE,class FhSecurity, class QuotePostProc, class
     return 0;
   }
 /* ####################################################### */
-  void sendTobImage (const EfhRunCtx* pEfhRunCtx, QuotePostProc postProc) {
+  void sendTobImage (const EfhRunCtx* pEfhRunCtx) {
     for (uint i = 0; i < SEC_HASH_LINES; i++) {
       if (sec[i] == NULL) continue;
       FhSecurity* s = sec[i];
       while (s != NULL) {
-	generateOnQuote(pEfhRunCtx,s,postProc,0,std::max(s->bid_ts,s->ask_ts),1);
+	generateOnQuote(pEfhRunCtx,s,0,std::max(s->bid_ts,s->ask_ts),1);
 	s = (FhSecurity*)s->next;
       }
     }

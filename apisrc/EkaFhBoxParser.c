@@ -132,7 +132,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
 
     getStatus<FhSecurity>(s,boxMsg->InstrumentStatusMarker);
     if (op != EkaFhMode::SNAPSHOT)
-      book->generateOnQuote (pEfhRunCtx, s, {}, sequence, gr_ts, gapNum);
+      book->generateOnQuote (pEfhRunCtx, s, sequence, gr_ts, gapNum);
     //===================================================
   } else if (memcmp(msgHdr->MsgType,"C ",sizeof(msgHdr->MsgType)) == 0) { // Option Trade
     auto boxMsg {reinterpret_cast<const HsvfOptionTrade*>(msgBody)};

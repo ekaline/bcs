@@ -8,8 +8,7 @@
 #include "EkaFhTobBook.h"
 
 struct EkaFhPlrQuotePostProc {
-  bool isComplex;
-  bool operator()(EfhQuoteMsg*);
+  bool operator()(const EkaFhSecurity*, EfhQuoteMsg*);
 };
 
 class EkaFhPlrGr : public EkaFhGroup{

@@ -37,7 +37,7 @@ class EkaFhBook {
 };
 
 struct EkaFhNoopQuotePostProc {
-  inline bool operator()(EfhQuoteMsg*) { return true; }
+  inline bool operator()(const EkaFhSecurity*, EfhQuoteMsg*) { return true; }
 };
 
 #endif

@@ -173,10 +173,7 @@ EkaOpResult EkaFhCmeGr::recoveryLoop(const EfhRunCtx* pEfhRunCtx, EkaFhMode op) 
   snapshotClosed = false;
 
   bool recovered = false;
-  EkaFhCmeQuotePostProc postProc {
-    .isComplex = bool(productMask & PM_ComplexBook),
-  };
-  book->invalidate(NULL,postProc,0,0,0,false);
+  book->invalidate(NULL,0,0,0,false);
 
   while (!recovered && snapshot_active) {
     recoveryPkt.clear();

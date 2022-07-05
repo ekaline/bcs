@@ -309,7 +309,6 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,
   /* ####################################################### */
   inline int generateOnQuote (const EfhRunCtx* pEfhRunCtx,
                               FhSecurity* s,
-                              QuotePostProc postProc,
                               uint64_t sequence,
                               uint64_t timestamp,
                               uint gapNum,
@@ -353,7 +352,8 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,
     msg.askSide.bdAoNSize       = s->numAskPlevels == 0 ? 0 : topAsk->bd_aon_size;
     msg.askSide.aoNSize         = s->numAskPlevels == 0 ? 0 : topAsk->get_total_aon_size();
 
-    if (!postProc(&msg)) {
+    QuotePostProc postProc{};
+    if (!postProc(static_cast<const EkaFhSecurity*>(s), &msg)) {
       return 0;
     }
 

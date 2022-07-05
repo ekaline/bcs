@@ -211,7 +211,7 @@ bool EkaFhPhlxOrdGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m
   if (s == NULL) on_error ("Trying to generate TOB update from s == NULL");
   if (op != EkaFhMode::SNAPSHOT) {
     if (! book->isEqualState(s))
-      book->generateOnQuote (pEfhRunCtx, s, {}, sequence, ts,gapNum);
+      book->generateOnQuote (pEfhRunCtx, s, sequence, ts,gapNum);
   }
   return false;
 }

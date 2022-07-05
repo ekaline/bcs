@@ -8,8 +8,7 @@
 #include "EkaFhFullBook.h"
 
 struct EkaFhBatsQuotePostProc {
-  bool isComplex;
-  bool operator()(EfhQuoteMsg*);
+  bool operator()(const EkaFhSecurity*, EfhQuoteMsg*);
 };
 
 class EkaFhBatsGr : public EkaFhGroup{
