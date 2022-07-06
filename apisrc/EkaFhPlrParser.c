@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "EkaFhPlrParser.h"
 #include "EkaFhPlrGr.h"
 
@@ -21,6 +23,17 @@ inline EfhTradeCond getTradeCondition(const Trade* trade) {
   case 'S': return EfhTradeCond::kISOI;
   default: return EfhTradeCond::kREG;
   }
+}
+
+bool EkaFhPlrQuotePostProc::operator()(const EkaFhSecurity* sec, EfhQuoteMsg* msg) {
+  if (sec->type == EfhSecurityType::kComplex) {
+    // Correct exchange's complex price conventions to match our own
+    const auto bidPrice = -msg->askSide.price;
+    const auto askPrice = -msg->bidSide.price;
+    msg->bidSide.price = bidPrice;
+    msg->askSide.price = askPrice;
+  }
+  return true;
 }
 
 bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
@@ -118,6 +131,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     /* copySymbol(msg.commonDef.underlying, rootBlock->Asset); */
     /* copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup); */
     /* copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol); */
+    sprintf(msg.commonDef.exchSecurityName, "%d", root->seriesIndex);
 
     msg.numLegs = root->NoOfLegs;
 
@@ -268,7 +282,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     s->ask_cust_size = m->askCustomerVolume;
 
     s->trading_action = quoteCondition(m->quoteCondition);
-    
+
     book->generateOnQuote (pEfhRunCtx, s, sequence,
 			   gr_ts + m->sourceTimeNs, gapNum);    
   }

@@ -7,6 +7,10 @@
 #include "EkaFhGroup.h"
 #include "EkaFhTobBook.h"
 
+struct EkaFhPlrQuotePostProc {
+  bool operator()(const EkaFhSecurity*, EfhQuoteMsg*);
+};
+
 class EkaFhPlrGr : public EkaFhGroup{
 public:
   virtual               ~EkaFhPlrGr() {};
@@ -114,6 +118,7 @@ public:
   using FhSecurity  = EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>;
   using FhBook      = EkaFhTobBook<SEC_HASH_SCALE,
 				   EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>,
+                                   EkaFhPlrQuotePostProc,
 				   SecurityIdT,
 				   PriceT,
 				   SizeT>;

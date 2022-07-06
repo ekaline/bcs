@@ -7,6 +7,10 @@
 #include "EkaFhGroup.h"
 #include "EkaFhFullBook.h"
 
+struct EkaFhBatsQuotePostProc {
+  bool operator()(const EkaFhSecurity*, EfhQuoteMsg*);
+};
+
 class EkaFhBatsGr : public EkaFhGroup{
  public:
   virtual ~EkaFhBatsGr() {};
@@ -132,6 +136,7 @@ public:
     EkaFhFbSecurity  <EkaFhPlevel<PriceT, SizeT>,SecurityIdT, OrderIdT, PriceT, SizeT>,
     EkaFhPlevel      <PriceT, SizeT>,
     EkaFhOrder       <EkaFhPlevel<PriceT, SizeT>,OrderIdT,SizeT>,
+    EkaFhBatsQuotePostProc,
     SecurityIdT, OrderIdT, PriceT, SizeT>;
 
   FhBook*   book = NULL;

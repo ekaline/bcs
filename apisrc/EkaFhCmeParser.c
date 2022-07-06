@@ -58,6 +58,14 @@ constexpr T replaceIntNullWith(T num, T fallback) {
 
 /* ##################################################################### */
 
+bool EkaFhCmeQuotePostProc::operator()(const EkaFhSecurity* sec, EfhQuoteMsg* msg) {
+  if (sec->type == EfhSecurityType::kComplex) {
+    // Correct exchange's complex price conventions to match our own
+    msg->askSide.price = -msg->askSide.price;
+  }
+  return true;
+}
+
 bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 			    const uint8_t*   pkt, 
 			    int16_t          pktLen,
@@ -365,11 +373,13 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
     /* 	  ); */
     /* } */
 
-    if (tobChange) book->generateOnQuote (pEfhRunCtx,
-					  s,
-					  pktSeq,
-					  pktTime,
-					  gapNum);
+    if (tobChange) {
+      book->generateOnQuote (pEfhRunCtx,
+                             s,
+                             pktSeq,
+                             pktTime,
+                             gapNum);
+    }
     /* if (tobChange) book->generateOnOrder (pEfhRunCtx,  */
     /* 				      s,  */
     /* 				      pktSeq, */
@@ -488,9 +498,9 @@ int EkaFhCmeGr::process_MDIncrementalRefreshTradeSummary48(const EfhRunCtx* pEfh
 /* ##################################################################### */     
 
 int EkaFhCmeGr::process_ChannelReset4(const EfhRunCtx* pEfhRunCtx,
-					 const uint8_t*   pMsg,
-					 const uint64_t   pktTime,
-					 const SequenceT  pktSeq) {
+                                      const uint8_t*   pMsg,
+                                      const uint64_t   pktTime,
+                                      const SequenceT  pktSeq) {
   auto m      {pMsg};
   auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
   m += sizeof(*msgHdr);
@@ -558,11 +568,13 @@ int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
 				  e->MDPriceLevel,
 				  e->MDEntryPx / finalPriceFactor,
 				  e->MDEntrySize);
-    if (tobChange) book->generateOnQuote (pEfhRunCtx,
-					  s,
-					  pktSeq,
-					  pktTime,
-					  gapNum);
+    if (tobChange) {
+      book->generateOnQuote (pEfhRunCtx,
+                             s,
+                             pktSeq,
+                             pktTime,
+                             gapNum);
+    }
     m += pGroupSize->blockLength;    
   }
   return msgHdr->size;
@@ -794,7 +806,10 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
 
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
   copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
-  copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
+  sprintf(msg.commonDef.exchSecurityName, "%d", rootBlock->SecurityID);
+  // TODO: Add another field (exchSecurityDesc?) to publish Symbol for completeness
+  // (make sure it's large enough to hold it; exchSecurityName isn't)
+  //copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
 
   /* ------------------------------- */
   auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};

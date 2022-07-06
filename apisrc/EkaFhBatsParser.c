@@ -19,6 +19,13 @@
 static void eka_print_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequence,uint64_t ts);
 std::string ts_ns2str(uint64_t ts);
 
+bool EkaFhBatsQuotePostProc::operator()(const EkaFhSecurity* sec, EfhQuoteMsg* msg) {
+  if (sec->type == EfhSecurityType::kComplex) {
+    // Correct exchange's complex price conventions to match our own
+    msg->askSide.price = -msg->askSide.price;
+  }
+  return true;
+}
 
 using namespace Bats;
 
@@ -392,6 +399,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.header.gapNum         = gapNum;
     msg.auctionId             = message->auctionId;
     msg.updateType            = EfhAuctionUpdateType::kDelete;
+    msg.auctionType           = EfhAuctionType::kUnknown;
 
     pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg,s->efhUserData,pEfhRunCtx->efhRunUserData);
     return false;
@@ -448,8 +456,10 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   //s->option_open = market_open;
   s->option_open = true;
 
-  if (! book->isEqualState(s))
-    book->generateOnQuote (pEfhRunCtx, s, sequence, msg_timestamp, gapNum, msgStartTime);
+  if (! book->isEqualState(s)) {
+    book->generateOnQuote(pEfhRunCtx, s, sequence,
+                          msg_timestamp, gapNum, msgStartTime);
+  }
 
   return false;
 }

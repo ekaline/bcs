@@ -62,6 +62,7 @@ class EkaFhPhlxOrdGr : public EkaFhNasdaqGr{
     EkaFhFbSecurity  <EkaFhPlevel<PriceT, SizeT>,SecurityIdT, OrderIdT, PriceT, SizeT>,
     EkaFhPlevel      <PriceT, SizeT>,
     EkaFhOrder       <EkaFhPlevel<PriceT, SizeT>,OrderIdT,SizeT>,
+    EkaFhNoopQuotePostProc,
     SecurityIdT, OrderIdT, PriceT, SizeT>;
 
   FhBook*   book = NULL;
