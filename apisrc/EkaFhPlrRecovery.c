@@ -490,7 +490,7 @@ static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
     EKA_LOG("%s:%u EndOfRefresh: myRefreshStarted = %d",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,(int)*myRefreshStarted);
     if (! *myRefreshStarted)
-      return EKA_OPRESULT__RECOVERY_IN_PROGRESS;    
+      firstPkt = true;
     lastPkt = true;
     break;
     /* ------------------------------------------ */
