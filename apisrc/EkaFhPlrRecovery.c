@@ -492,8 +492,9 @@ static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
             pktHdr->seqNum, pktHdr->numMsgs);
     if (! *myRefreshStarted) {
       // If you request a full refresh of all symbols, but only
-      // 0-1 symbols are available in the group (i.e., during migration)
-      // a single EOR packet is sent with no corresponding SOR packet.
+      // 0-1 symbols are available in the group, a single EOR packet
+      // is sent with no corresponding SOR packet.
+      // We really only expect this to happen during migration.
       firstPkt = true;
     }
     lastPkt = true;
@@ -533,8 +534,6 @@ static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
 	     pktHdr->deliveryFlag,deliveryFlag2str(pktHdr->deliveryFlag).c_str(),
 	     pktHdr->seqNum, pktHdr->numMsgs);
   }
-
-
 
   if (firstPkt && op == EkaFhMode::SNAPSHOT) {
     if (firstMsgHdr->size != sizeof(RefreshHeader))
