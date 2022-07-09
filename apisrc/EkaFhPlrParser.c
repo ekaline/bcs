@@ -28,10 +28,7 @@ inline EfhTradeCond getTradeCondition(const Trade* trade) {
 bool EkaFhPlrQuotePostProc::operator()(const EkaFhSecurity* sec, EfhQuoteMsg* msg) {
   if (sec->type == EfhSecurityType::kComplex) {
     // Correct exchange's complex price conventions to match our own
-    const auto bidPrice = -msg->askSide.price;
-    const auto askPrice = -msg->bidSide.price;
-    msg->bidSide.price = bidPrice;
-    msg->askSide.price = askPrice;
+    msg->askSide.price = -msg->askSide.price;
   }
   return true;
 }
