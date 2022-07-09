@@ -487,10 +487,15 @@ static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
     break;
     /* ------------------------------------------ */
   case DeliveryFlag::EndOfRefresh :
-    EKA_LOG("%s:%u EndOfRefresh: myRefreshStarted = %d",
-	    EKA_EXCH_DECODE(gr->exch),gr->id,(int)*myRefreshStarted);
-    if (! *myRefreshStarted)
+    EKA_LOG("%s:%u EndOfRefresh: myRefreshStarted = %d, seqNum=%u, numMsgs=%u",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,(int)*myRefreshStarted,
+            pktHdr->seqNum, pktHdr->numMsgs);
+    if (! *myRefreshStarted) {
+      // If you request a full refresh of all symbols, but only
+      // 0-1 symbols are available in the group (i.e., during migration)
+      // a single EOR packet is sent with no corresponding SOR packet.
       firstPkt = true;
+    }
     lastPkt = true;
     break;
     /* ------------------------------------------ */
