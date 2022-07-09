@@ -494,6 +494,18 @@ static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
     lastPkt = true;
     break;
     /* ------------------------------------------ */
+  case DeliveryFlag::SinglePktRefresh :
+    firstPkt = true;
+    lastPkt = true;
+    if (*myRefreshStarted)
+      on_error("%s:%u DeliveryFlag::SinglePktRefresh accepted during "
+               "active %s Refresh cycle",
+               EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
+    *myRefreshStarted = true;
+    EKA_LOG("%s:%u SinglePktRefresh",
+            EKA_EXCH_DECODE(gr->exch),gr->id,(int)*myRefreshStarted);
+    break;
+    /* ------------------------------------------ */
   case DeliveryFlag::Heartbeat :
     if (*myRefreshStarted) {
       EKA_WARN("%s:%u Heartbeat during active Refresh cycle: last processed msgSeq = %u, current msgSeq = %u",
@@ -505,7 +517,6 @@ static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
     }
   case DeliveryFlag::Failover :
   case DeliveryFlag::SeqReset :
-  case DeliveryFlag::SinglePktRefresh : // Single pkt refresh means "Single symbol", we use "All symbols"
   case DeliveryFlag::SinglePktRetransmit :
   case DeliveryFlag::PartOfRetransmit :
   case DeliveryFlag::Original :
