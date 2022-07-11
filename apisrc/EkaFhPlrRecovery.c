@@ -63,8 +63,8 @@ static EkaOpResult sendSymbolIndexMappingRequest(EkaFhPlrGr* gr, int sock) {
   msg->ChannelID = gr->channelId;
   msg->RetransmitMethod = 0;
 
-  EKA_LOG("Sending SymbolIndexMappingRequest: SymbolIndex=%u,SourceID=\'%s\',ProductID=%u,ChannelID=%u",
-	  msg->SymbolIndex,msg->SourceID,msg->ProductID,msg->ChannelID);
+  EKA_LOG("Sending SymbolIndexMappingRequest: SymbolIndex=%u,SourceID=\'%.*s\',ProductID=%u,ChannelID=%u",
+	  msg->SymbolIndex,(int)sizeof(msg->SourceID),msg->SourceID,msg->ProductID,msg->ChannelID);
   int rc = send(sock,pkt,pktHdr->pktSize,0);
   if (rc <= 0) {
     EKA_WARN("Tcp send of msg size %d to sock %d returned rc = %d (%s)",
@@ -98,8 +98,8 @@ static EkaOpResult sendRefreshRequest(EkaFhPlrGr* gr, int sock) {
   msg->ProductID   = getPillarProductIdFromProductMask(gr->productMask);
   msg->ChannelID   = gr->channelId;
 
-  EKA_LOG("Sending RefreshRequest: SymbolIndex=%u,SourceID=\'%s\',ProductID=%u,ChannelID=%u",
-	  msg->SymbolIndex,msg->SourceID,msg->ProductID,msg->ChannelID);
+  EKA_LOG("Sending RefreshRequest: SymbolIndex=%u,SourceID=\'%.*s\',ProductID=%u,ChannelID=%u",
+	  msg->SymbolIndex,(int)sizeof(msg->SourceID),msg->SourceID,msg->ProductID,msg->ChannelID);
   int rc = send(sock,pkt,pktHdr->pktSize,0);
   if (rc <= 0) {
     EKA_WARN("Tcp send of msg size %d to sock %d returned rc = %d (%s)",
@@ -136,7 +136,7 @@ static EkaOpResult sendRetransmissionRequest(EkaFhPlrGr* gr, int sock, uint32_t 
 
   EKA_LOG("Sending RetransmissionRequest: BeginSeqNum=%u,EndSeqNum=%u,SourceID=\'%.*s\',ProductID=%u,ChannelID=%u",
 	  msg->BeginSeqNum,msg->EndSeqNum,
-          sizeof(msg->SourceID),msg->SourceID,msg->ProductID,msg->ChannelID);
+          (int)sizeof(msg->SourceID),msg->SourceID,msg->ProductID,msg->ChannelID);
   int rc = send(sock,pkt,pktHdr->pktSize,0);
   if (rc <= 0) {
     EKA_WARN("Tcp send of msg size %d to sock %d returned rc = %d",
