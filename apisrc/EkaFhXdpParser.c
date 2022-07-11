@@ -40,18 +40,18 @@ bool EkaFhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
       s->trading_action = EfhTradeStatus::kNormal;
       break;
     case '2' : // (Rotation) 
-      s->option_open    = true;
+      //      s->option_open    = true;
       s->trading_action = EfhTradeStatus::kOpeningRotation;
      break;
     case '3' : // (Trading Halted)
       s->trading_action = EfhTradeStatus::kHalted;
       break;
     case '4' : // (Pre-open)
-      s->option_open    = true;
+      //      s->option_open    = true;
       s->trading_action = EfhTradeStatus::kPreopen;
       break;
     case '5' : // (Rotation, legal width quote pending)
-      s->option_open    = true;
+      //      s->option_open    = true;
       s->trading_action = EfhTradeStatus::kOpeningRotation;
       break;
     default:
