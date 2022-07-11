@@ -63,8 +63,8 @@ static EkaOpResult sendSymbolIndexMappingRequest(EkaFhPlrGr* gr, int sock) {
   msg->ChannelID = gr->channelId;
   msg->RetransmitMethod = 0;
 
-  EKA_LOG("Sending SymbolIndexMappingRequest: SymbolIndex=%u,SourceID=\'%s\',ProductID=%u,ChannelID=%u",
-	  msg->SymbolIndex,msg->SourceID,msg->ProductID,msg->ChannelID);
+  EKA_LOG("Sending SymbolIndexMappingRequest: SymbolIndex=%u,SourceID=\'%.*s\',ProductID=%u,ChannelID=%u",
+	  msg->SymbolIndex,(int)sizeof(msg->SourceID),msg->SourceID,msg->ProductID,msg->ChannelID);
   int rc = send(sock,pkt,pktHdr->pktSize,0);
   if (rc <= 0) {
     EKA_WARN("Tcp send of msg size %d to sock %d returned rc = %d (%s)",
@@ -98,8 +98,8 @@ static EkaOpResult sendRefreshRequest(EkaFhPlrGr* gr, int sock) {
   msg->ProductID   = getPillarProductIdFromProductMask(gr->productMask);
   msg->ChannelID   = gr->channelId;
 
-  EKA_LOG("Sending RefreshRequest: SymbolIndex=%u,SourceID=\'%s\',ProductID=%u,ChannelID=%u",
-	  msg->SymbolIndex,msg->SourceID,msg->ProductID,msg->ChannelID);
+  EKA_LOG("Sending RefreshRequest: SymbolIndex=%u,SourceID=\'%.*s\',ProductID=%u,ChannelID=%u",
+	  msg->SymbolIndex,(int)sizeof(msg->SourceID),msg->SourceID,msg->ProductID,msg->ChannelID);
   int rc = send(sock,pkt,pktHdr->pktSize,0);
   if (rc <= 0) {
     EKA_WARN("Tcp send of msg size %d to sock %d returned rc = %d (%s)",
@@ -136,7 +136,7 @@ static EkaOpResult sendRetransmissionRequest(EkaFhPlrGr* gr, int sock, uint32_t 
 
   EKA_LOG("Sending RetransmissionRequest: BeginSeqNum=%u,EndSeqNum=%u,SourceID=\'%.*s\',ProductID=%u,ChannelID=%u",
 	  msg->BeginSeqNum,msg->EndSeqNum,
-          sizeof(msg->SourceID),msg->SourceID,msg->ProductID,msg->ChannelID);
+          (int)sizeof(msg->SourceID),msg->SourceID,msg->ProductID,msg->ChannelID);
   int rc = send(sock,pkt,pktHdr->pktSize,0);
   if (rc <= 0) {
     EKA_WARN("Tcp send of msg size %d to sock %d returned rc = %d",
@@ -487,11 +487,29 @@ static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
     break;
     /* ------------------------------------------ */
   case DeliveryFlag::EndOfRefresh :
-    EKA_LOG("%s:%u EndOfRefresh: myRefreshStarted = %d",
-	    EKA_EXCH_DECODE(gr->exch),gr->id,(int)*myRefreshStarted);
-    if (! *myRefreshStarted)
-      return EKA_OPRESULT__RECOVERY_IN_PROGRESS;    
+    EKA_LOG("%s:%u EndOfRefresh: myRefreshStarted = %d, seqNum=%u, numMsgs=%u",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,(int)*myRefreshStarted,
+            pktHdr->seqNum, pktHdr->numMsgs);
+    if (! *myRefreshStarted) {
+      // If you request a full refresh of all symbols, but only
+      // 0-1 symbols are available in the group, a single EOR packet
+      // is sent with no corresponding SOR packet.
+      // We really only expect this to happen during migration.
+      firstPkt = true;
+    }
     lastPkt = true;
+    break;
+    /* ------------------------------------------ */
+  case DeliveryFlag::SinglePktRefresh :
+    firstPkt = true;
+    lastPkt = true;
+    if (*myRefreshStarted)
+      on_error("%s:%u DeliveryFlag::SinglePktRefresh accepted during "
+               "active %s Refresh cycle",
+               EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
+    *myRefreshStarted = true;
+    EKA_LOG("%s:%u SinglePktRefresh",
+            EKA_EXCH_DECODE(gr->exch),gr->id,(int)*myRefreshStarted);
     break;
     /* ------------------------------------------ */
   case DeliveryFlag::Heartbeat :
@@ -505,7 +523,6 @@ static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
     }
   case DeliveryFlag::Failover :
   case DeliveryFlag::SeqReset :
-  case DeliveryFlag::SinglePktRefresh : // Single pkt refresh means "Single symbol", we use "All symbols"
   case DeliveryFlag::SinglePktRetransmit :
   case DeliveryFlag::PartOfRetransmit :
   case DeliveryFlag::Original :
@@ -517,8 +534,6 @@ static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
 	     pktHdr->deliveryFlag,deliveryFlag2str(pktHdr->deliveryFlag).c_str(),
 	     pktHdr->seqNum, pktHdr->numMsgs);
   }
-
-
 
   if (firstPkt && op == EkaFhMode::SNAPSHOT) {
     if (firstMsgHdr->size != sizeof(RefreshHeader))
