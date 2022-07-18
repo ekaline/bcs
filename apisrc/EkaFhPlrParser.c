@@ -28,7 +28,8 @@ inline EfhTradeCond getTradeCondition(const Trade* trade) {
 bool EkaFhPlrQuotePostProc::operator()(const EkaFhSecurity* sec, EfhQuoteMsg* msg) {
   if (sec->type == EfhSecurityType::kComplex) {
     // Correct exchange's complex price conventions to match our own
-    msg->askSide.price = -msg->askSide.price;
+    msg->askSide.price = -msg->bidSide.price;
+    msg->bidSide.price = -msg->askSide.price;
   }
   return true;
 }
@@ -329,7 +330,8 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.header.securityId = (uint64_t) m->seriesIndex;
     msg.side              = getSide(m->side);
     msg.capacity          = getRfqCapacity(m->capacity);
-    msg.price             = m->workingPrice;
+    // Invert price to match our complex price conventions
+    msg.price             = -m->workingPrice;
     msg.quantity          = m->totalQuantity;
     sprintf(msg.firmId,"%u",m->participant);
     if (pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL)
