@@ -128,7 +128,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     /* copySymbol(msg.commonDef.underlying, rootBlock->Asset); */
     /* copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup); */
     /* copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol); */
-    sprintf(msg.commonDef.exchSecurityName, "%d", root->seriesIndex);
+    sprintf(msg.commonDef.exchSecurityName, "%u", root->seriesIndex);
 
     msg.numLegs = root->NoOfLegs;
 
@@ -153,7 +153,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
         // #####################################################
   case MsgType::MessageUnavailable : { // 31
     auto m {reinterpret_cast<const MessageUnavailable*>(pMsg)};
-    EKA_WARN("WARNING: %s:%u MessageUnavailable at %s: %u..%u,"
+    EKA_WARN("WARNING: %s:%d MessageUnavailable at %s: %u..%u,"
 	     "ProductID=%u,ChannelID=%u",
 	     EKA_EXCH_DECODE(exch),id,EkaFhMode2STR(op),
 	     m->BeginSeqNum,m->EndSeqNum,m->ProductID,m->ChannelID);
