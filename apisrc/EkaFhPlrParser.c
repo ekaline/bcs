@@ -330,8 +330,11 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.header.securityId = (uint64_t) m->seriesIndex;
     msg.side              = getSide(m->side);
     msg.capacity          = getRfqCapacity(m->capacity);
-    // Invert price to match our complex price conventions
-    msg.price             = -m->workingPrice;
+    msg.price             = m->workingPrice;
+    if (s->type == EfhSecurityType::kComplex) {
+      // Invert price to match our complex price conventions
+      msg.price = -msg.price;
+    }
     msg.quantity          = m->totalQuantity;
     sprintf(msg.firmId,"%u",m->participant);
     if (pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL)
