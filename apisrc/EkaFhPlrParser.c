@@ -28,7 +28,8 @@ inline EfhTradeCond getTradeCondition(const Trade* trade) {
 bool EkaFhPlrQuotePostProc::operator()(const EkaFhSecurity* sec, EfhQuoteMsg* msg) {
   if (sec->type == EfhSecurityType::kComplex) {
     // Correct exchange's complex price conventions to match our own
-    msg->askSide.price = -msg->askSide.price;
+    msg->askSide.price = -msg->bidSide.price;
+    msg->bidSide.price = -msg->askSide.price;
   }
   return true;
 }
@@ -128,7 +129,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     /* copySymbol(msg.commonDef.underlying, rootBlock->Asset); */
     /* copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup); */
     /* copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol); */
-    sprintf(msg.commonDef.exchSecurityName, "%d", root->seriesIndex);
+    sprintf(msg.commonDef.exchSecurityName, "%u", root->seriesIndex);
 
     msg.numLegs = root->NoOfLegs;
 
@@ -153,7 +154,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
         // #####################################################
   case MsgType::MessageUnavailable : { // 31
     auto m {reinterpret_cast<const MessageUnavailable*>(pMsg)};
-    EKA_WARN("WARNING: %s:%u MessageUnavailable at %s: %u..%u,"
+    EKA_WARN("WARNING: %s:%d MessageUnavailable at %s: %u..%u,"
 	     "ProductID=%u,ChannelID=%u",
 	     EKA_EXCH_DECODE(exch),id,EkaFhMode2STR(op),
 	     m->BeginSeqNum,m->EndSeqNum,m->ProductID,m->ChannelID);
@@ -330,6 +331,10 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.side              = getSide(m->side);
     msg.capacity          = getRfqCapacity(m->capacity);
     msg.price             = m->workingPrice;
+    if (s->type == EfhSecurityType::kComplex) {
+      // Invert price to match our complex price conventions
+      msg.price = -msg.price;
+    }
     msg.quantity          = m->totalQuantity;
     sprintf(msg.firmId,"%u",m->participant);
     if (pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL)
