@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <utility>
 
 #include "EkaFhPlrParser.h"
 #include "EkaFhPlrGr.h"
@@ -28,8 +29,9 @@ inline EfhTradeCond getTradeCondition(const Trade* trade) {
 bool EkaFhPlrQuotePostProc::operator()(const EkaFhSecurity* sec, EfhQuoteMsg* msg) {
   if (sec->type == EfhSecurityType::kComplex) {
     // Correct exchange's complex price conventions to match our own
-    msg->askSide.price = -msg->bidSide.price;
-    msg->bidSide.price = -msg->askSide.price;
+    msg->askSide.price = -msg->askSide.price;
+    msg->bidSide.price = -msg->bidSide.price;
+    std::swap(msg->askSide, msg->bidSide);
   }
   return true;
 }
