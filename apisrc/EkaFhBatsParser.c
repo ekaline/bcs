@@ -19,14 +19,6 @@
 static void eka_print_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequence,uint64_t ts);
 std::string ts_ns2str(uint64_t ts);
 
-bool EkaFhBatsQuotePostProc::operator()(const EkaFhSecurity* sec, EfhQuoteMsg* msg) {
-  if (sec->type == EfhSecurityType::kComplex) {
-    // Correct exchange's complex price conventions to match our own
-    msg->askSide.price = -msg->askSide.price;
-  }
-  return true;
-}
-
 using namespace Bats;
 
 bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
