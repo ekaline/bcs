@@ -564,6 +564,7 @@ namespace Plr {
   inline EfhOrderCapacity getRfqCapacity(char capacity) {
     switch (capacity) {
     case ' ' : return EfhOrderCapacity::kUnknown;
+    case '0' : return EfhOrderCapacity::kCustomer;
     case '1' : return EfhOrderCapacity::kAgency; // Firm
     case '2' : return EfhOrderCapacity::kBrokerDealer;
     case '3' : return EfhOrderCapacity::kMarketMaker;
