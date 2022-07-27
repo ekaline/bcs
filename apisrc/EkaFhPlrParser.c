@@ -328,7 +328,9 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
       msg.price = -msg.price;
     }
     msg.quantity          = m->totalQuantity;
-    sprintf(msg.firmId,"%u",m->participant);
+    sprintf(msg.firmId, "%u", m->participant);
+    msg.endTimeNanos      = msg.header.timeStamp + getRfqRunTimeNanos(m->type);
+
     if (pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL)
       on_error("pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL");
     pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);

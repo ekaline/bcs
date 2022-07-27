@@ -573,7 +573,7 @@ namespace Plr {
     }
   }
 
-  inline EfhAuctionType getAuctionType (char auctionType) {
+  inline EfhAuctionType getAuctionType(char auctionType) {
     switch (auctionType) {
     case 'P' : return EfhAuctionType::kCube;
     case 'F' : return EfhAuctionType::kFacilitation;
@@ -581,6 +581,20 @@ namespace Plr {
     case 'B' : return EfhAuctionType::kExposed; // Bold (Outright only)
     case 'C' : return EfhAuctionType::kComplexOrderAuction; // COA (Complex only)
     default  :
+      on_error("Unexpected auctionType \'%c\'",auctionType);
+    }
+  }
+
+  inline uint64_t getRfqRunTimeNanos(char auctionType) {
+    switch (auctionType) {
+    case 'P': // Price Improvement
+    case 'F': // Facilitation
+    case 'S': // Solicitation
+    case 'B': // Bold (Outright only)
+      return 500'000'000;
+    case 'C': // COA (Complex only)
+      return 100'000'000;
+    default:
       on_error("Unexpected auctionType \'%c\'",auctionType);
     }
   }
@@ -593,6 +607,7 @@ namespace Plr {
       on_error("Unexpected auctionUpdateType (\'RFQ Status\') \'%c\'",auctionUpdateType);
     }
   }
+
   struct Rfq { // 307
     MsgHdr   hdr;
     uint32_t sourceTimeSec;
