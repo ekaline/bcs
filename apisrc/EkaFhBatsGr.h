@@ -11,50 +11,50 @@ class EkaFhBatsGr : public EkaFhGroup{
  public:
   virtual ~EkaFhBatsGr() {};
 
-  bool parseMsg(const EfhRunCtx* pEfhRunCtx,
-		const unsigned char*   m,
-		uint64_t         sequence,
-		EkaFhMode        op,
-		std::chrono::high_resolution_clock::time_point startTime={});
+  bool parseMsg(const EfhRunCtx*     pEfhRunCtx,
+                const unsigned char* m,
+                uint64_t             sequence,
+                EkaFhMode            op,
+                std::chrono::high_resolution_clock::time_point startTime={});
 
   int bookInit();
 
   int subscribeStaticSecurity(uint64_t        securityId, 
-			      EfhSecurityType efhSecurityType,
-			      EfhSecUserData  efhSecUserData,
-			      uint64_t        opaqueAttrA,
-			      uint64_t        opaqueAttrB) {
+                              EfhSecurityType efhSecurityType,
+                              EfhSecUserData  efhSecUserData,
+                              uint64_t        opaqueAttrA,
+                              uint64_t        opaqueAttrB) {
     if (!book)
       on_error("%s:%u !book",EKA_EXCH_DECODE(exch),id);
     
     book->subscribeSecurity(securityId, 
-			    efhSecurityType,
-			    efhSecUserData,
-			    opaqueAttrA,
-			    opaqueAttrB);
+                            efhSecurityType,
+                            efhSecUserData,
+                            opaqueAttrA,
+                            opaqueAttrB);
     return 0;
   }
 
   bool processUdpPkt(const EfhRunCtx* pEfhRunCtx,
-		     const uint8_t*   pkt, 
-		     uint             msgInPkt, 
-		     uint64_t         seq,
-		     std::chrono::high_resolution_clock::time_point start={});
+                     const uint8_t*   pkt,
+                     uint             msgInPkt,
+                     uint64_t         seq,
+                     std::chrono::high_resolution_clock::time_point start={});
   
   void pushUdpPkt2Q(const uint8_t* pkt, 
-		    uint           msgInPkt, 
-		    uint64_t       sequence);
+                    uint           msgInPkt,
+                    uint64_t       sequence);
   
   
-  int closeSnapshotGap(EfhCtx*              pEfhCtx, 
-		       const EfhRunCtx* pEfhRunCtx, 
-		       uint64_t          startSeq,
-		       uint64_t          endSeq);
+  int closeSnapshotGap(EfhCtx*          pEfhCtx,
+                       const EfhRunCtx* pEfhRunCtx,
+                       uint64_t         startSeq,
+                       uint64_t         endSeq);
   
   int closeIncrementalGap(EfhCtx*           pEfhCtx, 
-			  const EfhRunCtx* pEfhRunCtx, 
-			  uint64_t          startSeq,
-			  uint64_t          endSeq);
+                          const EfhRunCtx*  pEfhRunCtx,
+                          uint64_t          startSeq,
+                          uint64_t          endSeq);
 
   int printConfig() {
     EKA_LOG("%s:%u : "
@@ -140,15 +140,15 @@ public:
 
 private:
   int sendMdCb(const EfhRunCtx* pEfhRunCtx,
-	       const uint8_t* m,
-	       int            gr,
-	       uint64_t       sequence,
-	       uint64_t       ts);
+               const uint8_t*   m,
+               int              gr,
+               uint64_t         sequence,
+               uint64_t         ts);
   
   bool process_Definition(const EfhRunCtx* pEfhRunCtx,
-			  const unsigned char* m,
-			  uint64_t sequence,
-			  EkaFhMode op);
+                          const unsigned char* m,
+                          uint64_t sequence,
+                          EkaFhMode op);
   
   template <class SecurityT, class OrderMsgT>
   SecurityT* process_AddOrderShort(const uint8_t* m);
@@ -159,7 +159,7 @@ private:
   template <class SecurityT, class OrderMsgT>
   SecurityT* process_AddOrderExpanded(const uint8_t* m);
 
-   template <class SecurityT, class OrderMsgT>
+  template <class SecurityT, class OrderMsgT>
   SecurityT* process_OrderModifyShort(const uint8_t* m);
   
   template <class SecurityT, class OrderMsgT>
@@ -167,21 +167,27 @@ private:
 
   template <class SecurityT, class OrderMsgT>
   SecurityT* process_TradeShort(const EfhRunCtx* pEfhRunCtx,
-				uint64_t sequence,
-				uint64_t msg_timestamp,
-				const uint8_t* m);
+                                uint64_t sequence,
+                                uint64_t msg_timestamp,
+                                const uint8_t* m);
   
   template <class SecurityT, class OrderMsgT>
   SecurityT* process_TradeLong(const EfhRunCtx* pEfhRunCtx,
-			       uint64_t sequence,
-			       uint64_t msg_timestamp,
-			       const uint8_t* m);
-  
+                               uint64_t sequence,
+                               uint64_t msg_timestamp,
+                               const uint8_t* m);
+
   template <class SecurityT, class OrderMsgT>
   SecurityT* process_TradeExpanded(const EfhRunCtx* pEfhRunCtx,
-				   uint64_t sequence,
-				   uint64_t msg_timestamp,
-				   const uint8_t* m);
+                                   uint64_t sequence,
+                                   uint64_t msg_timestamp,
+                                   const uint8_t* m);
+
+  template <class SecurityT, class AuctionMsgT>
+  SecurityT* process_AuctionNotification(const EfhRunCtx* pEfhRunCtx,
+                                         uint64_t sequence,
+                                         uint64_t msg_timestamp,
+                                         const uint8_t* m);
 
 };
 #endif

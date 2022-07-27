@@ -585,7 +585,7 @@ namespace Bats {
                              // 'S' = Solicitation Auction Mechanism (C1 Only)
                              // 'T' = Step Up Mechanism (SUM)
                              // 'A' = SUM All or None
-    char        side;  // 'B' or 'S'      
+    char        side;  // 'B' or 'S'
     uint64_t    price;
     uint32_t    contracts;
     char        customerIndicator; // 'N' = Non-Customer 'C' = Customer
@@ -598,11 +598,11 @@ namespace Bats {
     GenericHeader header;
     char        symbol[6];
     uint64_t    auctionId;
-    char        auctionType; // 'B' = Bats Auction Mechanism (BAM) (EDGX Only) or AIM (C1 Only)
-                             // 'S' = Solicitation Auction Mechanism (C1 Only)
-                             // 'T' = Step Up Mechanism (SUM)
-                             // 'A' = SUM All or None
-    char        side;  // 'B' or 'S'      
+    char        auctionType; // 'C' = Complex Auction (COA)
+                             // 'S' = Complex Solicitation Auction Mechanism
+                             // 'B' = Complex AIM
+                             // 'O' = COA All or None
+    char        side;  // 'B' or 'S'
     int64_t     price;
     uint32_t    contracts;
     char        customerIndicator; // 'N' = Non-Customer 'C' = Customer
