@@ -58,14 +58,6 @@ constexpr T replaceIntNullWith(T num, T fallback) {
 
 /* ##################################################################### */
 
-bool EkaFhCmeQuotePostProc::operator()(const EkaFhSecurity* sec, EfhQuoteMsg* msg) {
-  if (sec->type == EfhSecurityType::kComplex) {
-    // Correct exchange's complex price conventions to match our own
-    msg->askSide.price = -msg->askSide.price;
-  }
-  return true;
-}
-
 bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
 			    const uint8_t*   pkt, 
 			    int16_t          pktLen,

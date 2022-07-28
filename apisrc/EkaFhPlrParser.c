@@ -26,16 +26,6 @@ inline EfhTradeCond getTradeCondition(const Trade* trade) {
   }
 }
 
-bool EkaFhPlrQuotePostProc::operator()(const EkaFhSecurity* sec, EfhQuoteMsg* msg) {
-  if (sec->type == EfhSecurityType::kComplex) {
-    // Correct exchange's complex price conventions to match our own
-    msg->askSide.price = -msg->askSide.price;
-    msg->bidSide.price = -msg->bidSide.price;
-    std::swap(msg->askSide, msg->bidSide);
-  }
-  return true;
-}
-
 bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 			  const unsigned char*   pMsg,
 			  uint64_t         sequence,
@@ -333,12 +323,14 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.side              = getSide(m->side);
     msg.capacity          = getRfqCapacity(m->capacity);
     msg.price             = m->workingPrice;
-    if (s->type == EfhSecurityType::kComplex) {
-      // Invert price to match our complex price conventions
+    if (s->type == EfhSecurityType::kComplex && m->side == 'S') {
+      // Invert ask price to match our complex price conventions
       msg.price = -msg.price;
     }
     msg.quantity          = m->totalQuantity;
-    sprintf(msg.firmId,"%u",m->participant);
+    sprintf(msg.firmId, "%u", m->participant);
+    msg.endTimeNanos      = msg.header.timeStamp + getRfqRunTimeNanos(m->type);
+
     if (pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL)
       on_error("pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL");
     pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
