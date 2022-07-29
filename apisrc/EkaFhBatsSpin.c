@@ -716,8 +716,8 @@ void* getSpinData(void* attr) {
   } else {
     EKA_WARN("%s:%u Spin Failed after %d trials. Exiting...",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
-    on_error("%s:%u Spin Failed after %d trials. Exiting...",
-	     EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
+    //on_error("%s:%u Spin Failed after %d trials. Exiting...",
+//	     EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
   }
 
   return NULL;
