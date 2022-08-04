@@ -508,7 +508,7 @@ static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
                "active %s Refresh cycle",
                EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
     *myRefreshStarted = true;
-    EKA_LOG("%s:%u SinglePktRefresh",
+    EKA_LOG("%s:%u SinglePktRefresh: %d",
             EKA_EXCH_DECODE(gr->exch),gr->id,(int)*myRefreshStarted);
     break;
     /* ------------------------------------------ */

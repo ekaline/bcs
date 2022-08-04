@@ -20,7 +20,7 @@ template <typename SymbolType, std::size_t N>
 SymbolType &copySymbolDot(SymbolType &symbol, const char (&src)[N]) {
   const char* s = src;
   char* d = symbol;
-  for (int i = 0; i < std::min(sizeof symbol, N); i++) {
+  for (int i = 0; i < (int) std::min(sizeof symbol, N); i++) {
     switch (*s) {
     case ' ' :
       *d++ = '\0';
