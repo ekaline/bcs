@@ -552,7 +552,8 @@ inline void EkaFhNomGr::processDefinition(const unsigned char* m,
   definitionMsg.strikePrice           = getPrice<Msg>(m);
   definitionMsg.optionType            = decodeOptionType(msg->optionType);
 
-  copySymbol(definitionMsg.commonDef.underlying,msg->underlying);
+  //  copySymbol(definitionMsg.commonDef.underlying,msg->underlying);
+  copySymbolDot(definitionMsg.commonDef.underlying,msg->underlying);
   copySymbol(definitionMsg.commonDef.classSymbol,msg->symbol);
 
   pEfhRunCtx->onEfhOptionDefinitionMsgCb(&definitionMsg,
