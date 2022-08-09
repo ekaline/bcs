@@ -89,8 +89,8 @@ EfhOptionStyle_ENUM_ITER( EKA__ENUM_DEF )
  *
  */
 enum class EfhExchange : char {
-#define EfhExchange_ENUM_ITER( _x )		\
-  _x( NOM,   'Q' )				\
+  #define EfhExchange_ENUM_ITER( _x )		\
+    _x( NOM,   'Q' )				\
     _x( PHLX,  'X' )				\
     _x( MIAX,  'M' )				\
     _x( GEM,   'S' )				\
@@ -111,7 +111,7 @@ enum class EfhExchange : char {
     _x( EMLD,  'G' )				\
     _x( Unknown, ' ' )
   EfhExchange_ENUM_ITER( EKA__ENUM_DEF )
-    };
+};
 
 /**
  * Current state of the exchange system.

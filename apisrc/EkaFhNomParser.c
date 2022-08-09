@@ -541,7 +541,7 @@ inline void EkaFhNomGr::processDefinition(const unsigned char* m,
 
   //    definitionMsg.secondaryGroup        = 0;
   definitionMsg.commonDef.securityType   = EfhSecurityType::kOption;
-  definitionMsg.commonDef.exchange       = EfhExchange::kBX;
+  definitionMsg.commonDef.exchange       = EfhExchange::kNOM;
   definitionMsg.commonDef.underlyingType = EfhSecurityType::kStock;
   definitionMsg.commonDef.expiryDate     =
     (2000 + msg->expYear) * 10000 +
@@ -552,7 +552,6 @@ inline void EkaFhNomGr::processDefinition(const unsigned char* m,
   definitionMsg.strikePrice           = getPrice<Msg>(m);
   definitionMsg.optionType            = decodeOptionType(msg->optionType);
 
-  //  copySymbol(definitionMsg.commonDef.underlying,msg->underlying);
   copySymbol(definitionMsg.commonDef.underlying,msg->underlying);
   copySymbol(definitionMsg.commonDef.classSymbol,msg->symbol);
 
