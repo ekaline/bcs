@@ -109,15 +109,57 @@ namespace EfhNasdaqCommon {
   }
   
   template <class T>
+  inline uint32_t getCustSize(const uint8_t* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return interpretVolume(msg->custSize);
+  }
+    
+  template <class T>
+  inline uint32_t getProCustSize(const uint8_t* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return interpretVolume(msg->proCustSize);
+  }
+  
+  template <class T>
   inline uint32_t getBidSize(const uint8_t* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return interpretVolume(msg->bidSize);
   }
   
   template <class T>
+  inline uint32_t getBidCustSize(const uint8_t* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return interpretVolume(msg->bidCustSize);
+  }
+  
+  template <class T>
+  inline uint32_t getBidProCustSize(const uint8_t* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return interpretVolume(msg->bidProCustSize);
+  }
+  
+  template <class T>
+  inline uint32_t getBidProCustSize(const uint8_t* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return interpretVolume(msg->bidProCustSize);
+  }
+  
+  template <class T>
   inline uint32_t getAskSize(const uint8_t* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return interpretVolume(msg->askSize);
+  }
+
+  template <class T>
+  inline uint32_t getAskCustSize(const uint8_t* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return interpretVolume(msg->askCustSize);
+  }
+  
+  template <class T>
+  inline uint32_t getAskProCustSize(const uint8_t* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return interpretVolume(msg->askProCustSize);
   }
   
   inline uint32_t interpretPrice(uint32_t v) {

@@ -10,6 +10,22 @@
 #define EKA_GEM_TS(x) (be64toh(*(uint64_t*)(x-1) & 0xffffffffffff0000))
 
 namespace Mrx2Top {
+
+  class MsgType : char {
+    SystemEvent                = 'S',
+      Directory                = 'V',
+      TradingAction            = 'H',
+      BestBidAndAskUpdateShort = 'q',
+      BestBidAndAskUpdateLong  = 'Q',
+      BestBidUpdateShort       = 'b',
+      BestBidUpdateLong        = 'B',
+      BestAskUpdateShort       = 'a',
+      BestAskUpdateLong        = 'A',
+      Trade                    = 'T',
+      BrokenTrade              = 'X',
+      EndOfSnapshot            = 'M' 
+      };
+  
   struct GenericHdr { // Dummy
     char	  type;        // 1
     uint16_t      trackingNum; // 2 Integer Internal system tracking number
@@ -22,7 +38,7 @@ namespace Mrx2Top {
   }
 
     struct SystemEvent { // 'S'
-    GenericHdr hdr;        // 11
+    GenericHdr hdr;        // 11grep
     char     event;        // 1
                            //  “O” Start of Messages.
                            //      This is always the first message sent in any trading day.
@@ -153,7 +169,7 @@ namespace Mrx2Top {
                              // "Y" = Bid side not firm Ask side firm
     uint32_t marketOrderSize;
     uint32_t price;
-    uint32_t size;
+    uint32_t volume;//size;
     uint32_t custSize;
     uint32_t proCustSize;
   } __attribute__((packed));

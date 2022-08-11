@@ -6,21 +6,23 @@
 
 class EkaFhMrx2TopGr : public EkaFhNasdaqGr{
  public:
-  virtual              ~EkaFhMrx2TopGr() {};
+  virtual ~EkaFhMrx2TopGr() {};
 
-  bool                 parseMsg(const EfhRunCtx* pEfhRunCtx,
-				const unsigned char* m,
-				uint64_t sequence,
-				EkaFhMode op,std::chrono::high_resolution_clock::time_point startTime={});
+  bool parseMsg(const EfhRunCtx* pEfhRunCtx,
+		const unsigned char* m,
+		uint64_t sequence,
+		EkaFhMode op,
+		std::chrono::high_resolution_clock::time_point startTime={});
 
-  int                  bookInit();
+  int bookInit();
 
-  int                  subscribeStaticSecurity(uint64_t        securityId, 
-					       EfhSecurityType efhSecurityType,
-					       EfhSecUserData  efhSecUserData,
-					       uint64_t        opaqueAttrA,
-					       uint64_t        opaqueAttrB) {
-    if (book == NULL) on_error("%s:%u book == NULL",EKA_EXCH_DECODE(exch),id);
+  int subscribeStaticSecurity(uint64_t        securityId, 
+			      EfhSecurityType efhSecurityType,
+			      EfhSecUserData  efhSecUserData,
+			      uint64_t        opaqueAttrA,
+			      uint64_t        opaqueAttrB) {
+    if (!book)
+      on_error("%s:%u book == NULL",EKA_EXCH_DECODE(exch),id);
     book->subscribeSecurity(securityId, 
 			    efhSecurityType,
 			    efhSecUserData,
@@ -43,6 +45,27 @@ class EkaFhMrx2TopGr : public EkaFhNasdaqGr{
 
   FhBook*   book = NULL;
 
+  
+private:
+  template <class Msg>
+  void processDefinition(const unsigned char* m,
+			 const EfhRunCtx* pEfhRunCtx);
+
+  template <class Msg>
+  uint64_t processEndOfSnapshot(const unsigned char* m,
+				EkaFhMode op);
+  template <class Msg>
+  FhSecurity* processOneSideUpdate(const unsigned char* m);
+  
+  template <class Msg>
+  FhSecurity* processTwoSidesUpdate(const unsigned char* m);
+  
+  template <class Msg>
+  FhSecurity* processTrade(const unsigned char* m,
+			   uint64_t sequence,
+			   uint64_t msgTs,
+			   const EfhRunCtx* pEfhRunCtx);
+  
 };
 
 #endif

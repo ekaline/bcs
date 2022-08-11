@@ -10,297 +10,253 @@
 #include "EkaFhMrx2TopGr.h"
 #include "EkaFhMrx2TopParser.h"
 
-static void eka_print_mrx2top_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t sequence,uint64_t ts);
-std::string ts_ns2str(uint64_t ts);
-
 using namespace Mrx2Top;
+using namespace EfhNasdaqCommon;
 
-bool EkaFhMrx2TopGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uint64_t sequence,EkaFhMode op,
-				 std::chrono::high_resolution_clock::time_point startTime) {
-  //  uint64_t ts = get_ts(m);
-  uint64_t ts = EKA_GEM_TS(m);
+bool EkaFhMrx2TopGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,
+			      uint64_t sequence,EkaFhMode op,
+			      std::chrono::high_resolution_clock::time_point startTime) {
+  auto genericHdr {reinterpret_cast<const GenericHdr *>(m)};
+  auto enc = genericHdr->type;
 
-  if (state == GrpState::NORMAL)
-    checkTimeDiff(dev->deltaTimeLogFile,dev->midnightSystemClock,
-		  ts,sequence);
-    
-  auto enc {static_cast<const char>(m[0])};
-
-  if (fh->print_parsed_messages) eka_print_mrx2top_msg(parser_log,(uint8_t*)m,id,sequence,ts);
-
-  if (op == EkaFhMode::DEFINITIONS && enc == 'M') return true;
-  if (op == EkaFhMode::DEFINITIONS && enc != 'D') return false;
-  if (op == EkaFhMode::SNAPSHOT    && enc == 'D') return false;
+  if (op == EkaFhMode::DEFINITIONS && enc == MsgType::EndOfSnapshot) return true;
+  if (op == EkaFhMode::DEFINITIONS && enc != MsgType::Directory) return false;
+  if (op == EkaFhMode::SNAPSHOT    && enc == MsgType::Directory) return false;
 
   //  EKA_LOG("enc = %c",enc);
 
   FhSecurity* s = NULL;
+  uint64_t msgTs = 0;
 
   switch (enc) {    
-  case 'D':  { //GEM_TQF_TYPE_OPTION_DIRECTORY
-
-    auto message {reinterpret_cast<const option_directory *>(m)};
-
-    EfhOptionDefinitionMsg msg{};
-    msg.header.msgType        = EfhMsgType::kOptionDefinition;
-    msg.header.group.source   = exch;
-    msg.header.group.localId  = (EkaLSI)id;
-    msg.header.underlyingId   = 0;
-    msg.header.securityId     = (uint64_t) be32toh(message->option_id);
-    msg.header.sequenceNumber = sequence;
-    msg.header.timeStamp      = 0;
-    msg.header.gapNum         = gapNum;
-
-    msg.commonDef.securityType   = EfhSecurityType::kOption;
-    msg.commonDef.exchange       = EKA_GRP_SRC2EXCH(exch);
-    msg.commonDef.underlyingType = EfhSecurityType::kStock;
-    msg.commonDef.expiryDate     = (message->expiration_year + 2000) * 10000 + message->expiration_month * 100 + message->expiration_day;
-    msg.commonDef.contractSize   = 0;
-
-    msg.strikePrice           = be64toh(message->strike_price) / EFH_GEMX_STRIKE_PRICE_SCALE;
-    msg.optionType            = message->option_type == 'C' ?  EfhOptionType::kCall : EfhOptionType::kPut;
-
-    copySymbol(msg.commonDef.underlying,message->underlying_symbol);
-    copySymbol(msg.commonDef.classSymbol,message->security_symbol);
-
-    pEfhRunCtx->onEfhOptionDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
+    //--------------------------------------------------------------
+  case MsgType::SystemEvent :
+    // Do nothing
     return false;
-
-  }
-  case 'M': { // END OF SNAPSHOT
-    auto message {reinterpret_cast<const snapshot_end *>(m)};
-
-    char seq_num_str[21] = {};
-    memcpy(seq_num_str, message->sequence_number, 20);
-    seq_after_snapshot = strtoul(seq_num_str, NULL, 10);
-    EKA_LOG("Glimpse snapshot_end_message (\'M\'): fh->gr[%u].seq_after_snapshot = %ju\n",id,seq_after_snapshot);
+    //--------------------------------------------------------------
+  case MsgType::TradingAction :
+    s = processTradingAction<TradingAction>(m);
+    break; 
+    //--------------------------------------------------------------
+  case MsgType::Directory : 
+    if (op == EkaFhMode::SNAPSHOT) return false;
+    processDefinition<Directory>(m,pEfhRunCtx);
+    return false;
+    //--------------------------------------------------------------
+  case MsgType::EndOfSnapshot :
+    if (op == EkaFhMode::DEFINITIONS) return true;
+    this->seq_after_snapshot = processEndOfSnapshot<EndOfSnapshot>(m,op);
     return true;
-  }
-
-  case 'Q':    // best_bid_and_ask_update_long
-  case 'q':  { // best_bid_and_ask_update_short 
-    auto message_long  {reinterpret_cast<const best_bid_and_ask_update_long  *>(m)};
-    auto message_short {reinterpret_cast<const best_bid_and_ask_update_short *>(m)};
-
-    bool long_form = (enc == 'Q');
-
-    SecurityIdT security_id = long_form ? be32toh(message_long->option_id) : be32toh(message_short->option_id);
-
-    s = book->findSecurity(security_id);
-    if (s == NULL) return false;
-
-    if (ts < s->bid_ts && ts < s->ask_ts) return false; // Back-in-time from Recovery
-
-    if (ts >= s->bid_ts) {
-      s->bid_size       = long_form ? be32toh(message_long->bid_size)          : (uint32_t) be16toh(message_short->bid_size);
-      s->bid_cust_size  = long_form ? be32toh(message_long->bid_cust_size)     : (uint32_t) be16toh(message_short->bid_cust_size);
-      s->bid_bd_size    = long_form ? be32toh(message_long->bid_pro_cust_size) : (uint32_t) be16toh(message_short->bid_pro_cust_size);
-
-      s->bid_price   = long_form ? be32toh(message_long->bid_price)      : (uint32_t) be16toh(message_short->bid_price) * 100;
-      s->bid_ts = ts;
-    }
-    if (ts >= s->ask_ts) {
-      s->ask_size       = long_form ? be32toh(message_long->ask_size)          : (uint32_t) be16toh(message_short->ask_size);
-      s->ask_cust_size  = long_form ? be32toh(message_long->ask_cust_size)     : (uint32_t) be16toh(message_short->ask_cust_size);
-      s->ask_bd_size    = long_form ? be32toh(message_long->ask_pro_cust_size) : (uint32_t) be16toh(message_short->ask_pro_cust_size);
-
-      s->ask_price   = long_form ? be32toh(message_long->ask_price)      : (uint32_t) be16toh(message_short->ask_price) * 100;
-      s->ask_ts = ts;
-    }
+    //--------------------------------------------------------------
+  case MsgType::BestBidAndAskUpdateShort :
+    s = processTwoSidesUpdate<BestBidAndAskUpdateShort>(m);
     break;
-
-  }
-
-  case 'A':
-  case 'B':   // best_bid_or_ask_update_long
-  case 'a':
-  case 'b': { // best_bid_or_ask_update_short
-    auto message_long  {reinterpret_cast<const best_bid_or_ask_update_long  *>(m)};
-    auto message_short {reinterpret_cast<const best_bid_or_ask_update_short *>(m)};
-
-    bool long_form = (enc == 'A') || (enc == 'B');
-
-    SecurityIdT security_id = long_form ? be32toh(message_long->option_id) : be32toh(message_short->option_id);
-    s = book->findSecurity(security_id);
-    if (s == NULL) return false;
-
-    if (enc == 'B' || enc == 'b') {
-      if (ts < s->bid_ts) return false; // Back-in-time from Recovery
-      s->bid_size       = long_form ? be32toh(message_long->size)          : (uint32_t) be16toh(message_short->size);
-      s->bid_cust_size  = long_form ? be32toh(message_long->cust_size)     : (uint32_t) be16toh(message_short->cust_size);
-      s->bid_bd_size    = long_form ? be32toh(message_long->pro_cust_size) : (uint32_t) be16toh(message_short->pro_cust_size);
-
-
-      s->bid_price   = long_form ? be32toh(message_long->price)      : (uint32_t) be16toh(message_short->price) * 100;
-      s->bid_ts = ts;
-    } else {
-      if (ts < s->ask_ts) return false; // Back-in-time from Recovery
-      s->ask_size       = long_form ? be32toh(message_long->size)          : (uint32_t) be16toh(message_short->size);
-      s->ask_cust_size  = long_form ? be32toh(message_long->cust_size)     : (uint32_t) be16toh(message_short->cust_size);
-      s->ask_bd_size    = long_form ? be32toh(message_long->pro_cust_size) : (uint32_t) be16toh(message_short->pro_cust_size);
-
-      s->ask_price   = long_form ? be32toh(message_long->price)      : (uint32_t) be16toh(message_short->price) * 100;
-      s->ask_ts = ts;
-    }
+    //--------------------------------------------------------------
+  case MsgType::BestBidAndAskUpdateLong :
+    s = processTwoSidesUpdate<BestBidAndAskUpdateLong>(m);
     break;
-  }
-
-  case 'T': { // ticker
-    auto message {reinterpret_cast<const ticker *>(m)};
-
-    SecurityIdT security_id = be32toh(message->option_id);
-    s = book->findSecurity(security_id);
-    if (s == NULL) return false;
-
-    EfhTradeMsg msg{};
-    msg.header.msgType        = EfhMsgType::kTrade;
-    msg.header.group.source   = exch;
-    msg.header.group.localId  = (EkaLSI)id;
-    msg.header.securityId     = (uint64_t) security_id;
-    msg.header.sequenceNumber = sequence;
-    msg.header.timeStamp      = ts;
-    msg.header.gapNum         = gapNum;
-    msg.price                 = be32toh(message->last_price);
-    msg.size                  = be32toh(message->size);
-    msg.tradeCond             = static_cast<EfhTradeCond>(message->trade_condition);
-
-    pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
+    //--------------------------------------------------------------
+  case MsgType::BestBidUpdateShort :
+  case MsgType::BestAskUpdateShort :
+    s = processOneSideUpdate<BestBidOrAskUpdateShort>(m);
+    break;
+    //--------------------------------------------------------------
+  case MsgType::BestBidUpdateLong :
+  case MsgType::BestAskUpdateLong :
+    s = processOneSideUpdate<BestBidOrAskUpdateLong>(m);
+    break;
+    //--------------------------------------------------------------
+  case MsgType::Trade :
+    s = processTrade<Trade>(m,sequence,pEfhRunCtx);
     return false;
-  }
-
-  case 'H': { // trading_action
-    auto message {reinterpret_cast<const trading_action *>(m)};
-
-    SecurityIdT security_id = be32toh(message->option_id);
-    s = book->findSecurity(security_id);
-    if (s == NULL) return false;
-
-    s->trading_action = message->current_trading_state == 'H' ? EfhTradeStatus::kHalted : 
-      s->option_open ? EfhTradeStatus::kNormal : EfhTradeStatus::kClosed;
-
-    break;
-  }
-
-  case 'O': { // security_open_close
-    auto message {reinterpret_cast<const security_open_close *>(m)};
-
-    SecurityIdT security_id = be32toh(message->option_id);
-    s = book->findSecurity(security_id);
-    if (s == NULL) return false;
-
-    if (message->open_state ==  'Y') {
-      s->option_open = true;
-      s->trading_action = EfhTradeStatus::kNormal;
-    } else {
-      s->option_open = false;
-      s->trading_action = EfhTradeStatus::kClosed;
-    }
-
-    break;
-  }
-
+    //--------------------------------------------------------------
+  case MsgType::BrokenTrade :
+    // Do nothing
+    return false;
+    //--------------------------------------------------------------
   default: 
-    return false;
+    EKA_WARN("UNEXPECTED Message type: enc=\'%c\'",enc);
+    //--------------------------------------------------------------
   }
-  if (s == NULL) on_error ("Trying to generate TOB update from s == NULL");
-  book->generateOnQuote (pEfhRunCtx, s, sequence, ts, gapNum);
+  if (!s) return false;
+  book->generateOnQuote (pEfhRunCtx,s,sequence,getTs(m),gapNum);
 
   return false;
 }
- /* ##################################################################### */
 
+template <class Msg>
+inline FhSecurity*
+EkaFhMrx2TopGr::processTradingAction(const unsigned char* m) {
+  SecurityIdT securityId = getInstrumentId<Msg>(m);
+  SecurityT* s = book->findSecurity(securityId);
+  if (!s) return NULL;
 
-/* static inline uint64_t get_ts(uint8_t* m) { */
-/*   uint64_t ts_tmp = 0; */
-/*   memcpy((uint8_t*)&ts_tmp+2,m+1,6); */
-/*   return be64toh(ts_tmp); */
-/* } */
- /* ##################################################################### */
+  book->setSecurityPrevState(s);
 
-static void eka_print_mrx2top_msg(FILE* md_file, const uint8_t* m, int gr, uint64_t sequence,uint64_t ts) {
-  auto enc {static_cast<const char>(m[0])};
-
-  fprintf(md_file,"%s,%ju,%c,",ts_ns2str(ts).c_str(),sequence,enc);
-
-  switch (enc) {
-  case 'Q':    // best_bid_and_ask_update_long
-  case 'q':  { // best_bid_and_ask_update_short 
-    auto message_long  {reinterpret_cast<const best_bid_and_ask_update_long  *>(m)};
-    auto message_short {reinterpret_cast<const best_bid_and_ask_update_short *>(m)};
-
-    bool long_form = (enc == 'Q');
-    fprintf(md_file,"%u, %u,%u,%u,%u, %u,%u,%u,%u",
-	    long_form ? be32toh(message_long->option_id)          :            be32toh(message_short->option_id),
-
-	    long_form ? be32toh(message_long->bid_price)          : (uint32_t) be16toh(message_short->bid_price) * 100,
-	    long_form ? be32toh(message_long->bid_size)           : (uint32_t) be16toh(message_short->bid_size),
-	    long_form ? be32toh(message_long->bid_cust_size)      : (uint32_t) be16toh(message_short->bid_cust_size),
-	    long_form ? be32toh(message_long->bid_pro_cust_size)  : (uint32_t) be16toh(message_short->bid_pro_cust_size),
-
-	    long_form ? be32toh(message_long->ask_price)          : (uint32_t) be16toh(message_short->ask_price) * 100,
-	    long_form ? be32toh(message_long->ask_size)           : (uint32_t) be16toh(message_short->ask_size),
-	    long_form ? be32toh(message_long->ask_cust_size)      : (uint32_t) be16toh(message_short->ask_cust_size),
-	    long_form ? be32toh(message_long->ask_pro_cust_size)  : (uint32_t) be16toh(message_short->ask_pro_cust_size)
-	    );
+  switch (reinterpret_cast<const Msg*>(m)->state) {
+  case 'H' : // "H” = Halt in effect
+  case 'B' : // “B” = Buy Side Trading Suspended 
+  case 'S' : // ”S” = Sell Side Trading Suspended
+    s->trading_action = EfhTradeStatus::kHalted;
     break;
-  }
-
-  case 'A':
-  case 'B':   // best_bid_or_ask_update_long
-  case 'a':
-  case 'b': { // best_bid_or_ask_update_short
-    auto message_long  {reinterpret_cast<const best_bid_or_ask_update_long  *>(m)};
-    auto message_short {reinterpret_cast<const best_bid_or_ask_update_short *>(m)};
-
-    bool long_form = (enc == 'A') || (enc == 'B');
-    fprintf(md_file,"%u, %u,%u,%u,%u",
-	    long_form ? be32toh(message_long->option_id)      :            be32toh(message_short->option_id),
-
-	    long_form ? be32toh(message_long->price)          : (uint32_t) be16toh(message_short->price) * 100,
-	    long_form ? be32toh(message_long->size)           : (uint32_t) be16toh(message_short->size),
-	    long_form ? be32toh(message_long->cust_size)      : (uint32_t) be16toh(message_short->cust_size),
-	    long_form ? be32toh(message_long->pro_cust_size)  : (uint32_t) be16toh(message_short->pro_cust_size)
-	    );
+  case 'I' : //  ”I” = Pre Open
+    s->trading_action = EfhTradeStatus::kPreopen;
     break;
-  }
-
-  case 'T': { // ticker
-    auto message {reinterpret_cast<const ticker *>(m)};
-
-    fprintf(md_file,"%u,%u,%u,%u,%c",
-	    be32toh(message->option_id),
-	    be32toh(message->last_price),
-	    be32toh(message->size),
-	    be32toh(message->volume),
-	    message->trade_condition
-	    );
+  case 'O' : //  ”O” = Opening Auction
+    s->trading_action = EfhTradeStatus::kOpeningRotation;
     break;
-  }
-
-  case 'H': { // trading_action
-    auto message {reinterpret_cast<const trading_action *>(m)};
-
-    fprintf(md_file,"%u,%c",
-	    be32toh(message->option_id),
-	    message->current_trading_state
-	    );
+  case 'R' : //  ”R” = Re-Opening
+    s->trading_action = EfhTradeStatus::kPreopen;
     break;
-  }
-
-  case 'O': { // security_open_close
-    auto message {reinterpret_cast<const security_open_close *>(m)};
-
-    fprintf(md_file,"%u,%c",
-	    be32toh(message->option_id),
-	    message->open_state
-	    );
+  case 'T' : //  ”T” = Continuous Trading
+    s->trading_action = EfhTradeStatus::kNormal;
+    s->option_open    = true;
     break;
-  }
-
-  default: 
+  case 'X' : //  ”X” = Closed
+    s->trading_action = EfhTradeStatus::kClosed;
+    s->option_open    = false;
     break;
-    
+  default:
+    on_error("Unexpected TradingAction state \'%c\'",
+	     reinterpret_cast<const Msg*>(m)->state);
   }
-  fprintf(md_file,"\n");
+  return s;
+}
+
+template <class Msg>
+inline void EkaFhMrx2TopGr::processDefinition(const unsigned char* m,
+					 const EfhRunCtx* pEfhRunCtx) {
+  auto msg {reinterpret_cast<const Msg *>(m)};
+
+  EfhOptionDefinitionMsg definitionMsg{};
+  definitionMsg.header.msgType        = EfhMsgType::kOptionDefinition;
+  definitionMsg.header.group.source   = exch;
+  definitionMsg.header.group.localId  = id;
+  definitionMsg.header.underlyingId   = 0;
+  definitionMsg.header.securityId     = getInstrumentId<Msg>(m);
+  definitionMsg.header.sequenceNumber = sequence;
+  definitionMsg.header.timeStamp      = 0;
+  definitionMsg.header.gapNum         = this->gapNum;
+
+  definitionMsg.commonDef.securityType   = EfhSecurityType::kOption;
+  definitionMsg.commonDef.exchange       = EKA_GRP_SRC2EXCH(exch);
+  definitionMsg.commonDef.underlyingType = EfhSecurityType::kStock;
+  definitionMsg.commonDef.expiryDate     =
+    (message->expiration_year + 2000) * 10000 +
+    message->expiration_month * 100 +
+    message->expiration_day;
+  definitionMsg.commonDef.contractSize   = 0;
+
+  definitionMsg.strikePrice           = getPrice<Msg>(m);
+  definitionMsg.optionType            = decodeOptionType(msg->optionType);
+
+  copySymbol(definitionMsg.commonDef.underlying,message->underlying_symbol);
+  copySymbol(definitionMsg.commonDef.classSymbol,message->security_symbol);
+
+  pEfhRunCtx->onEfhOptionDefinitionMsgCb(&definitionMsg,
+					 (EfhSecUserData) 0,
+					 pEfhRunCtx->efhRunUserData);
   return;
 }
+
+template <class Msg>
+inline uint64_t
+EkaFhMrx2TopGr::processEndOfSnapshot(const unsigned char* m,
+				EkaFhMode op) {
+  auto msg {reinterpret_cast<const Msg*>(m)};
+  char seqNumStr[sizeof(msg->nextLifeSequence)+1] = {};
+  memcpy(seqNumStr, msg->nextLifeSequence, sizeof(msg->nextLifeSequence));
+  uint64_t num = strtoul(seqNumStr, NULL, 10);
+  EKA_LOG("%s:%u: Glimpse %s EndOfSnapshot: seq_after_snapshot = %ju (\'%s\')",
+	  EKA_EXCH_DECODE(exch),id,
+	  EkaFhMode2STR(op),
+	  num,seqNumStr);
+  return (op == EkaFhMode::SNAPSHOT) ? num : 0;
+}
+
+template <class Msg>
+inline FhSecurity*
+EkaFhMrx2TopGr::processOneSideUpdate(const unsigned char* m) {
+  auto msg {reinterpret_cast<const Msg*>(m)};
+  SecurityIdT securityId = getInstrumentId<Msg>(m);
+  SecurityT* s = book->findSecurity(securityId);
+  if (!s) return NULL;
+
+  if (getSide<Msg>(m) == SideT::BID) {
+    s->bid_size       = getSize        <Msg>(m);
+    s->bid_cust_size  = getCustSize    <Msg>(m);
+    s->bid_bd_size    = getProCustSize <Msg>(m);
+
+    s->bid_price      = getPrice       <Msg>(m);
+    s->bid_ts         = getTs               (m);
+  } else {
+    s->ask_size       = getSize        <Msg>(m);
+    s->ask_cust_size  = getCustSize    <Msg>(m);
+    s->ask_bd_size    = getProCustSize <Msg>(m);
+
+    s->ask_price      = getPrice       <Msg>(m);
+    s->ask_ts         = getTs               (m);
+  }
+
+  return s;
+}
+
+template <class Msg>
+inline FhSecurity*
+EkaFhMrx2TopGr::processTwoSidesUpdate(const unsigned char* m) {
+  auto msg {reinterpret_cast<const Msg*>(m)};
+  SecurityIdT securityId = getInstrumentId<Msg>(m);
+  SecurityT* s = book->findSecurity(securityId);
+  if (!s) return NULL;
+
+  s->bid_size       = getBidSize        <Msg>(m);
+  s->bid_cust_size  = getBidCustSize    <Msg>(m);
+  s->bid_bd_size    = getBidProCustSize <Msg>(m); // To Be Fixed!!!
+
+  s->bid_price      = getBidPrice       <Msg>(m);
+  s->bid_ts         = getTs                  (m);
+
+  s->ask_size       = getAskSize        <Msg>(m);
+  s->ask_cust_size  = getAskCustSize    <Msg>(m);
+  s->ask_bd_size    = getAskProCustSize <Msg>(m); // To Be Fixed!!!
+
+  s->ask_price      = getAskPrice       <Msg>(m);
+  s->ask_ts         = s->bid_ts;//getTs                  (m);
+
+
+  return s;
+}
+
+template <class Msg>
+inline FhSecurity*
+EkaFhMrx2TopGr::processTrade(const unsigned char* m,
+			  uint64_t sequence,
+			  uint64_t msgTs,
+			  const EfhRunCtx* pEfhRunCtx) {
+  SecurityIdT securityId = getInstrumentId<Msg>(m);
+  SecurityT* s = book->findSecurity(securityId);
+  if (!s) return NULL;
+  
+  SizeT    size  = getSize <Msg>(m);
+  PriceT   price = getPrice<Msg>(m);
+  uint64_t msgTs = getTs        (m); 
+  const EfhTradeMsg msg = {
+			   {EfhMsgType::kTrade,
+			    {this->exch,(EkaLSI)this->id},
+			    0,  // underlyingId
+			    (uint64_t) securityId, 
+			    sequence,
+			    msgTs,
+			    this->gapNum },
+			   price,
+			   size,
+			   s->trading_action,
+			   EfhTradeCond::kREG
+  };
+  pEfhRunCtx->onEfhTradeMsgCb(&msg,
+			      s->efhUserData,
+			      pEfhRunCtx->efhRunUserData);
+
+  return NULL;
+}
+
