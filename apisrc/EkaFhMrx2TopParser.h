@@ -5,26 +5,28 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define EFH_GEMX_STRIKE_PRICE_SCALE 10000
+#include "EkaFhNasdaqCommonParser.h"
+//#define EFH_GEMX_STRIKE_PRICE_SCALE 10000
 
-#define EKA_GEM_TS(x) (be64toh(*(uint64_t*)(x-1) & 0xffffffffffff0000))
+//#define EKA_GEM_TS(x) (be64toh(*(uint64_t*)(x-1) & 0xffffffffffff0000))
 
+using namespace EfhNasdaqCommon;
 namespace Mrx2Top {
 
-  class MsgType : char {
+  enum class MsgType : char {
     SystemEvent                = 'S',
-      Directory                = 'V',
-      TradingAction            = 'H',
-      BestBidAndAskUpdateShort = 'q',
-      BestBidAndAskUpdateLong  = 'Q',
-      BestBidUpdateShort       = 'b',
-      BestBidUpdateLong        = 'B',
-      BestAskUpdateShort       = 'a',
-      BestAskUpdateLong        = 'A',
-      Trade                    = 'T',
-      BrokenTrade              = 'X',
-      EndOfSnapshot            = 'M' 
-      };
+    Directory                = 'V',
+    TradingAction            = 'H',
+    BestBidAndAskUpdateShort = 'q',
+    BestBidAndAskUpdateLong  = 'Q',
+    BestBidUpdateShort       = 'b',
+    BestBidUpdateLong        = 'B',
+    BestAskUpdateShort       = 'a',
+    BestAskUpdateLong        = 'A',
+    Trade                    = 'T',
+    BrokenTrade              = 'X',
+    EndOfSnapshot            = 'M' 
+  };
   
   struct GenericHdr { // Dummy
     char	  type;        // 1
@@ -154,7 +156,7 @@ namespace Mrx2Top {
                              // "Y" = Bid side not firm Ask side firm
     uint16_t marketOrderSize;
     uint16_t price;
-    uint16_t size;
+    uint16_t volume; // size
     uint16_t custSize;
     uint16_t proCustSize;
   } __attribute__((packed));
@@ -249,7 +251,23 @@ namespace Mrx2Top {
     uint32_t imbalance_volume;
   } __attribute__((packed));
 
-
+  
+  template <class T>
+  inline SideT getMrxSide(const uint8_t* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    auto type = msg->hdr.type;
+    switch (type) {
+    case 'B' :
+    case 'b' :
+      return SideT::BID;
+    case 'A' :
+    case 'a' :
+      return SideT::ASK;
+    default :
+      on_error("Unexpected side \'%c\'",type);
+    }
+  }
+  
 } //namespece Mrx2top
 
 #endif

@@ -17,7 +17,7 @@ bool EkaFhMrx2TopGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m
 			      uint64_t sequence,EkaFhMode op,
 			      std::chrono::high_resolution_clock::time_point startTime) {
   auto genericHdr {reinterpret_cast<const GenericHdr *>(m)};
-  auto enc = genericHdr->type;
+  auto enc = static_cast<MsgType>(genericHdr->type);
 
   if (op == EkaFhMode::DEFINITIONS && enc == MsgType::EndOfSnapshot) return true;
   if (op == EkaFhMode::DEFINITIONS && enc != MsgType::Directory) return false;
@@ -26,7 +26,6 @@ bool EkaFhMrx2TopGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m
   //  EKA_LOG("enc = %c",enc);
 
   FhSecurity* s = NULL;
-  uint64_t msgTs = 0;
 
   switch (enc) {    
     //--------------------------------------------------------------
@@ -35,7 +34,7 @@ bool EkaFhMrx2TopGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m
     return false;
     //--------------------------------------------------------------
   case MsgType::TradingAction :
-    s = processTradingAction<TradingAction>(m);
+    s = processTradingAction<FhSecurity,TradingAction>(m);
     break; 
     //--------------------------------------------------------------
   case MsgType::Directory : 
@@ -49,25 +48,25 @@ bool EkaFhMrx2TopGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m
     return true;
     //--------------------------------------------------------------
   case MsgType::BestBidAndAskUpdateShort :
-    s = processTwoSidesUpdate<BestBidAndAskUpdateShort>(m);
+    s = processTwoSidesUpdate<FhSecurity,BestBidAndAskUpdateShort>(m);
     break;
     //--------------------------------------------------------------
   case MsgType::BestBidAndAskUpdateLong :
-    s = processTwoSidesUpdate<BestBidAndAskUpdateLong>(m);
+    s = processTwoSidesUpdate<FhSecurity,BestBidAndAskUpdateLong>(m);
     break;
     //--------------------------------------------------------------
   case MsgType::BestBidUpdateShort :
   case MsgType::BestAskUpdateShort :
-    s = processOneSideUpdate<BestBidOrAskUpdateShort>(m);
+    s = processOneSideUpdate<FhSecurity,BestBidOrAskUpdateShort>(m);
     break;
     //--------------------------------------------------------------
   case MsgType::BestBidUpdateLong :
   case MsgType::BestAskUpdateLong :
-    s = processOneSideUpdate<BestBidOrAskUpdateLong>(m);
+    s = processOneSideUpdate<FhSecurity,BestBidOrAskUpdateLong>(m);
     break;
     //--------------------------------------------------------------
   case MsgType::Trade :
-    s = processTrade<Trade>(m,sequence,pEfhRunCtx);
+    s = processTrade<FhSecurity,Trade>(m,sequence,pEfhRunCtx);
     return false;
     //--------------------------------------------------------------
   case MsgType::BrokenTrade :
@@ -75,7 +74,7 @@ bool EkaFhMrx2TopGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m
     return false;
     //--------------------------------------------------------------
   default: 
-    EKA_WARN("UNEXPECTED Message type: enc=\'%c\'",enc);
+    EKA_WARN("UNEXPECTED Message type: enc=\'%c\'",(char)enc);
     //--------------------------------------------------------------
   }
   if (!s) return false;
@@ -84,14 +83,12 @@ bool EkaFhMrx2TopGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m
   return false;
 }
 
-template <class Msg>
-inline FhSecurity*
+template <class SecurityT, class Msg>
+inline SecurityT*
 EkaFhMrx2TopGr::processTradingAction(const unsigned char* m) {
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
   if (!s) return NULL;
-
-  book->setSecurityPrevState(s);
 
   switch (reinterpret_cast<const Msg*>(m)->state) {
   case 'H' : // "H” = Halt in effect
@@ -134,7 +131,7 @@ inline void EkaFhMrx2TopGr::processDefinition(const unsigned char* m,
   definitionMsg.header.group.localId  = id;
   definitionMsg.header.underlyingId   = 0;
   definitionMsg.header.securityId     = getInstrumentId<Msg>(m);
-  definitionMsg.header.sequenceNumber = sequence;
+  definitionMsg.header.sequenceNumber = 0;
   definitionMsg.header.timeStamp      = 0;
   definitionMsg.header.gapNum         = this->gapNum;
 
@@ -142,16 +139,16 @@ inline void EkaFhMrx2TopGr::processDefinition(const unsigned char* m,
   definitionMsg.commonDef.exchange       = EKA_GRP_SRC2EXCH(exch);
   definitionMsg.commonDef.underlyingType = EfhSecurityType::kStock;
   definitionMsg.commonDef.expiryDate     =
-    (message->expiration_year + 2000) * 10000 +
-    message->expiration_month * 100 +
-    message->expiration_day;
+    (msg->expYear + 2000) * 10000 +
+    msg->expMonth * 100 +
+    msg->expDate;
   definitionMsg.commonDef.contractSize   = 0;
 
   definitionMsg.strikePrice           = getPrice<Msg>(m);
   definitionMsg.optionType            = decodeOptionType(msg->optionType);
 
-  copySymbol(definitionMsg.commonDef.underlying,message->underlying_symbol);
-  copySymbol(definitionMsg.commonDef.classSymbol,message->security_symbol);
+  copySymbol(definitionMsg.commonDef.underlying,msg->underlying);
+  copySymbol(definitionMsg.commonDef.classSymbol,msg->symbol);
 
   pEfhRunCtx->onEfhOptionDefinitionMsgCb(&definitionMsg,
 					 (EfhSecUserData) 0,
@@ -174,15 +171,15 @@ EkaFhMrx2TopGr::processEndOfSnapshot(const unsigned char* m,
   return (op == EkaFhMode::SNAPSHOT) ? num : 0;
 }
 
-template <class Msg>
-inline FhSecurity*
+template <class SecurityT, class Msg>
+inline SecurityT*
 EkaFhMrx2TopGr::processOneSideUpdate(const unsigned char* m) {
-  auto msg {reinterpret_cast<const Msg*>(m)};
+  //  auto msg {reinterpret_cast<const Msg*>(m)};
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
   if (!s) return NULL;
 
-  if (getSide<Msg>(m) == SideT::BID) {
+  if (getMrxSide<Msg>(m) == SideT::BID) {
     s->bid_size       = getSize        <Msg>(m);
     s->bid_cust_size  = getCustSize    <Msg>(m);
     s->bid_bd_size    = getProCustSize <Msg>(m);
@@ -201,10 +198,10 @@ EkaFhMrx2TopGr::processOneSideUpdate(const unsigned char* m) {
   return s;
 }
 
-template <class Msg>
-inline FhSecurity*
+template <class SecurityT, class Msg>
+inline SecurityT*
 EkaFhMrx2TopGr::processTwoSidesUpdate(const unsigned char* m) {
-  auto msg {reinterpret_cast<const Msg*>(m)};
+  //  auto msg {reinterpret_cast<const Msg*>(m)};
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
   if (!s) return NULL;
@@ -227,11 +224,10 @@ EkaFhMrx2TopGr::processTwoSidesUpdate(const unsigned char* m) {
   return s;
 }
 
-template <class Msg>
-inline FhSecurity*
+template <class SecurityT, class Msg>
+inline SecurityT*
 EkaFhMrx2TopGr::processTrade(const unsigned char* m,
 			  uint64_t sequence,
-			  uint64_t msgTs,
 			  const EfhRunCtx* pEfhRunCtx) {
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);

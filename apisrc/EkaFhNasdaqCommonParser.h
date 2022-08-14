@@ -139,12 +139,6 @@ namespace EfhNasdaqCommon {
   }
   
   template <class T>
-  inline uint32_t getBidProCustSize(const uint8_t* m) {
-    auto msg {reinterpret_cast <const T*>(m)};
-    return interpretVolume(msg->bidProCustSize);
-  }
-  
-  template <class T>
   inline uint32_t getAskSize(const uint8_t* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return interpretVolume(msg->askSize);

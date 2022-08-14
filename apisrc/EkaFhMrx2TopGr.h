@@ -54,18 +54,18 @@ private:
   template <class Msg>
   uint64_t processEndOfSnapshot(const unsigned char* m,
 				EkaFhMode op);
-  template <class Msg>
-  FhSecurity* processOneSideUpdate(const unsigned char* m);
+  template <class SecurityT, class Msg>
+  SecurityT* processOneSideUpdate(const unsigned char* m);
   
-  template <class Msg>
-  FhSecurity* processTwoSidesUpdate(const unsigned char* m);
+  template <class SecurityT, class Msg>
+  SecurityT* processTwoSidesUpdate(const unsigned char* m);
   
-  template <class Msg>
-  FhSecurity* processTrade(const unsigned char* m,
+  template <class SecurityT, class Msg>
+  SecurityT* processTrade(const unsigned char* m,
 			   uint64_t sequence,
-			   uint64_t msgTs,
 			   const EfhRunCtx* pEfhRunCtx);
-  
+  template <class SecurityT, class Msg>
+  SecurityT* processTradingAction(const unsigned char* m);
 };
 
 #endif
