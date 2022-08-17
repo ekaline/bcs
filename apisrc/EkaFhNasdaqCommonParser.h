@@ -35,6 +35,8 @@
     "UNKNOWN"
 
 namespace EfhNasdaqCommon {
+  using DefaultPriceT = uint32_t;
+  
   template <class T>
   inline uint32_t getInstrumentId(const uint8_t* m) {
     auto msg {reinterpret_cast <const T*>(m)};
@@ -160,14 +162,35 @@ namespace EfhNasdaqCommon {
     return be32toh(v);
   }
 
+  inline uint32_t interpretPrice(int32_t v) {
+    return be32toh(v);
+  }
+  
   inline uint32_t interpretPrice(uint16_t v) {
     return be16toh(v) * 100;
   }
-  
-  template <class T>
+
+  template <class PriceT>
+  inline PriceT interpretPrice(uint32_t v) {
+    return static_cast<PriceT>(be32toh(v));
+  }
+
+  template <class PriceT>
+  inline PriceT interpretPrice(int32_t v) {
+    return static_cast<PriceT>(be32toh(v));
+  }
+
+    
+  template <class MsgT, class BookPriceT>
   inline uint32_t getPrice(const uint8_t* m) {
-    auto msg {reinterpret_cast <const T*>(m)};
-    return interpretPrice(msg->price);
+    auto msg {reinterpret_cast <const MsgT*>(m)};
+    return interpretPrice<BookPriceT>(msg->price);
+  }
+  
+  template <class MsgT>
+  inline uint32_t getPrice(const uint8_t* m) {
+    auto msg {reinterpret_cast <const MsgT*>(m)};
+    return interpretPrice<DefaultPriceT>(msg->price);
   }
   
   template <class T>
@@ -180,6 +203,18 @@ namespace EfhNasdaqCommon {
   inline uint32_t getAskPrice(const uint8_t* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return interpretPrice(msg->askPrice);
+  }
+
+  template <class T, class BookPriceT>
+  inline uint32_t getBidPrice(const uint8_t* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return interpretPrice<BookPriceT>(msg->bidPrice);
+  }
+  
+  template <class T, class BookPriceT>
+  inline uint32_t getAskPrice(const uint8_t* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return interpretPrice<BookPriceT>(msg->askPrice);
   }
   
   template <class T>
@@ -197,6 +232,13 @@ namespace EfhNasdaqCommon {
     }
   }
 
+  template <class MsgT,class PriceT>
+  inline PriceT getStrikePrice(const uint8_t* m) {
+    auto msg {reinterpret_cast <const MsgT*>(m)};
+    return interpretPrice<PriceT>(msg->strikePrice);
+  }
+  
+  
   template <class T>
   inline FhOrderType getOrderType(const uint8_t* m) {
     auto msg {reinterpret_cast <const T*>(m)};
@@ -301,8 +343,20 @@ namespace EfhNasdaqCommon {
       // 	       msg->customerFirmIndicator);
     }
   }
+
   
 
+  template <class T>
+  inline uint32_t getRatio(const uint8_t* m) {
+    return be32toh(reinterpret_cast<const T*>(m)->ratio);
+  }
+  
+  template <class MsgT,class PriceT>
+  inline PriceT getLegStrikePrice(const uint8_t* m) {
+    auto msg {reinterpret_cast <const MsgT*>(m)};
+    return interpretPrice<PriceT>(msg->strikePrice);
+  }
+  
   template <class Msg>
   inline size_t printGenericMsg(FILE* fd, const uint8_t* m) {
     fprintf (fd,"\n");
@@ -326,12 +380,12 @@ namespace EfhNasdaqCommon {
     return sizeof(Msg);
   }
   
-  template <class Msg>
+  template <class Msg, class PriceT>
   inline int printAddOrder(FILE* fd, const uint8_t* m) {
     fprintf(fd,"%u,",getInstrumentId<Msg>(m));
     fprintf(fd,"%ju,",getOrderId<Msg>(m));
     fprintf(fd,"\'%c\',",reinterpret_cast<const Msg*>(m)->side);
-    fprintf(fd,"%u,",getPrice<Msg>(m));
+    fprintf(fd,"%u,",getPrice<Msg,PriceT>(m));
     fprintf(fd,"%u,",getSize<Msg>(m));
     fprintf (fd,"\n");
     return sizeof(Msg);
@@ -350,11 +404,11 @@ namespace EfhNasdaqCommon {
     return sizeof(Msg);
   }
 
-  template <class Msg>
+  template <class Msg, class PriceT>
   inline int printReplaceOrder(FILE* fd, const uint8_t* m) {
     fprintf(fd,"%ju,",getOldOrderId<Msg>(m));
     fprintf(fd,"%ju,",getNewOrderId<Msg>(m));
-    fprintf(fd,"%u,",getPrice<Msg>(m));
+    fprintf(fd,"%u,",getPrice<Msg,PriceT>(m));
     fprintf(fd,"%u,",getSize<Msg>(m));
     fprintf (fd,"\n");
     return sizeof(Msg);
@@ -388,10 +442,10 @@ namespace EfhNasdaqCommon {
     return sizeof(Msg);
   }
   
-  template <class Msg>
+  template <class Msg, class PriceT>
   inline int printSingleSideUpdate(FILE* fd, const uint8_t* m) {
     fprintf(fd,"%ju,",getOrderId<Msg>(m));
-    fprintf(fd,"%u,",getPrice<Msg>(m));
+    fprintf(fd,"%u,",getPrice<Msg,PriceT>(m));
     fprintf(fd,"%u,",getSize<Msg>(m));
     fprintf (fd,"\n");
     return sizeof(Msg);
@@ -409,6 +463,7 @@ namespace EfhNasdaqCommon {
   template <class Feed>
   inline int
   printMsg(FILE* fd, uint64_t sequence, const uint8_t* m) {
+    using PriceT = uint32_t; // Price to display
     auto genericHdr {reinterpret_cast
 		     <const typename Feed::GenericHdr*>(m)};
     char enc = genericHdr->type;
@@ -426,9 +481,9 @@ namespace EfhNasdaqCommon {
     case 'O':  // OptionOpen -- NOM only
       return printOptionOpen<typename Feed::OptionOpen>(fd,m);
     case 'a':  // AddOrderShort
-      return printAddOrder<typename Feed::AddOrderShort>(fd,m);
+      return printAddOrder<typename Feed::AddOrderShort,PriceT>(fd,m);
     case 'A':  // AddOrderLong
-      return printAddOrder<typename Feed::AddOrderLong>(fd,m);
+      return printAddOrder<typename Feed::AddOrderLong,PriceT>(fd,m);
     case 'j':  // AddQuoteShort
       return printAddQuote<typename Feed::AddQuoteShort>(fd,m);
     case 'J':  // AddQuoteLong
@@ -440,13 +495,13 @@ namespace EfhNasdaqCommon {
     case 'X':  // OrderCancel
       return printOrderExecuted<typename Feed::OrderCancel>(fd,m);
     case 'u':  // ReplaceOrderShort
-      return printReplaceOrder<typename Feed::ReplaceOrderShort>(fd,m);
+      return printReplaceOrder<typename Feed::ReplaceOrderShort,PriceT>(fd,m);
     case 'U':  // ReplaceOrderLong
-      return printReplaceOrder<typename Feed::ReplaceOrderLong>(fd,m);
+      return printReplaceOrder<typename Feed::ReplaceOrderLong,PriceT>(fd,m);
     case 'D':  // DeleteOrder
       return printDeleteOrder<typename Feed::SingleSideDelete>(fd,m);
     case 'G':  // SingleSideUpdate
-      return printSingleSideUpdate<typename Feed::SingleSideUpdate>(fd,m);
+      return printSingleSideUpdate<typename Feed::SingleSideUpdate,PriceT>(fd,m);
     case 'k':  // QuoteReplaceShort
       return printReplaceQuote<typename Feed::QuoteReplaceShort>(fd,m);
     case 'K':  // QuoteReplaceLong

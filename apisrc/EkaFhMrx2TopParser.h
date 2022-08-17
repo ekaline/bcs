@@ -25,7 +25,13 @@ namespace Mrx2Top {
     BestAskUpdateLong        = 'A',
     Trade                    = 'T',
     BrokenTrade              = 'X',
-    EndOfSnapshot            = 'M' 
+    EndOfSnapshot            = 'M' ,
+
+    ComplexDirectory           = 'N',
+    ComplexBestBidAndAskUpdate = 'E',
+    ComplexBestBidUpdate       = 'c',
+    ComplexBestAskUpdate       = 'd'
+
   };
   
   struct GenericHdr { // Dummy
@@ -203,55 +209,78 @@ namespace Mrx2Top {
   } __attribute__((packed));
 
   
-  struct option_directory {
-    char         message_type; // 'D'
-    char         time_nano[6];
-    uint32_t     option_id;
-    char         security_symbol[6];
-    uint8_t      expiration_year; 
-    uint8_t      expiration_month;
-    uint8_t      expiration_day;
-    uint64_t     strike_price;
-    char         option_type; // 'C' or 'P'
-    uint8_t      source;
-    char         underlying_symbol[13];
-    char         trading_type;    // “E” = Equity “I” = Index “F” = ETF “C” = Currency
-    uint16_t     contract_size;
-    char         option_closing_type; // “N” = Normal Hours “L” = Late Hours
-    char         tradable; // “Y” = Option is tradable “N” = Option is not tradable
-    char         mpv; // “E” = penny Everywhere “S” = Scaled “P” = penny Pilot
-    char         closing_only; // Closing position of the option: 
-    // “Y” = Option is Closing Position Only. 
-    // Only Market Maker origin orders can have open position 
-    // “N” = Option is not Closing Position Only
+  struct ComplexDirectory { //'N'
+    GenericHdr hdr;        // 11
+    uint32_t instrumentId; // 4
+    char     type;         // 1
+                           //    “V” = Vertical Spread
+                           //    “T” = Time Spread
+                           //    “D” = Diagonal Spread
+                           //    “S” = Straddle
+                           //    “G” = Strangle
+                           //    “C” = Combo
+                           //    “R” = Risk Reversal
+                           //    “A” = Ratio Spread
+                           //    “B” = Box Spread
+                           //    “F” = Butterfly Spread
+                           //    “U” = Custom
+    char underlyingSymbol[13]; // 13
+    uint8_t   numOfLegs;   // 1
   } __attribute__((packed));
 
-
-  struct trading_action {
-    char     message_type; // 'H'
-    char     time_nano[6];
-    uint32_t option_id;
-    char     current_trading_state; // “H” = Halt in effect, “T” = Trading on the options system
+  struct ComplexDefinitionLeg { // part of ComplexDefinition
+    uint32_t instrumentId;  // 4
+    char securitySymbol[6]; // 6
+    uint8_t  expYear;       // 1
+    uint8_t  expMonth;      // 1
+    uint8_t  expDay;        // 1
+    uint32_t strikePrice;   // 4
+    char     optionType;    // 1  “C” = Call, “P” = Put,
+                            //    Blank (“ “) for Stock Leg.
+    char     side;          // 1  “B” = Buy, “S” = Sell
+    uint32_t ratio;         // 4
   } __attribute__((packed));
-
-  struct security_open_close {
-    char     message_type; // 'O'
-    char     time_nano[6];
-    uint32_t option_id;
-    char     open_state; // Y = Open for auto execution, N = Closed for auto execution
-  } __attribute__((packed));
-
-  struct opening_imbalance {
-    char     message_type; // 'N'
-    char     time_nano[6];
-    uint32_t option_id;
-    uint32_t paired_contracts;
-    char     imbalance_direction; // “B” = buy imbalance “S” = sell imbalance
-    uint32_t imbalance_price;
-    uint32_t imbalance_volume;
-  } __attribute__((packed));
-
   
+  struct ComplexBestBidAndAskUpdate { //'E'
+    GenericHdr hdr;        // 11
+    uint32_t instrumentId; // 4
+    char     quoteCondition; // <space> = regular quote/autox eligible
+
+    uint32_t bidMarketOrderSize;
+    int32_t  bidPrice;
+    uint32_t bidSize;
+    uint32_t bidCustSize;
+    uint32_t bidProCustSize;
+    uint32_t bidDnttSize;
+    uint32_t bidDnttMarketSize;
+
+    uint32_t askMarketOrderSize;
+    int32_t  askPrice;
+    uint32_t askSize;
+    uint32_t askCustSize;
+    uint32_t askProCustSize;
+    uint32_t askDnttSize;
+    uint32_t askDnttMarketSize;
+
+  } __attribute__((packed));
+
+  struct ComplexBestBidOrAskUpdate { // 'c' = bid side, 'd' = ask side
+    GenericHdr hdr;        // 11
+    uint32_t instrumentId; // 4
+
+
+    char     quoteCondition; // <space> = regular quote/autox eligible
+
+    uint32_t marketOrderSize;
+    int32_t  price;
+    uint32_t volume;//size;
+    uint32_t custSize;
+    uint32_t proCustSize;
+    uint32_t dnttSize;
+    uint32_t dnttMarketSize;
+  } __attribute__((packed));
+
+
   template <class T>
   inline SideT getMrxSide(const uint8_t* m) {
     auto msg {reinterpret_cast <const T*>(m)};
@@ -267,7 +296,47 @@ namespace Mrx2Top {
       on_error("Unexpected side \'%c\'",type);
     }
   }
+
+  template <class T>
+  inline SideT getMrxComplexSide(const uint8_t* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    auto type = msg->hdr.type;
+    switch (type) {
+    case 'c' :
+      return SideT::BID;
+    case 'd' :
+      return SideT::ASK;
+    default :
+      on_error("Unexpected side \'%c\'",type);
+    }
+  }
   
-} //namespece Mrx2top
+  template <class T>
+  inline EfhSecurityType getLegType(const uint8_t* m) {
+    auto legType {reinterpret_cast<const T*>(m)->optionType};
+    switch (legType) {
+    case ' ' :
+      return EfhSecurityType::kStock;
+    case 'C' :
+    case 'P' :
+      return EfhSecurityType::kOption;
+    default :
+      on_error("Unexpected Leg option type \'%c\'",legType);
+    }
+  }
+
+  template <class T>
+  inline EfhOrderSide getLegSide(const uint8_t* m) {
+    switch (reinterpret_cast<const T*>(m)->side) {
+    case 'B' : return EfhOrderSide::kBid;
+    case 'S' : return EfhOrderSide::kAsk;
+    default  :
+      on_error("Unexpected Leg side \'%c\'",
+	       reinterpret_cast<const T*>(m)->side);
+    }
+  }
+
+  
+} //namespace Mrx2top
 
 #endif

@@ -34,15 +34,19 @@ class EkaFhMrx2TopGr : public EkaFhNasdaqGr{
   static const uint   SEC_HASH_SCALE = 17;
 
   using SecurityIdT = uint32_t;
-  using PriceT      = uint32_t;
+  using BookPriceT  = int64_t;
   using SizeT       = uint32_t;
 
-  using FhSecurity  = EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>;
+  using FhSecurity  = EkaFhTobSecurity  <SecurityIdT, BookPriceT, SizeT>;
   using FhBook      = EkaFhTobBook<SEC_HASH_SCALE,
-      EkaFhTobSecurity<SecurityIdT, PriceT, SizeT>,
-      EkaFhNoopQuotePostProc,
-      SecurityIdT, PriceT, SizeT>;
+				   FhSecurity,
+				   EkaFhNoopQuotePostProc,
+				   SecurityIdT, BookPriceT, SizeT>;
 
+  using VanillaPriceT      = uint32_t;
+  using ComplexPriceT      = int32_t;
+
+  
   FhBook*   book = NULL;
 
   
@@ -66,6 +70,17 @@ private:
 			   const EfhRunCtx* pEfhRunCtx);
   template <class SecurityT, class Msg>
   SecurityT* processTradingAction(const unsigned char* m);
+
+  template <class Root, class Leg>
+  inline void processComplexDefinition(const unsigned char* m,
+				       const EfhRunCtx* pEfhRunCtx);
+  
+  template <class SecurityT, class Msg>
+  SecurityT* processComplexTwoSidesUpdate(const unsigned char* m);
+
+  template <class SecurityT, class Msg>
+  SecurityT* processComplexOneSideUpdate(const unsigned char* m);
+  
 };
 
 #endif
