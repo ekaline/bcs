@@ -444,7 +444,7 @@ template <class SecurityT, class Msg>
   msg.header.underlyingId   = 0;
   msg.header.securityId     = securityId;
   msg.header.sequenceNumber = sequence;
-  msg.header.timeStamp      = gr_ts;
+  msg.header.timeStamp      = msgTs;
   msg.header.gapNum         = gapNum;
 
   msg.auctionId             = getAuctionId<Msg>(m);
