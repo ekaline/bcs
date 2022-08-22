@@ -229,6 +229,7 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
     auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
     m += sizeof(*msgHdr);
     auto rootBlock {reinterpret_cast<const QuoteRequest39_mainBlock*>(m)};
+    uint64_t transactTime = rootBlock->TransactTime;
     m += msgHdr->blockLen;
     /* ------------------------------- */
     auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
@@ -246,7 +247,7 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
     msg.header.group.localId  = id;
     msg.header.underlyingId   = 0;
     msg.header.sequenceNumber = pktSeq;
-    msg.header.timeStamp      = pktTime; //rootBlock->LastUpdateTime;
+    msg.header.timeStamp      = transactTime; //pktTime; //rootBlock->LastUpdateTime;
     msg.header.gapNum         = gapNum;
 
     const char *const auctionIdEnd = rootBlock->QuoteReqID +
@@ -288,6 +289,8 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
   auto m      {pMsg};
   auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
   m += sizeof(*msgHdr);
+  auto rootBlock {reinterpret_cast<const SnapshotFullRefresh52_mainBlock*>(m)};
+  uint64_t transactTime = rootBlock->TransactTime;
   m += msgHdr->blockLen;
   /* ------------------------------- */
   auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
@@ -369,7 +372,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
       book->generateOnQuote (pEfhRunCtx,
                              s,
                              pktSeq,
-                             pktTime,
+                             transactTime, //pktTime,
                              gapNum);
     }
     /* if (tobChange) book->generateOnOrder (pEfhRunCtx,  */
@@ -389,7 +392,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
       hdr->group.source   = exch;
       hdr->group.localId  = id;
       hdr->sequenceNumber = pktSeq;
-      hdr->timeStamp      = pktTime;
+      hdr->timeStamp      = transactTime; //pktTime;
       switch (e->MDUpdateAction) {
       case MDUpdateAction_T::New: {
 	auto dstMsg {reinterpret_cast<MdNewPlevel*>(msgBuf)};
@@ -457,7 +460,8 @@ int EkaFhCmeGr::process_MDIncrementalRefreshTradeSummary48(const EfhRunCtx* pEfh
     auto m      {pMsg};
     auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
     m += sizeof(*msgHdr);
-    //  auto rootBlock {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mainBlock*>(m)};
+    auto rootBlock {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mainBlock*>(m)};
+    uint64_t transactTime = rootBlock->TransactTime;
     m += msgHdr->blockLen;
     /* ------------------------------- */
     auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
@@ -476,7 +480,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshTradeSummary48(const EfhRunCtx* pEfh
 	      0,  // underlyingId
 	      (uint64_t) e->SecurityID,
 	      pktSeq,
-	      pktTime,
+	      transactTime, //pktTime,
 	      gapNum },
 	    e->MDEntryPx / static_cast<std::int64_t>(s->getFinalPriceFactor()),
 	    (uint32_t)e->MDEntrySize,
@@ -511,6 +515,7 @@ int EkaFhCmeGr::process_SecurityStatus30(const EfhRunCtx* pEfhRunCtx,
   m += sizeof(*msgHdr);
 
   auto rootBlock {reinterpret_cast<const SecurityStatus30_mainBlock*>(m)};
+  uint64_t transactTime = rootBlock->TransactTime;
 
   auto s {book->findSecurity(rootBlock->SecurityID)};
   if (!s) return msgHdr->size;
@@ -520,7 +525,7 @@ int EkaFhCmeGr::process_SecurityStatus30(const EfhRunCtx* pEfhRunCtx,
   book->generateOnQuote (pEfhRunCtx,
 			 s,
 			 pktSeq,
-			 pktTime,
+			 transactTime, //pktTime,
 			 gapNum);
 
   return msgHdr->size;
@@ -535,6 +540,7 @@ int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
   auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
   m += sizeof(*msgHdr);
   auto rootBlock {reinterpret_cast<const SnapshotFullRefresh52_mainBlock*>(m)};
+  uint64_t transactTime = rootBlock->TransactTime;
   m += msgHdr->blockLen;
 
   //  seq_after_snapshot = rootBlock->LastMsgSeqNumProcessed + 1;
@@ -564,7 +570,7 @@ int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
       book->generateOnQuote (pEfhRunCtx,
                              s,
                              pktSeq,
-                             pktTime,
+                             transactTime, //pktTime,
                              gapNum);
     }
     m += pGroupSize->blockLength;    
