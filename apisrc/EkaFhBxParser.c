@@ -116,8 +116,8 @@ bool EkaFhBxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   case 'I':  // NOII
     msgTs = BxFeed::getTs(m);
     processAuctionUpdate<FhSecurity,BxFeed::NOII>(m,sequence,
-						  msgTs,
-						  pEfhRunCtx);
+                                                  msgTs,
+                                                  pEfhRunCtx);
     return false;
     //--------------------------------------------------------------
   case 'M':  // EndOfSnapshot
@@ -130,8 +130,8 @@ bool EkaFhBxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     if (op == EkaFhMode::SNAPSHOT) return false;
     processDefinition<BxFeed::Directory>(m,pEfhRunCtx);
     return false;
-  default: 
-    on_error("UNEXPECTED Message type: enc=\'%c\'",enc);
+  default:
+    on_error("UNEXPECTED Message type: enc=\'%c\', trackingNum=%d",enc,genericHdr->trackingNum);
   }
   if (!s) return false;
 
