@@ -6,9 +6,6 @@
 #include <string.h>
 
 #include "EkaFhNasdaqCommonParser.h"
-//#define EFH_GEMX_STRIKE_PRICE_SCALE 10000
-
-//#define EKA_GEM_TS(x) (be64toh(*(uint64_t*)(x-1) & 0xffffffffffff0000))
 
 using namespace EfhNasdaqCommon;
 namespace Mrx2Top {
@@ -33,6 +30,48 @@ namespace Mrx2Top {
     ComplexBestAskUpdate       = 'd'
 
   };
+
+  inline const char*
+  getMsgTypeName(MsgType c) {
+    switch (c) {
+    case MsgType::SystemEvent :
+      return "SystemEvent";
+    case MsgType::Directory :
+      return "Directory";
+    case MsgType::TradingAction :
+      return "TradingAction";
+    case MsgType::BestBidAndAskUpdateShort :
+      return "BestBidAndAskUpdateShort";
+    case MsgType::BestBidAndAskUpdateLong :
+      return "BestBidAndAskUpdateLong";
+    case MsgType::BestBidUpdateShort :
+      return "BestBidUpdateShort";
+    case MsgType::BestBidUpdateLong :
+      return "BestBidUpdateLong";
+    case MsgType::BestAskUpdateShort :
+      return "BestAskUpdateShort";
+    case MsgType::BestAskUpdateLong :
+      return "BestAskUpdateLong";
+    case MsgType::Trade :
+      return "Trade";
+    case MsgType::BrokenTrade :
+      return "BrokenTrade";
+    case MsgType::EndOfSnapshot :
+      return "EndOfSnapshot";
+
+    case MsgType::ComplexDirectory :
+      return "ComplexDirectory";
+    case MsgType::ComplexBestBidAndAskUpdate :
+      return "ComplexBestBidAndAskUpdate";
+    case MsgType::ComplexBestBidUpdate :
+      return "ComplexBestBidUpdate";
+    case MsgType::ComplexBestAskUpdate :
+      return "ComplexBestAskUpdate";
+
+    default:
+      return "Unknown";
+    }
+  }
   
   struct GenericHdr { // Dummy
     char	  type;        // 1
@@ -40,7 +79,7 @@ namespace Mrx2Top {
     uint64_t      ts;          // 8 Nanoseconds since midnight
   } __attribute__((packed));
 
-  static inline uint64_t getTs(const uint8_t* m) {
+  static inline uint64_t getTs(const void* m) {
     auto hdr = reinterpret_cast<const GenericHdr*>(m);
     return be64toh(hdr->ts);
   }
@@ -336,7 +375,139 @@ namespace Mrx2Top {
     }
   }
 
+  template <class MsgT>
+  inline size_t printSystemEvent(const void* m, FILE* fd = stdout) {
+    auto msg {reinterpret_cast <const MsgT*>(m)};
+    fprintf (fd,"\'%c\'",msg->event);
+    fprintf (fd,"\n");
+    return sizeof(MsgT);
+  }
+
+  template <class MsgT>
+  inline size_t printTradingAction(const void* m, FILE* fd = stdout) {
+    auto msg {reinterpret_cast <const MsgT*>(m)};
+    fprintf (fd,"\'%c\'",msg->state);
+    fprintf (fd,"\n");
+    return sizeof(MsgT);
+  }
+
+  template <class MsgT>
+  inline size_t printDefinition(const void* m, FILE* fd = stdout) {
+    //    auto msg {reinterpret_cast <const MsgT*>(m)};
+
+    fprintf (fd,"\n");
+    return sizeof(MsgT);
+  }
+
   
+  template <class MsgT>
+  inline size_t printTwoSidesUpdate(const void* m, FILE* fd = stdout) {
+    //    auto msg {reinterpret_cast <const MsgT*>(m)};
+
+    fprintf (fd,"\n");
+    return sizeof(MsgT);
+  }
+    
+  template <class MsgT>
+  inline size_t printOneSideUpdate(const void* m, FILE* fd = stdout) {
+    //    auto msg {reinterpret_cast <const MsgT*>(m)};
+
+    fprintf (fd,"\n");
+    return sizeof(MsgT);
+  }
+    
+  template <class MsgT>
+  inline size_t printTrade(const void* m, FILE* fd = stdout) {
+    //    auto msg {reinterpret_cast <const MsgT*>(m)};
+
+    fprintf (fd,"\n");
+    return sizeof(MsgT);
+  }
+      
+  template <class MsgT, class LegT>
+  inline size_t printComplexDefinition(const void* m, FILE* fd = stdout) {
+    //    auto msg {reinterpret_cast <const MsgT*>(m)};
+
+    fprintf (fd,"\n");
+    return sizeof(MsgT);
+  }
+      
+  template <class MsgT>
+  inline size_t printComplexTwoSidesUpdate(const void* m, FILE* fd = stdout) {
+    //    auto msg {reinterpret_cast <const MsgT*>(m)};
+
+    fprintf (fd,"\n");
+    return sizeof(MsgT);
+  }
+        
+  template <class MsgT>
+  inline size_t printComplexOneSideUpdate(const void* m, FILE* fd = stdout) {
+    //    auto msg {reinterpret_cast <const MsgT*>(m)};
+
+    fprintf (fd,"\n");
+    return sizeof(MsgT);
+  }
+  inline size_t
+  printMsg(const void* m, uint64_t sequence = 0, FILE* fd = stdout) {
+    //    using PriceT = uint32_t; // Price to display
+    auto genericHdr {reinterpret_cast<const GenericHdr*>(m)};
+    auto enc = static_cast<MsgType>(genericHdr->type);
+    uint64_t msgTs = getTs(m);
+
+    fprintf(fd,"\t");
+    fprintf(fd,"%s,",ts_ns2str(msgTs).c_str());
+    fprintf (fd,"%-8ju,",sequence);
+    fprintf (fd,"\'%c\',",(char)enc);
+    fprintf (fd,"%s,",getMsgTypeName(enc));
+    switch (enc) {
+      //--------------------------------------------------------------
+    case MsgType::SystemEvent :
+      return printSystemEvent<SystemEvent>(m,fd);
+      //--------------------------------------------------------------
+    case MsgType::TradingAction :
+      return printTradingAction<TradingAction>(m,fd);
+      //--------------------------------------------------------------
+    case MsgType::Directory : 
+      return printDefinition<Directory>(m,fd);
+      //--------------------------------------------------------------
+    case MsgType::EndOfSnapshot :
+      return sizeof(EndOfSnapshot);
+      //--------------------------------------------------------------
+    case MsgType::BestBidAndAskUpdateShort :
+      return printTwoSidesUpdate<BestBidAndAskUpdateShort>(m,fd);
+      //--------------------------------------------------------------
+    case MsgType::BestBidAndAskUpdateLong :
+      return printTwoSidesUpdate<BestBidAndAskUpdateLong>(m,fd);
+      //--------------------------------------------------------------
+    case MsgType::BestBidUpdateShort :
+    case MsgType::BestAskUpdateShort :
+      return printOneSideUpdate<BestBidOrAskUpdateShort>(m,fd);
+      //--------------------------------------------------------------
+    case MsgType::BestBidUpdateLong :
+    case MsgType::BestAskUpdateLong :
+      return printOneSideUpdate<BestBidOrAskUpdateLong>(m,fd);
+      //--------------------------------------------------------------
+    case MsgType::Trade :
+      return printTrade<Trade>(m,fd);
+      //--------------------------------------------------------------
+    case MsgType::BrokenTrade :
+      return sizeof(BrokenTrade);
+      //--------------------------------------------------------------
+    case MsgType::ComplexDirectory :
+      return printComplexDefinition<ComplexDirectory,ComplexDefinitionLeg>(m,fd);
+      //--------------------------------------------------------------
+    case MsgType::ComplexBestBidAndAskUpdate :
+      return printComplexTwoSidesUpdate<ComplexBestBidAndAskUpdate>(m,fd);
+      //--------------------------------------------------------------
+    case MsgType::ComplexBestBidUpdate :
+    case MsgType::ComplexBestAskUpdate :
+      return printComplexOneSideUpdate<ComplexBestBidOrAskUpdate>(m,fd);
+      //--------------------------------------------------------------
+    default: 
+      on_error("UNEXPECTED Message type: enc=\'%c\'",(char)enc);
+      //--------------------------------------------------------------
+    }
+  }
 } //namespace Mrx2top
 
 #endif
