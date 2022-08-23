@@ -402,7 +402,8 @@ static int sendPreloadedPkt (int sock, const sockaddr_in* addr,
   hexDump("preloadedPkt",bytes,size/2);
   TEST_LOG("sending preloaded pkt to %s:%u",
 	   EKA_IP2STR(addr->sin_addr.s_addr),be16toh(addr->sin_port));
-  if (sendto(sock,bytes,size/2,0,(const sockaddr*)addr,sizeof(sockaddr)) < 0) 
+  //  if (sendto(sock,bytes,size/2,0,(const sockaddr*)addr,sizeof(sockaddr)) < 0) 
+  if (sendto(sock,bytes,1400,0,(const sockaddr*)addr,sizeof(sockaddr)) < 0) 
     on_error ("MC trigger send failed");
 
   return 0;
