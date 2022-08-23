@@ -766,6 +766,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionSpread56_mainBlock*>(m)};
   m += msgHdr->blockLen;
 
+#if 0  
   if (rootBlock->CFICode[0] == 'F' && rootBlock->CFICode[1] == 'M') {
     // This is an intramarket spread, also referred to as a calendar spread.
     // It involves buying a futures contract in one month while simultaneously
@@ -773,7 +774,8 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
     // these for now, we are only looking for options spreads.
     return msgHdr->size;
   }
-
+#endif
+  
   /* ------------------------------- */
   
   const int64_t priceAdjustFactor = computeFinalPriceFactor(rootBlock->DisplayFactor);
