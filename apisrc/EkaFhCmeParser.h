@@ -1114,8 +1114,19 @@ namespace Cme {
     auto m {msg + sizeof(*msgHdr)};
     /* ------------------------------- */
     auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionSpread56_mainBlock*>(m)};
-    printf ("\t\tMDInstrumentDefinitionSpread56: MatchEventIndicator=0x%x,",
-	    rootBlock->MatchEventIndicator);
+    printf ("\t\tMDInstrumentDefinitionSpread56: ");
+    //    printf ("MatchEventIndicator=0x%x,",rootBlock->MatchEventIndicator);
+    printf("Asset=\'%s\',",
+	   std::string(rootBlock->Asset,sizeof(rootBlock->Asset)).c_str());
+    printf("Symbol=\'%s\',",
+	   std::string(rootBlock->Symbol,sizeof(rootBlock->Symbol)).c_str());   
+    printf("SecurityID=%d,",rootBlock->SecurityID);
+
+    printf("SecurityType=\'%s\',",
+	   std::string(rootBlock->SecurityType,sizeof(rootBlock->SecurityType)).c_str());
+    printf("CFICode=\'%s\',",
+	   std::string(rootBlock->CFICode,sizeof(rootBlock->CFICode)).c_str());
+
     m += msgHdr->blockLen;
 
     /* ------------------------------- */
@@ -1146,7 +1157,7 @@ namespace Cme {
     m += sizeof(*pGroupSize);
     for (uint i = 0; i < pGroupSize->numInGroup; i++) {
       auto e {reinterpret_cast<const MDInstrumentDefinitionSpread56_legEntry*>(m)};
-      printf ("\t\t\tsecId=%8d,side=%d,LegRatioQty=%d\n",
+      printf ("(secId=%d,side=%d,LegRatioQty=%d),",
 	      e->LegSecurityID,
 	      (int)e->LegSide,
 	      e->LegRatioQty);
