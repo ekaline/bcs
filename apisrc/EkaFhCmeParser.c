@@ -766,19 +766,23 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionSpread56_mainBlock*>(m)};
   m += msgHdr->blockLen;
 
-#if 0  
-  if (rootBlock->CFICode[0] == 'F' && rootBlock->CFICode[1] == 'M') {
-    // This is an intramarket spread, also referred to as a calendar spread.
-    // It involves buying a futures contract in one month while simultaneously
-    // selling the same contract in a different month. We do not care about
-    // these for now, we are only looking for options spreads.
+  EfhSecurityType underlyingType;
+  switch (rootBlock->CFICode[0]) {
+  case 'O':
+    underlyingType = EfhSecurityType::kOption;
+    break;
+  case 'F':
+    underlyingType = EfhSecurityType::kFuture;
+    break;
+  default:
+    EKA_WARN("found non-options-spread or -futures-spread `%d` (CFI: '%.6s', SecurityType: '%.6s', UnderlyingProduct: %hhu)",
+             rootBlock->SecurityID, rootBlock->CFICode, rootBlock->SecurityType, rootBlock->UnderlyingProduct);
     return msgHdr->size;
   }
-#endif
   
   /* ------------------------------- */
   
-  const int64_t priceAdjustFactor = computeFinalPriceFactor(rootBlock->DisplayFactor);
+  const uint64_t priceAdjustFactor = computeFinalPriceFactor(rootBlock->DisplayFactor);
   EfhComplexDefinitionMsg msg{};
   msg.header.msgType        = EfhMsgType::kComplexDefinition;
   msg.header.group.source   = EkaSource::kCME_SBE;
@@ -791,7 +795,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
 
   msg.commonDef.securityType   = EfhSecurityType::kComplex;
   msg.commonDef.exchange       = EfhExchange::kCME;
-  msg.commonDef.underlyingType = EfhSecurityType::kInvalid;
+  msg.commonDef.underlyingType = underlyingType;
   msg.commonDef.expiryDate     = 0; // FIXME: for completeness only, could be "today"
   msg.commonDef.expiryTime     = 0;
   msg.commonDef.contractSize   = 0;
