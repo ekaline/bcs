@@ -186,7 +186,7 @@ ExcSessionId excGetSessionId( ExcConnHandle hConn ) {
  * @return This will return the ExcCoreid that corresponds to excSessionId.
  */
 EkaCoreId excGetCoreId( ExcConnHandle hConn ) {
-  return (EkaCoreId) hConn / 128;
+  return (EkaCoreId) (hConn / 128);
 }
 
 inline EkaDev *checkDevice(EkaDev* dev) {
