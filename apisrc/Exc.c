@@ -176,7 +176,7 @@ constexpr int linuxMsgFlagsToLWIP(int linuxFlags) {
  * @return This will return the ExcSessionId value that corresponds to excSessionId.
  */
 ExcSessionId excGetSessionId( ExcConnHandle hConn ) {
-  return (ExcSessionId) hConn % 128;
+  return (ExcSessionId) (hConn % 128);
 }
 
 /**
