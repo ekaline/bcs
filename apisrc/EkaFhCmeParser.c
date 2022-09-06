@@ -760,9 +760,9 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
 /* ##################################################################### */     
 
 int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunCtx,
-						   const uint8_t*   pMsg,
-						   const uint64_t   pktTime,
-						       const SequenceT  pktSeq) {
+                                                       const uint8_t*   pMsg,
+                                                       const uint64_t   pktTime,
+                                                       const SequenceT  pktSeq) {
   auto m      {pMsg};
   auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
   m += sizeof(*msgHdr);
@@ -782,6 +782,9 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
              rootBlock->SecurityID, rootBlock->CFICode, rootBlock->SecurityType, rootBlock->UnderlyingProduct);
     return msgHdr->size;
   }
+
+  EKA_TRACE("spread `%d`, SecurityUpdateAction=%c, MDSecurityTradingStatus=%d, ",
+            rootBlock->SecurityID, rootBlock->SecurityUpdateAction, int(rootBlock->MDSecurityTradingStatus));
   
   /* ------------------------------- */
   
