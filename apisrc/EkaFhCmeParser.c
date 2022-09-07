@@ -17,6 +17,7 @@
 #include "EkaFhCmeGr.h"
 
 using namespace Cme;
+namespace chrono = std::chrono;
 
 std::string ts_ns2str(uint64_t ts);
 
@@ -805,7 +806,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   msg.commonDef.securityType   = EfhSecurityType::kComplex;
   msg.commonDef.exchange       = EfhExchange::kCME;
   msg.commonDef.underlyingType = underlyingType;
-  msg.commonDef.expiryDate     = 0; // FIXME: for completeness only, could be "today"
+  msg.commonDef.expiryDate     = 0;
   msg.commonDef.expiryTime     = 0;
   msg.commonDef.contractSize   = 0;
   msg.commonDef.opaqueAttrA    = priceAdjustFactor;
@@ -819,12 +820,26 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   //copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
 
   /* ------------------------------- */
+  const static auto todayAtMidnight = systemClockAtMidnight();
+
   auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize_EventType);
   for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++) {
     auto e {reinterpret_cast<const DefinitionEventEntry*>(m)};
-    EKA_TRACE("spread `%d`, Events[%u] = (EventType=%d, EventTime=%" PRIu64 ")",
-              rootBlock->SecurityID, i, e->EventType, e->EventTime);
+    if (e->EventType == DefinitionEventType_T::LastTradeDate) {
+      // Expiration time
+      const chrono::system_clock::time_point expiryTime(chrono::nanoseconds(e->EventTime));
+      msg.commonDef.expiryTime = chrono::system_clock::to_time_t(expiryTime);
+
+      if (expiryTime < todayAtMidnight) {
+        struct tm *timeinfo = localtime(&msg.commonDef.expiryTime);
+        char expiryFmt[32];
+        strftime(expiryFmt, sizeof(expiryFmt), "%F %T%z", timeinfo);
+        EKA_INFO("skipping spread `%d` that expired before today (expiry = %s)",
+                 rootBlock->SecurityID, expiryFmt);
+        return msgHdr->size;
+      }
+    }
     m += pGroupSize_EventType->blockLength;
   }
   /* ------------------------------- */		

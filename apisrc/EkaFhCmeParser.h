@@ -746,7 +746,7 @@ namespace Cme {
 
   struct DefinitionEventEntry {
     DefinitionEventType_T         	EventType;
-    uint64_t                      	EventTime; // Nanos
+    uint64_t                      	EventTime; // Nanos UTC
   } __attribute__((packed));
 
   struct DefinitionFeedTypeEntry {
