@@ -56,6 +56,9 @@ constexpr T replaceIntNullWith(T num, T fallback) {
   return replaceIntNullWith(num, num, fallback);
 }
 
+constexpr uint64_t DEFAULT_OPT_DEPTH = 3;
+constexpr uint64_t DEFAULT_FUT_DEPTH = 10;
+
 /* ##################################################################### */
 
 bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
@@ -617,7 +620,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   msg.commonDef.contractSize   = replaceIntNullWith<Decimal9NULL_T>(
       rootBlock->UnitOfMeasureQty, rootBlock->UnitOfMeasureQty / EFH_CME_PRICE_SCALE, 0);
   msg.commonDef.opaqueAttrA    = computeFinalPriceFactor(rootBlock->DisplayFactor);
-  msg.commonDef.opaqueAttrB    = 10; // default Market Depth for Futures
+  msg.commonDef.opaqueAttrB    = DEFAULT_FUT_DEPTH; // default Market Depth for Futures
   getCMEProductTradeTime(pMaturity, rootBlock->Symbol, &msg.commonDef.expiryDate, &msg.commonDef.expiryTime);
 
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
@@ -701,7 +704,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   msg.strikePrice           = rootBlock->StrikePrice / priceAdjustFactor;
   msg.segmentId             = rootBlock->MarketSegmentID;
 
-  msg.commonDef.opaqueAttrB = 3; // default MarketDepth for Options
+  msg.commonDef.opaqueAttrB = DEFAULT_OPT_DEPTH; // default MarketDepth for Options
 
   /* ------------------------------- */
   auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
@@ -770,12 +773,15 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   m += msgHdr->blockLen;
 
   EfhSecurityType underlyingType;
+  uint64_t defaultDepth;
   switch (rootBlock->CFICode[0]) {
   case 'O':
     underlyingType = EfhSecurityType::kOption;
+    defaultDepth = DEFAULT_OPT_DEPTH;
     break;
   case 'F':
     underlyingType = EfhSecurityType::kFuture;
+    defaultDepth = DEFAULT_FUT_DEPTH;
     break;
   default:
     EKA_WARN("found non-options-spread or -futures-spread `%d` (CFI: '%.6s', SecurityType: '%.6s', UnderlyingProduct: %hhu)",
@@ -806,7 +812,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   msg.commonDef.expiryTime     = 0;
   msg.commonDef.contractSize   = 0;
   msg.commonDef.opaqueAttrA    = priceAdjustFactor;
-  msg.commonDef.opaqueAttrB    = 10; // Market Depth
+  msg.commonDef.opaqueAttrB    = defaultDepth; // Market Depth
 
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
   copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
