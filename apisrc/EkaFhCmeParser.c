@@ -788,9 +788,6 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
              rootBlock->SecurityID, rootBlock->CFICode, rootBlock->SecurityType, rootBlock->UnderlyingProduct);
     return msgHdr->size;
   }
-
-  EKA_TRACE("spread `%d`, SecurityUpdateAction=%c, MDSecurityTradingStatus=%d, ",
-            rootBlock->SecurityID, rootBlock->SecurityUpdateAction, int(rootBlock->MDSecurityTradingStatus));
   
   /* ------------------------------- */
   
@@ -824,8 +821,11 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   /* ------------------------------- */
   auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize_EventType);
-  for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++) 
+  for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++) {
     m += pGroupSize_EventType->blockLength;
+  }
+  EKA_TRACE("spread `%d`, Events(numInGroup=%d, blockLength=%d)",
+            rootBlock->SecurityID, pGroupSize_EventType->numInGroup, pGroupSize_EventType->blockLength);
   /* ------------------------------- */		
   auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize_FeedType);
