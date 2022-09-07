@@ -602,9 +602,6 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   /* ------------------------------- */
   auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
 
-  EKA_TRACE("Future: Asset='%.6s', Symbol='%.20s', SecurityGroup='%.6s', SecurityType='%.6s'",
-            rootBlock->Asset, rootBlock->Symbol, rootBlock->SecurityGroup, rootBlock->SecurityType);
-
   EfhFutureDefinitionMsg msg{};
   msg.header.msgType        = EfhMsgType::kFutureDefinition;
   msg.header.group.source   = EkaSource::kCME_SBE;
@@ -835,8 +832,8 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
         struct tm *timeinfo = localtime(&msg.commonDef.expiryTime);
         char expiryFmt[32];
         strftime(expiryFmt, sizeof(expiryFmt), "%F %T%z", timeinfo);
-        EKA_INFO("skipping spread `%d` that expired before today (expiry = %s)",
-                 rootBlock->SecurityID, expiryFmt);
+        EKA_TRACE("skipping spread `%d` that expired before today (expiry = %s)",
+                  rootBlock->SecurityID, expiryFmt);
         return msgHdr->size;
       }
     }
