@@ -806,7 +806,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   msg.commonDef.expiryTime     = 0;
   msg.commonDef.contractSize   = 0;
   msg.commonDef.opaqueAttrA    = priceAdjustFactor;
-  msg.commonDef.opaqueAttrB    = 3; // Market Depth
+  msg.commonDef.opaqueAttrB    = 10; // Market Depth
 
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
   copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
