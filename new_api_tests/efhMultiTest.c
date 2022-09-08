@@ -26,17 +26,17 @@
 
 #include "EkaFhBatsParser.h"
 
-#include "EfhBatsProps.h"
-#include "EfhBoxProps.h"
-#include "EfhGemProps.h"
-#include "EfhIseProps.h"
-#include "EfhMiaxProps.h"
-#include "EfhNomProps.h"
-#include "EfhPhlxOrdProps.h"
-#include "EfhPhlxTopoProps.h"
-#include "EfhXdpProps.h"
-#include "EfhCmeProps.h"
-#include "EfhBxProps.h"
+/* #include "EfhBatsProps.h" */
+/* #include "EfhBoxProps.h" */
+/* #include "EfhGemProps.h" */
+/* #include "EfhIseProps.h" */
+/* #include "EfhMiaxProps.h" */
+/* #include "EfhNomProps.h" */
+/* #include "EfhPhlxOrdProps.h" */
+/* #include "EfhPhlxTopoProps.h" */
+/* #include "EfhXdpProps.h" */
+/* #include "EfhCmeProps.h" */
+/* #include "EfhBxProps.h" */
 
 #include "EfhTestFuncs.h"
 
