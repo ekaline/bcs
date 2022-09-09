@@ -31,7 +31,7 @@ public:
 					       uint64_t        opaqueAttrA,
 					       uint64_t        opaqueAttrB) {
     if (!book) on_error("%s:%u !book",EKA_EXCH_DECODE(exch),id);
-    book->subscribeSecurity(securityId, 
+    book->subscribeSecurity(securityId,
 			    efhSecurityType,
 			    efhSecUserData,
 			    opaqueAttrA,

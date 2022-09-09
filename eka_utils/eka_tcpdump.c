@@ -67,7 +67,7 @@ static void printUsage(char* cmd) {
     printf("USAGE: %s <options> \n",cmd); 
     printf("\t-b - FPGA lane bitmap (in decimal) 1..15\n"); 
     printf("\t-i - FPGA lane number [0..3] -- ignored if \'-b\' set\n"); 
-    printf("\t-t - use FPGA time stamps (PCIe 250MHz clock) for delta latency only\n"); 
+    printf("\t-t - use FPGA time stamps (PCIe 161MHz clock) for delta latency only\n"); 
     printf("\t-w - Output file path (Pcap format)\n"); 
     printf("\t-h - Print this help\n"); 
     return;
