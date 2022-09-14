@@ -289,7 +289,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
   auto m      {pMsg};
   auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
   m += sizeof(*msgHdr);
-  auto rootBlock {reinterpret_cast<const SnapshotFullRefresh52_mainBlock*>(m)};
+  auto rootBlock {reinterpret_cast<const MDIncrementalRefreshBook46_mainBlock*>(m)};
   uint64_t transactTime = rootBlock->TransactTime;
   m += msgHdr->blockLen;
   /* ------------------------------- */
