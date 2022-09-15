@@ -152,97 +152,97 @@ namespace Cme {
 
 
   enum class AggressorSide : uInt8NULL_T {
-					  NoAggressor = 0,
-					  Buy       = 1,
-					  Sell      = 2
+    NoAggressor = 0,
+    Buy       = 1,
+    Sell      = 2
   };
 
   enum class AggressorSide_T : uInt8 {
-				      Activation = 5,
-				      LastEligibleTradeDate       = 7,
+    Activation = 5,
+    LastEligibleTradeDate       = 7,
   };
 
   enum class HaltReason_T : uInt8 {
-				   GroupSchedule = 0,
-				   SurveillanceIntervention = 1,
-				   MarketEvent = 2,
-				   InstrumentActivation = 3,
-				   InstrumentExpiration = 4,
-				   Unknown = 5,
-				   RecoveryInProcess = 6
+    GroupSchedule = 0,
+    SurveillanceIntervention = 1,
+    MarketEvent = 2,
+    InstrumentActivation = 3,
+    InstrumentExpiration = 4,
+    Unknown = 5,
+    RecoveryInProcess = 6
   };
 
   enum class LegSide_T : uInt8 {
-				BuySide = 1,
-				SellSide = 2
+    BuySide = 1,
+    SellSide = 2
   };
 
   enum class MDEntryType_T : CHAR_T {
-				     Bid = '0',
-				     Offer = '1',
-				     Trade = '2',
-				     OpenPrice = '4',
-				     SettlementPrice = '6',
-				     TradingSessionHighPrice = '7',
-				     TradingSessionLowPrice = '8',
-				     ClearedVolume = 'B',
-				     OpenInterest = 'C',
-				     ImpliedBid = 'E',
-				     ImpliedOffer = 'F',
-				     BookReset = 'J',
-				     SessionHighBid = 'N',
-				     SessionLowOffer = 'O',
-				     FixingPrice = 'W',
-				     ElectronicVolume = 'e',
-				     ThresholdLimitsandPriceBandVariation = 'g'
+    Bid = '0',
+    Offer = '1',
+    Trade = '2',
+    OpenPrice = '4',
+    SettlementPrice = '6',
+    TradingSessionHighPrice = '7',
+    TradingSessionLowPrice = '8',
+    ClearedVolume = 'B',
+    OpenInterest = 'C',
+    ImpliedBid = 'E',
+    ImpliedOffer = 'F',
+    BookReset = 'J',
+    SessionHighBid = 'N',
+    SessionLowOffer = 'O',
+    FixingPrice = 'W',
+    ElectronicVolume = 'e',
+    ThresholdLimitsandPriceBandVariation = 'g'
   };
 
   enum class MDEntryTypeBook_T : CHAR_T {
-					 Bid = '0',
-					 Offer = '1',
-					 ImpliedBid = 'E',
-					 ImpliedOffer = 'F',
-					 BookReset = 'J',
+    Bid = '0',
+    Offer = '1',
+    ImpliedBid = 'E',
+    ImpliedOffer = 'F',
+    BookReset = 'J',
   };
 
   enum class MDEntryTypeDailyStatistics_T : CHAR_T {
-						    SettlementPrice = '6',
-						    ClearedVolume = 'B',
-						    OpenInterest = 'C',
-						    FixingPrice = 'W'
+    SettlementPrice = '6',
+    ClearedVolume = 'B',
+    OpenInterest = 'C',
+    FixingPrice = 'W'
   };
 
   enum class MDEntryTypeStatistics_T : CHAR_T {
-					       OpenPrice = '4',
-					       HighTrade = '7',
-					       LowTrade = '8',
-					       HighestBid = 'N',
-					       LowestOffer = 'O'
+    OpenPrice = '4',
+    HighTrade = '7',
+    LowTrade = '8',
+    HighestBid = 'N',
+    LowestOffer = 'O'
   };
 
   enum class MDUpdateAction_T : uInt8 {
-				       New = 0,
-				       Change = 1,
-				       Delete = 2,
-				       DeleteThru = 3,
-				       DeleteFrom = 4,
-				       Overlay = 5
+    New = 0,
+    Change = 1,
+    Delete = 2,
+    DeleteThru = 3,
+    DeleteFrom = 4,
+    Overlay = 5
   };
 
   enum class OpenCloseSettlFlag_T : uInt8NULL_T {
-						 DailyOpenPrice = 0,
-						 IndicativeOpeningPrice = 5
+    DailyOpenPrice = 0,
+    IndicativeOpeningPrice = 5
   };
 
   enum class OrderUpdateAction_T : uInt8 {
-					  New = '0',
-					  Update = '1',
-					  Delete = '2',
+    New = '0',
+    Update = '1',
+    Delete = '2',
   };
 
   enum class PutOrCall_T : uInt8 {
-				  Put = 0,
-				  Call = 1
+    Put = 0,
+    Call = 1
   };
 
   inline bool operator==(const PutOrCall_T &lhs, const uint8_t &rhs) noexcept {
@@ -258,25 +258,30 @@ namespace Cme {
     return !operator==(lhs, rhs);
   }
   enum class SecurityTradingEvent_T : uInt8 {
-					     NoEvent = 0,
-					     NoCancel = 1,
-					     ResetStatistics = 4,
-					     ImpliedMatchingON = 5,
-					     ImpliedMatchingOFF = 6,
+    NoEvent = 0,
+    NoCancel = 1,
+    ResetStatistics = 4,
+    ImpliedMatchingON = 5,
+    ImpliedMatchingOFF = 6,
   };
 
   enum class SecurityTradingStatus_T : uInt8NULL_T {
-						    TradingHalt = 2,
-						    Close = 4,
-						    NewPriceIndication = 15,
-						    ReadyToTrade = 17,
-						    NotAvailableForTrading = 18,
-						    UnknownorInvalid = 20,
-						    PreOpen = 21,
-						    PreCross = 24,
-						    Cross = 25,
-						    PostClose = 26,
-						    NoChange = 103,
+    TradingHalt = 2,
+    Close = 4,
+    NewPriceIndication = 15,
+    ReadyToTrade = 17,
+    NotAvailableForTrading = 18,
+    UnknownorInvalid = 20,
+    PreOpen = 21,
+    PreCross = 24,
+    Cross = 25,
+    PostClose = 26,
+    NoChange = 103,
+  };
+
+  enum class DefinitionEventType_T: uInt8 {
+    Activation = 5,
+    LastTradeDate = 7,
   };
 
   inline EfhTradeStatus setEfhTradeStatus(SecurityTradingStatus_T status) {
@@ -318,58 +323,58 @@ namespace Cme {
 
 
   enum class SecurityUpdateAction_T : CHAR_T {
-					      Add = 'A',
-					      Delete = 'D',
-					      Modify = 'M',
+    Add = 'A',
+    Delete = 'D',
+    Modify = 'M',
   };
 
   // Bitmap. Fields are bit indxes
   enum class InstAttribValue_T : uInt32 {
-					 ElectronicMatchEligible = 0,
-					 OrderCrossEligible = 1,
-					 BlockTradeEligible = 2,
-					 EFPEligible = 3,
-					 EBFEligible = 4,
-					 EFSEligible = 5,
-					 EFREligible = 6,
-					 OTCEligible = 7,
-					 iLinkIndicativeMassQuotingEligible = 8,
-					 NegativeStrikeEligible = 9,
-					 NegativePriceOutrightEligible = 10,
-					 IsFractional = 11,
-					 VolatilityQuotedOption = 12,
-					 RFQCrossEligible = 13,
-					 ZeroPriceOutrightEligible = 14,
-					 DecayingProductEligibility = 15,
-					 VariableProductEligibility = 16,
-					 DailyProductEligibility = 17,
-					 GTOrdersEligibility = 18,
-					 ImpliedMatchingEligibility = 19,
-					 TriangulationEligible = 20,
-					 VariableCabEligible = 21
+    ElectronicMatchEligible = 0,
+    OrderCrossEligible = 1,
+    BlockTradeEligible = 2,
+    EFPEligible = 3,
+    EBFEligible = 4,
+    EFSEligible = 5,
+    EFREligible = 6,
+    OTCEligible = 7,
+    iLinkIndicativeMassQuotingEligible = 8,
+    NegativeStrikeEligible = 9,
+    NegativePriceOutrightEligible = 10,
+    IsFractional = 11,
+    VolatilityQuotedOption = 12,
+    RFQCrossEligible = 13,
+    ZeroPriceOutrightEligible = 14,
+    DecayingProductEligibility = 15,
+    VariableProductEligibility = 16,
+    DailyProductEligibility = 17,
+    GTOrdersEligibility = 18,
+    ImpliedMatchingEligibility = 19,
+    TriangulationEligible = 20,
+    VariableCabEligible = 21
   };
 
   // Bitmap. Fields are bit indxes
   typedef uInt8 MatchEventIndicator_T;
   enum class MatchEventIndicator_Bit : uInt8 {
-					      LastTradeMsg     = 0x01, // = 0
-					      LastVolumeMsg  = 0x02, // = 1
-					      LastQuoteMsg   = 0x04, // = 2
-					      LastStatsMsg   = 0x08,  // = 3
-					      LastImpliedMsg = 0x10, // = 4
-					      RecoveryMsg    = 0x20, // = 5
-					      Reserved       = 0x40, // = 6
-					      EndOfEvent     = 0x80  // = 7
+    LastTradeMsg     = 0x01, // = 0
+    LastVolumeMsg  = 0x02, // = 1
+    LastQuoteMsg   = 0x04, // = 2
+    LastStatsMsg   = 0x08,  // = 3
+    LastImpliedMsg = 0x10, // = 4
+    RecoveryMsg    = 0x20, // = 5
+    Reserved       = 0x40, // = 6
+    EndOfEvent     = 0x80  // = 7
   };
 
   // Bitmap. Fields are bit indxes
   enum class SettlPriceType_T: uInt8 {
-				      FinalDaily = 0,
-				      Actual = 1,
-				      Rounded = 2,
-				      Intraday = 3,
-				      ReservedBits = 4,
-				      NullValue = 7,
+    FinalDaily = 0,
+    Actual = 1,
+    Rounded = 2,
+    Intraday = 3,
+    ReservedBits = 4,
+    NullValue = 7,
   };
 
 
@@ -739,11 +744,15 @@ namespace Cme {
     Symbol_T                      	Symbol;
   } __attribute__((packed));
 
+  struct DefinitionEventEntry {
+    DefinitionEventType_T         	EventType;
+    uint64_t                      	EventTime; // Nanos UTC
+  } __attribute__((packed));
+
   struct DefinitionFeedTypeEntry {
     MDFeedType_T                       	MDFeedType;
     Int8_T                      	MarketDepth;
   } __attribute__((packed));
-
 
   struct MDSnapshotFullRefreshMdEntry {
     PRICENULL9_T                  	MDEntryPx;
@@ -1114,8 +1123,19 @@ namespace Cme {
     auto m {msg + sizeof(*msgHdr)};
     /* ------------------------------- */
     auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionSpread56_mainBlock*>(m)};
-    printf ("\t\tMDInstrumentDefinitionSpread56: MatchEventIndicator=0x%x,",
-	    rootBlock->MatchEventIndicator);
+    printf ("\t\tMDInstrumentDefinitionSpread56: ");
+    //    printf ("MatchEventIndicator=0x%x,",rootBlock->MatchEventIndicator);
+    printf("Asset=\'%s\',",
+	   std::string(rootBlock->Asset,sizeof(rootBlock->Asset)).c_str());
+    printf("Symbol=\'%s\',",
+	   std::string(rootBlock->Symbol,sizeof(rootBlock->Symbol)).c_str());   
+    printf("SecurityID=%d,",rootBlock->SecurityID);
+
+    printf("SecurityType=\'%s\',",
+	   std::string(rootBlock->SecurityType,sizeof(rootBlock->SecurityType)).c_str());
+    printf("CFICode=\'%s\',",
+	   std::string(rootBlock->CFICode,sizeof(rootBlock->CFICode)).c_str());
+
     m += msgHdr->blockLen;
 
     /* ------------------------------- */
@@ -1146,7 +1166,7 @@ namespace Cme {
     m += sizeof(*pGroupSize);
     for (uint i = 0; i < pGroupSize->numInGroup; i++) {
       auto e {reinterpret_cast<const MDInstrumentDefinitionSpread56_legEntry*>(m)};
-      printf ("\t\t\tsecId=%8d,side=%d,LegRatioQty=%d\n",
+      printf ("(secId=%d,side=%d,LegRatioQty=%d),",
 	      e->LegSecurityID,
 	      (int)e->LegSide,
 	      e->LegRatioQty);
