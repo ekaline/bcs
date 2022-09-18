@@ -101,7 +101,7 @@ size_t printMdReport(FILE* file, const uint8_t* b) {
 }
 /* ########################################################### */
 int printBoeFire(FILE* file,const uint8_t* b) {
-  auto boeOrder {reinterpret_cast<const BoeNewOrderMsg*>(b)};
+  auto boeOrder {reinterpret_cast<const BoeNewOrderMsg*>(b+sizeof(EkaEthHdr)+sizeof(EkaIpHdr)+sizeof(EkaTcpHdr))};
   fprintf(file,"Fired BOE NewOrder:");
 
   fprintf(file,"\tStartOfMessage=0x%04x\n",    boeOrder->StartOfMessage);
@@ -183,6 +183,29 @@ int printEpmReport(FILE* file,const uint8_t* b) {
   return sizeof(*epmReport);
 }
 /* ########################################################### */
+int printFastCancelReport(FILE* file,const uint8_t* b) {
+  auto epmReport {reinterpret_cast<const EpmFastCancelReport*>(b)};
+  
+  fprintf(file,"numInGroup=%d,headerSize=%d,sequenceNumber=%d\n",
+	  epmReport->numInGroup,
+	  epmReport->headerSize,
+	  epmReport->sequenceNumber
+	  );
+  return sizeof(*epmReport);
+}
+/* ########################################################### */
+int printNewsReport(FILE* file,const uint8_t* b) {
+  auto epmReport {reinterpret_cast<const EpmNewsReport*>(b)};
+  
+  fprintf(file,"strategyIndex=%d,strategyRegion=%d,token=0x%jx\n",
+	  epmReport->strategyIndex,
+	  epmReport->strategyRegion,
+	  epmReport->token
+	  );
+  return sizeof(*epmReport);
+}
+
+/* ########################################################### */
 
 void efcPrintFireReport(const void* p, size_t len, void* ctx) {
   auto file {reinterpret_cast<std::FILE*>(ctx)};
@@ -215,6 +238,12 @@ void efcPrintFireReport(const void* p, size_t len, void* ctx) {
       break;
     case EfcReportType::kEpmReport:
       b += printEpmReport(file,b);
+      break;
+    case EfcReportType::kFastCancelReport:
+      b += printFastCancelReport(file,b);
+      break;
+    case EfcReportType::kNewsReport:
+      b += printNewsReport(file,b);
       break;
     default:
       on_error("Unexpected reportHdr->type %d",

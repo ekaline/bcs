@@ -148,6 +148,7 @@
   x == EfhFeedVer::kPLR      ? "PLR"         : \
   x == EfhFeedVer::kBOX      ? "BOX"         : \
   x == EfhFeedVer::kCME      ? "CME"         : \
+  x == EfhFeedVer::kNEWS     ? "NEWS"         : \
                                "UNKNOWN"
 
 #define EKA_TS_DECODE(x) \

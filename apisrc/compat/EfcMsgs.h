@@ -22,7 +22,9 @@ enum EfcReportType {
                 _x( SecurityCtx,        3000 )                              \
                 _x( ExceptionReport,    4000 )                              \
                 _x( FirePkt,            5000 )                              \
-                _x( EpmReport,          6000 )                              
+                _x( EpmReport,          6000 )                              \
+                _x( FastCancelReport,   7000 )                              \
+                _x( NewsReport,         8000 )                              
     EfcReportType_ENUM_ITER( EKA__ENUM_DEF )
 };
 

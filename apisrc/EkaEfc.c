@@ -79,6 +79,8 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
   case EfhFeedVer::kNEWS : 
     epm->hwFire  = new EpmCmeILinkTemplate(epm->templatesNum++); //TBD
     EKA_LOG("Initializing dummy EpmCmeILinkTemplate (news)");
+    epm->cmeHb  = new EpmCmeILinkHbTemplate(epm->templatesNum++);
+    EKA_LOG("Initializing dummy EpmCmeILinkHbTemplate"); //TBD
     ehp = new EhpNews(dev);
     break;
   default :
