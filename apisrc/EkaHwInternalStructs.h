@@ -321,5 +321,12 @@ typedef struct __attribute__((packed)) {
   } __attribute__ ((aligned(sizeof(uint64_t)))) __attribute__((packed));
 
 
+  struct EfcItchFastSweepStrategyConf {
+      uint64_t       token;
+      uint8_t        minMsgCount;
+      uint16_t       minUDPSize;
+      uint16_t       fireActionId;
+      uint8_t        strategyId;
+  } __attribute__ ((aligned(sizeof(uint64_t)))) __attribute__((packed));
 
 #endif
