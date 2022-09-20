@@ -26,7 +26,7 @@ enum class EfhFeedVer {
 	   _x( CME              )			\
 	   _x( NEWS             )			\
 	   _x( CBOE             )                       \
-	   _x( ICTHFS           )                       \
+	   _x( ITCHFS           )                       \
 	   _x( BX               )                                
 	 EfhFeedVer_ENUM_ITER( EKA__ENUM_DEF )
 };

@@ -12,7 +12,7 @@ EkaOpResult efcItchFastSweepInit(EkaDev *dev,
 
 
 
-  volatile EfcCmeFastCancelStrategyConf conf = {
+  volatile EfcItchFastSweepStrategyConf conf = {
 //      .pad            = {},
       .token          = params->token,
       .minMsgCount    = params->minMsgCount,

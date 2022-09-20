@@ -402,7 +402,7 @@ std::pair<int,size_t> processSweepReport(EkaDev* dev,
   uint reportIdx = 0;
   //--------------------------------------------------------------------------
   auto containerHdr {reinterpret_cast<EkaContainerGlobalHdr*>(b)};
-  containerHdr->type = EkaEventType::kSweepEvent;
+  containerHdr->type = EkaEventType::kFastSweepEvent;
   containerHdr->num_of_reports = 0; // to be overwritten at the end
   b += sizeof(*containerHdr);
   //--------------------------------------------------------------------------

@@ -413,7 +413,7 @@ int main(int argc, char *argv[]) {
     EfcCtx* pEfcCtx = &efcCtx;
 
     EfcInitCtx initCtx = {
-	.feedVer = EfhFeedVer::kNEWS
+	.feedVer = EfhFeedVer::kITCHFS
     };  
     rc = efcInit(&pEfcCtx,dev,&initCtx);
     if (rc != EKA_OPRESULT__OK)

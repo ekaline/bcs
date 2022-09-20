@@ -6,7 +6,7 @@
 EhpItchFS::EhpItchFS(EkaDev* dev) : EhpProtocol(dev) {
   EKA_LOG("EhpItchFS is created");
 
-  conf.params.protocolID         = static_cast<decltype(conf.params.protocolID)>(EhpHwProtocol::kITCHFS); //in EhpConf.h
+  conf.params.protocolID         = static_cast<decltype(conf.params.protocolID)>(EhpHwProtocol::ITCHFS); //in EhpConf.h
   conf.params.pktHdrLen          = sizeof(mold_hdr);
   conf.params.msgDeltaSize       = 2; // msgLen of NOM
   conf.params.bytes4StartMsgProc = 3; // msgLen + msgType

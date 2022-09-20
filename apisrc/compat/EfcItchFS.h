@@ -21,7 +21,7 @@ extern "C" {
 
   inline EpmActionType efcItchFSActionId2Type (EfcItchFSActionId id) {
     switch (id) {
-    case EfcCmeActionId::HwSweep :
+    case EfcItchFSActionId::HwSweep :
     default:
       on_error("Unexpected EfcItchFSActionId id %u",(uint)id);                  
     }
