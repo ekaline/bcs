@@ -37,6 +37,7 @@
 #include "EfhTestTypes.h"
 
 #include "ekaNW.h"
+#include "eka_hw_conf.h"
 
 
 /* --------------------------------------------- */
@@ -82,28 +83,59 @@ static int getAttr(int argc, char *argv[]) {
   return 0;
 }
 
-void ctxThreadFunc(int threadId, EfcCtx* pEfcCtx) {
-  const int ArrSize = 7;
-  uint8_t a[ArrSize] = {};
-  uint8_t p = 0;
-  for (auto i = 0; i < ArrSize; i++) {
-    a[i] = (uint8_t)(rand() & 0xFF);
-    p |= __builtin_parity(a[i]) << i;
-  }
-  p |= __builtin_parity(p) << 7;
+void ctxThreadFunc(int threadId, EkaDev* dev) {
+  TEST_LOG("Thread %d",threadId);
 
-  uint8_t res[ArrSize+1] = {
-    a[0],
-    a[1],
-    a[2],
-    a[3],
-    a[4],
-    a[5],
-    a[6],
-    p
-  };
-  EfcSecCtxHandle handle = rand() % EkaDev::MAX_SEC_CTX;
-  efcSetStaticSecCtx(pEfcCtx, handle, (SecCtx*)res, threadId);
+  int ctxWriteBank = 0;
+  
+  const int ArrSize = 7;
+  int64_t cnt = 0;
+  while (keep_work) {
+    uint8_t a[ArrSize] = {};
+    uint8_t p = 0;
+    for (auto i = 0; i < ArrSize; i++) {
+      a[i] = (uint8_t)(rand() & 0xFF);
+      p |= __builtin_parity(a[i]) << i;
+    }
+    p |= __builtin_parity(p) << 7;
+
+    uint8_t res[ArrSize+1] = {
+			      a[0],
+			      a[1],
+			      a[2],
+			      a[3],
+			      a[4],
+			      a[5],
+			      a[6],
+			      p
+    };
+    EfcSecCtxHandle handle = rand() % EkaDev::MAX_SEC_CTX;
+
+    int writeChan = threadId;
+
+
+    uint64_t ctxWrAddr = P4_CTX_CHANNEL_BASE + 
+      writeChan * EKA_BANKS_PER_CTX_THREAD * EKA_WORDS_PER_CTX_BANK * 8 + 
+      ctxWriteBank * EKA_WORDS_PER_CTX_BANK * 8;
+  
+    ctxWriteBank = (ctxWriteBank + 1) % EKA_BANKS_PER_CTX_THREAD;
+ 
+    eka_write(dev,ctxWrAddr,*(uint64_t*)res);
+  
+    union large_table_desc done_val = {};
+    done_val.ltd.src_bank           = ctxWriteBank;
+    done_val.ltd.src_thread         = writeChan;
+    done_val.ltd.target_idx         = handle;
+  
+    eka_write(dev, P4_CONFIRM_REG, done_val.lt_desc);
+
+    ++cnt;
+    if (cnt % 100000 == 0) {
+      TEST_LOG("Thread %d: %jd",threadId,cnt);
+      fflush(stdout);
+      fflush(stderr);
+    }
+  }
 }
 
 /* ############################################# */
@@ -116,55 +148,24 @@ int main(int argc, char *argv[]) {
     on_error("numThreads %d > MAX_CTX_THREADS %u",
 	     numThreads,MaxThreads);
   
-  EkaDev*     dev = NULL;
+  EkaDev* dev = NULL;
   const EkaDevInitCtx ekaDevInitCtx = {};
   ekaDevInit(&dev, &ekaDevInitCtx);
 
-  EfcCtx efcCtx = {
-    .dev = dev
-  };
-
   // FATAL DEBUG: ON
-  eka_write(dev,0xf0f00,0xefa0beda);
+  eka_write(dev,0xf0f00,0xefa8beda);
 
   std::thread ctxThread[MaxThreads];
   for (int i = 0; i < numThreads; i++) {
-    ctxThread[i] = std::thread(ctxThreadFunc,i,&efcCtx);
+    ctxThread[i] = std::thread(ctxThreadFunc,i,dev);
   }
 
   for (int i = 0; i < numThreads; i++) {
     ctxThread[i].join();
     TEST_LOG("Thread %d joined",i);
   }
-  
-    /* SecCtx secCtx = { */
-    /* 	.bidMinPrice       = static_cast<decltype(secCtx.bidMinPrice)>(security[i].bidMinPrice / 100),  //x100, should be nonzero */
-    /* 	.askMaxPrice       = static_cast<decltype(secCtx.askMaxPrice)>(security[i].askMaxPrice / 100),  //x100 */
-    /* 	.bidSize           = security[i].size, */
-    /* 	.askSize           = security[i].size, */
-    /* 	.versionKey        = (uint8_t)i, */
-    /* 	.lowerBytesOfSecId = (uint8_t)(securityList[i] & 0xFF) */
-    /* }; */
-    /* EKA_TEST("Setting StaticSecCtx[%d] secId=0x%016jx, handle=%jd", */
-    /* 	     i,securityList[i],handle); */
-    /* /\* hexDump("secCtx",&secCtx,sizeof(secCtx)); *\/ */
-
-    /* EkaOpResult rc = efcSetStaticSecCtx(pEfcCtx, handle, &secCtx, 0); */
-    /* if (rc != EKA_OPRESULT__OK) on_error ("failed to efcSetStaticSecCtx"); */
-  /* } */
-
- 
-// ==============================================
-
-
 
   TEST_LOG("\n===========================\nEND OT TESTS\n===========================\n");
-
-
-
-
-  /* ============================================== */
-
   printf("Closing device\n");
 
   ekaDevClose(dev);
