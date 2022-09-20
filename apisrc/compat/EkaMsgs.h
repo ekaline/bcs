@@ -22,7 +22,8 @@ enum class EkaEventType {
         _x( EpmEvent,       2 )                                            \
         _x( ExceptionEvent, 3 )                                            \
         _x( FastCancelEvent,4 )                                            \
-        _x( NewsEvent,      5 )
+        _x( NewsEvent,      5 )                                            \
+        _x( FastSweepEvent, 6 )
     EkaEventType__ENUM_ITER( EKA__ENUM_DEF )
 };
 
@@ -32,6 +33,7 @@ enum class EkaEventType {
 	x == EkaEventType::kExceptionEvent  ? "ExceptionEvent" :	\
 	x == EkaEventType::kFastCancelEvent ? "FastCancelEvent" :	\
 	x == EkaEventType::kNewsEvent       ? "NewsEvent" :	\
+	x == EkaEventType::kFastSweepEvent  ? "FastSweepEvent" :	\
 	"UnknownReport"
       
       

@@ -185,6 +185,14 @@ struct hw_epm_news_report_t {
   hw_epm_report_t epm;
 } __attribute__((packed));
 
+struct hw_epm_fast_sweep_report_t {
+  uint16_t        last_msg_num;
+  uint16_t        locate_id;
+  uint16_t        udp_payload_size;
+  uint8_t         b32_padding[26];
+  hw_epm_report_t epm;
+} __attribute__((packed));
+
 struct hw_epm_fast_cancel_report_t {
   uint8_t         num_in_group;
   uint16_t        header_size;

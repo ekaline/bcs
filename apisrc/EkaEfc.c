@@ -83,6 +83,13 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
     EKA_LOG("Initializing dummy EpmCmeILinkHbTemplate"); //TBD
     ehp = new EhpNews(dev);
     break;
+  case EfhFeedVer::kITCHFS : 
+    epm->hwFire  = new EpmCmeILinkTemplate(epm->templatesNum++); //TBD
+    EKA_LOG("Initializing dummy fast sweep");
+    epm->cmeHb  = new EpmCmeILinkHbTemplate(epm->templatesNum++);
+    EKA_LOG("Initializing dummy fast sweep"); //TBD
+    ehp = new EhpNews(dev);
+    break;
   default :
     on_error("Unexpected EFC HW Version: %d",(int)hwFeedVer);
   }
@@ -158,6 +165,7 @@ int EkaEfc::initHwRoundTable() {
     case EfhFeedVer::kCBOE:
     case EfhFeedVer::kCME:
     case EfhFeedVer::kNEWS:
+    case EfhFeedVer::kITCHFS:
       data = addr;
       break;
     default:
