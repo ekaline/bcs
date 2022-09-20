@@ -116,7 +116,7 @@ inline size_t pushExceptionReport(int reportIdx, uint8_t* dst,
   auto exceptionReportHdr {reinterpret_cast<EfcReportHdr*>(b)};
   exceptionReportHdr->type = EfcReportType::kExceptionReport;
   exceptionReportHdr->idx  = reportIdx;
-  exceptionReportHdr->size = sizeof(EkaExceptionReport);
+  exceptionReportHdr->size = sizeof(EfcExceptionsReport);
   b += sizeof(*exceptionReportHdr);
   //--------------------------------------------------------------------------
   auto exceptionReport {reinterpret_cast<EfcExceptionsReport*>(b)};
