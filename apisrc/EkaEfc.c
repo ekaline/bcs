@@ -20,6 +20,7 @@
 #include "EhpPitch.h"
 #include "EhpCmeFC.h"
 #include "EhpNews.h"
+#include "EhpItchFS.h"
 
 void ekaFireReportThread(EkaDev* dev);
 
@@ -88,7 +89,7 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
     EKA_LOG("Initializing dummy fast sweep");
     epm->cmeHb  = new EpmCmeILinkHbTemplate(epm->templatesNum++);
     EKA_LOG("Initializing dummy fast sweep"); //TBD
-    ehp = new EhpNews(dev);
+    ehp = new EhpItchFS(dev);
     break;
   default :
     on_error("Unexpected EFC HW Version: %d",(int)hwFeedVer);

@@ -73,6 +73,12 @@ struct FastCancelState {
   bool     reportOnly         = false;
 };
 
+struct FastSweepState {
+  uint64_t strategyRuns       = 0;
+  uint64_t strategyPassed     = 0;
+  bool     reportOnly         = false;
+};
+
 struct NewsState {
   uint64_t strategyRuns       = 0;
   uint64_t strategyPassed     = 0;
@@ -463,6 +469,20 @@ int getFastCancelState(FastCancelState* pFastCancelState) {
 }
 
 //################################################
+int getFastSweepState(FastSweepState* pFastSweepState) {
+
+  uint64_t var_fc_cont_counter1  = reg_read(0xf0810);
+
+  uint64_t var_p4_general_conf	 = reg_read(ADDR_P4_GENERAL_CONF);
+
+  pFastSweepState->strategyRuns       = (var_fc_cont_counter1>>32)& MASK32;
+  pFastSweepState->strategyPassed     = (var_fc_cont_counter1>>0) & MASK32;
+
+  pFastSweepState->reportOnly         = (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT)        != 0;
+  return 0;
+}
+
+//################################################
 int getNewsState(NewsState* pNewsState) {
 
   uint64_t var_news_cont_counter1  = reg_read(0xf0808);
@@ -524,6 +544,17 @@ int printFastCancelState(FastCancelState* pFastCancelState) {
 }
 
 //################################################
+int printFastSweepState(FastSweepState* pFastSweepState) {
+  printf("Generic parser template: ITCH Fast Sweep\n\n"); 
+  printf("ReportOnly              = %d (needs re-arming)\n\n",pFastSweepState->reportOnly);
+
+  printf("Evaluated   strategies:\t%ju\n",pFastSweepState->strategyRuns);
+  printf("Passed      strategies:\t%ju\n",pFastSweepState->strategyPassed);
+
+  return 0;
+}
+
+//################################################
 int printNewsState(NewsState* pNewsState) {
   printf("Generic parser template: NEWS\n\n");  
   printf("ReportOnly              = %d (needs re-arming)\n\n",pNewsState->reportOnly);
@@ -543,6 +574,7 @@ int main(int argc, char *argv[]) {
   EkaHwCaps* ekaHwCaps = new EkaHwCaps(NULL);
   auto pEfcState = new EfcState;
   auto pFastCancelState = new FastCancelState;
+  auto pFastSweepState = new FastSweepState;
   auto pNewsState = new NewsState;
   auto pEfcExceptionsReport = new EfcExceptionsReport;
   /* ----------------------------------------- */
@@ -556,6 +588,9 @@ int main(int argc, char *argv[]) {
     ekaHwCaps->refresh();
     /* ----------------------------------------- */
     switch (ekaHwCaps->hwCaps.version.parser) {
+    case 29:
+      getFastSweepState(pFastSweepState);
+      break;
     case 30:
       getNewsState(pNewsState);
       break;
@@ -585,6 +620,9 @@ int main(int argc, char *argv[]) {
     printLineSeparator(coreParams,'+','-');
     /* ----------------------------------------- */
     switch (ekaHwCaps->hwCaps.version.parser) {
+    case 29:
+      printFastSweepState(pFastSweepState);
+      break;
     case 30:
       printNewsState(pNewsState);
       break;

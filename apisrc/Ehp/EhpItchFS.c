@@ -23,7 +23,7 @@ EhpItchFS::EhpItchFS(EkaDev* dev) : EhpProtocol(dev) {
   conf.fields.sequence[0].byteOffs_7 = 10;
 }
 
-int EhpItchfs::init() {
+int EhpItchFS::init() {
   createOrderExecuted();
   createTradeNonCross();
 
@@ -31,7 +31,7 @@ int EhpItchfs::init() {
 }
 
 
-int EhpNom::createOrderExecuted() {
+int EhpItchFS::createOrderExecuted() {
   uint8_t msgId   = 'E';
   int     msgType = OrderExecutedMsg;
 
@@ -127,7 +127,7 @@ int EhpNom::createOrderExecuted() {
   return 0;
 }
 
-int EhpNom::createTradeNonCross() {
+int EhpItchFS::createTradeNonCross() {
   uint8_t msgId   = 'P';
   int     msgType = TradeNonCrossMsg;
 

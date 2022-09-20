@@ -3,15 +3,15 @@
 
 #include "EhpProtocol.h"
 
-enum class EhpItchfsMsg : int {
+enum class EhpItchFSMsg : int {
   OrderExecuted = 0,
   TradeNonCross = 1
 };
 
-class EhpItchfs : public EhpProtocol {
+class EhpItchFS : public EhpProtocol {
  public:
-  EhpItchfs(EkaDev* dev);
-  virtual ~EhpItchfs() {}
+  EhpItchFS(EkaDev* dev);
+  virtual ~EhpItchFS() {}
 
   int init();
 

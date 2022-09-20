@@ -39,6 +39,7 @@
 #include "ekaNW.h"
 #include "EfhTestFuncs.h"
 #include "EfcCme.h"
+#include "EfcItchFS.h"
 
 using namespace Bats;
 
