@@ -131,7 +131,7 @@ void ctxThreadFunc(int threadId, EkaDev* dev) {
 
     ++cnt;
     if (cnt % 100000 == 0) {
-      TEST_LOG("Thread %d: %jd",threadId,cnt);
+      TEST_LOG("Thread %d: %jd, res = 0x%016jx",threadId,cnt,*(uint64_t*)res);
       fflush(stdout);
       fflush(stderr);
     }
@@ -143,11 +143,12 @@ int main(int argc, char *argv[]) {
   
   signal(SIGINT, INThandler);
   getAttr(argc,argv);
+  
   const int MaxThreads = (int)EkaDev::MAX_CTX_THREADS;
   if (numThreads > MaxThreads)
     on_error("numThreads %d > MAX_CTX_THREADS %u",
 	     numThreads,MaxThreads);
-  
+  srand(0);
   EkaDev* dev = NULL;
   const EkaDevInitCtx ekaDevInitCtx = {};
   ekaDevInit(&dev, &ekaDevInitCtx);
