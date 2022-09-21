@@ -26,7 +26,7 @@ class EpmFastSweepUDPReactTemplate : public EpmTemplate {
 	{"udp_srcport"  , 2 , HwField::IMMEDIATE,    false, false},
 	{"udp_dstport"  , 2 , HwField::IMMEDIATE,    false, false},
 	{"udp_length"   , 2 , HwField::IMMEDIATE,    false, false},
-	{"udp_cs"       , 2 , HwField::TCP_CHCK_SUM, false, true},
+	{"udp_cs"       , 2 , HwField::IMMEDIATE   , false, false},
 	/* --------------------------- */
 	//42 bytes until now
 	/* --------------------------- */                     // swap, clear
