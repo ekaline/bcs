@@ -87,8 +87,6 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
   case EfhFeedVer::kITCHFS : 
     epm->hwFire  = new EpmCmeILinkTemplate(epm->templatesNum++); //TBD
     EKA_LOG("Initializing dummy fast sweep");
-    epm->cmeHb  = new EpmCmeILinkHbTemplate(epm->templatesNum++);
-    EKA_LOG("Initializing dummy fast sweep"); //TBD
     ehp = new EhpItchFS(dev);
     break;
   default :

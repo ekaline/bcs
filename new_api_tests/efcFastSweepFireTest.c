@@ -242,7 +242,7 @@ static std::string action2string(EpmTriggerAction action) {
 /* --------------------------------------------- */
 
 
-static int sendNewsMsg(std::string serverIp,
+static int sendFSMsg(std::string serverIp,
 			   std::string dstIp,
 			   uint16_t dstPort,
 			   uint16_t cmeMsgSize,
@@ -458,24 +458,24 @@ int main(int argc, char *argv[]) {
     uint heapOffset    = 0;
     uint32_t maxPayloadLen = 1536 - nwHdrOffset - fcsOffset;
     
-    EpmAction cmeAction[(size_t)EfcCmeActionId::Count] = {};
+    EpmAction itchFSAction[(size_t)EfcItchFSActionId::Count] = {};
 
-    for (epm_actionid_t actionId = 0; actionId < (epm_actionid_t)EfcCmeActionId::Count; actionId++) {
-	cmeAction[actionId].type = efcCmeActionId2Type((EfcCmeActionId)actionId);
-	cmeAction[actionId].token         = params.token;
-	cmeAction[actionId].hConn         = conn[0];
-	cmeAction[actionId].offset        = heapOffset + nwHdrOffset;
-	cmeAction[actionId].length        = maxPayloadLen;
-	cmeAction[actionId].actionFlags   = AF_Valid;
-	cmeAction[actionId].nextAction    = EPM_LAST_ACTION;
-	cmeAction[actionId].enable        = CmeTestFastCancelAlwaysFire;
-	cmeAction[actionId].postLocalMask = CmeTestFastCancelAlwaysFire;
-	cmeAction[actionId].postStratMask = CmeTestFastCancelAlwaysFire;
-	cmeAction[actionId].user          = CmeTestFastCancelUser;
+    for (epm_actionid_t actionId = 0; actionId < (epm_actionid_t)EfcItchFSActionId::Count; actionId++) {
+	itchFSAction[actionId].type = efcItchFSActionId2Type((EfcItchFSActionId)actionId);
+	itchFSAction[actionId].token         = params.token;
+	itchFSAction[actionId].hConn         = conn[0];
+	itchFSAction[actionId].offset        = heapOffset + nwHdrOffset;
+	itchFSAction[actionId].length        = maxPayloadLen;
+	itchFSAction[actionId].actionFlags   = AF_Valid;
+	itchFSAction[actionId].nextAction    = EPM_LAST_ACTION;
+	itchFSAction[actionId].enable        = CmeTestFastCancelAlwaysFire;
+	itchFSAction[actionId].postLocalMask = CmeTestFastCancelAlwaysFire;
+	itchFSAction[actionId].postStratMask = CmeTestFastCancelAlwaysFire;
+	itchFSAction[actionId].user          = 0x0;
 	
-	epmSetAction(dev,EFC_STRATEGY,actionId,&cmeAction[actionId]); 
+	epmSetAction(dev,EFC_STRATEGY,actionId,&itchFSAction[actionId]); 
 	
-	heapOffset += cmeAction[actionId].length + nwHdrOffset + fcsOffset;
+	heapOffset += itchFSAction[actionId].length + nwHdrOffset + fcsOffset;
 	heapOffset += dataAlignment - (heapOffset % dataAlignment);
     }
 
@@ -484,16 +484,16 @@ int main(int argc, char *argv[]) {
     const char CmeTestFastCancelMsg[] = "CME Fast Cancel: Sequence = |____| With Dummy payload";
     rc = epmPayloadHeapCopy(dev, 
 			    EFC_STRATEGY,
-			    cmeAction[(size_t)EfcCmeActionId::HwCancel].offset,
+			    itchFSAction[(size_t)EfcCmeActionId::HwCancel].offset,
 			    strlen(CmeTestFastCancelMsg),
 			    CmeTestFastCancelMsg);
-    cmeAction[(size_t)EfcCmeActionId::HwCancel].length = strlen(CmeTestFastCancelMsg);
+    itchFSAction[(size_t)EfcCmeActionId::HwCancel].length = strlen(CmeTestFastCancelMsg);
     epmSetAction(dev,EFC_STRATEGY,(epm_actionid_t)EfcCmeActionId::HwCancel,
-		 &cmeAction[(size_t)EfcCmeActionId::HwCancel]);
+		 &itchFSAction[(size_t)EfcCmeActionId::HwCancel]);
     
     if (rc != EKA_OPRESULT__OK) 
 	on_error("epmPayloadHeapCopy offset=%u, length=%u rc=%d",
-		 cmeAction[(size_t)EfcCmeActionId::HwCancel].offset,
+		 itchFSAction[(size_t)EfcCmeActionId::HwCancel].offset,
 		 (uint)strlen(CmeTestFastCancelMsg),(int)rc);
 
     // ==============================================
@@ -502,9 +502,7 @@ int main(int argc, char *argv[]) {
     efcRun(pEfcCtx, &runCtx );
     // ==============================================
 
-    efcCmeSetILinkAppseq(dev,conn[0],0x1);
-    
-    sendNewsMsg(serverIp,triggerIp,triggerUdpPort,
+    sendFSMsg(serverIp,triggerIp,triggerUdpPort,
 		    CmeTestFastCancelMaxMsgSizeTicker, CmeTestFastCancelMinNoMDEntriesTicker);
 
     if (fatalDebug) {
