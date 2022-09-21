@@ -33,12 +33,10 @@
 
 #include "EkaCtxs.h"
 #include "EkaEfcDataStructs.h"
-#include "EkaFhCmeParser.h"
 
 #include <fcntl.h>
 #include "ekaNW.h"
 #include "EfhTestFuncs.h"
-#include "EfcCme.h"
 #include "EfcItchFS.h"
 
 using namespace Bats;
@@ -446,20 +444,12 @@ int main(int argc, char *argv[]) {
     EfcRunCtx runCtx = {};
     runCtx.onEfcFireReportCb = efcPrintFireReport; // default print out routine
     // ==============================================
-    // CME FastCancel EFC config
-    static const uint64_t CmeTestFastCancelAlwaysFire = 0xadcd;
-    static const uint64_t CmeTestFastCancelToken = 0x1122334455667788;
-    static const uint64_t CmeTestFastCancelUser  = 0xaabbccddeeff0011;
-    static const uint16_t CmeTestFastCancelMaxMsgSize     = 97; //">96"
-    static const uint8_t  CmeTestFastCancelMinNoMDEntries = 0; //"<1"
+    // ITCH Fast Sweep config
 
-    static const uint16_t CmeTestFastCancelMaxMsgSizeTicker     = 96; //HARDCODED, not used by tickersend
-    static const uint8_t  CmeTestFastCancelMinNoMDEntriesTicker = 1;  //HARDCODED, not used by tickersend
-
-    const EfcCmeFastCancelParams params = {
-	.maxMsgSize     = CmeTestFastCancelMaxMsgSize,
-	.minNoMDEntries = CmeTestFastCancelMinNoMDEntries,
-	.token          = CmeTestFastCancelToken
+    const EfcItchFastSweepParams params = {
+      .minUDPSize     = 150,
+      .minMsgCount    = 4,
+      .token          = 0x8877665544332211
     };
 
     uint dataAlignment = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_PayloadAlignment);

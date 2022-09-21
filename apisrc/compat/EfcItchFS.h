@@ -28,8 +28,6 @@ extern "C" {
   }
   
   struct EfcItchFastSweepParams {
-    uint8_t        strategyRegion; ///
-    uint16_t       strategyIndex;  ///
     uint16_t       minUDPSize;     ///
     uint8_t        minMsgCount;    ///
     uint64_t       token;          ///< Security token
