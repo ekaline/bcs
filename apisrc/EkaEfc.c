@@ -14,6 +14,7 @@
 #include "EpmFireBoeTemplate.h"
 #include "EpmCmeILinkTemplate.h"
 #include "EpmCmeILinkHbTemplate.h"
+#include "EpmFastSweepUDPReactTemplate.h"
 #include "EkaEfcDataStructs.h"
 #include "EkaHwCaps.h"
 #include "EhpNom.h"
@@ -85,7 +86,7 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
     ehp = new EhpNews(dev);
     break;
   case EfhFeedVer::kITCHFS : 
-    epm->hwFire  = new EpmCmeILinkTemplate(epm->templatesNum++); //TBD
+    epm->hwFire  = new EpmFastSweepUDPReactTemplate(epm->templatesNum++);
     EKA_LOG("Initializing dummy fast sweep");
     ehp = new EhpItchFS(dev);
     break;
