@@ -481,7 +481,7 @@ int excShutdown( EkaDev* dev, ExcConnHandle hConn, int how ) {
 ExcUdpTxConnHandle excUdpConnect(EkaDev* dev, EkaCoreId coreId,
 			       eka_ether_addr srcMac, eka_ether_addr dstMac,
 			       eka_in_addr_t srcIp, eka_in_addr_t dstIp, 
-			       uint16_t srcUpdPort, uint16_t dstUpdPort) {
+			       uint16_t srcPort, uint16_t dstPort) {
   
   if (! dev->epmEnabled) {
     EKA_LOG("Initializing TCP functionality");
@@ -498,7 +498,7 @@ ExcUdpTxConnHandle excUdpConnect(EkaDev* dev, EkaCoreId coreId,
 
   auto sessId = core->addUdpTxSess(srcMac,dstMac,
 			       srcIp, dstIp, 
-			       srcUpdPort, dstUpdPort);
+			       srcPort, dstPort);
   
   return core->udpTxSess[sessId]->getConnHandle();
 }

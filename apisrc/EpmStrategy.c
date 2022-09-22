@@ -6,6 +6,7 @@
 #include "EkaCore.h"
 #include "EkaTcpSess.h"
 #include "EkaUdpSess.h"
+#include "EkaUdpTxSess.h"
 #include "EkaIgmp.h"
 #include "EkaEpmAction.h"
 
@@ -103,16 +104,26 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx,
   uint8_t coreId = excGetCoreId(epmAction->hConn);
   if (!dev->core[coreId]) on_error("Wrong coreId %u",coreId);
   uint8_t sessId = excGetSessionId(epmAction->hConn);
-  if (!dev->core[coreId]->tcpSess[sessId])
-    on_error("Wrong sessId %u at core %u",sessId,coreId);
-  EkaTcpSess* sess = dev->core[coreId]->tcpSess[sessId];
-  //---------------------------------------------------------
 
-  ekaA->updateAttrs(coreId,sessId,epmAction);
-
-  ekaA->setNwHdrs(sess->macDa,sess->macSa,
+  if (epmAction->type == EpmActionType::ItchHwFastSweep) {
+    if (!dev->core[coreId]->udpTxSess[sessId])
+      on_error("Wrong Udp Tx sessId %u at core %u",sessId,coreId);
+    EkaUdpTxSess* sess = dev->core[coreId]->udpTxSess[sessId];
+    ekaA->setNwHdrs(sess->macDa_,sess->macSa_,
+		    sess->srcIp_,sess->dstIp_,
+		    sess->srcPort_,sess->dstPort_);
+  } else {
+    if (!dev->core[coreId]->tcpSess[sessId])
+      on_error("Wrong sessId %u at core %u",sessId,coreId);
+    EkaTcpSess* sess = dev->core[coreId]->tcpSess[sessId];
+    ekaA->updateAttrs(coreId,sessId,epmAction);
+    
+    ekaA->setNwHdrs(sess->macDa,sess->macSa,
 		  sess->srcIp,sess->dstIp,
 		  sess->srcPort,sess->dstPort);
+  }
+  //---------------------------------------------------------
+
 
   ekaA->setPktPayload(&epm->heap[epmAction->offset],
 		      epmAction->length);

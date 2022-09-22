@@ -10,26 +10,26 @@ class EkaUdpTxSess {
  public:
   EkaUdpTxSess(EkaDev*   pEkaDev, 
 	       EkaCoreId coreId,int8_t sessId,
-	       eka_ether_addr srcMac, eka_ether_addr dstMac,
+	       eka_ether_addr macSa, eka_ether_addr macDa,
 	       eka_in_addr_t srcIp, eka_in_addr_t dstIp, 
-	       uint16_t srcUpdPort, uint16_t dstUpdPort
+	       uint16_t srcPort, uint16_t dstPort
 	       ) {
     dev  = pEkaDev;
     if (dev == NULL) on_error("dev == NULL");
 
     sessId_ = sessId;
     coreId_ = coreId;
-    memcpy(srcMac_,&srcMac,6);
-    memcpy(dstMac_,&dstMac,6);
+    memcpy(macSa_,&macSa,6);
+    memcpy(macDa_,&macDa,6);
     srcIp_  = srcIp;
     dstIp_  = dstIp;
-    srcUpdPort_ = srcUpdPort;
-    dstUpdPort_ = dstUpdPort;
+    srcPort_ = srcPort;
+    dstPort_ = dstPort;
 
     EKA_LOG("New UDP TX Sess %d on core %d: %s %s:%u --> %s %s:%u",
 	    sessId_,coreId_,
-	    EKA_MAC2STR(srcMac_),EKA_IP2STR(srcIp_),srcUpdPort_,
-	    EKA_MAC2STR(dstMac_),EKA_IP2STR(dstIp_),dstUpdPort_
+	    EKA_MAC2STR(macSa_),EKA_IP2STR(srcIp_),srcPort_,
+	    EKA_MAC2STR(macDa_),EKA_IP2STR(dstIp_),dstPort_
 	    );
   }
 
@@ -40,12 +40,12 @@ class EkaUdpTxSess {
 
   int8_t         sessId_ = -1;
   EkaCoreId      coreId_ = -1;
-  uint8_t        srcMac_[6] = {};
-  uint8_t        dstMac_[6] = {};
+  uint8_t        macSa_[6] = {};
+  uint8_t        macDa_[6] = {};
   eka_in_addr_t  srcIp_ = 0;
   eka_in_addr_t  dstIp_ = 0;
-  uint16_t       srcUpdPort_ = 0;
-  uint16_t       dstUpdPort_ = 0;
+  uint16_t       srcPort_ = 0;
+  uint16_t       dstPort_ = 0;
 
   ExcUdpTxConnHandle getConnHandle() {
     return coreId_ * 128 + sessId_;

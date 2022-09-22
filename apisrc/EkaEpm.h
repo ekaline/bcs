@@ -127,7 +127,7 @@ class EkaEpm {
     return DatagramOffset;
   }
 
-  uint64_t geUdptDatagramOffset () {
+  uint64_t getUdpDatagramOffset () {
     return UdpDatagramOffset;
   }
 

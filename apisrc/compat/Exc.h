@@ -118,8 +118,8 @@ int excShutdown( EkaDev* pEkaDev, ExcConnHandle hConn, int how );
  * @param  dstMac      Destination MAC address
  * @param  srcIp       Source IPv4 address. 0 to use the system configuration
  * @param  dstIp       Destination IPv4 address
- * @param  srcUpdPort  Source UDP Port
- * @param  dstUpdPort  Destination UDP Port 
+ * @param  srcUdpPort  Source UDP Port
+ * @param  dstUdpPort  Destination UDP Port 
  * 
  * @return             UDP connection handle to be passed to EpmAction
  *                     to initialize the Network Header of the Fire packet
@@ -127,7 +127,7 @@ int excShutdown( EkaDev* pEkaDev, ExcConnHandle hConn, int how );
 ExcUdpTxConnHandle excUdpConnect(EkaDev* pEkaDev, EkaCoreId coreId,
 				 eka_ether_addr srcMac, eka_ether_addr dstMac,
 				 eka_in_addr_t srcIp, eka_in_addr_t dstIp, 
-				 uint16_t srcUpdPort, uint16_t dstUpdPort);
+				 uint16_t srcPort, uint16_t dstPort);
       
 /**
  * Help functions for the tests (OBSOLETE!)
