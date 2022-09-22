@@ -146,8 +146,10 @@ int EkaEpmAction::setTemplate() {
   case EpmActionType::BoeCancel    :
   case EpmActionType::HwFireAction :
   case EpmActionType::CmeHwCancel  :
-  case EpmActionType::CmeSwFire    :
     epmTemplate                        = epm->hwFire;
+    break;
+  case EpmActionType::CmeSwFire    :
+    epmTemplate                        = epm->swFire;
     break;
 
   case EpmActionType::CmeSwHeartbeat :

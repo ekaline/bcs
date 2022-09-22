@@ -302,7 +302,7 @@ static int sendNewsMsg(std::string serverIp,
     size_t payloadLen = std::size(pkt);
 #endif  
  
-    TEST_LOG("sending MDIncrementalRefreshTradeSummary48 trigger to %s:%u",
+    TEST_LOG("sending News trigger to %s:%u",
 	    EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
     if (sendto(triggerSock,pkt,payloadLen,0,(const sockaddr*)&triggerMcAddr,sizeof(triggerMcAddr)) < 0) 
 	on_error ("MC trigger send failed");
@@ -439,6 +439,7 @@ int main(int argc, char *argv[]) {
 	.report_only          = 0,
 	.watchdog_timeout_sec = 100000,
     };
+
     efcInitStrategy(pEfcCtx, &efcStratGlobCtx);
 
     EfcRunCtx runCtx = {};
@@ -486,7 +487,6 @@ int main(int argc, char *argv[]) {
 	heapOffset += cmeAction[actionId].length + nwHdrOffset + fcsOffset;
 	heapOffset += dataAlignment - (heapOffset % dataAlignment);
     }
-
 
     // ==============================================
     // Manually prepared CmeTestFastCancel message fired by FPGA

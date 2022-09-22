@@ -60,6 +60,7 @@ static volatile int numFireEvents = 0;
 
 static const int      MaxTcpTestSessions     = 16;
 static const int      MaxUdpTestSessions     = 64;
+static const int      MaxFastCancels         = 10;
 
 /* --------------------------------------------- */
 
@@ -520,7 +521,7 @@ int main(int argc, char *argv[]) {
     // ==============================================
 
     efcCmeSetILinkAppseq(dev,conn[0],0x1);
-#if 1
+#if 0
     EpmTrigger cmeTrigger = {
 	.token = CmeTestFastCancelToken,         ///< Security token
 	.strategy = EFC_STRATEGY,                ///< Strategy this trigger applies to
@@ -554,9 +555,12 @@ int main(int argc, char *argv[]) {
     epmRaiseTriggers(dev,&cmeTrigger);
 #endif
     
-    sendCmeTradeMsg(serverIp,triggerIp,triggerUdpPort,
-		    CmeTestFastCancelMaxMsgSizeTicker, CmeTestFastCancelMinNoMDEntriesTicker);
-
+    for (auto i = 0; i < MaxFastCancels; i++) {
+      sendCmeTradeMsg(serverIp,triggerIp,triggerUdpPort,
+		      CmeTestFastCancelMaxMsgSizeTicker, CmeTestFastCancelMinNoMDEntriesTicker);
+      sleep (1);
+    }
+    
     if (fatalDebug) {
 	TEST_LOG(RED "\n=====================\nFATAL DEBUG: ON\n=====================\n" RESET);
 	eka_write(dev,0xf0f00,0xefa0beda);
