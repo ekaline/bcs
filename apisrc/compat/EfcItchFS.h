@@ -16,12 +16,14 @@ extern "C" {
  *
  */
   enum class EfcItchFSActionId : epm_actionid_t {
-    HwSweep
+    HwSweep = 0,
+      Count
       };
 
   inline EpmActionType efcItchFSActionId2Type (EfcItchFSActionId id) {
     switch (id) {
     case EfcItchFSActionId::HwSweep :
+      return EpmActionType::ItchHwFastSweep;
     default:
       on_error("Unexpected EfcItchFSActionId id %u",(uint)id);                  
     }

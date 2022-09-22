@@ -27,6 +27,7 @@
 #include "EkaSnDev.h"
 #include "EkaCore.h"
 #include "EkaTcpSess.h"
+#include "EkaUdpTxSess.h"
 #include "EkaEfc.h"
 
 // Coped from <lwip/sockets.h>, needed to get the LWIP definition of FIONREAD.
@@ -475,4 +476,29 @@ int excShutdown( EkaDev* dev, ExcConnHandle hConn, int how ) {
   if (const EkaTcpSess *const s = getEkaTcpSess(dev, hConn))
     return lwip_shutdown(s->sock, how);
   return -1;
+}
+
+ExcUdpTxConnHandle excUdpConnect(EkaDev* dev, EkaCoreId coreId,
+			       eka_ether_addr srcMac, eka_ether_addr dstMac,
+			       eka_in_addr_t srcIp, eka_in_addr_t dstIp, 
+			       uint16_t srcUpdPort, uint16_t dstUpdPort) {
+  
+  if (! dev->epmEnabled) {
+    EKA_LOG("Initializing TCP functionality");
+    
+    dev->epmEnabled = dev->initEpmTx();
+    if (! dev->epmEnabled)
+      on_error("TX functionality is not available for this Ekaline SW instance - caught by another process");
+  }
+
+    
+  EkaCore *const core = getEkaCore(dev, coreId);
+  if (!core)
+    return -1;
+
+  auto sessId = core->addUdpTxSess(srcMac,dstMac,
+			       srcIp, dstIp, 
+			       srcUpdPort, dstUpdPort);
+  
+  return core->udpTxSess[sessId]->getConnHandle();
 }

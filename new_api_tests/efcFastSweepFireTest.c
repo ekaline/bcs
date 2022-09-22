@@ -356,46 +356,12 @@ int main(int argc, char *argv[]) {
     ekaDevConfigurePort (dev, &ekaCoreInitCtx);
 
     // ==============================================
-    // Launching TCP test Servers
-    int tcpSock[MaxTcpTestSessions] = {};
+    // Setting EXC UDP connection
 
-    for (auto i = 0; i < numTcpSess; i++) {
-	bool serverSet = false;
-	std::thread server = std::thread(tcpServer,
-					 dev,
-					 serverIp,
-					 serverTcpBasePort + i,
-					 &tcpSock[i],
-					 &serverSet);
-	server.detach();
-	while (testCtx->keep_work && ! serverSet)
-	    sleep (0);
-    }
-    // ==============================================
-    // Establishing EXC connections for EPM/EFC fires 
-
-    ExcConnHandle conn[MaxTcpTestSessions]    = {};
-
-    for (auto i = 0; i < numTcpSess; i++) {
-	struct sockaddr_in serverAddr = {};
-	serverAddr.sin_family      = AF_INET;
-	serverAddr.sin_addr.s_addr = inet_addr(serverIp.c_str());
-	serverAddr.sin_port        = be16toh(serverTcpBasePort + i);
-
-	int excSock = excSocket(dev,coreId,0,0,0);
-	if (excSock < 0) on_error("failed to open sock %d",i);
-	conn[i] = excConnect(dev,excSock,(sockaddr*) &serverAddr, sizeof(sockaddr_in));
-	if (conn[i] < 0)
-	  on_error("excConnect %d %s:%u",
-		   i,EKA_IP2STR(serverAddr.sin_addr.s_addr),
-		   be16toh(serverAddr.sin_port));
-	const char* pkt = "\n\nThis is 1st TCP packet sent from FPGA TCP client to Kernel TCP server\n\n";
-	excSend (dev, conn[i], pkt, strlen(pkt),0);
-	int bytes_read = 0;
-	char rxBuf[2000] = {};
-	bytes_read = recv(tcpSock[i], rxBuf, sizeof(rxBuf), 0);
-	if (bytes_read > 0) EKA_LOG("\n%s",rxBuf);
-    }
+    ExcUdpTxConnHandle udpConn = excUdpConnect(dev,coreId,
+					       {0xa,0xa,0xa,0xa,0xa,0xa},{0xb,0xb,0xb,0xb,0xb,0xb},
+					       0x11223344,0x55667788,
+					       11111,22222);
 
     // ==============================================
     // Setup EFC MC groups
@@ -445,56 +411,53 @@ int main(int argc, char *argv[]) {
     runCtx.onEfcFireReportCb = efcPrintFireReport; // default print out routine
     // ==============================================
     // ITCH Fast Sweep config
-
+    static const uint64_t AlwaysFire = 0xadcd;
+    static const uint64_t Token = 0x1122334455667788;
+    static const uint64_t User  = 0xaabbccddeeff0011;
+    
     const EfcItchFastSweepParams params = {
       .minUDPSize     = 150,
       .minMsgCount    = 4,
-      .token          = 0x8877665544332211
+      .token          = Token //0x8877665544332211
     };
 
-    uint dataAlignment = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_PayloadAlignment);
-    uint nwHdrOffset   = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_DatagramOffset);
-    uint fcsOffset     = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_RequiredTailPadding);
+    //    uint dataAlignment = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_PayloadAlignment);
+    uint nwHdrOffset   = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_UdpDatagramOffset);
+    //    uint fcsOffset     = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_RequiredTailPadding);
     uint heapOffset    = 0;
-    uint32_t maxPayloadLen = 1536 - nwHdrOffset - fcsOffset;
-    
-    EpmAction itchFSAction[(size_t)EfcItchFSActionId::Count] = {};
-
-    for (epm_actionid_t actionId = 0; actionId < (epm_actionid_t)EfcItchFSActionId::Count; actionId++) {
-	itchFSAction[actionId].type = efcItchFSActionId2Type((EfcItchFSActionId)actionId);
-	itchFSAction[actionId].token         = params.token;
-	itchFSAction[actionId].hConn         = conn[0];
-	itchFSAction[actionId].offset        = heapOffset + nwHdrOffset;
-	itchFSAction[actionId].length        = maxPayloadLen;
-	itchFSAction[actionId].actionFlags   = AF_Valid;
-	itchFSAction[actionId].nextAction    = EPM_LAST_ACTION;
-	itchFSAction[actionId].enable        = CmeTestFastCancelAlwaysFire;
-	itchFSAction[actionId].postLocalMask = CmeTestFastCancelAlwaysFire;
-	itchFSAction[actionId].postStratMask = CmeTestFastCancelAlwaysFire;
-	itchFSAction[actionId].user          = 0x0;
-	
-	epmSetAction(dev,EFC_STRATEGY,actionId,&itchFSAction[actionId]); 
-	
-	heapOffset += itchFSAction[actionId].length + nwHdrOffset + fcsOffset;
-	heapOffset += dataAlignment - (heapOffset % dataAlignment);
-    }
 
     // ==============================================
-    // Manually prepared CmeTestFastCancel message fired by FPGA
-    const char CmeTestFastCancelMsg[] = "CME Fast Cancel: Sequence = |____| With Dummy payload";
+    // Manually prepared ItchTestFastSweepMsg fired by FPGA
+    const char ItchTestFastSweepMsg[] = "012345 Itch Fast Sweep with Dummy payload";
+    
+    EpmAction itchFSAction = {};
+
+    itchFSAction.type          = EpmActionType::ItchHwFastSweep;
+    itchFSAction.token         = params.token;
+    itchFSAction.hConn         = udpConn;
+    itchFSAction.offset        = heapOffset + nwHdrOffset;
+    itchFSAction.length        = strlen(ItchTestFastSweepMsg);
+    itchFSAction.actionFlags   = AF_Valid;
+    itchFSAction.nextAction    = EPM_LAST_ACTION;
+    itchFSAction.enable        = AlwaysFire;
+    itchFSAction.postLocalMask = AlwaysFire;
+    itchFSAction.postStratMask = AlwaysFire;
+    itchFSAction.user          = User;
+	
+    epmSetAction(dev,EFC_STRATEGY,0,&itchFSAction); 
+	
     rc = epmPayloadHeapCopy(dev, 
 			    EFC_STRATEGY,
-			    itchFSAction[(size_t)EfcCmeActionId::HwCancel].offset,
-			    strlen(CmeTestFastCancelMsg),
-			    CmeTestFastCancelMsg);
-    itchFSAction[(size_t)EfcCmeActionId::HwCancel].length = strlen(CmeTestFastCancelMsg);
-    epmSetAction(dev,EFC_STRATEGY,(epm_actionid_t)EfcCmeActionId::HwCancel,
-		 &itchFSAction[(size_t)EfcCmeActionId::HwCancel]);
+			    itchFSAction.offset,
+			    strlen(ItchTestFastSweepMsg),
+			    ItchTestFastSweepMsg);
+
+    epmSetAction(dev,EFC_STRATEGY,0, &itchFSAction);
     
     if (rc != EKA_OPRESULT__OK) 
 	on_error("epmPayloadHeapCopy offset=%u, length=%u rc=%d",
-		 itchFSAction[(size_t)EfcCmeActionId::HwCancel].offset,
-		 (uint)strlen(CmeTestFastCancelMsg),(int)rc);
+		 itchFSAction.offset,
+		 (uint)strlen(ItchTestFastSweepMsg),(int)rc);
 
     // ==============================================
     efcEnableController(pEfcCtx, 0);
@@ -502,8 +465,8 @@ int main(int argc, char *argv[]) {
     efcRun(pEfcCtx, &runCtx );
     // ==============================================
 
-    sendFSMsg(serverIp,triggerIp,triggerUdpPort,
-		    CmeTestFastCancelMaxMsgSizeTicker, CmeTestFastCancelMinNoMDEntriesTicker);
+    /* sendFSMsg(serverIp,triggerIp,triggerUdpPort, */
+    /* 		    CmeTestFastCancelMaxMsgSizeTicker, CmeTestFastCancelMinNoMDEntriesTicker); */
 
     if (fatalDebug) {
 	TEST_LOG(RED "\n=====================\nFATAL DEBUG: ON\n=====================\n" RESET);

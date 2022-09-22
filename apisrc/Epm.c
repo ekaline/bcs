@@ -38,6 +38,9 @@ uint64_t epmGetDeviceCapability(const EkaDev *dev, EpmDeviceCapability cap) {
     case EHC_DatagramOffset :
       return dev->epm->getDatagramOffset();
 
+    case EHC_UdpDatagramOffset :
+      return dev->epm->getUdpDatagramOffset();
+
     case EHC_RequiredTailPadding :
       return dev->epm->getRequiredTailPadding();
 

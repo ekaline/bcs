@@ -52,8 +52,7 @@ LIBEKALINE2_1.0	{
 			ekaDevConfigurePort;	
 			efhDestroy;
 
-			excUdpSocket;
-			excSendTo;	
+			excUdpConnect;
 
 			epmGetDeviceCapability;		
 			epmInitStrategies;
