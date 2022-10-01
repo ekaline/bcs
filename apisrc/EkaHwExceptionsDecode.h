@@ -33,6 +33,7 @@ inline int ekaDecodeExceptions(char* dst,const EfcExceptionsReport* excpt) {
   if ((excpt->globalExcpt>>33)&0x1) d += sprintf(d,"Bit 33: P4 CTX reply overrun\n" );
   if ((excpt->globalExcpt>>34)&0x1) d += sprintf(d,"Bit 34: P4 MD out of sync\n" );
   if ((excpt->globalExcpt>>35)&0x1) d += sprintf(d,"Bit 35: P4 Wrong secid\n" );
+  if ((excpt->globalExcpt>>36)&0x1) d += sprintf(d,"Bit 36: P4 CTX update overrun\n" );
   if ((excpt->globalExcpt>>0) &0x3f) d += sprintf(d,"\n--- Core Exceptions --\n");
   for(auto i = 0; i < 4; i++) { // 4 Cores
     if ((excpt->globalExcpt>>i)&0x1) {

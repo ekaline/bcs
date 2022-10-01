@@ -291,6 +291,8 @@ int EkaDev::configurePort(const EkaCoreInitCtx* pCoreInit) {
     memcpy(&core[c]->macSa,&attrs->src_mac_addr,6);
     //    setNetifIpMacSa(dev,c,(const uint8_t*)&attrs->src_mac_addr);
     EKA_LOG("Core %u: Setting SRC MAC: %s",c,EKA_MAC2STR(core[c]->macSa));
+
+    core[c]->connectedL1Switch = true;
   }
   if (! eka_is_all_zeros((void*)&attrs->host_ip,4)) {
     memcpy(&core[c]->srcIp,&attrs->host_ip,4);
