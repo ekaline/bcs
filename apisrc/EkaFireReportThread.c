@@ -110,6 +110,10 @@ inline size_t pushFiredPkt(int reportIdx, uint8_t* dst,
   return b - dst;
 }
 
+inline void clearExceptions(EkaDev* dev) {
+  eka_read(dev,ADDR_INTERRUPT_MAIN_RC);
+}
+
 inline size_t pushExceptionReport(int reportIdx, uint8_t* dst,
 				  EfcExceptionsReport* src) {
   auto b = dst;
@@ -271,6 +275,7 @@ std::pair<int,size_t> processExceptionReport(EkaDev* dev,
       getExceptionsReport(dev,&exceptReport); //Per core
       exceptReport.globalExcpt = hwEpmReport->interrupt_vector;
       b += pushExceptionReport(++reportIdx,b,&exceptReport);
+      clearExceptions(dev);
     }
     break;
   default:
