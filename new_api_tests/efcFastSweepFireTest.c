@@ -436,7 +436,7 @@ int main(int argc, char *argv[]) {
     itchFSAction.token         = params.token;
     itchFSAction.hConn         = udpConn;
     itchFSAction.offset        = heapOffset + nwHdrOffset;
-    itchFSAction.length        = strlen(ItchTestFastSweepMsg);
+    itchFSAction.length        = 60;//strlen(ItchTestFastSweepMsg);
     itchFSAction.actionFlags   = AF_Valid;
     itchFSAction.nextAction    = EPM_LAST_ACTION;
     itchFSAction.enable        = AlwaysFire;
@@ -446,18 +446,15 @@ int main(int argc, char *argv[]) {
 	
     epmSetAction(dev,EFC_STRATEGY,0,&itchFSAction); 
 	
-    rc = epmPayloadHeapCopy(dev, 
-			    EFC_STRATEGY,
-			    itchFSAction.offset,
-			    strlen(ItchTestFastSweepMsg),
-			    ItchTestFastSweepMsg);
-
-    epmSetAction(dev,EFC_STRATEGY,0, &itchFSAction);
-    
-    if (rc != EKA_OPRESULT__OK) 
-	on_error("epmPayloadHeapCopy offset=%u, length=%u rc=%d",
-		 itchFSAction.offset,
-		 (uint)strlen(ItchTestFastSweepMsg),(int)rc);
+   /*  rc = epmPayloadHeapCopy(dev,  */
+   /* 			    EFC_STRATEGY, */
+   /* 			    itchFSAction.offset, */
+   /* 			    strlen(ItchTestFastSweepMsg), */
+   /* 			    ItchTestFastSweepMsg); */
+   /* if (rc != EKA_OPRESULT__OK)  */
+   /* 	on_error("epmPayloadHeapCopy offset=%u, length=%u rc=%d", */
+   /* 		 itchFSAction.offset, */
+   /* 		 (uint)strlen(ItchTestFastSweepMsg),(int)rc); */
 
     // ==============================================
     efcEnableController(pEfcCtx, 0);
@@ -465,6 +462,13 @@ int main(int argc, char *argv[]) {
     efcRun(pEfcCtx, &runCtx );
     // ==============================================
 
+    EpmTrigger fastSweepSwTrig = {
+				  .token = Token,
+				  .strategy = 0,
+				  .action = 0
+    };
+    epmRaiseTriggers(dev, &fastSweepSwTrig);
+    
     /* sendFSMsg(serverIp,triggerIp,triggerUdpPort, */
     /* 		    CmeTestFastCancelMaxMsgSizeTicker, CmeTestFastCancelMinNoMDEntriesTicker); */
 
