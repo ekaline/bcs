@@ -376,7 +376,8 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
       book->generateOnQuote (pEfhRunCtx,
                              s,
                              pktSeq,
-                             transactTime, //pktTime,
+			     pktTime,
+                             transactTime,
                              gapNum);
     }
     /* if (tobChange) book->generateOnOrder (pEfhRunCtx,  */
@@ -529,7 +530,8 @@ int EkaFhCmeGr::process_SecurityStatus30(const EfhRunCtx* pEfhRunCtx,
   book->generateOnQuote (pEfhRunCtx,
 			 s,
 			 pktSeq,
-			 transactTime, //pktTime,
+			 pktTime,
+			 transactTime,
 			 gapNum);
 
   return msgHdr->size;
@@ -574,7 +576,8 @@ int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
       book->generateOnQuote (pEfhRunCtx,
                              s,
                              pktSeq,
-                             transactTime, //pktTime,
+			     pktTime,
+                             transactTime,
                              gapNum);
     }
     m += pGroupSize->blockLength;    

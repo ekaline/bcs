@@ -40,7 +40,11 @@ typedef struct {
                 _x( uint32_t,   underlyingId )                              \
                 _x( uint64_t,   securityId )                                \
                 _x( uint64_t,   sequenceNumber )                            \
+		/** Packet Time Stamp for the Exchange Market data gateway */ \
                 _x( uint64_t,   timeStamp )                                 \
+		/** Transaction Time Stamp at CME FH only, 0 for others*/   \
+                _x( uint64_t,   transactTime )                              \
+		/** used for internal troubleshooting of the end-to-end latency */ \
                 _x( uint64_t,   deltaNs )                                   \
                 /** Incremented each time a new gap is encountered so this 
                  * can be compared  with the latest from 

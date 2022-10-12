@@ -54,6 +54,7 @@ template <const uint SEC_HASH_SCALE,
 			   s,
 			   pktSeq,
 			   pktTime,
+			   0,
 			   gapNum);
 	secCnt++;
 	s = dynamic_cast<FhSecurity*>(n);
@@ -98,7 +99,8 @@ template <const uint SEC_HASH_SCALE,
   inline int generateOnQuote (const EfhRunCtx* pEfhRunCtx,
                               FhSecurity*      s,
                               uint64_t         sequence,
-                              uint64_t         timestamp,
+                              uint64_t         pktTime,
+                              uint64_t         transactTime,
                               uint             gapNum) {
 
     if (!s) on_error("!s");
@@ -109,7 +111,8 @@ template <const uint SEC_HASH_SCALE,
     msg.header.group.localId  = grId;
     msg.header.securityId     = s->secId;
     msg.header.sequenceNumber = sequence;
-    msg.header.timeStamp      = timestamp;
+    msg.header.timeStamp      = pktTime;
+    msg.header.transactTime   = transactTime;
     msg.header.deltaNs        = 0;
     msg.header.gapNum         = gapNum;
     msg.tradeStatus           = s->tradeStatus;
