@@ -271,7 +271,7 @@ std::pair<int,size_t> processExceptionReport(EkaDev* dev,
 
   switch (static_cast<HwEpmActionStatus>(hwEpmReport->epm.action)) {
   case HwEpmActionStatus::HWPeriodicStatus :
-    EKA_LOG("Processgin HwEpmActionStatus::HWPeriodicStatus, len=%d",srcReportLen);
+    //    EKA_LOG("Processgin HwEpmActionStatus::HWPeriodicStatus, len=%d",srcReportLen);
     //copying port exception vectors
     for (int i = 0; i < EFC_MAX_CORES; i++) {
       exceptReport.exceptionStatus.portVector[i] = hwEpmReport->exception_report.core_vector[i];

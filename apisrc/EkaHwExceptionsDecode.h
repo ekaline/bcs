@@ -44,7 +44,8 @@ inline int ekaDecodeExceptions(char* dst,const EfcExceptionsReport* excpt) {
       if ((excpt->exceptionStatus.portVector[i]>>6)&0x1)  d += sprintf(d,"Bit 6: HW->SW Sniffer control drop\n");
     }
   }
- END:  
+ END:
+  //  d += sprintf(d,"Arm=%d, Ver=%d\n",excpt->armStatus.armFlag,excpt->armStatus.expectedVersion);
   return d - dst;
 }
 
