@@ -100,12 +100,12 @@ inline uint64_t reg_read (uint32_t addr) {
 //################################################
 
 inline void getExceptions(EfcExceptionsReport* excpt, uint8_t coresBitmap) {
-  excpt->globalExcpt = reg_read(ADDR_INTERRUPT_SHADOW_RO);
+  excpt->exceptionStatus.globalVector = reg_read(ADDR_INTERRUPT_SHADOW_RO);
   for (int i = 0; i < EFC_MAX_CORES; i++) {
     if (((0x01 << i) & 0xFF) & coresBitmap) {
-      excpt->coreExcpt[i] = reg_read(EKA_ADDR_INTERRUPT_0_SHADOW_RO + i * 0x1000);
+      excpt->exceptionStatus.portVector[i] = reg_read(EKA_ADDR_INTERRUPT_0_SHADOW_RO + i * 0x1000);
     } else {
-      excpt->coreExcpt[i] = 0;
+      excpt->exceptionStatus.portVector[i] = 0;
     }
   }
 }
