@@ -9,6 +9,7 @@
 #include "eka_hw_conf.h"
 
 #include "EpmStrategy.h"
+#include "EkaEfcDataStructs.h"
 
 class EkaHwHashTableLine;
 class EkaIgmp;
@@ -32,9 +33,30 @@ class EkaEfc : public EpmStrategy {
   int disArmController();
   int run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx);
 
+  inline void writeSecHwCtx(const EfcSecCtxHandle handle,
+			    const EkaHwSecCtx* pHwSecCtx,
+			    uint16_t writeChan) {
+    uint64_t ctxWrAddr = P4_CTX_CHANNEL_BASE + 
+    writeChan * EKA_BANKS_PER_CTX_THREAD * EKA_WORDS_PER_CTX_BANK * 8 + 
+    ctxWriteBank[writeChan] * EKA_WORDS_PER_CTX_BANK * 8;
+
+    // EkaHwSecCtx is 8 Bytes ==> single write
+    eka_write(dev,ctxWrAddr,*(uint64_t*)pHwSecCtx); 
+
+    union large_table_desc done_val = {};
+    done_val.ltd.src_bank           = ctxWriteBank[writeChan];
+    done_val.ltd.src_thread         = writeChan;
+    done_val.ltd.target_idx         = handle;
+    eka_write(dev, P4_CONFIRM_REG, done_val.lt_desc);
+    
+    ctxWriteBank[writeChan] = (ctxWriteBank[writeChan] + 1) % EKA_BANKS_PER_CTX_THREAD;
+  }
+			    
+
  private:
   bool          isValidSecId(uint64_t secId);
   int           initHwRoundTable();
+  int           cleanSecHwCtx();
   int           normalizeId(uint64_t secId);
   int           getLineIdx(uint64_t normSecId);
   EkaUdpSess*   findUdpSess(EkaCoreId coreId, uint32_t mcAddr, uint16_t mcPort);

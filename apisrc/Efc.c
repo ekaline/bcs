@@ -187,7 +187,8 @@ EfcSecCtxHandle getSecCtxHandle( EfcCtx* pEfcCtx, uint64_t securityId ) {
  * @param writeChan       This is the channel that will be used to write (see kEkaNumWriteChans).
  * @retval [See EkaOpResult].
  */
-EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx, EfcSecCtxHandle hSecCtx, const SecCtx* pSecCtx, uint16_t writeChan ) {
+EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx, EfcSecCtxHandle hSecCtx,
+				const SecCtx* pSecCtx, uint16_t writeChan ) {
   if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
   EkaDev* dev = pEfcCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
@@ -224,21 +225,23 @@ EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx, EfcSecCtxHandle hSecCtx, const 
     .lowerBytesOfSecId = pSecCtx->lowerBytesOfSecId
   };
 
-  uint64_t ctxWrAddr = P4_CTX_CHANNEL_BASE + 
-    writeChan * EKA_BANKS_PER_CTX_THREAD * EKA_WORDS_PER_CTX_BANK * 8 + 
-    efc->ctxWriteBank[writeChan] * EKA_WORDS_PER_CTX_BANK * 8;
+  /* uint64_t ctxWrAddr = P4_CTX_CHANNEL_BASE +  */
+  /*   writeChan * EKA_BANKS_PER_CTX_THREAD * EKA_WORDS_PER_CTX_BANK * 8 +  */
+  /*   efc->ctxWriteBank[writeChan] * EKA_WORDS_PER_CTX_BANK * 8; */
 
-  // EkaHwSecCtx is 8 Bytes ==> single write
-  eka_write(dev,ctxWrAddr,*(uint64_t*)&hwSecCtx); 
+  /* // EkaHwSecCtx is 8 Bytes ==> single write */
+  /* eka_write(dev,ctxWrAddr,*(uint64_t*)&hwSecCtx);  */
 
-  union large_table_desc done_val = {};
-  done_val.ltd.src_bank           = efc->ctxWriteBank[writeChan];
-  done_val.ltd.src_thread         = writeChan;
-  done_val.ltd.target_idx         = hSecCtx;
-  eka_write(dev, P4_CONFIRM_REG, done_val.lt_desc);
+  /* union large_table_desc done_val = {}; */
+  /* done_val.ltd.src_bank           = efc->ctxWriteBank[writeChan]; */
+  /* done_val.ltd.src_thread         = writeChan; */
+  /* done_val.ltd.target_idx         = hSecCtx; */
+  /* eka_write(dev, P4_CONFIRM_REG, done_val.lt_desc); */
 
-  efc->ctxWriteBank[writeChan] = (efc->ctxWriteBank[writeChan] + 1) % EKA_BANKS_PER_CTX_THREAD;
+  /* efc->ctxWriteBank[writeChan] = (efc->ctxWriteBank[writeChan] + 1) % EKA_BANKS_PER_CTX_THREAD; */
 
+  efc->writeSecHwCtx(hSecCtx,&hwSecCtx,writeChan);
+  
   return EKA_OPRESULT__OK;
 }
 
