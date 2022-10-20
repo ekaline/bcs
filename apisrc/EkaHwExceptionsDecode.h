@@ -45,7 +45,7 @@ inline int ekaDecodeExceptions(char* dst,const EfcExceptionsReport* excpt) {
     }
   }
  END:
-  //  d += sprintf(d,"Arm=%d, Ver=%d\n",excpt->armStatus.armFlag,excpt->armStatus.expectedVersion);
+  d += sprintf(d,"Arm=%d, Ver=%d\n",excpt->armStatus.armFlag,excpt->armStatus.expectedVersion);
   return d - dst;
 }
 
