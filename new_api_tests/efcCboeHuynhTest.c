@@ -894,30 +894,34 @@ int main(int argc, char *argv[]) {
  /*     03 5f b7 08 6e ca 2f 02 42 21 00 30 32 67 49 50 54 8a 02 01 */
 
   efcEnableController(pEfcCtx, 1, armVer);
-  sleep(5);
   sendPreloadedPkt(triggerSock,&triggerMcAddr,pkt,strlen(pkt));
   sleep(1);
   armVer++;
   efcEnableController(pEfcCtx, 1, armVer);
-  sleep(5);  
+    sleep(1);
+
   sendPreloadedPkt(triggerSock,&triggerMcAddr,pkt,strlen(pkt));
   sleep(1);
   armVer++;
   efcEnableController(pEfcCtx, 1, armVer);
-  sleep(5);    
+    sleep(1);
+
   sendPreloadedPkt(triggerSock,&triggerMcAddr,pkt,strlen(pkt));
   sleep(1);
   efcEnableController(pEfcCtx, 1, armVer); //stale
-  sleep(5);
+    sleep(1);
+
   sendPreloadedPkt(triggerSock,&triggerMcAddr,pkt,strlen(pkt));
   sleep(1);
   efcEnableController(pEfcCtx, 1, armVer); //stale
-    sleep(5);
-    sendPreloadedPkt(triggerSock,&triggerMcAddr,pkt,strlen(pkt));
+    sleep(1);
+
+  sendPreloadedPkt(triggerSock,&triggerMcAddr,pkt,strlen(pkt));
   sleep(1);
   armVer++;
-  sleep(5);
   efcEnableController(pEfcCtx, 1, armVer);
+    sleep(1);
+
   sendPreloadedPkt(triggerSock,&triggerMcAddr,pkt,strlen(pkt));
   sleep(1);
   efcEnableController(pEfcCtx, -1); //4 fires out of 6

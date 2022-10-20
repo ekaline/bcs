@@ -281,8 +281,8 @@ std::pair<int,size_t> processExceptionReport(EkaDev* dev,
     //copying arm status fields
     exceptReport.armStatus.armFlag                = hwEpmReport->arm_report.arm_state;
     exceptReport.armStatus.expectedVersion = hwEpmReport->arm_report.arm_expected_version;
-    hexDump("------------\nexceptReport",hwEpmReport,sizeof(*hwEpmReport));
-    EKA_LOG("ARM=%d VER=%d",hwEpmReport->arm_report.arm_state,hwEpmReport->arm_report.arm_expected_version);
+    //    hexDump("------------\nexceptReport",hwEpmReport,sizeof(*hwEpmReport));
+    //    EKA_LOG("ARM=%d VER=%d",hwEpmReport->arm_report.arm_state,hwEpmReport->arm_report.arm_expected_version);
 
     b += pushExceptionReport(++reportIdx,b,&exceptReport);
     break;
