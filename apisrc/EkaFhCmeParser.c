@@ -251,7 +251,8 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
     msg.header.group.localId  = id;
     msg.header.underlyingId   = 0;
     msg.header.sequenceNumber = pktSeq;
-    msg.header.timeStamp      = transactTime; //pktTime; //rootBlock->LastUpdateTime;
+    msg.header.timeStamp      = pktTime;
+    msg.header.transactTime   = transactTime;
     msg.header.gapNum         = gapNum;
 
     const char *const auctionIdEnd = rootBlock->QuoteReqID +
@@ -397,7 +398,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
       hdr->group.source   = exch;
       hdr->group.localId  = id;
       hdr->sequenceNumber = pktSeq;
-      hdr->timeStamp      = transactTime; //pktTime;
+      hdr->timeStamp      = pktTime;
       switch (e->MDUpdateAction) {
       case MDUpdateAction_T::New: {
 	auto dstMsg {reinterpret_cast<MdNewPlevel*>(msgBuf)};
@@ -618,7 +619,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   msg.header.underlyingId   = 0; // Stock index technically an underlying, but no id.
   msg.header.securityId     = rootBlock->SecurityID;
   msg.header.sequenceNumber = pktSeq;
-  msg.header.timeStamp      = pktTime; //rootBlock->LastUpdateTime;
+  msg.header.timeStamp      = pktTime;
   msg.header.gapNum         = gapNum;
 
   msg.commonDef.securityType   = EfhSecurityType::kFuture;
@@ -693,7 +694,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   msg.header.underlyingId   = 0; // Not given to us.
   msg.header.securityId     = rootBlock->SecurityID;
   msg.header.sequenceNumber = pktSeq;
-  msg.header.timeStamp      = pktTime; //rootBlock->LastUpdateTime;
+  msg.header.timeStamp      = pktTime;
   msg.header.gapNum         = gapNum;
 
   msg.commonDef.securityType   = EfhSecurityType::kOption;
@@ -806,7 +807,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   msg.header.underlyingId   = rootBlock->UnderlyingProduct;
   msg.header.securityId     = rootBlock->SecurityID;
   msg.header.sequenceNumber = pktSeq;
-  msg.header.timeStamp      = pktTime; //rootBlock->LastUpdateTime;
+  msg.header.timeStamp      = pktTime;
   msg.header.gapNum         = gapNum;
 
   msg.commonDef.securityType   = EfhSecurityType::kComplex;
