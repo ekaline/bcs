@@ -34,9 +34,15 @@ extern EkaDev *g_ekaDev;
 /* ########################################################### */
 inline size_t printContainerGlobalHdr(FILE* file, const uint8_t* b) {
   auto containerHdr {reinterpret_cast<const EkaContainerGlobalHdr*>(b)};
-  fprintf(file,"%s with %d reports\n",
-	  EkaEventType2STR(containerHdr->type),
-	  containerHdr->num_of_reports);
+  switch (containerHdr->type) {
+  case EkaEventType::kExceptionEvent:
+    break;
+  default:
+    fprintf(file,"%s with %d reports\n",
+	    EkaEventType2STR(containerHdr->type),
+	    containerHdr->num_of_reports);
+  }
+  
 
   return sizeof(*containerHdr);
 }
@@ -60,9 +66,11 @@ inline size_t printExceptionReport(FILE* file, const uint8_t* b) {
   if ((uint64_t)decodeSize > sizeof(excptBuf))
     on_error("decodeSize %d > sizeof(excptBuf) %jd",
 	     decodeSize,sizeof(excptBuf));
-  fprintf(file,"ExceptionsReport:\n");
-  fprintf(file,"%s\n",excptBuf);
-  fprintf(stderr,RED "%s\n" RESET,excptBuf);
+  if ((uint64_t)decodeSize > 0) {
+    fprintf(file,"ExceptionsReport:\n");
+    fprintf(file,"%s\n",excptBuf);
+    fprintf(stderr,RED "%s\n" RESET,excptBuf);
+  }
   return sizeof(*exceptionsReport);
 }
 /* ########################################################### */

@@ -110,6 +110,10 @@ inline size_t pushFiredPkt(int reportIdx, uint8_t* dst,
   return b - dst;
 }
 
+inline void clearExceptions(EkaDev* dev) {
+  eka_read(dev,ADDR_INTERRUPT_MAIN_RC);
+}
+
 inline size_t pushExceptionReport(int reportIdx, uint8_t* dst,
 				  EfcExceptionsReport* src) {
   auto b = dst;
@@ -197,12 +201,12 @@ inline size_t pushNewsReport(int reportIdx, uint8_t* dst,
 }
 
 /* ########################################################### */
-void getExceptionsReport(EkaDev* dev,EfcExceptionsReport* excpt) {
-  excpt->globalExcpt = eka_read(dev,ADDR_INTERRUPT_SHADOW_RO);
-  for (int i = 0; i < EFC_MAX_CORES; i++) {
-    excpt->coreExcpt[i] = eka_read(dev,EKA_ADDR_INTERRUPT_0_SHADOW_RO + i * 0x1000);
-  }
-}
+/* void getExceptionsReport(EkaDev* dev,EfcExceptionsReport* excpt) { */
+/*   excpt->globalExcpt = eka_read(dev,ADDR_INTERRUPT_SHADOW_RO); */
+/*   for (int i = 0; i < EFC_MAX_CORES; i++) { */
+/*     excpt->coreExcpt[i] = eka_read(dev,EKA_ADDR_INTERRUPT_0_SHADOW_RO + i * 0x1000); */
+/*   } */
+/* } */
 /* ########################################################### */
 
 std::pair<int,size_t> processSwTriggeredReport(EkaDev* dev,
@@ -261,17 +265,26 @@ std::pair<int,size_t> processExceptionReport(EkaDev* dev,
   containerHdr->num_of_reports = 0; // to be overwritten at the end
   b += sizeof(*containerHdr);
   //--------------------------------------------------------------------------
-  auto hwEpmReport {reinterpret_cast<const hw_epm_exception_report_t*>(srcReport)};
+  auto hwEpmReport {reinterpret_cast<const hw_epm_status_report_t*>(srcReport)};
+
+  EfcExceptionsReport exceptReport = {};
 
   switch (static_cast<HwEpmActionStatus>(hwEpmReport->epm.action)) {
   case HwEpmActionStatus::HWPeriodicStatus :
-    if (hwEpmReport->interrupt_vector) {
-    EKA_LOG("Processgin HwEpmActionStatus::HWPeriodicStatus, len=%d hwEpmReport->interrupt_vector=0x%jx",srcReportLen,hwEpmReport->interrupt_vector);
-      EfcExceptionsReport exceptReport = {};
-      getExceptionsReport(dev,&exceptReport); //Per core
-      exceptReport.globalExcpt = hwEpmReport->interrupt_vector;
-      b += pushExceptionReport(++reportIdx,b,&exceptReport);
+    //    EKA_LOG("Processgin HwEpmActionStatus::HWPeriodicStatus, len=%d",srcReportLen);
+    //copying port exception vectors
+    for (int i = 0; i < EFC_MAX_CORES; i++) {
+      exceptReport.exceptionStatus.portVector[i] = hwEpmReport->exception_report.core_vector[i];
     }
+    //copying global exception vector
+    exceptReport.exceptionStatus.globalVector = hwEpmReport->exception_report.global_vector;
+    //copying arm status fields
+    exceptReport.armStatus.armFlag                = hwEpmReport->arm_report.arm_state;
+    exceptReport.armStatus.expectedVersion = hwEpmReport->arm_report.arm_expected_version;
+    //    hexDump("------------\nexceptReport",hwEpmReport,sizeof(*hwEpmReport));
+    //    EKA_LOG("ARM=%d VER=%d",hwEpmReport->arm_report.arm_state,hwEpmReport->arm_report.arm_expected_version);
+
+    b += pushExceptionReport(++reportIdx,b,&exceptReport);
     break;
   default:
     // Broken EPM 

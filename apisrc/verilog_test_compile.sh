@@ -1,0 +1,3 @@
+#
+
+make GCC_EXTERNAL_DEFINES="-D_VERILOG_SIM" -j 64
