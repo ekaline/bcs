@@ -480,19 +480,22 @@ int EkaFhCmeGr::process_MDIncrementalRefreshTradeSummary48(const EfhRunCtx* pEfh
 	FhSecurity* s = book->findSecurity(e->SecurityID);
 	if (!s) continue;
 
-	const EfhTradeMsg msg = {
-	    { EfhMsgType::kTrade,
-	      {exch,(EkaLSI)id}, // group
-	      0,  // underlyingId
-	      (uint64_t) e->SecurityID,
-	      pktSeq,
-	      transactTime, //pktTime,
-	      gapNum },
-	    e->MDEntryPx / static_cast<std::int64_t>(s->getFinalPriceFactor()),
-	    (uint32_t)e->MDEntrySize,
-	    EfhTradeStatus::kNormal,
-	    EfhTradeCond::kREG
-	};
+	EfhTradeMsg msg{};
+        msg.header.msgType = EfhMsgType::kTrade;
+        msg.header.group.source   = exch;
+        msg.header.group.localId  = id;
+        msg.header.underlyingId   = 0;
+        msg.header.securityId     = (uint64_t) e->SecurityID;
+        msg.header.sequenceNumber = pktSeq;
+        msg.header.timeStamp      = pktTime;
+        msg.header.transactTime   = transactTime;
+        msg.header.gapNum         = gapNum;
+
+        msg.price       = e->MDEntryPx / static_cast<std::int64_t>(s->getFinalPriceFactor());
+        msg.size        = (uint32_t)e->MDEntrySize;
+        msg.tradeStatus = EfhTradeStatus::kNormal;
+        msg.tradeCond   = EfhTradeCond::kREG;
+
 	pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
     }  
     return msgHdr->size;

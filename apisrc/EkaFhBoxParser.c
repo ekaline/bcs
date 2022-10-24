@@ -140,7 +140,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     s = book->findSecurity(security_id);
     if (s == NULL) return false;
 
-    EfhTradeMsg msg = {};
+    EfhTradeMsg msg{};
     msg.header.msgType        = EfhMsgType::kTrade;
     msg.header.group.source   = EkaSource::kBOX_HSVF;
     msg.header.group.localId  = id;

@@ -105,7 +105,7 @@ template <const uint SEC_HASH_SCALE,
 
     if (!s) on_error("!s");
 
-    EfhQuoteMsg msg = {};
+    EfhQuoteMsg msg{};
     msg.header.msgType        = EfhMsgType::kQuote;
     msg.header.group.source   = exch;
     msg.header.group.localId  = grId;
@@ -161,7 +161,7 @@ template <const uint SEC_HASH_SCALE,
     if (side != SideT::BID && side != SideT::ASK)
       on_error("Unexpected side = %d",(int)side);
     
-    EfhOrderMsg msg = {};
+    EfhOrderMsg msg{};
     msg.header.msgType        = EfhMsgType::kQuote;
     msg.header.group.source   = exch;
     msg.header.group.localId  = grId;
