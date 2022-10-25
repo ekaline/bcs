@@ -95,7 +95,7 @@ EkaOpResult efcInitStrategy( EfcCtx* pEfcCtx, const EfcStratGlobCtx* efcStratGlo
  *
  * @param pEfcCtx
  * @param primaryCoreId If this is >= 0, then it will enable firing on all cores, and make 
- *                      primaryCore the only core that will fire if he opportunity should only
+ *                      primaryCore the only core that will fire if the opportunity should only
  *                      only fired on once.
  *                      If this is < 0, then this will disable firing on all cores.
  * @retval [See EkaOpResult].
