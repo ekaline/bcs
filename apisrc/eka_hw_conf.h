@@ -82,7 +82,15 @@
 #define ADDR_OPENDEV_COUNTER     0xf0e10
 #define ADDR_RT_COUNTER          0xf0e08
 #define FPGA_RT_CNTR             0xf0e00
+
+// Clear-on-read shadow exception state register
+#define ADDR_INTERRUPT_SHADOW_RC 0xf0798
+
+// read-only, used for efc_state
 #define ADDR_INTERRUPT_SHADOW_RO 0xf0790
+
+// Clear-on-read main exception state register
+#define ADDR_INTERRUPT_MAIN_RC 0xf0728
 
 // global configurations
 #define ADDR_VERSION_ID       0xf0ff0

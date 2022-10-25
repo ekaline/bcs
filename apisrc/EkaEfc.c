@@ -108,8 +108,9 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
 /* ################################################ */
 
 /* ################################################ */
-int EkaEfc::armController() {
-  eka_write(dev, P4_ARM_DISARM, 1); 
+int EkaEfc::armController(EfcArmVer ver) {
+  uint64_t armData = ((uint64_t)ver << 32) | 1;
+  eka_write(dev, P4_ARM_DISARM, armData); 
   return 0;
 }
 /* ################################################ */
