@@ -6,9 +6,9 @@
 
 #include "Efh.h"
 #include "EkaDev.h"
+#include "EkaFhSecurity.h"
 
 class EkaFhGroup;
-class EkaFhSecurity;
 
 class EkaFhBook {
  protected:
@@ -34,6 +34,20 @@ class EkaFhBook {
   //----------------------------------------------------------
 
 
+};
+
+struct EkaFhNoopQuotePostProc {
+  constexpr bool operator()(const EkaFhSecurity*, EfhQuoteMsg*) { return true; }
+};
+
+struct EkaFhInvertComplexAskQuotePostProc {
+  constexpr bool operator()(const EkaFhSecurity* sec, EfhQuoteMsg* msg) {
+    if (sec->type == EfhSecurityType::kComplex) {
+      // Correct exchange's complex price conventions to match our own
+      msg->askSide.price = -msg->askSide.price;
+    }
+    return true;
+  }
 };
 
 #endif

@@ -5,9 +5,10 @@
 #include "EkaFhTypes.h"
 
 template <const uint SEC_HASH_SCALE,
-  class FhSecurity, 
-  class SecurityIdT, 
-  class PriceT, 
+  class FhSecurity,
+  class QuotePostProc,
+  class SecurityIdT,
+  class PriceT,
   class SizeT>
   class EkaFhCmeBook : public EkaFhBook  {
  public:
@@ -94,11 +95,11 @@ template <const uint SEC_HASH_SCALE,
   }
   /* ####################################################### */
 
-  inline int generateOnQuote (const EfhRunCtx* pEfhRunCtx, 
-		       FhSecurity*      s, 
-		       uint64_t         sequence, 
-		       uint64_t         timestamp,
-		       uint             gapNum) {
+  inline int generateOnQuote (const EfhRunCtx* pEfhRunCtx,
+                              FhSecurity*      s,
+                              uint64_t         sequence,
+                              uint64_t         timestamp,
+                              uint             gapNum) {
 
     if (!s) on_error("!s");
 
@@ -118,6 +119,11 @@ template <const uint SEC_HASH_SCALE,
 
     msg.askSide.price         = s->ask->getEntryPrice(0) / PRICE_SCALE;
     msg.askSide.size          = s->ask->getEntrySize(0);
+
+    QuotePostProc postProc{};
+    if (!postProc(static_cast<const EkaFhSecurity*>(s), &msg)) {
+      return 0;
+    }
 
     if (pEfhRunCtx->onEfhQuoteMsgCb == NULL) 
       on_error("Uninitialized pEfhRunCtx->onEfhQuoteMsgCb");

@@ -23,7 +23,7 @@ class alignas(64) EkaFhSecurity {
     opaqueAttrB = _opaqueAttrB;
 
     underlyingIdx = (uint)opaqueAttrB;
-}
+  }
 /* --------------------------------------------------------------- */
 
  public:

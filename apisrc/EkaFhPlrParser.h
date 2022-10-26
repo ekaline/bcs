@@ -441,9 +441,9 @@ namespace Plr {
     uint32_t sourceTimeNs;
     uint32_t seriesIndex;
     uint32_t seriesSeqNum;
-    uint32_t askPrice;
+    int32_t  askPrice;
     uint32_t askVolume;
-    uint32_t bidPrice;
+    int32_t  bidPrice;
     uint32_t bidVolume;
     char     quoteCondition; // ▪ '1' – Regular Trading
     // ▪ '2' – Rotation
@@ -564,6 +564,7 @@ namespace Plr {
   inline EfhOrderCapacity getRfqCapacity(char capacity) {
     switch (capacity) {
     case ' ' : return EfhOrderCapacity::kUnknown;
+    case '0' : return EfhOrderCapacity::kCustomer;
     case '1' : return EfhOrderCapacity::kAgency; // Firm
     case '2' : return EfhOrderCapacity::kBrokerDealer;
     case '3' : return EfhOrderCapacity::kMarketMaker;
@@ -573,14 +574,28 @@ namespace Plr {
     }
   }
 
-  inline EfhAuctionType getAuctionType (char auctionType) {
+  inline EfhAuctionType getAuctionType(char auctionType) {
     switch (auctionType) {
-    case 'P' : return EfhAuctionType::kPriceImprovementPeriod;
+    case 'P' : return EfhAuctionType::kCube;
     case 'F' : return EfhAuctionType::kFacilitation;
     case 'S' : return EfhAuctionType::kSolicitation;
-    case 'B' : return EfhAuctionType::kUnknown; // Bold (Outright only)
-    case 'C' : return EfhAuctionType::kUnknown; // COA (Complex only)
+    case 'B' : return EfhAuctionType::kExposed; // Bold (Outright only)
+    case 'C' : return EfhAuctionType::kComplexOrderAuction; // COA (Complex only)
     default  :
+      on_error("Unexpected auctionType \'%c\'",auctionType);
+    }
+  }
+
+  inline uint64_t getRfqRunTimeNanos(char auctionType) {
+    switch (auctionType) {
+    case 'P': // Price Improvement
+    case 'F': // Facilitation
+    case 'S': // Solicitation
+    case 'B': // Bold (Outright only)
+      return 500'000'000;
+    case 'C': // COA (Complex only)
+      return 100'000'000;
+    default:
       on_error("Unexpected auctionType \'%c\'",auctionType);
     }
   }
@@ -593,6 +608,7 @@ namespace Plr {
       on_error("Unexpected auctionUpdateType (\'RFQ Status\') \'%c\'",auctionUpdateType);
     }
   }
+
   struct Rfq { // 307
     MsgHdr   hdr;
     uint32_t sourceTimeSec;

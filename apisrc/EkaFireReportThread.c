@@ -110,13 +110,17 @@ inline size_t pushFiredPkt(int reportIdx, uint8_t* dst,
   return b - dst;
 }
 
+inline void clearExceptions(EkaDev* dev) {
+  eka_read(dev,ADDR_INTERRUPT_MAIN_RC);
+}
+
 inline size_t pushExceptionReport(int reportIdx, uint8_t* dst,
 				  EfcExceptionsReport* src) {
   auto b = dst;
   auto exceptionReportHdr {reinterpret_cast<EfcReportHdr*>(b)};
   exceptionReportHdr->type = EfcReportType::kExceptionReport;
   exceptionReportHdr->idx  = reportIdx;
-  exceptionReportHdr->size = sizeof(EkaExceptionReport);
+  exceptionReportHdr->size = sizeof(EfcExceptionsReport);
   b += sizeof(*exceptionReportHdr);
   //--------------------------------------------------------------------------
   auto exceptionReport {reinterpret_cast<EfcExceptionsReport*>(b)};
@@ -217,12 +221,12 @@ inline size_t pushSweepReport(int reportIdx, uint8_t* dst,
 }
 
 /* ########################################################### */
-void getExceptionsReport(EkaDev* dev,EfcExceptionsReport* excpt) {
-  excpt->globalExcpt = eka_read(dev,ADDR_INTERRUPT_SHADOW_RO);
-  for (int i = 0; i < EFC_MAX_CORES; i++) {
-    excpt->coreExcpt[i] = eka_read(dev,EKA_ADDR_INTERRUPT_0_SHADOW_RO + i * 0x1000);
-  }
-}
+/* void getExceptionsReport(EkaDev* dev,EfcExceptionsReport* excpt) { */
+/*   excpt->globalExcpt = eka_read(dev,ADDR_INTERRUPT_SHADOW_RO); */
+/*   for (int i = 0; i < EFC_MAX_CORES; i++) { */
+/*     excpt->coreExcpt[i] = eka_read(dev,EKA_ADDR_INTERRUPT_0_SHADOW_RO + i * 0x1000); */
+/*   } */
+/* } */
 /* ########################################################### */
 
 std::pair<int,size_t> processSwTriggeredReport(EkaDev* dev,
@@ -281,17 +285,26 @@ std::pair<int,size_t> processExceptionReport(EkaDev* dev,
   containerHdr->num_of_reports = 0; // to be overwritten at the end
   b += sizeof(*containerHdr);
   //--------------------------------------------------------------------------
-  auto hwEpmReport {reinterpret_cast<const hw_epm_exception_report_t*>(srcReport)};
+  auto hwEpmReport {reinterpret_cast<const hw_epm_status_report_t*>(srcReport)};
+
+  EfcExceptionsReport exceptReport = {};
 
   switch (static_cast<HwEpmActionStatus>(hwEpmReport->epm.action)) {
   case HwEpmActionStatus::HWPeriodicStatus :
-    if (hwEpmReport->interrupt_vector) {
-    EKA_LOG("Processgin HwEpmActionStatus::HWPeriodicStatus, len=%d hwEpmReport->interrupt_vector=0x%jx",srcReportLen,hwEpmReport->interrupt_vector);
-      EfcExceptionsReport exceptReport = {};
-      getExceptionsReport(dev,&exceptReport); //Per core
-      exceptReport.globalExcpt = hwEpmReport->interrupt_vector;
-      b += pushExceptionReport(++reportIdx,b,&exceptReport);
+    //    EKA_LOG("Processgin HwEpmActionStatus::HWPeriodicStatus, len=%d",srcReportLen);
+    //copying port exception vectors
+    for (int i = 0; i < EFC_MAX_CORES; i++) {
+      exceptReport.exceptionStatus.portVector[i] = hwEpmReport->exception_report.core_vector[i];
     }
+    //copying global exception vector
+    exceptReport.exceptionStatus.globalVector = hwEpmReport->exception_report.global_vector;
+    //copying arm status fields
+    exceptReport.armStatus.armFlag                = hwEpmReport->arm_report.arm_state;
+    exceptReport.armStatus.expectedVersion = hwEpmReport->arm_report.arm_expected_version;
+    //    hexDump("------------\nexceptReport",hwEpmReport,sizeof(*hwEpmReport));
+    //    EKA_LOG("ARM=%d VER=%d",hwEpmReport->arm_report.arm_state,hwEpmReport->arm_report.arm_expected_version);
+
+    b += pushExceptionReport(++reportIdx,b,&exceptReport);
     break;
   default:
     // Broken EPM 
@@ -466,18 +479,13 @@ std::pair<int,size_t> processFireReport(EkaDev*         dev,
 static inline void sendDate2Hw(EkaDev* dev) {
   struct timespec t;
   clock_gettime(CLOCK_REALTIME, &t); 
-  uint64_t current_time_ns = ((uint64_t)(t.tv_sec) * (uint64_t)1000000000 + (uint64_t)(t.tv_nsec));
-  current_time_ns += static_cast<uint64_t>(6*60*60) * static_cast<uint64_t>(1e9); //+6h UTC time
-  int current_time_seconds = current_time_ns/(1000*1000*1000);
-  time_t tmp = current_time_seconds;
-  struct tm lt;
-  (void) localtime_r(&tmp, &lt);
-  char result[32] = {};
-  strftime(result, sizeof(result), "%Y%m%d-%H:%M:%S.000", &lt); //20191206-20:17:32.131 
-  uint64_t* wr_ptr = (uint64_t*) &result;
-  for (int z=0; z<3; z++) {
-    eka_write(dev,0xf0300+z*8,*wr_ptr++); //data
-  }
+  uint64_t current_time_ns = ((uint64_t)(t.tv_sec) * (uint64_t)1000'000'000
+			      + (uint64_t)(t.tv_nsec));
+
+  eka_write(dev,0xf0300+0*8,be64toh(current_time_ns)); //data
+  eka_write(dev,0xf0300+1*8,0);
+  eka_write(dev,0xf0300+2*8,0);
+  
   return;
 }
 /* ----------------------------------------------- */
@@ -504,8 +512,9 @@ void ekaFireReportThread(EkaDev* dev) {
 
   if (!epmReportCh) on_error("!epmReportCh");
 
+  const int64_t HwDateUpdatePeriod = 1024 * 1024;
   while (dev->fireReportThreadActive) {
-    if ((updCnt++ % 0x2000000)==0) {
+    if ((updCnt++ % HwDateUpdatePeriod)==0) {
       sendDate2Hw(dev);
       //      sendHb2HW(dev);
     }    

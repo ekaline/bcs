@@ -50,6 +50,9 @@ class EkaCore {
 
   bool          connected = false;
   bool          isTcpCore = false;
+
+  bool          connectedL1Switch = false; // Metamux case
+                                           // set if Src Mac configured
   
   EkaTcpSess*   tcpSess[MAX_SESS_PER_CORE + 1] = {};
   uint8_t       tcpSessions = 0;

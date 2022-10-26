@@ -108,12 +108,13 @@ public:
   static const uint   SEC_HASH_SCALE = 17;
 
   using SecurityIdT = uint32_t;
-  using PriceT      = uint32_t;
+  using PriceT      = int32_t;
   using SizeT       = uint32_t;
 
   using FhSecurity  = EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>;
   using FhBook      = EkaFhTobBook<SEC_HASH_SCALE,
 				   EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>,
+                                   EkaFhInvertComplexAskQuotePostProc,
 				   SecurityIdT,
 				   PriceT,
 				   SizeT>;

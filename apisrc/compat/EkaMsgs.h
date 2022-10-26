@@ -48,7 +48,7 @@ typedef struct {
 } EkaContainerGlobalHdr;
 
 typedef struct {
-  // exception vector from FPGA HW diagnostics
+  // Obsolete!!! Should never be used!!!
     #define EkaExceptionReport_FIELD_ITER( _x )                            \
             _x( uint64_t, error_code )
     EkaExceptionReport_FIELD_ITER( EKA__FIELD_DEF )

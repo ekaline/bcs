@@ -19,6 +19,6 @@
 //#define EKA_EXPECTED_EFC_STRATEGY      0x43
 
 // P4 + FastCancel
-#define EKA_EXPECTED_EFC_STRATEGY      128
+#define EKA_EXPECTED_EFC_STRATEGY      129
 
 #endif

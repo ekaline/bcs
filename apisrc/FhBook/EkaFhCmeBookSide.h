@@ -5,7 +5,7 @@
 #include "EkaFhTypes.h"
 
 template <
-class PriceLevetT,
+  class PriceLevetT,
   class PriceT, 
   class SizeT>
   class EkaFhCmeBookSide {

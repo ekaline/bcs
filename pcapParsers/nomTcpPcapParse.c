@@ -16,9 +16,9 @@
 
 //using namespace Nom;
 #include "EkaFhNasdaqCommonParser.h"
-
+#include "EkaNwParser.h"
 using namespace EfhNasdaqCommon;
-
+using namespace EkaNwParser;
 
 //###################################################
 static char pcapFileName[256] = {};
@@ -31,16 +31,16 @@ struct GroupAddr {
     uint64_t  expectedSeq;
 };
 
+struct SoupbinHdr {
+  uint16_t    length;
+  char        type;
+} __attribute__((packed));
+
 static GroupAddr group[] = {
-    {inet_addr("233.54.12.72"), 18000, 0, 0},
-    {inet_addr("233.54.12.73"), 18001, 0, 0},
-    {inet_addr("233.54.12.74"), 18002, 0, 0},
-    {inet_addr("233.54.12.75"), 18003, 0, 0},
-    {inet_addr("233.49.196.72"), 18000, 0, 0},
-    {inet_addr("233.49.196.73"), 18001, 0, 0},
-    {inet_addr("233.49.196.74"), 18002, 0, 0},
-    {inet_addr("233.49.196.75"), 18003, 0, 0},
-   
+    {inet_addr("206.200.43.72"), 18300, 0, 0},
+    {inet_addr("206.200.43.73"), 18301, 0, 0},
+    {inet_addr("206.200.43.74"), 18302, 0, 0},
+    {inet_addr("206.200.43.75"), 18303, 0, 0},
 };
 
 
@@ -109,49 +109,61 @@ int main(int argc, char *argv[]) {
     uint64_t pktNum = 0;
 
     while (fread(buf,sizeof(pcap_rec_hdr),1,pcapFile) == 1) {
-	auto pcap_rec_hdr_ptr {reinterpret_cast<const pcap_rec_hdr*>(buf)};
-	uint pktLen = pcap_rec_hdr_ptr->len;
+	auto pcapRecHdr {reinterpret_cast<const pcap_rec_hdr*>(buf)};
+	uint pktLen = pcapRecHdr->len;
 	if (pktLen > 1536)
-	    on_error("Probably wrong PCAP format: pktLen = %u ",pktLen);
+	    on_error("Probably wrong PCAP format: pktLen = %u ",
+		     pktLen);
 
 	char pkt[1536] = {};
 	if (fread(pkt,pktLen,1,pcapFile) != 1) 
-	    on_error ("Failed to read %d packet bytes at pkt %ju",pktLen,pktNum);
+	    on_error ("Failed to read %d packet bytes at pkt %ju",
+		      pktLen,pktNum);
 	pktNum++;
 
-	auto p {reinterpret_cast<const uint8_t*>(pkt)};
-	if (! EKA_IS_UDP_PKT(p)) continue;
+	if (! isTcpPkt(pkt)) continue;
 	
-	auto grId = findGrp(EKA_IPH_DST(p),EKA_UDPH_DST(p));
+	auto grId = findGrp(getIpSrc(pkt),getTcpSrc(pkt));
 	if (grId < 0) continue;
+	printf ("%ju: %s:%u\n",pktNum,EKA_IP2STR(getIpSrc(pkt)),getTcpSrc(pkt));
+	fflush(stdout);
 
-	p += sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr);
+	auto tcpPayload = getTcpPayload(pkt);
+	if (!tcpPayload) on_error("Not Tcp");
 
-	/* auto msgCnt = EKA_MOLD_MSG_CNT(p); */
-	/* uint64_t sequence = EKA_MOLD_SEQUENCE(p); */
-	/* if (group[grId].expectedSeq != 0 && group[grId].expectedSeq != sequence) { */
-	/*     printf (RED "%d: expectedSeq %ju != sequence %ju\n" RESET, */
-	/* 	    grId,group[grId].expectedSeq,sequence); */
-	/* } */
-	/* p += sizeof(mold_hdr); */
-
-	/* for (auto i = 0; i < msgCnt; i++) { */
-	/*     uint16_t msgLen = be16toh(*(uint16_t*)p); */
-	/*     p += sizeof(msgLen); */
-	/*     //----------------------------------------------------------------------------- */
-	/*     uint64_t ts = get_ts(p); */
-	/*     if (printAll) */
-	/*       printMsg(stdout,p,grId,sequence,ts); */
-	/*     sequence++; */
-	/*     //----------------------------------------------------------------------------- */
-
-	/*     p += msgLen; */
-	/* } */
-
-	printPkt<NomFeed>(stdout,p);
+	/* auto s = reinterpret_cast<const uint8_t*>(pkt); */
+	/* s += Eth::getHdrLen(); */
+	/* printf ("getIpPktLen(pkt)=%u, IpHdrLen = %ju, IpPktLen=%u\n", */
+	/* 	getIpPktLen(pkt),Ip::getHdrLen(s),Ip::getPktLen(s)); */
+	/* s += Ip::getHdrLen(s); */
+	/* printf ("TcpHdrLen = %ju\n",Tcp::getHdrLen(s)); */
+	auto p = tcpPayload;
 	
-	//	group[grId].expectedSeq = sequence;
-	
+
+	ssize_t tcpPayloadLen = getTcpPayloadLen(pkt);
+	if (tcpPayloadLen < 0) on_error("tcpPayloadLen = %jd",tcpPayloadLen);
+	if (tcpPayloadLen == 0) continue;
+
+	auto soupbinHdr {reinterpret_cast<const SoupbinHdr*>(p)};
+	//	uint16_t pktLen = be16toh(soupbinHdr->length);
+	p += sizeof(*soupbinHdr);
+	printf ("%ju:\'%c\' (0x%x)\n",
+		pktNum,soupbinHdr->type,soupbinHdr->type);
+	switch (soupbinHdr->type) {
+	case 'S' :
+	case 'U' :
+	  printMsg<NomFeed>(stdout,0,p);
+	  break;
+	case 'A' :
+	case 'H' :
+	case '+' :
+	  break;
+	default :
+	  hexDump("bad soupbin pkt",tcpPayload,tcpPayloadLen);
+	  
+	  on_error("Unexpected Soupbin type \'%c\' (0x%x), tcpPayloadLen=%jd",
+		   soupbinHdr->type,soupbinHdr->type,tcpPayloadLen);
+	}
     }
     return 0;
 }

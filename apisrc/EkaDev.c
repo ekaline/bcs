@@ -291,6 +291,8 @@ int EkaDev::configurePort(const EkaCoreInitCtx* pCoreInit) {
     memcpy(&core[c]->macSa,&attrs->src_mac_addr,6);
     //    setNetifIpMacSa(dev,c,(const uint8_t*)&attrs->src_mac_addr);
     EKA_LOG("Core %u: Setting SRC MAC: %s",c,EKA_MAC2STR(core[c]->macSa));
+
+    core[c]->connectedL1Switch = true;
   }
   if (! eka_is_all_zeros((void*)&attrs->host_ip,4)) {
     memcpy(&core[c]->srcIp,&attrs->host_ip,4);
@@ -448,8 +450,8 @@ int EkaDev::clearHw() {
   eka_write(SW_STATISTICS,(uint64_t) 0); // Clearing SW Statistics
   eka_write(P4_STRAT_CONF,(uint64_t) 0); // Clearing Strategy params
 
-  eka_read(0xf0728); // Clearing Interrupts
-  eka_read(0xf0798); // Clearing Interrupts
+  eka_read(ADDR_INTERRUPT_MAIN_RC); // Clearing Interrupts
+  eka_read(ADDR_INTERRUPT_SHADOW_RC); // Clearing Interrupts
 
   for (uint64_t p = 0; p < SW_SCRATCHPAD_SIZE/8; p++) 
     eka_write(SW_SCRATCHPAD_BASE +8*p,(uint64_t) 0);

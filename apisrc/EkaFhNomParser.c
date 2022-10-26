@@ -204,19 +204,15 @@ template <class SecurityT, class Msg>
     break;
   case 'I' : //  ”I” = Pre Open
     s->trading_action = EfhTradeStatus::kPreopen;
-    s->option_open    = false;
     break;
   case 'O' : //  ”O” = Opening Auction
     s->trading_action = EfhTradeStatus::kOpeningRotation;
-    s->option_open    = true;
     break;
   case 'R' : //  ”R” = Re-Opening
-    s->trading_action = EfhTradeStatus::kNormal;
-    s->option_open    = true;
+    //    s->trading_action = EfhTradeStatus::kNormal;
     break;
   case 'T' : //  ”T” = Continuous Trading
     s->trading_action = EfhTradeStatus::kNormal;
-    s->option_open    = true;
     break;
   case 'X' : //  ”X” = Closed
     s->trading_action = EfhTradeStatus::kClosed;
@@ -545,7 +541,7 @@ inline void EkaFhNomGr::processDefinition(const unsigned char* m,
 
   //    definitionMsg.secondaryGroup        = 0;
   definitionMsg.commonDef.securityType   = EfhSecurityType::kOption;
-  definitionMsg.commonDef.exchange       = EfhExchange::kBX;
+  definitionMsg.commonDef.exchange       = EfhExchange::kNOM;
   definitionMsg.commonDef.underlyingType = EfhSecurityType::kStock;
   definitionMsg.commonDef.expiryDate     =
     (2000 + msg->expYear) * 10000 +

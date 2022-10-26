@@ -74,10 +74,21 @@ typedef struct {
 
 #define EFC_MAX_CORES 4      
       
-struct EfcExceptionsReport {
-  uint64_t globalExcpt = 0;
-  uint64_t coreExcpt[EFC_MAX_CORES] = {};
+struct ExceptionReport {
+  uint32_t globalVector;
+  uint32_t portVector[EFC_MAX_CORES];
 };
+
+struct ArmStatusReport {
+  uint8_t armFlag;
+  uint32_t expectedVersion;
+};
+
+struct EfcExceptionsReport {
+  ArmStatusReport armStatus;
+  ExceptionReport exceptionStatus;
+};
+      
       // Replaced by   SecCtx    
 /* typedef struct { */
 /*     #define EfcSecurityCtx_FIELD_ITER( _x )                                 \ */

@@ -177,7 +177,7 @@ constexpr int linuxMsgFlagsToLWIP(int linuxFlags) {
  * @return This will return the ExcSessionId value that corresponds to excSessionId.
  */
 ExcSessionId excGetSessionId( ExcConnHandle hConn ) {
-  return (ExcSessionId) hConn % 128;
+  return (ExcSessionId) (hConn % 128);
 }
 
 /**
@@ -187,7 +187,7 @@ ExcSessionId excGetSessionId( ExcConnHandle hConn ) {
  * @return This will return the ExcCoreid that corresponds to excSessionId.
  */
 EkaCoreId excGetCoreId( ExcConnHandle hConn ) {
-  return (EkaCoreId) hConn / 128;
+  return (EkaCoreId) (hConn / 128);
 }
 
 inline EkaDev *checkDevice(EkaDev* dev) {

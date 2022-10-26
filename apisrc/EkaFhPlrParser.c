@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <utility>
+
 #include "EkaFhPlrParser.h"
 #include "EkaFhPlrGr.h"
 
@@ -118,6 +121,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     /* copySymbol(msg.commonDef.underlying, rootBlock->Asset); */
     /* copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup); */
     /* copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol); */
+    sprintf(msg.commonDef.exchSecurityName, "%u", root->seriesIndex);
 
     msg.numLegs = root->NoOfLegs;
 
@@ -142,7 +146,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
         // #####################################################
   case MsgType::MessageUnavailable : { // 31
     auto m {reinterpret_cast<const MessageUnavailable*>(pMsg)};
-    EKA_WARN("WARNING: %s:%u MessageUnavailable at %s: %u..%u,"
+    EKA_WARN("WARNING: %s:%d MessageUnavailable at %s: %u..%u,"
 	     "ProductID=%u,ChannelID=%u",
 	     EKA_EXCH_DECODE(exch),id,EkaFhMode2STR(op),
 	     m->BeginSeqNum,m->EndSeqNum,m->ProductID,m->ChannelID);
@@ -268,7 +272,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     s->ask_cust_size = m->askCustomerVolume;
 
     s->trading_action = quoteCondition(m->quoteCondition);
-    
+
     book->generateOnQuote (pEfhRunCtx, s, sequence,
 			   gr_ts + m->sourceTimeNs, gapNum);    
   }
@@ -319,8 +323,14 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.side              = getSide(m->side);
     msg.capacity          = getRfqCapacity(m->capacity);
     msg.price             = m->workingPrice;
+    if (s->type == EfhSecurityType::kComplex && m->side == 'S') {
+      // Invert ask price to match our complex price conventions
+      msg.price = -msg.price;
+    }
     msg.quantity          = m->totalQuantity;
-    sprintf(msg.firmId,"%u",m->participant);
+    sprintf(msg.firmId, "%u", m->participant);
+    msg.endTimeNanos      = msg.header.timeStamp + getRfqRunTimeNanos(m->type);
+
     if (pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL)
       on_error("pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL");
     pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);

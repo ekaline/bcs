@@ -261,8 +261,12 @@ void ekaProcessTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
       struct netif* netIf = dev->core[rxCoreId]->pLwipNetIf;
 	
       if (EKA_IS_TCP_PKT(pkt)) {
-        EkaTcpSess* tcpSess = dev->findTcpSess(EKA_IPH_DST(pkt),EKA_TCPH_DST(pkt),EKA_IPH_SRC(pkt),EKA_TCPH_SRC(pkt));
+        EkaTcpSess* tcpSess = dev->findTcpSess(EKA_IPH_DST(pkt),EKA_TCPH_DST(pkt),
+					       EKA_IPH_SRC(pkt),EKA_TCPH_SRC(pkt));
         if (!tcpSess) {
+	  if (dev->core[rxCoreId]->connectedL1Switch) // dont print warning at Metamux case
+	    return;
+	  
           // TCP packet not corresponding to any session we know about. This could
           // be a retransmission of a connection that once existed, or any number
           // of improper-TCP-close errors that cause us to receive a packet not
@@ -272,9 +276,10 @@ void ekaProcessTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
             hexDump("Unexpected RX TCP pkt",pkt,len,hexBufFile);
             (void)std::fwrite("\0", 1, 1, hexBufFile);
             (void)std::fclose(hexBufFile);
-          }
-          else
-            std::snprintf(hexBuf, sizeof hexBuf, "fmemopen error: %s (%d)",strerror(errno),errno);
+          } else {
+            std::snprintf(hexBuf, sizeof hexBuf, "fmemopen error: %s (%d)",
+			  strerror(errno),errno);
+	  }
           EKA_WARN("RX pkt TCP session %s:%u-->%s:%u not found, pkt is:\n%s",
                    EKA_IP2STR(EKA_IPH_DST(pkt)),EKA_TCPH_DST(pkt),
                    EKA_IP2STR(EKA_IPH_SRC(pkt)),EKA_TCPH_SRC(pkt),

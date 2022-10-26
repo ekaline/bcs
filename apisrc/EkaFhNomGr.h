@@ -24,6 +24,7 @@ public:
     FhSecurity,
     FhPlevel,
     FhOrder,
+    EkaFhNoopQuotePostProc,
     SecurityIdT, OrderIdT, PriceT, SizeT>;
 
   FhBook*   book = NULL;

@@ -19,6 +19,7 @@
 #include <iostream>
 #include <assert.h>
 #include <sched.h>
+#include <vector>
 #include <memory>
 
 #include "EkaFhParserCommon.h"
@@ -169,14 +170,8 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
   // for too long, we won't reply to it in time and will be disconnected.
   // To prevent this, buffer up the SERIES_INDEX_MAPPING messages in an
   // array and replay them later, when we no longer need the connection.
-  size_t nDefinitionBufs = (1 << 17);
-  size_t nDefinitions = 0;
-  auto mallocDeleter = [] (XdpSeriesMapping *m) {free(m);};
-  std::unique_ptr<XdpSeriesMapping, decltype(mallocDeleter)> definitionBufs {
-      static_cast<XdpSeriesMapping *>(malloc(nDefinitionBufs * sizeof(XdpSeriesMapping))),
-      mallocDeleter };
-  if (!definitionBufs)
-    on_error("XdpSeriesMapping allocation error for %zu bufs", nDefinitionBufs);
+  std::vector<XdpSeriesMapping> definitionBufs;
+  definitionBufs.reserve(1 << 18);
 
   EkaOpResult result;
   auto lastHeartBeatTime = std::chrono::high_resolution_clock::now();
@@ -273,16 +268,10 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
       break;
       /* ***************************************************** */
     case MSG_TYPE::SERIES_INDEX_MAPPING : {
-      if (reinterpret_cast<const XdpSeriesMapping *>(hdr)->ChannelID  < XDP_TOP_FEED_BASE)
+      const XdpSeriesMapping* series = reinterpret_cast<const XdpSeriesMapping *>(hdr);
+      if (series->ChannelID  < XDP_TOP_FEED_BASE)
         break;
-      else if (nDefinitions == nDefinitionBufs) {
-        nDefinitionBufs *= 2;
-        definitionBufs.reset(static_cast<XdpSeriesMapping *>(reallocarray(definitionBufs.get(), nDefinitionBufs, sizeof(XdpSeriesMapping))));
-        if (!definitionBufs)
-          on_error("XdpSeriesMapping reallocarray error for %zu bufs", nDefinitionBufs);
-      }
-      memcpy(definitionBufs.get() + nDefinitions, hdr, sizeof *definitionBufs.get());
-      ++nDefinitions;
+      definitionBufs.emplace_back(*series);
     }
       break;
       /* ***************************************************** */
@@ -295,8 +284,7 @@ EkaOpResult getXdpDefinitions(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
   }
 
 CopyOutDefinitions:
-  EKA_LOG("Copying out %zu buffered definitions for %s:%u",nDefinitions,EKA_EXCH_DECODE(gr->exch),gr->id);
-  const auto *const endDefinitions = definitionBufs.get() + nDefinitions;
+  EKA_LOG("Copying out %zu buffered definitions for %s:%u",definitionBufs.size(),EKA_EXCH_DECODE(gr->exch),gr->id);
 
   FILE* definitionsFile = NULL;
   if (gr->useDefinitionsFile) {
@@ -307,15 +295,15 @@ CopyOutDefinitions:
     if (!definitionsFile)
       on_error("Failed creating %s",definitionsFileName.c_str());
   }
-  for (XdpSeriesMapping *m = definitionBufs.get(); m != endDefinitions; ++m) {
-    uint8_t AbcGroupID = m->OptionSymbolRoot[0] - 'A';
+  for (const XdpSeriesMapping &m : definitionBufs) {
+    uint8_t AbcGroupID = m.OptionSymbolRoot[0] - 'A';
 
     EfhOptionDefinitionMsg msg{};
     msg.header.msgType        = EfhMsgType::kOptionDefinition;
     msg.header.group.source   = gr->exch;
     msg.header.group.localId  = gr->id;
-    msg.header.underlyingId   = m->UnderlyingIndex;
-    msg.header.securityId     = m->SeriesIndex;
+    msg.header.underlyingId   = m.UnderlyingIndex;
+    msg.header.securityId     = m.SeriesIndex;
     msg.header.sequenceNumber = 0;
     msg.header.timeStamp      = 0;
     msg.header.gapNum         = 0;
@@ -324,21 +312,21 @@ CopyOutDefinitions:
     msg.commonDef.exchange       = EKA_GRP_SRC2EXCH(gr->exch);
     msg.commonDef.underlyingType = EfhSecurityType::kStock;
     msg.commonDef.expiryDate     =
-        (2000 + (m->MaturityDate[0] - '0') * 10 + (m->MaturityDate[1] - '0')) * 10000 +
-        (       (m->MaturityDate[2] - '0') * 10 +  m->MaturityDate[3] - '0')  * 100   +
-        (        m->MaturityDate[4] - '0') * 10 +  m->MaturityDate[5] - '0';
-    msg.commonDef.contractSize          = m->ContractMultiplier;
+        (2000 + (m.MaturityDate[0] - '0') * 10 + (m.MaturityDate[1] - '0')) * 10000 +
+        (       (m.MaturityDate[2] - '0') * 10 +  m.MaturityDate[3] - '0')  * 100   +
+        (        m.MaturityDate[4] - '0') * 10 +  m.MaturityDate[5] - '0';
+    msg.commonDef.contractSize          = m.ContractMultiplier;
 
-    msg.optionType            = m->PutOrCall ?  EfhOptionType::kCall : EfhOptionType::kPut;
+    msg.optionType            = m.PutOrCall ?  EfhOptionType::kCall : EfhOptionType::kPut;
 
-    copySymbol(msg.commonDef.underlying, m->UnderlyingSymbol);
-    copySymbol(msg.commonDef.classSymbol,m->OptionSymbolRoot);
+    copySymbol(msg.commonDef.underlying, m.UnderlyingSymbol);
+    copySymbol(msg.commonDef.classSymbol,m.OptionSymbolRoot);
 
     // Strike price is given to us as a null-terminted string which may have a
     // decimal point, e.g, `35.375`. In previous versions, strtof(3) was used,
     // but there can be precision problems.
     char *scanFraction;
-    msg.strikePrice = strtol(m->StrikePrice, &scanFraction, 10) * EFH__PRICE_SCALE;
+    msg.strikePrice = strtol(m.StrikePrice, &scanFraction, 10) * EFH__PRICE_SCALE;
     if (*scanFraction == '.') {
       // A fractional price is present, we'll convert it manually.
       ++scanFraction; // Consume '.'
@@ -355,7 +343,7 @@ CopyOutDefinitions:
                  "precision of %d", msg.commonDef.classSymbol,
                  msg.commonDef.expiryDate,
                  msg.optionType == EfhOptionType::kCall ? "call" : "put",
-                 m->StrikePrice, EFH__PRICE_SCALE);
+                 m.StrikePrice, EFH__PRICE_SCALE);
         // The whole call will fail now that we have a single security
         // that cannot be faithfully represented.
         result = EKA_OPRESULT__ERR_STRIKE_PRICE_OVERFLOW;
@@ -363,13 +351,13 @@ CopyOutDefinitions:
     }
 
     XdpAuxAttrA attrA = {};
-    attrA.attr.StreamID       = m->StreamID;
-    attrA.attr.ChannelID      = m->ChannelID;
-    attrA.attr.PriceScaleCode = m->PriceScaleCode;
-    attrA.attr.GroupID        = m->GroupID;
+    attrA.attr.StreamID       = m.StreamID;
+    attrA.attr.ChannelID      = m.ChannelID;
+    attrA.attr.PriceScaleCode = m.PriceScaleCode;
+    attrA.attr.GroupID        = m.GroupID;
 
     XdpAuxAttrB attrB = {};
-    attrB.attr.UnderlIdx  = m->UnderlyingIndex;
+    attrB.attr.UnderlIdx  = m.UnderlyingIndex;
     attrB.attr.AbcGroupID = AbcGroupID;
 
     msg.commonDef.opaqueAttrA = attrA.opaqueField;

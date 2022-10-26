@@ -158,6 +158,9 @@ int EkaEpmAction::setTemplate() {
   case EpmActionType::ItchHwFastSweep   :
     epmTemplate                        = epm->hwFire;
     break;
+  case EpmActionType::CmeSwFire    :
+    epmTemplate                        = epm->swFire;
+    break;
 
   case EpmActionType::CmeSwHeartbeat :
     epmTemplate                        = epm->cmeHb;

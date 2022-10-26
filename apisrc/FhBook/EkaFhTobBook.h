@@ -6,7 +6,7 @@
 #include "EkaFhBook.h"
 #include "EkaFhTobSecurity.h"
 
-template <const uint SEC_HASH_SCALE,class FhSecurity, class SecurityIdT, class PriceT, class SizeT>
+template <const uint SEC_HASH_SCALE,class FhSecurity, class QuotePostProc, class SecurityIdT, class PriceT, class SizeT>
   class EkaFhTobBook : public EkaFhBook  {
  public:
   //  using FhSecurity   = EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>;
@@ -64,7 +64,7 @@ template <const uint SEC_HASH_SCALE,class FhSecurity, class SecurityIdT, class P
   /* ####################################################### */
 
   int generateOnQuote (const EfhRunCtx* pEfhRunCtx, 
-		       FhSecurity*      s, 
+		       FhSecurity*      s,
 		       uint64_t         sequence, 
 		       uint64_t         timestamp,
 		       uint             gapNum) {
@@ -92,6 +92,11 @@ template <const uint SEC_HASH_SCALE,class FhSecurity, class SecurityIdT, class P
     msg.askSide.size          = s->ask_size;
     msg.askSide.customerSize  = s->ask_cust_size;
     msg.askSide.bdSize        = s->ask_bd_size;
+
+    QuotePostProc postProc{};
+    if (!postProc(static_cast<const EkaFhSecurity*>(s), &msg)) {
+      return 0;
+    }
 
     if (pEfhRunCtx->onEfhQuoteMsgCb == NULL) on_error("Uninitialized pEfhRunCtx->onEfhQuoteMsgCb");
 

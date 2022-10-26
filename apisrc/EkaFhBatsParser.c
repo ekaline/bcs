@@ -19,7 +19,6 @@
 static void eka_print_msg(FILE* md_file, uint8_t* m, int gr, uint64_t sequence,uint64_t ts);
 std::string ts_ns2str(uint64_t ts);
 
-
 using namespace Bats;
 
 bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
@@ -83,7 +82,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
       enc != MsgId::SPIN_FINISHED
       ) return false;
   
-  switch (enc) {    
+  switch (enc) {
     //--------------------------------------------------------------
   case MsgId::DEFINITIONS_FINISHED : {
     EKA_LOG("%s:%u: DEFINITIONS_FINISHED",EKA_EXCH_DECODE(exch),id);
@@ -117,7 +116,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   }
     //--------------------------------------------------------------
   case MsgId::TIME:  { 
-    seconds = ((const GenericHeader *)m)->time * SEC_TO_NANO;
+    seconds = ((const GenericHeader *)m)->time * (uint64_t)SEC_TO_NANO;
     return false;
   }
     //--------------------------------------------------------------
@@ -282,7 +281,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 
     //--------------------------------------------------------------
   case MsgId::TRADE_SHORT:
-    if (productMask & PM_ComplexBook)
+    if (productMask & PM_ComplexTrades)
       s = process_TradeShort<FhSecurity,TradeShort_complex>(pEfhRunCtx,
 							    sequence,
 							    msg_timestamp,
@@ -295,7 +294,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     return false;
     //--------------------------------------------------------------
   case MsgId::TRADE_LONG:
-    if (productMask & PM_ComplexBook)
+    if (productMask & PM_ComplexTrades)
       s = process_TradeLong<FhSecurity,TradeLong_complex>(pEfhRunCtx,
 							   sequence,
 							   msg_timestamp,
@@ -308,7 +307,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     return false;
       //--------------------------------------------------------------
   case MsgId::TRADE_EXPANDED:
-    if (productMask & PM_ComplexBook)
+    if (productMask & PM_ComplexTrades)
       s = process_TradeExpanded<FhSecurity,TradeExpanded_complex>(pEfhRunCtx,
 								  sequence,
 								  msg_timestamp,
@@ -332,33 +331,11 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   }
     //--------------------------------------------------------------
   case MsgId::AUCTION_NOTIFICATION : { // 0xAD
-    auto message {reinterpret_cast<const AuctionNotification *>(m)};
-    SecurityIdT security_id =  symbol2secId(message->symbol);
-    s = book->findSecurity(security_id);
-    if (s == NULL) return false;
-    AuctionIdT auctionId = message->auctionId;
-    auctionMap[auctionId] = security_id;
-        
-    EfhAuctionUpdateMsg msg{};
-    msg.header.msgType        = EfhMsgType::kAuctionUpdate;
-    msg.header.group.source   = exch;
-    msg.header.group.localId  = id;
-    msg.header.underlyingId   = 0;
-    msg.header.securityId     = security_id;
-    msg.header.sequenceNumber = sequence;
-    msg.header.timeStamp      = msg_timestamp;
-    msg.header.gapNum         = gapNum;
-
-    msg.auctionId             = message->auctionId;
-
-    msg.updateType            = EfhAuctionUpdateType::kNew;
-    msg.side                  = getSide(message->side);
-    msg.capacity              = getRfqCapacity(message->customerIndicator);
-    msg.quantity              = message->contracts;
-    msg.price                 = message->price;
-    msg.endTimeNanos          = msg_timestamp + message->auctionEndOffset;
-
-    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg,s->efhUserData, pEfhRunCtx->efhRunUserData);
+    if (productMask & PM_ComplexAuction)
+      s = process_AuctionNotification<FhSecurity,AuctionNotification_complex>(pEfhRunCtx, sequence, msg_timestamp, m);
+    else
+      s = process_AuctionNotification<FhSecurity,AuctionNotification>(pEfhRunCtx, sequence, msg_timestamp, m);
+    if (s == NULL) return NULL;
     break;
   }
     //--------------------------------------------------------------
@@ -389,6 +366,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.header.gapNum         = gapNum;
     msg.auctionId             = message->auctionId;
     msg.updateType            = EfhAuctionUpdateType::kDelete;
+    msg.auctionType           = EfhAuctionType::kUnknown;
 
     pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg,s->efhUserData,pEfhRunCtx->efhRunUserData);
     return false;
@@ -445,8 +423,10 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   //s->option_open = market_open;
   s->option_open = true;
 
-  if (! book->isEqualState(s))
-    book->generateOnQuote (pEfhRunCtx, s, sequence, msg_timestamp, gapNum, msgStartTime);
+  if (! book->isEqualState(s)) {
+    book->generateOnQuote(pEfhRunCtx, s, sequence,
+                          msg_timestamp, gapNum, msgStartTime);
+  }
 
   return false;
 }
@@ -929,10 +909,10 @@ SecurityT* EkaFhBatsGr::process_TradeLong(const EfhRunCtx* pEfhRunCtx,
   }
 
 template <class SecurityT,class OrderMsgT>
-  SecurityT* EkaFhBatsGr::process_TradeExpanded(const EfhRunCtx* pEfhRunCtx,
-						uint64_t sequence,
-						uint64_t msg_timestamp,
-						const uint8_t* m) { 
+SecurityT* EkaFhBatsGr::process_TradeExpanded(const EfhRunCtx* pEfhRunCtx,
+                                              uint64_t sequence,
+                                              uint64_t msg_timestamp,
+                                              const uint8_t* m) {
   auto message {reinterpret_cast<const TradeExpanded *>(m)};
   SecurityIdT security_id =  symbol2secId(message->symbol);
 
@@ -965,3 +945,61 @@ template <class SecurityT,class OrderMsgT>
   pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
   return s;
 }
+
+inline EfhAuctionType getAuctionType(const AuctionNotification& message, bool useAIM) {
+  return getVanillaAuctionType(message.auctionType, useAIM);
+}
+
+inline EfhAuctionType getAuctionType(const AuctionNotification_complex& message, bool) {
+  return getComplexAuctionType(message.auctionType);
+}
+
+inline int64_t getAuctionPrice(const AuctionNotification& message) {
+  return static_cast<int64_t>(message.price);
+}
+
+inline int64_t getAuctionPrice(const AuctionNotification_complex& message) {
+  if (message.side == 'S') {
+    return -message.price;
+  } else {
+    return message.price;
+  }
+}
+
+template <class SecurityT, class AuctionMsgT>
+SecurityT* EkaFhBatsGr::process_AuctionNotification(const EfhRunCtx* pEfhRunCtx,
+                                                    uint64_t sequence,
+                                                    uint64_t msg_timestamp,
+                                                    const uint8_t* m) {
+  auto message {reinterpret_cast<const AuctionMsgT *>(m)};
+  SecurityIdT security_id = symbol2secId(message->symbol);
+  SecurityT* s = book->findSecurity(security_id);
+  if (s == nullptr) return nullptr;
+  AuctionIdT auctionId = message->auctionId;
+  auctionMap[auctionId] = security_id;
+  const bool useAIM = exch == EkaSource::kC1_PITCH;
+
+  EfhAuctionUpdateMsg msg{};
+  msg.header.msgType        = EfhMsgType::kAuctionUpdate;
+  msg.header.group.source   = exch;
+  msg.header.group.localId  = id;
+  msg.header.underlyingId   = 0;
+  msg.header.securityId     = security_id;
+  msg.header.sequenceNumber = sequence;
+  msg.header.timeStamp      = msg_timestamp;
+  msg.header.gapNum         = gapNum;
+
+  msg.auctionId             = message->auctionId;
+  msg.auctionType           = getAuctionType(*message, useAIM);
+
+  msg.updateType            = EfhAuctionUpdateType::kNew;
+  msg.side                  = getSide(message->side);
+  msg.capacity              = getRfqCapacity(message->customerIndicator);
+  msg.quantity              = message->contracts;
+  msg.price                 = getAuctionPrice(*message);
+  msg.endTimeNanos          = seconds + message->auctionEndOffset;
+
+  pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
+  return s;
+}
+

@@ -102,7 +102,7 @@ bool EkaFhBxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   case 'Q':  // Trade for BX
     msgTs = BxFeed::getTs(m);
     s = processTrade<FhSecurity,BxFeed::Trade>(m,sequence,
-					      msgTs,pEfhRunCtx);
+					       msgTs,pEfhRunCtx);
     break;
     //--------------------------------------------------------------
   case 'S':  // SystemEvent
@@ -114,7 +114,10 @@ bool EkaFhBxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     return false;
     //--------------------------------------------------------------
   case 'I':  // NOII
-    // TO BE IMPLEMENTED!!!
+    msgTs = BxFeed::getTs(m);
+    processAuctionUpdate<FhSecurity,BxFeed::NOII>(m,sequence,
+                                                  msgTs,
+                                                  pEfhRunCtx);
     return false;
     //--------------------------------------------------------------
   case 'M':  // EndOfSnapshot
@@ -127,8 +130,8 @@ bool EkaFhBxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     if (op == EkaFhMode::SNAPSHOT) return false;
     processDefinition<BxFeed::Directory>(m,pEfhRunCtx);
     return false;
-  default: 
-    on_error("UNEXPECTED Message type: enc=\'%c\'",enc);
+  default:
+    on_error("UNEXPECTED Message type: enc=\'%c\', trackingNum=%d",enc,genericHdr->trackingNum);
   }
   if (!s) return false;
 
@@ -144,9 +147,10 @@ bool EkaFhBxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 
   return false;
 }
-  /* ##################################################################### */
+/* ##################################################################### */
 template <class SecurityT, class Msg>
-  inline SecurityT* EkaFhBxGr::processTradingAction(const unsigned char* m) {
+  inline SecurityT*
+  EkaFhBxGr::processTradingAction(const unsigned char* m) {
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
   if (!s) return NULL;
@@ -161,15 +165,12 @@ template <class SecurityT, class Msg>
     break;
   case 'I' : //  ”I” = Pre Open
     s->trading_action = EfhTradeStatus::kPreopen;
-    s->option_open    = false;
     break;
   case 'O' : //  ”O” = Opening Auction
     s->trading_action = EfhTradeStatus::kOpeningRotation;
-    s->option_open    = true;
     break;
   case 'R' : //  ”R” = Re-Opening
-    s->trading_action = EfhTradeStatus::kNormal;
-    s->option_open    = true;
+    s->trading_action = EfhTradeStatus::kPreopen;
     break;
   case 'T' : //  ”T” = Continuous Trading
     s->trading_action = EfhTradeStatus::kNormal;
@@ -187,7 +188,8 @@ template <class SecurityT, class Msg>
 }
 
 template <class SecurityT, class Msg>
-  inline SecurityT* EkaFhBxGr::processAddOrder(const unsigned char* m) {
+  inline SecurityT*
+  EkaFhBxGr::processAddOrder(const unsigned char* m) {
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
   if (!s) {
@@ -210,7 +212,8 @@ template <class SecurityT, class Msg>
 }
 
 template <class SecurityT, class Msg>
-  inline SecurityT* EkaFhBxGr::processAddQuote(const unsigned char* m) {
+  inline SecurityT*
+  EkaFhBxGr::processAddQuote(const unsigned char* m) {
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
   if (!s) {
@@ -236,7 +239,8 @@ template <class SecurityT, class Msg>
 }
 
 template <class SecurityT, class Msg>
-  inline SecurityT* EkaFhBxGr::processOrderExecuted(const unsigned char* m) {
+  inline SecurityT*
+  EkaFhBxGr::processOrderExecuted(const unsigned char* m) {
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
   if (!s) return NULL;
@@ -263,7 +267,8 @@ template <class SecurityT, class Msg>
 }
 
 template <class SecurityT, class Msg>
-  inline SecurityT* EkaFhBxGr::processDeleteOrder(const unsigned char* m) {
+  inline SecurityT*
+  EkaFhBxGr::processDeleteOrder(const unsigned char* m) {
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
   if (!s) return NULL;
@@ -280,116 +285,121 @@ template <class SecurityT, class Msg>
 }
 
 template <class SecurityT, class Msg>
-    inline SecurityT* EkaFhBxGr::processReplaceOrder(const unsigned char* m) {
+  inline SecurityT*
+  EkaFhBxGr::processReplaceOrder(const unsigned char* m) {
   
-    SecurityIdT securityId = getInstrumentId<Msg>(m);
-    SecurityT* s = book->findSecurity(securityId);
-    if (!s) return NULL;
+  SecurityIdT securityId = getInstrumentId<Msg>(m);
+  SecurityT* s = book->findSecurity(securityId);
+  if (!s) return NULL;
 
-    OrderIdT oldOrderId   = getOldOrderId  <Msg>(m);
-    auto o = book->findOrder(oldOrderId);
-    if (!o) return NULL;
+  OrderIdT oldOrderId   = getOldOrderId  <Msg>(m);
+  auto o = book->findOrder(oldOrderId);
+  if (!o) return NULL;
 
-    FhOrderType t    = o->type;
-    SideT       side = o->plevel->side;
+  FhOrderType t    = o->type;
+  SideT       side = o->plevel->side;
 
-    OrderIdT    newOrderId = getNewOrderId<Msg>(m);
-    SizeT       size       = getSize      <Msg>(m);
-    PriceT      price      = getPrice     <Msg>(m);
+  OrderIdT    newOrderId = getNewOrderId<Msg>(m);
+  SizeT       size       = getSize      <Msg>(m);
+  PriceT      price      = getPrice     <Msg>(m);
 
-    book->setSecurityPrevState(s);
+  book->setSecurityPrevState(s);
 
-    book->deleteOrder(o);
-    book->addOrder(s,newOrderId,t,price,size,side);
+  book->deleteOrder(o);
+  book->addOrder(s,newOrderId,t,price,size,side);
 
-    return s;
+  return s;
 }
 
 template <class SecurityT, class Msg>
-    inline SecurityT* EkaFhBxGr::processSingleSideUpdate(const unsigned char* m) {
-    SecurityIdT securityId = getInstrumentId<Msg>(m);
-    SecurityT* s = book->findSecurity(securityId);
-    if (!s) return NULL;
+  inline SecurityT*
+  EkaFhBxGr::processSingleSideUpdate(const unsigned char* m) {
+  SecurityIdT securityId = getInstrumentId<Msg>(m);
+  SecurityT* s = book->findSecurity(securityId);
+  if (!s) return NULL;
   
-    OrderIdT orderId   = getOrderId<Msg>(m);
-    FhOrder* o         = book->findOrder(orderId);
-    if (!o)  return NULL;
+  OrderIdT orderId   = getOrderId<Msg>(m);
+  FhOrder* o         = book->findOrder(orderId);
+  if (!o)  return NULL;
 
-    SizeT       size  = getSize <Msg>(m);
-    PriceT      price = getPrice<Msg>(m);
+  SizeT       size  = getSize <Msg>(m);
+  PriceT      price = getPrice<Msg>(m);
 
-    book->setSecurityPrevState(s);
-    book->modifyOrder(o,price,size);
+  book->setSecurityPrevState(s);
+  book->modifyOrder(o,price,size);
 
-    return s;
+  return s;
 }
 
 template <class SecurityT, class Msg>
-    inline SecurityT* EkaFhBxGr::processReplaceQuote(const unsigned char* m) {
-    SecurityIdT securityId = getInstrumentId<Msg>(m);
-    SecurityT* s = book->findSecurity(securityId);
-    if (!s) return NULL;
+  inline SecurityT*
+  EkaFhBxGr::processReplaceQuote(const unsigned char* m) {
+  SecurityIdT securityId = getInstrumentId<Msg>(m);
+  SecurityT* s = book->findSecurity(securityId);
+  if (!s) return NULL;
   
-    OrderIdT oldBidOrderId   = getOldBidOrderId<Msg>(m);
-    OrderIdT oldAskOrderId   = getOldAskOrderId<Msg>(m);
-    FhOrder* bid_o = book->findOrder(oldBidOrderId);
-    FhOrder* ask_o = book->findOrder(oldAskOrderId);
+  OrderIdT oldBidOrderId   = getOldBidOrderId<Msg>(m);
+  OrderIdT oldAskOrderId   = getOldAskOrderId<Msg>(m);
+  FhOrder* bid_o = book->findOrder(oldBidOrderId);
+  FhOrder* ask_o = book->findOrder(oldAskOrderId);
 
-    if (!bid_o && !ask_o) return NULL;
+  if (!bid_o && !ask_o) return NULL;
 
-    book->setSecurityPrevState(s);
-    if (bid_o) {
-	FhOrderType t          = bid_o->type;
-	OrderIdT newBidOrderId = getNewBidOrderId<Msg>(m);
-	SizeT    bidSize       = getBidSize   <Msg>(m);
-	PriceT   bidPrice      = getBidPrice  <Msg>(m);
+  book->setSecurityPrevState(s);
+  if (bid_o) {
+    FhOrderType t          = bid_o->type;
+    OrderIdT newBidOrderId = getNewBidOrderId<Msg>(m);
+    SizeT    bidSize       = getBidSize   <Msg>(m);
+    PriceT   bidPrice      = getBidPrice  <Msg>(m);
 
-	book->deleteOrder(bid_o);
-	book->addOrder(s,newBidOrderId,t,bidPrice,bidSize,SideT::BID);
-    }
-    if (ask_o) {
-	FhOrderType t          = ask_o->type;
-	OrderIdT newAskOrderId = getNewAskOrderId<Msg>(m);
-	SizeT    askSize       = getAskSize   <Msg>(m);
-	PriceT   askPrice      = getAskPrice  <Msg>(m);
+    book->deleteOrder(bid_o);
+    book->addOrder(s,newBidOrderId,t,bidPrice,bidSize,SideT::BID);
+  }
+  if (ask_o) {
+    FhOrderType t          = ask_o->type;
+    OrderIdT newAskOrderId = getNewAskOrderId<Msg>(m);
+    SizeT    askSize       = getAskSize   <Msg>(m);
+    PriceT   askPrice      = getAskPrice  <Msg>(m);
 
-	book->deleteOrder(ask_o);
-	book->addOrder(s,newAskOrderId,t,askPrice,askSize,SideT::ASK);
-    }
+    book->deleteOrder(ask_o);
+    book->addOrder(s,newAskOrderId,t,askPrice,askSize,SideT::ASK);
+  }
 
-    return s;
+  return s;
 }
 
 template <class SecurityT, class Msg>
-    inline SecurityT* EkaFhBxGr::processDeleteQuote(const unsigned char* m) {
-    SecurityIdT securityId = getInstrumentId<Msg>(m);
-    SecurityT* s = book->findSecurity(securityId);
-    if (!s) return NULL;
+  inline SecurityT*
+  EkaFhBxGr::processDeleteQuote(const unsigned char* m) {
+  SecurityIdT securityId = getInstrumentId<Msg>(m);
+  SecurityT* s = book->findSecurity(securityId);
+  if (!s) return NULL;
   
-    OrderIdT bidOrderId   = getBidOrderId<Msg>(m);
-    OrderIdT askOrderId   = getAskOrderId<Msg>(m);
+  OrderIdT bidOrderId   = getBidOrderId<Msg>(m);
+  OrderIdT askOrderId   = getAskOrderId<Msg>(m);
 
-    FhOrder* bid_o = book->findOrder(bidOrderId);
-    FhOrder* ask_o = book->findOrder(askOrderId);
+  FhOrder* bid_o = book->findOrder(bidOrderId);
+  FhOrder* ask_o = book->findOrder(askOrderId);
   
-    if (!bid_o && !ask_o) return NULL;
+  if (!bid_o && !ask_o) return NULL;
 
-    book->setSecurityPrevState(s);
+  book->setSecurityPrevState(s);
 
-    if (bid_o) book->deleteOrder(bid_o);
-    if (ask_o) book->deleteOrder(ask_o);
+  if (bid_o) book->deleteOrder(bid_o);
+  if (ask_o) book->deleteOrder(ask_o);
   
-    return s;
+  return s;
 }
 
 
 
 
 template <class SecurityT, class Msg>
-  inline SecurityT* EkaFhBxGr::processTrade(const unsigned char* m,
-					     uint64_t sequence,
-					     uint64_t msgTs,
-					     const EfhRunCtx* pEfhRunCtx) {
+  inline SecurityT*
+  EkaFhBxGr::processTrade(const unsigned char* m,
+			  uint64_t sequence,
+			  uint64_t msgTs,
+			  const EfhRunCtx* pEfhRunCtx) {
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
   if (!s) return NULL;
@@ -399,7 +409,7 @@ template <class SecurityT, class Msg>
 
   const EfhTradeMsg msg = {
 			   {EfhMsgType::kTrade,
-			    {this->exch,(EkaLSI)this->id}, // group
+			    {this->exch,(EkaLSI)this->id},
 			    0,  // underlyingId
 			    (uint64_t) securityId, 
 			    sequence,
@@ -418,13 +428,11 @@ template <class SecurityT, class Msg>
 }
 
 template <class SecurityT, class Msg>
-  inline SecurityT* EkaFhBxGr::processAuctionUpdate(const unsigned char* m,
-						     uint64_t sequence,
-						     uint64_t msgTs,
-						     const EfhRunCtx* pEfhRunCtx) {
-  auto auctionUpdateType = getAuctionUpdateType<Msg>(m);
-  if (auctionUpdateType == EfhAuctionUpdateType::kUnknown) return NULL;
-
+  inline SecurityT*
+  EkaFhBxGr::processAuctionUpdate(const unsigned char* m,
+				  uint64_t sequence,
+				  uint64_t msgTs,
+				  const EfhRunCtx* pEfhRunCtx) {
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
   if (!s) return NULL;
@@ -436,15 +444,17 @@ template <class SecurityT, class Msg>
   msg.header.underlyingId   = 0;
   msg.header.securityId     = securityId;
   msg.header.sequenceNumber = sequence;
-  msg.header.timeStamp      = gr_ts;
+  msg.header.timeStamp      = msgTs;
   msg.header.gapNum         = gapNum;
 
   msg.auctionId             = getAuctionId<Msg>(m);
+  msg.auctionType           = getAuctionType<Msg>(m);;
 
-  msg.updateType            = auctionUpdateType;
+  msg.updateType            = EfhAuctionUpdateType::kNew;
   msg.side                  = getAuctionSide<Msg>(m);
   msg.capacity              = getAuctionOrderCapacity<Msg>(m);
-  msg.quantity              = getAuctionSize<Msg>(m);
+  msg.quantity              = getImbalanceSize<Msg>(m) +
+    getPairedSize<Msg>(m);
   msg.price                 = getAuctionPrice<Msg>(m);
   msg.endTimeNanos          = 0;
 
@@ -455,8 +465,9 @@ template <class SecurityT, class Msg>
 }
 
 template <class Msg>
-inline uint64_t EkaFhBxGr::processEndOfSnapshot(const unsigned char* m,
-						 EkaFhMode op) {
+inline uint64_t
+EkaFhBxGr::processEndOfSnapshot(const unsigned char* m,
+				EkaFhMode op) {
   auto msg {reinterpret_cast<const Msg*>(m)};
   char seqNumStr[sizeof(msg->nextLifeSequence)+1] = {};
   memcpy(seqNumStr, msg->nextLifeSequence, sizeof(msg->nextLifeSequence));
@@ -470,7 +481,7 @@ inline uint64_t EkaFhBxGr::processEndOfSnapshot(const unsigned char* m,
 
 template <class Msg>
 inline void EkaFhBxGr::processDefinition(const unsigned char* m,
-					  const EfhRunCtx* pEfhRunCtx) {
+					 const EfhRunCtx* pEfhRunCtx) {
   auto msg {reinterpret_cast<const Msg*>(m)};
   EfhOptionDefinitionMsg definitionMsg{};
   definitionMsg.header.msgType        = EfhMsgType::kOptionDefinition;

@@ -65,7 +65,9 @@ class BxFeed {
 
   struct OptionOpen { // 'O' -- DOES NOT EXIST!!!
     GenericHdr hdr;        // 9
-
+    uint32_t instrumentId; // 4
+    char     state;        // 1 Y = Open for auto execution
+                           //   N = Closed for auto execution
   } __attribute__((packed));
 
   struct AddOrderShort { // 'a'

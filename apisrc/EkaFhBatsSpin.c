@@ -299,8 +299,8 @@ static bool sendSpinRequest(EkaDev*   dev,
 }
 
 /* ##################################################################### */
-static EkaFhParseResult procSpin(const EfhRunCtx* pEfhRunCtx, 
-				 int              sock, 
+static EkaFhParseResult procSpin(const EfhRunCtx* pEfhRunCtx,
+				 int              sock,
 				 EkaFhBatsGr*     gr,
 				 EkaFhMode        op,
 				 volatile bool*   snapshot_active) {
@@ -416,7 +416,7 @@ static bool spinCycle(EfhRunCtx*   pEfhRunCtx,
   //-----------------------------------------------------------------
   if (! getSpinResponse(dev, 
 			sock, 
-			op, 
+			op,
 			gr->exch,
 			gr->id,
 			&gr->snapshot_active)) goto ITERATION_FAIL;
@@ -712,12 +712,12 @@ void* getSpinData(void* attr) {
   if (success) {
     gr->gapClosed = true;
     EKA_LOG("%s:%u: End Of Spin: seq_after_snapshot = %ju",
-	    EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot);
+            EKA_EXCH_DECODE(gr->exch),gr->id,gr->seq_after_snapshot);
   } else {
     EKA_WARN("%s:%u Spin Failed after %d trials. Exiting...",
-	     EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
+             EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
     on_error("%s:%u Spin Failed after %d trials. Exiting...",
-	     EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
+             EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
   }
 
   return NULL;

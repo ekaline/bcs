@@ -19,6 +19,9 @@
     extern "C" {
 #endif
 
+
+typedef uint32_t EfcArmVer;
+
 /**
  * This is passed to EfhInit().  This will replace the eka_conf values that we passed in the old api.  
  * This function must be called before efcInit().
@@ -67,10 +70,12 @@ EkaOpResult efcInitStrategy( EfcCtx* efcCtx, const EfcStratGlobCtx* efcStratGlob
  *                      primaryCore the only core that will fire if he opportunity should only
  *                      only fired on once.
  *                      If this is < 0, then this will disable firing on all cores.
+ * @param ver           Arm version. Disable is done unconditionally, Enable is done only if 
+ *                      HW version matches SW version
  * @retval [See EkaOpResult].
  */
 
-EkaOpResult efcEnableController( EfcCtx* efcCtx, EkaCoreId primaryCoreId );
+EkaOpResult efcEnableController( EfcCtx* efcCtx, EkaCoreId primaryCoreId,  EfcArmVer ver=0 );
 
 /**
  * This will tell the hardware to consider firing on md updates for a list of securities.

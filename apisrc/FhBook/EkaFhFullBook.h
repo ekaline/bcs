@@ -11,7 +11,9 @@
 
 /* ####################################################### */
 
-template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class FhPlevel, class FhOrder,class SecurityIdT, class OrderIdT, class PriceT, class SizeT>
+template <const uint SCALE, const uint SEC_HASH_SCALE,
+    class FhSecurity, class FhPlevel, class FhOrder,
+    class QuotePostProc, class SecurityIdT, class OrderIdT, class PriceT, class SizeT>
   class EkaFhFullBook : public EkaFhBook  {
  public:
   /* using FhSecurity   = EkaFhFbSecurity  <SecurityIdT, OrderIdT, PriceT, SizeT>; */
@@ -302,15 +304,15 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
 
     EKA_LOG("%s:%u: book is invalidated",
 	    EKA_EXCH_DECODE(exch),grId);
-    return 0; 
+    return 0;
   }
   /* ####################################################### */
-  inline int generateOnQuote (const EfhRunCtx* pEfhRunCtx, 
-		       FhSecurity* s, 
-		       uint64_t sequence, 
-		       uint64_t timestamp,
-		       uint gapNum,
-		       std::chrono::high_resolution_clock::time_point startTime={}) {
+  inline int generateOnQuote (const EfhRunCtx* pEfhRunCtx,
+                              FhSecurity* s,
+                              uint64_t sequence,
+                              uint64_t timestamp,
+                              uint gapNum,
+                              std::chrono::high_resolution_clock::time_point startTime={}) {
     if (s == NULL) test_error("s == NULL");
 
     FhPlevel* topBid = s->bid;
@@ -349,6 +351,11 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,class FhSecurity, class Fh
     msg.askSide.customerAoNSize = s->numAskPlevels == 0 ? 0 : topAsk->cust_aon_size;
     msg.askSide.bdAoNSize       = s->numAskPlevels == 0 ? 0 : topAsk->bd_aon_size;
     msg.askSide.aoNSize         = s->numAskPlevels == 0 ? 0 : topAsk->get_total_aon_size();
+
+    QuotePostProc postProc{};
+    if (!postProc(static_cast<const EkaFhSecurity*>(s), &msg)) {
+      return 0;
+    }
 
     if (pEfhRunCtx->onEfhQuoteMsgCb == NULL) on_error("Uninitialized pEfhRunCtx->onEfhQuoteMsgCb");
 

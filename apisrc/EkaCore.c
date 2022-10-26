@@ -75,6 +75,16 @@ bool EkaCore::initTcp() {
 					    0 /* dstIp */,
 					    0 /* dstPort */, 
 					    macSa);
+
+  uint64_t macSaBuf = 0;
+  auto pmacSaBuf = reinterpret_cast<uint8_t*>(&macSaBuf);
+  memcpy(pmacSaBuf + 2,macSa,6);
+  
+  EKA_LOG("Enabling TCP RX on core %u for MAC %s (0x%016jx)",
+	  coreId,EKA_MAC2STR(macSa),be64toh(macSaBuf));
+  
+  eka_write(dev, 0xe0000 + coreId * 0x1000 + 0x200, be64toh(macSaBuf));
+  
   return true;  
 }
 /* ------------------------------------------------------------- */

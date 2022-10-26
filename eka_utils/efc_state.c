@@ -64,6 +64,7 @@ struct EfcState {
   bool     reportOnly         = false;
   bool     fatalDebug         = false;
   bool     armed              = false;
+  uint32_t arm_ver            = 0;
   bool     killSwitch         = false;
 };
 
@@ -106,12 +107,12 @@ inline uint64_t reg_read (uint32_t addr) {
 //################################################
 
 inline void getExceptions(EfcExceptionsReport* excpt, uint8_t coresBitmap) {
-  excpt->globalExcpt = reg_read(ADDR_INTERRUPT_SHADOW_RO);
+  excpt->exceptionStatus.globalVector = reg_read(ADDR_INTERRUPT_SHADOW_RO);
   for (int i = 0; i < EFC_MAX_CORES; i++) {
     if (((0x01 << i) & 0xFF) & coresBitmap) {
-      excpt->coreExcpt[i] = reg_read(EKA_ADDR_INTERRUPT_0_SHADOW_RO + i * 0x1000);
+      excpt->exceptionStatus.portVector[i] = reg_read(EKA_ADDR_INTERRUPT_0_SHADOW_RO + i * 0x1000);
     } else {
-      excpt->coreExcpt[i] = 0;
+      excpt->exceptionStatus.portVector[i] = 0;
     }
   }
 }
@@ -441,7 +442,9 @@ int getEfcState(EfcState* pEfcState) {
   pEfcState->ordersSubscribed   = (var_p4_cont_counter3>>0)  & MASK32;
   pEfcState->ordersUnsubscribed = (var_p4_cont_counter3>>32) & MASK32;
 
-  pEfcState->armed              = (reg_read(P4_ARM_DISARM) & 0x1) != 0;
+  uint64_t armReg               = reg_read(P4_ARM_DISARM);
+  pEfcState->armed              = (armReg & 0x1) != 0;
+  pEfcState->arm_ver            = (armReg >> 32) & 0xFFFFFFFF;
   pEfcState->killSwitch         = (reg_read(KILL_SWITCH)   & 0x1) != 0;
 
   /* pEfcState->forceFire          = (var_p4_general_conf>>63)  & 0x1; */
@@ -504,12 +507,12 @@ int printEfcState(EfcState* pEfcState) {
     printf (RED "Fatal KILL SWITCH is turned ON!!! - reload driver is needed!!!\n\n" RESET);
   }
   if (! pEfcState->armed) {
-    printf (RED "CONTROLLER STATE: UNARMED\n" RESET);
+    printf (RED "CONTROLLER STATE: UNARMED, expected version=%d\n" RESET,pEfcState->arm_ver);
   } else {
     if (pEfcState->fatalDebug)
       printf (RED "CONTROLLER STATE: ARMED -- can be overidden by \'Fatal Debug\' \n" RESET);
     else 
-      printf (GRN "CONTROLLER STATE: ARMED\n" RESET);
+      printf (GRN "CONTROLLER STATE: ARMED, expected version=%d\n" RESET,pEfcState->arm_ver);
   }
   if (pEfcState->fatalDebug)
     printf(RED "WARNING: \'Fatal Debug\' is Active\n" RESET);

@@ -13,6 +13,7 @@
 #include "EpmFireSqfTemplate.h"
 #include "EpmFireBoeTemplate.h"
 #include "EpmCmeILinkTemplate.h"
+#include "EpmCmeILinkSwTemplate.h"
 #include "EpmCmeILinkHbTemplate.h"
 #include "EpmFastSweepUDPReactTemplate.h"
 #include "EkaEfcDataStructs.h"
@@ -70,6 +71,8 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
   case EfhFeedVer::kCME : 
     epm->hwFire  = new EpmCmeILinkTemplate(epm->templatesNum++);
     EKA_LOG("Initializing EpmCmeILinkTemplate");
+    epm->swFire  = new EpmCmeILinkSwTemplate(epm->templatesNum++);
+    EKA_LOG("Initializing EpmCmeILinkSwTemplate");    
     epm->cmeHb  = new EpmCmeILinkHbTemplate(epm->templatesNum++);
     EKA_LOG("Initializing EpmCmeILinkHbTemplate");
     epm->DownloadSingleTemplate2HW(epm->cmeHb);
@@ -94,7 +97,8 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
     on_error("Unexpected EFC HW Version: %d",(int)hwFeedVer);
   }
   epm->DownloadSingleTemplate2HW(epm->hwFire);
-  
+  if (epm->swFire) epm->DownloadSingleTemplate2HW(epm->swFire);
+    
   if (ehp) {
     ehp->init();
     ehp->download2Hw();
@@ -111,8 +115,9 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
 /* ################################################ */
 
 /* ################################################ */
-int EkaEfc::armController() {
-  eka_write(dev, P4_ARM_DISARM, 1); 
+int EkaEfc::armController(EfcArmVer ver) {
+  uint64_t armData = ((uint64_t)ver << 32) | 1;
+  eka_write(dev, P4_ARM_DISARM, armData); 
   return 0;
 }
 /* ################################################ */
