@@ -154,7 +154,6 @@ int EkaEpmAction::setTemplate() {
   case EpmActionType::BoeCancel    :
   case EpmActionType::HwFireAction :
   case EpmActionType::CmeHwCancel  :
-  case EpmActionType::CmeSwFire    :
   case EpmActionType::ItchHwFastSweep   :
     epmTemplate                        = epm->hwFire;
     break;
