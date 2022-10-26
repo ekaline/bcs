@@ -54,6 +54,7 @@ template <const uint SEC_HASH_SCALE,
 			   s,
 			   pktSeq,
 			   pktTime,
+			   0,
 			   gapNum);
 	secCnt++;
 	s = dynamic_cast<FhSecurity*>(n);
@@ -98,18 +99,20 @@ template <const uint SEC_HASH_SCALE,
   inline int generateOnQuote (const EfhRunCtx* pEfhRunCtx,
                               FhSecurity*      s,
                               uint64_t         sequence,
-                              uint64_t         timestamp,
+                              uint64_t         pktTime,
+                              uint64_t         transactTime,
                               uint             gapNum) {
 
     if (!s) on_error("!s");
 
-    EfhQuoteMsg msg = {};
+    EfhQuoteMsg msg{};
     msg.header.msgType        = EfhMsgType::kQuote;
     msg.header.group.source   = exch;
     msg.header.group.localId  = grId;
     msg.header.securityId     = s->secId;
     msg.header.sequenceNumber = sequence;
-    msg.header.timeStamp      = timestamp;
+    msg.header.timeStamp      = pktTime;
+    msg.header.transactTime   = transactTime;
     msg.header.deltaNs        = 0;
     msg.header.gapNum         = gapNum;
     msg.tradeStatus           = s->tradeStatus;
@@ -147,8 +150,9 @@ template <const uint SEC_HASH_SCALE,
 
   int generateOnOrder (const EfhRunCtx* pEfhRunCtx, 
 		       FhSecurity*      s, 
-		       uint64_t         sequence, 
-		       uint64_t         timestamp,
+		       uint64_t         sequence,
+                       uint64_t         pktTime,
+                       uint64_t         transactTime,
 		       SideT            side,
 		       uint             gapNum) {
 
@@ -157,13 +161,14 @@ template <const uint SEC_HASH_SCALE,
     if (side != SideT::BID && side != SideT::ASK)
       on_error("Unexpected side = %d",(int)side);
     
-    EfhOrderMsg msg = {};
+    EfhOrderMsg msg{};
     msg.header.msgType        = EfhMsgType::kQuote;
     msg.header.group.source   = exch;
     msg.header.group.localId  = grId;
     msg.header.securityId     = s->secId;
     msg.header.sequenceNumber = sequence;
-    msg.header.timeStamp      = timestamp;
+    msg.header.timeStamp      = pktTime;
+    msg.header.transactTime   = transactTime;
     msg.header.deltaNs        = 0;
     msg.header.gapNum         = gapNum;
     msg.tradeStatus           = s->tradeStatus;

@@ -407,19 +407,21 @@ template <class SecurityT, class Msg>
   SizeT       size      = getSize     <Msg>(m);
   PriceT      price     = getPrice    <Msg>(m);
 
-  const EfhTradeMsg msg = {
-			   {EfhMsgType::kTrade,
-			    {this->exch,(EkaLSI)this->id},
-			    0,  // underlyingId
-			    (uint64_t) securityId, 
-			    sequence,
-			    msgTs,
-			    this->gapNum },
-			   price,
-			   size,
-			   s->trading_action,
-			   EfhTradeCond::kREG
-  };
+  EfhTradeMsg msg{};
+  msg.header.msgType = EfhMsgType::kTrade;
+  msg.header.group.source   = exch;
+  msg.header.group.localId  = id;
+  msg.header.underlyingId   = 0;
+  msg.header.securityId     = (uint64_t) securityId;
+  msg.header.sequenceNumber = sequence;
+  msg.header.timeStamp      = msgTs;
+  msg.header.gapNum         = gapNum;
+
+  msg.price       = price;
+  msg.size        = size;
+  msg.tradeStatus = s->trading_action;
+  msg.tradeCond   = EfhTradeCond::kREG;
+
   pEfhRunCtx->onEfhTradeMsgCb(&msg,
 			      s->efhUserData,
 			      pEfhRunCtx->efhRunUserData);

@@ -283,19 +283,22 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     auto m {reinterpret_cast<const Trade*>(pMsg)};
     FhSecurity* s = book->findSecurity(m->seriesIndex);
     if (s == NULL) return false;
-    const EfhTradeMsg msg = {
-	{ EfhMsgType::kTrade,
-	  {exch,(EkaLSI)id}, // group
-	  0,  // underlyingId
-	  (uint64_t) m->seriesIndex,
-	  sequence,
-	  m->sourceTimeSec * static_cast<uint64_t>(SEC_TO_NANO) + m->sourceTimeNs,
-	  gapNum },
-	m->price,
-	m->volume,
-	s->trading_action,
-	getTradeCondition(m)
-    };
+
+    EfhTradeMsg msg{};
+    msg.header.msgType = EfhMsgType::kTrade;
+    msg.header.group.source   = exch;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.securityId     = (uint64_t) m->seriesIndex;
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = m->sourceTimeSec * static_cast<uint64_t>(SEC_TO_NANO) + m->sourceTimeNs;
+    msg.header.gapNum         = gapNum;
+
+    msg.price       = m->price;
+    msg.size        = m->volume;
+    msg.tradeStatus = s->trading_action;
+    msg.tradeCond   = getTradeCondition(m);
+
     pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
   }
     break;

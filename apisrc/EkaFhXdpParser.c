@@ -64,24 +64,26 @@ bool EkaFhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     //-----------------------------------------------------------------------------
 
   case MSG_TYPE::TRADE : {
-    XdpTrade* msg = (XdpTrade*) m;
-    FhSecurity* s = book->findSecurity(msg->SeriesIndex);
+    XdpTrade* xdpMsg = (XdpTrade*) m;
+    FhSecurity* s = book->findSecurity(xdpMsg->SeriesIndex);
     if (s == NULL) return false;
 
-    const EfhTradeMsg efhTradeMsg = {
-      { EfhMsgType::kTrade,
-	{exch,(EkaLSI)id}, // group
-	0,  // underlyingId
-	(uint64_t) msg->SeriesIndex,
-	sequence,
-	msg->time.SourceTime * static_cast<uint64_t>(SEC_TO_NANO) + msg->time.SourceTimeNS,
-	gapNum },
-      msg->Price,
-      msg->Volume,
-      s->trading_action,
-      EfhTradeCond::kREG
-    };
-    pEfhRunCtx->onEfhTradeMsgCb(&efhTradeMsg, s->efhUserData, pEfhRunCtx->efhRunUserData);
+    EfhTradeMsg msg{};
+    msg.header.msgType = EfhMsgType::kTrade;
+    msg.header.group.source   = exch;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.securityId     = (uint64_t) xdpMsg->SeriesIndex;
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = xdpMsg->time.SourceTime * static_cast<uint64_t>(SEC_TO_NANO) + xdpMsg->time.SourceTimeNS;
+    msg.header.gapNum         = gapNum;
+
+    msg.price       = xdpMsg->Price;
+    msg.size        = xdpMsg->Volume;
+    msg.tradeStatus = s->trading_action;
+    msg.tradeCond   = EfhTradeCond::kREG;
+
+    pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
   }
     break;
     //-----------------------------------------------------------------------------
