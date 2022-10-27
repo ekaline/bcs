@@ -2,7 +2,7 @@
 #define _EKA_HW_EXPECTED_VERSION_H_
 
 // Generic EHP based P4 HW Parser
-#define EKA_EXPECTED_GENERIC_PARSER_VERSION       0x2
+#define EKA_EXPECTED_GENERIC_PARSER_VERSION       0x1
 
 // CME Fast Cancel HW not generic Parser
 #define EKA_EXPECTED_NONGENERIC_PARSER_VERSION       0x9 //cme

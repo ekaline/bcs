@@ -7,6 +7,7 @@
 #include "EpmTemplate.h"
 #include "EkaEpm.h"
 #include "EkaEpmRegion.h"
+#include "EkaUdpTxSess.h"
 
 uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size);
 unsigned short csum(unsigned short *ptr,int nbytes);
@@ -45,10 +46,8 @@ int EkaEpmAction::setActionBitmap() {
   case EpmActionType::HwFireAction :
   case EpmActionType::BoeFire      :
   case EpmActionType::BoeCancel    :
-
   case EpmActionType::CmeHwCancel    :
   case EpmActionType::CmeSwFire    :
-    
     actionBitParams.bitmap.app_seq_inc  = 1;
   case EpmActionType::SqfFire      :
   case EpmActionType::SqfCancel    :
@@ -418,17 +417,31 @@ int EkaEpmAction::setNwHdrs(uint8_t* macDa,
 
 int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction *epmAction) {
   if (epmAction == NULL) on_error("epmAction == NULL");
-  if (epmAction->offset  < EkaEpm::DatagramOffset) 
-    on_error("epmAction->offset %d < EkaEpm::DatagramOffset %ju",epmAction->offset,EkaEpm::DatagramOffset);
+  type = epmAction->type;
+
+  if (type == EpmActionType::ItchHwFastSweep) { // UDP
+    if (epmAction->offset  < EkaEpm::UdpDatagramOffset) 
+      on_error("epmAction->offset %d < EkaEpm::UdpDatagramOffset %ju",epmAction->offset,EkaEpm::UdpDatagramOffset);
+  } else {
+    if (epmAction->offset  < EkaEpm::DatagramOffset) 
+      on_error("epmAction->offset %d < EkaEpm::DatagramOffset %ju",epmAction->offset,EkaEpm::DatagramOffset);
+  }
+
 
   memcpy (&epmActionLocalCopy,epmAction,sizeof(epmActionLocalCopy));
   
-  type = epmAction->type;
   setActionBitmap();
   setTemplate();
   setName();
   
-  heapOffs   = epmAction->offset - EkaEpm::DatagramOffset;
+  if (type == EpmActionType::ItchHwFastSweep) { // UDP
+    if (epmAction->offset  < EkaEpm::UdpDatagramOffset) 
+      heapOffs   = epmAction->offset - EkaEpm::UdpDatagramOffset;
+  } else {
+    if (epmAction->offset  < EkaEpm::DatagramOffset) 
+      heapOffs   = epmAction->offset - EkaEpm::DatagramOffset;
+  }
+  
   if (heapOffs % 32 != 0) on_error("heapOffs %d (must be X32)",heapOffs);
 
   heapAddr   = EpmHeapHwBaseAddr + heapOffs;
@@ -444,10 +457,19 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
 /* ----------------------------------------------------- */
 
   if (dev->core[coreId] == NULL) on_error("dev->core[%u] == NULL",coreId);
-  EkaTcpSess* sess = dev->core[coreId]->tcpSess[sessId];
-  if (sess == NULL) on_error("dev->core[%u]->tcpSess[%u] == NULL",coreId,sessId);
 
-  setNwHdrs(sess->macDa,sess->macSa,sess->srcIp,sess->dstIp,sess->srcPort,sess->dstPort);
+
+
+  if (type == EpmActionType::ItchHwFastSweep) { // UDP
+    EkaUdpTxSess* udpSess = dev->core[coreId]->udpTxSess[sessId];
+    if (udpSess == NULL) on_error("dev->core[%u]->udpTxSess[%u] == NULL",coreId,sessId);
+    setNwHdrs(udpSess->macDa_,udpSess->macSa_,udpSess->srcIp_,udpSess->dstIp_,udpSess->srcPort_,udpSess->dstPort_);
+  } else {
+    EkaTcpSess*   sess    = dev->core[coreId]->tcpSess[sessId];
+    if (sess == NULL) on_error("dev->core[%u]->tcpSess[%u] == NULL",coreId,sessId);
+    setNwHdrs(sess->macDa,sess->macSa,sess->srcIp,sess->dstIp,sess->srcPort,sess->dstPort);
+  }
+  
 
   /* EKA_LOG("%s:%u --> %s:%u",EKA_IP2STR(sess->srcIp),sess->srcPort, */
   /* 	  EKA_IP2STR(sess->dstIp),sess->dstPort); */
