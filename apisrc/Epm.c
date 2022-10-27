@@ -141,10 +141,11 @@ EkaOpResult epmRaiseTriggers(EkaDev *dev,
 
 EkaOpResult epmPayloadHeapCopy(EkaDev *dev,
                                epm_strategyid_t strategy, uint32_t offset,
-                               uint32_t length, const void *contents) {
+                               uint32_t length, const void *contents,
+			       const bool isUdpDatagram) {
   if (dev == NULL) return EKA_OPRESULT__ERR_BAD_ADDRESS;
 
-  return dev->epm->payloadHeapCopy(strategy,offset,length,contents);
+  return dev->epm->payloadHeapCopy(strategy,offset,length,contents,isUdpDatagram);
 }
 
 

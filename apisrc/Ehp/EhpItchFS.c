@@ -36,7 +36,8 @@ int EhpItchFS::createOrderExecuted() {
   int     msgType = OrderExecutedMsg;
 
   conf.params.bytes4Strategy[msgType].msgId    = msgId;
-  conf.params.bytes4Strategy[msgType].byteOffs = 3+2; //stock locate
+  //  conf.params.bytes4Strategy[msgType].byteOffs = 3+2; //stock locate (cant be too small)
+  conf.params.bytes4Strategy[msgType].byteOffs = 12; 
 
   conf.params.bytes4SecLookup[msgType].msgId    = msgId;
   conf.params.bytes4SecLookup[msgType].byteOffs = 255; //no lookup
@@ -132,7 +133,8 @@ int EhpItchFS::createTradeNonCross() {
   int     msgType = TradeNonCrossMsg;
 
   conf.params.bytes4Strategy[msgType].msgId    = msgId;
-  conf.params.bytes4Strategy[msgType].byteOffs = 3+2; //stock locate
+  //  conf.params.bytes4Strategy[msgType].byteOffs = 3+2; //stock locate (cant be too small)
+  conf.params.bytes4Strategy[msgType].byteOffs = 12; 
 
   conf.params.bytes4SecLookup[msgType].msgId    = msgId;
   conf.params.bytes4SecLookup[msgType].byteOffs = 255; //no lookup

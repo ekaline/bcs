@@ -563,7 +563,8 @@ EkaOpResult epmSetAction(EkaDev *ekaDev, epm_strategyid_t strategy,
  */
 EkaOpResult epmPayloadHeapCopy(EkaDev *ekaDev, epm_strategyid_t strategy, 
 			       uint32_t offset, uint32_t length, 
-			       const void *contents);
+			       const void *contents, 
+			       const bool isUdpDatagram = false);
 
 /**
  * Gets strategy-level enable bits.

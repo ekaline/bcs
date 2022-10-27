@@ -166,7 +166,7 @@ class EkaEpm {
   EkaOpResult raiseTriggers(const EpmTrigger *trigger);
 
   EkaOpResult payloadHeapCopy(epm_strategyid_t strategy, uint32_t offset,
-			      uint32_t length, const void *contents);
+			      uint32_t length, const void *contents, const bool isUdpDatagram);
 
   int DownloadSingleTemplate2HW(EpmTemplate* t);
 

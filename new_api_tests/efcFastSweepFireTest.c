@@ -244,9 +244,7 @@ static std::string action2string(EpmTriggerAction action) {
 
 static int sendFSMsg(std::string serverIp,
 			   std::string dstIp,
-			   uint16_t dstPort,
-			   uint16_t cmeMsgSize,
-			   uint8_t  noMDEntries) {
+			   uint16_t dstPort) {
     // Preparing UDP MC for MD trigger on GR#0
 
     int triggerSock = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
@@ -270,38 +268,15 @@ static int sendFSMsg(std::string serverIp,
     triggerMcAddr.sin_addr.s_addr = inet_addr(dstIp.c_str());
     triggerMcAddr.sin_port        = be16toh(dstPort);
 
-#if 0    
-    uint8_t pkt[1536] = {};
-
-    auto p {pkt};
-    auto pktHdr {reinterpret_cast<Cme::PktHdr*>(p)};
-    p += sizeof(*pktHdr);
-    
-    auto msgHdr {reinterpret_cast<Cme::MsgHdr*>(p)};
-    msgHdr->templateId = Cme::MsgId::MDIncrementalRefreshTradeSummary48;
-    msgHdr->size = cmeMsgSize;
-    p += sizeof(*msgHdr);
-
-    auto rootBlock {reinterpret_cast<Cme::MDIncrementalRefreshTradeSummary48_mainBlock*>(p)};
-    p += sizeof(*rootBlock);
-
-    auto pGroupSize {reinterpret_cast<Cme::groupSize_T*>(p)};
-    pGroupSize->numInGroup = noMDEntries;
-    p += sizeof(*pGroupSize);
-
-    const char* data = "Trade message XXXXXXXXXXX";
-    strcpy ((char*)p,data);
-    p += strlen(data);
-
-    size_t payloadLen = p - pkt;
-#else    
     const uint8_t pkt[] =
-      {0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+      { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //mold session
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //mold seq
+	0x00, 0x01, //mold msg cnt
+	0x00, 0x20, 0x45 /*"E"*/, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     
     size_t payloadLen = std::size(pkt);
-#endif  
  
-    TEST_LOG("sending News trigger to %s:%u",
+    TEST_LOG("sending Fast Sweep trigger to %s:%u",
 	    EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
     if (sendto(triggerSock,pkt,payloadLen,0,(const sockaddr*)&triggerMcAddr,sizeof(triggerMcAddr)) < 0) 
 	on_error ("MC trigger send failed");
@@ -318,8 +293,8 @@ int main(int argc, char *argv[]) {
 
     std::string serverIp        = "10.0.0.10";      // Ekaline lab default
     std::string clientIp        = "100.0.0.110";    // Ekaline lab default
-    std::string triggerIp       = "239.255.119.16";     // Ekaline lab default (C1 CC feed)
-    uint16_t triggerUdpPort     = 18333;            // C1 CC gr#0
+    std::string triggerIp       = "233.54.12.111";     // Ekaline lab default (C1 CC feed)
+    uint16_t triggerUdpPort     = 26477;            // C1 CC gr#0
     uint16_t serverTcpBasePort  = 22345;            // Ekaline lab default
     uint16_t numTcpSess         = 1;
     uint16_t serverTcpPort      = serverTcpBasePort;
@@ -367,7 +342,7 @@ int main(int argc, char *argv[]) {
     // Setup EFC MC groups
 
     EpmTriggerParams triggerParam[] = {
-	{0,"239.255.119.16",18333},
+	{0,"233.54.12.111",26477},
 	/* {0,"224.0.74.1",30302}, */
 	/* {0,"224.0.74.2",30303}, */
 	/* {0,"224.0.74.3",30304}, */
@@ -446,31 +421,33 @@ int main(int argc, char *argv[]) {
 	
     epmSetAction(dev,EFC_STRATEGY,0,&itchFSAction); 
 	
-   /*  rc = epmPayloadHeapCopy(dev,  */
-   /* 			    EFC_STRATEGY, */
-   /* 			    itchFSAction.offset, */
-   /* 			    strlen(ItchTestFastSweepMsg), */
-   /* 			    ItchTestFastSweepMsg); */
-   /* if (rc != EKA_OPRESULT__OK)  */
-   /* 	on_error("epmPayloadHeapCopy offset=%u, length=%u rc=%d", */
-   /* 		 itchFSAction.offset, */
-   /* 		 (uint)strlen(ItchTestFastSweepMsg),(int)rc); */
-
+    rc = epmPayloadHeapCopy(dev,
+   			    EFC_STRATEGY,
+   			    itchFSAction.offset,
+   			    strlen(ItchTestFastSweepMsg),
+   			    ItchTestFastSweepMsg,
+			    true); //isudp
+    if (rc != EKA_OPRESULT__OK)
+      on_error("epmPayloadHeapCopy offset=%u, length=%u rc=%d",
+	       itchFSAction.offset,
+	       (uint)strlen(ItchTestFastSweepMsg),(int)rc);
+    
+    // ==============================================
+    efcFastSweepInit(dev,&params);
     // ==============================================
     efcEnableController(pEfcCtx, 0);
     // ==============================================
     efcRun(pEfcCtx, &runCtx );
     // ==============================================
 
-    EpmTrigger fastSweepSwTrig = {
-				  .token = Token,
-				  .strategy = 0,
-				  .action = 0
-    };
-    epmRaiseTriggers(dev, &fastSweepSwTrig);
+    /* EpmTrigger fastSweepSwTrig = { */
+    /* 				  .token = Token, */
+    /* 				  .strategy = 0, */
+    /* 				  .action = 0 */
+    /* }; */
+    /* epmRaiseTriggers(dev, &fastSweepSwTrig); */
     
-    /* sendFSMsg(serverIp,triggerIp,triggerUdpPort, */
-    /* 		    CmeTestFastCancelMaxMsgSizeTicker, CmeTestFastCancelMinNoMDEntriesTicker); */
+    //    sendFSMsg(serverIp,triggerIp,triggerUdpPort);
 
     if (fatalDebug) {
 	TEST_LOG(RED "\n=====================\nFATAL DEBUG: ON\n=====================\n" RESET);
