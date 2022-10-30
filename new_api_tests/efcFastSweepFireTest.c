@@ -433,7 +433,7 @@ int main(int argc, char *argv[]) {
 	       (uint)strlen(ItchTestFastSweepMsg),(int)rc);
     
     // ==============================================
-    efcFastSweepInit(dev,&params);
+    efcItchFastSweepInit(dev,&params);
     // ==============================================
     efcEnableController(pEfcCtx, 0);
     // ==============================================

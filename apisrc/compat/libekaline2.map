@@ -16,6 +16,7 @@ LIBEKALINE2_1.0	{
                         efcCmeSetILinkAppseq;
 			efhInit;
 			efcInitStrategy;
+                        efcItchFastSweepInit;
 			efcClose;
 			efhGetSupportedParams;
 			efhGetDefs;

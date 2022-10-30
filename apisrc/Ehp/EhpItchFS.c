@@ -11,16 +11,17 @@ EhpItchFS::EhpItchFS(EkaDev* dev) : EhpProtocol(dev) {
   conf.params.msgDeltaSize       = 2; // msgLen of NOM
   conf.params.bytes4StartMsgProc = 3; // msgLen + msgType
  
+  // Message Count
   conf.fields.sequence[0].msgId      = 0; //Not relevant
   conf.fields.sequence[0].opcode     = EhpOpcode::NOP;
-  conf.fields.sequence[0].byteOffs_0 = 17;
-  conf.fields.sequence[0].byteOffs_1 = 16;
-  conf.fields.sequence[0].byteOffs_2 = 15;
-  conf.fields.sequence[0].byteOffs_3 = 14;
-  conf.fields.sequence[0].byteOffs_4 = 13;
-  conf.fields.sequence[0].byteOffs_5 = 12;
-  conf.fields.sequence[0].byteOffs_6 = 11;
-  conf.fields.sequence[0].byteOffs_7 = 10;
+  conf.fields.sequence[0].byteOffs_0 = 19;
+  conf.fields.sequence[0].byteOffs_1 = 18;
+  conf.fields.sequence[0].byteOffs_2 = EhpBlankByte;
+  conf.fields.sequence[0].byteOffs_3 = EhpBlankByte;
+  conf.fields.sequence[0].byteOffs_4 = EhpBlankByte;
+  conf.fields.sequence[0].byteOffs_5 = EhpBlankByte;
+  conf.fields.sequence[0].byteOffs_6 = EhpBlankByte;
+  conf.fields.sequence[0].byteOffs_7 = EhpBlankByte;
 }
 
 int EhpItchFS::init() {
