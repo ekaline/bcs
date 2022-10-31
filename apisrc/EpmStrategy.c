@@ -98,6 +98,7 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx,
     return EKA_OPRESULT__ERR_INVALID_ACTION;
   }
   //---------------------------------------------------------
+  EKA_LOG("Setting Action %d epmAction->type=%d",actionIdx,(int)epmAction->type);
 
   EkaEpmAction *ekaA = action[actionIdx];
 
@@ -105,29 +106,38 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx,
   if (!dev->core[coreId]) on_error("Wrong coreId %u",coreId);
   uint8_t sessId = excGetSessionId(epmAction->hConn);
 
-  if (epmAction->type == EpmActionType::ItchHwFastSweep) {
+  ekaA->updateAttrs(coreId,sessId,epmAction);
+
+  EKA_LOG("ekaA->actionName=%s,isTcp()=%d,isUdp()=%d",
+	  ekaA->actionName,ekaA->isTcp(),ekaA->isUdp());
+  
+  if (ekaA->isUdp()) {
     if (!dev->core[coreId]->udpTxSess[sessId])
       on_error("Wrong Udp Tx sessId %u at core %u",sessId,coreId);
     EkaUdpTxSess* sess = dev->core[coreId]->udpTxSess[sessId];
-    ekaA->updateAttrs(coreId,sessId,epmAction);
     ekaA->setNwHdrs(sess->macDa_,sess->macSa_,
 		    sess->srcIp_,sess->dstIp_,
 		    sess->srcPort_,sess->dstPort_);
-  } else {
+  }
+
+  if (ekaA->isTcp()) {
     if (!dev->core[coreId]->tcpSess[sessId])
-      on_error("Wrong sessId %u at core %u",sessId,coreId);
+      on_error("Wrong sessId %u at core %u, ekaA->type = %d, %s",
+	       sessId,coreId,(int)ekaA->type,ekaA->actionName);
     EkaTcpSess* sess = dev->core[coreId]->tcpSess[sessId];
-    ekaA->updateAttrs(coreId,sessId,epmAction);
     
     ekaA->setNwHdrs(sess->macDa,sess->macSa,
-		  sess->srcIp,sess->dstIp,
-		  sess->srcPort,sess->dstPort);
+		    sess->srcIp,sess->dstIp,
+		    sess->srcPort,sess->dstPort);
   }
   //---------------------------------------------------------
 
-
-  ekaA->setPktPayload(&epm->heap[epmAction->offset],
-		      epmAction->length);
+  if (ekaA->isUdp())    
+    ekaA->setUdpPktPayload(&epm->heap[epmAction->offset],
+			   epmAction->length);
+  else
+    ekaA->setPktPayload(&epm->heap[epmAction->offset],
+			epmAction->length);
 
   ekaA->initialized = true;
 

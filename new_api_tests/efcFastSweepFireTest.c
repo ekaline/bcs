@@ -335,7 +335,8 @@ int main(int argc, char *argv[]) {
 
     ExcUdpTxConnHandle udpConn = excUdpConnect(dev,coreId,
 					       {0xa,0xa,0xa,0xa,0xa,0xa},{0xb,0xb,0xb,0xb,0xb,0xb},
-					       0x11223344,0x55667788,
+					       inet_addr("11.22.33.44"),inet_addr("55.66.77.88"),
+					       //					       0x11223344,0x55667788,
 					       11111,22222);
 
     // ==============================================
@@ -418,7 +419,8 @@ int main(int argc, char *argv[]) {
     itchFSAction.postLocalMask = AlwaysFire;
     itchFSAction.postStratMask = AlwaysFire;
     itchFSAction.user          = User;
-	
+
+    TEST_LOG("heapOffset=%u, nwHdrOffset=%u",heapOffset,nwHdrOffset);
 	
     rc = epmPayloadHeapCopy(dev,
    			    EFC_STRATEGY,
@@ -451,14 +453,18 @@ int main(int argc, char *argv[]) {
     //    sendFSMsg(serverIp,triggerIp,triggerUdpPort);
 
     if (fatalDebug) {
-	TEST_LOG(RED "\n=====================\nFATAL DEBUG: ON\n=====================\n" RESET);
+	TEST_LOG(RED "\n=====================\n"
+		 "FATAL DEBUG: ON"
+		 "\n=====================\n" RESET);
 	eka_write(dev,0xf0f00,0xefa0beda);
     }
 
 // ==============================================
 
 
-    TEST_LOG("\n===========================\nEND OT TESTS\n===========================\n");
+    TEST_LOG("\n===========================\n"
+	     "END OT TESTS\n"
+	     "===========================\n");
 
 #ifndef _VERILOG_SIM
     sleep(2);

@@ -52,6 +52,8 @@ class EkaEpmAction {
   /* ----------------------------------------------------- */
   int fastSend(const void* buf);
   /* ----------------------------------------------------- */
+  bool isTcp();
+  bool isUdp();
 
  private:
   int setActionBitmap();
@@ -60,14 +62,17 @@ class EkaEpmAction {
   int initEpmActionLocalCopy();
   int setHwAction();
   void setIpTtl ();
-  
+  EkaEpm::FrameType getFrameType();
+  size_t getPayloadOffset();
+  uint16_t getL3L4len();
+
   /* ----------------------------------------------------- */
 
  public:
   char actionName[30] = {};
 
-  EkaDev*  dev;
-  EkaEpm*  epm;
+  EkaDev*  dev = NULL;
+  EkaEpm*  epm = NULL;
   EkaEpm::ActionType type = EkaEpm::ActionType::INVALID;
   uint     idx          = -1;
   uint     localIdx     = -1;

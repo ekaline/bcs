@@ -129,7 +129,7 @@ EkaOpResult EkaEpm::setAction(epm_strategyid_t strategyIdx,
     EKA_WARN ("EKA_OPRESULT__ERR_INVALID_ACTION: strategyIdx=%d, actionIdx=%d",strategyIdx,actionIdx);
     return EKA_OPRESULT__ERR_INVALID_ACTION;
   }
-
+  EKA_LOG("Setting Action %d epmAction->type=%d",actionIdx,(int)epmAction->type);
   return strategy[strategyIdx]->setAction(actionIdx,epmAction);
 }
 /* ---------------------------------------------------- */
@@ -245,7 +245,7 @@ EkaOpResult EkaEpm::payloadHeapCopy(epm_strategyid_t strategyIdx,
 				    uint32_t offset,
 				    uint32_t length, 
 				    const void *contents, const bool isUdpDatagram) {
-  uint64_t payloadOffset = isUdpDatagram ? UdpDatagramOffset : DatagramOffset;
+  uint64_t payloadOffset = isUdpDatagram ? UdpDatagramOffset : TcpDatagramOffset;
 
   if ((offset - payloadOffset) % PayloadAlignment != 0) {
     EKA_WARN("offset (%d) - payloadOffset (%d) %% PayloadAlignment (=%d) != 0",
