@@ -80,6 +80,7 @@ class EkaEpm {
 
   static const uint64_t PayloadMemorySize       = MaxUserHeap;
   static const uint64_t DatagramOffset          = sizeof(EkaEthHdr)+sizeof(EkaIpHdr)+sizeof(EkaTcpHdr);
+  static const uint64_t UdpDatagramOffset       = sizeof(EkaEthHdr)+sizeof(EkaIpHdr)+sizeof(EkaUdpHdr);
   static const uint64_t PayloadAlignment        = 32;
   static const uint64_t RequiredTailPadding     = 0;
 
@@ -126,6 +127,11 @@ class EkaEpm {
     return DatagramOffset;
   }
 
+  uint64_t getUdpDatagramOffset () {
+    return UdpDatagramOffset;
+  }
+
+  
   uint64_t getRequiredTailPadding () {
     return RequiredTailPadding;
   }
@@ -160,7 +166,7 @@ class EkaEpm {
   EkaOpResult raiseTriggers(const EpmTrigger *trigger);
 
   EkaOpResult payloadHeapCopy(epm_strategyid_t strategy, uint32_t offset,
-			      uint32_t length, const void *contents);
+			      uint32_t length, const void *contents, const bool isUdpDatagram);
 
   int DownloadSingleTemplate2HW(EpmTemplate* t);
 

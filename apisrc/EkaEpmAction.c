@@ -7,6 +7,7 @@
 #include "EpmTemplate.h"
 #include "EkaEpm.h"
 #include "EkaEpmRegion.h"
+#include "EkaUdpTxSess.h"
 
 uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size);
 unsigned short csum(unsigned short *ptr,int nbytes);
@@ -45,10 +46,8 @@ int EkaEpmAction::setActionBitmap() {
   case EpmActionType::HwFireAction :
   case EpmActionType::BoeFire      :
   case EpmActionType::BoeCancel    :
-
   case EpmActionType::CmeHwCancel    :
   case EpmActionType::CmeSwFire    :
-    
     actionBitParams.bitmap.app_seq_inc  = 1;
   case EpmActionType::SqfFire      :
   case EpmActionType::SqfCancel    :
@@ -59,6 +58,12 @@ int EkaEpmAction::setActionBitmap() {
     actionBitParams.bitmap.report_en    = 1;
     actionBitParams.bitmap.feedbck_en   = 1;
     break;
+  case EpmActionType::ItchHwFastSweep :
+    actionBitParams.bitmap.israw        = 1;
+    actionBitParams.bitmap.report_en    = 1;
+    actionBitParams.bitmap.feedbck_en   = 0;
+    break;
+    
   case EpmActionType::UserAction :
     actionBitParams.bitmap.israw        = 0;
     actionBitParams.bitmap.report_en    = 1;
@@ -79,7 +84,8 @@ void EkaEpmAction::setIpTtl() {
   case EpmActionType::BoeCancel    :
   case EpmActionType::SqfFire      :
   case EpmActionType::SqfCancel    :
-  case EpmActionType::CmeHwCancel    :
+  case EpmActionType::CmeHwCancel  :
+  case EpmActionType::ItchHwFastSweep   :
     ipHdr->_ttl = EFC_HW_TTL;
     ipHdr->_id  = EFC_HW_ID;
       return;
@@ -98,6 +104,7 @@ static TcpCsSizeSource setTcpCsSizeSource (EpmActionType type) {
   case EpmActionType::SqfFire      :
   case EpmActionType::SqfCancel    :
   case EpmActionType::CmeHwCancel    :
+  case EpmActionType::ItchHwFastSweep   :
     return TcpCsSizeSource::FROM_ACTION;
   default:
     return TcpCsSizeSource::FROM_DESCR;
@@ -146,6 +153,7 @@ int EkaEpmAction::setTemplate() {
   case EpmActionType::BoeCancel    :
   case EpmActionType::HwFireAction :
   case EpmActionType::CmeHwCancel  :
+  case EpmActionType::ItchHwFastSweep   :
     epmTemplate                        = epm->hwFire;
     break;
   case EpmActionType::CmeSwFire    :
@@ -204,6 +212,9 @@ int EkaEpmAction::setName() {
   case EpmActionType::CmeSwHeartbeat    :
     strcpy(actionName,"CmeSwHeartbeat");
     break;
+  case EpmActionType::ItchHwFastSweep   :
+    strcpy(actionName,"ItchHwFastSweep");
+    break;
   case EpmActionType::HwFireAction :
     strcpy(actionName,"HwFire");
     break;
@@ -255,9 +266,14 @@ EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
   ethHdr = (EkaEthHdr*) &epm->heap[heapOffs];
   ipHdr  = (EkaIpHdr*) ((uint8_t*)ethHdr + sizeof(EkaEthHdr));
   tcpHdr = (EkaTcpHdr*) ((uint8_t*)ipHdr + sizeof(EkaIpHdr));
-  payload = (uint8_t*)tcpHdr + sizeof(EkaTcpHdr);
-
-  memset(ethHdr,0,sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaTcpHdr));
+  udpHdr = (EkaUdpHdr*) ((uint8_t*)ipHdr + sizeof(EkaIpHdr));
+  if (type == EpmActionType::ItchHwFastSweep) { // UDP
+    payload = (uint8_t*)udpHdr + sizeof(EkaUdpHdr);
+    memset(ethHdr,0,sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr));
+  } else {
+    payload = (uint8_t*)tcpHdr + sizeof(EkaTcpHdr);
+    memset(ethHdr,0,sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaTcpHdr));
+  }
 
   initEpmActionLocalCopy();
   setTemplate();
@@ -341,10 +357,13 @@ int EkaEpmAction::setNwHdrs(uint8_t* macDa,
   ethHdr = (EkaEthHdr*) &dev->epm->heap[heapOffs];
   ipHdr  = (EkaIpHdr*) ((uint8_t*)ethHdr + sizeof(EkaEthHdr));
   tcpHdr = (EkaTcpHdr*) ((uint8_t*)ipHdr + sizeof(EkaIpHdr));
-  payload = (uint8_t*)tcpHdr + sizeof(EkaTcpHdr);
-
-  memset(ethHdr,0,sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaTcpHdr));
-
+  if (type == EpmActionType::ItchHwFastSweep) {
+    payload = (uint8_t*)tcpHdr + sizeof(EkaUdpHdr);
+    memset(ethHdr,0,sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr));
+  } else {
+    payload = (uint8_t*)tcpHdr + sizeof(EkaTcpHdr);
+    memset(ethHdr,0,sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaTcpHdr));
+  }
   memcpy(&(ethHdr->dest),macDa,6);
   memcpy(&(ethHdr->src), macSa,6);
   ethHdr->type = be16toh(0x0800);
@@ -352,32 +371,54 @@ int EkaEpmAction::setNwHdrs(uint8_t* macDa,
   ipHdr->_v_hl = 0x45;
   ipHdr->_offset = 0x0040;
   ipHdr->_ttl = 64;
-  ipHdr->_proto = EKA_PROTO_TCP;
+  if (type == EpmActionType::ItchHwFastSweep)
+    ipHdr->_proto = EKA_PROTO_UDP;
+  else
+    ipHdr->_proto = EKA_PROTO_TCP;
+
   ipHdr->_chksum = 0;
-  ipHdr->_id  = 0;
-  ipHdr->_len = 0;
+  ipHdr->_id     = 0;
+  ipHdr->_len    = 0;
+  ipHdr->src     = srcIp;
+  ipHdr->dest    = dstIp;
 
-  ipHdr->src  = srcIp;
-  ipHdr->dest = dstIp;
-
-  tcpHdr->src    = be16toh(srcPort);
-  tcpHdr->dest   = be16toh(dstPort);
-  tcpHdr->_hdrlen_rsvd_flags = be16toh(0x5000 | EKA_TCP_FLG_PSH | EKA_TCP_FLG_ACK);
-  tcpHdr->urgp = 0;
-  //---------------------------------------------------------
-  ipHdr->_len = be16toh(sizeof(EkaIpHdr)+sizeof(EkaTcpHdr));
+  if (type == EpmActionType::ItchHwFastSweep) {
+    ipHdr->_len    = be16toh(sizeof(EkaIpHdr)+sizeof(EkaUdpHdr)+ payloadLen);
+    udpHdr->src    = be16toh(srcPort);
+    udpHdr->dest   = be16toh(dstPort);
+    udpHdr->len    = be16toh(sizeof(EkaUdpHdr) + payloadLen);
+    EKA_LOG("()()()()()()()()()() type == EpmActionType::ItchHwFastSweep");
+  } else {
+    tcpHdr->src    = be16toh(srcPort);
+    tcpHdr->dest   = be16toh(dstPort);
+    tcpHdr->_hdrlen_rsvd_flags = be16toh(0x5000 | EKA_TCP_FLG_PSH | EKA_TCP_FLG_ACK);
+    tcpHdr->urgp = 0;
+    //---------------------------------------------------------
+    ipHdr->_len = be16toh(sizeof(EkaIpHdr)+sizeof(EkaTcpHdr));
+    EKA_LOG("()()()()()()()()()() type == EpmActionType::OTHER");
+  }
   ipHdr->_chksum = csum((unsigned short *)ipHdr, sizeof(EkaIpHdr));
 
-  payloadLen = 0;
-  pktSize = sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaTcpHdr) + payloadLen;
-
+  if (type == EpmActionType::ItchHwFastSweep) {
+    pktSize = sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr) + payloadLen;
+  } else {
+    payloadLen = 0;
+    pktSize = sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaTcpHdr) + payloadLen;
+  }
   //---------------------------------------------------------
   setIpTtl();
   tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,payloadLen);
   //---------------------------------------------------------
 
   copyIndirectBuf2HeapHw_swap4(dev,heapAddr,(uint64_t*) ethHdr, thrId, pktSize);
-
+  EKA_LOG("()()()()()()()()()() ipHdr->_len = %d, udpHdr->len = %d, pktSize = %d, ipHdr->_chksum 0x%x",
+	  be16toh(ipHdr->_len),
+	  be16toh(udpHdr->len),
+	  pktSize,
+	  be16toh(ipHdr->_chksum)
+	  
+	  );
+  
   return 0;
 }
 
@@ -385,17 +426,31 @@ int EkaEpmAction::setNwHdrs(uint8_t* macDa,
 
 int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction *epmAction) {
   if (epmAction == NULL) on_error("epmAction == NULL");
-  if (epmAction->offset  < EkaEpm::DatagramOffset) 
-    on_error("epmAction->offset %d < EkaEpm::DatagramOffset %ju",epmAction->offset,EkaEpm::DatagramOffset);
+  type = epmAction->type;
+
+  if (type == EpmActionType::ItchHwFastSweep) { // UDP
+    if (epmAction->offset  < EkaEpm::UdpDatagramOffset) 
+      on_error("epmAction->offset %d < EkaEpm::UdpDatagramOffset %ju",epmAction->offset,EkaEpm::UdpDatagramOffset);
+  } else {
+    if (epmAction->offset  < EkaEpm::DatagramOffset) 
+      on_error("epmAction->offset %d < EkaEpm::DatagramOffset %ju",epmAction->offset,EkaEpm::DatagramOffset);
+  }
+
 
   memcpy (&epmActionLocalCopy,epmAction,sizeof(epmActionLocalCopy));
   
-  type = epmAction->type;
   setActionBitmap();
   setTemplate();
   setName();
   
-  heapOffs   = epmAction->offset - EkaEpm::DatagramOffset;
+  if (type == EpmActionType::ItchHwFastSweep) { // UDP
+    if (epmAction->offset  < EkaEpm::UdpDatagramOffset) 
+      heapOffs   = epmAction->offset - EkaEpm::UdpDatagramOffset;
+  } else {
+    if (epmAction->offset  < EkaEpm::DatagramOffset) 
+      heapOffs   = epmAction->offset - EkaEpm::DatagramOffset;
+  }
+  
   if (heapOffs % 32 != 0) on_error("heapOffs %d (must be X32)",heapOffs);
 
   heapAddr   = EpmHeapHwBaseAddr + heapOffs;
@@ -411,10 +466,19 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
 /* ----------------------------------------------------- */
 
   if (dev->core[coreId] == NULL) on_error("dev->core[%u] == NULL",coreId);
-  EkaTcpSess* sess = dev->core[coreId]->tcpSess[sessId];
-  if (sess == NULL) on_error("dev->core[%u]->tcpSess[%u] == NULL",coreId,sessId);
 
-  setNwHdrs(sess->macDa,sess->macSa,sess->srcIp,sess->dstIp,sess->srcPort,sess->dstPort);
+
+
+  if (type == EpmActionType::ItchHwFastSweep) { // UDP
+    EkaUdpTxSess* udpSess = dev->core[coreId]->udpTxSess[sessId];
+    if (udpSess == NULL) on_error("dev->core[%u]->udpTxSess[%u] == NULL",coreId,sessId);
+    setNwHdrs(udpSess->macDa_,udpSess->macSa_,udpSess->srcIp_,udpSess->dstIp_,udpSess->srcPort_,udpSess->dstPort_);
+  } else {
+    EkaTcpSess*   sess    = dev->core[coreId]->tcpSess[sessId];
+    if (sess == NULL) on_error("dev->core[%u]->tcpSess[%u] == NULL",coreId,sessId);
+    setNwHdrs(sess->macDa,sess->macSa,sess->srcIp,sess->dstIp,sess->srcPort,sess->dstPort);
+  }
+  
 
   /* EKA_LOG("%s:%u --> %s:%u",EKA_IP2STR(sess->srcIp),sess->srcPort, */
   /* 	  EKA_IP2STR(sess->dstIp),sess->dstPort); */
@@ -461,15 +525,25 @@ int EkaEpmAction::setPktPayload(const void* buf, uint len) {
   if (payloadLen != len) {
     same = false;
     payloadLen = len;
-    pktSize = EkaEpm::DatagramOffset + payloadLen;
 
-    ipHdr->_len    = be16toh(sizeof(EkaIpHdr)+sizeof(EkaTcpHdr)+payloadLen);
+    if (type == EpmActionType::ItchHwFastSweep) {
+      pktSize = EkaEpm::UdpDatagramOffset + payloadLen;
+      ipHdr->_len    = be16toh(sizeof(EkaIpHdr)+sizeof(EkaUdpHdr)+payloadLen);
+    } else {
+      pktSize = EkaEpm::DatagramOffset + payloadLen;
+      ipHdr->_len    = be16toh(sizeof(EkaIpHdr)+sizeof(EkaTcpHdr)+payloadLen);
+    }
     ipHdr->_chksum = 0;
     ipHdr->_chksum = csum((unsigned short *)ipHdr, sizeof(EkaIpHdr));
 
-    // wrting to FPGA heap IP len & csum
+    // wrting to FPGA heap IP len & csum1
     copyIndirectBuf2HeapHw_swap4(dev,heapAddr + 16, (uint64_t*) &epm->heap[heapOffs + 16], thrId, 16);
+    EKA_LOG("()()()()()()()()()() payloadLen != len ipHdr->_len = %d, pktSize = %d",
+	    ipHdr->_len,
+	    pktSize);
+
   }
+  EKA_LOG("()()()()()()()()()() payloadLen == len == %d",payloadLen);
 
   uint8_t prevBuf[2000] = {};
   memcpy(prevBuf,&epm->heap[heapOffs],pktSize);

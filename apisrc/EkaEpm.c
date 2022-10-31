@@ -244,10 +244,12 @@ EkaOpResult EkaEpm::getStrategyEnableBits(epm_strategyid_t strategyIdx,
 EkaOpResult EkaEpm::payloadHeapCopy(epm_strategyid_t strategyIdx, 
 				    uint32_t offset,
 				    uint32_t length, 
-				    const void *contents) {
-  if ((offset - DatagramOffset) % PayloadAlignment != 0) {
-    EKA_WARN("offset (%d) - DatagramOffset (%d) %% PayloadAlignment (=%d) != 0",
-	     (int)offset,(int)DatagramOffset,(int)PayloadAlignment);
+				    const void *contents, const bool isUdpDatagram) {
+  uint64_t payloadOffset = isUdpDatagram ? UdpDatagramOffset : DatagramOffset;
+
+  if ((offset - payloadOffset) % PayloadAlignment != 0) {
+    EKA_WARN("offset (%d) - payloadOffset (%d) %% PayloadAlignment (=%d) != 0",
+	     (int)offset,(int)payloadOffset,(int)PayloadAlignment);
     return EKA_OPRESULT__ERR_INVALID_ALIGN;
   }
        

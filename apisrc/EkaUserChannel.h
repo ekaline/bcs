@@ -22,7 +22,9 @@ class EkaUserChannel : public EkaDmaChannel<16> {
 				 EXCEPTION    = 6,
 				 FAST_CANCEL  = 7,
 				 NEWS         = 8,
-				 SW_TRIGGERED = 9}; // type in descriptor
+			         SW_TRIGGERED = 9,
+				 SWEEP        = 10
+				   }; // type in descriptor
 
   TYPE type;
 

@@ -133,6 +133,7 @@ extern "C" {
 
 /** Positive values indicate success, negative indicate an error. */
  using ExcConnHandle = int16_t;
+ using ExcUdpTxConnHandle = ExcConnHandle;
 
   enum class EkaSource : uint8_t {
        #define EkaSource_ENUM_ITER( _x )		\

@@ -164,7 +164,8 @@ typedef int32_t epm_actionid_t;
 enum EpmDeviceCapability : int {
   EHC_PayloadMemorySize,       ///< Total bytes available for messages, including headers, trailers and alignment (heap size).
   EHC_PayloadAlignment,        ///< Every message must be start-aligned to multiple of this value relative to heap start.
-  EHC_DatagramOffset,          ///< TCP/UDP payload offset relative to a message start.
+  EHC_DatagramOffset,          ///< TCP payload offset relative to a message start.
+  EHC_UdpDatagramOffset,       ///< UDP payload offset relative to a message start.
   EHC_RequiredTailPadding,     ///< Reserved space after payload within a packet (after each payload this much bytes
                                ///< need to be reserved on the heap for ekaline internal use)
   EHC_MaxStrategies,           ///< Total strategy capacity (maximal number of strategies that may be created at the same time)
@@ -196,6 +197,8 @@ enum class EpmActionType : int {
     CmeHwCancel  = 31,          ///< propagating App sequence
     CmeSwFire    = 32,          ///< propagating App sequence
     CmeSwHeartbeat = 33,        ///< not propagating App sequence
+
+    ItchHwFastSweep = 41,
     
     // User Actions
     UserAction   = 100          ///< EPM fire. No fields managed by HW
@@ -268,6 +271,12 @@ struct EpmFireReport {
   epm_enablebits_t postStratEnable;   ///< Strategy-level enable bits after fire
   uintptr_t user;                     ///< Opaque value copied from EpmAction
   bool local;                         ///< True -> called from epmRaiseTrigger
+};
+
+struct EpmFastSweepReport {
+  uint16_t        udpPayloadSize;  ///< Field from trigger MD
+  uint16_t        locateID;        ///< Field from trigger MD
+  uint16_t        lastMsgNum;      ///< Field from trigger MD
 };
 
 struct EpmFastCancelReport {
@@ -554,7 +563,8 @@ EkaOpResult epmSetAction(EkaDev *ekaDev, epm_strategyid_t strategy,
  */
 EkaOpResult epmPayloadHeapCopy(EkaDev *ekaDev, epm_strategyid_t strategy, 
 			       uint32_t offset, uint32_t length, 
-			       const void *contents);
+			       const void *contents, 
+			       const bool isUdpDatagram = false);
 
 /**
  * Gets strategy-level enable bits.

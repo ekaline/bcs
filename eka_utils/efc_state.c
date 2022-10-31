@@ -64,10 +64,17 @@ struct EfcState {
   bool     reportOnly         = false;
   bool     fatalDebug         = false;
   bool     armed              = false;
+  uint32_t arm_ver            = 0;
   bool     killSwitch         = false;
 };
 
 struct FastCancelState {
+  uint64_t strategyRuns       = 0;
+  uint64_t strategyPassed     = 0;
+  bool     reportOnly         = false;
+};
+
+struct FastSweepState {
   uint64_t strategyRuns       = 0;
   uint64_t strategyPassed     = 0;
   bool     reportOnly         = false;
@@ -100,12 +107,12 @@ inline uint64_t reg_read (uint32_t addr) {
 //################################################
 
 inline void getExceptions(EfcExceptionsReport* excpt, uint8_t coresBitmap) {
-  excpt->globalExcpt = reg_read(ADDR_INTERRUPT_SHADOW_RO);
+  excpt->exceptionStatus.globalVector = reg_read(ADDR_INTERRUPT_SHADOW_RO);
   for (int i = 0; i < EFC_MAX_CORES; i++) {
     if (((0x01 << i) & 0xFF) & coresBitmap) {
-      excpt->coreExcpt[i] = reg_read(EKA_ADDR_INTERRUPT_0_SHADOW_RO + i * 0x1000);
+      excpt->exceptionStatus.portVector[i] = reg_read(EKA_ADDR_INTERRUPT_0_SHADOW_RO + i * 0x1000);
     } else {
-      excpt->coreExcpt[i] = 0;
+      excpt->exceptionStatus.portVector[i] = 0;
     }
   }
 }
@@ -435,7 +442,9 @@ int getEfcState(EfcState* pEfcState) {
   pEfcState->ordersSubscribed   = (var_p4_cont_counter3>>0)  & MASK32;
   pEfcState->ordersUnsubscribed = (var_p4_cont_counter3>>32) & MASK32;
 
-  pEfcState->armed              = (reg_read(P4_ARM_DISARM) & 0x1) != 0;
+  uint64_t armReg               = reg_read(P4_ARM_DISARM);
+  pEfcState->armed              = (armReg & 0x1) != 0;
+  pEfcState->arm_ver            = (armReg >> 32) & 0xFFFFFFFF;
   pEfcState->killSwitch         = (reg_read(KILL_SWITCH)   & 0x1) != 0;
 
   /* pEfcState->forceFire          = (var_p4_general_conf>>63)  & 0x1; */
@@ -463,6 +472,20 @@ int getFastCancelState(FastCancelState* pFastCancelState) {
 }
 
 //################################################
+int getFastSweepState(FastSweepState* pFastSweepState) {
+
+  uint64_t var_fc_cont_counter1  = reg_read(0xf0810);
+
+  uint64_t var_p4_general_conf	 = reg_read(ADDR_P4_GENERAL_CONF);
+
+  pFastSweepState->strategyRuns       = (var_fc_cont_counter1>>32)& MASK32;
+  pFastSweepState->strategyPassed     = (var_fc_cont_counter1>>0) & MASK32;
+
+  pFastSweepState->reportOnly         = (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT)        != 0;
+  return 0;
+}
+
+//################################################
 int getNewsState(NewsState* pNewsState) {
 
   uint64_t var_news_cont_counter1  = reg_read(0xf0808);
@@ -484,12 +507,12 @@ int printEfcState(EfcState* pEfcState) {
     printf (RED "Fatal KILL SWITCH is turned ON!!! - reload driver is needed!!!\n\n" RESET);
   }
   if (! pEfcState->armed) {
-    printf (RED "CONTROLLER STATE: UNARMED\n" RESET);
+    printf (RED "CONTROLLER STATE: UNARMED, expected version=%d\n" RESET,pEfcState->arm_ver);
   } else {
     if (pEfcState->fatalDebug)
       printf (RED "CONTROLLER STATE: ARMED -- can be overidden by \'Fatal Debug\' \n" RESET);
     else 
-      printf (GRN "CONTROLLER STATE: ARMED\n" RESET);
+      printf (GRN "CONTROLLER STATE: ARMED, expected version=%d\n" RESET,pEfcState->arm_ver);
   }
   if (pEfcState->fatalDebug)
     printf(RED "WARNING: \'Fatal Debug\' is Active\n" RESET);
@@ -524,6 +547,17 @@ int printFastCancelState(FastCancelState* pFastCancelState) {
 }
 
 //################################################
+int printFastSweepState(FastSweepState* pFastSweepState) {
+  printf("Generic parser template: ITCH Fast Sweep\n\n"); 
+  printf("ReportOnly              = %d (needs re-arming)\n\n",pFastSweepState->reportOnly);
+
+  printf("Evaluated   strategies:\t%ju\n",pFastSweepState->strategyRuns);
+  printf("Passed      strategies:\t%ju\n",pFastSweepState->strategyPassed);
+
+  return 0;
+}
+
+//################################################
 int printNewsState(NewsState* pNewsState) {
   printf("Generic parser template: NEWS\n\n");  
   printf("ReportOnly              = %d (needs re-arming)\n\n",pNewsState->reportOnly);
@@ -543,6 +577,7 @@ int main(int argc, char *argv[]) {
   EkaHwCaps* ekaHwCaps = new EkaHwCaps(NULL);
   auto pEfcState = new EfcState;
   auto pFastCancelState = new FastCancelState;
+  auto pFastSweepState = new FastSweepState;
   auto pNewsState = new NewsState;
   auto pEfcExceptionsReport = new EfcExceptionsReport;
   /* ----------------------------------------- */
@@ -556,6 +591,9 @@ int main(int argc, char *argv[]) {
     ekaHwCaps->refresh();
     /* ----------------------------------------- */
     switch (ekaHwCaps->hwCaps.version.parser) {
+    case 29:
+      getFastSweepState(pFastSweepState);
+      break;
     case 30:
       getNewsState(pNewsState);
       break;
@@ -585,6 +623,9 @@ int main(int argc, char *argv[]) {
     printLineSeparator(coreParams,'+','-');
     /* ----------------------------------------- */
     switch (ekaHwCaps->hwCaps.version.parser) {
+    case 29:
+      printFastSweepState(pFastSweepState);
+      break;
     case 30:
       printNewsState(pNewsState);
       break;
