@@ -109,8 +109,8 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx,
     if (!dev->core[coreId]->udpTxSess[sessId])
       on_error("Wrong Udp Tx sessId %u at core %u",sessId,coreId);
     EkaUdpTxSess* sess = dev->core[coreId]->udpTxSess[sessId];
-      ekaA->updateAttrs(coreId,sessId,epmAction);
-  ekaA->setNwHdrs(sess->macDa_,sess->macSa_,
+    ekaA->updateAttrs(coreId,sessId,epmAction);
+    ekaA->setNwHdrs(sess->macDa_,sess->macSa_,
 		    sess->srcIp_,sess->dstIp_,
 		    sess->srcPort_,sess->dstPort_);
   } else {

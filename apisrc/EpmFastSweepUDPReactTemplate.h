@@ -33,6 +33,9 @@ class EpmFastSweepUDPReactTemplate : public EpmTemplate {
 	{"MDLocateID" ,                 2, HwField::SECURITY_ID, true,  true },
 	{"MDUDPPayloadSize" ,           2, HwField::SIZE,        true,  true },
 	{"MDLastMsgNumber" ,            2, HwField::PRICE,       true,  true },
+	/* {"MDLocateID" ,                 2, HwField::SECURITY_ID, false,  false }, */
+	/* {"MDUDPPayloadSize" ,           2, HwField::SIZE,        false,  false }, */
+	/* {"MDLastMsgNumber" ,            2, HwField::PRICE,       false,  false }, */
 	{"Padding60" ,                 12, HwField::IMMEDIATE,   false, false },
       };
 

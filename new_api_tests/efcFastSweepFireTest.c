@@ -419,7 +419,6 @@ int main(int argc, char *argv[]) {
     itchFSAction.postStratMask = AlwaysFire;
     itchFSAction.user          = User;
 	
-    epmSetAction(dev,EFC_STRATEGY,0,&itchFSAction); 
 	
     rc = epmPayloadHeapCopy(dev,
    			    EFC_STRATEGY,
@@ -431,6 +430,8 @@ int main(int argc, char *argv[]) {
       on_error("epmPayloadHeapCopy offset=%u, length=%u rc=%d",
 	       itchFSAction.offset,
 	       (uint)strlen(ItchTestFastSweepMsg),(int)rc);
+
+    epmSetAction(dev,EFC_STRATEGY,0,&itchFSAction); 
     
     // ==============================================
     efcItchFastSweepInit(dev,&params);

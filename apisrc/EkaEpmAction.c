@@ -377,15 +377,17 @@ int EkaEpmAction::setNwHdrs(uint8_t* macDa,
     ipHdr->_proto = EKA_PROTO_TCP;
 
   ipHdr->_chksum = 0;
-  ipHdr->_id  = 0;
-  ipHdr->_len = 0;
+  ipHdr->_id     = 0;
+  ipHdr->_len    = 0;
+  ipHdr->src     = srcIp;
+  ipHdr->dest    = dstIp;
 
-  ipHdr->src  = srcIp;
-  ipHdr->dest = dstIp;
   if (type == EpmActionType::ItchHwFastSweep) {
-    ipHdr->_len = be16toh(sizeof(EkaIpHdr)+sizeof(EkaUdpHdr));
+    ipHdr->_len    = be16toh(sizeof(EkaIpHdr)+sizeof(EkaUdpHdr)+ payloadLen);
     udpHdr->src    = be16toh(srcPort);
     udpHdr->dest   = be16toh(dstPort);
+    udpHdr->len    = be16toh(sizeof(EkaUdpHdr) + payloadLen);
+    EKA_LOG("()()()()()()()()()() type == EpmActionType::ItchHwFastSweep");
   } else {
     tcpHdr->src    = be16toh(srcPort);
     tcpHdr->dest   = be16toh(dstPort);
@@ -393,11 +395,11 @@ int EkaEpmAction::setNwHdrs(uint8_t* macDa,
     tcpHdr->urgp = 0;
     //---------------------------------------------------------
     ipHdr->_len = be16toh(sizeof(EkaIpHdr)+sizeof(EkaTcpHdr));
+    EKA_LOG("()()()()()()()()()() type == EpmActionType::OTHER");
   }
   ipHdr->_chksum = csum((unsigned short *)ipHdr, sizeof(EkaIpHdr));
 
   if (type == EpmActionType::ItchHwFastSweep) {
-
     pktSize = sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr) + payloadLen;
   } else {
     payloadLen = 0;
@@ -409,7 +411,14 @@ int EkaEpmAction::setNwHdrs(uint8_t* macDa,
   //---------------------------------------------------------
 
   copyIndirectBuf2HeapHw_swap4(dev,heapAddr,(uint64_t*) ethHdr, thrId, pktSize);
-
+  EKA_LOG("()()()()()()()()()() ipHdr->_len = %d, udpHdr->len = %d, pktSize = %d, ipHdr->_chksum 0x%x",
+	  be16toh(ipHdr->_len),
+	  be16toh(udpHdr->len),
+	  pktSize,
+	  be16toh(ipHdr->_chksum)
+	  
+	  );
+  
   return 0;
 }
 
@@ -516,15 +525,25 @@ int EkaEpmAction::setPktPayload(const void* buf, uint len) {
   if (payloadLen != len) {
     same = false;
     payloadLen = len;
-    pktSize = EkaEpm::DatagramOffset + payloadLen;
 
-    ipHdr->_len    = be16toh(sizeof(EkaIpHdr)+sizeof(EkaTcpHdr)+payloadLen);
+    if (type == EpmActionType::ItchHwFastSweep) {
+      pktSize = EkaEpm::UdpDatagramOffset + payloadLen;
+      ipHdr->_len    = be16toh(sizeof(EkaIpHdr)+sizeof(EkaUdpHdr)+payloadLen);
+    } else {
+      pktSize = EkaEpm::DatagramOffset + payloadLen;
+      ipHdr->_len    = be16toh(sizeof(EkaIpHdr)+sizeof(EkaTcpHdr)+payloadLen);
+    }
     ipHdr->_chksum = 0;
     ipHdr->_chksum = csum((unsigned short *)ipHdr, sizeof(EkaIpHdr));
 
-    // wrting to FPGA heap IP len & csum
+    // wrting to FPGA heap IP len & csum1
     copyIndirectBuf2HeapHw_swap4(dev,heapAddr + 16, (uint64_t*) &epm->heap[heapOffs + 16], thrId, 16);
+    EKA_LOG("()()()()()()()()()() payloadLen != len ipHdr->_len = %d, pktSize = %d",
+	    ipHdr->_len,
+	    pktSize);
+
   }
+  EKA_LOG("()()()()()()()()()() payloadLen == len == %d",payloadLen);
 
   uint8_t prevBuf[2000] = {};
   memcpy(prevBuf,&epm->heap[heapOffs],pktSize);
