@@ -318,7 +318,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,
     FhPlevel* topBid = s->bid;
     FhPlevel* topAsk = s->ask;
 
-    EfhQuoteMsg msg = {};
+    EfhQuoteMsg msg{};
     msg.header.msgType        = EfhMsgType::kQuote;
     msg.header.group.source   = exch;
     msg.header.group.localId  = grId;

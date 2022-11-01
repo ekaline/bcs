@@ -71,7 +71,7 @@ template <const uint SEC_HASH_SCALE,class FhSecurity, class QuotePostProc, class
 
     if (s == NULL) on_error("s == NULL");
 
-    EfhQuoteMsg msg = {};
+    EfhQuoteMsg msg{};
     msg.header.msgType        = EfhMsgType::kQuote;
     msg.header.group.source   = exch;
     msg.header.group.localId  = grId;

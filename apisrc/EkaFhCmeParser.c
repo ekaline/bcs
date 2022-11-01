@@ -251,7 +251,8 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
     msg.header.group.localId  = id;
     msg.header.underlyingId   = 0;
     msg.header.sequenceNumber = pktSeq;
-    msg.header.timeStamp      = transactTime; //pktTime; //rootBlock->LastUpdateTime;
+    msg.header.timeStamp      = pktTime;
+    msg.header.transactTime   = transactTime;
     msg.header.gapNum         = gapNum;
 
     const char *const auctionIdEnd = rootBlock->QuoteReqID +
@@ -376,7 +377,8 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
       book->generateOnQuote (pEfhRunCtx,
                              s,
                              pktSeq,
-                             transactTime, //pktTime,
+			     pktTime,
+                             transactTime,
                              gapNum);
     }
     /* if (tobChange) book->generateOnOrder (pEfhRunCtx,  */
@@ -396,7 +398,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
       hdr->group.source   = exch;
       hdr->group.localId  = id;
       hdr->sequenceNumber = pktSeq;
-      hdr->timeStamp      = transactTime; //pktTime;
+      hdr->timeStamp      = pktTime;
       switch (e->MDUpdateAction) {
       case MDUpdateAction_T::New: {
 	auto dstMsg {reinterpret_cast<MdNewPlevel*>(msgBuf)};
@@ -478,19 +480,22 @@ int EkaFhCmeGr::process_MDIncrementalRefreshTradeSummary48(const EfhRunCtx* pEfh
 	FhSecurity* s = book->findSecurity(e->SecurityID);
 	if (!s) continue;
 
-	const EfhTradeMsg msg = {
-	    { EfhMsgType::kTrade,
-	      {exch,(EkaLSI)id}, // group
-	      0,  // underlyingId
-	      (uint64_t) e->SecurityID,
-	      pktSeq,
-	      transactTime, //pktTime,
-	      gapNum },
-	    e->MDEntryPx / static_cast<std::int64_t>(s->getFinalPriceFactor()),
-	    (uint32_t)e->MDEntrySize,
-	    EfhTradeStatus::kNormal,
-	    EfhTradeCond::kREG
-	};
+	EfhTradeMsg msg{};
+        msg.header.msgType = EfhMsgType::kTrade;
+        msg.header.group.source   = exch;
+        msg.header.group.localId  = id;
+        msg.header.underlyingId   = 0;
+        msg.header.securityId     = (uint64_t) e->SecurityID;
+        msg.header.sequenceNumber = pktSeq;
+        msg.header.timeStamp      = pktTime;
+        msg.header.transactTime   = transactTime;
+        msg.header.gapNum         = gapNum;
+
+        msg.price       = e->MDEntryPx / static_cast<std::int64_t>(s->getFinalPriceFactor());
+        msg.size        = (uint32_t)e->MDEntrySize;
+        msg.tradeStatus = EfhTradeStatus::kNormal;
+        msg.tradeCond   = EfhTradeCond::kREG;
+
 	pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
     }  
     return msgHdr->size;
@@ -529,7 +534,8 @@ int EkaFhCmeGr::process_SecurityStatus30(const EfhRunCtx* pEfhRunCtx,
   book->generateOnQuote (pEfhRunCtx,
 			 s,
 			 pktSeq,
-			 transactTime, //pktTime,
+			 pktTime,
+			 transactTime,
 			 gapNum);
 
   return msgHdr->size;
@@ -574,7 +580,8 @@ int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
       book->generateOnQuote (pEfhRunCtx,
                              s,
                              pktSeq,
-                             transactTime, //pktTime,
+			     pktTime,
+                             transactTime,
                              gapNum);
     }
     m += pGroupSize->blockLength;    
@@ -615,7 +622,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   msg.header.underlyingId   = 0; // Stock index technically an underlying, but no id.
   msg.header.securityId     = rootBlock->SecurityID;
   msg.header.sequenceNumber = pktSeq;
-  msg.header.timeStamp      = pktTime; //rootBlock->LastUpdateTime;
+  msg.header.timeStamp      = pktTime;
   msg.header.gapNum         = gapNum;
 
   msg.commonDef.securityType   = EfhSecurityType::kFuture;
@@ -690,7 +697,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   msg.header.underlyingId   = 0; // Not given to us.
   msg.header.securityId     = rootBlock->SecurityID;
   msg.header.sequenceNumber = pktSeq;
-  msg.header.timeStamp      = pktTime; //rootBlock->LastUpdateTime;
+  msg.header.timeStamp      = pktTime;
   msg.header.gapNum         = gapNum;
 
   msg.commonDef.securityType   = EfhSecurityType::kOption;
@@ -803,7 +810,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   msg.header.underlyingId   = rootBlock->UnderlyingProduct;
   msg.header.securityId     = rootBlock->SecurityID;
   msg.header.sequenceNumber = pktSeq;
-  msg.header.timeStamp      = pktTime; //rootBlock->LastUpdateTime;
+  msg.header.timeStamp      = pktTime;
   msg.header.gapNum         = gapNum;
 
   msg.commonDef.securityType   = EfhSecurityType::kComplex;
