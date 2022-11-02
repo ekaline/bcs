@@ -448,16 +448,16 @@ int EkaEpmAction::setNwHdrs(uint8_t* macDa,
   
   tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,0/* payloadLen */);
   //---------------------------------------------------------
-  hexDump("setNwHdrs",&epm->heap[heapOffs],pktSize);
+  //  hexDump("setNwHdrs",&epm->heap[heapOffs],pktSize);
 
   copyIndirectBuf2HeapHw_swap4(dev,heapAddr,(uint64_t*) ethHdr, thrId, pktSize);
-  EKA_LOG("()()()()()()()()()() ipHdr->_len = %d, udpHdr->len = %d, pktSize = %d, ipHdr->_chksum 0x%x",
-	  be16toh(ipHdr->_len),
-	  be16toh(udpHdr->len),
-	  pktSize,
-	  be16toh(ipHdr->_chksum)
+  /* EKA_LOG("()()()()()()()()()() ipHdr->_len = %d, udpHdr->len = %d, pktSize = %d, ipHdr->_chksum 0x%x", */
+  /* 	  be16toh(ipHdr->_len), */
+  /* 	  be16toh(udpHdr->len), */
+  /* 	  pktSize, */
+  /* 	  be16toh(ipHdr->_chksum) */
 	  
-	  );
+  /* 	  ); */
   
   return 0;
 }
@@ -524,7 +524,7 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
 	     (uint64_t*)&hwAction,sizeof(hwAction)); //write to scratchpad
   atomicIndirectBufWrite(dev, 0xf0238 /* ActionAddr */, 0,0,idx,0);
 
-  hexDump("updateAttrs",&epm->heap[heapOffs],pktSize);
+  /* hexDump("updateAttrs",&epm->heap[heapOffs],pktSize); */
 
   copyIndirectBuf2HeapHw_swap4(dev,heapAddr,(uint64_t*)&epm->heap[heapOffs],thrId,pktSize);
 
@@ -561,12 +561,12 @@ int EkaEpmAction::setPktPayload(const void* buf, uint len) {
 
     // wrting to FPGA heap IP len & csum1
     copyIndirectBuf2HeapHw_swap4(dev,heapAddr + 16, (uint64_t*) &epm->heap[heapOffs + 16], thrId, 16);
-    EKA_LOG("()()()()()()()()()() payloadLen != len ipHdr->_len = %d, pktSize = %d",
-    	    ipHdr->_len,
-    	    pktSize);
+    /* EKA_LOG("()()()()()()()()()() payloadLen != len ipHdr->_len = %d, pktSize = %d", */
+    /* 	    ipHdr->_len, */
+    /* 	    pktSize); */
 
   } else {
-    EKA_LOG("()()()()()()()()()() payloadLen == len == %d",payloadLen);
+    /* EKA_LOG("()()()()()()()()()() payloadLen == len == %d",payloadLen); */
   }
   uint8_t prevBuf[2000] = {};
   memcpy(prevBuf,&epm->heap[heapOffs],pktSize);
@@ -649,7 +649,7 @@ int EkaEpmAction::setUdpPktPayload(const void* buf, uint len) {
   memcpy(&epm->heap[heapOffs + getPayloadOffset()],buf,len);
 
 
-  hexDump("setUdpPktPayload",&epm->heap[heapOffs],pktSize);
+  /* hexDump("setUdpPktPayload",&epm->heap[heapOffs],pktSize); */
   
   //  epmTemplate->clearHwFields(&epm->heap[heapOffs]);
 

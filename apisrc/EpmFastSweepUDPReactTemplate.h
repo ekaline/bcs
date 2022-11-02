@@ -30,15 +30,10 @@ class EpmFastSweepUDPReactTemplate : public EpmTemplate {
 	/* --------------------------- */
 	//42 bytes until now
 	/* --------------------------- */
-	{"Xyunq" ,                 60, HwField::IMMEDIATE,   false, false },
-
 	//                                                          swap, clear
-	// {"MDLocateID" ,                 2, HwField::SECURITY_ID, true,  true },
-	// {"MDUDPPayloadSize" ,           2, HwField::SIZE,        true,  true },
-	// {"MDLastMsgNumber" ,            2, HwField::PRICE,       true,  true },
-	{"MDLocateID" ,                 2, HwField::SECURITY_ID, false,  false },
-	{"MDUDPPayloadSize" ,           2, HwField::SIZE,        false,  false },
-	{"MDLastMsgNumber" ,            2, HwField::PRICE,       false,  false },
+	{"MDLocateID" ,                 2, HwField::SECURITY_ID, true,  true },
+	{"MDUDPPayloadSize" ,           2, HwField::SIZE,        true,  true },
+	{"MDLastMsgNumber" ,            2, HwField::PRICE,       true,  true },
 	{"Padding60" ,                 12, HwField::IMMEDIATE,   false, false },
       };
 

@@ -404,7 +404,7 @@ int main(int argc, char *argv[]) {
 
     // ==============================================
     // Manually prepared ItchTestFastSweepMsg fired by FPGA
-    const char ItchTestFastSweepMsg[] = "012345 Itch Fast Sweep with Dummy payload";
+    const char ItchTestFastSweepMsg[] = "XXXXXXpadding text";
     
     EpmAction itchFSAction = {};
 
@@ -412,7 +412,7 @@ int main(int argc, char *argv[]) {
     itchFSAction.token         = params.token;
     itchFSAction.hConn         = udpConn;
     itchFSAction.offset        = heapOffset + nwHdrOffset;
-    itchFSAction.length        = 60;//strlen(ItchTestFastSweepMsg);
+    itchFSAction.length        = 18;//strlen(ItchTestFastSweepMsg);
     itchFSAction.actionFlags   = AF_Valid;
     itchFSAction.nextAction    = EPM_LAST_ACTION;
     itchFSAction.enable        = AlwaysFire;
@@ -425,7 +425,7 @@ int main(int argc, char *argv[]) {
     rc = epmPayloadHeapCopy(dev,
    			    EFC_STRATEGY,
    			    itchFSAction.offset,
-   			    strlen(ItchTestFastSweepMsg),
+   			    itchFSAction.length,
    			    ItchTestFastSweepMsg,
 			    true); //isudp
     if (rc != EKA_OPRESULT__OK)
