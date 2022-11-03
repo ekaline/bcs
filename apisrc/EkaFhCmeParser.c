@@ -17,6 +17,7 @@
 #include "EkaFhCmeGr.h"
 
 using namespace Cme;
+namespace chrono = std::chrono;
 
 std::string ts_ns2str(uint64_t ts);
 
@@ -55,6 +56,9 @@ template<typename T>
 constexpr T replaceIntNullWith(T num, T fallback) {
   return replaceIntNullWith(num, num, fallback);
 }
+
+constexpr uint64_t DEFAULT_OPT_DEPTH = 3;
+constexpr uint64_t DEFAULT_FUT_DEPTH = 10;
 
 /* ##################################################################### */
 
@@ -229,6 +233,7 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
     auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
     m += sizeof(*msgHdr);
     auto rootBlock {reinterpret_cast<const QuoteRequest39_mainBlock*>(m)};
+    uint64_t transactTime = rootBlock->TransactTime;
     m += msgHdr->blockLen;
     /* ------------------------------- */
     auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
@@ -246,7 +251,7 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
     msg.header.group.localId  = id;
     msg.header.underlyingId   = 0;
     msg.header.sequenceNumber = pktSeq;
-    msg.header.timeStamp      = pktTime; //rootBlock->LastUpdateTime;
+    msg.header.timeStamp      = transactTime; //pktTime; //rootBlock->LastUpdateTime;
     msg.header.gapNum         = gapNum;
 
     const char *const auctionIdEnd = rootBlock->QuoteReqID +
@@ -288,6 +293,8 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
   auto m      {pMsg};
   auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
   m += sizeof(*msgHdr);
+  auto rootBlock {reinterpret_cast<const MDIncrementalRefreshBook46_mainBlock*>(m)};
+  uint64_t transactTime = rootBlock->TransactTime;
   m += msgHdr->blockLen;
   /* ------------------------------- */
   auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
@@ -369,7 +376,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
       book->generateOnQuote (pEfhRunCtx,
                              s,
                              pktSeq,
-                             pktTime,
+                             transactTime, //pktTime,
                              gapNum);
     }
     /* if (tobChange) book->generateOnOrder (pEfhRunCtx,  */
@@ -389,7 +396,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
       hdr->group.source   = exch;
       hdr->group.localId  = id;
       hdr->sequenceNumber = pktSeq;
-      hdr->timeStamp      = pktTime;
+      hdr->timeStamp      = transactTime; //pktTime;
       switch (e->MDUpdateAction) {
       case MDUpdateAction_T::New: {
 	auto dstMsg {reinterpret_cast<MdNewPlevel*>(msgBuf)};
@@ -457,7 +464,8 @@ int EkaFhCmeGr::process_MDIncrementalRefreshTradeSummary48(const EfhRunCtx* pEfh
     auto m      {pMsg};
     auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
     m += sizeof(*msgHdr);
-    //  auto rootBlock {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mainBlock*>(m)};
+    auto rootBlock {reinterpret_cast<const MDIncrementalRefreshTradeSummary48_mainBlock*>(m)};
+    uint64_t transactTime = rootBlock->TransactTime;
     m += msgHdr->blockLen;
     /* ------------------------------- */
     auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};
@@ -476,7 +484,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshTradeSummary48(const EfhRunCtx* pEfh
 	      0,  // underlyingId
 	      (uint64_t) e->SecurityID,
 	      pktSeq,
-	      pktTime,
+	      transactTime, //pktTime,
 	      gapNum },
 	    e->MDEntryPx / static_cast<std::int64_t>(s->getFinalPriceFactor()),
 	    (uint32_t)e->MDEntrySize,
@@ -511,6 +519,7 @@ int EkaFhCmeGr::process_SecurityStatus30(const EfhRunCtx* pEfhRunCtx,
   m += sizeof(*msgHdr);
 
   auto rootBlock {reinterpret_cast<const SecurityStatus30_mainBlock*>(m)};
+  uint64_t transactTime = rootBlock->TransactTime;
 
   auto s {book->findSecurity(rootBlock->SecurityID)};
   if (!s) return msgHdr->size;
@@ -520,7 +529,7 @@ int EkaFhCmeGr::process_SecurityStatus30(const EfhRunCtx* pEfhRunCtx,
   book->generateOnQuote (pEfhRunCtx,
 			 s,
 			 pktSeq,
-			 pktTime,
+			 transactTime, //pktTime,
 			 gapNum);
 
   return msgHdr->size;
@@ -535,6 +544,7 @@ int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
   auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
   m += sizeof(*msgHdr);
   auto rootBlock {reinterpret_cast<const SnapshotFullRefresh52_mainBlock*>(m)};
+  uint64_t transactTime = rootBlock->TransactTime;
   m += msgHdr->blockLen;
 
   //  seq_after_snapshot = rootBlock->LastMsgSeqNumProcessed + 1;
@@ -564,7 +574,7 @@ int EkaFhCmeGr::process_SnapshotFullRefresh52(const EfhRunCtx* pEfhRunCtx,
       book->generateOnQuote (pEfhRunCtx,
                              s,
                              pktSeq,
-                             pktTime,
+                             transactTime, //pktTime,
                              gapNum);
     }
     m += pGroupSize->blockLength;    
@@ -614,7 +624,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   msg.commonDef.contractSize   = replaceIntNullWith<Decimal9NULL_T>(
       rootBlock->UnitOfMeasureQty, rootBlock->UnitOfMeasureQty / EFH_CME_PRICE_SCALE, 0);
   msg.commonDef.opaqueAttrA    = computeFinalPriceFactor(rootBlock->DisplayFactor);
-  msg.commonDef.opaqueAttrB    = 10; // default Market Depth for Futures
+  msg.commonDef.opaqueAttrB    = DEFAULT_FUT_DEPTH; // default Market Depth for Futures
   getCMEProductTradeTime(pMaturity, rootBlock->Symbol, &msg.commonDef.expiryDate, &msg.commonDef.expiryTime);
 
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
@@ -698,7 +708,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   msg.strikePrice           = rootBlock->StrikePrice / priceAdjustFactor;
   msg.segmentId             = rootBlock->MarketSegmentID;
 
-  msg.commonDef.opaqueAttrB = 3; // default MarketDepth for Options
+  msg.commonDef.opaqueAttrB = DEFAULT_OPT_DEPTH; // default MarketDepth for Options
 
   /* ------------------------------- */
   auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
@@ -757,26 +767,35 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
 /* ##################################################################### */     
 
 int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunCtx,
-						   const uint8_t*   pMsg,
-						   const uint64_t   pktTime,
-						       const SequenceT  pktSeq) {
+                                                       const uint8_t*   pMsg,
+                                                       const uint64_t   pktTime,
+                                                       const SequenceT  pktSeq) {
   auto m      {pMsg};
   auto msgHdr {reinterpret_cast<const MsgHdr*>(m)};
   m += sizeof(*msgHdr);
   auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionSpread56_mainBlock*>(m)};
   m += msgHdr->blockLen;
 
-  if (rootBlock->CFICode[0] == 'F' && rootBlock->CFICode[1] == 'M') {
-    // This is an intramarket spread, also referred to as a calendar spread.
-    // It involves buying a futures contract in one month while simultaneously
-    // selling the same contract in a different month. We do not care about
-    // these for now, we are only looking for options spreads.
+  EfhSecurityType underlyingType;
+  uint64_t defaultDepth;
+  switch (rootBlock->CFICode[0]) {
+  case 'O':
+    underlyingType = EfhSecurityType::kOption;
+    defaultDepth = DEFAULT_OPT_DEPTH;
+    break;
+  case 'F':
+    underlyingType = EfhSecurityType::kFuture;
+    defaultDepth = DEFAULT_FUT_DEPTH;
+    break;
+  default:
+    EKA_WARN("found non-options-spread or -futures-spread `%d` (CFI: '%.6s', SecurityType: '%.6s', UnderlyingProduct: %hhu)",
+             rootBlock->SecurityID, rootBlock->CFICode, rootBlock->SecurityType, rootBlock->UnderlyingProduct);
     return msgHdr->size;
   }
-
+  
   /* ------------------------------- */
   
-  const int64_t priceAdjustFactor = computeFinalPriceFactor(rootBlock->DisplayFactor);
+  const uint64_t priceAdjustFactor = computeFinalPriceFactor(rootBlock->DisplayFactor);
   EfhComplexDefinitionMsg msg{};
   msg.header.msgType        = EfhMsgType::kComplexDefinition;
   msg.header.group.source   = EkaSource::kCME_SBE;
@@ -789,12 +808,12 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
 
   msg.commonDef.securityType   = EfhSecurityType::kComplex;
   msg.commonDef.exchange       = EfhExchange::kCME;
-  msg.commonDef.underlyingType = EfhSecurityType::kInvalid;
-  msg.commonDef.expiryDate     = 0; // FIXME: for completeness only, could be "today"
+  msg.commonDef.underlyingType = underlyingType;
+  msg.commonDef.expiryDate     = 0;
   msg.commonDef.expiryTime     = 0;
   msg.commonDef.contractSize   = 0;
   msg.commonDef.opaqueAttrA    = priceAdjustFactor;
-  msg.commonDef.opaqueAttrB    = 3; // Market Depth
+  msg.commonDef.opaqueAttrB    = defaultDepth; // Market Depth
 
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
   copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
@@ -804,10 +823,28 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   //copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
 
   /* ------------------------------- */
+  const static auto todayAtMidnight = systemClockAtMidnight();
+
   auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize_EventType);
-  for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++) 
+  for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++) {
+    auto e {reinterpret_cast<const DefinitionEventEntry*>(m)};
+    if (e->EventType == DefinitionEventType_T::LastTradeDate) {
+      // Expiration time
+      const chrono::system_clock::time_point expiryTime(chrono::nanoseconds(e->EventTime));
+      msg.commonDef.expiryTime = chrono::system_clock::to_time_t(expiryTime);
+
+      if (expiryTime < todayAtMidnight) {
+        struct tm *timeinfo = localtime(&msg.commonDef.expiryTime);
+        char expiryFmt[32];
+        strftime(expiryFmt, sizeof(expiryFmt), "%F %T%z", timeinfo);
+        EKA_TRACE("skipping spread `%d` that expired before today (expiry = %s)",
+                  rootBlock->SecurityID, expiryFmt);
+        return msgHdr->size;
+      }
+    }
     m += pGroupSize_EventType->blockLength;
+  }
   /* ------------------------------- */		
   auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize_FeedType);

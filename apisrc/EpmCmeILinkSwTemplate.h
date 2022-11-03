@@ -1,11 +1,11 @@
-#ifndef _EPM_CME_ILINK_TEMPLATE_H_
-#define _EPM_CME_ILINK_TEMPLATE_H_
+#ifndef _EPM_CME_ILINK_SW_TEMPLATE_H_
+#define _EPM_CME_ILINK_SW_TEMPLATE_H_
 
 #include "EpmTemplate.h"
 
-class EpmCmeILinkTemplate : public EpmTemplate {
+class EpmCmeILinkSwTemplate : public EpmTemplate {
  public:
- EpmCmeILinkTemplate(uint idx) : EpmTemplate(idx) {
+ EpmCmeILinkSwTemplate(uint idx) : EpmTemplate(idx) {
       EpmTemplateField myTemplateStruct[] = {
       {"macDa"  , 6, HwField::IMMEDIATE,    false, false},
       {"macSa"  , 6, HwField::IMMEDIATE,    false, false},
@@ -41,7 +41,7 @@ class EpmCmeILinkTemplate : public EpmTemplate {
       {"Version" ,                     2, HwField::IMMEDIATE,    false, false },
       /* --------------------------- */
       {"PartyDetailsListReqID" ,       8, HwField::IMMEDIATE,    false, false }, 
-      {"SendingTimeEpoch" ,            8, HwField::TIME,         false, true  }, 
+      {"SendingTimeEpoch" ,            8, HwField::IMMEDIATE,    false, false }, 
       {"ManualOrderIndicator" ,        1, HwField::IMMEDIATE,    false, false }, 
       {"SeqNum",                       4, HwField::APPSEQ,       true,  true  },
       {"Trailing" ,                  1000, HwField::IMMEDIATE,    false, false }, // common trailing at all ILink msgs
@@ -51,7 +51,7 @@ class EpmCmeILinkTemplate : public EpmTemplate {
     tSize = sizeof(myTemplateStruct) / sizeof(EpmTemplateField);
     if (tSize > MAX_FIELDS) on_error ("tSize %u > MAX_FIELDS %u",tSize, MAX_FIELDS);
     memcpy(templateStruct,myTemplateStruct,sizeof(myTemplateStruct));
-    strcpy(name,"EpmCmeILinkTemplate");
+    strcpy(name,"EpmCmeILinkSwTemplate");
     init();
   }
 

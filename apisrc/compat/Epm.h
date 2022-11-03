@@ -138,6 +138,7 @@ typedef int32_t epm_actionid_t;
 
 #define EFC_STRATEGY 0
 #define EPM_INVALID_STRATEGY 255
+#define EPM_NO_STRATEGY 254
 
 /* The ekaline library provides the internal memory pool (heap) that is divided into two parts:
  *  - implicit used for actions (not directly accessible by applications)
@@ -269,6 +270,17 @@ struct EpmFireReport {
   bool local;                         ///< True -> called from epmRaiseTrigger
 };
 
+struct EpmFastCancelReport {
+  uint8_t         numInGroup;        ///< Field from trigger MD
+  uint16_t        headerSize;        ///< Field from trigger MD
+  uint32_t        sequenceNumber;    ///< Field from trigger MD
+};
+
+struct EpmNewsReport {
+  uint16_t        strategyIndex;      ///< Field from trigger MD
+  uint8_t         strategyRegion;     ///< Field from trigger MD
+  uint64_t        token;              ///< Field from trigger MD
+};
 typedef void (*EpmFireReportCb)(const EpmFireReport *report, int nReports, void *ctx);
 
 /**

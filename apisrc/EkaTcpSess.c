@@ -30,6 +30,7 @@ unsigned int pseudo_csum(unsigned short *ptr,int nbytes);
 uint16_t pseudo_csum2csum (uint32_t pseudo);
 unsigned short csum(unsigned short *ptr,int nbytes);
 void hexDump (const char *desc, void *addr, int len);
+int ekaAddArpEntry(EkaDev* dev, EkaCoreId coreId, const uint32_t* protocolAddr,const uint8_t* hwAddr);
 
 inline bool eka_is_all_zeros (void* buf, ssize_t size) {
   uint8_t* b = (uint8_t*) buf;
@@ -165,35 +166,46 @@ int EkaTcpSess::connect() {
                                       (const ip4_addr_t**)&ipPtr);
 
   if (arpEntry == -1) {
-    // ARP entry is not cached, send a request on the network.
-    EKA_LOG("%s %s hw address not cached; sending ARP request from core %u",who,
-            EKA_IP2STR(nextHopIPv4),coreId);
-    LOCK_TCPIP_CORE();
-    const err_t arpReqErr = etharp_request(pLwipNetIf, (const ip4_addr_t*)&nextHopIPv4);
-    if (arpReqErr != ERR_OK) {
-      EKA_WARN("etharp_query failed for %s %s: %s (%d)",who,EKA_IP2STR(nextHopIPv4),
-               lwip_strerr(arpReqErr),int(arpReqErr));
-      errno = err_to_errno(arpReqErr);
-      return -1;
-    }
-    UNLOCK_TCPIP_CORE();
-
-    // Keep looking until we find it, with microsecond sleeps in between, since
-    // it may take several milliseconds for the host to respond to us.
-    for (int trials = 0; arpEntry == -1 && dev->servThreadActive && trials < 100000;
-         (void)usleep(1), ++trials) {
+    if (! eka_is_all_zeros(&parent->macDa,6)) {
+      EKA_LOG("Lane %u: Adding Dest IP %s with MAC %s to ARP table",
+	      coreId,EKA_IP2STR(dstIp),EKA_MAC2STR(parent->macDa));
+      if (ekaAddArpEntry(dev, coreId, &dstIp, parent->macDa) == -1)
+	on_error("Failed to add static ARP entry for lane %u: %s --> %s",
+		 coreId,EKA_IP2STR(dstIp),EKA_MAC2STR(parent->macDa));
       arpEntry = etharp_find_addr(pLwipNetIf,
-                                  (const ip4_addr_t*)&nextHopIPv4,
-                                  (eth_addr**)&macDa_ptr,
-                                  (const ip4_addr_t**)&ipPtr);
-    }
+				  (const ip4_addr_t*)&nextHopIPv4,
+				  (eth_addr**)&macDa_ptr,
+				  (const ip4_addr_t**)&ipPtr);
+    } else {
+      // ARP entry is not cached, send a request on the network.
+      EKA_LOG("%s %s hw address not cached; sending ARP request from core %u",who,
+	      EKA_IP2STR(nextHopIPv4),coreId);
+      LOCK_TCPIP_CORE();
+      const err_t arpReqErr = etharp_request(pLwipNetIf, (const ip4_addr_t*)&nextHopIPv4);
+      if (arpReqErr != ERR_OK) {
+	EKA_WARN("etharp_query failed for %s %s: %s (%d)",who,EKA_IP2STR(nextHopIPv4),
+		 lwip_strerr(arpReqErr),int(arpReqErr));
+	errno = err_to_errno(arpReqErr);
+	return -1;
+      }
+      UNLOCK_TCPIP_CORE();
 
-    if (! dev->servThreadActive) {
-      errno = ENETDOWN; // Network device is gone.
-      return -1;
+      // Keep looking until we find it, with microsecond sleeps in between, since
+      // it may take several milliseconds for the host to respond to us.
+      for (int trials = 0; arpEntry == -1 && dev->servThreadActive && trials < 100000;
+	   (void)usleep(1), ++trials) {
+	arpEntry = etharp_find_addr(pLwipNetIf,
+				    (const ip4_addr_t*)&nextHopIPv4,
+				    (eth_addr**)&macDa_ptr,
+				    (const ip4_addr_t**)&ipPtr);
+      }
+
+      if (! dev->servThreadActive) {
+	errno = ENETDOWN; // Network device is gone.
+	return -1;
+      }
     }
-  }
-  else {
+  } else {
     arpInCache = true;
   }
 

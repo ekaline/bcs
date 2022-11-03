@@ -12,11 +12,17 @@ class EkaUserChannel : public EkaDmaChannel<16> {
  public:
   enum class TYPE     : uint8_t {
 				 EPM_REPORT = 0,
-				 LWIP_PATH = 1} ; //user channel
+				 LWIP_PATH  = 1} ; //user channel
   enum class DMA_TYPE : uint8_t {
-				 FIRE = 1,
-				 EPM = 3,
-				 TCPRX = 4 }; // type in descriptor
+                                 //below are used only in lwip channel
+                                 EPM          = 3,
+ 			         TCPRX        = 4,
+                                 //below are used only in report channel
+                                 FIRE         = 1,
+				 EXCEPTION    = 6,
+				 FAST_CANCEL  = 7,
+				 NEWS         = 8,
+				 SW_TRIGGERED = 9}; // type in descriptor
 
   TYPE type;
 
