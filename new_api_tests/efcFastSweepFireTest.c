@@ -393,7 +393,7 @@ int main(int argc, char *argv[]) {
     
     const EfcItchFastSweepParams params = {
       .minUDPSize     = 150,
-      .minMsgCount    = 4,
+      .minMsgCount    = 5,
       .token          = Token //0x8877665544332211
     };
 

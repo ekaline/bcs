@@ -16,6 +16,7 @@
 #include "EkaEfcDataStructs.h"
 #include "EkaUserReportQ.h"
 
+extern EkaDev *g_ekaDev;
 
 inline size_t pushControllerState(int reportIdx, uint8_t* dst,
 				  const EfcNormalizedFireReport* hwReport) {
@@ -87,7 +88,7 @@ inline size_t pushSecCtx(int reportIdx, uint8_t* dst,
 inline size_t pushFiredPkt(int reportIdx, uint8_t* dst,
 			   EkaUserReportQ* q, uint32_t dmaIdx) {
 
-  while (q->isEmpty()) {}
+  while (g_ekaDev->fireReportThreadActive && q->isEmpty()) {}
   auto firePkt = q->pop();
   auto firePktIndex = firePkt->hdr.index;
     
@@ -105,7 +106,7 @@ inline size_t pushFiredPkt(int reportIdx, uint8_t* dst,
 
   memcpy(b,firePkt->data,firePkt->hdr.length);
   b += firePkt->hdr.length;
-  //  hexDump("pushFiredPkt",firePkt->data,firePkt->hdr.length);
+  hexDump("pushFiredPkt",firePkt->data,firePkt->hdr.length);
 
   return b - dst;
 }
@@ -216,6 +217,8 @@ inline size_t pushSweepReport(int reportIdx, uint8_t* dst,
     epmReport->udpPayloadSize = hwEpmReport->udp_payload_size;
     epmReport->locateID       = hwEpmReport->locate_id;
     epmReport->lastMsgNum     = hwEpmReport->last_msg_num;
+    epmReport->firstMsgType   = hwEpmReport->first_msg_id;
+    epmReport->lastMsgType    = hwEpmReport->last_msg_id;
     
     return b - dst;
 }
@@ -409,6 +412,8 @@ std::pair<int,size_t> processSweepReport(EkaDev* dev,
 					 uint32_t        dmaIdx,
 					 uint8_t*        reportBuf) {
   
+  EKA_LOG("Processgin processSweepReport");
+
   int strategyId2ret = EPM_INVALID_STRATEGY;
   //--------------------------------------------------------------------------
   uint8_t* b =  reportBuf;
@@ -423,11 +428,11 @@ std::pair<int,size_t> processSweepReport(EkaDev* dev,
 
   switch (static_cast<HwEpmActionStatus>(hwEpmReport->epm.action)) {
   case HwEpmActionStatus::Sent : 
+    EKA_LOG("Processgin HwEpmActionStatus::Sent, len=%d",srcReportLen);
     b += pushEpmReport(++reportIdx,b,&hwEpmReport->epm);
     b += pushSweepReport(++reportIdx,b,hwEpmReport);
-    b += pushFiredPkt (++reportIdx,b,q,dmaIdx); 
+    //    b += pushFiredPkt (++reportIdx,b,q,dmaIdx); 
     strategyId2ret = hwEpmReport->epm.strategyId;
-    EKA_LOG("Processgin HwEpmActionStatus::Sent, len=%d",srcReportLen);
     break;
   default:
     // Broken EPM send reported by hwEpmReport->action

@@ -277,6 +277,8 @@ struct EpmFastSweepReport {
   uint16_t        udpPayloadSize;  ///< Field from trigger MD
   uint16_t        locateID;        ///< Field from trigger MD
   uint16_t        lastMsgNum;      ///< Field from trigger MD
+  char            firstMsgType;    ///< Field from trigger MD
+  char            lastMsgType;     ///< Field from trigger MD
 };
 
 struct EpmFastCancelReport {

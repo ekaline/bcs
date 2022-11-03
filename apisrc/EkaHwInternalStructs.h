@@ -197,10 +197,12 @@ struct hw_epm_news_report_t {
 } __attribute__((packed));
 
 struct hw_epm_fast_sweep_report_t {
+  uint8_t         last_msg_id;                     
+  uint8_t         first_msg_id;                     
   uint16_t        last_msg_num;
   uint16_t        locate_id;
   uint16_t        udp_payload_size;
-  uint8_t         b32_padding[26];
+  uint8_t         b32_padding[24];
   hw_epm_report_t epm;
 } __attribute__((packed));
 
