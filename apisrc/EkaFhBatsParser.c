@@ -151,20 +151,22 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     FhOrder* o = book->findOrder(order_id);
     if (! o) return false;
     s = (FhSecurity*)o->plevel->s;
-    
-    const EfhTradeMsg msg = {
-      { EfhMsgType::kTrade,
-	{exch,(EkaLSI)id}, // group
-	0,  // underlyingId
-	(uint64_t) s->secId, 
-	sequence,
-	msg_timestamp,
-	gapNum },
-      o->plevel->price,
-      message->executed_size,
-      s->trading_action,
-      EKA_BATS_TRADE_COND(message->trade_condition)
-    };
+
+    EfhTradeMsg msg{};
+    msg.header.msgType = EfhMsgType::kTrade;
+    msg.header.group.source   = exch;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.securityId     = (uint64_t) s->secId;
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = msg_timestamp;
+    msg.header.gapNum         = gapNum;
+
+    msg.price       = o->plevel->price;
+    msg.size        = message->executed_size;
+    msg.tradeStatus = s->trading_action;
+    msg.tradeCond   = EKA_BATS_TRADE_COND(message->trade_condition);
+
     pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
 
     book->setSecurityPrevState(s);
@@ -186,19 +188,21 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     if (o == NULL) return false;
     s = (FhSecurity*)o->plevel->s;
 
-    const EfhTradeMsg msg = {
-	{ EfhMsgType::kTrade,
-	  {exch,(EkaLSI)id}, // group
-	  0,  // underlyingId
-	  (uint64_t) s->secId, 
-	  sequence,
-	  msg_timestamp,
-	  gapNum },
-	(uint32_t)message->price,
-	message->executed_size,
-	s->trading_action,
-	EKA_BATS_TRADE_COND(message->trade_condition)
-    };
+    EfhTradeMsg msg{};
+    msg.header.msgType = EfhMsgType::kTrade;
+    msg.header.group.source   = exch;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.securityId     = (uint64_t) s->secId;
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = msg_timestamp;
+    msg.header.gapNum         = gapNum;
+
+    msg.price       = (uint32_t)message->price;
+    msg.size        = message->executed_size;
+    msg.tradeStatus = s->trading_action;
+    msg.tradeCond   = EKA_BATS_TRADE_COND(message->trade_condition);
+
     pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
 
     book->setSecurityPrevState(s);
@@ -853,19 +857,21 @@ SecurityT* EkaFhBatsGr::process_TradeShort(const EfhRunCtx* pEfhRunCtx,
     PriceT price = message->price * 100 / EFH_PRICE_SCALE; // Short Price representation
     SizeT  size  = message->size;
 
-    const EfhTradeMsg msg = {
-      { EfhMsgType::kTrade,
-	{exch,(EkaLSI)id}, // group
-	0,  // underlyingId
-	(uint64_t) security_id, 
-	sequence,
-	msg_timestamp,
-	gapNum },
-      price,
-      size,
-      s->trading_action,
-      EKA_BATS_TRADE_COND(message->trade_condition)
-    };
+    EfhTradeMsg msg{};
+    msg.header.msgType = EfhMsgType::kTrade;
+    msg.header.group.source   = exch;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.securityId     = (uint64_t) security_id;
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = msg_timestamp;
+    msg.header.gapNum         = gapNum;
+
+    msg.price       = price;
+    msg.size        = size;
+    msg.tradeStatus = s->trading_action;
+    msg.tradeCond   = EKA_BATS_TRADE_COND(message->trade_condition);
+
     pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
     return s;
   }
@@ -890,20 +896,22 @@ SecurityT* EkaFhBatsGr::process_TradeLong(const EfhRunCtx* pEfhRunCtx,
     /* 	       ts_ns2str(msg_timestamp).c_str(), */
     /* 	       sequence, */
     /* 	       message->price); */
-    
-    const EfhTradeMsg msg = {
-      { EfhMsgType::kTrade,
-	{exch,(EkaLSI)id}, // group
-	0,  // underlyingId
-	(uint64_t) security_id, 
-	sequence,
-	msg_timestamp,
-	gapNum },
-      price,
-      size,
-      s->trading_action,
-      EKA_BATS_TRADE_COND(message->trade_condition)
-    };
+
+    EfhTradeMsg msg{};
+    msg.header.msgType = EfhMsgType::kTrade;
+    msg.header.group.source   = exch;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.securityId     = (uint64_t) security_id;
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = msg_timestamp;
+    msg.header.gapNum         = gapNum;
+
+    msg.price       = price;
+    msg.size        = size;
+    msg.tradeStatus = s->trading_action;
+    msg.tradeCond   = EKA_BATS_TRADE_COND(message->trade_condition);
+
     pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
     return s;
   }
@@ -928,20 +936,22 @@ SecurityT* EkaFhBatsGr::process_TradeExpanded(const EfhRunCtx* pEfhRunCtx,
   /* 	       ts_ns2str(msg_timestamp).c_str(), */
   /* 	       sequence, */
   /* 	       message->price); */
-    
-  const EfhTradeMsg msg = {
-			   { EfhMsgType::kTrade,
-			     {exch,(EkaLSI)id}, // group
-			     0,  // underlyingId
-			     (uint64_t) security_id, 
-			     sequence,
-			     msg_timestamp,
-			     gapNum },
-			   price,
-			   size,
-			   s->trading_action,
-			   EKA_BATS_TRADE_COND(message->trade_condition)
-  };
+
+  EfhTradeMsg msg{};
+  msg.header.msgType = EfhMsgType::kTrade;
+  msg.header.group.source   = exch;
+  msg.header.group.localId  = id;
+  msg.header.underlyingId   = 0;
+  msg.header.securityId     = (uint64_t) security_id;
+  msg.header.sequenceNumber = sequence;
+  msg.header.timeStamp      = msg_timestamp;
+  msg.header.gapNum         = gapNum;
+
+  msg.price       = price;
+  msg.size        = size;
+  msg.tradeStatus = s->trading_action;
+  msg.tradeCond   = EKA_BATS_TRADE_COND(message->trade_condition);
+
   pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
   return s;
 }
