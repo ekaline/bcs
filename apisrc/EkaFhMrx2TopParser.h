@@ -394,7 +394,6 @@ namespace Mrx2Top {
   template <class MsgT>
   inline size_t printDefinition(const void* m, FILE* fd = stdout) {
     //    auto msg {reinterpret_cast <const MsgT*>(m)};
-
     fprintf (fd,"\n");
     return sizeof(MsgT);
   }
@@ -403,7 +402,18 @@ namespace Mrx2Top {
   template <class MsgT>
   inline size_t printTwoSidesUpdate(const void* m, FILE* fd = stdout) {
     //    auto msg {reinterpret_cast <const MsgT*>(m)};
-
+    fprintf (fd,"%u,",getInstrumentId<MsgT>(m));
+    
+    fprintf (fd,"%u,",getBidPrice<MsgT>(m));
+    fprintf (fd,"%u,",getBidSize<MsgT>(m));
+    fprintf (fd,"%u,",getBidCustSize<MsgT>(m));
+    fprintf (fd,"%u,",getBidProCustSize<MsgT>(m));
+    
+    fprintf (fd,"%u,",getAskPrice<MsgT>(m));
+    fprintf (fd,"%u,",getAskSize<MsgT>(m));
+    fprintf (fd,"%u,",getAskCustSize<MsgT>(m));
+    fprintf (fd,"%u,",getAskProCustSize<MsgT>(m));
+          
     fprintf (fd,"\n");
     return sizeof(MsgT);
   }
@@ -411,7 +421,12 @@ namespace Mrx2Top {
   template <class MsgT>
   inline size_t printOneSideUpdate(const void* m, FILE* fd = stdout) {
     //    auto msg {reinterpret_cast <const MsgT*>(m)};
-
+    fprintf (fd,"%u,",getInstrumentId<MsgT>(m));
+    
+    fprintf (fd,"%u,",getPrice<MsgT>(m));
+    fprintf (fd,"%u,",getSize<MsgT>(m));
+    fprintf (fd,"%u,",getCustSize<MsgT>(m));
+    fprintf (fd,"%u,",getProCustSize<MsgT>(m));
     fprintf (fd,"\n");
     return sizeof(MsgT);
   }
