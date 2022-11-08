@@ -423,7 +423,7 @@ namespace Mrx2Top {
     //    auto msg {reinterpret_cast <const MsgT*>(m)};
     fprintf (fd,"%u,",getInstrumentId<MsgT>(m));
     
-    fprintf (fd,"%u,",getPrice<MsgT>(m));
+    fprintf (fd,"%u (0x%x),",getPrice<MsgT>(m),reinterpret_cast <const MsgT*>(m)->price);
     fprintf (fd,"%u,",getSize<MsgT>(m));
     fprintf (fd,"%u,",getCustSize<MsgT>(m));
     fprintf (fd,"%u,",getProCustSize<MsgT>(m));
