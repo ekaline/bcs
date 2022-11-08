@@ -167,7 +167,14 @@ namespace EfhNasdaqCommon {
   }
   
   inline uint32_t interpretPrice(uint16_t v) {
-    return be16toh(v) * 100;
+    //    printf ("\nv=%x be16toh(v) * 100=%u\n",v,be16toh(v) * 100);
+    return static_cast<uint32_t>(be16toh(v) * 100);
+  }
+  
+  template <class PriceT>
+  inline PriceT interpretPrice(uint16_t v) {
+    //    printf ("\nv=%x be16toh(v) * 100=%u\n",v,be16toh(v) * 100);
+    return static_cast<PriceT>(be16toh(v) * 100);
   }
 
   template <class PriceT>
