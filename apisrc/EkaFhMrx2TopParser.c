@@ -190,8 +190,15 @@ EkaFhMrx2TopGr::processOneSideUpdate(const unsigned char* m) {
   //  auto msg {reinterpret_cast<const Msg*>(m)};
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
-  if (!s) return NULL;
-
+  if (!s) {
+#ifdef FH_SUBSCRIBE_ALL
+    s = book->subscribeSecurity(securityId,
+				(EfhSecurityType)1,
+				(EfhSecUserData)0,0,0);
+#else  
+    return NULL;
+#endif
+  }
   if (getMrxSide<Msg>(m) == SideT::BID) {
     s->bid_size       = getSize        <Msg>(m);
     s->bid_cust_size  = getCustSize    <Msg>(m);
@@ -217,8 +224,15 @@ EkaFhMrx2TopGr::processTwoSidesUpdate(const unsigned char* m) {
   //  auto msg {reinterpret_cast<const Msg*>(m)};
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
-  if (!s) return NULL;
-
+  if (!s) {
+#ifdef FH_SUBSCRIBE_ALL
+    s = book->subscribeSecurity(securityId,
+				(EfhSecurityType)1,
+				(EfhSecUserData)0,0,0);
+#else  
+    return NULL;
+#endif
+  }
   s->bid_size       = getBidSize        <Msg>(m);
   s->bid_cust_size  = getBidCustSize    <Msg>(m);
   s->bid_bd_size    = getBidProCustSize <Msg>(m); // To Be Fixed!!!
@@ -244,8 +258,15 @@ EkaFhMrx2TopGr::processTrade(const unsigned char* m,
 			     const EfhRunCtx* pEfhRunCtx) {
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
-  if (!s) return NULL;
-  
+  if (!s) {
+#ifdef FH_SUBSCRIBE_ALL
+    s = book->subscribeSecurity(securityId,
+				(EfhSecurityType)1,
+				(EfhSecUserData)0,0,0);
+#else  
+    return NULL;
+#endif
+  }
   SizeT      size  = getSize <Msg>(m);
   BookPriceT price = getPrice<Msg,VanillaPriceT>(m);
   uint64_t   msgTs = getTs        (m);
