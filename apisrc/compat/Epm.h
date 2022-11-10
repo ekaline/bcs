@@ -125,6 +125,11 @@
 
 #include "Eka.h"
 
+/**
+ * Defines a frequency of polling FPGA exceptions
+ */
+#define EPM_EXCPT_REQUEST_TRIGGER_TIMEOUT_MILLISEC 100
+
 extern "C" {
 
 struct EpmAction;

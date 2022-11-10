@@ -1,4 +1,5 @@
 #include <inttypes.h>
+#include <chrono>
 
 #include "EkaDev.h"
 #include "ekaNW.h"
@@ -495,8 +496,8 @@ static inline void sendDate2Hw(EkaDev* dev) {
 }
 /* ----------------------------------------------- */
 
-static inline void sendHb2HW(EkaDev* dev) {
-  eka_read(dev,0xf0f08);
+static inline void sendExcptRequestTrigger(EkaDev* dev) {
+  eka_write(dev,0xf0610,0);
 }
 /* ----------------------------------------------- */
 
@@ -508,7 +509,6 @@ void ekaFireReportThread(EkaDev* dev) {
   pthread_t thread = pthread_self();
   pthread_setname_np(thread,"EkaFireReportThread");
   dev->fireReportThreadTerminated = false;
-  int64_t updCnt = 0;
   
   auto epmReportCh {dev->epmReport};
 
@@ -517,12 +517,23 @@ void ekaFireReportThread(EkaDev* dev) {
 
   if (!epmReportCh) on_error("!epmReportCh");
 
-  const int64_t HwDateUpdatePeriod = 1024 * 1024;
+  auto lastExcptRequestTriggerTime = std::chrono::high_resolution_clock::now();
+  auto lastDateUpdateTime = std::chrono::high_resolution_clock::now();
+
   while (dev->fireReportThreadActive) {
-    if ((updCnt++ % HwDateUpdatePeriod)==0) {
+    auto now = std::chrono::high_resolution_clock::now();
+    if (std::chrono::duration_cast<std::chrono::milliseconds>(now -
+							      lastExcptRequestTriggerTime).count() >
+	EPM_EXCPT_REQUEST_TRIGGER_TIMEOUT_MILLISEC) {
+      sendExcptRequestTrigger(dev);
+      lastExcptRequestTriggerTime = now;
+    }
+    if (EFC_DATE_UPDATE_PERIOD_MILLISEC &&
+	std::chrono::duration_cast<std::chrono::milliseconds>(now - lastDateUpdateTime).count() >
+	EFC_DATE_UPDATE_PERIOD_MILLISEC) {
       sendDate2Hw(dev);
-      //      sendHb2HW(dev);
-    }    
+      lastDateUpdateTime = now;
+    }
     /* ----------------------------------------------- */
     if (! epmReportCh->has_data()) continue;
     auto data = epmReportCh->get();

@@ -15,6 +15,13 @@
 #define EFC_HW_TTL 0x55
 #define EFC_HW_ID  0xabcd
 
+/**
+ * Defines a frequency of setting current time in the FPGA
+ * to be inserted to the HW Fire Msg
+ */
+#define EFC_DATE_UPDATE_PERIOD_MILLISEC 100
+
+
 #ifdef __cplusplus
     extern "C" {
 #endif
