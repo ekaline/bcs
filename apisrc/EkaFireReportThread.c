@@ -522,12 +522,14 @@ void ekaFireReportThread(EkaDev* dev) {
 
   while (dev->fireReportThreadActive) {
     auto now = std::chrono::high_resolution_clock::now();
+    /* ----------------------------------------------- */
     if (std::chrono::duration_cast<std::chrono::milliseconds>(now -
 							      lastExcptRequestTriggerTime).count() >
 	EPM_EXCPT_REQUEST_TRIGGER_TIMEOUT_MILLISEC) {
       sendExcptRequestTrigger(dev);
       lastExcptRequestTriggerTime = now;
     }
+    /* ----------------------------------------------- */
     if (EFC_DATE_UPDATE_PERIOD_MILLISEC &&
 	std::chrono::duration_cast<std::chrono::milliseconds>(now - lastDateUpdateTime).count() >
 	EFC_DATE_UPDATE_PERIOD_MILLISEC) {

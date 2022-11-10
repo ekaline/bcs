@@ -380,6 +380,19 @@ EkaOpResult efcRun( EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx ) {
 }
 
 
+EkaOpResult efcSwKeepAliveSend( EfcCtx* pEfcCtx, int strategyId ) {
+  if (!pEfcCtx)
+    on_error("!pEfcCtx");
+  EkaDev* dev = pEfcCtx->dev;
+  if (!dev)
+    on_error("!dev");
+  auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[strategyId])};
+  if (!efc)
+    on_error("!strategy[%d]",strategyId);
+
+  eka_write(dev,0xf0608,0);
+  return EKA_OPRESULT__OK;
+}
 
 EkaOpResult efcClose( EfcCtx* efcCtx ) {
   return EKA_OPRESULT__OK;

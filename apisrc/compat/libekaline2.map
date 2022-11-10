@@ -10,6 +10,7 @@ LIBEKALINE2_1.0	{
 			efcSetSesCtx;
 			efcSetGroupSesCtx;
 			efcRun;
+			efcSwKeepAliveSend;
 			efcSetFireTemplate;
                         efcCmeFastCancelInit;
                         efcCmeSend;

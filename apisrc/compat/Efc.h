@@ -11,6 +11,7 @@
 #include "EfcMsgs.h"
 #include "Exc.h"
 #include "Efh.h"
+#include "Epm.h"
 
 #define EFC_HW_TTL 0x55
 #define EFC_HW_ID  0xabcd
@@ -217,6 +218,20 @@ struct EfcRunCtx {
  */
 EkaOpResult efcRun( EfcCtx* efcCtx, const EfcRunCtx* efcRunCtx );
 
+
+/**
+ * This function send a Keep Alive signal (heartbeat) to reset FPGAs watchdog.
+ * If FPGA does not get this heartbeat during EfcStratGlobCtx.watchdog_timeout_sec,
+ * then EFC controller is DISARMED
+ *
+ * @param efcCtx 
+ * @param strategyId    For future Multi-strategy implementation. NOT SUPPORTED!!!
+ *
+ * @retval [See EkaOpResult].
+ */
+ EkaOpResult efcSwKeepAliveSend( EfcCtx* efcCtx, int strategyId = EFC_STRATEGY );
+
+      
 /**
  * This will close an Ekaline firing controller created with efcInit.
  *
