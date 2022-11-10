@@ -315,6 +315,8 @@ std::pair<int,size_t> processFastCancelReport(EkaDev* dev,
     b += pushFiredPkt (++reportIdx,b,q,dmaIdx);
     strategyId2ret = hwEpmReport->epm.strategyId;
     EKA_LOG("Processgin HwEpmActionStatus::Sent, len=%d",srcReportLen);
+      EKA_LOG("FastCancelReport numInGroup=%d, headerSize=%d, seqNum=%d",
+              hwEpmReport->num_in_group, hwEpmReport->header_size, hwEpmReport->sequence_number);
     break;
   default:
     // Broken EPM send reported by hwEpmReport->action
