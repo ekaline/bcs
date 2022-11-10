@@ -172,8 +172,6 @@ inline size_t pushFastCancelReport(int reportIdx, uint8_t* dst,
     epmReport->numInGroup     = hwEpmReport->num_in_group;
     epmReport->headerSize     = hwEpmReport->header_size;
     epmReport->sequenceNumber = hwEpmReport->sequence_number;
-    EKA_LOG("Processgin pushFastCancelReport::numInGroup=%d, headerSize=%d, seqNum=%d",
-            epmReport->numInGroup, epmReport->headerSize, epmReport->sequenceNumber);
     
     return b - dst;
 }
