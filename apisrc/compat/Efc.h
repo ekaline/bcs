@@ -15,6 +15,7 @@
 
 #define EFC_HW_TTL 0x55
 #define EFC_HW_ID  0xabcd
+#define EFC_HW_UNARMABLE 0xf0f0f0f0
 
 /**
  * Defines a frequency of setting current time in the FPGA

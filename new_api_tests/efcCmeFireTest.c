@@ -342,6 +342,7 @@ int main(int argc, char *argv[]) {
     // ==============================================
     // EkaDev general setup
     EkaDev*     dev = NULL;
+    EfcArmVer   armVer = 0;
     EkaCoreId   coreId = 0;
     EkaOpResult rc;
     const EkaDevInitCtx ekaDevInitCtx = {};
@@ -515,7 +516,7 @@ int main(int argc, char *argv[]) {
     // ==============================================
     efcCmeFastCancelInit(dev,&params);
     // ==============================================
-    efcEnableController(pEfcCtx, 0);
+    efcEnableController(pEfcCtx, -1);
     // ==============================================
     efcRun(pEfcCtx, &runCtx );
     // ==============================================
@@ -556,6 +557,8 @@ int main(int argc, char *argv[]) {
 #endif
     
     for (auto i = 0; i < MaxFastCancels; i++) {
+      efcEnableController(pEfcCtx, 1, armVer++); //arm
+
       sendCmeTradeMsg(serverIp,triggerIp,triggerUdpPort,
 		      CmeTestFastCancelMaxMsgSizeTicker, CmeTestFastCancelMinNoMDEntriesTicker);
       sleep (1);
