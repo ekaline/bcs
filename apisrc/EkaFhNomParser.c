@@ -468,6 +468,11 @@ template <class SecurityT, class Msg>
   msg.tradeStatus = s->trading_action;
   msg.tradeCond   = EfhTradeCond::kREG;
 
+  static uint64_t counter = 0;
+  if (counter++ % 1000 == 0) {
+    EKA_LOG("Trade %ju: %u", counter, securityId);
+  }
+
   pEfhRunCtx->onEfhTradeMsgCb(&msg,
 			      s->efhUserData,
 			      pEfhRunCtx->efhRunUserData);
