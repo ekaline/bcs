@@ -79,9 +79,11 @@ private:
 
   template <class SecurityT, class Msg>
   SecurityT* processAddQuote(const unsigned char* m);
-  
+
   template <class SecurityT, class Msg>
-  SecurityT* processOrderExecuted(const unsigned char* m);
+  SecurityT* processOrderExecuted(const unsigned char* m,
+                                  uint64_t sequence, uint64_t msgTs,
+                                  const EfhRunCtx* pEfhRunCtx);
 
   template <class SecurityT, class Msg>
   SecurityT* processReplaceOrder(const unsigned char* m);
