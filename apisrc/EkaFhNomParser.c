@@ -46,87 +46,75 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   switch (enc) {
     //--------------------------------------------------------------
   case 'H':  // TradingAction
-    s = processTradingAction<FhSecurity, NomFeed::TradingAction>(m);
-    break;
+    s = processTradingAction<FhSecurity,NomFeed::TradingAction>(m);
+    break; 
     //--------------------------------------------------------------
   case 'O':  // OptionOpen -- NOM only
-    s = processOptionOpen<FhSecurity, NomFeed::OptionOpen>(m);
-    break;
+    s = processOptionOpen<FhSecurity,NomFeed::OptionOpen>(m);
+    break; 
     //--------------------------------------------------------------
   case 'a':  // AddOrderShort
-    s = processAddOrder<FhSecurity, NomFeed::AddOrderShort>(m);
+    s = processAddOrder<FhSecurity,NomFeed::AddOrderShort>(m);
     break;
     //--------------------------------------------------------------
   case 'A':  // AddOrderLong
-    s = processAddOrder<FhSecurity, NomFeed::AddOrderLong>(m);
+    s = processAddOrder<FhSecurity,NomFeed::AddOrderLong>(m);
     break;
     //--------------------------------------------------------------
   case 'j':  // AddQuoteShort
-    s = processAddQuote<FhSecurity, NomFeed::AddQuoteShort>(m);
+    s = processAddQuote<FhSecurity,NomFeed::AddQuoteShort>(m);
     break;
     //--------------------------------------------------------------
   case 'J':  // AddQuoteLong
-    s = processAddQuote<FhSecurity, NomFeed::AddQuoteLong>(m);
+    s = processAddQuote<FhSecurity,NomFeed::AddQuoteLong>(m);
     break;
     //--------------------------------------------------------------
   case 'E':  // OrderExecuted
-    s = processOrderExecuted<FhSecurity, NomFeed::OrderExecuted>(m);
+    s = processOrderExecuted<FhSecurity,NomFeed::OrderExecuted>(m);
     break;
     //--------------------------------------------------------------
   case 'C':  // OrderExecutedPrice
-    s = processOrderExecuted<FhSecurity, NomFeed::OrderExecutedPrice>(m);
+    s = processOrderExecuted<FhSecurity,NomFeed::OrderExecutedPrice>(m);
     break;
     //--------------------------------------------------------------
   case 'X':  // OrderCancel
-    s = processOrderExecuted<FhSecurity, NomFeed::OrderCancel>(m);
+    s = processOrderExecuted<FhSecurity,NomFeed::OrderCancel>(m);
     break;
     //--------------------------------------------------------------
   case 'u':  // ReplaceOrderShort
-    s = processReplaceOrder<FhSecurity, NomFeed::ReplaceOrderShort>(m);
+    s = processReplaceOrder<FhSecurity,NomFeed::ReplaceOrderShort>(m);
     break;
     //--------------------------------------------------------------
   case 'U':  // ReplaceOrderLong
-    s = processReplaceOrder<FhSecurity, NomFeed::ReplaceOrderLong>(m);
+    s = processReplaceOrder<FhSecurity,NomFeed::ReplaceOrderLong>(m);
     break;
     //--------------------------------------------------------------
   case 'D':  // SingleSideDelete
-    s = processDeleteOrder<FhSecurity, NomFeed::SingleSideDelete>(m);
-    break;
+    s = processDeleteOrder<FhSecurity,NomFeed::SingleSideDelete>(m);
+    break;        
     //--------------------------------------------------------------
   case 'G':  // SingleSideUpdate
-    s = processSingleSideUpdate<FhSecurity, NomFeed::SingleSideUpdate>(m);
+    s = processSingleSideUpdate<FhSecurity,NomFeed::SingleSideUpdate>(m);
     break;
     //--------------------------------------------------------------
   case 'k':  // QuoteReplaceShort
-    s = processReplaceQuote<FhSecurity, NomFeed::QuoteReplaceShort>(m);
+    s = processReplaceQuote<FhSecurity,NomFeed::QuoteReplaceShort>(m);
     break;
     //--------------------------------------------------------------
   case 'K':  // QuoteReplaceLong
-    s = processReplaceQuote<FhSecurity, NomFeed::QuoteReplaceLong>(m);
+    s = processReplaceQuote<FhSecurity,NomFeed::QuoteReplaceLong>(m);
     break;
     //--------------------------------------------------------------
   case 'Y':  // QuoteDelete
-    s = processDeleteQuote<FhSecurity, NomFeed::QuoteDelete>(m);
+    s = processDeleteQuote<FhSecurity,NomFeed::QuoteDelete>(m);
     break;
     //--------------------------------------------------------------
   case 'Q':  // Cross Trade
     // DO NOTHING
-    {
-      static uint64_t counter = 0;
-      if (counter++ % 100 == 0) {
-        EKA_LOG("CROSS TRADE %ju", counter);
-      }
-    }
     return false;
     //--------------------------------------------------------------
   case 'P':  // Trade for NOM
     msgTs = NomFeed::getTs(m);
-    {
-      static uint64_t counter = 0;
-      if (counter++ % 100 == 0) {
-        EKA_LOG("OPTIONS TRADE %ju", counter);
-      }
-    }
     s = processTrade<FhSecurity,NomFeed::Trade>(m,sequence,
 					     msgTs,pEfhRunCtx);
     break;
