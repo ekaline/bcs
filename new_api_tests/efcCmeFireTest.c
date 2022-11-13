@@ -557,8 +557,12 @@ int main(int argc, char *argv[]) {
 #endif
     
     for (auto i = 0; i < MaxFastCancels; i++) {
-      efcEnableController(pEfcCtx, 1, armVer++); //arm
 
+      if (i!=5 && i!=6)
+	efcEnableController(pEfcCtx, 1, armVer++); //arm
+      else
+	efcEnableController(pEfcCtx, 1, armVer); //should be no arm
+      
       sendCmeTradeMsg(serverIp,triggerIp,triggerUdpPort,
 		      CmeTestFastCancelMaxMsgSizeTicker, CmeTestFastCancelMinNoMDEntriesTicker);
       sleep (1);
@@ -571,7 +575,7 @@ int main(int argc, char *argv[]) {
 
 // ==============================================
 
-
+    efcEnableController(pEfcCtx, 1, armVer++); //arm
     TEST_LOG("\n===========================\nEND OT TESTS\n===========================\n");
 
 #ifndef _VERILOG_SIM
@@ -580,6 +584,8 @@ int main(int argc, char *argv[]) {
 //  testCtx->keep_work = false;
     while (testCtx->keep_work) { sleep(0); }
 #endif
+
+    efcEnableController(pEfcCtx, -1); //disarm
 
     sleep(1);
     fflush(stdout);fflush(stderr);
