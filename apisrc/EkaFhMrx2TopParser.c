@@ -69,6 +69,10 @@ bool EkaFhMrx2TopGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m
     s = processTrade<FhSecurity,Trade>(m,sequence,pEfhRunCtx);
     return false;
     //--------------------------------------------------------------
+  case MsgType::Auction :
+    s = processAuction<FhSecurity,Auction>(m,sequence,pEfhRunCtx);
+    return false;
+    //--------------------------------------------------------------
   case MsgType::BrokenTrade :
     // Do nothing
     return false;
@@ -289,6 +293,38 @@ EkaFhMrx2TopGr::processTrade(const unsigned char* m,
   pEfhRunCtx->onEfhTradeMsgCb(&msg,
 			      s->efhUserData,
 			      pEfhRunCtx->efhRunUserData);
+
+  return NULL;
+}
+
+template <class SecurityT, class Msg>
+  inline SecurityT*
+  EkaFhMrx2TopGr::processAuction(const unsigned char* m,
+				 uint64_t sequence,
+				 const EfhRunCtx* pEfhRunCtx) {
+  SecurityIdT securityId = getInstrumentId<Msg>(m);
+  SecurityT* s = book->findSecurity(securityId);
+  if (!s) return NULL;
+  EfhAuctionUpdateMsg msg{};
+  msg.header.msgType        = EfhMsgType::kAuctionUpdate;
+  msg.header.group.source   = exch;
+  msg.header.group.localId  = id;
+  msg.header.underlyingId   = 0;
+  msg.header.securityId     = securityId;
+  msg.header.sequenceNumber = sequence;
+  msg.header.timeStamp      = getTs(m);
+  msg.header.gapNum         = gapNum;
+
+  msg.auctionId             = getAuctionId<Msg>(m);
+  msg.auctionType           = Mrx2Top::getAuctionType<Msg>(m);
+  msg.updateType            = Mrx2Top::getAuctionUpdateType<Msg>(m);
+  msg.side                  = Mrx2Top::getAuctionSide<Msg>(m);
+  msg.capacity              = Mrx2Top::getAuctionCapacity<Msg>(m);
+  msg.quantity              = getSize<Msg>(m);
+  memcpy(msg.firmId,reinterpret_cast<const Msg*>(m)->ownerId,6);
+
+  pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, s->efhUserData,
+				      pEfhRunCtx->efhRunUserData);
 
   return NULL;
 }
