@@ -92,12 +92,14 @@ class EkaEpmAction {
   
   uint     thrId        = -1;
 
+  epm_actionid_t nextIdx  = EPM_LAST_ACTION;
+
+  epm_action_t hwAction   = {};
   EpmAction epmActionLocalCopy = {};
 
-  EpmActionBitmap actionBitParams = {};
 
-  epm_actionid_t nextIdx  = EPM_LAST_ACTION;
-  epm_action_t hwAction   = {};
+private:
+  EpmActionBitmap actionBitParams = {};
 
   epm_strategyid_t strategyId      = -1;
   uint             payloadLen      = 0;
@@ -109,6 +111,7 @@ class EkaEpmAction {
   EkaTcpHdr*       tcpHdr          = NULL;
   EkaUdpHdr*       udpHdr          = NULL;
   uint8_t*         payload         = NULL;
+ 
 };
 
 

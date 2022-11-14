@@ -423,7 +423,7 @@ int EkaEpmAction::setNwHdrs(uint8_t* macDa,
 
   ipHdr->_chksum = 0;
   ipHdr->_id     = 0;
-  ipHdr->_len    = 0;
+  //  ipHdr->_len    = 0;
   ipHdr->src     = srcIp;
   ipHdr->dest    = dstIp;
 
@@ -439,12 +439,15 @@ int EkaEpmAction::setNwHdrs(uint8_t* macDa,
     tcpHdr->src    = be16toh(srcPort);
     tcpHdr->dest   = be16toh(dstPort);
     tcpHdr->_hdrlen_rsvd_flags = be16toh(0x5000 | EKA_TCP_FLG_PSH | EKA_TCP_FLG_ACK);
+    tcpHdr->urgp = 0;
   }
 
-  ipHdr->_chksum = csum((unsigned short *)ipHdr, sizeof(EkaIpHdr));
-  pktSize = getPayloadOffset() + payloadLen;
-  
   setIpTtl();
+  
+  ipHdr->_chksum = 0;
+  ipHdr->_chksum = csum((unsigned short *)ipHdr, sizeof(EkaIpHdr));
+
+  pktSize = getPayloadOffset() + payloadLen;
   
   tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,0/* payloadLen */);
   //---------------------------------------------------------
@@ -511,6 +514,10 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
   payloadLen = epmAction->length;
   pktSize    = getPayloadOffset() + payloadLen;
 
+  ipHdr->_len    = be16toh(getL3L4len() + payloadLen);
+  ipHdr->_chksum = 0;
+  ipHdr->_chksum = csum((unsigned short *)ipHdr, sizeof(EkaIpHdr));
+  
 /* ----------------------------------------------------- */
 
   epmTemplate->clearHwFields(&epm->heap[heapOffs]);
@@ -599,7 +606,7 @@ int EkaEpmAction::setPktPayload(const void* buf, uint len) {
       atomicIndirectBufWrite(dev, 0xf0238 /* ActionAddr */, 0,0,idx,0);
     }
   }
-  
+
   return 0;
 }
 /* ----------------------------------------------------- */
@@ -615,7 +622,7 @@ int EkaEpmAction::updatePayload(uint offset, uint len) {
   ipHdr->_len    = be16toh(getL3L4len() + payloadLen);
   ipHdr->_chksum = 0;
   ipHdr->_chksum = csum((unsigned short *)ipHdr, sizeof(EkaIpHdr));
-
+  
   epmTemplate->clearHwFields(&epm->heap[heapOffs]);
 
   setIpTtl();

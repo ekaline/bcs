@@ -109,7 +109,7 @@ struct epm_action_t {
   uint32_t tcpCSum;
   uint16_t payloadSize;
   TcpCsSizeSource   tcpCsSizeSource;  
-} __attribute__((packed));
+} __attribute__((packed)) __attribute__ ((aligned(sizeof(uint64_t))));
 
 
 /* FPGA code: */
