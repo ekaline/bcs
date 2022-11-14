@@ -69,6 +69,10 @@ private:
 			   uint64_t sequence,
 			   const EfhRunCtx* pEfhRunCtx);
   template <class SecurityT, class Msg>
+  SecurityT* processAuction(const unsigned char* m,
+			   uint64_t sequence,
+			   const EfhRunCtx* pEfhRunCtx);  
+  template <class SecurityT, class Msg>
   SecurityT* processTradingAction(const unsigned char* m);
 
   template <class Root, class Leg>
