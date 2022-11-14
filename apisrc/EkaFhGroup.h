@@ -75,6 +75,14 @@ public:
 				  EkaCredentialLease** lease);
     int         credentialRelease(EkaCredentialLease* lease);
 
+  inline bool skipSnapshot() const {
+    // Dont get initial recovery for pure Trades groups
+    if (productMask == ProductMask::PM_VanillaTrades ||
+	productMask == ProductMask::PM_ComplexTrades)
+      return true;
+    return false;
+  }
+  
     virtual int printConfig() {
 	EKA_LOG("%s:%u : "
 		"productMask: \'%s\' (0x%x) "

@@ -157,6 +157,7 @@ extern "C" {
              _x( C2_PITCH    )				\
              _x( BOX_HSVF    )				\
              _x( CME_SBE     )                          \
+             _x( MRX2_TOP    )                          \
 	     _x( BX_DPTH     )
             EkaSource_ENUM_ITER( EKA__ENUM_DEF )
   };

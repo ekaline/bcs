@@ -16,7 +16,7 @@ LIBEKA_GIT_VER:= $(shell git rev-parse --short HEAD)
 
 EKALINE_FLAGS := $(GCC_EXTERNAL_DEFINES) -DLIBEKA_GIT_VER=\"$(LIBEKA_GIT_VER)\" $(GCC_SUPPRESSED_WARNINGS)
 
-all: batsPcapParse topoPcapParse xdpPcapParse tomPcapParse nomPcapParse nomTcpPcapParse bxPcapParse gemPcapParse cmePcapParse boxPcapParse plrPcapParse
+all: batsPcapParse topoPcapParse xdpPcapParse tomPcapParse nomPcapParse nomTcpPcapParse bxPcapParse gemPcapParse cmePcapParse boxPcapParse plrPcapParse mrxPcapParse
 
 batsPcapParse: batsPcapParse.c ../apisrc/EkaFhBatsParser.h
 	$(CXX) $(GCC_FLAGS) -o $@ $^ $(INCL) $(RUNTIME_LD_FLAGS) $(EKALINE_FLAGS)
@@ -51,6 +51,9 @@ boxPcapParse: boxPcapParse.c ../apisrc/EkaFhBoxParser.h
 plrPcapParse: plrPcapParse.c ../apisrc/EkaFhPlrParser.h
 	$(CXX) $(GCC_FLAGS) -o $@ $^ $(INCL) $(RUNTIME_LD_FLAGS) $(EKALINE_FLAGS)
 
+mrxPcapParse: mrxPcapParse.c ../apisrc/EkaFhMrx2TopParser.h ../apisrc/EkaFhNasdaqCommonParser.h ../apisrc/EkaNwParser.h
+	$(CXX) $(GCC_FLAGS) -o $@ $^ $(INCL) $(RUNTIME_LD_FLAGS) $(EKALINE_FLAGS)
+
 clean:
-	rm -f /tmp/core* *~ batsPcapParse topoPcapParse xdpPcapParse tomPcapParse nomPcapParse bxPcapParse gemPcapParse cmePcapParse boxPcapParse
+	rm -f /tmp/core* *~ batsPcapParse topoPcapParse xdpPcapParse tomPcapParse nomPcapParse bxPcapParse gemPcapParse cmePcapParse boxPcapParse plrPcapParse mrxPcapParse
 
