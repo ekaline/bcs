@@ -8,7 +8,7 @@ print <<EOF;
 
 EOF
 
-$groups = $#ARGV == 0 ? $ARGV[0] : 8;
+$groups = $#ARGV == 0 ? $ARGV[0] : 4;
 
 $exch_name = "MRX2_TOP";
 
@@ -138,7 +138,7 @@ print "};\n\n";
 
 
 print "const EkaGroup mrx2TopGroups[] = {\n";
-for ($i = 0; $i < $groups; $i ++) {
+for ($i = 0; $i < 2 * $groups; $i ++) {
     print "\t{EkaSource::k$exch_name, (EkaLSI)$i},\n";
 
 }
