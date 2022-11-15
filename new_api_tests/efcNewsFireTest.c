@@ -245,9 +245,8 @@ static std::string action2string(EpmTriggerAction action) {
 
 static int sendNewsMsg(std::string serverIp,
 			   std::string dstIp,
-			   uint16_t dstPort,
-			   uint16_t cmeMsgSize,
-			   uint8_t  noMDEntries) {
+			   uint16_t dstPort
+			   ) {
     // Preparing UDP MC for MD trigger on GR#0
 
     int triggerSock = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
@@ -271,36 +270,10 @@ static int sendNewsMsg(std::string serverIp,
     triggerMcAddr.sin_addr.s_addr = inet_addr(dstIp.c_str());
     triggerMcAddr.sin_port        = be16toh(dstPort);
 
-#if 0    
-    uint8_t pkt[1536] = {};
-
-    auto p {pkt};
-    auto pktHdr {reinterpret_cast<Cme::PktHdr*>(p)};
-    p += sizeof(*pktHdr);
-    
-    auto msgHdr {reinterpret_cast<Cme::MsgHdr*>(p)};
-    msgHdr->templateId = Cme::MsgId::MDIncrementalRefreshTradeSummary48;
-    msgHdr->size = cmeMsgSize;
-    p += sizeof(*msgHdr);
-
-    auto rootBlock {reinterpret_cast<Cme::MDIncrementalRefreshTradeSummary48_mainBlock*>(p)};
-    p += sizeof(*rootBlock);
-
-    auto pGroupSize {reinterpret_cast<Cme::groupSize_T*>(p)};
-    pGroupSize->numInGroup = noMDEntries;
-    p += sizeof(*pGroupSize);
-
-    const char* data = "Trade message XXXXXXXXXXX";
-    strcpy ((char*)p,data);
-    p += strlen(data);
-
-    size_t payloadLen = p - pkt;
-#else    
     const uint8_t pkt[] =
       {0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     
     size_t payloadLen = std::size(pkt);
-#endif  
  
     TEST_LOG("sending News trigger to %s:%u",
 	    EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),be16toh(triggerMcAddr.sin_port));
@@ -445,21 +418,10 @@ int main(int argc, char *argv[]) {
     EfcRunCtx runCtx = {};
     runCtx.onEfcFireReportCb = efcPrintFireReport; // default print out routine
     // ==============================================
-    // CME FastCancel EFC config
-    static const uint64_t CmeTestFastCancelAlwaysFire = 0xadcd;
-    static const uint64_t CmeTestFastCancelToken = 0x1122334455667788;
-    static const uint64_t CmeTestFastCancelUser  = 0xaabbccddeeff0011;
-    static const uint16_t CmeTestFastCancelMaxMsgSize     = 97; //">96"
-    static const uint8_t  CmeTestFastCancelMinNoMDEntries = 0; //"<1"
-
-    static const uint16_t CmeTestFastCancelMaxMsgSizeTicker     = 96; //HARDCODED, not used by tickersend
-    static const uint8_t  CmeTestFastCancelMinNoMDEntriesTicker = 1;  //HARDCODED, not used by tickersend
-
-    const EfcCmeFastCancelParams params = {
-	.maxMsgSize     = CmeTestFastCancelMaxMsgSize,
-	.minNoMDEntries = CmeTestFastCancelMinNoMDEntries,
-	.token          = CmeTestFastCancelToken
-    };
+    // News EFC config
+    static const uint64_t NewsTestAlwaysFire = 0xadcd;
+    static const uint64_t NewsTestToken      = 0x1122334455667788;
+    static const uint64_t NewsTestUser       = 0xaabbccddeeff0011;
 
     uint dataAlignment = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_PayloadAlignment);
     uint nwHdrOffset   = epmGetDeviceCapability(dev,EpmDeviceCapability::EHC_DatagramOffset);
@@ -467,54 +429,57 @@ int main(int argc, char *argv[]) {
     uint heapOffset    = 0;
     uint32_t maxPayloadLen = 1536 - nwHdrOffset - fcsOffset;
     
-    EpmAction cmeAction[(size_t)EfcCmeActionId::Count] = {};
+    EpmAction newsAction = {};
 
-    for (epm_actionid_t actionId = 0; actionId < (epm_actionid_t)EfcCmeActionId::Count; actionId++) {
-	cmeAction[actionId].type = efcCmeActionId2Type((EfcCmeActionId)actionId);
-	cmeAction[actionId].token         = params.token;
-	cmeAction[actionId].hConn         = conn[0];
-	cmeAction[actionId].offset        = heapOffset + nwHdrOffset;
-	cmeAction[actionId].length        = maxPayloadLen;
-	cmeAction[actionId].actionFlags   = AF_Valid;
-	cmeAction[actionId].nextAction    = EPM_LAST_ACTION;
-	cmeAction[actionId].enable        = CmeTestFastCancelAlwaysFire;
-	cmeAction[actionId].postLocalMask = CmeTestFastCancelAlwaysFire;
-	cmeAction[actionId].postStratMask = CmeTestFastCancelAlwaysFire;
-	cmeAction[actionId].user          = CmeTestFastCancelUser;
+    newsAction.type          = EpmActionType::UserAction;
+    newsAction.token         = NewsTestToken;
+    newsAction.hConn         = conn[0];
+    newsAction.offset        = heapOffset + nwHdrOffset;
+    newsAction.length        = maxPayloadLen;
+    newsAction.actionFlags   = AF_Valid;
+    newsAction.nextAction    = EPM_LAST_ACTION;
+    newsAction.enable        = NewsTestAlwaysFire;
+    newsAction.postLocalMask = NewsTestAlwaysFire;
+    newsAction.postStratMask = NewsTestAlwaysFire;
+    newsAction.user          = NewsTestUser;
 	
-	epmSetAction(dev,EFC_STRATEGY,actionId,&cmeAction[actionId]); 
-	
-	heapOffset += cmeAction[actionId].length + nwHdrOffset + fcsOffset;
-	heapOffset += dataAlignment - (heapOffset % dataAlignment);
-    }
+    heapOffset += newsAction.length + nwHdrOffset + fcsOffset;
+    heapOffset += dataAlignment - (heapOffset % dataAlignment);
+    
 
     // ==============================================
-    // Manually prepared CmeTestFastCancel message fired by FPGA
-    const char CmeTestFastCancelMsg[] = "CME Fast Cancel: Sequence = |____| With Dummy payload";
+    // Manually prepared NewsTest message fired by FPGA
+    const char NewsTestMsg[] = "News: With Dummy payload";
     rc = epmPayloadHeapCopy(dev, 
 			    EFC_STRATEGY,
-			    cmeAction[(size_t)EfcCmeActionId::HwCancel].offset,
-			    strlen(CmeTestFastCancelMsg),
-			    CmeTestFastCancelMsg);
-    cmeAction[(size_t)EfcCmeActionId::HwCancel].length = strlen(CmeTestFastCancelMsg);
-    epmSetAction(dev,EFC_STRATEGY,(epm_actionid_t)EfcCmeActionId::HwCancel,
-		 &cmeAction[(size_t)EfcCmeActionId::HwCancel]);
+			    newsAction.offset,
+			    strlen(NewsTestMsg),
+			    NewsTestMsg);
+    newsAction.length = strlen(NewsTestMsg);
+    epmSetAction(dev,EFC_STRATEGY,0, &newsAction);
     
     if (rc != EKA_OPRESULT__OK) 
 	on_error("epmPayloadHeapCopy offset=%u, length=%u rc=%d",
-		 cmeAction[(size_t)EfcCmeActionId::HwCancel].offset,
-		 (uint)strlen(CmeTestFastCancelMsg),(int)rc);
+		 newsAction.offset,
+		 (uint)strlen(NewsTestMsg),(int)rc);
 
-    // ==============================================
-    efcEnableController(pEfcCtx, 0);
+
     // ==============================================
     efcRun(pEfcCtx, &runCtx );
     // ==============================================
 
-    efcCmeSetILinkAppseq(dev,conn[0],0x1);
-    
-    sendNewsMsg(serverIp,triggerIp,triggerUdpPort,
-		    CmeTestFastCancelMaxMsgSizeTicker, CmeTestFastCancelMinNoMDEntriesTicker);
+    EfcArmVer   armVer = 0;
+    for (auto i = 0; i < 10 ; i++) {
+      if (i!=5 && i!=6)
+	efcEnableController(pEfcCtx, 1, armVer++); //arm
+      else
+	efcEnableController(pEfcCtx, 1, armVer); //should be no arm
+      
+      sendNewsMsg(serverIp,triggerIp,triggerUdpPort);
+
+      sleep (1);
+    }
+
 
     if (fatalDebug) {
 	TEST_LOG(RED "\n=====================\nFATAL DEBUG: ON\n=====================\n" RESET);
@@ -523,6 +488,7 @@ int main(int argc, char *argv[]) {
 
 // ==============================================
 
+    efcEnableController(pEfcCtx, 1, armVer++); //arm
 
     TEST_LOG("\n===========================\nEND OT TESTS\n===========================\n");
 
@@ -532,6 +498,7 @@ int main(int argc, char *argv[]) {
 //  testCtx->keep_work = false;
     while (testCtx->keep_work) { sleep(0); }
 #endif
+    efcEnableController(pEfcCtx, -1); //disarm
 
     sleep(1);
     fflush(stdout);fflush(stderr);
