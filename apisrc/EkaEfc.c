@@ -52,6 +52,7 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
   
 #ifndef _VERILOG_SIM
   cleanSubscrHwTable();
+  cleanSecHwCtx();
   eka_write(dev,SCRPAD_EFC_SUBSCR_CNT,0);
 #endif
 
@@ -108,8 +109,9 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
 /* ################################################ */
 
 /* ################################################ */
-int EkaEfc::armController() {
-  eka_write(dev, P4_ARM_DISARM, 1); 
+int EkaEfc::armController(EfcArmVer ver) {
+  uint64_t armData = ((uint64_t)ver << 32) | 1;
+  eka_write(dev, P4_ARM_DISARM, armData); 
   return 0;
 }
 /* ################################################ */
@@ -142,7 +144,17 @@ int EkaEfc::cleanSubscrHwTable() {
   eka_write(dev, SW_STATISTICS, val);
   return 0;
 }
+/* ################################################ */
+int EkaEfc::cleanSecHwCtx() {
+  EKA_LOG("Cleaning HW Contexts of %d securities",MAX_SEC_CTX);
 
+  for (EfcSecCtxHandle handle = 0; handle < (EfcSecCtxHandle)MAX_SEC_CTX; handle++) {
+    const EkaHwSecCtx hwSecCtx = {};
+    writeSecHwCtx(handle,&hwSecCtx,0/* writeChan */);
+  }
+  
+  return 0;
+}
 
 /* ################################################ */
 int EkaEfc::initHwRoundTable() {
