@@ -8,7 +8,7 @@ print <<EOF;
 
 EOF
 
-$groups = $#ARGV == 0 ? $ARGV[0] : 4;
+$groups = $#ARGV == 0 ? $ARGV[0] : 8;
 
 $exch_name = "MRX2_TOP";
 
