@@ -260,6 +260,10 @@ inline SecurityT*
 EkaFhMrx2TopGr::processTrade(const unsigned char* m,
 			  uint64_t sequence,
 			     const EfhRunCtx* pEfhRunCtx) {
+  // dont send Trades from pure RFQ feed (Mrx2 Order Feed)
+  if (productMask == ProductMask::PM_VanillaAuction)
+    return NULL;
+
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
   if (!s) {
@@ -304,7 +308,15 @@ template <class SecurityT, class Msg>
 				 const EfhRunCtx* pEfhRunCtx) {
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
-  if (!s) return NULL;
+  if (!s) {
+#ifdef FH_SUBSCRIBE_ALL
+    s = book->subscribeSecurity(securityId,
+				(EfhSecurityType)1,
+				(EfhSecUserData)0,0,0);
+#else  
+    return NULL;
+#endif
+  }
   EfhAuctionUpdateMsg msg{};
   msg.header.msgType        = EfhMsgType::kAuctionUpdate;
   msg.header.group.source   = exch;
