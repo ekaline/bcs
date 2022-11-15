@@ -26,6 +26,30 @@ EkaProp efhMrx2TopInitCtxEntries_A[] = {
 	{"efh.MRX2_TOP.group.3.snapshot.addr","206.200.182.75:18303"}, 	// TCP GLIMPSE
 	{"efh.MRX2_TOP.group.3.snapshot.auth","MGGT04:UWYYFCYI"},
 
+	{"efh.MRX2_TOP.group.4.products","vanilla_auction"},
+	{"efh.MRX2_TOP.group.4.mcast.addr"   ,"233.104.73.8:18008"},
+	{"efh.MRX2_TOP.group.4.recovery.addr","206.200.182.88:18108"}, 	// MOLD RECOVERY
+	{"efh.MRX2_TOP.group.4.snapshot.addr","206.200.182.89:18108"}, 	// TCP GLIMPSE
+	{"efh.MRX2_TOP.group.4.snapshot.auth","MGGT04:UWYYFCYI"},
+
+	{"efh.MRX2_TOP.group.5.products","vanilla_auction"},
+	{"efh.MRX2_TOP.group.5.mcast.addr"   ,"233.104.73.9:18009"},
+	{"efh.MRX2_TOP.group.5.recovery.addr","206.200.182.91:18109"}, 	// MOLD RECOVERY
+	{"efh.MRX2_TOP.group.5.snapshot.addr","206.200.182.92:18109"}, 	// TCP GLIMPSE
+	{"efh.MRX2_TOP.group.5.snapshot.auth","MGGT04:UWYYFCYI"},
+
+	{"efh.MRX2_TOP.group.6.products","vanilla_auction"},
+	{"efh.MRX2_TOP.group.6.mcast.addr"   ,"233.104.73.10:18010"},
+	{"efh.MRX2_TOP.group.6.recovery.addr","206.200.182.94:18110"}, 	// MOLD RECOVERY
+	{"efh.MRX2_TOP.group.6.snapshot.addr","206.200.182.95:18110"}, 	// TCP GLIMPSE
+	{"efh.MRX2_TOP.group.6.snapshot.auth","MGGT04:UWYYFCYI"},
+
+	{"efh.MRX2_TOP.group.7.products","vanilla_auction"},
+	{"efh.MRX2_TOP.group.7.mcast.addr"   ,"233.104.73.11:18011"},
+	{"efh.MRX2_TOP.group.7.recovery.addr","206.200.182.97:18111"}, 	// MOLD RECOVERY
+	{"efh.MRX2_TOP.group.7.snapshot.addr","206.200.182.98:18111"}, 	// TCP GLIMPSE
+	{"efh.MRX2_TOP.group.7.snapshot.auth","MGGT04:UWYYFCYI"},
+
 };
 
 EkaProp efhMrx2TopInitCtxEntries_B[] = {
@@ -60,6 +84,10 @@ const EkaGroup mrx2TopGroups[] = {
 	{EkaSource::kMRX2_TOP, (EkaLSI)1},
 	{EkaSource::kMRX2_TOP, (EkaLSI)2},
 	{EkaSource::kMRX2_TOP, (EkaLSI)3},
+	{EkaSource::kMRX2_TOP, (EkaLSI)4},
+	{EkaSource::kMRX2_TOP, (EkaLSI)5},
+	{EkaSource::kMRX2_TOP, (EkaLSI)6},
+	{EkaSource::kMRX2_TOP, (EkaLSI)7},
 };
 
 #endif
