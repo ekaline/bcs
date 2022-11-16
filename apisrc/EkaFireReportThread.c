@@ -536,7 +536,7 @@ void ekaFireReportThread(EkaDev* dev) {
 	  EKA_WARN("dev->pEfcRunCtx is not defined");
 	else if (!dev->pEfcRunCtx->onEfcFireReportCb) {
     EKA_WARN("dev->pEfcRunCtx->reportCb is not defined");
-  } else {
+  } else
 	  dev->pEfcRunCtx->onEfcFireReportCb(reportBuf,reportLen,
 					     dev->pEfcRunCtx->cbCtx);
       }
