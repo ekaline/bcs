@@ -532,9 +532,11 @@ void ekaFireReportThread(EkaDev* dev) {
 				   reportedStrategy->cbCtx);
       }
       else { //no strategy, as exception
-	if (!dev->pEfcRunCtx || !dev->pEfcRunCtx->onEfcFireReportCb)
-	  EKA_WARN("dev->pEfcRunCtx->reportCb is not defined");
-	else
+	if (!dev->pEfcRunCtx)
+	  EKA_WARN("dev->pEfcRunCtx is not defined");
+	else if (!dev->pEfcRunCtx->onEfcFireReportCb) {
+    EKA_WARN("dev->pEfcRunCtx->reportCb is not defined");
+  } else {
 	  dev->pEfcRunCtx->onEfcFireReportCb(reportBuf,reportLen,
 					     dev->pEfcRunCtx->cbCtx);
       }
