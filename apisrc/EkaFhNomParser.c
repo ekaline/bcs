@@ -46,77 +46,86 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   switch (enc) {
     //--------------------------------------------------------------
   case 'H':  // TradingAction
-    s = processTradingAction<FhSecurity,NomFeed::TradingAction>(m);
-    break; 
+    s = processTradingAction<FhSecurity, NomFeed::TradingAction>(m);
+    break;
     //--------------------------------------------------------------
   case 'O':  // OptionOpen -- NOM only
-    s = processOptionOpen<FhSecurity,NomFeed::OptionOpen>(m);
-    break; 
+    s = processOptionOpen<FhSecurity, NomFeed::OptionOpen>(m);
+    break;
     //--------------------------------------------------------------
   case 'a':  // AddOrderShort
-    s = processAddOrder<FhSecurity,NomFeed::AddOrderShort>(m);
+    s = processAddOrder<FhSecurity, NomFeed::AddOrderShort>(m);
     break;
     //--------------------------------------------------------------
   case 'A':  // AddOrderLong
-    s = processAddOrder<FhSecurity,NomFeed::AddOrderLong>(m);
+    s = processAddOrder<FhSecurity, NomFeed::AddOrderLong>(m);
     break;
     //--------------------------------------------------------------
   case 'j':  // AddQuoteShort
-    s = processAddQuote<FhSecurity,NomFeed::AddQuoteShort>(m);
+    s = processAddQuote<FhSecurity, NomFeed::AddQuoteShort>(m);
     break;
     //--------------------------------------------------------------
   case 'J':  // AddQuoteLong
-    s = processAddQuote<FhSecurity,NomFeed::AddQuoteLong>(m);
+    s = processAddQuote<FhSecurity, NomFeed::AddQuoteLong>(m);
     break;
     //--------------------------------------------------------------
   case 'E':  // OrderExecuted
-    s = processOrderExecuted<FhSecurity,NomFeed::OrderExecuted>(m);
+    msgTs = NomFeed::getTs(m);
+    s = processOrderExecuted<FhSecurity, NomFeed::OrderExecuted>(m, sequence,
+                                                                 msgTs, pEfhRunCtx);
     break;
     //--------------------------------------------------------------
   case 'C':  // OrderExecutedPrice
-    s = processOrderExecuted<FhSecurity,NomFeed::OrderExecutedPrice>(m);
+    msgTs = NomFeed::getTs(m);
+    s = processOrderExecuted<FhSecurity, NomFeed::OrderExecutedPrice>(m, sequence,
+                                                                      msgTs, pEfhRunCtx);
     break;
     //--------------------------------------------------------------
   case 'X':  // OrderCancel
-    s = processOrderExecuted<FhSecurity,NomFeed::OrderCancel>(m);
+    // We do not initialize msgTs here, as it is only used
+    // when publishing trades, and OrderCancel never does.
+    s = processOrderExecuted<FhSecurity,NomFeed::OrderCancel>(m, sequence,
+                                                              0, pEfhRunCtx);
     break;
     //--------------------------------------------------------------
   case 'u':  // ReplaceOrderShort
-    s = processReplaceOrder<FhSecurity,NomFeed::ReplaceOrderShort>(m);
+    s = processReplaceOrder<FhSecurity, NomFeed::ReplaceOrderShort>(m);
     break;
     //--------------------------------------------------------------
   case 'U':  // ReplaceOrderLong
-    s = processReplaceOrder<FhSecurity,NomFeed::ReplaceOrderLong>(m);
+    s = processReplaceOrder<FhSecurity, NomFeed::ReplaceOrderLong>(m);
     break;
     //--------------------------------------------------------------
   case 'D':  // SingleSideDelete
-    s = processDeleteOrder<FhSecurity,NomFeed::SingleSideDelete>(m);
-    break;        
+    s = processDeleteOrder<FhSecurity, NomFeed::SingleSideDelete>(m);
+    break;
     //--------------------------------------------------------------
   case 'G':  // SingleSideUpdate
-    s = processSingleSideUpdate<FhSecurity,NomFeed::SingleSideUpdate>(m);
+    s = processSingleSideUpdate<FhSecurity, NomFeed::SingleSideUpdate>(m);
     break;
     //--------------------------------------------------------------
   case 'k':  // QuoteReplaceShort
-    s = processReplaceQuote<FhSecurity,NomFeed::QuoteReplaceShort>(m);
+    s = processReplaceQuote<FhSecurity, NomFeed::QuoteReplaceShort>(m);
     break;
     //--------------------------------------------------------------
   case 'K':  // QuoteReplaceLong
-    s = processReplaceQuote<FhSecurity,NomFeed::QuoteReplaceLong>(m);
+    s = processReplaceQuote<FhSecurity, NomFeed::QuoteReplaceLong>(m);
     break;
     //--------------------------------------------------------------
   case 'Y':  // QuoteDelete
-    s = processDeleteQuote<FhSecurity,NomFeed::QuoteDelete>(m);
+    s = processDeleteQuote<FhSecurity, NomFeed::QuoteDelete>(m);
     break;
     //--------------------------------------------------------------
   case 'Q':  // Cross Trade
-    // DO NOTHING
-    return false;
-    //--------------------------------------------------------------
-  case 'P':  // Trade for NOM
     msgTs = NomFeed::getTs(m);
-    s = processTrade<FhSecurity,NomFeed::Trade>(m,sequence,
-					     msgTs,pEfhRunCtx);
+    s = processTrade<FhSecurity,NomFeed::CrossTrade>(m,sequence,
+                                                     msgTs,pEfhRunCtx);
+    break;
+    //--------------------------------------------------------------
+  case 'P':  // Option Trade for NOM
+    msgTs = NomFeed::getTs(m);
+    s = processTrade<FhSecurity,NomFeed::OptionTrade>(m,sequence,
+                                                      msgTs,pEfhRunCtx);
     break;
     //--------------------------------------------------------------
   case 'S':  // SystemEvent
@@ -146,7 +155,9 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   }
   if (!s) return false;
 
-  msgTs = NomFeed::getTs(m);
+  if (msgTs == 0) {
+    msgTs = NomFeed::getTs(m);
+  }
 
   s->bid_ts = msgTs;
   s->ask_ts = msgTs;
@@ -336,30 +347,66 @@ template <class SecurityT, class Msg>
   return s;
 }
 
+constexpr bool shouldPublishExecutedTrade(const NomFeed::OrderCancel *m) {
+  return false;
+}
+
+constexpr bool shouldPublishExecutedTrade(const NomFeed::OrderExecuted *m) {
+  return true;
+}
+
+constexpr bool shouldPublishExecutedTrade(const NomFeed::OrderExecutedPrice *m) {
+  return m->printable == 'Y';
+}
+
 template <class SecurityT, class Msg>
-    inline SecurityT* EkaFhNomGr::processOrderExecuted(const unsigned char* m) {
+inline SecurityT* EkaFhNomGr::processOrderExecuted(const unsigned char *m,
+                                                   uint64_t sequence,
+                                                   uint64_t msgTs,
+                                                   const EfhRunCtx *pEfhRunCtx) {
+  const Msg *msg = reinterpret_cast<const Msg *>(m);
 
-    OrderIdT    orderId   = getOrderId  <Msg>(m);
-    auto o = book->findOrder(orderId);
-    if (!o) return NULL;
-    
-    SecurityT* s = (FhSecurity*)o->plevel->s;
+  OrderIdT    orderId   = getOrderId<Msg>(m);
+  auto o = book->findOrder(orderId);
+  if (!o) return NULL;
 
-    SizeT  deltaSize   = getSize<Msg>(m);  
-    auto p = o->plevel;
+  SizeT  deltaSize   = getSize<Msg>(m);
+  auto p = o->plevel;
+  SecurityT* s = (FhSecurity*)p->s;
 
-    book->setSecurityPrevState(s);
+  if (shouldPublishExecutedTrade(msg)) {
+    EfhTradeMsg tradeMsg{};
+    tradeMsg.header.msgType = EfhMsgType::kTrade;
+    tradeMsg.header.group.source   = exch;
+    tradeMsg.header.group.localId  = id;
+    tradeMsg.header.underlyingId   = 0;
+    tradeMsg.header.securityId     = (uint64_t) s->secId;
+    tradeMsg.header.sequenceNumber = sequence;
+    tradeMsg.header.timeStamp      = msgTs;
+    tradeMsg.header.gapNum         = gapNum;
 
-    if (o->size < deltaSize) {
-	on_error("o->size %u < deltaSize %u",o->size,deltaSize);
-    } else if (o->size == deltaSize) {
-	book->deleteOrder(o);
-    } else {
-	book->reduceOrderSize(o,deltaSize);
-	p->deductSize (o->type,deltaSize);
-    }
-  
-    return s;
+    tradeMsg.price       = p->price;
+    tradeMsg.size        = deltaSize;
+    tradeMsg.tradeStatus = s->trading_action;
+    tradeMsg.tradeCond   = EfhTradeCond::kREG;
+
+    pEfhRunCtx->onEfhTradeMsgCb(&tradeMsg,
+                                s->efhUserData,
+                                pEfhRunCtx->efhRunUserData);
+  }
+
+  book->setSecurityPrevState(s);
+
+  if (o->size < deltaSize) {
+    on_error("o->size %u < deltaSize %u",o->size,deltaSize);
+  } else if (o->size == deltaSize) {
+    book->deleteOrder(o);
+  } else {
+    book->reduceOrderSize(o,deltaSize);
+    p->deductSize (o->type,deltaSize);
+  }
+
+  return s;
 }
 
 template <class SecurityT, class Msg>

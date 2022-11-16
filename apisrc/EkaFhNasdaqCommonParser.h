@@ -517,7 +517,6 @@ namespace EfhNasdaqCommon {
       return printDeleteQuote<typename Feed::QuoteDelete>(fd,m);
     case 'Q':  // Trade
       return printGenericMsg<typename Feed::Trade>(fd,m);
-      //      return printTrade<typename Feed::Trade>(fd,m);
     case 'S':  // SystemEvent
       return printGenericMsg<typename Feed::SystemEvent>(fd,m);
     case 'B':  // BrokenTrade
@@ -528,7 +527,7 @@ namespace EfhNasdaqCommon {
       return printGenericMsg<typename Feed::EndOfSnapshot>(fd,m);
     case 'R':  // Directory
       return printGenericMsg<typename Feed::Directory>(fd,m);
-    default: 
+    default:
       on_error("UNEXPECTED Message type: enc=\'%c\'",enc);
     }
     return 0;

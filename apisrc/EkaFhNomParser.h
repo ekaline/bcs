@@ -258,8 +258,8 @@ class NomFeed {
     uint64_t bidOrderId;   // 8
     uint64_t askOrderId;   // 8
   } __attribute__((packed));
-  
-  struct Trade { // 'P'
+
+  struct OptionTrade { // 'P'
     GenericHdr hdr;        // 9
     uint8_t  buySell;      // 1
     uint32_t instrumentId; // 4
@@ -270,7 +270,7 @@ class NomFeed {
 
   } __attribute__((packed));
 
-   struct Crossrade { // 'Q'
+  struct CrossTrade { // 'Q'
     GenericHdr hdr;        // 9
     uint32_t instrumentId; // 4
     uint32_t crossNumber;  // 4
@@ -280,6 +280,9 @@ class NomFeed {
     uint32_t price;        // 4 
     uint32_t volume;       // 4 The total quantity executed
   } __attribute__((packed));
+
+  // For compatibility with BxFeed in EfhNasdaqCommon::printMsg
+  using Trade = CrossTrade;
 
   struct BrokenTrade { // 'B'
     GenericHdr hdr;        // 9
