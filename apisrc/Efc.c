@@ -100,7 +100,7 @@ EkaOpResult efcInitStrategy( EfcCtx* pEfcCtx, const EfcStratGlobCtx* efcStratGlo
  *                      If this is < 0, then this will disable firing on all cores.
  * @retval [See EkaOpResult].
  */
-EkaOpResult efcEnableController( EfcCtx* pEfcCtx, EkaCoreId primaryCoreId ) {
+EkaOpResult efcEnableController( EfcCtx* pEfcCtx, EkaCoreId primaryCoreId,  EfcArmVer ver ) {
   if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
   EkaDev* dev = pEfcCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
@@ -109,7 +109,7 @@ EkaOpResult efcEnableController( EfcCtx* pEfcCtx, EkaCoreId primaryCoreId ) {
   if (efc == NULL) on_error("efc == NULL");
 
   if (primaryCoreId < 0) efc->disArmController();
-  else efc->armController();
+  else efc->armController(ver);
 
   /* assert (pEfcCtx != NULL); */
   /* download_conf2hw(pEfcCtx->dev); */
@@ -380,6 +380,19 @@ EkaOpResult efcRun( EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx ) {
 }
 
 
+EkaOpResult efcSwKeepAliveSend( EfcCtx* pEfcCtx, int strategyId ) {
+  if (!pEfcCtx)
+    on_error("!pEfcCtx");
+  EkaDev* dev = pEfcCtx->dev;
+  if (!dev)
+    on_error("!dev");
+  auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[strategyId])};
+  if (!efc)
+    on_error("!strategy[%d]",strategyId);
+
+  eka_write(dev,0xf0608,0);
+  return EKA_OPRESULT__OK;
+}
 
 EkaOpResult efcClose( EfcCtx* efcCtx ) {
   return EKA_OPRESULT__OK;

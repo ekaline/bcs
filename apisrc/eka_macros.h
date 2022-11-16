@@ -87,6 +87,7 @@ class EkaDev;
     x ==(16+0)  ? "Generic unconfigured" :	\
     x ==(16+1)  ? "Generic NOM" :			\
     x ==(16+2)  ? "Generic PITCH" :		\
+    x ==(16+13) ? "Generic Itch Fast Sweep" :		\
     x ==(16+14) ? "Generic News" :		\
     x ==(16+15) ? "Generic CME Fast Cancel" :		\
     "Unknown"

@@ -92,9 +92,9 @@ void ekaServThread(EkaDev* dev) {
           }
 	}
 	if (feedbackDmaReport->bitparams.expect_report == 1) {
-	  //	  EKA_LOG("User Report # %u is pushed to Q",
-	  //		  feedbackDmaReport->index);
-	  //	  hexDump("Payload push to Q",payload,len);
+	  	  /* EKA_LOG("User Report # %u is pushed to Q", */
+	  	  /* 	  feedbackDmaReport->index); */
+	  	  /* hexDump("Payload push to Q",payload,len); */
 	  dev->userReportQ->push(payload,len);
 	}
 	dev->lwipPath->next();

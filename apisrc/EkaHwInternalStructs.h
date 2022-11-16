@@ -109,7 +109,7 @@ struct epm_action_t {
   uint32_t tcpCSum;
   uint16_t payloadSize;
   TcpCsSizeSource   tcpCsSizeSource;  
-} __attribute__((packed));
+} __attribute__((packed)) __attribute__ ((aligned(sizeof(uint64_t))));
 
 
 /* FPGA code: */
@@ -171,10 +171,21 @@ struct hw_epm_report_t {
   uint8_t   islocal;
 } __attribute__((packed));
 
-struct hw_epm_exception_report_t {
-  uint64_t        interrupt_vector;
-  uint8_t         b32_padding[24];
-  hw_epm_report_t epm;
+struct hw_status_exception_report_t {
+  uint32_t global_vector;
+  uint32_t core_vector[4];
+} __attribute__((packed));
+
+struct hw_status_arm_report_t {
+  uint8_t  arm_state;
+  uint32_t arm_expected_version;
+} __attribute__((packed));
+
+struct hw_epm_status_report_t {
+  hw_status_arm_report_t       arm_report;
+  hw_status_exception_report_t exception_report;
+  uint8_t                      b32_padding[7];
+  hw_epm_report_t              epm;
 } __attribute__((packed));
 
 struct hw_epm_news_report_t {
@@ -182,6 +193,16 @@ struct hw_epm_news_report_t {
   uint8_t         strategy_region;
   uint64_t        token;
   uint8_t         b32_padding[21];
+  hw_epm_report_t epm;
+} __attribute__((packed));
+
+struct hw_epm_fast_sweep_report_t {
+  uint8_t         last_msg_id;                     
+  uint8_t         first_msg_id;                     
+  uint16_t        last_msg_num;
+  uint16_t        locate_id;
+  uint16_t        udp_payload_size;
+  uint8_t         b32_padding[24];
   hw_epm_report_t epm;
 } __attribute__((packed));
 
@@ -321,5 +342,12 @@ typedef struct __attribute__((packed)) {
   } __attribute__ ((aligned(sizeof(uint64_t)))) __attribute__((packed));
 
 
+  struct EfcItchFastSweepStrategyConf {
+      uint64_t       token;
+      uint8_t        minMsgCount;
+      uint16_t       minUDPSize;
+      uint16_t       fireActionId;
+      uint8_t        strategyId;
+  } __attribute__ ((aligned(sizeof(uint64_t)))) __attribute__((packed));
 
 #endif
