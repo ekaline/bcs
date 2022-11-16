@@ -188,6 +188,11 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
 /* ##################################################################### */
 
 EkaOpResult EkaFhNasdaq::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, const EkaGroup* group) {
+  auto gr = b_gr[(uint8_t)group->localId];
+  if (gr->skipDefinitions()) {
+    EKA_LOG("%s:%u: skipping Definitions phase",EKA_EXCH_DECODE(exch),gr->id);
+    return EKA_OPRESULT__OK;
+  }
   EkaFhThreadAttr* attr = new EkaFhThreadAttr(pEfhCtx, 
 					      pEfhRunCtx, 
 					      b_gr[(uint8_t)group->localId], 
