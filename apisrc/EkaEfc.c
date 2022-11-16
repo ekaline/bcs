@@ -388,15 +388,16 @@ int EkaEfc::run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx) {
 
   enableRxFire();
 
-  if (! dev->fireReportThreadActive) {
-    dev->fireReportThread = std::thread(ekaFireReportThread,dev);
-    dev->fireReportThread.detach();
-    while (! dev->fireReportThreadActive) sleep(0);
-    EKA_LOG("fireReportThread activated");
-  } else {
-    EKA_LOG("fireReportThread already active");
+  if (dev->fireReportThreadActive) {
+    on_error("fireReportThread already active");
   }
-
+  
+  dev->fireReportThread = std::thread(ekaFireReportThread,dev);
+  dev->fireReportThread.detach();
+  while (! dev->fireReportThreadActive)
+    sleep(0);
+  EKA_LOG("fireReportThread activated");
+  
   return 0;
 }
 
