@@ -1,4 +1,5 @@
 #include <inttypes.h>
+#include <chrono>
 
 #include "EkaDev.h"
 #include "ekaNW.h"
@@ -16,6 +17,7 @@
 #include "EkaEfcDataStructs.h"
 #include "EkaUserReportQ.h"
 
+extern EkaDev *g_ekaDev;
 
 inline size_t pushControllerState(int reportIdx, uint8_t* dst,
 				  const EfcNormalizedFireReport* hwReport) {
@@ -87,7 +89,7 @@ inline size_t pushSecCtx(int reportIdx, uint8_t* dst,
 inline size_t pushFiredPkt(int reportIdx, uint8_t* dst,
 			   EkaUserReportQ* q, uint32_t dmaIdx) {
 
-  while (q->isEmpty()) {}
+  while (g_ekaDev->fireReportThreadActive && q->isEmpty()) {}
   auto firePkt = q->pop();
   auto firePktIndex = firePkt->hdr.index;
     
@@ -105,7 +107,7 @@ inline size_t pushFiredPkt(int reportIdx, uint8_t* dst,
 
   memcpy(b,firePkt->data,firePkt->hdr.length);
   b += firePkt->hdr.length;
-  //  hexDump("pushFiredPkt",firePkt->data,firePkt->hdr.length);
+  hexDump("pushFiredPkt",firePkt->data,firePkt->hdr.length);
 
   return b - dst;
 }
@@ -196,6 +198,28 @@ inline size_t pushNewsReport(int reportIdx, uint8_t* dst,
     epmReport->strategyIndex  = hwEpmReport->strategy_index;
     epmReport->strategyRegion = hwEpmReport->strategy_region;
     epmReport->token          = hwEpmReport->token;
+    
+    return b - dst;
+}
+/* ########################################################### */
+inline size_t pushSweepReport(int reportIdx, uint8_t* dst,
+			      const hw_epm_fast_sweep_report_t* hwEpmReport) {
+    auto b = dst;
+    auto epmReportHdr {reinterpret_cast<EfcReportHdr*>(b)};
+    epmReportHdr->type = EfcReportType::kFastSweepReport;
+    epmReportHdr->idx  = reportIdx;
+    epmReportHdr->size = sizeof(EpmFastSweepReport);
+    b += sizeof(*epmReportHdr);
+    //--------------------------------------------------------------------------
+
+    auto epmReport {reinterpret_cast<EpmFastSweepReport*>(b)};
+    b += sizeof(*epmReport);
+    //--------------------------------------------------------------------------
+    epmReport->udpPayloadSize = hwEpmReport->udp_payload_size;
+    epmReport->locateID       = hwEpmReport->locate_id;
+    epmReport->lastMsgNum     = hwEpmReport->last_msg_num;
+    epmReport->firstMsgType   = hwEpmReport->first_msg_id;
+    epmReport->lastMsgType    = hwEpmReport->last_msg_id;
     
     return b - dst;
 }
@@ -384,6 +408,48 @@ std::pair<int,size_t> processNewsReport(EkaDev* dev,
 
 /* ########################################################### */
 
+std::pair<int,size_t> processSweepReport(EkaDev* dev,
+					 const uint8_t*  srcReport,
+					 uint            srcReportLen,
+					 EkaUserReportQ* q,
+					 uint32_t        dmaIdx,
+					 uint8_t*        reportBuf) {
+  
+  EKA_LOG("Processgin processSweepReport");
+
+  int strategyId2ret = EPM_INVALID_STRATEGY;
+  //--------------------------------------------------------------------------
+  uint8_t* b =  reportBuf;
+  uint reportIdx = 0;
+  //--------------------------------------------------------------------------
+  auto containerHdr {reinterpret_cast<EkaContainerGlobalHdr*>(b)};
+  containerHdr->type = EkaEventType::kFastSweepEvent;
+  containerHdr->num_of_reports = 0; // to be overwritten at the end
+  b += sizeof(*containerHdr);
+  //--------------------------------------------------------------------------
+  auto hwEpmReport {reinterpret_cast<const hw_epm_fast_sweep_report_t*>(srcReport)};
+
+  switch (static_cast<HwEpmActionStatus>(hwEpmReport->epm.action)) {
+  case HwEpmActionStatus::Sent : 
+    EKA_LOG("Processgin HwEpmActionStatus::Sent, len=%d",srcReportLen);
+    b += pushEpmReport(++reportIdx,b,&hwEpmReport->epm);
+    b += pushSweepReport(++reportIdx,b,hwEpmReport);
+    //    b += pushFiredPkt (++reportIdx,b,q,dmaIdx); 
+    strategyId2ret = hwEpmReport->epm.strategyId;
+    break;
+  default:
+    // Broken EPM send reported by hwEpmReport->action
+    EKA_LOG("Processgin HwEpmActionStatus::Garbage, len=%d",srcReportLen);
+    b += pushEpmReport(++reportIdx,b,&hwEpmReport->epm);
+  } 
+  //--------------------------------------------------------------------------
+  containerHdr->num_of_reports = reportIdx;
+
+  return {strategyId2ret,b-reportBuf};
+}
+
+/* ########################################################### */
+
 
 std::pair<int,size_t> processFireReport(EkaDev*         dev,
 					const uint8_t*  srcReport,
@@ -432,8 +498,8 @@ static inline void sendDate2Hw(EkaDev* dev) {
 }
 /* ----------------------------------------------- */
 
-static inline void sendHb2HW(EkaDev* dev) {
-  eka_read(dev,0xf0f08);
+static inline void sendExcptRequestTrigger(EkaDev* dev) {
+  eka_write(dev,0xf0610,0);
 }
 /* ----------------------------------------------- */
 
@@ -445,7 +511,6 @@ void ekaFireReportThread(EkaDev* dev) {
   pthread_t thread = pthread_self();
   pthread_setname_np(thread,"EkaFireReportThread");
   dev->fireReportThreadTerminated = false;
-  int64_t updCnt = 0;
   
   auto epmReportCh {dev->epmReport};
 
@@ -454,12 +519,25 @@ void ekaFireReportThread(EkaDev* dev) {
 
   if (!epmReportCh) on_error("!epmReportCh");
 
-  const int64_t HwDateUpdatePeriod = 1024 * 1024;
+  auto lastExcptRequestTriggerTime = std::chrono::high_resolution_clock::now();
+  auto lastDateUpdateTime = std::chrono::high_resolution_clock::now();
+
   while (dev->fireReportThreadActive) {
-    if ((updCnt++ % HwDateUpdatePeriod)==0) {
+    auto now = std::chrono::high_resolution_clock::now();
+    /* ----------------------------------------------- */
+    if (std::chrono::duration_cast<std::chrono::milliseconds>(now -
+							      lastExcptRequestTriggerTime).count() >
+	EPM_EXCPT_REQUEST_TRIGGER_TIMEOUT_MILLISEC) {
+      sendExcptRequestTrigger(dev);
+      lastExcptRequestTriggerTime = now;
+    }
+    /* ----------------------------------------------- */
+    if (EFC_DATE_UPDATE_PERIOD_MILLISEC &&
+	std::chrono::duration_cast<std::chrono::milliseconds>(now - lastDateUpdateTime).count() >
+	EFC_DATE_UPDATE_PERIOD_MILLISEC) {
       sendDate2Hw(dev);
-      //      sendHb2HW(dev);
-    }    
+      lastDateUpdateTime = now;
+    }
     /* ----------------------------------------------- */
     if (! epmReportCh->has_data()) continue;
     auto data = epmReportCh->get();
@@ -503,6 +581,12 @@ void ekaFireReportThread(EkaDev* dev) {
 			    dev->userReportQ,
 			    dmaReportHdr->feedbackDmaIndex,
 			    reportBuf);
+      break;
+    case EkaUserChannel::DMA_TYPE::SWEEP:
+      r = processSweepReport(dev,payload,len,
+			     dev->userReportQ,
+			     dmaReportHdr->feedbackDmaIndex,
+			     reportBuf);
       break;
     case EkaUserChannel::DMA_TYPE::FIRE:
       r = processFireReport(dev,payload,len,

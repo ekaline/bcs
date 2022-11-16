@@ -15,12 +15,14 @@
 #include "EpmCmeILinkTemplate.h"
 #include "EpmCmeILinkSwTemplate.h"
 #include "EpmCmeILinkHbTemplate.h"
+#include "EpmFastSweepUDPReactTemplate.h"
 #include "EkaEfcDataStructs.h"
 #include "EkaHwCaps.h"
 #include "EhpNom.h"
 #include "EhpPitch.h"
 #include "EhpCmeFC.h"
 #include "EhpNews.h"
+#include "EhpItchFS.h"
 
 void ekaFireReportThread(EkaDev* dev);
 
@@ -86,6 +88,11 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
     epm->cmeHb  = new EpmCmeILinkHbTemplate(epm->templatesNum++);
     EKA_LOG("Initializing dummy EpmCmeILinkHbTemplate"); //TBD
     ehp = new EhpNews(dev);
+    break;
+  case EfhFeedVer::kITCHFS : 
+    epm->hwFire  = new EpmFastSweepUDPReactTemplate(epm->templatesNum++);
+    EKA_LOG("Initializing fast sweep");
+    ehp = new EhpItchFS(dev);
     break;
   default :
     on_error("Unexpected EFC HW Version: %d",(int)hwFeedVer);
@@ -174,6 +181,7 @@ int EkaEfc::initHwRoundTable() {
     case EfhFeedVer::kCBOE:
     case EfhFeedVer::kCME:
     case EfhFeedVer::kNEWS:
+    case EfhFeedVer::kITCHFS:
       data = addr;
       break;
     default:

@@ -752,6 +752,9 @@ EkaSource feedname2source(std::string feedName) {
   if (feedName == std::string("BXA")) return EkaSource::kBX_DPTH;
   if (feedName == std::string("BXB")) return EkaSource::kBX_DPTH;
   /* ------------------------------------------------------- */
+  if (feedName == std::string("MRA")) return EkaSource::kMRX2_TOP;
+  if (feedName == std::string("MRB")) return EkaSource::kMRX2_TOP;
+  /* ------------------------------------------------------- */
   if (feedName == std::string("GA")) return EkaSource::kGEM_TQF;
   if (feedName == std::string("GB")) return EkaSource::kGEM_TQF;
   /* ------------------------------------------------------- */
@@ -807,6 +810,9 @@ static EkaProp* feedname2prop (std::string feedName) {
   /* ------------------------------------------------------- */
   if (feedName == std::string("BXA")) return efhBxInitCtxEntries_A;
   if (feedName == std::string("BXB")) return efhBxInitCtxEntries_B;
+  /* ------------------------------------------------------- */
+  if (feedName == std::string("MRA")) return efhMrx2TopInitCtxEntries_A;
+  if (feedName == std::string("MRB")) return efhMrx2TopInitCtxEntries_B;
   /* ------------------------------------------------------- */
   if (feedName == std::string("GA")) return efhGemInitCtxEntries_A;
   if (feedName == std::string("GB")) return efhGemInitCtxEntries_B;
@@ -864,6 +870,9 @@ static size_t feedname2numProps (std::string feedName) {
   if (feedName == std::string("BXA")) return std::size(efhBxInitCtxEntries_A);
   if (feedName == std::string("BXB")) return std::size(efhBxInitCtxEntries_B);
   /* ------------------------------------------------------- */
+  if (feedName == std::string("MRA")) return std::size(efhMrx2TopInitCtxEntries_A);
+  if (feedName == std::string("MRB")) return std::size(efhMrx2TopInitCtxEntries_B);
+  /* ------------------------------------------------------- */
   if (feedName == std::string("GA")) return std::size(efhGemInitCtxEntries_A);
   if (feedName == std::string("GB")) return std::size(efhGemInitCtxEntries_B);
   /* ------------------------------------------------------- */
@@ -919,6 +928,9 @@ static size_t feedname2numGroups(std::string feedName) {
   /* ------------------------------------------------------- */
   if (feedName == std::string("BXA")) return std::size(bxGroups);
   if (feedName == std::string("BXB")) return std::size(bxGroups);
+  /* ------------------------------------------------------- */
+  if (feedName == std::string("MRA")) return std::size(mrx2TopGroups);
+  if (feedName == std::string("MRB")) return std::size(mrx2TopGroups);
   /* ------------------------------------------------------- */
   if (feedName == std::string("GA")) return std::size(gemGroups);
   if (feedName == std::string("GB")) return std::size(gemGroups);
@@ -1061,6 +1073,8 @@ void print_usage(char* cmd) {
   printf("\t\t\tBD  - BOX Complex A feed\n"); 
   printf("\t\t\tEA  - CME         A feed\n"); 
   printf("\t\t\tEB  - CME         B feed\n"); 
+  printf("\t\t\tMRA - MRX         A feed\n"); 
+  printf("\t\t\tMRB - MRX         B feed\n"); 
   printf("\t-u <Underlying Name> - subscribe on all options belonging to\n");
   printf("\t-t Print TOB updates (EFH)\n");
   printf("\t-a subscribe all\n");

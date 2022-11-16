@@ -16,7 +16,7 @@ class BxFeed {
     uint64_t      ts;          // 8 Nanoseconds since midnight
   } __attribute__((packed));
 
-  static inline uint64_t getTs(const uint8_t* m) {
+  static inline uint64_t getTs(const void* m) {
     auto hdr = reinterpret_cast<const GenericHdr*>(m);
     return be64toh(hdr->ts);
   }

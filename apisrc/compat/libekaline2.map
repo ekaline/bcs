@@ -10,12 +10,14 @@ LIBEKALINE2_1.0	{
 			efcSetSesCtx;
 			efcSetGroupSesCtx;
 			efcRun;
+			efcSwKeepAliveSend;
 			efcSetFireTemplate;
                         efcCmeFastCancelInit;
                         efcCmeSend;
                         efcCmeSetILinkAppseq;
 			efhInit;
 			efcInitStrategy;
+                        efcItchFastSweepInit;
 			efcClose;
 			efhGetSupportedParams;
 			efhGetDefs;
@@ -52,8 +54,7 @@ LIBEKALINE2_1.0	{
 			ekaDevConfigurePort;	
 			efhDestroy;
 
-			excUdpSocket;
-			excSendTo;	
+			excUdpConnect;
 
 			epmGetDeviceCapability;		
 			epmInitStrategies;

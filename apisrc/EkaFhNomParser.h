@@ -21,7 +21,7 @@ class NomFeed {
     char	  timeNano[6];     // 6
   } __attribute__((packed));
 
-  static inline uint64_t getTs(const uint8_t* m) {
+  static inline uint64_t getTs(const void* m) {
     uint64_t ts_tmp = 0;
     auto hdr = reinterpret_cast<const GenericHdr*>(m);
     memcpy((uint8_t*)&ts_tmp+2,hdr->timeNano,sizeof(hdr->timeNano));
