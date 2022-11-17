@@ -411,8 +411,10 @@ namespace Mrx2Top {
       return EfhOrderSide::kBid;
     case 'S' :
       return EfhOrderSide::kAsk;
+    case ' ' :
+      return EfhOrderSide::kOther;
     default :
-      on_error("Unexpected side \'%c\' (0x%x",side,side);
+      on_error("Unexpected side \'%c\' (0x%x)",side,side);
     }
   }
   
