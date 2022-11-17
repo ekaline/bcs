@@ -29,7 +29,8 @@ namespace Mrx2Top {
     ComplexBestBidUpdate       = 'c',
     ComplexBestAskUpdate       = 'd',
 
-    Auction                    = 'I'
+    Auction                    = 'I',
+    Order                      = 'O'
 
   };
 
