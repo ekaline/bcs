@@ -85,6 +85,8 @@ bool EkaFhMrx2TopGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m
     s = processComplexTwoSidesUpdate<FhSecurity,ComplexBestBidAndAskUpdate>(m);
     break;
     //--------------------------------------------------------------
+  case MsgType::Order :
+    return false;
   case MsgType::ComplexBestBidUpdate :
   case MsgType::ComplexBestAskUpdate :
     s = processComplexOneSideUpdate<FhSecurity,ComplexBestBidOrAskUpdate>(m);
@@ -105,8 +107,15 @@ inline SecurityT*
 EkaFhMrx2TopGr::processTradingAction(const unsigned char* m) {
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
-  if (!s) return NULL;
-
+  if (!s) {
+#ifdef FH_SUBSCRIBE_ALL
+    s = book->subscribeSecurity(securityId,
+				(EfhSecurityType)1,
+				(EfhSecUserData)0,0,0);
+#else  
+    return NULL;
+#endif
+  }
   switch (reinterpret_cast<const Msg*>(m)->state) {
   case 'H' : // "H” = Halt in effect
   case 'B' : // “B” = Buy Side Trading Suspended 
