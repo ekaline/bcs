@@ -96,6 +96,7 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
 	      EKA_EXCH_DECODE(exch),gr_id,sequence);
 
       if (gr->skipSnapshot()) {
+	gr->expected_sequence = sequence;
 	EKA_LOG("%s:%u Skipping Snapshot for pure Trade group: sequence=%ju",
 		EKA_EXCH_DECODE(exch),gr_id,sequence);
 	gr->sendFeedUpInitial(pEfhRunCtx);
