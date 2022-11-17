@@ -66,6 +66,10 @@ void EkaEpm::initHeap(uint start, uint size, uint regionId) {
 
 EkaOpResult EkaEpm::raiseTriggers(const EpmTrigger *trigger) {
   if (trigger == NULL) on_error("trigger == NULL");
+  if (! dev->fireReportThreadActive) {
+    on_error("fireReportThread is not active! Call efcRun()");
+  }
+  
   uint strategyId = trigger->strategy;
   uint currAction = trigger->action;
   EKA_LOG("Raising Trigger: strategyId %u, ActionId %u",strategyId,currAction);fflush(stderr);
@@ -172,12 +176,12 @@ EkaOpResult EkaEpm::initStrategies(const EpmStrategyParams *params,
 
   stratNum = numStrategies;
 
-  if (! dev->fireReportThreadActive) {
-    dev->fireReportThread = std::thread(ekaFireReportThread,dev);
-    dev->fireReportThread.detach();
-    while (! dev->fireReportThreadActive) sleep(0);
-    EKA_LOG("fireReportThread activated");
-  }
+  /* if (! dev->fireReportThreadActive) { */
+  /*   dev->fireReportThread = std::thread(ekaFireReportThread,dev); */
+  /*   dev->fireReportThread.detach(); */
+  /*   while (! dev->fireReportThreadActive) sleep(0); */
+  /*   EKA_LOG("fireReportThread activated"); */
+  /* } */
 
   // allocating UDP Channel to EPM MC region (preventing collision with EFH)
   /* auto udpCh    = new EkaUdpChannel(dev,params[0].triggerParams->coreId,EpmMcRegion); */

@@ -42,7 +42,9 @@ static inline int sendDummyFastPathPkt(EkaDev* dev, const uint8_t* payload) {
 
 
 void ekaServThread(EkaDev* dev) {
-  EKA_LOG("Launching");
+  const char* threadName = "ServThread";
+  EKA_LOG("Launching %s",threadName);
+  pthread_setname_np(pthread_self(),threadName);
 
   dev->servThreadActive = true;
 

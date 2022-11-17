@@ -506,10 +506,11 @@ static inline void sendExcptRequestTrigger(EkaDev* dev) {
 /* ########################################################### */
 
 void ekaFireReportThread(EkaDev* dev) {
-  EKA_LOG("Launching");
+  const char* threadName = "FireReport";
+  EKA_LOG("Launching %s",threadName);
+  pthread_setname_np(pthread_self(),threadName);
+
   dev->fireReportThreadActive = true;
-  pthread_t thread = pthread_self();
-  pthread_setname_np(thread,"EkaFireReportThread");
   dev->fireReportThreadTerminated = false;
   
   auto epmReportCh {dev->epmReport};
