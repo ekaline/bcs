@@ -325,6 +325,15 @@ namespace Mrx2Top {
     uint32_t dnttMarketSize;
   } __attribute__((packed));
 
+  struct Order { // 'O'
+    GenericHdr hdr;        // 11
+    uint32_t instrumentId; // 4
+
+
+    char placeHolder[61-11-4];
+
+  } __attribute__((packed));
+
 
   struct Auction { // 'I'
     GenericHdr hdr;           // 11
@@ -608,6 +617,14 @@ namespace Mrx2Top {
     return sizeof(MsgT);
   }
   
+  template <class MsgT>
+  inline size_t printOrder(const void* m, FILE* fd = stdout) {
+    //    auto msg {reinterpret_cast <const MsgT*>(m)};
+
+    fprintf (fd,"\n");
+    return sizeof(MsgT);
+  }
+  
   inline size_t
   printMsg(const void* m, uint64_t sequence = 0, FILE* fd = stdout) {
     //    using PriceT = uint32_t; // Price to display
@@ -666,6 +683,9 @@ namespace Mrx2Top {
       //--------------------------------------------------------------
     case MsgType::Auction :
       return printAuction<Auction>(m,fd);
+      //--------------------------------------------------------------
+    case MsgType::Order :
+      return printOrder<Order>(m,fd);
       //--------------------------------------------------------------
     default: 
       on_error("UNEXPECTED Message type: enc=\'%c\'",(char)enc);

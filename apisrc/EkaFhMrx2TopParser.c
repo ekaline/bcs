@@ -270,8 +270,8 @@ EkaFhMrx2TopGr::processTrade(const unsigned char* m,
 			  uint64_t sequence,
 			     const EfhRunCtx* pEfhRunCtx) {
   // dont send Trades from pure RFQ feed (Mrx2 Order Feed)
-  if (productMask == ProductMask::PM_VanillaAuction)
-    return NULL;
+  //  if (productMask == ProductMask::PM_VanillaAuction)
+  //    return NULL;
 
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
