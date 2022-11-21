@@ -223,6 +223,7 @@ for ($i = 0 ; $i < $groupsPerFeed ;$i ++) {
     $mold_lsb += $mold_incr;
     $mold_port ++;
     
+    $soupbin_incr = 1;
     $soupbin_lsb += $soupbin_incr;
     $soupbin_port ++;  
     

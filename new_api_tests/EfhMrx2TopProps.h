@@ -62,19 +62,19 @@ EkaProp efhMrx2TopInitCtxEntries_A[] = {
 	{"efh.MRX2_TOP.group.9.products","vanilla_trades"},
 	{"efh.MRX2_TOP.group.9.mcast.addr"   ,"233.104.73.13:18013"},
 	{"efh.MRX2_TOP.group.9.recovery.addr","206.200.182.103:18113"}, 	// MOLD RECOVERY
-	{"efh.MRX2_TOP.group.9.snapshot.addr","206.200.182.75:18301"}, 	// TCP GLIMPSE/SOUPBIN
+	{"efh.MRX2_TOP.group.9.snapshot.addr","206.200.182.73:18301"}, 	// TCP GLIMPSE/SOUPBIN
 	{"efh.MRX2_TOP.group.9.snapshot.auth","MGGT04:UWYYFCYI"},
 
 	{"efh.MRX2_TOP.group.10.products","vanilla_trades"},
 	{"efh.MRX2_TOP.group.10.mcast.addr"   ,"233.104.73.14:18014"},
 	{"efh.MRX2_TOP.group.10.recovery.addr","206.200.182.105:18114"}, 	// MOLD RECOVERY
-	{"efh.MRX2_TOP.group.10.snapshot.addr","206.200.182.77:18302"}, 	// TCP GLIMPSE/SOUPBIN
+	{"efh.MRX2_TOP.group.10.snapshot.addr","206.200.182.74:18302"}, 	// TCP GLIMPSE/SOUPBIN
 	{"efh.MRX2_TOP.group.10.snapshot.auth","MGGT04:UWYYFCYI"},
 
 	{"efh.MRX2_TOP.group.11.products","vanilla_trades"},
 	{"efh.MRX2_TOP.group.11.mcast.addr"   ,"233.104.73.15:18015"},
 	{"efh.MRX2_TOP.group.11.recovery.addr","206.200.182.107:18115"}, 	// MOLD RECOVERY
-	{"efh.MRX2_TOP.group.11.snapshot.addr","206.200.182.79:18303"}, 	// TCP GLIMPSE/SOUPBIN
+	{"efh.MRX2_TOP.group.11.snapshot.addr","206.200.182.75:18303"}, 	// TCP GLIMPSE/SOUPBIN
 	{"efh.MRX2_TOP.group.11.snapshot.auth","MGGT04:UWYYFCYI"},
 
 };
