@@ -75,24 +75,18 @@ public:
 				  EkaCredentialLease** lease);
     int         credentialRelease(EkaCredentialLease* lease);
 
-  inline bool skipSnapshot() const {
-    // Dont get initial recovery for pure Trades or Auction groups
-    if (productMask == ProductMask::PM_VanillaTrades  ||
-	productMask == ProductMask::PM_ComplexTrades  ||
-	productMask == ProductMask::PM_VanillaAuction ||
-	productMask == ProductMask::PM_ComplexAuction)
-      return true;
-    return false;
-  }
+    inline bool skipSnapshot() const {
+      // Dont get initial recovery for pure Trades or Auction groups
+      if (productMask == ProductMask::PM_VanillaTrades  ||
+          productMask == ProductMask::PM_ComplexTrades  ||
+          productMask == ProductMask::PM_VanillaAuction ||
+          productMask == ProductMask::PM_ComplexAuction)
+        return true;
+      return false;
+    }
     inline bool skipDefinitions() const {
-    // Dont get Definitions for pure Trades or Auction groups
-    if (productMask == ProductMask::PM_VanillaTrades  ||
-	productMask == ProductMask::PM_ComplexTrades  ||
-	productMask == ProductMask::PM_VanillaAuction ||
-	productMask == ProductMask::PM_ComplexAuction)
-      return true;
-    return false;
-  }
+      return false;
+    }
     virtual int printConfig() {
 	EKA_LOG("%s:%u : "
 		"productMask: \'%s\' (0x%x) "
