@@ -124,10 +124,15 @@ $mold_base = "206.200.182.";
 $mold_lsb  = 88;
 $mold_incr = 3;
 
-$soupbin_port    = 18108;
+#$soupbin_port    = 18108;
+#$soupbin_base = "206.200.182.";
+#$soupbin_lsb  = 89;
+#$soupbin_incr = 3;
+
 $soupbin_base = "206.200.182.";
-$soupbin_lsb  = 89;
-$soupbin_incr = 3;
+$soupbin_lsb  = 72;
+$soupbin_port = 18300;
+$soupbin_incr = 1;
 
 for ($i = 0 ; $i < $groupsPerFeed ;$i ++) {    
     printFeedProps ($exch,
@@ -186,9 +191,15 @@ $mold_port    = 18112;
 $mold_base = "206.200.182.";
 $mold_lsb  = 100;
 
-$soupbin_port    = 18112;
+#$soupbin_port    = 18112;
+#$soupbin_base = "206.200.182.";
+#$soupbin_lsb  = 101;
+
 $soupbin_base = "206.200.182.";
-$soupbin_lsb  = 101;
+$soupbin_lsb  = 72;
+$soupbin_port = 18300;
+$soupbin_incr = 1;
+
 
 for ($i = 0 ; $i < $groupsPerFeed ;$i ++) {    
     printFeedProps ($exch,
