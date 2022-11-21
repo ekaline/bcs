@@ -163,6 +163,7 @@ inline void EkaFhMrx2TopGr::processDefinition(const unsigned char* m,
 
   definitionMsg.commonDef.securityType   = EfhSecurityType::kOption;
   definitionMsg.commonDef.exchange       = EKA_GRP_SRC2EXCH(exch);
+  definitionMsg.commonDef.isPassive      = isDefinitionPassive(EfhSecurityType::kOption);
   definitionMsg.commonDef.underlyingType = EfhSecurityType::kStock;
   definitionMsg.commonDef.expiryDate     =
     (msg->expYear + 2000) * 10000 +
@@ -365,7 +366,6 @@ template <class Root, class Leg>
   msg.header.timeStamp      = 0;
   msg.header.gapNum         = this->gapNum;
 
-  //    msg.secondaryGroup        = 0;
   msg.commonDef.securityType   = EfhSecurityType::kComplex;
   msg.commonDef.exchange       = EKA_GRP_SRC2EXCH(exch);
   msg.commonDef.underlyingType = EfhSecurityType::kStock;

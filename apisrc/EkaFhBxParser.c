@@ -495,7 +495,6 @@ inline void EkaFhBxGr::processDefinition(const unsigned char* m,
   definitionMsg.header.timeStamp      = 0;
   definitionMsg.header.gapNum         = this->gapNum;
 
-  //    definitionMsg.secondaryGroup        = 0;
   definitionMsg.commonDef.securityType   = EfhSecurityType::kOption;
   definitionMsg.commonDef.exchange       = EfhExchange::kBX;
   definitionMsg.commonDef.underlyingType = EfhSecurityType::kStock;

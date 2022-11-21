@@ -244,7 +244,6 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.header.timeStamp      = gr_ts;
     msg.header.gapNum         = gapNum;
 
-    //    msg.secondaryGroup        = 0;
     msg.commonDef.securityType   = EfhSecurityType::kOption;
     msg.commonDef.exchange       = EfhExchange::kBOX;
     msg.commonDef.underlyingType = EfhSecurityType::kStock;

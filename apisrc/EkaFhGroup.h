@@ -169,6 +169,20 @@ public:
     return false;
   }
 
+  static constexpr int getDefinitionProductMask(EfhSecurityType defType) {
+    switch (defType) {
+    case EfhSecurityType::kOption: return PM_VanillaALL;
+    case EfhSecurityType::kComplex: return PM_ComplexALL;
+    case EfhSecurityType::kFuture: return PM_FutureALL;
+    default: return PM_NoInfo;
+    }
+  }
+
+  constexpr bool isDefinitionPassive(EfhSecurityType defType) {
+    int definitionProductMask = getDefinitionProductMask(defType);
+    return definitionProductMask && productMask && !(productMask & definitionProductMask);
+  }
+
   std::string getDefinitionsFileName() const {
     const int MAXLEN = 10;
     char s[MAXLEN] = {};

@@ -291,10 +291,10 @@ typedef struct {
     #define EfhSecurityDef_FIELD_ITER( _x )                                 \
                 _x( EfhSecurityType,  securityType )                        \
                 _x( EfhExchange,      exchange )                            \
-                /** If this is >= 0, then this is a second group that
-                 *  security updates can come over (useful for exchanges
-                 *  where we subscribe to both TOB and Orders. */           \
-                _x( EkaGroup,         secondaryGroup )                      \
+                /** If this is true, the definition is coming from a group
+                 *  that will not publish updates for the security (e.g.,
+                 *  a leg defined in an exclusively complex group. */       \
+                _x( bool,             isPassive )                           \
                 _x( EfhSecurityType,  underlyingType )                      \
                 _x( EfhSymbol,        classSymbol )                         \
                 _x( EfhSymbol,        underlying )                          \

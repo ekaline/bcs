@@ -61,7 +61,10 @@ enum ProductMask {
   PM_ComplexAuction = 1 << 5,  // Complex option RFQs
   PM_FutureBook     = 1 << 6,  // Future book prices
   PM_FutureTrades   = 1 << 7,  // Future trades
-  PM_FutureAuction  = 1 << 8   // Future RFQs (spreads)
+  PM_FutureAuction  = 1 << 8,  // Future RFQs (spreads)
+  PM_VanillaALL = PM_VanillaBook | PM_VanillaTrades | PM_VanillaAuction,
+  PM_ComplexALL = PM_ComplexBook | PM_ComplexTrades | PM_ComplexAuction,
+  PM_FutureALL = PM_FutureBook | PM_FutureTrades | PM_FutureAuction
 };
 
 namespace {

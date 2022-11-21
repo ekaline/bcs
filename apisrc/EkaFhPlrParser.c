@@ -51,6 +51,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 
     msg.commonDef.securityType   = EfhSecurityType::kOption;
     msg.commonDef.exchange       = EKA_GRP_SRC2EXCH(exch);
+    msg.commonDef.isPassive      = isDefinitionPassive(EfhSecurityType::kOption);
     msg.commonDef.underlyingType = EfhSecurityType::kStock;
     msg.commonDef.expiryDate    =
       (2000 + (m->MaturityDate[0] - '0') * 10 + (m->MaturityDate[1] - '0')) * 10000 + 
