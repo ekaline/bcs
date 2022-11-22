@@ -412,7 +412,7 @@ namespace Mrx2Top {
   }
 
   template <class T>
-  inline uint64_t getAuctionDurationNanos(const uint64_t startNanos, const void* m) {
+  inline uint64_t getAuctionDurationNanos(const void* m) {
     auto auctionType = reinterpret_cast<const T*>(m)->auctionType;
     switch (auctionType) {
     case 'B' : // Block Auction
