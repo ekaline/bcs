@@ -400,7 +400,7 @@ namespace Mrx2Top {
     case 'I' : // Order Exposure
       return EfhAuctionType::kExposed;
     case 'P' : // Price Improvement (PIM) Auction
-      return EfhAuctionType::kPriceImprovementPeriod;
+      return EfhAuctionType::kPrism;
     case 'C' : // Facilitation
       return EfhAuctionType::kFacilitation;
     case 'S' : // Solicitation
