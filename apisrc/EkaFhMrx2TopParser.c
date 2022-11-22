@@ -342,6 +342,7 @@ template <class SecurityT, class Msg>
   msg.side                  = Mrx2Top::getAuctionSide<Msg>(m);
   msg.capacity              = Mrx2Top::getAuctionCapacity<Msg>(m);
   msg.quantity              = getSize<Msg>(m);
+  msg.price                 = getPrice<Msg>(m);
   memcpy(msg.firmId,reinterpret_cast<const Msg*>(m)->ownerId,6);
 
   pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, s->efhUserData,
