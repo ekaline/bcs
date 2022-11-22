@@ -411,6 +411,24 @@ namespace Mrx2Top {
     }
   }
 
+  template <class T>
+  inline uint64_t getAuctionDurationNanos(const uint64_t startNanos, const void* m) {
+    auto auctionType = reinterpret_cast<const T*>(m)->auctionType;
+    switch (auctionType) {
+    case 'B' : // Block Auction
+    case 'P' : // Price Improvement (PIM) Auction
+    case 'C' : // Facilitation
+    case 'S' : // Solicitation
+      return 100'000'000;
+    case 'O' : // Opening
+    case 'R' : // Reopening
+    case 'I' : // Order Exposure
+      return 150'000'000;
+    default:
+      on_error("Unexpected auctionType \'%c\' (0x%x)",
+               auctionType,auctionType);
+    }
+  }
 
   template <class T>    
   inline EfhOrderSide getAuctionSide(const void* m) {
@@ -426,14 +444,31 @@ namespace Mrx2Top {
       on_error("Unexpected side \'%c\' (0x%x)",side,side);
     }
   }
+
+  inline bool isUpdateOnlyAuction(const char auctionType) {
+    switch (auctionType) {
+    case 'O' : // Opening
+    case 'R' : // Reopening
+    case 'I' : // Order Exposure
+      return true;
+    default:
+      return false;
+    }
+  }
   
   template <class T>
   inline EfhAuctionUpdateType getAuctionUpdateType(const void* m) {
-    auto auctionEvent = reinterpret_cast<const T*>(m)->auctionEvent;
+    const auto msg = reinterpret_cast<const T*>(m);
+    auto auctionEvent = msg->auctionEvent;
     switch (auctionEvent) {
     case 'S' : // Start of Auction
-    case 'U' : // Auction Update
       return EfhAuctionUpdateType::kNew;
+    case 'U' : // Auction Update
+      if (isUpdateOnlyAuction(msg->auctionType)) {
+        return EfhAuctionUpdateType::kNew;
+      } else {
+        return EfhAuctionUpdateType::kReplace;
+      }
     case 'E' : // End of Auction
       return EfhAuctionUpdateType::kDelete;
     default:

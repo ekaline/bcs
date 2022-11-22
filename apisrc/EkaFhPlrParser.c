@@ -310,6 +310,9 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     FhSecurity* s = book->findSecurity(m->seriesIndex);
     if (s == NULL) return false;
 
+    const EfhAuctionUpdateType updateType = getAuctionUpdateType(m->rfqStatus);
+    const bool isDelete = updateType == EfhAuctionUpdateType::kDelete;
+
     EfhAuctionUpdateMsg msg{};
     msg.header.msgType        = EfhMsgType::kAuctionUpdate;
     msg.header.group.source   = exch;
@@ -321,7 +324,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 
     msg.auctionId         = m->auctionId;
     msg.auctionType       = getAuctionType(m->type);
-    msg.updateType        = getAuctionUpdateType(m->rfqStatus);
+    msg.updateType        = updateType;
     msg.securityType      = EfhSecurityType::kRfq;
     msg.header.securityId = (uint64_t) m->seriesIndex;
     msg.side              = getSide(m->side);
@@ -333,7 +336,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     }
     msg.quantity          = m->totalQuantity;
     sprintf(msg.firmId, "%u", m->participant);
-    msg.endTimeNanos      = msg.header.timeStamp + getRfqRunTimeNanos(m->type);
+    msg.endTimeNanos      = isDelete ? 0 : msg.header.timeStamp + getRfqRunTimeNanos(m->type);
 
     if (pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL)
       on_error("pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL");
