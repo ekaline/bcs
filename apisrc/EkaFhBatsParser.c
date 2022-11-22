@@ -704,6 +704,7 @@ bool EkaFhBatsGr::process_Definition(const EfhRunCtx* pEfhRunCtx,
 
   msg.commonDef.securityType   = EfhSecurityType::kOption;
   msg.commonDef.exchange       = EKA_GRP_SRC2EXCH(exch);
+  msg.commonDef.isPassive      = isDefinitionPassive(EfhSecurityType::kOption);
   msg.commonDef.underlyingType = EfhSecurityType::kStock;
   {
   uint y = (osi[6] -'0') * 10 + (osi[7] -'0');
