@@ -280,6 +280,22 @@ namespace EfhNasdaqCommon {
     }
   }
 
+  template <class T>
+  inline uint64_t getAuctionDurationNanos(const void* m) {
+    switch (reinterpret_cast<const T*>(m)->auctionType) {
+    case 'B' : // Block Auction
+    case 'P' : // Price Improvement (PIM) Auction
+      return 100'000'000;
+    case 'O' : // Opening
+    case 'R' : // Reopening
+    case 'I' : // Order Exposure
+      return 150'000'000;
+    default :
+      on_error("Unexpected auctionType \'%c\'",
+               reinterpret_cast<const T*>(m)->auctionType);
+    }
+  }
+
   inline EfhOptionType decodeOptionType(char c) {
     switch (c) {
     case 'C' : return EfhOptionType::kCall;
