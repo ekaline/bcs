@@ -335,14 +335,14 @@ namespace EfhNasdaqCommon {
     switch (msg->customerFirmIndicator) {
     case 'C' : // “C” = Customer
       return EfhOrderCapacity::kCustomer;
-    case 'F' : // “F” = Firm/ Joint Back Office (JBO)
-      return EfhOrderCapacity::kAgency;
-    case 'M' : // “M” = On-floor Market Maker
-      return EfhOrderCapacity::kMarketMaker;
     case 'P' : // “P” = Professional Customer
       return EfhOrderCapacity::kProfessionalCustomer;
     case 'B' : // “B” = Broker Dealer/ Non Registered Market Maker
+      return EfhOrderCapacity::kBrokerDealerAsCustomer;
+    case 'F' : // “F” = Firm/ Joint Back Office (JBO)
       return EfhOrderCapacity::kBrokerDealer;
+    case 'M' : // “M” = On-floor Market Maker
+      return EfhOrderCapacity::kMarketMaker;
     default :
       // for all non EfhAuctionType::kExposed RFQs
       return EfhOrderCapacity::kUnknown;
