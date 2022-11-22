@@ -499,16 +499,16 @@ namespace Mrx2Top {
     switch (orderCapacity) {
     case 'C' : //  Customer Order
       return EfhOrderCapacity::kCustomer;
-    case 'F' : //  Firm Order
-      return EfhOrderCapacity::kAgency;
-    case 'M' : //  Nasdaq registered Market Maker Order
-      return EfhOrderCapacity::kPrincipal;  // TO BE CHECKED!!!
-    case 'B' : //  Broker Dealer Order
-      return EfhOrderCapacity::kBrokerDealer;
     case 'P' : //  Professional Order
       return EfhOrderCapacity::kProfessionalCustomer;
+    case 'B' : //  Broker Dealer Order
+      return EfhOrderCapacity::kBrokerDealerAsCustomer;
+    case 'F' : //  Firm Order
+      return EfhOrderCapacity::kBrokerDealer;
+    case 'M' : //  Nasdaq registered Market Maker Order
+      return EfhOrderCapacity::kMarketMaker;
     case 'O' : //  Other exchange registered
-      return EfhOrderCapacity::kProprietary; // TO BE CHECKED!!!
+      return EfhOrderCapacity::kAwayMarketMaker;
     case ' ' : //  not applicable for certain Auction Types
       return EfhOrderCapacity::kUnknown;
     default:
