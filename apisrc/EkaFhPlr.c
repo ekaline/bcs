@@ -105,6 +105,17 @@ EkaOpResult EkaFhPlr::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
     switch (gr->state) {
       //-----------------------------------------------------------------------------
     case EkaFhGroup::GrpState::INIT : {
+      if (gr->skipSnapshot()) {
+	EKA_LOG("%s:%u Skipping Snapshot for pure Trade group: sequence=%u",
+		EKA_EXCH_DECODE(exch),gr_id,sequence);
+	gr->sendFeedUpInitial(pEfhRunCtx);
+	gr->state = EkaFhGroup::GrpState::NORMAL;
+	gr->gapClosed = true;
+	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,
+						     msgInPkt,sequence);      
+	break;
+      }
+      
       if (any_group_getting_snapshot) break; // only 1 group can get snapshot at a time
       any_group_getting_snapshot = true;
 

@@ -35,61 +35,63 @@
     "UNKNOWN"
 
 namespace EfhNasdaqCommon {
+  using DefaultPriceT = uint32_t;
+  
   template <class T>
-  inline uint32_t getInstrumentId(const uint8_t* m) {
+  inline uint32_t getInstrumentId(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return be32toh(msg->instrumentId);
   }
 
   template <class T>
-  inline uint64_t getOrderId(const uint8_t* m) {
+  inline uint64_t getOrderId(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return be64toh(msg->orderId);
   }
   
   template <class T>
-  inline uint64_t getBidOrderId(const uint8_t* m) {
+  inline uint64_t getBidOrderId(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     //    printf("bidOrderId = 0x%016jx\n",msg->bidOrderId);
     return be64toh(msg->bidOrderId);
   }
   
   template <class T>
-  inline uint64_t getAskOrderId(const uint8_t* m) {
+  inline uint64_t getAskOrderId(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return be64toh(msg->askOrderId);
   }
   
   template <class T>
-  inline uint64_t getOldOrderId(const uint8_t* m) {
+  inline uint64_t getOldOrderId(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return be64toh(msg->oldOrderId);
   }
   
   template <class T>
-  inline uint64_t getNewOrderId(const uint8_t* m) {
+  inline uint64_t getNewOrderId(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return be64toh(msg->newOrderId);
   }
   template <class T>
-  inline uint64_t getOldBidOrderId(const uint8_t* m) {
+  inline uint64_t getOldBidOrderId(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return be64toh(msg->oldBidOrderId);
   }
   
   template <class T>
-  inline uint64_t getOldAskOrderId(const uint8_t* m) {
+  inline uint64_t getOldAskOrderId(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return be64toh(msg->oldAskOrderId);
   }
   template <class T>
-  inline uint64_t getNewBidOrderId(const uint8_t* m) {
+  inline uint64_t getNewBidOrderId(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return be64toh(msg->newBidOrderId);
   }
   
   template <class T>
-  inline uint64_t getNewAskOrderId(const uint8_t* m) {
+  inline uint64_t getNewAskOrderId(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return be64toh(msg->newAskOrderId);
   }
@@ -103,51 +105,127 @@ namespace EfhNasdaqCommon {
   }
   
   template <class T>
-  inline uint32_t getSize(const uint8_t* m) {
+  inline uint32_t getSize(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return interpretVolume(msg->volume);
   }
   
   template <class T>
-  inline uint32_t getBidSize(const uint8_t* m) {
+  inline uint32_t getCustSize(const void* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return interpretVolume(msg->custSize);
+  }
+    
+  template <class T>
+  inline uint32_t getProCustSize(const void* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return interpretVolume(msg->proCustSize);
+  }
+  
+  template <class T>
+  inline uint32_t getBidSize(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return interpretVolume(msg->bidSize);
   }
   
   template <class T>
-  inline uint32_t getAskSize(const uint8_t* m) {
+  inline uint32_t getBidCustSize(const void* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return interpretVolume(msg->bidCustSize);
+  }
+  
+  template <class T>
+  inline uint32_t getBidProCustSize(const void* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return interpretVolume(msg->bidProCustSize);
+  }
+  
+  template <class T>
+  inline uint32_t getAskSize(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return interpretVolume(msg->askSize);
+  }
+
+  template <class T>
+  inline uint32_t getAskCustSize(const void* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return interpretVolume(msg->askCustSize);
+  }
+  
+  template <class T>
+  inline uint32_t getAskProCustSize(const void* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return interpretVolume(msg->askProCustSize);
   }
   
   inline uint32_t interpretPrice(uint32_t v) {
     return be32toh(v);
   }
 
+  inline uint32_t interpretPrice(int32_t v) {
+    return be32toh(v);
+  }
+  
   inline uint32_t interpretPrice(uint16_t v) {
-    return be16toh(v) * 100;
+    //    printf ("\nv=%x be16toh(v) * 100=%u\n",v,be16toh(v) * 100);
+    return static_cast<uint32_t>(be16toh(v) * 100);
+  }
+  
+  template <class PriceT>
+  inline PriceT interpretPrice(uint16_t v) {
+    //    printf ("\nv=%x be16toh(v) * 100=%u\n",v,be16toh(v) * 100);
+    return static_cast<PriceT>(be16toh(v) * 100);
+  }
+
+  template <class PriceT>
+  inline PriceT interpretPrice(uint32_t v) {
+    return static_cast<PriceT>(be32toh(v));
+  }
+
+  template <class PriceT>
+  inline PriceT interpretPrice(int32_t v) {
+    return static_cast<PriceT>(be32toh(v));
+  }
+
+    
+  template <class MsgT, class BookPriceT>
+  inline uint32_t getPrice(const void* m) {
+    auto msg {reinterpret_cast <const MsgT*>(m)};
+    return interpretPrice<BookPriceT>(msg->price);
+  }
+  
+  template <class MsgT>
+  inline uint32_t getPrice(const void* m) {
+    auto msg {reinterpret_cast <const MsgT*>(m)};
+    return interpretPrice<DefaultPriceT>(msg->price);
   }
   
   template <class T>
-  inline uint32_t getPrice(const uint8_t* m) {
-    auto msg {reinterpret_cast <const T*>(m)};
-    return interpretPrice(msg->price);
-  }
-  
-  template <class T>
-  inline uint32_t getBidPrice(const uint8_t* m) {
+  inline uint32_t getBidPrice(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return interpretPrice(msg->bidPrice);
   }
   
   template <class T>
-  inline uint32_t getAskPrice(const uint8_t* m) {
+  inline uint32_t getAskPrice(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return interpretPrice(msg->askPrice);
   }
+
+  template <class T, class BookPriceT>
+  inline uint32_t getBidPrice(const void* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return interpretPrice<BookPriceT>(msg->bidPrice);
+  }
+  
+  template <class T, class BookPriceT>
+  inline uint32_t getAskPrice(const void* m) {
+    auto msg {reinterpret_cast <const T*>(m)};
+    return interpretPrice<BookPriceT>(msg->askPrice);
+  }
   
   template <class T>
-  inline SideT getSide(const uint8_t* m) {
+  inline SideT getSide(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     switch (msg->side) {
     case 'B' :
@@ -161,8 +239,15 @@ namespace EfhNasdaqCommon {
     }
   }
 
+  template <class MsgT,class PriceT>
+  inline PriceT getStrikePrice(const void* m) {
+    auto msg {reinterpret_cast <const MsgT*>(m)};
+    return interpretPrice<PriceT>(msg->strikePrice);
+  }
+  
+  
   template <class T>
-  inline FhOrderType getOrderType(const uint8_t* m) {
+  inline FhOrderType getOrderType(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     switch (msg->side) {
     case 'B' :
@@ -177,7 +262,7 @@ namespace EfhNasdaqCommon {
   }
 
   template <class T>
-  inline EfhAuctionType getAuctionType(const uint8_t* m) {
+  inline EfhAuctionType getAuctionType(const void* m) {
     switch (reinterpret_cast<const T*>(m)->auctionType) {
     case 'I' : // “I” = Order Exposure
       return EfhAuctionType::kExposed;
@@ -205,13 +290,13 @@ namespace EfhNasdaqCommon {
   }
 
   template <class T>
-  inline uint32_t getAuctionId(const uint8_t* m) {
+  inline uint32_t getAuctionId(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return be32toh(msg->auctionId);
   }
 
   template <class T>
-  inline EfhOrderSide getAuctionSide(const uint8_t* m) {
+  inline EfhOrderSide getAuctionSide(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     switch (msg->imbalanceDirection) {
     case 'B' :
@@ -226,26 +311,26 @@ namespace EfhNasdaqCommon {
 
    
   template <class T>
-  inline uint32_t getAuctionPrice(const uint8_t* m) {
+  inline uint32_t getAuctionPrice(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return be32toh(msg->imbalancePrice);
   }
   
   template <class T>
-  inline uint32_t getImbalanceSize(const uint8_t* m) {
+  inline uint32_t getImbalanceSize(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return be32toh(msg->imbalanceVolume);
   }
   
   template <class T>
-  inline uint32_t getPairedSize(const uint8_t* m) {
+  inline uint32_t getPairedSize(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     return be32toh(msg->pairedQuantity);
   }
   
   template <class T>
   inline EfhOrderCapacity
-  getAuctionOrderCapacity(const uint8_t* m) {
+  getAuctionOrderCapacity(const void* m) {
     auto msg {reinterpret_cast <const T*>(m)};
     switch (msg->customerFirmIndicator) {
     case 'C' : // “C” = Customer
@@ -265,16 +350,28 @@ namespace EfhNasdaqCommon {
       // 	       msg->customerFirmIndicator);
     }
   }
+
   
 
+  template <class T>
+  inline uint32_t getRatio(const void* m) {
+    return be32toh(reinterpret_cast<const T*>(m)->ratio);
+  }
+  
+  template <class MsgT,class PriceT>
+  inline PriceT getLegStrikePrice(const void* m) {
+    auto msg {reinterpret_cast <const MsgT*>(m)};
+    return interpretPrice<PriceT>(msg->strikePrice);
+  }
+  
   template <class Msg>
-  inline size_t printGenericMsg(FILE* fd, const uint8_t* m) {
+  inline size_t printGenericMsg(FILE* fd, const void* m) {
     fprintf (fd,"\n");
     return sizeof(Msg);
   }
 
   template <class Msg>
-  inline int printTradingAction(FILE* fd, const uint8_t* m) {
+  inline int printTradingAction(FILE* fd, const void* m) {
     fprintf(fd,"%u,",getInstrumentId<Msg>(m));
     fprintf(fd,"\'%c\',",reinterpret_cast<const Msg*>(m)->state);
     fprintf (fd,"\n");
@@ -283,26 +380,26 @@ namespace EfhNasdaqCommon {
 
 
   template <class Msg>
-  inline int printOptionOpen(FILE* fd, const uint8_t* m) {
+  inline int printOptionOpen(FILE* fd, const void* m) {
     fprintf(fd,"%u,",getInstrumentId<Msg>(m));
     fprintf(fd,"\'%c\',",reinterpret_cast<const Msg*>(m)->state);
     fprintf (fd,"\n");
     return sizeof(Msg);
   }
   
-  template <class Msg>
-  inline int printAddOrder(FILE* fd, const uint8_t* m) {
+  template <class Msg, class PriceT>
+  inline int printAddOrder(FILE* fd, const void* m) {
     fprintf(fd,"%u,",getInstrumentId<Msg>(m));
     fprintf(fd,"%ju,",getOrderId<Msg>(m));
     fprintf(fd,"\'%c\',",reinterpret_cast<const Msg*>(m)->side);
-    fprintf(fd,"%u,",getPrice<Msg>(m));
+    fprintf(fd,"%u,",getPrice<Msg,PriceT>(m));
     fprintf(fd,"%u,",getSize<Msg>(m));
     fprintf (fd,"\n");
     return sizeof(Msg);
   }
 
   template <class Msg>
-  inline int printAddQuote(FILE* fd, const uint8_t* m) {
+  inline int printAddQuote(FILE* fd, const void* m) {
     fprintf(fd,"%u,",getInstrumentId<Msg>(m));
     fprintf(fd,"%ju,",getBidOrderId<Msg>(m));
     fprintf(fd,"%u,",getBidPrice<Msg>(m));
@@ -314,18 +411,18 @@ namespace EfhNasdaqCommon {
     return sizeof(Msg);
   }
 
-  template <class Msg>
-  inline int printReplaceOrder(FILE* fd, const uint8_t* m) {
+  template <class Msg, class PriceT>
+  inline int printReplaceOrder(FILE* fd, const void* m) {
     fprintf(fd,"%ju,",getOldOrderId<Msg>(m));
     fprintf(fd,"%ju,",getNewOrderId<Msg>(m));
-    fprintf(fd,"%u,",getPrice<Msg>(m));
+    fprintf(fd,"%u,",getPrice<Msg,PriceT>(m));
     fprintf(fd,"%u,",getSize<Msg>(m));
     fprintf (fd,"\n");
     return sizeof(Msg);
   }
 
   template <class Msg>
-  inline int printReplaceQuote(FILE* fd, const uint8_t* m) {
+  inline int printReplaceQuote(FILE* fd, const void* m) {
     fprintf(fd,"%ju,",getOldBidOrderId<Msg>(m));
     fprintf(fd,"%ju,",getNewBidOrderId<Msg>(m));
     fprintf(fd,"%u,",getBidPrice<Msg>(m));
@@ -338,7 +435,7 @@ namespace EfhNasdaqCommon {
   }
   
   template <class Msg>
-  inline int printOrderExecuted(FILE* fd, const uint8_t* m) {
+  inline int printOrderExecuted(FILE* fd, const void* m) {
     fprintf(fd,"%ju,",getOrderId<Msg>(m));
     fprintf(fd,"%u,",getSize<Msg>(m));
     fprintf (fd,"\n");
@@ -346,23 +443,23 @@ namespace EfhNasdaqCommon {
   }
   
   template <class Msg>
-  inline int printDeleteOrder(FILE* fd, const uint8_t* m) {
+  inline int printDeleteOrder(FILE* fd, const void* m) {
     fprintf(fd,"%ju,",getOrderId<Msg>(m));
     fprintf (fd,"\n");
     return sizeof(Msg);
   }
   
-  template <class Msg>
-  inline int printSingleSideUpdate(FILE* fd, const uint8_t* m) {
+  template <class Msg, class PriceT>
+  inline int printSingleSideUpdate(FILE* fd, const void* m) {
     fprintf(fd,"%ju,",getOrderId<Msg>(m));
-    fprintf(fd,"%u,",getPrice<Msg>(m));
+    fprintf(fd,"%u,",getPrice<Msg,PriceT>(m));
     fprintf(fd,"%u,",getSize<Msg>(m));
     fprintf (fd,"\n");
     return sizeof(Msg);
   }
 
   template <class Msg>
-  inline int printDeleteQuote(FILE* fd, const uint8_t* m) {
+  inline int printDeleteQuote(FILE* fd, const void* m) {
     fprintf(fd,"%ju,",getBidOrderId<Msg>(m));
     fprintf(fd,"%ju,",getAskOrderId<Msg>(m));
     fprintf (fd,"\n");
@@ -372,7 +469,8 @@ namespace EfhNasdaqCommon {
   
   template <class Feed>
   inline int
-  printMsg(FILE* fd, uint64_t sequence, const uint8_t* m) {
+  printMsg(FILE* fd, uint64_t sequence, const void* m) {
+    using PriceT = uint32_t; // Price to display
     auto genericHdr {reinterpret_cast
 		     <const typename Feed::GenericHdr*>(m)};
     char enc = genericHdr->type;
@@ -390,9 +488,9 @@ namespace EfhNasdaqCommon {
     case 'O':  // OptionOpen -- NOM only
       return printOptionOpen<typename Feed::OptionOpen>(fd,m);
     case 'a':  // AddOrderShort
-      return printAddOrder<typename Feed::AddOrderShort>(fd,m);
+      return printAddOrder<typename Feed::AddOrderShort,PriceT>(fd,m);
     case 'A':  // AddOrderLong
-      return printAddOrder<typename Feed::AddOrderLong>(fd,m);
+      return printAddOrder<typename Feed::AddOrderLong,PriceT>(fd,m);
     case 'j':  // AddQuoteShort
       return printAddQuote<typename Feed::AddQuoteShort>(fd,m);
     case 'J':  // AddQuoteLong
@@ -404,13 +502,13 @@ namespace EfhNasdaqCommon {
     case 'X':  // OrderCancel
       return printOrderExecuted<typename Feed::OrderCancel>(fd,m);
     case 'u':  // ReplaceOrderShort
-      return printReplaceOrder<typename Feed::ReplaceOrderShort>(fd,m);
+      return printReplaceOrder<typename Feed::ReplaceOrderShort,PriceT>(fd,m);
     case 'U':  // ReplaceOrderLong
-      return printReplaceOrder<typename Feed::ReplaceOrderLong>(fd,m);
+      return printReplaceOrder<typename Feed::ReplaceOrderLong,PriceT>(fd,m);
     case 'D':  // DeleteOrder
       return printDeleteOrder<typename Feed::SingleSideDelete>(fd,m);
     case 'G':  // SingleSideUpdate
-      return printSingleSideUpdate<typename Feed::SingleSideUpdate>(fd,m);
+      return printSingleSideUpdate<typename Feed::SingleSideUpdate,PriceT>(fd,m);
     case 'k':  // QuoteReplaceShort
       return printReplaceQuote<typename Feed::QuoteReplaceShort>(fd,m);
     case 'K':  // QuoteReplaceLong

@@ -19,6 +19,9 @@
 //#define EKA_EXPECTED_EFC_STRATEGY      0x43
 
 // P4 + FastCancel
-#define EKA_EXPECTED_EFC_STRATEGY      128
+//#define EKA_EXPECTED_EFC_STRATEGY      128 //original 
+//#define EKA_EXPECTED_EFC_STRATEGY      129 //new arm
+//#define EKA_EXPECTED_EFC_STRATEGY      130 //fast sweep strategy
+#define EKA_EXPECTED_EFC_STRATEGY      131 // efcSwKeepAliveSend()
 
 #endif

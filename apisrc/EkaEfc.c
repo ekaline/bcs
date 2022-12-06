@@ -15,12 +15,14 @@
 #include "EpmCmeILinkTemplate.h"
 #include "EpmCmeILinkSwTemplate.h"
 #include "EpmCmeILinkHbTemplate.h"
+#include "EpmFastSweepUDPReactTemplate.h"
 #include "EkaEfcDataStructs.h"
 #include "EkaHwCaps.h"
 #include "EhpNom.h"
 #include "EhpPitch.h"
 #include "EhpCmeFC.h"
 #include "EhpNews.h"
+#include "EhpItchFS.h"
 
 void ekaFireReportThread(EkaDev* dev);
 
@@ -52,6 +54,7 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
   
 #ifndef _VERILOG_SIM
   cleanSubscrHwTable();
+  cleanSecHwCtx();
   eka_write(dev,SCRPAD_EFC_SUBSCR_CNT,0);
 #endif
 
@@ -86,6 +89,11 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
     EKA_LOG("Initializing dummy EpmCmeILinkHbTemplate"); //TBD
     ehp = new EhpNews(dev);
     break;
+  case EfhFeedVer::kITCHFS : 
+    epm->hwFire  = new EpmFastSweepUDPReactTemplate(epm->templatesNum++);
+    EKA_LOG("Initializing fast sweep");
+    ehp = new EhpItchFS(dev);
+    break;
   default :
     on_error("Unexpected EFC HW Version: %d",(int)hwFeedVer);
   }
@@ -108,8 +116,9 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
 /* ################################################ */
 
 /* ################################################ */
-int EkaEfc::armController() {
-  eka_write(dev, P4_ARM_DISARM, 1); 
+int EkaEfc::armController(EfcArmVer ver) {
+  uint64_t armData = ((uint64_t)ver << 32) | 1;
+  eka_write(dev, P4_ARM_DISARM, armData); 
   return 0;
 }
 /* ################################################ */
@@ -142,7 +151,17 @@ int EkaEfc::cleanSubscrHwTable() {
   eka_write(dev, SW_STATISTICS, val);
   return 0;
 }
+/* ################################################ */
+int EkaEfc::cleanSecHwCtx() {
+  EKA_LOG("Cleaning HW Contexts of %d securities",MAX_SEC_CTX);
 
+  for (EfcSecCtxHandle handle = 0; handle < (EfcSecCtxHandle)MAX_SEC_CTX; handle++) {
+    const EkaHwSecCtx hwSecCtx = {};
+    writeSecHwCtx(handle,&hwSecCtx,0/* writeChan */);
+  }
+  
+  return 0;
+}
 
 /* ################################################ */
 int EkaEfc::initHwRoundTable() {
@@ -162,6 +181,7 @@ int EkaEfc::initHwRoundTable() {
     case EfhFeedVer::kCBOE:
     case EfhFeedVer::kCME:
     case EfhFeedVer::kNEWS:
+    case EfhFeedVer::kITCHFS:
       data = addr;
       break;
     default:
@@ -379,15 +399,16 @@ int EkaEfc::run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx) {
 
   enableRxFire();
 
-  if (! dev->fireReportThreadActive) {
-    dev->fireReportThread = std::thread(ekaFireReportThread,dev);
-    dev->fireReportThread.detach();
-    while (! dev->fireReportThreadActive) sleep(0);
-    EKA_LOG("fireReportThread activated");
-  } else {
-    EKA_LOG("fireReportThread already active");
+  if (dev->fireReportThreadActive) {
+    on_error("fireReportThread already active");
   }
-
+  
+  dev->fireReportThread = std::thread(ekaFireReportThread,dev);
+  dev->fireReportThread.detach();
+  while (! dev->fireReportThreadActive)
+    sleep(0);
+  EKA_LOG("fireReportThread activated");
+  
   return 0;
 }
 

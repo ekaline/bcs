@@ -94,6 +94,19 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
     case EkaFhGroup::GrpState::INIT : {
       EKA_LOG("%s:%u 1st MC msq sequence=%ju",
 	      EKA_EXCH_DECODE(exch),gr_id,sequence);
+
+      if (gr->skipSnapshot()) {
+	EKA_LOG("%s:%u Skipping Snapshot for pure Trade group: sequence=%ju",
+		EKA_EXCH_DECODE(exch),gr_id,sequence);
+	gr->sendFeedUpInitial(pEfhRunCtx);
+	gr->state = EkaFhGroup::GrpState::NORMAL;
+	gr->gapClosed = true;
+	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,
+						     msgInPkt,sequence);      
+	break;
+      }
+    
+
       gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
       gr->gapClosed = false;
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;

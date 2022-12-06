@@ -3,6 +3,7 @@
 #include "EkaSnDev.h"
 #include "EkaTcpSess.h"
 #include "EkaUdpSess.h"
+#include "EkaUdpTxSess.h"
 #include "EkaUdpChannel.h"
 #include "EkaHwCaps.h"
 
@@ -142,7 +143,22 @@ uint EkaCore::addTcpSess() {
   tcpSess[sessId] = new EkaTcpSess(dev, this, coreId, sessId, srcIp, 0, 0, macSa);
   return sessId;
 }
+/* ------------------------------------------------------------- */
+uint EkaCore::addUdpTxSess(eka_ether_addr srcMac, eka_ether_addr dstMac,
+			   eka_in_addr_t srcIp, eka_in_addr_t dstIp, 
+			   uint16_t srcUpdPort, uint16_t dstUpdPort) {
+  if (udpTxSessions ==MAX_UDP_TX_SESS_PER_CORE)
+    on_error("udpTxSessions = %u",udpTxSessions);
 
+  uint8_t sessId = udpTxSessions++;
+
+  udpTxSess[sessId] = new EkaUdpTxSess(dev, coreId, sessId,
+				       srcMac,dstMac,srcIp,dstIp,
+				       srcUpdPort,dstUpdPort);
+  if (!udpTxSess[sessId])
+    on_error("Failed creating new EkaUdpTxSess");
+  return sessId;
+}
 /* ------------------------------------------------------------- */
 void EkaCore::suppressOldTcpSess(uint8_t newSessId,
 			 uint32_t srcIp,uint16_t srcPort,

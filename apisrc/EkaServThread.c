@@ -42,7 +42,9 @@ static inline int sendDummyFastPathPkt(EkaDev* dev, const uint8_t* payload) {
 
 
 void ekaServThread(EkaDev* dev) {
-  EKA_LOG("Launching");
+  const char* threadName = "ServThread";
+  EKA_LOG("Launching %s",threadName);
+  pthread_setname_np(pthread_self(),threadName);
 
   dev->servThreadActive = true;
 
@@ -92,9 +94,9 @@ void ekaServThread(EkaDev* dev) {
           }
 	}
 	if (feedbackDmaReport->bitparams.expect_report == 1) {
-	  //	  EKA_LOG("User Report # %u is pushed to Q",
-	  //		  feedbackDmaReport->index);
-	  //	  hexDump("Payload push to Q",payload,len);
+	  	  /* EKA_LOG("User Report # %u is pushed to Q", */
+	  	  /* 	  feedbackDmaReport->index); */
+	  	  /* hexDump("Payload push to Q",payload,len); */
 	  dev->userReportQ->push(payload,len);
 	}
 	dev->lwipPath->next();

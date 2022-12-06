@@ -108,11 +108,33 @@ int excSetBlocking( EkaDev* pEkaDev, ExcSocketHandle hConn, bool blocking );
 int excShutdown( EkaDev* pEkaDev, ExcConnHandle hConn, int how );
 
 /**
- * Help functions for the tests
+ * This creates internal "dummy" UDP connection to be used by
+ * News, Itch Fast Sweep, and other applications sending Fires
+ * over UDP. It defines the network params for the Epm Actions
+ * 
+ * @param  pEkaDev  
+ * @param  coreId      FPGA I/F Index (starting from 0) to use for the UDP conn
+ * @param  srcMac      Source MAC address. 0 to use the system configuration
+ * @param  dstMac      Destination MAC address
+ * @param  srcIp       Source IPv4 address. 0 to use the system configuration
+ * @param  dstIp       Destination IPv4 address
+ * @param  srcUdpPort  Source UDP Port
+ * @param  dstUdpPort  Destination UDP Port 
+ * 
+ * @return             UDP connection handle to be passed to EpmAction
+ *                     to initialize the Network Header of the Fire packet
+ */
+ExcUdpTxConnHandle excUdpConnect(EkaDev* pEkaDev, EkaCoreId coreId,
+				 eka_ether_addr srcMac, eka_ether_addr dstMac,
+				 eka_in_addr_t srcIp, eka_in_addr_t dstIp, 
+				 uint16_t srcPort, uint16_t dstPort);
+      
+/**
+ * Help functions for the tests (OBSOLETE!)
  */
 
-int excUdpSocket(EkaDev* pEkaDev);
-int excSendTo (EkaDev* dev, int sock, const void *dataptr, size_t size, const struct sockaddr *to);
+/* int excUdpSocket(EkaDev* pEkaDev); */
+/* int excSendTo (EkaDev* dev, int sock, const void *dataptr, size_t size, const struct sockaddr *to); */
 
 #ifdef __cplusplus
     } // extern "C"

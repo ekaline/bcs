@@ -34,9 +34,15 @@ extern EkaDev *g_ekaDev;
 /* ########################################################### */
 inline size_t printContainerGlobalHdr(FILE* file, const uint8_t* b) {
   auto containerHdr {reinterpret_cast<const EkaContainerGlobalHdr*>(b)};
-  fprintf(file,"%s with %d reports\n",
-	  EkaEventType2STR(containerHdr->type),
-	  containerHdr->num_of_reports);
+  switch (containerHdr->type) {
+  case EkaEventType::kExceptionEvent:
+    break;
+  default:
+    fprintf(file,"%s with %d reports\n",
+	    EkaEventType2STR(containerHdr->type),
+	    containerHdr->num_of_reports);
+  }
+  
 
   return sizeof(*containerHdr);
 }
@@ -60,9 +66,11 @@ inline size_t printExceptionReport(FILE* file, const uint8_t* b) {
   if ((uint64_t)decodeSize > sizeof(excptBuf))
     on_error("decodeSize %d > sizeof(excptBuf) %jd",
 	     decodeSize,sizeof(excptBuf));
-  fprintf(file,"ExceptionsReport:\n");
-  fprintf(file,"%s\n",excptBuf);
-  fprintf(stderr,RED "%s\n" RESET,excptBuf);
+  if ((uint64_t)decodeSize > 0) {
+    fprintf(file,"ExceptionsReport:\n");
+    fprintf(file,"%s\n",excptBuf);
+    fprintf(stderr,RED "%s\n" RESET,excptBuf);
+  }
   return sizeof(*exceptionsReport);
 }
 /* ########################################################### */
@@ -194,6 +202,19 @@ int printFastCancelReport(FILE* file,const uint8_t* b) {
   return sizeof(*epmReport);
 }
 /* ########################################################### */
+int printFastSweepReport(FILE* file,const uint8_t* b) {
+  auto epmReport {reinterpret_cast<const EpmFastSweepReport*>(b)};
+  
+  fprintf(file,"udpPayloadSize=%d,locateID=%d (0x%x),lastMsgNum=%d,firstMsgType=%c,lastMsgType=%c\n",
+	  epmReport->udpPayloadSize,
+	  epmReport->locateID, epmReport->locateID,
+	  epmReport->lastMsgNum,
+	  epmReport->firstMsgType,
+	  epmReport->lastMsgType
+	  );
+  return sizeof(*epmReport);
+}
+/* ########################################################### */
 int printNewsReport(FILE* file,const uint8_t* b) {
   auto epmReport {reinterpret_cast<const EpmNewsReport*>(b)};
   
@@ -244,6 +265,9 @@ void efcPrintFireReport(const void* p, size_t len, void* ctx) {
       break;
     case EfcReportType::kNewsReport:
       b += printNewsReport(file,b);
+      break;
+    case EfcReportType::kFastSweepReport:
+      b += printFastSweepReport(file,b);
       break;
     default:
       on_error("Unexpected reportHdr->type %d",

@@ -15,6 +15,7 @@
 			(std::regex_search(std::string(x),std::regex("GEM_TQF"))    == true) ? EkaSource::kGEM_TQF    : \
 			(std::regex_search(std::string(x),std::regex("ISE_TQF"))    == true) ? EkaSource::kISE_TQF    : \
 			(std::regex_search(std::string(x),std::regex("MRX_TQF"))    == true) ? EkaSource::kMRX_TQF    : \
+			(std::regex_search(std::string(x),std::regex("MRX2_TOP"))   == true) ? EkaSource::kMRX2_TOP   : \
 			(std::regex_search(std::string(x),std::regex("MIAX_TOM"))   == true) ? EkaSource::kMIAX_TOM   : \
 			(std::regex_search(std::string(x),std::regex("EMLD_TOM"))   == true) ? EkaSource::kEMLD_TOM   : \
 			(std::regex_search(std::string(x),std::regex("PEARL_TOM"))  == true) ? EkaSource::kPEARL_TOM  : \
@@ -36,6 +37,7 @@
   (x == EkaSource::kGEM_TQF)    ? EfhFeedVer::kGEMX :	\
   (x == EkaSource::kISE_TQF)    ? EfhFeedVer::kGEMX :	\
   (x == EkaSource::kMRX_TQF)    ? EfhFeedVer::kGEMX :	\
+  (x == EkaSource::kMRX2_TOP)   ? EfhFeedVer::kMRX2_TOP :	\
   (x == EkaSource::kARCA_XDP)   ? EfhFeedVer::kXDP :	\
   (x == EkaSource::kAMEX_XDP)   ? EfhFeedVer::kXDP :	\
   (x == EkaSource::kARCA_PLR)   ? EfhFeedVer::kPLR :	\
@@ -61,6 +63,7 @@
   (x == EkaSource::kGEM_TQF)    ? "GEM_TQF"    : \
   (x == EkaSource::kISE_TQF)    ? "ISE_TQF"    : \
   (x == EkaSource::kMRX_TQF)    ? "MRX_TQF"    : \
+  (x == EkaSource::kMRX2_TOP)   ? "MRX2_TOP"   : \
   (x == EkaSource::kPHLX_TOPO)  ? "PHLX_TOPO"  : \
   (x == EkaSource::kPHLX_ORD)   ? "PHLX_ORD"   : \
   (x == EkaSource::kARCA_XDP)   ? "ARCA_XDP"   : \
@@ -84,6 +87,7 @@
   (x == EkaSource::kGEM_TQF)    ? "GEM"      : \
   (x == EkaSource::kISE_TQF)    ? "ISE"      : \
   (x == EkaSource::kMRX_TQF)    ? "MRX"      : \
+  (x == EkaSource::kMRX2_TOP)   ? "MRX2_TOP" : \
   (x == EkaSource::kPHLX_TOPO)  ? "PHLX"     : \
   (x == EkaSource::kPHLX_ORD)   ? "PHLX_ORD" : \
   (x == EkaSource::kARCA_XDP)   ? "ARCA"     : \
@@ -108,6 +112,7 @@
   (x == EkaSource::kGEM_TQF)    ? EfhExchange::kGEM   :	   \
   (x == EkaSource::kISE_TQF)    ? EfhExchange::kISE   :	   \
   (x == EkaSource::kMRX_TQF)    ? EfhExchange::kMCRY  :	   \
+  (x == EkaSource::kMRX2_TOP)   ? EfhExchange::kMCRY  :	   \
   (x == EkaSource::kPHLX_TOPO)  ? EfhExchange::kPHLX  :	   \
   (x == EkaSource::kPHLX_ORD)   ? EfhExchange::kPHLX  :	   \
   (x == EkaSource::kMIAX_TOM)   ? EfhExchange::kMIAX  :	   \
@@ -148,7 +153,8 @@
   x == EfhFeedVer::kPLR      ? "PLR"         : \
   x == EfhFeedVer::kBOX      ? "BOX"         : \
   x == EfhFeedVer::kCME      ? "CME"         : \
-  x == EfhFeedVer::kNEWS     ? "NEWS"         : \
+  x == EfhFeedVer::kNEWS     ? "NEWS"        : \
+  x == EfhFeedVer::kITCHFS   ? "FS"          : \
                                "UNKNOWN"
 
 #define EKA_TS_DECODE(x) \

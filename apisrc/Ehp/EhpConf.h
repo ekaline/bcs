@@ -23,10 +23,11 @@ enum class EhpSidePresence : int8_t {
 };
 
 enum class EhpHwProtocol :  uint8_t {
-  NOM   = 1,     
-  PITCH = 2,
-  NEWS  = 14, // hardcoded in HW to trigger news strategy
-  CMEFC = 15 // hardcoded in HW to trigger fast cancel strategy
+  NOM    = 1,     
+  PITCH  = 2,
+  ITCHFS = 13, // hardcoded in HW to trigger fast sweep strategy
+  NEWS   = 14, // hardcoded in HW to trigger news strategy
+  CMEFC  = 15  // hardcoded in HW to trigger fast cancel strategy
 };
 
 /**
