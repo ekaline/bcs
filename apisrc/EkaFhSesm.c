@@ -418,7 +418,8 @@ static EkaFhParseResult procSesm(const EfhRunCtx* pEfhRunCtx,
       return EkaFhParseResult::End;
     }
     if (static_cast<TOM_MSG>(msgType) == TOM_MSG::SeriesUpdate) {
-      pVanillaDefinitions->push(reinterpret_cast<const TomSeriesUpdate*>(m));
+      if (pVanillaDefinitions)
+	pVanillaDefinitions->push(reinterpret_cast<const TomSeriesUpdate*>(m));
     } else {
       if (gr->parseMsg(pEfhRunCtx,m,sequence,op)) {
 	EKA_LOG("%s:%u %s End Of Refresh: gr->seq_after_snapshot = %ju",
@@ -452,7 +453,8 @@ static EkaFhParseResult procSesm(const EfhRunCtx* pEfhRunCtx,
 	return EkaFhParseResult::End;
       }
       if (static_cast<TOM_MSG>(msgType) == TOM_MSG::SeriesUpdate) {
-	pVanillaDefinitions->push(reinterpret_cast<const TomSeriesUpdate*>(m));
+	if (pVanillaDefinitions)
+	  pVanillaDefinitions->push(reinterpret_cast<const TomSeriesUpdate*>(m));
       } else {
 	if (gr->parseMsg(pEfhRunCtx,m,sequence,op)) {
 	  EKA_LOG("%s:%u %s End Of Refresh: gr->seq_after_snapshot = %ju",
@@ -533,7 +535,7 @@ void* getSesmData(void* attr) {
     char snapshotRequests[] = {
       'S', // System State Refresh
       'U', // Underlying Trading Status Refresh
-      'P', // Simple Series Update Refresh
+      /* 'P', // Simple Series Update Refresh */
       'Q'};// Simple Top of Market Refresh
     for (int i = 0; i < (int)(sizeof(snapshotRequests)/sizeof(snapshotRequests[0])); i ++) {
       EKA_LOG("%s:%u SNAPSHOT \'%c\' Phase",
