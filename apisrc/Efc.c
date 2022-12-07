@@ -61,6 +61,7 @@ EkaOpResult efcInit( EfcCtx** ppEfcCtx, EkaDev *pEkaDev, const EfcInitCtx* pEfcI
   
   (*ppEfcCtx)->dev = dev;
   dev->efcFeedVer  = pEfcInitCtx->feedVer;
+  dev->efcTestRun  = pEfcInitCtx->testRun;
 
   return EKA_OPRESULT__OK;
 }

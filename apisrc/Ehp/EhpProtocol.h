@@ -20,7 +20,7 @@ class EhpProtocol {
   volatile EhpProtocolConf conf = {};
   static const uint64_t EhpConfAddr = 0x10000;
 
- private:
+  // private:
   EkaDev* dev = NULL;
 
   

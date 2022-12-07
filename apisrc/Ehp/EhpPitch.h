@@ -20,9 +20,9 @@ class EhpPitch : public EhpProtocol {
   int createAddOrderExpanded();
 
  public:
-  static const int AddOrderShortMsg = 0;
-  static const int AddOrderLongMsg  = 1;
-  static const int AddOrderExpandedMsg  = 2;
+  static const int AddOrderExpandedMsg  = 0;
+  static const int AddOrderShortMsg = 1;
+  static const int AddOrderLongMsg  = 2;
 
 };
 

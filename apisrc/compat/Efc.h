@@ -37,7 +37,11 @@ typedef uint32_t EfcArmVer;
  */
 struct EfcInitCtx {
   EfhFeedVer feedVer;  
+  // For CBOE testRun enables firing on Short, Long, and Expanded orders
+  // while for the non-testRun it fires only on Expanded Customer orders
+  bool       testRun = false;
 
+  
   // replaced by Trigger config
   //  EkaProps*  ekaProps;
   //  EkaCoreId  mdCoreId; // what 10G port get MD on
