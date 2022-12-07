@@ -6,6 +6,9 @@
 //#define EFH_MIAX_STRIKE_PRICE_SCALE 10
 #define EFH_MIAX_STRIKE_PRICE_SCALE 1
 namespace Tom {
+
+  const size_t MaxVanillaDefinitions = 1'500'000;
+
   struct sesm_header {
     uint16_t	length;
     char		type;
