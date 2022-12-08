@@ -132,7 +132,7 @@ class EkaTcpSess {
   EkaDev* dev = NULL;
 
   bool connectionEstablished = false;
-  bool blocking = true;
+  bool blocking = false;
 };
 
 #endif

@@ -22,12 +22,12 @@
 #include "Eka.h"
 #include "Efc.h"
 
-#define TCP_TEST_ECHO 1
+#define TCP_TEST_ECHO 0
 #define TCP_TEST_DATA 1
 
-//#define BUF_SIZE 8192
+#define BUF_SIZE 8192
 //#define BUF_SIZE (1536 - 14 - 20 - 20)
-#define BUF_SIZE 1460
+//#define BUF_SIZE 1460
 
 #define CORES 2
 #define SESSIONS 32
@@ -349,6 +349,10 @@ int main(int argc, char *argv[]) {
       fflush(stderr);
       if ((sess_id[c][s] = excConnect(pEkaDev,sock[c][s],(sockaddr*) &dst, sizeof(sockaddr_in))) < 0) 
 	on_error("failed to connect sock[%u][%u] on port %u",c,s,conn[c].dstTcpPort);
+
+      /* int rc = excSetBlocking(pEkaDev,sess_id[c][s],false); */
+      /* if (rc) */
+      /* 	on_error("excSetBlocking() returned %d",rc); */
     }
   }
 
