@@ -764,7 +764,16 @@ namespace Plr {
     uint8_t  ChannelID;
   } __attribute__((packed));
 
- 
+  // -------------------------------
+  inline void printOptionsStatus(const void* pMsg) {
+    auto m {reinterpret_cast<const OptionsStatus*>(pMsg)};
+    printf ("\t%s:",msgType2str(m->hdr.type).c_str());
+    printf ("%d,",m->seriesIndex);
+    printf ("\'%c\',",m->seriesStatus);
+    printf ("\'%c\',",m->MarketState);
+    printf ("\'%c\',",m->HaltCondition);
+    printf ("\n");
+  }
   // -------------------------------
   inline uint32_t printPkt(const uint8_t* pkt) {
     auto p {pkt};
@@ -782,7 +791,14 @@ namespace Plr {
 
     for (auto i = 0; i < pktHdr->numMsgs; i++) {
       auto msgHdr {reinterpret_cast<const MsgHdr*>(p)};
-      printf ("\t%s\n",msgType2str(msgHdr->type).c_str());
+
+      switch (static_cast<MsgType>(msgHdr->type)) {
+	case  MsgType::OptionsStatus : // 51
+	  printOptionsStatus(msgHdr);
+	  break;
+      default:
+	printf ("\t%s\n",msgType2str(msgHdr->type).c_str());
+      }
       p += msgHdr->size;
     }
     return p - pkt;
