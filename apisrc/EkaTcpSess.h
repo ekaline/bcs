@@ -59,7 +59,9 @@ class EkaTcpSess {
    * NOTE: MAX_PAYLOAD_SIZE *must* match the value of TCP_MSS but we don't want
    * to include lwipopts.h here.
    */
-  static const uint MAX_PAYLOAD_SIZE  = 1440;
+  //  static const uint MAX_PAYLOAD_SIZE  = 1440;
+  // matching more conservative MSS
+  static const uint MAX_PAYLOAD_SIZE  = 1360;
   static const uint16_t EkaIpId       = 0x0;
 
   EkaEpmAction* fastPathAction = NULL;
