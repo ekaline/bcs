@@ -461,7 +461,7 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
   }
   else if (len && !payloadSize2send) {
     errno = EAGAIN;
-    return -1;
+    return 0;
   }
 
   auto temp = fastPathBytes + payloadSize2send;
