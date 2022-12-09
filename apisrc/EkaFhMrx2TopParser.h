@@ -29,7 +29,8 @@ namespace Mrx2Top {
     ComplexBestBidUpdate       = 'c',
     ComplexBestAskUpdate       = 'd',
 
-    Auction                    = 'I'
+    Auction                    = 'I',
+    Order                      = 'O'
 
   };
 
@@ -324,6 +325,15 @@ namespace Mrx2Top {
     uint32_t dnttMarketSize;
   } __attribute__((packed));
 
+  struct Order { // 'O'
+    GenericHdr hdr;        // 11
+    uint32_t instrumentId; // 4
+
+
+    char placeHolder[61-11-4];
+
+  } __attribute__((packed));
+
 
   struct Auction { // 'I'
     GenericHdr hdr;           // 11
@@ -390,7 +400,7 @@ namespace Mrx2Top {
     case 'I' : // Order Exposure
       return EfhAuctionType::kExposed;
     case 'P' : // Price Improvement (PIM) Auction
-      return EfhAuctionType::kPriceImprovementPeriod;
+      return EfhAuctionType::kPrism;
     case 'C' : // Facilitation
       return EfhAuctionType::kFacilitation;
     case 'S' : // Solicitation
@@ -401,6 +411,24 @@ namespace Mrx2Top {
     }
   }
 
+  template <class T>
+  inline uint64_t getAuctionDurationNanos(const void* m) {
+    auto auctionType = reinterpret_cast<const T*>(m)->auctionType;
+    switch (auctionType) {
+    case 'B' : // Block Auction
+    case 'P' : // Price Improvement (PIM) Auction
+    case 'C' : // Facilitation
+    case 'S' : // Solicitation
+      return 100'000'000;
+    case 'O' : // Opening
+    case 'R' : // Reopening
+    case 'I' : // Order Exposure
+      return 150'000'000;
+    default:
+      on_error("Unexpected auctionType \'%c\' (0x%x)",
+               auctionType,auctionType);
+    }
+  }
 
   template <class T>    
   inline EfhOrderSide getAuctionSide(const void* m) {
@@ -410,18 +438,37 @@ namespace Mrx2Top {
       return EfhOrderSide::kBid;
     case 'S' :
       return EfhOrderSide::kAsk;
+    case ' ' :
+      return EfhOrderSide::kOther;
     default :
-      on_error("Unexpected side \'%c\' (0x%x",side,side);
+      on_error("Unexpected side \'%c\' (0x%x)",side,side);
+    }
+  }
+
+  inline bool isUpdateOnlyAuction(const char auctionType) {
+    switch (auctionType) {
+    case 'O' : // Opening
+    case 'R' : // Reopening
+    case 'I' : // Order Exposure
+      return true;
+    default:
+      return false;
     }
   }
   
   template <class T>
   inline EfhAuctionUpdateType getAuctionUpdateType(const void* m) {
-    auto auctionEvent = reinterpret_cast<const T*>(m)->auctionEvent;
+    const auto msg = reinterpret_cast<const T*>(m);
+    auto auctionEvent = msg->auctionEvent;
     switch (auctionEvent) {
     case 'S' : // Start of Auction
-    case 'U' : // Auction Update
       return EfhAuctionUpdateType::kNew;
+    case 'U' : // Auction Update
+      if (isUpdateOnlyAuction(msg->auctionType)) {
+        return EfhAuctionUpdateType::kNew;
+      } else {
+        return EfhAuctionUpdateType::kReplace;
+      }
     case 'E' : // End of Auction
       return EfhAuctionUpdateType::kDelete;
     default:
@@ -452,16 +499,16 @@ namespace Mrx2Top {
     switch (orderCapacity) {
     case 'C' : //  Customer Order
       return EfhOrderCapacity::kCustomer;
-    case 'F' : //  Firm Order
-      return EfhOrderCapacity::kAgency;
-    case 'M' : //  Nasdaq registered Market Maker Order
-      return EfhOrderCapacity::kPrincipal;  // TO BE CHECKED!!!
-    case 'B' : //  Broker Dealer Order
-      return EfhOrderCapacity::kBrokerDealer;
     case 'P' : //  Professional Order
       return EfhOrderCapacity::kProfessionalCustomer;
+    case 'B' : //  Broker Dealer Order
+      return EfhOrderCapacity::kBrokerDealerAsCustomer;
+    case 'F' : //  Firm Order
+      return EfhOrderCapacity::kBrokerDealer;
+    case 'M' : //  Nasdaq registered Market Maker Order
+      return EfhOrderCapacity::kMarketMaker;
     case 'O' : //  Other exchange registered
-      return EfhOrderCapacity::kProprietary; // TO BE CHECKED!!!
+      return EfhOrderCapacity::kAwayMarketMaker;
     case ' ' : //  not applicable for certain Auction Types
       return EfhOrderCapacity::kUnknown;
     default:
@@ -605,6 +652,14 @@ namespace Mrx2Top {
     return sizeof(MsgT);
   }
   
+  template <class MsgT>
+  inline size_t printOrder(const void* m, FILE* fd = stdout) {
+    //    auto msg {reinterpret_cast <const MsgT*>(m)};
+
+    fprintf (fd,"\n");
+    return sizeof(MsgT);
+  }
+  
   inline size_t
   printMsg(const void* m, uint64_t sequence = 0, FILE* fd = stdout) {
     //    using PriceT = uint32_t; // Price to display
@@ -663,6 +718,9 @@ namespace Mrx2Top {
       //--------------------------------------------------------------
     case MsgType::Auction :
       return printAuction<Auction>(m,fd);
+      //--------------------------------------------------------------
+    case MsgType::Order :
+      return printOrder<Order>(m,fd);
       //--------------------------------------------------------------
     default: 
       on_error("UNEXPECTED Message type: enc=\'%c\'",(char)enc);

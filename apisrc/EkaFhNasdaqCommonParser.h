@@ -280,6 +280,22 @@ namespace EfhNasdaqCommon {
     }
   }
 
+  template <class T>
+  inline uint64_t getAuctionDurationNanos(const void* m) {
+    switch (reinterpret_cast<const T*>(m)->auctionType) {
+    case 'B' : // Block Auction
+    case 'P' : // Price Improvement (PIM) Auction
+      return 100'000'000;
+    case 'O' : // Opening
+    case 'R' : // Reopening
+    case 'I' : // Order Exposure
+      return 150'000'000;
+    default :
+      on_error("Unexpected auctionType \'%c\'",
+               reinterpret_cast<const T*>(m)->auctionType);
+    }
+  }
+
   inline EfhOptionType decodeOptionType(char c) {
     switch (c) {
     case 'C' : return EfhOptionType::kCall;
@@ -335,14 +351,14 @@ namespace EfhNasdaqCommon {
     switch (msg->customerFirmIndicator) {
     case 'C' : // “C” = Customer
       return EfhOrderCapacity::kCustomer;
-    case 'F' : // “F” = Firm/ Joint Back Office (JBO)
-      return EfhOrderCapacity::kAgency;
-    case 'M' : // “M” = On-floor Market Maker
-      return EfhOrderCapacity::kMarketMaker;
     case 'P' : // “P” = Professional Customer
       return EfhOrderCapacity::kProfessionalCustomer;
     case 'B' : // “B” = Broker Dealer/ Non Registered Market Maker
+      return EfhOrderCapacity::kBrokerDealerAsCustomer;
+    case 'F' : // “F” = Firm/ Joint Back Office (JBO)
       return EfhOrderCapacity::kBrokerDealer;
+    case 'M' : // “M” = On-floor Market Maker
+      return EfhOrderCapacity::kMarketMaker;
     default :
       // for all non EfhAuctionType::kExposed RFQs
       return EfhOrderCapacity::kUnknown;

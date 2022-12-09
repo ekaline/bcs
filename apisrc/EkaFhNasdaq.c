@@ -96,7 +96,8 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
 	      EKA_EXCH_DECODE(exch),gr_id,sequence);
 
       if (gr->skipSnapshot()) {
-	EKA_LOG("%s:%u Skipping Snapshot for pure Trade group: sequence=%ju",
+	gr->expected_sequence = sequence;
+	EKA_LOG("%s:%u Skipping Snapshot for pure Trade/Auction group: sequence=%ju",
 		EKA_EXCH_DECODE(exch),gr_id,sequence);
 	gr->sendFeedUpInitial(pEfhRunCtx);
 	gr->state = EkaFhGroup::GrpState::NORMAL;
@@ -188,6 +189,11 @@ EkaOpResult EkaFhNasdaq::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx
 /* ##################################################################### */
 
 EkaOpResult EkaFhNasdaq::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, const EkaGroup* group) {
+  auto gr = b_gr[(uint8_t)group->localId];
+  if (gr->skipDefinitions()) {
+    EKA_LOG("%s:%u: skipping Definitions phase for pure Trade/Auction group",EKA_EXCH_DECODE(exch),gr->id);
+    return EKA_OPRESULT__OK;
+  }
   EkaFhThreadAttr* attr = new EkaFhThreadAttr(pEfhCtx, 
 					      pEfhRunCtx, 
 					      b_gr[(uint8_t)group->localId], 

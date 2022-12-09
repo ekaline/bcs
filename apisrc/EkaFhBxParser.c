@@ -450,15 +450,14 @@ template <class SecurityT, class Msg>
   msg.header.gapNum         = gapNum;
 
   msg.auctionId             = getAuctionId<Msg>(m);
-  msg.auctionType           = getAuctionType<Msg>(m);;
+  msg.auctionType           = getAuctionType<Msg>(m);
 
   msg.updateType            = EfhAuctionUpdateType::kNew;
   msg.side                  = getAuctionSide<Msg>(m);
   msg.capacity              = getAuctionOrderCapacity<Msg>(m);
-  msg.quantity              = getImbalanceSize<Msg>(m) +
-    getPairedSize<Msg>(m);
+  msg.quantity              = getImbalanceSize<Msg>(m) + getPairedSize<Msg>(m);
   msg.price                 = getAuctionPrice<Msg>(m);
-  msg.endTimeNanos          = 0;
+  msg.endTimeNanos          = msgTs + getAuctionDurationNanos<Msg>(m);
 
   pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData,
 				      pEfhRunCtx->efhRunUserData);
@@ -495,7 +494,6 @@ inline void EkaFhBxGr::processDefinition(const unsigned char* m,
   definitionMsg.header.timeStamp      = 0;
   definitionMsg.header.gapNum         = this->gapNum;
 
-  //    definitionMsg.secondaryGroup        = 0;
   definitionMsg.commonDef.securityType   = EfhSecurityType::kOption;
   definitionMsg.commonDef.exchange       = EfhExchange::kBX;
   definitionMsg.commonDef.underlyingType = EfhSecurityType::kStock;
