@@ -55,11 +55,11 @@ $i = $groups - 1;
 print <<EOT;
 // trades
     {"efh.ARCA_PLR.group.$i.products","vanilla_trades"},
-    {"efh.ARCA_PLR.group.$i.mcast.addr",      "224.0.96.96:4401"},
+    {"efh.ARCA_PLR.group.$i.mcast.addr",      "224.0.96.96:44001"},
     {"efh.ARCA_PLR.group.$i.refresh.tcpAddr", "$retrans_tcp"},
-    {"efh.ARCA_PLR.group.$i.refresh.udpAddr", "224.0.96.98:4601"},
+    {"efh.ARCA_PLR.group.$i.refresh.udpAddr", "224.0.96.98:46001"},
     {"efh.ARCA_PLR.group.$i.retrans.tcpAddr", "$retrans_tcp"},
-    {"efh.ARCA_PLR.group.$i.retrans.udpAddr", "224.0.96.97:4501"},
+    {"efh.ARCA_PLR.group.$i.retrans.udpAddr", "224.0.96.97:45001"},
     {"efh.ARCA_PLR.group.$i.ChannelId","1"},
     {"efh.ARCA_PLR.group.$i.SourceId","ARGTSXD01"},
 
@@ -94,11 +94,11 @@ $i = $groups-1;
 print <<EOT;
 // trades
     {"efh.ARCA_PLR.group.$i.products","vanilla_trades"},
-    {"efh.ARCA_PLR.group.$i.mcast.addr",      "224.0.96.96:4401"},
+    {"efh.ARCA_PLR.group.$i.mcast.addr",      "224.0.96.96:44001"},
     {"efh.ARCA_PLR.group.$i.refresh.tcpAddr", "$retrans_tcp"},
-    {"efh.ARCA_PLR.group.$i.refresh.udpAddr", "224.0.96.98:4601"},
+    {"efh.ARCA_PLR.group.$i.refresh.udpAddr", "224.0.96.98:46001"},
     {"efh.ARCA_PLR.group.$i.retrans.tcpAddr", "$retrans_tcp"},
-    {"efh.ARCA_PLR.group.$i.retrans.udpAddr", "224.0.96.97:4501"},
+    {"efh.ARCA_PLR.group.$i.retrans.udpAddr", "224.0.96.97:45001"},
     {"efh.ARCA_PLR.group.$i.ChannelId","1"},
     {"efh.ARCA_PLR.group.$i.SourceId","ARGTSXD01"},
 
