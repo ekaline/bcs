@@ -279,7 +279,7 @@ template <class SecurityT, class Msg, bool SendTrade>
     msg.header.timeStamp      = msgTs;
     msg.header.gapNum         = gapNum;
 
-    msg.price       = o->plevel->price;
+    msg.price       = p->price;
     msg.size        = deltaSize;
     msg.tradeStatus = s->trading_action;
     msg.tradeCond   = EfhTradeCond::kREG;
