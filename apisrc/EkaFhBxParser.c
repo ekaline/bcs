@@ -257,17 +257,6 @@ template <class SecurityT, class Msg, bool SendTrade>
   SizeT  deltaSize   = getSize<Msg>(m);  
   auto p = o->plevel;
 
-  book->setSecurityPrevState(s);
-
-  if (o->size < deltaSize) {
-    on_error("o->size %u < deltaSize %u",o->size,deltaSize);
-  } else if (o->size == deltaSize) {
-    book->deleteOrder(o);
-  } else {
-    book->reduceOrderSize(o,deltaSize);
-    p->deductSize (o->type,deltaSize);
-  }
-
   if constexpr(SendTrade) {
     EfhTradeMsg msg{};
     msg.header.msgType = EfhMsgType::kTrade;
@@ -287,6 +276,17 @@ template <class SecurityT, class Msg, bool SendTrade>
     pEfhRunCtx->onEfhTradeMsgCb(&msg,
                                 s->efhUserData,
                                 pEfhRunCtx->efhRunUserData);
+  }
+
+  book->setSecurityPrevState(s);
+
+  if (o->size < deltaSize) {
+    on_error("o->size %u < deltaSize %u",o->size,deltaSize);
+  } else if (o->size == deltaSize) {
+    book->deleteOrder(o);
+  } else {
+    book->reduceOrderSize(o,deltaSize);
+    p->deductSize (o->type,deltaSize);
   }
   
   return s;
