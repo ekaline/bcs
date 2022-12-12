@@ -60,18 +60,19 @@ bool EkaFhBxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     break;
     //--------------------------------------------------------------
   case 'E':  // OrderExecuted
+    msgTs = BxFeed::getTs(m);
     s = processOrderExecuted<FhSecurity,BxFeed::OrderExecuted,true>(m,sequence,
                                                                     msgTs,pEfhRunCtx);
     break;
     //--------------------------------------------------------------
   case 'C':  // OrderExecutedPrice
+    msgTs = BxFeed::getTs(m);
     s = processOrderExecuted<FhSecurity,BxFeed::OrderExecutedPrice,true>(m,sequence,
                                                                          msgTs,pEfhRunCtx);
     break;
     //--------------------------------------------------------------
   case 'X':  // OrderCancel
-    s = processOrderExecuted<FhSecurity,BxFeed::OrderCancel,false>(m,sequence,
-                                                                   msgTs,pEfhRunCtx);
+    s = processOrderExecuted<FhSecurity,BxFeed::OrderCancel,false>(m,0,0,nullptr);
     break;
     //--------------------------------------------------------------
   case 'u':  // ReplaceOrderShort
