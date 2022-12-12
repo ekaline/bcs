@@ -50,7 +50,7 @@ print <<EOI;
 EOI
 }
 
-$i = $groups;
+$i = $groups - 1;
 
 print <<EOT;
 // trades

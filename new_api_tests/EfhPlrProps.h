@@ -128,14 +128,14 @@ EkaProp efhArcaPlrInitCtxEntries_A[] = {
     {"efh.ARCA_PLR.group.13.SourceId","ARGTSXD01"},
 
 // trades
-    {"efh.ARCA_PLR.group.15.products","vanilla_trades"},
-    {"efh.ARCA_PLR.group.15.mcast.addr",      "224.0.96.96:4401"},
-    {"efh.ARCA_PLR.group.15.refresh.tcpAddr", "162.69.107.250:35068"},
-    {"efh.ARCA_PLR.group.15.refresh.udpAddr", "224.0.96.98:4601"},
-    {"efh.ARCA_PLR.group.15.retrans.tcpAddr", "162.69.107.250:35068"},
-    {"efh.ARCA_PLR.group.15.retrans.udpAddr", "224.0.96.97:4501"},
-    {"efh.ARCA_PLR.group.15.ChannelId","1"},
-    {"efh.ARCA_PLR.group.15.SourceId","ARGTSXD01"},
+    {"efh.ARCA_PLR.group.14.products","vanilla_trades"},
+    {"efh.ARCA_PLR.group.14.mcast.addr",      "224.0.96.96:4401"},
+    {"efh.ARCA_PLR.group.14.refresh.tcpAddr", "162.69.107.250:35068"},
+    {"efh.ARCA_PLR.group.14.refresh.udpAddr", "224.0.96.98:4601"},
+    {"efh.ARCA_PLR.group.14.retrans.tcpAddr", "162.69.107.250:35068"},
+    {"efh.ARCA_PLR.group.14.retrans.udpAddr", "224.0.96.97:4501"},
+    {"efh.ARCA_PLR.group.14.ChannelId","1"},
+    {"efh.ARCA_PLR.group.14.SourceId","ARGTSXD01"},
 
 };
 EkaProp efhArcaPlrInitCtxEntries_B[] = {
