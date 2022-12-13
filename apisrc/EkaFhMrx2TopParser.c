@@ -85,6 +85,8 @@ bool EkaFhMrx2TopGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m
     s = processComplexTwoSidesUpdate<FhSecurity,ComplexBestBidAndAskUpdate>(m);
     break;
     //--------------------------------------------------------------
+  case MsgType::Order :
+    return false;
   case MsgType::ComplexBestBidUpdate :
   case MsgType::ComplexBestAskUpdate :
     s = processComplexOneSideUpdate<FhSecurity,ComplexBestBidOrAskUpdate>(m);
@@ -105,8 +107,15 @@ inline SecurityT*
 EkaFhMrx2TopGr::processTradingAction(const unsigned char* m) {
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
-  if (!s) return NULL;
-
+  if (!s) {
+#ifdef FH_SUBSCRIBE_ALL
+    s = book->subscribeSecurity(securityId,
+				(EfhSecurityType)1,
+				(EfhSecUserData)0,0,0);
+#else  
+    return NULL;
+#endif
+  }
   switch (reinterpret_cast<const Msg*>(m)->state) {
   case 'H' : // "H” = Halt in effect
   case 'B' : // “B” = Buy Side Trading Suspended 
@@ -154,6 +163,7 @@ inline void EkaFhMrx2TopGr::processDefinition(const unsigned char* m,
 
   definitionMsg.commonDef.securityType   = EfhSecurityType::kOption;
   definitionMsg.commonDef.exchange       = EKA_GRP_SRC2EXCH(exch);
+  definitionMsg.commonDef.isPassive      = isDefinitionPassive(EfhSecurityType::kOption);
   definitionMsg.commonDef.underlyingType = EfhSecurityType::kStock;
   definitionMsg.commonDef.expiryDate     =
     (msg->expYear + 2000) * 10000 +
@@ -260,6 +270,10 @@ inline SecurityT*
 EkaFhMrx2TopGr::processTrade(const unsigned char* m,
 			  uint64_t sequence,
 			     const EfhRunCtx* pEfhRunCtx) {
+  // dont send Trades from pure RFQ feed (Mrx2 Order Feed)
+  //  if (productMask == ProductMask::PM_VanillaAuction)
+  //    return NULL;
+
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
   if (!s) {
@@ -304,7 +318,21 @@ template <class SecurityT, class Msg>
 				 const EfhRunCtx* pEfhRunCtx) {
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
-  if (!s) return NULL;
+  if (!s) {
+#ifdef FH_SUBSCRIBE_ALL
+    s = book->subscribeSecurity(securityId,
+				(EfhSecurityType)1,
+				(EfhSecUserData)0,0,0);
+#else  
+    return NULL;
+#endif
+  }
+
+  const EfhAuctionUpdateType updateType = Mrx2Top::getAuctionUpdateType<Msg>(m);
+  const bool isDelete = updateType == EfhAuctionUpdateType::kDelete;
+
+  const uint64_t tsNanos = getTs(m);
+
   EfhAuctionUpdateMsg msg{};
   msg.header.msgType        = EfhMsgType::kAuctionUpdate;
   msg.header.group.source   = exch;
@@ -312,15 +340,17 @@ template <class SecurityT, class Msg>
   msg.header.underlyingId   = 0;
   msg.header.securityId     = securityId;
   msg.header.sequenceNumber = sequence;
-  msg.header.timeStamp      = getTs(m);
+  msg.header.timeStamp      = tsNanos;
   msg.header.gapNum         = gapNum;
 
   msg.auctionId             = getAuctionId<Msg>(m);
   msg.auctionType           = Mrx2Top::getAuctionType<Msg>(m);
-  msg.updateType            = Mrx2Top::getAuctionUpdateType<Msg>(m);
+  msg.updateType            = updateType;
   msg.side                  = Mrx2Top::getAuctionSide<Msg>(m);
   msg.capacity              = Mrx2Top::getAuctionCapacity<Msg>(m);
   msg.quantity              = getSize<Msg>(m);
+  msg.price                 = getPrice<Msg>(m);
+  msg.endTimeNanos          = isDelete ? 0 : tsNanos + Mrx2Top::getAuctionDurationNanos<Msg>(m);
   memcpy(msg.firmId,reinterpret_cast<const Msg*>(m)->ownerId,6);
 
   pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, s->efhUserData,
@@ -344,7 +374,6 @@ template <class Root, class Leg>
   msg.header.timeStamp      = 0;
   msg.header.gapNum         = this->gapNum;
 
-  //    msg.secondaryGroup        = 0;
   msg.commonDef.securityType   = EfhSecurityType::kComplex;
   msg.commonDef.exchange       = EKA_GRP_SRC2EXCH(exch);
   msg.commonDef.underlyingType = EfhSecurityType::kStock;

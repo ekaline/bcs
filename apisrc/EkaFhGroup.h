@@ -75,14 +75,27 @@ public:
 				  EkaCredentialLease** lease);
     int         credentialRelease(EkaCredentialLease* lease);
 
-  inline bool skipSnapshot() const {
-    // Dont get initial recovery for pure Trades groups
-    if (productMask == ProductMask::PM_VanillaTrades ||
-	productMask == ProductMask::PM_ComplexTrades)
+    inline bool skipSnapshot() const {
+      // Dont get initial recovery for pure Trades or Auction groups
+      if (productMask == ProductMask::PM_VanillaTrades  ||
+          productMask == ProductMask::PM_ComplexTrades  ||
+          productMask == ProductMask::PM_VanillaAuction ||
+          productMask == ProductMask::PM_ComplexAuction)
+        return true;
+      return false;
+    }
+    inline bool skipDefinitions() const {
+#if 0      
+    // Dont get Definitions for pure Trades or Auction groups
+    if (productMask == ProductMask::PM_VanillaTrades  ||
+	productMask == ProductMask::PM_ComplexTrades  ||
+	productMask == ProductMask::PM_VanillaAuction ||
+	productMask == ProductMask::PM_ComplexAuction)
       return true;
+#endif    
     return false;
   }
-  
+
     virtual int printConfig() {
 	EKA_LOG("%s:%u : "
 		"productMask: \'%s\' (0x%x) "
@@ -154,6 +167,20 @@ public:
     }
     expectedSeqGapInGap = sequence + msgInPkt;
     return false;
+  }
+
+  static constexpr int getDefinitionProductMask(EfhSecurityType defType) {
+    switch (defType) {
+    case EfhSecurityType::kOption: return PM_VanillaALL;
+    case EfhSecurityType::kComplex: return PM_ComplexALL;
+    case EfhSecurityType::kFuture: return PM_FutureALL;
+    default: return PM_NoInfo;
+    }
+  }
+
+  constexpr bool isDefinitionPassive(EfhSecurityType defType) {
+    int definitionProductMask = getDefinitionProductMask(defType);
+    return definitionProductMask && productMask && !(productMask & definitionProductMask);
   }
 
   std::string getDefinitionsFileName() const {

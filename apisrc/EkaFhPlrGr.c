@@ -28,6 +28,7 @@ bool EkaFhPlrGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
   auto p = pkt + sizeof(*pktHdr);
   
   auto sequence = seq;
+  expected_sequence = sequence; // needed for Hearbeat pkt with no messages
   for (uint msg=0; msg < msgInPkt; msg++) {
     auto msgHdr {reinterpret_cast<const MsgHdr*>(p)};    
     //-----------------------------------------------------------------------------
