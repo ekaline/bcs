@@ -45,7 +45,7 @@ print <<EOI;
     {"efh.ARCA_PLR.group.$i.retrans.tcpAddr", "$retrans_tcp"},
     {"efh.ARCA_PLR.group.$i.retrans.udpAddr", "$retrans_base$retrans_lsb:$retrans_port"},
     {"efh.ARCA_PLR.group.$i.ChannelId","$ch_id"},
-    {"efh.ARCA_PLR.group.$i.SourceId","ARGTSXD01"},
+    {"efh.ARCA_PLR.group.$i.SourceId","$auth"},
 
 EOI
 }
@@ -61,7 +61,7 @@ print <<EOT;
     {"efh.ARCA_PLR.group.$i.retrans.tcpAddr", "$retrans_tcp"},
     {"efh.ARCA_PLR.group.$i.retrans.udpAddr", "224.0.96.97:45001"},
     {"efh.ARCA_PLR.group.$i.ChannelId","1"},
-    {"efh.ARCA_PLR.group.$i.SourceId","ARGTSXD01"},
+    {"efh.ARCA_PLR.group.$i.SourceId","$auth"},
 
 };
 EOT
@@ -84,7 +84,7 @@ print <<EOI;
     {"efh.ARCA_PLR.group.$i.retrans.tcpAddr", "$retrans_tcp"},
     {"efh.ARCA_PLR.group.$i.retrans.udpAddr", "$retrans_base$retrans_lsb:$retrans_port"},
     {"efh.ARCA_PLR.group.$i.ChannelId","$ch_id"},
-    {"efh.ARCA_PLR.group.$i.SourceId","ARGTSXD01"},
+    {"efh.ARCA_PLR.group.$i.SourceId","$auth"},
 
 EOI
 }
@@ -100,7 +100,7 @@ print <<EOT;
     {"efh.ARCA_PLR.group.$i.retrans.tcpAddr", "$retrans_tcp"},
     {"efh.ARCA_PLR.group.$i.retrans.udpAddr", "224.0.96.97:45001"},
     {"efh.ARCA_PLR.group.$i.ChannelId","1"},
-    {"efh.ARCA_PLR.group.$i.SourceId","ARGTSXD01"},
+    {"efh.ARCA_PLR.group.$i.SourceId","$auth"},
 
 };
 EOT
@@ -126,7 +126,7 @@ EkaProp efhAmexPlrInitCtxEntries_A[] = {
 	{"efh.AMEX_PLR.group.0.retrans.tcpAddr", "162.68.19.122:35050"},
 	{"efh.AMEX_PLR.group.0.retrans.udpAddr", "224.0.60.12:41024"},
 	{"efh.AMEX_PLR.group.0.ChannelId","51"},
-	{"efh.AMEX_PLR.group.0.SourceId","ARGTSXD01"},
+	{"efh.AMEX_PLR.group.0.SourceId","$auth"},
 
 };
 EkaProp efhAmexPlrInitCtxEntries_B[] = {
@@ -136,7 +136,7 @@ EkaProp efhAmexPlrInitCtxEntries_B[] = {
 	{"efh.AMEX_PLR.group.0.retrans.tcpAddr", "162.68.19.122:35050"},
 	{"efh.AMEX_PLR.group.0.retrans.udpAddr", "224.0.60.12:41024"},
 	{"efh.AMEX_PLR.group.0.ChannelId","51"},
-	{"efh.AMEX_PLR.group.0.SourceId","ARGTSXD01"},
+	{"efh.AMEX_PLR.group.0.SourceId","$auth"},
 
 };
 const EkaGroup amexPlrGroups[] = {
