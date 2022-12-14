@@ -23,13 +23,16 @@
 #include "EkaFhMiaxGr.h"
 
 #include "EkaFhThreadAttr.h"
+#include "EfhFastBuffer.h"
 
 static bool sendLogin (EkaFhMiaxGr* gr);
 static bool getLoginResponse(EkaFhMiaxGr* gr);
 static bool sendRetransmitRequest(EkaFhMiaxGr* gr, uint64_t start, uint64_t end);
 static bool sendRequest(EkaFhMiaxGr* gr, char refreshType);
 static bool sendLogOut(EkaFhMiaxGr* gr);
-static EkaFhParseResult procSesm(const EfhRunCtx* pEfhRunCtx,int sock,EkaFhMiaxGr* gr,EkaFhMode op);
+static EkaFhParseResult procSesm(const EfhRunCtx* pEfhRunCtx,int sock,
+				 EkaFhMiaxGr* gr,EkaFhMode op,
+				 EfhFastBuffer<Tom::TomSeriesUpdate,Tom::MaxVanillaDefinitions> *pVanillaDefinitions);
 
 
 using namespace Tom;
@@ -54,10 +57,17 @@ static bool sesmCycle(EkaDev* dev,
 		      uint64_t end,
 		      const int MaxTrials) {
   EkaFhParseResult parseResult;
+  EfhFastBuffer<TomSeriesUpdate,MaxVanillaDefinitions> *pVanillaDefinitions = NULL;
   for (auto trial = 0; trial < MaxTrials && gr->recovery_active; trial++) {
     EKA_LOG("%s:%d %s cycle: trial: %d / %d",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op),trial,MaxTrials);
 
+    if (op == EkaFhMode::DEFINITIONS) {    
+      pVanillaDefinitions = new EfhFastBuffer<TomSeriesUpdate,MaxVanillaDefinitions>;  
+      if (!pVanillaDefinitions)
+	on_error("Failed creating VanillaDefinitions vector");
+    }
+    
     auto lastHeartBeatTime = std::chrono::high_resolution_clock::now();
     std::chrono::high_resolution_clock::time_point now;
 
@@ -110,7 +120,7 @@ static bool sesmCycle(EkaDev* dev,
 	lastHeartBeatTime = now;
 	EKA_TRACE("%s:%u: Heartbeat sent",EKA_EXCH_DECODE(gr->exch),gr->id);
       }
-      parseResult = procSesm(pEfhRunCtx,gr->recovery_sock,gr,EkaFhMode::MCAST);
+      parseResult = procSesm(pEfhRunCtx,gr->recovery_sock,gr,EkaFhMode::MCAST,pVanillaDefinitions);
       switch (parseResult) {
       case EkaFhParseResult::End:
 	goto SUCCESS_END;
@@ -129,12 +139,25 @@ static bool sesmCycle(EkaDev* dev,
     close(gr->recovery_sock);
     if (dev->lastExchErr != EfhExchangeErrorCode::kNoError) gr->sendRetransmitExchangeError(pEfhRunCtx);
     if (dev->lastErrno   != 0)                              gr->sendRetransmitSocketError(pEfhRunCtx);
+    if (pVanillaDefinitions) {
+      delete pVanillaDefinitions;
+      pVanillaDefinitions = NULL;
+    }
   }
   return false;
 
  SUCCESS_END:
   sendLogOut(gr);
   close(gr->recovery_sock);
+  if (pVanillaDefinitions && pVanillaDefinitions->getSize() > 0) {
+    EKA_LOG("%s:%u: Sending out buffered %ju Definitions",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,pVanillaDefinitions->getSize());
+    for (size_t i = 0; i < pVanillaDefinitions->getSize(); i++) {
+      auto def = pVanillaDefinitions->pop();
+      gr->parseMsg(pEfhRunCtx,reinterpret_cast<const uint8_t*>(def),0,op);
+    }
+    delete pVanillaDefinitions;
+  }
   return true;
 }
 
@@ -315,7 +338,9 @@ static bool sendLogOut(EkaFhMiaxGr* gr) {
 static EkaFhParseResult procSesm(const EfhRunCtx* pEfhRunCtx, 
 				 int sock, 
 				 EkaFhMiaxGr* gr,
-				 EkaFhMode op) {
+				 EkaFhMode op,
+				 EfhFastBuffer<TomSeriesUpdate,MaxVanillaDefinitions> *pVanillaDefinitions
+				 ) {
   EkaDev* dev = gr->dev;
   sesm_header sesm_hdr ={};
   int r = recv(sock,&sesm_hdr,sizeof(sesm_header),MSG_WAITALL);
@@ -376,7 +401,7 @@ static EkaFhParseResult procSesm(const EfhRunCtx* pEfhRunCtx,
     return EkaFhParseResult::NotEnd;
   }
 
-  case EKA_SESM_TYPE::Sequenced : 
+  case EKA_SESM_TYPE::Sequenced : {
     sequence = *(uint64_t*)m;
     gr->seq_after_snapshot = sequence;
     if (payloadLen == sizeof(sequence)) {
@@ -385,28 +410,17 @@ static EkaFhParseResult procSesm(const EfhRunCtx* pEfhRunCtx,
       return EkaFhParseResult::NotEnd;
     }
     m += sizeof(sequence);
-    if (gr->parseMsg(pEfhRunCtx,m,sequence,op)) {
-      EKA_LOG("%s:%u %s End Of Refresh: gr->seq_after_snapshot = %ju",
+    auto msgType = reinterpret_cast<const TomCommon*>(m)->Type;
+    if (static_cast<TOM_MSG>(msgType) == TOM_MSG::EndOfRefresh) {
+      EKA_LOG("%s:%u End Of Refresh of \'%c\' Request",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,
-	      op == EkaFhMode::DEFINITIONS ? "DEFINITIONS" : "SNAPSHOT",
-	      gr->seq_after_snapshot
-	      );
+	      reinterpret_cast<const TomEndOfRefresh*>(m)->request_type);
       return EkaFhParseResult::End;
-    }  
-    break;
-
-  case EKA_SESM_TYPE::UnSequenced : {
-    char unsequencedType = ((sesm_unsequenced*)m)->type;
-    switch (unsequencedType) {
-    case 'R' :
-      sequence = ((sesm_unsequenced*)m)->sequence;
-      gr->seq_after_snapshot = sequence;
-      if (payloadLen == sizeof(sesm_unsequenced)) {
-	EKA_WARN("%s:%u SESM Unsequenced packet with no msg",
-		 EKA_EXCH_DECODE(gr->exch),gr->id);
-	return EkaFhParseResult::NotEnd;
-      } 
-      m += sizeof(sesm_unsequenced);
+    }
+    if (static_cast<TOM_MSG>(msgType) == TOM_MSG::SeriesUpdate) {
+      if (pVanillaDefinitions)
+	pVanillaDefinitions->push(reinterpret_cast<const TomSeriesUpdate*>(m));
+    } else {
       if (gr->parseMsg(pEfhRunCtx,m,sequence,op)) {
 	EKA_LOG("%s:%u %s End Of Refresh: gr->seq_after_snapshot = %ju",
 		EKA_EXCH_DECODE(gr->exch),gr->id,
@@ -415,6 +429,43 @@ static EkaFhParseResult procSesm(const EfhRunCtx* pEfhRunCtx,
 		);
 	return EkaFhParseResult::End;
       }
+    }
+  }
+    break;
+
+  case EKA_SESM_TYPE::UnSequenced : {
+    char unsequencedType = ((sesm_unsequenced*)m)->type;
+    switch (unsequencedType) {
+    case 'R' : {
+      sequence = ((sesm_unsequenced*)m)->sequence;
+      gr->seq_after_snapshot = sequence;
+      if (payloadLen == sizeof(sesm_unsequenced)) {
+	EKA_WARN("%s:%u SESM Unsequenced packet with no msg",
+		 EKA_EXCH_DECODE(gr->exch),gr->id);
+	return EkaFhParseResult::NotEnd;
+      } 
+      m += sizeof(sesm_unsequenced);
+      auto msgType = reinterpret_cast<const TomCommon*>(m)->Type;
+      if (static_cast<TOM_MSG>(msgType) == TOM_MSG::EndOfRefresh) {
+	EKA_LOG("%s:%u End Of Refresh of \'%c\' Request",
+		EKA_EXCH_DECODE(gr->exch),gr->id,
+		reinterpret_cast<const TomEndOfRefresh*>(m)->request_type);
+	return EkaFhParseResult::End;
+      }
+      if (static_cast<TOM_MSG>(msgType) == TOM_MSG::SeriesUpdate) {
+	if (pVanillaDefinitions)
+	  pVanillaDefinitions->push(reinterpret_cast<const TomSeriesUpdate*>(m));
+      } else {
+	if (gr->parseMsg(pEfhRunCtx,m,sequence,op)) {
+	  EKA_LOG("%s:%u %s End Of Refresh: gr->seq_after_snapshot = %ju",
+		  EKA_EXCH_DECODE(gr->exch),gr->id,
+		  op == EkaFhMode::DEFINITIONS ? "DEFINITIONS" : "SNAPSHOT",
+		  gr->seq_after_snapshot
+		  );
+	  return EkaFhParseResult::End;
+	}
+      }
+    }
       break;
     case 'E' :
       EKA_LOG("%s:%u %s End Of Request: gr->seq_after_snapshot = %ju",
@@ -484,7 +535,7 @@ void* getSesmData(void* attr) {
     char snapshotRequests[] = {
       'S', // System State Refresh
       'U', // Underlying Trading Status Refresh
-      'P', // Simple Series Update Refresh
+      /* 'P', // Simple Series Update Refresh */
       'Q'};// Simple Top of Market Refresh
     for (int i = 0; i < (int)(sizeof(snapshotRequests)/sizeof(snapshotRequests[0])); i ++) {
       EKA_LOG("%s:%u SNAPSHOT \'%c\' Phase",
