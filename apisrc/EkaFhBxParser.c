@@ -60,15 +60,19 @@ bool EkaFhBxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     break;
     //--------------------------------------------------------------
   case 'E':  // OrderExecuted
-    s = processOrderExecuted<FhSecurity,BxFeed::OrderExecuted>(m);
+    msgTs = BxFeed::getTs(m);
+    s = processOrderExecuted<FhSecurity,BxFeed::OrderExecuted,true>(m,sequence,
+                                                                    msgTs,pEfhRunCtx);
     break;
     //--------------------------------------------------------------
   case 'C':  // OrderExecutedPrice
-    s = processOrderExecuted<FhSecurity,BxFeed::OrderExecutedPrice>(m);
+    msgTs = BxFeed::getTs(m);
+    s = processOrderExecuted<FhSecurity,BxFeed::OrderExecutedPrice,true>(m,sequence,
+                                                                         msgTs,pEfhRunCtx);
     break;
     //--------------------------------------------------------------
   case 'X':  // OrderCancel
-    s = processOrderExecuted<FhSecurity,BxFeed::OrderCancel>(m);
+    s = processOrderExecuted<FhSecurity,BxFeed::OrderCancel,false>(m,0,0,nullptr);
     break;
     //--------------------------------------------------------------
   case 'u':  // ReplaceOrderShort
@@ -237,10 +241,11 @@ template <class SecurityT, class Msg>
   book->addOrder(s,askOrderId,FhOrderType::BD,askPrice,askSize,SideT::ASK);
   return s;
 }
-
-template <class SecurityT, class Msg>
+template <class SecurityT, class Msg, bool SendTrade>
   inline SecurityT*
-  EkaFhBxGr::processOrderExecuted(const unsigned char* m) {
+  EkaFhBxGr::processOrderExecuted(const unsigned char* m,
+                                  uint64_t sequence, uint64_t msgTs,
+                                  const EfhRunCtx* pEfhRunCtx) {
   SecurityIdT securityId = getInstrumentId<Msg>(m);
   SecurityT* s = book->findSecurity(securityId);
   if (!s) return NULL;
@@ -251,6 +256,27 @@ template <class SecurityT, class Msg>
 
   SizeT  deltaSize   = getSize<Msg>(m);  
   auto p = o->plevel;
+
+  if constexpr(SendTrade) {
+    EfhTradeMsg msg{};
+    msg.header.msgType = EfhMsgType::kTrade;
+    msg.header.group.source   = exch;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.securityId     = (uint64_t) securityId;
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = msgTs;
+    msg.header.gapNum         = gapNum;
+
+    msg.price       = p->price;
+    msg.size        = deltaSize;
+    msg.tradeStatus = s->trading_action;
+    msg.tradeCond   = EfhTradeCond::kREG;
+
+    pEfhRunCtx->onEfhTradeMsgCb(&msg,
+                                s->efhUserData,
+                                pEfhRunCtx->efhRunUserData);
+  }
 
   book->setSecurityPrevState(s);
 
@@ -391,9 +417,6 @@ template <class SecurityT, class Msg>
   return s;
 }
 
-
-
-
 template <class SecurityT, class Msg>
   inline SecurityT*
   EkaFhBxGr::processTrade(const unsigned char* m,
@@ -423,8 +446,8 @@ template <class SecurityT, class Msg>
   msg.tradeCond   = EfhTradeCond::kREG;
 
   pEfhRunCtx->onEfhTradeMsgCb(&msg,
-			      s->efhUserData,
-			      pEfhRunCtx->efhRunUserData);
+                              s->efhUserData,
+                              pEfhRunCtx->efhRunUserData);
 
   return NULL;
 }

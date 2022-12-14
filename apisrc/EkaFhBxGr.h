@@ -80,8 +80,10 @@ private:
   template <class SecurityT, class Msg>
   SecurityT* processDeleteOrder(const unsigned char* m);
 
-  template <class SecurityT, class Msg>
-  SecurityT* processOrderExecuted(const unsigned char* m);
+  template <class SecurityT, class Msg, bool SendTrade>
+  SecurityT* processOrderExecuted(const unsigned char* m,
+                                  uint64_t sequence,uint64_t msgTs,
+                                  const EfhRunCtx* pEfhRunCtx);
 
   template <class SecurityT, class Msg>
   SecurityT* processReplaceOrder(const unsigned char* m);
@@ -97,20 +99,20 @@ private:
 
   template <class SecurityT, class Msg>
   SecurityT* processTrade(const unsigned char* m,
-			  uint64_t sequence,uint64_t msgTs,
-			  const EfhRunCtx* pEfhRunCtx);
+                          uint64_t sequence,uint64_t msgTs,
+                          const EfhRunCtx* pEfhRunCtx);
 
   template <class SecurityT, class Msg>
   SecurityT* processAuctionUpdate(const unsigned char* m,
-				  uint64_t sequence,uint64_t msgTs,
-				  const EfhRunCtx* pEfhRunCtx);  
+                                  uint64_t sequence,uint64_t msgTs,
+                                  const EfhRunCtx* pEfhRunCtx);
   template <class Msg>
   void processDefinition(const unsigned char* m,
-			 const EfhRunCtx* pEfhRunCtx);
+                         const EfhRunCtx* pEfhRunCtx);
   
   template <class Msg>
   uint64_t processEndOfSnapshot(const unsigned char* m,
-				EkaFhMode op);
+                                EkaFhMode op);
      
 };
 #endif
