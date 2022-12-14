@@ -124,15 +124,17 @@ void* onTrade(const EfhTradeMsg* msg, EfhSecUserData secData, EfhRunUserData use
   
   //  auto efhGr = pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[grId];  
 
-#ifdef EKA_TEST_IGNORE_DEFINITIONS
   std::string currAvtSecName  = "DEFAULT_AVT_SEC_NAME";
   std::string currClassSymbol = "DEFAULT_UNDERLYING_ID";
   //  int64_t priceScaleFactor = exch == EkaSource::kCME_SBE ? CME_DEFAULT_DISPLAY_PRICE_SCALE : DEFAULT_DISPLAY_PRICE_SCALE;
-#else
-  int secIdx                  = (int)secData;
-  std::string currAvtSecName  = gr->security.at(secIdx).avtSecName.c_str();	  
-  std::string currClassSymbol = gr->security.at(secIdx).classSymbol;
-  //  int64_t priceScaleFactor    = 100; //gr->security.at(secIdx).displayPriceScale;
+
+#ifndef EKA_TEST_IGNORE_DEFINITIONS
+  if (! gr->security.empty()) {
+    int secIdx                  = (int)secData;
+    currAvtSecName  = gr->security.at(secIdx).avtSecName.c_str();	  
+    currClassSymbol = gr->security.at(secIdx).classSymbol;
+    //  int64_t priceScaleFactor    = 100; //gr->security.at(secIdx).displayPriceScale;
+  }
 #endif
 
   if (! testCtx->print_tob_updates) return NULL;
