@@ -232,7 +232,8 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
       break;
     case '5' : // Resume
       s->trading_action = EfhTradeStatus::kNormal;
-      s->option_open    = true;
+      if (m->MarketState == 'O') // Core session
+	s->option_open    = true;
       break;
     case 'P' : // Pre-Open
       s->trading_action = EfhTradeStatus::kPreopen;
