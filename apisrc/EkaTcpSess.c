@@ -431,7 +431,7 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
     return -1;
   }
 
-  static const uint TrafficMargin = 4*1024; // just a number
+  static const uint TrafficMargin = 64*1024; // empiric number
 
   /* if (/\* txLwipBp *\/       0                            || // lwip socket is unavauilable */
   /*     (fastPathBytes > (txDriverBytes + TrafficMargin)) || // previous TX pkt didn't arrive TX driver */
@@ -461,7 +461,7 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
   }
   else if (len && !payloadSize2send) {
     errno = EAGAIN;
-    return -1;
+    return 0;
   }
 
   auto temp = fastPathBytes + payloadSize2send;

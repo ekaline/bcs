@@ -277,13 +277,16 @@ int excSocketClose( EkaDev* dev, ExcSocketHandle hSocket ) {
     errno = EBADF;
     return -1;
   }
-  else if (sess->isEstablished()) {
-    errno = EISCONN;
-    return -1;
-  }
+  
+  /* else if (sess->isEstablished()) { */
+  /*   errno = EISCONN; */
+  /*   return -1; */
+  /* } */
 
-  dev->core[sess->coreId]->tcpSess[sess->sessId] = nullptr;
+  auto sessId = sess->sessId;
+  auto coreId = sess->coreId;
   delete sess;
+  dev->core[coreId]->tcpSess[sessId] = nullptr;
   return 0;
 }
 
