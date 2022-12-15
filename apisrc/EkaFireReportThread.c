@@ -257,7 +257,7 @@ std::pair<int,size_t> processSwTriggeredReport(EkaDev* dev,
     b += pushEpmReport(++reportIdx,b,&hwEpmReport->epm); 
     b += pushFiredPkt (++reportIdx,b,q,dmaIdx);
     strategyId2ret = hwEpmReport->epm.strategyId;
-    EKA_LOG("processEpmReport HwEpmActionStatus::Sent, len=%d",srcReportLen);
+    //EKA_LOG("processEpmReport HwEpmActionStatus::Sent, len=%d",srcReportLen);
     break;
   default:
     // Broken EPM send reported by hwEpmReport->action
