@@ -360,7 +360,7 @@ void EkaFhGroup::print_q_state() {
 				   size_t      credNameSize,
 				   EkaCredentialLease** lease) {
    
-   EKA_LOG("%s:%u trying to acquire %.*s credentials for threadId %ld",
+   EKA_LOG("%s:%u trying to acquire \'%.*s\' credentials for threadId %ld",
 	   EKA_EXCH_DECODE(exch),id,(int)credNameSize,credName,syscall(SYS_gettid));
      
    if (credentialsAcquired) {

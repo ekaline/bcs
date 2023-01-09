@@ -665,7 +665,9 @@ void* runPlrRecoveryThread(void* attr) {
 	  EkaFhMode2STR(op));
   //-----------------------------------------------------------------
   EkaCredentialLease* lease;
-  gr->credentialAcquire(EkaCredentialType::kSnapshot, gr->auth_user, sizeof(gr->auth_user), &lease);
+  gr->credentialAcquire(EkaCredentialType::kSnapshot,
+			gr->sourceId, sizeof(gr->sourceId),
+			&lease);
 
   //-----------------------------------------------------------------
   gr->snapshot_active = true;
