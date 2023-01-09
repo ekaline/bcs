@@ -28,10 +28,12 @@ EhpPitch::EhpPitch(EkaDev* dev) : EhpProtocol(dev) {
 }
 
 int EhpPitch::init() {
-  createAddOrderShort();
-  createAddOrderLong();
   createAddOrderExpanded();
-
+  if (dev->efcTestRun) {
+    createAddOrderShort();
+    createAddOrderLong();
+  }
+  
   return 0;
 }
 
