@@ -28,6 +28,7 @@ EhpPitch::EhpPitch(EkaDev* dev) : EhpProtocol(dev) {
 }
 
 int EhpPitch::init() {
+  EKA_LOG("Initializing EhpPitch with efcTestRun=%d",dev->efcTestRun);
   createAddOrderExpanded();
   if (dev->efcTestRun) {
     createAddOrderShort();
@@ -42,6 +43,9 @@ int EhpPitch::createAddOrderShort() {
   uint8_t msgId   = 0x22;
   int     msgType = AddOrderShortMsg;
 
+  EKA_LOG("creating Ehp for MD Msg type %d: \'%s\'",
+	  msgType,msgName[msgType]);
+	  
   conf.params.bytes4Strategy[msgType].msgId    = msgId;
   conf.params.bytes4Strategy[msgType].byteOffs = 26;
 
@@ -133,6 +137,9 @@ int EhpPitch::createAddOrderLong() {
   uint8_t msgId   = 0x21;
   int     msgType = AddOrderLongMsg;
 
+  EKA_LOG("creating Ehp for MD Msg type %d: \'%s\'",
+	  msgType,msgName[msgType]);
+	  
   conf.params.bytes4Strategy[msgType].msgId    = msgId;
   conf.params.bytes4Strategy[msgType].byteOffs = 33;
 
@@ -223,6 +230,9 @@ int EhpPitch::createAddOrderExpanded() {
   uint8_t msgId   = 0x2f;
   int     msgType = AddOrderExpandedMsg;
 
+  EKA_LOG("creating Ehp for MD Msg type %d: \'%s\'",
+	  msgType,msgName[msgType]);
+	  
   conf.params.bytes4Strategy[msgType].msgId    = msgId;
   conf.params.bytes4Strategy[msgType].byteOffs = 41;
 
