@@ -26,6 +26,7 @@
 #include "EfhCmeProps.h"
 #include "EfhPlrProps.h"
 #include "EfhBxProps.h"
+#include "EfhMrx2TopProps.h"
 
 
 #define MAX_SECURITIES 600000

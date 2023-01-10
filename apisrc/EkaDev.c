@@ -450,14 +450,23 @@ int EkaDev::clearHw() {
   eka_write(SW_STATISTICS,(uint64_t) 0); // Clearing SW Statistics
   eka_write(P4_STRAT_CONF,(uint64_t) 0); // Clearing Strategy params
 
-  eka_read(0xf0728); // Clearing Interrupts
-  eka_read(0xf0798); // Clearing Interrupts
+  eka_read(ADDR_INTERRUPT_MAIN_RC); // Clearing Interrupts
+  eka_read(ADDR_INTERRUPT_SHADOW_RC); // Clearing Interrupts
 
   for (uint64_t p = 0; p < SW_SCRATCHPAD_SIZE/8; p++) 
     eka_write(SW_SCRATCHPAD_BASE +8*p,(uint64_t) 0);
 
-  const EfcCmeFastCancelStrategyConf conf = {};
-  copyBuf2Hw(dev,0x84000,(uint64_t *)&conf,sizeof(conf));
+
+  const uint64_t MaxSizeOfStrategyConf = 0x1000;
+
+  uint8_t strategyConfToClean[MaxSizeOfStrategyConf] = {};
+  copyBuf2Hw(dev,0x84000,(uint64_t*)strategyConfToClean,sizeof(strategyConfToClean));
+  
+  /* const EfcCmeFastCancelStrategyConf fc_conf = {}; */
+  /* copyBuf2Hw(dev,0x84000,(uint64_t *)&fc_conf,sizeof(fc_conf)); */
+
+  /* const EfcItchFastSweepStrategyConf fs_conf = {}; */
+  /* copyBuf2Hw(dev,0x84000,(uint64_t *)&fs_conf,sizeof(fs_conf)); */
 
   // Open Dev indication
   eka_write(SW_STATISTICS, (1ULL<<63));

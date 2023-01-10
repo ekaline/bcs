@@ -66,6 +66,10 @@ void EkaEpm::initHeap(uint start, uint size, uint regionId) {
 
 EkaOpResult EkaEpm::raiseTriggers(const EpmTrigger *trigger) {
   if (trigger == NULL) on_error("trigger == NULL");
+  if (! dev->fireReportThreadActive) {
+    on_error("fireReportThread is not active! Call efcRun()");
+  }
+  
   uint strategyId = trigger->strategy;
   uint currAction = trigger->action;
   EKA_LOG("Raising Trigger: strategyId %u, ActionId %u",strategyId,currAction);fflush(stderr);
@@ -129,7 +133,7 @@ EkaOpResult EkaEpm::setAction(epm_strategyid_t strategyIdx,
     EKA_WARN ("EKA_OPRESULT__ERR_INVALID_ACTION: strategyIdx=%d, actionIdx=%d",strategyIdx,actionIdx);
     return EKA_OPRESULT__ERR_INVALID_ACTION;
   }
-
+  EKA_LOG("Setting Action %d epmAction->type=%d",actionIdx,(int)epmAction->type);
   return strategy[strategyIdx]->setAction(actionIdx,epmAction);
 }
 /* ---------------------------------------------------- */
@@ -172,12 +176,12 @@ EkaOpResult EkaEpm::initStrategies(const EpmStrategyParams *params,
 
   stratNum = numStrategies;
 
-  if (! dev->fireReportThreadActive) {
-    dev->fireReportThread = std::thread(ekaFireReportThread,dev);
-    dev->fireReportThread.detach();
-    while (! dev->fireReportThreadActive) sleep(0);
-    EKA_LOG("fireReportThread activated");
-  }
+  /* if (! dev->fireReportThreadActive) { */
+  /*   dev->fireReportThread = std::thread(ekaFireReportThread,dev); */
+  /*   dev->fireReportThread.detach(); */
+  /*   while (! dev->fireReportThreadActive) sleep(0); */
+  /*   EKA_LOG("fireReportThread activated"); */
+  /* } */
 
   // allocating UDP Channel to EPM MC region (preventing collision with EFH)
   /* auto udpCh    = new EkaUdpChannel(dev,params[0].triggerParams->coreId,EpmMcRegion); */
@@ -244,10 +248,12 @@ EkaOpResult EkaEpm::getStrategyEnableBits(epm_strategyid_t strategyIdx,
 EkaOpResult EkaEpm::payloadHeapCopy(epm_strategyid_t strategyIdx, 
 				    uint32_t offset,
 				    uint32_t length, 
-				    const void *contents) {
-  if ((offset - DatagramOffset) % PayloadAlignment != 0) {
-    EKA_WARN("offset (%d) - DatagramOffset (%d) %% PayloadAlignment (=%d) != 0",
-	     (int)offset,(int)DatagramOffset,(int)PayloadAlignment);
+				    const void *contents, const bool isUdpDatagram) {
+  uint64_t payloadOffset = isUdpDatagram ? UdpDatagramOffset : TcpDatagramOffset;
+
+  if ((offset - payloadOffset) % PayloadAlignment != 0) {
+    EKA_WARN("offset (%d) - payloadOffset (%d) %% PayloadAlignment (=%d) != 0",
+	     (int)offset,(int)payloadOffset,(int)PayloadAlignment);
     return EKA_OPRESULT__ERR_INVALID_ALIGN;
   }
        

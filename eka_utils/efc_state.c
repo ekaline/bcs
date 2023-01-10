@@ -19,6 +19,7 @@
 #include "EkaHwCaps.h"
 #include "EfcMsgs.h"
 #include "EkaHwExceptionsDecode.h"
+#include "Efc.h"
 
 //#define NUM_OF_CORES EKA_MAX_CORES
 #define NUM_OF_CORES 4
@@ -52,6 +53,13 @@ struct IfParams {
 #define ADDR_P4_CONT_COUNTER1        0xf0340
 #define ADDR_P4_CONT_COUNTER3        0xf0350
 
+struct CommonState {
+  bool     armed              = false;
+  uint32_t arm_ver            = 0;
+  bool     reportOnly         = false;
+  bool     killSwitch         = false;
+};
+  
 struct EfcState {
   uint64_t strategyRuns       = 0;
   uint64_t strategyPassed     = 0;
@@ -61,22 +69,26 @@ struct EfcState {
   uint32_t subscribedSecs     = 0;
   bool     forceFire          = false;
   bool     forceFireUnsubscr  = false;
-  bool     reportOnly         = false;
   bool     fatalDebug         = false;
-  bool     armed              = false;
-  bool     killSwitch         = false;
+  CommonState commonState;
 };
 
 struct FastCancelState {
   uint64_t strategyRuns       = 0;
   uint64_t strategyPassed     = 0;
-  bool     reportOnly         = false;
+  CommonState commonState;
+};
+
+struct FastSweepState {
+  uint64_t strategyRuns       = 0;
+  uint64_t strategyPassed     = 0;
+  CommonState commonState;
 };
 
 struct NewsState {
   uint64_t strategyRuns       = 0;
   uint64_t strategyPassed     = 0;
-  bool     reportOnly         = false;
+  CommonState commonState;
 };
 
 
@@ -100,12 +112,12 @@ inline uint64_t reg_read (uint32_t addr) {
 //################################################
 
 inline void getExceptions(EfcExceptionsReport* excpt, uint8_t coresBitmap) {
-  excpt->globalExcpt = reg_read(ADDR_INTERRUPT_SHADOW_RO);
+  excpt->exceptionStatus.globalVector = reg_read(ADDR_INTERRUPT_SHADOW_RO);
   for (int i = 0; i < EFC_MAX_CORES; i++) {
     if (((0x01 << i) & 0xFF) & coresBitmap) {
-      excpt->coreExcpt[i] = reg_read(EKA_ADDR_INTERRUPT_0_SHADOW_RO + i * 0x1000);
+      excpt->exceptionStatus.portVector[i] = reg_read(EKA_ADDR_INTERRUPT_0_SHADOW_RO + i * 0x1000);
     } else {
-      excpt->coreExcpt[i] = 0;
+      excpt->exceptionStatus.portVector[i] = 0;
     }
   }
 }
@@ -435,15 +447,14 @@ int getEfcState(EfcState* pEfcState) {
   pEfcState->ordersSubscribed   = (var_p4_cont_counter3>>0)  & MASK32;
   pEfcState->ordersUnsubscribed = (var_p4_cont_counter3>>32) & MASK32;
 
-  pEfcState->armed              = (reg_read(P4_ARM_DISARM) & 0x1) != 0;
-  pEfcState->killSwitch         = (reg_read(KILL_SWITCH)   & 0x1) != 0;
-
-  /* pEfcState->forceFire          = (var_p4_general_conf>>63)  & 0x1; */
-  /* pEfcState->reportOnly         = (var_p4_general_conf>>0)   & 0x1; */
+  uint64_t armReg               = reg_read(P4_ARM_DISARM);
+  pEfcState->commonState.armed              = (armReg & 0x1) != 0;
+  pEfcState->commonState.arm_ver            = (armReg >> 32) & 0xFFFFFFFF;
+  pEfcState->commonState.killSwitch         = (reg_read(KILL_SWITCH)   & 0x1) != 0;
 
   pEfcState->forceFire          = (var_p4_general_conf & EKA_P4_ALWAYS_FIRE_BIT)        != 0;
   pEfcState->forceFireUnsubscr  = (var_p4_general_conf & EKA_P4_ALWAYS_FIRE_UNSUBS_BIT) != 0;
-  pEfcState->reportOnly         = (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT)        != 0;
+  pEfcState->commonState.reportOnly         = (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT)        != 0;
   pEfcState->fatalDebug         = var_fatal_debug == 0xefa0beda;
   return 0;
 }
@@ -458,7 +469,32 @@ int getFastCancelState(FastCancelState* pFastCancelState) {
   pFastCancelState->strategyRuns       = (var_fc_cont_counter1>>32)& MASK32;
   pFastCancelState->strategyPassed     = (var_fc_cont_counter1>>0) & MASK32;
 
-  pFastCancelState->reportOnly         = (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT)        != 0;
+  pFastCancelState->commonState.reportOnly         = (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT)        != 0;
+
+  uint64_t armReg               = reg_read(P4_ARM_DISARM);
+  pFastCancelState->commonState.armed              = (armReg & 0x1) != 0;
+  pFastCancelState->commonState.arm_ver            = (armReg >> 32) & 0xFFFFFFFF;
+  pFastCancelState->commonState.killSwitch         = (reg_read(KILL_SWITCH)   & 0x1) != 0;
+  return 0;
+}
+
+//################################################
+int getFastSweepState(FastSweepState* pFastSweepState) {
+
+  uint64_t var_fc_cont_counter1  = reg_read(0xf0810);
+
+  uint64_t var_p4_general_conf	 = reg_read(ADDR_P4_GENERAL_CONF);
+
+  pFastSweepState->strategyRuns       = (var_fc_cont_counter1>>32)& MASK32;
+  pFastSweepState->strategyPassed     = (var_fc_cont_counter1>>0) & MASK32;
+
+  pFastSweepState->commonState.reportOnly         = (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT)        != 0;
+
+  uint64_t armReg               = reg_read(P4_ARM_DISARM);
+  pFastSweepState->commonState.armed              = (armReg & 0x1) != 0;
+  pFastSweepState->commonState.arm_ver            = (armReg >> 32) & 0xFFFFFFFF;
+  pFastSweepState->commonState.killSwitch         = (reg_read(KILL_SWITCH)   & 0x1) != 0;  
+
   return 0;
 }
 
@@ -472,25 +508,46 @@ int getNewsState(NewsState* pNewsState) {
   pNewsState->strategyRuns       = (var_news_cont_counter1>>32)& MASK32;
   pNewsState->strategyPassed     = (var_news_cont_counter1>>0) & MASK32;
 
-  pNewsState->reportOnly         = (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT)        != 0;
+  pNewsState->commonState.reportOnly         = (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT)        != 0;
+
+  uint64_t armReg               = reg_read(P4_ARM_DISARM);
+  pNewsState->commonState.armed              = (armReg & 0x1) != 0;
+  pNewsState->commonState.arm_ver            = (armReg >> 32) & 0xFFFFFFFF;
+  pNewsState->commonState.killSwitch         = (reg_read(KILL_SWITCH)   & 0x1) != 0;  
+
   return 0;
 }
 
+//################################################
+int printCommonState(CommonState* pCommonState) {
+  
+  if (pCommonState->killSwitch) {
+    printf (RED "Fatal KILL SWITCH is turned ON!!! - reload driver is needed!!!\n\n" RESET);
+  }
+
+  if (pCommonState->arm_ver == EFC_HW_UNARMABLE) {
+    printf (RED "\n\n!!! FPGA in fatal state. Can NOT be armed. Must reload driver !!!\n\n" RESET);
+  }
+  else {
+    if (! pCommonState->armed) {
+      printf (RED "\nCONTROLLER STATE: UNARMED, expected version=%d\n" RESET,pCommonState->arm_ver);
+    } else {
+      printf (GRN "\nCONTROLLER STATE: ARMED, expected version=%d\n" RESET,pCommonState->arm_ver);
+    }
+  }
+  
+  printf("\nReportOnly = %d (needs re-arming)\n\n",pCommonState->reportOnly);
+  
+  return 0;
+
+}
 
 //################################################
 int printEfcState(EfcState* pEfcState) {
-  printf("Efc P4 state\n");
-  if (pEfcState->killSwitch) {
-    printf (RED "Fatal KILL SWITCH is turned ON!!! - reload driver is needed!!!\n\n" RESET);
-  }
-  if (! pEfcState->armed) {
-    printf (RED "CONTROLLER STATE: UNARMED\n" RESET);
-  } else {
-    if (pEfcState->fatalDebug)
-      printf (RED "CONTROLLER STATE: ARMED -- can be overidden by \'Fatal Debug\' \n" RESET);
-    else 
-      printf (GRN "CONTROLLER STATE: ARMED\n" RESET);
-  }
+
+
+  printCommonState(&pEfcState->commonState);
+  
   if (pEfcState->fatalDebug)
     printf(RED "WARNING: \'Fatal Debug\' is Active\n" RESET);
   
@@ -498,7 +555,6 @@ int printEfcState(EfcState* pEfcState) {
 	 pEfcState->forceFire);
   printf("\t\tForceFireOnUnsubscribed = %d (effective only if \'Fatal Debug\' and ForceFire are Active)\n",
 	 pEfcState->forceFireUnsubscr);
-  printf("\t\tReportOnly              = %d (needs re-arming)\n\n",pEfcState->reportOnly);
 
   printf("Tried     subscribing on %u securities\n",pEfcState->totalSecs);
   printf("Succeeded subscribing on %u securities\n",pEfcState->subscribedSecs);
@@ -514,9 +570,9 @@ int printEfcState(EfcState* pEfcState) {
 
 //################################################
 int printFastCancelState(FastCancelState* pFastCancelState) {
-  printf("Generic parser template: CME Fast Cancel\n\n"); 
-  printf("ReportOnly              = %d (needs re-arming)\n\n",pFastCancelState->reportOnly);
 
+  printCommonState(&pFastCancelState->commonState);
+ 
   printf("Evaluated   strategies:\t%ju\n",pFastCancelState->strategyRuns);
   printf("Passed      strategies:\t%ju\n",pFastCancelState->strategyPassed);
 
@@ -524,10 +580,21 @@ int printFastCancelState(FastCancelState* pFastCancelState) {
 }
 
 //################################################
-int printNewsState(NewsState* pNewsState) {
-  printf("Generic parser template: NEWS\n\n");  
-  printf("ReportOnly              = %d (needs re-arming)\n\n",pNewsState->reportOnly);
+int printFastSweepState(FastSweepState* pFastSweepState) {
 
+  printCommonState(&pFastSweepState->commonState);
+  
+  printf("Evaluated   strategies:\t%ju\n",pFastSweepState->strategyRuns);
+  printf("Passed      strategies:\t%ju\n",pFastSweepState->strategyPassed);
+
+  return 0;
+}
+
+//################################################
+int printNewsState(NewsState* pNewsState) {
+
+  printCommonState(&pNewsState->commonState);
+  
   printf("Evaluated   strategies:\t%ju\n",pNewsState->strategyRuns);
   printf("Passed      strategies:\t%ju\n",pNewsState->strategyPassed);
 
@@ -543,6 +610,7 @@ int main(int argc, char *argv[]) {
   EkaHwCaps* ekaHwCaps = new EkaHwCaps(NULL);
   auto pEfcState = new EfcState;
   auto pFastCancelState = new FastCancelState;
+  auto pFastSweepState = new FastSweepState;
   auto pNewsState = new NewsState;
   auto pEfcExceptionsReport = new EfcExceptionsReport;
   /* ----------------------------------------- */
@@ -556,6 +624,9 @@ int main(int argc, char *argv[]) {
     ekaHwCaps->refresh();
     /* ----------------------------------------- */
     switch (ekaHwCaps->hwCaps.version.parser) {
+    case 29:
+      getFastSweepState(pFastSweepState);
+      break;
     case 30:
       getNewsState(pNewsState);
       break;
@@ -584,7 +655,12 @@ int main(int argc, char *argv[]) {
     printLineSeparator(coreParams,'+','-');
     printLineSeparator(coreParams,'+','-');
     /* ----------------------------------------- */
+    printf("Generic parser template: %s\n",EKA_FEED2STRING (ekaHwCaps->hwCaps.version.parser)); 
+
     switch (ekaHwCaps->hwCaps.version.parser) {
+    case 29:
+      printFastSweepState(pFastSweepState);
+      break;
     case 30:
       printNewsState(pNewsState);
       break;

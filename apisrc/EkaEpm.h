@@ -43,6 +43,15 @@ static inline uint64_t strategyEnableAddr(epm_strategyid_t  id) {
 
 class EkaEpm {
  public:
+  enum class FrameType : int {
+			      Invalid = 0,
+			      Tcp,
+			      Udp,
+			      Ip,
+			      Mac
+  };
+
+  
   static const uint MAX_CORES                   = EkaDev::MAX_CORES;
   static const uint MAX_SESS_PER_CORE           = EkaDev::MAX_SESS_PER_CORE;
   static const uint CONTROL_SESS_ID             = EkaDev::CONTROL_SESS_ID;
@@ -79,7 +88,8 @@ class EkaEpm {
   static const uint     ActionsPerRegion        = MaxActions / EPM_REGIONS;
 
   static const uint64_t PayloadMemorySize       = MaxUserHeap;
-  static const uint64_t DatagramOffset          = sizeof(EkaEthHdr)+sizeof(EkaIpHdr)+sizeof(EkaTcpHdr);
+  static const uint64_t TcpDatagramOffset       = sizeof(EkaEthHdr)+sizeof(EkaIpHdr)+sizeof(EkaTcpHdr);
+  static const uint64_t UdpDatagramOffset       = sizeof(EkaEthHdr)+sizeof(EkaIpHdr)+sizeof(EkaUdpHdr);
   static const uint64_t PayloadAlignment        = 32;
   static const uint64_t RequiredTailPadding     = 0;
 
@@ -123,9 +133,14 @@ class EkaEpm {
   }
 
   uint64_t getDatagramOffset () {
-    return DatagramOffset;
+    return TcpDatagramOffset;
   }
 
+  uint64_t getUdpDatagramOffset () {
+    return UdpDatagramOffset;
+  }
+
+  
   uint64_t getRequiredTailPadding () {
     return RequiredTailPadding;
   }
@@ -160,7 +175,7 @@ class EkaEpm {
   EkaOpResult raiseTriggers(const EpmTrigger *trigger);
 
   EkaOpResult payloadHeapCopy(epm_strategyid_t strategy, uint32_t offset,
-			      uint32_t length, const void *contents);
+			      uint32_t length, const void *contents, const bool isUdpDatagram);
 
   int DownloadSingleTemplate2HW(EpmTemplate* t);
 
