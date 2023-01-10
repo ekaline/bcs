@@ -28,6 +28,7 @@ EhpPitch::EhpPitch(EkaDev* dev) : EhpProtocol(dev) {
 }
 
 int EhpPitch::init() {
+  EKA_LOG("Initializing EhpPitch with efcTestRun=%d",dev->efcTestRun);
   createAddOrderExpanded();
   if (dev->efcTestRun) {
     createAddOrderShort();
