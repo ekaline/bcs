@@ -198,27 +198,27 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,
     FhPlevel* p = o->plevel;
     if (p->price == price) {
       if (p->deductSize(o->type,o->size) < 0) 
-	test_error("deductSize failed for orderId %ju, price %ju, size %ju",
+	EKA_WARN("deductSize failed for orderId %ju, price %ju, size %ju",
 		   (uint64_t)o->orderId,(uint64_t)price,(uint64_t)size);
       if (p->addSize(o->type,size) < 0)
-	test_error("addSize failed for orderId %ju, price %ju, size %ju",
+	EKA_WARN("addSize failed for orderId %ju, price %ju, size %ju",
 		   (uint64_t)o->orderId,(uint64_t)price,(uint64_t)size);
       o->size = size;
     } else {
       FhSecurity* s = (FhSecurity*)p->s;
       SideT    side = p->side;
       if (p->deductSize(o->type,o->size) < 0)
-	test_error("deductSize failed for orderId %ju, price %ju, size %ju",
+	EKA_WARN("deductSize failed for orderId %ju, price %ju, size %ju",
 		   (uint64_t)o->orderId,(uint64_t)price,(uint64_t)size);
       p->cnt--;
       if (p->isEmpty()) 
 	if (deletePlevel(p) < 0)
-	  test_error("deletePlevel failed for orderId %ju, price %ju, size %ju",
+	  EKA_WARN("deletePlevel failed for orderId %ju, price %ju, size %ju",
 		   (uint64_t)o->orderId,(uint64_t)price,(uint64_t)size);
       o->plevel = findOrAddPlevel(s,price,side);
       o->plevel->s = s;
       if (o->plevel->addSize(o->type,size) < 0)
-	test_error("addSize failed for orderId %ju, price %ju, size %ju",
+	EKA_WARN("addSize failed for orderId %ju, price %ju, size %ju",
 		   (uint64_t)o->orderId,(uint64_t)price,(uint64_t)size);
       o->size   = size;
       o->plevel->cnt++;
@@ -227,7 +227,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,
   }
   /* ####################################################### */
   inline int deleteOrder(FhOrder* o) {
-    if (o == NULL) test_error("o == NULL for GR%u",grId);
+    if (o == NULL) EKA_WARN("o == NULL for GR%u",grId);
     FhPlevel* p = o->plevel;
     if (p == NULL)
       on_error("p == NULL for orderId %ju",(uint64_t)o->orderId);
@@ -251,7 +251,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,
   }
   /* ####################################################### */
   inline int reduceOrderSize(FhOrder* o, SizeT deltaSize) {
-    if (o->size < deltaSize) test_error("o->size %d < deltaSize %d",(int)o->size, (int)deltaSize);
+    if (o->size < deltaSize) EKA_WARN("o->size %d < deltaSize %d",(int)o->size, (int)deltaSize);
    
     o->size -= deltaSize;
     return o->size;
@@ -313,7 +313,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,
                               uint64_t timestamp,
                               uint gapNum,
                               std::chrono::high_resolution_clock::time_point startTime={}) {
-    if (s == NULL) test_error("s == NULL");
+    if (s == NULL) EKA_WARN("s == NULL");
 
     FhPlevel* topBid = s->bid;
     FhPlevel* topAsk = s->ask;
@@ -451,8 +451,8 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,
   }
   /* ####################################################### */
   inline int releasePlevel(FhPlevel* p) {
-    if (p == NULL) test_error("p == NULL");
-    if (numPlevels-- == 0) test_error("numPlevels == 0 before releasing new element for GR%u",grId);
+    if (p == NULL) EKA_WARN("p == NULL");
+    if (numPlevels-- == 0) EKA_WARN("numPlevels == 0 before releasing new element for GR%u",grId);
     freePlevels++;
     p->next = plevelFreeHead;
     plevelFreeHead = p;
@@ -472,12 +472,12 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,
     /* 	     p->next); */
 
     FhSecurity* s = (FhSecurity*)p->s;
-    if (s == NULL) test_error("p->security == NULL");
+    if (s == NULL) EKA_WARN("p->security == NULL");
     switch (p->side) {
     case SideT::BID :
       if (p->top) {
-	if (s->bid  != p)    test_error("s->bid  != p    for Top Plevel");
-	if (p->prev != NULL) test_error("p->prev != NULL for Top Plevel");
+	if (s->bid  != p)    EKA_WARN("s->bid  != p    for Top Plevel");
+	if (p->prev != NULL) EKA_WARN("p->prev != NULL for Top Plevel");
 	s->bid = p->next;
 	if (p->next != NULL) {
 	  p->next->top = true;
@@ -489,15 +489,15 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,
 	  p->next->prev = p->prev;
 	}
       }
-      if (s->numBidPlevels-- == 0) test_error("s->numBidPlevels == 0");
+      if (s->numBidPlevels-- == 0) EKA_WARN("s->numBidPlevels == 0");
       break;
     case SideT::ASK :
       if (p->top) {
 	if (s->ask  != p)    
-	  test_error("s->ask  != p for Top Plevel %s %ju",
+	  EKA_WARN("s->ask  != p for Top Plevel %s %ju",
 		     side2str(p->side).c_str(),(uint64_t)p->price);
 	if (p->prev != NULL) 
-	  test_error("p->prev != NULL for Top Plevel %s %ju",
+	  EKA_WARN("p->prev != NULL for Top Plevel %s %ju",
 		     side2str(p->side).c_str(),(uint64_t)p->price);
 	s->ask = p->next;
 	if (p->next != NULL) {
@@ -510,10 +510,10 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,
 	  p->next->prev = p->prev;
 	}
       }
-      if (s->numAskPlevels-- == 0) test_error("s->numAskPlevels == 0");
+      if (s->numAskPlevels-- == 0) EKA_WARN("s->numAskPlevels == 0");
       break;
     default:
-      test_error("Unexpected p->side %d",(int)p->side);
+      EKA_WARN("Unexpected p->side %d",(int)p->side);
     }
     releasePlevel(p);
     return 0;
@@ -521,8 +521,8 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,
 
   /* ####################################################### */
   inline int releaseOrder(FhOrder* o) {
-    if (o == NULL) test_error("o == NULL");
-    if (numOrders-- == 0) test_error("numOrders == 0 before releasing new element for GR%u",grId);
+    if (o == NULL) EKA_WARN("o == NULL");
+    if (numOrders-- == 0) EKA_WARN("numOrders == 0 before releasing new element for GR%u",grId);
     o->next       = orderFreeHead;
     orderFreeHead = o;
     o->orderId    = 0;
@@ -534,7 +534,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,
   /* ####################################################### */
   inline int deleteOrderFromHash(OrderIdT orderId) {
     uint32_t index = getOrderHashIdx(orderId);
-    if (ord[index] == NULL) test_error("ord[%u] == NULL",index);
+    if (ord[index] == NULL) EKA_WARN("ord[%u] == NULL",index);
 
     if ((ord[index]->orderId == orderId) && (ord[index]->next == NULL)) {
       ord[index] = NULL;
@@ -554,7 +554,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,
   }
   /* ####################################################### */
   inline int addOrder2Hash (FhOrder* o) {
-    if (o == NULL) test_error("o==NULL");
+    if (o == NULL) EKA_WARN("o==NULL");
 
     uint64_t orderId = o->orderId;
 
@@ -564,7 +564,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,
 
     while (*curr != NULL) {
       if ((*curr)->orderId == orderId) 
-	test_error("adding existing orderId %ju at index %u",orderId,index);
+	EKA_WARN("adding existing orderId %ju at index %u",orderId,index);
       curr = &((*curr)->next);
     }
     *curr = o;

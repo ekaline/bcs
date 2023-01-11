@@ -178,22 +178,13 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 
   /* ##################################################################### */
 
-#if 0  
   if (s->crossedPrice()) {
-    char hexBuf[16000]; // approximate max NOM message size
-    if (std::FILE *const hexBufFile = fmemopen(hexBuf, sizeof hexBuf, "w")) {
-      hexDump("Msg caused CROSS PRICE",m,getMsgLen(m),hexBufFile);
-      book->printSecurity(s,hexBufFile);
-      (void)std::fwrite("\0", 1, 1, hexBufFile);
-
-      (void)std::fclose(hexBufFile);
-    }
     
-    EKA_WARN("WARNING PRICE CROSS: %s_%u at %s after \'%c\' : %s",
-	     EKA_EXCH_DECODE(exch),id, EkaFhMode2STR(op),enc,
-	     hexBuf);
+    EKA_WARN("%s:%u: %s PRICE CROSS: at %s after \'%c\'",
+	     EKA_EXCH_DECODE(exch),id,
+	     ts_ns2str(msgTs),
+	     EkaFhMode2STR(op),enc);
   }
-#endif
 
   return false;
 }
@@ -312,7 +303,12 @@ template <class SecurityT, class Msg>
   inline SecurityT* EkaFhNomGr::processDeleteOrder(const unsigned char* m) {
   OrderIdT orderId   = getOrderId<Msg>(m);
   FhOrder* o = book->findOrder(orderId);
-  if (!o) return NULL;
+  if (!o) {
+#ifndef FH_LAB    
+    EKA_WARN("OrderId %ju not found",(uint64_t)orderId);
+#endif    
+    return NULL;
+  }
 
   SecurityT* s = (FhSecurity*)o->plevel->s;
 
@@ -328,8 +324,13 @@ template <class SecurityT, class Msg>
 
   OrderIdT oldOrderId   = getOldOrderId  <Msg>(m);
   auto o = book->findOrder(oldOrderId);
-  if (!o) return NULL;
-
+  if (!o) {
+#ifndef FH_LAB    
+    EKA_WARN("OrderId %ju not found",(uint64_t)oldOrderId);
+#endif    
+    return NULL;
+  }
+  
   SecurityT* s = (FhSecurity*)o->plevel->s;
 
   FhOrderType t    = o->type;
@@ -368,7 +369,12 @@ inline SecurityT* EkaFhNomGr::processOrderExecuted(const unsigned char *m,
 
   OrderIdT    orderId   = getOrderId<Msg>(m);
   auto o = book->findOrder(orderId);
-  if (!o) return NULL;
+  if (!o) {
+#ifndef FH_LAB    
+    EKA_WARN("OrderId %ju not found",(uint64_t)orderId);
+#endif
+    return NULL;
+  }
 
   SizeT  deltaSize   = getSize<Msg>(m);
   auto p = o->plevel;
@@ -414,7 +420,12 @@ template <class SecurityT, class Msg>
   
   OrderIdT orderId   = getOrderId<Msg>(m);
   FhOrder* o         = book->findOrder(orderId);
-  if (!o)  return NULL;
+  if (!o)  {
+#ifndef FH_LAB    
+    EKA_WARN("OrderId %ju not found",(uint64_t)orderId);
+#endif
+    return NULL;
+  }
 
   SizeT       size  = getSize <Msg>(m);
   PriceT      price = getPrice<Msg>(m);
@@ -430,19 +441,30 @@ template <class SecurityT, class Msg>
 template <class SecurityT, class Msg>
   inline SecurityT* EkaFhNomGr::processReplaceQuote(const unsigned char* m) {
 
-  OrderIdT oldBidOrderId   = getOldBidOrderId<Msg>(m);
-  OrderIdT oldAskOrderId   = getOldAskOrderId<Msg>(m);
-  FhOrder* bid_o = book->findOrder(oldBidOrderId);
-  FhOrder* ask_o = book->findOrder(oldAskOrderId);
-
-  if (!bid_o && !ask_o) return NULL;
   SecurityT* s = NULL;
 
-  if (bid_o)
+  OrderIdT oldBidOrderId   = getOldBidOrderId<Msg>(m);
+  FhOrder* bid_o = book->findOrder(oldBidOrderId);
+  if (bid_o) {
     s = (FhSecurity*)bid_o->plevel->s;
-  if (ask_o)
-    s = (FhSecurity*)ask_o->plevel->s;
+  } else {
+#ifndef FH_LAB    
+    EKA_WARN("OrderId %ju not found",(uint64_t)bid_o);
+#endif
+  }
   
+  OrderIdT oldAskOrderId   = getOldAskOrderId<Msg>(m);
+  FhOrder* ask_o = book->findOrder(oldAskOrderId);
+  if (ask_o) {
+    s = (FhSecurity*)ask_o->plevel->s;
+  } else {
+#ifndef FH_LAB    
+    EKA_WARN("OrderId %ju not found",(uint64_t)bid_o);
+#endif
+  }
+  
+  if (!bid_o && !ask_o) return NULL;
+
   book->setSecurityPrevState(s);
   if (bid_o) {
     FhOrderType t          = bid_o->type;
@@ -471,13 +493,25 @@ template <class SecurityT, class Msg>
   SecurityT* s = NULL;
 
   OrderIdT bidOrderId   = getBidOrderId<Msg>(m);
-  OrderIdT askOrderId   = getAskOrderId<Msg>(m);
-
   FhOrder* bid_o = book->findOrder(bidOrderId);
+  if (bid_o) {
+    s = (FhSecurity*)bid_o->plevel->s;
+  } else {
+#ifndef FH_LAB    
+    EKA_WARN("Bid OrderId %ju not found",(uint64_t)bid_o);
+#endif    
+  }
+  
+  OrderIdT askOrderId   = getAskOrderId<Msg>(m);
   FhOrder* ask_o = book->findOrder(askOrderId);
-  if (bid_o) s = (FhSecurity*)bid_o->plevel->s;
-  if (ask_o) s = (FhSecurity*)ask_o->plevel->s;
-      
+  if (ask_o) {
+    s = (FhSecurity*)ask_o->plevel->s;
+  } else {
+#ifndef FH_LAB    
+    EKA_WARN("Ask OrderId %ju not found",(uint64_t)ask_o);
+#endif    
+  }
+  
   if (!bid_o && !ask_o) return NULL;
 
   book->setSecurityPrevState(s);

@@ -24,6 +24,8 @@
 #include "eka_hw_conf.h"
 #include "EkaHwInternalStructs.h"
 
+extern FILE *g_ekaLogFile;
+extern EkaLogCallback g_ekaLogCB;
 
 int ekaDefaultLog (void* /*unused*/, const char* function, const char* file, int line, int priority, const char* format, ...);
 int ekaDefaultCreateThread(const char* name, EkaServiceType type,  void *(*threadRoutine)(void*), void* arg, void* context, uintptr_t *handle);
@@ -109,8 +111,10 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   if (initCtx == NULL) on_error("initCtx == NULL");
 
   logCB  = initCtx->logCallback == NULL ? ekaDefaultLog : initCtx->logCallback;
-  logCtx = initCtx->logContext;
-
+  g_ekaLogCB = logCB;
+  logCtx = initCtx->logContext == NULL ? stdout : initCtx->logContext;
+  g_ekaLogFile = (FILE *)logCtx;
+    
   credAcquire = initCtx->credAcquire;
   credRelease = initCtx->credRelease;
 
