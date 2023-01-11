@@ -182,7 +182,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     
     EKA_WARN("%s:%u: %s PRICE CROSS: at %s after \'%c\'",
 	     EKA_EXCH_DECODE(exch),id,
-	     ts_ns2str(msgTs),
+	     ts_ns2str(msgTs).c_str(),
 	     EkaFhMode2STR(op),enc);
   }
 
