@@ -33,10 +33,15 @@ class alignas(64) EkaFhFbSecurity : public EkaFhSecurity {
   inline bool crossedPrice() {
     if (!bid || !ask)                       return false;
     if (bid->price == 0 || ask->price == 0) return false;
-    if (bid->price > ask->price)            return true;
+    if (bid->price >= ask->price)           return true;
     return false;
   }
 
+  inline uint64_t  getTopPrice(SideT side) {
+    if (side == SideT::BID) return (uint64_t) bid->price;
+    if (side == SideT::ASK) return (uint64_t) ask->price;
+    return (uint64_t)-1;
+  }
   inline int reset() {
     int cnt = 0;
     for (auto const& side : {bid, ask}) {

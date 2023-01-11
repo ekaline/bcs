@@ -180,10 +180,13 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 
   if (s->crossedPrice()) {
     
-    EKA_WARN("%s:%u: %s PRICE CROSS: at %s after \'%c\'",
+    EKA_WARN("%s:%u: %s PRICE CROSS: %ju > %ju at %s after seq=%ju, \'%c\'",
 	     EKA_EXCH_DECODE(exch),id,
 	     ts_ns2str(msgTs).c_str(),
-	     EkaFhMode2STR(op),enc);
+	     s->getTopPrice(SideT::BID),s->getTopPrice(SideT::ASK),
+	     EkaFhMode2STR(op),
+	     sequence,
+	     enc);
   }
 
   return false;
