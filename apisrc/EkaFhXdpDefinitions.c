@@ -34,7 +34,7 @@ using namespace Xdp;
 /* ##################################################################### */
 
 static EkaOpResult sendLogin (EkaFhXdpGr* gr) {
-  EkaDev* dev = gr->dev;
+  //  EkaDev* dev = gr->dev;
 
   //--------------- XDP Login Request -------------------
 
@@ -57,7 +57,7 @@ static EkaOpResult sendLogin (EkaFhXdpGr* gr) {
 /* ##################################################################### */
 
 static EkaOpResult getLoginResponse(EkaFhXdpGr* gr) {
-  EkaDev* dev = gr->dev;
+  //  EkaDev* dev = gr->dev;
 #ifdef FH_LAB
 #else
   XdpLoginResponse loginResponse = {};
@@ -87,7 +87,7 @@ static EkaOpResult getLoginResponse(EkaFhXdpGr* gr) {
 
 /* ##################################################################### */
 static EkaOpResult sendRequest(EkaFhXdpGr* gr) {
-  EkaDev* dev = gr->dev;
+  //  EkaDev* dev = gr->dev;
 
   XdpSeriesIndexMappingRequest defRequest  = {};
   defRequest.hdr.MsgSize = sizeof(defRequest);
@@ -110,7 +110,7 @@ static EkaOpResult sendRequest(EkaFhXdpGr* gr) {
 
 /* ##################################################################### */
 static EkaOpResult sendLogOut(EkaFhXdpGr* gr) {
-  EkaDev* dev = gr->dev;
+  //  EkaDev* dev = gr->dev;
 #ifndef FH_LAB
   XdpLogoutRequest logOut = {};
   logOut.hdr.MsgType = MSG_TYPE::LOGOUT_REQUEST;
@@ -129,7 +129,7 @@ static EkaOpResult sendLogOut(EkaFhXdpGr* gr) {
 
 /* ##################################################################### */
 static EkaOpResult sendHeartbeat(EkaFhXdpGr* gr) {
-  EkaDev* dev = gr->dev;
+  //  EkaDev* dev = gr->dev;
 
   XdpHeartbeat hearbeat = {};
   hearbeat.hdr.MsgType = MSG_TYPE::HEARTBEAT;
