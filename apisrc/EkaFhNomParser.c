@@ -451,7 +451,7 @@ template <class SecurityT, class Msg>
     s = (FhSecurity*)bid_o->plevel->s;
   } else {
 #ifndef FH_LAB    
-    EKA_WARN("OrderId %ju not found",(uint64_t)bid_o);
+    EKA_WARN("OrderId %ju not found",(uint64_t)oldBidOrderId);
 #endif
   }
   
@@ -461,7 +461,7 @@ template <class SecurityT, class Msg>
     s = (FhSecurity*)ask_o->plevel->s;
   } else {
 #ifndef FH_LAB    
-    EKA_WARN("OrderId %ju not found",(uint64_t)bid_o);
+    EKA_WARN("OrderId %ju not found",(uint64_t)oldAskOrderId);
 #endif
   }
   
@@ -500,7 +500,7 @@ template <class SecurityT, class Msg>
     s = (FhSecurity*)bid_o->plevel->s;
   } else {
 #ifndef FH_LAB    
-    EKA_WARN("Bid OrderId %ju not found",(uint64_t)bid_o);
+    EKA_WARN("Bid OrderId %ju not found",(uint64_t)bidOrderId);
 #endif    
   }
   
@@ -510,7 +510,7 @@ template <class SecurityT, class Msg>
     s = (FhSecurity*)ask_o->plevel->s;
   } else {
 #ifndef FH_LAB    
-    EKA_WARN("Ask OrderId %ju not found",(uint64_t)ask_o);
+    EKA_WARN("Ask OrderId %ju not found",(uint64_t)askOrderId);
 #endif    
   }
   

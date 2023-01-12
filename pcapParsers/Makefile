@@ -33,7 +33,7 @@ tomPcapParse: tomPcapParse.c ../apisrc/EkaFhMiaxParser.h
 nomPcapParse: nomPcapParse.c ../apisrc/EkaFhNomParser.h ../apisrc/EkaFhNasdaqCommonParser.h
 	$(CXX) $(GCC_FLAGS) -o $@ $^ $(INCL) $(RUNTIME_LD_FLAGS) $(EKALINE_FLAGS)
 
-nomTcpPcapParse: nomTcpPcapParse.c ../apisrc/EkaFhNomParser.h ../apisrc/EkaFhNasdaqCommonParser.h
+nomTcpPcapParse: nomTcpPcapParse.c ../apisrc/EkaFhNomParser.h ../apisrc/EkaFhNasdaqCommonParser.h ../apisrc/EkaNwParser.h
 	$(CXX) $(GCC_FLAGS) -o $@ $^ $(INCL) $(RUNTIME_LD_FLAGS) $(EKALINE_FLAGS)
 
 bxPcapParse: bxPcapParse.c ../apisrc/EkaFhBxParser.h ../apisrc/EkaFhNasdaqCommonParser.h
