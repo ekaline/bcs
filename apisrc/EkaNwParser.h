@@ -282,7 +282,8 @@ namespace EkaNwParser {
 	
 	size_t bytes2readNow = std::min(pendingBytes,nPktBytes_);
 	if (fread(p,bytes2readNow,1,fp) != 1)
-	  on_error("Failed to read %jd bytes",bytes2readNow);
+	  on_error("Failed to read %jd bytes (nPktBytes_=%jd)",
+		   bytes2readNow,nPktBytes_);
 
 	nPktBytes_ -= bytes2readNow;
 	p += bytes2readNow;
@@ -306,7 +307,7 @@ namespace EkaNwParser {
       while (1) {
 	pcap_rec_hdr pcapHdr;
 	if (fread(&pcapHdr,sizeof(pcapHdr),1,fp) != 1) {
-	  TEST_LOG("Failed to read pcapHdr");
+	  TEST_LOG("Failed to read pcapHdr after %ju pkts",nPkts_);
 	  return -1;
 	}
 	nCurPktBytes = pcapHdr.len;
@@ -349,6 +350,10 @@ namespace EkaNwParser {
 
 	if (Ip::getSrc(&ipHdr) == srcIp_ && Tcp::getSrc(&tcpHdr) == srcPort_)
 	 return nCurPktBytes; // My pkt
+	else
+	  TEST_LOG("%s != %s or %u != %u",
+		   EKA_IP2STR(Ip::getSrc(&ipHdr)),EKA_IP2STR(srcIp_),
+		   Tcp::getSrc(&tcpHdr),srcPort_);
 
       DISCARD_PKT:
 	if (nCurPktBytes && fread(nullBuf,nCurPktBytes,1,fp) != 1) {

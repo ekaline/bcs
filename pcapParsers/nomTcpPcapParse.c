@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
     uint8_t pkt[1536];
 
     auto pktHndl = new TcpPcapHandler(pcapFileName,
-				      inet_addr("206.200.43.74"), 18302);
+				      inet_addr("206.200.43.72"), 18300);
     
     while (1) {
       ssize_t hdrSize = pktHndl->getData(&soupbinHdr,sizeof(soupbinHdr));

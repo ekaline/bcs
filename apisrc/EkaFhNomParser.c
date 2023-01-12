@@ -179,9 +179,10 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   /* ##################################################################### */
   if (op != EkaFhMode::SNAPSHOT && s->crossedPrice()) {
     
-    EKA_WARN("%s:%u: %s PRICE CROSS: %ju > %ju at %s after seq=%ju, \'%c\'",
+    EKA_WARN("%s:%u: %s PRICE CROSS for %ju: %ju > %ju at %s after seq=%ju, \'%c\'",
 	     EKA_EXCH_DECODE(exch),id,
 	     ts_ns2str(msgTs).c_str(),
+	     (uint64_t)s->secId,
 	     s->getTopPrice(SideT::BID),s->getTopPrice(SideT::ASK),
 	     EkaFhMode2STR(op),
 	     sequence,
@@ -306,7 +307,7 @@ template <class SecurityT, class Msg>
   OrderIdT orderId   = getOrderId<Msg>(m);
   FhOrder* o = book->findOrder(orderId);
   if (!o) {
-#ifndef FH_LAB    
+#ifdef EFH_SUBSCRIBED_ON_ALL    
     EKA_WARN("OrderId %ju not found",(uint64_t)orderId);
 #endif    
     return NULL;
@@ -327,7 +328,7 @@ template <class SecurityT, class Msg>
   OrderIdT oldOrderId   = getOldOrderId  <Msg>(m);
   auto o = book->findOrder(oldOrderId);
   if (!o) {
-#ifndef FH_LAB    
+#ifdef EFH_SUBSCRIBED_ON_ALL    
     EKA_WARN("OrderId %ju not found",(uint64_t)oldOrderId);
 #endif    
     return NULL;
@@ -372,7 +373,7 @@ inline SecurityT* EkaFhNomGr::processOrderExecuted(const unsigned char *m,
   OrderIdT    orderId   = getOrderId<Msg>(m);
   auto o = book->findOrder(orderId);
   if (!o) {
-#ifndef FH_LAB    
+#ifdef EFH_SUBSCRIBED_ON_ALL    
     EKA_WARN("OrderId %ju not found",(uint64_t)orderId);
 #endif
     return NULL;
@@ -423,7 +424,7 @@ template <class SecurityT, class Msg>
   OrderIdT orderId   = getOrderId<Msg>(m);
   FhOrder* o         = book->findOrder(orderId);
   if (!o)  {
-#ifndef FH_LAB    
+#ifdef EFH_SUBSCRIBED_ON_ALL    
     EKA_WARN("OrderId %ju not found",(uint64_t)orderId);
 #endif
     return NULL;
@@ -450,7 +451,7 @@ template <class SecurityT, class Msg>
   if (bid_o) {
     s = (FhSecurity*)bid_o->plevel->s;
   } else {
-#ifndef FH_LAB    
+#ifdef EFH_SUBSCRIBED_ON_ALL    
     EKA_WARN("OrderId %ju not found",(uint64_t)oldBidOrderId);
 #endif
   }
@@ -460,7 +461,7 @@ template <class SecurityT, class Msg>
   if (ask_o) {
     s = (FhSecurity*)ask_o->plevel->s;
   } else {
-#ifndef FH_LAB    
+#ifdef EFH_SUBSCRIBED_ON_ALL    
     EKA_WARN("OrderId %ju not found",(uint64_t)oldAskOrderId);
 #endif
   }
@@ -499,7 +500,7 @@ template <class SecurityT, class Msg>
   if (bid_o) {
     s = (FhSecurity*)bid_o->plevel->s;
   } else {
-#ifndef FH_LAB    
+#ifdef EFH_SUBSCRIBED_ON_ALL    
     EKA_WARN("Bid OrderId %ju not found",(uint64_t)bidOrderId);
 #endif    
   }
@@ -509,7 +510,7 @@ template <class SecurityT, class Msg>
   if (ask_o) {
     s = (FhSecurity*)ask_o->plevel->s;
   } else {
-#ifndef FH_LAB    
+#ifdef EFH_SUBSCRIBED_ON_ALL    
     EKA_WARN("Ask OrderId %ju not found",(uint64_t)askOrderId);
 #endif    
   }
