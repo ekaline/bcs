@@ -564,7 +564,7 @@ static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
 }
 
 EkaOpResult plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode op,
-		 uint64_t start, uint64_t end) {
+			uint64_t start, uint64_t end) {
   int udpSock,tcpSock;
   bool myRefreshStarted = false;
 
@@ -573,14 +573,19 @@ EkaOpResult plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode o
 
   gr->snapshot_active = true;
   gr->recovery_active = true;
+
+  //-----------------------------------------------------------------
+  EkaCredentialLease* lease;
+  gr->credentialAcquire(EkaCredentialType::kSnapshot,
+			gr->sourceId, sizeof(gr->sourceId),
+			&lease);
+
+  //-----------------------------------------------------------------
   
   EKA_LOG("\n-----------------------------------------------\n%s:%u %s started",
 	  EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
   EkaOpResult result = establishConnections(gr,op,start,end,&udpSock,&tcpSock);
-  if (result != EKA_OPRESULT__OK) {
-    return result;
-  }
-  
+
   //  std::deque <OutrightSeriesIndexMapping> vanillaDefinitions;  
   //  auto pVanillaDefinitions = new std::vector <OutrightSeriesIndexMapping> (1'500'000);
   EfhFastBuffer<OutrightSeriesIndexMapping,MaxVanillaDefinitions> *pVanillaDefinitions = NULL;
@@ -590,7 +595,8 @@ EkaOpResult plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode o
       on_error("Failed creating VanillaDefinitions vector");
   }
   
-  while (gr->snapshot_active || gr->recovery_active) {
+  while ((result == EKA_OPRESULT__OK || result == EKA_OPRESULT__RECOVERY_IN_PROGRESS) &&
+	 (gr->snapshot_active || gr->recovery_active)) {
     char buf[2000] = {};
     int rc = recvfrom(udpSock, buf, sizeof(buf), MSG_WAITALL, NULL, NULL);
     if (rc < 0)
@@ -608,11 +614,11 @@ EkaOpResult plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode o
 
     switch (result) {
     case EKA_OPRESULT__ERR_RECOVERY_FAILED :
-      return result;
+      break;
     case EKA_OPRESULT__OK :
       if (op == EkaFhMode::DEFINITIONS) {
 	EKA_LOG("%s:%u Sending out buffered Defintions",
-	      EKA_EXCH_DECODE(gr->exch),gr->id);
+		EKA_EXCH_DECODE(gr->exch),gr->id);
 	//	for (auto &def : *pVanillaDefinitions) {
 	for (size_t i = 0; i < pVanillaDefinitions->getSize(); i++) {
 	  auto def = pVanillaDefinitions->pop();
@@ -638,6 +644,11 @@ EkaOpResult plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode o
 
   gr->snapshot_active = false;
   gr->recovery_active = false;
+
+  int rc = gr->credentialRelease(lease);
+  if (rc != 0) on_error("%s:%u Failed to credRelease",
+			EKA_EXCH_DECODE(gr->exch),gr->id);
+
   return result;
 }
 
@@ -663,11 +674,7 @@ void* runPlrRecoveryThread(void* attr) {
   EKA_LOG("%s:%u: Start of PlrRecoveryThread %s",
 	  EKA_EXCH_DECODE(gr->exch),gr->id, 
 	  EkaFhMode2STR(op));
-  //-----------------------------------------------------------------
-  EkaCredentialLease* lease;
-  gr->credentialAcquire(EkaCredentialType::kSnapshot, gr->auth_user, sizeof(gr->auth_user), &lease);
 
-  //-----------------------------------------------------------------
   gr->snapshot_active = true;
   const int MaxTrials = 4;
   EkaOpResult result = EKA_OPRESULT__OK;
@@ -693,9 +700,6 @@ void* runPlrRecoveryThread(void* attr) {
     }
   }
  SUCCESS:
-  int rc = gr->credentialRelease(lease);
-  if (rc != 0) on_error("%s:%u Failed to credRelease",
-			EKA_EXCH_DECODE(gr->exch),gr->id);
 
   return NULL;
 }
