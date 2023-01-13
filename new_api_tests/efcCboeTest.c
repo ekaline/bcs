@@ -428,6 +428,7 @@ int main(int argc, char *argv[]) {
     on_error("numTcpSess %d > MaxTcpTestSessions %d",numTcpSess, MaxTcpTestSessions);
   // ==============================================
   // EkaDev general setup
+  EfcArmVer   armVer = 0;
   EkaDev*     dev = NULL;
   EkaCoreId   coreId = 0;
   EkaOpResult rc;
@@ -517,7 +518,8 @@ int main(int argc, char *argv[]) {
   EfcCtx* pEfcCtx = &efcCtx;
 
   EfcInitCtx initCtx = {
-      .feedVer = EfhFeedVer::kCBOE
+			.feedVer = EfhFeedVer::kCBOE,
+			.testRun = true
   };
   
   rc = efcInit(&pEfcCtx,dev,&initCtx);
@@ -761,7 +763,7 @@ int main(int argc, char *argv[]) {
 	  while (! fh->active) sleep(0);
   }
   // ==============================================
-  efcEnableController(pEfcCtx, 0);
+  efcEnableController(pEfcCtx, -1); //disarm
   // ==============================================
   efcRun(pEfcCtx, &runCtx );
   // ==============================================
@@ -799,7 +801,7 @@ int main(int argc, char *argv[]) {
 	       sequence++,'S',security[2].askMaxPrice / 100 - 1,security[2].size);
   
   sleep(1);
-  efcEnableController(pEfcCtx, 1);
+  efcEnableController(pEfcCtx, 1, armVer++);
 #endif
 // ==============================================
 #if 1
@@ -807,7 +809,7 @@ int main(int argc, char *argv[]) {
 	       sequence++,'B',security[2].bidMinPrice / 100 + 1,security[2].size);
   
   sleep(1);
-  efcEnableController(pEfcCtx, 1);
+  efcEnableController(pEfcCtx, 1, armVer++);
 #endif    
 // ==============================================
 #if 1
@@ -815,7 +817,7 @@ int main(int argc, char *argv[]) {
 	       sequence++,'S',security[2].askMaxPrice - 1,security[2].size);
   
   sleep(1);
-  efcEnableController(pEfcCtx, 1);
+  efcEnableController(pEfcCtx, 1, armVer++);
 #endif  
 // ==============================================
 #if 1
@@ -823,7 +825,7 @@ int main(int argc, char *argv[]) {
 	       sequence++,'B',security[2].bidMinPrice + 1,security[2].size);
   
   sleep(1);
-  efcEnableController(pEfcCtx, 1);
+  efcEnableController(pEfcCtx, 1, armVer++);
 #endif
 // ==============================================
 #if 1
@@ -831,16 +833,16 @@ int main(int argc, char *argv[]) {
 	       sequence++,'S',security[2].askMaxPrice - 1,security[2].size);
   
   sleep(1);
-  efcEnableController(pEfcCtx, 1);
+  efcEnableController(pEfcCtx, 1, armVer++);
 #endif  
 // ==============================================
-#if 1
+#if 0
   while (testCtx->keep_work) {
     sendAddOrder(AddOrder::Expanded,triggerSock,&triggerMcAddr,security[2].id,
 		 sequence++,'B',security[2].bidMinPrice + 1,security[2].size);
   
     sleep(1);
-    efcEnableController(pEfcCtx, 1);
+    efcEnableController(pEfcCtx, 1, armVer++);
   }
 #endif  
 // ==============================================
