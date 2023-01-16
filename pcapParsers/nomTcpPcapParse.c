@@ -17,8 +17,23 @@
 //using namespace Nom;
 #include "EkaFhNasdaqCommonParser.h"
 #include "EkaNwParser.h"
+#include "EkaPcapNomGr.h"
+
 using namespace EfhNasdaqCommon;
 using namespace EkaNwParser;
+
+int ekaDefaultLog (void* /*unused*/, const char* function, const char* file, int line, int priority, const char* format, ...) {
+  va_list ap;
+  const int rc1 = fprintf(stderr, "%s@%s:%u: ",function,file,line);
+  va_start(ap, format);
+  const int rc2 = vfprintf(stderr, format, ap);
+  va_end(ap);
+  const int rc3 = fprintf(stderr,"\n");
+  return rc1 + rc2 + rc3;
+}
+
+EkaLogCallback g_ekaLogCB = ekaDefaultLog;
+FILE   *g_ekaLogFile = stdout;
 
 //###################################################
 static char pcapFileName[256] = {};
@@ -42,18 +57,6 @@ static GroupAddr group[] = {
     {inet_addr("206.200.43.74"), 18302, 0, 0},
     {inet_addr("206.200.43.75"), 18303, 0, 0},
 };
-
-
-//###################################################
-
-int findGrp(uint32_t ip, uint16_t port) {
-  for (size_t i = 0; i < sizeof(group)/sizeof(group[0]); i++) {
-    if (group[i].ip == ip && group[i].port == port)
-	    return (int)i;
-  }
-  //  on_error("%s:%u is not found",EKA_IP2STR(ip),port);
-  return -1;
-}
 
 //###################################################
 void printUsage(char* cmd) {
@@ -92,6 +95,69 @@ static int getAttr(int argc, char *argv[]) {
 }
 
 //###################################################
+void* onOptionDefinition(const EfhOptionDefinitionMsg* msg,
+			 EfhSecUserData secData,
+			 EfhRunUserData userData) {
+  std::string underlyingName = std::string(msg->commonDef.underlying,
+					   sizeof(msg->commonDef.underlying));
+  std::string classSymbol    = std::string(msg->commonDef.classSymbol,
+					   sizeof(msg->commonDef.classSymbol));
+
+  std::replace(underlyingName.begin(), underlyingName.end(), ' ', '\0');
+  std::replace(classSymbol.begin(),    classSymbol.end(),    ' ', '\0');
+  underlyingName.resize(strlen(underlyingName.c_str()));
+  classSymbol.resize   (strlen(classSymbol.c_str()));
+
+  char avtSecName[32] = {};
+
+  eka_create_avt_definition(avtSecName,msg);
+  fprintf (stdout,"%s,%ju,%s,%s\n",
+	   avtSecName,
+	   msg->header.securityId,
+	   underlyingName.c_str(),
+	   classSymbol.c_str()
+	   );
+
+  return NULL;
+}
+//###################################################
+
+void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData,
+	      EfhRunUserData userData) {
+  const int64_t priceScaleFactor = 10000;
+  fprintf(stdout,"TOB: %ju,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%s,%ju\n",
+	  msg->header.securityId,
+
+	  msg->bidSide.size,
+	  decPoints(msg->bidSide.price,priceScaleFactor),
+	  ((float) msg->bidSide.price / priceScaleFactor),
+	  msg->bidSide.customerSize,
+	  msg->askSide.size,
+	  decPoints(msg->askSide.price,priceScaleFactor),
+	  ((float) msg->askSide.price / priceScaleFactor),
+	  msg->askSide.customerSize,
+	  EKA_TS_DECODE(msg->tradeStatus),
+	  EKA_TS_DECODE(msg->tradeStatus),
+	  (ts_ns2str(msg->header.timeStamp)).c_str(),
+	  msg->header.timeStamp
+	  );
+  return NULL;
+}
+//###################################################
+void* onTrade(const EfhTradeMsg* msg, EfhSecUserData secData,
+	      EfhRunUserData userData) {
+  fprintf(stdout,"Trade,");
+  fprintf(stdout,"%ju,",msg->header.securityId);
+  fprintf(stdout,"%ld,",msg->price);
+  fprintf(stdout,"%u," ,msg->size);
+  fprintf(stdout,"%d," ,(int)msg->tradeCond);
+  fprintf(stdout,"%s," ,ts_ns2str(msg->header.timeStamp).c_str());
+  fprintf(stdout,"%ju,",msg->header.timeStamp);
+  fprintf(stdout,"\n");
+
+  return NULL;
+}
+//###################################################
 
 int main(int argc, char *argv[]) {
     getAttr(argc,argv);
@@ -99,8 +165,16 @@ int main(int argc, char *argv[]) {
     SoupbinHdr soupbinHdr = {};
     uint8_t pkt[1536];
 
+    auto nomGr = new EkaFhNomGr;
+    
     auto pktHndl = new TcpPcapHandler(pcapFileName,
 				      inet_addr("206.200.43.72"), 18300);
+
+    EfhRunCtx efhRunCtx = {
+      .onEfhOptionDefinitionMsgCb  = onOptionDefinition,
+      .onEfhTradeMsgCb             = onTrade,
+      .onEfhQuoteMsgCb             = onQuote,
+    };
     
     while (1) {
       ssize_t hdrSize = pktHndl->getData(&soupbinHdr,sizeof(soupbinHdr));
@@ -110,18 +184,21 @@ int main(int argc, char *argv[]) {
 	break;
       }
       ssize_t size2read = be16toh(soupbinHdr.length) - sizeof(soupbinHdr.type);
+      if (size2read <= 0) on_error("size2read=%jd",size2read);
       ssize_t pktSize = pktHndl->getData(pkt,size2read);
       if (pktSize != size2read) {
 	TEST_LOG("pktSize %jd != size2read %jd",
 		 pktSize,size2read);
 	break;
       }
-      printf ("\'%c\' (0x%x), %jd\n",
-	      soupbinHdr.type,soupbinHdr.type,size2read);
+      /* printf ("\'%c\' (0x%x), %jd\n", */
+      /* 	      soupbinHdr.type,soupbinHdr.type,size2read); */
       switch (soupbinHdr.type) {
       case 'S' :
       case 'U' :
 	printMsg<NomFeed>(stdout,0,pkt);
+	nomGr->parseMsg(&efhRunCtx,pkt,0,EkaFhMode::DEFINITIONS);
+	nomGr->parseMsg(&efhRunCtx,pkt,0,EkaFhMode::SNAPSHOT);
 	break;
       case 'A' :
       case 'H' :

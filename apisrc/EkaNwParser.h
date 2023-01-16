@@ -271,9 +271,8 @@ namespace EkaNwParser {
     }
     
     ssize_t getData(void* dst, size_t nBytes) {
-      auto pendingBytes = nBytes;
+      size_t pendingBytes = nBytes;
       uint8_t* p = (uint8_t*)dst;
-
       while (pendingBytes != 0) {
 	if (nPktBytes_ == 0)
 	  nPktBytes_ = skipToMyPayload();
@@ -281,15 +280,13 @@ namespace EkaNwParser {
 	if (nPktBytes_ < 0) return nPktBytes_;
 	
 	size_t bytes2readNow = std::min(pendingBytes,nPktBytes_);
-	if (fread(p,bytes2readNow,1,fp) != 1)
+	if (bytes2readNow != 0 && fread(p,bytes2readNow,1,fp) != 1)
 	  on_error("Failed to read %jd bytes (nPktBytes_=%jd)",
 		   bytes2readNow,nPktBytes_);
-
 	nPktBytes_ -= bytes2readNow;
 	p += bytes2readNow;
 	pendingBytes -= bytes2readNow;
       } // while()
-      
       return nBytes;
     }
 
@@ -312,12 +309,14 @@ namespace EkaNwParser {
 	}
 	nCurPktBytes = pcapHdr.len;
 	nPkts_ ++;
+	// TEST_LOG("nPkts_=%ju: nCurPktBytes=%ju",nPkts_,nCurPktBytes);
 	// ------------------------
 	if (fread(&ethHdr,sizeof(ethHdr),1,fp) != 1) {
 	  TEST_LOG("Failed to read ethHdr");
 	  return -1;
 	}
 	nCurPktBytes -= sizeof(ethHdr);
+	// TEST_LOG("nCurPktBytes=%ju",nCurPktBytes);
 	if (! Eth::isIp(&ethHdr)) goto DISCARD_PKT;
 	// ------------------------
 	if (fread(&ipHdr,sizeof(ipHdr),1,fp) != 1) {
@@ -325,6 +324,7 @@ namespace EkaNwParser {
 	  return -1;
 	}
 	nCurPktBytes -= sizeof(ipHdr);
+	// TEST_LOG("nCurPktBytes=%ju",nCurPktBytes);
 	if (! Ip::isTcp(&ipHdr)) goto DISCARD_PKT;
 	extraBytes = Ip::getHdrLen(&ipHdr) - sizeof(ipHdr);
 	if (extraBytes && fread(nullBuf,extraBytes,1,fp) != 1) {
@@ -333,12 +333,14 @@ namespace EkaNwParser {
 	  return -1;
 	}
 	nCurPktBytes -= extraBytes;
+	// TEST_LOG("nCurPktBytes=%ju",nCurPktBytes);
 	// ------------------------
 	if (fread(&tcpHdr,sizeof(tcpHdr),1,fp) != 1) {
 	  TEST_LOG("Failed to read tcpHdr");
 	  return -1;
 	}
 	nCurPktBytes -= sizeof(tcpHdr);
+	// TEST_LOG("nCurPktBytes=%ju",nCurPktBytes);
 	extraBytes = Tcp::getHdrLen(&tcpHdr) - sizeof(tcpHdr);
 	if (extraBytes && fread(nullBuf,extraBytes,1,fp) != 1) {
 	  TEST_LOG("Failed to read %ju bytes of extra tcpHdr",
@@ -346,15 +348,24 @@ namespace EkaNwParser {
 	  return -1;
 	}
 	nCurPktBytes -= extraBytes;
+	// TEST_LOG("nCurPktBytes=%ju",nCurPktBytes);
 	// ------------------------
 
-	if (Ip::getSrc(&ipHdr) == srcIp_ && Tcp::getSrc(&tcpHdr) == srcPort_)
-	 return nCurPktBytes; // My pkt
-	else
-	  TEST_LOG("%s != %s or %u != %u",
-		   EKA_IP2STR(Ip::getSrc(&ipHdr)),EKA_IP2STR(srcIp_),
-		   Tcp::getSrc(&tcpHdr),srcPort_);
-
+	if (Ip::getSrc (&ipHdr)  == srcIp_ &&
+	    Tcp::getSrc(&tcpHdr) == srcPort_) {
+	  ssize_t payloadLen = Ip::getPktLen(&ipHdr) -
+	    Ip::getHdrLen(&ipHdr) -
+	    Tcp::getHdrLen(&tcpHdr);
+	  // TEST_LOG("Ip::getPktLen(&ipHdr) = %u, Tcp::getHdrLen(&tcpHdr) = %ju",
+	  // 	   Ip::getPktLen(&ipHdr),Tcp::getHdrLen(&tcpHdr));
+	  // TEST_LOG("payloadLen=%jd, nCurPktBytes=%ju",payloadLen,nCurPktBytes);
+	  if (payloadLen == 0) goto DISCARD_PKT;
+	  return nCurPktBytes; // My pkt
+	} else {
+	  // TEST_LOG("%s != %s or %u != %u",
+	  // 	   EKA_IP2STR(Ip::getSrc(&ipHdr)),EKA_IP2STR(srcIp_),
+	  // 	   Tcp::getSrc(&tcpHdr),srcPort_);
+	}
       DISCARD_PKT:
 	if (nCurPktBytes && fread(nullBuf,nCurPktBytes,1,fp) != 1) {
 	  TEST_LOG("Failed to read %ju bytes of pkt to discard",

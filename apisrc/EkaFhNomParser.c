@@ -7,8 +7,12 @@
 #include <assert.h>
 #include <algorithm>
 
-#include "EkaFhParserCommon.h"
+#ifdef EKA_PCAP_PARSER
+#include "EkaPcapNomGr.h"
+#else
 #include "EkaFhNomGr.h"
+#endif
+#include "EkaFhParserCommon.h"
 #include "EkaFhNomParser.h"
 #include "EkaFhFullBook.h"
 
@@ -29,10 +33,12 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   auto start = std::chrono::high_resolution_clock::now();  
 #endif
 
+#ifndef EKA_PCAP_PARSER
   if (fh->print_parsed_messages) {
     printMsg<NomFeed>(parser_log,sequence,m);
     fflush(parser_log);
   }
+#endif
   
   auto genericHdr {reinterpret_cast<const NomFeed::GenericHdr *>(m)};
   char enc = genericHdr->type;
@@ -558,7 +564,7 @@ template <class SecurityT, class Msg>
 
   return NULL;
 }
-
+#if 0
 template <class SecurityT, class Msg>
   inline SecurityT* EkaFhNomGr::processAuctionUpdate(const unsigned char* m,
 						     uint64_t sequence,
@@ -595,6 +601,7 @@ template <class SecurityT, class Msg>
   
   return NULL;
 }
+#endif
 
 template <class Msg>
 inline uint64_t EkaFhNomGr::processEndOfSnapshot(const unsigned char* m,
