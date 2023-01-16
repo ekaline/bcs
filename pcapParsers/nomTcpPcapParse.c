@@ -24,11 +24,11 @@ using namespace EkaNwParser;
 
 int ekaDefaultLog (void* /*unused*/, const char* function, const char* file, int line, int priority, const char* format, ...) {
   va_list ap;
-  const int rc1 = fprintf(stderr, "%s@%s:%u: ",function,file,line);
+  const int rc1 = fprintf(g_ekaLogFile, "%s@%s:%u: ",function,file,line);
   va_start(ap, format);
-  const int rc2 = vfprintf(stderr, format, ap);
+  const int rc2 = vfprintf(g_ekaLogFile, format, ap);
   va_end(ap);
-  const int rc3 = fprintf(stderr,"\n");
+  const int rc3 = fprintf(g_ekaLogFile,"\n");
   return rc1 + rc2 + rc3;
 }
 
@@ -111,7 +111,7 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg,
   char avtSecName[32] = {};
 
   eka_create_avt_definition(avtSecName,msg);
-  fprintf (stdout,"%s,%ju,%s,%s\n",
+  fprintf (g_ekaLogFile,"%s,%ju,%s,%s\n",
 	   avtSecName,
 	   msg->header.securityId,
 	   underlyingName.c_str(),
@@ -125,7 +125,7 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg,
 void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData,
 	      EfhRunUserData userData) {
   const int64_t priceScaleFactor = 10000;
-  fprintf(stdout,"TOB: %ju,%u,%.*f,%u,%u,%.*f,%u,%c,%c,%s,%ju\n",
+  fprintf(g_ekaLogFile,"TOB: %ju,%u,%.*f,%u,%u,%.*f,%u,%c,%s,%ju\n",
 	  msg->header.securityId,
 
 	  msg->bidSide.size,
@@ -137,7 +137,6 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData,
 	  ((float) msg->askSide.price / priceScaleFactor),
 	  msg->askSide.customerSize,
 	  EKA_TS_DECODE(msg->tradeStatus),
-	  EKA_TS_DECODE(msg->tradeStatus),
 	  (ts_ns2str(msg->header.timeStamp)).c_str(),
 	  msg->header.timeStamp
 	  );
@@ -146,14 +145,14 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData,
 //###################################################
 void* onTrade(const EfhTradeMsg* msg, EfhSecUserData secData,
 	      EfhRunUserData userData) {
-  fprintf(stdout,"Trade,");
-  fprintf(stdout,"%ju,",msg->header.securityId);
-  fprintf(stdout,"%ld,",msg->price);
-  fprintf(stdout,"%u," ,msg->size);
-  fprintf(stdout,"%d," ,(int)msg->tradeCond);
-  fprintf(stdout,"%s," ,ts_ns2str(msg->header.timeStamp).c_str());
-  fprintf(stdout,"%ju,",msg->header.timeStamp);
-  fprintf(stdout,"\n");
+  fprintf(g_ekaLogFile,"Trade,");
+  fprintf(g_ekaLogFile,"%ju,",msg->header.securityId);
+  fprintf(g_ekaLogFile,"%ld,",msg->price);
+  fprintf(g_ekaLogFile,"%u," ,msg->size);
+  fprintf(g_ekaLogFile,"%d," ,(int)msg->tradeCond);
+  fprintf(g_ekaLogFile,"%s," ,ts_ns2str(msg->header.timeStamp).c_str());
+  fprintf(g_ekaLogFile,"%ju,",msg->header.timeStamp);
+  fprintf(g_ekaLogFile,"\n");
 
   return NULL;
 }
@@ -175,18 +174,22 @@ int main(int argc, char *argv[]) {
       .onEfhTradeMsgCb             = onTrade,
       .onEfhQuoteMsgCb             = onQuote,
     };
-    
+    ssize_t size2read;
+    ssize_t pktSize;
+    ssize_t hdrSize;
     while (1) {
-      ssize_t hdrSize = pktHndl->getData(&soupbinHdr,sizeof(soupbinHdr));
+      hdrSize = pktHndl->getData(&soupbinHdr,sizeof(soupbinHdr));
       if (hdrSize != sizeof(soupbinHdr)) {
+	if (hdrSize == -2) goto END; //EOF
 	TEST_LOG("hdrSize %jd != sizeof(soupbinHdr) %jd",
 		 hdrSize,sizeof(soupbinHdr));
 	break;
       }
-      ssize_t size2read = be16toh(soupbinHdr.length) - sizeof(soupbinHdr.type);
+      size2read = be16toh(soupbinHdr.length) - sizeof(soupbinHdr.type);
       if (size2read <= 0) on_error("size2read=%jd",size2read);
-      ssize_t pktSize = pktHndl->getData(pkt,size2read);
+      pktSize = pktHndl->getData(pkt,size2read);
       if (pktSize != size2read) {
+	if (hdrSize == -2) goto END; //EOF
 	TEST_LOG("pktSize %jd != size2read %jd",
 		 pktSize,size2read);
 	break;
@@ -196,7 +199,7 @@ int main(int argc, char *argv[]) {
       switch (soupbinHdr.type) {
       case 'S' :
       case 'U' :
-	printMsg<NomFeed>(stdout,0,pkt);
+	printMsg<NomFeed>(g_ekaLogFile,0,pkt);
 	nomGr->parseMsg(&efhRunCtx,pkt,0,EkaFhMode::DEFINITIONS);
 	nomGr->parseMsg(&efhRunCtx,pkt,0,EkaFhMode::SNAPSHOT);
 	break;
@@ -211,7 +214,9 @@ int main(int argc, char *argv[]) {
 		 soupbinHdr.type,soupbinHdr.type,pktSize);
       }
     } // while()
-
+ END:
+    fprintf (g_ekaLogFile,"Processed %ju packets\n",
+	     pktHndl->getPktNum());
     delete pktHndl;
     return 0;
 }

@@ -269,7 +269,10 @@ namespace EkaNwParser {
     ~TcpPcapHandler() {
       fclose(fp);
     }
-    
+
+    bool isEOF() {
+      return feof(fp);
+    }
     ssize_t getData(void* dst, size_t nBytes) {
       size_t pendingBytes = nBytes;
       uint8_t* p = (uint8_t*)dst;
@@ -280,9 +283,11 @@ namespace EkaNwParser {
 	if (nPktBytes_ < 0) return nPktBytes_;
 	
 	size_t bytes2readNow = std::min(pendingBytes,nPktBytes_);
-	if (bytes2readNow != 0 && fread(p,bytes2readNow,1,fp) != 1)
-	  on_error("Failed to read %jd bytes (nPktBytes_=%jd)",
-		   bytes2readNow,nPktBytes_);
+	if (bytes2readNow != 0 && fread(p,bytes2readNow,1,fp) != 1) {
+	  if (feof(fp)) return -2;
+	  on_error("Failed to read %jd bytes (nPktBytes_=%jd): \'%s\'",
+		   bytes2readNow,nPktBytes_,strerror(errno));
+	}
 	nPktBytes_ -= bytes2readNow;
 	p += bytes2readNow;
 	pendingBytes -= bytes2readNow;
@@ -304,8 +309,13 @@ namespace EkaNwParser {
       while (1) {
 	pcap_rec_hdr pcapHdr;
 	if (fread(&pcapHdr,sizeof(pcapHdr),1,fp) != 1) {
-	  TEST_LOG("Failed to read pcapHdr after %ju pkts",nPkts_);
-	  return -1;
+	  if (feof(fp)) {
+	    TEST_LOG("EOF");
+	    return -2;
+	  } else {
+	    TEST_LOG("Failed to read pcapHdr after %ju pkts",nPkts_);
+	    return -1;
+	  }
 	}
 	nCurPktBytes = pcapHdr.len;
 	nPkts_ ++;
