@@ -53,8 +53,8 @@ public:
   uint64_t gr_ts = 0;  // time stamp in nano
   uint64_t seq_after_snapshot  = 0;
 public:
-  EkaFhNomGr() {
-    id = 0;
+  EkaFhNomGr(int grId) {
+    id = grId;
     book = new FhBook(NULL,id,exch);
     book->init();
   };

@@ -36,51 +36,65 @@ EkaLogCallback g_ekaLogCB = ekaDefaultLog;
 FILE   *g_ekaLogFile = stdout;
 
 //###################################################
-static char pcapFileName[256] = {};
-static bool printAll = false;
+static char tcpFileName[256] = {};
+static char udpFileName[256] = {};
+static int grId = -1;
 
 struct GroupAddr {
-    uint32_t  ip;
-    uint16_t  port;
-    uint64_t  baseTime;
-    uint64_t  expectedSeq;
+    uint32_t  mcIp;
+    uint16_t  mcPort;
+    uint32_t  glimpseIp;
+    uint16_t  glimpsePort;
 };
 
-struct SoupbinHdr {
-  uint16_t    length;
-  char        type;
-} __attribute__((packed));
 
 static GroupAddr group[] = {
-    {inet_addr("206.200.43.72"), 18300, 0, 0},
-    {inet_addr("206.200.43.73"), 18301, 0, 0},
-    {inet_addr("206.200.43.74"), 18302, 0, 0},
-    {inet_addr("206.200.43.75"), 18303, 0, 0},
+    {inet_addr("206.200.43.72"),18300,inet_addr("233.54.12.72" ),18000},
+    {inet_addr("206.200.43.73"),18301,inet_addr("233.54.12.73" ),18001},
+    {inet_addr("206.200.43.74"),18302,inet_addr("233.54.12.74" ),18002},
+    {inet_addr("206.200.43.75"),18303,inet_addr("233.54.12.75" ),18003},
 };
 
+void printGroup(int id) {
+  printf ("NOM_ITTO:%d : Glimpse=%s:%u, MC=%s:%u\n",
+	  id,
+	  EKA_IP2STR(group[id].mcIp),group[id].mcPort,
+	  EKA_IP2STR(group[id].glimpseIp),group[id].glimpsePort);	  
+}
 //###################################################
 void printUsage(char* cmd) {
-  printf("USAGE: %s [options] -f [pcapFile]\n",cmd);
-  printf("          -p        Print all messages\n");
+  printf("USAGE: %s [options]\n",cmd);
+  printf("          -t [tcpPcapFile]\n");
+  printf("          -u [udpPcapFile]\n");
+  printf("          -g [NomGrId in [0..3]]\n");
+  printf("          -l List supported NOM groups configs\n");
+  printf("          -h Print help\n");
 }
 
 //###################################################
 
 static int getAttr(int argc, char *argv[]) {
   int opt; 
-  while((opt = getopt(argc, argv, ":f:d:ph")) != -1) {  
+  while((opt = getopt(argc, argv, ":t:u:g:lh")) != -1) {  
     switch(opt) {  
-      case 'f':
-	strcpy(pcapFileName,optarg);
-	printf("pcapFile = %s\n", pcapFileName);  
+      case 't':
+	strcpy(tcpFileName,optarg);
+	printf("TcpPcapFile = %s\n", tcpFileName);  
 	break;  
-      case 'p':  
-	printAll = true;
-	printf("printAll\n");
+      case 'u':
+	strcpy(udpFileName,optarg);
+	printf("UdpPcapFile = %s\n", udpFileName);  
 	break;  
-      case 'd':  
-//	pkt2dump = atoi(optarg);
-//	printf("pkt2dump = %ju\n",pkt2dump);  
+      case 'g':  
+	grId = atoi(optarg);
+	if (grId < 0 || grId > 3)
+	  on_error("Bad grId = %d",grId);
+	printGroup(grId);
+	break;  
+      case 'l':  
+	for (int i = 0; i < 4; i++)
+	  printGroup(i);
+	exit (1);
 	break;  
       case 'h':  
 	printUsage(argv[0]);
@@ -157,64 +171,75 @@ void* onTrade(const EfhTradeMsg* msg, EfhSecUserData secData,
   return NULL;
 }
 //###################################################
+EkaFhMode nextOp(EkaFhMode op) {
+  switch (op) {
+  case EkaFhMode::UNINIT :
+    return EkaFhMode::DEFINITIONS;
+    
+  case EkaFhMode::DEFINITIONS :
+    return EkaFhMode::SNAPSHOT;
+    
+  default:
+    on_error("Unexpected EkaFhMode change at %s",
+	     EkaFhMode2STR(op));
+  }
+}
+
+//###################################################
 
 int main(int argc, char *argv[]) {
     getAttr(argc,argv);
 
-    SoupbinHdr soupbinHdr = {};
-    uint8_t pkt[1536];
-
-    auto nomGr = new EkaFhNomGr;
-    
-    auto pktHndl = new TcpPcapHandler(pcapFileName,
-				      inet_addr("206.200.43.72"), 18300);
+    auto nomGr = new EkaFhNomGr(grId);
+    auto pktHndl = new TcpPcapHandler(tcpFileName,
+				      group[grId].glimpseIp,
+				      group[grId].glimpsePort);
 
     EfhRunCtx efhRunCtx = {
       .onEfhOptionDefinitionMsgCb  = onOptionDefinition,
       .onEfhTradeMsgCb             = onTrade,
       .onEfhQuoteMsgCb             = onQuote,
     };
-    ssize_t size2read;
-    ssize_t pktSize;
-    ssize_t hdrSize;
+
+    int rc = 0;
+    EkaFhMode op = EkaFhMode::UNINIT;
     while (1) {
-      hdrSize = pktHndl->getData(&soupbinHdr,sizeof(soupbinHdr));
-      if (hdrSize != sizeof(soupbinHdr)) {
-	if (hdrSize == -2) goto END; //EOF
-	TEST_LOG("hdrSize %jd != sizeof(soupbinHdr) %jd",
-		 hdrSize,sizeof(soupbinHdr));
-	break;
-      }
-      size2read = be16toh(soupbinHdr.length) - sizeof(soupbinHdr.type);
-      if (size2read <= 0) on_error("size2read=%jd",size2read);
-      pktSize = pktHndl->getData(pkt,size2read);
-      if (pktSize != size2read) {
-	if (hdrSize == -2) goto END; //EOF
-	TEST_LOG("pktSize %jd != size2read %jd",
-		 pktSize,size2read);
-	break;
-      }
-      /* printf ("\'%c\' (0x%x), %jd\n", */
-      /* 	      soupbinHdr.type,soupbinHdr.type,size2read); */
-      switch (soupbinHdr.type) {
+      SoupBinTcp::Hdr soupbinHdr = {};
+      rc = pktHndl->getData(&soupbinHdr,SoupBinTcp::getHdrLen());
+      if (rc < 0) break;
+
+      uint8_t pkt[1536];
+      rc = pktHndl->getData(pkt,SoupBinTcp::getPayloadLen(&soupbinHdr));
+      if (rc < 0) break;
+
+      switch (SoupBinTcp::getType(&soupbinHdr)) {
       case 'S' :
       case 'U' :
-	printMsg<NomFeed>(g_ekaLogFile,0,pkt);
-	nomGr->parseMsg(&efhRunCtx,pkt,0,EkaFhMode::DEFINITIONS);
-	nomGr->parseMsg(&efhRunCtx,pkt,0,EkaFhMode::SNAPSHOT);
+	if (op != EkaFhMode::UNINIT) {
+	  printMsg<NomFeed>(g_ekaLogFile,0,pkt);
+	  nomGr->parseMsg(&efhRunCtx,pkt,0,op);
+	}
 	break;
       case 'A' :
-      case 'H' :
-      case '+' :
+	op = nextOp(op);
+	TEST_LOG("Login accepted: %s",EkaFhMode2STR(op));
 	break;
+      case 'H' :
+	TEST_LOG("Soupbin Heartbeat");
+	break;
+      case '+' :
+	TEST_LOG("Soupbin Debug Message: \'%s\'",(char*)pkt);
+	break;
+      case 'Z' :
+	on_error("Unexpected End-of-session \'Z\'");
       default :
-	//	hexDump("bad soupbin pkt",tcpPayload,tcpPayloadLen);
-	  
 	on_error("Unexpected Soupbin type \'%c\' (0x%x), pktSize=%jd",
-		 soupbinHdr.type,soupbinHdr.type,pktSize);
+		 SoupBinTcp::getType(&soupbinHdr),
+		 SoupBinTcp::getType(&soupbinHdr),
+		 SoupBinTcp::getPayloadLen(&soupbinHdr));
       }
     } // while()
- END:
+
     fprintf (g_ekaLogFile,"Processed %ju packets\n",
 	     pktHndl->getPktNum());
     delete pktHndl;
