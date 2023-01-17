@@ -281,8 +281,9 @@ namespace EkaNwParser {
 
   class TcpPcapHandler {
   public:
-    TcpPcapHandler(const char* fileName,
+    TcpPcapHandler(const char* fn,
 		   uint32_t srcIp, uint16_t srcPort) {
+      strcpy(fileName,fn);
       fp = fopen(fileName,"rb");
       if (!fp)
 	on_error("Cannot open %s",fileName);
@@ -292,9 +293,12 @@ namespace EkaNwParser {
 
       srcIp_   = srcIp;
       srcPort_ = srcPort;
+
+      TEST_LOG("%s: %s:%u",fileName,EKA_IP2STR(srcIp_),srcPort_);
     }
 
     ~TcpPcapHandler() {
+      TEST_LOG("closing %s",fileName);
       fclose(fp);
     }
 
@@ -409,6 +413,7 @@ namespace EkaNwParser {
     // ------------------------
 
     FILE* fp;
+    char fileName[256] = {};
     uint32_t srcIp_;
     uint16_t srcPort_;
     bool     pktInProgress_ = false;

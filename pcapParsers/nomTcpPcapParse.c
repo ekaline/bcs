@@ -41,10 +41,10 @@ static char udpFileName[256] = {};
 static int grId = -1;
 
 struct GroupAddr {
-    uint32_t  mcIp;
-    uint16_t  mcPort;
     uint32_t  glimpseIp;
     uint16_t  glimpsePort;
+    uint32_t  mcIp;
+    uint16_t  mcPort;
 };
 
 
@@ -58,8 +58,8 @@ static GroupAddr group[] = {
 void printGroup(int id) {
   printf ("NOM_ITTO:%d : Glimpse=%s:%u, MC=%s:%u\n",
 	  id,
-	  EKA_IP2STR(group[id].mcIp),group[id].mcPort,
-	  EKA_IP2STR(group[id].glimpseIp),group[id].glimpsePort);	  
+	  EKA_IP2STR(group[id].glimpseIp),group[id].glimpsePort,  
+	  EKA_IP2STR(group[id].mcIp),group[id].mcPort);
 }
 //###################################################
 void printUsage(char* cmd) {

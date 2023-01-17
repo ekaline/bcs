@@ -416,9 +416,7 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
   case 'Z' : // End of Session Packet
     EKA_WARN("%s:%u Soupbin closed the session with Z (End of Session Packet)",
 	     EKA_EXCH_DECODE(gr->exch),gr->id);
-    on_error("%s:%u Soupbin closed the session with Z (End of Session Packet)",
-	     EKA_EXCH_DECODE(gr->exch),gr->id);
-    //    return EkaFhParseResult::End;
+    return EkaFhParseResult::SocketError;
 
     /* ------------ */
   case '+' : // Debug Packet
