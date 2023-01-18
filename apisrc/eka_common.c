@@ -44,11 +44,11 @@ void eka_close_tcp ( EkaDev* pEkaDev);
 
 int ekaDefaultLog (void* /*unused*/, const char* function, const char* file, int line, int priority, const char* format, ...) {
   va_list ap;
-  const int rc1 = fprintf(stderr, "%s@%s:%u: ",function,file,line);
+  const int rc1 = fprintf(g_ekaLogFile, "%s@%s:%u: ",function,file,line);
   va_start(ap, format);
-  const int rc2 = vfprintf(stderr, format, ap);
+  const int rc2 = vfprintf(g_ekaLogFile, format, ap);
   va_end(ap);
-  const int rc3 = fprintf(stderr,"\n");
+  const int rc3 = fprintf(g_ekaLogFile,"\n");
   return rc1 + rc2 + rc3;
 }
 
