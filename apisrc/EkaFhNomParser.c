@@ -185,7 +185,7 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   /* ##################################################################### */
   if (op != EkaFhMode::SNAPSHOT && s->crossedPrice()) {
     
-    EKA_WARN("%s:%u: %s PRICE CROSS for %ju: %ju >= %ju at %s after seq=%ju, \'%c\'",
+    EKA_ERROR("%s:%u: %s PRICE CROSS for %ju: %ju >= %ju at %s after seq=%ju, \'%c\'",
 	     EKA_EXCH_DECODE(exch),id,
 	     ts_ns2str(msgTs).c_str(),
 	     (uint64_t)s->secId,
