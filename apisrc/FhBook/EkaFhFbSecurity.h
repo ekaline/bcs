@@ -39,8 +39,8 @@ class alignas(64) EkaFhFbSecurity : public EkaFhSecurity {
   }
 
   inline uint64_t  getTopPrice(SideT side) {
-    if (side == SideT::BID) return (uint64_t) bid->price;
-    if (side == SideT::ASK) return (uint64_t) ask->price;
+    if (side == SideT::BID) return !bid ? 0 : (uint64_t) bid->price;
+    if (side == SideT::ASK) return !ask ? 0 : (uint64_t) ask->price;
     return (uint64_t)-1;
   }
   inline int reset() {
