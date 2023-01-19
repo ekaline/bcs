@@ -125,7 +125,7 @@ void* onOptionDefinition(const EfhOptionDefinitionMsg* msg,
   char avtSecName[32] = {};
 
   eka_create_avt_definition(avtSecName,msg);
-  fprintf (g_ekaLogFile,"%s,%ju,%s,%s\n",
+  fprintf (g_ekaLogFile,"DICT: %s,%ju,%s,%s\n",
 	   avtSecName,
 	   msg->header.securityId,
 	   underlyingName.c_str(),
@@ -191,9 +191,6 @@ int main(int argc, char *argv[]) {
     getAttr(argc,argv);
 
     auto nomGr = new EkaFhNomGr(grId);
-    auto pktHndl = new TcpPcapHandler(tcpFileName,
-				      group[grId].glimpseIp,
-				      group[grId].glimpsePort);
 
     EfhRunCtx efhRunCtx = {
       .onEfhOptionDefinitionMsgCb  = onOptionDefinition,
@@ -203,26 +200,42 @@ int main(int argc, char *argv[]) {
 
     int rc = 0;
     EkaFhMode op = EkaFhMode::UNINIT;
+    /* ================================================ */
+#if 1
+
+    auto tcpPktHndl = new TcpPcapHandler(tcpFileName,
+				      group[grId].glimpseIp,
+				      group[grId].glimpsePort);
     while (1) {
       SoupBinTcp::Hdr soupbinHdr = {};
-      rc = pktHndl->getData(&soupbinHdr,SoupBinTcp::getHdrLen());
+      rc = tcpPktHndl->getData(&soupbinHdr,SoupBinTcp::getHdrLen());
       if (rc < 0) break;
 
       uint8_t pkt[1536];
-      rc = pktHndl->getData(pkt,SoupBinTcp::getPayloadLen(&soupbinHdr));
+      rc = tcpPktHndl->getData(pkt,SoupBinTcp::getPayloadLen(&soupbinHdr));
       if (rc < 0) break;
 
       switch (SoupBinTcp::getType(&soupbinHdr)) {
       case 'S' :
       case 'U' :
-	if (op != EkaFhMode::UNINIT) {
+	switch (op) {
+	case EkaFhMode::UNINIT :
+	  break;
+	case EkaFhMode::DEFINITIONS :
+	case EkaFhMode::SNAPSHOT :
+	  fprintf(g_ekaLogFile,"%s :",EkaFhMode2STR(op));
 	  printMsg<NomFeed>(g_ekaLogFile,0,pkt);
 	  nomGr->parseMsg(&efhRunCtx,pkt,0,op);
+	break;
+	default:
+	  on_error("Unexpected op %s",EkaFhMode2STR(op));
 	}
 	break;
       case 'A' :
+	TEST_LOG("Login accepted: %s, pkt=%ju",
+		 EkaFhMode2STR(op),tcpPktHndl->getPktNum());
+	//	hexDump("Login accepted pkt",&soupbinHdr,SoupBinTcp::getHdrLen());
 	op = nextOp(op);
-	TEST_LOG("Login accepted: %s",EkaFhMode2STR(op));
 	break;
       case 'H' :
 	TEST_LOG("Soupbin Heartbeat");
@@ -241,7 +254,45 @@ int main(int argc, char *argv[]) {
     } // while()
 
     fprintf (g_ekaLogFile,"Processed %ju packets\n",
-	     pktHndl->getPktNum());
-    delete pktHndl;
+	     tcpPktHndl->getPktNum());
+    delete tcpPktHndl;
+#endif
+    /* ================================================ */
+#if 1
+    auto udpPktHndl = new UdpPcapHandler(udpFileName,
+					 group[grId].mcIp,
+					 group[grId].mcPort);
+    op = EkaFhMode::MCAST;
+    while (1) {
+      uint8_t pkt[1536] = {};
+      const uint8_t* p = udpPktHndl->getData(pkt);
+      if (!p) break;
+
+      uint64_t sequence = MoldUdp64::getSequence(p);
+      uint16_t msgCnt = MoldUdp64::getMsgCnt(p);
+      
+      p += MoldUdp64::getHdrLen();
+
+      for (int i = 0; i < msgCnt; i++) {
+	uint16_t msgLen = be16toh((uint16_t) *(uint16_t*)p);
+	p += sizeof(msgLen);
+	fprintf(g_ekaLogFile,"%s :",EkaFhMode2STR(op));
+	printMsg<NomFeed>(g_ekaLogFile,sequence,p);
+	if (sequence == nomGr->expected_sequence) {
+	  nomGr->parseMsg(&efhRunCtx,p,sequence,op);
+	} else {
+	  TEST_LOG("WARNING: sequence %ju != expected_sequence %ju",
+		   sequence,nomGr->expected_sequence);
+	}
+	nomGr->expected_sequence = sequence + 1;
+	sequence++;
+	p += msgLen;
+      }
+
+    }
+    fprintf (g_ekaLogFile,"Processed %ju packets\n",
+	     udpPktHndl->getPktNum());
+    delete udpPktHndl;
+#endif    
     return 0;
 }

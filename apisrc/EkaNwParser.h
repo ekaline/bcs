@@ -278,33 +278,60 @@ namespace EkaNwParser {
       return p - reinterpret_cast<const uint8_t*>(pkt);
     }  
   };
-
-  class TcpPcapHandler {
-  public:
-    TcpPcapHandler(const char* fn,
-		   uint32_t srcIp, uint16_t srcPort) {
-      strcpy(fileName,fn);
-      fp = fopen(fileName,"rb");
-      if (!fp)
-	on_error("Cannot open %s",fileName);
+  /* ================================================ */
+  class PcapHandler {
+  protected:
+    PcapHandler(const char* fileName,
+		   uint32_t ip, uint16_t port) {
+      strcpy(fileName_,fileName);
+      fp_ = fopen(fileName_,"rb");
+      if (!fp_)
+	on_error("Cannot open %s",fileName_);
+      
       pcap_file_hdr pcapFileHdr;
-      if (fread(&pcapFileHdr,sizeof(pcapFileHdr),1,fp) != 1) 
+      if (fread(&pcapFileHdr,sizeof(pcapFileHdr),1,fp_) != 1) 
 	on_error ("Failed to read pcap_file_hdr from the pcap file");
 
-      srcIp_   = srcIp;
-      srcPort_ = srcPort;
+      ip_   = ip;
+      port_ = port;
 
-      TEST_LOG("%s: %s:%u",fileName,EKA_IP2STR(srcIp_),srcPort_);
+      TEST_LOG("%s: %s:%u",
+	       fileName_,EKA_IP2STR(ip_),port_);
     }
 
-    ~TcpPcapHandler() {
-      TEST_LOG("closing %s",fileName);
-      fclose(fp);
+  public:
+    ~PcapHandler() {
+      TEST_LOG("closing %s",fileName_);
+      fclose(fp_);
     }
 
     bool isEOF() {
-      return feof(fp);
+      return feof(fp_);
     }
+
+    uint64_t getPktNum() {
+      return nPkts_;
+    }
+
+  protected:
+    FILE* fp_;
+    char fileName_[256] = {};
+    uint32_t ip_;
+    uint16_t port_;
+    bool     pktInProgress_ = false;
+    size_t   nPktBytes_ = 0;
+    uint64_t nPkts_ = 0;
+  };
+  
+  class TcpPcapHandler : public PcapHandler {
+  public:
+    TcpPcapHandler(const char* fileName,
+		   uint32_t srcIp, uint16_t srcPort) :
+      PcapHandler(fileName,srcIp,srcPort) {}
+
+    virtual ~TcpPcapHandler() {}
+
+
     ssize_t getData(void* dst, size_t nBytes) {
       size_t pendingBytes = nBytes;
       uint8_t* p = (uint8_t*)dst;
@@ -315,8 +342,8 @@ namespace EkaNwParser {
 	if (nPktBytes_ < 0) return nPktBytes_;
 	
 	size_t bytes2readNow = std::min(pendingBytes,nPktBytes_);
-	if (bytes2readNow != 0 && fread(p,bytes2readNow,1,fp) != 1) {
-	  if (feof(fp)) return -2;
+	if (bytes2readNow != 0 && fread(p,bytes2readNow,1,fp_) != 1) {
+	  if (feof(fp_)) return -2;
 	  on_error("Failed to read %jd bytes (nPktBytes_=%jd): \'%s\'",
 		   bytes2readNow,nPktBytes_,strerror(errno));
 	}
@@ -327,9 +354,7 @@ namespace EkaNwParser {
       return nBytes;
     }
 
-    uint64_t getPktNum() {
-      return nPkts_;
-    }
+
   private:
     ssize_t skipToMyPayload() {
       Eth::Hdr ethHdr;
@@ -340,8 +365,8 @@ namespace EkaNwParser {
       size_t   nCurPktBytes;
       while (1) {
 	pcap_rec_hdr pcapHdr;
-	if (fread(&pcapHdr,sizeof(pcapHdr),1,fp) != 1) {
-	  if (feof(fp)) {
+	if (fread(&pcapHdr,sizeof(pcapHdr),1,fp_) != 1) {
+	  if (feof(fp_)) {
 	    TEST_LOG("EOF");
 	    return -2;
 	  } else {
@@ -352,32 +377,32 @@ namespace EkaNwParser {
 	nPkts_ ++;
 	// TEST_LOG("nPkts_=%ju: nCurPktBytes=%ju",nPkts_,nCurPktBytes);
 	// ------------------------
-	if (fread(&ethHdr,sizeof(ethHdr),1,fp) != 1)
+	if (fread(&ethHdr,sizeof(ethHdr),1,fp_) != 1)
 	  on_error("Failed to read ethHdr");
 
 	nCurPktBytes -= sizeof(ethHdr);
 	// TEST_LOG("nCurPktBytes=%ju",nCurPktBytes);
 	if (! Eth::isIp(&ethHdr)) goto DISCARD_PKT;
 	// ------------------------
-	if (fread(&ipHdr,sizeof(ipHdr),1,fp) != 1)
+	if (fread(&ipHdr,sizeof(ipHdr),1,fp_) != 1)
 	  on_error("Failed to read ipHdr");
 
 	nCurPktBytes -= sizeof(ipHdr);
 
 	if (! Ip::isTcp(&ipHdr)) goto DISCARD_PKT;
 	extraBytes = Ip::getHdrLen(&ipHdr) - sizeof(ipHdr);
-	if (extraBytes && fread(nullBuf,extraBytes,1,fp) != 1)
+	if (extraBytes && fread(nullBuf,extraBytes,1,fp_) != 1)
 	  on_error("Failed to read %ju bytes of extra ipHdr",
 		   extraBytes);
 
 	nCurPktBytes -= extraBytes;
 	// ------------------------
-	if (fread(&tcpHdr,sizeof(tcpHdr),1,fp) != 1)
+	if (fread(&tcpHdr,sizeof(tcpHdr),1,fp_) != 1)
 	  on_error("Failed to read tcpHdr");
 
 	nCurPktBytes -= sizeof(tcpHdr);
 	extraBytes = Tcp::getHdrLen(&tcpHdr) - sizeof(tcpHdr);
-	if (extraBytes && fread(nullBuf,extraBytes,1,fp) != 1)
+	if (extraBytes && fread(nullBuf,extraBytes,1,fp_) != 1)
 	  on_error("Failed to read %ju bytes of extra tcpHdr",
 		   extraBytes);
 
@@ -385,23 +410,16 @@ namespace EkaNwParser {
 
 	// ------------------------
 
-	if (Ip::getSrc (&ipHdr)  == srcIp_ &&
-	    Tcp::getSrc(&tcpHdr) == srcPort_) {
+	if (Ip::getSrc (&ipHdr)  == ip_ &&
+	    Tcp::getSrc(&tcpHdr) == port_) {
 	  ssize_t payloadLen = Ip::getPktLen(&ipHdr) -
 	    Ip::getHdrLen(&ipHdr) -
 	    Tcp::getHdrLen(&tcpHdr);
-	  // TEST_LOG("Ip::getPktLen(&ipHdr) = %u, Tcp::getHdrLen(&tcpHdr) = %ju",
-	  // 	   Ip::getPktLen(&ipHdr),Tcp::getHdrLen(&tcpHdr));
-	  // TEST_LOG("payloadLen=%jd, nCurPktBytes=%ju",payloadLen,nCurPktBytes);
 	  if (payloadLen == 0) goto DISCARD_PKT;
 	  return nCurPktBytes; // My pkt
-	} else {
-	  // TEST_LOG("%s != %s or %u != %u",
-	  // 	   EKA_IP2STR(Ip::getSrc(&ipHdr)),EKA_IP2STR(srcIp_),
-	  // 	   Tcp::getSrc(&tcpHdr),srcPort_);
-	}
+	} 
       DISCARD_PKT:
-	if (nCurPktBytes && fread(nullBuf,nCurPktBytes,1,fp) != 1)
+	if (nCurPktBytes && fread(nullBuf,nCurPktBytes,1,fp_) != 1)
 	  on_error("Failed to read %ju bytes of pkt to discard",
 		   nCurPktBytes);
 
@@ -410,16 +428,51 @@ namespace EkaNwParser {
       return 0;
     }
 
-    // ------------------------
-
-    FILE* fp;
-    char fileName[256] = {};
-    uint32_t srcIp_;
-    uint16_t srcPort_;
-    bool     pktInProgress_ = false;
-    size_t   nPktBytes_ = 0;
-    uint64_t nPkts_ = 0;
   };
+
+  class UdpPcapHandler : public PcapHandler {
+  public:
+    UdpPcapHandler(const char* fileName,
+		   uint32_t ip, uint16_t port) :
+      PcapHandler(fileName,ip,port) {}
+
+    virtual ~UdpPcapHandler() {}
+
+    // -------------------------------
+    const uint8_t* getData(void* dst) {
+      while (1) {
+	pcap_rec_hdr pcapHdr;
+	if (fread(&pcapHdr,sizeof(pcapHdr),1,fp_) != 1) {
+	  if (feof(fp_)) {
+	    TEST_LOG("EOF");
+	    return NULL;
+	  } else {
+	    on_error("Failed to read pcapHdr after %ju pkts",nPkts_);
+	  }
+	}
+	nPkts_ ++;
+
+	if (fread(dst,pcapHdr.len,1,fp_) != 1) 
+	  on_error ("Failed to read %d packet bytes at pkt %ju",
+		    pcapHdr.len,nPkts_);
+
+	const uint8_t* p = (const uint8_t*) dst;
+	if (! Eth::isIp(p)) continue;
+	p += Eth::getHdrLen();
+	
+	if (! Ip::isUdp(p)) continue;
+	if (ip_ != Ip::getDst(p)) continue;
+	p += Ip::getHdrLen(p);
+
+	if (port_ != Udp::getDst(p)) continue;
+	p += Udp::getHdrLen(p);
+	return p;
+      } 
+    }
+    // -------------------------------
+
+  };
+
   
 } // namespace EkaNwParser
 

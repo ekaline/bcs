@@ -52,6 +52,7 @@ public:
   uint gapNum = 0;
   uint64_t gr_ts = 0;  // time stamp in nano
   uint64_t seq_after_snapshot  = 0;
+  uint64_t expected_sequence = 0;
 public:
   EkaFhNomGr(int grId) {
     id = grId;

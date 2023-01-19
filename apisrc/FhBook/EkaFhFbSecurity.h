@@ -31,9 +31,10 @@ class alignas(64) EkaFhFbSecurity : public EkaFhSecurity {
   /* --------------------------------------------------------------- */
 
   inline bool crossedPrice() {
-    if (!bid || !ask)                       return false;
-    if (bid->price == 0 || ask->price == 0) return false;
-    if (bid->price >= ask->price)           return true;
+    if (option_open &&
+	trading_action == EfhTradeStatus::kNormal &&
+	bid->price >= ask->price)
+      return true;
     return false;
   }
 
