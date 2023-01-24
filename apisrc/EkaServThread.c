@@ -46,13 +46,13 @@ void ekaServThread(EkaDev* dev) {
   EKA_LOG("Launching %s",threadName);
   pthread_setname_np(pthread_self(),threadName);
 
-  dev->servThreadActive = true;
-
   uint64_t fire_rx_tx_en = eka_read(dev,ENABLE_PORT);
-  fire_rx_tx_en &= ~(1ULL << 32); //turn on tcprx
   EKA_LOG ("Turning on tcprx = 0x%016jx",fire_rx_tx_en);
+  fire_rx_tx_en &= ~(1ULL << 32); //turn on tcprx
   eka_write(dev,ENABLE_PORT,fire_rx_tx_en);
+
   dev->servThreadTerminated = false;
+  dev->servThreadActive = true;
 
   while (dev->servThreadActive) {
     /* ----------------------------------------------- */
