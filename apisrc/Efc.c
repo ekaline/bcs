@@ -303,7 +303,7 @@ EkaOpResult efcSetSesCtx( EfcCtx* pEfcCtx, ExcConnHandle hConn, const SesCtx* pS
 
 EkaOpResult efcSetFireTemplate( EfcCtx* pEfcCtx, ExcConnHandle hConn, const void* fireMsg, size_t fireMsgSize ) {
   if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
-  EkaDev* dev = pEfcCtx->dev;
+  //  EkaDev* dev = pEfcCtx->dev;
   /* if (dev == NULL) on_error("dev == NULL"); */
   /* EkaEfc* efc = dev->efc; */
   /* if (efc == NULL) on_error("efc == NULL"); */

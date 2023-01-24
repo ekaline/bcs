@@ -45,10 +45,15 @@ int EkaFhGroup::processFromQ(const EfhRunCtx* pEfhRunCtx) {
     /* 	    q->get_len(),buf->sequence,expected_sequence); */
     if (firstMsg) {
       firstMsg = false;
-      EKA_LOG("%s:%u: 1st Q msg sequence = %ju",
-	  EKA_EXCH_DECODE(exch),id,buf->sequence);
+      EKA_LOG("%s:%u: 1st Q msg sequence = %ju, expected_sequence=%ju",
+	      EKA_EXCH_DECODE(exch),id,buf->sequence,expected_sequence);
     }
-    if (buf->sequence < expected_sequence) continue;
+    if (buf->sequence > expected_sequence) {
+      EKA_WARN("%s:%u: GAP-IN-GAP buf->sequence %ju > expected_sequence %ju",
+	      EKA_EXCH_DECODE(exch),id,buf->sequence,expected_sequence);
+      return -1;
+    }
+    if (buf->sequence < expected_sequence) continue; 
     parseMsg(pEfhRunCtx,(unsigned char*)buf->data,buf->sequence,EkaFhMode::MCAST);
     expected_sequence = buf->sequence + 1;
   }

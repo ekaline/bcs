@@ -8,7 +8,7 @@ CXXFLAGS ?= -std=$(CXX_STANDARD)
 LD_FLAGS ?= -static-libstdc++ -static-libgcc $(LD_ASAN_OPTIONS)
 RUNTIME_LD_FLAGS ?= -static-libstdc++ -static-libgcc
 LD_LIBS ?= -pthread -lrt -lm
-INCL := -I../apisrc -I../apisrc/compat
+INCL := -I. -I../apisrc -I../apisrc/compat -I../apisrc/FhBook
 
 GCC_SUPPRESSED_WARNINGS:=-Wno-unused-function -Wno-packed-not-aligned
 
@@ -33,8 +33,8 @@ tomPcapParse: tomPcapParse.c ../apisrc/EkaFhMiaxParser.h
 nomPcapParse: nomPcapParse.c ../apisrc/EkaFhNomParser.h ../apisrc/EkaFhNasdaqCommonParser.h
 	$(CXX) $(GCC_FLAGS) -o $@ $^ $(INCL) $(RUNTIME_LD_FLAGS) $(EKALINE_FLAGS)
 
-nomTcpPcapParse: nomTcpPcapParse.c ../apisrc/EkaFhNomParser.h ../apisrc/EkaFhNasdaqCommonParser.h
-	$(CXX) $(GCC_FLAGS) -o $@ $^ $(INCL) $(RUNTIME_LD_FLAGS) $(EKALINE_FLAGS)
+nomTcpPcapParse: nomTcpPcapParse.c ../apisrc/EkaFhNomParser.c ../apisrc/EkaFhNomParser.h ../apisrc/EkaFhNasdaqCommonParser.h ../apisrc/EkaNwParser.h
+	$(CXX) -DEKA_PCAP_PARSER -DFH_SUBSCRIBE_ALL $(GCC_FLAGS) -o $@ $^ $(INCL) $(RUNTIME_LD_FLAGS) $(EKALINE_FLAGS)
 
 bxPcapParse: bxPcapParse.c ../apisrc/EkaFhBxParser.h ../apisrc/EkaFhNasdaqCommonParser.h
 	$(CXX) $(GCC_FLAGS) -o $@ $^ $(INCL) $(RUNTIME_LD_FLAGS) $(EKALINE_FLAGS)
@@ -55,5 +55,5 @@ mrxPcapParse: mrxPcapParse.c ../apisrc/EkaFhMrx2TopParser.h ../apisrc/EkaFhNasda
 	$(CXX) $(GCC_FLAGS) -o $@ $^ $(INCL) $(RUNTIME_LD_FLAGS) $(EKALINE_FLAGS)
 
 clean:
-	rm -f /tmp/core* *~ batsPcapParse topoPcapParse xdpPcapParse tomPcapParse nomPcapParse bxPcapParse gemPcapParse cmePcapParse boxPcapParse plrPcapParse mrxPcapParse
+	rm -f /tmp/core* *~ batsPcapParse topoPcapParse xdpPcapParse tomPcapParse nomPcapParse bxPcapParse gemPcapParse cmePcapParse boxPcapParse plrPcapParse mrxPcapParse nomTcpPcapParse
 

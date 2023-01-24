@@ -140,7 +140,7 @@ static int sendHearBeat(int sock) {
 void* soupbin_heartbeat_thread(void* attr) {
   pthread_detach(pthread_self());
   EkaFhNasdaqGr* gr = (EkaFhNasdaqGr*) attr;
-  EkaDev* dev = gr->dev;
+  //  EkaDev* dev = gr->dev;
   gr->heartbeatThreadDone = false;
   struct soupbin_header heartbeat = {};
   heartbeat.length		= htons(1);
@@ -269,7 +269,7 @@ static bool sendLogin (EkaFhNasdaqGr* gr, uint64_t start_sequence) {
 }
 
 static void sendLogout (EkaFhNasdaqGr* gr) {
-  EkaDev* dev = gr->dev;
+  //  EkaDev* dev = gr->dev;
   struct soupbin_header logout_request = {};
   logout_request.length		= htons(1);
   logout_request.type		= 'O';
@@ -416,7 +416,7 @@ static EkaFhParseResult procSoupbinPkt(const EfhRunCtx* pEfhRunCtx,
   case 'Z' : // End of Session Packet
     EKA_WARN("%s:%u Soupbin closed the session with Z (End of Session Packet)",
 	     EKA_EXCH_DECODE(gr->exch),gr->id);
-    return EkaFhParseResult::End;
+    return EkaFhParseResult::SocketError;
 
     /* ------------ */
   case '+' : // Debug Packet

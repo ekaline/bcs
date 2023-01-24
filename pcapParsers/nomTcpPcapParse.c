@@ -17,67 +17,84 @@
 //using namespace Nom;
 #include "EkaFhNasdaqCommonParser.h"
 #include "EkaNwParser.h"
+#include "EkaPcapNomGr.h"
+
 using namespace EfhNasdaqCommon;
 using namespace EkaNwParser;
 
-//###################################################
-static char pcapFileName[256] = {};
-static bool printAll = false;
-
-struct GroupAddr {
-    uint32_t  ip;
-    uint16_t  port;
-    uint64_t  baseTime;
-    uint64_t  expectedSeq;
-};
-
-struct SoupbinHdr {
-  uint16_t    length;
-  char        type;
-} __attribute__((packed));
-
-static GroupAddr group[] = {
-    {inet_addr("206.200.43.72"), 18300, 0, 0},
-    {inet_addr("206.200.43.73"), 18301, 0, 0},
-    {inet_addr("206.200.43.74"), 18302, 0, 0},
-    {inet_addr("206.200.43.75"), 18303, 0, 0},
-};
-
-
-//###################################################
-
-int findGrp(uint32_t ip, uint16_t port) {
-  for (size_t i = 0; i < sizeof(group)/sizeof(group[0]); i++) {
-    if (group[i].ip == ip && group[i].port == port)
-	    return (int)i;
-  }
-  //  on_error("%s:%u is not found",EKA_IP2STR(ip),port);
-  return -1;
+int ekaDefaultLog (void* /*unused*/, const char* function, const char* file, int line, int priority, const char* format, ...) {
+  va_list ap;
+  const int rc1 = fprintf(g_ekaLogFile, "%s@%s:%u: ",function,file,line);
+  va_start(ap, format);
+  const int rc2 = vfprintf(g_ekaLogFile, format, ap);
+  va_end(ap);
+  const int rc3 = fprintf(g_ekaLogFile,"\n");
+  return rc1 + rc2 + rc3;
 }
 
+EkaLogCallback g_ekaLogCB = ekaDefaultLog;
+FILE   *g_ekaLogFile = stdout;
+
+//###################################################
+static char tcpFileName[256] = {};
+static char udpFileName[256] = {};
+static int grId = -1;
+
+struct GroupAddr {
+    uint32_t  glimpseIp;
+    uint16_t  glimpsePort;
+    uint32_t  mcIp;
+    uint16_t  mcPort;
+};
+
+
+static GroupAddr group[] = {
+    {inet_addr("206.200.43.72"),18300,inet_addr("233.54.12.72" ),18000},
+    {inet_addr("206.200.43.73"),18301,inet_addr("233.54.12.73" ),18001},
+    {inet_addr("206.200.43.74"),18302,inet_addr("233.54.12.74" ),18002},
+    {inet_addr("206.200.43.75"),18303,inet_addr("233.54.12.75" ),18003},
+};
+
+void printGroup(int id) {
+  printf ("NOM_ITTO:%d : Glimpse=%s:%u, MC=%s:%u\n",
+	  id,
+	  EKA_IP2STR(group[id].glimpseIp),group[id].glimpsePort,  
+	  EKA_IP2STR(group[id].mcIp),group[id].mcPort);
+}
 //###################################################
 void printUsage(char* cmd) {
-  printf("USAGE: %s [options] -f [pcapFile]\n",cmd);
-  printf("          -p        Print all messages\n");
+  printf("USAGE: %s [options]\n",cmd);
+  printf("          -t [tcpPcapFile]\n");
+  printf("          -u [udpPcapFile]\n");
+  printf("          -g [NomGrId in [0..3]]\n");
+  printf("          -l List supported NOM groups configs\n");
+  printf("          -h Print help\n");
 }
 
 //###################################################
 
 static int getAttr(int argc, char *argv[]) {
   int opt; 
-  while((opt = getopt(argc, argv, ":f:d:ph")) != -1) {  
+  while((opt = getopt(argc, argv, ":t:u:g:lh")) != -1) {  
     switch(opt) {  
-      case 'f':
-	strcpy(pcapFileName,optarg);
-	printf("pcapFile = %s\n", pcapFileName);  
+      case 't':
+	strcpy(tcpFileName,optarg);
+	printf("TcpPcapFile = %s\n", tcpFileName);  
 	break;  
-      case 'p':  
-	printAll = true;
-	printf("printAll\n");
+      case 'u':
+	strcpy(udpFileName,optarg);
+	printf("UdpPcapFile = %s\n", udpFileName);  
 	break;  
-      case 'd':  
-//	pkt2dump = atoi(optarg);
-//	printf("pkt2dump = %ju\n",pkt2dump);  
+      case 'g':  
+	grId = atoi(optarg);
+	if (grId < 0 || grId > 3)
+	  on_error("Bad grId = %d",grId);
+	printGroup(grId);
+	break;  
+      case 'l':  
+	for (int i = 0; i < 4; i++)
+	  printGroup(i);
+	exit (1);
 	break;  
       case 'h':  
 	printUsage(argv[0]);
@@ -92,78 +109,190 @@ static int getAttr(int argc, char *argv[]) {
 }
 
 //###################################################
+void* onOptionDefinition(const EfhOptionDefinitionMsg* msg,
+			 EfhSecUserData secData,
+			 EfhRunUserData userData) {
+  std::string underlyingName = std::string(msg->commonDef.underlying,
+					   sizeof(msg->commonDef.underlying));
+  std::string classSymbol    = std::string(msg->commonDef.classSymbol,
+					   sizeof(msg->commonDef.classSymbol));
+
+  std::replace(underlyingName.begin(), underlyingName.end(), ' ', '\0');
+  std::replace(classSymbol.begin(),    classSymbol.end(),    ' ', '\0');
+  underlyingName.resize(strlen(underlyingName.c_str()));
+  classSymbol.resize   (strlen(classSymbol.c_str()));
+
+  char avtSecName[32] = {};
+
+  eka_create_avt_definition(avtSecName,msg);
+  fprintf (g_ekaLogFile,"DICT: %s,%ju,%s,%s\n",
+	   avtSecName,
+	   msg->header.securityId,
+	   underlyingName.c_str(),
+	   classSymbol.c_str()
+	   );
+
+  return NULL;
+}
+//###################################################
+
+void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData,
+	      EfhRunUserData userData) {
+  const int64_t priceScaleFactor = 10000;
+  fprintf(g_ekaLogFile,"TOB: %ju,%u,%.*f,%u,%u,%.*f,%u,%c,%s,%ju\n",
+	  msg->header.securityId,
+
+	  msg->bidSide.size,
+	  decPoints(msg->bidSide.price,priceScaleFactor),
+	  ((float) msg->bidSide.price / priceScaleFactor),
+	  msg->bidSide.customerSize,
+	  msg->askSide.size,
+	  decPoints(msg->askSide.price,priceScaleFactor),
+	  ((float) msg->askSide.price / priceScaleFactor),
+	  msg->askSide.customerSize,
+	  EKA_TS_DECODE(msg->tradeStatus),
+	  (ts_ns2str(msg->header.timeStamp)).c_str(),
+	  msg->header.timeStamp
+	  );
+  return NULL;
+}
+//###################################################
+void* onTrade(const EfhTradeMsg* msg, EfhSecUserData secData,
+	      EfhRunUserData userData) {
+  fprintf(g_ekaLogFile,"Trade,");
+  fprintf(g_ekaLogFile,"%ju,",msg->header.securityId);
+  fprintf(g_ekaLogFile,"%ld,",msg->price);
+  fprintf(g_ekaLogFile,"%u," ,msg->size);
+  fprintf(g_ekaLogFile,"%d," ,(int)msg->tradeCond);
+  fprintf(g_ekaLogFile,"%s," ,ts_ns2str(msg->header.timeStamp).c_str());
+  fprintf(g_ekaLogFile,"%ju,",msg->header.timeStamp);
+  fprintf(g_ekaLogFile,"\n");
+
+  return NULL;
+}
+//###################################################
+EkaFhMode nextOp(EkaFhMode op) {
+  switch (op) {
+  case EkaFhMode::UNINIT :
+    return EkaFhMode::DEFINITIONS;
+    
+  case EkaFhMode::DEFINITIONS :
+    return EkaFhMode::SNAPSHOT;
+    
+  default:
+    on_error("Unexpected EkaFhMode change at %s",
+	     EkaFhMode2STR(op));
+  }
+}
+
+//###################################################
 
 int main(int argc, char *argv[]) {
-    char buf[1600] = {};
-    FILE *pcapFile;
     getAttr(argc,argv);
 
-    if ((pcapFile = fopen(pcapFileName, "rb")) == NULL) {
-	printf("Failed to open dump file %s\n",pcapFileName);
-	printUsage(argv[0]);
-	exit(1);
-    }
-    if (fread(buf,sizeof(pcap_file_hdr),1,pcapFile) != 1) 
-	on_error ("Failed to read pcap_file_hdr from the pcap file");
+    auto nomGr = new EkaFhNomGr(grId);
 
-    uint64_t pktNum = 0;
+    EfhRunCtx efhRunCtx = {
+      .onEfhOptionDefinitionMsgCb  = onOptionDefinition,
+      .onEfhTradeMsgCb             = onTrade,
+      .onEfhQuoteMsgCb             = onQuote,
+    };
 
-    while (fread(buf,sizeof(pcap_rec_hdr),1,pcapFile) == 1) {
-	auto pcapRecHdr {reinterpret_cast<const pcap_rec_hdr*>(buf)};
-	uint pktLen = pcapRecHdr->len;
-	if (pktLen > 1536)
-	    on_error("Probably wrong PCAP format: pktLen = %u ",
-		     pktLen);
+    int rc = 0;
+    EkaFhMode op = EkaFhMode::UNINIT;
+    /* ================================================ */
+#if 1
 
-	char pkt[1536] = {};
-	if (fread(pkt,pktLen,1,pcapFile) != 1) 
-	    on_error ("Failed to read %d packet bytes at pkt %ju",
-		      pktLen,pktNum);
-	pktNum++;
+    auto tcpPktHndl = new TcpPcapHandler(tcpFileName,
+				      group[grId].glimpseIp,
+				      group[grId].glimpsePort);
+    while (1) {
+      SoupBinTcp::Hdr soupbinHdr = {};
+      rc = tcpPktHndl->getData(&soupbinHdr,SoupBinTcp::getHdrLen());
+      if (rc < 0) break;
 
-	if (! isTcpPkt(pkt)) continue;
-	
-	auto grId = findGrp(getIpSrc(pkt),getTcpSrc(pkt));
-	if (grId < 0) continue;
-	printf ("%ju: %s:%u\n",pktNum,EKA_IP2STR(getIpSrc(pkt)),getTcpSrc(pkt));
-	fflush(stdout);
+      uint8_t pkt[1536];
+      rc = tcpPktHndl->getData(pkt,SoupBinTcp::getPayloadLen(&soupbinHdr));
+      if (rc < 0) break;
 
-	auto tcpPayload = getTcpPayload(pkt);
-	if (!tcpPayload) on_error("Not Tcp");
-
-	/* auto s = reinterpret_cast<const uint8_t*>(pkt); */
-	/* s += Eth::getHdrLen(); */
-	/* printf ("getIpPktLen(pkt)=%u, IpHdrLen = %ju, IpPktLen=%u\n", */
-	/* 	getIpPktLen(pkt),Ip::getHdrLen(s),Ip::getPktLen(s)); */
-	/* s += Ip::getHdrLen(s); */
-	/* printf ("TcpHdrLen = %ju\n",Tcp::getHdrLen(s)); */
-	auto p = tcpPayload;
-	
-
-	ssize_t tcpPayloadLen = getTcpPayloadLen(pkt);
-	if (tcpPayloadLen < 0) on_error("tcpPayloadLen = %jd",tcpPayloadLen);
-	if (tcpPayloadLen == 0) continue;
-
-	auto soupbinHdr {reinterpret_cast<const SoupbinHdr*>(p)};
-	//	uint16_t pktLen = be16toh(soupbinHdr->length);
-	p += sizeof(*soupbinHdr);
-	printf ("%ju:\'%c\' (0x%x)\n",
-		pktNum,soupbinHdr->type,soupbinHdr->type);
-	switch (soupbinHdr->type) {
-	case 'S' :
-	case 'U' :
-	  printMsg<NomFeed>(stdout,0,p);
+      switch (SoupBinTcp::getType(&soupbinHdr)) {
+      case 'S' :
+      case 'U' :
+	switch (op) {
+	case EkaFhMode::UNINIT :
 	  break;
-	case 'A' :
-	case 'H' :
-	case '+' :
-	  break;
-	default :
-	  hexDump("bad soupbin pkt",tcpPayload,tcpPayloadLen);
-	  
-	  on_error("Unexpected Soupbin type \'%c\' (0x%x), tcpPayloadLen=%jd",
-		   soupbinHdr->type,soupbinHdr->type,tcpPayloadLen);
+	case EkaFhMode::DEFINITIONS :
+	case EkaFhMode::SNAPSHOT :
+	  fprintf(g_ekaLogFile,"%s :",EkaFhMode2STR(op));
+	  printMsg<NomFeed>(g_ekaLogFile,0,pkt);
+	  nomGr->parseMsg(&efhRunCtx,pkt,0,op);
+	break;
+	default:
+	  on_error("Unexpected op %s",EkaFhMode2STR(op));
 	}
+	break;
+      case 'A' :
+	TEST_LOG("Login accepted: %s, pkt=%ju",
+		 EkaFhMode2STR(op),tcpPktHndl->getPktNum());
+	//	hexDump("Login accepted pkt",&soupbinHdr,SoupBinTcp::getHdrLen());
+	op = nextOp(op);
+	break;
+      case 'H' :
+	TEST_LOG("Soupbin Heartbeat");
+	break;
+      case '+' :
+	TEST_LOG("Soupbin Debug Message: \'%s\'",(char*)pkt);
+	break;
+      case 'Z' :
+	on_error("Unexpected End-of-session \'Z\'");
+      default :
+	on_error("Unexpected Soupbin type \'%c\' (0x%x), pktSize=%jd",
+		 SoupBinTcp::getType(&soupbinHdr),
+		 SoupBinTcp::getType(&soupbinHdr),
+		 SoupBinTcp::getPayloadLen(&soupbinHdr));
+      }
+    } // while()
+
+    fprintf (g_ekaLogFile,"Processed %ju packets\n",
+	     tcpPktHndl->getPktNum());
+    delete tcpPktHndl;
+#endif
+    /* ================================================ */
+#if 1
+    auto udpPktHndl = new UdpPcapHandler(udpFileName,
+					 group[grId].mcIp,
+					 group[grId].mcPort);
+    op = EkaFhMode::MCAST;
+    while (1) {
+      uint8_t pkt[1536] = {};
+      const uint8_t* p = udpPktHndl->getData(pkt);
+      if (!p) break;
+
+      uint64_t sequence = MoldUdp64::getSequence(p);
+      uint16_t msgCnt = MoldUdp64::getMsgCnt(p);
+      
+      p += MoldUdp64::getHdrLen();
+
+      for (int i = 0; i < msgCnt; i++) {
+	uint16_t msgLen = be16toh((uint16_t) *(uint16_t*)p);
+	p += sizeof(msgLen);
+	fprintf(g_ekaLogFile,"%s :",EkaFhMode2STR(op));
+	printMsg<NomFeed>(g_ekaLogFile,sequence,p);
+	if (sequence == nomGr->expected_sequence) {
+	  nomGr->parseMsg(&efhRunCtx,p,sequence,op);
+	} else {
+	  TEST_LOG("WARNING: sequence %ju != expected_sequence %ju",
+		   sequence,nomGr->expected_sequence);
+	}
+	nomGr->expected_sequence = sequence + 1;
+	sequence++;
+	p += msgLen;
+      }
+
     }
+    fprintf (g_ekaLogFile,"Processed %ju packets\n",
+	     udpPktHndl->getPktNum());
+    delete udpPktHndl;
+#endif    
     return 0;
 }

@@ -130,11 +130,16 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 	  EKA_LOG("%s:%u: %s Closed, switching to fetch from Q: next sequence from Q = %ju",
 		  EKA_EXCH_DECODE(exch),gr->id,gr->printGrpState(),gr->seq_after_snapshot);
 	  gr->expected_sequence = gr->seq_after_snapshot;
-	  gr->processFromQ(pEfhRunCtx);
-	  gr->state = EkaFhGroup::GrpState::NORMAL;
-	  gr->sendFeedUp(pEfhRunCtx); //gr->sendFeedUpInitial(pEfhRunCtx);
-	  EKA_LOG("%s:%u: %s Closed - expected_sequence=%ju",
-		  EKA_EXCH_DECODE(exch),gr->id,gr->printGrpState(),gr->expected_sequence);
+	  if (gr->processFromQ(pEfhRunCtx) < 0) { // 1st seq in Q > expected
+	    EKA_LOG("%s:%u: %s must be redone!",
+		EKA_EXCH_DECODE(exch),gr->id,gr->printGrpState());
+	    	gr->state = EkaFhGroup::GrpState::GAP_IN_GAP;
+	  } else {
+	    gr->state = EkaFhGroup::GrpState::NORMAL;
+	    gr->sendFeedUp(pEfhRunCtx); //gr->sendFeedUpInitial(pEfhRunCtx);
+	    EKA_LOG("%s:%u: %s Closed - expected_sequence=%ju",
+		    EKA_EXCH_DECODE(exch),gr->id,gr->printGrpState(),gr->expected_sequence);
+	  }
 	}
       }
       break;

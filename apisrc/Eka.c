@@ -5,6 +5,8 @@
 #include "EkaDev.h"
 
 EkaDev *g_ekaDev;
+FILE   *g_ekaLogFile;
+EkaLogCallback g_ekaLogCB;
 
 EkaOpResult ekaDevInit( EkaDev** ppEkaDev, const EkaDevInitCtx *pInitCtx ) {
   *ppEkaDev = new EkaDev(pInitCtx);

@@ -41,7 +41,7 @@ static int getPillarProductIdFromProductMask(int productMask) {
 static EkaOpResult sendSymbolIndexMappingRequest(EkaFhPlrGr* gr, int sock) {
   if (!gr) on_error("!gr");
 
-  auto dev {gr->dev};
+  //  auto dev {gr->dev};
 
   uint8_t pkt[1500] = {};
   auto pktHdr {reinterpret_cast<PktHdr*>(pkt)};
@@ -77,7 +77,7 @@ static EkaOpResult sendSymbolIndexMappingRequest(EkaFhPlrGr* gr, int sock) {
 static EkaOpResult sendRefreshRequest(EkaFhPlrGr* gr, int sock) {
   if (!gr) on_error("!gr");
 
-  auto dev {gr->dev};
+  //  auto dev {gr->dev};
 
   uint8_t pkt[1500] = {};
   auto pktHdr {reinterpret_cast<PktHdr*>(pkt)};
@@ -112,7 +112,7 @@ static EkaOpResult sendRefreshRequest(EkaFhPlrGr* gr, int sock) {
 static EkaOpResult sendRetransmissionRequest(EkaFhPlrGr* gr, int sock, uint32_t start, uint32_t end) {
 
   if (!gr) on_error("gr == NULL");
-  auto dev {gr->dev};
+  //  auto dev {gr->dev};
 
   uint8_t pkt[1500] = {};
   auto pktHdr {reinterpret_cast<PktHdr*>(pkt)};
@@ -148,7 +148,7 @@ static EkaOpResult sendRetransmissionRequest(EkaFhPlrGr* gr, int sock, uint32_t 
 
 static bool sendHeartbeatResponse(EkaFhPlrGr* gr, int sock) {
   if (!gr) on_error("gr == NULL");
-  auto dev {gr->dev};
+  //  auto dev {gr->dev};
 
   uint8_t pkt[1500] = {};
   auto pktHdr {reinterpret_cast<PktHdr*>(pkt)};
@@ -178,7 +178,7 @@ static bool sendHeartbeatResponse(EkaFhPlrGr* gr, int sock) {
 static EkaOpResult getRequestResponse(EkaFhPlrGr* gr, int sock, EkaFhMode op) {
   if (!gr) on_error("!gr");
 
-  auto dev {gr->dev};
+  //  auto dev {gr->dev};
   EKA_LOG("Waiting for %s Refresh Response",EkaFhMode2STR(op));
   
   static const int TimeOut = 2; // seconds
@@ -393,7 +393,7 @@ static EkaOpResult processRetransUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
 				 const uint8_t* p,EkaFhMode op,
 				 uint64_t start, uint64_t end) {
   if (!gr) on_error("gr == NULL");
-  auto dev {gr->dev};
+  //  auto dev {gr->dev};
   
   auto pktHdr {reinterpret_cast<const PktHdr* >(p)};
   p += sizeof(*pktHdr);
@@ -449,7 +449,7 @@ static EkaOpResult processRefreshUdpPkt(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr*
   //					std::vector <OutrightSeriesIndexMapping> *pVanillaDefinitions) {
   //					std::deque <OutrightSeriesIndexMapping> &vanillaDefinitions) {
   if (!gr) on_error("gr == NULL");
-  auto dev {gr->dev};
+  //  auto dev {gr->dev};
   
   auto pktHdr {reinterpret_cast<const PktHdr* >(p)};
   p += sizeof(*pktHdr);
@@ -569,7 +569,7 @@ EkaOpResult plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode o
   bool myRefreshStarted = false;
 
   if (!gr) on_error("gr == NULL");
-  auto dev {gr->dev};
+  //  auto dev {gr->dev};
 
   gr->snapshot_active = true;
   gr->recovery_active = true;
@@ -669,7 +669,7 @@ void* runPlrRecoveryThread(void* attr) {
 
   if (op != EkaFhMode::DEFINITIONS) pthread_detach(pthread_self());
 
-  EkaDev* dev = gr->dev;
+  //  EkaDev* dev = gr->dev;
 
   EKA_LOG("%s:%u: Start of PlrRecoveryThread %s",
 	  EKA_EXCH_DECODE(gr->exch),gr->id, 

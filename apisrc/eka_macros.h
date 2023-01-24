@@ -12,6 +12,11 @@
 #include "eka_hw_conf.h"
 #include "efh_macros.h"
 
+#include "Eka.h"
+
+extern FILE *g_ekaLogFile;
+extern EkaLogCallback g_ekaLogCB;
+
 class EkaDev;
 
 #define SEC_TO_NANO 1e9
@@ -55,13 +60,20 @@ class EkaDev;
 #define EKA_LOG_TRACE 8
 #endif
 
-#define EKA_ERROR(...)   dev->logCB(dev->logCtx, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_ERROR, __VA_ARGS__)
-#define EKA_WARN(...)   dev->logCB(dev->logCtx, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_WARNING, __VA_ARGS__)
-#define EKA_NOTICE(...)   dev->logCB(dev->logCtx, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_NOTICE, __VA_ARGS__)
-#define EKA_INFO(...)   dev->logCB(dev->logCtx, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_INFO, __VA_ARGS__)
-#define EKA_LOG(...)    dev->logCB(dev->logCtx, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_INFO, __VA_ARGS__)
-#define EKA_DEBUG(...)  dev->logCB(dev->logCtx, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_DEBUG, __VA_ARGS__)
-#define EKA_TRACE(...)  dev->logCB(dev->logCtx, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_TRACE, __VA_ARGS__)
+//#define EKA_ERROR(...)   dev->logCB(dev->logCtx, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_ERROR, __VA_ARGS__)
+#define EKA_ERROR(...)   g_ekaLogCB(g_ekaLogFile, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_ERROR, __VA_ARGS__)
+//#define EKA_WARN(...)   dev->logCB(dev->logCtx, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_WARNING, __VA_ARGS__)
+#define EKA_WARN(...)   g_ekaLogCB(g_ekaLogFile, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_WARNING, __VA_ARGS__)
+//#define EKA_NOTICE(...)   dev->logCB(dev->logCtx, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_NOTICE, __VA_ARGS__)
+#define EKA_NOTICE(...)   g_ekaLogCB(g_ekaLogFile, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_NOTICE, __VA_ARGS__)
+//#define EKA_INFO(...)   dev->logCB(dev->logCtx, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_INFO, __VA_ARGS__)
+#define EKA_INFO(...)   g_ekaLogCB(g_ekaLogFile, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_INFO, __VA_ARGS__)
+//#define EKA_LOG(...)    dev->logCB(dev->logCtx, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_INFO, __VA_ARGS__)
+#define EKA_LOG(...)    g_ekaLogCB(g_ekaLogFile, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_INFO, __VA_ARGS__)
+//#define EKA_DEBUG(...)  dev->logCB(dev->logCtx, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_DEBUG, __VA_ARGS__)
+#define EKA_DEBUG(...)  g_ekaLogCB(g_ekaLogFile, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_DEBUG, __VA_ARGS__)
+//#define EKA_TRACE(...)  dev->logCB(dev->logCtx, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_TRACE, __VA_ARGS__)
+#define EKA_TRACE(...)  g_ekaLogCB(g_ekaLogFile, __FUNCTION__, __FILE__, __LINE__, EKA_LOG_TRACE, __VA_ARGS__)
 
 #define TEST_LOG_STDERR(...) { fprintf(stderr, "%s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr,"\n"); }
 #define TEST_LOG(...) { printf("%s@%s:%d: ",__func__,__FILE__,__LINE__); printf(__VA_ARGS__); printf("\n"); }
