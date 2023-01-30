@@ -241,8 +241,13 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
     /* ------------------------------- */
 
     if (!std::string_view{rootBlock->QuoteReqID}.starts_with("CME")) {
-      on_error("quote request id `%s` does not have the expected form",
-               rootBlock->QuoteReqID);
+      EKA_ERROR("%s:%u: Bad QuoteRequest39: TransactTime=%s,QuoteReqID=`%s`,Legs=%u",
+		EKA_EXCH_DECODE(exch),id,
+		ts_ns2str(transactTime).c_str(),
+		std::string(rootBlock->QuoteReqID,sizeof(rootBlock->QuoteReqID)).c_str(),
+		pGroupSize->numInGroup
+		);      
+      return msgHdr->size;
     }
 
     EfhAuctionUpdateMsg msg{};
