@@ -785,15 +785,14 @@ namespace Bats {
     case 'O':
     case 'K':
       return EfhTradeCond::kREG;
-    case 'X':
-      return EfhTradeCond::kUnmapped;
 #define SWITCH_ENUM(NAME, VALUE) \
     case VALUE:                  \
       return EfhTradeCond::EKA__DELAYED_CAT(k, NAME);
     EfhTradeCond_ENUM_ITER(SWITCH_ENUM)
 #undef SWITCH_ENUM
+    case 'X':
     default:
-      on_error("Unexpected trade condition \'%c\'", cond);
+      return EfhTradeCond::kUnmapped;
     }
   }
 } // namespace Bats
