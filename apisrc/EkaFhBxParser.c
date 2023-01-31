@@ -472,7 +472,7 @@ template <class SecurityT, class Msg>
   msg.header.timeStamp      = msgTs;
   msg.header.gapNum         = gapNum;
 
-  msg.auctionId             = getAuctionId<Msg>(m);
+  numToStrBuf(msg.auctionId, getAuctionId<Msg>(m));
   msg.auctionType           = getAuctionType<Msg>(m);
 
   msg.updateType            = EfhAuctionUpdateType::kNew;

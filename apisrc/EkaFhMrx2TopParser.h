@@ -430,7 +430,7 @@ namespace Mrx2Top {
     }
   }
 
-  template <class T>    
+  template <class T>
   inline EfhOrderSide getAuctionSide(const void* m) {
     auto side = reinterpret_cast <const T*>(m)->side;
     switch (side) {

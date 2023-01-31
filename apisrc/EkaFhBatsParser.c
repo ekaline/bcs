@@ -368,7 +368,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.header.sequenceNumber = sequence;
     msg.header.timeStamp      = msg_timestamp;
     msg.header.gapNum         = gapNum;
-    msg.auctionId             = message->auctionId;
+    numToStrBuf(msg.auctionId, auctionId);
     msg.updateType            = EfhAuctionUpdateType::kDelete;
     msg.auctionType           = EfhAuctionType::kUnknown;
 
@@ -1000,7 +1000,7 @@ SecurityT* EkaFhBatsGr::process_AuctionNotification(const EfhRunCtx* pEfhRunCtx,
   msg.header.timeStamp      = msg_timestamp;
   msg.header.gapNum         = gapNum;
 
-  msg.auctionId             = message->auctionId;
+  numToStrBuf(msg.auctionId, auctionId);
   msg.auctionType           = getAuctionType(*message, useAIM);
 
   msg.updateType            = EfhAuctionUpdateType::kNew;

@@ -323,7 +323,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.header.timeStamp      = m->sourceTimeSec * static_cast<uint64_t>(SEC_TO_NANO) + m->sourceTimeNs;
     msg.header.gapNum         = gapNum;
 
-    msg.auctionId         = m->auctionId;
+    numToStrBuf(msg.auctionId, m->auctionId);
     msg.auctionType       = getAuctionType(m->type);
     msg.updateType        = updateType;
     msg.securityType      = EfhSecurityType::kRfq;

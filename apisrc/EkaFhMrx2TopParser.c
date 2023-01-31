@@ -343,7 +343,7 @@ template <class SecurityT, class Msg>
   msg.header.timeStamp      = tsNanos;
   msg.header.gapNum         = gapNum;
 
-  msg.auctionId             = getAuctionId<Msg>(m);
+  numToStrBuf(msg.auctionId, getAuctionId<Msg>(m));
   msg.auctionType           = Mrx2Top::getAuctionType<Msg>(m);
   msg.updateType            = updateType;
   msg.side                  = Mrx2Top::getAuctionSide<Msg>(m);

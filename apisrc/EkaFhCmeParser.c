@@ -240,11 +240,6 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
     m += sizeof(*pGroupSize);
     /* ------------------------------- */
 
-    if (!std::string_view{rootBlock->QuoteReqID}.starts_with("CME")) {
-      on_error("quote request id `%s` does not have the expected form",
-               rootBlock->QuoteReqID);
-    }
-
     EfhAuctionUpdateMsg msg{};
     msg.header.msgType        = EfhMsgType::kAuctionUpdate;
     msg.header.group.source   = EkaSource::kCME_SBE;
@@ -255,14 +250,7 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
     msg.header.transactTime   = transactTime;
     msg.header.gapNum         = gapNum;
 
-    const char *const auctionIdEnd = rootBlock->QuoteReqID +
-        std::strlen(rootBlock->QuoteReqID);
-    const auto [parseEnd, errc] = std::from_chars(rootBlock->QuoteReqID + 3,
-        auctionIdEnd, msg.auctionId);
-    if (parseEnd != auctionIdEnd || int(errc)) {
-      on_error("quote request id `%s` does not have expected form",
-               rootBlock->QuoteReqID);
-    }
+    copySymbol(msg.auctionId, rootBlock->QuoteReqID);
     msg.auctionType = EfhAuctionType::kSpreadSolicitation;
     msg.updateType = EfhAuctionUpdateType::kNew;
 
