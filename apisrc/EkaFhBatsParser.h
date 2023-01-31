@@ -779,14 +779,23 @@ namespace Bats {
     default  : on_error("Unexpected side \'%c\'",side);
     }
   }
+
+  inline EfhTradeCond getTradeCond(char cond) {
+    switch (cond) {
+    case 'O':
+    case 'K':
+      return EfhTradeCond::kREG;
+    case 'X':
+      return EfhTradeCond::kUnmapped;
+#define SWITCH_ENUM(NAME, VALUE) \
+    case VALUE:                  \
+      return EfhTradeCond::EKA__DELAYED_CAT(k, NAME);
+    EfhTradeCond_ENUM_ITER(SWITCH_ENUM)
+#undef SWITCH_ENUM
+    default:
+      on_error("Unexpected trade condition \'%c\'", cond);
+    }
+  }
 } // namespace Bats
-
-#define EKA_BATS_TRADE_COND(x)		 \
-  x == ' ' ? EfhTradeCond::kREG :	 \
-    x == 'I' ? EfhTradeCond::kISOI :	 \
-    EfhTradeCond::kUnmapped
-
-
-#define EKA_BATS_TRADE_STAT(x)   (x == 'T' ? EfhTradeStatus::kNormal : EfhTradeStatus::kHalted)
 
 #endif
