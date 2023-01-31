@@ -18,16 +18,6 @@ SymbolType &copySymbol(SymbolType &symbol, const char (&src)[N]) {
   return symbol;
 }
 
-template<size_t N>
-constexpr std::string_view viewOfNulTermBuffer(const char (&buf)[N]) {
-  std::string_view view(buf, N);
-  auto trim_pos = view.find('\0');
-  if (trim_pos != view.npos) {
-    view.remove_suffix(view.size() - trim_pos);
-  }
-  return view;
-}
-
 template<class T>
 constexpr unsigned MaxStrLen();
 
