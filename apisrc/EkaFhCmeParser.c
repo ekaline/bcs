@@ -250,15 +250,6 @@ constexpr std::string_view viewOfNulTermBuffer(const char (&buf)[N]) {
     m += sizeof(*pGroupSize);
     /* ------------------------------- */
 
-    const auto auctionId = viewOfNulTermBuffer(rootBlock->QuoteReqID);
-    if (!auctionId.starts_with("CME")) {
-      EKA_ERROR("%s:%u: Bad QuoteRequest39: QuoteReqID `%s` does not have the expected form (TransactTime=%s,Legs=%u)",
-		EKA_EXCH_DECODE(exch), id,
-                auctionId.data(), ts_ns2str(transactTime).c_str(),
-                pGroupSize->numInGroup);
-      return msgHdr->size;
-    }
-
     EfhAuctionUpdateMsg msg{};
     msg.header.msgType        = EfhMsgType::kAuctionUpdate;
     msg.header.group.source   = EkaSource::kCME_SBE;
@@ -269,12 +260,16 @@ constexpr std::string_view viewOfNulTermBuffer(const char (&buf)[N]) {
     msg.header.transactTime   = transactTime;
     msg.header.gapNum         = gapNum;
 
-    const char *const auctionIdEnd = auctionId.data() + auctionId.size();
-    const auto [parseEnd, errc] = std::from_chars(auctionId.data() + 3, auctionIdEnd, msg.auctionId);
-    if (parseEnd != auctionIdEnd || int(errc)) {
+    const char* c = rootBlock->QuoteReqID;
+    while (c != rootBlock->QuoteReqID + sizeof(rootBlock->QuoteReqID) && !std::isdigit(*c))
+      ++c;
+
+    const auto [parseEnd, errc] = std::from_chars(c, rootBlock->QuoteReqID + sizeof(rootBlock->QuoteReqID), msg.auctionId);
+    if (parseEnd == rootBlock->QuoteReqID + sizeof(rootBlock->QuoteReqID) || int(errc)) {
       EKA_ERROR("%s:%u: Bad QuoteRequest39: QuoteReqID `%s` does not have the expected form (TransactTime=%s,Legs=%u)",
                 EKA_EXCH_DECODE(exch), id,
-                auctionId.data(), ts_ns2str(transactTime).c_str(),
+                viewOfNulTermBuffer(rootBlock->QuoteReqID).data(),
+		ts_ns2str(transactTime).c_str(),
                 pGroupSize->numInGroup);
       return msgHdr->size;
     }
