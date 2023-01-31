@@ -254,7 +254,7 @@ constexpr std::string_view viewOfNulTermBuffer(const char (&buf)[N]) {
     if (!auctionId.starts_with("CME")) {
       EKA_ERROR("%s:%u: Bad QuoteRequest39: QuoteReqID `%s` does not have the expected form (TransactTime=%s,Legs=%u)",
 		EKA_EXCH_DECODE(exch), id,
-                auctionId, ts_ns2str(transactTime).c_str(),
+                auctionId.data(), ts_ns2str(transactTime).c_str(),
                 pGroupSize->numInGroup);
       return msgHdr->size;
     }
@@ -274,7 +274,7 @@ constexpr std::string_view viewOfNulTermBuffer(const char (&buf)[N]) {
     if (parseEnd != auctionIdEnd || int(errc)) {
       EKA_ERROR("%s:%u: Bad QuoteRequest39: QuoteReqID `%s` does not have the expected form (TransactTime=%s,Legs=%u)",
                 EKA_EXCH_DECODE(exch), id,
-                auctionId, ts_ns2str(transactTime).c_str(),
+                auctionId.data(), ts_ns2str(transactTime).c_str(),
                 pGroupSize->numInGroup);
       return msgHdr->size;
     }
