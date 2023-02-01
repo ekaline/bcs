@@ -224,6 +224,16 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
   }
 }
 
+template<size_t N>
+constexpr std::string_view viewOfNulTermBuffer(const char (&buf)[N]) {
+  std::string_view view(buf, N);
+  auto trim_pos = view.find('\0');
+  if (trim_pos != view.npos) {
+    view.remove_suffix(view.size() - trim_pos);
+  }
+  return view;
+}
+
 /* ##################################################################### */
   int EkaFhCmeGr::process_QuoteRequest39(const EfhRunCtx* pEfhRunCtx,
 					 const uint8_t*   pMsg,
@@ -240,9 +250,13 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
     m += sizeof(*pGroupSize);
     /* ------------------------------- */
 
-    if (!std::string_view{rootBlock->QuoteReqID}.starts_with("CME")) {
-      on_error("quote request id `%s` does not have the expected form",
-               rootBlock->QuoteReqID);
+    const auto auctionId = viewOfNulTermBuffer(rootBlock->QuoteReqID);
+    if (!auctionId.starts_with("CME")) {
+      EKA_ERROR("%s:%u: Bad QuoteRequest39: QuoteReqID `%s` does not have the expected form (TransactTime=%s,Legs=%u)",
+		EKA_EXCH_DECODE(exch), id,
+                auctionId.data(), ts_ns2str(transactTime).c_str(),
+                pGroupSize->numInGroup);
+      return msgHdr->size;
     }
 
     EfhAuctionUpdateMsg msg{};
@@ -255,13 +269,14 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
     msg.header.transactTime   = transactTime;
     msg.header.gapNum         = gapNum;
 
-    const char *const auctionIdEnd = rootBlock->QuoteReqID +
-        std::strlen(rootBlock->QuoteReqID);
-    const auto [parseEnd, errc] = std::from_chars(rootBlock->QuoteReqID + 3,
-        auctionIdEnd, msg.auctionId);
+    const char *const auctionIdEnd = auctionId.data() + auctionId.size();
+    const auto [parseEnd, errc] = std::from_chars(auctionId.data() + 3, auctionIdEnd, msg.auctionId);
     if (parseEnd != auctionIdEnd || int(errc)) {
-      on_error("quote request id `%s` does not have expected form",
-               rootBlock->QuoteReqID);
+      EKA_ERROR("%s:%u: Bad QuoteRequest39: QuoteReqID `%s` does not have the expected form (TransactTime=%s,Legs=%u)",
+                EKA_EXCH_DECODE(exch), id,
+                auctionId.data(), ts_ns2str(transactTime).c_str(),
+                pGroupSize->numInGroup);
+      return msgHdr->size;
     }
     msg.auctionType = EfhAuctionType::kSpreadSolicitation;
     msg.updateType = EfhAuctionUpdateType::kNew;
