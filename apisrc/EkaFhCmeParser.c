@@ -224,6 +224,16 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
   }
 }
 
+template<size_t N>
+constexpr std::string_view viewOfNulTermBuffer(const char (&buf)[N]) {
+  std::string_view view(buf, N);
+  auto trim_pos = view.find('\0');
+  if (trim_pos != view.npos) {
+    view.remove_suffix(view.size() - trim_pos);
+  }
+  return view;
+}
+
 /* ##################################################################### */
   int EkaFhCmeGr::process_QuoteRequest39(const EfhRunCtx* pEfhRunCtx,
 					 const uint8_t*   pMsg,
