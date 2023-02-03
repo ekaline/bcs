@@ -165,7 +165,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.price       = o->plevel->price;
     msg.size        = message->executed_size;
     msg.tradeStatus = s->trading_action;
-    msg.tradeCond   = EKA_BATS_TRADE_COND(message->trade_condition);
+    msg.tradeCond   = getTradeCond(message->trade_condition);
 
     pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
 
@@ -201,7 +201,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.price       = (uint32_t)message->price;
     msg.size        = message->executed_size;
     msg.tradeStatus = s->trading_action;
-    msg.tradeCond   = EKA_BATS_TRADE_COND(message->trade_condition);
+    msg.tradeCond   = getTradeCond(message->trade_condition);
 
     pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
 
@@ -871,7 +871,7 @@ SecurityT* EkaFhBatsGr::process_TradeShort(const EfhRunCtx* pEfhRunCtx,
     msg.price       = price;
     msg.size        = size;
     msg.tradeStatus = s->trading_action;
-    msg.tradeCond   = EKA_BATS_TRADE_COND(message->trade_condition);
+    msg.tradeCond   = getTradeCond(message->trade_condition);
 
     pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
     return s;
@@ -911,7 +911,7 @@ SecurityT* EkaFhBatsGr::process_TradeLong(const EfhRunCtx* pEfhRunCtx,
     msg.price       = price;
     msg.size        = size;
     msg.tradeStatus = s->trading_action;
-    msg.tradeCond   = EKA_BATS_TRADE_COND(message->trade_condition);
+    msg.tradeCond   = getTradeCond(message->trade_condition);
 
     pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
     return s;
@@ -951,7 +951,7 @@ SecurityT* EkaFhBatsGr::process_TradeExpanded(const EfhRunCtx* pEfhRunCtx,
   msg.price       = price;
   msg.size        = size;
   msg.tradeStatus = s->trading_action;
-  msg.tradeCond   = EKA_BATS_TRADE_COND(message->trade_condition);
+  msg.tradeCond   = getTradeCond(message->trade_condition);
 
   pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
   return s;

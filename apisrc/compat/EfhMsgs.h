@@ -515,7 +515,7 @@ enum class EfhTradeCond : char {
                 _x( TESL, 'q' )                                             \
                 _x( TASL, 'r' )                                             \
                 _x( TFSL, 's' )                                             \
-                _x( CMBO, 't' )                                             \
+                _x( CBMO, 't' )                                             \
                 _x( MCTP, 'u' )                                             \
                 /* Not a real OPRA code, Outside-Hours trade on BOX */      \
                 _x( OSHT, 'z' )
