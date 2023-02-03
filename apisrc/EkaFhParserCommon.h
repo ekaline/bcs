@@ -2,7 +2,6 @@
 #define _EKA_FH_PARSER_COMMON_H
 
 #include <algorithm>
-#include <string_view>
 #include <charconv>
 #include <string.h>
 #include "EfhMsgs.h"
