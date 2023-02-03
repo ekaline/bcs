@@ -416,12 +416,13 @@ enum class EfhOrderCapacity : char {
         EfhOrderCapacity_ENUM_ITER( EKA__ENUM_DEF )
 };
 
+typedef char EfhAuctionId[24];
 typedef char EfhCounterparty[8];
 
 typedef struct {
     #define EfhAuctionUpdateMsg_FIELD_ITER( _x )                            \
                 _x( EfhMsgHeader,         header )                          \
-                _x( uint64_t,             auctionId )                       \
+                _x( EfhAuctionId,         auctionId )                       \
                 _x( EfhAuctionType,       auctionType )                     \
                 _x( EfhAuctionUpdateType, updateType)                       \
                 _x( EfhOrderSide,         side )                            \

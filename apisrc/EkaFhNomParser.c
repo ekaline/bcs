@@ -587,7 +587,7 @@ template <class SecurityT, class Msg>
   msg.header.timeStamp      = gr_ts;
   msg.header.gapNum         = gapNum;
 
-  msg.auctionId             = getAuctionId<Msg>(m);
+  numToStrBuf(msg.auctionId, getAuctionId<Msg>(m));
 
   msg.updateType            = auctionUpdateType;
   msg.side                  = getAuctionSide<Msg>(m);

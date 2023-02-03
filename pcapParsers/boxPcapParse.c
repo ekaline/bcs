@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include <arpa/inet.h>
 
+#include "EkaFhParserCommon.h"
 #include "EkaFhBoxParser.h"
 #include "eka_macros.h"
 
@@ -133,7 +134,7 @@ void printAuctionUpdateMsg(const EfhAuctionUpdateMsg* msg) {
   printf("RfqTable5,");
   /* printf("%s,",    eka_get_date().c_str()); */
   /* printf("%s,",    eka_get_time().c_str()); */
-  printf("%ju,",   msg->auctionId);
+  printf("%s,",   msg->auctionId);
   /* printf("%s,",    currClassSymbol.c_str()); */
   /* printf("%s,",    currAvtSecName.c_str()); */
   printf("%.*f,",  decPoints(msg->price,priceScaleFactor), ((float) msg->price / priceScaleFactor));
@@ -170,7 +171,7 @@ void processRfqStart(const uint8_t* msgBody, uint8_t id, uint64_t sequence, uint
   msg.header.timeStamp      = gr_ts;
 
   msg.side                  = getSide(boxMsg->Side,false);
-  msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
+  copySymbol(msg.auctionId, boxMsg->RfqId);
 
   msg.quantity              = getNumField<uint32_t>(boxMsg->Size, sizeof(boxMsg->Size));
   msg.price                 = getNumField<uint32_t>(boxMsg->Price,sizeof(boxMsg->Price));
@@ -213,9 +214,9 @@ void processRfqInsert(const uint8_t* msgBody, uint8_t id, uint64_t sequence, uin
   msg.endTimeNanos          = 0; //PATCH
   
   if (boxMsg->OrderType == 'A') { // Initial
-    msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
+    copySymbol(msg.auctionId, boxMsg->RfqId);
   } else if (boxMsg->OrderType == 'P') { // Exposed
-    msg.auctionId             = getNumField<uint32_t>(boxMsg->OrderSequence,sizeof(boxMsg->OrderSequence));
+    copySymbol(msg.auctionId, boxMsg->OrderSequence);
   } else {
     on_error("Unexpected OrderType == \'%c\'",boxMsg->OrderType);
   }
@@ -248,7 +249,7 @@ void processRfqDelete(const uint8_t* msgBody, uint8_t id, uint64_t sequence, uin
   msg.header.timeStamp      = gr_ts;
 
   msg.side                  = getSide(boxMsg->OrderSide,false);
-  msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
+  copySymbol(msg.auctionId, boxMsg->RfqId);
 
   msg.quantity              = 0;
   msg.price                 = 0;
