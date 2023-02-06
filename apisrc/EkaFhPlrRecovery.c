@@ -623,8 +623,6 @@ EkaOpResult plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode o
 	  auto def = pVanillaDefinitions->pop();
 	  gr->parseMsg(pEfhRunCtx,reinterpret_cast<const uint8_t*>(def),0,op);
 	}
-	//	pVanillaDefinitions->clear();
-	delete pVanillaDefinitions;
       }
       EKA_LOG("%s:%u %s completed\n-----------------------------------------------\n",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
@@ -640,6 +638,11 @@ EkaOpResult plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode o
  EXIT_RECOVERY:  
   close(udpSock);
   close(tcpSock);
+
+  if (op == EkaFhMode::DEFINITIONS) {
+    //	pVanillaDefinitions->clear();
+    delete pVanillaDefinitions;
+  }
 
   gr->snapshot_active = false;
   gr->recovery_active = false;
