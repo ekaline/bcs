@@ -2,7 +2,6 @@
 #include <netinet/in.h>
 #include <stdio.h>
 #include <deque>
-#include <vector>
 
 #include "EkaFhPlrGr.h"
 #include "EkaFhPlrParser.h"
@@ -624,8 +623,6 @@ EkaOpResult plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode o
 	  auto def = pVanillaDefinitions->pop();
 	  gr->parseMsg(pEfhRunCtx,reinterpret_cast<const uint8_t*>(def),0,op);
 	}
-	//	pVanillaDefinitions->clear();
-	delete pVanillaDefinitions;
       }
       EKA_LOG("%s:%u %s completed\n-----------------------------------------------\n",
 	      EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op));
@@ -641,6 +638,11 @@ EkaOpResult plrRecovery(const EfhRunCtx* pEfhRunCtx, EkaFhPlrGr* gr, EkaFhMode o
  EXIT_RECOVERY:  
   close(udpSock);
   close(tcpSock);
+
+  if (op == EkaFhMode::DEFINITIONS) {
+    //	pVanillaDefinitions->clear();
+    delete pVanillaDefinitions;
+  }
 
   gr->snapshot_active = false;
   gr->recovery_active = false;
@@ -675,11 +677,10 @@ void* runPlrRecoveryThread(void* attr) {
 	  EKA_EXCH_DECODE(gr->exch),gr->id, 
 	  EkaFhMode2STR(op));
 
-  gr->snapshot_active = true;
   const int MaxTrials = 4;
   EkaOpResult result = EKA_OPRESULT__OK;
   //-----------------------------------------------------------------
-  for (auto trial = 0; trial < MaxTrials && gr->snapshot_active; trial++) {
+  for (auto trial = 0; trial < MaxTrials; trial++) {
     EKA_LOG("%s:%d %s cycle: trial: %d / %d",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,
 	    EkaFhMode2STR(op),trial,MaxTrials);
@@ -692,15 +693,15 @@ void* runPlrRecoveryThread(void* attr) {
       gr->gapClosed = true;
       goto SUCCESS;
     } else {
-      EKA_WARN("%s:%u: Recovery FAILED",EKA_EXCH_DECODE(gr->exch),gr->id);
+      EKA_WARN("%s:%u: Recovery FAILED: result = %d",EKA_EXCH_DECODE(gr->exch),gr->id,result);
       if (result == EKA_OPRESULT__ERR_PROTOCOL)
 	gr->sendRetransmitExchangeError(pEfhRunCtx);
       else
 	gr->sendRetransmitSocketError(pEfhRunCtx);
     }
   }
+  EKA_WARN("%s:%u: Recovery FAILED: No trials remaining",EKA_EXCH_DECODE(gr->exch),gr->id);
  SUCCESS:
-
   return NULL;
 }
 
