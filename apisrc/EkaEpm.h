@@ -231,6 +231,7 @@ class EkaEpm {
   EpmTemplate*      tcpFastPathPkt          = NULL;
   EpmTemplate*      rawPkt                  = NULL;
   EpmTemplate*      hwFire                  = NULL;
+  EpmTemplate*      hwCancel                = NULL;
   EpmTemplate*      swFire                  = NULL;
   EpmTemplate*      cmeILink                = NULL;
   EpmTemplate*      cmeHb                   = NULL;
