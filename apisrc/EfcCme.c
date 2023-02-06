@@ -61,7 +61,7 @@ ssize_t efcCmeSend(EkaDev* dev, ExcConnHandle hConn,
   /* Getting number of milliseconds as a double. */
   std::chrono::duration<double, std::nano> nanos_double = t2 - t1;
   printf("ekaA->fastSend = [%f]\n", nanos_double.count());
-    return res
+    return res;
 }
 
 
