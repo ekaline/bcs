@@ -305,7 +305,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.header.timeStamp      = gr_ts;
     msg.header.gapNum         = gapNum;
 
-    msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
+    copySymbol(msg.auctionId, boxMsg->RfqId);
 
     msg.updateType            = EfhAuctionUpdateType::kNew;
     msg.side                  = getSide(boxMsg->Side, /*flipSide*/ true);
@@ -349,11 +349,10 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.endTimeNanos          = getExpireNs(&localTimeComponents, boxMsg->EndOfExposition);
 
     if (boxMsg->OrderType == 'A') { // Initial
-      msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
-
+      copySymbol(msg.auctionId, boxMsg->RfqId);
       msg.auctionType           = EfhAuctionType::kPriceImprovementPeriod;
     } else if (boxMsg->OrderType == 'P') { // Exposed
-      msg.auctionId             = getNumField<uint32_t>(boxMsg->OrderSequence,sizeof(boxMsg->OrderSequence));
+      copySymbol(msg.auctionId, boxMsg->OrderSequence);
       msg.auctionType           = EfhAuctionType::kExposed;
     } else {
       on_error("Unexpected OrderType == \'%c\'",boxMsg->OrderType);
@@ -393,7 +392,7 @@ bool EkaFhBoxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.header.timeStamp      = gr_ts;
     msg.header.gapNum         = gapNum;
 
-    msg.auctionId             = getNumField<uint32_t>(boxMsg->RfqId,sizeof(boxMsg->RfqId));
+    copySymbol(msg.auctionId, boxMsg->RfqId);
     msg.updateType            = EfhAuctionUpdateType::kDelete;
     msg.side                  = getSide(boxMsg->OrderSide, /*flipSide*/ true);
 

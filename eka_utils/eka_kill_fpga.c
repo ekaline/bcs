@@ -17,9 +17,9 @@ int main(int argc, char *argv[]){
     }
 
     printf ("\nDo you confirm to kill FGPA by completely disable all outgoing traffic? (type Y to confirm)\n > ");
-    scanf (" %c", &ch);
+    int rc = scanf (" %c", &ch);
     
-    if (ch != 'Y') {
+    if (rc <= 0 || ch != 'Y') {
       printf ("\n ...cancelled, FPGA keeps working\n");
       return 0;
     }

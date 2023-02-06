@@ -1,6 +1,8 @@
 #ifndef _EKA_FH_CME_PARSER_H_
 #define _EKA_FH_CME_PARSER_H_
 
+#include <charconv>
+
 #include "EkaFhTypes.h"
 #include "eka_macros.h"
 #include "EfhMsgs.h"
@@ -870,9 +872,19 @@ namespace Cme {
     auto rootBlock {reinterpret_cast<const QuoteRequest39_mainBlock*>(m)};
     auto quoteReqID {std::string(rootBlock->QuoteReqID,sizeof(rootBlock->QuoteReqID))};
 
-    printf ("\t\tQuoteRequest39: TransactTime=%s (%ju), MatchEventIndicator=0x%x,quoteReqID=\'%s\'\n",
+    const char* c = rootBlock->QuoteReqID;
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    uint64_t auctionIdNum = 0;
+    while (c != rootBlock->QuoteReqID + sizeof(rootBlock->QuoteReqID) && !std::isdigit(*c))
+      ++c;
+
+    std::from_chars(c, rootBlock->QuoteReqID + sizeof(rootBlock->QuoteReqID), auctionIdNum);
+    printf ("\t\tQuoteRequest39: TransactTime=%s (%ju), MatchEventIndicator=0x%x,quoteReqID=\'%s\' (%ju)\n",
 	    ts_ns2str(rootBlock->TransactTime).c_str(),rootBlock->TransactTime,
-	    rootBlock->MatchEventIndicator,quoteReqID.c_str());
+	    rootBlock->MatchEventIndicator,quoteReqID.c_str(),
+	    auctionIdNum);
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     m += msgHdr->blockLen;
     /* ------------------------------- */
     auto pGroupSize {reinterpret_cast<const groupSize_T*>(m)};

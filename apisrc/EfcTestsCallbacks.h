@@ -518,7 +518,7 @@ static void* onAuctionUpdate(const EfhAuctionUpdateMsg* msg, EfhSecUserData secD
   fprintf(gr->MD,"RfqTable5,");
   fprintf(gr->MD,"%s,",    eka_get_date().c_str());
   fprintf(gr->MD,"%s,",    eka_get_time().c_str());
-  fprintf(gr->MD,"%ju,",   msg->auctionId);
+  fprintf(gr->MD,"%s,",    msg->auctionId);
   fprintf(gr->MD,"%s,",    currClassSymbol.c_str());
   fprintf(gr->MD,"%s,",    currAvtSecName.c_str());
   fprintf(gr->MD,"%*.f,",  decPoints(msg->price,priceScaleFactor), ((float) msg->price / priceScaleFactor));
