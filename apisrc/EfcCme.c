@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "EkaEfc.h"
 #include "EfcCme.h"
 #include "EkaEpmAction.h"
@@ -52,7 +54,14 @@ ssize_t efcCmeSend(EkaDev* dev, ExcConnHandle hConn,
 	EKA_WARN("Cme Fast Cancel action is not set");
 	return -1;
     }
-    return ekaA->fastSend(buffer, size);
+  auto t1 = std::chrono::high_resolution_clock::now();
+  ssize_t res = ekaA->fastSend(buffer, size);
+  auto t2 = std::chrono::high_resolution_clock::now();
+
+  /* Getting number of milliseconds as a double. */
+  std::chrono::duration<double, std::nano> nanos_double = t2 - t1;
+  printf("ekaA->fastSend = [%f]\n", nanos_double.count());
+    return res
 }
 
 
