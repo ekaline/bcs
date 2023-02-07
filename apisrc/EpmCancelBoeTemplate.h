@@ -48,10 +48,14 @@ class EpmCancelBoeTemplate : public EpmTemplate {
 
       /* --------------------------- */
       {"ClearingFirm" ,                 4, HwField::IMMEDIATE,    false, false },
-      {"MassCancelId" ,                20, HwField::IMMEDIATE,    false, false }, // Text
+      
+      {"MassCancelIdtxt" ,             11, HwField::IMMEDIATE,    false, false }, // free text
+      {"MassCancelIdseq" ,              8, HwField::ASCII_CNT,    false, true  }, //
+      {"MassCancelIdtail" ,             1, HwField::IMMEDIATE,    false, false }, // free text
+      
+      
       {"MassCancelInst" ,              16, HwField::IMMEDIATE,    false, false }, // Text
-      {"SendTime" ,                     8, HwField::IMMEDIATE,    false, false },
-
+      {"SendTime" ,                     8, HwField::TIME,         false, false },
     };
 
     tSize = sizeof(myTemplateStruct) / sizeof(EpmTemplateField);
