@@ -34,8 +34,19 @@ class EkaDev {
   ~EkaDev();
   int clearHw();
 
-  void     eka_write(uint64_t addr, uint64_t val);
-  uint64_t eka_read(uint64_t addr);
+  inline void eka_write(uint64_t addr, uint64_t val) {
+    uint32_t index = addr/8;
+    if (index >= snDevNumberOfUserLogicRegisters)
+      on_error("invalid eka_write to 0x%jx",addr);
+    *(snDevUserLogicRegistersPtr + index) = val;
+  }
+    
+  inline uint64_t eka_read(uint64_t addr) {
+    uint32_t index = addr/8;
+    if (index >= snDevNumberOfUserLogicRegisters)
+      on_error("invalid eka_read from to 0x%jx",addr);
+    return *(snDevUserLogicRegistersPtr + index);
+  }
 
   bool        openEpm();
   bool        initEpmTx();
@@ -170,12 +181,15 @@ class EkaDev {
   
   EkaUserReportQ*           userReportQ = NULL;
   EkaDev*                   next = NULL; // Next device in global list
+
+  volatile uint64_t *       snDevUserLogicRegistersPtr;
+  const uint32_t snDevNumberOfUserLogicRegisters = uint32_t(0x100000 /* BAR2_REGS_SIZE */ / sizeof(uint64_t));
 };
 
 
 /* ######################################################################## */
 
-inline void eka_write(EkaDev* dev, uint64_t addr, uint64_t val) { 
+inline void eka_write(EkaDev* dev, uint64_t addr, uint64_t val) {
 #ifdef _VERILOG_SIM
   printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);
   //  if (addr!=0xf0300 && addr!=0xf0308 && addr!=0xf0310 && addr!=0xf0608) printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //general writes
@@ -255,17 +269,24 @@ inline void copyBuf2Hw_swap4(EkaDev* dev,uint64_t dstAddr,uint64_t* srcAddr,uint
 // dstLogicalAddr : Window pointer in Heap
 //                  should be taken by getHeapWndAddr()
 inline void copyIndirectBuf2HeapHw_swap4(EkaDev* dev, uint64_t dstLogicalAddr,uint64_t* srcAddr,uint8_t thrId, uint msgSize) {
+  const int WindowSize = 4096;
   //  EKA_LOG("dstLogicalAddr=0x%jx, srcAddr=%p, msgSize=%u",dstLogicalAddr,srcAddr,msgSize);
   if (thrId >= (int)EkaDev::MAX_CTX_THREADS) on_error("thrId %u >= MAX_CTX_THREADS %d",thrId,EkaDev::MAX_CTX_THREADS);
 
-  if ((! dev->epmThr[thrId].valid) || (dev->epmThr[thrId].threadWindBase != dstLogicalAddr)) {
+  // if ((! dev->epmThr[thrId].valid) || (dev->epmThr[thrId].threadWindBase != dstLogicalAddr)) {
+  if (! dev->epmThr[thrId].valid ||
+      dstLogicalAddr < dev->epmThr[thrId].threadWindBase ||
+      dstLogicalAddr + msgSize > dev->epmThr[thrId].threadWindBase + WindowSize
+      ) {
     // Configuring window base WINDOW_START_POINTER (to configure it, write the pointer to address 0x81000+THREAD_ID*8)
     eka_write(dev, 0x81000+thrId*8, dstLogicalAddr); 
 
     dev->epmThr[thrId].valid = true;
     dev->epmThr[thrId].threadWindBase = dstLogicalAddr;
   }
-  uint64_t dstAddr = EpmHeapHwBaseAddr + thrId * 0x01000;
+  
+  uint wndOffs = dstLogicalAddr - dev->epmThr[thrId].threadWindBase;
+  uint64_t dstAddr = EpmHeapHwBaseAddr + wndOffs + thrId * 0x01000;
 
   uint words2write = msgSize / 8 + !!(msgSize % 8);
   for (uint w = 0; w < words2write; w++) {
