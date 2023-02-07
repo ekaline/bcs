@@ -43,11 +43,16 @@ int EkaEpmAction::setActionBitmap() {
     actionBitParams.bitmap.report_en    = 0;
     actionBitParams.bitmap.feedbck_en   = 0;
     break;
+  case EpmActionType::CmeSwFire    :
+    actionBitParams.bitmap.app_seq_inc  = 1;
+    actionBitParams.bitmap.israw        = 0;
+    actionBitParams.bitmap.report_en    = 0;
+    actionBitParams.bitmap.feedbck_en   = 1;
+    break;
   case EpmActionType::HwFireAction :
   case EpmActionType::BoeFire      :
   case EpmActionType::BoeCancel    :
   case EpmActionType::CmeHwCancel    :
-  case EpmActionType::CmeSwFire    :
     actionBitParams.bitmap.app_seq_inc  = 1;
   case EpmActionType::SqfFire      :
   case EpmActionType::SqfCancel    :
