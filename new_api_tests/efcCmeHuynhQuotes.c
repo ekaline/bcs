@@ -12,6 +12,7 @@
 #include <netinet/tcp.h>
 #include <iterator>
 #include <thread>
+#include <vector>
 
 #include <linux/sockios.h>
 
@@ -34,6 +35,8 @@
 #include "EkaCtxs.h"
 #include "EkaEfcDataStructs.h"
 #include "EkaFhCmeParser.h"
+
+#include "EkaNwParser.h"
 
 #include <fcntl.h>
 #include "ekaNW.h"
@@ -274,44 +277,56 @@ int main(int argc, char *argv[]) {
     efcRun(pEfcCtx, &runCtx );
     // ==============================================
 
-    const int SwMsgLen = 762;
-    const int NumMsgs = 64;
-
-    char swCmeQuote[NumMsgs][SwMsgLen] = {};
     efcCmeSetILinkAppseq(dev,conn,0x1);
-
     /* ------------------------------------------------- */
-    printf("Sending constant msgs\n");
-    for (auto i = 0; i < NumMsgs; i++) {
-      memset (swCmeQuote[i],'X',SwMsgLen);
-      sprintf(swCmeQuote[i],"CME Fast SW Msg: Sequence = |____| : Msg %8d: ",i);
-    }
+    FILE *pcapFile;
+    char buf[1600] = {};
+    uint64_t pktNum = 0;
+    int nQuotes = 0;
+    const size_t QuoteSize = 708;
+    typedef uint8_t Quote[QuoteSize];
+    
+    std::vector <Quote*> quotes;
+    
+    if ((pcapFile = fopen(argv[1], "rb")) == NULL)
+      on_error("Failed to open dump file %s",argv[1]);
 
-    for (auto i = 0; keep_work && i < NumMsgs; i++) {
+    if (fread(buf,sizeof(pcap_file_hdr),1,pcapFile) != 1) 
+      on_error ("Failed to read pcap_file_hdr from the pcap file");
+
+    while (fread(buf,sizeof(pcap_rec_hdr),1,pcapFile) == 1) {
+      pktNum++;
+      auto pcap_rec_hdr_ptr {reinterpret_cast<const pcap_rec_hdr*>(buf)};
+      uint pktLen = pcap_rec_hdr_ptr->len;
+      if (pktLen > 1536)
+	on_error("Probably wrong PCAP format: pktLen = %u ",pktLen);
+
+      char pkt[1536] = {};
+      if (fread(pkt,pktLen,1,pcapFile) != 1) 
+	on_error ("Failed to read %d packet bytes at pkt %ju",pktLen,pktNum);
+
+      auto p {reinterpret_cast<const uint8_t*>(pkt)};
+
+      if (!EkaNwParser::isTcpPkt(p)) continue;
+      if (EkaNwParser::getTcpPayloadLen(p) == QuoteSize) {
+	nQuotes++;
+	auto quotequotePayload = (Quote*) new Quote;
+	memcpy(quotequotePayload,EkaNwParser::getTcpPayload(p),QuoteSize);
+	quotes.push_back(quotequotePayload);
+      }
+	
+    }
+    fclose(pcapFile);
+    /* ------------------------------------------------- */
+    printf("Sending %d preloaded Quotes\n",nQuotes);
+    int i = 0;
+    for (auto const& q : quotes)  {
       auto t1 = std::chrono::high_resolution_clock::now();
-      efcCmeSend(dev,conn,swCmeQuote[i],SwMsgLen,0,true);
+      efcCmeSend(dev,conn,q,QuoteSize,0,true);
       auto t2 = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double, std::nano> nanos_double = t2 - t1;
-      //      printf("constant msg latency = [%f]\n", nanos_double.count());
-    }
-    
-    for (auto i = 0; i < NumMsgs; i++) {
-      memset (swCmeQuote[i],'X',SwMsgLen);
-      sprintf(swCmeQuote[i],"CME Fast SW Msg: Sequence = |____| : Msg %8d: ",i);
-    }
-    /* ------------------------------------------------- */
-    printf("Sending random msgs\n");
-    for (auto i = 0; i < NumMsgs; i++) {
-      for (auto c = 0; c < SwMsgLen; c++)
-	swCmeQuote[i][c] = 'a' + (rand() % ('z' - 'a'));
-    }
-
-    for (auto i = 0; keep_work && i < NumMsgs; i++) {
-      //      auto t1 = std::chrono::high_resolution_clock::now();
-      efcCmeSend(dev,conn,swCmeQuote[i],SwMsgLen,0,true);
-      //      auto t2 = std::chrono::high_resolution_clock::now();
-      //      std::chrono::duration<double, std::nano> nanos_double = t2 - t1;
-      //     printf("random msg latency = [%f]\n", nanos_double.count());
+      printf("%2d: Quote send latency = [%f]\n",
+	     i++,nanos_double.count());
     }
     
     // ==============================================

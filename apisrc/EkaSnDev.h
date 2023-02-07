@@ -49,6 +49,7 @@ class EkaSnDev {
     write(P4_FATAL_DEBUG,(uint64_t) 0); // Clearing Fatal Debug
     write(ENABLE_PORT,1ULL << (24)); // No VLAN no ports, udp killed
 
+    dev->snDevUserLogicRegistersPtr = SC_GetUserLogicRegistersBase(dev_id);
   }
 
 //################################################
@@ -61,7 +62,7 @@ class EkaSnDev {
   }
 //################################################
 
-  uint64_t read(uint64_t addr) {
+  inline uint64_t read(uint64_t addr) {
     uint64_t ret;
     if (SN_ERR_SUCCESS != SN_ReadUserLogicRegister(dev_id, addr/8, &ret))
       on_error("SN_Read returned smartnic error code : %d",SN_GetLastErrorCode());
@@ -69,7 +70,7 @@ class EkaSnDev {
   }
 //################################################
 
-  void write(uint64_t addr, uint64_t val) {
+  inline void write(uint64_t addr, uint64_t val) {
     if (SN_ERR_SUCCESS != SN_WriteUserLogicRegister(dev_id, addr/8, val))
       on_error("SN_Write returned smartnic error code : %d",SN_GetLastErrorCode());
   }

@@ -438,14 +438,14 @@ EkaCoreId EkaDev::findCoreByMacSa(const uint8_t* macSa) {
 }
 /* ##################################################################### */
 
-void     EkaDev::eka_write(uint64_t addr, uint64_t val) { 
-  snDev->write(addr, val); 
-}
+/* void     EkaDev::eka_write(uint64_t addr, uint64_t val) {  */
+/*   snDev->write(addr, val);  */
+/* } */
 /* ##################################################################### */
 
-uint64_t EkaDev::eka_read(uint64_t addr) { 
-  return snDev->read(addr); 
-}
+/* uint64_t EkaDev::eka_read(uint64_t addr) {  */
+/*   return snDev->read(addr);  */
+/* } */
 /* ##################################################################### */
 
 
