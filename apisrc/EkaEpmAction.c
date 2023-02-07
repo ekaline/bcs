@@ -1,5 +1,4 @@
 /* NE SHURIK */
-#include <iostream>
 
 #include "EkaEpmAction.h"
 #include "EkaDev.h"
@@ -726,17 +725,8 @@ int EkaEpmAction::send() {
 }
 /* ----------------------------------------------------- */
 int EkaEpmAction::fastSend(const void* buf, uint len) {
-  auto t1 = std::chrono::high_resolution_clock::now();
   setPktPayload(buf, len);
-  auto t2 = std::chrono::high_resolution_clock::now();
-  int res = send();
-  auto t3 = std::chrono::high_resolution_clock::now();
-
-  std::chrono::duration<double, std::nano> nanos_double = t2 - t1;
-  printf("setPktPayload= [%f]\n", nanos_double.count());
-  nanos_double = t3 - t2;
-  printf("send= [%f]\n", nanos_double.count());
-  return res;
+  return send();
 }
 /* ----------------------------------------------------- */
 int EkaEpmAction::fastSend(const void* buf) {
