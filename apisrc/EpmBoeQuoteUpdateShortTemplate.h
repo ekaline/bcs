@@ -37,9 +37,8 @@ class EpmBoeQuoteUpdateShortTemplate : public EpmTemplate {
       {"MessageType" ,                  1, HwField::IMMEDIATE,    false, false }, // 0x59
       {"MatchingUnit" ,                 1, HwField::IMMEDIATE,    false, false }, // always 0
       {"SequenceNumber" ,               4, HwField::IMMEDIATE,    false, false }, // 0
-      {"QuoteUpdateIdtxt" ,             7, HwField::IMMEDIATE,    false, false }, // free text
+      {"QuoteUpdateIdtxt" ,             8, HwField::IMMEDIATE,    false, false }, // free text
       {"QuoteUpdateIdseq" ,             8, HwField::ASCII_CNT,    false, true  }, //
-      {"QuoteUpdateIdtail" ,            1, HwField::IMMEDIATE,    false, false }, // free text
       
       {"ClearingFirm" ,                 4, HwField::IMMEDIATE,    false, false },  
       {"ClearingAccount" ,              4, HwField::IMMEDIATE,    false, false },  
