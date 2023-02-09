@@ -224,15 +224,24 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
   }
 }
 
-inline bool getExpiryTime(const DefinitionEventEntry& lastTradeEvent, time_t& expiryTimeT,
-                          char (&expiryFmtBuf)[32]) {
+inline uint32_t encodeYYYYMMDD(const struct tm* t) {
+  if (t == NULL) return 0;
+  const uint32_t year = t->tm_year + 1900;
+  const uint32_t month = t->tm_mon + 1;
+  const uint32_t day = t->tm_mday;
+  return (year * 1'00'00) + (month * 1'00) + day;
+}
+
+inline bool getExpiry(const DefinitionEventEntry& lastTradeEvent, EfhSecurityDef& commonDef,
+                      char (&expiryFmtBuf)[32]) {
   const chrono::system_clock::time_point expiryTime(chrono::nanoseconds(lastTradeEvent.EventTime));
-  expiryTimeT = chrono::system_clock::to_time_t(expiryTime);
+  commonDef.expiryTime = chrono::system_clock::to_time_t(expiryTime);
+  struct tm timeInfoBuf;
+  struct tm* timeInfo = localtime_r(&commonDef.expiryTime, &timeInfoBuf);
+  commonDef.expiryDate = encodeYYYYMMDD(timeInfo);
 
   const static auto todayAtMidnight = systemClockAtMidnight();
   if (expiryTime < todayAtMidnight) {
-    struct tm timeInfoBuf;
-    struct tm* timeInfo = localtime_r(&expiryTimeT, &timeInfoBuf);
     if (timeInfo == NULL || strftime(expiryFmtBuf, sizeof(expiryFmtBuf), "%F %T%z", timeInfo) == 0) {
       // Failed to write formatted expiration
       expiryFmtBuf[0] = '?';
@@ -240,6 +249,8 @@ inline bool getExpiryTime(const DefinitionEventEntry& lastTradeEvent, time_t& ex
     }
     return false;
   }
+
+  return true;
 }
 
 /* ##################################################################### */
@@ -651,7 +662,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
     if (e->EventType == DefinitionEventType_T::LastTradeDate) {
       // Expiration time
       char expiryFmtBuf[32];
-      if (!getExpiryTime(*e, msg.commonDef.expiryTime, expiryFmtBuf)) {
+      if (!getExpiry(*e, msg.commonDef, expiryFmtBuf)) {
         EKA_TRACE("skipping future `%d` that expired before today (expiry = %s)",
                   rootBlock->SecurityID, expiryFmtBuf);
         return msgHdr->size;
@@ -740,7 +751,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
     if (e->EventType == DefinitionEventType_T::LastTradeDate) {
       // Expiration time
       char expiryFmtBuf[32];
-      if (!getExpiryTime(*e, msg.commonDef.expiryTime, expiryFmtBuf)) {
+      if (!getExpiry(*e, msg.commonDef, expiryFmtBuf)) {
         EKA_TRACE("skipping option `%d` that expired before today (expiry = %s)",
                   rootBlock->SecurityID, expiryFmtBuf);
         return msgHdr->size;
@@ -863,7 +874,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
     if (e->EventType == DefinitionEventType_T::LastTradeDate) {
       // Expiration time
       char expiryFmtBuf[32];
-      if (!getExpiryTime(*e, msg.commonDef.expiryTime, expiryFmtBuf)) {
+      if (!getExpiry(*e, msg.commonDef, expiryFmtBuf)) {
         EKA_TRACE("skipping spread `%d` that expired before today (expiry = %s)",
                   rootBlock->SecurityID, expiryFmtBuf);
         return msgHdr->size;
