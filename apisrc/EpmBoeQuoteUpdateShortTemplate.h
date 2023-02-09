@@ -39,19 +39,19 @@ class EpmBoeQuoteUpdateShortTemplate : public EpmTemplate {
       {"SequenceNumber" ,               4, HwField::IMMEDIATE,    false, false }, // 0
       {"QuoteUpdateIdtxt" ,             8, HwField::IMMEDIATE,    false, false }, // free text
       {"QuoteUpdateIdseq" ,             8, HwField::ASCII_CNT,    false, true  }, //
-      
+
       {"ClearingFirm" ,                 4, HwField::IMMEDIATE,    false, false },  
       {"ClearingAccount" ,              4, HwField::IMMEDIATE,    false, false },  
       {"CustomGroupID" ,                2, HwField::IMMEDIATE,    false, false },  
       {"Capacity" ,                     1, HwField::IMMEDIATE,    false, false }, // 'M'  
       {"Reserved" ,                     3, HwField::IMMEDIATE,    false, false },
-      {"SendTime" ,                     8, HwField::TIME,         true,  true  }, // 
+      {"SendTime" ,                     8, HwField::TIME,         false, true  }, //
       {"PostingInstruction" ,           1, HwField::IMMEDIATE,    false, false }, // I
       {"SessionEligibility" ,           1, HwField::IMMEDIATE,    false, false }, // R      
       {"QuoteCnt" ,                     1, HwField::IMMEDIATE,    false, false }, // 1
 
       /* --------------------------- */
-      {"Symbol" ,                       6, HwField::IMMEDIATE,    false, false }, // free text
+      {"Symbol" ,                       6, HwField::SECURITY_ID,  false, true }, // free text
       {"Side" ,                         1, HwField::SIDE,         true,  true  }, // '1'-Bid, '2'-Ask
       {"OpenClose" ,                    1, HwField::IMMEDIATE,    false, false }, // 0
       {"Price" ,                        4, HwField::PRICE,        true,  true  },  
