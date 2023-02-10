@@ -51,7 +51,7 @@ class EpmBoeQuoteUpdateShortTemplate : public EpmTemplate {
       {"QuoteCnt" ,                     1, HwField::IMMEDIATE,    false, false }, // 1
 
       /* --------------------------- */
-      {"Symbol" ,                       6, HwField::IMMEDIATE,    false, false }, // free text
+      {"Symbol" ,                       6, HwField::SECURITY_ID,  false, true  }, // free text
       {"Side" ,                         1, HwField::SIDE,         true,  true  }, // '1'-Bid, '2'-Ask
       {"OpenClose" ,                    1, HwField::IMMEDIATE,    false, false }, // 0
       {"Price" ,                        4, HwField::PRICE,        true,  true  },  
