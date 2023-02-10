@@ -45,7 +45,7 @@ class EpmBoeQuoteUpdateShortTemplate : public EpmTemplate {
       {"CustomGroupID" ,                2, HwField::IMMEDIATE,    false, false },  
       {"Capacity" ,                     1, HwField::IMMEDIATE,    false, false }, // 'M'  
       {"Reserved" ,                     3, HwField::IMMEDIATE,    false, false },
-      {"SendTime" ,                     8, HwField::TIME,         true,  true  }, // 
+      {"SendTime" ,                     8, HwField::TIME,         false, true  }, //
       {"PostingInstruction" ,           1, HwField::IMMEDIATE,    false, false }, // I
       {"SessionEligibility" ,           1, HwField::IMMEDIATE,    false, false }, // R      
       {"QuoteCnt" ,                     1, HwField::IMMEDIATE,    false, false }, // 1
