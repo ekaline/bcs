@@ -60,6 +60,14 @@ void print_usage(char* cmd) {
   exit (1);    
 }
 
+void copy_to_atomic(std::atomic<uint64_t> *__restrict dst_a, 
+                      const uint64_t *__restrict src, size_t len) {
+  const uint64_t *endsrc = src+len;
+    while (src < endsrc) {
+        dst_a->store( *src, std::memory_order_release );
+        dst_a++; src++;
+    }
+}
 /* *************************************************************** */
 int main(int argc, char *argv[]) {
 
@@ -87,16 +95,21 @@ int main(int argc, char *argv[]) {
   //  hexDump("Data",data,sizeof(data));
   //  memcpy((void*)a2wr,data,sizeof(data));
 
-  volatile uint64_t* b2wr = a2wr;
-
-  for (size_t b = 0; b < RegionSize/BlockSize; b ++) {
-    memcpy((void*)b2wr,&data[b * (BlockSize/WordSize)],BlockSize);
+  //  volatile uint64_t* b2wr = a2wr;
+  std::atomic<long unsigned int>* b2wr = (std::atomic<long unsigned int>*)a2wr;
+  copy_to_atomic(b2wr,data,sizeof(data)/8);
+  /*
+    for (size_t b = 0; b < RegionSize/BlockSize; b ++) {
+    //    memcpy((void*)b2wr,&data[b * (BlockSize/WordSize)],BlockSize);
+          copy_to_atomic(b2wr,&data[b * (BlockSize/WordSize)],BlockSize);
+    //    printf ("data add = %ju\n",b * (BlockSize/WordSize));
+    //        hexDump("Block",&data[b * (BlockSize/WordSize)],BlockSize);
     //    _mm_sfence();
-    //    _mm_mfence();
+    //        _mm_mfence();
 
     b2wr += (BlockSize/WordSize);
   }
-
+  */
   
   if (SC_CloseDevice(dev_id) != SC_ERR_SUCCESS) on_error("Error on SC_CloseDevice");
   return 0;
