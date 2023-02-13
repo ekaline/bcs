@@ -98,6 +98,23 @@ int main(int argc, char *argv[]) {
   }
 
   
+
+    
+  /* for (size_t b = 0; b < RegionSize/BlockSize; b ++) { */
+  /*   memcpy((void*)b2wr,&data[b * (BlockSize/WordSize)],BlockSize); */
+  /*   //    _mm_sfence(); */
+  /*   //    _mm_mfence(); */
+
+  /*   b2wr += (BlockSize/WordSize); */
+  /* } */
+
+
+  __m256i* dst256 = (__m256i*) a2wr;
+  __m256i* src256 = (__m256i*) data;
+  for (uint i = 0; i < RegionSize/32; i++) {
+    _mm256_store_si256(dst256++, *src256++);
+  }
+  
   if (SC_CloseDevice(dev_id) != SC_ERR_SUCCESS) on_error("Error on SC_CloseDevice");
   return 0;
 }
