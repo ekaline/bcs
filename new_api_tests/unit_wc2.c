@@ -84,10 +84,20 @@ int main(int argc, char *argv[]) {
     }
   }
     
-  hexDump("Data",data,sizeof(data));
-  memcpy((void*)a2wr,data,sizeof(data));
+  //  hexDump("Data",data,sizeof(data));
+  //  memcpy((void*)a2wr,data,sizeof(data));
 
+  volatile uint64_t* b2wr = a2wr;
 
+  for (size_t b = 0; b < RegionSize/BlockSize; b ++) {
+    memcpy((void*)b2wr,&data[b * (BlockSize/WordSize)],BlockSize);
+    //    _mm_sfence();
+    //    _mm_mfence();
+
+    b2wr += (BlockSize/WordSize);
+  }
+
+  
   if (SC_CloseDevice(dev_id) != SC_ERR_SUCCESS) on_error("Error on SC_CloseDevice");
   return 0;
 }
