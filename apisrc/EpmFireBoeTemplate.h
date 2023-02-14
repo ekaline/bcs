@@ -37,9 +37,9 @@ class EpmFireBoeTemplate : public EpmTemplate {
       {"MessageType" ,                  1, HwField::IMMEDIATE,    false, false }, // 0x38 NewOrder
       {"MatchingUnit" ,                 1, HwField::IMMEDIATE,    false, false }, // always 0
       {"SequenceNumber" ,               4, HwField::IMMEDIATE,    false, false }, // 0
-      {"ClOrdIDtxt" ,                   11,HwField::IMMEDIATE,    false, false }, // free text
+      {"ClOrdIDtxt" ,                   5,HwField::IMMEDIATE,    false, false }, // free text
       {"ClOrdIDseq" ,                   8, HwField::ASCII_CNT,    false, true  }, //
-      {"ClOrdIDtail" ,                  1, HwField::IMMEDIATE,    false, false }, // free text
+      {"ClOrdIDtail" ,                  7, HwField::IMMEDIATE,    false, false }, // free text
       
       {"Side" ,                         1, HwField::SIDE,         true,  true  }, // '1'-Bid, '2'-Ask
       {"OrderQty" ,                     4, HwField::SIZE,         true,  true  },
