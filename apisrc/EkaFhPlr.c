@@ -110,7 +110,6 @@ EkaOpResult EkaFhPlr::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, u
 		EKA_EXCH_DECODE(exch),gr_id,sequence);
 	gr->sendFeedUpInitial(pEfhRunCtx);
 	gr->state = EkaFhGroup::GrpState::NORMAL;
-        gr->trade_status = EfhTradeStatus::kNormal;
 	gr->gapClosed = true;
 	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,
 						     msgInPkt,sequence);      

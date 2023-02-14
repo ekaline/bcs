@@ -180,6 +180,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     break;
     // #####################################################
   case MsgType::SecurityStatus : // 34 -- NOT USED!
+    EKA_WARN("%s:%d Used!", EKA_EXCH_DECODE(exch),id);
 #if 0
       auto m {reinterpret_cast<const SecurityStatus*>(pMsg)};
       FhSecurity* s = book->findSecurity(m->seriesIndex);
