@@ -81,6 +81,7 @@ int main(int argc, char *argv[]) {
 
   /* ------------------------------------------------------------------ */
   const size_t RegionSize = 64*13;
+  //  const size_t RegionSize = 4096;
   const size_t BlockSize  = 64; // 1 Burst
   const size_t WordSize   = 8;  // 1 Memory word
 
@@ -91,7 +92,7 @@ int main(int argc, char *argv[]) {
   for (size_t b = 0; b < RegionSize/BlockSize; b ++) {
     for (size_t w = 0; w < BlockSize/WordSize; w ++) {
       size_t flatWordIdx = b * (BlockSize/WordSize) + w;
-      sprintf((char*)&data[flatWordIdx],"B%2ju,B%ju;",b,w);
+      sprintf((char*)&data[flatWordIdx],"b%2ju,w%ju;",b,w);
     }
   }
     
