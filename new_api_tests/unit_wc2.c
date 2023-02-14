@@ -114,6 +114,7 @@ int main(int argc, char *argv[]) {
   }
   */
 
+  //dumper
   
   uint words2read = sizeof(test_data) / 8 + !!(sizeof(test_data) % 8);
   uint64_t srcAddr = HwWcTestAddr / 8;
