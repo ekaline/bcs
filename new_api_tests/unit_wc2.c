@@ -23,6 +23,8 @@
 
 volatile uint64_t * EkalineGetWcBase(SC_DeviceId deviceId);
 
+static const uint64_t HwWcTestAddr = 0x20000;
+
 #define TCP_FAST_SEND_SP_BASE (0x8000 / 8)
 #define TEST_LOG(...) { printf("%s@%s:%d: ",__func__,__FILE__,__LINE__); printf(__VA_ARGS__); printf("\n"); }
 
@@ -78,17 +80,18 @@ int main(int argc, char *argv[]) {
   TEST_LOG("a2wr = %p",a2wr);
 
   /* ------------------------------------------------------------------ */
-  const size_t RegionSize = 4096; // 4 KB
+  const size_t RegionSize = 64*13;
   const size_t BlockSize  = 64; // 1 Burst
   const size_t WordSize   = 8;  // 1 Memory word
 
   
   uint64_t __attribute__ ((aligned(0x100))) data[RegionSize/WordSize] = {};
+  uint64_t __attribute__ ((aligned(0x100))) test_data[RegionSize/WordSize] = {};
 
   for (size_t b = 0; b < RegionSize/BlockSize; b ++) {
     for (size_t w = 0; w < BlockSize/WordSize; w ++) {
       size_t flatWordIdx = b * (BlockSize/WordSize) + w;
-      sprintf((char*)&data[flatWordIdx],"b%2ju,w%ju;",b,w);
+      sprintf((char*)&data[flatWordIdx],"B%2ju,B%ju;",b,w);
     }
   }
     
@@ -110,7 +113,16 @@ int main(int argc, char *argv[]) {
     b2wr += (BlockSize/WordSize);
   }
   */
+
   
+  uint words2read = sizeof(test_data) / 8 + !!(sizeof(test_data) % 8);
+  uint64_t srcAddr = HwWcTestAddr / 8;
+  uint64_t* dstAddr = (uint64_t*)&test_data;
+  for (uint w = 0; w < words2read; w++)
+    SN_ReadUserLogicRegister(dev_id, srcAddr++, dstAddr++);
+
+  hexDump("Test Data",test_data,sizeof(test_data));
+
   if (SC_CloseDevice(dev_id) != SC_ERR_SUCCESS) on_error("Error on SC_CloseDevice");
   return 0;
 }
