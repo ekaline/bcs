@@ -60,13 +60,14 @@ void print_usage(char* cmd) {
   exit (1);    
 }
 
-void copy_to_atomic(std::atomic<uint64_t> *__restrict dst_a, 
-                      const uint64_t *__restrict src, size_t len) {
+inline void copy_to_atomic(std::atomic<uint64_t> *__restrict dst_a, 
+			   const uint64_t *__restrict src, const size_t len) {
   const uint64_t *endsrc = src+len;
-    while (src < endsrc) {
-        dst_a->store( *src, std::memory_order_release );
-        dst_a++; src++;
-    }
+  while (src < endsrc) {
+    //      dst_a->store( *src, std::memory_order_release );
+    dst_a->store( *src, std::memory_order_seq_cst );
+    dst_a++; src++;
+  }
 }
 /* *************************************************************** */
 int main(int argc, char *argv[]) {
@@ -96,7 +97,7 @@ int main(int argc, char *argv[]) {
   //  memcpy((void*)a2wr,data,sizeof(data));
 
   //  volatile uint64_t* b2wr = a2wr;
-  std::atomic<long unsigned int>* b2wr = (std::atomic<long unsigned int>*)a2wr;
+  auto b2wr = (std::atomic<long unsigned int>*)a2wr;
   copy_to_atomic(b2wr,data,sizeof(data)/8);
   /*
     for (size_t b = 0; b < RegionSize/BlockSize; b ++) {
@@ -122,11 +123,11 @@ int main(int argc, char *argv[]) {
   /* } */
 
 
-  __m256i* dst256 = (__m256i*) a2wr;
-  __m256i* src256 = (__m256i*) data;
-  for (uint i = 0; i < RegionSize/32; i++) {
-    _mm256_store_si256(dst256++, *src256++);
-  }
+  /* __m256i* dst256 = (__m256i*) a2wr; */
+  /* __m256i* src256 = (__m256i*) data; */
+  /* for (uint i = 0; i < RegionSize/32; i++) { */
+  /*   _mm256_store_si256(dst256++, *src256++); */
+  /* } */
   
   if (SC_CloseDevice(dev_id) != SC_ERR_SUCCESS) on_error("Error on SC_CloseDevice");
   return 0;
