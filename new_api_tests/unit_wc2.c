@@ -66,8 +66,8 @@ inline void copy_to_atomic(std::atomic<uint64_t> *__restrict dst_a,
 			   const uint64_t *__restrict src, const size_t len) {
   const uint64_t *endsrc = src+len;
   while (src < endsrc) {
-    //      dst_a->store( *src, std::memory_order_release );
-    dst_a->store( *src, std::memory_order_seq_cst );
+    dst_a->store( *src, std::memory_order_release );
+    //dst_a->store( *src, std::memory_order_seq_cst );
     dst_a++; src++;
   }
 }

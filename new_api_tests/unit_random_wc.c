@@ -32,8 +32,8 @@ inline void copy_to_atomic(volatile uint64_t * __restrict dst,
   auto src = (const uint64_t *__restrict) srcBuf;
   const uint64_t *endsrc = src+len;
   while (src < endsrc) {
-    //    dst_a->store( *src, std::memory_order_seq_cst );
-    atomicDst->store( *src, std::memory_order_release );
+    atomicDst->store( *src, std::memory_order_seq_cst );
+    //atomicDst->store( *src, std::memory_order_release );
     atomicDst++; src++;
   }
 }
@@ -47,14 +47,22 @@ int main(int argc, char *argv[]) {
 
   /* ------------------------------------------------------------------ */
   const size_t RegionSize = 2 * 1024; 
-  
+  const size_t BlockSize  = 64; // 1 Burst
+
   uint8_t __attribute__ ((aligned(0x100))) data[RegionSize] = {};
   uint8_t __attribute__ ((aligned(0x100))) test_data[RegionSize] = {};
 
-  for (size_t i = 0; i < RegionSize; i ++) {
-    data[i] = 'a' + rand() % ('z' -'a' + 1);
-  }
+  /* for (size_t i = 0; i < RegionSize; i ++) { */
+  /*   data[i] = 'a' + rand() % ('z' -'a' + 1); */
+  /* } */
 
+  for (size_t b = 0; b < RegionSize/BlockSize; b ++) {
+    for (size_t w = 0; w < BlockSize/sizeof(uint64_t); w ++) {
+      size_t flatWordIdx = b * BlockSize + w * sizeof(uint64_t);
+      sprintf((char*)&data[flatWordIdx],"b%2ju,w%ju;",b,w);
+    }
+  }
+    
   hexDump("Data",data,sizeof(data));
   
   copy_to_atomic(a2wr,data,sizeof(data)/8);
@@ -66,8 +74,9 @@ int main(int argc, char *argv[]) {
 
   hexDump("test_data",test_data,sizeof(data));
 
-  if (memcmp(data,test_data,RegionSize)) {
-    TEST_LOG("Failed");
+  int r = memcmp(data,test_data,RegionSize);
+  if (r != 0) {
+    TEST_LOG("Failed: r = %d",r);
   } else {
     TEST_LOG("Succeeded");
   }
