@@ -826,7 +826,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   }
 
   if (strikePriceFactor == 0) {
-    EKA_WARN("No underlying ({0}) found for option `{1}` ({2}); skipping",
+    EKA_WARN("no underlying ({0}) found for option `{1}` ({2}); skipping",
              msg.header.underlyingId, rootBlock->Symbol, rootBlock->SecurityID);
     return msgHdr->size;
   }
