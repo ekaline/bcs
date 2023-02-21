@@ -634,9 +634,9 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
 
   uint64_t finalPriceFactor;
-  if (memcmp(rootBlock->Symbol, "SI", 3) == 0) {
+  if (memcmp(rootBlock->Asset, "SI", 3) == 0) {
     finalPriceFactor = computeFinalPriceFactor(0'010'000'000); // 0.01
-  } else if (memcmp(rootBlock->Symbol, "GC", 3) == 0) {
+  } else if (memcmp(rootBlock->Asset, "GC", 3) == 0) {
     finalPriceFactor = computeFinalPriceFactor(1'000'000'000); // 1.0
   } else {
     finalPriceFactor = computeFinalPriceFactor(rootBlock->DisplayFactor);
