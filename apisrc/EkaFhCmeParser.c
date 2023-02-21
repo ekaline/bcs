@@ -740,6 +740,12 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   msg.optionStyle           = static_cast<EfhOptionStyle>(rootBlock->CFICode[2]);
   msg.strikePrice           = rootBlock->StrikePrice / priceAdjustFactor;
   msg.segmentId             = rootBlock->MarketSegmentID;
+  EKA_DEBUG("option `%s`, strikePrice = %f, StrikeCurrency=%.3s, "
+            "StrikePrice=%" PRId64 ", priceAdjustFactor=%" PRId64 ", DisplayFactor=%" PRId64,
+            msg.commonDef.exchSecurityName,
+            static_cast<float>(msg.strikePrice) / EFH__PRICE_SCALE,
+            rootBlock->StrikeCurrency,
+            rootBlock->StrikePrice, priceAdjustFactor, rootBlock->DisplayFactor);
 
   msg.commonDef.opaqueAttrB = DEFAULT_OPT_DEPTH; // default MarketDepth for Options
 
