@@ -15,6 +15,7 @@
 
 #include "EkaFhRunGroup.h"
 #include "EkaFhCmeGr.h"
+#include "EkaFhCme.h"
 
 using namespace Cme;
 namespace chrono = std::chrono;
@@ -632,6 +633,15 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   /* ------------------------------- */
   auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
 
+  uint64_t finalPriceFactor;
+  if (memcmp(rootBlock->Symbol, "SI", 3) == 0) {
+    finalPriceFactor = computeFinalPriceFactor(0'010'000'000); // 0.01
+  } else if (memcmp(rootBlock->Symbol, "GC", 3) == 0) {
+    finalPriceFactor = computeFinalPriceFactor(1'000'000'000); // 1.0
+  } else {
+    finalPriceFactor = computeFinalPriceFactor(rootBlock->DisplayFactor);
+  }
+
   EfhFutureDefinitionMsg msg{};
   msg.header.msgType        = EfhMsgType::kFutureDefinition;
   msg.header.group.source   = EkaSource::kCME_SBE;
@@ -647,8 +657,14 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   msg.commonDef.underlyingType = EfhSecurityType::kIndex;
   msg.commonDef.contractSize   = replaceIntNullWith<Decimal9NULL_T>(
       rootBlock->UnitOfMeasureQty, rootBlock->UnitOfMeasureQty / EFH_CME_PRICE_SCALE, 0);
-  msg.commonDef.opaqueAttrA    = computeFinalPriceFactor(rootBlock->DisplayFactor);
+  msg.commonDef.opaqueAttrA    = finalPriceFactor;
   msg.commonDef.opaqueAttrB    = DEFAULT_FUT_DEPTH; // default Market Depth for Futures
+
+  EkaFhCme *const fh = dynamic_cast<EkaFhCme*>(this->fh);
+  {
+    std::unique_lock lck(fh->futuresMutex);
+    fh->futureStrikePriceFactors.insert(std::make_pair(rootBlock->SecurityID, finalPriceFactor));
+  }
 
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
   copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
@@ -738,14 +754,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
 
   msg.optionType            = putOrCall;
   msg.optionStyle           = static_cast<EfhOptionStyle>(rootBlock->CFICode[2]);
-  msg.strikePrice           = rootBlock->StrikePrice / priceAdjustFactor;
   msg.segmentId             = rootBlock->MarketSegmentID;
-  EKA_DEBUG("option `%s`, strikePrice = %f, StrikeCurrency=%.3s, "
-            "StrikePrice=%" PRId64 ", priceAdjustFactor=%" PRId64 ", DisplayFactor=%" PRId64 ", PriceDisplayFormat=%d",
-            msg.commonDef.exchSecurityName,
-            static_cast<float>(msg.strikePrice) / EFH__PRICE_SCALE,
-            rootBlock->StrikeCurrency,
-            rootBlock->StrikePrice, priceAdjustFactor, rootBlock->DisplayFactor, rootBlock->PriceDisplayFormat);
 
   msg.commonDef.opaqueAttrB = DEFAULT_OPT_DEPTH; // default MarketDepth for Options
 
@@ -805,6 +814,24 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
 
     m += pGroupSize_RelatedInstruments->blockLength;
   }
+
+  uint64_t strikePriceFactor = 0;
+  EkaFhCme *const fh = dynamic_cast<EkaFhCme*>(this->fh);
+  {
+    std::shared_lock lck(fh->futuresMutex);
+    const auto it = fh->futureStrikePriceFactors.find(msg.header.underlyingId);
+    if (it != fh->futureStrikePriceFactors.end()) {
+      strikePriceFactor = it->second;
+    }
+  }
+
+  if (strikePriceFactor == 0) {
+    EKA_WARN("No underlying ({0}) found for option `{1}` ({2}); skipping",
+             msg.header.underlyingId, rootBlock->Symbol, rootBlock->SecurityID);
+    return msgHdr->size;
+  }
+
+  msg.strikePrice           = rootBlock->StrikePrice / strikePriceFactor;
   
   if (msg.commonDef.opaqueAttrB < 3)
     print_MDInstrumentDefinitionOption55(pMsg);
