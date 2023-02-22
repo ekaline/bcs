@@ -8,7 +8,7 @@ std::string ts_ns2str(uint64_t ts);
 std::string eka_get_date ();
 std::string eka_get_time ();
 int createThread(const char* name, EkaServiceType type,  void *(*threadRoutine)(void*), void* arg, void* context, uintptr_t *handle);
-int credAcquire(EkaCredentialType credType, EkaGroup group, const char *user, const struct timespec *leaseTime, const struct timespec *timeout, void* context, EkaCredentialLease **lease);
+int credAcquire(EkaCredentialType credType, EkaGroup group, const char *user, size_t userLength, const struct timespec *leaseTime, const struct timespec *timeout, void* context, EkaCredentialLease **lease);
 int credRelease(EkaCredentialLease *lease, void* context);
 void* onOrder(const EfhOrderMsg* msg, EfhSecUserData secData, EfhRunUserData userData);
 void* onTrade(const EfhTradeMsg* msg, EfhSecUserData secData, EfhRunUserData userData);
