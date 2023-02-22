@@ -679,8 +679,8 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
       // Expiration time
       char expiryFmtBuf[32];
       if (!getExpiry(*e, msg.commonDef, expiryFmtBuf)) {
-        EKA_DEBUG("skipping future `%d` that expired before today (expiry = %s)",
-                  rootBlock->SecurityID, expiryFmtBuf);
+        EKA_TRACE("skipping future `%s` (%d) that expired before today (expiry = %s)",
+                  msg.commonDef.exchSecurityName, rootBlock->SecurityID, expiryFmtBuf);
         return msgHdr->size;
       }
     }
@@ -767,8 +767,8 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
       // Expiration time
       char expiryFmtBuf[32];
       if (!getExpiry(*e, msg.commonDef, expiryFmtBuf)) {
-        EKA_DEBUG("skipping option `%d` that expired before today (expiry = %s)",
-                  rootBlock->SecurityID, expiryFmtBuf);
+        EKA_TRACE("skipping option `%s` (%d) that expired before today (expiry = %s)",
+                  msg.commonDef.exchSecurityName, rootBlock->SecurityID, expiryFmtBuf);
         return msgHdr->size;
       }
     }
@@ -908,7 +908,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
       // Expiration time
       char expiryFmtBuf[32];
       if (!getExpiry(*e, msg.commonDef, expiryFmtBuf)) {
-        EKA_DEBUG("skipping spread `%d` that expired before today (expiry = %s)",
+        EKA_TRACE("skipping spread `%d` that expired before today (expiry = %s)",
                   rootBlock->SecurityID, expiryFmtBuf);
         return msgHdr->size;
       }
