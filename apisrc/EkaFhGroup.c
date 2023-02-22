@@ -379,13 +379,13 @@ void EkaFhGroup::print_q_state() {
    if (! dev->credAcquire)
      on_error("credAcquire is not initialized");
    int rc = dev->credAcquire(credType,
-			     group,
-			     credName,
+                             group,
+                             credName,
                              credNameSize,
-			     &leaseTime,
-			     &timeout,
-			     dev->credContext,
-			     lease);
+                             &leaseTime,
+                             &timeout,
+                             dev->credContext,
+                             lease);
    if (rc == 0)
      credentialsAcquired = true;
   
