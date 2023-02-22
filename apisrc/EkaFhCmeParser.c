@@ -633,13 +633,14 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   /* ------------------------------- */
   auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
 
-  uint64_t finalPriceFactor;
+  const uint64_t priceAdjustFactor = computeFinalPriceFactor(rootBlock->DisplayFactor);
+  uint64_t strikePriceFactor;
   if (memcmp(rootBlock->Asset, "SI", 3) == 0) {
-    finalPriceFactor = computeFinalPriceFactor(0'010'000'000); // 0.01
+    strikePriceFactor = computeFinalPriceFactor(0'010'000'000); // 0.01
   } else if (memcmp(rootBlock->Asset, "GC", 3) == 0) {
-    finalPriceFactor = computeFinalPriceFactor(1'000'000'000); // 1.0
+    strikePriceFactor = computeFinalPriceFactor(1'000'000'000); // 1.0
   } else {
-    finalPriceFactor = computeFinalPriceFactor(rootBlock->DisplayFactor);
+    strikePriceFactor = priceAdjustFactor;
   }
 
   EfhFutureDefinitionMsg msg{};
@@ -657,18 +658,21 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   msg.commonDef.underlyingType = EfhSecurityType::kIndex;
   msg.commonDef.contractSize   = replaceIntNullWith<Decimal9NULL_T>(
       rootBlock->UnitOfMeasureQty, rootBlock->UnitOfMeasureQty / EFH_CME_PRICE_SCALE, 0);
-  msg.commonDef.opaqueAttrA    = finalPriceFactor;
+  msg.commonDef.opaqueAttrA    = priceAdjustFactor;
   msg.commonDef.opaqueAttrB    = DEFAULT_FUT_DEPTH; // default Market Depth for Futures
 
   EkaFhCme *const fh = dynamic_cast<EkaFhCme*>(this->fh);
   {
     std::unique_lock lck(fh->futuresMutex);
-    fh->futureStrikePriceFactors.insert(std::make_pair(rootBlock->SecurityID, finalPriceFactor));
+    fh->futureStrikePriceFactors.insert(std::make_pair(rootBlock->SecurityID, strikePriceFactor));
   }
 
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
   copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
   copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
+
+  msg.displayFactor = rootBlock->DisplayFactor / CMEPriceFactor;
+  msg.tickSize = rootBlock->MinPriceIncrement / CMEPriceFactor * msg.displayFactor / EFH__PRICE_SCALE;
   
   /* ------------------------------- */
   auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};

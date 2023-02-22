@@ -328,7 +328,11 @@ typedef struct {
 typedef struct {
     #define EfhFutureDefinitionMsg_FIELD_ITER( _x )                         \
                 _x( EfhMsgHeader,    header )                               \
-                _x( EfhSecurityDef,  commonDef )
+                _x( EfhSecurityDef,  commonDef )                            \
+                /** Divide by EFH_PRICE_SCALE. */                           \
+                _x( int64_t,         tickSize )                             \
+                /** Divide by EFH_PRICE_SCALE. */                           \
+                _x( int64_t,         displayFactor )
         EfhFutureDefinitionMsg_FIELD_ITER( EKA__FIELD_DEF )
 } EfhFutureDefinitionMsg;
 
