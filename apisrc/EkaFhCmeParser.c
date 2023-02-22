@@ -671,8 +671,8 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
   copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
 
-  msg.displayFactor = rootBlock->DisplayFactor / CMEPriceFactor;
-  msg.tickSize = rootBlock->MinPriceIncrement / CMEPriceFactor * msg.displayFactor / EFH__PRICE_SCALE;
+  msg.displayFactor = static_cast<float>(rootBlock->DisplayFactor) / EFH_CME_PRICE_SCALE;
+  msg.tickSize = static_cast<float>(rootBlock->MinPriceIncrement) / EFH_CME_PRICE_SCALE * msg.displayFactor;
   
   /* ------------------------------- */
   auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
