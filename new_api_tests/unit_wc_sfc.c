@@ -61,10 +61,6 @@ int main(int argc, char *argv[]) {
     uint64_t pad18 : 18;
   } __attribute__((packed));
 
-
-  /*  printf ("sizeof(WcDesc) = %ju\n",sizeof(WcDesc)); */
-  /* return(0);  */
-  
   SC_DeviceId dev_id = SC_OpenDevice(NULL, NULL);
   if (dev_id == NULL) on_error("SC_OpenDevice == NULL: cannot open Smartnic device");
   volatile uint64_t* a2wr = EkalineGetWcBase(dev_id);
@@ -73,67 +69,48 @@ int main(int argc, char *argv[]) {
   const uint64_t Iterations = 100 * 1024 * 1024; 
   const int DataMaxSize = 2048 - 64; 
 
-  struct Test {
-    size_t dataLen;
+  for (uint64_t i = 0; i < Iterations; i++) {
     uint8_t data[DataMaxSize];
-  };
-  
-  std::vector <Test> tests;
-  for (uint64_t j = 0; j < Iterations; j++) {
-    Test newTest = {};
-    newTest.dataLen = roundUp64(rand() % DataMaxSize);
-    for (size_t i = 0; i < newTest.dataLen; i ++) {
-      newTest.data[i] = 'a' + rand() % ('z' -'a' + 1);
+    size_t dataLen = roundUp64(rand() % DataMaxSize);
+    for (size_t c = 0; c < dataLen; c ++) {
+      data[c] = 'a' + rand() % ('z' -'a' + 1);
     }
-    tests.push_back(newTest);
-  }
 
-  int i = 0;
-  for (const auto& t : tests) {
     WcDesc __attribute__ ((aligned(0x100))) desc = {
-		   .nBytes = t.dataLen & 0xFFF,
+		   .nBytes = dataLen & 0xFFF,
 		   .addr = (uint64_t)0,
 		   .opc = 2,
     };
-    if (sizeof(desc) != 16)
-      on_error("Pizdets");
+
     copyBuf(a2wr,&desc,sizeof(desc));
-    copyBuf((volatile uint64_t*)(a2wr + 8),t.data,t.dataLen);
+    copyBuf((volatile uint64_t*)(a2wr + 8),data,dataLen);
 
     uint8_t rdData[DataMaxSize] = {};
 
     uint64_t srcAddr = HwWcTestAddr / 8;
     uint64_t* dstAddr = (uint64_t*)rdData;
-    for (uint w = 0; w < t.dataLen / 8; w++)
+    for (uint w = 0; w < dataLen / 8; w++)
       SN_ReadUserLogicRegister(dev_id, srcAddr++, dstAddr++);
 
 
-    int r = memcmp(t.data,rdData,t.dataLen);
+    int r = memcmp(data,rdData,dataLen);
     if (r) {
-      hexDump("Data",t.data,t.dataLen);
-      hexDump("rdData",rdData,t.dataLen);
-      TEST_LOG("Iteration %d: Failed: dataLen = %ju",i,t.dataLen);
+      hexDump("Data",data,dataLen);
+      hexDump("rdData",rdData,dataLen);
+      TEST_LOG("Iteration %ju: Failed: dataLen = %ju, &desc = %p, sizeof(desc)=%ju",
+	       i,dataLen,&desc,sizeof(desc));
       goto END;
-      break;
-      
-    } else {
-      /* hexDump("rdData",rdData,t.dataLen); */
-      //       TEST_LOG("Iteration %d: Succeeded",j);       
-    }
-    //    usleep(100);
-    i++;
+    } 
 
-    if ( i % 1000 == 0) {
-      printf("%d\n",i);
-      fflush(stdout);
-    }
+    if ( i % 10000 == 0) printf("%ju\n",i);
     
   }
 
   TEST_LOG("%ju Iterations Passed\n",Iterations);
 
  END:
-  if (SC_CloseDevice(dev_id) != SC_ERR_SUCCESS) on_error("Error on SC_CloseDevice");
+  if (SC_CloseDevice(dev_id) != SC_ERR_SUCCESS)
+    on_error("Error on SC_CloseDevice");
   return 0;
 }
 
