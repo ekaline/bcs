@@ -74,8 +74,8 @@ void testThread(int thrId, SC_DeviceId dev_id,
 
   volatile uint64_t* a2wr = wcBaseAddr + thrId * 0x800;
   uint64_t testMemOffs = thrId * 2048;
-  
-  for (uint64_t i = 0; keep_work && i < Iterations; i++) {
+  uint64_t i;
+  for (i = 0; keep_work && i < Iterations; i++) {
     uint8_t data[DataMaxSize];
     size_t dataLen = roundUp64(rand() % DataMaxSize);
     for (size_t c = 0; c < dataLen; c ++) {
@@ -111,8 +111,8 @@ void testThread(int thrId, SC_DeviceId dev_id,
     } 
 
     if ( i % 10000 == 0) printf("%2d: %ju\n",thrId,i);
-    
   }
+  printf("Thread %2d: passed %ju iterations\n",thrId,i);
   return;
 }
 
