@@ -3,12 +3,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
 #include <string.h>
-#include <endian.h>
 #include <inttypes.h>
 #include <string>
-#include <cmath>
 
 #include "EkaFhParserCommon.h"
 #include "EkaFhCmeParser.h"
@@ -661,9 +658,6 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   msg.commonDef.opaqueAttrA    = priceAdjustFactor;
   msg.commonDef.opaqueAttrB    = DEFAULT_FUT_DEPTH; // default Market Depth for Futures
 
-  EKA_DEBUG("future `{0}` ({1}) had paf={2}, spf={3}, DisplayFactor={4}",
-            rootBlock->Symbol, rootBlock->SecurityID, priceAdjustFactor, strikePriceFactor, rootBlock->DisplayFactor);
-
   EkaFhCme *const fh = dynamic_cast<EkaFhCme*>(this->fh);
   {
     std::unique_lock lck(fh->futuresMutex);
@@ -673,6 +667,9 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
   copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
   copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
+
+  EKA_DEBUG("future `%s` (%d) had paf=%" PRIu64 ", spf=%" PRIu64 ", DisplayFactor=%" PRId64,
+            msg.commonDef.exchSecurityName, rootBlock->SecurityID, priceAdjustFactor, strikePriceFactor, rootBlock->DisplayFactor);
 
   msg.displayFactor = static_cast<float>(rootBlock->DisplayFactor) / EFH_CME_PRICE_SCALE;
   msg.tickSize = static_cast<float>(rootBlock->MinPriceIncrement) / EFH_CME_PRICE_SCALE * msg.displayFactor;
@@ -833,13 +830,13 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   }
 
   if (strikePriceFactor == 0) {
-    EKA_WARN("no underlying ({0}) found for option `{1}` ({2}); skipping",
-             msg.header.underlyingId, rootBlock->Symbol, rootBlock->SecurityID);
+    EKA_WARN("no underlying (%d) found for option `%s` (%d); skipping",
+             msg.header.underlyingId, msg.commonDef.exchSecurityName, rootBlock->SecurityID);
     return msgHdr->size;
   }
 
-  EKA_DEBUG("option `{0}` ({1}) had underlying ({2}) strike price factor = {3}, raw strike price = {4}",
-            rootBlock->Symbol, rootBlock->SecurityID, msg.header.underlyingId, strikePriceFactor, rootBlock->StrikePrice);
+  EKA_DEBUG("option `%s` (%d) had underlying (%d) spf=%" PRIu64 ", StrikePrice=%" PRId64,
+            msg.commonDef.exchSecurityName, rootBlock->SecurityID, msg.header.underlyingId, strikePriceFactor, rootBlock->StrikePrice);
 
   msg.strikePrice           = rootBlock->StrikePrice / strikePriceFactor;
   
