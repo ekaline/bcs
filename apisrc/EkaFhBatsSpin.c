@@ -20,6 +20,7 @@
 #include <sched.h>
 #include <string>
 
+#include "EkaFhParserCommon.h"
 #include "EkaFhBatsParser.h"
 #include "EkaFhBatsGr.h"
 #include "EkaFhThreadAttr.h"
@@ -911,8 +912,35 @@ void* getGrpRetransmitData(void* attr) {
 	  EKA_EXCH_DECODE(gr->exch),gr->id,start,end,cnt);
 
   //-----------------------------------------------------------------
+  // Build lock ID that matches Java impl, so it will lock mutually with Java instances
+  // <ip>:<port>|<username>|<unit>|<sessionSubId>
+  std::string lockId;
+  {
+    lockId.reserve(48);
+    char scratch[INET_ADDRSTRLEN];
+    size_t scratchLen;
+
+    in_addr grpIp = {gr->grpIp};
+    inet_ntop(AF_INET, &grpIp, scratch, sizeof(scratch));
+    lockId.append(scratch);
+
+    lockId.push_back(':');
+    scratchLen = numToStrView(scratch, gr->grpPort);
+    lockId.append(scratch, scratchLen);
+
+    lockId.push_back('|');
+    lockId.append(gr->grpUser, sizeof(gr->grpUser));
+    while (lockId.back() == ' ') lockId.pop_back();
+
+    lockId.push_back('|');
+    scratchLen = numToStrView(scratch, gr->batsUnit + 1);
+    lockId.append(scratch, scratchLen);
+
+    lockId.push_back('|');
+    lockId.append(gr->grpSessionSubID, sizeof(gr->grpSessionSubID));
+  }
   EkaCredentialLease* lease;
-  gr->credentialAcquire(EkaCredentialType::kRecovery, gr->grpUser, sizeof(gr->grpUser), &lease);
+  gr->credentialAcquire(EkaCredentialType::kRecovery, lockId.data(), lockId.size(), &lease);
 
   //-----------------------------------------------------------------
   gr->recovery_active = true;

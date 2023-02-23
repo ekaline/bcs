@@ -37,4 +37,14 @@ constexpr void numToStrBuf(char (&buf)[N], const NumType num) {
   *std::to_chars(start, end, num).ptr = '\0';
 }
 
+// No null terminator, returns length
+template <typename NumType, std::size_t N>
+constexpr size_t numToStrView(char (&buf)[N], const NumType num) {
+  static_assert(N >= MaxStrLen<NumType>());
+  char* const start = &*buf;
+  char* const end = start + N;
+  char* const newEnd = std::to_chars(start, end, num).ptr;
+  return newEnd - start;
+}
+
 #endif
