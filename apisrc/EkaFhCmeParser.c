@@ -633,7 +633,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   const uint64_t priceAdjustFactor = computeFinalPriceFactor(rootBlock->DisplayFactor);
   uint64_t strikePriceFactor;
   if (memcmp(rootBlock->Asset, "SI", 3) == 0) {
-    strikePriceFactor = computeFinalPriceFactor(0'010'000'000); // 0.01
+    strikePriceFactor = computeFinalPriceFactor(   10'000'000); // 0.01
   } else if (memcmp(rootBlock->Asset, "GC", 3) == 0) {
     strikePriceFactor = computeFinalPriceFactor(1'000'000'000); // 1.0
   } else {
@@ -667,9 +667,6 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
   copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
   copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
-
-  EKA_DEBUG("future `%s` (%d) had paf=%" PRIu64 ", spf=%" PRIu64 ", DisplayFactor=%" PRId64,
-            msg.commonDef.exchSecurityName, rootBlock->SecurityID, priceAdjustFactor, strikePriceFactor, rootBlock->DisplayFactor);
 
   msg.displayFactor = static_cast<float>(rootBlock->DisplayFactor) / EFH_CME_PRICE_SCALE;
   msg.tickSize = static_cast<float>(rootBlock->MinPriceIncrement) / EFH_CME_PRICE_SCALE * msg.displayFactor;
@@ -834,9 +831,6 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
              msg.header.underlyingId, msg.commonDef.exchSecurityName, rootBlock->SecurityID);
     return msgHdr->size;
   }
-
-  EKA_DEBUG("option `%s` (%d) had underlying (%d) spf=%" PRIu64 ", StrikePrice=%" PRId64,
-            msg.commonDef.exchSecurityName, rootBlock->SecurityID, msg.header.underlyingId, strikePriceFactor, rootBlock->StrikePrice);
 
   msg.strikePrice           = rootBlock->StrikePrice / strikePriceFactor;
   
