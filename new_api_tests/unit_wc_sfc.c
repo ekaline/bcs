@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
   volatile uint64_t* a2wr = EkalineGetWcBase(dev_id);
 
   /* ------------------------------------------------------------------ */
-  const int Iterations = 1024 * 100; 
+  const uint64_t Iterations = 100 * 1024 * 1024; 
   const int DataMaxSize = 2048 - 64; 
 
   struct Test {
@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
   };
   
   std::vector <Test> tests;
-  for (auto j = 0; j < Iterations; j++) {
+  for (uint64_t j = 0; j < Iterations; j++) {
     Test newTest = {};
     newTest.dataLen = roundUp64(rand() % DataMaxSize);
     for (size_t i = 0; i < newTest.dataLen; i ++) {
@@ -122,9 +122,15 @@ int main(int argc, char *argv[]) {
     }
     //    usleep(100);
     i++;
+
+    if ( i % 1000 == 0) {
+      printf("%d\n",i);
+      fflush(stdout);
+    }
+    
   }
 
-  TEST_LOG("%d Iterations Passed\n",Iterations);
+  TEST_LOG("%ju Iterations Passed\n",Iterations);
 
  END:
   if (SC_CloseDevice(dev_id) != SC_ERR_SUCCESS) on_error("Error on SC_CloseDevice");
