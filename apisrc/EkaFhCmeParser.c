@@ -661,6 +661,9 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   msg.commonDef.opaqueAttrA    = priceAdjustFactor;
   msg.commonDef.opaqueAttrB    = DEFAULT_FUT_DEPTH; // default Market Depth for Futures
 
+  EKA_DEBUG("future `{0}` ({1}) had paf={2}, spf={3}, DisplayFactor={4}",
+            rootBlock->Symbol, rootBlock->SecurityID, priceAdjustFactor, strikePriceFactor, rootBlock->DisplayFactor);
+
   EkaFhCme *const fh = dynamic_cast<EkaFhCme*>(this->fh);
   {
     std::unique_lock lck(fh->futuresMutex);
@@ -834,6 +837,9 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
              msg.header.underlyingId, rootBlock->Symbol, rootBlock->SecurityID);
     return msgHdr->size;
   }
+
+  EKA_DEBUG("option `{0}` ({1}) had underlying ({2}) strike price factor = {3}, raw strike price = {4}",
+            rootBlock->Symbol, rootBlock->SecurityID, msg.header.underlyingId, strikePriceFactor, rootBlock->StrikePrice);
 
   msg.strikePrice           = rootBlock->StrikePrice / strikePriceFactor;
   
