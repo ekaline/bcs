@@ -52,12 +52,11 @@ int main(int argc, char *argv[]) {
   srand((unsigned) time(&t));
 
   struct WcDesc {
-    uint64_t pad18 : 18;
-    uint64_t descH : 46;
-    uint64_t descL : 18;
+    uint64_t desc : 64;
     uint64_t nBytes: 12;
     uint64_t addr  : 32;
     uint64_t opc   :  2;
+    uint64_t pad18 : 18;
   } __attribute__ ((aligned(16))) __attribute__((packed));
 
 
