@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
     uint64_t addr  : 32;
     uint64_t opc   :  2;
     uint64_t pad18 : 18;
-  } __attribute__ ((aligned(16))) __attribute__((packed));
+  } __attribute__((packed));
 
 
   /*  printf ("sizeof(WcDesc) = %ju\n",sizeof(WcDesc)); */
@@ -70,8 +70,8 @@ int main(int argc, char *argv[]) {
   volatile uint64_t* a2wr = EkalineGetWcBase(dev_id);
 
   /* ------------------------------------------------------------------ */
-  const int Iterations = 1024; 
-  const int DataMaxSize = 2048; 
+  const int Iterations = 1024 * 100; 
+  const int DataMaxSize = 2048 - 64; 
 
   struct Test {
     size_t dataLen;
@@ -90,18 +90,14 @@ int main(int argc, char *argv[]) {
 
   int i = 0;
   for (const auto& t : tests) {
-    WcDesc desc = {
+    WcDesc __attribute__ ((aligned(0x100))) desc = {
 		   .nBytes = t.dataLen & 0xFFF,
 		   .addr = (uint64_t)0,
 		   .opc = 2,
     };
-    
+    if (sizeof(desc) != 16)
+      on_error("Pizdets");
     copyBuf(a2wr,&desc,sizeof(desc));
-
-    // _mm_clflush(&desc);
-    //    _mm_sfence();
-    //     _mm_mfence();		    
-    //    __asm__ __volatile__ ("":::"memory");
     copyBuf((volatile uint64_t*)(a2wr + 8),t.data,t.dataLen);
 
     uint8_t rdData[DataMaxSize] = {};
@@ -116,7 +112,8 @@ int main(int argc, char *argv[]) {
     if (r) {
       hexDump("Data",t.data,t.dataLen);
       hexDump("rdData",rdData,t.dataLen);
-      TEST_LOG("Iteration %d: Failed: r = %d",i,r);
+      TEST_LOG("Iteration %d: Failed: dataLen = %ju",i,t.dataLen);
+      goto END;
       break;
       
     } else {
@@ -126,6 +123,10 @@ int main(int argc, char *argv[]) {
     //    usleep(100);
     i++;
   }
+
+  TEST_LOG("%d Iterations Passed\n",Iterations);
+
+ END:
   if (SC_CloseDevice(dev_id) != SC_ERR_SUCCESS) on_error("Error on SC_CloseDevice");
   return 0;
 }
