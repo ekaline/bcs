@@ -3,18 +3,16 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
 #include <string.h>
-#include <endian.h>
 #include <inttypes.h>
 #include <string>
-#include <cmath>
 
 #include "EkaFhParserCommon.h"
 #include "EkaFhCmeParser.h"
 
 #include "EkaFhRunGroup.h"
 #include "EkaFhCmeGr.h"
+#include "EkaFhCme.h"
 
 using namespace Cme;
 namespace chrono = std::chrono;
@@ -224,14 +222,33 @@ void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity
   }
 }
 
-template<size_t N>
-constexpr std::string_view viewOfNulTermBuffer(const char (&buf)[N]) {
-  std::string_view view(buf, N);
-  auto trim_pos = view.find('\0');
-  if (trim_pos != view.npos) {
-    view.remove_suffix(view.size() - trim_pos);
+inline uint32_t encodeYYYYMMDD(const struct tm* t) {
+  if (t == NULL) return 0;
+  const uint32_t year = t->tm_year + 1900;
+  const uint32_t month = t->tm_mon + 1;
+  const uint32_t day = t->tm_mday;
+  return (year * 1'00'00) + (month * 1'00) + day;
+}
+
+inline bool getExpiry(const DefinitionEventEntry& lastTradeEvent, EfhSecurityDef& commonDef,
+                      char (&expiryFmtBuf)[32]) {
+  const chrono::system_clock::time_point expiryTime(chrono::nanoseconds(lastTradeEvent.EventTime));
+  commonDef.expiryTime = chrono::system_clock::to_time_t(expiryTime);
+  struct tm timeInfoBuf;
+  struct tm* timeInfo = localtime_r(&commonDef.expiryTime, &timeInfoBuf);
+  commonDef.expiryDate = encodeYYYYMMDD(timeInfo);
+
+  const static auto todayAtMidnight = systemClockAtMidnight();
+  if (expiryTime < todayAtMidnight) {
+    if (timeInfo == NULL || strftime(expiryFmtBuf, sizeof(expiryFmtBuf), "%F %T%z", timeInfo) == 0) {
+      // Failed to write formatted expiration
+      expiryFmtBuf[0] = '?';
+      expiryFmtBuf[1] = '\0';
+    }
+    return false;
   }
-  return view;
+
+  return true;
 }
 
 /* ##################################################################### */
@@ -613,6 +630,16 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   /* ------------------------------- */
   auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
 
+  const uint64_t priceAdjustFactor = computeFinalPriceFactor(rootBlock->DisplayFactor);
+  uint64_t strikePriceFactor;
+  if (memcmp(rootBlock->Asset, "SI", 3) == 0) {
+    strikePriceFactor = computeFinalPriceFactor(   10'000'000); // 0.01
+  } else if (memcmp(rootBlock->Asset, "GC", 3) == 0) {
+    strikePriceFactor = computeFinalPriceFactor(1'000'000'000); // 1.0
+  } else {
+    strikePriceFactor = priceAdjustFactor;
+  }
+
   EfhFutureDefinitionMsg msg{};
   msg.header.msgType        = EfhMsgType::kFutureDefinition;
   msg.header.group.source   = EkaSource::kCME_SBE;
@@ -628,20 +655,39 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   msg.commonDef.underlyingType = EfhSecurityType::kIndex;
   msg.commonDef.contractSize   = replaceIntNullWith<Decimal9NULL_T>(
       rootBlock->UnitOfMeasureQty, rootBlock->UnitOfMeasureQty / EFH_CME_PRICE_SCALE, 0);
-  msg.commonDef.opaqueAttrA    = computeFinalPriceFactor(rootBlock->DisplayFactor);
+  msg.commonDef.opaqueAttrA    = priceAdjustFactor;
   msg.commonDef.opaqueAttrB    = DEFAULT_FUT_DEPTH; // default Market Depth for Futures
-  getCMEProductTradeTime(pMaturity, rootBlock->Symbol, &msg.commonDef.expiryDate, &msg.commonDef.expiryTime);
+
+  EkaFhCme *const fh = dynamic_cast<EkaFhCme*>(this->fh);
+  {
+    std::unique_lock lck(fh->futuresMutex);
+    fh->futureStrikePriceFactors.insert(std::make_pair(rootBlock->SecurityID, strikePriceFactor));
+  }
 
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
   copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
   copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
+
+  msg.displayFactor = static_cast<float>(rootBlock->DisplayFactor) / EFH_CME_PRICE_SCALE;
+  msg.tickSize = static_cast<float>(rootBlock->MinPriceIncrement) / EFH_CME_PRICE_SCALE * msg.displayFactor;
   
   /* ------------------------------- */
-  /* auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)}; */
-  /* m += sizeof(*pGroupSize_EventType); */
-  /* for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++) */
-  /*   m += pGroupSize_EventType->blockLength; */
-  /* /\* ------------------------------- *\/ */
+  auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
+  m += sizeof(*pGroupSize_EventType);
+  for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++) {
+    auto e {reinterpret_cast<const DefinitionEventEntry*>(m)};
+    if (e->EventType == DefinitionEventType_T::LastTradeDate) {
+      // Expiration time
+      char expiryFmtBuf[32];
+      if (!getExpiry(*e, msg.commonDef, expiryFmtBuf)) {
+        EKA_TRACE("skipping future `%s` (%d) that expired before today (expiry = %s)",
+                  msg.commonDef.exchSecurityName, rootBlock->SecurityID, expiryFmtBuf);
+        return msgHdr->size;
+      }
+    }
+    m += pGroupSize_EventType->blockLength;
+  }
+  /* ------------------------------- */
   /* auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)}; */
   /* m += sizeof(*pGroupSize_FeedType); */
   /* for (uint i = 0; i < pGroupSize_FeedType->numInGroup; i++) { */
@@ -704,13 +750,11 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   msg.commonDef.contractSize   = replaceIntNullWith<Decimal9NULL_T>(
       rootBlock->UnitOfMeasureQty, rootBlock->UnitOfMeasureQty / EFH_CME_PRICE_SCALE, 0);
   msg.commonDef.opaqueAttrA    = priceAdjustFactor;
-  getCMEProductTradeTime(pMaturity, rootBlock->Symbol, &msg.commonDef.expiryDate, &msg.commonDef.expiryTime);
   copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
   copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
 
   msg.optionType            = putOrCall;
   msg.optionStyle           = static_cast<EfhOptionStyle>(rootBlock->CFICode[2]);
-  msg.strikePrice           = rootBlock->StrikePrice / priceAdjustFactor;
   msg.segmentId             = rootBlock->MarketSegmentID;
 
   msg.commonDef.opaqueAttrB = DEFAULT_OPT_DEPTH; // default MarketDepth for Options
@@ -718,8 +762,19 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   /* ------------------------------- */
   auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize_EventType);
-  for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++)
+  for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++) {
+    auto e {reinterpret_cast<const DefinitionEventEntry*>(m)};
+    if (e->EventType == DefinitionEventType_T::LastTradeDate) {
+      // Expiration time
+      char expiryFmtBuf[32];
+      if (!getExpiry(*e, msg.commonDef, expiryFmtBuf)) {
+        EKA_TRACE("skipping option `%s` (%d) that expired before today (expiry = %s)",
+                  msg.commonDef.exchSecurityName, rootBlock->SecurityID, expiryFmtBuf);
+        return msgHdr->size;
+      }
+    }
     m += pGroupSize_EventType->blockLength;
+  }
   /* ------------------------------- */
   auto pGroupSize_FeedType {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize_FeedType);
@@ -760,6 +815,24 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
 
     m += pGroupSize_RelatedInstruments->blockLength;
   }
+
+  uint64_t strikePriceFactor = 0;
+  EkaFhCme *const fh = dynamic_cast<EkaFhCme*>(this->fh);
+  {
+    std::shared_lock lck(fh->futuresMutex);
+    const auto it = fh->futureStrikePriceFactors.find(msg.header.underlyingId);
+    if (it != fh->futureStrikePriceFactors.end()) {
+      strikePriceFactor = it->second;
+    }
+  }
+
+  if (strikePriceFactor == 0) {
+    EKA_WARN("no underlying (%d) found for option `%s` (%d); skipping",
+             msg.header.underlyingId, msg.commonDef.exchSecurityName, rootBlock->SecurityID);
+    return msgHdr->size;
+  }
+
+  msg.strikePrice           = rootBlock->StrikePrice / strikePriceFactor;
   
   if (msg.commonDef.opaqueAttrB < 3)
     print_MDInstrumentDefinitionOption55(pMsg);
@@ -769,7 +842,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
   return msgHdr->size;
 }
 
-/* ##################################################################### */     
+/* ##################################################################### */
 
 int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunCtx,
                                                        const uint8_t*   pMsg,
@@ -828,23 +901,16 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   //copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
 
   /* ------------------------------- */
-  const static auto todayAtMidnight = systemClockAtMidnight();
-
   auto pGroupSize_EventType {reinterpret_cast<const groupSize_T*>(m)};
   m += sizeof(*pGroupSize_EventType);
   for (uint i = 0; i < pGroupSize_EventType->numInGroup; i++) {
     auto e {reinterpret_cast<const DefinitionEventEntry*>(m)};
     if (e->EventType == DefinitionEventType_T::LastTradeDate) {
       // Expiration time
-      const chrono::system_clock::time_point expiryTime(chrono::nanoseconds(e->EventTime));
-      msg.commonDef.expiryTime = chrono::system_clock::to_time_t(expiryTime);
-
-      if (expiryTime < todayAtMidnight) {
-        struct tm *timeinfo = localtime(&msg.commonDef.expiryTime);
-        char expiryFmt[32];
-        strftime(expiryFmt, sizeof(expiryFmt), "%F %T%z", timeinfo);
+      char expiryFmtBuf[32];
+      if (!getExpiry(*e, msg.commonDef, expiryFmtBuf)) {
         EKA_TRACE("skipping spread `%d` that expired before today (expiry = %s)",
-                  rootBlock->SecurityID, expiryFmt);
+                  rootBlock->SecurityID, expiryFmtBuf);
         return msgHdr->size;
       }
     }
