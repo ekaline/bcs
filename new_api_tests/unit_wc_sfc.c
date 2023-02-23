@@ -32,8 +32,8 @@ inline void copy_to_atomic(volatile uint64_t * __restrict dst,
   auto src = (const uint64_t *__restrict) srcBuf;
   for (size_t i = 0; i < len/8; i ++) {
     if (i % 64 == 0) _mm_sfence();
-    atomicDst->store( *src, std::memory_order_seq_cst );
-    //atomicDst->store( *src, std::memory_order_release );
+    //atomicDst->store( *src, std::memory_order_seq_cst );
+    atomicDst->store( *src, std::memory_order_release );
     atomicDst++; src++;
   }
 }
@@ -96,6 +96,19 @@ inline void copyBuf(volatile uint64_t* dst,
 int main(int argc, char *argv[]) {
   const uint64_t HwWcTestAddr = 0x20000;
 
+  struct WcDesc {
+    uint64_t pad18 : 18;
+    uint64_t descH : 46;
+    uint64_t descL : 18;
+    uint64_t nBytes: 12;
+    uint64_t addr  : 32;
+    uint64_t opc   :  2;
+  } __attribute__ ((aligned(sizeof(uint64_t)))) __attribute__((packed));
+
+
+  /* printf ("sizeof(WcDesc) = %ju\n",sizeof(WcDesc)); */
+  /* return(0); */
+  
   SC_DeviceId dev_id = SC_OpenDevice(NULL, NULL);
   if (dev_id == NULL) on_error("SC_OpenDevice == NULL: cannot open Smartnic device");
   volatile uint64_t* a2wr = EkalineGetWcBase(dev_id);
@@ -106,7 +119,7 @@ int main(int argc, char *argv[]) {
   uint8_t __attribute__ ((aligned(0x100))) data[RegionSize] = {};
   uint8_t __attribute__ ((aligned(0x100))) test_data[RegionSize] = {};
 
-#define _RANDOM_DATA 1
+#define _RANDOM_DATA 0
   
   for (auto j = 0; j < 1000; j++) {
 #if _RANDOM_DATA
@@ -123,7 +136,18 @@ int main(int argc, char *argv[]) {
       }
     }
 #endif    
-    copyBuf(a2wr,data,sizeof(data));
+    //    copyBuf(a2wr,data,sizeof(data));
+
+    WcDesc desc = {
+		   .nBytes = sizeof(data) & 0xFFF,
+		   .addr = (uint64_t)a2wr,
+		   .opc = 2,
+    };
+    
+    copyBuf(a2wr,&desc,sizeof(desc));
+    __sync_synchronize(); 
+    copyBuf((volatile uint64_t*)(a2wr + 8),data,sizeof(data));
+    
     uint64_t srcAddr = HwWcTestAddr / 8;
     uint64_t* dstAddr = (uint64_t*)&test_data;
     for (uint w = 0; w < roundUp64(sizeof(test_data)) / 8; w++)
