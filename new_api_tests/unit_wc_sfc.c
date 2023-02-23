@@ -43,7 +43,8 @@ inline void copyBuf(volatile uint64_t* dst,
 			      const size_t len) {
   
   copy_to_atomic(dst,srcBuf,len);
-  __sync_synchronize();
+  //  __sync_synchronize();
+  _mm_clflush(srcBuf);
       
 }
 
