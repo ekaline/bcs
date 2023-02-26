@@ -128,7 +128,7 @@ int main(int argc, char *argv[]) {
   if (dev_id == NULL) on_error("SC_OpenDevice == NULL: cannot open Smartnic device");
   volatile uint64_t* wcBaseAddr = EkalineGetWcBase(dev_id);
 
-  const int NumThreads = 2;
+  const int NumThreads = 1;
 
   std::thread thr[NumThreads];
   /* ------------------------------------------------------------------ */
