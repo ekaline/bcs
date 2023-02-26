@@ -257,8 +257,8 @@ int EkaTcpSess::preloadNwHeaders() {
 
 int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
   tcpRemoteAckNum = EKA_TCPH_ACKNO(pkt);
-
-  tcpSndWnd = EKA_TCPH_WND(pkt);
+  //  TEST_LOG("From RX: tcpRemoteAckNum = %u",tcpRemoteAckNum-tcpLocalSeqNumBase);
+  tcpSndWnd = uint32_t(EKA_TCPH_WND(pkt)) << tcpSndWndShift;;
   if (EKA_TCP_SYN(pkt)) {
     // SYN/ACK part of the handshake contains the peer's TCP session options.
     assert(EKA_TCP_ACK(pkt));
@@ -414,13 +414,30 @@ int EkaTcpSess::lwipDummyWrite(void *buf, int len) {
 	     dummyBytes + tcpLocalSeqNumBase, 
 	     tcpRemoteAckNum - dummyBytes - tcpLocalSeqNumBase);
 
-  int sentBytes = lwip_write(sock,buf,len);
-  if (sentBytes <= 0) return sentBytes;
-  else if (sentBytes != len)
-    on_error("Partial Dummy packet: sentBytes %d != len %d",sentBytes, len);
-  auto temp = dummyBytes + len;
-  dummyBytes = temp;
-  //  dummyBytes += len;
+  while (dev->exc_active) {
+    //    auto start = std::chrono::high_resolution_clock::now();
+    int sentBytes = lwip_write(sock,buf,len);
+    //    auto end = std::chrono::high_resolution_clock::now();
+    /* if (std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() > 1) { */
+    /*   TEST_LOG("Potential DEADLOCK!: lwip_write() took %ju ms", */
+    /* 	       std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()); */
+    /* } */
+    if (sentBytes <= 0) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+	std::this_thread::yield();
+	continue;
+      }
+      lwip_errno = errno;
+      return sentBytes;
+    } 
+
+    if (sentBytes == len) 
+      break;
+
+    on_error("Partial Dummy packet: sentBytes %d != len %d",
+	     sentBytes, len);
+  }
+  dummyBytes += len;
   return len;
 }
 
@@ -445,12 +462,19 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
   if (
       ( (fastPathBytes + tcpLocalSeqNumBase - tcpRemoteAckNum) > TrafficMargin ) &&
       ( (fastPathBytes + tcpLocalSeqNumBase - tcpRemoteAckNum) < TrafficMargin*4 ) //and not a wraparound
-      )
+      ) {
+    /* TEST_LOG("TrafficMargin Throttling: tcpRemoteAckNum=%u,fastPathBytes=%ju", */
+    /* 	     tcpRemoteAckNum-tcpLocalSeqNumBase,fastPathBytes); */
     payloadSize2send = 0; // Throttle
+  }
 
-  // Don't send more than we're allowed.
-  const auto sndWnd = uint32_t(tcpSndWnd) << tcpSndWndShift;
-  payloadSize2send = std::min(payloadSize2send, sndWnd);
+  // don't fragment due to low Tx Wnd
+  if (fastPathBytes + tcpLocalSeqNumBase + payloadSize2send - tcpRemoteAckNum > tcpSndWnd) {
+    /* TEST_LOG("tcpSndWnd Throttling: tcpSndWnd=%u, tcpRemoteAckNum=%u,fastPathBytes=%ju", */
+    /* 	     tcpSndWnd,tcpRemoteAckNum-tcpLocalSeqNumBase,fastPathBytes); */
+    payloadSize2send = 0; 
+  }
+  //  payloadSize2send = std::min(payloadSize2send, sndWnd);
 
   const bool isBlocking = this->blocking && !(flags & MSG_DONTWAIT);
   if (isBlocking && payloadSize2send != (uint)len) {

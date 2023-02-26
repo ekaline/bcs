@@ -74,6 +74,8 @@ class EkaTcpSess {
 
   uint8_t  coreId = -1;
   uint8_t  sessId = -1;
+
+  int lwip_errno  = 0;
   
   int      sock   = -1;
   uint32_t srcIp  = -1;
@@ -84,7 +86,7 @@ class EkaTcpSess {
   uint32_t vlan_tag = 0;
 
   uint16_t tcpRcvWnd; // new
-  uint16_t tcpSndWnd = 0;
+  volatile uint32_t tcpSndWnd = 0;
   uint8_t tcpSndWndShift = 0;
 
   int appSeqId = 0;
@@ -98,7 +100,7 @@ class EkaTcpSess {
   volatile uint64_t throttleCounter = 0;
   volatile uint64_t maxThrottleCounter = 0;
   volatile uint64_t txDriverBytes = 0;
-  volatile uint64_t dummyBytes = 0;
+  uint64_t dummyBytes = 0;
   volatile uint64_t tcpLocalSeqNumBase = 0;
 
   volatile bool txLwipBp = false;
