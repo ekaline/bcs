@@ -19,6 +19,8 @@ void ekaTcpRxThread(EkaDev* dev) {
   EKA_LOG("Launching %s",threadName);
   pthread_setname_np(pthread_self(),threadName);
 
+  if (dev->tcpRxThreadActive) on_error("tcpRxThreadActive");
+  
   uint64_t fire_rx_tx_en = eka_read(dev,ENABLE_PORT);
   EKA_LOG ("Turning on tcprx = 0x%016jx",fire_rx_tx_en);
   fire_rx_tx_en &= ~(1ULL << 32); //turn on tcprx
@@ -35,7 +37,8 @@ void ekaTcpRxThread(EkaDev* dev) {
     
     const uint8_t* payload = dev->lwipRx->get();
     uint len = dev->lwipRx->getPayloadSize();
-    //      hexDump("TcpRx Thread Pkt",payload,len);
+
+    /* hexDump("TcpRx Thread Pkt",payload,len); */
 
     auto dmaType = (EkaUserChannel::DMA_TYPE)(*payload);
 

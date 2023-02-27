@@ -294,8 +294,9 @@ void ekaProcessTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
       if (p == NULL) on_error ("failed to get new PBUF");
       memcpy(p->payload,pkt,len);
 
+      /* hexDump("LWIP Rx Pkt",p->payload,len); */
       if (netIf->input(p,netIf) != ERR_OK) {
-	//	TEST_LOG("netIf->input() failed");
+	TEST_LOG("netIf->input() failed");
 	pbuf_free(p);
       }
     }

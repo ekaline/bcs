@@ -29,7 +29,7 @@ uint16_t calc_tcp_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t pay
 unsigned int pseudo_csum(unsigned short *ptr,int nbytes);
 uint16_t pseudo_csum2csum (uint32_t pseudo);
 unsigned short csum(unsigned short *ptr,int nbytes);
-void hexDump (const char *desc, void *addr, int len);
+//void hexDump (const char *desc, void *addr, int len);
 int ekaAddArpEntry(EkaDev* dev, EkaCoreId coreId, const uint32_t* protocolAddr,const uint8_t* hwAddr);
 
 inline bool eka_is_all_zeros (void* buf, ssize_t size) {
@@ -376,6 +376,9 @@ int EkaTcpSess::sendStackEthFrame(void *pkt, int len) {
     tcpRemoteSeqNum = EKA_TCPH_ACKNO(pkt);
     setRemoteSeqWnd2FPGA();
     emptyAckAction->send(); //
+    /* TEST_LOG("Sending Empty ACK %u",EKA_TCPH_ACKNO(pkt)); */
+  } else {
+    /* TEST_LOG("NOT Sending ACK %u",EKA_TCPH_ACKNO(pkt)); */
   }
   tcpLocalSeqNum = EKA_TCPH_SEQNO(pkt) + EKA_TCP_PAYLOAD_LEN(pkt);
   auto temp = txDriverBytes + EKA_TCP_PAYLOAD_LEN(pkt);
@@ -408,12 +411,20 @@ int EkaTcpSess::sendEthFrame(void *buf, int len) {
 /* ---------------------------------------------------------------- */
 
 int EkaTcpSess::lwipDummyWrite(void *buf, int len) {
-  if (tcpRemoteAckNum > dummyBytes + tcpLocalSeqNumBase)
-    EKA_WARN("tcpRemoteAckNum %u > real dummyBytes %ju, delta = %jd",
-	     tcpRemoteAckNum, 
-	     dummyBytes + tcpLocalSeqNumBase, 
-	     tcpRemoteAckNum - dummyBytes - tcpLocalSeqNumBase);
+  /* if (tcpRemoteAckNum > dummyBytes + tcpLocalSeqNumBase) */
+  /*   EKA_WARN("tcpRemoteAckNum %u > real dummyBytes %ju, delta = %jd", */
+  /* 	     tcpRemoteAckNum,  */
+  /* 	     dummyBytes + tcpLocalSeqNumBase,  */
+  /* 	     tcpRemoteAckNum - dummyBytes - tcpLocalSeqNumBase); */
 
+  while (dev->exc_active && tcpRemoteAckNum > dummyBytes + tcpLocalSeqNumBase) {
+    /* EKA_WARN("tcpRemoteAckNum %u > real dummyBytes %ju, delta = %jd", */
+    /* 	     tcpRemoteAckNum, */
+    /* 	     dummyBytes + tcpLocalSeqNumBase, */
+    /* 	     tcpRemoteAckNum - dummyBytes - tcpLocalSeqNumBase); */
+    std::this_thread::yield();
+  }
+  
   while (dev->exc_active) {
     //    auto start = std::chrono::high_resolution_clock::now();
     int sentBytes = lwip_write(sock,buf,len);
@@ -424,6 +435,7 @@ int EkaTcpSess::lwipDummyWrite(void *buf, int len) {
     /* } */
     if (sentBytes <= 0) {
       if (errno == EAGAIN || errno == EWOULDBLOCK) {
+	TEST_LOG("lwip_write sentBytes = %d",sentBytes);
 	std::this_thread::yield();
 	continue;
       }
@@ -449,7 +461,7 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
   }
 
   static const uint TrafficMargin = 64*1024; // empiric number
-
+  /* static const uint WndMargin = 4*1024; */
   /* if (/\* txLwipBp *\/       0                            || // lwip socket is unavauilable */
   /*     (fastPathBytes > (txDriverBytes + TrafficMargin)) || // previous TX pkt didn't arrive TX driver */
   /*     (fastPathBytes > (dummyBytes    + TrafficMargin))    // previous TX pkt wasn't sent to lwip as Dummy */
@@ -463,8 +475,8 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
       ( (fastPathBytes + tcpLocalSeqNumBase - tcpRemoteAckNum) > TrafficMargin ) &&
       ( (fastPathBytes + tcpLocalSeqNumBase - tcpRemoteAckNum) < TrafficMargin*4 ) //and not a wraparound
       ) {
-    /* TEST_LOG("TrafficMargin Throttling: tcpRemoteAckNum=%u,fastPathBytes=%ju", */
-    /* 	     tcpRemoteAckNum-tcpLocalSeqNumBase,fastPathBytes); */
+    /* TEST_LOG("TrafficMargin Throttling: tcpRemoteAckNum=%u,tcpLocalSeqNumBase=%u,fastPathBytes=%ju", */
+    /* 	     tcpRemoteAckNum,tcpLocalSeqNumBase,fastPathBytes); */
     payloadSize2send = 0; // Throttle
   }
 

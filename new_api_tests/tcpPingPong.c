@@ -32,26 +32,28 @@ volatile bool keep_work = true;;
 volatile bool serverSet = false;
 
 void fastpath_thread_f(EkaDev* pEkaDev,
-		       ExcConnHandle sess_id,uint thrId,
+		       ExcConnHandle hCon,uint thrId,
 		       uint p2p_delay) {
-  uint8_t coreId = excGetCoreId(sess_id);
-  uint8_t sessId = excGetSessionId(sess_id);
-  TEST_LOG("Launching TcpClient for coreId %u, sessId %u, p2p_delay=%u",
-	   coreId,sessId,p2p_delay);
+  uint8_t coreId = excGetCoreId(hCon);
+  uint8_t sessId = excGetSessionId(hCon);
+  TEST_LOG("Launching TcpClient for coreId %u, sessId %u",
+	   coreId,sessId);
  
   static const size_t PktSize = 1360; // large pkt
   size_t cnt = 0;
   while (keep_work) {
     ++cnt;
     char pkt[PktSize] = {};    
-    sprintf(pkt,"%u_%u_%2u_%08ju",thrId,coreId,sessId,cnt);
+    size_t s = sprintf(pkt,"%u_%u_%2u_%08ju : ",thrId,coreId,sessId,cnt);
+    for (;s < PktSize; s++)
+      pkt[s] = 'a' + rand() % ('z' -'a' + 1);
     /* -------------------------------------------------- */
 
     size_t sentBytes = 0;
     size_t byte2send = PktSize;
     const char* p = pkt;
     while (keep_work && sentBytes < PktSize) {
-      int rc = excSend (pEkaDev, sess_id, p, byte2send, 0);
+      int rc = excSend (pEkaDev, hCon, p, byte2send, 0);
       /* ------------------- */
       switch (rc) {
       case -1 :
@@ -77,9 +79,32 @@ void fastpath_thread_f(EkaDev* pEkaDev,
       /* ------------------- */
 
     }
+    char rxBuf[PktSize] = {};
+    char* rxP = rxBuf;
+    size_t rxSize = 0;
+    do {
+      int rx = excRecv(pEkaDev,hCon, rxP, PktSize - rxSize, 0);
+      /* TEST_LOG("rx = %d, errno=%d, \'%s\'",rx,errno,strerror(errno)); */
+      if (rx > 0) {
+	rxSize += rx;
+	rxP += rx;
+      }
+    } while (rxSize != PktSize);
+    
+    if (memcmp(pkt,rxBuf,PktSize) != 0) { 
+      hexDump("PKT",pkt,PktSize);
+      hexDump("RXBUF",rxBuf,PktSize);
+      on_error("%u pkt %04ju: RX != TX PktSize=%jd (=0x%jx) for coreId %u sessId %u",
+	       sessId,cnt,PktSize,PktSize,coreId,sessId);
+      TEST_LOG("ERROR: %u %04ju: payload is INCORRECT",
+	       sessId,cnt); fflush(stderr);
 
+    } else {
+      /* TEST_LOG("Pkt %ju - OK",cnt); */
+    }
+    
     if (cnt % STATISTICS_PERIOD == 0) {
-      TEST_LOG ("CoreId %u, SessId %u, pkt->cnt: %ju",
+      TEST_LOG ("CoreId %u, SessId %u, cnt: %ju",
 		coreId,sessId,cnt);
     }
     if (p2p_delay != 0) usleep (p2p_delay);
@@ -155,7 +180,8 @@ void tcpChild(EkaDev* dev, int sock, uint port) {
   //  printf ("Running TCP Server for sock=%d, port = %u\n",sock,port);
   do {
     char line[1536] = {};
-    recv(sock, line, sizeof(line), 0);
+    int rc = recv(sock, line, sizeof(line), 0);
+    send(sock, line, rc, 0);
     //    usleep(10);
   } while (keep_work);
   TEST_LOG("tcpChild thread is terminated");
@@ -307,7 +333,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  sleep (1);
+  //  sleep (1);
   printf("Closing device\n");
   ekaDevClose(pEkaDev);
   printf("Device is closed\n"); fflush(stdout);
