@@ -285,8 +285,9 @@ void ekaProcessTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
                    EKA_IP2STR(EKA_IPH_SRC(pkt)),EKA_TCPH_SRC(pkt),
                    hexBuf);
           return;
-        }
+        } // unexpected TCP pkt
 
+	
         tcpSess->updateRx(pkt,len);
       }
 

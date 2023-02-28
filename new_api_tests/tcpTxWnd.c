@@ -63,6 +63,8 @@ void fastpath_thread_f(EkaDev* pEkaDev,
 	if (errno == EAGAIN || errno == EWOULDBLOCK) {
 	  /* TEST_LOG("Retrying pkt %ju",cnt); */
 	  /* send same again */
+	  std::this_thread::yield();
+
 	} else {
 	  keep_work = false;
 	  EKA_ERROR("Unexpected errno=%d (\'%s\')",
