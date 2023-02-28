@@ -424,31 +424,39 @@ int EkaTcpSess::lwipDummyWrite(void *buf, int len) {
     /* 	     tcpRemoteAckNum - dummyBytes - tcpLocalSeqNumBase); */
     std::this_thread::yield();
   }
-  
-  while (dev->exc_active) {
-    //    auto start = std::chrono::high_resolution_clock::now();
-    int sentBytes = lwip_write(sock,buf,len);
-    //    auto end = std::chrono::high_resolution_clock::now();
-    /* if (std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() > 1) { */
-    /*   TEST_LOG("Potential DEADLOCK!: lwip_write() took %ju ms", */
-    /* 	       std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()); */
-    /* } */
+  auto p = (const uint8_t*)buf;
+  int sentSize = 0;
+
+  //    auto start = std::chrono::high_resolution_clock::now();
+  do {
+    int sentBytes = lwip_write(sock,p,len-sentSize);
+    lwip_errno = errno;
+
     if (sentBytes <= 0) {
       if (errno == EAGAIN || errno == EWOULDBLOCK) {
 	TEST_LOG("lwip_write sentBytes = %d",sentBytes);
 	std::this_thread::yield();
 	continue;
       }
-      lwip_errno = errno;
-      return sentBytes;
-    } 
+      on_error("lwip_write(): rc = %d, errno=%d \'%s\'",
+	       sentBytes,lwip_errno,strerror(lwip_errno));
+    }
+    
+    if (sentBytes != len-sentSize) {
+      EKA_WARN("Partial Dummy packet: sentBytes %d != len %d, errno = %d, \'%s\'",
+	       sentBytes, len, lwip_errno,strerror(lwip_errno));
+    }
+    p += sentBytes;
+    sentSize += sentBytes;
 
-    if (sentBytes == len) 
-      break;
+  } while (dev->exc_active && sentSize != len);
+  //    auto end = std::chrono::high_resolution_clock::now();
+  /* if (std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() > 1) { */
+  /*   TEST_LOG("Slow lwip_write(): %ju ms", */
+  /* 	       std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()); */
+  /* } */
 
-    on_error("Partial Dummy packet: sentBytes %d != len %d",
-	     sentBytes, len);
-  }
+
   dummyBytes += len;
   return len;
 }
