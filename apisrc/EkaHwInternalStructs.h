@@ -287,7 +287,8 @@ typedef struct __attribute__((packed)) {
   uint8_t  type;
   uint16_t length;
   uint32_t index;
-  feedback_dma_bitparams_t  bitparams;
+  /* feedback_dma_bitparams_t  bitparams; */
+  EpmActionBitmap bitparams;
 } feedback_dma_report_t;
 
 typedef struct __attribute__((packed)) {

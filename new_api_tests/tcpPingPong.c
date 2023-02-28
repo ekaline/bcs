@@ -89,7 +89,7 @@ void fastpath_thread_f(EkaDev* pEkaDev,
 	rxSize += rx;
 	rxP += rx;
       }
-    } while (rxSize != PktSize);
+    } while (keep_work && rxSize != PktSize);
     
     if (memcmp(pkt,rxBuf,PktSize) != 0) { 
       hexDump("PKT",pkt,PktSize);

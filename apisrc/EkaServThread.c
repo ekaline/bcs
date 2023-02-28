@@ -62,13 +62,13 @@ void ekaServThread(EkaDev* dev) {
       on_error("Unexpected dmaType %d",(int)dmaType);
 
     auto feedbackDmaReport = (const feedback_dma_report_t*) payload;
-    /* EKA_LOG("EPM PKT: bitparams = 0x%0x, dummy_en = %d, expect_report = %d, type = %d, length = %d, index = %d, dmalen = %d", */
-    /* 	feedbackDmaReport->bitparams,feedbackDmaReport->bitparams.dummy_en,feedbackDmaReport->bitparams.expect_report, */
+    /* EKA_LOG("EPM PKT: bitparams = 0x%0x, feedbck_en = %d, report_en = %d, type = %d, length = %d, index = %d, dmalen = %d", */
+    /* 	feedbackDmaReport->bitparams,feedbackDmaReport->bitparams.feedbck_en,feedbackDmaReport->bitparams.report_en, */
     /* 	feedbackDmaReport->type,feedbackDmaReport->length,feedbackDmaReport->index,len); */
     /* hexDump("Serv Thread EPM Pkt",payload,len);fflush(stdout); */
 
 
-    if (feedbackDmaReport->bitparams.dummy_en == 1) {
+    if (feedbackDmaReport->bitparams.bitmap.feedbck_en == 1) {
       int rc = sendDummyFastPathPkt(dev,payload);
       if (rc <= 0) {
 	// LWIP is busy?
@@ -87,7 +87,7 @@ void ekaServThread(EkaDev* dev) {
 	break;
       }
     }
-    if (feedbackDmaReport->bitparams.expect_report == 1) {
+    if (feedbackDmaReport->bitparams.bitmap.report_en == 1) {
       /* EKA_LOG("User Report # %u is pushed to Q", */
       /* 	  feedbackDmaReport->index); */
       /* hexDump("Payload push to Q",payload,len); */
