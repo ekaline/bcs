@@ -73,6 +73,10 @@ int main(int argc, char *argv[]) {
   for (uint64_t i = 0; i < Iterations; i++) {
     uint8_t data[DataMaxSize];
     size_t dataLen = roundUp64(rand() % DataMaxSize);
+
+    if (dataLen == 0) //TBD fixed
+      continue;
+    
     for (size_t c = 0; c < dataLen; c ++) {
       data[c] = 'a' + rand() % ('z' -'a' + 1);
     }

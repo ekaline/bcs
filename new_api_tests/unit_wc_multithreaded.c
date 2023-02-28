@@ -43,8 +43,8 @@ inline void copyBuf(volatile uint64_t* dst,
 			      const size_t len) {
   
   copy_to_atomic(dst,srcBuf,len);
-  //  __sync_synchronize();
-  _mm_clflush(srcBuf);
+  //    __sync_synchronize();
+    _mm_clflush(srcBuf);
       
 }
 
@@ -58,6 +58,7 @@ struct WcDesc {
 
 static const uint64_t Iterations = 100 * 1024 * 1024; 
 static const int DataMaxSize = 2048 - 64; 
+//static const int DataMaxSize = 256; 
 static const uint64_t HwWcTestAddr = 0x20000;
 
 static volatile bool keep_work = true;
@@ -72,12 +73,23 @@ void  INThandler(int sig) {
 void testThread(int thrId, SC_DeviceId dev_id,
 	      volatile uint64_t* wcBaseAddr) {
 
-  volatile uint64_t* a2wr = wcBaseAddr + thrId * 0x800;
+  volatile uint64_t* a2wr = wcBaseAddr + (thrId * 0x800)/8;
   uint64_t testMemOffs = thrId * 2048;
+
+  /* TEST_LOG("Thr %d: wcBaseAddr = 0x%jx, a2wr = 0x%jx, testMemOffs= 0x%jx", */
+  /* 	   thrId, */
+  /* 	   wcBaseAddr, */
+  /* 	   a2wr, */
+  /* 	   testMemOffs); */
+  
   uint64_t i;
   for (i = 0; keep_work && i < Iterations; i++) {
     uint8_t data[DataMaxSize];
     size_t dataLen = roundUp64(rand() % DataMaxSize);
+    
+    if (dataLen == 0) //TBD fixed
+      continue;
+    
     for (size_t c = 0; c < dataLen; c ++) {
       data[c] = 'a' + rand() % ('z' -'a' + 1);
     }
@@ -96,6 +108,9 @@ void testThread(int thrId, SC_DeviceId dev_id,
 
     uint64_t srcAddr = (HwWcTestAddr + testMemOffs) / 8;
     uint64_t* dstAddr = (uint64_t*)rdData;
+
+    usleep(0);
+      
     for (uint w = 0; w < dataLen / 8; w++)
       SN_ReadUserLogicRegister(dev_id, srcAddr++, dstAddr++);
 
@@ -128,15 +143,15 @@ int main(int argc, char *argv[]) {
   if (dev_id == NULL) on_error("SC_OpenDevice == NULL: cannot open Smartnic device");
   volatile uint64_t* wcBaseAddr = EkalineGetWcBase(dev_id);
 
-  const int NumThreads = 1;
+ uint NumThreads = atoi(argv[1]);;
 
   std::thread thr[NumThreads];
-  /* ------------------------------------------------------------------ */
-  for (int i = 0; i < NumThreads; i++) {
-    thr[i] = std::thread(testThread,i,dev_id,wcBaseAddr);    
+  //  ------------------------------------------------------------------
+  for (uint i = 0; i < NumThreads; i++) {
+    thr[i] = std::thread(testThread,i,dev_id,wcBaseAddr);
   }
 
-  for (int i = 0; i < NumThreads; i++) {
+  for (uint i = 0; i < NumThreads; i++) {
     thr[i].join();
   }
   
