@@ -56,12 +56,8 @@ EkaTcpSess::EkaTcpSess(EkaDev* pEkaDev, EkaCore* _parent, uint8_t _coreId, uint8
   tcpRemoteSeqNum    = 0;
 
   fastPathBytes      = 0;
-  throttleCounter    = 0;
-  maxThrottleCounter = 0;
   txDriverBytes      = 0;
   dummyBytes         = 0;
-
-  fastBytesFromUserChannel = 0;
 
   connectionEstablished = false;
 
@@ -241,8 +237,8 @@ int EkaTcpSess::connect() {
 EkaTcpSess::~EkaTcpSess() {
   EKA_LOG("Closing socket %d for core%u sess%u",sock,coreId,sessId);
   lwip_close(sock);
-  EKA_LOG("Closed socket %d for core%u sess%u maxThrottle %juus",
-	  sock,coreId,sessId,maxThrottleCounter);
+  EKA_LOG("Closed socket %d for core%u sess%u",
+	  sock,coreId,sessId);
 }
 /* ---------------------------------------------------------------- */
 
@@ -256,19 +252,15 @@ int EkaTcpSess::preloadNwHeaders() {
 /* ---------------------------------------------------------------- */
 
 int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
-  tcpRemoteAckNum = EKA_TCPH_ACKNO(pkt);
+  tcpRemoteAckNum.store(EKA_TCPH_ACKNO(pkt));
   /* TEST_LOG("From RX: tcpRemoteAckNum = %ju",tcpRemoteAckNum-tcpLocalSeqNumBase); */
 
   // delay RX Ack if corresponding Dummy not pushed to LWIP
-  while (dev->exc_active && (tcpRemoteAckNum - tcpLocalSeqNumBase > dummyBytes)) {
-    /* EKA_WARN("tcpRemoteAckNum %u > real dummyBytes %ju, delta = %jd", */
-    /* 	     tcpRemoteAckNum - tcpLocalSeqNumBase, */
-    /* 	     dummyBytes, */
-    /* 	     tcpRemoteAckNum - tcpLocalSeqNumBase - dummyBytes); */
+  while (dev->exc_active && (tcpRemoteAckNum.load() - tcpLocalSeqNumBase.load() > dummyBytes.load())) {
     std::this_thread::yield();
   }
   
-  tcpSndWnd = uint32_t(EKA_TCPH_WND(pkt)) << tcpSndWndShift;
+  tcpSndWnd.store(uint32_t(EKA_TCPH_WND(pkt)) << tcpSndWndShift);
   if (EKA_TCP_SYN(pkt)) {
     // SYN/ACK part of the handshake contains the peer's TCP session options.
     assert(EKA_TCP_ACK(pkt));
@@ -293,7 +285,7 @@ int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
   }
 
   if ( 
-      (tcpRemoteAckNum > tcpLocalSeqNum) && //doesntwork with wraparound
+      (tcpRemoteAckNum.load() > tcpLocalSeqNum.load()) && //doesntwork with wraparound
       (!(EKA_TCP_SYN(pkt)))
        ) {
     //   Bewlow warning is OK only for wraparound
@@ -325,7 +317,7 @@ int EkaTcpSess::setLocalSeqWnd2FPGA() {
     desc.td.source_bank = 0;
     desc.td.source_thread = sessId;
     desc.td.target_idx = (uint32_t)sessId;
-    eka_write(dev,0x30000 + 0x1000*coreId + 8 * (sessId*2),tcpLocalSeqNum);
+    eka_write(dev,0x30000 + 0x1000*coreId + 8 * (sessId*2),(uint64_t)tcpLocalSeqNum.load());
     eka_write(dev,0x3f000 + 0x100*coreId,desc.desc);
 
     eka_write(dev,0xe0318,tcpRcvWnd);
@@ -349,8 +341,8 @@ int EkaTcpSess::setBlocking(bool b) {
 /* ---------------------------------------------------------------- */
 int EkaTcpSess::sendStackEthFrame(void *pkt, int len) {
   if (EKA_TCP_SYN(pkt)) {
-    tcpLocalSeqNum = EKA_TCPH_SEQNO(pkt) + 1;
-    tcpLocalSeqNumBase = EKA_TCPH_SEQNO(pkt) + 1;
+    tcpLocalSeqNum.store(EKA_TCPH_SEQNO(pkt) + 1);
+    tcpLocalSeqNumBase.store(EKA_TCPH_SEQNO(pkt) + 1);
     tcpRcvWnd = EKA_TCPH_WND(pkt);
     setLocalSeqWnd2FPGA();
     sendEthFrame(pkt,len);
@@ -391,11 +383,9 @@ int EkaTcpSess::sendStackEthFrame(void *pkt, int len) {
   } else {
     /* TEST_LOG("NOT Sending ACK %u",EKA_TCPH_ACKNO(pkt)); */
   }
-  tcpLocalSeqNum = EKA_TCPH_SEQNO(pkt) + EKA_TCP_PAYLOAD_LEN(pkt);
-  auto temp = txDriverBytes + EKA_TCP_PAYLOAD_LEN(pkt);
-  txDriverBytes = temp;
-  //  txDriverBytes += EKA_TCP_PAYLOAD_LEN(pkt);
-
+  tcpLocalSeqNum.store(EKA_TCPH_SEQNO(pkt) + EKA_TCP_PAYLOAD_LEN(pkt));
+  if (EKA_IS_TCP_PKT(pkt))
+    txDriverBytes.fetch_add(EKA_TCP_PAYLOAD_LEN(pkt));
   return 0;
 }
 
@@ -441,15 +431,15 @@ int EkaTcpSess::lwipDummyWrite(void *buf, int len) {
     }
 
     if (sentSize != len) {
-      txLwipBp = true;
+      txLwipBp.store(true);
       std::this_thread::yield();
     }
     
   } while (dev->exc_active && sentSize != len);
 
-  txLwipBp = false;
-  dummyBytes += len;
-  realDummyBytes = dummyBytes;
+  txLwipBp.store(false);
+  dummyBytes.fetch_add(len);
+  realDummyBytes.fetch_add(len);
   return len;
 }
 
@@ -461,18 +451,17 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
   }
   if (len == 0) return 0;
   
-  static const uint WndMargin = 2*1024; // 1 MTU
+  static const uint WndMargin = 0;//2*1024; // 1 MTU
 
   uint payloadSize2send = (uint)len < MAX_PAYLOAD_SIZE ? (uint)len : MAX_PAYLOAD_SIZE;
-  uint32_t unAckedBytes = fastPathBytes - (tcpRemoteAckNum - tcpLocalSeqNumBase);
-  if (txLwipBp ||
-      unAckedBytes + payloadSize2send > tcpSndWnd - WndMargin) {
-    /* TEST_LOG("tcpSndWnd Throttling: tcpSndWnd=%u, tcpRemoteAckNum=%u,fastPathBytes=%ju", */
-    /* 	     tcpSndWnd,tcpRemoteAckNum-tcpLocalSeqNumBase,fastPathBytes); */
+  uint32_t unAckedBytes = fastPathBytes.load() - (tcpRemoteAckNum.load() - tcpLocalSeqNumBase.load());
+  if (txLwipBp.load() ||
+      unAckedBytes + payloadSize2send > tcpSndWnd.load() - WndMargin) {
     payloadSize2send = 0;
     errno = EAGAIN;
-    TEST_LOG("Throttling: txLwipBp=%d, unAckedBytes=%ju, tcpSndWnd=%u, realDummyBytes=%ju, txDriverBytes=%ju, LwipTxBytes = %ju",
-	     txLwipBp, unAckedBytes, tcpSndWnd, realDummyBytes, txDriverBytes, realDummyBytes-txDriverBytes);
+    TEST_LOG("Throttling: txLwipBp=%d, unAckedBytes=%u, tcpSndWnd=%u, realDummyBytes=%ju, txDriverBytes=%ju, LwipTxBytes = %jd",
+	     (int)txLwipBp.load(), unAckedBytes, (uint32_t)tcpSndWnd, (uint64_t)realDummyBytes, (uint64_t)txDriverBytes,
+	     (int64_t)(realDummyBytes.load() - txDriverBytes.load()));
     return 0;
   }
 
@@ -484,9 +473,8 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
     return -1;
   } 
 
-  auto temp = fastPathBytes + payloadSize2send;
-  fastPathBytes = temp;
-  //  fastPathBytes += payloadSize2send;
+  fastPathBytes.fetch_add(payloadSize2send);
+
   fastPathAction->fastSend(buf, payloadSize2send);
   return payloadSize2send;
 }

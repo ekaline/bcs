@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <mutex>
+#include <atomic>
 
 #include "eka_macros.h"
 
@@ -86,27 +87,24 @@ class EkaTcpSess {
   uint32_t vlan_tag = 0;
 
   uint16_t tcpRcvWnd; // new
-  volatile uint32_t tcpSndWnd = 0;
+  std::atomic<uint32_t> tcpSndWnd = 0;
   uint8_t tcpSndWndShift = 0;
 
   int appSeqId = 0;
   
-  volatile uint32_t tcpLocalSeqNum = 0;
-  volatile uint32_t tcpRemoteSeqNum = 0;
-  volatile uint32_t tcpRemoteAckNum = 0;
+  std::atomic<uint32_t> tcpLocalSeqNum = 0;
+  std::atomic<uint32_t> tcpRemoteSeqNum = 0;
+  std::atomic<uint32_t> tcpRemoteAckNum = 0;
 
-  volatile uint32_t fastPathBytes = 0;
-  volatile uint64_t throttleCounter = 0;
-  volatile uint64_t maxThrottleCounter = 0;
-  volatile uint32_t dummyBytes = 0;
-  volatile uint32_t tcpLocalSeqNumBase = 0;
+  std::atomic<uint32_t> fastPathBytes = 0;
 
-  volatile uint64_t realDummyBytes = 0;
-  volatile uint64_t txDriverBytes = 0;
+  std::atomic<uint32_t> dummyBytes = 0;
+  std::atomic<uint32_t> tcpLocalSeqNumBase = 0;
 
-  volatile bool txLwipBp = false;
+  std::atomic<uint64_t> realDummyBytes = 0;
+  std::atomic<uint64_t> txDriverBytes = 0;
 
-  volatile uint64_t fastBytesFromUserChannel = 0;
+  std::atomic<bool>     txLwipBp = false;
 
   uint8_t __attribute__ ((aligned(0x100)))  pktBuf[MAX_ETH_FRAME_SIZE] = {};
   EkaEthHdr* ethHdr     = (EkaEthHdr*) pktBuf;
