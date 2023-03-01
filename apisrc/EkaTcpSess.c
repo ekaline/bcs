@@ -52,13 +52,6 @@ EkaTcpSess::EkaTcpSess(EkaDev* pEkaDev, EkaCore* _parent, uint8_t _coreId, uint8
   dstIp   = _dstIp;
   dstPort = _dstPort;
 
-  tcpLocalSeqNum     = 0;
-  tcpRemoteSeqNum    = 0;
-
-  fastPathBytes      = 0;
-  txDriverBytes      = 0;
-  dummyBytes         = 0;
-
   connectionEstablished = false;
 
   memcpy(macSa,_macSa,6);
@@ -253,14 +246,13 @@ int EkaTcpSess::preloadNwHeaders() {
 
 int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
   tcpRemoteAckNum.store(EKA_TCPH_ACKNO(pkt));
-  /* TEST_LOG("From RX: tcpRemoteAckNum = %ju",tcpRemoteAckNum-tcpLocalSeqNumBase); */
+  tcpSndWnd.store(uint32_t(EKA_TCPH_WND(pkt)) << tcpSndWndShift);
 
   // delay RX Ack if corresponding Dummy not pushed to LWIP
   while (dev->exc_active && (tcpRemoteAckNum.load() - tcpLocalSeqNumBase.load() > dummyBytes.load())) {
     std::this_thread::yield();
   }
   
-  tcpSndWnd.store(uint32_t(EKA_TCPH_WND(pkt)) << tcpSndWndShift);
   if (EKA_TCP_SYN(pkt)) {
     // SYN/ACK part of the handshake contains the peer's TCP session options.
     assert(EKA_TCP_ACK(pkt));
@@ -384,8 +376,10 @@ int EkaTcpSess::sendStackEthFrame(void *pkt, int len) {
     /* TEST_LOG("NOT Sending ACK %u",EKA_TCPH_ACKNO(pkt)); */
   }
   tcpLocalSeqNum.store(EKA_TCPH_SEQNO(pkt) + EKA_TCP_PAYLOAD_LEN(pkt));
-  if (EKA_IS_TCP_PKT(pkt))
+  if (EKA_IS_TCP_PKT(pkt)) {
     txDriverBytes.fetch_add(EKA_TCP_PAYLOAD_LEN(pkt));
+    realTxDriverBytes.fetch_add(EKA_TCP_PAYLOAD_LEN(pkt));
+  }
   return 0;
 }
 
@@ -451,17 +445,19 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
   }
   if (len == 0) return 0;
   
-  static const uint WndMargin = 0;//2*1024; // 1 MTU
+  static const uint WndMargin = 2*1024; // 1 MTU
 
   uint payloadSize2send = (uint)len < MAX_PAYLOAD_SIZE ? (uint)len : MAX_PAYLOAD_SIZE;
   uint32_t unAckedBytes = fastPathBytes.load() - (tcpRemoteAckNum.load() - tcpLocalSeqNumBase.load());
   if (txLwipBp.load() ||
-      unAckedBytes + payloadSize2send > tcpSndWnd.load() - WndMargin) {
+      unAckedBytes + payloadSize2send > (tcpSndWnd.load() < WndMargin ? 0 : tcpSndWnd.load() - WndMargin)) {
     payloadSize2send = 0;
     errno = EAGAIN;
-    TEST_LOG("Throttling: txLwipBp=%d, unAckedBytes=%u, tcpSndWnd=%u, realDummyBytes=%ju, txDriverBytes=%ju, LwipTxBytes = %jd",
-	     (int)txLwipBp.load(), unAckedBytes, (uint32_t)tcpSndWnd, (uint64_t)realDummyBytes, (uint64_t)txDriverBytes,
-	     (int64_t)(realDummyBytes.load() - txDriverBytes.load()));
+#if 0    
+    TEST_LOG("Throttling: txLwipBp=%d, unAckedBytes=%u, tcpSndWnd=%u, realDummyBytes=%ju, realTxDriverBytes=%ju, LwipTxBytes = %jd",
+    	     (int)txLwipBp.load(), unAckedBytes, (uint32_t)tcpSndWnd, (uint64_t)realDummyBytes, (uint64_t)realTxDriverBytes,
+    	     (int64_t)(realDummyBytes.load() - realTxDriverBytes.load()));
+#endif    
     return 0;
   }
 

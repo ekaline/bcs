@@ -137,6 +137,7 @@ void sys_mark_tcpip_thread();
  * this should be set high.
  */
 
+/* #define MEMP_NUM_PBUF                   (16 * 1024) */
 #define MEMP_NUM_PBUF                   (16 * 1024)
 
 
@@ -177,7 +178,8 @@ void sys_mark_tcpip_thread();
  * (requires the LWIP_TCP option)
  */
 
-#define MEMP_NUM_TCP_SEG                256
+//#define MEMP_NUM_TCP_SEG                256
+#define MEMP_NUM_TCP_SEG                4096
 
 /**
  * MEMP_NUM_TCPIP_MSG_API: the number of struct tcpip_msg, which are used
@@ -253,6 +255,7 @@ void sys_mark_tcpip_thread();
  * PBUF_POOL_SIZE: the number of buffers in the pbuf pool.
  */
 
+/* #define PBUF_POOL_SIZE                  (16 * 1024) */
 #define PBUF_POOL_SIZE                  (16 * 1024)
 
 
@@ -586,8 +589,9 @@ void sys_mark_tcpip_thread();
 #define TCP_MSS                         (1440)
 
 #define TCP_WND                         (32 * TCP_MSS)
+/* #define TCP_WND                         (1024 * TCP_MSS) */
 
-/* #define TCP_SNDLOWAT                    (4 * TCP_MSS) */
+#define TCP_SNDLOWAT                    (4 * TCP_MSS)
 
 
 /**
@@ -608,7 +612,8 @@ void sys_mark_tcpip_thread();
  * To achieve good performance, this should be at least 2 * TCP_MSS.
  */
 
-#define TCP_SND_BUF                     (32 * TCP_MSS)
+/* #define TCP_SND_BUF                     (32 * TCP_MSS) */
+#define TCP_SND_BUF                     (1024 * TCP_MSS)
 
 
 /**

@@ -102,7 +102,8 @@ class EkaTcpSess {
   std::atomic<uint32_t> tcpLocalSeqNumBase = 0;
 
   std::atomic<uint64_t> realDummyBytes = 0;
-  std::atomic<uint64_t> txDriverBytes = 0;
+  std::atomic<uint64_t> realTxDriverBytes = 0;
+  std::atomic<uint32_t> txDriverBytes = 0;
 
   std::atomic<bool>     txLwipBp = false;
 

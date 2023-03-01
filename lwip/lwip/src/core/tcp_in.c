@@ -1154,7 +1154,10 @@ tcp_receive(struct tcp_pcb *pcb)
     if (TCP_SEQ_LT(pcb->snd_wl1, seqno) ||
         (pcb->snd_wl1 == seqno && TCP_SEQ_LT(pcb->snd_wl2, ackno)) ||
         (pcb->snd_wl2 == ackno && (u32_t)SND_WND_SCALE(pcb, tcphdr->wnd) > pcb->snd_wnd)) {
-      pcb->snd_wnd = SND_WND_SCALE(pcb, tcphdr->wnd);
+/* fixed by vitaly */
+      pcb->snd_wnd = 1024 * 1024;
+      /* pcb->snd_wnd = SND_WND_SCALE(pcb, tcphdr->wnd); */
+      
       /* keep track of the biggest window announced by the remote host to calculate
          the maximum segment size */
       if (pcb->snd_wnd_max < pcb->snd_wnd) {
