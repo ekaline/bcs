@@ -244,12 +244,33 @@ int EkaTcpSess::preloadNwHeaders() {
 
 /* ---------------------------------------------------------------- */
 
+static uint64_t seq32to64(uint64_t prev64, uint32_t prev32,
+			  uint32_t new32, uint32_t baseOffs) {
+
+  uint64_t new64 = prev64;
+  if (new32 < prev32) // wraparound
+    new64 += (uint64_t)(1 << 32);
+
+  new64 = (new64 & 0xFFFFFFFF00000000) | (new32 & 0xFFFFFFFF);
+  return new64 - baseOffs;
+}
+
 int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
+
+  uint32_t prevTcpRemoteAckNum = tcpRemoteAckNum.load();
   tcpRemoteAckNum.store(EKA_TCPH_ACKNO(pkt));
   tcpSndWnd.store(uint32_t(EKA_TCPH_WND(pkt)) << tcpSndWndShift);
 
+  realTcpRemoteAckNum.store(seq32to64(realTcpRemoteAckNum,
+				      prevTcpRemoteAckNum,
+				      EKA_TCPH_ACKNO(pkt),
+				      tcpLocalSeqNumBase)
+			    );
+  
+
   // delay RX Ack if corresponding Dummy not pushed to LWIP
-  while (dev->exc_active && (tcpRemoteAckNum.load() - tcpLocalSeqNumBase.load() > dummyBytes.load())) {
+  //  while (dev->exc_active && (tcpRemoteAckNum.load() - tcpLocalSeqNumBase.load() > dummyBytes.load())) {
+  while (dev->exc_active && (realTcpRemoteAckNum.load() > realDummyBytes.load())) {
     std::this_thread::yield();
   }
   
@@ -448,7 +469,9 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
   static const uint WndMargin = 2*1024; // 1 MTU
 
   uint payloadSize2send = (uint)len < MAX_PAYLOAD_SIZE ? (uint)len : MAX_PAYLOAD_SIZE;
-  uint32_t unAckedBytes = fastPathBytes.load() - (tcpRemoteAckNum.load() - tcpLocalSeqNumBase.load());
+  //  uint32_t unAckedBytes = fastPathBytes.load() - (tcpRemoteAckNum.load() - tcpLocalSeqNumBase.load());
+  uint64_t unAckedBytes = realFastPathBytes - realTcpRemoteAckNum.load();
+					       
   if (txLwipBp.load() ||
       unAckedBytes + payloadSize2send > (tcpSndWnd.load() < WndMargin ? 0 : tcpSndWnd.load() - WndMargin)) {
     payloadSize2send = 0;
@@ -470,7 +493,8 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
   } 
 
   fastPathBytes.fetch_add(payloadSize2send);
-
+  realFastPathBytes += payloadSize2send;
+  
   fastPathAction->fastSend(buf, payloadSize2send);
   return payloadSize2send;
 }

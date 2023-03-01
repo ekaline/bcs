@@ -94,14 +94,20 @@ class EkaTcpSess {
   
   std::atomic<uint32_t> tcpLocalSeqNum = 0;
   std::atomic<uint32_t> tcpRemoteSeqNum = 0;
+  
+  std::atomic<uint32_t> prevTcpRemoteAckNum = 0;
   std::atomic<uint32_t> tcpRemoteAckNum = 0;
+  std::atomic<uint64_t> realTcpRemoteAckNum = 0;
 
   std::atomic<uint32_t> fastPathBytes = 0;
-
+  uint64_t              realFastPathBytes = 0;
+  
+  std::atomic<uint32_t> prevDummyBytes = 0;
   std::atomic<uint32_t> dummyBytes = 0;
+  std::atomic<uint64_t> realDummyBytes = 0;
+  
   std::atomic<uint32_t> tcpLocalSeqNumBase = 0;
 
-  std::atomic<uint64_t> realDummyBytes = 0;
   std::atomic<uint64_t> realTxDriverBytes = 0;
   std::atomic<uint32_t> txDriverBytes = 0;
 
