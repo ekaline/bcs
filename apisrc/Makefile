@@ -1,5 +1,6 @@
 SMARTNIC_ROOT ?= ../SmartNIC_SW
-LWIP_ROOT ?= ../lwip
+#LWIP_ROOT ?= ../lwip
+LWIP_ROOT ?= ../lwip/lwip_mar2023/
 
 CCDEP:=gcc
 #CCDEP:=$GCC

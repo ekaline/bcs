@@ -249,7 +249,7 @@ static uint64_t seq32to64(uint64_t prev64, uint32_t prev32,
 
   uint64_t new64 = prev64;
   if (new32 < prev32) // wraparound
-    new64 += (uint64_t)(1 << 32);
+    new64 += (uint64_t)(1) << 32;
 
   new64 = (new64 & 0xFFFFFFFF00000000) | (new32 & 0xFFFFFFFF);
   return new64 - baseOffs;
@@ -264,13 +264,17 @@ int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
   realTcpRemoteAckNum.store(seq32to64(realTcpRemoteAckNum,
 				      prevTcpRemoteAckNum,
 				      EKA_TCPH_ACKNO(pkt),
-				      tcpLocalSeqNumBase)
+				      0 /* tcpLocalSeqNumBase */)
 			    );
   
 
+  /* // delay RX Ack if corresponding Dummy not pushed to LWIP */
+  /* while (dev->exc_active && (realTcpRemoteAckNum.load() > realDummyBytes.load())) { */
+  /*   std::this_thread::yield(); */
+  /* } */
+
   // delay RX Ack if corresponding Dummy not pushed to LWIP
-  //  while (dev->exc_active && (tcpRemoteAckNum.load() - tcpLocalSeqNumBase.load() > dummyBytes.load())) {
-  while (dev->exc_active && (realTcpRemoteAckNum.load() > realDummyBytes.load())) {
+  while (dev->exc_active && (realTcpRemoteAckNum.load() > realTxDriverBytes.load())) {
     std::this_thread::yield();
   }
   
@@ -306,6 +310,9 @@ int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
     //  	     tcpRemoteAckNum, tcpLocalSeqNum, tcpRemoteAckNum - tcpLocalSeqNum);
     return 0; //allow wraparound
   }
+#if DEBUG_PRINTS
+  TEST_LOG("realTcpRemoteAckNum entering LWIP RX %ju",realTcpRemoteAckNum.load());
+#endif  
   return 0;
 }
 
@@ -355,7 +362,12 @@ int EkaTcpSess::setBlocking(bool b) {
 int EkaTcpSess::sendStackEthFrame(void *pkt, int len) {
   if (EKA_TCP_SYN(pkt)) {
     tcpLocalSeqNum.store(EKA_TCPH_SEQNO(pkt) + 1);
-    tcpLocalSeqNumBase.store(EKA_TCPH_SEQNO(pkt) + 1);
+    //    tcpLocalSeqNumBase.store(EKA_TCPH_SEQNO(pkt) + 1);
+    realTcpRemoteAckNum.store(EKA_TCPH_SEQNO(pkt) + 1);
+    realFastPathBytes.store(EKA_TCPH_SEQNO(pkt) + 1);
+    realTxDriverBytes.store(EKA_TCPH_SEQNO(pkt) + 1);
+    realDummyBytes.store(EKA_TCPH_SEQNO(pkt) + 1);
+
     tcpRcvWnd = EKA_TCPH_WND(pkt);
     setLocalSeqWnd2FPGA();
     sendEthFrame(pkt,len);
@@ -397,8 +409,11 @@ int EkaTcpSess::sendStackEthFrame(void *pkt, int len) {
     /* TEST_LOG("NOT Sending ACK %u",EKA_TCPH_ACKNO(pkt)); */
   }
   tcpLocalSeqNum.store(EKA_TCPH_SEQNO(pkt) + EKA_TCP_PAYLOAD_LEN(pkt));
+#if DEBUG_PRINTS  
+  TEST_LOG("Dropping pkt %u bytes, seq = %u",
+	   EKA_TCP_PAYLOAD_LEN(pkt),EKA_TCPH_SEQNO(pkt)-tcpLocalSeqNumBase);
+#endif  
   if (EKA_IS_TCP_PKT(pkt)) {
-    txDriverBytes.fetch_add(EKA_TCP_PAYLOAD_LEN(pkt));
     realTxDriverBytes.fetch_add(EKA_TCP_PAYLOAD_LEN(pkt));
   }
   return 0;
@@ -426,10 +441,13 @@ int EkaTcpSess::sendEthFrame(void *buf, int len) {
 
 /* ---------------------------------------------------------------- */
 
-int EkaTcpSess::lwipDummyWrite(void *buf, int len) {
+int EkaTcpSess::lwipDummyWrite(void *buf, int len, uint8_t originatedFromHw) {
   auto p = (const uint8_t*)buf;
   int sentSize = 0;
 
+  if (originatedFromHw)
+    realFastPathBytes.fetch_add(len);
+  
   do {
     int sentBytes = lwip_write(sock,p,len-sentSize);
     lwip_errno = errno;
@@ -453,8 +471,8 @@ int EkaTcpSess::lwipDummyWrite(void *buf, int len) {
   } while (dev->exc_active && sentSize != len);
 
   txLwipBp.store(false);
-  dummyBytes.fetch_add(len);
   realDummyBytes.fetch_add(len);
+  
   return len;
 }
 
@@ -466,20 +484,22 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
   }
   if (len == 0) return 0;
   
-  static const uint WndMargin = 2*1024; // 1 MTU
+  static const uint32_t WndMargin = 2*1024; // 1 MTU
 
   uint payloadSize2send = (uint)len < MAX_PAYLOAD_SIZE ? (uint)len : MAX_PAYLOAD_SIZE;
-  //  uint32_t unAckedBytes = fastPathBytes.load() - (tcpRemoteAckNum.load() - tcpLocalSeqNumBase.load());
-  uint64_t unAckedBytes = realFastPathBytes - realTcpRemoteAckNum.load();
-					       
-  if (txLwipBp.load() ||
-      unAckedBytes + payloadSize2send > (tcpSndWnd.load() < WndMargin ? 0 : tcpSndWnd.load() - WndMargin)) {
+  int64_t unAckedBytes = realFastPathBytes.load() - realTcpRemoteAckNum.load();
+
+  uint32_t allowedWnd = tcpSndWnd.load() < WndMargin ? 0 : tcpSndWnd.load() - WndMargin;
+  if (txLwipBp.load() || unAckedBytes + payloadSize2send > allowedWnd) {
     payloadSize2send = 0;
     errno = EAGAIN;
-#if 0    
-    TEST_LOG("Throttling: txLwipBp=%d, unAckedBytes=%u, tcpSndWnd=%u, realDummyBytes=%ju, realTxDriverBytes=%ju, LwipTxBytes = %jd",
-    	     (int)txLwipBp.load(), unAckedBytes, (uint32_t)tcpSndWnd, (uint64_t)realDummyBytes, (uint64_t)realTxDriverBytes,
-    	     (int64_t)(realDummyBytes.load() - realTxDriverBytes.load()));
+#if DEBUG_PRINTS
+    TEST_LOG("Throttling: txLwipBp=%d,unAckedBytes=%jd,tcpSndWnd=%u,realDummyBytes=%ju,realTxDriverBytes=%ju,realTcpRemoteAckNum=%ju,LwipTxBytes=%jd",
+    	     (int)txLwipBp.load(), unAckedBytes,
+	     tcpSndWnd.load(), (uint64_t)realDummyBytes.load(),
+	     (uint64_t)realTxDriverBytes.load(), realTcpRemoteAckNum.load(),
+    	     (int64_t)(realDummyBytes.load() - realTxDriverBytes.load())
+	     );
 #endif    
     return 0;
   }
@@ -492,8 +512,7 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
     return -1;
   } 
 
-  fastPathBytes.fetch_add(payloadSize2send);
-  realFastPathBytes += payloadSize2send;
+  realFastPathBytes.fetch_add(payloadSize2send);
   
   fastPathAction->fastSend(buf, payloadSize2send);
   return payloadSize2send;

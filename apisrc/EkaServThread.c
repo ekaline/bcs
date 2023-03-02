@@ -13,7 +13,8 @@
 #include "eka_macros.h"
 /* ----------------------------------------------- */
 
-static inline int sendDummyFastPathPkt(EkaDev* dev, const uint8_t* payload) {
+static inline int sendDummyFastPathPkt(EkaDev* dev, const uint8_t* payload,
+				       uint8_t originatedFromHw) {
   uint8_t vlan_size = /* dev->use_vlan ? 4 : */ 0;
 
   EkaIpHdr*  iph   = (EkaIpHdr*) (payload + sizeof(EkaEthHdr) + vlan_size);
@@ -27,15 +28,17 @@ static inline int sendDummyFastPathPkt(EkaDev* dev, const uint8_t* payload) {
   
   //  hexDump("Dummy Pkt to send",(void*)data, len);
 
-  EkaTcpSess* tcpSess = dev->findTcpSess(iph->src, be16toh(tcph->src), iph->dest, be16toh(tcph->dest));
-  if (tcpSess == NULL) {
+  auto tcpSess = dev->findTcpSess(iph->src, be16toh(tcph->src),
+				  iph->dest, be16toh(tcph->dest));
+  if (! tcpSess) {
     hexDump("Dummy Pkt with unknown TcpSess",(void*)data, len);fflush (stdout);
 
     on_error("Tcp Session %s:%u --> %s:%u not found",
-	     EKA_IP2STR((iph->src)),be16toh(tcph->src),EKA_IP2STR((iph->dest)),be16toh(tcph->dest)); 
+	     EKA_IP2STR((iph->src)),be16toh(tcph->src),
+	     EKA_IP2STR((iph->dest)),be16toh(tcph->dest)); 
   }
 
-  return tcpSess->lwipDummyWrite(data, len);
+  return tcpSess->lwipDummyWrite(data, len, originatedFromHw);
 }
 
 /* ----------------------------------------------- */
@@ -62,31 +65,28 @@ void ekaServThread(EkaDev* dev) {
       on_error("Unexpected dmaType %d",(int)dmaType);
 
     auto feedbackDmaReport = (const feedback_dma_report_t*) payload;
-    /* EKA_LOG("EPM PKT: bitparams = 0x%0x, feedbck_en = %d, report_en = %d, type = %d, length = %d, index = %d, dmalen = %d", */
-    /* 	feedbackDmaReport->bitparams,feedbackDmaReport->bitparams.feedbck_en,feedbackDmaReport->bitparams.report_en, */
-    /* 	feedbackDmaReport->type,feedbackDmaReport->length,feedbackDmaReport->index,len); */
-    /* hexDump("Serv Thread EPM Pkt",payload,len);fflush(stdout); */
 
+    if (! feedbackDmaReport->bitparams.bitmap.feedbck_en)
+      on_error("EPM feedback DMA channel got pkt with feedbck_en==0");
 
-    if (feedbackDmaReport->bitparams.bitmap.feedbck_en == 1) {
-      int rc = sendDummyFastPathPkt(dev,payload);
-      if (rc <= 0) {
-	// LWIP is busy?
-	char hexBuf[8192];
-	if (std::FILE *const hexBufFile = fmemopen(hexBuf, sizeof hexBuf, "w")) {
-	  hexDump("error TCP pkt",payload,len,hexBufFile);
-	  (void)std::fwrite("\0", 1, 1, hexBufFile);
-	  (void)std::fclose(hexBufFile);
-	} else {
-	  std::snprintf(hexBuf, sizeof hexBuf, "fmemopen error: %s (%d)",strerror(errno),errno);
-	}
-	EKA_WARN("sendDummyFastPathPkt returned error: rc=%d, \'%s\' (%d), pkt is:\n%s",
-		 rc, strerror(errno), errno, hexBuf);
-
-	dev->epmFeedback->next();
-	break;
+    int rc = sendDummyFastPathPkt(dev,payload,feedbackDmaReport->bitparams.bitmap.originatedFromHw);
+    if (rc <= 0) {
+      // LWIP is busy?
+      char hexBuf[8192];
+      if (std::FILE *const hexBufFile = fmemopen(hexBuf, sizeof hexBuf, "w")) {
+	hexDump("error TCP pkt",payload,len,hexBufFile);
+	(void)std::fwrite("\0", 1, 1, hexBufFile);
+	(void)std::fclose(hexBufFile);
+      } else {
+	std::snprintf(hexBuf, sizeof hexBuf, "fmemopen error: %s (%d)",strerror(errno),errno);
       }
+      EKA_WARN("sendDummyFastPathPkt returned error: rc=%d, \'%s\' (%d), pkt is:\n%s",
+	       rc, strerror(errno), errno, hexBuf);
+
+      dev->epmFeedback->next();
+      break;
     }
+
     if (feedbackDmaReport->bitparams.bitmap.report_en == 1) {
       /* EKA_LOG("User Report # %u is pushed to Q", */
       /* 	  feedbackDmaReport->index); */

@@ -773,7 +773,7 @@ void sys_mark_tcpip_thread();
  * Ports may call these for threads created with sys_thread_new().
  */
 
-#define LWIP_NETCONN_SEM_PER_THREAD     0
+#define LWIP_NETCONN_SEM_PER_THREAD     1
 
 
 /** LWIP_NETCONN_FULLDUPLEX==1: Enable code that allows reading from one thread,
