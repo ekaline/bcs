@@ -57,6 +57,15 @@ int EkaFhPhlxOrdGr::bookInit () {
 }
 /* ##################################################################### */
 
+void EkaFhPhlxOrdGr::printBookState() {
+  if (!book) {
+    EKA_LOG("%s:%u: No book",EKA_EXCH_DECODE(exch),id);
+  } else {
+    book->printStats();
+  }
+}
+/* ##################################################################### */
+
 int EkaFhPhlxOrdGr::closeIncrementalGap(EfhCtx*        pEfhCtx, 
 				       const EfhRunCtx* pEfhRunCtx, 
 				       uint64_t          startSeq,

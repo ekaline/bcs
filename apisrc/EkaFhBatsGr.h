@@ -18,6 +18,7 @@ class EkaFhBatsGr : public EkaFhGroup{
                 std::chrono::high_resolution_clock::time_point startTime={});
 
   int bookInit();
+  void printBookState();
 
   int subscribeStaticSecurity(uint64_t        securityId, 
                               EfhSecurityType efhSecurityType,

@@ -22,6 +22,14 @@ int EkaFhBxGr::invalidateBook () {
   return book->invalidate();
 }
 
+void EkaFhBxGr::printBookState() {
+  if (!book) {
+    EKA_LOG("%s:%u: No book",EKA_EXCH_DECODE(exch),id);
+  } else {
+    book->printStats();
+  }
+}
+
 void EkaFhBxGr::print_q_state () {
   static const int CriticalSecCollisionsNum = 1;
   static const int CriticalOrderCollisionsNum = 4;
