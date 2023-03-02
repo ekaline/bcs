@@ -45,7 +45,7 @@ void fastpath_thread_f(EkaDev* pEkaDev,
     ++cnt;
     char pkt[PktSize] = {};    
     auto offs = sprintf(pkt,"%u_%u_%2u_%08ju",thrId,coreId,sessId,cnt);
-    for (auto i = offs; i < PktSize; i++)
+    for (size_t i = offs; i < PktSize; i++)
       pkt[i] = 'a' + rand() % ('z' - 'a' + 1);
     /* -------------------------------------------------- */
 

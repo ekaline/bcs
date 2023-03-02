@@ -1,6 +1,6 @@
 SMARTNIC_ROOT ?= ../SmartNIC_SW
-#LWIP_ROOT ?= ../lwip
-LWIP_ROOT ?= ../lwip/lwip_mar2023/
+
+LWIP_ROOT ?= ../LWIP
 
 CCDEP:=gcc
 #CCDEP:=$GCC
@@ -23,7 +23,7 @@ SMARTNIC_DRIVER_INCL ?= $(SMARTNIC_ROOT)/driver
 SMARTNIC_API_INCL ?= $(SMARTNIC_ROOT)/include
 SMARTNIC_LIB ?= $(SMARTNIC_ROOT)/lib/libsmartnic.a
 
-LWIP_INCL:=$(LWIP_ROOT)/lwip/src/include 
+LWIP_INCL:=$(LWIP_ROOT)/src/include 
 INC=$(SMARTNIC_DRIVER_INCL) $(SMARTNIC_API_INCL) $(LWIP_INCL) $(shell pwd) $(shell pwd)/compat $(shell pwd)/FhBook $(shell pwd)/Ehp $(shell pwd)/../pcapParsers $(shell pwd)/../new_api_tests
 
 INCL=$(foreach d, $(INC), -I$d)
@@ -78,7 +78,7 @@ use_onload: all
 ###############################################
 # LWIP
 
-LWIPDIR?=$(LWIP_ROOT)/lwip/src
+LWIPDIR?=$(LWIP_ROOT)/src
 CFLAGS+=-I. -I$(LWIPDIR)/include -I./arch -D_GNU_SOURCE 
 
 include $(LWIPDIR)/Filelists.mk
