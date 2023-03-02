@@ -3,14 +3,14 @@
 
 #include <inttypes.h>
 
-enum class SideT : int {
+enum class SideT : char {
   UNINIT = 0,
   BID = 1,
   ASK = 2,
   OTHER = 3
 };
 
-enum class FhOrderType : int {
+enum class FhOrderType : char {
   UNINIT = 0,
   CUSTOMER,
   BD,

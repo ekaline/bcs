@@ -120,21 +120,20 @@ template <class PriceT, class SizeT>
   //----------------------------------------------------------
  public:
   class EkaFhSecurity*     s             = NULL;
-  bool            top           = false;
-  uint            cnt           = 0;
-  SideT           side          = SideT::UNINIT;
-  
   EkaFhPlevel*    prev          = NULL;
   EkaFhPlevel*    next          = NULL;
 
   PriceT          price         = 0;
+
+  bool            top           = false;
+  SideT           side          = SideT::UNINIT;
+  uint            cnt           = 0;
 
   SizeT	          cust_size     = 0;
   SizeT	          cust_aon_size = 0;
   SizeT	          bd_size       = 0;
   SizeT	          bd_aon_size   = 0;
   SizeT	          other_size    = 0;
-
 };
 // ##########################################################
 
