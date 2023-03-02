@@ -42,6 +42,8 @@ class EkaEpmAction {
   /* ----------------------------------------------------- */
   int setPktPayload(const void* buf, uint len);
   /* ----------------------------------------------------- */
+  int setPktPayloadWC(const void* buf, uint len);
+  /* ----------------------------------------------------- */
   int setUdpPktPayload(const void* buf, uint len);
   /* ----------------------------------------------------- */
   int send(uint32_t _tcpCSum);

@@ -8,6 +8,8 @@
 #include "EkaEpm.h"
 #include "EkaEpmRegion.h"
 #include "EkaUdpTxSess.h"
+#include <x86intrin.h>
+#include <emmintrin.h>  // Needed for _mm_clflush()
 
 uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size);
 unsigned short csum(unsigned short *ptr,int nbytes);
@@ -614,6 +616,68 @@ int EkaEpmAction::setPktPayload(const void* buf, uint len) {
 
   return 0;
 }
+
+/* ----------------------------------------------------- */
+// For TCP only!
+inline void copy_to_atomic(volatile uint64_t * __restrict dst, 
+			   const void *__restrict srcBuf, const size_t len) {
+
+  auto atomicDst = (std::atomic<uint64_t> *__restrict) dst;
+  auto src = (const uint64_t *__restrict) srcBuf;
+  for (size_t i = 0; i < len/8; i ++) {
+    atomicDst->store( *src, std::memory_order_release );
+    atomicDst++; src++;
+  }
+}
+
+inline void copyWCBuf(volatile uint64_t* dst, 
+			      const void *srcBuf,
+			      const size_t len) {
+  
+  copy_to_atomic(dst,srcBuf,len);
+  //  __sync_synchronize();
+  _mm_clflush(srcBuf);
+      
+}
+
+int EkaEpmAction::setPktPayloadWC(const void* buf, uint len) {
+  if (!buf) on_error("!buf");
+
+  ipHdr->_len    = be16toh(getL3L4len() + len);
+  pktSize = getPayloadOffset() + len;
+
+  ipHdr->_chksum = 0;
+  ipHdr->_chksum = csum((unsigned short *)ipHdr, sizeof(EkaIpHdr));
+
+  memcpy(&epm->heap[heapOffs + getPayloadOffset()],buf,len);
+
+  epmTemplate->clearHwFields(&epm->heap[heapOffs]);
+
+  uint64_t* newData  = (uint64_t*) &epm->heap[heapOffs];
+
+  struct WcDesc {
+    uint64_t desc : 64;
+    uint64_t nBytes: 12;
+    uint64_t addr  : 32;
+    uint64_t opc   :  2;
+    uint64_t pad18 : 18;
+  } __attribute__((packed));
+
+  volatile uint64_t* a2wr = dev->snDevWCPtr;
+
+    WcDesc __attribute__ ((aligned(0x100))) desc = {
+		   .nBytes = len & 0xFFF,
+		   .addr = (uint64_t)0,
+		   .opc = 1, //send
+    };
+  
+    copyWCBuf(a2wr,&desc,sizeof(desc));
+    copyWCBuf((volatile uint64_t*)(a2wr + 8),newData,roundUp64(54 + len));
+  
+  setIpTtl(); //??
+  tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,len); //??
+  return 0;
+}
 /* ----------------------------------------------------- */
 
 int EkaEpmAction::updatePayload(uint offset, uint len) {
@@ -725,8 +789,10 @@ int EkaEpmAction::send() {
 }
 /* ----------------------------------------------------- */
 int EkaEpmAction::fastSend(const void* buf, uint len) {
-  setPktPayload(buf, len);
-  return send();
+  //  setPktPayload(buf, len);
+  //  return send();
+  setPktPayloadWC(buf, len);
+  return len;
 }
 /* ----------------------------------------------------- */
 int EkaEpmAction::fastSend(const void* buf) {

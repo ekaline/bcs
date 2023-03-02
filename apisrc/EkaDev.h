@@ -183,6 +183,7 @@ class EkaDev {
   EkaDev*                   next = NULL; // Next device in global list
 
   volatile uint64_t *       snDevUserLogicRegistersPtr;
+  volatile uint64_t *       snDevWCPtr;
   const uint32_t snDevNumberOfUserLogicRegisters = uint32_t(0x100000 /* BAR2_REGS_SIZE */ / sizeof(uint64_t));
 };
 

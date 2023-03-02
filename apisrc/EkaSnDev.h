@@ -50,6 +50,7 @@ class EkaSnDev {
     write(ENABLE_PORT,1ULL << (24)); // No VLAN no ports, udp killed
 
     dev->snDevUserLogicRegistersPtr = SC_GetUserLogicRegistersBase(dev_id);
+    dev->snDevWCPtr = EkalineGetWcBase(dev_id);
   }
 
 //################################################
