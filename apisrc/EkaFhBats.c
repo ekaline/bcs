@@ -68,7 +68,7 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
     //-----------------------------------------------------------------------------
     if (runGr->drainQ(pEfhRunCtx)) continue;
 
-    if (++monitorCounter % 100000000 == 0) {
+    if (++monitorCounter % 10000000000UL == 0) {
       for (uint8_t i = 0; i < runGr->numGr; i++) {
         b_gr[runGr->groupList[i]]->printBookState();
       }
