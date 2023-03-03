@@ -39,8 +39,10 @@ inline bool eka_is_all_zeros (void* buf, ssize_t size) {
 }
 
 /* ---------------------------------------------------------------- */
-EkaTcpSess::EkaTcpSess(EkaDev* pEkaDev, EkaCore* _parent, uint8_t _coreId, uint8_t _sessId, 
-		       uint32_t _srcIp, uint32_t _dstIp,uint16_t _dstPort, uint8_t* _macSa) {
+EkaTcpSess::EkaTcpSess(EkaDev* pEkaDev, EkaCore* _parent,
+		       uint8_t _coreId, uint8_t _sessId, 
+		       uint32_t _srcIp, uint32_t _dstIp,
+		       uint16_t _dstPort, uint8_t* _macSa) {
   dev     = pEkaDev;
   coreId  = _coreId;
   sessId  = _sessId;
