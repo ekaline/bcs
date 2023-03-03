@@ -48,6 +48,7 @@ public:
   int bookInit();
   int invalidateQ();
   int invalidateBook();
+  void printBookState();
 
   int subscribeStaticSecurity(uint64_t securityId, 
 			      EfhSecurityType efhSecurityType,

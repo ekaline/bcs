@@ -60,6 +60,14 @@ int EkaFhBatsGr::bookInit () {
   return 0;
 }
 /* ##################################################################### */
+void EkaFhBatsGr::printBookState() {
+  if (!book) {
+    EKA_LOG("%s:%u: No book",EKA_EXCH_DECODE(exch),id);
+  } else {
+    book->printStats();
+  }
+}
+/* ##################################################################### */
 int EkaFhBatsGr::closeSnapshotGap(EfhCtx*            pEfhCtx, 
 				  const EfhRunCtx* pEfhRunCtx, 
 				  uint64_t         startSeq,

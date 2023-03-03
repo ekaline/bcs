@@ -346,15 +346,14 @@ EkaFhGroup::~EkaFhGroup () {
  /* ##################################################################### */
 
 void EkaFhGroup::print_q_state() {
-  if (q == NULL) {
-    EKA_DEBUG("NO Q");
-    return;
-  }
-  EKA_DEBUG("Q.max_len=%10u, Q.ever_max_len=%10u, CPU:%u",
-	   q->get_max_len(),
-	   q->get_ever_max_len(),
-	   sched_getcpu()
-	   );
+   if (q == NULL) {
+     EKA_LOG("NO Q");
+     return;
+   }
+   EKA_LOG("Q.max_len=%10u, Q.ever_max_len=%10u, CPU:%u",
+           q->get_max_len(),
+           q->get_ever_max_len(),
+           sched_getcpu());
   q->reset_max_len();
   return;  
 }
