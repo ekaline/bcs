@@ -20,19 +20,25 @@
 #include "EpmRawPktTemplate.h"
 #include "EkaEpmAction.h"
 
+#include "ekaNW.h"
+
 class EkaCore;
 
-uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size);
-uint32_t calcEmptyPktPseudoCsum (EkaIpHdr* ipHdr, EkaTcpHdr* tcpHdr);
-uint16_t calc_tcp_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size);
+uint32_t calc_pseudo_csum (const void* ip_hdr, const void* tcp_hdr,
+			   const void* payload, uint16_t payload_size);
 
-unsigned int pseudo_csum(unsigned short *ptr,int nbytes);
-uint16_t pseudo_csum2csum (uint32_t pseudo);
-unsigned short csum(unsigned short *ptr,int nbytes);
-//void hexDump (const char *desc, void *addr, int len);
-int ekaAddArpEntry(EkaDev* dev, EkaCoreId coreId, const uint32_t* protocolAddr,const uint8_t* hwAddr);
+uint16_t calc_tcp_csum (const void* ip_hdr, const void* tcp_hdr,
+			const void* payload, uint16_t payload_size);
 
-inline bool eka_is_all_zeros (void* buf, ssize_t size) {
+unsigned short csum(const unsigned short *ptr,int nbytes);
+
+int ekaAddArpEntry(EkaDev* dev, EkaCoreId coreId,
+		   const uint32_t* protocolAddr, const uint8_t* hwAddr);
+
+void ekaPushLwipRxPkt (EkaDev* dev, EkaCoreId rxCoreId,
+		       const void* pkt, uint32_t len);
+
+static inline bool eka_is_all_zeros (void* buf, ssize_t size) {
   uint8_t* b = (uint8_t*) buf;
   for (int i=0; i<size; i++) if (b[i] != 0) return false;
   return true;
@@ -282,6 +288,33 @@ void EkaTcpSess::processSynAck(const void* pkt) {
   return;
 }
 
+void EkaTcpSess::insertEmptyRemoteAck(uint64_t seq,const void* pkt) {
+  const size_t HdrSize = sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaTcpHdr);
+
+  uint8_t ackPkt[HdrSize] = {};
+  memcpy(ackPkt,pkt,HdrSize);
+
+  auto ipHdr  = (EkaIpHdr*) ((uint8_t*)pkt + sizeof(EkaEthHdr));
+  auto tcpHdr = (EkaTcpHdr*) ((uint8_t*)ipHdr + sizeof(EkaIpHdr));
+
+  ipHdr->_chksum = 0;
+  ipHdr->_len    = be16toh(sizeof(EkaIpHdr) + sizeof(EkaTcpHdr));
+  tcpHdr->chksum = 0;
+  
+  ipHdr->_chksum = csum((const unsigned short *)ipHdr, sizeof(EkaIpHdr));
+  tcpHdr->ackno  = uint32_t(seq & 0xFFFFFFFF);
+  
+  tcpHdr->chksum = calc_tcp_csum(ipHdr,tcpHdr,NULL,0/* payloadLen */);
+
+#if _EKA_PRINT_INSERTED_ACK
+  char emptyAckStr[2048] = {};
+  hexDump2str("Empty Ack",ackPkt,sizeof(ackPkt),emptyAckStr,sizeof(emptyAckStr));
+  TEST_LOG("Inserting: ACK %ju: %s",seq, emptyAckStr);
+#endif
+  ekaPushLwipRxPkt(dev,coreId,ackPkt,sizeof(ackPkt));
+
+  return;
+}
 
 int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
 
@@ -297,7 +330,14 @@ int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
   
 
   // delay RX Ack if corresponding Seq is not sent on LWIP TX yet
-  while (dev->exc_active && (realTcpRemoteAckNum.load() > realTxDriverBytes.load())) {
+  while (dev->exc_active &&
+	 (realTcpRemoteAckNum.load() > realTxDriverBytes.load())) {
+    if (realTxDriverBytes.load() > lastInsertedEmptyAck) {
+      lastInsertedEmptyAck = realTxDriverBytes.load();
+      TEST_LOG("realTcpRemoteAckNum=%ju, realTxDriverBytes=%ju, inserting: ACK %ju",
+	       realTcpRemoteAckNum.load(),realTxDriverBytes.load(),lastInsertedEmptyAck);
+      insertEmptyRemoteAck(lastInsertedEmptyAck,pkt);
+    }
     std::this_thread::yield();
   }
   

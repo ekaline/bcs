@@ -106,6 +106,9 @@ class EkaTcpSess {
 
   std::atomic<uint64_t> realTxDriverBytes = 0;
 
+
+  uint64_t lastInsertedEmptyAck = 0;
+  
   std::atomic<bool>     txLwipBp = false;
 
   uint8_t __attribute__ ((aligned(0x100)))  pktBuf[MAX_ETH_FRAME_SIZE] = {};
@@ -125,7 +128,7 @@ class EkaTcpSess {
 
 private:
   void processSynAck(const void* pkt);
-  
+  void insertEmptyRemoteAck(uint64_t seq,const void* pkt);
   
  private:
   typedef union exc_table_desc {
