@@ -257,6 +257,32 @@ static uint64_t seq32to64(uint64_t prev64, uint32_t prev32,
   return new64 - baseOffs;
 }
 
+void EkaTcpSess::processSynAck(const void* pkt) {
+
+  // SYN/ACK part of the handshake contains the peer's TCP session options.
+  assert(EKA_TCP_ACK(pkt));
+  const EkaTcpHdr *const tcpHdr = EKA_TCPH(pkt);
+  if (EKA_TCPH_HDRLEN_BYTES(tcpHdr) > 20) {
+    // Header length > 20, we have TCP options; parse them.
+    auto *opt = (const uint8_t *)(tcpHdr + 1);
+    while (*opt) {
+      switch (*opt) {
+      case 1:  // No-op
+	++opt;
+	break;
+      case 3: // Send window scale.
+	tcpSndWndShift = opt[2]; 
+	[[fallthrough]];
+      default:
+	opt += opt[1];
+	break;
+      }
+    }
+  }
+  return;
+}
+
+
 int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
 
   uint32_t prevTcpRemoteAckNum = tcpRemoteAckNum.load();
@@ -270,48 +296,14 @@ int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
 			    );
   
 
-  /* // delay RX Ack if corresponding Dummy not pushed to LWIP */
-  /* while (dev->exc_active && (realTcpRemoteAckNum.load() > realDummyBytes.load())) { */
-  /*   std::this_thread::yield(); */
-  /* } */
-
-  // delay RX Ack if corresponding Dummy not pushed to LWIP
+  // delay RX Ack if corresponding Seq is not sent on LWIP TX yet
   while (dev->exc_active && (realTcpRemoteAckNum.load() > realTxDriverBytes.load())) {
     std::this_thread::yield();
   }
   
-  if (EKA_TCP_SYN(pkt)) {
-    // SYN/ACK part of the handshake contains the peer's TCP session options.
-    assert(EKA_TCP_ACK(pkt));
-    const EkaTcpHdr *const tcpHdr = EKA_TCPH(pkt);
-    if (EKA_TCPH_HDRLEN_BYTES(tcpHdr) > 20) {
-      // Header length > 20, we have TCP options; parse them.
-      auto *opt = (const uint8_t *)(tcpHdr + 1);
-      while (*opt) {
-        switch (*opt) {
-        case 1:  // No-op
-          ++opt;
-          break;
-        case 3: // Send window scale.
-          tcpSndWndShift = opt[2]; 
-	  [[fallthrough]];
-        default:
-          opt += opt[1];
-          break;
-        }
-      }
-    }
-  }
+  if (EKA_TCP_SYN(pkt))
+    processSynAck(pkt);
 
-  if ( 
-      (tcpRemoteAckNum.load() > tcpLocalSeqNum.load()) && //doesntwork with wraparound
-      (!(EKA_TCP_SYN(pkt)))
-       ) {
-    //   Bewlow warning is OK only for wraparound
-    //    EKA_WARN(CYN "tcpRemoteAckNum %u > tcpLocalSeqNum %u, delta = %d" RESET,
-    //  	     tcpRemoteAckNum, tcpLocalSeqNum, tcpRemoteAckNum - tcpLocalSeqNum);
-    return 0; //allow wraparound
-  }
 #if DEBUG_PRINTS
   TEST_LOG("realTcpRemoteAckNum entering LWIP RX %ju",realTcpRemoteAckNum.load());
 #endif  

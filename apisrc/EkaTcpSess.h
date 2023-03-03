@@ -123,6 +123,10 @@ class EkaTcpSess {
   bool isBlocking() const noexcept { return blocking; }
   int setBlocking(bool);
 
+private:
+  void processSynAck(const void* pkt);
+  
+  
  private:
   typedef union exc_table_desc {
     uint64_t desc;
