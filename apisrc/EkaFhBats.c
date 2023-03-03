@@ -61,18 +61,22 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
   EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u: %s GROUPS ~~~~~~~~~~~~~",
 	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
 
+#if EFH_MONITOR_BOOK_STATS
   uint64_t monitorCounter = 0;
+#endif
 
   active = true;
   while (runGr->thread_active && ! runGr->stoppedByExchange) {
     //-----------------------------------------------------------------------------
     if (runGr->drainQ(pEfhRunCtx)) continue;
 
+#if EFH_MONITOR_BOOK_STATS
     if (++monitorCounter % 10000000000UL == 0) {
       for (uint8_t i = 0; i < runGr->numGr; i++) {
         b_gr[runGr->groupList[i]]->printBookState();
       }
     }
+#endif
 
     //-----------------------------------------------------------------------------
     if (! runGr->udpCh->has_data()) {
