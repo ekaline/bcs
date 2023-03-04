@@ -294,7 +294,7 @@ void EkaTcpSess::insertEmptyRemoteAck(uint64_t seq,const void* pkt) {
   uint8_t ackPkt[HdrSize] = {};
   memcpy(ackPkt,pkt,HdrSize);
 
-  auto ipHdr  = (EkaIpHdr*) ((uint8_t*)pkt + sizeof(EkaEthHdr));
+  auto ipHdr  = (EkaIpHdr*) ((uint8_t*)ackPkt + sizeof(EkaEthHdr));
   auto tcpHdr = (EkaTcpHdr*) ((uint8_t*)ipHdr + sizeof(EkaIpHdr));
 
   ipHdr->_chksum = 0;
@@ -302,14 +302,17 @@ void EkaTcpSess::insertEmptyRemoteAck(uint64_t seq,const void* pkt) {
   tcpHdr->chksum = 0;
   
   ipHdr->_chksum = csum((const unsigned short *)ipHdr, sizeof(EkaIpHdr));
-  tcpHdr->ackno  = uint32_t(seq & 0xFFFFFFFF);
+  tcpHdr->ackno  = be32toh(uint32_t(seq & 0xFFFFFFFF));
   
-  tcpHdr->chksum = calc_tcp_csum(ipHdr,tcpHdr,NULL,0/* payloadLen */);
+  tcpHdr->chksum = calc_tcp_csum(ipHdr,tcpHdr,NULL,0);
 
 #if _EKA_PRINT_INSERTED_ACK
   char emptyAckStr[2048] = {};
   hexDump2str("Empty Ack",ackPkt,sizeof(ackPkt),emptyAckStr,sizeof(emptyAckStr));
-  TEST_LOG("Inserting: ACK %ju: %s",seq, emptyAckStr);
+  TEST_LOG("Inserting: ACK %ju (%u == 0x%x): %s",
+	   seq,
+	   be32toh(tcpHdr->ackno),be32toh(tcpHdr->ackno),
+	   emptyAckStr);
 #endif
   ekaPushLwipRxPkt(dev,coreId,ackPkt,sizeof(ackPkt));
 
@@ -334,8 +337,6 @@ int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
 	 (realTcpRemoteAckNum.load() > realTxDriverBytes.load())) {
     if (realTxDriverBytes.load() > lastInsertedEmptyAck) {
       lastInsertedEmptyAck = realTxDriverBytes.load();
-      TEST_LOG("realTcpRemoteAckNum=%ju, realTxDriverBytes=%ju, inserting: ACK %ju",
-	       realTcpRemoteAckNum.load(),realTxDriverBytes.load(),lastInsertedEmptyAck);
       insertEmptyRemoteAck(lastInsertedEmptyAck,pkt);
     }
     std::this_thread::yield();
