@@ -1,6 +1,9 @@
 #ifndef _EKA_FH_CME_H_
 #define _EKA_FH_CME_H_
 
+#include <shared_mutex>
+#include <unordered_map>
+
 #include "EkaFh.h"
 
 class EkaFhCmeGr;
@@ -21,6 +24,7 @@ class EkaFhCme : public EkaFh {
 
   virtual ~EkaFhCme() {};
  private:
+  friend class EkaFhCmeGr;
   
   EkaOpResult initGroups(EfhCtx* pEfhCtx, 
 			 const EfhRunCtx* pEfhRunCtx, 
@@ -30,7 +34,11 @@ class EkaFhCme : public EkaFh {
 			      int16_t*      pktLen, 
 			      uint64_t*      sequence, 
 			      uint8_t*       gr_id);
-  
+
+  // Since futures and options come from separate groups, and we depend on the underlying future's DisplayFactor
+  // to calculate each option's strike price, we store the factors for every future here.
+  std::shared_timed_mutex futuresMutex;
+  std::unordered_map<int32_t, uint64_t> futureStrikePriceFactors;
 };
 
 #endif

@@ -48,6 +48,7 @@ int ekaAddArpEntry   (EkaDev* dev, EkaCoreId coreId, const uint32_t* protocolAdd
 uint32_t getIfIp(const char* ifName);
 
 void ekaServThread(EkaDev* dev);
+void ekaTcpRxThread(EkaDev* dev);
 
 /* ##################################################################### */
 static EfhFeedVer feedVer(int hwFeedVer) {
@@ -222,9 +223,13 @@ bool EkaDev::initEpmTx() {
   if (epmReport == NULL) on_error("Failed to open epmReport Channel");
   if (! epmReport->isOpen()) on_error("epmReport Channel is Closed");
   
-  lwipPath  = new EkaUserChannel(dev,snDev->dev_id,EkaUserChannel::TYPE::LWIP_PATH);
-  if (lwipPath == NULL) on_error("Failed to open epmReport Channel");
-  if (! lwipPath->isOpen()) on_error("lwipPath Channel is Closed");
+  epmFeedback  = new EkaUserChannel(dev,snDev->dev_id,EkaUserChannel::TYPE::EPM_FEEDBACK);
+  if (epmFeedback == NULL) on_error("Failed to open epmReport Channel");
+  if (! epmFeedback->isOpen()) on_error("epmFeedback Channel is Closed");
+
+  lwipRx  = new EkaUserChannel(dev,snDev->dev_id,EkaUserChannel::TYPE::LWIP_RX);
+  if (lwipRx == NULL) on_error("Failed to open epmReport Channel");
+  if (! lwipRx->isOpen()) on_error("lwipRx Channel is Closed");
 
   ekaInitLwip(this);
 
@@ -241,9 +246,14 @@ bool EkaDev::initEpmTx() {
   servThreadActive = false;
   servThread    = std::thread(ekaServThread,this);
   servThread.detach();
-  while (!servThreadActive /* || !tcpRxThreadActive */) {}
-  EKA_LOG("Serv thread activated");
+
+  tcpRxThreadActive = false;
+  tcpRxThread    = std::thread(ekaTcpRxThread,this);
+  tcpRxThread.detach();
   
+  while (!tcpRxThreadActive || !tcpRxThreadActive) {}
+  EKA_LOG("Serv and TcpRx threads activated");
+    
   return true;    
 }
 
@@ -349,6 +359,13 @@ EkaDev::~EkaDev() {
 
   EKA_LOG("Waiting for servThreadTerminated...");
   while (! servThreadTerminated) { sleep(0); }
+
+  tcpRxThreadActive = false;
+  fireReportThreadActive = false;
+  ekaIgmp->threadActive = false;
+
+  EKA_LOG("Waiting for tcpRxThreadTerminated...");
+  while (! tcpRxThreadTerminated) { sleep(0); }
 
   EKA_LOG("Waiting for fireReportThreadTerminated...");
   while (! fireReportThreadTerminated) { sleep(0); }

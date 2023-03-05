@@ -19,17 +19,20 @@ public:
 
   int                   bookInit();
 
-  int                  subscribeStaticSecurity(uint64_t        securityId, 
+  int                  subscribeStaticSecurity(uint64_t        securityId,
 					       EfhSecurityType efhSecurityType,
 					       EfhSecUserData  efhSecUserData,
 					       uint64_t        opaqueAttrA,
 					       uint64_t        opaqueAttrB) {
     if (book == NULL) on_error("%s:%u book == NULL",EKA_EXCH_DECODE(exch),id);
-    book->subscribeSecurity(securityId, 
-			    efhSecurityType,
-			    efhSecUserData,
-			    opaqueAttrA,
-			    opaqueAttrB);
+    FhSecurity *s = book->subscribeSecurity(securityId,
+                                            efhSecurityType,
+                                            efhSecUserData,
+                                            opaqueAttrA,
+                                            opaqueAttrB);
+    if (s && skipSnapshot()) {
+      s->trading_action = EfhTradeStatus::kNormal;
+    }
     return 0;
   }
 
