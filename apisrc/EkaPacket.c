@@ -23,10 +23,11 @@
 
 uint16_t pseudo_csum2csum (uint32_t pseudo) {
   uint32_t sum = pseudo;
-  //  while (sum>>16) sum = (sum & 0xFFFF)+(sum >> 16);
+  while (sum>>16)
+    sum = (sum & 0xFFFF)+(sum >> 16);
 
-  sum = (sum>>16)+(sum & 0xffff);
-  sum = sum + (sum>>16);
+  /* sum = (sum>>16)+(sum & 0xffff); */
+  /* sum = sum + (sum>>16); */
 
   // one's complement the result
   sum = ~sum;
@@ -34,7 +35,7 @@ uint16_t pseudo_csum2csum (uint32_t pseudo) {
   return ((uint16_t) sum);
 }
 
-unsigned short csum(unsigned short *ptr,int nbytes) {
+unsigned short csum(const unsigned short *ptr,int nbytes) {
     long sum;
     unsigned short oddbyte;
     short answer;
@@ -74,7 +75,8 @@ unsigned int pseudo_csum(unsigned short *ptr,int nbytes) {
     return(answer);
 }
 
-uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size) {  
+uint32_t calc_pseudo_csum (const void* ip_hdr, const void* tcp_hdr,
+			   const void* payload, uint16_t payload_size) {  
   struct pseudo_header {
       uint32_t src_ip;
       uint32_t dst_ip;
@@ -94,9 +96,15 @@ uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t 
 
   memcpy(pseudo_packet, (char *) &psh, sizeof(struct pseudo_header));
   memcpy(pseudo_packet + sizeof(struct pseudo_header), tcp_hdr, sizeof(struct tcphdr));
-  memcpy(pseudo_packet + sizeof(struct pseudo_header) + sizeof(struct tcphdr), payload, payload_size);
+  if (payload_size) 
+    memcpy(pseudo_packet + sizeof(struct pseudo_header) + sizeof(struct tcphdr), payload, payload_size);
   uint32_t pcsum = pseudo_csum( (unsigned short*) pseudo_packet , sizeof(struct pseudo_header) + sizeof(struct tcphdr) + payload_size);
   return pcsum;
+}
+
+uint16_t calc_tcp_csum (const void* ip_hdr, const void* tcp_hdr,
+			const void* payload, uint16_t payload_size) {  
+  return pseudo_csum2csum (calc_pseudo_csum(ip_hdr,tcp_hdr,payload,payload_size));
 }
 
 uint32_t calcEmptyPktPseudoCsum (EkaIpHdr* ipHdr, EkaTcpHdr* tcpHdr) {  

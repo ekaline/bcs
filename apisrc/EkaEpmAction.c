@@ -11,8 +11,9 @@
 #include <x86intrin.h>
 #include <emmintrin.h>  // Needed for _mm_clflush()
 
-uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size);
-unsigned short csum(unsigned short *ptr,int nbytes);
+uint32_t calc_pseudo_csum (const void* ip_hdr, const void* tcp_hdr,
+			   const void* payload, uint16_t payload_size);
+unsigned short csum(const unsigned short *ptr,int nbytes);
 uint32_t calcUdpCsum (void* ip_hdr, void* udp_hdr, void* payload, uint16_t payload_size);
 uint16_t udp_checksum(EkaUdpHdr *p_udp_header, size_t len, uint32_t src_addr, uint32_t dest_addr);
 

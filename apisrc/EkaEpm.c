@@ -21,7 +21,6 @@
 #include "EkaUdpChannel.h"
 #include "EkaHwCaps.h"
 
-uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size);
 void ekaFireReportThread(EkaDev* dev);
 
 /* ---------------------------------------------------- */
