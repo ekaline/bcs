@@ -576,7 +576,8 @@ int main(int argc, char *argv[]) {
   EfcCtx* pEfcCtx = &efcCtx;
 
   EfcInitCtx initCtx = {
-      .feedVer = EfhFeedVer::kCBOE
+			.feedVer = EfhFeedVer::kCBOE,
+			.testRun = true	
   };
   
   rc = efcInit(&pEfcCtx,dev,&initCtx);
