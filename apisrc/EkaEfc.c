@@ -12,6 +12,7 @@
 #include "EkaEpmAction.h"
 #include "EpmFireSqfTemplate.h"
 #include "EpmFireBoeTemplate.h"
+#include "EpmBoeQuoteUpdateShortTemplate.h"
 #include "EpmCancelBoeTemplate.h"
 #include "EpmCmeILinkTemplate.h"
 #include "EpmCmeILinkSwTemplate.h"
@@ -66,8 +67,10 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
     ehp = new EhpNom(dev);
     break;
   case EfhFeedVer::kCBOE : 
-    epm->hwFire  = new EpmFireBoeTemplate(epm->templatesNum++);
-    EKA_LOG("Initializing EpmFireBoeTemplate");
+    /* epm->hwFire  = new EpmFireBoeTemplate(epm->templatesNum++); */
+    /* EKA_LOG("Initializing EpmFireBoeTemplate"); */
+    epm->hwFire  = new EpmBoeQuoteUpdateShortTemplate(epm->templatesNum++);
+    EKA_LOG("Initializing EpmBoeQuoteUpdateShortTemplate");
     epm->hwCancel  = new EpmCancelBoeTemplate(epm->templatesNum++);
     EKA_LOG("Initializing EpmCancelBoeTemplate");
     ehp = new EhpPitch(dev);

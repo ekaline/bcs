@@ -3,28 +3,32 @@
 
 #include "EkaDmaChannel.h"
 
-#define USR_CH_DECODE(x)					\
-  x == EkaUserChannel::TYPE::EPM_REPORT ? "EPM_REPORT" :	\
-    x == EkaUserChannel::TYPE::LWIP_PATH   ? "LWIP_PATH"   :	\
+#define USR_CH_DECODE(x)						\
+  x == EkaUserChannel::TYPE::EPM_REPORT     ? "EPM_REPORT" :		\
+    x == EkaUserChannel::TYPE::EPM_FEEDBACK ? "EPM_FEEDBACK"   :	\
+    x == EkaUserChannel::TYPE::LWIP_RX      ? "LWIP_RX"   :		\
     "UNKNOWN"
 
 class EkaUserChannel : public EkaDmaChannel<16> {
  public:
   enum class TYPE     : uint8_t {
 				 EPM_REPORT = 0,
-				 LWIP_PATH  = 1} ; //user channel
+				 EPM_FEEDBACK = 1,
+				 LWIP_RX  = 2
+  } ; //user channel
   enum class DMA_TYPE : uint8_t {
-                                 //below are used only in lwip channel
+                                 //below are used only in EPM_FEEDBACK channel
                                  EPM          = 3,
- 			         TCPRX        = 4,
-                                 //below are used only in report channel
+                                 //below are used only in LWIP_RX channel
+ 			         LWIP         = 4,
+                                 //below are used only in EPM_REPORT channel
                                  FIRE         = 1,
 				 EXCEPTION    = 6,
 				 FAST_CANCEL  = 7,
 				 NEWS         = 8,
 			         SW_TRIGGERED = 9,
 				 SWEEP        = 10
-				   }; // type in descriptor
+  }; // type in descriptor
 
   TYPE type;
 

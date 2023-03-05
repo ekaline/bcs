@@ -29,7 +29,7 @@ uint16_t calc_tcp_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t pay
 unsigned int pseudo_csum(unsigned short *ptr,int nbytes);
 uint16_t pseudo_csum2csum (uint32_t pseudo);
 unsigned short csum(unsigned short *ptr,int nbytes);
-void hexDump (const char *desc, void *addr, int len);
+//void hexDump (const char *desc, void *addr, int len);
 int ekaAddArpEntry(EkaDev* dev, EkaCoreId coreId, const uint32_t* protocolAddr,const uint8_t* hwAddr);
 
 inline bool eka_is_all_zeros (void* buf, ssize_t size) {
@@ -257,8 +257,8 @@ int EkaTcpSess::preloadNwHeaders() {
 
 int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
   tcpRemoteAckNum = EKA_TCPH_ACKNO(pkt);
-
-  tcpSndWnd = EKA_TCPH_WND(pkt);
+  //  TEST_LOG("From RX: tcpRemoteAckNum = %u",tcpRemoteAckNum-tcpLocalSeqNumBase);
+  tcpSndWnd = uint32_t(EKA_TCPH_WND(pkt)) << tcpSndWndShift;;
   if (EKA_TCP_SYN(pkt)) {
     // SYN/ACK part of the handshake contains the peer's TCP session options.
     assert(EKA_TCP_ACK(pkt));
@@ -376,6 +376,9 @@ int EkaTcpSess::sendStackEthFrame(void *pkt, int len) {
     tcpRemoteSeqNum = EKA_TCPH_ACKNO(pkt);
     setRemoteSeqWnd2FPGA();
     emptyAckAction->send(); //
+    /* TEST_LOG("Sending Empty ACK %u",EKA_TCPH_ACKNO(pkt)); */
+  } else {
+    /* TEST_LOG("NOT Sending ACK %u",EKA_TCPH_ACKNO(pkt)); */
   }
   tcpLocalSeqNum = EKA_TCPH_SEQNO(pkt) + EKA_TCP_PAYLOAD_LEN(pkt);
   auto temp = txDriverBytes + EKA_TCP_PAYLOAD_LEN(pkt);
@@ -408,19 +411,53 @@ int EkaTcpSess::sendEthFrame(void *buf, int len) {
 /* ---------------------------------------------------------------- */
 
 int EkaTcpSess::lwipDummyWrite(void *buf, int len) {
-  if (tcpRemoteAckNum > dummyBytes + tcpLocalSeqNumBase)
-    EKA_WARN("tcpRemoteAckNum %u > real dummyBytes %ju, delta = %jd",
-	     tcpRemoteAckNum, 
-	     dummyBytes + tcpLocalSeqNumBase, 
-	     tcpRemoteAckNum - dummyBytes - tcpLocalSeqNumBase);
+  /* if (tcpRemoteAckNum > dummyBytes + tcpLocalSeqNumBase) */
+  /*   EKA_WARN("tcpRemoteAckNum %u > real dummyBytes %ju, delta = %jd", */
+  /* 	     tcpRemoteAckNum,  */
+  /* 	     dummyBytes + tcpLocalSeqNumBase,  */
+  /* 	     tcpRemoteAckNum - dummyBytes - tcpLocalSeqNumBase); */
 
-  int sentBytes = lwip_write(sock,buf,len);
-  if (sentBytes <= 0) return sentBytes;
-  else if (sentBytes != len)
-    on_error("Partial Dummy packet: sentBytes %d != len %d",sentBytes, len);
-  auto temp = dummyBytes + len;
-  dummyBytes = temp;
-  //  dummyBytes += len;
+  while (dev->exc_active && tcpRemoteAckNum > dummyBytes + tcpLocalSeqNumBase) {
+    /* EKA_WARN("tcpRemoteAckNum %u > real dummyBytes %ju, delta = %jd", */
+    /* 	     tcpRemoteAckNum, */
+    /* 	     dummyBytes + tcpLocalSeqNumBase, */
+    /* 	     tcpRemoteAckNum - dummyBytes - tcpLocalSeqNumBase); */
+    std::this_thread::yield();
+  }
+  auto p = (const uint8_t*)buf;
+  int sentSize = 0;
+
+  //    auto start = std::chrono::high_resolution_clock::now();
+  do {
+    int sentBytes = lwip_write(sock,p,len-sentSize);
+    lwip_errno = errno;
+
+    if (sentBytes <= 0) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+	TEST_LOG("lwip_write sentBytes = %d",sentBytes);
+	std::this_thread::yield();
+	continue;
+      }
+      on_error("lwip_write(): rc = %d, errno=%d \'%s\'",
+	       sentBytes,lwip_errno,strerror(lwip_errno));
+    }
+    
+    if (sentBytes != len-sentSize) {
+      EKA_WARN("Partial Dummy packet: sentBytes %d != len %d, errno = %d, \'%s\'",
+	       sentBytes, len, lwip_errno,strerror(lwip_errno));
+    }
+    p += sentBytes;
+    sentSize += sentBytes;
+
+  } while (dev->exc_active && sentSize != len);
+  //    auto end = std::chrono::high_resolution_clock::now();
+  /* if (std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() > 1) { */
+  /*   TEST_LOG("Slow lwip_write(): %ju ms", */
+  /* 	       std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()); */
+  /* } */
+
+
+  dummyBytes += len;
   return len;
 }
 
@@ -432,7 +469,7 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
   }
 
   static const uint TrafficMargin = 64*1024; // empiric number
-
+  /* static const uint WndMargin = 4*1024; */
   /* if (/\* txLwipBp *\/       0                            || // lwip socket is unavauilable */
   /*     (fastPathBytes > (txDriverBytes + TrafficMargin)) || // previous TX pkt didn't arrive TX driver */
   /*     (fastPathBytes > (dummyBytes    + TrafficMargin))    // previous TX pkt wasn't sent to lwip as Dummy */
@@ -445,12 +482,19 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
   if (
       ( (fastPathBytes + tcpLocalSeqNumBase - tcpRemoteAckNum) > TrafficMargin ) &&
       ( (fastPathBytes + tcpLocalSeqNumBase - tcpRemoteAckNum) < TrafficMargin*4 ) //and not a wraparound
-      )
+      ) {
+    /* TEST_LOG("TrafficMargin Throttling: tcpRemoteAckNum=%u,tcpLocalSeqNumBase=%u,fastPathBytes=%ju", */
+    /* 	     tcpRemoteAckNum,tcpLocalSeqNumBase,fastPathBytes); */
     payloadSize2send = 0; // Throttle
+  }
 
-  // Don't send more than we're allowed.
-  const auto sndWnd = uint32_t(tcpSndWnd) << tcpSndWndShift;
-  payloadSize2send = std::min(payloadSize2send, sndWnd);
+  // don't fragment due to low Tx Wnd
+  if (fastPathBytes + tcpLocalSeqNumBase + payloadSize2send - tcpRemoteAckNum > tcpSndWnd) {
+    /* TEST_LOG("tcpSndWnd Throttling: tcpSndWnd=%u, tcpRemoteAckNum=%u,fastPathBytes=%ju", */
+    /* 	     tcpSndWnd,tcpRemoteAckNum-tcpLocalSeqNumBase,fastPathBytes); */
+    payloadSize2send = 0; 
+  }
+  //  payloadSize2send = std::min(payloadSize2send, sndWnd);
 
   const bool isBlocking = this->blocking && !(flags & MSG_DONTWAIT);
   if (isBlocking && payloadSize2send != (uint)len) {

@@ -24,6 +24,8 @@ int EkaEpmAction::setActionBitmap() {
   else
     actionBitParams.bitmap.action_valid = 0;
 
+  actionBitParams.bitmap.originatedFromHw = 0;
+
   switch (type) {
   case EpmActionType::TcpFastPath :
     actionBitParams.bitmap.israw        = 0;
@@ -51,12 +53,15 @@ int EkaEpmAction::setActionBitmap() {
     actionBitParams.bitmap.report_en    = 0;
     actionBitParams.bitmap.feedbck_en   = 1;
     break;
-  case EpmActionType::HwFireAction :
   case EpmActionType::BoeFire      :
-  case EpmActionType::BoeCancel    :
   case EpmActionType::CmeHwCancel    :
-    actionBitParams.bitmap.app_seq_inc  = 1;
   case EpmActionType::SqfFire      :
+    actionBitParams.bitmap.originatedFromHw = 1;
+    [[fallthrough]];
+  case EpmActionType::HwFireAction :
+    actionBitParams.bitmap.app_seq_inc  = 1;
+    [[fallthrough]];
+  case EpmActionType::BoeCancel    :
   case EpmActionType::SqfCancel    :
 
   case EpmActionType::CmeSwHeartbeat :
