@@ -93,6 +93,7 @@ class EkaTcpSess {
   int appSeqId = 0;
   
   std::atomic<uint32_t> tcpLocalSeqNum = 0;
+  
   std::atomic<uint32_t> tcpRemoteSeqNum = 0;
   
   std::atomic<uint32_t> tcpRemoteAckNum = 0;

@@ -423,7 +423,9 @@ int EkaTcpSess::sendStackEthFrame(void *pkt, int len) {
     return 0;
   }
   /* -------------------------------------- */
-  if (EKA_TCPH_SEQNO(pkt) < tcpLocalSeqNum) { 
+  //  if (EKA_TCPH_SEQNO(pkt) < tcpLocalSeqNum) {
+  if (TCP_SEQ_LT((EKA_TCPH_SEQNO(pkt)),tcpLocalSeqNum)) {
+    
     // Retransmit
     //    EKA_LOG("Retransmit: Total Len = %u bytes, Seq = %u, tcpLocalSeqNum=%u", len, EKA_TCPH_SEQNO(pkt),tcpLocalSeqNum);
     //    hexDump("RetransmitPkt",pkt,len);
