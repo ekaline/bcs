@@ -22,7 +22,7 @@
 #include "Eka.h"
 #include "Efc.h"
 
-#define TCP_TEST_ECHO 0
+#define TCP_TEST_ECHO 1
 #define TCP_TEST_DATA 1
 
 #define BUF_SIZE 8192
@@ -86,8 +86,11 @@ void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p
 
     //    size_t pkt_size = 1461; // Ken's magic number
     //size_t pkt_size = 1000; // Ken's magic number
+    //    size_t pkt_size = 128; 
 
-    size_t pkt_size = rand() % (BUF_SIZE - sizeof(TcpTestPkt) - 54) + sizeof(TcpTestPkt);
+   size_t pkt_size = rand() % (BUF_SIZE - sizeof(TcpTestPkt) - 54) + sizeof(TcpTestPkt);
+
+    
     //    uint pkt_size = rand() % (BUF_SIZE - 2 - sizeof(TcpTestPkt)) + 3;
     //uint pkt_size = rand() % 2; tx_buf[0] = 0xa1; tx_buf[1] = 0xb2;
     //    if (pkt_size == 0) pkt_size = 2;
