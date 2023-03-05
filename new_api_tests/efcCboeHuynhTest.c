@@ -70,6 +70,11 @@ static const int      MaxUdpTestSessions     = 64;
 
 static const uint64_t FireEntryHeapSize = 256;
 
+static const int      TotalInjects       = 10;
+
+  int      ExpectedFires    = 0;
+  int      ReportedFires    = 0;
+
 /* --------------------------------------------- */
 
 struct SecurityCtx {
@@ -101,6 +106,28 @@ struct CboePitchAddOrderExpanded {
     sequenced_unit_header hdr;
     add_order_expanded    msg;
 } __attribute__((packed));
+
+/* --------------------------------------------- */
+int getHWFireCnt(EkaDev* dev, uint64_t addr) {
+    uint64_t var_pass_counter = eka_read(dev, addr);
+    int real_val =  (var_pass_counter>>32) & 0xffffffff;
+    return  real_val;
+}
+
+/* --------------------------------------------- */
+void handleFireReport(const void* p, size_t len, void* ctx) {
+  auto b = static_cast<const uint8_t*>(p);
+  auto containerHdr {reinterpret_cast<const EkaContainerGlobalHdr*>(b)};
+  switch (containerHdr->type) {
+  case EkaEventType::kExceptionEvent:
+    break;
+  default:
+    ReportedFires++;
+  }
+  
+  efcPrintFireReport(p,len,ctx);
+  return;
+}
 
 /* --------------------------------------------- */
 
@@ -182,6 +209,7 @@ void printUsage(char* cmd) {
 	 "-l <Num of TCP sessions>"
 	 "-f <Run EFH for raw MD>"
 	 "-d <FATAL DEBUG ON>"
+	 "-e <Exit at the end of the test>"
 	 "\n",cmd);
   return;
 }
@@ -192,9 +220,9 @@ static int getAttr(int argc, char *argv[],
 		   std::string* serverIp, uint16_t* serverTcpPort, 
 		   std::string* clientIp, 
 		   std::string* triggerIp, uint16_t* triggerUdpPort,
-		   uint16_t* numTcpSess, bool* runEfh, bool* fatalDebug) {
+		   uint16_t* numTcpSess, bool* runEfh, bool* fatalDebug, bool* dontExit) {
 	int opt; 
-	while((opt = getopt(argc, argv, ":c:s:p:u:l:t:fdh")) != -1) {  
+	while((opt = getopt(argc, argv, ":c:s:p:u:l:t:fdhe")) != -1) {  
 		switch(opt) {  
 		case 's':  
 			*serverIp = std::string(optarg);
@@ -228,10 +256,14 @@ static int getAttr(int argc, char *argv[],
 			printf("fatalDebug = ON\n");
 			*fatalDebug = true;
 			break;
+		case 'e':  
+			printf("dontExit = OFF\n");
+			*dontExit = false;
+			break;
 		case 'h':  
 			printUsage(argv[0]);
 			exit (1);
-			break;  
+			break;
 		case '?':  
 			printf("unknown option: %c\n", optopt); 
 			break;  
@@ -445,9 +477,10 @@ int main(int argc, char *argv[]) {
   uint16_t serverTcpPort      = serverTcpBasePort;
   bool     runEfh             = false;
   bool     fatalDebug          = false;
+  bool     dontExit          = true;
   
   getAttr(argc,argv,&serverIp,&serverTcpPort,&clientIp,&triggerIp,&triggerUdpPort,
-	  &numTcpSess,&runEfh,&fatalDebug);
+	  &numTcpSess,&runEfh,&fatalDebug,&dontExit);
 
   if (numTcpSess > MaxTcpTestSessions) 
     on_error("numTcpSess %d > MaxTcpTestSessions %d",numTcpSess, MaxTcpTestSessions);
@@ -575,7 +608,7 @@ int main(int argc, char *argv[]) {
   efcInitStrategy(pEfcCtx, &efcStratGlobCtx);
 
   EfcRunCtx runCtx = {};
-  runCtx.onEfcFireReportCb = efcPrintFireReport;
+  runCtx.onEfcFireReportCb = handleFireReport;
 
   // ==============================================
   // Subscribing on securities
@@ -893,62 +926,59 @@ int main(int argc, char *argv[]) {
  /* Payload #1: */
  /*     03 5f b7 08 6e ca 2f 02 42 21 00 30 32 67 49 50 54 8a 02 01 */
 
-  efcEnableController(pEfcCtx, 1, armVer);
-  sendPreloadedPkt(triggerSock,&triggerMcAddr,pkt,strlen(pkt));
-  sleep(1);
-  armVer++;
-  efcEnableController(pEfcCtx, 1, armVer);
-    sleep(1);
+    for (auto i = 0; i < TotalInjects; i++) {
 
-  sendPreloadedPkt(triggerSock,&triggerMcAddr,pkt,strlen(pkt));
-  sleep(1);
-  armVer++;
-  efcEnableController(pEfcCtx, 1, armVer);
-    sleep(1);
-
-  sendPreloadedPkt(triggerSock,&triggerMcAddr,pkt,strlen(pkt));
-  sleep(1);
-  efcEnableController(pEfcCtx, 1, armVer); //stale
-    sleep(1);
-
-  sendPreloadedPkt(triggerSock,&triggerMcAddr,pkt,strlen(pkt));
-  sleep(1);
-  efcEnableController(pEfcCtx, 1, armVer); //stale
-    sleep(1);
-
-  sendPreloadedPkt(triggerSock,&triggerMcAddr,pkt,strlen(pkt));
-  sleep(1);
-  armVer++;
-  efcEnableController(pEfcCtx, 1, armVer);
-    sleep(1);
-
-  sendPreloadedPkt(triggerSock,&triggerMcAddr,pkt,strlen(pkt));
-  sleep(1);
-  efcEnableController(pEfcCtx, -1); //4 fires out of 6
+      if (rand() % 3) {
+	efcEnableController(pEfcCtx, 1, armVer++); //arm and promote
+	ExpectedFires++;
+      }
+      else {
+	efcEnableController(pEfcCtx, 1, armVer-1); //should be no arm
+      }
+      
+      sendPreloadedPkt(triggerSock,&triggerMcAddr,pkt,strlen(pkt));
+      usleep (300000);
+    }
+  
 #endif  
 // ==============================================
 
 
-
-  TEST_LOG("\n===========================\nEND OT TESTS\n===========================\n");
+    efcEnableController(pEfcCtx, -1);    
+    int hw_fires  = getHWFireCnt(dev,0xf0340);  
+    
+    printf("\n===========================\nEND OT TESTS : ");
 
 #ifndef _VERILOG_SIM
-  sleep(2);
-  EKA_LOG("--Test finished, ctrl-c to end---");
-//  testCtx->keep_work = false;
-  while (testCtx->keep_work) { sleep(0); }
+    bool testPass = true;
+    if (ReportedFires==ExpectedFires && ReportedFires==hw_fires) {
+      printf(GRN);
+      printf("PASS, ExpectedFires == ReportedFires == HWFires == %d\n"  ,ExpectedFires);
+    }
+    else {
+      printf(RED);
+      printf ("FAIL, ExpectedFires = %d  ReportedFires = %d hw_fires = %d\n" ,ExpectedFires,ReportedFires,hw_fires);
+      testPass = false;
+    }
+    printf(RESET);
+    printf("===========================\n\n");  
+    testCtx->keep_work = dontExit;
+    sleep(1);
+    EKA_LOG("--Test finished, ctrl-c to end---");
+    while (testCtx->keep_work) { sleep(0); }
 #endif
-
-  sleep(1);
-  fflush(stdout);fflush(stderr);
-
-
-  /* ============================================== */
-
-  printf("Closing device\n");
-
-  ekaDevClose(dev);
-  sleep(1);
+    
+    fflush(stdout);fflush(stderr);
+    
+    
+    /* ============================================== */
+    
+    printf("Closing device\n");
+    
+    ekaDevClose(dev);
   
-  return 0;
+    if (testPass)
+      return 0;
+    else
+      return 1;
 }
