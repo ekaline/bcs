@@ -217,6 +217,13 @@ struct PhlxMoldHdr {
 #define EKA_PHLX_MOLD_SEQUENCE(hdr) (((struct PhlxMoldHdr *)hdr)->sequence)
 #define EKA_PHLX_MOLD_MSG_CNT(hdr) (((struct PhlxMoldHdr *)hdr)->message_cnt)
 
+//from LWIP
+#define TCP_SEQ_LT(a,b)     (((u32_t)((u32_t)(a) - (u32_t)(b)) & 0x80000000u) != 0)
+#define TCP_SEQ_LEQ(a,b)    (!(TCP_SEQ_LT(b,a)))
+#define TCP_SEQ_GT(a,b)     TCP_SEQ_LT(b,a)
+#define TCP_SEQ_GEQ(a,b)    TCP_SEQ_LEQ(b,a)
+/* is b<=a<=c? */
+#define TCP_SEQ_BETWEEN(a,b,c) (TCP_SEQ_GEQ(a,b) && TCP_SEQ_LEQ(a,c))
 
 #endif //_EKA_NW_HEADERS_H
 
