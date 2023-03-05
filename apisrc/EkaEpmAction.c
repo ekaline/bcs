@@ -648,6 +648,9 @@ int EkaEpmAction::setPktPayloadWC(const void* buf, uint len) {
 
   ipHdr->_chksum = 0;
   ipHdr->_chksum = csum((unsigned short *)ipHdr, sizeof(EkaIpHdr));
+  
+  setIpTtl();
+  tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,len); 
 
   memcpy(&epm->heap[heapOffs + getPayloadOffset()],buf,len);
 
@@ -656,7 +659,7 @@ int EkaEpmAction::setPktPayloadWC(const void* buf, uint len) {
   uint64_t* newData  = (uint64_t*) &epm->heap[heapOffs];
 
   struct WcDesc {
-    uint64_t desc : 64;
+    epm_trig_desc_t epm_trig_desc;
     uint64_t nBytes: 12;
     uint64_t addr  : 32;
     uint64_t opc   :  2;
@@ -665,17 +668,20 @@ int EkaEpmAction::setPktPayloadWC(const void* buf, uint len) {
 
   volatile uint64_t* a2wr = dev->snDevWCPtr;
 
-    WcDesc __attribute__ ((aligned(0x100))) desc = {
-		   .nBytes = len & 0xFFF,
-		   .addr = (uint64_t)0,
-		   .opc = 1, //send
-    };
+  WcDesc __attribute__ ((aligned(0x100))) desc = {};
+  
+  desc.nBytes = len & 0xFFF;
+  desc.addr = (uint64_t)0;
+  desc.opc = 1; //send
+  desc.epm_trig_desc.str.action_index = localIdx;
+  desc.epm_trig_desc.str.size                 = len;
+  desc.epm_trig_desc.str.tcp_cs             = tcpCSum;
+  desc.epm_trig_desc.str.region             = region;
   
     copyWCBuf(a2wr,&desc,sizeof(desc));
     copyWCBuf((volatile uint64_t*)(a2wr + 8),newData,roundUp64(54 + len));
   
-  setIpTtl(); //??
-  tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,len); //??
+
   return 0;
 }
 /* ----------------------------------------------------- */
