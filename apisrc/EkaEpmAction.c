@@ -636,14 +636,17 @@ inline void copy_to_atomic(volatile uint64_t * __restrict dst,
   }
 }
 
-inline void copyWCBuf(volatile uint64_t* dst, 
-			      const void *srcBuf,
-			      const size_t len) {
+inline void copyWCBuf(
+		      bool is_desc,
+		      volatile uint64_t* dst, 
+		      const void *srcBuf,
+		      const size_t len) {
   
   copy_to_atomic(dst,srcBuf,len);
   //  __sync_synchronize();
   _mm_clflush(srcBuf);
-      
+
+#endif  
 }
 
 int EkaEpmAction::setPktPayloadWC(const void* buf, uint len) {
@@ -676,16 +679,35 @@ int EkaEpmAction::setPktPayloadWC(const void* buf, uint len) {
 
   WcDesc __attribute__ ((aligned(0x100))) desc = {};
   
-  desc.nBytes = len & 0xFFF;
-  desc.addr = (uint64_t)0;
+  desc.nBytes = pktSize & 0xFFF;
+  desc.addr = (uint64_t)heapAddr;
   desc.opc = 1; //send
   desc.epm_trig_desc.str.action_index = localIdx;
-  desc.epm_trig_desc.str.size                 = len;
+  desc.epm_trig_desc.str.size                 = pktSize;
   desc.epm_trig_desc.str.tcp_cs             = tcpCSum;
   desc.epm_trig_desc.str.region             = region;
-  
-    copyWCBuf(a2wr,&desc,sizeof(desc));
-    copyWCBuf((volatile uint64_t*)(a2wr + 8),newData,roundUp64(54 + len));
+
+  EKA_LOG("%s: action_index = %u,region=%u,size=%u,tcpCSum=%08x, heapAddr = 0x%jx, a2wr = %p ",
+	    actionName,
+	    desc.epm_trig_desc.str.action_index,
+	    desc.epm_trig_desc.str.region,
+	    desc.epm_trig_desc.str.size,
+	    desc.epm_trig_desc.str.tcp_cs,
+	  heapAddr,
+	  a2wr
+	    );
+  EKA_LOG("len = %d pktSize = %d desc.nBytes = %d, desc.addr = %d, desc.opc = %d",
+	  len,
+	  pktSize,
+	  desc.nBytes,
+	  desc.addr,
+	  desc.opc
+	    );
+    
+    fflush(stdout);    fflush(stderr);
+
+    copyWCBuf(true,a2wr,&desc,sizeof(desc));
+    copyWCBuf(false,(volatile uint64_t*)(a2wr + 8),newData,roundUp64(pktSize));
   
 
   return 0;
