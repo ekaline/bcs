@@ -20,6 +20,7 @@
 #include <sched.h>
 #include <string>
 
+#include "EkaFhParserCommon.h"
 #include "EkaFhBatsParser.h"
 #include "EkaFhBatsGr.h"
 #include "EkaFhThreadAttr.h"

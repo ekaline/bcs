@@ -185,19 +185,17 @@ EkaOpResult efhRunGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, void** r
 EkaOpResult efhMonitorFhGroupState( EfhCtx* pEfhCtx, EkaGroup* group, bool verbose) { 
   assert (pEfhCtx != NULL);
   assert (group->localId < pEfhCtx->dev->fh[pEfhCtx->fhId]->groups);
-  fprintf (stderr,"%s:%u: gapNum=%4u, seq=%10ju, ",
-	   EKA_EXCH_DECODE(group->source),
-	   group->localId,
-	   pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[group->localId]->gapNum,
-	   pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[group->localId]->expected_sequence
-	   );
-  //  uint8_t gr2monitor_q = group->source == EkaSource::kNOM_ITTO ? group->localId : 0;
-  uint8_t gr2monitor_q = group->localId;
 
-  if (verbose)
-    pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[gr2monitor_q]->print_q_state(); // tmp patch
-  else
-    fprintf (stderr,"\n");
+  EkaFhGroup* gr = pEfhCtx->dev->fh[pEfhCtx->fhId]->b_gr[group->localId];
+
+  EKA_LOG("%s:%u: gapNum=%4u, seq=%10ju",
+          EKA_EXCH_DECODE(group->source),group->localId,
+          gr->gapNum, gr->expected_sequence);
+
+  if (verbose) {
+    gr->print_q_state();
+    gr->printBookState();
+  }
   
   return EKA_OPRESULT__OK;
 }

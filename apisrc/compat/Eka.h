@@ -267,12 +267,13 @@ struct EkaCoreInitCtx {
 struct EkaCredentialLease;
 
 typedef int (*EkaAcquireCredentialsFn)(EkaCredentialType credType,
-					 EkaGroup group,
-					 const char *user,
-					 const struct timespec *leaseTime,
-					 const struct timespec *timeout,
-					 void *context,
-					 EkaCredentialLease **lease);
+                                       EkaGroup group,
+                                       const char *user,
+                                       const size_t userLength,
+                                       const struct timespec *leaseTime,
+                                       const struct timespec *timeout,
+                                       void *context,
+                                       EkaCredentialLease **lease);
 
 typedef int (*EkaReleaseCredentialsFn)(EkaCredentialLease *lease, void* context);
 

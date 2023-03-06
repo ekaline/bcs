@@ -18,6 +18,7 @@ class EkaFhBatsGr : public EkaFhGroup{
                 std::chrono::high_resolution_clock::time_point startTime={});
 
   int bookInit();
+  void printBookState();
 
   int subscribeStaticSecurity(uint64_t        securityId, 
                               EfhSecurityType efhSecurityType,
@@ -114,7 +115,7 @@ public:
   char                  grpPasswd[10] = {'e','b','3','g','t','s','s',' ',' ',' '}; // C1 default
   bool                  grpSet        = false;
 
-  static const uint   SCALE          = (const uint) 22;
+  static const uint   SCALE          = (const uint) 21;
   static const uint   SEC_HASH_SCALE = 17;
 
   using AuctionIdT = uint64_t;

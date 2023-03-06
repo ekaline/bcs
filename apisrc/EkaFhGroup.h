@@ -34,6 +34,7 @@ public:
     }
 
     virtual int  bookInit() = 0;
+    virtual void printBookState() {}
     virtual int  subscribeStaticSecurity(uint64_t        secId,
 					 EfhSecurityType type,
 					 EfhSecUserData  userData,
