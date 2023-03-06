@@ -650,7 +650,7 @@ inline void copyWCBuf(
 int EkaEpmAction::setPktPayloadWC(const void* buf, uint len) {
   if (!buf) on_error("!buf");
 
-  ipHdr->_len    = be16toh(getL3L4len() + len);
+  ipHdr->_len  = be16toh(getL3L4len() + len);
   pktSize = getPayloadOffset() + len;
 
   ipHdr->_chksum = 0;
@@ -666,19 +666,19 @@ int EkaEpmAction::setPktPayloadWC(const void* buf, uint len) {
   char swap_buf[2048];
   memcpy(swap_buf,(uint64_t*) &epm->heap[heapOffs],pktSize);
 
-  uint64_t* newData2  = (uint64_t*) swap_buf;
+  uint64_t* swap_ptr  = (uint64_t*) swap_buf;
   //swapping
-    /* hexDump("before",newData2,pktSize); */
+    /* hexDump("before",swap_ptr,pktSize); */
 
   uint words2write = pktSize / 8 + !!(pktSize % 8);
   for (uint w = 0; w < words2write; w++) {
-    uint32_t dataLO =  *(uint32_t*) newData2;
-    uint32_t dataHI =  *((uint32_t*) newData2 + 1);
+    uint32_t dataLO =  *(uint32_t*) swap_ptr;
+    uint32_t dataHI =  *((uint32_t*) swap_ptr + 1);
     uint32_t dataLO_swapped = be32toh(dataLO);
     uint32_t dataHI_swapped = be32toh(dataHI);
     uint64_t res = (((uint64_t)dataHI_swapped) << 32 ) | (uint64_t)dataLO_swapped;
-    *newData2 = res;
-    newData2++;
+    *swap_ptr = res;
+    swap_ptr++;
     /* EKA_LOG("words2write=%d, w=%d, dataLO=0x%x, dataHI=0x%x,  res=0x%jx", */
     /* 	    words2write, */
     /* 	    w, */
@@ -697,7 +697,7 @@ int EkaEpmAction::setPktPayloadWC(const void* buf, uint len) {
     uint64_t pad18 : 18;
   } __attribute__((packed));
 
-  volatile uint64_t* a2wr = dev->snDevWCPtr;
+  volatile uint64_t* a2wr = dev->snDevWCPtr + (thrId * 0x800)/8;
 
   WcDesc __attribute__ ((aligned(0x100))) desc = {};
   
@@ -709,31 +709,31 @@ int EkaEpmAction::setPktPayloadWC(const void* buf, uint len) {
   desc.epm_trig_desc.str.tcp_cs             = tcpCSum;
   desc.epm_trig_desc.str.region             = region;
 
- 
-  /* EKA_LOG("%s: (trigger)action_index = %u,region=%u,size=%u,tcpCSum=%08x, heapAddr = 0x%jx, a2wr = %p ", */
-  /* 	    actionName, */
-  /* 	    desc.epm_trig_desc.str.action_index, */
-  /* 	    desc.epm_trig_desc.str.region, */
-  /* 	    desc.epm_trig_desc.str.size, */
-  /* 	    desc.epm_trig_desc.str.tcp_cs, */
-  /* 	  heapAddr, */
-  /* 	  a2wr */
-  /* 	    ); */
-  /* EKA_LOG("len = %d pktSize = %d (%d), desc.nBytes = %d, desc.addr = %d, desc.opc = %d", */
-  /* 	  len, */
-  /* 	  pktSize, */
-  /* 	  roundUp64(pktSize), */
-  /* 	  desc.nBytes, */
-  /* 	  desc.addr, */
-  /* 	  desc.opc */
-  /* 	    ); */
-    
+  if (0) {
+    EKA_LOG("%s: (trigger)action_index = %u,region=%u,size=%u,tcpCSum=%08x, heapAddr = 0x%jx, a2wr = %p ",
+  	    actionName,
+  	    desc.epm_trig_desc.str.action_index,
+  	    desc.epm_trig_desc.str.region,
+  	    desc.epm_trig_desc.str.size,
+  	    desc.epm_trig_desc.str.tcp_cs,
+	    heapAddr,
+	    a2wr
+  	    );
+    EKA_LOG("len = %d pktSize = %d (%d), desc.nBytes = %d, desc.addr = %d, desc.opc = %d",
+	    len,
+	    pktSize,
+	    roundUp64(pktSize),
+	    desc.nBytes,
+	    desc.addr,
+	    desc.opc
+  	    );
     fflush(stdout);    fflush(stderr);
-
+  }
+  
     copyWCBuf(true,a2wr,&desc,sizeof(desc));
     copyWCBuf(false,(volatile uint64_t*)(a2wr + 8),(uint64_t*)swap_buf,roundUp64(pktSize));
-    /* sleep(1); */
-  return 0;
+
+    return 0;
 }
 /* ----------------------------------------------------- */
 
