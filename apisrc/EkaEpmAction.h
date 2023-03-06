@@ -2,6 +2,7 @@
 #define _EKA_EPM_ACTION_H_
 
 #include "EkaEpm.h"
+#include "EpmWc.h"
 
 class EkaEpmAction {
  public:
@@ -42,7 +43,7 @@ class EkaEpmAction {
   /* ----------------------------------------------------- */
   int setPktPayload(const void* buf, uint len);
   /* ----------------------------------------------------- */
-  int setPktPayloadWC(const void* buf, uint len);
+  int setPktPayloadAndSendWC(const void* buf, uint len);
   /* ----------------------------------------------------- */
   int setUdpPktPayload(const void* buf, uint len);
   /* ----------------------------------------------------- */
@@ -68,6 +69,18 @@ class EkaEpmAction {
   size_t getPayloadOffset();
   uint16_t getL3L4len();
 
+  inline void copyHeap2Fpga(bool send) {
+    epmCopyWcBuf(snDevWCPtr,
+		 heapAddr,
+		 &epm->heap[heapOffs],
+		 pktSize,
+		 thrId,
+		 localIdx,
+		 region,
+		 tcpCSum,
+		 send
+		 );
+  }
   /* ----------------------------------------------------- */
 
  public:
@@ -113,7 +126,7 @@ private:
   EkaTcpHdr*       tcpHdr          = NULL;
   EkaUdpHdr*       udpHdr          = NULL;
   uint8_t*         payload         = NULL;
- 
+  volatile uint64_t* snDevWCPtr = NULL;
 };
 
 
