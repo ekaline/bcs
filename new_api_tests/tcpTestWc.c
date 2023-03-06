@@ -50,14 +50,21 @@ struct TcpTestPkt {
 };
 
 
-int createThread(const char* name, EkaServiceType type,  void *(*threadRoutine)(void*), void* arg, void* context, uintptr_t *handle) {
+int createThread(const char* name, EkaServiceType type,
+		 void *(*threadRoutine)(void*), void* arg,
+		 void* context, uintptr_t *handle) {
   pthread_create ((pthread_t*)handle,NULL,threadRoutine, arg);
   pthread_setname_np((pthread_t)*handle,name);
   return 0;
 }
 
-int credAcquire(EkaCredentialType credType, EkaGroup group, const char *user, const struct timespec *leaseTime, const struct timespec *timeout, void* context, EkaCredentialLease **lease) {
-  printf ("Credential with USER %s is acquired for %s:%hhu\n",user,EKA_EXCH_DECODE(group.source),group.localId);
+int credAcquire(EkaCredentialType credType, EkaGroup group,
+		const char *user,const size_t userLength,
+		const struct timespec *leaseTime,
+		const struct timespec *timeout,
+		void* context, EkaCredentialLease **lease) {
+  printf ("Credential with USER %s is acquired for %s:%hhu\n",
+	  user,EKA_EXCH_DECODE(group.source),group.localId);
   return 0;
 }
 
@@ -65,7 +72,8 @@ int credRelease(EkaCredentialLease *lease, void* context) {
   return 0;
 }
 
-void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,uint thrId, uint p2p_delay) {
+void fastpath_thread_f(EkaDev* pEkaDev, ExcConnHandle sess_id,
+		       uint thrId, uint p2p_delay) {
   uint8_t coreId = excGetCoreId(sess_id);
   uint8_t sessId = excGetSessionId(sess_id);
   TEST_LOG("Launching TcpClient for coreId %u, sessId %u",coreId,sessId);
