@@ -296,13 +296,7 @@ inline void copyIndirectBuf2HeapHw_swap4(EkaDev* dev, uint64_t dstLogicalAddr,ui
 
   uint words2write = msgSize / 8 + !!(msgSize % 8);
   for (uint w = 0; w < words2write; w++) {
-    uint32_t dataLO =  *(uint32_t*) srcAddr;
-    uint32_t dataHI =  *((uint32_t*) srcAddr + 1);
-    uint32_t dataLO_swapped = be32toh(dataLO);
-    uint32_t dataHI_swapped = be32toh(dataHI);
-    uint64_t res = (((uint64_t)dataHI_swapped) << 32 ) | (uint64_t)dataLO_swapped;
-
-    eka_write(dev, dstAddr + w * 8, res); 
+    eka_write(dev, dstAddr + w * 8, *srcAddr); 
     srcAddr++;
   }
 }

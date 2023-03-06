@@ -663,32 +663,6 @@ int EkaEpmAction::setPktPayloadWC(const void* buf, uint len) {
   epmTemplate->clearHwFields(&epm->heap[heapOffs]);
   tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,len); 
 
-  char swap_buf[2048];
-  memcpy(swap_buf,(uint64_t*) &epm->heap[heapOffs],pktSize);
-
-  uint64_t* swap_ptr  = (uint64_t*) swap_buf;
-  //swapping
-    /* hexDump("before",swap_ptr,pktSize); */
-
-  uint words2write = pktSize / 8 + !!(pktSize % 8);
-  for (uint w = 0; w < words2write; w++) {
-    uint32_t dataLO =  *(uint32_t*) swap_ptr;
-    uint32_t dataHI =  *((uint32_t*) swap_ptr + 1);
-    uint32_t dataLO_swapped = be32toh(dataLO);
-    uint32_t dataHI_swapped = be32toh(dataHI);
-    uint64_t res = (((uint64_t)dataHI_swapped) << 32 ) | (uint64_t)dataLO_swapped;
-    *swap_ptr = res;
-    swap_ptr++;
-    /* EKA_LOG("words2write=%d, w=%d, dataLO=0x%x, dataHI=0x%x,  res=0x%jx", */
-    /* 	    words2write, */
-    /* 	    w, */
-    /* 	    dataLO, */
-    /* 	    dataHI, */
-    /* 	    res */
-    /* 	    ); */
-  }
-    /* hexDump("after",swap_buf,pktSize); */
-
   struct WcDesc {
     epm_trig_desc_t epm_trig_desc;
     uint64_t nBytes: 12;
@@ -731,7 +705,7 @@ int EkaEpmAction::setPktPayloadWC(const void* buf, uint len) {
   }
   
     copyWCBuf(true,a2wr,&desc,sizeof(desc));
-    copyWCBuf(false,(volatile uint64_t*)(a2wr + 8),(uint64_t*)swap_buf,roundUp64(pktSize));
+    copyWCBuf(false,(volatile uint64_t*)(a2wr + 8),(uint64_t*)&epm->heap[heapOffs],roundUp64(pktSize));
 
     return 0;
 }
