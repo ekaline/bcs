@@ -470,7 +470,7 @@ int EkaTcpSess::sendEthFrame(void *buf, int len) {
   hexDump("sendEthFrame",buf,len);
   fullPktAction->print("from sendEthFrame:");
 
-  fullPktAction->setEthFrame(buf,(uint)len);
+  fullPktAction->setEthFrame(buf,(uint)len,true);
   /* fullPktAction->send(); */
 
   return 0;
