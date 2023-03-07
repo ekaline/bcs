@@ -628,7 +628,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   auto rootBlock {reinterpret_cast<const MDInstrumentDefinitionFuture54_mainBlock*>(m)};
   m += msgHdr->blockLen;
   /* ------------------------------- */
-  auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
+  //  auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
 
   const uint64_t priceAdjustFactor = computeFinalPriceFactor(rootBlock->DisplayFactor);
   uint64_t strikePriceFactor;
@@ -724,7 +724,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
     return msgHdr->size;
   }
 
-  auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
+  //  auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
 
   const auto putOrCall {getEfhOptionType(rootBlock->PutOrCall)};
   const int64_t priceAdjustFactor = computeFinalPriceFactor(rootBlock->DisplayFactor);

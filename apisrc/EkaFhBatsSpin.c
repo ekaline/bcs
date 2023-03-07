@@ -537,6 +537,7 @@ static bool grpCycle(EfhRunCtx*   pEfhRunCtx,
 			    EKA_EXCH_DECODE(gr->exch),gr->id);
 
   static const int TimeOut = 5; // seconds
+  const uint16_t ReqLimit = 100; // max messages per GRP request
 
   struct timeval tv = {
     .tv_sec = TimeOut
@@ -564,6 +565,10 @@ static bool grpCycle(EfhRunCtx*   pEfhRunCtx,
   bool success = false;
   uint8_t     buf[1500]  = {};
   static const int LocalAttemps = 4;
+
+  uint64_t currStart = start;
+  uint64_t currEnd = 0;
+  
   for (auto i = 0; i < LocalAttemps; i++) {
     int size = recvfrom(udpSock, buf, sizeof(buf), MSG_WAITALL, NULL, NULL);
     if (size > 0) {
@@ -601,65 +606,81 @@ static bool grpCycle(EfhRunCtx*   pEfhRunCtx,
 		  gr->grpPasswd,
 		  gr->grpSessionSubID,
 		  gr->exch,
-		  gr->id)) goto ITERATION_FAIL;
+		  gr->id))
+    goto ITERATION_FAIL;
   //-----------------------------------------------------------------
   if (! getLoginResponse(dev,
 			 tcpSock,
 			 "GRP",
 			 gr->exch,
-			 gr->id)) goto ITERATION_FAIL;
+			 gr->id))
+    goto ITERATION_FAIL;
   //-----------------------------------------------------------------
-  if (! sendGapRequest(dev, 
-		       tcpSock, 
-		       gr->batsUnit,
-		       start,
-		       end,
-		       gr->exch,
-		       gr->id)) goto ITERATION_FAIL;
-  //-----------------------------------------------------------------
-  if (! getGapResponse(dev, 
-		       tcpSock, 
-		       gr->batsUnit,
-		       gr->exch,
-		       gr->id,
-		       &gr->recovery_active)) goto ITERATION_FAIL;
-  //-----------------------------------------------------------------
-  while (gr->recovery_active) { 
-    now = std::chrono::high_resolution_clock::now();
-    if (std::chrono::duration_cast<std::chrono::seconds>(now - lastHeartBeatTime).count() > 4) {
-      sendHearBeat(dev,tcpSock,gr->batsUnit);
-      lastHeartBeatTime = now;
-      EKA_TRACE("%s:%u: Heartbeat sent",EKA_EXCH_DECODE(gr->exch),gr->id);
-    }
 
-    parseResult = procGrp(pEfhRunCtx,
-			  udpSock,
-			  gr,
-			  start,
-			  end,
-			  &gr->recovery_active);
-
-    switch (parseResult) {
-    case EkaFhParseResult::End:
-      goto SUCCESS_END;
-    case EkaFhParseResult::NotEnd:
-      break;
-    case EkaFhParseResult::SocketError:
+  while (gr->recovery_active) {
+    currEnd = std::min(currStart + ReqLimit,end);
+    //-----------------------------------------------------------------
+  
+    if (! sendGapRequest(dev, 
+			 tcpSock, 
+			 gr->batsUnit,
+			 currStart,
+			 currEnd,
+			 gr->exch,
+			 gr->id))
       goto ITERATION_FAIL;
-    default:
-      on_error("Unexpected parseResult %d",(int)parseResult);
+    //-----------------------------------------------------------------
+    if (! getGapResponse(dev, 
+			 tcpSock, 
+			 gr->batsUnit,
+			 gr->exch,
+			 gr->id,
+			 &gr->recovery_active))
+      goto ITERATION_FAIL;
+    //-----------------------------------------------------------------
+    while (gr->recovery_active) { 
+      now = std::chrono::high_resolution_clock::now();
+      if (std::chrono::duration_cast<std::chrono::seconds>
+	  (now - lastHeartBeatTime).count() > 4) {
+	sendHearBeat(dev,tcpSock,gr->batsUnit);
+	lastHeartBeatTime = now;
+	EKA_TRACE("%s:%u: Heartbeat sent",EKA_EXCH_DECODE(gr->exch),gr->id);
+      }
+
+      parseResult = procGrp(pEfhRunCtx,
+			    udpSock,
+			    gr,
+			    start,
+			    end,
+			    &gr->recovery_active);
+
+      switch (parseResult) {
+      case EkaFhParseResult::End:
+	goto NEXT_ITERATION;
+      case EkaFhParseResult::NotEnd:
+	break;
+      case EkaFhParseResult::SocketError:
+	goto ITERATION_FAIL;
+      default:
+	on_error("Unexpected parseResult %d",(int)parseResult);
+      }
     }
+  NEXT_ITERATION:  
+    if (currEnd == end) {
+      success = true;
+      goto END;
+    }
+    currStart = currEnd;
   }
-
+  
  ITERATION_FAIL:
-  close(tcpSock);
-  close(udpSock);
-  return false;
+  success = false;
 
- SUCCESS_END:
+ END:
   close(tcpSock);
   close(udpSock);
-  return true;
+  return success;
+
 }
 /* ##################################################################### */
 
@@ -900,8 +921,9 @@ void* getGrpRetransmitData(void* attr) {
   EkaDev* dev = gr->dev;
   if (dev == NULL) on_error("dev == NULL");
 
-  if (! gr->grpSet) on_error("%s:%u: GRP credentials not set",
-			 EKA_EXCH_DECODE(gr->exch),gr->id);
+  if (! gr->grpSet)
+    on_error("%s:%u: GRP credentials not set",
+	     EKA_EXCH_DECODE(gr->exch),gr->id);
 
   if (end - start > 65000) 
     on_error("%s:%u: Gap %ju is too high (> 65000), start = %ju, end = %ju",
@@ -913,7 +935,8 @@ void* getGrpRetransmitData(void* attr) {
 
   //-----------------------------------------------------------------
   EkaCredentialLease* lease;
-  gr->credentialAcquire(EkaCredentialType::kRecovery, gr->grpUser, sizeof(gr->grpUser), &lease);
+  gr->credentialAcquire(EkaCredentialType::kRecovery, gr->grpUser,
+			sizeof(gr->grpUser), &lease);
 
   //-----------------------------------------------------------------
   gr->recovery_active = true;
@@ -926,8 +949,10 @@ void* getGrpRetransmitData(void* attr) {
 
     success = grpCycle(pEfhRunCtx, gr, start, end);
     if (success) break;
-    if (dev->lastExchErr != EfhExchangeErrorCode::kNoError) gr->sendRetransmitExchangeError(pEfhRunCtx);
-    if (dev->lastErrno   != 0)                              gr->sendRetransmitSocketError(pEfhRunCtx);
+    if (dev->lastExchErr != EfhExchangeErrorCode::kNoError)
+      gr->sendRetransmitExchangeError(pEfhRunCtx);
+    if (dev->lastErrno   != 0)
+      gr->sendRetransmitSocketError(pEfhRunCtx);
   }
   //-----------------------------------------------------------------
   int rc = gr->credentialRelease(lease);
