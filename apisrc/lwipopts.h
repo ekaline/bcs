@@ -747,6 +747,12 @@ void sys_mark_tcpip_thread();
    ------------------------------------
 */
 
+/**
+ * TCPIP_THREAD_NAME: The name assigned to the main tcpip thread.
+ */
+
+#define TCPIP_THREAD_NAME               "EkalineTcpStack"
+
 
 /*
    ----------------------------------------------

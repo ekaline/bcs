@@ -467,11 +467,7 @@ int EkaTcpSess::sendEthFrame(void *buf, int len) {
   if ((uint)len > MAX_ETH_FRAME_SIZE)
     on_error("Size %d > MAX_ETH_FRAME_SIZE (%d)",len,MAX_ETH_FRAME_SIZE);
 
-  hexDump("sendEthFrame",buf,len);
-  fullPktAction->print("from sendEthFrame:");
-
   fullPktAction->setEthFrame(buf,(uint)len,true);
-  /* fullPktAction->send(); */
 
   return 0;
 }

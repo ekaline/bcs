@@ -22,7 +22,7 @@ void atomicCopy(volatile uint64_t * __restrict dst,
     atomicDst->store( *src, std::memory_order_release );
     atomicDst++; src++;
   }
-  __sync_synchronize();
+  /* __sync_synchronize(); */
   _mm_clflush(srcBuf);
   return;
 }
@@ -60,12 +60,12 @@ void epmCopyWcDesc(volatile uint64_t* descAddr,
 	    .opc        = send
   };
 
-  TEST_LOG("desc: action_index=%u, hwHeapAddr=%x, size=%u, nBytes=%u, opc=%u",
-	   desc.trigDesc.str.action_index,
-	   desc.hwHeapAddr,
-	   desc.trigDesc.str.size,
-	   desc.nBytes,
-	   desc.opc);
+  /* TEST_LOG("desc: action_index=%u, hwHeapAddr=%x, size=%u, nBytes=%u, opc=%u", */
+  /* 	   desc.trigDesc.str.action_index, */
+  /* 	   desc.hwHeapAddr, */
+  /* 	   desc.trigDesc.str.size, */
+  /* 	   desc.nBytes, */
+  /* 	   desc.opc); */
 
   atomicCopy(descAddr,&desc,sizeof(desc));
   return;
@@ -105,18 +105,18 @@ void epmCopyWcBuf(volatile uint64_t* snDevWCPtr,
 		tcpPseudoCsum,
 		send ? 1 : 2
 		);
-  TEST_LOG("\nthrId=%u, snDevWCPtr=%p, wcRegionBase=%p, offs=0x%jx, thrId * 0x800 = 0x%jx, arith = 0x%jx)",
-	   thrId, snDevWCPtr, wcRegionBase,
-	   wcRegionBase - snDevWCPtr,
-	   (uint64_t)(thrId * 0x800),
-	   ((uint64_t)snDevWCPtr + thrId * 0x800)
-	   );
+  /* TEST_LOG("\nthrId=%u, snDevWCPtr=%p, wcRegionBase=%p, offs=0x%jx, thrId * 0x800 = 0x%jx, arith = 0x%jx)", */
+  /* 	   thrId, snDevWCPtr, wcRegionBase, */
+  /* 	   wcRegionBase - snDevWCPtr, */
+  /* 	   (uint64_t)(thrId * 0x800), */
+  /* 	   ((uint64_t)snDevWCPtr + thrId * 0x800) */
+  /* 	   ); */
   
-  TEST_LOG("thrId=%u, snDevWCPtr=%p, thrIdDesc addr = %p, data addr = %p, hwHeapAddr=0x%jx, offs=0x%jx)",
-	   thrId, snDevWCPtr, wcRegionBase,wcRegionBase + 8,hwHeapAddr,
-	   (uint64_t)wcRegionBase - (uint64_t)snDevWCPtr);
+  /* TEST_LOG("thrId=%u, snDevWCPtr=%p, thrIdDesc addr = %p, data addr = %p, hwHeapAddr=0x%jx, offs=0x%jx)", */
+  /* 	   thrId, snDevWCPtr, wcRegionBase,wcRegionBase + 8,hwHeapAddr, */
+  /* 	   (uint64_t)wcRegionBase - (uint64_t)snDevWCPtr); */
 
-  hexDump("WC Copied Buf",swHeapAddr,pktSize);
+  /* hexDump("WC Copied Buf",swHeapAddr,pktSize); */
   epmCopyWcPayload(wcRegionBase + 8,
 		   swHeapAddr,
 		   roundUp64(pktSize)
