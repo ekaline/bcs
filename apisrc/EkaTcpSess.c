@@ -518,12 +518,15 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
   if (len == 0) return 0;
   
   static const uint32_t WndMargin = 2*1024; // 1 MTU
-
+  static const uint64_t FpgaInFlightLimit = 32 * 1024;
+  
   uint payloadSize2send = (uint)len < MAX_PAYLOAD_SIZE ? (uint)len : MAX_PAYLOAD_SIZE;
   int64_t unAckedBytes = realFastPathBytes.load() - realTcpRemoteAckNum.load();
 
   uint32_t allowedWnd = tcpSndWnd.load() < WndMargin ? 0 : tcpSndWnd.load() - WndMargin;
-  if (txLwipBp.load() || unAckedBytes + payloadSize2send > allowedWnd) {
+  if (txLwipBp.load() ||
+      unAckedBytes + payloadSize2send > allowedWnd ||
+      realFastPathBytes.load() - realDummyBytes.load() > FpgaInFlightLimit) {
     payloadSize2send = 0;
     errno = EAGAIN;
 #if DEBUG_PRINTS
