@@ -1,8 +1,8 @@
 /*
  * Copyright (c) 2001-2003 Swedish Institute of Computer Science.
- * All rights reserved. 
- * 
- * Redistribution and use in source and binary forms, with or without modification, 
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice,
@@ -11,21 +11,21 @@
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
  * 3. The name of the author may not be used to endorse or promote products
- *    derived from this software without specific prior written permission. 
+ *    derived from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED 
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT 
- * SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT 
- * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING 
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY 
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+ * SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
+ * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+ * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
  * This file is part of the lwIP TCP/IP stack.
- * 
+ *
  * Author: Adam Dunkels <adam@sics.se>
  *
  */
@@ -44,6 +44,8 @@
  *    will block until there is more room instead of just
  *    leaking messages.
  */
+//#define _GNU_SOURCE /* pull in pthread_setname_np() on Linux */
+
 #include "lwip/debug.h"
 
 #include <string.h>
@@ -66,35 +68,30 @@
 #include "lwip/stats.h"
 #include "lwip/tcpip.h"
 
-#include "arch/sys_arch.h"
+/* Return code for an interrupted timed wait */
+#define SYS_ARCH_INTR 0xfffffffeUL
 
-static __inline__ unsigned long long rdtsc(void)
+u32_t
+lwip_port_rand(void)
 {
-    unsigned hi, lo;
-    __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
-    return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+  return (u32_t)rand();
 }
-
 
 static void
 get_monotonic_time(struct timespec *ts)
 {
 #ifdef LWIP_UNIX_MACH
   /* darwin impl (no CLOCK_MONOTONIC) */
-  uint64_t t = mach_absolute_time();
+  u64_t t = mach_absolute_time();
   mach_timebase_info_data_t timebase_info = {0, 0};
   mach_timebase_info(&timebase_info);
-  uint64_t nano = (t * timebase_info.numer) / (timebase_info.denom);
-  uint64_t sec = nano/1000000000L;
+  u64_t nano = (t * timebase_info.numer) / (timebase_info.denom);
+  u64_t sec = nano/1000000000L;
   nano -= sec * 1000000000L;
   ts->tv_sec = sec;
   ts->tv_nsec = nano;
 #else
-#if LWIP_SO_SNDRCVTIMEO_NONSTANDARD
-  *(int *)ts = (int) (rdtsc() / 1e6);
-#else
   clock_gettime(CLOCK_MONOTONIC, ts);
-#endif
 #endif
 }
 
@@ -109,7 +106,6 @@ static int lwprot_count = 0;
 static struct sys_thread *threads = NULL;
 static pthread_mutex_t threads_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-#if 0
 struct sys_mbox_msg {
   struct sys_mbox_msg *next;
   void *msg;
@@ -142,8 +138,6 @@ struct sys_thread {
   pthread_t pthread;
 };
 
-#endif
-
 static struct sys_sem *sys_sem_new_internal(u8_t count);
 static void sys_sem_free_internal(struct sys_sem *sem);
 
@@ -152,7 +146,7 @@ static u32_t cond_wait(pthread_cond_t * cond, pthread_mutex_t * mutex,
 
 /*-----------------------------------------------------------------------------------*/
 /* Threads */
-static struct sys_thread * 
+static struct sys_thread *
 introduce_thread(pthread_t id)
 {
   struct sys_thread *thread;
@@ -182,7 +176,7 @@ thread_wrapper(void *arg)
   struct thread_wrapper_data *thread_data = (struct thread_wrapper_data *)arg;
 
   thread_data->function(thread_data->arg);
-  fprintf(stderr,"\n\n\n\n\nEkalineTcpStack is DEAD!!!\n\n\n\n\n");fflush(stderr);
+
   /* we should never get here */
   free(arg);
   return NULL;
@@ -203,10 +197,14 @@ sys_thread_new(const char *name, lwip_thread_fn function, void *arg, int stacksi
   thread_data->arg = arg;
   thread_data->function = function;
   code = pthread_create(&tmp,
-                        NULL, 
-                        thread_wrapper, 
+                        NULL,
+                        thread_wrapper,
                         thread_data);
-  
+
+#ifdef LWIP_UNIX_LINUX
+  pthread_setname_np(tmp, name);
+#endif
+
   if (0 == code) {
     st = introduce_thread(tmp);
   }
@@ -216,27 +214,21 @@ sys_thread_new(const char *name, lwip_thread_fn function, void *arg, int stacksi
                        code, (unsigned long)st));
     abort();
   }
-
-  pthread_setname_np(tmp, "EkalineTcpStack");
-
   return st;
 }
 
 #if LWIP_TCPIP_CORE_LOCKING
 static pthread_t lwip_core_lock_holder_thread_id;
-void sys_lock_tcpip_core()
-{ 
+void sys_lock_tcpip_core(void)
+{
   sys_mutex_lock(&lock_tcpip_core);
   lwip_core_lock_holder_thread_id = pthread_self();
-  // fprintf (stderr,"CORE LOCKED BLIA!!!\n");fflush(stderr);
 }
 
 void sys_unlock_tcpip_core(void)
 {
   lwip_core_lock_holder_thread_id = 0;
   sys_mutex_unlock(&lock_tcpip_core);
-  //  fprintf (stderr,"CORE UNLOCKED BLIA!!!\n");fflush(stderr);
-
 }
 #endif /* LWIP_TCPIP_CORE_LOCKING */
 
@@ -291,7 +283,7 @@ sys_mbox_free(struct sys_mbox **mb)
     struct sys_mbox *mbox = *mb;
     SYS_STATS_DEC(mbox.used);
     sys_arch_sem_wait(&mbox->mutex, 0);
-    
+
     sys_sem_free_internal(mbox->not_empty);
     sys_sem_free_internal(mbox->not_full);
     sys_sem_free_internal(mbox->mutex);
@@ -500,14 +492,20 @@ cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex, u32_t timeout)
   struct timespec rtime1, rtime2, ts;
   int ret;
 
-#ifdef __GNU__
+#ifdef LWIP_UNIX_HURD
   #define pthread_cond_wait pthread_hurd_cond_wait_np
   #define pthread_cond_timedwait pthread_hurd_cond_timedwait_np
 #endif
 
   if (timeout == 0) {
-    pthread_cond_wait(cond, mutex);
-    return 0;
+    ret = pthread_cond_wait(cond, mutex);
+    return
+#ifdef LWIP_UNIX_HURD
+    /* On the Hurd, ret == 1 means the RPC has been cancelled.
+     * The thread is awakened (not terminated) and execution must continue */
+    ret == 1 ? SYS_ARCH_INTR :
+#endif
+    (u32_t)ret;
   }
 
   /* Get a timestamp and add the timeout value. */
@@ -528,6 +526,12 @@ cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex, u32_t timeout)
 #endif
   if (ret == ETIMEDOUT) {
     return SYS_ARCH_TIMEOUT;
+#ifdef LWIP_UNIX_HURD
+    /* On the Hurd, ret == 1 means the RPC has been cancelled.
+     * The thread is awakened (not terminated) and execution must continue */
+  } else if (ret == EINTR) {
+    return SYS_ARCH_INTR;
+#endif
   }
 
   /* Calculate for how long we waited for the cond. */
@@ -557,11 +561,18 @@ sys_arch_sem_wait(struct sys_sem **s, u32_t timeout)
       if (time_needed == SYS_ARCH_TIMEOUT) {
         pthread_mutex_unlock(&(sem->mutex));
         return SYS_ARCH_TIMEOUT;
+#ifdef LWIP_UNIX_HURD
+      } else if(time_needed == SYS_ARCH_INTR) {
+        pthread_mutex_unlock(&(sem->mutex));
+        return 0;
+#endif
       }
       /*      pthread_mutex_unlock(&(sem->mutex));
               return time_needed; */
-    } else {
-      cond_wait(&(sem->cond), &(sem->mutex), 0);
+    } else if(cond_wait(&(sem->cond), &(sem->mutex), 0)) {
+      /* Some error happened or the thread has been awakened but not by lwip */
+      pthread_mutex_unlock(&(sem->mutex));
+      return 0;
     }
   }
   sem->c--;
@@ -659,9 +670,14 @@ u32_t
 sys_now(void)
 {
   struct timespec ts;
+  u32_t now;
 
   get_monotonic_time(&ts);
-  return (u32_t)(ts.tv_sec * 1000L + ts.tv_nsec / 1000000L);
+  now = (u32_t)(ts.tv_sec * 1000L + ts.tv_nsec / 1000000L);
+#ifdef LWIP_FUZZ_SYS_NOW
+  now += sys_now_offset;
+#endif
+  return now;
 }
 
 u32_t
@@ -740,3 +756,37 @@ sys_arch_unprotect(sys_prot_t pval)
     }
 }
 #endif /* SYS_LIGHTWEIGHT_PROT */
+
+#if !NO_SYS
+/* get keyboard state to terminate the debug app by using select */
+int
+lwip_unix_keypressed(void)
+{
+  struct timeval tv = { 0L, 0L };
+  fd_set fds;
+  FD_ZERO(&fds);
+  FD_SET(0, &fds);
+  return select(1, &fds, NULL, NULL, &tv);
+}
+#endif /* !NO_SYS */
+
+// added by vitaly
+#if LWIP_NETCONN_SEM_PER_THREAD
+/* Simple implementation of this: unit tests only support one thread */
+static sys_sem_t global_netconn_sem;
+
+sys_sem_t* sys_arch_netconn_sem_get(void)
+{
+  return &global_netconn_sem;
+}
+
+void sys_arch_netconn_sem_alloc(void)
+{
+  sys_sem_new(&global_netconn_sem, 0);
+}
+
+void sys_arch_netconn_sem_free(void)
+{
+  sys_sem_free(&global_netconn_sem);
+}
+#endif /* LWIP_NETCONN_SEM_PER_THREAD */

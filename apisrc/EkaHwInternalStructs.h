@@ -57,7 +57,7 @@ typedef union  {
   uint8_t bits;
   struct  {
     uint8_t reserved7        : 1;
-    uint8_t reserved6        : 1;
+    uint8_t originatedFromHw : 1; //should be added to FastPathBytes
     uint8_t app_seq_inc      : 1;
     uint8_t empty_report_en  : 1;
     uint8_t feedbck_en       : 1; //should HW send packet feedback to libary
@@ -287,7 +287,8 @@ typedef struct __attribute__((packed)) {
   uint8_t  type;
   uint16_t length;
   uint32_t index;
-  feedback_dma_bitparams_t  bitparams;
+  /* feedback_dma_bitparams_t  bitparams; */
+  EpmActionBitmap bitparams;
 } feedback_dma_report_t;
 
 typedef struct __attribute__((packed)) {

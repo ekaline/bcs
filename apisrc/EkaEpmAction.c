@@ -9,8 +9,9 @@
 #include "EkaEpmRegion.h"
 #include "EkaUdpTxSess.h"
 
-uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size);
-unsigned short csum(unsigned short *ptr,int nbytes);
+uint32_t calc_pseudo_csum (const void* ip_hdr, const void* tcp_hdr,
+			   const void* payload, uint16_t payload_size);
+unsigned short csum(const unsigned short *ptr,int nbytes);
 uint32_t calcUdpCsum (void* ip_hdr, void* udp_hdr, void* payload, uint16_t payload_size);
 uint16_t udp_checksum(EkaUdpHdr *p_udp_header, size_t len, uint32_t src_addr, uint32_t dest_addr);
 
@@ -21,6 +22,8 @@ int EkaEpmAction::setActionBitmap() {
     actionBitParams.bitmap.action_valid = 1;
   else
     actionBitParams.bitmap.action_valid = 0;
+
+  actionBitParams.bitmap.originatedFromHw = 0;
 
   switch (type) {
   case EpmActionType::TcpFastPath :
@@ -49,12 +52,15 @@ int EkaEpmAction::setActionBitmap() {
     actionBitParams.bitmap.report_en    = 0;
     actionBitParams.bitmap.feedbck_en   = 1;
     break;
-  case EpmActionType::HwFireAction :
   case EpmActionType::BoeFire      :
-  case EpmActionType::BoeCancel    :
   case EpmActionType::CmeHwCancel    :
-    actionBitParams.bitmap.app_seq_inc  = 1;
   case EpmActionType::SqfFire      :
+    actionBitParams.bitmap.originatedFromHw = 1;
+    [[fallthrough]];
+  case EpmActionType::HwFireAction :
+    actionBitParams.bitmap.app_seq_inc  = 1;
+    [[fallthrough]];
+  case EpmActionType::BoeCancel    :
   case EpmActionType::SqfCancel    :
 
   case EpmActionType::CmeSwHeartbeat :

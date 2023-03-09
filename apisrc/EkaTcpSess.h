@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <mutex>
+#include <atomic>
 
 #include "eka_macros.h"
 
@@ -26,7 +27,7 @@ class EkaTcpSess {
   int sendPayload(uint thr, void *buf, int len, int flags);
   int sendEthFrame(void *buf, int len);
   int sendStackEthFrame(void *buf, int len);
-  int lwipDummyWrite(void *buf, int len);
+  int lwipDummyWrite(void *buf, int len, uint8_t originatedFromHw = 0);
 
   int updateRx(const uint8_t* pkt, uint32_t len);
 
@@ -74,6 +75,8 @@ class EkaTcpSess {
 
   uint8_t  coreId = -1;
   uint8_t  sessId = -1;
+
+  int lwip_errno  = 0;
   
   int      sock   = -1;
   uint32_t srcIp  = -1;
@@ -84,26 +87,30 @@ class EkaTcpSess {
   uint32_t vlan_tag = 0;
 
   uint16_t tcpRcvWnd; // new
-  uint16_t tcpSndWnd = 0;
+  std::atomic<uint32_t> tcpSndWnd = 0;
   uint8_t tcpSndWndShift = 0;
 
   int appSeqId = 0;
   
-  volatile uint32_t tcpLocalSeqNum = 0;
-  volatile uint32_t tcpRemoteSeqNum = 0;
-  volatile uint32_t tcpRemoteAckNum = 0;
+  std::atomic<uint32_t> tcpLocalSeqNum = 0;
+  
+  std::atomic<uint32_t> tcpRemoteSeqNum = 0;
+  
+  std::atomic<uint32_t> tcpRemoteAckNum = 0;
+  std::atomic<uint64_t> realTcpRemoteAckNum = 0;
 
-  //  volatile uint64_t fastPathBytes = 0;
-  volatile uint32_t fastPathBytes = 0;
-  volatile uint64_t throttleCounter = 0;
-  volatile uint64_t maxThrottleCounter = 0;
-  volatile uint64_t txDriverBytes = 0;
-  volatile uint64_t dummyBytes = 0;
-  volatile uint64_t tcpLocalSeqNumBase = 0;
+  std::atomic<uint64_t> realFastPathBytes = 0;
+  
+  std::atomic<uint64_t> realDummyBytes = 0;
+  
+  std::atomic<uint32_t> tcpLocalSeqNumBase = 0;
 
-  volatile bool txLwipBp = false;
+  std::atomic<uint64_t> realTxDriverBytes = 0;
 
-  volatile uint64_t fastBytesFromUserChannel = 0;
+
+  uint64_t lastInsertedEmptyAck = 0;
+  
+  std::atomic<bool>     txLwipBp = false;
 
   uint8_t __attribute__ ((aligned(0x100)))  pktBuf[MAX_ETH_FRAME_SIZE] = {};
   EkaEthHdr* ethHdr     = (EkaEthHdr*) pktBuf;
@@ -120,6 +127,10 @@ class EkaTcpSess {
   bool isBlocking() const noexcept { return blocking; }
   int setBlocking(bool);
 
+private:
+  void processSynAck(const void* pkt);
+  void insertEmptyRemoteAck(uint64_t seq,const void* pkt);
+  
  private:
   typedef union exc_table_desc {
     uint64_t desc;

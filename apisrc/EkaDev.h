@@ -79,9 +79,10 @@ class EkaDev {
 
   // constexpr double EKA_FPGA_FREQUENCY = 10.0 * 66 / 64 / 64 * 1000;
   
-  bool                      epmEnabled = false;
-  EkaUserChannel*           epmReport = NULL;
-  EkaUserChannel*           lwipPath = NULL;
+  bool                      epmEnabled  = false;
+  EkaUserChannel*           epmReport   = NULL;
+  EkaUserChannel*           epmFeedback = NULL;
+  EkaUserChannel*           lwipRx      = NULL;
 
   uint8_t                   hwEnabledCores = 0;
   EfhFeedVer                hwFeedVer = EfhFeedVer::kInvalid;
@@ -120,6 +121,10 @@ class EkaDev {
   volatile bool             servThreadActive           = false;
   std::thread               servThread;
   volatile bool             servThreadTerminated       = true;
+
+  volatile bool             tcpRxThreadActive          = false;
+  std::thread               tcpRxThread;
+  volatile bool             tcpRxThreadTerminated      = true;
 
   volatile bool             fireReportThreadActive     = false;
   std::thread               fireReportThread;
