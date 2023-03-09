@@ -516,9 +516,13 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
     return -1;
   }
   if (len == 0) return 0;
-  
+
+			   
   static const uint32_t WndMargin = 2*1024; // 1 MTU
-  static const uint64_t FpgaInFlightLimit = 32 * 1024;
+  //  static const uint64_t FpgaInFlightLimit = 32 * 1024;
+  //  static const uint64_t FpgaInFlightLimit = 21800; //2/3 utilization (still interrupts)
+  //  static const uint64_t FpgaInFlightLimit = 14000;
+  static const uint64_t FpgaInFlightLimit = 10000;
   
   uint payloadSize2send = (uint)len < MAX_PAYLOAD_SIZE ? (uint)len : MAX_PAYLOAD_SIZE;
   int64_t unAckedBytes = realFastPathBytes.load() - realTcpRemoteAckNum.load();

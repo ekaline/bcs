@@ -669,7 +669,7 @@ int printNewsState(NewsState* pNewsState) {
 //################################################
 
 int main(int argc, char *argv[]) {
-  setlocale(LC_NUMERIC, "");
+  setlocale(LC_NUMERIC, "en_US"); //decimal point is represented by a period (.), and the thousands separator is represented by a comma (,)
   devId = SN_OpenDevice(NULL, NULL);
   if (devId == NULL) on_error ("Cannot open FiberBlaze device. Is driver loaded?");
   IfParams coreParams[NUM_OF_CORES] = {};
