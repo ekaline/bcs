@@ -26,7 +26,7 @@
 #define CORES 2
 #define SESSIONS 32
 
-#define STATISTICS_PERIOD 10000
+#define STATISTICS_PERIOD 50000
 
 volatile bool keep_work = true;;
 volatile bool serverSet = false;
