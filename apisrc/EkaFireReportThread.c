@@ -540,7 +540,10 @@ void ekaFireReportThread(EkaDev* dev) {
       lastDateUpdateTime = now;
     }
     /* ----------------------------------------------- */
-    if (! epmReportCh->has_data()) continue;
+    if (! epmReportCh->has_data()) {
+      std::this_thread::yield();
+      continue;
+    }
     auto data = epmReportCh->get();
     auto len  = epmReportCh->getPayloadSize();
 
