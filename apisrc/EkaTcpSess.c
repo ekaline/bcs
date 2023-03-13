@@ -478,9 +478,10 @@ int EkaTcpSess::lwipDummyWrite(void *buf, int len, uint8_t originatedFromHw) {
   auto p = (const uint8_t*)buf;
   int sentSize = 0;
 
-  if (originatedFromHw)
+  if (originatedFromHw) {
     realFastPathBytes.fetch_add(len);
-  
+    dev->globalFastPathBytes.fetch_add(len);
+  }
   do {
     int sentBytes = lwip_write(sock,p,len-sentSize);
     lwip_errno = errno;
@@ -505,7 +506,8 @@ int EkaTcpSess::lwipDummyWrite(void *buf, int len, uint8_t originatedFromHw) {
 
   txLwipBp.store(false);
   realDummyBytes.fetch_add(len);
-  
+  dev->globalDummyBytes.fetch_add(len);
+
   return len;
 }
 
@@ -522,7 +524,7 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
   //  static const uint64_t FpgaInFlightLimit = 32 * 1024;
   //  static const uint64_t FpgaInFlightLimit = 21800; //2/3 utilization (still interrupts)
   //  static const uint64_t FpgaInFlightLimit = 14000;
-  static const uint64_t FpgaInFlightLimit = 10000;
+  static const uint64_t FpgaInFlightLimit = 8 * 1024;
   
   uint payloadSize2send = (uint)len < MAX_PAYLOAD_SIZE ? (uint)len : MAX_PAYLOAD_SIZE;
   int64_t unAckedBytes = realFastPathBytes.load() - realTcpRemoteAckNum.load();
@@ -530,7 +532,7 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
   uint32_t allowedWnd = tcpSndWnd.load() < WndMargin ? 0 : tcpSndWnd.load() - WndMargin;
   if (txLwipBp.load() ||
       unAckedBytes + payloadSize2send > allowedWnd ||
-      realFastPathBytes.load() - realDummyBytes.load() > FpgaInFlightLimit) {
+      dev->globalFastPathBytes.load() - dev->globalDummyBytes.load() > FpgaInFlightLimit) {
     payloadSize2send = 0;
     errno = EAGAIN;
 #if DEBUG_PRINTS
@@ -553,6 +555,7 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
   } 
 
   realFastPathBytes.fetch_add(payloadSize2send);
+  dev->globalFastPathBytes.fetch_add(payloadSize2send);
   
   fastPathAction->fastSend(buf, payloadSize2send);
   return payloadSize2send;

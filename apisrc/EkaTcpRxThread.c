@@ -32,8 +32,10 @@ void ekaTcpRxThread(EkaDev* dev) {
   while (dev->tcpRxThreadActive) {
     /* ----------------------------------------------- */
 
-    if (! dev->lwipRx->has_data())
+    if (! dev->lwipRx->has_data()){
+      std::this_thread::yield();
       continue;
+    }
     
     const uint8_t* payload = dev->lwipRx->get();
     uint len = dev->lwipRx->getPayloadSize();

@@ -5,6 +5,7 @@
 // SHURIK
 #include <mutex>
 #include <thread>
+#include <atomic>
 
 #include "eka_hw_conf.h"
 #include "EkaHwInternalStructs.h"
@@ -179,11 +180,16 @@ class EkaDev {
   FILE* testDict;
 #endif
 
+  
+  
   const int MaxAppSeqSessions = 8;
   int       numAppSeqSessions = 0;
   
   FILE* deltaTimeLogFile = NULL;
-  
+
+  std::atomic<uint64_t>     globalFastPathBytes = 0;
+  std::atomic<uint64_t>     globalDummyBytes = 0;
+
   EkaUserReportQ*           userReportQ = NULL;
   EkaDev*                   next = NULL; // Next device in global list
 
