@@ -27,7 +27,7 @@
 
 #define MASK32 0xffffffff
 
-static SN_DeviceId devId;
+SN_DeviceId devId;
 
 struct IfParams {
   char     name[50] = {};//{'N','O','_','N','A','M','E'};
@@ -264,7 +264,7 @@ void printTime() {
 	 );
 }
 //################################################
-void checkVer() {
+static void checkVer() {
   uint64_t swVer = reg_read(SCRPAD_SW_VER);
   if ((swVer & 0xFFFFFFFF00000000) != EKA_CORRECT_SW_VER) {
     fprintf(stderr,RED "%s: current SW Version 0x%jx is not supported by %s\n" RESET,__func__,swVer,__FILE__);
@@ -673,7 +673,7 @@ int main(int argc, char *argv[]) {
   devId = SN_OpenDevice(NULL, NULL);
   if (devId == NULL) on_error ("Cannot open FiberBlaze device. Is driver loaded?");
   IfParams coreParams[NUM_OF_CORES] = {};
-  EkaHwCaps* ekaHwCaps = new EkaHwCaps(NULL);
+  EkaHwCaps* ekaHwCaps = new EkaHwCaps(devId);
   auto pEfcState = new EfcState;
   auto pFastCancelState = new FastCancelState;
   auto pFastSweepState = new FastSweepState;
@@ -751,6 +751,12 @@ int main(int argc, char *argv[]) {
     /* ----------------------------------------- */
     sleep(1);
   }
+  delete ekaHwCaps;
+  delete pEfcState;
+  delete pFastCancelState;
+  delete pFastSweepState;
+  delete pNewsState;
+  delete pEfcExceptionsReport;
   SN_CloseDevice(devId);
 
   return 0;

@@ -2,6 +2,7 @@
 #define _EKA_HW_CAPS_H_
 
 class EkaDev;
+#include "smartnic.h"
 
 class EkaHwCaps {
   static const uint64_t HwCapabilitiesAddr = 0x8f000;
@@ -58,7 +59,7 @@ class EkaHwCaps {
 
   /* ------------------------------ */
  public:
-  EkaHwCaps(EkaDev* _dev);
+  EkaHwCaps(SN_DeviceId devId);
   void print();
   void printStdout();
   void refresh();
@@ -74,8 +75,8 @@ class EkaHwCaps {
  private:
   void print2buf();
 
-  EkaDev* dev = NULL;
-
+  SN_DeviceId DeviceId = NULL;
+  
   static const int bufSize = 10000;
 
   uint idx = 0;
