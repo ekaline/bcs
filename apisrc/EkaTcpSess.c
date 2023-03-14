@@ -78,7 +78,8 @@ EkaTcpSess::EkaTcpSess(EkaDev* pEkaDev, EkaCore* _parent,
   } else {
     EKA_LOG("FPGA created IGMP-ONLY network channel");
   }
-
+  
+  controlTcpSess = dev->core[coreId]->tcpSess[EkaCore::CONTROL_SESS_ID];
 /* -------------------------------------------- */
   fastPathAction = dev->epm->addAction(EkaEpm::ActionType::TcpFastPath,EkaEpm::ServiceRegion,0,coreId,sessId,0);
   fullPktAction  = dev->epm->addAction(EkaEpm::ActionType::TcpFullPkt, EkaEpm::ServiceRegion,0,coreId,sessId,0);
@@ -405,12 +406,12 @@ int EkaTcpSess::sendStackEthFrame(void *pkt, int len) {
 
     tcpRcvWnd = EKA_TCPH_WND(pkt);
     setLocalSeqWnd2FPGA();
-    sendEthFrame(pkt,len);
+    controlTcpSess->sendEthFrame(pkt,len);
     return 0;
   } 
   /* -------------------------------------- */
   if (EKA_TCP_FIN(pkt)) {
-    sendEthFrame(pkt,len);
+    controlTcpSess->sendEthFrame(pkt,len);
     return 0;    
   }
   /* -------------------------------------- */
@@ -419,7 +420,7 @@ int EkaTcpSess::sendStackEthFrame(void *pkt, int len) {
     tcpRemoteSeqNum = EKA_TCPH_ACKNO(pkt);
     tcpRcvWnd = EKA_TCPH_WND(pkt);
     setRemoteSeqWnd2FPGA();
-    sendEthFrame(pkt,len);
+    controlTcpSess->sendEthFrame(pkt,len);
     return 0;
   }
   /* -------------------------------------- */
@@ -429,7 +430,7 @@ int EkaTcpSess::sendStackEthFrame(void *pkt, int len) {
     // Retransmit
     //    EKA_LOG("Retransmit: Total Len = %u bytes, Seq = %u, tcpLocalSeqNum=%u", len, EKA_TCPH_SEQNO(pkt),tcpLocalSeqNum);
     //    hexDump("RetransmitPkt",pkt,len);
-    sendEthFrame(pkt,len);
+    controlTcpSess->sendEthFrame(pkt,len);
     return 0;
   }
   /* -------------------------------------- */
