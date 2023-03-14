@@ -91,17 +91,6 @@ err_t ekaLwipSend(struct netif *netif, struct pbuf *p) {
 
   uint8_t* pkt = (uint8_t*) p->payload;
 
-  if (EKA_IS_TCP_PKT(pkt)) {
-    EkaTcpSess* tcpSess = dev->findTcpSess(EKA_IPH_SRC(pkt),
-					   EKA_TCPH_SRC(pkt),
-					   EKA_IPH_DST(pkt),
-					   EKA_TCPH_DST(pkt));
-    if (tcpSess != NULL) {
-      tcpSess->sendStackEthFrame(pkt,p->len);
-      return ERR_OK;
-    }
-  }
-
   EkaTcpSess* controlTcpSess = dev->core[coreId]->tcpSess[EkaCore::CONTROL_SESS_ID];
   controlTcpSess->sendEthFrame(pkt,p->len);
   return ERR_OK;
