@@ -730,7 +730,7 @@ int main(int argc, char *argv[]) {
     .token         = DefaultToken,                  ///< Security token
     .hConn         = conn[0],                       ///< TCP connection where segments will be sent
     .offset        = heapOffset + nwHdrOffset,      ///< Offset to payload in payload heap
-    .length        = (uint32_t)sizeof(fireMsg),     ///< Payload length
+    .length        = 67,     ///< Payload length
     .actionFlags   = AF_Valid,                      ///< Behavior flags (see EpmActionFlag)
     .nextAction    = EPM_LAST_ACTION,               ///< Next action in sequence, or EPM_LAST_ACTION
     .enable        = AlwaysFire,                    ///< Enable bits
