@@ -700,24 +700,20 @@ int EkaEpmAction::send(uint32_t _tcpCSum) {
   epm_trig_desc.str.tcp_cs       = _tcpCSum;
   epm_trig_desc.str.region       = region;
 
-#if 0
-  /* if (type == EkaEpm::EpmActionType::UserAction) { */
-    EKA_LOG("%s: action_index = %u,region=%u,size=%u,tcpCSum=%08x, heapAddr = 0x%jx ",
-	    actionName,
-	    epm_trig_desc.str.action_index,
-	    epm_trig_desc.str.region,
-	    epm_trig_desc.str.size,
-	    epm_trig_desc.str.tcp_cs,
-	    heapAddr
-	    );
-    fflush(stdout);    fflush(stderr);
-
-    hexDump("EkaEpmAction::send() pkt",&epm->heap[heapOffs],pktSize);
-    fflush(stdout);    fflush(stderr);
-    //    print("From send()");
-    fflush(stdout);    fflush(stderr);
-  /* } */
+#if 1
+  EKA_LOG("%s: action_index = %u,region=%u,size=%u, heapOffs=0x%x, heapAddr=0x%jx ",
+	  actionName,
+	  epm_trig_desc.str.action_index,
+	  epm_trig_desc.str.region,
+	  epm_trig_desc.str.size,
+	  heapOffs,
+	  heapAddr
+	  );
+  char hexDumpstr[8000] = {};
+  hexDump2str("EkaEpmAction::send() pkt",&epm->heap[heapOffs],pktSize,
+	      hexDumpstr, sizeof(hexDumpstr));
 #endif
+  
   eka_write(dev,EPM_TRIGGER_DESC_ADDR,epm_trig_desc.desc);
 
   //  print("EkaEpmAction::send");
