@@ -331,7 +331,7 @@ void heapCopy (EkaDev* dev,
 
   // TEST_LOG("wndBase=%jx,dstLogicalAddr=%jx,swHeapSrcAddr=%p",
   // 	   wndBase,dstLogicalAddr,swHeapSrcAddr);
-  uint words2write = roundUp8(msgSize);
+  uint words2write = roundUp8(msgSize) / 8;
   for (uint w = 0; w < words2write; w++) {
     uint32_t dataLO =  *(uint32_t*) srcAddr;
     uint32_t dataHI =  *((uint32_t*) srcAddr + 1);
