@@ -340,6 +340,12 @@ int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
       lastInsertedEmptyAck = realTxDriverBytes.load();
       insertEmptyRemoteAck(lastInsertedEmptyAck,pkt);
     }
+#if DEBUG_PRINTS
+    else {
+      TEST_LOG("realTxDriverBytes=%ju,lastInsertedEmptyAck=%ju",
+	       realTxDriverBytes.load(),lastInsertedEmptyAck);
+    }
+#endif    
     std::this_thread::yield();
   }
   

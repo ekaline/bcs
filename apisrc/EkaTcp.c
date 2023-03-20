@@ -253,12 +253,18 @@ void ekaPushLwipRxPkt (EkaDev* dev, EkaCoreId rxCoreId,
     EKA_WARN("Dropping RX pkt \n%s",hexBuf);
     pbuf_free(p);
   }
-
+#if DEBUG_PRINTS
+  hexDump("Pushed RX pkt to LWIP",pkt,len);
+#endif
+  
   return;
 }
 
 void ekaProcessTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
-
+#if DEBUG_PRINTS
+  hexDump("ekaProcessTcpRx RX pkt",pkt,len);
+#endif
+  
   uint8_t broadcastMac[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
   if (memcmp(pkt,broadcastMac,6) == 0) { // broadcast 
     for (EkaCoreId rxCoreId = 0; rxCoreId < EkaDev::MAX_CORES; rxCoreId++) {
