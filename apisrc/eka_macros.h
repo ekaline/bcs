@@ -136,6 +136,16 @@ template <class T> inline T roundUp(T numToRound, T multiple) {
   return numToRound + multiple - remainder;
 }
 
+template <class T>
+inline T roundUp64(T x) {
+  return (x + 63) & ~63;
+}
+
+template <class T>
+inline T roundUp8(T x) {
+  return (x + 7) & ~7;
+}
+
 #define RED   "\x1B[31m"
 #define GRN   "\x1B[32m"
 #define YEL   "\x1B[33m"

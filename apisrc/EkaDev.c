@@ -126,7 +126,7 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 
   snDev          = new EkaSnDev(this);
 
-  ekaHwCaps = new EkaHwCaps(this);
+  ekaHwCaps = new EkaHwCaps(snDev->dev_id);
   if (ekaHwCaps == NULL) on_error("ekaHwCaps == NULL");
   
   ekaHwCaps->print();
@@ -467,7 +467,7 @@ EkaCoreId EkaDev::findCoreByMacSa(const uint8_t* macSa) {
 
 
 int EkaDev::clearHw() {
-  eka_write(STAT_CLEAR   ,(uint64_t) 1); // Clearing HW Statistics
+  //  eka_write(STAT_CLEAR   ,(uint64_t) 1); // Clearing HW Statistics
   eka_write(SW_STATISTICS,(uint64_t) 0); // Clearing SW Statistics
   eka_write(P4_STRAT_CONF,(uint64_t) 0); // Clearing Strategy params
 
