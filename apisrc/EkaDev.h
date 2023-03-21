@@ -14,6 +14,8 @@
 
 #include "eka_sn_addr_space.h"
 
+#include "EkaHeapWrChannels.h"
+
 class EkaFhRunGroup;
 class EkaFhGroup;
 class EkaFh;
@@ -174,6 +176,8 @@ class EkaDev {
 
   //  std::chrono::high_resolution_clock::time_point midnightSystemClock;
   std::chrono::system_clock::time_point midnightSystemClock;
+
+  EkaHeapWrChannels         heapWrChannels;
   
 #ifdef TEST_PRINT_DICT
   FILE* testDict;
@@ -305,6 +309,53 @@ inline void copyIndirectBuf2HeapHw_swap4(EkaDev* dev, uint64_t dstLogicalAddr,ui
     srcAddr++;
   }
 }
+
+
+// --------------------------------------------------------
+static inline
+void setHeapWnd (EkaDev* dev, int heapWrChId,
+		 uint64_t wndBase) {
+    eka_write(dev,0x81000+heapWrChId*8,wndBase); 
+}
+
+static inline
+void heapCopy (EkaDev* dev,
+	       uint64_t wndBase,uint64_t dstLogicalAddr,
+	       uint64_t* swHeapSrcAddr,int heapWrChId,
+	       uint msgSize) {
+  
+  uint wndOffs = dstLogicalAddr - wndBase;
+  uint64_t* srcAddr = swHeapSrcAddr;
+
+  uint64_t dstAddr = EpmHeapHwBaseAddr + wndOffs + heapWrChId * 0x01000;
+
+  // TEST_LOG("wndBase=%jx,dstLogicalAddr=%jx,swHeapSrcAddr=%p",
+  // 	   wndBase,dstLogicalAddr,swHeapSrcAddr);
+  uint words2write = roundUp8(msgSize) / 8;
+  for (uint w = 0; w < words2write; w++) {
+    uint32_t dataLO =  *(uint32_t*) srcAddr;
+    uint32_t dataHI =  *((uint32_t*) srcAddr + 1);
+    uint32_t dataLO_swapped = be32toh(dataLO);
+    uint32_t dataHI_swapped = be32toh(dataHI);
+    uint64_t res = (((uint64_t)dataHI_swapped) << 32 ) | (uint64_t)dataLO_swapped;
+
+    eka_write(dev, dstAddr + w * 8, res); 
+    srcAddr++;
+  }
+  
+}
+
+static inline
+void setHeapWndAndCopy(EkaDev* dev, uint64_t dstLogicalAddr,
+		       uint64_t* swHeapSrcAddr,int heapWrChId,
+		       uint msgSize) {
+  dev->heapWrChannels.getChannel(heapWrChId);
+  auto wndBase = dstLogicalAddr;
+  setHeapWnd(dev,heapWrChId,wndBase);
+  heapCopy(dev,wndBase,dstLogicalAddr,swHeapSrcAddr,heapWrChId,msgSize);
+  dev->heapWrChannels.releaseChannel(heapWrChId);
+}
+// --------------------------------------------------------
 
 
 inline void atomicIndirectBufWrite(EkaDev* dev, uint64_t addr, uint8_t bank, uint8_t threadId, uint32_t idx, uint8_t target_table) {
