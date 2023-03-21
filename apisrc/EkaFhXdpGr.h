@@ -3,6 +3,7 @@
 
 #include "EkaFhGroup.h"
 #include "EkaFhTobBook.h"
+#include "EkaFhXdpSecurity.h"
 #include "EkaFhXdpParser.h"
 
 using namespace Xdp;
@@ -10,6 +11,10 @@ using namespace Xdp;
 class EkaFhXdpGr : public EkaFhGroup{
  public:
   virtual               ~EkaFhXdpGr() {};
+
+  int                   init(EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx, EkaFh* fh,uint8_t gr_id,EkaSource exch);
+
+  int                   bookInit();
 
   bool                  parseMsg(const EfhRunCtx* pEfhRunCtx,
 				 const unsigned char* m,
@@ -23,8 +28,6 @@ class EkaFhXdpGr : public EkaFhGroup{
 				      const uint8_t*   pktPtr, 
 				      uint             msgInPkt, 
 				      uint64_t         seq);
-
-  int                  bookInit();
 
   int                  subscribeStaticSecurity(uint64_t        securityId, 
 					       EfhSecurityType efhSecurityType,
@@ -84,6 +87,9 @@ class EkaFhXdpGr : public EkaFhGroup{
   Stream*  stream[MAX_STREAMS] = {};
   int      numStreams = 0;
 
+  // XDP does not provide RFQ IDs. We keep our own ID counter, using the group ID as the high byte.
+  uint64_t prevAuctionId;
+
   std::chrono::high_resolution_clock::time_point gapStart;
 
   uint32_t underlyingIdx[MAX_UNDERLYINGS] = {};
@@ -97,9 +103,9 @@ class EkaFhXdpGr : public EkaFhGroup{
   using PriceT      = uint32_t;
   using SizeT       = uint32_t;
 
-  using FhSecurity  = EkaFhTobSecurity  <SecurityIdT, PriceT, SizeT>;
+  using FhSecurity  = EkaFhXdpSecurity<SecurityIdT, PriceT, SizeT>;
   using FhBook      = EkaFhTobBook<SEC_HASH_SCALE,
-      EkaFhTobSecurity<SecurityIdT, PriceT, SizeT>,
+      FhSecurity,
       EkaFhNoopQuotePostProc,
       SecurityIdT, PriceT, SizeT>;
 

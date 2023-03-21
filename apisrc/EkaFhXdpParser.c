@@ -8,6 +8,7 @@
 
 #include "EkaFhXdpGr.h"
 #include "EkaFhXdpParser.h"
+#include "EkaFhParserCommon.h"
 
 using namespace Xdp;
 
@@ -17,6 +18,7 @@ bool EkaFhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     //-----------------------------------------------------------------------------
   case MSG_TYPE::REFRESH_QUOTE :
     if (op != EkaFhMode::RECOVERY) break;
+    [[fallthrough]];
     //-----------------------------------------------------------------------------
   case MSG_TYPE::QUOTE : {
     XdpQuote* msg = (XdpQuote*)m;
@@ -63,6 +65,47 @@ bool EkaFhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     break;
     //-----------------------------------------------------------------------------
 
+  case MSG_TYPE::CROSSING_RFQ : {
+    XdpCubeRfq* xdpMsg = (XdpCubeRfq*) m;
+    FhSecurity* s = book->findSecurity(xdpMsg->SeriesIndex);
+    if (s == NULL) return false;
+
+    EfhAuctionUpdateMsg msg{};
+    msg.header.msgType = EfhMsgType::kAuctionUpdate;
+    msg.header.group.source   = exch;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.securityId     = (uint64_t) xdpMsg->SeriesIndex;
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = xdpMsg->time.SourceTime * static_cast<uint64_t>(SEC_TO_NANO) + xdpMsg->time.SourceTimeNS;
+    msg.header.gapNum         = gapNum;
+
+    if (s->auctionId == 0) {
+      // New RFQ
+      s->auctionId = ++prevAuctionId;
+      msg.updateType = EfhAuctionUpdateType::kNew;
+    } else {
+      // RFQ update
+      msg.updateType = EfhAuctionUpdateType::kReplace;
+    }
+    numToStrBuf(msg.auctionId, s->auctionId);
+
+    msg.auctionType       = EfhAuctionType::kCube;
+    msg.securityType      = EfhSecurityType::kRfq;
+    msg.side              = getSide(xdpMsg->Side);
+    msg.capacity          = getRfqCapacity(xdpMsg->Capacity);
+    msg.price             = getRfqPrice(xdpMsg->Price, s->opaqueAttrA);
+    msg.quantity          = xdpMsg->Contracts;
+    copySymbol(msg.firmId, xdpMsg->Participant);
+    msg.endTimeNanos      = msg.header.timeStamp + 500'000'000; // 500ms duration assumed
+
+    if (pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL)
+      on_error("pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL");
+    pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
+  }
+    break;
+    //-----------------------------------------------------------------------------
+
   case MSG_TYPE::TRADE : {
     XdpTrade* xdpMsg = (XdpTrade*) m;
     FhSecurity* s = book->findSecurity(xdpMsg->SeriesIndex);
@@ -81,7 +124,7 @@ bool EkaFhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.price       = xdpMsg->Price;
     msg.size        = xdpMsg->Volume;
     msg.tradeStatus = s->trading_action;
-    msg.tradeCond   = EfhTradeCond::kREG;
+    msg.tradeCond   = getTradeType(xdpMsg->TradeCond1, xdpMsg->TradeCond2);
 
     pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
   }
@@ -89,28 +132,56 @@ bool EkaFhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     //-----------------------------------------------------------------------------
 
   case MSG_TYPE::SERIES_STATUS : {
-    XdpSeriesStatus* msg = (XdpSeriesStatus*) m;
-    FhSecurity* s = book->findSecurity(msg->SeriesIndex);
+    XdpSeriesStatus* xdpMsg = (XdpSeriesStatus*) m;
+    FhSecurity* s = book->findSecurity(xdpMsg->SeriesIndex);
     if (s == NULL) return false;
-    switch (msg->SecurityStatus) {
-    case 'O' :
+    const uint64_t timestampNs = xdpMsg->time.SourceTime * SEC_TO_NANO + xdpMsg->time.SourceTimeNS;
+    switch (xdpMsg->SecurityStatus) {
+    case 'O' : // Open
       s->option_open = true;
       s->trading_action = EfhTradeStatus::kNormal;
       break;
-    case 'X' :
+    case 'X' : // Close
       s->option_open = false;
       s->trading_action = EfhTradeStatus::kClosed;
       break;
-    case 'S' :
+    case 'S' : // Halt
       s->trading_action = EfhTradeStatus::kHalted;
       break;
-     case 'U' :
+    case 'U' : // Unhalt
       s->trading_action = EfhTradeStatus::kNormal;
       break;
+    case 'Q' : { // End of RFQ auction
+      EfhAuctionUpdateMsg msg{};
+      msg.header.msgType = EfhMsgType::kAuctionUpdate;
+      msg.header.group.source   = exch;
+      msg.header.group.localId  = id;
+      msg.header.underlyingId   = 0;
+      msg.header.securityId     = (uint64_t) xdpMsg->SeriesIndex;
+      msg.header.sequenceNumber = sequence;
+      msg.header.timeStamp      = timestampNs;
+      msg.header.gapNum         = gapNum;
+
+      if (s->auctionId == 0) {
+        return false;
+      }
+      numToStrBuf(msg.auctionId, s->auctionId);
+      s->auctionId = 0;
+
+      msg.updateType        = EfhAuctionUpdateType::kDelete;
+      msg.auctionType       = EfhAuctionType::kUnknown;
+      msg.securityType      = EfhSecurityType::kRfq;
+
+      if (pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL)
+        on_error("pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL");
+      pEfhRunCtx->onEfhAuctionUpdateMsgCb(&msg, (EfhSecUserData) s->efhUserData, pEfhRunCtx->efhRunUserData);
+
+      return false;
+    }
     default:
       return false;
     }
-    book->generateOnQuote (pEfhRunCtx, s, sequence, msg->time.SourceTime * SEC_TO_NANO + msg->time.SourceTimeNS, gapNum);
+    book->generateOnQuote (pEfhRunCtx, s, sequence, timestampNs, gapNum);
   }
     break;
 
