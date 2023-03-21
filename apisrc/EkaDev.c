@@ -20,7 +20,7 @@
 #include "EkaUdpChannel.h"
 #include "EkaIgmp.h"
 #include "EkaEfc.h"
-
+#include "EkaWc.h"
 #include "eka_hw_conf.h"
 #include "EkaHwInternalStructs.h"
 
@@ -125,7 +125,10 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   createThread = initCtx->createThread == NULL ? ekaDefaultCreateThread : initCtx->createThread;
 
   snDev          = new EkaSnDev(this);
-
+  if (!snDev) on_error ("!snDev");
+  ekaWc          = new EkaWc(snDevWCPtr);
+  if (!ekaWc) on_error ("!ekaWc");
+  
   ekaHwCaps = new EkaHwCaps(snDev->dev_id);
   if (ekaHwCaps == NULL) on_error("ekaHwCaps == NULL");
   

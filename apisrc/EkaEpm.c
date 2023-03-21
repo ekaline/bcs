@@ -54,7 +54,7 @@ void EkaEpm::initHeap(uint regionHeapBaseOffs, uint regionHeapSize, uint regionI
   EKA_LOG("regionHeapBaseOffs=%u, regionHeapSize=%u, HeapPage=%ju, numPages=%u",
 	  regionHeapBaseOffs,regionHeapSize,HeapPage,numPages);
   memset(&heap[regionHeapBaseOffs],0,regionHeapSize);
-  auto heapWrChId = dev->heapWrChannels.getChannelId(EkaHeapWrChannels::AccessType::HeapInit);
+  //  auto heapWrChId = dev->heapWrChannels.getChannelId(EkaHeapWrChannels::AccessType::HeapInit);
   for (uint i = 0; i < numPages; i++) {
     //    uint8_t __attribute__ ((aligned(0x100))) pageTmpBuf[HeapPage] = {};
     uint64_t hwPageStart = EpmHeapHwBaseAddr + regionHeapBaseOffs + i * HeapPage;
@@ -63,7 +63,7 @@ void EkaEpm::initHeap(uint regionHeapBaseOffs, uint regionHeapSize, uint regionI
     /* uint thrId = regionId % MAX_HEAP_WR_THREADS; */
     /* copyIndirectBuf2HeapHw_swap4(dev,hwPageStart,(uint64_t*)&pageTmpBuf,thrId,HeapPage); */
 
-    setHeapWndAndCopy(dev,hwPageStart,(uint64_t*)&heap[swPageStart], heapWrChId, HeapPage);
+    //    setHeapWndAndCopy(dev,hwPageStart,(uint64_t*)&heap[swPageStart], heapWrChId, HeapPage);
   }
 }
 

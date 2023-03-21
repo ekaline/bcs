@@ -29,6 +29,7 @@ class EkaUserReportQ;
 class EkaHwCaps;
 class EkaUserChannel;
 class EkaIgmp;
+class EkaWc;
 
 class EkaDev {
 
@@ -178,7 +179,7 @@ class EkaDev {
   //  std::chrono::high_resolution_clock::time_point midnightSystemClock;
   std::chrono::system_clock::time_point midnightSystemClock;
 
-  EkaHeapWrChannels         heapWrChannels;
+  EkaWc*                    ekaWc = NULL;
   
 #ifdef TEST_PRINT_DICT
   FILE* testDict;
@@ -197,8 +198,8 @@ class EkaDev {
   EkaUserReportQ*           userReportQ = NULL;
   EkaDev*                   next = NULL; // Next device in global list
 
-  volatile uint64_t *       snDevUserLogicRegistersPtr;
-  volatile uint64_t *       snDevWCPtr;
+  volatile uint64_t *       snDevUserLogicRegistersPtr = NULL;
+  volatile uint64_t *       snDevWCPtr = NULL;
   const uint32_t snDevNumberOfUserLogicRegisters = uint32_t(0x100000 /* BAR2_REGS_SIZE */ / sizeof(uint64_t));
 };
 
@@ -282,6 +283,8 @@ inline void copyBuf2Hw_swap4(EkaDev* dev,uint64_t dstAddr,uint64_t* srcAddr,uint
   }
 }
 
+#if 0
+
 // dstLogicalAddr : Window pointer in Heap
 //                  should be taken by getHeapWndAddr()
 inline void copyIndirectBuf2HeapHw_swap4(EkaDev* dev, uint64_t dstLogicalAddr,uint64_t* srcAddr,uint8_t thrId, uint msgSize) {
@@ -356,6 +359,7 @@ void setHeapWndAndCopy(EkaDev* dev, uint64_t dstLogicalAddr,
   heapCopy(dev,wndBase,dstLogicalAddr,swHeapSrcAddr,heapWrChId,msgSize);
   dev->heapWrChannels.releaseChannel(heapWrChId);
 }
+#endif
 // --------------------------------------------------------
 
 
