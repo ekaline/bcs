@@ -9,7 +9,7 @@
 !apisrc
 !pcapParsers
 !compat
-!lwip
+!LWIP
 !src
 !test
 !api
