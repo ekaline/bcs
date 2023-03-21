@@ -383,7 +383,7 @@ int printHeader(IfParams coreParams[NUM_OF_CORES], EfcState* pEfcState) {
   
   /* ----------------------------------------- */
   //  printf("%s",emptyPrefix);
-  printf (prefixStrFormat,"HW TCP filter");
+  printf (prefixStrFormat,"HW TCP RX");
 
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
