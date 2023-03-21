@@ -356,6 +356,8 @@ CopyOutDefinitions:
     attrA.attr.PriceScaleCode = m.PriceScaleCode;
     attrA.attr.GroupID        = m.GroupID;
 
+    EKA_INFO("Price scale for `%s` is %u", msg.commonDef.classSymbol, m.PriceScaleCode);
+
     XdpAuxAttrB attrB = {};
     attrB.attr.UnderlIdx  = m.UnderlyingIndex;
     attrB.attr.AbcGroupID = AbcGroupID;
