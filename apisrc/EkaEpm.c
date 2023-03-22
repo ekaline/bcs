@@ -47,23 +47,29 @@ int EkaEpm::createRegion(uint regionId, epm_actionid_t baseActionIdx) {
 /* ---------------------------------------------------- */
 
 void EkaEpm::initHeap(uint regionHeapBaseOffs, uint regionHeapSize, uint regionId) {
-  uint numPages = regionHeapSize / HeapPage;
   if (regionHeapSize % HeapPage != 0) 
     on_error("regionHeapSize %u is not multiple of HeapPage %ju",
 	     regionHeapSize, HeapPage);
-  EKA_LOG("regionHeapBaseOffs=%u, regionHeapSize=%u, HeapPage=%ju, numPages=%u",
-	  regionHeapBaseOffs,regionHeapSize,HeapPage,numPages);
+  const int HeapWcPageSize = 1024;
+  auto numPages = regionHeapSize / HeapWcPageSize;
+  EKA_LOG("regionHeapBaseOffs=%u, regionHeapSize=%u, HeapWcPageSize=%d, numPages=%d",
+	  regionHeapBaseOffs,regionHeapSize,HeapWcPageSize,numPages);
   memset(&heap[regionHeapBaseOffs],0,regionHeapSize);
-  //  auto heapWrChId = dev->heapWrChannels.getChannelId(EkaHeapWrChannels::AccessType::HeapInit);
-  for (uint i = 0; i < numPages; i++) {
-    //    uint8_t __attribute__ ((aligned(0x100))) pageTmpBuf[HeapPage] = {};
-    uint64_t hwPageStart = EpmHeapHwBaseAddr + regionHeapBaseOffs + i * HeapPage;
-    uint64_t swPageStart = regionHeapBaseOffs + i * HeapPage;
-    //    EKA_LOG("Cleaning hwPageStart=%ju + %ju",hwPageStart,HeapPage);
-    /* uint thrId = regionId % MAX_HEAP_WR_THREADS; */
-    /* copyIndirectBuf2HeapHw_swap4(dev,hwPageStart,(uint64_t*)&pageTmpBuf,thrId,HeapPage); */
 
-    //    setHeapWndAndCopy(dev,hwPageStart,(uint64_t*)&heap[swPageStart], heapWrChId, HeapPage);
+  for (uint i = 0; i < numPages; i++) {
+    uint64_t hwPageStart = regionHeapBaseOffs + i * HeapWcPageSize;
+    uint64_t swPageStart = regionHeapBaseOffs + i * HeapWcPageSize;
+    /* EKA_LOG("Cleaning hwPageStart=%ju + %d",hwPageStart,HeapWcPageSize); */
+#if 1
+    dev->ekaWc->epmCopyWcBuf(hwPageStart,
+			     &heap[swPageStart],
+			     HeapWcPageSize,
+			     EkaWc::AccessType::HeapInit,
+			     0, // actionLocalIdx
+			     regionId,
+			     0, // tcpPseudoCsum
+			     EkaWc::SendOp::DontSend);
+#endif    
   }
 }
 

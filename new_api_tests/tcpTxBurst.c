@@ -49,7 +49,6 @@ void excSendThr_f(EkaDev* pEkaDev,
   TEST_LOG("Launching excSendThr for coreId %u, sessId %u, p2p_delay=%u",
 	   coreId,sessId,p2p_delay);
  
-  static const size_t PktSize = 1360; // large pkt
   size_t bufCnt = 0;
   
   auto txBuf = new char[BufSize];
@@ -74,8 +73,11 @@ void excSendThr_f(EkaDev* pEkaDev,
       size_t sentBytes = 0;
       const char* p = txBuf;
       while (g_keepWork && sentBytes < BufSize) {
+	/* static const size_t PktSize = 1360; */ // large pkt
+	/* size_t currPktSize = std::min(BufSize - sentBytes, */
+	/* 			      1 + rand() % PktSize); */
 	size_t currPktSize = std::min(BufSize - sentBytes,
-				      1 + rand() % PktSize);
+				      (uint64_t)708);
 	int rc = excSend (pEkaDev, hCon, p, currPktSize, 0);
 	/* ------------------- */
 	switch (rc) {
