@@ -170,7 +170,6 @@ bool EkaFhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
 
       msg.updateType        = EfhAuctionUpdateType::kDelete;
       msg.auctionType       = EfhAuctionType::kUnknown;
-      msg.securityType      = EfhSecurityType::kRfq;
 
       if (pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL)
         on_error("pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL");
