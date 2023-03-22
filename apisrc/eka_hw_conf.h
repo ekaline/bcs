@@ -116,6 +116,12 @@
 #define ADDR_STATS_RX_BYTES_TOT      0xe0020 //  Statistics: total bytes
 #define ADDR_STATS_RX_PKTS_TOT       0xe0028 //  Statistics: total packets
 
+#define ADDR_STATS_TX_PPS            0xe0040 //  Statistics: 4 msb - max, 4 lsb - curr
+#define ADDR_STATS_TX_BPS_MAX        0xe0048 //  Statistics: bytes per second max
+#define ADDR_STATS_TX_BPS_CURR       0xe0050 //  Statistics: bytes per second current
+#define ADDR_STATS_TX_BYTES_TOT      0xe0058 //  Statistics: total bytes
+#define ADDR_STATS_TX_PKTS_TOT       0xe0060 //  Statistics: total packets
+
 #define EKA_CORRECT_SW_VER    0x1122330000000000
 typedef enum {
   SN_NASDAQ   = 0x0,

@@ -9,6 +9,7 @@
 #include "EkaUdpTxSess.h"
 #include "EkaIgmp.h"
 #include "EkaEpmAction.h"
+#include "EkaWc.h"
 
 ExcSessionId excGetSessionId( ExcConnHandle hConn );
 EkaCoreId excGetCoreId( ExcConnHandle hConn );
@@ -137,7 +138,7 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx,
 			   epmAction->length);
   else
     ekaA->setPktPayload(&epm->heap[epmAction->offset],
-			epmAction->length);
+				 epmAction->length);
 
   ekaA->initialized = true;
 

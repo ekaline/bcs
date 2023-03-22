@@ -65,6 +65,8 @@ class EkaTcpSess {
   static const uint MAX_PAYLOAD_SIZE  = 1360;
   static const uint16_t EkaIpId       = 0x0;
 
+  EkaTcpSess* controlTcpSess = NULL;
+  
   EkaEpmAction* fastPathAction = NULL;
   EkaEpmAction* fullPktAction = NULL;
   EkaEpmAction* emptyAckAction = NULL;

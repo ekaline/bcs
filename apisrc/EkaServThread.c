@@ -52,8 +52,10 @@ void ekaServThread(EkaDev* dev) {
   dev->servThreadActive = true;
 
   while (dev->servThreadActive) {
-    if (! dev->epmFeedback->has_data())
+    if (! dev->epmFeedback->has_data()) {
+      std::this_thread::yield();
       continue;
+    }
 
     const uint8_t* payload = dev->epmFeedback->get();
     uint len = dev->epmFeedback->getPayloadSize();

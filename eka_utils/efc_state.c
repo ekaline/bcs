@@ -27,7 +27,7 @@
 
 #define MASK32 0xffffffff
 
-static SN_DeviceId devId;
+SN_DeviceId devId;
 
 struct IfParams {
   char     name[50] = {};//{'N','O','_','N','A','M','E'};
@@ -43,11 +43,22 @@ struct IfParams {
 
   uint64_t totalRxBytes = 0;
   uint64_t totalRxPkts = 0;
-  uint32_t currPPS = 0;
-  uint32_t maxPPS  = 0;
-  uint64_t currBPS = 0;
-  uint64_t maxBPS = 0;
+  uint32_t currRxPPS = 0;
+  uint32_t maxRxPPS  = 0;
+  uint64_t currRxBPS = 0;
+  uint64_t maxRxBPS = 0;
   uint64_t droppedPkts = 0;
+
+  uint64_t totalTxBytes = 0;
+  uint64_t totalTxPkts = 0;
+  uint32_t currTxPPS = 0;
+  uint32_t maxTxPPS  = 0;
+  uint64_t currTxBPS = 0;
+  uint64_t maxTxBPS = 0;
+
+  bool hwParserEnable;
+  bool hwSnifferEnable;
+  uint8_t  hwMACFilter[6] = {};
 };
 
 #define ADDR_P4_CONT_COUNTER1        0xf0340
@@ -58,6 +69,7 @@ struct CommonState {
   uint32_t arm_ver            = 0;
   bool     reportOnly         = false;
   bool     killSwitch         = false;
+  bool     tcpFilterEn       = false;
 };
   
 struct EfcState {
@@ -256,7 +268,7 @@ void printTime() {
 	 );
 }
 //################################################
-void checkVer() {
+static void checkVer() {
   uint64_t swVer = reg_read(SCRPAD_SW_VER);
   if ((swVer & 0xFFFFFFFF00000000) != EKA_CORRECT_SW_VER) {
     fprintf(stderr,RED "%s: current SW Version 0x%jx is not supported by %s\n" RESET,__func__,swVer,__FILE__);
@@ -278,7 +290,7 @@ int printLineSeparator(IfParams coreParams[NUM_OF_CORES],char sep, char s) {
 }
 //################################################
 
-int printHeader(IfParams coreParams[NUM_OF_CORES]) {
+int printHeader(IfParams coreParams[NUM_OF_CORES], EfcState* pEfcState) {
   printf("\n");
   printf("%s",emptyPrefix);
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
@@ -346,6 +358,58 @@ int printHeader(IfParams coreParams[NUM_OF_CORES]) {
 
   }
   printf("\n");
+  
+  /* ----------------------------------------- */
+  //  printf("%s",emptyPrefix);
+  printf (prefixStrFormat,"HW parser");
+
+  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
+    if (! coreParams[coreId].valid) continue;
+    //    printf(colSmallNumFieldFormat,"",coreParams[coreId].mcGrps);
+    printf (colformat,coreParams[coreId].hwParserEnable);
+  }
+  printf("\n");
+
+  /* ----------------------------------------- */
+  //  printf("%s",emptyPrefix);
+  printf (prefixStrFormat,"HW sniffer");
+
+  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
+    if (! coreParams[coreId].valid) continue;
+    //    printf(colSmallNumFieldFormat,"",coreParams[coreId].mcGrps);
+    printf (colformat,coreParams[coreId].hwSnifferEnable);
+  }
+  printf("\n");
+  
+  /* ----------------------------------------- */
+  //  printf("%s",emptyPrefix);
+  printf (prefixStrFormat,"HW TCP RX");
+
+  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
+    if (! coreParams[coreId].valid) continue;
+    bool isZeroMac = (
+		      (coreParams[coreId].hwMACFilter[0] == 0) && 
+		      (coreParams[coreId].hwMACFilter[1] == 0) && 
+		      (coreParams[coreId].hwMACFilter[2] == 0) && 
+		      (coreParams[coreId].hwMACFilter[3] == 0) && 
+		      (coreParams[coreId].hwMACFilter[4] == 0) && 
+		      (coreParams[coreId].hwMACFilter[5] == 0)
+		      );
+
+    if (isZeroMac && pEfcState->commonState.tcpFilterEn)
+      printf(colStringFormat,"on, but zero mac");
+    else if (!isZeroMac && pEfcState->commonState.tcpFilterEn)
+      printf (colStringFormat,EKA_MAC2STR(coreParams[coreId].hwMACFilter));
+    else if (isZeroMac && !pEfcState->commonState.tcpFilterEn)
+      printf(colStringFormat,"off, and zero mac");
+    else
+      printf(colStringFormat,"off, non-zero mac");
+    
+  }
+
+  
+    
+  printf("\n");
   /* ----------------------------------------- */
   /* printf ("======================"); */
   /* for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) { */
@@ -363,68 +427,142 @@ int getCurrTraffic(IfParams coreParams[NUM_OF_CORES]) {
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
 
+    //RX
     uint64_t pps = reg_read(ADDR_STATS_RX_PPS + coreId * 0x1000);
-    coreParams[coreId].currPPS = pps & 0xFFFFFFFF;
-    coreParams[coreId].maxPPS  = (pps >> 32) & 0xFFFFFFFF;
+    coreParams[coreId].currRxPPS = pps & 0xFFFFFFFF;
+    coreParams[coreId].maxRxPPS  = (pps >> 32) & 0xFFFFFFFF;
     coreParams[coreId].totalRxBytes = reg_read(ADDR_STATS_RX_BYTES_TOT  + coreId * 0x1000);
     coreParams[coreId].totalRxPkts  = reg_read(ADDR_STATS_RX_PKTS_TOT   + coreId * 0x1000);
-    coreParams[coreId].currBPS      = reg_read(ADDR_STATS_RX_BPS_CURR   + coreId * 0x1000);
-    coreParams[coreId].maxBPS       = reg_read(ADDR_STATS_RX_BPS_MAX    + coreId * 0x1000);
+    coreParams[coreId].currRxBPS      = reg_read(ADDR_STATS_RX_BPS_CURR   + coreId * 0x1000);
+    coreParams[coreId].maxRxBPS       = reg_read(ADDR_STATS_RX_BPS_MAX    + coreId * 0x1000);
     coreParams[coreId].droppedPkts  = reg_read(EFC_DROPPED_PKTS         + coreId * 0x1000) & 0xFFFFFFFF;
+    //TX
+    pps = reg_read(ADDR_STATS_TX_PPS + coreId * 0x1000);
+    coreParams[coreId].currTxPPS = pps & 0xFFFFFFFF;
+    coreParams[coreId].maxTxPPS  = (pps >> 32) & 0xFFFFFFFF;
+    coreParams[coreId].totalTxBytes = reg_read(ADDR_STATS_TX_BYTES_TOT  + coreId * 0x1000);
+    coreParams[coreId].totalTxPkts  = reg_read(ADDR_STATS_TX_PKTS_TOT   + coreId * 0x1000);
+    coreParams[coreId].currTxBPS      = reg_read(ADDR_STATS_TX_BPS_CURR   + coreId * 0x1000);
+    coreParams[coreId].maxTxBPS       = reg_read(ADDR_STATS_TX_BPS_MAX    + coreId * 0x1000);
   }
 
   return 0;
 }
 //################################################
 
-int printCurrTraffic(IfParams coreParams[NUM_OF_CORES]) {
+int getCurrHWEnables(IfParams coreParams[NUM_OF_CORES]) {
 
-  printf (prefixStrFormat,"Current PPS");
+  uint64_t port_enable = reg_read(0xf0020);
+
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
-    printf (colformat,coreParams[coreId].currPPS);
+    coreParams[coreId].hwParserEnable = (port_enable>>coreId) & 0x1;
+    coreParams[coreId].hwSnifferEnable = (reg_read(0xf0360)>>coreId) & 0x1;
+    
+    uint64_t hw_tcp_mac_filter = be64toh(reg_read(0xe0200 + coreId * 0x1000) << 16);
+    memcpy(coreParams[coreId].hwMACFilter,(void*)&hw_tcp_mac_filter,6);    
+  }
+
+  return 0;
+}
+//################################################
+
+int printCurrRxTraffic(IfParams coreParams[NUM_OF_CORES]) {
+
+  printf (prefixStrFormat,"Current RX PPS");
+  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
+    if (! coreParams[coreId].valid) continue;
+    printf (colformat,coreParams[coreId].currRxPPS);
   }
   printf("\n");
 
-  printf (prefixStrFormat,"MAX     PPS");
+  printf (prefixStrFormat,"MAX     RX PPS");
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
-    printf (colformat,coreParams[coreId].maxPPS);
+    printf (colformat,coreParams[coreId].maxRxPPS);
   }
   printf("\n");
 
-  printf (prefixStrFormat,"Current Bit Rate");
+  printf (prefixStrFormat,"Current RX Bit Rate");
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
-    printf (colformat,coreParams[coreId].currBPS * 8);
+    printf (colformat,coreParams[coreId].currRxBPS * 8);
   }
   printf("\n");
 
-  printf (prefixStrFormat,"Max     Bit Rate");
+  printf (prefixStrFormat,"MAX     RX Bit Rate");
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
-    printf (colformat,coreParams[coreId].maxBPS * 8);
+    printf (colformat,coreParams[coreId].maxRxBPS * 8);
   }
   printf("\n");
 
-  printf (prefixStrFormat,"Total   RX  Packets");
+  printf (prefixStrFormat,"Total   RX Packets");
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
     printf (colformat,coreParams[coreId].totalRxPkts);
   }
   printf("\n");
 
-  printf (prefixStrFormat,"Total   RX  Bytes");
+  printf (prefixStrFormat,"Total   RX Bytes");
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
     printf (colformat,coreParams[coreId].totalRxBytes);
   }
   printf("\n");
 
-  printf (prefixStrFormat,"Ignored MD  Packets");
+  printf (prefixStrFormat,"Ignored MD Packets");
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
     printf (colformat,coreParams[coreId].droppedPkts);
+  }
+  printf("\n");
+
+  return 0;
+}
+//################################################
+
+int printCurrTxTraffic(IfParams coreParams[NUM_OF_CORES]) {
+
+  printf (prefixStrFormat,"Current TX PPS");
+  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
+    if (! coreParams[coreId].valid) continue;
+    printf (colformat,coreParams[coreId].currTxPPS);
+  }
+  printf("\n");
+
+  printf (prefixStrFormat,"MAX     TX PPS");
+  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
+    if (! coreParams[coreId].valid) continue;
+    printf (colformat,coreParams[coreId].maxTxPPS);
+  }
+  printf("\n");
+
+  printf (prefixStrFormat,"Current TX Bit Rate");
+  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
+    if (! coreParams[coreId].valid) continue;
+    printf (colformat,coreParams[coreId].currTxBPS * 8);
+  }
+  printf("\n");
+
+  printf (prefixStrFormat,"MAX     TX Bit Rate");
+  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
+    if (! coreParams[coreId].valid) continue;
+    printf (colformat,coreParams[coreId].maxTxBPS * 8);
+  }
+  printf("\n");
+
+  printf (prefixStrFormat,"Total   TX Packets");
+  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
+    if (! coreParams[coreId].valid) continue;
+    printf (colformat,coreParams[coreId].totalTxPkts);
+  }
+  printf("\n");
+
+  printf (prefixStrFormat,"Total   TX Bytes");
+  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
+    if (! coreParams[coreId].valid) continue;
+    printf (colformat,coreParams[coreId].totalTxBytes);
   }
   printf("\n");
 
@@ -456,6 +594,9 @@ int getEfcState(EfcState* pEfcState) {
   pEfcState->forceFireUnsubscr  = (var_p4_general_conf & EKA_P4_ALWAYS_FIRE_UNSUBS_BIT) != 0;
   pEfcState->commonState.reportOnly         = (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT)        != 0;
   pEfcState->fatalDebug         = var_fatal_debug == 0xefa0beda;
+
+  pEfcState->commonState.tcpFilterEn         = (reg_read(0xf0020)>>32 & 0x1) == 0;
+  
   return 0;
 }
 
@@ -604,10 +745,11 @@ int printNewsState(NewsState* pNewsState) {
 //################################################
 
 int main(int argc, char *argv[]) {
+  setlocale(LC_NUMERIC, "en_US"); //decimal point is represented by a period (.), and the thousands separator is represented by a comma (,)
   devId = SN_OpenDevice(NULL, NULL);
   if (devId == NULL) on_error ("Cannot open FiberBlaze device. Is driver loaded?");
   IfParams coreParams[NUM_OF_CORES] = {};
-  EkaHwCaps* ekaHwCaps = new EkaHwCaps(NULL);
+  EkaHwCaps* ekaHwCaps = new EkaHwCaps(devId);
   auto pEfcState = new EfcState;
   auto pFastCancelState = new FastCancelState;
   auto pFastSweepState = new FastSweepState;
@@ -621,7 +763,9 @@ int main(int argc, char *argv[]) {
   //  uint64_t cnt = 0;
   while (1) {
     getCurrTraffic(coreParams);
+    getCurrHWEnables(coreParams);
     ekaHwCaps->refresh();
+    getEfcState(pEfcState);
     /* ----------------------------------------- */
     switch (ekaHwCaps->hwCaps.version.parser) {
     case 29:
@@ -646,13 +790,16 @@ int main(int argc, char *argv[]) {
     /* ----------------------------------------- */
     printTime();
     /* ----------------------------------------- */
-    printHeader(coreParams);
+    printHeader(coreParams,pEfcState);
     /* ----------------------------------------- */
     printLineSeparator(coreParams,'+','-');
     /* ----------------------------------------- */
-    printCurrTraffic(coreParams);
+    printCurrRxTraffic(coreParams);
     /* ----------------------------------------- */
     printLineSeparator(coreParams,'+','-');
+    /* ----------------------------------------- */
+    printCurrTxTraffic(coreParams);
+    /* ----------------------------------------- */
     printLineSeparator(coreParams,'+','-');
     /* ----------------------------------------- */
     printf("Generic parser template: %s\n",EKA_FEED2STRING (ekaHwCaps->hwCaps.version.parser)); 
@@ -682,6 +829,12 @@ int main(int argc, char *argv[]) {
     /* ----------------------------------------- */
     sleep(1);
   }
+  delete ekaHwCaps;
+  delete pEfcState;
+  delete pFastCancelState;
+  delete pFastSweepState;
+  delete pNewsState;
+  delete pEfcExceptionsReport;
   SN_CloseDevice(devId);
 
   return 0;

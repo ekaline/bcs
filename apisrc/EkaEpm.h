@@ -292,11 +292,12 @@ inline uint calcThrId (EkaEpm::ActionType actionType, uint8_t sessId, uint intId
   uint     thrId        = -1;
 
   switch (actionType) {
-  case EkaEpm::ActionType::TcpFullPkt  :
   case EkaEpm::ActionType::TcpFastPath :
   case EkaEpm::ActionType::TcpEmptyAck :
-    thrId = sessId == EkaEpm::CONTROL_SESS_ID ? MaxNum - 1 : TcpBase + sessId % TcpNum;
+    thrId = sessId == EkaEpm::CONTROL_SESS_ID ? MaxNum - 1 :
+    TcpBase + sessId % TcpNum;
     break;
+  case EkaEpm::ActionType::TcpFullPkt  :
   case EkaEpm::ActionType::Igmp    :
     thrId = MaxNum - 2;
     break;

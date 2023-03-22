@@ -46,18 +46,30 @@ int EkaEpm::createRegion(uint regionId, epm_actionid_t baseActionIdx) {
 
 /* ---------------------------------------------------- */
 
-void EkaEpm::initHeap(uint start, uint size, uint regionId) {
-  uint numPages = size / HeapPage;
-  if (size % HeapPage != 0) 
-    on_error("size %u is not multiple of HeapPage %ju", size, HeapPage);
-  EKA_LOG("start=%u, size=%u, HeapPage=%ju, numPages=%u",
-	  start,size,HeapPage,numPages);
+void EkaEpm::initHeap(uint regionHeapBaseOffs, uint regionHeapSize, uint regionId) {
+  if (regionHeapSize % HeapPage != 0) 
+    on_error("regionHeapSize %u is not multiple of HeapPage %ju",
+	     regionHeapSize, HeapPage);
+  const int HeapWcPageSize = 1024;
+  auto numPages = regionHeapSize / HeapWcPageSize;
+  EKA_LOG("regionHeapBaseOffs=%u, regionHeapSize=%u, HeapWcPageSize=%d, numPages=%d",
+	  regionHeapBaseOffs,regionHeapSize,HeapWcPageSize,numPages);
+  memset(&heap[regionHeapBaseOffs],0,regionHeapSize);
+
   for (uint i = 0; i < numPages; i++) {
-    uint8_t pageTmpBuf[HeapPage] = {};
-    uint64_t pageStart = EpmHeapHwBaseAddr + start + i * HeapPage;
-    //    EKA_LOG("Cleaning pageStart=%ju + %ju",pageStart,HeapPage);
-    uint thrId = regionId % MAX_HEAP_WR_THREADS;
-    copyIndirectBuf2HeapHw_swap4(dev,pageStart,(uint64_t*)&pageTmpBuf,thrId,HeapPage);
+    uint64_t hwPageStart = regionHeapBaseOffs + i * HeapWcPageSize;
+    uint64_t swPageStart = regionHeapBaseOffs + i * HeapWcPageSize;
+    /* EKA_LOG("Cleaning hwPageStart=%ju + %d",hwPageStart,HeapWcPageSize); */
+#if 1
+    dev->ekaWc->epmCopyWcBuf(hwPageStart,
+			     &heap[swPageStart],
+			     HeapWcPageSize,
+			     EkaWc::AccessType::HeapInit,
+			     0, // actionLocalIdx
+			     regionId,
+			     0, // tcpPseudoCsum
+			     EkaWc::SendOp::DontSend);
+#endif    
   }
 }
 

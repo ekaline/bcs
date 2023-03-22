@@ -5,6 +5,7 @@
 // SHURIK
 #include <mutex>
 #include <thread>
+#include <atomic>
 
 #include "eka_hw_conf.h"
 #include "EkaHwInternalStructs.h"
@@ -13,6 +14,8 @@
 #include "Efh.h"
 
 #include "eka_sn_addr_space.h"
+
+#include "EkaHeapWrChannels.h"
 
 class EkaFhRunGroup;
 class EkaFhGroup;
@@ -26,6 +29,7 @@ class EkaUserReportQ;
 class EkaHwCaps;
 class EkaUserChannel;
 class EkaIgmp;
+class EkaWc;
 
 class EkaDev {
 
@@ -174,21 +178,28 @@ class EkaDev {
 
   //  std::chrono::high_resolution_clock::time_point midnightSystemClock;
   std::chrono::system_clock::time_point midnightSystemClock;
+
+  EkaWc*                    ekaWc = NULL;
   
 #ifdef TEST_PRINT_DICT
   FILE* testDict;
 #endif
 
+  
+  
   const int MaxAppSeqSessions = 8;
   int       numAppSeqSessions = 0;
   
   FILE* deltaTimeLogFile = NULL;
-  
+
+  std::atomic<uint64_t>     globalFastPathBytes = 0;
+  std::atomic<uint64_t>     globalDummyBytes = 0;
+
   EkaUserReportQ*           userReportQ = NULL;
   EkaDev*                   next = NULL; // Next device in global list
 
-  volatile uint64_t *       snDevUserLogicRegistersPtr;
-  volatile uint64_t *       snDevWCPtr;
+  volatile uint64_t *       snDevUserLogicRegistersPtr = NULL;
+  volatile uint64_t *       snDevWCPtr = NULL;
   const uint32_t snDevNumberOfUserLogicRegisters = uint32_t(0x100000 /* BAR2_REGS_SIZE */ / sizeof(uint64_t));
 };
 
@@ -272,6 +283,8 @@ inline void copyBuf2Hw_swap4(EkaDev* dev,uint64_t dstAddr,uint64_t* srcAddr,uint
   }
 }
 
+#if 0
+
 // dstLogicalAddr : Window pointer in Heap
 //                  should be taken by getHeapWndAddr()
 inline void copyIndirectBuf2HeapHw_swap4(EkaDev* dev, uint64_t dstLogicalAddr,uint64_t* srcAddr,uint8_t thrId, uint msgSize) {
@@ -296,6 +309,34 @@ inline void copyIndirectBuf2HeapHw_swap4(EkaDev* dev, uint64_t dstLogicalAddr,ui
 
   uint words2write = msgSize / 8 + !!(msgSize % 8);
   for (uint w = 0; w < words2write; w++) {
+    eka_write(dev, dstAddr + w * 8, *srcAddr); 
+    srcAddr++;
+  }
+}
+
+
+// --------------------------------------------------------
+static inline
+void setHeapWnd (EkaDev* dev, int heapWrChId,
+		 uint64_t wndBase) {
+    eka_write(dev,0x81000+heapWrChId*8,wndBase); 
+}
+
+static inline
+void heapCopy (EkaDev* dev,
+	       uint64_t wndBase,uint64_t dstLogicalAddr,
+	       uint64_t* swHeapSrcAddr,int heapWrChId,
+	       uint msgSize) {
+  
+  uint wndOffs = dstLogicalAddr - wndBase;
+  uint64_t* srcAddr = swHeapSrcAddr;
+
+  uint64_t dstAddr = EpmHeapHwBaseAddr + wndOffs + heapWrChId * 0x01000;
+
+  // TEST_LOG("wndBase=%jx,dstLogicalAddr=%jx,swHeapSrcAddr=%p",
+  // 	   wndBase,dstLogicalAddr,swHeapSrcAddr);
+  uint words2write = roundUp8(msgSize) / 8;
+  for (uint w = 0; w < words2write; w++) {
     uint32_t dataLO =  *(uint32_t*) srcAddr;
     uint32_t dataHI =  *((uint32_t*) srcAddr + 1);
     uint32_t dataLO_swapped = be32toh(dataLO);
@@ -305,7 +346,21 @@ inline void copyIndirectBuf2HeapHw_swap4(EkaDev* dev, uint64_t dstLogicalAddr,ui
     eka_write(dev, dstAddr + w * 8, res); 
     srcAddr++;
   }
+  
 }
+
+static inline
+void setHeapWndAndCopy(EkaDev* dev, uint64_t dstLogicalAddr,
+		       uint64_t* swHeapSrcAddr,int heapWrChId,
+		       uint msgSize) {
+  dev->heapWrChannels.getChannel(heapWrChId);
+  auto wndBase = dstLogicalAddr;
+  setHeapWnd(dev,heapWrChId,wndBase);
+  heapCopy(dev,wndBase,dstLogicalAddr,swHeapSrcAddr,heapWrChId,msgSize);
+  dev->heapWrChannels.releaseChannel(heapWrChId);
+}
+#endif
+// --------------------------------------------------------
 
 
 inline void atomicIndirectBufWrite(EkaDev* dev, uint64_t addr, uint8_t bank, uint8_t threadId, uint32_t idx, uint8_t target_table) {
@@ -389,5 +444,7 @@ inline void checkTimeDiff(FILE* deltaTimeLogFile, std::chrono::system_clock::tim
 #endif
   return;
 }
+
+// ---------------------------------------------------
 
 #endif

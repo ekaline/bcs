@@ -2,6 +2,7 @@
 #define _EKA_EPM_ACTION_H_
 
 #include "EkaEpm.h"
+#include "EkaWc.h"
 
 class EkaEpmAction {
  public:
@@ -36,13 +37,13 @@ class EkaEpmAction {
 		uint16_t srcPort, 
 		uint16_t dstPort);
   /* ----------------------------------------------------- */
-  int setEthFrame(const void* buf, uint len);
+  int setEthFrame(const void* buf, uint len, bool send = false);
   /* ----------------------------------------------------- */
   int updatePayload(uint heapOffset, uint len);
   /* ----------------------------------------------------- */
   int setPktPayload(const void* buf, uint len);
   /* ----------------------------------------------------- */
-  int setPktPayloadWC(const void* buf, uint len);
+  int setPktPayloadAndSendWC(const void* buf, uint len);
   /* ----------------------------------------------------- */
   int setUdpPktPayload(const void* buf, uint len);
   /* ----------------------------------------------------- */
@@ -68,6 +69,18 @@ class EkaEpmAction {
   size_t getPayloadOffset();
   uint16_t getL3L4len();
 
+  inline void copyHeap2Fpga(EkaWc::AccessType type,EkaWc::SendOp send) {
+    if (!dev->ekaWc) on_error("!dev->ekaWc");
+    dev->ekaWc->epmCopyWcBuf(heapAddr,
+			     &epm->heap[heapOffs],
+			     pktSize,
+			     type,
+			     localIdx,
+			     region,
+			     tcpCSum,
+			     send
+			     );
+  }
   /* ----------------------------------------------------- */
 
  public:
@@ -113,7 +126,7 @@ private:
   EkaTcpHdr*       tcpHdr          = NULL;
   EkaUdpHdr*       udpHdr          = NULL;
   uint8_t*         payload         = NULL;
- 
+  volatile uint64_t* snDevWCPtr = NULL;
 };
 
 

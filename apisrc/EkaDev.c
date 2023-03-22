@@ -20,7 +20,7 @@
 #include "EkaUdpChannel.h"
 #include "EkaIgmp.h"
 #include "EkaEfc.h"
-
+#include "EkaWc.h"
 #include "eka_hw_conf.h"
 #include "EkaHwInternalStructs.h"
 
@@ -125,8 +125,11 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   createThread = initCtx->createThread == NULL ? ekaDefaultCreateThread : initCtx->createThread;
 
   snDev          = new EkaSnDev(this);
-
-  ekaHwCaps = new EkaHwCaps(this);
+  if (!snDev) on_error ("!snDev");
+  ekaWc          = new EkaWc(snDevWCPtr);
+  if (!ekaWc) on_error ("!ekaWc");
+  
+  ekaHwCaps = new EkaHwCaps(snDev->dev_id);
   if (ekaHwCaps == NULL) on_error("ekaHwCaps == NULL");
   
   ekaHwCaps->print();
@@ -467,7 +470,7 @@ EkaCoreId EkaDev::findCoreByMacSa(const uint8_t* macSa) {
 
 
 int EkaDev::clearHw() {
-  eka_write(STAT_CLEAR   ,(uint64_t) 1); // Clearing HW Statistics
+  //  eka_write(STAT_CLEAR   ,(uint64_t) 1); // Clearing HW Statistics
   eka_write(SW_STATISTICS,(uint64_t) 0); // Clearing SW Statistics
   eka_write(P4_STRAT_CONF,(uint64_t) 0); // Clearing Strategy params
 
