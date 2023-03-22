@@ -34,7 +34,7 @@ int EkaFhXdpGr::bookInit() {
   book->init();
 
   // XDP does not provide RFQ IDs. We keep our own ID counter, using the group ID as the high byte.
-  prevAuctionId = static_cast<uint64_t>(id) << (64 - 8);
+  prevAuctionId = static_cast<uint64_t>(id + 1) << (64 - 8);
 
   return 0;
 }
