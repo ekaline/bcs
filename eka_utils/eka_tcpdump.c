@@ -136,7 +136,9 @@ static void enableSniffer(SC_DeviceId devId, uint8_t coreBitmap) {
 /* --------------------------------------------- */
 
 int main(int argc, char *argv[]) {
-    EkaHwCaps* ekaHwCaps = new EkaHwCaps(NULL);
+    SC_DeviceId devId = SC_OpenDevice(NULL, NULL);
+    if (devId == NULL) on_error("Cannot open Smartnic Device");
+    EkaHwCaps* ekaHwCaps = new EkaHwCaps(devId);
     if (ekaHwCaps == NULL) on_error("ekaHwCaps == NULL");
     
     if (ekaHwCaps->hwCaps.version.sniffer != EKA_EXPECTED_SNIFFER_VERSION)
@@ -168,8 +170,6 @@ int main(int argc, char *argv[]) {
 
     fwrite(&pcapFileHdr,1,sizeof(PcapFileHdr),out_pcap_file); 
 
-    SC_DeviceId devId = SC_OpenDevice(NULL, NULL);
-    if (devId == NULL) on_error("Cannot open Smartnic Device");
     disableSniffer(devId);
 
     SC_ChannelId  channelId = SC_AllocateUserLogicChannel(devId, SnifferUserChannelId,NULL);
