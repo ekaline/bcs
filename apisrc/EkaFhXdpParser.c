@@ -28,11 +28,11 @@ bool EkaFhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     /* s->seconds       = msg->time.SourceTime; */
     /* s->nanoseconds   = msg->time.SourceTimeNS; */
 
-    s->bid_price     = msg->BidPrice;
+    s->bid_price     = getPrice(msg->BidPrice, s->opaqueAttrA);
     s->bid_size      = msg->BidVolume;
     s->bid_cust_size = msg->BidCustomerVolume;
 
-    s->ask_price     = msg->AskPrice;
+    s->ask_price     = getPrice(msg->AskPrice, s->opaqueAttrA);
     s->ask_size      = msg->AskVolume;
     s->ask_cust_size = msg->AskCustomerVolume;
 
@@ -121,7 +121,7 @@ bool EkaFhXdpGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,uin
     msg.header.timeStamp      = xdpMsg->time.SourceTime * static_cast<uint64_t>(SEC_TO_NANO) + xdpMsg->time.SourceTimeNS;
     msg.header.gapNum         = gapNum;
 
-    msg.price       = xdpMsg->Price;
+    msg.price       = getPrice(xdpMsg->Price, s->opaqueAttrA);
     msg.size        = xdpMsg->Volume;
     msg.tradeStatus = s->trading_action;
     msg.tradeCond   = getTradeType(xdpMsg->TradeCond1, xdpMsg->TradeCond2);
