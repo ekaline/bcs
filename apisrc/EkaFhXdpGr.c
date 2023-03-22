@@ -27,24 +27,14 @@ bool EkaFhXdpGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 
 /* ##################################################################### */
 
-int EkaFhXdpGr::init(EfhCtx *pEfhCtx,
-                     const EfhInitCtx *pInitCtx,
-                     EkaFh *fh,
-                     uint8_t gr_id,
-                     EkaSource exch) {
-  int success = EkaFhGroup::init(pEfhCtx, pInitCtx, fh, gr_id, exch);
-
-  // XDP does not provide RFQ IDs. We keep our own ID counter, using the group ID as the high byte.
-  prevAuctionId = static_cast<uint64_t>(id) << (64 - 8);
-}
-
-/* ##################################################################### */
-
 int EkaFhXdpGr::bookInit() {
   book = new FhBook(dev,id,exch);
   if (book == NULL) on_error("book = NULL");
 
   book->init();
+
+  // XDP does not provide RFQ IDs. We keep our own ID counter, using the group ID as the high byte.
+  prevAuctionId = static_cast<uint64_t>(id) << (64 - 8);
 
   return 0;
 }

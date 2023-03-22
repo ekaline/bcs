@@ -12,8 +12,6 @@ class EkaFhXdpGr : public EkaFhGroup{
  public:
   virtual               ~EkaFhXdpGr() {};
 
-  int                   init(EfhCtx* pEfhCtx, const EfhInitCtx* pInitCtx, EkaFh* fh,uint8_t gr_id,EkaSource exch);
-
   int                   bookInit();
 
   bool                  parseMsg(const EfhRunCtx* pEfhRunCtx,
