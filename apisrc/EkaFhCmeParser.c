@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
-#include <string>
 
 #include "EkaFhParserCommon.h"
 #include "EkaFhCmeParser.h"
@@ -16,18 +15,6 @@
 
 using namespace Cme;
 namespace chrono = std::chrono;
-
-std::string ts_ns2str(uint64_t ts);
-
-enum DayOfWeek : uint8_t {
-  DOW_Sunday = 0,
-  DOW_Monday,
-  DOW_Tuesday,
-  DOW_Wednesday,
-  DOW_Thursday,
-  DOW_Friday,
-  DOW_Saturday
-};
 
 static uint64_t computeFinalPriceFactor(Decimal9_T displayFactor) {
   // Returns the number we need to divide the protocol message prices by to
@@ -152,74 +139,6 @@ bool EkaFhCmeGr::processPkt(const EfhRunCtx* pEfhRunCtx,
     
   }
   return false;
-}
-
-void EkaFhCmeGr::getCMEProductTradeTime(const Cme::MaturityMonthYear_T* maturity,
-                                        const char* symbol,
-                                        uint32_t* iso8601Date,
-                                        time_t* time) {
-  EfhDateComponents dc = {
-    .year = maturity->year,
-    .month = maturity->month,
-    .tz = "America/New_York"
-  };
-
-  // This hard-coded product knowledge originally comes from here:
-  //
-  //   avtus/Source/Cme/java/com/lehman/eqd/cme/depthmdp/DefinitionMessageProcessor.java
-  //
-  // It's not clear how to do this correctly in the general case.
-  if (symbol[2] == 'A') {
-    // E1A | S2A | Q4A
-    // Monday 1600 hours
-    dc.dayMethod = EfhDayMethod::kWeekWeekday;
-    dc.week = symbol[1] - '0';
-    dc.weekday = DOW_Monday;
-    dc.hour = 16;
-    dc.holiday = 1;
-  }
-  else if (symbol[2] == 'C') {
-    // E1C | S2C | Q4C
-    // Wednesday 1600 hours
-    dc.dayMethod = EfhDayMethod::kWeekWeekday;
-    dc.week = symbol[1] - '0';
-    dc.weekday = DOW_Wednesday;
-    dc.hour = 16;
-    dc.holiday = -1;
-  }
-  else if (symbol[2] >= '1' && symbol[2] <= '5') {
-    // EW1 | EV2 | QN3
-    // Weekly Friday 1600 hours
-    dc.dayMethod = EfhDayMethod::kWeekWeekday;
-    dc.week = symbol[2] - '0';
-    dc.weekday = DOW_Friday;
-    dc.hour = 16;
-    dc.holiday = -1;
-  }
-  else if ((symbol[1] == 'W' || symbol[1] == 'V') ||
-           strcmp(symbol, "QNE") == 0) {
-    // EW | EV | QNE
-    // Month-end 1600 hours
-    dc.dayMethod = EfhDayMethod::kMonthLastTradeDay;
-    dc.hour = 16;
-  }
-  else {
-    // Most products expire on the third Friday of the month at 9:30
-    dc.dayMethod = EfhDayMethod::kWeekWeekday;
-    dc.week = 3;
-    dc.weekday = DOW_Friday;
-    dc.hour = 9;
-    dc.minute = 30;
-    dc.holiday = -1;
-  }
-
-  if (this->fh->getTradeTime(&dc, iso8601Date, time) == -1) {
-    on_error("unable to translate date components (year=%hu,month=%hhu,day=%hhu,"
-             "week=%hhu,weekday=%hhu,dayMethod=%hhu,hour=%hhu,minute=%hhu"
-             "second=%hhu,holiday=%hhd,tz=%s)", dc.year, dc.month, dc.day,
-             dc.week, dc.weekday, uint8_t(dc.dayMethod), dc.hour, dc.minute,
-             dc.second, dc.holiday, dc.tz);
-  }
 }
 
 inline uint32_t encodeYYYYMMDD(const struct tm* t) {
@@ -895,7 +814,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
 
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
   copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
-  sprintf(msg.commonDef.exchSecurityName, "%d", rootBlock->SecurityID);
+  numToStrBuf(msg.commonDef.exchSecurityName, rootBlock->SecurityID);
   // TODO: Add another field (exchSecurityDesc?) to publish Symbol for completeness
   // (make sure it's large enough to hold it; exchSecurityName isn't)
   //copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
