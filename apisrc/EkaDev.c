@@ -126,7 +126,7 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 
   snDev          = new EkaSnDev(this);
 
-  ekaHwCaps = new EkaHwCaps(snDev->dev_id);
+  ekaHwCaps = new EkaHwCaps(this);
   if (ekaHwCaps == NULL) on_error("ekaHwCaps == NULL");
   
   ekaHwCaps->print();
