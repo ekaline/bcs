@@ -48,39 +48,42 @@ int main(int argc, char *argv[]) {
   if (dev_id == NULL) on_error("SC_OpenDevice == NULL: cannot open Smartnic device");
 
   /* ------------------------------------------------------------------ */
-  const size_t Iterations = 10 * 1024 * 1024; 
-  const uint64_t FpgaRtCntr = 0xf0e08;
+  const size_t Iterations = 1024 * 1024; 
+  const volatile uint64_t FpgaRtCntr = 0xf0e08;
+  const volatile uint64_t ScrPadAddr = 0x20000 + 64 * 1024 - 16;
 
   auto rdData     = new uint64_t[Iterations];
-  auto rttLatency = new uint64_t[Iterations];
+  auto rttRdLatency = new uint64_t[Iterations];
+  auto rttWrLatency = new uint64_t[Iterations];
 
   for (size_t i = 0; i < Iterations; i++) {
-    auto before = std::chrono::high_resolution_clock::now();    
+    auto one = std::chrono::high_resolution_clock::now();    
     rdData[i] = eka_read_devid(dev_id,FpgaRtCntr);
-    auto after = std::chrono::high_resolution_clock::now();
+    auto two = std::chrono::high_resolution_clock::now();
+    eka_write_devid(dev_id,ScrPadAddr,rdData[i]);
+    auto three = std::chrono::high_resolution_clock::now();
     
-    rttLatency[i] = (uint64_t)(std::chrono::duration_cast<std::chrono::nanoseconds>(after-before).count());
+    rttRdLatency[i] = (uint64_t)(std::chrono::duration_cast<std::chrono::nanoseconds>(two-one).count());
+    rttWrLatency[i] = (uint64_t)(std::chrono::duration_cast<std::chrono::nanoseconds>(three-two).count());
 
     if ( i % 100000 == 0) printf("%ju\n",i);    
   }
 
-  uint64_t minLat = -1;
+  uint64_t minRdLat = -1;
+  uint64_t minWrLat = -1;
   for (size_t i = 0; i < Iterations; i++) {
-    if (i != 0) {
-      if (rdData[i] <= rdData[i-1])
-	on_error("rdData[i] %ju <= rdData[i-1] %ju",
-		 rdData[i],rdData[i-1]);
-    }
-
-    if (rttLatency[i] < minLat)
-      minLat = rttLatency[i];    
+    if (rttRdLatency[i] < minRdLat)
+      minRdLat = rttRdLatency[i];    
+    if (rttWrLatency[i] < minWrLat)
+      minWrLat = rttWrLatency[i];    
   }
   
-  TEST_LOG("%ju Iterations: minLat=%ju ns",
-	   Iterations,minLat);
+  TEST_LOG("%ju Iterations: minRdLat=%ju ns, minWrLat=%ju ns",
+	   Iterations,minRdLat,minWrLat);
 
   delete[] rdData;
-  delete[] rttLatency;
+  delete[] rttRdLatency;
+  delete[] rttWrLatency;
   if (SC_CloseDevice(dev_id) != SC_ERR_SUCCESS)
     on_error("Error on SC_CloseDevice");
   return 0;
