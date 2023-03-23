@@ -35,9 +35,6 @@ EkaCore::EkaCore(EkaDev* pEkaDev, uint8_t lane, uint32_t ip, uint8_t* mac, bool 
     for (uint i = 0; i < MAX_SESS_PER_CORE; i++) tcpSess[i] = NULL;
     tcpSessions = 0;
 
-    // dissabling TCP traffic
-    eka_write(dev, 0xe0000 + coreId * 0x1000 + 0x200, 0);
-    
     return;
 }
 
