@@ -26,8 +26,8 @@ class alignas(64) EkaFhOrder{
 //--------------------------------------------------------------
  public:
   FhOrderType       type    = FhOrderType::UNINIT;
-  OrderIdT          orderId = 0;
   SizeT             size    = 0;
+  OrderIdT          orderId = 0;
   FhPlevel*         plevel  = NULL;
   EkaFhOrder*       next    = NULL;
 };

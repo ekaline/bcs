@@ -346,15 +346,14 @@ EkaFhGroup::~EkaFhGroup () {
  /* ##################################################################### */
 
 void EkaFhGroup::print_q_state() {
-  if (q == NULL) {
-    EKA_DEBUG("NO Q");
-    return;
-  }
-  EKA_DEBUG("Q.max_len=%10u, Q.ever_max_len=%10u, CPU:%u",
-	   q->get_max_len(),
-	   q->get_ever_max_len(),
-	   sched_getcpu()
-	   );
+   if (q == NULL) {
+     EKA_LOG("NO Q");
+     return;
+   }
+   EKA_LOG("Q.max_len=%10u, Q.ever_max_len=%10u, CPU:%u",
+           q->get_max_len(),
+           q->get_ever_max_len(),
+           sched_getcpu());
   q->reset_max_len();
   return;  
 }
@@ -375,25 +374,23 @@ void EkaFhGroup::print_q_state() {
    const struct timespec leaseTime = {.tv_sec = 180, .tv_nsec = 0};
    const struct timespec timeout   = {.tv_sec = 60, .tv_nsec = 0};
 
-   char name[10] = {};
-   memcpy(name, credName, std::min(sizeof(name) - 1, credNameSize));
-
    const EkaGroup group {exch,id};
    if (! dev->credAcquire)
      on_error("credAcquire is not initialized");
    int rc = dev->credAcquire(credType,
-			     group,
-			     name,
-			     &leaseTime,
-			     &timeout,
-			     dev->credContext,
-			     lease);
+                             group,
+                             credName,
+                             credNameSize,
+                             &leaseTime,
+                             &timeout,
+                             dev->credContext,
+                             lease);
    if (rc == 0)
      credentialsAcquired = true;
   
    if (rc != 0) 
-     on_error("%s:%u Failed to credAcquire for \'%s\' rc=%d \'%s\'",
-	      EKA_EXCH_DECODE(exch),id,name,rc,strerror(errno));
+     on_error("%s:%u Failed to credAcquire for \'%.*s\' rc=%d \'%s\'",
+	      EKA_EXCH_DECODE(exch),id,(int)credNameSize,credName,rc,strerror(errno));
    return rc;
  }
 /* ##################################################################### */
