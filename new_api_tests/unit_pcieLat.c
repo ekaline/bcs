@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
   if (dev_id == NULL) on_error("SC_OpenDevice == NULL: cannot open Smartnic device");
 
   /* ------------------------------------------------------------------ */
-  const size_t Iterations = 100 * 1024 * 1024; 
+  const size_t Iterations = 10 * 1024 * 1024; 
   const uint64_t FpgaRtCntr = 0xf0e08;
 
   auto rdData     = new uint64_t[Iterations];
@@ -79,6 +79,8 @@ int main(int argc, char *argv[]) {
   TEST_LOG("%ju Iterations: minLat=%ju ns",
 	   Iterations,minLat);
 
+  delete[] rdData;
+  delete[] rttLatency;
   if (SC_CloseDevice(dev_id) != SC_ERR_SUCCESS)
     on_error("Error on SC_CloseDevice");
   return 0;
