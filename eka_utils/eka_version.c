@@ -26,13 +26,10 @@
 #define EKA_LOG(...) { printf(__VA_ARGS__); printf("\n"); }
 
 int main(int argc, char *argv[]){
-  auto  devId = SN_OpenDevice(NULL, NULL);
-  EkaHwCaps* ekaHwCaps = new EkaHwCaps(devId);
+  EkaHwCaps* ekaHwCaps = new EkaHwCaps(NULL);
   if (ekaHwCaps == NULL) on_error("ekaHwCaps == NULL");
 
   ekaHwCaps->printStdout();
   ekaHwCaps->check();
-  SN_CloseDevice(devId);
-
   return 0;
 }

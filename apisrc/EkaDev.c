@@ -126,7 +126,7 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 
   snDev          = new EkaSnDev(this);
 
-  ekaHwCaps = new EkaHwCaps(snDev->dev_id);
+  ekaHwCaps = new EkaHwCaps(this);
   if (ekaHwCaps == NULL) on_error("ekaHwCaps == NULL");
   
   ekaHwCaps->print();
@@ -219,6 +219,11 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 }
 /* ##################################################################### */
 bool EkaDev::initEpmTx() {
+
+  // dissabling TCP traffic
+  for (auto coreId = 0; coreId < MAX_CORES; coreId++)
+    eka_write(0xe0000 + coreId * 0x1000 + 0x200, 0);
+  
   epmReport = new EkaUserChannel(dev,snDev->dev_id,EkaUserChannel::TYPE::EPM_REPORT);
   if (epmReport == NULL) on_error("Failed to open epmReport Channel");
   if (! epmReport->isOpen()) on_error("epmReport Channel is Closed");
