@@ -136,6 +136,16 @@ template <class T> inline T roundUp(T numToRound, T multiple) {
   return numToRound + multiple - remainder;
 }
 
+template <class T>
+inline T roundUp64(T x) {
+  return (x + 63) & ~63;
+}
+
+template <class T>
+inline T roundUp8(T x) {
+  return (x + 7) & ~7;
+}
+
 #define RED   "\x1B[31m"
 #define GRN   "\x1B[32m"
 #define YEL   "\x1B[33m"
@@ -145,7 +155,8 @@ template <class T> inline T roundUp(T numToRound, T multiple) {
 #define WHT   "\x1B[37m"
 #define RESET "\x1B[0m"
 
-inline void hexDump (const char *desc, const void *addr, int len, std::FILE *file = stdout) {
+inline void hexDump (const char *desc, const void *addr, int len,
+		     std::FILE *file = stdout) {
   int i;
   unsigned char buff[17];
   unsigned char *pc = (unsigned char*)addr;
@@ -165,7 +176,18 @@ inline void hexDump (const char *desc, const void *addr, int len, std::FILE *fil
   while ((i % 16) != 0) { std::fprintf (file, "   "); i++; }
   std::fprintf (file, "  %s\n", buff);
 }
-
+/* ------------------------------------------------------- */
+inline void hexDump2str (const char *desc, const void *addr, int len,
+			 char* hexBufStr, const size_t hexBufStrSize) {
+  if (std::FILE *const hexBufFile = fmemopen(hexBufStr, hexBufStrSize, "w")) {
+    hexDump(desc,addr,len,hexBufFile);
+    (void)std::fwrite("\0", 1, 1, hexBufFile);
+    (void)std::fclose(hexBufFile);
+  } else {
+    std::snprintf(hexBufStr, hexBufStrSize, "fmemopen error: %s (%d)",
+		  strerror(errno),errno);
+  }
+}
 
 /* ------------------------------------------------------- */
 

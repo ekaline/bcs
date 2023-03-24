@@ -604,10 +604,11 @@ int printNewsState(NewsState* pNewsState) {
 //################################################
 
 int main(int argc, char *argv[]) {
+  setlocale(LC_NUMERIC, "en_US"); //decimal point is represented by a period (.), and the thousands separator is represented by a comma (,)
   devId = SN_OpenDevice(NULL, NULL);
   if (devId == NULL) on_error ("Cannot open FiberBlaze device. Is driver loaded?");
   IfParams coreParams[NUM_OF_CORES] = {};
-  EkaHwCaps* ekaHwCaps = new EkaHwCaps(NULL);
+  EkaHwCaps* ekaHwCaps = new EkaHwCaps(devId);
   auto pEfcState = new EfcState;
   auto pFastCancelState = new FastCancelState;
   auto pFastSweepState = new FastSweepState;
@@ -682,6 +683,12 @@ int main(int argc, char *argv[]) {
     /* ----------------------------------------- */
     sleep(1);
   }
+  delete ekaHwCaps;
+  delete pEfcState;
+  delete pFastCancelState;
+  delete pFastSweepState;
+  delete pNewsState;
+  delete pEfcExceptionsReport;
   SN_CloseDevice(devId);
 
   return 0;

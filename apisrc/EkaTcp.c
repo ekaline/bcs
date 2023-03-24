@@ -234,71 +234,74 @@ void ekaInitLwip (EkaDev* dev) {
   return;
 }
 
-void ekaProcessTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
+void ekaPushLwipRxPkt (EkaDev* dev, EkaCoreId rxCoreId,
+		       const void* pkt, uint32_t len) {
 
+  if (!dev->core[rxCoreId] || !dev->core[rxCoreId]->pLwipNetIf)
+    return;
+
+  struct pbuf* p = pbuf_alloc(PBUF_RAW, len, PBUF_RAM);
+  if (!p)
+    on_error ("failed to get new PBUF");
+  memcpy(p->payload,pkt,len);
+  
+  struct netif* netIf = dev->core[rxCoreId]->pLwipNetIf;
+
+  if (netIf->input(p,netIf) != ERR_OK) {
+    char hexBuf[8192]; // approximate MTU * 4 bytes to hold the hexdump
+    hexDump2str("Unexpected RX TCP pkt",pkt,len,hexBuf,sizeof(hexBuf));
+    EKA_WARN("Dropping RX pkt \n%s",hexBuf);
+    pbuf_free(p);
+  }
+#if DEBUG_PRINTS
+  hexDump("Pushed RX pkt to LWIP",pkt,len);
+#endif
+  
+  return;
+}
+
+void ekaProcessTcpRx (EkaDev* dev, const uint8_t* pkt, uint32_t len) {
+#if DEBUG_PRINTS
+  hexDump("ekaProcessTcpRx RX pkt",pkt,len);
+#endif
+  
   uint8_t broadcastMac[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
   if (memcmp(pkt,broadcastMac,6) == 0) { // broadcast 
     for (EkaCoreId rxCoreId = 0; rxCoreId < EkaDev::MAX_CORES; rxCoreId++) {
-      if (dev->core[rxCoreId] != NULL && dev->core[rxCoreId]->pLwipNetIf != NULL) {
-
-	struct pbuf* p = pbuf_alloc(PBUF_RAW, len, PBUF_RAM);
-	if (p == NULL) on_error ("failed to get new PBUF");
-	memcpy(p->payload,pkt,len);
-
-	struct netif* netIf = dev->core[rxCoreId]->pLwipNetIf;
-
-	if (netIf->input(p,netIf) != ERR_OK) {
-	  hexDump("Dropping RX pkt",(void*)pkt,len);
-	  pbuf_free(p);
-	}
-      }
+      ekaPushLwipRxPkt(dev,rxCoreId,pkt,len);
     }
-  } else {
-    EkaCoreId rxCoreId = dev->findCoreByMacSa(pkt);
-    if (rxCoreId < 0) return; // ignoring "not mine" pkt
-
-    if (dev->core[rxCoreId] != NULL && dev->core[rxCoreId]->pLwipNetIf != NULL) {
-      struct netif* netIf = dev->core[rxCoreId]->pLwipNetIf;
-	
-      if (EKA_IS_TCP_PKT(pkt)) {
-        EkaTcpSess* tcpSess = dev->findTcpSess(EKA_IPH_DST(pkt),EKA_TCPH_DST(pkt),
-					       EKA_IPH_SRC(pkt),EKA_TCPH_SRC(pkt));
-        if (!tcpSess) {
-	  if (dev->core[rxCoreId]->connectedL1Switch) // dont print warning at Metamux case
-	    return;
-	  
-          // TCP packet not corresponding to any session we know about. This could
-          // be a retransmission of a connection that once existed, or any number
-          // of improper-TCP-close errors that cause us to receive a packet not
-          // meant for us. Warn and ignore.
-          char hexBuf[8192]; // approximate MTU * 4 bytes to hold the hexdump
-          if (std::FILE *const hexBufFile = fmemopen(hexBuf, sizeof hexBuf, "w")) {
-            hexDump("Unexpected RX TCP pkt",pkt,len,hexBufFile);
-            (void)std::fwrite("\0", 1, 1, hexBufFile);
-            (void)std::fclose(hexBufFile);
-          } else {
-            std::snprintf(hexBuf, sizeof hexBuf, "fmemopen error: %s (%d)",
-			  strerror(errno),errno);
-	  }
-          EKA_WARN("RX pkt TCP session %s:%u-->%s:%u not found, pkt is:\n%s",
-                   EKA_IP2STR(EKA_IPH_DST(pkt)),EKA_TCPH_DST(pkt),
-                   EKA_IP2STR(EKA_IPH_SRC(pkt)),EKA_TCPH_SRC(pkt),
-                   hexBuf);
-          return;
-        }
-
-        tcpSess->updateRx(pkt,len);
-      }
-
-      struct pbuf* p = pbuf_alloc(PBUF_RAW, len, PBUF_RAM);
-      if (p == NULL) on_error ("failed to get new PBUF");
-      memcpy(p->payload,pkt,len);
-
-      if (netIf->input(p,netIf) != ERR_OK) 
-	pbuf_free(p);
-    }
+    return;
   }
-  /* hexDump("ekaProcesTcpRx",(void*)pkt,len); */
+
+  EkaCoreId rxCoreId = dev->findCoreByMacSa(pkt);
+  if (rxCoreId < 0) return; // ignoring "not mine" pkt
+
+  if (EKA_IS_TCP_PKT(pkt)) {
+    EkaTcpSess* tcpSess = dev->findTcpSess(EKA_IPH_DST(pkt),EKA_TCPH_DST(pkt),
+					   EKA_IPH_SRC(pkt),EKA_TCPH_SRC(pkt));
+    if (!tcpSess) {
+      if (dev->core[rxCoreId]->connectedL1Switch) // dont print warning at Metamux case
+	return;
+	  
+      // TCP packet not corresponding to any session we know about. This could
+      // be a retransmission of a connection that once existed, or any number
+      // of improper-TCP-close errors that cause us to receive a packet not
+      // meant for us. Warn and ignore.
+      char hexBuf[8192]; // approximate MTU * 4 bytes to hold the hexdump
+      hexDump2str("Unexpected RX TCP pkt",pkt,len,hexBuf,sizeof(hexBuf));
+      EKA_WARN("RX pkt TCP session %s:%u-->%s:%u not found, pkt is:\n%s",
+	       EKA_IP2STR(EKA_IPH_DST(pkt)),EKA_TCPH_DST(pkt),
+	       EKA_IP2STR(EKA_IPH_SRC(pkt)),EKA_TCPH_SRC(pkt),
+	       hexBuf);
+      return;
+    } // unexpected TCP pkt
+
+	
+    tcpSess->updateRx(pkt,len);
+  }
+
+  ekaPushLwipRxPkt(dev,rxCoreId,pkt,len);
+
 }
 
 

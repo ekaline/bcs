@@ -706,6 +706,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,
   /* ####################################################### */
   int  allocateResources() {
 
+    EKA_LOG("%s:%u: preallocating %ju securities (%ju bytes)",EKA_EXCH_DECODE(exch),grId,SEC_HASH_LINES,sizeof(FhSecurity[SEC_HASH_LINES]));
     sec = new FhSecurity[SEC_HASH_LINES];
     if (! sec)
       on_error("failed to allocate %ju Securities",SEC_HASH_LINES);
@@ -714,7 +715,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,
       
     for (uint i = 0; i < ORDERS_HASH_LINES; i++)
       ord[i]=NULL;
-    EKA_LOG("%s:%u: preallocating %ju free orders",EKA_EXCH_DECODE(exch),grId,MAX_ORDERS);
+    EKA_LOG("%s:%u: preallocating %ju free orders (%ju bytes)",EKA_EXCH_DECODE(exch),grId,MAX_ORDERS,sizeof(FhOrder[MAX_ORDERS]));
     ordersPool = new FhOrder[MAX_ORDERS];
     if (! ordersPool)
       on_error("failed to allocate %ju MAX_ORDERS",MAX_ORDERS);
@@ -730,7 +731,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,
     // freeOrders = MAX_ORDERS;
     
     //----------------------------------------------------------
-    EKA_LOG("%s:%u: preallocating %ju free Plevels",EKA_EXCH_DECODE(exch),grId,MAX_PLEVELS);
+    EKA_LOG("%s:%u: preallocating %ju free Plevels (%ju bytes)",EKA_EXCH_DECODE(exch),grId,MAX_PLEVELS,sizeof(FhPlevel[MAX_PLEVELS]));
     pLevelsPool = new FhPlevel[MAX_PLEVELS];
     if (! pLevelsPool)
       on_error("failed to allocate %ju MAX_PLEVELS",MAX_PLEVELS);

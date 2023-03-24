@@ -6,11 +6,50 @@
 #ifndef __EFH_MSGS_H__
 #define __EFH_MSGS_H__
 
+#include <limits>
 #include <time.h>
 #include "Eka.h"
 
-#define EFH__PRICE_SCALE        10000
-#define EFH__MAX_COMPLEX_LEGS   40u
+// Calculates 10^(exponent). Saturates to maximum value.
+constexpr int64_t intPow10(const uint8_t exponent) {
+  constexpr int64_t Factors[] = {
+      1,
+      10,
+      100,
+      1000,
+      10000,
+      100000,
+      1000000,
+      10000000,
+      100000000,
+      1000000000,
+      10000000000,
+      100000000000,
+      1000000000000,
+      10000000000000,
+      100000000000000,
+      1000000000000000,
+      10000000000000000,
+      100000000000000000,
+      1000000000000000000,
+  };
+  constexpr uint8_t NumFactors = sizeof(Factors) / sizeof(*Factors);
+  if (exponent > NumFactors) return std::numeric_limits<int64_t>::max();
+  return Factors[exponent];
+}
+
+constexpr uint8_t EFH__PRICE_DECIMAL_PLACES = 4;
+constexpr int64_t EFH__PRICE_SCALE          = intPow10(EFH__PRICE_DECIMAL_PLACES);
+constexpr uint8_t EFH__MAX_COMPLEX_LEGS     = 40;
+
+// Converts price from exchange scale to EFH scale.
+constexpr int64_t priceToEfhScale(const int64_t price, const uint8_t priceDecimalPlaces) {
+  if (priceDecimalPlaces > EFH__PRICE_DECIMAL_PLACES)
+    return price / intPow10(priceDecimalPlaces - EFH__PRICE_DECIMAL_PLACES);
+  if (priceDecimalPlaces < EFH__PRICE_DECIMAL_PLACES)
+    return price * intPow10(EFH__PRICE_DECIMAL_PLACES - priceDecimalPlaces);
+  return price;
+}
 
 /*
  * $$NOTE$$ - All of these messages are standalone and therefore arent contained in a kEkaContainerMsg.

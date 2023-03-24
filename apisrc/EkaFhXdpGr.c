@@ -27,11 +27,14 @@ bool EkaFhXdpGr::processUdpPkt(const EfhRunCtx* pEfhRunCtx,
 
 /* ##################################################################### */
 
-int EkaFhXdpGr::bookInit () {
+int EkaFhXdpGr::bookInit() {
   book = new FhBook(dev,id,exch);
   if (book == NULL) on_error("book = NULL");
 
   book->init();
- 
+
+  // XDP does not provide RFQ IDs. We keep our own ID counter, using the group ID as the high byte.
+  prevAuctionId = static_cast<uint64_t>(id + 1) << (64 - 8);
+
   return 0;
 }
