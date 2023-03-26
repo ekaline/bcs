@@ -290,21 +290,6 @@ int EkaEpm::InitTemplates() {
   rawPkt         = new EpmRawPktTemplate(templatesNum++);
   if (! rawPkt) on_error("! rawPkt");
 
-  /* switch (dev->hwFeedVer) { */
-  /* case EfhFeedVer::kNASDAQ :  */
-  /*   hwFire         = new EpmFireSqfTemplate(templatesNum++  ,"EpmFireSqfTemplate" ); */
-  /*   EKA_LOG("Initializing EpmFireSqfTemplate"); */
-  /*   break; */
-  /* case EfhFeedVer::kCBOE :  */
-  /*   hwFire         = new EpmFireBoeTemplate(templatesNum++  ,"EpmFireBoeTemplate" ); */
-  /*   EKA_LOG("Initializing EpmFireBoeTemplate"); */
-  /*   break; */
-  /* default : */
-  /*   hwFire         = new EpmRawPktTemplate(templatesNum++  ,"PlaceHolderRawPkt" ); */
-  /*   EKA_LOG("Initializing PlaceHolderRawPkt -- SHOULD NOT BE USED!!!"); */
-  /*   break; */
-  /* } */
-
   return 0;
 }
 /* ---------------------------------------------------- */
@@ -334,8 +319,12 @@ int EkaEpm::DownloadSingleTemplate2HW(EpmTemplate* t) {
   /*   } */
   /* } */
 
-  copyBuf2Hw_swap4(dev,t->getDataTemplateAddr(),(uint64_t*) t->data                ,EpmMaxRawTcpSize);
-  copyBuf2Hw      (dev,t->getCsumTemplateAddr(),(uint64_t*) &t->hw_tcpcs_template  ,sizeof(t->hw_tcpcs_template));
+  copyBuf2Hw_swap4(dev,t->getDataTemplateAddr(),
+		   (uint64_t*) t->data ,
+		   EpmMaxRawTcpSize);
+  copyBuf2Hw      (dev,t->getCsumTemplateAddr(),
+		   (uint64_t*) &t->hw_tcpcs_template,
+		   sizeof(t->hw_tcpcs_template));
 
   return 0;
 }
@@ -353,6 +342,26 @@ int EkaEpm::DownloadTemplates2HW() {
 }
 
 /* ---------------------------------------------------- */
+void EkaEpm::actionParamsSanityCheck(ActionType type, 
+				     uint       actionRegion, 
+				     uint8_t    _coreId, 
+				     uint8_t    _sessId) {
+  if ((type == ActionType::TcpFullPkt  ||
+       type == ActionType::TcpFastPath ||
+       type == ActionType::TcpEmptyAck) &&
+      actionRegion != TcpTxRegion)
+    on_error("actionRegion %u doesnt match actionType %d",
+	     actionRegion, (int)type);
+
+  if (_coreId >= MAX_CORES)
+    on_error("coreId %u > MAX_CORES %u",_coreId,MAX_CORES);
+
+  if (_sessId >= TOTAL_SESSIONS_PER_CORE)
+    on_error("sessId %u >= TOTAL_SESSIONS_PER_CORE %u",
+	     _sessId, TOTAL_SESSIONS_PER_CORE);
+       
+}
+/* ---------------------------------------------------- */
 
 EkaEpmAction* EkaEpm::addAction(ActionType     type, 
 				uint           actionRegion, 
@@ -362,19 +371,49 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
 				uint8_t        _auxIdx) {
 
   if (actionRegion >= EPM_REGIONS || epmRegion[actionRegion] == NULL) 
-    on_error("wrong epmRegion[%u] = %p",actionRegion,epmRegion[actionRegion]);
+    on_error("wrong epmRegion[%u] = %p",
+	     actionRegion,epmRegion[actionRegion]);
+  actionParamsSanityCheck(type,actionRegion,_coreId,_sessId);
 
   uint            heapBudget      = getHeapBudget(type);
 
   createActionMtx.lock();
 
-  epm_actionid_t  localActionIdx = epmRegion[actionRegion]->localActionIdx++;
+  epm_actionid_t  localActionIdx = -1;
+
+  switch (type) {
+  case ActionType::TcpEmptyAck :
+    localActionIdx = _coreId * TOTAL_SESSIONS_PER_CORE +
+      _sessId * ActionsPerTcpSess;
+    break;
+  case ActionType::TcpFullPkt :
+  case ActionType::TcpFastPath :
+    localActionIdx = _coreId * TOTAL_SESSIONS_PER_CORE +
+      _sessId * ActionsPerTcpSess + 1;
+    break;
+  default:
+    localActionIdx = epmRegion[actionRegion]->localActionIdx++;
+  }
+  if (localActionIdx >= (int)ActionsPerRegion)
+    on_error("localActionIdx %d >= ActionsPerRegion %u",
+	     localActionIdx, ActionsPerRegion);
+
+  
   epm_actionid_t  actionIdx      = epmRegion[actionRegion]->baseActionIdx + localActionIdx;
   uint            heapOffs       = epmRegion[actionRegion]->heapOffs;
 
   uint64_t actionAddr = EpmActionBase + actionIdx * ActionBudget;
   epmRegion[actionRegion]->heapOffs += heapBudget;
 
+  if (epmRegion[actionRegion]->heapOffs -
+      epmRegion[actionRegion]->baseHeapOffs >= HeapPerRegion)
+    on_error("heapOffs %u - baseHeapOffs %u (=%u) >= HeapPerRegion %u",
+	     epmRegion[actionRegion]->heapOffs,
+	     epmRegion[actionRegion]->baseHeapOffs,
+	     epmRegion[actionRegion]->heapOffs -
+	     epmRegion[actionRegion]->baseHeapOffs,
+	     HeapPerRegion);
+  
   EkaEpmAction* action = new EkaEpmAction(dev,
 					  type,
 					  actionIdx,

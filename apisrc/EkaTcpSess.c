@@ -64,27 +64,36 @@ EkaTcpSess::EkaTcpSess(EkaDev* pEkaDev, EkaCore* _parent,
 
   memcpy(macSa,_macSa,6);
 
-  if (dev->epmEnabled) {
-    if ((sock = lwip_socket(AF_INET, SOCK_STREAM, 0)) < 0) 
-      on_error ("error creating TCP socket");
-
-    if (sessId == CONTROL_SESS_ID) {
-      EKA_LOG("Established TCP Session %u for Control Traffic, coreId=%u, EpmRegion = %u",
-	      sessId,coreId,EkaEpm::ServiceRegion);
-    } else {
-      EKA_LOG("sock=%d for: %s:%u --> %s:%u",sock,
-	      EKA_IP2STR(srcIp),srcPort,
-	      EKA_IP2STR(dstIp),dstPort);
-    }
-  } else {
+  if (! dev->epmEnabled) {
     EKA_LOG("FPGA created IGMP-ONLY network channel");
+    return;
   }
+  
+  if ((sock = lwip_socket(AF_INET, SOCK_STREAM, 0)) < 0) 
+    on_error ("error creating TCP socket");
 
+  if (sessId == CONTROL_SESS_ID) {
+    EKA_LOG("Established TCP Session %u for Control Traffic, coreId=%u, EpmRegion = %u",
+	    sessId,coreId,EkaEpm::TcpTxRegion);
+    fullPktAction  = dev->epm->addAction(EkaEpm::ActionType::TcpFullPkt,
+					 EkaEpm::TcpTxRegion,
+					 0,coreId,sessId,0);
+  } else {
+    EKA_LOG("sock=%d for: %s:%u --> %s:%u",sock,
+	    EKA_IP2STR(srcIp),srcPort,
+	    EKA_IP2STR(dstIp),dstPort);
+    fastPathAction = dev->epm->addAction(EkaEpm::ActionType::TcpFastPath,
+					 EkaEpm::TcpTxRegion,
+					 0,coreId,sessId,0);    
+  }
+  
+  emptyAckAction = dev->epm->addAction(EkaEpm::ActionType::TcpEmptyAck,
+				       EkaEpm::TcpTxRegion,
+				       0,coreId,sessId,0);
+  
+  
   controlTcpSess = dev->core[coreId]->tcpSess[EkaCore::CONTROL_SESS_ID];
-/* -------------------------------------------- */
-  fastPathAction = dev->epm->addAction(EkaEpm::ActionType::TcpFastPath,EkaEpm::ServiceRegion,0,coreId,sessId,0);
-  fullPktAction  = dev->epm->addAction(EkaEpm::ActionType::TcpFullPkt, EkaEpm::ServiceRegion,0,coreId,sessId,0);
-  emptyAckAction = dev->epm->addAction(EkaEpm::ActionType::TcpEmptyAck,EkaEpm::ServiceRegion,0,coreId,sessId,0);
+  /* -------------------------------------------- */
 }
 
 /* ---------------------------------------------------------------- */
@@ -240,6 +249,18 @@ int EkaTcpSess::connect() {
 EkaTcpSess::~EkaTcpSess() {
   EKA_LOG("Closing socket %d for core%u sess%u",sock,coreId,sessId);
   lwip_close(sock);
+  if (fullPktAction) {
+    delete(fullPktAction);
+    fullPktAction = NULL;
+  }
+  if (emptyAckAction) {
+    delete(emptyAckAction);
+    emptyAckAction = NULL;
+  }
+  if (fastPathAction) {
+    delete(fastPathAction);
+    fastPathAction = NULL;
+  }  
   EKA_LOG("Closed socket %d for core%u sess%u",
 	  sock,coreId,sessId);
 }
@@ -247,8 +268,21 @@ EkaTcpSess::~EkaTcpSess() {
 
 int EkaTcpSess::preloadNwHeaders() {
   emptyAckAction->setNwHdrs(macDa,macSa,srcIp,dstIp,srcPort,dstPort);
-  fastPathAction->setNwHdrs(macDa,macSa,srcIp,dstIp,srcPort,dstPort);
-  fullPktAction->setNwHdrs (macDa,macSa,srcIp,dstIp,srcPort,dstPort);
+  if (sessId == CONTROL_SESS_ID) {
+    if (fastPathAction)
+      on_error("fastPathAction exists for CONTROL_SESS");
+    if (!fullPktAction)
+      on_error("!fullPktAction for CONTROL_SESS");
+
+    fullPktAction->setNwHdrs (macDa,macSa,srcIp,dstIp,srcPort,dstPort);
+  } else {
+    if (fullPktAction)
+      on_error("fullPktAction exists for CONTROL_SESS");
+    if (!fastPathAction)
+      on_error("!fastPathAction for CONTROL_SESS");
+    fastPathAction->setNwHdrs(macDa,macSa,srcIp,dstIp,srcPort,dstPort);
+  }
+
   return 0;
 }
 
@@ -477,6 +511,7 @@ int EkaTcpSess::sendEthFrame(void *buf, int len) {
     on_error("Size %d > MAX_ETH_FRAME_SIZE (%d)",len,MAX_ETH_FRAME_SIZE);
 
   fullPktAction->setEthFrame(buf,(uint)len,true);
+  fullPktActionIdx = ! fullPktActionIdx;
 
   return 0;
 }

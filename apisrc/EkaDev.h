@@ -65,7 +65,7 @@ class EkaDev {
   uint8_t  getNumFh();
 
   static const uint MAX_FEED_HANDLERS       = 8;
-  static const int8_t MAX_CORES             = 8;
+  static const int8_t MAX_CORES             = 4;
   static const uint MAX_RUN_GROUPS          = 32;
   static const uint MAX_SESS_PER_CORE       = 31;
   static const uint CONTROL_SESS_ID         = MAX_SESS_PER_CORE;
@@ -283,83 +283,7 @@ inline void copyBuf2Hw_swap4(EkaDev* dev,uint64_t dstAddr,uint64_t* srcAddr,uint
   }
 }
 
-#if 0
 
-// dstLogicalAddr : Window pointer in Heap
-//                  should be taken by getHeapWndAddr()
-inline void copyIndirectBuf2HeapHw_swap4(EkaDev* dev, uint64_t dstLogicalAddr,uint64_t* srcAddr,uint8_t thrId, uint msgSize) {
-  const int WindowSize = 4096;
-  //  EKA_LOG("dstLogicalAddr=0x%jx, srcAddr=%p, msgSize=%u",dstLogicalAddr,srcAddr,msgSize);
-  if (thrId >= (int)EkaDev::MAX_CTX_THREADS) on_error("thrId %u >= MAX_CTX_THREADS %d",thrId,EkaDev::MAX_CTX_THREADS);
-
-  // if ((! dev->epmThr[thrId].valid) || (dev->epmThr[thrId].threadWindBase != dstLogicalAddr)) {
-  if (! dev->epmThr[thrId].valid ||
-      dstLogicalAddr < dev->epmThr[thrId].threadWindBase ||
-      dstLogicalAddr + msgSize > dev->epmThr[thrId].threadWindBase + WindowSize
-      ) {
-    // Configuring window base WINDOW_START_POINTER (to configure it, write the pointer to address 0x81000+THREAD_ID*8)
-    eka_write(dev, 0x81000+thrId*8, dstLogicalAddr); 
-
-    dev->epmThr[thrId].valid = true;
-    dev->epmThr[thrId].threadWindBase = dstLogicalAddr;
-  }
-  
-  uint wndOffs = dstLogicalAddr - dev->epmThr[thrId].threadWindBase;
-  uint64_t dstAddr = EpmHeapHwBaseAddr + wndOffs + thrId * 0x01000;
-
-  uint words2write = msgSize / 8 + !!(msgSize % 8);
-  for (uint w = 0; w < words2write; w++) {
-    eka_write(dev, dstAddr + w * 8, *srcAddr); 
-    srcAddr++;
-  }
-}
-
-
-// --------------------------------------------------------
-static inline
-void setHeapWnd (EkaDev* dev, int heapWrChId,
-		 uint64_t wndBase) {
-    eka_write(dev,0x81000+heapWrChId*8,wndBase); 
-}
-
-static inline
-void heapCopy (EkaDev* dev,
-	       uint64_t wndBase,uint64_t dstLogicalAddr,
-	       uint64_t* swHeapSrcAddr,int heapWrChId,
-	       uint msgSize) {
-  
-  uint wndOffs = dstLogicalAddr - wndBase;
-  uint64_t* srcAddr = swHeapSrcAddr;
-
-  uint64_t dstAddr = EpmHeapHwBaseAddr + wndOffs + heapWrChId * 0x01000;
-
-  // TEST_LOG("wndBase=%jx,dstLogicalAddr=%jx,swHeapSrcAddr=%p",
-  // 	   wndBase,dstLogicalAddr,swHeapSrcAddr);
-  uint words2write = roundUp8(msgSize) / 8;
-  for (uint w = 0; w < words2write; w++) {
-    uint32_t dataLO =  *(uint32_t*) srcAddr;
-    uint32_t dataHI =  *((uint32_t*) srcAddr + 1);
-    uint32_t dataLO_swapped = be32toh(dataLO);
-    uint32_t dataHI_swapped = be32toh(dataHI);
-    uint64_t res = (((uint64_t)dataHI_swapped) << 32 ) | (uint64_t)dataLO_swapped;
-
-    eka_write(dev, dstAddr + w * 8, res); 
-    srcAddr++;
-  }
-  
-}
-
-static inline
-void setHeapWndAndCopy(EkaDev* dev, uint64_t dstLogicalAddr,
-		       uint64_t* swHeapSrcAddr,int heapWrChId,
-		       uint msgSize) {
-  dev->heapWrChannels.getChannel(heapWrChId);
-  auto wndBase = dstLogicalAddr;
-  setHeapWnd(dev,heapWrChId,wndBase);
-  heapCopy(dev,wndBase,dstLogicalAddr,swHeapSrcAddr,heapWrChId,msgSize);
-  dev->heapWrChannels.releaseChannel(heapWrChId);
-}
-#endif
 // --------------------------------------------------------
 
 
