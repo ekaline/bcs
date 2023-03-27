@@ -9,6 +9,7 @@
 #include "EkaEpmRegion.h"
 #include "EkaUdpTxSess.h"
 #include "EkaWc.h"
+#include "EkaCsumSSE.h"
 
 uint32_t calc_pseudo_csum (const void* ip_hdr, const void* tcp_hdr,
 			   const void* payload, uint16_t payload_size);
@@ -472,7 +473,8 @@ int EkaEpmAction::setNwHdrs(uint8_t* macDa,
 
   pktSize = getPayloadOffset() + payloadLen;
   
-  tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,0/* payloadLen */);
+  //  tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,0/* payloadLen */);
+  tcpCSum = ekaPseudoTcpCsum(ipHdr,tcpHdr);
   //---------------------------------------------------------
   //  hexDump("setNwHdrs",&epm->heap[heapOffs],pktSize);
 
