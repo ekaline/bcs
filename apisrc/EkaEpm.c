@@ -346,6 +346,9 @@ void EkaEpm::actionParamsSanityCheck(ActionType type,
 				     uint       actionRegion, 
 				     uint8_t    _coreId, 
 				     uint8_t    _sessId) {
+  if (type == ActionType::UserAction)
+    return;
+
   if ((type == ActionType::TcpFullPkt  ||
        type == ActionType::TcpFastPath ||
        type == ActionType::TcpEmptyAck) &&
@@ -369,7 +372,10 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
 				uint8_t        _coreId, 
 				uint8_t        _sessId, 
 				uint8_t        _auxIdx) {
-
+  EKA_LOG("Action %d: type=%d, actionRegion=%u,heapOffs=%u",
+	  (int)_localIdx,(int)type,actionRegion,
+	  epmRegion[actionRegion]->heapOffs);
+  
   if (actionRegion >= EPM_REGIONS || epmRegion[actionRegion] == NULL) 
     on_error("wrong epmRegion[%u] = %p",
 	     actionRegion,epmRegion[actionRegion]);
@@ -406,7 +412,7 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
   epmRegion[actionRegion]->heapOffs += heapBudget;
 
   if (epmRegion[actionRegion]->heapOffs -
-      epmRegion[actionRegion]->baseHeapOffs >= HeapPerRegion)
+      epmRegion[actionRegion]->baseHeapOffs > HeapPerRegion)
     on_error("heapOffs %u - baseHeapOffs %u (=%u) >= HeapPerRegion %u",
 	     epmRegion[actionRegion]->heapOffs,
 	     epmRegion[actionRegion]->baseHeapOffs,

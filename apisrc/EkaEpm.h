@@ -61,6 +61,7 @@ class EkaEpm {
   static const uint TCP_EMPTY_ACK_SIZE          = 64;
   static const uint IGMP_V2_SIZE                = 64;
   static const uint HW_FIRE_MSG_SIZE            = 512;
+  static const uint DEFAULT_1K_SIZE             = 1024;
 
   static const int MAX_UDP_SESS      = 64;
 
@@ -216,8 +217,9 @@ class EkaEpm {
     case EpmActionType::CmeHwCancel :
     case EpmActionType::CmeSwFire :
     case EpmActionType::CmeSwHeartbeat :
-    case EpmActionType::UserAction :
       return MAX_ETH_FRAME_SIZE;
+    case EpmActionType::UserAction :
+      return DEFAULT_1K_SIZE;
     default:
       on_error("Unexpected EkaEpmAction type %d",(int)type);
     }
