@@ -99,7 +99,8 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx,
     return EKA_OPRESULT__ERR_INVALID_ACTION;
   }
   //---------------------------------------------------------
-  EKA_LOG("Setting Action %d epmAction->type=%d",actionIdx,(int)epmAction->type);
+  EKA_LOG("Setting Action %d epmAction->type=%d",
+	  actionIdx,(int)epmAction->type);
 
   EkaEpmAction *ekaA = action[actionIdx];
 

@@ -67,8 +67,11 @@ class EkaTcpSess {
 
   EkaTcpSess* controlTcpSess = NULL;
   
-  EkaEpmAction* fastPathAction = NULL;
-  EkaEpmAction* fullPktAction = NULL;
+  EkaEpmAction* fastPathAction = {};
+  int fastPathActionIdx = 0;
+  EkaEpmAction* fullPktAction = {};
+  int fullPktActionIdx = 0;
+
   EkaEpmAction* emptyAckAction = NULL;
 
   epm_trig_desc_t emptyAcktrigger = {};

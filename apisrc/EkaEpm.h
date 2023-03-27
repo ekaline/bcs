@@ -56,10 +56,12 @@ class EkaEpm {
   static const uint MAX_SESS_PER_CORE           = EkaDev::MAX_SESS_PER_CORE;
   static const uint CONTROL_SESS_ID             = EkaDev::CONTROL_SESS_ID;
   static const uint TOTAL_SESSIONS_PER_CORE     = EkaDev::TOTAL_SESSIONS_PER_CORE;
+  static const uint ActionsPerTcpSess           = 2;
   static const uint MAX_ETH_FRAME_SIZE          = EkaDev::MAX_ETH_FRAME_SIZE;
   static const uint TCP_EMPTY_ACK_SIZE          = 64;
   static const uint IGMP_V2_SIZE                = 64;
   static const uint HW_FIRE_MSG_SIZE            = 512;
+  static const uint DEFAULT_1K_SIZE             = 1024;
 
   static const int MAX_UDP_SESS      = 64;
 
@@ -96,9 +98,9 @@ class EkaEpm {
 
   static const uint8_t  UserRegion              = 0;
   static const uint8_t  EfcRegion               = 0;
-  static const uint8_t  ServiceRegion           = MaxStrategies;     // 4
-  static const uint8_t  EpmMcRegion             = ServiceRegion + 1; // 5
-  static const int      ReservedRegions         = EpmMcRegion + 1;   // 6
+  static const uint8_t  TcpTxRegion             = MaxStrategies;   // 4
+  static const uint8_t  EpmMcRegion             = TcpTxRegion + 1; // 5
+  static const int      ReservedRegions         = EpmMcRegion + 1; // 6
   static const int      MaxUdpChannelRegions    = EPM_REGIONS - ReservedRegions;
 
   static const uint     UserActionsBaseIdx      = 0;
@@ -190,6 +192,10 @@ class EkaEpm {
 			  uint8_t         auxIdx);
 
  private:
+  void actionParamsSanityCheck(ActionType type, 
+			       uint       actionRegion, 
+			       uint8_t    _coreId, 
+			       uint8_t    _sessId);
   bool alreadyJoined(epm_strategyid_t prevStrats,uint32_t ip, uint16_t port);
   int joinMc(uint32_t ip, uint16_t port, int16_t vlanTag);
 
@@ -211,8 +217,9 @@ class EkaEpm {
     case EpmActionType::CmeHwCancel :
     case EpmActionType::CmeSwFire :
     case EpmActionType::CmeSwHeartbeat :
-    case EpmActionType::UserAction :
       return MAX_ETH_FRAME_SIZE;
+    case EpmActionType::UserAction :
+      return DEFAULT_1K_SIZE;
     default:
       on_error("Unexpected EkaEpmAction type %d",(int)type);
     }

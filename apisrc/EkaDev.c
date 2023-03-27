@@ -241,7 +241,8 @@ bool EkaDev::initEpmTx() {
 
   ekaInitLwip(this);
 
-  epm->createRegion(EkaEpm::ServiceRegion, EkaEpm::ServiceRegion * EkaEpm::ActionsPerRegion);
+  epm->createRegion(EkaEpm::TcpTxRegion,
+		    EkaEpm::TcpTxRegion * EkaEpm::ActionsPerRegion);
 
   uint64_t fire_rx_tx_en = eka_read(ENABLE_PORT);
   fire_rx_tx_en |= (1ULL << 32); //turn off tcprx
