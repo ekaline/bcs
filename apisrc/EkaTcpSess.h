@@ -24,6 +24,8 @@ class EkaTcpSess {
   int bind();
   int connect();
 
+  int preSendCheck(int sendSize, int flags = 0);
+  
   int sendPayload(uint thr, void *buf, int len, int flags);
   int sendEthFrame(void *buf, int len);
   int sendStackEthFrame(void *buf, int len);
