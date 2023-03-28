@@ -415,10 +415,6 @@ int EkaEpmAction::setUdpMcNwHdrs(uint8_t* macSa,
 
   copyHeap2Fpga(EkaWc::AccessType::HeapPreload,EkaWc::SendOp::DontSend);
 
-  //  copyIndirectBuf2HeapHw_swap4(dev,heapAddr,(uint64_t*) ethHdr, thrId, pktSize);
-
-  /* auto heapWrChId = dev->heapWrChannels.getChannelId(EkaHeapWrChannels::AccessType::HeapPreload); */
-  /* setHeapWndAndCopy(dev,heapAddr,(uint64_t*) ethHdr, heapWrChId, pktSize); */
   return 0;
 }
 
@@ -473,18 +469,13 @@ int EkaEpmAction::setNwHdrs(uint8_t* macDa,
 
   pktSize = getPayloadOffset() + payloadLen;
   
-  //  tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,0/* payloadLen */);
+  //tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,0/* payloadLen */);
   tcpCSum = ekaPseudoTcpCsum(ipHdr,tcpHdr);
   //---------------------------------------------------------
   //  hexDump("setNwHdrs",&epm->heap[heapOffs],pktSize);
 
   copyHeap2Fpga(EkaWc::AccessType::HeapPreload,EkaWc::SendOp::DontSend);
 
-  //copyIndirectBuf2HeapHw_swap4(dev,heapAddr,(uint64_t*) ethHdr, thrId, pktSize);
-
-  /* auto heapWrChId = dev->heapWrChannels.getChannelId(EkaHeapWrChannels::AccessType::HeapPreload); */
-  /* setHeapWndAndCopy(dev,heapAddr,(uint64_t*) ethHdr, heapWrChId, pktSize); */
-  
   return 0;
 }
 
@@ -546,8 +537,9 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
   epmTemplate->clearHwFields(&epm->heap[heapOffs]);
   setIpTtl();
   
-  tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,payloadLen);
-
+  //tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,payloadLen);
+  tcpCSum = ekaPseudoTcpCsum(ipHdr,tcpHdr);
+  
   setHwAction();
       
   copyBuf2Hw(dev,EkaEpm::EpmActionBase,
@@ -594,8 +586,9 @@ int EkaEpmAction::setPktPayload(const void* buf, uint len) {
   memcpy(&epm->heap[heapOffs + getPayloadOffset()],buf,len);
 
   epmTemplate->clearHwFields(&epm->heap[heapOffs]);
-  tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,len); 
-
+  //tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,len); 
+  tcpCSum = ekaPseudoTcpCsum(ipHdr,tcpHdr);
+ 
   copyHeap2Fpga(EkaWc::AccessType::HeapPreload,EkaWc::SendOp::DontSend);
 
   return 0;
@@ -616,7 +609,21 @@ int EkaEpmAction::setPktPayloadAndSendWC(const void* buf, uint len) {
   memcpy(&epm->heap[heapOffs + getPayloadOffset()],buf,len);
 
   epmTemplate->clearHwFields(&epm->heap[heapOffs]);
-  tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,len); 
+  TEST_LOG("\n-------------------------------");
+  auto newCsum = ekaPseudoTcpCsum(ipHdr,tcpHdr); 
+  tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,len);
+  TEST_LOG("\n-------------------------------");
+
+  //tcpCSum = ekaPseudoTcpCsum(ipHdr,tcpHdr);
+  //  auto pseudoPrev = calculate_pseudo_tcp_checksum_old(ipHdr,tcpHdr);
+  auto newPseudo = calculate_pseudo_tcp_checksum_old(ipHdr,tcpHdr);
+
+  int rc = memcmp(payload,buf,len);
+  TEST_LOG("New = 0x%08x, oldGood = 0x%08x, newPseudo = 0x%08x, ipHdr->_len = %u, len=%u, rc=%d",
+	   newCsum,
+	   tcpCSum,
+	   newPseudo,
+	   be16toh(ipHdr->_len), len, rc);
 
   copyHeap2Fpga(EkaWc::AccessType::TcpSend,EkaWc::SendOp::Send);
 
@@ -639,7 +646,9 @@ int EkaEpmAction::updatePayload(uint offset, uint len) {
   epmTemplate->clearHwFields(&epm->heap[heapOffs]);
 
   setIpTtl();
-  tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,payloadLen);
+  //tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,payloadLen);
+  tcpCSum = ekaPseudoTcpCsum(ipHdr,tcpHdr);
+  
   //  copyIndirectBuf2HeapHw_swap4(dev,heapAddr, (uint64_t*) &epm->heap[heapOffs], thrId, pktSize);
 
   copyHeap2Fpga(EkaWc::AccessType::HeapPreload,EkaWc::SendOp::DontSend);

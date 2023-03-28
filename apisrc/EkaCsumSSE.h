@@ -74,7 +74,7 @@ inline
 uint32_t csum_oc16_sse(const uint8_t *data, uint32_t data_len,
                        __m128i sum32a, __m128i sum32b) {
   uint32_t n = 0;
-
+  IPChecksumInit();
 #define swap16a xmm_be_le_swap16a
 #define swap16b xmm_be_le_swap16b
 
@@ -194,17 +194,16 @@ inline
 uint32_t ekaPseudoTcpCsum(const EkaIpHdr* ipHdr,
 			  const EkaTcpHdr* tcpHdr) {
   
-  IPChecksumInit();
+  //  IPChecksumInit();
   uint32_t sum = 0;
 
   sum += be16toh(ipHdr->src & 0xFFFF);
   sum += be16toh((ipHdr->src>>16) & 0xFFFF);
   sum += be16toh(ipHdr->dest & 0xFFFF);
   sum += be16toh((ipHdr->dest>>16) & 0xFFFF);
-
-  sum += EKA_PROTO_TCP;
+  sum += (uint16_t)EKA_PROTO_TCP;
   sum += be16toh(ipHdr->_len) - sizeof(EkaIpHdr);
-  
+
   sum += csum_oc16_sse((const uint8_t*)tcpHdr,
 		       be16toh(ipHdr->_len) - sizeof(EkaIpHdr),
 		       _mm_setzero_si128(),
@@ -212,4 +211,47 @@ uint32_t ekaPseudoTcpCsum(const EkaIpHdr* ipHdr,
 
   return sum;
 }
+
+
+static inline
+uint32_t calculate_pseudo_tcp_checksum_old(const EkaIpHdr* ipHdr,
+					   const EkaTcpHdr* tcpHdr) {
+  uint32_t sum = 0;
+  
+  sum += ipHdr->src & 0xFFFF;
+  sum += (ipHdr->src>>16) & 0xFFFF;
+  sum += ipHdr->dest & 0xFFFF;
+  sum += (ipHdr->dest>>16) & 0xFFFF;
+
+  sum += be16toh((uint16_t)EKA_PROTO_TCP);
+  sum += be16toh(be16toh(ipHdr->_len) - sizeof(EkaIpHdr));
+
+  int nbytes = be16toh(ipHdr->_len) - sizeof(EkaIpHdr);
+  unsigned short *ptr = (unsigned short *)tcpHdr;
+  unsigned short oddbyte;
+  while(nbytes>1) {
+    //    TEST_LOG("sum = 0x%04x, d = 0x%04x",sum,*ptr);
+    sum+=*ptr++;
+    nbytes-=2;
+  }
+  if(nbytes==1) {
+    oddbyte=0;
+    *((u_char*)&oddbyte)=*(u_char*)ptr;
+    sum+=oddbyte;
+  } 
+  return sum;
+}
+
+inline
+uint16_t calculate_tcp_checksum_old(uint32_t pseudo) {
+  uint32_t sum = pseudo;
+
+  // Fold the sum into a 16-bit checksum
+  while (sum >> 16) {
+    sum = (sum & 0xFFFF) + (sum >> 16);
+  }
+
+  return static_cast<uint16_t>(~sum);
+}
+
 #endif

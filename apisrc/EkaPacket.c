@@ -63,6 +63,7 @@ unsigned int pseudo_csum(unsigned short *ptr,int nbytes) {
     unsigned int answer;
     sum=0;
     while(nbytes>1) {
+      //      EKA_TEST("sum = 0x%04x, d = 0x%04x",sum,*ptr);
         sum+=*ptr++;
         nbytes-=2;
     }
@@ -93,7 +94,7 @@ uint32_t calc_pseudo_csum (const void* ip_hdr, const void* tcp_hdr,
   psh.placeholder = (uint8_t) 0;
   psh.proto = (uint8_t) IPPROTO_TCP;
   psh.tcp_length = be16toh(sizeof(struct tcphdr) + payload_size);
-
+  
   memcpy(pseudo_packet, (char *) &psh, sizeof(struct pseudo_header));
   memcpy(pseudo_packet + sizeof(struct pseudo_header), tcp_hdr, sizeof(struct tcphdr));
   if (payload_size) 

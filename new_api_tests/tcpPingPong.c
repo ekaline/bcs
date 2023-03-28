@@ -39,7 +39,7 @@ void fastpath_thread_f(EkaDev* pEkaDev,
   TEST_LOG("Launching TcpClient for coreId %u, sessId %u",
 	   coreId,sessId);
  
-  static const size_t PktSize = 1360; // large pkt
+  static const size_t PktSize = 100;//1360; // large pkt
   size_t cnt = 0;
   while (keep_work) {
     ++cnt;
