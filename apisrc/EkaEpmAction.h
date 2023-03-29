@@ -4,6 +4,8 @@
 #include "EkaEpm.h"
 #include "EkaWc.h"
 
+class EkaTcpSess;
+
 class EkaEpmAction {
  public:
   EkaEpmAction(EkaDev*                 _dev,
@@ -29,6 +31,8 @@ class EkaEpmAction {
 		     uint16_t dstPort,
 		     uint     payloadSize);
   /* ----------------------------------------------------- */
+  void setTcpSess(EkaTcpSess* tcpSess);
+  /* ----------------------------------------------------- */
 
   int setNwHdrs(uint8_t* macDa, 
 		uint8_t* macSa, 
@@ -52,8 +56,6 @@ class EkaEpmAction {
   int send();
   /* ----------------------------------------------------- */
   int fastSend(const void* buf, uint len);
-  /* ----------------------------------------------------- */
-  int fastSend(const void* buf);
   /* ----------------------------------------------------- */
   bool isTcp();
   bool isUdp();
@@ -126,7 +128,10 @@ private:
   EkaTcpHdr*       tcpHdr          = NULL;
   EkaUdpHdr*       udpHdr          = NULL;
   uint8_t*         payload         = NULL;
+
   volatile uint64_t* snDevWCPtr = NULL;
+
+  EkaTcpSess*      mySess          = NULL;
 };
 
 

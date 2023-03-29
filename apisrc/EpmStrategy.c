@@ -127,6 +127,8 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx,
       on_error("Wrong sessId %u at core %u, ekaA->type = %d, %s",
 	       sessId,coreId,(int)ekaA->type,ekaA->actionName);
     EkaTcpSess* sess = dev->core[coreId]->tcpSess[sessId];
+
+    ekaA->setTcpSess(sess);
     
     ekaA->setNwHdrs(sess->macDa,sess->macSa,
 		    sess->srcIp,sess->dstIp,

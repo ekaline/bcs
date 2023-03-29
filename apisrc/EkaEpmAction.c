@@ -480,6 +480,10 @@ int EkaEpmAction::setNwHdrs(uint8_t* macDa,
 }
 
 /* ----------------------------------------------------- */
+void EkaEpmAction::setTcpSess(EkaTcpSess* tcpSess) {
+  mySess = tcpSess;
+}
+/* ----------------------------------------------------- */
 
 int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction *epmAction) {
   if (epmAction == NULL) on_error("epmAction == NULL");
@@ -700,14 +704,18 @@ int EkaEpmAction::send() {
 }
 /* ----------------------------------------------------- */
 int EkaEpmAction::fastSend(const void* buf, uint len) {
-  //  setPktPayload(buf, len);
-  //  return send();
+  if (type != EkaEpm::ActionType::TcpFastPath) {
+    if (!mySess)
+      on_error("type=%d: TCP session is not set",(int)type);
+    int rc = mySess->preSendCheck(len);
+    if (rc <= 0)
+      return rc;
+    if (rc != (int)len)
+      on_error("rc %d != len %u",rc,len);
+  }
+  setPktPayload(buf, len);
   setPktPayloadAndSendWC(buf, len);
   return len;
-}
-/* ----------------------------------------------------- */
-int EkaEpmAction::fastSend(const void* buf) {
-  return fastSend(buf,payloadLen);
 }
 
 /* ----------------------------------------------------- */
