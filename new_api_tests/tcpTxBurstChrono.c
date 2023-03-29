@@ -26,99 +26,152 @@
 #define CORES 2
 #define SESSIONS 32
 
-#define STATISTICS_PERIOD 10000
+#define STATISTICS_PERIOD 1000000
 
-volatile bool keep_work = true;;
-volatile bool serverSet = false;
+static const uint     MaxTestCores    = 2;
+static const uint     MaxTestSessions = 14;
+static const size_t   MaxThreads = MaxTestCores * MaxTestSessions;
 
-void fastpath_thread_f(EkaDev* pEkaDev,
+static const size_t   BufSize = 1024 * 1024;
+
+volatile bool g_keepWork = true;;
+volatile bool g_serverSet = false;
+
+volatile bool  g_sessRcvThreadReady[MaxThreads] = {};
+volatile char* g_bufPtr[MaxThreads] = {};
+volatile bool  g_bufVerified[MaxThreads];
+
+void excSendThr_f(EkaDev* pEkaDev,
 		       ExcConnHandle hCon,uint thrId,
 		       uint p2p_delay) {
   uint8_t coreId = excGetCoreId(hCon);
   uint8_t sessId = excGetSessionId(hCon);
-  TEST_LOG("Launching TcpClient for coreId %u, sessId %u",
-	   coreId,sessId);
+  TEST_LOG("Launching excSendThr for coreId %u, sessId %u, p2p_delay=%u",
+	   coreId,sessId,p2p_delay);
  
-  static const size_t PktSize = 100;//1360; // large pkt
-  size_t cnt = 0;
-  while (keep_work) {
-    ++cnt;
-    char pkt[PktSize] = {};    
-    size_t s = sprintf(pkt,"%u_%u_%2u_%08ju : ",thrId,coreId,sessId,cnt);
-    for (;s < PktSize; s++)
-      pkt[s] = 'a' + rand() % ('z' -'a' + 1);
-    /* -------------------------------------------------- */
+  size_t bufCnt = 0;
+  
+  auto txBuf = new char[BufSize];
+  if (! txBuf)
+    on_error("! txBuf");
+  g_bufPtr[thrId] = txBuf;
+  g_bufVerified[thrId] = true;
+  auto iter = 15;
+  auto rttRdLatency = new uint64_t[iter];
 
-    size_t sentBytes = 0;
-    size_t byte2send = PktSize;
-    const char* p = pkt;
-    while (keep_work && sentBytes < PktSize) {
-      int rc = excSend (pEkaDev, hCon, p, byte2send, 0);
-      /* ------------------- */
-      switch (rc) {
-      case -1 :
-	TEST_LOG("%u_%u_%2u: Session dropped \'%s\'",
-		 thrId,coreId,sessId,strerror(errno));
-	keep_work = false;
-	break;
-      case 0 :
-	if (errno == EAGAIN || errno == EWOULDBLOCK) {
-	  /* TEST_LOG("Retrying pkt %ju",cnt); */
-	  /* send same again */
-	} else {
-	  keep_work = false;
-	  EKA_ERROR("Unexpected errno=%d (\'%s\')",
-		    errno,strerror(errno));
+  while (g_keepWork) {
+    ++bufCnt;
+    if (bufCnt % STATISTICS_PERIOD == 0) 
+      TEST_LOG ("CoreId %u, SessId %u, bufCnt: %ju",
+		coreId,sessId,bufCnt);
+    if (g_bufVerified[thrId]) {
+      g_bufVerified[thrId] = false;
+      
+      for (size_t i = 0; i < BufSize; i++)
+	txBuf[i] = 'a' + rand() % ('z' -'a' + 1);
+
+      /* -------------------------------------------------- */
+
+      uint64_t l_cnt =0 ;
+      size_t sentBytes = 0;
+      const char* p = txBuf;
+      while (g_keepWork && sentBytes < BufSize) {
+	/* static const size_t PktSize = 1360; */ // large pkt
+	/* size_t currPktSize = std::min(BufSize - sentBytes, */
+	/* 			      1 + rand() % PktSize); */
+	size_t currPktSize = std::min(BufSize - sentBytes,
+				      (uint64_t)708);
+
+	auto one = std::chrono::high_resolution_clock::now();    
+	int rc = excSend (pEkaDev, hCon, p, currPktSize, 0);
+	auto two = std::chrono::high_resolution_clock::now();
+	if ((int)l_cnt<iter)
+	  rttRdLatency[l_cnt++] = (uint64_t)(std::chrono::duration_cast<std::chrono::nanoseconds>(two-one).count());
+	
+	/* ------------------- */
+	switch (rc) {
+	case -1 :
+	  TEST_LOG("%u_%u_%2u: Session dropped \'%s\'",
+		   thrId,coreId,sessId,strerror(errno));
+	  g_keepWork = false;
+	  break;
+	case 0 :
+	  if (errno == EAGAIN || errno == EWOULDBLOCK) {
+	    /* TEST_LOG("Retrying pkt %ju",cnt); */
+	    /* send same again */
+	    std::this_thread::yield();
+
+	  } else {
+	    g_keepWork = false;
+	    EKA_ERROR("Unexpected errno=%d (\'%s\')",
+		      errno,strerror(errno));
+	  }
+	  break;	
+	default:
+	  sentBytes += rc;
+	  p += rc;
 	}
-	break;	
-      default:
-	sentBytes += rc;
-	p += rc;
-	byte2send = PktSize - sentBytes;
-      }
-      /* ------------------- */
+	/* ------------------- */
 
-    }
-    char rxBuf[PktSize] = {};
-    char* rxP = rxBuf;
-    size_t rxSize = 0;
-    do {
-      int rx = excRecv(pEkaDev,hCon, rxP, PktSize - rxSize, 0);
-      /* TEST_LOG("rx = %d, errno=%d, \'%s\'",rx,errno,strerror(errno)); */
-      if (rx > 0) {
-	rxSize += rx;
-	rxP += rx;
       }
-    } while (keep_work && rxSize != PktSize);
-    
-    if (memcmp(pkt,rxBuf,PktSize) != 0) { 
-      hexDump("PKT",pkt,PktSize);
-      hexDump("RXBUF",rxBuf,PktSize);
-      on_error("%u pkt %04ju: RX != TX PktSize=%jd (=0x%jx) for coreId %u sessId %u",
-	       sessId,cnt,PktSize,PktSize,coreId,sessId);
-      TEST_LOG("ERROR: %u %04ju: payload is INCORRECT",
-	       sessId,cnt); fflush(stderr);
-
-    } else {
-      /* TEST_LOG("Pkt %ju - OK",cnt); */
+      if (p2p_delay != 0) usleep (p2p_delay);
     }
-    
-    if (cnt % STATISTICS_PERIOD == 0) {
-      TEST_LOG ("CoreId %u, SessId %u, cnt: %ju",
-		coreId,sessId,cnt);
-    }
-    if (p2p_delay != 0) usleep (p2p_delay);
   }
-  TEST_LOG("fastpath_thread_f is terminated"); fflush(stderr);fflush(stdout);
+  for (auto i=0;i<iter;i++)
+    TEST_LOG("rttRdLatency[%u]=%ju",i,rttRdLatency[i] );
+  TEST_LOG("excSendThr_f[%u] is terminated",thrId);
+  delete[] g_bufPtr[thrId];
+  return;
+}
+/* --------------------------------------------- */
+void excRecvThr_f(EkaDev* pEkaDev,
+		  ExcConnHandle hCon,uint thrId) {
+  uint8_t coreId = excGetCoreId(hCon);
+  uint8_t sessId = excGetSessionId(hCon);
+  TEST_LOG("Launching excRecvThr for coreId %u, sessId %u",
+	   coreId,sessId);
+  g_sessRcvThreadReady[thrId] = true;
+
+  size_t rxCnt = 0;  
+  char rxBuf[BufSize] = {};
+  char* rxP = rxBuf;
+    
+  while (g_keepWork) {
+    int rx = excRecv(pEkaDev,hCon, rxP, BufSize - rxCnt, 0);
+    if (rx <= 0) {
+      if (errno != EAGAIN)
+	on_error("core %u, sess %u: excRecv()=%d (\'%s\')",
+		 coreId,sessId,rx,strerror(errno));
+      std::this_thread::yield();
+     continue;
+    }
+
+    rxCnt += rx;
+    rxP += rx;
+    if (rxCnt > BufSize)
+      on_error("rxCnt %jd > BufSize %jd",rxCnt,BufSize);
+    if (rxCnt == BufSize) {
+      if (memcmp((const void*)g_bufPtr[thrId],rxBuf,BufSize) != 0) { 
+	on_error("ThrId %u: RX != TX", thrId);       
+      }
+      rxP = rxBuf;
+      rxCnt = 0;
+      g_bufVerified[thrId] = true;
+    }
+  }
+
+
+  TEST_LOG("excRecvThr_f[%u] is terminated",thrId);
 
   return;
 }
 /* --------------------------------------------- */
 
+
 void  INThandler(int sig) {
   signal(sig, SIG_IGN);
-  keep_work = false;
-  printf("%s:Ctrl-C detected: keep_work = false\n",__func__);
+  g_keepWork = false;
+  printf("%s:Ctrl-C detected: g_keepWork = false\n",__func__);
   printf ("%s: exitting...\n",__func__);
   fflush(stdout);
   return;
@@ -181,13 +234,13 @@ void tcpChild(EkaDev* dev, int sock, uint port) {
   do {
     char line[1536] = {};
     int rc = recv(sock, line, sizeof(line), 0);
-    send(sock, line, rc, 0);
-    //    usleep(10);
-  } while (keep_work);
+    if (rc > 0)
+      send(sock, line, rc, 0);
+  } while (g_keepWork);
   TEST_LOG("tcpChild thread is terminated");
   fflush(stdout);
   close(sock);
-  //  keep_work = false;
+  //  g_keepWork = false;
   return;
 }
 /* --------------------------------------------- */
@@ -216,12 +269,13 @@ void tcpServer(EkaDev* dev, std::string ip, uint16_t port) {
   if (bind(sd,(struct sockaddr*)&addr, sizeof(addr)) != 0 ) 
     on_error("failed to bind server sock to %s:%u",EKA_IP2STR(addr.sin_addr.s_addr),be16toh(addr.sin_port));
   if ( listen(sd, 20) != 0 ) on_error("Listen");
-  serverSet = true;
-  while (keep_work) {
+  g_serverSet = true;
+  while (g_keepWork) {
     int childSock, addr_size = sizeof(addr);
 
     childSock = accept(sd, (struct sockaddr*)&addr,(socklen_t*) &addr_size);
-    TEST_LOG("Connected from: %s:%d -- sock=%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),childSock);
+    TEST_LOG("Connected from: %s:%d -- sock=%d\n",
+	     inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),childSock);
     std::thread child(tcpChild,dev,childSock,be16toh(addr.sin_port));
     child.detach();
   }
@@ -232,13 +286,11 @@ void tcpServer(EkaDev* dev, std::string ip, uint16_t port) {
 
 
 int main(int argc, char *argv[]) {
-  keep_work = true;
+  g_keepWork = true;
   EkaDev* pEkaDev = NULL;
 
   signal(SIGINT, INThandler);
 
-  const uint     MaxTestCores    = 2;
-  const uint     MaxTestSessions = 16;
   uint     testCores      = 1;
   uint     testSessions   = 2;
   uint     p2p_delay      = 0; // microseconds
@@ -254,18 +306,24 @@ int main(int argc, char *argv[]) {
     { std::string("200.0.0.111"), std::string("10.0.0.11"), 22223}
   };
 
-  getAttr(argc,argv,&conn[0].dstIp,&conn[0].dstTcpPort,&conn[0].srcIp,&testSessions,&testCores,&p2p_delay);
+  getAttr(argc,argv,&conn[0].dstIp,&conn[0].dstTcpPort,&conn[0].srcIp,
+	  &testSessions,&testCores,&p2p_delay);
   //-----------------------------------------
-  printf ("Running with %u cores, %u sessions, %uus pkt-to-pkt delay\n",testCores,testSessions,p2p_delay);
+  printf ("Running with %u cores, %u sessions, %uus pkt-to-pkt delay\n",
+	  testCores,testSessions,p2p_delay);
 
   //-----------------------------------------
   // Launching TCP server threads
   for (uint8_t c = 0; c < testCores ;c ++) {
-    std::thread server = std::thread(tcpServer,pEkaDev,conn[c].dstIp.c_str(),conn[c].dstTcpPort);
+    std::thread server = std::thread(tcpServer,pEkaDev,
+				     conn[c].dstIp.c_str(),
+				     conn[c].dstTcpPort);
     server.detach();
   }
 
-  while (keep_work && ! serverSet) { sleep (0); }
+  while (g_keepWork && ! g_serverSet)
+    std::this_thread::yield();
+
   std::thread thr[testCores][testSessions];
 
   //------------------------------------------------
@@ -273,23 +331,22 @@ int main(int argc, char *argv[]) {
   EkaDevInitCtx ekaDevInitCtx = {};
   ekaDevInit(&pEkaDev, &ekaDevInitCtx);
 
-  //  EkaDev* dev = pEkaDev;
-
   //------------------------------------------------
   // Initializing FETH Ports (Cores)
   EkaCoreInitCtx ekaCoreInitCtx = {};
   for (uint8_t c = 0; c < testCores ;c ++) {
     ekaCoreInitCtx.coreId = c;
     inet_aton(conn[c].srcIp.c_str(),(struct in_addr*)&ekaCoreInitCtx.attrs.host_ip);
-    ekaDevConfigurePort (pEkaDev, (const EkaCoreInitCtx*) &ekaCoreInitCtx);
+    ekaDevConfigurePort (pEkaDev, &ekaCoreInitCtx);
   }
 
   //------------------------------------------------
   // Creating Sockets
 
   int sock[MaxTestCores][MaxTestSessions] = {};
-  static ExcConnHandle sess_id[MaxTestCores][MaxTestSessions] = {};
-  std::thread fast_path_thread[MaxTestCores][MaxTestSessions] = {};
+  static ExcConnHandle hCon[MaxTestCores][MaxTestSessions] = {};
+  std::thread excSendThr[MaxTestCores][MaxTestSessions] = {};
+  std::thread excRecvThr[MaxTestCores][MaxTestSessions] = {};
 
   for (uint8_t c = 0; c < testCores ;c ++) {
     for (uint8_t s = 0; s < testSessions ;s ++) {
@@ -301,10 +358,13 @@ int main(int argc, char *argv[]) {
       dst.sin_family = AF_INET;
       dst.sin_port = htons(conn[c].dstTcpPort);
 
-      TEST_LOG("Trying to connect connect sock[%u][%u] on %s:%u",c,s,inet_ntoa(dst.sin_addr),conn[c].dstTcpPort);
+      TEST_LOG("Trying to connect connect sock[%u][%u] on %s:%u",
+	       c,s,inet_ntoa(dst.sin_addr),conn[c].dstTcpPort);
       fflush(stderr);
-      if ((sess_id[c][s] = excConnect(pEkaDev,sock[c][s],(sockaddr*) &dst, sizeof(sockaddr_in))) < 0) 
-	on_error("failed to connect sock[%u][%u] on port %u",c,s,conn[c].dstTcpPort);
+      if ((hCon[c][s] = excConnect(pEkaDev,sock[c][s],(sockaddr*) &dst,
+				      sizeof(sockaddr_in))) < 0) 
+	on_error("failed to connect sock[%u][%u] on port %u",
+		 c,s,conn[c].dstTcpPort);
 
       int rc = excSetBlocking(pEkaDev,sock[c][s],false);
       if (rc)
@@ -315,28 +375,41 @@ int main(int argc, char *argv[]) {
   //------------------------------------------------
   // Launching TCP Client threads
 
-  for (uint8_t c = 0; c < testCores; c ++) {
-    for (uint8_t s = 0; s < testSessions ;s ++) {
+  for (uint8_t c = 0; g_keepWork && c < testCores; c ++) {
+    for (uint8_t s = 0; g_keepWork && s < testSessions ;s ++) {
       uint thrId = c * testSessions + s;
-      fast_path_thread[c][s] = std::thread(fastpath_thread_f,pEkaDev,sess_id[c][s],thrId,p2p_delay);
-      fast_path_thread[c][s].detach();
+      g_sessRcvThreadReady[thrId] = false;
+      excRecvThr[c][s] = std::thread(excRecvThr_f,
+				     pEkaDev,hCon[c][s],
+				     thrId);
+      while (g_keepWork && ! g_sessRcvThreadReady[thrId])
+	std::this_thread::yield();
+
+      excSendThr[c][s] = std::thread(excSendThr_f,
+				     pEkaDev,hCon[c][s],
+				     thrId,p2p_delay);
+
+
     }
   }
   //------------------------------------------------
 
-  while (keep_work) usleep(0);
+  while (g_keepWork)
+    std::this_thread::yield();
+  
   printf ("Closing the sockets\n");
 
   for (uint c=0; c<testCores; c++) {
     for (uint8_t s=0; s<testSessions ;s++) {
-      excClose(pEkaDev,sess_id[c][s]);
+      excSendThr[c][s].join();
+      excRecvThr[c][s].join();
+      excClose(pEkaDev,hCon[c][s]);
     }
   }
 
-  //  sleep (1);
   printf("Closing device\n");
   ekaDevClose(pEkaDev);
   printf("Device is closed\n"); fflush(stdout);
-  //  sleep(5);
+
   return 0;
 }

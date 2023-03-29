@@ -164,6 +164,17 @@ namespace Xdp {
     uint16_t    Reserved;          // 34 2 Binary Filler
   } __attribute__((packed));
 
+  struct XdpCubeRfq { // MSG TYPE 415
+    XdpMsgHdr   hdr;               // 4 bytes
+    XdpTimeHdr  time;              // 8 bytes
+    uint32_t    SeriesIndex;       // 12 4 Binary Numerical representation of the outright options symbol.
+    uint32_t    SymbolSeqNum;      // 16 4 Binary Sequence number of messages for the Outright options symbol.
+    char        Side;              // 20 1 ASCII Side of the order  B = Buy  S = Sell
+    char        Capacity;          // 21 1 ASCII  Blank = information not specified  0 = Customer  1 = Firm  2 = Broker Dealer  3 = Market Maker  8 = Professional Customer
+    uint16_t    Contracts;         // 22 2 Binary The quantity of the order
+    int32_t     Price;             // 24 4 Signed Binary The price at which the order is exposed
+    char        Participant[4];    // 28 4 ASCII OCC code for the Clearing firm specified with the order  Blank = No OCC code was specified
+  };
 
   struct XdpUnderlyingStatus { // MSG TYPE 419
     XdpMsgHdr   hdr;               // 4 bytes
@@ -274,6 +285,14 @@ namespace Xdp {
     XdpDefAttrB attr;
   };
 
+  constexpr XdpDefAttrA getAttrA(const uint64_t opaqueAttrA) {
+    return XdpAuxAttrA { .opaqueField = opaqueAttrA }.attr;
+  }
+
+  constexpr XdpDefAttrB getAttrB(const uint64_t opaqueAttrB) {
+    return XdpAuxAttrB { .opaqueField = opaqueAttrB }.attr;
+  }
+
   struct XdpStreamId { // MSG TYPE 455
     XdpMsgHdr   hdr;                  // 4 bytes
     uint16_t    StreamID;             // 4 2 Binary Identifies Stream on which this symbol will be updated 
@@ -347,6 +366,63 @@ namespace Xdp {
     uint8_t     ChannelID;         // 13 1 Binary Multicast channel ID of the symbol(s) being requested. 
     uint16_t    Reserved;          // 14 1 Binary Filler
   } __attribute__((packed));
+
+  constexpr EfhTradeCond getTradeType(const char tradeCond) {
+    switch (tradeCond) {
+#define SWITCH_ENUM(NAME, VALUE) \
+    case VALUE: return EfhTradeCond::EKA__DELAYED_CAT(k, NAME);
+    EfhTradeCond_ENUM_ITER(SWITCH_ENUM)
+#undef SWITCH_ENUM
+    default: return EfhTradeCond::kUnmapped;
+    }
+  }
+
+  constexpr EfhTradeCond getTradeType(const char tradeCond1, const char tradeCond2) {
+    if (tradeCond1 == '\0' || tradeCond1 == ' ') {
+      return getTradeType(tradeCond2);
+    } else {
+      return getTradeType(tradeCond1);
+    }
+  }
+
+  constexpr EfhTradeCond getComplexTradeType(const char tradeCond1, const char tradeCond2) {
+    return getTradeType(tradeCond2);
+  }
+
+  constexpr int64_t getPrice(const int32_t price, const uint64_t opaqueAttrA) {
+    return priceToEfhScale(price, getAttrA(opaqueAttrA).PriceScaleCode);
+  }
+
+  constexpr int64_t RfqEmptyPrice = 999'999'999;
+
+  constexpr int64_t getRfqPrice(const int32_t price, const uint64_t opaqueAttrA) {
+    if (price == RfqEmptyPrice) {
+      return 0;
+    }
+    return getPrice(price, opaqueAttrA);
+  }
+
+  constexpr EfhOrderCapacity getRfqCapacity(const char capacity) {
+    switch (capacity) {
+    case '0': return EfhOrderCapacity::kCustomer;
+    case '1': return EfhOrderCapacity::kAgency;
+    case '2': return EfhOrderCapacity::kBrokerDealer;
+    case '3': return EfhOrderCapacity::kMarketMaker;
+    case '8': return EfhOrderCapacity::kProfessionalCustomer;
+    default: return EfhOrderCapacity::kUnknown;
+    }
+  }
+
+  constexpr EfhOrderSide getSide(const char side) {
+    switch (side) {
+    case 'B':
+      return EfhOrderSide::kBid;
+    case 'S':
+      return EfhOrderSide::kAsk;
+    default:
+      on_error("Unexpected Side \'%c\'",side);
+    }
+  }
 
 } //namespace Xdp
 #endif

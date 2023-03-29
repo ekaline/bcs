@@ -130,6 +130,7 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   if (!ekaWc) on_error ("!ekaWc");
   
   ekaHwCaps = new EkaHwCaps(snDev->dev_id);
+
   if (ekaHwCaps == NULL) on_error("ekaHwCaps == NULL");
   
   ekaHwCaps->print();

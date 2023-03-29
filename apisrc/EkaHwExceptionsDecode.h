@@ -41,8 +41,9 @@ inline int ekaDecodeExceptions(char* dst,const EfcExceptionsReport* excpt) {
   if ((excpt->exceptionStatus.globalVector>>21)&0x1) d += sprintf(d,"Bit 21: Write Combining: CTRL bitmap ff override\n" );
   if ((excpt->exceptionStatus.globalVector>>22)&0x1) d += sprintf(d,"Bit 22: Write Combining: CTRL LSB override\n" );
   if ((excpt->exceptionStatus.globalVector>>23)&0x1) d += sprintf(d,"Bit 23: Write Combining: CTRL MSB override\n" );
-  if ((excpt->exceptionStatus.globalVector>>24)&0x1) d += sprintf(d,"Bit 14: Write Combining: Partial CTRL info\n" );
+  if ((excpt->exceptionStatus.globalVector>>24)&0x1) d += sprintf(d,"Bit 24: Write Combining: Partial CTRL info\n" );
   if ((excpt->exceptionStatus.globalVector>>25)&0x1) d += sprintf(d,"Bit 25: Write Combining: pre-WC fifo overrun\n" );
+  if ((excpt->exceptionStatus.globalVector>>26)&0x1) d += sprintf(d,"Bit 26: Write Combining: Same heap bank violation\n" );
 
   for(auto i = 0; i < 4; i++) { // 4 Cores
     if (excpt->exceptionStatus.portVector[i]) {

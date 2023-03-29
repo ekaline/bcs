@@ -5,7 +5,7 @@ LWIP_ROOT ?= ../LWIP
 CCDEP:=gcc
 #CCDEP:=$GCC
 
-CC_OPT ?= -O3
+CC_OPT ?= -O3 -funroll-loops
 CXX_STANDARD ?= c++23
 ARCH_FLAGS ?= -march=native
 DEBUG_FLAGS ?= -g

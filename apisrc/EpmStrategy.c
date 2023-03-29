@@ -13,8 +13,8 @@
 
 ExcSessionId excGetSessionId( ExcConnHandle hConn );
 EkaCoreId excGetCoreId( ExcConnHandle hConn );
-unsigned short csum(unsigned short *ptr,int nbytes);
-uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size);
+/* unsigned short csum(unsigned short *ptr,int nbytes); */
+/* uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size); */
 
 /* ------------------------------------------------ */
 EpmStrategy::EpmStrategy(EkaEpm* _epm, epm_strategyid_t _id, epm_actionid_t _baseActionIdx, const EpmStrategyParams *params, EfhFeedVer _hwFeedVer) {
@@ -127,6 +127,8 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx,
       on_error("Wrong sessId %u at core %u, ekaA->type = %d, %s",
 	       sessId,coreId,(int)ekaA->type,ekaA->actionName);
     EkaTcpSess* sess = dev->core[coreId]->tcpSess[sessId];
+
+    ekaA->setTcpSess(sess);
     
     ekaA->setNwHdrs(sess->macDa,sess->macSa,
 		    sess->srcIp,sess->dstIp,
