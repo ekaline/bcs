@@ -564,8 +564,8 @@ int EkaTcpSess::preSendCheck(int len, int flags) {
 
   if (len <= 0) return len;
   
-  static const uint32_t WndMargin = 2*1024; // 1 MTU
-  static const uint32_t AllowedWndSafetyMargin = 512 * 1024; // Big number
+  static const uint32_t WndMargin = 2 * 1024; // 2 real fire MTUs
+  static const uint32_t AllowedWndSafetyMargin = 1024 * 1024; // Big number
 
   static const uint64_t FpgaInFlightLimit = 8 * 1024;
   
