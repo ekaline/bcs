@@ -519,21 +519,30 @@ int EkaTcpSess::lwipDummyWrite(void *buf, int len, uint8_t originatedFromHw) {
   
   return len;
 }
-
-/* ---------------------------------------------------------------- */
-int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
+int EkaTcpSess::preSendCheck(int len, int flags) {
   if (! dev->exc_active) {
     errno = ENETDOWN;
     return -1;
   }
-  if (len == 0) return 0;
+
+  if (len <= 0) return 0;
   
   static const uint32_t WndMargin = 2*1024; // 1 MTU
+  static const uint32_t AllowedWndSafetyMargin = 512 * 1024; // Big number
 
   uint payloadSize2send = (uint)len < MAX_PAYLOAD_SIZE ? (uint)len : MAX_PAYLOAD_SIZE;
   int64_t unAckedBytes = realFastPathBytes.load() - realTcpRemoteAckNum.load();
-
-  uint32_t allowedWnd = tcpSndWnd.load() < WndMargin ? 0 : tcpSndWnd.load() - WndMargin;
+  if (unAckedBytes < 0)
+    on_error("unAckedBytes %jd < 0",unAckedBytes);
+  
+  auto currTcpSndWnd = tcpSndWnd.load();
+  uint32_t allowedWnd = currTcpSndWnd < WndMargin ? 0 : currTcpSndWnd - WndMargin;
+  if (allowedWnd > AllowedWndSafetyMargin) {
+    EKA_ERROR("allowedWnd %u > AllowedWndSafetyMargin %u: currTcpSndWnd = %u",
+	      allowedWnd, AllowedWndSafetyMargin, currTcpSndWnd);
+    on_error("allowedWnd %u > AllowedWndSafetyMargin %u: currTcpSndWnd = %u",
+	      allowedWnd, AllowedWndSafetyMargin, currTcpSndWnd);
+  }
   if (txLwipBp.load() || unAckedBytes + payloadSize2send > allowedWnd) {
     payloadSize2send = 0;
     errno = EAGAIN;
@@ -558,6 +567,14 @@ int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
 
   realFastPathBytes.fetch_add(payloadSize2send);
   
+  return payloadSize2send;
+}
+/* ---------------------------------------------------------------- */
+int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
+  int payloadSize2send = preSendCheck(len,flags);
+  if (payloadSize2send <= 0)
+    return 0;
+    
   fastPathAction->fastSend(buf, payloadSize2send);
   return payloadSize2send;
 }
