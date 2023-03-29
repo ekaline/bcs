@@ -567,11 +567,6 @@ int EkaTcpSess::preSendCheck(int len, int flags) {
   static const uint32_t WndMargin = 2*1024; // 1 MTU
   static const uint32_t AllowedWndSafetyMargin = 512 * 1024; // Big number
 
-			   
-  static const uint32_t WndMargin = 2*1024; // 1 MTU
-  //  static const uint64_t FpgaInFlightLimit = 32 * 1024;
-  //  static const uint64_t FpgaInFlightLimit = 21800; //2/3 utilization (still interrupts)
-  //  static const uint64_t FpgaInFlightLimit = 14000;
   static const uint64_t FpgaInFlightLimit = 8 * 1024;
   
   uint payloadSize2send = (uint)len < MAX_PAYLOAD_SIZE ? (uint)len : MAX_PAYLOAD_SIZE;
