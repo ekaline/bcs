@@ -21,6 +21,7 @@
 #include "ekaNW.h"
 #include "eka_macros.h"
 
+
 uint16_t pseudo_csum2csum (uint32_t pseudo) {
   uint32_t sum = pseudo;
   while (sum>>16)
@@ -63,7 +64,6 @@ unsigned int pseudo_csum(unsigned short *ptr,int nbytes) {
     unsigned int answer;
     sum=0;
     while(nbytes>1) {
-      //      EKA_TEST("sum = 0x%04x, d = 0x%04x",sum,*ptr);
         sum+=*ptr++;
         nbytes-=2;
     }

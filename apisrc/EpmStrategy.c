@@ -13,8 +13,8 @@
 
 ExcSessionId excGetSessionId( ExcConnHandle hConn );
 EkaCoreId excGetCoreId( ExcConnHandle hConn );
-unsigned short csum(unsigned short *ptr,int nbytes);
-uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size);
+/* unsigned short csum(unsigned short *ptr,int nbytes); */
+/* uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size); */
 
 /* ------------------------------------------------ */
 EpmStrategy::EpmStrategy(EkaEpm* _epm, epm_strategyid_t _id, epm_actionid_t _baseActionIdx, const EpmStrategyParams *params, EfhFeedVer _hwFeedVer) {

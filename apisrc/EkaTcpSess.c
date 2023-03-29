@@ -19,6 +19,7 @@
 #include "EpmFastPathTemplate.h"
 #include "EpmRawPktTemplate.h"
 #include "EkaEpmAction.h"
+#include "EkaCsumSSE.h"
 
 #include "ekaNW.h"
 
@@ -337,10 +338,11 @@ void EkaTcpSess::insertEmptyRemoteAck(uint64_t seq,const void* pkt) {
   ipHdr->_len    = be16toh(sizeof(EkaIpHdr) + sizeof(EkaTcpHdr));
   tcpHdr->chksum = 0;
   
-  ipHdr->_chksum = csum((const unsigned short *)ipHdr, sizeof(EkaIpHdr));
+  ipHdr->_chksum = ekaCsum((const unsigned short *)ipHdr, sizeof(EkaIpHdr));
   tcpHdr->ackno  = be32toh(uint32_t(seq & 0xFFFFFFFF));
   
-  tcpHdr->chksum = calc_tcp_csum(ipHdr,tcpHdr,NULL,0);
+  //  tcpHdr->chksum = calc_tcp_csum(ipHdr,tcpHdr,NULL,0);
+  tcpHdr->chksum = ekaTcpCsum(ipHdr,tcpHdr);
 
 #if _EKA_PRINT_INSERTED_ACK
   char emptyAckStr[2048] = {};

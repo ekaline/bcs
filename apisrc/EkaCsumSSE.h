@@ -38,6 +38,7 @@ __m128i xmm_shift_left(__m128i reg, const unsigned int num) {
         return _mm_shuffle_epi8(reg, _mm_loadu_si128(p));
 }
 
+inline
 void IPChecksumInit(void) {
   /**
    * swap16a mask converts least significant 8 bytes of
@@ -191,7 +192,7 @@ uint16_t IPChecksumSSE(const uint8_t *data, uint32_t data_len) {
 }
 
 inline
-uint32_t ekaPseudoTcpCsum(const EkaIpHdr* ipHdr,
+uint32_t ekaPseudoTcpCsum_intel(const EkaIpHdr* ipHdr,
 			  const EkaTcpHdr* tcpHdr) {
   
   //  IPChecksumInit();
@@ -242,16 +243,198 @@ uint32_t calculate_pseudo_tcp_checksum_old(const EkaIpHdr* ipHdr,
   return sum;
 }
 
+
 inline
-uint16_t calculate_tcp_checksum_old(uint32_t pseudo) {
-  uint32_t sum = pseudo;
+uint32_t calc_pseudo_ipHdrPart(const EkaIpHdr* ipHdr) {
+uint32_t sum = 0;
 
-  // Fold the sum into a 16-bit checksum
-  while (sum >> 16) {
-    sum = (sum & 0xFFFF) + (sum >> 16);
-  }
+ #if 0
+  sum += be16toh(ipHdr->src & 0xFFFF);
+  sum += be16toh((ipHdr->src>>16) & 0xFFFF);
+  sum += be16toh(ipHdr->dest & 0xFFFF);
+  sum += be16toh((ipHdr->dest>>16) & 0xFFFF);
+  sum += (uint16_t)EKA_PROTO_TCP;
+  sum += be16toh(ipHdr->_len) - sizeof(EkaIpHdr);
+#else
+  //  TEST_LOG("sum = 0x%04x d=0x%04x",sum,ipHdr->src & 0xFFFF);
+  sum += ipHdr->src & 0xFFFF;
 
-  return static_cast<uint16_t>(~sum);
+  //  TEST_LOG("sum = 0x%04x d=0x%04x",sum,(ipHdr->src>>16) & 0xFFFF);
+  sum += (ipHdr->src>>16) & 0xFFFF;
+
+  //  TEST_LOG("sum = 0x%04x d=0x%04x",sum,ipHdr->dest & 0xFFFF);
+  sum += ipHdr->dest & 0xFFFF;
+
+  //  TEST_LOG("sum = 0x%04x d=0x%04x",sum,(ipHdr->dest>>16) & 0xFFFF);
+  sum += (ipHdr->dest>>16) & 0xFFFF;
+
+  //  TEST_LOG("sum = 0x%04x d=0x%04x",sum,be16toh((uint16_t)EKA_PROTO_TCP));
+  sum += be16toh((uint16_t)EKA_PROTO_TCP);
+
+  //  TEST_LOG("sum = 0x%04x d=0x%04x",sum,be16toh(be16toh(ipHdr->_len) - sizeof(EkaIpHdr)));
+  sum += be16toh(be16toh(ipHdr->_len) - sizeof(EkaIpHdr));
+#endif
+  return sum;
 }
 
+template <const int Iter> inline
+uint32_t calcPseudoBlock(const uint16_t *ptr) {
+  uint32_t sum = 0;
+  //#pragma GCC optimize ("unroll-loops")
+  for (auto i = 0; i < Iter; i++) {
+    //    TEST_LOG("sum = 0x%04x d=0x%04x",sum,*ptr);
+    sum += *ptr++;
+  }
+  return sum;
+}
+
+
+inline
+uint32_t pseudo_csum_unrolled(const uint16_t *ptr,int nbytes) {
+  uint32_t sum = 0;
+  int restBytes = nbytes;
+  {
+    const int iter = 512;
+    if (restBytes >= iter * 2) {
+      sum += calcPseudoBlock<iter>(ptr);
+      ptr += iter;
+      restBytes -= 2 * iter;
+    }
+  }
+  {
+    const int iter = 256;
+    if (restBytes >= iter * 2) {
+      sum += calcPseudoBlock<iter>(ptr);
+      ptr += iter;
+      restBytes -= 2 * iter;
+    }
+  }
+  {
+    const int iter = 128;
+    if (restBytes >= iter * 2) {
+      sum += calcPseudoBlock<iter>(ptr);
+      ptr += iter;
+      restBytes -= 2 * iter;
+    }
+  }
+  {
+    const int iter = 64;
+    if (restBytes >= iter * 2) {
+      sum += calcPseudoBlock<iter>(ptr);
+      ptr += iter;
+      restBytes -= 2 * iter;
+    }
+  }
+  {
+    const int iter = 32;
+    if (restBytes >= iter * 2) {
+      sum += calcPseudoBlock<iter>(ptr);
+      ptr += iter;
+      restBytes -= 2 * iter;
+    }
+  }
+  {
+    const int iter = 16;
+    if (restBytes >= iter * 2) {
+      sum += calcPseudoBlock<iter>(ptr);
+      ptr += iter;
+      restBytes -= 2 * iter;
+    }
+  }
+  {
+    const int iter = 8;
+    if (restBytes >= iter * 2) {
+      sum += calcPseudoBlock<iter>(ptr);
+      ptr += iter;
+      restBytes -= 2 * iter;
+    }
+  }
+  {
+    const int iter = 4;
+    if (restBytes >= iter * 2) {
+      sum += calcPseudoBlock<iter>(ptr);
+      ptr += iter;
+      restBytes -= 2 * iter;
+    }
+  }
+  {
+    const int iter = 2;
+    if (restBytes >= iter * 2) {
+      sum += calcPseudoBlock<iter>(ptr);
+      ptr += iter;
+      restBytes -= 2 * iter;
+    }
+  }
+  {
+    const int iter = 1;
+    if (restBytes >= iter * 2) {
+      sum += calcPseudoBlock<iter>(ptr);
+      ptr += iter;
+      restBytes -= 2 * iter;
+    }
+  }
+  if (restBytes == 1) {
+    uint16_t oddbyte = 0;
+    *((u_char*)&oddbyte)=*(u_char*)ptr;
+    //    TEST_LOG("sum = 0x%04x d=0x%04x",sum,oddbyte);
+    sum += oddbyte;
+  }
+  return sum;
+}
+
+inline
+uint16_t ekaCsum(const uint16_t *ptr,int nbytes) {
+    long sum;
+    unsigned short oddbyte;
+    short answer;
+ 
+    sum=0;
+    while(nbytes>1) {
+        sum+=*ptr++;
+        nbytes-=2;
+    }
+    if(nbytes==1) {
+        oddbyte=0;
+        *((u_char*)&oddbyte)=*(u_char*)ptr;
+        sum+=oddbyte;
+    }
+    sum = (sum>>16)+(sum & 0xffff);
+    sum = sum + (sum>>16);
+    answer=(short)~sum;
+     
+    return(answer);
+}
+
+inline
+uint32_t ekaPseudoTcpCsum(const EkaIpHdr* ipHdr,
+			  const EkaTcpHdr* tcpHdr) {
+  auto pseudo = calc_pseudo_ipHdrPart(ipHdr);
+  pseudo += pseudo_csum_unrolled((const uint16_t*)tcpHdr,
+				 be16toh(ipHdr->_len) - sizeof(EkaIpHdr));
+
+  //  TEST_LOG("TCP LEN = %d",(int)(be16toh(ipHdr->_len) - sizeof(EkaIpHdr)));
+  return pseudo;
+}
+
+inline 
+uint16_t foldPseudoCsum (uint32_t pseudo) {
+  uint32_t sum = pseudo;
+  while (sum>>16)
+    sum = (sum & 0xFFFF)+(sum >> 16);
+
+  /* sum = (sum>>16)+(sum & 0xffff); */
+  /* sum = sum + (sum>>16); */
+
+  // one's complement the result
+  sum = ~sum;
+	
+  return ((uint16_t) sum);
+}
+
+inline
+uint16_t ekaTcpCsum(const EkaIpHdr* ipHdr,
+		 const EkaTcpHdr* tcpHdr) {
+
+  return foldPseudoCsum(ekaPseudoTcpCsum(ipHdr,tcpHdr));
+}
 #endif

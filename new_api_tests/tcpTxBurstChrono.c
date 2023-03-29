@@ -85,7 +85,7 @@ void excSendThr_f(EkaDev* pEkaDev,
 	auto one = std::chrono::high_resolution_clock::now();    
 	int rc = excSend (pEkaDev, hCon, p, currPktSize, 0);
 	auto two = std::chrono::high_resolution_clock::now();
-	if (l_cnt<iter)
+	if ((int)l_cnt<iter)
 	  rttRdLatency[l_cnt++] = (uint64_t)(std::chrono::duration_cast<std::chrono::nanoseconds>(two-one).count());
 	
 	/* ------------------- */
