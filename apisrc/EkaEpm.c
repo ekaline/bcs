@@ -64,11 +64,8 @@ void EkaEpm::initHeap(uint regionHeapBaseOffs, uint regionHeapSize, uint regionI
     dev->ekaWc->epmCopyWcBuf(hwPageStart,
 			     &heap[swPageStart],
 			     HeapWcPageSize,
-			     EkaWc::AccessType::HeapInit,
 			     0, // actionLocalIdx
-			     regionId,
-			     0, // tcpPseudoCsum
-			     EkaWc::SendOp::DontSend);
+			     regionId);
 #endif    
   }
 }

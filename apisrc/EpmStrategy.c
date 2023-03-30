@@ -135,13 +135,7 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx,
 		    sess->srcPort,sess->dstPort);
   }
   //---------------------------------------------------------
-
-  if (ekaA->isUdp())    
-    ekaA->setUdpPktPayload(&epm->heap[epmAction->offset],
-			   epmAction->length);
-  else
-    ekaA->setPktPayload(&epm->heap[epmAction->offset],
-				 epmAction->length);
+  ekaA->copyHeap2Fpga();
 
   ekaA->initialized = true;
 
@@ -170,7 +164,11 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx,
 	     (uint64_t*)&ekaA->hwAction,
 	     sizeof(ekaA->hwAction)); //write to scratchpad
   atomicIndirectBufWrite(dev,0xf0238/*ActionAddr*/,0,0,ekaA->idx,0);
-    
+
+
+  /* ekaA->printHeap(); */
+  /* ekaA->printHwAction(); */
+  
   //---------------------------------------------------------
 
   return EKA_OPRESULT__OK;
