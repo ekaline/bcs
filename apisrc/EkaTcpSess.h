@@ -70,9 +70,7 @@ class EkaTcpSess {
   EkaTcpSess* controlTcpSess = NULL;
   
   EkaEpmAction* fastPathAction = {};
-  int fastPathActionIdx = 0;
   EkaEpmAction* fullPktAction = {};
-  int fullPktActionIdx = 0;
 
   EkaEpmAction* emptyAckAction = NULL;
 

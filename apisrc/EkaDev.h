@@ -15,8 +15,6 @@
 
 #include "eka_sn_addr_space.h"
 
-#include "EkaHeapWrChannels.h"
-
 class EkaFhRunGroup;
 class EkaFhGroup;
 class EkaFh;

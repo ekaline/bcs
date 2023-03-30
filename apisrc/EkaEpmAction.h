@@ -7,7 +7,7 @@
 class EkaTcpSess;
 
 class EkaEpmAction {
- public:
+public:
   EkaEpmAction(EkaDev*                 _dev,
 	       EkaEpm::ActionType      _type,
 	       uint                    _idx,
@@ -21,6 +21,12 @@ class EkaEpmAction {
 
   /* ----------------------------------------------------- */
   int updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction *epmAction);
+  /* ----------------------------------------------------- */
+  void updateHwAction();
+  /* ----------------------------------------------------- */
+  void printHwAction();
+  /* ----------------------------------------------------- */
+  void printHeap();
   /* ----------------------------------------------------- */
   void print(const char* msg);
   /* ----------------------------------------------------- */
@@ -41,11 +47,9 @@ class EkaEpmAction {
 		uint16_t srcPort, 
 		uint16_t dstPort);
   /* ----------------------------------------------------- */
-  int setEthFrame(const void* buf, uint len, bool send = false);
+  int sendFullPkt(const void* buf, uint len);
   /* ----------------------------------------------------- */
-  int updatePayload(uint heapOffset, uint len);
-  /* ----------------------------------------------------- */
-  int setPktPayload(const void* buf, uint len);
+  int preloadFullPkt(const void* buf, uint len);
   /* ----------------------------------------------------- */
   int setPktPayloadAndSendWC(const void* buf, uint len);
   /* ----------------------------------------------------- */
@@ -60,7 +64,7 @@ class EkaEpmAction {
   bool isTcp();
   bool isUdp();
 
- private:
+private:
   int setActionBitmap();
   int setTemplate();
   int setName();
@@ -71,21 +75,29 @@ class EkaEpmAction {
   size_t getPayloadOffset();
   uint16_t getL3L4len();
 
-  inline void copyHeap2Fpga(EkaWc::AccessType type,EkaWc::SendOp send) {
-    if (!dev->ekaWc) on_error("!dev->ekaWc");
+public:
+  inline
+  void copyHeap2Fpga() {
     dev->ekaWc->epmCopyWcBuf(heapAddr,
 			     &epm->heap[heapOffs],
 			     pktSize,
-			     type,
 			     localIdx,
-			     region,
-			     tcpCSum,
-			     send
+			     region
 			     );
+  }
+
+  inline
+  void copyHeap2FpgaAndSend() {
+    dev->ekaWc->epmCopyAndSendWcBuf(&epm->heap[heapOffs],
+				    pktSize,
+				    localIdx,
+				    region,
+				    tcpCSum
+				    );
   }
   /* ----------------------------------------------------- */
 
- public:
+public:
   char actionName[30] = {};
 
   EkaDev*  dev = NULL;

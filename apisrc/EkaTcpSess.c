@@ -269,6 +269,8 @@ EkaTcpSess::~EkaTcpSess() {
 
 int EkaTcpSess::preloadNwHeaders() {
   emptyAckAction->setNwHdrs(macDa,macSa,srcIp,dstIp,srcPort,dstPort);
+  emptyAckAction->copyHeap2Fpga();
+
   if (sessId == CONTROL_SESS_ID) {
     if (fastPathAction)
       on_error("fastPathAction exists for CONTROL_SESS");
@@ -486,6 +488,7 @@ int EkaTcpSess::sendStackEthFrame(void *pkt, int len) {
     tcpRemoteSeqNum = EKA_TCPH_ACKNO(pkt);
     setRemoteSeqWnd2FPGA();
     emptyAckAction->send(); //
+    //emptyAckAction->copyHeap2FpgaAndSend();
     /* TEST_LOG("Sending Empty ACK %u",EKA_TCPH_ACKNO(pkt)); */
   } else {
     /* TEST_LOG("NOT Sending ACK %u",EKA_TCPH_ACKNO(pkt)); */
@@ -512,8 +515,7 @@ int EkaTcpSess::sendEthFrame(void *buf, int len) {
   if ((uint)len > MAX_ETH_FRAME_SIZE)
     on_error("Size %d > MAX_ETH_FRAME_SIZE (%d)",len,MAX_ETH_FRAME_SIZE);
 
-  fullPktAction->setEthFrame(buf,(uint)len,true);
-  fullPktActionIdx = ! fullPktActionIdx;
+  fullPktAction->sendFullPkt(buf,(uint)len);
 
   return 0;
 }
