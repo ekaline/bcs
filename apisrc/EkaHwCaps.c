@@ -11,10 +11,11 @@
 #include <stdio.h>
 
 
-EkaHwCaps::EkaHwCaps(SN_DeviceId devId) {
-  DeviceId = devId;
+EkaHwCaps::EkaHwCaps(EkaDev* _dev) {
+  dev = _dev;
 
-  if (! DeviceId) on_error("! DeviceId");
+  SN_DeviceId DeviceId = SN_OpenDevice(NULL, NULL);
+  if (DeviceId == NULL) on_error("failed on SN_OpenDevice");
 
   uint words2read = sizeof(hwCaps) / 8 + !!(sizeof(hwCaps) % 8);
   uint64_t srcAddr = HwCapabilitiesAddr / 8;
@@ -41,6 +42,7 @@ EkaHwCaps::EkaHwCaps(SN_DeviceId devId) {
   if (state.paramC == 0) on_error("state.paramC == NULL");
   
   ioctl(fd,SMARTNIC_EKALINE_DATA,&state);
+  SN_CloseDevice(DeviceId);
 
   snDriverVerNum = *(uint64_t*)state.paramC;
 
@@ -56,11 +58,17 @@ EkaHwCaps::EkaHwCaps(SN_DeviceId devId) {
 }
 
 void EkaHwCaps::refresh() {
+  SN_DeviceId DeviceId = SN_OpenDevice(NULL, NULL);
+  if (DeviceId == NULL) on_error("failed on SN_OpenDevice");
+
   uint words2read = sizeof(hwCaps) / 8 + !!(sizeof(hwCaps) % 8);
   uint64_t srcAddr = HwCapabilitiesAddr / 8;
   uint64_t* dstAddr = (uint64_t*)&hwCaps;
   for (uint w = 0; w < words2read; w++)
     SN_ReadUserLogicRegister(DeviceId, srcAddr++, dstAddr++);
+
+  SN_CloseDevice(DeviceId);
+
 }
 
 void EkaHwCaps::print2buf() {
@@ -96,6 +104,7 @@ void EkaHwCaps::print2buf() {
 }
 
 void EkaHwCaps::print() {
+  if (dev == NULL) on_error("dev == NULL");
   EKA_LOG("%s",buf);
 }
 
