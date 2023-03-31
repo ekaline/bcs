@@ -70,8 +70,7 @@ public:
     }
 
 
-    bool currTxBuf = txBuf_.load();
-    auto hwHeapAddr = currTxBuf ? TxBufAddr_1 : TxBufAddr_0;
+    auto hwHeapAddr = txBuf_ ? TxBufAddr_1 : TxBufAddr_0;
     auto wcRegionBase = (volatile uint64_t*)((uint64_t)snDevWCPtr_ + wcChId * 0x800);
 
     epmCopyWcDesc(wcRegionBase,
@@ -88,12 +87,9 @@ public:
 		     );
 
 
-    if (currTxBuf != txBuf_.load())
-      on_error("Sanity check failed on WC TX Buf toggle");
+    txBuf_ = ! txBuf_;
     
-    txBuf_.store(! currTxBuf);
-    
-    busy_.clear();
+    busy_.clear(std::memory_order_release);
 
     return;
   }
@@ -117,7 +113,7 @@ private:
 
   volatile uint64_t *snDevWCPtr_;
 
-  std::atomic<bool> txBuf_ = 0;
+  volatile bool txBuf_ = 0;
   std::atomic_flag  busy_ = ATOMIC_FLAG_INIT;
 
   /* ----------------------------------------- */
