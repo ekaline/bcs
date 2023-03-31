@@ -87,6 +87,10 @@ public:
 		     roundUp64(pktSize)
 		     );
 
+
+    if (currTxBuf != txBuf_.load())
+      on_error("Sanity check failed on WC TX Buf toggle");
+    
     txBuf_.store(! currTxBuf);
     
     busy_.clear();

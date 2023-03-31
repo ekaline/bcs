@@ -223,6 +223,8 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 }
 /* ##################################################################### */
 bool EkaDev::initEpmTx() {
+  // clearing interrupts, App Seq, etc.
+  eka_write(STAT_CLEAR   ,(uint64_t) 1); 
 
   // dissabling TCP traffic
   for (auto coreId = 0; coreId < MAX_CORES; coreId++)
