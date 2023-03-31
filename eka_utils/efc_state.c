@@ -27,7 +27,7 @@
 
 #define MASK32 0xffffffff
 
-static SN_DeviceId devId;
+SN_DeviceId devId;
 
 struct IfParams {
   char     name[50] = {};//{'N','O','_','N','A','M','E'};
@@ -43,11 +43,19 @@ struct IfParams {
 
   uint64_t totalRxBytes = 0;
   uint64_t totalRxPkts = 0;
-  uint32_t currPPS = 0;
-  uint32_t maxPPS  = 0;
-  uint64_t currBPS = 0;
-  uint64_t maxBPS = 0;
+  uint32_t currRxPPS = 0;
+  uint32_t maxRxPPS  = 0;
+  uint64_t currRxBPS = 0;
+  uint64_t maxRxBPS = 0;
   uint64_t droppedPkts = 0;
+
+  uint64_t totalTxBytes = 0;
+  uint64_t totalTxPkts = 0;
+  uint32_t currTxPPS = 0;
+  uint32_t maxTxPPS  = 0;
+  uint64_t currTxBPS = 0;
+  uint64_t maxTxBPS = 0;
+  
 };
 
 #define ADDR_P4_CONT_COUNTER1        0xf0340
@@ -256,7 +264,7 @@ void printTime() {
 	 );
 }
 //################################################
-void checkVer() {
+static void checkVer() {
   uint64_t swVer = reg_read(SCRPAD_SW_VER);
   if ((swVer & 0xFFFFFFFF00000000) != EKA_CORRECT_SW_VER) {
     fprintf(stderr,RED "%s: current SW Version 0x%jx is not supported by %s\n" RESET,__func__,swVer,__FILE__);
@@ -363,68 +371,125 @@ int getCurrTraffic(IfParams coreParams[NUM_OF_CORES]) {
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
 
+    //RX
     uint64_t pps = reg_read(ADDR_STATS_RX_PPS + coreId * 0x1000);
-    coreParams[coreId].currPPS = pps & 0xFFFFFFFF;
-    coreParams[coreId].maxPPS  = (pps >> 32) & 0xFFFFFFFF;
+    coreParams[coreId].currRxPPS = pps & 0xFFFFFFFF;
+    coreParams[coreId].maxRxPPS  = (pps >> 32) & 0xFFFFFFFF;
     coreParams[coreId].totalRxBytes = reg_read(ADDR_STATS_RX_BYTES_TOT  + coreId * 0x1000);
     coreParams[coreId].totalRxPkts  = reg_read(ADDR_STATS_RX_PKTS_TOT   + coreId * 0x1000);
-    coreParams[coreId].currBPS      = reg_read(ADDR_STATS_RX_BPS_CURR   + coreId * 0x1000);
-    coreParams[coreId].maxBPS       = reg_read(ADDR_STATS_RX_BPS_MAX    + coreId * 0x1000);
+    coreParams[coreId].currRxBPS      = reg_read(ADDR_STATS_RX_BPS_CURR   + coreId * 0x1000);
+    coreParams[coreId].maxRxBPS       = reg_read(ADDR_STATS_RX_BPS_MAX    + coreId * 0x1000);
     coreParams[coreId].droppedPkts  = reg_read(EFC_DROPPED_PKTS         + coreId * 0x1000) & 0xFFFFFFFF;
+    //TX
+    pps = reg_read(ADDR_STATS_TX_PPS + coreId * 0x1000);
+    coreParams[coreId].currTxPPS = pps & 0xFFFFFFFF;
+    coreParams[coreId].maxTxPPS  = (pps >> 32) & 0xFFFFFFFF;
+    coreParams[coreId].totalTxBytes = reg_read(ADDR_STATS_TX_BYTES_TOT  + coreId * 0x1000);
+    coreParams[coreId].totalTxPkts  = reg_read(ADDR_STATS_TX_PKTS_TOT   + coreId * 0x1000);
+    coreParams[coreId].currTxBPS      = reg_read(ADDR_STATS_TX_BPS_CURR   + coreId * 0x1000);
+    coreParams[coreId].maxTxBPS       = reg_read(ADDR_STATS_TX_BPS_MAX    + coreId * 0x1000);
   }
 
   return 0;
 }
 //################################################
 
-int printCurrTraffic(IfParams coreParams[NUM_OF_CORES]) {
+int printCurrRxTraffic(IfParams coreParams[NUM_OF_CORES]) {
 
-  printf (prefixStrFormat,"Current PPS");
+  printf (prefixStrFormat,"Current RX PPS");
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
-    printf (colformat,coreParams[coreId].currPPS);
+    printf (colformat,coreParams[coreId].currRxPPS);
   }
   printf("\n");
 
-  printf (prefixStrFormat,"MAX     PPS");
+  printf (prefixStrFormat,"MAX     RX PPS");
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
-    printf (colformat,coreParams[coreId].maxPPS);
+    printf (colformat,coreParams[coreId].maxRxPPS);
   }
   printf("\n");
 
-  printf (prefixStrFormat,"Current Bit Rate");
+  printf (prefixStrFormat,"Current RX Bit Rate");
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
-    printf (colformat,coreParams[coreId].currBPS * 8);
+    printf (colformat,coreParams[coreId].currRxBPS * 8);
   }
   printf("\n");
 
-  printf (prefixStrFormat,"Max     Bit Rate");
+  printf (prefixStrFormat,"MAX     RX Bit Rate");
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
-    printf (colformat,coreParams[coreId].maxBPS * 8);
+    printf (colformat,coreParams[coreId].maxRxBPS * 8);
   }
   printf("\n");
 
-  printf (prefixStrFormat,"Total   RX  Packets");
+  printf (prefixStrFormat,"Total   RX Packets");
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
     printf (colformat,coreParams[coreId].totalRxPkts);
   }
   printf("\n");
 
-  printf (prefixStrFormat,"Total   RX  Bytes");
+  printf (prefixStrFormat,"Total   RX Bytes");
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
     printf (colformat,coreParams[coreId].totalRxBytes);
   }
   printf("\n");
 
-  printf (prefixStrFormat,"Ignored MD  Packets");
+  printf (prefixStrFormat,"Ignored MD Packets");
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
     printf (colformat,coreParams[coreId].droppedPkts);
+  }
+  printf("\n");
+
+  return 0;
+}
+//################################################
+
+int printCurrTxTraffic(IfParams coreParams[NUM_OF_CORES]) {
+
+  printf (prefixStrFormat,"Current TX PPS");
+  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
+    if (! coreParams[coreId].valid) continue;
+    printf (colformat,coreParams[coreId].currTxPPS);
+  }
+  printf("\n");
+
+  printf (prefixStrFormat,"MAX     TX PPS");
+  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
+    if (! coreParams[coreId].valid) continue;
+    printf (colformat,coreParams[coreId].maxTxPPS);
+  }
+  printf("\n");
+
+  printf (prefixStrFormat,"Current TX Bit Rate");
+  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
+    if (! coreParams[coreId].valid) continue;
+    printf (colformat,coreParams[coreId].currTxBPS * 8);
+  }
+  printf("\n");
+
+  printf (prefixStrFormat,"MAX     TX Bit Rate");
+  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
+    if (! coreParams[coreId].valid) continue;
+    printf (colformat,coreParams[coreId].maxTxBPS * 8);
+  }
+  printf("\n");
+
+  printf (prefixStrFormat,"Total   TX Packets");
+  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
+    if (! coreParams[coreId].valid) continue;
+    printf (colformat,coreParams[coreId].totalTxPkts);
+  }
+  printf("\n");
+
+  printf (prefixStrFormat,"Total   TX Bytes");
+  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
+    if (! coreParams[coreId].valid) continue;
+    printf (colformat,coreParams[coreId].totalTxBytes);
   }
   printf("\n");
 
@@ -651,9 +716,12 @@ int main(int argc, char *argv[]) {
     /* ----------------------------------------- */
     printLineSeparator(coreParams,'+','-');
     /* ----------------------------------------- */
-    printCurrTraffic(coreParams);
+    printCurrRxTraffic(coreParams);
     /* ----------------------------------------- */
     printLineSeparator(coreParams,'+','-');
+    /* ----------------------------------------- */
+    printCurrTxTraffic(coreParams);
+    /* ----------------------------------------- */
     printLineSeparator(coreParams,'+','-');
     /* ----------------------------------------- */
     printf("Generic parser template: %s\n",EKA_FEED2STRING (ekaHwCaps->hwCaps.version.parser)); 

@@ -20,7 +20,7 @@
 #include "EkaUdpChannel.h"
 #include "EkaIgmp.h"
 #include "EkaEfc.h"
-
+#include "EkaWc.h"
 #include "eka_hw_conf.h"
 #include "EkaHwInternalStructs.h"
 
@@ -125,8 +125,12 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   createThread = initCtx->createThread == NULL ? ekaDefaultCreateThread : initCtx->createThread;
 
   snDev          = new EkaSnDev(this);
+  if (!snDev) on_error ("!snDev");
+  ekaWc          = new EkaWc(snDevWCPtr);
+  if (!ekaWc) on_error ("!ekaWc");
 
   ekaHwCaps = new EkaHwCaps(snDev->dev_id);
+
   if (ekaHwCaps == NULL) on_error("ekaHwCaps == NULL");
   
   ekaHwCaps->print();
@@ -219,11 +223,13 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 }
 /* ##################################################################### */
 bool EkaDev::initEpmTx() {
+  // clearing interrupts, App Seq, etc.
+  eka_write(STAT_CLEAR   ,(uint64_t) 1);
 
   // dissabling TCP traffic
   for (auto coreId = 0; coreId < MAX_CORES; coreId++)
     eka_write(0xe0000 + coreId * 0x1000 + 0x200, 0);
-  
+
   epmReport = new EkaUserChannel(dev,snDev->dev_id,EkaUserChannel::TYPE::EPM_REPORT);
   if (epmReport == NULL) on_error("Failed to open epmReport Channel");
   if (! epmReport->isOpen()) on_error("epmReport Channel is Closed");
@@ -238,7 +244,8 @@ bool EkaDev::initEpmTx() {
 
   ekaInitLwip(this);
 
-  epm->createRegion(EkaEpm::ServiceRegion, EkaEpm::ServiceRegion * EkaEpm::ActionsPerRegion);
+  epm->createRegion(EkaEpm::TcpTxRegion,
+		    EkaEpm::TcpTxRegion * EkaEpm::ActionsPerRegion);
 
   uint64_t fire_rx_tx_en = eka_read(ENABLE_PORT);
   fire_rx_tx_en |= (1ULL << 32); //turn off tcprx

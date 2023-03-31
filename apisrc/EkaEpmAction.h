@@ -2,9 +2,12 @@
 #define _EKA_EPM_ACTION_H_
 
 #include "EkaEpm.h"
+#include "EkaWc.h"
+
+class EkaTcpSess;
 
 class EkaEpmAction {
- public:
+public:
   EkaEpmAction(EkaDev*                 _dev,
 	       EkaEpm::ActionType      _type,
 	       uint                    _idx,
@@ -19,6 +22,12 @@ class EkaEpmAction {
   /* ----------------------------------------------------- */
   int updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction *epmAction);
   /* ----------------------------------------------------- */
+  void updateHwAction();
+  /* ----------------------------------------------------- */
+  void printHwAction();
+  /* ----------------------------------------------------- */
+  void printHeap();
+  /* ----------------------------------------------------- */
   void print(const char* msg);
   /* ----------------------------------------------------- */
   int setUdpMcNwHdrs(uint8_t* macSa, 
@@ -28,6 +37,8 @@ class EkaEpmAction {
 		     uint16_t dstPort,
 		     uint     payloadSize);
   /* ----------------------------------------------------- */
+  void setTcpSess(EkaTcpSess* tcpSess);
+  /* ----------------------------------------------------- */
 
   int setNwHdrs(uint8_t* macDa, 
 		uint8_t* macSa, 
@@ -36,11 +47,11 @@ class EkaEpmAction {
 		uint16_t srcPort, 
 		uint16_t dstPort);
   /* ----------------------------------------------------- */
-  int setEthFrame(const void* buf, uint len);
+  int sendFullPkt(const void* buf, uint len);
   /* ----------------------------------------------------- */
-  int updatePayload(uint heapOffset, uint len);
+  int preloadFullPkt(const void* buf, uint len);
   /* ----------------------------------------------------- */
-  int setPktPayload(const void* buf, uint len);
+  int setPktPayloadAndSendWC(const void* buf, uint len);
   /* ----------------------------------------------------- */
   int setUdpPktPayload(const void* buf, uint len);
   /* ----------------------------------------------------- */
@@ -50,12 +61,10 @@ class EkaEpmAction {
   /* ----------------------------------------------------- */
   int fastSend(const void* buf, uint len);
   /* ----------------------------------------------------- */
-  int fastSend(const void* buf);
-  /* ----------------------------------------------------- */
   bool isTcp();
   bool isUdp();
 
- private:
+private:
   int setActionBitmap();
   int setTemplate();
   int setName();
@@ -66,9 +75,29 @@ class EkaEpmAction {
   size_t getPayloadOffset();
   uint16_t getL3L4len();
 
+public:
+  inline
+  void copyHeap2Fpga() {
+    dev->ekaWc->epmCopyWcBuf(heapAddr,
+			     &epm->heap[heapOffs],
+			     pktSize,
+			     localIdx,
+			     region
+			     );
+  }
+
+  inline
+  void copyHeap2FpgaAndSend() {
+    dev->ekaWc->epmCopyAndSendWcBuf(&epm->heap[heapOffs],
+				    pktSize,
+				    localIdx,
+				    region,
+				    tcpCSum
+				    );
+  }
   /* ----------------------------------------------------- */
 
- public:
+public:
   char actionName[30] = {};
 
   EkaDev*  dev = NULL;
@@ -111,7 +140,10 @@ private:
   EkaTcpHdr*       tcpHdr          = NULL;
   EkaUdpHdr*       udpHdr          = NULL;
   uint8_t*         payload         = NULL;
- 
+
+  volatile uint64_t* snDevWCPtr = NULL;
+
+  EkaTcpSess*      mySess          = NULL;
 };
 
 

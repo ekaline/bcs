@@ -79,7 +79,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 
       if (std::isdigit(*scanFraction)) {
         EKA_WARN("price of `%s` expiry %d %s is `%s` which exceeds integral price "
-                 "precision of %d", msg.commonDef.classSymbol,
+                 "precision of %jd", msg.commonDef.classSymbol,
                  msg.commonDef.expiryDate,
                  msg.optionType == EfhOptionType::kCall ? "call" : "put",
                  m->StrikePrice, EFH__PRICE_SCALE);

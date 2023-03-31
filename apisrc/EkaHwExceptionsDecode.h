@@ -17,9 +17,9 @@ inline int ekaDecodeExceptions(char* dst,const EfcExceptionsReport* excpt) {
     d += sprintf(d,RED"\n\nFPGA internal exceptions:\n" RESET);
   else
     goto END;
-  if ((excpt->exceptionStatus.globalVector>>0 )&0x1) d += sprintf(d,"Bit 0: SW->HW Write Corruption\n" );
-  if ((excpt->exceptionStatus.globalVector>>1 )&0x1) d += sprintf(d,"Bit 1: HW->SW TCP feedback DMA data full\n" );
-  if ((excpt->exceptionStatus.globalVector>>2 )&0x1) d += sprintf(d,"Bit 2: HW->SW TCP feedback DMA control full\n" );
+  if ((excpt->exceptionStatus.globalVector>>0 )&0x1) d += sprintf(d,"Bit 0: SW->HW Configuration Write Corruption\n" );
+  if ((excpt->exceptionStatus.globalVector>>1 )&0x1) d += sprintf(d,"Bit 1: HW->SW Dummy Packet DMA data full\n" );
+  if ((excpt->exceptionStatus.globalVector>>2 )&0x1) d += sprintf(d,"Bit 2: HW->SW Dummy Packet DMA control full\n" );
   if ((excpt->exceptionStatus.globalVector>>3 )&0x1) d += sprintf(d,"Bit 3: HW->SW Report feedback DMA data full\n" );
   if ((excpt->exceptionStatus.globalVector>>4 )&0x1) d += sprintf(d,"Bit 4: HW->SW Report feedback DMA control full\n" );
   if ((excpt->exceptionStatus.globalVector>>5 )&0x1) d += sprintf(d,"Bit 5: Controller Watchdog Expired\n" );
@@ -31,6 +31,19 @@ inline int ekaDecodeExceptions(char* dst,const EfcExceptionsReport* excpt) {
   if ((excpt->exceptionStatus.globalVector>>11)&0x1) d += sprintf(d,"Bit 11: Strategy MD vs Context Out of Sync\n" );
   if ((excpt->exceptionStatus.globalVector>>12)&0x1) d += sprintf(d,"Bit 12: Strategy Security ID mismatch\n" );
   if ((excpt->exceptionStatus.globalVector>>13)&0x1) d += sprintf(d,"Bit 13: SW->HW Strategy Update overrun\n" );
+  if ((excpt->exceptionStatus.globalVector>>14)&0x1) d += sprintf(d,"Bit 14: Write Combining: WC to EPM fifo overrun\n" );
+  if ((excpt->exceptionStatus.globalVector>>15)&0x1) d += sprintf(d,"Bit 15: Write Combining: CTRL 16B unaligned\n" );
+  if ((excpt->exceptionStatus.globalVector>>16)&0x1) d += sprintf(d,"Bit 16: Write Combining: CTRL fragmented\n" );
+  if ((excpt->exceptionStatus.globalVector>>17)&0x1) d += sprintf(d,"Bit 17: Write Combining: Missing TLP\n" );
+  if ((excpt->exceptionStatus.globalVector>>18)&0x1) d += sprintf(d,"Bit 18: Write Combining: Unknown CTRL Opcode\n" );
+  if ((excpt->exceptionStatus.globalVector>>19)&0x1) d += sprintf(d,"Bit 19: Write Combining: Unaligned data in TLP\n" );
+  if ((excpt->exceptionStatus.globalVector>>20)&0x1) d += sprintf(d,"Bit 20: Write Combining: Unaligned data in non-TLP\n" );
+  if ((excpt->exceptionStatus.globalVector>>21)&0x1) d += sprintf(d,"Bit 21: Write Combining: CTRL bitmap ff override\n" );
+  if ((excpt->exceptionStatus.globalVector>>22)&0x1) d += sprintf(d,"Bit 22: Write Combining: CTRL LSB override\n" );
+  if ((excpt->exceptionStatus.globalVector>>23)&0x1) d += sprintf(d,"Bit 23: Write Combining: CTRL MSB override\n" );
+  if ((excpt->exceptionStatus.globalVector>>24)&0x1) d += sprintf(d,"Bit 24: Write Combining: Partial CTRL info\n" );
+  if ((excpt->exceptionStatus.globalVector>>25)&0x1) d += sprintf(d,"Bit 25: Write Combining: pre-WC fifo overrun\n" );
+  if ((excpt->exceptionStatus.globalVector>>26)&0x1) d += sprintf(d,"Bit 26: Write Combining: Same heap bank violation\n" );
 
   for(auto i = 0; i < 4; i++) { // 4 Cores
     if (excpt->exceptionStatus.portVector[i]) {

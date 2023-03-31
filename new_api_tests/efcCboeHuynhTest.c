@@ -147,8 +147,8 @@ int createThread(const char* name, EkaServiceType type,  void *(*threadRoutine)(
 }
 /* --------------------------------------------- */
 
-int credAcquire(EkaCredentialType credType, EkaGroup group, const char *user, size_t userLength, const struct timespec *leaseTime, const struct timespec *timeout, void* context, EkaCredentialLease **lease) {
-  printf ("Credential with USER %.*s is acquired for %s:%hhu\n",(int)userLength,user,EKA_EXCH_DECODE(group.source),group.localId);
+int credAcquire(EkaCredentialType credType, EkaGroup group, const char *user, const struct timespec *leaseTime, const struct timespec *timeout, void* context, EkaCredentialLease **lease) {
+  printf ("Credential with USER %s is acquired for %s:%hhu\n",user,EKA_EXCH_DECODE(group.source),group.localId);
   return 0;
 }
 /* --------------------------------------------- */
@@ -473,7 +473,7 @@ int main(int argc, char *argv[]) {
   std::string triggerIp       = "224.0.74.0";     // Ekaline lab default (C1 CC feed)
   uint16_t triggerUdpPort     = 30301;            // C1 CC gr#0
   uint16_t serverTcpBasePort  = 22222;            // Ekaline lab default
-  uint16_t numTcpSess         = 4;
+  uint16_t numTcpSess         = 1;
   uint16_t serverTcpPort      = serverTcpBasePort;
   bool     runEfh             = false;
   bool     fatalDebug          = false;
@@ -950,8 +950,9 @@ int main(int argc, char *argv[]) {
     
     printf("\n===========================\nEND OT TESTS : ");
 
-#ifndef _VERILOG_SIM
     bool testPass = true;
+
+#ifndef _VERILOG_SIM
     if (ReportedFires==ExpectedFires && ReportedFires==hw_fires) {
       printf(GRN);
       printf("PASS, ExpectedFires == ReportedFires == HWFires == %d\n"  ,ExpectedFires);

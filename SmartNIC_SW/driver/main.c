@@ -1406,7 +1406,8 @@ static void sc_free_device(device_context_t * pDevExt)
     int i = 0;
 
     FUNCTION_ENTRY(LOG_INIT, " ");
-
+    iounmap(((device_context_t*)pDevExt)->ekaline_wc_addr);
+    
     cleanup_igmp(&pDevExt->igmpContext);
     mdelay(100); // Give time to send out pending IGMP leave packets
 

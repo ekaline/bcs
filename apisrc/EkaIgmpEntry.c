@@ -29,13 +29,13 @@ EkaIgmpEntry::EkaIgmpEntry(EkaDev* _dev, int _epmRegion, EkaCoreId _coreId, int 
   IgmpPkt igmpJoinPkt = {};
   uint igmpJoinPktLen = createIgmpPkt(&igmpJoinPkt, JOIN, dev->core[coreId]->macSa, dev->core[coreId]->srcIp, ip);
   igmpJoinAction  = dev->epm->addAction(EkaEpm::ActionType::Igmp,epmRegion,0,coreId,0,0);
-  igmpJoinAction->setEthFrame((uint8_t*)&igmpJoinPkt,igmpJoinPktLen);
+  igmpJoinAction->preloadFullPkt((uint8_t*)&igmpJoinPkt,igmpJoinPktLen);
 
   //  char __attribute__ ((aligned(sizeof(uint32_t)))) igmpLeavePkt[64] = {};
   IgmpPkt igmpLeavePkt = {};
   uint igmpLeavePktLen = createIgmpPkt(&igmpLeavePkt, LEAVE, dev->core[coreId]->macSa, dev->core[coreId]->srcIp, ip);
   igmpLeaveAction  = dev->epm->addAction(EkaEpm::ActionType::Igmp,epmRegion,0,coreId,0,0);
-  igmpLeaveAction->setEthFrame((uint8_t*)&igmpLeavePkt,igmpLeavePktLen);
+  igmpLeaveAction->preloadFullPkt((uint8_t*)&igmpLeavePkt,igmpLeavePktLen);
 }
 /* -------------------------------------------- */
 

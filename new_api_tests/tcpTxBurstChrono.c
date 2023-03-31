@@ -56,7 +56,9 @@ void excSendThr_f(EkaDev* pEkaDev,
     on_error("! txBuf");
   g_bufPtr[thrId] = txBuf;
   g_bufVerified[thrId] = true;
-  
+  auto iter = 15;
+  auto rttRdLatency = new uint64_t[iter];
+
   while (g_keepWork) {
     ++bufCnt;
     if (bufCnt % STATISTICS_PERIOD == 0) 
@@ -70,6 +72,7 @@ void excSendThr_f(EkaDev* pEkaDev,
 
       /* -------------------------------------------------- */
 
+      uint64_t l_cnt =0 ;
       size_t sentBytes = 0;
       const char* p = txBuf;
       while (g_keepWork && sentBytes < BufSize) {
@@ -78,7 +81,13 @@ void excSendThr_f(EkaDev* pEkaDev,
 	/* 			      1 + rand() % PktSize); */
 	size_t currPktSize = std::min(BufSize - sentBytes,
 				      (uint64_t)708);
+
+	auto one = std::chrono::high_resolution_clock::now();    
 	int rc = excSend (pEkaDev, hCon, p, currPktSize, 0);
+	auto two = std::chrono::high_resolution_clock::now();
+	if ((int)l_cnt<iter)
+	  rttRdLatency[l_cnt++] = (uint64_t)(std::chrono::duration_cast<std::chrono::nanoseconds>(two-one).count());
+	
 	/* ------------------- */
 	switch (rc) {
 	case -1 :
@@ -108,6 +117,8 @@ void excSendThr_f(EkaDev* pEkaDev,
       if (p2p_delay != 0) usleep (p2p_delay);
     }
   }
+  for (auto i=0;i<iter;i++)
+    TEST_LOG("rttRdLatency[%u]=%ju",i,rttRdLatency[i] );
   TEST_LOG("excSendThr_f[%u] is terminated",thrId);
   delete[] g_bufPtr[thrId];
   return;

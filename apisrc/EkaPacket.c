@@ -21,6 +21,7 @@
 #include "ekaNW.h"
 #include "eka_macros.h"
 
+
 uint16_t pseudo_csum2csum (uint32_t pseudo) {
   uint32_t sum = pseudo;
   while (sum>>16)
@@ -93,7 +94,7 @@ uint32_t calc_pseudo_csum (const void* ip_hdr, const void* tcp_hdr,
   psh.placeholder = (uint8_t) 0;
   psh.proto = (uint8_t) IPPROTO_TCP;
   psh.tcp_length = be16toh(sizeof(struct tcphdr) + payload_size);
-
+  
   memcpy(pseudo_packet, (char *) &psh, sizeof(struct pseudo_header));
   memcpy(pseudo_packet + sizeof(struct pseudo_header), tcp_hdr, sizeof(struct tcphdr));
   if (payload_size) 
