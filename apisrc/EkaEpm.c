@@ -66,6 +66,7 @@ void EkaEpm::initHeap(uint regionHeapBaseOffs, uint regionHeapSize, uint regionI
 			     HeapWcPageSize,
 			     0, // actionLocalIdx
 			     regionId);
+    usleep(1); // preventing WC FIFO overrun
 #endif    
   }
 }
