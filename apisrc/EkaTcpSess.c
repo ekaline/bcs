@@ -564,7 +564,7 @@ int EkaTcpSess::preSendCheck(int len, int flags) {
     return -1;
   }
 
-  if (len <= 0) return len;
+  if (len <= 0) return 0;
   
   static const uint32_t WndMargin = 2 * 1024; // 2 real fire MTUs
   static const uint32_t AllowedWndSafetyMargin = 1024 * 1024; // Big number
@@ -619,7 +619,7 @@ int EkaTcpSess::preSendCheck(int len, int flags) {
 int EkaTcpSess::sendPayload(uint thrId, void *buf, int len, int flags) {
   int payloadSize2send = preSendCheck(len,flags);
   if (payloadSize2send <= 0)
-    return payloadSize2send;
+    return 0;
     
   fastPathAction->fastSend(buf, payloadSize2send);
   return payloadSize2send;
