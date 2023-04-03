@@ -37,6 +37,12 @@ EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
   udpCh    = new EkaUdpChannel(dev,dev->snDev->dev_id,coreId,-1);
   if (udpCh == NULL) on_error("udpCh == NULL");
 
+  if (udpCh->chId == EkaEpm::EpmMcRegion) {
+    EKA_LOG("Skipping EkaUdpChannel reserved to EpmMcRegion %d",udpCh->chId);
+    udpCh    = new EkaUdpChannel(dev,dev->snDev->dev_id,coreId,-1);
+    if (udpCh == NULL) on_error("udpCh == NULL");
+  }
+  
   udpChId            = udpCh->chId;
   
 
