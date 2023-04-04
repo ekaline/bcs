@@ -226,6 +226,11 @@ bool EkaDev::initEpmTx() {
   // clearing interrupts, App Seq, etc.
   eka_write(STAT_CLEAR   ,(uint64_t) 1);
 
+  const uint64_t MaxSizeOfStrategyConf = 0x1000;
+
+  uint8_t strategyConfToClean[MaxSizeOfStrategyConf] = {};
+  copyBuf2Hw(dev,0x84000,(uint64_t*)strategyConfToClean,sizeof(strategyConfToClean));
+  
   // dissabling TCP traffic
   for (auto coreId = 0; coreId < MAX_CORES; coreId++)
     eka_write(0xe0000 + coreId * 0x1000 + 0x200, 0);
@@ -490,11 +495,7 @@ int EkaDev::clearHw() {
     eka_write(SW_SCRATCHPAD_BASE +8*p,(uint64_t) 0);
 
 
-  const uint64_t MaxSizeOfStrategyConf = 0x1000;
 
-  uint8_t strategyConfToClean[MaxSizeOfStrategyConf] = {};
-  copyBuf2Hw(dev,0x84000,(uint64_t*)strategyConfToClean,sizeof(strategyConfToClean));
-  
   /* const EfcCmeFastCancelStrategyConf fc_conf = {}; */
   /* copyBuf2Hw(dev,0x84000,(uint64_t *)&fc_conf,sizeof(fc_conf)); */
 
