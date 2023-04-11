@@ -83,7 +83,6 @@ inline void reg_write(uint64_t addr, uint64_t val) {
 //################################################
 int getSnIgmpCtx(McState* mcState, sc_multicast_subscription_t* hwIgmp) {
   if (hwIgmp == NULL) on_error("hwIgmp == NULL");
-  printf("hwIgmp = %p",hwIgmp);
   
   //  memset(hwIgmp,0,sizeof(sc_multicast_subscription_t) * 8 * 64);
 
@@ -250,7 +249,7 @@ void printTime() {
   seconds = opendev_counter * (1000.0/FREQUENCY) / 1000000000;
   printf("Open Dev Time: \t\t %dd:%dh:%dm:%ds (%s)\n",
 	 (int)seconds/86400,(int)(seconds%86400)/3600,(int)(seconds%3600)/60,(int)seconds%60,
-	 ((var_sw_stats_zero>>63)&0x1) ? GRN "OPENED" RESET : RED "CLOSED" RESET
+	 ((var_sw_stats_zero>>62)&0x1) ? GRN "EFH OPENED" RESET : RED "EFH CLOSED" RESET
 	 );
 }
 //################################################
