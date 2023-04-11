@@ -274,17 +274,23 @@ int main(int argc, char *argv[]) {
     efcRun(pEfcCtx, &runCtx );
     // ==============================================
 
-    const int SwMsgLen = 762;
-    const int NumMsgs = 64;
+    const int SwMsgLen = 708;
+    const int NumMsgs = 10;
 
     char swCmeQuote[NumMsgs][SwMsgLen] = {};
     efcCmeSetILinkAppseq(dev,conn,0x1);
-
+    for (auto i = 0; i < NumMsgs; i++) {
+      for (auto j = 0; j < SwMsgLen; j++)
+	swCmeQuote[i][j] = 'a' + rand() % ('z' -'a' + 1);
+    }
     /* ------------------------------------------------- */
     printf("Sending constant msg\n");
-    for (auto i = 0; keep_work; i++) {
-      efcCmeSend(dev,conn,swCmeQuote[0],SwMsgLen,0,true);
-      if (i % 10000 == 0) printf(".");
+    while (keep_work) {
+      for (auto i = 0; keep_work && i < NumMsgs; i++) {
+	efcCmeSend(dev,conn,swCmeQuote[i],SwMsgLen,0,true);
+      }
+      printf(".");fflush(stdout);
+      usleep(10000);
     }
     
     printf("\n===========================\nEND OT TESTS\n===========================\n");
