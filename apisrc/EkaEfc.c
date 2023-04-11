@@ -44,6 +44,8 @@ EkaEfc::EkaEfc(EkaEpm*                  epm,
 EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
 
   //  eka_write(dev,STAT_CLEAR   ,(uint64_t) 1);
+  disableRxFire();
+  eka_write(dev,P4_STRAT_CONF,(uint64_t) 0);
   
   hwFeedVer = dev->efcFeedVer;
   EKA_LOG("Creating EkaEfc: hwFeedVer=%s (%d)",
@@ -116,23 +118,34 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
   if (secIdList == NULL) on_error("secIdList == NULL");
   memset(secIdList,0,EFC_SUBSCR_TABLE_ROWS * EFC_SUBSCR_TABLE_COLUMNS);
 #endif
-  
+  auto swStatistics = eka_read(dev,SW_STATISTICS);
+  eka_write(dev, SW_STATISTICS, swStatistics | (1ULL<<63));
+}
+/* ################################################ */
+EkaEfc::~EkaEfc() {
+  disArmController(); 
+  disableRxFire();
+  eka_write(dev,P4_STRAT_CONF,(uint64_t) 0);
+  auto swStatistics = eka_read(dev,SW_STATISTICS);
+  eka_write(dev, SW_STATISTICS, swStatistics & ~(1ULL<<63));
+
 }
 
 /* ################################################ */
 
 /* ################################################ */
 int EkaEfc::armController(EfcArmVer ver) {
+  EKA_LOG("Arming EFC");
   uint64_t armData = ((uint64_t)ver << 32) | 1;
   eka_write(dev, P4_ARM_DISARM, armData); 
   return 0;
 }
 /* ################################################ */
 int EkaEfc::disArmController() {
+  EKA_LOG("Disarming EFC");
   eka_write(dev, P4_ARM_DISARM, 0); 
   return 0;
 }
-
 /* ################################################ */
 int EkaEfc::initStrategy(const EfcStratGlobCtx* efcStratGlobCtx) {
   memcpy(&stratGlobCtx,efcStratGlobCtx,sizeof(EfcStratGlobCtx));
@@ -359,6 +372,27 @@ int EkaEfc::downloadTable() {
 }
 
 /* ################################################ */
+int EkaEfc::disableRxFire() {
+  uint64_t fire_rx_tx_en = eka_read(dev,ENABLE_PORT);
+  uint8_t tcpCores = dev->ekaHwCaps->hwCaps.core.bitmap_tcp_cores;
+  uint8_t mdCores  = dev->ekaHwCaps->hwCaps.core.bitmap_md_cores;
+
+  for (uint8_t coreId = 0; coreId < EkaDev::MAX_CORES; coreId++) {
+    if ((0x1 << coreId) & tcpCores) {
+      fire_rx_tx_en &= ~(1ULL << (16 + coreId)); // disable fire
+    }
+    if ((0x1 << coreId) & mdCores) {
+      fire_rx_tx_en &= ~(1ULL << (coreId));     // RX (Parser) core disable
+    }
+  }
+  eka_write(dev,ENABLE_PORT,fire_rx_tx_en);
+
+  EKA_LOG("Disabling Fire and EFC Parser: fire_rx_tx_en = 0x%016jx",
+	  fire_rx_tx_en);
+  return 0;
+}
+
+/* ################################################ */
 int EkaEfc::enableRxFire() {
   uint64_t fire_rx_tx_en = eka_read(dev,ENABLE_PORT);
   uint8_t tcpCores = dev->ekaHwCaps->hwCaps.core.bitmap_tcp_cores;
@@ -374,8 +408,8 @@ int EkaEfc::enableRxFire() {
   }
 
   eka_write(dev,ENABLE_PORT,fire_rx_tx_en);
-
-  EKA_LOG("fire_rx_tx_en = 0x%016jx",fire_rx_tx_en);
+  EKA_LOG("Enabling Fire and EFC Parser: fire_rx_tx_en = 0x%016jx",
+	  fire_rx_tx_en);
   return 0;
 }
 /* ################################################ */

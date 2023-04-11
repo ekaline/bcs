@@ -94,7 +94,7 @@ EkaCore::~EkaCore() {
   for (uint i = 0; i < MAX_SESS_PER_CORE; i++) {
     if (tcpSess[i]) delete tcpSess[i];
   }
-  // dissabling TCP traffic
+  // disabling TCP traffic
   eka_write(dev, 0xe0000 + coreId * 0x1000 + 0x200, 0);
 
   /* if (stratUdpChannel != NULL) delete stratUdpChannel; */

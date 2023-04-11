@@ -967,6 +967,10 @@ int main(int argc, char *argv[]) {
     testCtx->keep_work = dontExit;
     sleep(1);
     EKA_LOG("--Test finished, ctrl-c to end---");
+
+
+    efcEnableController(pEfcCtx, 1, armVer++); //arm and promote
+
     while (testCtx->keep_work) { sleep(0); }
 #endif
     
