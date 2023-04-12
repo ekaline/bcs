@@ -97,7 +97,7 @@ template <const uint SCALE, const uint SEC_HASH_SCALE,
   /* ####################################################### */
 
   void printStats() {
-    EKA_LOG("%s:%u: FullBook, orders=%d/%d (max=%d), plevels=%d/%d (max=%d)",
+    EKA_LOG("%s:%u: FullBook, orders=%d/%ju (max=%d), plevels=%d/%ju (max=%d)",
             EKA_EXCH_DECODE(exch),grId,
             numOrders, MAX_ORDERS, maxNumOrders,
             numPlevels, MAX_PLEVELS, maxNumPlevels);

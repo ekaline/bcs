@@ -141,8 +141,10 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
 	EKA_WARN("%s:%u BACK-IN-TIME WARNING: sequence %ju < expected_sequence %ju",
 		 EKA_EXCH_DECODE(exch),gr_id,sequence,gr->expected_sequence);
 	gr->sendBackInTimeEvent(pEfhRunCtx,sequence);
+#if 0	
 	if (sequence != 1) // right after Spin
 	  gr->expected_sequence = sequence;
+#endif	
 	break; 
       }
       if (sequence > gr->expected_sequence) { // GAP
