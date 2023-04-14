@@ -20,7 +20,7 @@
 #include "EkaUdpChannel.h"
 #include "EkaIgmp.h"
 #include "EkaEfc.h"
-
+#include "EkaWc.h"
 #include "eka_hw_conf.h"
 #include "EkaHwInternalStructs.h"
 
@@ -125,8 +125,12 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
   createThread = initCtx->createThread == NULL ? ekaDefaultCreateThread : initCtx->createThread;
 
   snDev          = new EkaSnDev(this);
+  if (!snDev) on_error ("!snDev");
+  ekaWc          = new EkaWc(snDevWCPtr);
+  if (!ekaWc) on_error ("!ekaWc");
 
-  ekaHwCaps = new EkaHwCaps(this);
+  ekaHwCaps = new EkaHwCaps(snDev->dev_id);
+
   if (ekaHwCaps == NULL) on_error("ekaHwCaps == NULL");
   
   ekaHwCaps->print();
@@ -219,11 +223,18 @@ EkaDev::EkaDev(const EkaDevInitCtx* initCtx) {
 }
 /* ##################################################################### */
 bool EkaDev::initEpmTx() {
+  // clearing interrupts, App Seq, etc.
+  eka_write(STAT_CLEAR   ,(uint64_t) 1);
 
+  const uint64_t MaxSizeOfStrategyConf = 0x1000;
+
+  uint8_t strategyConfToClean[MaxSizeOfStrategyConf] = {};
+  copyBuf2Hw(dev,0x84000,(uint64_t*)strategyConfToClean,sizeof(strategyConfToClean));
+  
   // dissabling TCP traffic
   for (auto coreId = 0; coreId < MAX_CORES; coreId++)
     eka_write(0xe0000 + coreId * 0x1000 + 0x200, 0);
-  
+
   epmReport = new EkaUserChannel(dev,snDev->dev_id,EkaUserChannel::TYPE::EPM_REPORT);
   if (epmReport == NULL) on_error("Failed to open epmReport Channel");
   if (! epmReport->isOpen()) on_error("epmReport Channel is Closed");
@@ -238,7 +249,8 @@ bool EkaDev::initEpmTx() {
 
   ekaInitLwip(this);
 
-  epm->createRegion(EkaEpm::ServiceRegion, EkaEpm::ServiceRegion * EkaEpm::ActionsPerRegion);
+  epm->createRegion(EkaEpm::TcpTxRegion,
+		    EkaEpm::TcpTxRegion * EkaEpm::ActionsPerRegion);
 
   uint64_t fire_rx_tx_en = eka_read(ENABLE_PORT);
   fire_rx_tx_en |= (1ULL << 32); //turn off tcprx
@@ -258,7 +270,12 @@ bool EkaDev::initEpmTx() {
   
   while (!tcpRxThreadActive || !tcpRxThreadActive) {}
   EKA_LOG("Serv and TcpRx threads activated");
-    
+
+
+  auto swStatistics = eka_read(SW_STATISTICS);
+  eka_write(SW_STATISTICS, swStatistics | (1ULL<<63));
+
+
   return true;    
 }
 
@@ -385,10 +402,8 @@ EkaDev::~EkaDev() {
   dev->epm->active = false;
 
   auto efc {dynamic_cast<EkaEfc*>(epm->strategy[EFC_STRATEGY])};
-  if (efc != NULL) {
-    TEST_LOG("Disarming EFC");
-    efc->disArmController();
-  }
+  if (efc)
+    delete efc;
   
   for (auto i = 0; i < numFh; i++) {
     if (fh[i] != NULL) fh[i]->stop();
@@ -408,19 +423,29 @@ EkaDev::~EkaDev() {
     usleep(10);
   }
 
-  for (uint c = 0; c < MAX_CORES; c++) {
-    if (core[c] == NULL) continue;
-    delete core[c];
-    core[c] = NULL;
+  if (epmEnabled) {
+    for (uint c = 0; c < MAX_CORES; c++) {
+      if (core[c]) {
+	delete core[c];
+	core[c] = NULL;
+      }
+    }
   }
 #ifdef EFH_TIME_CHECK_PERIOD
   fclose(deltaTimeLogFile);
 #endif    
 
-  uint64_t val = eka_read(SW_STATISTICS);
-  val = val & 0x7fffffffffffffff;
-  eka_write(SW_STATISTICS, val);
-
+  if (epmEnabled) {
+    uint64_t val = eka_read(SW_STATISTICS);
+    val = val & ~(1 << 63); // EFC/EPM device
+    eka_write(SW_STATISTICS, val);
+  } else {
+    uint64_t val = eka_read(SW_STATISTICS);
+    val = val & ~(1ULL << 62); // EFH device
+    EKA_LOG("Turning off EFH Open dev: 0x%016jx",val);
+    eka_write(SW_STATISTICS, val);
+  }
+  
   delete snDev;
 }
 /* ##################################################################### */
@@ -473,8 +498,8 @@ EkaCoreId EkaDev::findCoreByMacSa(const uint8_t* macSa) {
 
 int EkaDev::clearHw() {
   //  eka_write(STAT_CLEAR   ,(uint64_t) 1); // Clearing HW Statistics
-  eka_write(SW_STATISTICS,(uint64_t) 0); // Clearing SW Statistics
-  eka_write(P4_STRAT_CONF,(uint64_t) 0); // Clearing Strategy params
+  //  eka_write(SW_STATISTICS,(uint64_t) 0); // Clearing SW Statistics
+  //  eka_write(P4_STRAT_CONF,(uint64_t) 0); // Clearing Strategy params
 
   eka_read(ADDR_INTERRUPT_MAIN_RC); // Clearing Interrupts
   eka_read(ADDR_INTERRUPT_SHADOW_RC); // Clearing Interrupts
@@ -483,18 +508,13 @@ int EkaDev::clearHw() {
     eka_write(SW_SCRATCHPAD_BASE +8*p,(uint64_t) 0);
 
 
-  const uint64_t MaxSizeOfStrategyConf = 0x1000;
 
-  uint8_t strategyConfToClean[MaxSizeOfStrategyConf] = {};
-  copyBuf2Hw(dev,0x84000,(uint64_t*)strategyConfToClean,sizeof(strategyConfToClean));
-  
   /* const EfcCmeFastCancelStrategyConf fc_conf = {}; */
   /* copyBuf2Hw(dev,0x84000,(uint64_t *)&fc_conf,sizeof(fc_conf)); */
 
   /* const EfcItchFastSweepStrategyConf fs_conf = {}; */
   /* copyBuf2Hw(dev,0x84000,(uint64_t *)&fs_conf,sizeof(fs_conf)); */
 
-  // Open Dev indication
-  eka_write(SW_STATISTICS, (1ULL<<63));
+
   return 0;
 }

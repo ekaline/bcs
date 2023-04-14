@@ -44,12 +44,13 @@ class EkaSnDev {
     if (dev == NULL) on_error("dev == NULL");
     if ((dev_id = SN_OpenDevice(NULL, NULL)) == NULL) on_error("Cannot open Smartnic Device");
     //    reset();
-    write(SW_STATISTICS,(uint64_t) 0); // Clearing SW Statistics
-    write(P4_STRAT_CONF,(uint64_t) 0); // Clearing Strategy params
+    // write(SW_STATISTICS,(uint64_t) 0); // Clearing SW Statistics
+    // write(P4_STRAT_CONF,(uint64_t) 0); // Clearing Strategy params
     write(P4_FATAL_DEBUG,(uint64_t) 0); // Clearing Fatal Debug
-    write(ENABLE_PORT,1ULL << (24)); // No VLAN no ports, udp killed
+    //    write(ENABLE_PORT,1ULL << (24)); // No VLAN no ports, udp killed
 
     dev->snDevUserLogicRegistersPtr = SC_GetUserLogicRegistersBase(dev_id);
+    dev->snDevWCPtr = EkalineGetWcBase(dev_id);
   }
 
 //################################################
