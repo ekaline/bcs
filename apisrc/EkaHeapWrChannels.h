@@ -38,7 +38,7 @@ class EkaHeapWrChannels {
   }
 
   void getChannel(int chId) {
-    ch_[chId].get();
+    ch_[chId].acquire();
 
   }
   
@@ -59,26 +59,14 @@ class EkaHeapWrChannels {
     
   class WrChannel_ {
   public:
-    void get(uint32_t baseAddr, uint32_t len) {
+    void acquire() {
       while(isFree_.test_and_set(std::memory_order_acquire)) {
-      }
-      if (baseAddr < baseAddr_ ||
-	  baseAddr + len > baseAddr_ + WndSize_)
-	baseAddr_.store(baseAddr);
-    }
-
-    void get() {
-      while(isFree_.test_and_set(std::memory_order_acquire)) {
-	// TEST_LOG("Spinlock on get");
 	isFree_.test(std::memory_order_relaxed);
       }
-      // TEST_LOG("Acquired!");
-
     }
 
     void release() {
       isFree_.clear();
-      // TEST_LOG("Released!");
     }
     
   private:
