@@ -15,15 +15,19 @@ EkaFhGroup* EkaFhBats::addGroup() {
 }
 
 /* ##################################################################### */
-const uint8_t* EkaFhBats::getUdpPkt(EkaFhRunGroup* runGr, uint* msgInPkt, uint64_t* sequence,uint8_t* gr_id) {
+const uint8_t* EkaFhBats::getUdpPkt(EkaFhRunGroup* runGr, uint* msgInPkt,
+				    uint64_t* sequence,uint8_t* gr_id) {
   auto pkt = runGr->udpCh->get();
-  if (! pkt) on_error("%s: pkt == NULL",EKA_EXCH_DECODE(exch));
+  if (! pkt)
+    on_error("%s: pkt == NULL",EKA_EXCH_DECODE(exch));
 
   uint msgCnt = EKA_BATS_MSG_CNT((pkt));
   uint8_t grId = getGrId(pkt);
 
-  if (grId == 0xFF || (! runGr->isMyGr(grId)) || b_gr[grId] == NULL || b_gr[grId]->q == NULL) { 
-    //    if (grId != 0) EKA_LOG("RunGr%u: Skipping gr_id = %u not belonging to %s",runGr->runId,grId,runGr->list2print);
+  if (grId == 0xFF ||
+      (! runGr->isMyGr(grId)) ||
+      b_gr[grId] == NULL ||
+      b_gr[grId]->q == NULL) { 
     runGr->udpCh->next(); 
     return NULL;
   }
@@ -38,7 +42,8 @@ const uint8_t* EkaFhBats::getUdpPkt(EkaFhRunGroup* runGr, uint* msgInPkt, uint64
 uint8_t EkaFhBats::getGrId(const uint8_t* pkt) {
   for (uint8_t i = 0; i < groups; i++) {
     auto gr = dynamic_cast<EkaFhBatsGr*>(b_gr[i]);
-    if (! gr) on_error("b_gr[%u] = NULL",i);
+    if (! gr)
+      on_error("b_gr[%u] = NULL",i);
 
     if (gr->mcast_port == EKA_UDPHDR_DST((pkt-8)) &&
 	EKA_BATS_UNIT(pkt) == gr->batsUnit) 
@@ -49,15 +54,25 @@ uint8_t EkaFhBats::getGrId(const uint8_t* pkt) {
 
 /* ##################################################################### */
 
-EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runGrId ) {
+EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
+				  const EfhRunCtx* pEfhRunCtx,
+				  uint8_t runGrId ) {
   auto runGr = dev->runGr[runGrId];
-  if (! runGr) on_error("runGr == NULL");
+  if (! runGr)
+    on_error("runGr == NULL");
 
   EKA_DEBUG("Initializing %s Run Group %u: %s GROUPS",
 	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
 
   initGroups(pEfhCtx, pEfhRunCtx, runGr);
 
+  for (uint8_t i = 0; i < runGr->numGr; i++) {
+    auto gr = b_gr[runGr->groupList[i]];
+    gr->sendFeedDownInitial(pEfhRunCtx);
+    gr->gapClosed = false;
+    gr->state = EkaFhGroup::GrpState::INIT;
+  }
+  
   EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u: %s GROUPS ~~~~~~~~~~~~~",
 	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
 
@@ -99,7 +114,6 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
     gr->resetNoMdTimer();
         
     std::chrono::high_resolution_clock::time_point startTime{};
-
 #if EFH_TIME_CHECK_PERIOD
     if (sequence % EFH_TIME_CHECK_PERIOD == 0) {
       startTime = std::chrono::high_resolution_clock::now();
@@ -107,98 +121,152 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
 #endif
     
 #ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
-    if (gr->state == EkaFhGroup::GrpState::NORMAL && 
-	sequence != 0 && 
-	sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
-      EKA_WARN("%s:%u: TEST GAP INJECTED: (GAP_INJECT_INTERVAL = %d): pkt sequence %ju with unknown number of messages dropped",
-	       EKA_EXCH_DECODE(exch),gr_id, _EFH_TEST_GAP_INJECT_INTERVAL_,sequence);
-      runGr->udpCh->next(); 
-      continue;
+    bool dropMe = false;
+    switch (gr->state) {
+    case EkaFhGroup::GrpState::NORMAL :
+      if (sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
+	dropMe = true;
+	firstDropSeq = sequence;
+      }
+      break;
+    case EkaFhGroup::GrpState::SNAPSHOT_GAP :
+      break;
+    case EkaFhGroup::GrpState::RETRANSMIT_GAP :
+      if (sequence - firstDropSeq == _EFH_TEST_GAP_INJECT_DELTA_)
+	dropMe = true;
+      break;
+    default:
+      dropMe = false;
+    }
+    if (dropMe) {
+      EKA_WARN("\n---------------\n"
+	       "%s:%u: TEST GAP INJECTED: (INTERVAL = %d, DELTA = %d): "
+	       "sequence %ju with %u messages dropped"
+	       "\n---------------",
+	       EKA_EXCH_DECODE(exch),gr_id,
+	       _EFH_TEST_GAP_INJECT_INTERVAL_,_EFH_TEST_GAP_INJECT_DELTA_,
+	       sequence,msgInPkt);
+      goto SKIP_PKT;
     }
 #endif
 
 #ifdef FH_LAB
     gr->state = EkaFhGroup::GrpState::NORMAL;
     gr->processUdpPkt(pEfhRunCtx,pkt,msgInPkt,sequence,startTime);
-#else
-    //-----------------------------------------------------------------------------
+    goto SKIP_PKT;
+#endif
+    if (sequence == 0) // unsequenced packet
+      goto SKIP_PKT;
+    //------------------------------------------------------------------
     switch (gr->state) {
-      //-----------------------------------------------------------------------------
-    case EkaFhGroup::GrpState::INIT : {
-      if (any_group_getting_snapshot) break; // only 1 group can get snapshot at a time
-      any_group_getting_snapshot = true;
+      //----------------------------------------------------------------
+    case EkaFhGroup::GrpState::INIT : // waiting for Snapshot
+      if (nOpenSnapshotGaps.load() > MaxOpenSnapshotGaps)
+	break; // only MaxOpenSnapshotGaps groups can get snapshot at a time
+      nOpenSnapshotGaps.fetch_add(1);
+
+      gr->invalidateBook();
+      gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
+      gr->startTrackingGapInGap(sequence, msgInPkt);
+
+      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 0, 0);
+    
+      break;
+      //------------------------------------------------------------------
+    case EkaFhGroup::GrpState::NORMAL :
+      /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+      // NORMAL
+      if (sequence == gr->expected_sequence) {  
+	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,
+						     msgInPkt,sequence,
+						     startTime);
+	break;
+      }
+      /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+      // BACK-IN-TIME to be ignored
+      if (sequence < gr->expected_sequence)
+	break;       
+      /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+      // GAP
+      EKA_LOG("%s:%u Gap at NORMAL: expected_sequence=%ju, sequence=%ju, "
+	      "gap=%jd",
+	      EKA_EXCH_DECODE(exch),gr_id,gr->expected_sequence,sequence,
+	      sequence - gr->expected_sequence);
 
       gr->gapClosed = false;
-      gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
-      gr->sendFeedDownInitial(pEfhRunCtx);
-      gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 0, 0);
-    }
-      break;
-      //-----------------------------------------------------------------------------
-    case EkaFhGroup::GrpState::NORMAL : {
-      if (sequence == 0) break; // unsequenced packet
-      if (sequence < gr->expected_sequence) {
-	EKA_WARN("%s:%u BACK-IN-TIME WARNING: sequence %ju < expected_sequence %ju",
-		 EKA_EXCH_DECODE(exch),gr_id,sequence,gr->expected_sequence);
-	gr->sendBackInTimeEvent(pEfhRunCtx,sequence);
-#if 0	
-	if (sequence != 1) // right after Spin
-	  gr->expected_sequence = sequence;
-#endif	
-	break; 
-      }
-      if (sequence > gr->expected_sequence) { // GAP
-	EKA_LOG("%s:%u Gap at NORMAL:  gr->expected_sequence=%ju, sequence=%ju",
-		EKA_EXCH_DECODE(exch),gr_id,gr->expected_sequence,sequence);
+      gr->sendFeedDown(pEfhRunCtx);
+      gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
+      
+      if (gr->expected_sequence == 1 ||
+	  sequence - gr->expected_sequence > gr->GrpReqLimit ||
+	  nOpenIncrGaps.load() > MaxOpenIncrGaps) {
+	gr->state = EkaFhGroup::GrpState::INIT;	
+      } else {
 	gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
+	gr->startTrackingGapInGap(sequence, msgInPkt);
+	
+	gr->closeIncrementalGap(pEfhCtx, pEfhRunCtx,
+				gr->expected_sequence, sequence);
+      }
+      break;      
+      /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+     
+      //-----------------------------------------------------------------
+    case EkaFhGroup::GrpState::SNAPSHOT_GAP : 
+    case EkaFhGroup::GrpState::RETRANSMIT_GAP :
+      if (gr->hasGapInGap(sequence, msgInPkt)) {
+	EKA_LOG("%s:%u: GapInGap in %s",
+		EKA_EXCH_DECODE(exch),gr->id,
+		gr->printGrpState());
+	gr->recovery_active = false;
+	gr->snapshot_active = false;
+	
+	while (! gr->recoveryThreadDone)
+	  sleep(0);
+	if (gr->state == EkaFhGroup::GrpState::SNAPSHOT_GAP)
+	  nOpenSnapshotGaps.fetch_sub(1);
+	else
+	  nOpenIncrGaps.fetch_sub(1);
+	gr->state = EkaFhGroup::GrpState::INIT;	
 	gr->gapClosed = false;
-
-	gr->sendFeedDown(pEfhRunCtx);
-	gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
-	gr->closeIncrementalGap(pEfhCtx, pEfhRunCtx, gr->expected_sequence, sequence);
-      } else { // NORMAL
-	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,msgInPkt,sequence,startTime);      
+	break;
       }
-    }
-      break;
-      //-----------------------------------------------------------------------------
-    case EkaFhGroup::GrpState::SNAPSHOT_GAP : {
+      /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
       gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
 
-      if (gr->gapClosed) {
-	EKA_LOG("%s:%u: SNAPSHOT_GAP Closed",
-		EKA_EXCH_DECODE(exch),gr->id);
-	gr->state = EkaFhGroup::GrpState::NORMAL;
-	any_group_getting_snapshot = false;
-	gr->sendFeedUpInitial(pEfhRunCtx);
+      if (! gr->gapClosed)
+	break;
+      /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
-	runGr->setGrAfterGap(gr->id);
-	gr->expected_sequence = gr->seq_after_snapshot;
+      if (gr->state == EkaFhGroup::GrpState::SNAPSHOT_GAP)
+	nOpenSnapshotGaps.fetch_sub(1);
+      else {
+	nOpenIncrGaps.fetch_sub(1);
+	if (gr->lastExchErr != EfhExchangeErrorCode::kNoError) {
+	  EKA_LOG("%s:%u: GRP Recovery failed, trying Spin Snapshot",
+	      EKA_EXCH_DECODE(exch),gr->id);
+	  gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
+	  break;
+	}
       }
-    }
+      EKA_LOG("%s:%u: %s GAP Closed",
+	      EKA_EXCH_DECODE(exch),gr->id, gr->printGrpState());
+      
+      gr->state = EkaFhGroup::GrpState::NORMAL;
+      gr->sendFeedUp(pEfhRunCtx);
+      runGr->setGrAfterGap(gr->id);
+      gr->expected_sequence = gr->seq_after_snapshot;      
+    
       break;
-      //-----------------------------------------------------------------------------
-    case EkaFhGroup::GrpState::RETRANSMIT_GAP : {
-      gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
-
-      if (gr->gapClosed) {
-	EKA_LOG("%s:%u: RETRANSMIT_GAP Closed, switching to fetch from Q",
-		EKA_EXCH_DECODE(exch),gr->id);
-	gr->state = EkaFhGroup::GrpState::NORMAL;
-	gr->sendFeedUp(pEfhRunCtx);
-
-	runGr->setGrAfterGap(gr->id);
-	gr->expected_sequence = gr->seq_after_snapshot;
-      }
-    }
-      break;
-      //-----------------------------------------------------------------------------
+      //-----------------------------------------------------------------
     default:
       on_error("%s:%u: UNEXPECTED GrpState %u",
 	       EKA_EXCH_DECODE(exch),gr->id,(uint)gr->state);
       break;
     }
-#endif
+
+  SKIP_PKT:    
     runGr->udpCh->next(); 
   }
   runGr->sendFeedCloseAll(pEfhRunCtx);
@@ -208,7 +276,9 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, 
 }
 /* ##################################################################### */
 
-EkaOpResult EkaFhBats::getDefinitions (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, const EkaGroup* group) {
+EkaOpResult EkaFhBats::getDefinitions (EfhCtx* pEfhCtx,
+				       const EfhRunCtx* pEfhRunCtx,
+				       const EkaGroup* group) {
   auto attr = new EkaFhThreadAttr(pEfhCtx, 
 				  pEfhRunCtx, 
 				  b_gr[group->localId], 

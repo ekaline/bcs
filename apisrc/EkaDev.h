@@ -172,7 +172,7 @@ class EkaDev {
   //  EkaEfc*                   efc = NULL;
 
   int64_t                   lastErrno   = 0;
-  EfhExchangeErrorCode      lastExchErr = EfhExchangeErrorCode::kNoError;
+  //  EfhExchangeErrorCode      lastExchErr = EfhExchangeErrorCode::kNoError;
 
   //  std::chrono::high_resolution_clock::time_point midnightSystemClock;
   std::chrono::system_clock::time_point midnightSystemClock;
