@@ -26,7 +26,7 @@
 #define CORES 2
 #define SESSIONS 32
 
-#define STATISTICS_PERIOD 10000
+#define STATISTICS_PERIOD 50000
 
 volatile bool keep_work = true;;
 volatile bool serverSet = false;
@@ -39,12 +39,12 @@ void fastpath_thread_f(EkaDev* pEkaDev,
   TEST_LOG("Launching TcpClient for coreId %u, sessId %u, p2p_delay=%u",
 	   coreId,sessId,p2p_delay);
  
-  static const size_t PktSize = 1360; // large pkt
+  static const size_t PktSize = 708; // = CME SW Quote
   size_t cnt = 0;
   while (keep_work) {
     ++cnt;
     char pkt[PktSize] = {};    
-    sprintf(pkt,"%u_%u_%2u_%08ju",thrId,coreId,sessId,cnt);
+    //    sprintf(pkt,"%u_%u_%2u_%08ju",thrId,coreId,sessId,cnt);
     /* -------------------------------------------------- */
 
     size_t sentBytes = 0;

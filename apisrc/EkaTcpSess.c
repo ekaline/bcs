@@ -19,6 +19,7 @@
 #include "EpmFastPathTemplate.h"
 #include "EpmRawPktTemplate.h"
 #include "EkaEpmAction.h"
+#include "EkaCsumSSE.h"
 
 #include "ekaNW.h"
 
@@ -64,26 +65,36 @@ EkaTcpSess::EkaTcpSess(EkaDev* pEkaDev, EkaCore* _parent,
 
   memcpy(macSa,_macSa,6);
 
-  if (dev->epmEnabled) {
-    if ((sock = lwip_socket(AF_INET, SOCK_STREAM, 0)) < 0) 
-      on_error ("error creating TCP socket");
-
-    if (sessId == CONTROL_SESS_ID) {
-      EKA_LOG("Established TCP Session %u for Control Traffic, coreId=%u, EpmRegion = %u",sessId,coreId,EkaEpm::ServiceRegion);
-    } else {
-      EKA_LOG("sock=%d for: %s:%u --> %s:%u",sock,
-	      EKA_IP2STR(srcIp),srcPort,
-	      EKA_IP2STR(dstIp),dstPort);
-    }
-  } else {
+  if (! dev->epmEnabled) {
     EKA_LOG("FPGA created IGMP-ONLY network channel");
+    return;
   }
   
+  if ((sock = lwip_socket(AF_INET, SOCK_STREAM, 0)) < 0) 
+    on_error ("error creating TCP socket");
+
+  if (sessId == CONTROL_SESS_ID) {
+    EKA_LOG("Established TCP Session %u for Control Traffic, coreId=%u, EpmRegion = %u",
+	    sessId,coreId,EkaEpm::TcpTxRegion);
+    fullPktAction  = dev->epm->addAction(EkaEpm::ActionType::TcpFullPkt,
+					 EkaEpm::TcpTxRegion,
+					 0,coreId,sessId,0);
+  } else {
+    EKA_LOG("sock=%d for: %s:%u --> %s:%u",sock,
+	    EKA_IP2STR(srcIp),srcPort,
+	    EKA_IP2STR(dstIp),dstPort);
+    fastPathAction = dev->epm->addAction(EkaEpm::ActionType::TcpFastPath,
+					 EkaEpm::TcpTxRegion,
+					 0,coreId,sessId,0);    
+  }
+  
+  emptyAckAction = dev->epm->addAction(EkaEpm::ActionType::TcpEmptyAck,
+				       EkaEpm::TcpTxRegion,
+				       0,coreId,sessId,0);
+  
+  
   controlTcpSess = dev->core[coreId]->tcpSess[EkaCore::CONTROL_SESS_ID];
-/* -------------------------------------------- */
-  fastPathAction = dev->epm->addAction(EkaEpm::ActionType::TcpFastPath,EkaEpm::ServiceRegion,0,coreId,sessId,0);
-  fullPktAction  = dev->epm->addAction(EkaEpm::ActionType::TcpFullPkt, EkaEpm::ServiceRegion,0,coreId,sessId,0);
-  emptyAckAction = dev->epm->addAction(EkaEpm::ActionType::TcpEmptyAck,EkaEpm::ServiceRegion,0,coreId,sessId,0);
+  /* -------------------------------------------- */
 }
 
 /* ---------------------------------------------------------------- */
@@ -239,6 +250,18 @@ int EkaTcpSess::connect() {
 EkaTcpSess::~EkaTcpSess() {
   EKA_LOG("Closing socket %d for core%u sess%u",sock,coreId,sessId);
   lwip_close(sock);
+  if (fullPktAction) {
+    delete(fullPktAction);
+    fullPktAction = NULL;
+  }
+  if (emptyAckAction) {
+    delete(emptyAckAction);
+    emptyAckAction = NULL;
+  }
+  if (fastPathAction) {
+    delete(fastPathAction);
+    fastPathAction = NULL;
+  }  
   EKA_LOG("Closed socket %d for core%u sess%u",
 	  sock,coreId,sessId);
 }
@@ -246,8 +269,23 @@ EkaTcpSess::~EkaTcpSess() {
 
 int EkaTcpSess::preloadNwHeaders() {
   emptyAckAction->setNwHdrs(macDa,macSa,srcIp,dstIp,srcPort,dstPort);
-  fastPathAction->setNwHdrs(macDa,macSa,srcIp,dstIp,srcPort,dstPort);
-  fullPktAction->setNwHdrs (macDa,macSa,srcIp,dstIp,srcPort,dstPort);
+  emptyAckAction->copyHeap2Fpga();
+
+  if (sessId == CONTROL_SESS_ID) {
+    if (fastPathAction)
+      on_error("fastPathAction exists for CONTROL_SESS");
+    if (!fullPktAction)
+      on_error("!fullPktAction for CONTROL_SESS");
+
+    fullPktAction->setNwHdrs (macDa,macSa,srcIp,dstIp,srcPort,dstPort);
+  } else {
+    if (fullPktAction)
+      on_error("fullPktAction exists for CONTROL_SESS");
+    if (!fastPathAction)
+      on_error("!fastPathAction for CONTROL_SESS");
+    fastPathAction->setNwHdrs(macDa,macSa,srcIp,dstIp,srcPort,dstPort);
+  }
+
   return 0;
 }
 
@@ -302,10 +340,11 @@ void EkaTcpSess::insertEmptyRemoteAck(uint64_t seq,const void* pkt) {
   ipHdr->_len    = be16toh(sizeof(EkaIpHdr) + sizeof(EkaTcpHdr));
   tcpHdr->chksum = 0;
   
-  ipHdr->_chksum = csum((const unsigned short *)ipHdr, sizeof(EkaIpHdr));
+  ipHdr->_chksum = ekaCsum((const unsigned short *)ipHdr, sizeof(EkaIpHdr));
   tcpHdr->ackno  = be32toh(uint32_t(seq & 0xFFFFFFFF));
   
-  tcpHdr->chksum = calc_tcp_csum(ipHdr,tcpHdr,NULL,0);
+  //  tcpHdr->chksum = calc_tcp_csum(ipHdr,tcpHdr,NULL,0);
+  tcpHdr->chksum = ekaTcpCsum(ipHdr,tcpHdr);
 
 #if _EKA_PRINT_INSERTED_ACK
   char emptyAckStr[2048] = {};
@@ -434,7 +473,8 @@ int EkaTcpSess::sendStackEthFrame(void *pkt, int len) {
   if (TCP_SEQ_LT((EKA_TCPH_SEQNO(pkt)),tcpLocalSeqNum)) {
     
     // Retransmit
-    //    EKA_LOG("Retransmit: Total Len = %u bytes, Seq = %u, tcpLocalSeqNum=%u", len, EKA_TCPH_SEQNO(pkt),tcpLocalSeqNum);
+    //    EKA_LOG("Retransmit: Total Len = %u bytes, Seq = %u, tcpLocalSeqNum=%u",
+    //            len, EKA_TCPH_SEQNO(pkt),tcpLocalSeqNum);
     //    hexDump("RetransmitPkt",pkt,len);
     controlTcpSess->sendEthFrame(pkt,len);
     return 0;
@@ -448,6 +488,7 @@ int EkaTcpSess::sendStackEthFrame(void *pkt, int len) {
     tcpRemoteSeqNum = EKA_TCPH_ACKNO(pkt);
     setRemoteSeqWnd2FPGA();
     emptyAckAction->send(); //
+    //emptyAckAction->copyHeap2FpgaAndSend();
     /* TEST_LOG("Sending Empty ACK %u",EKA_TCPH_ACKNO(pkt)); */
   } else {
     /* TEST_LOG("NOT Sending ACK %u",EKA_TCPH_ACKNO(pkt)); */
@@ -474,11 +515,7 @@ int EkaTcpSess::sendEthFrame(void *buf, int len) {
   if ((uint)len > MAX_ETH_FRAME_SIZE)
     on_error("Size %d > MAX_ETH_FRAME_SIZE (%d)",len,MAX_ETH_FRAME_SIZE);
 
-  /* hexDump("sendEthFrame",buf,len); */
-  /* fullPktAction->print("from sendEthFrame:"); */
-
-  fullPktAction->setEthFrame(/* thrId, */buf,(uint)len);
-  fullPktAction->send();
+  fullPktAction->sendFullPkt(buf,(uint)len);
 
   return 0;
 }
@@ -489,9 +526,10 @@ int EkaTcpSess::lwipDummyWrite(void *buf, int len, uint8_t originatedFromHw) {
   auto p = (const uint8_t*)buf;
   int sentSize = 0;
 
-  if (originatedFromHw)
+  if (originatedFromHw) {
     realFastPathBytes.fetch_add(len);
-  
+    dev->globalFastPathBytes.fetch_add(len);
+  }
   do {
     int sentBytes = lwip_write(sock,p,len-sentSize);
     lwip_errno = errno;
@@ -516,7 +554,8 @@ int EkaTcpSess::lwipDummyWrite(void *buf, int len, uint8_t originatedFromHw) {
 
   txLwipBp.store(false);
   realDummyBytes.fetch_add(len);
-  
+  dev->globalDummyBytes.fetch_add(len);
+
   return len;
 }
 int EkaTcpSess::preSendCheck(int len, int flags) {
@@ -527,11 +566,14 @@ int EkaTcpSess::preSendCheck(int len, int flags) {
 
   if (len <= 0) return 0;
   
-  static const uint32_t WndMargin = 2*1024; // 1 MTU
-  static const uint32_t AllowedWndSafetyMargin = 512 * 1024; // Big number
+  static const uint32_t WndMargin = 2 * 1024; // 2 real fire MTUs
+  static const uint32_t AllowedWndSafetyMargin = 1024 * 1024; // Big number
 
+  static const uint64_t FpgaInFlightLimit = 8 * 1024;
+  
   uint payloadSize2send = (uint)len < MAX_PAYLOAD_SIZE ? (uint)len : MAX_PAYLOAD_SIZE;
   int64_t unAckedBytes = realFastPathBytes.load() - realTcpRemoteAckNum.load();
+
   if (unAckedBytes < 0)
     on_error("unAckedBytes %jd < 0",unAckedBytes);
   
@@ -543,7 +585,10 @@ int EkaTcpSess::preSendCheck(int len, int flags) {
     on_error("allowedWnd %u > AllowedWndSafetyMargin %u: currTcpSndWnd = %u",
 	      allowedWnd, AllowedWndSafetyMargin, currTcpSndWnd);
   }
-  if (txLwipBp.load() || unAckedBytes + payloadSize2send > allowedWnd) {
+  if (txLwipBp.load() ||
+      unAckedBytes + payloadSize2send > allowedWnd ||
+      dev->globalFastPathBytes.load() - dev->globalDummyBytes.load() > FpgaInFlightLimit) {
+
     payloadSize2send = 0;
     errno = EAGAIN;
 #if DEBUG_PRINTS
@@ -566,6 +611,7 @@ int EkaTcpSess::preSendCheck(int len, int flags) {
   } 
 
   realFastPathBytes.fetch_add(payloadSize2send);
+  dev->globalFastPathBytes.fetch_add(payloadSize2send);
   
   return payloadSize2send;
 }

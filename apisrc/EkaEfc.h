@@ -24,6 +24,7 @@ class EkaEfc : public EpmStrategy {
 	       epm_actionid_t           baseActionIdx, 
 	       const EpmStrategyParams* params, 
 	       EfhFeedVer               hwFeedVer);
+  ~EkaEfc();
   int downloadTable();
   int subscribeSec(uint64_t secId);
   int cleanSubscrHwTable();
@@ -64,6 +65,7 @@ class EkaEfc : public EpmStrategy {
   int           setHwUdpParams();
   int           setHwStratRegion();
   int           enableRxFire();
+  int           disableRxFire();
   int           checkSanity();
   
   /* ----------------------------------------------------- */

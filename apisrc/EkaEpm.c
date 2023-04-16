@@ -47,23 +47,27 @@ int EkaEpm::createRegion(uint regionId, epm_actionid_t baseActionIdx) {
 /* ---------------------------------------------------- */
 
 void EkaEpm::initHeap(uint regionHeapBaseOffs, uint regionHeapSize, uint regionId) {
-  uint numPages = regionHeapSize / HeapPage;
   if (regionHeapSize % HeapPage != 0) 
     on_error("regionHeapSize %u is not multiple of HeapPage %ju",
 	     regionHeapSize, HeapPage);
-  EKA_LOG("regionHeapBaseOffs=%u, regionHeapSize=%u, HeapPage=%ju, numPages=%u",
-	  regionHeapBaseOffs,regionHeapSize,HeapPage,numPages);
+  const int HeapWcPageSize = 1024;
+  auto numPages = regionHeapSize / HeapWcPageSize;
+  EKA_LOG("regionHeapBaseOffs=%u, regionHeapSize=%u, HeapWcPageSize=%d, numPages=%d",
+	  regionHeapBaseOffs,regionHeapSize,HeapWcPageSize,numPages);
   memset(&heap[regionHeapBaseOffs],0,regionHeapSize);
-  auto heapWrChId = dev->heapWrChannels.getChannelId(EkaHeapWrChannels::AccessType::HeapInit);
-  for (uint i = 0; i < numPages; i++) {
-    //    uint8_t __attribute__ ((aligned(0x100))) pageTmpBuf[HeapPage] = {};
-    uint64_t hwPageStart = EpmHeapHwBaseAddr + regionHeapBaseOffs + i * HeapPage;
-    uint64_t swPageStart = regionHeapBaseOffs + i * HeapPage;
-    //    EKA_LOG("Cleaning hwPageStart=%ju + %ju",hwPageStart,HeapPage);
-    /* uint thrId = regionId % MAX_HEAP_WR_THREADS; */
-    /* copyIndirectBuf2HeapHw_swap4(dev,hwPageStart,(uint64_t*)&pageTmpBuf,thrId,HeapPage); */
 
-    setHeapWndAndCopy(dev,hwPageStart,(uint64_t*)&heap[swPageStart], heapWrChId, HeapPage);
+  for (uint i = 0; i < numPages; i++) {
+    uint64_t hwPageStart = regionHeapBaseOffs + i * HeapWcPageSize;
+    uint64_t swPageStart = regionHeapBaseOffs + i * HeapWcPageSize;
+    /* EKA_LOG("Cleaning hwPageStart=%ju + %d",hwPageStart,HeapWcPageSize); */
+#if 1
+    dev->ekaWc->epmCopyWcBuf(hwPageStart,
+			     &heap[swPageStart],
+			     HeapWcPageSize,
+			     0, // actionLocalIdx
+			     regionId);
+    usleep(1); // preventing WC FIFO overrun
+#endif    
   }
 }
 
@@ -284,21 +288,6 @@ int EkaEpm::InitTemplates() {
   rawPkt         = new EpmRawPktTemplate(templatesNum++);
   if (! rawPkt) on_error("! rawPkt");
 
-  /* switch (dev->hwFeedVer) { */
-  /* case EfhFeedVer::kNASDAQ :  */
-  /*   hwFire         = new EpmFireSqfTemplate(templatesNum++  ,"EpmFireSqfTemplate" ); */
-  /*   EKA_LOG("Initializing EpmFireSqfTemplate"); */
-  /*   break; */
-  /* case EfhFeedVer::kCBOE :  */
-  /*   hwFire         = new EpmFireBoeTemplate(templatesNum++  ,"EpmFireBoeTemplate" ); */
-  /*   EKA_LOG("Initializing EpmFireBoeTemplate"); */
-  /*   break; */
-  /* default : */
-  /*   hwFire         = new EpmRawPktTemplate(templatesNum++  ,"PlaceHolderRawPkt" ); */
-  /*   EKA_LOG("Initializing PlaceHolderRawPkt -- SHOULD NOT BE USED!!!"); */
-  /*   break; */
-  /* } */
-
   return 0;
 }
 /* ---------------------------------------------------- */
@@ -328,8 +317,12 @@ int EkaEpm::DownloadSingleTemplate2HW(EpmTemplate* t) {
   /*   } */
   /* } */
 
-  copyBuf2Hw_swap4(dev,t->getDataTemplateAddr(),(uint64_t*) t->data                ,EpmMaxRawTcpSize);
-  copyBuf2Hw      (dev,t->getCsumTemplateAddr(),(uint64_t*) &t->hw_tcpcs_template  ,sizeof(t->hw_tcpcs_template));
+  copyBuf2Hw_swap4(dev,t->getDataTemplateAddr(),
+		   (uint64_t*) t->data ,
+		   EpmMaxRawTcpSize);
+  copyBuf2Hw      (dev,t->getCsumTemplateAddr(),
+		   (uint64_t*) &t->hw_tcpcs_template,
+		   sizeof(t->hw_tcpcs_template));
 
   return 0;
 }
@@ -347,6 +340,29 @@ int EkaEpm::DownloadTemplates2HW() {
 }
 
 /* ---------------------------------------------------- */
+void EkaEpm::actionParamsSanityCheck(ActionType type, 
+				     uint       actionRegion, 
+				     uint8_t    _coreId, 
+				     uint8_t    _sessId) {
+  if (type == ActionType::UserAction)
+    return;
+
+  if ((type == ActionType::TcpFullPkt  ||
+       type == ActionType::TcpFastPath ||
+       type == ActionType::TcpEmptyAck) &&
+      actionRegion != TcpTxRegion)
+    on_error("actionRegion %u doesnt match actionType %d",
+	     actionRegion, (int)type);
+
+  if (_coreId >= MAX_CORES)
+    on_error("coreId %u > MAX_CORES %u",_coreId,MAX_CORES);
+
+  if (_sessId >= TOTAL_SESSIONS_PER_CORE)
+    on_error("sessId %u >= TOTAL_SESSIONS_PER_CORE %u",
+	     _sessId, TOTAL_SESSIONS_PER_CORE);
+       
+}
+/* ---------------------------------------------------- */
 
 EkaEpmAction* EkaEpm::addAction(ActionType     type, 
 				uint           actionRegion, 
@@ -354,21 +370,54 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
 				uint8_t        _coreId, 
 				uint8_t        _sessId, 
 				uint8_t        _auxIdx) {
-
+  EKA_LOG("Action %d: type=%d, actionRegion=%u,heapOffs=%u",
+	  (int)_localIdx,(int)type,actionRegion,
+	  epmRegion[actionRegion]->heapOffs);
+  
   if (actionRegion >= EPM_REGIONS || epmRegion[actionRegion] == NULL) 
-    on_error("wrong epmRegion[%u] = %p",actionRegion,epmRegion[actionRegion]);
+    on_error("wrong epmRegion[%u] = %p",
+	     actionRegion,epmRegion[actionRegion]);
+  actionParamsSanityCheck(type,actionRegion,_coreId,_sessId);
 
   uint            heapBudget      = getHeapBudget(type);
 
   createActionMtx.lock();
 
-  epm_actionid_t  localActionIdx = epmRegion[actionRegion]->localActionIdx++;
+  epm_actionid_t  localActionIdx = -1;
+
+  switch (type) {
+  case ActionType::TcpEmptyAck :
+    localActionIdx = _coreId * TOTAL_SESSIONS_PER_CORE +
+      _sessId * ActionsPerTcpSess;
+    break;
+  case ActionType::TcpFullPkt :
+  case ActionType::TcpFastPath :
+    localActionIdx = _coreId * TOTAL_SESSIONS_PER_CORE +
+      _sessId * ActionsPerTcpSess + 1;
+    break;
+  default:
+    localActionIdx = epmRegion[actionRegion]->localActionIdx++;
+  }
+  if (localActionIdx >= (int)ActionsPerRegion)
+    on_error("localActionIdx %d >= ActionsPerRegion %u",
+	     localActionIdx, ActionsPerRegion);
+
+  
   epm_actionid_t  actionIdx      = epmRegion[actionRegion]->baseActionIdx + localActionIdx;
   uint            heapOffs       = epmRegion[actionRegion]->heapOffs;
 
   uint64_t actionAddr = EpmActionBase + actionIdx * ActionBudget;
   epmRegion[actionRegion]->heapOffs += heapBudget;
 
+  if (epmRegion[actionRegion]->heapOffs -
+      epmRegion[actionRegion]->baseHeapOffs > HeapPerRegion)
+    on_error("heapOffs %u - baseHeapOffs %u (=%u) >= HeapPerRegion %u",
+	     epmRegion[actionRegion]->heapOffs,
+	     epmRegion[actionRegion]->baseHeapOffs,
+	     epmRegion[actionRegion]->heapOffs -
+	     epmRegion[actionRegion]->baseHeapOffs,
+	     HeapPerRegion);
+  
   EkaEpmAction* action = new EkaEpmAction(dev,
 					  type,
 					  actionIdx,

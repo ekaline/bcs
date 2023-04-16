@@ -112,6 +112,9 @@ EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhI
   EKA_LOG("Created %s with fhId=%u ppEfhCtx=%p, *ppEfhCtx=%p",
 	  EKA_EXCH_DECODE(exch),fhId,ppEfhCtx,*ppEfhCtx);
 
+  auto swStatistics = eka_read(dev,SW_STATISTICS);
+  eka_write(dev, SW_STATISTICS, swStatistics | (1ULL<<62));
+
   return EKA_OPRESULT__OK;
 
 }
@@ -120,6 +123,7 @@ EkaOpResult efhDestroy( EfhCtx* pEfhCtx ) {
   assert (pEfhCtx != NULL);
   assert (pEfhCtx->dev != NULL);
   if (pEfhCtx->dev->fh[pEfhCtx->fhId] != NULL) pEfhCtx->dev->fh[pEfhCtx->fhId]->stop();
+
   return EKA_OPRESULT__OK;
 }
 

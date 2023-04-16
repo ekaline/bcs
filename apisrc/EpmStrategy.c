@@ -9,11 +9,12 @@
 #include "EkaUdpTxSess.h"
 #include "EkaIgmp.h"
 #include "EkaEpmAction.h"
+#include "EkaWc.h"
 
 ExcSessionId excGetSessionId( ExcConnHandle hConn );
 EkaCoreId excGetCoreId( ExcConnHandle hConn );
-unsigned short csum(unsigned short *ptr,int nbytes);
-uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size);
+/* unsigned short csum(unsigned short *ptr,int nbytes); */
+/* uint32_t calc_pseudo_csum (void* ip_hdr, void* tcp_hdr, void* payload, uint16_t payload_size); */
 
 /* ------------------------------------------------ */
 EpmStrategy::EpmStrategy(EkaEpm* _epm, epm_strategyid_t _id, epm_actionid_t _baseActionIdx, const EpmStrategyParams *params, EfhFeedVer _hwFeedVer) {
@@ -98,7 +99,8 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx,
     return EKA_OPRESULT__ERR_INVALID_ACTION;
   }
   //---------------------------------------------------------
-  EKA_LOG("Setting Action %d epmAction->type=%d",actionIdx,(int)epmAction->type);
+  EKA_LOG("Setting Action %d epmAction->type=%d",
+	  actionIdx,(int)epmAction->type);
 
   EkaEpmAction *ekaA = action[actionIdx];
 
@@ -133,13 +135,7 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx,
 		    sess->srcPort,sess->dstPort);
   }
   //---------------------------------------------------------
-
-  if (ekaA->isUdp())    
-    ekaA->setUdpPktPayload(&epm->heap[epmAction->offset],
-			   epmAction->length);
-  else
-    ekaA->setPktPayload(&epm->heap[epmAction->offset],
-			epmAction->length);
+  ekaA->copyHeap2Fpga();
 
   ekaA->initialized = true;
 
@@ -168,7 +164,11 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx,
 	     (uint64_t*)&ekaA->hwAction,
 	     sizeof(ekaA->hwAction)); //write to scratchpad
   atomicIndirectBufWrite(dev,0xf0238/*ActionAddr*/,0,0,ekaA->idx,0);
-    
+
+
+  /* ekaA->printHeap(); */
+  /* ekaA->printHwAction(); */
+  
   //---------------------------------------------------------
 
   return EKA_OPRESULT__OK;
