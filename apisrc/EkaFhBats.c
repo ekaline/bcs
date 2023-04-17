@@ -76,6 +76,10 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
   EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u: %s GROUPS ~~~~~~~~~~~~~",
 	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
 
+#ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
+    uint64_t firstDropSeq = 0;
+#endif
+
 #if EFH_MONITOR_BOOK_STATS
   uint64_t monitorCounter = 0;
 #endif
@@ -132,7 +136,7 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
     case EkaFhGroup::GrpState::SNAPSHOT_GAP :
       break;
     case EkaFhGroup::GrpState::RETRANSMIT_GAP :
-      if (sequence - firstDropSeq == _EFH_TEST_GAP_INJECT_DELTA_)
+      if (sequence - firstDropSeq <= _EFH_TEST_GAP_INJECT_DELTA_)
 	dropMe = true;
       break;
     default:
