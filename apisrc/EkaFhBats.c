@@ -78,6 +78,7 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
 
 #ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
     uint64_t firstDropSeq = 0;
+    bool dropMe = false;
 #endif
 
 #if EFH_MONITOR_BOOK_STATS
@@ -123,9 +124,11 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
       startTime = std::chrono::high_resolution_clock::now();
     }
 #endif
+    if (sequence == 0) // unsequenced packet
+      goto SKIP_PKT;
     
 #ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
-    bool dropMe = false;
+    dropMe = false;
     switch (gr->state) {
     case EkaFhGroup::GrpState::NORMAL :
       if (sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
@@ -159,8 +162,7 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
     gr->processUdpPkt(pEfhRunCtx,pkt,msgInPkt,sequence,startTime);
     goto SKIP_PKT;
 #endif
-    if (sequence == 0) // unsequenced packet
-      goto SKIP_PKT;
+
     //------------------------------------------------------------------
     switch (gr->state) {
       //----------------------------------------------------------------
