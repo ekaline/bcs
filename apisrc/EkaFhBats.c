@@ -171,7 +171,6 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
 
       gr->invalidateBook();
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
-      gr->startTrackingGapInGap(sequence, msgInPkt);
 
       gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 0, 0);
     
@@ -206,9 +205,8 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
 	  nOpenIncrGaps.load() > MaxOpenIncrGaps) {
 	gr->state = EkaFhGroup::GrpState::INIT;	
       } else {
+	nOpenIncrGaps.fetch_add(1);
 	gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
-	gr->startTrackingGapInGap(sequence, msgInPkt);
-	
 	gr->closeIncrementalGap(pEfhCtx, pEfhRunCtx,
 				gr->expected_sequence, sequence);
       }
