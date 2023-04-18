@@ -1017,9 +1017,7 @@ void* getGrpRetransmitData(void* attr) {
 	    EKA_EXCH_DECODE(gr->exch),gr->id,start,end,cnt,
 	    gr->seq_after_snapshot);
   } else {
-    EKA_WARN("%s:%u GRP Failed after %d trials. Exiting...",
-	     EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
-    on_error("%s:%u GRP Failed after %d trials. Exiting...",
+    EKA_WARN("%s:%u GRP Failed after %d trials",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
   }
   gr->recoveryThreadDone = true;
