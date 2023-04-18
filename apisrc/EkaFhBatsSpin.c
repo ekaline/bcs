@@ -1011,7 +1011,6 @@ void* getGrpRetransmitData(void* attr) {
   gr->seq_after_snapshot = end;
 
   if (success) {
-    gr->gapClosed = true;
     EKA_LOG("%s:%u: GRP closed: start=%ju, end=%ju, cnt=%d, "
 	    "seq_after_snapshot=%ju",
 	    EKA_EXCH_DECODE(gr->exch),gr->id,start,end,cnt,
@@ -1020,6 +1019,7 @@ void* getGrpRetransmitData(void* attr) {
     EKA_WARN("%s:%u GRP Failed after %d trials",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
   }
+  gr->gapClosed = true;
   gr->recoveryThreadDone = true;
 
   return NULL;
