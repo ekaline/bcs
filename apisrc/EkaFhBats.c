@@ -88,8 +88,6 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
   active = true;
   while (runGr->thread_active && ! runGr->stoppedByExchange) {
     //-----------------------------------------------------------------------------
-    if (runGr->drainQ(pEfhRunCtx)) continue;
-
 #if EFH_MONITOR_BOOK_STATS
     if (++monitorCounter % 10000000000UL == 0) {
       for (uint8_t i = 0; i < runGr->numGr; i++) {
@@ -220,31 +218,14 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
       //-----------------------------------------------------------------
     case EkaFhGroup::GrpState::SNAPSHOT_GAP : 
     case EkaFhGroup::GrpState::RETRANSMIT_GAP :
-      if (gr->hasGapInGap(sequence, msgInPkt)) {
-	EKA_LOG("%s:%u: GapInGap in %s",
-		EKA_EXCH_DECODE(exch),gr->id,
-		gr->printGrpState());
-	gr->recovery_active = false;
-	gr->snapshot_active = false;
-	
-	while (! gr->recoveryThreadDone)
-	  sleep(0);
-	if (gr->state == EkaFhGroup::GrpState::SNAPSHOT_GAP)
-	  nOpenSnapshotGaps.fetch_sub(1);
-	else
-	  nOpenIncrGaps.fetch_sub(1);
-	gr->state = EkaFhGroup::GrpState::INIT;	
-	gr->gapClosed = false;
-	break;
-      }
       /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
-
+      // Waiting for recovery
       gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
 
       if (! gr->gapClosed)
 	break;
       /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
-
+      // Gap closed
       if (gr->state == EkaFhGroup::GrpState::SNAPSHOT_GAP)
 	nOpenSnapshotGaps.fetch_sub(1);
       else {
@@ -256,13 +237,21 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
 	  break;
 	}
       }
+
+      gr->expected_sequence = gr->seq_after_snapshot;      
+
+      if (gr->processFromQ(pEfhRunCtx) < 0) { // gap in the Q
+	EKA_LOG("%s:%u: gap during %s recovery, Spin Snapshot to be redone!",
+		EKA_EXCH_DECODE(exch),gr->id,
+		gr->printGrpState());
+	gr->state = EkaFhGroup::GrpState::INIT;
+	break;
+      }
       EKA_LOG("%s:%u: %s GAP Closed",
 	      EKA_EXCH_DECODE(exch),gr->id, gr->printGrpState());
       
       gr->state = EkaFhGroup::GrpState::NORMAL;
       gr->sendFeedUp(pEfhRunCtx);
-      runGr->setGrAfterGap(gr->id);
-      gr->expected_sequence = gr->seq_after_snapshot;      
     
       break;
       //-----------------------------------------------------------------

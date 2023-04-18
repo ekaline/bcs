@@ -55,9 +55,9 @@ public:
 
   void         sendNoMdTimeOut(const EfhRunCtx* EfhRunCtx);
   void         sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx,
-					   bool dontSleepAfterCb=false);
+					   bool sleepAfterCb=true);
   void         sendRetransmitSocketError(const EfhRunCtx* pEfhRunCtx,
-					   bool dontSleepAfterCb=false);
+					   bool sleepAfterCb=true);
   void         sendBackInTimeEvent(const EfhRunCtx* pEfhRunCtx,
 				   uint64_t badSequence);
 
