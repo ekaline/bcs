@@ -54,8 +54,10 @@ public:
   void         sendFeedDownClosed(const EfhRunCtx* EfhRunCtx);
 
   void         sendNoMdTimeOut(const EfhRunCtx* EfhRunCtx);
-  void         sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx);
-  void         sendRetransmitSocketError(const EfhRunCtx* pEfhRunCtx);
+  void         sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx,
+					   bool dontSleepAfterCb=false);
+  void         sendRetransmitSocketError(const EfhRunCtx* pEfhRunCtx,
+					   bool dontSleepAfterCb=false);
   void         sendBackInTimeEvent(const EfhRunCtx* pEfhRunCtx,
 				   uint64_t badSequence);
 

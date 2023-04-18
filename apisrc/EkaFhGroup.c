@@ -214,7 +214,8 @@ void EkaFhGroup::sendNoMdTimeOut(const EfhRunCtx* pEfhRunCtx) {
  /* ##################################################################### */
 
 
-void EkaFhGroup::sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx) {
+void EkaFhGroup::sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx,
+					     bool dontSleepAfterCb) {
   if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
   if (pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL)
     on_error("pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL");
@@ -232,11 +233,12 @@ void EkaFhGroup::sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx) {
   pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
   EKA_LOG("%s:%u re-trying in %d seconds",EKA_EXCH_DECODE(exch),id,connectRetryDelayTime);
   if (connectRetryDelayTime == 0) on_error("connectRetryDelayTime == 0");
-  sleep(connectRetryDelayTime);
+  if (!dontSleepAfterCb)  sleep(connectRetryDelayTime);
 }
  /* ##################################################################### */
 
-void EkaFhGroup::sendRetransmitSocketError(const EfhRunCtx* pEfhRunCtx) {
+void EkaFhGroup::sendRetransmitSocketError(const EfhRunCtx* pEfhRunCtx,
+					   bool dontSleepAfterCb) {
   if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
   if (pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL)
     on_error("pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL");
@@ -254,7 +256,7 @@ void EkaFhGroup::sendRetransmitSocketError(const EfhRunCtx* pEfhRunCtx) {
   pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
   EKA_LOG("%s:%u re-trying in %d seconds",EKA_EXCH_DECODE(exch),id,connectRetryDelayTime);
   if (connectRetryDelayTime == 0) on_error("connectRetryDelayTime == 0");
-  sleep(connectRetryDelayTime);
+  if (!dontSleepAfterCb)  sleep(connectRetryDelayTime);
 }
  /* ##################################################################### */
 

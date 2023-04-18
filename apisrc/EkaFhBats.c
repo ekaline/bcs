@@ -252,7 +252,7 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
 	if (gr->lastExchErr != EfhExchangeErrorCode::kNoError) {
 	  EKA_LOG("%s:%u: GRP Recovery failed, trying Spin Snapshot",
 	      EKA_EXCH_DECODE(exch),gr->id);
-	  gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
+	  gr->state = EkaFhGroup::GrpState::INIT;
 	  break;
 	}
       }
