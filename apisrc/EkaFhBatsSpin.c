@@ -998,9 +998,9 @@ void* getGrpRetransmitData(void* attr) {
     success = grpCycle(pEfhRunCtx, gr, start, end);
     if (success) break;
     if (gr->lastExchErr != EfhExchangeErrorCode::kNoError)
-      gr->sendRetransmitExchangeError(pEfhRunCtx,true);
+      gr->sendRetransmitExchangeError(pEfhRunCtx,false);
     if (dev->lastErrno   != 0)
-      gr->sendRetransmitSocketError(pEfhRunCtx,true);
+      gr->sendRetransmitSocketError(pEfhRunCtx,false);
   }
   //-----------------------------------------------------------------
   int rc = gr->credentialRelease(lease);
