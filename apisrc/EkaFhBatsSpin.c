@@ -603,6 +603,7 @@ static bool grpCycle(EfhRunCtx*   pEfhRunCtx,
     EKA_WARN("%s:%u failed to receive GRP MC pkt after %d attempts: %s",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,LocalAttemps,
 	     strerror(dev->lastErrno));
+    gr->lastExchErr = EfhExchangeErrorCode::kConnectionProblem;
     goto ITERATION_FAIL;
   }
   //-----------------------------------------------------------------
@@ -618,7 +619,8 @@ static bool grpCycle(EfhRunCtx*   pEfhRunCtx,
 	     EKA_IP2STR(remote_addr.sin_addr.s_addr),
 	     be16toh   (remote_addr.sin_port),
 	     strerror(dev->lastErrno));
-    goto ITERATION_FAIL;
+    gr->lastExchErr = EfhExchangeErrorCode::kConnectionProblem;
+   goto ITERATION_FAIL;
   }
   //-----------------------------------------------------------------
   if (! sendLogin(dev,
@@ -629,8 +631,10 @@ static bool grpCycle(EfhRunCtx*   pEfhRunCtx,
 		  gr->grpPasswd,
 		  gr->grpSessionSubID,
 		  gr->exch,
-		  gr->id))
+		  gr->id)) {
+    gr->lastExchErr = EfhExchangeErrorCode::kConnectionProblem;
     goto ITERATION_FAIL;
+  }
   //-----------------------------------------------------------------
   gr->lastExchErr = getLoginResponse(dev,
 				     tcpSock,
@@ -651,8 +655,10 @@ static bool grpCycle(EfhRunCtx*   pEfhRunCtx,
 			 currStart,
 			 currEnd,
 			 gr->exch,
-			 gr->id))
+			 gr->id)) {
+      gr->lastExchErr = EfhExchangeErrorCode::kConnectionProblem;
       goto ITERATION_FAIL;
+    }
     //-----------------------------------------------------------------
     gr->lastExchErr = getGapResponse(dev, 
 				     tcpSock, 
