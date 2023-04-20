@@ -232,13 +232,6 @@ inline EkaTcpSess *getEkaTcpSess(EkaDev* dev, ExcConnHandle hConn) {
   return nullptr;
 }
 
-int getSessAppSeqId(EkaDev* dev, ExcConnHandle hConn) {
-  auto s = getEkaTcpSess(dev,hConn);
-  if (!s)
-    on_error("hConn 0x%2x is not found",hConn);
-  return s->appSeqId;
-}
-  
 
 /*
  *
@@ -324,11 +317,10 @@ ExcConnHandle excConnect( EkaDev* dev, ExcSocketHandle hSocket, const struct soc
 
   if (sess->connect() == -1)
     return -1;
-  if (dev->numAppSeqSessions > dev->MaxAppSeqSessions)
-    EKA_WARN("numAppSeqSessions %d > MaxAppSeqSessions %d",
-	     dev->numAppSeqSessions, dev->MaxAppSeqSessions);
-  sess->appSeqId = dev->numAppSeqSessions++;
-  
+
+  sess->updateFpgaCtx<EkaTcpSess::AppSeqBin>(0);
+  sess->updateFpgaCtx<EkaTcpSess::AppSeqAscii>(0);
+
   return sess->getConnHandle();
 }
 

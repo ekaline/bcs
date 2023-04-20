@@ -400,28 +400,40 @@ int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
 /* ---------------------------------------------------------------- */
 int EkaTcpSess::setRemoteSeqWnd2FPGA() {
     // Update FPGA with tcpRemoteSeqNum and tcpRcvWnd
+#if 0  
     exc_table_desc_t desc = {};
     desc.td.source_bank = 0;
     desc.td.source_thread = sessId;
     desc.td.target_idx = (uint32_t)sessId;
 
     uint64_t tcpRcvWnd_64bit = (uint64_t)tcpRcvWnd;
-    eka_write(dev,0x60000 + 0x1000*coreId + 8 * (sessId*2),tcpRemoteSeqNum | (tcpRcvWnd_64bit << 32) );
+    eka_write(dev,0x60000 + 0x1000*coreId + 8 * (sessId*2),
+	      tcpRemoteSeqNum | (tcpRcvWnd_64bit << 32) );
     eka_write(dev,0x6f000 + 0x100*coreId,desc.desc);
+#endif
+    uint64_t data = tcpRemoteSeqNum | ((uint64_t)tcpRcvWnd << 32);
+    updateFpgaCtx<RemoteSeqWnd>(data);
     return 0;
 }
 
 /* ---------------------------------------------------------------- */
 
 int EkaTcpSess::setLocalSeqWnd2FPGA() {
+#if 0
     exc_table_desc_t desc = {};
     desc.td.source_bank = 0;
     desc.td.source_thread = sessId;
     desc.td.target_idx = (uint32_t)sessId;
-    eka_write(dev,0x30000 + 0x1000*coreId + 8 * (sessId*2),(uint64_t)tcpLocalSeqNum.load());
+    eka_write(dev,0x30000 + 0x1000*coreId + 8 * (sessId*2),
+	      (uint64_t)tcpLocalSeqNum.load());
     eka_write(dev,0x3f000 + 0x100*coreId,desc.desc);
+#endif
+    updateFpgaCtx<LocalSeqWnd>((uint64_t)tcpLocalSeqNum.load());
 
+#if 0
+    // ???
     eka_write(dev,0xe0318,tcpRcvWnd);
+#endif    
     return 0;
 }
 

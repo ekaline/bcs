@@ -17,9 +17,10 @@ class EkaEpmAction;
 
 class EkaTcpSess {
  public:
-
-  EkaTcpSess(EkaDev* pEkaDev, EkaCore* parent, uint8_t coreId, uint8_t sessId,  
-	     uint32_t _srcIp,  uint32_t _dstIp, uint16_t _dstPort, uint8_t* macSa);
+  EkaTcpSess(EkaDev* pEkaDev, EkaCore* parent,
+	     uint8_t coreId, uint8_t sessId,  
+	     uint32_t _srcIp, uint32_t _dstIp,
+	     uint16_t _dstPort, uint8_t* macSa);
 
   int bind();
   int connect();
@@ -36,21 +37,49 @@ class EkaTcpSess {
   int preloadNwHeaders();
 
   ssize_t recv(void *buffer, size_t size, int flags);
+  
   int     close();
-  ExcConnHandle getConnHandle() {
+
+  inline ExcConnHandle getConnHandle() {
     return coreId * 128 + sessId;
   }
 
   ~EkaTcpSess();
 
-  inline bool myParams(uint32_t srcIp2check,uint16_t srcPort2check,uint32_t dstIp2check,uint16_t dstPort2check) {
-    return (srcIp2check == srcIp && srcPort2check == srcPort && dstIp2check == dstIp && dstPort2check == dstPort);
+  inline bool myParams(uint32_t srcIp2check,
+		       uint16_t srcPort2check,
+		       uint32_t dstIp2check,
+		       uint16_t dstPort2check) {
+    return (srcIp2check   == srcIp   &&
+	    srcPort2check == srcPort &&
+	    dstIp2check   == dstIp   &&
+	    dstPort2check == dstPort);
   }
 
   inline bool myParams(int sock_fd) {
     return (sock == sock_fd);
   }
 
+  enum SessFpgaUpdateType {RemoteSeqWnd = 0,
+			   LocalSeqWnd,
+			   AppSeqBin,
+			   AppSeqAscii
+  };
+
+  template <const SessFpgaUpdateType type>
+  inline void updateFpgaCtx(uint64_t data) {
+    uint64_t baseAddr = 0x3f000;
+    const uint64_t TableSize = 32 * 8;
+    uint64_t tableOffs = type * TableSize;
+    uint64_t coreOffs = 4 * 32 * 8;
+    uint64_t wrAddr =
+      baseAddr + tableOffs + coreOffs * coreId + sessId * 8;
+
+    eka_write(dev,wrAddr,data);
+    
+    return;
+  }
+  
   static const uint MAX_SESS_PER_CORE       = EkaDev::MAX_SESS_PER_CORE;
   static const uint CONTROL_SESS_ID         = EkaDev::CONTROL_SESS_ID;
   static const uint TOTAL_SESSIONS_PER_CORE = EkaDev::TOTAL_SESSIONS_PER_CORE;
@@ -59,8 +88,8 @@ class EkaTcpSess {
   static const uint MAX_ETH_FRAME_SIZE      = EkaDev::MAX_ETH_FRAME_SIZE;
 
   /*
-   * NOTE: MAX_PAYLOAD_SIZE *must* match the value of TCP_MSS but we don't want
-   * to include lwipopts.h here.
+   * NOTE: MAX_PAYLOAD_SIZE *must* match the value of TCP_MSS
+   * but we don't want to include lwipopts.h here.
    */
   //  static const uint MAX_PAYLOAD_SIZE  = 1440;
   // matching more conservative MSS
