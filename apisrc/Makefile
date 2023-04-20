@@ -1,4 +1,8 @@
-SMARTNIC_ROOT ?= ../SmartNIC_SW
+ifeq ($(shell hostname),xn02)
+	SMARTNIC_ROOT ?= ../../sc_driver/SmartNIC_SW
+else
+	SMARTNIC_ROOT ?= ../SmartNIC_SW
+endif
 
 LWIP_ROOT ?= ../LWIP
 

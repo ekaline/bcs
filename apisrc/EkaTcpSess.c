@@ -566,10 +566,8 @@ int EkaTcpSess::preSendCheck(int len, int flags) {
 
   if (len <= 0) return 0;
   
-  static const uint32_t WndMargin = 2 * 1024; // 2 real fire MTUs
-  static const uint32_t AllowedWndSafetyMargin = 1024 * 1024; // Big number
-
-  static const uint64_t FpgaInFlightLimit = 8 * 1024;
+  const uint32_t WndMargin = 2 * 1024; // 2 real fire MTUs
+  const uint64_t FpgaInFlightLimit = 8 * 1024;
   
   uint payloadSize2send = (uint)len < MAX_PAYLOAD_SIZE ? (uint)len : MAX_PAYLOAD_SIZE;
   int64_t unAckedBytes = realFastPathBytes.load() - realTcpRemoteAckNum.load();
@@ -579,12 +577,13 @@ int EkaTcpSess::preSendCheck(int len, int flags) {
   
   auto currTcpSndWnd = tcpSndWnd.load();
   uint32_t allowedWnd = currTcpSndWnd < WndMargin ? 0 : currTcpSndWnd - WndMargin;
-  if (allowedWnd > AllowedWndSafetyMargin) {
-    EKA_ERROR("allowedWnd %u > AllowedWndSafetyMargin %u: currTcpSndWnd = %u",
-	      allowedWnd, AllowedWndSafetyMargin, currTcpSndWnd);
-    on_error("allowedWnd %u > AllowedWndSafetyMargin %u: currTcpSndWnd = %u",
-	      allowedWnd, AllowedWndSafetyMargin, currTcpSndWnd);
-  }
+  /* const uint32_t AllowedWndSafetyMargin = 1024 * 1024; // Big number */
+  /* if (allowedWnd > AllowedWndSafetyMargin) { */
+  /*   EKA_ERROR("allowedWnd %u > AllowedWndSafetyMargin %u: currTcpSndWnd = %u", */
+  /* 	      allowedWnd, AllowedWndSafetyMargin, currTcpSndWnd); */
+  /*   on_error("allowedWnd %u > AllowedWndSafetyMargin %u: currTcpSndWnd = %u", */
+  /* 	      allowedWnd, AllowedWndSafetyMargin, currTcpSndWnd); */
+  /* } */
   if (txLwipBp.load() ||
       unAckedBytes + payloadSize2send > allowedWnd ||
       dev->globalFastPathBytes.load() - dev->globalDummyBytes.load() > FpgaInFlightLimit) {
