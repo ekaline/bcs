@@ -60,20 +60,37 @@ class EkaTcpSess {
     return (sock == sock_fd);
   }
 
-  enum SessFpgaUpdateType {RemoteSeqWnd = 0,
-			   LocalSeqWnd,
+  enum SessFpgaUpdateType {AppSeqAscii = 0,
 			   AppSeqBin,
-			   AppSeqAscii
+			   LocalSeqWnd,
+			   RemoteSeqWnd
   };
 
   template <const SessFpgaUpdateType type>
   inline void updateFpgaCtx(uint64_t data) {
-    uint64_t baseAddr = 0x3f000;
-    const uint64_t TableSize = 32 * 8;
+
+// 0x40000 + ADDR_DECODE[15:0]
+
+// ADDR_DECODE[15:14] - core
+// ADDR_DECODE[13:12] - tableID
+// ADDR_DECODE[11:0]   - byte addr (8 byte aligned)
+
+// tableID 0 = AsciiSEQ
+// tableID 1 = BinarySEQ
+// tableID 2 = TCPACK
+// tableID 3 = TCPSEQ
+ 
+// All tables have 64 entries
+    
+    uint64_t baseAddr = 0x40000;
+    const uint64_t TableSize = 4096; // ??? 64 * 8 = 512 
     uint64_t tableOffs = type * TableSize;
-    uint64_t coreOffs = 4 * 32 * 8;
+    uint64_t coreOffs = 4 * TableSize;
     uint64_t wrAddr =
-      baseAddr + tableOffs + coreOffs * coreId + sessId * 8;
+      baseAddr +
+      coreOffs * coreId +
+      tableOffs * type +
+      sessId * 8;
 
     eka_write(dev,wrAddr,data);
     
