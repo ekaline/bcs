@@ -1,5 +1,5 @@
 ifeq ($(shell hostname),xn02)
-	SMARTNIC_ROOT ?= ../../sc_driver/SmartNIC_SW
+	SMARTNIC_ROOT ?= /home/vitaly/sc_driver/SmartNIC_SW
 else
 	SMARTNIC_ROOT ?= ../SmartNIC_SW
 endif

@@ -528,9 +528,9 @@ int main(int argc, char *argv[]) {
     int hw_fires  = getHWFireCnt(dev,0xf0808);  
 
     printf("\n===========================\nEND OT TESTS : ");
+    bool testPass = true;
 
 #ifndef _VERILOG_SIM
-    bool testPass = true;
     if (ReportedFires==ExpectedFires && ReportedFires==hw_fires) {
       printf(GRN);
       printf("PASS, ExpectedFires == ReportedFires == HWFires == %d\n"  ,ExpectedFires);
