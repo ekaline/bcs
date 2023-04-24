@@ -210,7 +210,6 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     msg.size                  = message->size;
     msg.tradeStatus           = s->trading_action;
     msg.tradeCond             = static_cast<EfhTradeCond>(message->trade_condition);
-    EKA_LOG("%s:%u Trade condition: %c",EKA_EXCH_DECODE(exch),id,message->trade_condition);
 
     pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
     return false;
