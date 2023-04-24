@@ -208,6 +208,7 @@ bool EkaFhMiaxGr::parseMsg(const EfhRunCtx* pEfhRunCtx,const unsigned char* m,ui
     msg.header.gapNum         = gapNum;
     msg.price                 = message->price;
     msg.size                  = message->size;
+    msg.tradeStatus           = s->trading_action;
     msg.tradeCond             = static_cast<EfhTradeCond>(message->trade_condition);
 
     pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
