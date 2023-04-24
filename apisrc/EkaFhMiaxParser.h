@@ -177,10 +177,11 @@ namespace Tom {
 
   struct TomTrade { // 'T'
     TomCommon CommHdr;                      // 5
-    uint32_t  security_id;                  // 4 
-    uint8_t   correctionNum;                // 1
-    uint32_t  referenceId;                  // 4 
-    uint8_t   reforrectionNum;              // 1
+    uint32_t  security_id;                  // 4
+    uint32_t  trade_id;                     // 4
+    uint8_t   correction_num;               // 1
+    uint32_t  ref_trade_id;                 // 4
+    uint8_t   ref_correction_num;           // 1
     uint32_t  price;                        // 4
     uint32_t  size;                         // 4
     char      trade_condition;              // 'A','B','C','R' or 'T' (Halt)
@@ -189,8 +190,8 @@ namespace Tom {
   struct TomTradeCancel { // 'X'
     TomCommon CommHdr;                      // 5
     uint32_t  security_id;                  // 4 
-    uint32_t  tradeId;                      // 4 
-    uint8_t   correctionNum;                // 1
+    uint32_t  trade_id;                     // 4
+    uint8_t   correction_num;               // 1
     uint32_t  trade_price;                  // 4
     uint32_t  trade_size;                   // 4
     char      trade_condition;              // 'A','B','C','R' or 'T' (Halt)
