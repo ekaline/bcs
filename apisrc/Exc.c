@@ -319,7 +319,10 @@ ExcConnHandle excConnect( EkaDev* dev, ExcSocketHandle hSocket, const struct soc
     return -1;
 
   sess->updateFpgaCtx<EkaTcpSess::AppSeqBin>(0);
-  sess->updateFpgaCtx<EkaTcpSess::AppSeqAscii>(0);
+  char asciiZero[8] = {'0','0','0','0','0','0','0','0'};
+  uint64_t asciiZeroNum;
+  memcpy(&asciiZeroNum,asciiZero,8);
+  sess->updateFpgaCtx<EkaTcpSess::AppSeqAscii>(be64toh(asciiZeroNum));
 
   return sess->getConnHandle();
 }
