@@ -719,6 +719,7 @@ bool EkaFhBatsGr::process_Definition(const EfhRunCtx* pEfhRunCtx,
   msg.strikePrice = strtoull(strike_price_str,NULL,10) * EFH_PITCH_STRIKE_PRICE_SCALE; // per Ken's request
 
   msg.optionType  = osi[12] == 'C' ?  EfhOptionType::kCall : EfhOptionType::kPut;
+  msg.optionStyle = EfhOptionStyle::kAmerican;
 
   copySymbol(msg.commonDef.underlying,message->underlying);
   {
