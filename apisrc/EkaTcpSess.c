@@ -142,6 +142,13 @@ int EkaTcpSess::bind() {
 
 int EkaTcpSess::connect() {
 
+  EKA_LOG("Trying to acqwire lwipConnectMtx for "
+	  "TCP connection %u:%u : %s:%u --> %s:%u",
+	  coreId,sessId,
+	  EKA_IP2STR(srcIp),srcPort,EKA_IP2STR(dstIp),dstPort);
+  
+  dev->lwipConnectMtx.lock();
+
   struct sockaddr_in dst = {};
   dst.sin_addr.s_addr = dstIp;
   dst.sin_port        = be16toh(dstPort);
@@ -195,7 +202,8 @@ int EkaTcpSess::connect() {
 	EKA_WARN("etharp_query failed for %s %s: %s (%d)",who,EKA_IP2STR(nextHopIPv4),
 		 lwip_strerr(arpReqErr),int(arpReqErr));
 	errno = err_to_errno(arpReqErr);
-	return -1;
+	UNLOCK_TCPIP_CORE();
+	goto CONNECTION_ERROR;
       }
       UNLOCK_TCPIP_CORE();
 
@@ -211,7 +219,7 @@ int EkaTcpSess::connect() {
 
       if (! dev->servThreadActive) {
 	errno = ENETDOWN; // Network device is gone.
-	return -1;
+	goto CONNECTION_ERROR;
       }
     }
   } else {
@@ -223,27 +231,34 @@ int EkaTcpSess::connect() {
     // know how to reach the next hop.
     EKA_WARN("%s address %s is not in the ARP table",who,EKA_IP2STR(nextHopIPv4));
     errno = EHOSTUNREACH;
-    return -1;
+    goto CONNECTION_ERROR;
   }
 
-  if (macDa_ptr == NULL) on_error("macDa_ptr == NULL");
+  if (macDa_ptr == NULL)
+    on_error("macDa_ptr == NULL");
   memcpy(macDa,macDa_ptr,6);
-  const char *const arpHow = arpInCache ? "found cached" : "resolved";
-  EKA_LOG("%s %s ARP entry %zd with %s %s",arpHow,who,arpEntry,EKA_IP2STR(*ipPtr),EKA_MAC2STR(macDa));
+
+  EKA_LOG("%s %s ARP entry %zd with %s %s",
+	  arpInCache ? "found cached" : "resolved",
+	  who,arpEntry,
+	  EKA_IP2STR(*ipPtr),EKA_MAC2STR(macDa));
 
   // Now that macDa is set, preload the network headers.
   preloadNwHeaders();
 
-  // Consider to move to beginning of connect()
-  std::unique_lock<std::mutex> lck{dev->lwipConnectMtx};
   if (lwip_connect(sock,(const sockaddr*) &dst, sizeof(struct sockaddr_in)) < 0) 
-    return -1;
+    goto CONNECTION_ERROR;
 
   EKA_LOG("TCP connected %u:%u : %s:%u --> %s:%u",
 	  coreId,sessId,EKA_IP2STR(srcIp),srcPort,EKA_IP2STR(dstIp),dstPort);
 
+  dev->lwipConnectMtx.unlock();
   connectionEstablished = true;
   return 0;
+
+ CONNECTION_ERROR:
+  dev->lwipConnectMtx.unlock();
+  return -1;
 }
 /* ---------------------------------------------------------------- */
 
@@ -302,28 +317,97 @@ static uint64_t seq32to64(uint64_t prev64, uint32_t prev32,
   return new64 - baseOffs;
 }
 
-void EkaTcpSess::processSynAck(const void* pkt) {
+void EkaTcpSess::processSynAck(const void* pkt,size_t len) {
 
+  //  hexDump("SynAck",pkt,len);
   // SYN/ACK part of the handshake contains the peer's TCP session options.
-  assert(EKA_TCP_ACK(pkt));
+  if(! (EKA_TCP_ACK(pkt)))
+    on_error("Non ACK");
   const EkaTcpHdr *const tcpHdr = EKA_TCPH(pkt);
-  if (EKA_TCPH_HDRLEN_BYTES(tcpHdr) > 20) {
-    // Header length > 20, we have TCP options; parse them.
-    auto *opt = (const uint8_t *)(tcpHdr + 1);
-    while (*opt) {
-      switch (*opt) {
-      case 1:  // No-op
-	++opt;
-	break;
-      case 3: // Send window scale.
-	tcpSndWndShift = opt[2]; 
-	[[fallthrough]];
-      default:
-	opt += opt[1];
-	break;
+  if (EKA_TCPH_HDRLEN_BYTES(tcpHdr) == 20)
+    return;
+  // Header length > 20, we have TCP options; parse them.
+  auto *opt = (const uint8_t *)(tcpHdr + 1);
+
+  int optLen = EKA_TCPH_HDRLEN_BYTES(tcpHdr) - sizeof(EkaTcpHdr);
+  bool endOfOptions = false;
+
+  char hexBuf[8192]; 
+  hexDump2str("Bug in SYN-ACK TCP options",
+	      pkt,len,hexBuf,sizeof(hexBuf));
+
+  int i = 0;
+  while (! endOfOptions && i < optLen) {
+    switch (opt[i]) {
+      /* ---------------------- */
+    case 0: // endOfOptions
+      if (i != optLen - 1) {
+	EKA_ERROR("Session %d:%d: Premature endOfOptions in :\n%s",
+		  coreId,sessId,hexBuf);
+	on_error("Session %d:%d: Premature endOfOptions in :\n%s",
+		 coreId,sessId,hexBuf);
       }
+      endOfOptions = true;
+      break;
+      /* ---------------------- */
+    case 1: // NOP
+      i++;
+      break;
+      /* ---------------------- */
+    case 2: // MSS
+      i++;
+      if (opt[i] != 4) {
+	EKA_ERROR("Session %d:%d: Unexpected MSS field len 0x%x in :\n%s",
+		  coreId,sessId,opt[i],hexBuf);
+	on_error("Session %d:%d: Unexpected MSS field len 0x%x in :\n%s",
+		 coreId,sessId,opt[i],hexBuf);
+      }
+      i++;
+      mss = be16toh(*(uint16_t*)(&opt[i]));
+      EKA_LOG("Session %d:%d: MSS = %u (0x%x)",
+	      coreId,sessId,mss,mss);
+      i += 2;
+      break;
+      /* ---------------------- */
+    case 3: // SndWndShift
+      i++;
+      if (opt[i] != 3) {
+	EKA_ERROR("Session %d:%d: Unexpected SndWndShift field len 0x%x in :\n%s",
+		  coreId,sessId,opt[i],hexBuf);
+	on_error("Session %d:%d: Unexpected SndWndShift field len 0x%x in :\n%s",
+		 coreId,sessId,opt[i],hexBuf);
+      }
+      i++;
+      tcpSndWndShift = opt[i];
+      EKA_LOG("Session %d:%d: tcpSndWndShift = %u (0x%x)",
+	      coreId,sessId,tcpSndWndShift,tcpSndWndShift);
+      i++;
+      endOfOptions = true; // we are not interested in other options	
+      break;
+      /* ---------------------- */
+    default :
+      EKA_ERROR("Session %d:%d: Unexpected option 0x%x in\n%s",
+		coreId,sessId,opt[i],hexBuf);
+      on_error("Session %d:%d: Unexpected option 0x%x in\n%s",
+	       coreId,sessId,opt[i],hexBuf);
     }
   }
+
+    
+  /* while (*opt) { */
+  /*   switch (*opt) { */
+  /*   case 1:  // No-op */
+  /* 	++opt; */
+  /* 	break; */
+  /*   case 3: // Send window scale. */
+  /* 	tcpSndWndShift = opt[2];  */
+  /* 	[[fallthrough]]; */
+  /*   default: */
+  /* 	opt += opt[1]; */
+  /* 	break; */
+  /*   } */
+  /* } */
+
   return;
 }
 
@@ -389,7 +473,7 @@ int EkaTcpSess::updateRx(const uint8_t* pkt, uint32_t len) {
   }
   
   if (EKA_TCP_SYN(pkt))
-    processSynAck(pkt);
+    processSynAck(pkt,len);
 
 #if DEBUG_PRINTS
   TEST_LOG("realTcpRemoteAckNum entering LWIP RX %ju",realTcpRemoteAckNum.load());
@@ -477,6 +561,7 @@ int EkaTcpSess::sendStackEthFrame(void *pkt, int len) {
     tcpRemoteSeqNum = EKA_TCPH_ACKNO(pkt);
     tcpRcvWnd = EKA_TCPH_WND(pkt);
     setRemoteSeqWnd2FPGA();
+
     controlTcpSess->sendEthFrame(pkt,len);
     return 0;
   }

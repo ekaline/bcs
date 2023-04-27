@@ -13,8 +13,9 @@
 #include "eka_macros.h"
 /* ----------------------------------------------- */
 
-static inline int sendDummyFastPathPkt(EkaDev* dev, const uint8_t* payload,
-				       uint8_t originatedFromHw) {
+static inline
+int sendDummyFastPathPkt(EkaDev* dev, const uint8_t* payload,
+			 uint8_t originatedFromHw) {
   uint8_t vlan_size = /* dev->use_vlan ? 4 : */ 0;
 
   EkaIpHdr*  iph   = (EkaIpHdr*) (payload + sizeof(EkaEthHdr) + vlan_size);
@@ -23,15 +24,23 @@ static inline int sendDummyFastPathPkt(EkaDev* dev, const uint8_t* payload,
   uint8_t* data = (uint8_t*) tcph + sizeof(EkaTcpHdr);
   uint16_t len = be16toh(iph->_len) - sizeof(EkaIpHdr) - sizeof(EkaTcpHdr);
   
-  if (len > EkaTcpSess::MAX_PAYLOAD_SIZE)
-    on_error("TCP segment len %hu > TCP_MSS (%u)",len,EkaTcpSess::MAX_PAYLOAD_SIZE);
-  
+  if (len > EkaTcpSess::MAX_PAYLOAD_SIZE) {
+    char badPktStr[10000] = {};
+    hexDump2str("Bad Pkt",payload,len,badPktStr,sizeof(badPktStr));
+    EKA_WARN("TCP segment len %hu > TCP_MSS (%u) "
+	     "(originatedFromHw = %d): \n %s",
+	     len,EkaTcpSess::MAX_PAYLOAD_SIZE,
+	     originatedFromHw,badPktStr);
+    on_error("TCP segment len %hu > TCP_MSS (%u)",
+	     len,EkaTcpSess::MAX_PAYLOAD_SIZE);
+  }
   //  hexDump("Dummy Pkt to send",(void*)data, len);
 
   auto tcpSess = dev->findTcpSess(iph->src, be16toh(tcph->src),
 				  iph->dest, be16toh(tcph->dest));
   if (! tcpSess) {
-    hexDump("Dummy Pkt with unknown TcpSess",(void*)data, len);fflush (stdout);
+    hexDump("Dummy Pkt with unknown TcpSess",
+	    (void*)data, len);fflush (stdout);
 
     on_error("Tcp Session %s:%u --> %s:%u not found",
 	     EKA_IP2STR((iph->src)),be16toh(tcph->src),

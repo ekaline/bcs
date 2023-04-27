@@ -141,6 +141,7 @@ class EkaTcpSess {
   uint16_t tcpRcvWnd; // new
   std::atomic<uint32_t> tcpSndWnd = 0;
   uint8_t tcpSndWndShift = 0;
+  uint16_t mss = 0; // MSS sent by Exchange
 
   int appSeqId = 0;
   
@@ -180,7 +181,7 @@ class EkaTcpSess {
   int setBlocking(bool);
 
 private:
-  void processSynAck(const void* pkt);
+  void processSynAck(const void* pkt,size_t len);
   void insertEmptyRemoteAck(uint64_t seq,const void* pkt);
   
  private:
