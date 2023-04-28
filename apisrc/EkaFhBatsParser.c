@@ -721,6 +721,8 @@ bool EkaFhBatsGr::process_Definition(const EfhRunCtx* pEfhRunCtx,
   msg.optionType  = osi[12] == 'C' ?  EfhOptionType::kCall : EfhOptionType::kPut;
   msg.optionStyle = EfhOptionStyle::kAmerican;
 
+  msg.segmentId = batsUnit;
+
   copySymbol(msg.commonDef.underlying,message->underlying);
   {
     char *s = stpncpy(msg.commonDef.classSymbol,osi,6);
