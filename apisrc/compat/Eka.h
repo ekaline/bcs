@@ -136,31 +136,90 @@ extern "C" {
  using ExcUdpTxConnHandle = ExcConnHandle;
 
   enum class EkaSource : uint8_t {
-       #define EkaSource_ENUM_ITER( _x )		\
-             _x( Invalid,  0 )				\
-             _x( NOM_ITTO    )				\
-             _x( GEM_TQF     )				\
-             _x( ISE_TQF     )				\
-             _x( MRX_TQF     )				\
-             _x( PHLX_TOPO   )				\
-             _x( PHLX_ORD    )				\
-             _x( MIAX_TOM    )				\
-             _x( EMLD_TOM    )				\
-             _x( PEARL_TOM   )				\
-             _x( ARCA_XDP    )				\
-             _x( AMEX_XDP    )				\
-             _x( ARCA_PLR    )				\
-             _x( AMEX_PLR    )				\
-             _x( EDGX_PITCH  )				\
-             _x( BZX_PITCH   )				\
-             _x( C1_PITCH    )				\
-             _x( C2_PITCH    )				\
-             _x( BOX_HSVF    )				\
-             _x( CME_SBE     )                          \
-             _x( MRX2_TOP    )                          \
-	     _x( BX_DPTH     )
-            EkaSource_ENUM_ITER( EKA__ENUM_DEF )
+    #define EkaSource_ENUM_ITER( _x )		\
+      _x( Invalid,  0 )				\
+      _x( NOM_ITTO    )				\
+      _x( GEM_TQF     )				\
+      _x( ISE_TQF     )				\
+      _x( MRX_TQF     )				\
+      _x( PHLX_TOPO   )				\
+      _x( PHLX_ORD    )				\
+      _x( MIAX_TOM    )				\
+      _x( EMLD_TOM    )				\
+      _x( PEARL_TOM   )				\
+      _x( ARCA_XDP    )				\
+      _x( AMEX_XDP    )				\
+      _x( ARCA_PLR    )				\
+      _x( AMEX_PLR    )				\
+      _x( EDGX_PITCH  )				\
+      _x( BZX_PITCH   )				\
+      _x( C1_PITCH    )				\
+      _x( C2_PITCH    )				\
+      _x( BOX_HSVF    )				\
+      _x( CME_SBE     )				\
+      _x( MRX2_TOP    )				\
+      _x( BX_DPTH     )
+    EkaSource_ENUM_ITER( EKA__ENUM_DEF )
   };
+
+  enum class EkaSourceType : uint8_t {
+    #define EkaSourceType_ENUM_ITER( _x )	\
+      _x( Invalid,         0 )			\
+      _x( NASDAQ_ITTO        )			\
+      _x( NASDAQ_TQF         )			\
+      _x( NASDAQ_BX_DPTH     )			\
+      _x( NASDAQ_TOPO        )			\
+      _x( NASDAQ_PHLX_ORD    )			\
+      _x( NASDAQ_MRX_TOP2    )			\
+      _x( MIAX_TOM           )			\
+      _x( NYSE_XDP           )			\
+      _x( NYSE_PLR           )			\
+      _x( CBOE_PITCH         )			\
+      _x( BOX_HSVF           )			\
+      _x( CME_SBE            )
+    EkaSourceType_ENUM_ITER( EKA__ENUM_DEF )
+  };
+  
+  constexpr EkaSourceType getEkaSourceType(const EkaSource src) {
+    switch (src) {
+    case EkaSource::kInvalid:
+      return EkaSourceType::kInvalid;
+    case EkaSource::kNOM_ITTO:
+      return EkaSourceType::kNASDAQ_ITTO;
+    case EkaSource::kGEM_TQF:
+    case EkaSource::kISE_TQF:
+    case EkaSource::kMRX_TQF:
+      return EkaSourceType::kNASDAQ_TQF;
+    case EkaSource::kPHLX_TOPO:
+      return EkaSourceType::kNASDAQ_TOPO;
+    case EkaSource::kPHLX_ORD:
+      return EkaSourceType::kNASDAQ_PHLX_ORD;
+    case EkaSource::kMRX2_TOP:
+      return EkaSourceType::kNASDAQ_MRX_TOP2;
+    case EkaSource::kBX_DPTH:
+      return EkaSourceType::kNASDAQ_BX_DPTH;
+    case EkaSource::kMIAX_TOM:
+    case EkaSource::kEMLD_TOM:
+    case EkaSource::kPEARL_TOM:
+      return EkaSourceType::kMIAX_TOM;
+    case EkaSource::kARCA_XDP:
+    case EkaSource::kAMEX_XDP:
+      return EkaSourceType::kNYSE_XDP;
+    case EkaSource::kARCA_PLR:
+    case EkaSource::kAMEX_PLR:
+      return EkaSourceType::kNYSE_PLR;
+    case EkaSource::kEDGX_PITCH:
+    case EkaSource::kBZX_PITCH:
+    case EkaSource::kC1_PITCH:
+    case EkaSource::kC2_PITCH:
+      return EkaSourceType::kCBOE_PITCH;
+    case EkaSource::kBOX_HSVF:
+      return EkaSourceType::kBOX_HSVF;
+    case EkaSource::kCME_SBE:
+      return EkaSourceType::kCME_SBE;
+    }
+    return EkaSourceType::kInvalid;
+  }
 
   typedef int8_t EkaLSI;
 

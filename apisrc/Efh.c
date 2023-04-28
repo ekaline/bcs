@@ -55,50 +55,41 @@ EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhI
 
   if (dev->fh[fhId] != NULL) on_error("dev->fh[%u] is already inited",fhId);
 
-  switch (exch) {
-  case EkaSource::kNOM_ITTO:
+  switch (getEkaSourceType(exch)) {
+  case EkaSourceType::kNASDAQ_ITTO:
     dev->fh[fhId] = new EkaFhNom();
     break;
-  case EkaSource::kGEM_TQF:
-  case EkaSource::kISE_TQF:
-  case EkaSource::kMRX_TQF:
+  case EkaSourceType::kNASDAQ_TQF:
     dev->fh[fhId] = new EkaFhGem();
     break;
-  case EkaSource::kPHLX_TOPO:
+  case EkaSourceType::kNASDAQ_TOPO:
     dev->fh[fhId] = new EkaFhPhlxTopo();
     break;
-  case EkaSource::kPHLX_ORD:
+  case EkaSourceType::kNASDAQ_PHLX_ORD:
     dev->fh[fhId] = new EkaFhPhlxOrd();
     break;
-  case EkaSource::kMIAX_TOM:
-  case EkaSource::kEMLD_TOM:
-  case EkaSource::kPEARL_TOM:
+  case EkaSourceType::kMIAX_TOM:
     dev->fh[fhId] = new EkaFhMiax();
     break;
-  case EkaSource::kC1_PITCH:
-  case EkaSource::kC2_PITCH:
-  case EkaSource::kBZX_PITCH:
-  case EkaSource::kEDGX_PITCH:
+  case EkaSourceType::kCBOE_PITCH:
     dev->fh[fhId] = new EkaFhBats();
     break;
-  case EkaSource::kARCA_XDP:
-  case EkaSource::kAMEX_XDP:
+  case EkaSourceType::kNYSE_XDP:
     dev->fh[fhId] = new EkaFhXdp();
     break;
-  case EkaSource::kARCA_PLR:
-  case EkaSource::kAMEX_PLR:
+  case EkaSourceType::kNYSE_PLR:
     dev->fh[fhId] = new EkaFhPlr();
     break;
-  case EkaSource::kBOX_HSVF:
+  case EkaSourceType::kBOX_HSVF:
     dev->fh[fhId] = new EkaFhBox();
     break;
-  case EkaSource::kCME_SBE:
+  case EkaSourceType::kCME_SBE:
     dev->fh[fhId] = new EkaFhCme();
     break;
-  case EkaSource::kBX_DPTH:
+  case EkaSourceType::kNASDAQ_BX_DPTH:
     dev->fh[fhId] = new EkaFhBx();
     break;
-  case EkaSource::kMRX2_TOP:
+  case EkaSourceType::kNASDAQ_MRX_TOP2:
     dev->fh[fhId] = new EkaFhMrx2Top();
     break;   
   default:
