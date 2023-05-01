@@ -9,6 +9,7 @@
 
 #include "EkaFhParserCommon.h"
 #include "EkaFhBatsParser.h"
+#include "EkaOsiSymbol.h"
 
 #ifdef _PCAP_TEST_
 #include "batsPcapParse.h"
@@ -339,7 +340,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
       s = process_AuctionNotification<FhSecurity,AuctionNotification_complex>(pEfhRunCtx, sequence, msg_timestamp, m);
     else
       s = process_AuctionNotification<FhSecurity,AuctionNotification>(pEfhRunCtx, sequence, msg_timestamp, m);
-    if (s == NULL) return NULL;
+    if (s == NULL) return false;
     break;
   }
     //--------------------------------------------------------------
@@ -690,7 +691,12 @@ bool EkaFhBatsGr::process_Definition(const EfhRunCtx* pEfhRunCtx,
 				     EkaFhMode op) {
   auto message {reinterpret_cast<const SymbolMapping*>(m)};
 
-  const char* osi = message->osi_symbol;
+  EkaOsiSymbolData osi;
+  if (!osi.parseFromSymbol(message->osi_symbol)) {
+    EKA_ERROR("%s:%d: Skipping option def `%.21s` (`%.6s`) as the OSI symbol is not valid!",
+              EKA_EXCH_DECODE(exch), id, osi, message->symbol);
+    return false;
+  }
 
   EfhOptionDefinitionMsg msg{};
   msg.header.msgType        = EfhMsgType::kOptionDefinition;
@@ -706,27 +712,12 @@ bool EkaFhBatsGr::process_Definition(const EfhRunCtx* pEfhRunCtx,
   msg.commonDef.exchange       = EKA_GRP_SRC2EXCH(exch);
   msg.commonDef.isPassive      = isDefinitionPassive(EfhSecurityType::kOption);
   msg.commonDef.underlyingType = EfhSecurityType::kStock;
-  {
-  uint y = (osi[6] -'0') * 10 + (osi[7] -'0');
-  uint m = (osi[8] -'0') * 10 + (osi[9] -'0');
-  uint d = (osi[10]-'0') * 10 + (osi[11]-'0');
-  msg.commonDef.expiryDate     = (2000 + y) * 10000 + m * 100 + d;
-  }
-  char strike_price_str[9] = {};
-  memcpy(strike_price_str,&osi[13],8);
-  strike_price_str[8] = '\0';
-
-  msg.strikePrice = strtoull(strike_price_str,NULL,10) * EFH_PITCH_STRIKE_PRICE_SCALE; // per Ken's request
-
-  msg.optionType  = osi[12] == 'C' ?  EfhOptionType::kCall : EfhOptionType::kPut;
+  msg.commonDef.expiryDate     = osi.getYYYYMMDD();
+  msg.strikePrice = osi.efhStrikePrice;
+  msg.optionType  = osi.optionType;
 
   copySymbol(msg.commonDef.underlying,message->underlying);
-  {
-    char *s = stpncpy(msg.commonDef.classSymbol,osi,6);
-    *s-- = '\0';
-    while (*s == ' ')
-      *s-- = '\0';
-  }
+  osi.copyRoot(msg.commonDef.classSymbol, message->osi_symbol);
   copySymbol(msg.commonDef.exchSecurityName, message->symbol);
   memcpy(&msg.commonDef.opaqueAttrA,message->symbol,6);
 

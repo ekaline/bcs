@@ -7,7 +7,8 @@
 #include "eka_macros.h"
 #include "EkaFhTypes.h"
 
-#define EFH_PITCH_STRIKE_PRICE_SCALE 10
+#define EFH_PITCH_OSI_STRIKE_PRICE_DECIMALS 3
+#define EFH_PITCH_PRICE_DECIMALS 4
 namespace Bats {
 
   enum class MsgId : uint8_t {
@@ -191,6 +192,15 @@ namespace Bats {
     case 'O' : return EfhAuctionType::kAllOrNone;
     default  : return EfhAuctionType::kUnknown;
     }
+  }
+
+  inline int64_t getEfhPrice(uint64_t pitchPrice) {
+    return getEfhPrice(static_cast<int64_t>(pitchPrice));
+  }
+
+  inline int64_t getEfhPrice(int64_t pitchPrice) {
+    // This is a no-op at the current scales
+    return priceToEfhScale(pitchPrice, EFH_PITCH_PRICE_DECIMALS);
   }
 
   /* ------------------------------------------------ */
@@ -614,13 +624,13 @@ namespace Bats {
   struct OptionsAuctionUpdate { // 0xD1
     GenericHeader header;
     char        symbol[8];
-    char        auctionType;
+    char        auctionType; // 'G' = GTH Opening, 'O' = RTH Opening, 'H' = Halt Re-Opening, 'V' = Volatility Opening
     uint64_t    referencePrice;
     uint32_t    buyContracts;
     uint32_t    sellContracts;
     uint64_t    indicativePrice;
     uint64_t    auctionOnlyPrice;
-    char        openningCondition;
+    char        openingCondition;
     uint64_t    compositeMarketBidPrice;
     uint64_t    compositeMarketOfferPrice;
   } __attribute__((packed));
