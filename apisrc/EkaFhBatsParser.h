@@ -7,9 +7,8 @@
 #include "eka_macros.h"
 #include "EkaFhTypes.h"
 
-#define EFH_PITCH_OSI_STRIKE_PRICE_DECIMALS 3
-#define EFH_PITCH_PRICE_DECIMALS 4
 namespace Bats {
+  constexpr std::size_t PriceDecimals = 4;
 
   enum class MsgId : uint8_t {
     TIME = 0x20,
@@ -200,7 +199,7 @@ namespace Bats {
 
   inline int64_t getEfhPrice(int64_t pitchPrice) {
     // This is a no-op at the current scales
-    return priceToEfhScale(pitchPrice, EFH_PITCH_PRICE_DECIMALS);
+    return priceToEfhScale(pitchPrice, PriceDecimals);
   }
 
   /* ------------------------------------------------ */

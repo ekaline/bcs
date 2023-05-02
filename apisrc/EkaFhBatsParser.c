@@ -334,7 +334,70 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     s->trading_action = tradeAction(s->trading_action,message->trading_status);
     break;
   }
-    //--------------------------------------------------------------
+  //--------------------------------------------------------------
+  case MsgId::OPTIONS_AUCTION_UPDATE: { // 0xD1
+    auto message {reinterpret_cast<const OptionsAuctionUpdate *>(m)};
+    SecurityIdT security_id = symbol2secId(message->symbol);
+    s = book->findSecurity(security_id);
+    if (s == nullptr) return false;
+
+    const int64_t referencePrice = getEfhPrice(message->referencePrice);
+    const int64_t indicativePrice = getEfhPrice(message->indicativePrice);
+    if (message->referencePrice != message->indicativePrice) {
+      EKA_WARN("%s:%d: Skipping unexpected reference or indicative price on `%.8s`: ref=%" PRId64 ", ind=%" PRId64,
+               EKA_EXCH_DECODE(exch), id, message->symbol, referencePrice, indicativePrice);
+      return false;
+    }
+
+    const uint32_t rawBidSize = message->buyContracts;
+    const uint32_t rawAskSize = message->sellContracts;
+    const uint32_t size = std::min(rawBidSize, rawAskSize);
+
+    bool hasBid = false;
+    bool hasAsk = false;
+    switch (message->openingCondition) {
+    case 'O': // Would open
+      hasBid = hasAsk = true;
+      break;
+    case 'B': // Needs more buyers
+      hasAsk = true;
+      break;
+    case 'S': // Needs more sellers
+      hasBid = true;
+      break;
+    case 'Q': // Needs quote to open
+    case 'C': // Crossed composite market
+    default:
+      if (size > 0) {
+        EKA_WARN("%s:%d: Skipping unexpected positive size on `%.8s`: openingCondition='%c', bidSize=%u, askSize=%u",
+                 EKA_EXCH_DECODE(exch), id, message->symbol, message->openingCondition, rawBidSize, rawAskSize);
+        return false;
+      }
+    }
+
+    EfhImbalanceMsg msg{};
+    msg.header.msgType        = EfhMsgType::kImbalance;
+    msg.header.group.source   = exch;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.securityId     = security_id;
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = msg_timestamp;
+    msg.header.gapNum         = gapNum;
+
+    msg.tradeStatus   = s->trading_action;
+    msg.bidSide.price = hasBid ? indicativePrice : 0;
+    msg.bidSide.size  = hasBid ? size : 0;
+    msg.askSide.price = hasAsk ? indicativePrice : 0;
+    msg.askSide.size  = hasAsk ? size : 0;
+
+    if (pEfhRunCtx->onEfhImbalanceMsgCb == NULL)
+      on_error("pEfhRunCtx->onEfhImbalanceMsgCb == NULL");
+    pEfhRunCtx->onEfhImbalanceMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
+
+    return false;
+  }
+  //--------------------------------------------------------------
   case MsgId::AUCTION_NOTIFICATION : { // 0xAD
     if (productMask & PM_ComplexAuction)
       s = process_AuctionNotification<FhSecurity,AuctionNotification_complex>(pEfhRunCtx, sequence, msg_timestamp, m);
