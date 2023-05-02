@@ -19,7 +19,8 @@ class EkaFhBatsGr : public EkaFhGroup{
 
   int bookInit();
   void printBookState();
-
+  void invalidateBook();
+  
   int subscribeStaticSecurity(uint64_t        securityId, 
                               EfhSecurityType efhSecurityType,
                               EfhSecUserData  efhSecUserData,
@@ -105,6 +106,8 @@ private:
   /* ##################################################################### */
 
 public:
+  static const uint16_t GrpReqLimit = 100; // max messages per GRP request
+  
   char                  sessionSubID[4] = {};  // for BATS Spin
   uint8_t               batsUnit = 0;
 

@@ -35,6 +35,10 @@ template <const uint SEC_HASH_SCALE,
     return NULL;
   }
   /* ####################################################### */
+  inline int invalidate() {
+    return 0;
+  }
+  /* ####################################################### */
   inline int invalidate(const EfhRunCtx* pEfhRunCtx,
 			uint64_t         pktSeq, 
 			uint64_t         pktTime,
