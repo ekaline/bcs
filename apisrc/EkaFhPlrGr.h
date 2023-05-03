@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <deque>
+#include <unordered_map>
 
 #include "EkaFhGroup.h"
 #include "EkaFhTobBook.h"
@@ -125,6 +126,6 @@ public:
   FhBook*   book = NULL;
 
 private:
-
+  std::unordered_map<SecurityIdT, uint8_t> outrightPriceScaleCodes;
 };
 #endif
