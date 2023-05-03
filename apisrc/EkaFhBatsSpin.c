@@ -38,12 +38,12 @@ static bool sendGapRequest(EkaDev*   dev,
 			   EkaSource exch,
 			   EkaLSI    id
 			   );
-static bool getGapResponse(EkaDev*        dev,
-			   int            sock,
-			   uint8_t        batsUnit,
-			   EkaSource      exch,
-			   EkaLSI         gr,
-			   volatile bool* recovery_active);
+static EfhExchangeErrorCode getGapResponse(EkaDev*        dev,
+					   int            sock,
+					   uint8_t        batsUnit,
+					   EkaSource      exch,
+					   EkaLSI         gr,
+					   volatile bool* recovery_active);
 /* ##################################################################### */
 static int sendHearBeat(EkaDev* dev,int sock, uint8_t batsUnit) {
   sequenced_unit_header heartbeat = {
@@ -102,7 +102,7 @@ static bool sendLogin (EkaDev*     dev,
 }
 /* ##################################################################### */
 
-static bool getLoginResponse(EkaDev*     dev,
+static EfhExchangeErrorCode getLoginResponse(EkaDev*     dev,
 			     int         sock,
 			     const char* loginType,
 			     EkaSource   exch,
@@ -110,9 +110,11 @@ static bool getLoginResponse(EkaDev*     dev,
   LoginResponse login_response ={};
   if (recv(sock,&login_response,sizeof(login_response),MSG_WAITALL) <= 0) {
     dev->lastErrno = errno;
-    EKA_WARN("%s:%u: %s connection reset by peer after Login (failed to receive Login Response): %s",
-	     EKA_EXCH_DECODE(exch),id,loginType,strerror(dev->lastErrno));
-    return false;
+    EKA_WARN("%s:%u: %s connection reset by peer after Login "
+	     "(failed to receive Login Response): %s",
+	     EKA_EXCH_DECODE(exch),id,loginType,
+	     strerror(dev->lastErrno));
+    return EfhExchangeErrorCode::kRequestNotServed;
   }
   if (login_response.type != MsgId::LOGIN_RESPONSE) 
     on_error ("%s:%u: Unexpected %s Login response type 0x%02x",
@@ -120,30 +122,29 @@ static bool getLoginResponse(EkaDev*     dev,
 
   switch (login_response.status) {
   case 'N' :
-    dev->lastExchErr = EfhExchangeErrorCode::kInvalidUserPasswd;
-    EKA_WARN("%s:%u: %s rejected login (\'N\') Not authorized (Invalid Username/Password)",
+    EKA_WARN("%s:%u: %s rejected login (\'N\') "
+	     "Not authorized (Invalid Username/Password)",
 	     EKA_EXCH_DECODE(exch),id,loginType);
-    return false;
+    return EfhExchangeErrorCode::kInvalidUserPasswd;
   case 'B' :
-    dev->lastExchErr = EfhExchangeErrorCode::kSessionInUse;
     EKA_WARN("%s:%u: %s rejected login (\'B\') Session in use",
 	     EKA_EXCH_DECODE(exch),id,loginType);
-    return false;
+    return EfhExchangeErrorCode::kSessionInUse;
   case 'S' :
-    dev->lastExchErr = EfhExchangeErrorCode::kInvalidSession;
     EKA_WARN("%s:%u: %s rejected login (\'S\') Invalid Session",
 	     EKA_EXCH_DECODE(exch),id,loginType);
-    return false;
+    return EfhExchangeErrorCode::kInvalidSession;
   case 'A' :
     if (login_response.hdr.count != 1) 
-      EKA_WARN("More than 1 message (%u) come with the Login Response",login_response.hdr.count);
+      EKA_WARN("More than 1 message (%u) come with the Login Response",
+	       login_response.hdr.count);
     EKA_LOG("%s:%u %s Login Accepted",EKA_EXCH_DECODE(exch),id,loginType);
-    return true;
+    return EfhExchangeErrorCode::kNoError;
   default :
     on_error("%s:%u: Unknown %s Login response status \'%c\'",
 	     EKA_EXCH_DECODE(exch),id,loginType,login_response.status);
   }
-  return false;  
+  return EfhExchangeErrorCode::kNoError;  
 }
 /* ##################################################################### */
 static bool getSpinImageSeq(EkaFhBatsGr* gr, int sock, int64_t* imageSequence) {
@@ -183,7 +184,7 @@ static bool getSpinImageSeq(EkaFhBatsGr* gr, int sock, int64_t* imageSequence) {
       //-----------------------------------------------------------------
     }
   }
-  dev->lastExchErr = EfhExchangeErrorCode::kRequestNotServed;
+  gr->lastExchErr = EfhExchangeErrorCode::kRequestNotServed;
   EKA_WARN("%s:%u Spin Image Available not received after %d trials",
 	   EKA_EXCH_DECODE(gr->exch),gr->id,MaxLocalTrials);
 
@@ -191,31 +192,34 @@ static bool getSpinImageSeq(EkaFhBatsGr* gr, int sock, int64_t* imageSequence) {
 
 }
 /* ##################################################################### */
-static bool getSpinResponse(EkaDev*   dev, 
-			    int       sock, 
-			    EkaFhMode op, 
-			    EkaSource exch,
-			    EkaLSI    id,
-			    volatile bool* snapshot_active) {
+static EfhExchangeErrorCode getSpinResponse(EkaDev*   dev, 
+					    int       sock, 
+					    EkaFhMode op, 
+					    EkaSource exch,
+					    EkaLSI    id,
+					    volatile bool* snapshot_active) {
 
   static const int MaxLocalTrials = 4;
-  for (auto localTrial = 0; localTrial < MaxLocalTrials && *snapshot_active; localTrial++) {
+  for (auto localTrial = 0; localTrial < MaxLocalTrials && *snapshot_active;
+       localTrial++) {
     sequenced_unit_header hdr = {};
     int size = recv(sock,&hdr,sizeof(hdr),MSG_WAITALL);
     if (size < (int) sizeof(hdr)) {
       dev->lastErrno = errno;
-      EKA_LOG("%s:%u: Spin Server connection reset by peer (failed to receive Unit Header): %s",
+      EKA_LOG("%s:%u: Spin Server connection reset by peer "
+	      "(failed to receive Unit Header): %s",
 	      EKA_EXCH_DECODE(exch),id,strerror(dev->lastErrno));
-      return false;
+      return EfhExchangeErrorCode::kRequestNotServed;
     }
     int payloadSize = hdr.length - sizeof(hdr);
     uint8_t buf[1536] = {};
     size = recv(sock,buf,payloadSize,MSG_WAITALL);
     if (size != payloadSize) {
       dev->lastErrno = errno;
-      EKA_WARN("%s:%u: Spin Server connection reset by peer (received %u bytes < expected payload size of %d bytes): %s",
+      EKA_WARN("%s:%u: Spin Server connection reset by peer "
+	       "(received %u bytes < expected payload size of %d bytes): %s",
 	       EKA_EXCH_DECODE(exch),id,size,payloadSize,strerror(dev->lastErrno));
-      return false;
+      return EfhExchangeErrorCode::kRequestNotServed;
     }
     uint8_t* ptr = &buf[0];
     for (uint i = 0; *snapshot_active && i < hdr.count; i ++) {
@@ -231,32 +235,36 @@ static bool getSpinResponse(EkaDev*   dev,
 		  EKA_EXCH_DECODE(exch),id,
 		  op == EkaFhMode::DEFINITIONS ? "Definitions" : "Snapshot",
 		  ((const SpinResponse*)ptr)->count,((const SpinResponse*)ptr)->sequence);
-	  return true;
+	  return EfhExchangeErrorCode::kNoError;
 	case 'O' : 
-	  dev->lastExchErr = EfhExchangeErrorCode::kInvalidSequenceRange;
-	  EKA_WARN("%s:%u: Spin request rejected with (\'O\') - Out of range",
+	  EKA_WARN("%s:%u: Spin request rejected with (\'O\') - "
+		   "Out of Range (Sequence requested is greater than "
+		   "Sequence available by the next spin)",
 		   EKA_EXCH_DECODE(exch),id);
-	  return false;
+	  return EfhExchangeErrorCode::kInvalidSequenceRange;
 	case 'S' : 
-	  dev->lastExchErr = EfhExchangeErrorCode::kOperationAlreadyInProgress;
-	  EKA_WARN("%s:%u: Spin request rejected with (\'S\') - Spin already in progress",
+	  EKA_WARN("%s:%u: Spin request rejected with (\'S\') - "
+		   "Spin already in progress",
 		   EKA_EXCH_DECODE(exch),id);
-	  return false;
+	  on_error("%s:%u: Spin request rejected with (\'S\') - "
+		   "Spin already in progress",
+		   EKA_EXCH_DECODE(exch),id);
+	  return EfhExchangeErrorCode::kOperationAlreadyInProgress;
 	default  : 
 	  on_error("%s:%u: Spin request rejected with unknown status |%c|",
 		   EKA_EXCH_DECODE(exch),id,((const SpinResponse*)ptr)->status);
-	  return false;
+	  return EfhExchangeErrorCode::kRequestNotServed;
 	}
       }
       ptr += msgHdr->length;
       //-----------------------------------------------------------------
     }
   }
-  dev->lastExchErr = EfhExchangeErrorCode::kRequestNotServed;
+
   EKA_WARN("%s:%u Spin Reponse not received after %d trials",
 	   EKA_EXCH_DECODE(exch),id,MaxLocalTrials);
 
-  return false;  
+  return EfhExchangeErrorCode::kRequestNotServed;  
 }
 /* ##################################################################### */
 static bool sendSpinRequest(EkaDev*   dev, 
@@ -310,7 +318,8 @@ static EkaFhParseResult procSpin(const EfhRunCtx* pEfhRunCtx,
   int size = recv(sock,&hdr,sizeof(hdr),MSG_WAITALL);
   if (size < (int) sizeof(hdr)) {
     dev->lastErrno = errno;
-    EKA_WARN("%s:%u: Spin Server connection reset by peer (failed to receive Unit Header): %s",
+    EKA_WARN("%s:%u: Spin Server connection reset by peer "
+	     "(failed to receive Unit Header): %s",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,strerror(dev->lastErrno));
     return EkaFhParseResult::SocketError;
   }
@@ -320,8 +329,10 @@ static EkaFhParseResult procSpin(const EfhRunCtx* pEfhRunCtx,
   size = recv(sock,buf,payloadSize,MSG_WAITALL);
   if (size != payloadSize) {
     dev->lastErrno = errno;
-    EKA_WARN("%s:%u: Spin Server connection reset by peer (received %u  < expected %d): %s",
-	     EKA_EXCH_DECODE(gr->exch),gr->id,size,payloadSize,strerror(dev->lastErrno));
+    EKA_WARN("%s:%u: Spin Server connection reset by peer "
+	     "(received %u  < expected %d): %s",
+	     EKA_EXCH_DECODE(gr->exch),gr->id,
+	     size,payloadSize,strerror(dev->lastErrno));
     return EkaFhParseResult::SocketError;
   }
 
@@ -395,11 +406,13 @@ static bool spinCycle(EfhRunCtx*   pEfhRunCtx,
 		  gr->exch,
 		  gr->id)) goto ITERATION_FAIL;
   //-----------------------------------------------------------------
-  if (! getLoginResponse(dev,
-			 sock,
-			 "Spin",
-			 gr->exch,
-			 gr->id)) goto ITERATION_FAIL;
+  gr->lastExchErr = getLoginResponse(dev,
+				     sock,
+				     "Spin",
+				     gr->exch,
+				     gr->id);
+  if (gr->lastExchErr != EfhExchangeErrorCode::kNoError)
+    goto ITERATION_FAIL;
   //-----------------------------------------------------------------
   if (op == EkaFhMode::SNAPSHOT) {
     if (! getSpinImageSeq(gr,
@@ -415,19 +428,23 @@ static bool spinCycle(EfhRunCtx*   pEfhRunCtx,
 			gr->exch,
 			gr->id)) goto ITERATION_FAIL;
   //-----------------------------------------------------------------
-  if (! getSpinResponse(dev, 
-			sock, 
-			op,
-			gr->exch,
-			gr->id,
-			&gr->snapshot_active)) goto ITERATION_FAIL;
+  gr->lastExchErr = getSpinResponse(dev, 
+				    sock, 
+				    op,
+				    gr->exch,
+				    gr->id,
+				    &gr->snapshot_active);
+  if (gr->lastExchErr != EfhExchangeErrorCode::kNoError)
+    goto ITERATION_FAIL;
   //-----------------------------------------------------------------
   while (gr->snapshot_active) { // Accepted Login
     now = std::chrono::high_resolution_clock::now();
-    if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHeartBeatTime).count() > 900) {
+    if (std::chrono::duration_cast<std::chrono::milliseconds>
+	(now - lastHeartBeatTime).count() > 900) {
       sendHearBeat(dev,sock,gr->batsUnit);
       lastHeartBeatTime = now;
-      EKA_TRACE("%s:%u: Heartbeat sent",EKA_EXCH_DECODE(gr->exch),gr->id);
+      EKA_TRACE("%s:%u: Heartbeat sent",
+		EKA_EXCH_DECODE(gr->exch),gr->id);
     }
 
     parseResult = procSpin(pEfhRunCtx,
@@ -492,8 +509,10 @@ static EkaFhParseResult procGrp(const EfhRunCtx* pEfhRunCtx,
   }
 
   auto hdr { reinterpret_cast<const sequenced_unit_header*>(buf)};
-  EKA_LOG("%s:%u: UdpPkt accepted: unit=%u, sequence=%u, msgCnt=%u, length=%u",
-	  EKA_EXCH_DECODE(gr->exch),gr->id,hdr->unit,hdr->sequence,hdr->count,hdr->length);
+  EKA_LOG("%s:%u: UdpPkt accepted: unit=%u, sequence=%u, "
+	  "msgCnt=%u, length=%u",
+	  EKA_EXCH_DECODE(gr->exch),gr->id,hdr->unit,hdr->sequence,
+	  hdr->count,hdr->length);
   if (hdr->unit != gr->batsUnit) return EkaFhParseResult::NotEnd;
   size -= sizeof(*hdr);
   uint8_t* ptr = &buf[0] + sizeof(*hdr);
@@ -505,12 +524,16 @@ static EkaFhParseResult procGrp(const EfhRunCtx* pEfhRunCtx,
 
     auto msgHdr {reinterpret_cast<const DummyHeader*>(ptr)};
 
-    if (sequence >= start) gr->parseMsg(pEfhRunCtx,ptr,sequence,EkaFhMode::RECOVERY);
+    if (sequence >= start)
+      gr->parseMsg(pEfhRunCtx,ptr,sequence,EkaFhMode::RECOVERY);
     sequence++;
 
     if (sequence == end) {
-      EKA_LOG("%s:%u: GAP closed by GRP: sequence %ju == end %ju",
-	      EKA_EXCH_DECODE(gr->exch),gr->id,sequence,end);
+      gr->seq_after_snapshot = sequence + 1;
+      EKA_LOG("%s:%u: GAP closed by GRP: sequence %ju == end %ju "
+	      "seq_after_snapshot = %ju",
+	      EKA_EXCH_DECODE(gr->exch),gr->id,sequence,end,
+	      gr->seq_after_snapshot);
       return EkaFhParseResult::End; 
     }
 
@@ -536,8 +559,7 @@ static bool grpCycle(EfhRunCtx*   pEfhRunCtx,
   if (tcpSock < 0) on_error("%s:%u: failed to open TCP socket",
 			    EKA_EXCH_DECODE(gr->exch),gr->id);
 
-  static const int TimeOut = 5; // seconds
-  const uint16_t ReqLimit = 100; // max messages per GRP request
+  static const int TimeOut = 10; // seconds
 
   struct timeval tv = {
     .tv_sec = TimeOut
@@ -570,7 +592,7 @@ static bool grpCycle(EfhRunCtx*   pEfhRunCtx,
   uint64_t currEnd = 0;
   
   for (auto i = 0; i < LocalAttemps; i++) {
-    int size = recvfrom(udpSock, buf, sizeof(buf), MSG_WAITALL, NULL, NULL);
+    int size = recvfrom(udpSock,buf,sizeof(buf),MSG_WAITALL,NULL,NULL);
     if (size > 0) {
       success = true;
       break;
@@ -579,7 +601,9 @@ static bool grpCycle(EfhRunCtx*   pEfhRunCtx,
   if (! success) {
     dev->lastErrno = errno;
     EKA_WARN("%s:%u failed to receive GRP MC pkt after %d attempts: %s",
-	     EKA_EXCH_DECODE(gr->exch),gr->id,LocalAttemps,strerror(dev->lastErrno));
+	     EKA_EXCH_DECODE(gr->exch),gr->id,LocalAttemps,
+	     strerror(dev->lastErrno));
+    gr->lastExchErr = EfhExchangeErrorCode::kConnectionProblem;
     goto ITERATION_FAIL;
   }
   //-----------------------------------------------------------------
@@ -595,7 +619,8 @@ static bool grpCycle(EfhRunCtx*   pEfhRunCtx,
 	     EKA_IP2STR(remote_addr.sin_addr.s_addr),
 	     be16toh   (remote_addr.sin_port),
 	     strerror(dev->lastErrno));
-    goto ITERATION_FAIL;
+    gr->lastExchErr = EfhExchangeErrorCode::kConnectionProblem;
+   goto ITERATION_FAIL;
   }
   //-----------------------------------------------------------------
   if (! sendLogin(dev,
@@ -606,19 +631,22 @@ static bool grpCycle(EfhRunCtx*   pEfhRunCtx,
 		  gr->grpPasswd,
 		  gr->grpSessionSubID,
 		  gr->exch,
-		  gr->id))
+		  gr->id)) {
+    gr->lastExchErr = EfhExchangeErrorCode::kConnectionProblem;
     goto ITERATION_FAIL;
+  }
   //-----------------------------------------------------------------
-  if (! getLoginResponse(dev,
-			 tcpSock,
-			 "GRP",
-			 gr->exch,
-			 gr->id))
+  gr->lastExchErr = getLoginResponse(dev,
+				     tcpSock,
+				     "GRP",
+				     gr->exch,
+				     gr->id);
+  if (gr->lastExchErr != EfhExchangeErrorCode::kNoError)
     goto ITERATION_FAIL;
   //-----------------------------------------------------------------
 
   while (gr->recovery_active) {
-    currEnd = std::min(currStart + ReqLimit,end);
+    currEnd = std::min(currStart + gr->GrpReqLimit,end);
     //-----------------------------------------------------------------
   
     if (! sendGapRequest(dev, 
@@ -627,15 +655,18 @@ static bool grpCycle(EfhRunCtx*   pEfhRunCtx,
 			 currStart,
 			 currEnd,
 			 gr->exch,
-			 gr->id))
+			 gr->id)) {
+      gr->lastExchErr = EfhExchangeErrorCode::kConnectionProblem;
       goto ITERATION_FAIL;
+    }
     //-----------------------------------------------------------------
-    if (! getGapResponse(dev, 
-			 tcpSock, 
-			 gr->batsUnit,
-			 gr->exch,
-			 gr->id,
-			 &gr->recovery_active))
+    gr->lastExchErr = getGapResponse(dev, 
+				     tcpSock, 
+				     gr->batsUnit,
+				     gr->exch,
+				     gr->id,
+				     &gr->recovery_active);
+    if (gr->lastExchErr != EfhExchangeErrorCode::kNoError)
       goto ITERATION_FAIL;
     //-----------------------------------------------------------------
     while (gr->recovery_active) { 
@@ -644,7 +675,8 @@ static bool grpCycle(EfhRunCtx*   pEfhRunCtx,
 	  (now - lastHeartBeatTime).count() > 4) {
 	sendHearBeat(dev,tcpSock,gr->batsUnit);
 	lastHeartBeatTime = now;
-	EKA_TRACE("%s:%u: Heartbeat sent",EKA_EXCH_DECODE(gr->exch),gr->id);
+	EKA_TRACE("%s:%u: Heartbeat sent",
+		  EKA_EXCH_DECODE(gr->exch),gr->id);
       }
 
       parseResult = procGrp(pEfhRunCtx,
@@ -689,10 +721,11 @@ void* getSpinData(void* attr) {
   pthread_detach(pthread_self());
   return NULL;
 #endif
-
   auto params {reinterpret_cast<EkaFhThreadAttr*>(attr)};
   auto gr     {reinterpret_cast<EkaFhBatsGr*>(params->gr)};
   if (gr == NULL) on_error("gr == NULL");
+
+  gr->recoveryThreadDone = false;
 
   EfhRunCtx*   pEfhRunCtx = params->pEfhRunCtx;
   EkaFhMode    op         = params->op;
@@ -708,7 +741,8 @@ void* getSpinData(void* attr) {
 	  EKA_IP2STR(gr->snapshot_ip),be16toh(gr->snapshot_port));
   //-----------------------------------------------------------------
   EkaCredentialLease* lease;
-  gr->credentialAcquire(EkaCredentialType::kSnapshot, gr->auth_user, sizeof(gr->auth_user), &lease);
+  gr->credentialAcquire(EkaCredentialType::kSnapshot,
+			gr->auth_user, sizeof(gr->auth_user), &lease);
 
   //-----------------------------------------------------------------
   gr->snapshot_active = true;
@@ -717,12 +751,15 @@ void* getSpinData(void* attr) {
   //-----------------------------------------------------------------
   for (auto trial = 0; trial < MaxTrials && gr->snapshot_active; trial++) {
     EKA_LOG("%s:%d %s cycle: trial: %d / %d",
-	    EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op),trial,MaxTrials);
+	    EKA_EXCH_DECODE(gr->exch),gr->id,EkaFhMode2STR(op),
+	    trial,MaxTrials);
 
     success = spinCycle(pEfhRunCtx,op,gr,MaxTrials);
     if (success) break;
-    if (dev->lastExchErr != EfhExchangeErrorCode::kNoError) gr->sendRetransmitExchangeError(pEfhRunCtx);
-    if (dev->lastErrno   != 0)                              gr->sendRetransmitSocketError(pEfhRunCtx);
+    if (gr->lastExchErr != EfhExchangeErrorCode::kNoError)
+      gr->sendRetransmitExchangeError(pEfhRunCtx);
+    if (dev->lastErrno   != 0)
+      gr->sendRetransmitSocketError(pEfhRunCtx);
   }
   //-----------------------------------------------------------------
   int rc = gr->credentialRelease(lease);
@@ -741,6 +778,7 @@ void* getSpinData(void* attr) {
     on_error("%s:%u Spin Failed after %d trials. Exiting...",
              EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
   }
+  gr->recoveryThreadDone = true;
 
   return NULL;
 }
@@ -753,7 +791,7 @@ static bool sendGapRequest(EkaDev*   dev,
 			   uint64_t  end,
 			   EkaSource exch,
 			   EkaLSI    id
-) {
+			   ) {
 
   const GapRequest gap_request = {
     .hdr = {
@@ -787,12 +825,12 @@ static bool sendGapRequest(EkaDev*   dev,
 }
 
 /* ##################################################################### */
-static bool getGapResponse(EkaDev*        dev,
-			   int            sock,
-			   uint8_t        batsUnit,
-			   EkaSource      exch,
-			   EkaLSI         id,
-			   volatile bool* recovery_active) {
+static EfhExchangeErrorCode getGapResponse(EkaDev*        dev,
+					   int            sock,
+					   uint8_t        batsUnit,
+					   EkaSource      exch,
+					   EkaLSI         id,
+					   volatile bool* recovery_active) {
   static const int Packets2Try = 4;
 
   for (auto j = 0; *recovery_active && j < Packets2Try; j++) {
@@ -806,7 +844,7 @@ static bool getGapResponse(EkaDev*        dev,
       dev->lastErrno = errno;
       EKA_WARN("%s:%u: connection reset by peer: %s",
 	       EKA_EXCH_DECODE(exch),id,strerror(dev->lastErrno));
-      return false;
+      return EfhExchangeErrorCode::kRequestNotServed;
     }
     sequenced_unit_header* hdr = (sequenced_unit_header*)&buf[0];
 
@@ -819,17 +857,18 @@ static bool getGapResponse(EkaDev*        dev,
       dev->lastErrno = errno;
       EKA_WARN("%s:%u: connection reset by peer: %s",
 	       EKA_EXCH_DECODE(exch),id,strerror(dev->lastErrno));
-      return false;
+      return EfhExchangeErrorCode::kRequestNotServed;
     }
 
-    EKA_LOG("%s:%u: TcpPkt accepted: unit=%u, sequence=%u, msgCnt=%u, length=%u",
-    	    EKA_EXCH_DECODE(exch),id,hdr->unit,hdr->sequence,hdr->count,hdr->length);
+    EKA_LOG("%s:%u: TcpPkt accepted: unit=%u, sequence=%u, "
+	    "msgCnt=%u, length=%u",
+    	    EKA_EXCH_DECODE(exch),id,hdr->unit,hdr->sequence,
+	    hdr->count,hdr->length);
 
     if (hdr->unit != 0 && hdr->unit != batsUnit) {
-      dev->lastExchErr = EfhExchangeErrorCode::kUnexpectedResponse;
       EKA_WARN("%s:%u: hdr->unit %u != batsUnit %u",
 	       EKA_EXCH_DECODE(exch),id,hdr->unit, batsUnit);
-      return false;
+      return EfhExchangeErrorCode::kRequestNotServed;
     }
 
     uint8_t* msg = &buf[sizeof(sequenced_unit_header)];
@@ -846,59 +885,65 @@ static bool getGapResponse(EkaDev*        dev,
       }
       auto gap_response {reinterpret_cast<const GapResponse*>(msg)};
       if (gap_response->unit != 0 && gap_response->unit != batsUnit) {
-	EKA_WARN("%s:%u: msgType = 0x%x, gap_response->unit %u != batsUnit %u",
-		 EKA_EXCH_DECODE(exch),id,msgType,gap_response->unit, batsUnit);
+	EKA_WARN("%s:%u: msgType = 0x%x, "
+		 "gap_response->unit %u != batsUnit %u",
+		 EKA_EXCH_DECODE(exch),id,msgType,
+		 gap_response->unit, batsUnit);
 	continue;
       }
 
-      EKA_LOG("%s:%u Gap Response Accepted: Unit=%u, Seq=%u, Count=%u, Status=\'%c\'",
+      EKA_LOG("%s:%u Gap Response Accepted: Unit=%u, Seq=%u, "
+	      "Count=%u, Status=\'%c\'",
 	      EKA_EXCH_DECODE(exch),id,
-	      gap_response->unit, gap_response->sequence, gap_response->count,gap_response->status);
+	      gap_response->unit, gap_response->sequence,
+	      gap_response->count,gap_response->status);
 
       switch (gap_response->status) {
       case 'A':
 	EKA_LOG("%s:%u Accepted: Unit=%u, Seq=%u. Cnt=%u",
 		EKA_EXCH_DECODE(exch),id,
-		gap_response->unit, gap_response->sequence, gap_response->count);
-	return true;
+		gap_response->unit, gap_response->sequence,
+		gap_response->count);
+	return EfhExchangeErrorCode::kNoError;
       case 'O': 
-	dev->lastExchErr = EfhExchangeErrorCode::kInvalidSequenceRange;
-	EKA_WARN("%s:%u: Out-of-range",EKA_EXCH_DECODE(exch),id);
-	break;
+	EKA_WARN("%s:%u: Out of range (ahead of sequence or too far behind)",
+		 EKA_EXCH_DECODE(exch),id);
+	return EfhExchangeErrorCode::kInvalidSequenceRange;
       case 'D': 
-	dev->lastExchErr = EfhExchangeErrorCode::kServiceLimitExhausted;
-	EKA_WARN("%s:%u: Daily gap request allocation exhausted",EKA_EXCH_DECODE(exch),id);
-	break;
+	EKA_WARN("%s:%u: Daily gap request allocation exhausted",
+		 EKA_EXCH_DECODE(exch),id);
+	return EfhExchangeErrorCode::kServiceLimitExhausted;
       case 'M': 
-	dev->lastExchErr = EfhExchangeErrorCode::kServiceLimitExhausted;
-	EKA_WARN("%s:%u: Minute gap request allocation exhausted",EKA_EXCH_DECODE(exch),id);
-	break;
+	EKA_WARN("%s:%u: Minute gap request allocation exhausted",
+		 EKA_EXCH_DECODE(exch),id);
+	return EfhExchangeErrorCode::kServiceLimitExhausted;
       case 'S': 
-	dev->lastExchErr = EfhExchangeErrorCode::kServiceLimitExhausted;
-	EKA_WARN("%s:%u: Second gap request allocation exhausted",EKA_EXCH_DECODE(exch),id);
-	break;
+	EKA_WARN("%s:%u: Second gap request allocation exhausted",
+		 EKA_EXCH_DECODE(exch),id);
+	return EfhExchangeErrorCode::kServiceLimitExhausted;
       case 'C': 
-	dev->lastExchErr = EfhExchangeErrorCode::kCountLimitExceeded;
-	EKA_WARN("%s:%u: Count request limit for one gap request exceeded",EKA_EXCH_DECODE(exch),id);
-	break;
+	EKA_WARN("%s:%u: Count request limit for one gap request exceeded",
+		 EKA_EXCH_DECODE(exch),id);
+	return EfhExchangeErrorCode::kCountLimitExceeded;
       case 'I': 
-	dev->lastExchErr = EfhExchangeErrorCode::kInvalidFieldFormat;
-	EKA_WARN("%s:%u: Invalid Unit specified in request",EKA_EXCH_DECODE(exch),id);
-	break;
+	EKA_WARN("%s:%u: Invalid Unit specified in request",
+		 EKA_EXCH_DECODE(exch),id);
+	return EfhExchangeErrorCode::kInvalidFieldFormat;
       case 'U': 
-	dev->lastExchErr = EfhExchangeErrorCode::kServiceCurrentlyUnavailable;
-	EKA_WARN("%s:%u: Unit is currently unavailable",EKA_EXCH_DECODE(exch),id);
-	break;
+	EKA_WARN("%s:%u: Unit is currently unavailable",
+		 EKA_EXCH_DECODE(exch),id);
+	return EfhExchangeErrorCode::kServiceCurrentlyUnavailable;
       default:
-	on_error("%s:%u: Unexpected Gap response status: \'%c\'",EKA_EXCH_DECODE(exch),id,gap_response->status);
+	on_error("%s:%u: Unexpected Gap response status: \'%c\'",
+		 EKA_EXCH_DECODE(exch),id,gap_response->status);
       }
-      return false;
+      EKA_WARN("%s:%u: Gap response not received after processing %d packets",
+	       EKA_EXCH_DECODE(exch),id,Packets2Try);
+      return EfhExchangeErrorCode::kRequestNotServed;
     }
   }
-  dev->lastExchErr = EfhExchangeErrorCode::kRequestNotServed;
-  EKA_WARN("%s:%u: Gap response not received after processing %d packets",
-	   EKA_EXCH_DECODE(exch),id,Packets2Try);
-  return false;
+
+  return EfhExchangeErrorCode::kRequestNotServed;
 }
 
 /* ##################################################################### */
@@ -911,7 +956,8 @@ void* getGrpRetransmitData(void* attr) {
   auto params {reinterpret_cast<EkaFhThreadAttr*>(attr)};
   auto gr     {reinterpret_cast<EkaFhBatsGr*>(params->gr)};
   if (gr == NULL) on_error("gr == NULL");
-
+  gr->recoveryThreadDone = false;
+  
   EfhRunCtx*   pEfhRunCtx = params->pEfhRunCtx;
   uint64_t     start      = params->startSeq;
   uint64_t     end        = params->endSeq;
@@ -926,8 +972,10 @@ void* getGrpRetransmitData(void* attr) {
 	     EKA_EXCH_DECODE(gr->exch),gr->id);
 
   if (end - start > 65000) 
-    on_error("%s:%u: Gap %ju is too high (> 65000), start = %ju, end = %ju",
-	     EKA_EXCH_DECODE(gr->exch),gr->id, end - start, start, end);
+    on_error("%s:%u: Gap %ju is too high (> 65000), "
+	     "start = %ju, end = %ju",
+	     EKA_EXCH_DECODE(gr->exch),gr->id, end - start,
+	     start, end);
 
   uint16_t cnt = (uint16_t)(end - start);
   EKA_LOG("%s:%u: GRP recovery for %ju..%ju, cnt = %u",
@@ -940,7 +988,7 @@ void* getGrpRetransmitData(void* attr) {
 
   //-----------------------------------------------------------------
   gr->recovery_active = true;
-  const int MaxTrials = 4;
+  const int MaxTrials = 1;
   bool success = false;
   //-----------------------------------------------------------------
   for (auto trial = 0; trial < MaxTrials && gr->recovery_active; trial++) {
@@ -949,10 +997,10 @@ void* getGrpRetransmitData(void* attr) {
 
     success = grpCycle(pEfhRunCtx, gr, start, end);
     if (success) break;
-    if (dev->lastExchErr != EfhExchangeErrorCode::kNoError)
-      gr->sendRetransmitExchangeError(pEfhRunCtx);
+    if (gr->lastExchErr != EfhExchangeErrorCode::kNoError)
+      gr->sendRetransmitExchangeError(pEfhRunCtx,false);
     if (dev->lastErrno   != 0)
-      gr->sendRetransmitSocketError(pEfhRunCtx);
+      gr->sendRetransmitSocketError(pEfhRunCtx,false);
   }
   //-----------------------------------------------------------------
   int rc = gr->credentialRelease(lease);
@@ -963,15 +1011,17 @@ void* getGrpRetransmitData(void* attr) {
   gr->seq_after_snapshot = end;
 
   if (success) {
-    gr->gapClosed = true;
-    EKA_LOG("%s:%u: GRP closed: start=%ju, end=%ju, cnt=%d, seq_after_snapshot=%ju",
-	    EKA_EXCH_DECODE(gr->exch),gr->id,start,end,cnt,gr->seq_after_snapshot);
+    EKA_LOG("%s:%u: GRP closed: start=%ju, end=%ju, cnt=%d, "
+	    "seq_after_snapshot=%ju",
+	    EKA_EXCH_DECODE(gr->exch),gr->id,start,end,cnt,
+	    gr->seq_after_snapshot);
   } else {
-    EKA_WARN("%s:%u GRP Failed after %d trials. Exiting...",
-	     EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
-    on_error("%s:%u GRP Failed after %d trials. Exiting...",
+    gr->lastExchErr = EfhExchangeErrorCode::kConnectionProblem;
+    EKA_WARN("%s:%u GRP Failed after %d trials",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,MaxTrials);
   }
+  gr->gapClosed = true;
+  gr->recoveryThreadDone = true;
 
   return NULL;
 }

@@ -31,8 +31,9 @@ EkaFhGroup::EkaFhGroup() {
     connectRetryDelayTime = 15;
     pktCnt = 0;
 }
+
  /* ##################################################################### */
-uint         EkaFhGroup::getNumSecurities() {
+uint EkaFhGroup::getNumSecurities() {
   return numSecurities;
 }
  /* ##################################################################### */
@@ -213,7 +214,8 @@ void EkaFhGroup::sendNoMdTimeOut(const EfhRunCtx* pEfhRunCtx) {
  /* ##################################################################### */
 
 
-void EkaFhGroup::sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx) {
+void EkaFhGroup::sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx,
+					     bool sleepAfterCb) {
   if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
   if (pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL)
     on_error("pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL");
@@ -223,19 +225,26 @@ void EkaFhGroup::sendRetransmitExchangeError(const EfhRunCtx* pEfhRunCtx) {
     {exch, id},
     EfhGroupState::kError,
     EfhSystemState::kUnknown, // Preopen, Trading, Closed
-    EfhErrorDomain::kExchangeError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
-    EkaServiceType::kFeedRecovery, // Unspecified, FeedRecovery
-    (int64_t)dev->lastExchErr
+    EfhErrorDomain::kExchangeError, // SocketError, UpdateTimeout,
+                                    // CredentialError, ExchangeError
+    EkaServiceType::kFeedRecovery,  // Unspecified, FeedRecovery
+    (int64_t)lastExchErr
   };
-  dev->lastExchErr = EfhExchangeErrorCode::kNoError;
+  lastExchErr = EfhExchangeErrorCode::kNoError;
   pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
-  EKA_LOG("%s:%u re-trying in %d seconds",EKA_EXCH_DECODE(exch),id,connectRetryDelayTime);
-  if (connectRetryDelayTime == 0) on_error("connectRetryDelayTime == 0");
-  sleep(connectRetryDelayTime);
+  EKA_LOG("%s:%u %s in %d seconds",
+	  EKA_EXCH_DECODE(exch),id,
+	  sleepAfterCb ? "re-trying" : "skip re-trying",
+	  connectRetryDelayTime);
+  if (connectRetryDelayTime == 0)
+    on_error("connectRetryDelayTime == 0");
+  if (sleepAfterCb)
+    sleep(connectRetryDelayTime);
 }
  /* ##################################################################### */
 
-void EkaFhGroup::sendRetransmitSocketError(const EfhRunCtx* pEfhRunCtx) {
+void EkaFhGroup::sendRetransmitSocketError(const EfhRunCtx* pEfhRunCtx,
+					   bool sleepAfterCb) {
   if (pEfhRunCtx == NULL) on_error("pEfhRunCtx == NULL");
   if (pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL)
     on_error("pEfhRunCtx->onEfhGroupStateChangedMsgCb == NULL");
@@ -245,15 +254,21 @@ void EkaFhGroup::sendRetransmitSocketError(const EfhRunCtx* pEfhRunCtx) {
     {exch, id},
     EfhGroupState::kError,
     EfhSystemState::kUnknown, // Preopen, Trading, Closed
-    EfhErrorDomain::kSocketError, // SocketError, UpdateTimeout, CredentialError, ExchangeError
+    EfhErrorDomain::kSocketError,  // SocketError, UpdateTimeout,
+                                   // CredentialError, ExchangeError
     EkaServiceType::kFeedSnapshot, // Unspecified, FeedRecovery
     dev->lastErrno
   };
   dev->lastErrno = 0;
   pEfhRunCtx->onEfhGroupStateChangedMsgCb(&msg, 0, pEfhRunCtx->efhRunUserData);
-  EKA_LOG("%s:%u re-trying in %d seconds",EKA_EXCH_DECODE(exch),id,connectRetryDelayTime);
-  if (connectRetryDelayTime == 0) on_error("connectRetryDelayTime == 0");
-  sleep(connectRetryDelayTime);
+  EKA_LOG("%s:%u %s in %d seconds",
+	  EKA_EXCH_DECODE(exch),id,
+	  sleepAfterCb ? "re-trying" : "skip re-trying",
+	  connectRetryDelayTime);
+  if (connectRetryDelayTime == 0)
+    on_error("connectRetryDelayTime == 0");
+  if (sleepAfterCb)
+    sleep(connectRetryDelayTime);
 }
  /* ##################################################################### */
 

@@ -645,6 +645,7 @@ enum class EfhExchangeErrorCode : int64_t {
     _x ( ServiceCurrentlyUnavailable )       \
     _x ( RequestNotServed )                  \
     _x ( UnexpectedResponse )                \
+    _x ( ConnectionProblem )                 \
       /* BOX exchange doesnt send predefined error code, but rather explicit text description */ \
     _x ( ExplicitBoxError )                  \
     _x ( Unknown )
