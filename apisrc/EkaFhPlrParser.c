@@ -350,7 +350,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.header.securityId = (uint64_t) m->seriesIndex;
     msg.side              = getSide(m->side);
     msg.capacity          = getRfqCapacity(m->capacity);
-    msg.price             = m->workingPrice;
+    msg.price             = getPrice(m->workingPrice, s);
     if (s->type == EfhSecurityType::kComplex && m->side == 'S') {
       // Invert ask price to match our complex price conventions
       msg.price = -msg.price;
