@@ -238,9 +238,7 @@ class EkaFh {
   void*                 getTradeTimeCtx;
   bool                  pinPacketBuffer = false;
 
-  std::atomic<int>      nOpenSnapshotGaps = 0;
-  std::atomic<int>      nOpenIncrGaps = 0;
-  
+  std::atomic_flag lockSnapshotGap = ATOMIC_FLAG_INIT;
 };
 
 #endif

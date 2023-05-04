@@ -165,9 +165,8 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
     switch (gr->state) {
       //----------------------------------------------------------------
     case EkaFhGroup::GrpState::INIT : // waiting for Snapshot
-      if (nOpenSnapshotGaps.load() > MaxOpenSnapshotGaps)
-	break; // only MaxOpenSnapshotGaps groups can get snapshot at a time
-      nOpenSnapshotGaps.fetch_add(1);
+      if (lockSnapshotGap.test_and_set(std::memory_order_acquire))
+	break; // only1s group can get snapshot at a time
 
       gr->invalidateBook();
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
@@ -200,22 +199,13 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
       gr->sendFeedDown(pEfhRunCtx);
       gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
       
-      if (gr->expected_sequence == 1 ||
-	  sequence - gr->expected_sequence > gr->GrpReqLimit ||
-	  nOpenIncrGaps.load() > MaxOpenIncrGaps) {
-	gr->state = EkaFhGroup::GrpState::INIT;	
-      } else {
-	nOpenIncrGaps.fetch_add(1);
-	gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
-	gr->closeIncrementalGap(pEfhCtx, pEfhRunCtx,
-				gr->expected_sequence, sequence);
-      }
+      gr->state = EkaFhGroup::GrpState::INIT;
+
       break;      
       /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
      
       //-----------------------------------------------------------------
     case EkaFhGroup::GrpState::SNAPSHOT_GAP : 
-    case EkaFhGroup::GrpState::RETRANSMIT_GAP :
       /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
       // Waiting for recovery
       gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
@@ -224,19 +214,16 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
 	break;
       /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
       // Gap closed
-      if (gr->state == EkaFhGroup::GrpState::SNAPSHOT_GAP)
-	nOpenSnapshotGaps.fetch_sub(1);
-      else {
-	nOpenIncrGaps.fetch_sub(1);
-	if (gr->lastExchErr != EfhExchangeErrorCode::kNoError) {
-	  EKA_LOG("%s:%u: GRP Recovery failed, trying Spin Snapshot",
-	      EKA_EXCH_DECODE(exch),gr->id);
-	  gr->gapClosed = false;
-	  gr->state = EkaFhGroup::GrpState::INIT;
-	  break;
-	}
+      lockSnapshotGap.clear();
+      
+      if (gr->lastExchErr != EfhExchangeErrorCode::kNoError) {
+	EKA_LOG("%s:%u: GRP Recovery failed, trying Spin Snapshot",
+		EKA_EXCH_DECODE(exch),gr->id);
+	gr->gapClosed = false;
+	gr->state = EkaFhGroup::GrpState::INIT;
+	break;
       }
-
+      
       gr->expected_sequence = gr->seq_after_snapshot;      
 
       if (gr->processFromQ(pEfhRunCtx) < 0) { // gap in the Q
