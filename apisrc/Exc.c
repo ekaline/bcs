@@ -412,11 +412,14 @@ int excPoll( EkaDev *dev, struct pollfd *fds, int nfds, int timeout ) {
 
 int excGetSockOpt( EkaDev* dev, ExcSocketHandle hSock, int level, int optname,
                    void* optval, socklen_t* optlen ) {
+  EKA_LOG("excGetSockOpt 1");
   if (checkDevice(dev)) {
+    EKA_LOG("excGetSockOpt2");
     optname = mapLinuxSocketOptionNameToLWIP(level, optname); // Must be first because
     level = mapLinuxSocketOptionLevelToLWIP(level);           // we change level here
     return lwip_getsockopt(hSock, level, optname, optval, optlen);
   }
+  EKA_LOG("excGetSockOpt3");
   return -1;
 }
 
