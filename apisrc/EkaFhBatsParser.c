@@ -337,13 +337,11 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   //--------------------------------------------------------------
   case MsgId::OPTIONS_AUCTION_UPDATE: { // 0xD1
     auto message {reinterpret_cast<const OptionsAuctionUpdate *>(m)};
-    EKA_INFO("%s:%d: Got imbalance: %s", EKA_EXCH_DECODE(exch), id, message->symbol);
     SecurityIdT security_id = expSymbol2secId(message->symbol);
     s = book->findSecurity(security_id);
-    if (s == nullptr) {
-      EKA_INFO("%s:%d: Discarding imbalance for unknown security %s", EKA_EXCH_DECODE(exch), id, message->symbol);
-      return false;
-    }
+    if (s == nullptr) return false;
+
+    EKA_INFO("%s:%d: Got imbalance: %s", EKA_EXCH_DECODE(exch), id, message->symbol);
 
     const int64_t referencePrice = getEfhPrice(message->referencePrice);
     const int64_t indicativePrice = getEfhPrice(message->indicativePrice);
