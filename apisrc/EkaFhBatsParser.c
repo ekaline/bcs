@@ -337,7 +337,8 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   //--------------------------------------------------------------
   case MsgId::OPTIONS_AUCTION_UPDATE: { // 0xD1
     auto message {reinterpret_cast<const OptionsAuctionUpdate *>(m)};
-    SecurityIdT security_id = symbol2secId(message->symbol);
+    EKA_INFO("%s:%d: Got imbalance: %s", EKA_EXCH_DECODE(exch), id, message->symbol);
+    SecurityIdT security_id = expSymbol2secId(message->symbol);
     s = book->findSecurity(security_id);
     if (s == nullptr) return false;
 
@@ -976,8 +977,8 @@ SecurityT* EkaFhBatsGr::process_TradeExpanded(const EfhRunCtx* pEfhRunCtx,
                                               uint64_t sequence,
                                               uint64_t msg_timestamp,
                                               const uint8_t* m) {
-  auto message {reinterpret_cast<const TradeExpanded *>(m)};
-  SecurityIdT security_id =  symbol2secId(message->symbol);
+  auto message {reinterpret_cast<const OrderMsgT *>(m)};
+  SecurityIdT security_id = expSymbol2secId(message->symbol);
 
   SecurityT* s = book->findSecurity(security_id);
   if (!s) return NULL;
