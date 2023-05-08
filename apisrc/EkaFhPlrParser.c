@@ -58,7 +58,10 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
       (       (m->MaturityDate[2] - '0') * 10 +  m->MaturityDate[3] - '0')  * 100   +
       (        m->MaturityDate[4] - '0') * 10 +  m->MaturityDate[5] - '0';
     msg.commonDef.contractSize   = m->ContractMultiplier;
-      
+
+    msg.commonDef.opaqueAttrA = m->PriceScaleCode;
+    outrightPriceScaleCodes[m->SeriesIndex] = m->PriceScaleCode;
+
     msg.optionType            = m->PutOrCall ?  EfhOptionType::kCall : EfhOptionType::kPut;
 
     // Strike price is given to us as a null-terminted string which may have a
@@ -126,6 +129,8 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 
     msg.numLegs = root->NoOfLegs;
 
+    bool underlyingPriceScaleFound = false;
+
     /* EKA_LOG("%s:%u: ComplexDefinition:  securityId=%ju", */
     /* 	    EKA_EXCH_DECODE(exch),id,msg.header.securityId); */
     
@@ -138,7 +143,22 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 
       msg.legs[i].side       = getSide(legs[i].side);
       msg.legs[i].ratio      = legs[i].LegRatioQty;
+
+      if (!underlyingPriceScaleFound) {
+        const auto iter = outrightPriceScaleCodes.find(legs[i].SymbolIndex);
+        if (iter != outrightPriceScaleCodes.end()) {
+          msg.commonDef.opaqueAttrA = iter->second;
+          underlyingPriceScaleFound = true;
+        }
+      }
     }
+
+    if (!underlyingPriceScaleFound) {
+      EKA_WARN("WARNING: %s:%d Could not find underlying price scale for complex def `%s`, defaulting to 4",
+               EKA_EXCH_DECODE(exch),id,msg.commonDef.exchSecurityName);
+      msg.commonDef.opaqueAttrA = 4;
+    }
+
     if (pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL)
       on_error("pEfhRunCtx->onEfhComplexDefinitionMsgCb == NULL");
     pEfhRunCtx->onEfhComplexDefinitionMsgCb(&msg, (EfhSecUserData) 0, pEfhRunCtx->efhRunUserData);
@@ -265,11 +285,11 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     FhSecurity* s = book->findSecurity(m->seriesIndex);
     if (s == NULL) return false;
 
-    s->bid_price     = m->bidPrice;
+    s->bid_price     = getPrice(m->bidPrice, s);
     s->bid_size      = m->bidVolume;
     s->bid_cust_size = m->bidCustomerVolume;
 
-    s->ask_price     = m->askPrice;
+    s->ask_price     = getPrice(m->askPrice, s);
     s->ask_size      = m->askVolume;
     s->ask_cust_size = m->askCustomerVolume;
 
@@ -296,7 +316,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.header.timeStamp      = m->sourceTimeSec * static_cast<uint64_t>(SEC_TO_NANO) + m->sourceTimeNs;
     msg.header.gapNum         = gapNum;
 
-    msg.price       = m->price;
+    msg.price       = getPrice(m->price, s);
     msg.size        = m->volume;
     msg.tradeStatus = s->trading_action;
     msg.tradeCond   = getTradeCondition(m);
@@ -330,7 +350,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.header.securityId = (uint64_t) m->seriesIndex;
     msg.side              = getSide(m->side);
     msg.capacity          = getRfqCapacity(m->capacity);
-    msg.price             = m->workingPrice;
+    msg.price             = getPrice(m->workingPrice, s);
     if (s->type == EfhSecurityType::kComplex && m->side == 'S') {
       // Invert ask price to match our complex price conventions
       msg.price = -msg.price;
