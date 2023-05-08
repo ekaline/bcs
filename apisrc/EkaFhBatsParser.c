@@ -340,7 +340,10 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     EKA_INFO("%s:%d: Got imbalance: %s", EKA_EXCH_DECODE(exch), id, message->symbol);
     SecurityIdT security_id = expSymbol2secId(message->symbol);
     s = book->findSecurity(security_id);
-    if (s == nullptr) return false;
+    if (s == nullptr) {
+      EKA_INFO("%s:%d: Discarding imbalance for unknown security %s", EKA_EXCH_DECODE(exch), id, message->symbol);
+      return false;
+    }
 
     const int64_t referencePrice = getEfhPrice(message->referencePrice);
     const int64_t indicativePrice = getEfhPrice(message->indicativePrice);
