@@ -183,11 +183,6 @@ class EkaDev {
   FILE* testDict;
 #endif
 
-  
-  
-  const int MaxAppSeqSessions = 8;
-  int       numAppSeqSessions = 0;
-  
   FILE* deltaTimeLogFile = NULL;
 
   std::atomic<uint64_t>     globalFastPathBytes = 0;
@@ -199,6 +194,7 @@ class EkaDev {
   volatile uint64_t *       snDevUserLogicRegistersPtr = NULL;
   volatile uint64_t *       snDevWCPtr = NULL;
   const uint32_t snDevNumberOfUserLogicRegisters = uint32_t(0x100000 /* BAR2_REGS_SIZE */ / sizeof(uint64_t));
+
 };
 
 

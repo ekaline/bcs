@@ -370,10 +370,7 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
 				uint8_t        _coreId, 
 				uint8_t        _sessId, 
 				uint8_t        _auxIdx) {
-  EKA_LOG("Action %d: type=%d, actionRegion=%u,heapOffs=%u",
-	  (int)_localIdx,(int)type,actionRegion,
-	  epmRegion[actionRegion]->heapOffs);
-  
+
   if (actionRegion >= EPM_REGIONS || epmRegion[actionRegion] == NULL) 
     on_error("wrong epmRegion[%u] = %p",
 	     actionRegion,epmRegion[actionRegion]);
@@ -387,17 +384,25 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
 
   switch (type) {
   case ActionType::TcpEmptyAck :
-    localActionIdx = _coreId * TOTAL_SESSIONS_PER_CORE +
+    localActionIdx = _coreId * TOTAL_SESSIONS_PER_CORE *
+      ActionsPerTcpSess +
       _sessId * ActionsPerTcpSess;
     break;
   case ActionType::TcpFullPkt :
   case ActionType::TcpFastPath :
-    localActionIdx = _coreId * TOTAL_SESSIONS_PER_CORE +
+    localActionIdx = _coreId * TOTAL_SESSIONS_PER_CORE *
+      ActionsPerTcpSess +
       _sessId * ActionsPerTcpSess + 1;
     break;
   default:
     localActionIdx = epmRegion[actionRegion]->localActionIdx++;
   }
+
+  EKA_LOG("Action %d: %s, actionRegion=%u,heapOffs=%u",
+	  (int)localActionIdx,printActionType(type),
+	  actionRegion,
+	  epmRegion[actionRegion]->heapOffs);
+  
   if (localActionIdx >= (int)ActionsPerRegion)
     on_error("localActionIdx %d >= ActionsPerRegion %u",
 	     localActionIdx, ActionsPerRegion);
@@ -434,10 +439,10 @@ EkaEpmAction* EkaEpm::addAction(ActionType     type,
   /* EKA_LOG("%s: idx = %3u, localIdx=%3u, heapOffs = 0x%jx, actionAddr = 0x%jx", */
   /* 	  actionName,actionIdx,localActionIdx,heapOffs,actionAddr); */
 
-  createActionMtx.unlock();
   copyBuf2Hw(dev,EpmActionBase, (uint64_t*)&action->hwAction,sizeof(action->hwAction)); //write to scratchpad
 
   atomicIndirectBufWrite(dev, 0xf0238 /* ActionAddr */, 0,0,action->idx,0);
+  createActionMtx.unlock();
 
   return action;
 }

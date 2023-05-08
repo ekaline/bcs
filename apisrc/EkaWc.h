@@ -29,7 +29,7 @@ public:
 			   uint16_t actionLocalIdx,
 			   uint16_t epmRegion
 			   ) {
-    static const int wcChId = 2;
+    const int wcChId = 2;
     auto wcRegionBase = (volatile uint64_t*)((uint64_t)snDevWCPtr_ + wcChId * 0x800);
 
 
@@ -61,9 +61,9 @@ public:
 				  uint16_t epmRegion,
 				  uint32_t tcpPseudoCsum
 				  ) {
-    static const uint64_t TxBufAddr_0 = 8 * 1024 * 1024 - 2048;
-    static const uint64_t TxBufAddr_1 = 8 * 1024 * 1024 - 4096;
-    static const int wcChId = 0;
+    const uint64_t TxBufAddr_0 = 8 * 1024 * 1024 - 2048;
+    const uint64_t TxBufAddr_1 = 8 * 1024 * 1024 - 4096;
+    const int wcChId = 0;
     
     while(busy_.test_and_set(std::memory_order_acquire)) {
 	busy_.test(std::memory_order_relaxed);
