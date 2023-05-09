@@ -393,9 +393,13 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.askSide.price = hasAsk ? indicativePrice : 0;
     msg.askSide.size  = hasAsk ? size : 0;
 
+    EKA_INFO("%s:%d: Got imbalance2: %s", EKA_EXCH_DECODE(exch), id, message->symbol);
+
     if (pEfhRunCtx->onEfhImbalanceMsgCb == NULL)
       on_error("pEfhRunCtx->onEfhImbalanceMsgCb == NULL");
     pEfhRunCtx->onEfhImbalanceMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
+
+    EKA_INFO("%s:%d: Got imbalance3: %s", EKA_EXCH_DECODE(exch), id, message->symbol);
 
     return false;
   }
