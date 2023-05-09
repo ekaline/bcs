@@ -351,6 +351,8 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
       return false;
     }
 
+    EKA_INFO("%s:%d: Got imbalance2: %s", EKA_EXCH_DECODE(exch), id, message->symbol);
+
     const uint32_t rawBidSize = message->buyContracts;
     const uint32_t rawAskSize = message->sellContracts;
     const uint32_t size = std::min(rawBidSize, rawAskSize);
@@ -377,6 +379,8 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
       }
     }
 
+    EKA_INFO("%s:%d: Got imbalance3: %s", EKA_EXCH_DECODE(exch), id, message->symbol);
+
     EfhImbalanceMsg msg{};
     msg.header.msgType        = EfhMsgType::kImbalance;
     msg.header.group.source   = exch;
@@ -393,13 +397,13 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.askSide.price = hasAsk ? indicativePrice : 0;
     msg.askSide.size  = hasAsk ? size : 0;
 
-    EKA_INFO("%s:%d: Got imbalance2: %s", EKA_EXCH_DECODE(exch), id, message->symbol);
+    EKA_INFO("%s:%d: Got imbalance4: %s", EKA_EXCH_DECODE(exch), id, message->symbol);
 
     if (pEfhRunCtx->onEfhImbalanceMsgCb == NULL)
       on_error("pEfhRunCtx->onEfhImbalanceMsgCb == NULL");
     pEfhRunCtx->onEfhImbalanceMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
 
-    EKA_INFO("%s:%d: Got imbalance3: %s", EKA_EXCH_DECODE(exch), id, message->symbol);
+    EKA_INFO("%s:%d: Got imbalance5: %s", EKA_EXCH_DECODE(exch), id, message->symbol);
 
     return false;
   }
