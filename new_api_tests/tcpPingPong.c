@@ -238,7 +238,7 @@ int main(int argc, char *argv[]) {
   signal(SIGINT, INThandler);
 
   const uint     MaxTestCores    = 2;
-  const uint     MaxTestSessions = 16;
+  const uint     MaxTestSessions = 31;
   uint     testCores      = 1;
   uint     testSessions   = 2;
   uint     p2p_delay      = 0; // microseconds
@@ -251,17 +251,22 @@ int main(int argc, char *argv[]) {
 
   testConnection conn[MaxTestCores] = {
     { std::string("100.0.0.110"), std::string("10.0.0.10"), 55555},
-    { std::string("200.0.0.111"), std::string("10.0.0.11"), 22223}
+    { std::string("100.0.0.111"), std::string("10.0.0.11"), 22223}
   };
 
-  getAttr(argc,argv,&conn[0].dstIp,&conn[0].dstTcpPort,&conn[0].srcIp,&testSessions,&testCores,&p2p_delay);
+  getAttr(argc,argv,&conn[0].dstIp,&conn[0].dstTcpPort,
+	  &conn[0].srcIp,&testSessions,&testCores,&p2p_delay);
   //-----------------------------------------
-  printf ("Running with %u cores, %u sessions, %uus pkt-to-pkt delay\n",testCores,testSessions,p2p_delay);
+  printf ("Running with %u cores, %u sessions, "
+	  "%uus pkt-to-pkt delay\n",
+	  testCores,testSessions,p2p_delay);
 
   //-----------------------------------------
   // Launching TCP server threads
   for (uint8_t c = 0; c < testCores ;c ++) {
-    std::thread server = std::thread(tcpServer,pEkaDev,conn[c].dstIp.c_str(),conn[c].dstTcpPort);
+    std::thread server = std::thread(tcpServer,
+				     pEkaDev,conn[c].dstIp.c_str(),
+				     conn[c].dstTcpPort);
     server.detach();
   }
 
@@ -280,8 +285,10 @@ int main(int argc, char *argv[]) {
   EkaCoreInitCtx ekaCoreInitCtx = {};
   for (uint8_t c = 0; c < testCores ;c ++) {
     ekaCoreInitCtx.coreId = c;
-    inet_aton(conn[c].srcIp.c_str(),(struct in_addr*)&ekaCoreInitCtx.attrs.host_ip);
-    ekaDevConfigurePort (pEkaDev, (const EkaCoreInitCtx*) &ekaCoreInitCtx);
+    inet_aton(conn[c].srcIp.c_str(),
+	      (struct in_addr*)&ekaCoreInitCtx.attrs.host_ip);
+    ekaDevConfigurePort (pEkaDev,
+			 (const EkaCoreInitCtx*) &ekaCoreInitCtx);
   }
 
   //------------------------------------------------
@@ -301,10 +308,14 @@ int main(int argc, char *argv[]) {
       dst.sin_family = AF_INET;
       dst.sin_port = htons(conn[c].dstTcpPort);
 
-      TEST_LOG("Trying to connect connect sock[%u][%u] on %s:%u",c,s,inet_ntoa(dst.sin_addr),conn[c].dstTcpPort);
+      TEST_LOG("Trying to connect connect sock[%u][%u] on %s:%u",
+	       c,s,inet_ntoa(dst.sin_addr),conn[c].dstTcpPort);
       fflush(stderr);
-      if ((sess_id[c][s] = excConnect(pEkaDev,sock[c][s],(sockaddr*) &dst, sizeof(sockaddr_in))) < 0) 
-	on_error("failed to connect sock[%u][%u] on port %u",c,s,conn[c].dstTcpPort);
+      if ((sess_id[c][s] = excConnect(pEkaDev,sock[c][s],
+				      (sockaddr*) &dst,
+				      sizeof(sockaddr_in))) < 0) 
+	on_error("failed to connect sock[%u][%u] on port %u",
+		 c,s,conn[c].dstTcpPort);
 
       int rc = excSetBlocking(pEkaDev,sock[c][s],false);
       if (rc)
@@ -318,7 +329,9 @@ int main(int argc, char *argv[]) {
   for (uint8_t c = 0; c < testCores; c ++) {
     for (uint8_t s = 0; s < testSessions ;s ++) {
       uint thrId = c * testSessions + s;
-      fast_path_thread[c][s] = std::thread(fastpath_thread_f,pEkaDev,sess_id[c][s],thrId,p2p_delay);
+      fast_path_thread[c][s] = std::thread(fastpath_thread_f,
+					   pEkaDev,sess_id[c][s],
+					   thrId,p2p_delay);
       fast_path_thread[c][s].detach();
     }
   }

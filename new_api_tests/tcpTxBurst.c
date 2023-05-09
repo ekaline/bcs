@@ -29,7 +29,7 @@
 #define STATISTICS_PERIOD 1000000
 
 static const uint     MaxTestCores    = 2;
-static const uint     MaxTestSessions = 14;
+static const uint     MaxTestSessions = 31;
 static const size_t   MaxThreads = MaxTestCores * MaxTestSessions;
 
 static const size_t   BufSize = 1024 * 1024;
