@@ -336,6 +336,9 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
   }
   //--------------------------------------------------------------
   case MsgId::OPTIONS_AUCTION_UPDATE: { // 0xD1
+    if (productMask & PM_ComplexBook) {
+      return false; // Complex imbalances not yet supported
+    }
     auto message {reinterpret_cast<const OptionsAuctionUpdate *>(m)};
     SecurityIdT security_id = expSymbol2secId(message->symbol);
     s = book->findSecurity(security_id);
@@ -344,16 +347,15 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     EKA_INFO("%s:%d: Got imbalance1: `%.8s` %c: ref=%" PRIu64 ", ind=%" PRIu64,
              EKA_EXCH_DECODE(exch), id, message->symbol, message->auctionType, message->referencePrice, message->indicativePrice);
 
-    const int64_t referencePrice = getEfhPrice(message->referencePrice);
-    const int64_t indicativePrice = getEfhPrice(message->indicativePrice);
     if (message->referencePrice != message->indicativePrice) {
-      EKA_WARN("%s:%d: Skipping unexpected reference or indicative price on `%.8s`: ref=%" PRId64 ", ind=%" PRId64,
-               EKA_EXCH_DECODE(exch), id, message->symbol, referencePrice, indicativePrice);
+      EKA_WARN("%s:%d: Skipping unexpected reference or indicative price on `%.8s`: ref=%" PRIu64 ", ind=%" PRIu64,
+               EKA_EXCH_DECODE(exch), id, message->symbol, message->referencePrice, message->indicativePrice);
       return false;
     }
 
     EKA_INFO("%s:%d: Got imbalance2: `%.8s`", EKA_EXCH_DECODE(exch), id, message->symbol);
 
+    const int64_t price = getEfhPrice(message->indicativePrice);
     const uint32_t rawBidSize = message->buyContracts;
     const uint32_t rawAskSize = message->sellContracts;
     const uint32_t size = std::min(rawBidSize, rawAskSize);
@@ -393,9 +395,9 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.header.gapNum         = gapNum;
 
     msg.tradeStatus   = s->trading_action;
-    msg.bidSide.price = hasBid ? indicativePrice : 0;
+    msg.bidSide.price = hasBid ? price : 0;
     msg.bidSide.size  = hasBid ? size : 0;
-    msg.askSide.price = hasAsk ? indicativePrice : 0;
+    msg.askSide.price = hasAsk ? price : 0;
     msg.askSide.size  = hasAsk ? size : 0;
 
     EKA_INFO("%s:%d: Got imbalance4: `%.8s`", EKA_EXCH_DECODE(exch), id, message->symbol);

@@ -634,6 +634,20 @@ namespace Bats {
     uint64_t    compositeMarketOfferPrice;
   } __attribute__((packed));
 
+  struct OptionsAuctionUpdate_complex { // 0xD1
+    GenericHeader header;
+    char        symbol[8];
+    char        auctionType; // 'G' = GTH Opening, 'O' = RTH Opening, 'H' = Halt Re-Opening
+    uint64_t    referencePrice; // Unused in complex, = 0
+    uint32_t    buyContracts;
+    uint32_t    sellContracts;
+    int64_t     indicativePrice;
+    int64_t     auctionOnlyPrice; // Unused in complex, = 0
+    char        openingCondition; // Unused in complex, = 0
+    int64_t     compositeMarketBidPrice; // Unused in complex, = 0
+    int64_t     compositeMarketOfferPrice; // Unused in complex, = 0
+  } __attribute__((packed));
+
   struct AuctionCancel { // 0xAE
     GenericHeader header;
     uint64_t    auctionId;
