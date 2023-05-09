@@ -193,13 +193,13 @@ namespace Bats {
     }
   }
 
-  inline int64_t getEfhPrice(uint64_t pitchPrice) {
-    return getEfhPrice(static_cast<int64_t>(pitchPrice));
-  }
-
   inline int64_t getEfhPrice(int64_t pitchPrice) {
     // This is a no-op at the current scales
     return priceToEfhScale(pitchPrice, PriceDecimals);
+  }
+
+  inline int64_t getEfhPrice(uint64_t pitchPrice) {
+    return getEfhPrice(static_cast<int64_t>(pitchPrice));
   }
 
   /* ------------------------------------------------ */
