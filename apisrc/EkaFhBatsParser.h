@@ -8,7 +8,7 @@
 #include "EkaFhTypes.h"
 
 namespace Bats {
-  constexpr std::size_t PriceDecimals = 4;
+  constexpr uint8_t PriceDecimals = 4;
 
   enum class MsgId : uint8_t {
     TIME = 0x20,

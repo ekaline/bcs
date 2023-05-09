@@ -356,6 +356,9 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     EKA_INFO("%s:%d: Got imbalance2: `%.8s`", EKA_EXCH_DECODE(exch), id, message->symbol);
 
     const int64_t price = getEfhPrice(message->indicativePrice);
+
+    EKA_INFO("%s:%d: Got imbalance2.5: `%.8s`", EKA_EXCH_DECODE(exch), id, message->symbol);
+
     const uint32_t rawBidSize = message->buyContracts;
     const uint32_t rawAskSize = message->sellContracts;
     const uint32_t size = std::min(rawBidSize, rawAskSize);
