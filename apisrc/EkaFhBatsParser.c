@@ -341,7 +341,8 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     s = book->findSecurity(security_id);
     if (s == nullptr) return false;
 
-    EKA_INFO("%s:%d: Got imbalance: %s", EKA_EXCH_DECODE(exch), id, message->symbol);
+    EKA_INFO("%s:%d: Got imbalance1: `%.8s` %c: ref=%" PRIu64 ", ind=%" PRIu64,
+             EKA_EXCH_DECODE(exch), id, message->symbol, message->auctionType, message->referencePrice, message->indicativePrice);
 
     const int64_t referencePrice = getEfhPrice(message->referencePrice);
     const int64_t indicativePrice = getEfhPrice(message->indicativePrice);
@@ -351,7 +352,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
       return false;
     }
 
-    EKA_INFO("%s:%d: Got imbalance2: %s", EKA_EXCH_DECODE(exch), id, message->symbol);
+    EKA_INFO("%s:%d: Got imbalance2: `%.8s`", EKA_EXCH_DECODE(exch), id, message->symbol);
 
     const uint32_t rawBidSize = message->buyContracts;
     const uint32_t rawAskSize = message->sellContracts;
@@ -379,7 +380,7 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
       }
     }
 
-    EKA_INFO("%s:%d: Got imbalance3: %s", EKA_EXCH_DECODE(exch), id, message->symbol);
+    EKA_INFO("%s:%d: Got imbalance3: `%.8s`", EKA_EXCH_DECODE(exch), id, message->symbol);
 
     EfhImbalanceMsg msg{};
     msg.header.msgType        = EfhMsgType::kImbalance;
@@ -397,13 +398,13 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.askSide.price = hasAsk ? indicativePrice : 0;
     msg.askSide.size  = hasAsk ? size : 0;
 
-    EKA_INFO("%s:%d: Got imbalance4: %s", EKA_EXCH_DECODE(exch), id, message->symbol);
+    EKA_INFO("%s:%d: Got imbalance4: `%.8s`", EKA_EXCH_DECODE(exch), id, message->symbol);
 
     if (pEfhRunCtx->onEfhImbalanceMsgCb == NULL)
       on_error("pEfhRunCtx->onEfhImbalanceMsgCb == NULL");
     pEfhRunCtx->onEfhImbalanceMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
 
-    EKA_INFO("%s:%d: Got imbalance5: %s", EKA_EXCH_DECODE(exch), id, message->symbol);
+    EKA_INFO("%s:%d: Got imbalance5: `%.8s`", EKA_EXCH_DECODE(exch), id, message->symbol);
 
     return false;
   }
