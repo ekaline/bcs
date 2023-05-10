@@ -363,8 +363,6 @@ EkaEpmAction::EkaEpmAction(EkaDev*                 _dev,
   productIdx      = _auxIdx;
   actionAddr      = _actionAddr;
 
-  thrId           = calcThrId(type,sessId,productIdx);
-
   heapOffs        = _heapOffs;
   heapAddr        = heapOffs;
 

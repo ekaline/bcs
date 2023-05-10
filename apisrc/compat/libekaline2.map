@@ -65,6 +65,11 @@ LIBEKALINE2_1.0	{
 			epmGetStrategyEnableBits;
 			epmSetStrategyEnableBits;
 			epmRaiseTriggers;
+
+			efcAllocateNewAction;
+			efcSetAction;
+			efcSetActionPayload;
+			efcSetFirstFireAction;
 		local:
 			*;
 		};

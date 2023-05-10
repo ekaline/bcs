@@ -119,8 +119,6 @@ public:
 
   bool     initialized  = false;
   
-  uint     thrId        = -1;
-
   epm_actionid_t nextIdx  = EPM_LAST_ACTION;
 
   epm_action_t hwAction   = {};

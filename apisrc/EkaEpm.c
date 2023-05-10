@@ -181,50 +181,41 @@ EkaOpResult EkaEpm::enableController(EkaCoreId coreId, bool enable) {
 EkaOpResult EkaEpm::initStrategies(const EpmStrategyParams *params,
 				   epm_strategyid_t numStrategies) {
   if (numStrategies > MaxStrategies) 
-    on_error("numStrategies %u > MaxStrategies %d",numStrategies,MaxStrategies);
+    on_error("numStrategies %u > MaxStrategies %d",
+						 numStrategies,MaxStrategies);
 
   stratNum = numStrategies;
 
-  /* if (! dev->fireReportThreadActive) { */
-  /*   dev->fireReportThread = std::thread(ekaFireReportThread,dev); */
-  /*   dev->fireReportThread.detach(); */
-  /*   while (! dev->fireReportThreadActive) sleep(0); */
-  /*   EKA_LOG("fireReportThread activated"); */
-  /* } */
-
-  // allocating UDP Channel to EPM MC region (preventing collision with EFH)
-  /* auto udpCh    = new EkaUdpChannel(dev,params[0].triggerParams->coreId,EpmMcRegion); */
-  /* if (udpCh == NULL) on_error("udpCh == NULL"); */
-  /* if (udpCh->chId != EpmMcRegion) */
-  /*   on_error("EpmMcRegion udpCh->chId %u != %u",udpCh->chId,EpmMcRegion); */
-  
   createRegion(EpmMcRegion,EpmMcRegion * ActionsPerRegion);
 
   epm_actionid_t currActionIdx = 0;
 
   for (auto i = 0; i < stratNum; i++) {
-    EKA_LOG("Imitializing strategy %d, hwFeedVer=%d",i,(int)dev->hwFeedVer);
-    if (epmRegion[i] != NULL) on_error("epmRegion[%d] != NULL",i);
+    EKA_LOG("Imitializing strategy %d, hwFeedVer=%d",
+						i,(int)dev->hwFeedVer);
+    if (epmRegion[i])
+			on_error("epmRegion[%d] is already initialized",i);
     createRegion((uint)i,currActionIdx);
 
-    if (strategy[i] != NULL) on_error("strategy[%d] != NULL",i);
+    if (strategy[i])
+			on_error("strategy[%d] is already initialized",i);
 
-    // allocating UDP Channel to EPM region (preventing collision with EFH)
-    /* auto udpCh    = new EkaUdpChannel(dev,params[i].triggerParams->coreId,-1); */
-    /* if (udpCh == NULL) on_error("udpCh == NULL"); */
-    
     if (i == EFC_STRATEGY) {
       dev->ekaHwCaps->checkEfc();
-      strategy[i] = new EkaEfc(this,i,currActionIdx, &params[i],dev->hwFeedVer);
+      strategy[i] = new EkaEfc(this,i,currActionIdx,
+															 &params[i],dev->hwFeedVer);
     } else {
-      strategy[i] = new EpmStrategy(this,i,currActionIdx, &params[i],dev->hwFeedVer);
+      strategy[i] = new EpmStrategy(this,i,currActionIdx,
+																		&params[i],dev->hwFeedVer);
     }
-    if (strategy[i] == NULL) on_error("Fail to create strategy[%d]",i);
+    if (!strategy[i])
+			on_error("Fail to create strategy[%d]",i);
 
     currActionIdx += params[i].numActions;
 
     if (currActionIdx > (int)MaxUserActions) 
-      on_error("currActionIdx %d > MaxUserActions %ju",currActionIdx,MaxUserActions);
+      on_error("currActionIdx %d > MaxUserActions %ju",
+							 currActionIdx,MaxUserActions);
   }
 
   initialized = true;
@@ -232,8 +223,9 @@ EkaOpResult EkaEpm::initStrategies(const EpmStrategyParams *params,
 }
 /* ---------------------------------------------------- */
 
-EkaOpResult EkaEpm::setStrategyEnableBits(epm_strategyid_t strategyIdx,
-					  epm_enablebits_t enable) {
+EkaOpResult
+EkaEpm::setStrategyEnableBits(epm_strategyid_t strategyIdx,
+															epm_enablebits_t enable) {
   if (! initialized)
     return EKA_OPRESULT__ERR_EPM_UNINITALIZED;
 
@@ -243,11 +235,13 @@ EkaOpResult EkaEpm::setStrategyEnableBits(epm_strategyid_t strategyIdx,
 }
 /* ---------------------------------------------------- */
 
-EkaOpResult EkaEpm::getStrategyEnableBits(epm_strategyid_t strategyIdx,
-					  epm_enablebits_t *enable) {
+EkaOpResult
+EkaEpm::getStrategyEnableBits(epm_strategyid_t strategyIdx,
+															epm_enablebits_t *enable) {
   if (! initialized)
     return EKA_OPRESULT__ERR_EPM_UNINITALIZED;
-  if (! validStrategyIdx(strategyIdx)) return EKA_OPRESULT__ERR_INVALID_STRATEGY;
+  if (! validStrategyIdx(strategyIdx))
+		return EKA_OPRESULT__ERR_INVALID_STRATEGY;
 
   return strategy[strategyIdx]->getEnableBits(enable);
 }
@@ -258,11 +252,14 @@ EkaOpResult EkaEpm::payloadHeapCopy(epm_strategyid_t strategyIdx,
 				    uint32_t offset,
 				    uint32_t length, 
 				    const void *contents, const bool isUdpDatagram) {
-  uint64_t payloadOffset = isUdpDatagram ? UdpDatagramOffset : TcpDatagramOffset;
+  uint64_t payloadOffset = isUdpDatagram ? UdpDatagramOffset :
+		TcpDatagramOffset;
 
   if ((offset - payloadOffset) % PayloadAlignment != 0) {
-    EKA_WARN("offset (%d) - payloadOffset (%d) %% PayloadAlignment (=%d) != 0",
-	     (int)offset,(int)payloadOffset,(int)PayloadAlignment);
+    EKA_WARN("offset (%d) - payloadOffset "
+						 "(%d) %% PayloadAlignment (=%d) != 0",
+						 (int)offset,(int)payloadOffset,
+						 (int)PayloadAlignment);
     return EKA_OPRESULT__ERR_INVALID_ALIGN;
   }
        
@@ -293,29 +290,13 @@ int EkaEpm::InitTemplates() {
 /* ---------------------------------------------------- */
 
 int EkaEpm::DownloadSingleTemplate2HW(EpmTemplate* t) {
-  if (t == NULL) on_error("t == NULL");
+  if (!t)
+		on_error("!t");
 
-  EKA_LOG("Downloading %s, id=%u, getDataTemplateAddr=%jx, getCsumTemplateAddr=%jx ",
-	  t->name,t->id,t->getDataTemplateAddr(),t->getCsumTemplateAddr());
-  /* volatile epm_tcpcs_template_t hw_tcpcs_template = {}; */
-
-  // TCP CS template
-  /* for (uint f = 0; f < EpmNumHwFields; f++) { */
-  /*   for (uint b = 0; b < EpmHwFieldSize; b++) { */
-  /*     if (t->hwField[f].cksmMSB[b]) { */
-  /* 	uint16_t temp = hw_tcpcs_template.high.field[f].bitmap | */
-  /* 	  ((uint16_t)1)<<b; */
-  /* 	hw_tcpcs_template.high.field[f].bitmap = temp; */
-  /* 	//	hw_tcpcs_template.high.field[f].bitmap |= ((uint16_t)1)<<b; */
-  /*     } */
-  /*     if (t->hwField[f].cksmLSB[b]) { */
-  /* 	uint16_t temp = hw_tcpcs_template.low.field[f].bitmap | */
-  /* 	  ((uint16_t)1)<<b; */
-  /* 	hw_tcpcs_template.low.field[f].bitmap = temp; */
-  /* 	//	hw_tcpcs_template.low.field[f].bitmap  |= ((uint16_t)1)<<b; */
-  /*     } */
-  /*   } */
-  /* } */
+  EKA_LOG("Downloading %s, id=%u, getDataTemplateAddr=%jx, "
+					"getCsumTemplateAddr=%jx ",
+					t->name,t->id,t->getDataTemplateAddr(),
+					t->getCsumTemplateAddr());
 
   copyBuf2Hw_swap4(dev,t->getDataTemplateAddr(),
 		   (uint64_t*) t->data ,
