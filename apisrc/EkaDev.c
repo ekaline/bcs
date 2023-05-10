@@ -229,23 +229,33 @@ bool EkaDev::initEpmTx() {
   const uint64_t MaxSizeOfStrategyConf = 0x1000;
 
   uint8_t strategyConfToClean[MaxSizeOfStrategyConf] = {};
-  copyBuf2Hw(dev,0x84000,(uint64_t*)strategyConfToClean,sizeof(strategyConfToClean));
+  copyBuf2Hw(dev,0x84000,(uint64_t*)strategyConfToClean,
+						 sizeof(strategyConfToClean));
   
   // dissabling TCP traffic
   for (auto coreId = 0; coreId < MAX_CORES; coreId++)
     eka_write(0xe0000 + coreId * 0x1000 + 0x200, 0);
 
-  epmReport = new EkaUserChannel(dev,snDev->dev_id,EkaUserChannel::TYPE::EPM_REPORT);
-  if (epmReport == NULL) on_error("Failed to open epmReport Channel");
-  if (! epmReport->isOpen()) on_error("epmReport Channel is Closed");
+  epmReport = new EkaUserChannel(dev,snDev->dev_id,
+																 EkaUserChannel::TYPE::EPM_REPORT);
+  if (!epmReport || !epmReport->isOpen()) {
+		EKA_ERROR("Failed to open epmReport Channel");
+		return false;
+	}
   
-  epmFeedback  = new EkaUserChannel(dev,snDev->dev_id,EkaUserChannel::TYPE::EPM_FEEDBACK);
-  if (epmFeedback == NULL) on_error("Failed to open epmReport Channel");
-  if (! epmFeedback->isOpen()) on_error("epmFeedback Channel is Closed");
+  epmFeedback  = new EkaUserChannel(dev,snDev->dev_id,
+																		EkaUserChannel::TYPE::EPM_FEEDBACK);
+  if (!epmFeedback || !epmFeedback->isOpen()) {
+		EKA_ERROR("Failed to open epmFeedback Channel");
+		return false;
+	}
 
-  lwipRx  = new EkaUserChannel(dev,snDev->dev_id,EkaUserChannel::TYPE::LWIP_RX);
-  if (lwipRx == NULL) on_error("Failed to open epmReport Channel");
-  if (! lwipRx->isOpen()) on_error("lwipRx Channel is Closed");
+  lwipRx  = new EkaUserChannel(dev,snDev->dev_id,
+															 EkaUserChannel::TYPE::LWIP_RX);
+  if (!lwipRx || !lwipRx->isOpen()) {
+		EKA_ERROR("Failed to open lwipRx Channel");
+		return false;
+	}
 
   ekaInitLwip(this);
 
@@ -258,7 +268,8 @@ bool EkaDev::initEpmTx() {
   eka_write(ENABLE_PORT,fire_rx_tx_en);
 
   userReportQ = new EkaUserReportQ(this);
-  if (userReportQ == NULL) on_error("Failed on new EkaUserReportQ");
+  if (!userReportQ)
+		on_error("Failed on new EkaUserReportQ");
     
   servThreadActive = false;
   servThread    = std::thread(ekaServThread,this);
@@ -271,20 +282,33 @@ bool EkaDev::initEpmTx() {
   while (!tcpRxThreadActive || !tcpRxThreadActive) {}
   EKA_LOG("Serv and TcpRx threads activated");
 
-
   auto swStatistics = eka_read(SW_STATISTICS);
   eka_write(SW_STATISTICS, swStatistics | (1ULL<<63));
-
-
   return true;    
 }
 
+/* ##################################################################### */
+bool EkaDev::checkAndSetEpmTx() {
+	if (!dev)
+		on_error("!dev");
+	
+	if (!dev->epmEnabled) {
+    EKA_LOG("Initializing TCP functionality");
+    
+    dev->epmEnabled = dev->initEpmTx();
+    if (!dev->epmEnabled)
+      on_error("TX functionality is not available for this "
+							 "Ekaline SW instance - caught by another process");
+  }
+	return true;
+}
 /* ##################################################################### */
 
 bool EkaDev::openEpm() {
   ekaHwCaps->checkEpm();
   epm = new EkaEpm(this);
-  if (epm == NULL) on_error("epm == NULL");
+  if (!epm)
+		on_error("!epm");
   epm->InitTemplates();
   epm->DownloadTemplates2HW();
 

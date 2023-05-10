@@ -66,8 +66,8 @@ class EkaEpm {
   static const int MAX_UDP_SESS      = 64;
 
 
-  /* static const uint IGMP_ACTIONS_BASE           = MAX_CORES * TOTAL_SESSIONS_PER_CORE * 3; */
-  /* static const uint MAX_IGMP_ACTIONS            = EkaDev::MAX_UDP_CHANNELS; */
+  /* const uint IGMP_ACTIONS_BASE           = MAX_CORES * TOTAL_SESSIONS_PER_CORE * 3; */
+  /* const uint MAX_IGMP_ACTIONS            = EkaDev::MAX_UDP_CHANNELS; */
 
   static const uint64_t ALWAYS_ENABLE           = 0xFFFFFFFFFFFFFFFF;
   static const uint64_t DefaultToken            = 0x1122334455667788;
@@ -89,12 +89,11 @@ class EkaEpm {
   static const uint     HeapPerRegion           = MaxHeap    / EPM_REGIONS;
   static const uint     ActionsPerRegion        = MaxActions / EPM_REGIONS;
 
-  static const uint64_t PayloadMemorySize       = MaxUserHeap;
+	static const uint64_t PayloadMemorySize       = MaxUserHeap;
   static const uint64_t TcpDatagramOffset       = sizeof(EkaEthHdr)+sizeof(EkaIpHdr)+sizeof(EkaTcpHdr);
   static const uint64_t UdpDatagramOffset       = sizeof(EkaEthHdr)+sizeof(EkaIpHdr)+sizeof(EkaUdpHdr);
   static const uint64_t PayloadAlignment        = 32;
   static const uint64_t RequiredTailPadding     = 0;
-
 
   static const uint8_t  UserRegion              = 0;
   static const uint8_t  EfcRegion               = 0;
@@ -286,44 +285,6 @@ class EkaEpm {
 
 /* ------------------------------------------------ */
 
-inline uint calcThrId (EkaEpm::ActionType actionType, uint8_t sessId, uint intIdx) {
-
-  static const uint TcpBase      = 0;
-  static const uint TcpNum       = 14;
-
-  static const uint UserBase     = TcpBase + TcpNum;
-  static const uint UserNum      = 1;
-
-  static const uint MaxNum       = EkaDev::MAX_CTX_THREADS;
-
-  uint     thrId        = -1;
-
-  switch (actionType) {
-  case EkaEpm::ActionType::TcpFastPath :
-  case EkaEpm::ActionType::TcpEmptyAck :
-    thrId = sessId == EkaEpm::CONTROL_SESS_ID ? MaxNum - 1 :
-    TcpBase + sessId % TcpNum;
-    break;
-  case EkaEpm::ActionType::TcpFullPkt  :
-  case EkaEpm::ActionType::Igmp    :
-    thrId = MaxNum - 2;
-    break;
-  case EkaEpm::ActionType::UserAction  :
-    thrId = UserBase + intIdx % UserNum;
-    break;
-  case EkaEpm::ActionType::HwFireAction:
-  case EkaEpm::ActionType::CmeHwCancel:
-  case EkaEpm::ActionType::CmeSwFire:
-  case EkaEpm::ActionType::CmeSwHeartbeat:
-    thrId = UserBase + intIdx % UserNum; // TO BE CHECKED!!!
-    break;
-  default :
-    on_error("Unexpected actionType %d",(int) actionType);
-  }
-  return thrId % MaxNum;
-}
-
-/* ------------------------------------------------ */
 inline int udpCh2epmRegion(int udpChId) {
   if (udpChId >= EkaEpm::MaxUdpChannelRegions)
     on_error("udpChId %d exceeds MaxUdpChannelRegions %d",

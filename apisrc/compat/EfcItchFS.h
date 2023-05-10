@@ -9,6 +9,7 @@
 
 #include "../eka_macros.h"
 #include "Epm.h"
+#include "EfcMultiStrategies.h"
 
 extern "C" {
 

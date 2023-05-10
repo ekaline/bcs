@@ -147,8 +147,9 @@ int EkaEfc::disArmController() {
   return 0;
 }
 /* ################################################ */
-int EkaEfc::initStrategy(const EfcStratGlobCtx* efcStratGlobCtx) {
-  memcpy(&stratGlobCtx,efcStratGlobCtx,sizeof(EfcStratGlobCtx));
+int EkaEfc::initStratGlobalParams(const EfcStratGlobCtx* ctx) {
+  EKA_LOG("Initializing EFC global params");
+  memcpy(&stratGlobCtx,ctx,sizeof(EfcStratGlobCtx));
   eka_write(dev,P4_ARM_DISARM,0); 
   return 0;
 }
