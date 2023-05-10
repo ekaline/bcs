@@ -238,23 +238,16 @@ inline EkaTcpSess *getEkaTcpSess(EkaDev* dev, ExcConnHandle hConn) {
  */  
 ExcSocketHandle excSocket( EkaDev* dev, EkaCoreId coreId ,
 			   int domain, int type, int protocol ) {
-  if (! dev->epmEnabled) {
-    EKA_LOG("Initializing TCP functionality");
+	if (! dev->checkAndSetEpmTx())
+		on_error("TX functionality is not available for this "
+						 "Ekaline SW instance - caught by another process");
     
-    dev->epmEnabled = dev->initEpmTx();
-    if (! dev->epmEnabled)
-      on_error("TX functionality is not available for this "
-	       "Ekaline SW instance - caught by another process");
-
-  }
-
   if (! dev->core[coreId])
     on_error("Lane %u has no link or IP address",coreId);
 
   if (! dev->core[coreId]->pLwipNetIf)
     dev->core[coreId]->initTcp();
-    
-  
+      
   EkaCore *const core = getEkaCore(dev, coreId);
   if (!core)
     return -1;
@@ -493,16 +486,10 @@ ExcUdpTxConnHandle excUdpConnect(EkaDev* dev, EkaCoreId coreId,
 				 eka_in_addr_t dstIp, 
 				 uint16_t srcPort,
 				 uint16_t dstPort) {
-  
-  if (! dev->epmEnabled) {
-    EKA_LOG("Initializing TCP functionality");
-    
-    dev->epmEnabled = dev->initEpmTx();
-    if (! dev->epmEnabled)
-      on_error("TX functionality is not available for this "
-	       "Ekaline SW instance - caught by another process");
-  }
 
+	if (! dev->checkAndSetEpmTx())
+		on_error("TX functionality is not available for this "
+						 "Ekaline SW instance - caught by another process");
     
   EkaCore *const core = getEkaCore(dev, coreId);
   if (!core)

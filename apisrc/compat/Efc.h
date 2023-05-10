@@ -12,6 +12,7 @@
 #include "Exc.h"
 #include "Efh.h"
 #include "Epm.h"
+#include "EfcMultiStrategies.h"
 
 #define EFC_HW_TTL 0x55
 #define EFC_HW_ID  0xabcd

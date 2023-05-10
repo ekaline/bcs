@@ -8,6 +8,7 @@
 #define __EFC_CME_H__
 
 #include "Epm.h"
+#include "EfcMultiStrategies.h"
 
 extern "C" {
 
