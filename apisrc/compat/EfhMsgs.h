@@ -34,7 +34,7 @@ constexpr int64_t intPow10(const uint8_t exponent) {
       1000000000000000000,
   };
   constexpr uint8_t NumFactors = sizeof(Factors) / sizeof(*Factors);
-  if (exponent > NumFactors) return std::numeric_limits<int64_t>::max();
+  if (exponent >= NumFactors) return std::numeric_limits<int64_t>::max();
   return Factors[exponent];
 }
 
