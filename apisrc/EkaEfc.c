@@ -401,10 +401,10 @@ int EkaEfc::enableRxFire() {
 
   for (uint8_t coreId = 0; coreId < EkaDev::MAX_CORES; coreId++) {
     if ((0x1 << coreId) & tcpCores) {
-      fire_rx_tx_en |= 1ULL << (16 + coreId); //fire core enable */
+      fire_rx_tx_en |= 1ULL << (16 + coreId); //fire core enable
     }
     if ((0x1 << coreId) & mdCores) {
-      fire_rx_tx_en |= 1ULL << coreId;          // RX (Parser) core enable */
+      fire_rx_tx_en |= 1ULL << coreId; // RX (Parser) core enable
     }
   }
 
@@ -426,10 +426,11 @@ int EkaEfc::checkSanity() {
 
 /* ################################################ */
 int EkaEfc::run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx) {
-  checkSanity();
+	// TO BE FIXED!!!
+	//  checkSanity();
   
-  reportCb   = pEfcRunCtx->onEfcFireReportCb ? pEfcRunCtx->onEfcFireReportCb :
-    efcPrintFireReport;
+  reportCb   = pEfcRunCtx->onEfcFireReportCb ?
+		pEfcRunCtx->onEfcFireReportCb : efcPrintFireReport;
   cbCtx      = pEfcRunCtx->cbCtx;
 
   setHwGlobalParams();

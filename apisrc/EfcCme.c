@@ -19,18 +19,20 @@ EkaOpResult efcCmeFastCancelInit(EkaDev *dev,
       .minNoMDEntries = params->minNoMDEntries,
       .maxMsgSize     = params->maxMsgSize,
       .token          = params->token,
-      .fireActionId   = (uint16_t)EfcCmeActionId::HwCancel,
+      .fireActionId   = (uint16_t)params->fireActionId, 
       .strategyId     = (uint8_t)EFC_STRATEGY
   };
 
-  EKA_LOG("Configuring Cme Fast Cancel FPGA: minNoMDEntries=%d,maxMsgSize=%u,"
-	  "token=0x%jx,fireActionId=%d,strategyId=%d",
+  EKA_LOG("Configuring Cme Fast Cancel FPGA: "
+					"minNoMDEntries=%d,maxMsgSize=%u,"
+					"token=0x%jx,fireActionId=%d,strategyId=%d",
 	  conf.minNoMDEntries,
 	  conf.maxMsgSize,
 	  conf.token,
 	  conf.fireActionId,
 	  conf.strategyId);
-  //  hexDump("EfcCmeFastCancelStrategyConf",&conf,sizeof(conf),stderr);
+  //  hexDump("EfcCmeFastCancelStrategyConf",&conf,
+	//          sizeof(conf),stderr);
   copyBuf2Hw(dev,0x84000,(uint64_t *)&conf,sizeof(conf));
   return EKA_OPRESULT__OK;
 }
@@ -45,13 +47,14 @@ ssize_t efcCmeSend(EkaDev* dev, ExcConnHandle hConn,
     auto efc = epm->strategy[EFC_STRATEGY];
     if (! efc) on_error("! efc");
 
-    auto ekaA = incrAppSequence ? efc->action[(size_t)EfcCmeActionId::SwFire] :
-	efc->action[(size_t)EfcCmeActionId::Heartbeat];
+    auto ekaA = incrAppSequence ?
+			efc->action[(size_t)EfcCmeActionId::SwFire] :
+			efc->action[(size_t)EfcCmeActionId::Heartbeat];
 
     if (ekaA->coreId != excGetCoreId(hConn) ||
-	ekaA->sessId != excGetSessionId(hConn)) {
-	EKA_WARN("Cme Fast Cancel action is not set");
-	return -1;
+				ekaA->sessId != excGetSessionId(hConn)) {
+			EKA_WARN("Cme Fast Cancel action is not set");
+			return -1;
     }
     return ekaA->fastSend(buffer, size);
 }

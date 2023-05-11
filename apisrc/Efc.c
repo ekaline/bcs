@@ -27,6 +27,7 @@
 #include "EkaTcpSess.h"
 #include "EkaEfc.h"
 #include "EkaHwCaps.h"
+#include "EkaEpmAction.h"
 
 #include "EkaEfcDataStructs.h"
 
@@ -68,6 +69,104 @@ EkaOpResult efcInit( EfcCtx** ppEfcCtx, EkaDev *pEkaDev,
 
   return EKA_OPRESULT__OK;
 }
+
+epm_actionid_t efcAllocateNewAction(const EkaDev *ekaDev,
+																		EpmActionType type) {
+	auto dev = ekaDev;
+	if (!dev || !dev->epm)
+		on_error("!dev || !epm");
+	auto epm = dev->epm;
+	auto efc = dynamic_cast<EkaEfc*>(epm->strategy[EFC_STRATEGY]);
+  if (!efc)
+		on_error("!efc");
+
+	for (uint i = EkaEpm::EfcAllocatableBase;
+			 i < EkaEpm::MaxEfcActions; i++) {
+		auto ekaA = efc->action[i];
+		if (!ekaA)
+			on_error("!efc->action[%u]",i);
+
+		if (ekaA->allocated)
+			continue;
+
+		ekaA->type = type;
+		ekaA->allocated = true;
+
+		EKA_LOG("Idx %u allocated for \'%s\'",
+						i,printActionType(ekaA->type));
+		return (epm_actionid_t) i;
+	}
+	on_error("No free Actions to allocate");
+}
+
+EkaOpResult efcSetAction(EkaDev *ekaDev,
+												 epm_actionid_t actionIdx,
+												 const EfcAction *efcAction,
+												 const bool isUdpDatagram) {
+	auto dev = ekaDev;
+	if (!dev || !dev->epm)
+		on_error("!dev || !epm");
+	auto epm = dev->epm;
+	auto efc = dynamic_cast<EkaEfc*>(epm->strategy[EFC_STRATEGY]);
+  if (!efc)
+		on_error("!efc");
+
+	auto ekaA = efc->action[actionIdx];
+	
+	const EpmAction epmAction = {
+		.type          = efcAction->type != EpmActionType::INVALID ?
+		efcAction->type : ekaA->type,
+		.token         = efcAction->token,
+    .hConn         = efcAction->hConn,
+    .offset        = (uint) (actionIdx * EkaEpm::HeapPerEfcAction +
+														 (isUdpDatagram ? 42 : 54)),
+    .length        = ekaA->getPayloadLen(),
+    .actionFlags   = efcAction->actionFlags,
+    .nextAction    = efcAction->nextAction,
+    .enable        = efcAction->enable,
+    .postLocalMask = efcAction->postLocalMask,
+    .postStratMask = efcAction->postStratMask,
+    .user          = efcAction->user
+  };
+
+	EKA_LOG("%d epmAction->type=\'%s\',isUdpDatagram=%d,offs=0x%x",
+					actionIdx,printActionType(epmAction.type),
+					isUdpDatagram,epmAction.offset);
+	return epm->setAction(EFC_STRATEGY,actionIdx,&epmAction);
+}
+
+EkaOpResult efcSetActionPayload(EkaDev *ekaDev,
+																epm_actionid_t actionIdx,
+																const void* payload,
+																size_t len,
+																const bool isUdpDatagram) {
+	auto dev = ekaDev;
+	if (!dev || !dev->epm)
+		on_error("!dev || !epm");
+	auto epm = dev->epm;
+	auto efc = dynamic_cast<EkaEfc*>(epm->strategy[EFC_STRATEGY]);
+  if (!efc)
+		on_error("!efc");
+
+	auto ekaA = efc->action[actionIdx];
+
+	ekaA->heapOffs = actionIdx * EkaEpm::HeapPerEfcAction;
+	auto payloadOffs = ekaA->heapOffs +	(isUdpDatagram ? 42 : 54);
+	
+	ekaA->setPayloadLen(len);
+	
+	auto rc = epm->payloadHeapCopy(EFC_STRATEGY,
+																 payloadOffs,len,
+																 payload,isUdpDatagram);
+	ekaA->updatePayload();
+	EKA_LOG("EFC Action %d: %ju bytes copied to offs %d",
+					actionIdx,len,payloadOffs);
+
+	//	ekaA->printHeap();
+
+	return rc;
+}
+
 
 /**
  * This will initialize the Ekaline firing controller.

@@ -166,7 +166,7 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx,
   atomicIndirectBufWrite(dev,0xf0238/*ActionAddr*/,0,0,ekaA->idx,0);
 
 
-  /* ekaA->printHeap(); */
+	//  ekaA->printHeap();
   /* ekaA->printHwAction(); */
   
   //---------------------------------------------------------

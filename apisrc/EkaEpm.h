@@ -86,6 +86,7 @@ class EkaEpm {
   static const uint64_t MaxUserHeap             = 6 * 1024 * 1024;
   static const uint64_t MaxServiceHeap          = MaxHeap - MaxUserHeap;
 
+  static const uint     HeapPerEfcAction        = 1536;
   static const uint     HeapPerRegion           = MaxHeap    / EPM_REGIONS;
   static const uint     ActionsPerRegion        = MaxActions / EPM_REGIONS;
 
@@ -106,6 +107,10 @@ class EkaEpm {
   static const uint64_t MaxUserActions          = MaxStrategies * MaxActionsPerStrategy;
   static const uint64_t MaxServiceActions       = MaxActions - MaxUserActions;
 
+	static const uint     P4ReservedActions       = 64;
+	static const uint     EfcAllocatableBase      = P4ReservedActions;
+	static const uint     MaxEfcActions           = 256;
+	
   static const uint64_t UserHeapBaseAddr        = EpmHeapHwBaseAddr;
   static const uint64_t UserActionBaseAddr      = EpmActionBase;
 

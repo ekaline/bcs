@@ -3,7 +3,9 @@
 TEST_LIST="
 efcFastSweepFireTest
 efcCmeFireTest
+efcCmeFireTestNew
 efcCboeHuynhTest
+efcCboeTestNew
 efcNewsFireTest
 "
 

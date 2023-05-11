@@ -62,8 +62,20 @@ public:
   int fastSend(const void* buf, uint len);
   /* ----------------------------------------------------- */
   bool isTcp();
+  /* ----------------------------------------------------- */
   bool isUdp();
-
+  /* ----------------------------------------------------- */
+	uint getPayloadLen() {
+		return payloadLen;
+	}
+  /* ----------------------------------------------------- */
+	void setPayloadLen(uint _len) {
+		payloadLen = _len;
+		pktSize = getPayloadOffset() + payloadLen;
+	}
+  /* ----------------------------------------------------- */
+	void updatePayload();
+	
 private:
   int setActionBitmap();
   int setTemplate();
@@ -118,6 +130,7 @@ public:
 
 
   bool     initialized  = false;
+  bool     allocated    = false;
   
   epm_actionid_t nextIdx  = EPM_LAST_ACTION;
 

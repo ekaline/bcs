@@ -619,7 +619,8 @@ int EkaTcpSess::sendEthFrame(void *buf, int len) {
 
 /* ---------------------------------------------------------------- */
 
-int EkaTcpSess::lwipDummyWrite(void *buf, int len, uint8_t originatedFromHw) {
+int EkaTcpSess::lwipDummyWrite(void *buf, int len,
+															 uint8_t originatedFromHw) {
   auto p = (const uint8_t*)buf;
   int sentSize = 0;
 
@@ -631,9 +632,12 @@ int EkaTcpSess::lwipDummyWrite(void *buf, int len, uint8_t originatedFromHw) {
     int sentBytes = lwip_write(sock,p,len-sentSize);
     lwip_errno = errno;
 
-    if (sentBytes <= 0 && lwip_errno != EAGAIN && lwip_errno != EWOULDBLOCK) {
-      EKA_ERROR("lwip_write(): rc = %d, errno=%d \'%s\'",
-		sentBytes,lwip_errno,strerror(lwip_errno));
+    if (sentBytes <= 0 &&
+				lwip_errno != EAGAIN &&
+				lwip_errno != EWOULDBLOCK) {
+      EKA_ERROR("lwip_write(): len= %d, rc = %d, errno=%d \'%s\'",
+								sentBytes,len-sentSize,
+								lwip_errno,strerror(lwip_errno));
       return sentBytes;
     }
 

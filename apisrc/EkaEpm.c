@@ -135,14 +135,18 @@ EkaOpResult EkaEpm::setAction(epm_strategyid_t strategyIdx,
   }
 
   if (! validStrategyIdx(strategyIdx)) {
-    EKA_WARN ("EKA_OPRESULT__ERR_INVALID_STRATEGY: strategyIdx=%d",strategyIdx);
+    EKA_WARN ("EKA_OPRESULT__ERR_INVALID_STRATEGY: strategyIdx=%d",
+							strategyIdx);
     return EKA_OPRESULT__ERR_INVALID_STRATEGY;
   }
   if (! strategy[strategyIdx]->myAction(actionIdx)){
-    EKA_WARN ("EKA_OPRESULT__ERR_INVALID_ACTION: strategyIdx=%d, actionIdx=%d",strategyIdx,actionIdx);
+    EKA_WARN ("EKA_OPRESULT__ERR_INVALID_ACTION: "
+							"strategyIdx=%d, actionIdx=%d",
+							strategyIdx,actionIdx);
     return EKA_OPRESULT__ERR_INVALID_ACTION;
   }
-  EKA_LOG("Setting Action %d epmAction->type=%d",actionIdx,(int)epmAction->type);
+  EKA_LOG("Setting Action %d epmAction->type=\'%s\'",
+					actionIdx,printActionType(epmAction->type));
   return strategy[strategyIdx]->setAction(actionIdx,epmAction);
 }
 /* ---------------------------------------------------- */

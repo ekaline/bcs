@@ -76,7 +76,8 @@ extern "C" {
  */	
 	EkaOpResult efcSetAction(EkaDev *ekaDev,
 													 epm_actionid_t actionIdx,
-													 const EfcAction *efcAction);
+													 const EfcAction *efcAction, 
+													 const bool isUdpDatagram = false);
 
 	
 /**
@@ -86,11 +87,15 @@ extern "C" {
  *    - Clear the "Hw controlled fields" according to the
  *      Epm Template
  *    - Calculate pseudo TCP (or UDP) checksum
+ *
+ *  If provided Action type == INVALID, then this type is
+ *  not set, but the previously configured type is preserved
  */	
 	EkaOpResult efcSetActionPayload(EkaDev *ekaDev,
 																	epm_actionid_t actionIdx,
 																	const void* payload,
-																	size_t len);
+																	size_t len, 
+																	const bool isUdpDatagram = false);
 
 /**
  * Sets first action of the chain to be fired on the strategy.
