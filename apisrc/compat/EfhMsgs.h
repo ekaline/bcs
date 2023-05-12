@@ -337,6 +337,7 @@ typedef struct {
                 _x( EfhSecurityType,  underlyingType )                      \
                 _x( EfhSymbol,        classSymbol )                         \
                 _x( EfhSymbol,        underlying )                          \
+                _x( EfhSymbol,        subtypeCode )                         \
                 _x( ExchSecurityName, exchSecurityName )                    \
                 /** Full UNIX epoch time of expiry, can be 0 */             \
                 _x( time_t,           expiryTime )                          \
