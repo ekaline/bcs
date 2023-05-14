@@ -435,8 +435,8 @@ int EkaEfc::run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx) {
 
   setHwGlobalParams();
   setHwUdpParams();
-  if (hwFeedVer != EfhFeedVer::kCME)
-    setHwStratRegion();
+  /* if (hwFeedVer != EfhFeedVer::kCME) */
+  /*   setHwStratRegion(); */
   //  igmpJoinAll();
 
   enableRxFire();
@@ -517,6 +517,8 @@ int EkaEfc::setHwUdpParams() {
 }
 /* ################################################ */
 int EkaEfc::setHwStratRegion() {
+#if 0
+	// Not implemented in HW!!!
   struct StratRegion {
     uint8_t region;
     uint8_t strategyIdx;
@@ -529,8 +531,9 @@ int EkaEfc::setHwStratRegion() {
     stratRegion[i].region      = EkaEpm::EfcRegion;
     stratRegion[i].strategyIdx = 0;
   }
-  copyBuf2Hw(dev,0x83000,(uint64_t*) &stratRegion,sizeof(stratRegion));
-
+  copyBuf2Hw(dev,0x83000,(uint64_t*) &stratRegion,
+						 sizeof(stratRegion));
+#endif
   return 0;
 }
 /* ################################################ */

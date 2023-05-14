@@ -96,12 +96,12 @@ class EkaEpm {
   static const uint64_t PayloadAlignment        = 32;
   static const uint64_t RequiredTailPadding     = 0;
 
-  static const uint8_t  UserRegion              = 0;
-  static const uint8_t  EfcRegion               = 0;
-  static const uint8_t  TcpTxRegion             = MaxStrategies;   // 4
-  static const uint8_t  EpmMcRegion             = TcpTxRegion + 1; // 5
-  static const int      ReservedRegions         = EpmMcRegion + 1; // 6
-  static const int      MaxUdpChannelRegions    = EPM_REGIONS - ReservedRegions;
+  // static const uint8_t  UserRegion              = 0;
+  // static const uint8_t  EfcRegion               = 0;
+  // static const uint8_t  TcpTxRegion             = MaxStrategies;   // 4
+  // static const uint8_t  EpmMcRegion             = TcpTxRegion + 1; // 5
+  // static const int      ReservedRegions         = EpmMcRegion + 1; // 6
+  // static const int      MaxUdpChannelRegions    = EPM_REGIONS - ReservedRegions;
 
   static const uint     UserActionsBaseIdx      = 0;
   static const uint64_t MaxUserActions          = MaxStrategies * MaxActionsPerStrategy;
@@ -127,8 +127,7 @@ class EkaEpm {
 
   void initHeap(uint start, uint size, uint regionId);
 
-  int createRegion(uint regionId, epm_actionid_t baseActionIdx);
-
+  int createRegion(int regionId);
 
   uint64_t getPayloadMemorySize () {
     return PayloadMemorySize;
@@ -189,7 +188,7 @@ class EkaEpm {
   int InitTemplates();
 
   EkaEpmAction* addAction(ActionType      type, 
-			  uint            actionRegion, 
+			  int             regionId, 
 			  epm_actionid_t  localIdx, 
 			  uint8_t         coreId, 
 			  uint8_t         sessId, 
@@ -197,7 +196,7 @@ class EkaEpm {
 
  private:
   void actionParamsSanityCheck(ActionType type, 
-			       uint       actionRegion, 
+			       int        regionId, 
 			       uint8_t    _coreId, 
 			       uint8_t    _sessId);
   bool alreadyJoined(epm_strategyid_t prevStrats,uint32_t ip, uint16_t port);
@@ -206,29 +205,29 @@ class EkaEpm {
   bool validStrategyIdx(epm_strategyid_t strategyIdx) {
     return (strategyIdx < stratNum) && (strategy[strategyIdx] != NULL);
   }
-  inline uint getHeapBudget(EpmActionType     type) {
-    switch (type) {
-    case EpmActionType::TcpFastPath :
-      return MAX_ETH_FRAME_SIZE;
-    case EpmActionType::TcpFullPkt  :
-      return MAX_ETH_FRAME_SIZE;
-    case EpmActionType::TcpEmptyAck :
-      return TCP_EMPTY_ACK_SIZE;
-    case EpmActionType::Igmp :
-      return IGMP_V2_SIZE;
-    case EpmActionType::HwFireAction :
-      return HW_FIRE_MSG_SIZE;
-    case EpmActionType::CmeHwCancel :
-    case EpmActionType::CmeSwFire :
-    case EpmActionType::CmeSwHeartbeat :
-      return MAX_ETH_FRAME_SIZE;
-    case EpmActionType::UserAction :
-      return DEFAULT_1K_SIZE;
-    default:
-      on_error("Unexpected EkaEpmAction type %d",(int)type);
-    }
-    return (uint)(-1);
-  }
+  // inline uint getHeapBudget(EpmActionType     type) {
+  //   switch (type) {
+  //   case EpmActionType::TcpFastPath :
+  //     return MAX_ETH_FRAME_SIZE;
+  //   case EpmActionType::TcpFullPkt  :
+  //     return MAX_ETH_FRAME_SIZE;
+  //   case EpmActionType::TcpEmptyAck :
+  //     return TCP_EMPTY_ACK_SIZE;
+  //   case EpmActionType::Igmp :
+  //     return IGMP_V2_SIZE;
+  //   case EpmActionType::HwFireAction :
+  //     return HW_FIRE_MSG_SIZE;
+  //   case EpmActionType::CmeHwCancel :
+  //   case EpmActionType::CmeSwFire :
+  //   case EpmActionType::CmeSwHeartbeat :
+  //     return MAX_ETH_FRAME_SIZE;
+  //   case EpmActionType::UserAction :
+  //     return DEFAULT_1K_SIZE;
+  //   default:
+  //     on_error("Unexpected EkaEpmAction type %d",(int)type);
+  //   }
+  //   return (uint)(-1);
+  // }
   /* ---------------------------------------------------------- */
 
  public:
@@ -289,14 +288,6 @@ class EkaEpm {
 };
 
 /* ------------------------------------------------ */
-
-inline int udpCh2epmRegion(int udpChId) {
-  if (udpChId >= EkaEpm::MaxUdpChannelRegions)
-    on_error("udpChId %d exceeds MaxUdpChannelRegions %d",
-	     udpChId,EkaEpm::MaxUdpChannelRegions);
-
-  return udpChId + EkaEpm::ReservedRegions;
-}
 
 #endif
 

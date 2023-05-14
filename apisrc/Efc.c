@@ -28,6 +28,7 @@
 #include "EkaEfc.h"
 #include "EkaHwCaps.h"
 #include "EkaEpmAction.h"
+#include "EkaEpmRegion.h"
 
 #include "EkaEfcDataStructs.h"
 
@@ -101,8 +102,7 @@ epm_actionid_t efcAllocateNewAction(const EkaDev *ekaDev,
 
 EkaOpResult efcSetAction(EkaDev *ekaDev,
 												 epm_actionid_t actionIdx,
-												 const EfcAction *efcAction,
-												 const bool isUdpDatagram) {
+												 const EfcAction *efcAction) {
 	auto dev = ekaDev;
 	if (!dev || !dev->epm)
 		on_error("!dev || !epm");
@@ -112,14 +112,20 @@ EkaOpResult efcSetAction(EkaDev *ekaDev,
 		on_error("!efc");
 
 	auto ekaA = efc->action[actionIdx];
+
+	auto actionType = efcAction->type != EpmActionType::INVALID ?
+		efcAction->type : ekaA->type;
+
+	auto baseOffs = actionIdx * EkaEpmRegion::HeapPerRegularAction;
+	auto dataOffs = isUdpAction(actionType) ?
+		EkaEpm::UdpDatagramOffset : EkaEpm::TcpDatagramOffset;
+	uint payloadOffs = baseOffs + dataOffs;
 	
 	const EpmAction epmAction = {
-		.type          = efcAction->type != EpmActionType::INVALID ?
-		efcAction->type : ekaA->type,
+		.type          = actionType,
 		.token         = efcAction->token,
     .hConn         = efcAction->hConn,
-    .offset        = (uint) (actionIdx * EkaEpm::HeapPerEfcAction +
-														 (isUdpDatagram ? 42 : 54)),
+    .offset        = payloadOffs,
     .length        = ekaA->getPayloadLen(),
     .actionFlags   = efcAction->actionFlags,
     .nextAction    = efcAction->nextAction,
@@ -129,17 +135,13 @@ EkaOpResult efcSetAction(EkaDev *ekaDev,
     .user          = efcAction->user
   };
 
-	EKA_LOG("%d epmAction->type=\'%s\',isUdpDatagram=%d,offs=0x%x",
-					actionIdx,printActionType(epmAction.type),
-					isUdpDatagram,epmAction.offset);
 	return epm->setAction(EFC_STRATEGY,actionIdx,&epmAction);
 }
 
 EkaOpResult efcSetActionPayload(EkaDev *ekaDev,
 																epm_actionid_t actionIdx,
 																const void* payload,
-																size_t len,
-																const bool isUdpDatagram) {
+																size_t len) {
 	auto dev = ekaDev;
 	if (!dev || !dev->epm)
 		on_error("!dev || !epm");
@@ -150,16 +152,19 @@ EkaOpResult efcSetActionPayload(EkaDev *ekaDev,
 
 	auto ekaA = efc->action[actionIdx];
 
-	ekaA->heapOffs = actionIdx * EkaEpm::HeapPerEfcAction;
-	auto payloadOffs = ekaA->heapOffs +	(isUdpDatagram ? 42 : 54);
+	ekaA->heapOffs = actionIdx * EkaEpmRegion::HeapPerRegularAction;
+	auto dataOffs = isUdpAction(ekaA->type) ?
+		EkaEpm::UdpDatagramOffset : EkaEpm::TcpDatagramOffset;
+	auto payloadOffs = ekaA->heapOffs +	dataOffs;
 	
 	ekaA->setPayloadLen(len);
 	
 	auto rc = epm->payloadHeapCopy(EFC_STRATEGY,
 																 payloadOffs,len,
-																 payload,isUdpDatagram);
+																 payload,
+																 isUdpAction(ekaA->type));
 	ekaA->updatePayload();
-	EKA_LOG("EFC Action %d: %ju bytes copied to offs %d",
+	EKA_LOG("EFC Action %d: %ju bytes copied to offs %ju",
 					actionIdx,len,payloadOffs);
 
 	//	ekaA->printHeap();

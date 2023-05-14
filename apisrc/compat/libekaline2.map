@@ -69,7 +69,6 @@ LIBEKALINE2_1.0	{
 			efcAllocateNewAction;
 			efcSetAction;
 			efcSetActionPayload;
-			efcSetFirstFireAction;
 		local:
 			*;
 		};

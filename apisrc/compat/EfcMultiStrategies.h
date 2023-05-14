@@ -76,8 +76,7 @@ extern "C" {
  */	
 	EkaOpResult efcSetAction(EkaDev *ekaDev,
 													 epm_actionid_t actionIdx,
-													 const EfcAction *efcAction, 
-													 const bool isUdpDatagram = false);
+													 const EfcAction *efcAction);
 
 	
 /**
@@ -94,22 +93,7 @@ extern "C" {
 	EkaOpResult efcSetActionPayload(EkaDev *ekaDev,
 																	epm_actionid_t actionIdx,
 																	const void* payload,
-																	size_t len, 
-																	const bool isUdpDatagram = false);
-
-/**
- * Sets first action of the chain to be fired on the strategy.
- * Returns:
- *   EKA_OPRESULT__ERR_INVALID_STRATEGY if:
- *                 - strategyId == EfcStrategyId::P4
- *                 - strategyId is not initialized
- *   EKA_OPRESULT__ERR_INVALID_ACTION if:
- *                 Action[actionIdx] is not initialized
- */	
-	EkaOpResult efcSetFirstFireAction(EkaDev *ekaDev,
-																		EfcStrategyId strategyId,
-																		epm_actionid_t actionIdx);
-
+																	size_t len);
 
 	
 } // End of extern "C"

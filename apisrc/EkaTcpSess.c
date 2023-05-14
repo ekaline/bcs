@@ -20,6 +20,7 @@
 #include "EpmRawPktTemplate.h"
 #include "EkaEpmAction.h"
 #include "EkaCsumSSE.h"
+#include "EkaEpmRegion.h"
 
 #include "ekaNW.h"
 
@@ -75,21 +76,21 @@ EkaTcpSess::EkaTcpSess(EkaDev* pEkaDev, EkaCore* _parent,
 
   if (sessId == CONTROL_SESS_ID) {
     EKA_LOG("Established TCP Session %u for Control Traffic, coreId=%u, EpmRegion = %u",
-	    sessId,coreId,EkaEpm::TcpTxRegion);
+	    sessId,coreId,EkaEpmRegion::Regions::TcpTxFullPkt);
     fullPktAction  = dev->epm->addAction(EkaEpm::ActionType::TcpFullPkt,
-					 EkaEpm::TcpTxRegion,
+					 EkaEpmRegion::Regions::TcpTxFullPkt,
 					 0,coreId,sessId,0);
   } else {
     EKA_LOG("sock=%d for: %s:%u --> %s:%u",sock,
 	    EKA_IP2STR(srcIp),srcPort,
 	    EKA_IP2STR(dstIp),dstPort);
     fastPathAction = dev->epm->addAction(EkaEpm::ActionType::TcpFastPath,
-					 EkaEpm::TcpTxRegion,
+					 EkaEpmRegion::Regions::TcpTxFullPkt,
 					 0,coreId,sessId,0);    
   }
   
   emptyAckAction = dev->epm->addAction(EkaEpm::ActionType::TcpEmptyAck,
-				       EkaEpm::TcpTxRegion,
+				       EkaEpmRegion::Regions::TcpTxEmptyAck,
 				       0,coreId,sessId,0);
   
   

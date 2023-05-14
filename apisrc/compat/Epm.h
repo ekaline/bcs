@@ -209,6 +209,16 @@ enum class EpmActionType : int {
     UserAction   = 100          ///< EPM fire. No fields managed by HW
  };
 
+	static inline
+	bool isUdpAction(EpmActionType t) {
+		switch (t) {
+		case EpmActionType::ItchHwFastSweep :
+			return true;
+		default:
+			return false;
+		}
+	}
+
 static inline
 const char* printActionType(EpmActionType t) {
   switch (t) {
