@@ -48,20 +48,20 @@ int printControllerStateReport(EkaDev* dev, const EfcControllerState* msg);
 int printBoeFire(EkaDev* dev,const BoeNewOrderMsg* msg);
 
 EkaOpResult efcInit( EfcCtx** ppEfcCtx, EkaDev *pEkaDev,
-										 const EfcInitCtx* pEfcInitCtx ) {
+		     const EfcInitCtx* pEfcInitCtx ) {
   auto dev = pEkaDev;
-	if (!dev || !dev->ekaHwCaps)
-		on_error("(!dev || !dev->ekaHwCaps");
-	dev->ekaHwCaps->checkEfc();
+  if (!dev || !dev->ekaHwCaps)
+    on_error("(!dev || !dev->ekaHwCaps");
+  dev->ekaHwCaps->checkEfc();
 
-	if (! dev->checkAndSetEpmTx())
-		on_error("TX functionality is not available for this "
-						 "Ekaline SW instance - caught by another process");
+  if (! dev->checkAndSetEpmTx())
+    on_error("TX functionality is not available for this "
+	     "Ekaline SW instance - caught by another process");
   if (!pEfcInitCtx)
-		on_error("!pEfcInitCtx");
+    on_error("!pEfcInitCtx");
   *ppEfcCtx = new EfcCtx;
   if (!*ppEfcCtx)
-		on_error("!*ppEfcCtx");
+    on_error("!*ppEfcCtx");
   
   (*ppEfcCtx)->dev = dev;
 	
@@ -72,58 +72,58 @@ EkaOpResult efcInit( EfcCtx** ppEfcCtx, EkaDev *pEkaDev,
 }
 
 epm_actionid_t efcAllocateNewAction(const EkaDev *ekaDev,
-																		EpmActionType type) {
-	auto dev = ekaDev;
-	if (!dev || !dev->epm)
-		on_error("!dev || !epm");
-	auto epm = dev->epm;
-	auto efc = dynamic_cast<EkaEfc*>(epm->strategy[EFC_STRATEGY]);
+				    EpmActionType type) {
+  auto dev = ekaDev;
+  if (!dev || !dev->epm)
+    on_error("!dev || !epm");
+  auto epm = dev->epm;
+  auto efc = dynamic_cast<EkaEfc*>(epm->strategy[EFC_STRATEGY]);
   if (!efc)
-		on_error("!efc");
+    on_error("!efc");
 
-	for (uint i = EkaEpm::EfcAllocatableBase;
-			 i < EkaEpm::MaxEfcActions; i++) {
-		auto ekaA = efc->action[i];
-		if (!ekaA)
-			on_error("!efc->action[%u]",i);
+  for (uint i = EkaEpm::EfcAllocatableBase;
+       i < EkaEpm::MaxEfcActions; i++) {
+    auto ekaA = efc->action[i];
+    if (!ekaA)
+      on_error("!efc->action[%u]",i);
 
-		if (ekaA->allocated)
-			continue;
+    if (ekaA->allocated)
+      continue;
 
-		ekaA->type = type;
-		ekaA->allocated = true;
+    ekaA->type = type;
+    ekaA->allocated = true;
 
-		EKA_LOG("Idx %u allocated for \'%s\'",
-						i,printActionType(ekaA->type));
-		return (epm_actionid_t) i;
-	}
-	on_error("No free Actions to allocate");
+    EKA_LOG("Idx %u allocated for \'%s\'",
+	    i,printActionType(ekaA->type));
+    return (epm_actionid_t) i;
+  }
+  on_error("No free Actions to allocate");
 }
 
 EkaOpResult efcSetAction(EkaDev *ekaDev,
-												 epm_actionid_t actionIdx,
-												 const EfcAction *efcAction) {
-	auto dev = ekaDev;
-	if (!dev || !dev->epm)
-		on_error("!dev || !epm");
-	auto epm = dev->epm;
-	auto efc = dynamic_cast<EkaEfc*>(epm->strategy[EFC_STRATEGY]);
+			 epm_actionid_t actionIdx,
+			 const EfcAction *efcAction) {
+  auto dev = ekaDev;
+  if (!dev || !dev->epm)
+    on_error("!dev || !epm");
+  auto epm = dev->epm;
+  auto efc = dynamic_cast<EkaEfc*>(epm->strategy[EFC_STRATEGY]);
   if (!efc)
-		on_error("!efc");
+    on_error("!efc");
 
-	auto ekaA = efc->action[actionIdx];
+  auto ekaA = efc->action[actionIdx];
 
-	auto actionType = efcAction->type != EpmActionType::INVALID ?
-		efcAction->type : ekaA->type;
+  auto actionType = efcAction->type != EpmActionType::INVALID ?
+    efcAction->type : ekaA->type;
 
-	auto baseOffs = actionIdx * EkaEpmRegion::HeapPerRegularAction;
-	auto dataOffs = isUdpAction(actionType) ?
-		EkaEpm::UdpDatagramOffset : EkaEpm::TcpDatagramOffset;
-	uint payloadOffs = baseOffs + dataOffs;
+  auto baseOffs = actionIdx * EkaEpmRegion::HeapPerRegularAction;
+  auto dataOffs = isUdpAction(actionType) ?
+    EkaEpm::UdpDatagramOffset : EkaEpm::TcpDatagramOffset;
+  uint payloadOffs = baseOffs + dataOffs;
 	
-	const EpmAction epmAction = {
-		.type          = actionType,
-		.token         = efcAction->token,
+  const EpmAction epmAction = {
+    .type          = actionType,
+    .token         = efcAction->token,
     .hConn         = efcAction->hConn,
     .offset        = payloadOffs,
     .length        = ekaA->getPayloadLen(),
@@ -135,41 +135,41 @@ EkaOpResult efcSetAction(EkaDev *ekaDev,
     .user          = efcAction->user
   };
 
-	return epm->setAction(EFC_STRATEGY,actionIdx,&epmAction);
+  return epm->setAction(EFC_STRATEGY,actionIdx,&epmAction);
 }
 
 EkaOpResult efcSetActionPayload(EkaDev *ekaDev,
-																epm_actionid_t actionIdx,
-																const void* payload,
-																size_t len) {
-	auto dev = ekaDev;
-	if (!dev || !dev->epm)
-		on_error("!dev || !epm");
-	auto epm = dev->epm;
-	auto efc = dynamic_cast<EkaEfc*>(epm->strategy[EFC_STRATEGY]);
+				epm_actionid_t actionIdx,
+				const void* payload,
+				size_t len) {
+  auto dev = ekaDev;
+  if (!dev || !dev->epm)
+    on_error("!dev || !epm");
+  auto epm = dev->epm;
+  auto efc = dynamic_cast<EkaEfc*>(epm->strategy[EFC_STRATEGY]);
   if (!efc)
-		on_error("!efc");
+    on_error("!efc");
 
-	auto ekaA = efc->action[actionIdx];
+  auto ekaA = efc->action[actionIdx];
 
-	ekaA->heapOffs = actionIdx * EkaEpmRegion::HeapPerRegularAction;
-	auto dataOffs = isUdpAction(ekaA->type) ?
-		EkaEpm::UdpDatagramOffset : EkaEpm::TcpDatagramOffset;
-	auto payloadOffs = ekaA->heapOffs +	dataOffs;
+  ekaA->heapOffs = actionIdx * EkaEpmRegion::HeapPerRegularAction;
+  auto dataOffs = isUdpAction(ekaA->type) ?
+    EkaEpm::UdpDatagramOffset : EkaEpm::TcpDatagramOffset;
+  auto payloadOffs = ekaA->heapOffs +	dataOffs;
 	
-	ekaA->setPayloadLen(len);
+  ekaA->setPayloadLen(len);
 	
-	auto rc = epm->payloadHeapCopy(EFC_STRATEGY,
-																 payloadOffs,len,
-																 payload,
-																 isUdpAction(ekaA->type));
-	ekaA->updatePayload();
-	EKA_LOG("EFC Action %d: %ju bytes copied to offs %ju",
-					actionIdx,len,payloadOffs);
+  auto rc = epm->payloadHeapCopy(EFC_STRATEGY,
+				 payloadOffs,len,
+				 payload,
+				 isUdpAction(ekaA->type));
+  ekaA->updatePayload();
+  EKA_LOG("EFC Action %d: %ju bytes copied to offs %ju",
+	  actionIdx,len,payloadOffs);
 
-	//	ekaA->printHeap();
+  //	ekaA->printHeap();
 
-	return rc;
+  return rc;
 }
 
 
@@ -184,19 +184,19 @@ EkaOpResult efcSetActionPayload(EkaDev *ekaDev,
  */
 
 EkaOpResult efcInitStrategy(EfcCtx* pEfcCtx,
-														const EfcStratGlobCtx* efcStratGlobCtx) {
+			    const EfcStratGlobCtx* efcStratGlobCtx) {
   if (!pEfcCtx)
-		on_error("!pEfcCtx");
+    on_error("!pEfcCtx");
   auto dev = pEfcCtx->dev;
   if (!dev)
-		on_error("!dev");
+    on_error("!dev");
 
   auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
   if (!efc)
-		on_error("!efc");
+    on_error("!efc");
 
-	if (!efcStratGlobCtx)
-		on_error("!efcStratGlobCtx");
+  if (!efcStratGlobCtx)
+    on_error("!efcStratGlobCtx");
 	
   efc->initStratGlobalParams(efcStratGlobCtx);
 
@@ -281,7 +281,7 @@ EkaOpResult efcEnableFiringOnSec( EfcCtx* pEfcCtx, const uint64_t* pSecurityIds,
  * @retval [<0]  On failure this will return a value to be interpreted as an error EkaOpResult.
  */
 EfcSecCtxHandle getSecCtxHandle( EfcCtx* pEfcCtx,
-																 uint64_t securityId ) {
+				 uint64_t securityId ) {
   if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
   EkaDev* dev = pEfcCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
@@ -302,9 +302,9 @@ EfcSecCtxHandle getSecCtxHandle( EfcCtx* pEfcCtx,
  * @retval [See EkaOpResult].
  */
 EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx,
-																EfcSecCtxHandle hSecCtx,
-																const SecCtx* pSecCtx,
-																uint16_t writeChan ) {
+				EfcSecCtxHandle hSecCtx,
+				const SecCtx* pSecCtx,
+				uint16_t writeChan ) {
   if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
   EkaDev* dev = pEfcCtx->dev;
   if (dev == NULL) on_error("dev == NULL");
@@ -320,7 +320,7 @@ EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx,
 #if EFC_CTX_SANITY_CHECK
     on_error("hSecCtx = %jd",hSecCtx);
 #else
-    return EKA_OPRESULT__ERR_EFC_SET_CTX_ON_UNSUBSCRIBED_SECURITY;
+  return EKA_OPRESULT__ERR_EFC_SET_CTX_ON_UNSUBSCRIBED_SECURITY;
 #endif
     
   if (pSecCtx == NULL) on_error("pSecCtx == NULL");
@@ -328,7 +328,7 @@ EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx,
 #if EFC_CTX_SANITY_CHECK
   if (static_cast<uint8_t>(efc->secIdList[hSecCtx] & 0xFF) != pSecCtx->lowerBytesOfSecId)
     on_error("EFC_CTX_SANITY_CHECK error: "
-						 "secIdList[%jd] 0x%016jx & 0xFF != %02x",
+	     "secIdList[%jd] 0x%016jx & 0xFF != %02x",
 	     hSecCtx,efc->secIdList[hSecCtx],pSecCtx->lowerBytesOfSecId);
 #endif
   
@@ -366,9 +366,9 @@ EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx,
  * This is just like setStaticSecCtx except it will be for dynamic securities.
  */
 EkaOpResult efcSetDynamicSecCtx( EfcCtx* pEfcCtx,
-																 EfcSecCtxHandle hSecCtx,
-																 const SecCtx* pSecCtx,
-																 uint16_t writeChan ) {
+				 EfcSecCtxHandle hSecCtx,
+				 const SecCtx* pSecCtx,
+				 uint16_t writeChan ) {
   assert (pEfcCtx != NULL);
   assert (pSecCtx != NULL);
 
@@ -379,7 +379,7 @@ EkaOpResult efcSetDynamicSecCtx( EfcCtx* pEfcCtx,
  * This is just like setStaticSectx except it is for SesCtxs.
  */
 EkaOpResult efcSetSesCtx( EfcCtx* pEfcCtx, ExcConnHandle hConn,
-													const SesCtx* pSesCtx) {
+			  const SesCtx* pSesCtx) {
   on_error("This function is obsolete. Use efcSetFireTemplate()");
 
   return EKA_OPRESULT__OK;
@@ -396,9 +396,9 @@ EkaOpResult efcSetSesCtx( EfcCtx* pEfcCtx, ExcConnHandle hConn,
  */
 
 EkaOpResult efcSetFireTemplate( EfcCtx* pEfcCtx,
-																ExcConnHandle hConn,
-																const void* fireMsg,
-																size_t fireMsgSize ) {
+				ExcConnHandle hConn,
+				const void* fireMsg,
+				size_t fireMsgSize ) {
   if (pEfcCtx == NULL) on_error("pEfcCtx == NULL");
 
   EKA_WARN("Obsolete function!!!");
@@ -415,16 +415,16 @@ EkaOpResult efcSetFireTemplate( EfcCtx* pEfcCtx,
  * @retval [See EkaOpResult].
  */
 EkaOpResult efcSetGroupSesCtx( EfcCtx* pEfcCtx, uint8_t group,
-															 ExcConnHandle hConn ) {
+			       ExcConnHandle hConn ) {
   if (!pEfcCtx)
-		on_error("!pEfcCtx");
+    on_error("!pEfcCtx");
   EkaDev* dev = pEfcCtx->dev;
   if (!dev)
-		on_error("!dev");
+    on_error("!dev");
 
   EkaCoreId coreId = excGetCoreId(hConn);
   if (!dev->core[coreId])
-		on_error("!dev->core[%u]",coreId);
+    on_error("!dev->core[%u]",coreId);
 
   uint sessId = excGetSessionId(hConn);
   if (dev->core[coreId]->tcpSess[sessId] == NULL)
