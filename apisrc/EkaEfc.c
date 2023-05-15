@@ -17,6 +17,7 @@
 #include "EpmCmeILinkTemplate.h"
 #include "EpmCmeILinkSwTemplate.h"
 #include "EpmCmeILinkHbTemplate.h"
+#include "EpmQEDFireTemplate.h"
 #include "EpmFastSweepUDPReactTemplate.h"
 #include "EkaEfcDataStructs.h"
 #include "EkaHwCaps.h"
@@ -89,7 +90,7 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
     ehp = new EhpCmeFC(dev);
     break;
   case EfhFeedVer::kQED : 
-    epm->hwFire  = new EpmFastPathTemplate(epm->templatesNum++); //TBD what fire?
+    epm->hwFire  = new EpmQEDFireTemplate(epm->templatesNum++); //TBD raw tcp
     EKA_LOG("Initializing hwFire EpmFireSqfTemplate (TBD) for QED");
     ehp = new EhpQED(dev);
     break;

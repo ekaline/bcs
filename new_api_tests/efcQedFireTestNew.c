@@ -545,16 +545,16 @@ int main(int argc, char *argv[]) {
       on_error("efcSetActionPayload failed");
 
 
-    const EfcQEDParams params = {
-      .product[0].fireActionId  = qedHwPurgeIdx,
-      .product[0].ds_id         = QEDTestPurgeDSID, 
-      .product[0].min_num_level = QEDTestMinNumLevel,
-      .product[0].token         = QEDTestPurgeToken,
-      .product[0].enable        = true,
-      .product[1].enable        = false,
-      .product[2].enable        = false,
-      .product[3].enable        = false
-    };
+    EfcQEDParams params = {};
+      
+    params.product[0].fireActionId  = qedHwPurgeIdx;
+    params.product[0].ds_id         = QEDTestPurgeDSID; 
+    params.product[0].min_num_level = QEDTestMinNumLevel;
+    params.product[0].token         = QEDTestPurgeToken;
+    params.product[0].enable        = true;
+    params.product[1].enable        = false;
+    params.product[2].enable        = false;
+    params.product[3].enable        = false;
 
     // ==============================================
     efcQEDInit(dev,&params);
@@ -573,7 +573,7 @@ int main(int argc, char *argv[]) {
 	efcEnableController(pEfcCtx, 1, armVer-1); //should be no arm
       }
       
-      sendCmeTradeMsg(serverIp,triggerIp,triggerUdpPort, QEDTestPurgeMaxMsgSizeTicker, QEDTestPurgeMinNoMDEntriesTicker);
+      //      sendCmeTradeMsg(serverIp,triggerIp,triggerUdpPort, QEDTestPurgeMaxMsgSizeTicker, QEDTestPurgeMinNoMDEntriesTicker); TBD send QED
       usleep (300000);      
     }
     
