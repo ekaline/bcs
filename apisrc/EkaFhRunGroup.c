@@ -43,7 +43,8 @@ EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx,
   
   udpChId            = udpCh->chId;
   
-  for (uint i = 0; i < MAX_GR2RUN; i++) grAfterGap[i] = false;
+  for (uint i = 0; i < MAX_GR2RUN; i++)
+		grAfterGap[i] = false;
   cntGrAfterGap      = 0;
 
   thread_active      = true;

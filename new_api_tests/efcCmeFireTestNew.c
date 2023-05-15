@@ -75,7 +75,8 @@ int getHWFireCnt(EkaDev* dev, uint64_t addr) {
 /* --------------------------------------------- */
 void handleFireReport(const void* p, size_t len, void* ctx) {
   auto b = static_cast<const uint8_t*>(p);
-  auto containerHdr {reinterpret_cast<const EkaContainerGlobalHdr*>(b)};
+  auto containerHdr {reinterpret_cast<const
+			EkaContainerGlobalHdr*>(b)};
   switch (containerHdr->type) {
   case EkaEventType::kExceptionEvent:
     break;
@@ -92,13 +93,16 @@ void handleFireReport(const void* p, size_t len, void* ctx) {
 void  INThandler(int sig) {
   signal(sig, SIG_IGN);
   testCtx->keep_work = false;
-  TEST_LOG("Ctrl-C detected: keep_work = false, exitting..."); fflush(stdout);
+  TEST_LOG("Ctrl-C detected: keep_work = false, exitting...");
+	fflush(stdout);
   return;
 }
 
 /* --------------------------------------------- */
 
-int createThread(const char* name, EkaServiceType type,  void *(*threadRoutine)(void*), void* arg, void* context, uintptr_t *handle) {
+int createThread(const char* name, EkaServiceType type,
+								 void *(*threadRoutine)(void*), void* arg,
+								 void* context, uintptr_t *handle) {
   pthread_create ((pthread_t*)handle,NULL,threadRoutine, arg);
   pthread_setname_np((pthread_t)*handle,name);
   return 0;
@@ -538,7 +542,7 @@ int main(int argc, char *argv[]) {
 		
 		rc = efcSetAction(dev,cmeHwCancelIdx,&genericActionParams);
 		if (rc != EKA_OPRESULT__OK)
-			on_error("epmSetAction returned %d",(int)rc);
+			on_error("efcSetAction returned %d",(int)rc);
 
     // ==============================================
     // Manually prepared CmeTestFastCancel message fired by FPGA

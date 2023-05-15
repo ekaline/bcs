@@ -579,7 +579,9 @@ void EkaEpmAction::updatePayload() {
 
   ipHdr->_chksum = 0;
   ipHdr->_chksum = csum((unsigned short *)ipHdr, sizeof(EkaIpHdr));
-  
+
+	if (isUdpAction(type))
+		 udpHdr->len = be16toh(sizeof(EkaUdpHdr) + payloadLen);
 	/* ----------------------------------------------------- */
 
   epmTemplate->clearHwFields(&epm->heap[heapOffs]);

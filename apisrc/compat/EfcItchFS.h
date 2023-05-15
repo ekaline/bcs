@@ -34,6 +34,7 @@ extern "C" {
     uint16_t       minUDPSize;     ///
     uint8_t        minMsgCount;    ///
     uint64_t       token;          ///< Security token
+		epm_actionid_t fireActionId;   ///< 1st Action to be fired
   };
   
   EkaOpResult efcItchFastSweepInit(EkaDev *ekaDev,
