@@ -14,11 +14,11 @@ EkaOpResult efcQEDInit(EkaDev *dev,
   volatile EfcQEDStrategyConf conf = {};
 
   for (auto i = 0; i < 4; i++) {
-    conf.product[i].enable       = params->product[0].enable;
-    conf.product[i].minNumLevel  = params->product[0].min_num_level;
-    conf.product[i].dsID         = params->product[0].ds_id;
-    conf.product[i].token        = params->product[0].token;
-    conf.product[i].fireActionId = params->product[0].fireActionId;
+    conf.product[i].enable       = params->product[i].enable;
+    conf.product[i].minNumLevel  = params->product[i].min_num_level;
+    conf.product[i].dsID         = params->product[i].ds_id;
+    conf.product[i].token        = params->product[i].token;
+    conf.product[i].fireActionId = params->product[i].fireActionId;
     conf.product[i].strategyId   = (uint8_t)EFC_STRATEGY;
   }
   

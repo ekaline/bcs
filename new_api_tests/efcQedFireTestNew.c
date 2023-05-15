@@ -401,7 +401,7 @@ static int sendQEDMsg(std::string serverIp,
 
     const uint8_t pkt[] = /*114 byte -> udp length 122, remsize 122-52 = 70 (numlelel5)*/
       {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, //dsid 1234
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x34, 0x12, //dsid 1234
        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -602,15 +602,14 @@ int main(int argc, char *argv[]) {
 
 
     EfcQEDParams params = {};
-      
-    params.product[0].fireActionId  = qedHwPurgeIdx;
-    params.product[0].ds_id         = QEDTestPurgeDSID; 
-    params.product[0].min_num_level = QEDTestMinNumLevel;
-    params.product[0].token         = QEDTestPurgeToken;
-    params.product[0].enable        = true;
-    params.product[1].enable        = false;
-    params.product[2].enable        = false;
-    params.product[3].enable        = false;
+
+    int active_set = 3;
+    
+    params.product[active_set].fireActionId  = qedHwPurgeIdx;
+    params.product[active_set].ds_id         = QEDTestPurgeDSID; 
+    params.product[active_set].min_num_level = QEDTestMinNumLevel;
+    params.product[active_set].token         = QEDTestPurgeToken;
+    params.product[active_set].enable        = true;
 
     // ==============================================
     efcQEDInit(dev,&params);
@@ -642,7 +641,7 @@ int main(int argc, char *argv[]) {
 
     //    efcEnableController(pEfcCtx, 1, armVer++); //arm
     efcEnableController(pEfcCtx, -1);    
-    int hw_fires  = getHWFireCnt(dev,0xf0800);  
+    int hw_fires  = getHWFireCnt(dev,0xf0818);  
     
     printf("\n===========================\nEND OT TESTS : ");
     bool testPass = true;

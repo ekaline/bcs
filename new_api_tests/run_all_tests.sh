@@ -8,6 +8,7 @@ efcCmeFireTestNew
 efcCboeHuynhTest
 efcCboeTestNew
 efcNewsFireTest
+efcQedFireTestNew
 "
 
 
