@@ -342,6 +342,11 @@ struct EpmFastSweepReport {
   char            lastMsgType;     ///< Field from trigger MD
 };
 
+struct EpmQEDReport {
+  uint16_t        udpPayloadSize;  ///< Field from trigger MD
+  uint16_t        DSID;            ///< Field from trigger MD
+};
+  
 struct EpmFastCancelReport {
   uint8_t         numInGroup;        ///< Field from trigger MD
   uint16_t        headerSize;        ///< Field from trigger MD

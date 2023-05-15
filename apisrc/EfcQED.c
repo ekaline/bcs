@@ -12,14 +12,16 @@ EkaOpResult efcQEDInit(EkaDev *dev,
 
 
   volatile EfcQEDStrategyConf conf = {};
-  
-  conf.product[0].enable       = params->product[0].enable;
-  conf.product[0].minNumLevel  = params->product[0].min_num_level;
-  conf.product[0].dsID         = params->product[0].ds_id;
-  conf.product[0].token        = params->product[0].token;
-  conf.product[0].fireActionId = params->product[0].fireActionId;
-  conf.product[0].strategyId   = (uint8_t)EFC_STRATEGY;
 
+  for (auto i = 0; i < 4; i++) {
+    conf.product[i].enable       = params->product[0].enable;
+    conf.product[i].minNumLevel  = params->product[0].min_num_level;
+    conf.product[i].dsID         = params->product[0].ds_id;
+    conf.product[i].token        = params->product[0].token;
+    conf.product[i].fireActionId = params->product[0].fireActionId;
+    conf.product[i].strategyId   = (uint8_t)EFC_STRATEGY;
+  }
+  
   for (auto i = 0; i < 4; i++) {
     EKA_LOG("Configuring QED FPGA: product=%d, enable=%d, min_num_level=%d,ds_id=0x%x,token=0x%jx,fireActionId=%d,strategyId=%d",
 	    i,

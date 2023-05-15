@@ -214,6 +214,13 @@ struct hw_epm_fast_cancel_report_t {
   hw_epm_report_t epm;
 } __attribute__((packed));
 
+struct hw_epm_qed_report_t {
+  uint16_t        ds_id;
+  uint16_t        udp_payload_size;
+  uint8_t         b32_padding[28];
+  hw_epm_report_t epm;
+} __attribute__((packed));
+
 struct hw_epm_sw_trigger_report_t {
   uint8_t         b32_padding[32];
   hw_epm_report_t epm;
