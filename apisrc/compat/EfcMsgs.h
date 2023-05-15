@@ -25,7 +25,8 @@ enum EfcReportType {
                 _x( EpmReport,          6000 )                              \
                 _x( FastCancelReport,   7000 )                              \
                 _x( NewsReport,         8000 )                              \
-                _x( FastSweepReport,    9000 )                              
+                _x( FastSweepReport,    9000 )                              \
+                _x( QEDReport      ,   10000 )                              
     EfcReportType_ENUM_ITER( EKA__ENUM_DEF )
 };
 
