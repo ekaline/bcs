@@ -32,7 +32,7 @@ int EhpQED::init() {
 
 
 int EhpQED::createQedTrigger() {
-  uint8_t msgId   = EhpNoMsgID; //single type, always matches template0
+  uint16_t msgId   = EhpNoMsgID; //single type, always matches template0
   int     msgType = QedTriggerMsg;
 
   conf.params.bytes4Strategy[msgType].msgId    = msgId;

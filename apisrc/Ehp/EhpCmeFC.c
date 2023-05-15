@@ -32,7 +32,7 @@ int EhpCmeFC::init() {
 
 
 int EhpCmeFC::createFastCancel() {
-  uint8_t msgId   = 48;
+  uint16_t msgId   = 48;
   int     msgType = FastCancelMsg;
 
   conf.params.bytes4Strategy[msgType].msgId    = msgId;
