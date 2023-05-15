@@ -89,7 +89,7 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
     ehp = new EhpCmeFC(dev);
     break;
   case EfhFeedVer::kQED : 
-    epm->hwFire  = new EpmFireSqfTemplate(epm->templatesNum++); //TBD what fire?
+    epm->hwFire  = new EpmFastPathTemplate(epm->templatesNum++); //TBD what fire?
     EKA_LOG("Initializing hwFire EpmFireSqfTemplate (TBD) for QED");
     ehp = new EhpQED(dev);
     break;
