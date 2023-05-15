@@ -56,6 +56,7 @@ int EkaEpmAction::setActionBitmap() {
     break;
   case EpmActionType::BoeFire      :
   case EpmActionType::CmeHwCancel    :
+  case EpmActionType::QEDHwPurge    :
   case EpmActionType::SqfFire      :
     actionBitParams.bitmap.originatedFromHw = 1;
     [[fallthrough]];
@@ -98,6 +99,7 @@ void EkaEpmAction::setIpTtl() {
   case EpmActionType::SqfFire      :
   case EpmActionType::SqfCancel    :
   case EpmActionType::CmeHwCancel  :
+  case EpmActionType::QEDHwPurge   :
   case EpmActionType::ItchHwFastSweep   :
     ipHdr->_ttl = EFC_HW_TTL;
     ipHdr->_id  = EFC_HW_ID;
@@ -116,7 +118,8 @@ static TcpCsSizeSource setTcpCsSizeSource (EpmActionType type) {
   case EpmActionType::BoeCancel    :
   case EpmActionType::SqfFire      :
   case EpmActionType::SqfCancel    :
-  case EpmActionType::CmeHwCancel    :
+  case EpmActionType::CmeHwCancel  :
+  case EpmActionType::QEDHwPurge   :
   case EpmActionType::ItchHwFastSweep   :
     return TcpCsSizeSource::FROM_ACTION;
   default:
@@ -201,6 +204,7 @@ int EkaEpmAction::setTemplate() {
   case EpmActionType::BoeCancel    :
   case EpmActionType::HwFireAction :
   case EpmActionType::CmeHwCancel  :
+  case EpmActionType::QEDHwPurge   :
   case EpmActionType::ItchHwFastSweep   :
     epmTemplate                        = epm->hwFire;
     break;
@@ -253,6 +257,9 @@ int EkaEpmAction::setName() {
     break;
   case EpmActionType::CmeHwCancel    :
     strcpy(actionName,"CmeHwCancel");
+    break;
+  case EpmActionType::QEDHwPurge    :
+    strcpy(actionName,"QEDHwPurge");
     break;
   case EpmActionType::CmeSwFire    :
     strcpy(actionName,"CmeSwFire");

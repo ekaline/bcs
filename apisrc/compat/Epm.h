@@ -204,6 +204,8 @@ enum class EpmActionType : int {
     CmeSwHeartbeat = 33,        ///< not propagating App sequence
 
     ItchHwFastSweep = 41,
+
+    QEDHwPurge   = 50,          
     
     // User Actions
     UserAction   = 100          ///< EPM fire. No fields managed by HW
@@ -248,6 +250,8 @@ const char* printActionType(EpmActionType t) {
     return "CmeCancel";
   case EpmActionType::CmeHwCancel :
     return "CmeHwCancel";
+  case EpmActionType::QEDHwPurge :
+    return "QEDHwPurge";
   case EpmActionType::CmeSwFire :
     return "CmeSwFire";
   case EpmActionType::CmeSwHeartbeat :

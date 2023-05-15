@@ -351,4 +351,19 @@ typedef struct __attribute__((packed)) {
       uint8_t        strategyId;
   } __attribute__ ((aligned(sizeof(uint64_t)))) __attribute__((packed));
 
+
+  struct EfcQEDStrategyConfSingle {
+      uint32_t       padding : 15;
+      uint32_t       enable  : 1;
+      uint8_t        minNumLevel;
+      uint16_t       dsID;
+      uint16_t       fireActionId;
+      uint8_t        strategyId;
+      uint64_t       token;
+  } __attribute__ ((aligned(sizeof(uint64_t)))) __attribute__((packed));
+
+  struct EfcQEDStrategyConf {
+    EfcQEDStrategyConfSingle product[4];
+  } __attribute__ ((aligned(sizeof(uint64_t)))) __attribute__((packed));
+
 #endif
