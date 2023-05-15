@@ -369,6 +369,62 @@ static int sendCmeTradeMsg(std::string serverIp,
     return 0;
 }
 
+
+static int sendQEDMsg(std::string serverIp,
+		      std::string dstIp,
+		      uint16_t dstPort) {
+  // Preparing UDP MC for MD trigger on GR#0
+
+    int triggerSock = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
+    if (triggerSock < 0)
+    	on_error("failed to open UDP sock");
+
+    struct sockaddr_in triggerSourceAddr = {};
+    triggerSourceAddr.sin_addr.s_addr = inet_addr(serverIp.c_str());
+    triggerSourceAddr.sin_family      = AF_INET;
+    triggerSourceAddr.sin_port        = 0; //be16toh(serverTcpPort);
+
+    if (bind(triggerSock,(sockaddr*)&triggerSourceAddr,
+						 sizeof(sockaddr)) != 0 ) {
+    	on_error("failed to bind server triggerSock to %s:%u",
+    		 EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),
+							 be16toh(triggerSourceAddr.sin_port));
+    } else {
+    	TEST_LOG("triggerSock is binded to %s:%u",
+    		EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),
+							 be16toh(triggerSourceAddr.sin_port));
+    }
+    struct sockaddr_in triggerMcAddr = {};
+    triggerMcAddr.sin_family      = AF_INET;
+    triggerMcAddr.sin_addr.s_addr = inet_addr(dstIp.c_str());
+    triggerMcAddr.sin_port        = be16toh(dstPort);
+
+    const uint8_t pkt[] = /*114 byte -> udp length 122, remsize 122-52 = 70 (numlelel5)*/
+      {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, //dsid 1234
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00
+      };
+
+    
+    size_t payloadLen = std::size(pkt);
+ 
+    TEST_LOG("sending MDIncrementalRefreshTradeSummary48 "
+						 "trigger to %s:%u",
+	    EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),
+						 be16toh(triggerMcAddr.sin_port));
+    if (sendto(triggerSock,pkt,payloadLen,0,
+							 (const sockaddr*)&triggerMcAddr,
+							 sizeof(triggerMcAddr)) < 0) 
+	on_error ("MC trigger send failed");
+    return 0;
+}
+
+
 /* ############################################# */
 int main(int argc, char *argv[]) {
   
@@ -512,8 +568,8 @@ int main(int argc, char *argv[]) {
     static const uint64_t QEDTestPurgeAlwaysFire = 0xadcd;
     static const uint64_t QEDTestPurgeToken      = 0x1122334455667788;
     static const uint64_t QEDTestPurgeUser       = 0xaabbccddeeff0011;
-    static const uint16_t QEDTestPurgeDSID       = 0xbaca; //tbd
-    static const uint8_t  QEDTestMinNumLevel     = 4;      //tbd
+    static const uint16_t QEDTestPurgeDSID       = 0x1234; 
+    static const uint8_t  QEDTestMinNumLevel     = 5;      
     
     EfcAction genericActionParams = {
       .type          = EpmActionType::INVALID,
@@ -573,7 +629,7 @@ int main(int argc, char *argv[]) {
 	efcEnableController(pEfcCtx, 1, armVer-1); //should be no arm
       }
       
-      //      sendCmeTradeMsg(serverIp,triggerIp,triggerUdpPort, QEDTestPurgeMaxMsgSizeTicker, QEDTestPurgeMinNoMDEntriesTicker); TBD send QED
+      sendQEDMsg(serverIp,triggerIp,triggerUdpPort);
       usleep (300000);      
     }
     
