@@ -38,7 +38,7 @@
 #include <fcntl.h>
 #include "ekaNW.h"
 #include "EfhTestFuncs.h"
-#include "EfcCme.h"
+#include "EfcQED.h"
 
 using namespace Bats;
 
@@ -75,8 +75,7 @@ int getHWFireCnt(EkaDev* dev, uint64_t addr) {
 /* --------------------------------------------- */
 void handleFireReport(const void* p, size_t len, void* ctx) {
   auto b = static_cast<const uint8_t*>(p);
-  auto containerHdr {reinterpret_cast<const
-			EkaContainerGlobalHdr*>(b)};
+  auto containerHdr {reinterpret_cast<const EkaContainerGlobalHdr*>(b)};
   switch (containerHdr->type) {
   case EkaEventType::kExceptionEvent:
     break;
@@ -93,16 +92,13 @@ void handleFireReport(const void* p, size_t len, void* ctx) {
 void  INThandler(int sig) {
   signal(sig, SIG_IGN);
   testCtx->keep_work = false;
-  TEST_LOG("Ctrl-C detected: keep_work = false, exitting...");
-	fflush(stdout);
+  TEST_LOG("Ctrl-C detected: keep_work = false, exitting..."); fflush(stdout);
   return;
 }
 
 /* --------------------------------------------- */
 
-int createThread(const char* name, EkaServiceType type,
-								 void *(*threadRoutine)(void*), void* arg,
-								 void* context, uintptr_t *handle) {
+int createThread(const char* name, EkaServiceType type,  void *(*threadRoutine)(void*), void* arg, void* context, uintptr_t *handle) {
   pthread_create ((pthread_t*)handle,NULL,threadRoutine, arg);
   pthread_setname_np((pthread_t)*handle,name);
   return 0;
@@ -373,6 +369,62 @@ static int sendCmeTradeMsg(std::string serverIp,
     return 0;
 }
 
+
+static int sendQEDMsg(std::string serverIp,
+		      std::string dstIp,
+		      uint16_t dstPort) {
+  // Preparing UDP MC for MD trigger on GR#0
+
+    int triggerSock = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
+    if (triggerSock < 0)
+    	on_error("failed to open UDP sock");
+
+    struct sockaddr_in triggerSourceAddr = {};
+    triggerSourceAddr.sin_addr.s_addr = inet_addr(serverIp.c_str());
+    triggerSourceAddr.sin_family      = AF_INET;
+    triggerSourceAddr.sin_port        = 0; //be16toh(serverTcpPort);
+
+    if (bind(triggerSock,(sockaddr*)&triggerSourceAddr,
+						 sizeof(sockaddr)) != 0 ) {
+    	on_error("failed to bind server triggerSock to %s:%u",
+    		 EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),
+							 be16toh(triggerSourceAddr.sin_port));
+    } else {
+    	TEST_LOG("triggerSock is binded to %s:%u",
+    		EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),
+							 be16toh(triggerSourceAddr.sin_port));
+    }
+    struct sockaddr_in triggerMcAddr = {};
+    triggerMcAddr.sin_family      = AF_INET;
+    triggerMcAddr.sin_addr.s_addr = inet_addr(dstIp.c_str());
+    triggerMcAddr.sin_port        = be16toh(dstPort);
+
+    const uint8_t pkt[] = /*114 byte -> udp length 122, remsize 122-52 = 70 (numlelel5)*/
+      {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, //dsid 1234
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00
+      };
+
+    
+    size_t payloadLen = std::size(pkt);
+ 
+    TEST_LOG("sending MDIncrementalRefreshTradeSummary48 "
+						 "trigger to %s:%u",
+	    EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),
+						 be16toh(triggerMcAddr.sin_port));
+    if (sendto(triggerSock,pkt,payloadLen,0,
+							 (const sockaddr*)&triggerMcAddr,
+							 sizeof(triggerMcAddr)) < 0) 
+	on_error ("MC trigger send failed");
+    return 0;
+}
+
+
 /* ############################################# */
 int main(int argc, char *argv[]) {
   
@@ -429,41 +481,41 @@ int main(int argc, char *argv[]) {
     int tcpSock[MaxTcpTestSessions] = {};
 
     for (auto i = 0; i < numTcpSess; i++) {
-			bool serverSet = false;
-			std::thread server = std::thread(tcpServer,
-																			 dev,
-																			 serverIp,
-																			 serverTcpBasePort + i,
-																			 &tcpSock[i],
-																			 &serverSet);
-			server.detach();
-			while (testCtx->keep_work && ! serverSet)
-				sleep (0);
+      bool serverSet = false;
+      std::thread server = std::thread(tcpServer,
+				       dev,
+				       serverIp,
+				       serverTcpBasePort + i,
+				       &tcpSock[i],
+				       &serverSet);
+      server.detach();
+      while (testCtx->keep_work && ! serverSet)
+	sleep (0);
     }
     // ==============================================
     // Establishing EXC connections for EPM/EFC fires 
 
     ExcConnHandle conn[MaxTcpTestSessions]    = {};
-
+    
     for (auto i = 0; i < numTcpSess; i++) {
-			struct sockaddr_in serverAddr = {};
-			serverAddr.sin_family      = AF_INET;
-			serverAddr.sin_addr.s_addr = inet_addr(serverIp.c_str());
-			serverAddr.sin_port        = be16toh(serverTcpBasePort + i);
+      struct sockaddr_in serverAddr = {};
+      serverAddr.sin_family      = AF_INET;
+      serverAddr.sin_addr.s_addr = inet_addr(serverIp.c_str());
+      serverAddr.sin_port        = be16toh(serverTcpBasePort + i);
 
-			int excSock = excSocket(dev,coreId,0,0,0);
-			if (excSock < 0) on_error("failed to open sock %d",i);
-			conn[i] = excConnect(dev,excSock,(sockaddr*) &serverAddr, sizeof(sockaddr_in));
-			if (conn[i] < 0)
-				on_error("excConnect %d %s:%u",
-								 i,EKA_IP2STR(serverAddr.sin_addr.s_addr),
-								 be16toh(serverAddr.sin_port));
-			const char* pkt = "\n\nThis is 1st TCP packet sent from FPGA TCP client to Kernel TCP server\n\n";
-			excSend (dev, conn[i], pkt, strlen(pkt),0);
-			int bytes_read = 0;
-			char rxBuf[2000] = {};
-			bytes_read = recv(tcpSock[i], rxBuf, sizeof(rxBuf), 0);
-			if (bytes_read > 0) EKA_LOG("\n%s",rxBuf);
+      int excSock = excSocket(dev,coreId,0,0,0);
+      if (excSock < 0) on_error("failed to open sock %d",i);
+      conn[i] = excConnect(dev,excSock,(sockaddr*) &serverAddr, sizeof(sockaddr_in));
+      if (conn[i] < 0)
+	on_error("excConnect %d %s:%u",
+		 i,EKA_IP2STR(serverAddr.sin_addr.s_addr),
+		 be16toh(serverAddr.sin_port));
+      const char* pkt = "\n\nThis is 1st TCP packet sent from FPGA TCP client to Kernel TCP server\n\n";
+      excSend (dev, conn[i], pkt, strlen(pkt),0);
+      int bytes_read = 0;
+      char rxBuf[2000] = {};
+      bytes_read = recv(tcpSock[i], rxBuf, sizeof(rxBuf), 0);
+      if (bytes_read > 0) EKA_LOG("\n%s",rxBuf);
     }
 
     // ==============================================
@@ -478,133 +530,96 @@ int main(int argc, char *argv[]) {
 
     EfcCtx efcCtx = {};
     EfcCtx* pEfcCtx = &efcCtx;
-
+    
     EfcInitCtx initCtx = {
-			.feedVer = EfhFeedVer::kCME
+      .feedVer = EfhFeedVer::kQED
     };  
     rc = efcInit(&pEfcCtx,dev,&initCtx);
     if (rc != EKA_OPRESULT__OK)
-			on_error("efcInit returned %d",(int)rc);
-
+      on_error("efcInit returned %d",(int)rc);
+    
     // ==============================================
     // Configuring EFC as EPM Strategy
-
+    
     const EpmStrategyParams efcEpmStrategyParams = {
-			.numActions    = 256,          // just a number
-			.triggerParams = triggerParam,         
-			.numTriggers   = std::size(triggerParam),
-			.reportCb      = NULL,         // set via EfcRunCtx
-			.cbCtx         = NULL
+      .numActions    = 256,          // just a number
+      .triggerParams = triggerParam,         
+      .numTriggers   = std::size(triggerParam),
+      .reportCb      = NULL,         // set via EfcRunCtx
+      .cbCtx         = NULL
     };
     rc = epmInitStrategies(dev, &efcEpmStrategyParams, 1);
     if (rc != EKA_OPRESULT__OK)
-			on_error("epmInitStrategies failed: rc = %d",rc);
-
+      on_error("epmInitStrategies failed: rc = %d",rc);
+    
     // ==============================================
     // Global EFC config
     EfcStratGlobCtx efcStratGlobCtx = {
-			.enable_strategy      = 1,
-			.report_only          = 0,
-			.watchdog_timeout_sec = 100000,
+      .enable_strategy      = 1,
+      .report_only          = 0,
+      .watchdog_timeout_sec = 100000,
     };
     efcInitStrategy(pEfcCtx, &efcStratGlobCtx);
-
+    
     EfcRunCtx runCtx = {};
     runCtx.onEfcFireReportCb = handleFireReport; 
     // ==============================================
-		// CME FastCancel EFC config
-    static const uint64_t CmeTestFastCancelAlwaysFire = 0xadcd;
-    static const uint64_t CmeTestFastCancelToken = 0x1122334455667788;
-    static const uint64_t CmeTestFastCancelUser  = 0xaabbccddeeff0011;
-    static const uint16_t CmeTestFastCancelMaxMsgSize     = 97; //">96"
-    static const uint8_t  CmeTestFastCancelMinNoMDEntries = 0; //"<1"
-
-		//HARDCODED, not used by tickersend
-    static const uint16_t CmeTestFastCancelMaxMsgSizeTicker = 96;
-
-		//HARDCODED, not used by tickersend
-    static const uint8_t  CmeTestFastCancelMinNoMDEntriesTicker = 1;  
-
-		EfcAction genericActionParams = {
-			.type          = EpmActionType::INVALID,
-			.token         = CmeTestFastCancelToken,
-			.hConn         = conn[0],
-			.actionFlags   = AF_Valid,
-			.nextAction    = EPM_LAST_ACTION,
-			.enable        = CmeTestFastCancelAlwaysFire,
-			.postLocalMask = CmeTestFastCancelAlwaysFire,
-			.postStratMask = CmeTestFastCancelAlwaysFire,
-			.user          = CmeTestFastCancelUser
-		};
-
-		
-		auto cmeHwCancelIdx = efcAllocateNewAction(dev,EpmActionType::CmeHwCancel);
-		
-		rc = efcSetAction(dev,cmeHwCancelIdx,&genericActionParams);
-		if (rc != EKA_OPRESULT__OK)
-			on_error("efcSetAction returned %d",(int)rc);
-
-    // ==============================================
-    // Manually prepared CmeTestFastCancel message fired by FPGA
-    const char CmeTestFastCancelMsg[] = "CME Fast Cancel: Sequence = |____| With Dummy payload";
-
-		rc = efcSetActionPayload(dev,cmeHwCancelIdx,
-														 &CmeTestFastCancelMsg,
-														 strlen(CmeTestFastCancelMsg));
-		if (rc != EKA_OPRESULT__OK) 
-			on_error("efcSetActionPayload failed");
-
-
-    const EfcCmeFastCancelParams params = {
-			.maxMsgSize     = CmeTestFastCancelMaxMsgSize,
-			.minNoMDEntries = CmeTestFastCancelMinNoMDEntries,
-			.token          = CmeTestFastCancelToken,
-			.fireActionId   = cmeHwCancelIdx
+    // CME FastCancel EFC config
+    static const uint64_t QEDTestPurgeAlwaysFire = 0xadcd;
+    static const uint64_t QEDTestPurgeToken      = 0x1122334455667788;
+    static const uint64_t QEDTestPurgeUser       = 0xaabbccddeeff0011;
+    static const uint16_t QEDTestPurgeDSID       = 0x1234; 
+    static const uint8_t  QEDTestMinNumLevel     = 5;      
+    
+    EfcAction genericActionParams = {
+      .type          = EpmActionType::INVALID,
+      .token         = QEDTestPurgeToken,
+      .hConn         = conn[0],
+      .actionFlags   = AF_Valid,
+      .nextAction    = EPM_LAST_ACTION,
+      .enable        = QEDTestPurgeAlwaysFire,
+      .postLocalMask = QEDTestPurgeAlwaysFire,
+      .postStratMask = QEDTestPurgeAlwaysFire,
+      .user          = QEDTestPurgeUser
     };
 
+		
+    auto qedHwPurgeIdx = efcAllocateNewAction(dev,EpmActionType::QEDHwPurge);
+		
+    rc = efcSetAction(dev,qedHwPurgeIdx,&genericActionParams);
+    if (rc != EKA_OPRESULT__OK)
+      on_error("epmSetAction returned %d",(int)rc);
+
     // ==============================================
-    efcCmeFastCancelInit(dev,&params);
+    // Manually prepared QEDTestPurge message fired by FPGA
+    const char QEDTestPurgeMsg[] = "QED Purge Data With Dummy payload";
+
+    rc = efcSetActionPayload(dev,qedHwPurgeIdx,
+			     &QEDTestPurgeMsg,
+			     strlen(QEDTestPurgeMsg));
+    if (rc != EKA_OPRESULT__OK) 
+      on_error("efcSetActionPayload failed");
+
+
+    EfcQEDParams params = {};
+      
+    params.product[0].fireActionId  = qedHwPurgeIdx;
+    params.product[0].ds_id         = QEDTestPurgeDSID; 
+    params.product[0].min_num_level = QEDTestMinNumLevel;
+    params.product[0].token         = QEDTestPurgeToken;
+    params.product[0].enable        = true;
+    params.product[1].enable        = false;
+    params.product[2].enable        = false;
+    params.product[3].enable        = false;
+
+    // ==============================================
+    efcQEDInit(dev,&params);
     // ==============================================
     efcEnableController(pEfcCtx, -1);
     // ==============================================
     efcRun(pEfcCtx, &runCtx );
     // ==============================================
 
-    efcCmeSetILinkAppseq(dev,conn[0],0x1);
-#if 0
-    EpmTrigger cmeTrigger = {
-	.token = CmeTestFastCancelToken,         ///< Security token
-	.strategy = EFC_STRATEGY,                ///< Strategy this trigger applies to
-	.action = (epm_actionid_t)EfcCmeActionId::HwCancel       ///< First action in linked sequence
-    };
-    const char* swMsg = "CME Fast SW Msg: Sequence = |____| : expected incremented Sequence";
-    const char* swHB  = "CME SW Heartbeat:Sequence = |____| : expected NOT incremented Sequence";
-
-    const size_t HbLen = 26;
-    
-    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
-    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
-    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
-    
-    efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
-    efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
-    efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
-    efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
-    efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
-
-    efcCmeSend(dev,conn[0],swHB,HbLen,0,false);
-    efcCmeSend(dev,conn[0],swHB,HbLen,0,false);
-    efcCmeSend(dev,conn[0],swHB,HbLen,0,false);
-    efcCmeSend(dev,conn[0],swHB,HbLen,0,false);
-    efcCmeSend(dev,conn[0],swHB,HbLen,0,false);
- 
-    
-    epmRaiseTriggers(dev,&cmeTrigger);
-    epmRaiseTriggers(dev,&cmeTrigger);
-    epmRaiseTriggers(dev,&cmeTrigger);
-    epmRaiseTriggers(dev,&cmeTrigger);
-#endif
-    
     for (auto i = 0; i < TotalInjects; i++) {
       if (rand() % 3) {
 	efcEnableController(pEfcCtx, 1, armVer++); //arm and promote
@@ -614,18 +629,18 @@ int main(int argc, char *argv[]) {
 	efcEnableController(pEfcCtx, 1, armVer-1); //should be no arm
       }
       
-      sendCmeTradeMsg(serverIp,triggerIp,triggerUdpPort, CmeTestFastCancelMaxMsgSizeTicker, CmeTestFastCancelMinNoMDEntriesTicker);
+      sendQEDMsg(serverIp,triggerIp,triggerUdpPort);
       usleep (300000);      
     }
     
     if (fatalDebug) {
-	TEST_LOG(RED "\n=====================\nFATAL DEBUG: ON\n=====================\n" RESET);
-	eka_write(dev,0xf0f00,0xefa0beda);
+      TEST_LOG(RED "\n=====================\nFATAL DEBUG: ON\n=====================\n" RESET);
+      eka_write(dev,0xf0f00,0xefa0beda);
     }
 
-// ==============================================
+    // ==============================================
 
-//    efcEnableController(pEfcCtx, 1, armVer++); //arm
+    //    efcEnableController(pEfcCtx, 1, armVer++); //arm
     efcEnableController(pEfcCtx, -1);    
     int hw_fires  = getHWFireCnt(dev,0xf0800);  
     
@@ -659,7 +674,7 @@ int main(int argc, char *argv[]) {
 
     ekaDevClose(dev);
   
-      if (testPass)
+    if (testPass)
       return 0;
     else
       return 1;

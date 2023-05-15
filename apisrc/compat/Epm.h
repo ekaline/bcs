@@ -204,6 +204,8 @@ enum class EpmActionType : int {
     CmeSwHeartbeat = 33,        ///< not propagating App sequence
 
     ItchHwFastSweep = 41,
+
+    QEDHwPurge   = 50,          
     
     // User Actions
     UserAction   = 100          ///< EPM fire. No fields managed by HW
@@ -248,6 +250,8 @@ const char* printActionType(EpmActionType t) {
     return "CmeCancel";
   case EpmActionType::CmeHwCancel :
     return "CmeHwCancel";
+  case EpmActionType::QEDHwPurge :
+    return "QEDHwPurge";
   case EpmActionType::CmeSwFire :
     return "CmeSwFire";
   case EpmActionType::CmeSwHeartbeat :
@@ -338,6 +342,11 @@ struct EpmFastSweepReport {
   char            lastMsgType;     ///< Field from trigger MD
 };
 
+struct EpmQEDReport {
+  uint16_t        udpPayloadSize;  ///< Field from trigger MD
+  uint16_t        DSID;            ///< Field from trigger MD
+};
+  
 struct EpmFastCancelReport {
   uint8_t         numInGroup;        ///< Field from trigger MD
   uint16_t        headerSize;        ///< Field from trigger MD

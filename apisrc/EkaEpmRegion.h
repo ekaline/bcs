@@ -33,7 +33,7 @@ public:
 		EKA_MAX_TCP_SESSIONS_PER_CORE *	2; // 4 * 32 * 2 = 256
 	
 	constexpr static RegionConfig region[Regions::Total] = {
-		[Regions::Efc]   = {"EFC",  2048,
+		[Regions::Efc]   = {"EFC",  NumEfcActions,
 												HeapPerRegularAction},
 		[1]  = {"News",  NumNewsActions, HeapPerRegularAction},
 		[2]  = {"News",  NumNewsActions, HeapPerRegularAction},
@@ -71,6 +71,27 @@ public:
 		[31] = {"EfhIgmp", NumIgmpActions, HeapPerSmallAction}
 	};
 
+	constexpr static void printConfig(void* buf, size_t bufLen) {
+		auto c = (char*)buf;
+		for (auto i = 0; i < Regions::Total; i++) {
+			c += sprintf(c,"%2d %-14s: %4jd Actions: %4d..%4jd, "
+									 "%7jdB Heap: %7d..%7jd\n",
+									 i,region[i].name,
+									 region[i].nActions,
+									 getBaseActionIdx(i),
+									 getBaseActionIdx(i) + region[i].nActions - 1,
+									 region[i].nActions * region[i].actionHeapBudget,
+									 getBaseHeapOffs(i),
+									 getBaseHeapOffs(i)  + region[i].nActions *
+									 region[i].actionHeapBudget - 1
+									 );
+			if (c - (char*)buf > (int) bufLen)
+				on_error("string len %jd > %d",
+								 c - (char*)buf, (int)bufLen);
+									 
+		}
+	}
+	
 	constexpr static void sanityCheckRegionId(int regionId) {
 		if (regionId < 0 || regionId >= Regions::Total)
 			on_error("Bad regionId %d",regionId);
@@ -104,7 +125,7 @@ public:
 		sanityCheckRegionId(regionId);
 		int baseHeapOffs = 0;
 		for (auto i = 0; i < regionId; i++) {
-			baseHeapOffs += region[i].actionHeapBudget;
+			baseHeapOffs += region[i].nActions * region[i].actionHeapBudget;
 		}
 		return baseHeapOffs;
 	}

@@ -28,7 +28,15 @@ void ekaFireReportThread(EkaDev* dev);
 EkaEpm::EkaEpm(EkaDev* _dev) {
   dev = _dev;
 
-  EKA_LOG("Created Epm");
+	const size_t strLen = 1024 * 64;
+	auto epmRegionConfigString = new char[strLen];
+	if (!epmRegionConfigString)
+		on_error("failed creating epmRegionConfigString");
+
+	EkaEpmRegion::printConfig(epmRegionConfigString,strLen);
+	
+  EKA_LOG("Created Epm with Regions:\n%s",epmRegionConfigString);
+	delete[] epmRegionConfigString;
 }
 /* ---------------------------------------------------- */
 int EkaEpm::createRegion(int regionId) {

@@ -17,12 +17,14 @@
 #include "EpmCmeILinkTemplate.h"
 #include "EpmCmeILinkSwTemplate.h"
 #include "EpmCmeILinkHbTemplate.h"
+#include "EpmQEDFireTemplate.h"
 #include "EpmFastSweepUDPReactTemplate.h"
 #include "EkaEfcDataStructs.h"
 #include "EkaHwCaps.h"
 #include "EhpNom.h"
 #include "EhpPitch.h"
 #include "EhpCmeFC.h"
+#include "EhpQED.h"
 #include "EhpNews.h"
 #include "EhpItchFS.h"
 
@@ -85,10 +87,12 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
     epm->cmeHb  = new EpmCmeILinkHbTemplate(epm->templatesNum++);
     EKA_LOG("Initializing EpmCmeILinkHbTemplate");
     epm->DownloadSingleTemplate2HW(epm->cmeHb);
-
     ehp = new EhpCmeFC(dev);
-    //ehp = NULL;
-    //EKA_LOG("NO EHP for CME - using hardcoded CME Fast cancel parser");
+    break;
+  case EfhFeedVer::kQED : 
+    epm->hwFire  = new EpmQEDFireTemplate(epm->templatesNum++); //TBD raw tcp
+    EKA_LOG("Initializing hwFire EpmFireSqfTemplate (TBD) for QED");
+    ehp = new EhpQED(dev);
     break;
   case EfhFeedVer::kNEWS : 
     epm->hwFire  = new EpmCmeILinkTemplate(epm->templatesNum++); //TBD
@@ -200,6 +204,7 @@ int EkaEfc::initHwRoundTable() {
     case EfhFeedVer::kMIAX:
     case EfhFeedVer::kCBOE:
     case EfhFeedVer::kCME:
+    case EfhFeedVer::kQED:
     case EfhFeedVer::kNEWS:
     case EfhFeedVer::kITCHFS:
       data = addr;
