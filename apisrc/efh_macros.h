@@ -153,6 +153,7 @@
   x == EfhFeedVer::kPLR      ? "PLR"         : \
   x == EfhFeedVer::kBOX      ? "BOX"         : \
   x == EfhFeedVer::kCME      ? "CME"         : \
+  x == EfhFeedVer::kQED      ? "QED"         : \
   x == EfhFeedVer::kNEWS     ? "NEWS"        : \
   x == EfhFeedVer::kITCHFS   ? "FS"          : \
                                "UNKNOWN"
