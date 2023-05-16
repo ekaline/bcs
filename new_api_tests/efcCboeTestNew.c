@@ -891,6 +891,9 @@ int main(int argc, char *argv[]) {
 			efcEnableController(pEfcCtx, 1, armVer-1); //should be no arm
 		}
       
+		if (i == TotalInjects / 2)
+			efcSetSessionCntr(dev,conn[0],0x12345678aabbccdd);
+
 		sendPreloadedPkt(triggerSock,&triggerMcAddr,pkt,strlen(pkt));
 		usleep (300000);
 	}

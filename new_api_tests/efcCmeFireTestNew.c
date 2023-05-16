@@ -585,6 +585,14 @@ int main(int argc, char *argv[]) {
     efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
     efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
     efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
+    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
+
+		efcSetSessionCntr(dev,conn[0],0x12345678aabbccdd);
+
+    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
+    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
+    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
+    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
     
     efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
     efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);

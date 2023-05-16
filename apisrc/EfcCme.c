@@ -68,14 +68,6 @@ EkaOpResult efcCmeSetILinkAppseq(EkaDev *dev,
   if (!dev->core[coreId] || !dev->core[coreId]->tcpSess[sessId])
     on_error("hConn 0x%x does not exist",hConn);
 
-
-  struct SessAppCtx {
-    char asciiSeq[8] = {};
-    uint64_t binSeq = 0;
-  };
-
-  
-  
   auto s = dev->core[coreId]->tcpSess[sessId];
 
   s->updateFpgaCtx<EkaTcpSess::AppSeqBin>((uint64_t)appSequence);

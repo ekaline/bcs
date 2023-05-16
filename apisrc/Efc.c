@@ -494,3 +494,26 @@ EkaOpResult efcSwKeepAliveSend( EfcCtx* pEfcCtx, int strategyId ) {
 EkaOpResult efcClose( EfcCtx* efcCtx ) {
   return EKA_OPRESULT__OK;
 }
+
+EkaOpResult efcSetSessionCntr(EkaDev *dev,ExcConnHandle hConn,
+															uint64_t cntr) {
+	auto coreId = excGetCoreId(hConn);
+  auto sessId = excGetSessionId(hConn);
+  if (!dev || !dev->core[coreId] ||
+			!dev->core[coreId]->tcpSess[sessId])
+    on_error("hConn 0x%x does not exist",hConn);
+
+  auto s = dev->core[coreId]->tcpSess[sessId];
+
+  s->updateFpgaCtx<EkaTcpSess::AppSeqBin>(cntr);
+
+	char cntrString[64] = {};
+	int rc = sprintf(cntrString,"%08ju",cntr);
+	
+	uint64_t cntrAscii = 0;
+	memcpy(&cntrAscii,cntrString,8);
+  s->updateFpgaCtx<EkaTcpSess::AppSeqAscii>(be64toh(cntrAscii));
+
+
+  return EKA_OPRESULT__OK;
+}
