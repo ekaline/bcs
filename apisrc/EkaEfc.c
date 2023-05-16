@@ -17,12 +17,14 @@
 #include "EpmCmeILinkTemplate.h"
 #include "EpmCmeILinkSwTemplate.h"
 #include "EpmCmeILinkHbTemplate.h"
+#include "EpmQEDFireTemplate.h"
 #include "EpmFastSweepUDPReactTemplate.h"
 #include "EkaEfcDataStructs.h"
 #include "EkaHwCaps.h"
 #include "EhpNom.h"
 #include "EhpPitch.h"
 #include "EhpCmeFC.h"
+#include "EhpQED.h"
 #include "EhpNews.h"
 #include "EhpItchFS.h"
 
@@ -85,10 +87,12 @@ EpmStrategy(epm,id,baseActionIdx,params,_hwFeedVer) {
     epm->cmeHb  = new EpmCmeILinkHbTemplate(epm->templatesNum++);
     EKA_LOG("Initializing EpmCmeILinkHbTemplate");
     epm->DownloadSingleTemplate2HW(epm->cmeHb);
-
     ehp = new EhpCmeFC(dev);
-    //ehp = NULL;
-    //EKA_LOG("NO EHP for CME - using hardcoded CME Fast cancel parser");
+    break;
+  case EfhFeedVer::kQED : 
+    epm->hwFire  = new EpmQEDFireTemplate(epm->templatesNum++); //TBD raw tcp
+    EKA_LOG("Initializing hwFire EpmFireSqfTemplate (TBD) for QED");
+    ehp = new EhpQED(dev);
     break;
   case EfhFeedVer::kNEWS : 
     epm->hwFire  = new EpmCmeILinkTemplate(epm->templatesNum++); //TBD
@@ -200,6 +204,7 @@ int EkaEfc::initHwRoundTable() {
     case EfhFeedVer::kMIAX:
     case EfhFeedVer::kCBOE:
     case EfhFeedVer::kCME:
+    case EfhFeedVer::kQED:
     case EfhFeedVer::kNEWS:
     case EfhFeedVer::kITCHFS:
       data = addr;
@@ -401,10 +406,10 @@ int EkaEfc::enableRxFire() {
 
   for (uint8_t coreId = 0; coreId < EkaDev::MAX_CORES; coreId++) {
     if ((0x1 << coreId) & tcpCores) {
-      fire_rx_tx_en |= 1ULL << (16 + coreId); //fire core enable */
+      fire_rx_tx_en |= 1ULL << (16 + coreId); //fire core enable
     }
     if ((0x1 << coreId) & mdCores) {
-      fire_rx_tx_en |= 1ULL << coreId;          // RX (Parser) core enable */
+      fire_rx_tx_en |= 1ULL << coreId; // RX (Parser) core enable
     }
   }
 
@@ -426,16 +431,17 @@ int EkaEfc::checkSanity() {
 
 /* ################################################ */
 int EkaEfc::run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx) {
-  checkSanity();
+	// TO BE FIXED!!!
+	//  checkSanity();
   
-  reportCb   = pEfcRunCtx->onEfcFireReportCb ? pEfcRunCtx->onEfcFireReportCb :
-    efcPrintFireReport;
+  reportCb   = pEfcRunCtx->onEfcFireReportCb ?
+		pEfcRunCtx->onEfcFireReportCb : efcPrintFireReport;
   cbCtx      = pEfcRunCtx->cbCtx;
 
   setHwGlobalParams();
   setHwUdpParams();
-  if (hwFeedVer != EfhFeedVer::kCME)
-    setHwStratRegion();
+  /* if (hwFeedVer != EfhFeedVer::kCME) */
+  /*   setHwStratRegion(); */
   //  igmpJoinAll();
 
   enableRxFire();
@@ -516,6 +522,8 @@ int EkaEfc::setHwUdpParams() {
 }
 /* ################################################ */
 int EkaEfc::setHwStratRegion() {
+#if 0
+	// Not implemented in HW!!!
   struct StratRegion {
     uint8_t region;
     uint8_t strategyIdx;
@@ -528,8 +536,9 @@ int EkaEfc::setHwStratRegion() {
     stratRegion[i].region      = EkaEpm::EfcRegion;
     stratRegion[i].strategyIdx = 0;
   }
-  copyBuf2Hw(dev,0x83000,(uint64_t*) &stratRegion,sizeof(stratRegion));
-
+  copyBuf2Hw(dev,0x83000,(uint64_t*) &stratRegion,
+						 sizeof(stratRegion));
+#endif
   return 0;
 }
 /* ################################################ */

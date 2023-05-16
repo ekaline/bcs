@@ -86,25 +86,14 @@ extern "C" {
  *    - Clear the "Hw controlled fields" according to the
  *      Epm Template
  *    - Calculate pseudo TCP (or UDP) checksum
+ *
+ *  If provided Action type == INVALID, then this type is
+ *  not set, but the previously configured type is preserved
  */	
 	EkaOpResult efcSetActionPayload(EkaDev *ekaDev,
 																	epm_actionid_t actionIdx,
 																	const void* payload,
 																	size_t len);
-
-/**
- * Sets first action of the chain to be fired on the strategy.
- * Returns:
- *   EKA_OPRESULT__ERR_INVALID_STRATEGY if:
- *                 - strategyId == EfcStrategyId::P4
- *                 - strategyId is not initialized
- *   EKA_OPRESULT__ERR_INVALID_ACTION if:
- *                 Action[actionIdx] is not initialized
- */	
-	EkaOpResult efcSetFirstFireAction(EkaDev *ekaDev,
-																		EfcStrategyId strategyId,
-																		epm_actionid_t actionIdx);
-
 
 	
 } // End of extern "C"

@@ -97,6 +97,12 @@ struct FastSweepState {
   CommonState commonState;
 };
 
+struct QEDState {
+  uint64_t strategyRuns       = 0;
+  uint64_t strategyPassed     = 0;
+  CommonState commonState;
+};
+
 struct NewsState {
   uint64_t strategyRuns       = 0;
   uint64_t strategyPassed     = 0;
@@ -640,6 +646,26 @@ int getFastSweepState(FastSweepState* pFastSweepState) {
 }
 
 //################################################
+int getQEDState(QEDState* pQEDState) {
+
+  uint64_t var_fc_cont_counter1  = reg_read(0xf0818);
+
+  uint64_t var_p4_general_conf	 = reg_read(ADDR_P4_GENERAL_CONF);
+
+  pQEDState->strategyRuns       = (var_fc_cont_counter1>>32)& MASK32;
+  pQEDState->strategyPassed     = (var_fc_cont_counter1>>0) & MASK32;
+
+  pQEDState->commonState.reportOnly         = (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT)        != 0;
+
+  uint64_t armReg               = reg_read(P4_ARM_DISARM);
+  pQEDState->commonState.armed              = (armReg & 0x1) != 0;
+  pQEDState->commonState.arm_ver            = (armReg >> 32) & 0xFFFFFFFF;
+  pQEDState->commonState.killSwitch         = (reg_read(KILL_SWITCH)   & 0x1) != 0;  
+
+  return 0;
+}
+
+//################################################
 int getNewsState(NewsState* pNewsState) {
 
   uint64_t var_news_cont_counter1  = reg_read(0xf0808);
@@ -732,6 +758,17 @@ int printFastSweepState(FastSweepState* pFastSweepState) {
 }
 
 //################################################
+int printQEDState(QEDState* pQEDState) {
+
+  printCommonState(&pQEDState->commonState);
+  
+  printf("Evaluated   strategies:\t%ju\n",pQEDState->strategyRuns);
+  printf("Passed      strategies:\t%ju\n",pQEDState->strategyPassed);
+
+  return 0;
+}
+
+//################################################
 int printNewsState(NewsState* pNewsState) {
 
   printCommonState(&pNewsState->commonState);
@@ -753,6 +790,7 @@ int main(int argc, char *argv[]) {
   auto pEfcState = new EfcState;
   auto pFastCancelState = new FastCancelState;
   auto pFastSweepState = new FastSweepState;
+  auto pQEDState = new QEDState;
   auto pNewsState = new NewsState;
   auto pEfcExceptionsReport = new EfcExceptionsReport;
   /* ----------------------------------------- */
@@ -768,6 +806,9 @@ int main(int argc, char *argv[]) {
     getEfcState(pEfcState);
     /* ----------------------------------------- */
     switch (ekaHwCaps->hwCaps.version.parser) {
+    case 28:
+      getQEDState(pQEDState);
+      break;
     case 29:
       getFastSweepState(pFastSweepState);
       break;
@@ -805,6 +846,9 @@ int main(int argc, char *argv[]) {
     printf("Generic parser template: %s\n",EKA_FEED2STRING (ekaHwCaps->hwCaps.version.parser)); 
 
     switch (ekaHwCaps->hwCaps.version.parser) {
+    case 28:
+      printQEDState(pQEDState);
+      break;
     case 29:
       printFastSweepState(pFastSweepState);
       break;
@@ -833,6 +877,7 @@ int main(int argc, char *argv[]) {
   delete pEfcState;
   delete pFastCancelState;
   delete pFastSweepState;
+  delete pQEDState;
   delete pNewsState;
   delete pEfcExceptionsReport;
   SN_CloseDevice(devId);

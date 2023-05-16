@@ -33,7 +33,7 @@ int EhpItchFS::init() {
 
 
 int EhpItchFS::createOrderExecuted() {
-  uint8_t msgId   = 'E';
+  uint16_t msgId   = 'E';
   int     msgType = OrderExecutedMsg;
 
   conf.params.bytes4Strategy[msgType].msgId    = msgId;
@@ -130,7 +130,7 @@ int EhpItchFS::createOrderExecuted() {
 }
 
 int EhpItchFS::createTradeNonCross() {
-  uint8_t msgId   = 'P';
+  uint16_t msgId   = 'P';
   int     msgType = TradeNonCrossMsg;
 
   conf.params.bytes4Strategy[msgType].msgId    = msgId;

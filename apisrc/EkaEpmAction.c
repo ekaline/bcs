@@ -56,6 +56,7 @@ int EkaEpmAction::setActionBitmap() {
     break;
   case EpmActionType::BoeFire      :
   case EpmActionType::CmeHwCancel    :
+  case EpmActionType::QEDHwPurge    :
   case EpmActionType::SqfFire      :
     actionBitParams.bitmap.originatedFromHw = 1;
     [[fallthrough]];
@@ -98,6 +99,7 @@ void EkaEpmAction::setIpTtl() {
   case EpmActionType::SqfFire      :
   case EpmActionType::SqfCancel    :
   case EpmActionType::CmeHwCancel  :
+  case EpmActionType::QEDHwPurge   :
   case EpmActionType::ItchHwFastSweep   :
     ipHdr->_ttl = EFC_HW_TTL;
     ipHdr->_id  = EFC_HW_ID;
@@ -116,7 +118,8 @@ static TcpCsSizeSource setTcpCsSizeSource (EpmActionType type) {
   case EpmActionType::BoeCancel    :
   case EpmActionType::SqfFire      :
   case EpmActionType::SqfCancel    :
-  case EpmActionType::CmeHwCancel    :
+  case EpmActionType::CmeHwCancel  :
+  case EpmActionType::QEDHwPurge   :
   case EpmActionType::ItchHwFastSweep   :
     return TcpCsSizeSource::FROM_ACTION;
   default:
@@ -201,6 +204,7 @@ int EkaEpmAction::setTemplate() {
   case EpmActionType::BoeCancel    :
   case EpmActionType::HwFireAction :
   case EpmActionType::CmeHwCancel  :
+  case EpmActionType::QEDHwPurge   :
   case EpmActionType::ItchHwFastSweep   :
     epmTemplate                        = epm->hwFire;
     break;
@@ -253,6 +257,9 @@ int EkaEpmAction::setName() {
     break;
   case EpmActionType::CmeHwCancel    :
     strcpy(actionName,"CmeHwCancel");
+    break;
+  case EpmActionType::QEDHwPurge    :
+    strcpy(actionName,"QEDHwPurge");
     break;
   case EpmActionType::CmeSwFire    :
     strcpy(actionName,"CmeSwFire");
@@ -498,7 +505,6 @@ int EkaEpmAction::setNwHdrs(uint8_t* macDa,
 
   pktSize = getPayloadOffset() + payloadLen;
   
-  //tcpCSum = calc_pseudo_csum(ipHdr,tcpHdr,payload,0/* payloadLen */);
   tcpCSum = ekaPseudoTcpCsum(ipHdr,tcpHdr);
   //---------------------------------------------------------
   //  hexDump("setNwHdrs",&epm->heap[heapOffs],pktSize);
@@ -516,12 +522,15 @@ void EkaEpmAction::setTcpSess(EkaTcpSess* tcpSess) {
 }
 /* ----------------------------------------------------- */
 
-int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction *epmAction) {
-  if (epmAction == NULL) on_error("epmAction == NULL");
+int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId,
+															 const EpmAction *epmAction) {
+  if (!epmAction)
+		on_error("!epmAction");
   type = epmAction->type;
 
   if (epmAction->offset < getPayloadOffset())
-    on_error("epmAction->offset %d < getPayloadOffset() %ju",epmAction->offset,getPayloadOffset());
+    on_error("epmAction->offset %d < getPayloadOffset() %ju",
+						 epmAction->offset,getPayloadOffset());
 
   memcpy (&epmActionLocalCopy,epmAction,sizeof(epmActionLocalCopy));
   
@@ -530,7 +539,8 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
   setName();
 
   heapOffs   = epmAction->offset - getPayloadOffset();
-  if (heapOffs % 32 != 0) on_error("heapOffs %d (must be X32)",heapOffs);
+  if (heapOffs % 32 != 0)
+		on_error("heapOffs %d (must be X32)",heapOffs);
 
   heapAddr   = heapOffs;
   coreId     = _coreId;
@@ -548,28 +558,38 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
 
   if (isUdp()) { // UDP
     EkaUdpTxSess* udpSess = dev->core[coreId]->udpTxSess[sessId];
-    if (!udpSess) on_error("dev->core[%u]->udpTxSess[%u] == NULL",coreId,sessId);
+    if (!udpSess)
+			on_error("!dev->core[%u]->udpTxSess[%u]",coreId,sessId);
     setNwHdrs(udpSess->macDa_,udpSess->macSa_,
 	      udpSess->srcIp_,udpSess->dstIp_,
 	      udpSess->srcPort_,udpSess->dstPort_);
   } else {
     EkaTcpSess*   sess    = dev->core[coreId]->tcpSess[sessId];
-    if (!sess) on_error("dev->core[%u]->tcpSess[%u] == NULL",coreId,sessId);
-    setNwHdrs(sess->macDa,sess->macSa,sess->srcIp,sess->dstIp,sess->srcPort,sess->dstPort);
+    if (!sess)
+			on_error("!dev->core[%u]->tcpSess[%u]",coreId,sessId);
+    setNwHdrs(sess->macDa,sess->macSa,sess->srcIp,sess->dstIp,
+							sess->srcPort,sess->dstPort);
   }
   
-
-  /* EKA_LOG("%s:%u --> %s:%u",EKA_IP2STR(sess->srcIp),sess->srcPort, */
-  /* 	  EKA_IP2STR(sess->dstIp),sess->dstPort); */
 /* ----------------------------------------------------- */
   payloadLen = epmAction->length;
   pktSize    = getPayloadOffset() + payloadLen;
 
+	updatePayload();
+
+  return 0;
+}
+/* ----------------------------------------------------- */
+
+void EkaEpmAction::updatePayload() {
   ipHdr->_len    = be16toh(getL3L4len() + payloadLen);
+
   ipHdr->_chksum = 0;
   ipHdr->_chksum = csum((unsigned short *)ipHdr, sizeof(EkaIpHdr));
-  
-/* ----------------------------------------------------- */
+
+	if (isUdpAction(type))
+		 udpHdr->len = be16toh(sizeof(EkaUdpHdr) + payloadLen);
+	/* ----------------------------------------------------- */
 
   epmTemplate->clearHwFields(&epm->heap[heapOffs]);
   setIpTtl();
@@ -577,24 +597,20 @@ int EkaEpmAction::updateAttrs (uint8_t _coreId, uint8_t _sessId, const EpmAction
   tcpCSum = ekaPseudoTcpCsum(ipHdr,tcpHdr);
   
   setHwAction();
-      
+
+	//write to scratchpad
   copyBuf2Hw(dev,EkaEpm::EpmActionBase,
-	     (uint64_t*)&hwAction,sizeof(hwAction)); //write to scratchpad
+						 (uint64_t*)&hwAction,sizeof(hwAction)); 
   atomicIndirectBufWrite(dev, 0xf0238 /* ActionAddr */, 0,0,idx,0);
 
   /* hexDump("updateAttrs",&epm->heap[heapOffs],pktSize); */
   //  TEST_LOG("im here");
   copyHeap2Fpga();
-
-  return 0;
 }
 /* ----------------------------------------------------- */
 
 void EkaEpmAction::updateHwAction() {
-
   setHwAction();
-      
-
 }
 /* ----------------------------------------------------- */
 

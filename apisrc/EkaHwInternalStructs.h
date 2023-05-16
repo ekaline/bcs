@@ -214,6 +214,13 @@ struct hw_epm_fast_cancel_report_t {
   hw_epm_report_t epm;
 } __attribute__((packed));
 
+struct hw_epm_qed_report_t {
+  uint16_t        ds_id;
+  uint16_t        udp_payload_size;
+  uint8_t         b32_padding[28];
+  hw_epm_report_t epm;
+} __attribute__((packed));
+
 struct hw_epm_sw_trigger_report_t {
   uint8_t         b32_padding[32];
   hw_epm_report_t epm;
@@ -349,6 +356,21 @@ typedef struct __attribute__((packed)) {
       uint16_t       minUDPSize;
       uint16_t       fireActionId;
       uint8_t        strategyId;
+  } __attribute__ ((aligned(sizeof(uint64_t)))) __attribute__((packed));
+
+
+  struct EfcQEDStrategyConfSingle {
+      uint32_t       padding : 15;
+      uint32_t       enable  : 1;
+      uint8_t        minNumLevel;
+      uint16_t       dsID;
+      uint16_t       fireActionId;
+      uint8_t        strategyId;
+      uint64_t       token;
+  } __attribute__ ((aligned(sizeof(uint64_t)))) __attribute__((packed));
+
+  struct EfcQEDStrategyConf {
+    EfcQEDStrategyConfSingle product[4];
   } __attribute__ ((aligned(sizeof(uint64_t)))) __attribute__((packed));
 
 #endif

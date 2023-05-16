@@ -16,6 +16,7 @@
 #include "ctls.h"
 #include "eka.h"
 #include "EkaEpm.h"
+#include "EkaEpmRegion.h"
 
 #define NUM_OF_CORES EKA_MAX_CORES
 #define FREQUENCY EKA_FPGA_FREQUENCY
@@ -102,7 +103,7 @@ int getSnIgmpCtx(McState* mcState, sc_multicast_subscription_t* hwIgmp) {
   }
 
   for (auto i = 0; i < 512; i++) {
-    int chId = udpCh2epmRegion(hwIgmp[i].channel - 32);
+    int chId = EkaEpmRegion::getEfhIgmpRegion(hwIgmp[i].channel - 32);
     if ((hwIgmp[i].group_address != 0) && (chId < 0 || chId > 31)) 
       on_error("chId=%d,hwIgmp[%d].channel=%u",chId,i,hwIgmp[i].channel);
     if (hwIgmp[i].group_address == 0) continue;
