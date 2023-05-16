@@ -18,7 +18,7 @@
 #define EKA_P4_AUTO_REARM_BIT         (1ULL << 62)
 
 
-#define EKA_MAX_CORES 8
+#define EKA_MAX_CORES 4
 #define EKA_MAX_TCP_SESSIONS_PER_CORE 32
 #define EKA_MAX_UDP_SESSIONS_PER_CORE 64
   

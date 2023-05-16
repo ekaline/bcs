@@ -17,7 +17,7 @@ EkaOpResult efcItchFastSweepInit(EkaDev *dev,
       .token          = params->token,
       .minMsgCount    = params->minMsgCount,
       .minUDPSize     = params->minUDPSize,
-      .fireActionId   = (uint16_t)EfcItchFSActionId::HwSweep,
+      .fireActionId   = (uint16_t)params->fireActionId,
       .strategyId     = (uint8_t)EFC_STRATEGY
   };
 

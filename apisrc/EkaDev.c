@@ -23,6 +23,7 @@
 #include "EkaWc.h"
 #include "eka_hw_conf.h"
 #include "EkaHwInternalStructs.h"
+#include "EkaEpmRegion.h"
 
 extern FILE *g_ekaLogFile;
 extern EkaLogCallback g_ekaLogCB;
@@ -259,8 +260,8 @@ bool EkaDev::initEpmTx() {
 
   ekaInitLwip(this);
 
-  epm->createRegion(EkaEpm::TcpTxRegion,
-		    EkaEpm::TcpTxRegion * EkaEpm::ActionsPerRegion);
+  epm->createRegion(EkaEpmRegion::Regions::TcpTxFullPkt);
+  epm->createRegion(EkaEpmRegion::Regions::TcpTxEmptyAck);
 
   uint64_t fire_rx_tx_en = eka_read(ENABLE_PORT);
   fire_rx_tx_en |= (1ULL << 32); //turn off tcprx
