@@ -815,6 +815,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   copySymbol(msg.commonDef.underlying, rootBlock->Asset);
   copySymbol(msg.commonDef.classSymbol, rootBlock->SecurityGroup);
   numToStrBuf(msg.commonDef.exchSecurityName, rootBlock->SecurityID);
+  copySymbol(msg.commonDef.subtypeCode, rootBlock->SecuritySubType);
   // TODO: Add another field (exchSecurityDesc?) to publish Symbol for completeness
   // (make sure it's large enough to hold it; exchSecurityName isn't)
   //copySymbol(msg.commonDef.exchSecurityName, rootBlock->Symbol);
