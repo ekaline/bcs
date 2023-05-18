@@ -199,12 +199,13 @@ EkaOpResult EkaFhCmeGr::recoveryLoop(const EfhRunCtx* pEfhRunCtx,
 													(sockaddr*)&rxAddr, &addrlen);
       if (size < 0)
 				on_error("size = %d",size);
-
-			EKA_LOG("Expected %s:%u, received %s:%u",
+#if 0
+			EKA_LOG("Expected MC Dst: %s:%u, received Source: %s:%u",
 							EKA_IP2STR(ip),be16toh(port),
 							EKA_IP2STR(rxAddr.sin_addr.s_addr),
 							be16toh(rxAddr.sin_port));
-    
+#endif
+			
       if (expectedPktSeq == 1 && getPktSeq(pkt) != 1)
 				// recovery Loop not started yet
 				continue;
