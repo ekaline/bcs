@@ -7,8 +7,8 @@
 #include "eka_macros.h"
 #include "EkaFhTypes.h"
 
-#define EFH_PITCH_STRIKE_PRICE_SCALE 10
 namespace Bats {
+  constexpr uint8_t PriceDecimals = 4;
 
   enum class MsgId : uint8_t {
     TIME = 0x20,
@@ -191,6 +191,15 @@ namespace Bats {
     case 'O' : return EfhAuctionType::kAllOrNone;
     default  : return EfhAuctionType::kUnknown;
     }
+  }
+
+  inline int64_t getEfhPrice(int64_t pitchPrice) {
+    // This is a no-op at the current scales
+    return priceToEfhScale(pitchPrice, PriceDecimals);
+  }
+
+  inline int64_t getEfhPrice(uint64_t pitchPrice) {
+    return getEfhPrice(static_cast<int64_t>(pitchPrice));
   }
 
   /* ------------------------------------------------ */
@@ -614,15 +623,29 @@ namespace Bats {
   struct OptionsAuctionUpdate { // 0xD1
     GenericHeader header;
     char        symbol[8];
-    char        auctionType;
+    char        auctionType; // 'G' = GTH Opening, 'O' = RTH Opening, 'H' = Halt Re-Opening, 'V' = Volatility Opening
     uint64_t    referencePrice;
     uint32_t    buyContracts;
     uint32_t    sellContracts;
     uint64_t    indicativePrice;
     uint64_t    auctionOnlyPrice;
-    char        openningCondition;
+    char        openingCondition;
     uint64_t    compositeMarketBidPrice;
     uint64_t    compositeMarketOfferPrice;
+  } __attribute__((packed));
+
+  struct OptionsAuctionUpdate_complex { // 0xD1
+    GenericHeader header;
+    char        symbol[8];
+    char        auctionType; // 'G' = GTH Opening, 'O' = RTH Opening, 'H' = Halt Re-Opening
+    uint64_t    referencePrice; // Unused in complex, = 0
+    uint32_t    buyContracts;
+    uint32_t    sellContracts;
+    int64_t     indicativePrice;
+    int64_t     auctionOnlyPrice; // Unused in complex, = 0
+    char        openingCondition; // Unused in complex, = 0
+    int64_t     compositeMarketBidPrice; // Unused in complex, = 0
+    int64_t     compositeMarketOfferPrice; // Unused in complex, = 0
   } __attribute__((packed));
 
   struct AuctionCancel { // 0xAE
@@ -762,10 +785,10 @@ namespace Bats {
 
   /* ------------------------------------------------ */
   // converting 6 char CBOE symbol to uint64_t
-  inline uint64_t symbol2secId(const char* s) {
+  inline uint64_t symbol2secId(const char (&s)[6]) {
     return be64toh(*(uint64_t*)(s - 2)) & 0x0000ffffffffffff;
   }
-  inline uint64_t expSymbol2secId(const char* s) {
+  inline uint64_t expSymbol2secId(const char (&s)[8]) {
     if (s[6] != ' ' || s[7] != ' ')
       on_error("ADD_ORDER_EXPANDED message with \'%c%c%c%c%c%c%c%c\' symbol (longer than 6 chars) not supported",
 	       s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7]);
