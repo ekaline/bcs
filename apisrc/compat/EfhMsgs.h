@@ -34,7 +34,7 @@ constexpr int64_t intPow10(const uint8_t exponent) {
       1000000000000000000,
   };
   constexpr uint8_t NumFactors = sizeof(Factors) / sizeof(*Factors);
-  if (exponent > NumFactors) return std::numeric_limits<int64_t>::max();
+  if (exponent >= NumFactors) return std::numeric_limits<int64_t>::max();
   return Factors[exponent];
 }
 
@@ -63,6 +63,7 @@ enum class EfhMsgType : uint16_t {
                 _x( AuctionUpdate     )                                     \
                 _x( Trade             )                                     \
                 _x( Quote             )                                     \
+                _x( Imbalance         )                                     \
                 _x( Order             )                                     \
                 _x( DoneStaticDefs    )                                     \
                 _x( GroupStateChanged )
@@ -512,13 +513,25 @@ typedef struct {
  *
  */
 typedef struct {
-    #define EfhQuoteMsg_FIELD_ITER( _x )                                    \
+#define EfhQuoteMsg_FIELD_ITER( _x )                                        \
                 _x( EfhMsgHeader,   header )                                \
                 _x( EfhTradeStatus, tradeStatus )                           \
                 _x( EfhBookSide ,   bidSide )                               \
                 _x( EfhBookSide ,   askSide )
-        EfhQuoteMsg_FIELD_ITER( EKA__FIELD_DEF )
+  EfhQuoteMsg_FIELD_ITER( EKA__FIELD_DEF )
 } EfhQuoteMsg;
+
+/*
+ *
+ */
+typedef struct {
+#define EfhImbalanceMsg_FIELD_ITER( _x )                                    \
+                _x( EfhMsgHeader,   header )                                \
+                _x( EfhTradeStatus, tradeStatus )                           \
+                _x( EfhBookSide ,   bidSide )                               \
+                _x( EfhBookSide ,   askSide )
+  EfhImbalanceMsg_FIELD_ITER( EKA__FIELD_DEF )
+} EfhImbalanceMsg;
 
 /*
  * Trade condition is based on OPRA Last Sale "Message Type", from OPRA
