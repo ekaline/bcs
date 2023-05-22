@@ -779,6 +779,8 @@ bool EkaFhBatsGr::process_Definition(const EfhRunCtx* pEfhRunCtx,
   msg.commonDef.expiryDate     = osi.getYYYYMMDD();
   msg.strikePrice = osi.efhStrikePrice;
   msg.optionType  = osi.optionType;
+  msg.optionStyle = EfhOptionStyle::kAmerican;
+  msg.segmentId = batsUnit;
 
   copySymbol(msg.commonDef.underlying,message->underlying);
   osi.copyRoot(msg.commonDef.classSymbol, message->osi_symbol);
