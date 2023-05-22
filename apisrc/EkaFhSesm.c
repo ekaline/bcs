@@ -137,7 +137,7 @@ static bool sesmCycle(EkaDev* dev,
   ITERATION_FAIL:
     sendLogOut(gr);
     close(gr->recovery_sock);
-    if (dev->lastExchErr != EfhExchangeErrorCode::kNoError) gr->sendRetransmitExchangeError(pEfhRunCtx);
+    if (gr->lastExchErr != EfhExchangeErrorCode::kNoError) gr->sendRetransmitExchangeError(pEfhRunCtx);
     if (dev->lastErrno   != 0)                              gr->sendRetransmitSocketError(pEfhRunCtx);
     if (pVanillaDefinitions) {
       delete pVanillaDefinitions;
@@ -215,44 +215,44 @@ static bool getLoginResponse(EkaFhMiaxGr* gr) {
     return false;
   }
   if (sesm_response_msg.header.type == 'G')  {
-    dev->lastExchErr = EfhExchangeErrorCode::kRequestNotServed;
+    gr->lastExchErr = EfhExchangeErrorCode::kRequestNotServed;
     EKA_WARN("SESM sent GoodBye Packet with reason: \'%c\'",sesm_response_msg.status);
     return false;
   }
   if (sesm_response_msg.header.type != 'R')  {
-    dev->lastExchErr = EfhExchangeErrorCode::kUnknown;
+    gr->lastExchErr = EfhExchangeErrorCode::kUnknown;
     EKA_WARN("sesm_response_msg.header.type \'%c\' != \'R\' ",sesm_response_msg.header.type);
     return false;
   }
 
   switch (sesm_response_msg.status) {
   case 'X' :
-    dev->lastExchErr = EfhExchangeErrorCode::kInvalidUserPasswd;
+    gr->lastExchErr = EfhExchangeErrorCode::kInvalidUserPasswd;
     EKA_WARN("%s:%u: SESM Login Response: \'X\' -- Rejected: Invalid Username/Computer ID combination",
 	     EKA_EXCH_DECODE(gr->exch),gr->id);
     return false;
   case 'S' :
-    dev->lastExchErr = EfhExchangeErrorCode::kServiceCurrentlyUnavailable;
+    gr->lastExchErr = EfhExchangeErrorCode::kServiceCurrentlyUnavailable;
     EKA_WARN("%s:%u: SESM Login Response: \'S\' -- Rejected: Requested session is not available",
 	     EKA_EXCH_DECODE(gr->exch),gr->id);
     return false;
   case 'N' : 
-    dev->lastExchErr = EfhExchangeErrorCode::kInvalidSequenceRange;
+    gr->lastExchErr = EfhExchangeErrorCode::kInvalidSequenceRange;
     EKA_WARN("%s:%u: SESM Login Response: \'N\' -- Rejected: Invalid start sequence number requested",
 	     EKA_EXCH_DECODE(gr->exch),gr->id);
     return false;
   case 'I' :
-    dev->lastExchErr = EfhExchangeErrorCode::kInvalidSessionProtocolVersion;
+    gr->lastExchErr = EfhExchangeErrorCode::kInvalidSessionProtocolVersion;
     EKA_WARN("%s:%u: SESM Login Response: \'I\' -- Rejected: Incompatible Session protocol version",
 	     EKA_EXCH_DECODE(gr->exch),gr->id);
     return false;
   case 'A' :
-    dev->lastExchErr = EfhExchangeErrorCode::kInvalidApplicationProtocolVersion;
+    gr->lastExchErr = EfhExchangeErrorCode::kInvalidApplicationProtocolVersion;
     EKA_WARN("%s:%u: SESM Login Response: \'A\' -- Rejected: Incompatible Application protocol version",
 	     EKA_EXCH_DECODE(gr->exch),gr->id);
     return false;
   case 'L' :
-    dev->lastExchErr = EfhExchangeErrorCode::kOperationAlreadyInProgress;
+    gr->lastExchErr = EfhExchangeErrorCode::kOperationAlreadyInProgress;
     EKA_WARN("%s:%u: SESM Login Response: \'L\' -- Rejected: Request rejected because client already logged in",
 	     EKA_EXCH_DECODE(gr->exch),gr->id);
     return false;
@@ -261,7 +261,7 @@ static bool getLoginResponse(EkaFhMiaxGr* gr) {
 	    EKA_EXCH_DECODE(gr->exch),gr->id,sesm_response_msg.sequence);
     return true;
   default:
-    dev->lastExchErr = EfhExchangeErrorCode::kUnknown;
+    gr->lastExchErr = EfhExchangeErrorCode::kUnknown;
     EKA_WARN("%s:%u: Unknown SESM Login Response:  \'%c\'",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,sesm_response_msg.status);
     return false;

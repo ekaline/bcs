@@ -17,9 +17,36 @@ template <const uint SEC_HASH_SCALE,class FhSecurity, class QuotePostProc, class
    : EkaFhBook (_dev,_grId,_exch) {}
   /* ####################################################### */
 
-  void            init() {
-    EKA_LOG("%s:%u : TOB book with preallocated: %ju Securities Hash lines, no PLEVELS, no ORDERS",
+  virtual ~EkaFhTobBook() {}
+
+  /* ####################################################### */
+
+  void init() {
+    EKA_LOG("%s:%u : TOB book with preallocated: "
+	    "%ju Securities Hash lines, no PLEVELS, no ORDERS",
 	  EKA_EXCH_DECODE(exch),grId,SEC_HASH_LINES);
+  }
+  /* ####################################################### */
+
+  inline int invalidate() {
+    EKA_LOG("%s:%u: invalidating Tob Book",
+	    EKA_EXCH_DECODE(exch),grId);
+    
+    int secCnt = 0;
+    for (size_t hashLine = 0; hashLine < SEC_HASH_LINES; hashLine++) {
+      auto s = sec[hashLine];      
+      while (s) {
+	auto n = s->next;
+	((FhSecurity*)s)->reset();
+	secCnt++;
+	s = dynamic_cast<FhSecurity*>(n);
+      }
+    }
+    EKA_LOG("%s:%u: invalidated %d Securities)",
+	    EKA_EXCH_DECODE(exch),grId,secCnt
+	    );
+
+    return 0;
   }
   /* ####################################################### */
 

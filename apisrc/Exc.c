@@ -232,30 +232,28 @@ inline EkaTcpSess *getEkaTcpSess(EkaDev* dev, ExcConnHandle hConn) {
   return nullptr;
 }
 
-int getSessAppSeqId(EkaDev* dev, ExcConnHandle hConn) {
-  auto s = getEkaTcpSess(dev,hConn);
-  if (!s)
-    on_error("hConn 0x%2x is not found",hConn);
-  return s->appSeqId;
-}
-  
 
 /*
  *
  */  
-ExcSocketHandle excSocket( EkaDev* dev, EkaCoreId coreId , int domain, int type, int protocol ) {
+ExcSocketHandle excSocket( EkaDev* dev, EkaCoreId coreId ,
+			   int domain, int type, int protocol ) {
   if (! dev->epmEnabled) {
     EKA_LOG("Initializing TCP functionality");
     
     dev->epmEnabled = dev->initEpmTx();
     if (! dev->epmEnabled)
-      on_error("TX functionality is not available for this Ekaline SW instance - caught by another process");
+      on_error("TX functionality is not available for this "
+	       "Ekaline SW instance - caught by another process");
 
-    if (! dev->core[coreId])
-      on_error("Lane %u has no link or IP address",coreId);
-
-    dev->core[coreId]->initTcp();
   }
+
+  if (! dev->core[coreId])
+    on_error("Lane %u has no link or IP address",coreId);
+
+  if (! dev->core[coreId]->pLwipNetIf)
+    dev->core[coreId]->initTcp();
+    
   
   EkaCore *const core = getEkaCore(dev, coreId);
   if (!core)
@@ -293,7 +291,9 @@ int excSocketClose( EkaDev* dev, ExcSocketHandle hSocket ) {
 /*
  *
  */
-ExcConnHandle excConnect( EkaDev* dev, ExcSocketHandle hSocket, const struct sockaddr *dst, socklen_t addrlen ) {
+ExcConnHandle excConnect( EkaDev* dev, ExcSocketHandle hSocket,
+			  const struct sockaddr *dst,
+			  socklen_t addrlen ) {
   if (!checkDevice(dev))
     return -1;
 
@@ -324,11 +324,13 @@ ExcConnHandle excConnect( EkaDev* dev, ExcSocketHandle hSocket, const struct soc
 
   if (sess->connect() == -1)
     return -1;
-  if (dev->numAppSeqSessions > dev->MaxAppSeqSessions)
-    EKA_WARN("numAppSeqSessions %d > MaxAppSeqSessions %d",
-	     dev->numAppSeqSessions, dev->MaxAppSeqSessions);
-  sess->appSeqId = dev->numAppSeqSessions++;
-  
+
+  sess->updateFpgaCtx<EkaTcpSess::AppSeqBin>(0);
+  char asciiZero[8] = {'0','0','0','0','0','0','0','0'};
+  uint64_t asciiZeroNum;
+  memcpy(&asciiZeroNum,asciiZero,8);
+  sess->updateFpgaCtx<EkaTcpSess::AppSeqAscii>(be64toh(asciiZeroNum));
+
   return sess->getConnHandle();
 }
 
@@ -364,7 +366,8 @@ ssize_t excSend( EkaDev* dev, ExcConnHandle hConn, const void* pBuffer, size_t s
 /**
  * $$NOTE$$ - This is mutexed to handle single session at a time.
  */
-ssize_t excRecv( EkaDev* dev, ExcConnHandle hConn, void *pBuffer, size_t size, int flags ) {
+ssize_t excRecv( EkaDev* dev, ExcConnHandle hConn, void *pBuffer,
+		 size_t size, int flags ) {
   if (EkaTcpSess *const s = getEkaTcpSess(dev, hConn))
     return s->recv(pBuffer,size,linuxMsgFlagsToLWIP(flags));
   return -1;
@@ -382,7 +385,7 @@ int excClose( EkaDev* dev, ExcConnHandle hConn ) {
   return -1;
 }
 
-int excPoll( EkaDev *dev, struct pollfd *fds, int nfds, int timeout ) {
+int excPoll(EkaDev *dev, struct pollfd *fds, int nfds, int timeout) {
   if (!checkDevice(dev))
     return -1;
   else if (!nfds) {
@@ -410,8 +413,8 @@ int excPoll( EkaDev *dev, struct pollfd *fds, int nfds, int timeout ) {
   return rc;
 }
 
-int excGetSockOpt( EkaDev* dev, ExcSocketHandle hSock, int level, int optname,
-                   void* optval, socklen_t* optlen ) {
+int excGetSockOpt( EkaDev* dev, ExcSocketHandle hSock, int level,
+		   int optname, void* optval, socklen_t* optlen) {
   if (checkDevice(dev)) {
     optname = mapLinuxSocketOptionNameToLWIP(level, optname); // Must be first because
     level = mapLinuxSocketOptionLevelToLWIP(level);           // we change level here
@@ -420,8 +423,8 @@ int excGetSockOpt( EkaDev* dev, ExcSocketHandle hSock, int level, int optname,
   return -1;
 }
 
-int excSetSockOpt( EkaDev* dev, ExcSocketHandle hSock, int level, int optname,
-                   const void* optval, socklen_t optlen ) {
+int excSetSockOpt(EkaDev* dev, ExcSocketHandle hSock, int level,
+		  int optname, const void* optval, socklen_t optlen) {
   if (checkDevice(dev)) {
     optname = mapLinuxSocketOptionNameToLWIP(level, optname);
     level = mapLinuxSocketOptionLevelToLWIP(level);
@@ -430,7 +433,8 @@ int excSetSockOpt( EkaDev* dev, ExcSocketHandle hSock, int level, int optname,
   return -1;
 }
 
-int excIoctl( EkaDev* dev, ExcSocketHandle hSock, long cmd, void *argp ) {
+int excIoctl(EkaDev* dev, ExcSocketHandle hSock, long cmd,
+	     void *argp) {
   if (cmd != FIONREAD) {
     // We only support FIONREAD
     errno = ENOTTY;
@@ -441,21 +445,21 @@ int excIoctl( EkaDev* dev, ExcSocketHandle hSock, long cmd, void *argp ) {
   return -1;
 }
 
-int excGetSockName( EkaDev* dev, ExcSocketHandle hSock, sockaddr* addr,
-                    socklen_t* addrlen ) {
+int excGetSockName(EkaDev* dev, ExcSocketHandle hSock,
+		   sockaddr* addr, socklen_t* addrlen) {
   if (checkDevice(dev))
     return lwip_getsockname(hSock, addr, addrlen);
   return -1;
 }
 
-int excGetPeerName( EkaDev* dev, ExcSocketHandle hSock, sockaddr* addr,
-                    socklen_t* addrlen ) {
+int excGetPeerName(EkaDev* dev, ExcSocketHandle hSock,
+		   sockaddr* addr, socklen_t* addrlen) {
   if (checkDevice(dev))
     return lwip_getpeername(hSock, addr, addrlen);
   return -1;
 }
 
-int excGetBlocking( EkaDev* dev, ExcSocketHandle hSock ) {
+int excGetBlocking(EkaDev* dev, ExcSocketHandle hSock) {
   if (!checkDevice(dev))
     return -1;
   else if (const EkaTcpSess *const s = dev->findTcpSess(hSock))
@@ -465,7 +469,8 @@ int excGetBlocking( EkaDev* dev, ExcSocketHandle hSock ) {
   return -1;
 }
 
-int excSetBlocking( EkaDev* dev, ExcSocketHandle hSock, bool blocking ) {
+int excSetBlocking(EkaDev* dev, ExcSocketHandle hSock,
+		   bool blocking) {
   if (!checkDevice(dev))
     return -1;
   else if (EkaTcpSess *const s = dev->findTcpSess(hSock))
@@ -475,23 +480,27 @@ int excSetBlocking( EkaDev* dev, ExcSocketHandle hSock, bool blocking ) {
   return -1;
 }
 
-int excShutdown( EkaDev* dev, ExcConnHandle hConn, int how ) {
+int excShutdown(EkaDev* dev, ExcConnHandle hConn, int how) {
   if (const EkaTcpSess *const s = getEkaTcpSess(dev, hConn))
     return lwip_shutdown(s->sock, how);
   return -1;
 }
 
 ExcUdpTxConnHandle excUdpConnect(EkaDev* dev, EkaCoreId coreId,
-			       eka_ether_addr srcMac, eka_ether_addr dstMac,
-			       eka_in_addr_t srcIp, eka_in_addr_t dstIp, 
-			       uint16_t srcPort, uint16_t dstPort) {
+				 eka_ether_addr srcMac,
+				 eka_ether_addr dstMac,
+				 eka_in_addr_t srcIp,
+				 eka_in_addr_t dstIp, 
+				 uint16_t srcPort,
+				 uint16_t dstPort) {
   
   if (! dev->epmEnabled) {
     EKA_LOG("Initializing TCP functionality");
     
     dev->epmEnabled = dev->initEpmTx();
     if (! dev->epmEnabled)
-      on_error("TX functionality is not available for this Ekaline SW instance - caught by another process");
+      on_error("TX functionality is not available for this "
+	       "Ekaline SW instance - caught by another process");
   }
 
     
@@ -500,8 +509,8 @@ ExcUdpTxConnHandle excUdpConnect(EkaDev* dev, EkaCoreId coreId,
     return -1;
 
   auto sessId = core->addUdpTxSess(srcMac,dstMac,
-			       srcIp, dstIp, 
-			       srcPort, dstPort);
+				   srcIp, dstIp, 
+				   srcPort, dstPort);
   
   return core->udpTxSess[sessId]->getConnHandle();
 }

@@ -8,6 +8,7 @@
 #include <string>
 
 #include "eka_macros.h"
+#include "EkaFhPlrGr.h"
 
 // #define PLR_CERT 1
 
@@ -462,7 +463,7 @@ namespace Plr {
     uint32_t seriesSeqNum;
       
     uint32_t tradeId;
-    uint32_t price;
+    int32_t  price;
     uint32_t volume;
       
     char     tradeCond1;
@@ -511,7 +512,7 @@ namespace Plr {
       
     uint32_t originalTradeId;
     uint32_t tradeId;
-    uint32_t price;
+    int32_t price;
     uint32_t size;
       
     char     tradeCond1;
@@ -547,12 +548,12 @@ namespace Plr {
     // • 'S' – Sell side
     // • 'Space' – No imbalance
     
-    uint32_t ContinuousBookClearingPrice;
-    uint32_t AuctionInterestClearingPrice;
+    int32_t  ContinuousBookClearingPrice;
+    int32_t  AuctionInterestClearingPrice;
     uint32_t reserved3;
-    uint32_t IndicativeMatchPrice;
-    uint32_t UpperCollar;
-    uint32_t LowerCollar;
+    int32_t  IndicativeMatchPrice;
+    int32_t  UpperCollar;
+    int32_t  LowerCollar;
     
     uint8_t  AuctionStatus; // Indicates whether the auction will run
     // • 0 - Will run as usual
@@ -560,6 +561,11 @@ namespace Plr {
     // • 5 - Auction will not run because market maker quote is not received
 
   } __attribute__((packed));
+
+  inline int64_t getPrice(const int64_t plrPrice, const EkaFhPlrGr::FhSecurity *sec) {
+    // PriceScaleCode is stored in opaqueAttrA
+    return priceToEfhScale(plrPrice, static_cast<uint8_t>(sec->opaqueAttrA));
+  }
   
   inline EfhOrderCapacity getRfqCapacity(char capacity) {
     switch (capacity) {

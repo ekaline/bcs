@@ -11,6 +11,7 @@
 #include <string>
 #include <regex>
 #include <vector>
+#include <atomic>
 
 #include "eka_hw_conf.h"
 #include "Efh.h"
@@ -236,6 +237,8 @@ class EkaFh {
   EfhGetTradeTimeFn     getTradeTimeCb;
   void*                 getTradeTimeCtx;
   bool                  pinPacketBuffer = false;
+
+  std::atomic_flag lockSnapshotGap = ATOMIC_FLAG_INIT;
 };
 
 #endif

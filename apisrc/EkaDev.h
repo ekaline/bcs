@@ -172,7 +172,7 @@ class EkaDev {
   //  EkaEfc*                   efc = NULL;
 
   int64_t                   lastErrno   = 0;
-  EfhExchangeErrorCode      lastExchErr = EfhExchangeErrorCode::kNoError;
+  //  EfhExchangeErrorCode      lastExchErr = EfhExchangeErrorCode::kNoError;
 
   //  std::chrono::high_resolution_clock::time_point midnightSystemClock;
   std::chrono::system_clock::time_point midnightSystemClock;
@@ -183,11 +183,6 @@ class EkaDev {
   FILE* testDict;
 #endif
 
-  
-  
-  const int MaxAppSeqSessions = 8;
-  int       numAppSeqSessions = 0;
-  
   FILE* deltaTimeLogFile = NULL;
 
   std::atomic<uint64_t>     globalFastPathBytes = 0;
@@ -199,6 +194,7 @@ class EkaDev {
   volatile uint64_t *       snDevUserLogicRegistersPtr = NULL;
   volatile uint64_t *       snDevWCPtr = NULL;
   const uint32_t snDevNumberOfUserLogicRegisters = uint32_t(0x100000 /* BAR2_REGS_SIZE */ / sizeof(uint64_t));
+
 };
 
 

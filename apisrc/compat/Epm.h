@@ -209,6 +209,48 @@ enum class EpmActionType : int {
     UserAction   = 100          ///< EPM fire. No fields managed by HW
  };
 
+static inline
+const char* printActionType(EpmActionType t) {
+  switch (t) {
+  case EpmActionType::INVALID :
+    return "INVALID";
+  case EpmActionType::TcpFullPkt :
+    return "TcpFullPkt";
+  case EpmActionType::TcpFastPath :
+    return "TcpFastPath";
+  case EpmActionType::TcpEmptyAck :
+    return "TcpEmptyAck";
+  case EpmActionType::Igmp :
+    return "Igmp";
+  case EpmActionType::HwFireAction :
+    return "HwFireAction";
+  case EpmActionType::SqfFire :
+    return "SqfFire";
+  case EpmActionType::SqfCancel :
+    return "SqfCancel";
+  case EpmActionType::BoeFire :
+    return "BoeFire";
+  case EpmActionType::BoeCancel :
+    return "BoeCancel";
+  case EpmActionType::CmeFire :
+    return "CmeFire";
+  case EpmActionType::CmeCancel :
+    return "CmeCancel";
+  case EpmActionType::CmeHwCancel :
+    return "CmeHwCancel";
+  case EpmActionType::CmeSwFire :
+    return "CmeSwFire";
+  case EpmActionType::CmeSwHeartbeat :
+    return "CmeSwHeartbeat";
+  case EpmActionType::ItchHwFastSweep :
+    return "ItchHwFastSweep";
+  case EpmActionType::UserAction :
+    return "UserAction";
+  default:
+    return "Unknown";
+  }
+}
+  
 
 /// Descriptor of an action to be performed; more documentation about these
 /// fields can be found in the @ref epmGetAction function.

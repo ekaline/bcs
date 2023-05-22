@@ -694,7 +694,7 @@ int main(int argc, char *argv[]) {
       .SequenceNumber    = 0,
 
       // low 8 bytes of ClOrdID are replaced at FPGA by AppSeq number
-      .ClOrdID           = {'E','K','A','t','e','s','t','1','2','3','4','5','6','7','8','9','A','B','C','D'},
+      .ClOrdID           = {'s','e','q','-','>','s','t','1','2','3','4','5','6','<','-','-','A','B','C','D'},
 	  
       .Side              = '_',  // '1'-Bid, '2'-Ask
       .OrderQty          = 0,

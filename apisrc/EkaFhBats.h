@@ -7,6 +7,10 @@ class EkaFhBatsGr;
 
 class EkaFhBats : public EkaFh {
   static const uint QSIZE = 1024 * 1024;
+
+  static const int MaxOpenSnapshotGaps = 1;
+  static const int MaxOpenIncrGaps = 1;
+  
  protected:
   EkaFhGroup* addGroup();
 

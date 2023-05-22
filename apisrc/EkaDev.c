@@ -437,7 +437,7 @@ EkaDev::~EkaDev() {
 
   if (epmEnabled) {
     uint64_t val = eka_read(SW_STATISTICS);
-    val = val & ~(1 << 63); // EFC/EPM device
+    val = val & ~(1ULL << 63); // EFC/EPM device
     eka_write(SW_STATISTICS, val);
   } else {
     uint64_t val = eka_read(SW_STATISTICS);

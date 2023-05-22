@@ -312,26 +312,26 @@ static bool getLoginResponse(EkaFhNasdaqGr* gr) {
   case 'J' : 
     switch (soupbin_buf[0]) {
     case 'A' :
-      dev->lastExchErr = EfhExchangeErrorCode::kInvalidUserPasswd;
+      gr->lastExchErr = EfhExchangeErrorCode::kInvalidUserPasswd;
       EKA_WARN("%s:%u: Soupbin/Glimpse rejected login (\'J\') reject code: \'%c\': Not Authorized. There was an invalid username and password combination in the Login Request Message.",
 	       EKA_EXCH_DECODE(gr->exch),gr->id, soupbin_buf[0]);
       return false;
 
     case 'S' :
-      dev->lastExchErr = EfhExchangeErrorCode::kInvalidSession;
+      gr->lastExchErr = EfhExchangeErrorCode::kInvalidSession;
       EKA_WARN("%s:%u: Soupbin/Glimpse rejected login (\'J\') reject code: \'%c\': Session not available. The Requested Session in the Login Request Packet was either invalid or not available.",
 	       EKA_EXCH_DECODE(gr->exch),gr->id, soupbin_buf[0]);
       return false;
 
     default:
-      dev->lastExchErr = EfhExchangeErrorCode::kUnknown;
+      gr->lastExchErr = EfhExchangeErrorCode::kUnknown;
       EKA_WARN("%s:%u: Soupbin/Glimpse rejected login (\'J\') reject code: \'%c\': Unknown Code",
 	       EKA_EXCH_DECODE(gr->exch),gr->id, soupbin_buf[0]);
       return false;
     }
 
   case 'H' :
-    dev->lastExchErr = EfhExchangeErrorCode::kUnexpectedResponse;
+    gr->lastExchErr = EfhExchangeErrorCode::kUnexpectedResponse;
     EKA_WARN("%s:%u: Soupbin Heartbeat arrived before login",EKA_EXCH_DECODE(gr->exch),gr->id);
     return false;
 
@@ -352,7 +352,7 @@ static bool getLoginResponse(EkaFhNasdaqGr* gr) {
     break;
 
   default:
-    dev->lastExchErr = EfhExchangeErrorCode::kUnexpectedResponse;
+    gr->lastExchErr = EfhExchangeErrorCode::kUnexpectedResponse;
     EKA_WARN("%s:%u: Unknown Soupbin message type \'%c\' arrived after Login request",
 	     EKA_EXCH_DECODE(gr->exch),gr->id,soupbin_hdr.type);
     return false;
@@ -618,7 +618,7 @@ void* getSoupBinData(void* attr) {
 			   end_sequence,
 			   MaxTrials);
     if (success) break;
-    if (dev->lastExchErr != EfhExchangeErrorCode::kNoError)
+    if (gr->lastExchErr != EfhExchangeErrorCode::kNoError)
       gr->sendRetransmitExchangeError(pEfhRunCtx);
     if (dev->lastErrno   != 0)
       gr->sendRetransmitSocketError(pEfhRunCtx);
@@ -806,7 +806,7 @@ void* getMolUdp64Data(void* attr) {
       /* ----------------------------------------------------- */
     }
     if (! moldRcvSuccess) {
-      if (dev->lastExchErr != EfhExchangeErrorCode::kNoError) gr->sendRetransmitExchangeError(pEfhRunCtx);
+      if (gr->lastExchErr != EfhExchangeErrorCode::kNoError) gr->sendRetransmitExchangeError(pEfhRunCtx);
       if (dev->lastErrno   != 0)                              gr->sendRetransmitSocketError(pEfhRunCtx);
       on_error("%s:%u Mold request failed after %d attempts: %s",
 	       EKA_EXCH_DECODE(gr->exch),gr->id,

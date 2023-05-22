@@ -17,7 +17,9 @@
 
 /* ##################################################################### */
 
-EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t _runId ) {
+EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx,
+			      const EfhRunCtx* pEfhRunCtx,
+			      uint8_t _runId ) {
   dev      = pEfhCtx->dev;
 
   runId    = _runId;
@@ -35,7 +37,8 @@ EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
   }
 
   udpCh    = new EkaUdpChannel(dev,dev->snDev->dev_id,coreId,-1);
-  if (udpCh == NULL) on_error("udpCh == NULL");
+  if (udpCh == NULL)
+    on_error("udpCh == NULL");
 
   if (udpCh->chId == EkaEpm::EpmMcRegion) {
     EKA_LOG("Skipping EkaUdpChannel reserved to EpmMcRegion %d",udpCh->chId);
@@ -58,14 +61,18 @@ EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint
   sprintf(name,"RunGr%u",runId);
 
   epmRegion = udpCh2epmRegion(udpChId);
-  dev->epm->createRegion(epmRegion, epmRegion * EkaEpm::ActionsPerRegion);
+  dev->epm->createRegion(epmRegion,
+			 epmRegion * EkaEpm::ActionsPerRegion);
 
-  EKA_LOG("%s: coreId = %u, runId = %u, udpChId = %d, epmRegion = %d, MC groups: %s",
-	  EKA_EXCH_DECODE(exch),coreId,runId,udpChId,epmRegion,list2print);
+  EKA_LOG("%s: coreId = %u, runId = %u, udpChId = %d, "
+	  "epmRegion = %d, MC groups: %s",
+	  EKA_EXCH_DECODE(exch),coreId,runId,udpChId,
+	  epmRegion,list2print);
 
 }
 /* ##################################################################### */
-bool EkaFhRunGroup::igmpSanityCheck(int grId2check, uint32_t ip, uint16_t port) {
+bool EkaFhRunGroup::igmpSanityCheck(int grId2check,
+				    uint32_t ip, uint16_t port) {
   /* EKA_LOG("%s:%u on coreId %d udpChId %u", */
   /* 	  EKA_IP2STR(ip),port,coreId,udpChId); */
   struct McChState {
@@ -86,7 +93,8 @@ bool EkaFhRunGroup::igmpSanityCheck(int grId2check, uint32_t ip, uint16_t port) 
   sc_multicast_subscription_t hwIgmp[8 * 64] = {};
 
   int fd = SN_GetFileDescriptor(dev->snDev->dev_id);
-  if (fd < 0) on_error("fd = %d",fd);
+  if (fd < 0)
+    on_error("fd = %d",fd);
 
   eka_ioctl_t __attribute__ ((aligned(0x1000))) state = {};
 
@@ -108,8 +116,10 @@ bool EkaFhRunGroup::igmpSanityCheck(int grId2check, uint32_t ip, uint16_t port) 
 
     int grId = mcState.chState[chId].currHwGr;
     if (grId < 0 || grId > 63) 
-      on_error("chId=%d,grId=%d,hwIgmp[%d].positionIndex=%u,group_address=0x%08x",
-	       chId,grId,i,hwIgmp[i].positionIndex,hwIgmp[i].group_address);
+      on_error("chId=%d,grId=%d,hwIgmp[%d].positionIndex=%u,"
+	       "group_address=0x%08x",
+	       chId,grId,i,hwIgmp[i].positionIndex,
+	       hwIgmp[i].group_address);
 
     EKA_LOG ("%3d (%3d): pos=%3u, lane=%u, ch=%2u (%d), %s:%u",
 	     i, grId,
@@ -151,7 +161,8 @@ bool EkaFhRunGroup::igmpSanityCheck(int grId2check, uint32_t ip, uint16_t port) 
   return true;
 }
 /* ##################################################################### */
-int EkaFhRunGroup::igmpMcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag,uint64_t* pPktCnt) {
+int EkaFhRunGroup::igmpMcJoin(uint32_t ip, uint16_t port,
+			      uint16_t vlanTag, uint64_t* pPktCnt) {
   dev->igmpJoinMtx.lock();
   int grId = dev->ekaIgmp->mcJoin(epmRegion,coreId,ip,port,vlanTag,pPktCnt);
   udpCh->igmp_mc_join (ip, port, 0);
@@ -183,7 +194,8 @@ int EkaFhRunGroup::checkTimeOut(const EfhRunCtx* pEfhRunCtx) {
       continue;
     }
 
-    if (std::chrono::duration_cast<std::chrono::seconds>(now - gr->lastMdReceived).count() > TimeOutSeconds) {
+    if (std::chrono::duration_cast<std::chrono::seconds>
+	(now - gr->lastMdReceived).count() > TimeOutSeconds) {
 #ifndef _DONT_SEND_MDTIMEOUT
       gr->sendNoMdTimeOut(pEfhRunCtx);
 #endif
@@ -213,25 +225,31 @@ int EkaFhRunGroup::sendFeedCloseAll(const EfhRunCtx* pEfhRunCtx) {
 
 uint EkaFhRunGroup::getGrAfterGap() {
   if (cntGrAfterGap == 0) on_error("cntGrAfterGap = 0");
-  for (uint i = 0; i < MAX_GR2RUN; i ++) if (grAfterGap[i]) return i;
+  for (uint i = 0; i < MAX_GR2RUN; i ++)
+    if (grAfterGap[i])
+      return i;
   on_error("grAfterGap not found");
   return 0xFF;
 }
 /* ##################################################################### */
 void EkaFhRunGroup::setGrAfterGap(uint i) {
-  if (cntGrAfterGap > numGr) on_error("cntGrAfterGap %u > numGr %u",cntGrAfterGap, numGr);
+  if (cntGrAfterGap > numGr)
+    on_error("cntGrAfterGap %u > numGr %u",cntGrAfterGap, numGr);
 
   grAfterGap[i] = true;
   cntGrAfterGap ++;  
 
-  if (cntGrAfterGap > numGr) on_error("cntGrAfterGap %u > numGr %u",cntGrAfterGap,numGr);
+  if (cntGrAfterGap > numGr)
+    on_error("cntGrAfterGap %u > numGr %u",cntGrAfterGap,numGr);
   hasGrpAfterGap = true;
 }
 /* ##################################################################### */
 void EkaFhRunGroup::clearGrAfterGap(uint i) {
-  if (cntGrAfterGap > numGr) on_error("cntGrAfterGap %u > numGr %u",cntGrAfterGap, numGr);
+  if (cntGrAfterGap > numGr)
+    on_error("cntGrAfterGap %u > numGr %u",cntGrAfterGap, numGr);
 
-  if (cntGrAfterGap == 0) on_error("cntGrAfterGap = 0");
+  if (cntGrAfterGap == 0)
+    on_error("cntGrAfterGap = 0");
   grAfterGap[i] = false;
   cntGrAfterGap --;
 
@@ -256,7 +274,9 @@ EkaFhRunGroup::~EkaFhRunGroup() {
   thread_active      = false;
 
   EKA_LOG("Waiting for all groups sending FeedDownClosed...");
-  while (! allGroupsClosed) { sleep(0); }
+  while (! allGroupsClosed) {
+    sleep(0);
+  }
 
   EKA_LOG("Run Gr %u: terminated",runId);  
 }

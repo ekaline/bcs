@@ -23,7 +23,8 @@ EkaOpResult efcCmeFastCancelInit(EkaDev *dev,
       .strategyId     = (uint8_t)EFC_STRATEGY
   };
 
-  EKA_LOG("Configuring Cme Fast Cancel FPGA: minNoMDEntries=%d,maxMsgSize=%u,token=0x%jx,fireActionId=%d,strategyId=%d",
+  EKA_LOG("Configuring Cme Fast Cancel FPGA: minNoMDEntries=%d,maxMsgSize=%u,"
+	  "token=0x%jx,fireActionId=%d,strategyId=%d",
 	  conf.minNoMDEntries,
 	  conf.maxMsgSize,
 	  conf.token,
@@ -57,11 +58,25 @@ ssize_t efcCmeSend(EkaDev* dev, ExcConnHandle hConn,
 
 
 EkaOpResult efcCmeSetILinkAppseq(EkaDev *dev,
-				 ExcConnHandle hCon,
+				 ExcConnHandle hConn,
 				 int32_t appSequence) {
-  auto sessAppSeqId = getSessAppSeqId(dev,hCon);  
-  dev->eka_write(0x86000 + sessAppSeqId * 8,appSequence);
+  auto coreId = excGetCoreId(hConn);
+  auto sessId = excGetSessionId(hConn);
+  if (!dev->core[coreId] || !dev->core[coreId]->tcpSess[sessId])
+    on_error("hConn 0x%x does not exist",hConn);
+
+
+  struct SessAppCtx {
+    char asciiSeq[8] = {};
+    uint64_t binSeq = 0;
+  };
+
   
+  
+  auto s = dev->core[coreId]->tcpSess[sessId];
+
+  s->updateFpgaCtx<EkaTcpSess::AppSeqBin>((uint64_t)appSequence);
+
   return EKA_OPRESULT__OK;
 }
   

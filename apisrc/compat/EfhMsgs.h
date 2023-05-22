@@ -337,6 +337,7 @@ typedef struct {
                 _x( EfhSecurityType,  underlyingType )                      \
                 _x( EfhSymbol,        classSymbol )                         \
                 _x( EfhSymbol,        underlying )                          \
+                _x( EfhSymbol,        subtypeCode )                         \
                 _x( ExchSecurityName, exchSecurityName )                    \
                 /** Full UNIX epoch time of expiry, can be 0 */             \
                 _x( time_t,           expiryTime )                          \
@@ -645,6 +646,7 @@ enum class EfhExchangeErrorCode : int64_t {
     _x ( ServiceCurrentlyUnavailable )       \
     _x ( RequestNotServed )                  \
     _x ( UnexpectedResponse )                \
+    _x ( ConnectionProblem )                 \
       /* BOX exchange doesnt send predefined error code, but rather explicit text description */ \
     _x ( ExplicitBoxError )                  \
     _x ( Unknown )
