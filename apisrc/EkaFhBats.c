@@ -9,14 +9,16 @@ using namespace Bats;
 
 void* getSpinData(void* attr);
 
-/* ##################################################################### */
+/* ############################################### */
 EkaFhGroup* EkaFhBats::addGroup() {
   return new EkaFhBatsGr();
 }
 
-/* ##################################################################### */
-const uint8_t* EkaFhBats::getUdpPkt(EkaFhRunGroup* runGr, uint* msgInPkt,
-				    uint64_t* sequence,uint8_t* gr_id) {
+/* ############################################### */
+const uint8_t* EkaFhBats::getUdpPkt(EkaFhRunGroup* runGr,
+																		uint* msgInPkt,
+																		uint64_t* sequence,
+																		uint8_t* gr_id) {
   auto pkt = runGr->udpCh->get();
   if (! pkt)
     on_error("%s: pkt == NULL",EKA_EXCH_DECODE(exch));
@@ -37,7 +39,7 @@ const uint8_t* EkaFhBats::getUdpPkt(EkaFhRunGroup* runGr, uint* msgInPkt,
   *gr_id    = grId;
   return pkt;
 }
-/* ##################################################################### */
+/* ############################################### */
 
 uint8_t EkaFhBats::getGrId(const uint8_t* pkt) {
   for (uint8_t i = 0; i < groups; i++) {
@@ -46,23 +48,23 @@ uint8_t EkaFhBats::getGrId(const uint8_t* pkt) {
       on_error("b_gr[%u] = NULL",i);
 
     if (gr->mcast_port == EKA_UDPHDR_DST((pkt-8)) &&
-	EKA_BATS_UNIT(pkt) == gr->batsUnit) 
+				EKA_BATS_UNIT(pkt) == gr->batsUnit) 
       return i;
   }
   return 0xFF;
 }
 
-/* ##################################################################### */
+/* ############################################### */
 
 EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
-				  const EfhRunCtx* pEfhRunCtx,
-				  uint8_t runGrId ) {
+																	const EfhRunCtx* pEfhRunCtx,
+																	uint8_t runGrId ) {
   auto runGr = dev->runGr[runGrId];
   if (! runGr)
     on_error("runGr == NULL");
 
   EKA_DEBUG("Initializing %s Run Group %u: %s GROUPS",
-	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
+						EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
 
   initGroups(pEfhCtx, pEfhRunCtx, runGr);
 
@@ -73,12 +75,15 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
     gr->state = EkaFhGroup::GrpState::INIT;
   }
   
-  EKA_DEBUG("\n~~~~~~~~~~ Main Thread for %s Run Group %u: %s GROUPS ~~~~~~~~~~~~~",
-	    EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
-
+  EKA_DEBUG("\n~~~~~~~~~~ "
+						"Main Thread for %s Run Group %u: %s GROUPS "
+						"~~~~~~~~~~~~~",
+						EKA_EXCH_DECODE(exch),runGr->runId,
+						runGr->list2print);
+	
 #ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
-    uint64_t firstDropSeq = 0;
-    bool dropMe = false;
+	uint64_t firstDropSeq = 0;
+	bool dropMe = false;
 #endif
 
 #if EFH_MONITOR_BOOK_STATS
@@ -87,7 +92,7 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
 
   active = true;
   while (runGr->thread_active && ! runGr->stoppedByExchange) {
-    //-----------------------------------------------------------------------------
+    //-----------------------------------------
 #if EFH_MONITOR_BOOK_STATS
     if (++monitorCounter % 10000000000UL == 0) {
       for (uint8_t i = 0; i < runGr->numGr; i++) {
@@ -95,15 +100,14 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
       }
     }
 #endif
-
-    //-----------------------------------------------------------------------------
+    //-----------------------------------------
+		
     if (! runGr->udpCh->has_data()) {
-      if (++timeCheckCnt % TimeCheckRate == 0) {
-	tradingHours = isTradingHours(8,30,16,00);
-      }
-      if (tradingHours)   runGr->checkTimeOut(pEfhRunCtx);
+			if (runGr->checkNoMd)
+				runGr->checkGroupsNoMd(pEfhRunCtx);				
       continue;
     }
+
     uint     msgInPkt = 0;
     uint64_t sequence = 0;
     uint8_t  gr_id = 0xFF;
@@ -112,7 +116,8 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
     if (! pkt) continue;
 
     auto gr = dynamic_cast<EkaFhBatsGr*>(b_gr[gr_id]);
-    if (! gr) on_error("b_gr[%u] = NULL",gr_id);
+    if (! gr)
+			on_error("b_gr[%u] = NULL",gr_id);
 
     gr->resetNoMdTimer();
         
@@ -130,27 +135,27 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
     switch (gr->state) {
     case EkaFhGroup::GrpState::NORMAL :
       if (sequence % _EFH_TEST_GAP_INJECT_INTERVAL_ == 0) {
-	dropMe = true;
-	firstDropSeq = sequence;
+				dropMe = true;
+				firstDropSeq = sequence;
       }
       break;
     case EkaFhGroup::GrpState::SNAPSHOT_GAP :
       break;
     case EkaFhGroup::GrpState::RETRANSMIT_GAP :
       if (sequence - firstDropSeq <= _EFH_TEST_GAP_INJECT_DELTA_)
-	dropMe = true;
+				dropMe = true;
       break;
     default:
       dropMe = false;
     }
     if (dropMe) {
       EKA_WARN("\n---------------\n"
-	       "%s:%u: TEST GAP INJECTED: (INTERVAL = %d, DELTA = %d): "
-	       "sequence %ju with %u messages dropped"
-	       "\n---------------",
-	       EKA_EXCH_DECODE(exch),gr_id,
-	       _EFH_TEST_GAP_INJECT_INTERVAL_,_EFH_TEST_GAP_INJECT_DELTA_,
-	       sequence,msgInPkt);
+							 "%s:%u: TEST GAP INJECTED: (INTERVAL = %d, DELTA = %d): "
+							 "sequence %ju with %u messages dropped"
+							 "\n---------------",
+							 EKA_EXCH_DECODE(exch),gr_id,
+							 _EFH_TEST_GAP_INJECT_INTERVAL_,_EFH_TEST_GAP_INJECT_DELTA_,
+							 sequence,msgInPkt);
       goto SKIP_PKT;
     }
 #endif
@@ -161,12 +166,12 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
     goto SKIP_PKT;
 #endif
 
-    //------------------------------------------------------------------
+    //-----------------------------------------
     switch (gr->state) {
-      //----------------------------------------------------------------
+      //------------------------------------------
     case EkaFhGroup::GrpState::INIT : // waiting for Snapshot
       if (lockSnapshotGap.test_and_set(std::memory_order_acquire))
-	break; // only1s group can get snapshot at a time
+				break; // only1s group can get snapshot at a time
 
       gr->invalidateBook();
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
@@ -174,26 +179,27 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
       gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 0, 0);
     
       break;
-      //------------------------------------------------------------------
+      //-----------------------------------------
     case EkaFhGroup::GrpState::NORMAL :
       /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
       // NORMAL
       if (sequence == gr->expected_sequence) {  
-	runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,
-						     msgInPkt,sequence,
-						     startTime);
-	break;
+				runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,pkt,
+																										 msgInPkt,sequence,
+																										 startTime);
+				break;
       }
       /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
       // BACK-IN-TIME to be ignored
       if (sequence < gr->expected_sequence)
-	break;       
+				break;       
       /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
       // GAP
-      EKA_LOG("%s:%u Gap at NORMAL: expected_sequence=%ju, sequence=%ju, "
-	      "gap=%jd",
-	      EKA_EXCH_DECODE(exch),gr_id,gr->expected_sequence,sequence,
-	      sequence - gr->expected_sequence);
+      EKA_LOG("%s:%u Gap at NORMAL: expected_sequence=%ju, "
+							"sequence=%ju, gap=%jd",
+							EKA_EXCH_DECODE(exch),gr_id,
+							gr->expected_sequence,sequence,
+							sequence - gr->expected_sequence);
 
       gr->gapClosed = false;
       gr->sendFeedDown(pEfhRunCtx);
@@ -204,46 +210,48 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
       break;      
       /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
      
-      //-----------------------------------------------------------------
+      //----------------------------------------
     case EkaFhGroup::GrpState::SNAPSHOT_GAP : 
       /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
       // Waiting for recovery
       gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
 
       if (! gr->gapClosed)
-	break;
+				break;
       /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
       // Gap closed
       lockSnapshotGap.clear();
       
       if (gr->lastExchErr != EfhExchangeErrorCode::kNoError) {
-	EKA_LOG("%s:%u: GRP Recovery failed, trying Spin Snapshot",
-		EKA_EXCH_DECODE(exch),gr->id);
-	gr->gapClosed = false;
-	gr->state = EkaFhGroup::GrpState::INIT;
-	break;
+				EKA_LOG("%s:%u: GRP Recovery failed, trying Spin Snapshot",
+								EKA_EXCH_DECODE(exch),gr->id);
+				gr->gapClosed = false;
+				gr->state = EkaFhGroup::GrpState::INIT;
+				break;
       }
       
       gr->expected_sequence = gr->seq_after_snapshot;      
 
       if (gr->processFromQ(pEfhRunCtx) < 0) { // gap in the Q
-	EKA_LOG("%s:%u: gap during %s recovery, Spin Snapshot to be redone!",
-		EKA_EXCH_DECODE(exch),gr->id,
-		gr->printGrpState());
-	gr->state = EkaFhGroup::GrpState::INIT;
-	break;
+				EKA_LOG("%s:%u: gap during %s recovery, "
+								"Spin Snapshot to be redone!",
+								EKA_EXCH_DECODE(exch),gr->id,
+								gr->printGrpState());
+				gr->state = EkaFhGroup::GrpState::INIT;
+				break;
       }
       EKA_LOG("%s:%u: %s GAP Closed",
-	      EKA_EXCH_DECODE(exch),gr->id, gr->printGrpState());
+							EKA_EXCH_DECODE(exch),gr->id,
+							gr->printGrpState());
       
       gr->state = EkaFhGroup::GrpState::NORMAL;
       gr->sendFeedUp(pEfhRunCtx);
     
       break;
-      //-----------------------------------------------------------------
+      //----------------------------------------
     default:
       on_error("%s:%u: UNEXPECTED GrpState %u",
-	       EKA_EXCH_DECODE(exch),gr->id,(uint)gr->state);
+							 EKA_EXCH_DECODE(exch),gr->id,(uint)gr->state);
       break;
     }
 
@@ -255,16 +263,16 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
   return EKA_OPRESULT__OK;
 
 }
-/* ##################################################################### */
+/* ############################################### */
 
 EkaOpResult EkaFhBats::getDefinitions (EfhCtx* pEfhCtx,
-				       const EfhRunCtx* pEfhRunCtx,
-				       const EkaGroup* group) {
+																			 const EfhRunCtx* pEfhRunCtx,
+																			 const EkaGroup* group) {
   auto attr = new EkaFhThreadAttr(pEfhCtx, 
-				  pEfhRunCtx, 
-				  b_gr[group->localId], 
-				  1, 0, 
-				  EkaFhMode::DEFINITIONS);
+																	pEfhRunCtx, 
+																	b_gr[group->localId], 
+																	1, 0, 
+																	EkaFhMode::DEFINITIONS);
   if (! attr) on_error("attr = NULL");
   getSpinData(attr);
 

@@ -30,7 +30,8 @@ public:
   void         createQ(EfhCtx* pEfhCtx, const uint qsize);
 
   inline void resetNoMdTimer() {
-    lastMdReceived = std::chrono::high_resolution_clock::now();
+		//    lastMdReceived = std::chrono::high_resolution_clock::now();
+		gotPkt = true;
     pktCnt++;
   }
 
@@ -288,6 +289,7 @@ public:
 
   std::chrono::high_resolution_clock::time_point lastMdReceived;
   bool                  lastMdReceivedValid = false;
+	bool                  gotPkt             = false;
 
   fh_q*                 q                  = NULL;
 

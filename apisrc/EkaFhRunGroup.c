@@ -18,8 +18,8 @@
 /* ##################################################################### */
 
 EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx,
-			      const EfhRunCtx* pEfhRunCtx,
-			      uint8_t _runId ) {
+															const EfhRunCtx* pEfhRunCtx,
+															uint8_t _runId ) {
   dev      = pEfhCtx->dev;
 
   runId    = _runId;
@@ -41,9 +41,11 @@ EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx,
     on_error("udpCh == NULL");
 
   if (udpCh->chId == EkaEpm::EpmMcRegion) {
-    EKA_LOG("Skipping EkaUdpChannel reserved to EpmMcRegion %d",udpCh->chId);
+    EKA_LOG("Skipping EkaUdpChannel reserved to EpmMcRegion %d",
+						udpCh->chId);
     udpCh    = new EkaUdpChannel(dev,dev->snDev->dev_id,coreId,-1);
-    if (udpCh == NULL) on_error("udpCh == NULL");
+    if (udpCh == NULL)
+			on_error("udpCh == NULL");
   }
   
   udpChId            = udpCh->chId;
@@ -62,17 +64,17 @@ EkaFhRunGroup::EkaFhRunGroup (EfhCtx* pEfhCtx,
 
   epmRegion = udpCh2epmRegion(udpChId);
   dev->epm->createRegion(epmRegion,
-			 epmRegion * EkaEpm::ActionsPerRegion);
+												 epmRegion * EkaEpm::ActionsPerRegion);
 
   EKA_LOG("%s: coreId = %u, runId = %u, udpChId = %d, "
-	  "epmRegion = %d, MC groups: %s",
-	  EKA_EXCH_DECODE(exch),coreId,runId,udpChId,
-	  epmRegion,list2print);
+					"epmRegion = %d, MC groups: %s",
+					EKA_EXCH_DECODE(exch),coreId,runId,udpChId,
+					epmRegion,list2print);
 
 }
 /* ##################################################################### */
 bool EkaFhRunGroup::igmpSanityCheck(int grId2check,
-				    uint32_t ip, uint16_t port) {
+																		uint32_t ip, uint16_t port) {
   /* EKA_LOG("%s:%u on coreId %d udpChId %u", */
   /* 	  EKA_IP2STR(ip),port,coreId,udpChId); */
   struct McChState {
@@ -111,24 +113,25 @@ bool EkaFhRunGroup::igmpSanityCheck(int grId2check,
   for (auto i = 0; i < 512; i++) {
     int chId = udpCh2epmRegion(hwIgmp[i].channel - 32);
     if ((hwIgmp[i].group_address != 0) && (chId < 0 || chId > 31)) 
-      on_error("chId=%d,hwIgmp[%d].channel=%u",chId,i,hwIgmp[i].channel);
+      on_error("chId=%d,hwIgmp[%d].channel=%u",
+							 chId,i,hwIgmp[i].channel);
     if (hwIgmp[i].group_address == 0) continue;
 
     int grId = mcState.chState[chId].currHwGr;
     if (grId < 0 || grId > 63) 
       on_error("chId=%d,grId=%d,hwIgmp[%d].positionIndex=%u,"
-	       "group_address=0x%08x",
-	       chId,grId,i,hwIgmp[i].positionIndex,
-	       hwIgmp[i].group_address);
+							 "group_address=0x%08x",
+							 chId,grId,i,hwIgmp[i].positionIndex,
+							 hwIgmp[i].group_address);
 
     EKA_LOG ("%3d (%3d): pos=%3u, lane=%u, ch=%2u (%d), %s:%u",
-	     i, grId,
-	     hwIgmp[i].positionIndex,
-	     hwIgmp[i].lane,
-	     hwIgmp[i].channel,chId,
-	     EKA_IP2STR(be32toh(hwIgmp[i].group_address)),
-	     hwIgmp[i].ip_port_number
-	     );
+						 i, grId,
+						 hwIgmp[i].positionIndex,
+						 hwIgmp[i].lane,
+						 hwIgmp[i].channel,chId,
+						 EKA_IP2STR(be32toh(hwIgmp[i].group_address)),
+						 hwIgmp[i].ip_port_number
+						 );
 
     mcState.chState[chId].grpHwState[grId].coreId        = hwIgmp[i].lane;
     mcState.chState[chId].grpHwState[grId].ip            = be32toh(hwIgmp[i].group_address);
@@ -139,22 +142,22 @@ bool EkaFhRunGroup::igmpSanityCheck(int grId2check,
 
   if (coreId != mcState.chState[epmRegion].grpHwState[grId2check].coreId) {
     EKA_WARN("WARNING: chId %d, grId %d: expected coreId %d != actual %d",
-	     epmRegion,
-	     grId2check,
-	     coreId,
-	     mcState.chState[epmRegion].grpHwState[grId2check].coreId);
+						 epmRegion,
+						 grId2check,
+						 coreId,
+						 mcState.chState[epmRegion].grpHwState[grId2check].coreId);
     return false;
   }
 
   if (ip != mcState.chState[epmRegion].grpHwState[grId2check].ip || 
       port != mcState.chState[epmRegion].grpHwState[grId2check].port) {
     EKA_WARN("WARNING: chId %d, grId %d: expected %s:%u != actual %s:%u",
-	     epmRegion,grId2check,
-	     EKA_IP2STR(ip),
-	     port,
-	     EKA_IP2STR(mcState.chState[epmRegion].grpHwState[grId2check].ip),
-	     mcState.chState[epmRegion].grpHwState[grId2check].port
-	     );
+						 epmRegion,grId2check,
+						 EKA_IP2STR(ip),
+						 port,
+						 EKA_IP2STR(mcState.chState[epmRegion].grpHwState[grId2check].ip),
+						 mcState.chState[epmRegion].grpHwState[grId2check].port
+						 );
     return false;
   }
 
@@ -162,20 +165,37 @@ bool EkaFhRunGroup::igmpSanityCheck(int grId2check,
 }
 /* ##################################################################### */
 int EkaFhRunGroup::igmpMcJoin(uint32_t ip, uint16_t port,
-			      uint16_t vlanTag, uint64_t* pPktCnt) {
+															uint16_t vlanTag, uint64_t* pPktCnt) {
   dev->igmpJoinMtx.lock();
   int grId = dev->ekaIgmp->mcJoin(epmRegion,coreId,ip,port,vlanTag,pPktCnt);
   udpCh->igmp_mc_join (ip, port, 0);
   bool sanityCheckPassed = igmpSanityCheck(grId,ip,port);
   EKA_LOG("%d: %s:%u on coreId %d epmRegion %d: %s",
-	  grId,
-	  EKA_IP2STR(ip),port,coreId,epmRegion,
-	  sanityCheckPassed ? GRN "PASSED" RESET : RED "FAILED" RESET);
+					grId,
+					EKA_IP2STR(ip),port,coreId,epmRegion,
+					sanityCheckPassed ? GRN "PASSED" RESET : RED "FAILED" RESET);
   dev->igmpJoinMtx.unlock();
   return 0;
 }
 
 /* ##################################################################### */
+void EkaFhRunGroup::checkGroupsNoMd(const EfhRunCtx* pEfhRunCtx) {
+	for (auto i = 0; i < numGr; i++) {
+    EkaFhGroup* gr = fh->b_gr[groupList[i]];
+    if (!gr)
+			on_error("fh->gr[%u] == NULL",groupList[i]);
+
+		if (!gr->gotPkt) {
+			EKA_WARN("%s:%u: no packets",
+							 EKA_EXCH_DECODE(gr->exch),gr->id);
+			gr->sendNoMdTimeOut(pEfhRunCtx);
+		}
+		gr->gotPkt = false;
+	}
+	checkNoMd = false;
+}
+/* ##################################################################### */
+#if 0
 int EkaFhRunGroup::checkTimeOut(const EfhRunCtx* pEfhRunCtx) {
   static const int TimeOutSeconds = 4;
   static const int TimeOutSample  = 1000;
@@ -195,7 +215,7 @@ int EkaFhRunGroup::checkTimeOut(const EfhRunCtx* pEfhRunCtx) {
     }
 
     if (std::chrono::duration_cast<std::chrono::seconds>
-	(now - gr->lastMdReceived).count() > TimeOutSeconds) {
+				(now - gr->lastMdReceived).count() > TimeOutSeconds) {
 #ifndef _DONT_SEND_MDTIMEOUT
       gr->sendNoMdTimeOut(pEfhRunCtx);
 #endif
@@ -205,6 +225,7 @@ int EkaFhRunGroup::checkTimeOut(const EfhRunCtx* pEfhRunCtx) {
   }
   return 0;
 }
+#endif
 /* ##################################################################### */
 
 int EkaFhRunGroup::sendFeedCloseAll(const EfhRunCtx* pEfhRunCtx) {

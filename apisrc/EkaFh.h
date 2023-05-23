@@ -38,19 +38,7 @@ enum class EkaFhParseResult : int {End = 0, NotEnd, SocketError, ProtocolError};
 class EkaFhGroup;
 class EkaFhRunGroup;
 
-/* ##################################################################### */
-static inline bool isTradingHours(int startHour, int startMinute, int endHour, int endMinute) {
-  time_t rawtime;
-  time (&rawtime);
-  struct tm * ct = localtime (&rawtime);
-  if ((ct->tm_hour > startHour || (ct->tm_hour == startHour && ct->tm_min > startMinute)) &&
-      (ct->tm_hour < endHour   || (ct->tm_hour == endHour   && ct->tm_min < endMinute  ))
-      ) {
-    return true;
-  }
-  return false;
-}
-/* ##################################################################### */
+/* ############################################################# */
 // Bitmask that tells us the product information carried on this group
 enum ProductMask {
   PM_NoInfo         = 0,       // No information available
