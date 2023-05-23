@@ -33,7 +33,7 @@
 #include "EkaHwCaps.h"
 
 
- /* ##################################################################### */
+/* ############################################## */
 
 int EkaFh::setId(EfhCtx* pEfhCtx, EkaSource ec, uint8_t numFh) {
   assert (pEfhCtx != NULL);
@@ -48,7 +48,7 @@ int EkaFh::setId(EfhCtx* pEfhCtx, EkaSource ec, uint8_t numFh) {
 
   return 0;
 }
-/* ##################################################################### */
+/* ############################################## */
 
 uint8_t EkaFh::getGrId(const uint8_t* pkt) {
   EkaIpHdr* ipHdr = (EkaIpHdr*)(pkt - 8 - 20);
@@ -61,7 +61,7 @@ uint8_t EkaFh::getGrId(const uint8_t* pkt) {
   
   return 0xFF;
 }
- /* ##################################################################### */
+/* ############################################## */
 int EkaFh::init(const EfhInitCtx* pEfhInitCtx, uint8_t numFh) {
   c               = pEfhInitCtx->coreId;
   noTob           = pEfhInitCtx->noTob;
@@ -104,12 +104,12 @@ int EkaFh::init(const EfhInitCtx* pEfhInitCtx, uint8_t numFh) {
   any_group_getting_snapshot = false;
 
   EKA_DEBUG("%s is Initialized: coreId = %u, feed_ver = %s, %u MC groups",
-	    EKA_EXCH_DECODE(exch), c, EKA_FEED_VER_DECODE(feed_ver),groups);
+						EKA_EXCH_DECODE(exch), c, EKA_FEED_VER_DECODE(feed_ver),groups);
 
   return 0;
 }
 
- /* ##################################################################### */
+/* ############################################## */
 
 /* void EkaFh::send_igmp(bool join_leave, volatile bool igmp_thread_active) { */
 /*   //  EKA_DEBUG("Sending IGMP %s", join_leave ? "JOIN" : "LEAVE"); */
@@ -121,7 +121,7 @@ int EkaFh::init(const EfhInitCtx* pEfhInitCtx, uint8_t numFh) {
 /*   } */
 /*   return; */
 /* } */
- /* ##################################################################### */
+/* ############################################## */
 int EkaFh::stop() {
   EKA_DEBUG("Stopping %s (fhId=%u)",EKA_EXCH_DECODE(exch),id);
   for (uint i=0; i < groups ; i++) {
@@ -130,7 +130,7 @@ int EkaFh::stop() {
   return 0;
 }
 
- /* ##################################################################### */
+/* ############################################## */
 EkaFh::~EkaFh() {
   EKA_DEBUG("destroying %s:%u",EKA_EXCH_DECODE(exch),id);
   for (uint i=0; i < groups ; i++) {
@@ -140,7 +140,7 @@ EkaFh::~EkaFh() {
   }
 }
 
-/* ##################################################################### */
+/* ############################################## */
 
 int EkaFh::openGroups(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
   assert (pEfhInitCtx->numOfGroups <= EKA_FH_GROUPS);
@@ -154,27 +154,27 @@ int EkaFh::openGroups(EfhCtx* pEfhCtx, const EfhInitCtx* pEfhInitCtx) {
     b_gr[i]->bookInit();
 
     EKA_LOG("%s:%u initialized as %s:%u at runGroups",
-	    EKA_EXCH_DECODE(exch),b_gr[i]->id,EKA_EXCH_DECODE(b_gr[i]->exch),i);
+						EKA_EXCH_DECODE(exch),b_gr[i]->id,EKA_EXCH_DECODE(b_gr[i]->exch),i);
   }
   return 0;
 }
 
- /* ##################################################################### */
+/* ############################################## */
 
 static inline uint8_t nextQ(uint8_t c,uint first, uint max) {
   if (max == 1 || c == max - 1) return first;
   return c + 1;
 }
 
- /* ##################################################################### */
+/* ############################################## */
 
 EkaFhGroup* EkaFh::nextGrToProcess(uint first, uint numGroups) {
   uint8_t curr = nextQ(lastServed,first, numGroups);
   for (uint8_t i = 0; i < numGroups; i ++) {
     if (b_gr[curr] == NULL) on_error ("%s: numGroups=%u, but b_gr[%u] == NULL",
-				      EKA_EXCH_DECODE(exch),numGroups,curr);
+																			EKA_EXCH_DECODE(exch),numGroups,curr);
     if (b_gr[curr]->q == NULL) on_error ("%s: b_gr[%u]->q == NULL",
-					 EKA_EXCH_DECODE(exch),curr);
+																				 EKA_EXCH_DECODE(exch),curr);
 
     if (b_gr[curr]->q->is_empty() || b_gr[curr]->state == EkaFhGroup::GrpState::GAP) {
       curr = nextQ(curr,first,(uint)numGroups);
@@ -187,22 +187,22 @@ EkaFhGroup* EkaFh::nextGrToProcess(uint first, uint numGroups) {
   return NULL;
 }
 
- /* ##################################################################### */
+/* ############################################## */
 
 EkaOpResult EkaFh::subscribeStaticSecurity(uint8_t groupNum, 
-					   uint64_t securityId, 
-					   EfhSecurityType efhSecurityType,
-					   EfhSecUserData efhSecUserData,
-					   uint64_t opaqueAttrA,
-					   uint64_t opaqueAttrB) {
+																					 uint64_t securityId, 
+																					 EfhSecurityType efhSecurityType,
+																					 EfhSecUserData efhSecUserData,
+																					 uint64_t opaqueAttrA,
+																					 uint64_t opaqueAttrB) {
   if (groupNum >= groups) on_error("groupNum (%u) >= groups (%u)",groupNum,groups);
   if (b_gr[groupNum] == NULL) on_error("b_gr[%u] == NULL",groupNum);
 
   b_gr[groupNum]->subscribeStaticSecurity(securityId, 
-					  efhSecurityType,
-					  efhSecUserData,
-					  opaqueAttrA,
-					  opaqueAttrB);
+																					efhSecurityType,
+																					efhSecUserData,
+																					opaqueAttrA,
+																					opaqueAttrB);
 
   b_gr[groupNum]->numSecurities++;
   return EKA_OPRESULT__OK;
@@ -216,7 +216,7 @@ int EkaFh::getTradeTime(const EfhDateComponents* dateComponents,
     // when the day is explicitly specified, we can still compute iso8601Date.
     if (dateComponents->dayMethod == EfhDayMethod::kDirectDay) {
       *iso8601Date = dateComponents->year * 10'000 + dateComponents->month * 100 +
-          dateComponents->day;
+				dateComponents->day;
     }
     else
       *iso8601Date = 0;
@@ -236,7 +236,7 @@ EkaOpResult EkaFh::setTradeTimeCtx(void *ctx) {
   return EKA_OPRESULT__OK;
 }
 
- /* ##################################################################### */
+/* ############################################## */
 
 EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
   char val_buf[200] = {};
@@ -254,22 +254,22 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
   k[i] = strtok(key_buf,".");
   while(k[i]!=NULL) k[++i] = strtok(NULL,".");
 
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.pin_packet_buffer
   // k[0] k[1]   k[2] k[3] k[4]   k[5]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[1],"pin_packet_buffer")==0)) {
     this->pinPacketBuffer = strcmp(value, "true") == 0;
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.NOM_ITTO.group.X.snapshot.connectRetryDelayTime, <numSec>
   // k[0] k[1]   k[2] k[3] k[4]   k[5]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"snapshot")==0) && (strcmp(k[5],"connectRetryDelayTime")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
-	return EkaFhAddConf::CONF_SUCCESS;
+				on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+				return EkaFhAddConf::CONF_SUCCESS;
       }
       if (b_gr[gr] == NULL) on_error("b_gr[%u] == NULL",gr);
 
@@ -279,15 +279,15 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.NOM_ITTO.group.X.snapshot.auth, user:passwd
   // k[0] k[1]   k[2] k[3] k[4]   k[5]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"snapshot")==0) && (strcmp(k[5],"auth")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
-	return EkaFhAddConf::CONF_SUCCESS;
+				on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+				return EkaFhAddConf::CONF_SUCCESS;
       }
       if (b_gr[gr] == NULL) on_error("b_gr[%u] == NULL",gr);
 
@@ -304,15 +304,15 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }  
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.C1_PITCH.group.X.recovery.grpAuth, user:passwd
   // k[0] k[1]   k[2] k[3] k[4]   k[5]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"recovery")==0) && (strcmp(k[5],"grpAuth")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
-	return EkaFhAddConf::CONF_SUCCESS;
+				on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+				return EkaFhAddConf::CONF_SUCCESS;
       }
       
       auto batsGr {reinterpret_cast<EkaFhBatsGr*>(b_gr[gr])};
@@ -334,7 +334,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }  
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.NOM_ITTO.snapshot.auth, user:passwd
   // k[0] k[1]   k[2]     k[3] 
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"snapshot")==0) && (strcmp(k[3],"auth")==0)) {
@@ -351,17 +351,17 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }
-  //---------------------------------------------------------------------
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
+  //-------------------------------------------------
   // efh.BOX_HSVF.group.X.gapsLimit, "1"
   // k[0] k[1]     k[2] k[3] k[4]   k[5]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"gapsLimit")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t grId = (uint8_t) atoi(k[3]);
       if (grId >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",
-		   key, value,grId,groups);
-	return EkaFhAddConf::CONF_SUCCESS;
+				on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",
+									 key, value,grId,groups);
+				return EkaFhAddConf::CONF_SUCCESS;
       }
       auto gr = b_gr[grId];
       if (!gr) on_error("! b_gr[%u]",grId);
@@ -370,15 +370,15 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }  
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.C1_PITCH.group.X.unit, "1"
   // k[0] k[1]     k[2] k[3] k[4]   k[5]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"unit")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
-	return EkaFhAddConf::CONF_SUCCESS;
+				on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+				return EkaFhAddConf::CONF_SUCCESS;
       }
       if (b_gr[gr] == NULL) on_error("b_gr[%u] == NULL",gr);
 
@@ -388,7 +388,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }  
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.BATS_PITCH.group.X.queue_capacity, "1048576"
   // k[0] k[1]     k[2] k[3] k[4]   k[5]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"queue_capacity")==0)) {
@@ -400,7 +400,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.BATS_PITCH.queue_capacity, "1048576"
   // k[0] k[1]       k[2] 
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"queue_capacity")==0)) {
@@ -411,15 +411,15 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.BATS_PITCH.group.X.snapshot.sessionSubID, "0285"
   // k[0] k[1]     k[2] k[3] k[4]   k[5]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"snapshot")==0) && (strcmp(k[5],"sessionSubID")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
-	return EkaFhAddConf::CONF_SUCCESS;
+				on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+				return EkaFhAddConf::CONF_SUCCESS;
       }
       if (b_gr[gr] == NULL) on_error("b_gr[%u] == NULL",gr);
 
@@ -431,22 +431,22 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.C1_PITCH.group.X.recovery.grpSessionSubID, "0285"
   // k[0] k[1]     k[2] k[3] k[4]   k[5]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"recovery")==0) && (strcmp(k[5],"grpSessionSubID")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
-	return EkaFhAddConf::CONF_SUCCESS;
+				on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+				return EkaFhAddConf::CONF_SUCCESS;
       }
       auto batsGr {reinterpret_cast<EkaFhBatsGr*>(b_gr[gr])};
       if (batsGr == NULL) on_error("b_gr[%u] == NULL",gr);
 
       if (strlen(v[0]) != sizeof(batsGr->grpSessionSubID))
-	on_error("parameter size mismatch: strlen(%s) %d != sizeof(batsGr->grpSessionSubID) %d",
-		 v[0], (int)strlen(v[0]), (int)sizeof(batsGr->grpSessionSubID));
+				on_error("parameter size mismatch: strlen(%s) %d != sizeof(batsGr->grpSessionSubID) %d",
+								 v[0], (int)strlen(v[0]), (int)sizeof(batsGr->grpSessionSubID));
       memcpy(batsGr->grpSessionSubID,v[0],sizeof(batsGr->grpSessionSubID));
 
       //      EKA_DEBUG ("%s:%u: grpSessionSubID set to %s",k[1],gr,v[0] +'\0');
@@ -455,7 +455,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.NOM_ITTO.group.X.mcast.addr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"mcast")==0) && (strcmp(k[5],"addr")==0)) {
@@ -463,8 +463,8 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       //      if (gr >= groups) on_error("%s -- %s : group_id %d >= groups (=%u)",key, value,gr,groups);
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
-	return EkaFhAddConf::CONF_SUCCESS;
+				on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+				return EkaFhAddConf::CONF_SUCCESS;
       }
       if (b_gr[gr] == NULL) on_error("b_gr[%u] == NULL, groups = %u",gr,groups);
       inet_aton (v[0],(struct in_addr*) &b_gr[gr]->mcast_ip);
@@ -476,7 +476,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       return EkaFhAddConf::CONF_SUCCESS;
     } 
   }
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.NOM_ITTO.group.X.snapshot.addr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"snapshot")==0) && (strcmp(k[5],"addr")==0)) {
@@ -484,8 +484,8 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       //      if (gr >= groups) on_error("%s -- %s : group_id %d >= groups (=%u)",key, value,gr,groups);
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
-	return EkaFhAddConf::CONF_SUCCESS;
+				on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+				return EkaFhAddConf::CONF_SUCCESS;
       }
       if (b_gr[gr] == NULL) on_error("b_gr[%u] == NULL",gr);
 
@@ -497,15 +497,15 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.C1_PITCH.group.X.recovery.grpAddr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"recovery")==0) && (strcmp(k[5],"grpAddr")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
-	return EkaFhAddConf::CONF_SUCCESS;
+				on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+				return EkaFhAddConf::CONF_SUCCESS;
       }
       auto batsGr {reinterpret_cast<EkaFhBatsGr*>(b_gr[gr])};
 
@@ -519,7 +519,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.NOM_ITTO.group.X.recovery.addr, x.x.x.x:xxxx
   // k[0] k[1]    k[2] k[3] k[4]   k[5]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"recovery")==0) && (strcmp(k[5],"addr")==0)) {
@@ -527,8 +527,8 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       //      if (gr >= groups) on_error("%s -- %s : group_id %d >= groups (=%u)",key, value,gr,groups);
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
-	return EkaFhAddConf::CONF_SUCCESS;
+				on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+				return EkaFhAddConf::CONF_SUCCESS;
       }
       if (b_gr[gr] == NULL) on_error("b_gr[%u] == NULL",gr);
 
@@ -540,7 +540,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.<exch>.group.X.products, <comma-separated-product-keys>
   // k[0] k[1]   k[2]  k[3] k[4]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"products")==0)) {
@@ -548,8 +548,8 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       //      if (gr >= groups) on_error("%s -- %s : group_id %d >= groups (=%u)",key, value,gr,groups);
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
-	return EkaFhAddConf::CONF_SUCCESS;
+				on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+				return EkaFhAddConf::CONF_SUCCESS;
       }
       if (b_gr[gr] == NULL) on_error("b_gr[%u] == NULL, groups = %u",gr,groups);
 
@@ -560,9 +560,9 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
         v[nProducts++] = tok;
 
       for (size_t i = 0; i < nProducts; ++i) {
-	while (*v[i] == ' ') { // skipping leading spaces
-	  v[i]++;
-	}
+				while (*v[i] == ' ') { // skipping leading spaces
+					v[i]++;
+				}
         const int mask = lookupProductMask(v[i]);
         if (mask == NoSuchProduct)
           on_error("product token `%s` not recognized",v[i]);
@@ -573,7 +573,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }
-    //---------------------------------------------------------------------
+	//-------------------------------------------------
   // efh.<exch>.group.X.useDefinitionsFile, "0" or "1"
   // k[0] k[1]  k[2] k[3] k[4]
   if ((strcmp(k[0],"efh")==0) &&
@@ -583,12 +583,12 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       uint8_t gr = (uint8_t) atoi(k[3]);
 
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",
-		   key, value,gr,groups);
-	return EkaFhAddConf::CONF_SUCCESS;
+				on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",
+									 key, value,gr,groups);
+				return EkaFhAddConf::CONF_SUCCESS;
       }
       if (!b_gr[gr])
-	on_error("!b_gr[%u], groups = %u",gr,groups);
+				on_error("!b_gr[%u], groups = %u",gr,groups);
 
       b_gr[gr]->useDefinitionsFile = (atoi(v[0]) != 0);
 
@@ -597,7 +597,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.BOX_HSVF.group.X.mcast.line   ,"11"
   // k[0] k[1]    k[2] k[3] k[4]   k[5]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"mcast")==0) && (strcmp(k[5],"line")==0)) {
@@ -605,8 +605,8 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       //      if (gr >= groups) on_error("%s -- %s : group_id %d >= groups (=%u)",key, value,gr,groups);
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d >= groups (=%u)",key, value,gr,groups);
-	return EkaFhAddConf::CONF_SUCCESS;
+				on_warning("%s -- %s : Ignoring group_id %d >= groups (=%u)",key, value,gr,groups);
+				return EkaFhAddConf::CONF_SUCCESS;
       }
       if (b_gr[gr] == NULL) on_error("Group %u does not exist",gr);
       EkaFhBoxGr* boxGr = dynamic_cast<EkaFhBoxGr*>(b_gr[gr]);
@@ -619,15 +619,15 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.ARCA_PLR.group.X.refresh.tcpAddr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"refresh")==0) && (strcmp(k[5],"tcpAddr")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
-	return EkaFhAddConf::CONF_SUCCESS;
+				on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+				return EkaFhAddConf::CONF_SUCCESS;
       }
       auto plrGr {dynamic_cast<EkaFhPlrGr*>(b_gr[gr])};
       if (plrGr == NULL) on_error("b_gr[%u] == NULL",gr);
@@ -636,20 +636,20 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       plrGr->refreshTcpPort = be16toh((uint16_t)atoi(v[1]));
 
       EKA_DEBUG ("%s:%u: %s is set to %s:%u",
-      		 k[1],gr,k[5],EKA_IP2STR(plrGr->refreshTcpIp),be16toh(plrGr->refreshTcpPort));
+								 k[1],gr,k[5],EKA_IP2STR(plrGr->refreshTcpIp),be16toh(plrGr->refreshTcpPort));
       fflush(stderr);
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.ARCA_PLR.group.X.refresh.udpAddr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"refresh")==0) && (strcmp(k[5],"udpAddr")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
-	return EkaFhAddConf::CONF_SUCCESS;
+				on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+				return EkaFhAddConf::CONF_SUCCESS;
       }
       auto plrGr {dynamic_cast<EkaFhPlrGr*>(b_gr[gr])};
       if (plrGr == NULL) on_error("b_gr[%u] == NULL",gr);
@@ -658,20 +658,20 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       plrGr->refreshUdpPort = be16toh((uint16_t)atoi(v[1]));
 
       EKA_DEBUG ("%s:%u: refreshUdpIp:refreshUdpPort %s is set to %s:%u",
-      		 k[1],gr,k[5],EKA_IP2STR(plrGr->refreshUdpIp),be16toh(plrGr->refreshUdpPort));
+								 k[1],gr,k[5],EKA_IP2STR(plrGr->refreshUdpIp),be16toh(plrGr->refreshUdpPort));
       fflush(stderr);
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.ARCA_PLR.group.X.retrans.tcpAddr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"retrans")==0) && (strcmp(k[5],"tcpAddr")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
-	return EkaFhAddConf::CONF_SUCCESS;
+				on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+				return EkaFhAddConf::CONF_SUCCESS;
       }
       auto plrGr {dynamic_cast<EkaFhPlrGr*>(b_gr[gr])};
       if (plrGr == NULL) on_error("b_gr[%u] == NULL",gr);
@@ -680,20 +680,20 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       plrGr->retransTcpPort = be16toh((uint16_t)atoi(v[1]));
 
       EKA_DEBUG ("%s:%u: retransTcpIp:retransTcpPort %s is set to %s:%u",
-      		 k[1],gr,k[5],EKA_IP2STR(plrGr->retransTcpIp),be16toh(plrGr->retransTcpPort));
+								 k[1],gr,k[5],EKA_IP2STR(plrGr->retransTcpIp),be16toh(plrGr->retransTcpPort));
       fflush(stderr);
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.ARCA_PLR.group.X.retrans.udpAddr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"retrans")==0) && (strcmp(k[5],"udpAddr")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
-	return EkaFhAddConf::CONF_SUCCESS;
+				on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+				return EkaFhAddConf::CONF_SUCCESS;
       }
       auto plrGr {dynamic_cast<EkaFhPlrGr*>(b_gr[gr])};
       if (plrGr == NULL) on_error("b_gr[%u] == NULL",gr);
@@ -702,44 +702,44 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       plrGr->retransUdpPort = be16toh((uint16_t)atoi(v[1]));
 
       EKA_DEBUG ("%s:%u: retransUdpIp:retransUdpPort %s is set to %s:%u",
-      		 k[1],gr,k[5],EKA_IP2STR(plrGr->retransUdpIp),be16toh(plrGr->retransUdpPort));
+								 k[1],gr,k[5],EKA_IP2STR(plrGr->retransUdpIp),be16toh(plrGr->retransUdpPort));
       fflush(stderr);
       return EkaFhAddConf::CONF_SUCCESS;
     }
   } 
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.ARCA_PLR.group.X.SourceId, xxxx
   // k[0] k[1]    k[2] k[3] k[4]    v[0]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"SourceId")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
-	return EkaFhAddConf::CONF_SUCCESS;
+				on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+				return EkaFhAddConf::CONF_SUCCESS;
       }
       auto plrGr {dynamic_cast<EkaFhPlrGr*>(b_gr[gr])};
       if (plrGr == NULL) on_error("b_gr[%u] == NULL",gr);
 
       if (strlen(v[0]) > sizeof(plrGr->sourceId))
-	on_error("strlen(\'%s\') %d > sizeof(sourceId) %d",
-		 v[0],(int)strlen(v[0]),(int)sizeof(plrGr->sourceId));
+				on_error("strlen(\'%s\') %d > sizeof(sourceId) %d",
+								 v[0],(int)strlen(v[0]),(int)sizeof(plrGr->sourceId));
       memcpy(plrGr->sourceId,v[0],strlen(v[0]));
       
       EKA_DEBUG ("%s:%u: %s is set to \'%s\'",
-      		 k[1],gr,k[4],plrGr->sourceId);
+								 k[1],gr,k[4],plrGr->sourceId);
       fflush(stderr);
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   // efh.ARCA_PLR.group.X.ChannelId, x
   // k[0] k[1]    k[2] k[3] k[4]    v[0]
   if ((strcmp(k[0],"efh")==0) && (strcmp(k[2],"group")==0) && (strcmp(k[4],"ChannelId")==0)) {
     if (EFH_GET_SRC(k[1]) == exch) {
       uint8_t gr = (uint8_t) atoi(k[3]);
       if (gr >= groups) {
-	on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
-	return EkaFhAddConf::CONF_SUCCESS;
+				on_warning("%s -- %s : Ignoring group_id %d > groups (=%u)",key, value,gr,groups);
+				return EkaFhAddConf::CONF_SUCCESS;
       }
       auto plrGr {dynamic_cast<EkaFhPlrGr*>(b_gr[gr])};
       if (plrGr == NULL) on_error("b_gr[%u] == NULL",gr);
@@ -747,30 +747,37 @@ EkaFhAddConf EkaFh::conf_parse(const char *key, const char *value) {
       plrGr->channelId = atoi(v[0]);
       
       EKA_DEBUG ("%s:%u: ChannelId is set to %d",
-      		 k[1],gr,plrGr->channelId);
+								 k[1],gr,plrGr->channelId);
       fflush(stderr);
       return EkaFhAddConf::CONF_SUCCESS;
     }
   }
 
-  //---------------------------------------------------------------------
+  //-------------------------------------------------
   return EkaFhAddConf::UNKNOWN_KEY;
 }
- /* ##################################################################### */
+/* ############################################## */
 
-EkaOpResult EkaFh::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaFhRunGroup* runGr) {
+EkaOpResult EkaFh::initGroups(EfhCtx* pEfhCtx,
+															const EfhRunCtx* pEfhRunCtx,
+															EkaFhRunGroup* runGr) {
+  dev->efhGrInitMtx.lock();
   for (uint8_t i = 0; i < runGr->numGr; i++) {
-    if (! runGr->isMyGr(pEfhRunCtx->groups[i].localId)) 
-      on_error("pEfhRunCtx->groups[%d].localId = %u doesnt belong to %s",
-	       i,pEfhRunCtx->groups[i].localId,runGr->list2print);
+		auto localId = pEfhRunCtx->groups[i].localId;
+    if (! runGr->isMyGr(localId)) 
+      on_error("pEfhRunCtx->groups[%d].localId = %u "
+							 "doesnt belong to %s",
+							 i,localId,runGr->list2print);
     if (pEfhRunCtx->groups[i].source != exch) 
-      on_error("id=%u,fhId = %u, pEfhRunCtx->groups[i].source %s != exch %s",
-	       id,pEfhCtx->fhId,
-	       EKA_EXCH_SOURCE_DECODE(pEfhRunCtx->groups[i].source),
-	       EKA_EXCH_SOURCE_DECODE(exch));
+      on_error("id=%u,fhId = %u, "
+							 "pEfhRunCtx->groups[i].source %s != exch %s",
+							 id,pEfhCtx->fhId,
+							 EKA_EXCH_SOURCE_DECODE(pEfhRunCtx->groups[i].source),
+							 EKA_EXCH_SOURCE_DECODE(exch));
 
-    EkaFhGroup* gr = b_gr[pEfhRunCtx->groups[i].localId];
-    if (gr == NULL) on_error ("b_gr[%u] == NULL",pEfhRunCtx->groups[i].localId);
+    EkaFhGroup* gr = b_gr[localId];
+    if (!gr)
+			on_error ("!b_gr[%u]",localId);
 
     //    b_gr[i]->bookInit();
     gr->createQ(pEfhCtx,qsize);
@@ -778,12 +785,13 @@ EkaOpResult EkaFh::initGroups(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, EkaF
 
     runGr->igmpMcJoin(gr->mcast_ip,gr->mcast_port,0,&gr->pktCnt);
     EKA_DEBUG("%s:%u: joined %s:%u for %u securities",
-	      EKA_EXCH_DECODE(exch),gr->id,
-	      EKA_IP2STR(gr->mcast_ip),gr->mcast_port,
-	      gr->getNumSecurities());
+							EKA_EXCH_DECODE(exch),gr->id,
+							EKA_IP2STR(gr->mcast_ip),gr->mcast_port,
+							gr->getNumSecurities());
   }
+  dev->efhGrInitMtx.unlock();
   return EKA_OPRESULT__OK;
 }
 
 
- /* ##################################################################### */
+/* ############################################## */

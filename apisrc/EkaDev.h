@@ -108,6 +108,7 @@ class EkaDev {
 
   std::mutex                addTcpSessMtx;
   std::mutex                lwipConnectMtx;
+  std::mutex                efhGrInitMtx;
   std::mutex                igmpJoinMtx;
 
   struct EfcCtx*            pEfcCtx                    = NULL;
