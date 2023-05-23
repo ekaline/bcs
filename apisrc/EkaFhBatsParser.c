@@ -9,6 +9,7 @@
 
 #include "EkaFhParserCommon.h"
 #include "EkaFhBatsParser.h"
+#include "EkaOsiSymbol.h"
 
 #ifdef _PCAP_TEST_
 #include "batsPcapParse.h"
@@ -333,13 +334,77 @@ bool EkaFhBatsGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     s->trading_action = tradeAction(s->trading_action,message->trading_status);
     break;
   }
-    //--------------------------------------------------------------
+  //--------------------------------------------------------------
+  case MsgId::OPTIONS_AUCTION_UPDATE: { // 0xD1
+    if (productMask & PM_ComplexBook) {
+      return false; // Complex imbalances not yet supported
+    }
+    auto message {reinterpret_cast<const OptionsAuctionUpdate *>(m)};
+    SecurityIdT security_id = expSymbol2secId(message->symbol);
+    s = book->findSecurity(security_id);
+    if (s == nullptr) return false;
+
+    if (message->referencePrice != message->indicativePrice) {
+      EKA_WARN("%s:%d: Skipping unexpected reference or indicative price on `%.8s`: ref=%" PRIu64 ", ind=%" PRIu64,
+               EKA_EXCH_DECODE(exch), id, message->symbol, message->referencePrice, message->indicativePrice);
+      return false;
+    }
+
+    const int64_t price = getEfhPrice(message->indicativePrice);
+    const uint32_t rawBidSize = message->buyContracts;
+    const uint32_t rawAskSize = message->sellContracts;
+    const uint32_t size = std::min(rawBidSize, rawAskSize);
+
+    bool hasBid = false;
+    bool hasAsk = false;
+    switch (message->openingCondition) {
+    case 'O': // Would open
+      hasBid = hasAsk = true;
+      break;
+    case 'B': // Needs more buyers
+      hasAsk = true;
+      break;
+    case 'S': // Needs more sellers
+      hasBid = true;
+      break;
+    case 'Q': // Needs quote to open
+    case 'C': // Crossed composite market
+    default:
+      if (size > 0) {
+        EKA_WARN("%s:%d: Skipping unexpected positive size on `%.8s`: openingCondition='%c', bidSize=%u, askSize=%u",
+                 EKA_EXCH_DECODE(exch), id, message->symbol, message->openingCondition, rawBidSize, rawAskSize);
+        return false;
+      }
+    }
+
+    EfhImbalanceMsg msg{};
+    msg.header.msgType        = EfhMsgType::kImbalance;
+    msg.header.group.source   = exch;
+    msg.header.group.localId  = id;
+    msg.header.underlyingId   = 0;
+    msg.header.securityId     = security_id;
+    msg.header.sequenceNumber = sequence;
+    msg.header.timeStamp      = msg_timestamp;
+    msg.header.gapNum         = gapNum;
+
+    msg.tradeStatus   = s->trading_action;
+    msg.bidSide.price = hasBid ? price : 0;
+    msg.bidSide.size  = hasBid ? size : 0;
+    msg.askSide.price = hasAsk ? price : 0;
+    msg.askSide.size  = hasAsk ? size : 0;
+
+    if (pEfhRunCtx->onEfhImbalanceMsgCb == NULL)
+      on_error("pEfhRunCtx->onEfhImbalanceMsgCb == NULL");
+    pEfhRunCtx->onEfhImbalanceMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
+    return false;
+  }
+  //--------------------------------------------------------------
   case MsgId::AUCTION_NOTIFICATION : { // 0xAD
     if (productMask & PM_ComplexAuction)
       s = process_AuctionNotification<FhSecurity,AuctionNotification_complex>(pEfhRunCtx, sequence, msg_timestamp, m);
     else
       s = process_AuctionNotification<FhSecurity,AuctionNotification>(pEfhRunCtx, sequence, msg_timestamp, m);
-    if (s == NULL) return NULL;
+    if (s == NULL) return false;
     break;
   }
     //--------------------------------------------------------------
@@ -690,7 +755,12 @@ bool EkaFhBatsGr::process_Definition(const EfhRunCtx* pEfhRunCtx,
 				     EkaFhMode op) {
   auto message {reinterpret_cast<const SymbolMapping*>(m)};
 
-  const char* osi = message->osi_symbol;
+  EkaOsiSymbolData osi;
+  if (!osi.parseFromSymbol(message->osi_symbol)) {
+    EKA_ERROR("%s:%d: Skipping option def `%.21s` (`%.6s`) as the OSI symbol is not valid!",
+              EKA_EXCH_DECODE(exch), id, osi, message->symbol);
+    return false;
+  }
 
   EfhOptionDefinitionMsg msg{};
   msg.header.msgType        = EfhMsgType::kOptionDefinition;
@@ -706,27 +776,14 @@ bool EkaFhBatsGr::process_Definition(const EfhRunCtx* pEfhRunCtx,
   msg.commonDef.exchange       = EKA_GRP_SRC2EXCH(exch);
   msg.commonDef.isPassive      = isDefinitionPassive(EfhSecurityType::kOption);
   msg.commonDef.underlyingType = EfhSecurityType::kStock;
-  {
-  uint y = (osi[6] -'0') * 10 + (osi[7] -'0');
-  uint m = (osi[8] -'0') * 10 + (osi[9] -'0');
-  uint d = (osi[10]-'0') * 10 + (osi[11]-'0');
-  msg.commonDef.expiryDate     = (2000 + y) * 10000 + m * 100 + d;
-  }
-  char strike_price_str[9] = {};
-  memcpy(strike_price_str,&osi[13],8);
-  strike_price_str[8] = '\0';
-
-  msg.strikePrice = strtoull(strike_price_str,NULL,10) * EFH_PITCH_STRIKE_PRICE_SCALE; // per Ken's request
-
-  msg.optionType  = osi[12] == 'C' ?  EfhOptionType::kCall : EfhOptionType::kPut;
+  msg.commonDef.expiryDate     = osi.getYYYYMMDD();
+  msg.strikePrice = osi.efhStrikePrice;
+  msg.optionType  = osi.optionType;
+  msg.optionStyle = EfhOptionStyle::kAmerican;
+  msg.segmentId = batsUnit;
 
   copySymbol(msg.commonDef.underlying,message->underlying);
-  {
-    char *s = stpncpy(msg.commonDef.classSymbol,osi,6);
-    *s-- = '\0';
-    while (*s == ' ')
-      *s-- = '\0';
-  }
+  osi.copyRoot(msg.commonDef.classSymbol, message->osi_symbol);
   copySymbol(msg.commonDef.exchSecurityName, message->symbol);
   memcpy(&msg.commonDef.opaqueAttrA,message->symbol,6);
 
@@ -922,8 +979,8 @@ SecurityT* EkaFhBatsGr::process_TradeExpanded(const EfhRunCtx* pEfhRunCtx,
                                               uint64_t sequence,
                                               uint64_t msg_timestamp,
                                               const uint8_t* m) {
-  auto message {reinterpret_cast<const TradeExpanded *>(m)};
-  SecurityIdT security_id =  symbol2secId(message->symbol);
+  auto message {reinterpret_cast<const OrderMsgT *>(m)};
+  SecurityIdT security_id = expSymbol2secId(message->symbol);
 
   SecurityT* s = book->findSecurity(security_id);
   if (!s) return NULL;

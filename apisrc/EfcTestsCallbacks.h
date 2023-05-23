@@ -440,6 +440,10 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
   return NULL;
 }
 
+void* onImbalance(const EfhImbalanceMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+  return NULL;
+}
+
 static void* onComplexDefinition(const EfhComplexDefinitionMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
 #if 0  
   if (! testCtx->keep_work) return NULL;
