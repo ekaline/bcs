@@ -153,10 +153,10 @@ class EkaFh {
 
   int                     stop();
 
-  int                     init(const EfhInitCtx* pEfhInitCtx, uint8_t numFh);
+  EkaOpResult             init(const EfhInitCtx* pEfhInitCtx, uint8_t numFh);
   int                     setId(EfhCtx* pEfhCtx, EkaSource exch, uint8_t numFh);
 
-  int                     openGroups(EfhCtx*           pEfhCtx, 
+  int                     openGroups(EfhCtx*           pEfhCtx,
 				     const EfhInitCtx* pEfhInitCtx);
 
   virtual EkaOpResult     runGroups(EfhCtx*          pEfhCtx, 

@@ -91,14 +91,16 @@ EkaOpResult efhInit( EfhCtx** ppEfhCtx, EkaDev* pEkaDev, const EfhInitCtx* pEfhI
     break;
   case EkaSourceType::kNASDAQ_MRX_TOP2:
     dev->fh[fhId] = new EkaFhMrx2Top();
-    break;   
+    break;
   default:
     on_error ("Invalid Exchange %s from: %s",EKA_EXCH_DECODE(exch),pEfhInitCtx->ekaProps->props[0].szKey);
   }
   assert (dev->fh[fhId] != NULL);
   dev->fh[fhId]->setId(*ppEfhCtx,exch,fhId);
   dev->fh[fhId]->openGroups(*ppEfhCtx,pEfhInitCtx);
-  dev->fh[fhId]->init(pEfhInitCtx,fhId);
+  if (EkaOpResult r = dev->fh[fhId]->init(pEfhInitCtx,fhId)) {
+    return r;
+  }
 
   EKA_LOG("Created %s with fhId=%u ppEfhCtx=%p, *ppEfhCtx=%p",
 	  EKA_EXCH_DECODE(exch),fhId,ppEfhCtx,*ppEfhCtx);

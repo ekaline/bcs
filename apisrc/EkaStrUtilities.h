@@ -6,6 +6,24 @@
 #include <cstring>
 #include <string_view>
 
+template<std::size_t N>
+bool tryCopyCString(char (&buf)[N], const char* source) {
+  static_assert(N != 0, "copyCStringNoPad cannot copy into 0-size buffer");
+  const std::size_t charsToCopy = std::strlen(source) + 1;
+  if (charsToCopy > N) return false;
+  std::memcpy(buf, source, charsToCopy);
+  return true;
+}
+
+template<std::size_t N>
+bool tryCopyPaddedString(char (&buf)[N], const char* source, char padding = '\0') {
+  const std::size_t charsToCopy = std::strlen(source);
+  if (charsToCopy > N) return false;
+  std::memcpy(buf, source, charsToCopy);
+  std::memset(buf + charsToCopy, padding, N - charsToCopy);
+  return true;
+}
+
 template <typename SymbolType, std::size_t N>
 SymbolType &copySymbol(SymbolType &symbol, const char (&src)[N]) {
   char *s = stpncpy(symbol, src, std::min(sizeof symbol, N));

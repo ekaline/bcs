@@ -72,46 +72,45 @@ extern "C" {
 
   enum EkaOpResult : int {
     EKA_OPRESULT__OK    = 0,        /** General success message */
-      EKA_OPRESULT__ALREADY_INITIALIZED = 1,
-      EKA_OPRESULT__END_OF_SESSION = 2,
-      EKA_OPRESULT__ERR_A = -100,     /** Temporary filler error message.  Replace 'A' with actual error code. */
-      EKA_OPRESULT__ERR_DOUBLE_SUBSCRIPTION = -101,     // returned by efhSubscribeStatic() if trying to subscribe to same security again
-      EKA_OPRESULT__ERR_BAD_ADDRESS = -102,     // returned if you pass NULL for something that can't be NULL, similar to EFAULT
-      EKA_OPRESULT__ERR_SYSTEM_ERROR = -103,     // returned when a system call fails and errno is set
-      EKA_OPRESULT__ERR_NOT_IMPLEMENTED = -104,     // returned when an API call is not implemented
-      EKA_OPRESULT__ERR_GROUP_NOT_AVAILABLE = -105, // returned by test feed handler when group not present in capture
-      EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION = -106, // returned if exchange retransmit connection failed
-      EKA_OPRESULT__ERR_EFC_SET_CTX_ON_UNSUBSCRIBED_SECURITY = -107,
-      EKA_OPRESULT__ERR_STRIKE_PRICE_OVERFLOW = -108,
-    
-      // EPM specific
-      EKA_OPRESULT__ERR_EPM_DISABLED = -201,
-      EKA_OPRESULT__ERR_INVALID_CORE = -202,
-      EKA_OPRESULT__ERR_EPM_UNINITALIZED = -203,
-      EKA_OPRESULT__ERR_INVALID_STRATEGY = -204,
-      EKA_OPRESULT__ERR_INVALID_ACTION = -205,
-      EKA_OPRESULT__ERR_NOT_CONNECTED = -206,
-      EKA_OPRESULT__ERR_INVALID_OFFSET = -207,
-      EKA_OPRESULT__ERR_INVALID_ALIGN = -208,
-      EKA_OPRESULT__ERR_INVALID_LENGTH = -209,
-      EKA_OPRESULT__ERR_UNKNOWN_FLAG = -210,
-      EKA_OPRESULT__ERR_MAX_STRATEGIES = -211,
+    EKA_OPRESULT__ALREADY_INITIALIZED = 1,
+    EKA_OPRESULT__END_OF_SESSION = 2,
+    EKA_OPRESULT__ERR_A = -100,     /** Temporary filler error message.  Replace 'A' with actual error code. */
+    EKA_OPRESULT__ERR_DOUBLE_SUBSCRIPTION = -101,     // returned by efhSubscribeStatic() if trying to subscribe to same security again
+    EKA_OPRESULT__ERR_BAD_ADDRESS = -102,     // returned if you pass NULL for something that can't be NULL, similar to EFAULT
+    EKA_OPRESULT__ERR_SYSTEM_ERROR = -103,     // returned when a system call fails and errno is set
+    EKA_OPRESULT__ERR_NOT_IMPLEMENTED = -104,     // returned when an API call is not implemented
+    EKA_OPRESULT__ERR_GROUP_NOT_AVAILABLE = -105, // returned by test feed handler when group not present in capture
+    EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION = -106, // returned if exchange retransmit connection failed
+    EKA_OPRESULT__ERR_EFC_SET_CTX_ON_UNSUBSCRIBED_SECURITY = -107,
+    EKA_OPRESULT__ERR_STRIKE_PRICE_OVERFLOW = -108,
+    EKA_OPRESULT__ERR_INVALID_CONFIG = -109,
 
-      
-      // EFC specific
-      EKA_OPRESULT__ERR_EFC_DISABLED = -301,
-      EKA_OPRESULT__ERR_EFC_UNINITALIZED = -302,
+    // EPM specific
+    EKA_OPRESULT__ERR_EPM_DISABLED = -201,
+    EKA_OPRESULT__ERR_INVALID_CORE = -202,
+    EKA_OPRESULT__ERR_EPM_UNINITALIZED = -203,
+    EKA_OPRESULT__ERR_INVALID_STRATEGY = -204,
+    EKA_OPRESULT__ERR_INVALID_ACTION = -205,
+    EKA_OPRESULT__ERR_NOT_CONNECTED = -206,
+    EKA_OPRESULT__ERR_INVALID_OFFSET = -207,
+    EKA_OPRESULT__ERR_INVALID_ALIGN = -208,
+    EKA_OPRESULT__ERR_INVALID_LENGTH = -209,
+    EKA_OPRESULT__ERR_UNKNOWN_FLAG = -210,
+    EKA_OPRESULT__ERR_MAX_STRATEGIES = -211,
 
-      // EFH recovery specific
-      EKA_OPRESULT__RECOVERY_IN_PROGRESS = -400, 
-      EKA_OPRESULT__ERR_RECOVERY_FAILED  = -401,
+    // EFC specific
+    EKA_OPRESULT__ERR_EFC_DISABLED = -301,
+    EKA_OPRESULT__ERR_EFC_UNINITALIZED = -302,
 
-      // EFH TCP/Protocol Handshake specific
-      EKA_OPRESULT__ERR_TCP_SOCKET  = -501,
-      EKA_OPRESULT__ERR_UDP_SOCKET  = -502,
-      EKA_OPRESULT__ERR_PROTOCOL  = -503,
+    // EFH recovery specific
+    EKA_OPRESULT__RECOVERY_IN_PROGRESS = -400,
+    EKA_OPRESULT__ERR_RECOVERY_FAILED  = -401,
 
-      };
+    // EFH TCP/Protocol Handshake specific
+    EKA_OPRESULT__ERR_TCP_SOCKET  = -501,
+    EKA_OPRESULT__ERR_UDP_SOCKET  = -502,
+    EKA_OPRESULT__ERR_PROTOCOL  = -503,
+  };
 
   struct ExcCtx;
   struct EkaCoreInitAttrs;
