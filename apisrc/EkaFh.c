@@ -82,8 +82,27 @@ EkaOpResult EkaFh::init(const EfhInitCtx* pEfhInitCtx, uint8_t numFh) {
     EkaProp& ekaProp{ pEfhInitCtx->ekaProps->props[i] };
     //    EKA_DEBUG("ekaProp.szKey = %s, ekaProp.szVal = %s",ekaProp.szKey,ekaProp.szVal);   fflush(stderr);
     EkaFhAddConf r = conf_parse(ekaProp.szKey, ekaProp.szVal);
-    fflush(stderr);
-    if (r != EkaFhAddConf::CONF_SUCCESS && r != EkaFhAddConf::IGNORED) {
+
+    const char *error_name;
+    switch (r) {
+    case EkaFhAddConf::CONF_SUCCESS:
+    case EkaFhAddConf::IGNORED:
+      error_name = NULL;
+      break;
+    case EkaFhAddConf::UNKNOWN_KEY:
+      error_name = "unknown key";
+      break;
+    case EkaFhAddConf::WRONG_VALUE:
+      error_name = "invalid value";
+      break;
+    case EkaFhAddConf::CONFLICTING_CONF:
+      error_name = "conflicting configuration";
+      break;
+    default:
+      on_error("Unknown conf_parse result %d from %s -- %s", (int)r, ekaProp.szKey, ekaProp.szVal);
+    }
+    if (error_name) {
+      on_warning("Init failed to configure due to %s at %s -- %s", error_name, ekaProp.szKey, ekaProp.szVal);
       return EKA_OPRESULT__ERR_INVALID_CONFIG;
     }
   }
