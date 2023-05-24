@@ -145,24 +145,59 @@ constexpr ProductNameToMaskEntry ProductNameToMaskMap[] = {
   },
 };
 
+constexpr std::size_t calculateMaxProductMaskNameBufSize_() {
+  std::size_t bufLen = 0;
+  for (const auto &entry : ProductNameToMaskMap) {
+    std::size_t nameLen = 0;
+    while (entry.name[nameLen] != '\0') nameLen++;
+    bufLen += nameLen + 1; // 1 for separator or for terminator
+  }
+  return bufLen;
+}
+
+constexpr std::size_t MaxProductMaskNameBufSize = calculateMaxProductMaskNameBufSize_();
+
 constexpr int NoSuchProduct = -1;
 
-  inline int lookupProductMask(const char *productName) {
-    for (const auto [n, m] : ProductNameToMaskMap) {
-      if (!strcmp(productName, n))
-	return m;
-    }
-    return NoSuchProduct;
+inline int lookupProductMask(const char *productName) {
+  for (const auto [n, m] : ProductNameToMaskMap) {
+    if (!strcmp(productName, n))
+      return m;
   }
+  return NoSuchProduct;
+}
 
-  // returns only one name
-  inline const char* lookupProductName(int productMask) {
-    for (const auto [n, m] : ProductNameToMaskMap) {
-      if (productMask & m)
-	return n;
-    }
-    return "UnInitialized";
+// returns only one name
+inline const char* lookupSingleProductName(int productMask) {
+  for (const auto [n, m] : ProductNameToMaskMap) {
+    if (productMask & m)
+      return n;
   }
+  return "UnInitialized";
+}
+
+template<std::size_t N>
+inline const char* lookupProductMaskNames(int productMask, char (&buf)[N]) {
+  static_assert(N >= MaxProductMaskNameBufSize);
+  char *out = buf;
+  for (const auto [n, m] : ProductNameToMaskMap) {
+    if (productMask & m) {
+      std::size_t len = std::strlen(n);
+      std::memcpy(out, n, len);
+      out += len;
+      *out = ',';
+      out++;
+    }
+  }
+  if (out != buf) {
+    out--;
+    *out = '\0';
+  } else {
+    std::strcpy(buf, "UnInitialized");
+  }
+  return buf;
+}
+
 } // End of anonymous namespace
 
 class EkaFh {
