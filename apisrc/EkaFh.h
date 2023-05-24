@@ -31,6 +31,29 @@ enum class EkaFhMode : uint8_t {UNINIT = 0, DEFINITIONS, SNAPSHOT, MCAST, RECOVE
     x == EkaFhMode::MCAST ? "MCAST" : \
     "UNEXPECTED"
 
+constexpr bool ekaFhAddConfIsErr(const EkaFhAddConf result) {
+  switch (result) {
+  case EkaFhAddConf::CONF_SUCCESS:
+  case EkaFhAddConf::IGNORED:
+  case EkaFhAddConf::UNKNOWN_KEY:
+    return false;
+  case EkaFhAddConf::WRONG_VALUE:
+  case EkaFhAddConf::CONFLICTING_CONF:
+    return true;
+  }
+  on_error("Unknown EkaFhAddConf (%u)", (unsigned)result);
+}
+
+constexpr const char * ekaFhAddConfToString(const EkaFhAddConf result) {
+  switch (result) {
+  case EkaFhAddConf::CONF_SUCCESS: return "success";
+  case EkaFhAddConf::IGNORED: return "ignored key";
+  case EkaFhAddConf::UNKNOWN_KEY: return "unknown key";
+  case EkaFhAddConf::WRONG_VALUE: return "invalid value";
+  case EkaFhAddConf::CONFLICTING_CONF: return "conflicting configuration";
+  }
+  on_error("Unknown EkaFhAddConf (%u)", (unsigned)result);
+}
 
 enum class EkaFhParseResult : int {End = 0, NotEnd, SocketError, ProtocolError};
 #define EFH_STRIKE_PRICE_SCALE 1
