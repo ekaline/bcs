@@ -8,6 +8,7 @@
 #define __EFC_CME_H__
 
 #include "Epm.h"
+#include "EfcMultiStrategies.h"
 
 extern "C" {
 
@@ -38,6 +39,7 @@ extern "C" {
     uint16_t       maxMsgSize;     ///< msgSize (from msg hdr) -- only 1st msg in pkt!
     uint8_t        minNoMDEntries; ///< NoMDEntries in MDIncrementalRefreshTradeSummary48
     uint64_t       token;          ///< Security token
+		epm_actionid_t fireActionId;   ///< 1st Action to be fired
   };
   
   EkaOpResult efcCmeFastCancelInit(EkaDev *ekaDev,

@@ -33,7 +33,7 @@ int EhpNom::init() {
 
 
 int EhpNom::createAddOrderShort() {
-  uint8_t msgId   = 'a';
+  uint16_t msgId   = 'a';
   int     msgType = AddOrderShortMsg;
 
   conf.params.bytes4Strategy[msgType].msgId    = msgId;
@@ -124,7 +124,7 @@ int EhpNom::createAddOrderShort() {
 }
 
 int EhpNom::createAddOrderLong() {
-  uint8_t msgId   = 'A';
+  uint16_t msgId   = 'A';
   int     msgType = AddOrderLongMsg;
 
   conf.params.bytes4Strategy[msgType].msgId    = msgId;

@@ -25,5 +25,6 @@
 //#define EKA_EXPECTED_EFC_STRATEGY      130 //fast sweep strategy
 //#define EKA_EXPECTED_EFC_STRATEGY      131 // efcSwKeepAliveSend()
 #define EKA_EXPECTED_EFC_STRATEGY      132 // Tcp sess ctx in SRAMs
+//#define EKA_EXPECTED_EFC_STRATEGY      133 // QED
 
 #endif

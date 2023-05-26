@@ -89,14 +89,12 @@ EkaOpResult epmEnableController(EkaDev *dev, EkaCoreId coreId, bool enable) {
 EkaOpResult epmInitStrategies(EkaDev *dev,
                               const EpmStrategyParams *params,
                               epm_strategyid_t numStrategies) {
-
-  if (dev == NULL) return EKA_OPRESULT__ERR_BAD_ADDRESS;
-  if (dev->epm == NULL) {
-    EKA_WARN("This SW instance cannot run EPM functionality. Check other Ekaline processes running (or suspended) on this machine.");
-    return EKA_OPRESULT__ERR_EPM_DISABLED;
-  }
-
-  if (numStrategies > static_cast<epm_strategyid_t>(dev->epm->getMaxStrategies()))
+	if (! dev->checkAndSetEpmTx())
+		on_error("TX functionality is not available for this "
+						 "Ekaline SW instance - caught by another process");
+    
+  if (numStrategies > static_cast<epm_strategyid_t>
+			(dev->epm->getMaxStrategies()))
     return EKA_OPRESULT__ERR_MAX_STRATEGIES;
 
   EKA_LOG("initializing %u EPM strategies",numStrategies);

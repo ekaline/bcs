@@ -12,6 +12,7 @@
 #include "Exc.h"
 #include "Efh.h"
 #include "Epm.h"
+#include "EfcMultiStrategies.h"
 
 #define EFC_HW_TTL 0x55
 #define EFC_HW_ID  0xabcd
@@ -166,7 +167,21 @@ EkaOpResult efcSetGroupSesCtx( EfcCtx* efcCtx, uint8_t group, ExcConnHandle hCon
  * @retval [See EkaOpResult].
  */
 
+/**
+ * This sets value of the "binary" and "ASCII" counters that are inserted
+ * into the firing payload. The "binary" counter gets the value as is,
+ * while the "ASCII" counter gets a result of sprintf(dest,"%08ju",cntr)
+ * 
+ * @param dev
+ * @param hConn  This is the ExcSessionId that we will be mapping to.
+ * @param cntr   8 byte Little Endian (normal) value of the counters
+ * @retval [See EkaOpResult].
+ */
 
+EkaOpResult efcSetSessionCntr(EkaDev *dev,ExcConnHandle hConn,uint64_t cntr);
+
+
+			
 /* ****************************************
  * Declaring callbacks.
  * ****************************************/

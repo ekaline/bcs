@@ -52,6 +52,7 @@ class EkaDev {
 
   bool        openEpm();
   bool        initEpmTx();
+  bool        checkAndSetEpmTx();
 
   EkaTcpSess* findTcpSess(uint32_t ipSrc, uint16_t udpSrc, uint32_t ipDst, uint16_t udpDst);
   EkaTcpSess* findTcpSess(int sock);

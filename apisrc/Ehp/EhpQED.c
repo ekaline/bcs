@@ -1,42 +1,42 @@
 #include "EkaDev.h"
 #include "ekaNW.h"
 
-#include "EhpCmeFC.h"
+#include "EhpQED.h"
 
-EhpCmeFC::EhpCmeFC(EkaDev* dev) : EhpProtocol(dev) {
-  EKA_LOG("EhpCmeFC is created");
+EhpQED::EhpQED(EkaDev* dev) : EhpProtocol(dev) {
+  EKA_LOG("EhpQED is created");
 
-  conf.params.protocolID         = static_cast<decltype(conf.params.protocolID)>(EhpHwProtocol::CMEFC);
-  conf.params.pktHdrLen          = 12;
+  conf.params.protocolID         = static_cast<decltype(conf.params.protocolID)>(EhpHwProtocol::QED);
+  conf.params.pktHdrLen          = 0;
   conf.params.msgDeltaSize       = EhpNoMsgSize;
-  conf.params.bytes4StartMsgProc = 6; // MHeaderTemplateId
+  conf.params.bytes4StartMsgProc = 4; //stam - no msgid in protocol
  
   conf.fields.sequence[0].msgId      = 0; //Not relevant
   conf.fields.sequence[0].opcode     = EhpOpcode::NOP;
-  conf.fields.sequence[0].byteOffs_0 = 0;
-  conf.fields.sequence[0].byteOffs_1 = 1;
-  conf.fields.sequence[0].byteOffs_2 = 2;
-  conf.fields.sequence[0].byteOffs_3 = 3;
+  conf.fields.sequence[0].byteOffs_0 = EhpBlankByte;
+  conf.fields.sequence[0].byteOffs_1 = EhpBlankByte;
+  conf.fields.sequence[0].byteOffs_2 = EhpBlankByte;
+  conf.fields.sequence[0].byteOffs_3 = EhpBlankByte;
   conf.fields.sequence[0].byteOffs_4 = EhpBlankByte;
   conf.fields.sequence[0].byteOffs_5 = EhpBlankByte;
   conf.fields.sequence[0].byteOffs_6 = EhpBlankByte;
   conf.fields.sequence[0].byteOffs_7 = EhpBlankByte;
 }
 
-int EhpCmeFC::init() {
-  createFastCancel();
+int EhpQED::init() {
+  createQedTrigger();
 
 
   return 0;
 }
 
 
-int EhpCmeFC::createFastCancel() {
-  uint16_t msgId   = 48;
-  int     msgType = FastCancelMsg;
+int EhpQED::createQedTrigger() {
+  uint16_t msgId   = EhpNoMsgID; //single type, always matches template0
+  int     msgType = QedTriggerMsg;
 
   conf.params.bytes4Strategy[msgType].msgId    = msgId;
-  conf.params.bytes4Strategy[msgType].byteOffs = 24;
+  conf.params.bytes4Strategy[msgType].byteOffs = 32;
 
   conf.params.bytes4SecLookup[msgType].msgId    = msgId;
   conf.params.bytes4SecLookup[msgType].byteOffs = 255; //no lookup
@@ -66,11 +66,11 @@ int EhpCmeFC::createFastCancel() {
   conf.fields.miscEnable[msgType].mask       = 0x0; // no special enable fields, so always enable
   conf.fields.miscEnable[msgType].expected   = 0x0; // no special enable fields, so always enable
 
-  //GNumInGroup
+  //ds_id
   conf.fields.securityId[msgType].msgId      = msgId;
   conf.fields.securityId[msgType].opcode     = EhpOpcode::NOP;
-  conf.fields.securityId[msgType].byteOffs_0 = 23;
-  conf.fields.securityId[msgType].byteOffs_1 = EhpBlankByte;
+  conf.fields.securityId[msgType].byteOffs_0 = 30;
+  conf.fields.securityId[msgType].byteOffs_1 = 31;
   conf.fields.securityId[msgType].byteOffs_2 = EhpBlankByte;
   conf.fields.securityId[msgType].byteOffs_3 = EhpBlankByte;
   conf.fields.securityId[msgType].byteOffs_4 = EhpBlankByte;
@@ -90,11 +90,11 @@ int EhpCmeFC::createFastCancel() {
   conf.fields.price[msgType].byteOffs_6 = EhpBlankByte;
   conf.fields.price[msgType].byteOffs_7 = EhpBlankByte;
 
-  //MHeaderSize
+  //NA
   conf.fields.size[msgType].msgId      = msgId;
   conf.fields.size[msgType].opcode     = EhpOpcode::NOP;
-  conf.fields.size[msgType].byteOffs_0 = 0;
-  conf.fields.size[msgType].byteOffs_1 = 1;
+  conf.fields.size[msgType].byteOffs_0 = EhpBlankByte;
+  conf.fields.size[msgType].byteOffs_1 = EhpBlankByte;
   conf.fields.size[msgType].byteOffs_2 = EhpBlankByte;
   conf.fields.size[msgType].byteOffs_3 = EhpBlankByte;
   conf.fields.size[msgType].byteOffs_4 = EhpBlankByte;
@@ -102,11 +102,11 @@ int EhpCmeFC::createFastCancel() {
   conf.fields.size[msgType].byteOffs_6 = EhpBlankByte;
   conf.fields.size[msgType].byteOffs_7 = EhpBlankByte;
 
-  //MHeaderTemplateId
+  //NA
   conf.fields.msgId[msgType].msgId      = msgId;
   conf.fields.msgId[msgType].opcode     = EhpOpcode::NOP;
-  conf.fields.msgId[msgType].byteOffs_0 = 4;
-  conf.fields.msgId[msgType].byteOffs_1 = 5;
+  conf.fields.msgId[msgType].byteOffs_0 = EhpBlankByte;
+  conf.fields.msgId[msgType].byteOffs_1 = EhpBlankByte;
   conf.fields.msgId[msgType].byteOffs_2 = EhpBlankByte;
   conf.fields.msgId[msgType].byteOffs_3 = EhpBlankByte;
   conf.fields.msgId[msgType].byteOffs_4 = EhpBlankByte;

@@ -10,6 +10,7 @@
 #include "EkaIgmp.h"
 #include "EkaEpmAction.h"
 #include "EkaWc.h"
+#include "EkaEpmRegion.h"
 
 ExcSessionId excGetSessionId( ExcConnHandle hConn );
 EkaCoreId excGetCoreId( ExcConnHandle hConn );
@@ -47,7 +48,7 @@ EpmStrategy::EpmStrategy(EkaEpm* _epm, epm_strategyid_t _id, epm_actionid_t _bas
 				params->triggerParams[i].coreId,
 				inet_addr(params->triggerParams[i].mcIp),
 				params->triggerParams[i].mcUdpPort); 
-    dev->ekaIgmp->mcJoin(EkaEpm::EpmMcRegion, 
+    dev->ekaIgmp->mcJoin(EkaEpmRegion::Regions::EfcMc, 
 			 udpSess[i]->coreId, 
 			 udpSess[i]->ip, 
 			 udpSess[i]->port, 
@@ -166,7 +167,7 @@ EkaOpResult EpmStrategy::setAction(epm_actionid_t actionIdx,
   atomicIndirectBufWrite(dev,0xf0238/*ActionAddr*/,0,0,ekaA->idx,0);
 
 
-  /* ekaA->printHeap(); */
+	//  ekaA->printHeap();
   /* ekaA->printHwAction(); */
   
   //---------------------------------------------------------

@@ -25,6 +25,7 @@ enum class EhpSidePresence : int8_t {
 enum class EhpHwProtocol :  uint8_t {
   NOM    = 1,     
   PITCH  = 2,
+  QED    = 12, // hardcoded in HW to trigger QED purge
   ITCHFS = 13, // hardcoded in HW to trigger fast sweep strategy
   NEWS   = 14, // hardcoded in HW to trigger news strategy
   CMEFC  = 15  // hardcoded in HW to trigger fast cancel strategy
