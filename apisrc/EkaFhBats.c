@@ -61,7 +61,7 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
 																	uint8_t runGrId ) {
   auto runGr = dev->runGr[runGrId];
   if (! runGr)
-    on_error("runGr == NULL");
+    on_error("!runGr");
 
   EKA_DEBUG("Initializing %s Run Group %u: %s GROUPS",
 						EKA_EXCH_DECODE(exch),runGr->runId,runGr->list2print);
@@ -173,7 +173,13 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
       if (lockSnapshotGap.test_and_set(std::memory_order_acquire))
 				break; // only1s group can get snapshot at a time
 
-      gr->invalidateBook();
+			EKA_LOG("%s:%u 1st MC msq sequence=%ju",
+							EKA_EXCH_DECODE(exch),gr_id,sequence);
+      gr->pushUdpPkt2Q(pkt,msgInPkt,sequence);
+
+			gr->invalidateBook();
+      gr->gapClosed = false;
+
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
 
       gr->closeSnapshotGap(pEfhCtx,pEfhRunCtx, 0, 0);
@@ -194,7 +200,7 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
       if (sequence < gr->expected_sequence)
 				break;       
       /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
-      // GAP
+      // GAP: sequence > gr->expected_sequence
       EKA_LOG("%s:%u Gap at NORMAL: expected_sequence=%ju, "
 							"sequence=%ju, gap=%jd",
 							EKA_EXCH_DECODE(exch),gr_id,
@@ -222,27 +228,33 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
       // Gap closed
       lockSnapshotGap.clear();
       
-      if (gr->lastExchErr != EfhExchangeErrorCode::kNoError) {
-				EKA_LOG("%s:%u: GRP Recovery failed, trying Spin Snapshot",
-								EKA_EXCH_DECODE(exch),gr->id);
-				gr->gapClosed = false;
-				gr->state = EkaFhGroup::GrpState::INIT;
-				break;
-      }
+      /* if (gr->lastExchErr != EfhExchangeErrorCode::kNoError) { */
+			/* 	EKA_LOG("%s:%u: GRP Recovery failed, trying Spin Snapshot", */
+			/* 					EKA_EXCH_DECODE(exch),gr->id); */
+			/* 	gr->gapClosed = false; */
+			/* 	gr->state = EkaFhGroup::GrpState::INIT; */
+			/* 	break; */
+      /* } */
       
       gr->expected_sequence = gr->seq_after_snapshot;      
 
+			EKA_LOG("%s:%u: %s Closed, switching to fetch from Q: "
+							"expected_sequence = %ju",
+							EKA_EXCH_DECODE(exch),gr->id,
+							gr->printGrpState(),
+							gr->seq_after_snapshot);
+						
       if (gr->processFromQ(pEfhRunCtx) < 0) { // gap in the Q
 				EKA_LOG("%s:%u: gap during %s recovery, "
-								"Spin Snapshot to be redone!",
+								"Snapshot recovery to be redone!",
 								EKA_EXCH_DECODE(exch),gr->id,
 								gr->printGrpState());
 				gr->state = EkaFhGroup::GrpState::INIT;
 				break;
       }
-      EKA_LOG("%s:%u: %s GAP Closed",
+      EKA_LOG("%s:%u: %s GAP Closed - expected_sequence=%ju",
 							EKA_EXCH_DECODE(exch),gr->id,
-							gr->printGrpState());
+							gr->printGrpState(),gr->expected_sequence);
       
       gr->state = EkaFhGroup::GrpState::NORMAL;
       gr->sendFeedUp(pEfhRunCtx);
@@ -258,6 +270,8 @@ EkaOpResult EkaFhBats::runGroups( EfhCtx* pEfhCtx,
   SKIP_PKT:    
     runGr->udpCh->next(); 
   }
+	EKA_LOG("%s RunGroup %u EndOfSession",
+					EKA_EXCH_DECODE(exch),runGrId);
   runGr->sendFeedCloseAll(pEfhRunCtx);
 
   return EKA_OPRESULT__OK;

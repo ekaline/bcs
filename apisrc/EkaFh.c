@@ -782,7 +782,9 @@ EkaOpResult EkaFh::initGroups(EfhCtx* pEfhCtx,
     //    b_gr[i]->bookInit();
     gr->createQ(pEfhCtx,qsize);
     gr->expected_sequence = 1;
-
+		
+		gr->runGr = runGr;
+			
     runGr->igmpMcJoin(gr->mcast_ip,gr->mcast_port,0,&gr->pktCnt);
     EKA_DEBUG("%s:%u: joined %s:%u for %u securities",
 							EKA_EXCH_DECODE(exch),gr->id,

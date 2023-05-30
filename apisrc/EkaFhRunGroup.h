@@ -16,15 +16,18 @@ class EkaFhRunGroup {
     return false;
   }
 
-  EkaFhRunGroup(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runId);
+  EkaFhRunGroup(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx,
+								uint8_t runId);
   ~EkaFhRunGroup();
   uint getGrAfterGap();
   void setGrAfterGap(uint i);
   void clearGrAfterGap(uint i);
+	void invalidateAllGroups(const EfhRunCtx* pEfhRunCtx);
 
   bool drainQ(const EfhRunCtx* pEfhRunCtx);
 
-  int igmpMcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag, uint64_t* pPktCnt);
+  int igmpMcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag,
+								 uint64_t* pPktCnt);
 	//  int checkTimeOut(const EfhRunCtx* pEfhRunCtx);
   void checkGroupsNoMd(const EfhRunCtx* pEfhRunCtx);
   int sendFeedCloseAll(const EfhRunCtx* pEfhRunCtx);

@@ -194,6 +194,19 @@ void EkaFhRunGroup::checkGroupsNoMd(const EfhRunCtx* pEfhRunCtx) {
 	}
 	checkNoMd = false;
 }
+
+/* ##################################################################### */
+void EkaFhRunGroup::invalidateAllGroups(const EfhRunCtx* pEfhRunCtx) {
+	for (auto i = 0; i < numGr; i++) {
+    EkaFhGroup* gr = fh->b_gr[groupList[i]];
+    if (!gr)
+			on_error("!gr[%u]",groupList[i]);
+
+		gr->state = EkaFhGroup::GrpState::INIT;
+		gr->sendFeedDownStaleData(pEfhRunCtx);
+	}
+}
+	
 /* ##################################################################### */
 #if 0
 int EkaFhRunGroup::checkTimeOut(const EfhRunCtx* pEfhRunCtx) {
