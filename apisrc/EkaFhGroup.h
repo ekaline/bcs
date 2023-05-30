@@ -11,6 +11,7 @@
 
 class fh_q;
 class EkaFhBook;
+class EkaFhRunGroup;
 
 class EkaFhGroup {
 protected:
@@ -30,7 +31,8 @@ public:
   void         createQ(EfhCtx* pEfhCtx, const uint qsize);
 
   inline void resetNoMdTimer() {
-    lastMdReceived = std::chrono::high_resolution_clock::now();
+		//    lastMdReceived = std::chrono::high_resolution_clock::now();
+		gotPkt = true;
     pktCnt++;
   }
 
@@ -51,6 +53,7 @@ public:
   void         sendFeedUpInitial  (const EfhRunCtx* EfhRunCtx);
   void         sendFeedDown(const EfhRunCtx* EfhRunCtx);
   void         sendFeedDownInitial(const EfhRunCtx* EfhRunCtx);
+  void         sendFeedDownStaleData(const EfhRunCtx* EfhRunCtx);
   void         sendFeedDownClosed(const EfhRunCtx* EfhRunCtx);
 
   void         sendNoMdTimeOut(const EfhRunCtx* EfhRunCtx);
@@ -207,6 +210,27 @@ public:
       '.' +
       std::string(s);
   }
+
+	inline bool isStaleData(uint64_t exchTS) {
+		uint64_t exchNs = exchTS % 1'000'000'000;
+		auto current_time = std::chrono::system_clock::now();
+		
+		uint64_t sampleNs =
+			std::chrono::duration_cast<std::chrono::nanoseconds>
+			(current_time.time_since_epoch()).count() % 1'000'000'000;
+
+		if (sampleNs < exchNs ||
+				sampleNs - exchNs > StaleDataNanosecThreshold) {
+
+			EKA_WARN("%s:%u: Stale data: exchNs=%ju sampleNs=%ju",
+							 EKA_EXCH_DECODE(exch),id,
+							 exchNs,sampleNs);
+			return true;
+		}
+
+		return false;
+	}
+	
   //----------------------------------------------------------
   enum class GrpState {
 		       UNINIT = 0,
@@ -288,6 +312,7 @@ public:
 
   std::chrono::high_resolution_clock::time_point lastMdReceived;
   bool                  lastMdReceivedValid = false;
+	bool                  gotPkt             = false;
 
   fh_q*                 q                  = NULL;
 
@@ -301,7 +326,11 @@ public:
   uint8_t               core               = -1;
 
   EkaDev*               dev                = NULL;
+	EkaFhRunGroup*        runGr              = NULL;
 
+	const uint64_t        StaleDataNanosecThreshold = 1'000'000; // 1ms
+	uint64_t              tobUpdatesCnt      = 0;
+	
   FILE*                 parser_log = NULL; // used with PRINT_PARSED_MESSAGES define
 
   uint64_t              parserSeq = 0; // used for the sanity check
@@ -312,6 +341,8 @@ public:
   bool                  credentialsAcquired = false;
 
   bool                  useDefinitionsFile = false;
+
+	const int             StaleDataSampleRate = 512;
 
   EfhExchangeErrorCode  lastExchErr = EfhExchangeErrorCode::kNoError;
 

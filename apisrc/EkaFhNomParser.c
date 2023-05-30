@@ -15,6 +15,7 @@
 #include "EkaFhParserCommon.h"
 #include "EkaFhNomParser.h"
 #include "EkaFhFullBook.h"
+#include "EkaFhRunGroup.h"
 
 #include "EkaFhNasdaqCommonParser.h"
 
@@ -177,12 +178,24 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     //        EKA_WARN("WARNING: \'%c\' processing took %ju ns",
     //                 enc, duration_ns);
     fh->latencies.push_back(std::make_pair(enc,duration_ns));
-#endif    
+#endif
+
+    //--------------------------------------------------------------	
+		tobUpdatesCnt++;
+
+		if (tobUpdatesCnt % StaleDataSampleRate == 0) {
+			if (isStaleData(msgTs)) {
+				runGr->invalidateAllGroups(pEfhRunCtx);
+				return false;
+			}
+		}
+    //--------------------------------------------------------------
+		
     book->generateOnQuote (pEfhRunCtx, s,
 			   sequence, msgTs,gapNum);
   }
 
-  /* ##################################################################### */
+  /* ############################################### */
   if (op != EkaFhMode::SNAPSHOT && s->crossedPrice()) {
     
     EKA_ERROR("%s:%u: %s PRICE CROSS for %ju: %ju >= %ju at %s after seq=%ju, \'%c\'",
