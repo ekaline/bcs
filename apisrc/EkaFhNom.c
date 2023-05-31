@@ -61,8 +61,9 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx,
 
     gr->resetNoMdTimer();
 
-    if (sequence == 0 || msgInPkt == 0)// unsequenced or heartbeat
-      goto SKIP_PKT;
+		/* // unsequenced or heartbeat */
+    /* if (sequence == 0 || msgInPkt == 0) */
+    /*   goto SKIP_PKT; */
 
 
 #ifdef _EFH_TEST_GAP_INJECT_INTERVAL_
