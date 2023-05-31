@@ -132,20 +132,26 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx,
 						on_error("!msg");
 					auto exchTS = NomFeed::getTs(msg);
 
-					uint64_t exchNs = exchTS % 1'000'000'000;
 					auto now = std::chrono::high_resolution_clock::now();
-					uint64_t sampleTime = std::chrono::duration_cast<
-						std::chrono::nanoseconds>
-						(now.time_since_epoch()).count();
-					uint64_t sampleNs = sampleTime % 1'000'000'000;
+					auto time = std::chrono::system_clock::
+						to_time_t(std::chrono::system_clock::now());					
+					auto midnight = std::chrono::system_clock::
+						from_time_t(time);
+					midnight += std::chrono::hours(24) -
+						std::chrono::hours(std::localtime(&time)->tm_hour) -
+						std::chrono::minutes(std::localtime(&time)->tm_min) -
+						std::chrono::seconds(std::localtime(&time)->tm_sec);
+					auto sampleNs = static_cast<uint64_t
+						>(std::chrono::duration_cast<
+							std::chrono::nanoseconds>(now - midnight).count());
 					
-					if (sampleNs < exchNs ||
-							sampleNs - exchNs > gr->StaleDataNanosecThreshold) {
+					if (sampleNs - exchTS > gr->StaleDataNanosecThreshold) {
 						EKA_WARN("%s:%u: Stale data: "
-										 "exchNs= %s (%ju) sampleNs= %s (%ju)",
+										 "sampleNs %s - exchNs %s > %ju",
 										 EKA_EXCH_DECODE(exch),id,
-										 ts_ns2str(exchTS).c_str(),exchNs,
-										 ts_ns2str(sampleTime).c_str(),sampleNs);
+										 ts_ns2str(sampleNs).c_str(),
+										 ts_ns2str(exchTS).c_str(),
+										 gr->StaleDataNanosecThreshold);
 	
 						gr->state = EkaFhGroup::GrpState::INIT;
 						gr->sendFeedDownStaleData(pEfhRunCtx);
