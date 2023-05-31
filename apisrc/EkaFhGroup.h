@@ -213,19 +213,24 @@ public:
 
 	inline bool isStaleData(uint64_t exchTS) {
 		uint64_t exchNs = exchTS % 1'000'000'000;
-		auto current_time = std::chrono::system_clock::now();
-		
-		uint64_t sampleNs =
-			std::chrono::duration_cast<std::chrono::nanoseconds>
-			(current_time.time_since_epoch()).count() % 1'000'000'000;
 
+		auto now = std::chrono::high_resolution_clock::now();
+
+		uint64_t sampleTime = std::chrono::duration_cast<
+			std::chrono::nanoseconds>
+			(now.time_since_epoch()).count();
+
+		uint64_t sampleNs = sampleTime % 1'000'000'000;
+		
 		if (state == EkaFhGroup::GrpState::NORMAL &&
 				(sampleNs < exchNs ||
 				 sampleNs - exchNs > StaleDataNanosecThreshold)) {
 
-			EKA_WARN("%s:%u: Stale data: exchNs=%ju sampleNs=%ju",
+			EKA_WARN("%s:%u: Stale data: "
+							 "exchNs= %s (%ju) sampleNs= %s (%ju)",
 							 EKA_EXCH_DECODE(exch),id,
-							 exchNs,sampleNs);
+							 ts_ns2str(exchTS).c_str(),exchNs,
+							 ts_ns2str(sampleTime).c_str(),sampleNs);
 			return true;
 		}
 

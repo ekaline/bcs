@@ -196,7 +196,9 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx,
       break;
     }
 
-	SKIP_PKT:    
+#ifdef FH_LAB
+	SKIP_PKT:
+#endif		
     runGr->udpCh->next(); 
   }
   EKA_LOG("%s RunGroup %u EndOfSession",
