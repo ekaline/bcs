@@ -311,8 +311,8 @@ public:
   EkaDev*               dev                = NULL;
 	EkaFhRunGroup*        runGr              = NULL;
 
-	// 1ms
-	const uint64_t        StaleDataNanosecThreshold = 2'000'000; 
+	// 1s
+	const uint64_t        StaleDataNanosecThreshold = 1'000'000'000; 
 	uint64_t              tobUpdatesCnt      = 0;
 	
   FILE*                 parser_log = NULL; // used with PRINT_PARSED_MESSAGES define
