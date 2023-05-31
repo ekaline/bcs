@@ -219,8 +219,9 @@ public:
 			std::chrono::duration_cast<std::chrono::nanoseconds>
 			(current_time.time_since_epoch()).count() % 1'000'000'000;
 
-		if (sampleNs < exchNs ||
-				sampleNs - exchNs > StaleDataNanosecThreshold) {
+		if (state == EkaFhGroup::GrpState::NORMAL &&
+				(sampleNs < exchNs ||
+				 sampleNs - exchNs > StaleDataNanosecThreshold)) {
 
 			EKA_WARN("%s:%u: Stale data: exchNs=%ju sampleNs=%ju",
 							 EKA_EXCH_DECODE(exch),id,

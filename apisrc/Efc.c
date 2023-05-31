@@ -508,7 +508,7 @@ EkaOpResult efcSetSessionCntr(EkaDev *dev,ExcConnHandle hConn,
   s->updateFpgaCtx<EkaTcpSess::AppSeqBin>(cntr);
 
 	char cntrString[64] = {};
-	int rc = sprintf(cntrString,"%08ju",cntr);
+	sprintf(cntrString,"%08ju",cntr);
 	
 	uint64_t cntrAscii = 0;
 	memcpy(&cntrAscii,cntrString,8);
