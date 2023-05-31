@@ -181,14 +181,18 @@ bool EkaFhNomGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
 #endif
 
     //--------------------------------------------------------------	
-		tobUpdatesCnt++;
+		/* tobUpdatesCnt++; */
 
-		if (tobUpdatesCnt % StaleDataSampleRate == 0) {
-			if (isStaleData(msgTs)) {
-				runGr->invalidateAllGroups(pEfhRunCtx);
-				return false;
-			}
-		}
+		/* if (state == EkaFhGroup::GrpState::NORMAL) { */
+		/* 	if (tobUpdatesCnt % StaleDataSampleRate == 0) { */
+		/* 		if (isStaleData(msgTs)) { */
+		/* 			//				runGr->invalidateAllGroups(pEfhRunCtx); */
+		/* 			state = EkaFhGroup::GrpState::INIT; */
+		/* 			sendFeedDownStaleData(pEfhRunCtx); */
+		/* 			return false; */
+		/* 		} */
+		/* 	} */
+		/* } */
     //--------------------------------------------------------------
 		
     book->generateOnQuote (pEfhRunCtx, s,

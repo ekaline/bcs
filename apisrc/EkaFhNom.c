@@ -124,6 +124,36 @@ EkaOpResult EkaFhNom::runGroups( EfhCtx* pEfhCtx,
       //----------------------------------------
     case EkaFhGroup::GrpState::NORMAL :
       if (sequence == gr->expected_sequence) { // NORMAL
+				if (!msgInPkt)
+					break;
+				if (sequence % gr->StaleDataSampleRate == 0) {
+					auto msg = EkaNwParser::MoldUdp64::getFirstMsg(pkt);
+					if (!msg)
+						on_error("!msg");
+					auto exchTS = NomFeed::getTs(msg);
+
+					uint64_t exchNs = exchTS % 1'000'000'000;
+					auto now = std::chrono::high_resolution_clock::now();
+					uint64_t sampleTime = std::chrono::duration_cast<
+						std::chrono::nanoseconds>
+						(now.time_since_epoch()).count();
+					uint64_t sampleNs = sampleTime % 1'000'000'000;
+					
+					if (sampleNs < exchNs ||
+							sampleNs - exchNs > gr->StaleDataNanosecThreshold) {
+						EKA_WARN("%s:%u: Stale data: "
+										 "exchNs= %s (%ju) sampleNs= %s (%ju)",
+										 EKA_EXCH_DECODE(exch),id,
+										 ts_ns2str(exchTS).c_str(),exchNs,
+										 ts_ns2str(sampleTime).c_str(),sampleNs);
+	
+						gr->state = EkaFhGroup::GrpState::INIT;
+						gr->sendFeedDownStaleData(pEfhRunCtx);
+						break;
+					}
+				}
+
+				
 				runGr->stoppedByExchange = gr->processUdpPkt(pEfhRunCtx,
 																										 pkt,msgInPkt,
 																										 sequence);      
