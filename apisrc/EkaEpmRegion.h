@@ -146,7 +146,7 @@ public:
 	}
 	
 	constexpr static int getEfhIgmpRegion(int udpChId) {
-		auto Reserved = Regions::EfcMc;
+		auto Reserved = Regions::EfcMc + 1;
 		if (udpChId >= Regions::Total - Reserved)
 			on_error("udpChId %d exceeds MaxUdpChannelRegions %d",
 							 udpChId,Regions::Total - Reserved);
