@@ -49,7 +49,9 @@ int EkaEpm::createRegion(int regionId) {
   eka_write(dev,strategyEnableAddr(regionId), ALWAYS_ENABLE);
 
 #ifndef _VERILOG_SIM
-  initHeap(epmRegion[regionId]->baseHeapOffs,HeapPerRegion,regionId);
+  initHeap(epmRegion[regionId]->baseHeapOffs,
+					 EkaEpmRegion::getHeapSize(regionId),
+					 regionId);
 #endif
 
   return 0;

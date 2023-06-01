@@ -129,6 +129,14 @@ public:
 		}
 		return baseHeapOffs;
 	}
+
+		
+	constexpr static uint getHeapSize(int regionId) {
+		sanityCheckRegionId(regionId);
+
+		return region[regionId].nActions * region[regionId].actionHeapBudget;
+	}
+	
 	constexpr static int getActionHeapOffs(int regionId, int actionId) {
 		sanityCheckRegionId(regionId);
 		sanityCheckActionId(regionId,actionId);
