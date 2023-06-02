@@ -20,7 +20,7 @@
 
 #define EFH_PRICE_SCALE 1
 
-enum class EkaFhAddConf {CONF_SUCCESS=0, IGNORED=1, UNKNOWN_KEY=2, WRONG_VALUE=3, CONFLICTING_CONF=4} ;
+enum class EkaFhAddConf : uint8_t {CONF_SUCCESS=0, IGNORED=1, UNKNOWN_KEY=2, WRONG_VALUE=3, CONFLICTING_CONF=4};
 enum class EkaFhMode : uint8_t {UNINIT = 0, DEFINITIONS, SNAPSHOT, MCAST, RECOVERY};
 
 #define EkaFhMode2STR(x) \
@@ -31,6 +31,29 @@ enum class EkaFhMode : uint8_t {UNINIT = 0, DEFINITIONS, SNAPSHOT, MCAST, RECOVE
     x == EkaFhMode::MCAST ? "MCAST" : \
     "UNEXPECTED"
 
+constexpr bool ekaFhAddConfIsErr(const EkaFhAddConf result) {
+  switch (result) {
+  case EkaFhAddConf::CONF_SUCCESS:
+  case EkaFhAddConf::IGNORED:
+  case EkaFhAddConf::UNKNOWN_KEY:
+    return false;
+  case EkaFhAddConf::WRONG_VALUE:
+  case EkaFhAddConf::CONFLICTING_CONF:
+    return true;
+  }
+  on_error("Unknown EkaFhAddConf (%u)", (unsigned)result);
+}
+
+constexpr const char * ekaFhAddConfToString(const EkaFhAddConf result) {
+  switch (result) {
+  case EkaFhAddConf::CONF_SUCCESS: return "success";
+  case EkaFhAddConf::IGNORED: return "ignored key";
+  case EkaFhAddConf::UNKNOWN_KEY: return "unknown key";
+  case EkaFhAddConf::WRONG_VALUE: return "invalid value";
+  case EkaFhAddConf::CONFLICTING_CONF: return "conflicting configuration";
+  }
+  on_error("Unknown EkaFhAddConf (%u)", (unsigned)result);
+}
 
 enum class EkaFhParseResult : int {End = 0, NotEnd, SocketError, ProtocolError};
 #define EFH_STRIKE_PRICE_SCALE 1
@@ -122,24 +145,59 @@ constexpr ProductNameToMaskEntry ProductNameToMaskMap[] = {
   },
 };
 
+constexpr std::size_t calculateMaxProductMaskNameBufSize_() {
+  std::size_t bufLen = 0;
+  for (const auto &entry : ProductNameToMaskMap) {
+    std::size_t nameLen = 0;
+    while (entry.name[nameLen] != '\0') nameLen++;
+    bufLen += nameLen + 1; // 1 for separator or for terminator
+  }
+  return bufLen;
+}
+
+constexpr std::size_t MaxProductMaskNameBufSize = calculateMaxProductMaskNameBufSize_();
+
 constexpr int NoSuchProduct = -1;
 
-  inline int lookupProductMask(const char *productName) {
-    for (const auto [n, m] : ProductNameToMaskMap) {
-      if (!strcmp(productName, n))
-	return m;
-    }
-    return NoSuchProduct;
+inline int lookupProductMask(const char *productName) {
+  for (const auto [n, m] : ProductNameToMaskMap) {
+    if (!strcmp(productName, n))
+      return m;
   }
+  return NoSuchProduct;
+}
 
-  // returns only one name
-  inline const char* lookupProductName(int productMask) {
-    for (const auto [n, m] : ProductNameToMaskMap) {
-      if (productMask & m)
-	return n;
-    }
-    return "UnInitialized";
+// returns only one name
+inline const char* lookupSingleProductName(int productMask) {
+  for (const auto [n, m] : ProductNameToMaskMap) {
+    if (productMask & m)
+      return n;
   }
+  return "UnInitialized";
+}
+
+template<std::size_t N>
+inline const char* lookupProductMaskNames(int productMask, char (&buf)[N]) {
+  static_assert(N >= MaxProductMaskNameBufSize);
+  char *out = buf;
+  for (const auto [n, m] : ProductNameToMaskMap) {
+    if (productMask & m) {
+      std::size_t len = std::strlen(n);
+      std::memcpy(out, n, len);
+      out += len;
+      *out = ',';
+      out++;
+    }
+  }
+  if (out != buf) {
+    out--;
+    *out = '\0';
+  } else {
+    std::strcpy(buf, "UnInitialized");
+  }
+  return buf;
+}
+
 } // End of anonymous namespace
 
 class EkaFh {
@@ -153,10 +211,10 @@ class EkaFh {
 
   int                     stop();
 
-  int                     init(const EfhInitCtx* pEfhInitCtx, uint8_t numFh);
+  EkaOpResult             init(const EfhInitCtx* pEfhInitCtx, uint8_t numFh);
   int                     setId(EfhCtx* pEfhCtx, EkaSource exch, uint8_t numFh);
 
-  int                     openGroups(EfhCtx*           pEfhCtx, 
+  int                     openGroups(EfhCtx*           pEfhCtx,
 				     const EfhInitCtx* pEfhInitCtx);
 
   virtual EkaOpResult     runGroups(EfhCtx*          pEfhCtx, 
