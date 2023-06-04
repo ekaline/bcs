@@ -109,6 +109,7 @@ public:
   }
 
   virtual int printConfig() {
+    char productNamesBuf[MaxProductMaskNameBufSize];
     EKA_LOG("%s:%u : "
 	    "productMask: \'%s\' (0x%x) "
 	    "MCAST: %s:%u, "
@@ -117,7 +118,7 @@ public:
 	    "AUTH: %s:%s, "
 	    "connectRetryDelayTime=%d",
 	    EKA_EXCH_DECODE(exch),id,
-	    lookupProductName(productMask), productMask,
+            lookupProductMaskNames(productMask, productNamesBuf), productMask,
 	    EKA_IP2STR(mcast_ip),   mcast_port,
 	    EKA_IP2STR(snapshot_ip),be16toh(snapshot_port),
 	    EKA_IP2STR(recovery_ip),be16toh(recovery_port),

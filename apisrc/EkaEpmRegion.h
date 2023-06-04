@@ -129,6 +129,14 @@ public:
 		}
 		return baseHeapOffs;
 	}
+
+		
+	constexpr static uint getHeapSize(int regionId) {
+		sanityCheckRegionId(regionId);
+
+		return region[regionId].nActions * region[regionId].actionHeapBudget;
+	}
+	
 	constexpr static int getActionHeapOffs(int regionId, int actionId) {
 		sanityCheckRegionId(regionId);
 		sanityCheckActionId(regionId,actionId);
@@ -138,7 +146,7 @@ public:
 	}
 	
 	constexpr static int getEfhIgmpRegion(int udpChId) {
-		auto Reserved = Regions::EfcMc;
+		auto Reserved = Regions::EfcMc + 1;
 		if (udpChId >= Regions::Total - Reserved)
 			on_error("udpChId %d exceeds MaxUdpChannelRegions %d",
 							 udpChId,Regions::Total - Reserved);

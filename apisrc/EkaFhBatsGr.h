@@ -59,6 +59,7 @@ class EkaFhBatsGr : public EkaFhGroup{
                           uint64_t          endSeq);
 
   int printConfig() {
+    char productNamesBuf[MaxProductMaskNameBufSize];
     EKA_LOG("%s:%u : "
 	    "productMask: \'%s\' (0x%x) "
 	    
@@ -78,7 +79,7 @@ class EkaFhBatsGr : public EkaFhGroup{
 
 	    "connectRetryDelayTime: %d",
 	    EKA_EXCH_DECODE(exch),id,
-	    lookupProductName(productMask), productMask,
+            lookupProductMaskNames(productMask, productNamesBuf), productMask,
 	    
 	    EKA_IP2STR(mcast_ip),   mcast_port,
 	    EKA_IP2STR(snapshot_ip),be16toh(snapshot_port),

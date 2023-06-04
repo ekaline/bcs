@@ -72,46 +72,45 @@ extern "C" {
 
   enum EkaOpResult : int {
     EKA_OPRESULT__OK    = 0,        /** General success message */
-      EKA_OPRESULT__ALREADY_INITIALIZED = 1,
-      EKA_OPRESULT__END_OF_SESSION = 2,
-      EKA_OPRESULT__ERR_A = -100,     /** Temporary filler error message.  Replace 'A' with actual error code. */
-      EKA_OPRESULT__ERR_DOUBLE_SUBSCRIPTION = -101,     // returned by efhSubscribeStatic() if trying to subscribe to same security again
-      EKA_OPRESULT__ERR_BAD_ADDRESS = -102,     // returned if you pass NULL for something that can't be NULL, similar to EFAULT
-      EKA_OPRESULT__ERR_SYSTEM_ERROR = -103,     // returned when a system call fails and errno is set
-      EKA_OPRESULT__ERR_NOT_IMPLEMENTED = -104,     // returned when an API call is not implemented
-      EKA_OPRESULT__ERR_GROUP_NOT_AVAILABLE = -105, // returned by test feed handler when group not present in capture
-      EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION = -106, // returned if exchange retransmit connection failed
-      EKA_OPRESULT__ERR_EFC_SET_CTX_ON_UNSUBSCRIBED_SECURITY = -107,
-      EKA_OPRESULT__ERR_STRIKE_PRICE_OVERFLOW = -108,
-    
-      // EPM specific
-      EKA_OPRESULT__ERR_EPM_DISABLED = -201,
-      EKA_OPRESULT__ERR_INVALID_CORE = -202,
-      EKA_OPRESULT__ERR_EPM_UNINITALIZED = -203,
-      EKA_OPRESULT__ERR_INVALID_STRATEGY = -204,
-      EKA_OPRESULT__ERR_INVALID_ACTION = -205,
-      EKA_OPRESULT__ERR_NOT_CONNECTED = -206,
-      EKA_OPRESULT__ERR_INVALID_OFFSET = -207,
-      EKA_OPRESULT__ERR_INVALID_ALIGN = -208,
-      EKA_OPRESULT__ERR_INVALID_LENGTH = -209,
-      EKA_OPRESULT__ERR_UNKNOWN_FLAG = -210,
-      EKA_OPRESULT__ERR_MAX_STRATEGIES = -211,
+    EKA_OPRESULT__ALREADY_INITIALIZED = 1,
+    EKA_OPRESULT__END_OF_SESSION = 2,
+    EKA_OPRESULT__ERR_A = -100,     /** Temporary filler error message.  Replace 'A' with actual error code. */
+    EKA_OPRESULT__ERR_DOUBLE_SUBSCRIPTION = -101,     // returned by efhSubscribeStatic() if trying to subscribe to same security again
+    EKA_OPRESULT__ERR_BAD_ADDRESS = -102,     // returned if you pass NULL for something that can't be NULL, similar to EFAULT
+    EKA_OPRESULT__ERR_SYSTEM_ERROR = -103,     // returned when a system call fails and errno is set
+    EKA_OPRESULT__ERR_NOT_IMPLEMENTED = -104,     // returned when an API call is not implemented
+    EKA_OPRESULT__ERR_GROUP_NOT_AVAILABLE = -105, // returned by test feed handler when group not present in capture
+    EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION = -106, // returned if exchange retransmit connection failed
+    EKA_OPRESULT__ERR_EFC_SET_CTX_ON_UNSUBSCRIBED_SECURITY = -107,
+    EKA_OPRESULT__ERR_STRIKE_PRICE_OVERFLOW = -108,
+    EKA_OPRESULT__ERR_INVALID_CONFIG = -109,
 
-      
-      // EFC specific
-      EKA_OPRESULT__ERR_EFC_DISABLED = -301,
-      EKA_OPRESULT__ERR_EFC_UNINITALIZED = -302,
+    // EPM specific
+    EKA_OPRESULT__ERR_EPM_DISABLED = -201,
+    EKA_OPRESULT__ERR_INVALID_CORE = -202,
+    EKA_OPRESULT__ERR_EPM_UNINITALIZED = -203,
+    EKA_OPRESULT__ERR_INVALID_STRATEGY = -204,
+    EKA_OPRESULT__ERR_INVALID_ACTION = -205,
+    EKA_OPRESULT__ERR_NOT_CONNECTED = -206,
+    EKA_OPRESULT__ERR_INVALID_OFFSET = -207,
+    EKA_OPRESULT__ERR_INVALID_ALIGN = -208,
+    EKA_OPRESULT__ERR_INVALID_LENGTH = -209,
+    EKA_OPRESULT__ERR_UNKNOWN_FLAG = -210,
+    EKA_OPRESULT__ERR_MAX_STRATEGIES = -211,
 
-      // EFH recovery specific
-      EKA_OPRESULT__RECOVERY_IN_PROGRESS = -400, 
-      EKA_OPRESULT__ERR_RECOVERY_FAILED  = -401,
+    // EFC specific
+    EKA_OPRESULT__ERR_EFC_DISABLED = -301,
+    EKA_OPRESULT__ERR_EFC_UNINITALIZED = -302,
 
-      // EFH TCP/Protocol Handshake specific
-      EKA_OPRESULT__ERR_TCP_SOCKET  = -501,
-      EKA_OPRESULT__ERR_UDP_SOCKET  = -502,
-      EKA_OPRESULT__ERR_PROTOCOL  = -503,
+    // EFH recovery specific
+    EKA_OPRESULT__RECOVERY_IN_PROGRESS = -400,
+    EKA_OPRESULT__ERR_RECOVERY_FAILED  = -401,
 
-      };
+    // EFH TCP/Protocol Handshake specific
+    EKA_OPRESULT__ERR_TCP_SOCKET  = -501,
+    EKA_OPRESULT__ERR_UDP_SOCKET  = -502,
+    EKA_OPRESULT__ERR_PROTOCOL  = -503,
+  };
 
   struct ExcCtx;
   struct EkaCoreInitAttrs;
@@ -136,31 +135,90 @@ extern "C" {
  using ExcUdpTxConnHandle = ExcConnHandle;
 
   enum class EkaSource : uint8_t {
-       #define EkaSource_ENUM_ITER( _x )		\
-             _x( Invalid,  0 )				\
-             _x( NOM_ITTO    )				\
-             _x( GEM_TQF     )				\
-             _x( ISE_TQF     )				\
-             _x( MRX_TQF     )				\
-             _x( PHLX_TOPO   )				\
-             _x( PHLX_ORD    )				\
-             _x( MIAX_TOM    )				\
-             _x( EMLD_TOM    )				\
-             _x( PEARL_TOM   )				\
-             _x( ARCA_XDP    )				\
-             _x( AMEX_XDP    )				\
-             _x( ARCA_PLR    )				\
-             _x( AMEX_PLR    )				\
-             _x( EDGX_PITCH  )				\
-             _x( BZX_PITCH   )				\
-             _x( C1_PITCH    )				\
-             _x( C2_PITCH    )				\
-             _x( BOX_HSVF    )				\
-             _x( CME_SBE     )                          \
-             _x( MRX2_TOP    )                          \
-	     _x( BX_DPTH     )
-            EkaSource_ENUM_ITER( EKA__ENUM_DEF )
+    #define EkaSource_ENUM_ITER( _x )		\
+      _x( Invalid,  0 )				\
+      _x( NOM_ITTO    )				\
+      _x( GEM_TQF     )				\
+      _x( ISE_TQF     )				\
+      _x( MRX_TQF     )				\
+      _x( PHLX_TOPO   )				\
+      _x( PHLX_ORD    )				\
+      _x( MIAX_TOM    )				\
+      _x( EMLD_TOM    )				\
+      _x( PEARL_TOM   )				\
+      _x( ARCA_XDP    )				\
+      _x( AMEX_XDP    )				\
+      _x( ARCA_PLR    )				\
+      _x( AMEX_PLR    )				\
+      _x( EDGX_PITCH  )				\
+      _x( BZX_PITCH   )				\
+      _x( C1_PITCH    )				\
+      _x( C2_PITCH    )				\
+      _x( BOX_HSVF    )				\
+      _x( CME_SBE     )				\
+      _x( MRX2_TOP    )				\
+      _x( BX_DPTH     )
+    EkaSource_ENUM_ITER( EKA__ENUM_DEF )
   };
+
+  enum class EkaSourceType : uint8_t {
+    #define EkaSourceType_ENUM_ITER( _x )	\
+      _x( Invalid,         0 )			\
+      _x( NASDAQ_ITTO        )			\
+      _x( NASDAQ_TQF         )			\
+      _x( NASDAQ_BX_DPTH     )			\
+      _x( NASDAQ_TOPO        )			\
+      _x( NASDAQ_PHLX_ORD    )			\
+      _x( NASDAQ_MRX_TOP2    )			\
+      _x( MIAX_TOM           )			\
+      _x( NYSE_XDP           )			\
+      _x( NYSE_PLR           )			\
+      _x( CBOE_PITCH         )			\
+      _x( BOX_HSVF           )			\
+      _x( CME_SBE            )
+    EkaSourceType_ENUM_ITER( EKA__ENUM_DEF )
+  };
+  
+  constexpr EkaSourceType getEkaSourceType(const EkaSource src) {
+    switch (src) {
+    case EkaSource::kInvalid:
+      return EkaSourceType::kInvalid;
+    case EkaSource::kNOM_ITTO:
+      return EkaSourceType::kNASDAQ_ITTO;
+    case EkaSource::kGEM_TQF:
+    case EkaSource::kISE_TQF:
+    case EkaSource::kMRX_TQF:
+      return EkaSourceType::kNASDAQ_TQF;
+    case EkaSource::kPHLX_TOPO:
+      return EkaSourceType::kNASDAQ_TOPO;
+    case EkaSource::kPHLX_ORD:
+      return EkaSourceType::kNASDAQ_PHLX_ORD;
+    case EkaSource::kMRX2_TOP:
+      return EkaSourceType::kNASDAQ_MRX_TOP2;
+    case EkaSource::kBX_DPTH:
+      return EkaSourceType::kNASDAQ_BX_DPTH;
+    case EkaSource::kMIAX_TOM:
+    case EkaSource::kEMLD_TOM:
+    case EkaSource::kPEARL_TOM:
+      return EkaSourceType::kMIAX_TOM;
+    case EkaSource::kARCA_XDP:
+    case EkaSource::kAMEX_XDP:
+      return EkaSourceType::kNYSE_XDP;
+    case EkaSource::kARCA_PLR:
+    case EkaSource::kAMEX_PLR:
+      return EkaSourceType::kNYSE_PLR;
+    case EkaSource::kEDGX_PITCH:
+    case EkaSource::kBZX_PITCH:
+    case EkaSource::kC1_PITCH:
+    case EkaSource::kC2_PITCH:
+      return EkaSourceType::kCBOE_PITCH;
+    case EkaSource::kBOX_HSVF:
+      return EkaSourceType::kBOX_HSVF;
+    case EkaSource::kCME_SBE:
+      return EkaSourceType::kCME_SBE;
+    }
+    return EkaSourceType::kInvalid;
+  }
 
   typedef int8_t EkaLSI;
 
