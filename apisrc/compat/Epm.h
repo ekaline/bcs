@@ -349,7 +349,8 @@ struct EpmQEDReport {
   
 struct EpmFastCancelReport {
   uint8_t         numInGroup;        ///< Field from trigger MD
-  uint16_t        headerSize;        ///< Field from trigger MD
+  uint64_t        transactTime;      ///< Field from trigger MD
+  uint64_t        headerTime;        ///< Field from trigger MD
   uint32_t        sequenceNumber;    ///< Field from trigger MD
 };
 
