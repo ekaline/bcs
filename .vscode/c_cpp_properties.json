@@ -3,11 +3,9 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/src/include",
-                "${workspaceFolder}/contrib",
-                "${workspaceFolder}/contrib/examples/example_app",
-                "${workspaceFolder}/contrib/ports/unix/port/include",
-                "${workspaceFolder}/contrib/ports/unix/example_app"
+                "${workspaceFolder}/bc_include",
+                "${workspaceFolder}/apisrc",
+                "${workspaceFolder}/apisrc/compat"
             ],
             "defines": [],
             "intelliSenseMode": "gcc-x64",
@@ -19,8 +17,8 @@
                 "databaseFilename": ""
             },
             "compilerPath": "/usr/bin/gcc",
-            "cStandard": "c11",
-            "cppStandard": "c++17",
+            "cStandard": "c23",
+            "cppStandard": "c++23",
             "configurationProvider": "vector-of-bool.cmake-tools"
         }
     ],
