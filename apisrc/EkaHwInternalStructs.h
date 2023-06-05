@@ -208,9 +208,10 @@ struct hw_epm_fast_sweep_report_t {
 
 struct hw_epm_fast_cancel_report_t {
   uint8_t         num_in_group;
-  uint16_t        header_size;
+  uint64_t        transact_time;
+  uint64_t        header_time;
   uint32_t        sequence_number;
-  uint8_t         b32_padding[25];
+  uint8_t         b32_padding[11];
   hw_epm_report_t epm;
 } __attribute__((packed));
 
