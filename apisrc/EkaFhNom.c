@@ -154,14 +154,16 @@ EkaOpResult EkaFhNom::runGroups(EfhCtx *pEfhCtx,
                   std::chrono::nanoseconds>(now - midnight)
                   .count());
 
-          if (sampleNs - exchTS >
+          if ((sampleNs > exchTS) &&
+							(sampleNs - exchTS) >
               gr->StaleDataNanosecThreshold) {
             EKA_WARN("%s:%u: Stale data: "
-                     "sampleNs %s - exchNs "
-                     "%s > %ju",
+                     "sampleNs %s (%ju) - exchNs %s (%ju) "
+                     "(=%jd) > %ju",
                      EKA_EXCH_DECODE(exch), id,
-                     ts_ns2str(sampleNs).c_str(),
-                     ts_ns2str(exchTS).c_str(),
+                     ts_ns2str(sampleNs).c_str(),sampleNs,
+                     ts_ns2str(exchTS).c_str(),exchTS,
+										 sampleNs - exchTS,
                      gr->StaleDataNanosecThreshold);
 
             gr->state = EkaFhGroup::GrpState::INIT;
