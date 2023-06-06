@@ -47,7 +47,7 @@ int ekaBcCmeFcGlobalInit(
 
 struct EkaBcCmeFcAlgoParams {
   int fireActionId; ///< 1st Action fired
-  uint16_t maxMsgSize;
+  uint64_t minTimeDiff;
   uint8_t minNoMDEntries;
 };
 

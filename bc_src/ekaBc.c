@@ -194,18 +194,18 @@ int ekaBcCmeFcAlgoInit(
   if (!params)
     on_error("! params");
 
-  volatile EfcCmeFastCancelStrategyConf conf = {
+  volatile EfcBCCmeFastCancelStrategyConf conf = {
       //      .pad            = {},
       .minNoMDEntries = params->minNoMDEntries,
-      .maxMsgSize = params->maxMsgSize,
+      .minTimeDiff = params->minTimeDiff,
       .token = DefaultToken,
       .fireActionId = (uint16_t)params->fireActionId,
       .strategyId = (uint8_t)EFC_STRATEGY};
 
   EKA_LOG("Configuring Cme Fast Cancel FPGA: "
-          "minNoMDEntries=%d,maxMsgSize=%u,"
+          "minNoMDEntries=%d,minTimeDiff=%ju,"
           "fireActionId=%d",
-          conf.minNoMDEntries, conf.maxMsgSize,
+          conf.minNoMDEntries, conf.minTimeDiff,
           conf.fireActionId);
   //  hexDump("EfcCmeFastCancelStrategyConf",&conf,
   //          sizeof(conf),stderr);

@@ -350,6 +350,14 @@ typedef struct __attribute__((packed)) {
       uint8_t        strategyId;
   } __attribute__ ((aligned(sizeof(uint64_t)))) __attribute__((packed));
 
+  struct EfcBCCmeFastCancelStrategyConf {
+      uint8_t        minNoMDEntries;
+      uint64_t       minTimeDiff;
+      uint64_t       token;
+      uint16_t       fireActionId;
+      uint8_t        strategyId;
+  } __attribute__ ((aligned(sizeof(uint64_t)))) __attribute__((packed));
+
 
   struct EfcItchFastSweepStrategyConf {
       uint64_t       token;
