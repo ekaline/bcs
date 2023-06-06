@@ -66,6 +66,10 @@ struct EkaBcFcRunCtx {
 void ekaBcFcRun(EkaDev *pEkaDev,
                 struct EkaBcFcRunCtx *pEkaBcFcRunCtx);
 
+void ekaBcEnableController(EkaDev *pEkaDev,
+                           bool enable,
+                           EfcArmVer ver = 0);
+
 ssize_t ekaBcCmeSendHB(EkaDev *pEkaDev, int sock,
                        const void *buffer, size_t size);
 
@@ -76,8 +80,6 @@ struct EkaBcAction {
   int sock;       ///< TCP connection
   int nextAction; ///< Next action in sequence
 };
-
-int ekaBcAllocateCmeFireAction(EkaDev *pEkaDev);
 
 int ekaBcSetAction(EkaDev *pEkaDev, int actionIdx,
                    const EkaBcAction *ekaBcAction);

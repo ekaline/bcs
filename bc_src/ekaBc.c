@@ -163,7 +163,8 @@ int ekaBcCmeFcMdInit(EkaDev *dev,
                      const struct EkaBcFcMdParams *params) {
   const EpmStrategyParams epmStrategyParams = {
       .numActions = 0,
-      .triggerParams = (const EpmTriggerParams*)params->triggerParams,
+      .triggerParams =
+          (const EpmTriggerParams *)params->triggerParams,
       .numTriggers = params->numTriggers};
 
   auto rc = epmInitStrategies(dev, &epmStrategyParams, 1);
@@ -272,4 +273,18 @@ int ekaBcSetActionPayload(EkaDev *dev, int actionIdx,
   if (rc != EKA_OPRESULT__OK)
     return -1;
   return 0;
+}
+
+void ekaBcEnableController(EkaDev *dev, bool enable,
+                          uint32_t armVer) {
+  EfcCtx efcCtx = {.dev = dev};
+  efcEnableController(&efcCtx, enable ? 1 : -1, armVer);
+}
+
+void ekaBcFcRun(EkaDev *dev,
+                struct EkaBcFcRunCtx *pEkaBcFcRunCtx) {
+  struct EfcRunCtx efcRunCtx = {
+      .onEfcFireReportCb = pEkaBcFcRunCtx->onReportCb};
+  EfcCtx efcCtx = {.dev = dev};
+  efcRun(&efcCtx, &efcRunCtx);
 }
