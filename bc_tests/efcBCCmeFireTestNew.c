@@ -310,9 +310,7 @@ static std::string action2string(EpmTriggerAction action) {
 
 static int sendCmeTradeMsg(std::string serverIp,
                            std::string dstIp,
-                           uint16_t dstPort,
-                           uint16_t cmeMsgSize,
-                           uint8_t noMDEntries) {
+                           uint16_t dstPort) {
   // Preparing UDP MC for MD trigger on GR#0
 
   int triggerSock =
@@ -529,27 +527,11 @@ int main(int argc, char *argv[]) {
   runCtx.onReportCb = handleFireReport;
   // ==============================================
 
-  /////////////// TBD
   // CME FastCancel EFC config
-  static const uint64_t CmeTestFastCancelAlwaysFire =
-      0xadcd;
-  static const uint64_t CmeTestFastCancelToken =
-      0x1122334455667788;
-  static const uint64_t CmeTestFastCancelUser =
-      0xaabbccddeeff0011;
-  static const uint16_t CmeTestFastCancelMaxMsgSize =
-      97; //">96"
+  static const uint16_t CmeTestFastMinTimeDiff =
+      0; //""
   static const uint8_t CmeTestFastCancelMinNoMDEntries =
       0; //"<1"
-
-  // HARDCODED, not used by tickersend
-  static const uint16_t CmeTestFastCancelMaxMsgSizeTicker =
-      96;
-
-  // HARDCODED, not used by tickersend
-  static const uint8_t
-      CmeTestFastCancelMinNoMDEntriesTicker = 1;
-  /////////////// TBD
 
   auto cmeHwCancelIdx = ekaBcAllocateFcAction(dev);
 
@@ -576,7 +558,7 @@ int main(int argc, char *argv[]) {
 
   const EkaBcCmeFcAlgoParams algoParams = {
       .fireActionId = cmeHwCancelIdx,
-      .minTimeDiff = CmeTestFastCancelMaxMsgSize, // TBD
+      .minTimeDiff = CmeTestFastMinTimeDiff, 
       .minNoMDEntries = CmeTestFastCancelMinNoMDEntries};
 
   // ==============================================
@@ -592,16 +574,15 @@ int main(int argc, char *argv[]) {
   for (auto i = 0; i < TotalInjects; i++) {
     if (rand() % 3) {
       ekaBcEnableController(
-          dev, true, armVer++); // arm and promote TBD
+          dev, true, armVer++); // arm and promote
       ExpectedFires++;
     } else {
       ekaBcEnableController(dev, true,
                             armVer - 1); // should be no arm
     }
 
-    sendCmeTradeMsg(serverIp, triggerIp, triggerUdpPort,
-                    CmeTestFastCancelMaxMsgSizeTicker,
-                    CmeTestFastCancelMinNoMDEntriesTicker);
+    sendCmeTradeMsg(serverIp, triggerIp, triggerUdpPort                  
+                    );
     usleep(300000);
   }
 
