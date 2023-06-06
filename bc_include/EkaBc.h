@@ -59,7 +59,7 @@ typedef void (*onEkaBcFcReportCb)(const void *report,
                                   size_t len, void *ctx);
 
 struct EkaBcFcRunCtx {
-  onEkaBcFcReportCb OnReportCb;
+  onEkaBcFcReportCb onReportCb;
   void *cbCtx; ///< optional opaque field looped back to CB
 };
 
