@@ -68,7 +68,7 @@ void ekaBcFcRun(EkaDev *pEkaDev,
 
 void ekaBcEnableController(EkaDev *pEkaDev,
                            bool enable,
-                           EfcArmVer ver = 0);
+                           uint32_t ver = 0);
 
 ssize_t ekaBcCmeSendHB(EkaDev *pEkaDev, int sock,
                        const void *buffer, size_t size);

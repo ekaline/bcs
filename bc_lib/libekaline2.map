@@ -1,79 +1,26 @@
 LIBEKALINE2_1.0	{
 		global:
-		    
-		        efcInit;
-			efcEnableController;
-			efcEnableFiringOnSec;
-			getSecCtxHandle;
-			efcSetStaticSecCtx;
-			efcSetDynamicSecCtx;
-			efcSetSesCtx;
-			efcSetGroupSesCtx;
-			efcRun;
-			efcSwKeepAliveSend;
-			efcSetFireTemplate;
-                        efcCmeFastCancelInit;
-                        efcCmeSend;
-                        efcCmeSetILinkAppseq;
-			efhInit;
-			efcInitStrategy;
-                        efcItchFastSweepInit;
-                        efcQEDInit;
-			efcClose;
-			efcClose;
-			efhGetSupportedParams;
-			efhGetDefs;
-			efhSubscribeStatic;
-			efhSubscribeDynamic;
-			efhSetTradeTimeCtx;
-			efhRunGroups;
-			ekaGetCapsResult;
-			excInit;
-			excGetSessionId;
-			excGetCoreId;
-			excSocket;
-			excSocketClose;
-			excConnect;
-			excReconnect;
-			excSend;
-			excRecv;
-			excClose;
-			excPoll;
-			excGetSockOpt;
-			excSetSockOpt;
-			excIoctl;
-			excGetSockName;
-			excGetPeerName;
-			excGetBlocking;
-			excSetBlocking;
-			excShutdown;
-			ekaClose;
-   			efhMonitorFhGroupState;
-			efcPrintFireReport;
-			efhStopGroups;
-			ekaDevInit;
-			ekaDevClose;
-			ekaDevConfigurePort;	
-			efhDestroy;
+		    ekaBcOpenDev;
+				ekaBcCloseDev;
+				ekaBcTcpConnect;
+				ekaBcSend;
+				ekaBcRecv;
+				ekaBcCloseSock;
+				ekaBcFcInit;
+				ekaBcCmeFcMdInit;
+				ekaBcCmeFcGlobalInit;
+				ekaBcCmeFcAlgoInit;
+				ekaBcFcRun;
+				ekaBcEnableController;
+				ekaBcCmeSendHB;
+				ekaBcCmeSetILinkAppseq;
+				ekaBcSetAction;
+				ekaBcSetActionPayload;
+				ekaBcConfigurePort;
+				ekaBcAllocateFcAction;
+				ekaBcSetActionParams;
+				ekaBcSetActionPayload;
 
-			excUdpConnect;
-
-			epmGetDeviceCapability;		
-			epmInitStrategies;
-			epmEnableController;
-			epmSetAction;
-			epmGetAction;
-			epmPayloadHeapCopy;
-			epmGetStrategyEnableBits;
-			epmSetStrategyEnableBits;
-			epmRaiseTriggers;
-
-			efcAllocateNewAction;
-			efcSetAction;
-			efcSetActionPayload;
-
-			efcSetSessionCntr;
 		local:
 			*;
 		};
-

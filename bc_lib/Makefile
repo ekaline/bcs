@@ -47,7 +47,7 @@ EKALINE_FLAGS := $(GCC_EXTERNAL_DEFINES) -DLIBEKA_GIT_VER=\"$(LIBEKA_GIT_VER)\" 
 
 EKAUTILS := $(patsubst %.c,%,$(wildcard ../eka_utils/*.c))
 
-EKATESTS_SRCS := $(wildcard ../new_api_tests/e*.c ../new_api_tests/tcp*.c ../new_api_tests/parser*.c)
+EKATESTS_SRCS := $(wildcard ../bc_tests/*.c)
 EKATESTS_EXECS := $(patsubst %.c,%,$(EKATESTS_SRCS))
 
 UNITTESTS_SRCS := $(wildcard ../new_api_tests/unit*.c)
@@ -128,10 +128,6 @@ ekalib: $(LIBEKALINE).so
 $(LIBEKALINE).so: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIP_LIB)
 	$(CXX) $(EKALIB_OBJ) -shared -L. $(SMARTNIC_LIB) $(LWIP_LIB) -o $@ $(LD_FLAGS) $(LD_LIBS) -Wl,--version-script=$(LIBEKALINE).map
 
-ekalib_test: $(LIBEKALINE)_test.so
-$(LIBEKALINE)_test.so: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIP_LIB)
-	$(CXX) $(EKALIB_OBJ) -shared -L. $(SMARTNIC_LIB) $(LWIP_LIB) -o $(LIBEKALINE)_test.so $(LD_FLAGS) $(LD_LIBS)
-
 
 $(LIBEKALINE).a: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIPOBJS)
 	$(AR) x $(SMARTNIC_LIB)
@@ -142,12 +138,8 @@ $(EKAUTILS): %: %.c $(LIBEKALINE).a
 	$(CXX) $(GCC_FLAGS) $(CXXFLAGS) -o $@ $^ $(INCL) $(LD_LIBS) $(EKALINE_FLAGS) $(RUNTIME_LD_FLAGS)
 
 eka_tests: $(EKATESTS_EXECS)
-../new_api_tests/%: ../new_api_tests/%.c $(LIBEKALINE)_test.so
+../bc_tests/%: ../bc_tests/%.c $(LIBEKALINE).so
 	$(CXX) $(GCC_FLAGS) $(CXXFLAGS) $< -o $@ $(INCL) $(LD_LIBS) $(EKALINE_FLAGS) $(LLIB_TEST) $(RUNTIME_LD_FLAGS)
-
-unit_tests: $(UNITTESTS_EXECS)
-../new_api_tests/unit%: ../new_api_tests/unit%.c $(LIBEKALINE)_test.so
-	$(CXX) $(GCC_FLAGS) $(CXXFLAGS) $< -o $@ $(INCL) $(LD_LIBS) $(EKALINE_FLAGS) $(LLIB_TEST) $(SMARTNIC_LIB) $(RUNTIME_LD_FLAGS)
 
 clean:
 	rm -f /tmp/core* *.o */*.o *.so *.a *~ core $(EKATESTS_EXECS) $(UNITTESTS_EXECS) $(EKAUTILS_EXECS) */*~ ../*/*~ *.csv *.txt
