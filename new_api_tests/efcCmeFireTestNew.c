@@ -83,7 +83,7 @@ void handleFireReport(const void* p, size_t len, void* ctx) {
   default:
     ReportedFires++;
   }
-  
+
   efcPrintFireReport(p,len,ctx);
   return;
 }
@@ -135,10 +135,10 @@ void tcpServer(EkaDev* dev, std::string ip, uint16_t port,
 		on_error("Socket");
   int one_const = 1;
   if (setsockopt(sd, SOL_SOCKET, SO_REUSEADDR,
-								 &one_const, sizeof(int)) < 0) 
+								 &one_const, sizeof(int)) < 0)
     on_error("setsockopt(SO_REUSEADDR) failed");
   if (setsockopt(sd, SOL_SOCKET, SO_REUSEPORT,
-								 &one_const, sizeof(int)) < 0) 
+								 &one_const, sizeof(int)) < 0)
     on_error("setsockopt(SO_REUSEPORT) failed");
 
   struct linger so_linger = {
@@ -147,14 +147,14 @@ void tcpServer(EkaDev* dev, std::string ip, uint16_t port,
   };
 
   if (setsockopt(sd,SOL_SOCKET,SO_LINGER,
-								 &so_linger,sizeof(struct linger)) < 0) 
+								 &so_linger,sizeof(struct linger)) < 0)
     on_error("Cant set SO_LINGER");
 
   struct sockaddr_in addr;
   addr.sin_family = AF_INET;
   addr.sin_port = be16toh(port);
   addr.sin_addr.s_addr = INADDR_ANY;
-  if (bind(sd,(struct sockaddr*)&addr, sizeof(addr)) != 0 ) 
+  if (bind(sd,(struct sockaddr*)&addr, sizeof(addr)) != 0 )
     on_error("failed to bind server sock to %s:%u",
 	     EKA_IP2STR(addr.sin_addr.s_addr),
 						 be16toh(addr.sin_port));
@@ -197,59 +197,59 @@ void printUsage(char* cmd) {
 /* --------------------------------------------- */
 
 static int getAttr(int argc, char *argv[],
-		   std::string* serverIp, uint16_t* serverTcpPort, 
-		   std::string* clientIp, 
+		   std::string* serverIp, uint16_t* serverTcpPort,
+		   std::string* clientIp,
 		   std::string* triggerIp, uint16_t* triggerUdpPort,
 		   uint16_t* numTcpSess, bool* runEfh, bool* fatalDebug,
 									 bool* dontExit) {
-	int opt; 
-	while((opt = getopt(argc, argv, ":c:s:p:u:l:t:fdhe")) != -1) {  
-		switch(opt) {  
-		case 's':  
+	int opt;
+	while((opt = getopt(argc, argv, ":c:s:p:u:l:t:fdhe")) != -1) {
+		switch(opt) {
+		case 's':
 			*serverIp = std::string(optarg);
-			printf("serverIp = %s\n", (*serverIp).c_str());  
-			break;  
-		case 'c':  
+			printf("serverIp = %s\n", (*serverIp).c_str());
+			break;
+		case 'c':
 			*clientIp = std::string(optarg);
-			printf("clientIp = %s\n", (*clientIp).c_str());  
-			break;  
-		case 'p':  
+			printf("clientIp = %s\n", (*clientIp).c_str());
+			break;
+		case 'p':
 			*serverTcpPort = atoi(optarg);
-			printf("serverTcpPort = %u\n", *serverTcpPort);  
-			break;  
-		case 't':  
+			printf("serverTcpPort = %u\n", *serverTcpPort);
+			break;
+		case 't':
 			*triggerIp = std::string(optarg);
-			printf("triggerIp = %s\n", (*triggerIp).c_str());  
-			break;  
-		case 'u':  
+			printf("triggerIp = %s\n", (*triggerIp).c_str());
+			break;
+		case 'u':
 			*triggerUdpPort = atoi(optarg);
-			printf("triggerUdpPort = %u\n", *triggerUdpPort);  
-			break;  
-		case 'l':  
+			printf("triggerUdpPort = %u\n", *triggerUdpPort);
+			break;
+		case 'l':
 			*numTcpSess = atoi(optarg);
-			printf("numTcpSess = %u\n", *numTcpSess);  
-			break;  
-		case 'f':  
+			printf("numTcpSess = %u\n", *numTcpSess);
+			break;
+		case 'f':
 			printf("runEfh = true\n");
 			*runEfh = true;
 			break;
-		case 'd':  
+		case 'd':
 			printf("fatalDebug = ON\n");
 			*fatalDebug = true;
 			break;
-		case 'e':  
+		case 'e':
 			printf("dontExit = OFF\n");
 			*dontExit = false;
 			break;
-		case 'h':  
+		case 'h':
 			printUsage(argv[0]);
 			exit (1);
-			break;  
-		case '?':  
-			printf("unknown option: %c\n", optopt); 
-			break;  
-		}  
-	}  
+			break;
+		case '?':
+			printf("unknown option: %c\n", optopt);
+			break;
+		}
+	}
 
 	return 0;
 }
@@ -276,7 +276,7 @@ static std::string action2string(EpmTriggerAction action) {
   case SendError:       return std::string("SendError");
   default:              on_error("Unexpected action %d",action);
   }
-    
+
 };
 /* --------------------------------------------- */
 
@@ -325,13 +325,13 @@ static int sendCmeTradeMsg(std::string serverIp,
     triggerMcAddr.sin_addr.s_addr = inet_addr(dstIp.c_str());
     triggerMcAddr.sin_port        = be16toh(dstPort);
 
-#if 0    
+#if 0
     uint8_t pkt[1536] = {};
 
     auto p {pkt};
     auto pktHdr {reinterpret_cast<Cme::PktHdr*>(p)};
     p += sizeof(*pktHdr);
-    
+
     auto msgHdr {reinterpret_cast<Cme::MsgHdr*>(p)};
     msgHdr->templateId = Cme::MsgId::MDIncrementalRefreshTradeSummary48;
     msgHdr->size = cmeMsgSize;
@@ -349,7 +349,7 @@ static int sendCmeTradeMsg(std::string serverIp,
     p += strlen(data);
 
     size_t payloadLen = p - pkt;
-#else    
+#else
     const uint8_t pkt[] =
       {0x22, 0xa5, 0x0d, 0x02, 0xa5, 0x6f, 0x01, 0x38, 0xca, 0x42, 0xdc, 0x16, 0x60, 0x00, 0x0b, 0x00,
        0x30, 0x00, 0x01, 0x00, 0x09, 0x00, 0x41, 0x23, 0xff, 0x37, 0xca, 0x42, 0xdc, 0x16, 0x01, 0x00,
@@ -358,24 +358,24 @@ static int sendCmeTradeMsg(std::string serverIp,
        0x6d, 0x01, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x0e, 0x19, 0x84, 0x8e,
        0x36, 0x06, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xb0, 0x7f, 0x8e,
        0x36, 0x06, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    
+
     size_t payloadLen = std::size(pkt);
-#endif  
- 
+#endif
+
     TEST_LOG("sending MDIncrementalRefreshTradeSummary48 "
 						 "trigger to %s:%u",
 	    EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),
 						 be16toh(triggerMcAddr.sin_port));
     if (sendto(triggerSock,pkt,payloadLen,0,
 							 (const sockaddr*)&triggerMcAddr,
-							 sizeof(triggerMcAddr)) < 0) 
+							 sizeof(triggerMcAddr)) < 0)
 	on_error ("MC trigger send failed");
     return 0;
 }
 
 /* ############################################# */
 int main(int argc, char *argv[]) {
-  
+
     signal(SIGINT, INThandler);
     testCtx = new TestCtx;
     if (!testCtx) on_error("testCtx == NULL");
@@ -396,7 +396,7 @@ int main(int argc, char *argv[]) {
 						&clientIp,&triggerIp,&triggerUdpPort,
 						&numTcpSess,&runEfh,&fatalDebug,&dontExit);
 
-    if (numTcpSess > MaxTcpTestSessions) 
+    if (numTcpSess > MaxTcpTestSessions)
 			on_error("numTcpSess %d > MaxTcpTestSessions %d",
 							 numTcpSess, MaxTcpTestSessions);
     // ==============================================
@@ -441,7 +441,7 @@ int main(int argc, char *argv[]) {
 				sleep (0);
     }
     // ==============================================
-    // Establishing EXC connections for EPM/EFC fires 
+    // Establishing EXC connections for EPM/EFC fires
 
     ExcConnHandle conn[MaxTcpTestSessions]    = {};
 
@@ -481,7 +481,7 @@ int main(int argc, char *argv[]) {
 
     EfcInitCtx initCtx = {
 			.feedVer = EfhFeedVer::kCME
-    };  
+    };
     rc = efcInit(&pEfcCtx,dev,&initCtx);
     if (rc != EKA_OPRESULT__OK)
 			on_error("efcInit returned %d",(int)rc);
@@ -491,7 +491,7 @@ int main(int argc, char *argv[]) {
 
     const EpmStrategyParams efcEpmStrategyParams = {
 			.numActions    = 256,          // just a number
-			.triggerParams = triggerParam,         
+			.triggerParams = triggerParam,
 			.numTriggers   = std::size(triggerParam),
 			.reportCb      = NULL,         // set via EfcRunCtx
 			.cbCtx         = NULL
@@ -510,7 +510,7 @@ int main(int argc, char *argv[]) {
     efcInitStrategy(pEfcCtx, &efcStratGlobCtx);
 
     EfcRunCtx runCtx = {};
-    runCtx.onEfcFireReportCb = handleFireReport; 
+    runCtx.onEfcFireReportCb = handleFireReport;
     // ==============================================
 		// CME FastCancel EFC config
     static const uint64_t CmeTestFastCancelAlwaysFire = 0xadcd;
@@ -523,7 +523,7 @@ int main(int argc, char *argv[]) {
     static const uint16_t CmeTestFastCancelMaxMsgSizeTicker = 96;
 
 		//HARDCODED, not used by tickersend
-    static const uint8_t  CmeTestFastCancelMinNoMDEntriesTicker = 1;  
+    static const uint8_t  CmeTestFastCancelMinNoMDEntriesTicker = 1;
 
 		EfcAction genericActionParams = {
 			.type          = EpmActionType::INVALID,
@@ -537,9 +537,9 @@ int main(int argc, char *argv[]) {
 			.user          = CmeTestFastCancelUser
 		};
 
-		
+
 		auto cmeHwCancelIdx = efcAllocateNewAction(dev,EpmActionType::CmeHwCancel);
-		
+
 		rc = efcSetAction(dev,cmeHwCancelIdx,&genericActionParams);
 		if (rc != EKA_OPRESULT__OK)
 			on_error("efcSetAction returned %d",(int)rc);
@@ -551,7 +551,7 @@ int main(int argc, char *argv[]) {
 		rc = efcSetActionPayload(dev,cmeHwCancelIdx,
 														 &CmeTestFastCancelMsg,
 														 strlen(CmeTestFastCancelMsg));
-		if (rc != EKA_OPRESULT__OK) 
+		if (rc != EKA_OPRESULT__OK)
 			on_error("efcSetActionPayload failed");
 
 
@@ -581,7 +581,7 @@ int main(int argc, char *argv[]) {
     const char* swHB  = "CME SW Heartbeat:Sequence = |____| : expected NOT incremented Sequence";
 
     const size_t HbLen = 26;
-    
+
     efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
     efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
     efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
@@ -593,7 +593,7 @@ int main(int argc, char *argv[]) {
     efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
     efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
     efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
-    
+
     efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
     efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
     efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
@@ -605,14 +605,14 @@ int main(int argc, char *argv[]) {
     efcCmeSend(dev,conn[0],swHB,HbLen,0,false);
     efcCmeSend(dev,conn[0],swHB,HbLen,0,false);
     efcCmeSend(dev,conn[0],swHB,HbLen,0,false);
- 
-    
+
+
     epmRaiseTriggers(dev,&cmeTrigger);
     epmRaiseTriggers(dev,&cmeTrigger);
     epmRaiseTriggers(dev,&cmeTrigger);
     epmRaiseTriggers(dev,&cmeTrigger);
 #endif
-    
+
     for (auto i = 0; i < TotalInjects; i++) {
       if (rand() % 3) {
 	efcEnableController(pEfcCtx, 1, armVer++); //arm and promote
@@ -621,11 +621,11 @@ int main(int argc, char *argv[]) {
       else {
 	efcEnableController(pEfcCtx, 1, armVer-1); //should be no arm
       }
-      
+
       sendCmeTradeMsg(serverIp,triggerIp,triggerUdpPort, CmeTestFastCancelMaxMsgSizeTicker, CmeTestFastCancelMinNoMDEntriesTicker);
-      usleep (300000);      
+      usleep (300000);
     }
-    
+
     if (fatalDebug) {
 	TEST_LOG(RED "\n=====================\nFATAL DEBUG: ON\n=====================\n" RESET);
 	eka_write(dev,0xf0f00,0xefa0beda);
@@ -634,9 +634,9 @@ int main(int argc, char *argv[]) {
 // ==============================================
 
 //    efcEnableController(pEfcCtx, 1, armVer++); //arm
-    efcEnableController(pEfcCtx, -1);    
-    int hw_fires  = getHWFireCnt(dev,0xf0800);  
-    
+    efcEnableController(pEfcCtx, -1);
+    int hw_fires  = getHWFireCnt(dev,0xf0800);
+
     printf("\n===========================\nEND OT TESTS : ");
     bool testPass = true;
 
@@ -651,7 +651,7 @@ int main(int argc, char *argv[]) {
       testPass = false;
     }
     printf(RESET);
-    printf("===========================\n\n");  
+    printf("===========================\n\n");
     testCtx->keep_work = dontExit;
     sleep(1);
     EKA_LOG("--Test finished, ctrl-c to end---");
@@ -666,7 +666,7 @@ int main(int argc, char *argv[]) {
     printf("Closing device\n");
 
     ekaDevClose(dev);
-  
+
       if (testPass)
       return 0;
     else

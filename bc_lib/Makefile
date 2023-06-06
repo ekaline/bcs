@@ -28,12 +28,14 @@ SMARTNIC_API_INCL ?= $(SMARTNIC_ROOT)/include
 SMARTNIC_LIB ?= $(SMARTNIC_ROOT)/lib/libsmartnic.a
 
 EKALIB_SRCS_DIR := ../apisrc
+BC_SRC_DIR := ../bc_src
+BC_INC_DIR := ../bc_include
 
-LWIP_INCL:=$(LWIP_ROOT)/src/include 
+LWIP_INCL:=$(LWIP_ROOT)/src/include
 INC=$(SMARTNIC_DRIVER_INCL) $(SMARTNIC_API_INCL) $(LWIP_INCL) $(shell pwd) $(EKALIB_SRCS_DIR) $(EKALIB_SRCS_DIR)/compat $(EKALIB_SRCS_DIR)/FhBook $(EKALIB_SRCS_DIR)/Ehp $(shell pwd)/../pcapParsers $(shell pwd)/../new_api_tests
 
 INCL=$(foreach d, $(INC), -I$d)
-INCL+=-I$(EKALIB_SRCS_DIR) -I$(EKALIB_SRCS_DIR)/arch
+INCL+=-I$(EKALIB_SRCS_DIR) -I$(EKALIB_SRCS_DIR)/arch -I$(BC_INC_DIR)
 
 GCC_SUPPRESSED_WARNINGS:=-Wno-unused-function -Wno-packed-not-aligned
 
@@ -57,6 +59,8 @@ EKALIB_SRCS := $(wildcard $(EKALIB_SRCS_DIR)/e*.c $(EKALIB_SRCS_DIR)/E*.c)
 EKALIB_SRCS += $(wildcard $(EKALIB_SRCS_DIR)/FhBook/*.c)
 EKALIB_SRCS += $(wildcard $(EKALIB_SRCS_DIR)/Ehp/*.c)
 
+EKALIB_SRCS += $(wildcard $(BC_SRC_DIR)/*.c)
+
 EKALIB_FILES := $(patsubst %.c,%,$(EKALIB_SRCS))
 EKALIB_OBJ := $(EKALIB_SRCS:.c=.o)
 LLIB := -L. -lekaline2
@@ -70,7 +74,7 @@ SMARTNIC_LIB_FILES := $(shell ar t $(SMARTNIC_LIB))
 
 
 
-#all:  $(LIBEKALINE) $(EKAUTILS_EXECS) $(EKATESTS_EXECS) 
+#all:  $(LIBEKALINE) $(EKAUTILS_EXECS) $(EKATESTS_EXECS)
 all:  eka_utils ekalib $(LIBEKALINE).a libeka_depend lwip_depend # ekalib_test eka_tests unit_tests
 	@echo "========================================="
 	@echo created: $^
@@ -85,7 +89,7 @@ use_onload: all
 # LWIP
 
 LWIPDIR?=$(LWIP_ROOT)/src
-CFLAGS+=-I. -I$(LWIPDIR)/include -I$(EKALIB_SRCS_DIR) -I./$(EKALIB_SRCS_DIR)/arch -D_GNU_SOURCE 
+CFLAGS+=-I. -I$(LWIPDIR)/include -I$(EKALIB_SRCS_DIR) -I./$(EKALIB_SRCS_DIR)/arch -D_GNU_SOURCE
 
 include $(LWIPDIR)/Filelists.mk
 
@@ -120,11 +124,11 @@ include .libeka_depend
 .libeka_depend: $(EKALIB_SRCS)
 	$(CXX) $(GCC_FLAGS) $(CXXFLAGS) $(INCL) -MM $^ > .libeka_depend || rm -f .libeka_depend
 
-ekalib: $(LIBEKALINE).so 
+ekalib: $(LIBEKALINE).so
 $(LIBEKALINE).so: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIP_LIB)
 	$(CXX) $(EKALIB_OBJ) -shared -L. $(SMARTNIC_LIB) $(LWIP_LIB) -o $@ $(LD_FLAGS) $(LD_LIBS) -Wl,--version-script=$(LIBEKALINE).map
 
-ekalib_test: $(LIBEKALINE)_test.so 
+ekalib_test: $(LIBEKALINE)_test.so
 $(LIBEKALINE)_test.so: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIP_LIB)
 	$(CXX) $(EKALIB_OBJ) -shared -L. $(SMARTNIC_LIB) $(LWIP_LIB) -o $(LIBEKALINE)_test.so $(LD_FLAGS) $(LD_LIBS)
 

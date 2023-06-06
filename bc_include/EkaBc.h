@@ -7,7 +7,7 @@ struct EkaDev;
 EkaDev *ekaBcOpenDev();
 int ekaBcCloseDev(EkaDev *pEkaDev);
 
-int ekaBcTcpConnect(EkaDev *pEkaDev, int lane,
+int ekaBcTcpConnect(EkaDev *pEkaDev, int8_t lane,
                     const char *ip, uint16_t port);
 
 ssize_t ekaBcSend(EkaDev *pEkaDev, int sock,
@@ -33,13 +33,12 @@ struct EkaBcFcMdParams {
   size_t numTriggers;
 };
 
-int ekaBcCmeFcMdInit(
-    EkaDev *pEkaDev,
-    const struct EkaBcFcMdParams *params);
+int ekaBcCmeFcMdInit(EkaDev *pEkaDev,
+                     const struct EkaBcFcMdParams *params);
 
 struct EkaBcCmeFastCanceGlobalParams {
-    uint8_t     report_only;
-    uint64_t    watchdog_timeout_sec;
+  uint8_t report_only;
+  uint64_t watchdog_timeout_sec;
 };
 
 int ekaBcCmeFcGlobalInit(
@@ -70,8 +69,8 @@ void ekaBcFcRun(EkaDev *pEkaDev,
 ssize_t ekaBcCmeSendHB(EkaDev *pEkaDev, int sock,
                        const void *buffer, size_t size);
 
-void ekaBcCmeSetILinkAppseq(EkaDev *ekaDev, int sock,
-                            int32_t appSequence);
+int ekaBcCmeSetILinkAppseq(EkaDev *ekaDev, int sock,
+                           int32_t appSequence);
 
 struct EkaBcAction {
   int sock;       ///< TCP connection
@@ -83,7 +82,33 @@ int ekaBcAllocateCmeFireAction(EkaDev *pEkaDev);
 int ekaBcSetAction(EkaDev *pEkaDev, int actionIdx,
                    const EkaBcAction *ekaBcAction);
 
-int ekaBcSetActionPayload(EkaDev *ekaDev, int actionIdx,
+int ekaBcSetActionPayload(EkaDev *pEkaDev, int actionIdx,
+                          const void *payload, size_t len);
+
+struct EkaBcPortAttrs {
+  uint32_t host_ip;
+  uint32_t netmask;
+  uint32_t gateway;
+  char nexthop_mac[6];
+  char src_mac_addr[6];
+};
+
+void ekaBcConfigurePort(
+    EkaDev *pEkaDev, int8_t lane,
+    const struct EkaBcPortAttrs *pPortAttrs);
+
+int ekaBcAllocateFcAction(EkaDev *pEkaDev);
+
+struct EkaBcActionParams {
+  int tcpSock;
+  int nextAction;
+};
+
+int ekaBcSetActionParams(
+    EkaDev *pEkaDev, int actionIdx,
+    const struct EkaBcActionParams *params);
+
+int ekaBcSetActionPayload(EkaDev *pEkaDev, int actionIdx,
                           const void *payload, size_t len);
 
 } // End of extern "C"
