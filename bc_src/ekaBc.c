@@ -32,7 +32,7 @@ int ekaBcCloseDev(EkaDev *dev) {
   return 0;
 }
 
-int ekaBcTcpConnect(EkaDev *dev, int coreId, const char *ip,
+int ekaBcTcpConnect(EkaDev *dev, int8_t coreId, const char *ip,
                     uint16_t port) {
   if (!dev->checkAndSetEpmTx())
     on_error(

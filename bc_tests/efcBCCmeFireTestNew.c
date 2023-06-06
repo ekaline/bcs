@@ -34,6 +34,7 @@
 #include "EkaCtxs.h"
 #include "EkaEfcDataStructs.h"
 #include "EkaFhCmeParser.h"
+#include "EfhTestTypes.h"
 
 #include "EfhTestFuncs.h"
 #include "EkaBc.h"
@@ -43,6 +44,7 @@
 using namespace Bats;
 
 extern TestCtx *testCtx;
+extern FILE *g_ekaLogFile;
 
 /* --------------------------------------------- */
 std::string ts_ns2str(uint64_t ts);
@@ -435,7 +437,7 @@ int main(int argc, char *argv[]) {
 
   int conn[MaxTcpTestSessions] = {};
 
-  for (auto i = 0; i < numTcpSess; i++) {
+  for (uint16_t i = 0; i < numTcpSess; i++) {
     // struct sockaddr_in serverAddr = {};
     //			serverAddr.sin_family      =
     // AF_INET; 			serverAddr.sin_addr.s_addr
@@ -444,7 +446,9 @@ int main(int argc, char *argv[]) {
 
     //			int excSock =
     // excSocket(dev,coreId,0,0,0);
-    conn[i] = ekaBcTcpConnect(dev, coreId, serverIp.c_str(),
+    conn[i] = ekaBcTcpConnect(dev,
+															coreId,
+															serverIp.c_str(),
                               serverTcpBasePort + i);
     if (conn[i] < 0)
       on_error("failed to open sock %d", i);
@@ -535,11 +539,12 @@ int main(int argc, char *argv[]) {
 
   auto cmeHwCancelIdx = ekaBcAllocateFcAction(dev);
 
-  EkaBcAction ekaBcActionParams = {
-      .sock = conn[0], .nextAction = EPM_LAST_ACTION};
+  EkaBcActionParams actionParams = {
+      .tcpSock = conn[0],
+			.nextAction = EPM_LAST_ACTION};
 
-  rc = ekaBcSetAction(dev, cmeHwCancelIdx,
-                      &ekaBcActionParams);
+  rc = ekaBcSetActionParams(dev, cmeHwCancelIdx,
+                      &actionParams);
   if (rc != EKA_OPRESULT__OK)
     on_error("efcSetAction returned %d", (int)rc);
 
