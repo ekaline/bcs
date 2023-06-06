@@ -21,6 +21,10 @@ LIBEKALINE2_1.0	{
 				ekaBcSetActionParams;
 				ekaBcSetActionPayload;
 
+				efcPrintFireReport;
+				testCtx;
+				g_ekaLogFile;
+				g_ekaLogCB;
 		local:
 			*;
 		};

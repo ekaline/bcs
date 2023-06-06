@@ -81,12 +81,6 @@ struct EkaBcAction {
   int nextAction; ///< Next action in sequence
 };
 
-int ekaBcSetAction(EkaDev *pEkaDev, int actionIdx,
-                   const EkaBcAction *ekaBcAction);
-
-int ekaBcSetActionPayload(EkaDev *pEkaDev, int actionIdx,
-                          const void *payload, size_t len);
-
 struct EkaBcPortAttrs {
   uint32_t host_ip;
   uint32_t netmask;
