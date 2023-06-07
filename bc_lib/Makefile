@@ -75,7 +75,7 @@ SMARTNIC_LIB_FILES := $(shell ar t $(SMARTNIC_LIB))
 
 
 #all:  $(LIBEKALINE) $(EKAUTILS_EXECS) $(EKATESTS_EXECS)
-all:  eka_utils ekalib $(LIBEKALINE).a libeka_depend lwip_depend # ekalib_test eka_tests unit_tests
+all:  eka_utils ekalib $(LIBEKALINE).a libeka_depend lwip_depend eka_tests # ekalib_test  unit_tests
 	@echo "========================================="
 	@echo created: $^
 
@@ -139,7 +139,7 @@ $(EKAUTILS): %: %.c $(LIBEKALINE).a
 
 eka_tests: $(EKATESTS_EXECS)
 ../bc_tests/%: ../bc_tests/%.c $(LIBEKALINE).so
-	$(CXX) $(GCC_FLAGS) $(CXXFLAGS) $< -o $@ $(INCL) $(LD_LIBS) $(EKALINE_FLAGS) $(LLIB_TEST) $(RUNTIME_LD_FLAGS)
+	$(CXX) $(GCC_FLAGS) $(CXXFLAGS) $< -o $@ $(INCL) $(LD_LIBS) $(EKALINE_FLAGS) $(LLIB) $(RUNTIME_LD_FLAGS)
 
 clean:
 	rm -f /tmp/core* *.o */*.o *.so *.a *~ core $(EKATESTS_EXECS) $(UNITTESTS_EXECS) $(EKAUTILS_EXECS) */*~ ../*/*~ *.csv *.txt
