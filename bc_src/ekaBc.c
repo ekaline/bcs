@@ -14,6 +14,7 @@
 #include "EkaSnDev.h"
 #include "EkaTcpSess.h"
 #include "EkaUdpTxSess.h"
+#include "EkaEpmRegion.h"
 
 extern EkaDev *g_ekaDev;
 
@@ -162,7 +163,8 @@ int ekaBcFcInit(EkaDev *dev) {
 int ekaBcCmeFcMdInit(EkaDev *dev,
                      const struct EkaBcFcMdParams *params) {
   const EpmStrategyParams epmStrategyParams = {
-      .numActions = 0,
+		.numActions = 256,
+		//EkaEpmRegion::getMaxActions(EkaEpmRegion::Regions::Efc),
       .triggerParams =
           (const EpmTriggerParams *)params->triggerParams,
       .numTriggers = params->numTriggers};
