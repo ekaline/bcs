@@ -155,14 +155,16 @@ EkaOpResult EkaFhNom::runGroups(EfhCtx *pEfhCtx,
                   .count());
 
           if (gr->staleDataNsThreshold != 0 &&
+              sampleNs > exchTS &&
               sampleNs - exchTS >
                   gr->staleDataNsThreshold) {
             EKA_WARN("%s:%u: Stale data: "
-                     "sampleNs %s - exchNs "
-                     "%s > %ju",
+                     "sampleNs %s - exchNs %s"
+                     "(delay %jd ns) > %ju",
                      EKA_EXCH_DECODE(exch), id,
                      ts_ns2str(sampleNs).c_str(),
                      ts_ns2str(exchTS).c_str(),
+                     sampleNs - exchTS,
                      gr->staleDataNsThreshold);
 
             gr->state = EkaFhGroup::GrpState::INIT;

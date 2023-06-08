@@ -121,7 +121,7 @@ public:
         "SNAPSHOT: %s:%u, "
         "RECOVERY: %s:%u, "
         "AUTH: %s:%s, "
-        "connectRetryDelayTime=%d"
+        "connectRetryDelayTime=%d, "
         "staleDataNsThreshold=%ju",
         EKA_EXCH_DECODE(exch), id,
         lookupProductMaskNames(productMask,
