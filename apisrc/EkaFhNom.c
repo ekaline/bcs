@@ -154,17 +154,16 @@ EkaOpResult EkaFhNom::runGroups(EfhCtx *pEfhCtx,
                   std::chrono::nanoseconds>(now - midnight)
                   .count());
 
-          if ((sampleNs > exchTS) &&
-							(sampleNs - exchTS) >
-              gr->StaleDataNanosecThreshold) {
+          if (gr->staleDataNsThreshold != 0 &&
+              sampleNs - exchTS >
+                  gr->staleDataNsThreshold) {
             EKA_WARN("%s:%u: Stale data: "
-                     "sampleNs %s (%ju) - exchNs %s (%ju) "
-                     "(=%jd) > %ju",
+                     "sampleNs %s - exchNs "
+                     "%s > %ju",
                      EKA_EXCH_DECODE(exch), id,
-                     ts_ns2str(sampleNs).c_str(),sampleNs,
-                     ts_ns2str(exchTS).c_str(),exchTS,
-										 sampleNs - exchTS,
-                     gr->StaleDataNanosecThreshold);
+                     ts_ns2str(sampleNs).c_str(),
+                     ts_ns2str(exchTS).c_str(),
+                     gr->staleDataNsThreshold);
 
             gr->state = EkaFhGroup::GrpState::INIT;
             gr->sendFeedDownStaleData(pEfhRunCtx);
@@ -176,15 +175,12 @@ EkaOpResult EkaFhNom::runGroups(EfhCtx *pEfhCtx,
             pEfhRunCtx, pkt, msgInPkt, sequence);
         break;
       }
-      /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-       */
+      /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
       // BACK-IN-TIME to be ignored
       if (sequence < gr->expected_sequence)
         break;
-      /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-       */
-      // GAP: sequence >
-      // gr->expected_sequence
+      /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+      // GAP: sequence > gr->expected_sequence
       EKA_LOG("%s:%u Gap at NORMAL:  "
               "expected_sequence=%ju, "
               "sequence=%ju, gap=%ju",
@@ -205,15 +201,13 @@ EkaOpResult EkaFhNom::runGroups(EfhCtx *pEfhCtx,
       //----------------------------------------
     case EkaFhGroup::GrpState::RETRANSMIT_GAP:
     case EkaFhGroup::GrpState::SNAPSHOT_GAP:
-      /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-       */
+      /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
       // Waiting for recovery
       gr->pushUdpPkt2Q(pkt, msgInPkt, sequence);
 
       if (!gr->gapClosed)
         break;
-      /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-       */
+      /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
       // Gap closed
       if (gr->state == EkaFhGroup::GrpState::SNAPSHOT_GAP)
         lockSnapshotGap.clear();
@@ -226,8 +220,7 @@ EkaOpResult EkaFhNom::runGroups(EfhCtx *pEfhCtx,
               EKA_EXCH_DECODE(exch), gr->id,
               gr->printGrpState(), gr->seq_after_snapshot);
 
-      if (gr->processFromQ(pEfhRunCtx) <
-          0) { // gap in the Q
+      if (gr->processFromQ(pEfhRunCtx) < 0) { // gap in Q
         EKA_LOG("%s:%u: gap during %s "
                 "recovery, "
                 "Snapshot recovery to "
@@ -248,8 +241,7 @@ EkaOpResult EkaFhNom::runGroups(EfhCtx *pEfhCtx,
       break;
       //----------------------------------------
     default:
-      on_error("%s:%u: UNEXPECTED "
-               "GrpState %u",
+      on_error("%s:%u: UNEXPECTED GrpState %u",
                EKA_EXCH_DECODE(exch), gr->id,
                (uint)gr->state);
       break;
