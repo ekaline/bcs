@@ -121,7 +121,8 @@ public:
         "SNAPSHOT: %s:%u, "
         "RECOVERY: %s:%u, "
         "AUTH: %s:%s, "
-        "connectRetryDelayTime=%d",
+        "connectRetryDelayTime=%d"
+        "staleDataNsThreshold=%ju",
         EKA_EXCH_DECODE(exch), id,
         lookupProductMaskNames(productMask,
                                productNamesBuf),
@@ -135,7 +136,7 @@ public:
             ? std::string(auth_passwd, sizeof(auth_passwd))
                   .c_str()
             : "NOT SET",
-        connectRetryDelayTime);
+        connectRetryDelayTime, staleDataNsThreshold);
     return 0;
   }
 

@@ -29,11 +29,12 @@ $username = "NGBAR2";
 $passwd   = "HY4VXK";
 
 print "EkaProp efhNomInitCtxEntries_A[] = {\n";
-for ($i=0; $i<$groups;$i++) {    
+for ($i=0; $i<$groups;$i++) {
     $mc_lsb        = $mc_lsb_base       + $i;
     $snapshot_lsb  = $snapshot_lsb_base + $i;
     $recovery_lsb  = $recovery_lsb_base + $i;
 
+    print "\t\{\"efh.$exch_name.group.$i.staleDataNsThreshold\"   ,1000000000\},\n";
     print "\t\{\"efh.$exch_name.group.$i.mcast.addr\"   ,\"$mc_base$mc_lsb:$mc_port\"\},\n";
     print "\t\{\"efh.$exch_name.group.$i.snapshot.addr\",\"$snapshot_ip$snapshot_lsb:$snapshot_port\"\}, \t// TCP SOUPBIN\n";
     print "\t\{\"efh.$exch_name.group.$i.recovery.addr\",\"$recovery_ip$recovery_lsb:$recovery_port\"\}, \t// MOLD RECOVERY\n";
@@ -59,7 +60,7 @@ $recovery_lsb_base  = 64;
 $recovery_port      = 18100;
 
 print "EkaProp efhNomInitCtxEntries_B[] = {\n";
-for ($i=0; $i<$groups;$i++) {    
+for ($i=0; $i<$groups;$i++) {
     $mc_lsb        = $mc_lsb_base       + $i;
     $snapshot_lsb  = $snapshot_lsb_base + $i;
     $recovery_lsb  = $recovery_lsb_base + $i;
