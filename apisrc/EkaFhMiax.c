@@ -127,7 +127,7 @@ EkaFhMiax::runGroups(EfhCtx *pEfhCtx,
               EKA_EXCH_DECODE(exch), gr_id, sequence);
       gr->pushUdpPkt2Q(pkt, pktLen);
 
-      // gr->invalidateBook();
+      gr->invalidateBook();
       gr->gapClosed = false;
 
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
