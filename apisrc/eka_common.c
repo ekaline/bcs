@@ -175,7 +175,8 @@ int ekaUdpMcConnect(EkaDev* dev, uint32_t ip, uint16_t port) {
 
   struct sockaddr_in mcast = {};
   mcast.sin_family=AF_INET;
-  mcast.sin_addr.s_addr = be32toh(INADDR_ANY);
+  mcast.sin_addr.s_addr = INADDR_ANY;
+  mcast.sin_port = 0; // any available
 
   if (bind(sock,(struct sockaddr*) &mcast,
 					 sizeof(struct sockaddr)) < 0) 

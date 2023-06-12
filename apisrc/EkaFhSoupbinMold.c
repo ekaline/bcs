@@ -694,6 +694,7 @@ void* getMolUdp64Data(void* attr) {
   sockaddr_in local2bind = {};
   local2bind.sin_family      = AF_INET;
   local2bind.sin_addr.s_addr = INADDR_ANY;
+  local2bind.sin_port = 0; // any available
 
   if (bind(udpSock,(sockaddr*) &local2bind, sizeof(sockaddr)) < 0) {
     dev->lastErrno = errno;
