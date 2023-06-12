@@ -155,47 +155,44 @@ uint32_t getIfIp(const char* ifName) {
 /* ########################################################### */
 
 int ekaUdpMcConnect(EkaDev* dev, uint32_t ip, uint16_t port) {
-	// UDP port is already 16b swapped!
-	
+  // UDP port is already 16b swapped!
+
   int sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock < 0)
-		on_error("failed to open UDP socket");
+    on_error("failed to open UDP socket");
 
   EKA_LOG("Subscribing on Kernel UDP MC group %s:%u from %s (%s)",
-					EKA_IP2STR(ip),be16toh(port),
-					dev->genIfName,EKA_IP2STR(dev->genIfIp));
+          EKA_IP2STR(ip),be16toh(port),
+          dev->genIfName,EKA_IP2STR(dev->genIfIp));
 
   int const_one = 1;
-  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
-								 &const_one, sizeof(int)) < 0) 
+  int const_zero = 0;
+  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &const_one, sizeof(int)) < 0)
     on_error("setsockopt(SO_REUSEADDR) failed");
-  if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT,
-								 &const_one, sizeof(int)) < 0) 
+  if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &const_one, sizeof(int)) < 0)
     on_error("setsockopt(SO_REUSEPORT) failed");
 
   struct sockaddr_in mcast = {};
   mcast.sin_family=AF_INET;
   mcast.sin_addr.s_addr = INADDR_ANY;
-  mcast.sin_port = 0; // any available
+  mcast.sin_port = port;
 
-  if (bind(sock,(struct sockaddr*) &mcast,
-					 sizeof(struct sockaddr)) < 0) 
-    on_error("Failed to bind to %d",
-						 be16toh(mcast.sin_port));
+  if (bind(sock,(struct sockaddr*) &mcast, sizeof(mcast)) < 0)
+    on_error("Failed to bind to %d", be16toh(mcast.sin_port));
 
   struct ip_mreq mreq = {};
   mreq.imr_interface.s_addr = dev->genIfIp; //INADDR_ANY;
   mreq.imr_multiaddr.s_addr = ip;
 
-  if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-								 &mreq, sizeof(mreq)) < 0) 
-    on_error("Failed to join  %s",
-						 EKA_IP2STR(mreq.imr_multiaddr.s_addr));
+  if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
+    on_error("Failed to join  %s", EKA_IP2STR(mreq.imr_multiaddr.s_addr));
+  if (setsockopt(sock, IPPROTO_IP, IP_MULTICAST_ALL, &const_zero, sizeof(int)) < 0)
+    on_error("setsockopt(IP_MULTICAST_ALL) failed");
 
   EKA_LOG("Kernel joined MC group %s:%u from %s (%s)",
-					EKA_IP2STR(mreq.imr_multiaddr.s_addr),
-					be16toh(mcast.sin_port),
-					dev->genIfName,EKA_IP2STR(dev->genIfIp));
+          EKA_IP2STR(mreq.imr_multiaddr.s_addr),
+          be16toh(mcast.sin_port),
+          dev->genIfName,EKA_IP2STR(dev->genIfIp));
   return sock;
 }
 

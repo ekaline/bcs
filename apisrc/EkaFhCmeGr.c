@@ -193,10 +193,9 @@ EkaOpResult EkaFhCmeGr::recoveryLoop(const EfhRunCtx* pEfhRunCtx,
       uint8_t pkt[1536] = {};
       //      EKA_LOG("Waiting for UDP pkt...");
 
-			struct sockaddr_in rxAddr;
-			socklen_t addrlen = sizeof(rxAddr);
-      int size = recvfrom(sock, pkt, sizeof(pkt), 0,
-													(sockaddr*)&rxAddr, &addrlen);
+      struct sockaddr_in rxAddr;
+      socklen_t addrlen = sizeof(rxAddr);
+      int size = recvfrom(sock, pkt, sizeof(pkt), 0, (sockaddr*)&rxAddr, &addrlen);
       if (size < 0)
 				on_error("size = %d",size);
 #if 0
