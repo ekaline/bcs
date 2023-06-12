@@ -349,6 +349,8 @@ public:
   uint64_t parserSeq = 0; // used for the sanity check
   int productMask = PM_NoInfo;
 
+  uint64_t firstMcSeq = 0; //
+
   uint64_t expectedSeqGapInGap = 1;
 
   bool credentialsAcquired = false;

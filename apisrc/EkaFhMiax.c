@@ -121,10 +121,10 @@ EkaFhMiax::runGroups(EfhCtx *pEfhCtx,
               std::memory_order_acquire))
         break; // only1s group can get
                // snapshot at a tim
+      gr->firstMcSeq = sequence;
 
-      EKA_LOG("%s:%u 1st MC msq "
-              "sequence=%ju",
-              EKA_EXCH_DECODE(exch), gr_id, sequence);
+      EKA_LOG("%s:%u firstMcSeq=%ju", EKA_EXCH_DECODE(exch),
+              gr_id, gr->firstMcSeq);
       gr->pushUdpPkt2Q(pkt, pktLen);
 
       gr->invalidateBook();
@@ -132,7 +132,8 @@ EkaFhMiax::runGroups(EfhCtx *pEfhCtx,
 
       gr->state = EkaFhGroup::GrpState::SNAPSHOT_GAP;
 
-      gr->closeSnapshotGap(pEfhCtx, pEfhRunCtx, 1, 0);
+      gr->closeSnapshotGap(pEfhCtx, pEfhRunCtx, 1,
+                           sequence);
 
       break;
       //-----------------------------------------
@@ -180,8 +181,66 @@ EkaFhMiax::runGroups(EfhCtx *pEfhCtx,
       }
       break;
       //-----------------------------------------
-    case EkaFhGroup::GrpState::RETRANSMIT_GAP:
     case EkaFhGroup::GrpState::SNAPSHOT_GAP:
+      // Waiting for recovery
+      gr->pushUdpPkt2Q(pkt, pktLen);
+
+      if (!gr->gapClosed)
+        break;
+
+      /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+      // Snapshot Gap closed
+      lockSnapshotGap.clear();
+      /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+      if (gr->seq_after_snapshot < gr->firstMcSeq) {
+        // Snapshot older than very first MC msg
+        // need further incremental recovery
+        EKA_LOG(
+            "%s:%u seq_after_snapshot %ju < firstMcSeq %ju"
+            "incrementally filling gap by retransmit:"
+            "%ju .. %ju gap = %jd",
+            EKA_EXCH_DECODE(exch), gr_id,
+            gr->seq_after_snapshot, gr->firstMcSeq,
+            gr->seq_after_snapshot + 1, gr->firstMcSeq - 1,
+            gr->firstMcSeq - gr->seq_after_snapshot);
+
+        gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
+        gr->closeIncrementalGap(pEfhCtx, pEfhRunCtx,
+                                gr->seq_after_snapshot,
+                                gr->firstMcSeq);
+        break;
+      }
+      /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+      // No need further incremental recovery
+      gr->expected_sequence = gr->seq_after_snapshot + 1;
+
+      EKA_LOG("%s:%u: %s Closed, switching "
+              "to fetch from Q: "
+              "expected_sequence = %ju",
+              EKA_EXCH_DECODE(exch), gr->id,
+              gr->printGrpState(), gr->seq_after_snapshot);
+
+      if (gr->processFromQ(pEfhRunCtx) < 0) { // gap in Q
+        EKA_LOG("%s:%u: gap during %s "
+                "recovery, "
+                "Snapshot recovery to "
+                "be redone!",
+                EKA_EXCH_DECODE(exch), gr->id,
+                gr->printGrpState());
+        gr->state = EkaFhGroup::GrpState::INIT;
+        break;
+      }
+      EKA_LOG("%s:%u: %s GAP Closed - "
+              "expected_sequence=%ju",
+              EKA_EXCH_DECODE(exch), gr->id,
+              gr->printGrpState(), gr->expected_sequence);
+
+      gr->state = EkaFhGroup::GrpState::NORMAL;
+      gr->sendFeedUp(pEfhRunCtx);
+      break;
+      /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+    case EkaFhGroup::GrpState::RETRANSMIT_GAP:
       /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
       // Waiting for recovery
       gr->pushUdpPkt2Q(pkt, pktLen);
@@ -190,8 +249,6 @@ EkaFhMiax::runGroups(EfhCtx *pEfhCtx,
         break;
       /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
       // Gap closed
-      if (gr->state == EkaFhGroup::GrpState::SNAPSHOT_GAP)
-        lockSnapshotGap.clear();
 
       gr->expected_sequence = gr->seq_after_snapshot + 1;
 
