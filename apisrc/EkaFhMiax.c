@@ -196,8 +196,8 @@ EkaFhMiax::runGroups(EfhCtx *pEfhCtx,
         // Snapshot older than very first MC msg
         // need further incremental recovery
         EKA_LOG(
-            "%s:%u seq_after_snapshot %ju < firstMcSeq %ju"
-            "incrementally filling gap by retransmit:"
+            "%s:%u seq_after_snapshot %ju < firstMcSeq %ju "
+            "incrementally filling gap by retransmit: "
             "%ju .. %ju gap = %jd",
             EKA_EXCH_DECODE(exch), gr_id,
             gr->seq_after_snapshot, gr->firstMcSeq,
