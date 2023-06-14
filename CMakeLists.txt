@@ -126,26 +126,48 @@ add_custom_target(archObj
         )
 
 ###########################################################
-# efcCboeTest
-set(tests_COMPILE_FLAGS ${tests_COMPILE_FLAGS} ${EKA_COMMON_CXX_FLAGS})
+# Tests
 
-add_executable(efcCboeTest ${EKA_SRC_DIR}/../new_api_tests/efcCboeTest.c)
-add_dependencies(efcCboeTest ekaN)
-target_compile_options(efcCboeTest PUBLIC ${tests_COMPILE_FLAGS})
+FILE(GLOB test_SRCS ${EKA_SRC_DIR}/../new_api_tests/*.c)
 
-set(tests_LINK_FLAGS -std=c++23 -O3 -funroll-loops)
-set(tests_LINK_FLAGS ${tests_LINK_FLAGS} -pipe -march=native)
-set(tests_LINK_FLAGS ${tests_LINK_FLAGS} -pthread -lrt -lm)
-set(tests_LINK_FLAGS ${tests_LINK_FLAGS} -static-libstdc++ -static-libgcc)
+foreach (test ${test_SRCS})
+        get_filename_component(testName ${test} NAME)
+        add_executable(${testName} ${test})
+        set_target_properties(${testName} CMAKE_RUNTIME_OUTPUT_DIRECTORY ${EKA_SRC_DIR}/../tests)
+        add_dependencies(${testName} ekaN)
+        target_compile_options(${testName} PUBLIC
+                -std=c++23
+                -O3 -funroll-loops
+                -fPIC -shared
+                -pthread -lrt -lm
+                -pipe -march=native
+        )
+        target_link_options(${testName} PUBLIC
+                -static-libstdc++ -static-libgcc
+                -pthread -lrt -lm
+        )
+        target_include_directories(${testName} PUBLIC ${EKA_INC_PATH})
+endforeach()
+
+#set(tests_COMPILE_FLAGS ${tests_COMPILE_FLAGS} ${EKA_COMMON_CXX_FLAGS})
+
+#add_executable(efcCboeTest ${EKA_SRC_DIR}/../new_api_tests/efcCboeTest.c)
+#add_dependencies(efcCboeTest ekaN)
+#target_compile_options(efcCboeTest PUBLIC ${tests_COMPILE_FLAGS})
+
+#set(tests_LINK_FLAGS -std=c++23 -O3 -funroll-loops)
+#set(tests_LINK_FLAGS ${tests_LINK_FLAGS} -pipe -march=native)
+#set(tests_LINK_FLAGS ${tests_LINK_FLAGS} -pthread -lrt -lm)
+#set(tests_LINK_FLAGS ${tests_LINK_FLAGS} -static-libstdc++ -static-libgcc)
 #set(tests_LINK_FLAGS ${tests_LINK_FLAGS} -lekaN -L${BUILD_DIR})
 
-target_link_libraries(efcCboeTest ekaN)
-target_link_options(efcCboeTest PUBLIC
-        -static-libstdc++ -static-libgcc
-        -pthread -lrt -lm
-        )
+#target_link_libraries(efcCboeTest ekaN)
+#target_link_options(efcCboeTest PUBLIC
+#        -static-libstdc++ -static-libgcc
+#        -pthread -lrt -lm
+#        )
 
-target_include_directories(efcCboeTest PUBLIC ${EKA_INC_PATH})
+#target_include_directories(efcCboeTest PUBLIC ${EKA_INC_PATH})
 
 ###########################################################
 
