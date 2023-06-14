@@ -67,13 +67,13 @@ target_include_directories(ekalwip PUBLIC ${LWIP_LIB_BUILD_INCL})
 #----------------------------------------------------------
 # libekalwip_static.a
 #[==================[
-add_custom_target(lwipObj
-        COMMAND ar x ${SMARTNIC_LIB}
-        COMMAND ar rcsv libekalwip_static.a ${lwipnoapps_SRCS}.o
-        WORKING_DIRECTORY ${BUILD_DIR}
-        DEPENDS ${SMARTNIC_LIB} ekalwip
-        )
-]==================]
+#add_custom_target(lwipObj
+#        COMMAND ar x ${SMARTNIC_LIB}
+#        COMMAND ar rcsv libekalwip_static.a ${lwipnoapps_SRCS}.o
+#        WORKING_DIRECTORY ${BUILD_DIR}
+#        DEPENDS ${SMARTNIC_LIB} ekalwip
+#        )
+#]==================]
 ###########################################################
 
 ###########################################################
