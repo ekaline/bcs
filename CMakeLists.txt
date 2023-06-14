@@ -12,7 +12,7 @@ include(CPack)
 
 execute_process(COMMAND git rev-parse --short HEAD OUTPUT_VARIABLE EKA_GIT_VER)
 
-set(CMAKE_C_COMPILER g++)
+set(CMAKE_C_COMPILER ${CMAKE_CXX_COMPILER})
 
 set(BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/build)
 
@@ -56,9 +56,11 @@ set(LWIP_LIB_BUILD_INCL ${LWIP_LIB_BUILD_INCL} ${EKA_SRC_DIR})
 set(LWIP_API_INCL ${LWIP_DIR}/src/include)
 
 add_library(ekalwip SHARED ${ekalwip_SRCS})
-target_compile_options(ekalwip PUBLIC ${EKA_COMMON_CXX_LIB_FLAGS})
-#target_compile_options(ekalwip PUBLIC -D_GNU_SOURCE)
-target_compile_definitions(ekalwip PUBLIC _GNU_SOURCE)
+target_compile_options(ekalwip PUBLIC
+        -O3 -funroll-loops
+        -pthread -lrt -lm
+)
+target_compile_definitions(ekalwip PRIVATE _GNU_SOURCE)
 
 target_include_directories(ekalwip PUBLIC ${LWIP_LIB_BUILD_INCL})
 
@@ -98,12 +100,22 @@ set(ekaN_COMPILE_FLAGS ${ekaN_COMPILE_FLAGS} -fPIC -shared)
 target_link_libraries (ekaN ${SMARTNIC_LIB} ekalwip)
 
 #set(ekaN_COMPILE_FLAGS ${ekaN_COMPILE_FLAGS} -Wl,--version-script=${EKA_SRC_DIR}/compat/libekaline2.map)
-target_compile_options(ekaN PUBLIC ${ekaN_COMPILE_FLAGS})
+target_compile_options(ekaN PUBLIC
+        -std=c++23
+        -O3 -funroll-loops
+        -pthread -lrt -lm
+        -pipe -march=native
+#        ${ekaN_COMPILE_FLAGS}
+)
 target_include_directories(ekaN PUBLIC ${EKA_INC_PATH})
 
 #target_compile_definitions(ekaN PUBLIC LIBEKA_GIT_VER=\"${EKA_GIT_VER}\")
 target_compile_definitions(ekaN PUBLIC LIBEKA_GIT_VER="abcd")
 
+target_link_options(ekaN INTERFACE
+        -static-libstdc++ -static-libgcc
+        -pthread -lrt -lm
+)
 #set_target_properties(ekaN PROPERTIES PUBLIC_HEADER ${EKA_SRC_DIR}/compat/*.h)
 
 ###########################################################
@@ -119,7 +131,7 @@ add_custom_target(archObj
 ###########################################################
 set(tests_COMPILE_FLAGS ${tests_COMPILE_FLAGS} ${EKA_COMMON_CXX_FLAGS})
 
-add_executable(efcCboeTest ${EKA_SRC_DIR}/../new_api_tests/efcCboeTest.c) 
+add_executable(efcCboeTest ${EKA_SRC_DIR}/../new_api_tests/efcCboeTest.c)
 add_dependencies(efcCboeTest ekaN)
 target_compile_options(efcCboeTest PUBLIC ${tests_COMPILE_FLAGS})
 
@@ -130,7 +142,10 @@ set(tests_LINK_FLAGS ${tests_LINK_FLAGS} -static-libstdc++ -static-libgcc)
 #set(tests_LINK_FLAGS ${tests_LINK_FLAGS} -lekaN -L${BUILD_DIR})
 
 target_link_libraries(efcCboeTest ekaN)
-target_link_options(efcCboeTest PUBLIC ${tests_LINK_FLAGS})
+target_link_options(efcCboeTest PUBLIC
+        -static-libstdc++ -static-libgcc
+        -pthread -lrt -lm
+        )
 
 target_include_directories(efcCboeTest PUBLIC ${EKA_INC_PATH})
 
