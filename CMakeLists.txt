@@ -118,23 +118,42 @@ set_target_properties(ekaN PROPERTIES PUBLIC_HEADER ${EKA_SRC_DIR}/compat/*.h)
 ###########################################################
 # libekaN_static.a
 
-add_custom_target(archObj
-        COMMAND ar x ${SMARTNIC_LIB}
-        COMMAND ar rcsv libekaN_static.a ${BUILD_DIR}/*.o
-        WORKING_DIRECTORY ${BUILD_DIR}
-        DEPENDS ${SMARTNIC_LIB} ekaN
+add_library(ekaN_static STATIC ${ekaN_SRCS})
+target_link_libraries(ekaN_static ${SMARTNIC_LIB} ekalwip)
+
+target_compile_options(ekaN_static PUBLIC
+        -std=c++23
+        -O3 -funroll-loops
+        -fPIC -shared
+        -pthread -lrt -lm
+        -pipe -march=native
         )
+
+target_include_directories(ekaN_static PUBLIC ${EKA_INC_PATH})
+
+target_compile_definitions(ekaN_static PUBLIC LIBEKA_GIT_VER="DUMMY")
+
+target_link_options(ekaN_static PUBLIC
+        -static-libstdc++ -static-libgcc
+        -pthread -lrt -lm
+)
+#set_target_properties(ekaN_static PROPERTIES PUBLIC_HEADER ${EKA_SRC_DIR}/compat/*.h)
 
 ###########################################################
 # Tests
 
 FILE(GLOB test_SRCS ${EKA_SRC_DIR}/../new_api_tests/*.c)
+set(testDstDir ${EKA_SRC_DIR}/../ekaN_tests)
+file(MAKE_DIRECTORY ${testDstDir})
 
 foreach (test ${test_SRCS})
-        get_filename_component(testName ${test} NAME)
+        get_filename_component(testName ${test} NAME_WE)
         add_executable(${testName} ${test})
-        set_target_properties(${testName} CMAKE_RUNTIME_OUTPUT_DIRECTORY ${EKA_SRC_DIR}/../tests)
+        set_target_properties(${testName} PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY
+                ${testDstDir})
         add_dependencies(${testName} ekaN)
+        target_link_libraries(${testName} ekaN)
         target_compile_options(${testName} PUBLIC
                 -std=c++23
                 -O3 -funroll-loops
@@ -149,28 +168,31 @@ foreach (test ${test_SRCS})
         target_include_directories(${testName} PUBLIC ${EKA_INC_PATH})
 endforeach()
 
-#set(tests_COMPILE_FLAGS ${tests_COMPILE_FLAGS} ${EKA_COMMON_CXX_FLAGS})
-
-#add_executable(efcCboeTest ${EKA_SRC_DIR}/../new_api_tests/efcCboeTest.c)
-#add_dependencies(efcCboeTest ekaN)
-#target_compile_options(efcCboeTest PUBLIC ${tests_COMPILE_FLAGS})
-
-#set(tests_LINK_FLAGS -std=c++23 -O3 -funroll-loops)
-#set(tests_LINK_FLAGS ${tests_LINK_FLAGS} -pipe -march=native)
-#set(tests_LINK_FLAGS ${tests_LINK_FLAGS} -pthread -lrt -lm)
-#set(tests_LINK_FLAGS ${tests_LINK_FLAGS} -static-libstdc++ -static-libgcc)
-#set(tests_LINK_FLAGS ${tests_LINK_FLAGS} -lekaN -L${BUILD_DIR})
-
-#target_link_libraries(efcCboeTest ekaN)
-#target_link_options(efcCboeTest PUBLIC
-#        -static-libstdc++ -static-libgcc
-#        -pthread -lrt -lm
-#        )
-
-#target_include_directories(efcCboeTest PUBLIC ${EKA_INC_PATH})
-
 ###########################################################
+# Utils
 
+FILE(GLOB utils_SRCS ${EKA_SRC_DIR}/../eka_utils/*.c)
+set(utilsDstDir ${EKA_SRC_DIR}/../ekaN_utils)
+file(MAKE_DIRECTORY ${utilsDstDir})
 
-#add_dependencies(ekaN archObj)
-#target_link_libraries(efcCboeTest ${EKA_SRC_DIR}/build/libekaN.a)
+foreach (uSrc ${utils_SRCS})
+        get_filename_component(utilExec ${uSrc} NAME_WE)
+        add_executable(${utilExec} ${uSrc})
+        set_target_properties(${utilExec} PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY
+                ${utilsDstDir})
+        add_dependencies(${utilExec} ekaN_static)
+        target_link_libraries(${utilExec} ekaN_static ${SMARTNIC_LIB} ekalwip)
+        target_compile_options(${utilExec} PUBLIC
+                -std=c++23
+                -O3 -funroll-loops
+                -fPIC -shared
+                -pthread -lrt -lm
+                -pipe -march=native
+        )
+        target_link_options(${utilExec} PUBLIC
+                -static-libstdc++ -static-libgcc
+                -pthread -lrt -lm
+        )
+        target_include_directories(${utilExec} PUBLIC ${EKA_INC_PATH})
+endforeach()
