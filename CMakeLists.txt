@@ -33,8 +33,8 @@ set(SMARTNIC_API_INCL ${SMARTNIC_ROOT}/include)
 set(SMARTNIC_DRIVER_INCL ${SMARTNIC_ROOT}/driver)
 set(SMARTNIC_LIB ${SMARTNIC_ROOT}/lib/libsmartnic.a)
 
-execute_process(COMMAND ar x ${SMARTNIC_LIB})
-execute_process(COMMAND ar t ${SMARTNIC_LIB} OUTPUT_VARIABLE SMARTNIC_LIB_FILES)
+#execute_process(COMMAND ar x ${SMARTNIC_LIB})
+#execute_process(COMMAND ar t ${SMARTNIC_LIB} OUTPUT_VARIABLE SMARTNIC_LIB_FILES)
 
 ###########################################################
 # libekalwip.so
@@ -49,7 +49,6 @@ set(ekalwip_SRCS
 )
 
 set(LWIP_LIB_BUILD_INCL ${LWIP_LIB_BUILD_INCL} ${LWIP_DIR}/src/include)
-#set(LWIP_LIB_BUILD_INCL ${LWIP_LIB_BUILD_INCL} ${LWIP_DIR}/src/include/lwip)
 set(LWIP_LIB_BUILD_INCL ${LWIP_LIB_BUILD_INCL} ${LWIP_DIR}/src/include/arch)
 set(LWIP_LIB_BUILD_INCL ${LWIP_LIB_BUILD_INCL} ${EKA_SRC_DIR})
 
@@ -58,7 +57,9 @@ set(LWIP_API_INCL ${LWIP_DIR}/src/include)
 add_library(ekalwip SHARED ${ekalwip_SRCS})
 target_compile_options(ekalwip PUBLIC
         -O3 -funroll-loops
+        -fPIC -shared
         -pthread -lrt -lm
+        -pipe -march=native
 )
 target_compile_definitions(ekalwip PRIVATE _GNU_SOURCE)
 
@@ -94,29 +95,25 @@ set(EKA_INC_PATH ${EKA_INC_PATH} ${LWIP_INCL})
 # libekaN.so
 add_library(ekaN SHARED ${ekaN_SRCS})
 
-set(ekaN_COMPILE_FLAGS ${ekaN_COMPILE_FLAGS} ${EKA_COMMON_CXX_FLAGS})
-set(ekaN_COMPILE_FLAGS ${ekaN_COMPILE_FLAGS} -fPIC -shared)
-
 target_link_libraries (ekaN ${SMARTNIC_LIB} ekalwip)
 
-#set(ekaN_COMPILE_FLAGS ${ekaN_COMPILE_FLAGS} -Wl,--version-script=${EKA_SRC_DIR}/compat/libekaline2.map)
 target_compile_options(ekaN PUBLIC
         -std=c++23
         -O3 -funroll-loops
+        -fPIC -shared
         -pthread -lrt -lm
         -pipe -march=native
-#        ${ekaN_COMPILE_FLAGS}
-)
+        )
+
 target_include_directories(ekaN PUBLIC ${EKA_INC_PATH})
 
-#target_compile_definitions(ekaN PUBLIC LIBEKA_GIT_VER=\"${EKA_GIT_VER}\")
-target_compile_definitions(ekaN PUBLIC LIBEKA_GIT_VER="abcd")
+target_compile_definitions(ekaN PUBLIC LIBEKA_GIT_VER="DUMMY")
 
-target_link_options(ekaN INTERFACE
+target_link_options(ekaN PUBLIC
         -static-libstdc++ -static-libgcc
         -pthread -lrt -lm
 )
-#set_target_properties(ekaN PROPERTIES PUBLIC_HEADER ${EKA_SRC_DIR}/compat/*.h)
+set_target_properties(ekaN PROPERTIES PUBLIC_HEADER ${EKA_SRC_DIR}/compat/*.h)
 
 ###########################################################
 # libekaN_static.a
@@ -129,6 +126,7 @@ add_custom_target(archObj
         )
 
 ###########################################################
+# efcCboeTest
 set(tests_COMPILE_FLAGS ${tests_COMPILE_FLAGS} ${EKA_COMMON_CXX_FLAGS})
 
 add_executable(efcCboeTest ${EKA_SRC_DIR}/../new_api_tests/efcCboeTest.c)
