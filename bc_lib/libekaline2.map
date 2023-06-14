@@ -20,6 +20,7 @@ LIBEKALINE2_1.0	{
 				ekaBcAllocateFcAction;
 				ekaBcSetActionParams;
 				ekaBcSetActionPayload;
+				ekaBcSwKeepAliveSend;
 
 				efcPrintFireReport;
 				testCtx;

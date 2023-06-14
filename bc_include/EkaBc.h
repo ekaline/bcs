@@ -20,6 +20,8 @@ int ekaBcCloseSock(EkaDev *pEkaDev, int sock);
 
 int ekaBcFcInit(EkaDev *pEkaDev);
 
+void ekaBcSwKeepAliveSend(EkaDev *pEkaDev);
+
 struct EkaBcTriggerParams {
   int8_t lane;      ///< 10G port to receive UDP MC trigger
   const char *mcIp; ///< MC IP address
@@ -66,8 +68,7 @@ struct EkaBcFcRunCtx {
 void ekaBcFcRun(EkaDev *pEkaDev,
                 struct EkaBcFcRunCtx *pEkaBcFcRunCtx);
 
-void ekaBcEnableController(EkaDev *pEkaDev,
-                           bool enable,
+void ekaBcEnableController(EkaDev *pEkaDev, bool enable,
                            uint32_t ver = 0);
 
 ssize_t ekaBcCmeSendHB(EkaDev *pEkaDev, int sock,

@@ -11,10 +11,10 @@
 #include "EkaCore.h"
 #include "EkaDev.h"
 #include "EkaEfc.h"
+#include "EkaEpmRegion.h"
 #include "EkaSnDev.h"
 #include "EkaTcpSess.h"
 #include "EkaUdpTxSess.h"
-#include "EkaEpmRegion.h"
 
 extern EkaDev *g_ekaDev;
 
@@ -33,8 +33,8 @@ int ekaBcCloseDev(EkaDev *dev) {
   return 0;
 }
 
-int ekaBcTcpConnect(EkaDev *dev, int8_t coreId, const char *ip,
-                    uint16_t port) {
+int ekaBcTcpConnect(EkaDev *dev, int8_t coreId,
+                    const char *ip, uint16_t port) {
   if (!dev->checkAndSetEpmTx())
     on_error(
         "TX functionality is not available for this "
@@ -163,8 +163,8 @@ int ekaBcFcInit(EkaDev *dev) {
 int ekaBcCmeFcMdInit(EkaDev *dev,
                      const struct EkaBcFcMdParams *params) {
   const EpmStrategyParams epmStrategyParams = {
-		.numActions = 256,
-		//EkaEpmRegion::getMaxActions(EkaEpmRegion::Regions::Efc),
+      .numActions = 256,
+      // EkaEpmRegion::getMaxActions(EkaEpmRegion::Regions::Efc),
       .triggerParams =
           (const EpmTriggerParams *)params->triggerParams,
       .numTriggers = params->numTriggers};
@@ -185,6 +185,11 @@ int ekaBcCmeFcGlobalInit(
 
   efcInitStrategy(&efcCtx, &efcStratGlobCtx);
   return 0;
+}
+
+void ekaBcSwKeepAliveSend(EkaDev *dev) {
+  EfcCtx efcCtx = {.dev = dev};
+  efcSwKeepAliveSend(&efcCtx);
 }
 
 static const uint64_t DefaultToken = 0x1122334455667788;
@@ -278,7 +283,7 @@ int ekaBcSetActionPayload(EkaDev *dev, int actionIdx,
 }
 
 void ekaBcEnableController(EkaDev *dev, bool enable,
-                          uint32_t armVer) {
+                           uint32_t armVer) {
   EfcCtx efcCtx = {.dev = dev};
   efcEnableController(&efcCtx, enable ? 1 : -1, armVer);
 }
