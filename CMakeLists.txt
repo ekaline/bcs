@@ -144,7 +144,7 @@ set_target_properties(ekaN PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${libDstDir})
 # libekaN_static.a
 
 add_library(ekaN_static STATIC ${ekaN_SRCS})
-target_link_libraries(ekaN_static ${SMARTNIC_LIB} ekalwip)
+target_link_libraries(ekaN_static ${SMARTNIC_LIB} ekalwip_static)
 
 target_compile_options(
   ekaN_static
