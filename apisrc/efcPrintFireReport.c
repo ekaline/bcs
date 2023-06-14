@@ -194,7 +194,7 @@ int printEpmReport(FILE* file,const uint8_t* b) {
 int printFastCancelReport(FILE* file,const uint8_t* b) {
   auto epmReport {reinterpret_cast<const EpmFastCancelReport*>(b)};
   
-  fprintf(file,"numInGroup=%d,transactTime=%ju,headerTime=%ju,sequenceNumber=%d\n",
+  fprintf(file,"numInGroup=%d,transactTime=%ju,headerTime=%ju,sequenceNumber=%u\n",
 	  epmReport->numInGroup,
 	  epmReport->transactTime,
 	  epmReport->headerTime,

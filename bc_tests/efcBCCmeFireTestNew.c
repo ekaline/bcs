@@ -342,18 +342,24 @@ static int sendCmeTradeMsg(std::string serverIp,
   triggerMcAddr.sin_port = be16toh(dstPort);
 
   const uint8_t pkt[] = {
-      0x22, 0xa5, 0x0d, 0x02, 0xa5, 0x6f, 0x01, 0x38, 0xca,
-      0x42, 0xdc, 0x16, 0x60, 0x00, 0x0b, 0x00, 0x30, 0x00,
-      0x01, 0x00, 0x09, 0x00, 0x41, 0x23, 0xff, 0x37, 0xca,
-      0x42, 0xdc, 0x16, 0x01, 0x00, 0x00, 0x20, 0x00, 0x01,
-      0x00, 0xfc, 0x2f, 0x9c, 0x9d, 0xb2, 0x00, 0x00, 0x01,
-      0x00, 0x00, 0x00, 0x5b, 0x33, 0x00, 0x00, 0x83, 0x88,
-      0x26, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0xd9,
-      0x7a, 0x6d, 0x01, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x02, 0x0e, 0x19, 0x84, 0x8e, 0x36,
-      0x06, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0xb0, 0x7f, 0x8e, 0x36, 0x06, 0x00,
-      0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    0x0b, 0x00, 0x00, 0x00, //seq num
+    0x65, 0x6f, 0x01, 0x38, 0xca, 0x42, 0xdc, 0x16, //sending time
+    0x60, 0x00, //size
+    0x0b, 0x00, //block len
+    48,   0x00, //template id
+    0x01, 0x00, 0x09, 0x00, //stam
+    0x01, 0x6f, 0x01, 0x38, 0xca, 0x42, 0xdc, 0x16, //transact time (22,23,24,25,26,27,28,29)
+    0x00, //match indicator (0-fire)
+    0x00, 0x00, 0x20, 0x00, //stam
+    0x06, //numingroup
+    0x00, 0xfc, 0x2f, 0x9c, 0x9d, 0xb2, 0x00, 0x00, 0x01,
+    0x00, 0x00, 0x00, 0xcc, 0x33, 0x00, 0x00, 0x83, 0x88,
+    0x26, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0xd9,
+    0x7a, 0x6d, 0x01, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x02, 0x0e, 0x19, 0x84, 0x8e, 0x36,
+    0x06, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0xb0, 0x7f, 0x8e, 0x36, 0x06, 0x00,
+    0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
   size_t payloadLen = std::size(pkt);
 
@@ -416,7 +422,6 @@ int main(int argc, char *argv[]) {
       .src_mac_addr = {} // taken from system config
   };
 
-  //    ekaDevConfigurePort (dev, &ekaCoreInitCtx);
   ekaBcConfigurePort(dev, coreId, &ekaCoreInitCtx);
 
   // ==============================================
@@ -438,31 +443,15 @@ int main(int argc, char *argv[]) {
   int conn[MaxTcpTestSessions] = {};
 
   for (uint16_t i = 0; i < numTcpSess; i++) {
-    // struct sockaddr_in serverAddr = {};
-    //			serverAddr.sin_family      =
-    // AF_INET; 			serverAddr.sin_addr.s_addr
-    // = inet_addr(serverIp.c_str());
-    // serverAddr.sin_port = be16toh(serverTcpBasePort + i);
-
-    //			int excSock =
-    // excSocket(dev,coreId,0,0,0);
     conn[i] = ekaBcTcpConnect(dev,
-															coreId,
-															serverIp.c_str(),
+			      coreId,
+			      serverIp.c_str(),
                               serverTcpBasePort + i);
     if (conn[i] < 0)
       on_error("failed to open sock %d", i);
-    /* conn[i] = excConnect(dev,excSock,(sockaddr*)
-     * &serverAddr, sizeof(sockaddr_in)); */
-    /* if (conn[i] < 0) */
-    /* 	on_error("excConnect %d %s:%u", */
-    /* 					 i,EKA_IP2STR(serverAddr.sin_addr.s_addr),
-     */
-    /* 					 be16toh(serverAddr.sin_port));
-     */
     const char *pkt =
-        "\n\nThis is 1st TCP packet sent from FPGA TCP "
-        "client to Kernel TCP server\n\n";
+      "\n\nThis is 1st TCP packet sent from FPGA TCP "
+      "client to Kernel TCP server\n\n";
     ekaBcSend(dev, conn[i], pkt, strlen(pkt));
     int bytes_read = 0;
     char rxBuf[2000] = {};
@@ -481,13 +470,6 @@ int main(int argc, char *argv[]) {
       /* {0,"224.0.74.3",30304}, */
   };
 
-  //    EfcCtx efcCtx = {};
-  //    EfcCtx* pEfcCtx = &efcCtx;
-
-  /* EfcInitCtx initCtx = { */
-  /* 			.feedVer = EfhFeedVer::kCME */
-  /* }; */
-  //    rc = efcInit(&pEfcCtx,dev,&initCtx);
   rc = ekaBcFcInit(dev);
 
   if (rc != EKA_OPRESULT__OK)
@@ -496,19 +478,6 @@ int main(int argc, char *argv[]) {
   // ==============================================
   // Configuring EFC as EPM Strategy
 
-  /* const EpmStrategyParams efcEpmStrategyParams = { */
-  /* 			.numActions    = 256,          // just
-   * a number */
-  /* 			.triggerParams = triggerParam, */
-  /* 			.numTriggers   =
-   * std::size(triggerParam),
-   */
-  /* 			.reportCb      = NULL,         // set
-   * via EfcRunCtx */
-  /* 			.cbCtx         = NULL */
-  /* }; */
-  /* rc = epmInitStrategies(dev, &efcEpmStrategyParams, 1);
-   */
 
   const EkaBcFcMdParams mdParams = {
       .triggerParams = triggerParam,
@@ -532,10 +501,8 @@ int main(int argc, char *argv[]) {
   // ==============================================
 
   // CME FastCancel EFC config
-  static const uint16_t CmeTestFastMinTimeDiff =
-      0; //""
-  static const uint8_t CmeTestFastCancelMinNoMDEntries =
-      0; //"<1"
+  static const uint16_t CmeTestFastMinTimeDiff =  99; // <=99
+  static const uint8_t CmeTestFastCancelMinNoMDEntries = 5; //<=5
 
   auto cmeHwCancelIdx = ekaBcAllocateFcAction(dev);
 

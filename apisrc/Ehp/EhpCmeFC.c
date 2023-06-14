@@ -9,14 +9,14 @@ EhpCmeFC::EhpCmeFC(EkaDev* dev) : EhpProtocol(dev) {
   conf.params.protocolID         = static_cast<decltype(conf.params.protocolID)>(EhpHwProtocol::CMEFC);
   conf.params.pktHdrLen          = 0;
   conf.params.msgDeltaSize       = EhpNoMsgSize;
-  conf.params.bytes4StartMsgProc = 18; // MHeaderTemplateId
+  conf.params.bytes4StartMsgProc = 15; // MHeaderTemplateId (should be 18, but [3:0], its ok since only 1 message type so critical fields is not important
  
   conf.fields.sequence[0].msgId      = 0; //Not relevant
   conf.fields.sequence[0].opcode     = EhpOpcode::NOP;
-  conf.fields.sequence[0].byteOffs_0 = 0;
-  conf.fields.sequence[0].byteOffs_1 = 1;
-  conf.fields.sequence[0].byteOffs_2 = 2;
-  conf.fields.sequence[0].byteOffs_3 = 3;
+  conf.fields.sequence[0].byteOffs_0 = EhpBlankByte;
+  conf.fields.sequence[0].byteOffs_1 = EhpBlankByte;
+  conf.fields.sequence[0].byteOffs_2 = EhpBlankByte;
+  conf.fields.sequence[0].byteOffs_3 = EhpBlankByte;
   conf.fields.sequence[0].byteOffs_4 = EhpBlankByte;
   conf.fields.sequence[0].byteOffs_5 = EhpBlankByte;
   conf.fields.sequence[0].byteOffs_6 = EhpBlankByte;
@@ -73,10 +73,10 @@ int EhpCmeFC::createFastCancel() {
   conf.fields.securityId[msgType].byteOffs_1 = EhpBlankByte;
   conf.fields.securityId[msgType].byteOffs_2 = EhpBlankByte;
   conf.fields.securityId[msgType].byteOffs_3 = EhpBlankByte;
-  conf.fields.securityId[msgType].byteOffs_4 = EhpBlankByte;
-  conf.fields.securityId[msgType].byteOffs_5 = EhpBlankByte;
-  conf.fields.securityId[msgType].byteOffs_6 = EhpBlankByte;
-  conf.fields.securityId[msgType].byteOffs_7 = EhpBlankByte;
+  conf.fields.securityId[msgType].byteOffs_4 = 0; //seq
+  conf.fields.securityId[msgType].byteOffs_5 = 1; //seq
+  conf.fields.securityId[msgType].byteOffs_6 = 2; //seq
+  conf.fields.securityId[msgType].byteOffs_7 = 3; //seq
 
   //MTransactTime
   conf.fields.price[msgType].msgId      = msgId;
