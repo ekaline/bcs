@@ -105,12 +105,13 @@ set(EKA_INC_PATH ${EKA_INC_PATH} ${SMARTNIC_API_INCL})
 set(EKA_INC_PATH ${EKA_INC_PATH} ${SMARTNIC_DRIVER_INCL})
 set(EKA_INC_PATH ${EKA_INC_PATH} ${LWIP_INCL})
 
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
 # ##############################################################################
 # lib${EKA_LIB_NAME}.so
 
 add_library(${EKA_LIB_NAME} SHARED ${${EKA_LIB_NAME}_SRCS})
-
-target_link_libraries(${EKA_LIB_NAME} ${SMARTNIC_LIB} ekalwip rt m)
 
 target_compile_options(
   ${EKA_LIB_NAME}
@@ -127,14 +128,9 @@ target_include_directories(${EKA_LIB_NAME} PUBLIC ${EKA_INC_PATH})
 
 target_compile_definitions(${EKA_LIB_NAME} PUBLIC LIBEKA_GIT_VER="DUMMY")
 
-target_link_options(
-  ${EKA_LIB_NAME}
-  PUBLIC
-  -static-libstdc++
-  -static-libgcc
-  -pthread
-  -lrt
-  -lm)
+target_link_libraries(${EKA_LIB_NAME} ${SMARTNIC_LIB} ekalwip rt m
+                      Threads::Threads)
+
 set_target_properties(${EKA_LIB_NAME} PROPERTIES PUBLIC_HEADER ${apiDIR}/*.h)
 
 set_target_properties(${EKA_LIB_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
@@ -144,7 +140,8 @@ set_target_properties(${EKA_LIB_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
 # lib${EKA_LIB_NAME}_static.a
 
 add_library(${EKA_LIB_NAME}_static STATIC ${${EKA_LIB_NAME}_SRCS})
-target_link_libraries(${EKA_LIB_NAME}_static ${SMARTNIC_LIB} ekalwip rt m)
+target_link_libraries(${EKA_LIB_NAME}_static ${SMARTNIC_LIB} ekalwip rt m
+                      Threads::Threads)
 
 target_compile_options(
   ${EKA_LIB_NAME}_static
@@ -160,15 +157,6 @@ target_compile_options(
 target_include_directories(${EKA_LIB_NAME}_static PUBLIC ${EKA_INC_PATH})
 
 target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC LIBEKA_GIT_VER="DUMMY")
-
-target_link_options(
-  ${EKA_LIB_NAME}_static
-  PUBLIC
-  -static-libstdc++
-  -static-libgcc
-  -pthread
-  -lrt
-  -lm)
 
 set_target_properties(${EKA_LIB_NAME}_static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
                                                         ${libDstDir})
@@ -189,7 +177,7 @@ foreach(test ${test_SRCS})
   set_target_properties(${testName} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                                ${testDstDir})
   add_dependencies(${testName} ${EKA_LIB_NAME})
-  target_link_libraries(${testName} ${EKA_LIB_NAME} rt m)
+  target_link_libraries(${testName} ${EKA_LIB_NAME} rt m Threads::Threads)
   target_compile_options(
     ${testName}
     PUBLIC -std=c++23
@@ -200,10 +188,6 @@ foreach(test ${test_SRCS})
            # -lrt -lm
            -pipe
            -march=native)
-
-  target_link_options(
-    ${testName} PUBLIC -static-libstdc++ -static-libgcc -pthread # -lrt # -lm
-  )
 
   target_include_directories(${testName} PUBLIC ${EKA_INC_PATH})
 endforeach()
@@ -221,8 +205,14 @@ foreach(uSrc ${utils_SRCS})
   set_target_properties(${utilExec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                                ${utilsDstDir})
   add_dependencies(${utilExec} ${EKA_LIB_NAME}_static ekalwip_static)
-  target_link_libraries(${utilExec} ${EKA_LIB_NAME}_static ${SMARTNIC_LIB}
-                        ekalwip_static rt m)
+  target_link_libraries(
+    ${utilExec}
+    ${EKA_LIB_NAME}_static
+    ${SMARTNIC_LIB}
+    ekalwip_static
+    rt
+    m
+    Threads::Threads)
   target_compile_options(
     ${utilExec}
     PUBLIC -std=c++23
@@ -234,8 +224,6 @@ foreach(uSrc ${utils_SRCS})
            # -lrt -lm
            -pipe
            -march=native)
-  target_link_options(
-    ${utilExec} PUBLIC -static-libstdc++ -static-libgcc -pthread # -lrt # -lm
-  )
+
   target_include_directories(${utilExec} PUBLIC ${EKA_INC_PATH})
 endforeach()
