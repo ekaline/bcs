@@ -204,6 +204,7 @@ EkaFhMiax::runGroups(EfhCtx *pEfhCtx,
             gr->seq_after_snapshot + 1, gr->firstMcSeq - 1,
             gr->firstMcSeq - gr->seq_after_snapshot);
 
+        gr->gapClosed = false;
         gr->state = EkaFhGroup::GrpState::RETRANSMIT_GAP;
         gr->closeIncrementalGap(pEfhCtx, pEfhRunCtx,
                                 gr->seq_after_snapshot,
