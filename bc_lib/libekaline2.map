@@ -22,7 +22,7 @@ LIBEKALINE2_1.0	{
 				ekaBcSetActionPayload;
 				ekaBcSwKeepAliveSend;
 
-				efcPrintFireReport;
+				efcBCPrintFireReport;
 				testCtx;
 				g_ekaLogFile;
 				g_ekaLogCB;

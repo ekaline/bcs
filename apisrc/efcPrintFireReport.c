@@ -71,6 +71,10 @@ inline size_t printExceptionReport(FILE* file, const uint8_t* b) {
     fprintf(file,"%s\n",excptBuf);
     fprintf(stderr,RED "%s\n" RESET,excptBuf);
   }
+  //  fprintf(file,"ArmStatus:");
+  //  fprintf(file,"\tarmFlag = %u \n"        ,exceptionsReport->armStatus.armFlag);
+  //  fprintf(file,"\texpectedVersion = %u\n", exceptionsReport->armStatus.expectedVersion);
+
   return sizeof(*exceptionsReport);
 }
 /* ########################################################### */
@@ -194,7 +198,8 @@ int printEpmReport(FILE* file,const uint8_t* b) {
 int printFastCancelReport(FILE* file,const uint8_t* b) {
   auto epmReport {reinterpret_cast<const EpmFastCancelReport*>(b)};
   
-  fprintf(file,"numInGroup=%d,transactTime=%ju,headerTime=%ju,sequenceNumber=%u\n",
+  fprintf(file,"eventIsZero=%d,numInGroup=%d,transactTime=%ju,headerTime=%ju,sequenceNumber=%u\n",
+	  epmReport->eventIsZero,
 	  epmReport->numInGroup,
 	  epmReport->transactTime,
 	  epmReport->headerTime,

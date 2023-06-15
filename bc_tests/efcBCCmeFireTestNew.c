@@ -57,7 +57,7 @@ volatile bool rxClientReady = false;
 volatile bool triggerGeneratorDone = false;
 
 static const int MaxFireEvents = 10000;
-static volatile EpmFireReport *FireEvent[MaxFireEvents] =
+static volatile EpmBCFireReport *FireEvent[MaxFireEvents] =
     {};
 static volatile int numFireEvents = 0;
 
@@ -80,15 +80,15 @@ void handleFireReport(const void *p, size_t len,
                       void *ctx) {
   auto b = static_cast<const uint8_t *>(p);
   auto containerHdr{
-      reinterpret_cast<const EkaContainerGlobalHdr *>(b)};
+      reinterpret_cast<const EkaBCContainerGlobalHdr *>(b)};
   switch (containerHdr->type) {
-  case EkaEventType::kExceptionEvent:
+  case EkaBCEventType::ExceptionEvent:
     break;
   default:
     ReportedFires++;
   }
 
-  efcPrintFireReport(p, len, ctx);
+  efcBCPrintFireReport(p, len, ctx);
   return;
 }
 
@@ -349,7 +349,7 @@ static int sendCmeTradeMsg(std::string serverIp,
     48,   0x00, //template id
     0x01, 0x00, 0x09, 0x00, //stam
     0x01, 0x6f, 0x01, 0x38, 0xca, 0x42, 0xdc, 0x16, //transact time (22,23,24,25,26,27,28,29)
-    0x00, //match indicator (0-fire)
+    0x01, //match indicator (0-fire)
     0x00, 0x00, 0x20, 0x00, //stam
     0x06, //numingroup
     0x00, 0xfc, 0x2f, 0x9c, 0x9d, 0xb2, 0x00, 0x00, 0x01,
@@ -492,7 +492,7 @@ int main(int argc, char *argv[]) {
   // Global EFC config
   EkaBcCmeFastCanceGlobalParams efcStratGlobCtx = {
       .report_only = 0,
-      .watchdog_timeout_sec = 100000,
+      .watchdog_timeout_sec = 1,
   };
   ekaBcCmeFcGlobalInit(dev, &efcStratGlobCtx);
 
@@ -565,9 +565,17 @@ int main(int argc, char *argv[]) {
   }
 
   // ==============================================
+  ekaBcEnableController(
+			dev, true, armVer++); // arm and promote
 
-  //    efcEnableController(pEfcCtx, 1, armVer++); //arm
+  // test watchdog
+  for (auto i = 0; i < 10; i++) {
+    usleep(300000);
+    ekaBcSwKeepAliveSend(dev);    
+  }
+
   ekaBcEnableController(dev, false);
+  
   int hw_fires = getHWFireCnt(dev, 0xf0800);
 
   printf("\n===========================\nEND OT TESTS : ");
