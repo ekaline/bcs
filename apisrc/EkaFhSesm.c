@@ -684,14 +684,17 @@ procRetransmitSesmPkt(const EfhRunCtx *pEfhRunCtx, int sock,
                       uint64_t end) {
   EkaDev *dev = gr->dev;
   sesm_header sesm_hdr = {};
+
+RETRY_GETTING_SESM_HDR:
   int r = recv(sock, &sesm_hdr, sizeof(sesm_header),
                MSG_WAITALL);
   if (r <= 0) {
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
-      EKA_WARN(
-          "%s:%u failed to receive SESM header: r=%d: %s",
-          EKA_EXCH_DECODE(gr->exch), gr->id, r,
-          strerror(dev->lastErrno));
+      EKA_WARN("%s:%u SLOW TCP: "
+               "failed to receive SESM header: r=%d: %s",
+               EKA_EXCH_DECODE(gr->exch), gr->id, r,
+               strerror(dev->lastErrno));
+      goto RETRY_GETTING_SESM_HDR;
       return EkaFhParseResult::NotEnd;
     }
     dev->lastErrno = errno;
