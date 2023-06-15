@@ -16,11 +16,16 @@ execute_process(COMMAND git rev-parse --short HEAD OUTPUT_VARIABLE EKA_GIT_VER)
 
 set(CMAKE_C_COMPILER ${CMAKE_CXX_COMPILER})
 
+# ##############################################################################
+set(EKA_LIB_NAME ekaN)
+
 set(BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/build)
 set(EKA_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/apisrc)
 
-set(libDstDir ${EKA_SRC_DIR}/../ekaN_lib)
+set(libDstDir ${EKA_SRC_DIR}/../${EKA_LIB_NAME}_lib)
 file(MAKE_DIRECTORY ${libDstDir})
+
+set(apiDIR ${EKA_SRC_DIR}/compat)
 
 # ##############################################################################
 set(SMARTNIC_ROOT ${CMAKE_CURRENT_LIST_DIR}/SmartNIC_SW)
@@ -50,11 +55,9 @@ target_compile_options(
   ekalwip
   PUBLIC -O3
          -funroll-loops
-         -fPIC
-         -shared
+         # -fPIC -shared
          -pthread
-         -lrt
-         -lm
+         # -lrt -lm
          -pipe
          -march=native)
 target_compile_definitions(ekalwip PRIVATE _GNU_SOURCE)
@@ -70,11 +73,9 @@ target_compile_options(
   ekalwip_static
   PUBLIC -O3
          -funroll-loops
-         -fPIC
-         -shared
+         # -fPIC -shared
          -pthread
-         -lrt
-         -lm
+         # -lrt -lm
          -pipe
          -march=native)
 target_compile_definitions(ekalwip_static PRIVATE _GNU_SOURCE)
@@ -92,7 +93,7 @@ set_target_properties(ekalwip_static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
 
 # ##############################################################################
 
-file(GLOB ekaN_SRCS ${EKA_SRC_DIR}/*.c ${EKA_SRC_DIR}/Ehp/*.c)
+file(GLOB ${EKA_LIB_NAME}_SRCS ${EKA_SRC_DIR}/*.c ${EKA_SRC_DIR}/Ehp/*.c)
 
 set(EKA_INC_PATH ${EKA_INC_PATH} ${EKA_SRC_DIR})
 set(EKA_INC_PATH ${EKA_INC_PATH} ${EKA_SRC_DIR}/arch)
@@ -105,66 +106,63 @@ set(EKA_INC_PATH ${EKA_INC_PATH} ${SMARTNIC_DRIVER_INCL})
 set(EKA_INC_PATH ${EKA_INC_PATH} ${LWIP_INCL})
 
 # ##############################################################################
-# libekaN.so
+# lib${EKA_LIB_NAME}.so
 
-add_library(ekaN SHARED ${ekaN_SRCS})
+add_library(${EKA_LIB_NAME} SHARED ${${EKA_LIB_NAME}_SRCS})
 
-target_link_libraries(ekaN ${SMARTNIC_LIB} ekalwip)
+target_link_libraries(${EKA_LIB_NAME} ${SMARTNIC_LIB} ekalwip rt m)
 
 target_compile_options(
-  ekaN
+  ${EKA_LIB_NAME}
   PUBLIC -std=c++23
          -O3
          -funroll-loops
-         -fPIC
-         -shared
+         # -fPIC -shared
          -pthread
-         -lrt
-         -lm
+         # -lrt -lm
          -pipe
          -march=native)
 
-target_include_directories(ekaN PUBLIC ${EKA_INC_PATH})
+target_include_directories(${EKA_LIB_NAME} PUBLIC ${EKA_INC_PATH})
 
-target_compile_definitions(ekaN PUBLIC LIBEKA_GIT_VER="DUMMY")
+target_compile_definitions(${EKA_LIB_NAME} PUBLIC LIBEKA_GIT_VER="DUMMY")
 
 target_link_options(
-  ekaN
+  ${EKA_LIB_NAME}
   PUBLIC
   -static-libstdc++
   -static-libgcc
   -pthread
   -lrt
   -lm)
-set_target_properties(ekaN PROPERTIES PUBLIC_HEADER ${EKA_SRC_DIR}/compat/*.h)
+set_target_properties(${EKA_LIB_NAME} PROPERTIES PUBLIC_HEADER ${apiDIR}/*.h)
 
-set_target_properties(ekaN PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${libDstDir})
+set_target_properties(${EKA_LIB_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
+                                                 ${libDstDir})
 
 # ##############################################################################
-# libekaN_static.a
+# lib${EKA_LIB_NAME}_static.a
 
-add_library(ekaN_static STATIC ${ekaN_SRCS})
-target_link_libraries(ekaN_static ${SMARTNIC_LIB} ekalwip)
+add_library(${EKA_LIB_NAME}_static STATIC ${${EKA_LIB_NAME}_SRCS})
+target_link_libraries(${EKA_LIB_NAME}_static ${SMARTNIC_LIB} ekalwip rt m)
 
 target_compile_options(
-  ekaN_static
+  ${EKA_LIB_NAME}_static
   PUBLIC -std=c++23
          -O3
          -funroll-loops
-         -fPIC
-         -shared
+         # -fPIC -shared
          -pthread
-         -lrt
-         -lm
+         # -lrt -lm
          -pipe
          -march=native)
 
-target_include_directories(ekaN_static PUBLIC ${EKA_INC_PATH})
+target_include_directories(${EKA_LIB_NAME}_static PUBLIC ${EKA_INC_PATH})
 
-target_compile_definitions(ekaN_static PUBLIC LIBEKA_GIT_VER="DUMMY")
+target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC LIBEKA_GIT_VER="DUMMY")
 
 target_link_options(
-  ekaN_static
+  ${EKA_LIB_NAME}_static
   PUBLIC
   -static-libstdc++
   -static-libgcc
@@ -172,17 +170,17 @@ target_link_options(
   -lrt
   -lm)
 
-set_target_properties(ekaN_static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
-                                             ${libDstDir})
+set_target_properties(${EKA_LIB_NAME}_static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
+                                                        ${libDstDir})
 
-# set_target_properties(ekaN_static PROPERTIES PUBLIC_HEADER
-# ${EKA_SRC_DIR}/compat/*.h)
+# set_target_properties(${EKA_LIB_NAME}_static PROPERTIES PUBLIC_HEADER
+# ${apiDIR}/*.h)
 
 # ##############################################################################
 # Tests
 
 file(GLOB test_SRCS ${EKA_SRC_DIR}/../new_api_tests/*.c)
-set(testDstDir ${EKA_SRC_DIR}/../ekaN_tests)
+set(testDstDir ${EKA_SRC_DIR}/../${EKA_LIB_NAME}_tests)
 file(MAKE_DIRECTORY ${testDstDir})
 
 foreach(test ${test_SRCS})
@@ -190,28 +188,23 @@ foreach(test ${test_SRCS})
   add_executable(${testName} ${test})
   set_target_properties(${testName} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                                ${testDstDir})
-  add_dependencies(${testName} ekaN)
-  target_link_libraries(${testName} ekaN)
+  add_dependencies(${testName} ${EKA_LIB_NAME})
+  target_link_libraries(${testName} ${EKA_LIB_NAME} rt m)
   target_compile_options(
     ${testName}
     PUBLIC -std=c++23
            -O3
            -funroll-loops
-           -fPIC
-           -shared
+           # -fPIC -shared
            -pthread
-           -lrt
-           -lm
+           # -lrt -lm
            -pipe
            -march=native)
+
   target_link_options(
-    ${testName}
-    PUBLIC
-    -static-libstdc++
-    -static-libgcc
-    -pthread
-    -lrt
-    -lm)
+    ${testName} PUBLIC -static-libstdc++ -static-libgcc -pthread # -lrt # -lm
+  )
+
   target_include_directories(${testName} PUBLIC ${EKA_INC_PATH})
 endforeach()
 
@@ -219,7 +212,7 @@ endforeach()
 # Utils
 
 file(GLOB utils_SRCS ${EKA_SRC_DIR}/../eka_utils/*.c)
-set(utilsDstDir ${EKA_SRC_DIR}/../ekaN_utils)
+set(utilsDstDir ${EKA_SRC_DIR}/../${EKA_LIB_NAME}_utils)
 file(MAKE_DIRECTORY ${utilsDstDir})
 
 foreach(uSrc ${utils_SRCS})
@@ -227,8 +220,9 @@ foreach(uSrc ${utils_SRCS})
   add_executable(${utilExec} ${uSrc})
   set_target_properties(${utilExec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                                ${utilsDstDir})
-  add_dependencies(${utilExec} ekaN_static)
-  target_link_libraries(${utilExec} ekaN_static ${SMARTNIC_LIB} ekalwip_static)
+  add_dependencies(${utilExec} ${EKA_LIB_NAME}_static ekalwip_static)
+  target_link_libraries(${utilExec} ${EKA_LIB_NAME}_static ${SMARTNIC_LIB}
+                        ekalwip_static rt m)
   target_compile_options(
     ${utilExec}
     PUBLIC -std=c++23
@@ -237,17 +231,11 @@ foreach(uSrc ${utils_SRCS})
            -fPIC
            -shared
            -pthread
-           -lrt
-           -lm
+           # -lrt -lm
            -pipe
            -march=native)
   target_link_options(
-    ${utilExec}
-    PUBLIC
-    -static-libstdc++
-    -static-libgcc
-    -pthread
-    -lrt
-    -lm)
+    ${utilExec} PUBLIC -static-libstdc++ -static-libgcc -pthread # -lrt # -lm
+  )
   target_include_directories(${utilExec} PUBLIC ${EKA_INC_PATH})
 endforeach()
