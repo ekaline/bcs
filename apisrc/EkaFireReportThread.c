@@ -790,11 +790,15 @@ void ekaFireReportThread(EkaDev *dev) {
           EKA_WARN(
               "dev->pEfcRunCtx->reportCb is not defined");
         } else {
-          char fireReportStr[16 * 1024] = {};
-          hexDump2str("Fire Report", reportBuf, reportLen,
-                      fireReportStr, sizeof(fireReportStr));
-          EKA_LOG("onEfcFireReportCb: %s", fireReportStr);
-
+          if ((EkaUserChannel::DMA_TYPE)
+                  dmaReportHdr->type ==
+              EkaUserChannel::DMA_TYPE::FIRE) {
+            char fireReportStr[16 * 1024] = {};
+            hexDump2str("Fire Report", reportBuf, reportLen,
+                        fireReportStr,
+                        sizeof(fireReportStr));
+            EKA_LOG("onEfcFireReportCb: %s", fireReportStr);
+          }
           dev->pEfcRunCtx->onEfcFireReportCb(
               reportBuf, reportLen, dev->pEfcRunCtx->cbCtx);
         }
