@@ -357,6 +357,8 @@ public:
 
   bool useDefinitionsFile = false;
 
+  bool initialGapClosed = false;
+
   const int StaleDataSampleRate = 16 * 1024;
 
   EfhExchangeErrorCode lastExchErr =

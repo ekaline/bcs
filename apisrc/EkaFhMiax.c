@@ -122,6 +122,7 @@ EkaFhMiax::runGroups(EfhCtx *pEfhCtx,
         break; // only1s group can get
                // snapshot at a tim
       gr->firstMcSeq = sequence;
+      gr->initialGapClosed = false;
 
       EKA_LOG("%s:%u firstMcSeq=%ju", EKA_EXCH_DECODE(exch),
               gr_id, gr->firstMcSeq);
@@ -189,9 +190,6 @@ EkaFhMiax::runGroups(EfhCtx *pEfhCtx,
         break;
 
       /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
-      // Snapshot Gap closed
-      lockSnapshotGap.clear();
-      /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
       if (gr->seq_after_snapshot < gr->firstMcSeq) {
         // Snapshot older than very first MC msg
         // need further incremental recovery
@@ -211,6 +209,12 @@ EkaFhMiax::runGroups(EfhCtx *pEfhCtx,
                                 gr->firstMcSeq);
         break;
       }
+
+      /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+      // Snapshot Gap closed
+      lockSnapshotGap.clear();
+      gr->initialGapClosed = true;
+
       /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
       // No need further incremental recovery
       gr->expected_sequence = gr->seq_after_snapshot + 1;
@@ -250,6 +254,11 @@ EkaFhMiax::runGroups(EfhCtx *pEfhCtx,
         break;
       /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
       // Gap closed
+      /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+      if (!gr->initialGapClosed) // Snapshot Gap closed
+        lockSnapshotGap.clear();
+      gr->initialGapClosed = true;
 
       gr->expected_sequence = gr->seq_after_snapshot + 1;
 
