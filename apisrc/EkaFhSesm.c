@@ -24,6 +24,8 @@
 #include "EfhFastBuffer.h"
 #include "EkaFhThreadAttr.h"
 
+using namespace Tom;
+
 static bool sendLogin(EkaFhMiaxGr *gr);
 static bool getLoginResponse(EkaFhMiaxGr *gr);
 static bool sendRetransmitRequest(EkaFhMiaxGr *gr,
@@ -31,17 +33,19 @@ static bool sendRetransmitRequest(EkaFhMiaxGr *gr,
                                   uint64_t end);
 static bool sendRequest(EkaFhMiaxGr *gr, char refreshType);
 static bool sendLogOut(EkaFhMiaxGr *gr);
+
+static EkaFhParseResult procRefreshSesmPkt(
+    const EfhRunCtx *pEfhRunCtx, int sock, EkaFhMiaxGr *gr,
+    EkaFhMode op,
+    EfhFastBuffer<TomSeriesUpdate, MaxVanillaDefinitions>
+        *pVanillaDefinitions);
+
 static EkaFhParseResult
-procSesm(const EfhRunCtx *pEfhRunCtx, int sock,
-         EkaFhMiaxGr *gr, EkaFhMode op,
-         EfhFastBuffer<Tom::TomSeriesUpdate,
-                       Tom::MaxVanillaDefinitions>
-             *pVanillaDefinitions);
+procRetransmitSesmPkt(const EfhRunCtx *pEfhRunCtx, int sock,
+                      EkaFhMiaxGr *gr, EkaFhMode op,
+                      uint64_t end);
 
-using namespace Tom;
-
-/* #####################################################################
- */
+/* ################################################# */
 
 static int sendHearBeat(int sock) {
   sesm_header heartbeat = {
@@ -52,12 +56,13 @@ static int sendHearBeat(int sock) {
   return send(sock, &heartbeat, sizeof(sesm_header),
               MSG_NOSIGNAL);
 }
-/* #####################################################################
- */
-static bool sesmCycle(EkaDev *dev, EfhRunCtx *pEfhRunCtx,
-                      EkaFhMode op, EkaFhMiaxGr *gr,
-                      char sesmRequest, uint64_t start,
-                      uint64_t end, const int MaxTrials) {
+/* ################################################# */
+static bool sesmRefreshCycle(EkaDev *dev,
+                             EfhRunCtx *pEfhRunCtx,
+                             EkaFhMode op, EkaFhMiaxGr *gr,
+                             char sesmRequest,
+                             uint64_t start, uint64_t end,
+                             const int MaxTrials) {
   EkaFhParseResult parseResult;
   EfhFastBuffer<TomSeriesUpdate, MaxVanillaDefinitions>
       *pVanillaDefinitions = NULL;
@@ -75,10 +80,6 @@ static bool sesmCycle(EkaDev *dev, EfhRunCtx *pEfhRunCtx,
         on_error(
             "Failed creating VanillaDefinitions vector");
     }
-
-    auto lastHeartBeatTime =
-        std::chrono::high_resolution_clock::now();
-    std::chrono::high_resolution_clock::time_point now;
 
     gr->recovery_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (gr->recovery_sock < 0)
@@ -113,34 +114,13 @@ static bool sesmCycle(EkaDev *dev, EfhRunCtx *pEfhRunCtx,
     if (!getLoginResponse(gr))
       goto ITERATION_FAIL;
     //-----------------------------------------------------------------
-    if (op == EkaFhMode::RECOVERY) {
-      if (!sendRetransmitRequest(gr, start, end))
-        goto ITERATION_FAIL;
-    } else {
-      if (!sendRequest(gr, sesmRequest))
-        goto ITERATION_FAIL;
-    }
+    if (!sendRequest(gr, sesmRequest))
+      goto ITERATION_FAIL;
     //-----------------------------------------------------------------
     while (gr->recovery_active) {
-      now = std::chrono::high_resolution_clock::now();
-      if (std::chrono::duration_cast<
-              std::chrono::milliseconds>(now -
-                                         lastHeartBeatTime)
-              .count() > 900) {
-        int r = sendHearBeat(gr->recovery_sock);
-        if (r <= 0) {
-          EKA_WARN("%s:%u: Heartbeat send failed: r = %d, "
-                   "errno=%d: \'%s\'",
-                   EKA_EXCH_DECODE(gr->exch), gr->id, r,
-                   errno, strerror(errno));
-        }
-        lastHeartBeatTime = now;
-        EKA_TRACE("%s:%u: Heartbeat sent",
-                  EKA_EXCH_DECODE(gr->exch), gr->id);
-      }
       parseResult =
-          procSesm(pEfhRunCtx, gr->recovery_sock, gr,
-                   EkaFhMode::MCAST, pVanillaDefinitions);
+          procRefreshSesmPkt(pEfhRunCtx, gr->recovery_sock,
+                             gr, op, pVanillaDefinitions);
       switch (parseResult) {
       case EkaFhParseResult::End:
         goto SUCCESS_END;
@@ -188,7 +168,88 @@ SUCCESS_END:
   return true;
 }
 
-/* #####################################################################
+static bool
+sesmRetransmitCycle(EkaDev *dev, EfhRunCtx *pEfhRunCtx,
+                    EkaFhMode op, EkaFhMiaxGr *gr,
+                    char sesmRequest, uint64_t start,
+                    uint64_t end, const int MaxTrials) {
+  EkaFhParseResult parseResult;
+  for (auto trial = 0;
+       trial < MaxTrials && gr->recovery_active; trial++) {
+    EKA_LOG("%s:%d %s cycle: trial: %d / %d",
+            EKA_EXCH_DECODE(gr->exch), gr->id,
+            EkaFhMode2STR(op), trial, MaxTrials);
+
+    gr->recovery_sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (gr->recovery_sock < 0)
+      on_error("%s:%u: failed to open TCP socket",
+               EKA_EXCH_DECODE(gr->exch), gr->id);
+
+    static const int TimeOut = 10; // seconds
+    struct timeval tv = {.tv_sec = TimeOut};
+    setsockopt(gr->recovery_sock, SOL_SOCKET, SO_RCVTIMEO,
+               &tv, sizeof(tv));
+
+    sockaddr_in remote_addr = {};
+    remote_addr.sin_addr.s_addr = gr->recovery_ip;
+    remote_addr.sin_port = gr->recovery_port;
+    remote_addr.sin_family = AF_INET;
+    if (connect(gr->recovery_sock, (sockaddr *)&remote_addr,
+                sizeof(sockaddr_in)) != 0) {
+      dev->lastErrno = errno;
+      EKA_WARN("%s:%u Tcp Connect to %s:%u failed: %s",
+               EKA_EXCH_DECODE(gr->exch), gr->id,
+               EKA_IP2STR(remote_addr.sin_addr.s_addr),
+               be16toh(remote_addr.sin_port),
+               strerror(dev->lastErrno));
+
+      goto ITERATION_FAIL;
+    }
+
+    //-----------------------------------------------------------------
+    if (!sendLogin(gr))
+      goto ITERATION_FAIL;
+    //-----------------------------------------------------------------
+    if (!getLoginResponse(gr))
+      goto ITERATION_FAIL;
+    //-----------------------------------------------------------------
+    if (!sendRetransmitRequest(gr, start, end))
+      goto ITERATION_FAIL;
+    //-----------------------------------------------------------------
+    while (gr->recovery_active) {
+      parseResult = procRetransmitSesmPkt(
+          pEfhRunCtx, gr->recovery_sock, gr, op, end);
+      switch (parseResult) {
+      case EkaFhParseResult::End:
+        goto SUCCESS_END;
+      case EkaFhParseResult::NotEnd:
+        break;
+      case EkaFhParseResult::SocketError:
+        goto ITERATION_FAIL;
+      default:
+        on_error("Unexpected parseResult %d",
+                 (int)parseResult);
+      }
+    }
+
+  ITERATION_FAIL:
+    sendLogOut(gr);
+    close(gr->recovery_sock);
+    if (gr->lastExchErr != EfhExchangeErrorCode::kNoError)
+      gr->sendRetransmitExchangeError(pEfhRunCtx);
+    if (dev->lastErrno != 0)
+      gr->sendRetransmitSocketError(pEfhRunCtx);
+  }
+  return false;
+
+SUCCESS_END:
+  sendLogOut(gr);
+  close(gr->recovery_sock);
+
+  return true;
+}
+
+/* ###########################################################
  */
 
 static bool sendLogin(EkaFhMiaxGr *gr) {
@@ -243,7 +304,7 @@ static bool sendLogin(EkaFhMiaxGr *gr) {
 
   return true;
 }
-/* #####################################################################
+/* ###########################################################
  */
 
 static bool getLoginResponse(EkaFhMiaxGr *gr) {
@@ -346,7 +407,7 @@ static bool getLoginResponse(EkaFhMiaxGr *gr) {
   }
 }
 
-/* #####################################################################
+/* ###########################################################
  */
 static bool sendRequest(EkaFhMiaxGr *gr, char refreshType) {
   EkaDev *dev = gr->dev;
@@ -376,7 +437,7 @@ static bool sendRequest(EkaFhMiaxGr *gr, char refreshType) {
   return true;
 }
 
-/* #####################################################################
+/* ###########################################################
  */
 static bool sendRetransmitRequest(EkaFhMiaxGr *gr,
                                   uint64_t start,
@@ -405,7 +466,7 @@ static bool sendRetransmitRequest(EkaFhMiaxGr *gr,
   return true;
 }
 
-/* #####################################################################
+/* #######################################################
  */
 static bool sendLogOut(EkaFhMiaxGr *gr) {
   EkaDev *dev = gr->dev;
@@ -432,9 +493,9 @@ static bool sendLogOut(EkaFhMiaxGr *gr) {
   return true;
 }
 
-/* #####################################################################
+/* #######################################################
  */
-static EkaFhParseResult procSesm(
+static EkaFhParseResult procRefreshSesmPkt(
     const EfhRunCtx *pEfhRunCtx, int sock, EkaFhMiaxGr *gr,
     EkaFhMode op,
     EfhFastBuffer<TomSeriesUpdate, MaxVanillaDefinitions>
@@ -497,11 +558,9 @@ static EkaFhParseResult procSesm(
 
   case EKA_SESM_TYPE::EndOfSession:
     EKA_LOG("%s:%u %s End-of-Session message. "
-            "gr->seq_after_snapshot = %ju",
+            "seq_after_snapshot = %ju",
             EKA_EXCH_DECODE(gr->exch), gr->id,
-            op == EkaFhMode::DEFINITIONS ? "DEFINITIONS"
-                                         : "SNAPSHOT",
-            gr->seq_after_snapshot);
+            EkaFhMode2STR(op), gr->seq_after_snapshot);
     return EkaFhParseResult::End;
 
   case EKA_SESM_TYPE::SyncComplete:
@@ -528,8 +587,9 @@ static EkaFhParseResult procSesm(
         reinterpret_cast<const TomCommon *>(m)->Type;
     if (static_cast<TOM_MSG>(msgType) ==
         TOM_MSG::EndOfRefresh) {
-      EKA_LOG("%s:%u End Of Refresh of \'%c\' Request",
+      EKA_LOG("%s:%u %s: End Of Refresh of \'%c\' Request",
               EKA_EXCH_DECODE(gr->exch), gr->id,
+              EkaFhMode2STR(op),
               reinterpret_cast<const TomEndOfRefresh *>(m)
                   ->request_type);
       return EkaFhParseResult::End;
@@ -541,12 +601,10 @@ static EkaFhParseResult procSesm(
             reinterpret_cast<const TomSeriesUpdate *>(m));
     } else {
       if (gr->parseMsg(pEfhRunCtx, m, sequence, op)) {
-        EKA_LOG("%s:%u %s End Of Refresh: "
+        EKA_LOG("%s:%u %s: End Of Refresh: "
                 "gr->seq_after_snapshot = %ju",
                 EKA_EXCH_DECODE(gr->exch), gr->id,
-                op == EkaFhMode::DEFINITIONS ? "DEFINITIONS"
-                                             : "SNAPSHOT",
-                gr->seq_after_snapshot);
+                EkaFhMode2STR(op), gr->seq_after_snapshot);
         return EkaFhParseResult::End;
       }
     }
@@ -569,10 +627,12 @@ static EkaFhParseResult procSesm(
           reinterpret_cast<const TomCommon *>(m)->Type;
       if (static_cast<TOM_MSG>(msgType) ==
           TOM_MSG::EndOfRefresh) {
-        EKA_LOG("%s:%u End Of Refresh of \'%c\' Request",
-                EKA_EXCH_DECODE(gr->exch), gr->id,
-                reinterpret_cast<const TomEndOfRefresh *>(m)
-                    ->request_type);
+        EKA_LOG(
+            "%s:%u %s: End Of Refresh of \'%c\' Request",
+            EKA_EXCH_DECODE(gr->exch), gr->id,
+            EkaFhMode2STR(op),
+            reinterpret_cast<const TomEndOfRefresh *>(m)
+                ->request_type);
         return EkaFhParseResult::End;
       }
       if (static_cast<TOM_MSG>(msgType) ==
@@ -585,9 +645,7 @@ static EkaFhParseResult procSesm(
           EKA_LOG("%s:%u %s End Of Refresh: "
                   "gr->seq_after_snapshot = %ju",
                   EKA_EXCH_DECODE(gr->exch), gr->id,
-                  op == EkaFhMode::DEFINITIONS
-                      ? "DEFINITIONS"
-                      : "SNAPSHOT",
+                  EkaFhMode2STR(op),
                   gr->seq_after_snapshot);
           return EkaFhParseResult::End;
         }
@@ -597,9 +655,7 @@ static EkaFhParseResult procSesm(
       EKA_LOG("%s:%u %s End Of Request: "
               "gr->seq_after_snapshot = %ju",
               EKA_EXCH_DECODE(gr->exch), gr->id,
-              op == EkaFhMode::DEFINITIONS ? "DEFINITIONS"
-                                           : "SNAPSHOT",
-              gr->seq_after_snapshot);
+              EkaFhMode2STR(op), gr->seq_after_snapshot);
       return EkaFhParseResult::End;
       break;
     default:
@@ -621,8 +677,191 @@ static EkaFhParseResult procSesm(
   }
   return EkaFhParseResult::NotEnd;
 }
-/* #####################################################################
- */
+/* ################################################### */
+static EkaFhParseResult
+procRetransmitSesmPkt(const EfhRunCtx *pEfhRunCtx, int sock,
+                      EkaFhMiaxGr *gr, EkaFhMode op,
+                      uint64_t end) {
+  EkaDev *dev = gr->dev;
+  sesm_header sesm_hdr = {};
+  int r = recv(sock, &sesm_hdr, sizeof(sesm_header),
+               MSG_WAITALL);
+  if (r <= 0) {
+    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      EKA_WARN(
+          "%s:%u failed to receive SESM header: r=%d: %s",
+          EKA_EXCH_DECODE(gr->exch), gr->id, r,
+          strerror(dev->lastErrno));
+      return EkaFhParseResult::NotEnd;
+    }
+    dev->lastErrno = errno;
+    EKA_WARN(
+        "%s:%u failed to receive SESM header: r=%d: %s",
+        EKA_EXCH_DECODE(gr->exch), gr->id, r,
+        strerror(dev->lastErrno));
+    return EkaFhParseResult::SocketError;
+  }
+  uint8_t msg[1536] = {};
+  uint8_t *m = msg;
+
+  int payloadLen = sesm_hdr.length - sizeof(sesm_hdr.type);
+  if (payloadLen < 0)
+    on_error(
+        "sesm_hdr.length %d < sizeof(sesm_hdr.type) %jd",
+        sesm_hdr.length, sizeof(sesm_hdr.type));
+  if (payloadLen > 0) {
+    r = recv(sock, msg, payloadLen, MSG_WAITALL);
+    if (r <= 0 || r != payloadLen) {
+      dev->lastErrno = errno;
+      EKA_WARN("%s:%u failed to receive SESM payload of %d "
+               "bytes: r=%d: errno=%d, \'%s\'",
+               EKA_EXCH_DECODE(gr->exch), gr->id,
+               payloadLen, r, errno, strerror(errno));
+
+      return EkaFhParseResult::SocketError;
+    }
+  }
+  uint64_t sequence = 0;
+
+  switch ((EKA_SESM_TYPE)sesm_hdr.type) {
+    /* ------------------------------------------------- */
+  case EKA_SESM_TYPE::GoodBye:
+    EKA_LOG("%s:%u Sesm Server sent GoodBye with reason "
+            "\'%c\' : %s",
+            EKA_EXCH_DECODE(gr->exch), gr->id,
+            ((sesm_goodbye *)m)->reason,
+            ((sesm_goodbye *)m)->text);
+    return EkaFhParseResult::End;
+    /* ------------------------------------------------- */
+
+  case EKA_SESM_TYPE::ServerHeartbeat:
+    EKA_LOG("%s:%u Sesm Server Heartbeat received",
+            EKA_EXCH_DECODE(gr->exch), gr->id);
+    return EkaFhParseResult::NotEnd;
+    /* ------------------------------------------------- */
+
+  case EKA_SESM_TYPE::EndOfSession:
+    EKA_LOG("%s:%u %s End-of-Session message. "
+            "seq_after_snapshot = %ju",
+            EKA_EXCH_DECODE(gr->exch), gr->id,
+            EkaFhMode2STR(op), gr->seq_after_snapshot);
+    return EkaFhParseResult::End;
+    /* ------------------------------------------------- */
+
+  case EKA_SESM_TYPE::SyncComplete:
+    EKA_LOG("%s:%u SESM server sent SyncComplete message",
+            EKA_EXCH_DECODE(gr->exch), gr->id);
+    return EkaFhParseResult::End;
+    /* ------------------------------------------------- */
+
+  case EKA_SESM_TYPE::TestPacket:
+    EKA_LOG("%s:%u Sesm Server sent Test Packet: %s",
+            EKA_EXCH_DECODE(gr->exch), gr->id, (char *)m);
+    return EkaFhParseResult::NotEnd;
+    /* ------------------------------------------------- */
+
+  case EKA_SESM_TYPE::Sequenced:
+    sequence = *(uint64_t *)m;
+    gr->seq_after_snapshot = sequence;
+    if (payloadLen == sizeof(sequence)) {
+      EKA_WARN("%s:%u SESM Sequenced packet with no msg",
+               EKA_EXCH_DECODE(gr->exch), gr->id);
+      return EkaFhParseResult::NotEnd;
+    }
+    m += sizeof(sequence);
+
+    if (gr->parseMsg(pEfhRunCtx, m, sequence, op)) {
+      EKA_LOG("%s:%u %s Unexpected EndOfSession: "
+              "seq_after_snapshot = %ju",
+              EKA_EXCH_DECODE(gr->exch), gr->id,
+              EkaFhMode2STR(op), gr->seq_after_snapshot);
+      return EkaFhParseResult::End;
+    }
+
+    if (gr->seq_after_snapshot == end) {
+      EKA_LOG("%s:%u %s: Retransmit Gap closed: "
+              "seq_after_snapshot == end = "
+              "%ju: ",
+              EKA_EXCH_DECODE(gr->exch), gr->id,
+              EkaFhMode2STR(op), gr->seq_after_snapshot);
+      return EkaFhParseResult::End;
+    }
+
+    break;
+    /* ------------------------------------------------- */
+
+  case EKA_SESM_TYPE::UnSequenced: {
+    char unsequencedType = ((sesm_unsequenced *)m)->type;
+    switch (unsequencedType) {
+      /* --------------------------------------------- */
+    case 'R': { // Regular retransmit
+      sequence = ((sesm_unsequenced *)m)->sequence;
+      gr->seq_after_snapshot = sequence;
+      if (payloadLen == sizeof(sesm_unsequenced)) {
+        EKA_WARN(
+            "%s:%u SESM Unsequenced packet with no msg",
+            EKA_EXCH_DECODE(gr->exch), gr->id);
+        return EkaFhParseResult::NotEnd;
+      }
+      m += sizeof(sesm_unsequenced);
+      auto msgType =
+          reinterpret_cast<const TomCommon *>(m)->Type;
+      if (static_cast<TOM_MSG>(msgType) ==
+          TOM_MSG::EndOfRefresh) {
+        EKA_LOG("%s:%u End Of Refresh of \'%c\' Request",
+                EKA_EXCH_DECODE(gr->exch), gr->id,
+                reinterpret_cast<const TomEndOfRefresh *>(m)
+                    ->request_type);
+        return EkaFhParseResult::End;
+      }
+
+      if (gr->parseMsg(pEfhRunCtx, m, sequence, op)) {
+        EKA_LOG("%s:%u %s End Of Refresh: "
+                "seq_after_snapshot = %ju",
+                EKA_EXCH_DECODE(gr->exch), gr->id,
+                EkaFhMode2STR(op), gr->seq_after_snapshot);
+        return EkaFhParseResult::End;
+      }
+
+      if (gr->seq_after_snapshot == end) {
+        EKA_LOG("%s:%u %s: Retransmit Gap closed: "
+                "seq_after_snapshot == end = "
+                "%ju: ",
+                EKA_EXCH_DECODE(gr->exch), gr->id,
+                EkaFhMode2STR(op), gr->seq_after_snapshot);
+        return EkaFhParseResult::End;
+      }
+    } break;
+      /* --------------------------------------------- */
+    case 'E':
+      EKA_LOG("%s:%u %s Unexpected EndOfSession: "
+              "seq_after_snapshot = %ju",
+              EKA_EXCH_DECODE(gr->exch), gr->id,
+              EkaFhMode2STR(op), gr->seq_after_snapshot);
+      return EkaFhParseResult::End;
+      break;
+      /* --------------------------------------------- */
+
+    default:
+      on_error(
+          "%s:%u Unexpected UnSequenced Packet type \'%c\'",
+          EKA_EXCH_DECODE(gr->exch), gr->id,
+          unsequencedType);
+    }
+  } break;
+
+  default:
+    EKA_WARN("%s:%u Unexpected sesm_hdr.type: \'%c\'",
+             EKA_EXCH_DECODE(gr->exch), gr->id,
+             sesm_hdr.type);
+    on_error("%s:%u Unexpected sesm_hdr.type: \'%c\'",
+             EKA_EXCH_DECODE(gr->exch), gr->id,
+             sesm_hdr.type);
+    return EkaFhParseResult::ProtocolError;
+  }
+  return EkaFhParseResult::NotEnd;
+}
+/* #################################################### */
 void *getSesmData(void *attr) {
 #ifdef FH_LAB
   return NULL;
@@ -671,8 +910,8 @@ void *getSesmData(void *attr) {
   case EkaFhMode::DEFINITIONS:
     EKA_LOG("%s:%u DEFINITIONS", EKA_EXCH_DECODE(gr->exch),
             gr->id);
-    success = sesmCycle(dev, pEfhRunCtx, op, gr, 'P', 0, 0,
-                        MaxTrials);
+    success = sesmRefreshCycle(dev, pEfhRunCtx, op, gr, 'P',
+                               0, 0, MaxTrials);
     break;
   case EkaFhMode::SNAPSHOT: {
     char snapshotRequests[] = {
@@ -686,17 +925,18 @@ void *getSesmData(void *attr) {
       EKA_LOG("%s:%u SNAPSHOT \'%c\' Phase",
               EKA_EXCH_DECODE(gr->exch), gr->id,
               snapshotRequests[i]);
-      success = sesmCycle(dev, pEfhRunCtx, op, gr,
-                          snapshotRequests[i], start, end,
-                          MaxTrials);
+      success = sesmRefreshCycle(dev, pEfhRunCtx, op, gr,
+                                 snapshotRequests[i], start,
+                                 end, MaxTrials);
     }
     break;
   }
   case EkaFhMode::RECOVERY:
     EKA_LOG("%s:%u RECOVERY %ju .. %ju",
             EKA_EXCH_DECODE(gr->exch), gr->id, start, end);
-    success = sesmCycle(dev, pEfhRunCtx, op, gr, ' ', start,
-                        end, MaxTrials);
+    success =
+        sesmRetransmitCycle(dev, pEfhRunCtx, op, gr, ' ',
+                            start, end, MaxTrials);
     break;
   default:
     on_error("%s:%u Unexpected op = %d",
