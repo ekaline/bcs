@@ -738,7 +738,9 @@ RETRY_GETTING_SESM_HDR:
     /* ------------------------------------------------- */
 
   case EKA_SESM_TYPE::ServerHeartbeat:
-    EKA_LOG("%s:%u Sesm Server Heartbeat received",
+    EKA_LOG("%s:%u Sesm Server Heartbeat: "
+            "sequence=%ju, required=%ju",
+            gr->seq_after_snapshot, end,
             EKA_EXCH_DECODE(gr->exch), gr->id);
     return EkaFhParseResult::NotEnd;
     /* ------------------------------------------------- */
