@@ -82,6 +82,8 @@ target_compile_definitions(ekalwip_static PRIVATE _GNU_SOURCE)
 
 target_include_directories(ekalwip_static PUBLIC ${LWIP_LIB_BUILD_INCL})
 
+set_target_properties(ekalwip_static PROPERTIES CXX_STANDARD 98)
+
 set_target_properties(ekalwip_static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
                                                 ${libDstDir})
 #
@@ -140,7 +142,7 @@ set_target_properties(${EKA_LIB_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
 # lib${EKA_LIB_NAME}_static.a
 
 add_library(${EKA_LIB_NAME}_static STATIC ${${EKA_LIB_NAME}_SRCS})
-target_link_libraries(${EKA_LIB_NAME}_static ${SMARTNIC_LIB} ekalwip rt m
+target_link_libraries(${EKA_LIB_NAME}_static ${SMARTNIC_LIB} ekalwip_static rt m
                       Threads::Threads)
 
 target_compile_options(
@@ -204,12 +206,12 @@ foreach(uSrc ${utils_SRCS})
   add_executable(${utilExec} ${uSrc})
   set_target_properties(${utilExec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                                ${utilsDstDir})
-  add_dependencies(${utilExec} ${EKA_LIB_NAME}_static ekalwip_static)
+#  add_dependencies(${utilExec} ${EKA_LIB_NAME}_static)
   target_link_libraries(
     ${utilExec}
     ${EKA_LIB_NAME}_static
-    ${SMARTNIC_LIB}
-    ekalwip_static
+#    ${SMARTNIC_LIB}
+#    ekalwip_static
     rt
     m
     Threads::Threads)
@@ -218,9 +220,9 @@ foreach(uSrc ${utils_SRCS})
     PUBLIC -std=c++23
            -O3
            -funroll-loops
-           -fPIC
-           -shared
-           -pthread
+ #          -fPIC
+ #          -shared
+ #          -pthread
            # -lrt -lm
            -pipe
            -march=native)
