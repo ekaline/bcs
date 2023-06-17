@@ -122,6 +122,7 @@ target_compile_definitions(${EKA_LIB_NAME} PUBLIC LIBEKA_GIT_VER="DUMMY")
 
 target_link_libraries(${EKA_LIB_NAME} ${SMARTNIC_LIB} ekalwip rt m
                       Threads::Threads)
+target_link_libraries(${EKA_LIB_NAME} -static-libgcc -static-libstdc++)
 
 set_target_properties(${EKA_LIB_NAME} PROPERTIES PUBLIC_HEADER ${apiDIR}/*.h)
 
@@ -141,6 +142,8 @@ target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC LIBEKA_GIT_VER="DUMMY")
 
 target_link_libraries(${EKA_LIB_NAME}_static ${SMARTNIC_LIB} ekalwip_static rt
                       m Threads::Threads)
+target_link_libraries(${EKA_LIB_NAME}_static -static-libgcc -static-libstdc++)
+
 set_target_properties(${EKA_LIB_NAME}_static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
                                                         ${libDstDir})
 
@@ -161,6 +164,8 @@ foreach(test ${test_SRCS})
                                                ${testDstDir})
   add_dependencies(${testName} ${EKA_LIB_NAME})
   target_link_libraries(${testName} ${EKA_LIB_NAME} rt m Threads::Threads)
+  target_link_libraries(${testName} -static-libgcc -static-libstdc++)
+
   target_compile_options(${testName} PUBLIC -std=c++23)
 
   target_include_directories(${testName} PUBLIC ${EKA_INC_PATH})
@@ -183,6 +188,7 @@ foreach(uSrc ${utils_SRCS})
     ${utilExec} ${EKA_LIB_NAME}_static
     # ${SMARTNIC_LIB} ekalwip_static
     rt m Threads::Threads)
+  target_link_libraries(${utilExec} -static-libgcc -static-libstdc++)
   target_compile_options(${utilExec} PUBLIC -std=c++23)
 
   target_include_directories(${utilExec} PUBLIC ${EKA_INC_PATH})
