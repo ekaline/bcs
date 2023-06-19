@@ -38,10 +38,10 @@ set(apiDIR ${EKA_SRC_DIR}/compat)
 set(SMARTNIC_ROOT ${CMAKE_CURRENT_LIST_DIR}/SmartNIC_SW)
 set(SMARTNIC_API_INCL ${SMARTNIC_ROOT}/include)
 set(SMARTNIC_DRIVER_INCL ${SMARTNIC_ROOT}/driver)
-set(SMARTNIC_LIB ${SMARTNIC_ROOT}/lib/libsmartnic.a)
+set(SMARTNIC_LIB_STATIC ${SMARTNIC_ROOT}/lib/libsmartnic.a)
 
-# execute_process(COMMAND ar x ${SMARTNIC_LIB}) execute_process(COMMAND ar t
-# ${SMARTNIC_LIB} OUTPUT_VARIABLE SMARTNIC_LIB_FILES)
+# execute_process(COMMAND ar x ${SMARTNIC_LIB_STATIC}) execute_process(COMMAND
+# ar t ${SMARTNIC_LIB_STATIC} OUTPUT_VARIABLE SMARTNIC_LIB_STATIC_FILES)
 
 # ##############################################################################
 # libekalwip.so
@@ -81,14 +81,14 @@ target_include_directories(ekalwip_static PUBLIC ${LWIP_LIB_BUILD_INCL})
 
 set_target_properties(ekalwip_static PROPERTIES CXX_STANDARD 98)
 
-target_compile_options(ekalwip_static PRIVATE -std=gnu++98)
+target_compile_options(ekalwip_static PRIVATE -std=gnu++98 -fPIC)
 
 set_target_properties(ekalwip_static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
                                                 ${libDstDir})
 #
-# add_custom_target(lwipObj COMMAND ar x ${SMARTNIC_LIB} COMMAND ar rcsv
+# add_custom_target(lwipObj COMMAND ar x ${SMARTNIC_LIB_STATIC} COMMAND ar rcsv
 # libekalwip_static.a ${lwipnoapps_SRCS}.o WORKING_DIRECTORY ${BUILD_DIR}
-# DEPENDS ${SMARTNIC_LIB} ekalwip )
+# DEPENDS ${SMARTNIC_LIB_STATIC} ekalwip )
 #
 # ##############################################################################
 
@@ -120,8 +120,8 @@ target_include_directories(${EKA_LIB_NAME} PUBLIC ${EKA_INC_PATH})
 
 target_compile_definitions(${EKA_LIB_NAME} PUBLIC LIBEKA_GIT_VER="DUMMY")
 
-target_link_libraries(${EKA_LIB_NAME} ${SMARTNIC_LIB} ekalwip rt m
-                      Threads::Threads)
+target_link_libraries(${EKA_LIB_NAME} ${SMARTNIC_LIB_STATIC} ekalwip_static rt
+                      m Threads::Threads)
 target_link_libraries(${EKA_LIB_NAME} -static-libgcc -static-libstdc++)
 
 set_target_properties(${EKA_LIB_NAME} PROPERTIES PUBLIC_HEADER ${apiDIR}/*.h)
@@ -140,8 +140,8 @@ target_include_directories(${EKA_LIB_NAME}_static PUBLIC ${EKA_INC_PATH})
 
 target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC LIBEKA_GIT_VER="DUMMY")
 
-target_link_libraries(${EKA_LIB_NAME}_static ${SMARTNIC_LIB} ekalwip_static rt
-                      m Threads::Threads)
+target_link_libraries(${EKA_LIB_NAME}_static ${SMARTNIC_LIB_STATIC}
+                      ekalwip_static rt m Threads::Threads)
 target_link_libraries(${EKA_LIB_NAME}_static -static-libgcc -static-libstdc++)
 
 set_target_properties(${EKA_LIB_NAME}_static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
@@ -183,11 +183,8 @@ foreach(uSrc ${utils_SRCS})
   add_executable(${utilExec} ${uSrc})
   set_target_properties(${utilExec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                                ${utilsDstDir})
-  # add_dependencies(${utilExec} ${EKA_LIB_NAME}_static)
-  target_link_libraries(
-    ${utilExec} ${EKA_LIB_NAME}_static
-    # ${SMARTNIC_LIB} ekalwip_static
-    rt m Threads::Threads)
+  target_link_libraries(${utilExec} ${EKA_LIB_NAME}_static rt m
+                        Threads::Threads)
   target_link_libraries(${utilExec} -static-libgcc -static-libstdc++)
   target_compile_options(${utilExec} PUBLIC -std=c++23)
 
