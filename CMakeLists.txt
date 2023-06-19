@@ -82,7 +82,7 @@ target_include_directories(ekalwip_static PUBLIC ${LWIP_LIB_BUILD_INCL})
 
 set_target_properties(ekalwip_static PROPERTIES CXX_STANDARD 98)
 
-target_compile_options(ekalwip_static PRIVATE -std=gnu++98)
+target_compile_options(ekalwip_static PRIVATE -std=gnu++98 -fPIC)
 
 set_target_properties(ekalwip_static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
                                                 ${libDstDir})
@@ -123,7 +123,7 @@ target_include_directories(${EKA_LIB_NAME} PUBLIC ${EKA_INC_PATH})
 
 target_compile_definitions(${EKA_LIB_NAME} PUBLIC LIBEKA_GIT_VER="DUMMY")
 
-target_link_libraries(${EKA_LIB_NAME} ${SMARTNIC_LIB} ekalwip rt m
+target_link_libraries(${EKA_LIB_NAME} ${SMARTNIC_LIB} ekalwip_static rt m
                       Threads::Threads)
 target_link_libraries(${EKA_LIB_NAME} -static-libgcc -static-libstdc++)
 
