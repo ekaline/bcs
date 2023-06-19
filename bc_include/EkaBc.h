@@ -4,6 +4,9 @@
 extern "C" {
 struct EkaDev;
 
+#define EFC_BC_MAX_CORES 4
+#define EPM_BC_LAST_ACTION 0xFFFF
+  
 EkaDev *ekaBcOpenDev();
 int ekaBcCloseDev(EkaDev *pEkaDev);
 
@@ -117,18 +120,18 @@ int ekaBcSetActionPayload(EkaDev *pEkaDev, int actionIdx,
   // Reports
   ///////////////////////
   
-  enum class EkaBCEventType : int {
-    FireEvent=1,       
-      EpmEvent=2,              
-      ExceptionEvent=3,      
-      FastCancelEvent=4
+  enum EkaBCEventType {
+    EkaBCFireEvent=1,       
+      EkaBCEpmEvent=2,              
+      EkaBCExceptionEvent=3,      
+      EkaBCFastCancelEvent=4
       };
 
 #define EkaBCEventType2STR(x)					\
-  x == EkaBCEventType::FireEvent         ? "FireEvent" :		\
-    x == EkaBCEventType::EpmEvent        ? "EpmEvent" :		\
-    x == EkaBCEventType::ExceptionEvent  ? "ExceptionEvent" :	\
-    x == EkaBCEventType::FastCancelEvent ? "FastCancelEvent" :	\
+  x == EkaBCFireEvent         ? "FireEvent" :		\
+    x == EkaBCEpmEvent        ? "EpmEvent" :		\
+    x == EkaBCExceptionEvent  ? "ExceptionEvent" :	\
+    x == EkaBCFastCancelEvent ? "FastCancelEvent" :	\
     "UnknownReport"
 
   struct EkaBCContainerGlobalHdr {
@@ -137,7 +140,7 @@ int ekaBcSetActionPayload(EkaDev *pEkaDev, int actionIdx,
   };
   
 
-  enum EfcBCReportType : int {
+  enum EfcBCReportType {
     ControllerState=1000,       
       MdReport=2000,              
       ExceptionReport=4000,      
@@ -157,7 +160,7 @@ int ekaBcSetActionPayload(EkaDev *pEkaDev, int actionIdx,
 
   struct BCExceptionReport {
     uint32_t globalVector;
-    uint32_t portVector[EFC_MAX_CORES];
+    uint32_t portVector[EFC_BC_MAX_CORES];
   };
 
   struct BCArmStatusReport {
@@ -171,56 +174,56 @@ int ekaBcSetActionPayload(EkaDev *pEkaDev, int actionIdx,
   };
 
 
-  enum class EpmBCTriggerAction : int {
-    Unknown,             ///< Zero initialization yields an invalid value
-      Sent,                ///< All action payloads sent successfully
-      InvalidToken,        ///< Trigger security token did not match action token
-      InvalidStrategy,     ///< Strategy id was not valid
-      InvalidAction,       ///< Action id was not valid
-      DisabledAction,      ///< Did not fire because an enable bit was not set
-      SendError            ///< Send error occured (e.g., TCP session closed)
+  enum EpmBCTriggerAction {
+    EkaBCUnknown,             ///< Zero initialization yields an invalid value
+      EkaBCSent,                ///< All action payloads sent successfully
+      EkaBCInvalidToken,        ///< Trigger security token did not match action token
+      EkaBCInvalidStrategy,     ///< Strategy id was not valid
+      EkaBCInvalidAction,       ///< Action id was not valid
+      EkaBCDisabledAction,      ///< Did not fire because an enable bit was not set
+      EkaBCSendError            ///< Send error occured (e.g., TCP session closed)
       };
 
-  enum class EkaBCOpResult : int {
-    EKA_OPRESULT__OK    = 0,        /** General success message */
-    EKA_OPRESULT__ALREADY_INITIALIZED = 1,
-    EKA_OPRESULT__END_OF_SESSION = 2,
-    EKA_OPRESULT__ERR_A = -100,     /** Temporary filler error message.  Replace 'A' with actual error code. */
-    EKA_OPRESULT__ERR_DOUBLE_SUBSCRIPTION = -101,     // returned by efhSubscribeStatic() if trying to subscribe to same security again
-    EKA_OPRESULT__ERR_BAD_ADDRESS = -102,     // returned if you pass NULL for something that can't be NULL, similar to EFAULT
-    EKA_OPRESULT__ERR_SYSTEM_ERROR = -103,     // returned when a system call fails and errno is set
-    EKA_OPRESULT__ERR_NOT_IMPLEMENTED = -104,     // returned when an API call is not implemented
-    EKA_OPRESULT__ERR_GROUP_NOT_AVAILABLE = -105, // returned by test feed handler when group not present in capture
-    EKA_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION = -106, // returned if exchange retransmit connection failed
-    EKA_OPRESULT__ERR_EFC_SET_CTX_ON_UNSUBSCRIBED_SECURITY = -107,
-    EKA_OPRESULT__ERR_STRIKE_PRICE_OVERFLOW = -108,
-    EKA_OPRESULT__ERR_INVALID_CONFIG = -109,
+  enum EkaBCOpResult {
+    EKABC_OPRESULT__OK    = 0,        /** General success message */
+    EKABC_OPRESULT__ALREADY_INITIALIZED = 1,
+    EKABC_OPRESULT__END_OF_SESSION = 2,
+    EKABC_OPRESULT__ERR_A = -100,     /** Temporary filler error message.  Replace 'A' with actual error code. */
+    EKABC_OPRESULT__ERR_DOUBLE_SUBSCRIPTION = -101,     // returned by efhSubscribeStatic() if trying to subscribe to same security again
+    EKABC_OPRESULT__ERR_BAD_ADDRESS = -102,     // returned if you pass NULL for something that can't be NULL, similar to EFAULT
+    EKABC_OPRESULT__ERR_SYSTEM_ERROR = -103,     // returned when a system call fails and errno is set
+    EKABC_OPRESULT__ERR_NOT_IMPLEMENTED = -104,     // returned when an API call is not implemented
+    EKABC_OPRESULT__ERR_GROUP_NOT_AVAILABLE = -105, // returned by test feed handler when group not present in capture
+    EKABC_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION = -106, // returned if exchange retransmit connection failed
+    EKABC_OPRESULT__ERR_EFC_SET_CTX_ON_UNSUBSCRIBED_SECURITY = -107,
+    EKABC_OPRESULT__ERR_STRIKE_PRICE_OVERFLOW = -108,
+    EKABC_OPRESULT__ERR_INVALID_CONFIG = -109,
 
     // EPM specific
-    EKA_OPRESULT__ERR_EPM_DISABLED = -201,
-    EKA_OPRESULT__ERR_INVALID_CORE = -202,
-    EKA_OPRESULT__ERR_EPM_UNINITALIZED = -203,
-    EKA_OPRESULT__ERR_INVALID_STRATEGY = -204,
-    EKA_OPRESULT__ERR_INVALID_ACTION = -205,
-    EKA_OPRESULT__ERR_NOT_CONNECTED = -206,
-    EKA_OPRESULT__ERR_INVALID_OFFSET = -207,
-    EKA_OPRESULT__ERR_INVALID_ALIGN = -208,
-    EKA_OPRESULT__ERR_INVALID_LENGTH = -209,
-    EKA_OPRESULT__ERR_UNKNOWN_FLAG = -210,
-    EKA_OPRESULT__ERR_MAX_STRATEGIES = -211,
+    EKABC_OPRESULT__ERR_EPM_DISABLED = -201,
+    EKABC_OPRESULT__ERR_INVALID_CORE = -202,
+    EKABC_OPRESULT__ERR_EPM_UNINITALIZED = -203,
+    EKABC_OPRESULT__ERR_INVALID_STRATEGY = -204,
+    EKABC_OPRESULT__ERR_INVALID_ACTION = -205,
+    EKABC_OPRESULT__ERR_NOT_CONNECTED = -206,
+    EKABC_OPRESULT__ERR_INVALID_OFFSET = -207,
+    EKABC_OPRESULT__ERR_INVALID_ALIGN = -208,
+    EKABC_OPRESULT__ERR_INVALID_LENGTH = -209,
+    EKABC_OPRESULT__ERR_UNKNOWN_FLAG = -210,
+    EKABC_OPRESULT__ERR_MAX_STRATEGIES = -211,
 
     // EFC specific
-    EKA_OPRESULT__ERR_EFC_DISABLED = -301,
-    EKA_OPRESULT__ERR_EFC_UNINITALIZED = -302,
+    EKABC_OPRESULT__ERR_EFC_DISABLED = -301,
+    EKABC_OPRESULT__ERR_EFC_UNINITALIZED = -302,
 
     // EFH recovery specific
-    EKA_OPRESULT__RECOVERY_IN_PROGRESS = -400,
-    EKA_OPRESULT__ERR_RECOVERY_FAILED  = -401,
+    EKABC_OPRESULT__RECOVERY_IN_PROGRESS = -400,
+    EKABC_OPRESULT__ERR_RECOVERY_FAILED  = -401,
 
     // EFH TCP/Protocol Handshake specific
-    EKA_OPRESULT__ERR_TCP_SOCKET  = -501,
-    EKA_OPRESULT__ERR_UDP_SOCKET  = -502,
-    EKA_OPRESULT__ERR_PROTOCOL  = -503,
+    EKABC_OPRESULT__ERR_TCP_SOCKET  = -501,
+    EKABC_OPRESULT__ERR_UDP_SOCKET  = -502,
+    EKABC_OPRESULT__ERR_PROTOCOL  = -503,
   };
   
   struct EpmBCFireReport {
@@ -257,7 +260,7 @@ int ekaBcSetActionPayload(EkaDev *pEkaDev, int actionIdx,
 	exceptionRaised = true;;
     }
     if (exceptionRaised)
-      d += sprintf(d,RED"\n\nFPGA internal exceptions:\n" RESET);
+      d += sprintf(d,"\n\nFPGA internal exceptions:\n");
     else
       goto END;
     if ((excpt->exceptionStatus.globalVector>>0 )&0x1) d += sprintf(d,"Bit 0: SW->HW Configuration Write Corruption\n" );

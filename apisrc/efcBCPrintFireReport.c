@@ -35,7 +35,7 @@ extern EkaDev *g_ekaDev;
 inline size_t printBCContainerGlobalHdr(FILE* file, const uint8_t* b) {
   auto containerHdr {reinterpret_cast<const EkaBCContainerGlobalHdr*>(b)};
   switch (containerHdr->type) {
-  case EkaBCEventType::ExceptionEvent:
+  case EkaBCExceptionEvent:
     break;
   default:
     fprintf(file,"BCPrints GlobalHdr %s with %d reports\n",
