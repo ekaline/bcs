@@ -96,6 +96,7 @@ set_target_properties(ekalwip_static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
 
 file(GLOB ${EKA_LIB_NAME}_SRCS ${EKA_SRC_DIR}/*.c ${EKA_SRC_DIR}/Ehp/*.c)
 
+set(EKA_INC_PATH ${EKA_INC_PATH} ${apiDIR})
 set(EKA_INC_PATH ${EKA_INC_PATH} ${EKA_SRC_DIR})
 set(EKA_INC_PATH ${EKA_INC_PATH} ${EKA_SRC_DIR}/arch)
 set(EKA_INC_PATH ${EKA_INC_PATH} ${EKA_SRC_DIR}/compat)
