@@ -43,7 +43,7 @@ set(LWIP_DIR ${CMAKE_CURRENT_LIST_DIR}/LWIP)
 include(${LWIP_DIR}/src/Filelists.cmake)
 
 set(ekalwip_SRCS ${lwipcore_SRCS} ${lwipcore4_SRCS} ${lwipapi_SRCS}
-                 ${LWIP_DIR}/src/netif/ethernet.c)
+                 ${LWIP_DIR}/src/netif/ethernet.c ${EKA_SRC_DIR}/sys_arch.c)
 
 set(LWIP_LIB_BUILD_INCL ${LWIP_LIB_BUILD_INCL} ${LWIP_DIR}/src/include)
 set(LWIP_LIB_BUILD_INCL ${LWIP_LIB_BUILD_INCL} ${LWIP_DIR}/src/include/arch)
@@ -72,7 +72,8 @@ set_target_properties(ekalwip PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${libDstDir})
 add_library(ekalwip_static STATIC ${ekalwip_SRCS})
 target_compile_options(
   ekalwip_static
-  PUBLIC -O3
+  PRIVATE -std=c++98
+  	 -O3
          -funroll-loops
          # -fPIC -shared
          -pthread
