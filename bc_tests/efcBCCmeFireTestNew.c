@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <thread>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include <linux/sockios.h>
 
@@ -21,29 +22,26 @@
 #include <chrono>
 #include <sys/time.h>
 
-#include "EkaDev.h"
-
-#include "Efc.h"
-#include "Efh.h"
-#include "Eka.h"
-#include "Epm.h"
-#include "Exc.h"
-
-#include "eka_macros.h"
-
-#include "EkaCtxs.h"
-#include "EkaEfcDataStructs.h"
-#include "EkaFhCmeParser.h"
-#include "EfhTestTypes.h"
-
-#include "EfhTestFuncs.h"
 #include "EkaBc.h"
-#include "ekaNW.h"
-#include <fcntl.h>
 
-using namespace Bats;
+#define TEST_LOG(...) { printf("%s@%s:%d: ",__func__,__FILE__,__LINE__); printf(__VA_ARGS__); printf("\n"); }
+#define EKA_IP2STR(x)  ((std::to_string((x >> 0) & 0xFF) + '.' + std::to_string((x >> 8) & 0xFF) + '.' + std::to_string((x >> 16) & 0xFF) + '.' + std::to_string((x >> 24) & 0xFF)).c_str())
 
-extern TestCtx *testCtx;
+#ifndef on_error
+#define on_error(...) do { const int err = errno; fprintf(stderr, "EKALINE API LIB FATAL ERROR: %s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); if (err) fprintf(stderr, ": %s (%d)", strerror(err), err); fprintf(stderr, "\n"); fflush(stdout); fflush(stderr); std::quick_exit(1); } while(0)
+#endif
+
+#define RED   "\x1B[31m"
+#define GRN   "\x1B[32m"
+#define YEL   "\x1B[33m"
+#define BLU   "\x1B[34m"
+#define MAG   "\x1B[35m"
+#define CYN   "\x1B[36m"
+#define WHT   "\x1B[37m"
+#define RESET "\x1B[0m"
+
+bool keep_work;
+
 extern FILE *g_ekaLogFile;
 
 /* --------------------------------------------- */
@@ -57,7 +55,7 @@ volatile bool rxClientReady = false;
 volatile bool triggerGeneratorDone = false;
 
 static const int MaxFireEvents = 10000;
-static volatile EpmFireReport *FireEvent[MaxFireEvents] =
+static volatile EpmBCFireReport *FireEvent[MaxFireEvents] =
     {};
 static volatile int numFireEvents = 0;
 
@@ -69,8 +67,8 @@ int ExpectedFires = 0;
 int ReportedFires = 0;
 
 /* --------------------------------------------- */
-int getHWFireCnt(EkaDev *dev, uint64_t addr) {
-  uint64_t var_pass_counter = eka_read(dev, addr);
+int getHWFireCnt(EkaDev *dev, uint64_t addr) { 
+  uint64_t var_pass_counter = 0;//eka_read(dev, addr); TBD
   int real_val = (var_pass_counter >> 0) & 0xffffffff;
   return real_val;
 }
@@ -80,15 +78,15 @@ void handleFireReport(const void *p, size_t len,
                       void *ctx) {
   auto b = static_cast<const uint8_t *>(p);
   auto containerHdr{
-      reinterpret_cast<const EkaContainerGlobalHdr *>(b)};
+      reinterpret_cast<const EkaBCContainerGlobalHdr *>(b)};
   switch (containerHdr->type) {
-  case EkaEventType::kExceptionEvent:
+  case EkaBCExceptionEvent:
     break;
   default:
     ReportedFires++;
   }
 
-  efcPrintFireReport(p, len, ctx);
+  efcBCPrintFireReport(p, len, ctx);
   return;
 }
 
@@ -96,40 +94,13 @@ void handleFireReport(const void *p, size_t len,
 
 void INThandler(int sig) {
   signal(sig, SIG_IGN);
-  testCtx->keep_work = false;
+  keep_work = false;
   TEST_LOG(
       "Ctrl-C detected: keep_work = false, exitting...");
   fflush(stdout);
   return;
 }
 
-/* --------------------------------------------- */
-
-int createThread(const char *name, EkaServiceType type,
-                 void *(*threadRoutine)(void *), void *arg,
-                 void *context, uintptr_t *handle) {
-  pthread_create((pthread_t *)handle, NULL, threadRoutine,
-                 arg);
-  pthread_setname_np((pthread_t)*handle, name);
-  return 0;
-}
-/* --------------------------------------------- */
-
-int credAcquire(EkaCredentialType credType, EkaGroup group,
-                const char *user,
-                const struct timespec *leaseTime,
-                const struct timespec *timeout,
-                void *context, EkaCredentialLease **lease) {
-  printf(
-      "Credential with USER %s is acquired for %s:%hhu\n",
-      user, EKA_EXCH_DECODE(group.source), group.localId);
-  return 0;
-}
-/* --------------------------------------------- */
-
-int credRelease(EkaCredentialLease *lease, void *context) {
-  return 0;
-}
 
 /* --------------------------------------------- */
 void tcpServer(EkaDev *dev, std::string ip, uint16_t port,
@@ -172,7 +143,7 @@ void tcpServer(EkaDev *dev, std::string ip, uint16_t port,
   int addr_size = sizeof(addr);
   *sock = accept(sd, (struct sockaddr *)&addr,
                  (socklen_t *)&addr_size);
-  EKA_LOG("Connected from: %s:%d -- sock=%d\n",
+  TEST_LOG("Connected from: %s:%d -- sock=%d\n",
           inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),
           *sock);
 
@@ -273,42 +244,6 @@ static void cleanFireEvents() {
   return;
 }
 
-/* --------------------------------------------- */
-static std::string action2string(EpmTriggerAction action) {
-  switch (action) {
-  case Unknown:
-    return std::string("Unknown");
-  case Sent:
-    return std::string("Sent");
-  case InvalidToken:
-    return std::string("InvalidToken");
-  case InvalidStrategy:
-    return std::string("InvalidStrategy");
-  case InvalidAction:
-    return std::string("InvalidAction");
-  case DisabledAction:
-    return std::string("DisabledAction");
-  case SendError:
-    return std::string("SendError");
-  default:
-    on_error("Unexpected action %d", action);
-  }
-};
-/* --------------------------------------------- */
-
-/* static void printFireReport(EpmFireReport* report) { */
-/*   TEST_LOG("strategyId=%3d,actionId=%3d,action=%20s,error=%d,token=%016jx",
- */
-/* 	   report->strategyId, */
-/* 	   report->actionId, */
-/* 	   action2string(report->action).c_str(), */
-/* 	   report->error, */
-/* 	   report->trigger->token */
-/* 	   ); */
-/*   return; */
-/* } */
-
-/* --------------------------------------------- */
 
 static int sendCmeTradeMsg(std::string serverIp,
                            std::string dstIp,
@@ -349,7 +284,7 @@ static int sendCmeTradeMsg(std::string serverIp,
     48,   0x00, //template id
     0x01, 0x00, 0x09, 0x00, //stam
     0x01, 0x6f, 0x01, 0x38, 0xca, 0x42, 0xdc, 0x16, //transact time (22,23,24,25,26,27,28,29)
-    0x00, //match indicator (0-fire)
+    0x01, //match indicator (0-fire)
     0x00, 0x00, 0x20, 0x00, //stam
     0x06, //numingroup
     0x00, 0xfc, 0x2f, 0x9c, 0x9d, 0xb2, 0x00, 0x00, 0x01,
@@ -378,9 +313,6 @@ static int sendCmeTradeMsg(std::string serverIp,
 int main(int argc, char *argv[]) {
 
   signal(SIGINT, INThandler);
-  testCtx = new TestCtx;
-  if (!testCtx)
-    on_error("testCtx == NULL");
   // ==============================================
 
   std::string serverIp = "10.0.0.10"; // Ekaline lab default
@@ -405,8 +337,8 @@ int main(int argc, char *argv[]) {
   // ==============================================
   // EkaDev general setup
   EkaDev *dev = NULL;
-  EfcArmVer armVer = 0;
-  EkaCoreId coreId = 0;
+  uint32_t armVer = 0;
+  int8_t coreId = 0;
   int rc;
 
   //    ekaDevInit(&dev, &ekaDevInitCtx);
@@ -434,7 +366,7 @@ int main(int argc, char *argv[]) {
         tcpServer, dev, serverIp, serverTcpBasePort + i,
         &tcpSock[i], &serverSet);
     server.detach();
-    while (testCtx->keep_work && !serverSet)
+    while (keep_work && !serverSet)
       sleep(0);
   }
   // ==============================================
@@ -457,7 +389,7 @@ int main(int argc, char *argv[]) {
     char rxBuf[2000] = {};
     bytes_read = recv(tcpSock[i], rxBuf, sizeof(rxBuf), 0);
     if (bytes_read > 0)
-      EKA_LOG("\n%s", rxBuf);
+      TEST_LOG("\n%s", rxBuf);
   }
 
   // ==============================================
@@ -472,7 +404,7 @@ int main(int argc, char *argv[]) {
 
   rc = ekaBcFcInit(dev);
 
-  if (rc != EKA_OPRESULT__OK)
+  if (rc != EKABC_OPRESULT__OK)
     on_error("efcInit returned %d", (int)rc);
 
   // ==============================================
@@ -485,14 +417,14 @@ int main(int argc, char *argv[]) {
   };
   rc = ekaBcCmeFcMdInit(dev, &mdParams);
 
-  if (rc != EKA_OPRESULT__OK)
+  if (rc != EKABC_OPRESULT__OK)
     on_error("epmInitStrategies failed: rc = %d", rc);
 
   // ==============================================
   // Global EFC config
   EkaBcCmeFastCanceGlobalParams efcStratGlobCtx = {
       .report_only = 0,
-      .watchdog_timeout_sec = 100000,
+      .watchdog_timeout_sec = 1,
   };
   ekaBcCmeFcGlobalInit(dev, &efcStratGlobCtx);
 
@@ -508,11 +440,11 @@ int main(int argc, char *argv[]) {
 
   EkaBcActionParams actionParams = {
       .tcpSock = conn[0],
-			.nextAction = EPM_LAST_ACTION};
+			.nextAction = EPM_BC_LAST_ACTION};
 
   rc = ekaBcSetActionParams(dev, cmeHwCancelIdx,
                       &actionParams);
-  if (rc != EKA_OPRESULT__OK)
+  if (rc != EKABC_OPRESULT__OK)
     on_error("efcSetAction returned %d", (int)rc);
 
   // ==============================================
@@ -525,7 +457,7 @@ int main(int argc, char *argv[]) {
   rc = ekaBcSetActionPayload(dev, cmeHwCancelIdx,
                              &CmeTestFastCancelMsg,
                              strlen(CmeTestFastCancelMsg));
-  if (rc != EKA_OPRESULT__OK)
+  if (rc != EKABC_OPRESULT__OK)
     on_error("efcSetActionPayload failed");
 
   const EkaBcCmeFcAlgoParams algoParams = {
@@ -561,13 +493,21 @@ int main(int argc, char *argv[]) {
   if (fatalDebug) {
     TEST_LOG(RED "\n=====================\nFATAL DEBUG: "
                  "ON\n=====================\n" RESET);
-    eka_write(dev, 0xf0f00, 0xefa0beda);
+    //    eka_write(dev, 0xf0f00, 0xefa0beda); //TBD
   }
 
   // ==============================================
+  ekaBcEnableController(
+			dev, true, armVer++); // arm and promote
 
-  //    efcEnableController(pEfcCtx, 1, armVer++); //arm
+  // test watchdog
+  for (auto i = 0; i < 10; i++) {
+    usleep(300000);
+    ekaBcSwKeepAliveSend(dev);    
+  }
+
   ekaBcEnableController(dev, false);
+  
   int hw_fires = getHWFireCnt(dev, 0xf0800);
 
   printf("\n===========================\nEND OT TESTS : ");
@@ -589,10 +529,10 @@ int main(int argc, char *argv[]) {
   }
   printf(RESET);
   printf("===========================\n\n");
-  testCtx->keep_work = dontExit;
+  keep_work = dontExit;
   sleep(1);
-  EKA_LOG("--Test finished, ctrl-c to end---");
-  while (testCtx->keep_work) {
+  TEST_LOG("--Test finished, ctrl-c to end---");
+  while (keep_work) {
     sleep(0);
   }
 #endif

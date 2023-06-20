@@ -16,10 +16,11 @@ execute_process(COMMAND git rev-parse --short HEAD OUTPUT_VARIABLE EKA_GIT_VER)
 
 set(CMAKE_C_COMPILER ${CMAKE_CXX_COMPILER})
 set(CMAKE_CXX_FLAGS
-    "-O3
-     -funroll-loops
-     -pipe
-     -march=native
+    "
+    -O3
+    -funroll-loops
+    -pipe
+    -march=native
     ")
 
 # ##############################################################################
@@ -33,10 +34,6 @@ set(libDstDir ${EKA_SRC_DIR}/../${EKA_LIB_NAME}_lib)
 file(MAKE_DIRECTORY ${libDstDir})
 
 set(apiDIR ${EKA_SRC_DIR}/../bc_include)
-set(testDIR ${EKA_SRC_DIR}/../bc_tests)
-
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
 
 # ##############################################################################
 set(SMARTNIC_ROOT ${CMAKE_CURRENT_LIST_DIR}/SmartNIC_SW)
@@ -48,7 +45,7 @@ set(SMARTNIC_LIB_STATIC ${SMARTNIC_ROOT}/lib/libsmartnic.a)
 # ar t ${SMARTNIC_LIB_STATIC} OUTPUT_VARIABLE SMARTNIC_LIB_STATIC_FILES)
 
 # ##############################################################################
-# LWIP OBJS
+# libekalwip.so
 set(LWIP_DIR ${CMAKE_CURRENT_LIST_DIR}/LWIP)
 include(${LWIP_DIR}/src/Filelists.cmake)
 
@@ -61,77 +58,59 @@ set(LWIP_LIB_BUILD_INCL ${LWIP_LIB_BUILD_INCL} ${EKA_SRC_DIR})
 
 set(LWIP_API_INCL ${LWIP_DIR}/src/include)
 
-foreach(lwipSrcFile ${ekalwip_SRCS})
-  get_filename_component(lwipFileName ${lwipSrcFile} NAME_WE)
-  add_library(${lwipFileName}.o OBJECT ${lwipSrcFile})
-  target_compile_options(${lwipFileName}.o PRIVATE -std=gnu++98 -fPIC)
-  target_compile_definitions(${lwipFileName}.o PRIVATE _GNU_SOURCE)
-  target_link_libraries(${lwipFileName}.o rt m Threads::Threads)
+add_library(ekalwip SHARED ${ekalwip_SRCS})
 
-  target_include_directories(${lwipFileName}.o PUBLIC ${LWIP_LIB_BUILD_INCL})
+target_compile_options(ekalwip PRIVATE -std=gnu++98)
 
-  set(LWIP_OBJS ${LWIP_OBJS} ${lwipFileName}.o)
+target_compile_definitions(ekalwip PRIVATE _GNU_SOURCE)
+target_link_libraries(ekalwip rt m Threads::Threads)
 
-endforeach()
+target_include_directories(ekalwip PUBLIC ${LWIP_LIB_BUILD_INCL})
 
-message(STATUS "LWIP_OBJ_FILES == ${LWIP_OBJ_FILES}")
+set_target_properties(ekalwip PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${libDstDir})
+# ----------------------------------------------------------
+# libekalwip_static.a
+
+add_library(ekalwip_static STATIC ${ekalwip_SRCS})
+
+target_compile_definitions(ekalwip_static PRIVATE _GNU_SOURCE)
+target_link_libraries(ekalwip_static rt m Threads::Threads)
+
+target_include_directories(ekalwip_static PUBLIC ${LWIP_LIB_BUILD_INCL})
+
+target_compile_options(ekalwip_static PRIVATE -std=gnu++98 -fPIC)
+
+set_target_properties(ekalwip_static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
+                                                ${libDstDir})
+#
+# add_custom_target(lwipObj COMMAND ar x ${SMARTNIC_LIB_STATIC} COMMAND ar rcsv
+# libekalwip_static.a ${lwipnoapps_SRCS}.o WORKING_DIRECTORY ${BUILD_DIR}
+# DEPENDS ${SMARTNIC_LIB_STATIC} ekalwip )
+#
 # ##############################################################################
-# SmartNIC OBJS
-
-set(SMARTNIC_OBJS smartnic.o smartnic_arp.o smartnic_utils.o tinythread.o)
-execute_process(COMMAND ar x ${SMARTNIC_LIB_STATIC})
 
 # ##############################################################################
-# EKA OBJS
 
-# set(EKA_SRCS ${EKA_BC_SRC_DIR}/*.c ${EKA_SRC_DIR}/*.c ${EKA_SRC_DIR}/Ehp/*.c)
-file(GLOB EKA_SRCS ${EKA_BC_SRC_DIR}/*.c ${EKA_SRC_DIR}/*.c
+file(GLOB ${EKA_LIB_NAME}_SRCS ${EKA_BC_SRC_DIR}/*.c ${EKA_SRC_DIR}/*.c
      ${EKA_SRC_DIR}/Ehp/*.c)
 
-set(EKA_INC_PATH
-    ${apiDIR}
-    ${EKA_SRC_DIR}
-    ${EKA_SRC_DIR}/compat
-    ${EKA_SRC_DIR}/arch
-    ${EKA_SRC_DIR}/Ehp
-    ${EKA_SRC_DIR}/FhBook
-    ${EKA_SRC_DIR}/../new_api_tests
-    ${testDir}
-    ${SMARTNIC_API_INCL}
-    ${SMARTNIC_DRIVER_INCL}
-    ${LWIP_INCL})
+set(EKA_INC_PATH ${EKA_INC_PATH} ${apiDIR})
+set(EKA_INC_PATH ${EKA_INC_PATH} ${EKA_SRC_DIR})
+set(EKA_INC_PATH ${EKA_INC_PATH} ${EKA_SRC_DIR}/arch)
+set(EKA_INC_PATH ${EKA_INC_PATH} ${EKA_SRC_DIR}/compat)
+set(EKA_INC_PATH ${EKA_INC_PATH} ${EKA_SRC_DIR}/Ehp)
+set(EKA_INC_PATH ${EKA_INC_PATH} ${EKA_SRC_DIR}/FhBook)
+set(EKA_INC_PATH ${EKA_INC_PATH} ${EKA_SRC_DIR}/../new_api_tests)
+set(EKA_INC_PATH ${EKA_INC_PATH} ${SMARTNIC_API_INCL})
+set(EKA_INC_PATH ${EKA_INC_PATH} ${SMARTNIC_DRIVER_INCL})
+set(EKA_INC_PATH ${EKA_INC_PATH} ${LWIP_INCL})
 
-foreach(ekaSrcFile ${EKA_SRCS})
-  get_filename_component(ekaFileName ${ekaSrcFile} NAME_WE)
-  add_library(${ekaFileName}.o OBJECT ${ekaSrcFile})
-  target_compile_options(${ekaFileName}.o PRIVATE -std=c++23 -fPIC)
-  target_link_libraries(${ekaFileName}.o rt m Threads::Threads)
-  target_compile_definitions(${ekaFileName}.o PUBLIC LIBEKA_GIT_VER="DUMMY")
-  target_include_directories(${ekaFileName}.o PUBLIC ${EKA_INC_PATH})
-  target_include_directories(${ekaFileName}.o PUBLIC ${LWIP_LIB_BUILD_INCL})
-
-  set(EKA_OBJS ${EKA_OBJS} ${ekaFileName}.o)
-endforeach()
-
-# ##############################################################################
-# lib${EKA_LIB_NAME}_static.a add_custom_target(ekaStatic COMMAND ar rcsv
-# lib${EKA_LIB_NAME}_static.a ${SMARTNIC_OBJS} ${LWIP_OBJS} ${EKA_OBJS} DEPENDS
-# ${SMARTNIC_LIB_STATIC} ${SMARTNIC_OBJS} ${LWIP_OBJS} ${EKA_OBJS})
-
-add_library(${EKA_LIB_NAME}_static STATIC)
-target_link_libraries(${EKA_LIB_NAME}_static PUPLIC ${SMARTNIC_OBJS}
-                      ${LWIP_OBJS} ${EKA_OBJS})
-
-# add_library(${EKA_LIB_NAME} SHARED ${EKA_SRCS})
-# target_link_libraries(${EKA_LIB_NAME} PUBLIC ${EKA_LIB_NAME}_static)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
 
 # ##############################################################################
 # lib${EKA_LIB_NAME}.so
 
-# add_library(${EKA_LIB_NAME} SHARED) target_link_libraries(${EKA_LIB_NAME}
-# PUPLIC ${SMARTNIC_OBJS} ${LWIP_OBJS} ${EKA_OBJS})
-
-#[==[
 add_library(${EKA_LIB_NAME} SHARED ${${EKA_LIB_NAME}_SRCS})
 
 target_compile_options(${EKA_LIB_NAME} PUBLIC -std=c++23 -fPIC)
@@ -228,4 +207,3 @@ foreach(uSrc ${utils_SRCS})
 
   target_include_directories(${utilExec} PUBLIC ${EKA_INC_PATH})
 endforeach()
-]==]

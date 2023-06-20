@@ -175,6 +175,7 @@ inline size_t pushFastCancelReport(int reportIdx, uint8_t* dst,
     auto epmReport {reinterpret_cast<EpmFastCancelReport*>(b)};
     b += sizeof(*epmReport);
     //--------------------------------------------------------------------------
+    epmReport->eventIsZero    = hwEpmReport->event_indicator_is_zero;
     epmReport->numInGroup     = hwEpmReport->num_in_group;
     epmReport->transactTime   = hwEpmReport->transact_time;
     epmReport->headerTime     = hwEpmReport->header_time;
@@ -375,7 +376,8 @@ std::pair<int,size_t> processFastCancelReport(EkaDev* dev,
     b += pushFiredPkt (++reportIdx,b,q,dmaIdx);
     strategyId2ret = hwEpmReport->epm.strategyId;
     EKA_LOG("Processgin HwEpmActionStatus::Sent, len=%d",srcReportLen);
-      EKA_LOG("FastCancelReport numInGroup=%d, transactTime=%ju, headerTime=%ju, seqNum=%u",
+      EKA_LOG("FastCancelReport eventIsZero=%d, numInGroup=%d, transactTime=%ju, headerTime=%ju, seqNum=%u",
+	      hwEpmReport->event_indicator_is_zero,
               hwEpmReport->num_in_group,
 	      hwEpmReport->transact_time,hwEpmReport->header_time,
 	      hwEpmReport->sequence_number);
