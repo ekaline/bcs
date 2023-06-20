@@ -109,16 +109,8 @@ find_package(Threads REQUIRED)
 
 add_library(${EKA_LIB_NAME} SHARED ${${EKA_LIB_NAME}_SRCS})
 
-target_compile_options(
-  ${EKA_LIB_NAME}
-  PUBLIC -std=c++23
-         -O3
-         -funroll-loops
-         # -fPIC -shared
-         -pthread
-         # -lrt -lm
-         -pipe
-         -march=native)
+target_compile_options(${EKA_LIB_NAME} PRIVATE -std=c++23 -O3 -funroll-loops
+                                               -pthread -pipe -march=native)
 
 target_include_directories(${EKA_LIB_NAME} PUBLIC ${EKA_INC_PATH})
 
