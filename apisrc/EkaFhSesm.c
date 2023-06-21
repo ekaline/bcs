@@ -648,6 +648,7 @@ static EkaFhParseResult procRefreshSesmPkt(
         break;
       }
 
+#if 0
       if (unsequencedPktSeq != 0 &&
           unsequencedPktSeq <= gr->seq_after_snapshot)
         EKA_DEBUG("%s:%u %s ignoring msgType = \'%c\' : "
@@ -657,8 +658,10 @@ static EkaFhParseResult procRefreshSesmPkt(
                   EkaFhMode2STR(op), msgType,
                   unsequencedPktSeq,
                   gr->seq_after_snapshot);
-      else
+#endif
+      if (unsequencedPktSeq > gr->seq_after_snapshot)
         gr->seq_after_snapshot = unsequencedPktSeq;
+
       if (gr->parseMsg(pEfhRunCtx, m, unsequencedPktSeq,
                        op)) {
         EKA_LOG("%s:%u %s End Of Refresh "
