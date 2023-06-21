@@ -302,7 +302,8 @@ EkaFhMrx2TopGr::processTrade(const unsigned char* m,
   msg.price       = price;
   msg.size        = size;
   msg.tradeStatus = s->trading_action;
-  msg.tradeCond   = EfhTradeCond::kREG;
+  msg.tradeCond   =
+    static_cast<EfhTradeCond>(reinterpret_cast<const Msg*>(m)->tradeCondition);
 
   pEfhRunCtx->onEfhTradeMsgCb(&msg,
 			      s->efhUserData,
