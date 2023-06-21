@@ -542,19 +542,22 @@ static EkaFhParseResult procRefreshSesmPkt(
   uint64_t sequence = 0;
 
   switch ((EKA_SESM_TYPE)sesm_hdr.type) {
-  case EKA_SESM_TYPE::GoodBye: {
-    EKA_LOG("%s:%u Sesm Server sent GoodBye with reason "
+    //---------------------------------------
+  case EKA_SESM_TYPE::GoodBye:
+    EKA_LOG("%s:%u Sesm Refresh Server sent GoodBye with "
+            "reason "
             "\'%c\' : %s",
             EKA_EXCH_DECODE(gr->exch), gr->id,
-            ((sesm_goodbye *)m)->reason,
-            ((sesm_goodbye *)m)->text);
-    return EkaFhParseResult::End;
-  }
+            ((const sesm_goodbye *)m)->reason,
+            ((const sesm_goodbye *)m)->text);
+    return EkaFhParseResult::ProtocolError;
+    //---------------------------------------
 
   case EKA_SESM_TYPE::ServerHeartbeat:
     EKA_LOG("%s:%u Sesm Server Heartbeat received",
             EKA_EXCH_DECODE(gr->exch), gr->id);
     return EkaFhParseResult::NotEnd;
+    //---------------------------------------
 
   case EKA_SESM_TYPE::EndOfSession:
     EKA_LOG("%s:%u %s End-of-Session message. "
@@ -562,111 +565,139 @@ static EkaFhParseResult procRefreshSesmPkt(
             EKA_EXCH_DECODE(gr->exch), gr->id,
             EkaFhMode2STR(op), gr->seq_after_snapshot);
     return EkaFhParseResult::End;
+    //---------------------------------------
 
   case EKA_SESM_TYPE::SyncComplete:
     EKA_LOG("%s:%u SESM server sent SyncComplete message",
             EKA_EXCH_DECODE(gr->exch), gr->id);
     return EkaFhParseResult::End;
 
-  case EKA_SESM_TYPE::TestPacket: {
+    //---------------------------------------
+
+  case EKA_SESM_TYPE::TestPacket:
     EKA_LOG("%s:%u Sesm Server sent Test Packet: %s",
-            EKA_EXCH_DECODE(gr->exch), gr->id, (char *)m);
+            EKA_EXCH_DECODE(gr->exch), gr->id,
+            (const char *)m);
     return EkaFhParseResult::NotEnd;
-  }
+    //---------------------------------------
 
   case EKA_SESM_TYPE::Sequenced: {
+    // Sequenced should not happen at Refresh
     sequence = *(uint64_t *)m;
+    m += sizeof(sequence);
+    auto msgType =
+        reinterpret_cast<const TomCommon *>(m)->Type;
+
+    EKA_WARN("%s:%u Unexpected Sequenced Packet at Refresh "
+             "%s: sequence = %ju, Msg = \'%c\'",
+             EKA_EXCH_DECODE(gr->exch), gr->id,
+             EkaFhMode2STR(op), sequence, msgType);
     gr->seq_after_snapshot = sequence;
     if (payloadLen == sizeof(sequence)) {
       EKA_WARN("%s:%u SESM Sequenced packet with no msg",
                EKA_EXCH_DECODE(gr->exch), gr->id);
       return EkaFhParseResult::NotEnd;
     }
-    m += sizeof(sequence);
-    auto msgType =
-        reinterpret_cast<const TomCommon *>(m)->Type;
-    if (static_cast<TOM_MSG>(msgType) ==
-        TOM_MSG::EndOfRefresh) {
-      EKA_LOG("%s:%u %s: End Of Refresh of \'%c\' Request",
-              EKA_EXCH_DECODE(gr->exch), gr->id,
-              EkaFhMode2STR(op),
-              reinterpret_cast<const TomEndOfRefresh *>(m)
-                  ->request_type);
-      return EkaFhParseResult::End;
-    }
+
     if (static_cast<TOM_MSG>(msgType) ==
         TOM_MSG::SeriesUpdate) {
       if (pVanillaDefinitions)
         pVanillaDefinitions->push(
             reinterpret_cast<const TomSeriesUpdate *>(m));
-    } else {
-      if (gr->parseMsg(pEfhRunCtx, m, sequence, op)) {
-        EKA_LOG("%s:%u %s: End Of Refresh: "
-                "gr->seq_after_snapshot = %ju",
-                EKA_EXCH_DECODE(gr->exch), gr->id,
-                EkaFhMode2STR(op), gr->seq_after_snapshot);
-        return EkaFhParseResult::End;
-      }
+      break;
     }
+    if (gr->parseMsg(pEfhRunCtx, m, sequence, op)) {
+      EKA_WARN("%s:%u %s: Sequenced End Of Refresh: "
+               "sequence = %ju",
+               EKA_EXCH_DECODE(gr->exch), gr->id,
+               EkaFhMode2STR(op), sequence);
+      return EkaFhParseResult::End;
+    }
+
   } break;
+    //---------------------------------------
 
   case EKA_SESM_TYPE::UnSequenced: {
-    char unsequencedType = ((sesm_unsequenced *)m)->type;
-    switch (unsequencedType) {
-    case 'R': {
-      sequence = ((sesm_unsequenced *)m)->sequence;
-      gr->seq_after_snapshot = sequence;
-      if (payloadLen == sizeof(sesm_unsequenced)) {
-        EKA_WARN(
-            "%s:%u SESM Unsequenced packet with no msg",
-            EKA_EXCH_DECODE(gr->exch), gr->id);
-        return EkaFhParseResult::NotEnd;
-      }
-      m += sizeof(sesm_unsequenced);
+    auto unsequencedHdr =
+        reinterpret_cast<const sesm_unsequenced *>(m);
+    m += sizeof(*unsequencedHdr);
+
+    auto unsequencedPktType = unsequencedHdr->type;
+    auto unsequencedPktSeq = unsequencedHdr->sequence;
+
+    auto pktPayloadLen =
+        payloadLen - sizeof(*unsequencedHdr);
+
+    if (!pktPayloadLen)
+      on_error("%s:%u %s: pktPayloadLen = 0 "
+               "for unsequencedPktType = \'%c\'",
+               EKA_EXCH_DECODE(gr->exch), gr->id,
+               EkaFhMode2STR(op), unsequencedPktType);
+
+    switch (unsequencedPktType) {
+      //++++++++++++++++++++++++++++++++++
+    case 'R': { // Unsequenced ToM Refresh
       auto msgType =
           reinterpret_cast<const TomCommon *>(m)->Type;
-      if (static_cast<TOM_MSG>(msgType) ==
-          TOM_MSG::EndOfRefresh) {
-        EKA_LOG(
-            "%s:%u %s: End Of Refresh of \'%c\' Request",
-            EKA_EXCH_DECODE(gr->exch), gr->id,
-            EkaFhMode2STR(op),
-            reinterpret_cast<const TomEndOfRefresh *>(m)
-                ->request_type);
-        return EkaFhParseResult::End;
-      }
+
+      // Definitions
       if (static_cast<TOM_MSG>(msgType) ==
           TOM_MSG::SeriesUpdate) {
         if (pVanillaDefinitions)
           pVanillaDefinitions->push(
               reinterpret_cast<const TomSeriesUpdate *>(m));
-      } else {
-        if (gr->parseMsg(pEfhRunCtx, m, sequence, op)) {
-          EKA_LOG("%s:%u %s End Of Refresh: "
-                  "gr->seq_after_snapshot = %ju",
-                  EKA_EXCH_DECODE(gr->exch), gr->id,
-                  EkaFhMode2STR(op),
-                  gr->seq_after_snapshot);
-          return EkaFhParseResult::End;
-        }
+        break;
+      }
+
+      if (unsequencedPktSeq <= gr->seq_after_snapshot)
+        on_error("%s:%u %s msgType = \'%c\' : "
+                 "unsequencedPktSeq %ju < "
+                 "seq_after_snapshot %ju",
+                 EKA_EXCH_DECODE(gr->exch), gr->id,
+                 EkaFhMode2STR(op), msgType,
+                 unsequencedPktSeq, gr->seq_after_snapshot);
+
+      gr->seq_after_snapshot = unsequencedPktSeq;
+      if (gr->parseMsg(pEfhRunCtx, m, sequence, op)) {
+        EKA_LOG("%s:%u %s End Of Refresh "
+                "msgType = \'%c\' : "
+                "seq_after_snapshot = %ju",
+                EKA_EXCH_DECODE(gr->exch), gr->id,
+                EkaFhMode2STR(op), msgType,
+                gr->seq_after_snapshot);
+        return EkaFhParseResult::End;
       }
     } break;
-    case 'E':
-      EKA_LOG("%s:%u %s End Of Request: "
-              "gr->seq_after_snapshot = %ju",
+      //++++++++++++++++++++++++++++++++++
+    case 'E': { // Unsequenced End Of Request
+      auto msgType =
+          reinterpret_cast<const TomCommon *>(m)->Type;
+
+      EKA_LOG("%s:%u %s SesM type = EndOfRequest \'E\': "
+              "msgType = \'%c\'"
+              "seq_after_snapshot = %ju",
               EKA_EXCH_DECODE(gr->exch), gr->id,
-              EkaFhMode2STR(op), gr->seq_after_snapshot);
-      return EkaFhParseResult::End;
-      break;
-    default:
-      on_error(
-          "%s:%u Unexpected UnSequenced Packet type \'%c\'",
-          EKA_EXCH_DECODE(gr->exch), gr->id,
-          unsequencedType);
+              EkaFhMode2STR(op), msgType,
+              gr->seq_after_snapshot);
+      if (gr->parseMsg(pEfhRunCtx, m, sequence, op))
+        return EkaFhParseResult::End;
+      on_error("%s:%u %s SesM type = EndOfRequest, "
+               "msgType = \'%c\'",
+               EKA_EXCH_DECODE(gr->exch), gr->id,
+               EkaFhMode2STR(op), msgType);
+    } break;
+      //++++++++++++++++++++++++++++++++++
+    default: // of switch (unsequencedPktType)
+      on_error("%s:%u Unexpected UnSequenced Packet type "
+               "\'%c\'",
+               EKA_EXCH_DECODE(gr->exch), gr->id,
+               unsequencedPktType);
+      //++++++++++++++++++++++++++++++++++
     }
   } break;
+    //---------------------------------------
 
-  default:
+  default: // of switch ((EKA_SESM_TYPE)sesm_hdr.type)
     EKA_WARN("%s:%u Unexpected sesm_hdr.type: \'%c\'",
              EKA_EXCH_DECODE(gr->exch), gr->id,
              sesm_hdr.type);
@@ -767,14 +798,14 @@ RETRY_GETTING_SESM_HDR:
 
   case EKA_SESM_TYPE::Sequenced:
     sequence = *(uint64_t *)m;
-    gr->seq_after_snapshot = sequence;
+    m += sizeof(sequence);
     if (payloadLen == sizeof(sequence)) {
-      EKA_WARN("%s:%u SESM Sequenced packet with no msg",
+      on_error("%s:%u SESM Sequenced packet with no msg",
                EKA_EXCH_DECODE(gr->exch), gr->id);
       return EkaFhParseResult::NotEnd;
     }
-    m += sizeof(sequence);
 
+    gr->seq_after_snapshot = sequence;
     if (gr->parseMsg(pEfhRunCtx, m, sequence, op)) {
       EKA_LOG("%s:%u %s Unexpected EndOfSession: "
               "seq_after_snapshot = %ju",
@@ -799,44 +830,11 @@ RETRY_GETTING_SESM_HDR:
     char unsequencedType = ((sesm_unsequenced *)m)->type;
     switch (unsequencedType) {
       /* --------------------------------------------- */
-    case 'R': { // Regular retransmit
-      sequence = ((sesm_unsequenced *)m)->sequence;
-      gr->seq_after_snapshot = sequence;
-      if (payloadLen == sizeof(sesm_unsequenced)) {
-        EKA_WARN(
-            "%s:%u SESM Unsequenced packet with no msg",
-            EKA_EXCH_DECODE(gr->exch), gr->id);
-        return EkaFhParseResult::NotEnd;
-      }
-      m += sizeof(sesm_unsequenced);
-      auto msgType =
-          reinterpret_cast<const TomCommon *>(m)->Type;
-      if (static_cast<TOM_MSG>(msgType) ==
-          TOM_MSG::EndOfRefresh) {
-        EKA_LOG("%s:%u End Of Refresh of \'%c\' Request",
-                EKA_EXCH_DECODE(gr->exch), gr->id,
-                reinterpret_cast<const TomEndOfRefresh *>(m)
-                    ->request_type);
-        return EkaFhParseResult::End;
-      }
-
-      if (gr->parseMsg(pEfhRunCtx, m, sequence, op)) {
-        EKA_LOG("%s:%u %s End Of Refresh: "
-                "seq_after_snapshot = %ju",
-                EKA_EXCH_DECODE(gr->exch), gr->id,
-                EkaFhMode2STR(op), gr->seq_after_snapshot);
-        return EkaFhParseResult::End;
-      }
-
-      if (gr->seq_after_snapshot == end) {
-        EKA_LOG("%s:%u %s: Retransmit Gap closed: "
-                "seq_after_snapshot == end = "
-                "%ju: ",
-                EKA_EXCH_DECODE(gr->exch), gr->id,
-                EkaFhMode2STR(op), gr->seq_after_snapshot);
-        return EkaFhParseResult::End;
-      }
-    } break;
+    case 'R':
+      on_error("%s:%u %s Unexpected Unsequenced Pkt: "
+               "seq_after_snapshot = %ju",
+               EKA_EXCH_DECODE(gr->exch), gr->id,
+               EkaFhMode2STR(op), gr->seq_after_snapshot);
       /* --------------------------------------------- */
     case 'E':
       EKA_LOG("%s:%u %s Unexpected EndOfSession: "
@@ -854,6 +852,7 @@ RETRY_GETTING_SESM_HDR:
           unsequencedType);
     }
   } break;
+    /* ------------------------------------------------- */
 
   default:
     EKA_WARN("%s:%u Unexpected sesm_hdr.type: \'%c\'",
