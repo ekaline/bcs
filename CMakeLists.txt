@@ -192,3 +192,12 @@ foreach(uSrc ${utils_SRCS})
 
   target_include_directories(${utilExec} PUBLIC ${EKA_INC_PATH})
 endforeach()
+
+# ##############################################################################
+# lab
+
+add_library(lab ALIAS ${EKA_LIB_NAME})
+if(TARGET lab)
+  set(EKA_DEFINES EKA_TEST_IGNORE_DEFINITIONS EKA_TEST_IGNORE_GAP FH_LAB
+                  FH_SUBSCRIBE_ALL _DONT_SEND_MDTIMEOUT)
+endif()
