@@ -769,8 +769,19 @@ RETRY_GETTING_SESM_HDR:
             EKA_EXCH_DECODE(gr->exch), gr->id,
             ((sesm_goodbye *)m)->reason,
             ((sesm_goodbye *)m)->text);
-    return EkaFhParseResult::End;
-    /* ------------------------------------------------- */
+    if (((sesm_goodbye *)m)->reason == 'A') {
+      EKA_WARN(
+          "%s:%u SesM terminated incremental recovery "
+          "before reaching last requested sequence %ju",
+          EKA_EXCH_DECODE(gr->exch), gr->id, end);
+      gr->seq_after_snapshot = end;
+
+      return EkaFhParseResult::End;
+    }
+    return EkaFhParseResult::ProtocolError;
+
+    /* -------------------------------------------------
+     */
 
   case EKA_SESM_TYPE::ServerHeartbeat:
     EKA_LOG("%s:%u Sesm Server Heartbeat: "
