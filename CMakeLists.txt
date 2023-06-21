@@ -7,6 +7,7 @@ project(
 # options ccache
 include(cmake/ccache.cmake)
 
+option(ENABLE_TESTING "Enable Testing build" OFF)
 # include(CTest) enable_testing()
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
@@ -37,7 +38,7 @@ set(EKA_LIB_NAME ekaN)
 set(BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/build)
 set(EKA_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/apisrc)
 
-set(libDstDir ${EKA_SRC_DIR}/../${EKA_LIB_NAME}_lib)
+set(libDstDir ${CMAKE_BINARY_DIR}/lib/${EKA_LIB_NAME})
 file(MAKE_DIRECTORY ${libDstDir})
 
 set(apiDIR ${EKA_SRC_DIR}/compat)
@@ -46,7 +47,7 @@ set(apiDIR ${EKA_SRC_DIR}/compat)
 set(SMARTNIC_ROOT ${CMAKE_CURRENT_LIST_DIR}/SmartNIC_SW)
 set(SMARTNIC_API_INCL ${SMARTNIC_ROOT}/include)
 set(SMARTNIC_DRIVER_INCL ${SMARTNIC_ROOT}/driver)
-set(SMARTNIC_LIB_STATIC ${SMARTNIC_ROOT}/lib/libsmartnic.a)
+set(SMARTNIC_LIB_STATIC ${SMARTNIC_ROOT}/lib/libsmartnic.a)   # TODO: This should be a dependency
 
 # execute_process(COMMAND ar x ${SMARTNIC_LIB_STATIC}) execute_process(COMMAND
 # ar t ${SMARTNIC_LIB_STATIC} OUTPUT_VARIABLE SMARTNIC_LIB_STATIC_FILES)
@@ -130,7 +131,9 @@ target_include_directories(${EKA_LIB_NAME} PUBLIC ${EKA_INC_PATH})
 
 target_compile_definitions(${EKA_LIB_NAME} PUBLIC LIBEKA_GIT_VER="DUMMY")
 
-target_compile_definitions(${EKA_LIB_NAME} PUBLIC LIBEKA_GIT_VER="DUMMY")
+if (ENABLE_TESTING)
+    target_compile_definitions(${EKA_LIB_NAME} PUBLIC ENABLE_TESTING="ON")
+endif()
 
 target_link_libraries(${EKA_LIB_NAME} ${SMARTNIC_LIB_STATIC} ekalwip_static rt
                       m Threads::Threads)
@@ -165,29 +168,31 @@ set_target_properties(${EKA_LIB_NAME}_static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
 # ##############################################################################
 # Tests
 
-file(GLOB test_SRCS ${EKA_SRC_DIR}/../new_api_tests/*.c)
-set(testDstDir ${EKA_SRC_DIR}/../${EKA_LIB_NAME}_tests)
-file(MAKE_DIRECTORY ${testDstDir})
+if (ENABLE_TESTING)
+  file(GLOB test_SRCS ${EKA_SRC_DIR}/../new_api_tests/*.c)
+  set(testDstDir ${CMAKE_BINARY_DIR}/tests/${EKA_LIB_NAME})
+  file(MAKE_DIRECTORY ${testDstDir})
 
-foreach(test ${test_SRCS})
-  get_filename_component(testName ${test} NAME_WE)
-  add_executable(${testName} ${test})
-  set_target_properties(${testName} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
-                                               ${testDstDir})
-  add_dependencies(${testName} ${EKA_LIB_NAME})
-  target_link_libraries(${testName} ${EKA_LIB_NAME} rt m Threads::Threads)
-  target_link_libraries(${testName} -static-libgcc -static-libstdc++)
+  foreach(test ${test_SRCS})
+    get_filename_component(testName ${test} NAME_WE)
+    add_executable(${testName} ${test})
+    set_target_properties(${testName} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
+                                                ${testDstDir})
+    add_dependencies(${testName} ${EKA_LIB_NAME})
+    target_link_libraries(${testName} ${EKA_LIB_NAME} rt m Threads::Threads)
+    target_link_libraries(${testName} -static-libgcc -static-libstdc++)
 
-  target_compile_options(${testName} PUBLIC -std=c++23)
+    target_compile_options(${testName} PUBLIC -std=c++23)
 
-  target_include_directories(${testName} PUBLIC ${EKA_INC_PATH})
-endforeach()
+    target_include_directories(${testName} PUBLIC ${EKA_INC_PATH})
+  endforeach()
+endif()
 
 # ##############################################################################
 # Utils
 
 file(GLOB utils_SRCS ${EKA_SRC_DIR}/../eka_utils/*.c)
-set(utilsDstDir ${EKA_SRC_DIR}/../${EKA_LIB_NAME}_utils)
+set(utilsDstDir ${CMAKE_BINARY_DIR}/utils/${EKA_LIB_NAME})
 file(MAKE_DIRECTORY ${utilsDstDir})
 
 foreach(uSrc ${utils_SRCS})
