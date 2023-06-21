@@ -1,8 +1,11 @@
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.10.0)
 project(
   EkaNEW
   VERSION 0.1.0
   LANGUAGES C CXX)
+
+# options ccache
+include(cmake/ccache.cmake)
 
 # include(CTest) enable_testing()
 
@@ -22,6 +25,11 @@ set(CMAKE_CXX_FLAGS
     -pipe
     -march=native
     ")
+
+if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "No build type selected; defaulting to Debug")
+  set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type (default is Debug)")
+endif()
 
 # ##############################################################################
 set(EKA_LIB_NAME ekaN)
@@ -119,6 +127,8 @@ target_compile_options(${EKA_LIB_NAME} PRIVATE -std=c++23 -O3 -funroll-loops
                                                -pthread -pipe -march=native)
 
 target_include_directories(${EKA_LIB_NAME} PUBLIC ${EKA_INC_PATH})
+
+target_compile_definitions(${EKA_LIB_NAME} PUBLIC LIBEKA_GIT_VER="DUMMY")
 
 target_compile_definitions(${EKA_LIB_NAME} PUBLIC LIBEKA_GIT_VER="DUMMY")
 
