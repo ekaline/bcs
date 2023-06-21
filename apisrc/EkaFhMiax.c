@@ -207,6 +207,7 @@ EkaFhMiax::runGroups(EfhCtx *pEfhCtx,
         gr->closeIncrementalGap(pEfhCtx, pEfhRunCtx,
                                 gr->seq_after_snapshot,
                                 gr->firstMcSeq);
+        gr->expected_sequence = gr->firstMcSeq;
         break;
       }
 
