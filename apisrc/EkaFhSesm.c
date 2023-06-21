@@ -648,17 +648,22 @@ static EkaFhParseResult procRefreshSesmPkt(
         break;
       }
 
+#if 0
       if (unsequencedPktSeq != 0 &&
           unsequencedPktSeq <= gr->seq_after_snapshot)
-        on_error("%s:%u %s msgType = \'%c\' : "
-                 "unsequencedPktSeq %ju < "
-                 "seq_after_snapshot %ju",
-                 EKA_EXCH_DECODE(gr->exch), gr->id,
-                 EkaFhMode2STR(op), msgType,
-                 unsequencedPktSeq, gr->seq_after_snapshot);
+        EKA_DEBUG("%s:%u %s ignoring msgType = \'%c\' : "
+                  "unsequencedPktSeq %ju < "
+                  "seq_after_snapshot %ju",
+                  EKA_EXCH_DECODE(gr->exch), gr->id,
+                  EkaFhMode2STR(op), msgType,
+                  unsequencedPktSeq,
+                  gr->seq_after_snapshot);
+#endif
+      if (unsequencedPktSeq > gr->seq_after_snapshot)
+        gr->seq_after_snapshot = unsequencedPktSeq;
 
-      gr->seq_after_snapshot = unsequencedPktSeq;
-      if (gr->parseMsg(pEfhRunCtx, m, sequence, op)) {
+      if (gr->parseMsg(pEfhRunCtx, m, unsequencedPktSeq,
+                       op)) {
         EKA_LOG("%s:%u %s End Of Refresh "
                 "msgType = \'%c\' : "
                 "seq_after_snapshot = %ju",
@@ -682,7 +687,7 @@ static EkaFhParseResult procRefreshSesmPkt(
       if (payloadLen == 2)
         return EkaFhParseResult::End;
 
-      if (gr->parseMsg(pEfhRunCtx, m, sequence, op))
+      if (gr->parseMsg(pEfhRunCtx, m, 0, op))
         return EkaFhParseResult::End;
 
       on_error("%s:%u %s SesM type = EndOfRequest, "
