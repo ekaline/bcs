@@ -620,23 +620,22 @@ static EkaFhParseResult procRefreshSesmPkt(
   case EKA_SESM_TYPE::UnSequenced: {
     auto unsequencedHdr =
         reinterpret_cast<const sesm_unsequenced *>(m);
-    m += sizeof(*unsequencedHdr);
-
     auto unsequencedPktType = unsequencedHdr->type;
     auto unsequencedPktSeq = unsequencedHdr->sequence;
-
-    auto pktPayloadLen =
-        payloadLen - sizeof(*unsequencedHdr);
-
-    if (!pktPayloadLen)
-      on_error("%s:%u %s: pktPayloadLen = 0 "
-               "for unsequencedPktType = \'%c\'",
-               EKA_EXCH_DECODE(gr->exch), gr->id,
-               EkaFhMode2STR(op), unsequencedPktType);
 
     switch (unsequencedPktType) {
       //++++++++++++++++++++++++++++++++++
     case 'R': { // Unsequenced ToM Refresh
+      m += sizeof(*unsequencedHdr);
+
+      auto pktPayloadLen =
+          payloadLen - sizeof(*unsequencedHdr);
+
+      if (!pktPayloadLen)
+        on_error("%s:%u %s: pktPayloadLen = 0 "
+                 "for unsequencedPktType = \'%c\'",
+                 EKA_EXCH_DECODE(gr->exch), gr->id,
+                 EkaFhMode2STR(op), unsequencedPktType);
       auto msgType =
           reinterpret_cast<const TomCommon *>(m)->Type;
 
@@ -649,7 +648,8 @@ static EkaFhParseResult procRefreshSesmPkt(
         break;
       }
 
-      if (unsequencedPktSeq <= gr->seq_after_snapshot)
+      if (unsequencedPktSeq != 0 &&
+          unsequencedPktSeq <= gr->seq_after_snapshot)
         on_error("%s:%u %s msgType = \'%c\' : "
                  "unsequencedPktSeq %ju < "
                  "seq_after_snapshot %ju",
@@ -679,8 +679,12 @@ static EkaFhParseResult procRefreshSesmPkt(
               EKA_EXCH_DECODE(gr->exch), gr->id,
               EkaFhMode2STR(op), msgType,
               gr->seq_after_snapshot);
+      if (payloadLen == 2)
+        return EkaFhParseResult::End;
+
       if (gr->parseMsg(pEfhRunCtx, m, sequence, op))
         return EkaFhParseResult::End;
+
       on_error("%s:%u %s SesM type = EndOfRequest, "
                "msgType = \'%c\'",
                EKA_EXCH_DECODE(gr->exch), gr->id,
