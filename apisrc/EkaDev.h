@@ -213,7 +213,7 @@ public:
 
   // EkaBcAffinityConfig affinityConf = {[0 ... 4] = -1 };
 
-  EkaBcAffinityConfig affinityConf = {-1, -1, -1, -1, -1};
+  EkaBcAffinityConfig affinityConf = {-1, -1, -1, -1};
 };
 
 /* ########################################################################

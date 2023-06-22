@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <iterator>
 #include <netinet/ether.h>
 #include <netinet/if_ether.h>
@@ -12,7 +13,6 @@
 #include <sys/types.h>
 #include <thread>
 #include <unistd.h>
-#include <fcntl.h>
 
 #include <linux/sockios.h>
 
@@ -24,20 +24,43 @@
 
 #include "EkaBc.h"
 
-#define TEST_LOG(...) { printf("%s@%s:%d: ",__func__,__FILE__,__LINE__); printf(__VA_ARGS__); printf("\n"); }
-#define EKA_IP2STR(x)  ((std::to_string((x >> 0) & 0xFF) + '.' + std::to_string((x >> 8) & 0xFF) + '.' + std::to_string((x >> 16) & 0xFF) + '.' + std::to_string((x >> 24) & 0xFF)).c_str())
+#define TEST_LOG(...)                                      \
+  {                                                        \
+    printf("%s@%s:%d: ", __func__, __FILE__, __LINE__);    \
+    printf(__VA_ARGS__);                                   \
+    printf("\n");                                          \
+  }
+#define EKA_IP2STR(x)                                      \
+  ((std::to_string((x >> 0) & 0xFF) + '.' +                \
+    std::to_string((x >> 8) & 0xFF) + '.' +                \
+    std::to_string((x >> 16) & 0xFF) + '.' +               \
+    std::to_string((x >> 24) & 0xFF))                      \
+       .c_str())
 
 #ifndef on_error
-#define on_error(...) do { const int err = errno; fprintf(stderr, "EKALINE API LIB FATAL ERROR: %s@%s:%d: ",__func__,__FILE__,__LINE__); fprintf(stderr, __VA_ARGS__); if (err) fprintf(stderr, ": %s (%d)", strerror(err), err); fprintf(stderr, "\n"); fflush(stdout); fflush(stderr); std::quick_exit(1); } while(0)
+#define on_error(...)                                      \
+  do {                                                     \
+    const int err = errno;                                 \
+    fprintf(stderr,                                        \
+            "EKALINE API LIB FATAL ERROR: %s@%s:%d: ",     \
+            __func__, __FILE__, __LINE__);                 \
+    fprintf(stderr, __VA_ARGS__);                          \
+    if (err)                                               \
+      fprintf(stderr, ": %s (%d)", strerror(err), err);    \
+    fprintf(stderr, "\n");                                 \
+    fflush(stdout);                                        \
+    fflush(stderr);                                        \
+    std::quick_exit(1);                                    \
+  } while (0)
 #endif
 
-#define RED   "\x1B[31m"
-#define GRN   "\x1B[32m"
-#define YEL   "\x1B[33m"
-#define BLU   "\x1B[34m"
-#define MAG   "\x1B[35m"
-#define CYN   "\x1B[36m"
-#define WHT   "\x1B[37m"
+#define RED "\x1B[31m"
+#define GRN "\x1B[32m"
+#define YEL "\x1B[33m"
+#define BLU "\x1B[34m"
+#define MAG "\x1B[35m"
+#define CYN "\x1B[36m"
+#define WHT "\x1B[37m"
 #define RESET "\x1B[0m"
 
 bool keep_work;
@@ -67,8 +90,8 @@ int ExpectedFires = 0;
 int ReportedFires = 0;
 
 /* --------------------------------------------- */
-int getHWFireCnt(EkaDev *dev, uint64_t addr) { 
-  uint64_t var_pass_counter = 0;//eka_read(dev, addr); TBD
+int getHWFireCnt(EkaDev *dev, uint64_t addr) {
+  uint64_t var_pass_counter = 0; // eka_read(dev, addr); TBD
   int real_val = (var_pass_counter >> 0) & 0xffffffff;
   return real_val;
 }
@@ -100,7 +123,6 @@ void INThandler(int sig) {
   fflush(stdout);
   return;
 }
-
 
 /* --------------------------------------------- */
 void tcpServer(EkaDev *dev, std::string ip, uint16_t port,
@@ -144,8 +166,8 @@ void tcpServer(EkaDev *dev, std::string ip, uint16_t port,
   *sock = accept(sd, (struct sockaddr *)&addr,
                  (socklen_t *)&addr_size);
   TEST_LOG("Connected from: %s:%d -- sock=%d\n",
-          inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),
-          *sock);
+           inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),
+           *sock);
 
   int status = fcntl(*sock, F_SETFL,
                      fcntl(*sock, F_GETFL, 0) | O_NONBLOCK);
@@ -244,7 +266,6 @@ static void cleanFireEvents() {
   return;
 }
 
-
 static int sendCmeTradeMsg(std::string serverIp,
                            std::string dstIp,
                            uint16_t dstPort) {
@@ -276,25 +297,30 @@ static int sendCmeTradeMsg(std::string serverIp,
   triggerMcAddr.sin_addr.s_addr = inet_addr(dstIp.c_str());
   triggerMcAddr.sin_port = be16toh(dstPort);
 
-  const uint8_t pkt[] = {
-    0x0b, 0x00, 0x00, 0x00, //seq num
-    0x65, 0x6f, 0x01, 0x38, 0xca, 0x42, 0xdc, 0x16, //sending time
-    0x60, 0x00, //size
-    0x0b, 0x00, //block len
-    48,   0x00, //template id
-    0x01, 0x00, 0x09, 0x00, //stam
-    0x01, 0x6f, 0x01, 0x38, 0xca, 0x42, 0xdc, 0x16, //transact time (22,23,24,25,26,27,28,29)
-    0x01, //match indicator (0-fire)
-    0x00, 0x00, 0x20, 0x00, //stam
-    0x06, //numingroup
-    0x00, 0xfc, 0x2f, 0x9c, 0x9d, 0xb2, 0x00, 0x00, 0x01,
-    0x00, 0x00, 0x00, 0xcc, 0x33, 0x00, 0x00, 0x83, 0x88,
-    0x26, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0xd9,
-    0x7a, 0x6d, 0x01, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x02, 0x0e, 0x19, 0x84, 0x8e, 0x36,
-    0x06, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0xb0, 0x7f, 0x8e, 0x36, 0x06, 0x00,
-    0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  const uint8_t pkt[] =
+      {0x0b, 0x00, 0x00, 0x00, // seq num
+       0x65, 0x6f, 0x01, 0x38, 0xca, 0x42, 0xdc,
+       0x16,                   // sending time
+       0x60, 0x00,             // size
+       0x0b, 0x00,             // block len
+       48,   0x00,             // template id
+       0x01, 0x00, 0x09, 0x00, // stam
+       0x01, 0x6f, 0x01, 0x38, 0xca, 0x42, 0xdc,
+       0x16, // transact time (22,23,24,25,26,27,28,29)
+       0x01, // match indicator (0-fire)
+       0x00, 0x00, 0x20, 0x00, // stam
+       0x06,                   // numingroup
+       0x00, 0xfc, 0x2f, 0x9c, 0x9d, 0xb2, 0x00,
+       0x00, 0x01, 0x00, 0x00, 0x00, 0xcc, 0x33,
+       0x00, 0x00, 0x83, 0x88, 0x26, 0x00, 0x02,
+       0x00, 0x00, 0x00, 0x01, 0x00, 0xd9, 0x7a,
+       0x6d, 0x01, 0x00, 0x00, 0x10, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x02, 0x0e, 0x19,
+       0x84, 0x8e, 0x36, 0x06, 0x00, 0x00, 0x01,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0xb0, 0x7f, 0x8e, 0x36, 0x06, 0x00,
+       0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00};
 
   size_t payloadLen = std::size(pkt);
 
@@ -328,12 +354,10 @@ int main(int argc, char *argv[]) {
   bool dontExit = true;
 
   const EkaBcAffinityConfig ekaBcAffinityConfig = {
-    .servThreadCpuId                =  -1,
-    .tcpRxThreadCpuId               =  -1,
-    .fireReportThreadCpuId          =  -1,
-    .igmpThreadCpuId                =  -1,
-    .tcpInternalCountersThreadCpuId =  -1
-  };
+      .servThreadCpuId = -1,
+      .tcpRxThreadCpuId = -1,
+      .fireReportThreadCpuId = -1,
+      .igmpThreadCpuId = -1};
 
   getAttr(argc, argv, &serverIp, &serverTcpPort, &clientIp,
           &triggerIp, &triggerUdpPort, &numTcpSess, &runEfh,
@@ -383,15 +407,13 @@ int main(int argc, char *argv[]) {
   int conn[MaxTcpTestSessions] = {};
 
   for (uint16_t i = 0; i < numTcpSess; i++) {
-    conn[i] = ekaBcTcpConnect(dev,
-			      coreId,
-			      serverIp.c_str(),
+    conn[i] = ekaBcTcpConnect(dev, coreId, serverIp.c_str(),
                               serverTcpBasePort + i);
     if (conn[i] < 0)
       on_error("failed to open sock %d", i);
     const char *pkt =
-      "\n\nThis is 1st TCP packet sent from FPGA TCP "
-      "client to Kernel TCP server\n\n";
+        "\n\nThis is 1st TCP packet sent from FPGA TCP "
+        "client to Kernel TCP server\n\n";
     ekaBcSend(dev, conn[i], pkt, strlen(pkt));
     int bytes_read = 0;
     char rxBuf[2000] = {};
@@ -418,7 +440,6 @@ int main(int argc, char *argv[]) {
   // ==============================================
   // Configuring EFC as EPM Strategy
 
-
   const EkaBcFcMdParams mdParams = {
       .triggerParams = triggerParam,
       .numTriggers = std::size(triggerParam),
@@ -441,17 +462,17 @@ int main(int argc, char *argv[]) {
   // ==============================================
 
   // CME FastCancel EFC config
-  static const uint16_t CmeTestFastMinTimeDiff =  99; // <=99
-  static const uint8_t CmeTestFastCancelMinNoMDEntries = 5; //<=5
+  static const uint16_t CmeTestFastMinTimeDiff = 99; // <=99
+  static const uint8_t CmeTestFastCancelMinNoMDEntries =
+      5; //<=5
 
   auto cmeHwCancelIdx = ekaBcAllocateFcAction(dev);
 
   EkaBcActionParams actionParams = {
-      .tcpSock = conn[0],
-			.nextAction = EPM_BC_LAST_ACTION};
+      .tcpSock = conn[0], .nextAction = EPM_BC_LAST_ACTION};
 
   rc = ekaBcSetActionParams(dev, cmeHwCancelIdx,
-                      &actionParams);
+                            &actionParams);
   if (rc != EKABC_OPRESULT__OK)
     on_error("efcSetAction returned %d", (int)rc);
 
@@ -470,7 +491,7 @@ int main(int argc, char *argv[]) {
 
   const EkaBcCmeFcAlgoParams algoParams = {
       .fireActionId = cmeHwCancelIdx,
-      .minTimeDiff = CmeTestFastMinTimeDiff, 
+      .minTimeDiff = CmeTestFastMinTimeDiff,
       .minNoMDEntries = CmeTestFastCancelMinNoMDEntries};
 
   // ==============================================
@@ -485,16 +506,15 @@ int main(int argc, char *argv[]) {
 
   for (auto i = 0; i < TotalInjects; i++) {
     if (rand() % 3) {
-      ekaBcEnableController(
-          dev, true, armVer++); // arm and promote
+      ekaBcEnableController(dev, true,
+                            armVer++); // arm and promote
       ExpectedFires++;
     } else {
       ekaBcEnableController(dev, true,
                             armVer - 1); // should be no arm
     }
 
-    sendCmeTradeMsg(serverIp, triggerIp, triggerUdpPort                  
-                    );
+    sendCmeTradeMsg(serverIp, triggerIp, triggerUdpPort);
     usleep(300000);
   }
 
@@ -505,17 +525,17 @@ int main(int argc, char *argv[]) {
   }
 
   // ==============================================
-  ekaBcEnableController(
-			dev, true, armVer++); // arm and promote
+  ekaBcEnableController(dev, true,
+                        armVer++); // arm and promote
 
   // test watchdog
   for (auto i = 0; i < 10; i++) {
     usleep(300000);
-    ekaBcSwKeepAliveSend(dev);    
+    ekaBcSwKeepAliveSend(dev);
   }
 
   ekaBcEnableController(dev, false);
-  
+
   int hw_fires = getHWFireCnt(dev, 0xf0800);
 
   printf("\n===========================\nEND OT TESTS : ");

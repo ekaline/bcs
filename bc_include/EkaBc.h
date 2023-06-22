@@ -13,7 +13,6 @@ struct EkaBcAffinityConfig {
   int tcpRxThreadCpuId; // critical
   int fireReportThreadCpuId;
   int igmpThreadCpuId;
-  int tcpInternalCountersThreadCpuId;
 };
 
 EkaDev *ekaBcOpenDev(
