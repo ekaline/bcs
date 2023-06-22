@@ -4,6 +4,9 @@ project(
   VERSION 0.1.0
   LANGUAGES C CXX)
 
+# prevent in source build
+include(cmake/preventinsource.cmake)
+
 # options ccache
 include(cmake/ccache.cmake)
 
@@ -38,12 +41,10 @@ endif()
 # ##############################################################################
 set(EKA_LIB_NAME ekaline2)
 
-set(BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/build)
+# set(BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/build)
+# TODO: we should move apisrc/ build to separated CMakeLists.txt
 set(EKA_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/apisrc)
-
 set(libDstDir ${CMAKE_BINARY_DIR}/lib/${EKA_LIB_NAME})
-file(MAKE_DIRECTORY ${libDstDir})
-
 set(apiDIR ${EKA_SRC_DIR}/compat)
 
 # ##############################################################################
@@ -97,6 +98,8 @@ target_link_libraries(ekalwip rt m Threads::Threads)
 target_include_directories(ekalwip PUBLIC ${LWIP_LIB_BUILD_INCL})
 
 set_target_properties(ekalwip PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${libDstDir})
+install(TARGETS ekalwip RUNTIME DESTINATION lib COMPONENT Runtime)
+
 # ----------------------------------------------------------
 # libekalwip_static.a
 
@@ -115,6 +118,7 @@ set_target_properties(ekalwip_static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
                                                 ${libDstDir})
 
 set_target_properties(ekalwip_static PROPERTIES OUTPUT_NAME ekalwip)
+install(TARGETS ekalwip_static RUNTIME DESTINATION lib COMPONENT Runtime)
 
 #
 # TODO: Please do not use below command! It could harm unicorns!
@@ -147,8 +151,14 @@ find_package(Threads REQUIRED)
 
 add_library(${EKA_LIB_NAME} SHARED ${${EKA_LIB_NAME}_SRCS})
 
-target_compile_options(${EKA_LIB_NAME} PRIVATE -std=c++23 -O3 -funroll-loops
-                                               -pthread -pipe -march=native)
+target_compile_options(${EKA_LIB_NAME} PRIVATE
+                            -std=c++23
+                            -O3
+                            -funroll-loops
+                            -pthread
+                            -pipe
+                            -march=native
+)
 
 target_include_directories(${EKA_LIB_NAME} PUBLIC ${EKA_INC_PATH})
 
@@ -160,14 +170,20 @@ endif()
 
 target_link_libraries(${EKA_LIB_NAME} PUBLIC
                         libsmartnic_static
-                        ekalwip_static rt m Threads::Threads
-                        -static-libgcc -static-libstdc++
+                        ekalwip_static
+                        rt
+                        m
+                        Threads::Threads
+                        -static-libgcc
+                        -static-libstdc++
 )
 
-set_target_properties(${EKA_LIB_NAME} PROPERTIES PUBLIC_HEADER ${apiDIR}/*.h)
+file(GLOB EKA_LIB_NAME_PUBLIC_HEADER ${apiDIR}/*.h)
+set_target_properties(${EKA_LIB_NAME} PROPERTIES PUBLIC_HEADER "${EKA_LIB_NAME_PUBLIC_HEADER}")
 
-set_target_properties(${EKA_LIB_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
-                                                 ${libDstDir})
+set_target_properties(${EKA_LIB_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${libDstDir})
+install(TARGETS ${EKA_LIB_NAME} RUNTIME DESTINATION lib COMPONENT Runtime)
+install(TARGETS ${EKA_LIB_NAME} PUBLIC_HEADER DESTINATION include COMPONENT Development)
 
 # ##############################################################################
 # lib${EKA_LIB_NAME}_static.a
@@ -190,6 +206,7 @@ set_target_properties(${EKA_LIB_NAME}_static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
                                                         ${libDstDir})
 
 set_target_properties(${EKA_LIB_NAME}_static PROPERTIES OUTPUT_NAME ${EKA_LIB_NAME})
+install(TARGETS ${EKA_LIB_NAME}_static RUNTIME DESTINATION lib COMPONENT Runtime)
 
 # set_target_properties(${EKA_LIB_NAME}_static PROPERTIES PUBLIC_HEADER
 # ${apiDIR}/*.h)
@@ -200,7 +217,6 @@ set_target_properties(${EKA_LIB_NAME}_static PROPERTIES OUTPUT_NAME ${EKA_LIB_NA
 # if (ENABLE_TESTING)
 file(GLOB test_SRCS ${EKA_SRC_DIR}/../new_api_tests/*.c)
 set(testDstDir ${CMAKE_BINARY_DIR}/tests/${EKA_LIB_NAME})
-file(MAKE_DIRECTORY ${testDstDir})
 
 foreach(test ${test_SRCS})
   get_filename_component(testName ${test} NAME_WE)
@@ -222,19 +238,19 @@ endforeach()
 
 file(GLOB utils_SRCS ${EKA_SRC_DIR}/../eka_utils/*.c)
 set(utilsDstDir ${CMAKE_BINARY_DIR}/utils/${EKA_LIB_NAME})
-file(MAKE_DIRECTORY ${utilsDstDir})
 
 foreach(uSrc ${utils_SRCS})
-  get_filename_component(utilExec ${uSrc} NAME_WE)
-  add_executable(${utilExec} ${uSrc})
-  set_target_properties(${utilExec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
-                                               ${utilsDstDir})
-  target_link_libraries(${utilExec} ${EKA_LIB_NAME}_static rt m
-                        Threads::Threads)
-  target_link_libraries(${utilExec} -static-libgcc -static-libstdc++)
-  target_compile_options(${utilExec} PUBLIC -std=c++23)
+    get_filename_component(utilExec ${uSrc} NAME_WE)
+    add_executable(${utilExec} ${uSrc})
+    set_target_properties(${utilExec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
+                                                ${utilsDstDir})
+    target_link_libraries(${utilExec} ${EKA_LIB_NAME}_static rt m
+                            Threads::Threads)
+    target_link_libraries(${utilExec} -static-libgcc -static-libstdc++)
+    target_compile_options(${utilExec} PUBLIC -std=c++23)
 
-  target_include_directories(${utilExec} PUBLIC ${EKA_INC_PATH})
+    target_include_directories(${utilExec} PUBLIC ${EKA_INC_PATH})
+    install(TARGETS ${utilExec} RUNTIME DESTINATION bin COMPONENT Runtime)
 endforeach()
 
 # ##############################################################################
