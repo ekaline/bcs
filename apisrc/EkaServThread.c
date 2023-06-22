@@ -108,7 +108,6 @@ void ekaServThread(EkaDev *dev) {
                "feedbck_en==0");
 
     int rc = 0;
-    std::FILE *hexBufFile = NULL;
 
     auto isHwFire = feedbackDmaReport->bitparams.bitmap
                         .originatedFromHw;
@@ -128,7 +127,7 @@ void ekaServThread(EkaDev *dev) {
     if (rc <= 0) {
       // LWIP is busy?
       char hexBuf[8192];
-      if (hexBufFile =
+      if (std::FILE *const hexBufFile =
               fmemopen(hexBuf, sizeof hexBuf, "w")) {
         hexDump("error TCP pkt", payload, len, hexBufFile);
         (void)std::fwrite("\0", 1, 1, hexBufFile);
