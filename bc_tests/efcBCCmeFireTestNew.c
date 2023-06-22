@@ -423,7 +423,7 @@ int main(int argc, char *argv[]) {
   // ==============================================
   // Global EFC config
   EkaBcCmeFastCanceGlobalParams efcStratGlobCtx = {
-      .report_only = 0,
+      .report_only = 1,
       .watchdog_timeout_sec = 1,
   };
   ekaBcCmeFcGlobalInit(dev, &efcStratGlobCtx);
