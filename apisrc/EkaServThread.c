@@ -101,7 +101,7 @@ void ekaServThread(EkaDev *dev) {
     int rc = 0;
     // dont send dummy pkt to lwip if it's fire at
     // report_only
-    if (!(efc->stratGlobCtx.report_only &&
+    if (!(efc->isReportOnly() &&
           feedbackDmaReport->bitparams.bitmap
               .originatedFromHw))
       rc = sendDummyFastPathPkt(

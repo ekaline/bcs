@@ -58,7 +58,7 @@ public:
         EKA_BANKS_PER_CTX_THREAD;
   }
 
-  EfcStratGlobCtx stratGlobCtx = {};
+  bool isReportOnly() { return stratGlobCtx.report_only; }
 
 private:
   bool isValidSecId(uint64_t secId);
@@ -75,8 +75,8 @@ private:
   int disableRxFire();
   int checkSanity();
 
-  /* -----------------------------------------------------
-   */
+  EfcStratGlobCtx stratGlobCtx = {};
+  /* ------------------------------------------ */
   static const int MAX_UDP_SESS = 64;
   static const int MAX_TCP_SESS = 64;
   static const int MAX_FIRE_ACTIONS = 64;
