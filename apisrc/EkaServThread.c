@@ -70,7 +70,7 @@ void ekaServThread(EkaDev *dev) {
   EKA_LOG("Launching %s", threadName);
   pthread_setname_np(pthread_self(), threadName);
 
-  if (dev->affinityConf.servThreadCpuId > 0) {
+  if (dev->affinityConf.servThreadCpuId >= 0) {
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
     CPU_SET(dev->affinityConf.servThreadCpuId, &cpuset);
@@ -78,6 +78,8 @@ void ekaServThread(EkaDev *dev) {
         pthread_self(), sizeof(cpu_set_t), &cpuset);
     if (rc < 0)
       on_error("Failed to set affinity");
+    EKA_LOG("Affinity is set to CPU %d",
+            dev->affinityConf.servThreadCpuId);
   }
 
   dev->servThreadTerminated = false;
