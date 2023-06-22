@@ -36,7 +36,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 # ##############################################################################
-set(EKA_LIB_NAME ekaN)
+set(EKA_LIB_NAME ekaline2)
 
 set(BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/build)
 set(EKA_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/apisrc)
@@ -53,14 +53,18 @@ set(SMARTNIC_DRIVER_INCL ${SMARTNIC_ROOT}/driver)
 
 set(SMARTNIC_LIB_STATIC ${SMARTNIC_ROOT}/lib/libsmartnic.a)
 add_custom_command(OUTPUT ${SMARTNIC_LIB_STATIC}
-                   COMMAND make
+                   COMMAND "make"
+                   ARGS "-j" "CCACHE=${CMAKE_CXX_COMPILER_LAUNCHER}"
                    WORKING_DIRECTORY ${SMARTNIC_ROOT}/api
                    VERBATIM
 )
-add_custom_target(libsmartnic_static_lib DEPENDS ${SMARTNIC_LIB_STATIC})
-add_library(libsmartnic_static STATIC IMPORTED)
-set_target_properties(libsmartnic_static PROPERTIES IMPORTED_LOCATION ${SMARTNIC_LIB_STATIC})
+add_library(libsmartnic_static STATIC IMPORTED GLOBAL)
 add_dependencies(libsmartnic_static libsmartnic_static_lib)
+add_custom_target(libsmartnic_static_lib DEPENDS ${SMARTNIC_LIB_STATIC})
+set_target_properties(libsmartnic_static PROPERTIES
+                      IMPORTED_LOCATION ${SMARTNIC_LIB_STATIC}
+                      INTERFACE_INCLUDE_DIRECTORIES ${SMARTNIC_API_INCL}
+)
 
 #
 # TODO: Please do not use below command! It could harm unicorns!
