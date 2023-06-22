@@ -65,8 +65,6 @@ void ekaServThread(EkaDev *dev) {
   auto epm = dev->epm;
   auto efc =
       dynamic_cast<EkaEfc *>(epm->strategy[EFC_STRATEGY]);
-  if (!epm || !efc)
-    on_error("!epm || !efc");
 
   const char *threadName = "ServThread";
   EKA_LOG("Launching %s", threadName);
@@ -80,6 +78,9 @@ void ekaServThread(EkaDev *dev) {
       std::this_thread::yield();
       continue;
     }
+
+    if (!epm || !efc)
+      on_error("!epm || !efc");
 
     const uint8_t *payload = dev->epmFeedback->get();
     uint len = dev->epmFeedback->getPayloadSize();
