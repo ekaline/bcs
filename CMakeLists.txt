@@ -113,6 +113,9 @@ target_compile_options(ekalwip_static PRIVATE -std=gnu++98 -fPIC)
 
 set_target_properties(ekalwip_static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
                                                 ${libDstDir})
+
+set_target_properties(ekalwip_static PROPERTIES OUTPUT_NAME ekalwip)
+
 #
 # TODO: Please do not use below command! It could harm unicorns!
 # add_custom_target(lwipObj COMMAND ar x ${SMARTNIC_LIB_STATIC} COMMAND ar rcsv
@@ -185,6 +188,8 @@ target_link_libraries(${EKA_LIB_NAME}_static PUBLIC
 
 set_target_properties(${EKA_LIB_NAME}_static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
                                                         ${libDstDir})
+
+set_target_properties(${EKA_LIB_NAME}_static PROPERTIES OUTPUT_NAME ${EKA_LIB_NAME})
 
 # set_target_properties(${EKA_LIB_NAME}_static PROPERTIES PUBLIC_HEADER
 # ${apiDIR}/*.h)
