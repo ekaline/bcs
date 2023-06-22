@@ -328,11 +328,11 @@ int main(int argc, char *argv[]) {
   bool dontExit = true;
 
   const EkaBcAffinityConfig ekaBcAffinityConfig = {
-    .servThreadCpuId                =  0,
-    .tcpRxThreadCpuId               =  1,
-    .fireReportThreadCpuId          = -1,
-    .igmpThreadCpuId                = -1,
-    .tcpInternalCountersThreadCpuId = -1 
+    .servThreadCpuId                =  -1,
+    .tcpRxThreadCpuId               =  -1,
+    .fireReportThreadCpuId          =  -1,
+    .igmpThreadCpuId                =  -1,
+    .tcpInternalCountersThreadCpuId =  -1
   };
 
   getAttr(argc, argv, &serverIp, &serverTcpPort, &clientIp,
