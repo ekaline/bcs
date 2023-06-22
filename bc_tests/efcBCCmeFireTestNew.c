@@ -327,6 +327,14 @@ int main(int argc, char *argv[]) {
   bool fatalDebug = false;
   bool dontExit = true;
 
+  const EkaBcAffinityConfig ekaBcAffinityConfig = {
+    .servThreadCpuId                =  -1,
+    .tcpRxThreadCpuId               =  -1,
+    .fireReportThreadCpuId          =  -1,
+    .igmpThreadCpuId                =  -1,
+    .tcpInternalCountersThreadCpuId =  -1
+  };
+
   getAttr(argc, argv, &serverIp, &serverTcpPort, &clientIp,
           &triggerIp, &triggerUdpPort, &numTcpSess, &runEfh,
           &fatalDebug, &dontExit);
@@ -342,7 +350,7 @@ int main(int argc, char *argv[]) {
   int rc;
 
   //    ekaDevInit(&dev, &ekaDevInitCtx);
-  dev = ekaBcOpenDev();
+  dev = ekaBcOpenDev(&ekaBcAffinityConfig);
 
   // ==============================================
   // 10G Port (core) setup
