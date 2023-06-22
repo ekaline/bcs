@@ -18,9 +18,20 @@
 
 extern EkaDev *g_ekaDev;
 
-EkaDev *ekaBcOpenDev() {
+EkaDev *
+ekaBcOpenDev(const EkaBcAffinityConfig *affinityConf) {
   EkaDevInitCtx initCtx = {};
   g_ekaDev = new EkaDev(&initCtx);
+  if (!g_ekaDev)
+    return NULL;
+
+  auto dev = g_ekaDev;
+
+  int tcpInternalCountersThreadCpuId = -1;
+  if (affinityConf)
+    memcpy(&dev->affinityConf, affinityConf,
+           sizeof(*affinityConf));
+
   return g_ekaDev;
 }
 
