@@ -70,6 +70,16 @@ void ekaServThread(EkaDev *dev) {
   EKA_LOG("Launching %s", threadName);
   pthread_setname_np(pthread_self(), threadName);
 
+  if (dev->affinityConf.servThreadCpuId > 0) {
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(dev->affinityConf.servThreadCpuId, &cpuset);
+    int rc = pthread_setaffinity_np(
+        pthread_self(), sizeof(cpu_set_t), &cpuset);
+    if (rc < 0)
+      on_error("Failed to set affinity");
+  }
+
   dev->servThreadTerminated = false;
   dev->servThreadActive = true;
 
@@ -109,11 +119,10 @@ void ekaServThread(EkaDev *dev) {
       if (!efc)
         on_error("!efc");
       if (efc->isReportOnly())
-        goto NEXT;
+        goto SKIP_LWIP_DUMMY;
     }
 
     rc = sendDummyFastPathPkt(dev, payload, isHwFire);
-
     if (rc <= 0) {
       // LWIP is busy?
       char hexBuf[8192];
@@ -130,13 +139,12 @@ void ekaServThread(EkaDev *dev) {
       EKA_WARN("sendDummyFastPathPkt returned error: "
                "rc=%d, \'%s\' (%d), pkt is:\n%s",
                rc, strerror(errno), errno, hexBuf);
-    NEXT:
       dev->epmFeedback->next();
       break;
     }
 
-    if (feedbackDmaReport->bitparams.bitmap.report_en ==
-        1) {
+  SKIP_LWIP_DUMMY:
+    if (feedbackDmaReport->bitparams.bitmap.report_en) {
       /* EKA_LOG("User Report # %u is pushed to Q", */
       /* 	  feedbackDmaReport->index); */
       /* hexDump("Payload push to Q",payload,len); */
