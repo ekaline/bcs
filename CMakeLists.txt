@@ -7,6 +7,9 @@ project(
 # prevent in source build
 include(cmake/preventinsource.cmake)
 
+# standard project settings
+include(cmake/projectsettings.cmake)
+
 # options ccache
 include(cmake/ccache.cmake)
 
@@ -30,13 +33,6 @@ set(CMAKE_CXX_FLAGS
     -pipe
     -march=native
     ")
-
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  message(STATUS "No build type selected; defaulting to Debug")
-  set(CMAKE_BUILD_TYPE
-      "Debug"
-      CACHE STRING "Build type (default is Debug)")
-endif()
 
 # ##############################################################################
 set(EKA_LIB_NAME ekaline2)
