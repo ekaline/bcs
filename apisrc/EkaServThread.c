@@ -63,8 +63,8 @@ sendDummyFastPathPkt(EkaDev *dev, const uint8_t *payload,
 
 void ekaServThread(EkaDev *dev) {
   auto epm = dev->epm;
-  auto efc =
-      dynamic_cast<EkaEfc *>(epm->strategy[EFC_STRATEGY]);
+  if (!epm)
+    on_error("!epm");
 
   const char *threadName = "ServThread";
   EKA_LOG("Launching %s", threadName);
@@ -78,9 +78,6 @@ void ekaServThread(EkaDev *dev) {
       std::this_thread::yield();
       continue;
     }
-
-    if (!epm || !efc)
-      on_error("!epm || !efc");
 
     const uint8_t *payload = dev->epmFeedback->get();
     uint len = dev->epmFeedback->getPayloadSize();
@@ -99,20 +96,28 @@ void ekaServThread(EkaDev *dev) {
                "feedbck_en==0");
 
     int rc = 0;
-    // dont send dummy pkt to lwip if it's fire at
-    // report_only
-    if (!(efc->stratGlobCtx.report_only &&
-          feedbackDmaReport->bitparams.bitmap
-              .originatedFromHw))
-      rc = sendDummyFastPathPkt(
-          dev, payload,
-          feedbackDmaReport->bitparams.bitmap
-              .originatedFromHw);
+    std::FILE *hexBufFile = NULL;
+
+    auto isHwFire = feedbackDmaReport->bitparams.bitmap
+                        .originatedFromHw;
+
+    if (isHwFire) {
+      // dont send dummy pkt to lwip if it's fire at
+      // report_only
+      auto efc = dynamic_cast<EkaEfc *>(
+          epm->strategy[EFC_STRATEGY]);
+      if (!efc)
+        on_error("!efc");
+      if (efc->isReportOnly())
+        goto NEXT;
+    }
+
+    rc = sendDummyFastPathPkt(dev, payload, isHwFire);
 
     if (rc <= 0) {
       // LWIP is busy?
       char hexBuf[8192];
-      if (std::FILE *const hexBufFile =
+      if (hexBufFile =
               fmemopen(hexBuf, sizeof hexBuf, "w")) {
         hexDump("error TCP pkt", payload, len, hexBufFile);
         (void)std::fwrite("\0", 1, 1, hexBufFile);
@@ -125,7 +130,7 @@ void ekaServThread(EkaDev *dev) {
       EKA_WARN("sendDummyFastPathPkt returned error: "
                "rc=%d, \'%s\' (%d), pkt is:\n%s",
                rc, strerror(errno), errno, hexBuf);
-
+    NEXT:
       dev->epmFeedback->next();
       break;
     }
