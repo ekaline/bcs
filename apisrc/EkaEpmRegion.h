@@ -38,6 +38,8 @@ public:
       EKA_MAX_CORES * EKA_MAX_TCP_SESSIONS_PER_CORE *
       2; // 4 * 32 * 2 = 256
 
+  static const int MaxStrategies = Regions::TcpTxFullPkt;
+
   constexpr static RegionConfig region[Regions::Total] = {
       [Regions::Efc] = {"EFC", NumEfcActions,
                         HeapPerRegularAction, 0},
@@ -160,6 +162,21 @@ public:
     return region[regionId].nActions;
   }
 
+  constexpr static int getTotalActions() {
+    int totalActions = 0;
+    for (auto i = 0; i < Regions::Total; i++)
+      totalActions += getMaxActions(i);
+    return totalActions;
+  }
+
+  constexpr static int getMaxActionsPerRegion() {
+    int maxActions = 0;
+    for (auto i = 0; i < Regions::Total; i++)
+      if (maxActions < getMaxActions(i))
+        maxActions = getMaxActions(i);
+    return maxActions;
+  }
+
   constexpr static int getBaseHeapOffs(int regionId) {
     sanityCheckRegionId(regionId);
     int baseHeapOffs = 0;
@@ -189,6 +206,14 @@ public:
 
     return region[regionId].nActions *
            region[regionId].actionHeapBudget;
+  }
+
+  constexpr static uint getWritableHeapSize() {
+    uint totalSize = 0;
+    for (auto i = 0; i < MaxStrategies; i++)
+      totalSize += getHeapSize(i);
+
+    return totalSize;
   }
 
   constexpr static int getActionHeapOffs(int regionId,
