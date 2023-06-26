@@ -242,9 +242,9 @@ EkaEpm::initStrategies(const EpmStrategyParams *params,
 
   epm_actionid_t currActionIdx = 0;
 
-  /*   for (auto i = 0; i < stratNum; i++) {
-   */
-  for (auto i = 0; i < EkaEpmRegion::MaxStrategies; i++) {
+  //  for (auto i = 0; i < EkaEpmRegion::MaxStrategies; i++)
+  //  {
+  for (auto i = 0; i < stratNum; i++) {
 
     EKA_LOG("Imitializing strategy %d, hwFeedVer=%d", i,
             (int)dev->hwFeedVer);

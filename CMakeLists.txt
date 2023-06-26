@@ -198,11 +198,12 @@ foreach(test ${test_SRCS})
   add_executable(${testName} ${test})
   set_target_properties(${testName} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                                ${testDstDir})
+  target_compile_options(${testName} PUBLIC -std=c++23)
+
   add_dependencies(${testName} ${EKA_LIB_NAME})
   target_link_libraries(${testName} ${EKA_LIB_NAME} rt m Threads::Threads)
   target_link_libraries(${testName} -static-libgcc -static-libstdc++)
 
-  target_compile_options(${testName} PUBLIC -std=c++23)
 
   target_include_directories(${testName} PUBLIC ${EKA_INC_PATH})
 endforeach()
@@ -218,12 +219,15 @@ file(MAKE_DIRECTORY ${utilsDstDir})
 foreach(uSrc ${utils_SRCS})
   get_filename_component(utilExec ${uSrc} NAME_WE)
   add_executable(${utilExec} ${uSrc})
+  target_compile_options(${utilExec} PUBLIC -std=c++23)
+
   set_target_properties(${utilExec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                                ${utilsDstDir})
-  target_link_libraries(${utilExec} ${EKA_LIB_NAME}_static rt m
-                        Threads::Threads)
+  target_link_libraries(${utilExec} ${EKA_LIB_NAME}_static)
   target_link_libraries(${utilExec} -static-libgcc -static-libstdc++)
-  target_compile_options(${utilExec} PUBLIC -std=c++23)
+
+  #target_link_libraries(${utilExec} rt m
+   #                     Threads::Threads)
 
   target_include_directories(${utilExec} PUBLIC ${EKA_INC_PATH})
 endforeach()

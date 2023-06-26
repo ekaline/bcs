@@ -25,7 +25,7 @@ do
     echo "Executiing $f -e"
     echo "------------------------------------------------------------------------------------------"
 
-    $ME_DIR/$f -e 
+    $ME_DIR/../build/tests/ekaN/$f -e
 
     retVal=$?
     if [ $retVal -ne 0 ]; then
@@ -33,7 +33,7 @@ do
     else
 	RESULT+=(1)
     fi
-    
+
 done
 
 echo ""
@@ -45,12 +45,9 @@ do
     if [ ${RESULT[c]} == 1 ]; then
 	echo -e "TEST $f $GREEN PASS $NC"
     else
-	echo -e "TEST $f $RED FAIL $NC"	    
+	echo -e "TEST $f $RED FAIL $NC"
     fi
     c=$(expr $c + 1)
-done    
+done
 echo "------------------------------------------------------------------------------------------"
 echo "------------------------------------------------------------------------------------------"
-
-
-

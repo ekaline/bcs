@@ -40,9 +40,9 @@ EpmStrategy::EpmStrategy(EkaEpm *_epm, epm_strategyid_t _id,
   maxActions_ = EkaEpmRegion::getMaxActions(id);
 
   if (numActions > maxActions_)
-    on_error("numActions %d > "
+    on_error("region %d: numActions %d > "
              "maxActions_ %d",
-             numActions, maxActions_);
+             id, numActions, maxActions_);
 
   for (epm_actionid_t i = 0; i < numActions; i++) {
     action[i] = dev->epm->addAction(

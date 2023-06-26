@@ -1,30 +1,30 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <thread>
+#include <arpa/inet.h>
 #include <assert.h>
-#include <string.h>
 #include <endian.h>
+#include <fcntl.h>
 #include <inttypes.h>
 #include <stdbool.h>
-#include <fcntl.h>
-#include <arpa/inet.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <thread>
+#include <unistd.h>
 
 #include "EkaFhXdpParser.h"
 #include "eka_macros.h"
 
 using namespace Xdp;
 
-//###################################################
+// ###################################################
 static char pcapFileName[256] = {};
 static bool printAll = false;
 
 struct GroupAddr {
-    uint32_t  ip;
-    uint16_t  port;
-    uint64_t  baseTime   = 0;
-    int       numStreams = 0;
-    Stream*   stream[MAX_STREAMS] = {};
+  uint32_t ip;
+  uint16_t port;
+  uint64_t baseTime = 0;
+  int numStreams = 0;
+  Stream *stream[MAX_STREAMS] = {};
 };
 
 static GroupAddr group[] = {
@@ -134,178 +134,221 @@ static GroupAddr group[] = {
     {inet_addr("224.0.58.185"), 12185, 0, 0, {}},
 };
 
-
-//###################################################
+// ###################################################
 
 int findGrp(uint32_t ip, uint16_t port) {
-  for (size_t i = 0; i < sizeof(group)/sizeof(group[0]); i++) {
+  for (size_t i = 0; i < sizeof(group) / sizeof(group[0]);
+       i++) {
     if (group[i].ip == ip && group[i].port == port)
-	    return (int)i;
+      return (int)i;
   }
   //  on_error("%s:%u is not found",EKA_IP2STR(ip),port);
   return -1;
 }
 
-//###################################################
+// ###################################################
 
-inline auto findOrInstallStream(int grId, int streamId, uint32_t curSeq) {
-    for (auto i = 0; i < group[grId].numStreams; i ++)
-	if (group[grId].stream[i]->getId() == streamId) return i;
-    if (group[grId].numStreams == MAX_STREAMS)
-	on_error("numStreams == MAX_STREAMS (%u), cant add stream %u",
-		 group[grId].numStreams,streamId);
-    group[grId].stream[group[grId].numStreams] = new Stream(streamId,curSeq);
-    if (group[grId].stream[group[grId].numStreams] == NULL)
-	on_error("stream[%u] == NULL",group[grId].numStreams);
-    return group[grId].numStreams++;
+inline auto findOrInstallStream(int grId, int streamId,
+                                uint32_t curSeq) {
+  for (auto i = 0; i < group[grId].numStreams; i++)
+    if (group[grId].stream[i]->getId() == streamId)
+      return i;
+  if (group[grId].numStreams == MAX_STREAMS) {
+
+    TEST_LOG(
+        "ERROR: numStreams == MAX_STREAMS (%u), cant add "
+        "stream %u (0x%04x)",
+        group[grId].numStreams, streamId, streamId);
+    return -1;
+  }
+  group[grId].stream[group[grId].numStreams] =
+      new Stream(streamId, curSeq);
+  if (group[grId].stream[group[grId].numStreams] == NULL)
+    on_error("stream[%u] == NULL", group[grId].numStreams);
+  return group[grId].numStreams++;
 }
-//###################################################
-void printUsage(char* cmd) {
-  printf("USAGE: %s [options] -f [pcapFile]\n",cmd);
+// ###################################################
+void printUsage(char *cmd) {
+  printf("USAGE: %s [options] -f [pcapFile]\n", cmd);
   printf("          -p        Print all messages\n");
 }
 
-//###################################################
+// ###################################################
 
 static int getAttr(int argc, char *argv[]) {
-  int opt; 
-  while((opt = getopt(argc, argv, ":f:d:ph")) != -1) {  
-    switch(opt) {  
-      case 'f':
-	strcpy(pcapFileName,optarg);
-	printf("pcapFile = %s\n", pcapFileName);  
-	break;  
-      case 'p':  
-	printAll = true;
-	printf("printAll\n");
-	break;  
-      case 'd':  
-//	pkt2dump = atoi(optarg);
-//	printf("pkt2dump = %ju\n",pkt2dump);  
-	break;  
-      case 'h':  
-	printUsage(argv[0]);
-	exit (1);
-	break;  
-      case '?':  
-	printf("unknown option: %c\n", optopt); 
-      break;  
-      }  
-  }  
+  int opt;
+  while ((opt = getopt(argc, argv, ":f:d:ph")) != -1) {
+    switch (opt) {
+    case 'f':
+      strcpy(pcapFileName, optarg);
+      printf("pcapFile = %s\n", pcapFileName);
+      break;
+    case 'p':
+      printAll = true;
+      printf("printAll\n");
+      break;
+    case 'd':
+      //	pkt2dump = atoi(optarg);
+      //	printf("pkt2dump = %ju\n",pkt2dump);
+      break;
+    case 'h':
+      printUsage(argv[0]);
+      exit(1);
+      break;
+    case '?':
+      printf("unknown option: %c\n", optopt);
+      break;
+    }
+  }
   return 0;
 }
 
-//###################################################
+// ###################################################
 
 int main(int argc, char *argv[]) {
-    char buf[1600] = {};
-    FILE *pcapFile;
-    getAttr(argc,argv);
+  char buf[1600] = {};
+  FILE *pcapFile;
+  getAttr(argc, argv);
 
-    if ((pcapFile = fopen(pcapFileName, "rb")) == NULL) {
-	printf("Failed to open dump file %s\n",pcapFileName);
-	printUsage(argv[0]);
-	exit(1);
+  if ((pcapFile = fopen(pcapFileName, "rb")) == NULL) {
+    printf("Failed to open dump file %s\n", pcapFileName);
+    printUsage(argv[0]);
+    exit(1);
+  }
+  if (fread(buf, sizeof(pcap_file_hdr), 1, pcapFile) != 1)
+    on_error(
+        "Failed to read pcap_file_hdr from the pcap file");
+
+  uint64_t pktNum = 0;
+
+  while (fread(buf, sizeof(pcap_rec_hdr), 1, pcapFile) ==
+         1) {
+    auto pcap_rec_hdr_ptr{
+        reinterpret_cast<const pcap_rec_hdr *>(buf)};
+    uint pktLen = pcap_rec_hdr_ptr->len;
+    if (pktLen > 1536)
+      on_error("Probably wrong PCAP format: pktLen = %u ",
+               pktLen);
+
+    char pkt[1536] = {};
+    if (fread(pkt, pktLen, 1, pcapFile) != 1)
+      on_error("Failed to read %d packet bytes at pkt %ju",
+               pktLen, pktNum);
+    pktNum++;
+
+    auto p{reinterpret_cast<const uint8_t *>(pkt)};
+    if (!EKA_IS_UDP_PKT(p))
+      continue;
+
+    auto grId = findGrp(EKA_IPH_DST(p), EKA_UDPH_DST(p));
+    if (grId < 0)
+      continue;
+
+    p += sizeof(EkaEthHdr) + sizeof(EkaIpHdr) +
+         sizeof(EkaUdpHdr);
+
+    /* -------------------------------------------------------------
+     */
+    auto pktHdr{reinterpret_cast<const XdpPktHdr *>(p)};
+
+    auto msgCnt = EKA_XDP_MSG_CNT(p);
+    auto sequence = EKA_XDP_SEQUENCE(p);
+    auto streamId = EKA_XDP_STREAM_ID(p);
+    auto pktType = EKA_XDP_PKT_TYPE(p);
+
+    printf("%04u: 0x%04x:  ", pktNum, streamId);
+
+    hexDump("PktHdr", p, sizeof(XdpPktHdr));
+
+    auto streamIdx =
+        findOrInstallStream(grId, streamId, sequence);
+
+    if (streamIdx < 0) {
+      hexDump("PktHdr", p, sizeof(XdpPktHdr));
+      p += sizeof(*pktHdr);
+      uint16_t msgLen = EKA_XDP_MSG_LEN(p);
+
+      auto msgType =
+          reinterpret_cast<const XdpMsgHdr *>(p)->MsgType;
+      TEST_LOG("pktType=%d, msgCnt=%d, msgType=%d", pktType,
+               msgCnt, msgType);
+      hexDump("MSG", p, msgLen);
+      on_error("streamIdx = %d", streamIdx);
     }
-    if (fread(buf,sizeof(pcap_file_hdr),1,pcapFile) != 1) 
-	on_error ("Failed to read pcap_file_hdr from the pcap file");
+    auto stream = group[grId].stream[streamIdx];
+    if (stream == NULL)
+      on_error("stream == NULL");
 
-    uint64_t pktNum = 0;
+    if (pktType == (uint8_t)DELIVERY_FLAG::SequenceReset)
+      stream->resetExpectedSeq();
 
-    while (fread(buf,sizeof(pcap_rec_hdr),1,pcapFile) == 1) {
-	auto pcap_rec_hdr_ptr {reinterpret_cast<const pcap_rec_hdr*>(buf)};
-	uint pktLen = pcap_rec_hdr_ptr->len;
-	if (pktLen > 1536)
-	    on_error("Probably wrong PCAP format: pktLen = %u ",pktLen);
-
-	char pkt[1536] = {};
-	if (fread(pkt,pktLen,1,pcapFile) != 1) 
-	    on_error ("Failed to read %d packet bytes at pkt %ju",pktLen,pktNum);
-	pktNum++;
-
-	auto p {reinterpret_cast<const uint8_t*>(pkt)};
-	if (! EKA_IS_UDP_PKT(p)) continue;
-
-	auto grId = findGrp(EKA_IPH_DST(p),EKA_UDPH_DST(p));
-	if (grId < 0) continue;
-	
-	p += sizeof(EkaEthHdr) + sizeof(EkaIpHdr) + sizeof(EkaUdpHdr);
-
-	/* ------------------------------------------------------------- */
-	auto pktHdr {reinterpret_cast<const XdpPktHdr*>(p)};
-	
-	auto msgCnt   = EKA_XDP_MSG_CNT(p);
-	auto sequence = EKA_XDP_SEQUENCE(p);
-	auto streamId = EKA_XDP_STREAM_ID(p);
-	auto pktType  = EKA_XDP_PKT_TYPE(p);
-
-	auto streamIdx = findOrInstallStream(grId, streamId, sequence);
-
-	auto stream = group[grId].stream[streamIdx];
-	if (stream == NULL) on_error("stream == NULL");
-
-	if (pktType == (uint8_t)DELIVERY_FLAG::SequenceReset)
-	    stream->resetExpectedSeq();
-
-	if (stream->getExpectedSeq() != 0 && stream->getExpectedSeq() != sequence) {
-	    printf (RED "%d:%d expectedSeq %u != sequence %u\n" RESET,
-		    grId,streamId,stream->getExpectedSeq(),sequence);
-	}
-
-	p += sizeof(*pktHdr);
-	
-	for (auto i = 0; i < msgCnt; i++) {
-	    uint16_t msgLen = EKA_XDP_MSG_LEN(p);
-
-	    //-----------------------------------------------------------------------------
-	    auto msgType = reinterpret_cast<const XdpMsgHdr*>(p)->MsgType;
-	    uint64_t msgTs = 0;
-	    uint64_t pktTs = pktHdr->time.SourceTime * 1e9 + pktHdr->time.SourceTimeNS;
-	    switch (msgType) {
-	    case MSG_TYPE::REFRESH_QUOTE :
-	    case MSG_TYPE::QUOTE : 
-	    case MSG_TYPE::TRADE : 
-	    case MSG_TYPE::SERIES_STATUS :
-	    case MSG_TYPE::TRADE_CANCEL :
-	    case MSG_TYPE::TRADE_CORRECTION :
-	    case MSG_TYPE::IMBALANCE :
-	    case MSG_TYPE::BOLD_RFQ :
-	    case MSG_TYPE::SUMMARY :
-	    case MSG_TYPE::UNDERLYING_STATUS :
-	    case MSG_TYPE::REFRESH_TRADE :
-	    case MSG_TYPE::REFRESH_IMBALANCE :
-	    case MSG_TYPE::COMPLEX_QUOTE :
-	    case MSG_TYPE::COMPLEX_TRADE :
-	    case MSG_TYPE::COMPLEX_CROSSING_RFQ :
-	    case MSG_TYPE::COMPLEX_STATUS :
-	    case MSG_TYPE::COMPLEX_REFRESH_QUOTE :
-	    case MSG_TYPE::COMPLEX_REFRESH_TRADE : {
-		auto msgTimeHdr {reinterpret_cast<const XdpTimeHdr*>(p + sizeof(XdpMsgHdr))};
-		msgTs = msgTimeHdr->SourceTime * 1e9 + msgTimeHdr->SourceTimeNS;
-	    }
-		break;
-	    default:
-//		ts = pktHdr->time.SourceTime * 1e9 + pktHdr->time.SourceTimeNS;		
-	    	break;
-	    }
-	    if (printAll) {
-	    	printf ("%jd, %d:%d, %ju, %ju, %u, \'%u\'\n",
-			pktNum,grId,streamId,pktTs,msgTs,sequence,(uint)msgType);
-	    } else {
-		if (msgTs != 0 && msgTs != pktTs)
-		    printf ("%jd, %d:%d, %ju, %ju, %u, \'%u\' : delta = %jd ns\n",
-			    pktNum,grId,streamId,pktTs,msgTs,sequence,(uint)msgType,
-			    pktTs - msgTs
-			);		
-	    }
-	    sequence++;
-	    //-----------------------------------------------------------------------------
-	    stream->setExpectedSeq(sequence);
-
-	    p += msgLen;
-	}
-	stream->setExpectedSeq(sequence);
-	
+    if (stream->getExpectedSeq() != 0 &&
+        stream->getExpectedSeq() != sequence) {
+      printf(RED
+             "%d:%d expectedSeq %u != sequence %u\n" RESET,
+             grId, streamId, stream->getExpectedSeq(),
+             sequence);
     }
-    return 0;
+
+    p += sizeof(*pktHdr);
+
+    for (auto i = 0; i < msgCnt; i++) {
+      uint16_t msgLen = EKA_XDP_MSG_LEN(p);
+
+      //-----------------------------------------------------------------------------
+      auto msgType =
+          reinterpret_cast<const XdpMsgHdr *>(p)->MsgType;
+      uint64_t msgTs = 0;
+      uint64_t pktTs = pktHdr->time.SourceTime * 1e9 +
+                       pktHdr->time.SourceTimeNS;
+      switch (msgType) {
+      case MSG_TYPE::REFRESH_QUOTE:
+      case MSG_TYPE::QUOTE:
+      case MSG_TYPE::TRADE:
+      case MSG_TYPE::SERIES_STATUS:
+      case MSG_TYPE::TRADE_CANCEL:
+      case MSG_TYPE::TRADE_CORRECTION:
+      case MSG_TYPE::IMBALANCE:
+      case MSG_TYPE::BOLD_RFQ:
+      case MSG_TYPE::SUMMARY:
+      case MSG_TYPE::UNDERLYING_STATUS:
+      case MSG_TYPE::REFRESH_TRADE:
+      case MSG_TYPE::REFRESH_IMBALANCE:
+      case MSG_TYPE::COMPLEX_QUOTE:
+      case MSG_TYPE::COMPLEX_TRADE:
+      case MSG_TYPE::COMPLEX_CROSSING_RFQ:
+      case MSG_TYPE::COMPLEX_STATUS:
+      case MSG_TYPE::COMPLEX_REFRESH_QUOTE:
+      case MSG_TYPE::COMPLEX_REFRESH_TRADE: {
+        auto msgTimeHdr{
+            reinterpret_cast<const XdpTimeHdr *>(
+                p + sizeof(XdpMsgHdr))};
+        msgTs = msgTimeHdr->SourceTime * 1e9 +
+                msgTimeHdr->SourceTimeNS;
+      } break;
+      default:
+        //		ts = pktHdr->time.SourceTime * 1e9 +
+        // pktHdr->time.SourceTimeNS;
+        break;
+      }
+      if (printAll) {
+        printf("%jd, %d:%d, %ju, %ju, %u, \'%u\'\n", pktNum,
+               grId, streamId, pktTs, msgTs, sequence,
+               (uint)msgType);
+      } else {
+        if (msgTs != 0 && msgTs != pktTs)
+          printf("%jd, %d:%d, %ju, %ju, %u, \'%u\' : delta "
+                 "= %jd ns\n",
+                 pktNum, grId, streamId, pktTs, msgTs,
+                 sequence, (uint)msgType, pktTs - msgTs);
+      }
+      sequence++;
+      //-----------------------------------------------------------------------------
+      stream->setExpectedSeq(sequence);
+
+      p += msgLen;
+    }
+    stream->setExpectedSeq(sequence);
+  }
+  return 0;
 }
