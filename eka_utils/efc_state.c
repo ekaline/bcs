@@ -19,6 +19,7 @@
 #include "EkaHwCaps.h"
 #include "EfcMsgs.h"
 #include "EkaHwExceptionsDecode.h"
+#include "EkaHwInternalStructs.h"
 #include "Efc.h"
 
 //#define NUM_OF_CORES EKA_MAX_CORES
@@ -88,6 +89,8 @@ struct EfcState {
 struct FastCancelState {
   uint64_t strategyRuns       = 0;
   uint64_t strategyPassed     = 0;
+  uint64_t    minTimeDiff;
+  uint8_t     minNoMDEntries;
   CommonState commonState;
 };
 
@@ -622,6 +625,19 @@ int getFastCancelState(FastCancelState* pFastCancelState) {
   pFastCancelState->commonState.armed              = (armReg & 0x1) != 0;
   pFastCancelState->commonState.arm_ver            = (armReg >> 32) & 0xFFFFFFFF;
   pFastCancelState->commonState.killSwitch         = (reg_read(KILL_SWITCH)   & 0x1) != 0;
+
+  //read params
+  char conf[64];
+
+  uint64_t *dstAddr = (uint64_t *)&conf;
+  uint bufSize = sizeof (EfcBCCmeFastCancelStrategyConf);
+  uint words2read = bufSize / 8 + !!(bufSize % 8);
+  for (uint w = 0; w < words2read; w++)
+    *(dstAddr + w) = reg_read(0x84000 + w * 8);
+
+  pFastCancelState->minTimeDiff    = ((const EfcBCCmeFastCancelStrategyConf*)conf)->minTimeDiff;
+  pFastCancelState->minNoMDEntries = ((const EfcBCCmeFastCancelStrategyConf*)conf)->minNoMDEntries;
+
   return 0;
 }
 
@@ -740,6 +756,9 @@ int printFastCancelState(FastCancelState* pFastCancelState) {
 
   printCommonState(&pFastCancelState->commonState);
  
+  printf("minNoMDEntries:\t\t%ju\n",pFastCancelState->minNoMDEntries);
+  printf("minTimeDiff:\t\t%ju\n",pFastCancelState->minTimeDiff);
+  printf("\n");
   printf("Evaluated   strategies:\t%ju\n",pFastCancelState->strategyRuns);
   printf("Passed      strategies:\t%ju\n",pFastCancelState->strategyPassed);
 
