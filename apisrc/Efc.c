@@ -87,7 +87,7 @@ epm_actionid_t efcAllocateNewAction(const EkaDev *ekaDev,
   if (!efc)
     on_error("!efc");
 
-  for (uint i = 0 /* EkaEpm::EfcAllocatableBase */;
+  for (uint i = EkaEpmRegion::EfcAllocatableBase;
        i < EkaEpmRegion::getMaxActions(
                EkaEpmRegion::Regions::Efc);
        i++) {

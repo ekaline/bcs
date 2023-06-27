@@ -2,7 +2,7 @@
 #define _EKA_EPM_REGION_H_
 
 #include "EkaDev.h"
-#include "EkaEpm.h"
+// #include "EkaEpm.h"
 
 class EkaEpmRegion {
 public:
@@ -37,6 +37,9 @@ public:
   static const size_t NumTcpActions =
       EKA_MAX_CORES * EKA_MAX_TCP_SESSIONS_PER_CORE *
       2; // 4 * 32 * 2 = 256
+
+  // first 64 actions are preallocated for P4 fires
+  static const uint EfcAllocatableBase = 64;
 
   static const int MaxStrategies = Regions::TcpTxFullPkt;
 
