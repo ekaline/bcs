@@ -16,3 +16,8 @@ endif()
 
 # Generate compile_commands.json to make it easier to work with clang based tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+if (DEFINED CMAKE_TOOLCHAIN_FILE)
+  get_filename_component(toolchainfile ${CMAKE_TOOLCHAIN_FILE} NAME_WE)
+  message(STATUS "Using toolchain file ${toolchainfile}")
+endif()
