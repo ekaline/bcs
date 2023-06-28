@@ -252,6 +252,7 @@ set(lwipallapps_SRCS
 # Generate lwip/init.h (version info)
 configure_file(${LWIP_DIR}/src/include/lwip/init.h.cmake.in ${LWIP_DIR}/src/include/lwip/init.h)
 
+#[===================[
 # Documentation
 set(DOXYGEN_DIR ${LWIP_DIR}/doc/doxygen)
 set(DOXYGEN_OUTPUT_DIR output)
@@ -272,6 +273,7 @@ if (DOXYGEN_FOUND)
 else (DOXYGEN_FOUND)
     message(STATUS "Doxygen needs to be installed to generate the doxygen documentation")
 endif (DOXYGEN_FOUND)
+]===================]
 
 # lwIP libraries
 add_library(lwipcore EXCLUDE_FROM_ALL ${lwipnoapps_SRCS})
