@@ -370,9 +370,7 @@ EkaEpmAction::EkaEpmAction(EkaDev *_dev,
                            EkaEpm::ActionType _type,
                            uint _idx, uint _localIdx,
                            uint _region, uint8_t _coreId,
-                           uint8_t _sessId, uint _auxIdx,
-                           uint _heapOffs,
-                           uint64_t _actionAddr) {
+                           uint8_t _sessId, uint _auxIdx) {
 
   dev = _dev;
   if (!dev)
@@ -394,9 +392,11 @@ EkaEpmAction::EkaEpmAction(EkaDev *_dev,
   coreId = _coreId;
   sessId = _sessId;
   productIdx = _auxIdx;
-  actionAddr = _actionAddr;
+  actionAddr = EpmActionBase + idx * ActionBudget;
 
-  heapOffs = _heapOffs;
+  heapOffs =
+      EkaEpmRegion::getActionHeapOffs(region, localIdx);
+
   heapAddr = heapOffs;
 
   ethHdr = (EkaEthHdr *)&epm->heap[heapOffs];

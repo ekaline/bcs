@@ -39,7 +39,7 @@ public:
       2; // 4 * 32 * 2 = 256
 
   // first 64 actions are preallocated for P4 fires
-  static const uint EfcAllocatableBase = 64;
+  static const uint P4Reserved = 64;
 
   static const int MaxStrategies = Regions::TcpTxFullPkt;
 
@@ -257,14 +257,12 @@ public:
             baseHeapOffs);
   }
 
-  EkaDev *dev = NULL;
-  int id = -1;
+  const size_t NumActions = EkaDev *dev_ = NULL;
+  int id_ = -1;
 
-  epm_actionid_t baseActionIdx = -1;
-  epm_actionid_t localActionIdx = 0;
+  epm_actionid_t baseActionIdx_ = -1;
 
-  uint baseHeapOffs = 0;
-  //  uint      heapOffs       = 0;
+  uint baseHeapOffs_ = 0;
 
 private:
 };

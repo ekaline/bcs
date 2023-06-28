@@ -50,6 +50,25 @@ public:
     Mac
   };
 
+  enum class TemplateId : int {
+    TcpFastPath = 0,
+    Raw,
+
+    BoeQuoteUpdateShort,
+    BoeCancel,
+
+    SqfHwFire,
+    SqfSwCancel,
+
+    CmeHwCancel,
+    CmeSwFire,
+    CmeSwHb,
+
+    QedHwFire,
+
+    Count
+  };
+
   static const uint MAX_CORES = EkaDev::MAX_CORES;
   static const uint MAX_SESS_PER_CORE =
       EkaDev::MAX_SESS_PER_CORE;
@@ -87,6 +106,9 @@ public:
   static const uint64_t PayloadAlignment = 32;
   static const uint64_t RequiredTailPadding = 0;
 
+  static const size_t TotalEpmActions =
+      EkaEpmRegion::getTotalActions();
+
   using ActionType = EpmActionType;
 
   EkaEpm(EkaDev *_dev);
@@ -111,6 +133,17 @@ public:
 
   uint64_t getMaxStrategies() {
     return EkaEpmRegion::MaxStrategies;
+  }
+
+  bool isActionOccupied(int globalIdx) {
+    return actionOccupied_[globalIdx];
+  }
+
+  void occupyAction(int globalIdx) {
+    if (isActionOccupied(globalIdx))
+      on_error("Action %d is already occupied", globalIdx);
+
+    actionOccupied_[globalIdx] = true;
   }
 
   EkaOpResult setAction(epm_strategyid_t strategy,
@@ -145,8 +178,7 @@ public:
 
   int DownloadSingleTemplate2HW(EpmTemplate *t);
 
-  int DownloadTemplates2HW();
-  int InitTemplates();
+  int InitDefaultTemplates();
 
   EkaEpmAction *addAction(ActionType type, int regionId,
                           epm_actionid_t localIdx,
@@ -178,14 +210,17 @@ public:
 
   volatile bool active = false;
   EkaDev *dev = NULL;
-
-  EpmTemplate *tcpFastPathPkt = NULL;
-  EpmTemplate *rawPkt = NULL;
-  EpmTemplate *hwFire = NULL;
-  EpmTemplate *hwCancel = NULL;
-  EpmTemplate *swFire = NULL;
-  EpmTemplate *cmeILink = NULL;
-  EpmTemplate *cmeHb = NULL;
+  /*
+    EpmTemplate *tcpFastPathPkt = NULL;
+    EpmTemplate *rawPkt = NULL;
+    EpmTemplate *hwFire = NULL;
+    EpmTemplate *hwCancel = NULL;
+    EpmTemplate *swFire = NULL;
+    EpmTemplate *cmeILink = NULL;
+    EpmTemplate *cmeHb = NULL;
+   */
+  static const uint64_t AlwaysFire = 0xadcd;
+  static const uint64_t DefaultToken = 0x1122334455667788;
 
   uint templatesNum = 0;
 
@@ -206,8 +241,14 @@ public:
 
   EkaEpmRegion *epmRegion[EPM_REGIONS] = {};
 
-private:
   std::mutex createActionMtx;
+
+  EpmTemplate *template[TemplateId::Count] = {};
+
+private:
+  bool actionOccupied_[TotalEpmActions] = {};
+  EkaEpmAction *a_[TotalEpmActions] = {};
+  size_t nActions_ = EkaEpmRegion::P4Reserved;
 
 protected:
 };

@@ -336,18 +336,18 @@ EkaEpm::payloadHeapCopy(epm_strategyid_t strategyIdx,
 
 /* ---------------------------------------------------- */
 
-int EkaEpm::InitTemplates() {
-  templatesNum = 0;
+void EkaEpm::InitDefaultTemplates() {
+  EKA_LOG("Inititializing TcpFastPath and Raw templates");
 
-  tcpFastPathPkt = new EpmFastPathTemplate(templatesNum++);
-  if (!tcpFastPathPkt)
-    on_error("! tcpFastPathPkt");
+  template[TemplateId::TcpFastPath] =
+      new EpmFastPathTemplate(TemplateId::TcpFastPath);
 
-  rawPkt = new EpmRawPktTemplate(templatesNum++);
-  if (!rawPkt)
-    on_error("! rawPkt");
+  DownloadSingleTemplate2HW(
+      template[TemplateId::TcpFastPath]);
 
-  return 0;
+  template[TemplateId::Raw] =
+      new EpmFastPathTemplate(TemplateId::Raw);
+  DownloadSingleTemplate2HW(template[TemplateId::Raw]);
 }
 /* ---------------------------------------------------- */
 
@@ -369,16 +369,6 @@ int EkaEpm::DownloadSingleTemplate2HW(EpmTemplate *t) {
   return 0;
 }
 /* ---------------------------------------------------- */
-
-int EkaEpm::DownloadTemplates2HW() {
-  EKA_LOG("Downloading %u templates", templatesNum);
-
-  DownloadSingleTemplate2HW(tcpFastPathPkt);
-  DownloadSingleTemplate2HW(rawPkt);
-  //  DownloadSingleTemplate2HW(hwFire);
-
-  return 0;
-}
 
 /* ---------------------------------------------------- */
 void EkaEpm::actionParamsSanityCheck(ActionType type,
@@ -437,8 +427,6 @@ EkaEpm::addAction(ActionType type, int regionId,
   default:
     localActionIdx = epmRegion[regionId]->localActionIdx++;
   }
-  uint heapOffs = EkaEpmRegion::getActionHeapOffs(
-      regionId, localActionIdx);
 
   EKA_LOG("Action %d: %s, regionId=%u, heapOffs=%u",
           (int)localActionIdx, printActionType(type),
@@ -451,12 +439,9 @@ EkaEpm::addAction(ActionType type, int regionId,
       EkaEpmRegion::getBaseActionIdx(regionId) +
       localActionIdx;
 
-  uint64_t actionAddr =
-      EpmActionBase + actionIdx * ActionBudget;
-
-  EkaEpmAction *ekaA = new EkaEpmAction(
-      dev, type, actionIdx, localActionIdx, regionId,
-      _coreId, _sessId, _auxIdx, heapOffs, actionAddr);
+  EkaEpmAction *ekaA =
+      new EkaEpmAction(dev, type, actionIdx, localActionIdx,
+                       regionId, _coreId, _sessId, _auxIdx);
 
   if (!ekaA)
     on_error("!ekaA");
@@ -472,3 +457,33 @@ EkaEpm::addAction(ActionType type, int regionId,
   return ekaA;
 }
 /* ---------------------------------------------------- */
+epm_actionid_t
+EkaEpm::allocateAction(EpmActionType actionType) {
+  createActionMtx.lock();
+  auto regionId = EkaEpmRegion::Regions::Efc;
+
+  if (nActions_ == getMaxActions(regionId))
+    on_error("Out of free actions: nActions_ = %d",
+             nActions_);
+
+  auto globalIdx = nActions_;
+
+  if (a_[globalIdx])
+    on_error("a_[%d] already exists", globalIdx);
+
+  auto localIdx =
+      globalIdx - EkaEpmRegion::getBaseActionIdx(regionId);
+
+  a_[globalIdx] = new EkaEpmAction(
+      dev_, actionType, globalIdx, localIdx, regionId,
+      -1 /* coreId */, -1 /* sessId */, -1 /* auxIdx */);
+
+  if (!a_[globalIdx])
+    on_error("Failed creating a_[%d]", globalIdx);
+
+  nActions_++;
+
+  createActionMtx.unlock();
+
+  return globalIdx;
+}

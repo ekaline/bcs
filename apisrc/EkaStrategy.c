@@ -15,6 +15,15 @@ class EkaUdpSess;
 EkaStrategy::EkaStrategy(EfhFeedVer feedVer,
                          const EpmStrategyParams *params) {
   dev_ = g_ekaDev;
+  if (!dev_)
+    on_error("!dev_");
+  epm_ = dev_->epm;
+  if (!epm_)
+    on_error("!epm_");
+
+  if (!params)
+    on_error("!params");
+
   reportCb_ = params->reportCb;
   cbCtx_ = params->cbCtx;
 
@@ -51,6 +60,26 @@ EkaStrategy::~EkaStrategy() {
             swStatistics & ~(1ULL << 63));
 }
 /* --------------------------------------------------- */
+int EkaStrategy::allocateAction(EpmActionType actionType) {
+  auto globalIdx = epm->getFreeAction();
+
+  auto localIdx =
+      globalIdx - EkaEpmRegion::getBaseActionIdx(regionId);
+
+  if (globalIdx < 0)
+    on_error("No free actions to allocate");
+
+  a_[nActions_] = new EkaEpmAction(
+      dev_, actionType, globalIdx, localIdx, regionId,
+      -1 /* coreId */, -1 /* sessId */, -1 /* auxIdx */);
+
+  if (!a_[nActions_])
+    on_error("failed to create new action");
+
+  nActions_++;
+
+  return globalIdx;
+}
 
 /* --------------------------------------------------- */
 void EkaStrategy::clearAllHwUdpParams() {

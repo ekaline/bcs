@@ -1,7 +1,7 @@
 /**
  * @file
  *
- * This header file covers the API for EPM Multi Strategies 
+ * This header file covers the API for EPM Multi Strategies
  * functionality
  *
  */
@@ -12,13 +12,6 @@
 extern "C" {
 #include "Epm.h"
 
-	enum EfcStrategyId : int {
-		P4 = 0,
-			CmeFastCancel,
-			ItchFastSweep,
-			QedFastSweep			
-	};
-	
 /**
  * Allocates a new Action from the Strategy pool.
  *
@@ -41,44 +34,35 @@ extern "C" {
  *
  * @retval index of the allocated Action or -1 if failed
  */
-	epm_actionid_t efcAllocateNewAction(const EkaDev *ekaDev,
-																			EpmActionType type);
+epm_actionid_t efcAllocateNewAction(const EkaDev *ekaDev,
+                                    EpmActionType type);
 
-
-	
 /// Descriptor of a Startegy action to be set. It is a
-/// subset of @ref EpmAction to be used by @ref efcSetAction()
-/// unlike @ref epmSetAction(), following Action's parametrs 
-/// are not controlled:
+/// subset of @ref EpmAction to be used by @ref
+/// efcSetAction() unlike @ref epmSetAction(), following
+/// Action's parametrs are not controlled:
 ///	   * payload offset - implicitely set
 ///    * payload length - set by efcSetActionPayload()
 ///
-	
-	struct EfcAction {
-		EpmActionType type;          ///< Action type
-		epm_token_t token;           ///< Security token
-		ExcConnHandle hConn;         ///< TCP connection 
-		uint32_t actionFlags;        ///< see EpmActionFlag
-		epm_actionid_t nextAction;   ///< Next action in sequence
-		                             ///< or EPM_LAST_ACTION
-		epm_enablebits_t enable;        ///< Enable bits
-		epm_enablebits_t postLocalMask; ///< Post fire:
-				                            ///< enable & mask -> enable
-		epm_enablebits_t postStratMask; ///< Post fire:
-				                            ///< strat-enable & mask ->
-				                            ///< strat-enable
-		uintptr_t user;                 ///< Opaque value copied
-				                            ///< into `EpmFireReport`.
-	};
+
+struct EfcAction {
+  EpmActionType type;        ///< Action type
+  ExcConnHandle hConn;       ///< TCP connection
+  epm_actionid_t nextAction; ///< Next action in sequence
+};
 
 /**
- * 
- */	
-	EkaOpResult efcSetAction(EkaDev *ekaDev,
-													 epm_actionid_t actionIdx,
-													 const EfcAction *efcAction);
+ * @brief
+ *
+ * @param ekaDev
+ * @param actionIdx
+ * @param efcAction
+ * @return * EkaOpResult
+ */
+EkaOpResult efcSetAction(EkaDev *ekaDev,
+                         epm_actionid_t actionIdx,
+                         const EfcAction *efcAction);
 
-	
 /**
  * The function performs:
  *    - Copy of the payload to the Heap
@@ -89,14 +73,22 @@ extern "C" {
  *
  *  If provided Action type == INVALID, then this type is
  *  not set, but the previously configured type is preserved
- */	
-	EkaOpResult efcSetActionPayload(EkaDev *ekaDev,
-																	epm_actionid_t actionIdx,
-																	const void* payload,
-																	size_t len);
+ */
 
-	
+/**
+ * @brief
+ *
+ * @param ekaDev
+ * @param actionIdx
+ * @param payload
+ * @param len
+ * @return * EkaOpResult
+ */
+EkaOpResult efcSetActionPayload(EkaDev *ekaDev,
+                                epm_actionid_t actionIdx,
+                                const void *payload,
+                                size_t len);
+
 } // End of extern "C"
 
 #endif
-

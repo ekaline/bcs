@@ -1,4 +1,5 @@
-/*
+/**
+ *
  * Efc.h
  *     This header file covers the api for the Ekaline
  * firing controller.
@@ -29,33 +30,48 @@
 extern "C" {
 #endif
 
+enum EfcStrategyId : int {
+  P4 = 0,
+  CmeFastCancel,
+  ItchFastSweep,
+  QedFastSweep
+};
+
+const char *efcPrintStratName(EfcStrategyId id) {
+  switch (id) {
+  case EfcStrategyId::P4:
+    return "P4";
+  case EfcStrategyId::CmeFastCancel:
+    return "CmeFastCancel";
+  case EfcStrategyId::ItchFastSweep:
+    return "ItchFastSweep";
+  case EfcStrategyId::QedFastSweep:
+    return "QedFastSweep";
+  default:
+    return "Unknown";
+  }
+}
+
 typedef uint32_t EfcArmVer;
 
 /**
- * This is passed to EfhInit().  This will replace the
- * eka_conf values that we passed in the old api. This
- * function must be called before efcInit().
+ * Init config passed to efcInit()
+ * Sets configuration for all strategies running
+ * under Efc
  */
 struct EfcInitCtx {
-  EfhFeedVer feedVer;
-  // For CBOE testRun enables firing on Short, Long, and
-  // Expanded orders while for the non-testRun it fires only
-  // on Expanded Customer orders
-  bool testRun = false;
-
-  // replaced by Trigger config
-  //  EkaProps*  ekaProps;
-  //  EkaCoreId  mdCoreId; // what 10G port get MD on
-
-  /** This should be a pointer to a valid EfhCtx created by
-   * efhInit(). */
-  // EfhCtx* efhCtx; -- removed by Vitaly
-
-  /* Efh and Efc must be initialized independently using
-   * EfhInitCtx and EfcInitCtx */
+  bool report_only; // The HW generated Fires are not
+                    // really sent, but generate Fire Report
+  uint64_t watchdog_timeout_sec;
+  EfhFeedVer feedVer; // Obsolete
+  //  For CBOE testRun enables firing on Short, Long, and
+  //  Expanded orders while for the non-testRun it fires
+  //  only on Expanded Customer orders
+  bool testRun = false; // Obsolete
 };
 
 /**
+ *
  * This will initialize the Ekaline firing controller.
  *
  * @oaram efcCtx     This is an output parameter that will
@@ -68,6 +84,15 @@ struct EfcInitCtx {
  * old api.
  * @return This will return an appropriate EkalineOpResult
  * indicating success or an error code.
+ */
+
+/**
+ * @brief Checks HW compatibility and creates Efc module
+ *
+ * @param efcCtx
+ * @param ekaDev
+ * @param efcInitCtx
+ * @return EkaOpResult
  */
 EkaOpResult efcInit(EfcCtx **efcCtx, EkaDev *ekaDev,
                     const EfcInitCtx *efcInitCtx);

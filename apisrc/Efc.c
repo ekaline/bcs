@@ -32,19 +32,6 @@
 
 #include "EkaEfcDataStructs.h"
 
-/**
- * This will initialize the Ekaline firing controller.
- *
- * @oaram pEfcCtx     This is an output parameter that will
- * contain an initialized EfhCtx if this function is
- * successful.
- * @param pEfcInitCtx This is a list of key value parameters
- * that replaces the old eka_conf values that were passed in
- * the old api.
- * @return This will return an appropriate EkalineOpResult
- * indicating success or an error code.
- */
-
 int printSecCtx(EkaDev *dev, const SecCtx *msg);
 int printMdReport(EkaDev *dev, const EfcMdReport *msg);
 int printControllerStateReport(
@@ -70,57 +57,47 @@ EkaOpResult efcInit(EfcCtx **ppEfcCtx, EkaDev *pEkaDev,
 
   (*ppEfcCtx)->dev = dev;
 
-  dev->efcFeedVer = pEfcInitCtx->feedVer;
-  dev->efcTestRun = pEfcInitCtx->testRun;
+  if (dev->efc)
+    on_error("Efc is already initialized");
+
+  dev->efc = new EkaEfc(pEfcInitCtx);
+
+  if (!dev->efc)
+    on_error("Failed creating Efc");
+
+  /*   dev->efcFeedVer = pEfcInitCtx->feedVer;
+    dev->efcTestRun = pEfcInitCtx->testRun; */
 
   return EKA_OPRESULT__OK;
 }
+/* --------------------------------------------------- */
 
-epm_actionid_t efcAllocateNewAction(const EkaDev *ekaDev,
-                                    EpmActionType type) {
+epm_actionid_t
+efcAllocateNewAction(const EkaDev *ekaDev,
+                     EpmActionType actionType) {
   auto dev = ekaDev;
-  if (!dev || !dev->epm)
-    on_error("!dev || !epm");
+  if (!dev || !dev->epm || !dev->efc)
+    on_error("!dev || !epm || !efc");
   auto epm = dev->epm;
-  auto efc =
-      dynamic_cast<EkaEfc *>(epm->strategy[EFC_STRATEGY]);
-  if (!efc)
-    on_error("!efc");
+  auto efc = dev->efc;
 
-  for (uint i = EkaEpmRegion::EfcAllocatableBase;
-       i < EkaEpmRegion::getMaxActions(
-               EkaEpmRegion::Regions::Efc);
-       i++) {
-    auto ekaA = efc->action[i];
-    if (!ekaA)
-      on_error("!efc->action[%u]", i);
-
-    if (ekaA->allocated)
-      continue;
-
-    ekaA->type = type;
-    ekaA->allocated = true;
-
-    EKA_LOG("Idx %u allocated for \'%s\'", i,
-            printActionType(ekaA->type));
-    return (epm_actionid_t)i;
-  }
-  on_error("No free Actions to allocate");
+  return epm->allocateAction(actionType);
 }
+/* --------------------------------------------------- */
 
 EkaOpResult efcSetAction(EkaDev *ekaDev,
-                         epm_actionid_t actionIdx,
+                         epm_actionid_t globalIdx,
                          const EfcAction *efcAction) {
   auto dev = ekaDev;
-  if (!dev || !dev->epm)
-    on_error("!dev || !epm");
+  if (!dev || !dev->epm || !dev->efc)
+    on_error("!dev || !epm || !efc");
   auto epm = dev->epm;
-  auto efc =
-      dynamic_cast<EkaEfc *>(epm->strategy[EFC_STRATEGY]);
-  if (!efc)
-    on_error("!efc");
+  auto efc = dev->efc;
 
-  auto ekaA = efc->action[actionIdx];
+  auto a = epm->a_[globalIdx];
+  auto regionId = EkaEpmRegion::Regions::Efc;
+  auto localIdx =
+      globalIdx - EkaEpmRegion::getBaseActionIdx(regionId);
 
   auto actionType =
       efcAction->type != EpmActionType::INVALID
@@ -128,7 +105,8 @@ EkaOpResult efcSetAction(EkaDev *ekaDev,
           : ekaA->type;
 
   auto baseOffs =
-      actionIdx * EkaEpmRegion::HeapPerRegularAction;
+      EkaEpmRegion::getActionHeapOffs(regionId, localIdx);
+
   auto dataOffs = isUdpAction(actionType)
                       ? EkaEpm::UdpDatagramOffset
                       : EkaEpm::TcpDatagramOffset;

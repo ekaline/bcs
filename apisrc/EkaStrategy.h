@@ -22,11 +22,14 @@ public:
   void disArmController();
   void armController(EfcArmVer ver);
 
+  int allocateAction(EpmActionType type);
+
 public:
   static void clearAllHwUdpParams();
 
 protected:
   EkaDev *dev_ = nullptr;
+  EkaEpm *epm_ = nullptr;
   EfhFeedVer hwFeedVer_ = EfhFeedVer::kInvalid;
 
   EkaUdpSess *udpSess_[MaxUdpMcGroups] = {};
@@ -34,6 +37,13 @@ protected:
 
   OnReportCb reportCb_;
   void *cbCtx_;
+
+  std::string name_ = "Uninitialized";
+
+  EkaEpmAction *a_[EkaEpmRegion::NumEfcActions] = {};
+  size_t nActions_ = 0;
+
+  EhpProtocol *ehp = NULL;
 };
 
 #endif
