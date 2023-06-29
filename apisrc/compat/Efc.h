@@ -342,6 +342,24 @@ efcSwKeepAliveSend(EfcCtx *efcCtx,
  */
 EkaOpResult efcClose(EfcCtx *efcCtx);
 
+struct EfcUdpMcParams {
+  EkaCoreId coreId; ///< 10G lane to receive UDP MC trigger
+  const char *mcIp; ///< MC IP address
+  uint16_t mcUdpPort; ///< MC UDP Port
+};
+
+struct EfcP4Params {
+  const EfcUdpMcParams *mcParams;
+  size_t nMcParams;
+  EfhFeedVer feedVer;
+};
+
+EkaOpResult efcInitP4Strategy(EfcCtx *pEfcCtx,
+                              const EfcP4Params *p4Params);
+
+EkaOpResult efcArmP4(EfcCtx *pEfcCtx, bool arm,
+                     EfcArmVer ver);
+
 #ifdef __cplusplus
 }
 #endif

@@ -16,6 +16,7 @@
 #include "EkaHwCaps.h"
 #include "EkaHwHashTableLine.h"
 #include "EkaIgmp.h"
+#include "EkaP4Strategy.h"
 #include "EkaTcpSess.h"
 #include "EkaUdpSess.h"
 #include "EpmBoeQuoteUpdateShortTemplate.h"
@@ -26,128 +27,33 @@
 #include "EpmFastSweepUDPReactTemplate.h"
 #include "EpmFireBoeTemplate.h"
 #include "EpmFireSqfTemplate.h"
-#include "EpmQEDFireTemplate.h"
-
 void ekaFireReportThread(EkaDev *dev);
 
-/* ################################################ */
+extern EkaDev *g_ekaDev;
 
 /* ################################################ */
-EkaEfc::EkaEfc(EkaEpm *epm, epm_strategyid_t id,
-               epm_actionid_t baseActionIdx,
-               const EpmStrategyParams *params,
-               EfhFeedVer _hwFeedVer)
-    : EpmStrategy(epm, id, baseActionIdx, params,
-                  _hwFeedVer) {
 
-  //  eka_write(dev,STAT_CLEAR   ,(uint64_t) 1);
-  disableRxFire();
-  eka_write(dev, P4_STRAT_CONF, (uint64_t)0);
+/* ################################################ */
+EkaEfc::EkaEfc(const EfcInitCtx *pEfcInitCtx) {
+  dev_ = g_ekaDev;
+  if (!dev_)
+    on_error("!dev_");
 
-  hwFeedVer = dev->efcFeedVer;
-  EKA_LOG("Creating EkaEfc: hwFeedVer=%s (%d)",
-          EKA_FEED_VER_DECODE(hwFeedVer), (int)hwFeedVer);
+  //  eka_write(dev_,STAT_CLEAR   ,(uint64_t) 1);
 
-  for (auto i = 0; i < EFC_SUBSCR_TABLE_ROWS; i++) {
-    hashLine[i] = new EkaHwHashTableLine(dev, hwFeedVer, i);
-    if (hashLine[i] == NULL)
-      on_error("hashLine[%d] == NULL", i);
-  }
-
-#ifndef _VERILOG_SIM
-  cleanSubscrHwTable();
-  cleanSecHwCtx();
-  eka_write(dev, SCRPAD_EFC_SUBSCR_CNT, 0);
-#endif
-
-  switch (hwFeedVer) {
-  case EfhFeedVer::kNASDAQ:
-    epm->hwFire =
-        new EpmFireSqfTemplate(epm->templatesNum++);
-    EKA_LOG("Initializing EpmFireSqfTemplate");
-    ehp = new EhpNom(dev);
-    break;
-  case EfhFeedVer::kCBOE:
-    /* epm->hwFire  = new
-     * EpmFireBoeTemplate(epm->templatesNum++); */
-    /* EKA_LOG("Initializing EpmFireBoeTemplate"); */
-    epm->hwFire = new EpmBoeQuoteUpdateShortTemplate(
-        epm->templatesNum++);
-    EKA_LOG("Initializing EpmBoeQuoteUpdateShortTemplate");
-    epm->hwCancel =
-        new EpmCancelBoeTemplate(epm->templatesNum++);
-    EKA_LOG("Initializing EpmCancelBoeTemplate");
-    ehp = new EhpPitch(dev);
-    break;
-  case EfhFeedVer::kCME:
-    epm->hwFire =
-        new EpmCmeILinkTemplate(epm->templatesNum++);
-    EKA_LOG("Initializing EpmCmeILinkTemplate");
-    epm->swFire =
-        new EpmCmeILinkSwTemplate(epm->templatesNum++);
-    EKA_LOG("Initializing EpmCmeILinkSwTemplate");
-    epm->cmeHb =
-        new EpmCmeILinkHbTemplate(epm->templatesNum++);
-    EKA_LOG("Initializing EpmCmeILinkHbTemplate");
-    epm->DownloadSingleTemplate2HW(epm->cmeHb);
-    ehp = new EhpCmeFC(dev);
-    break;
-  case EfhFeedVer::kQED:
-    epm->hwFire = new EpmQEDFireTemplate(
-        epm->templatesNum++); // TBD raw tcp
-    EKA_LOG("Initializing hwFire EpmFireSqfTemplate (TBD) "
-            "for QED");
-    ehp = new EhpQED(dev);
-    break;
-  case EfhFeedVer::kNEWS:
-    epm->hwFire =
-        new EpmCmeILinkTemplate(epm->templatesNum++); // TBD
-    EKA_LOG(
-        "Initializing dummy EpmCmeILinkTemplate (news)");
-    epm->cmeHb =
-        new EpmCmeILinkHbTemplate(epm->templatesNum++);
-    EKA_LOG(
-        "Initializing dummy EpmCmeILinkHbTemplate"); // TBD
-    ehp = new EhpNews(dev);
-    break;
-  case EfhFeedVer::kITCHFS:
-    epm->hwFire = new EpmFastSweepUDPReactTemplate(
-        epm->templatesNum++);
-    EKA_LOG("Initializing fast sweep");
-    ehp = new EhpItchFS(dev);
-    break;
-  default:
-    on_error("Unexpected EFC HW Version: %d",
-             (int)hwFeedVer);
-  }
-  epm->DownloadSingleTemplate2HW(epm->hwFire);
-  if (epm->swFire)
-    epm->DownloadSingleTemplate2HW(epm->swFire);
-
-  if (ehp) {
-    ehp->init();
-    ehp->download2Hw();
-    initHwRoundTable();
-  }
-#if EFC_CTX_SANITY_CHECK
-  secIdList = new uint64_t[EFC_SUBSCR_TABLE_ROWS *
-                           EFC_SUBSCR_TABLE_COLUMNS];
-  if (secIdList == NULL)
-    on_error("secIdList == NULL");
-  memset(secIdList, 0,
-         EFC_SUBSCR_TABLE_ROWS * EFC_SUBSCR_TABLE_COLUMNS);
-#endif
-  auto swStatistics = eka_read(dev, SW_STATISTICS);
-  eka_write(dev, SW_STATISTICS,
-            swStatistics | (1ULL << 63));
+  report_only_ = pEfcInitCtx->report_only;
+  watchdog_timeout_sec_ = pEfcInitCtx->watchdog_timeout_sec;
+  EKA_LOG("EFC is created with: report_only=%d, "
+          "watchdog_timeout_sec = %ju",
+          report_only_, watchdog_timeout_sec_);
 }
 /* ################################################ */
 EkaEfc::~EkaEfc() {
   disArmController();
   disableRxFire();
-  eka_write(dev, P4_STRAT_CONF, (uint64_t)0);
-  auto swStatistics = eka_read(dev, SW_STATISTICS);
-  eka_write(dev, SW_STATISTICS,
+  eka_write(dev_, P4_STRAT_CONF, (uint64_t)0);
+  auto swStatistics = eka_read(dev_, SW_STATISTICS);
+  eka_write(dev_, SW_STATISTICS,
             swStatistics & ~(1ULL << 63));
 }
 
@@ -157,13 +63,13 @@ EkaEfc::~EkaEfc() {
 int EkaEfc::armController(EfcArmVer ver) {
   EKA_LOG("Arming EFC");
   uint64_t armData = ((uint64_t)ver << 32) | 1;
-  eka_write(dev, P4_ARM_DISARM, armData);
+  eka_write(dev_, P4_ARM_DISARM, armData);
   return 0;
 }
 /* ################################################ */
 int EkaEfc::disArmController() {
   EKA_LOG("Disarming EFC");
-  eka_write(dev, P4_ARM_DISARM, 0);
+  eka_write(dev_, P4_ARM_DISARM, 0);
   return 0;
 }
 /* ################################################ */
@@ -171,29 +77,33 @@ int EkaEfc::initStratGlobalParams(
     const EfcStratGlobCtx *ctx) {
   EKA_LOG("Initializing EFC global params");
   memcpy(&stratGlobCtx, ctx, sizeof(EfcStratGlobCtx));
-  eka_write(dev, P4_ARM_DISARM, 0);
+  eka_write(dev_, P4_ARM_DISARM, 0);
   return 0;
 }
 /* ################################################ */
 EkaUdpSess *EkaEfc::findUdpSess(EkaCoreId coreId,
                                 uint32_t mcAddr,
                                 uint16_t mcPort) {
-  for (auto i = 0; i < numUdpSess; i++) {
-    if (udpSess[i] == NULL)
-      on_error("udpSess[%d] == NULL", i);
-    if (udpSess[i]->myParams(coreId, mcAddr, mcPort))
-      return udpSess[i];
-  }
-  return NULL;
+  /*   for (auto strat : {p4}) {
+      if (!strat)
+        continue;
+      auto udpSess =
+          strat->findUdpSess(coreId, mcAddr, mcPort);
+      if (udpSess)
+        return udpSess;
+    }
+    return nullptr; */
+
+  return p4_->findUdpSess(coreId, mcAddr, mcPort);
 }
 
 /* ################################################ */
 int EkaEfc::disableRxFire() {
-  uint64_t fire_rx_tx_en = eka_read(dev, ENABLE_PORT);
+  uint64_t fire_rx_tx_en = eka_read(dev_, ENABLE_PORT);
   uint8_t tcpCores =
-      dev->ekaHwCaps->hwCaps.core.bitmap_tcp_cores;
+      dev_->ekaHwCaps->hwCaps.core.bitmap_tcp_cores;
   uint8_t mdCores =
-      dev->ekaHwCaps->hwCaps.core.bitmap_md_cores;
+      dev_->ekaHwCaps->hwCaps.core.bitmap_md_cores;
 
   for (uint8_t coreId = 0; coreId < EkaDev::MAX_CORES;
        coreId++) {
@@ -206,7 +116,7 @@ int EkaEfc::disableRxFire() {
           ~(1ULL << (coreId)); // RX (Parser) core disable
     }
   }
-  eka_write(dev, ENABLE_PORT, fire_rx_tx_en);
+  eka_write(dev_, ENABLE_PORT, fire_rx_tx_en);
 
   EKA_LOG("Disabling Fire and EFC Parser: fire_rx_tx_en = "
           "0x%016jx",
@@ -216,11 +126,11 @@ int EkaEfc::disableRxFire() {
 
 /* ################################################ */
 int EkaEfc::enableRxFire() {
-  uint64_t fire_rx_tx_en = eka_read(dev, ENABLE_PORT);
+  uint64_t fire_rx_tx_en = eka_read(dev_, ENABLE_PORT);
   uint8_t tcpCores =
-      dev->ekaHwCaps->hwCaps.core.bitmap_tcp_cores;
+      dev_->ekaHwCaps->hwCaps.core.bitmap_tcp_cores;
   uint8_t mdCores =
-      dev->ekaHwCaps->hwCaps.core.bitmap_md_cores;
+      dev_->ekaHwCaps->hwCaps.core.bitmap_md_cores;
 
   for (uint8_t coreId = 0; coreId < EkaDev::MAX_CORES;
        coreId++) {
@@ -234,7 +144,7 @@ int EkaEfc::enableRxFire() {
     }
   }
 
-  eka_write(dev, ENABLE_PORT, fire_rx_tx_en);
+  eka_write(dev_, ENABLE_PORT, fire_rx_tx_en);
   EKA_LOG("Enabling Fire and EFC Parser: fire_rx_tx_en = "
           "0x%016jx",
           fire_rx_tx_en);
@@ -242,14 +152,14 @@ int EkaEfc::enableRxFire() {
 }
 /* ################################################ */
 int EkaEfc::checkSanity() {
-  for (auto i = 0; i < EkaEpm::MAX_UDP_SESS; i++) {
-    if (udpSess[i] == NULL)
-      continue;
-    if (!action[i]->initialized)
-      on_error("EFC Trigger (UDP Session) #%d "
-               "does not have initialized Action",
-               i);
-  }
+  /*   for (auto i = 0; i < EkaEpm::MAX_UDP_SESS; i++) {
+      if (udpSess[i] == NULL)
+        continue;
+      if (!action[i]->initialized)
+        on_error("EFC Trigger (UDP Session) #%d "
+                 "does not have initialized Action",
+                 i);
+    } */
   return 0;
 }
 
@@ -272,14 +182,14 @@ int EkaEfc::run(EfcCtx *pEfcCtx,
 
   enableRxFire();
 
-  if (dev->fireReportThreadActive) {
+  if (dev_->fireReportThreadActive) {
     on_error("fireReportThread already active");
   }
 
-  dev->fireReportThread =
-      std::thread(ekaFireReportThread, dev);
-  dev->fireReportThread.detach();
-  while (!dev->fireReportThreadActive)
+  dev_->fireReportThread =
+      std::thread(ekaFireReportThread, dev_);
+  dev_->fireReportThread.detach();
+  while (!dev_->fireReportThreadActive)
     sleep(0);
   EKA_LOG("fireReportThread activated");
 
@@ -299,9 +209,10 @@ int EkaEfc::setHwGlobalParams() {
           stratGlobCtx.max_size,
           stratGlobCtx.watchdog_timeout_sec);
 
-  eka_write(dev, P4_GLOBAL_MAX_SIZE, stratGlobCtx.max_size);
+  eka_write(dev_, P4_GLOBAL_MAX_SIZE,
+            stratGlobCtx.max_size);
 
-  uint64_t p4_strat_conf = eka_read(dev, P4_STRAT_CONF);
+  uint64_t p4_strat_conf = eka_read(dev_, P4_STRAT_CONF);
   uint64_t p4_watchdog_period = EKA_WATCHDOG_SEC_VAL;
 
   if (stratGlobCtx.report_only)
@@ -316,8 +227,8 @@ int EkaEfc::setHwGlobalParams() {
     p4_watchdog_period = EKA_WATCHDOG_SEC_VAL *
                          stratGlobCtx.watchdog_timeout_sec;
 
-  eka_write(dev, P4_STRAT_CONF, p4_strat_conf);
-  eka_write(dev, P4_WATCHDOG_CONF, p4_watchdog_period);
+  eka_write(dev_, P4_STRAT_CONF, p4_strat_conf);
+  eka_write(dev_, P4_WATCHDOG_CONF, p4_watchdog_period);
 
   return 0;
 }
@@ -329,26 +240,30 @@ int EkaEfc::setHwUdpParams() {
     uint64_t tmp_ipport = ((uint64_t)i) << 56 |
                           ((uint64_t)port) << 32 |
                           be32toh(ip);
-    eka_write(dev, FH_GROUP_IPPORT, tmp_ipport);
+    eka_write(dev_, FH_GROUP_IPPORT, tmp_ipport);
   }
 
-  EKA_LOG("downloading %d MC sessions to FPGA", numUdpSess);
-  for (auto i = 0; i < numUdpSess; i++) {
-    if (!udpSess[i])
+  EKA_LOG("downloading %d MC sessions to FPGA",
+          p4_->numUdpSess_);
+  if (!p4_)
+    on_error("!p4_");
+  for (auto i = 0; i < p4_->numUdpSess_; i++) {
+    if (!p4_->udpSess_[i])
       on_error("!udpSess[%d]", i);
 
     EKA_LOG(
         "configuring IP:UDP_PORT %s:%u for MD for group:%d",
-        EKA_IP2STR(udpSess[i]->ip), udpSess[i]->port, i);
-    uint32_t ip = udpSess[i]->ip;
-    uint16_t port = udpSess[i]->port;
+        EKA_IP2STR(p4_->udpSess_[i]->ip),
+        p4_->udpSess_[i]->port, i);
+    uint32_t ip = p4_->udpSess_[i]->ip;
+    uint16_t port = p4_->udpSess_[i]->port;
 
     uint64_t tmp_ipport = ((uint64_t)i) << 56 |
                           ((uint64_t)port) << 32 |
                           be32toh(ip);
     //  EKA_LOG("HW Port-IP register = 0x%016jx (%x : %x)",
     //  tmp_ipport,ip,port);
-    eka_write(dev, FH_GROUP_IPPORT, tmp_ipport);
+    eka_write(dev_, FH_GROUP_IPPORT, tmp_ipport);
   }
   return 0;
 }

@@ -24,13 +24,11 @@
 #include "EkaDev.h"
 #include "EkaEpmRegion.h"
 
-class EpmTemplate;
-
 class EkaEpmAction;
 class EkaUdpChannel;
 class EpmStrategy;
 class EkaIgmp;
-class EkaEpm;
+class EpmTemplate;
 
 /* ------------------------------------------------ */
 static inline uint64_t
@@ -176,14 +174,16 @@ public:
                               const void *contents,
                               const bool isUdpDatagram);
 
-  int DownloadSingleTemplate2HW(EpmTemplate *t);
+  void DownloadSingleTemplate2HW(EpmTemplate *t);
 
-  int InitDefaultTemplates();
+  void InitDefaultTemplates();
 
   EkaEpmAction *addAction(ActionType type, int regionId,
                           epm_actionid_t localIdx,
                           uint8_t coreId, uint8_t sessId,
                           uint8_t auxIdx);
+
+  epm_actionid_t allocateAction(EpmActionType actionType);
 
 private:
   void actionParamsSanityCheck(ActionType type,
@@ -199,8 +199,7 @@ private:
            (strategy[strategyIdx] != NULL);
   }
 
-  /* ----------------------------------------------------------
-   */
+  /* ----------------------------------------------- */
 
 public:
   static const uint EpmNumHwFields = 16;
@@ -219,8 +218,6 @@ public:
     EpmTemplate *cmeILink = NULL;
     EpmTemplate *cmeHb = NULL;
    */
-  static const uint64_t AlwaysFire = 0xadcd;
-  static const uint64_t DefaultToken = 0x1122334455667788;
 
   uint templatesNum = 0;
 
@@ -243,11 +240,12 @@ public:
 
   std::mutex createActionMtx;
 
-  EpmTemplate *template[TemplateId::Count] = {};
+  EpmTemplate *epmTemplate[(int)TemplateId::Count] = {};
+
+  EkaEpmAction *a_[TotalEpmActions] = {};
 
 private:
   bool actionOccupied_[TotalEpmActions] = {};
-  EkaEpmAction *a_[TotalEpmActions] = {};
   size_t nActions_ = EkaEpmRegion::P4Reserved;
 
 protected:

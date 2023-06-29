@@ -61,6 +61,8 @@ EkaStrategy::~EkaStrategy() {
 }
 /* --------------------------------------------------- */
 int EkaStrategy::allocateAction(EpmActionType actionType) {
+  epm_->createActionMtx.lock();
+
   auto globalIdx = epm->getFreeAction();
 
   auto localIdx =
@@ -77,6 +79,7 @@ int EkaStrategy::allocateAction(EpmActionType actionType) {
     on_error("failed to create new action");
 
   nActions_++;
+  epm_->createActionMtx.unlock();
 
   return globalIdx;
 }
@@ -179,3 +182,18 @@ void EkaStrategy::disableRxFire() {
           "0x%016jx",
           fire_rx_tx_en);
 }
+
+/* --------------------------------------------------- */
+EkaUdpSess *EkaStrategy::findUdpSess(EkaCoreId coreId,
+                                     uint32_t mcAddr,
+                                     uint16_t mcPort) {
+  for (auto i = 0; i < strat->numUdpSess_; i++) {
+    if (!strat->udpSess_[i])
+      on_error("!udpSess[%d]", i);
+    if (strat->udpSess_[i]->myParams(coreId, mcAddr,
+                                     mcPort))
+      return strat->udpSess_[i];
+  }
+  return nullptr;
+}
+/* --------------------------------------------------- */

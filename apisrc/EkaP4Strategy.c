@@ -1,3 +1,37 @@
+#include <arpa/inet.h>
+#include <assert.h>
+#include <byteswap.h>
+#include <errno.h>
+#include <linux/sockios.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <netdb.h>
+#include <netinet/ether.h>
+#include <netinet/if_ether.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <netinet/tcp.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <thread>
+
+#include "Efc.h"
+#include "Efh.h"
+#include "EkaCore.h"
+#include "EkaCtxs.h"
+#include "EkaDev.h"
+#include "EkaEfc.h"
+#include "EkaEpmAction.h"
+#include "EkaEpmRegion.h"
+#include "EkaHwCaps.h"
+#include "EkaSnDev.h"
+#include "EkaTcpSess.h"
+
+#include "EkaEfcDataStructs.h"
+
 #include "EkaP4Strategy.h"
 
 /* --------------------------------------------------- */
@@ -10,9 +44,24 @@ EkaP4Strategy::EkaP4Strategy(
   EKA_LOG("Creating %s with %d MC groups", name_.c_str(),
           numUdpSess_);
 
+  disableRxFire();
+  eka_write(dev, P4_STRAT_CONF, (uint64_t)0);
+
   preallocateFireActions();
   configureTemplates();
   configureEhp();
+  initHwRoundTable();
+  createSecHash();
+
+#ifndef _VERILOG_SIM
+  cleanSubscrHwTable();
+  cleanSecHwCtx();
+  eka_write(dev, SCRPAD_EFC_SUBSCR_CNT, 0);
+#endif
+
+  auto swStatistics = eka_read(dev, SW_STATISTICS);
+  eka_write(dev, SW_STATISTICS,
+            swStatistics | (1ULL << 63));
 }
 /* --------------------------------------------------- */
 
@@ -122,6 +171,31 @@ int EkaP4Strategy::cleanSecHwCtx() {
   return 0;
 }
 /* --------------------------------------------------- */
+
+inline void
+EkaP4Strategy::writeSecHwCtx(const EfcSecCtxHandle handle,
+                             const EkaHwSecCtx *pHwSecCtx,
+                             uint16_t writeChan) {
+  uint64_t ctxWrAddr =
+      P4_CTX_CHANNEL_BASE +
+      writeChan * EKA_BANKS_PER_CTX_THREAD *
+          EKA_WORDS_PER_CTX_BANK * 8 +
+      ctxWriteBank[writeChan] * EKA_WORDS_PER_CTX_BANK * 8;
+
+  // EkaHwSecCtx is 8 Bytes ==> single write
+  eka_write(dev, ctxWrAddr, *(uint64_t *)pHwSecCtx);
+
+  union large_table_desc done_val = {};
+  done_val.ltd.src_bank = ctxWriteBank[writeChan];
+  done_val.ltd.src_thread = writeChan;
+  done_val.ltd.target_idx = handle;
+  eka_write(dev, P4_CONFIRM_REG, done_val.lt_desc);
+
+  ctxWriteBank[writeChan] = (ctxWriteBank[writeChan] + 1) %
+                            EKA_BANKS_PER_CTX_THREAD;
+}
+/* --------------------------------------------------- */
+
 int EkaP4Strategy::initHwRoundTable() {
 #ifdef _VERILOG_SIM
   return 0;
@@ -264,10 +338,10 @@ int EkaP4Strategy::subscribeSec(uint64_t secId) {
   //    on_error("Security %ju (0x%jx) violates Hash
   //    function assumption",secId,secId);
 
-  if (numSecurities == EKA_MAX_P4_SUBSCR) {
-    EKA_WARN("numSecurities %d  == EKA_MAX_P4_SUBSCR: "
+  if (numSecurities_ == EKA_MAX_P4_SUBSCR) {
+    EKA_WARN("numSecurities_ %d  == EKA_MAX_P4_SUBSCR: "
              "secId %ju (0x%jx) is ignored",
-             numSecurities, secId, secId);
+             numSecurities_, secId, secId);
     return -1;
   }
 
@@ -277,10 +351,10 @@ int EkaP4Strategy::subscribeSec(uint64_t secId) {
   //  EKA_DEBUG("Subscribing on 0x%jx, lineIdx = 0x%x
   //  (%d)",secId,lineIdx,lineIdx);
   if (hashLine[lineIdx]->addSecurity(normSecId)) {
-    numSecurities++;
+    numSecurities_++;
     uint64_t val = eka_read(dev, SW_STATISTICS);
     val &= 0xFFFFFFFF00000000;
-    val |= (uint64_t)(numSecurities);
+    val |= (uint64_t)(numSecurities_);
 
 #ifndef _VERILOG_SIM
     eka_write(dev, SW_STATISTICS, val);
@@ -301,9 +375,7 @@ EkaP4Strategy::getSubscriptionId(uint64_t secId) {
   auto handle =
       hashLine[lineIdx]->getSubscriptionId(normSecId);
 
-#if EFC_CTX_SANITY_CHECK
-  secIdList[handle] = secId;
-#endif
+  secIdList_[handle] = secId;
 
   return handle;
 }
@@ -323,9 +395,25 @@ int EkaP4Strategy::downloadTable() {
         &rem); // added due to "too fast" write to card
   }
 
-  if (sum != numSecurities)
-    on_error("sum %d != numSecurities %d", sum,
-             numSecurities);
+  if (sum != numSecurities_)
+    on_error("sum %d != numSecurities_ %d", sum,
+             numSecurities_);
 
   return 0;
+}
+/* --------------------------------------------------- */
+
+void EkaP4Strategy::createSecHash() {
+  for (auto i = 0; i < EFC_SUBSCR_TABLE_ROWS; i++) {
+    hashLine[i] = new EkaHwHashTableLine(dev, hwFeedVer, i);
+    if (!hashLine[i])
+      on_error("!hashLine[%d]", i);
+  }
+
+  secIdList_ = new uint64_t[EFC_SUBSCR_TABLE_ROWS *
+                            EFC_SUBSCR_TABLE_COLUMNS];
+  if (!secIdList_)
+    on_error("!secIdList_");
+  memset(secIdList_, 0,
+         EFC_SUBSCR_TABLE_ROWS * EFC_SUBSCR_TABLE_COLUMNS);
 }

@@ -51,7 +51,7 @@ int EkaEpm::createRegion(int regionId) {
             ALWAYS_ENABLE);
 
 #ifndef _VERILOG_SIM
-  initHeap(epmRegion[regionId]->baseHeapOffs,
+  initHeap(EkaEpmRegion::getBaseHeapOffs(regionId),
            EkaEpmRegion::getHeapSize(regionId), regionId);
 #endif
 
@@ -232,6 +232,7 @@ EkaOpResult EkaEpm::enableController(EkaCoreId coreId,
 EkaOpResult
 EkaEpm::initStrategies(const EpmStrategyParams *params,
                        epm_strategyid_t numStrategies) {
+#if 0
   if (numStrategies > EkaEpmRegion::MaxStrategies)
     on_error("numStrategies %u > MaxStrategies %d",
              numStrategies, EkaEpmRegion::MaxStrategies);
@@ -275,6 +276,7 @@ EkaEpm::initStrategies(const EpmStrategyParams *params,
   }
 
   initialized = true;
+#endif
   return EKA_OPRESULT__OK;
 }
 /* ---------------------------------------------------- */
@@ -339,19 +341,22 @@ EkaEpm::payloadHeapCopy(epm_strategyid_t strategyIdx,
 void EkaEpm::InitDefaultTemplates() {
   EKA_LOG("Inititializing TcpFastPath and Raw templates");
 
-  template[TemplateId::TcpFastPath] =
-      new EpmFastPathTemplate(TemplateId::TcpFastPath);
+  epmTemplate[(int)TemplateId::TcpFastPath] =
+      new EpmFastPathTemplate(
+          (uint)TemplateId::TcpFastPath);
 
   DownloadSingleTemplate2HW(
-      template[TemplateId::TcpFastPath]);
+      epmTemplate[(int)TemplateId::TcpFastPath]);
 
-  template[TemplateId::Raw] =
-      new EpmFastPathTemplate(TemplateId::Raw);
-  DownloadSingleTemplate2HW(template[TemplateId::Raw]);
+  epmTemplate[(int)TemplateId::Raw] =
+      new EpmFastPathTemplate((uint)TemplateId::Raw);
+
+  DownloadSingleTemplate2HW(
+      epmTemplate[(int)TemplateId::Raw]);
 }
 /* ---------------------------------------------------- */
 
-int EkaEpm::DownloadSingleTemplate2HW(EpmTemplate *t) {
+void EkaEpm::DownloadSingleTemplate2HW(EpmTemplate *t) {
   if (!t)
     on_error("!t");
 
@@ -365,8 +370,6 @@ int EkaEpm::DownloadSingleTemplate2HW(EpmTemplate *t) {
   copyBuf2Hw(dev, t->getCsumTemplateAddr(),
              (uint64_t *)&t->hw_tcpcs_template,
              sizeof(t->hw_tcpcs_template));
-
-  return 0;
 }
 /* ---------------------------------------------------- */
 
@@ -428,9 +431,8 @@ EkaEpm::addAction(ActionType type, int regionId,
     localActionIdx = epmRegion[regionId]->localActionIdx++;
   }
 
-  EKA_LOG("Action %d: %s, regionId=%u, heapOffs=%u",
-          (int)localActionIdx, printActionType(type),
-          regionId, heapOffs);
+  EKA_LOG("Action %d: %s, regionId=%u", (int)localActionIdx,
+          printActionType(type), regionId);
 
   EkaEpmRegion::sanityCheckActionId(regionId,
                                     (int)localActionIdx);
@@ -462,7 +464,7 @@ EkaEpm::allocateAction(EpmActionType actionType) {
   createActionMtx.lock();
   auto regionId = EkaEpmRegion::Regions::Efc;
 
-  if (nActions_ == getMaxActions(regionId))
+  if (nActions_ == EkaEpmRegion::getMaxActions(regionId))
     on_error("Out of free actions: nActions_ = %d",
              nActions_);
 

@@ -24,6 +24,9 @@ public:
 
   int allocateAction(EpmActionType type);
 
+  EkaUdpSess *findUdpSess(EkaCoreId coreId, uint32_t mcAddr,
+                          uint16_t mcPort);
+
 public:
   static void clearAllHwUdpParams();
 
@@ -32,6 +35,7 @@ protected:
   EkaEpm *epm_ = nullptr;
   EfhFeedVer hwFeedVer_ = EfhFeedVer::kInvalid;
 
+public:
   EkaUdpSess *udpSess_[MaxUdpMcGroups] = {};
   int numUdpSess_ = 0;
 
@@ -40,10 +44,7 @@ protected:
 
   std::string name_ = "Uninitialized";
 
-  EkaEpmAction *a_[EkaEpmRegion::NumEfcActions] = {};
-  size_t nActions_ = 0;
-
-  EhpProtocol *ehp = NULL;
+  // EhpProtocol *ehp = NULL;
 };
 
 #endif

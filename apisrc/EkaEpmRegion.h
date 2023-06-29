@@ -239,30 +239,23 @@ public:
 
   // ######################################################
   EkaEpmRegion(EkaDev *_dev, int _id) {
-    dev = _dev;
-    id = _id;
+    dev_ = _dev;
+    id_ = _id;
 
-    baseActionIdx = getBaseActionIdx(id);
-    localActionIdx = 0;
-
-    baseHeapOffs = getBaseHeapOffs(id);
-    //    heapOffs       = baseHeapOffs;
-
-    // writing region's baseActionIdx to FPGA
-    eka_write(dev, 0x82000 + 8 * id, baseActionIdx);
+    eka_write(dev_, 0x82000 + 8 * id_,
+              getBaseActionIdx(id_));
 
     EKA_LOG("Created EpmRegion %s %u: "
             "baseActionIdx=%u, baseHeapOffs=%x",
-            region[id].name, id, baseActionIdx,
-            baseHeapOffs);
+            region[id_].name, id_, getBaseActionIdx(id_),
+            getBaseHeapOffs(id_));
   }
 
-  const size_t NumActions = EkaDev *dev_ = NULL;
+  EkaDev *dev_ = NULL;
   int id_ = -1;
 
-  epm_actionid_t baseActionIdx_ = -1;
-
-  uint baseHeapOffs_ = 0;
+public:
+  int localActionIdx = 0;
 
 private:
 };
