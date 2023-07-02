@@ -83,29 +83,31 @@ EkaTcpSess::EkaTcpSess(EkaDev *pEkaDev, EkaCore *_parent,
   if ((sock = lwip_socket(AF_INET, SOCK_STREAM, 0)) < 0)
     on_error("error creating TCP socket");
 
+  auto idx = coreId * TOTAL_SESSIONS_PER_CORE + sessId;
+
   if (sessId == CONTROL_SESS_ID) {
     EKA_LOG("Established TCP Session %u for Control "
             "Traffic, coreId=%u, EpmRegion = %u",
             sessId, coreId,
             EkaEpmRegion::Regions::TcpTxFullPkt);
     fullPktAction = dev->epm->addAction(
-        EkaEpm::ActionType::TcpFullPkt,
-        EkaEpmRegion::Regions::TcpTxFullPkt, 0, coreId,
-        sessId, 0);
+        EkaEpm::ActionType::TcpFullPkt, idx,
+        EkaEpmRegion::Regions::TcpTxFullPkt);
+    fullPktAction->setTcpSess(this);
   } else {
     EKA_LOG("sock=%d for: %s:%u --> %s:%u", sock,
             EKA_IP2STR(srcIp), srcPort, EKA_IP2STR(dstIp),
             dstPort);
     fastPathAction = dev->epm->addAction(
-        EkaEpm::ActionType::TcpFastPath,
-        EkaEpmRegion::Regions::TcpTxFullPkt, 0, coreId,
-        sessId, 0);
+        EkaEpm::ActionType::TcpFastPath, idx,
+        EkaEpmRegion::Regions::TcpTxFullPkt);
+    fastPathAction->setTcpSess(this);
   }
 
   emptyAckAction = dev->epm->addAction(
-      EkaEpm::ActionType::TcpEmptyAck,
-      EkaEpmRegion::Regions::TcpTxEmptyAck, 0, coreId,
-      sessId, 0);
+      EkaEpm::ActionType::TcpEmptyAck, idx,
+      EkaEpmRegion::Regions::TcpTxEmptyAck);
+  emptyAckAction->setTcpSess(this);
 
   controlTcpSess =
       dev->core[coreId]->tcpSess[EkaCore::CONTROL_SESS_ID];

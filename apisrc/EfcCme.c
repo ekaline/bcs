@@ -1,45 +1,45 @@
-#include "EkaEfc.h"
+#include <sys/types.h>
+
 #include "EfcCme.h"
+#include "EkaEfc.h"
 #include "EkaEpmAction.h"
-#include "EkaTcpSess.h"
 #include "EkaHwInternalStructs.h"
+#include "EkaTcpSess.h"
 
-int getSessAppSeqId(EkaDev* dev, ExcConnHandle hConn);
+int getSessAppSeqId(EkaDev *dev, ExcConnHandle hConn);
 
-EkaOpResult efcCmeFastCancelInit(EkaDev *dev,
-				 const EfcCmeFastCancelParams* params) {
+EkaOpResult
+efcCmeFastCancelInit(EkaDev *dev,
+                     const EfcCmeFastCancelParams *params) {
 
-  if (! dev) on_error("! dev");
-  if (! params) on_error("! params");
-
-
+  if (!dev)
+    on_error("! dev");
+  if (!params)
+    on_error("! params");
 
   volatile EfcCmeFastCancelStrategyConf conf = {
-//      .pad            = {},
+      //      .pad            = {},
       .minNoMDEntries = params->minNoMDEntries,
-      .maxMsgSize     = params->maxMsgSize,
-      .token          = params->token,
-      .fireActionId   = (uint16_t)params->fireActionId, 
-      .strategyId     = (uint8_t)EFC_STRATEGY
-  };
+      .maxMsgSize = params->maxMsgSize,
+      .token = params->token,
+      .fireActionId = (uint16_t)params->fireActionId,
+      .strategyId = (uint8_t)EFC_STRATEGY};
 
   EKA_LOG("Configuring Cme Fast Cancel FPGA: "
-					"minNoMDEntries=%d,maxMsgSize=%u,"
-					"token=0x%jx,fireActionId=%d,strategyId=%d",
-	  conf.minNoMDEntries,
-	  conf.maxMsgSize,
-	  conf.token,
-	  conf.fireActionId,
-	  conf.strategyId);
+          "minNoMDEntries=%d,maxMsgSize=%u,"
+          "token=0x%jx,fireActionId=%d,strategyId=%d",
+          conf.minNoMDEntries, conf.maxMsgSize, conf.token,
+          conf.fireActionId, conf.strategyId);
   //  hexDump("EfcCmeFastCancelStrategyConf",&conf,
-	//          sizeof(conf),stderr);
-  copyBuf2Hw(dev,0x84000,(uint64_t *)&conf,sizeof(conf));
+  //          sizeof(conf),stderr);
+  copyBuf2Hw(dev, 0x84000, (uint64_t *)&conf, sizeof(conf));
   return EKA_OPRESULT__OK;
 }
 
-ssize_t efcCmeSend(EkaDev* dev, ExcConnHandle hConn,
-		   const void* buffer, size_t size, int tcpFlags,
-		   bool incrAppSequence) {
+ssize_t efcCmeSend(EkaDev *dev, ExcConnHandle hConn,
+                   const void *buffer, size_t size,
+                   int tcpFlags, bool incrAppSequence) {
+#if 0        
     if (! dev) on_error("! dev");
     auto epm = dev->epm;
     if (! epm) on_error("! epm");
@@ -57,21 +57,23 @@ ssize_t efcCmeSend(EkaDev* dev, ExcConnHandle hConn,
 			return -1;
     }
     return ekaA->fastSend(buffer, size);
+#endif
+  return 0;
 }
 
-
 EkaOpResult efcCmeSetILinkAppseq(EkaDev *dev,
-				 ExcConnHandle hConn,
-				 int32_t appSequence) {
+                                 ExcConnHandle hConn,
+                                 int32_t appSequence) {
   auto coreId = excGetCoreId(hConn);
   auto sessId = excGetSessionId(hConn);
-  if (!dev->core[coreId] || !dev->core[coreId]->tcpSess[sessId])
-    on_error("hConn 0x%x does not exist",hConn);
+  if (!dev->core[coreId] ||
+      !dev->core[coreId]->tcpSess[sessId])
+    on_error("hConn 0x%x does not exist", hConn);
 
   auto s = dev->core[coreId]->tcpSess[sessId];
 
-  s->updateFpgaCtx<EkaTcpSess::AppSeqBin>((uint64_t)appSequence);
+  s->updateFpgaCtx<EkaTcpSess::AppSeqBin>(
+      (uint64_t)appSequence);
 
   return EKA_OPRESULT__OK;
 }
-  

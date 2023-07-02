@@ -133,16 +133,9 @@ public:
     return EkaEpmRegion::MaxStrategies;
   }
 
-  bool isActionOccupied(int globalIdx) {
-    return actionOccupied_[globalIdx];
-  }
+  int getFreeAction(int regionId);
 
-  void occupyAction(int globalIdx) {
-    if (isActionOccupied(globalIdx))
-      on_error("Action %d is already occupied", globalIdx);
-
-    actionOccupied_[globalIdx] = true;
-  }
+  bool isActionReserved(int globalIdx);
 
   EkaOpResult setAction(epm_strategyid_t strategy,
                         epm_actionid_t action,
@@ -178,18 +171,15 @@ public:
 
   void InitDefaultTemplates();
 
-  EkaEpmAction *addAction(ActionType type, int regionId,
+  EkaEpmAction *addAction(ActionType type,
                           epm_actionid_t localIdx,
-                          uint8_t coreId, uint8_t sessId,
-                          uint8_t auxIdx);
+                          int regionId);
 
   epm_actionid_t allocateAction(EpmActionType actionType);
 
 private:
   void actionParamsSanityCheck(ActionType type,
-                               int regionId,
-                               uint8_t _coreId,
-                               uint8_t _sessId);
+                               int regionId);
   bool alreadyJoined(epm_strategyid_t prevStrats,
                      uint32_t ip, uint16_t port);
   int joinMc(uint32_t ip, uint16_t port, int16_t vlanTag);
@@ -239,6 +229,7 @@ public:
   EkaEpmRegion *epmRegion[EPM_REGIONS] = {};
 
   std::mutex createActionMtx;
+  std::mutex allocateActionMtx;
 
   EpmTemplate *epmTemplate[(int)TemplateId::Count] = {};
 

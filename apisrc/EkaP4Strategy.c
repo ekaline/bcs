@@ -20,6 +20,8 @@
 
 #include "Efc.h"
 #include "Efh.h"
+#include "EkaEpm.h"
+
 #include "EkaCore.h"
 #include "EkaCtxs.h"
 #include "EkaDev.h"
@@ -29,10 +31,29 @@
 #include "EkaHwCaps.h"
 #include "EkaSnDev.h"
 #include "EkaTcpSess.h"
+#include "EkaUdpSess.h"
 
 #include "EkaEfcDataStructs.h"
 
 #include "EkaP4Strategy.h"
+
+#include "EhpCmeFC.h"
+#include "EhpItchFS.h"
+#include "EhpNews.h"
+#include "EhpNom.h"
+#include "EhpPitch.h"
+#include "EhpQED.h"
+
+#include "EpmBoeQuoteUpdateShortTemplate.h"
+#include "EpmCancelBoeTemplate.h"
+#include "EpmCmeILinkHbTemplate.h"
+#include "EpmCmeILinkSwTemplate.h"
+#include "EpmCmeILinkTemplate.h"
+#include "EpmFastSweepUDPReactTemplate.h"
+#include "EpmFireBoeTemplate.h"
+#include "EpmFireSqfTemplate.h"
+
+#include "EkaHwHashTableLine.h"
 
 /* --------------------------------------------------- */
 EkaP4Strategy::EkaP4Strategy(
@@ -40,12 +61,13 @@ EkaP4Strategy::EkaP4Strategy(
     : EkaStrategy(feedVer, params) {
 
   feedVer_ = feedVer;
-  name_ = "P4_" + EKA_FEED_VER_DECODE(feedVer_);
+  name_ =
+      "P4_" + std::string(EKA_FEED_VER_DECODE(feedVer_));
   EKA_LOG("Creating %s with %d MC groups", name_.c_str(),
           numUdpSess_);
 
   disableRxFire();
-  eka_write(dev, P4_STRAT_CONF, (uint64_t)0);
+  eka_write(dev_, P4_STRAT_CONF, (uint64_t)0);
 
   preallocateFireActions();
   configureTemplates();
@@ -56,11 +78,11 @@ EkaP4Strategy::EkaP4Strategy(
 #ifndef _VERILOG_SIM
   cleanSubscrHwTable();
   cleanSecHwCtx();
-  eka_write(dev, SCRPAD_EFC_SUBSCR_CNT, 0);
+  eka_write(dev_, SCRPAD_EFC_SUBSCR_CNT, 0);
 #endif
 
-  auto swStatistics = eka_read(dev, SW_STATISTICS);
-  eka_write(dev, SW_STATISTICS,
+  auto swStatistics = eka_read(dev_, SW_STATISTICS);
+  eka_write(dev_, SW_STATISTICS,
             swStatistics | (1ULL << 63));
 }
 /* --------------------------------------------------- */
@@ -75,7 +97,7 @@ void EkaP4Strategy::preallocateFireActions() {
     actionType = EpmActionType::SqfFire;
     break;
   default:
-    on_error("Unexpected feedVer %d", (int)feedVer);
+    on_error("Unexpected feedVer %d", (int)feedVer_);
   }
 
   auto regionId = EkaEpmRegion::Regions::Efc;
@@ -86,17 +108,10 @@ void EkaP4Strategy::preallocateFireActions() {
     auto globalIdx =
         EkaEpmRegion::getBaseActionIdx(regionId) + localIdx;
 
-    uint64_t actionAddr = EkaEpm::EpmActionBase +
-                          globalIdx * EkaEpm::ActionBudget;
+    epm_->isActionReserved(globalIdx);
 
-    uint heapOffs =
-        EkaEpmRegion::getActionHeapOffs(regionId, localIdx);
-
-    epm_->occupyAction(globalIdx);
-
-    a_[i] = new EkaEpmAction(
-        dev_, actionType, globalIdx, localIdx, regionId,
-        -1 /* coreId */, -1 /* sessId */, -1 /* auxIdx */);
+    a_[i] =
+        new EkaEpmAction(actionType, localIdx, regionId);
 
     if (!a_[i])
       on_error("Failed on addAction()");
@@ -107,10 +122,10 @@ void EkaP4Strategy::preallocateFireActions() {
 void EkaP4Strategy::configureTemplates() {
   switch (feedVer_) {
   case EfhFeedVer::kBATS:
-    epm_->template
-        [EkaEpm::TemplateId::BoeQuoteUpdateShort] =
+    epm_->epmTemplate[(
+        int)EkaEpm::TemplateId::BoeQuoteUpdateShort] =
         new EpmBoeQuoteUpdateShortTemplate(
-            EkaEpm::TemplateId::BoeQuoteUpdateShort);
+            (int)EkaEpm::TemplateId::BoeQuoteUpdateShort);
     break;
 
   default:
@@ -122,7 +137,7 @@ void EkaP4Strategy::configureTemplates() {
 void EkaP4Strategy::configureEhp() {
   switch (feedVer_) {
   case EfhFeedVer::kBATS: {
-    auto ehp = new EhpPitch(dev);
+    auto ehp = new EhpPitch(dev_);
     if (!ehp)
       on_error("!ehp");
     ehp->init();
@@ -147,18 +162,17 @@ static bool isAscii(char letter) {
 }
 
 /* --------------------------------------------------- */
-int EkaP4Strategy::cleanSubscrHwTable() {
+void EkaP4Strategy::cleanSubscrHwTable() {
   EKA_LOG("Cleaning HW Subscription Table: %d rows, %d "
           "words per row",
           EFC_SUBSCR_TABLE_ROWS, EFC_SUBSCR_TABLE_COLUMNS);
 
-  uint64_t val = eka_read(dev, SW_STATISTICS);
+  uint64_t val = eka_read(dev_, SW_STATISTICS);
   val &= 0xFFFFFFFF00000000;
-  eka_write(dev, SW_STATISTICS, val);
-  return 0;
+  eka_write(dev_, SW_STATISTICS, val);
 }
 /* --------------------------------------------------- */
-int EkaP4Strategy::cleanSecHwCtx() {
+void EkaP4Strategy::cleanSecHwCtx() {
   EKA_LOG("Cleaning HW Contexts of %d securities",
           MAX_SEC_CTX);
 
@@ -167,8 +181,6 @@ int EkaP4Strategy::cleanSecHwCtx() {
     const EkaHwSecCtx hwSecCtx = {};
     writeSecHwCtx(handle, &hwSecCtx, 0 /* writeChan */);
   }
-
-  return 0;
 }
 /* --------------------------------------------------- */
 
@@ -183,20 +195,20 @@ EkaP4Strategy::writeSecHwCtx(const EfcSecCtxHandle handle,
       ctxWriteBank[writeChan] * EKA_WORDS_PER_CTX_BANK * 8;
 
   // EkaHwSecCtx is 8 Bytes ==> single write
-  eka_write(dev, ctxWrAddr, *(uint64_t *)pHwSecCtx);
+  eka_write(dev_, ctxWrAddr, *(uint64_t *)pHwSecCtx);
 
   union large_table_desc done_val = {};
   done_val.ltd.src_bank = ctxWriteBank[writeChan];
   done_val.ltd.src_thread = writeChan;
   done_val.ltd.target_idx = handle;
-  eka_write(dev, P4_CONFIRM_REG, done_val.lt_desc);
+  eka_write(dev_, P4_CONFIRM_REG, done_val.lt_desc);
 
   ctxWriteBank[writeChan] = (ctxWriteBank[writeChan] + 1) %
                             EKA_BANKS_PER_CTX_THREAD;
 }
 /* --------------------------------------------------- */
 
-int EkaP4Strategy::initHwRoundTable() {
+void EkaP4Strategy::initHwRoundTable() {
 #ifdef _VERILOG_SIM
   return 0;
 #else
@@ -204,7 +216,7 @@ int EkaP4Strategy::initHwRoundTable() {
   for (uint64_t addr = 0; addr < ROUND_2B_TABLE_DEPTH;
        addr++) {
     uint64_t data = 0;
-    switch (hwFeedVer) {
+    switch (feedVer_) {
     case EfhFeedVer::kPHLX:
     case EfhFeedVer::kGEMX:
       data = (addr / 10) * 10;
@@ -219,20 +231,18 @@ int EkaP4Strategy::initHwRoundTable() {
       data = addr;
       break;
     default:
-      on_error("Unexpected hwFeedVer = 0x%x",
-               (int)hwFeedVer);
+      on_error("Unexpected feedVer_ = 0x%x", (int)feedVer_);
     }
 
     uint64_t indAddr = 0x0100000000000000 + addr;
-    indirectWrite(dev, indAddr, data);
+    indirectWrite(dev_, indAddr, data);
 
-    /* eka_write (dev,ROUND_2B_ADDR,addr); */
-    /* eka_write (dev,ROUND_2B_DATA,data); */
+    /* eka_write (dev_,ROUND_2B_ADDR,addr); */
+    /* eka_write (dev_,ROUND_2B_DATA,data); */
     //    EKA_LOG("%016x (%ju) @ %016x
     //    (%ju)",data,data,addr,addr);
   }
 #endif
-  return 0;
 }
 /* --------------------------------------------------- */
 static bool isValidCboeSecondByte(char c) {
@@ -249,7 +259,7 @@ static bool isValidCboeSecondByte(char c) {
 /* --------------------------------------------------- */
 
 bool EkaP4Strategy::isValidSecId(uint64_t secId) {
-  switch (hwFeedVer) {
+  switch (feedVer_) {
   case EfhFeedVer::kGEMX:
   case EfhFeedVer::kNASDAQ:
   case EfhFeedVer::kPHLX:
@@ -274,7 +284,7 @@ bool EkaP4Strategy::isValidSecId(uint64_t secId) {
     return true;
 
   default:
-    on_error("Unexpected hwFeedVer: %d", (int)hwFeedVer);
+    on_error("Unexpected feedVer_: %d", (int)feedVer_);
   }
 }
 
@@ -290,7 +300,7 @@ static uint64_t char2num(char c) {
 }
 /* --------------------------------------------------- */
 int EkaP4Strategy::normalizeId(uint64_t secId) {
-  switch (hwFeedVer) {
+  switch (feedVer_) {
   case EfhFeedVer::kGEMX:
   case EfhFeedVer::kNASDAQ:
   case EfhFeedVer::kPHLX:
@@ -324,7 +334,7 @@ int EkaP4Strategy::normalizeId(uint64_t secId) {
     return res;
   }
   default:
-    on_error("Unexpected hwFeedVer: %d", (int)hwFeedVer);
+    on_error("Unexpected feedVer_: %d", (int)feedVer_);
   }
 }
 /* --------------------------------------------------- */
@@ -352,12 +362,12 @@ int EkaP4Strategy::subscribeSec(uint64_t secId) {
   //  (%d)",secId,lineIdx,lineIdx);
   if (hashLine[lineIdx]->addSecurity(normSecId)) {
     numSecurities_++;
-    uint64_t val = eka_read(dev, SW_STATISTICS);
+    uint64_t val = eka_read(dev_, SW_STATISTICS);
     val &= 0xFFFFFFFF00000000;
     val |= (uint64_t)(numSecurities_);
 
 #ifndef _VERILOG_SIM
-    eka_write(dev, SW_STATISTICS, val);
+    eka_write(dev_, SW_STATISTICS, val);
 #endif
   }
   return 0;
@@ -405,7 +415,7 @@ int EkaP4Strategy::downloadTable() {
 
 void EkaP4Strategy::createSecHash() {
   for (auto i = 0; i < EFC_SUBSCR_TABLE_ROWS; i++) {
-    hashLine[i] = new EkaHwHashTableLine(dev, hwFeedVer, i);
+    hashLine[i] = new EkaHwHashTableLine(dev_, feedVer_, i);
     if (!hashLine[i])
       on_error("!hashLine[%d]", i);
   }

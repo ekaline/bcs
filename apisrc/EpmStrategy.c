@@ -23,6 +23,8 @@ EpmStrategy::EpmStrategy(EkaEpm *_epm, epm_strategyid_t _id,
                          epm_actionid_t _baseActionIdx,
                          const EpmStrategyParams *params,
                          EfhFeedVer _hwFeedVer) {
+  on_error("Obsolete!");
+#if 0
   epm = _epm;
   if (!epm)
     on_error("!epm");
@@ -71,6 +73,7 @@ EpmStrategy::EpmStrategy(EkaEpm *_epm, epm_strategyid_t _id,
           id, baseActionIdx, numActions, numUdpSess);
 
   //  eka_write(dev,strategyEnableAddr(id), ALWAYS_ENABLE);
+#endif
 }
 /* ------------------------------------------------ */
 
@@ -108,6 +111,8 @@ bool EpmStrategy::myAction(epm_actionid_t actionId) {
 EkaOpResult
 EpmStrategy::setAction(epm_actionid_t actionIdx,
                        const EpmAction *epmAction) {
+  on_error("Obsolete!");
+#if 0
   if (actionIdx >= (int)numActions) {
     EKA_WARN("actionIdx %d >= numActions %u", actionIdx,
              numActions);
@@ -127,7 +132,8 @@ EpmStrategy::setAction(epm_actionid_t actionIdx,
   ekaA->updateAttrs(coreId, sessId, epmAction);
 
   EKA_LOG("ekaA->actionName=%s,isTcp()=%d,isUdp()=%d",
-          ekaA->actionName, ekaA->isTcp(), ekaA->isUdp());
+          ekaA->name_.c_str(), ekaA->isTcp(),
+          ekaA->isUdp());
 
   if (ekaA->isUdp()) {
     if (!dev->core[coreId]->udpTxSess[sessId])
@@ -187,6 +193,7 @@ EpmStrategy::setAction(epm_actionid_t actionIdx,
   /* ekaA->printHwAction(); */
 
   //---------------------------------------------------------
+#endif
 
   return EKA_OPRESULT__OK;
 }
@@ -194,10 +201,14 @@ EpmStrategy::setAction(epm_actionid_t actionIdx,
 
 EkaOpResult EpmStrategy::getAction(epm_actionid_t actionIdx,
                                    EpmAction *epmAction) {
+  on_error("Obsolete!");
+#if 0
   if (actionIdx >= maxActions_)
     return EKA_OPRESULT__ERR_INVALID_ACTION;
 
   memcpy(epmAction, &action[actionIdx]->epmActionLocalCopy,
          sizeof(EpmAction));
+#endif
+
   return EKA_OPRESULT__OK;
 }

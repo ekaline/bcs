@@ -372,12 +372,26 @@ void EkaEpm::DownloadSingleTemplate2HW(EpmTemplate *t) {
              sizeof(t->hw_tcpcs_template));
 }
 /* ---------------------------------------------------- */
-
+int EkaEpm::getFreeAction(int regionId) {
+  for (int i = EkaEpmRegion::getBaseActionIdx(regionId);
+       i < EkaEpmRegion::getBaseActionIdx(regionId) +
+               EkaEpmRegion::getMaxActions(regionId);
+       i++) {
+    if (!a_[i])
+      return i;
+  }
+  return -1;
+}
+/* ---------------------------------------------------- */
+bool EkaEpm::isActionReserved(int globalIdx) {
+  return (a_[globalIdx] != nullptr);
+}
 /* ---------------------------------------------------- */
 void EkaEpm::actionParamsSanityCheck(ActionType type,
-                                     int regionId,
-                                     uint8_t _coreId,
-                                     uint8_t _sessId) {
+                                     int regionId) {
+  if (regionId >= EkaEpmRegion::Regions::Total)
+    on_error("Wrong regionId %d", regionId);
+
   if (type == ActionType::UserAction)
     return;
 
@@ -391,69 +405,41 @@ void EkaEpm::actionParamsSanityCheck(ActionType type,
       regionId != EkaEpmRegion::Regions::TcpTxEmptyAck)
     on_error("regionId %u doesnt match actionType %d",
              regionId, (int)type);
+  /*
+    if (_coreId >= MAX_CORES)
+      on_error("coreId %u > MAX_CORES %u", _coreId,
+               MAX_CORES);
 
-  if (_coreId >= MAX_CORES)
-    on_error("coreId %u > MAX_CORES %u", _coreId,
-             MAX_CORES);
-
-  if (_sessId >= TOTAL_SESSIONS_PER_CORE)
-    on_error("sessId %u >= TOTAL_SESSIONS_PER_CORE %u",
-             _sessId, TOTAL_SESSIONS_PER_CORE);
+    if (_sessId >= TOTAL_SESSIONS_PER_CORE)
+      on_error("sessId %u >= TOTAL_SESSIONS_PER_CORE %u",
+               _sessId, TOTAL_SESSIONS_PER_CORE); */
 }
 /* ---------------------------------------------------- */
 
-EkaEpmAction *
-EkaEpm::addAction(ActionType type, int regionId,
-                  epm_actionid_t _localIdx, uint8_t _coreId,
-                  uint8_t _sessId, uint8_t _auxIdx) {
+EkaEpmAction *EkaEpm::addAction(ActionType type,
+                                epm_actionid_t localIdx,
+                                int regionId) {
 
-  if (regionId >= EPM_REGIONS ||
-      epmRegion[regionId] == NULL)
-    on_error("wrong epmRegion[%u] = %p", regionId,
-             epmRegion[regionId]);
+  if (!epmRegion[regionId])
+    on_error("!epmRegion[%u]", regionId);
 
-  actionParamsSanityCheck(type, regionId, _coreId, _sessId);
-
-  //  uint            heapBudget      = getHeapBudget(type);
+  actionParamsSanityCheck(type, regionId);
+  EkaEpmRegion::sanityCheckActionId(regionId,
+                                    (int)localIdx);
 
   createActionMtx.lock();
 
-  epm_actionid_t localActionIdx = -1;
-
-  switch (type) {
-  case ActionType::TcpEmptyAck:
-  case ActionType::TcpFullPkt:
-  case ActionType::TcpFastPath:
-    localActionIdx =
-        _coreId * TOTAL_SESSIONS_PER_CORE + _sessId;
-    break;
-  default:
-    localActionIdx = epmRegion[regionId]->localActionIdx++;
-  }
-
-  EKA_LOG("Action %d: %s, regionId=%u", (int)localActionIdx,
-          printActionType(type), regionId);
-
-  EkaEpmRegion::sanityCheckActionId(regionId,
-                                    (int)localActionIdx);
+  EKA_LOG("Creating Action[%d]: \'%s\' at regionId=%u",
+          (int)localIdx, printActionType(type), regionId);
 
   epm_actionid_t actionIdx =
-      EkaEpmRegion::getBaseActionIdx(regionId) +
-      localActionIdx;
+      EkaEpmRegion::getBaseActionIdx(regionId) + localIdx;
 
   EkaEpmAction *ekaA =
-      new EkaEpmAction(dev, type, actionIdx, localActionIdx,
-                       regionId, _coreId, _sessId, _auxIdx);
-
+      new EkaEpmAction(type, actionIdx, regionId);
   if (!ekaA)
     on_error("!ekaA");
 
-  copyBuf2Hw(dev, EpmActionBase,
-             (uint64_t *)&ekaA->hwAction,
-             sizeof(ekaA->hwAction)); // write to scratchpad
-
-  atomicIndirectBufWrite(dev, 0xf0238 /* ActionAddr */, 0,
-                         0, ekaA->idx, 0);
   createActionMtx.unlock();
 
   return ekaA;
@@ -476,9 +462,7 @@ EkaEpm::allocateAction(EpmActionType actionType) {
   auto localIdx =
       globalIdx - EkaEpmRegion::getBaseActionIdx(regionId);
 
-  a_[globalIdx] = new EkaEpmAction(
-      dev_, actionType, globalIdx, localIdx, regionId,
-      -1 /* coreId */, -1 /* sessId */, -1 /* auxIdx */);
+  a_[globalIdx] = addAction(actionType, localIdx, regionId);
 
   if (!a_[globalIdx])
     on_error("Failed creating a_[%d]", globalIdx);

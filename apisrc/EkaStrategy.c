@@ -2,10 +2,24 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
+#include "Efc.h"
+#include "Efh.h"
+#include "EkaEpm.h"
 #include "EkaHwCaps.h"
 #include "EkaIgmp.h"
-#include "EkaStrategy.h"
+
+#include "EkaCore.h"
+#include "EkaCtxs.h"
+#include "EkaDev.h"
+#include "EkaEfc.h"
+#include "EkaEpmAction.h"
+#include "EkaEpmRegion.h"
+#include "EkaHwCaps.h"
+#include "EkaSnDev.h"
+#include "EkaTcpSess.h"
 #include "EkaUdpSess.h"
+
+#include "EkaEfcDataStructs.h"
 
 extern EkaDev *g_ekaDev;
 
@@ -61,25 +75,22 @@ EkaStrategy::~EkaStrategy() {
 }
 /* --------------------------------------------------- */
 int EkaStrategy::allocateAction(EpmActionType actionType) {
-  epm_->createActionMtx.lock();
+  epm_->allocateActionMtx.lock();
 
-  auto globalIdx = epm->getFreeAction();
-
-  auto localIdx =
-      globalIdx - EkaEpmRegion::getBaseActionIdx(regionId);
-
+  auto globalIdx = epm_->getFreeAction(regionId_);
   if (globalIdx < 0)
     on_error("No free actions to allocate");
 
-  a_[nActions_] = new EkaEpmAction(
-      dev_, actionType, globalIdx, localIdx, regionId,
-      -1 /* coreId */, -1 /* sessId */, -1 /* auxIdx */);
+  auto localIdx =
+      globalIdx - EkaEpmRegion::getBaseActionIdx(regionId_);
 
-  if (!a_[nActions_])
+  epm_->a_[globalIdx] =
+      epm_->addAction(actionType, localIdx, regionId_);
+
+  if (!epm_->a_[globalIdx])
     on_error("failed to create new action");
 
-  nActions_++;
-  epm_->createActionMtx.unlock();
+  epm_->allocateActionMtx.unlock();
 
   return globalIdx;
 }
@@ -187,12 +198,11 @@ void EkaStrategy::disableRxFire() {
 EkaUdpSess *EkaStrategy::findUdpSess(EkaCoreId coreId,
                                      uint32_t mcAddr,
                                      uint16_t mcPort) {
-  for (auto i = 0; i < strat->numUdpSess_; i++) {
-    if (!strat->udpSess_[i])
+  for (auto i = 0; i < numUdpSess_; i++) {
+    if (!udpSess_[i])
       on_error("!udpSess[%d]", i);
-    if (strat->udpSess_[i]->myParams(coreId, mcAddr,
-                                     mcPort))
-      return strat->udpSess_[i];
+    if (udpSess_[i]->myParams(coreId, mcAddr, mcPort))
+      return udpSess_[i];
   }
   return nullptr;
 }

@@ -138,32 +138,23 @@ EkaOpResult efcSetActionPayload(EkaDev *ekaDev,
   if (!dev || !dev->epm)
     on_error("!dev || !epm");
   auto epm = dev->epm;
-  auto efc =
-      dynamic_cast<EkaEfc *>(epm->strategy[EFC_STRATEGY]);
+  auto efc = dev->efc;
   if (!efc)
     on_error("!efc");
 
   auto a = epm->a_[actionIdx];
 
-  a->heapOffs =
-      actionIdx * EkaEpmRegion::HeapPerRegularAction;
-  auto dataOffs = isUdpAction(a->type)
-                      ? EkaEpm::UdpDatagramOffset
-                      : EkaEpm::TcpDatagramOffset;
-  auto payloadOffs = a->heapOffs + dataOffs;
+  if (!a)
+    on_error("action[%d] was not allocated", actionIdx);
 
-  a->setPayloadLen(len);
+  a->setPayload(payload, len);
 
-  auto rc =
-      epm->payloadHeapCopy(EFC_STRATEGY, payloadOffs, len,
-                           payload, isUdpAction(a->type));
-  a->updatePayload();
-  EKA_LOG("EFC Action %d: %ju bytes copied to offs %ju",
-          actionIdx, len, payloadOffs);
+  EKA_LOG("EFC Action[%d]: %ju bytes copied Heap",
+          actionIdx, len);
 
   //	a->printHeap();
 
-  return rc;
+  return EKA_OPRESULT__OK;
 }
 /* --------------------------------------------------- */
 

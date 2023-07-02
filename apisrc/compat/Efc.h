@@ -37,7 +37,8 @@ enum EfcStrategyId : int {
   QedFastSweep
 };
 
-const char *efcPrintStratName(EfcStrategyId id) {
+static inline const char *
+efcPrintStratName(EfcStrategyId id) {
   switch (id) {
   case EfcStrategyId::P4:
     return "P4";

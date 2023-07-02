@@ -5,6 +5,7 @@
 #include "eka_macros.h"
 
 class EkaUdpSess;
+class EkaEpmAction;
 
 class EkaStrategy {
 protected:
@@ -43,6 +44,9 @@ public:
   void *cbCtx_;
 
   std::string name_ = "Uninitialized";
+  EkaEpmAction *a_[EkaEpmRegion::NumEfcActions] = {};
+
+  int regionId_ = EkaEpmRegion::Regions::Efc;
 
   // EhpProtocol *ehp = NULL;
 };
