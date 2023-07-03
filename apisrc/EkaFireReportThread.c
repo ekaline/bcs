@@ -776,11 +776,12 @@ void ekaFireReportThread(EkaDev *dev) {
         }
         if (!reportedStrategy->reportCb)
           on_error("reportCb is not defined");
-        char fireReportStr[16 * 1024] = {};
-        hexDump2str("Fire Report", reportBuf, reportLen,
-                    fireReportStr, sizeof(fireReportStr));
-        EKA_LOG("reportCb: %s", fireReportStr);
-
+        /*
+              char fireReportStr[16 * 1024] = {};
+              hexDump2str("Fire Report", reportBuf,
+           reportLen, fireReportStr, sizeof(fireReportStr));
+              EKA_LOG("reportCb: %s", fireReportStr);
+        */
         reportedStrategy->reportCb(reportBuf, reportLen,
                                    reportedStrategy->cbCtx);
       } else { // no strategy, as exception
