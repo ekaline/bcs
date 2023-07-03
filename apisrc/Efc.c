@@ -70,7 +70,7 @@ EkaOpResult efcInit(EfcCtx **ppEfcCtx, EkaDev *pEkaDev,
 /* --------------------------------------------------- */
 
 epm_actionid_t
-efcAllocateNewAction(const EkaDev *ekaDev,
+efcAllocateNewAction(EkaDev *ekaDev,
                      EpmActionType actionType) {
   auto dev = ekaDev;
   if (!dev || !dev->epm || !dev->efc)
@@ -82,52 +82,63 @@ efcAllocateNewAction(const EkaDev *ekaDev,
 }
 /* --------------------------------------------------- */
 
-EkaOpResult efcSetAction(EkaDev *ekaDev,
-                         epm_actionid_t globalIdx,
-                         const EfcAction *efcAction) {
-  on_error("FIX ME!");
-#if 0
+EkaOpResult setActionTcpSock(EkaDev *ekaDev,
+                             epm_actionid_t globalIdx,
+                             ExcSocketHandle excSock) {
   auto dev = ekaDev;
   if (!dev || !dev->epm || !dev->efc)
     on_error("!dev || !epm || !efc");
   auto epm = dev->epm;
-  auto efc = dev->efc;
 
-  auto a = epm->a_[globalIdx];
-  auto regionId = EkaEpmRegion::Regions::Efc;
-  auto localIdx =
-      globalIdx - EkaEpmRegion::getBaseActionIdx(regionId);
+  if (!epm->a_[globalIdx])
+    on_error("Action[%d] does not exist", globalIdx);
 
-  auto actionType =
-      efcAction->type != EpmActionType::INVALID
-          ? efcAction->type
-          : a->type;
+  EkaTcpSess *const sess = dev->findTcpSess(excSock);
 
-  auto baseOffs =
-      EkaEpmRegion::getActionHeapOffs(regionId, localIdx);
+  if (!sess)
+    on_error("excSock %d does not exist", excSock);
 
-  auto dataOffs = isUdpAction(actionType)
-                      ? EkaEpm::UdpDatagramOffset
-                      : EkaEpm::TcpDatagramOffset;
-  uint payloadOffs = baseOffs + dataOffs;
-
-  const EpmAction epmAction = {
-      .type = actionType,
-      .token = efcAction->token,
-      .hConn = efcAction->hConn,
-      .offset = payloadOffs,
-      .length = a->getPayloadLen(),
-      .actionFlags = efcAction->actionFlags,
-      .nextAction = efcAction->nextAction,
-      .enable = efcAction->enable,
-      .postLocalMask = efcAction->postLocalMask,
-      .postStratMask = efcAction->postStratMask,
-      .user = efcAction->user};
-
-  return epm->setAction(EFC_STRATEGY, actionIdx,
-                        &epmAction);
-#endif
+  epm->a_[globalIdx]->setTcpSess(sess);
+  return EKA_OPRESULT__OK;
 }
+
+/* --------------------------------------------------- */
+
+EkaOpResult
+setActionNext(EkaDev *ekaDev, epm_actionid_t globalIdx,
+              epm_actionid_t nextActionGlobalIdx) {
+  auto dev = ekaDev;
+  if (!dev || !dev->epm || !dev->efc)
+    on_error("!dev || !epm || !efc");
+  auto epm = dev->epm;
+
+  if (!epm->a_[globalIdx])
+    on_error("Action[%d] does not exist", globalIdx);
+
+  epm->a_[globalIdx]->setNextAction(nextActionGlobalIdx);
+
+  return EKA_OPRESULT__OK;
+}
+
+/* --------------------------------------------------- */
+
+EkaOpResult setActionPhysicalLane(EkaDev *ekaDev,
+                                  epm_actionid_t globalIdx,
+                                  EkaCoreId lane) {
+  auto dev = ekaDev;
+  if (!dev || !dev->epm || !dev->efc)
+    on_error("!dev || !epm || !efc");
+  auto epm = dev->epm;
+
+  if (!epm->a_[globalIdx])
+    on_error("Action[%d] does not exist", globalIdx);
+
+  epm->a_[globalIdx]->setCoreId(lane);
+
+  return EKA_OPRESULT__OK;
+}
+/* --------------------------------------------------- */
+
 /* --------------------------------------------------- */
 
 EkaOpResult efcSetActionPayload(EkaDev *ekaDev,
@@ -158,8 +169,10 @@ EkaOpResult efcSetActionPayload(EkaDev *ekaDev,
 }
 /* --------------------------------------------------- */
 
-EkaOpResult efcInitP4Strategy(EfcCtx *pEfcCtx,
-                              const EfcP4Params *p4Params) {
+EkaOpResult
+efcInitP4Strategy(EfcCtx *pEfcCtx,
+                  const EfcStrategyParams *stratParams,
+                  const EfcP4Params *p4Params) {
   if (!pEfcCtx || !pEfcCtx->dev)
     on_error("!pEfcCtx || !pEfcCtx->dev");
   auto dev = pEfcCtx->dev;
@@ -167,14 +180,13 @@ EkaOpResult efcInitP4Strategy(EfcCtx *pEfcCtx,
     on_error("Efc is not initialized: use efcInit()");
   auto efc = dev->efc;
 
-  efc->initP4(p4Params);
+  efc->initP4(stratParams, p4Params);
 
   return EKA_OPRESULT__OK;
 }
 /* --------------------------------------------------- */
 
-EkaOpResult efcArmP4(EfcCtx *pEfcCtx, bool arm,
-                     EfcArmVer ver) {
+EkaOpResult efcArmP4(EfcCtx *pEfcCtx, EfcArmVer ver) {
   if (!pEfcCtx || !pEfcCtx->dev)
     on_error("!pEfcCtx || !pEfcCtx->dev");
   auto dev = pEfcCtx->dev;
@@ -182,13 +194,24 @@ EkaOpResult efcArmP4(EfcCtx *pEfcCtx, bool arm,
     on_error("Efc is not initialized: use efcInit()");
   auto efc = dev->efc;
 
-  if (arm)
-    efc->armP4(ver);
-  else
-    efc->disarmP4();
+  efc->armP4(ver);
+
   return EKA_OPRESULT__OK;
 }
 
+/* --------------------------------------------------- */
+
+EkaOpResult efcDisArmP4(EfcCtx *pEfcCtx) {
+  if (!pEfcCtx || !pEfcCtx->dev)
+    on_error("!pEfcCtx || !pEfcCtx->dev");
+  auto dev = pEfcCtx->dev;
+  if (!dev->efc)
+    on_error("Efc is not initialized: use efcInit()");
+  auto efc = dev->efc;
+
+  efc->disarmP4();
+  return EKA_OPRESULT__OK;
+}
 /* --------------------------------------------------- */
 
 EkaOpResult

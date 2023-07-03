@@ -11,8 +11,7 @@ class EkaStrategy {
 protected:
   static const size_t MaxUdpMcGroups = 64;
 
-  EkaStrategy(EfhFeedVer feedVer,
-              const EpmStrategyParams *params);
+  EkaStrategy(const EfcStrategyParams *params);
 
 public:
   virtual ~EkaStrategy();
@@ -23,13 +22,12 @@ public:
   void disArmController();
   void armController(EfcArmVer ver);
 
-  int allocateAction(EpmActionType type);
-
   EkaUdpSess *findUdpSess(EkaCoreId coreId, uint32_t mcAddr,
                           uint16_t mcPort);
 
 public:
   static void clearAllHwUdpParams();
+  EkaCoreId coreId_ = -1;
 
 protected:
   EkaDev *dev_ = nullptr;

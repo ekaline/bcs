@@ -26,8 +26,7 @@ extern EkaDev *g_ekaDev;
 class EkaUdpSess;
 
 /* --------------------------------------------------- */
-EkaStrategy::EkaStrategy(EfhFeedVer feedVer,
-                         const EpmStrategyParams *params) {
+EkaStrategy::EkaStrategy(const EfcStrategyParams *params) {
   dev_ = g_ekaDev;
   if (!dev_)
     on_error("!dev_");
@@ -41,18 +40,20 @@ EkaStrategy::EkaStrategy(EfhFeedVer feedVer,
   reportCb_ = params->reportCb;
   cbCtx_ = params->cbCtx;
 
-  if (params->numTriggers > MaxUdpMcGroups)
-    on_error("params->numTriggers %ju > "
+  if (params->mcParams->nMcGroups > MaxUdpMcGroups)
+    on_error("nMcGroups %ju > "
              "MaxUdpMcGroups %ju",
-             params->numTriggers, MaxUdpMcGroups);
+             params->mcParams->nMcGroups, MaxUdpMcGroups);
 
-  numUdpSess_ = params->numTriggers;
+  numUdpSess_ = params->mcParams->nMcGroups;
+
+  coreId_ = params->mcParams->coreId;
 
   for (auto i = 0; i < numUdpSess_; i++) {
     udpSess_[i] = new EkaUdpSess(
-        dev_, i, params->triggerParams[i].coreId,
-        inet_addr(params->triggerParams[i].mcIp),
-        params->triggerParams[i].mcUdpPort);
+        dev_, i, coreId_,
+        inet_addr(params->mcParams->groups[i].mcIp),
+        params->mcParams->groups[i].mcUdpPort);
     dev_->ekaIgmp->mcJoin(
         EkaEpmRegion::Regions::EfcMc, udpSess_[i]->coreId,
         udpSess_[i]->ip, udpSess_[i]->port,
@@ -74,26 +75,6 @@ EkaStrategy::~EkaStrategy() {
             swStatistics & ~(1ULL << 63));
 }
 /* --------------------------------------------------- */
-int EkaStrategy::allocateAction(EpmActionType actionType) {
-  epm_->allocateActionMtx.lock();
-
-  auto globalIdx = epm_->getFreeAction(regionId_);
-  if (globalIdx < 0)
-    on_error("No free actions to allocate");
-
-  auto localIdx =
-      globalIdx - EkaEpmRegion::getBaseActionIdx(regionId_);
-
-  epm_->a_[globalIdx] =
-      epm_->addAction(actionType, localIdx, regionId_);
-
-  if (!epm_->a_[globalIdx])
-    on_error("failed to create new action");
-
-  epm_->allocateActionMtx.unlock();
-
-  return globalIdx;
-}
 
 /* --------------------------------------------------- */
 void EkaStrategy::clearAllHwUdpParams() {

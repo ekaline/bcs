@@ -58,7 +58,10 @@ EkaEfc::~EkaEfc() {
 }
 
 /* ################################################ */
-
+void EkaEfc::initP4(const EfcStrategyParams *stratParams,
+                    const EfcP4Params *p4Params) {
+  p4_ = new EkaP4Strategy(stratParams, p4Params);
+}
 /* ################################################ */
 int EkaEfc::armController(EfcArmVer ver) {
   EKA_LOG("Arming EFC");
@@ -72,6 +75,12 @@ int EkaEfc::disArmController() {
   eka_write(dev_, P4_ARM_DISARM, 0);
   return 0;
 }
+/* ################################################ */
+void EkaEfc::armP4(EfcArmVer ver) { armController(ver); }
+
+/* ################################################ */
+void EkaEfc::disarmP4() { disArmController(); }
+
 /* ################################################ */
 int EkaEfc::initStratGlobalParams(
     const EfcStratGlobCtx *ctx) {

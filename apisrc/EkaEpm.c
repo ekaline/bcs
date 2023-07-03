@@ -432,44 +432,42 @@ EkaEpmAction *EkaEpm::addAction(ActionType type,
   EKA_LOG("Creating Action[%d]: \'%s\' at regionId=%u",
           (int)localIdx, printActionType(type), regionId);
 
-  epm_actionid_t actionIdx =
+  epm_actionid_t globalIdx =
       EkaEpmRegion::getBaseActionIdx(regionId) + localIdx;
 
-  EkaEpmAction *ekaA =
-      new EkaEpmAction(type, actionIdx, regionId);
-  if (!ekaA)
-    on_error("!ekaA");
+  if (a_[globalIdx])
+    on_error("a_[%d] is already set", globalIdx);
+
+  a_[globalIdx] =
+      new EkaEpmAction(type, localIdx, regionId);
+
+  if (!a_[globalIdx])
+    on_error("!a_[%d]", globalIdx);
 
   createActionMtx.unlock();
 
-  return ekaA;
+  return a_[globalIdx];
 }
 /* ---------------------------------------------------- */
 epm_actionid_t
 EkaEpm::allocateAction(EpmActionType actionType) {
-  createActionMtx.lock();
+  allocateActionMtx.lock();
   auto regionId = EkaEpmRegion::Regions::Efc;
 
   if (nActions_ == EkaEpmRegion::getMaxActions(regionId))
-    on_error("Out of free actions: nActions_ = %d",
+    on_error("Out of free actions: nActions_ = %ju",
              nActions_);
 
   auto globalIdx = nActions_;
-
-  if (a_[globalIdx])
-    on_error("a_[%d] already exists", globalIdx);
 
   auto localIdx =
       globalIdx - EkaEpmRegion::getBaseActionIdx(regionId);
 
   a_[globalIdx] = addAction(actionType, localIdx, regionId);
 
-  if (!a_[globalIdx])
-    on_error("Failed creating a_[%d]", globalIdx);
-
   nActions_++;
 
-  createActionMtx.unlock();
+  allocateActionMtx.unlock();
 
   return globalIdx;
 }

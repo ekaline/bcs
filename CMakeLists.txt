@@ -40,6 +40,7 @@ set(EKA_LIB_NAME ekaN)
 
 set(BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/build)
 set(EKA_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/apisrc)
+set(EKA_TESTS_DIR ${CMAKE_CURRENT_LIST_DIR}/tests)
 
 set(libDstDir ${CMAKE_BINARY_DIR}/lib/${EKA_LIB_NAME})
 file(MAKE_DIRECTORY ${libDstDir})
@@ -52,14 +53,15 @@ set(SMARTNIC_API_INCL ${SMARTNIC_ROOT}/include)
 set(SMARTNIC_DRIVER_INCL ${SMARTNIC_ROOT}/driver)
 
 set(SMARTNIC_LIB_STATIC ${SMARTNIC_ROOT}/lib/libsmartnic.a)
-add_custom_command(OUTPUT ${SMARTNIC_LIB_STATIC}
-                   COMMAND make
-                   WORKING_DIRECTORY ${SMARTNIC_ROOT}/api
-                   VERBATIM
-)
+add_custom_command(
+  OUTPUT ${SMARTNIC_LIB_STATIC}
+  COMMAND make
+  WORKING_DIRECTORY ${SMARTNIC_ROOT}/api
+  VERBATIM)
 add_custom_target(libsmartnic_static_lib DEPENDS ${SMARTNIC_LIB_STATIC})
 add_library(libsmartnic_static STATIC IMPORTED)
-set_target_properties(libsmartnic_static PROPERTIES IMPORTED_LOCATION ${SMARTNIC_LIB_STATIC})
+set_target_properties(libsmartnic_static PROPERTIES IMPORTED_LOCATION
+                                                    ${SMARTNIC_LIB_STATIC})
 add_dependencies(libsmartnic_static libsmartnic_static_lib)
 
 #
@@ -127,7 +129,7 @@ set(EKA_INC_PATH ${EKA_INC_PATH} ${EKA_SRC_DIR}/arch)
 set(EKA_INC_PATH ${EKA_INC_PATH} ${EKA_SRC_DIR}/compat)
 set(EKA_INC_PATH ${EKA_INC_PATH} ${EKA_SRC_DIR}/Ehp)
 set(EKA_INC_PATH ${EKA_INC_PATH} ${EKA_SRC_DIR}/FhBook)
-set(EKA_INC_PATH ${EKA_INC_PATH} ${EKA_SRC_DIR}/../new_api_tests)
+set(EKA_INC_PATH ${EKA_INC_PATH} ${EKA_TESTS_DIR})
 set(EKA_INC_PATH ${EKA_INC_PATH} ${SMARTNIC_API_INCL})
 set(EKA_INC_PATH ${EKA_INC_PATH} ${SMARTNIC_DRIVER_INCL})
 set(EKA_INC_PATH ${EKA_INC_PATH} ${LWIP_INCL})
@@ -151,11 +153,15 @@ if(ENABLE_TESTING)
   target_compile_definitions(${EKA_LIB_NAME} PUBLIC ENABLE_TESTING="ON")
 endif()
 
-target_link_libraries(${EKA_LIB_NAME} PUBLIC
-                        libsmartnic_static
-                        ekalwip_static rt m Threads::Threads
-                        -static-libgcc -static-libstdc++
-)
+target_link_libraries(
+  ${EKA_LIB_NAME}
+  PUBLIC libsmartnic_static
+         ekalwip_static
+         rt
+         m
+         Threads::Threads
+         -static-libgcc
+         -static-libstdc++)
 
 set_target_properties(${EKA_LIB_NAME} PROPERTIES PUBLIC_HEADER ${apiDIR}/*.h)
 
@@ -173,11 +179,15 @@ target_include_directories(${EKA_LIB_NAME}_static PUBLIC ${EKA_INC_PATH})
 
 target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC LIBEKA_GIT_VER="DUMMY")
 
-target_link_libraries(${EKA_LIB_NAME}_static PUBLIC
-                        libsmartnic_static
-                        ekalwip_static rt m Threads::Threads
-                        -static-libgcc -static-libstdc++
-)
+target_link_libraries(
+  ${EKA_LIB_NAME}_static
+  PUBLIC libsmartnic_static
+         ekalwip_static
+         rt
+         m
+         Threads::Threads
+         -static-libgcc
+         -static-libstdc++)
 
 set_target_properties(${EKA_LIB_NAME}_static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
                                                         ${libDstDir})
@@ -189,7 +199,7 @@ set_target_properties(${EKA_LIB_NAME}_static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
 # Tests
 
 # if (ENABLE_TESTING)
-file(GLOB test_SRCS ${EKA_SRC_DIR}/../new_api_tests/*.c)
+file(GLOB test_SRCS ${EKA_TESTS_DIR}/*.c)
 set(testDstDir ${CMAKE_BINARY_DIR}/tests/${EKA_LIB_NAME})
 file(MAKE_DIRECTORY ${testDstDir})
 
@@ -203,7 +213,6 @@ foreach(test ${test_SRCS})
   add_dependencies(${testName} ${EKA_LIB_NAME})
   target_link_libraries(${testName} ${EKA_LIB_NAME} rt m Threads::Threads)
   target_link_libraries(${testName} -static-libgcc -static-libstdc++)
-
 
   target_include_directories(${testName} PUBLIC ${EKA_INC_PATH})
 endforeach()
@@ -226,8 +235,8 @@ foreach(uSrc ${utils_SRCS})
   target_link_libraries(${utilExec} ${EKA_LIB_NAME}_static)
   target_link_libraries(${utilExec} -static-libgcc -static-libstdc++)
 
-  #target_link_libraries(${utilExec} rt m
-   #                     Threads::Threads)
+  # target_link_libraries(${utilExec} rt m
+  # Threads::Threads)
 
   target_include_directories(${utilExec} PUBLIC ${EKA_INC_PATH})
 endforeach()

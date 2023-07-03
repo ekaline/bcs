@@ -10,7 +10,6 @@
 
 #include "EfcCtxs.h"
 #include "EfcMsgs.h"
-#include "EfcMultiStrategies.h"
 #include "Efh.h"
 #include "Eka.h"
 #include "Epm.h"
@@ -343,23 +342,118 @@ efcSwKeepAliveSend(EfcCtx *efcCtx,
  */
 EkaOpResult efcClose(EfcCtx *efcCtx);
 
+/**
+ * Allocates a new Action from the Strategy pool.
+ *
+ * This function should not be called for the P4 strategies
+ * as the "1st" firing Actions are implicetly allocated from
+ * the reserved range 0..63, so every Market Data MC group
+ * has corresponding firing action. For example,
+ * at CBOE: actions # 0..34, at NOM: actions # 0..3
+ *
+ * For other strategies (CME Fast Cancel, Fast Sweep, etc.),
+ * a new action is allocated int the range of 64..2047
+ * the function returns an index of the allocated action.
+ *
+ * Every action has it's own reserved Heap space of
+ * 1536 Bytes for the network headers and the payload
+ *
+ * @param [in] pEkaDev
+ *
+ * @param [in] type EpmActionType of the requested Action
+ *
+ * @retval global index of the allocated Action or -1 if
+ * failed
+ */
+epm_actionid_t efcAllocateNewAction(EkaDev *ekaDev,
+                                    EpmActionType type);
+
+/**
+ * @brief
+ *
+ * @param ekaDev
+ * @param actionIdx - global idx in range of 0..8K-1
+ * @param payload
+ * @param len
+ * @return * EkaOpResult
+ */
+EkaOpResult efcSetActionPayload(EkaDev *ekaDev,
+                                epm_actionid_t actionIdx,
+                                const void *payload,
+                                size_t len);
+
+/**
+ * @brief Set the Action to previously connected Ekaline
+ * (Exc) Tcp Socket object
+ *
+ * @param ekaDev
+ * @param globalIdx
+ * @param excSock
+ * @return EkaOpResult
+ */
+EkaOpResult setActionTcpSock(EkaDev *ekaDev,
+                             epm_actionid_t globalIdx,
+                             ExcSocketHandle excSock);
+
+/**
+ * @brief Set the Action Next hop in the chain. Use
+ * EPM_LAST_ACTION for the end-of-chain. Action is created
+ * with a default value of EPM_LAST_ACTION
+ *
+ *
+ * @param ekaDev
+ * @param globalIdx
+ * @param nextActionGlobalIdx
+ * @return EkaOpResult
+ */
+EkaOpResult
+setActionNext(EkaDev *ekaDev, epm_actionid_t globalIdx,
+              epm_actionid_t nextActionGlobalIdx);
+
+/**
+ * @brief Set the Action Physical Lane (or coreId). Used for
+ * "Raw" Actions (not belonging to a TCP connection, but
+ * sent as is)
+ *
+ * @param ekaDev
+ * @param globalIdx
+ * @param lane
+ * @return EkaOpResult
+ */
+EkaOpResult setActionPhysicalLane(EkaDev *ekaDev,
+                                  epm_actionid_t globalIdx,
+                                  EkaCoreId lane);
+
+struct EfcUdpMcGroupParams {
+  const char *mcIp;
+  uint16_t mcUdpPort;
+};
+
 struct EfcUdpMcParams {
-  EkaCoreId coreId; ///< 10G lane to receive UDP MC trigger
-  const char *mcIp; ///< MC IP address
-  uint16_t mcUdpPort; ///< MC UDP Port
+  const EfcUdpMcGroupParams *groups;
+  size_t nMcGroups;
+  EkaCoreId coreId; ///< 10G lane to receive UDP MC
+};
+
+struct EfcStrategyParams {
+  const EfcUdpMcParams *mcParams;
+  EfhFeedVer feedVer;
+  OnReportCb reportCb;
+  void *cbCtx;
 };
 
 struct EfcP4Params {
-  const EfcUdpMcParams *mcParams;
-  size_t nMcParams;
-  EfhFeedVer feedVer;
+  uint32_t max_size; // global value for all P4 securities
 };
 
-EkaOpResult efcInitP4Strategy(EfcCtx *pEfcCtx,
-                              const EfcP4Params *p4Params);
+EkaOpResult
+efcInitP4Strategy(EfcCtx *pEfcCtx,
+                  const EfcStrategyParams *stratParams,
+                  const EfcP4Params *p4Params);
 
-EkaOpResult efcArmP4(EfcCtx *pEfcCtx, bool arm,
-                     EfcArmVer ver);
+EkaOpResult efcArmP4(EfcCtx *pEfcCtx, EfcArmVer ver);
+
+EkaOpResult efcDisArmP4(EfcCtx *pEfcCtx);
 
 #ifdef __cplusplus
 }

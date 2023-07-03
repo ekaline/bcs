@@ -11,7 +11,7 @@
 
 extern "C" {
 #include "Epm.h"
-
+#if 0
 /**
  * Allocates a new Action from the Strategy pool.
  *
@@ -88,7 +88,7 @@ EkaOpResult efcSetActionPayload(EkaDev *ekaDev,
                                 epm_actionid_t actionIdx,
                                 const void *payload,
                                 size_t len);
-
+#endif
 } // End of extern "C"
 
 #endif

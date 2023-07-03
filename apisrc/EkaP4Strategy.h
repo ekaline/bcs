@@ -26,8 +26,8 @@ class EkaHwHashTableLine;
 
 class EkaP4Strategy : public EkaStrategy {
 public:
-  EkaP4Strategy(EfhFeedVer feedVer,
-                const EpmStrategyParams *params);
+  EkaP4Strategy(const EfcStrategyParams *efcParams,
+                const EfcP4Params *p4Params);
 
   void cleanSubscrHwTable();
   int subscribeSec(uint64_t secId);
@@ -52,6 +52,8 @@ public:
       NULL; // array of SecIDs, index is handle
   int ctxWriteBank[MAX_CTX_THREADS] = {};
 
+  uint32_t maxSize_ = 0;
+
 private:
   void preallocateFireActions();
   void configureTemplates();
@@ -63,5 +65,7 @@ private:
   int getLineIdx(uint64_t normSecId);
 
   EkaHwHashTableLine *hashLine[EFC_SUBSCR_TABLE_ROWS] = {};
+
+  int regionId_ = EkaEpmRegion::Regions::Efc;
 };
 #endif

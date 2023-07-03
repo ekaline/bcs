@@ -34,6 +34,8 @@ public:
   /* ------------------------------------------------ */
   void setCoreId(EkaCoreId coreId);
   /* ------------------------------------------------ */
+  void setNextAction(epm_actionid_t nextActionIdx);
+  /* ------------------------------------------------ */
   int setNwHdrs(uint8_t *macDa, uint8_t *macSa,
                 uint32_t srcIp, uint32_t dstIp,
                 uint16_t srcPort, uint16_t dstPort);

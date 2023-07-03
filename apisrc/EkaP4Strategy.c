@@ -57,14 +57,17 @@
 
 /* --------------------------------------------------- */
 EkaP4Strategy::EkaP4Strategy(
-    EfhFeedVer feedVer, const EpmStrategyParams *params)
-    : EkaStrategy(feedVer, params) {
+    const EfcStrategyParams *efcParams,
+    const EfcP4Params *p4Params)
+    : EkaStrategy(efcParams) {
 
-  feedVer_ = feedVer;
+  feedVer_ = efcParams->feedVer;
   name_ =
       "P4_" + std::string(EKA_FEED_VER_DECODE(feedVer_));
-  EKA_LOG("Creating %s with %d MC groups", name_.c_str(),
-          numUdpSess_);
+
+  maxSize_ = p4Params->max_size;
+  EKA_LOG("Creating %s with %d MC groups, max_size = %u",
+          name_.c_str(), numUdpSess_, maxSize_);
 
   disableRxFire();
   eka_write(dev_, P4_STRAT_CONF, (uint64_t)0);
@@ -100,23 +103,9 @@ void EkaP4Strategy::preallocateFireActions() {
     on_error("Unexpected feedVer %d", (int)feedVer_);
   }
 
-  auto regionId = EkaEpmRegion::Regions::Efc;
-  epm_->createActionMtx.lock();
-
   for (auto i = 0; i < numUdpSess_; i++) {
-    auto localIdx = i;
-    auto globalIdx =
-        EkaEpmRegion::getBaseActionIdx(regionId) + localIdx;
-
-    epm_->isActionReserved(globalIdx);
-
-    a_[i] =
-        new EkaEpmAction(actionType, localIdx, regionId);
-
-    if (!a_[i])
-      on_error("Failed on addAction()");
+    epm_->addAction(actionType, i, regionId_);
   }
-  epm_->createActionMtx.unlock();
 }
 /* --------------------------------------------------- */
 void EkaP4Strategy::configureTemplates() {
@@ -130,7 +119,7 @@ void EkaP4Strategy::configureTemplates() {
 
   default:
     on_error("Unexpected feedVer_ %s (%d)",
-             EKA_FEED_VER_DECODE(feedVer_), feedVer_);
+             EKA_FEED_VER_DECODE(feedVer_), (int)feedVer_);
   }
 }
 /* --------------------------------------------------- */
@@ -146,7 +135,7 @@ void EkaP4Strategy::configureEhp() {
 
   default:
     on_error("Unexpected feedVer_ %s (%d)",
-             EKA_FEED_VER_DECODE(feedVer_), feedVer_);
+             EKA_FEED_VER_DECODE(feedVer_), (int)feedVer_);
   }
 }
 
@@ -184,10 +173,9 @@ void EkaP4Strategy::cleanSecHwCtx() {
 }
 /* --------------------------------------------------- */
 
-inline void
-EkaP4Strategy::writeSecHwCtx(const EfcSecCtxHandle handle,
-                             const EkaHwSecCtx *pHwSecCtx,
-                             uint16_t writeChan) {
+void EkaP4Strategy::writeSecHwCtx(
+    const EfcSecCtxHandle handle,
+    const EkaHwSecCtx *pHwSecCtx, uint16_t writeChan) {
   uint64_t ctxWrAddr =
       P4_CTX_CHANNEL_BASE +
       writeChan * EKA_BANKS_PER_CTX_THREAD *

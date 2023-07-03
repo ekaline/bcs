@@ -578,14 +578,23 @@ void EkaEpmAction::setTcpSess(EkaTcpSess *tcpSess) {
   tcpSess_ = tcpSess;
   coreId_ = tcpSess->coreId;
   sessId_ = tcpSess->sessId;
+  setHwAction();
 }
 /* ----------------------------------------------------- */
 void EkaEpmAction::setUdpSess(EkaUdpSess *udpSess) {
   udpSess_ = udpSess;
+  setHwAction();
 }
 /* ----------------------------------------------------- */
 void EkaEpmAction::setCoreId(EkaCoreId coreId) {
   coreId_ = coreId;
+  setHwAction();
+}
+/* ----------------------------------------------------- */
+void EkaEpmAction::setNextAction(
+    epm_actionid_t nextActionIdx) {
+  epmActionLocalCopy_.nextAction = nextActionIdx;
+  setHwAction();
 }
 
 /* ----------------------------------------------------- */
