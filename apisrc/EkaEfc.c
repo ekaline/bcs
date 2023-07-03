@@ -36,11 +36,13 @@ extern EkaDev *g_ekaDev;
 /* ################################################ */
 EkaEfc::EkaEfc(const EfcInitCtx *pEfcInitCtx) {
   dev_ = g_ekaDev;
-  if (!dev_)
-    on_error("!dev_");
+  if (!dev_ || !dev_->epm)
+    on_error("!dev_ || !dev_->epm");
+  epm_ = dev_->epm;
 
   //  eka_write(dev_,STAT_CLEAR   ,(uint64_t) 1);
-
+  epm_->createRegion(EkaEpmRegion::Regions::Efc);
+  epm_->createRegion(EkaEpmRegion::Regions::EfcMc);
   report_only_ = pEfcInitCtx->report_only;
   watchdog_timeout_sec_ = pEfcInitCtx->watchdog_timeout_sec;
   EKA_LOG("EFC is created with: report_only=%d, "

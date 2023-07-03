@@ -16,6 +16,7 @@ class EkaHwHashTableLine;
 class EkaIgmp;
 class EkaUdpSess;
 class EkaP4Strategy;
+class EkaEpm;
 
 class EkaEfc {
 public:
@@ -49,6 +50,8 @@ private:
   int checkSanity();
 
   EkaDev *dev_ = nullptr;
+  EkaEpm *epm_ = nullptr;
+
   /* -----------------------------------------------------
    */
   static const int MAX_UDP_SESS = 64;

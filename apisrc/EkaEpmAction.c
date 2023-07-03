@@ -217,7 +217,8 @@ int EkaEpmAction::setTemplate() {
         epm_->epmTemplate[(int)EkaEpm::TemplateId::Raw];
     break;
   case EpmActionType::TcpEmptyAck:
-    epm_->epmTemplate[(int)EkaEpm::TemplateId::TcpFastPath];
+    epmTemplate_ = epm_->epmTemplate[(
+        int)EkaEpm::TemplateId::TcpFastPath];
     break;
   case EpmActionType::Igmp:
     epmTemplate_ =
