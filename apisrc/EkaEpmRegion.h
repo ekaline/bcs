@@ -244,11 +244,13 @@ public:
 
     eka_write(dev_, 0x82000 + 8 * id_,
               getBaseActionIdx(id_));
-
-    EKA_LOG("Created EpmRegion %s %u: "
-            "baseActionIdx=%u, baseHeapOffs=%x",
-            region[id_].name, id_, getBaseActionIdx(id_),
-            getBaseHeapOffs(id_));
+    EKA_LOG("Configuring %x %d", 0x82000 + 8 * id_,
+            getBaseActionIdx(id_));
+    EKA_LOG(
+        "Created EpmRegion %s %u: "
+        "baseActionIdx=%u, numActions=%d, baseHeapOffs=%x",
+        region[id_].name, id_, getBaseActionIdx(id_),
+        getMaxActions(id_), getBaseHeapOffs(id_));
   }
 
   EkaDev *dev_ = NULL;

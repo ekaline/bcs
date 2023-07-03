@@ -68,9 +68,10 @@ void EkaEpm::initHeap(uint regionHeapBaseOffs,
         regionHeapSize, HeapPage);
   const int HeapWcPageSize = 1024;
   auto numPages = regionHeapSize / HeapWcPageSize;
-  EKA_LOG("regionHeapBaseOffs=%u, regionHeapSize=%u, "
+  EKA_LOG("Initializing region %u regionHeapBaseOffs=%u, "
+          "regionHeapSize=%u, "
           "HeapWcPageSize=%d, numPages=%d",
-          regionHeapBaseOffs, regionHeapSize,
+          regionId, regionHeapBaseOffs, regionHeapSize,
           HeapWcPageSize, numPages);
   memset(&heap[regionHeapBaseOffs], 0, regionHeapSize);
 
@@ -349,7 +350,7 @@ void EkaEpm::InitDefaultTemplates() {
       epmTemplate[(int)TemplateId::TcpFastPath]);
 
   epmTemplate[(int)TemplateId::Raw] =
-      new EpmFastPathTemplate((uint)TemplateId::Raw);
+      new EpmRawPktTemplate((uint)TemplateId::Raw);
 
   DownloadSingleTemplate2HW(
       epmTemplate[(int)TemplateId::Raw]);

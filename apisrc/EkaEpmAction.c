@@ -162,7 +162,7 @@ int EkaEpmAction::setHwAction() {
              (uint64_t *)&hwAction_,
              sizeof(hwAction_)); // write to scratchpad
   atomicIndirectBufWrite(dev_, 0xf0238 /* ActionAddr */, 0,
-                         0, idx_, 0);
+                         0, globalIdx(), 0);
 
   return 0;
 }
@@ -275,59 +275,6 @@ int EkaEpmAction::setTemplate() {
 
 /* ---------------------------------------------------- */
 int EkaEpmAction::setName() {
-#if 0
-  switch (type_) {
-  case EpmActionType::TcpFastPath:
-    name_ = std::string("TcpFastPath");
-    break;
-  case EpmActionType::TcpFullPkt:
-    name_ = std::string("TcpFullPkt");
-    break;
-  case EpmActionType::TcpEmptyAck:
-    name_ = std::string("TcpEmptyAck");
-    break;
-  case EpmActionType::Igmp:
-    name_ = std::string("Igmp");
-    break;
-  case EpmActionType::SqfFire:
-    name_ = std::string("SqfFire");
-    break;
-  case EpmActionType::SqfCancel:
-    name_ = std::string("SqfCancel");
-    break;
-  case EpmActionType::BoeFire:
-    name_ = std::string("BoeFire");
-    break;
-  case EpmActionType::BoeCancel:
-    name_ = std::string("BoeCancel");
-    break;
-  case EpmActionType::CmeHwCancel:
-    name_ = std::string("CmeHwCancel");
-    break;
-  case EpmActionType::QEDHwPurge:
-    name_ = std::string("QEDHwPurge");
-    break;
-  case EpmActionType::CmeSwFire:
-    name_ = std::string("CmeSwFire");
-    break;
-  case EpmActionType::CmeSwHeartbeat:
-    name_ = std::string("CmeSwHeartbeat");
-    break;
-  case EpmActionType::ItchHwFastSweep:
-    name_ = std::string("ItchHwFastSweep");
-    break;
-  case EpmActionType::HwFireAction:
-    name_ = std::string("HwFire");
-    break;
-  case EpmActionType::UserAction:
-    name_ = std::string("UserAction");
-    break;
-  default:
-    on_error("Unexpected EkaEpmAction type_ %d",
-             (int)type_);
-  }
-#endif
-
   name_ = std::string(printActionType(type_));
   return 0;
 }
