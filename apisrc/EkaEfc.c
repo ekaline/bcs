@@ -203,7 +203,7 @@ int EkaEfc::run(EfcCtx *pEfcCtx,
                  : efcPrintFireReport;
   cbCtx = pEfcRunCtx->cbCtx;
 
-  setHwGlobalParams();
+  // setHwGlobalParams();
   setHwUdpParams();
   /* if (hwFeedVer != EfhFeedVer::kCME) */
   /*   setHwStratRegion(); */
