@@ -48,6 +48,24 @@ EkaEfc::EkaEfc(const EfcInitCtx *pEfcInitCtx) {
   EKA_LOG("EFC is created with: report_only=%d, "
           "watchdog_timeout_sec = %ju",
           report_only_, watchdog_timeout_sec_);
+
+  uint64_t p4_strat_conf = eka_read(dev_, P4_STRAT_CONF);
+  uint64_t p4_watchdog_period = EKA_WATCHDOG_SEC_VAL;
+
+  if (report_only_)
+    p4_strat_conf |= EKA_P4_REPORT_ONLY_BIT;
+  /*   if (stratGlobCtx.debug_always_fire)
+      p4_strat_conf |= EKA_P4_ALWAYS_FIRE_BIT;
+    if (stratGlobCtx.debug_always_fire_on_unsubscribed)
+      p4_strat_conf |= EKA_P4_ALWAYS_FIRE_UNSUBS_BIT; */
+  /* if (stratGlobCtx.auto_rearm == 1)  */
+  /*   p4_strat_conf |= EKA_P4_AUTO_REARM_BIT; */
+  if (watchdog_timeout_sec_ != 0)
+    p4_watchdog_period =
+        EKA_WATCHDOG_SEC_VAL * watchdog_timeout_sec_;
+
+  eka_write(dev_, P4_STRAT_CONF, p4_strat_conf);
+  eka_write(dev_, P4_WATCHDOG_CONF, p4_watchdog_period);
 }
 /* ################################################ */
 EkaEfc::~EkaEfc() {

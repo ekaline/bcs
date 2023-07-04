@@ -627,7 +627,7 @@ int main(int argc, char *argv[]) {
 
   EfcInitCtx initCtx = {
       .report_only = false,
-      .watchdog_timeout_sec = 100000,
+      .watchdog_timeout_sec = 1000000,
   };
 
   rc = efcInit(&pEfcCtx, dev, &initCtx);
@@ -650,7 +650,7 @@ int main(int argc, char *argv[]) {
   struct EfcP4Params p4Params = {
       .feedVer = EfhFeedVer::kCBOE,
       .fireOnAllAddOrders = true,
-      .max_size = 1000,
+      .max_size = 10000,
   };
 
   rc = efcInitP4Strategy(pEfcCtx, &cboeMcParams, &p4Params);
