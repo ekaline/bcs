@@ -126,7 +126,6 @@ void ekaServThread(EkaDev *dev) {
       EKA_WARN("sendDummyFastPathPkt returned error: "
                "rc=%d, \'%s\' (%d), pkt is:\n%s",
                rc, strerror(errno), errno, hexBuf);
-
       dev->epmFeedback->next();
       break;
     }
