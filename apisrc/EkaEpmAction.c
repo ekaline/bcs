@@ -526,6 +526,10 @@ void EkaEpmAction::setTcpSess(EkaTcpSess *tcpSess) {
   tcpSess_ = tcpSess;
   coreId_ = tcpSess->coreId;
   sessId_ = tcpSess->sessId;
+
+  setNwHdrs(tcpSess->macDa, tcpSess->macSa, tcpSess->srcIp,
+            tcpSess->dstIp, tcpSess->srcPort,
+            tcpSess->dstPort);
   setHwAction();
 }
 /* ----------------------------------------------------- */
