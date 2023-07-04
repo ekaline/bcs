@@ -38,7 +38,7 @@ public:
   void armP4(EfcArmVer ver);
   void disarmP4();
 
-  bool isReportOnly() { return stratGlobCtx.report_only; }
+  bool isReportOnly() { return report_only_; }
 
 private:
   EkaUdpSess *findUdpSess(EkaCoreId coreId, uint32_t mcAddr,

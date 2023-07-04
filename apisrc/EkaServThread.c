@@ -102,8 +102,7 @@ void ekaServThread(EkaDev *dev) {
     if (isHwFire) {
       // dont send dummy pkt to lwip if it's fire at
       // report_only
-      auto efc = dynamic_cast<EkaEfc *>(
-          epm->strategy[EFC_STRATEGY]);
+      auto efc = dev->efc;
       if (!efc)
         on_error("!efc");
       if (efc->isReportOnly())

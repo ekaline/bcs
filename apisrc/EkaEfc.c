@@ -227,6 +227,8 @@ int EkaEfc::run(EfcCtx *pEfcCtx,
 
 /* ################################################ */
 int EkaEfc::setHwGlobalParams() {
+  on_error("Should not be called!");
+  // kept for reference only
   EKA_LOG("enable_strategy=%d, report_only=%d, "
           "debug_always_fire=%d, "
           "debug_always_fire_on_unsubscribed=%d, "
