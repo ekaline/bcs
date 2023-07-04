@@ -65,6 +65,8 @@ EkaP4Strategy::EkaP4Strategy(const EfcUdpMcParams *mcParams,
       "P4_" + std::string(EKA_FEED_VER_DECODE(feedVer_));
 
   maxSize_ = p4Params->max_size;
+  fireOnAllAddOrders_ = p4Params->fireOnAllAddOrders;
+
   EKA_LOG("Creating %s with %d MC groups, max_size = %u",
           name_.c_str(), numUdpSess_, maxSize_);
 

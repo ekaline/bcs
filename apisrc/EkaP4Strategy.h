@@ -53,6 +53,7 @@ public:
   int ctxWriteBank[MAX_CTX_THREADS] = {};
 
   uint32_t maxSize_ = 0;
+  bool fireOnAllAddOrders_ = false;
 
 private:
   void preallocateFireActions();
