@@ -73,8 +73,8 @@ EkaP4Strategy::EkaP4Strategy(const EfcUdpMcParams *mcParams,
   disableRxFire();
   eka_write(dev_, P4_STRAT_CONF, (uint64_t)0);
 
-  preallocateFireActions();
   configureTemplates();
+  preallocateFireActions();
   configureEhp();
   initHwRoundTable();
   createSecHash();
@@ -111,7 +111,7 @@ void EkaP4Strategy::preallocateFireActions() {
 /* --------------------------------------------------- */
 void EkaP4Strategy::configureTemplates() {
   switch (feedVer_) {
-  case EfhFeedVer::kBATS:
+  case EfhFeedVer::kCBOE:
     epm_->epmTemplate[(
         int)EkaEpm::TemplateId::BoeQuoteUpdateShort] =
         new EpmBoeQuoteUpdateShortTemplate(
