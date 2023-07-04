@@ -126,8 +126,8 @@ void EkaP4Strategy::configureTemplates() {
 /* --------------------------------------------------- */
 void EkaP4Strategy::configureEhp() {
   switch (feedVer_) {
-  case EfhFeedVer::kBATS: {
-    auto ehp = new EhpPitch(dev_);
+  case EfhFeedVer::kCBOE: {
+    auto ehp = new EhpPitch(dev_, fireOnAllAddOrders_);
     if (!ehp)
       on_error("!ehp");
     ehp->init();

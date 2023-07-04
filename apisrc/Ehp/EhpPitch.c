@@ -7,7 +7,8 @@
 
 using namespace Bats;
 
-EhpPitch::EhpPitch(EkaDev *dev) : EhpProtocol(dev) {
+EhpPitch::EhpPitch(EkaDev *dev, bool fireOnAllAddOrders)
+    : EhpProtocol(dev) {
   EKA_LOG("EhpPitch is created");
 
   //  conf.params.protocolID         =
@@ -29,18 +30,16 @@ EhpPitch::EhpPitch(EkaDev *dev) : EhpProtocol(dev) {
   conf.fields.sequence[0].byteOffs_5 = EhpBlankByte;
   conf.fields.sequence[0].byteOffs_6 = EhpBlankByte;
   conf.fields.sequence[0].byteOffs_7 = EhpBlankByte;
+
+  fireOnAllAddOrders_ = fireOnAllAddOrders;
 }
 
 int EhpPitch::init() {
-  if (!dev || !dev->efc || !dev->efc->p4_)
-    on_error("!dev || !dev->efc || !dev->efc->p4_");
-  auto p4 = dev->efc->p4_;
-
   EKA_LOG(
       "Initializing EhpPitch with fireOnAllAddOrders=%d",
-      p4->fireOnAllAddOrders_);
+      fireOnAllAddOrders_);
   createAddOrderExpanded();
-  if (p4->fireOnAllAddOrders_) {
+  if (fireOnAllAddOrders_) {
     createAddOrderShort();
     createAddOrderLong();
   }
