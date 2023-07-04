@@ -63,11 +63,6 @@ struct EfcInitCtx {
   bool report_only; // The HW generated Fires are not
                     // really sent, but generate Fire Report
   uint64_t watchdog_timeout_sec;
-  EfhFeedVer feedVer; // Obsolete
-  //  For CBOE testRun enables firing on Short, Long, and
-  //  Expanded orders while for the non-testRun it fires
-  //  only on Expanded Customer orders
-  bool testRun = false; // Obsolete
 };
 
 /**
@@ -435,20 +430,15 @@ struct EfcUdpMcParams {
   EkaCoreId coreId; ///< 10G lane to receive UDP MC
 };
 
-struct EfcStrategyParams {
-  const EfcUdpMcParams *mcParams;
-  EfhFeedVer feedVer;
-  OnReportCb reportCb;
-  void *cbCtx;
-};
-
 struct EfcP4Params {
+  EfhFeedVer feedVer;
+  bool fireOnAllAddOrders = false;
   uint32_t max_size; // global value for all P4 securities
 };
 
 EkaOpResult
 efcInitP4Strategy(EfcCtx *pEfcCtx,
-                  const EfcStrategyParams *stratParams,
+                  const EfcUdpMcParams *mcParams,
                   const EfcP4Params *p4Params);
 
 EkaOpResult efcArmP4(EfcCtx *pEfcCtx, EfcArmVer ver);

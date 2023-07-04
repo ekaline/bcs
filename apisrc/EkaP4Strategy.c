@@ -56,12 +56,11 @@
 #include "EkaHwHashTableLine.h"
 
 /* --------------------------------------------------- */
-EkaP4Strategy::EkaP4Strategy(
-    const EfcStrategyParams *efcParams,
-    const EfcP4Params *p4Params)
-    : EkaStrategy(efcParams) {
+EkaP4Strategy::EkaP4Strategy(const EfcUdpMcParams *mcParams,
+                             const EfcP4Params *p4Params)
+    : EkaStrategy(mcParams) {
 
-  feedVer_ = efcParams->feedVer;
+  feedVer_ = p4Params->feedVer;
   name_ =
       "P4_" + std::string(EKA_FEED_VER_DECODE(feedVer_));
 

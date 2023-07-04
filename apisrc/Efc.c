@@ -171,7 +171,7 @@ EkaOpResult efcSetActionPayload(EkaDev *ekaDev,
 
 EkaOpResult
 efcInitP4Strategy(EfcCtx *pEfcCtx,
-                  const EfcStrategyParams *stratParams,
+                  const EfcUdpMcParams *mcParams,
                   const EfcP4Params *p4Params) {
   if (!pEfcCtx || !pEfcCtx->dev)
     on_error("!pEfcCtx || !pEfcCtx->dev");
@@ -180,7 +180,7 @@ efcInitP4Strategy(EfcCtx *pEfcCtx,
     on_error("Efc is not initialized: use efcInit()");
   auto efc = dev->efc;
 
-  efc->initP4(stratParams, p4Params);
+  efc->initP4(mcParams, p4Params);
 
   return EKA_OPRESULT__OK;
 }

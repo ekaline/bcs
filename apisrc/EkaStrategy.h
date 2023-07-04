@@ -11,7 +11,7 @@ class EkaStrategy {
 protected:
   static const size_t MaxUdpMcGroups = 64;
 
-  EkaStrategy(const EfcStrategyParams *params);
+  EkaStrategy(const EfcUdpMcParams *mcParams);
 
 public:
   virtual ~EkaStrategy();
@@ -32,7 +32,6 @@ public:
 protected:
   EkaDev *dev_ = nullptr;
   EkaEpm *epm_ = nullptr;
-  EfhFeedVer hwFeedVer_ = EfhFeedVer::kInvalid;
 
 public:
   EkaUdpSess *udpSess_[MaxUdpMcGroups] = {};

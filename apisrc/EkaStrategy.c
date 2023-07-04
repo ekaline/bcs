@@ -26,7 +26,7 @@ extern EkaDev *g_ekaDev;
 class EkaUdpSess;
 
 /* --------------------------------------------------- */
-EkaStrategy::EkaStrategy(const EfcStrategyParams *params) {
+EkaStrategy::EkaStrategy(const EfcUdpMcParams *mcParams) {
   dev_ = g_ekaDev;
   if (!dev_)
     on_error("!dev_");
@@ -34,26 +34,23 @@ EkaStrategy::EkaStrategy(const EfcStrategyParams *params) {
   if (!epm_)
     on_error("!epm_");
 
-  if (!params)
-    on_error("!params");
+  if (!mcParams)
+    on_error("!mcParams");
 
-  reportCb_ = params->reportCb;
-  cbCtx_ = params->cbCtx;
-
-  if (params->mcParams->nMcGroups > MaxUdpMcGroups)
+  if (mcParams->nMcGroups > MaxUdpMcGroups)
     on_error("nMcGroups %ju > "
              "MaxUdpMcGroups %ju",
-             params->mcParams->nMcGroups, MaxUdpMcGroups);
+             mcParams->nMcGroups, MaxUdpMcGroups);
 
-  numUdpSess_ = params->mcParams->nMcGroups;
+  numUdpSess_ = mcParams->nMcGroups;
 
-  coreId_ = params->mcParams->coreId;
+  coreId_ = mcParams->coreId;
 
   for (auto i = 0; i < numUdpSess_; i++) {
-    udpSess_[i] = new EkaUdpSess(
-        dev_, i, coreId_,
-        inet_addr(params->mcParams->groups[i].mcIp),
-        params->mcParams->groups[i].mcUdpPort);
+    udpSess_[i] =
+        new EkaUdpSess(dev_, i, coreId_,
+                       inet_addr(mcParams->groups[i].mcIp),
+                       mcParams->groups[i].mcUdpPort);
     dev_->ekaIgmp->mcJoin(
         EkaEpmRegion::Regions::EfcMc, udpSess_[i]->coreId,
         udpSess_[i]->ip, udpSess_[i]->port,

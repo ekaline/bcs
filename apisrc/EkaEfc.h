@@ -32,7 +32,7 @@ public:
   int disArmController();
   int run(EfcCtx *pEfcCtx, const EfcRunCtx *pEfcRunCtx);
 
-  void initP4(const EfcStrategyParams *stratParams,
+  void initP4(const EfcUdpMcParams *mcParams,
               const EfcP4Params *p4Params);
 
   void armP4(EfcArmVer ver);

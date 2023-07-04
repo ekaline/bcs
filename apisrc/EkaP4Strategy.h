@@ -26,7 +26,7 @@ class EkaHwHashTableLine;
 
 class EkaP4Strategy : public EkaStrategy {
 public:
-  EkaP4Strategy(const EfcStrategyParams *efcParams,
+  EkaP4Strategy(const EfcUdpMcParams *mcParams,
                 const EfcP4Params *p4Params);
 
   void cleanSubscrHwTable();
@@ -65,6 +65,8 @@ private:
   int getLineIdx(uint64_t normSecId);
 
   EkaHwHashTableLine *hashLine[EFC_SUBSCR_TABLE_ROWS] = {};
+
+  EfhFeedVer hwFeedVer_ = EfhFeedVer::kInvalid;
 
   int regionId_ = EkaEpmRegion::Regions::Efc;
 };

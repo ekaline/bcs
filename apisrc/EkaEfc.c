@@ -60,9 +60,9 @@ EkaEfc::~EkaEfc() {
 }
 
 /* ################################################ */
-void EkaEfc::initP4(const EfcStrategyParams *stratParams,
+void EkaEfc::initP4(const EfcUdpMcParams *mcParams,
                     const EfcP4Params *p4Params) {
-  p4_ = new EkaP4Strategy(stratParams, p4Params);
+  p4_ = new EkaP4Strategy(mcParams, p4Params);
 }
 /* ################################################ */
 int EkaEfc::armController(EfcArmVer ver) {
