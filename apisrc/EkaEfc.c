@@ -347,25 +347,30 @@ int EkaEfc::setHwUdpParams() {
 
   EKA_LOG("downloading %d MC sessions to FPGA",
           p4_->numUdpSess_);
-  if (!p4_)
-    on_error("!p4_");
-  for (auto i = 0; i < p4_->numUdpSess_; i++) {
-    if (!p4_->udpSess_[i])
-      on_error("!udpSess[%d]", i);
 
-    EKA_LOG(
-        "configuring IP:UDP_PORT %s:%u for MD for group:%d",
-        EKA_IP2STR(p4_->udpSess_[i]->ip),
-        p4_->udpSess_[i]->port, i);
-    uint32_t ip = p4_->udpSess_[i]->ip;
-    uint16_t port = p4_->udpSess_[i]->port;
+  EkaStrategy *strategies[] = {p4_, qed_};
 
-    uint64_t tmp_ipport = ((uint64_t)i) << 56 |
-                          ((uint64_t)port) << 32 |
-                          be32toh(ip);
-    //  EKA_LOG("HW Port-IP register = 0x%016jx (%x : %x)",
-    //  tmp_ipport,ip,port);
-    eka_write(dev_, FH_GROUP_IPPORT, tmp_ipport);
+  for (auto const &strat : strategies) {
+    if (!strat)
+      continue;
+    for (auto i = 0; i < strat->numUdpSess_; i++) {
+      if (!strat->udpSess_[i])
+        on_error("!udpSess[%d]", i);
+
+      EKA_LOG("configuring IP:UDP_PORT %s:%u for MD for "
+              "group:%d",
+              EKA_IP2STR(strat->udpSess_[i]->ip),
+              strat->udpSess_[i]->port, i);
+      uint32_t ip = strat->udpSess_[i]->ip;
+      uint16_t port = strat->udpSess_[i]->port;
+
+      uint64_t tmp_ipport = ((uint64_t)i) << 56 |
+                            ((uint64_t)port) << 32 |
+                            be32toh(ip);
+      //  EKA_LOG("HW Port-IP register = 0x%016jx (%x :
+      //  %x)", tmp_ipport,ip,port);
+      eka_write(dev_, FH_GROUP_IPPORT, tmp_ipport);
+    }
   }
   return 0;
 }

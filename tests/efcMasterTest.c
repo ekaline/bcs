@@ -743,8 +743,8 @@ void configureQedTest(EfcCtx *pEfcCtx) {
              qedHwPurgeIAction);
 
   rc = efcSetActionPayload(dev, qedHwPurgeIAction,
-                           QEDTestPurgeMsg,
-                           strlen(QEDTestPurgeMsg));
+                           QEDTestPurgeMsg,67
+                           );
   if (rc != EKA_OPRESULT__OK)
     on_error("efcSetActionPayload failed for Action %d",
              qedHwPurgeIAction);

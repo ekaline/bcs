@@ -625,11 +625,12 @@ int main(int argc, char *argv[]) {
   // ==============================================
   // Manually prepared QEDTestPurge message fired by FPGA
   const char QEDTestPurgeMsg[] =
-      "QED Purge Data With Dummy payload";
+      "QED Purge Data With Dummy payload. Must match "
+      "Template size";
 
   rc = efcSetActionPayload(dev, qedHwPurgeIdx,
-                           &QEDTestPurgeMsg,
-                           strlen(QEDTestPurgeMsg));
+                           &QEDTestPurgeMsg, 67,
+                           /* strlen(QEDTestPurgeMsg) */);
   if (rc != EKA_OPRESULT__OK)
     on_error("efcSetActionPayload failed");
 
