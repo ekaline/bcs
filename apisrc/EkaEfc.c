@@ -111,9 +111,10 @@ void EkaEfc::initQed(const EfcUdpMcParams *mcParams,
   qed_ = new EkaQedStrategy(mcParams, qedParams);
 
   if (totalCoreIdBitmap_ & qed_->getCoreBitmap())
-    on_error("Qed cores 0x%x collide with previously "
-             "allocated 0x%x",
-             qed_->getCoreBitmap(), totalCoreIdBitmap_);
+    on_error(
+        "Qed cores bitmap 0x%x collide with previously "
+        "allocated 0x%x",
+        qed_->getCoreBitmap(), totalCoreIdBitmap_);
 
   totalCoreIdBitmap_ |= qed_->getCoreBitmap();
 }

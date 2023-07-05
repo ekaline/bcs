@@ -1,5 +1,6 @@
 #include <arpa/inet.h>
 #include <iterator>
+#include <linux/sockios.h>
 #include <netinet/ether.h>
 #include <netinet/if_ether.h>
 #include <netinet/ip.h>
@@ -12,8 +13,7 @@
 #include <sys/types.h>
 #include <thread>
 #include <unistd.h>
-
-#include <linux/sockios.h>
+#include <vector>
 
 #include <net/if.h>
 #include <sys/ioctl.h>
@@ -56,15 +56,6 @@ static volatile EpmFireReport *FireEvent[MaxFireEvents] =
     {};
 static volatile int numFireEvents = 0;
 
-static const int TEST_NUMOFSEC = 1;
-
-static const uint64_t TEST_BATS_SEC_ID = 0x0003c40e;
-static const uint64_t DUMMY_BATS_SEC_ID = 0x0003c40f;
-static const uint64_t AlwaysFire = 0xadcd;
-static const uint64_t DefaultToken = 0x1122334455667788;
-
-// static const int      DatagramOffset  = 54; // 14 + 20 +
-// 20
 static const int MaxTcpTestSessions = 16;
 static const int MaxUdpTestSessions = 64;
 
@@ -72,13 +63,17 @@ static const uint64_t FireEntryHeapSize = 256;
 
 /* --------------------------------------------- */
 
-struct SecurityCtx {
+struct P4SecurityCtx {
   char id[8];
   EkaLSI groupId;
   FixedPrice bidMinPrice;
   FixedPrice askMaxPrice;
   uint8_t size;
 };
+
+std::vector<P4SecurityCtx> p4Ctx{};
+int p4TriggerSock = -1;
+struct sockaddr_in p4TriggerMcAddr = {};
 
 enum class AddOrder : int {
   Unknown = 0,
@@ -111,35 +106,6 @@ void INThandler(int sig) {
       "Ctrl-C detected: keep_work = false, exitting...");
   fflush(stdout);
   return;
-}
-
-/* --------------------------------------------- */
-
-int createThread(const char *name, EkaServiceType type,
-                 void *(*threadRoutine)(void *), void *arg,
-                 void *context, uintptr_t *handle) {
-  pthread_create((pthread_t *)handle, NULL, threadRoutine,
-                 arg);
-  pthread_setname_np((pthread_t)*handle, name);
-  return 0;
-}
-/* --------------------------------------------- */
-
-int credAcquire(EkaCredentialType credType, EkaGroup group,
-                const char *user, size_t userLength,
-                const struct timespec *leaseTime,
-                const struct timespec *timeout,
-                void *context, EkaCredentialLease **lease) {
-  printf(
-      "Credential with USER %.*s is acquired for %s:%hhu\n",
-      (int)userLength, user, EKA_EXCH_DECODE(group.source),
-      group.localId);
-  return 0;
-}
-/* --------------------------------------------- */
-
-int credRelease(EkaCredentialLease *lease, void *context) {
-  return 0;
 }
 
 /* --------------------------------------------- */
@@ -196,9 +162,33 @@ void tcpServer(EkaDev *dev, std::string ip, uint16_t port,
 }
 
 /* --------------------------------------------- */
+std::string serverIp = "10.0.0.10";   // Ekaline lab default
+std::string clientIp = "100.0.0.110"; // Ekaline lab default
+std::string triggerIp =
+    "224.0.74.0"; // Ekaline lab default (C1 CC feed)
+uint16_t triggerUdpPort = 30301;    // C1 CC gr#0
+uint16_t serverTcpBasePort = 22222; // Ekaline lab default
+uint16_t numTcpSess = 1;
+uint16_t serverTcpPort = serverTcpBasePort;
+bool runEfh = false;
+bool fatalDebug = false;
+bool report_only = false;
+
+bool p4_enabled = false;
+bool qed_enabled = false;
+bool cme_enabled = false;
+
+ExcConnHandle conn[MaxTcpTestSessions] = {};
+ExcSocketHandle excSock[MaxTcpTestSessions] = {};
+
+EfcUdpMcGroupParams testDefaultMcGroup = {0, "224.0.74.0",
+                                          30301};
 
 void printUsage(char *cmd) {
-  printf("USAGE: %s "
+  printf("USAGE: %s \n"
+         "\t-p <P4 CBOE ON>\n"
+         "\t-q <QED Test ON>\n"
+         "\t-c <CME Test ON>\n"
          "\t-r <Report Only ON>\n"
          "\t-l <Num of TCP sessions>\n"
          "\t-f <Run EFH for raw MD>\n"
@@ -210,27 +200,40 @@ void printUsage(char *cmd) {
 
 /* --------------------------------------------- */
 
-static int getAttr(int argc, char *argv[],
-                   uint16_t *numTcpSess, bool *runEfh,
-                   bool *fatalDebug, bool *report_only) {
+static int getAttr(int argc, char *argv[]) {
   int opt;
-  while ((opt = getopt(argc, argv, ":l:t:fdrh")) != -1) {
+  while ((opt = getopt(argc, argv, ":l:t:fdrhpqc")) != -1) {
     switch (opt) {
+    case 'p':
+      p4_enabled = true;
+      printf("P4 CBOE Test ON");
+      break;
+
+    case 'q':
+      qed_enabled = true;
+      printf("QED Test ON");
+      break;
+
+    case 'c':
+      cme_enabled = true;
+      printf("CME Test ON");
+      break;
+
     case 'l':
-      *numTcpSess = atoi(optarg);
-      printf("numTcpSess = %u\n", *numTcpSess);
+      numTcpSess = atoi(optarg);
+      printf("numTcpSess = %u\n", numTcpSess);
       break;
     case 'f':
       printf("runEfh = true\n");
-      *runEfh = true;
+      runEfh = true;
       break;
     case 'd':
       printf("fatalDebug = ON\n");
-      *fatalDebug = true;
+      fatalDebug = true;
       break;
     case 'r':
       printf("report_only = ON\n");
-      *report_only = true;
+      report_only = true;
       break;
     case 'h':
       printUsage(argv[0]);
@@ -254,41 +257,6 @@ static void cleanFireEvents() {
   numFireEvents = 0;
   return;
 }
-
-/* --------------------------------------------- */
-static std::string action2string(EpmTriggerAction action) {
-  switch (action) {
-  case Unknown:
-    return std::string("Unknown");
-  case Sent:
-    return std::string("Sent");
-  case InvalidToken:
-    return std::string("InvalidToken");
-  case InvalidStrategy:
-    return std::string("InvalidStrategy");
-  case InvalidAction:
-    return std::string("InvalidAction");
-  case DisabledAction:
-    return std::string("DisabledAction");
-  case SendError:
-    return std::string("SendError");
-  default:
-    on_error("Unexpected action %d", action);
-  }
-};
-/* --------------------------------------------- */
-
-/* static void printFireReport(EpmFireReport* report) { */
-/*   TEST_LOG("strategyId=%3d,actionId=%3d,action=%20s,error=%d,token=%016jx",
- */
-/* 	   report->strategyId, */
-/* 	   report->actionId, */
-/* 	   action2string(report->action).c_str(), */
-/* 	   report->error, */
-/* 	   report->trigger->token */
-/* 	   ); */
-/*   return; */
-/* } */
 
 /* --------------------------------------------- */
 
@@ -319,7 +287,7 @@ static int sendAddOrderShort(int sock,
           .symbol = {secId[2], secId[3], secId[4], secId[5],
                      secId[6], secId[7]},
           .price =
-              price, //(uint16_t)(security[2].bidMinPrice
+              price, //(uint16_t)(p4Ctx.at(2).bidMinPrice
                      /// 100 + 1),
           .flags = 0xFF,
       }};
@@ -361,7 +329,7 @@ static int sendAddOrderLong(int sock,
           .symbol = {secId[2], secId[3], secId[4], secId[5],
                      secId[6], secId[7]},
           .price =
-              price, //(uint16_t)(security[2].bidMinPrice
+              price, //(uint16_t)(p4Ctx.at(2).bidMinPrice
                      /// 100 + 1),
           .flags = 0xFF,
       }};
@@ -409,7 +377,7 @@ static int sendAddOrderExpanded(int sock,
                          secId[5], secId[6], secId[7], ' ',
                          ' '},
           .price =
-              price, //(uint16_t)(security[2].bidMinPrice
+              price, //(uint16_t)(p4Ctx.at(2).bidMinPrice
                      /// 100 + 1),
           .flags = 0xFF,
           .participant_id = {},
@@ -511,9 +479,9 @@ static int sendQEDMsg(std::string serverIp,
                       std::string dstIp, uint16_t dstPort) {
   // Preparing UDP MC for MD trigger on GR#0
 
-  int triggerSock =
+  int p4TriggerSock =
       socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-  if (triggerSock < 0)
+  if (p4TriggerSock < 0)
     on_error("failed to open UDP sock");
 
   struct sockaddr_in triggerSourceAddr = {};
@@ -522,20 +490,20 @@ static int sendQEDMsg(std::string serverIp,
   triggerSourceAddr.sin_family = AF_INET;
   triggerSourceAddr.sin_port = 0; // be16toh(serverTcpPort);
 
-  if (bind(triggerSock, (sockaddr *)&triggerSourceAddr,
+  if (bind(p4TriggerSock, (sockaddr *)&triggerSourceAddr,
            sizeof(sockaddr)) != 0) {
-    on_error("failed to bind server triggerSock to %s:%u",
+    on_error("failed to bind server p4TriggerSock to %s:%u",
              EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),
              be16toh(triggerSourceAddr.sin_port));
   } else {
-    TEST_LOG("triggerSock is binded to %s:%u",
+    TEST_LOG("p4TriggerSock is binded to %s:%u",
              EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),
              be16toh(triggerSourceAddr.sin_port));
   }
-  struct sockaddr_in triggerMcAddr = {};
-  triggerMcAddr.sin_family = AF_INET;
-  triggerMcAddr.sin_addr.s_addr = inet_addr(dstIp.c_str());
-  triggerMcAddr.sin_port = be16toh(dstPort);
+  p4TriggerMcAddr.sin_family = AF_INET;
+  p4TriggerMcAddr.sin_addr.s_addr =
+      inet_addr(dstIp.c_str());
+  p4TriggerMcAddr.sin_port = be16toh(dstPort);
 
   const uint8_t pkt[] = /*114 byte -> udp length 122,
                            remsize 122-52 = 70 (numlelel5)*/
@@ -558,134 +526,22 @@ static int sendQEDMsg(std::string serverIp,
 
   TEST_LOG("sending MDIncrementalRefreshTradeSummary48 "
            "trigger to %s:%u",
-           EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),
-           be16toh(triggerMcAddr.sin_port));
-  if (sendto(triggerSock, pkt, payloadLen, 0,
-             (const sockaddr *)&triggerMcAddr,
-             sizeof(triggerMcAddr)) < 0)
+           EKA_IP2STR(p4TriggerMcAddr.sin_addr.s_addr),
+           be16toh(p4TriggerMcAddr.sin_port));
+  if (sendto(p4TriggerSock, pkt, payloadLen, 0,
+             (const sockaddr *)&p4TriggerMcAddr,
+             sizeof(p4TriggerMcAddr)) < 0)
     on_error("MC trigger send failed");
   return 0;
 }
 /* ############################################# */
 
-int main(int argc, char *argv[]) {
-
-  signal(SIGINT, INThandler);
-  // ==============================================
-
-  std::string serverIp = "10.0.0.10"; // Ekaline lab default
-  std::string clientIp =
-      "100.0.0.110"; // Ekaline lab default
-  std::string triggerIp =
-      "224.0.74.0"; // Ekaline lab default (C1 CC feed)
-  uint16_t triggerUdpPort = 30301;    // C1 CC gr#0
-  uint16_t serverTcpBasePort = 22222; // Ekaline lab default
-  uint16_t numTcpSess = 1;
-  uint16_t serverTcpPort = serverTcpBasePort;
-  bool runEfh = false;
-  bool fatalDebug = false;
-  bool report_only = false;
-
-  getAttr(argc, argv, &numTcpSess, &runEfh, &fatalDebug,
-          &report_only);
-
-  if (numTcpSess > MaxTcpTestSessions)
-    on_error("numTcpSess %d > MaxTcpTestSessions %d",
-             numTcpSess, MaxTcpTestSessions);
-  // ==============================================
-  // EkaDev general setup
-  EfcArmVer p4ArmVer = 0;
-  EfcArmVer qedArmVer = 0;
-  EkaDev *dev = NULL;
-  EkaCoreId coreId = 0;
-  EkaOpResult rc;
-  const EkaDevInitCtx ekaDevInitCtx = {
-      .logCallback = NULL,
-      .logContext = NULL,
-      .credAcquire = credAcquire,
-      .credRelease = credRelease,
-      .credContext = NULL,
-      .createThread = createThread,
-      .createThreadContext = NULL};
-  ekaDevInit(&dev, &ekaDevInitCtx);
-
-  // ==============================================
-  // 10G Port (core) setup
-  const EkaCoreInitCtx ekaCoreInitCtx = {
-      .coreId = coreId,
-      .attrs = {
-          .host_ip = inet_addr(clientIp.c_str()),
-          .netmask = inet_addr("255.255.255.0"),
-          .gateway = inet_addr("10.0.0.10"),
-          .nexthop_mac = {}, // resolved by our internal ARP
-          .src_mac_addr = {}, // taken from system config
-          .dont_garp = 0}};
-  ekaDevConfigurePort(dev, &ekaCoreInitCtx);
-
-  // ==============================================
-  // Launching TCP test Servers
-  int tcpSock[MaxTcpTestSessions] = {};
-
-  for (auto i = 0; i < numTcpSess; i++) {
-    bool serverSet = false;
-    std::thread server = std::thread(
-        tcpServer, dev, serverIp, serverTcpBasePort + i,
-        &tcpSock[i], &serverSet);
-    server.detach();
-    while (keep_work && !serverSet) {
-      sleep(0);
-    }
-  }
-  // ==============================================
-  // Establishing EXC connections for EPM/EFC fires
-
-  ExcConnHandle conn[MaxTcpTestSessions] = {};
-  ExcSocketHandle excSock[MaxTcpTestSessions] = {};
-
-  for (auto i = 0; i < numTcpSess; i++) {
-    struct sockaddr_in serverAddr = {};
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_addr.s_addr =
-        inet_addr(serverIp.c_str());
-    serverAddr.sin_port = be16toh(serverTcpBasePort + i);
-
-    excSock[i] = excSocket(dev, coreId, 0, 0, 0);
-    if (excSock[i] < 0)
-      on_error("failed to open sock %d", i);
-    conn[i] =
-        excConnect(dev, excSock[i], (sockaddr *)&serverAddr,
-                   sizeof(sockaddr_in));
-    if (conn[i] < 0)
-      on_error("excConnect %d %s:%u", i,
-               EKA_IP2STR(serverAddr.sin_addr.s_addr),
-               be16toh(serverAddr.sin_port));
-    const char *pkt =
-        "\n\nThis is 1st TCP packet sent from FPGA TCP "
-        "client to Kernel TCP server\n\n";
-    excSend(dev, conn[i], pkt, strlen(pkt), 0);
-    int bytes_read = 0;
-    char rxBuf[2000] = {};
-    bytes_read = recv(tcpSock[i], rxBuf, sizeof(rxBuf), 0);
-    if (bytes_read > 0)
-      EKA_LOG("\n%s", rxBuf);
-  }
-
-  // ==============================================
-
-  EfcCtx efcCtx = {};
-  EfcCtx *pEfcCtx = &efcCtx;
-
-  EfcInitCtx initCtx = {
-      .report_only = report_only,
-      .watchdog_timeout_sec = 1000000,
-  };
-
-  rc = efcInit(&pEfcCtx, dev, &initCtx);
-  if (rc != EKA_OPRESULT__OK)
-    on_error("efcInit returned %d", (int)rc);
+void configureP4Test(EfcCtx *pEfcCtx) {
+  auto dev = pEfcCtx->dev;
 
   EfcUdpMcGroupParams cboeMcGroups[] = {
-      {0, "224.0.74.0", 30301},
+      testDefaultMcGroup,
+      /* {0, "224.0.74.0",30301}, */
       /* {0, "224.0.74.1",30302}, */
       /* {0, "224.0.74.2",30303}, */
       /* {0, "224.0.74.3",30304}, */
@@ -702,19 +558,15 @@ int main(int argc, char *argv[]) {
       .max_size = 10000,
   };
 
-  rc = efcInitP4Strategy(pEfcCtx, &cboeMcParams, &p4Params);
+  int rc =
+      efcInitP4Strategy(pEfcCtx, &cboeMcParams, &p4Params);
   if (rc != EKA_OPRESULT__OK)
     on_error("efcInitP4Strategy returned %d", (int)rc);
 
   // ==============================================
-
-  EfcRunCtx runCtx = {};
-  runCtx.onEfcFireReportCb = efcPrintFireReport;
-
-  // ==============================================
   // Subscribing on securities
 
-  SecurityCtx security[] = {
+  P4SecurityCtx security[] = {
       {{'\0', '\0', '0', '0', 'T', 'E', 'S', 'T'},
        0,
        1000,
@@ -745,8 +597,9 @@ int main(int argc, char *argv[]) {
   // list of secIDs to be passed to efcEnableFiringOnSec()
   uint64_t securityList[std::size(security)] = {};
 
-  // This Alphanumeric-to-binary converting is not needed if
-  // binary security ID is received from new version of EFH
+  // This Alphanumeric-to-binary converting is not needed
+  // if binary security ID is received from new version of
+  // EFH
   for (auto i = 0; i < (int)std::size(security); i++) {
     securityList[i] = be64toh(*(uint64_t *)security[i].id);
     EKA_TEST(
@@ -756,6 +609,8 @@ int main(int argc, char *argv[]) {
         security[i].id[4], security[i].id[5],
         security[i].id[6], security[i].id[7],
         securityList[i]);
+
+    p4Ctx.push_back(security[i]);
   }
 
   // subscribing on list of securities
@@ -818,7 +673,36 @@ int main(int argc, char *argv[]) {
                i);
   }
 
-  // ==============================================
+  p4TriggerSock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+  if (p4TriggerSock < 0)
+    on_error("failed to open UDP sock");
+
+  struct sockaddr_in triggerSourceAddr = {};
+  triggerSourceAddr.sin_addr.s_addr =
+      inet_addr(serverIp.c_str());
+  triggerSourceAddr.sin_family = AF_INET;
+  triggerSourceAddr.sin_port = 0; // be16toh(serverTcpPort);
+
+  if (bind(p4TriggerSock, (sockaddr *)&triggerSourceAddr,
+           sizeof(sockaddr)) != 0) {
+    on_error("failed to bind server p4TriggerSock to %s:%u",
+             EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),
+             be16toh(triggerSourceAddr.sin_port));
+  } else {
+    EKA_LOG("p4TriggerSock is binded to %s:%u",
+            EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),
+            be16toh(triggerSourceAddr.sin_port));
+  }
+  p4TriggerMcAddr.sin_family = AF_INET;
+  p4TriggerMcAddr.sin_addr.s_addr =
+      inet_addr(cboeMcParams.groups[0].mcIp);
+  p4TriggerMcAddr.sin_port =
+      be16toh(cboeMcParams.groups[0].mcUdpPort);
+}
+/* ############################################# */
+
+void configureQedtest(EfcCtx *pEfcCtx) {
+  auto dev = pEfcCtx->dev;
   // QED config
   EfcUdpMcGroupParams qedMcGroups[] = {
       {0, "224.0.74.0", 30301},
@@ -852,7 +736,8 @@ int main(int argc, char *argv[]) {
   const char QEDTestPurgeMsg[] =
       "QED Purge Data With Dummy payload";
 
-  rc = setActionTcpSock(dev, qedHwPurgeIAction, excSock[0]);
+  int rc =
+      setActionTcpSock(dev, qedHwPurgeIAction, excSock[0]);
   if (rc != EKA_OPRESULT__OK)
     on_error("setActionTcpSock failed for Action %d",
              qedHwPurgeIAction);
@@ -863,98 +748,66 @@ int main(int argc, char *argv[]) {
   if (rc != EKA_OPRESULT__OK)
     on_error("efcSetActionPayload failed for Action %d",
              qedHwPurgeIAction);
+}
+
+bool runP4Test(EfcCtx *pEfcCtx) {
+  EfcArmVer p4ArmVer = 0;
 
   // ==============================================
   efcArmP4(pEfcCtx,
            p4ArmVer); //
-  // ==============================================
-  efcArmQed(pEfcCtx, qedArmVer); //
-  // ==============================================
-  efcRun(pEfcCtx, &runCtx);
+
   // ==============================================
   // Preparing UDP MC for MD trigger on GR#0
 
-  int triggerSock =
-      socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-  if (triggerSock < 0)
-    on_error("failed to open UDP sock");
-
-  struct sockaddr_in triggerSourceAddr = {};
-  triggerSourceAddr.sin_addr.s_addr =
-      inet_addr(serverIp.c_str());
-  triggerSourceAddr.sin_family = AF_INET;
-  triggerSourceAddr.sin_port = 0; // be16toh(serverTcpPort);
-
-  if (bind(triggerSock, (sockaddr *)&triggerSourceAddr,
-           sizeof(sockaddr)) != 0) {
-    on_error("failed to bind server triggerSock to %s:%u",
-             EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),
-             be16toh(triggerSourceAddr.sin_port));
-  } else {
-    EKA_LOG("triggerSock is binded to %s:%u",
-            EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),
-            be16toh(triggerSourceAddr.sin_port));
-  }
-  struct sockaddr_in triggerMcAddr = {};
-  triggerMcAddr.sin_family = AF_INET;
-  triggerMcAddr.sin_addr.s_addr =
-      inet_addr(cboeMcParams.groups[0].mcIp);
-  triggerMcAddr.sin_port =
-      be16toh(cboeMcParams.groups[0].mcUdpPort);
-
   uint32_t sequence = 32;
 
-  if (fatalDebug) {
-    TEST_LOG(RED "\n=====================\nFATAL DEBUG: "
-                 "ON\n=====================\n" RESET);
-    eka_write(dev, 0xf0f00, 0xefa0beda);
-  }
 // ==============================================
 #if 1
-  sendAddOrder(AddOrder::Short, triggerSock, &triggerMcAddr,
-               security[2].id, sequence++, 'S',
-               security[2].askMaxPrice / 100 - 1,
-               security[2].size);
+  sendAddOrder(AddOrder::Short, p4TriggerSock,
+               &p4TriggerMcAddr, p4Ctx.at(2).id, sequence++,
+               'S', p4Ctx.at(2).askMaxPrice / 100 - 1,
+               p4Ctx.at(2).size);
 
   sleep(1);
   efcArmP4(pEfcCtx, p4ArmVer++);
 #endif
 // ==============================================
 #if 1
-  sendAddOrder(AddOrder::Short, triggerSock, &triggerMcAddr,
-               security[2].id, sequence++, 'B',
-               security[2].bidMinPrice / 100 + 1,
-               security[2].size);
+  sendAddOrder(AddOrder::Short, p4TriggerSock,
+               &p4TriggerMcAddr, p4Ctx.at(2).id, sequence++,
+               'B', p4Ctx.at(2).bidMinPrice / 100 + 1,
+               p4Ctx.at(2).size);
 
   sleep(1);
   efcArmP4(pEfcCtx, p4ArmVer++);
 #endif
 // ==============================================
 #if 1
-  sendAddOrder(AddOrder::Long, triggerSock, &triggerMcAddr,
-               security[2].id, sequence++, 'S',
-               security[2].askMaxPrice - 1,
-               security[2].size);
+  sendAddOrder(AddOrder::Long, p4TriggerSock,
+               &p4TriggerMcAddr, p4Ctx.at(2).id, sequence++,
+               'S', p4Ctx.at(2).askMaxPrice - 1,
+               p4Ctx.at(2).size);
 
   sleep(1);
   efcArmP4(pEfcCtx, p4ArmVer++);
 #endif
 // ==============================================
 #if 1
-  sendAddOrder(AddOrder::Long, triggerSock, &triggerMcAddr,
-               security[2].id, sequence++, 'B',
-               security[2].bidMinPrice + 1,
-               security[2].size);
+  sendAddOrder(AddOrder::Long, p4TriggerSock,
+               &p4TriggerMcAddr, p4Ctx.at(2).id, sequence++,
+               'B', p4Ctx.at(2).bidMinPrice + 1,
+               p4Ctx.at(2).size);
 
   sleep(1);
   efcArmP4(pEfcCtx, p4ArmVer++);
 #endif
 // ==============================================
 #if 1
-  sendAddOrder(AddOrder::Expanded, triggerSock,
-               &triggerMcAddr, security[2].id, sequence++,
-               'S', security[2].askMaxPrice - 1,
-               security[2].size);
+  sendAddOrder(AddOrder::Expanded, p4TriggerSock,
+               &p4TriggerMcAddr, p4Ctx.at(2).id, sequence++,
+               'S', p4Ctx.at(2).askMaxPrice - 1,
+               p4Ctx.at(2).size);
 
   sleep(1);
   efcArmP4(pEfcCtx, p4ArmVer++);
@@ -962,13 +815,125 @@ int main(int argc, char *argv[]) {
 // ==============================================
 #if 0
   while (keep_work) {
-    sendAddOrder(AddOrder::Expanded,triggerSock,&triggerMcAddr,security[2].id,
-		 sequence++,'B',security[2].bidMinPrice + 1,security[2].size);
+    sendAddOrder(AddOrder::Expanded,p4TriggerSock,&p4TriggerMcAddr,p4Ctx.at(2).id,
+		 sequence++,'B',p4Ctx.at(2).bidMinPrice + 1,p4Ctx.at(2).size);
   
     sleep(1);
     efcArmP4(pEfcCtx,, p4ArmVer++);
   }
 #endif
+
+  return true;
+}
+/* ############################################# */
+
+int main(int argc, char *argv[]) {
+
+  signal(SIGINT, INThandler);
+  // ==============================================
+
+  getAttr(argc, argv);
+
+  if (numTcpSess > MaxTcpTestSessions)
+    on_error("numTcpSess %d > MaxTcpTestSessions %d",
+             numTcpSess, MaxTcpTestSessions);
+  // ==============================================
+  // EkaDev general setup
+  EfcArmVer qedArmVer = 0;
+  EkaDev *dev = NULL;
+  EkaCoreId coreId = 0;
+  EkaOpResult rc;
+  const EkaDevInitCtx ekaDevInitCtx = {};
+  ekaDevInit(&dev, &ekaDevInitCtx);
+
+  // ==============================================
+  // 10G Port (core) setup
+  const EkaCoreInitCtx ekaCoreInitCtx = {
+      .coreId = coreId,
+      .attrs = {
+          .host_ip = inet_addr(clientIp.c_str()),
+          .netmask = inet_addr("255.255.255.0"),
+          .gateway = inet_addr("10.0.0.10"),
+          .nexthop_mac = {}, // resolved by our internal ARP
+          .src_mac_addr = {}, // taken from system config
+          .dont_garp = 0}};
+  ekaDevConfigurePort(dev, &ekaCoreInitCtx);
+
+  // ==============================================
+  // Launching TCP test Servers
+  int tcpSock[MaxTcpTestSessions] = {};
+
+  for (auto i = 0; i < numTcpSess; i++) {
+    bool serverSet = false;
+    std::thread server = std::thread(
+        tcpServer, dev, serverIp, serverTcpBasePort + i,
+        &tcpSock[i], &serverSet);
+    server.detach();
+    while (keep_work && !serverSet) {
+      sleep(0);
+    }
+  }
+  // ==============================================
+  // Establishing EXC connections for EPM/EFC fires
+
+  for (auto i = 0; i < numTcpSess; i++) {
+    struct sockaddr_in serverAddr = {};
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_addr.s_addr =
+        inet_addr(serverIp.c_str());
+    serverAddr.sin_port = be16toh(serverTcpBasePort + i);
+
+    excSock[i] = excSocket(dev, coreId, 0, 0, 0);
+    if (excSock[i] < 0)
+      on_error("failed to open sock %d", i);
+    conn[i] =
+        excConnect(dev, excSock[i], (sockaddr *)&serverAddr,
+                   sizeof(sockaddr_in));
+    if (conn[i] < 0)
+      on_error("excConnect %d %s:%u", i,
+               EKA_IP2STR(serverAddr.sin_addr.s_addr),
+               be16toh(serverAddr.sin_port));
+    const char *pkt =
+        "\n\nThis is 1st TCP packet sent from FPGA TCP "
+        "client to Kernel TCP server\n\n";
+    excSend(dev, conn[i], pkt, strlen(pkt), 0);
+    int bytes_read = 0;
+    char rxBuf[2000] = {};
+    bytes_read = recv(tcpSock[i], rxBuf, sizeof(rxBuf), 0);
+    if (bytes_read > 0)
+      EKA_LOG("\n%s", rxBuf);
+  }
+
+  // ==============================================
+
+  EfcCtx efcCtx = {};
+  EfcCtx *pEfcCtx = &efcCtx;
+
+  EfcInitCtx initCtx = {
+      .report_only = report_only,
+      .watchdog_timeout_sec = 1000000,
+  };
+
+  rc = efcInit(&pEfcCtx, dev, &initCtx);
+  if (rc != EKA_OPRESULT__OK)
+    on_error("efcInit returned %d", (int)rc);
+
+  EfcRunCtx runCtx = {};
+  runCtx.onEfcFireReportCb = efcPrintFireReport;
+
+  if (p4_enabled)
+    configureP4Test(pEfcCtx);
+
+  // ==============================================
+  efcArmQed(pEfcCtx, qedArmVer); //
+  // ==============================================
+  efcRun(pEfcCtx, &runCtx);
+  // ==============================================
+
+  if (p4_enabled)
+    runP4Test(pEfcCtx);
+  // ==============================================
+
   // ==============================================
   TEST_LOG("\n"
            "===========================\n"
