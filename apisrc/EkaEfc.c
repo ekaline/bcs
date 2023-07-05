@@ -6,7 +6,6 @@
 #include "EhpNews.h"
 #include "EhpNom.h"
 #include "EhpPitch.h"
-#include "EhpQED.h"
 #include "EkaCore.h"
 #include "EkaDev.h"
 #include "EkaEfc.h"
@@ -17,6 +16,7 @@
 #include "EkaHwHashTableLine.h"
 #include "EkaIgmp.h"
 #include "EkaP4Strategy.h"
+#include "EkaQedStrategy.h"
 #include "EkaTcpSess.h"
 #include "EkaUdpSess.h"
 #include "EpmBoeQuoteUpdateShortTemplate.h"
@@ -106,6 +106,18 @@ void EkaEfc::initP4(const EfcUdpMcParams *mcParams,
   totalCoreIdBitmap_ |= p4_->getCoreBitmap();
 }
 /* ################################################ */
+void EkaEfc::initQed(const EfcUdpMcParams *mcParams,
+                     const EfcQedParams *qedParams) {
+  qed_ = new EkaQedStrategy(mcParams, qedParams);
+
+  if (totalCoreIdBitmap_ & qed_->getCoreBitmap())
+    on_error("Qed cores 0x%x collide with previously "
+             "allocated 0x%x",
+             qed_->getCoreBitmap(), totalCoreIdBitmap_);
+
+  totalCoreIdBitmap_ |= qed_->getCoreBitmap();
+}
+/* ################################################ */
 int EkaEfc::armController(EfcArmVer ver) {
   EKA_LOG("Arming EFC");
   uint64_t armData = ((uint64_t)ver << 32) | 1;
@@ -123,6 +135,11 @@ void EkaEfc::armP4(EfcArmVer ver) { p4_->arm(ver); }
 
 /* ################################################ */
 void EkaEfc::disarmP4() { p4_->disarm(); }
+/* ################################################ */
+void EkaEfc::armQed(EfcArmVer ver) { qed_->arm(ver); }
+
+/* ################################################ */
+void EkaEfc::disarmQed() { qed_->disarm(); }
 
 /* ################################################ */
 int EkaEfc::initStratGlobalParams(

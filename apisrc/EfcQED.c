@@ -1,9 +1,9 @@
-#include "EkaEfc.h"
 #include "EfcQED.h"
+#include "EkaEfc.h"
 #include "EkaEpmAction.h"
-#include "EkaTcpSess.h"
 #include "EkaHwInternalStructs.h"
-
+#include "EkaTcpSess.h"
+#if 0
 EkaOpResult efcQEDInit(EkaDev *dev,
 		       const EfcQEDParams* params) {
 
@@ -39,3 +39,4 @@ EkaOpResult efcQEDInit(EkaDev *dev,
   return EKA_OPRESULT__OK;
 }
 
+#endif

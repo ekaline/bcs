@@ -1,5 +1,5 @@
-#ifndef _EKA_P4_STRATEGY_H_
-#define _EKA_P4_STRATEGY_H_
+#ifndef _EKA_QED_STRATEGY_H_
+#define _EKA_QED_STRATEGY_H_
 
 #include "Efc.h"
 #include "Efh.h"
@@ -24,34 +24,17 @@
 
 class EkaHwHashTableLine;
 
-class EkaP4Strategy : public EkaStrategy {
+class EkaQedStrategy : public EkaStrategy {
 public:
-  EkaP4Strategy(const EfcUdpMcParams *mcParams,
-                const EfcP4Params *p4Params);
-
-  void cleanSubscrHwTable();
-  int subscribeSec(uint64_t secId);
-  EfcSecCtxHandle getSubscriptionId(uint64_t secId);
-  int downloadTable();
-
-  void writeSecHwCtx(const EfcSecCtxHandle handle,
-                     const EkaHwSecCtx *pHwSecCtx,
-                     uint16_t writeChan);
+  EkaQedStrategy(const EfcUdpMcParams *mcParams,
+                 const EfcQedParams *p4Params);
 
   void arm(EfcArmVer ver);
   void disarm();
 
 private:
   void configureEhp();
-  void createSecHash();
-  void preallocateFireActions();
   void configureTemplates();
-
-  bool isValidSecId(uint64_t secId);
-  void initHwRoundTable();
-  void cleanSecHwCtx();
-  int normalizeId(uint64_t secId);
-  int getLineIdx(uint64_t normSecId);
 
 public:
   static const int MAX_CTX_THREADS = 16;
@@ -67,8 +50,6 @@ public:
   bool fireOnAllAddOrders_ = false;
 
 private:
-  EkaHwHashTableLine *hashLine[EFC_SUBSCR_TABLE_ROWS] = {};
-
   EfhFeedVer hwFeedVer_ = EfhFeedVer::kInvalid;
 
   int regionId_ = EkaEpmRegion::Regions::Efc;

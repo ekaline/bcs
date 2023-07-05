@@ -125,15 +125,16 @@ void EkaP4Strategy::preallocateFireActions() {
 }
 /* --------------------------------------------------- */
 void EkaP4Strategy::configureTemplates() {
+  int templateIdx = -1;
   switch (feedVer_) {
   case EfhFeedVer::kCBOE:
-    epm_->epmTemplate[(
-        int)EkaEpm::TemplateId::BoeQuoteUpdateShort] =
-        new EpmBoeQuoteUpdateShortTemplate(
-            (int)EkaEpm::TemplateId::BoeQuoteUpdateShort);
+    templateIdx =
+        (int)EkaEpm::TemplateId::BoeQuoteUpdateShort;
+    epm_->epmTemplate[templateIdx] =
+        new EpmBoeQuoteUpdateShortTemplate(templateIdx);
 
-    epm_->DownloadSingleTemplate2HW(epm_->epmTemplate[(
-        int)EkaEpm::TemplateId::BoeQuoteUpdateShort]);
+    epm_->DownloadSingleTemplate2HW(
+        epm_->epmTemplate[templateIdx]);
     break;
 
   default:

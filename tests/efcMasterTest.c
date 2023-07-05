@@ -506,6 +506,68 @@ static size_t prepare_BoeQuoteUpdateShortMsg(void *dst) {
   return sizeof(fireMsg);
 }
 /* ############################################# */
+
+static int sendQEDMsg(std::string serverIp,
+                      std::string dstIp, uint16_t dstPort) {
+  // Preparing UDP MC for MD trigger on GR#0
+
+  int triggerSock =
+      socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+  if (triggerSock < 0)
+    on_error("failed to open UDP sock");
+
+  struct sockaddr_in triggerSourceAddr = {};
+  triggerSourceAddr.sin_addr.s_addr =
+      inet_addr(serverIp.c_str());
+  triggerSourceAddr.sin_family = AF_INET;
+  triggerSourceAddr.sin_port = 0; // be16toh(serverTcpPort);
+
+  if (bind(triggerSock, (sockaddr *)&triggerSourceAddr,
+           sizeof(sockaddr)) != 0) {
+    on_error("failed to bind server triggerSock to %s:%u",
+             EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),
+             be16toh(triggerSourceAddr.sin_port));
+  } else {
+    TEST_LOG("triggerSock is binded to %s:%u",
+             EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),
+             be16toh(triggerSourceAddr.sin_port));
+  }
+  struct sockaddr_in triggerMcAddr = {};
+  triggerMcAddr.sin_family = AF_INET;
+  triggerMcAddr.sin_addr.s_addr = inet_addr(dstIp.c_str());
+  triggerMcAddr.sin_port = be16toh(dstPort);
+
+  const uint8_t pkt[] = /*114 byte -> udp length 122,
+                           remsize 122-52 = 70 (numlelel5)*/
+      {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x34, 0x12, // dsid 1234
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00};
+
+  size_t payloadLen = std::size(pkt);
+
+  TEST_LOG("sending MDIncrementalRefreshTradeSummary48 "
+           "trigger to %s:%u",
+           EKA_IP2STR(triggerMcAddr.sin_addr.s_addr),
+           be16toh(triggerMcAddr.sin_port));
+  if (sendto(triggerSock, pkt, payloadLen, 0,
+             (const sockaddr *)&triggerMcAddr,
+             sizeof(triggerMcAddr)) < 0)
+    on_error("MC trigger send failed");
+  return 0;
+}
+/* ############################################# */
+
 int main(int argc, char *argv[]) {
 
   signal(SIGINT, INThandler);
@@ -532,7 +594,8 @@ int main(int argc, char *argv[]) {
              numTcpSess, MaxTcpTestSessions);
   // ==============================================
   // EkaDev general setup
-  EfcArmVer armVer = 0;
+  EfcArmVer p4ArmVer = 0;
+  EfcArmVer qedArmVer = 0;
   EkaDev *dev = NULL;
   EkaCoreId coreId = 0;
   EkaOpResult rc;
@@ -756,7 +819,56 @@ int main(int argc, char *argv[]) {
   }
 
   // ==============================================
-  efcArmP4(pEfcCtx, 1); //
+  // QED config
+  EfcUdpMcGroupParams qedMcGroups[] = {
+      {0, "224.0.74.0", 30301},
+      /* {0, "224.0.74.1",30302}, */
+      /* {0, "224.0.74.2",30303}, */
+      /* {0, "224.0.74.3",30304}, */
+  };
+
+  EfcUdpMcParams qedMcParams = {
+      .groups = qedMcGroups,
+      .nMcGroups = std::size(qedMcGroups),
+  };
+
+  auto qedHwPurgeIdx =
+      efcAllocateNewAction(dev, EpmActionType::QEDHwPurge);
+
+  static const uint16_t QEDTestPurgeDSID = 0x1234;
+  static const uint8_t QEDTestMinNumLevel = 5;
+
+  EfcQedParams qedParams = {};
+  int active_set = 3;
+  qedParams.product[active_set].fireActionId =
+      qedHwPurgeIdx;
+  qedParams.product[active_set].ds_id = QEDTestPurgeDSID;
+  qedParams.product[active_set].min_num_level =
+      QEDTestMinNumLevel;
+  qedParams.product[active_set].enable = true;
+
+  efcInitQedStrategy(pEfcCtx, &qedMcParams, &qedParams);
+
+  const char QEDTestPurgeMsg[] =
+      "QED Purge Data With Dummy payload";
+
+  rc = setActionTcpSock(dev, qedHwPurgeIdx, excSock[0]);
+  if (rc != EKA_OPRESULT__OK)
+    on_error("setActionTcpSock failed for Action %d",
+             qedHwPurgeIdx);
+
+  rc = efcSetActionPayload(dev, qedHwPurgeIdx,
+                           QEDTestPurgeMsg,
+                           strlen(QEDTestPurgeMsg));
+  if (rc != EKA_OPRESULT__OK)
+    on_error("efcSetActionPayload failed for Action %d",
+             qedHwPurgeIdx);
+
+  // ==============================================
+  efcArmP4(pEfcCtx,
+           p4ArmVer); //
+  // ==============================================
+  efcArmQed(pEfcCtx, qedArmVer); //
   // ==============================================
   efcRun(pEfcCtx, &runCtx);
   // ==============================================
@@ -805,7 +917,7 @@ int main(int argc, char *argv[]) {
                security[2].size);
 
   sleep(1);
-  efcArmP4(pEfcCtx, armVer++);
+  efcArmP4(pEfcCtx, p4ArmVer++);
 #endif
 // ==============================================
 #if 1
@@ -815,7 +927,7 @@ int main(int argc, char *argv[]) {
                security[2].size);
 
   sleep(1);
-  efcArmP4(pEfcCtx, armVer++);
+  efcArmP4(pEfcCtx, p4ArmVer++);
 #endif
 // ==============================================
 #if 1
@@ -825,7 +937,7 @@ int main(int argc, char *argv[]) {
                security[2].size);
 
   sleep(1);
-  efcArmP4(pEfcCtx, armVer++);
+  efcArmP4(pEfcCtx, p4ArmVer++);
 #endif
 // ==============================================
 #if 1
@@ -835,7 +947,7 @@ int main(int argc, char *argv[]) {
                security[2].size);
 
   sleep(1);
-  efcArmP4(pEfcCtx, armVer++);
+  efcArmP4(pEfcCtx, p4ArmVer++);
 #endif
 // ==============================================
 #if 1
@@ -845,7 +957,7 @@ int main(int argc, char *argv[]) {
                security[2].size);
 
   sleep(1);
-  efcArmP4(pEfcCtx, armVer++);
+  efcArmP4(pEfcCtx, p4ArmVer++);
 #endif
 // ==============================================
 #if 0
@@ -854,13 +966,29 @@ int main(int argc, char *argv[]) {
 		 sequence++,'B',security[2].bidMinPrice + 1,security[2].size);
   
     sleep(1);
-    efcArmP4(pEfcCtx,, armVer++);
+    efcArmP4(pEfcCtx,, p4ArmVer++);
   }
 #endif
   // ==============================================
+  TEST_LOG("\n"
+           "===========================\n"
+           "END OT CBOE P4\n"
+           "===========================\n");
+  int qedExpectedFires = 0;
+  int TotalInjects = 4;
 
-  TEST_LOG("\n===========================\nEND OT "
-           "TESTS\n===========================\n");
+  for (auto i = 0; i < TotalInjects; i++) {
+    efcArmQed(pEfcCtx, qedArmVer++); // arm and promote
+    qedExpectedFires++;
+
+    sendQEDMsg(serverIp, triggerIp, triggerUdpPort);
+    usleep(300000);
+  }
+
+  TEST_LOG("\n"
+           "===========================\n"
+           "END OT TESTS\n"
+           "===========================\n");
 
 #ifndef _VERILOG_SIM
   sleep(2);

@@ -16,6 +16,7 @@ class EkaHwHashTableLine;
 class EkaIgmp;
 class EkaUdpSess;
 class EkaP4Strategy;
+class EkaQedStrategy;
 class EkaEpm;
 
 class EkaEfc {
@@ -37,6 +38,12 @@ public:
 
   void armP4(EfcArmVer ver);
   void disarmP4();
+
+  void initQed(const EfcUdpMcParams *mcParams,
+               const EfcQedParams *p4Params);
+
+  void armQed(EfcArmVer ver);
+  void disarmQed();
 
   bool isReportOnly() { return report_only_; }
 
@@ -61,6 +68,8 @@ private:
 
 public:
   EkaP4Strategy *p4_ = nullptr;
+  EkaQedStrategy *qed_ = nullptr;
+
   EfcRunCtx localCopyEfcRunCtx = {};
   bool report_only_ = false;
   uint64_t watchdog_timeout_sec_ = 0;

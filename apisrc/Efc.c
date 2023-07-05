@@ -396,3 +396,50 @@ EkaOpResult efcSetSessionCntr(EkaDev *dev,
 
   return EKA_OPRESULT__OK;
 }
+
+/* --------------------------------------------------- */
+
+EkaOpResult
+efcInitQedStrategy(EfcCtx *pEfcCtx,
+                   const EfcUdpMcParams *mcParams,
+                   const EfcQedParams *qedParams) {
+  if (!pEfcCtx || !pEfcCtx->dev)
+    on_error("!pEfcCtx || !pEfcCtx->dev");
+  auto dev = pEfcCtx->dev;
+  if (!dev->efc)
+    on_error("Efc is not initialized: use efcInit()");
+  auto efc = dev->efc;
+
+  efc->initQed(mcParams, qedParams);
+
+  return EKA_OPRESULT__OK;
+}
+
+/* --------------------------------------------------- */
+
+EkaOpResult efcArmQed(EfcCtx *pEfcCtx, EfcArmVer ver) {
+  if (!pEfcCtx || !pEfcCtx->dev)
+    on_error("!pEfcCtx || !pEfcCtx->dev");
+  auto dev = pEfcCtx->dev;
+  if (!dev->efc)
+    on_error("Efc is not initialized: use efcInit()");
+  auto efc = dev->efc;
+
+  efc->armQed(ver);
+
+  return EKA_OPRESULT__OK;
+}
+
+/* --------------------------------------------------- */
+
+EkaOpResult efcDisArmQed(EfcCtx *pEfcCtx) {
+  if (!pEfcCtx || !pEfcCtx->dev)
+    on_error("!pEfcCtx || !pEfcCtx->dev");
+  auto dev = pEfcCtx->dev;
+  if (!dev->efc)
+    on_error("Efc is not initialized: use efcInit()");
+  auto efc = dev->efc;
+
+  efc->disarmQed();
+  return EKA_OPRESULT__OK;
+}

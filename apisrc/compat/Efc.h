@@ -445,6 +445,28 @@ EkaOpResult efcArmP4(EfcCtx *pEfcCtx, EfcArmVer ver);
 
 EkaOpResult efcDisArmP4(EfcCtx *pEfcCtx);
 
+#define EKA_QED_PRODUCTS 4
+
+struct EfcQEDParamsSingle {
+  epm_actionid_t fireActionId; ///< 1st Action to be fired
+  uint16_t ds_id;              ///
+  uint8_t min_num_level;       ///
+  bool enable;
+};
+
+struct EfcQedParams {
+  EfcQEDParamsSingle product[EKA_QED_PRODUCTS];
+};
+
+EkaOpResult
+efcInitQedStrategy(EfcCtx *pEfcCtx,
+                   const EfcUdpMcParams *mcParams,
+                   const EfcQedParams *qedParams);
+
+EkaOpResult efcArmQed(EfcCtx *pEfcCtx, EfcArmVer ver);
+
+EkaOpResult efcDisArmQed(EfcCtx *pEfcCtx);
+
 #ifdef __cplusplus
 }
 #endif
