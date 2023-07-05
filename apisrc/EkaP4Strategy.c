@@ -96,13 +96,13 @@ EkaP4Strategy::EkaP4Strategy(const EfcUdpMcParams *mcParams,
 void EkaP4Strategy::arm(EfcArmVer ver) {
   EKA_LOG("Arming P4");
   uint64_t armData = ((uint64_t)ver << 32) | 1;
-  eka_write(dev_, 0xf07d0, armData);
+  eka_write(dev_, 0xf07c8, armData);
 }
 /* --------------------------------------------------- */
 
 void EkaP4Strategy::disarm() {
   EKA_LOG("Disarming P4");
-  eka_write(dev_, 0xf07d0, 0);
+  eka_write(dev_, 0xf07c8, 0);
 }
 /* --------------------------------------------------- */
 
