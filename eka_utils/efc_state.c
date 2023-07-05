@@ -635,7 +635,7 @@ int getFastCancelState(FastCancelState* pFastCancelState) {
 
   pFastCancelState->commonState.reportOnly         = (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT)        != 0;
 
-  uint64_t armReg               = reg_read(P4_ARM_DISARM);
+  uint64_t armReg               = reg_read(NW_ARM_DISARM);
   pFastCancelState->commonState.armed              = (armReg & 0x1) != 0;
   pFastCancelState->commonState.arm_ver            = (armReg >> 32) & 0xFFFFFFFF;
   pFastCancelState->commonState.killSwitch         = (reg_read(KILL_SWITCH)   & 0x1) != 0;
@@ -654,7 +654,7 @@ int getFastSweepState(FastSweepState* pFastSweepState) {
 
   pFastSweepState->commonState.reportOnly         = (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT)        != 0;
 
-  uint64_t armReg               = reg_read(P4_ARM_DISARM);
+  uint64_t armReg               = reg_read(NW_ARM_DISARM);
   pFastSweepState->commonState.armed              = (armReg & 0x1) != 0;
   pFastSweepState->commonState.arm_ver            = (armReg >> 32) & 0xFFFFFFFF;
   pFastSweepState->commonState.killSwitch         = (reg_read(KILL_SWITCH)   & 0x1) != 0;  
@@ -674,7 +674,7 @@ int getQEDState(QEDState* pQEDState) {
 
   pQEDState->commonState.reportOnly         = (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT)        != 0;
 
-  uint64_t armReg               = reg_read(P4_ARM_DISARM);
+  uint64_t armReg               = reg_read(NW_ARM_DISARM);
   pQEDState->commonState.armed              = (armReg & 0x1) != 0;
   pQEDState->commonState.arm_ver            = (armReg >> 32) & 0xFFFFFFFF;
   pQEDState->commonState.killSwitch         = (reg_read(KILL_SWITCH)   & 0x1) != 0;  
@@ -694,7 +694,7 @@ int getNewsState(NewsState* pNewsState) {
 
   pNewsState->commonState.reportOnly         = (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT)        != 0;
 
-  uint64_t armReg               = reg_read(P4_ARM_DISARM);
+  uint64_t armReg               = reg_read(NW_ARM_DISARM);
   pNewsState->commonState.armed              = (armReg & 0x1) != 0;
   pNewsState->commonState.arm_ver            = (armReg >> 32) & 0xFFFFFFFF;
   pNewsState->commonState.killSwitch         = (reg_read(KILL_SWITCH)   & 0x1) != 0;  
@@ -821,28 +821,6 @@ int main(int argc, char *argv[]) {
     getCurrHWEnables(coreParams);
     ekaHwCaps->refresh();
     getEfcState(pEfcState);
-    /* ----------------------------------------- */
-    switch ( ((ekaHwCaps->hwCaps.version.parser>>0) & 0xF) ) {
-    case 12:
-      getQEDState(pQEDState);
-      break;
-    case 13:
-      getFastSweepState(pFastSweepState);
-      break;
-    case 14:
-      getNewsState(pNewsState);
-      break;
-    case 15:
-      getFastCancelState(pFastCancelState);
-      break;
-    case 1:
-    case 2:
-      getEfcState(pEfcState);
-      break;
-    default:
-      break;
-    }
-    /* ----------------------------------------- */
     getExceptions(pEfcExceptionsReport,
 		  ekaHwCaps->hwCaps.core.bitmap_tcp_cores |
 		  ekaHwCaps->hwCaps.core.bitmap_md_cores);
@@ -864,25 +842,37 @@ int main(int argc, char *argv[]) {
     printLineSeparator(coreParams,'+','-');
     /* ----------------------------------------- */
     /* ----------------------------------------- */
-    switch ( ((ekaHwCaps->hwCaps.version.parser>>0) & 0xF) ) {
-    case 12:
-      printQEDState(pQEDState);
-      break;
-    case 13:
-      printFastSweepState(pFastSweepState);
-      break;
-    case 14:
-      printNewsState(pNewsState);
-      break;
-    case 15:
-      printFastCancelState(pFastCancelState);
-      break;
-    case 1:
-    case 2:
-      printEfcState(pEfcState);
-      break;
-    default:
-      break;
+
+    /* ----------------------------------------- */
+    for (auto coreId = 0; coreId < 2; coreId++) { //TBD md bitmap
+    
+      switch ( ((ekaHwCaps->hwCaps.version.parser>>0*4) & 0xF) ) {
+      case 12:
+	getQEDState(pQEDState);
+	printQEDState(pQEDState);
+	break;
+      case 13:
+	getFastSweepState(pFastSweepState);
+	printFastSweepState(pFastSweepState);
+	break;
+      case 14:
+	getNewsState(pNewsState);
+	printNewsState(pNewsState);
+	break;
+      case 15:
+	getFastCancelState(pFastCancelState);
+	printFastCancelState(pFastCancelState);
+	break;
+      case 1:
+      case 2:
+	getEfcState(pEfcState);
+	printEfcState(pEfcState);
+	break;
+      default:
+	break;
+      }
+      /* ----------------------------------------- */
+
     }
 
     /* ----------------------------------------- */

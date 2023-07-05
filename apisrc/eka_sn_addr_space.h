@@ -33,6 +33,7 @@ enum addresses {
 
 //P4
     P4_ARM_DISARM = 0xf07c8,
+    NW_ARM_DISARM = 0xf07d0,
     P4_STRAT_CONF = 0xf07c0,
     P4_GLOBAL_MAX_SIZE = 0xf07e0,
     // force_fire - bit 63
