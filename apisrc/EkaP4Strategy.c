@@ -118,6 +118,9 @@ void EkaP4Strategy::configureTemplates() {
         int)EkaEpm::TemplateId::BoeQuoteUpdateShort] =
         new EpmBoeQuoteUpdateShortTemplate(
             (int)EkaEpm::TemplateId::BoeQuoteUpdateShort);
+
+    epm_->DownloadSingleTemplate2HW(epm_->epmTemplate[(
+        int)EkaEpm::TemplateId::BoeQuoteUpdateShort]);
     break;
 
   default:

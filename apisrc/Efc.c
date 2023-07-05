@@ -99,6 +99,14 @@ EkaOpResult setActionTcpSock(EkaDev *ekaDev,
     on_error("excSock %d does not exist", excSock);
 
   epm->a_[globalIdx]->setTcpSess(sess);
+
+  EKA_LOG("Action[%d]: set TCP socket %d  "
+          "%s %s:%u -->  %s  %s:%u ",
+          globalIdx, excSock, EKA_MAC2STR(sess->macSa),
+          EKA_IP2STR(sess->srcIp), sess->srcPort,
+          EKA_MAC2STR(sess->macDa), EKA_IP2STR(sess->dstIp),
+          sess->dstPort);
+
   return EKA_OPRESULT__OK;
 }
 
@@ -153,15 +161,21 @@ EkaOpResult efcSetActionPayload(EkaDev *ekaDev,
   if (!efc)
     on_error("!efc");
 
+  if (len > 1448)
+    on_error("len %ju is too high", len);
+
   auto a = epm->a_[actionIdx];
 
   if (!a)
     on_error("action[%d] was not allocated", actionIdx);
 
+  char bufStr[10000] = {};
+  hexDump2str("Payload set", payload, len, bufStr,
+              sizeof(bufStr));
   a->setPayload(payload, len);
 
-  EKA_LOG("EFC Action[%d]: %ju bytes copied Heap",
-          actionIdx, len);
+  EKA_LOG("EFC Action[%d]: payload set: %s", actionIdx,
+          bufStr);
 
   //	a->printHeap();
 

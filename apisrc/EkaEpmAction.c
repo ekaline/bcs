@@ -164,6 +164,8 @@ int EkaEpmAction::setHwAction() {
   atomicIndirectBufWrite(dev_, 0xf0238 /* ActionAddr */, 0,
                          0, globalIdx(), 0);
 
+  print("setHwAction");
+  printHwAction();
   return 0;
 }
 /* ---------------------------------------------------- */
@@ -174,8 +176,8 @@ void EkaEpmAction::printHeap() {
 }
 /* ---------------------------------------------------- */
 void EkaEpmAction::printHwAction() {
-  //  EKA_LOG("hwAction_.bit_params=0x%x",
-  //  (uint)hwAction_.bit_params);
+  /*   EKA_LOG("hwAction_.bit_params=0x%x",
+            (uint)hwAction_.bit_params); */
   EKA_LOG("hwAction_.tcpcs_template_db_ptr =0x%x",
           hwAction_.tcpcs_template_db_ptr);
   EKA_LOG("hwAction_.template_db_ptr=0x%x",
@@ -386,6 +388,7 @@ EkaEpmAction::EkaEpmAction(EkaEpm::ActionType type,
 }
 /* ----------------------------------------------------- */
 int EkaEpmAction::initEpmActionLocalCopy() {
+  epmActionLocalCopy_.token = EkaEpm::DefaultToken;
   epmActionLocalCopy_.nextAction = EPM_LAST_ACTION;
   epmActionLocalCopy_.enable = EkaEpm::ALWAYS_ENABLE;
   epmActionLocalCopy_.postStratMask = EkaEpm::ALWAYS_ENABLE;
@@ -526,6 +529,10 @@ void EkaEpmAction::setTcpSess(EkaTcpSess *tcpSess) {
   tcpSess_ = tcpSess;
   coreId_ = tcpSess->coreId;
   sessId_ = tcpSess->sessId;
+
+  setNwHdrs(tcpSess->macDa, tcpSess->macSa, tcpSess->srcIp,
+            tcpSess->dstIp, tcpSess->srcPort,
+            tcpSess->dstPort);
   setHwAction();
 }
 /* ----------------------------------------------------- */
@@ -621,6 +628,16 @@ int EkaEpmAction::updateAttrs(uint8_t _coreId,
 void EkaEpmAction::setPayload(const void *buf, size_t len) {
   payload_ = &epm_->heap[heapOffs_ + getPayloadOffset()];
   payloadLen_ = len;
+
+  if (!epmTemplate_)
+    on_error("!epmTemplate_");
+
+  if (hwAction_.tcpCsSizeSource ==
+          TcpCsSizeSource::FROM_ACTION &&
+      epmTemplate_->getByteSize() != len)
+    on_error("Template payload size %u != len %ju",
+             epmTemplate_->getByteSize(), len);
+
   memcpy(payload_, buf, payloadLen_);
   pktSize_ = getPayloadOffset() + payloadLen_;
   updatePayload();

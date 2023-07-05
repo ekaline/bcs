@@ -773,18 +773,21 @@ void ekaFireReportThread(EkaDev *dev) {
 
     if (strategyId != EPM_INVALID_STRATEGY) {
       if (strategyId != EPM_NO_STRATEGY) { // valid strategy
-        auto reportedStrategy{epm->strategy[strategyId]};
+        if (strategyId != EFC_STRATEGY)
+          on_error("Unexpected strategyId %d", strategyId);
+        auto reportedStrategy{dev->efc};
         if (!reportedStrategy) {
           hexDump("Bad Report", reportBuf, reportLen);
           on_error("!strategy[%d]", strategyId);
         }
         if (!reportedStrategy->reportCb)
           on_error("reportCb is not defined");
-        char fireReportStr[16 * 1024] = {};
-        hexDump2str("Fire Report", reportBuf, reportLen,
-                    fireReportStr, sizeof(fireReportStr));
-        EKA_LOG("reportCb: %s", fireReportStr);
-
+        /*
+              char fireReportStr[16 * 1024] = {};
+              hexDump2str("Fire Report", reportBuf,
+           reportLen, fireReportStr, sizeof(fireReportStr));
+              EKA_LOG("reportCb: %s", fireReportStr);
+        */
         reportedStrategy->reportCb(reportBuf, reportLen,
                                    reportedStrategy->cbCtx);
       } else { // no strategy, as exception

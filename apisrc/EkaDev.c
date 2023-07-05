@@ -367,6 +367,15 @@ bool EkaDev::openEpm() {
     on_error("!epm");
   epm->InitDefaultTemplates();
 
+#if 0
+  for (auto i = 0; i < EkaEpmRegion::Regions::Total; i++) {
+    uint8_t initByte = i + 1;
+    TEST_LOG("Initializing Region %d payload to 0x%x", i,
+             initByte);
+    epm->initHeap(i, initByte);
+  }
+#endif
+
   return true;
 }
 

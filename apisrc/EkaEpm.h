@@ -111,7 +111,7 @@ public:
 
   EkaEpm(EkaDev *_dev);
 
-  void initHeap(uint start, uint size, uint regionId);
+  void initHeap(int regionId, uint8_t payloadByte = 0);
 
   int createRegion(int regionId);
 

@@ -66,6 +66,22 @@ EkaEfc::EkaEfc(const EfcInitCtx *pEfcInitCtx) {
 
   eka_write(dev_, P4_STRAT_CONF, p4_strat_conf);
   eka_write(dev_, P4_WATCHDOG_CONF, p4_watchdog_period);
+
+  EKA_LOG("Clearing %ju Efc Actions",
+          EkaEpmRegion::NumEfcActions);
+  for (auto i = 0; i < EkaEpmRegion::NumEfcActions; i++) {
+    epm_action_t emptyAction = {};
+
+    auto globalIdx = EkaEpmRegion::getBaseActionIdx(
+                         EkaEpmRegion::Regions::Efc) +
+                     i;
+
+    copyBuf2Hw(dev_, EkaEpm::EpmActionBase,
+               (uint64_t *)&emptyAction,
+               sizeof(emptyAction));
+    atomicIndirectBufWrite(dev_, 0xf0238, 0, 0, globalIdx,
+                           0);
+  }
 }
 /* ################################################ */
 EkaEfc::~EkaEfc() {
@@ -203,7 +219,7 @@ int EkaEfc::run(EfcCtx *pEfcCtx,
                  : efcPrintFireReport;
   cbCtx = pEfcRunCtx->cbCtx;
 
-  setHwGlobalParams();
+  // setHwGlobalParams();
   setHwUdpParams();
   /* if (hwFeedVer != EfhFeedVer::kCME) */
   /*   setHwStratRegion(); */
@@ -227,6 +243,8 @@ int EkaEfc::run(EfcCtx *pEfcCtx,
 
 /* ################################################ */
 int EkaEfc::setHwGlobalParams() {
+  on_error("Should not be called!");
+  // kept for reference only
   EKA_LOG("enable_strategy=%d, report_only=%d, "
           "debug_always_fire=%d, "
           "debug_always_fire_on_unsubscribed=%d, "

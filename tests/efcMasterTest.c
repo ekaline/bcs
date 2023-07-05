@@ -199,14 +199,10 @@ void tcpServer(EkaDev *dev, std::string ip, uint16_t port,
 
 void printUsage(char *cmd) {
   printf("USAGE: %s "
-         "-s <Connection Server IP>"
-         "-p <Connection Server TcpPort>"
-         "-c <Connection Client IP>"
-         "-t <Trigger IP>"
-         "-u <Trigger UdpPort>"
-         "-l <Num of TCP sessions>"
-         "-f <Run EFH for raw MD>"
-         "-d <FATAL DEBUG ON>"
+         "\t-r <Report Only ON>\n"
+         "\t-l <Num of TCP sessions>\n"
+         "\t-f <Run EFH for raw MD>\n"
+         "\t-d <FATAL DEBUG ON>\n"
          "\n",
          cmd);
   return;
@@ -214,36 +210,12 @@ void printUsage(char *cmd) {
 
 /* --------------------------------------------- */
 
-static int
-getAttr(int argc, char *argv[], std::string *serverIp,
-        uint16_t *serverTcpPort, std::string *clientIp,
-        std::string *triggerIp, uint16_t *triggerUdpPort,
-        uint16_t *numTcpSess, bool *runEfh,
-        bool *fatalDebug) {
+static int getAttr(int argc, char *argv[],
+                   uint16_t *numTcpSess, bool *runEfh,
+                   bool *fatalDebug, bool *report_only) {
   int opt;
-  while ((opt = getopt(argc, argv, ":c:s:p:u:l:t:fdh")) !=
-         -1) {
+  while ((opt = getopt(argc, argv, ":l:t:fdrh")) != -1) {
     switch (opt) {
-    case 's':
-      *serverIp = std::string(optarg);
-      printf("serverIp = %s\n", (*serverIp).c_str());
-      break;
-    case 'c':
-      *clientIp = std::string(optarg);
-      printf("clientIp = %s\n", (*clientIp).c_str());
-      break;
-    case 'p':
-      *serverTcpPort = atoi(optarg);
-      printf("serverTcpPort = %u\n", *serverTcpPort);
-      break;
-    case 't':
-      *triggerIp = std::string(optarg);
-      printf("triggerIp = %s\n", (*triggerIp).c_str());
-      break;
-    case 'u':
-      *triggerUdpPort = atoi(optarg);
-      printf("triggerUdpPort = %u\n", *triggerUdpPort);
-      break;
     case 'l':
       *numTcpSess = atoi(optarg);
       printf("numTcpSess = %u\n", *numTcpSess);
@@ -255,6 +227,10 @@ getAttr(int argc, char *argv[], std::string *serverIp,
     case 'd':
       printf("fatalDebug = ON\n");
       *fatalDebug = true;
+      break;
+    case 'r':
+      printf("report_only = ON\n");
+      *report_only = true;
       break;
     case 'h':
       printUsage(argv[0]);
@@ -514,10 +490,21 @@ static size_t prepare_BoeNewOrderMsg(void *dst) {
                   '9', '0', 'A', 'B', 'C', 'D', 'E', 'F'},
       .OpenClose = 'O'};
 
-  memcpy(dst, &fireMsg, sizeof(BoeNewOrderMsg));
-  return sizeof(BoeNewOrderMsg);
+  memcpy(dst, &fireMsg, sizeof(fireMsg));
+  return sizeof(fireMsg);
 }
 
+static size_t prepare_BoeQuoteUpdateShortMsg(void *dst) {
+  const BoeQuoteUpdateShortMsg fireMsg = {
+      .StartOfMessage = 0xBABA,
+      .MessageLength = sizeof(BoeQuoteUpdateShortMsg) - 2,
+      .MessageType = 0x59,
+
+      .Reserved1 = {'E', 'K', 'A'},
+      .Reserved2 = {'Y', 'X'}};
+  memcpy(dst, &fireMsg, sizeof(fireMsg));
+  return sizeof(fireMsg);
+}
 /* ############################################# */
 int main(int argc, char *argv[]) {
 
@@ -531,14 +518,14 @@ int main(int argc, char *argv[]) {
       "224.0.74.0"; // Ekaline lab default (C1 CC feed)
   uint16_t triggerUdpPort = 30301;    // C1 CC gr#0
   uint16_t serverTcpBasePort = 22222; // Ekaline lab default
-  uint16_t numTcpSess = 4;
+  uint16_t numTcpSess = 1;
   uint16_t serverTcpPort = serverTcpBasePort;
   bool runEfh = false;
   bool fatalDebug = false;
+  bool report_only = false;
 
-  getAttr(argc, argv, &serverIp, &serverTcpPort, &clientIp,
-          &triggerIp, &triggerUdpPort, &numTcpSess, &runEfh,
-          &fatalDebug);
+  getAttr(argc, argv, &numTcpSess, &runEfh, &fatalDebug,
+          &report_only);
 
   if (numTcpSess > MaxTcpTestSessions)
     on_error("numTcpSess %d > MaxTcpTestSessions %d",
@@ -626,7 +613,7 @@ int main(int argc, char *argv[]) {
   EfcCtx *pEfcCtx = &efcCtx;
 
   EfcInitCtx initCtx = {
-      .report_only = false,
+      .report_only = report_only,
       .watchdog_timeout_sec = 1000000,
   };
 
@@ -754,7 +741,8 @@ int main(int argc, char *argv[]) {
   // Manually prepared FPGA firing template
 
   char fireMsg[1500] = {};
-  size_t fireMsgLen = prepare_BoeNewOrderMsg(fireMsg);
+  size_t fireMsgLen =
+      prepare_BoeQuoteUpdateShortMsg(fireMsg);
 
   // ==============================================
   for (auto i = 0; i < cboeMcParams.nMcGroups; i++) {
