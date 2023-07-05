@@ -714,14 +714,14 @@ int printCommonState(CommonState* pCommonState) {
   }
   else {
     if (! pCommonState->armed) {
-      printf (RED "\nCONTROLLER STATE: UNARMED, expected version=%d\n" RESET,pCommonState->arm_ver);
+      printf (RED " UNARMED, (ver=%d)\n" RESET,pCommonState->arm_ver);
     } else {
-      printf (GRN "\nCONTROLLER STATE: ARMED, expected version=%d\n" RESET,pCommonState->arm_ver);
+      printf (GRN " ARMED, (ver=%d)\n" RESET,pCommonState->arm_ver);
     }
   }
   
-  printf("\nReportOnly = %d (needs re-arming)\n\n",pCommonState->reportOnly);
-  
+  //  printf("\nReportOnly = %de-arming)\n\n",pCommonState->reportOnly);
+  //  printf("ReportOnly            :\t%ju\n",pCommonState->reportOnly);
   return 0;
 
 }
@@ -730,20 +730,28 @@ int printCommonState(CommonState* pCommonState) {
 int printEfcState(EfcState* pEfcState) {
 
 
+  printf("\n--------------------------------------------------------");
+  printf("\nSecurity Hash Based Strategy (P4) : ");
   printCommonState(&pEfcState->commonState);
+  printf("--------------------------------------------------------\n");
+  printf("ReportOnly            :\t%ju\n",pEfcState->commonState.reportOnly);
   
   if (pEfcState->fatalDebug)
     printf(RED "WARNING: \'Fatal Debug\' is Active\n" RESET);
   
-  printf("Configurations: ForceFire               = %d (effective only if \'Fatal Debug\' is Active)\n",
-	 pEfcState->forceFire);
-  printf("\t\tForceFireOnUnsubscribed = %d (effective only if \'Fatal Debug\' and ForceFire are Active)\n",
-	 pEfcState->forceFireUnsubscr);
+  if (pEfcState->forceFire) {
+    printf("Configurations: ForceFire               = %d (effective only if \'Fatal Debug\' is Active)\n",
+	   pEfcState->forceFire);
+    printf("\t\tForceFireOnUnsubscribed = %d (effective only if \'Fatal Debug\' and ForceFire are Active)\n",
+	   pEfcState->forceFireUnsubscr);
+  }
 
-  printf("Tried     subscribing on %u securities\n",pEfcState->totalSecs);
-  printf("Succeeded subscribing on %u securities\n",pEfcState->subscribedSecs);
-  printf("\n");
-  
+  printf("\n-----------------------------------\n");
+  printf("Subscription:\n");
+  printf("Tried                 :\t%ju\n",pEfcState->totalSecs);
+  printf("Succeeded             :\t%ju\n",pEfcState->subscribedSecs);
+  printf("\n-----------------------------------\n");
+  printf("Strategy:\n");
   printf("Subscribed   MD Orders:\t%ju\n",pEfcState->ordersSubscribed);
   printf("Unsubscribed MD Orders:\t%ju\n",pEfcState->ordersUnsubscribed);
   printf("Evaluated   strategies:\t%ju\n",pEfcState->strategyRuns);
@@ -845,8 +853,8 @@ int main(int argc, char *argv[]) {
 
     /* ----------------------------------------- */
     for (auto coreId = 0; coreId < 2; coreId++) { //TBD md bitmap
-    
-      switch ( ((ekaHwCaps->hwCaps.version.parser>>0*4) & 0xF) ) {
+
+      switch ( ((ekaHwCaps->hwCaps.version.parser>>coreId*4) & 0xF) ) {
       case 12:
 	getQEDState(pQEDState);
 	printQEDState(pQEDState);
