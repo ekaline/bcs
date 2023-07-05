@@ -822,7 +822,32 @@ bool runP4Test(EfcCtx *pEfcCtx) {
     efcArmP4(pEfcCtx,, p4ArmVer++);
   }
 #endif
+  // ==============================================
+  TEST_LOG("\n"
+           "===========================\n"
+           "END OT CBOE P4 TEST\n"
+           "===========================\n");
+  return true;
+}
+/* ############################################# */
 
+bool runQedTest(EfcCtx *pEfcCtx) {
+  int qedExpectedFires = 0;
+  int TotalInjects = 4;
+  EfcArmVer qedArmVer = 0;
+
+  for (auto i = 0; i < TotalInjects; i++) {
+    efcArmQed(pEfcCtx, qedArmVer++); // arm and promote
+    qedExpectedFires++;
+
+    sendQEDMsg(serverIp, triggerIp, triggerUdpPort);
+    usleep(300000);
+  }
+  // ==============================================
+  TEST_LOG("\n"
+           "===========================\n"
+           "END OT QED TEST\n"
+           "===========================\n");
   return true;
 }
 /* ############################################# */
@@ -839,7 +864,6 @@ int main(int argc, char *argv[]) {
              numTcpSess, MaxTcpTestSessions);
   // ==============================================
   // EkaDev general setup
-  EfcArmVer qedArmVer = 0;
   EkaDev *dev = NULL;
   EkaCoreId coreId = 0;
   EkaOpResult rc;
@@ -925,35 +949,14 @@ int main(int argc, char *argv[]) {
     configureP4Test(pEfcCtx);
 
   // ==============================================
-  (pEfcCtx, qedArmVer); //
-  // ==============================================
   efcRun(pEfcCtx, &runCtx);
   // ==============================================
 
   if (p4_enabled)
     runP4Test(pEfcCtx);
   // ==============================================
-
-  // ==============================================
-  TEST_LOG("\n"
-           "===========================\n"
-           "END OT CBOE P4\n"
-           "===========================\n");
-  int qedExpectedFires = 0;
-  int TotalInjects = 4;
-
-  for (auto i = 0; i < TotalInjects; i++) {
-    efcArmQed(pEfcCtx, qedArmVer++); // arm and promote
-    qedExpectedFires++;
-
-    sendQEDMsg(serverIp, triggerIp, triggerUdpPort);
-    usleep(300000);
-  }
-
-  TEST_LOG("\n"
-           "===========================\n"
-           "END OT TESTS\n"
-           "===========================\n");
+  if (qed_enabled)
+    runQedTest(pEfcCtx);
 
 #ifndef _VERILOG_SIM
   sleep(2);
