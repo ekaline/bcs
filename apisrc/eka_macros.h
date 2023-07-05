@@ -89,20 +89,30 @@ class EkaDev;
 #define EKA_IP2STR(x)  ((std::to_string((x >> 0) & 0xFF) + '.' + std::to_string((x >> 8) & 0xFF) + '.' + std::to_string((x >> 16) & 0xFF) + '.' + std::to_string((x >> 24) & 0xFF)).c_str())
 
 
+//#define EKA_FEED2STRING(x)			\
+//  x == 0 ? "NOM" :				\
+//    x == 1 ? "MIAX" :				\
+//    x == 2 ? "PHLX" :				\
+//    x == 3 ? "ISE/GEMX/MRX" :			\
+//    x == 4 ? "BZX/C2/EDGEX" :			\
+//    x == 9 ? "CME" :				\
+//    x ==(16+0)  ? "Generic unconfigured" :		\
+//    x ==(16+1)  ? "Generic NOM" :			\
+//    x ==(16+2)  ? "Generic Pitch P4 " :		\
+//    x ==(16+12) ? "Generic QED" :			\
+//    x ==(16+13) ? "Generic Itch Fast Sweep" :		\
+//    x ==(16+14) ? "Generic News" :			\
+//    x ==(16+15) ? "Generic CME Fast Cancel" :		\
+//    "Unknown"
+
 #define EKA_FEED2STRING(x) \
-  x == 0 ? "NOM" : \
-    x == 1 ? "MIAX" : \
-    x == 2 ? "PHLX" : \
-    x == 3 ? "ISE/GEMX/MRX" : \
-    x == 4 ? "BZX/C2/EDGEX" : \
-    x == 9 ? "CME" : \
-    x ==(16+0)  ? "Generic unconfigured" :	\
-    x ==(16+1)  ? "Generic NOM" :			\
-    x ==(16+2)  ? "Generic Pitch P4 " :		\
-    x ==(16+12) ? "Generic QED" :		\
-    x ==(16+13) ? "Generic Itch Fast Sweep" :		\
-    x ==(16+14) ? "Generic News" :		\
-    x ==(16+15) ? "Generic CME Fast Cancel" :		\
+  x == 0    ? "Unconfigured" :		\
+    x == 1  ? "NOM" :			\
+    x == 2  ? "Pitch P4" :		\
+    x == 12 ? "QED" :			\
+    x == 13 ? "Itch FSweep" :		\
+    x == 14 ? "News" :			\
+    x == 15 ? "CME FCancel" :		\
     "Unknown"
 
 #define EKA_NIBBLE2CHAR(x) \

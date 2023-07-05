@@ -127,9 +127,13 @@ void EkaHwCaps::print2buf() {
                  "hwCaps.version.strategy\t\t\t= %ju\n",
                  (uint64_t)(hwCaps.version.strategy));
   idx += sprintf(&buf[idx],
-                 "hwCaps.version.parser\t\t\t= %ju (%s)\n",
-                 (uint64_t)(hwCaps.version.parser),
-                 EKA_FEED2STRING(hwCaps.version.parser));
+                 "hwCaps.version.parser0\t\t\t= %ju (%s)\n",
+                 (uint64_t)((hwCaps.version.parser>>0)&0xF),
+		 EKA_FEED2STRING( ((hwCaps.version.parser>>0)&0xF)) );
+  idx += sprintf(&buf[idx],
+                 "hwCaps.version.parser1\t\t\t= %ju (%s)\n",
+                 (uint64_t)((hwCaps.version.parser>>4)&0xF),
+                 EKA_FEED2STRING( ((hwCaps.version.parser>>4)&0xF)) );
   idx += sprintf(&buf[idx],
                  "hwCaps.version.hwparser\t\t\t= %ju\n",
                  (uint64_t)(hwCaps.version.hwparser));
@@ -230,24 +234,25 @@ bool EkaHwCaps::checkEpm() {
 
 bool EkaHwCaps::checkEfc() {
   errno = ENOSYS;
-  if (hwCaps.version.parser < 16) {
-    // HW parser is not Generic, checking for CME
-    if (hwCaps.version.parser !=
-        EKA_EXPECTED_NONGENERIC_PARSER_VERSION)
-      on_error(
-          "hwCaps.version.parser 0x%x != "
-          "EKA_EXPECTED_NONGENERIC_PARSER_VERSION 0x%x",
-          hwCaps.version.parser,
-          EKA_EXPECTED_NONGENERIC_PARSER_VERSION);
-  } else {
+  // all parsers are generic
+  /* if (hwCaps.version.parser < 16) { */
+  /*   // HW parser is not Generic, checking for CME */
+  /*   if (hwCaps.version.parser != */
+  /*       EKA_EXPECTED_NONGENERIC_PARSER_VERSION) */
+  /*     on_error( */
+  /*         "hwCaps.version.parser 0x%x != " */
+  /*         "EKA_EXPECTED_NONGENERIC_PARSER_VERSION 0x%x", */
+  /*         hwCaps.version.parser, */
+  /*         EKA_EXPECTED_NONGENERIC_PARSER_VERSION); */
+  /* } else { */
     // HW parser is Generic
-    if (hwCaps.version.hwparser !=
-        EKA_EXPECTED_GENERIC_PARSER_VERSION)
-      on_error("hwCaps.version.hwparser 0x%x != "
-               "EKA_EXPECTED_GENERIC_PARSER_VERSION 0x%x",
-               hwCaps.version.hwparser,
-               EKA_EXPECTED_GENERIC_PARSER_VERSION);
-  }
+  if (hwCaps.version.hwparser !=
+      EKA_EXPECTED_GENERIC_PARSER_VERSION)
+    on_error("hwCaps.version.hwparser 0x%x != "
+	     "EKA_EXPECTED_GENERIC_PARSER_VERSION 0x%x",
+	     hwCaps.version.hwparser,
+	     EKA_EXPECTED_GENERIC_PARSER_VERSION);
+  //  }
 
   if (hwCaps.version.strategy != EKA_EXPECTED_EFC_STRATEGY)
     on_error("hwCaps.version.strategy %d != "
