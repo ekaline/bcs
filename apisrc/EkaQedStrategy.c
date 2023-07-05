@@ -61,8 +61,7 @@ EkaQedStrategy::EkaQedStrategy(
     const EfcQedParams *qedParams)
     : EkaStrategy(mcParams) {
 
-  name_ =
-      "Qed_" + std::string(EKA_FEED_VER_DECODE(feedVer_));
+  name_ = "QedPurge";
 
   disableRxFire();
   eka_write(dev_, P4_STRAT_CONF, (uint64_t)0);

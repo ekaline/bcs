@@ -345,14 +345,14 @@ int EkaEfc::setHwUdpParams() {
     eka_write(dev_, FH_GROUP_IPPORT, tmp_ipport);
   }
 
-  EKA_LOG("downloading %d MC sessions to FPGA",
-          p4_->numUdpSess_);
-
   EkaStrategy *strategies[] = {p4_, qed_};
 
   for (auto const &strat : strategies) {
     if (!strat)
       continue;
+    EKA_LOG("downloading %d MC of %s sessions to FPGA",
+            strat->numUdpSess_, strat->name_.c_str());
+
     for (auto i = 0; i < strat->numUdpSess_; i++) {
       if (!strat->udpSess_[i])
         on_error("!udpSess[%d]", i);
