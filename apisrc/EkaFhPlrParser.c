@@ -365,7 +365,11 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
       msg.price = -msg.price;
     }
     msg.quantity          = m->totalQuantity;
-    sprintf(msg.firmId, "%u", m->participant);
+    if (m->participant) {
+      // At time of writing all OCC member IDs are <1000, so this should never fail.
+      // If we do get a massive ID somehow, it just leaves the field blank.
+      tryNumToStrBuf(msg.firmId, m->participant);
+    }
     msg.endTimeNanos      = isDelete ? 0 : msg.header.timeStamp + getRfqRunTimeNanos(m->type);
 
     if (pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL)
