@@ -118,6 +118,16 @@ void EkaEfc::initQed(const EfcUdpMcParams *mcParams,
   totalCoreIdBitmap_ |= qed_->getCoreBitmap();
 }
 /* ################################################ */
+
+void EkaEfc::qedSetFireAction(epm_actionid_t fireActionId,
+                              int productId) {
+  if (!qed_)
+    on_error(
+        "Qed is not initialized. Run efcInitQedStrategy()");
+  qed_->setFireAction(fireActionId, productId);
+}
+
+/* ################################################ */
 int EkaEfc::armController(EfcArmVer ver) {
   EKA_LOG("Arming EFC");
   uint64_t armData = ((uint64_t)ver << 32) | 1;

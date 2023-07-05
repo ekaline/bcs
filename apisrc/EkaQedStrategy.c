@@ -70,39 +70,52 @@ EkaQedStrategy::EkaQedStrategy(
   configureTemplates();
   configureEhp();
 
-  volatile EfcQEDStrategyConf conf = {};
-
-  int prodCnt = 0;
   for (auto i = 0; i < EKA_QED_PRODUCTS; i++) {
-    conf.product[i].enable = qedParams->product[i].enable;
-    conf.product[i].minNumLevel =
+    conf_.product[i].enable = qedParams->product[i].enable;
+    conf_.product[i].minNumLevel =
         qedParams->product[i].min_num_level;
-    conf.product[i].dsID = qedParams->product[i].ds_id;
-    conf.product[i].token = EkaEpm::DefaultToken;
-    conf.product[i].fireActionId =
-        qedParams->product[i].fireActionId;
-    conf.product[i].strategyId = (uint8_t)EFC_STRATEGY;
+    conf_.product[i].dsID = qedParams->product[i].ds_id;
+    conf_.product[i].token = EkaEpm::DefaultToken;
+    conf_.product[i].fireActionId = -1;
+    conf_.product[i].strategyId = (uint8_t)EFC_STRATEGY;
 
     EKA_LOG("Configuring QED FPGA: product=%d, enable=%d, "
             "min_num_level=%d,ds_id=0x%x,token=0x%jx,"
             "fireActionId=%d,strategyId=%d",
-            i, conf.product[i].enable,
-            conf.product[i].minNumLevel,
-            conf.product[i].dsID, conf.product[i].token,
-            conf.product[i].fireActionId,
-            conf.product[i].strategyId);
+            i, conf_.product[i].enable,
+            conf_.product[i].minNumLevel,
+            conf_.product[i].dsID, conf_.product[i].token,
+            conf_.product[i].fireActionId,
+            conf_.product[i].strategyId);
     //  hexDump("EfcQEDStrategyConf",&conf,sizeof(conf),stderr);
 
-    if (conf.product[i].enable)
-      prodCnt++;
+    if (conf_.product[i].enable)
+      prodCnt_++;
   }
 
-  copyBuf2Hw(dev_, 0x86000, (uint64_t *)&conf,
-             sizeof(conf));
+  copyBuf2Hw(dev_, 0x86000, (uint64_t *)&conf_,
+             sizeof(conf_));
 
-  EKA_LOG(
-      "Created %s with %d MC groups, valid products = %u",
-      name_.c_str(), numUdpSess_, prodCnt);
+  EKA_LOG("Created %s with %d MC groups, "
+          "valid products = %u",
+          name_.c_str(), numUdpSess_, prodCnt_);
+}
+/* --------------------------------------------------- */
+
+void EkaQedStrategy::setFireAction(
+    epm_actionid_t fireActionId, int productId) {
+  if (productId < 0 || productId >= EKA_QED_PRODUCTS)
+    on_error("Invalid productId %d", productId);
+
+  if (!conf_.product[productId].enable)
+    on_error("productId %d is not enabled", productId);
+
+  conf_.product[productId].fireActionId = fireActionId;
+  copyBuf2Hw(dev_, 0x86000, (uint64_t *)&conf_,
+             sizeof(conf_));
+
+  EKA_LOG("Qed: Action[%d] is set to Fire for product %d",
+          fireActionId, productId);
 }
 
 /* --------------------------------------------------- */

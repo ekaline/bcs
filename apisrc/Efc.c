@@ -414,7 +414,20 @@ efcInitQedStrategy(EfcCtx *pEfcCtx,
 
   return EKA_OPRESULT__OK;
 }
+/* --------------------------------------------------- */
 
+EkaOpResult efcQedSetFireAction(EfcCtx *pEfcCtx,
+                                epm_actionid_t fireActionId,
+                                int productId) {
+  if (!pEfcCtx || !pEfcCtx->dev)
+    on_error("!pEfcCtx || !pEfcCtx->dev");
+  auto dev = pEfcCtx->dev;
+  if (!dev->efc)
+    on_error("Efc is not initialized: use efcInit()");
+  auto efc = dev->efc;
+  efc->qedSetFireAction(fireActionId, productId);
+  return EKA_OPRESULT__OK;
+}
 /* --------------------------------------------------- */
 
 EkaOpResult efcArmQed(EfcCtx *pEfcCtx, EfcArmVer ver) {

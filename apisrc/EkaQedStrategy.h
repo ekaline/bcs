@@ -28,7 +28,8 @@ class EkaQedStrategy : public EkaStrategy {
 public:
   EkaQedStrategy(const EfcUdpMcParams *mcParams,
                  const EfcQedParams *p4Params);
-
+  void setFireAction(epm_actionid_t fireActionId,
+                     int productId);
   void arm(EfcArmVer ver);
   void disarm();
 
@@ -50,7 +51,8 @@ public:
   bool fireOnAllAddOrders_ = false;
 
 private:
-  EfhFeedVer hwFeedVer_ = EfhFeedVer::kInvalid;
+  volatile EfcQEDStrategyConf conf_ = {};
+  int prodCnt_ = 0;
 
   int regionId_ = EkaEpmRegion::Regions::Efc;
 };

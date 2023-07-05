@@ -832,37 +832,37 @@ int main(int argc, char *argv[]) {
       .nMcGroups = std::size(qedMcGroups),
   };
 
-  auto qedHwPurgeIdx =
-      efcAllocateNewAction(dev, EpmActionType::QEDHwPurge);
-
   static const uint16_t QEDTestPurgeDSID = 0x1234;
   static const uint8_t QEDTestMinNumLevel = 5;
 
   EfcQedParams qedParams = {};
   int active_set = 3;
-  qedParams.product[active_set].fireActionId =
-      qedHwPurgeIdx;
   qedParams.product[active_set].ds_id = QEDTestPurgeDSID;
   qedParams.product[active_set].min_num_level =
       QEDTestMinNumLevel;
   qedParams.product[active_set].enable = true;
 
   efcInitQedStrategy(pEfcCtx, &qedMcParams, &qedParams);
+  auto qedHwPurgeIAction =
+      efcAllocateNewAction(dev, EpmActionType::QEDHwPurge);
+
+  efcQedSetFireAction(pEfcCtx, qedHwPurgeIAction,
+                      active_set);
 
   const char QEDTestPurgeMsg[] =
       "QED Purge Data With Dummy payload";
 
-  rc = setActionTcpSock(dev, qedHwPurgeIdx, excSock[0]);
+  rc = setActionTcpSock(dev, qedHwPurgeIAction, excSock[0]);
   if (rc != EKA_OPRESULT__OK)
     on_error("setActionTcpSock failed for Action %d",
-             qedHwPurgeIdx);
+             qedHwPurgeIAction);
 
-  rc = efcSetActionPayload(dev, qedHwPurgeIdx,
+  rc = efcSetActionPayload(dev, qedHwPurgeIAction,
                            QEDTestPurgeMsg,
                            strlen(QEDTestPurgeMsg));
   if (rc != EKA_OPRESULT__OK)
     on_error("efcSetActionPayload failed for Action %d",
-             qedHwPurgeIdx);
+             qedHwPurgeIAction);
 
   // ==============================================
   efcArmP4(pEfcCtx,

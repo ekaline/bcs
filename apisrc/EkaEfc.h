@@ -41,7 +41,8 @@ public:
 
   void initQed(const EfcUdpMcParams *mcParams,
                const EfcQedParams *p4Params);
-
+  void qedSetFireAction(epm_actionid_t fireActionId,
+                        int productId);
   void armQed(EfcArmVer ver);
   void disarmQed();
 
