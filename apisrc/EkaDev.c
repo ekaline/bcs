@@ -179,7 +179,8 @@ EkaDev::EkaDev(const EkaDevInitCtx *initCtx) {
   ekaHwCaps->print();
   ekaHwCaps->check();
 
-  hwFeedVer = feedVer(ekaHwCaps->hwCaps.version.parser);
+  //  hwFeedVer = feedVer(ekaHwCaps->hwCaps.version.parser);//TBD 2 parser
+  hwFeedVer = feedVer((ekaHwCaps->hwCaps.version.parser>>0)&0xF);//TBD 2 parser
 
 #ifdef _ENFORCE_NOM_
   hwFeedVer = EfhFeedVer::kNASDAQ;

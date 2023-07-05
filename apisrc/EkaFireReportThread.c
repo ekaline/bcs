@@ -370,10 +370,14 @@ std::pair<int, size_t> processExceptionReport(
     exceptReport.exceptionStatus.globalVector =
         hwEpmReport->exception_report.global_vector;
     // copying arm status fields
-    exceptReport.armStatus.armFlag =
-        hwEpmReport->arm_report.arm_state;
-    exceptReport.armStatus.expectedVersion =
-        hwEpmReport->arm_report.arm_expected_version;
+    exceptReport.p4armStatus.armFlag =
+        hwEpmReport->p4_arm_report.arm_state;
+    exceptReport.p4armStatus.expectedVersion =
+        hwEpmReport->p4_arm_report.arm_expected_version;
+    exceptReport.nWarmStatus.armFlag =
+        hwEpmReport->nw_arm_report.arm_state;
+    exceptReport.nWarmStatus.expectedVersion =
+        hwEpmReport->nw_arm_report.arm_expected_version;
     //    hexDump("------------\nexceptReport",hwEpmReport,sizeof(*hwEpmReport));
     //    EKA_LOG("ARM=%d
     //    VER=%d",hwEpmReport->arm_report.arm_state,hwEpmReport->arm_report.arm_expected_version);

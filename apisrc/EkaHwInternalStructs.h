@@ -182,9 +182,10 @@ struct hw_status_arm_report_t {
 } __attribute__((packed));
 
 struct hw_epm_status_report_t {
-  hw_status_arm_report_t       arm_report;
+  hw_status_arm_report_t       nw_arm_report;
+  hw_status_arm_report_t       p4_arm_report;
   hw_status_exception_report_t exception_report;
-  uint8_t                      b32_padding[7];
+  uint8_t                      b32_padding[2];
   hw_epm_report_t              epm;
 } __attribute__((packed));
 

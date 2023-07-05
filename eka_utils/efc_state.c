@@ -117,6 +117,7 @@ const char* colStringFormatGrn = GRN "| %20s " RESET;
 const char* colStringFormatRed = RED "| %20s " RESET;
 const char* colSmallNumFieldFormat  = "| %17s%3d ";
 const char* colformat="|    %'-16ju  ";
+const char* colformats="|    %'-16s  ";
 const int   colLen = 22;
 
 //################################################
@@ -296,7 +297,8 @@ int printLineSeparator(IfParams coreParams[NUM_OF_CORES],char sep, char s) {
 }
 //################################################
 
-int printHeader(IfParams coreParams[NUM_OF_CORES], EfcState* pEfcState) {
+int printHeader(IfParams coreParams[NUM_OF_CORES], EfcState* pEfcState,
+		EkaHwCaps* pEkaHwCaps) {
   printf("\n");
   printf("%s",emptyPrefix);
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
@@ -367,7 +369,22 @@ int printHeader(IfParams coreParams[NUM_OF_CORES], EfcState* pEfcState) {
   
   /* ----------------------------------------- */
   //  printf("%s",emptyPrefix);
-  printf (prefixStrFormat,"HW parser");
+  printf (prefixStrFormat,"HW parser type");
+
+  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
+    if (! coreParams[coreId].valid) continue;
+    //    printf(colSmallNumFieldFormat,"",coreParams[coreId].mcGrps);
+    //    printf (colformat,coreParams[coreId].hwParserEnable);
+    if (coreId < 2) //TBD check hw md cores
+      printf(colformats,EKA_FEED2STRING ( ((pEkaHwCaps->hwCaps.version.parser>>coreId*4) & 0xF) )); 
+    else
+      printf(colformats,""); 
+
+  }
+  printf("\n");
+
+  /* ----------------------------------------- */
+  printf (prefixStrFormat,"HW parser enable");
 
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (! coreParams[coreId].valid) continue;
@@ -805,21 +822,24 @@ int main(int argc, char *argv[]) {
     ekaHwCaps->refresh();
     getEfcState(pEfcState);
     /* ----------------------------------------- */
-    switch (ekaHwCaps->hwCaps.version.parser) {
-    case 28:
+    switch ( ((ekaHwCaps->hwCaps.version.parser>>0) & 0xF) ) {
+    case 12:
       getQEDState(pQEDState);
       break;
-    case 29:
+    case 13:
       getFastSweepState(pFastSweepState);
       break;
-    case 30:
+    case 14:
       getNewsState(pNewsState);
       break;
-    case 31:
+    case 15:
       getFastCancelState(pFastCancelState);
       break;
-    default:
+    case 1:
+    case 2:
       getEfcState(pEfcState);
+      break;
+    default:
       break;
     }
     /* ----------------------------------------- */
@@ -831,7 +851,7 @@ int main(int argc, char *argv[]) {
     /* ----------------------------------------- */
     printTime();
     /* ----------------------------------------- */
-    printHeader(coreParams,pEfcState);
+    printHeader(coreParams,pEfcState,ekaHwCaps);
     /* ----------------------------------------- */
     printLineSeparator(coreParams,'+','-');
     /* ----------------------------------------- */
@@ -843,23 +863,25 @@ int main(int argc, char *argv[]) {
     /* ----------------------------------------- */
     printLineSeparator(coreParams,'+','-');
     /* ----------------------------------------- */
-    printf("Generic parser template: %s\n",EKA_FEED2STRING (ekaHwCaps->hwCaps.version.parser)); 
-
-    switch (ekaHwCaps->hwCaps.version.parser) {
-    case 28:
+    /* ----------------------------------------- */
+    switch ( ((ekaHwCaps->hwCaps.version.parser>>0) & 0xF) ) {
+    case 12:
       printQEDState(pQEDState);
       break;
-    case 29:
+    case 13:
       printFastSweepState(pFastSweepState);
       break;
-    case 30:
+    case 14:
       printNewsState(pNewsState);
       break;
-    case 31:
+    case 15:
       printFastCancelState(pFastCancelState);
       break;
-    default:
+    case 1:
+    case 2:
       printEfcState(pEfcState);
+      break;
+    default:
       break;
     }
 

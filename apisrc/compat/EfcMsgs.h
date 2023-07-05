@@ -86,7 +86,8 @@ struct ArmStatusReport {
 };
 
 struct EfcExceptionsReport {
-  ArmStatusReport armStatus;
+  ArmStatusReport nWarmStatus;
+  ArmStatusReport p4armStatus;
   ExceptionReport exceptionStatus;
 };
       
