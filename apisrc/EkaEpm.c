@@ -51,8 +51,7 @@ int EkaEpm::createRegion(int regionId) {
             ALWAYS_ENABLE);
 
 #ifndef _VERILOG_SIM
-  initHeap(EkaEpmRegion::getBaseHeapOffs(regionId),
-           EkaEpmRegion::getHeapSize(regionId), regionId);
+  initHeap(regionId, 0x0);
 #endif
 
   return 0;
@@ -60,20 +59,27 @@ int EkaEpm::createRegion(int regionId) {
 
 /* ---------------------------------------------------- */
 
-void EkaEpm::initHeap(uint regionHeapBaseOffs,
-                      uint regionHeapSize, uint regionId) {
+void EkaEpm::initHeap(int regionId, uint8_t payloadByte) {
+  auto regionHeapSize = EkaEpmRegion::getHeapSize(regionId);
+
+  auto regionHeapBaseOffs =
+      EkaEpmRegion::getBaseHeapOffs(regionId);
+
   if (regionHeapSize % HeapPage != 0)
-    on_error(
-        "regionHeapSize %u is not multiple of HeapPage %ju",
-        regionHeapSize, HeapPage);
+    on_error("regionHeapSize %u is not multiple of "
+             "HeapPage %ju",
+             regionHeapSize, HeapPage);
   const int HeapWcPageSize = 1024;
   auto numPages = regionHeapSize / HeapWcPageSize;
-  EKA_LOG("Initializing region %u regionHeapBaseOffs=%u, "
-          "regionHeapSize=%u, "
-          "HeapWcPageSize=%d, numPages=%d",
-          regionId, regionHeapBaseOffs, regionHeapSize,
-          HeapWcPageSize, numPages);
-  memset(&heap[regionHeapBaseOffs], 0, regionHeapSize);
+  EKA_LOG(
+      "Initializing region %u regionHeapBaseOffs=%u, "
+      "regionHeapSize=%u, "
+      "HeapWcPageSize=%d, numPages=%d, payloadByte = 0x%x",
+      regionId, regionHeapBaseOffs, regionHeapSize,
+      HeapWcPageSize, numPages, payloadByte);
+
+  memset(&heap[regionHeapBaseOffs], payloadByte,
+         regionHeapSize);
 
   for (uint i = 0; i < numPages; i++) {
     uint64_t hwPageStart =

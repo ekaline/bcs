@@ -67,7 +67,7 @@ EkaEfc::EkaEfc(const EfcInitCtx *pEfcInitCtx) {
   eka_write(dev_, P4_STRAT_CONF, p4_strat_conf);
   eka_write(dev_, P4_WATCHDOG_CONF, p4_watchdog_period);
 
-  EKA_LOG("Clearing %d Efc Actions",
+  EKA_LOG("Clearing %ju Efc Actions",
           EkaEpmRegion::NumEfcActions);
   for (auto i = 0; i < EkaEpmRegion::NumEfcActions; i++) {
     epm_action_t emptyAction = {};
