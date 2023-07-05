@@ -184,7 +184,7 @@ struct BoeQuoteUpdateShortMsg {
   char SessionEligibility; // C1 only
   uint8_t QuoteCnt;
 
-  char Symbol[8];
+  char Symbol[6];
   char Side; // '1'-Bid, '2'-Ask
   char OpenClose;
   uint32_t Price;
