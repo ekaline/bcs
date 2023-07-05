@@ -142,15 +142,35 @@ int EkaEfc::disArmController() {
   return 0;
 }
 /* ################################################ */
-void EkaEfc::armP4(EfcArmVer ver) { p4_->arm(ver); }
+void EkaEfc::armP4(EfcArmVer ver) {
+  if (!p4_)
+    on_error(
+        "P4 is not initialized. Run efcInitP4Strategy()");
+  p4_->arm(ver);
+}
 
 /* ################################################ */
-void EkaEfc::disarmP4() { p4_->disarm(); }
+void EkaEfc::disarmP4() {
+  if (!p4_)
+    on_error(
+        "P4 is not initialized. Run efcInitP4Strategy()");
+  p4_->disarm();
+}
 /* ################################################ */
-void EkaEfc::armQed(EfcArmVer ver) { qed_->arm(ver); }
+void EkaEfc::armQed(EfcArmVer ver) {
+  if (!qed_)
+    on_error(
+        "Qed is not initialized. Run efcInitQedStrategy()");
+  qed_->arm(ver);
+}
 
 /* ################################################ */
-void EkaEfc::disarmQed() { qed_->disarm(); }
+void EkaEfc::disarmQed() {
+  if (!qed_)
+    on_error(
+        "Qed is not initialized. Run efcInitQedStrategy()");
+  qed_->disarm();
+}
 
 /* ################################################ */
 int EkaEfc::initStratGlobalParams(

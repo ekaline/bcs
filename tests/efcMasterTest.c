@@ -925,7 +925,7 @@ int main(int argc, char *argv[]) {
     configureP4Test(pEfcCtx);
 
   // ==============================================
-  efcArmQed(pEfcCtx, qedArmVer); //
+  (pEfcCtx, qedArmVer); //
   // ==============================================
   efcRun(pEfcCtx, &runCtx);
   // ==============================================
