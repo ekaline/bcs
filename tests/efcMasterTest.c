@@ -701,7 +701,7 @@ void configureP4Test(EfcCtx *pEfcCtx) {
 }
 /* ############################################# */
 
-void configureQedtest(EfcCtx *pEfcCtx) {
+void configureQedTest(EfcCtx *pEfcCtx) {
   auto dev = pEfcCtx->dev;
   // QED config
   EfcUdpMcGroupParams qedMcGroups[] = {
@@ -947,6 +947,9 @@ int main(int argc, char *argv[]) {
 
   if (p4_enabled)
     configureP4Test(pEfcCtx);
+
+  if (qed_enabled)
+    configureQedTest(pEfcCtx);
 
   // ==============================================
   efcRun(pEfcCtx, &runCtx);
