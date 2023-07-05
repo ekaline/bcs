@@ -769,7 +769,9 @@ void ekaFireReportThread(EkaDev *dev) {
 
     if (strategyId != EPM_INVALID_STRATEGY) {
       if (strategyId != EPM_NO_STRATEGY) { // valid strategy
-        auto reportedStrategy{epm->strategy[strategyId]};
+        if (strategyId != EFC_STRATEGY)
+          on_error("Unexpected strategyId %d", strategyId);
+        auto reportedStrategy{dev->efc};
         if (!reportedStrategy) {
           hexDump("Bad Report", reportBuf, reportLen);
           on_error("!strategy[%d]", strategyId);

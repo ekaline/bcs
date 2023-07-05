@@ -164,6 +164,7 @@ int EkaEpmAction::setHwAction() {
   atomicIndirectBufWrite(dev_, 0xf0238 /* ActionAddr */, 0,
                          0, globalIdx(), 0);
 
+  print("setHwAction");
   return 0;
 }
 /* ---------------------------------------------------- */

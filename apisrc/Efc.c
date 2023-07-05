@@ -100,8 +100,8 @@ EkaOpResult setActionTcpSock(EkaDev *ekaDev,
 
   epm->a_[globalIdx]->setTcpSess(sess);
 
-  EKA_LOG("Action[%d]: set TCP socket %d  %s %s:%u -->  %s "
-          "%s:%u ",
+  EKA_LOG("Action[%d]: set TCP socket %d  "
+          "%s %s:%u -->  %s  %s:%u ",
           globalIdx, excSock, EKA_MAC2STR(sess->macSa),
           EKA_IP2STR(sess->srcIp), sess->srcPort,
           EKA_MAC2STR(sess->macDa), EKA_IP2STR(sess->dstIp),
