@@ -763,7 +763,10 @@ int printEfcState(EfcState* pEfcState) {
 //################################################
 int printFastCancelState(FastCancelState* pFastCancelState) {
 
+  printf("\n--------------------------------------------------------");
+  printf("\nDirect Strategy : ");
   printCommonState(&pFastCancelState->commonState);
+  printf("--------------------------------------------------------\n");
  
   printf("Evaluated   strategies:\t%ju\n",pFastCancelState->strategyRuns);
   printf("Passed      strategies:\t%ju\n",pFastCancelState->strategyPassed);
@@ -774,7 +777,10 @@ int printFastCancelState(FastCancelState* pFastCancelState) {
 //################################################
 int printFastSweepState(FastSweepState* pFastSweepState) {
 
+  printf("\n--------------------------------------------------------");
+  printf("\nDirect Strategy : ");
   printCommonState(&pFastSweepState->commonState);
+  printf("--------------------------------------------------------\n");
   
   printf("Evaluated   strategies:\t%ju\n",pFastSweepState->strategyRuns);
   printf("Passed      strategies:\t%ju\n",pFastSweepState->strategyPassed);
@@ -785,7 +791,10 @@ int printFastSweepState(FastSweepState* pFastSweepState) {
 //################################################
 int printQEDState(QEDState* pQEDState) {
 
+  printf("\n--------------------------------------------------------");
+  printf("\nDirect Strategy : ");
   printCommonState(&pQEDState->commonState);
+  printf("--------------------------------------------------------\n");
   
   printf("Evaluated   strategies:\t%ju\n",pQEDState->strategyRuns);
   printf("Passed      strategies:\t%ju\n",pQEDState->strategyPassed);
@@ -796,7 +805,10 @@ int printQEDState(QEDState* pQEDState) {
 //################################################
 int printNewsState(NewsState* pNewsState) {
 
+  printf("\n--------------------------------------------------------");
+  printf("\nDirect Strategy : ");
   printCommonState(&pNewsState->commonState);
+  printf("--------------------------------------------------------\n");
   
   printf("Evaluated   strategies:\t%ju\n",pNewsState->strategyRuns);
   printf("Passed      strategies:\t%ju\n",pNewsState->strategyPassed);
