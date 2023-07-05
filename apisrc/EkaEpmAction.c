@@ -387,6 +387,7 @@ EkaEpmAction::EkaEpmAction(EkaEpm::ActionType type,
 }
 /* ----------------------------------------------------- */
 int EkaEpmAction::initEpmActionLocalCopy() {
+  epmActionLocalCopy_.token = EkaEpm::DefaultToken;
   epmActionLocalCopy_.nextAction = EPM_LAST_ACTION;
   epmActionLocalCopy_.enable = EkaEpm::ALWAYS_ENABLE;
   epmActionLocalCopy_.postStratMask = EkaEpm::ALWAYS_ENABLE;
