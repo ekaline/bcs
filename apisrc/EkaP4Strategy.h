@@ -38,6 +38,9 @@ public:
                      const EkaHwSecCtx *pHwSecCtx,
                      uint16_t writeChan);
 
+  void arm(EfcArmVer ver);
+  void disarm();
+
 private:
   void configureEhp();
   void createSecHash();

@@ -102,6 +102,8 @@ void EkaEfc::initP4(const EfcUdpMcParams *mcParams,
     on_error("P4 cores 0x%x collide with previously "
              "allocated 0x%x",
              p4_->getCoreBitmap(), totalCoreIdBitmap_);
+
+  totalCoreIdBitmap_ |= p4_->getCoreBitmap();
 }
 /* ################################################ */
 int EkaEfc::armController(EfcArmVer ver) {
@@ -117,10 +119,10 @@ int EkaEfc::disArmController() {
   return 0;
 }
 /* ################################################ */
-void EkaEfc::armP4(EfcArmVer ver) { armController(ver); }
+void EkaEfc::armP4(EfcArmVer ver) { p4_->arm(ver); }
 
 /* ################################################ */
-void EkaEfc::disarmP4() { disArmController(); }
+void EkaEfc::disarmP4() { p4_->disarm(); }
 
 /* ################################################ */
 int EkaEfc::initStratGlobalParams(

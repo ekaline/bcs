@@ -93,6 +93,18 @@ EkaP4Strategy::EkaP4Strategy(const EfcUdpMcParams *mcParams,
 }
 
 /* --------------------------------------------------- */
+void EkaP4Strategy::arm(EfcArmVer ver) {
+  EKA_LOG("Arming P4");
+  uint64_t armData = ((uint64_t)ver << 32) | 1;
+  eka_write(dev_, 0xf07d0, armData);
+}
+/* --------------------------------------------------- */
+
+void EkaP4Strategy::disarm() {
+  EKA_LOG("Disarming P4");
+  eka_write(dev_, 0xf07d0, 0);
+}
+/* --------------------------------------------------- */
 
 void EkaP4Strategy::preallocateFireActions() {
   EpmActionType actionType = EpmActionType::INVALID;
@@ -131,18 +143,26 @@ void EkaP4Strategy::configureTemplates() {
 }
 /* --------------------------------------------------- */
 void EkaP4Strategy::configureEhp() {
+  EhpProtocol *ehp = NULL;
+
   switch (feedVer_) {
-  case EfhFeedVer::kCBOE: {
-    auto ehp = new EhpPitch(dev_, fireOnAllAddOrders_);
-    if (!ehp)
-      on_error("!ehp");
-    ehp->init();
-    ehp->download2Hw();
-  } break;
+  case EfhFeedVer::kCBOE:
+    ehp = new EhpPitch(dev_, fireOnAllAddOrders_);
+    break;
 
   default:
     on_error("Unexpected feedVer_ %s (%d)",
              EKA_FEED_VER_DECODE(feedVer_), (int)feedVer_);
+  }
+
+  if (!ehp)
+    on_error("!ehp");
+
+  ehp->init();
+
+  for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++) {
+    if (coreIdBitmap_ & (1 << coreId))
+      ehp->download2Hw(coreId);
   }
 }
 
