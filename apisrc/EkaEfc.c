@@ -66,6 +66,22 @@ EkaEfc::EkaEfc(const EfcInitCtx *pEfcInitCtx) {
 
   eka_write(dev_, P4_STRAT_CONF, p4_strat_conf);
   eka_write(dev_, P4_WATCHDOG_CONF, p4_watchdog_period);
+
+  EKA_LOG("Clearing %d Efc Actions",
+          EkaEpmRegion::NumEfcActions);
+  for (auto i = 0; i < EkaEpmRegion::NumEfcActions; i++) {
+    epm_action_t emptyAction = {};
+
+    auto globalIdx = EkaEpmRegion::getBaseActionIdx(
+                         EkaEpmRegion::Regions::Efc) +
+                     i;
+
+    copyBuf2Hw(dev_, EkaEpm::EpmActionBase,
+               (uint64_t *)&emptyAction,
+               sizeof(emptyAction));
+    atomicIndirectBufWrite(dev_, 0xf0238, 0, 0, globalIdx,
+                           0);
+  }
 }
 /* ################################################ */
 EkaEfc::~EkaEfc() {
