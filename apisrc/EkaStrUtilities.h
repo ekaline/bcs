@@ -80,10 +80,6 @@ struct ToCharsLimits {
     }
   }
 
-  static constexpr bool FitsIn(T value, std::size_t numChars) {
-    return MinValueReprIn(numChars) <= value && value <= MaxValueReprIn(numChars);
-  }
-
   static constexpr T MaxValue = std::numeric_limits<T>::max();
   static constexpr T MinValue = std::numeric_limits<T>::min();
   static constexpr unsigned MaxValueChars = CharsToRepr(MaxValue);
@@ -103,7 +99,9 @@ constexpr void numToStrBuf(char (&buf)[N], const NumType num) {
 template <typename NumType, std::size_t N>
 constexpr bool tryNumToStrBuf(char (&buf)[N], const NumType num) {
   static_assert(N > 0);
-  if (!ToCharsLimits<NumType>::FitsIn(num, N - 1)) return false;
+  constexpr NumType Min = ToCharsLimits<NumType>::MinValueReprIn(N - 1);
+  constexpr NumType Max = ToCharsLimits<NumType>::MaxValueReprIn(N - 1);
+  if (num < Min || num > Max) return false;
   char* const start = &*buf;
   char* const end = start + N - 1;
   *std::to_chars(start, end, num).ptr = '\0';
