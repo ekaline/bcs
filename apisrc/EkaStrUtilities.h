@@ -35,43 +35,66 @@ SymbolType &copySymbol(SymbolType &symbol, const char (&src)[N]) {
   return symbol;
 }
 
-template<class T>
-constexpr unsigned MaxStrLen();
+template<typename T>
+struct ToCharsLimits {
+  static_assert(std::numeric_limits<T>::is_integer);
 
-template<> constexpr unsigned MaxStrLen<uint8_t>() { return 3; }
-template<> constexpr unsigned MaxStrLen<int8_t>() { return 4; }
-template<> constexpr unsigned MaxStrLen<uint16_t>() { return 5; }
-template<> constexpr unsigned MaxStrLen<int16_t>() { return 6; }
-template<> constexpr unsigned MaxStrLen<uint32_t>() { return 10; }
-template<> constexpr unsigned MaxStrLen<int32_t>() { return 11; }
-template<> constexpr unsigned MaxStrLen<uint64_t>() { return 20; }
-template<> constexpr unsigned MaxStrLen<int64_t>() { return 20; }
-
-// Max num of type that can fit in unterminated buf of size
-template <typename NumType, std::size_t N>
-constexpr NumType maxNumToStrView() {
-  static_assert(N > 0);
-  if constexpr(MaxStrLen<NumType>() <= N) {
-    return std::numeric_limits<NumType>::max();
-  } else {
-    NumType max = 0;
-    for (std::size_t i = 0; i < N; i++) {
-      max = (max * 10) + 9;
-    }
-    return max;
+  static constexpr unsigned CharsToRepr(T value) {
+    unsigned n = (value < 0) ? 1 : 0;
+    do {
+      value /= 10;
+      n++;
+    } while (value);
+    return n;
   }
-}
 
-// Max num of type that can fit in null-terminated buf of size
-template <typename NumType, std::size_t N>
-constexpr NumType maxNumToStrBuf() {
-  static_assert(N > 1);
-  return maxNumToStrView<NumType, N - 1>();
-}
+  static constexpr T MaxValueReprIn(std::size_t numChars) {
+    if (numChars <= 0) return MinValue;
+
+    if (numChars >= MaxValueChars) {
+      return MaxValue;
+    } else {
+      T max = 0;
+      for (std::size_t i = 0; i < numChars; i++) {
+        max = (max * 10) + 9;
+      }
+      return max;
+    }
+  }
+
+  static constexpr unsigned MinValueReprIn(std::size_t numChars) {
+    if (numChars <= 0) return MaxValue;
+
+    if (std::numeric_limits<T>::is_signed && numChars >= 2) {
+      if (numChars >= MinValueChars) {
+        return MinValue;
+      } else {
+        T max = 0;
+        for (std::size_t i = 1; i < numChars; i++) {
+          max = (max * 10) - 9;
+        }
+        return max;
+      }
+    } else {
+      return 0;
+    }
+  }
+
+  static constexpr bool FitsIn(T value, std::size_t numChars) {
+    return MinValueReprIn(numChars) <= value && value <= MaxValueReprIn(numChars);
+  }
+
+  static constexpr T MaxValue = std::numeric_limits<T>::max();
+  static constexpr T MinValue = std::numeric_limits<T>::min();
+  static constexpr unsigned MaxValueChars = CharsToRepr(MaxValue);
+  static constexpr unsigned MinValueChars = CharsToRepr(MinValue);
+  static constexpr unsigned MaxChars = std::max(MaxValueChars, MinValueChars);
+  static constexpr T MaxCharsValue = MaxValueChars >= MinValueChars ? MaxValue : MinValue;
+};
 
 template <typename NumType, std::size_t N>
 constexpr void numToStrBuf(char (&buf)[N], const NumType num) {
-  static_assert(N > MaxStrLen<NumType>());
+  static_assert(N > ToCharsLimits<NumType>::MaxChars);
   char* const start = &*buf;
   char* const end = start + N - 1;
   *std::to_chars(start, end, num).ptr = '\0';
@@ -79,8 +102,8 @@ constexpr void numToStrBuf(char (&buf)[N], const NumType num) {
 
 template <typename NumType, std::size_t N>
 constexpr bool tryNumToStrBuf(char (&buf)[N], const NumType num) {
-  constexpr NumType max = maxNumToStrBuf<NumType, N>();
-  if (num > max) return false;
+  static_assert(N > 0);
+  if (!ToCharsLimits<NumType>::FitsIn(num, N - 1)) return false;
   char* const start = &*buf;
   char* const end = start + N - 1;
   *std::to_chars(start, end, num).ptr = '\0';
@@ -90,7 +113,7 @@ constexpr bool tryNumToStrBuf(char (&buf)[N], const NumType num) {
 // No null terminator, returns length
 template <typename NumType, std::size_t N>
 constexpr size_t numToStrView(char (&buf)[N], const NumType num) {
-  static_assert(N >= MaxStrLen<NumType>());
+  static_assert(N >= ToCharsLimits<NumType>::MaxChars);
   char* const start = &*buf;
   char* const end = start + N;
   char* const newEnd = std::to_chars(start, end, num).ptr;
