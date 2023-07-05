@@ -622,16 +622,15 @@ int main(int argc, char *argv[]) {
     on_error("efcInit returned %d", (int)rc);
 
   EfcUdpMcGroupParams cboeMcGroups[] = {
-      {"224.0.74.0", 30301},
-      /* {"224.0.74.1",30302}, */
-      /* {"224.0.74.2",30303}, */
-      /* {"224.0.74.3",30304}, */
+      {0, "224.0.74.0", 30301},
+      /* {0, "224.0.74.1",30302}, */
+      /* {0, "224.0.74.2",30303}, */
+      /* {0, "224.0.74.3",30304}, */
   };
 
   EfcUdpMcParams cboeMcParams = {
       .groups = cboeMcGroups,
       .nMcGroups = std::size(cboeMcGroups),
-      .coreId = coreId,
   };
 
   struct EfcP4Params p4Params = {

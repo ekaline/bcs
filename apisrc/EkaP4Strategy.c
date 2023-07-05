@@ -91,6 +91,7 @@ EkaP4Strategy::EkaP4Strategy(const EfcUdpMcParams *mcParams,
   eka_write(dev_, SW_STATISTICS,
             swStatistics | (1ULL << 63));
 }
+
 /* --------------------------------------------------- */
 
 void EkaP4Strategy::preallocateFireActions() {

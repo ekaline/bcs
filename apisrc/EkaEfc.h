@@ -52,11 +52,12 @@ private:
   EkaDev *dev_ = nullptr;
   EkaEpm *epm_ = nullptr;
 
-  /* -----------------------------------------------------
-   */
+  /* --------------------------------------------------- */
   static const int MAX_UDP_SESS = 64;
 
   EfcStratGlobCtx stratGlobCtx = {};
+
+  uint8_t totalCoreIdBitmap_ = 0x00;
 
 public:
   EkaP4Strategy *p4_ = nullptr;

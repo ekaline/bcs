@@ -420,6 +420,7 @@ EkaOpResult setActionPhysicalLane(EkaDev *ekaDev,
                                   EkaCoreId lane);
 
 struct EfcUdpMcGroupParams {
+  EkaCoreId coreId; ///< 10G lane to receive UDP MC
   const char *mcIp;
   uint16_t mcUdpPort;
 };
@@ -427,7 +428,6 @@ struct EfcUdpMcGroupParams {
 struct EfcUdpMcParams {
   const EfcUdpMcGroupParams *groups;
   size_t nMcGroups;
-  EkaCoreId coreId; ///< 10G lane to receive UDP MC
 };
 
 struct EfcP4Params {

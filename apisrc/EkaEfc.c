@@ -97,6 +97,11 @@ EkaEfc::~EkaEfc() {
 void EkaEfc::initP4(const EfcUdpMcParams *mcParams,
                     const EfcP4Params *p4Params) {
   p4_ = new EkaP4Strategy(mcParams, p4Params);
+
+  if (totalCoreIdBitmap_ & p4_->getCoreBitmap())
+    on_error("P4 cores 0x%x collide with previously "
+             "allocated 0x%x",
+             p4_->getCoreBitmap(), totalCoreIdBitmap_);
 }
 /* ################################################ */
 int EkaEfc::armController(EfcArmVer ver) {

@@ -44,13 +44,22 @@ EkaStrategy::EkaStrategy(const EfcUdpMcParams *mcParams) {
 
   numUdpSess_ = mcParams->nMcGroups;
 
-  coreId_ = mcParams->coreId;
-
   for (auto i = 0; i < numUdpSess_; i++) {
+    coreIdBitmap_ |= (1 << mcParams->groups[i].coreId);
+
+    if (!(coreIdBitmap_ &
+          dev_->ekaHwCaps->hwCaps.core.bitmap_md_cores))
+      on_error("lane %d of MC Group %s:%u is not supported "
+               "for HW parser",
+               mcParams->groups[i].coreId,
+               mcParams->groups[i].mcIp,
+               mcParams->groups[i].mcUdpPort);
+
     udpSess_[i] =
-        new EkaUdpSess(dev_, i, coreId_,
+        new EkaUdpSess(dev_, i, mcParams->groups[i].coreId,
                        inet_addr(mcParams->groups[i].mcIp),
                        mcParams->groups[i].mcUdpPort);
+
     dev_->ekaIgmp->mcJoin(
         EkaEpmRegion::Regions::EfcMc, udpSess_[i]->coreId,
         udpSess_[i]->ip, udpSess_[i]->port,
@@ -72,6 +81,10 @@ EkaStrategy::~EkaStrategy() {
             swStatistics & ~(1ULL << 63));
 }
 /* --------------------------------------------------- */
+/* --------------------------------------------------- */
+uint8_t EkaStrategy::getCoreBitmap() {
+  return coreIdBitmap_;
+}
 
 /* --------------------------------------------------- */
 void EkaStrategy::clearAllHwUdpParams() {

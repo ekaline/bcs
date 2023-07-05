@@ -25,9 +25,11 @@ public:
   EkaUdpSess *findUdpSess(EkaCoreId coreId, uint32_t mcAddr,
                           uint16_t mcPort);
 
+  uint8_t getCoreBitmap();
+
 public:
   static void clearAllHwUdpParams();
-  EkaCoreId coreId_ = -1;
+  uint8_t coreIdBitmap_ = 0x00;
 
 protected:
   EkaDev *dev_ = nullptr;
