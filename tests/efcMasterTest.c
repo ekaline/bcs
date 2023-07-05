@@ -490,10 +490,21 @@ static size_t prepare_BoeNewOrderMsg(void *dst) {
                   '9', '0', 'A', 'B', 'C', 'D', 'E', 'F'},
       .OpenClose = 'O'};
 
-  memcpy(dst, &fireMsg, sizeof(BoeNewOrderMsg));
-  return sizeof(BoeNewOrderMsg);
+  memcpy(dst, &fireMsg, sizeof(fireMsg));
+  return sizeof(fireMsg);
 }
 
+static size_t prepare_BoeQuoteUpdateShortMsg(void *dst) {
+  const BoeQuoteUpdateShortMsg fireMsg = {
+      .StartOfMessage = 0xBABA,
+      .MessageLength = sizeof(BoeQuoteUpdateShortMsg) - 2,
+      .MessageType = 0x59,
+
+      .Reserved1 = {'E', 'K', 'A'},
+      .Reserved2 = {'Y', 'X'}};
+  memcpy(dst, &fireMsg, sizeof(fireMsg));
+  return sizeof(fireMsg);
+}
 /* ############################################# */
 int main(int argc, char *argv[]) {
 
@@ -730,7 +741,8 @@ int main(int argc, char *argv[]) {
   // Manually prepared FPGA firing template
 
   char fireMsg[1500] = {};
-  size_t fireMsgLen = prepare_BoeNewOrderMsg(fireMsg);
+  size_t fireMsgLen =
+      prepare_BoeQuoteUpdateShortMsg(fireMsg);
 
   // ==============================================
   for (auto i = 0; i < cboeMcParams.nMcGroups; i++) {

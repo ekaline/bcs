@@ -628,6 +628,16 @@ int EkaEpmAction::updateAttrs(uint8_t _coreId,
 void EkaEpmAction::setPayload(const void *buf, size_t len) {
   payload_ = &epm_->heap[heapOffs_ + getPayloadOffset()];
   payloadLen_ = len;
+
+  if (!epmTemplate_)
+    on_error("!epmTemplate_");
+
+  if (hwAction_.tcpCsSizeSource ==
+          TcpCsSizeSource::FROM_ACTION &&
+      epmTemplate_->getByteSize() != len)
+    on_error("Template payload size %u != len %ju",
+             epmTemplate_->getByteSize(), len);
+
   memcpy(payload_, buf, payloadLen_);
   pktSize_ = getPayloadOffset() + payloadLen_;
   updatePayload();
