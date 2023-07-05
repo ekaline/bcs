@@ -531,7 +531,7 @@ int main(int argc, char *argv[]) {
       "224.0.74.0"; // Ekaline lab default (C1 CC feed)
   uint16_t triggerUdpPort = 30301;    // C1 CC gr#0
   uint16_t serverTcpBasePort = 22222; // Ekaline lab default
-  uint16_t numTcpSess = 4;
+  uint16_t numTcpSess = 1;
   uint16_t serverTcpPort = serverTcpBasePort;
   bool runEfh = false;
   bool fatalDebug = false;
