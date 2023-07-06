@@ -361,6 +361,7 @@ EkaOpResult efcDisArmP4(EfcCtx *pEfcCtx);
 /* --------------------------------------------------- */
 
 #define EKA_QED_PRODUCTS 4
+#define EFC_MAX_MC_GROUPS_PER_LANE 36
 
 struct EfcQEDParamsSingle {
   uint16_t ds_id;        ///

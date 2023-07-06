@@ -76,27 +76,24 @@ EkaEfc::EkaEfc(const EfcInitCtx *pEfcInitCtx) {
                            0);
   }
 
-
   // Clearing EHP
   uint8_t mdCores =
-    dev_->ekaHwCaps->hwCaps.core.bitmap_md_cores;
+      dev_->ekaHwCaps->hwCaps.core.bitmap_md_cores;
 
   for (uint8_t coreId = 0; coreId < EkaDev::MAX_CORES;
        coreId++) {
     if ((0x1 << coreId) & mdCores) {
       uint64_t base = 0x8a000 + coreId * 0x1000;
-      uint8_t hwMaxEhpTemplate[4*1024] = {};
+      uint8_t hwMaxEhpTemplate[4 * 1024] = {};
 
-      EKA_LOG("Clearing Ehp templates, base=0x%jx, coreId=%u, size=%u",
-	      base, coreId, sizeof(hwMaxEhpTemplate));
-      
-      
-      copyBuf2Hw(dev_, base, (uint64_t *)&hwMaxEhpTemplate, sizeof(hwMaxEhpTemplate));
-      
+      EKA_LOG("Clearing Ehp templates, base=0x%jx, "
+              "coreId=%u, size=%ju",
+              base, coreId, sizeof(hwMaxEhpTemplate));
+
+      copyBuf2Hw(dev_, base, (uint64_t *)&hwMaxEhpTemplate,
+                 sizeof(hwMaxEhpTemplate));
     }
   }
-
-
 }
 /* ################################################ */
 EkaEfc::~EkaEfc() {
@@ -199,17 +196,18 @@ int EkaEfc::initStratGlobalParams(
 EkaUdpSess *EkaEfc::findUdpSess(EkaCoreId coreId,
                                 uint32_t mcAddr,
                                 uint16_t mcPort) {
-  /*   for (auto strat : {p4}) {
-      if (!strat)
-        continue;
-      auto udpSess =
-          strat->findUdpSess(coreId, mcAddr, mcPort);
-      if (udpSess)
-        return udpSess;
-    }
-    return nullptr; */
 
-  return p4_->findUdpSess(coreId, mcAddr, mcPort);
+  EkaStrategy *strategies[] = {p4_, qed_, cme_};
+
+  for (auto const &strat : strategies) {
+    if (!strat)
+      continue;
+    auto udpSess =
+        strat->findUdpSess(coreId, mcAddr, mcPort);
+    if (udpSess)
+      return udpSess;
+  }
+  return nullptr;
 }
 
 /* ################################################ */
@@ -351,40 +349,55 @@ int EkaEfc::setHwGlobalParams() {
 }
 /* ################################################ */
 int EkaEfc::setHwUdpParams() {
-  for (auto i = 0; i < MAX_UDP_SESS; i++) {
-    uint32_t ip = 0;
-    uint16_t port = 0;
-    uint64_t tmp_ipport = ((uint64_t)i) << 56 |
-                          ((uint64_t)port) << 32 |
-                          be32toh(ip);
-    eka_write(dev_, FH_GROUP_IPPORT, tmp_ipport);
-  }
+  const int HwUdpMcConfig =
+      0xf0500; // base, every core: + 8
 
-  EkaStrategy *strategies[] = {p4_, qed_, cme_};
-
-  for (auto const &strat : strategies) {
-    if (!strat)
+  for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++) {
+    if (!((1 << coreId) &
+          dev_->ekaHwCaps->hwCaps.core.bitmap_md_cores))
       continue;
-    EKA_LOG("downloading %d MC of %s sessions to FPGA",
-            strat->numUdpSess_, strat->name_.c_str());
 
-    for (auto i = 0; i < strat->numUdpSess_; i++) {
-      if (!strat->udpSess_[i])
-        on_error("!udpSess[%d]", i);
-
-      EKA_LOG("configuring IP:UDP_PORT %s:%u for MD for "
-              "group:%d",
-              EKA_IP2STR(strat->udpSess_[i]->ip),
-              strat->udpSess_[i]->port, i);
-      uint32_t ip = strat->udpSess_[i]->ip;
-      uint16_t port = strat->udpSess_[i]->port;
-
+    for (auto i = 0; i < EFC_MAX_MC_GROUPS_PER_LANE; i++) {
+      // Cleaning all MC groups
+      uint32_t ip = 0;
+      uint16_t port = 0;
       uint64_t tmp_ipport = ((uint64_t)i) << 56 |
                             ((uint64_t)port) << 32 |
                             be32toh(ip);
-      //  EKA_LOG("HW Port-IP register = 0x%016jx (%x :
-      //  %x)", tmp_ipport,ip,port);
-      eka_write(dev_, FH_GROUP_IPPORT, tmp_ipport);
+      eka_write(dev_, HwUdpMcConfig + coreId * 8,
+                tmp_ipport);
+    }
+
+    EkaStrategy *strategies[] = {p4_, qed_, cme_};
+
+    for (auto const &strat : strategies) {
+      if (!strat)
+        continue;
+      EKA_LOG("downloading %d MC of %s sessions to FPGA",
+              strat->numUdpSess_, strat->name_.c_str());
+
+      for (auto i = 0;
+           i < strat->mcCoreSess_[coreId].numUdpSess; i++) {
+        if (!strat->mcCoreSess_[coreId].udpSess[i])
+          on_error("!udpSess[%d][%d]", coreId, i);
+
+        auto ip = strat->mcCoreSess_[coreId].udpSess[i]->ip;
+        auto port =
+            strat->mcCoreSess_[coreId].udpSess[i]->port;
+
+        EKA_LOG("configuring IP:UDP_PORT %s:%u for "
+                "MD for "
+                "group:%d",
+                EKA_IP2STR(ip), port, i);
+
+        uint64_t tmp_ipport = ((uint64_t)i) << 56 |
+                              ((uint64_t)port) << 32 |
+                              be32toh(ip);
+        //  EKA_LOG("HW Port-IP register = 0x%016jx (%x :
+        //  %x)", tmp_ipport,ip,port);
+        eka_write(dev_, HwUdpMcConfig + coreId * 8,
+                  tmp_ipport);
+      }
     }
   }
   return 0;

@@ -7,6 +7,11 @@
 class EkaUdpSess;
 class EkaEpmAction;
 
+struct EkaStratMcCoreSess {
+  EkaUdpSess *udpSess[EFC_MAX_MC_GROUPS_PER_LANE] = {};
+  int numUdpSess = 0;
+};
+
 class EkaStrategy {
 protected:
   static const size_t MaxUdpMcGroups = 64;
@@ -16,7 +21,6 @@ protected:
 public:
   virtual ~EkaStrategy();
 
-  void setHwUdpParams();
   void enableRxFire();
   void disableRxFire();
   virtual void arm(EfcArmVer ver);
@@ -38,7 +42,7 @@ protected:
   const int ArmDisarmNonP4Addr = 0xf07d0;
 
 public:
-  EkaUdpSess *udpSess_[MaxUdpMcGroups] = {};
+  EkaStratMcCoreSess mcCoreSess_[EFC_MAX_CORES] = {};
   int numUdpSess_ = 0;
 
   OnReportCb reportCb_;

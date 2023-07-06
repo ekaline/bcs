@@ -45,24 +45,28 @@ EkaStrategy::EkaStrategy(const EfcUdpMcParams *mcParams) {
   numUdpSess_ = mcParams->nMcGroups;
 
   for (auto i = 0; i < numUdpSess_; i++) {
-    coreIdBitmap_ |= (1 << mcParams->groups[i].coreId);
+    auto coreId = mcParams->groups[i].coreId;
+    auto mcIp = mcParams->groups[i].mcIp;
+    auto mcUdpPort = mcParams->groups[i].mcUdpPort;
+
+    coreIdBitmap_ |= (1 << coreId);
 
     if (!(coreIdBitmap_ &
           dev_->ekaHwCaps->hwCaps.core.bitmap_md_cores))
       on_error("lane %d of MC Group %s:%u is not supported "
                "for HW parser",
-               mcParams->groups[i].coreId,
-               mcParams->groups[i].mcIp,
-               mcParams->groups[i].mcUdpPort);
+               coreId, mcIp, mcUdpPort);
 
-    udpSess_[i] =
-        new EkaUdpSess(dev_, i, mcParams->groups[i].coreId,
-                       inet_addr(mcParams->groups[i].mcIp),
-                       mcParams->groups[i].mcUdpPort);
+    auto inCoreIdx = mcCoreSess_[coreId].numUdpSess;
+    mcCoreSess_[coreId].udpSess[inCoreIdx] = new EkaUdpSess(
+        dev_, i, coreId, inet_addr(mcIp), mcUdpPort);
+    mcCoreSess_[coreId].numUdpSess++;
 
     dev_->ekaIgmp->mcJoin(
-        EkaEpmRegion::Regions::EfcMc, udpSess_[i]->coreId,
-        udpSess_[i]->ip, udpSess_[i]->port,
+        EkaEpmRegion::Regions::EfcMc,
+        mcCoreSess_[coreId].udpSess[inCoreIdx]->coreId,
+        mcCoreSess_[coreId].udpSess[inCoreIdx]->ip,
+        mcCoreSess_[coreId].udpSess[inCoreIdx]->port,
         0,     // VLAN
         NULL); // pPktCnt
   }
@@ -110,30 +114,6 @@ void EkaStrategy::clearAllHwUdpParams() {
   }
 }
 
-/* --------------------------------------------------- */
-
-void EkaStrategy::setHwUdpParams() {
-  EKA_LOG("downloading %d MC sessions to FPGA",
-          numUdpSess_);
-  for (auto i = 0; i < numUdpSess_; i++) {
-    if (!udpSess_[i])
-      on_error("!udpSess_[%d]", i);
-
-    EKA_LOG("configuring IP:UDP_PORT %s:%u for MD for "
-            "group:%d",
-            EKA_IP2STR(udpSess_[i]->ip), udpSess_[i]->port,
-            i);
-    uint32_t ip = udpSess_[i]->ip;
-    uint16_t port = udpSess_[i]->port;
-
-    uint64_t tmp_ipport = ((uint64_t)i) << 56 |
-                          ((uint64_t)port) << 32 |
-                          be32toh(ip);
-    //  EKA_LOG("HW Port-IP register = 0x%016jx (%x :
-    //  %x)", tmp_ipport,ip,port);
-    eka_write(dev_, FH_GROUP_IPPORT, tmp_ipport);
-  }
-}
 /* --------------------------------------------------- */
 
 void EkaStrategy::enableRxFire() {
@@ -190,11 +170,14 @@ void EkaStrategy::disableRxFire() {
 EkaUdpSess *EkaStrategy::findUdpSess(EkaCoreId coreId,
                                      uint32_t mcAddr,
                                      uint16_t mcPort) {
-  for (auto i = 0; i < numUdpSess_; i++) {
-    if (!udpSess_[i])
+
+  for (auto i = 0; i < mcCoreSess_[coreId].numUdpSess;
+       i++) {
+    if (!mcCoreSess_[coreId].udpSess[i])
       on_error("!udpSess[%d]", i);
-    if (udpSess_[i]->myParams(coreId, mcAddr, mcPort))
-      return udpSess_[i];
+    if (mcCoreSess_[coreId].udpSess[i]->myParams(
+            coreId, mcAddr, mcPort))
+      return mcCoreSess_[coreId].udpSess[i];
   }
   return nullptr;
 }
