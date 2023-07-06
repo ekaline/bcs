@@ -163,6 +163,7 @@ void tcpServer(EkaDev *dev, std::string ip, uint16_t port,
 
 /* --------------------------------------------- */
 std::string serverIp = "10.0.0.10";   // Ekaline lab default
+std::string serverIp1 = "10.0.0.11";   // Ekaline lab default
 std::string clientIp = "100.0.0.110"; // Ekaline lab default
 std::string triggerIp =
     "224.0.74.0"; // Ekaline lab default (C1 CC feed)
@@ -840,7 +841,9 @@ bool runQedTest(EfcCtx *pEfcCtx) {
     efcArmQed(pEfcCtx, qedArmVer++); // arm and promote
     qedExpectedFires++;
 
-    sendQEDMsg(serverIp, triggerIp, triggerUdpPort);
+    //    sendQEDMsg(serverIp, triggerIp, triggerUdpPort);
+    sendQEDMsg(serverIp1, triggerIp, triggerUdpPort);
+
     usleep(300000);
   }
   // ==============================================
