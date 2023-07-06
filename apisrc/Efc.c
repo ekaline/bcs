@@ -396,6 +396,21 @@ EkaOpResult efcSetSessionCntr(EkaDev *dev,
 
   return EKA_OPRESULT__OK;
 }
+/* --------------------------------------------------- */
+
+ssize_t efcAppSend(EkaDev *dev, epm_actionid_t actionId,
+                   const void *buffer, size_t size) {
+  if (!dev)
+    on_error("! dev");
+
+  if (!dev->epm)
+    on_error("Epm is not initialized");
+
+  if (!dev->epm->a_[actionId])
+    on_error("Acion[%d] is not set", actionId);
+
+  return dev->epm->a_[actionId]->fastSend(buffer, size);
+}
 
 /* --------------------------------------------------- */
 
