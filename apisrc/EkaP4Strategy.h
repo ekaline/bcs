@@ -67,6 +67,8 @@ public:
   bool fireOnAllAddOrders_ = false;
 
 private:
+  const int ArmDisarmP4Addr = 0xf07c8;
+
   EkaHwHashTableLine *hashLine[EFC_SUBSCR_TABLE_ROWS] = {};
 
   EfhFeedVer hwFeedVer_ = EfhFeedVer::kInvalid;

@@ -19,8 +19,8 @@ public:
   void setHwUdpParams();
   void enableRxFire();
   void disableRxFire();
-  void disArmController();
-  void armController(EfcArmVer ver);
+  virtual void arm(EfcArmVer ver);
+  virtual void disarm();
 
   EkaUdpSess *findUdpSess(EkaCoreId coreId, uint32_t mcAddr,
                           uint16_t mcPort);
@@ -34,6 +34,8 @@ public:
 protected:
   EkaDev *dev_ = nullptr;
   EkaEpm *epm_ = nullptr;
+
+  const int ArmDisarmNonP4Addr = 0xf07d0;
 
 public:
   EkaUdpSess *udpSess_[MaxUdpMcGroups] = {};

@@ -68,12 +68,12 @@ EkaStrategy::EkaStrategy(const EfcUdpMcParams *mcParams) {
   }
 
   disableRxFire();
-  disArmController();
+  disarm();
 }
 /* --------------------------------------------------- */
 
 EkaStrategy::~EkaStrategy() {
-  disArmController();
+  disarm();
   disableRxFire();
   eka_write(dev_, P4_STRAT_CONF, (uint64_t)0);
   auto swStatistics = eka_read(dev_, SW_STATISTICS);
@@ -81,6 +81,18 @@ EkaStrategy::~EkaStrategy() {
             swStatistics & ~(1ULL << 63));
 }
 /* --------------------------------------------------- */
+
+void EkaStrategy::arm(EfcArmVer ver) {
+  EKA_LOG("Arming %s", name_.c_str());
+  uint64_t armData = ((uint64_t)ver << 32) | 1;
+  eka_write(dev_, 0xf07d0, armData);
+}
+/* --------------------------------------------------- */
+
+void EkaStrategy::disarm() {
+  EKA_LOG("Disarming %s", name_.c_str());
+  eka_write(dev_, 0xf07d0, 0);
+}
 /* --------------------------------------------------- */
 uint8_t EkaStrategy::getCoreBitmap() {
   return coreIdBitmap_;
@@ -98,17 +110,6 @@ void EkaStrategy::clearAllHwUdpParams() {
   }
 }
 
-/* --------------------------------------------------- */
-void EkaStrategy::armController(EfcArmVer ver) {
-  EKA_LOG("Arming EFC");
-  uint64_t armData = ((uint64_t)ver << 32) | 1;
-  eka_write(dev_, P4_ARM_DISARM, armData);
-}
-/* --------------------------------------------------- */
-void EkaStrategy::disArmController() {
-  EKA_LOG("Disarming EFC");
-  eka_write(dev_, P4_ARM_DISARM, 0);
-}
 /* --------------------------------------------------- */
 
 void EkaStrategy::setHwUdpParams() {

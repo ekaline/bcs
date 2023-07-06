@@ -444,6 +444,7 @@ efcInitP4Strategy(EfcCtx *pEfcCtx,
 EkaOpResult efcArmP4(EfcCtx *pEfcCtx, EfcArmVer ver);
 
 EkaOpResult efcDisArmP4(EfcCtx *pEfcCtx);
+/* --------------------------------------------------- */
 
 #define EKA_QED_PRODUCTS 4
 
@@ -469,6 +470,29 @@ EkaOpResult efcQedSetFireAction(EfcCtx *pEfcCtx,
 EkaOpResult efcArmQed(EfcCtx *pEfcCtx, EfcArmVer ver);
 
 EkaOpResult efcDisArmQed(EfcCtx *pEfcCtx);
+/* --------------------------------------------------- */
+
+struct EfcCmeFcParams {
+  uint16_t maxMsgSize; // msgSize (from msg hdr) -- only
+                       // 1st msg in pkt!
+  uint8_t
+      minNoMDEntries; // NoMDEntries in
+                      // MDIncrementalRefreshTradeSummary48
+};
+
+EkaOpResult
+efcInitCmeFcStrategy(EfcCtx *pEfcCtx,
+                     const EfcUdpMcParams *mcParams,
+                     const EfcCmeFcParams *cmeParams);
+
+EkaOpResult
+efcCmeFcSetFireAction(EfcCtx *pEfcCtx,
+                      epm_actionid_t fireActionId);
+
+EkaOpResult efcArmCmeFc(EfcCtx *pEfcCtx, EfcArmVer ver);
+
+EkaOpResult efcDisArmQCmeFc(EfcCtx *pEfcCtx);
+/* --------------------------------------------------- */
 
 #ifdef __cplusplus
 }
