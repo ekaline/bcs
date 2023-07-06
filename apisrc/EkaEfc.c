@@ -373,11 +373,12 @@ int EkaEfc::setHwUdpParams() {
     for (auto const &strat : strategies) {
       if (!strat)
         continue;
-      EKA_LOG(
-          "%s: downloading %d MC of %s sessions for coreId "
-          "%d to FPGA",
-          strat->name_.c_str(),
-          strat->mcCoreSess_[coreId].numUdpSess, coreId);
+      if (strat->mcCoreSess_[coreId].numUdpSess)
+	EKA_LOG(
+		"%s: downloading %d MC sessions for coreId "
+		"%d to FPGA",
+		strat->name_.c_str(),
+		strat->mcCoreSess_[coreId].numUdpSess, coreId);
 
       for (auto i = 0;
            i < strat->mcCoreSess_[coreId].numUdpSess; i++) {
