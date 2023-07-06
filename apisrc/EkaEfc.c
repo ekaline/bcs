@@ -373,8 +373,11 @@ int EkaEfc::setHwUdpParams() {
     for (auto const &strat : strategies) {
       if (!strat)
         continue;
-      EKA_LOG("downloading %d MC of %s sessions to FPGA",
-              strat->numUdpSess_, strat->name_.c_str());
+      EKA_LOG(
+          "%s: downloading %d MC of %s sessions for coreId "
+          "%d to FPGA",
+          strat->name_.c_str(),
+          strat->mcCoreSess_[coreId].numUdpSess, coreId);
 
       for (auto i = 0;
            i < strat->mcCoreSess_[coreId].numUdpSess; i++) {
@@ -385,10 +388,10 @@ int EkaEfc::setHwUdpParams() {
         auto port =
             strat->mcCoreSess_[coreId].udpSess[i]->port;
 
-        EKA_LOG("configuring IP:UDP_PORT %s:%u for "
-                "MD for "
-                "group:%d",
-                EKA_IP2STR(ip), port, i);
+        EKA_LOG(
+            "configuring CoreId %d IP:UDP_PORT %s:%u for "
+            "MD for group: %d",
+            coreId, EKA_IP2STR(ip), port, i);
 
         uint64_t tmp_ipport = ((uint64_t)i) << 56 |
                               ((uint64_t)port) << 32 |
