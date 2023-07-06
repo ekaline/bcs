@@ -705,7 +705,7 @@ void configureQedTest(EfcCtx *pEfcCtx) {
   auto dev = pEfcCtx->dev;
   // QED config
   EfcUdpMcGroupParams qedMcGroups[] = {
-      {0, "224.0.74.0", 30301},
+      {1, "224.0.74.0", 30301},
       /* {0, "224.0.74.1",30302}, */
       /* {0, "224.0.74.2",30303}, */
       /* {0, "224.0.74.3",30304}, */

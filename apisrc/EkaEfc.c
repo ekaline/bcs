@@ -82,6 +82,28 @@ EkaEfc::EkaEfc(const EfcInitCtx *pEfcInitCtx) {
     atomicIndirectBufWrite(dev_, 0xf0238, 0, 0, globalIdx,
                            0);
   }
+
+
+  // Clearing EHP
+  uint8_t mdCores =
+    dev_->ekaHwCaps->hwCaps.core.bitmap_md_cores;
+
+  for (uint8_t coreId = 0; coreId < EkaDev::MAX_CORES;
+       coreId++) {
+    if ((0x1 << coreId) & mdCores) {
+      uint64_t base = 0x8a000 + coreId * 0x1000;
+      uint8_t hwMaxEhpTemplate[4*1024] = {};
+
+      EKA_LOG("Clearing Ehp templates, base=0x%jx, coreId=%u, size=%u",
+	      base, coreId, sizeof(hwMaxEhpTemplate));
+      
+      
+      copyBuf2Hw(dev_, base, (uint64_t *)&hwMaxEhpTemplate, sizeof(hwMaxEhpTemplate));
+      
+    }
+  }
+
+
 }
 /* ################################################ */
 EkaEfc::~EkaEfc() {
