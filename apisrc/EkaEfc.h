@@ -12,11 +12,10 @@
 #include "EkaP4Strategy.h"
 #include "EpmStrategy.h"
 
-class EkaHwHashTableLine;
-class EkaIgmp;
 class EkaUdpSess;
 class EkaP4Strategy;
 class EkaQedStrategy;
+class EkaCmeFcStrategy;
 class EkaEpm;
 
 class EkaEfc {
@@ -70,6 +69,7 @@ private:
 public:
   EkaP4Strategy *p4_ = nullptr;
   EkaQedStrategy *qed_ = nullptr;
+  EkaCmeFcStrategy *cme_ = nullptr;
 
   EfcRunCtx localCopyEfcRunCtx = {};
   bool report_only_ = false;

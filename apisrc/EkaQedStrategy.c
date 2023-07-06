@@ -92,7 +92,7 @@ EkaQedStrategy::EkaQedStrategy(
       prodCnt_++;
   }
 
-  copyBuf2Hw(dev_, 0x86000, (uint64_t *)&conf_,
+  copyBuf2Hw(dev_, ConfHwAddr, (uint64_t *)&conf_,
              sizeof(conf_));
 
   EKA_LOG("Created %s with %d MC groups, "
@@ -110,25 +110,13 @@ void EkaQedStrategy::setFireAction(
     on_error("productId %d is not enabled", productId);
 
   conf_.product[productId].fireActionId = fireActionId;
-  copyBuf2Hw(dev_, 0x86000, (uint64_t *)&conf_,
+  copyBuf2Hw(dev_, ConfHwAddr, (uint64_t *)&conf_,
              sizeof(conf_));
 
-  EKA_LOG("Qed: Action[%d] is set to Fire for product %d",
-          fireActionId, productId);
+  EKA_LOG("%s: Product %d: First Fire Action Idx = %d",
+          name_.c_str(), productId, fireActionId);
 }
 
-/* --------------------------------------------------- */
-void EkaQedStrategy::arm(EfcArmVer ver) {
-  EKA_LOG("Arming Qed");
-  uint64_t armData = ((uint64_t)ver << 32) | 1;
-  eka_write(dev_, 0xf07d0, armData);
-}
-/* --------------------------------------------------- */
-
-void EkaQedStrategy::disarm() {
-  EKA_LOG("Disarming Qed");
-  eka_write(dev_, 0xf07d0, 0);
-}
 /* --------------------------------------------------- */
 
 /* --------------------------------------------------- */

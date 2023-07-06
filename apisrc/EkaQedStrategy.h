@@ -22,35 +22,33 @@
 #include "EkaStrategy.h"
 #include "eka_macros.h"
 
-class EkaHwHashTableLine;
-
 class EkaQedStrategy : public EkaStrategy {
 public:
   EkaQedStrategy(const EfcUdpMcParams *mcParams,
-                 const EfcQedParams *p4Params);
+                 const EfcQedParams *qedParams);
   void setFireAction(epm_actionid_t fireActionId,
                      int productId);
-  void arm(EfcArmVer ver);
-  void disarm();
 
 private:
   void configureEhp();
   void configureTemplates();
 
 public:
-  static const int MAX_CTX_THREADS = 16;
+  /*   static const int MAX_CTX_THREADS = 16;
 
-  EfhFeedVer feedVer_ = EfhFeedVer::kInvalid;
+    EfhFeedVer feedVer_ = EfhFeedVer::kInvalid;
 
-  int numSecurities_ = 0;
-  uint64_t *secIdList_ =
-      NULL; // array of SecIDs, index is handle
-  int ctxWriteBank[MAX_CTX_THREADS] = {};
+    int numSecurities_ = 0;
+    uint64_t *secIdList_ =
+        NULL; // array of SecIDs, index is handle
+    int ctxWriteBank[MAX_CTX_THREADS] = {};
 
-  uint32_t maxSize_ = 0;
-  bool fireOnAllAddOrders_ = false;
+    uint32_t maxSize_ = 0;
+    bool fireOnAllAddOrders_ = false; */
 
 private:
+  const int ConfHwAddr = 0x86000;
+
   volatile EfcQEDStrategyConf conf_ = {};
   int prodCnt_ = 0;
 
