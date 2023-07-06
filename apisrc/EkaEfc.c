@@ -6,6 +6,7 @@
 #include "EhpNews.h"
 #include "EhpNom.h"
 #include "EhpPitch.h"
+#include "EkaCmeFcStrategy.h"
 #include "EkaCore.h"
 #include "EkaDev.h"
 #include "EkaEfc.h"
@@ -19,14 +20,6 @@
 #include "EkaQedStrategy.h"
 #include "EkaTcpSess.h"
 #include "EkaUdpSess.h"
-#include "EpmBoeQuoteUpdateShortTemplate.h"
-#include "EpmCancelBoeTemplate.h"
-#include "EpmCmeILinkHbTemplate.h"
-#include "EpmCmeILinkSwTemplate.h"
-#include "EpmCmeILinkTemplate.h"
-#include "EpmFastSweepUDPReactTemplate.h"
-#include "EpmFireBoeTemplate.h"
-#include "EpmFireSqfTemplate.h"
 void ekaFireReportThread(EkaDev *dev);
 
 extern EkaDev *g_ekaDev;
@@ -367,7 +360,7 @@ int EkaEfc::setHwUdpParams() {
     eka_write(dev_, FH_GROUP_IPPORT, tmp_ipport);
   }
 
-  EkaStrategy *strategies[] = {p4_, qed_};
+  EkaStrategy *strategies[] = {p4_, qed_, cme_};
 
   for (auto const &strat : strategies) {
     if (!strat)

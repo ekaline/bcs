@@ -29,29 +29,6 @@
 extern "C" {
 #endif
 
-enum EfcStrategyId : int {
-  P4 = 0,
-  CmeFastCancel,
-  ItchFastSweep,
-  QedFastSweep
-};
-
-static inline const char *
-efcPrintStratName(EfcStrategyId id) {
-  switch (id) {
-  case EfcStrategyId::P4:
-    return "P4";
-  case EfcStrategyId::CmeFastCancel:
-    return "CmeFastCancel";
-  case EfcStrategyId::ItchFastSweep:
-    return "ItchFastSweep";
-  case EfcStrategyId::QedFastSweep:
-    return "QedFastSweep";
-  default:
-    return "Unknown";
-  }
-}
-
 typedef uint32_t EfcArmVer;
 
 /**
@@ -91,141 +68,6 @@ struct EfcInitCtx {
  */
 EkaOpResult efcInit(EfcCtx **efcCtx, EkaDev *ekaDev,
                     const EfcInitCtx *efcInitCtx);
-
-/**
- * This will initialize global params of the Efc strategy
- *
- * @param efcCtx
- * @param EfcStratGlobCtx
- * @retval [See EkaOpResult].
- */
-
-EkaOpResult
-efcInitStrategy(EfcCtx *efcCtx,
-                const EfcStratGlobCtx *efcStratGlobCtx);
-
-/**
- * This will enable or disable the firing controller
- *
- * @param efcCtx
- * @param primaryCoreId If this is >= 0, then it will enable
- * firing on all cores, and make primaryCore the only core
- * that will fire if he opportunity should only only fired
- * on once. If this is < 0, then this will disable firing on
- * all cores.
- * @param ver           Arm version. Disable is done
- * unconditionally, Enable is done only if HW version
- * matches SW version
- * @retval [See EkaOpResult].
- */
-
-EkaOpResult efcEnableController(EfcCtx *efcCtx,
-                                EkaCoreId primaryCoreId,
-                                EfcArmVer ver = 0);
-
-/**
- * This will tell the hardware to consider firing on md
- * updates for a list of securities. This function can only
- * be called once after efcInit and must be called before
- * efcRun().
- *
- * @param efcCtx
- * @param securityIds    This is a pointer to the first
- * member of an array of securities that the firing
- * controller should consider as opportunities.  This value
- *                       should be the exchange specific
- * security id that is returned from EfhOptionDefinitionMsg.
- * @param numSecurityIds This is the number of elements in
- * the array securityIds.
- * @retval [See EkaOpResult].
- */
-EkaOpResult
-efcEnableFiringOnSec(EfcCtx *efcCtx,
-                     const uint64_t *securityIds,
-                     size_t numSecurityIds);
-
-/**
- * This function will take a security that was passed to
- * efcEnableFiringOnSec() and return the corresponding
- * EfcSecCtxHandle.  It must be  called after
- * efcEnableFiringOnSec() but before efcRun().
- *
- * @param efcCtx
- * @param securityId This is a security id that was passed
- * to efcEnableFiringOnSec.
- * @retval [>=0] On success this will return an a value to
- * be interpreted as an EfcSecCtxHandle.
- * @retval [<0]  On failure this will return a value to be
- * interpreted as an error EkaOpResult.
- */
-EfcSecCtxHandle getSecCtxHandle(EfcCtx *efcCtx,
-                                uint64_t securityId);
-
-/**
- * This will set a SecCtx for a static security.
- *
- * @param efcCtx
- * @param efcSecCtxHandle This is a handle to the SecCtx
- * that we are setting.
- * @param secCtx          This is a pointer to the local
- * source SecCtx.
- * @param writeChan       This is the channel that will be
- * used to write (see kEkaNumWriteChans).
- * @retval [See EkaOpResult].
- */
-EkaOpResult efcSetStaticSecCtx(EfcCtx *efcCtx,
-                               EfcSecCtxHandle hSecCtx,
-                               const SecCtx *secCtx,
-                               uint16_t writeChan);
-
-/**
- * This is just like setStaticSecCtx except it will be for
- * dynamic securities.
- */
-EkaOpResult efcSetDynamicSecCtx(EfcCtx *efcCtx,
-                                EfcSecCtxHandle hSecCtx,
-                                const SecCtx *secCtx,
-                                uint16_t writeChan);
-
-/**
- * This function is OBSOLETE. Use efcSetFireTemplate() below
- */
-EkaOpResult efcSetSesCtx(EfcCtx *efcCtx,
-                         ExcConnHandle hConn,
-                         const SesCtx *sesCtx);
-
-/**
- * This sets the Fire Message template for the hConn
- * session. The template must populate all fields that are
- * not managed by FPGA (fields managed by FPGA: size, price,
- * etc.).
- * @param efcCtx
- * @param hConn          This is the ExcSessionId that we
- * will be mapping to.
- * @param fireMsg        Application messge in Exchange
- * specific format: SQF, eQuote, etc.
- * @param fireMsgSize    Size of the template
- * @retval [See EkaOpResult].
- */
-EkaOpResult efcSetFireTemplate(EfcCtx *efcCtx,
-                               ExcConnHandle hConn,
-                               const void *fireMsg,
-                               size_t fireMsgSize);
-
-/**
- * This will tell the controller which Session to first fire
- * on based on the multicast group that the opportunity
- * arrived on.
- * @param efcCtx
- * @param group  This is the multicast group that we will be
- * mapping from.
- * @param hConn  This is the ExcSessionId that we will be
- * mapping to.
- * @retval [See EkaOpResult].
- */
-
-EkaOpResult efcSetGroupSesCtx(EfcCtx *efcCtx, uint8_t group,
-                              ExcConnHandle hConn);
 
 /**
  * This will print Efc Fire Report -- used for Ekaline tests
@@ -406,7 +248,7 @@ setActionNext(EkaDev *ekaDev, epm_actionid_t globalIdx,
               epm_actionid_t nextActionGlobalIdx);
 
 /**
- * @brief Set the Action Physical Lane (or coreId). Used for
+ * @brief Set the Action Physical Lane (= coreId). Used for
  * "Raw" Actions (not belonging to a TCP connection, but
  * sent as is)
  *
@@ -419,6 +261,23 @@ EkaOpResult setActionPhysicalLane(EkaDev *ekaDev,
                                   epm_actionid_t globalIdx,
                                   EkaCoreId lane);
 
+/**
+ * @brief Send application message via HW action with
+ * predefined template. Should be used for sending
+ * Orders/Quotes/Cancels/Heartbeats if some fields like
+ * Application Sequence or Timestamp must be managed by HW.
+ *
+ * @param pEkaDev
+ * @param actionId
+ * @param buffer
+ * @param size
+ * @return ssize_t
+ */
+ssize_t efcAppSend(EkaDev *pEkaDev, epm_actionid_t actionId,
+                   const void *buffer, size_t size);
+
+/* --------------------------------------------------- */
+
 struct EfcUdpMcGroupParams {
   EkaCoreId coreId; ///< 10G lane to receive UDP MC
   const char *mcIp;
@@ -430,6 +289,61 @@ struct EfcUdpMcParams {
   size_t nMcGroups;
 };
 
+/* --------------------------------------------------- */
+/**
+ * This will tell the hardware to consider firing on md
+ * updates for a list of securities. This function can only
+ * be called once after efcInit and must be called before
+ * efcRun().
+ *
+ * @param efcCtx
+ * @param securityIds    This is a pointer to the first
+ * member of an array of securities that the firing
+ * controller should consider as opportunities.  This value
+ *                       should be the exchange specific
+ * security id that is returned from EfhOptionDefinitionMsg.
+ * @param numSecurityIds This is the number of elements in
+ * the array securityIds.
+ * @retval [See EkaOpResult].
+ */
+EkaOpResult
+efcEnableFiringOnSec(EfcCtx *efcCtx,
+                     const uint64_t *securityIds,
+                     size_t numSecurityIds);
+
+/**
+ * This function will take a security that was passed to
+ * efcEnableFiringOnSec() and return the corresponding
+ * EfcSecCtxHandle.  It must be  called after
+ * efcEnableFiringOnSec() but before efcRun().
+ *
+ * @param efcCtx
+ * @param securityId This is a security id that was passed
+ * to efcEnableFiringOnSec.
+ * @retval [>=0] On success this will return an a value to
+ * be interpreted as an EfcSecCtxHandle.
+ * @retval [<0]  On failure this will return a value to be
+ * interpreted as an error EkaOpResult.
+ */
+EfcSecCtxHandle getSecCtxHandle(EfcCtx *efcCtx,
+                                uint64_t securityId);
+
+/**
+ * This will set a SecCtx for a static security.
+ *
+ * @param efcCtx
+ * @param efcSecCtxHandle This is a handle to the SecCtx
+ * that we are setting.
+ * @param secCtx          This is a pointer to the local
+ * source SecCtx.
+ * @param writeChan       This is the channel that will be
+ * used to write (see kEkaNumWriteChans).
+ * @retval [See EkaOpResult].
+ */
+EkaOpResult efcSetStaticSecCtx(EfcCtx *efcCtx,
+                               EfcSecCtxHandle hSecCtx,
+                               const SecCtx *secCtx,
+                               uint16_t writeChan);
 struct EfcP4Params {
   EfhFeedVer feedVer;
   bool fireOnAllAddOrders = false;
