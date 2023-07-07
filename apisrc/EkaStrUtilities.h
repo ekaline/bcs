@@ -85,7 +85,6 @@ struct ToCharsLimits {
   static constexpr unsigned MaxValueChars = CharsToRepr(MaxValue);
   static constexpr unsigned MinValueChars = CharsToRepr(MinValue);
   static constexpr unsigned MaxChars = std::max(MaxValueChars, MinValueChars);
-  static constexpr T MaxCharsValue = MaxValueChars >= MinValueChars ? MaxValue : MinValue;
 };
 
 template <typename NumType, std::size_t N>
