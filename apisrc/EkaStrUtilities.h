@@ -35,30 +35,82 @@ SymbolType &copySymbol(SymbolType &symbol, const char (&src)[N]) {
   return symbol;
 }
 
-template<class T>
-constexpr unsigned MaxStrLen();
+template<typename T>
+struct ToCharsLimits {
+  static_assert(std::numeric_limits<T>::is_integer);
 
-template<> constexpr unsigned MaxStrLen<uint8_t>() { return 3; }
-template<> constexpr unsigned MaxStrLen<int8_t>() { return 4; }
-template<> constexpr unsigned MaxStrLen<uint16_t>() { return 5; }
-template<> constexpr unsigned MaxStrLen<int16_t>() { return 6; }
-template<> constexpr unsigned MaxStrLen<uint32_t>() { return 10; }
-template<> constexpr unsigned MaxStrLen<int32_t>() { return 11; }
-template<> constexpr unsigned MaxStrLen<uint64_t>() { return 20; }
-template<> constexpr unsigned MaxStrLen<int64_t>() { return 20; }
+  static constexpr unsigned CharsToRepr(T value) {
+    unsigned n = (value < 0) ? 1 : 0;
+    do {
+      value /= 10;
+      n++;
+    } while (value);
+    return n;
+  }
+
+  static constexpr T MaxValueReprIn(std::size_t numChars) {
+    if (numChars <= 0) return MinValue;
+
+    if (numChars >= MaxValueChars) {
+      return MaxValue;
+    } else {
+      T max = 0;
+      for (std::size_t i = 0; i < numChars; i++) {
+        max = (max * 10) + 9;
+      }
+      return max;
+    }
+  }
+
+  static constexpr unsigned MinValueReprIn(std::size_t numChars) {
+    if (numChars <= 0) return MaxValue;
+
+    if (std::numeric_limits<T>::is_signed && numChars >= 2) {
+      if (numChars >= MinValueChars) {
+        return MinValue;
+      } else {
+        T max = 0;
+        for (std::size_t i = 1; i < numChars; i++) {
+          max = (max * 10) - 9;
+        }
+        return max;
+      }
+    } else {
+      return 0;
+    }
+  }
+
+  static constexpr T MaxValue = std::numeric_limits<T>::max();
+  static constexpr T MinValue = std::numeric_limits<T>::min();
+  static constexpr unsigned MaxValueChars = CharsToRepr(MaxValue);
+  static constexpr unsigned MinValueChars = CharsToRepr(MinValue);
+  static constexpr unsigned MaxChars = std::max(MaxValueChars, MinValueChars);
+};
 
 template <typename NumType, std::size_t N>
 constexpr void numToStrBuf(char (&buf)[N], const NumType num) {
-  static_assert(N > MaxStrLen<NumType>());
+  static_assert(N > ToCharsLimits<NumType>::MaxChars);
   char* const start = &*buf;
   char* const end = start + N - 1;
   *std::to_chars(start, end, num).ptr = '\0';
 }
 
+template <typename NumType, std::size_t N>
+constexpr bool tryNumToStrBuf(char (&buf)[N], const NumType num) {
+  static_assert(N > 0);
+  constexpr NumType Min = ToCharsLimits<NumType>::MinValueReprIn(N - 1);
+  constexpr NumType Max = ToCharsLimits<NumType>::MaxValueReprIn(N - 1);
+  if (num < Min || num > Max) return false;
+  char* const start = &*buf;
+  char* const end = start + N - 1;
+  *std::to_chars(start, end, num).ptr = '\0';
+  return true;
+}
+
 // No null terminator, returns length
 template <typename NumType, std::size_t N>
 constexpr size_t numToStrView(char (&buf)[N], const NumType num) {
-  static_assert(N >= MaxStrLen<NumType>());
+  static_assert(N >= ToCharsLimits<NumType>::MaxChars);
   char* const start = &*buf;
   char* const end = start + N;
   char* const newEnd = std::to_chars(start, end, num).ptr;
