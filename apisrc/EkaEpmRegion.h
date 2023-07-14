@@ -2,7 +2,7 @@
 #define _EKA_EPM_REGION_H_
 
 #include "EkaDev.h"
-#include "EkaEpm.h"
+// #include "EkaEpm.h"
 
 class EkaEpmRegion {
 public:
@@ -37,6 +37,11 @@ public:
   static const size_t NumTcpActions =
       EKA_MAX_CORES * EKA_MAX_TCP_SESSIONS_PER_CORE *
       2; // 4 * 32 * 2 = 256
+
+  // first 64 actions are preallocated for P4 fires
+  static const uint P4Reserved = 64;
+
+  static const int MaxStrategies = Regions::TcpTxFullPkt;
 
   constexpr static RegionConfig region[Regions::Total] = {
       [Regions::Efc] = {"EFC", NumEfcActions,
@@ -160,6 +165,21 @@ public:
     return region[regionId].nActions;
   }
 
+  constexpr static int getTotalActions() {
+    int totalActions = 0;
+    for (auto i = 0; i < Regions::Total; i++)
+      totalActions += getMaxActions(i);
+    return totalActions;
+  }
+
+  constexpr static int getMaxActionsPerRegion() {
+    int maxActions = 0;
+    for (auto i = 0; i < Regions::Total; i++)
+      if (maxActions < getMaxActions(i))
+        maxActions = getMaxActions(i);
+    return maxActions;
+  }
+
   constexpr static int getBaseHeapOffs(int regionId) {
     sanityCheckRegionId(regionId);
     int baseHeapOffs = 0;
@@ -191,6 +211,14 @@ public:
            region[regionId].actionHeapBudget;
   }
 
+  constexpr static uint getWritableHeapSize() {
+    uint totalSize = 0;
+    for (auto i = 0; i < MaxStrategies; i++)
+      totalSize += getHeapSize(i);
+
+    return totalSize;
+  }
+
   constexpr static int getActionHeapOffs(int regionId,
                                          int actionId) {
     sanityCheckRegionId(regionId);
@@ -211,32 +239,25 @@ public:
 
   // ######################################################
   EkaEpmRegion(EkaDev *_dev, int _id) {
-    dev = _dev;
-    id = _id;
+    dev_ = _dev;
+    id_ = _id;
 
-    baseActionIdx = getBaseActionIdx(id);
-    localActionIdx = 0;
-
-    baseHeapOffs = getBaseHeapOffs(id);
-    //    heapOffs       = baseHeapOffs;
-
-    // writing region's baseActionIdx to FPGA
-    eka_write(dev, 0x82000 + 8 * id, baseActionIdx);
-
-    EKA_LOG("Created EpmRegion %s %u: "
-            "baseActionIdx=%u, baseHeapOffs=%x",
-            region[id].name, id, baseActionIdx,
-            baseHeapOffs);
+    eka_write(dev_, 0x82000 + 8 * id_,
+              getBaseActionIdx(id_));
+    EKA_LOG("Configuring %x %d", 0x82000 + 8 * id_,
+            getBaseActionIdx(id_));
+    EKA_LOG(
+        "Created EpmRegion %s %u: "
+        "baseActionIdx=%u, numActions=%d, baseHeapOffs=%x",
+        region[id_].name, id_, getBaseActionIdx(id_),
+        getMaxActions(id_), getBaseHeapOffs(id_));
   }
 
-  EkaDev *dev = NULL;
-  int id = -1;
+  EkaDev *dev_ = NULL;
+  int id_ = -1;
 
-  epm_actionid_t baseActionIdx = -1;
-  epm_actionid_t localActionIdx = 0;
-
-  uint baseHeapOffs = 0;
-  //  uint      heapOffs       = 0;
+public:
+  int localActionIdx = 0;
 
 private:
 };

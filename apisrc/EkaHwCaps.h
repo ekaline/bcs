@@ -7,11 +7,15 @@ class EkaDev;
 class EkaHwCaps {
   static const uint64_t HwCapabilitiesAddr = 0x8f000;
 
+  struct hw_parser_type_t {
+        uint8_t  parser_type : 4; //soft modified
+  } __attribute__((packed));
+
   struct hw_version_capabilities_t {
     uint8_t  hwcaps;
     uint8_t  hwparser; //hw engine revision
     uint8_t  strategy;
-    uint8_t  parser; //soft modified
+    uint8_t  parser; //soft modified ({parser1,parser0})
     uint8_t  sniffer;
     uint8_t  dma;
     uint8_t  epm;

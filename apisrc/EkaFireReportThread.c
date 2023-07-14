@@ -370,10 +370,14 @@ std::pair<int, size_t> processExceptionReport(
     exceptReport.exceptionStatus.globalVector =
         hwEpmReport->exception_report.global_vector;
     // copying arm status fields
-    exceptReport.armStatus.armFlag =
-        hwEpmReport->arm_report.arm_state;
-    exceptReport.armStatus.expectedVersion =
-        hwEpmReport->arm_report.arm_expected_version;
+    exceptReport.p4armStatus.armFlag =
+        hwEpmReport->p4_arm_report.arm_state;
+    exceptReport.p4armStatus.expectedVersion =
+        hwEpmReport->p4_arm_report.arm_expected_version;
+    exceptReport.nWarmStatus.armFlag =
+        hwEpmReport->nw_arm_report.arm_state;
+    exceptReport.nWarmStatus.expectedVersion =
+        hwEpmReport->nw_arm_report.arm_expected_version;
     //    hexDump("------------\nexceptReport",hwEpmReport,sizeof(*hwEpmReport));
     //    EKA_LOG("ARM=%d
     //    VER=%d",hwEpmReport->arm_report.arm_state,hwEpmReport->arm_report.arm_expected_version);
@@ -769,19 +773,21 @@ void ekaFireReportThread(EkaDev *dev) {
 
     if (strategyId != EPM_INVALID_STRATEGY) {
       if (strategyId != EPM_NO_STRATEGY) { // valid strategy
-        auto reportedStrategy{epm->strategy[strategyId]};
+        if (strategyId != EFC_STRATEGY)
+          on_error("Unexpected strategyId %d", strategyId);
+        auto reportedStrategy{dev->efc};
         if (!reportedStrategy) {
           hexDump("Bad Report", reportBuf, reportLen);
           on_error("!strategy[%d]", strategyId);
         }
         if (!reportedStrategy->reportCb)
           on_error("reportCb is not defined");
-/*	
-        char fireReportStr[16 * 1024] = {};
-        hexDump2str("Fire Report", reportBuf, reportLen,
-                    fireReportStr, sizeof(fireReportStr));
-        EKA_LOG("reportCb: %s", fireReportStr);
-*/
+        /*
+              char fireReportStr[16 * 1024] = {};
+              hexDump2str("Fire Report", reportBuf,
+           reportLen, fireReportStr, sizeof(fireReportStr));
+              EKA_LOG("reportCb: %s", fireReportStr);
+        */
         reportedStrategy->reportCb(reportBuf, reportLen,
                                    reportedStrategy->cbCtx);
       } else { // no strategy, as exception

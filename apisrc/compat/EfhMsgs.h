@@ -244,6 +244,7 @@ enum class EfhGroupState : char {
   _x( Gap,          'G' )            \
   _x( Closed,       'C' )            \
   _x( Warning,      'W' )            \
+  _x( StaleData,    'S' )            \
   _x( Error,        'E' )
   EfhGroupState_ENUM_ITER( EKA__ENUM_DEF )
 };

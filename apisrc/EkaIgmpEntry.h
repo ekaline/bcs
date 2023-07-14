@@ -9,29 +9,31 @@ class EkaDev;
 class EkaEpmAction;
 
 class EkaIgmpEntry {
- public:
-  EkaIgmpEntry(EkaDev* _dev, int _epmRegion, EkaCoreId _coreId, 
-	       int _perChId, uint32_t _ip, uint16_t _port, 
-	       int16_t _vlanTag, uint64_t* pPktCnt);
+public:
+  EkaIgmpEntry(EkaDev *_dev, int _epmRegion,
+               EkaCoreId _coreId, int _perChId,
+               uint32_t _ip, uint16_t _port,
+               int16_t _vlanTag, uint64_t *pPktCnt);
 
-  bool   isMy(EkaCoreId coreId, uint32_t _ip, uint16_t _port);
-  int    sendIgmpJoin();
-  int    sendIgmpLeave();
+  bool isMy(EkaCoreId coreId, uint32_t _ip, uint16_t _port);
+  int sendIgmpJoin();
+  int sendIgmpLeave();
+  void saveMcState();
 
-  int       epmRegion = -1;
-  int       perChId = -1;
-  EkaCoreId coreId  = -1;
-  uint32_t  ip      = -1;
-  uint16_t  port    = -1;
-  uint16_t  vlanTag =  0;
-  uint64_t* pPktCnt = NULL;
+private:
+  EkaDev *dev_ = NULL;
+  bool noIgmp_ = false;
 
- private:
-  EkaDev*  dev     =  NULL;
-  bool     noIgmp  = false;
+  int regionId_ = -1;
+  int perChId_ = -1;
+  EkaCoreId coreId_ = -1;
+  uint32_t ip_ = -1;
+  uint16_t port_ = -1;
+  uint16_t vlanTag_ = 0;
+  uint64_t *pPktCnt_ = NULL;
 
-  EkaEpmAction* igmpJoinAction = NULL;
-  EkaEpmAction* igmpLeaveAction = NULL;
+  EkaEpmAction *igmpJoinAction_ = NULL;
+  EkaEpmAction *igmpLeaveAction_ = NULL;
 };
 
 #endif

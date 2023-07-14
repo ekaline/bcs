@@ -89,20 +89,30 @@ class EkaDev;
 #define EKA_IP2STR(x)  ((std::to_string((x >> 0) & 0xFF) + '.' + std::to_string((x >> 8) & 0xFF) + '.' + std::to_string((x >> 16) & 0xFF) + '.' + std::to_string((x >> 24) & 0xFF)).c_str())
 
 
+//#define EKA_FEED2STRING(x)			\
+//  x == 0 ? "NOM" :				\
+//    x == 1 ? "MIAX" :				\
+//    x == 2 ? "PHLX" :				\
+//    x == 3 ? "ISE/GEMX/MRX" :			\
+//    x == 4 ? "BZX/C2/EDGEX" :			\
+//    x == 9 ? "CME" :				\
+//    x ==(16+0)  ? "Generic unconfigured" :		\
+//    x ==(16+1)  ? "Generic NOM" :			\
+//    x ==(16+2)  ? "Generic Pitch P4 " :		\
+//    x ==(16+12) ? "Generic QED" :			\
+//    x ==(16+13) ? "Generic Itch Fast Sweep" :		\
+//    x ==(16+14) ? "Generic News" :			\
+//    x ==(16+15) ? "Generic CME Fast Cancel" :		\
+//    "Unknown"
+
 #define EKA_FEED2STRING(x) \
-  x == 0 ? "NOM" : \
-    x == 1 ? "MIAX" : \
-    x == 2 ? "PHLX" : \
-    x == 3 ? "ISE/GEMX/MRX" : \
-    x == 4 ? "BZX/C2/EDGEX" : \
-    x == 9 ? "CME" : \
-    x ==(16+0)  ? "Generic unconfigured" :	\
-    x ==(16+1)  ? "Generic NOM" :			\
-    x ==(16+2)  ? "Generic Pitch P4 " :		\
-    x ==(16+12) ? "Generic QED" :		\
-    x ==(16+13) ? "Generic Itch Fast Sweep" :		\
-    x ==(16+14) ? "Generic News" :		\
-    x ==(16+15) ? "Generic CME Fast Cancel" :		\
+  x == 0    ? "Unconfigured" :		\
+    x == 1  ? "NOM" :			\
+    x == 2  ? "Pitch P4" :		\
+    x == 12 ? "QED" :			\
+    x == 13 ? "Itch FSweep" :		\
+    x == 14 ? "News" :			\
+    x == 15 ? "CME FCancel" :		\
     "Unknown"
 
 #define EKA_NIBBLE2CHAR(x) \
@@ -220,6 +230,33 @@ inline std::string ts_ns2str(uint64_t ts) {
 
 /* ------------------------------------------------------- */
 
+// inline bool isStaleData(uint64_t exchTS,
+// 												uint64_t StaleDataNanosecThreshold) {
+// 		uint64_t exchNs = exchTS % 1'000'000'000;
+
+// 		auto now = std::chrono::high_resolution_clock::now();
+
+// 		uint64_t sampleTime = std::chrono::duration_cast<
+// 			std::chrono::nanoseconds>
+// 			(now.time_since_epoch()).count();
+
+// 		uint64_t sampleNs = sampleTime % 1'000'000'000;
+		
+// 		if (sampleNs < exchNs ||
+// 				 sampleNs - exchNs > StaleDataNanosecThreshold) {
+
+// 			EKA_WARN("%s:%u: Stale data: "
+// 							 "exchNs= %s (%ju) sampleNs= %s (%ju)",
+// 							 EKA_EXCH_DECODE(exch),id,
+// 							 ts_ns2str(exchTS).c_str(),exchNs,
+// 							 ts_ns2str(sampleTime).c_str(),sampleNs);
+// 			return true;
+// 		}
+
+// 		return false;
+// 	}
+/* ------------------------------------------------------- */
+
 inline uint64_t getFpgaTimeCycles () { // ignores Application - PCIe - FPGA latency
   struct timespec t;
   clock_gettime(CLOCK_REALTIME, &t); // 
@@ -283,6 +320,21 @@ inline uint64_t nsSinceMidnight() {
   auto midnight = std::chrono::system_clock::from_time_t(std::mktime(date));
 
   return (uint64_t) std::chrono::duration_cast<std::chrono::nanoseconds>(now-midnight).count();
+}
+/* ------------------------------------------------------- */
+static inline bool isTradingHours(int startHour, int startMinute,
+																	int endHour, int endMinute) {
+  time_t rawtime;
+  time (&rawtime);
+  struct tm * ct = localtime (&rawtime);
+  if ((ct->tm_hour > startHour ||
+			 (ct->tm_hour == startHour && ct->tm_min > startMinute)) &&
+      (ct->tm_hour < endHour   ||
+			 (ct->tm_hour == endHour && ct->tm_min < endMinute ))
+      ) {
+    return true;
+  }
+  return false;
 }
 
 #endif
