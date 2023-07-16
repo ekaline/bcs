@@ -20,6 +20,8 @@
 #include "EkaQedStrategy.h"
 #include "EkaTcpSess.h"
 #include "EkaUdpSess.h"
+#include "EkaUserReportQ.h"
+
 void ekaFireReportThread(EkaDev *dev);
 
 extern EkaDev *g_ekaDev;
@@ -59,6 +61,10 @@ EkaEfc::EkaEfc(const EfcInitCtx *pEfcInitCtx) {
 
   eka_write(dev_, P4_STRAT_CONF, p4_strat_conf);
   eka_write(dev_, P4_WATCHDOG_CONF, p4_watchdog_period);
+
+  userReportQ = new EkaUserReportQ(dev_);
+  if (!userReportQ)
+    on_error("Failed on new EkaUserReportQ");
 
   EKA_LOG("Clearing %ju Efc Actions",
           EkaEpmRegion::NumEfcActions);
@@ -374,11 +380,11 @@ int EkaEfc::setHwUdpParams() {
       if (!strat)
         continue;
       if (strat->mcCoreSess_[coreId].numUdpSess)
-	EKA_LOG(
-		"%s: downloading %d MC sessions for coreId "
-		"%d to FPGA",
-		strat->name_.c_str(),
-		strat->mcCoreSess_[coreId].numUdpSess, coreId);
+        EKA_LOG("%s: downloading %d MC sessions for coreId "
+                "%d to FPGA",
+                strat->name_.c_str(),
+                strat->mcCoreSess_[coreId].numUdpSess,
+                coreId);
 
       for (auto i = 0;
            i < strat->mcCoreSess_[coreId].numUdpSess; i++) {

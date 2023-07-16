@@ -54,7 +54,7 @@ EkaHwCaps::EkaHwCaps(SN_DeviceId devId) {
                  snDriverVerNum);
   idx +=
       sprintf(&buf[idx], "EKALINE2 LIB GIT:\t\t\t= 0x%s\n",
-              LIBEKA_GIT_VER);
+              EKA__TOSTRING(LIBEKA_GIT_VER));
   idx += sprintf(&buf[idx],
                  "EKALINE2 LIB BUILD TIME:\t\t= %s @ %s\n",
                  __DATE__, __TIME__);
@@ -126,14 +126,16 @@ void EkaHwCaps::print2buf() {
   idx += sprintf(&buf[idx],
                  "hwCaps.version.strategy\t\t\t= %ju\n",
                  (uint64_t)(hwCaps.version.strategy));
-  idx += sprintf(&buf[idx],
-                 "hwCaps.version.parser0\t\t\t= %ju (%s)\n",
-                 (uint64_t)((hwCaps.version.parser>>0)&0xF),
-		 EKA_FEED2STRING( ((hwCaps.version.parser>>0)&0xF)) );
-  idx += sprintf(&buf[idx],
-                 "hwCaps.version.parser1\t\t\t= %ju (%s)\n",
-                 (uint64_t)((hwCaps.version.parser>>4)&0xF),
-                 EKA_FEED2STRING( ((hwCaps.version.parser>>4)&0xF)) );
+  idx += sprintf(
+      &buf[idx], "hwCaps.version.parser0\t\t\t= %ju (%s)\n",
+      (uint64_t)((hwCaps.version.parser >> 0) & 0xF),
+      EKA_FEED2STRING(
+          ((hwCaps.version.parser >> 0) & 0xF)));
+  idx += sprintf(
+      &buf[idx], "hwCaps.version.parser1\t\t\t= %ju (%s)\n",
+      (uint64_t)((hwCaps.version.parser >> 4) & 0xF),
+      EKA_FEED2STRING(
+          ((hwCaps.version.parser >> 4) & 0xF)));
   idx += sprintf(&buf[idx],
                  "hwCaps.version.hwparser\t\t\t= %ju\n",
                  (uint64_t)(hwCaps.version.hwparser));
@@ -241,17 +243,18 @@ bool EkaHwCaps::checkEfc() {
   /*       EKA_EXPECTED_NONGENERIC_PARSER_VERSION) */
   /*     on_error( */
   /*         "hwCaps.version.parser 0x%x != " */
-  /*         "EKA_EXPECTED_NONGENERIC_PARSER_VERSION 0x%x", */
+  /*         "EKA_EXPECTED_NONGENERIC_PARSER_VERSION 0x%x",
+   */
   /*         hwCaps.version.parser, */
   /*         EKA_EXPECTED_NONGENERIC_PARSER_VERSION); */
   /* } else { */
-    // HW parser is Generic
+  // HW parser is Generic
   if (hwCaps.version.hwparser !=
       EKA_EXPECTED_GENERIC_PARSER_VERSION)
     on_error("hwCaps.version.hwparser 0x%x != "
-	     "EKA_EXPECTED_GENERIC_PARSER_VERSION 0x%x",
-	     hwCaps.version.hwparser,
-	     EKA_EXPECTED_GENERIC_PARSER_VERSION);
+             "EKA_EXPECTED_GENERIC_PARSER_VERSION 0x%x",
+             hwCaps.version.hwparser,
+             EKA_EXPECTED_GENERIC_PARSER_VERSION);
   //  }
 
   if (hwCaps.version.strategy != EKA_EXPECTED_EFC_STRATEGY)

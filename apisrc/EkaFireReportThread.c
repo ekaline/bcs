@@ -664,9 +664,9 @@ void ekaFireReportThread(EkaDev *dev) {
 
   auto epmReportCh{dev->epmReport};
 
-  auto epm{dev->epm};
-  if (!epm)
-    on_error("!epm");
+  if (!dev || !dev->efc)
+    on_error("!dev || !efc");
+  auto efc = dev->efc;
 
   if (!epmReportCh)
     on_error("!epmReportCh");
@@ -726,37 +726,37 @@ void ekaFireReportThread(EkaDev *dev) {
     switch ((EkaUserChannel::DMA_TYPE)dmaReportHdr->type) {
     case EkaUserChannel::DMA_TYPE::SW_TRIGGERED:
       r = processSwTriggeredReport(
-          dev, payload, len, dev->userReportQ,
+          dev, payload, len, efc->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
       break;
     case EkaUserChannel::DMA_TYPE::EXCEPTION:
       r = processExceptionReport(
-          dev, payload, len, dev->userReportQ,
+          dev, payload, len, efc->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
       break;
     case EkaUserChannel::DMA_TYPE::FAST_CANCEL:
       r = processFastCancelReport(
-          dev, payload, len, dev->userReportQ,
+          dev, payload, len, efc->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
       break;
     case EkaUserChannel::DMA_TYPE::NEWS:
       r = processNewsReport(
-          dev, payload, len, dev->userReportQ,
+          dev, payload, len, efc->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
       break;
     case EkaUserChannel::DMA_TYPE::SWEEP:
       r = processSweepReport(
-          dev, payload, len, dev->userReportQ,
+          dev, payload, len, efc->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
       break;
     case EkaUserChannel::DMA_TYPE::QED:
       r = processQEDReport(
-          dev, payload, len, dev->userReportQ,
+          dev, payload, len, efc->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
       break;
     case EkaUserChannel::DMA_TYPE::FIRE:
       r = processFireReport(
-          dev, payload, len, dev->userReportQ,
+          dev, payload, len, efc->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
       break;
     default:
