@@ -334,15 +334,14 @@ static void bindUdpSock(TestCase *t) {
 bool runEfh = false;
 bool fatalDebug = false;
 bool report_only = false;
+bool dontQuit = false;
 
 void printUsage(char *cmd) {
   printf("USAGE: %s \n"
-         "\t-L0 <P4 or Qed or CmeFC strategy on lane 0>\n"
-         "\t-L1 <P4 or Qed or CmeFC strategy on lane 1>\n"
-         "\t-r <Report Only ON>\n"
-         "\t-l <Num of TCP sessions>\n"
-         "\t-f <Run EFH for raw MD>\n"
-         "\t-d <FATAL DEBUG ON>\n"
+         "\t--L0 <P4 or Qed or CmeFC strategy on lane 0>\n"
+         "\t--L1 <P4 or Qed or CmeFC strategy on lane 1>\n"
+         "\t--report_only <Report Only ON>\n"
+         "\t--dont_quit <Dont quit at the end>\n"
          "\n",
          cmd);
   return;
@@ -362,10 +361,11 @@ static int getAttr(int argc, char *argv[]) {
         {"L1", required_argument, 0, '1'},
         {"ReportOnly", no_argument, 0, 'r'},
         {"report_only", no_argument, 0, 'r'},
+        {"dont_quit", no_argument, 0, 'd'},
         {"help", no_argument, 0, 'h'},
         {0, 0, 0, 0}};
 
-    c = getopt_long(argc, argv, "rh0:1:", long_options,
+    c = getopt_long(argc, argv, "rdh0:1:", long_options,
                     &option_index);
     if (c == -1)
       break;
@@ -419,6 +419,11 @@ static int getAttr(int argc, char *argv[]) {
     case 'r':
       printf("Report Only = ON\n");
       report_only = true;
+      break;
+
+    case 'd':
+      printf("dontQuit = TRUE\n");
+      dontQuit = true;
       break;
 
     case '?':
@@ -1083,8 +1088,12 @@ int main(int argc, char *argv[]) {
 
 #ifndef _VERILOG_SIM
   sleep(2);
-  EKA_LOG("--Test finished, ctrl-c to end---");
-  //  keep_work = false;
+  if (dontQuit)
+    EKA_LOG("--Test finished, ctrl-c to end---");
+  else {
+    EKA_LOG("--Test finished---");
+    keep_work = false;
+  }
   while (keep_work) {
     sleep(0);
   }
