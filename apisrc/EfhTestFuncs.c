@@ -467,6 +467,10 @@ void* onQuote(const EfhQuoteMsg* msg, EfhSecUserData secData, EfhRunUserData use
   return NULL;
 }
 
+void* onImbalance(const EfhImbalanceMsg* msg, EfhSecUserData secData, EfhRunUserData userData) {
+  return NULL;
+}
+
 /* void eka_create_avt_definition (char* dst, const EfhOptionDefinitionMsg* msg) { */
 /*   if (msg->header.group.source  == EkaSource::kCME_SBE && msg->securityType == EfhSecurityType::kOption) { */
 /*     std::string classSymbol    = std::string(msg->classSymbol,sizeof(msg->classSymbol)); */
@@ -1009,6 +1013,7 @@ int createCtxts(std::vector<TestRunGroup>& testRunGroups,
       .onEfhAuctionUpdateMsgCb     = onAuctionUpdate,
       .onEfhTradeMsgCb             = onTrade,
       .onEfhQuoteMsgCb             = onQuote,
+      .onEfhImbalanceMsgCb         = onImbalance,
       .onEfhOrderMsgCb             = onOrder,
       .onEfhGroupStateChangedMsgCb = onEfhGroupStateChange,
       .onEkaExceptionReportCb      = onException,

@@ -2,8 +2,11 @@
 
 TEST_LIST="
 efcFastSweepFireTest
+efcFastSweepFireTestNew
 efcCmeFireTest
+efcCmeFireTestNew
 efcCboeHuynhTest
+efcCboeTestNew
 efcNewsFireTest
 "
 

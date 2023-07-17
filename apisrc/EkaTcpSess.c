@@ -20,6 +20,7 @@
 #include "EpmRawPktTemplate.h"
 #include "EkaEpmAction.h"
 #include "EkaCsumSSE.h"
+#include "EkaEpmRegion.h"
 
 #include "ekaNW.h"
 
@@ -75,21 +76,21 @@ EkaTcpSess::EkaTcpSess(EkaDev* pEkaDev, EkaCore* _parent,
 
   if (sessId == CONTROL_SESS_ID) {
     EKA_LOG("Established TCP Session %u for Control Traffic, coreId=%u, EpmRegion = %u",
-	    sessId,coreId,EkaEpm::TcpTxRegion);
+	    sessId,coreId,EkaEpmRegion::Regions::TcpTxFullPkt);
     fullPktAction  = dev->epm->addAction(EkaEpm::ActionType::TcpFullPkt,
-					 EkaEpm::TcpTxRegion,
+					 EkaEpmRegion::Regions::TcpTxFullPkt,
 					 0,coreId,sessId,0);
   } else {
     EKA_LOG("sock=%d for: %s:%u --> %s:%u",sock,
 	    EKA_IP2STR(srcIp),srcPort,
 	    EKA_IP2STR(dstIp),dstPort);
     fastPathAction = dev->epm->addAction(EkaEpm::ActionType::TcpFastPath,
-					 EkaEpm::TcpTxRegion,
+					 EkaEpmRegion::Regions::TcpTxFullPkt,
 					 0,coreId,sessId,0);    
   }
   
   emptyAckAction = dev->epm->addAction(EkaEpm::ActionType::TcpEmptyAck,
-				       EkaEpm::TcpTxRegion,
+				       EkaEpmRegion::Regions::TcpTxEmptyAck,
 				       0,coreId,sessId,0);
   
   
@@ -619,7 +620,8 @@ int EkaTcpSess::sendEthFrame(void *buf, int len) {
 
 /* ---------------------------------------------------------------- */
 
-int EkaTcpSess::lwipDummyWrite(void *buf, int len, uint8_t originatedFromHw) {
+int EkaTcpSess::lwipDummyWrite(void *buf, int len,
+															 uint8_t originatedFromHw) {
   auto p = (const uint8_t*)buf;
   int sentSize = 0;
 
@@ -631,9 +633,12 @@ int EkaTcpSess::lwipDummyWrite(void *buf, int len, uint8_t originatedFromHw) {
     int sentBytes = lwip_write(sock,p,len-sentSize);
     lwip_errno = errno;
 
-    if (sentBytes <= 0 && lwip_errno != EAGAIN && lwip_errno != EWOULDBLOCK) {
-      EKA_ERROR("lwip_write(): rc = %d, errno=%d \'%s\'",
-		sentBytes,lwip_errno,strerror(lwip_errno));
+    if (sentBytes <= 0 &&
+				lwip_errno != EAGAIN &&
+				lwip_errno != EWOULDBLOCK) {
+      EKA_ERROR("lwip_write(): len= %d, rc = %d, errno=%d \'%s\'",
+								sentBytes,len-sentSize,
+								lwip_errno,strerror(lwip_errno));
       return sentBytes;
     }
 
@@ -669,8 +674,11 @@ int EkaTcpSess::preSendCheck(int len, int flags) {
   uint payloadSize2send = (uint)len < MAX_PAYLOAD_SIZE ? (uint)len : MAX_PAYLOAD_SIZE;
   int64_t unAckedBytes = realFastPathBytes.load() - realTcpRemoteAckNum.load();
 
+  // unAckedBytes can be negative if HW fire was acked faster than
+  // getting to realFastPathBytes
   if (unAckedBytes < 0)
-    on_error("unAckedBytes %jd < 0",unAckedBytes);
+    unAckedBytes = 0;
+  //      on_error("unAckedBytes %jd < 0",unAckedBytes);
   
   auto currTcpSndWnd = tcpSndWnd.load();
   uint32_t allowedWnd = currTcpSndWnd < WndMargin ? 0 : currTcpSndWnd - WndMargin;

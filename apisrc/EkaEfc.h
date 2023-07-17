@@ -29,7 +29,7 @@ class EkaEfc : public EpmStrategy {
   int subscribeSec(uint64_t secId);
   int cleanSubscrHwTable();
   EfcSecCtxHandle getSubscriptionId(uint64_t secId);
-  int initStrategy(const EfcStratGlobCtx* efcStratGlobCtx);
+  int initStratGlobalParams(const EfcStratGlobCtx* efcStratGlobCtx);
   int armController(EfcArmVer ver);
   int disArmController();
   int run(EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx);

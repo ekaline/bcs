@@ -16,7 +16,8 @@ class EkaFhRunGroup {
     return false;
   }
 
-  EkaFhRunGroup(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx, uint8_t runId);
+  EkaFhRunGroup(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx,
+								uint8_t runId);
   ~EkaFhRunGroup();
   uint getGrAfterGap();
   void setGrAfterGap(uint i);
@@ -24,7 +25,8 @@ class EkaFhRunGroup {
 
   bool drainQ(const EfhRunCtx* pEfhRunCtx);
 
-  int igmpMcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag, uint64_t* pPktCnt);
+  int igmpMcJoin(uint32_t ip, uint16_t port,
+								 uint16_t vlanTag, uint64_t* pPktCnt);
   int checkTimeOut(const EfhRunCtx* pEfhRunCtx);
   int sendFeedCloseAll(const EfhRunCtx* pEfhRunCtx);
  private:
@@ -50,7 +52,7 @@ class EkaFhRunGroup {
   uint8_t               runId             = -1;
   EkaUdpChannel*        udpCh             = NULL;
   int                   udpChId           = -1;
-  int                   epmRegion         = -1;
+  int                   epmRegionId       = -1;
 
   EkaSource             exch              = EkaSource::kInvalid;
   EkaFh*                fh                = NULL;

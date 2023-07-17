@@ -18,6 +18,8 @@ LIBEKALINE2_1.0	{
 			efhInit;
 			efcInitStrategy;
                         efcItchFastSweepInit;
+                        efcQEDInit;
+			efcClose;
 			efcClose;
 			efhGetSupportedParams;
 			efhGetDefs;
@@ -65,6 +67,12 @@ LIBEKALINE2_1.0	{
 			epmGetStrategyEnableBits;
 			epmSetStrategyEnableBits;
 			epmRaiseTriggers;
+
+			efcAllocateNewAction;
+			efcSetAction;
+			efcSetActionPayload;
+
+			efcSetSessionCntr;
 		local:
 			*;
 		};

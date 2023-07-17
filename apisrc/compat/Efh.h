@@ -24,6 +24,7 @@ enum class EfhFeedVer {
 	   _x( PLR              )			\
 	   _x( BOX              )			\
 	   _x( CME              )			\
+	   _x( QED              )			\
 	   _x( NEWS             )			\
 	   _x( CBOE             )                       \
 	   _x( ITCHFS           )                       \

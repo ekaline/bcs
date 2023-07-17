@@ -238,23 +238,16 @@ inline EkaTcpSess *getEkaTcpSess(EkaDev* dev, ExcConnHandle hConn) {
  */  
 ExcSocketHandle excSocket( EkaDev* dev, EkaCoreId coreId ,
 			   int domain, int type, int protocol ) {
-  if (! dev->epmEnabled) {
-    EKA_LOG("Initializing TCP functionality");
-    
-    dev->epmEnabled = dev->initEpmTx();
-    if (! dev->epmEnabled)
-      on_error("TX functionality is not available for this "
-	       "Ekaline SW instance - caught by another process");
-
-  }
+	if (! dev->checkAndSetEpmTx())
+		on_error("TX functionality is not available for this "
+						 "Ekaline SW instance - caught by another process");
 
   if (! dev->core[coreId])
     on_error("Lane %u has no link or IP address",coreId);
 
   if (! dev->core[coreId]->pLwipNetIf)
     dev->core[coreId]->initTcp();
-    
-  
+
   EkaCore *const core = getEkaCore(dev, coreId);
   if (!core)
     return -1;
@@ -413,8 +406,8 @@ int excPoll(EkaDev *dev, struct pollfd *fds, int nfds, int timeout) {
   return rc;
 }
 
-int excGetSockOpt( EkaDev* dev, ExcSocketHandle hSock, int level,
-		   int optname, void* optval, socklen_t* optlen) {
+int excGetSockOpt( EkaDev* dev, ExcSocketHandle hSock, int level, int optname,
+                   void* optval, socklen_t* optlen ) {
   if (checkDevice(dev)) {
     optname = mapLinuxSocketOptionNameToLWIP(level, optname); // Must be first because
     level = mapLinuxSocketOptionLevelToLWIP(level);           // we change level here
@@ -490,26 +483,20 @@ ExcUdpTxConnHandle excUdpConnect(EkaDev* dev, EkaCoreId coreId,
 				 eka_ether_addr srcMac,
 				 eka_ether_addr dstMac,
 				 eka_in_addr_t srcIp,
-				 eka_in_addr_t dstIp, 
+				 eka_in_addr_t dstIp,
 				 uint16_t srcPort,
 				 uint16_t dstPort) {
-  
-  if (! dev->epmEnabled) {
-    EKA_LOG("Initializing TCP functionality");
-    
-    dev->epmEnabled = dev->initEpmTx();
-    if (! dev->epmEnabled)
-      on_error("TX functionality is not available for this "
-	       "Ekaline SW instance - caught by another process");
-  }
 
+	if (! dev->checkAndSetEpmTx())
+		on_error("TX functionality is not available for this "
+						 "Ekaline SW instance - caught by another process");
     
   EkaCore *const core = getEkaCore(dev, coreId);
   if (!core)
     return -1;
 
   auto sessId = core->addUdpTxSess(srcMac,dstMac,
-				   srcIp, dstIp, 
+				   srcIp, dstIp,
 				   srcPort, dstPort);
   
   return core->udpTxSess[sessId]->getConnHandle();

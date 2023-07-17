@@ -215,6 +215,16 @@ int printFastSweepReport(FILE* file,const uint8_t* b) {
   return sizeof(*epmReport);
 }
 /* ########################################################### */
+int printQEDReport(FILE* file,const uint8_t* b) {
+  auto epmReport {reinterpret_cast<const EpmQEDReport*>(b)};
+  
+  fprintf(file,"udpPayloadSize=%d,DSID=%d (0x%x)\n",
+	  epmReport->udpPayloadSize,
+	  epmReport->DSID, epmReport->DSID
+	  );
+  return sizeof(*epmReport);
+}
+/* ########################################################### */
 int printNewsReport(FILE* file,const uint8_t* b) {
   auto epmReport {reinterpret_cast<const EpmNewsReport*>(b)};
   
@@ -268,6 +278,9 @@ void efcPrintFireReport(const void* p, size_t len, void* ctx) {
       break;
     case EfcReportType::kFastSweepReport:
       b += printFastSweepReport(file,b);
+      break;
+    case EfcReportType::kQEDReport:
+      b += printQEDReport(file,b);
       break;
     default:
       on_error("Unexpected reportHdr->type %d",
