@@ -5,6 +5,7 @@
 #include "Efh.h"
 #include "EkaEpm.h"
 
+#include "EhpQED.h"
 #include "EkaCore.h"
 #include "EkaCtxs.h"
 #include "EkaDev.h"
@@ -19,10 +20,10 @@
 #include "EkaEfcDataStructs.h"
 
 #include "EkaEpmRegion.h"
-#include "EkaStrategy.h"
+#include "EkaStrategyEhp.h"
 #include "eka_macros.h"
 
-class EkaQedStrategy : public EkaStrategy {
+class EkaQedStrategy : public EkaStrategyEhp<EhpQED> {
 public:
   EkaQedStrategy(const EfcUdpMcParams *mcParams,
                  const EfcQedParams *qedParams);
@@ -30,7 +31,7 @@ public:
                      int productId);
 
 private:
-  void configureEhp();
+  // void configureEhp();
   void configureTemplates();
 
 public:

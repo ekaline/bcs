@@ -18,13 +18,14 @@
 
 #include "EkaEfcDataStructs.h"
 
+#include "EhpPitch.h"
 #include "EkaEpmRegion.h"
-#include "EkaStrategy.h"
+#include "EkaStrategyEhp.h"
 #include "eka_macros.h"
 
 class EkaHwHashTableLine;
 
-class EkaP4Strategy : public EkaStrategy {
+class EkaP4Strategy : public EkaStrategyEhp<EhpPitch> {
 public:
   EkaP4Strategy(const EfcUdpMcParams *mcParams,
                 const EfcP4Params *p4Params);
@@ -42,7 +43,7 @@ public:
   void disarm();
 
 private:
-  void configureEhp();
+  // void configureEhp();
   void createSecHash();
   void preallocateFireActions();
   void configureTemplates();

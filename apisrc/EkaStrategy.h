@@ -32,7 +32,7 @@ public:
 
   uint8_t getCoreBitmap();
 
-  void downloadEhp2Hw();
+  // void downloadEhp2Hw();
 
 public:
   static void clearAllHwUdpParams();
@@ -41,7 +41,7 @@ public:
 protected:
   EkaDev *dev_ = nullptr;
   EkaEpm *epm_ = nullptr;
-  EhpProtocol *ehp_ = nullptr;
+  // EhpProtocol *ehp_ = nullptr;
 
   const int ArmDisarmNonP4Addr = 0xf07d0;
 

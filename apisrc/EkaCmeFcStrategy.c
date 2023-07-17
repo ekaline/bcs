@@ -47,7 +47,7 @@
 EkaCmeFcStrategy::EkaCmeFcStrategy(
     const EfcUdpMcParams *mcParams,
     const EfcCmeFcParams *cmeParams)
-    : EkaStrategy(mcParams) {
+    : EkaStrategyEhp(mcParams) {
 
   name_ = "CmeFastCancel";
 
@@ -56,7 +56,7 @@ EkaCmeFcStrategy::EkaCmeFcStrategy(
 
   configureTemplates();
   configureEhp();
-  downloadEhp2Hw();
+  // downloadEhp2Hw();
 
   conf_.minNoMDEntries = cmeParams->minNoMDEntries;
   conf_.maxMsgSize = cmeParams->maxMsgSize;
@@ -111,8 +111,8 @@ void EkaCmeFcStrategy::configureTemplates() {
 }
 
 /* --------------------------------------------------- */
-void EkaCmeFcStrategy::configureEhp() {
+/* void EkaCmeFcStrategy::configureEhp() {
   auto ehp_ = new EhpCmeFC(dev_);
   if (!ehp_)
     on_error("!ehp_");
-}
+} */

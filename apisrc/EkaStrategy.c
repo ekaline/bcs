@@ -82,7 +82,7 @@ EkaStrategy::EkaStrategy(const EfcUdpMcParams *mcParams) {
   disarm();
 }
 /* --------------------------------------------------- */
-void EkaStrategy::downloadEhp2Hw() {
+/* void EkaStrategy::downloadEhp2Hw() {
   ehp_->init();
 
   for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++) {
@@ -92,7 +92,7 @@ void EkaStrategy::downloadEhp2Hw() {
       ehp_->download2Hw(coreId);
     }
   }
-}
+} */
 /* --------------------------------------------------- */
 
 EkaStrategy::~EkaStrategy() {

@@ -5,7 +5,7 @@
 
 class EhpPitch : public EhpProtocol {
 public:
-  EhpPitch(EkaDev *dev, bool fireOnAllAddOrders);
+  EhpPitch(EkaDev *dev, bool fireOnAllAddOrders = false);
   virtual ~EhpPitch() {}
 
   int init();

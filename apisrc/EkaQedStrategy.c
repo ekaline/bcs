@@ -59,7 +59,7 @@
 EkaQedStrategy::EkaQedStrategy(
     const EfcUdpMcParams *mcParams,
     const EfcQedParams *qedParams)
-    : EkaStrategy(mcParams) {
+    : EkaStrategyEhp(mcParams) {
 
   name_ = "QedPurge";
 
@@ -68,7 +68,7 @@ EkaQedStrategy::EkaQedStrategy(
 
   configureTemplates();
   configureEhp();
-  downloadEhp2Hw();
+  // downloadEhp2Hw();
 
   for (auto i = 0; i < EKA_QED_PRODUCTS; i++) {
     conf_.product[i].enable = qedParams->product[i].enable;
@@ -132,8 +132,8 @@ void EkaQedStrategy::configureTemplates() {
 }
 
 /* --------------------------------------------------- */
-void EkaQedStrategy::configureEhp() {
+/* void EkaQedStrategy::configureEhp() {
   ehp_ = new EhpQED(dev_);
   if (!ehp_)
     on_error("!ehp_");
-}
+} */
