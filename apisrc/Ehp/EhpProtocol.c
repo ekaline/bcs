@@ -1,7 +1,12 @@
 #include "EhpProtocol.h"
 #include "EkaDev.h"
 
-EhpProtocol::EhpProtocol(EkaDev *_dev) { dev = _dev; }
+extern EkaDev *g_ekaDev;
+
+EhpProtocol::EhpProtocol(EkaStrategy *strat) {
+  dev = g_ekaDev;
+  strat_ = strat;
+}
 
 int EhpProtocol::download2Hw(int coreId) {
   uint64_t addr = 0x8a000 + coreId * 0x1000;

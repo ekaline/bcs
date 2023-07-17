@@ -5,7 +5,7 @@
 
 class EhpPitch : public EhpProtocol {
 public:
-  EhpPitch(EkaDev *dev, bool fireOnAllAddOrders = false);
+  EhpPitch(EkaStrategy *strat);
   virtual ~EhpPitch() {}
 
   int init();
@@ -24,6 +24,7 @@ public:
       "AddOrderExpanded", "AddOrderShort", "AddOrderLong"};
 
   bool fireOnAllAddOrders_ = false;
+  EfhFeedVer hwFeedVer_ = EfhFeedVer::kInvalid;
 };
 
 #endif

@@ -11,7 +11,7 @@ protected:
   //  void downloadEhp2Hw();
 
   void configureEhp() {
-    ehp_ = new Ehp(dev_ /* , fireOnAllAddOrders_ */);
+    ehp_ = new Ehp(this);
 
     if (!ehp_)
       on_error("!ehp_");

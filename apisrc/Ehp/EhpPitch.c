@@ -7,8 +7,8 @@
 
 using namespace Bats;
 
-EhpPitch::EhpPitch(EkaDev *dev, bool fireOnAllAddOrders)
-    : EhpProtocol(dev) {
+EhpPitch::EhpPitch(EkaStrategy *strat)
+    : EhpProtocol(strat) {
   EKA_LOG("EhpPitch is created");
 
   //  conf.params.protocolID         =
@@ -31,7 +31,16 @@ EhpPitch::EhpPitch(EkaDev *dev, bool fireOnAllAddOrders)
   conf.fields.sequence[0].byteOffs_6 = EhpBlankByte;
   conf.fields.sequence[0].byteOffs_7 = EhpBlankByte;
 
-  fireOnAllAddOrders_ = fireOnAllAddOrders;
+  fireOnAllAddOrders_ =
+      dynamic_cast<EkaP4Strategy *>(strat_)
+          ->fireOnAllAddOrders_;
+
+  hwFeedVer_ =
+      dynamic_cast<EkaP4Strategy *>(strat_)->hwFeedVer_;
+
+  if (hwFeedVer_ != EfhFeedVer::kCBOE)
+    on_error("hwFeedVer_ %d != EfhFeedVer::kCBOE",
+             (int)hwFeedVer_);
 }
 
 int EhpPitch::init() {
