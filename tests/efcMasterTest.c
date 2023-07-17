@@ -463,7 +463,6 @@ struct P4SecurityCtx {
 };
 
 std::vector<P4SecurityCtx> p4Ctx{};
-struct sockaddr_in p4TriggerMcAddr = {};
 
 enum class AddOrder : int {
   Unknown = 0,
@@ -936,19 +935,29 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 
 // ==============================================
 #if 1
-  sendAddOrder(AddOrder::Short, t->udpSock_,
-               &p4TriggerMcAddr, p4Ctx.at(2).id, sequence++,
-               'S', p4Ctx.at(2).askMaxPrice / 100 - 1,
-               p4Ctx.at(2).size);
+  sendAddOrder(
+      AddOrder::Short, t->udpSock_, &t->triggerMcAddr_,
+      p4Ctx.at(2).id, sequence++, 'S',
+      p4Ctx.at(2).askMaxPrice / 100 - 1, p4Ctx.at(2).size);
 
   sleep(1);
   efcArmP4(pEfcCtx, p4ArmVer++);
 #endif
 // ==============================================
 #if 1
-  sendAddOrder(AddOrder::Short, t->udpSock_,
-               &p4TriggerMcAddr, p4Ctx.at(2).id, sequence++,
-               'B', p4Ctx.at(2).bidMinPrice / 100 + 1,
+  sendAddOrder(
+      AddOrder::Short, t->udpSock_, &t->triggerMcAddr_,
+      p4Ctx.at(2).id, sequence++, 'B',
+      p4Ctx.at(2).bidMinPrice / 100 + 1, p4Ctx.at(2).size);
+
+  sleep(1);
+  efcArmP4(pEfcCtx, p4ArmVer++);
+#endif
+// ==============================================
+#if 1
+  sendAddOrder(AddOrder::Long, t->udpSock_,
+               &t->triggerMcAddr_, p4Ctx.at(2).id,
+               sequence++, 'S', p4Ctx.at(2).askMaxPrice - 1,
                p4Ctx.at(2).size);
 
   sleep(1);
@@ -957,18 +966,8 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 // ==============================================
 #if 1
   sendAddOrder(AddOrder::Long, t->udpSock_,
-               &p4TriggerMcAddr, p4Ctx.at(2).id, sequence++,
-               'S', p4Ctx.at(2).askMaxPrice - 1,
-               p4Ctx.at(2).size);
-
-  sleep(1);
-  efcArmP4(pEfcCtx, p4ArmVer++);
-#endif
-// ==============================================
-#if 1
-  sendAddOrder(AddOrder::Long, t->udpSock_,
-               &p4TriggerMcAddr, p4Ctx.at(2).id, sequence++,
-               'B', p4Ctx.at(2).bidMinPrice + 1,
+               &t->triggerMcAddr_, p4Ctx.at(2).id,
+               sequence++, 'B', p4Ctx.at(2).bidMinPrice + 1,
                p4Ctx.at(2).size);
 
   sleep(1);
@@ -977,8 +976,8 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 // ==============================================
 #if 1
   sendAddOrder(AddOrder::Expanded, t->udpSock_,
-               &p4TriggerMcAddr, p4Ctx.at(2).id, sequence++,
-               'S', p4Ctx.at(2).askMaxPrice - 1,
+               &t->triggerMcAddr_, p4Ctx.at(2).id,
+               sequence++, 'S', p4Ctx.at(2).askMaxPrice - 1,
                p4Ctx.at(2).size);
 
   sleep(1);
@@ -987,7 +986,7 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 // ==============================================
 #if 0
   while (keep_work) {
-    sendAddOrder(AddOrder::Expanded,t->udpSock_,&p4TriggerMcAddr,p4Ctx.at(2).id,
+    sendAddOrder(AddOrder::Expanded,t->udpSock_,&t->triggerMcAddr_,p4Ctx.at(2).id,
 		 sequence++,'B',p4Ctx.at(2).bidMinPrice + 1,p4Ctx.at(2).size);
   
     sleep(1);
