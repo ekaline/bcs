@@ -735,20 +735,33 @@ static int sendQEDMsg(TestCase *t) {
 }
 /* ############################################# */
 
+EfcUdpMcParams *createMcParams(TestCase *t) {
+  auto grParams = new EfcUdpMcGroupParams;
+  if (!grParams)
+    on_error("failed on new EfcUdpMcGroupParams");
+  grParams->coreId = t->coreId_;
+  grParams->mcIp = t->udpMc_.mcIp.c_str();
+  grParams->mcUdpPort = t->udpMc_.mcPort;
+
+  auto udpMcParams = new EfcUdpMcParams;
+  if (!udpMcParams)
+    on_error("!udpMcParams");
+
+  udpMcParams->groups = grParams;
+  udpMcParams->nMcGroups = 1;
+
+  return udpMcParams;
+}
+
+/* ############################################# */
+
 void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
   auto dev = pEfcCtx->dev;
 
   if (!t)
     on_error("!t");
 
-  EfcUdpMcGroupParams cboeMcGroups[] = {
-      {t->coreId_, t->udpMc_.mcIp.c_str(),
-       t->udpMc_.mcPort}};
-
-  EfcUdpMcParams cboeMcParams = {
-      .groups = cboeMcGroups,
-      .nMcGroups = std::size(cboeMcGroups),
-  };
+  auto udpMcParams = createMcParams(t);
 
   struct EfcP4Params p4Params = {
       .feedVer = EfhFeedVer::kCBOE,
@@ -757,7 +770,7 @@ void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
   };
 
   int rc =
-      efcInitP4Strategy(pEfcCtx, &cboeMcParams, &p4Params);
+      efcInitP4Strategy(pEfcCtx, udpMcParams, &p4Params);
   if (rc != EKA_OPRESULT__OK)
     on_error("efcInitP4Strategy returned %d", (int)rc);
 
@@ -860,7 +873,7 @@ void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
       prepare_BoeQuoteUpdateShortMsg(fireMsg);
 
   // ==============================================
-  for (auto i = 0; i < cboeMcParams.nMcGroups; i++) {
+  for (auto i = 0; i < udpMcParams->nMcGroups; i++) {
     rc = setActionTcpSock(dev, i, t->excSock_[i]);
     if (rc != EKA_OPRESULT__OK)
       on_error("setActionTcpSock failed for Action %d", i);
@@ -875,18 +888,8 @@ void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 
 void configureQedTest(EfcCtx *pEfcCtx, TestCase *t) {
   auto dev = pEfcCtx->dev;
-  // QED config
-  EfcUdpMcGroupParams qedMcGroups[] = {
-      {1, "224.0.74.0", 30301},
-      /* {0, "224.0.74.1",30302}, */
-      /* {0, "224.0.74.2",30303}, */
-      /* {0, "224.0.74.3",30304}, */
-  };
 
-  EfcUdpMcParams qedMcParams = {
-      .groups = qedMcGroups,
-      .nMcGroups = std::size(qedMcGroups),
-  };
+  auto udpMcParams = createMcParams(t);
 
   static const uint16_t QEDTestPurgeDSID = 0x1234;
   static const uint8_t QEDTestMinNumLevel = 5;
@@ -898,7 +901,7 @@ void configureQedTest(EfcCtx *pEfcCtx, TestCase *t) {
       QEDTestMinNumLevel;
   qedParams.product[active_set].enable = true;
 
-  efcInitQedStrategy(pEfcCtx, &qedMcParams, &qedParams);
+  efcInitQedStrategy(pEfcCtx, udpMcParams, &qedParams);
   auto qedHwPurgeIAction =
       efcAllocateNewAction(dev, EpmActionType::QEDHwPurge);
 
@@ -1037,7 +1040,6 @@ int main(int argc, char *argv[]) {
   // ==============================================
   // EkaDev general setup
   EkaDev *dev = NULL;
-  EkaCoreId coreId = 0;
   EkaOpResult rc;
   const EkaDevInitCtx ekaDevInitCtx = {};
   ekaDevInit(&dev, &ekaDevInitCtx);
