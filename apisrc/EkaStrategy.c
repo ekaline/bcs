@@ -21,6 +21,13 @@
 
 #include "EkaEfcDataStructs.h"
 
+#include "EhpCmeFC.h"
+#include "EhpItchFS.h"
+#include "EhpNews.h"
+#include "EhpNom.h"
+#include "EhpPitch.h"
+#include "EhpQED.h"
+
 extern EkaDev *g_ekaDev;
 
 class EkaUdpSess;
@@ -73,6 +80,18 @@ EkaStrategy::EkaStrategy(const EfcUdpMcParams *mcParams) {
 
   disableRxFire();
   disarm();
+}
+/* --------------------------------------------------- */
+void EkaStrategy::downloadEhp2Hw() {
+  ehp_->init();
+
+  for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++) {
+    if (coreIdBitmap_ & (1 << coreId)) {
+      EKA_LOG("Downloading Ehp for %s on coreId %d",
+              name_.c_str(), coreId);
+      ehp_->download2Hw(coreId);
+    }
+  }
 }
 /* --------------------------------------------------- */
 

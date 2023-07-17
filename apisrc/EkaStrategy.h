@@ -6,6 +6,7 @@
 
 class EkaUdpSess;
 class EkaEpmAction;
+class EhpProtocol;
 
 struct EkaStratMcCoreSess {
   EkaUdpSess *udpSess[EFC_MAX_MC_GROUPS_PER_LANE] = {};
@@ -31,6 +32,8 @@ public:
 
   uint8_t getCoreBitmap();
 
+  void downloadEhp2Hw();
+
 public:
   static void clearAllHwUdpParams();
   uint8_t coreIdBitmap_ = 0x00;
@@ -38,6 +41,7 @@ public:
 protected:
   EkaDev *dev_ = nullptr;
   EkaEpm *epm_ = nullptr;
+  EhpProtocol *ehp_ = nullptr;
 
   const int ArmDisarmNonP4Addr = 0xf07d0;
 

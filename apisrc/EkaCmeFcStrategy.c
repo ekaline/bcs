@@ -56,6 +56,7 @@ EkaCmeFcStrategy::EkaCmeFcStrategy(
 
   configureTemplates();
   configureEhp();
+  downloadEhp2Hw();
 
   conf_.minNoMDEntries = cmeParams->minNoMDEntries;
   conf_.maxMsgSize = cmeParams->maxMsgSize;
@@ -111,14 +112,7 @@ void EkaCmeFcStrategy::configureTemplates() {
 
 /* --------------------------------------------------- */
 void EkaCmeFcStrategy::configureEhp() {
-  auto ehp = new EhpCmeFC(dev_);
-  if (!ehp)
-    on_error("!ehp");
-
-  ehp->init();
-
-  for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++) {
-    if (coreIdBitmap_ & (1 << coreId))
-      ehp->download2Hw(coreId);
-  }
+  auto ehp_ = new EhpCmeFC(dev_);
+  if (!ehp_)
+    on_error("!ehp_");
 }
