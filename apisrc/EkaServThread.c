@@ -61,9 +61,8 @@ sendDummyFastPathPkt(EkaDev *dev, const uint8_t *payload,
 /* ----------------------------------------------- */
 
 void ekaServThread(EkaDev *dev) {
-  if (!dev || !dev->efc)
-    on_error("!dev || !efc");
-  auto efc = dev->efc;
+  if (!dev)
+    on_error("!dev");
 
   const char *threadName = "ServThread";
   EKA_LOG("Launching %s", threadName);
@@ -135,6 +134,7 @@ void ekaServThread(EkaDev *dev) {
       /* EKA_LOG("User Report # %u is pushed to Q", */
       /* 	  feedbackDmaReport->index); */
       /* hexDump("Payload push to Q",payload,len); */
+      auto efc = dev->efc;
       if (!efc || !efc->userReportQ)
         on_error("!efc || !efc->userReportQ");
       efc->userReportQ->push(payload, len);
