@@ -5,10 +5,11 @@
 #include "eka_macros.h"
 
 class EkaDev;
+class EkaStrategy;
 
 class EhpProtocol {
 protected:
-  EhpProtocol(EkaDev *dev);
+  EhpProtocol(EkaStrategy *strat);
 
 public:
   virtual int init() = 0;
@@ -17,9 +18,9 @@ public:
   /* ------------------------------------- */
 public:
   volatile EhpProtocolConf conf = {};
-  static const uint64_t EhpConfAddr = 0x10000;
 
-  // private:
+protected:
   EkaDev *dev = NULL;
+  EkaStrategy *strat_ = nullptr;
 };
 #endif

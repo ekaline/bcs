@@ -18,11 +18,12 @@
 
 #include "EkaEfcDataStructs.h"
 
+#include "EhpCmeFC.h"
 #include "EkaEpmRegion.h"
-#include "EkaStrategy.h"
+#include "EkaStrategyEhp.h"
 #include "eka_macros.h"
 
-class EkaCmeFcStrategy : public EkaStrategy {
+class EkaCmeFcStrategy : public EkaStrategyEhp<EhpCmeFC> {
 public:
   EkaCmeFcStrategy(const EfcUdpMcParams *mcParams,
                    const EfcCmeFcParams *cmeParams);
@@ -30,7 +31,7 @@ public:
                      int productId);
 
 private:
-  void configureEhp();
+  // void configureEhp();
   void configureTemplates();
 
 public:

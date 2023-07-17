@@ -3,22 +3,19 @@
 
 #include "EhpProtocol.h"
 
-enum class EhpCmeFCMsg : int {
-  FastCancel = 0
-};
+enum class EhpCmeFCMsg : int { FastCancel = 0 };
 
 class EhpCmeFC : public EhpProtocol {
- public:
-  EhpCmeFC(EkaDev* dev);
+public:
+  EhpCmeFC(EkaStrategy *strat);
   virtual ~EhpCmeFC() {}
 
   int init();
 
   int createFastCancel();
 
- public:
+public:
   static const int FastCancelMsg = 0;
-
 };
 
 #endif

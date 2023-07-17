@@ -16,8 +16,8 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
-execute_process(COMMAND git -C ${CMAKE_SOURCE_DIR} rev-parse --short HEAD
-                OUTPUT_VARIABLE EKA_GIT_VER)
+execute_process(COMMAND git -C ${CMAKE_SOURCE_DIR} rev-parse --short HEAD | cut
+                        -c 1-9 OUTPUT_VARIABLE EKA_GIT_VER)
 
 set(CMAKE_C_COMPILER ${CMAKE_CXX_COMPILER})
 set(CMAKE_CXX_FLAGS
@@ -147,7 +147,7 @@ target_compile_options(${EKA_LIB_NAME} PRIVATE -std=c++23 -O3 -funroll-loops
 
 target_include_directories(${EKA_LIB_NAME} PUBLIC ${EKA_INC_PATH})
 
-target_compile_definitions(${EKA_LIB_NAME} PUBLIC LIBEKA_GIT_VER="DUMMY")
+target_compile_definitions(${EKA_LIB_NAME} PUBLIC LIBEKA_GIT_VER=${EKA_GIT_VER})
 
 if(ENABLE_TESTING)
   target_compile_definitions(${EKA_LIB_NAME} PUBLIC ENABLE_TESTING="ON")
@@ -177,7 +177,8 @@ target_compile_options(${EKA_LIB_NAME}_static PUBLIC -std=c++23)
 
 target_include_directories(${EKA_LIB_NAME}_static PUBLIC ${EKA_INC_PATH})
 
-target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC LIBEKA_GIT_VER="DUMMY")
+target_compile_definitions(${EKA_LIB_NAME}_static
+                           PUBLIC LIBEKA_GIT_VER=${EKA_GIT_VER})
 
 target_link_libraries(
   ${EKA_LIB_NAME}_static
@@ -235,8 +236,7 @@ foreach(uSrc ${utils_SRCS})
   target_link_libraries(${utilExec} ${EKA_LIB_NAME}_static)
   target_link_libraries(${utilExec} -static-libgcc -static-libstdc++)
 
-  # target_link_libraries(${utilExec} rt m
-  # Threads::Threads)
+  # target_link_libraries(${utilExec} rt m Threads::Threads)
 
   target_include_directories(${utilExec} PUBLIC ${EKA_INC_PATH})
 endforeach()

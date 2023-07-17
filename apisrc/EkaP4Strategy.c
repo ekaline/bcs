@@ -58,7 +58,7 @@
 /* --------------------------------------------------- */
 EkaP4Strategy::EkaP4Strategy(const EfcUdpMcParams *mcParams,
                              const EfcP4Params *p4Params)
-    : EkaStrategy(mcParams) {
+    : EkaStrategyEhp(mcParams) {
 
   feedVer_ = p4Params->feedVer;
   name_ =
@@ -78,6 +78,8 @@ EkaP4Strategy::EkaP4Strategy(const EfcUdpMcParams *mcParams,
   configureTemplates();
   preallocateFireActions();
   configureEhp();
+  // downloadEhp2Hw();
+
   initHwRoundTable();
   createSecHash();
 
@@ -143,12 +145,10 @@ void EkaP4Strategy::configureTemplates() {
   }
 }
 /* --------------------------------------------------- */
-void EkaP4Strategy::configureEhp() {
-  EhpProtocol *ehp = NULL;
-
+/* void EkaP4Strategy::configureEhp() {
   switch (feedVer_) {
   case EfhFeedVer::kCBOE:
-    ehp = new EhpPitch(dev_, fireOnAllAddOrders_);
+    ehp_ = new EhpPitch(dev_, fireOnAllAddOrders_);
     break;
 
   default:
@@ -156,16 +156,9 @@ void EkaP4Strategy::configureEhp() {
              EKA_FEED_VER_DECODE(feedVer_), (int)feedVer_);
   }
 
-  if (!ehp)
-    on_error("!ehp");
-
-  ehp->init();
-
-  for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++) {
-    if (coreIdBitmap_ & (1 << coreId))
-      ehp->download2Hw(coreId);
-  }
-}
+  if (!ehp_)
+    on_error("!ehp_");
+} */
 
 /* --------------------------------------------------- */
 

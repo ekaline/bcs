@@ -17,6 +17,7 @@ class EkaP4Strategy;
 class EkaQedStrategy;
 class EkaCmeFcStrategy;
 class EkaEpm;
+class EkaUserReportQ;
 
 class EkaEfc {
 public:
@@ -76,6 +77,8 @@ public:
   uint64_t watchdog_timeout_sec_ = 0;
 
   uint64_t pktCnt = 0; // for EFH compatibility
+
+  EkaUserReportQ *userReportQ = NULL;
 
   OnReportCb reportCb; ///< Callback function to process
                        ///< fire reports

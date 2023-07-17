@@ -91,11 +91,8 @@ public:
   EkaUserChannel *lwipRx = NULL;
 
   uint8_t hwEnabledCores = 0;
-  EfhFeedVer hwFeedVer = EfhFeedVer::kInvalid;
-  uint16_t hwRawFireSize = 0;
 
   EkaCore *core[MAX_CORES] = {};
-  uint64_t totalNumTcpSess = 0; // for sn_state only
 
   EkaEpm *epm = NULL;
   EpmThreadState epmThr[MAX_CTX_THREADS] = {};
@@ -119,9 +116,6 @@ public:
   struct EfcRunCtx *pEfcRunCtx = NULL;
   struct EfhRunCtx *pEfhRunCtx = NULL;
 
-  EfhFeedVer efcFeedVer = EfhFeedVer::kInvalid;
-  bool efcTestRun = false;
-
   void *credContext = NULL;
   void *createThreadContext = NULL;
 
@@ -139,11 +133,6 @@ public:
 
   volatile bool exc_inited = false;
   volatile bool lwip_inited = false;
-  //  volatile bool             ekaLwipPollThreadIsUp;
-  /* volatile bool             efc_run_threadIsUp = false;
-   */
-  /* volatile bool             efc_fire_report_threadIsUp =
-   * false; */
 
   volatile uint8_t numFh = 0;
 
@@ -166,14 +155,6 @@ public:
   EkaReleaseCredentialsFn credRelease;
   EkaThreadCreateFn createThread;
 
-  bool print_parsed_messages = false;
-
-  /* static const uint64_t     statSwVersion          =
-   * SW_SCRATCHPAD_BASE; */
-  /* static const uint64_t     statGlobalCoreAddrBase =
-   * statSwVersion + 8; */
-  /* static const uint64_t     statMcCoreAddrBase     =
-   * statGlobalCoreAddrBase + 8 * MAX_CORES; */
   volatile int statNumUdpSess[MAX_CORES] = {};
   volatile uint32_t
       statMcGrCore[EKA_MAX_UDP_SESSIONS_PER_CORE]
@@ -181,31 +162,18 @@ public:
 
   EkaHwCaps *ekaHwCaps = NULL;
 
-  //  EkaEfc*                   efc = NULL;
-
   int64_t lastErrno = 0;
-  //  EfhExchangeErrorCode      lastExchErr =
-  //  EfhExchangeErrorCode::kNoError;
 
-  //  std::chrono::high_resolution_clock::time_point
-  //  midnightSystemClock;
   std::chrono::system_clock::time_point midnightSystemClock;
 
   EkaWc *ekaWc = nullptr;
 
   EkaEfc *efc = nullptr;
 
-#ifdef TEST_PRINT_DICT
-  FILE *testDict;
-#endif
-
   FILE *deltaTimeLogFile = NULL;
 
   std::atomic<uint64_t> globalFastPathBytes = 0;
   std::atomic<uint64_t> globalDummyBytes = 0;
-
-  EkaUserReportQ *userReportQ = NULL;
-  EkaDev *next = NULL; // Next device in global list
 
   volatile uint64_t *snDevUserLogicRegistersPtr = NULL;
   volatile uint64_t *snDevWCPtr = NULL;

@@ -18,13 +18,14 @@
 
 #include "EkaEfcDataStructs.h"
 
+#include "EhpPitch.h"
 #include "EkaEpmRegion.h"
-#include "EkaStrategy.h"
+#include "EkaStrategyEhp.h"
 #include "eka_macros.h"
 
 class EkaHwHashTableLine;
 
-class EkaP4Strategy : public EkaStrategy {
+class EkaP4Strategy : public EkaStrategyEhp<EhpPitch> {
 public:
   EkaP4Strategy(const EfcUdpMcParams *mcParams,
                 const EfcP4Params *p4Params);
@@ -42,7 +43,7 @@ public:
   void disarm();
 
 private:
-  void configureEhp();
+  // void configureEhp();
   void createSecHash();
   void preallocateFireActions();
   void configureTemplates();
@@ -70,8 +71,6 @@ private:
   const int ArmDisarmP4Addr = 0xf07c8;
 
   EkaHwHashTableLine *hashLine[EFC_SUBSCR_TABLE_ROWS] = {};
-
-  EfhFeedVer hwFeedVer_ = EfhFeedVer::kInvalid;
 
   int regionId_ = EkaEpmRegion::Regions::Efc;
 };
