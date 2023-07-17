@@ -577,7 +577,7 @@ processQEDReport(EkaDev *dev, const uint8_t *srcReport,
             srcReportLen);
     b += pushEpmReport(++reportIdx, b, &hwEpmReport->epm);
     b += pushQEDReport(++reportIdx, b, hwEpmReport);
-    //    b += pushFiredPkt (++reportIdx,b,q,dmaIdx);
+    b += pushFiredPkt(++reportIdx, b, q, dmaIdx);
     strategyId2ret = hwEpmReport->epm.strategyId;
     break;
   default:

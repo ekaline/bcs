@@ -1036,6 +1036,35 @@ int main(int argc, char *argv[]) {
         ekaHwCaps->hwCaps.core.bitmap_tcp_cores |
             ekaHwCaps->hwCaps.core.bitmap_md_cores);
     /* ----------------------------------------- */
+
+    for (auto coreId = 0; coreId < 2;
+         coreId++) { // TBD md bitmap
+
+      switch ((
+          (ekaHwCaps->hwCaps.version.parser >> coreId * 4) &
+          0xF)) {
+      case 12:
+        getQEDState(pQEDState);
+        break;
+      case 13:
+        getFastSweepState(pFastSweepState);
+        break;
+      case 14:
+        getNewsState(pNewsState);
+        break;
+      case 15:
+        getFastCancelState(pFastCancelState);
+        break;
+      case 1:
+      case 2:
+        getEfcState(pEfcState);
+        break;
+      default:
+        break;
+      }
+      /* ----------------------------------------- */
+    }
+    /* ----------------------------------------- */
     printf("\e[1;1H\e[2J"); //	system("clear");
     /* ----------------------------------------- */
     printTime();
@@ -1062,24 +1091,19 @@ int main(int argc, char *argv[]) {
           (ekaHwCaps->hwCaps.version.parser >> coreId * 4) &
           0xF)) {
       case 12:
-        getQEDState(pQEDState);
         printQEDState(pQEDState);
         break;
       case 13:
-        getFastSweepState(pFastSweepState);
         printFastSweepState(pFastSweepState);
         break;
       case 14:
-        getNewsState(pNewsState);
         printNewsState(pNewsState);
         break;
       case 15:
-        getFastCancelState(pFastCancelState);
         printFastCancelState(pFastCancelState);
         break;
       case 1:
       case 2:
-        getEfcState(pEfcState);
         printEfcState(pEfcState);
         break;
       default:
