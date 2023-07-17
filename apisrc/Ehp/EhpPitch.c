@@ -36,7 +36,7 @@ EhpPitch::EhpPitch(EkaStrategy *strat)
           ->fireOnAllAddOrders_;
 
   hwFeedVer_ =
-      dynamic_cast<EkaP4Strategy *>(strat_)->hwFeedVer_;
+      dynamic_cast<EkaP4Strategy *>(strat_)->feedVer_;
 
   if (hwFeedVer_ != EfhFeedVer::kCBOE)
     on_error("hwFeedVer_ %d != EfhFeedVer::kCBOE",

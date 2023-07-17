@@ -66,7 +66,6 @@ public:
 
   uint32_t maxSize_ = 0;
   bool fireOnAllAddOrders_ = false;
-  EfhFeedVer hwFeedVer_ = EfhFeedVer::kInvalid;
 
 private:
   const int ArmDisarmP4Addr = 0xf07c8;
