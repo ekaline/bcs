@@ -186,33 +186,43 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
     case EfhErrorDomain::kExchangeError :
       printf ("=========================\n%s: ExchangeError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
-      if (++testCtx->fatalErrorCnt == testCtx->MaxFatalErrors) on_error("testCtx->MaxFatalErrors %d reached",testCtx->MaxFatalErrors);
+      if (++testCtx->fatalErrorCnt == testCtx->MaxFatalErrors)
+				on_error("testCtx->MaxFatalErrors %d reached",
+								 testCtx->MaxFatalErrors);
       break;
 
     case EfhErrorDomain::kSocketError :
       printf ("=========================\n%s: SocketError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
-      if (++testCtx->fatalErrorCnt == testCtx->MaxFatalErrors) on_error("testCtx->MaxFatalErrors %d reached",testCtx->MaxFatalErrors);
+      if (++testCtx->fatalErrorCnt == testCtx->MaxFatalErrors)
+				on_error("testCtx->MaxFatalErrors %d reached",
+								 testCtx->MaxFatalErrors);
       break;
 
     case EfhErrorDomain::kCredentialError :
       printf ("=========================\n%s: CredentialError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
-      if (++testCtx->fatalErrorCnt == testCtx->MaxFatalErrors) on_error("testCtx->MaxFatalErrors %d reached",testCtx->MaxFatalErrors);
+      if (++testCtx->fatalErrorCnt == testCtx->MaxFatalErrors)
+				on_error("testCtx->MaxFatalErrors %d reached",
+								 testCtx->MaxFatalErrors);
 
       break;
 
     case EfhErrorDomain::kOSError :
       printf ("=========================\n%s: OSError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
-      if (++testCtx->fatalErrorCnt == testCtx->MaxFatalErrors) on_error("testCtx->MaxFatalErrors %d reached",testCtx->MaxFatalErrors);
+      if (++testCtx->fatalErrorCnt == testCtx->MaxFatalErrors)
+				on_error("testCtx->MaxFatalErrors %d reached",
+								 testCtx->MaxFatalErrors);
 
       break;
 
     case EfhErrorDomain::kDeviceError :
       printf ("=========================\n%s: DeviceError\n=========================\n",
 	      EKA_PRINT_GRP(&msg->group));
-      if (++testCtx->fatalErrorCnt == testCtx->MaxFatalErrors) on_error("testCtx->MaxFatalErrors %d reached",testCtx->MaxFatalErrors);
+      if (++testCtx->fatalErrorCnt == testCtx->MaxFatalErrors)
+				on_error("testCtx->MaxFatalErrors %d reached",
+								 testCtx->MaxFatalErrors);
 
       break;
 
@@ -224,7 +234,18 @@ void* onEfhGroupStateChange(const EfhGroupStateChangedMsg* msg, EfhSecUserData s
     break;
     /* ----------------------------- */
 
-  case EfhGroupState::kInitializing :
+  case EfhGroupState::kStaleData : {
+    std::string gapType = std::string("StaleData");
+		fprintf(logFile,"%s: %s : %s FeedDown\n",
+						EKA_PRINT_GRP(&msg->group), eka_get_time().c_str(),gapType.c_str());
+    printf ("=========================\n"
+						"%s: %s: %s %ju\n"
+						"=========================\n",
+						EKA_PRINT_GRP(&msg->group),eka_get_time().c_str(),
+						gapType.c_str(),msg->code);
+	}
+		break;
+	case EfhGroupState::kInitializing :
   case EfhGroupState::kClosed : 
   case EfhGroupState::kGap : {
     std::string gapType = std::string("Unknown");

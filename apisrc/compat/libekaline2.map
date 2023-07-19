@@ -1,6 +1,9 @@
 LIBEKALINE2_1.0	{
 		global:
-		    
+		    g_ekaLogCB;
+				g_ekaLogFile;
+				testCtx;
+				
 		        efcInit;
 			efcEnableController;
 			efcEnableFiringOnSec;

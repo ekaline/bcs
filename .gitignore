@@ -20,6 +20,9 @@
 !netif
 !new_api_tests
 !arch
+!cmake
+!cmake/ccache*
+!cmake/*cmake
 !CMakeLists.txt
 !apisrc/FhBook
 !apisrc/Ehp

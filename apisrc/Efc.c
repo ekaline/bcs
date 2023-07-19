@@ -32,13 +32,17 @@
 
 #include "EkaEfcDataStructs.h"
 
+#ifdef ENABLE_TESTING
+  #warning "You are building Testing!"
+#endif
+
 /**
  * This will initialize the Ekaline firing controller.
  *
- * @oaram pEfcCtx     This is an output parameter that will contain an initialized EfhCtx if this 
+ * @oaram pEfcCtx     This is an output parameter that will contain an initialized EfhCtx if this
  *                    function is successful.
- * @param pEfcInitCtx This is a list of key value parameters that replaces the old eka_conf values 
- *                    that were passed in the old api.  
+ * @param pEfcInitCtx This is a list of key value parameters that replaces the old eka_conf values
+ *                    that were passed in the old api.
  * @return This will return an appropriate EkalineOpResult indicating success or an error code.
  */
 
@@ -62,9 +66,9 @@ EkaOpResult efcInit( EfcCtx** ppEfcCtx, EkaDev *pEkaDev,
   *ppEfcCtx = new EfcCtx;
   if (!*ppEfcCtx)
     on_error("!*ppEfcCtx");
-  
+
   (*ppEfcCtx)->dev = dev;
-	
+
   dev->efcFeedVer  = pEfcInitCtx->feedVer;
   dev->efcTestRun  = pEfcInitCtx->testRun;
 
@@ -120,7 +124,7 @@ EkaOpResult efcSetAction(EkaDev *ekaDev,
   auto dataOffs = isUdpAction(actionType) ?
     EkaEpm::UdpDatagramOffset : EkaEpm::TcpDatagramOffset;
   uint payloadOffs = baseOffs + dataOffs;
-	
+
   const EpmAction epmAction = {
     .type          = actionType,
     .token         = efcAction->token,
@@ -156,9 +160,9 @@ EkaOpResult efcSetActionPayload(EkaDev *ekaDev,
   auto dataOffs = isUdpAction(ekaA->type) ?
     EkaEpm::UdpDatagramOffset : EkaEpm::TcpDatagramOffset;
   auto payloadOffs = ekaA->heapOffs +	dataOffs;
-	
+
   ekaA->setPayloadLen(len);
-	
+
   auto rc = epm->payloadHeapCopy(EFC_STRATEGY,
 				 payloadOffs,len,
 				 payload,
@@ -176,10 +180,10 @@ EkaOpResult efcSetActionPayload(EkaDev *ekaDev,
 /**
  * This will initialize the Ekaline firing controller.
  *
- * @oaram efcCtx     This is an output parameter that will contain an initialized EfhCtx if this 
+ * @oaram efcCtx     This is an output parameter that will contain an initialized EfhCtx if this
  *                    function is successful.
- * @param efcInitCtx This is a list of key value parameters that replaces the old d values 
- *                    that were passed in the old api.  
+ * @param efcInitCtx This is a list of key value parameters that replaces the old d values
+ *                    that were passed in the old api.
  * @return This will return an appropriate EkalineOpResult indicating success or an error code.
  */
 
@@ -197,7 +201,7 @@ EkaOpResult efcInitStrategy(EfcCtx* pEfcCtx,
 
   if (!efcStratGlobCtx)
     on_error("!efcStratGlobCtx");
-	
+
   efc->initStratGlobalParams(efcStratGlobCtx);
 
   return EKA_OPRESULT__OK;
@@ -207,7 +211,7 @@ EkaOpResult efcInitStrategy(EfcCtx* pEfcCtx,
  * This will enable or disable the firing controller
  *
  * @param pEfcCtx
- * @param primaryCoreId If this is >= 0, then it will enable firing on all cores, and make 
+ * @param primaryCoreId If this is >= 0, then it will enable firing on all cores, and make
  *                      primaryCore the only core that will fire if the opportunity should only
  *                      only fired on once.
  *                      If this is < 0, then this will disable firing on all cores.
@@ -234,11 +238,11 @@ EkaOpResult efcEnableController( EfcCtx* pEfcCtx, EkaCoreId primaryCoreId,  EfcA
 /**
  * This will tell the hardware to consider firing on md updates for a list of securities.
  * This function can only be called once after efcInit and must be called before efcRun().
- * 
+ *
  * @param pEfcCtx
- * @param pSecurityIds   This is a pointer to the first member of an array of securities that 
+ * @param pSecurityIds   This is a pointer to the first member of an array of securities that
  *                       the firing controller should consider as opportunities.  This value
- *                       should be the exchange specific security id that is returned from 
+ *                       should be the exchange specific security id that is returned from
  *                       EfhOptionDefinitionMsg.
  * @param numSecurityIds This is the number of elements in the array pSecurityIds.
  * @retval [See EkaOpResult].
@@ -266,13 +270,13 @@ EkaOpResult efcEnableFiringOnSec( EfcCtx* pEfcCtx, const uint64_t* pSecurityIds,
 
   EKA_LOG("Tried to subscribe on %u, succeeded on %d",
 	  (uint)numSecurityIds,efc->numSecurities);
-  
+
   return EKA_OPRESULT__OK;
 }
 
 /**
  * This function will take a security that was passed to efcEnableFiringOnSec() and return
- * the corresponding EfcSecCtxHandle.  It must be  called after efcEnableFiringOnSec() but 
+ * the corresponding EfcSecCtxHandle.  It must be  called after efcEnableFiringOnSec() but
  * before efcRun().
  *
  * @param pEfcCtx
@@ -312,17 +316,17 @@ EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx,
   if (writeChan >= EkaDev::MAX_CTX_THREADS)
     on_error("writeChan %u > EkaDev::MAX_CTX_THREADS %u",
 	     writeChan,EkaDev::MAX_CTX_THREADS);
-  
+
   auto efc {dynamic_cast<EkaEfc*>(dev->epm->strategy[EFC_STRATEGY])};
   if (efc == NULL) on_error("efc == NULL");
 
-  if (hSecCtx < 0) 
+  if (hSecCtx < 0)
 #if EFC_CTX_SANITY_CHECK
     on_error("hSecCtx = %jd",hSecCtx);
 #else
   return EKA_OPRESULT__ERR_EFC_SET_CTX_ON_UNSUBSCRIBED_SECURITY;
 #endif
-    
+
   if (pSecCtx == NULL) on_error("pSecCtx == NULL");
 
 #if EFC_CTX_SANITY_CHECK
@@ -331,7 +335,7 @@ EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx,
 	     "secIdList[%jd] 0x%016jx & 0xFF != %02x",
 	     hSecCtx,efc->secIdList[hSecCtx],pSecCtx->lowerBytesOfSecId);
 #endif
-  
+
   // This copy is needed because EkaHwSecCtx is packed and SecCtx is not!
   const EkaHwSecCtx hwSecCtx = {
     .bidMinPrice       = pSecCtx->bidMinPrice,
@@ -358,7 +362,7 @@ EkaOpResult efcSetStaticSecCtx( EfcCtx* pEfcCtx,
   /* efc->ctxWriteBank[writeChan] = (efc->ctxWriteBank[writeChan] + 1) % EKA_BANKS_PER_CTX_THREAD; */
 
   efc->writeSecHwCtx(hSecCtx,&hwSecCtx,writeChan);
-  
+
   return EKA_OPRESULT__OK;
 }
 
@@ -407,8 +411,8 @@ EkaOpResult efcSetFireTemplate( EfcCtx* pEfcCtx,
 }
 
 /**
- * This will tell the controller which Session to first fire on based on the multicast group that the 
- * opportunity arrived on.  
+ * This will tell the controller which Session to first fire on based on the multicast group that the
+ * opportunity arrived on.
  * @param pEfcCtx
  * @param group       This is the multicast group that we will be mapping from.
  * @param hConnection This is the ExcSessionId that we will be mapping to.
@@ -445,7 +449,7 @@ EkaOpResult efcSetGroupSesCtx( EfcCtx* pEfcCtx, uint8_t group,
  * This function will run the ekaline Fh on the current thread and make callbacks for messages processed.
  * This function should not return until we shut the Ekaline system down via ekaClose().
  *
- * @param pEfcCtx 
+ * @param pEfcCtx
  * @param pEfcRunCtx This is a pointer to the callbacks (and possibly other information needed) that
  *                   will be called as the Ekaline feedhandler processes messages.
  * @retval [See EkaOpResult].
@@ -472,7 +476,7 @@ EkaOpResult efcRun( EfcCtx* pEfcCtx, const EfcRunCtx* pEfcRunCtx ) {
   //  efc_run(pEfcCtx,pEfcRunCtx);
 
   //  eka_write(dev,0xf0f00,0xefa0beda); // REMOVE!!!
-  
+
   return EKA_OPRESULT__OK;
 }
 
@@ -508,8 +512,8 @@ EkaOpResult efcSetSessionCntr(EkaDev *dev,ExcConnHandle hConn,
   s->updateFpgaCtx<EkaTcpSess::AppSeqBin>(cntr);
 
 	char cntrString[64] = {};
-	int rc = sprintf(cntrString,"%08ju",cntr);
-	
+	sprintf(cntrString,"%08ju",cntr);
+
 	uint64_t cntrAscii = 0;
 	memcpy(&cntrAscii,cntrString,8);
   s->updateFpgaCtx<EkaTcpSess::AppSeqAscii>(be64toh(cntrAscii));
