@@ -16,8 +16,12 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
-execute_process(COMMAND git -C ${CMAKE_SOURCE_DIR} rev-parse --short HEAD | cut
-                        -c 1-9 OUTPUT_VARIABLE EKA_GIT_VER)
+execute_process(COMMAND git -C ${CMAKE_SOURCE_DIR} rev-parse --short HEAD
+                OUTPUT_VARIABLE EKA_GIT_VER)
+
+string(REGEX REPLACE "\n$" "" EKA_GIT_VER "${EKA_GIT_VER}")
+
+message(STATUS "EKA_GIT_VER = ${EKA_GIT_VER}")
 
 set(CMAKE_C_COMPILER ${CMAKE_CXX_COMPILER})
 set(CMAKE_CXX_FLAGS
@@ -90,6 +94,7 @@ add_library(ekalwip SHARED ${ekalwip_SRCS})
 target_compile_options(ekalwip PRIVATE -std=gnu++98)
 
 target_compile_definitions(ekalwip PRIVATE _GNU_SOURCE)
+
 target_link_libraries(ekalwip rt m Threads::Threads)
 
 target_include_directories(ekalwip PUBLIC ${LWIP_LIB_BUILD_INCL})
@@ -144,6 +149,14 @@ add_library(${EKA_LIB_NAME} SHARED ${${EKA_LIB_NAME}_SRCS})
 
 target_compile_options(${EKA_LIB_NAME} PRIVATE -std=c++23 -O3 -funroll-loops
                                                -pthread -pipe -march=native)
+
+if(FhLab)
+  target_compile_definitions(${EKA_LIB_NAME} PUBLIC FH_LAB)
+  target_compile_definitions(${EKA_LIB_NAME} PUBLIC EKA_TEST_IGNORE_DEFINITIONS)
+  target_compile_definitions(${EKA_LIB_NAME} PUBLIC EKA_TEST_IGNORE_GAP)
+  target_compile_definitions(${EKA_LIB_NAME} PUBLIC FH_SUBSCRIBE_ALL)
+  target_compile_definitions(${EKA_LIB_NAME} PUBLIC _DONT_SEND_MDTIMEOUT)
+endif()
 
 target_include_directories(${EKA_LIB_NAME} PUBLIC ${EKA_INC_PATH})
 
