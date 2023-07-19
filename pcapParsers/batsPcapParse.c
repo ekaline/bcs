@@ -171,35 +171,33 @@ static uint64_t printBatsMsg(uint64_t pktNum, uint8_t *msg,
   case MsgId::REDUCED_SIZE_SHORT: {
     auto m{
         reinterpret_cast<const reduced_size_short *>(msg)};
-    printf("OID:%ju(0x%jx),CanceledSize:%u", m->order_id,
-           m->order_id, m->canceled_size);
+    printf("OID:%ju,CanceledSize:%u", m->order_id,
+           m->canceled_size);
   } break;
     //--------------------------------------------------------------
   case MsgId::REDUCED_SIZE_LONG: {
     auto m{
         reinterpret_cast<const reduced_size_long *>(msg)};
-    printf("OID:%ju(0x%jx),CanceledSize:%u", m->order_id,
-           m->order_id, m->canceled_size);
+    printf("OID:%ju,CanceledSize:%u", m->order_id,
+           m->canceled_size);
   } break;
     //--------------------------------------------------------------
   case MsgId::ORDER_EXECUTED: {
     auto m{reinterpret_cast<const order_executed *>(msg)};
-    printf(
-        "OID:%ju(0x%jx),ExecID:%ju,ExecutedSize:%u,TC:%c",
-        m->order_id, m->order_id, m->execution_id,
-        m->executed_size, m->trade_condition);
+    printf("OID:%ju,ExecID:%ju,ExecutedSize:%u,TC:%c",
+           m->order_id, m->execution_id, m->executed_size,
+           m->trade_condition);
   } break;
     //--------------------------------------------------------------
   case MsgId::ORDER_EXECUTED_AT_PRICE_SIZE: {
     auto m{reinterpret_cast<
         const order_executed_at_price_size *>(msg)};
-    printf("OID:%ju(0x%jx),ExecID:%ju,"
+    printf("OID:%ju,ExecID:%ju,"
            "ExecutedSize:%u,RemainingSize:%u,"
            "P:%ju"
            "TC:%c",
-           m->order_id, m->order_id, m->execution_id,
-           m->executed_size, m->remaining_size, m->price,
-           m->trade_condition);
+           m->order_id, m->execution_id, m->executed_size,
+           m->remaining_size, m->price, m->trade_condition);
   } break;
 
   default:
