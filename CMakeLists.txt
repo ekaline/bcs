@@ -255,10 +255,23 @@ foreach(uSrc ${utils_SRCS})
 endforeach()
 
 # ##############################################################################
-# lab
+# pcap parsers
 
-add_library(lab ALIAS ${EKA_LIB_NAME})
-if(TARGET lab)
-  set(EKA_DEFINES EKA_TEST_IGNORE_DEFINITIONS EKA_TEST_IGNORE_GAP FH_LAB
-                  FH_SUBSCRIBE_ALL _DONT_SEND_MDTIMEOUT)
-endif()
+file(GLOB pcapParser_SRCS ${EKA_SRC_DIR}/../pcapParsers/*.c)
+set(pcapsDstDir ${CMAKE_BINARY_DIR}/pcapParsers/${EKA_LIB_NAME})
+file(MAKE_DIRECTORY ${pcapsDstDir})
+
+foreach(pSrc ${pcapParser_SRCS})
+  get_filename_component(pcapParserExec ${pSrc} NAME_WE)
+  add_executable(${pcapParserExec} ${pSrc})
+  target_compile_options(${pcapParserExec} PUBLIC -std=c++23)
+
+  set_target_properties(${pcapParserExec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
+                                                     ${pcapsDstDir})
+  # target_link_libraries(${pcapParserExec} ${EKA_LIB_NAME}_static)
+  # target_link_libraries(${pcapParserExec} -static-libgcc -static-libstdc++)
+
+  # target_link_libraries(${pcapParserExec} rt m Threads::Threads)
+
+  target_include_directories(${pcapParserExec} PUBLIC ${EKA_INC_PATH})
+endforeach()
