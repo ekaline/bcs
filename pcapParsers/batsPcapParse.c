@@ -94,29 +94,32 @@ static uint64_t printBatsMsg(uint64_t pktNum, uint8_t *msg,
   case MsgId::ADD_ORDER_LONG: {
     auto m{reinterpret_cast<const add_order_long *>(msg)};
 
-    printf("SID:\'%s\'(0x%016jx),\'%c\',P:%8ju,S:%8u",
-           EKA_PRINT_BATS_SYMBOL(m->symbol),
-           symbol2secId(m->symbol), m->side, m->price,
-           m->size);
+    printf(
+        "SID:\'%s\'(0x%016jx),OID:%ju,\'%c\',P:%8ju,S:%8u",
+        EKA_PRINT_BATS_SYMBOL(m->symbol),
+        symbol2secId(m->symbol), m->order_id, m->side,
+        m->price, m->size);
   } break;
     //--------------------------------------------------------------
   case MsgId::ADD_ORDER_SHORT: {
     auto m{reinterpret_cast<const add_order_short *>(msg)};
 
-    printf("SID:\'%s\'(0x%016jx),\'%c\',P:%8d,S:%8d",
-           EKA_PRINT_BATS_SYMBOL(m->symbol),
-           symbol2secId(m->symbol), m->side, m->price * 100,
-           m->size);
+    printf(
+        "SID:\'%s\'(0x%016jx),OID:%ju,\'%c\',P:%8d,S:%8d",
+        EKA_PRINT_BATS_SYMBOL(m->symbol),
+        symbol2secId(m->symbol), m->order_id, m->side,
+        m->price * 100, m->size);
   } break;
     //--------------------------------------------------------------
   case MsgId::ADD_ORDER_EXPANDED: {
     auto m{
         reinterpret_cast<const add_order_expanded *>(msg)};
 
-    printf("SID:\'%s\'(0x%016jx),\'%c\',P:%8ju,S:%8u",
-           EKA_PRINT_BATS_SYMBOL_EXP(m->exp_symbol),
-           expSymbol2secId(m->exp_symbol), m->side,
-           m->price, m->size);
+    printf(
+        "SID:\'%s\'(0x%016jx),OID:%ju,\'%c\',P:%8ju,S:%8u",
+        EKA_PRINT_BATS_SYMBOL_EXP(m->exp_symbol),
+        expSymbol2secId(m->exp_symbol), m->order_id,
+        m->side, m->price, m->size);
   } break;
     //--------------------------------------------------------------
   case MsgId::TRADE_LONG: {
