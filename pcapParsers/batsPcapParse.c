@@ -158,17 +158,15 @@ static uint64_t printBatsMsg(uint64_t pktNum, uint8_t *msg,
   case MsgId::ORDER_MODIFY_SHORT: {
     auto m{
         reinterpret_cast<const order_modify_short *>(msg)};
-    printf("OID:%ju(0x%jx),P:%8u,S:%8d,flags:%x",
-           m->order_id, m->order_id, m->price * 100,
-           m->size, m->flags);
+    printf("OID:%ju,P:%8u,S:%8d,flags:%x", m->order_id,
+           m->price * 100, m->size, m->flags);
   } break;
     //--------------------------------------------------------------
   case MsgId::ORDER_MODIFY_LONG: {
     auto m{
         reinterpret_cast<const order_modify_long *>(msg)};
-    printf("OID:%ju(0x%jx),P:%8ju,S:%8d,flags:%x",
-           m->order_id, m->order_id, m->price, m->size,
-           m->flags);
+    printf("OID:%ju,P:%8ju,S:%8d,flags:%x", m->order_id,
+           m->price, m->size, m->flags);
   } break;
     //--------------------------------------------------------------
   case MsgId::REDUCED_SIZE_SHORT: {
