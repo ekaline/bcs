@@ -9,7 +9,7 @@
 #define XDP_TOP_FEED_BASE (static_cast<uint8_t>(32))
 
 namespace Xdp {
-  const int MAX_STREAMS = 16;
+  const int MAX_STREAMS = 32;
 
   class Stream {
   public:

@@ -17,12 +17,21 @@ inline EfhTradeStatus quoteCondition(const char c) {
   }
 }
 
-inline EfhTradeCond getTradeCondition(const Trade* trade) {
-  // FIXME: there is a lot more to do here...
-  switch (trade->tradeCond1) {
-  case 'e': return EfhTradeCond::kSLFT;
-  case 'S': return EfhTradeCond::kISOI;
-  default: return EfhTradeCond::kREG;
+constexpr EfhTradeCond getTradeType(const char tradeCond) {
+  switch (tradeCond) {
+#define SWITCH_ENUM(NAME, VALUE) \
+    case VALUE: return EfhTradeCond::EKA__DELAYED_CAT(k, NAME);
+  EfhTradeCond_ENUM_ITER(SWITCH_ENUM)
+#undef SWITCH_ENUM
+  default: return EfhTradeCond::kUnmapped;
+  }
+}
+
+constexpr EfhTradeCond getTradeType(const char tradeCond1, const char tradeCond2) {
+  if (tradeCond1 == '\0' || tradeCond1 == ' ') {
+    return getTradeType(tradeCond2);
+  } else {
+    return getTradeType(tradeCond1);
   }
 }
 
@@ -319,7 +328,7 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
     msg.price       = getPrice(m->price, s);
     msg.size        = m->volume;
     msg.tradeStatus = s->trading_action;
-    msg.tradeCond   = getTradeCondition(m);
+    msg.tradeCond   = getTradeType(m->tradeCond1, m->tradeCond2);
 
     pEfhRunCtx->onEfhTradeMsgCb(&msg, s->efhUserData, pEfhRunCtx->efhRunUserData);
   }
@@ -356,7 +365,11 @@ bool EkaFhPlrGr::parseMsg(const EfhRunCtx* pEfhRunCtx,
       msg.price = -msg.price;
     }
     msg.quantity          = m->totalQuantity;
-    sprintf(msg.firmId, "%u", m->participant);
+    if (m->participant) {
+      // At time of writing all OCC member IDs are <1000, so this should never fail.
+      // If we do get a massive ID somehow, it just leaves the field blank.
+      tryNumToStrBuf(msg.firmId, m->participant);
+    }
     msg.endTimeNanos      = isDelete ? 0 : msg.header.timeStamp + getRfqRunTimeNanos(m->type);
 
     if (pEfhRunCtx->onEfhAuctionUpdateMsgCb == NULL)
