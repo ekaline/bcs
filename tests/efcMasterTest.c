@@ -162,6 +162,14 @@ public:
 
 static std::vector<TestCase *> testCase = {};
 
+static const TestCase *findTestCase(TestStrategy st) {
+  for (const auto tc : testCase)
+    if (tc->strat_ == st)
+      return tc;
+
+  return nullptr;
+}
+
 /* --------------------------------------------- */
 volatile bool keep_work = true;
 volatile bool serverSet = false;
@@ -337,13 +345,19 @@ bool report_only = false;
 bool dontQuit = false;
 
 void printUsage(char *cmd) {
-  printf("USAGE: %s \n"
-         "\t--L0 <P4 or Qed or CmeFC strategy on lane 0>\n"
-         "\t--L1 <P4 or Qed or CmeFC strategy on lane 1>\n"
-         "\t--report_only <Report Only ON>\n"
-         "\t--dont_quit <Dont quit at the end>\n"
-         "\n",
-         cmd);
+  printf(
+      "USAGE: %s \n"
+      "\t--P4_md_core [0..1] Feeds A and B\n"
+      "\t--P4_fire_core [0..3] chain of TCP sessions\n"
+      "\t--Qed_md_core [0..1] Feeds A and B\n"
+      "\t--Qed_fire_core [0..3] chain of TCP sessions\n"
+      "\t--CmeFC_md_core [0..1] Feeds A and B\n"
+      "\t--CmeFC_fire_core [0..3] chain of TCP sessions\n"
+
+      "\t--report_only <Report Only ON>\n"
+      "\t--dont_quit <Dont quit at the end>\n"
+      "\n",
+      cmd);
   return;
 }
 
@@ -353,19 +367,29 @@ static int getAttr(int argc, char *argv[]) {
   int c;
   int digit_optind = 0;
 
+  enum class GetOptVal : int {
+    P4_md_core,
+    P4_fire_core,
+  };
+
   while (1) {
     int this_option_optind = optind ? optind : 1;
     int option_index = 0;
     static struct option long_options[] = {
-        {"L0", required_argument, 0, '0'},
-        {"L1", required_argument, 0, '1'},
+        {"P4_md_core", required_argument, 0, 'p'},
+        {"P4_fire_core", required_argument, 0, 'P'},
+        {"Qed_md_core", required_argument, 0, 'q'},
+        {"Qed_fire_core", required_argument, 0, 'Q'},
+        {"CmeFC_md_core", required_argument, 0, 'c'},
+        {"CmeFC_fire_core", required_argument, 0, 'C'},
         {"ReportOnly", no_argument, 0, 'r'},
         {"report_only", no_argument, 0, 'r'},
         {"dont_quit", no_argument, 0, 'd'},
         {"help", no_argument, 0, 'h'},
         {0, 0, 0, 0}};
 
-    c = getopt_long(argc, argv, "rdh0:1:", long_options,
+    c = getopt_long(argc, argv,
+                    "rdhp:P:q:Q:c:C:", long_options,
                     &option_index);
     if (c == -1)
       break;
@@ -996,7 +1020,7 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
   while (keep_work) {
     sendAddOrder(AddOrder::Expanded,t->udpSock_,&t->triggerMcAddr_,p4Ctx.at(2).id,
 		 sequence++,'B',p4Ctx.at(2).bidMinPrice + 1,p4Ctx.at(2).size);
-  
+
     sleep(1);
     efcArmP4(pEfcCtx,, p4ArmVer++);
   }
