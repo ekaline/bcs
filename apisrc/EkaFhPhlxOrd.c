@@ -78,7 +78,8 @@ EkaOpResult EkaFhPhlxOrd::runGroups( EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCt
     if (runGr->drainQ(pEfhRunCtx)) continue;
     //-----------------------------------------------------------------------------
     if (! runGr->udpCh->has_data()) {
-      runGr->checkTimeOut(pEfhRunCtx);
+			if (runGr->checkNoMd)
+				runGr->checkGroupsNoMd(pEfhRunCtx);				
       continue;
     }
     uint     msgInPkt = 0;
