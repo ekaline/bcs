@@ -200,9 +200,10 @@ bool EkaFhBatsGr::parseMsg(
 
     book->setSecurityPrevState(s);
 
-    if (book->reduceOrderSize(o, delta_size) == 0) {
+    if (o->size == delta_size) {
       book->deleteOrder(o);
     } else {
+      book->reduceOrderSize(o, delta_size);
       o->plevel->deductSize(o->type, delta_size);
     }
 
@@ -239,9 +240,10 @@ bool EkaFhBatsGr::parseMsg(
 
     book->setSecurityPrevState(s);
 
-    if (book->reduceOrderSize(o, delta_size) == 0) {
+    if (o->size == delta_size) {
       book->deleteOrder(o);
     } else {
+      book->reduceOrderSize(o, delta_size);
       o->plevel->deductSize(o->type, delta_size);
     }
 
@@ -258,9 +260,10 @@ bool EkaFhBatsGr::parseMsg(
     s = (FhSecurity *)o->plevel->s;
     book->setSecurityPrevState(s);
 
-    if (book->reduceOrderSize(o, delta_size) == 0) {
+    if (o->size == delta_size) {
       book->deleteOrder(o);
     } else {
+      book->reduceOrderSize(o, delta_size);
       o->plevel->deductSize(o->type, delta_size);
     }
 
@@ -279,9 +282,10 @@ bool EkaFhBatsGr::parseMsg(
     s = (FhSecurity *)o->plevel->s;
     book->setSecurityPrevState(s);
 
-    if (book->reduceOrderSize(o, delta_size) == 0) {
+    if (o->size == delta_size) {
       book->deleteOrder(o);
     } else {
+      book->reduceOrderSize(o, delta_size);
       o->plevel->deductSize(o->type, delta_size);
     }
 
@@ -870,6 +874,7 @@ bool EkaFhBatsGr::process_Definition(
   EkaOsiSymbolData osi;
   if (!osi.parseFromSymbol(message->osi_symbol)) {
     EKA_ERROR("%s:%d: Skipping option def `%.21s` (`%.6s`) "
+              ""
               "as the OSI symbol is not valid!",
               EKA_EXCH_DECODE(exch), id,
               message->osi_symbol, message->symbol);
@@ -968,8 +973,10 @@ EkaFhBatsGr::process_AddOrderLong(const uint8_t *m) {
    * (checkPriceLengh(message->price,EFH_PRICE_SCALE))
    */
   /*   EKA_WARN("%s %s seq=%ju Long price(%jd) exceeds
+   *
    * 32bit", */
   /* 	     std::string(message->symbol,sizeof(message->symbol)).c_str(),
+
    */
   /* 	     ts_ns2str(msg_timestamp).c_str(), */
   /* 	     sequence, */
@@ -1008,8 +1015,10 @@ EkaFhBatsGr::process_AddOrderExpanded(const uint8_t *m) {
    * (checkPriceLengh(message->price,EFH_PRICE_SCALE))
    */
   /*   EKA_WARN("%s %s seq=%ju Long price(%jd) exceeds
+   *
    * 32bit", */
   /* 	     std::string(message->symbol,sizeof(message->symbol)).c_str(),
+
    */
   /* 	     ts_ns2str(msg_timestamp).c_str(), */
   /* 	     sequence, */
@@ -1058,6 +1067,7 @@ EkaFhBatsGr::process_OrderModifyLong(const uint8_t *m) {
    * (checkPriceLengh(message->price,EFH_PRICE_SCALE))
    */
   /*   EKA_WARN("ORDER_MODIFY_LONG: %s seq=%ju Long
+   *
    * price(%ju) exceeds 32bit", */
   /* 	     ts_ns2str(msg_timestamp).c_str(), */
   /* 	     sequence, */

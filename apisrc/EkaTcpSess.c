@@ -564,7 +564,7 @@ int EkaTcpSess::updateRx(const uint8_t *pkt, uint32_t len) {
  */
 int EkaTcpSess::setRemoteSeqWnd2FPGA() {
   // Update FPGA with tcpRemoteSeqNum and tcpRcvWnd
-#if 0  
+#if 0
     exc_table_desc_t desc = {};
     desc.td.source_bank = 0;
     desc.td.source_thread = sessId;
@@ -769,8 +769,11 @@ int EkaTcpSess::preSendCheck(int len, int flags) {
   int64_t unAckedBytes =
       realFastPathBytes.load() - realTcpRemoteAckNum.load();
 
+  // unAckedBytes can be negative if HW fire was acked
+  // faster than getting to realFastPathBytes
   if (unAckedBytes < 0)
-    on_error("unAckedBytes %jd < 0", unAckedBytes);
+    unAckedBytes = 0;
+  //      on_error("unAckedBytes %jd < 0",unAckedBytes);
 
   auto currTcpSndWnd = tcpSndWnd.load();
   uint32_t allowedWnd = currTcpSndWnd < WndMargin
