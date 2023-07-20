@@ -40,6 +40,8 @@
 #include "ekaNW.h"
 #include <fcntl.h>
 
+#include "EfcMasterTestConfig.h"
+
 using namespace Bats;
 class TestCase;
 
@@ -47,64 +49,6 @@ void configureP4Test(EfcCtx *pEfcCtx, TestCase *t);
 void configureQedTest(EfcCtx *pEfcCtx, TestCase *t);
 bool runP4Test(EfcCtx *pEfcCtx, TestCase *t);
 bool runQedTest(EfcCtx *pEfcCtx, TestCase *t);
-
-/* --------------------------------------------- */
-static const int MaxTcpTestSessions = 16;
-static const int MaxUdpTestSessions = 64;
-static uint16_t numTcpSess = 1;
-
-enum class TestStrategy : int {
-  Invalid = 0,
-  P4,
-  CmeFC,
-  Qed
-};
-
-static const char *printStrat(TestStrategy s) {
-  switch (s) {
-  case TestStrategy::Invalid:
-    return "Invalid";
-  case TestStrategy::P4:
-    return "P4";
-  case TestStrategy::CmeFC:
-    return "CmeFC";
-  case TestStrategy::Qed:
-    return "Qed";
-  default:
-    on_error("Unexpected testStrategy %d", (int)s);
-  }
-}
-
-static TestStrategy string2strat(const char *s) {
-  if (!strcmp(s, "P4"))
-    return TestStrategy::P4;
-
-  if (!strcmp(s, "CmeFC"))
-    return TestStrategy::CmeFC;
-
-  if (!strcmp(s, "Qed"))
-    return TestStrategy::Qed;
-
-  return TestStrategy::Invalid;
-}
-
-struct TestTcpSess {
-  std::string srcIp;
-  std::string dstIp;
-  uint16_t dstPort;
-};
-
-struct TestUdpMc {
-  std::string mcIp;
-  uint16_t mcPort;
-};
-
-static TestTcpSess testDefaultTcpSess[] = {
-    {"100.0.0.110", "10.0.0.10", 22222},
-    {"200.0.0.110", "10.0.0.11", 33333}};
-
-static TestUdpMc testDefaultUdpMc[] = {
-    {"224.0.74.0", 30300}, {"224.0.74.1", 30301}};
 
 typedef void (*PrepareTestConfigCb)(EfcCtx *efcCtx,
                                     TestCase *t);
@@ -343,16 +287,13 @@ bool runEfh = false;
 bool fatalDebug = false;
 bool report_only = false;
 bool dontQuit = false;
+const TestScenarioConfig *sc = nullptr;
 
 void printUsage(char *cmd) {
   printf(
       "USAGE: %s \n"
-      "\t--P4_md_core [0..1] Feeds A and B\n"
-      "\t--P4_fire_core [0..3] chain of TCP sessions\n"
-      "\t--Qed_md_core [0..1] Feeds A and B\n"
-      "\t--Qed_fire_core [0..3] chain of TCP sessions\n"
-      "\t--CmeFC_md_core [0..1] Feeds A and B\n"
-      "\t--CmeFC_fire_core [0..3] chain of TCP sessions\n"
+      "\t--list <print list of available test scenarios\n"
+      "\t--scenario [scenarion idx from the list]\n"
 
       "\t--report_only <Report Only ON>\n"
       "\t--dont_quit <Dont quit at the end>\n"
@@ -367,29 +308,20 @@ static int getAttr(int argc, char *argv[]) {
   int c;
   int digit_optind = 0;
 
-  enum class GetOptVal : int {
-    P4_md_core,
-    P4_fire_core,
-  };
-
   while (1) {
     int this_option_optind = optind ? optind : 1;
     int option_index = 0;
     static struct option long_options[] = {
-        {"P4_md_core", required_argument, 0, 'p'},
-        {"P4_fire_core", required_argument, 0, 'P'},
-        {"Qed_md_core", required_argument, 0, 'q'},
-        {"Qed_fire_core", required_argument, 0, 'Q'},
-        {"CmeFC_md_core", required_argument, 0, 'c'},
-        {"CmeFC_fire_core", required_argument, 0, 'C'},
+        {"list", required_argument, 0, 'l'},
+        {"scenario", required_argument, 0, 's'},
+
         {"ReportOnly", no_argument, 0, 'r'},
         {"report_only", no_argument, 0, 'r'},
         {"dont_quit", no_argument, 0, 'd'},
         {"help", no_argument, 0, 'h'},
         {0, 0, 0, 0}};
 
-    c = getopt_long(argc, argv,
-                    "rdhp:P:q:Q:c:C:", long_options,
+    c = getopt_long(argc, argv, "rdhls:", long_options,
                     &option_index);
     if (c == -1)
       break;
@@ -426,13 +358,16 @@ static int getAttr(int argc, char *argv[]) {
       testCase.push_back(t);
     } break;
 
-    case '2':
-      if (digit_optind != 0 &&
-          digit_optind != this_option_optind)
-        printf("digits occur in two different "
-               "argv-elements.\n");
-      digit_optind = this_option_optind;
-      printf("option %c\n", c);
+    case 's':
+      printf("Running scenario # %d\n", atoi(optarg));
+      printSingleScenario(atoi(optarg));
+      sc = &scenarios[atoi(optarg)];
+      break;
+
+    case 'l':
+      printf("%s available test scenarios:\n", argv[0]);
+      printAllScenarios();
+      exit(1);
       break;
 
     case 'h':
@@ -469,6 +404,33 @@ static int getAttr(int argc, char *argv[]) {
   }
 
   return 0;
+}
+/* --------------------------------------------- */
+void createTestCases(const TestScenarioConfig *s) {
+  printf("Configuring %s: \n", sc->name);
+  for (const auto &tc : sc->testConf) {
+    if (tc.strat != TestStrategy::Invalid) {
+      EkaCoreId coreId = 0; //!!!
+      TestCase *t = nullptr;
+      switch (tc.strat) {
+      case TestStrategy::P4:
+        t = new TestCase(coreId, tc.strat, configureP4Test,
+                         runP4Test);
+        break;
+      case TestStrategy::Qed:
+        t = new TestCase(coreId, tc.strat, configureQedTest,
+                         runQedTest);
+        break;
+      default:
+        on_error("Unexpected Test Strategy %d",
+                 (int)tc.strat);
+      }
+      if (!t)
+        on_error("Failed on new TestCase()");
+
+      testCase.push_back(t);
+    }
+  }
 }
 /* --------------------------------------------- */
 
@@ -1062,6 +1024,7 @@ int main(int argc, char *argv[]) {
   // ==============================================
 
   getAttr(argc, argv);
+  createTestCases(sc);
 
   if (numTcpSess > MaxTcpTestSessions)
     on_error("numTcpSess %d > MaxTcpTestSessions %d",
