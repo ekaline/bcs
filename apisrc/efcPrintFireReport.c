@@ -219,16 +219,20 @@ size_t printFirePkt(FILE *file, const uint8_t *b,
   if (!epm)
     on_error("!epm");
   auto efc = dev->efc;
-  if (!efc || !efc->p4_)
-    on_error("!efc || !p4");
+  if (!efc)
+    on_error("!efc");
 
   fprintf(file, "FirePktReport:");
-  switch (efc->p4_->feedVer_) {
-  case EfhFeedVer::kCBOE:
-    printBoeFire(file, b);
-  default:
-    hexDump("Fired Pkt", b, size, file);
-  }
+  if (efc->p4_)
+    switch (efc->p4_->feedVer_) {
+    case EfhFeedVer::kCBOE:
+      printBoeFire(file, b);
+      return size;
+    default:
+      on_error("Unsupported EfhFeedVer %d",
+               (int)efc->p4_->feedVer_);
+    }
+  hexDump("Fired Pkt", b, size, file);
   return size;
 }
 /* ###########################################################
