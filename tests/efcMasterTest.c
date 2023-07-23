@@ -991,10 +991,11 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 		 sequence++,'B',p4Ctx.at(2).bidMinPrice + 1,p4Ctx.at(2).size);
 
     sleep(1);
-    efcArmP4(pEfcCtx,, p4ArmVer++);
+    efcArmP4(pEfcCtx, p4ArmVer++);
   }
 #endif
   // ==============================================
+  efcDisArmP4(pEfcCtx);
   TEST_LOG("\n"
            "===========================\n"
            "END OT CBOE P4 TEST\n"
@@ -1077,6 +1078,7 @@ int main(int argc, char *argv[]) {
   // ==============================================
   efcRun(pEfcCtx, &runCtx);
   // ==============================================
+
   for (auto t : testCase)
     t->runTest_(pEfcCtx, t);
 
