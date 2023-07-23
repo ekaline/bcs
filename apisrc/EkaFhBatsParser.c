@@ -874,7 +874,6 @@ bool EkaFhBatsGr::process_Definition(
   EkaOsiSymbolData osi;
   if (!osi.parseFromSymbol(message->osi_symbol)) {
     EKA_ERROR("%s:%d: Skipping option def `%.21s` (`%.6s`) "
-              ""
               "as the OSI symbol is not valid!",
               EKA_EXCH_DECODE(exch), id,
               message->osi_symbol, message->symbol);
