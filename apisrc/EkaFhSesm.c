@@ -139,8 +139,8 @@ static bool sesmRefreshCycle(EkaDev *dev,
     close(gr->recovery_sock);
     if (gr->lastExchErr != EfhExchangeErrorCode::kNoError)
       gr->sendRetransmitExchangeError(pEfhRunCtx);
-    if (dev->lastErrno != 0)
-      gr->sendRetransmitSocketError(pEfhRunCtx);
+    // if (dev->lastErrno != 0)
+    gr->sendRetransmitSocketError(pEfhRunCtx);
     if (pVanillaDefinitions) {
       delete pVanillaDefinitions;
       pVanillaDefinitions = NULL;
@@ -237,8 +237,8 @@ sesmRetransmitCycle(EkaDev *dev, EfhRunCtx *pEfhRunCtx,
     close(gr->recovery_sock);
     if (gr->lastExchErr != EfhExchangeErrorCode::kNoError)
       gr->sendRetransmitExchangeError(pEfhRunCtx);
-    if (dev->lastErrno != 0)
-      gr->sendRetransmitSocketError(pEfhRunCtx);
+    // if (dev->lastErrno != 0)
+    gr->sendRetransmitSocketError(pEfhRunCtx);
   }
   return false;
 
@@ -505,6 +505,7 @@ static EkaFhParseResult procRefreshSesmPkt(
   int r = recv(sock, &sesm_hdr, sizeof(sesm_header),
                MSG_WAITALL);
   if (r <= 0) {
+    dev->lastErrno = errno;
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
       EKA_WARN(
           "%s:%u failed to receive SESM header: r=%d: %s",
@@ -512,7 +513,6 @@ static EkaFhParseResult procRefreshSesmPkt(
           strerror(dev->lastErrno));
       return EkaFhParseResult::NotEnd;
     }
-    dev->lastErrno = errno;
     EKA_WARN(
         "%s:%u failed to receive SESM header: r=%d: %s",
         EKA_EXCH_DECODE(gr->exch), gr->id, r,
@@ -729,6 +729,7 @@ RETRY_GETTING_SESM_HDR:
   int r = recv(sock, &sesm_hdr, sizeof(sesm_header),
                MSG_WAITALL);
   if (r <= 0) {
+    dev->lastErrno = errno;
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
       EKA_WARN("%s:%u SLOW TCP: "
                "failed to receive SESM header: r=%d: %s",
@@ -737,7 +738,6 @@ RETRY_GETTING_SESM_HDR:
       goto RETRY_GETTING_SESM_HDR;
       return EkaFhParseResult::NotEnd;
     }
-    dev->lastErrno = errno;
     EKA_WARN(
         "%s:%u failed to receive SESM header: r=%d: %s",
         EKA_EXCH_DECODE(gr->exch), gr->id, r,
