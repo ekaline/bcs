@@ -509,9 +509,10 @@ static int sendAddOrderShort(int sock,
                      /// 100 + 1),
           .flags = 0xFF,
       }};
-  TEST_LOG("sending AddOrderShort trigger to %s:%u",
+  TEST_LOG("sending AddOrderShort trigger to %s:%u, price=%u, size=%u",
            EKA_IP2STR(addr->sin_addr.s_addr),
-           be16toh(addr->sin_port));
+           be16toh(addr->sin_port),
+	   price,size);
   if (sendto(sock, &pkt, sizeof(pkt), 0,
              (const sockaddr *)addr, sizeof(sockaddr)) < 0)
     on_error("MC trigger send failed");
@@ -846,9 +847,15 @@ void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
         .versionKey = (uint8_t)i,
         .lowerBytesOfSecId =
             (uint8_t)(securityList[i] & 0xFF)};
-    EKA_TEST("Setting StaticSecCtx[%d] secId=0x%016jx, "
-             "handle=%jd",
-             i, securityList[i], handle);
+    EKA_TEST("Setting StaticSecCtx[%d] secId=0x%016jx,"
+             "handle=%jd,bidMinPrice=%u,askMaxPrice=%u,"
+             "bidSize=%u,askSize=%u,"
+             "versionKey=%u,lowerBytesOfSecId=0x%x",
+             i, securityList[i], handle,
+	     secCtx.bidMinPrice,secCtx.askMaxPrice,
+	     secCtx.bidSize,secCtx.askSize,
+	     secCtx.versionKey,secCtx.lowerBytesOfSecId
+	     );
     /* hexDump("secCtx",&secCtx,sizeof(secCtx)); */
 
     rc = efcSetStaticSecCtx(pEfcCtx, handle, &secCtx, 0);

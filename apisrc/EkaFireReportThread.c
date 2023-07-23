@@ -615,6 +615,8 @@ processFireReport(EkaDev *dev, const uint8_t *srcReport,
       0; // to be overwritten at the end
   b += sizeof(*containerHdr);
   //--------------------------------------------------------------------------
+  b += pushEpmReport(++reportIdx, b, &hwReport->epm);
+
   b += pushControllerState(++reportIdx, b, hwReport);
 
   b += pushMdReport(++reportIdx, b, hwReport);
