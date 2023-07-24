@@ -338,6 +338,19 @@ inline bool parseIpAddress(const char *value, uint32_t *ip,
   return true;
 }
 
+inline bool parseTimeMinutes(const char *in, int *tHour,
+                             int *tMinute) {
+  auto [p1, ec1] =
+      std::from_chars(in, in + strlen(in), *tHour, 10);
+  auto [p2, ec2] = std::from_chars(p1 + 1, in + strlen(in),
+                                   *tMinute, 10);
+
+  if (*p1 != ':' || p2 || (int)ec1 || (int)ec2)
+    return false;
+
+  return true;
+}
+
 template <std::size_t U, std::size_t P>
 inline bool
 parseUserPassword(const char *value, char (&user)[U],
@@ -963,7 +976,46 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
+  //---------------------------------------------------------
+  // efh.<EXCH>.group.X.check.md.start, HH:MM
+  // k[0] k[1]  k[2] k[3] k[4] k[5] k[6]
+  if (matchConfKey(k, {"efh", exchName, "group", NULL,
+                       "check", "md", "start"})) {
+    EkaFhGroup *group = getGroup(*this, k[3], key, value);
+    if (!group)
+      return EkaFhAddConf::IGNORED;
 
+    if (!parseTimeMinutes(value, &group->mdCheckStartHour,
+                          &group->mdCheckStartMinute)) {
+      on_warning("Invalid HH:MM format  \'%s\' -- \'%s\'",
+                 key, value);
+      return EkaFhAddConf::WRONG_VALUE;
+    }
+    //      EKA_DEBUG ("%s %s for %s:%u is set to
+    //      %s:%u",k[4],k[5],k[1],gr,v[0],(uint16_t)atoi(v[1]));
+
+    return EkaFhAddConf::CONF_SUCCESS;
+  }
+  //---------------------------------------------------------
+  // efh.<EXCH>.group.X.check.md.end, HH:MM
+  // k[0] k[1]  k[2] k[3] k[4] k[5] k[6]
+  if (matchConfKey(k, {"efh", exchName, "group", NULL,
+                       "check", "md", "end"})) {
+    EkaFhGroup *group = getGroup(*this, k[3], key, value);
+    if (!group)
+      return EkaFhAddConf::IGNORED;
+
+    if (!parseTimeMinutes(value, &group->mdCheckEndHour,
+                          &group->mdCheckEndMinute)) {
+      on_warning("Invalid HH:MM format  \'%s\' -- \'%s\'",
+                 key, value);
+      return EkaFhAddConf::WRONG_VALUE;
+    }
+    //      EKA_DEBUG ("%s %s for %s:%u is set to
+    //      %s:%u",k[4],k[5],k[1],gr,v[0],(uint16_t)atoi(v[1]));
+
+    return EkaFhAddConf::CONF_SUCCESS;
+  }
 #undef TRY_PARSE_NUM
 
   //---------------------------------------------------------
