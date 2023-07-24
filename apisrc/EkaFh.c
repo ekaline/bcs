@@ -345,7 +345,7 @@ inline bool parseTimeMinutes(const char *in, int *tHour,
   auto [p2, ec2] = std::from_chars(p1 + 1, in + strlen(in),
                                    *tMinute, 10);
 
-  if (*p1 != ':' || p2 || (int)ec1 || (int)ec2)
+  if (*p1 != ':' || *p2 || (int)ec1 || (int)ec2)
     return false;
 
   return true;
