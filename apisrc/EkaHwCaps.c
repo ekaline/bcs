@@ -2,6 +2,7 @@
 #include "EkaHwCaps.h"
 #include "EkaDev.h"
 #include "EkaEpm.h"
+#include "EkaHwCaps.h"
 #include "EkaHwExpectedVersion.h"
 #include "smartnic.h"
 
@@ -217,6 +218,11 @@ bool EkaHwCaps::checkEpm() {
              "EkaEpm::MAX_HEAP_WR_THREADS %d",
              hwCaps.epm.max_threads,
              EkaEpm::MAX_HEAP_WR_THREADS);
+
+  on_error("hwCaps.epm.max_threads %d < "
+           "EkaEpm::MAX_HEAP_WR_THREADS %d",
+           hwCaps.epm.max_threads,
+           EkaEpm::MAX_HEAP_WR_THREADS);
 
   if (hwCaps.epm.heap_total_bytes < EkaEpm::MaxHeap)
     on_error("hwCaps.epm.heap_total_bytes %d < "

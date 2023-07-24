@@ -9,6 +9,9 @@
 void saveMcState(EkaDev *dev, int grId, int chId,
                  uint8_t coreId, uint32_t mcast_ip,
                  uint16_t mcast_port, uint64_t pktCnt);
+void saveMcState(EkaDev *dev, int grId, int chId,
+                 uint8_t coreId, uint32_t mcast_ip,
+                 uint16_t mcast_port, uint64_t pktCnt);
 
 /* ################################################## */
 
@@ -99,6 +102,24 @@ void *EkaIgmp::igmpThreadLoopCb(void *pEkaIgmp) {
       igmp->igmpEntry[i]->saveMcState();
     }
     /* -------------------------------------- */
+    static const int TimeOutSeconds = 4;
+    auto now = std::chrono::steady_clock::now();
+    auto timeSinceLastNoMdCheck =
+        std::chrono::duration_cast<std::chrono::seconds>(
+            now - lastNoMdTimeCheck)
+            .count();
+
+    if (timeSinceLastNoMdCheck > TimeOutSeconds) {
+      for (uint i = 0; i < EkaDev::MAX_RUN_GROUPS; i++) {
+        auto runGr = dev->runGr[i];
+        if (runGr)
+          runGr->setTimeToCheckNoMdFlag();
+      }
+      lastNoMdTimeCheck = now;
+    }
+
+/* -------------------------------------- */
+#if 0
     if (isTradingHours(8, 00, 16, 30)) {
       static const int TimeOutSeconds = 4;
       auto now = std::chrono::steady_clock::now();
@@ -115,6 +136,7 @@ void *EkaIgmp::igmpThreadLoopCb(void *pEkaIgmp) {
         lastNoMdTimeCheck = now;
       }
     }
+#endif
     /* -------------------------------------- */
 
     sleep(1);

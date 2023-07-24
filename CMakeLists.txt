@@ -14,6 +14,7 @@ include(cmake/projectsettings.cmake)
 include(cmake/ccache.cmake)
 
 option(ENABLE_TESTING "Enable Testing build" OFF)
+option(FhLab "Ekaline Lab build" OFF)
 # include(CTest) enable_testing()
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
@@ -161,7 +162,7 @@ if(FhLab)
   target_compile_definitions(${EKA_LIB_NAME} PUBLIC EKA_TEST_IGNORE_DEFINITIONS)
   target_compile_definitions(${EKA_LIB_NAME} PUBLIC EKA_TEST_IGNORE_GAP)
   target_compile_definitions(${EKA_LIB_NAME} PUBLIC FH_SUBSCRIBE_ALL)
-  target_compile_definitions(${EKA_LIB_NAME} PUBLIC _DONT_SEND_MDTIMEOUT)
+  # target_compile_definitions(${EKA_LIB_NAME} PUBLIC _DONT_SEND_MDTIMEOUT)
 endif()
 
 target_include_directories(${EKA_LIB_NAME} PUBLIC ${EKA_INC_PATH})
