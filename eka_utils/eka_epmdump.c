@@ -175,9 +175,6 @@ int main(int argc, char *argv[]) {
   uint64_t portEnableNew = eka_read(devId, 0xf0020);
   printf("New portEnableNew = 0x%jx\n", portEnableNew);
 
-  // Wait for clearing the pipe
-  sleep(2);
-
   // Enable EPM dump mode
   eka_write(devId, 0xf0f00, 0xefa1beda);
   printf("Dump EPM enabled\n");
@@ -204,10 +201,8 @@ int main(int argc, char *argv[]) {
     on_error("failed allocating mem[%d]", memLen);
 
   dumpMem(devId, mem, memAddr, memLen);
-  hexDump("Memory Dump", mem, memLen);
+  hexDump("Memory Dump", mem, memLen, outFile);
 
-  // Wait for clearing the pipe
-  sleep(2);
   printf("Dump EPM finished\n");
 
   // Disable EPM dump mode

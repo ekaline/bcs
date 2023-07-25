@@ -219,11 +219,6 @@ bool EkaHwCaps::checkEpm() {
              hwCaps.epm.max_threads,
              EkaEpm::MAX_HEAP_WR_THREADS);
 
-  on_error("hwCaps.epm.max_threads %d < "
-           "EkaEpm::MAX_HEAP_WR_THREADS %d",
-           hwCaps.epm.max_threads,
-           EkaEpm::MAX_HEAP_WR_THREADS);
-
   if (hwCaps.epm.heap_total_bytes < EkaEpm::MaxHeap)
     on_error("hwCaps.epm.heap_total_bytes %d < "
              "EkaEpm::MaxHeap %ju",

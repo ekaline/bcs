@@ -82,6 +82,7 @@ struct EfcState {
   bool forceFire = false;
   bool forceFireUnsubscr = false;
   bool fatalDebug = false;
+  bool epmDump = false;
   CommonState commonState;
 };
 
@@ -742,6 +743,7 @@ int getEfcState(EfcState *pEfcState) {
   pEfcState->commonState.reportOnly =
       (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT) != 0;
   pEfcState->fatalDebug = var_fatal_debug == 0xefa0beda;
+  pEfcState->epmDump    = var_fatal_debug == 0xefa1beda;
 
   pEfcState->commonState.tcpFilterEn =
       (reg_read(0xf0020) >> 32 & 0x1) == 0;
@@ -895,6 +897,10 @@ int printEfcState(EfcState *pEfcState) {
   if (pEfcState->fatalDebug)
     printf(RED
            "WARNING: \'Fatal Debug\' is Active\n" RESET);
+
+  if (pEfcState->epmDump)
+    printf(RED
+           "WARNING: \'EPM Dump Mode\' is Active\n" RESET);
 
   if (pEfcState->forceFire) {
     printf(
