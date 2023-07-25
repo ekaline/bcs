@@ -81,11 +81,11 @@ const TestScenarioConfig scenarios[] = {
      {{TestStrategy::P4, 0, 0x1},
       {TestStrategy::Invalid, 0, 0x0}}},
 
-    {"QedP4",
+    {"Qed_0__P4_1",
      {{TestStrategy::Qed, 0, 0x1},
       {TestStrategy::P4, 1, 0x2}}},
 
-    {"P4Qed",
+    {"P4_0__Qed_1",
      {{TestStrategy::Qed, 1, 0x2},
       {TestStrategy::P4, 0, 0x1}}},
 
