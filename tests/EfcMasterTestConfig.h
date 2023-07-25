@@ -90,8 +90,8 @@ const TestScenarioConfig scenarios[] = {
       {TestStrategy::P4, 0, 0x1}}},
 
     {"P4_0__Qed_3",
-     {{TestStrategy::Qed, 1, 0x2},
-      {TestStrategy::P4, 0, 0x1}}},
+     {{TestStrategy::P4, 0, 0x1},
+      {TestStrategy::Qed, 3, 0x8}}},
 
 };
 
