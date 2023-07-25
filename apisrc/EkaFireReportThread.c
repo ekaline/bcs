@@ -379,8 +379,10 @@ std::pair<int, size_t> processExceptionReport(
     exceptReport.nWarmStatus.expectedVersion =
         hwEpmReport->nw_arm_report.arm_expected_version;
     //    hexDump("------------\nexceptReport",hwEpmReport,sizeof(*hwEpmReport));
-    //    EKA_LOG("ARM=%d
-    //    VER=%d",hwEpmReport->arm_report.arm_state,hwEpmReport->arm_report.arm_expected_version);
+    /* EKA_LOG("P4 ARM=%d, VER=%d", */
+    /* 	    hwEpmReport->p4_arm_report.arm_state,hwEpmReport->p4_arm_report.arm_expected_version); */
+    /* EKA_LOG("NW ARM=%d, VER=%d", */
+    /* 	    hwEpmReport->nw_arm_report.arm_state,hwEpmReport->nw_arm_report.arm_expected_version); */
 
     b += pushExceptionReport(++reportIdx, b, &exceptReport);
     break;
@@ -615,6 +617,8 @@ processFireReport(EkaDev *dev, const uint8_t *srcReport,
       0; // to be overwritten at the end
   b += sizeof(*containerHdr);
   //--------------------------------------------------------------------------
+  b += pushEpmReport(++reportIdx, b, &hwReport->epm);
+
   b += pushControllerState(++reportIdx, b, hwReport);
 
   b += pushMdReport(++reportIdx, b, hwReport);
