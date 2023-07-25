@@ -215,6 +215,7 @@ int main(int argc, char *argv[]) {
   eka_write(devId, 0xf0020, portEnableOrig);
 
   fclose(outFile);
+  delete[] mem;
 
   return 0;
 }

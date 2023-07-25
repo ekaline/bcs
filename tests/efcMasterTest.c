@@ -312,7 +312,7 @@ static int getAttr(int argc, char *argv[]) {
     int this_option_optind = optind ? optind : 1;
     int option_index = 0;
     static struct option long_options[] = {
-        {"list", required_argument, 0, 'l'},
+        {"list", no_argument, 0, 'l'},
         {"scenario", required_argument, 0, 's'},
 
         {"ReportOnly", no_argument, 0, 'r'},
@@ -333,30 +333,6 @@ static int getAttr(int argc, char *argv[]) {
         printf(" with arg %s", optarg);
       printf("\n");
       break;
-
-    case '0':
-    case '1': {
-      auto coreId = c - '0';
-      auto strat = string2strat(optarg);
-
-      TestCase *t = nullptr;
-      switch (strat) {
-      case TestStrategy::P4:
-        t = new TestCase(coreId, strat, configureP4Test,
-                         runP4Test);
-        break;
-      case TestStrategy::Qed:
-        t = new TestCase(coreId, strat, configureQedTest,
-                         runQedTest);
-        break;
-      default:
-        on_error("Unexpected Test Strategy %d", (int)strat);
-      }
-      if (!t)
-        on_error("Failed on new TestCase()");
-
-      testCase.push_back(t);
-    } break;
 
     case 's':
       printf("Running scenario # %d\n", atoi(optarg));
@@ -410,16 +386,15 @@ void createTestCases(const TestScenarioConfig *s) {
   printf("Configuring %s: \n", sc->name);
   for (const auto &tc : sc->testConf) {
     if (tc.strat != TestStrategy::Invalid) {
-      EkaCoreId coreId = 0; //!!!
       TestCase *t = nullptr;
       switch (tc.strat) {
       case TestStrategy::P4:
-        t = new TestCase(coreId, tc.strat, configureP4Test,
-                         runP4Test);
+        t = new TestCase(tc.mdCoreId, tc.strat,
+                         configureP4Test, runP4Test);
         break;
       case TestStrategy::Qed:
-        t = new TestCase(coreId, tc.strat, configureQedTest,
-                         runQedTest);
+        t = new TestCase(tc.mdCoreId, tc.strat,
+                         configureQedTest, runQedTest);
         break;
       default:
         on_error("Unexpected Test Strategy %d",
@@ -509,10 +484,10 @@ static int sendAddOrderShort(int sock,
                      /// 100 + 1),
           .flags = 0xFF,
       }};
-  TEST_LOG("sending AddOrderShort trigger to %s:%u, price=%u, size=%u",
+  TEST_LOG("sending AddOrderShort trigger to %s:%u, "
+           "price=%u, size=%u",
            EKA_IP2STR(addr->sin_addr.s_addr),
-           be16toh(addr->sin_port),
-	   price,size);
+           be16toh(addr->sin_port), price, size);
   if (sendto(sock, &pkt, sizeof(pkt), 0,
              (const sockaddr *)addr, sizeof(sockaddr)) < 0)
     on_error("MC trigger send failed");
@@ -851,11 +826,10 @@ void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
              "handle=%jd,bidMinPrice=%u,askMaxPrice=%u,"
              "bidSize=%u,askSize=%u,"
              "versionKey=%u,lowerBytesOfSecId=0x%x",
-             i, securityList[i], handle,
-	     secCtx.bidMinPrice,secCtx.askMaxPrice,
-	     secCtx.bidSize,secCtx.askSize,
-	     secCtx.versionKey,secCtx.lowerBytesOfSecId
-	     );
+             i, securityList[i], handle, secCtx.bidMinPrice,
+             secCtx.askMaxPrice, secCtx.bidSize,
+             secCtx.askSize, secCtx.versionKey,
+             secCtx.lowerBytesOfSecId);
     /* hexDump("secCtx",&secCtx,sizeof(secCtx)); */
 
     rc = efcSetStaticSecCtx(pEfcCtx, handle, &secCtx, 0);
