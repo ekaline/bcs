@@ -1,163 +1,225 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <string.h>
 #include <arpa/inet.h>
 #include <endian.h>
+#include <fcntl.h>
 #include <inttypes.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/time.h>
+#include <unistd.h>
 
-#include "eka_macros.h"
-#include "smartnic.h"
 #include "EkaHwCaps.h"
 #include "EkaHwExpectedVersion.h"
+#include "eka_macros.h"
+#include "smartnic.h"
+
+#include "EkaEpmRegion.h"
 
 volatile bool keep_work = true;
+FILE *outFile = stdout;
+
+int actionIdx = -1;
+int region = EkaEpmRegion::Regions::Efc;
+int memAddr = -1;
+int memLen = -1;
+
 /* --------------------------------------------- */
 
-static void  INThandler(int sig) {
+static void INThandler(int sig) {
   signal(sig, SIG_IGN);
   keep_work = false;
-  printf("%s:Ctrl-C detected\n",__func__);
-  printf ("%s: exitting...\n",__func__);
+  printf("%s:Ctrl-C detected\n", __func__);
+  printf("%s: exitting...\n", __func__);
   fflush(stdout);
+  return;
+}
+
+/* --------------------------------------------- */
+
+static void printUsage(char *cmd) {
+  printf(
+      "USAGE: %s <Memory dump or Action dump options> \n",
+      cmd);
+  printf("\t-b - Memory dump: "
+         "EPM Start Address (32B aligned)\n");
+  printf("\t-s - Memory dump: "
+         "Bytes to read (32B aligned)\n");
+  printf("\t-a - Action dump: Action Id to dump\n");
+  printf("\t-r - Action dump: Epm Region Id, "
+         "default Efc(= 0)\n");
+  printf("\t-w - Output file path, default stdout\n");
+  printf("\t-h - Print this help\n");
   return;
 }
 /* --------------------------------------------- */
 
-static void printUsage(char* cmd) {
-    printf("USAGE: %s <options> \n",cmd); 
-    printf("\t-b - EPM Start Address (32B aligned)\n"); 
-    printf("\t-s - Bytes to read (32B aligned)\n"); 
-    printf("\t-w - Output file path\n"); 
-    printf("\t-h - Print this help\n"); 
-    return;
-}
+static int getAttr(int argc, char *argv[]) {
 
-static int getAttr(int argc, char *argv[],
-		   uint32_t* startAddr, uint32_t* bytesRead,
-		   char* fileName) {
-  
-    bool ifSet = false;
-    bool fileSet = false;
-    int opt; 
-    while((opt = getopt(argc, argv, ":b:s:w:h")) != -1) {  
-	switch(opt) {  
-	case 'b':  
-	    *startAddr = atoi(optarg);
-	    printf("startAddr = %u\n", *startAddr);
-	    ifSet = true;
-	    break;
-	case 's':  
-	    *bytesRead = atoi(optarg);
-	    printf("bytesRead = %u\n", *bytesRead);
-	    ifSet = true;
-	    break;  	
-	case 'w':  
-	    strcpy(fileName,optarg);
-	    printf("fileName = %s\n", fileName);
-	    fileSet = true;
-	    break;
-	case 'h':  
-	    printUsage(argv[0]);
-	    exit (1);
-	    break;  
-	case '?':  
-	    printf("unknown option: %c\n", optopt); 
-	    break;  
-	}  
-    }  
+  int opt;
+  while ((opt = getopt(argc, argv, ":b:s:w:r:a:h")) != -1) {
+    switch (opt) {
+    case 'b':
+      memAddr = std::stol(optarg, 0, 0);
+      printf("memAddr = %u (0x%x)\n", memAddr, memAddr);
+      if (memAddr % 32)
+        on_error("memAddr = %u (0x%x) is not 32B aligned",
+                 memAddr, memAddr);
+      break;
+    case 's':
+      memLen = std::stol(optarg, 0, 0);
+      printf("memLen = %u\n", memLen);
+      if (memLen % 32)
+        on_error("memLen = %u (0x%x) is not 32B aligned",
+                 memLen, memLen);
+      break;
+    case 'r':
+      region = std::stol(optarg, 0, 0);
+      printf("region = %u (\'%s\')\n", region,
+             EkaEpmRegion::getRegionName(region));
+      break;
+    case 'a':
+      actionIdx = std::stol(optarg, 0, 0);
+      printf("actionIdx = %u \n", actionIdx);
+      break;
+    case 'w':
+      printf("outFile = %s\n", optarg);
+      outFile = fopen(optarg, "w+");
+      if (!outFile)
+        on_error(
+            "Failed to open outFile \'%s\' for writing",
+            optarg);
+      break;
+    case 'h':
+      printUsage(argv[0]);
+      exit(1);
+      break;
+    case '?':
+      printf("unknown option: %c\n", optopt);
+      break;
+    }
+  }
 
-    if (! fileSet) on_error("Output file name is not set. Use \'-w <file name>\' mandatory option");
-    return 0;
+  return 0;
 }
 /* --------------------------------------------- */
 
-static void eka_write(SC_DeviceId devId, uint64_t addr, uint64_t val) {
-    if (SC_ERR_SUCCESS != SC_WriteUserLogicRegister(devId, addr/8, val))
-	on_error("SN_Write(0x%jx,0x%jx) returned smartnic error code : %d",addr,val,SC_GetLastErrorCode());
+static void eka_write(SC_DeviceId devId, uint64_t addr,
+                      uint64_t val) {
+  if (SC_ERR_SUCCESS !=
+      SC_WriteUserLogicRegister(devId, addr / 8, val))
+    on_error("SN_Write(0x%jx,0x%jx) returned smartnic "
+             "error code : %d",
+             addr, val, SC_GetLastErrorCode());
 }
 
 uint64_t eka_read(SC_DeviceId devId, uint64_t addr) {
-    uint64_t res;
+  uint64_t res;
+  if (SC_ERR_SUCCESS !=
+      SN_ReadUserLogicRegister(devId, addr / 8, &res))
+    on_error(
+        "SN_Read(0x%jx) returned smartnic error code : %d",
+        addr, SC_GetLastErrorCode());
+  return res;
+}
 
-    if (SC_ERR_SUCCESS != SN_ReadUserLogicRegister (devId, addr/8, &res))
-      on_error("SN_Read(0x%jx) returned smartnic error code : %d",addr,SC_GetLastErrorCode());
+/* --------------------------------------------- */
+size_t dumpMem(SC_DeviceId devId, void *dst, int startAddr,
+               size_t len) {
+  const int BlockSize = 32;
+  const int WordSize = 8;
+  if (startAddr % BlockSize || len % BlockSize)
+    on_error("startAddr %d (0x%x) or len %ju (0x%ju) "
+             "are not aligned to block size %d",
+             startAddr, startAddr, len, len, BlockSize);
 
-    return res;
+  auto nBlocks = len / BlockSize;
+  auto blockAddr = startAddr / BlockSize;
+  uint64_t *wrPtr = (uint64_t *)dst;
+
+  for (auto block = 0; block < nBlocks; block++) {
+    eka_write(devId, 0xf0100, blockAddr++);
+    for (auto j = 0; j < BlockSize / WordSize; j++)
+      *wrPtr++ = eka_read(devId, 0x80000 + j * 8);
+  }
+
+  return len;
 }
 
 /* --------------------------------------------- */
 
 int main(int argc, char *argv[]) {
-    SC_DeviceId devId = SC_OpenDevice(NULL, NULL);
-    if (devId == NULL) on_error("Cannot open Smartnic Device");
-    EkaHwCaps* ekaHwCaps = new EkaHwCaps(devId);
-    if (ekaHwCaps == NULL) on_error("ekaHwCaps == NULL");
-    
-    if (ekaHwCaps->hwCaps.version.epm != EKA_EXPECTED_EPM_VERSION)
-	on_error("This FW version does not support %s",argv[0]);
+  SC_DeviceId devId = SC_OpenDevice(NULL, NULL);
+  if (!devId)
+    on_error("Cannot open Smartnic Device");
+  EkaHwCaps *ekaHwCaps = new EkaHwCaps(devId);
+  if (!ekaHwCaps)
+    on_error("ekaHwCaps == NULL");
 
-    uint32_t startAddr = -1;
-    uint32_t bytesRead = -1;
+  if (ekaHwCaps->hwCaps.version.epm !=
+      EKA_EXPECTED_EPM_VERSION)
+    on_error("This FW version does not support %s",
+             argv[0]);
 
-    char fileName[256] = {};
+  signal(SIGINT, INThandler);
 
-    signal(SIGINT, INThandler);
+  getAttr(argc, argv);
 
-    getAttr(argc,argv,&startAddr,&bytesRead,fileName);
+  // Remember original port enable
+  uint64_t portEnableOrig = eka_read(devId, 0xf0020);
+  printf("Original portEnableOrig = 0x%jx\n",
+         portEnableOrig);
 
-    FILE* out_file = fopen(fileName, "w+");
-    if (out_file == NULL) on_error("Failed opening pcapFile file \'%s\'\n",fileName);
+  // Disable HW parser
+  eka_write(devId, 0xf0020,
+            (portEnableOrig & 0xffffffffffffff00));
+  uint64_t portEnableNew = eka_read(devId, 0xf0020);
+  printf("New portEnableNew = 0x%jx\n", portEnableNew);
 
-    // Remember original port enable
-    uint64_t portEnableOrig = eka_read(devId,0xf0020);
-    printf ("Original portEnableOrig = 0x%jx\n",portEnableOrig);
+  // Wait for clearing the pipe
+  sleep(2);
 
-    // Disable HW parser
-    eka_write(devId,0xf0020,(portEnableOrig&0xffffffffffffff00));
-    uint64_t portEnableNew = eka_read(devId,0xf0020);
-    printf ("New portEnableNew = 0x%jx\n",portEnableNew);
-    
-    // Wait for clearing the pipe
-    sleep (2);
+  // Enable EPM dump mode
+  eka_write(devId, 0xf0f00, 0xefa1beda);
+  printf("Dump EPM enabled\n");
 
-    // Enable EPM dump mode
-    eka_write(devId,0xf0f00,0xefa1beda);
-    printf ("Dump EPM enabled\n");
+  if (actionIdx == -1) {
+    printf("Dumping plain memory: memAddr = %d (0x%x), "
+           "memLen = %d (0x%x)\n",
+           memAddr, memAddr, memLen, memLen);
+  } else {
 
-    // Start Dump Loop
-    uint64_t rd_val;
+    memAddr =
+        EkaEpmRegion::getActionHeapOffs(region, actionIdx);
+    memLen = EkaEpmRegion::getActionHeapBudget(region);
 
-    for (auto i = 0; i < bytesRead; i=i+32) {
-      // Configuring indirect address
-      eka_write(devId,0xf0100,(i+startAddr)/32);
-      for (auto j = 0; j < 4; j++) {
-	rd_val = eka_read(devId,0x80000+j*8);
-	printf ("0x%jx = 0x%016jx\t",startAddr+i+j*8, rd_val);
-	for (int k = 0; k < 8; k++) {
-	  char c = (rd_val >> (k * 8)) & 0xFF;
-	  printf("%c", c);
-	}
-	printf ("\n");
-      }
-    }
+    printf("Dumping Action %d with "
+           "heap offs = %d (0x%x), heap size %d (0x%x)"
+           "at region %d \'%s\'\n",
+           actionIdx, memAddr, memAddr, memLen, memLen,
+           region, EkaEpmRegion::getRegionName(region));
+  }
 
-    // Wait for clearing the pipe
-    sleep (2);
-    printf ("Dump EPM finished\n");
+  auto mem = new uint8_t[memLen];
+  if (!mem)
+    on_error("failed allocating mem[%d]", memLen);
 
-    // Disable EPM dump mode
-    eka_write(devId,0xf0f00,0x0);
-    printf ("Dump EPM disabled\n");
+  dumpMem(devId, mem, memAddr, memLen);
+  hexDump("Memory Dump", mem, memLen);
 
-    // Return original port enable
-    printf ("Reconfiguring original portEnableOrig = 0x%jx\n",portEnableOrig);
-    eka_write(devId,0xf0020,portEnableOrig);
-    
+  // Wait for clearing the pipe
+  sleep(2);
+  printf("Dump EPM finished\n");
 
-    fclose(out_file);
+  // Disable EPM dump mode
+  eka_write(devId, 0xf0f00, 0x0);
+  printf("Dump EPM disabled\n");
 
-    return 0;
+  // Return original port enable
+  printf("Reconfiguring original portEnableOrig = 0x%jx\n",
+         portEnableOrig);
+  eka_write(devId, 0xf0020, portEnableOrig);
+
+  fclose(outFile);
+
+  return 0;
 }

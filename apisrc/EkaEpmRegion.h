@@ -139,6 +139,12 @@ public:
       on_error("Bad regionId %d", regionId);
   }
 
+  constexpr static const char *getRegionName(int regionId) {
+    sanityCheckRegionId(regionId);
+
+    return region[regionId].name;
+  }
+
   constexpr static void sanityCheckActionId(int regionId,
                                             int actionId) {
     if (actionId < 0 ||
@@ -226,6 +232,12 @@ public:
 
     return getBaseHeapOffs(regionId) +
            actionId * region[regionId].actionHeapBudget;
+  }
+
+  constexpr static int getActionHeapBudget(int regionId) {
+    sanityCheckRegionId(regionId);
+
+    return region[regionId].actionHeapBudget;
   }
 
   constexpr static int getEfhIgmpRegion(int udpChId) {
