@@ -70,14 +70,11 @@ void eka_get_time (char* t) {
   duration -= minutes;
   auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
   duration -= seconds;
-  auto milliseconds = std::chrono::duration_cast<
-    std::chrono::milliseconds>(duration);
+  auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
   duration -= milliseconds;
-  auto microseconds = std::chrono::duration_cast<
-    std::chrono::microseconds>(duration);
+  auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(duration);
   duration -= microseconds;
-  auto nanoseconds = std::chrono::duration_cast<
-    std::chrono::nanoseconds>(duration);
+  auto nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(duration);
 
   sprintf(t,"%02ju:%02ju:%02ju.%03ju.%03ju.%03ju",
           (uint64_t)hours.count(),(uint64_t)minutes.count(),
