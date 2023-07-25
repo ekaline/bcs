@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
     EkaHwCaps* ekaHwCaps = new EkaHwCaps(devId);
     if (ekaHwCaps == NULL) on_error("ekaHwCaps == NULL");
     
-    if (ekaHwCaps->hwCaps.version.sniffer != EKA_EXPECTED_SNIFFER_VERSION)
+    if (ekaHwCaps->hwCaps.version.epm != EKA_EXPECTED_EPM_VERSION)
 	on_error("This FW version does not support %s",argv[0]);
 
     uint32_t startAddr = -1;
