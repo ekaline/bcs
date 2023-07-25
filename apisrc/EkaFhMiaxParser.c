@@ -161,17 +161,24 @@ bool EkaFhMiaxGr::parseMsg(
   }
     //--------------------------------------------------------------
   case TOM_MSG::BestBidShort:
+  case TOM_MSG::BestPriorityBidShort:
   case TOM_MSG::BestAskShort:
+  case TOM_MSG::BestPriorityAskShort:
   case TOM_MSG::BestBidLong:
-  case TOM_MSG::BestAskLong: {
+  case TOM_MSG::BestPriorityBidLong:
+  case TOM_MSG::BestAskLong:
+  case TOM_MSG::BestPriorityAskLong: {
     auto message_long{
         reinterpret_cast<const TomBestBidOrOfferLong *>(m)};
     auto message_short{
         reinterpret_cast<const TomBestBidOrOfferShort *>(
             m)};
 
-    bool long_form = (enc == TOM_MSG::BestBidLong) ||
-                     (enc == TOM_MSG::BestAskLong);
+    bool long_form =
+        (enc == TOM_MSG::BestBidLong) ||
+        (enc == TOM_MSG::BestPriorityBidLong) ||
+        (enc == TOM_MSG::BestBidLong) ||
+        (enc == TOM_MSG::BestPriorityAskLong);
 
     SecurityIdT security_id =
         long_form ? message_long->security_id
