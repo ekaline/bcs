@@ -361,6 +361,12 @@ public:
 
   const int StaleDataSampleRate = 16 * 1024;
 
+  int mdCheckStartHour = 9;
+  int mdCheckStartMinute = 0;
+
+  int mdCheckEndHour = 16;
+  int mdCheckEndMinute = 30;
+
   EfhExchangeErrorCode lastExchErr =
       EfhExchangeErrorCode::kNoError;
 

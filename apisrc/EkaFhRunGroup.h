@@ -8,68 +8,73 @@ class EkaUdpChannel;
 class EkaIgmp;
 
 class EkaFhRunGroup {
- public:
+public:
   inline bool isMyGr(uint8_t _gr) {
-    for (auto i = 0; i < numGr; i++) 
-      if (groupList[i] == _gr) return true;
+    for (auto i = 0; i < numGr; i++)
+      if (groupList[i] == _gr)
+        return true;
 
     return false;
   }
 
-  EkaFhRunGroup(EfhCtx* pEfhCtx, const EfhRunCtx* pEfhRunCtx,
-								uint8_t runId);
+  EkaFhRunGroup(EfhCtx *pEfhCtx,
+                const EfhRunCtx *pEfhRunCtx, uint8_t runId);
   ~EkaFhRunGroup();
   uint getGrAfterGap();
   void setGrAfterGap(uint i);
   void clearGrAfterGap(uint i);
-	void invalidateAllGroups(const EfhRunCtx* pEfhRunCtx);
+  void invalidateAllGroups(const EfhRunCtx *pEfhRunCtx);
 
-  bool drainQ(const EfhRunCtx* pEfhRunCtx);
+  bool drainQ(const EfhRunCtx *pEfhRunCtx);
 
-  int igmpMcJoin(uint32_t ip, uint16_t port, uint16_t vlanTag,
-								 uint64_t* pPktCnt);
-	//  int checkTimeOut(const EfhRunCtx* pEfhRunCtx);
-  void checkGroupsNoMd(const EfhRunCtx* pEfhRunCtx);
+  int igmpMcJoin(uint32_t ip, uint16_t port,
+                 uint16_t vlanTag, uint64_t *pPktCnt);
+  //  int checkTimeOut(const EfhRunCtx* pEfhRunCtx);
+  void checkGroupsNoMd(const EfhRunCtx *pEfhRunCtx);
 
-  int sendFeedCloseAll(const EfhRunCtx* pEfhRunCtx);
- private:
+  int sendFeedCloseAll(const EfhRunCtx *pEfhRunCtx);
+
+  void setTimeToCheckNoMdFlag();
+
+private:
   int igmpThreadLoop();
   int igmpLeaveAll();
-  bool igmpSanityCheck(int grId2check, uint32_t ip, uint16_t port);
+  bool igmpSanityCheck(int grId2check, uint32_t ip,
+                       uint16_t port);
 
- public:
+public:
   static const uint MAX_GR2RUN = 64;
-  static const int  MAX_IGMP_ENTRIES = 64;
+  static const int MAX_IGMP_ENTRIES = 64;
 
-  uint8_t               groupList[MAX_GR2RUN] = {};
-  uint8_t               numGr             = 0; // total MC groups belonging to this RunGr
+  uint8_t groupList[MAX_GR2RUN] = {};
+  uint8_t numGr =
+      0; // total MC groups belonging to this RunGr
 
-  char                  list2print[300]   = {};
+  char list2print[300] = {};
 
-  bool                  grAfterGap[MAX_GR2RUN] = {};
-  uint                  cntGrAfterGap     = 0;
-  bool                  hasGrpAfterGap    = false;
+  bool grAfterGap[MAX_GR2RUN] = {};
+  uint cntGrAfterGap = 0;
+  bool hasGrpAfterGap = false;
 
-  uint8_t               coreId            = -1;
+  uint8_t coreId = -1;
 
-  uint8_t               runId             = -1;
-  EkaUdpChannel*        udpCh             = NULL;
-  int                   udpChId           = -1;
-  int                   epmRegionId       = -1;
+  uint8_t runId = -1;
+  EkaUdpChannel *udpCh = NULL;
+  int udpChId = -1;
+  int epmRegionId = -1;
 
-  EkaSource             exch              = EkaSource::kInvalid;
-  EkaFh*                fh                = NULL;
+  EkaSource exch = EkaSource::kInvalid;
+  EkaFh *fh = NULL;
 
-  bool                  thread_active     = false;
-  bool                  stoppedByExchange = false;
+  bool thread_active = false;
+  bool stoppedByExchange = false;
 
-	std::atomic<bool>     checkNoMd         = false;
+  std::atomic<bool> checkNoMd = false;
 
- private:
-  volatile bool         allGroupsClosed   = false;
-  uint64_t              timeOutCntr       = 0;
-  EkaDev*               dev               = NULL;
-
+private:
+  volatile bool allGroupsClosed = false;
+  uint64_t timeOutCntr = 0;
+  EkaDev *dev = NULL;
 };
 
 #endif
