@@ -33,11 +33,11 @@ void ekaExcInitLwip (EkaDev* dev);
 void eka_close_tcp ( EkaDev* pEkaDev);
 
 int ekaDefaultLog (void* /*unused*/, const char* function,
-									 const char* file, int line, int priority,
-									 const char* format, ...) {
+                   const char* file, int line, int priority,
+                   const char* format, ...) {
   va_list ap;
   const int rc1 = fprintf(g_ekaLogFile, "%s@%s:%u: ",
-													function,file,line);
+                          function,file,line);
   va_start(ap, format);
   const int rc2 = vfprintf(g_ekaLogFile, format, ap);
   va_end(ap);
@@ -46,8 +46,8 @@ int ekaDefaultLog (void* /*unused*/, const char* function,
 }
 
 int ekaDefaultCreateThread(const char* name, EkaServiceType type,
-													 void *(*threadRoutine)(void*), void* arg,
-													 void* context, uintptr_t *handle) {
+                           void *(*threadRoutine)(void*), void* arg,
+                           void* context, uintptr_t *handle) {
   pthread_create ((pthread_t*)handle,NULL,threadRoutine, arg);
   pthread_setname_np((pthread_t)*handle,name);
   return 0;
@@ -55,60 +55,60 @@ int ekaDefaultCreateThread(const char* name, EkaServiceType type,
 
 void eka_get_time (char* t) {
   std::chrono::time_point<std::chrono::system_clock> now =
-		std::chrono::system_clock::now();
+    std::chrono::system_clock::now();
   auto duration = now.time_since_epoch();
 
   typedef std::chrono::duration<int,
-		std::ratio_multiply<std::chrono::hours::period, std::ratio<8>
+    std::ratio_multiply<std::chrono::hours::period, std::ratio<8>
     >::type> Days; /* UTC: +8:00 */
 
   Days days = std::chrono::duration_cast<Days>(duration);
   duration -= days;
   auto hours = std::chrono::duration_cast<std::chrono::hours
-		>(duration);
+    >(duration);
   duration -= hours;
   auto minutes = std::chrono::duration_cast<std::chrono::minutes
-		>(duration);
+    >(duration);
   duration -= minutes;
   auto seconds = std::chrono::duration_cast<std::chrono::seconds
-		>(duration);
+    >(duration);
   duration -= seconds;
   auto milliseconds = std::chrono::duration_cast<
-		std::chrono::milliseconds>(duration);
+    std::chrono::milliseconds>(duration);
   duration -= milliseconds;
   auto microseconds = std::chrono::duration_cast<
-		std::chrono::microseconds>(duration);
+    std::chrono::microseconds>(duration);
   duration -= microseconds;
   auto nanoseconds = std::chrono::duration_cast<
-		std::chrono::nanoseconds>(duration);
+    std::chrono::nanoseconds>(duration);
 
   sprintf(t,"%02ju:%02ju:%02ju.%03ju.%03ju.%03ju",
-					(uint64_t)hours.count(),(uint64_t)minutes.count(),
-					(uint64_t)seconds.count(),(uint64_t)milliseconds.count(),
-					(uint64_t)microseconds.count(),
-					(uint64_t)nanoseconds.count());
+          (uint64_t)hours.count(),(uint64_t)minutes.count(),
+          (uint64_t)seconds.count(),(uint64_t)milliseconds.count(),
+          (uint64_t)microseconds.count(),
+          (uint64_t)nanoseconds.count());
 }
 /* ########################################################### */
 
 int ekaTcpConnect(uint32_t ip, uint16_t port) {
 #ifdef FH_LAB
   TEST_LOG("Dummy FH_LAB TCP connect to %s:%u",
-					 EKA_IP2STR(ip),port);
+           EKA_IP2STR(ip),port);
   return -1;
 #else
   int sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0)
-		on_error("failed to open TCP socket");
+    on_error("failed to open TCP socket");
 
   struct sockaddr_in remote_addr = {};
   remote_addr.sin_addr.s_addr = ip;
   remote_addr.sin_port = port;
   remote_addr.sin_family = AF_INET;
   if (connect(sock,(struct sockaddr*)&remote_addr,
-							sizeof(struct sockaddr_in)) != 0) 
+              sizeof(struct sockaddr_in)) != 0) 
     on_error("socket connect failed %s:%u",
-						 EKA_IP2STR(*(uint32_t*)&remote_addr.sin_addr),
-						 be16toh(remote_addr.sin_port));
+             EKA_IP2STR(*(uint32_t*)&remote_addr.sin_addr),
+             be16toh(remote_addr.sin_port));
   return sock;
 #endif
 }
@@ -119,7 +119,7 @@ int recvTcpSegment(int sock, void* buf, int segSize) {
   do {
     int r = recv(sock,d,segSize - received,MSG_WAITALL);
     if (r <= 0)
-			return r;
+      return r;
     d += r;
     received += r;
   } while (received != segSize);
@@ -130,7 +130,7 @@ int recvTcpSegment(int sock, void* buf, int segSize) {
 uint32_t getIfIp(const char* ifName) {
   int sck = socket(AF_INET, SOCK_DGRAM, 0);
   if(sck < 0)
-		on_error ("failed on socket(AF_INET, SOCK_DGRAM, 0)");
+    on_error ("failed on socket(AF_INET, SOCK_DGRAM, 0)");
 
   char          buf[1024] = {};
 
@@ -138,7 +138,7 @@ uint32_t getIfIp(const char* ifName) {
   ifc.ifc_len = sizeof(buf);
   ifc.ifc_buf = buf;
   if(ioctl(sck, SIOCGIFCONF, &ifc) < 0)
-		on_error ("failed on ioctl(sck, SIOCGIFCONF, &ifc)");
+    on_error ("failed on ioctl(sck, SIOCGIFCONF, &ifc)");
 
   struct ifreq* ifr = ifc.ifc_req;
   int nInterfaces   = ifc.ifc_len / sizeof(struct ifreq);
@@ -146,7 +146,7 @@ uint32_t getIfIp(const char* ifName) {
   for(int i = 0; i < nInterfaces; i++) {
     struct ifreq *item = &ifr[i];
     if (strncmp(item->ifr_name,ifName,strlen(ifName)) != 0)
-			continue;
+      continue;
     return ((struct sockaddr_in *)&item->ifr_addr)->sin_addr.s_addr;
   }
   return 0;
@@ -197,21 +197,21 @@ void errno_decode(int errsv, char* reason) {
   switch (errsv) {
   case EPIPE:  
     strcpy(reason,"Broken PIPE (late with the heartbeats?) "
-					 "(errno=EPIPE)");
+           "(errno=EPIPE)");
     break;
   case EIO:
     strcpy(reason,"A low-level I/O error occurred while "
-					 "modifying the inode (errno=EIO)");
+           "modifying the inode (errno=EIO)");
     break;
   case EINTR:
     strcpy(reason,"The call was interrupted by a signal "
-					 "before any data was written (errno=EINTR)");
+           "before any data was written (errno=EINTR)");
     break;
   case EAGAIN:
     strcpy(reason,"The file descriptor fd refers to a "
-					 "file other than a socket and has been "
-					 "marked nonblocking (O_NONBLOCK), and the "
-					 "write would block.(errno=EAGAIN)");
+           "file other than a socket and has been "
+           "marked nonblocking (O_NONBLOCK), and the "
+           "write would block.(errno=EAGAIN)");
     break;
   default:   
     strcpy(reason,"Unknown errno");
@@ -242,7 +242,7 @@ int convert_ts(char* dst, uint64_t ts) {
 }
 
 EkaCapsResult ekaGetCapsResult(EkaDev* pEkaDev,
-															 enum EkaCapType ekaCapType ) {
+                               enum EkaCapType ekaCapType ) {
   switch (ekaCapType) {
 
   case EkaCapType::kEkaCapsMaxSecCtxs :
