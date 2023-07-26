@@ -195,7 +195,7 @@ static uint64_t printBatsMsg(uint64_t pktNum, uint8_t *msg,
     //--------------------------------------------------------------
   case MsgId::ORDER_DELETE: {
     auto m{reinterpret_cast<const order_delete *>(msg)};
-    printf("OID:%ju,OID:%ju", m->order_id);
+    printf("OID:%ju", m->order_id);
   } break;
     //--------------------------------------------------------------
   case MsgId::ORDER_EXECUTED_AT_PRICE_SIZE: {
