@@ -54,46 +54,99 @@ typedef void (*PrepareTestConfigCb)(EfcCtx *efcCtx,
                                     TestCase *t);
 typedef bool (*RunTestCb)(EfcCtx *efcCtx, TestCase *t);
 
+struct TestUdpParams {
+  EkaCoreId coreId;
+  const char *mcIp;
+  uint16_t mcUdpPort;
+
+  struct sockaddr_in mcSrc = {};
+  struct sockaddr_in mcDst = {};
+
+  int udpSock = -1;
+};
+
 class TestCase {
 public:
-  TestCase(int coreId, TestStrategy strat,
-           PrepareTestConfigCb prepareTestConfig,
-           RunTestCb runTest) {
-    if (strat == TestStrategy::Invalid)
-      on_error("Invalid Strategy %d", (int)strat);
+  TestCase(const TestCaseConfig *tc) {
+    switch (tc->strat) {
+    case TestStrategy::P4:
+      prepareTestConfig_ = configureP4Test;
+      runTest_ = runP4Test;
+      break;
+    case TestStrategy::Qed:
+      prepareTestConfig_ = configureQedTest;
+      runTest_ = runQedTest;
+      break;
+    default:
+      on_error("Unexpected Test Strategy %d",
+               (int)tc->strat);
+    }
 
-    coreId_ = coreId;
-    strat_ = strat;
+    strat_ = tc->strat;
+    memcpy(&udpConf_, &tc->mcParams, sizeof(udpConf_));
 
-    memcpy(&tcpSess_, &testDefaultTcpSess[coreId_],
-           sizeof(tcpSess_));
-    memcpy(&udpMc_, &testDefaultUdpMc[coreId_],
-           sizeof(udpMc_));
+    for (auto i = 0; i < tc->mcParams.nMcGroups; i++) {
+      auto mcGr = &tc->mcParams.groups[i];
 
-    prepareTestConfig_ = prepareTestConfig;
-    runTest_ = runTest;
+      auto u = new TestUdpParams;
+      if (!u)
+        on_error("Failed on new TestUdpParams");
+
+      u->coreId = mcGr->coreId;
+      u->mcIp = mcGr->mcIp;
+      u->mcUdpPort = mcGr->mcUdpPort;
+
+      u->udpSock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+      if (u->udpSock < 0)
+        on_error("failed to open UDP sock");
+
+      u->mcSrc.sin_addr.s_addr =
+          inet_addr(udpSrcIp[u->coreId]);
+      u->mcSrc.sin_family = AF_INET;
+      u->mcSrc.sin_port = 0;
+
+      u->mcDst.sin_family = AF_INET;
+      u->mcDst.sin_addr.s_addr = inet_addr(u->mcIp);
+      u->mcDst.sin_port = be16toh(u->mcUdpPort);
+
+      if (bind(u->udpSock, (sockaddr *)&u->mcSrc,
+               sizeof(sockaddr)) != 0) {
+        on_error("failed to bind server udpSock to %s:%u",
+                 EKA_IP2STR(u->mcSrc.sin_addr.s_addr),
+                 be16toh(u->mcSrc.sin_port));
+      }
+
+      TEST_LOG("udpSock %d of MC %s:%u is binded to %s:%u",
+               u->udpSock,
+               EKA_IP2STR(u->mcDst.sin_addr.s_addr),
+               be16toh(u->mcDst.sin_port),
+               EKA_IP2STR(u->mcSrc.sin_addr.s_addr),
+               be16toh(u->mcSrc.sin_port));
+
+      udpParams_[nUdpParams_++] = u;
+    }
+
+    memcpy(&tcpParams_, &tc->tcpParams, sizeof(tcpParams_));
 
     print("Created");
   }
 
   void print(const char *msg) {
-    TEST_LOG("%s: Lane %d Strat: \'%s\' "
-             "MC : %s:%u, "
-             "TCP: %s --> %s:%u ",
-             msg, coreId_, printStrat(strat_),
-             udpMc_.mcIp.c_str(), udpMc_.mcPort,
-             tcpSess_.srcIp.c_str(), tcpSess_.dstIp.c_str(),
-             tcpSess_.dstPort);
+    TEST_LOG("%s: \'%s\' ", msg, printStrat(strat_));
+    // printMcConf(&mcParams_);
+    printTcpConf(&tcpParams_);
   }
 
-  EkaCoreId coreId_ = -1;
   TestStrategy strat_ = TestStrategy::Invalid;
-  TestTcpSess tcpSess_ = {};
-  TestUdpMc udpMc_ = {};
+
+  TestUdpParams *udpParams_[128] = {};
+  int nUdpParams_ = 0;
+
+  EfcUdpMcParams udpConf_ = {};
+
+  TestTcpParams tcpParams_;
 
   int tcpSock_[MaxTcpTestSessions] = {};
-  int udpSock_ = -1;
-  struct sockaddr_in triggerMcAddr_ = {};
 
   ExcSocketHandle excSock_[MaxTcpTestSessions] = {};
   ExcConnHandle hCon_[MaxTcpTestSessions] = {};
@@ -128,6 +181,11 @@ static volatile int numFireEvents = 0;
 
 static const uint64_t FireEntryHeapSize = 256;
 
+bool runEfh = false;
+bool fatalDebug = false;
+bool report_only = false;
+bool dontQuit = false;
+const TestScenarioConfig *sc = nullptr;
 /* --------------------------------------------- */
 
 void INThandler(int sig) {
@@ -195,14 +253,16 @@ void tcpServer(EkaDev *dev, std::string ip, uint16_t port,
 /* --------------------------------------------- */
 
 static void tcpConnect(EkaDev *dev, TestCase *t) {
-  for (auto i = 0; i < numTcpSess; i++) {
+  for (auto i = 0; i < t->tcpParams_.nTcpSess; i++) {
     struct sockaddr_in serverAddr = {};
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_addr.s_addr =
-        inet_addr(t->tcpSess_.dstIp.c_str());
-    serverAddr.sin_port = be16toh(t->tcpSess_.dstPort + i);
+        inet_addr(t->tcpParams_.tcpSess[i].dstIp);
+    serverAddr.sin_port =
+        be16toh(t->tcpParams_.tcpSess[i].dstPort + i);
 
-    t->excSock_[i] = excSocket(dev, t->coreId_, 0, 0, 0);
+    t->excSock_[i] = excSocket(
+        dev, t->tcpParams_.tcpSess[i].coreId, 0, 0, 0);
     if (t->excSock_[i] < 0)
       on_error("failed to open sock %d", i);
     t->hCon_[i] = excConnect(dev, t->excSock_[i],
@@ -225,39 +285,48 @@ static void tcpConnect(EkaDev *dev, TestCase *t) {
   }
 }
 /* --------------------------------------------- */
-
+#if 0
 static void createTcpServ(EkaDev *dev, TestCase *t) {
-  for (auto i = 0; i < numTcpSess; i++) {
+  for (auto i = 0; i < t->tcpParams_.nTcpSess; i++) {
     bool serverSet = false;
-    t->tcpServThr_[i] =
-        std::thread(tcpServer, dev, t->tcpSess_.dstIp,
-                    t->tcpSess_.dstPort + i,
-                    &t->tcpSock_[i], &serverSet);
+    t->tcpServThr_[i] = std::thread(
+        tcpServer, dev, t->tcpParams_.tcpSess[i].dstIp,
+        t->tcpParams_.tcpSess[i].dstPort + i,
+        &t->tcpSock_[i], &serverSet);
     while (keep_work && !serverSet)
       std::this_thread::yield();
   }
 }
-
-static void configureFpgaPorts(EkaDev *dev, TestCase *t) {
-  TEST_LOG("Initializing FPGA port %d to %s", t->coreId_,
-           t->tcpSess_.srcIp.c_str());
-  const EkaCoreInitCtx ekaCoreInitCtx = {
-      .coreId = t->coreId_,
-      .attrs = {
-          .host_ip = inet_addr(t->tcpSess_.srcIp.c_str()),
-          .netmask = inet_addr("255.255.255.0"),
-          .gateway = inet_addr(t->tcpSess_.dstIp.c_str()),
-          .nexthop_mac = {}, // resolved by our internal ARP
-          .src_mac_addr = {}, // taken from system config
-          .dont_garp = 0}};
-  ekaDevConfigurePort(dev, &ekaCoreInitCtx);
-}
-
+#endif
 /* --------------------------------------------- */
 
+static void configureFpgaPorts(EkaDev *dev, TestCase *t) {
+  for (auto i = 0; i < t->tcpParams_.nTcpSess; i++) {
+    TEST_LOG("Initializing FPGA port %d to %s",
+             t->tcpParams_.tcpSess[i].coreId,
+             t->tcpParams_.tcpSess[i].srcIp);
+    const EkaCoreInitCtx ekaCoreInitCtx = {
+        .coreId =
+            (EkaCoreId)t->tcpParams_.tcpSess[i].coreId,
+        .attrs = {
+            .host_ip =
+                inet_addr(t->tcpParams_.tcpSess[i].srcIp),
+            .netmask = inet_addr("255.255.255.0"),
+            .gateway =
+                inet_addr(t->tcpParams_.tcpSess[i].dstIp),
+            .nexthop_mac =
+                {}, // resolved by our internal ARP
+            .src_mac_addr = {}, // taken from system config
+            .dont_garp = 0}};
+    ekaDevConfigurePort(dev, &ekaCoreInitCtx);
+  }
+}
+/* --------------------------------------------- */
+#if 0
+
 static void bindUdpSock(TestCase *t) {
-  t->udpSock_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-  if (t->udpSock_ < 0)
+  t->udpParams_[0]->udpSock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+  if (t->udpParams_[0]->udpSock < 0)
     on_error("failed to open UDP sock");
 
   struct sockaddr_in triggerSourceAddr = {};
@@ -266,7 +335,7 @@ static void bindUdpSock(TestCase *t) {
   triggerSourceAddr.sin_family = AF_INET;
   triggerSourceAddr.sin_port = 0;
 
-  if (bind(t->udpSock_, (sockaddr *)&triggerSourceAddr,
+  if (bind(t->udpParams_[0]->udpSock, (sockaddr *)&triggerSourceAddr,
            sizeof(sockaddr)) != 0) {
     on_error("failed to bind server udpSock to %s:%u",
              EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),
@@ -279,15 +348,12 @@ static void bindUdpSock(TestCase *t) {
 
   t->triggerMcAddr_.sin_family = AF_INET;
   t->triggerMcAddr_.sin_addr.s_addr =
-      inet_addr(t->udpMc_.mcIp.c_str());
-  t->triggerMcAddr_.sin_port = be16toh(t->udpMc_.mcPort);
+      inet_addr(t->mcParams_.mcIp.c_str());
+  t->triggerMcAddr_.sin_port = be16toh(t->mcParams_.mcPort);
 }
+#endif
 
-bool runEfh = false;
-bool fatalDebug = false;
-bool report_only = false;
-bool dontQuit = false;
-const TestScenarioConfig *sc = nullptr;
+/* --------------------------------------------- */
 
 void printUsage(char *cmd) {
   printf(
@@ -386,20 +452,7 @@ void createTestCases(const TestScenarioConfig *s) {
   printf("Configuring %s: \n", sc->name);
   for (const auto &tc : sc->testConf) {
     if (tc.strat != TestStrategy::Invalid) {
-      TestCase *t = nullptr;
-      switch (tc.strat) {
-      case TestStrategy::P4:
-        t = new TestCase(tc.mdCoreId, tc.strat,
-                         configureP4Test, runP4Test);
-        break;
-      case TestStrategy::Qed:
-        t = new TestCase(tc.mdCoreId, tc.strat,
-                         configureQedTest, runQedTest);
-        break;
-      default:
-        on_error("Unexpected Test Strategy %d",
-                 (int)tc.strat);
-      }
+      TestCase *t = new TestCase(&tc);
       if (!t)
         on_error("Failed on new TestCase()");
 
@@ -690,25 +743,26 @@ static int sendQEDMsg(TestCase *t) {
 
   size_t payloadLen = std::size(pkt);
 
-  TEST_LOG("sending MDIncrementalRefreshTradeSummary48 "
-           "trigger to %s:%u",
-           EKA_IP2STR(t->triggerMcAddr_.sin_addr.s_addr),
-           be16toh(t->triggerMcAddr_.sin_port));
-  if (sendto(t->udpSock_, pkt, payloadLen, 0,
-             (const sockaddr *)&t->triggerMcAddr_,
-             sizeof(t->triggerMcAddr_)) < 0)
+  TEST_LOG(
+      "sending MDIncrementalRefreshTradeSummary48 "
+      "trigger to %s:%u",
+      EKA_IP2STR(t->udpParams_[0]->mcDst.sin_addr.s_addr),
+      be16toh(t->udpParams_[0]->mcDst.sin_port));
+  if (sendto(t->udpParams_[0]->udpSock, pkt, payloadLen, 0,
+             (const sockaddr *)&t->udpParams_[0]->mcDst,
+             sizeof(t->udpParams_[0]->mcDst)) < 0)
     on_error("MC trigger send failed");
   return 0;
 }
 /* ############################################# */
-
+#if 0
 EfcUdpMcParams *createMcParams(TestCase *t) {
   auto grParams = new EfcUdpMcGroupParams;
   if (!grParams)
     on_error("failed on new EfcUdpMcGroupParams");
   grParams->coreId = t->coreId_;
-  grParams->mcIp = t->udpMc_.mcIp.c_str();
-  grParams->mcUdpPort = t->udpMc_.mcPort;
+  grParams->mcIp = t->mcParams_.mcIp.c_str();
+  grParams->mcUdpPort = t->mcParams_.mcPort;
 
   auto udpMcParams = new EfcUdpMcParams;
   if (!udpMcParams)
@@ -719,7 +773,7 @@ EfcUdpMcParams *createMcParams(TestCase *t) {
 
   return udpMcParams;
 }
-
+#endif
 /* ############################################# */
 
 void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
@@ -728,7 +782,7 @@ void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
   if (!t)
     on_error("!t");
 
-  auto udpMcParams = createMcParams(t);
+  auto udpMcParams = &t->udpConf_;
 
   struct EfcP4Params p4Params = {
       .feedVer = EfhFeedVer::kCBOE,
@@ -861,7 +915,7 @@ void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 void configureQedTest(EfcCtx *pEfcCtx, TestCase *t) {
   auto dev = pEfcCtx->dev;
 
-  auto udpMcParams = createMcParams(t);
+  auto udpMcParams = &t->udpConf_;
 
   static const uint16_t QEDTestPurgeDSID = 0x1234;
   static const uint8_t QEDTestMinNumLevel = 5;
@@ -910,28 +964,30 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 
 // ==============================================
 #if 1
-  sendAddOrder(
-      AddOrder::Short, t->udpSock_, &t->triggerMcAddr_,
-      p4Ctx.at(2).id, sequence++, 'S',
-      p4Ctx.at(2).askMaxPrice / 100 - 1, p4Ctx.at(2).size);
+  sendAddOrder(AddOrder::Short, t->udpParams_[0]->udpSock,
+               &t->udpParams_[0]->mcDst, p4Ctx.at(2).id,
+               sequence++, 'S',
+               p4Ctx.at(2).askMaxPrice / 100 - 1,
+               p4Ctx.at(2).size);
 
   sleep(1);
   efcArmP4(pEfcCtx, p4ArmVer++);
 #endif
 // ==============================================
 #if 1
-  sendAddOrder(
-      AddOrder::Short, t->udpSock_, &t->triggerMcAddr_,
-      p4Ctx.at(2).id, sequence++, 'B',
-      p4Ctx.at(2).bidMinPrice / 100 + 1, p4Ctx.at(2).size);
+  sendAddOrder(AddOrder::Short, t->udpParams_[0]->udpSock,
+               &t->udpParams_[0]->mcDst, p4Ctx.at(2).id,
+               sequence++, 'B',
+               p4Ctx.at(2).bidMinPrice / 100 + 1,
+               p4Ctx.at(2).size);
 
   sleep(1);
   efcArmP4(pEfcCtx, p4ArmVer++);
 #endif
 // ==============================================
 #if 1
-  sendAddOrder(AddOrder::Long, t->udpSock_,
-               &t->triggerMcAddr_, p4Ctx.at(2).id,
+  sendAddOrder(AddOrder::Long, t->udpParams_[0]->udpSock,
+               &t->udpParams_[0]->mcDst, p4Ctx.at(2).id,
                sequence++, 'S', p4Ctx.at(2).askMaxPrice - 1,
                p4Ctx.at(2).size);
 
@@ -940,8 +996,8 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 #endif
 // ==============================================
 #if 1
-  sendAddOrder(AddOrder::Long, t->udpSock_,
-               &t->triggerMcAddr_, p4Ctx.at(2).id,
+  sendAddOrder(AddOrder::Long, t->udpParams_[0]->udpSock,
+               &t->udpParams_[0]->mcDst, p4Ctx.at(2).id,
                sequence++, 'B', p4Ctx.at(2).bidMinPrice + 1,
                p4Ctx.at(2).size);
 
@@ -950,10 +1006,10 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 #endif
 // ==============================================
 #if 1
-  sendAddOrder(AddOrder::Expanded, t->udpSock_,
-               &t->triggerMcAddr_, p4Ctx.at(2).id,
-               sequence++, 'S', p4Ctx.at(2).askMaxPrice - 1,
-               p4Ctx.at(2).size);
+  sendAddOrder(
+      AddOrder::Expanded, t->udpParams_[0]->udpSock,
+      &t->udpParams_[0]->mcDst, p4Ctx.at(2).id, sequence++,
+      'S', p4Ctx.at(2).askMaxPrice - 1, p4Ctx.at(2).size);
 
   sleep(1);
   efcArmP4(pEfcCtx, p4ArmVer++);
@@ -961,7 +1017,7 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 // ==============================================
 #if 0
   while (keep_work) {
-    sendAddOrder(AddOrder::Expanded,t->udpSock_,&t->triggerMcAddr_,p4Ctx.at(2).id,
+    sendAddOrder(AddOrder::Expanded,t->udpParams_[0]->udpSock,&t->udpParams_[0]->mcDst,p4Ctx.at(2).id,
 		 sequence++,'B',p4Ctx.at(2).bidMinPrice + 1,p4Ctx.at(2).size);
 
     sleep(1);
@@ -1008,6 +1064,7 @@ int main(int argc, char *argv[]) {
   getAttr(argc, argv);
   createTestCases(sc);
 
+#if 0
   if (numTcpSess > MaxTcpTestSessions)
     on_error("numTcpSess %d > MaxTcpTestSessions %d",
              numTcpSess, MaxTcpTestSessions);
@@ -1024,7 +1081,7 @@ int main(int argc, char *argv[]) {
   for (auto t : testCase) {
     configureFpgaPorts(dev, t);
     createTcpServ(dev, t);
-    tcpConnect(dev, t);
+    tcpConnect(dev, &t.tcpParams_);
     bindUdpSock(t);
   }
 
@@ -1082,6 +1139,6 @@ int main(int argc, char *argv[]) {
 
   ekaDevClose(dev);
   sleep(1);
-
+#endif
   return 0;
 }

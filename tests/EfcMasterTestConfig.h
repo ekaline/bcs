@@ -1,6 +1,8 @@
 #ifndef __EFC_MASTER_TEST_CONFIG_H__
 #define __EFC_MASTER_TEST_CONFIG_H__
 
+#include "Efc.h"
+
 /* --------------------------------------------- */
 static const int MaxTcpTestSessions = 16;
 static const int MaxUdpTestSessions = 64;
@@ -42,29 +44,68 @@ static TestStrategy string2strat(const char *s) {
 }
 
 struct TestTcpSess {
-  std::string srcIp;
-  std::string dstIp;
+  int coreId;
+  const char *srcIp;
+  const char *dstIp;
   uint16_t dstPort;
 };
 
-struct TestUdpMc {
-  std::string mcIp;
-  uint16_t mcPort;
+struct TestTcpParams {
+  TestTcpSess *tcpSess;
+  size_t nTcpSess;
+};
+
+static const char *udpSrcIp[] = {
+    "10.0.0.10",
+    "10.0.0.11",
+    "10.0.0.12",
+    "10.0.0.13",
 };
 
 static const TestTcpSess testDefaultTcpSess[] = {
-    {"100.0.0.110", "10.0.0.10", 22222},
-    {"200.0.0.110", "10.0.0.11", 33333}};
+    {0, "100.0.0.0", "10.0.0.10", 22000},
+    {1, "110.0.0.0", "10.0.0.11", 22111},
+    {2, "120.0.0.0", "10.0.0.12", 22222},
+    {3, "130.0.0.0", "10.0.0.13", 22333}};
 
-static const TestUdpMc testDefaultUdpMc[] = {
-    {"224.0.74.0", 30300}, {"224.0.74.1", 30301}};
+TestTcpSess tcp0_s[] = {
+    {0, "100.0.0.0", "10.0.0.10", 22000}};
+TestTcpSess tcp1_s[] = {
+    {1, "110.0.0.0", "10.0.0.11", 22111}};
+TestTcpSess tcp01_s[] = {
+    {0, "100.0.0.0", "10.0.0.10", 22000},
+    {1, "110.0.0.0", "10.0.0.11", 22111}};
+
+static const TestTcpParams tcp0 = {tcp0_s,
+                                   std::size(tcp0_s)};
+
+static const TestTcpParams tcp1 = {tcp1_s,
+                                   std::size(tcp1_s)};
+
+static const TestTcpParams tcp01 = {tcp01_s,
+                                    std::size(tcp01_s)};
+
+/* --------------------------------------------- */
+static const EfcUdpMcGroupParams mc0[] = {
+    {0, "224.0.0.0", 30300}};
+static const EfcUdpMcGroupParams mc1[] = {
+    {1, "224.0.0.1", 30301}};
+static const EfcUdpMcGroupParams mc01[] = {
+    {0, "224.0.0.0", 30300}, {1, "224.0.0.1", 30301}};
+
+static const EfcUdpMcParams core0_1mc = {mc0,
+                                         std::size(mc0)};
+static const EfcUdpMcParams core1_1mc = {mc1,
+                                         std::size(mc1)};
+static const EfcUdpMcParams two_cores_1mc = {
+    mc01, std::size(mc01)};
 
 /* --------------------------------------------- */
 
 struct TestCaseConfig {
   TestStrategy strat;
-  EkaCoreId mdCoreId;
-  uint8_t fireTcpCoreBitmap;
+  EfcUdpMcParams mcParams;
+  TestTcpParams tcpParams;
 };
 
 struct TestScenarioConfig {
@@ -73,43 +114,71 @@ struct TestScenarioConfig {
 };
 
 const TestScenarioConfig scenarios[] = {
-    {"QedOnly",
-     {{TestStrategy::Qed, 0, 0x1},
-      {TestStrategy::Invalid, 0, 0x0}}},
+    {"Qed_0",
+     {{TestStrategy::Qed, core0_1mc, tcp0},
+      {TestStrategy::Invalid, {}, {}}}},
 
-    {"P4Only",
-     {{TestStrategy::P4, 0, 0x1},
-      {TestStrategy::Invalid, 0, 0x0}}},
+    {"P4_0",
+     {{TestStrategy::P4, core0_1mc, tcp0},
+      {TestStrategy::Invalid, {}, {}}}},
+
+    {"Qed_1",
+     {{TestStrategy::Qed, core1_1mc, tcp1},
+      {TestStrategy::Invalid, {}, {}}}},
+
+    {"P4_1",
+     {{TestStrategy::P4, core1_1mc, tcp1},
+      {TestStrategy::Invalid, {}, {}}}},
 
     {"Qed_0__P4_1",
-     {{TestStrategy::Qed, 0, 0x1},
-      {TestStrategy::P4, 1, 0x2}}},
+     {{TestStrategy::Qed, core0_1mc, tcp0},
+      {TestStrategy::P4, core1_1mc, tcp1}}},
 
     {"P4_0__Qed_1",
-     {{TestStrategy::Qed, 1, 0x2},
-      {TestStrategy::P4, 0, 0x1}}},
-
-    {"P4_0__Qed_3",
-     {{TestStrategy::P4, 0, 0x1},
-      {TestStrategy::Qed, 3, 0x8}}},
+     {{TestStrategy::Qed, core1_1mc, tcp1},
+      {TestStrategy::P4, core0_1mc, tcp0}}},
 
 };
 
 /* -------------------------------------------- */
 
+void printMcConf(const EfcUdpMcParams *conf) {
+  printf("\t%ju MC groups:\n", conf->nMcGroups);
+  for (auto i = 0; i < conf->nMcGroups; i++) {
+    auto gr = &conf->groups[i];
+    printf("\t\t%d, %s:%u, ", gr->coreId, gr->mcIp,
+           gr->mcUdpPort);
+  }
+  printf("\n");
+}
+
+void printTcpConf(const TestTcpParams *conf) {
+  printf("\t%ju TCP sessions:\n", conf->nTcpSess);
+  for (auto i = 0; i < conf->nTcpSess; i++) {
+    auto gr = &conf->tcpSess[i];
+    printf("\t\t%d, %s --> %s:%u, ", gr->coreId, gr->srcIp,
+           gr->dstIp, gr->dstPort);
+  }
+  printf("\n");
+}
+
+inline void printTestCaseConf(const TestCaseConfig *tc) {
+  if (tc->strat != TestStrategy::Invalid) {
+    printf("\tStrategy: %6s\n", printStrat(tc->strat));
+    printMcConf(&tc->mcParams);
+    printTcpConf(&tc->tcpParams);
+  }
+}
+
 inline void printSingleScenario(int i) {
   if (i < 0 || i > std::size(scenarios))
     on_error("invalid scenario index %d", i);
   auto sc = scenarios[i];
-  printf("%d: %s: \n", i++, sc.name);
+  printf("-----------------------\n"
+         "%d: %s: \n",
+         i++, sc.name);
   for (const auto &tc : sc.testConf) {
-    if (tc.strat != TestStrategy::Invalid) {
-      printf("\t%6s: ", printStrat(tc.strat));
-      printf("Market Data lane: %d, ", tc.mdCoreId);
-      printf("Fire Lanes bitmap: 0x%x ",
-             tc.fireTcpCoreBitmap);
-      printf("\n");
-    }
+    printTestCaseConf(&tc);
   }
 }
 

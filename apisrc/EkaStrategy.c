@@ -49,9 +49,7 @@ EkaStrategy::EkaStrategy(const EfcUdpMcParams *mcParams) {
              "MaxUdpMcGroups %ju",
              mcParams->nMcGroups, MaxUdpMcGroups);
 
-  numUdpSess_ = mcParams->nMcGroups;
-
-  for (auto i = 0; i < numUdpSess_; i++) {
+  for (auto i = 0; i < mcParams->nMcGroups; i++) {
     auto coreId = mcParams->groups[i].coreId;
     auto mcIp = mcParams->groups[i].mcIp;
     auto mcUdpPort = mcParams->groups[i].mcUdpPort;

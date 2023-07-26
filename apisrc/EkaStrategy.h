@@ -47,7 +47,6 @@ protected:
 
 public:
   EkaStratMcCoreSess mcCoreSess_[EFC_MAX_CORES] = {};
-  int numUdpSess_ = 0;
 
   OnReportCb reportCb_;
   void *cbCtx_;
