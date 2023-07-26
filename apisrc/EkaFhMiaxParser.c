@@ -177,7 +177,7 @@ bool EkaFhMiaxGr::parseMsg(
     bool long_form =
         (enc == TOM_MSG::BestBidLong) ||
         (enc == TOM_MSG::BestPriorityBidLong) ||
-        (enc == TOM_MSG::BestBidLong) ||
+        (enc == TOM_MSG::BestAskLong) ||
         (enc == TOM_MSG::BestPriorityAskLong);
 
     SecurityIdT security_id =
