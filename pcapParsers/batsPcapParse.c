@@ -124,27 +124,30 @@ static uint64_t printBatsMsg(uint64_t pktNum, uint8_t *msg,
     //--------------------------------------------------------------
   case MsgId::TRADE_LONG: {
     auto m{reinterpret_cast<const TradeLong *>(msg)};
-    printf("SID:\'%s\'(0x%016jx),P:%8ju,S:%8d,TC:\'%c\'",
+    printf("SID:\'%s\'(0x%016jx),OID:%ju,P:%8ju,S:%8d,TC:"
+           "\'%c\'",
            EKA_PRINT_BATS_SYMBOL(m->symbol),
-           symbol2secId(m->symbol), m->price, m->size,
-           m->trade_condition);
+           symbol2secId(m->symbol), m->order_id, m->price,
+           m->size, m->trade_condition);
   } break;
 
     //--------------------------------------------------------------
   case MsgId::TRADE_SHORT: {
     auto m{reinterpret_cast<const TradeShort *>(msg)};
-    printf("SID:\'%s\'(0x%016jx),P:%8u,S:%8d,TC:\'%c\'",
+    printf("SID:\'%s\'(0x%016jx),OID:%ju,P:%8u,S:%8d,TC:\'%"
+           "c\'",
            EKA_PRINT_BATS_SYMBOL(m->symbol),
-           symbol2secId(m->symbol), m->price * 100, m->size,
-           m->trade_condition);
+           symbol2secId(m->symbol), m->order_id,
+           m->price * 100, m->size, m->trade_condition);
   } break;
     //--------------------------------------------------------------
   case MsgId::TRADE_EXPANDED: {
     auto m{reinterpret_cast<const TradeExpanded *>(msg)};
-    printf("SID:\'%s\'(0x%016jx),P:%8ju,S:%8d,TC:\'%c\'",
+    printf("SID:\'%s\'(0x%016jx),OID:%ju,P:%8ju,S:%8d,TC:"
+           "\'%c\'",
            EKA_PRINT_BATS_SYMBOL_EXP(m->symbol),
-           expSymbol2secId(m->symbol), m->price, m->size,
-           m->trade_condition);
+           expSymbol2secId(m->symbol), m->order_id,
+           m->price, m->size, m->trade_condition);
   } break;
     //--------------------------------------------------------------
 
@@ -190,6 +193,11 @@ static uint64_t printBatsMsg(uint64_t pktNum, uint8_t *msg,
            m->trade_condition);
   } break;
     //--------------------------------------------------------------
+  case MsgId::ORDER_DELETE: {
+    auto m{reinterpret_cast<const order_delete *>(msg)};
+    printf("OID:%ju", m->order_id);
+  } break;
+    //--------------------------------------------------------------
   case MsgId::ORDER_EXECUTED_AT_PRICE_SIZE: {
     auto m{reinterpret_cast<
         const order_executed_at_price_size *>(msg)};
@@ -200,9 +208,20 @@ static uint64_t printBatsMsg(uint64_t pktNum, uint8_t *msg,
            m->order_id, m->execution_id, m->executed_size,
            m->remaining_size, m->price, m->trade_condition);
   } break;
+    //--------------------------------------------------------------
+  case MsgId::SYMBOL_MAPPING: {
+    auto m{reinterpret_cast<const SymbolMapping *>(msg)};
+    printf(
+        "%s,%s,%s",
+        std::string(m->symbol, sizeof(m->symbol)).c_str(),
+        std::string(m->osi_symbol, sizeof(m->osi_symbol))
+            .c_str(),
+        std::string(m->underlying, sizeof(m->underlying))
+            .c_str());
+  } break;
 
   default:
-    //    fprintf(md_file,"\n");
+    printf("UNEXPECTED");
     break;
   }
   printf("\n");

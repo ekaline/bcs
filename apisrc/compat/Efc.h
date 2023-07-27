@@ -104,21 +104,21 @@ EkaOpResult efcSetSessionCntr(EkaDev *dev,
 void efcPrintFireReport(const void *p, size_t len,
                         void *ctx);
 
-#if 0      
-typedef 
-  void 
+#if 0
+typedef
+  void
   ( *OnEkaExceptionReportCb )
-  ( 
-    EfcCtx*                   efcCtx, 
-    const EkaExceptionReport* ekaExceptionReport, 
-    size_t size 
+  (
+    EfcCtx*                   efcCtx,
+    const EkaExceptionReport* ekaExceptionReport,
+    size_t size
   );
 
-typedef 
-  void 
+typedef
+  void
   ( *OnEfcFireReportCb )
-  ( 
-    EfcCtx*                   efcCtx, 
+  (
+    EfcCtx*                   efcCtx,
     /* const EfcFireReport*      efcFireReport, */
     const void*               efcFireReport,
     size_t size,
@@ -362,6 +362,7 @@ EkaOpResult efcDisArmP4(EfcCtx *pEfcCtx);
 
 #define EKA_QED_PRODUCTS 4
 #define EFC_MAX_MC_GROUPS_PER_LANE 36
+#define EFC_PREALLOCATED_P4_ACTIONS_PER_LANE 64
 
 struct EfcQEDParamsSingle {
   uint16_t ds_id;        ///
