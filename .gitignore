@@ -27,6 +27,8 @@
 !apisrc/FhBook
 !apisrc/Ehp
 !apisrc/ekaline
+!tests/*.c
+!tests/*.h
 apisrc/Ehp/README.txt
 SmartNIC_SW/driver/smartnic.mod.c
 SmartNIC_SW/driver/ekaline_build_time.h

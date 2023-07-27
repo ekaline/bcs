@@ -167,6 +167,17 @@ public:
                    mcPort_);
   }
 
+  ssize_t sendUdpPkt(const void *pkt, size_t pktLen) {
+    auto rc =
+        sendto(udpSock_, pkt, pktLen, 0,
+               (const sockaddr *)&mcDst_, sizeof(sockaddr));
+
+    if (rc < 0)
+      on_error("MC trigger send failed");
+
+    return rc;
+  }
+
 private:
   EkaCoreId coreId_;
 
@@ -213,6 +224,15 @@ public:
     return bufLen;
   }
 
+  void sendPktToAllMcGrps(const void *pkt, size_t pktLen) {
+    for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++)
+      for (auto i = 0; i < nMcCons_[coreId]; i++) {
+        if (!udpConn_[coreId][i])
+          on_error("!udpConn_[%d][%d]", coreId, i);
+
+        udpConn_[coreId][i]->sendUdpPkt(pkt, pktLen);
+      }
+  }
   EfcUdpMcParams udpConf_ = {};
 
   TestUdpConn
@@ -325,6 +345,7 @@ public:
     case TestStrategy::P4:
       prepareTestConfig_ = configureP4Test;
       runTest_ = runP4Test;
+      stratCtx_ = new EfcP4CboeTestCtx;
       break;
     case TestStrategy::Qed:
       prepareTestConfig_ = configureQedTest;
@@ -356,6 +377,7 @@ public:
   TestStrategy strat_ = TestStrategy::Invalid;
   TestUdpCtx *udpCtx_ = nullptr;
   TestTcpCtx *tcpCtx_ = nullptr;
+  EfcStratTestCtx *stratCtx_ = nullptr;
 
   PrepareTestConfigCb prepareTestConfig_;
   RunTestCb runTest_;
@@ -858,7 +880,8 @@ void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
   if (rc != EKA_OPRESULT__OK)
     on_error("efcInitP4Strategy returned %d", (int)rc);
 
-  auto p4TestCtx = new EfcP4CboeTestCtx;
+  auto p4TestCtx =
+      dynamic_cast<EfcP4CboeTestCtx *>(t->stratCtx_);
   if (!p4TestCtx)
     on_error("!p4TestCtx");
 
@@ -901,10 +924,8 @@ void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 
   // ==============================================
   for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++) {
-
     for (auto mcGr = 0; mcGr < t->udpCtx_->nMcCons_[coreId];
          mcGr++) {
-
       // 1st in the chain is already preallocated
       int currActionIdx =
           coreId * EFC_PREALLOCATED_P4_ACTIONS_PER_LANE +
@@ -999,8 +1020,16 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 
   // ==============================================
   // Preparing UDP MC for MD trigger on GR#0
+#if 0
 
   uint32_t sequence = 32;
+
+  char pktBuf[1500] = {};
+  auto pktLen =
+      createOrderExpanded(pktBuf, 0, SideT::BID, true);
+
+  t->udpCtx_->sendPktToAllMcGrps(pktBuf, pktLen);
+#endif
 
 // ==============================================
 
@@ -1054,7 +1083,7 @@ int main(int argc, char *argv[]) {
   getAttr(argc, argv);
   createTestCases(sc);
 
-#if 0
+#if 1
   if (numTcpSess > MaxTcpTestSessions)
     on_error("numTcpSess %d > MaxTcpTestSessions %d",
              numTcpSess, MaxTcpTestSessions);
@@ -1070,9 +1099,11 @@ int main(int argc, char *argv[]) {
 
   for (auto t : testCase) {
     configureFpgaPorts(dev, t);
-    createTcpServ(dev, t);
-    tcpConnect(dev, &t.tcpParams_);
-    bindUdpSock(t);
+    t->tcpCtx_->connectAll();
+
+    // createTcpServ(dev, t);
+    // tcpConnect(dev, &t.tcpParams_);
+    // bindUdpSock(t);
   }
 
   // ==============================================
@@ -1117,8 +1148,7 @@ int main(int argc, char *argv[]) {
 #endif
 
   for (auto t : testCase)
-    for (auto i = 0; i < numTcpSess; i++)
-      t->tcpServThr_[i].join();
+    delete t;
 
   fflush(stdout);
   fflush(stderr);

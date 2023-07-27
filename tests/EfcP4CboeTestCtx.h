@@ -5,6 +5,7 @@
 #include "EkaFhBatsParser.h"
 #include "EkaFhTypes.h"
 
+#include "EfcStratTestCtx.h"
 using namespace Bats;
 
 struct P4SecurityCtx {
@@ -33,7 +34,7 @@ char cboeSide(SideT side) {
   return side == SideT::BID ? 'B' : 'S';
 }
 
-class EfcP4CboeTestCtx {
+class EfcP4CboeTestCtx : public EfcStratTestCtx {
 public:
   static const size_t MaxTestSecurities = 16;
   /* --------------------------------------------- */
@@ -44,6 +45,9 @@ public:
     }
     nSec = std::size(security);
   }
+  /* --------------------------------------------- */
+
+  virtual ~EfcP4CboeTestCtx() = default;
   /* --------------------------------------------- */
 
   std::string secIdString(size_t idx) {
