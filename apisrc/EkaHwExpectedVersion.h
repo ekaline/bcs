@@ -32,6 +32,7 @@
 // #define EKA_EXPECTED_EFC_STRATEGY 132 // Tcp sess ctx in
 // SRAM
 //#define EKA_EXPECTED_EFC_STRATEGY 133 // QED
-#define EKA_EXPECTED_EFC_STRATEGY 134 // multi
+//#define EKA_EXPECTED_EFC_STRATEGY 134 // multi
+#define EKA_EXPECTED_EFC_STRATEGY 135 // {core,mcgroup}->action
 
 #endif
