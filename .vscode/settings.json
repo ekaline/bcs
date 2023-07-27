@@ -70,7 +70,8 @@
                 "thread": "cpp",
                 "cinttypes": "cpp",
                 "typeinfo": "cpp",
-                "cassert": "cpp"
+                "cassert": "cpp",
+                "optional": "c"
         },
         "cmake.configureOnOpen": true
 }
