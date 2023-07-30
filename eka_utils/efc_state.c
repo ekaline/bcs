@@ -1046,6 +1046,10 @@ int main(int argc, char *argv[]) {
             ekaHwCaps->hwCaps.core.bitmap_md_cores);
     /* ----------------------------------------- */
 
+    for (auto stratId = 0; stratId < 16 ;
+	 stratId++ )
+      active_strat[stratId] = false;
+    
     for (auto coreId = 0; coreId < 2;
          coreId++) { // TBD md bitmap
       active_strat[(
