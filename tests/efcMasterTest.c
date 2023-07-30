@@ -1018,7 +1018,6 @@ int main(int argc, char *argv[]) {
   /* ============================================== */
 
   printf("Closing device\n");
-  efcDisArmP4(pEfcCtx);
 
   ekaDevClose(dev);
   sleep(1);
