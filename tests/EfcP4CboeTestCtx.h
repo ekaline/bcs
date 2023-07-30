@@ -44,6 +44,10 @@ public:
       secList[i] = getBinSecId(&security[i]);
     }
     nSec = std::size(security);
+    TEST_LOG("Created List of %ju P4 Securities:", nSec);
+    for (auto i = 0; i < nSec; i++)
+      TEST_LOG("\t%ju %c", secList[i],
+               i == nSec - 1 ? '\n' : ',');
   }
   /* --------------------------------------------- */
 

@@ -106,7 +106,7 @@ void EkaP4Strategy::arm(EfcArmVer ver) {
 /* --------------------------------------------------- */
 
 void EkaP4Strategy::disarm() {
-  EKA_LOG("Disrming %s", name_.c_str());
+  EKA_LOG("Disarming %s", name_.c_str());
   eka_write(dev_, ArmDisarmP4Addr, 0);
 }
 /* --------------------------------------------------- */
