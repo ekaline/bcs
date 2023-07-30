@@ -1027,6 +1027,9 @@ int main(int argc, char *argv[]) {
   auto pNewsState = new NewsState;
   auto pEfcExceptionsReport = new EfcExceptionsReport;
   /* ----------------------------------------- */
+  bool active_strat[16] = {false};
+
+  /* ----------------------------------------- */
   checkVer();
   /* ----------------------------------------- */
   getNwParams(coreParams);
@@ -1045,31 +1048,17 @@ int main(int argc, char *argv[]) {
 
     for (auto coreId = 0; coreId < 2;
          coreId++) { // TBD md bitmap
-
-      switch ((
-          (ekaHwCaps->hwCaps.version.parser >> coreId * 4) &
-          0xF)) {
-      case 12:
-        getQEDState(pQEDState);
-        break;
-      case 13:
-        getFastSweepState(pFastSweepState);
-        break;
-      case 14:
-        getNewsState(pNewsState);
-        break;
-      case 15:
-        getFastCancelState(pFastCancelState);
-        break;
-      case 1:
-      case 2:
-        getEfcState(pEfcState);
-        break;
-      default:
-        break;
-      }
-      /* ----------------------------------------- */
+      active_strat[(
+		    (ekaHwCaps->hwCaps.version.parser>>coreId*4)&0xF
+		    )] = true;
     }
+    
+    if (active_strat[12]) getQEDState(pQEDState);
+    if (active_strat[13]) getFastSweepState(pFastSweepState);
+    if (active_strat[14]) getNewsState(pNewsState);
+    if (active_strat[15]) getFastCancelState(pFastCancelState);
+    if (active_strat[1] || active_strat[2]) getEfcState(pEfcState);
+  
     /* ----------------------------------------- */
     printf("\e[1;1H\e[2J"); //	system("clear");
     /* ----------------------------------------- */
@@ -1089,34 +1078,11 @@ int main(int argc, char *argv[]) {
     /* ----------------------------------------- */
     /* ----------------------------------------- */
 
-    /* ----------------------------------------- */
-    for (auto coreId = 0; coreId < 2;
-         coreId++) { // TBD md bitmap
-
-      switch ((
-          (ekaHwCaps->hwCaps.version.parser >> coreId * 4) &
-          0xF)) {
-      case 12:
-        printQEDState(pQEDState);
-        break;
-      case 13:
-        printFastSweepState(pFastSweepState);
-        break;
-      case 14:
-        printNewsState(pNewsState);
-        break;
-      case 15:
-        printFastCancelState(pFastCancelState);
-        break;
-      case 1:
-      case 2:
-        printEfcState(pEfcState);
-        break;
-      default:
-        break;
-      }
-      /* ----------------------------------------- */
-    }
+    if (active_strat[12]) printQEDState(pQEDState);
+    if (active_strat[13]) printFastSweepState(pFastSweepState);
+    if (active_strat[14]) printNewsState(pNewsState);
+    if (active_strat[15]) printFastCancelState(pFastCancelState);
+    if (active_strat[1] || active_strat[2]) printEfcState(pEfcState);
 
     /* ----------------------------------------- */
     char excptBuf[8192] = {};
