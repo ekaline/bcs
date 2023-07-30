@@ -866,7 +866,8 @@ void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 
   if (!t)
     on_error("!t");
-
+  TEST_LOG("\n"
+           "=========== Configuring P4 Test ===========");
   auto udpMcParams = &t->udpCtx_->udpConf_;
 
   struct EfcP4Params p4Params = {
@@ -906,15 +907,15 @@ void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
     SecCtx secCtx = {};
     p4TestCtx->getSecCtx(i, &secCtx);
 
-    EKA_TEST("Setting StaticSecCtx[%ju] %s secId=0x%016jx,"
-             "handle=%jd,bidMinPrice=%u,askMaxPrice=%u,"
-             "bidSize=%u,askSize=%u,"
-             "versionKey=%u,lowerBytesOfSecId=0x%x",
-             i, p4TestCtx->secIdString(i).c_str(),
-             p4TestCtx->secList[i], handle,
-             secCtx.bidMinPrice, secCtx.askMaxPrice,
-             secCtx.bidSize, secCtx.askSize,
-             secCtx.versionKey, secCtx.lowerBytesOfSecId);
+    EKA_TEST(
+        "Setting StaticSecCtx[%ju] \'%s\' secId=0x%016jx,"
+        "handle=%jd,bidMinPrice=%u,askMaxPrice=%u,"
+        "bidSize=%u,askSize=%u,"
+        "versionKey=%u,lowerBytesOfSecId=0x%x",
+        i, p4TestCtx->secIdString(i).c_str(),
+        p4TestCtx->secList[i], handle, secCtx.bidMinPrice,
+        secCtx.askMaxPrice, secCtx.bidSize, secCtx.askSize,
+        secCtx.versionKey, secCtx.lowerBytesOfSecId);
     /* hexDump("secCtx",&secCtx,sizeof(secCtx)); */
 
     rc = efcSetStaticSecCtx(pEfcCtx, handle, &secCtx, 0);

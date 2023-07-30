@@ -46,8 +46,8 @@ public:
     nSec = std::size(security);
     TEST_LOG("Created List of %ju P4 Securities:", nSec);
     for (auto i = 0; i < nSec; i++)
-      TEST_LOG("\t%ju %c", secList[i],
-               i == nSec - 1 ? '\n' : ',');
+      TEST_LOG("\t%s, %ju %c", secIdString(i).c_str(),
+               secList[i], i == nSec - 1 ? '\n' : ',');
   }
   /* --------------------------------------------- */
 
@@ -57,7 +57,7 @@ public:
   std::string secIdString(size_t idx) {
     std::string res = {};
     for (auto i = 0; i < 8; i++)
-      res += security[idx].id[i];
+      res += std::to_string(security[idx].id[i]);
 
     return res;
   }
