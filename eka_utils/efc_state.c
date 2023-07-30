@@ -939,7 +939,7 @@ int printFastCancelState(
 
   printf("\n-----------------------------------------------"
          "---------");
-  printf("\nDirect Strategy : ");
+  printf("\nFast Cancel Strategy : ");
   printCommonState(&pFastCancelState->commonState);
   printf("-------------------------------------------------"
          "-------\n");
@@ -957,7 +957,7 @@ int printFastSweepState(FastSweepState *pFastSweepState) {
 
   printf("\n-----------------------------------------------"
          "---------");
-  printf("\nDirect Strategy : ");
+  printf("\nFast Sweep Strategy : ");
   printCommonState(&pFastSweepState->commonState);
   printf("-------------------------------------------------"
          "-------\n");
@@ -975,7 +975,7 @@ int printQEDState(QEDState *pQEDState) {
 
   printf("\n-----------------------------------------------"
          "---------");
-  printf("\nDirect Strategy : ");
+  printf("\nQED Strategy : ");
   printCommonState(&pQEDState->commonState);
   printf("-------------------------------------------------"
          "-------\n");
@@ -993,7 +993,7 @@ int printNewsState(NewsState *pNewsState) {
 
   printf("\n-----------------------------------------------"
          "---------");
-  printf("\nDirect Strategy : ");
+  printf("\nNews Strategy : ");
   printCommonState(&pNewsState->commonState);
   printf("-------------------------------------------------"
          "-------\n");
