@@ -119,6 +119,7 @@ size_t printSecurityCtx(FILE *file, const uint8_t *b) {
 size_t printMdReport(FILE *file, const uint8_t *b) {
   auto mdReport{reinterpret_cast<const EfcMdReport *>(b)};
   fprintf(file, "MdReport:");
+  fprintf(file, "\tMdCoreId = %u\n", mdReport->core_id);
   fprintf(file, "\tGroup = %hhu\n", mdReport->group_id);
   fprintf(file, "\tSequence no = %ju\n",
           intmax_t(mdReport->sequence));

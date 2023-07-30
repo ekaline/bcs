@@ -54,6 +54,9 @@ typedef void (*PrepareTestConfigCb)(EfcCtx *efcCtx,
                                     TestCase *t);
 typedef bool (*RunTestCb)(EfcCtx *efcCtx, TestCase *t);
 
+typedef EkaOpResult (*ArmControllerCb)(EfcCtx *pEfcCtx,
+                                       EfcArmVer ver);
+typedef EkaOpResult (*DisArmControllerCb)(EfcCtx *pEfcCtx);
 extern EkaDev *g_ekaDev;
 /* --------------------------------------------- */
 volatile bool keep_work = true;
@@ -231,15 +234,26 @@ public:
     return bufLen;
   }
 
-  void sendPktToAllMcGrps(const void *pkt, size_t pktLen) {
+  EfcArmVer
+  sendPktToAllMcGrps(const void *pkt, size_t pktLen,
+                     ArmControllerCb armControllerCb,
+                     EfcCtx *pEfcCtx, EfcArmVer armVer) {
+    if (!armControllerCb)
+      on_error("!armControllerCb");
+
+    auto nextArmVer = armVer;
+
     for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++)
       for (auto i = 0; i < nMcCons_[coreId]; i++) {
         if (!udpConn_[coreId][i])
           on_error("!udpConn_[%d][%d]", coreId, i);
 
+        armControllerCb(pEfcCtx, nextArmVer++);
         udpConn_[coreId][i]->sendUdpPkt(pkt, pktLen);
       }
+    return nextArmVer;
   }
+
   EfcUdpMcParams udpConf_ = {};
 
   TestUdpConn
@@ -353,10 +367,15 @@ public:
       prepareTestConfig_ = configureP4Test;
       runTest_ = runP4Test;
       stratCtx_ = new EfcP4CboeTestCtx;
+      armController_ = efcArmP4;
+      disArmController_ = efcDisArmP4;
+
       break;
     case TestStrategy::Qed:
       prepareTestConfig_ = configureQedTest;
       runTest_ = runQedTest;
+      armController_ = efcArmQed;
+      disArmController_ = efcDisArmQed;
       break;
     default:
       on_error("Unexpected Test Strategy %d",
@@ -390,6 +409,8 @@ public:
 
   PrepareTestConfigCb prepareTestConfig_;
   RunTestCb runTest_;
+  ArmControllerCb armController_;
+  DisArmControllerCb disArmController_;
 };
 /* --------------------------------------------- */
 
@@ -437,37 +458,6 @@ static void configureFpgaPorts(EkaDev *dev, TestCase *t) {
     ekaDevConfigurePort(dev, &ekaCoreInitCtx);
   }
 }
-/* --------------------------------------------- */
-#if 0
-
-static void bindUdpSock(TestCase *t) {
-  t->udpParams_[0]->udpSock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-  if (t->udpParams_[0]->udpSock < 0)
-    on_error("failed to open UDP sock");
-
-  struct sockaddr_in triggerSourceAddr = {};
-  triggerSourceAddr.sin_addr.s_addr =
-      inet_addr(t->tcpSess_.dstIp.c_str());
-  triggerSourceAddr.sin_family = AF_INET;
-  triggerSourceAddr.sin_port = 0;
-
-  if (bind(t->udpParams_[0]->udpSock, (sockaddr *)&triggerSourceAddr,
-           sizeof(sockaddr)) != 0) {
-    on_error("failed to bind server udpSock to %s:%u",
-             EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),
-             be16toh(triggerSourceAddr.sin_port));
-  } else {
-    TEST_LOG("udpSock is binded to %s:%u",
-             EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),
-             be16toh(triggerSourceAddr.sin_port));
-  }
-
-  t->triggerMcAddr_.sin_family = AF_INET;
-  t->triggerMcAddr_.sin_addr.s_addr =
-      inet_addr(t->mcParams_.mcIp.c_str());
-  t->triggerMcAddr_.sin_port = be16toh(t->mcParams_.mcPort);
-}
-#endif
 
 /* --------------------------------------------- */
 
@@ -610,220 +600,6 @@ enum class AddOrder : int {
 
 /* --------------------------------------------- */
 
-static int sendAddOrderShort(int sock,
-                             const sockaddr_in *addr,
-                             char *secId, uint32_t sequence,
-                             char side, uint16_t price,
-                             uint16_t size) {
-
-  CboePitchAddOrderShort pkt = {
-      .hdr =
-          {
-              .length = sizeof(pkt),
-              .count = 1,
-              .unit = 1, // just a number
-              .sequence = sequence,
-          },
-      .msg = {
-          .header =
-              {
-                  .length = sizeof(pkt.msg),
-                  .type = (uint8_t)MsgId::ADD_ORDER_SHORT,
-                  .time = 0x11223344, // just a number
-              },
-          .order_id = 0xaabbccddeeff5566,
-          .side = side,
-          .size = size,
-          .symbol = {secId[2], secId[3], secId[4], secId[5],
-                     secId[6], secId[7]},
-          .price =
-              price, //(uint16_t)(p4Ctx.at(2).bidMinPrice
-                     /// 100 + 1),
-          .flags = 0xFF,
-      }};
-  TEST_LOG("sending AddOrderShort trigger to %s:%u, "
-           "price=%u, size=%u",
-           EKA_IP2STR(addr->sin_addr.s_addr),
-           be16toh(addr->sin_port), price, size);
-  if (sendto(sock, &pkt, sizeof(pkt), 0,
-             (const sockaddr *)addr, sizeof(sockaddr)) < 0)
-    on_error("MC trigger send failed");
-
-  return 0;
-}
-/* --------------------------------------------- */
-
-static int sendAddOrderLong(int sock,
-                            const sockaddr_in *addr,
-                            char *secId, uint32_t sequence,
-                            char side, uint64_t price,
-                            uint32_t size) {
-
-  CboePitchAddOrderLong pkt = {
-      .hdr =
-          {
-              .length = sizeof(pkt),
-              .count = 1,
-              .unit = 1, // just a number
-              .sequence = sequence,
-          },
-      .msg = {
-          .header =
-              {
-                  .length = sizeof(pkt.msg),
-                  .type = (uint8_t)MsgId::ADD_ORDER_LONG,
-                  .time = 0x11223344, // just a number
-              },
-          .order_id = 0xaabbccddeeff5566,
-          .side = side,
-          .size = size,
-          .symbol = {secId[2], secId[3], secId[4], secId[5],
-                     secId[6], secId[7]},
-          .price =
-              price, //(uint16_t)(p4Ctx.at(2).bidMinPrice
-                     /// 100 + 1),
-          .flags = 0xFF,
-      }};
-  TEST_LOG("sending AddOrderLong trigger to %s:%u",
-           EKA_IP2STR(addr->sin_addr.s_addr),
-           be16toh(addr->sin_port));
-  if (sendto(sock, &pkt, sizeof(pkt), 0,
-             (const sockaddr *)addr, sizeof(sockaddr)) < 0)
-    on_error("MC trigger send failed");
-
-  return 0;
-}
-
-/* --------------------------------------------- */
-
-static int sendAddOrderExpanded(int sock,
-                                const sockaddr_in *addr,
-                                char *secId,
-                                uint32_t sequence,
-                                char side, uint16_t price,
-                                uint16_t size) {
-
-  CboePitchAddOrderExpanded pkt = {
-      .hdr =
-          {
-              .length = sizeof(pkt),
-              .count = 1,
-              .unit = 1, // just a number
-              .sequence = sequence,
-          },
-      .msg = {
-          .header =
-              {
-                  .length = sizeof(pkt.msg),
-                  .type =
-                      (uint8_t)MsgId::ADD_ORDER_EXPANDED,
-                  .time = 0x11223344, // just a number
-              },
-          .order_id = 0xaabbccddeeff5566,
-          .side = side,
-          .size = size,
-          //	    .exp_symbol =
-          //{secId[0],secId[1],secId[2],secId[3],secId[4],secId[5],secId[6],secId[7]},
-          .exp_symbol = {secId[2], secId[3], secId[4],
-                         secId[5], secId[6], secId[7], ' ',
-                         ' '},
-          .price =
-              price, //(uint16_t)(p4Ctx.at(2).bidMinPrice
-                     /// 100 + 1),
-          .flags = 0xFF,
-          .participant_id = {},
-          .customer_indicator = 'C',
-          .client_id = {}}};
-
-  TEST_LOG("sending AddOrderExpanded trigger to %s:%u",
-           EKA_IP2STR(addr->sin_addr.s_addr),
-           be16toh(addr->sin_port));
-  if (sendto(sock, &pkt, sizeof(pkt), 0,
-             (const sockaddr *)addr, sizeof(sockaddr)) < 0)
-    on_error("MC trigger send failed");
-
-  return 0;
-}
-/* --------------------------------------------- */
-static int sendAddOrder(AddOrder type, int sock,
-                        const sockaddr_in *addr,
-                        char *secId, uint32_t sequence,
-                        char side, uint64_t price,
-                        uint32_t size) {
-  switch (type) {
-  case AddOrder::Short:
-    return sendAddOrderShort(sock, addr, secId, sequence,
-                             side, price, size);
-  case AddOrder::Long:
-    return sendAddOrderLong(sock, addr, secId, sequence,
-                            side, price, size);
-  case AddOrder::Expanded:
-    return sendAddOrderExpanded(sock, addr, secId, sequence,
-                                side, price, size);
-  default:
-    on_error("Unexpected type %d", (int)type);
-  }
-  return 0;
-}
-
-static size_t prepare_BoeNewOrderMsg(void *dst) {
-  const BoeNewOrderMsg fireMsg = {
-      .StartOfMessage = 0xBABA,
-      .MessageLength = sizeof(BoeNewOrderMsg) - 2,
-      .MessageType = 0x38,
-      .MatchingUnit = 0,
-      .SequenceNumber = 0,
-
-      // low 8 bytes of ClOrdID are replaced at FPGA by
-      // AppSeq number
-      .ClOrdID = {'E', 'K', 'A', 't', 'e', 's', 't',
-                  '1', '2', '3', '4', '5', '6', '7',
-                  '8', '9', 'A', 'B', 'C', 'D'},
-
-      .Side = '_', // '1'-Bid, '2'-Ask
-      .OrderQty = 0,
-
-      .NumberOfBitfields = 4,
-      .NewOrderBitfield1 =
-          1 | 2 | 4 | 16 |
-          32, // ClearingFirm,ClearingAccount,Price,OrdType,TimeInForce
-      .NewOrderBitfield2 = 1 | 64, // Symbol,Capacity
-      .NewOrderBitfield3 = 1,      // Account
-      .NewOrderBitfield4 = 0,
-      /* .NewOrderBitfield5 = 0,  */
-      /* .NewOrderBitfield6 = 0,  */
-      /* .NewOrderBitfield7 = 0, */
-
-      .ClearingFirm = {'C', 'L', 'F', 'M'},
-      .ClearingAccount = {'C', 'L', 'A', 'C'},
-      .Price = 0,
-      .OrdType =
-          '2', // '1' = Market,'2' = Limit
-               // (default),'3' = Stop,'4' = Stop Limit
-      .TimeInForce = '3', // '3' - IOC
-      .Symbol =
-          {' ', ' ', ' ', ' ', ' ', ' ', ' ',
-           ' '}, // last 2 padding chars to be set to ' '
-      .Capacity = 'C', // 'C','M','F',etc.
-      .Account = {'1', '2', '3', '4', '5', '6', '7', '8',
-                  '9', '0', 'A', 'B', 'C', 'D', 'E', 'F'},
-      .OpenClose = 'O'};
-
-  memcpy(dst, &fireMsg, sizeof(fireMsg));
-  return sizeof(fireMsg);
-}
-
-static size_t prepare_BoeQuoteUpdateShortMsg(void *dst) {
-  const BoeQuoteUpdateShortMsg fireMsg = {
-      .StartOfMessage = 0xBABA,
-      .MessageLength = sizeof(BoeQuoteUpdateShortMsg) - 2,
-      .MessageType = 0x59,
-
-      .Reserved1 = {'E', 'K', 'A'},
-      .Reserved2 = {'Y', 'X'}};
-  memcpy(dst, &fireMsg, sizeof(fireMsg));
-  return sizeof(fireMsg);
-}
 /* ############################################# */
 
 static int sendQEDMsg(TestCase *t) {
@@ -1050,7 +826,7 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 
 #if 1
   {
-    efcArmP4(pEfcCtx, p4ArmVer++);
+    // efcArmP4(pEfcCtx, p4ArmVer++);
     char pktBuf[1500] = {};
     auto secCtx = &p4TestCtx->security[2];
 
@@ -1063,11 +839,13 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
         pktBuf, id2fire, side2fire, price2fire, size2fire,
         true);
 
-    t->udpCtx_->sendPktToAllMcGrps(pktBuf, pktLen);
+    p4ArmVer = t->udpCtx_->sendPktToAllMcGrps(
+        pktBuf, pktLen, t->armController_, pEfcCtx,
+        p4ArmVer);
   }
 #endif
 
-#if 1
+#if 0
   {
     efcArmP4(pEfcCtx, p4ArmVer++);
     char pktBuf[1500] = {};
@@ -1086,20 +864,8 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
   }
 #endif
 
-// ==============================================
-
-// ==============================================
-#if 0
-  while (keep_work) {
-    sendAddOrder(AddOrder::Expanded,t->udpParams_[0]->udpSock,&t->udpParams_[0]->mcDst,p4Ctx.at(2).id,
-		 sequence++,'B',p4Ctx.at(2).bidMinPrice + 1,p4Ctx.at(2).size);
-
-    sleep(1);
-    efcArmP4(pEfcCtx, p4ArmVer++);
-  }
-#endif
   // ==============================================
-  // efcDisArmP4(pEfcCtx);
+
   TEST_LOG("\n"
            "===========================\n"
            "END OT CBOE P4 TEST\n"
