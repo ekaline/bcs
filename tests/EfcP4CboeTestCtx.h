@@ -113,7 +113,7 @@ public:
                        ' ',        ' '};
     memcpy(p->msg.exp_symbol, dstSymb, 8);
 
-    p->msg.price = sec->askMaxPrice / 100 - 1;
+    p->msg.price = sec->bidMinPrice / 100 + 1;
 
     p->msg.customer_indicator = 'C';
 
