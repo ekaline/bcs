@@ -99,7 +99,7 @@ EkaP4Strategy::EkaP4Strategy(const EfcUdpMcParams *mcParams,
 
 /* --------------------------------------------------- */
 void EkaP4Strategy::arm(EfcArmVer ver) {
-  EKA_LOG("Arming %s", name_.c_str());
+  EKA_LOG("Arming %s, ver = %u", name_.c_str(), ver);
   uint64_t armData = ((uint64_t)ver << 32) | 1;
   eka_write(dev_, ArmDisarmP4Addr, armData);
 }

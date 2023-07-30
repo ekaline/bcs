@@ -375,6 +375,8 @@ public:
     print("Created");
   }
 
+  ~TestCase() {}
+
   void print(const char *msg) {
     TEST_LOG("%s: \'%s\' ", msg, printStrat(strat_));
     // printMcConf(&mcParams_);
@@ -1081,7 +1083,7 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
   }
 #endif
   // ==============================================
-  efcDisArmP4(pEfcCtx);
+  // efcDisArmP4(pEfcCtx);
   TEST_LOG("\n"
            "===========================\n"
            "END OT CBOE P4 TEST\n"
@@ -1192,6 +1194,7 @@ int main(int argc, char *argv[]) {
   /* ============================================== */
 
   printf("Closing device\n");
+  efcDisArmP4(pEfcCtx);
 
   ekaDevClose(dev);
   sleep(1);
