@@ -147,18 +147,19 @@ size_t dumpMem(SC_DeviceId devId, void *dst, int startAddr,
 
 /* --------------------------------------------- */
 size_t dumpAction(SC_DeviceId devId, void *dst, int region,
-               int actionIdx) {
+                  int actionIdx) {
   const int BlockSize = 64;
   const int WordSize = 8;
 
-  int flatIdx = actionIdx /* + f(region) */; // !!! TBD add resolution of {region,actionIdx} -> flatIdx
+  int flatIdx =
+      actionIdx + EkaEpmRegion::getBaseActionIdx(region);
 
   uint64_t *wrPtr = (uint64_t *)dst;
 
   eka_write(devId, 0xf0100, flatIdx);
   for (auto j = 0; j < BlockSize / WordSize; j++)
     *wrPtr++ = eka_read(devId, 0x70000 + j * 8);
-  
+
   return 64;
 }
 
@@ -215,7 +216,6 @@ int main(int argc, char *argv[]) {
     auto action_mem = new uint8_t[64];
     dumpAction(devId, action_mem, region, actionIdx);
     hexDump("Action Dump", action_mem, 64, outFile);
-
   }
 
   auto mem = new uint8_t[memLen];

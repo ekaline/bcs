@@ -122,6 +122,10 @@ const TestScenarioConfig scenarios[] = {
      {{TestStrategy::P4, core0_1mc, tcp0},
       {TestStrategy::Invalid, {}, {}}}},
 
+    {"P4_0_1",
+     {{TestStrategy::P4, two_cores_1mc, tcp0},
+      {TestStrategy::Invalid, {}, {}}}},
+
     {"Qed_1",
      {{TestStrategy::Qed, core1_1mc, tcp1},
       {TestStrategy::Invalid, {}, {}}}},

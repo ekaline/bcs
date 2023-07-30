@@ -1055,8 +1055,8 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
     auto secCtx = &p4TestCtx->security[2];
 
     const char *id2fire = secCtx->id;
-    auto side2fire = SideT::BID;
-    auto price2fire = secCtx->askMaxPrice / 100 - 1;
+    auto side2fire = SideT::ASK;
+    auto price2fire = secCtx->askMaxPrice - 1;
     auto size2fire = secCtx->size;
 
     auto pktLen = p4TestCtx->createOrderExpanded(
@@ -1074,8 +1074,8 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
     auto secCtx = &p4TestCtx->security[2];
 
     const char *id2fire = secCtx->id;
-    auto side2fire = SideT::ASK;
-    auto price2fire = secCtx->bidMinPrice / 100 + 1;
+    auto side2fire = SideT::BID;
+    auto price2fire = secCtx->bidMinPrice + 1;
     auto size2fire = secCtx->size;
 
     auto pktLen = p4TestCtx->createOrderExpanded(
