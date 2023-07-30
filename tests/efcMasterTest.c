@@ -169,6 +169,12 @@ public:
   }
 
   ssize_t sendUdpPkt(const void *pkt, size_t pktLen) {
+    char pktBufStr[8192] = {};
+    hexDump2str("UdpPkt", pkt, pktLen, pktBufStr,
+                sizeof(pktBufStr));
+    TEST_LOG("Sending pkt\n%s\n to %s:%u", pktBufStr,
+             EKA_IP2STR(mcDst_.sin_addr.s_addr),
+             be16toh(mcDst_.sin_port));
     auto rc =
         sendto(udpSock_, pkt, pktLen, 0,
                (const sockaddr *)&mcDst_, sizeof(sockaddr));
