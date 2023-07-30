@@ -88,11 +88,10 @@ public:
         (uint8_t)(getBinSecId(sec) & 0xFF);
   }
   /* --------------------------------------------- */
-  size_t createOrderExpanded(char *dst, size_t secIdx,
-                             SideT side,
+  size_t createOrderExpanded(char *dst, const char *id,
+                             SideT side, uint64_t price,
+                             uint32_t size,
                              bool expectedFire) {
-    auto sec = &security[secIdx];
-
     auto p =
         reinterpret_cast<CboePitchAddOrderExpanded *>(dst);
 
@@ -106,14 +105,13 @@ public:
 
     p->msg.order_id = 0xaabbccddeeff5566;
     p->msg.side = cboeSide(side);
-    p->msg.size = sec->size;
+    p->msg.size = size;
 
-    char dstSymb[8] = {sec->id[2], sec->id[3], sec->id[4],
-                       sec->id[5], sec->id[6], sec->id[7],
-                       ' ',        ' '};
+    char dstSymb[8] = {id[2], id[3], id[4], id[5],
+                       id[6], id[7], ' ',   ' '};
     memcpy(p->msg.exp_symbol, dstSymb, 8);
 
-    p->msg.price = sec->bidMinPrice / 100 + 1;
+    p->msg.price = price;
 
     p->msg.customer_indicator = 'C';
 

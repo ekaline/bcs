@@ -1052,8 +1052,16 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
   {
     efcArmP4(pEfcCtx, p4ArmVer++);
     char pktBuf[1500] = {};
+    auto secCtx = &p4TestCtx->security[2];
+
+    const char *id2fire = secCtx->id;
+    auto side2fire = SideT::BID;
+    auto price2fire = secCtx->bidMinPrice / 100 + 1;
+    auto size2fire = secCtx->size;
+
     auto pktLen = p4TestCtx->createOrderExpanded(
-        pktBuf, 0, SideT::BID, true);
+        pktBuf, id2fire, side2fire, price2fire, size2fire,
+        true);
 
     t->udpCtx_->sendPktToAllMcGrps(pktBuf, pktLen);
   }
@@ -1063,8 +1071,16 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
   {
     efcArmP4(pEfcCtx, p4ArmVer++);
     char pktBuf[1500] = {};
+    auto secCtx = &p4TestCtx->security[2];
+
+    const char *id2fire = secCtx->id;
+    auto side2fire = SideT::ASK;
+    auto price2fire = secCtx->bidMinPrice / 100 + 1;
+    auto size2fire = secCtx->size;
+
     auto pktLen = p4TestCtx->createOrderExpanded(
-        pktBuf, 2, SideT::BID, true);
+        pktBuf, id2fire, side2fire, price2fire, size2fire,
+        true);
 
     t->udpCtx_->sendPktToAllMcGrps(pktBuf, pktLen);
   }
