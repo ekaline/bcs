@@ -1013,6 +1013,15 @@ void configureQedTest(EfcCtx *pEfcCtx, TestCase *t) {
 }
 
 bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
+
+  TEST_LOG("\n"
+           "=========== Running P4 Test ===========");
+
+  auto p4TestCtx =
+      dynamic_cast<EfcP4CboeTestCtx *>(t->stratCtx_);
+  if (!p4TestCtx)
+    on_error("!p4TestCtx");
+
   EfcArmVer p4ArmVer = 0;
 
   // ==============================================
@@ -1021,13 +1030,13 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 
   // ==============================================
   // Preparing UDP MC for MD trigger on GR#0
-#if 0
+#if 1
 
   uint32_t sequence = 32;
 
   char pktBuf[1500] = {};
-  auto pktLen =
-      createOrderExpanded(pktBuf, 0, SideT::BID, true);
+  auto pktLen = p4TestCtx->createOrderExpanded(
+      pktBuf, 0, SideT::BID, true);
 
   t->udpCtx_->sendPktToAllMcGrps(pktBuf, pktLen);
 #endif

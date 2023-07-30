@@ -57,7 +57,7 @@ public:
   std::string secIdString(size_t idx) {
     std::string res = {};
     for (auto i = 0; i < 8; i++)
-      res += std::to_string(security[idx].id[i]);
+      res += std::to_string(char(security[idx].id[i]));
 
     return res;
   }
