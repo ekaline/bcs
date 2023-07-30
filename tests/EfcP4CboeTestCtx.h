@@ -117,6 +117,13 @@ public:
 
     p->msg.customer_indicator = 'C';
 
+    TEST_LOG("%s %s s=%c, P=%ju, S=%u, c=%c",
+             EKA_BATS_PITCH_MSG_DECODE(p->msg.header.type),
+             std::string(p->msg.exp_symbol,
+                         sizeof(p->msg.exp_symbol))
+                 .c_str(),
+             p->msg.side, p->msg.price, p->msg.size,
+             p->msg.customer_indicator);
     return sizeof(CboePitchAddOrderExpanded);
   }
   /* --------------------------------------------- */

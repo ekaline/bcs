@@ -1048,15 +1048,27 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 
   // ==============================================
   // Preparing UDP MC for MD trigger on GR#0
-#if 1
 
   uint32_t sequence = 32;
 
-  char pktBuf[1500] = {};
-  auto pktLen = p4TestCtx->createOrderExpanded(
-      pktBuf, 0, SideT::BID, true);
+#if 1
+  {
+    char pktBuf[1500] = {};
+    auto pktLen = p4TestCtx->createOrderExpanded(
+        pktBuf, 0, SideT::BID, true);
 
-  t->udpCtx_->sendPktToAllMcGrps(pktBuf, pktLen);
+    t->udpCtx_->sendPktToAllMcGrps(pktBuf, pktLen);
+  }
+#endif
+
+#if 1
+  {
+    char pktBuf[1500] = {};
+    auto pktLen = p4TestCtx->createOrderExpanded(
+        pktBuf, 2, SideT::BID, true);
+
+    t->udpCtx_->sendPktToAllMcGrps(pktBuf, pktLen);
+  }
 #endif
 
 // ==============================================
