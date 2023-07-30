@@ -394,7 +394,14 @@ public:
     print("Created");
   }
 
-  ~TestCase() {}
+  ~TestCase() {
+
+    TEST_LOG("\n"
+             "===========================\n"
+             "END OT CBOE %s TEST\n"
+             "===========================\n",
+             printStrat(strat_));
+  }
 
   void print(const char *msg) {
     TEST_LOG("%s: \'%s\' ", msg, printStrat(strat_));
@@ -830,14 +837,13 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
     char pktBuf[1500] = {};
     auto secCtx = &p4TestCtx->security[2];
 
-    const char *id2fire = secCtx->id;
-    auto side2fire = SideT::ASK;
-    auto price2fire = secCtx->askMaxPrice - 1;
-    auto size2fire = secCtx->size;
+    const char *mdSecId = secCtx->id;
+    auto mdSide = SideT::ASK;
+    auto mdPrice = secCtx->askMaxPrice - 1;
+    auto mdSize = secCtx->size;
 
     auto pktLen = p4TestCtx->createOrderExpanded(
-        pktBuf, id2fire, side2fire, price2fire, size2fire,
-        true);
+        pktBuf, mdSecId, mdSide, mdPrice, mdSize, true);
 
     p4ArmVer = t->udpCtx_->sendPktToAllMcGrps(
         pktBuf, pktLen, t->armController_, pEfcCtx,
@@ -845,27 +851,28 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
   }
 #endif
 
-#if 0
+#if 1
   {
     efcArmP4(pEfcCtx, p4ArmVer++);
     char pktBuf[1500] = {};
     auto secCtx = &p4TestCtx->security[2];
 
-    const char *id2fire = secCtx->id;
-    auto side2fire = SideT::BID;
-    auto price2fire = secCtx->bidMinPrice + 1;
-    auto size2fire = secCtx->size;
+    const char *mdSecId = secCtx->id;
+    auto mdSide = SideT::BID;
+    auto mdPrice = secCtx->bidMinPrice + 1;
+    auto mdSize = secCtx->size;
 
     auto pktLen = p4TestCtx->createOrderExpanded(
-        pktBuf, id2fire, side2fire, price2fire, size2fire,
-        true);
+        pktBuf, mdSecId, mdSide, mdPrice, mdSize, true);
 
-    t->udpCtx_->sendPktToAllMcGrps(pktBuf, pktLen);
+    p4ArmVer = t->udpCtx_->sendPktToAllMcGrps(
+        pktBuf, pktLen, t->armController_, pEfcCtx,
+        p4ArmVer);
   }
 #endif
 
   // ==============================================
-
+  t->disArmController_(pEfcCtx);
   TEST_LOG("\n"
            "===========================\n"
            "END OT CBOE P4 TEST\n"
