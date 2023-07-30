@@ -250,6 +250,7 @@ public:
 
         armControllerCb(pEfcCtx, nextArmVer++);
         udpConn_[coreId][i]->sendUdpPkt(pkt, pktLen);
+        sleep(1);
       }
     return nextArmVer;
   }
@@ -609,8 +610,7 @@ enum class AddOrder : int {
 
 /* ############################################# */
 
-static int sendQEDMsg(TestCase *t) {
-#if 0
+static size_t createQEDMsg(char *dst, const char *id) {
   const uint8_t pkt[] = /*114 byte -> udp length 122,
                            remsize 122-52 = 70 (numlelel5)*/
       {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -629,7 +629,9 @@ static int sendQEDMsg(TestCase *t) {
        0x00};
 
   size_t payloadLen = std::size(pkt);
+  memcpy(dst, pkt, payloadLen);
 
+#if 0
   TEST_LOG(
       "sending MDIncrementalRefreshTradeSummary48 "
       "trigger to %s:%u",
@@ -776,10 +778,13 @@ void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 /* ############################################# */
 
 void configureQedTest(EfcCtx *pEfcCtx, TestCase *t) {
-#if 0
   auto dev = pEfcCtx->dev;
 
-  auto udpMcParams = &t->udpConf_;
+  if (!t)
+    on_error("!t");
+  TEST_LOG("\n"
+           "=========== Configuring P4 Test ===========");
+  auto udpMcParams = &t->udpCtx_->udpConf_;
 
   static const uint16_t QEDTestPurgeDSID = 0x1234;
   static const uint8_t QEDTestMinNumLevel = 5;
@@ -791,7 +796,11 @@ void configureQedTest(EfcCtx *pEfcCtx, TestCase *t) {
       QEDTestMinNumLevel;
   qedParams.product[active_set].enable = true;
 
-  efcInitQedStrategy(pEfcCtx, udpMcParams, &qedParams);
+  int rc =
+      efcInitQedStrategy(pEfcCtx, udpMcParams, &qedParams);
+  if (rc != EKA_OPRESULT__OK)
+    on_error("efcInitQedStrategy returned %d", (int)rc);
+
   auto qedHwPurgeIAction =
       efcAllocateNewAction(dev, EpmActionType::QEDHwPurge);
 
@@ -801,8 +810,9 @@ void configureQedTest(EfcCtx *pEfcCtx, TestCase *t) {
   const char QEDTestPurgeMsg[] =
       "QED Purge Data With Dummy payload";
 
-  int rc = setActionTcpSock(dev, qedHwPurgeIAction,
-                            t->excSock_[0]);
+  rc = setActionTcpSock(dev, qedHwPurgeIAction,
+                        t->tcpCtx_->tcpSess_[0]->excSock_);
+
   if (rc != EKA_OPRESULT__OK)
     on_error("setActionTcpSock failed for Action %d",
              qedHwPurgeIAction);
@@ -812,8 +822,8 @@ void configureQedTest(EfcCtx *pEfcCtx, TestCase *t) {
   if (rc != EKA_OPRESULT__OK)
     on_error("efcSetActionPayload failed for Action %d",
              qedHwPurgeIAction);
-#endif
 }
+/* ############################################# */
 
 bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 
@@ -887,12 +897,37 @@ bool runQedTest(EfcCtx *pEfcCtx, TestCase *t) {
   EfcArmVer qedArmVer = 0;
 
   for (auto i = 0; i < TotalInjects; i++) {
-    efcArmQed(pEfcCtx, qedArmVer++); // arm and promote
+    // efcArmQed(pEfcCtx, qedArmVer++); // arm and promote
     qedExpectedFires++;
 
-    sendQEDMsg(t);
+    const uint8_t
+        pktBuf[] = /*114 byte -> udp length 122,
+                     remsize 122-52 = 70 (numlelel5)*/
+        {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x34, 0x12, // dsid 1234
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00};
 
-    usleep(300000);
+    auto pktLen = sizeof(pktBuf);
+
+    qedArmVer = t->udpCtx_->sendPktToAllMcGrps(
+        pktBuf, pktLen, t->armController_, pEfcCtx,
+        qedArmVer);
+
+    // usleep(300000);
   }
   // ==============================================
   TEST_LOG("\n"
