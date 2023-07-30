@@ -1043,16 +1043,12 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
   EfcArmVer p4ArmVer = 0;
 
   // ==============================================
-  efcArmP4(pEfcCtx,
-           p4ArmVer); //
-
-  // ==============================================
-  // Preparing UDP MC for MD trigger on GR#0
 
   uint32_t sequence = 32;
 
 #if 1
   {
+    efcArmP4(pEfcCtx, p4ArmVer++);
     char pktBuf[1500] = {};
     auto pktLen = p4TestCtx->createOrderExpanded(
         pktBuf, 0, SideT::BID, true);
@@ -1063,6 +1059,7 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 
 #if 1
   {
+    efcArmP4(pEfcCtx, p4ArmVer++);
     char pktBuf[1500] = {};
     auto pktLen = p4TestCtx->createOrderExpanded(
         pktBuf, 2, SideT::BID, true);
