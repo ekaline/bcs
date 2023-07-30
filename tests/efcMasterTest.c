@@ -74,6 +74,7 @@ bool fatalDebug = false;
 bool report_only = false;
 bool dontQuit = false;
 const TestScenarioConfig *sc = nullptr;
+bool exitBeforeDevInit = false;
 
 /* --------------------------------------------- */
 static void tcpServer(const char *ip, uint16_t port,
@@ -470,6 +471,9 @@ void printUsage(char *cmd) {
 
       "\t--report_only <Report Only ON>\n"
       "\t--dont_quit <Dont quit at the end>\n"
+
+      "\t--exitBeforeDevInit to run init stage on non-FPGA "
+      "server"
       "\n",
       cmd);
   return;
@@ -491,10 +495,11 @@ static int getAttr(int argc, char *argv[]) {
         {"ReportOnly", no_argument, 0, 'r'},
         {"report_only", no_argument, 0, 'r'},
         {"dont_quit", no_argument, 0, 'd'},
+        {"exitBeforeDevInit", no_argument, 0, 'e'},
         {"help", no_argument, 0, 'h'},
         {0, 0, 0, 0}};
 
-    c = getopt_long(argc, argv, "rdhls:", long_options,
+    c = getopt_long(argc, argv, "rdehls:", long_options,
                     &option_index);
     if (c == -1)
       break;
@@ -523,6 +528,11 @@ static int getAttr(int argc, char *argv[]) {
     case 'h':
       printUsage(argv[0]);
       exit(1);
+      break;
+
+    case 'e':
+      exitBeforeDevInit = true;
+      TEST_LOG("exitBeforeDevInit = true");
       break;
 
     case 'r':
@@ -556,7 +566,9 @@ static int getAttr(int argc, char *argv[]) {
   return 0;
 }
 /* --------------------------------------------- */
-void createTestCases(const TestScenarioConfig *s) {
+void createTestCases(const TestScenarioConfig *sc) {
+  if (!sc)
+    on_error("No Test scenarion selected");
   TEST_LOG("Configuring %s: \n", sc->name);
   for (const auto &tc : sc->testConf) {
     if (tc.strat != TestStrategy::Invalid) {
@@ -1093,10 +1105,9 @@ int main(int argc, char *argv[]) {
   getAttr(argc, argv);
   createTestCases(sc);
 
+  if (exitBeforeDevInit)
+    return 1;
 #if 1
-  if (numTcpSess > MaxTcpTestSessions)
-    on_error("numTcpSess %d > MaxTcpTestSessions %d",
-             numTcpSess, MaxTcpTestSessions);
   // ==============================================
   // EkaDev general setup
   EkaDev *dev = NULL;
