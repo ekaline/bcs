@@ -568,8 +568,9 @@ int printStratHeader() {
       continue;
     
     std::string nameStr =
-      std::string(EKA_FEED2STRING(stratId)) + "       ";
-    printf(colStringFormat, nameStr.c_str());
+      std::string(EKA_STRAT2STRING(stratId)) + "       ";
+    //    printf(colStringFormat, nameStr.c_str());
+    printf(colformats, nameStr.c_str());
   }
   printf("\n");
   printStratLineSeparator('+', '-');

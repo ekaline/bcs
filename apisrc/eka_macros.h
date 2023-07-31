@@ -203,6 +203,15 @@ class EkaDev;
   : x == 15 ? "CME FCancel"                                \
             : "Unknown"
 
+#define EKA_STRAT2STRING(x)                                \
+  x == 0    ? "Unconfigured"                               \
+  : x == 2  ? "P4"                                         \
+  : x == 12 ? "QED"                                        \
+  : x == 13 ? "Fast Sweep"                                 \
+  : x == 14 ? "Network News"                               \
+  : x == 15 ? "Fast Cancel"                                \
+            : "Unknown"
+
 #define EKA_NIBBLE2CHAR(x)                                 \
   x == 0    ? "0"                                          \
   : x == 1  ? "1"                                          \
