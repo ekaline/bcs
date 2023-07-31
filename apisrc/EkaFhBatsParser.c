@@ -8,9 +8,9 @@
 #include <string.h>
 
 #include "EkaFhBatsParser.h"
+#include "EkaFhBatsTransaction.h"
 #include "EkaFhParserCommon.h"
 #include "EkaOsiSymbol.h"
-
 #ifdef _PCAP_TEST_
 #include "batsPcapParse.h"
 #else
@@ -32,6 +32,12 @@ bool EkaFhBatsGr::parseMsg(
   //  EKA_LOG("%s:%u: 0x%02x",EKA_EXCH_DECODE(exch),id,enc);
 
   uint64_t msg_timestamp = 0;
+
+  auto tr =
+      dynamic_cast<EkaFhBatsTransaction<FhSecurity> *>(
+          transaction);
+  if (!tr)
+    on_error("!transaction");
 
   std::chrono::high_resolution_clock::time_point
       msgStartTime{};
@@ -117,12 +123,18 @@ bool EkaFhBatsGr::parseMsg(
     return process_Definition(pEfhRunCtx, m, sequence, op);
     //--------------------------------------------------------------
   case MsgId::TRANSACTION_BEGIN: {
-    //    market_open = true;
+    if (useTransactions)
+      tr->open();
     return false;
   }
     //--------------------------------------------------------------
   case MsgId::TRANSACTION_END: {
-    //    market_open = false;
+    if (useTransactions)
+      for (size_t i = 0; i < tr->nPendingSecurities_; i++)
+        book->generateOnQuote(pEfhRunCtx, tr->m_[i].secPtr_,
+                              tr->m_[i].seq_, tr->m_[i].ts_,
+                              gapNum);
+    tr->close();
     return false;
   }
     //--------------------------------------------------------------
@@ -575,9 +587,13 @@ bool EkaFhBatsGr::parseMsg(
   s->option_open = true;
 
   if (!book->isEqualState(s)) {
-    book->generateOnQuote(pEfhRunCtx, s, sequence,
-                          msg_timestamp, gapNum,
-                          msgStartTime);
+    if (!useTransactions || !tr->isActive()) {
+      book->generateOnQuote(pEfhRunCtx, s, sequence,
+                            msg_timestamp, gapNum,
+                            msgStartTime);
+    } else {
+      tr->pushSecurityCtx(s, sequence, msg_timestamp);
+    }
   }
 
   return false;
@@ -874,9 +890,9 @@ bool EkaFhBatsGr::process_Definition(
   EkaOsiSymbolData osi;
   if (!osi.parseFromSymbol(message->osi_symbol)) {
     EKA_ERROR("%s:%d: Skipping option def `%.21s` (`%.6s`) "
-							"as the OSI symbol is not valid!",
-              EKA_EXCH_DECODE(exch), id,  message->osi_symbol,
-							message->symbol);
+              "as the OSI symbol is not valid!",
+              EKA_EXCH_DECODE(exch), id,
+              message->osi_symbol, message->symbol);
     return false;
   }
 
