@@ -7,20 +7,22 @@
 
 template <class SecurityT> class EkaFhBatsTransaction {
 public:
-  EkaFhBatsTransaction() { reset(); }
+  EkaFhBatsTransaction() {
+    reset();
+    active_ = false;
+  }
   virtual ~EkaFhBatsTransaction() = default;
 
   /* -------------------------------------------- */
   inline void reset() {
-    active_ = false;
     nPendingSecurities_ = 0;
     //  m_[MAX_PENDING_SECURITIES] = {};
   }
   /* -------------------------------------------- */
 
   inline void open() {
-    active_ = true;
     reset();
+    active_ = true;
   }
   /* -------------------------------------------- */
 
