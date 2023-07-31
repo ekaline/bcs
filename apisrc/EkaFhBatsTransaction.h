@@ -5,17 +5,7 @@
 #include "EkaFhFullBook.h"
 #include "eka_macros.h"
 
-/* ##################################################### */
-class EkaFhBatsTransactionBase {
-protected:
-  virtual ~EkaFhBatsTransactionBase() = default;
-};
-
-/* ##################################################### */
-
-template <class SecurityT>
-class EkaFhBatsTransaction
-    : public EkaFhBatsTransactionBase {
+template <class SecurityT> class EkaFhBatsTransaction {
 public:
   EkaFhBatsTransaction() { reset(); }
   virtual ~EkaFhBatsTransaction() = default;

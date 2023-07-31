@@ -4,10 +4,10 @@
 #include <chrono>
 #include <unordered_map>
 
+#include "EkaFhBatsTransaction.h"
 #include "EkaFhFullBook.h"
 #include "EkaFhGroup.h"
 
-class EkaFhBatsTransactionBase;
 class EkaFhBatsGr : public EkaFhGroup {
 public:
   virtual ~EkaFhBatsGr(){};
@@ -155,7 +155,9 @@ public:
   std::unordered_map<AuctionIdT, SecurityIdT> auctionMap;
 
   bool useTransactions = true;
-  EkaFhBatsTransactionBase *transaction = nullptr;
+
+  using TransactionCtx = EkaFhBatsTransaction<FhSecurity>;
+  TransactionCtx *trCtx_ = nullptr;
 
 private:
   int sendMdCb(const EfhRunCtx *pEfhRunCtx,

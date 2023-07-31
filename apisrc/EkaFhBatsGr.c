@@ -15,7 +15,9 @@ void EkaFhBatsGr::invalidateBook() {
     on_error("book does not exist");
 
   book->invalidate();
-  transaction = new EkaFhBatsTransaction<FhSecurity>();
+  trCtx_ = new TransactionCtx;
+  if (!trCtx_)
+    on_error("failed on new EkaFhBatsTransaction");
 }
 /* ##################################################### */
 

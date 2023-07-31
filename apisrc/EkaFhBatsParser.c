@@ -33,12 +33,6 @@ bool EkaFhBatsGr::parseMsg(
 
   uint64_t msg_timestamp = 0;
 
-  auto tr =
-      dynamic_cast<EkaFhBatsTransaction<FhSecurity> *>(
-          transaction);
-  if (!tr)
-    on_error("!transaction");
-
   std::chrono::high_resolution_clock::time_point
       msgStartTime{};
 #if EFH_TIME_CHECK_PERIOD
@@ -123,18 +117,33 @@ bool EkaFhBatsGr::parseMsg(
     return process_Definition(pEfhRunCtx, m, sequence, op);
     //--------------------------------------------------------------
   case MsgId::TRANSACTION_BEGIN: {
-    if (useTransactions)
-      tr->open();
+    if (useTransactions && op == EkaFhMode::MCAST &&
+        trCtx_) {
+#if 0
+      TEST_LOG("%s:%u: TRANSACTION_BEGIN",
+               EKA_EXCH_DECODE(exch), id);
+#endif
+
+      trCtx_->open();
+    }
     return false;
   }
     //--------------------------------------------------------------
   case MsgId::TRANSACTION_END: {
-    if (useTransactions) {
-      for (size_t i = 0; i < tr->nPendingSecurities_; i++)
-        book->generateOnQuote(pEfhRunCtx, tr->m_[i].secPtr_,
-                              tr->m_[i].seq_, tr->m_[i].ts_,
-                              gapNum);
-      tr->close();
+    if (useTransactions && op == EkaFhMode::MCAST &&
+        trCtx_) {
+#if 0
+      TEST_LOG("%s:%u: TRANSACTION_END: flushing out %ju "
+               "securities TOB updates",
+               EKA_EXCH_DECODE(exch), id,
+               trCtx_->nPendingSecurities_);
+#endif
+      for (size_t i = 0; i < trCtx_->nPendingSecurities_;
+           i++)
+        book->generateOnQuote(
+            pEfhRunCtx, trCtx_->m_[i].secPtr_,
+            trCtx_->m_[i].seq_, trCtx_->m_[i].ts_, gapNum);
+      trCtx_->close();
     }
     return false;
   }
@@ -588,12 +597,15 @@ bool EkaFhBatsGr::parseMsg(
   s->option_open = true;
 
   if (!book->isEqualState(s)) {
-    if (!useTransactions || !tr->isActive()) {
+    if (useTransactions && op == EkaFhMode::MCAST &&
+        trCtx_ && trCtx_->isActive()) {
+
+      trCtx_->pushSecurityCtx(s, sequence, msg_timestamp);
+
+    } else {
       book->generateOnQuote(pEfhRunCtx, s, sequence,
                             msg_timestamp, gapNum,
                             msgStartTime);
-    } else {
-      tr->pushSecurityCtx(s, sequence, msg_timestamp);
     }
   }
 
