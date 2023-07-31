@@ -129,12 +129,13 @@ bool EkaFhBatsGr::parseMsg(
   }
     //--------------------------------------------------------------
   case MsgId::TRANSACTION_END: {
-    if (useTransactions)
+    if (useTransactions) {
       for (size_t i = 0; i < tr->nPendingSecurities_; i++)
         book->generateOnQuote(pEfhRunCtx, tr->m_[i].secPtr_,
                               tr->m_[i].seq_, tr->m_[i].ts_,
                               gapNum);
-    tr->close();
+      tr->close();
+    }
     return false;
   }
     //--------------------------------------------------------------
