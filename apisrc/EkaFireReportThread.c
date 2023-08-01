@@ -718,6 +718,7 @@ void ekaFireReportThread(EkaDev *dev) {
     //    hexDump("------------\ndmaReportData",payload,dmaReportHdr->length);
 
     uint8_t reportBuf[4000] = {};
+    bool printFireReport = false;
     std::pair<int, size_t> r;
     switch ((EkaUserChannel::DMA_TYPE)dmaReportHdr->type) {
     case EkaUserChannel::DMA_TYPE::SW_TRIGGERED:
@@ -754,6 +755,7 @@ void ekaFireReportThread(EkaDev *dev) {
       r = processFireReport(
           dev, payload, len, dev->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
+      printFireReport = true;
       break;
     default:
       on_error("Unexpected DMA type 0x%x",
@@ -776,12 +778,14 @@ void ekaFireReportThread(EkaDev *dev) {
         }
         if (!reportedStrategy->reportCb)
           on_error("reportCb is not defined");
-/*	
-        char fireReportStr[16 * 1024] = {};
-        hexDump2str("Fire Report", reportBuf, reportLen,
-                    fireReportStr, sizeof(fireReportStr));
-        EKA_LOG("reportCb: %s", fireReportStr);
-*/
+
+        if (printFireReport) {
+          char fireReportStr[16 * 1024] = {};
+          hexDump2str("Fire Report", reportBuf, reportLen,
+                      fireReportStr, sizeof(fireReportStr));
+          EKA_LOG("reportCb: %s", fireReportStr);
+        }
+
         reportedStrategy->reportCb(reportBuf, reportLen,
                                    reportedStrategy->cbCtx);
       } else { // no strategy, as exception
@@ -791,9 +795,7 @@ void ekaFireReportThread(EkaDev *dev) {
           EKA_WARN(
               "dev->pEfcRunCtx->reportCb is not defined");
         } else {
-          if ((EkaUserChannel::DMA_TYPE)
-                  dmaReportHdr->type ==
-              EkaUserChannel::DMA_TYPE::FIRE) {
+          if (printFireReport) {
             char fireReportStr[16 * 1024] = {};
             hexDump2str("Fire Report", reportBuf, reportLen,
                         fireReportStr,
