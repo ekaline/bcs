@@ -486,8 +486,7 @@ EkaDev::~EkaDev() {
   TEST_LOG("Closing Epm");
   dev->epm->active = false;
 
-  auto efc{
-      dynamic_cast<EkaEfc *>(epm->strategy[EFC_STRATEGY])};
+  TEST_LOG("Closing Efc");
   if (efc)
     delete efc;
 
