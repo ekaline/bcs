@@ -486,9 +486,10 @@ EkaDev::~EkaDev() {
   TEST_LOG("Closing Epm");
   dev->epm->active = false;
 
-  TEST_LOG("Closing Efc");
-  if (efc)
+  if (efc) {
+    TEST_LOG("Closing Efc");
     delete efc;
+  }
 
   for (auto i = 0; i < numFh; i++) {
     if (fh[i] != NULL)

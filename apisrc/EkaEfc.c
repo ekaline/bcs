@@ -245,6 +245,16 @@ int EkaEfc::disableRxFire() {
 
 /* ################################################ */
 int EkaEfc::enableRxFire() {
+  EkaStrategy *strategies[] = {p4_, qed_, cme_};
+
+  uint8_t rxCoresBitmap = 0;
+
+  for (auto const &strat : strategies) {
+    if (!strat)
+      continue;
+    rxCoresBitmap |= strat->coreIdBitmap_;
+  }
+
   uint64_t fire_rx_tx_en = eka_read(dev_, ENABLE_PORT);
   uint8_t tcpCores =
       dev_->ekaHwCaps->hwCaps.core.bitmap_tcp_cores;
@@ -257,7 +267,7 @@ int EkaEfc::enableRxFire() {
       fire_rx_tx_en |= 1ULL
                        << (16 + coreId); // fire core enable
     }
-    if ((0x1 << coreId) & mdCores) {
+    if ((0x1 << coreId) & rxCoresBitmap & mdCores) {
       fire_rx_tx_en |= 1ULL
                        << coreId; // RX (Parser) core enable
     }

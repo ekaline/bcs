@@ -36,7 +36,7 @@ public:
 
 public:
   static void clearAllHwUdpParams();
-  uint8_t coreIdBitmap_ = 0x00;
+  uint8_t coreIdBitmap_ = 0x00; // MD RX (Parsers) cores
 
 protected:
   EkaDev *dev_ = nullptr;
