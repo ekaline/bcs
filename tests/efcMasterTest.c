@@ -1019,7 +1019,6 @@ int main(int argc, char *argv[]) {
 
   printf("Closing device\n");
 
-
   ekaDevClose(dev);
   sleep(1);
 #endif

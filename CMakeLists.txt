@@ -39,6 +39,8 @@ set(CMAKE_CXX_FLAGS
     -march=native
     ")
 
+add_compile_options("-Werror=return-type")
+
 # ##############################################################################
 set(EKA_LIB_NAME ekaline2)
 

@@ -203,6 +203,15 @@ class EkaDev;
   : x == 15 ? "CME FCancel"                                \
             : "Unknown"
 
+#define EKA_STRAT2STRING(x)                                \
+  x == 0    ? "Unconfigured"                               \
+  : x == 2  ? "P4"                                         \
+  : x == 12 ? "QED"                                        \
+  : x == 13 ? "Fast Sweep"                                 \
+  : x == 14 ? "Network News"                               \
+  : x == 15 ? "Fast Cancel"                                \
+            : "Unknown"
+
 #define EKA_NIBBLE2CHAR(x)                                 \
   x == 0    ? "0"                                          \
   : x == 1  ? "1"                                          \
@@ -355,14 +364,15 @@ inline std::string ts_ns2str(uint64_t ts) {
 
 // inline bool isStaleData(uint64_t exchTS,
 // 												uint64_t
-// StaleDataNanosecThreshold) { 		uint64_t exchNs = exchTS %
-// 1'000'000'000;
+// StaleDataNanosecThreshold) { 		uint64_t exchNs
+// = exchTS % 1'000'000'000;
 
 // 		auto now =
 // std::chrono::high_resolution_clock::now();
 
 // 		uint64_t sampleTime =
-// std::chrono::duration_cast< 			std::chrono::nanoseconds>
+// std::chrono::duration_cast<
+// std::chrono::nanoseconds>
 // 			(now.time_since_epoch()).count();
 
 // 		uint64_t sampleNs = sampleTime %
@@ -373,8 +383,10 @@ inline std::string ts_ns2str(uint64_t ts) {
 // StaleDataNanosecThreshold) {
 
 // 			EKA_WARN("%s:%u: Stale data: "
-// 							 "exchNs= %s (%ju)
-// sampleNs= %s (%ju)", 							 EKA_EXCH_DECODE(exch),id,
+// 							 "exchNs=
+// %s
+// (%ju) sampleNs= %s (%ju)",
+// EKA_EXCH_DECODE(exch),id,
 // 							 ts_ns2str(exchTS).c_str(),exchNs,
 // 							 ts_ns2str(sampleTime).c_str(),sampleNs);
 // 			return true;
@@ -462,10 +474,10 @@ inline uint64_t nsSinceMidnight() {
   auto midnight = std::chrono::system_clock::from_time_t(
       std::mktime(date));
 
-  return (uint64_t)
-      std::chrono::duration_cast<std::chrono::nanoseconds>(
+  return std::chrono::duration_cast<
+             std::chrono::duration<uint64_t, std::nano>>(
              now - midnight)
-          .count();
+      .count();
 }
 /* -------------------------------------------------------
  */
