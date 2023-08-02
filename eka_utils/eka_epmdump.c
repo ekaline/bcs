@@ -168,6 +168,16 @@ size_t dumpAction(SC_DeviceId devId, void *dst, int region,
   return 64;
 }
 /* --------------------------------------------- */
+void printIgmpPkt(const void *buf, FILE *f) {
+  auto igmpP = reinterpret_cast<const IgmpPkt *>(buf);
+  fprintf(f, "%s %s\n",
+          igmpP->igmpHdr.type == 0x16 ? "IGMP JOIN"
+          : 0x17                      ? "IGMP LEAVE"
+                                      : "IGMP INVALID",
+          EKA_IP2STR(igmpP->igmpHdr.group));
+}
+
+/* --------------------------------------------- */
 
 int main(int argc, char *argv[]) {
   getAttr(argc, argv);
@@ -203,10 +213,14 @@ int main(int argc, char *argv[]) {
   eka_write(devId, 0xf0f00, 0xefa1beda);
   // printf("Dump EPM enabled\n");
 
+  char hexDumpMsg[256] = {};
+  char actionHexDumpMsg[256] = {};
+
   if (actionIdx == -1) {
-    printf("Dumping plain memory: memAddr = %d (0x%x), "
-           "memLen = %d (0x%x)\n",
-           memAddr, memAddr, memLen, memLen);
+    sprintf(hexDumpMsg,
+            "Plain memory: memAddr = %d (0x%x), "
+            "memLen = %d (0x%x)",
+            memAddr, memAddr, memLen, memLen);
   } else {
     auto aMem = new uint8_t[64];
 
@@ -214,20 +228,28 @@ int main(int argc, char *argv[]) {
         actionIdx + EkaEpmRegion::getBaseActionIdx(region);
 
     dumpAction(devId, aMem, region, flatIdx);
-    hexDump("Action Dump", aMem, 64, outFile);
 
     auto a = reinterpret_cast<const epm_action_t *>(aMem);
     bool isValid = a->bit_params.bitmap.action_valid;
-    fprintf(outFile,
-            "%s Acion %d (%d): "
-            "isValid = %u, "
-            "heapOffs = %u, "
-            "heapSize = %u,"
-            "next = %u"
-            "\n",
-            EkaEpmRegion::getRegionName(region), actionIdx,
-            flatIdx, isValid, a->data_db_ptr,
-            a->payloadSize, a->next_action_index);
+    sprintf(
+        actionHexDumpMsg,
+        "%s Action %d (%d): "
+        "isValid = %u, "
+        "heapOffs = %u, "
+        "heapSize = %u,"
+        "Payload and CSum = %s, "
+        "TCP conn = %d:%d, "
+        "next = %d (0x%x) ",
+        EkaEpmRegion::getRegionName(region), actionIdx,
+        flatIdx, isValid, a->data_db_ptr, a->payloadSize,
+        a->tcpCsSizeSource == TcpCsSizeSource::FROM_ACTION
+            ? "FROM_ACTION"
+            : "FROM_DESCR",
+        a->target_core_id, a->target_session_id,
+        (int16_t)a->next_action_index,
+        a->next_action_index);
+
+    hexDump(actionHexDumpMsg, aMem, 64, outFile);
 
     if (isValid &&
         a->data_db_ptr != EkaEpmRegion::getActionHeapOffs(
@@ -246,22 +268,31 @@ int main(int argc, char *argv[]) {
     memAddr = a->data_db_ptr;
     memLen = a->payloadSize;
 
-    printf("Dumping Action %d (%d) with "
-           "heap offs = %d (0x%x), heap size %d (0x%x), "
-           "at region %d \'%s\'\n",
-           actionIdx, flatIdx, memAddr, memAddr, memLen,
-           memLen, region,
-           EkaEpmRegion::getRegionName(region));
+    sprintf(hexDumpMsg,
+            "Action %d (%d) with "
+            "heap offs = %d (0x%x), heap size %d (0x%x), "
+            "at region %d \'%s\'",
+            actionIdx, flatIdx, memAddr, memAddr, memLen,
+            memLen, region,
+            EkaEpmRegion::getRegionName(region));
   }
+  if (memLen) {
+    auto memLen2dump =
+        roundUp<decltype(memLen)>(memLen, 32);
 
-  auto mem = new uint8_t[memLen];
-  if (!mem)
-    on_error("failed allocating mem[%d]", memLen);
+    auto mem = new uint8_t[memLen2dump];
+    if (!mem)
+      on_error("failed allocating mem[%d]", memLen2dump);
 
-  dumpMem(devId, mem, memAddr,
-          roundUp<decltype(memLen)>(memLen, 32));
-  hexDump("Memory Dump", mem, memLen, outFile);
+    dumpMem(devId, mem, memAddr, memLen2dump);
 
+    hexDump(hexDumpMsg, mem, memLen, outFile);
+
+    if (region >= EkaEpmRegion::Regions::EfcMc)
+      printIgmpPkt(mem, outFile);
+
+    delete[] mem;
+  }
   // printf("Dump EPM finished\n");
 
   // Disable EPM dump mode
@@ -276,7 +307,6 @@ int main(int argc, char *argv[]) {
   eka_write(devId, 0xf0020, portEnableOrig);
 
   fclose(outFile);
-  delete[] mem;
 
   return 0;
 }
