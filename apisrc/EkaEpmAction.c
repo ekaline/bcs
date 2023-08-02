@@ -152,7 +152,10 @@ int EkaEpmAction::setHwAction() {
   hwAction_.mask_post_local =
       epmActionLocalCopy_.postLocalMask;
   hwAction_.enable_bitmap = epmActionLocalCopy_.enable;
-  hwAction_.user = epmActionLocalCopy_.user;
+  // for debug dump
+  hwAction_.user =
+      (uint64_t)type_; // epmActionLocalCopy_.user;
+
   hwAction_.token = epmActionLocalCopy_.token;
   hwAction_.tcpCSum = tcpCSum_;
   hwAction_.payloadSize = pktSize_;
