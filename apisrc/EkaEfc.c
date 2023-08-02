@@ -66,26 +66,6 @@ EkaEfc::EkaEfc(const EfcInitCtx *pEfcInitCtx) {
   if (!userReportQ)
     on_error("Failed on new EkaUserReportQ");
 
-  EKA_LOG("Clearing %ju Efc Actions",
-          EkaEpmRegion::NumEfcActions);
-  for (auto i = 0; i < EkaEpmRegion::NumEfcActions; i++) {
-    epm_action_t emptyAction = {};
-
-    auto globalIdx = EkaEpmRegion::getBaseActionIdx(
-                         EkaEpmRegion::Regions::Efc) +
-                     i;
-#if 0
-    copyBuf2Hw(dev_, EkaEpm::EpmActionBase,
-               (uint64_t *)&emptyAction,
-               sizeof(emptyAction));
-    atomicIndirectBufWrite(dev_, 0xf0238, 0, 0, globalIdx,
-                           0);
-#endif
-
-    EkaEpmAction::copyHwActionParams2Fpga(&emptyAction,
-                                          globalIdx);
-  }
-
   // Clearing EHP
   uint8_t mdCores =
       dev_->ekaHwCaps->hwCaps.core.bitmap_md_cores;
@@ -145,8 +125,8 @@ void EkaEfc::initQed(const EfcUdpMcParams *mcParams,
 void EkaEfc::qedSetFireAction(epm_actionid_t fireActionId,
                               int productId) {
   if (!qed_)
-    on_error(
-        "Qed is not initialized. Run efcInitQedStrategy()");
+    on_error("Qed is not initialized. Run "
+             "efcInitQedStrategy()");
   qed_->setFireAction(fireActionId, productId);
 }
 
@@ -181,16 +161,16 @@ void EkaEfc::disarmP4() {
 /* ################################################ */
 void EkaEfc::armQed(EfcArmVer ver) {
   if (!qed_)
-    on_error(
-        "Qed is not initialized. Run efcInitQedStrategy()");
+    on_error("Qed is not initialized. Run "
+             "efcInitQedStrategy()");
   qed_->arm(ver);
 }
 
 /* ################################################ */
 void EkaEfc::disarmQed() {
   if (!qed_)
-    on_error(
-        "Qed is not initialized. Run efcInitQedStrategy()");
+    on_error("Qed is not initialized. Run "
+             "efcInitQedStrategy()");
   qed_->disarm();
 }
 

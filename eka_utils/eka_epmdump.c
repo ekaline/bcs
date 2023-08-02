@@ -191,7 +191,7 @@ static void printIgmpPkt(const void *buf, FILE *f) {
           : 0x17                      ? "IGMP LEAVE"
                                       : "IGMP INVALID",
           EKA_IP2STR(igmpP->igmpHdr.group),
-          EKA_MAC2STR(igmpP->ethHdr.dest));
+          EKA_MAC2STR(igmpP->ethHdr.src));
 }
 
 /* --------------------------------------------- */
@@ -285,35 +285,42 @@ processAction(int region, int actionIdx, char *hexDumpMsg) {
 
   auto actionType = static_cast<EpmActionType>(a->user);
   sprintf(actionHexDumpMsg,
-          "%s %s action %d (%d): "
-          "isValid = %u, "
+          "%s region, \'%s\' (%d) "
+          "action %d (%d): "
+          "%s, "
           "heapOffs = %u, "
           "heapSize = %u,"
-          "Payload and CSum = %s, "
+          "%s, " // PayloadLen/CSum origin
           "TCP conn = %d:%d, "
-          "next = %d (0x%x) ",
+          "next = %d",
           EkaEpmRegion::getRegionName(region),
-          printActionType(actionType), actionIdx, flatIdx,
-          isValid, a->data_db_ptr, a->payloadSize,
+          printActionType(actionType), (int)actionType,
+          actionIdx, flatIdx,
+          isValid ? "Valid" : "Not Valid", a->data_db_ptr,
+          a->payloadSize,
           a->tcpCsSizeSource == TcpCsSizeSource::FROM_ACTION
               ? "FROM_ACTION"
               : "FROM_DESCR",
           a->target_core_id, a->target_session_id,
-          (int16_t)a->next_action_index,
-          a->next_action_index);
+          (int16_t)a->next_action_index);
 
-  hexDump(actionHexDumpMsg, aMem, 64, outFile);
+  fprintf(outFile, "%s\n", actionHexDumpMsg);
+  // hexDump(actionHexDumpMsg, aMem, 64, outFile);
 
   int memAddr = a->data_db_ptr;
   int memLen = a->payloadSize;
 
+#if 0
   sprintf(hexDumpMsg,
-          "Action %d (%d) with "
+          "Heap of %s Action %d (%d) with "
           "heap offs = %d (0x%x), heap size %d (0x%x), "
           "at region %d \'%s\'",
-          actionIdx, flatIdx, memAddr, memAddr, memLen,
-          memLen, region,
+          printActionType(actionType), actionIdx, flatIdx,
+          memAddr, memAddr, memLen, memLen, region,
           EkaEpmRegion::getRegionName(region));
+#endif
+  sprintf(hexDumpMsg, "Heap of %s Action %d",
+          printActionType(actionType), actionIdx);
 
   if (!checkActionParams(region, actionIdx, a))
     on_error("checkActionParams failed for action %d at "

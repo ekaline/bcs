@@ -50,7 +50,22 @@ int EkaEpm::createRegion(int regionId) {
   eka_write(dev, strategyEnableAddr(regionId),
             ALWAYS_ENABLE);
 
+  auto nActions = EkaEpmRegion::getMaxActions(regionId);
+  EKA_LOG("%s: Resetting %d Actions and memory %d..%d",
+          EkaEpmRegion::getRegionName(regionId), nActions,
+          EkaEpmRegion::getBaseHeapOffs(regionId),
+          EkaEpmRegion::getBaseHeapOffs(regionId) +
+              EkaEpmRegion::getHeapSize(regionId) - 1);
+
 #ifndef _VERILOG_SIM
+  for (auto i = 0; i < nActions; i++) {
+    epm_action_t emptyAction = {};
+    auto globalIdx =
+        EkaEpmRegion::getBaseActionIdx(regionId) + i;
+    EkaEpmAction::copyHwActionParams2Fpga(&emptyAction,
+                                          globalIdx);
+  }
+
   initHeap(regionId, 0x0);
 #endif
 

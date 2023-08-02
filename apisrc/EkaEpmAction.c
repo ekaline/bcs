@@ -688,7 +688,6 @@ void EkaEpmAction::updatePayload() {
   /* hexDump("updateAttrs",&epm_->heap[heapOffs_],
               pktSize_); */
   copyHeap2Fpga();
-  copyHwActionParams2Fpga(&hwAction_, globalIdx());
 }
 /* ----------------------------------------------------- */
 
