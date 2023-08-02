@@ -380,9 +380,11 @@ std::pair<int, size_t> processExceptionReport(
         hwEpmReport->nw_arm_report.arm_expected_version;
     //    hexDump("------------\nexceptReport",hwEpmReport,sizeof(*hwEpmReport));
     /* EKA_LOG("P4 ARM=%d, VER=%d", */
-    /* 	    hwEpmReport->p4_arm_report.arm_state,hwEpmReport->p4_arm_report.arm_expected_version); */
+    /* 	    hwEpmReport->p4_arm_report.arm_state,hwEpmReport->p4_arm_report.arm_expected_version);
+     */
     /* EKA_LOG("NW ARM=%d, VER=%d", */
-    /* 	    hwEpmReport->nw_arm_report.arm_state,hwEpmReport->nw_arm_report.arm_expected_version); */
+    /* 	    hwEpmReport->nw_arm_report.arm_state,hwEpmReport->nw_arm_report.arm_expected_version);
+     */
 
     b += pushExceptionReport(++reportIdx, b, &exceptReport);
     break;
@@ -726,6 +728,7 @@ void ekaFireReportThread(EkaDev *dev) {
     //    hexDump("------------\ndmaReportData",payload,dmaReportHdr->length);
 
     uint8_t reportBuf[4000] = {};
+    bool printFireReport = false;
     std::pair<int, size_t> r;
     switch ((EkaUserChannel::DMA_TYPE)dmaReportHdr->type) {
     case EkaUserChannel::DMA_TYPE::SW_TRIGGERED:
@@ -762,6 +765,7 @@ void ekaFireReportThread(EkaDev *dev) {
       r = processFireReport(
           dev, payload, len, efc->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
+      printFireReport = true;
       break;
     default:
       on_error("Unexpected DMA type 0x%x",
@@ -775,46 +779,19 @@ void ekaFireReportThread(EkaDev *dev) {
       on_error("reportLen %jd > sizeof(reportBuf) %jd",
                reportLen, sizeof(reportBuf));
 
-    if (strategyId != EPM_INVALID_STRATEGY) {
-      if (strategyId != EPM_NO_STRATEGY) { // valid strategy
-        if (strategyId != EFC_STRATEGY)
-          on_error("Unexpected strategyId %d", strategyId);
-        auto reportedStrategy{dev->efc};
-        if (!reportedStrategy) {
-          hexDump("Bad Report", reportBuf, reportLen);
-          on_error("!strategy[%d]", strategyId);
-        }
-        if (!reportedStrategy->reportCb)
-          on_error("reportCb is not defined");
-        /*
-              char fireReportStr[16 * 1024] = {};
-              hexDump2str("Fire Report", reportBuf,
-           reportLen, fireReportStr, sizeof(fireReportStr));
-              EKA_LOG("reportCb: %s", fireReportStr);
-        */
-        reportedStrategy->reportCb(reportBuf, reportLen,
-                                   reportedStrategy->cbCtx);
-      } else { // no strategy, as exception
-        if (!dev->pEfcRunCtx)
-          EKA_WARN("dev->pEfcRunCtx is not defined");
-        else if (!dev->pEfcRunCtx->onEfcFireReportCb) {
-          EKA_WARN(
-              "dev->pEfcRunCtx->reportCb is not defined");
-        } else {
-          if ((EkaUserChannel::DMA_TYPE)
-                  dmaReportHdr->type ==
-              EkaUserChannel::DMA_TYPE::FIRE) {
-            char fireReportStr[16 * 1024] = {};
-            hexDump2str("Fire Report", reportBuf, reportLen,
-                        fireReportStr,
-                        sizeof(fireReportStr));
-            EKA_LOG("onEfcFireReportCb: %s", fireReportStr);
-          }
-          dev->pEfcRunCtx->onEfcFireReportCb(
-              reportBuf, reportLen, dev->pEfcRunCtx->cbCtx);
-        }
-      }
+    if (!dev->pEfcRunCtx ||
+        !dev->pEfcRunCtx->onEfcFireReportCb)
+      on_error("dev->pEfcRunCtx || "
+               "pEfcRunCtx->onEfcFireReportCb "
+               "not defined");
+
+    if (printFireReport) {
+      char fireReportStr[16 * 1024] = {};
+      hexDump2str("Fire Report", reportBuf, reportLen,
+                  fireReportStr, sizeof(fireReportStr));
+      EKA_LOG("reportCb: %s", fireReportStr);
     }
+
     epmReportCh->next();
   }
   dev->fireReportThreadTerminated = true;
