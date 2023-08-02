@@ -74,12 +74,16 @@ EkaEfc::EkaEfc(const EfcInitCtx *pEfcInitCtx) {
     auto globalIdx = EkaEpmRegion::getBaseActionIdx(
                          EkaEpmRegion::Regions::Efc) +
                      i;
-
+#if 0
     copyBuf2Hw(dev_, EkaEpm::EpmActionBase,
                (uint64_t *)&emptyAction,
                sizeof(emptyAction));
     atomicIndirectBufWrite(dev_, 0xf0238, 0, 0, globalIdx,
                            0);
+#endif
+
+    EkaEpmAction::copyHwActionParams2Fpga(&emptyAction,
+                                          globalIdx);
   }
 
   // Clearing EHP

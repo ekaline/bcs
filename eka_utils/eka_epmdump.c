@@ -40,6 +40,7 @@ static void printUsage(char *cmd) {
   printf(
       "USAGE: %s <Memory dump or Action dump options> \n",
       cmd);
+  printf("\t-l - List regions config\n");
   printf("\t-b - Memory dump: "
          "EPM Start Address (32B aligned)\n");
   printf("\t-s - Memory dump: "
@@ -56,7 +57,8 @@ static void printUsage(char *cmd) {
 static int getAttr(int argc, char *argv[]) {
 
   int opt;
-  while ((opt = getopt(argc, argv, ":b:s:w:r:a:h")) != -1) {
+  while ((opt = getopt(argc, argv, ":b:s:w:r:a:lh")) !=
+         -1) {
     switch (opt) {
     case 'b':
       memAddr = std::stol(optarg, 0, 0);
@@ -89,6 +91,13 @@ static int getAttr(int argc, char *argv[]) {
             "Failed to open outFile \'%s\' for writing",
             optarg);
       break;
+    case 'l': {
+      char regionsConf[16 * 1024] = {};
+      EkaEpmRegion::printConfig(regionsConf,
+                                sizeof(regionsConf));
+      printf("%s", regionsConf);
+      exit(1);
+    } break;
     case 'h':
       printUsage(argv[0]);
       exit(1);
@@ -144,10 +153,25 @@ size_t dumpMem(SC_DeviceId devId, void *dst, int startAddr,
 
   return len;
 }
+/* --------------------------------------------- */
+size_t dumpAction(SC_DeviceId devId, void *dst, int region,
+                  int flatIdx) {
+  const int BlockSize = 64;
+  const int WordSize = 8;
 
+  uint64_t *wrPtr = (uint64_t *)dst;
+
+  eka_write(devId, 0xf0100, flatIdx);
+  for (auto j = 0; j < BlockSize / WordSize; j++)
+    *wrPtr++ = eka_read(devId, 0x70000 + j * 8);
+
+  return 64;
+}
 /* --------------------------------------------- */
 
 int main(int argc, char *argv[]) {
+  getAttr(argc, argv);
+
   SC_DeviceId devId = SC_OpenDevice(NULL, NULL);
   if (!devId)
     on_error("Cannot open Smartnic Device");
@@ -162,56 +186,93 @@ int main(int argc, char *argv[]) {
 
   signal(SIGINT, INThandler);
 
-  getAttr(argc, argv);
-
   // Remember original port enable
   uint64_t portEnableOrig = eka_read(devId, 0xf0020);
+#if 0
   printf("Original portEnableOrig = 0x%jx\n",
          portEnableOrig);
+#endif
 
   // Disable HW parser
   eka_write(devId, 0xf0020,
             (portEnableOrig & 0xffffffffffffff00));
   uint64_t portEnableNew = eka_read(devId, 0xf0020);
-  printf("New portEnableNew = 0x%jx\n", portEnableNew);
+  // printf("New portEnableNew = 0x%jx\n", portEnableNew);
 
   // Enable EPM dump mode
   eka_write(devId, 0xf0f00, 0xefa1beda);
-  printf("Dump EPM enabled\n");
+  // printf("Dump EPM enabled\n");
 
   if (actionIdx == -1) {
     printf("Dumping plain memory: memAddr = %d (0x%x), "
            "memLen = %d (0x%x)\n",
            memAddr, memAddr, memLen, memLen);
   } else {
+    auto aMem = new uint8_t[64];
 
-    memAddr =
-        EkaEpmRegion::getActionHeapOffs(region, actionIdx);
-    memLen = EkaEpmRegion::getActionHeapBudget(region);
+    int flatIdx =
+        actionIdx + EkaEpmRegion::getBaseActionIdx(region);
 
-    printf("Dumping Action %d with "
-           "heap offs = %d (0x%x), heap size %d (0x%x)"
+    dumpAction(devId, aMem, region, flatIdx);
+    hexDump("Action Dump", aMem, 64, outFile);
+
+    auto a = reinterpret_cast<const epm_action_t *>(aMem);
+    bool isValid = a->bit_params.bitmap.action_valid;
+    fprintf(outFile,
+            "%s Acion %d (%d): "
+            "isValid = %u, "
+            "heapOffs = %u, "
+            "heapSize = %u,"
+            "next = %u"
+            "\n",
+            EkaEpmRegion::getRegionName(region), actionIdx,
+            flatIdx, isValid, a->data_db_ptr,
+            a->payloadSize, a->next_action_index);
+
+    if (isValid &&
+        a->data_db_ptr != EkaEpmRegion::getActionHeapOffs(
+                              region, actionIdx))
+      on_error("heapOffs %u != Expected %u", a->data_db_ptr,
+               EkaEpmRegion::getActionHeapOffs(region,
+                                               actionIdx));
+
+    if (isValid &&
+        a->payloadSize >
+            EkaEpmRegion::getActionHeapBudget(region))
+      on_error("heapSize %u > Expected limit %u",
+               a->payloadSize,
+               EkaEpmRegion::getActionHeapBudget(region));
+
+    memAddr = a->data_db_ptr;
+    memLen = a->payloadSize;
+
+    printf("Dumping Action %d (%d) with "
+           "heap offs = %d (0x%x), heap size %d (0x%x), "
            "at region %d \'%s\'\n",
-           actionIdx, memAddr, memAddr, memLen, memLen,
-           region, EkaEpmRegion::getRegionName(region));
+           actionIdx, flatIdx, memAddr, memAddr, memLen,
+           memLen, region,
+           EkaEpmRegion::getRegionName(region));
   }
 
   auto mem = new uint8_t[memLen];
   if (!mem)
     on_error("failed allocating mem[%d]", memLen);
 
-  dumpMem(devId, mem, memAddr, memLen);
+  dumpMem(devId, mem, memAddr,
+          roundUp<decltype(memLen)>(memLen, 32));
   hexDump("Memory Dump", mem, memLen, outFile);
 
-  printf("Dump EPM finished\n");
+  // printf("Dump EPM finished\n");
 
   // Disable EPM dump mode
   eka_write(devId, 0xf0f00, 0x0);
-  printf("Dump EPM disabled\n");
+  // printf("Dump EPM disabled\n");
 
-  // Return original port enable
+// Return original port enable
+#if 0
   printf("Reconfiguring original portEnableOrig = 0x%jx\n",
          portEnableOrig);
+#endif
   eka_write(devId, 0xf0020, portEnableOrig);
 
   fclose(outFile);

@@ -158,16 +158,33 @@ int EkaEpmAction::setHwAction() {
   hwAction_.payloadSize = pktSize_;
   hwAction_.tcpCsSizeSource = setTcpCsSizeSource(type_);
 
+#if 0
   copyBuf2Hw(dev_, EkaEpm::EpmActionBase,
              (uint64_t *)&hwAction_,
              sizeof(hwAction_)); // write to scratchpad
   atomicIndirectBufWrite(dev_, 0xf0238 /* ActionAddr */, 0,
                          0, globalIdx(), 0);
+#endif
+
+  copyHwActionParams2Fpga(&hwAction_, globalIdx());
 
   print("setHwAction");
   printHwAction();
   return 0;
 }
+/* ---------------------------------------------------- */
+void EkaEpmAction::copyHwActionParams2Fpga(
+    const epm_action_t *params, uint actionGlobalIdx) {
+
+  const uint64_t BufAddr = 0x89000;
+  const uint64_t DescrAddr = 0xf0238;
+  copyBuf2Hw(g_ekaDev, BufAddr, (uint64_t *)params,
+             sizeof(*params)); // write to scratchpad
+
+  atomicIndirectBufWrite(g_ekaDev, DescrAddr, 0, 0,
+                         actionGlobalIdx, 0);
+}
+
 /* ---------------------------------------------------- */
 void EkaEpmAction::printHeap() {
   EKA_LOG("heapOffs_ = %u 0x%x", heapOffs_, heapOffs_);
@@ -517,11 +534,12 @@ int EkaEpmAction::setNwHdrs(uint8_t *macDa, uint8_t *macSa,
   return 0;
 }
 /* ----------------------------------------------------- */
+#if 0
 uint64_t EkaEpmAction::actionAddr() {
   return EkaEpm::EpmActionBase +
          idx_ * EkaEpm::ActionBudget;
 }
-
+#endif
 /* ----------------------------------------------------- */
 void EkaEpmAction::setTcpSess(EkaTcpSess *tcpSess) {
   if (!tcpSess)
@@ -667,6 +685,7 @@ void EkaEpmAction::updatePayload() {
   /* hexDump("updateAttrs",&epm_->heap[heapOffs_],
               pktSize_); */
   copyHeap2Fpga();
+  copyHwActionParams2Fpga(&hwAction_, globalIdx());
 }
 /* ----------------------------------------------------- */
 
@@ -681,6 +700,7 @@ int EkaEpmAction::preloadFullPkt(const void *buf,
 
   memcpy(&epm_->heap[heapOffs_], buf, pktSize_);
   copyHeap2Fpga();
+  copyHwActionParams2Fpga(&hwAction_, globalIdx());
 
   return 0;
 }
@@ -799,8 +819,10 @@ int EkaEpmAction::fastSend(const void *buf, uint len) {
 void EkaEpmAction::print(const char *msg) {
   EKA_LOG("%s: %s, region=%u, idx=%u "
           "heapOffs_=0x%x,   "
-          "actionAddr=0x%jx, pktSize_=%u,  ",
+          //"actionAddr=0x%jx, "
+          "pktSize_=%u,  ",
           msg, name_.c_str(), regionId_, idx_, heapOffs_,
-          actionAddr(), pktSize_);
+          //          actionAddr(),
+          pktSize_);
 }
 /* ----------------------------------------------------- */
