@@ -147,12 +147,12 @@ size_t dumpMem(SC_DeviceId devId, void *dst, int startAddr,
 
 /* --------------------------------------------- */
 size_t dumpAction(SC_DeviceId devId, void *dst, int region,
-                  int actionIdx) {
+                  int aIdx) {
   const int BlockSize = 64;
   const int WordSize = 8;
 
   int flatIdx =
-      actionIdx + EkaEpmRegion::getBaseActionIdx(region);
+      aIdx + EkaEpmRegion::getBaseActionIdx(region);
 
   uint64_t *wrPtr = (uint64_t *)dst;
 

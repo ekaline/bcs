@@ -76,7 +76,7 @@ private:
   uint globalIdx() {
     return EkaEpmRegion::getBaseActionIdx(regionId_) + idx_;
   }
-  uint64_t actionAddr();
+  // uint64_t actionAddr();
 
 public:
   inline void copyHeap2Fpga() {
@@ -91,6 +91,9 @@ public:
                                      regionId_, tcpCSum_);
   }
   /* ------------------------------------------------ */
+
+  static void copyHwActionParams2Fpga(const epm_action_t *,
+                                      uint actionGlobalIdx);
 
 public:
 private:
