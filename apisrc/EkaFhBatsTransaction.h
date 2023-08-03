@@ -42,8 +42,9 @@ public:
       on_error("pushing to valid TOB buf");
 
 #if 0
-    TEST_LOG("%s, %ju, TOB buf hit", ts_ns2str(ts).c_str(),
-             seq);
+    if (s_.valid_ && s_.hasSameSec(s))
+      TEST_LOG("%s, %ju, TOB buf hit",
+               ts_ns2str(ts).c_str(), seq);
 #endif
     s_.set(s, seq, ts);
     return;
