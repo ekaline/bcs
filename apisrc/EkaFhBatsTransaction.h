@@ -29,11 +29,35 @@ public:
   inline void close() { active_ = false; }
   /* -------------------------------------------- */
 
+  inline void invalidate() { s_.valid_ = false; }
+  /* -------------------------------------------- */
+  inline bool isValid() { return s_.valid_; }
+  /* -------------------------------------------- */
   inline bool isActive() { return active_; }
   /* -------------------------------------------- */
 
-  inline void pushSecurityCtx(SecurityT *s, uint64_t seq,
-                              uint64_t ts) {
+  inline void pushTob(SecurityT *s, uint64_t seq,
+                      uint64_t ts) {
+    if (s_.valid_ && !s_.hasSameSec(s))
+      on_error("pushing to valid TOB buf");
+
+#if 0
+    TEST_LOG("%s, %ju, TOB buf hit", ts_ns2str(ts).c_str(),
+             seq);
+#endif
+    s_.set(s, seq, ts);
+    return;
+  }
+  /* -------------------------------------------- */
+  inline SecurityT *getSecPtr() { return s_.secPtr_; }
+  /* -------------------------------------------- */
+  inline uint64_t getSecTs() { return s_.ts_; }
+  /* -------------------------------------------- */
+  inline uint64_t getSecSeq() { return s_.seq_; }
+  /* -------------------------------------------- */
+
+  inline void pushTob__old(SecurityT *s, uint64_t seq,
+                           uint64_t ts) {
     for (size_t i = 0; i < nPendingSecurities_; i++) {
       if (m_[i].hasSameSec(s)) {
         // exclude from the middle and append
@@ -59,19 +83,21 @@ public:
 
 private:
   /* -------------------------------------------- */
-  class SecurityCtx {
+  class TobCtx {
   public:
     inline void set(SecurityT *s, uint64_t seq,
                     uint64_t ts) {
       secPtr_ = s;
       seq_ = seq;
       ts_ = ts;
+      valid_ = true;
     }
 
-    inline void copyContent(const SecurityCtx *d) {
+    inline void copyContent(const TobCtx *d) {
       secPtr_ = d->secPtr_;
       seq_ = d->seq_;
       ts_ = d->ts_;
+      valid_ = true;
     }
 
     inline bool hasSameSec(const SecurityT *secPtr) {
@@ -81,15 +107,18 @@ private:
     SecurityT *secPtr_;
     uint64_t seq_;
     uint64_t ts_;
+    bool valid_ = false;
   };
   /* -------------------------------------------- */
 
-  static const size_t MAX_PENDING_SECURITIES = 512;
+  static const size_t MAX_PENDING_SECURITIES = 64;
   bool active_ = false;
 
 public:
-  SecurityCtx m_[MAX_PENDING_SECURITIES] = {};
+  TobCtx m_[MAX_PENDING_SECURITIES] = {};
   size_t nPendingSecurities_ = 0;
+
+  TobCtx s_ = {};
 };
 
 #endif

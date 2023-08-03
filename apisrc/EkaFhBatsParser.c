@@ -45,37 +45,20 @@ bool EkaFhBatsGr::parseMsg(
   if (op == EkaFhMode::SNAPSHOT &&
       enc == MsgId::SYMBOL_MAPPING)
     return false;
-  switch (enc) {
-  case MsgId::ADD_ORDER_LONG:
-  case MsgId::ADD_ORDER_SHORT:
-  case MsgId::ADD_ORDER_EXPANDED:
-  case MsgId::ORDER_EXECUTED:
-  case MsgId::ORDER_EXECUTED_AT_PRICE_SIZE:
-  case MsgId::REDUCED_SIZE_LONG:
-  case MsgId::REDUCED_SIZE_SHORT:
-  case MsgId::ORDER_MODIFY_LONG:
-  case MsgId::ORDER_MODIFY_SHORT:
-  case MsgId::ORDER_DELETE:
-  case MsgId::TRADE_LONG:
-  case MsgId::TRADE_SHORT:
-  case MsgId::TRADE_EXPANDED:
-  case MsgId::TRADING_STATUS:
 
-  case MsgId::AUCTION_UPDATE:
-  case MsgId::OPTIONS_AUCTION_UPDATE:
-  case MsgId::AUCTION_NOTIFICATION:
-  case MsgId::AUCTION_CANCEL:
+  if (msgHasTimestamp(enc))
     msg_timestamp =
         seconds + ((const GenericHeader *)m)->time;
+
+  bool tsChanged = (grTs_ != msg_timestamp);
+  grTs_ = msg_timestamp;
+
+  if (tsChanged)
+    flushTobBuf(pEfhRunCtx);
 
     /* if (state == GrpState::NORMAL) */
     /*   checkTimeDiff(dev->deltaTimeLogFile,dev->midnightSystemClock,msg_timestamp,sequence);
      */
-
-    break;
-  default: {
-  }
-  }
 
 #ifdef _PCAP_TEST_
   eka_print_msg(parser_log, (uint8_t *)m, id, sequence,
@@ -117,34 +100,12 @@ bool EkaFhBatsGr::parseMsg(
     return process_Definition(pEfhRunCtx, m, sequence, op);
     //--------------------------------------------------------------
   case MsgId::TRANSACTION_BEGIN: {
-    if (useTransactions && op == EkaFhMode::MCAST &&
-        trCtx_) {
-#if 0
-      TEST_LOG("%s:%u: TRANSACTION_BEGIN",
-               EKA_EXCH_DECODE(exch), id);
-#endif
 
-      trCtx_->open();
-    }
     return false;
   }
     //--------------------------------------------------------------
   case MsgId::TRANSACTION_END: {
-    if (useTransactions && op == EkaFhMode::MCAST &&
-        trCtx_) {
-#if 0
-      TEST_LOG("%s:%u: TRANSACTION_END: flushing out %ju "
-               "securities TOB updates",
-               EKA_EXCH_DECODE(exch), id,
-               trCtx_->nPendingSecurities_);
-#endif
-      for (size_t i = 0; i < trCtx_->nPendingSecurities_;
-           i++)
-        book->generateOnQuote(
-            pEfhRunCtx, trCtx_->m_[i].secPtr_,
-            trCtx_->m_[i].seq_, trCtx_->m_[i].ts_, gapNum);
-      trCtx_->close();
-    }
+
     return false;
   }
     //--------------------------------------------------------------
@@ -596,12 +557,16 @@ bool EkaFhBatsGr::parseMsg(
   // s->option_open = market_open;
   s->option_open = true;
 
+  bool secChanged = (s != prevSec_);
+  prevSec_ = s;
+
+  if (secChanged)
+    flushTobBuf(pEfhRunCtx);
+
   if (!book->isEqualState(s)) {
     if (useTransactions && op == EkaFhMode::MCAST &&
-        trCtx_ && trCtx_->isActive()) {
-
-      trCtx_->pushSecurityCtx(s, sequence, msg_timestamp);
-
+        trCtx_) {
+      trCtx_->pushTob(s, sequence, msg_timestamp);
     } else {
       book->generateOnQuote(pEfhRunCtx, s, sequence,
                             msg_timestamp, gapNum,

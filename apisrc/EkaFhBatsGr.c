@@ -26,6 +26,7 @@ bool EkaFhBatsGr::processUdpPkt(
     uint msgInPkt, uint64_t seq,
     std::chrono::high_resolution_clock::time_point
         startTime) {
+
   uint indx = sizeof(sequenced_unit_header);
   uint64_t sequence = seq;
   for (uint msg = 0; msg < msgInPkt; msg++) {
@@ -42,6 +43,9 @@ bool EkaFhBatsGr::processUdpPkt(
 
     indx += msg_len;
   }
+
+  flushTobBuf(pEfhRunCtx);
+
   return false;
 }
 

@@ -104,10 +104,6 @@ public:
     return 0;
   }
 
-private:
-  /* ################################################################
-   */
-
 public:
   static const uint16_t GrpReqLimit =
       100; // max messages per GRP request
@@ -158,6 +154,11 @@ public:
 
   using TransactionCtx = EkaFhBatsTransaction<FhSecurity>;
   TransactionCtx *trCtx_ = nullptr;
+  /* ################################################ */
+private:
+  uint64_t grTs_ = 0;
+  FhSecurity *prevSec_ = nullptr;
+  /* ################################################ */
 
 private:
   int sendMdCb(const EfhRunCtx *pEfhRunCtx,
@@ -204,5 +205,42 @@ private:
   SecurityT *process_AuctionNotification(
       const EfhRunCtx *pEfhRunCtx, uint64_t sequence,
       uint64_t msg_timestamp, const uint8_t *m);
+
+  /* ------------------------------------------------ */
+  inline void flushTobBuf(const EfhRunCtx *pEfhRunCtx) {
+    if (!trCtx_->isValid())
+      return;
+
+    book->generateOnQuote(pEfhRunCtx, trCtx_->getSecPtr(),
+                          trCtx_->getSecSeq(),
+                          trCtx_->getSecTs(), gapNum);
+    trCtx_->invalidate();
+
+#if 0
+      TEST_LOG("%s:%u: Flushing out %ju "
+               "securities TOB updates",
+               EKA_EXCH_DECODE(exch), id,
+               trCtx_->nPendingSecurities_);
+#endif
+  }
+  /* ------------------------------------------------ */
+
+  inline void
+  flushTobBuf__old(const EfhRunCtx *pEfhRunCtx) {
+    if (useTransactions && trCtx_) {
+#if 0
+      TEST_LOG("%s:%u: Flushing out %ju "
+               "securities TOB updates",
+               EKA_EXCH_DECODE(exch), id,
+               trCtx_->nPendingSecurities_);
+#endif
+      for (size_t i = 0; i < trCtx_->nPendingSecurities_;
+           i++)
+        book->generateOnQuote(
+            pEfhRunCtx, trCtx_->m_[i].secPtr_,
+            trCtx_->m_[i].seq_, trCtx_->m_[i].ts_, gapNum);
+      trCtx_->reset();
+    }
+  }
 };
 #endif
