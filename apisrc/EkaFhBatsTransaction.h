@@ -36,12 +36,12 @@ public:
   inline bool isActive() { return active_; }
   /* -------------------------------------------- */
   inline std::string secId2str(const void *secIdPtr) {
-    auto p = reinterpret_cast<const uint8_t *>(secIdPtr);
+    auto p = reinterpret_cast<const char *>(secIdPtr);
     std::string res = {};
-    for (auto i = 0; i < sizeof(SecurityT); i++) {
-      if (*p == '\0')
+    for (auto i = 7; i >= 0; i--) {
+      if (*(p + i) == '\0')
         continue;
-      res += *p;
+      res += *(p + i);
     }
     return res;
   }
