@@ -35,6 +35,18 @@ public:
   /* -------------------------------------------- */
   inline bool isActive() { return active_; }
   /* -------------------------------------------- */
+  inline std::string secId2str(const void *secIdPtr) {
+    auto p = reinterpret_cast<const uint8_t *>(secIdPtr);
+    std::string res = {};
+    for (auto i = 0; i < sizeof(SecurityT); i++) {
+      if (*p == '\0')
+        continue;
+      res += *p;
+    }
+    return res;
+  }
+
+  /* -------------------------------------------- */
 
   inline void pushTob(SecurityT *s, uint64_t seq,
                       uint64_t ts) {
@@ -43,8 +55,12 @@ public:
 
 #if 0
     if (s_.valid_ && s_.hasSameSec(s))
-      TEST_LOG("%s, %ju, TOB buf hit",
-               ts_ns2str(ts).c_str(), seq);
+      TEST_LOG("TOB buf hit: %s, %ju, %s "
+               "-- %s, %ju, %s",
+               ts_ns2str(ts).c_str(), seq,
+               secId2str(&s->secId).c_str(),
+               ts_ns2str(s_.ts_).c_str(), s_.seq_,
+               secId2str(&s_.secPtr_->secId).c_str());
 #endif
     s_.set(s, seq, ts);
     return;
