@@ -267,6 +267,18 @@ bool checkActionParams(int region, int actionIdx,
 }
 
 /* --------------------------------------------- */
+static EpmActionType
+getActionTypeFromUser(uint64_t actionUser) {
+  return static_cast<EpmActionType>((actionUser >> 16) &
+                                    0xFF);
+}
+/* --------------------------------------------- */
+static uint32_t
+getActionGlobalIdxFromUser(uint64_t actionUser) {
+  return static_cast<uint32_t>(actionUser & 0xFFFF);
+}
+
+/* --------------------------------------------- */
 static std::pair<int, int>
 processAction(int region, int actionIdx, char *hexDumpMsg) {
   auto aMem = new uint8_t[64];
@@ -283,7 +295,13 @@ processAction(int region, int actionIdx, char *hexDumpMsg) {
 
   char actionHexDumpMsg[256] = {};
 
-  auto actionType = static_cast<EpmActionType>(a->user);
+  auto actionType = getActionTypeFromUser(a->user);
+
+  if (flatIdx != getActionGlobalIdxFromUser(a->user))
+    on_error(
+        "flatIdx  %u != getActionGlobalIdxFromUser() %u",
+        flatIdx, getActionGlobalIdxFromUser(a->user));
+
   sprintf(actionHexDumpMsg,
           "%s region, \'%s\' (%d) "
           "action %d (%d): "

@@ -136,6 +136,18 @@ setTcpCsSizeSource(EpmActionType type) {
   }
 }
 /* ---------------------------------------------------- */
+static uint64_t hwActionUserField(uint32_t idx,
+                                  EkaEpm::ActionType type) {
+  if (idx & 0xFFFF0000)
+    on_error("action Idx %u is too high", idx);
+
+  if (static_cast<uint32_t>(type) & 0xFFFFFF00)
+    on_error("action type %u is too high", type);
+
+  return ((static_cast<uint32_t>(type) & 0xFF) << 16) |
+         (idx & 0xFFFF);
+}
+/* ---------------------------------------------------- */
 int EkaEpmAction::setHwAction() {
   hwAction_.bit_params = actionBitParams_;
   hwAction_.tcpcs_template_db_ptr = epmTemplate_->id;
@@ -153,8 +165,8 @@ int EkaEpmAction::setHwAction() {
       epmActionLocalCopy_.postLocalMask;
   hwAction_.enable_bitmap = epmActionLocalCopy_.enable;
   // for debug dump
-  hwAction_.user =
-      (uint64_t)type_; // epmActionLocalCopy_.user;
+  hwAction_.user = hwActionUserField(
+      idx_, type_); // epmActionLocalCopy_.user;
 
   hwAction_.token = epmActionLocalCopy_.token;
   hwAction_.tcpCSum = tcpCSum_;
