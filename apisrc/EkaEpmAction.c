@@ -142,7 +142,7 @@ static uint64_t hwActionUserField(uint32_t idx,
     on_error("action Idx %u is too high", idx);
 
   if (static_cast<uint32_t>(type) & 0xFFFFFF00)
-    on_error("action type %u is too high", type);
+    on_error("action type %u is too high", (uint)type);
 
   return ((static_cast<uint32_t>(type) & 0xFF) << 16) |
          (idx & 0xFFFF);
@@ -166,7 +166,7 @@ int EkaEpmAction::setHwAction() {
   hwAction_.enable_bitmap = epmActionLocalCopy_.enable;
   // for debug dump
   hwAction_.user = hwActionUserField(
-      idx_, type_); // epmActionLocalCopy_.user;
+      globalIdx(), type_); // epmActionLocalCopy_.user;
 
   hwAction_.token = epmActionLocalCopy_.token;
   hwAction_.tcpCSum = tcpCSum_;

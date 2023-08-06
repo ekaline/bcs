@@ -129,15 +129,15 @@ static int getAttr(int argc, char *argv[]) {
 }
 /* --------------------------------------------- */
 
-static void eka_write(uint64_t addr, uint64_t val) {
+static void snWrite(uint64_t addr, uint64_t val) {
   if (SC_ERR_SUCCESS !=
       SC_WriteUserLogicRegister(devId, addr / 8, val))
     on_error("SN_Write(0x%jx,0x%jx) returned smartnic "
              "error code : %d",
              addr, val, SC_GetLastErrorCode());
 }
-
-static uint64_t eka_read(uint64_t addr) {
+#if 1
+static uint64_t snRead(uint64_t addr) {
   uint64_t res;
   if (SC_ERR_SUCCESS !=
       SN_ReadUserLogicRegister(devId, addr / 8, &res))
@@ -146,7 +146,7 @@ static uint64_t eka_read(uint64_t addr) {
         addr, SC_GetLastErrorCode());
   return res;
 }
-
+#endif
 /* --------------------------------------------- */
 static size_t dumpMem(void *dst, int startAddr,
                       size_t len) {
@@ -162,9 +162,9 @@ static size_t dumpMem(void *dst, int startAddr,
   uint64_t *wrPtr = (uint64_t *)dst;
 
   for (auto block = 0; block < nBlocks; block++) {
-    eka_write(0xf0100, blockAddr++);
+    snWrite(0xf0100, blockAddr++);
     for (auto j = 0; j < BlockSize / WordSize; j++)
-      *wrPtr++ = eka_read(0x80000 + j * 8);
+      *wrPtr++ = snRead(0x80000 + j * 8);
   }
 
   return len;
@@ -177,9 +177,9 @@ static size_t dumpAction(void *dst, int region,
 
   uint64_t *wrPtr = (uint64_t *)dst;
 
-  eka_write(0xf0100, flatIdx);
+  snWrite(0xf0100, flatIdx);
   for (auto j = 0; j < BlockSize / WordSize; j++)
-    *wrPtr++ = eka_read(0x70000 + j * 8);
+    *wrPtr++ = snRead(0x70000 + j * 8);
 
   return 64;
 }
@@ -208,19 +208,19 @@ static void checkHwCompat(const char *utilityName) {
 /* --------------------------------------------- */
 static uint64_t configEpmDump() {
   // Remember original port enable
-  uint64_t portEnableOrig = eka_read(0xf0020);
+  uint64_t portEnableOrig = snRead(0xf0020);
 #if 0
   printf("Original portEnableOrig = 0x%jx\n",
          portEnableOrig);
 #endif
 
   // Disable HW parser
-  eka_write(0xf0020, (portEnableOrig & 0xffffffffffffff00));
-  uint64_t portEnableNew = eka_read(0xf0020);
+  snWrite(0xf0020, (portEnableOrig & 0xffffffffffffff00));
+  uint64_t portEnableNew = snRead(0xf0020);
   // printf("New portEnableNew = 0x%jx\n", portEnableNew);
 
   // Enable EPM dump mode
-  eka_write(0xf0f00, 0xefa1beda);
+  snWrite(0xf0f00, 0xefa1beda);
   // printf("Dump EPM enabled\n");
 
   return portEnableOrig;
@@ -231,7 +231,7 @@ static void restorePrevConf(uint64_t origConf) {
   // printf("Dump EPM finished\n");
 
   // Disable EPM dump mode
-  eka_write(0xf0f00, 0x0);
+  snWrite(0xf0f00, 0x0);
 // printf("Dump EPM disabled\n");
 
 // Return original port enable
@@ -239,7 +239,7 @@ static void restorePrevConf(uint64_t origConf) {
   printf("Reconfiguring original portEnableOrig = 0x%jx\n",
          portEnableOrig);
 #endif
-  eka_write(0xf0020, origConf);
+  snWrite(0xf0020, origConf);
 }
 /* --------------------------------------------- */
 bool checkActionParams(int region, int actionIdx,
@@ -297,11 +297,6 @@ processAction(int region, int actionIdx, char *hexDumpMsg) {
 
   auto actionType = getActionTypeFromUser(a->user);
 
-  if (flatIdx != getActionGlobalIdxFromUser(a->user))
-    on_error(
-        "flatIdx  %u != getActionGlobalIdxFromUser() %u",
-        flatIdx, getActionGlobalIdxFromUser(a->user));
-
   sprintf(actionHexDumpMsg,
           "%s region, \'%s\' (%d) "
           "action %d (%d): "
@@ -324,6 +319,13 @@ processAction(int region, int actionIdx, char *hexDumpMsg) {
 
   fprintf(outFile, "%s\n", actionHexDumpMsg);
   // hexDump(actionHexDumpMsg, aMem, 64, outFile);
+
+  if (flatIdx != getActionGlobalIdxFromUser(a->user))
+    on_error(
+        "flatIdx %u != getActionGlobalIdxFromUser() %u, "
+        "user =0x%016jx",
+        flatIdx, getActionGlobalIdxFromUser(a->user),
+        a->user);
 
   int memAddr = a->data_db_ptr;
   int memLen = a->payloadSize;

@@ -240,10 +240,11 @@ inline void eka_write(EkaDev *dev, uint64_t addr,
 
   return dev->eka_write(addr, val);
 }
-
+#if 1
 inline uint64_t eka_read(EkaDev *dev, uint64_t addr) {
   return dev->eka_read(addr);
 }
+#endif
 
 inline bool eka_is_all_zeros(const void *buf,
                              ssize_t size) {

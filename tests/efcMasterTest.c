@@ -43,6 +43,8 @@
 #include "EfcMasterTestConfig.h"
 #include "EfcP4CboeTestCtx.h"
 
+#define MASK32 0xffffffff
+
 class TestCase;
 
 void configureP4Test(EfcCtx *pEfcCtx, TestCase *t);
@@ -233,11 +235,28 @@ public:
 
     return bufLen;
   }
+  /* --------------------------------------------- */
+
+  static std::pair<uint32_t, uint32_t>
+  getP4stratStatistics(uint64_t fireStatisticsAddr) {
+    uint64_t var_p4_cont_counter1 =
+        eka_read(fireStatisticsAddr);
+
+    auto strategyRuns =
+        (var_p4_cont_counter1 >> 0) & MASK32;
+    auto strategyPassed =
+        (var_p4_cont_counter1 >> 32) & MASK32;
+
+    return std::pair<uint32_t, uint32_t>{strategyRuns,
+                                         strategyPassed};
+  }
+  /* --------------------------------------------- */
 
   EfcArmVer
   sendPktToAllMcGrps(const void *pkt, size_t pktLen,
                      ArmControllerCb armControllerCb,
-                     EfcCtx *pEfcCtx, EfcArmVer armVer) {
+                     EfcCtx *pEfcCtx, EfcArmVer armVer,
+                     uint64_t fireStatisticsAddr) {
     if (!armControllerCb)
       on_error("!armControllerCb");
 
@@ -249,8 +268,19 @@ public:
           on_error("!udpConn_[%d][%d]", coreId, i);
 
         armControllerCb(pEfcCtx, nextArmVer++);
+        auto [strategyRuns_prev, strategyPassed_prev] =
+            getP4stratStatistics(fireStatisticsAddr);
+
         udpConn_[coreId][i]->sendUdpPkt(pkt, pktLen);
-        sleep(1);
+
+        bool fired = false;
+        while (keep_work && !fired) {
+          auto [strategyRuns_post, strategyPassed_post] =
+              getP4stratStatistics(fireStatisticsAddr);
+
+          fired = (strategyRuns_post != strategyRuns_prev);
+          std::this_thread::yield();
+        }
       }
     return nextArmVer;
   }
@@ -370,6 +400,7 @@ public:
       stratCtx_ = new EfcP4CboeTestCtx;
       armController_ = efcArmP4;
       disArmController_ = efcDisArmP4;
+      FireStatisticsAddr_ = 0xf0340;
 
       break;
     case TestStrategy::Qed:
@@ -377,6 +408,9 @@ public:
       runTest_ = runQedTest;
       armController_ = efcArmQed;
       disArmController_ = efcDisArmQed;
+
+      FireStatisticsAddr_ = 0xf0818;
+
       break;
     default:
       on_error("Unexpected Test Strategy %d",
@@ -414,6 +448,7 @@ public:
   TestUdpCtx *udpCtx_ = nullptr;
   TestTcpCtx *tcpCtx_ = nullptr;
   EfcStratTestCtx *stratCtx_ = nullptr;
+  uint64_t FireStatisticsAddr_ = 0;
 
   PrepareTestConfigCb prepareTestConfig_;
   RunTestCb runTest_;
@@ -857,7 +892,7 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 
     p4ArmVer = t->udpCtx_->sendPktToAllMcGrps(
         pktBuf, pktLen, t->armController_, pEfcCtx,
-        p4ArmVer);
+        p4ArmVer, t->FireStatisticsAddr_);
   }
 #endif
 
@@ -877,7 +912,7 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 
     p4ArmVer = t->udpCtx_->sendPktToAllMcGrps(
         pktBuf, pktLen, t->armController_, pEfcCtx,
-        p4ArmVer);
+        p4ArmVer, t->FireStatisticsAddr_);
   }
 #endif
 
@@ -925,7 +960,7 @@ bool runQedTest(EfcCtx *pEfcCtx, TestCase *t) {
 
     qedArmVer = t->udpCtx_->sendPktToAllMcGrps(
         pktBuf, pktLen, t->armController_, pEfcCtx,
-        qedArmVer);
+        qedArmVer, t->FireStatisticsAddr_);
 
     // usleep(300000);
   }
@@ -962,10 +997,6 @@ int main(int argc, char *argv[]) {
   for (auto t : testCase) {
     configureFpgaPorts(dev, t);
     t->tcpCtx_->connectAll();
-
-    // createTcpServ(dev, t);
-    // tcpConnect(dev, &t.tcpParams_);
-    // bindUdpSock(t);
   }
 
   // ==============================================
@@ -997,7 +1028,7 @@ int main(int argc, char *argv[]) {
     t->runTest_(pEfcCtx, t);
 
 #ifndef _VERILOG_SIM
-  sleep(2);
+  // sleep(2);
   if (dontQuit)
     EKA_LOG("--Test finished, ctrl-c to end---");
   else {
@@ -1005,7 +1036,7 @@ int main(int argc, char *argv[]) {
     keep_work = false;
   }
   while (keep_work) {
-    sleep(0);
+    std::this_thread::yield();
   }
 #endif
 
