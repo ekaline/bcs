@@ -277,7 +277,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
       break;
     case MDUpdateAction_T::Delete:
       tobChange = s->deletePlevel(side,
-				  e->MDPriceLevel);     
+				  e->MDPriceLevel);
       break;
     case MDUpdateAction_T::DeleteThru:
     case MDUpdateAction_T::DeleteFrom:
@@ -751,8 +751,9 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
     return msgHdr->size;
   }
 
-  msg.strikePrice           = rootBlock->StrikePrice / strikePriceFactor;
-  
+  msg.strikePrice = replaceIntNullWith<PRICENULL9_T>(
+      rootBlock->StrikePrice, rootBlock->StrikePrice / strikePriceFactor, 0);
+
   if (msg.commonDef.opaqueAttrB < 3)
     print_MDInstrumentDefinitionOption55(pMsg);
 
