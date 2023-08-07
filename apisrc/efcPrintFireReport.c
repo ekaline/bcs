@@ -93,7 +93,7 @@ inline size_t printExceptionReport(FILE *file,
 /* ##################################################  */
 size_t printSecurityCtx(FILE *file, const uint8_t *b) {
   auto secCtxReport{reinterpret_cast<const SecCtx *>(b)};
-  fprintf(file, "SecurityCtx:");
+  fprintf(file, "SecurityCtx:\n");
   fprintf(file, "\tlowerBytesOfSecId = 0x%x \n",
           secCtxReport->lowerBytesOfSecId);
   fprintf(file, "\taskSize = %u\n", secCtxReport->askSize);
@@ -113,22 +113,15 @@ size_t printSecurityCtx(FILE *file, const uint8_t *b) {
 /* ##################################################  */
 size_t printMdReport(FILE *file, const uint8_t *b) {
   auto mdReport{reinterpret_cast<const EfcMdReport *>(b)};
-  fprintf(file, "MdReport:");
+  fprintf(file, "MdReport:\n");
   fprintf(file, "\tMdCoreId = %u\n", mdReport->core_id);
   fprintf(file, "\tGroup = %hhu\n", mdReport->group_id);
   fprintf(file, "\tSequence no = %ju\n",
           intmax_t(mdReport->sequence));
   fprintf(
-      file, "\tSID = 0x%02x%02x%02x%02x%02x%02x%02x%02x\n",
-      (uint8_t)((mdReport->security_id >> 7 * 8) & 0xFF),
-      (uint8_t)((mdReport->security_id >> 6 * 8) & 0xFF),
-      (uint8_t)((mdReport->security_id >> 5 * 8) & 0xFF),
-      (uint8_t)((mdReport->security_id >> 4 * 8) & 0xFF),
-      (uint8_t)((mdReport->security_id >> 3 * 8) & 0xFF),
-      (uint8_t)((mdReport->security_id >> 2 * 8) & 0xFF),
-      (uint8_t)((mdReport->security_id >> 1 * 8) & 0xFF),
-      (uint8_t)((mdReport->security_id >> 0 * 8) & 0xFF));
-  fprintf(file, "\tSide = %c\n",
+      file, "\tSID = %s\n",
+      cboeSecIdString(&mdReport->security_id, 8).c_str());
+  fprintf(file, "\tSide = \'%c\'\n",
           mdReport->side == 1 ? 'B'
           : 2                 ? 'S'
                               : 'X');
@@ -145,12 +138,12 @@ int printBoeFire(FILE *file, const uint8_t *b) {
       reinterpret_cast<const BoeQuoteUpdateShortMsg *>(
           b + sizeof(EkaEthHdr) + sizeof(EkaIpHdr) +
           sizeof(EkaTcpHdr))};
-  fprintf(file, "Fired BoeQuoteUpdateShortMsg:");
+  fprintf(file, "Fired BoeQuoteUpdateShortMsg:\n");
 
   fprintf(file, "\tHWinsertedSeq=%.8s\n",
           fireMsg->QuoteUpdateID_seq);
   fprintf(file, "\tSymbol=\'%s\' (0x%016jx)\n",
-          cboeSecIdString(fireMsg->Symbol, 8).c_str(),
+          cboeSecIdString(fireMsg->Symbol, 6).c_str(),
           *(uint64_t *)fireMsg->Symbol);
   fprintf(file, "\tSide=\'%c\'\n",
           fireMsg->Side == 1 ? 'B'

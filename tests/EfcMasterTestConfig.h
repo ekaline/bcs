@@ -106,6 +106,7 @@ struct TestCaseConfig {
   TestStrategy strat;
   EfcUdpMcParams mcParams;
   TestTcpParams tcpParams;
+  bool loop; // endless loop
 };
 
 struct TestScenarioConfig {
@@ -136,6 +137,10 @@ const TestScenarioConfig scenarios[] = {
 
     {"P4_0_01",
      {{TestStrategy::P4, core0_1mc, tcp01},
+      {TestStrategy::Invalid, {}, {}}}},
+
+    {"P4_0_01_looped",
+     {{TestStrategy::P4, core0_1mc, tcp01, true},
       {TestStrategy::Invalid, {}, {}}}},
 
     {"Qed_0__P4_1",

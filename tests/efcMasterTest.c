@@ -335,6 +335,11 @@ public:
              be16toh(serverAddr.sin_port));
   }
 
+  void set1stSeqNum(uint64_t seq) {
+    efcSetSessionCntr(g_ekaDev, hCon_, seq);
+    return;
+  }
+
   void sendTestPkt() {
     char pkt[1500] = {};
     sprintf(pkt,
@@ -382,6 +387,7 @@ public:
 
       tcpSess_[i]->createTcpServ();
       tcpSess_[i]->connect();
+      tcpSess_[i]->set1stSeqNum(i * 1000);
     }
   }
 
@@ -426,6 +432,7 @@ public:
     if (!tcpCtx_)
       on_error("failed on new TestTcpCtx()");
 
+    loop_ = tc->loop;
     print("Created");
   }
 
@@ -449,6 +456,7 @@ public:
   TestTcpCtx *tcpCtx_ = nullptr;
   EfcStratTestCtx *stratCtx_ = nullptr;
   uint64_t FireStatisticsAddr_ = 0;
+  bool loop_ = false;
 
   PrepareTestConfigCb prepareTestConfig_;
   RunTestCb runTest_;
@@ -880,47 +888,48 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
   // ==============================================
 
   uint32_t sequence = 32;
-
+  const int LoopIterations = t->loop_ ? 1000 : 1;
+  for (auto i = 0; i < LoopIterations; i++) {
 #if 1
-  {
-    // efcArmP4(pEfcCtx, p4ArmVer++);
-    char pktBuf[1500] = {};
-    auto secCtx = &p4TestCtx->security[2];
+    {
+      // efcArmP4(pEfcCtx, p4ArmVer++);
+      char pktBuf[1500] = {};
+      auto secCtx = &p4TestCtx->security[2];
 
-    const char *mdSecId = secCtx->id;
-    auto mdSide = SideT::ASK;
-    auto mdPrice = secCtx->askMaxPrice - 1;
-    auto mdSize = secCtx->size;
+      const char *mdSecId = secCtx->id;
+      auto mdSide = SideT::ASK;
+      auto mdPrice = secCtx->askMaxPrice - 1;
+      auto mdSize = secCtx->size;
 
-    auto pktLen = p4TestCtx->createOrderExpanded(
-        pktBuf, mdSecId, mdSide, mdPrice, mdSize, true);
+      auto pktLen = p4TestCtx->createOrderExpanded(
+          pktBuf, mdSecId, mdSide, mdPrice, mdSize, true);
 
-    p4ArmVer = t->udpCtx_->sendPktToAllMcGrps(
-        pktBuf, pktLen, t->armController_, pEfcCtx,
-        p4ArmVer, t->FireStatisticsAddr_);
-  }
+      p4ArmVer = t->udpCtx_->sendPktToAllMcGrps(
+          pktBuf, pktLen, t->armController_, pEfcCtx,
+          p4ArmVer, t->FireStatisticsAddr_);
+    }
 #endif
 
 #if 1
-  {
-    efcArmP4(pEfcCtx, p4ArmVer++);
-    char pktBuf[1500] = {};
-    auto secCtx = &p4TestCtx->security[2];
+    {
+      efcArmP4(pEfcCtx, p4ArmVer++);
+      char pktBuf[1500] = {};
+      auto secCtx = &p4TestCtx->security[3];
 
-    const char *mdSecId = secCtx->id;
-    auto mdSide = SideT::BID;
-    auto mdPrice = secCtx->bidMinPrice + 1;
-    auto mdSize = secCtx->size;
+      const char *mdSecId = secCtx->id;
+      auto mdSide = SideT::BID;
+      auto mdPrice = secCtx->bidMinPrice + 1;
+      auto mdSize = secCtx->size;
 
-    auto pktLen = p4TestCtx->createOrderExpanded(
-        pktBuf, mdSecId, mdSide, mdPrice, mdSize, true);
+      auto pktLen = p4TestCtx->createOrderExpanded(
+          pktBuf, mdSecId, mdSide, mdPrice, mdSize, true);
 
-    p4ArmVer = t->udpCtx_->sendPktToAllMcGrps(
-        pktBuf, pktLen, t->armController_, pEfcCtx,
-        p4ArmVer, t->FireStatisticsAddr_);
-  }
+      p4ArmVer = t->udpCtx_->sendPktToAllMcGrps(
+          pktBuf, pktLen, t->armController_, pEfcCtx,
+          p4ArmVer, t->FireStatisticsAddr_);
+    }
 #endif
-
+  }
   // ==============================================
   t->disArmController_(pEfcCtx);
   TEST_LOG("\n"
