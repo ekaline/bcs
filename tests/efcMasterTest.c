@@ -66,12 +66,6 @@ volatile bool serverSet = false;
 volatile bool rxClientReady = false;
 
 volatile bool triggerGeneratorDone = false;
-
-static const int MaxFireEvents = 10000;
-static volatile EpmFireReport *FireEvent[MaxFireEvents] =
-    {};
-static volatile int numFireEvents = 0;
-
 static const uint64_t FireEntryHeapSize = 256;
 
 bool runEfh = false;
@@ -81,6 +75,25 @@ bool dontQuit = false;
 const TestScenarioConfig *sc = nullptr;
 bool exitBeforeDevInit = false;
 
+std::vector<const void *> fireReport = {};
+std::atomic<int> nReceivedFireReports = 0;
+int nExpectedFireReports = 0;
+
+/* --------------------------------------------- */
+
+void getFireReport(const void *p, size_t len, void *ctx) {
+  auto containerHdr{
+      reinterpret_cast<const EkaContainerGlobalHdr *>(p)};
+  if (containerHdr->type == EkaEventType::kExceptionEvent)
+    return;
+  auto buf = new uint8_t[len];
+  if (!buf)
+    on_error("!buf");
+  memcpy(buf, p, len);
+  fireReport.push_back(buf);
+  nReceivedFireReports++;
+  return;
+}
 /* --------------------------------------------- */
 static void tcpServer(const char *ip, uint16_t port,
                       int *sock, bool *serverSet) {
@@ -256,7 +269,8 @@ public:
   sendPktToAllMcGrps(const void *pkt, size_t pktLen,
                      ArmControllerCb armControllerCb,
                      EfcCtx *pEfcCtx, EfcArmVer armVer,
-                     uint64_t fireStatisticsAddr) {
+                     uint64_t fireStatisticsAddr,
+                     int nFiresPerUdp) {
     if (!armControllerCb)
       on_error("!armControllerCb");
 
@@ -272,9 +286,11 @@ public:
             getP4stratStatistics(fireStatisticsAddr);
 
         udpConn_[coreId][i]->sendUdpPkt(pkt, pktLen);
-
+        nExpectedFireReports += nFiresPerUdp;
         bool fired = false;
-        while (keep_work && !fired) {
+        while (keep_work && !fired &&
+               nExpectedFireReports !=
+                   nReceivedFireReports.load()) {
           auto [strategyRuns_post, strategyPassed_post] =
               getP4stratStatistics(fireStatisticsAddr);
 
@@ -521,7 +537,8 @@ void printUsage(char *cmd) {
       "\t--report_only <Report Only ON>\n"
       "\t--dont_quit <Dont quit at the end>\n"
 
-      "\t--exitBeforeDevInit to run init stage on non-FPGA "
+      "\t--exitBeforeDevInit to run init stage on "
+      "non-FPGA "
       "server"
       "\n",
       cmd);
@@ -630,15 +647,6 @@ void createTestCases(const TestScenarioConfig *sc) {
   }
 }
 /* --------------------------------------------- */
-
-static void cleanFireEvents() {
-  for (auto i = 0; i < numFireEvents; i++) {
-    free((void *)FireEvent[i]);
-    FireEvent[i] = NULL;
-  }
-  numFireEvents = 0;
-  return;
-}
 
 /* --------------------------------------------- */
 
@@ -888,11 +896,11 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
   // ==============================================
 
   uint32_t sequence = 32;
-  const int LoopIterations = t->loop_ ? 1000 : 1;
+  const int LoopIterations = t->loop_ ? 10000 : 1;
   for (auto i = 0; i < LoopIterations; i++) {
 #if 1
     {
-      // efcArmP4(pEfcCtx, p4ArmVer++);
+      efcArmP4(pEfcCtx, p4ArmVer);
       char pktBuf[1500] = {};
       auto secCtx = &p4TestCtx->security[2];
 
@@ -906,13 +914,14 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 
       p4ArmVer = t->udpCtx_->sendPktToAllMcGrps(
           pktBuf, pktLen, t->armController_, pEfcCtx,
-          p4ArmVer, t->FireStatisticsAddr_);
+          p4ArmVer, t->FireStatisticsAddr_,
+          t->tcpCtx_->nTcpSess_);
     }
 #endif
 
 #if 1
     {
-      efcArmP4(pEfcCtx, p4ArmVer++);
+      efcArmP4(pEfcCtx, p4ArmVer);
       char pktBuf[1500] = {};
       auto secCtx = &p4TestCtx->security[3];
 
@@ -926,7 +935,8 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 
       p4ArmVer = t->udpCtx_->sendPktToAllMcGrps(
           pktBuf, pktLen, t->armController_, pEfcCtx,
-          p4ArmVer, t->FireStatisticsAddr_);
+          p4ArmVer, t->FireStatisticsAddr_,
+          t->tcpCtx_->nTcpSess_);
     }
 #endif
   }
@@ -974,7 +984,8 @@ bool runQedTest(EfcCtx *pEfcCtx, TestCase *t) {
 
     qedArmVer = t->udpCtx_->sendPktToAllMcGrps(
         pktBuf, pktLen, t->armController_, pEfcCtx,
-        qedArmVer, t->FireStatisticsAddr_);
+        qedArmVer, t->FireStatisticsAddr_,
+        t->tcpCtx_->nTcpSess_);
 
     // usleep(300000);
   }
@@ -1027,7 +1038,8 @@ int main(int argc, char *argv[]) {
     on_error("efcInit returned %d", (int)rc);
 
   EfcRunCtx runCtx = {};
-  runCtx.onEfcFireReportCb = efcPrintFireReport;
+  // runCtx.onEfcFireReportCb = efcPrintFireReport;
+  runCtx.onEfcFireReportCb = getFireReport;
   runCtx.cbCtx = stdout;
   // ==============================================
   for (auto t : testCase)
@@ -1065,5 +1077,8 @@ int main(int argc, char *argv[]) {
 
   ekaDevClose(dev);
   // sleep(1);
+
+  TEST_LOG("Received %ju fire reports",
+           std::size(fireReport));
   return 0;
 }

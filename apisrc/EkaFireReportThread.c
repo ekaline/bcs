@@ -789,7 +789,7 @@ void ekaFireReportThread(EkaDev *dev) {
       char fireReportStr[16 * 1024] = {};
       hexDump2str("Fire Report", reportBuf, reportLen,
                   fireReportStr, sizeof(fireReportStr));
-      EKA_LOG("reportCb: %s", fireReportStr);
+      // EKA_LOG("reportCb: %s", fireReportStr);
     }
     dev->pEfcRunCtx->onEfcFireReportCb(
         reportBuf, reportLen, dev->pEfcRunCtx->cbCtx);
