@@ -7,7 +7,7 @@
 #include "eka_macros.h"
 #include "EfhMsgs.h"
 
-#define EFH_CME_PRICE_SCALE  1'000'000'000L // PRICENULL9 (1e9)
+constexpr int64_t EFH_CME_PRICE_SCALE = 1'000'000'000L; // PRICENULL9 (1e9)
 
 static_assert(EFH_CME_PRICE_SCALE >= EFH__PRICE_SCALE);
 constexpr int64_t CMEPriceFactor = EFH_CME_PRICE_SCALE / EFH__PRICE_SCALE;
