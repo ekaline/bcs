@@ -407,7 +407,7 @@ efcCmeFcSetFireAction(EfcCtx *pEfcCtx,
 
 EkaOpResult efcArmCmeFc(EfcCtx *pEfcCtx, EfcArmVer ver);
 
-EkaOpResult efcDisArmQCmeFc(EfcCtx *pEfcCtx);
+EkaOpResult efcDisArmCmeFc(EfcCtx *pEfcCtx);
 /* --------------------------------------------------- */
 
 #ifdef __cplusplus

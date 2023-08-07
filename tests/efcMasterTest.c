@@ -187,12 +187,14 @@ public:
   }
 
   ssize_t sendUdpPkt(const void *pkt, size_t pktLen) {
+#if 0
     char pktBufStr[8192] = {};
     hexDump2str("UdpPkt", pkt, pktLen, pktBufStr,
                 sizeof(pktBufStr));
     TEST_LOG("Sending pkt\n%s\n to %s:%u", pktBufStr,
              EKA_IP2STR(mcDst_.sin_addr.s_addr),
              be16toh(mcDst_.sin_port));
+#endif
     auto rc =
         sendto(udpSock_, pkt, pktLen, 0,
                (const sockaddr *)&mcDst_, sizeof(sockaddr));
@@ -939,6 +941,12 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
           t->tcpCtx_->nTcpSess_);
     }
 #endif
+    for (auto i = 0; i < t->tcpCtx_->nTcpSess_; i++) {
+      char rxBuf[8192] = {};
+      int rc = recv(t->tcpCtx_->tcpSess_[i]->servSock_,
+                    rxBuf, sizeof(rxBuf), 0);
+    }
+    //   usleep(1000);
   }
   // ==============================================
   t->disArmController_(pEfcCtx);
