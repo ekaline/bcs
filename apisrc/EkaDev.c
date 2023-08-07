@@ -21,6 +21,7 @@
 #include "EkaSnDev.h"
 #include "EkaUdpChannel.h"
 #include "EkaUserChannel.h"
+#include "EkaUserReportQ.h"
 #include "EkaWc.h"
 #include "eka_hw_conf.h"
 
@@ -64,7 +65,27 @@ uint32_t getIfIp(const char *ifName);
 void ekaServThread(EkaDev *dev);
 void ekaTcpRxThread(EkaDev *dev);
 
-/* ################################################## */
+/* #####################################################################
+ */
+static EfhFeedVer feedVer(int hwFeedVer) {
+  switch (hwFeedVer) {
+  case SN_NASDAQ:
+    return EfhFeedVer::kNASDAQ;
+  case SN_MIAX:
+    return EfhFeedVer::kMIAX;
+  case SN_PHLX:
+    return EfhFeedVer::kPHLX;
+  case SN_GEMX:
+    return EfhFeedVer::kGEMX;
+  case SN_CBOE:
+    return EfhFeedVer::kCBOE;
+  default:
+    return EfhFeedVer::kInvalid;
+  }
+}
+
+/* #####################################################################
+ */
 
 static void str_time_from_nano(uint64_t current_time,
                                char *time_str) {
@@ -83,7 +104,8 @@ static void str_time_from_nano(uint64_t current_time,
           micro, nano);
   return;
 }
-/* ################################################## */
+/* #####################################################################
+ */
 
 /* static uint64_t getFpgaTimeCycles () { // ignores
  * Application - PCIe - FPGA latency */
@@ -101,7 +123,8 @@ static void str_time_from_nano(uint64_t current_time,
 /*   return current_time_cycles; */
 /* } */
 
-/* ################################################## */
+/* #####################################################################
+ */
 
 EkaDev::EkaDev(const EkaDevInitCtx *initCtx) {
   exc_inited = false;
@@ -150,8 +173,8 @@ EkaDev::EkaDev(const EkaDevInitCtx *initCtx) {
 
   ekaHwCaps = new EkaHwCaps(snDev->dev_id);
 
-  if (!ekaHwCaps)
-    on_error("!ekaHwCaps");
+  if (ekaHwCaps == NULL)
+    on_error("ekaHwCaps == NULL");
 
   ekaHwCaps->print();
   ekaHwCaps->check();
@@ -228,6 +251,11 @@ EkaDev::EkaDev(const EkaDevInitCtx *initCtx) {
   assert(pEfcRunCtx != NULL);
   pEfcRunCtx = {};
 
+  /* pEfcRunCtx->onEkaExceptionReportCb =
+   * (OnEkaExceptionReportCb) efhDefaultOnException; */
+  /* pEfcRunCtx->onEfcFireReportCb      =
+   * (OnEfcFireReportCb)      efcDefaultOnFireReportCb; */
+
   EKA_LOG("EKALINE2 LIB BUILD TIME: %s @ %s", __DATE__,
           __TIME__);
   EKA_LOG("EKALINE2 LIB GIT: %s",
@@ -248,7 +276,8 @@ EkaDev::EkaDev(const EkaDevInitCtx *initCtx) {
 
 #endif
 }
-/* ################################################## */
+/* #####################################################################
+ */
 bool EkaDev::initEpmTx() {
   // clearing interrupts, App Seq, etc.
   eka_write(STAT_CLEAR, (uint64_t)1);
@@ -295,6 +324,10 @@ bool EkaDev::initEpmTx() {
   EKA_LOG("Turning off tcprx = 0x%016jx", fire_rx_tx_en);
   eka_write(ENABLE_PORT, fire_rx_tx_en);
 
+  userReportQ = new EkaUserReportQ(this);
+  if (!userReportQ)
+    on_error("Failed on new EkaUserReportQ");
+
   servThreadActive = false;
   servThread = std::thread(ekaServThread, this);
   servThread.detach();
@@ -313,7 +346,8 @@ bool EkaDev::initEpmTx() {
   return true;
 }
 
-/* ################################################## */
+/* #####################################################################
+ */
 bool EkaDev::checkAndSetEpmTx() {
   if (!dev)
     on_error("!dev");
@@ -329,7 +363,8 @@ bool EkaDev::checkAndSetEpmTx() {
   }
   return true;
 }
-/* ################################################## */
+/* #####################################################################
+ */
 
 bool EkaDev::openEpm() {
   ekaHwCaps->checkEpm();
@@ -350,7 +385,8 @@ bool EkaDev::openEpm() {
   return true;
 }
 
-/* ################################################## */
+/* #####################################################################
+ */
 
 static void set_time(EkaDev *dev) { // ignores Application -
                                     // PCIe - FPGA latency
@@ -367,7 +403,8 @@ static void set_time(EkaDev *dev) { // ignores Application -
   EKA_LOG("setting HW time to %s", t_str);
   return;
 }
-/* ################################################## */
+/* #####################################################################
+ */
 
 int EkaDev::configurePort(const EkaCoreInitCtx *pCoreInit) {
   const EkaCoreId c = pCoreInit->coreId;
@@ -444,7 +481,8 @@ int EkaDev::configurePort(const EkaCoreInitCtx *pCoreInit) {
 
 uint8_t EkaDev::getNumFh() { return numFh; }
 
-/* ################################################## */
+/* #####################################################################
+ */
 
 EkaDev::~EkaDev() {
   TEST_LOG("shutting down...");
@@ -537,7 +575,8 @@ EkaDev::~EkaDev() {
 
   delete snDev;
 }
-/* ################################################## */
+/* #####################################################################
+ */
 
 EkaTcpSess *EkaDev::findTcpSess(uint32_t srcIp,
                                 uint16_t srcPort,
@@ -553,7 +592,8 @@ EkaTcpSess *EkaDev::findTcpSess(uint32_t srcIp,
   }
   return NULL;
 }
-/* ################################################## */
+/* #####################################################################
+ */
 
 EkaTcpSess *EkaDev::findTcpSess(int sock) {
   for (uint c = 0; c < MAX_CORES; c++) {
@@ -565,12 +605,14 @@ EkaTcpSess *EkaDev::findTcpSess(int sock) {
   }
   return NULL;
 }
-/* ################################################## */
+/* #####################################################################
+ */
 
 EkaTcpSess *EkaDev::getControlTcpSess(EkaCoreId coreId) {
   return core[coreId]->tcpSess[MAX_SESS_PER_CORE];
 }
-/* ################################################## */
+/* #####################################################################
+ */
 
 EkaCoreId EkaDev::findCoreByMacSa(const uint8_t *macSa) {
   for (EkaCoreId c = 0; c < MAX_CORES; c++) {
@@ -581,18 +623,21 @@ EkaCoreId EkaDev::findCoreByMacSa(const uint8_t *macSa) {
   }
   return 0xFF; // NO CORE FOUND
 }
-/* ################################################## */
+/* #####################################################################
+ */
 
 /* void     EkaDev::eka_write(uint64_t addr, uint64_t val) {
  */
 /*   snDev->write(addr, val);  */
 /* } */
-/* ################################################## */
+/* #####################################################################
+ */
 
 /* uint64_t EkaDev::eka_read(uint64_t addr) {  */
 /*   return snDev->read(addr);  */
 /* } */
-/* ################################################## */
+/* #####################################################################
+ */
 
 int EkaDev::clearHw() {
   //  eka_write(STAT_CLEAR   ,(uint64_t) 1); // Clearing HW

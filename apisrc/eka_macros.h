@@ -319,18 +319,18 @@ inline uint64_t nsSinceMidnight() {
   date->tm_sec = 0;
   auto midnight = std::chrono::system_clock::from_time_t(std::mktime(date));
 
-  return (uint64_t) std::chrono::duration_cast<std::chrono::nanoseconds>(now-midnight).count();
+  return std::chrono::duration_cast<std::chrono::duration<uint64_t, std::nano>>(now-midnight).count();
 }
 /* ------------------------------------------------------- */
 static inline bool isTradingHours(int startHour, int startMinute,
-																	int endHour, int endMinute) {
+                                  int endHour, int endMinute) {
   time_t rawtime;
-  time (&rawtime);
-  struct tm * ct = localtime (&rawtime);
+  time(&rawtime);
+  struct tm * ct = localtime(&rawtime);
   if ((ct->tm_hour > startHour ||
-			 (ct->tm_hour == startHour && ct->tm_min > startMinute)) &&
+      (ct->tm_hour == startHour && ct->tm_min > startMinute)) &&
       (ct->tm_hour < endHour   ||
-			 (ct->tm_hour == endHour && ct->tm_min < endMinute ))
+      (ct->tm_hour == endHour && ct->tm_min < endMinute ))
       ) {
     return true;
   }

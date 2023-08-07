@@ -8,8 +8,7 @@
 #include "EkaFhOrder.h"
 #include "EkaFhPlevel.h"
 
-/* #######################################################
- */
+/* ################################################### */
 
 template <const uint SCALE, const uint SEC_HASH_SCALE,
           class FhSecurity, class FhPlevel, class FhOrder,
@@ -24,20 +23,17 @@ public:
   /* using FhOrder      = EkaFhFbOrder     < OrderIdT,
    * SizeT>; */
 
-  /* #######################################################
-   */
+  /* ################################################## */
 
   EkaFhFullBook(EkaDev *_dev, EkaLSI _grId, EkaSource _exch)
       : EkaFhBook(_dev, _grId, _exch) {}
-  /* #######################################################
-   */
+  /* ################################################## */
 
   int init() {
     allocateResources();
     return 0;
   }
-  /* #######################################################
-   */
+  /* ################################################## */
   virtual ~EkaFhFullBook() {
     EKA_LOG("%s:%u: Deleting Book", EKA_EXCH_DECODE(exch),
             grId);
@@ -66,8 +62,7 @@ public:
     //   }
     // }
   }
-  /* #######################################################
-   */
+  /* ################################################## */
 
   void printPlevel(FhPlevel *p, const char *msg,
                    std::FILE *file = stdout) {
@@ -81,8 +76,7 @@ public:
     if (p->side != SideT::ASK && p->side != SideT::BID)
       on_error("bad side");
   }
-  /* #######################################################
-   */
+  /* ################################################## */
   void printSecurity(FhSecurity *s,
                      std::FILE *file = stdout) {
     fprintf(file, "%ju :\n", (uint64_t)s->secId);
@@ -97,8 +91,7 @@ public:
     fprintf(file, "###############\n");
   }
 
-  /* #######################################################
-   */
+  /* ################################################## */
 
   void printAll(std::FILE *file = stdout) {
     for (uint i = 0; i < SEC_HASH_LINES; i++) {
@@ -108,8 +101,7 @@ public:
       }
     }
   }
-  /* #######################################################
-   */
+  /* ################################################## */
 
   void printStats() {
     EKA_LOG("%s:%u: FullBook, orders=%d/%ju (max=%d), "
@@ -119,8 +111,7 @@ public:
             MAX_PLEVELS, maxNumPlevels);
   }
 
-  /* #######################################################
-   */
+  /* ################################################## */
 
   inline FhSecurity *findSecurity(SecurityIdT secId) {
     uint32_t index = secId & SEC_HASH_MASK;
@@ -139,8 +130,7 @@ public:
 
     return NULL;
   }
-  /* #######################################################
-   */
+  /* ################################################## */
 
   inline FhSecurity *
   subscribeSecurity(SecurityIdT secId, EfhSecurityType type,
@@ -180,8 +170,7 @@ public:
     }
   }
 
-  /* #######################################################
-   */
+  /* ################################################## */
   inline FhOrder *findOrder(OrderIdT orderId) {
     uint32_t index = getOrderHashIdx(orderId);
     FhOrder *o = ord[index];
@@ -204,8 +193,7 @@ public:
     return NULL;
   }
 
-  /* #######################################################
-   */
+  /* ################################################## */
 
   inline FhOrder *addOrder(FhSecurity *s, OrderIdT _orderId,
                            FhOrderType _type, PriceT _price,
@@ -227,8 +215,7 @@ public:
     return o;
   }
 
-  /* #######################################################
-   */
+  /* ################################################## */
 
   inline int modifyOrder(FhOrder *o, PriceT price,
                          SizeT size) {
@@ -272,8 +259,7 @@ public:
     }
     return 0;
   }
-  /* #######################################################
-   */
+  /* ################################################## */
   inline int deleteOrder(FhOrder *o) {
     if (o == NULL)
       EKA_WARN("o == NULL for GR%u", grId);
@@ -303,8 +289,7 @@ public:
     releaseOrder(o);
     return 0;
   }
-  /* #######################################################
-   */
+  /* ################################################## */
   inline int reduceOrderSize(FhOrder *o, SizeT deltaSize) {
     if (o->size < deltaSize)
       EKA_WARN("o->size %d < deltaSize %d", (int)o->size,
@@ -313,8 +298,7 @@ public:
     o->size -= deltaSize;
     return o->size;
   }
-  /* #######################################################
-   */
+  /* ################################################## */
   inline int invalidate() {
     int secCnt = 0;
     //    int ordCnt = 0;
@@ -366,8 +350,7 @@ public:
             EKA_EXCH_DECODE(exch), grId);
     return 0;
   }
-  /* #######################################################
-   */
+  /* ################################################## */
   inline int generateOnQuote(
       const EfhRunCtx *pEfhRunCtx, FhSecurity *s,
       uint64_t sequence, uint64_t timestamp, uint gapNum,
@@ -472,8 +455,7 @@ public:
 #endif
     return 0;
   }
-  /* #######################################################
-   */
+  /* ################################################## */
 
   inline int setSecurityPrevState(FhSecurity *s) {
     prevTradingAction = s->trading_action;
@@ -491,8 +473,7 @@ public:
     return 0;
   }
 
-  /* #######################################################
-   */
+  /* ################################################## */
   inline bool isEqualState(FhSecurity *s) {
     FhPlevel *topBid = s->bid;
     FhPlevel *topAsk = s->ask;
@@ -516,11 +497,9 @@ public:
 
     return true;
   }
-  /* #######################################################
-   */
+  /* ################################################## */
 private:
-  /* #######################################################
-   */
+  /* ################################################## */
   inline uint32_t getOrderHashIdx(OrderIdT orderId) const {
     uint32_t idx = orderId & ORDERS_HASH_MASK;
     if (idx >= ORDERS_HASH_LINES)
@@ -530,8 +509,7 @@ private:
                ORDERS_HASH_LINES);
     return idx;
   }
-  /* #######################################################
-   */
+  /* ################################################## */
   inline FhPlevel *getNewPlevel() {
     if (numPlevels++ == MAX_PLEVELS)
       on_error("%s:%u: out of preallocated FhPlevels: "
@@ -549,8 +527,7 @@ private:
     p->reset();
     return p;
   }
-  /* #######################################################
-   */
+  /* ################################################## */
   inline FhOrder *getNewOrder() {
     if (++numOrders == MAX_ORDERS)
       on_error("%s:%u: out of preallocated FhOrders: "
@@ -567,8 +544,7 @@ private:
     freeOrders--;
     return o;
   }
-  /* #######################################################
-   */
+  /* ################################################## */
   inline int releasePlevel(FhPlevel *p) {
     if (p == NULL)
       EKA_WARN("p == NULL");
@@ -583,8 +559,7 @@ private:
     return 0;
   }
 
-  /* #######################################################
-   */
+  /* ################################################## */
   inline int deletePlevel(FhPlevel *p) {
     /* TEST_LOG("%s %u %s %u cust_size=%u, bd_size=%u,
      * p->next=%p", */
@@ -651,8 +626,7 @@ private:
     return 0;
   }
 
-  /* #######################################################
-   */
+  /* ################################################## */
   inline int releaseOrder(FhOrder *o) {
     if (o == NULL)
       EKA_WARN("o == NULL");
@@ -668,8 +642,7 @@ private:
     freeOrders++;
     return 0;
   }
-  /* #######################################################
-   */
+  /* ################################################## */
   inline int deleteOrderFromHash(OrderIdT orderId) {
     uint32_t index = getOrderHashIdx(orderId);
     if (ord[index] == NULL)
@@ -693,8 +666,7 @@ private:
     }
     return 0;
   }
-  /* #######################################################
-   */
+  /* ################################################## */
   inline int addOrder2Hash(FhOrder *o) {
     if (o == NULL)
       EKA_WARN("o==NULL");
@@ -715,8 +687,7 @@ private:
 
     return 0;
   }
-  /* #######################################################
-   */
+  /* ################################################## */
   inline FhPlevel *findOrAddPlevel(FhSecurity *s,
                                    PriceT _price,
                                    SideT _side) {
@@ -745,8 +716,7 @@ private:
     on_error("place to insert Plevel not found");
     return NULL;
   }
-  /* #######################################################
-   */
+  /* ################################################## */
   inline FhPlevel *addPlevelAfterTob(FhSecurity *s,
                                      PriceT _price,
                                      SideT _side) {
@@ -781,8 +751,7 @@ private:
     //    printPlevel(newP,"addPlevelAfterTob:");
     return newP;
   }
-  /* #######################################################
-   */
+  /* ################################################## */
   inline FhPlevel *addPlevelAfterP(FhSecurity *s,
                                    FhPlevel *p,
                                    PriceT _price) {
@@ -812,8 +781,7 @@ private:
 
     return newP;
   }
-  /* #######################################################
-   */
+  /* ################################################## */
   int carvePlevels() {
     EKA_LOG("%s:%u: carving Plevels array",
             EKA_EXCH_DECODE(exch), grId);
@@ -831,8 +799,7 @@ private:
     freePlevels = MAX_PLEVELS;
     return 0;
   }
-  /* #######################################################
-   */
+  /* ################################################## */
   int carveOrders() {
     EKA_LOG("%s:%u: carving Orders array",
             EKA_EXCH_DECODE(exch), grId);
@@ -850,8 +817,7 @@ private:
     freeOrders = MAX_ORDERS;
     return 0;
   }
-  /* #######################################################
-   */
+  /* ################################################## */
   int allocateResources() {
 
     EKA_LOG(
@@ -903,8 +869,7 @@ private:
     return 0;
   }
 
-  /* #######################################################
-   */
+  /* ################################################## */
 
   //----------------------------------------------------------
 
