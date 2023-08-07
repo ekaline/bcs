@@ -16,17 +16,17 @@
 using namespace Cme;
 namespace chrono = std::chrono;
 
-static uint64_t computeFinalPriceFactor(Decimal9_T displayFactor) {
+static int64_t computeFinalPriceFactor(Decimal9_T displayFactor) {
   // Returns the number we need to divide the protocol message prices by to
   // get an EFH__PRICE_SCALE scaled price.
-  if (displayFactor > 1'000'000'000L) {
+  if (displayFactor > EFH_CME_PRICE_SCALE) {
     // We expect the display factor to always be less than or equal to 1e9,
     // i.e., that it is used to indicate a fraction. If it is not, we wouldn't
     // be able to represent the scale factor as an integer, which is what we
     // expect.
     on_error("displayFactor %ld would saturate to zero", displayFactor);
   }
-  return (1'000'000'000L / displayFactor) * CMEPriceFactor;
+  return (EFH_CME_PRICE_SCALE / displayFactor) * CMEPriceFactor;
 }
 
 template<typename T>
@@ -277,7 +277,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
       break;
     case MDUpdateAction_T::Delete:
       tobChange = s->deletePlevel(side,
-				  e->MDPriceLevel);     
+				  e->MDPriceLevel);
       break;
     case MDUpdateAction_T::DeleteThru:
     case MDUpdateAction_T::DeleteFrom:
@@ -425,7 +425,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshTradeSummary48(const EfhRunCtx* pEfh
         msg.header.transactTime   = transactTime;
         msg.header.gapNum         = gapNum;
 
-        msg.price       = e->MDEntryPx / static_cast<std::int64_t>(s->getFinalPriceFactor());
+        msg.price       = e->MDEntryPx / s->getFinalPriceFactor();
         msg.size        = (uint32_t)e->MDEntrySize;
         msg.tradeStatus = EfhTradeStatus::kNormal;
         msg.tradeCond   = EfhTradeCond::kREG;
@@ -549,8 +549,8 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionFuture54(const EfhRunCtx* pEfhRunC
   /* ------------------------------- */
   //  auto pMaturity {reinterpret_cast<const MaturityMonthYear_T*>(&rootBlock->MaturityMonthYear)};
 
-  const uint64_t priceAdjustFactor = computeFinalPriceFactor(rootBlock->DisplayFactor);
-  uint64_t strikePriceFactor;
+  const int64_t priceAdjustFactor = computeFinalPriceFactor(rootBlock->DisplayFactor);
+  int64_t strikePriceFactor;
   if (memcmp(rootBlock->Asset, "SI", 3) == 0) {
     strikePriceFactor = computeFinalPriceFactor(   10'000'000); // 0.01
   } else if (memcmp(rootBlock->Asset, "GC", 3) == 0) {
@@ -735,7 +735,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
     m += pGroupSize_RelatedInstruments->blockLength;
   }
 
-  uint64_t strikePriceFactor = 0;
+  int64_t strikePriceFactor = 0;
   EkaFhCme *const fh = dynamic_cast<EkaFhCme*>(this->fh);
   {
     std::shared_lock lck(fh->futuresMutex);
@@ -751,8 +751,9 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionOption55(const EfhRunCtx* pEfhRunC
     return msgHdr->size;
   }
 
-  msg.strikePrice           = rootBlock->StrikePrice / strikePriceFactor;
-  
+  msg.strikePrice = replaceIntNullWith<PRICENULL9_T>(
+      rootBlock->StrikePrice, rootBlock->StrikePrice / strikePriceFactor, 0);
+
   if (msg.commonDef.opaqueAttrB < 3)
     print_MDInstrumentDefinitionOption55(pMsg);
 
@@ -792,7 +793,7 @@ int EkaFhCmeGr::process_MDInstrumentDefinitionSpread56(const EfhRunCtx* pEfhRunC
   
   /* ------------------------------- */
   
-  const uint64_t priceAdjustFactor = computeFinalPriceFactor(rootBlock->DisplayFactor);
+  const int64_t priceAdjustFactor = computeFinalPriceFactor(rootBlock->DisplayFactor);
   EfhComplexDefinitionMsg msg{};
   msg.header.msgType        = EfhMsgType::kComplexDefinition;
   msg.header.group.source   = EkaSource::kCME_SBE;
