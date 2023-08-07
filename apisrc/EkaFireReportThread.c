@@ -791,7 +791,8 @@ void ekaFireReportThread(EkaDev *dev) {
                   fireReportStr, sizeof(fireReportStr));
       EKA_LOG("reportCb: %s", fireReportStr);
     }
-
+    dev->pEfcRunCtx->onEfcFireReportCb(
+        reportBuf, reportLen, dev->pEfcRunCtx->cbCtx);
     epmReportCh->next();
   }
   dev->fireReportThreadTerminated = true;

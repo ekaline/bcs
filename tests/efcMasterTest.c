@@ -739,7 +739,9 @@ void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
     if (handle < 0) {
       EKA_WARN("Security[%ju] %s was not "
                "fit into FPGA hash: handle = %jd",
-               i, p4TestCtx->secIdString(i).c_str(),
+               i,
+               cboeSecIdString(p4TestCtx->security[i].id, 8)
+                   .c_str(),
                handle);
       continue;
     }
@@ -752,7 +754,9 @@ void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
         "handle=%jd,bidMinPrice=%u,askMaxPrice=%u,"
         "bidSize=%u,askSize=%u,"
         "versionKey=%u,lowerBytesOfSecId=0x%x",
-        i, p4TestCtx->secIdString(i).c_str(),
+        i,
+        cboeSecIdString(p4TestCtx->security[i].id, 8)
+            .c_str(),
         p4TestCtx->secList[i], handle, secCtx.bidMinPrice,
         secCtx.askMaxPrice, secCtx.bidSize, secCtx.askSize,
         secCtx.versionKey, secCtx.lowerBytesOfSecId);
@@ -794,9 +798,10 @@ void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 
         char fireMsg[1500] = {};
         sprintf(fireMsg,
-                "BOE FireMsg for MC core %d, "
-                "MC gr %d, Tcp Conn %d",
-                coreId, mcGr, tcpConn);
+                "BoeFireA: %03d         "
+                "    MC:%d:%d "
+                "Tcp:%d ",
+                currActionIdx, coreId, mcGr, tcpConn);
         rc = efcSetActionPayload(
             dev, currActionIdx, fireMsg,
             sizeof(BoeQuoteUpdateShortMsg));
@@ -983,7 +988,6 @@ int main(int argc, char *argv[]) {
 
   if (exitBeforeDevInit)
     return 1;
-#if 1
   // ==============================================
   // EkaDev general setup
   EkaDev *dev = NULL;
@@ -1015,7 +1019,7 @@ int main(int argc, char *argv[]) {
 
   EfcRunCtx runCtx = {};
   runCtx.onEfcFireReportCb = efcPrintFireReport;
-
+  runCtx.cbCtx = stdout;
   // ==============================================
   for (auto t : testCase)
     t->prepareTestConfig_(pEfcCtx, t);
@@ -1028,7 +1032,7 @@ int main(int argc, char *argv[]) {
     t->runTest_(pEfcCtx, t);
 
 #ifndef _VERILOG_SIM
-  // sleep(2);
+  sleep(2); // needed to get all fireReports printed out
   if (dontQuit)
     EKA_LOG("--Test finished, ctrl-c to end---");
   else {
@@ -1052,6 +1056,5 @@ int main(int argc, char *argv[]) {
 
   ekaDevClose(dev);
   // sleep(1);
-#endif
   return 0;
 }

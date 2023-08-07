@@ -46,7 +46,8 @@ public:
     nSec = std::size(security);
     TEST_LOG("Created List of %ju P4 Securities:", nSec);
     for (auto i = 0; i < nSec; i++)
-      TEST_LOG("\t%s, %ju %c", secIdString(i).c_str(),
+      TEST_LOG("\t%s, %ju %c",
+               cboeSecIdString(security[i].id, 8).c_str(),
                secList[i], i == nSec - 1 ? '\n' : ',');
   }
   /* --------------------------------------------- */
@@ -54,18 +55,6 @@ public:
   virtual ~EfcP4CboeTestCtx() = default;
   /* --------------------------------------------- */
 
-  std::string secIdString(size_t idx) {
-    std::string res = {};
-    char resStr[9] = {};
-    resStr[8] = '\0';
-    for (auto i = 0; i < 8; i++) {
-      if (security[idx].id[i] == '\0')
-        continue;
-      res += security[idx].id[i];
-    }
-    //    printf("res = \'%s\' \n", res.c_str());
-    return res;
-  }
   /* --------------------------------------------- */
 
   uint64_t getBinSecId(const P4SecurityCtx *sec) {

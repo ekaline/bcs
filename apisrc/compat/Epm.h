@@ -410,6 +410,25 @@ enum EpmTriggerAction : int {
             ///< closed)
 };
 
+inline const char *epmPrintFireEvent(EpmTriggerAction a) {
+  switch (a) {
+  case EpmTriggerAction::Sent:
+    return "Sent";
+  case EpmTriggerAction::InvalidToken:
+    return "InvalidToken";
+  case EpmTriggerAction::InvalidStrategy:
+    return "InvalidStrategy";
+  case EpmTriggerAction::InvalidAction:
+    return "InvalidAction";
+  case EpmTriggerAction::DisabledAction:
+    return "DisabledAction";
+  case EpmTriggerAction::SendError:
+    return "SendError";
+  default:
+    return "UnknownEvent";
+  }
+}
+
 /// Every trigger generates one of these events and is
 /// reported to the caller via an @ref EpmFireReportCb
 /// callback.
@@ -438,6 +457,16 @@ struct EpmFireReport {
   uintptr_t user; ///< Opaque value copied from EpmAction
   bool local;     ///< True -> called from epmRaiseTrigger
 };
+
+inline EpmActionType
+getActionTypeFromUser(uint64_t actionUser) {
+  return static_cast<EpmActionType>((actionUser >> 16) &
+                                    0xFF);
+}
+inline uint32_t
+getActionGlobalIdxFromUser(uint64_t actionUser) {
+  return static_cast<uint32_t>(actionUser & 0xFFFF);
+}
 
 struct EpmFastSweepReport {
   uint16_t udpPayloadSize; ///< Field from trigger MD

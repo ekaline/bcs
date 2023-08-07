@@ -267,18 +267,6 @@ bool checkActionParams(int region, int actionIdx,
 }
 
 /* --------------------------------------------- */
-static EpmActionType
-getActionTypeFromUser(uint64_t actionUser) {
-  return static_cast<EpmActionType>((actionUser >> 16) &
-                                    0xFF);
-}
-/* --------------------------------------------- */
-static uint32_t
-getActionGlobalIdxFromUser(uint64_t actionUser) {
-  return static_cast<uint32_t>(actionUser & 0xFFFF);
-}
-
-/* --------------------------------------------- */
 static std::pair<int, int>
 processAction(int region, int actionIdx, char *hexDumpMsg) {
   auto aMem = new uint8_t[64];
@@ -298,7 +286,7 @@ processAction(int region, int actionIdx, char *hexDumpMsg) {
   auto actionType = getActionTypeFromUser(a->user);
 
   sprintf(actionHexDumpMsg,
-          "%s region, \'%s\' (%d) "
+          "%s region, \'%s\' "
           "action %d (%d): "
           "%s, "
           "heapOffs = %u, "
@@ -307,8 +295,7 @@ processAction(int region, int actionIdx, char *hexDumpMsg) {
           "TCP conn = %d:%d, "
           "next = %d",
           EkaEpmRegion::getRegionName(region),
-          printActionType(actionType), (int)actionType,
-          actionIdx, flatIdx,
+          printActionType(actionType), actionIdx, flatIdx,
           isValid ? "Valid" : "Not Valid", a->data_db_ptr,
           a->payloadSize,
           a->tcpCsSizeSource == TcpCsSizeSource::FROM_ACTION

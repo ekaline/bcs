@@ -172,7 +172,9 @@ struct BoeQuoteUpdateShortMsg {
   uint8_t MessageType;     // 0x59
   uint8_t MatchingUnit;    // 0
   uint32_t SequenceNumber; // 0
-  char QuoteUpdateID[16];
+  char QuoteUpdateID_txt[7];
+  char QuoteUpdateID_seq[8];
+  char QuoteUpdateID_tail;
 
   char ClearingFirm[4];
   char ClearingAccount[4];
@@ -192,6 +194,17 @@ struct BoeQuoteUpdateShortMsg {
   char Reserved2[2];
 } __attribute__((packed));
 
+inline std::string cboeSecIdString(const void *c,
+                                   const int len) {
+  auto p = reinterpret_cast<const char *>(c);
+  std::string res = {};
+  for (auto i = 0; i < len; i++) {
+    if (*(p + i) == '\0')
+      continue;
+    res += *(p + i);
+  }
+  return res;
+}
 /* FPGA code: */
 /* typedef struct packed { */
 /* 	bit     [7:0]   SecID; */
@@ -202,7 +215,6 @@ struct BoeQuoteUpdateShortMsg {
 /* } emc_sec_ctx_s; // you should have this struct in any
  * case to configure SecCtx */
 
-
 /* FPGA code: */
 /* typedef struct packed { */
 /*   bit             SourceFeed; */
@@ -212,7 +224,6 @@ struct BoeQuoteUpdateShortMsg {
 /*   bit     [2:0]   CoreID; */
 /*   bit             reserved; */
 /* } sp4_order_bitparams_t; // !!! keep in byte */
-
 
 /* FPGA code: */
 /* typedef struct packed { */
@@ -225,8 +236,5 @@ struct BoeQuoteUpdateShortMsg {
 /*   bit     [31:0]  Price; */
 /*   sp4_order_bitparams_t Bitparams; */
 /* } sp4_order_t;  */
-
-
-
 
 #endif
