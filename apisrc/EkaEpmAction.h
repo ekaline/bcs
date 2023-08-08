@@ -13,8 +13,8 @@ public:
                uint regionId);
 
   /* ------------------------------------------------ */
-  int updateAttrs(uint8_t _coreId, uint8_t _sessId,
-                  const EpmAction *epmAction);
+  /*   int updateAttrs(uint8_t _coreId, uint8_t _sessId,
+                    const EpmAction *epmAction); */
   /* ------------------------------------------------ */
   void setPayload(const void *buf, size_t len);
   /* ------------------------------------------------ */

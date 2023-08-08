@@ -827,10 +827,13 @@ EkaOpResult epmGetAction(const EkaDev *ekaDev,
  * unrecognized behavior flag.
  *
  */
+#if 0
+
 EkaOpResult epmSetAction(EkaDev *ekaDev,
                          epm_strategyid_t strategy,
                          epm_actionid_t action,
                          const EpmAction *epmAction);
+#endif
 
 /**
  * Copy the contents of the given buffer into the payload

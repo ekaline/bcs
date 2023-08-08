@@ -586,7 +586,7 @@ void EkaEpmAction::setNextAction(
 }
 
 /* ----------------------------------------------------- */
-
+#if 0
 int EkaEpmAction::updateAttrs(uint8_t _coreId,
                               uint8_t _sessId,
                               const EpmAction *epmAction) {
@@ -656,6 +656,7 @@ int EkaEpmAction::updateAttrs(uint8_t _coreId,
 
   return 0;
 }
+#endif
 /* ----------------------------------------------------- */
 
 void EkaEpmAction::setPayload(const void *buf, size_t len) {
