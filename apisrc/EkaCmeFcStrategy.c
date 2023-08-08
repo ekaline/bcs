@@ -77,7 +77,7 @@ EkaCmeFcStrategy::EkaCmeFcStrategy(
 /* --------------------------------------------------- */
 
 void EkaCmeFcStrategy::setFireAction(
-    epm_actionid_t fireActionId, int productId) {
+    epm_actionid_t fireActionId) {
 
   conf_.fireActionId = fireActionId;
   copyBuf2Hw(dev_, ConfHwAddr, (uint64_t *)&conf_,
