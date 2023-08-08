@@ -1024,6 +1024,10 @@ bool runQedTest(TestCase *t) {
   int TotalInjects = 4;
   EfcArmVer qedArmVer = 0;
 
+  uint64_t appSeq = 2000;
+  efcSetSessionCntr(g_ekaDev,
+                    t->tcpCtx_->tcpSess_[0]->hCon_, appSeq);
+
   for (auto i = 0; i < TotalInjects; i++) {
     // efcArmQed(g_ekaDev, qedArmVer++); // arm and promote
     qedExpectedFires++;
@@ -1071,6 +1075,10 @@ bool runCmeFcTest(TestCase *t) {
   int cmeFcExpectedFires = 0;
   int TotalInjects = 4;
   EfcArmVer cmeFcArmVer = 0;
+
+  uint64_t appSeq = 3000;
+  efcSetSessionCntr(g_ekaDev,
+                    t->tcpCtx_->tcpSess_[0]->hCon_, appSeq);
 
   for (auto i = 0; i < TotalInjects; i++) {
     // efcArmCmeFc(g_ekaDev, cmeFcArmVer++); // arm and

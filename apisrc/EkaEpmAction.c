@@ -667,8 +667,9 @@ void EkaEpmAction::setPayload(const void *buf, size_t len) {
 
   if (hwAction_.tcpCsSizeSource ==
           TcpCsSizeSource::FROM_ACTION &&
-      epmTemplate_->getByteSize() != len)
-    on_error("Template payload size %u != len %ju",
+      epmTemplate_->getByteSize() < len)
+    on_error("Template %s payload size %u < len %ju",
+             epmTemplate_->name,
              epmTemplate_->getByteSize(), len);
 
   memcpy(payload_, buf, payloadLen_);
