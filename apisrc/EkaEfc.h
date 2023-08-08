@@ -27,11 +27,9 @@ public:
   int subscribeSec(uint64_t secId);
   int cleanSubscrHwTable();
   EfcSecCtxHandle getSubscriptionId(uint64_t secId);
-  int initStratGlobalParams(
-      const EfcStratGlobCtx *efcStratGlobCtx);
   int armController(EfcArmVer ver);
   int disArmController();
-  int run(EfcCtx *pEfcCtx, const EfcRunCtx *pEfcRunCtx);
+  int run(const EfcRunCtx *pEfcRunCtx);
 
   void initP4(const EfcUdpMcParams *mcParams,
               const EfcP4Params *p4Params);
@@ -51,7 +49,7 @@ public:
 private:
   EkaUdpSess *findUdpSess(EkaCoreId coreId, uint32_t mcAddr,
                           uint16_t mcPort);
-  int setHwGlobalParams();
+  // int setHwGlobalParams();
   int setHwUdpParams();
   int enableRxFire();
   int disableRxFire();
@@ -62,8 +60,6 @@ private:
 
   /* --------------------------------------------------- */
   static const int MAX_UDP_SESS = 64;
-
-  EfcStratGlobCtx stratGlobCtx = {};
 
   uint8_t totalCoreIdBitmap_ = 0x00;
 

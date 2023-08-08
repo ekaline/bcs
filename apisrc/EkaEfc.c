@@ -175,6 +175,7 @@ void EkaEfc::disarmQed() {
 }
 
 /* ################################################ */
+#if 0
 int EkaEfc::initStratGlobalParams(
     const EfcStratGlobCtx *ctx) {
   EKA_LOG("Initializing EFC global params");
@@ -182,6 +183,7 @@ int EkaEfc::initStratGlobalParams(
   eka_write(dev_, P4_ARM_DISARM, 0);
   return 0;
 }
+#endif
 /* ################################################ */
 EkaUdpSess *EkaEfc::findUdpSess(EkaCoreId coreId,
                                 uint32_t mcAddr,
@@ -277,8 +279,7 @@ int EkaEfc::checkSanity() {
 }
 
 /* ################################################ */
-int EkaEfc::run(EfcCtx *pEfcCtx,
-                const EfcRunCtx *pEfcRunCtx) {
+int EkaEfc::run(const EfcRunCtx *pEfcRunCtx) {
   // TO BE FIXED!!!
   //  checkSanity();
 
@@ -310,6 +311,7 @@ int EkaEfc::run(EfcCtx *pEfcCtx,
 }
 
 /* ################################################ */
+#if 0
 int EkaEfc::setHwGlobalParams() {
   on_error("Should not be called!");
   // kept for reference only
@@ -347,6 +349,7 @@ int EkaEfc::setHwGlobalParams() {
 
   return 0;
 }
+#endif
 /* ################################################ */
 int EkaEfc::setHwUdpParams() {
   const int HwUdpMcConfig =

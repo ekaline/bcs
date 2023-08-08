@@ -47,18 +47,17 @@
 
 class TestCase;
 
-void configureP4Test(EfcCtx *pEfcCtx, TestCase *t);
-void configureQedTest(EfcCtx *pEfcCtx, TestCase *t);
-bool runP4Test(EfcCtx *pEfcCtx, TestCase *t);
-bool runQedTest(EfcCtx *pEfcCtx, TestCase *t);
+void configureP4Test(TestCase *t);
+void configureQedTest(TestCase *t);
+bool runP4Test(TestCase *t);
+bool runQedTest(TestCase *t);
 
-typedef void (*PrepareTestConfigCb)(EfcCtx *efcCtx,
-                                    TestCase *t);
-typedef bool (*RunTestCb)(EfcCtx *efcCtx, TestCase *t);
+typedef void (*PrepareTestConfigCb)(TestCase *t);
+typedef bool (*RunTestCb)(TestCase *t);
 
-typedef EkaOpResult (*ArmControllerCb)(EfcCtx *pEfcCtx,
+typedef EkaOpResult (*ArmControllerCb)(EkaDev *pEkaDev,
                                        EfcArmVer ver);
-typedef EkaOpResult (*DisArmControllerCb)(EfcCtx *pEfcCtx);
+typedef EkaOpResult (*DisArmControllerCb)(EkaDev *pEkaDev);
 extern EkaDev *g_ekaDev;
 /* --------------------------------------------- */
 volatile bool keep_work = true;
@@ -74,8 +73,13 @@ bool report_only = false;
 bool dontQuit = false;
 const TestScenarioConfig *sc = nullptr;
 bool exitBeforeDevInit = false;
+bool printFireReports = false;
 
-std::vector<const void *> fireReport = {};
+struct FireReport {
+  uint8_t *buf;
+  size_t len;
+};
+std::vector<FireReport *> fireReports = {};
 std::atomic<int> nReceivedFireReports = 0;
 int nExpectedFireReports = 0;
 
@@ -86,11 +90,18 @@ void getFireReport(const void *p, size_t len, void *ctx) {
       reinterpret_cast<const EkaContainerGlobalHdr *>(p)};
   if (containerHdr->type == EkaEventType::kExceptionEvent)
     return;
-  auto buf = new uint8_t[len];
-  if (!buf)
-    on_error("!buf");
-  memcpy(buf, p, len);
-  fireReport.push_back(buf);
+
+  auto fr = new FireReport;
+  if (!fr)
+    on_error("!fr");
+
+  fr->buf = new uint8_t[len];
+  if (!fr->buf)
+    on_error("!fr->buf");
+  fr->len = len;
+
+  memcpy(fr->buf, p, len);
+  fireReports.push_back(fr);
   nReceivedFireReports++;
   return;
 }
@@ -267,12 +278,10 @@ public:
   }
   /* --------------------------------------------- */
 
-  EfcArmVer
-  sendPktToAllMcGrps(const void *pkt, size_t pktLen,
-                     ArmControllerCb armControllerCb,
-                     EfcCtx *pEfcCtx, EfcArmVer armVer,
-                     uint64_t fireStatisticsAddr,
-                     int nFiresPerUdp) {
+  EfcArmVer sendPktToAllMcGrps(
+      const void *pkt, size_t pktLen,
+      ArmControllerCb armControllerCb, EfcArmVer armVer,
+      uint64_t fireStatisticsAddr, int nFiresPerUdp) {
     if (!armControllerCb)
       on_error("!armControllerCb");
 
@@ -283,7 +292,7 @@ public:
         if (!udpConn_[coreId][i])
           on_error("!udpConn_[%d][%d]", coreId, i);
 
-        armControllerCb(pEfcCtx, nextArmVer++);
+        armControllerCb(g_ekaDev, nextArmVer++);
         auto [strategyRuns_prev, strategyPassed_prev] =
             getP4stratStatistics(fireStatisticsAddr);
 
@@ -540,9 +549,8 @@ void printUsage(char *cmd) {
       "\t--dont_quit <Dont quit at the end>\n"
 
       "\t--exitBeforeDevInit to run init stage on "
-      "non-FPGA "
-      "server"
-      "\n",
+      "non-FPGA server\n"
+      "\t--print FireReports at the end of the test",
       cmd);
   return;
 }
@@ -564,10 +572,11 @@ static int getAttr(int argc, char *argv[]) {
         {"report_only", no_argument, 0, 'r'},
         {"dont_quit", no_argument, 0, 'd'},
         {"exitBeforeDevInit", no_argument, 0, 'e'},
+        {"print", no_argument, 0, 'p'},
         {"help", no_argument, 0, 'h'},
         {0, 0, 0, 0}};
 
-    c = getopt_long(argc, argv, "rdehls:", long_options,
+    c = getopt_long(argc, argv, "rdehlps:", long_options,
                     &option_index);
     if (c == -1)
       break;
@@ -601,6 +610,11 @@ static int getAttr(int argc, char *argv[]) {
     case 'e':
       exitBeforeDevInit = true;
       TEST_LOG("exitBeforeDevInit = true");
+      break;
+
+    case 'p':
+      printFireReports = true;
+      TEST_LOG("printFireReports = true");
       break;
 
     case 'r':
@@ -719,8 +733,8 @@ EfcUdpMcParams *createMcParams(TestCase *t) {
 #endif
 /* ############################################# */
 
-void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
-  auto dev = pEfcCtx->dev;
+void configureP4Test(TestCase *t) {
+  auto dev = g_ekaDev;
 
   if (!t)
     on_error("!t");
@@ -735,7 +749,7 @@ void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
   };
 
   int rc =
-      efcInitP4Strategy(pEfcCtx, udpMcParams, &p4Params);
+      efcInitP4Strategy(g_ekaDev, udpMcParams, &p4Params);
   if (rc != EKA_OPRESULT__OK)
     on_error("efcInitP4Strategy returned %d", (int)rc);
 
@@ -745,14 +759,14 @@ void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
     on_error("!p4TestCtx");
 
   // subscribing on list of securities
-  efcEnableFiringOnSec(pEfcCtx, p4TestCtx->secList,
+  efcEnableFiringOnSec(g_ekaDev, p4TestCtx->secList,
                        p4TestCtx->nSec);
 
   // ==============================================
   // setting security contexts
   for (size_t i = 0; i < p4TestCtx->nSec; i++) {
     auto handle =
-        getSecCtxHandle(pEfcCtx, p4TestCtx->secList[i]);
+        getSecCtxHandle(g_ekaDev, p4TestCtx->secList[i]);
 
     if (handle < 0) {
       EKA_WARN("Security[%ju] %s was not "
@@ -780,7 +794,7 @@ void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
         secCtx.versionKey, secCtx.lowerBytesOfSecId);
     /* hexDump("secCtx",&secCtx,sizeof(secCtx)); */
 
-    rc = efcSetStaticSecCtx(pEfcCtx, handle, &secCtx, 0);
+    rc = efcSetStaticSecCtx(g_ekaDev, handle, &secCtx, 0);
     if (rc != EKA_OPRESULT__OK)
       on_error("failed to efcSetStaticSecCtx");
   }
@@ -835,8 +849,8 @@ void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 }
 /* ############################################# */
 
-void configureQedTest(EfcCtx *pEfcCtx, TestCase *t) {
-  auto dev = pEfcCtx->dev;
+void configureQedTest(TestCase *t) {
+  auto dev = g_ekaDev;
 
   if (!t)
     on_error("!t");
@@ -855,14 +869,14 @@ void configureQedTest(EfcCtx *pEfcCtx, TestCase *t) {
   qedParams.product[active_set].enable = true;
 
   int rc =
-      efcInitQedStrategy(pEfcCtx, udpMcParams, &qedParams);
+      efcInitQedStrategy(g_ekaDev, udpMcParams, &qedParams);
   if (rc != EKA_OPRESULT__OK)
     on_error("efcInitQedStrategy returned %d", (int)rc);
 
   auto qedHwPurgeIAction =
       efcAllocateNewAction(dev, EpmActionType::QEDHwPurge);
 
-  efcQedSetFireAction(pEfcCtx, qedHwPurgeIAction,
+  efcQedSetFireAction(g_ekaDev, qedHwPurgeIAction,
                       active_set);
 
   const char QEDTestPurgeMsg[] =
@@ -883,7 +897,7 @@ void configureQedTest(EfcCtx *pEfcCtx, TestCase *t) {
 }
 /* ############################################# */
 
-bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
+bool runP4Test(TestCase *t) {
 
   TEST_LOG("\n"
            "=========== Running P4 Test ===========");
@@ -902,7 +916,7 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
   for (auto i = 0; i < LoopIterations; i++) {
 #if 1
     {
-      efcArmP4(pEfcCtx, p4ArmVer);
+      efcArmP4(g_ekaDev, p4ArmVer);
       char pktBuf[1500] = {};
       auto secCtx = &p4TestCtx->security[2];
 
@@ -915,15 +929,14 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
           pktBuf, mdSecId, mdSide, mdPrice, mdSize, true);
 
       p4ArmVer = t->udpCtx_->sendPktToAllMcGrps(
-          pktBuf, pktLen, t->armController_, pEfcCtx,
-          p4ArmVer, t->FireStatisticsAddr_,
-          t->tcpCtx_->nTcpSess_);
+          pktBuf, pktLen, t->armController_, p4ArmVer,
+          t->FireStatisticsAddr_, t->tcpCtx_->nTcpSess_);
     }
 #endif
 
 #if 1
     {
-      efcArmP4(pEfcCtx, p4ArmVer);
+      efcArmP4(g_ekaDev, p4ArmVer);
       char pktBuf[1500] = {};
       auto secCtx = &p4TestCtx->security[3];
 
@@ -936,9 +949,8 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
           pktBuf, mdSecId, mdSide, mdPrice, mdSize, true);
 
       p4ArmVer = t->udpCtx_->sendPktToAllMcGrps(
-          pktBuf, pktLen, t->armController_, pEfcCtx,
-          p4ArmVer, t->FireStatisticsAddr_,
-          t->tcpCtx_->nTcpSess_);
+          pktBuf, pktLen, t->armController_, p4ArmVer,
+          t->FireStatisticsAddr_, t->tcpCtx_->nTcpSess_);
     }
 #endif
     for (auto i = 0; i < t->tcpCtx_->nTcpSess_; i++) {
@@ -949,7 +961,7 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
     //   usleep(1000);
   }
   // ==============================================
-  t->disArmController_(pEfcCtx);
+  t->disArmController_(g_ekaDev);
   TEST_LOG("\n"
            "===========================\n"
            "END OT CBOE P4 TEST\n"
@@ -958,13 +970,13 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 }
 /* ############################################# */
 
-bool runQedTest(EfcCtx *pEfcCtx, TestCase *t) {
+bool runQedTest(TestCase *t) {
   int qedExpectedFires = 0;
   int TotalInjects = 4;
   EfcArmVer qedArmVer = 0;
 
   for (auto i = 0; i < TotalInjects; i++) {
-    // efcArmQed(pEfcCtx, qedArmVer++); // arm and promote
+    // efcArmQed(g_ekaDev, qedArmVer++); // arm and promote
     qedExpectedFires++;
 
     const uint8_t
@@ -991,9 +1003,8 @@ bool runQedTest(EfcCtx *pEfcCtx, TestCase *t) {
     auto pktLen = sizeof(pktBuf);
 
     qedArmVer = t->udpCtx_->sendPktToAllMcGrps(
-        pktBuf, pktLen, t->armController_, pEfcCtx,
-        qedArmVer, t->FireStatisticsAddr_,
-        t->tcpCtx_->nTcpSess_);
+        pktBuf, pktLen, t->armController_, qedArmVer,
+        t->FireStatisticsAddr_, t->tcpCtx_->nTcpSess_);
 
     // usleep(300000);
   }
@@ -1033,15 +1044,12 @@ int main(int argc, char *argv[]) {
 
   // ==============================================
 
-  EfcCtx efcCtx = {};
-  EfcCtx *pEfcCtx = &efcCtx;
-
   EfcInitCtx initCtx = {
       .report_only = report_only,
       .watchdog_timeout_sec = 1000000,
   };
 
-  rc = efcInit(&pEfcCtx, dev, &initCtx);
+  rc = efcInit(dev, &initCtx);
   if (rc != EKA_OPRESULT__OK)
     on_error("efcInit returned %d", (int)rc);
 
@@ -1051,14 +1059,14 @@ int main(int argc, char *argv[]) {
   runCtx.cbCtx = stdout;
   // ==============================================
   for (auto t : testCase)
-    t->prepareTestConfig_(pEfcCtx, t);
+    t->prepareTestConfig_(t);
 
   // ==============================================
-  efcRun(pEfcCtx, &runCtx);
+  efcRun(g_ekaDev, &runCtx);
   // ==============================================
 
   for (auto t : testCase)
-    t->runTest_(pEfcCtx, t);
+    t->runTest_(t);
 
 #ifndef _VERILOG_SIM
   sleep(2); // needed to get all fireReports printed out
@@ -1087,6 +1095,9 @@ int main(int argc, char *argv[]) {
   // sleep(1);
 
   TEST_LOG("Received %ju fire reports",
-           std::size(fireReport));
+           std::size(fireReports));
+  if (printFireReports)
+    for (const auto fr : fireReports)
+      efcPrintFireReport(fr->buf, fr->len, stdout);
   return 0;
 }
