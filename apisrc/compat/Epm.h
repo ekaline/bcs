@@ -495,6 +495,9 @@ struct EpmNewsReport {
 typedef void (*EpmFireReportCb)(const EpmFireReport *report,
                                 int nReports, void *ctx);
 
+#if 0
+Obsolete!
+
 /**
  * Strategy parameters passed to epmInitStrategies
  *
@@ -531,6 +534,8 @@ struct EpmStrategyParams {
                        ///< fire reports
   void *cbCtx; ///< Opaque value passed into reportCb
 };
+
+#endif
 
 /**
  * Returns information about the EPM capabilities of the
@@ -631,6 +636,9 @@ uint64_t epmGetDeviceCapability(const EkaDev *ekaDev,
  * the maximum number of allowable strategies as reported by
  * @ref epmGetDeviceCapability.
  */
+
+#if 0
+Obsolete!
 EkaOpResult
 epmInitStrategies(EkaDev *ekaDev,
                   const EpmStrategyParams *params,
@@ -653,6 +661,8 @@ epmInitStrategies(EkaDev *ekaDev,
 EkaOpResult epmEnableController(EkaDev *ekaDev,
                                 EkaCoreId coreId,
                                 bool enable);
+
+#endif
 
 /**
  * Populates the action descriptor using the values
@@ -777,10 +787,13 @@ EkaOpResult epmEnableController(EkaDev *ekaDev,
  * @retval ERR_INVALID_ACTION action was not a valid action
  * id.
  */
+
+#if 0
 EkaOpResult epmGetAction(const EkaDev *ekaDev,
                          epm_strategyid_t strategy,
                          epm_actionid_t action,
                          EpmAction *epmAction);
+#endif
 
 /**
  * Sets the action descriptor in the strategy according to
@@ -823,11 +836,13 @@ EkaOpResult epmSetAction(EkaDev *ekaDev,
  * Copy the contents of the given buffer into the payload
  * heap.
  */
+
+#if 0
 EkaOpResult epmPayloadHeapCopy(
     EkaDev *ekaDev, epm_strategyid_t strategy,
     uint32_t offset, uint32_t length, const void *contents,
     const bool isUdpDatagram = false);
-
+#endif
 /**
  * Gets strategy-level enable bits.
  *
@@ -848,10 +863,13 @@ EkaOpResult epmPayloadHeapCopy(
  * strategy id.
  *
  */
+
+#if 0
 EkaOpResult
 epmGetStrategyEnableBits(const EkaDev *ekaDev,
                          epm_strategyid_t strategy,
                          epm_enablebits_t *enable);
+#endif
 /**
  * Sets strategy-level enable bits.
  *
@@ -872,11 +890,13 @@ epmGetStrategyEnableBits(const EkaDev *ekaDev,
  * strategy id.
  *
  */
+
+#if 0
 EkaOpResult
 epmSetStrategyEnableBits(EkaDev *ekaDev,
                          epm_strategyid_t strategy,
                          epm_enablebits_t enable);
-
+#endif
 /**
  * Allows software to directly trigger an action rather than
  * waiting to receive the external trigger.
@@ -895,9 +915,10 @@ epmSetStrategyEnableBits(EkaDev *ekaDev,
  * @retval ERR_BAD_ADDRESS ekaDev was NULL.
  *
  */
+#if 0
 EkaOpResult epmRaiseTriggers(EkaDev *ekaDev,
                              const EpmTrigger *trigger);
 
+#endif
 } // End of extern "C"
-
 #endif

@@ -133,6 +133,7 @@ public:
     return EkaEpmRegion::MaxStrategies;
   }
 
+#if 0
   int getFreeAction(int regionId);
 
   bool isActionReserved(int globalIdx);
@@ -166,6 +167,7 @@ public:
                               uint32_t length,
                               const void *contents,
                               const bool isUdpDatagram);
+#endif
 
   void DownloadSingleTemplate2HW(EpmTemplate *t);
 

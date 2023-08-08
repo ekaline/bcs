@@ -5,7 +5,7 @@
 
 class EkaEpmAction;
 class EkaUdpSess;
-
+#if 0
 class EpmStrategy {
 public:
   EpmStrategy(EkaEpm *epm, epm_strategyid_t id,
@@ -55,5 +55,5 @@ public:
   EkaUdpSess *udpSess[EkaEpm::MAX_UDP_SESS] = {};
   int numUdpSess = 0;
 };
-
+#endif
 #endif

@@ -60,6 +60,7 @@ uint64_t epmGetDeviceCapability(const EkaDev *dev,
   }
 }
 
+#if 0
 EkaOpResult epmSetAction(EkaDev *dev,
                          epm_strategyid_t strategy,
                          epm_actionid_t action,
@@ -169,5 +170,5 @@ EkaOpResult epmPayloadHeapCopy(EkaDev *dev,
   return dev->epm->payloadHeapCopy(strategy, offset, length,
                                    contents, isUdpDatagram);
 }
-
+#endif
 /* ######################################### */
