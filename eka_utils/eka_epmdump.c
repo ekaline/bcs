@@ -286,7 +286,7 @@ processAction(int region, int actionIdx, char *hexDumpMsg) {
   auto actionType = getActionTypeFromUser(a->user);
 
   sprintf(actionHexDumpMsg,
-          "%s region, \'%s\' "
+          "%s region %d, \'%s\' "
           "action %d (%d): "
           "%s, "
           "heapOffs = %u, "
@@ -294,7 +294,7 @@ processAction(int region, int actionIdx, char *hexDumpMsg) {
           "%s, " // PayloadLen/CSum origin
           "TCP conn = %d:%d, "
           "next = %d",
-          EkaEpmRegion::getRegionName(region),
+          EkaEpmRegion::getRegionName(region), region,
           printActionType(actionType), actionIdx, flatIdx,
           isValid ? "Valid" : "Not Valid", a->data_db_ptr,
           a->payloadSize,
