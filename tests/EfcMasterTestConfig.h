@@ -11,7 +11,7 @@ static uint16_t numTcpSess = 1;
 enum class TestStrategy : int {
   Invalid = 0,
   P4,
-  CmeFC,
+  CmeFc,
   Qed
 };
 
@@ -21,7 +21,7 @@ static const char *printStrat(TestStrategy s) {
     return "Invalid";
   case TestStrategy::P4:
     return "P4";
-  case TestStrategy::CmeFC:
+  case TestStrategy::CmeFc:
     return "CmeFC";
   case TestStrategy::Qed:
     return "Qed";
@@ -35,7 +35,7 @@ static TestStrategy string2strat(const char *s) {
     return TestStrategy::P4;
 
   if (!strcmp(s, "CmeFC"))
-    return TestStrategy::CmeFC;
+    return TestStrategy::CmeFc;
 
   if (!strcmp(s, "Qed"))
     return TestStrategy::Qed;
@@ -115,6 +115,10 @@ struct TestScenarioConfig {
 };
 
 const TestScenarioConfig scenarios[] = {
+    {"CmeFC_0",
+     {{TestStrategy::CmeFc, core0_1mc, tcp0},
+      {TestStrategy::Invalid, {}, {}}}},
+
     {"Qed_0",
      {{TestStrategy::Qed, core0_1mc, tcp0},
       {TestStrategy::Invalid, {}, {}}}},

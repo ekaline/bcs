@@ -44,6 +44,12 @@ public:
   void armQed(EfcArmVer ver);
   void disarmQed();
 
+  void initCmeFc(const EfcUdpMcParams *mcParams,
+                 const EfcCmeFcParams *cmeParams);
+  void cmeFcSetFireAction(epm_actionid_t fireActionId);
+  void armCmeFc(EfcArmVer ver);
+  void disarmCmeFc();
+
   bool isReportOnly() { return report_only_; }
 
 private:

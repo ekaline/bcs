@@ -426,3 +426,50 @@ EkaOpResult efcDisArmQed(EkaDev *dev) {
   efc->disarmQed();
   return EKA_OPRESULT__OK;
 }
+/* --------------------------------------------------- */
+
+EkaOpResult
+efcInitCmeFcStrategy(EkaDev *dev,
+                     const EfcUdpMcParams *mcParams,
+                     const EfcCmeFcParams *cmeParams) {
+  if (!dev || !dev->efc)
+    on_error("Efc is not initialized: use efcInit()");
+  auto efc = dev->efc;
+
+  efc->initCmeFc(mcParams, cmeParams);
+
+  return EKA_OPRESULT__OK;
+}
+/* --------------------------------------------------- */
+
+EkaOpResult
+efcCmeFcSetFireAction(EkaDev *dev,
+                      epm_actionid_t fireActionId) {
+  if (!dev || !dev->efc)
+    on_error("Efc is not initialized: use efcInit()");
+  auto efc = dev->efc;
+  efc->cmeFcSetFireAction(fireActionId);
+  return EKA_OPRESULT__OK;
+}
+/* --------------------------------------------------- */
+
+EkaOpResult efcArmCmeFc(EkaDev *dev, EfcArmVer ver) {
+  if (!dev || !dev->efc)
+    on_error("Efc is not initialized: use efcInit()");
+  auto efc = dev->efc;
+
+  efc->armCmeFc(ver);
+
+  return EKA_OPRESULT__OK;
+}
+
+/* --------------------------------------------------- */
+
+EkaOpResult efcDisArmCmeFc(EkaDev *dev) {
+  if (!dev || !dev->efc)
+    on_error("Efc is not initialized: use efcInit()");
+  auto efc = dev->efc;
+
+  efc->disarmCmeFc();
+  return EKA_OPRESULT__OK;
+}

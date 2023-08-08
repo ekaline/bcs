@@ -49,8 +49,10 @@ class TestCase;
 
 void configureP4Test(TestCase *t);
 void configureQedTest(TestCase *t);
+void configureCmeFcTest(TestCase *t);
 bool runP4Test(TestCase *t);
 bool runQedTest(TestCase *t);
+bool runCmeFcTest(TestCase *t);
 
 typedef void (*PrepareTestConfigCb)(TestCase *t);
 typedef bool (*RunTestCb)(TestCase *t);
@@ -445,6 +447,15 @@ public:
       FireStatisticsAddr_ = 0xf0818;
 
       break;
+    case TestStrategy::CmeFc:
+      prepareTestConfig_ = configureCmeFcTest;
+      runTest_ = runCmeFcTest;
+      armController_ = efcArmCmeFc;
+      disArmController_ = efcDisArmCmeFc;
+
+      FireStatisticsAddr_ = 0xf0800;
+
+      break;
     default:
       on_error("Unexpected Test Strategy %d",
                (int)tc->strat);
@@ -698,39 +709,30 @@ static size_t createQEDMsg(char *dst, const char *id) {
   size_t payloadLen = std::size(pkt);
   memcpy(dst, pkt, payloadLen);
 
-#if 0
-  TEST_LOG(
-      "sending MDIncrementalRefreshTradeSummary48 "
-      "trigger to %s:%u",
-      EKA_IP2STR(t->udpParams_[0]->mcDst.sin_addr.s_addr),
-      be16toh(t->udpParams_[0]->mcDst.sin_port));
-  if (sendto(t->udpParams_[0]->udpSock, pkt, payloadLen, 0,
-             (const sockaddr *)&t->udpParams_[0]->mcDst,
-             sizeof(t->udpParams_[0]->mcDst)) < 0)
-    on_error("MC trigger send failed");
-#endif
   return 0;
 }
 /* ############################################# */
-#if 0
-EfcUdpMcParams *createMcParams(TestCase *t) {
-  auto grParams = new EfcUdpMcGroupParams;
-  if (!grParams)
-    on_error("failed on new EfcUdpMcGroupParams");
-  grParams->coreId = t->coreId_;
-  grParams->mcIp = t->mcParams_.mcIp.c_str();
-  grParams->mcUdpPort = t->mcParams_.mcPort;
 
-  auto udpMcParams = new EfcUdpMcParams;
-  if (!udpMcParams)
-    on_error("!udpMcParams");
+static size_t createCmeFcMsg(char *dst, const char *id) {
+  const uint8_t pkt[] = {
+      0x22, 0xa5, 0x0d, 0x02, 0xa5, 0x6f, 0x01, 0x38, 0xca,
+      0x42, 0xdc, 0x16, 0x60, 0x00, 0x0b, 0x00, 0x30, 0x00,
+      0x01, 0x00, 0x09, 0x00, 0x41, 0x23, 0xff, 0x37, 0xca,
+      0x42, 0xdc, 0x16, 0x01, 0x00, 0x00, 0x20, 0x00, 0x01,
+      0x00, 0xfc, 0x2f, 0x9c, 0x9d, 0xb2, 0x00, 0x00, 0x01,
+      0x00, 0x00, 0x00, 0x5b, 0x33, 0x00, 0x00, 0x83, 0x88,
+      0x26, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0xd9,
+      0x7a, 0x6d, 0x01, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x02, 0x0e, 0x19, 0x84, 0x8e, 0x36,
+      0x06, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0xb0, 0x7f, 0x8e, 0x36, 0x06, 0x00,
+      0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-  udpMcParams->groups = grParams;
-  udpMcParams->nMcGroups = 1;
+  size_t payloadLen = std::size(pkt);
+  memcpy(dst, pkt, payloadLen);
 
-  return udpMcParams;
+  return 0;
 }
-#endif
 /* ############################################# */
 
 void configureP4Test(TestCase *t) {
@@ -855,7 +857,7 @@ void configureQedTest(TestCase *t) {
   if (!t)
     on_error("!t");
   TEST_LOG("\n"
-           "=========== Configuring P4 Test ===========");
+           "=========== Configuring Qed Test ===========");
   auto udpMcParams = &t->udpCtx_->udpConf_;
 
   static const uint16_t QEDTestPurgeDSID = 0x1234;
@@ -894,6 +896,53 @@ void configureQedTest(TestCase *t) {
   if (rc != EKA_OPRESULT__OK)
     on_error("efcSetActionPayload failed for Action %d",
              qedHwPurgeIAction);
+}
+
+/* ############################################# */
+
+void configureCmeFcTest(TestCase *t) {
+  auto dev = g_ekaDev;
+
+  if (!t)
+    on_error("!t");
+  TEST_LOG(
+      "\n"
+      "=========== Configuring CmeFc Test ===========");
+  auto udpMcParams = &t->udpCtx_->udpConf_;
+
+  static const uint16_t QEDTestPurgeDSID = 0x1234;
+  static const uint8_t QEDTestMinNumLevel = 5;
+
+  EfcCmeFcParams cmeParams = {.maxMsgSize = 97,
+                              .minNoMDEntries = 0};
+
+  int rc = efcInitCmeFcStrategy(g_ekaDev, udpMcParams,
+                                &cmeParams);
+  if (rc != EKA_OPRESULT__OK)
+    on_error("efcInitCmeFcStrategy returned %d", (int)rc);
+
+  auto cmeFcHwAction =
+      efcAllocateNewAction(dev, EpmActionType::CmeHwCancel);
+
+  efcCmeFcSetFireAction(g_ekaDev, cmeFcHwAction);
+
+  rc = setActionTcpSock(dev, cmeFcHwAction,
+                        t->tcpCtx_->tcpSess_[0]->excSock_);
+
+  if (rc != EKA_OPRESULT__OK)
+    on_error("setActionTcpSock failed for Action %d",
+             cmeFcHwAction);
+
+  const char CmeTestFastCancelMsg[] =
+      "CME Fast Cancel: Sequence = |____| With Dummy "
+      "payload";
+
+  rc = efcSetActionPayload(dev, cmeFcHwAction,
+                           &CmeTestFastCancelMsg,
+                           strlen(CmeTestFastCancelMsg));
+  if (rc != EKA_OPRESULT__OK)
+    on_error("efcSetActionPayload failed for Action %d",
+             cmeFcHwAction);
 }
 /* ############################################# */
 
@@ -1015,6 +1064,50 @@ bool runQedTest(TestCase *t) {
            "===========================\n");
   return true;
 }
+
+/* ############################################# */
+
+bool runCmeFcTest(TestCase *t) {
+  int cmeFcExpectedFires = 0;
+  int TotalInjects = 4;
+  EfcArmVer cmeFcArmVer = 0;
+
+  for (auto i = 0; i < TotalInjects; i++) {
+    // efcArmCmeFc(g_ekaDev, cmeFcArmVer++); // arm and
+    // promote
+    cmeFcExpectedFires++;
+
+    const uint8_t pktBuf[] = {
+        0x22, 0xa5, 0x0d, 0x02, 0xa5, 0x6f, 0x01, 0x38,
+        0xca, 0x42, 0xdc, 0x16, 0x60, 0x00, 0x0b, 0x00,
+        0x30, 0x00, 0x01, 0x00, 0x09, 0x00, 0x41, 0x23,
+        0xff, 0x37, 0xca, 0x42, 0xdc, 0x16, 0x01, 0x00,
+        0x00, 0x20, 0x00, 0x01, 0x00, 0xfc, 0x2f, 0x9c,
+        0x9d, 0xb2, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x5b, 0x33, 0x00, 0x00, 0x83, 0x88, 0x26, 0x00,
+        0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0xd9, 0x7a,
+        0x6d, 0x01, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x02, 0x0e, 0x19, 0x84, 0x8e,
+        0x36, 0x06, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0xb0, 0x7f, 0x8e,
+        0x36, 0x06, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00};
+
+    auto pktLen = sizeof(pktBuf);
+
+    cmeFcArmVer = t->udpCtx_->sendPktToAllMcGrps(
+        pktBuf, pktLen, t->armController_, cmeFcArmVer,
+        t->FireStatisticsAddr_, t->tcpCtx_->nTcpSess_);
+
+    // usleep(300000);
+  }
+  // ==============================================
+  TEST_LOG("\n"
+           "===========================\n"
+           "END OT CmeFc TEST\n"
+           "===========================\n");
+  return true;
+}
 /* ############################################# */
 
 int main(int argc, char *argv[]) {
@@ -1084,20 +1177,15 @@ int main(int argc, char *argv[]) {
   for (auto t : testCase)
     delete t;
 
-  fflush(stdout);
-  fflush(stderr);
-
   /* ============================================== */
-
-  printf("Closing device\n");
-
-  ekaDevClose(dev);
-  // sleep(1);
 
   TEST_LOG("Received %ju fire reports",
            std::size(fireReports));
   if (printFireReports)
     for (const auto fr : fireReports)
       efcPrintFireReport(fr->buf, fr->len, stdout);
+
+  printf("Closing device\n");
+  ekaDevClose(dev);
   return 0;
 }

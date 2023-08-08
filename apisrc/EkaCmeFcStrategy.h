@@ -27,8 +27,7 @@ class EkaCmeFcStrategy : public EkaStrategyEhp<EhpCmeFC> {
 public:
   EkaCmeFcStrategy(const EfcUdpMcParams *mcParams,
                    const EfcCmeFcParams *cmeParams);
-  void setFireAction(epm_actionid_t fireActionId,
-                     int productId);
+  void setFireAction(epm_actionid_t fireActionId);
 
 private:
   // void configureEhp();

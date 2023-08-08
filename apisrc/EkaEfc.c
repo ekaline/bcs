@@ -121,6 +121,19 @@ void EkaEfc::initQed(const EfcUdpMcParams *mcParams,
   totalCoreIdBitmap_ |= qed_->getCoreBitmap();
 }
 /* ################################################ */
+void EkaEfc::initCmeFc(const EfcUdpMcParams *mcParams,
+                       const EfcCmeFcParams *cmeParams) {
+  cme_ = new EkaCmeFcStrategy(mcParams, cmeParams);
+
+  if (totalCoreIdBitmap_ & cme_->getCoreBitmap())
+    on_error(
+        "CmeFc cores bitmap 0x%x collide with previously "
+        "allocated 0x%x",
+        cme_->getCoreBitmap(), totalCoreIdBitmap_);
+
+  totalCoreIdBitmap_ |= cme_->getCoreBitmap();
+}
+/* ################################################ */
 
 void EkaEfc::qedSetFireAction(epm_actionid_t fireActionId,
                               int productId) {
@@ -129,7 +142,15 @@ void EkaEfc::qedSetFireAction(epm_actionid_t fireActionId,
              "efcInitQedStrategy()");
   qed_->setFireAction(fireActionId, productId);
 }
+/* ################################################ */
 
+void EkaEfc::cmeFcSetFireAction(
+    epm_actionid_t fireActionId) {
+  if (!cme_)
+    on_error("CmeFc is not initialized. Run "
+             "efcInitCmeFcStrategy()");
+  cme_->setFireAction(fireActionId);
+}
 /* ################################################ */
 int EkaEfc::armController(EfcArmVer ver) {
   EKA_LOG("Arming EFC");
@@ -173,7 +194,21 @@ void EkaEfc::disarmQed() {
              "efcInitQedStrategy()");
   qed_->disarm();
 }
+/* ################################################ */
+void EkaEfc::armCmeFc(EfcArmVer ver) {
+  if (!cme_)
+    on_error("CmeFc is not initialized. Run "
+             "efcInitCmeFcStrategy()");
+  cme_->arm(ver);
+}
 
+/* ################################################ */
+void EkaEfc::disarmCmeFc() {
+  if (!cme_)
+    on_error("CmeFc is not initialized. Run "
+             "efcInitCmeFcStrategy()");
+  cme_->disarm();
+}
 /* ################################################ */
 #if 0
 int EkaEfc::initStratGlobalParams(
