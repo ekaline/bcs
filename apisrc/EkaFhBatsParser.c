@@ -874,9 +874,9 @@ bool EkaFhBatsGr::process_Definition(
   EkaOsiSymbolData osi;
   if (!osi.parseFromSymbol(message->osi_symbol)) {
     EKA_ERROR("%s:%d: Skipping option def `%.21s` (`%.6s`) "
-							"as the OSI symbol is not valid!",
-              EKA_EXCH_DECODE(exch), id,  message->osi_symbol,
-							message->symbol);
+              "as the OSI symbol is not valid!",
+              EKA_EXCH_DECODE(exch), id,
+              message->osi_symbol, message->symbol);
     return false;
   }
 
@@ -921,8 +921,15 @@ EkaFhBatsGr::process_AddOrderShort(const uint8_t *m) {
   SecurityIdT security_id = symbol2secId(message->symbol);
 
   SecurityT *s = book->findSecurity(security_id);
-  if (!s)
+  if (!s) {
+#ifdef FH_SUBSCRIBE_ALL
+    s = book->subscribeSecurity(security_id,
+                                (EfhSecurityType)1,
+                                (EfhSecUserData)0, 0, 0);
+#else
     return NULL;
+#endif
+  }
   book->setSecurityPrevState(s);
 
   OrderIdT order_id = message->order_id;
@@ -945,8 +952,15 @@ EkaFhBatsGr::process_AddOrderLong(const uint8_t *m) {
   SecurityIdT security_id = symbol2secId(message->symbol);
 
   SecurityT *s = book->findSecurity(security_id);
-  if (!s)
+  if (!s) {
+#ifdef FH_SUBSCRIBE_ALL
+    s = book->subscribeSecurity(security_id,
+                                (EfhSecurityType)1,
+                                (EfhSecUserData)0, 0, 0);
+#else
     return NULL;
+#endif
+  }
   book->setSecurityPrevState(s);
 
   OrderIdT order_id = message->order_id;
@@ -954,10 +968,14 @@ EkaFhBatsGr::process_AddOrderLong(const uint8_t *m) {
   PriceT price = message->price / EFH_PRICE_SCALE;
   SideT side = sideDecode(message->side);
 
-  /* if (checkPriceLengh(message->price,EFH_PRICE_SCALE)) */
+  /* if
+   * (checkPriceLengh(message->price,EFH_PRICE_SCALE))
+   */
   /*   EKA_WARN("%s %s seq=%ju Long price(%jd) exceeds
+   *
    * 32bit", */
   /* 	     std::string(message->symbol,sizeof(message->symbol)).c_str(),
+
    */
   /* 	     ts_ns2str(msg_timestamp).c_str(), */
   /* 	     sequence, */
@@ -976,8 +994,15 @@ EkaFhBatsGr::process_AddOrderExpanded(const uint8_t *m) {
       expSymbol2secId(message->exp_symbol);
 
   SecurityT *s = book->findSecurity(security_id);
-  if (!s)
+  if (!s) {
+#ifdef FH_SUBSCRIBE_ALL
+    s = book->subscribeSecurity(security_id,
+                                (EfhSecurityType)1,
+                                (EfhSecUserData)0, 0, 0);
+#else
     return NULL;
+#endif
+  }
   book->setSecurityPrevState(s);
 
   OrderIdT order_id = message->order_id;
@@ -985,10 +1010,14 @@ EkaFhBatsGr::process_AddOrderExpanded(const uint8_t *m) {
   PriceT price = message->price / EFH_PRICE_SCALE;
   SideT side = sideDecode(message->side);
 
-  /* if (checkPriceLengh(message->price,EFH_PRICE_SCALE)) */
+  /* if
+   * (checkPriceLengh(message->price,EFH_PRICE_SCALE))
+   */
   /*   EKA_WARN("%s %s seq=%ju Long price(%jd) exceeds
+   *
    * 32bit", */
   /* 	     std::string(message->symbol,sizeof(message->symbol)).c_str(),
+
    */
   /* 	     ts_ns2str(msg_timestamp).c_str(), */
   /* 	     sequence, */
@@ -1019,7 +1048,8 @@ EkaFhBatsGr::process_OrderModifyShort(const uint8_t *m) {
   book->setSecurityPrevState(s);
 
   book->modifyOrder(
-      o, price, size); // modify order for price and size
+      o, price,
+      size); // modify order for price and size
   return s;
 }
 
@@ -1032,8 +1062,11 @@ EkaFhBatsGr::process_OrderModifyLong(const uint8_t *m) {
   SizeT size = message->size;
   PriceT price = message->price / EFH_PRICE_SCALE;
 
-  /* if (checkPriceLengh(message->price,EFH_PRICE_SCALE)) */
+  /* if
+   * (checkPriceLengh(message->price,EFH_PRICE_SCALE))
+   */
   /*   EKA_WARN("ORDER_MODIFY_LONG: %s seq=%ju Long
+   *
    * price(%ju) exceeds 32bit", */
   /* 	     ts_ns2str(msg_timestamp).c_str(), */
   /* 	     sequence, */
@@ -1046,7 +1079,8 @@ EkaFhBatsGr::process_OrderModifyLong(const uint8_t *m) {
   book->setSecurityPrevState(s);
 
   book->modifyOrder(
-      o, price, size); // modify order for price and size
+      o, price,
+      size); // modify order for price and size
   return s;
 }
 
@@ -1058,9 +1092,15 @@ SecurityT *EkaFhBatsGr::process_TradeShort(
   SecurityIdT security_id = symbol2secId(message->symbol);
 
   SecurityT *s = book->findSecurity(security_id);
-  if (!s)
+  if (!s) {
+#ifdef FH_SUBSCRIBE_ALL
+    s = book->subscribeSecurity(security_id,
+                                (EfhSecurityType)1,
+                                (EfhSecUserData)0, 0, 0);
+#else
     return NULL;
-
+#endif
+  }
   PriceT price =
       message->price * 100 /
       EFH_PRICE_SCALE; // Short Price representation
@@ -1094,15 +1134,23 @@ SecurityT *EkaFhBatsGr::process_TradeLong(
   SecurityIdT security_id = symbol2secId(message->symbol);
 
   SecurityT *s = book->findSecurity(security_id);
-  if (!s)
+  if (!s) {
+#ifdef FH_SUBSCRIBE_ALL
+    s = book->subscribeSecurity(security_id,
+                                (EfhSecurityType)1,
+                                (EfhSecUserData)0, 0, 0);
+#else
     return NULL;
-
+#endif
+  }
   PriceT price = message->price / EFH_PRICE_SCALE;
   SizeT size = message->size;
 
-  /* if (checkPriceLengh(message->price,EFH_PRICE_SCALE)) */
-  /*   EKA_WARN("%s %s seq=%ju Long price(%ju) exceeds
-   * 32bit", */
+  /* if
+   * (checkPriceLengh(message->price,EFH_PRICE_SCALE))
+   */
+  /*   EKA_WARN("%s %s seq=%ju Long price(%ju)
+   * exceeds 32bit", */
   /* 	       std::string(message->symbol,sizeof(message->symbol)).c_str(),
    */
   /* 	       ts_ns2str(msg_timestamp).c_str(), */
@@ -1138,18 +1186,27 @@ SecurityT *EkaFhBatsGr::process_TradeExpanded(
       expSymbol2secId(message->symbol);
 
   SecurityT *s = book->findSecurity(security_id);
-  if (!s)
+  if (!s) {
+#ifdef FH_SUBSCRIBE_ALL
+    s = book->subscribeSecurity(security_id,
+                                (EfhSecurityType)1,
+                                (EfhSecUserData)0, 0, 0);
+#else
     return NULL;
-
+#endif
+  }
   PriceT price = message->price / EFH_PRICE_SCALE;
   SizeT size = message->size;
 
-  /* if (checkPriceLengh(message->price,EFH_PRICE_SCALE)) */
-  /*   EKA_WARN("%s %s seq=%ju Long price(%ju) exceeds
-   * 32bit", */
+  /* if
+   * (checkPriceLengh(message->price,EFH_PRICE_SCALE))
+   */
+  /*   EKA_WARN("%s %s seq=%ju Long price(%ju)
+   * exceeds 32bit", */
   /* 	       std::string(message->symbol,sizeof(message->symbol)).c_str(),
    */
-  /* 	       ts_ns2str(msg_timestamp).c_str(), */
+  /* 	       ts_ns2str(msg_timestamp).c_str(),
+   */
   /* 	       sequence, */
   /* 	       message->price); */
 

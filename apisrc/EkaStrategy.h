@@ -36,7 +36,7 @@ public:
 
 public:
   static void clearAllHwUdpParams();
-  uint8_t coreIdBitmap_ = 0x00;
+  uint8_t coreIdBitmap_ = 0x00; // MD RX (Parsers) cores
 
 protected:
   EkaDev *dev_ = nullptr;
@@ -47,7 +47,6 @@ protected:
 
 public:
   EkaStratMcCoreSess mcCoreSess_[EFC_MAX_CORES] = {};
-  int numUdpSess_ = 0;
 
   OnReportCb reportCb_;
   void *cbCtx_;

@@ -38,8 +38,9 @@ public:
       EKA_MAX_CORES * EKA_MAX_TCP_SESSIONS_PER_CORE *
       2; // 4 * 32 * 2 = 256
 
-  // first 64 actions are preallocated for P4 fires
-  static const uint P4Reserved = 64;
+  // first 64 * 2 actions are preallocated for P4 fires
+  static const uint P4Reserved =
+      EFC_PREALLOCATED_P4_ACTIONS_PER_LANE * EFC_MAX_CORES;
 
   static const int MaxStrategies = Regions::TcpTxFullPkt;
 
@@ -139,6 +140,12 @@ public:
       on_error("Bad regionId %d", regionId);
   }
 
+  constexpr static const char *getRegionName(int regionId) {
+    sanityCheckRegionId(regionId);
+
+    return region[regionId].name;
+  }
+
   constexpr static void sanityCheckActionId(int regionId,
                                             int actionId) {
     if (actionId < 0 ||
@@ -226,6 +233,12 @@ public:
 
     return getBaseHeapOffs(regionId) +
            actionId * region[regionId].actionHeapBudget;
+  }
+
+  constexpr static int getActionHeapBudget(int regionId) {
+    sanityCheckRegionId(regionId);
+
+    return region[regionId].actionHeapBudget;
   }
 
   constexpr static int getEfhIgmpRegion(int udpChId) {

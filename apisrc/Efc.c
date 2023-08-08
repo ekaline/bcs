@@ -38,9 +38,8 @@ int printControllerStateReport(
     EkaDev *dev, const EfcControllerState *msg);
 int printBoeFire(EkaDev *dev, const BoeNewOrderMsg *msg);
 
-EkaOpResult efcInit(EfcCtx **ppEfcCtx, EkaDev *pEkaDev,
+EkaOpResult efcInit(EkaDev *dev,
                     const EfcInitCtx *pEfcInitCtx) {
-  auto dev = pEkaDev;
   if (!dev || !dev->ekaHwCaps)
     on_error("(!dev || !dev->ekaHwCaps");
   dev->ekaHwCaps->checkEfc();
@@ -51,11 +50,6 @@ EkaOpResult efcInit(EfcCtx **ppEfcCtx, EkaDev *pEkaDev,
         "Ekaline SW instance - caught by another process");
   if (!pEfcInitCtx)
     on_error("!pEfcInitCtx");
-  *ppEfcCtx = new EfcCtx;
-  if (!*ppEfcCtx)
-    on_error("!*ppEfcCtx");
-
-  (*ppEfcCtx)->dev = dev;
 
   if (dev->efc)
     on_error("Efc is already initialized");
@@ -184,13 +178,10 @@ EkaOpResult efcSetActionPayload(EkaDev *ekaDev,
 /* --------------------------------------------------- */
 
 EkaOpResult
-efcInitP4Strategy(EfcCtx *pEfcCtx,
+efcInitP4Strategy(EkaDev *dev,
                   const EfcUdpMcParams *mcParams,
                   const EfcP4Params *p4Params) {
-  if (!pEfcCtx || !pEfcCtx->dev)
-    on_error("!pEfcCtx || !pEfcCtx->dev");
-  auto dev = pEfcCtx->dev;
-  if (!dev->efc)
+  if (!dev || !dev->efc)
     on_error("Efc is not initialized: use efcInit()");
   auto efc = dev->efc;
 
@@ -200,11 +191,8 @@ efcInitP4Strategy(EfcCtx *pEfcCtx,
 }
 /* --------------------------------------------------- */
 
-EkaOpResult efcArmP4(EfcCtx *pEfcCtx, EfcArmVer ver) {
-  if (!pEfcCtx || !pEfcCtx->dev)
-    on_error("!pEfcCtx || !pEfcCtx->dev");
-  auto dev = pEfcCtx->dev;
-  if (!dev->efc)
+EkaOpResult efcArmP4(EkaDev *dev, EfcArmVer ver) {
+  if (!dev || !dev->efc)
     on_error("Efc is not initialized: use efcInit()");
   auto efc = dev->efc;
 
@@ -215,11 +203,8 @@ EkaOpResult efcArmP4(EfcCtx *pEfcCtx, EfcArmVer ver) {
 
 /* --------------------------------------------------- */
 
-EkaOpResult efcDisArmP4(EfcCtx *pEfcCtx) {
-  if (!pEfcCtx || !pEfcCtx->dev)
-    on_error("!pEfcCtx || !pEfcCtx->dev");
-  auto dev = pEfcCtx->dev;
-  if (!dev->efc)
+EkaOpResult efcDisArmP4(EkaDev *dev) {
+  if (!dev || !dev->efc)
     on_error("Efc is not initialized: use efcInit()");
   auto efc = dev->efc;
 
@@ -229,13 +214,10 @@ EkaOpResult efcDisArmP4(EfcCtx *pEfcCtx) {
 /* --------------------------------------------------- */
 
 EkaOpResult
-efcEnableFiringOnSec(EfcCtx *pEfcCtx,
+efcEnableFiringOnSec(EkaDev *dev,
                      const uint64_t *pSecurityIds,
                      size_t numSecurityIds) {
-  if (!pEfcCtx || !pEfcCtx->dev)
-    on_error("!pEfcCtx || !pEfcCtx->dev");
-  auto dev = pEfcCtx->dev;
-  if (!dev->efc)
+  if (!dev || !dev->efc)
     on_error("Efc is not initialized: use efcInit()");
   auto efc = dev->efc;
 
@@ -267,12 +249,9 @@ efcEnableFiringOnSec(EfcCtx *pEfcCtx,
 }
 /* --------------------------------------------------- */
 
-EfcSecCtxHandle getSecCtxHandle(EfcCtx *pEfcCtx,
+EfcSecCtxHandle getSecCtxHandle(EkaDev *dev,
                                 uint64_t securityId) {
-  if (!pEfcCtx || !pEfcCtx->dev)
-    on_error("!pEfcCtx || !pEfcCtx->dev");
-  auto dev = pEfcCtx->dev;
-  if (!dev->efc)
+  if (!dev || !dev->efc)
     on_error("Efc is not initialized: use efcInit()");
   auto efc = dev->efc;
 
@@ -286,14 +265,11 @@ EfcSecCtxHandle getSecCtxHandle(EfcCtx *pEfcCtx,
 
 /* --------------------------------------------------- */
 
-EkaOpResult efcSetStaticSecCtx(EfcCtx *pEfcCtx,
+EkaOpResult efcSetStaticSecCtx(EkaDev *dev,
                                EfcSecCtxHandle hSecCtx,
                                const SecCtx *pSecCtx,
                                uint16_t writeChan) {
-  if (!pEfcCtx || !pEfcCtx->dev)
-    on_error("!pEfcCtx || !pEfcCtx->dev");
-  auto dev = pEfcCtx->dev;
-  if (!dev->efc)
+  if (!dev || !dev->efc)
     on_error("Efc is not initialized: use efcInit()");
   auto efc = dev->efc;
 
@@ -334,12 +310,9 @@ EkaOpResult efcSetStaticSecCtx(EfcCtx *pEfcCtx,
 
 /* --------------------------------------------------- */
 
-EkaOpResult efcRun(EfcCtx *pEfcCtx,
+EkaOpResult efcRun(EkaDev *dev,
                    const EfcRunCtx *pEfcRunCtx) {
-  if (!pEfcCtx || !pEfcCtx->dev)
-    on_error("!pEfcCtx || !pEfcCtx->dev");
-  auto dev = pEfcCtx->dev;
-  if (!dev->efc)
+  if (!dev || !dev->efc)
     on_error("Efc is not initialized: use efcInit()");
   auto efc = dev->efc;
 
@@ -349,18 +322,15 @@ EkaOpResult efcRun(EfcCtx *pEfcCtx,
 
   memcpy(dev->pEfcRunCtx, pEfcRunCtx, sizeof(*pEfcRunCtx));
 
-  efc->run(pEfcCtx, pEfcRunCtx);
+  efc->run(pEfcRunCtx);
 
   return EKA_OPRESULT__OK;
 }
 /* --------------------------------------------------- */
 
-EkaOpResult efcSwKeepAliveSend(EfcCtx *pEfcCtx,
+EkaOpResult efcSwKeepAliveSend(EkaDev *dev,
                                int strategyId) {
-  if (!pEfcCtx || !pEfcCtx->dev)
-    on_error("!pEfcCtx || !pEfcCtx->dev");
-  auto dev = pEfcCtx->dev;
-  if (!dev->efc)
+  if (!dev || !dev->efc)
     on_error("Efc is not initialized: use efcInit()");
   auto efc = dev->efc;
 
@@ -400,11 +370,8 @@ EkaOpResult efcSetSessionCntr(EkaDev *dev,
 
 ssize_t efcAppSend(EkaDev *dev, epm_actionid_t actionId,
                    const void *buffer, size_t size) {
-  if (!dev)
-    on_error("! dev");
-
-  if (!dev->epm)
-    on_error("Epm is not initialized");
+  if (!dev || !dev->epm)
+    on_error("!dev or Epm is not initialized");
 
   if (!dev->epm->a_[actionId])
     on_error("Acion[%d] is not set", actionId);
@@ -415,13 +382,10 @@ ssize_t efcAppSend(EkaDev *dev, epm_actionid_t actionId,
 /* --------------------------------------------------- */
 
 EkaOpResult
-efcInitQedStrategy(EfcCtx *pEfcCtx,
+efcInitQedStrategy(EkaDev *dev,
                    const EfcUdpMcParams *mcParams,
                    const EfcQedParams *qedParams) {
-  if (!pEfcCtx || !pEfcCtx->dev)
-    on_error("!pEfcCtx || !pEfcCtx->dev");
-  auto dev = pEfcCtx->dev;
-  if (!dev->efc)
+  if (!dev || !dev->efc)
     on_error("Efc is not initialized: use efcInit()");
   auto efc = dev->efc;
 
@@ -431,13 +395,10 @@ efcInitQedStrategy(EfcCtx *pEfcCtx,
 }
 /* --------------------------------------------------- */
 
-EkaOpResult efcQedSetFireAction(EfcCtx *pEfcCtx,
+EkaOpResult efcQedSetFireAction(EkaDev *dev,
                                 epm_actionid_t fireActionId,
                                 int productId) {
-  if (!pEfcCtx || !pEfcCtx->dev)
-    on_error("!pEfcCtx || !pEfcCtx->dev");
-  auto dev = pEfcCtx->dev;
-  if (!dev->efc)
+  if (!dev || !dev->efc)
     on_error("Efc is not initialized: use efcInit()");
   auto efc = dev->efc;
   efc->qedSetFireAction(fireActionId, productId);
@@ -445,11 +406,8 @@ EkaOpResult efcQedSetFireAction(EfcCtx *pEfcCtx,
 }
 /* --------------------------------------------------- */
 
-EkaOpResult efcArmQed(EfcCtx *pEfcCtx, EfcArmVer ver) {
-  if (!pEfcCtx || !pEfcCtx->dev)
-    on_error("!pEfcCtx || !pEfcCtx->dev");
-  auto dev = pEfcCtx->dev;
-  if (!dev->efc)
+EkaOpResult efcArmQed(EkaDev *dev, EfcArmVer ver) {
+  if (!dev || !dev->efc)
     on_error("Efc is not initialized: use efcInit()");
   auto efc = dev->efc;
 
@@ -460,14 +418,58 @@ EkaOpResult efcArmQed(EfcCtx *pEfcCtx, EfcArmVer ver) {
 
 /* --------------------------------------------------- */
 
-EkaOpResult efcDisArmQed(EfcCtx *pEfcCtx) {
-  if (!pEfcCtx || !pEfcCtx->dev)
-    on_error("!pEfcCtx || !pEfcCtx->dev");
-  auto dev = pEfcCtx->dev;
-  if (!dev->efc)
+EkaOpResult efcDisArmQed(EkaDev *dev) {
+  if (!dev || !dev->efc)
     on_error("Efc is not initialized: use efcInit()");
   auto efc = dev->efc;
 
   efc->disarmQed();
+  return EKA_OPRESULT__OK;
+}
+/* --------------------------------------------------- */
+
+EkaOpResult
+efcInitCmeFcStrategy(EkaDev *dev,
+                     const EfcUdpMcParams *mcParams,
+                     const EfcCmeFcParams *cmeParams) {
+  if (!dev || !dev->efc)
+    on_error("Efc is not initialized: use efcInit()");
+  auto efc = dev->efc;
+
+  efc->initCmeFc(mcParams, cmeParams);
+
+  return EKA_OPRESULT__OK;
+}
+/* --------------------------------------------------- */
+
+EkaOpResult
+efcCmeFcSetFireAction(EkaDev *dev,
+                      epm_actionid_t fireActionId) {
+  if (!dev || !dev->efc)
+    on_error("Efc is not initialized: use efcInit()");
+  auto efc = dev->efc;
+  efc->cmeFcSetFireAction(fireActionId);
+  return EKA_OPRESULT__OK;
+}
+/* --------------------------------------------------- */
+
+EkaOpResult efcArmCmeFc(EkaDev *dev, EfcArmVer ver) {
+  if (!dev || !dev->efc)
+    on_error("Efc is not initialized: use efcInit()");
+  auto efc = dev->efc;
+
+  efc->armCmeFc(ver);
+
+  return EKA_OPRESULT__OK;
+}
+
+/* --------------------------------------------------- */
+
+EkaOpResult efcDisArmCmeFc(EkaDev *dev) {
+  if (!dev || !dev->efc)
+    on_error("Efc is not initialized: use efcInit()");
+  auto efc = dev->efc;
+
+  efc->disarmCmeFc();
   return EKA_OPRESULT__OK;
 }

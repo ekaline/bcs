@@ -256,7 +256,7 @@ int main(int argc, char *argv[]) {
     auto streamId = EKA_XDP_STREAM_ID(p);
     auto pktType = EKA_XDP_PKT_TYPE(p);
 
-    printf("%04u: 0x%04x:  ", pktNum, streamId);
+    printf("%04ju: 0x%04x:  ", pktNum, streamId);
 
     hexDump("PktHdr", p, sizeof(XdpPktHdr));
 
@@ -271,7 +271,7 @@ int main(int argc, char *argv[]) {
       auto msgType =
           reinterpret_cast<const XdpMsgHdr *>(p)->MsgType;
       TEST_LOG("pktType=%d, msgCnt=%d, msgType=%d", pktType,
-               msgCnt, msgType);
+               msgCnt, (int)msgType);
       hexDump("MSG", p, msgLen);
       on_error("streamIdx = %d", streamIdx);
     }

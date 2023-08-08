@@ -31,8 +31,7 @@
 
 extern EkaDev *g_ekaDev;
 
-/* ###########################################################
- */
+/* ##################################################  */
 inline size_t printContainerGlobalHdr(FILE *file,
                                       const uint8_t *b) {
   auto containerHdr{
@@ -48,8 +47,7 @@ inline size_t printContainerGlobalHdr(FILE *file,
 
   return sizeof(*containerHdr);
 }
-/* ###########################################################
- */
+/* ##################################################  */
 inline size_t printControllerState(FILE *file,
                                    const uint8_t *b) {
   auto controllerState{
@@ -74,8 +72,7 @@ inline size_t printControllerState(FILE *file,
 
   return sizeof(*controllerState);
 }
-/* ###########################################################
- */
+/* ##################################################  */
 inline size_t printExceptionReport(FILE *file,
                                    const uint8_t *b) {
   auto exceptionsReport{
@@ -93,11 +90,10 @@ inline size_t printExceptionReport(FILE *file,
   }
   return sizeof(*exceptionsReport);
 }
-/* ###########################################################
- */
+/* ##################################################  */
 size_t printSecurityCtx(FILE *file, const uint8_t *b) {
   auto secCtxReport{reinterpret_cast<const SecCtx *>(b)};
-  fprintf(file, "SecurityCtx:");
+  fprintf(file, "SecurityCtx:\n");
   fprintf(file, "\tlowerBytesOfSecId = 0x%x \n",
           secCtxReport->lowerBytesOfSecId);
   fprintf(file, "\taskSize = %u\n", secCtxReport->askSize);
@@ -114,26 +110,21 @@ size_t printSecurityCtx(FILE *file, const uint8_t *b) {
 
   return sizeof(*secCtxReport);
 }
-/* ###########################################################
- */
+/* ##################################################  */
 size_t printMdReport(FILE *file, const uint8_t *b) {
   auto mdReport{reinterpret_cast<const EfcMdReport *>(b)};
-  fprintf(file, "MdReport:");
+  fprintf(file, "MdReport:\n");
+  fprintf(file, "\tMdCoreId = %u\n", mdReport->core_id);
   fprintf(file, "\tGroup = %hhu\n", mdReport->group_id);
   fprintf(file, "\tSequence no = %ju\n",
           intmax_t(mdReport->sequence));
   fprintf(
-      file, "\tSID = 0x%02x%02x%02x%02x%02x%02x%02x%02x\n",
-      (uint8_t)((mdReport->security_id >> 7 * 8) & 0xFF),
-      (uint8_t)((mdReport->security_id >> 6 * 8) & 0xFF),
-      (uint8_t)((mdReport->security_id >> 5 * 8) & 0xFF),
-      (uint8_t)((mdReport->security_id >> 4 * 8) & 0xFF),
-      (uint8_t)((mdReport->security_id >> 3 * 8) & 0xFF),
-      (uint8_t)((mdReport->security_id >> 2 * 8) & 0xFF),
-      (uint8_t)((mdReport->security_id >> 1 * 8) & 0xFF),
-      (uint8_t)((mdReport->security_id >> 0 * 8) & 0xFF));
-  fprintf(file, "\tSide = %c\n",
-          mdReport->side == 1 ? 'B' : 'S');
+      file, "\tSID = %s\n",
+      cboeSecIdString(&mdReport->security_id, 8).c_str());
+  fprintf(file, "\tSide = \'%c\'\n",
+          mdReport->side == 1 ? 'B'
+          : 2                 ? 'S'
+                              : 'X');
   fprintf(file, "\tPrice = %8jd\n",
           intmax_t(mdReport->price));
   fprintf(file, "\tSize = %8ju\n",
@@ -141,75 +132,32 @@ size_t printMdReport(FILE *file, const uint8_t *b) {
 
   return sizeof(*mdReport);
 }
-/* ###########################################################
- */
+/* ##################################################  */
 int printBoeFire(FILE *file, const uint8_t *b) {
-  auto boeOrder{reinterpret_cast<const BoeNewOrderMsg *>(
-      b + sizeof(EkaEthHdr) + sizeof(EkaIpHdr) +
-      sizeof(EkaTcpHdr))};
-  fprintf(file, "Fired BOE NewOrder:");
+  auto fireMsg{
+      reinterpret_cast<const BoeQuoteUpdateShortMsg *>(
+          b + sizeof(EkaEthHdr) + sizeof(EkaIpHdr) +
+          sizeof(EkaTcpHdr))};
+  fprintf(file, "Fired BoeQuoteUpdateShortMsg:\n");
 
-  fprintf(file, "\tStartOfMessage=0x%04x\n",
-          boeOrder->StartOfMessage);
-  fprintf(file, "\tMessageLength=0x%04x (%u)\n",
-          boeOrder->MessageLength, boeOrder->MessageLength);
-  fprintf(file, "\tMessageType=0x%x\n",
-          boeOrder->MessageType);
-  fprintf(file, "\tMatchingUnit=%x\n",
-          boeOrder->MatchingUnit);
-  fprintf(file, "\tSequenceNumber=%u\n",
-          boeOrder->SequenceNumber);
-  fprintf(file, "\tClOrdID=\'%s\'\n",
-          std::string(boeOrder->ClOrdID,
-                      sizeof(boeOrder->ClOrdID))
-              .c_str());
-  fprintf(file, "\tSide=\'%c\'\n", boeOrder->Side);
+  fprintf(file, "\tHWinsertedSeq=%.8s\n",
+          fireMsg->QuoteUpdateID_seq);
+  fprintf(file, "\tSymbol=\'%s\' (0x%016jx)\n",
+          cboeSecIdString(fireMsg->Symbol, 6).c_str(),
+          *(uint64_t *)fireMsg->Symbol);
+  fprintf(file, "\tSide=\'%c\'\n",
+          fireMsg->Side == 1 ? 'B'
+          : 2                ? 'S'
+                             : 'X');
   fprintf(file, "\tOrderQty=0x%08x (%u)\n",
-          boeOrder->OrderQty, boeOrder->OrderQty);
-  fprintf(file, "\tNumberOfBitfields=0x%x\n",
-          boeOrder->NumberOfBitfields);
-  fprintf(file, "\tNewOrderBitfield1=0x%x\n",
-          boeOrder->NewOrderBitfield1);
-  fprintf(file, "\tNewOrderBitfield2=0x%x\n",
-          boeOrder->NewOrderBitfield2);
-  fprintf(file, "\tNewOrderBitfield3=0x%x\n",
-          boeOrder->NewOrderBitfield3);
-  fprintf(file, "\tNewOrderBitfield4=0x%x\n",
-          boeOrder->NewOrderBitfield4);
-  fprintf(file, "\tClearingFirm=\'%s\'\n",
-          std::string(boeOrder->ClearingFirm,
-                      sizeof(boeOrder->ClearingFirm))
-              .c_str());
-  fprintf(file, "\tClearingAccount=\'%s\'\n",
-          std::string(boeOrder->ClearingAccount,
-                      sizeof(boeOrder->ClearingAccount))
-              .c_str());
-
-  fprintf(file, "\tPrice=0x%016jx (%ju)\n", boeOrder->Price,
-          boeOrder->Price);
-  fprintf(file, "\tOrdType=\'%c\'\n", boeOrder->OrdType);
-  fprintf(file, "\tTimeInForce=\'%c\'\n",
-          boeOrder->TimeInForce);
-  fprintf(file,
-          "\tSymbol=\'%c%c%c%c%c%c%c%c\' (0x%016jx)\n",
-          boeOrder->Symbol[7], boeOrder->Symbol[6],
-          boeOrder->Symbol[5], boeOrder->Symbol[4],
-          boeOrder->Symbol[3], boeOrder->Symbol[2],
-          boeOrder->Symbol[1], boeOrder->Symbol[0],
-          *(uint64_t *)boeOrder->Symbol);
-  fprintf(file, "\tCapacity=\'%c\'\n", boeOrder->Capacity);
-  fprintf(file, "\tAccount=\'%s\'\n",
-          std::string(boeOrder->Account,
-                      sizeof(boeOrder->Account))
-              .c_str());
-  fprintf(file, "\tOpenClose=\'%c\'\n",
-          boeOrder->OpenClose);
-
+          fireMsg->OrderQty, fireMsg->OrderQty);
+  fprintf(file, "\tPrice=0x%08x (%u)\n", fireMsg->Price,
+          fireMsg->Price);
+  fprintf(file, "\n");
   return 0;
 }
 
-/* ###########################################################
- */
+/* ##################################################  */
 size_t printFirePkt(FILE *file, const uint8_t *b,
                     size_t size) {
   auto dev = g_ekaDev;
@@ -219,41 +167,46 @@ size_t printFirePkt(FILE *file, const uint8_t *b,
   if (!epm)
     on_error("!epm");
   auto efc = dev->efc;
-  if (!efc || !efc->p4_)
-    on_error("!efc || !p4");
+  if (!efc)
+    on_error("!efc");
 
   fprintf(file, "FirePktReport:");
-  switch (efc->p4_->feedVer_) {
-  case EfhFeedVer::kCBOE:
-    printBoeFire(file, b);
-  default:
-    hexDump("Fired Pkt", b, size, file);
-  }
+  if (efc->p4_)
+    switch (efc->p4_->feedVer_) {
+    case EfhFeedVer::kCBOE:
+      printBoeFire(file, b);
+      return size;
+    default:
+      on_error("Unsupported EfhFeedVer %d",
+               (int)efc->p4_->feedVer_);
+    }
+  hexDump("Fired Pkt", b, size, file);
   return size;
 }
-/* ###########################################################
- */
+/* ##################################################  */
 int printEpmReport(FILE *file, const uint8_t *b) {
   auto epmReport{
       reinterpret_cast<const EpmFireReport *>(b)};
 
-  fprintf(
-      file,
-      "StrategyId=%d,ActionId=%d,TriggerActionId=%d,"
-      "TriggerSource=%s,triggerToken=%016jx,user=%016jx,"
-      "preLocalEnable=%016jx,postLocalEnable=%016jx,"
-      "preStratEnable=%016jx,postStratEnable=%016jx\n",
-      epmReport->strategyId, epmReport->actionId,
-      epmReport->action,
-      epmReport->local ? "FROM SW" : "FROM UDP\n",
-      epmReport->triggerToken, epmReport->user,
-      epmReport->preLocalEnable, epmReport->postLocalEnable,
-      epmReport->preStratEnable,
-      epmReport->postStratEnable);
+  fprintf(file,
+          "%s," // strategy
+          "%s " // action type
+          "ActionId=%d (%d),"
+          "%s," // Sent/Error
+          "%s," // TriggerSource
+          "\n",
+          epmReport->strategyId == EFC_STRATEGY
+              ? "EFC"
+              : "UnexpectedStrategy",
+          printActionType(
+              getActionTypeFromUser(epmReport->user)),
+          getActionGlobalIdxFromUser(epmReport->user),
+          epmReport->actionId,
+          epmPrintFireEvent(epmReport->action),
+          epmReport->local ? "FROM SW" : "FROM UDP");
   return sizeof(*epmReport);
 }
-/* ###########################################################
- */
+/* ##################################################  */
 int printFastCancelReport(FILE *file, const uint8_t *b) {
   auto epmReport{
       reinterpret_cast<const EpmFastCancelReport *>(b)};
@@ -264,8 +217,7 @@ int printFastCancelReport(FILE *file, const uint8_t *b) {
           epmReport->sequenceNumber);
   return sizeof(*epmReport);
 }
-/* ###########################################################
- */
+/* ##################################################  */
 int printFastSweepReport(FILE *file, const uint8_t *b) {
   auto epmReport{
       reinterpret_cast<const EpmFastSweepReport *>(b)};
@@ -279,8 +231,7 @@ int printFastSweepReport(FILE *file, const uint8_t *b) {
           epmReport->firstMsgType, epmReport->lastMsgType);
   return sizeof(*epmReport);
 }
-/* ###########################################################
- */
+/* ##################################################  */
 int printQEDReport(FILE *file, const uint8_t *b) {
   auto epmReport{reinterpret_cast<const EpmQEDReport *>(b)};
 
@@ -289,8 +240,7 @@ int printQEDReport(FILE *file, const uint8_t *b) {
           epmReport->DSID);
   return sizeof(*epmReport);
 }
-/* ###########################################################
- */
+/* ##################################################  */
 int printNewsReport(FILE *file, const uint8_t *b) {
   auto epmReport{
       reinterpret_cast<const EpmNewsReport *>(b)};
@@ -303,8 +253,7 @@ int printNewsReport(FILE *file, const uint8_t *b) {
   return sizeof(*epmReport);
 }
 
-/* ###########################################################
- */
+/* ##################################################  */
 
 void efcPrintFireReport(const void *p, size_t len,
                         void *ctx) {

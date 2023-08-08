@@ -21,8 +21,6 @@
 #include "EpmStrategy.h"
 #include "EpmTemplate.h"
 
-void ekaFireReportThread(EkaDev *dev);
-
 /* ---------------------------------------------------- */
 
 EkaEpm::EkaEpm(EkaDev *_dev) {
@@ -50,7 +48,22 @@ int EkaEpm::createRegion(int regionId) {
   eka_write(dev, strategyEnableAddr(regionId),
             ALWAYS_ENABLE);
 
+  auto nActions = EkaEpmRegion::getMaxActions(regionId);
+  EKA_LOG("%s: Resetting %d Actions and memory %d..%d",
+          EkaEpmRegion::getRegionName(regionId), nActions,
+          EkaEpmRegion::getBaseHeapOffs(regionId),
+          EkaEpmRegion::getBaseHeapOffs(regionId) +
+              EkaEpmRegion::getHeapSize(regionId) - 1);
+
 #ifndef _VERILOG_SIM
+  for (auto i = 0; i < nActions; i++) {
+    epm_action_t emptyAction = {};
+    auto globalIdx =
+        EkaEpmRegion::getBaseActionIdx(regionId) + i;
+    EkaEpmAction::copyHwActionParams2Fpga(&emptyAction,
+                                          globalIdx);
+  }
+
   initHeap(regionId, 0x0);
 #endif
 
@@ -98,6 +111,7 @@ void EkaEpm::initHeap(int regionId, uint8_t payloadByte) {
 
 /* ---------------------------------------------------- */
 
+#if 0
 EkaOpResult
 EkaEpm::raiseTriggers(const EpmTrigger *trigger) {
   if (!trigger)
@@ -122,17 +136,14 @@ EkaEpm::raiseTriggers(const EpmTrigger *trigger) {
     on_error("!strategy[%u]->action[%u]", strategyId,
              actionId);
 
-#if 0
   EKA_LOG("Accepted Trigger: token=0x%jx, strategyId=%d, "
 					"FistActionId=%d, ekaAction->idx = %u, "
 					"epm_trig_desc.str.action_index=%u",
 					trigger->token,strategyId,actionId,
 					a->idx,
 					epm_trig_desc.str.action_index);
-#endif
   a->send();
 
-#if 0
   EKA_LOG("User Action: actionType = %u, strategyId=%u, "
 					"actionId=%u,heapAddr=%ju, pktSize=%u",
   	  a->hwAction.tcpCsSizeSource,
@@ -141,12 +152,12 @@ EkaEpm::raiseTriggers(const EpmTrigger *trigger) {
   	  a->hwAction.payloadSize
   	  );
   eka_write(dev,EPM_TRIGGER_DESC_ADDR,epm_trig_desc.desc);
-#endif
   return EKA_OPRESULT__OK;
 }
+#endif
 
 /* ---------------------------------------------------- */
-
+#if 0
 EkaOpResult EkaEpm::setAction(epm_strategyid_t strategyIdx,
                               epm_actionid_t actionIdx,
                               const EpmAction *epmAction) {
@@ -233,13 +244,13 @@ EkaOpResult EkaEpm::enableController(EkaCoreId coreId,
 
   return EKA_OPRESULT__OK;
 }
-
+#endif
 /* ---------------------------------------------------- */
 
+#if 0
 EkaOpResult
 EkaEpm::initStrategies(const EpmStrategyParams *params,
                        epm_strategyid_t numStrategies) {
-#if 0
   if (numStrategies > EkaEpmRegion::MaxStrategies)
     on_error("numStrategies %u > MaxStrategies %d",
              numStrategies, EkaEpmRegion::MaxStrategies);
@@ -283,11 +294,12 @@ EkaEpm::initStrategies(const EpmStrategyParams *params,
   }
 
   initialized = true;
-#endif
   return EKA_OPRESULT__OK;
 }
+#endif
 /* ---------------------------------------------------- */
 
+#if 0
 EkaOpResult
 EkaEpm::setStrategyEnableBits(epm_strategyid_t strategyIdx,
                               epm_enablebits_t enable) {
@@ -313,7 +325,6 @@ EkaEpm::getStrategyEnableBits(epm_strategyid_t strategyIdx,
 }
 
 /* ---------------------------------------------------- */
-
 EkaOpResult
 EkaEpm::payloadHeapCopy(epm_strategyid_t strategyIdx,
                         uint32_t offset, uint32_t length,
@@ -342,7 +353,7 @@ EkaEpm::payloadHeapCopy(epm_strategyid_t strategyIdx,
 
   return EKA_OPRESULT__OK;
 }
-
+#endif
 /* ---------------------------------------------------- */
 
 void EkaEpm::InitDefaultTemplates() {
@@ -379,6 +390,7 @@ void EkaEpm::DownloadSingleTemplate2HW(EpmTemplate *t) {
              sizeof(t->hw_tcpcs_template));
 }
 /* ---------------------------------------------------- */
+#if 0
 int EkaEpm::getFreeAction(int regionId) {
   for (int i = EkaEpmRegion::getBaseActionIdx(regionId);
        i < EkaEpmRegion::getBaseActionIdx(regionId) +
@@ -393,6 +405,7 @@ int EkaEpm::getFreeAction(int regionId) {
 bool EkaEpm::isActionReserved(int globalIdx) {
   return (a_[globalIdx] != nullptr);
 }
+#endif
 /* ---------------------------------------------------- */
 void EkaEpm::actionParamsSanityCheck(ActionType type,
                                      int regionId) {

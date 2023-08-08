@@ -59,6 +59,8 @@ EkaIgmpEntry::EkaIgmpEntry(EkaDev *_dev, int _epmRegion,
   if (!igmpLeaveAction_)
     on_error("!igmpLeaveAction_");
 
+  igmpLeaveAction_->setCoreId(coreId_);
+
   igmpLeaveAction_->preloadFullPkt((uint8_t *)&igmpLeavePkt,
                                    igmpLeavePktLen);
 }

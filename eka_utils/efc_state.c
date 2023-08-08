@@ -23,9 +23,16 @@
 
 // #define NUM_OF_CORES EKA_MAX_CORES
 #define NUM_OF_CORES 4
+#define NUM_OF_STRAT 16
 #define FREQUENCY EKA_FPGA_FREQUENCY
 
 #define MASK32 0xffffffff
+
+#define S_P4     2
+#define S_QED    12
+#define S_SWEEP  13
+#define S_NEWS   14
+#define S_CANCEL 15
 
 SN_DeviceId devId;
 
@@ -82,6 +89,7 @@ struct EfcState {
   bool forceFire = false;
   bool forceFireUnsubscr = false;
   bool fatalDebug = false;
+  bool epmDump = false;
   CommonState commonState;
 };
 
@@ -109,6 +117,14 @@ struct NewsState {
   CommonState commonState;
 };
 
+struct StratState {
+  EfcState        p4;
+  FastCancelState fastCancel;
+  FastSweepState  fastSweep;
+  QEDState        QED;
+  NewsState       news;
+};
+
 const char *emptyPrefix = "                     ";
 const char *prefixStrFormat = "%-20s ";
 const char *colStringFormat = "| %20s ";
@@ -117,7 +133,11 @@ const char *colStringFormatRed = RED "| %20s " RESET;
 const char *colSmallNumFieldFormat = "| %17s%3d ";
 const char *colformat = "|    %'-16ju  ";
 const char *colformats = "|    %'-16s  ";
+const char *colformatsgrn = GRN "|    %'-16s  " RESET;
+const char *colformatsred = RED "|    %'-16s  " RESET;
 const int colLen = 22;
+
+bool active_strat[16] = {false};
 
 // ################################################
 
@@ -352,6 +372,17 @@ int printLineSeparator(IfParams coreParams[NUM_OF_CORES],
   return 0;
 }
 // ################################################
+int printStratLineSeparator(char sep, char s) {
+  printf("%s", std::string(strlen(emptyPrefix), s).c_str());
+  for (auto stratId = 0; stratId < NUM_OF_STRAT; stratId++) {
+    if (!active_strat[stratId])
+      continue;
+    printf("%c%s", sep, std::string(colLen, s).c_str());
+  }
+  printf("\n");
+  return 0;
+}
+// ################################################
 
 int printHeader(IfParams coreParams[NUM_OF_CORES],
                 EfcState *pEfcState,
@@ -523,6 +554,261 @@ int printHeader(IfParams coreParams[NUM_OF_CORES],
   /* } */
   /* printf("\n"); */
   /* ----------------------------------------- */
+  return 0;
+}
+
+// ################################################
+int printStratHeader() {
+  printf("\n");
+  printf("%s", emptyPrefix);
+
+  
+  for (auto stratId = 0; stratId < NUM_OF_STRAT; stratId++) {
+    if (!active_strat[stratId])
+      continue;
+    
+    std::string nameStr =
+      std::string(EKA_STRAT2STRING(stratId)) + "       ";
+    //    printf(colStringFormat, nameStr.c_str());
+    printf(colformats, nameStr.c_str());
+  }
+  printf("\n");
+  printStratLineSeparator('+', '-');
+  /* ----------------------------------------- */
+  return 0;
+}
+
+// ################################################
+int printStratStatus(StratState *pStratState) {
+
+  /* ----------------------------------------- */
+  printf(prefixStrFormat, "Arm State");
+  for (auto stratId = 0; stratId < NUM_OF_STRAT; stratId++) {
+    if (!active_strat[stratId])
+      continue;
+
+    CommonState *pCommonState;
+
+    switch (stratId) {
+    case S_P4:
+      pCommonState = &pStratState->p4.commonState;
+      break;
+    case S_QED:
+      pCommonState = &pStratState->QED.commonState;
+      break;
+    case S_SWEEP:
+      pCommonState = &pStratState->fastSweep.commonState;
+      break;
+    case S_NEWS:
+      pCommonState = &pStratState->news.commonState;
+      break;
+    case S_CANCEL:
+      pCommonState = &pStratState->fastCancel.commonState;
+      break;
+    }
+
+    if (pCommonState->arm_ver == EFC_HW_UNARMABLE) {
+      printf(colformatsred, "FATAL Reload DRV");
+    } else {
+      if (!pCommonState->armed) {
+	printf(colformatsred, "Unarmed");
+      } else {
+	printf(colformatsgrn, "Armed");
+      }
+    }
+  }
+  printf("\n");
+
+  /* ----------------------------------------- */
+  printf(prefixStrFormat, "Arm Version");
+  for (auto stratId = 0; stratId < NUM_OF_STRAT; stratId++) {
+    if (!active_strat[stratId])
+      continue;
+
+    CommonState *pCommonState;
+
+    switch (stratId) {
+    case S_P4:
+      pCommonState = &pStratState->p4.commonState;
+      break;
+    case S_QED:
+      pCommonState = &pStratState->QED.commonState;
+      break;
+    case S_SWEEP:
+      pCommonState = &pStratState->fastSweep.commonState;
+      break;
+    case S_NEWS:
+      pCommonState = &pStratState->news.commonState;
+      break;
+    case S_CANCEL:
+      pCommonState = &pStratState->fastCancel.commonState;
+      break;
+    }
+
+    printf(colformat, pCommonState->arm_ver);
+  }
+  printf("\n");
+
+  /* ----------------------------------------- */
+  printf(prefixStrFormat, "Subscription tries");
+  for (auto stratId = 0; stratId < NUM_OF_STRAT; stratId++) {
+    if (!active_strat[stratId])
+      continue;
+    
+    switch (stratId) {
+    case S_P4:
+      printf(colformat, pStratState->p4.totalSecs);
+      break;
+    case S_QED:
+      printf(colformats, "-");
+      break;
+    case S_SWEEP:
+      printf(colformats, "-");
+      break;
+    case S_NEWS:
+      printf(colformats, "-");
+      break;
+    case S_CANCEL:
+      printf(colformats, "-");
+      break;
+    }
+  }
+  printf("\n");
+
+  /* ----------------------------------------- */
+  printf(prefixStrFormat, "Subscription done");
+  for (auto stratId = 0; stratId < NUM_OF_STRAT; stratId++) {
+    if (!active_strat[stratId])
+      continue;
+    
+    switch (stratId) {
+    case S_P4:
+      printf(colformat, pStratState->p4.subscribedSecs);
+      break;
+    case S_QED:
+      printf(colformats, "-");
+      break;
+    case S_SWEEP:
+      printf(colformats, "-");
+      break;
+    case S_NEWS:
+      printf(colformats, "-");
+      break;
+    case S_CANCEL:
+      printf(colformats, "-");
+      break;
+    }
+  }
+  printf("\n");
+
+
+  /* ----------------------------------------- */
+  printf(prefixStrFormat, "Strat unsubscribed");
+  for (auto stratId = 0; stratId < NUM_OF_STRAT; stratId++) {
+    if (!active_strat[stratId])
+      continue;
+    
+    switch (stratId) {
+    case S_P4:
+      printf(colformat, pStratState->p4.ordersUnsubscribed);
+      break;
+    case S_QED:
+      printf(colformats, "-");
+      break;
+    case S_SWEEP:
+      printf(colformats, "-");
+      break;
+    case S_NEWS:
+      printf(colformats, "-");
+      break;
+    case S_CANCEL:
+      printf(colformats, "-");
+      break;
+    }
+  }
+  printf("\n");
+
+
+  /* ----------------------------------------- */
+  printf(prefixStrFormat, "Strat subscribed");
+  for (auto stratId = 0; stratId < NUM_OF_STRAT; stratId++) {
+    if (!active_strat[stratId])
+      continue;
+    
+    switch (stratId) {
+    case S_P4:
+      printf(colformat, pStratState->p4.ordersSubscribed);
+      break;
+    case S_QED:
+      printf(colformats, "-");
+      break;
+    case S_SWEEP:
+      printf(colformats, "-");
+      break;
+    case S_NEWS:
+      printf(colformats, "-");
+      break;
+    case S_CANCEL:
+      printf(colformats, "-");
+      break;
+    }
+  }
+  printf("\n");
+
+  /* ----------------------------------------- */
+  printf(prefixStrFormat, "Strat evaluated");
+  for (auto stratId = 0; stratId < NUM_OF_STRAT; stratId++) {
+    if (!active_strat[stratId])
+      continue;
+    
+    switch (stratId) {
+    case S_P4:
+      printf(colformat, pStratState->p4.strategyRuns);
+      break;
+    case S_QED:
+      printf(colformat, pStratState->QED.strategyRuns);
+      break;
+    case S_SWEEP:
+      printf(colformat, pStratState->fastSweep.strategyRuns);
+      break;
+    case S_NEWS:
+      printf(colformat, pStratState->news.strategyRuns);
+      break;
+    case S_CANCEL:
+      printf(colformat, pStratState->fastCancel.strategyRuns);
+      break;
+    }
+  }
+  printf("\n");
+
+  /* ----------------------------------------- */
+  printf(prefixStrFormat, "Strat passed");
+  for (auto stratId = 0; stratId < NUM_OF_STRAT; stratId++) {
+    if (!active_strat[stratId])
+      continue;
+    
+    switch (stratId) {
+    case S_P4:
+      printf(colformat, pStratState->p4.strategyPassed);
+      break;
+    case S_QED:
+      printf(colformat, pStratState->QED.strategyPassed);
+      break;
+    case S_SWEEP:
+      printf(colformat, pStratState->fastSweep.strategyPassed);
+      break;
+    case S_NEWS:
+      printf(colformat, pStratState->news.strategyPassed);
+      break;
+    case S_CANCEL:
+      printf(colformat, pStratState->fastCancel.strategyPassed);
+      break;
+    }
+  }
+  printf("\n");
+
+
+  printf("\n");
   return 0;
 }
 
@@ -742,6 +1028,7 @@ int getEfcState(EfcState *pEfcState) {
   pEfcState->commonState.reportOnly =
       (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT) != 0;
   pEfcState->fatalDebug = var_fatal_debug == 0xefa0beda;
+  pEfcState->epmDump    = var_fatal_debug == 0xefa1beda;
 
   pEfcState->commonState.tcpFilterEn =
       (reg_read(0xf0020) >> 32 & 0x1) == 0;
@@ -853,48 +1140,21 @@ int getNewsState(NewsState *pNewsState) {
 }
 
 // ################################################
-int printCommonState(CommonState *pCommonState) {
-
-  if (pCommonState->killSwitch) {
-    printf(RED "Fatal KILL SWITCH is turned ON!!! - reload "
-               "driver is needed!!!\n\n" RESET);
-  }
-
-  if (pCommonState->arm_ver == EFC_HW_UNARMABLE) {
-    printf(RED "\n\n!!! FPGA in fatal state. Can NOT be "
-               "armed. Must reload driver !!!\n\n" RESET);
-  } else {
-    if (!pCommonState->armed) {
-      printf(RED " UNARMED, (ver=%d)\n" RESET,
-             pCommonState->arm_ver);
-    } else {
-      printf(GRN " ARMED, (ver=%d)\n" RESET,
-             pCommonState->arm_ver);
-    }
-  }
-
-  //  printf("\nReportOnly =
-  //  %de-arming)\n\n",pCommonState->reportOnly);
-  //  printf("ReportOnly
-  //  :\t%ju\n",pCommonState->reportOnly);
-  return 0;
-}
-
-// ################################################
 int printEfcState(EfcState *pEfcState) {
-
+  //// TBD NOT CURRENTLY DISPLAYED
   printf("\n-----------------------------------------------"
          "---------");
-  printf("\nSecurity Hash Based Strategy (P4) : ");
-  printCommonState(&pEfcState->commonState);
-  printf("-------------------------------------------------"
-         "-------\n");
+
   printf("ReportOnly            :\t%d\n",
          pEfcState->commonState.reportOnly);
 
   if (pEfcState->fatalDebug)
     printf(RED
            "WARNING: \'Fatal Debug\' is Active\n" RESET);
+
+  if (pEfcState->epmDump)
+    printf(RED
+           "WARNING: \'EPM Dump Mode\' is Active\n" RESET);
 
   if (pEfcState->forceFire) {
     printf(
@@ -907,100 +1167,8 @@ int printEfcState(EfcState *pEfcState) {
         pEfcState->forceFireUnsubscr);
   }
 
-  printf("\n-----------------------------------\n");
-  printf("Subscription:\n");
-  printf("Tried                 :\t%u\n",
-         pEfcState->totalSecs);
-  printf("Succeeded             :\t%u\n",
-         pEfcState->subscribedSecs);
-  printf("\n-----------------------------------\n");
-  printf("Strategy:\n");
-  printf("Subscribed   MD Orders:\t%ju\n",
-         pEfcState->ordersSubscribed);
-  printf("Unsubscribed MD Orders:\t%ju\n",
-         pEfcState->ordersUnsubscribed);
-  printf("Evaluated   strategies:\t%ju\n",
-         pEfcState->strategyRuns);
-  printf("Passed      strategies:\t%ju\n",
-         pEfcState->strategyPassed);
-
   return 0;
 }
-
-// ################################################
-int printFastCancelState(
-    FastCancelState *pFastCancelState) {
-
-  printf("\n-----------------------------------------------"
-         "---------");
-  printf("\nDirect Strategy : ");
-  printCommonState(&pFastCancelState->commonState);
-  printf("-------------------------------------------------"
-         "-------\n");
-
-  printf("Evaluated   strategies:\t%ju\n",
-         pFastCancelState->strategyRuns);
-  printf("Passed      strategies:\t%ju\n",
-         pFastCancelState->strategyPassed);
-
-  return 0;
-}
-
-// ################################################
-int printFastSweepState(FastSweepState *pFastSweepState) {
-
-  printf("\n-----------------------------------------------"
-         "---------");
-  printf("\nDirect Strategy : ");
-  printCommonState(&pFastSweepState->commonState);
-  printf("-------------------------------------------------"
-         "-------\n");
-
-  printf("Evaluated   strategies:\t%ju\n",
-         pFastSweepState->strategyRuns);
-  printf("Passed      strategies:\t%ju\n",
-         pFastSweepState->strategyPassed);
-
-  return 0;
-}
-
-// ################################################
-int printQEDState(QEDState *pQEDState) {
-
-  printf("\n-----------------------------------------------"
-         "---------");
-  printf("\nDirect Strategy : ");
-  printCommonState(&pQEDState->commonState);
-  printf("-------------------------------------------------"
-         "-------\n");
-
-  printf("Evaluated   strategies:\t%ju\n",
-         pQEDState->strategyRuns);
-  printf("Passed      strategies:\t%ju\n",
-         pQEDState->strategyPassed);
-
-  return 0;
-}
-
-// ################################################
-int printNewsState(NewsState *pNewsState) {
-
-  printf("\n-----------------------------------------------"
-         "---------");
-  printf("\nDirect Strategy : ");
-  printCommonState(&pNewsState->commonState);
-  printf("-------------------------------------------------"
-         "-------\n");
-
-  printf("Evaluated   strategies:\t%ju\n",
-         pNewsState->strategyRuns);
-  printf("Passed      strategies:\t%ju\n",
-         pNewsState->strategyPassed);
-
-  return 0;
-}
-
-// ################################################
 
 int main(int argc, char *argv[]) {
   setlocale(
@@ -1020,6 +1188,10 @@ int main(int argc, char *argv[]) {
   auto pQEDState = new QEDState;
   auto pNewsState = new NewsState;
   auto pEfcExceptionsReport = new EfcExceptionsReport;
+
+  auto pStratState = new StratState;
+  /* ----------------------------------------- */
+
   /* ----------------------------------------- */
   checkVer();
   /* ----------------------------------------- */
@@ -1030,46 +1202,39 @@ int main(int argc, char *argv[]) {
     getCurrTraffic(coreParams);
     getCurrHWEnables(coreParams);
     ekaHwCaps->refresh();
-    getEfcState(pEfcState);
+    //    getEfcState(&pStratState->p4);
     getExceptions(
         pEfcExceptionsReport,
         ekaHwCaps->hwCaps.core.bitmap_tcp_cores |
             ekaHwCaps->hwCaps.core.bitmap_md_cores);
     /* ----------------------------------------- */
 
+    for (auto stratId = 0; stratId < NUM_OF_STRAT ;
+	 stratId++ )
+      active_strat[stratId] = false;
+    
     for (auto coreId = 0; coreId < 2;
          coreId++) { // TBD md bitmap
-
-      switch ((
-          (ekaHwCaps->hwCaps.version.parser >> coreId * 4) &
-          0xF)) {
-      case 12:
-        getQEDState(pQEDState);
-        break;
-      case 13:
-        getFastSweepState(pFastSweepState);
-        break;
-      case 14:
-        getNewsState(pNewsState);
-        break;
-      case 15:
-        getFastCancelState(pFastCancelState);
-        break;
-      case 1:
-      case 2:
-        getEfcState(pEfcState);
-        break;
-      default:
-        break;
+      if (((ekaHwCaps->hwCaps.version.parser>>coreId*4)&0xF) != 0) {
+	active_strat[(
+		      (ekaHwCaps->hwCaps.version.parser>>coreId*4)&0xF
+		      )] = true;
       }
-      /* ----------------------------------------- */
     }
+      
+    if (active_strat[12]) getQEDState(&pStratState->QED);
+    if (active_strat[13]) getFastSweepState(&pStratState->fastSweep);
+    if (active_strat[14]) getNewsState(&pStratState->news);
+    if (active_strat[15]) getFastCancelState(&pStratState->fastCancel);
+    if (active_strat[2])  getEfcState(&pStratState->p4);
+  
     /* ----------------------------------------- */
     printf("\e[1;1H\e[2J"); //	system("clear");
     /* ----------------------------------------- */
+
     printTime();
     /* ----------------------------------------- */
-    printHeader(coreParams, pEfcState, ekaHwCaps);
+    printHeader(coreParams, &pStratState->p4, ekaHwCaps);
     /* ----------------------------------------- */
     printLineSeparator(coreParams, '+', '-');
     /* ----------------------------------------- */
@@ -1082,35 +1247,9 @@ int main(int argc, char *argv[]) {
     printLineSeparator(coreParams, '+', '-');
     /* ----------------------------------------- */
     /* ----------------------------------------- */
-
     /* ----------------------------------------- */
-    for (auto coreId = 0; coreId < 2;
-         coreId++) { // TBD md bitmap
-
-      switch ((
-          (ekaHwCaps->hwCaps.version.parser >> coreId * 4) &
-          0xF)) {
-      case 12:
-        printQEDState(pQEDState);
-        break;
-      case 13:
-        printFastSweepState(pFastSweepState);
-        break;
-      case 14:
-        printNewsState(pNewsState);
-        break;
-      case 15:
-        printFastCancelState(pFastCancelState);
-        break;
-      case 1:
-      case 2:
-        printEfcState(pEfcState);
-        break;
-      default:
-        break;
-      }
-      /* ----------------------------------------- */
-    }
+    printStratHeader();
+    printStratStatus(pStratState);
 
     /* ----------------------------------------- */
     char excptBuf[8192] = {};

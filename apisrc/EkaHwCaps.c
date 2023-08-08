@@ -2,6 +2,7 @@
 #include "EkaHwCaps.h"
 #include "EkaDev.h"
 #include "EkaEpm.h"
+#include "EkaHwCaps.h"
 #include "EkaHwExpectedVersion.h"
 #include "smartnic.h"
 
@@ -126,10 +127,16 @@ void EkaHwCaps::print2buf() {
   idx += sprintf(&buf[idx],
                  "hwCaps.version.strategy\t\t\t= %ju\n",
                  (uint64_t)(hwCaps.version.strategy));
-  idx += sprintf(&buf[idx],
-                 "hwCaps.version.parser\t\t\t= %ju (%s)\n",
-                 (uint64_t)(hwCaps.version.parser),
-                 EKA_FEED2STRING(hwCaps.version.parser));
+  idx += sprintf(
+      &buf[idx], "hwCaps.version.parser0\t\t\t= %ju (%s)\n",
+      (uint64_t)((hwCaps.version.parser >> 0) & 0xF),
+      EKA_FEED2STRING(
+          ((hwCaps.version.parser >> 0) & 0xF)));
+  idx += sprintf(
+      &buf[idx], "hwCaps.version.parser1\t\t\t= %ju (%s)\n",
+      (uint64_t)((hwCaps.version.parser >> 4) & 0xF),
+      EKA_FEED2STRING(
+          ((hwCaps.version.parser >> 4) & 0xF)));
   idx += sprintf(&buf[idx],
                  "hwCaps.version.hwparser\t\t\t= %ju\n",
                  (uint64_t)(hwCaps.version.hwparser));
@@ -217,10 +224,12 @@ bool EkaHwCaps::checkEpm() {
              "EkaEpm::MaxHeap %ju",
              hwCaps.epm.heap_total_bytes, EkaEpm::MaxHeap);
 
-  if (hwCaps.epm.numof_actions < EkaEpm::MaxActions)
+  if (hwCaps.epm.numof_actions <
+      EkaEpmRegion::getTotalActions())
     on_error("hwCaps.epm.numof_actions %d < "
-             "EkaEpm::MaxActions %d",
-             hwCaps.epm.numof_actions, EkaEpm::MaxActions);
+             "EkaEpmRegion::getTotalActions() %d",
+             hwCaps.epm.numof_actions,
+             EkaEpmRegion::getTotalActions());
 
   errno = 0;
   return true;

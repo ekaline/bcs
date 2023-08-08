@@ -96,9 +96,11 @@ EkaQedStrategy::EkaQedStrategy(
   copyBuf2Hw(dev_, ConfHwAddr, (uint64_t *)&conf_,
              sizeof(conf_));
 
-  EKA_LOG("Created %s with %d MC groups, "
+  EKA_LOG("Creating %s with %d MC groups on lane #0 "
+          "and %d MC groups on lane #1, "
           "valid products = %u",
-          name_.c_str(), numUdpSess_, prodCnt_);
+          name_.c_str(), mcCoreSess_[0].numUdpSess,
+          mcCoreSess_[1].numUdpSess, prodCnt_);
 }
 /* --------------------------------------------------- */
 

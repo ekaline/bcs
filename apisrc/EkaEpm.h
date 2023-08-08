@@ -90,7 +90,7 @@ public:
   static const int EPM_REGIONS = 32;
   static const uint MAX_HEAP_WR_THREADS = 16;
 
-  static const uint64_t EpmActionBase = 0x89000;
+  // static const uint64_t EpmActionBase = 0x89000;
   static const uint ActionBudget = 64;
   static const uint64_t MaxHeap = 8 * 1024 * 1024;
   static const uint64_t HeapPage = 4 * 1024;
@@ -133,6 +133,7 @@ public:
     return EkaEpmRegion::MaxStrategies;
   }
 
+#if 0
   int getFreeAction(int regionId);
 
   bool isActionReserved(int globalIdx);
@@ -166,6 +167,7 @@ public:
                               uint32_t length,
                               const void *contents,
                               const bool isUdpDatagram);
+#endif
 
   void DownloadSingleTemplate2HW(EpmTemplate *t);
 

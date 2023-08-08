@@ -23,8 +23,12 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
-execute_process(COMMAND git -C ${CMAKE_SOURCE_DIR} rev-parse --short HEAD | cut
-                        -c 1-9 OUTPUT_VARIABLE EKA_GIT_VER)
+execute_process(COMMAND git -C ${CMAKE_SOURCE_DIR} rev-parse --short HEAD
+                OUTPUT_VARIABLE EKA_GIT_VER)
+
+string(REGEX REPLACE "\n$" "" EKA_GIT_VER "${EKA_GIT_VER}")
+
+message(STATUS "EKA_GIT_VER = ${EKA_GIT_VER}")
 
 set(CMAKE_C_COMPILER ${CMAKE_CXX_COMPILER})
 set(CMAKE_CXX_FLAGS
@@ -230,7 +234,6 @@ install(TARGETS ${EKA_LIB_NAME}_static RUNTIME DESTINATION lib
 # if (ENABLE_TESTING)
 file(GLOB test_SRCS ${EKA_TESTS_DIR}/*.c)
 set(testDstDir ${CMAKE_BINARY_DIR}/tests/${EKA_LIB_NAME})
-file(MAKE_DIRECTORY ${testDstDir})
 
 foreach(test ${test_SRCS})
   get_filename_component(testName ${test} NAME_WE)
@@ -252,19 +255,16 @@ endforeach()
 
 file(GLOB utils_SRCS ${EKA_SRC_DIR}/../eka_utils/*.c)
 set(utilsDstDir ${CMAKE_BINARY_DIR}/utils/${EKA_LIB_NAME})
-file(MAKE_DIRECTORY ${utilsDstDir})
 
 foreach(uSrc ${utils_SRCS})
   get_filename_component(utilExec ${uSrc} NAME_WE)
   add_executable(${utilExec} ${uSrc})
-  target_compile_options(${utilExec} PUBLIC -std=c++23)
-
   set_target_properties(${utilExec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                                ${utilsDstDir})
-  target_link_libraries(${utilExec} ${EKA_LIB_NAME}_static)
+  target_link_libraries(${utilExec} ${EKA_LIB_NAME}_static rt m
+                        Threads::Threads)
   target_link_libraries(${utilExec} -static-libgcc -static-libstdc++)
-
-  # target_link_libraries(${utilExec} rt m Threads::Threads)
+  target_compile_options(${utilExec} PUBLIC -std=c++23)
 
   target_include_directories(${utilExec} PUBLIC ${EKA_INC_PATH})
   install(TARGETS ${utilExec} RUNTIME DESTINATION bin COMPONENT Runtime)

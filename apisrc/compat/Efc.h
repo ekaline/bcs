@@ -8,7 +8,6 @@
 #ifndef __EKALINE_EFC_H__
 #define __EKALINE_EFC_H__
 
-#include "EfcCtxs.h"
 #include "EfcMsgs.h"
 #include "Efh.h"
 #include "Eka.h"
@@ -30,6 +29,16 @@ extern "C" {
 #endif
 
 typedef uint32_t EfcArmVer;
+typedef uint16_t FixedPrice;
+
+typedef struct {
+#define SecCtx_FIELD_ITER(_x)                              \
+  _x(FixedPrice, bidMinPrice) _x(FixedPrice, askMaxPrice)  \
+      _x(uint8_t, bidSize) _x(uint8_t, askSize)            \
+          _x(uint8_t, versionKey)                          \
+              _x(uint8_t, lowerBytesOfSecId)
+  SecCtx_FIELD_ITER(EKA__FIELD_DEF)
+} SecCtx;
 
 /**
  * Init config passed to efcInit()
@@ -46,9 +55,6 @@ struct EfcInitCtx {
  *
  * This will initialize the Ekaline firing controller.
  *
- * @oaram efcCtx     This is an output parameter that will
- * contain an initialized EfhCtx* if this function is
- * successful.
  * @param ekaDev     The device which will host the firing
  * controller
  * @param efcInitCtx This is a list of key value parameters
@@ -61,12 +67,11 @@ struct EfcInitCtx {
 /**
  * @brief Checks HW compatibility and creates Efc module
  *
- * @param efcCtx
  * @param ekaDev
  * @param efcInitCtx
  * @return EkaOpResult
  */
-EkaOpResult efcInit(EfcCtx **efcCtx, EkaDev *ekaDev,
+EkaOpResult efcInit(EkaDev *ekaDev,
                     const EfcInitCtx *efcInitCtx);
 
 /**
@@ -104,28 +109,6 @@ EkaOpResult efcSetSessionCntr(EkaDev *dev,
 void efcPrintFireReport(const void *p, size_t len,
                         void *ctx);
 
-#if 0      
-typedef 
-  void 
-  ( *OnEkaExceptionReportCb )
-  ( 
-    EfcCtx*                   efcCtx, 
-    const EkaExceptionReport* ekaExceptionReport, 
-    size_t size 
-  );
-
-typedef 
-  void 
-  ( *OnEfcFireReportCb )
-  ( 
-    EfcCtx*                   efcCtx, 
-    /* const EfcFireReport*      efcFireReport, */
-    const void*               efcFireReport,
-    size_t size,
-    void* cbCtx
-  );
-#endif
-
 /*
  *
  */
@@ -143,13 +126,13 @@ struct EfcRunCtx {
  * callbacks, exceptions and such. The underlying thread is
  * created by std::thread call.
  *
- * @param efcCtx
+ * @param pEkaDev
  * @param efcRunCtx This is a pointer to the callbacks and
  * user context. Note: the report callback provides the
  * context, while the exception callback does not.
  * @retval [See EkaOpResult].
  */
-EkaOpResult efcRun(EfcCtx *efcCtx,
+EkaOpResult efcRun(EkaDev *pEkaDev,
                    const EfcRunCtx *efcRunCtx);
 
 /**
@@ -158,26 +141,25 @@ EkaOpResult efcRun(EfcCtx *efcCtx,
  * during EfcStratGlobCtx.watchdog_timeout_sec, then EFC
  * controller is DISARMED
  *
- * @param efcCtx
+ * @param pEkaDev
  * @param strategyId    For future Multi-strategy
  * implementation. NOT SUPPORTED!!!
  *
  * @retval [See EkaOpResult].
  */
 EkaOpResult
-efcSwKeepAliveSend(EfcCtx *efcCtx,
+efcSwKeepAliveSend(EkaDev *pEkaDev,
                    int strategyId = EFC_STRATEGY);
 
 /**
  * This will close an Ekaline firing controller created with
  * efcInit.
  *
- * @oaram efcCtx  An initialized EfcCtx* obtained from
- * efcInit.
+ * @oaram pEkaDev
  * @return        An EkalineOpResult indicating success or
  * an error in closing the controller.
  */
-EkaOpResult efcClose(EfcCtx *efcCtx);
+EkaOpResult efcClose(EkaDev *pEkaDev);
 
 /**
  * Allocates a new Action from the Strategy pool.
@@ -296,7 +278,7 @@ struct EfcUdpMcParams {
  * be called once after efcInit and must be called before
  * efcRun().
  *
- * @param efcCtx
+ * @param pEkaDev
  * @param securityIds    This is a pointer to the first
  * member of an array of securities that the firing
  * controller should consider as opportunities.  This value
@@ -307,7 +289,7 @@ struct EfcUdpMcParams {
  * @retval [See EkaOpResult].
  */
 EkaOpResult
-efcEnableFiringOnSec(EfcCtx *efcCtx,
+efcEnableFiringOnSec(EkaDev *pEkaDev,
                      const uint64_t *securityIds,
                      size_t numSecurityIds);
 
@@ -317,7 +299,7 @@ efcEnableFiringOnSec(EfcCtx *efcCtx,
  * EfcSecCtxHandle.  It must be  called after
  * efcEnableFiringOnSec() but before efcRun().
  *
- * @param efcCtx
+ * @param pEkaDev
  * @param securityId This is a security id that was passed
  * to efcEnableFiringOnSec.
  * @retval [>=0] On success this will return an a value to
@@ -325,13 +307,13 @@ efcEnableFiringOnSec(EfcCtx *efcCtx,
  * @retval [<0]  On failure this will return a value to be
  * interpreted as an error EkaOpResult.
  */
-EfcSecCtxHandle getSecCtxHandle(EfcCtx *efcCtx,
+EfcSecCtxHandle getSecCtxHandle(EkaDev *pEkaDev,
                                 uint64_t securityId);
 
 /**
  * This will set a SecCtx for a static security.
  *
- * @param efcCtx
+ * @param pEkaDev
  * @param efcSecCtxHandle This is a handle to the SecCtx
  * that we are setting.
  * @param secCtx          This is a pointer to the local
@@ -340,7 +322,7 @@ EfcSecCtxHandle getSecCtxHandle(EfcCtx *efcCtx,
  * used to write (see kEkaNumWriteChans).
  * @retval [See EkaOpResult].
  */
-EkaOpResult efcSetStaticSecCtx(EfcCtx *efcCtx,
+EkaOpResult efcSetStaticSecCtx(EkaDev *pEkaDev,
                                EfcSecCtxHandle hSecCtx,
                                const SecCtx *secCtx,
                                uint16_t writeChan);
@@ -351,17 +333,18 @@ struct EfcP4Params {
 };
 
 EkaOpResult
-efcInitP4Strategy(EfcCtx *pEfcCtx,
+efcInitP4Strategy(EkaDev *pEkaDev,
                   const EfcUdpMcParams *mcParams,
                   const EfcP4Params *p4Params);
 
-EkaOpResult efcArmP4(EfcCtx *pEfcCtx, EfcArmVer ver);
+EkaOpResult efcArmP4(EkaDev *pEkaDev, EfcArmVer ver);
 
-EkaOpResult efcDisArmP4(EfcCtx *pEfcCtx);
+EkaOpResult efcDisArmP4(EkaDev *pEkaDev);
 /* --------------------------------------------------- */
 
 #define EKA_QED_PRODUCTS 4
 #define EFC_MAX_MC_GROUPS_PER_LANE 36
+#define EFC_PREALLOCATED_P4_ACTIONS_PER_LANE 64
 
 struct EfcQEDParamsSingle {
   uint16_t ds_id;        ///
@@ -374,17 +357,17 @@ struct EfcQedParams {
 };
 
 EkaOpResult
-efcInitQedStrategy(EfcCtx *pEfcCtx,
+efcInitQedStrategy(EkaDev *pEkaDev,
                    const EfcUdpMcParams *mcParams,
                    const EfcQedParams *qedParams);
 
-EkaOpResult efcQedSetFireAction(EfcCtx *pEfcCtx,
+EkaOpResult efcQedSetFireAction(EkaDev *pEkaDev,
                                 epm_actionid_t fireActionId,
                                 int productId);
 
-EkaOpResult efcArmQed(EfcCtx *pEfcCtx, EfcArmVer ver);
+EkaOpResult efcArmQed(EkaDev *pEkaDev, EfcArmVer ver);
 
-EkaOpResult efcDisArmQed(EfcCtx *pEfcCtx);
+EkaOpResult efcDisArmQed(EkaDev *pEkaDev);
 /* --------------------------------------------------- */
 
 struct EfcCmeFcParams {
@@ -396,17 +379,17 @@ struct EfcCmeFcParams {
 };
 
 EkaOpResult
-efcInitCmeFcStrategy(EfcCtx *pEfcCtx,
+efcInitCmeFcStrategy(EkaDev *pEkaDev,
                      const EfcUdpMcParams *mcParams,
                      const EfcCmeFcParams *cmeParams);
 
 EkaOpResult
-efcCmeFcSetFireAction(EfcCtx *pEfcCtx,
+efcCmeFcSetFireAction(EkaDev *pEkaDev,
                       epm_actionid_t fireActionId);
 
-EkaOpResult efcArmCmeFc(EfcCtx *pEfcCtx, EfcArmVer ver);
+EkaOpResult efcArmCmeFc(EkaDev *pEkaDev, EfcArmVer ver);
 
-EkaOpResult efcDisArmQCmeFc(EfcCtx *pEfcCtx);
+EkaOpResult efcDisArmCmeFc(EkaDev *pEkaDev);
 /* --------------------------------------------------- */
 
 #ifdef __cplusplus

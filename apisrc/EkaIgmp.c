@@ -9,6 +9,9 @@
 void saveMcState(EkaDev *dev, int grId, int chId,
                  uint8_t coreId, uint32_t mcast_ip,
                  uint16_t mcast_port, uint64_t pktCnt);
+void saveMcState(EkaDev *dev, int grId, int chId,
+                 uint8_t coreId, uint32_t mcast_ip,
+                 uint16_t mcast_port, uint64_t pktCnt);
 
 /* ################################################## */
 

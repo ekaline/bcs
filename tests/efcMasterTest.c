@@ -40,159 +40,79 @@
 #include "ekaNW.h"
 #include <fcntl.h>
 
-using namespace Bats;
+#include "EfcMasterTestConfig.h"
+#include "EfcP4CboeTestCtx.h"
+
+#define MASK32 0xffffffff
+
 class TestCase;
 
-void configureP4Test(EfcCtx *pEfcCtx, TestCase *t);
-void configureQedTest(EfcCtx *pEfcCtx, TestCase *t);
-bool runP4Test(EfcCtx *pEfcCtx, TestCase *t);
-bool runQedTest(EfcCtx *pEfcCtx, TestCase *t);
+void configureP4Test(TestCase *t);
+void configureQedTest(TestCase *t);
+void configureCmeFcTest(TestCase *t);
+bool runP4Test(TestCase *t);
+bool runQedTest(TestCase *t);
+bool runCmeFcTest(TestCase *t);
 
-/* --------------------------------------------- */
-static const int MaxTcpTestSessions = 16;
-static const int MaxUdpTestSessions = 64;
-static uint16_t numTcpSess = 1;
+typedef void (*PrepareTestConfigCb)(TestCase *t);
+typedef bool (*RunTestCb)(TestCase *t);
 
-enum class TestStrategy : int {
-  Invalid = 0,
-  P4,
-  CmeFC,
-  Qed
-};
-
-static const char *printStrat(TestStrategy s) {
-  switch (s) {
-  case TestStrategy::Invalid:
-    return "Invalid";
-  case TestStrategy::P4:
-    return "P4";
-  case TestStrategy::CmeFC:
-    return "CmeFC";
-  case TestStrategy::Qed:
-    return "Qed";
-  default:
-    on_error("Unexpected testStrategy %d", (int)s);
-  }
-}
-
-static TestStrategy string2strat(const char *s) {
-  if (!strcmp(s, "P4"))
-    return TestStrategy::P4;
-
-  if (!strcmp(s, "CmeFC"))
-    return TestStrategy::CmeFC;
-
-  if (!strcmp(s, "Qed"))
-    return TestStrategy::Qed;
-
-  return TestStrategy::Invalid;
-}
-
-struct TestTcpSess {
-  std::string srcIp;
-  std::string dstIp;
-  uint16_t dstPort;
-};
-
-struct TestUdpMc {
-  std::string mcIp;
-  uint16_t mcPort;
-};
-
-static TestTcpSess testDefaultTcpSess[] = {
-    {"100.0.0.110", "10.0.0.10", 22222},
-    {"200.0.0.110", "10.0.0.11", 33333}};
-
-static TestUdpMc testDefaultUdpMc[] = {
-    {"224.0.74.0", 30300}, {"224.0.74.1", 30301}};
-
-typedef void (*PrepareTestConfigCb)(EfcCtx *efcCtx,
-                                    TestCase *t);
-typedef bool (*RunTestCb)(EfcCtx *efcCtx, TestCase *t);
-
-class TestCase {
-public:
-  TestCase(int coreId, TestStrategy strat,
-           PrepareTestConfigCb prepareTestConfig,
-           RunTestCb runTest) {
-    if (strat == TestStrategy::Invalid)
-      on_error("Invalid Strategy %d", (int)strat);
-
-    coreId_ = coreId;
-    strat_ = strat;
-
-    memcpy(&tcpSess_, &testDefaultTcpSess[coreId_],
-           sizeof(tcpSess_));
-    memcpy(&udpMc_, &testDefaultUdpMc[coreId_],
-           sizeof(udpMc_));
-
-    prepareTestConfig_ = prepareTestConfig;
-    runTest_ = runTest;
-
-    print("Created");
-  }
-
-  void print(const char *msg) {
-    TEST_LOG("%s: Lane %d Strat: \'%s\' "
-             "MC : %s:%u, "
-             "TCP: %s --> %s:%u ",
-             msg, coreId_, printStrat(strat_),
-             udpMc_.mcIp.c_str(), udpMc_.mcPort,
-             tcpSess_.srcIp.c_str(), tcpSess_.dstIp.c_str(),
-             tcpSess_.dstPort);
-  }
-
-  EkaCoreId coreId_ = -1;
-  TestStrategy strat_ = TestStrategy::Invalid;
-  TestTcpSess tcpSess_ = {};
-  TestUdpMc udpMc_ = {};
-
-  int tcpSock_[MaxTcpTestSessions] = {};
-  int udpSock_ = -1;
-  struct sockaddr_in triggerMcAddr_ = {};
-
-  ExcSocketHandle excSock_[MaxTcpTestSessions] = {};
-  ExcConnHandle hCon_[MaxTcpTestSessions] = {};
-
-  std::thread tcpServThr_[MaxTcpTestSessions];
-
-  PrepareTestConfigCb prepareTestConfig_;
-  RunTestCb runTest_;
-};
-
-static std::vector<TestCase *> testCase = {};
-
+typedef EkaOpResult (*ArmControllerCb)(EkaDev *pEkaDev,
+                                       EfcArmVer ver);
+typedef EkaOpResult (*DisArmControllerCb)(EkaDev *pEkaDev);
+extern EkaDev *g_ekaDev;
 /* --------------------------------------------- */
 volatile bool keep_work = true;
 volatile bool serverSet = false;
 volatile bool rxClientReady = false;
 
 volatile bool triggerGeneratorDone = false;
-
-static const int MaxFireEvents = 10000;
-static volatile EpmFireReport *FireEvent[MaxFireEvents] =
-    {};
-static volatile int numFireEvents = 0;
-
 static const uint64_t FireEntryHeapSize = 256;
 
+bool runEfh = false;
+bool fatalDebug = false;
+bool report_only = false;
+bool dontQuit = false;
+const TestScenarioConfig *sc = nullptr;
+bool exitBeforeDevInit = false;
+bool printFireReports = false;
+
+struct FireReport {
+  uint8_t *buf;
+  size_t len;
+};
+std::vector<FireReport *> fireReports = {};
+std::atomic<int> nReceivedFireReports = 0;
+int nExpectedFireReports = 0;
+
 /* --------------------------------------------- */
 
-void INThandler(int sig) {
-  signal(sig, SIG_IGN);
-  keep_work = false;
-  TEST_LOG(
-      "Ctrl-C detected: keep_work = false, exitting...");
-  fflush(stdout);
+void getFireReport(const void *p, size_t len, void *ctx) {
+  auto containerHdr{
+      reinterpret_cast<const EkaContainerGlobalHdr *>(p)};
+  if (containerHdr->type == EkaEventType::kExceptionEvent)
+    return;
+
+  auto fr = new FireReport;
+  if (!fr)
+    on_error("!fr");
+
+  fr->buf = new uint8_t[len];
+  if (!fr->buf)
+    on_error("!fr->buf");
+  fr->len = len;
+
+  memcpy(fr->buf, p, len);
+  fireReports.push_back(fr);
+  nReceivedFireReports++;
   return;
 }
-
 /* --------------------------------------------- */
-void tcpServer(EkaDev *dev, std::string ip, uint16_t port,
-               int *sock, bool *serverSet) {
+static void tcpServer(const char *ip, uint16_t port,
+                      int *sock, bool *serverSet) {
   pthread_setname_np(pthread_self(), "tcpServerParent");
 
-  printf("Starting TCP server: %s:%u\n", ip.c_str(), port);
+  TEST_LOG("Starting TCP server: %s:%u", ip, port);
   int sd = 0;
   if ((sd = socket(PF_INET, SOCK_STREAM, 0)) < 0)
     on_error("Socket");
@@ -228,9 +148,9 @@ void tcpServer(EkaDev *dev, std::string ip, uint16_t port,
   int addr_size = sizeof(addr);
   *sock = accept(sd, (struct sockaddr *)&addr,
                  (socklen_t *)&addr_size);
-  EKA_LOG("Connected from: %s:%d -- sock=%d\n",
-          inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),
-          *sock);
+  EKA_LOG("Connected from: %s:%d -- sock=%d",
+          EKA_IP2STR(addr.sin_addr.s_addr),
+          be16toh(addr.sin_port), *sock);
 
   int status = fcntl(*sock, F_SETFL,
                      fcntl(*sock, F_GETFL, 0) | O_NONBLOCK);
@@ -239,111 +159,410 @@ void tcpServer(EkaDev *dev, std::string ip, uint16_t port,
 
   return;
 }
-
 /* --------------------------------------------- */
 
-static void tcpConnect(EkaDev *dev, TestCase *t) {
-  for (auto i = 0; i < numTcpSess; i++) {
-    struct sockaddr_in serverAddr = {};
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_addr.s_addr =
-        inet_addr(t->tcpSess_.dstIp.c_str());
-    serverAddr.sin_port = be16toh(t->tcpSess_.dstPort + i);
+class TestUdpConn {
+public:
+  TestUdpConn(const EfcUdpMcGroupParams *mcParams) {
+    coreId_ = mcParams->coreId;
+    mcIp_ = mcParams->mcIp;
+    mcPort_ = mcParams->mcUdpPort;
 
-    t->excSock_[i] = excSocket(dev, t->coreId_, 0, 0, 0);
-    if (t->excSock_[i] < 0)
-      on_error("failed to open sock %d", i);
-    t->hCon_[i] = excConnect(dev, t->excSock_[i],
-                             (sockaddr *)&serverAddr,
-                             sizeof(sockaddr_in));
-    if (t->hCon_[i] < 0)
-      on_error("excConnect %d %s:%u", i,
-               EKA_IP2STR(serverAddr.sin_addr.s_addr),
-               be16toh(serverAddr.sin_port));
-    const char *pkt =
-        "\n\nThis is 1st TCP packet sent from FPGA TCP "
-        "client to Kernel TCP server\n\n";
-    excSend(dev, t->hCon_[i], pkt, strlen(pkt), 0);
-    int bytes_read = 0;
-    char rxBuf[2000] = {};
-    bytes_read =
-        recv(t->tcpSock_[i], rxBuf, sizeof(rxBuf), 0);
-    if (bytes_read > 0)
-      EKA_LOG("\n%s", rxBuf);
+    udpSock_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (udpSock_ < 0)
+      on_error("failed to open UDP sock");
+
+    mcSrc_.sin_addr.s_addr = inet_addr(udpSrcIp[coreId_]);
+    mcSrc_.sin_family = AF_INET;
+    mcSrc_.sin_port = 0;
+
+    mcDst_.sin_family = AF_INET;
+    mcDst_.sin_addr.s_addr = inet_addr(mcIp_);
+    mcDst_.sin_port = be16toh(mcPort_);
+
+    if (bind(udpSock_, (sockaddr *)&mcSrc_,
+             sizeof(sockaddr)) != 0) {
+      on_error("failed to bind server udpSock to %s:%u",
+               EKA_IP2STR(mcSrc_.sin_addr.s_addr),
+               be16toh(mcSrc_.sin_port));
+    }
+
+    TEST_LOG("udpSock %d of MC %s:%u is binded to %s:%u",
+             udpSock_, EKA_IP2STR(mcDst_.sin_addr.s_addr),
+             be16toh(mcDst_.sin_port),
+             EKA_IP2STR(mcSrc_.sin_addr.s_addr),
+             be16toh(mcSrc_.sin_port));
   }
-}
+
+  size_t printMcConnParams(char *dst) {
+    return sprintf(dst, "%d, %s:%u, ", coreId_, mcIp_,
+                   mcPort_);
+  }
+
+  ssize_t sendUdpPkt(const void *pkt, size_t pktLen) {
+#if 0
+    char pktBufStr[8192] = {};
+    hexDump2str("UdpPkt", pkt, pktLen, pktBufStr,
+                sizeof(pktBufStr));
+    TEST_LOG("Sending pkt\n%s\n to %s:%u", pktBufStr,
+             EKA_IP2STR(mcDst_.sin_addr.s_addr),
+             be16toh(mcDst_.sin_port));
+#endif
+    auto rc =
+        sendto(udpSock_, pkt, pktLen, 0,
+               (const sockaddr *)&mcDst_, sizeof(sockaddr));
+
+    if (rc < 0)
+      on_error("MC trigger send failed");
+
+    return rc;
+  }
+
+private:
+  EkaCoreId coreId_;
+
+  const char *srcIp_ = nullptr;
+  const char *mcIp_ = nullptr;
+  uint16_t mcPort_ = 0;
+
+  int udpSock_ = -1;
+
+  struct sockaddr_in mcSrc_ = {};
+  struct sockaddr_in mcDst_ = {};
+};
 /* --------------------------------------------- */
 
-static void createTcpServ(EkaDev *dev, TestCase *t) {
-  for (auto i = 0; i < numTcpSess; i++) {
+class TestUdpCtx {
+public:
+  TestUdpCtx(const EfcUdpMcParams *mcParams) {
+    memcpy(&udpConf_, mcParams, sizeof(udpConf_));
+
+    for (auto i = 0; i < mcParams->nMcGroups; i++) {
+      auto coreId = mcParams->groups[i].coreId;
+      auto perCoreidx = nMcCons_[coreId];
+      udpConn_[coreId][perCoreidx] =
+          new TestUdpConn(&mcParams->groups[i]);
+      if (!udpConn_[coreId][perCoreidx])
+        on_error("Failed on new TestUdpConn");
+
+      nMcCons_[coreId]++;
+    }
+  }
+
+  size_t printAllMcParams(char *dst) {
+    size_t bufLen = 0;
+    for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++)
+      for (auto i = 0; i < nMcCons_[coreId]; i++) {
+        if (!udpConn_[coreId][i])
+          on_error("!udpConn_[%d][%d]", coreId, i);
+        bufLen += sprintf(dst, "\t%2d: ", i);
+        bufLen += udpConn_[coreId][i]->printMcConnParams(
+            dst + bufLen);
+      }
+    bufLen += sprintf(dst, "\n");
+
+    return bufLen;
+  }
+  /* --------------------------------------------- */
+
+  static std::pair<uint32_t, uint32_t>
+  getP4stratStatistics(uint64_t fireStatisticsAddr) {
+    uint64_t var_p4_cont_counter1 =
+        eka_read(fireStatisticsAddr);
+
+    auto strategyRuns =
+        (var_p4_cont_counter1 >> 0) & MASK32;
+    auto strategyPassed =
+        (var_p4_cont_counter1 >> 32) & MASK32;
+
+    return std::pair<uint32_t, uint32_t>{strategyRuns,
+                                         strategyPassed};
+  }
+  /* --------------------------------------------- */
+
+  EfcArmVer sendPktToAllMcGrps(
+      const void *pkt, size_t pktLen,
+      ArmControllerCb armControllerCb, EfcArmVer armVer,
+      uint64_t fireStatisticsAddr, int nFiresPerUdp) {
+    if (!armControllerCb)
+      on_error("!armControllerCb");
+
+    auto nextArmVer = armVer;
+
+    for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++)
+      for (auto i = 0; i < nMcCons_[coreId]; i++) {
+        if (!udpConn_[coreId][i])
+          on_error("!udpConn_[%d][%d]", coreId, i);
+
+        armControllerCb(g_ekaDev, nextArmVer++);
+        auto [strategyRuns_prev, strategyPassed_prev] =
+            getP4stratStatistics(fireStatisticsAddr);
+
+        udpConn_[coreId][i]->sendUdpPkt(pkt, pktLen);
+        nExpectedFireReports += nFiresPerUdp;
+        bool fired = false;
+        while (keep_work && !fired &&
+               nExpectedFireReports !=
+                   nReceivedFireReports.load()) {
+          auto [strategyRuns_post, strategyPassed_post] =
+              getP4stratStatistics(fireStatisticsAddr);
+
+          fired = (strategyRuns_post != strategyRuns_prev);
+          std::this_thread::yield();
+        }
+      }
+    return nextArmVer;
+  }
+
+  EfcUdpMcParams udpConf_ = {};
+
+  TestUdpConn
+      *udpConn_[EFC_MAX_CORES]
+               [EFC_PREALLOCATED_P4_ACTIONS_PER_LANE] = {};
+  size_t nMcCons_[EFC_MAX_CORES] = {};
+};
+/* --------------------------------------------- */
+class TestTcpSessCtx {
+public:
+  TestTcpSessCtx(const TestTcpSess *conf) {
+    coreId_ = conf->coreId;
+    srcIp_ = conf->srcIp;
+    dstIp_ = conf->dstIp;
+    dstPort_ = conf->dstPort;
+  }
+
+  ~TestTcpSessCtx() { tcpServThr_.join(); }
+
+  void createTcpServ() {
     bool serverSet = false;
-    t->tcpServThr_[i] =
-        std::thread(tcpServer, dev, t->tcpSess_.dstIp,
-                    t->tcpSess_.dstPort + i,
-                    &t->tcpSock_[i], &serverSet);
+    tcpServThr_ = std::thread(tcpServer, dstIp_, dstPort_,
+                              &servSock_, &serverSet);
     while (keep_work && !serverSet)
       std::this_thread::yield();
   }
-}
 
-static void configureFpgaPorts(EkaDev *dev, TestCase *t) {
-  TEST_LOG("Initializing FPGA port %d to %s", t->coreId_,
-           t->tcpSess_.srcIp.c_str());
-  const EkaCoreInitCtx ekaCoreInitCtx = {
-      .coreId = t->coreId_,
-      .attrs = {
-          .host_ip = inet_addr(t->tcpSess_.srcIp.c_str()),
-          .netmask = inet_addr("255.255.255.0"),
-          .gateway = inet_addr(t->tcpSess_.dstIp.c_str()),
-          .nexthop_mac = {}, // resolved by our internal ARP
-          .src_mac_addr = {}, // taken from system config
-          .dont_garp = 0}};
-  ekaDevConfigurePort(dev, &ekaCoreInitCtx);
+  void connect() {
+    struct sockaddr_in serverAddr = {};
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_addr.s_addr = inet_addr(dstIp_);
+
+    serverAddr.sin_port = be16toh(dstPort_);
+
+    excSock_ = excSocket(g_ekaDev, coreId_, 0, 0, 0);
+    if (excSock_ < 0)
+      on_error("failed on excSocket()");
+    hCon_ = excConnect(g_ekaDev, excSock_,
+                       (sockaddr *)&serverAddr,
+                       sizeof(sockaddr_in));
+    if (hCon_ < 0)
+      on_error("excConnect to %s:%u",
+               EKA_IP2STR(serverAddr.sin_addr.s_addr),
+               be16toh(serverAddr.sin_port));
+
+    TEST_LOG("TCP connected %s --> %s:%u", srcIp_,
+             EKA_IP2STR(serverAddr.sin_addr.s_addr),
+             be16toh(serverAddr.sin_port));
+  }
+
+  void set1stSeqNum(uint64_t seq) {
+    efcSetSessionCntr(g_ekaDev, hCon_, seq);
+    return;
+  }
+
+  void sendTestPkt() {
+    char pkt[1500] = {};
+    sprintf(pkt,
+            "\n\nThis is 1st TCP packet sent from FPGA TCP "
+            "client to Kernel TCP server: %s --> %s:%u\n\n",
+            srcIp_, dstIp_, dstPort_);
+    excSend(g_ekaDev, hCon_, pkt, strlen(pkt), 0);
+    int bytes_read = 0;
+    char rxBuf[2000] = {};
+    bytes_read = recv(servSock_, rxBuf, sizeof(rxBuf), 0);
+    if (bytes_read > 0)
+      TEST_LOG("\n%s", rxBuf);
+  }
+
+public:
+  ExcSocketHandle excSock_;
+  ExcConnHandle hCon_;
+
+  int coreId_;
+  const char *srcIp_;
+  const char *dstIp_;
+  uint16_t dstPort_;
+
+  int servSock_ = -1;
+
+  std::thread tcpServThr_;
+};
+/* --------------------------------------------- */
+class TestTcpCtx {
+public:
+  TestTcpCtx(const TestTcpParams *tcpParams) {
+    nTcpSess_ = tcpParams->nTcpSess;
+    for (auto i = 0; i < nTcpSess_; i++) {
+      tcpSess_[i] =
+          new TestTcpSessCtx(&tcpParams->tcpSess[i]);
+      if (!tcpSess_[i])
+        on_error("failed on new TestTcpSessCtx()");
+    }
+  }
+
+  void connectAll() {
+    for (auto i = 0; i < nTcpSess_; i++) {
+      if (!tcpSess_[i])
+        on_error("!tcpSess_[%d]", i);
+
+      tcpSess_[i]->createTcpServ();
+      tcpSess_[i]->connect();
+      tcpSess_[i]->set1stSeqNum(i * 1000);
+    }
+  }
+
+  size_t nTcpSess_ = 0;
+  TestTcpSessCtx *tcpSess_[32] = {};
+};
+/* --------------------------------------------- */
+
+class TestCase {
+public:
+  TestCase(const TestCaseConfig *tc) {
+    switch (tc->strat) {
+    case TestStrategy::P4:
+      prepareTestConfig_ = configureP4Test;
+      runTest_ = runP4Test;
+      stratCtx_ = new EfcP4CboeTestCtx;
+      armController_ = efcArmP4;
+      disArmController_ = efcDisArmP4;
+      FireStatisticsAddr_ = 0xf0340;
+
+      break;
+    case TestStrategy::Qed:
+      prepareTestConfig_ = configureQedTest;
+      runTest_ = runQedTest;
+      armController_ = efcArmQed;
+      disArmController_ = efcDisArmQed;
+
+      FireStatisticsAddr_ = 0xf0818;
+
+      break;
+    case TestStrategy::CmeFc:
+      prepareTestConfig_ = configureCmeFcTest;
+      runTest_ = runCmeFcTest;
+      armController_ = efcArmCmeFc;
+      disArmController_ = efcDisArmCmeFc;
+
+      FireStatisticsAddr_ = 0xf0800;
+
+      break;
+    default:
+      on_error("Unexpected Test Strategy %d",
+               (int)tc->strat);
+    }
+    strat_ = tc->strat;
+
+    udpCtx_ = new TestUdpCtx(&tc->mcParams);
+    if (!udpCtx_)
+      on_error("failed on new TestUdpCtx()");
+
+    tcpCtx_ = new TestTcpCtx(&tc->tcpParams);
+    if (!tcpCtx_)
+      on_error("failed on new TestTcpCtx()");
+
+    loop_ = tc->loop;
+    print("Created");
+  }
+
+  ~TestCase() {
+
+    TEST_LOG("\n"
+             "===========================\n"
+             "END OT CBOE %s TEST\n"
+             "===========================\n",
+             printStrat(strat_));
+  }
+
+  void print(const char *msg) {
+    TEST_LOG("%s: \'%s\' ", msg, printStrat(strat_));
+    // printMcConf(&mcParams_);
+    // printTcpConf(&tcpParams_);
+  }
+
+  TestStrategy strat_ = TestStrategy::Invalid;
+  TestUdpCtx *udpCtx_ = nullptr;
+  TestTcpCtx *tcpCtx_ = nullptr;
+  EfcStratTestCtx *stratCtx_ = nullptr;
+  uint64_t FireStatisticsAddr_ = 0;
+  bool loop_ = false;
+
+  PrepareTestConfigCb prepareTestConfig_;
+  RunTestCb runTest_;
+  ArmControllerCb armController_;
+  DisArmControllerCb disArmController_;
+};
+/* --------------------------------------------- */
+
+static std::vector<TestCase *> testCase = {};
+
+static const TestCase *findTestCase(TestStrategy st) {
+  for (const auto tc : testCase)
+    if (tc->strat_ == st)
+      return tc;
+
+  return nullptr;
 }
 
 /* --------------------------------------------- */
 
-static void bindUdpSock(TestCase *t) {
-  t->udpSock_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-  if (t->udpSock_ < 0)
-    on_error("failed to open UDP sock");
-
-  struct sockaddr_in triggerSourceAddr = {};
-  triggerSourceAddr.sin_addr.s_addr =
-      inet_addr(t->tcpSess_.dstIp.c_str());
-  triggerSourceAddr.sin_family = AF_INET;
-  triggerSourceAddr.sin_port = 0;
-
-  if (bind(t->udpSock_, (sockaddr *)&triggerSourceAddr,
-           sizeof(sockaddr)) != 0) {
-    on_error("failed to bind server udpSock to %s:%u",
-             EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),
-             be16toh(triggerSourceAddr.sin_port));
-  } else {
-    TEST_LOG("udpSock is binded to %s:%u",
-             EKA_IP2STR(triggerSourceAddr.sin_addr.s_addr),
-             be16toh(triggerSourceAddr.sin_port));
-  }
-
-  t->triggerMcAddr_.sin_family = AF_INET;
-  t->triggerMcAddr_.sin_addr.s_addr =
-      inet_addr(t->udpMc_.mcIp.c_str());
-  t->triggerMcAddr_.sin_port = be16toh(t->udpMc_.mcPort);
+void INThandler(int sig) {
+  signal(sig, SIG_IGN);
+  keep_work = false;
+  TEST_LOG(
+      "Ctrl-C detected: keep_work = false, exitting...");
+  fflush(stdout);
+  return;
 }
 
-bool runEfh = false;
-bool fatalDebug = false;
-bool report_only = false;
-bool dontQuit = false;
+/* --------------------------------------------- */
+
+static void configureFpgaPorts(EkaDev *dev, TestCase *t) {
+  for (auto i = 0; i < t->tcpCtx_->nTcpSess_; i++) {
+    TEST_LOG("Initializing FPGA port %d to %s",
+             t->tcpCtx_->tcpSess_[i]->coreId_,
+             t->tcpCtx_->tcpSess_[i]->srcIp_);
+    const EkaCoreInitCtx ekaCoreInitCtx = {
+        .coreId =
+            (EkaCoreId)t->tcpCtx_->tcpSess_[i]->coreId_,
+        .attrs = {
+            .host_ip =
+                inet_addr(t->tcpCtx_->tcpSess_[i]->srcIp_),
+            .netmask = inet_addr("255.255.255.0"),
+            .gateway =
+                inet_addr(t->tcpCtx_->tcpSess_[i]->dstIp_),
+            .nexthop_mac =
+                {}, // resolved by our internal ARP
+            .src_mac_addr = {}, // taken from system config
+            .dont_garp = 0}};
+    ekaDevConfigurePort(dev, &ekaCoreInitCtx);
+  }
+}
+
+/* --------------------------------------------- */
 
 void printUsage(char *cmd) {
-  printf("USAGE: %s \n"
-         "\t--L0 <P4 or Qed or CmeFC strategy on lane 0>\n"
-         "\t--L1 <P4 or Qed or CmeFC strategy on lane 1>\n"
-         "\t--report_only <Report Only ON>\n"
-         "\t--dont_quit <Dont quit at the end>\n"
-         "\n",
-         cmd);
+  TEST_LOG(
+      "USAGE: %s \n"
+      "\t--list <print list of available test scenarios\n"
+      "\t--scenario [scenarion idx from the list]\n"
+
+      "\t--report_only <Report Only ON>\n"
+      "\t--dont_quit <Dont quit at the end>\n"
+
+      "\t--exitBeforeDevInit to run init stage on "
+      "non-FPGA server\n"
+      "\t--print FireReports at the end of the test",
+      cmd);
   return;
 }
 
@@ -357,58 +576,41 @@ static int getAttr(int argc, char *argv[]) {
     int this_option_optind = optind ? optind : 1;
     int option_index = 0;
     static struct option long_options[] = {
-        {"L0", required_argument, 0, '0'},
-        {"L1", required_argument, 0, '1'},
+        {"list", no_argument, 0, 'l'},
+        {"scenario", required_argument, 0, 's'},
+
         {"ReportOnly", no_argument, 0, 'r'},
         {"report_only", no_argument, 0, 'r'},
         {"dont_quit", no_argument, 0, 'd'},
+        {"exitBeforeDevInit", no_argument, 0, 'e'},
+        {"print", no_argument, 0, 'p'},
         {"help", no_argument, 0, 'h'},
         {0, 0, 0, 0}};
 
-    c = getopt_long(argc, argv, "rdh0:1:", long_options,
+    c = getopt_long(argc, argv, "rdehlps:", long_options,
                     &option_index);
     if (c == -1)
       break;
 
     switch (c) {
     case 0:
-      printf("option %s", long_options[option_index].name);
+      TEST_LOG("option %s",
+               long_options[option_index].name);
       if (optarg)
-        printf(" with arg %s", optarg);
-      printf("\n");
+        TEST_LOG(" with arg %s", optarg);
+      TEST_LOG("\n");
       break;
 
-    case '0':
-    case '1': {
-      auto coreId = c - '0';
-      auto strat = string2strat(optarg);
+    case 's':
+      TEST_LOG("Running scenario # %d\n", atoi(optarg));
+      printSingleScenario(atoi(optarg));
+      sc = &scenarios[atoi(optarg)];
+      break;
 
-      TestCase *t = nullptr;
-      switch (strat) {
-      case TestStrategy::P4:
-        t = new TestCase(coreId, strat, configureP4Test,
-                         runP4Test);
-        break;
-      case TestStrategy::Qed:
-        t = new TestCase(coreId, strat, configureQedTest,
-                         runQedTest);
-        break;
-      default:
-        on_error("Unexpected Test Strategy %d", (int)strat);
-      }
-      if (!t)
-        on_error("Failed on new TestCase()");
-
-      testCase.push_back(t);
-    } break;
-
-    case '2':
-      if (digit_optind != 0 &&
-          digit_optind != this_option_optind)
-        printf("digits occur in two different "
-               "argv-elements.\n");
-      digit_optind = this_option_optind;
-      printf("option %c\n", c);
+    case 'l':
+      TEST_LOG("%s available test scenarios:\n", argv[0]);
+      printAllScenarios();
+      exit(1);
       break;
 
     case 'h':
@@ -416,13 +618,23 @@ static int getAttr(int argc, char *argv[]) {
       exit(1);
       break;
 
+    case 'e':
+      exitBeforeDevInit = true;
+      TEST_LOG("exitBeforeDevInit = true");
+      break;
+
+    case 'p':
+      printFireReports = true;
+      TEST_LOG("printFireReports = true");
+      break;
+
     case 'r':
-      printf("Report Only = ON\n");
+      TEST_LOG("Report Only = ON\n");
       report_only = true;
       break;
 
     case 'd':
-      printf("dontQuit = TRUE\n");
+      TEST_LOG("dontQuit = TRUE\n");
       dontQuit = true;
       break;
 
@@ -430,44 +642,40 @@ static int getAttr(int argc, char *argv[]) {
       break;
 
     default:
-      printf("?? getopt returned character code 0%o ??\n",
-             c);
+      TEST_LOG("?? getopt returned character code 0%o ??\n",
+               c);
     }
   }
 
   if (optind < argc) {
     auto badIdx = optind;
-    printf("non-option ARGV-elements: ");
+    TEST_LOG("non-option ARGV-elements: ");
     while (optind < argc)
-      printf("%s ", argv[optind++]);
-    printf("\n");
+      TEST_LOG("%s ", argv[optind++]);
+    TEST_LOG("\n");
     on_error("Unexpected options %s", argv[badIdx]);
   }
 
   return 0;
 }
 /* --------------------------------------------- */
+void createTestCases(const TestScenarioConfig *sc) {
+  if (!sc)
+    on_error("No Test scenarion selected");
+  TEST_LOG("Configuring %s: \n", sc->name);
+  for (const auto &tc : sc->testConf) {
+    if (tc.strat != TestStrategy::Invalid) {
+      TestCase *t = new TestCase(&tc);
+      if (!t)
+        on_error("Failed on new TestCase()");
 
-static void cleanFireEvents() {
-  for (auto i = 0; i < numFireEvents; i++) {
-    free((void *)FireEvent[i]);
-    FireEvent[i] = NULL;
+      testCase.push_back(t);
+    }
   }
-  numFireEvents = 0;
-  return;
 }
-
 /* --------------------------------------------- */
 
-struct P4SecurityCtx {
-  char id[8];
-  EkaLSI groupId;
-  FixedPrice bidMinPrice;
-  FixedPrice askMaxPrice;
-  uint8_t size;
-};
-
-std::vector<P4SecurityCtx> p4Ctx{};
+/* --------------------------------------------- */
 
 enum class AddOrder : int {
   Unknown = 0,
@@ -476,239 +684,11 @@ enum class AddOrder : int {
   Expanded
 };
 
-struct CboePitchAddOrderShort {
-  sequenced_unit_header hdr;
-  add_order_short msg;
-} __attribute__((packed));
-
-struct CboePitchAddOrderLong {
-  sequenced_unit_header hdr;
-  add_order_long msg;
-} __attribute__((packed));
-
-struct CboePitchAddOrderExpanded {
-  sequenced_unit_header hdr;
-  add_order_expanded msg;
-} __attribute__((packed));
 /* --------------------------------------------- */
 
-static int sendAddOrderShort(int sock,
-                             const sockaddr_in *addr,
-                             char *secId, uint32_t sequence,
-                             char side, uint16_t price,
-                             uint16_t size) {
-
-  CboePitchAddOrderShort pkt = {
-      .hdr =
-          {
-              .length = sizeof(pkt),
-              .count = 1,
-              .unit = 1, // just a number
-              .sequence = sequence,
-          },
-      .msg = {
-          .header =
-              {
-                  .length = sizeof(pkt.msg),
-                  .type = (uint8_t)MsgId::ADD_ORDER_SHORT,
-                  .time = 0x11223344, // just a number
-              },
-          .order_id = 0xaabbccddeeff5566,
-          .side = side,
-          .size = size,
-          .symbol = {secId[2], secId[3], secId[4], secId[5],
-                     secId[6], secId[7]},
-          .price =
-              price, //(uint16_t)(p4Ctx.at(2).bidMinPrice
-                     /// 100 + 1),
-          .flags = 0xFF,
-      }};
-  TEST_LOG("sending AddOrderShort trigger to %s:%u",
-           EKA_IP2STR(addr->sin_addr.s_addr),
-           be16toh(addr->sin_port));
-  if (sendto(sock, &pkt, sizeof(pkt), 0,
-             (const sockaddr *)addr, sizeof(sockaddr)) < 0)
-    on_error("MC trigger send failed");
-
-  return 0;
-}
-/* --------------------------------------------- */
-
-static int sendAddOrderLong(int sock,
-                            const sockaddr_in *addr,
-                            char *secId, uint32_t sequence,
-                            char side, uint64_t price,
-                            uint32_t size) {
-
-  CboePitchAddOrderLong pkt = {
-      .hdr =
-          {
-              .length = sizeof(pkt),
-              .count = 1,
-              .unit = 1, // just a number
-              .sequence = sequence,
-          },
-      .msg = {
-          .header =
-              {
-                  .length = sizeof(pkt.msg),
-                  .type = (uint8_t)MsgId::ADD_ORDER_LONG,
-                  .time = 0x11223344, // just a number
-              },
-          .order_id = 0xaabbccddeeff5566,
-          .side = side,
-          .size = size,
-          .symbol = {secId[2], secId[3], secId[4], secId[5],
-                     secId[6], secId[7]},
-          .price =
-              price, //(uint16_t)(p4Ctx.at(2).bidMinPrice
-                     /// 100 + 1),
-          .flags = 0xFF,
-      }};
-  TEST_LOG("sending AddOrderLong trigger to %s:%u",
-           EKA_IP2STR(addr->sin_addr.s_addr),
-           be16toh(addr->sin_port));
-  if (sendto(sock, &pkt, sizeof(pkt), 0,
-             (const sockaddr *)addr, sizeof(sockaddr)) < 0)
-    on_error("MC trigger send failed");
-
-  return 0;
-}
-
-/* --------------------------------------------- */
-
-static int sendAddOrderExpanded(int sock,
-                                const sockaddr_in *addr,
-                                char *secId,
-                                uint32_t sequence,
-                                char side, uint16_t price,
-                                uint16_t size) {
-
-  CboePitchAddOrderExpanded pkt = {
-      .hdr =
-          {
-              .length = sizeof(pkt),
-              .count = 1,
-              .unit = 1, // just a number
-              .sequence = sequence,
-          },
-      .msg = {
-          .header =
-              {
-                  .length = sizeof(pkt.msg),
-                  .type =
-                      (uint8_t)MsgId::ADD_ORDER_EXPANDED,
-                  .time = 0x11223344, // just a number
-              },
-          .order_id = 0xaabbccddeeff5566,
-          .side = side,
-          .size = size,
-          //	    .exp_symbol =
-          //{secId[0],secId[1],secId[2],secId[3],secId[4],secId[5],secId[6],secId[7]},
-          .exp_symbol = {secId[2], secId[3], secId[4],
-                         secId[5], secId[6], secId[7], ' ',
-                         ' '},
-          .price =
-              price, //(uint16_t)(p4Ctx.at(2).bidMinPrice
-                     /// 100 + 1),
-          .flags = 0xFF,
-          .participant_id = {},
-          .customer_indicator = 'C',
-          .client_id = {}}};
-
-  TEST_LOG("sending AddOrderExpanded trigger to %s:%u",
-           EKA_IP2STR(addr->sin_addr.s_addr),
-           be16toh(addr->sin_port));
-  if (sendto(sock, &pkt, sizeof(pkt), 0,
-             (const sockaddr *)addr, sizeof(sockaddr)) < 0)
-    on_error("MC trigger send failed");
-
-  return 0;
-}
-/* --------------------------------------------- */
-static int sendAddOrder(AddOrder type, int sock,
-                        const sockaddr_in *addr,
-                        char *secId, uint32_t sequence,
-                        char side, uint64_t price,
-                        uint32_t size) {
-  switch (type) {
-  case AddOrder::Short:
-    return sendAddOrderShort(sock, addr, secId, sequence,
-                             side, price, size);
-  case AddOrder::Long:
-    return sendAddOrderLong(sock, addr, secId, sequence,
-                            side, price, size);
-  case AddOrder::Expanded:
-    return sendAddOrderExpanded(sock, addr, secId, sequence,
-                                side, price, size);
-  default:
-    on_error("Unexpected type %d", (int)type);
-  }
-  return 0;
-}
-
-static size_t prepare_BoeNewOrderMsg(void *dst) {
-  const BoeNewOrderMsg fireMsg = {
-      .StartOfMessage = 0xBABA,
-      .MessageLength = sizeof(BoeNewOrderMsg) - 2,
-      .MessageType = 0x38,
-      .MatchingUnit = 0,
-      .SequenceNumber = 0,
-
-      // low 8 bytes of ClOrdID are replaced at FPGA by
-      // AppSeq number
-      .ClOrdID = {'E', 'K', 'A', 't', 'e', 's', 't',
-                  '1', '2', '3', '4', '5', '6', '7',
-                  '8', '9', 'A', 'B', 'C', 'D'},
-
-      .Side = '_', // '1'-Bid, '2'-Ask
-      .OrderQty = 0,
-
-      .NumberOfBitfields = 4,
-      .NewOrderBitfield1 =
-          1 | 2 | 4 | 16 |
-          32, // ClearingFirm,ClearingAccount,Price,OrdType,TimeInForce
-      .NewOrderBitfield2 = 1 | 64, // Symbol,Capacity
-      .NewOrderBitfield3 = 1,      // Account
-      .NewOrderBitfield4 = 0,
-      /* .NewOrderBitfield5 = 0,  */
-      /* .NewOrderBitfield6 = 0,  */
-      /* .NewOrderBitfield7 = 0, */
-
-      .ClearingFirm = {'C', 'L', 'F', 'M'},
-      .ClearingAccount = {'C', 'L', 'A', 'C'},
-      .Price = 0,
-      .OrdType =
-          '2', // '1' = Market,'2' = Limit
-               // (default),'3' = Stop,'4' = Stop Limit
-      .TimeInForce = '3', // '3' - IOC
-      .Symbol =
-          {' ', ' ', ' ', ' ', ' ', ' ', ' ',
-           ' '}, // last 2 padding chars to be set to ' '
-      .Capacity = 'C', // 'C','M','F',etc.
-      .Account = {'1', '2', '3', '4', '5', '6', '7', '8',
-                  '9', '0', 'A', 'B', 'C', 'D', 'E', 'F'},
-      .OpenClose = 'O'};
-
-  memcpy(dst, &fireMsg, sizeof(fireMsg));
-  return sizeof(fireMsg);
-}
-
-static size_t prepare_BoeQuoteUpdateShortMsg(void *dst) {
-  const BoeQuoteUpdateShortMsg fireMsg = {
-      .StartOfMessage = 0xBABA,
-      .MessageLength = sizeof(BoeQuoteUpdateShortMsg) - 2,
-      .MessageType = 0x59,
-
-      .Reserved1 = {'E', 'K', 'A'},
-      .Reserved2 = {'Y', 'X'}};
-  memcpy(dst, &fireMsg, sizeof(fireMsg));
-  return sizeof(fireMsg);
-}
 /* ############################################# */
 
-static int sendQEDMsg(TestCase *t) {
-
+static size_t createQEDMsg(char *dst, const char *id) {
   const uint8_t pkt[] = /*114 byte -> udp length 122,
                            remsize 122-52 = 70 (numlelel5)*/
       {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -727,46 +707,42 @@ static int sendQEDMsg(TestCase *t) {
        0x00};
 
   size_t payloadLen = std::size(pkt);
+  memcpy(dst, pkt, payloadLen);
 
-  TEST_LOG("sending MDIncrementalRefreshTradeSummary48 "
-           "trigger to %s:%u",
-           EKA_IP2STR(t->triggerMcAddr_.sin_addr.s_addr),
-           be16toh(t->triggerMcAddr_.sin_port));
-  if (sendto(t->udpSock_, pkt, payloadLen, 0,
-             (const sockaddr *)&t->triggerMcAddr_,
-             sizeof(t->triggerMcAddr_)) < 0)
-    on_error("MC trigger send failed");
   return 0;
 }
 /* ############################################# */
 
-EfcUdpMcParams *createMcParams(TestCase *t) {
-  auto grParams = new EfcUdpMcGroupParams;
-  if (!grParams)
-    on_error("failed on new EfcUdpMcGroupParams");
-  grParams->coreId = t->coreId_;
-  grParams->mcIp = t->udpMc_.mcIp.c_str();
-  grParams->mcUdpPort = t->udpMc_.mcPort;
+static size_t createCmeFcMsg(char *dst, const char *id) {
+  const uint8_t pkt[] = {
+      0x22, 0xa5, 0x0d, 0x02, 0xa5, 0x6f, 0x01, 0x38, 0xca,
+      0x42, 0xdc, 0x16, 0x60, 0x00, 0x0b, 0x00, 0x30, 0x00,
+      0x01, 0x00, 0x09, 0x00, 0x41, 0x23, 0xff, 0x37, 0xca,
+      0x42, 0xdc, 0x16, 0x01, 0x00, 0x00, 0x20, 0x00, 0x01,
+      0x00, 0xfc, 0x2f, 0x9c, 0x9d, 0xb2, 0x00, 0x00, 0x01,
+      0x00, 0x00, 0x00, 0x5b, 0x33, 0x00, 0x00, 0x83, 0x88,
+      0x26, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0xd9,
+      0x7a, 0x6d, 0x01, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x02, 0x0e, 0x19, 0x84, 0x8e, 0x36,
+      0x06, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0xb0, 0x7f, 0x8e, 0x36, 0x06, 0x00,
+      0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-  auto udpMcParams = new EfcUdpMcParams;
-  if (!udpMcParams)
-    on_error("!udpMcParams");
+  size_t payloadLen = std::size(pkt);
+  memcpy(dst, pkt, payloadLen);
 
-  udpMcParams->groups = grParams;
-  udpMcParams->nMcGroups = 1;
-
-  return udpMcParams;
+  return 0;
 }
-
 /* ############################################# */
 
-void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
-  auto dev = pEfcCtx->dev;
+void configureP4Test(TestCase *t) {
+  auto dev = g_ekaDev;
 
   if (!t)
     on_error("!t");
-
-  auto udpMcParams = createMcParams(t);
+  TEST_LOG("\n"
+           "=========== Configuring P4 Test ===========");
+  auto udpMcParams = &t->udpCtx_->udpConf_;
 
   struct EfcP4Params p4Params = {
       .feedVer = EfhFeedVer::kCBOE,
@@ -775,126 +751,114 @@ void configureP4Test(EfcCtx *pEfcCtx, TestCase *t) {
   };
 
   int rc =
-      efcInitP4Strategy(pEfcCtx, udpMcParams, &p4Params);
+      efcInitP4Strategy(g_ekaDev, udpMcParams, &p4Params);
   if (rc != EKA_OPRESULT__OK)
     on_error("efcInitP4Strategy returned %d", (int)rc);
 
-  // ==============================================
-  // Subscribing on securities
-
-  P4SecurityCtx security[] = {
-      {{'\0', '\0', '0', '0', 'T', 'E', 'S', 'T'},
-       0,
-       1000,
-       2000,
-       1}, // correct SecID
-      {{'\0', '\0', '0', '1', 'T', 'E', 'S', 'T'},
-       0,
-       3000,
-       4000,
-       1}, // correct SecID
-      {{'\0', '\0', '0', '2', 'T', 'E', 'S', 'T'},
-       0,
-       5000,
-       6000,
-       1}, // correct SecID
-      {{'\0', '\0', '0', '3', 'T', 'E', 'S', 'T'},
-       0,
-       7000,
-       8000,
-       1}, // correct SecID
-      {{'\0', '\0', '0', '2', 'A', 'B', 'C', 'D'},
-       0,
-       7000,
-       8000,
-       1}, // correct SecID
-  };
-
-  // list of secIDs to be passed to efcEnableFiringOnSec()
-  uint64_t securityList[std::size(security)] = {};
-
-  // This Alphanumeric-to-binary converting is not needed
-  // if binary security ID is received from new version of
-  // EFH
-  for (auto i = 0; i < (int)std::size(security); i++) {
-    securityList[i] = be64toh(*(uint64_t *)security[i].id);
-    EKA_TEST(
-        "securityList[%d] = '%c%c%c%c%c%c%c%c' =  %016jx",
-        i, security[i].id[0], security[i].id[1],
-        security[i].id[2], security[i].id[3],
-        security[i].id[4], security[i].id[5],
-        security[i].id[6], security[i].id[7],
-        securityList[i]);
-
-    p4Ctx.push_back(security[i]);
-  }
+  auto p4TestCtx =
+      dynamic_cast<EfcP4CboeTestCtx *>(t->stratCtx_);
+  if (!p4TestCtx)
+    on_error("!p4TestCtx");
 
   // subscribing on list of securities
-  efcEnableFiringOnSec(pEfcCtx, securityList,
-                       std::size(security));
+  efcEnableFiringOnSec(g_ekaDev, p4TestCtx->secList,
+                       p4TestCtx->nSec);
 
   // ==============================================
   // setting security contexts
-  for (auto i = 0; i < (int)std::size(securityList); i++) {
-    auto handle = getSecCtxHandle(pEfcCtx, securityList[i]);
+  for (size_t i = 0; i < p4TestCtx->nSec; i++) {
+    auto handle =
+        getSecCtxHandle(g_ekaDev, p4TestCtx->secList[i]);
+
     if (handle < 0) {
-      EKA_WARN("Security[%d] '%c%c%c%c%c%c%c%c' was not "
+      EKA_WARN("Security[%ju] %s was not "
                "fit into FPGA hash: handle = %jd",
-               i, security[i].id[0], security[i].id[1],
-               security[i].id[2], security[i].id[3],
-               security[i].id[4], security[i].id[5],
-               security[i].id[6], security[i].id[7],
+               i,
+               cboeSecIdString(p4TestCtx->security[i].id, 8)
+                   .c_str(),
                handle);
       continue;
     }
-    SecCtx secCtx = {
-        .bidMinPrice =
-            static_cast<decltype(secCtx.bidMinPrice)>(
-                security[i].bidMinPrice /
-                100), // x100, should be nonzero
-        .askMaxPrice =
-            static_cast<decltype(secCtx.askMaxPrice)>(
-                security[i].askMaxPrice / 100), // x100
-        .bidSize = security[i].size,
-        .askSize = security[i].size,
-        .versionKey = (uint8_t)i,
-        .lowerBytesOfSecId =
-            (uint8_t)(securityList[i] & 0xFF)};
-    EKA_TEST("Setting StaticSecCtx[%d] secId=0x%016jx, "
-             "handle=%jd",
-             i, securityList[i], handle);
+
+    SecCtx secCtx = {};
+    p4TestCtx->getSecCtx(i, &secCtx);
+
+    EKA_TEST(
+        "Setting StaticSecCtx[%ju] \'%s\' secId=0x%016jx,"
+        "handle=%jd,bidMinPrice=%u,askMaxPrice=%u,"
+        "bidSize=%u,askSize=%u,"
+        "versionKey=%u,lowerBytesOfSecId=0x%x",
+        i,
+        cboeSecIdString(p4TestCtx->security[i].id, 8)
+            .c_str(),
+        p4TestCtx->secList[i], handle, secCtx.bidMinPrice,
+        secCtx.askMaxPrice, secCtx.bidSize, secCtx.askSize,
+        secCtx.versionKey, secCtx.lowerBytesOfSecId);
     /* hexDump("secCtx",&secCtx,sizeof(secCtx)); */
 
-    rc = efcSetStaticSecCtx(pEfcCtx, handle, &secCtx, 0);
+    rc = efcSetStaticSecCtx(g_ekaDev, handle, &secCtx, 0);
     if (rc != EKA_OPRESULT__OK)
       on_error("failed to efcSetStaticSecCtx");
   }
 
   // ==============================================
-  // Manually prepared FPGA firing template
+  for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++) {
+    for (auto mcGr = 0; mcGr < t->udpCtx_->nMcCons_[coreId];
+         mcGr++) {
+      // 1st in the chain is already preallocated
+      int currActionIdx =
+          coreId * EFC_PREALLOCATED_P4_ACTIONS_PER_LANE +
+          mcGr;
 
-  char fireMsg[1500] = {};
-  size_t fireMsgLen =
-      prepare_BoeQuoteUpdateShortMsg(fireMsg);
+      for (auto tcpConn = 0;
+           tcpConn < t->tcpCtx_->nTcpSess_; tcpConn++) {
+        rc = setActionTcpSock(
+            g_ekaDev, currActionIdx,
+            t->tcpCtx_->tcpSess_[tcpConn]->excSock_);
+        if (rc != EKA_OPRESULT__OK)
+          on_error("setActionTcpSock failed for Action %d",
+                   currActionIdx);
 
-  // ==============================================
-  for (auto i = 0; i < udpMcParams->nMcGroups; i++) {
-    rc = setActionTcpSock(dev, i, t->excSock_[i]);
-    if (rc != EKA_OPRESULT__OK)
-      on_error("setActionTcpSock failed for Action %d", i);
+        int nextActionIdx =
+            tcpConn == t->tcpCtx_->nTcpSess_ - 1
+                ? EPM_LAST_ACTION
+                : efcAllocateNewAction(
+                      g_ekaDev, EpmActionType::BoeFire);
+        rc = setActionNext(dev, currActionIdx,
+                           nextActionIdx);
+        if (rc != EKA_OPRESULT__OK)
+          on_error("setActionNext failed for Action %d",
+                   currActionIdx);
 
-    rc = efcSetActionPayload(dev, i, fireMsg, fireMsgLen);
-    if (rc != EKA_OPRESULT__OK)
-      on_error("efcSetActionPayload failed for Action %d",
-               i);
+        char fireMsg[1500] = {};
+        sprintf(fireMsg,
+                "BoeFireA: %03d         "
+                "    MC:%d:%d "
+                "Tcp:%d ",
+                currActionIdx, coreId, mcGr, tcpConn);
+        rc = efcSetActionPayload(
+            dev, currActionIdx, fireMsg,
+            sizeof(BoeQuoteUpdateShortMsg));
+        if (rc != EKA_OPRESULT__OK)
+          on_error(
+              "efcSetActionPayload failed for Action %d",
+              currActionIdx);
+
+        currActionIdx = nextActionIdx;
+      }
+    }
   }
 }
 /* ############################################# */
 
-void configureQedTest(EfcCtx *pEfcCtx, TestCase *t) {
-  auto dev = pEfcCtx->dev;
+void configureQedTest(TestCase *t) {
+  auto dev = g_ekaDev;
 
-  auto udpMcParams = createMcParams(t);
+  if (!t)
+    on_error("!t");
+  TEST_LOG("\n"
+           "=========== Configuring Qed Test ===========");
+  auto udpMcParams = &t->udpCtx_->udpConf_;
 
   static const uint16_t QEDTestPurgeDSID = 0x1234;
   static const uint8_t QEDTestMinNumLevel = 5;
@@ -906,18 +870,23 @@ void configureQedTest(EfcCtx *pEfcCtx, TestCase *t) {
       QEDTestMinNumLevel;
   qedParams.product[active_set].enable = true;
 
-  efcInitQedStrategy(pEfcCtx, udpMcParams, &qedParams);
+  int rc =
+      efcInitQedStrategy(g_ekaDev, udpMcParams, &qedParams);
+  if (rc != EKA_OPRESULT__OK)
+    on_error("efcInitQedStrategy returned %d", (int)rc);
+
   auto qedHwPurgeIAction =
       efcAllocateNewAction(dev, EpmActionType::QEDHwPurge);
 
-  efcQedSetFireAction(pEfcCtx, qedHwPurgeIAction,
+  efcQedSetFireAction(g_ekaDev, qedHwPurgeIAction,
                       active_set);
 
   const char QEDTestPurgeMsg[] =
       "QED Purge Data With Dummy payload";
 
-  int rc = setActionTcpSock(dev, qedHwPurgeIAction,
-                            t->excSock_[0]);
+  rc = setActionTcpSock(dev, qedHwPurgeIAction,
+                        t->tcpCtx_->tcpSess_[0]->excSock_);
+
   if (rc != EKA_OPRESULT__OK)
     on_error("setActionTcpSock failed for Action %d",
              qedHwPurgeIAction);
@@ -929,79 +898,119 @@ void configureQedTest(EfcCtx *pEfcCtx, TestCase *t) {
              qedHwPurgeIAction);
 }
 
-bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
+/* ############################################# */
+
+void configureCmeFcTest(TestCase *t) {
+  auto dev = g_ekaDev;
+
+  if (!t)
+    on_error("!t");
+  TEST_LOG(
+      "\n"
+      "=========== Configuring CmeFc Test ===========");
+  auto udpMcParams = &t->udpCtx_->udpConf_;
+
+  static const uint16_t QEDTestPurgeDSID = 0x1234;
+  static const uint8_t QEDTestMinNumLevel = 5;
+
+  EfcCmeFcParams cmeParams = {.maxMsgSize = 97,
+                              .minNoMDEntries = 0};
+
+  int rc = efcInitCmeFcStrategy(g_ekaDev, udpMcParams,
+                                &cmeParams);
+  if (rc != EKA_OPRESULT__OK)
+    on_error("efcInitCmeFcStrategy returned %d", (int)rc);
+
+  auto cmeFcHwAction =
+      efcAllocateNewAction(dev, EpmActionType::CmeHwCancel);
+
+  efcCmeFcSetFireAction(g_ekaDev, cmeFcHwAction);
+
+  rc = setActionTcpSock(dev, cmeFcHwAction,
+                        t->tcpCtx_->tcpSess_[0]->excSock_);
+
+  if (rc != EKA_OPRESULT__OK)
+    on_error("setActionTcpSock failed for Action %d",
+             cmeFcHwAction);
+
+  const char CmeTestFastCancelMsg[] =
+      "CME Fast Cancel: Sequence = |____| With Dummy "
+      "payload";
+
+  rc = efcSetActionPayload(dev, cmeFcHwAction,
+                           &CmeTestFastCancelMsg,
+                           strlen(CmeTestFastCancelMsg));
+  if (rc != EKA_OPRESULT__OK)
+    on_error("efcSetActionPayload failed for Action %d",
+             cmeFcHwAction);
+}
+/* ############################################# */
+
+bool runP4Test(TestCase *t) {
+
+  TEST_LOG("\n"
+           "=========== Running P4 Test ===========");
+
+  auto p4TestCtx =
+      dynamic_cast<EfcP4CboeTestCtx *>(t->stratCtx_);
+  if (!p4TestCtx)
+    on_error("!p4TestCtx");
+
   EfcArmVer p4ArmVer = 0;
 
   // ==============================================
-  efcArmP4(pEfcCtx,
-           p4ArmVer); //
-
-  // ==============================================
-  // Preparing UDP MC for MD trigger on GR#0
 
   uint32_t sequence = 32;
-
-// ==============================================
+  const int LoopIterations = t->loop_ ? 10000 : 1;
+  for (auto i = 0; i < LoopIterations; i++) {
 #if 1
-  sendAddOrder(
-      AddOrder::Short, t->udpSock_, &t->triggerMcAddr_,
-      p4Ctx.at(2).id, sequence++, 'S',
-      p4Ctx.at(2).askMaxPrice / 100 - 1, p4Ctx.at(2).size);
+    {
+      efcArmP4(g_ekaDev, p4ArmVer);
+      char pktBuf[1500] = {};
+      auto secCtx = &p4TestCtx->security[2];
 
-  sleep(1);
-  efcArmP4(pEfcCtx, p4ArmVer++);
+      const char *mdSecId = secCtx->id;
+      auto mdSide = SideT::ASK;
+      auto mdPrice = secCtx->askMaxPrice - 1;
+      auto mdSize = secCtx->size;
+
+      auto pktLen = p4TestCtx->createOrderExpanded(
+          pktBuf, mdSecId, mdSide, mdPrice, mdSize, true);
+
+      p4ArmVer = t->udpCtx_->sendPktToAllMcGrps(
+          pktBuf, pktLen, t->armController_, p4ArmVer,
+          t->FireStatisticsAddr_, t->tcpCtx_->nTcpSess_);
+    }
 #endif
-// ==============================================
+
 #if 1
-  sendAddOrder(
-      AddOrder::Short, t->udpSock_, &t->triggerMcAddr_,
-      p4Ctx.at(2).id, sequence++, 'B',
-      p4Ctx.at(2).bidMinPrice / 100 + 1, p4Ctx.at(2).size);
+    {
+      efcArmP4(g_ekaDev, p4ArmVer);
+      char pktBuf[1500] = {};
+      auto secCtx = &p4TestCtx->security[3];
 
-  sleep(1);
-  efcArmP4(pEfcCtx, p4ArmVer++);
-#endif
-// ==============================================
-#if 1
-  sendAddOrder(AddOrder::Long, t->udpSock_,
-               &t->triggerMcAddr_, p4Ctx.at(2).id,
-               sequence++, 'S', p4Ctx.at(2).askMaxPrice - 1,
-               p4Ctx.at(2).size);
+      const char *mdSecId = secCtx->id;
+      auto mdSide = SideT::BID;
+      auto mdPrice = secCtx->bidMinPrice + 1;
+      auto mdSize = secCtx->size;
 
-  sleep(1);
-  efcArmP4(pEfcCtx, p4ArmVer++);
-#endif
-// ==============================================
-#if 1
-  sendAddOrder(AddOrder::Long, t->udpSock_,
-               &t->triggerMcAddr_, p4Ctx.at(2).id,
-               sequence++, 'B', p4Ctx.at(2).bidMinPrice + 1,
-               p4Ctx.at(2).size);
+      auto pktLen = p4TestCtx->createOrderExpanded(
+          pktBuf, mdSecId, mdSide, mdPrice, mdSize, true);
 
-  sleep(1);
-  efcArmP4(pEfcCtx, p4ArmVer++);
+      p4ArmVer = t->udpCtx_->sendPktToAllMcGrps(
+          pktBuf, pktLen, t->armController_, p4ArmVer,
+          t->FireStatisticsAddr_, t->tcpCtx_->nTcpSess_);
+    }
 #endif
-// ==============================================
-#if 1
-  sendAddOrder(AddOrder::Expanded, t->udpSock_,
-               &t->triggerMcAddr_, p4Ctx.at(2).id,
-               sequence++, 'S', p4Ctx.at(2).askMaxPrice - 1,
-               p4Ctx.at(2).size);
-
-  sleep(1);
-  efcArmP4(pEfcCtx, p4ArmVer++);
-#endif
-// ==============================================
-#if 0
-  while (keep_work) {
-    sendAddOrder(AddOrder::Expanded,t->udpSock_,&t->triggerMcAddr_,p4Ctx.at(2).id,
-		 sequence++,'B',p4Ctx.at(2).bidMinPrice + 1,p4Ctx.at(2).size);
-  
-    sleep(1);
-    efcArmP4(pEfcCtx,, p4ArmVer++);
+    for (auto i = 0; i < t->tcpCtx_->nTcpSess_; i++) {
+      char rxBuf[8192] = {};
+      int rc = recv(t->tcpCtx_->tcpSess_[i]->servSock_,
+                    rxBuf, sizeof(rxBuf), 0);
+    }
+    //   usleep(1000);
   }
-#endif
   // ==============================================
+  t->disArmController_(g_ekaDev);
   TEST_LOG("\n"
            "===========================\n"
            "END OT CBOE P4 TEST\n"
@@ -1010,23 +1019,100 @@ bool runP4Test(EfcCtx *pEfcCtx, TestCase *t) {
 }
 /* ############################################# */
 
-bool runQedTest(EfcCtx *pEfcCtx, TestCase *t) {
+bool runQedTest(TestCase *t) {
   int qedExpectedFires = 0;
   int TotalInjects = 4;
   EfcArmVer qedArmVer = 0;
 
+  uint64_t appSeq = 2000;
+  efcSetSessionCntr(g_ekaDev,
+                    t->tcpCtx_->tcpSess_[0]->hCon_, appSeq);
+
   for (auto i = 0; i < TotalInjects; i++) {
-    efcArmQed(pEfcCtx, qedArmVer++); // arm and promote
+    // efcArmQed(g_ekaDev, qedArmVer++); // arm and promote
     qedExpectedFires++;
 
-    sendQEDMsg(t);
+    const uint8_t
+        pktBuf[] = /*114 byte -> udp length 122,
+                     remsize 122-52 = 70 (numlelel5)*/
+        {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x34, 0x12, // dsid 1234
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00};
 
-    usleep(300000);
+    auto pktLen = sizeof(pktBuf);
+
+    qedArmVer = t->udpCtx_->sendPktToAllMcGrps(
+        pktBuf, pktLen, t->armController_, qedArmVer,
+        t->FireStatisticsAddr_, t->tcpCtx_->nTcpSess_);
+
+    // usleep(300000);
   }
   // ==============================================
   TEST_LOG("\n"
            "===========================\n"
            "END OT QED TEST\n"
+           "===========================\n");
+  return true;
+}
+
+/* ############################################# */
+
+bool runCmeFcTest(TestCase *t) {
+  int cmeFcExpectedFires = 0;
+  int TotalInjects = 4;
+  EfcArmVer cmeFcArmVer = 0;
+
+  uint64_t appSeq = 3000;
+  efcSetSessionCntr(g_ekaDev,
+                    t->tcpCtx_->tcpSess_[0]->hCon_, appSeq);
+
+  for (auto i = 0; i < TotalInjects; i++) {
+    // efcArmCmeFc(g_ekaDev, cmeFcArmVer++); // arm and
+    // promote
+    cmeFcExpectedFires++;
+
+    const uint8_t pktBuf[] = {
+        0x22, 0xa5, 0x0d, 0x02, 0xa5, 0x6f, 0x01, 0x38,
+        0xca, 0x42, 0xdc, 0x16, 0x60, 0x00, 0x0b, 0x00,
+        0x30, 0x00, 0x01, 0x00, 0x09, 0x00, 0x41, 0x23,
+        0xff, 0x37, 0xca, 0x42, 0xdc, 0x16, 0x01, 0x00,
+        0x00, 0x20, 0x00, 0x01, 0x00, 0xfc, 0x2f, 0x9c,
+        0x9d, 0xb2, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x5b, 0x33, 0x00, 0x00, 0x83, 0x88, 0x26, 0x00,
+        0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0xd9, 0x7a,
+        0x6d, 0x01, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x02, 0x0e, 0x19, 0x84, 0x8e,
+        0x36, 0x06, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0xb0, 0x7f, 0x8e,
+        0x36, 0x06, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00};
+
+    auto pktLen = sizeof(pktBuf);
+
+    cmeFcArmVer = t->udpCtx_->sendPktToAllMcGrps(
+        pktBuf, pktLen, t->armController_, cmeFcArmVer,
+        t->FireStatisticsAddr_, t->tcpCtx_->nTcpSess_);
+
+    // usleep(300000);
+  }
+  // ==============================================
+  TEST_LOG("\n"
+           "===========================\n"
+           "END OT CmeFc TEST\n"
            "===========================\n");
   return true;
 }
@@ -1038,10 +1124,10 @@ int main(int argc, char *argv[]) {
   // ==============================================
 
   getAttr(argc, argv);
+  createTestCases(sc);
 
-  if (numTcpSess > MaxTcpTestSessions)
-    on_error("numTcpSess %d > MaxTcpTestSessions %d",
-             numTcpSess, MaxTcpTestSessions);
+  if (exitBeforeDevInit)
+    return 1;
   // ==============================================
   // EkaDev general setup
   EkaDev *dev = NULL;
@@ -1054,40 +1140,37 @@ int main(int argc, char *argv[]) {
 
   for (auto t : testCase) {
     configureFpgaPorts(dev, t);
-    createTcpServ(dev, t);
-    tcpConnect(dev, t);
-    bindUdpSock(t);
+    t->tcpCtx_->connectAll();
   }
 
   // ==============================================
-
-  EfcCtx efcCtx = {};
-  EfcCtx *pEfcCtx = &efcCtx;
 
   EfcInitCtx initCtx = {
       .report_only = report_only,
       .watchdog_timeout_sec = 1000000,
   };
 
-  rc = efcInit(&pEfcCtx, dev, &initCtx);
+  rc = efcInit(dev, &initCtx);
   if (rc != EKA_OPRESULT__OK)
     on_error("efcInit returned %d", (int)rc);
 
   EfcRunCtx runCtx = {};
-  runCtx.onEfcFireReportCb = efcPrintFireReport;
-
+  // runCtx.onEfcFireReportCb = efcPrintFireReport;
+  runCtx.onEfcFireReportCb = getFireReport;
+  runCtx.cbCtx = stdout;
   // ==============================================
   for (auto t : testCase)
-    t->prepareTestConfig_(pEfcCtx, t);
+    t->prepareTestConfig_(t);
 
   // ==============================================
-  efcRun(pEfcCtx, &runCtx);
+  efcRun(g_ekaDev, &runCtx);
   // ==============================================
+
   for (auto t : testCase)
-    t->runTest_(pEfcCtx, t);
+    t->runTest_(t);
 
 #ifndef _VERILOG_SIM
-  sleep(2);
+  sleep(2); // needed to get all fireReports printed out
   if (dontQuit)
     EKA_LOG("--Test finished, ctrl-c to end---");
   else {
@@ -1095,23 +1178,22 @@ int main(int argc, char *argv[]) {
     keep_work = false;
   }
   while (keep_work) {
-    sleep(0);
+    std::this_thread::yield();
   }
 #endif
 
   for (auto t : testCase)
-    for (auto i = 0; i < numTcpSess; i++)
-      t->tcpServThr_[i].join();
-
-  fflush(stdout);
-  fflush(stderr);
+    delete t;
 
   /* ============================================== */
 
+  TEST_LOG("Received %ju fire reports",
+           std::size(fireReports));
+  if (printFireReports)
+    for (const auto fr : fireReports)
+      efcPrintFireReport(fr->buf, fr->len, stdout);
+
   printf("Closing device\n");
-
   ekaDevClose(dev);
-  sleep(1);
-
   return 0;
 }

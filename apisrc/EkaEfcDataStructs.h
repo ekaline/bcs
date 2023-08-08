@@ -172,7 +172,9 @@ struct BoeQuoteUpdateShortMsg {
   uint8_t MessageType;     // 0x59
   uint8_t MatchingUnit;    // 0
   uint32_t SequenceNumber; // 0
-  char QuoteUpdateID[16];
+  char QuoteUpdateID_txt[7];
+  char QuoteUpdateID_seq[8];
+  char QuoteUpdateID_tail;
 
   char ClearingFirm[4];
   char ClearingAccount[4];
@@ -192,6 +194,17 @@ struct BoeQuoteUpdateShortMsg {
   char Reserved2[2];
 } __attribute__((packed));
 
+inline std::string cboeSecIdString(const void *c,
+                                   const int len) {
+  auto p = reinterpret_cast<const char *>(c);
+  std::string res = {};
+  for (auto i = 0; i < len; i++) {
+    if (*(p + i) == '\0')
+      continue;
+    res += *(p + i);
+  }
+  return res;
+}
 /* FPGA code: */
 /* typedef struct packed { */
 /* 	bit     [7:0]   SecID; */
@@ -202,16 +215,6 @@ struct BoeQuoteUpdateShortMsg {
 /* } emc_sec_ctx_s; // you should have this struct in any
  * case to configure SecCtx */
 
-struct EkaHwSecCtx {
-  FixedPrice bidMinPrice;
-  FixedPrice askMaxPrice;
-  uint8_t bidSize;
-  uint8_t askSize;
-  uint8_t versionKey;
-  uint8_t lowerBytesOfSecId;
-} __attribute__((packed))
-__attribute__((aligned(sizeof(uint64_t))));
-
 /* FPGA code: */
 /* typedef struct packed { */
 /*   bit             SourceFeed; */
@@ -221,19 +224,6 @@ __attribute__((aligned(sizeof(uint64_t))));
 /*   bit     [2:0]   CoreID; */
 /*   bit             reserved; */
 /* } sp4_order_bitparams_t; // !!! keep in byte */
-
-typedef union {
-  uint8_t bits;
-  struct {
-    uint8_t Reserved : 1;
-    uint8_t CoreID : 3;
-    uint8_t isAON : 1;
-    uint8_t Side : 1;
-    uint8_t IsNotTradable : 1;
-    uint8_t SourceFeed : 1;
-  } __attribute__((packed))
-  bitmap; // must be in 1B resolution
-} __attribute__((packed)) EfcFiredOrderBitmap;
 
 /* FPGA code: */
 /* typedef struct packed { */
@@ -246,32 +236,5 @@ typedef union {
 /*   bit     [31:0]  Price; */
 /*   sp4_order_bitparams_t Bitparams; */
 /* } sp4_order_t;  */
-
-struct EfcControllerReport {
-  uint8_t unarmReason;
-  uint8_t fireReason;
-} __attribute__((packed));
-
-struct EfcFiredOrder {
-  EfcFiredOrderBitmap attr;
-  uint64_t price;
-  uint32_t size;
-  uint8_t counter;
-  uint64_t securityId;
-  uint8_t groupId;
-  uint64_t sequence;
-  uint64_t timestamp;
-} __attribute__((packed));
-
-struct EfcNormalizedFireReport {
-  char pad[3]; // = bit [5*8-1:0] padx8
-  EfcControllerReport controllerState; //
-  EfcFiredOrder
-      triggerOrder; // = sp4_order_t   order_trigger_data
-  uint32_t
-      securityCtxAddr; // = bit [31:0] security_context_addr
-  EkaHwSecCtx
-      securityCtx; // = emc_sec_ctx_s security_context_entry
-} __attribute__((packed));
 
 #endif

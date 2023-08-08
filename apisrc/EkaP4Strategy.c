@@ -69,8 +69,11 @@ EkaP4Strategy::EkaP4Strategy(const EfcUdpMcParams *mcParams,
 
   fireOnAllAddOrders_ = p4Params->fireOnAllAddOrders;
 
-  EKA_LOG("Creating %s with %d MC groups, max_size = %u",
-          name_.c_str(), numUdpSess_, maxSize_);
+  EKA_LOG("Creating %s with %d MC groups on lane #0 "
+          "and %d MC groups on lane #1, "
+          "max_size = %u",
+          name_.c_str(), mcCoreSess_[0].numUdpSess,
+          mcCoreSess_[1].numUdpSess, maxSize_);
 
   disableRxFire();
   eka_write(dev_, P4_STRAT_CONF, (uint64_t)0);
@@ -96,14 +99,14 @@ EkaP4Strategy::EkaP4Strategy(const EfcUdpMcParams *mcParams,
 
 /* --------------------------------------------------- */
 void EkaP4Strategy::arm(EfcArmVer ver) {
-  EKA_LOG("Arming %s", name_.c_str());
+  EKA_LOG("Arming %s, ver = %u", name_.c_str(), ver);
   uint64_t armData = ((uint64_t)ver << 32) | 1;
   eka_write(dev_, ArmDisarmP4Addr, armData);
 }
 /* --------------------------------------------------- */
 
 void EkaP4Strategy::disarm() {
-  EKA_LOG("Disrming %s", name_.c_str());
+  EKA_LOG("Disarming %s", name_.c_str());
   eka_write(dev_, ArmDisarmP4Addr, 0);
 }
 /* --------------------------------------------------- */
@@ -121,9 +124,23 @@ void EkaP4Strategy::preallocateFireActions() {
     on_error("Unexpected feedVer %d", (int)feedVer_);
   }
 
-  for (auto i = 0; i < numUdpSess_; i++) {
-    epm_->addAction(actionType, i, regionId_);
-  }
+  for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++)
+    for (auto i = 0; i < mcCoreSess_[coreId].numUdpSess;
+         i++) {
+      auto actionIdx =
+          coreId * EFC_PREALLOCATED_P4_ACTIONS_PER_LANE + i;
+
+      auto udpSess = mcCoreSess_[coreId].udpSess[i];
+      if (udpSess->coreId != coreId)
+        on_error("udpSess->coreId %d != coreId %d",
+                 udpSess->coreId, coreId);
+
+      EKA_LOG("Preallocating P4 1st Fire Action %d for "
+              "MC group: %s:%u",
+              actionIdx, EKA_IP2STR(udpSess->ip),
+              udpSess->port);
+      epm_->addAction(actionType, actionIdx, regionId_);
+    }
 }
 /* --------------------------------------------------- */
 void EkaP4Strategy::configureTemplates() {
