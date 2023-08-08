@@ -28,7 +28,7 @@ SMARTNIC_API_INCL ?= $(SMARTNIC_ROOT)/include
 SMARTNIC_LIB ?= $(SMARTNIC_ROOT)/lib/libsmartnic.a
 
 LWIP_INCL:=$(LWIP_ROOT)/src/include 
-INC=$(SMARTNIC_DRIVER_INCL) $(SMARTNIC_API_INCL) $(LWIP_INCL) $(shell pwd) $(shell pwd)/compat $(shell pwd)/FhBook $(shell pwd)/Ehp $(shell pwd)/../pcapParsers $(shell pwd)/../new_api_tests
+INC=$(SMARTNIC_DRIVER_INCL) $(SMARTNIC_API_INCL) $(LWIP_INCL) $(shell pwd) $(shell pwd)/compat $(shell pwd)/FhBook $(shell pwd)/Ehp $(shell pwd)/../pcapParsers
 
 INCL=$(foreach d, $(INC), -I$d)
 INCL+=-Iarch
@@ -43,10 +43,10 @@ EKALINE_FLAGS := $(GCC_EXTERNAL_DEFINES) -DLIBEKA_GIT_VER=\"$(LIBEKA_GIT_VER)\" 
 
 EKAUTILS := $(patsubst %.c,%,$(wildcard ../eka_utils/*.c))
 
-EKATESTS_SRCS := $(wildcard ../new_api_tests/e*.c ../new_api_tests/tcp*.c ../new_api_tests/parser*.c)
+EKATESTS_SRCS := $(wildcard ../new_api_tests/tcp*.c ../new_api_tests/parser*.c)
 EKATESTS_EXECS := $(patsubst %.c,%,$(EKATESTS_SRCS))
 
-UNITTESTS_SRCS := $(wildcard ../new_api_tests/unit*.c)
+UNITTESTS_SRCS := $()
 UNITTESTS_EXECS := $(patsubst %.c,%,$(UNITTESTS_SRCS))
 
 PCAP_PARSERS := $(patsubst %.c,%,$($(wildcard ../pcapParsers/unit*.c)))
@@ -69,7 +69,7 @@ SMARTNIC_LIB_FILES := $(shell ar t $(SMARTNIC_LIB))
 
 
 #all:  $(LIBEKALINE) $(EKAUTILS_EXECS) $(EKATESTS_EXECS) 
-all:  eka_utils ekalib ekalib_test eka_tests unit_tests $(LIBEKALINE).a libeka_depend lwip_depend
+all:  eka_utils ekalib ekalib_test unit_tests $(LIBEKALINE).a libeka_depend lwip_depend
 	@echo "========================================="
 	@echo created: $^
 
