@@ -17,6 +17,7 @@
 // TestCtx testCtx;
 TestCtx *testCtx;
 
+#if 0
 void INThandler(int sig) {
   signal(sig, SIG_IGN);
   if (testCtx)
@@ -25,6 +26,7 @@ void INThandler(int sig) {
           __func__);
   return;
 }
+#endif
 
 std::string eka_get_date() {
   const char *months[] = {"JAN", "FEB", "MAR", "APR",

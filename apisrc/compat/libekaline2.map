@@ -1,7 +1,8 @@
 LIBEKALINE2_1.0	{
 		global:
-		    g_ekaLogCB;
-				g_ekaLogFile;
+			g_ekaLogCB;
+			g_ekaLogFile;
+			g_ekaDev;
 				testCtx;
 				
 		        efcInit;
@@ -76,6 +77,26 @@ LIBEKALINE2_1.0	{
 			efcSetActionPayload;
 
 			efcSetSessionCntr;
+			setActionTcpSock;
+			setActionNext;
+			setActionPhysicalLane;
+			efcAppSend;
+
+			efcInitP4Strategy;
+			efcArmP4;
+			efcDisArmP4;
+			efcInitQedStrategy;
+			efcQedSetFireAction;
+			efcArmQed;
+			efcDisArmQed;
+			efcInitCmeFcStrategy;
+			efcCmeFcSetFireAction;
+			efcArmCmeFc;
+			efcDisArmCmeFc;
+			eka_write;
+			eka_read;
+
+			
 		local:
 			*;
 		};
