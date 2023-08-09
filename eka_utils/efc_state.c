@@ -66,6 +66,9 @@ struct IfParams {
   bool hwParserEnable;
   bool hwSnifferEnable;
   uint8_t hwMACFilter[6] = {};
+
+  bool mirrorEnable;
+  uint8_t mirrorTarget;
 };
 
 #define ADDR_P4_CONT_COUNTER1 0xf0340
@@ -489,7 +492,7 @@ int printHeader(IfParams coreParams[NUM_OF_CORES],
                    coreId * 4) &
                   0xF)));
     else
-      printf(colformats, "");
+      printf(colformats, "-");
   }
   printf("\n");
 
@@ -499,7 +502,6 @@ int printHeader(IfParams coreParams[NUM_OF_CORES],
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (!coreParams[coreId].valid)
       continue;
-    //    printf(colSmallNumFieldFormat,"",coreParams[coreId].mcGrps);
     printf(colformat, coreParams[coreId].hwParserEnable);
   }
   printf("\n");
@@ -511,8 +513,28 @@ int printHeader(IfParams coreParams[NUM_OF_CORES],
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (!coreParams[coreId].valid)
       continue;
-    //    printf(colSmallNumFieldFormat,"",coreParams[coreId].mcGrps);
     printf(colformat, coreParams[coreId].hwSnifferEnable);
+  }
+  printf("\n");
+
+  /* ----------------------------------------- */
+  //  printf("%s",emptyPrefix);
+  printf(prefixStrFormat, "HW mirror target");
+
+  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
+    if (!coreParams[coreId].valid)
+      continue;
+    if (coreId!=3) {
+      printf(colformats, "-");
+      continue; 
+    }
+    if (!(coreParams[coreId].mirrorEnable))
+      printf(colformats, "off");
+    else {
+      std::string nameStr =
+        std::string(coreParams[coreParams[coreId].mirrorTarget].name) + "       ";
+      printf(colformats, nameStr.c_str());
+    }
   }
   printf("\n");
 
@@ -855,9 +877,12 @@ int getCurrTraffic(IfParams coreParams[NUM_OF_CORES]) {
 
 int getCurrHWEnables(IfParams coreParams[NUM_OF_CORES]) {
 
-  uint64_t port_enable = reg_read(0xf0020);
+  uint64_t port_enable   = reg_read(0xf0020);
+  uint64_t mirror_enable = reg_read(0xf0030);
 
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
+    coreParams[coreId].mirrorEnable = false;
+
     if (!coreParams[coreId].valid)
       continue;
     coreParams[coreId].hwParserEnable =
@@ -869,7 +894,15 @@ int getCurrHWEnables(IfParams coreParams[NUM_OF_CORES]) {
         be64toh(reg_read(0xe0200 + coreId * 0x1000) << 16);
     memcpy(coreParams[coreId].hwMACFilter,
            (void *)&hw_tcp_mac_filter, 6);
+
+    if (coreId==3) {
+      if (  (mirror_enable >> 0) & 0x1 ) {
+	coreParams[coreId].mirrorEnable = true;
+	coreParams[coreId].mirrorTarget = (mirror_enable >> 1) & 0x3;
+      } 
+    }
   }
+  
 
   return 0;
 }
