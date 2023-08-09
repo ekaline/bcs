@@ -30,7 +30,7 @@ void *getCmeSnapshot(void *attr);
 int ekaUdpMcConnect(EkaDev *dev, uint32_t ip, uint16_t port,
                     uint32_t srcIp = 0);
 
-/* ############################################## */
+/* ################################################## */
 int EkaFhCmeGr::createPktQ() {
   EKA_LOG("%s:%u: Creating PktQ", EKA_EXCH_DECODE(exch),
           id);
@@ -40,19 +40,19 @@ int EkaFhCmeGr::createPktQ() {
   return 0;
 }
 
-/* ############################################## */
+/* ################################################## */
 
 int EkaFhCmeGr::bookInit() {
   book = new FhBook(dev, id, exch);
-  if (book == NULL)
-    on_error("book = NULL");
+  if (!book)
+    on_error("!book");
 
   book->init();
 
   return 0;
 }
 
-/* ############################################## */
+/* ################################################## */
 void EkaFhCmeGr::pushPkt2Q(const uint8_t *pkt,
                            uint16_t pktSize,
                            uint64_t sequence) {
@@ -68,17 +68,18 @@ void EkaFhCmeGr::pushPkt2Q(const uint8_t *pkt,
 
   return;
 }
-/* ############################################## */
+/* ################################################## */
 
 int EkaFhCmeGr::processFromQ(const EfhRunCtx *pEfhRunCtx) {
   int qPktCnt = 0;
   while (!pktQ->is_empty()) {
     PktElem *buf = pktQ->pop();
     if (qPktCnt == 0) {
-      /* EKA_LOG("%s:%u: 1st Q pkt sequence = %ju,
-       * seq_after_snapshot = %ju", */
-      /* 	      EKA_EXCH_DECODE(exch),id,buf->sequence,seq_after_snapshot);
+      /*   EKA_LOG("%s:%u: 1st Q pkt sequence = %ju, " */
+      /*           "seq_after_snapshot = %ju", */
+      /*           EKA_EXCH_DECODE(exch),id,buf->sequence,
        */
+      /*           seq_after_snapshot); */
       EKA_LOG("%s:%u: 1st Q pkt sequence = %ju",
               EKA_EXCH_DECODE(exch), id, buf->sequence);
     }
@@ -87,8 +88,8 @@ int EkaFhCmeGr::processFromQ(const EfhRunCtx *pEfhRunCtx) {
     /*     if (buf->sequence < seq_after_snapshot) continue;
      */
     /* #ifdef _EKA_CHECK_BOOK_INTEGRITY */
-    /*     EKA_LOG("%s:%u: processing pkt %d,  sequence =
-     * %ju from Q", */
+    /*     EKA_LOG("%s:%u: processing pkt %d, sequence = %ju
+     * from Q", */
     /* 	    EKA_EXCH_DECODE(exch),id, */
     /* 	    qPktCnt,buf->sequence); */
     /*     printPkt(buf->data,buf->pktSize, qPktCnt); */
@@ -104,7 +105,7 @@ int EkaFhCmeGr::processFromQ(const EfhRunCtx *pEfhRunCtx) {
   return 0;
 }
 
-/* ############################################## */
+/* ################################################## */
 int EkaFhCmeGr::closeSnapshotGap(
     EfhCtx *pEfhCtx, const EfhRunCtx *pEfhRunCtx) {
   std::string threadName =
@@ -123,14 +124,13 @@ int EkaFhCmeGr::closeSnapshotGap(
 
   return 0;
 }
-/* ############################################## */
+/* ################################################## */
 
 void *getCmeSnapshot(void *attr) {
-
   auto params{
       reinterpret_cast<const EkaFhThreadAttr *>(attr)};
-  if (params == NULL)
-    on_error("params == NULL");
+  if (!params)
+    on_error("!params");
 
   auto pEfhRunCtx{params->pEfhRunCtx};
   auto gr{dynamic_cast<EkaFhCmeGr *>(params->gr)};
@@ -162,7 +162,6 @@ EkaFhCmeGr::recoveryLoop(const EfhRunCtx *pEfhRunCtx,
 #ifdef FH_LAB
   return EKA_OPRESULT__OK;
 #endif
-
   auto ip = op == EkaFhMode::DEFINITIONS ? snapshot_ip
                                          : recovery_ip;
   auto port = op == EkaFhMode::DEFINITIONS ? snapshot_port
@@ -193,18 +192,16 @@ EkaFhCmeGr::recoveryLoop(const EfhRunCtx *pEfhRunCtx,
       uint8_t pkt[1536] = {};
       //      EKA_LOG("Waiting for UDP pkt...");
 
-      int size =
-          recvfrom(sock, pkt, sizeof(pkt), 0, NULL, NULL);
+      int size = recv(sock, pkt, sizeof(pkt), 0);
       if (size < 0)
         on_error("size = %d", size);
 
-      if (expectedPktSeq == 1 &&
-          getPktSeq(pkt) !=
-              1) // recovery Loop not started yet
+      if (expectedPktSeq == 1 && getPktSeq(pkt) != 1)
+        // recovery Loop not started yet
         continue;
 
-      if (expectedPktSeq != 1 &&
-          getPktSeq(pkt) == 1) { // end of recovery Loop
+      if (expectedPktSeq != 1 && getPktSeq(pkt) == 1) {
+        // end of recovery Loop
         recovered = true;
         EKA_LOG("%s:%u: recording %s %jd packets completed",
                 EKA_EXCH_DECODE(exch), id,
@@ -214,12 +211,13 @@ EkaFhCmeGr::recoveryLoop(const EfhRunCtx *pEfhRunCtx,
 
       if (expectedPktSeq !=
           getPktSeq(pkt)) { // gap in recovery Loop
-        EKA_WARN("ERROR: %s:%u: Gap during %s: "
-                 "expectedPktSeq=%u, getPktSeq(pkt)=%u: "
-                 "restarting the %s loop",
-                 EKA_EXCH_DECODE(exch), id,
-                 EkaFhMode2STR(op), expectedPktSeq,
-                 getPktSeq(pkt), EkaFhMode2STR(op));
+        EKA_WARN(
+            "ERROR: %s:%u: Gap during %s: "
+            "expectedPktSeq=%u, "
+            "getPktSeq(pkt)=%u: restarting the %s loop",
+            EKA_EXCH_DECODE(exch), id, EkaFhMode2STR(op),
+            expectedPktSeq, getPktSeq(pkt),
+            EkaFhMode2STR(op));
         break;
       }
 

@@ -188,11 +188,24 @@ static EkaOpResult getRequestResponse(EkaFhPlrGr* gr, int sock, EkaFhMode op) {
     PktHdr pktHdr{};
     int rc = recv(sock,&pktHdr,sizeof(pktHdr),MSG_WAITALL);
 
-    if (rc <= 0) {
+    if (rc == 0) {
+      switch (errno) {
+      case 0 :
+      case EAGAIN :
+	//      case EWOULDBLOCK :
+	EKA_WARN("Too slow TCP session! (\'%s\', rc=%d), re-trying after %d seconds",
+		 strerror(errno),rc,TimeOut);
+	continue;
+      default :
+	EKA_WARN("\'%s\', rc=%d",strerror(errno),rc);
+	return EKA_OPRESULT__ERR_TCP_SOCKET;	
+      }
+    }
+
+    if (rc < 0) {
       EKA_WARN("\'%s\', rc=%d",strerror(errno),rc);
       return EKA_OPRESULT__ERR_TCP_SOCKET;
     }
-
     
     EKA_LOG("Received Pkt Hdr: pktSize = %u, DeliveryFlag = %s, numMsgs = %u",
 	    pktHdr.pktSize,deliveryFlag2str(pktHdr.deliveryFlag).c_str(),pktHdr.numMsgs);

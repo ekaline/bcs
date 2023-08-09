@@ -674,8 +674,11 @@ int EkaTcpSess::preSendCheck(int len, int flags) {
   uint payloadSize2send = (uint)len < MAX_PAYLOAD_SIZE ? (uint)len : MAX_PAYLOAD_SIZE;
   int64_t unAckedBytes = realFastPathBytes.load() - realTcpRemoteAckNum.load();
 
+  // unAckedBytes can be negative if HW fire was acked faster than
+  // getting to realFastPathBytes
   if (unAckedBytes < 0)
-    on_error("unAckedBytes %jd < 0",unAckedBytes);
+    unAckedBytes = 0;
+  //      on_error("unAckedBytes %jd < 0",unAckedBytes);
   
   auto currTcpSndWnd = tcpSndWnd.load();
   uint32_t allowedWnd = currTcpSndWnd < WndMargin ? 0 : currTcpSndWnd - WndMargin;

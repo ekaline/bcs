@@ -31,20 +31,6 @@ void ekaLwipPollThread(EkaDev *dev);
 void ekaExcInitLwip(EkaDev *dev);
 void eka_close_tcp(EkaDev *pEkaDev);
 
-/* OnEkaExceptionReportCb*
- * efhDefaultOnException(EkaExceptionReport* msg,
- * EfhRunUserData efhRunUserData) { */
-/*   printf("%s: Doing nothing\n",__func__); */
-/*   return NULL; */
-/* } */
-
-/* OnEfcFireReportCb* efcDefaultOnFireReportCb (EfcCtx*
- * efcCtx, const EfcFireReport* efcFireReport, size_t size)
- * { */
-/*   printf("%s: Doing nothing\n",__func__); */
-/*   return NULL; */
-/* } */
-
 int ekaDefaultLog(void * /*unused*/, const char *function,
                   const char *file, int line, int priority,
                   const char *format, ...) {
@@ -105,13 +91,6 @@ void eka_get_time(char *t) {
       std::chrono::duration_cast<std::chrono::nanoseconds>(
           duration);
 
-  /* std::cout << hours.count() << ":" */
-  /* 	    << minutes.count() << ":" */
-  /* 	    << seconds.count() << ":" */
-  /* 	    << milliseconds.count() << ":" */
-  /* 	    << microseconds.count() << ":" */
-  /* 	    << nanoseconds.count() << " : ";// << std::endl;
-   */
   sprintf(t, "%02ju:%02ju:%02ju.%03ju.%03ju.%03ju",
           (uint64_t)hours.count(),
           (uint64_t)minutes.count(),
@@ -120,7 +99,7 @@ void eka_get_time(char *t) {
           (uint64_t)microseconds.count(),
           (uint64_t)nanoseconds.count());
 }
-/* #####################################################################
+/* ###########################################################
  */
 
 int ekaTcpConnect(uint32_t ip, uint16_t port) {
@@ -145,7 +124,7 @@ int ekaTcpConnect(uint32_t ip, uint16_t port) {
   return sock;
 #endif
 }
-/* #####################################################################
+/* ###########################################################
  */
 int recvTcpSegment(int sock, void *buf, int segSize) {
   auto d = static_cast<uint8_t *>(buf);
@@ -160,14 +139,12 @@ int recvTcpSegment(int sock, void *buf, int segSize) {
   return received;
 }
 
-/* #####################################################################
+/* ###########################################################
  */
 uint32_t getIfIp(const char *ifName) {
   int sck = socket(AF_INET, SOCK_DGRAM, 0);
   if (sck < 0)
-    on_error(
-        "%s: failed on socket(AF_INET, SOCK_DGRAM, 0) -> ",
-        __func__);
+    on_error("failed on socket(AF_INET, SOCK_DGRAM, 0)");
 
   char buf[1024] = {};
 
@@ -175,9 +152,7 @@ uint32_t getIfIp(const char *ifName) {
   ifc.ifc_len = sizeof(buf);
   ifc.ifc_buf = buf;
   if (ioctl(sck, SIOCGIFCONF, &ifc) < 0)
-    on_error(
-        "%s: failed on ioctl(sck, SIOCGIFCONF, &ifc)  -> ",
-        __func__);
+    on_error("failed on ioctl(sck, SIOCGIFCONF, &ifc)");
 
   struct ifreq *ifr = ifc.ifc_req;
   int nInterfaces = ifc.ifc_len / sizeof(struct ifreq);
@@ -193,7 +168,7 @@ uint32_t getIfIp(const char *ifName) {
   return 0;
 }
 
-/* #####################################################################
+/* ###########################################################
  */
 
 int ekaUdpMcConnect(EkaDev *dev, uint32_t ip, uint16_t port,
@@ -351,7 +326,7 @@ bool eka_is_all_zeros (const void* buf, ssize_t size) {
 int decode_session_id (uint16_t id, uint8_t* core, uint8_t* sess) {
     *core = (uint8_t) id / 128;
     *sess = (uint8_t) id % 128;
-    return 0;  
+    return 0;
 }
 
 uint8_t session2core (uint16_t id) {
@@ -428,48 +403,6 @@ int convert_ts(char *dst, uint64_t ts) {
           us, ns);
   return 0;
 }
-
-void eka_enable_cores(EkaDev *dev) {
-  /* uint64_t fire_rx_tx_en = dev->snDev->read(ENABLE_PORT);
-   */
-  /* for (int c=0; c<dev->hw.enabled_cores; c++) { */
-  /*   if (! dev->core[c].connected) continue; */
-  /*   if (dev->core[c].tcp_sessions != 0) fire_rx_tx_en |=
-   * 1ULL << (16+c); //fire core enable */
-  /*   if (dev->core[c].udp_sessions != 0) fire_rx_tx_en |=
-   * 1ULL << c; // RX (Parser) core enable */
-  /*   EKA_LOG("fire_rx_tx_en = 0x%016jx",fire_rx_tx_en); */
-  /* } */
-  /* dev->snDev->write(ENABLE_PORT,fire_rx_tx_en); */
-}
-
-/* void eka_disable_cores(EkaDev* dev) { */
-/*   dev->snDev->write( ENABLE_PORT, 0); */
-/* } */
-
-/* void hexDump (const char* desc, void *addr, int len) { */
-/*     int i; */
-/*     unsigned char buff[17]; */
-/*     unsigned char *pc = (unsigned char*)addr; */
-/*     if (desc != NULL) printf("%s:\n", desc); */
-/*     if (len == 0) { printf("  ZERO LENGTH\n"); return; }
- */
-/*     if (len < 0)  { printf("  NEGATIVE LENGTH:
- * %i\n",len); return; } */
-/*     for (i = 0; i < len; i++) { */
-/*         if ((i % 16) == 0) { */
-/*             if (i != 0) printf("  %s\n", buff); */
-/*             printf("  %04x ", i); */
-/*         } */
-/*         printf(" %02x", pc[i]); */
-/*         if ((pc[i] < 0x20) || (pc[i] > 0x7e))  buff[i %
- * 16] = '.'; */
-/*         else buff[i % 16] = pc[i]; */
-/*         buff[(i % 16) + 1] = '\0'; */
-/*     } */
-/*     while ((i % 16) != 0) { printf("   "); i++; } */
-/*     printf("  %s\n", buff); */
-/* } */
 
 EkaCapsResult ekaGetCapsResult(EkaDev *pEkaDev,
                                enum EkaCapType ekaCapType) {

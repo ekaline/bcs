@@ -33,8 +33,7 @@
 #include "EkaHwCaps.h"
 #include "eka_fh_q.h"
 
-/* #####################################################################
- */
+/* ############################################# */
 
 int EkaFh::setId(EfhCtx *pEfhCtx, EkaSource ec,
                  uint8_t numFh) {
@@ -51,8 +50,7 @@ int EkaFh::setId(EfhCtx *pEfhCtx, EkaSource ec,
 
   return 0;
 }
-/* #####################################################################
- */
+/* ############################################# */
 
 uint8_t EkaFh::getGrId(const uint8_t *pkt) {
   EkaIpHdr *ipHdr = (EkaIpHdr *)(pkt - 8 - 20);
@@ -66,8 +64,7 @@ uint8_t EkaFh::getGrId(const uint8_t *pkt) {
 
   return 0xFF;
 }
-/* #####################################################################
- */
+/* ############################################# */
 EkaOpResult EkaFh::init(const EfhInitCtx *pEfhInitCtx,
                         uint8_t numFh) {
   c = pEfhInitCtx->coreId;
@@ -146,8 +143,7 @@ EkaOpResult EkaFh::init(const EfhInitCtx *pEfhInitCtx,
   return EKA_OPRESULT__OK;
 }
 
-/* #####################################################################
- */
+/* ############################################# */
 
 /* void EkaFh::send_igmp(bool join_leave, volatile bool
  * igmp_thread_active) { */
@@ -162,8 +158,7 @@ EkaOpResult EkaFh::init(const EfhInitCtx *pEfhInitCtx,
 /*   } */
 /*   return; */
 /* } */
-/* #####################################################################
- */
+/* ############################################# */
 int EkaFh::stop() {
   EKA_DEBUG("Stopping %s (fhId=%u)", EKA_EXCH_DECODE(exch),
             id);
@@ -174,8 +169,7 @@ int EkaFh::stop() {
   return 0;
 }
 
-/* #####################################################################
- */
+/* ############################################# */
 EkaFh::~EkaFh() {
   EKA_DEBUG("destroying %s:%u", EKA_EXCH_DECODE(exch), id);
   for (uint i = 0; i < groups; i++) {
@@ -186,8 +180,7 @@ EkaFh::~EkaFh() {
   }
 }
 
-/* #####################################################################
- */
+/* ############################################# */
 
 int EkaFh::openGroups(EfhCtx *pEfhCtx,
                       const EfhInitCtx *pEfhInitCtx) {
@@ -209,8 +202,7 @@ int EkaFh::openGroups(EfhCtx *pEfhCtx,
   return 0;
 }
 
-/* #####################################################################
- */
+/* ############################################# */
 
 static inline uint8_t nextQ(uint8_t c, uint first,
                             uint max) {
@@ -219,8 +211,7 @@ static inline uint8_t nextQ(uint8_t c, uint first,
   return c + 1;
 }
 
-/* #####################################################################
- */
+/* ############################################# */
 
 EkaFhGroup *EkaFh::nextGrToProcess(uint first,
                                    uint numGroups) {
@@ -245,8 +236,7 @@ EkaFhGroup *EkaFh::nextGrToProcess(uint first,
   return NULL;
 }
 
-/* #####################################################################
- */
+/* ############################################# */
 
 EkaOpResult EkaFh::subscribeStaticSecurity(
     uint8_t groupNum, uint64_t securityId,
@@ -299,8 +289,7 @@ EkaOpResult EkaFh::setTradeTimeCtx(void *ctx) {
   return EKA_OPRESULT__OK;
 }
 
-/* #####################################################################
- */
+/* ############################################# */
 
 template <std::size_t N>
 inline bool matchConfKey(
@@ -346,6 +335,19 @@ inline bool parseIpAddress(const char *value, uint32_t *ip,
     *port = htobe16(*port);
   if (set)
     *set = true;
+  return true;
+}
+
+inline bool parseTimeMinutes(const char *in, int *tHour,
+                             int *tMinute) {
+  auto [p1, ec1] =
+      std::from_chars(in, in + strlen(in), *tHour, 10);
+  auto [p2, ec2] = std::from_chars(p1 + 1, in + strlen(in),
+                                   *tMinute, 10);
+
+  if (*p1 != ':' || *p2 || (int)ec1 || (int)ec2)
+    return false;
+
   return true;
 }
 
@@ -456,7 +458,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
     return ERR;                                            \
   }
 
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.pin_packet_buffer
   // k[0] k[1]   k[2] k[3] k[4]   k[5]
   if (matchConfKey(k, {"efh", "pin_packet_buffer"})) {
@@ -464,7 +466,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
     return EkaFhAddConf::CONF_SUCCESS;
   }
 
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.NOM_ITTO.group.X.snapshot.connectRetryDelayTime,
   // <numSec> k[0] k[1]   k[2] k[3] k[4]   k[5]
   if (matchConfKey(k,
@@ -479,7 +481,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.NOM_ITTO.group.X.snapshot.auth, user:passwd
   // k[0] k[1]   k[2] k[3] k[4]   k[5]
   if (matchConfKey(k, {"efh", exchName, "group", NULL,
@@ -506,7 +508,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.C1_PITCH.group.X.recovery.grpAuth, user:passwd
   // k[0] k[1]   k[2] k[3] k[4]   k[5]
   if (sourceType == EkaSourceType::kCBOE_PITCH &&
@@ -531,7 +533,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.NOM_ITTO.snapshot.auth, user:passwd
   // k[0] k[1]   k[2]     k[3]
   if (matchConfKey(k,
@@ -553,8 +555,8 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
+  //---------------------------------------------------------
   // efh.BOX_HSVF.group.X.gapsLimit, "1"
   // k[0] k[1]     k[2] k[3] k[4]   k[5]
   if (matchConfKey(k, {"efh", exchName, "group", NULL,
@@ -568,7 +570,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.C1_PITCH.group.X.unit, "1"
   // k[0] k[1]     k[2] k[3] k[4]   k[5]
   if (sourceType == EkaSourceType::kCBOE_PITCH &&
@@ -584,7 +586,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.BATS_PITCH.queue_capacity, "1048576"
   // k[0] k[1]       k[2]
   // efh.BATS_PITCH.group.X.queue_capacity, "1048576"
@@ -598,7 +600,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.BATS_PITCH.group.X.snapshot.sessionSubID, "0285"
   // k[0] k[1]     k[2] k[3] k[4]   k[5]
   if (sourceType == EkaSourceType::kCBOE_PITCH &&
@@ -620,7 +622,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.C1_PITCH.group.X.recovery.grpSessionSubID, "0285"
   // k[0] k[1]     k[2] k[3] k[4]   k[5]
   if (sourceType == EkaSourceType::kCBOE_PITCH &&
@@ -643,7 +645,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.NOM_ITTO.group.X.mcast.addr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
   if (matchConfKey(k, {"efh", exchName, "group", NULL,
@@ -664,7 +666,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.NOM_ITTO.group.X.snapshot.addr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
   if (matchConfKey(k, {"efh", exchName, "group", NULL,
@@ -685,7 +687,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.C1_PITCH.group.X.recovery.grpAddr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
   if (sourceType == EkaSourceType::kCBOE_PITCH &&
@@ -708,7 +710,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.NOM_ITTO.group.X.recovery.addr, x.x.x.x:xxxx
   // k[0] k[1]    k[2] k[3] k[4]   k[5]
   if (matchConfKey(k, {"efh", exchName, "group", NULL,
@@ -729,7 +731,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.<exch>.group.X.products,
   // <comma-separated-product-keys> k[0] k[1]   k[2]  k[3]
   // k[4]
@@ -766,7 +768,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.<exch>.group.X.useDefinitionsFile, "0" or "1"
   // k[0] k[1]  k[2] k[3] k[4]
   if (matchConfKey(k, {"efh", exchName, "group", NULL,
@@ -787,7 +789,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
               group->useDefinitionsFile);
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.BOX_HSVF.group.X.mcast.line   ,"11"
   // k[0] k[1]    k[2] k[3] k[4]   k[5]
   if (sourceType == EkaSourceType::kBOX_HSVF &&
@@ -809,7 +811,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.ARCA_PLR.group.X.refresh.tcpAddr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
   if (sourceType == EkaSourceType::kNYSE_PLR &&
@@ -835,7 +837,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.ARCA_PLR.group.X.refresh.udpAddr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
   if (sourceType == EkaSourceType::kNYSE_PLR &&
@@ -862,7 +864,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.ARCA_PLR.group.X.retrans.tcpAddr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
   if (sourceType == EkaSourceType::kNYSE_PLR &&
@@ -889,7 +891,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.ARCA_PLR.group.X.retrans.udpAddr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
   if (sourceType == EkaSourceType::kNYSE_PLR &&
@@ -916,7 +918,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.ARCA_PLR.group.X.SourceId, xxxx
   // k[0] k[1]    k[2] k[3] k[4]    v[0]
   if (sourceType == EkaSourceType::kNYSE_PLR &&
@@ -940,7 +942,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   // efh.ARCA_PLR.group.X.ChannelId, x
   // k[0] k[1]    k[2] k[3] k[4]    v[0]
   if (sourceType == EkaSourceType::kNYSE_PLR &&
@@ -985,13 +987,66 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
+  //---------------------------------------------------------
+  // efh.NOM_ITTO.group.X.staleDataNsThreshold,
+  // <numSec> k[0] k[1]   k[2] k[3] k[4]   k[5]
+  if (matchConfKey(k, {"efh", exchName, "group", NULL,
+                       "staleDataNsThreshold"})) {
+    EkaFhGroup *group = getGroup(*this, k[3], key, value);
+    if (!group)
+      return EkaFhAddConf::IGNORED;
+
+    TRY_PARSE_NUM(value, group->staleDataNsThreshold,
+                  EkaFhAddConf::WRONG_VALUE);
+
+    return EkaFhAddConf::CONF_SUCCESS;
+  }
+  //---------------------------------------------------------
+  // efh.<EXCH>.group.X.check.md.start, HH:MM
+  // k[0] k[1]  k[2] k[3] k[4] k[5] k[6]
+  if (matchConfKey(k, {"efh", exchName, "group", NULL,
+                       "check", "md", "start"})) {
+    EkaFhGroup *group = getGroup(*this, k[3], key, value);
+    if (!group)
+      return EkaFhAddConf::IGNORED;
+
+    if (!parseTimeMinutes(value, &group->mdCheckStartHour,
+                          &group->mdCheckStartMinute)) {
+      on_warning("Invalid HH:MM format  \'%s\' -- \'%s\'",
+                 key, value);
+      return EkaFhAddConf::WRONG_VALUE;
+    }
+    //      EKA_DEBUG ("%s %s for %s:%u is set to
+    //      %s:%u",k[4],k[5],k[1],gr,v[0],(uint16_t)atoi(v[1]));
+
+    return EkaFhAddConf::CONF_SUCCESS;
+  }
+  //---------------------------------------------------------
+  // efh.<EXCH>.group.X.check.md.end, HH:MM
+  // k[0] k[1]  k[2] k[3] k[4] k[5] k[6]
+  if (matchConfKey(k, {"efh", exchName, "group", NULL,
+                       "check", "md", "end"})) {
+    EkaFhGroup *group = getGroup(*this, k[3], key, value);
+    if (!group)
+      return EkaFhAddConf::IGNORED;
+
+    if (!parseTimeMinutes(value, &group->mdCheckEndHour,
+                          &group->mdCheckEndMinute)) {
+      on_warning("Invalid HH:MM format  \'%s\' -- \'%s\'",
+                 key, value);
+      return EkaFhAddConf::WRONG_VALUE;
+    }
+    //      EKA_DEBUG ("%s %s for %s:%u is set to
+    //      %s:%u",k[4],k[5],k[1],gr,v[0],(uint16_t)atoi(v[1]));
+
+    return EkaFhAddConf::CONF_SUCCESS;
+  }
 #undef TRY_PARSE_NUM
 
-  //---------------------------------------------------------------------
+  //---------------------------------------------------------
   return EkaFhAddConf::UNKNOWN_KEY;
 }
-/* #####################################################################
- */
+/* ############################################# */
 
 EkaOpResult EkaFh::initGroups(EfhCtx *pEfhCtx,
                               const EfhRunCtx *pEfhRunCtx,
@@ -1019,6 +1074,8 @@ EkaOpResult EkaFh::initGroups(EfhCtx *pEfhCtx,
     gr->createQ(pEfhCtx, qsize);
     gr->expected_sequence = 1;
 
+    gr->runGr = runGr;
+
     runGr->igmpMcJoin(gr->mcast_ip, gr->mcast_port, 0,
                       &gr->pktCnt);
     EKA_DEBUG("%s:%u: joined %s:%u for %u securities",
@@ -1029,5 +1086,4 @@ EkaOpResult EkaFh::initGroups(EfhCtx *pEfhCtx,
   return EKA_OPRESULT__OK;
 }
 
-/* #####################################################################
- */
+/* ############################################# */

@@ -7,9 +7,11 @@
 #include <unistd.h>
 
 #include "EkaFh.h"
+#include "EkaNwParser.h"
 
 class fh_q;
 class EkaFhBook;
+class EkaFhRunGroup;
 
 class EkaFhGroup {
 protected:
@@ -29,8 +31,9 @@ public:
   void createQ(EfhCtx *pEfhCtx, const uint qsize);
 
   inline void resetNoMdTimer() {
-    lastMdReceived =
-        std::chrono::high_resolution_clock::now();
+    //    lastMdReceived =
+    //    std::chrono::high_resolution_clock::now();
+    gotPkt = true;
     pktCnt++;
   }
 
@@ -52,6 +55,7 @@ public:
   void sendFeedUpInitial(const EfhRunCtx *EfhRunCtx);
   void sendFeedDown(const EfhRunCtx *EfhRunCtx);
   void sendFeedDownInitial(const EfhRunCtx *EfhRunCtx);
+  void sendFeedDownStaleData(const EfhRunCtx *EfhRunCtx);
   void sendFeedDownClosed(const EfhRunCtx *EfhRunCtx);
 
   void sendNoMdTimeOut(const EfhRunCtx *EfhRunCtx);
@@ -97,7 +101,7 @@ public:
     return false;
   }
   inline bool skipDefinitions() const {
-#if 0      
+#if 0
     // Dont get Definitions for pure Trades or Auction groups
     if (productMask == ProductMask::PM_VanillaTrades  ||
 	productMask == ProductMask::PM_ComplexTrades  ||
@@ -117,7 +121,8 @@ public:
         "SNAPSHOT: %s:%u, "
         "RECOVERY: %s:%u, "
         "AUTH: %s:%s, "
-        "connectRetryDelayTime=%d",
+        "connectRetryDelayTime=%d, "
+        "staleDataNsThreshold=%ju",
         EKA_EXCH_DECODE(exch), id,
         lookupProductMaskNames(productMask,
                                productNamesBuf),
@@ -131,7 +136,7 @@ public:
             ? std::string(auth_passwd, sizeof(auth_passwd))
                   .c_str()
             : "NOT SET",
-        connectRetryDelayTime);
+        connectRetryDelayTime, staleDataNsThreshold);
     return 0;
   }
 
@@ -227,6 +232,7 @@ public:
            std::string(EKA_EXCH_DECODE(exch)) +
            std::to_string(id) + '.' + std::string(s);
   }
+
   //----------------------------------------------------------
   enum class GrpState {
     UNINIT = 0,
@@ -317,6 +323,7 @@ public:
   std::chrono::high_resolution_clock::time_point
       lastMdReceived;
   bool lastMdReceivedValid = false;
+  bool gotPkt = false;
 
   fh_q *q = NULL;
 
@@ -330,6 +337,11 @@ public:
   uint8_t core = -1;
 
   EkaDev *dev = NULL;
+  EkaFhRunGroup *runGr = NULL;
+
+  // 1s = 1'000'000'000;
+  uint64_t staleDataNsThreshold = 0;
+  uint64_t tobUpdatesCnt = 0;
 
   FILE *parser_log =
       NULL; // used with PRINT_PARSED_MESSAGES define
@@ -337,11 +349,23 @@ public:
   uint64_t parserSeq = 0; // used for the sanity check
   int productMask = PM_NoInfo;
 
+  uint64_t firstMcSeq = 0; //
+
   uint64_t expectedSeqGapInGap = 1;
 
   bool credentialsAcquired = false;
 
   bool useDefinitionsFile = false;
+
+  bool initialGapClosed = false;
+
+  const int StaleDataSampleRate = 16 * 1024;
+
+  int mdCheckStartHour = 9;
+  int mdCheckStartMinute = 0;
+
+  int mdCheckEndHour = 16;
+  int mdCheckEndMinute = 30;
 
   uint32_t recoverySrcIp =
       0; // used to specify Solarflare NIC I/F for CME
