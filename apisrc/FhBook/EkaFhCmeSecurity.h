@@ -31,7 +31,7 @@ public:
       (SideT::ASK,getActivePriceLevels());
   }
 
-  uint64_t getFinalPriceFactor() const noexcept { return this->opaqueAttrA; }
+  int64_t getFinalPriceFactor() const noexcept { return static_cast<int64_t>(this->opaqueAttrA); }
   uint64_t getActivePriceLevels() const noexcept { return this->opaqueAttrB; }
 
   /* --------------------------------------------------------------- */
