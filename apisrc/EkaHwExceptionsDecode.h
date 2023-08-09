@@ -113,6 +113,10 @@ ekaDecodeExceptions(char *dst,
   if ((excpt->exceptionStatus.globalVector >> 28) & 0x1)
     d += sprintf(d, "Bit 28: NW Strategy Double Fire "
                     "Protection Triggered\n");
+  if ((excpt->exceptionStatus.globalVector >> 29) & 0x1)
+    d += sprintf(d, "Bit 29: HW Mirror Data Drop\n");
+  if ((excpt->exceptionStatus.globalVector >> 30) & 0x1)
+    d += sprintf(d, "Bit 30: HW Mirror Ctrl Drop\n");
 
   for (auto i = 0; i < 4; i++) { // 4 Cores
     if (excpt->exceptionStatus.portVector[i]) {
