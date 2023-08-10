@@ -51,7 +51,31 @@ int EkaFhCmeGr::bookInit() {
 
   return 0;
 }
+/* ################################################## */
+int EkaFhCmeGr::printConfig() {
+  char productNamesBuf[MaxProductMaskNameBufSize];
+  EKA_LOG(
+      "%s:%u : "
+      "productMask: \'%s\' (0x%x) "
+      "MCAST: %s:%u, "
+      "SNAPSHOT MC: %s:%u, "
+      "RECOVERY MC: %s:%u, "
+      "RECOVERY SrcIp: %s %s, "
+      "connectRetryDelayTime=%d, "
+      "staleDataNsThreshold=%ju",
+      EKA_EXCH_DECODE(exch), id,
+      lookupProductMaskNames(productMask, productNamesBuf),
+      productMask, EKA_IP2STR(mcast_ip), mcast_port,
+      EKA_IP2STR(snapshot_ip), be16toh(snapshot_port),
+      EKA_IP2STR(recovery_ip), be16toh(recovery_port),
 
+      recoverySrcIp ? "Manually Set" : dev->genIfName,
+      recoverySrcIp ? EKA_IP2STR(recoverySrcIp)
+                    : EKA_IP2STR(dev->genIfIp),
+
+      connectRetryDelayTime, staleDataNsThreshold);
+  return 0;
+}
 /* ################################################## */
 void EkaFhCmeGr::pushPkt2Q(const uint8_t *pkt,
                            uint16_t pktSize,

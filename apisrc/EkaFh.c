@@ -27,6 +27,7 @@
 
 #include "EkaFhBatsGr.h"
 #include "EkaFhBoxGr.h"
+#include "EkaFhCmeGr.h"
 #include "EkaFhPlrGr.h"
 
 #include "EkaCore.h"
@@ -991,7 +992,7 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   if (sourceType == EkaSourceType::kCME_SBE &&
       matchConfKey(k, {"efh", exchName, "group", NULL,
                        "recovery", "SrcIpAddr"})) {
-    auto *group = getGroupDowncast<EkaFhPlrGr>(*this, k[3],
+    auto *group = getGroupDowncast<EkaFhCmeGr>(*this, k[3],
                                                key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
