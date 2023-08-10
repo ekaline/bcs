@@ -38,7 +38,7 @@ class EkaFhCme : public EkaFh {
   // Since futures and options come from separate groups, and we depend on the underlying future's DisplayFactor
   // to calculate each option's strike price, we store the factors for every future here.
   std::shared_timed_mutex futuresMutex;
-  std::unordered_map<int32_t, uint64_t> futureStrikePriceFactors;
+  std::unordered_map<int32_t, int64_t> futureStrikePriceFactors;
 };
 
 #endif
