@@ -559,6 +559,9 @@ void sys_mark_tcpip_thread();
 
 #define LWIP_TCP_SACK_OUT               0
 
+/* The TCP timer interval in milliseconds.Default: 250ms */
+#define TCP_TMR_INTERVAL       50  
+
 /**
  * LWIP_TCP_MAX_SACK_NUM: The maximum number of SACK values to include in TCP segments.
  * Must be at least 1, but is only used if LWIP_TCP_SACK_OUT is enabled.
