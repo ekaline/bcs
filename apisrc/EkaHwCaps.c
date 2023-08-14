@@ -71,14 +71,14 @@ EkaHwCaps::EkaHwCaps(SN_DeviceId devId) {
 bool EkaHwCaps::isCorrectHwCapsVer() {
   const uint HwCapsVersionFlagAddr = 0xf0018;
   uint64_t hwCapsVersionFlag = 0;
-  SN_ReadUserLogicRegister(DeviceId, HwCapsVersionFlagAddr,
+  SN_ReadUserLogicRegister(DeviceId,
+                           HwCapsVersionFlagAddr / 8,
                            &hwCapsVersionFlag);
-
   return hwCapsVersionFlag != 0;
 }
 
 void EkaHwCaps::refresh() {
-  uint words2read = roundUp8(sizeof(hwCaps));
+  uint words2read = roundUp8(sizeof(hwCaps)) / 8;
 
   uint64_t srcAddr = HwCapabilitiesAddr / 8;
   uint64_t *dstAddr = (uint64_t *)&hwCaps;
