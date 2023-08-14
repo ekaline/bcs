@@ -8,25 +8,25 @@ class EkaHwCaps {
   static const uint64_t HwCapabilitiesAddr = 0x8f000;
 
   struct hw_parser_type_t {
-        uint8_t  parser_type : 4; //soft modified
+    uint8_t parser_type : 4; // soft modified
   } __attribute__((packed));
 
   struct hw_version_capabilities_t {
     uint64_t reserved2;
     uint64_t reserved1;
-    uint8_t  hwcaps;
-    uint8_t  hwparser; //hw engine revision
-    uint8_t  strategy;
-    uint8_t  parser; //soft modified ({parser1,parser0})
-    uint8_t  sniffer;
-    uint8_t  dma;
-    uint8_t  epm;
+    uint8_t hwcaps;
+    uint8_t hwparser; // hw engine revision
+    uint8_t strategy;
+    uint8_t parser; // soft modified ({parser1,parser0})
+    uint8_t sniffer;
+    uint8_t dma;
+    uint8_t epm;
     uint16_t build_seed;
-    uint8_t  build_time_sec;
-    uint8_t  build_time_min;
-    uint8_t  build_date_day;
-    uint8_t  build_date_month;
-    uint8_t  build_date_year;
+    uint8_t build_time_sec;
+    uint8_t build_time_min;
+    uint8_t build_date_day;
+    uint8_t build_date_month;
+    uint8_t build_date_year;
     uint32_t ekaline_git;
     uint32_t silicom_git;
   } __attribute__((packed));
@@ -71,9 +71,8 @@ class EkaHwCaps {
     hw_reserved_capabilities_t reserved4;
   } __attribute__((packed));
 
-
   /* ------------------------------ */
- public:
+public:
   EkaHwCaps(SN_DeviceId devId);
   void print();
   void printStdout();
@@ -87,11 +86,13 @@ class EkaHwCaps {
 
   uint64_t snDriverVerNum = -1;
 
- private:
+private:
   void print2buf();
 
+  bool isCorrectHwCapsVer();
+
   SN_DeviceId DeviceId = NULL;
-  
+
   static const int bufSize = 10000;
 
   uint idx = 0;
