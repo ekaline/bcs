@@ -116,9 +116,6 @@ void EkaHwCaps::print2buf() {
                  "hwCaps.epm.numof_regions\t\t= %ju\n",
                  (uint64_t)(hwCaps.epm.numof_regions));
   idx += sprintf(&buf[idx],
-                 "hwCaps.entity.numof_entities\t\t= %ju\n",
-                 (uint64_t)(hwCaps.entity.numof_entities));
-  idx += sprintf(&buf[idx],
                  "hwCaps.scratchpad.size\t\t\t= %ju\n",
                  (uint64_t)(hwCaps.scratchpad.size));
   idx += sprintf(&buf[idx],
