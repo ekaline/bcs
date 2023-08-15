@@ -172,20 +172,22 @@ uint32_t getIfIp(const char *ifName) {
 /* ###########################################################
  */
 
-int ekaUdpMcConnect(EkaDev *dev, uint32_t ip,
-                    uint16_t port) {
-  // UDP port is already 16b swapped!
-
+int ekaUdpMcConnect(EkaDev *dev, uint32_t ip, uint16_t port,
+                    uint32_t srcNicIp) {
   int sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock < 0)
     on_error("failed to open UDP socket");
 
-  EKA_LOG("Subscribing on Kernel UDP MC group %s:%u from "
-          "%s (%s)",
-          EKA_IP2STR(ip), be16toh(port), dev->genIfName,
-          EKA_IP2STR(dev->genIfIp));
+  auto ifName = srcNicIp ? "User provided" : dev->genIfName;
+  auto srcIp = srcNicIp ? srcNicIp : dev->genIfIp;
 
-  const int const_one = 1;
+  EKA_LOG("Subscribing on Kernel UDP MC "
+          "group %s:%u from "
+          "%s (%s)",
+          EKA_IP2STR(ip), be16toh(port), ifName,
+          EKA_IP2STR(srcIp));
+
+  int const_one = 1;
   if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &const_one,
                  sizeof(int)) < 0)
     on_error("setsockopt(SO_REUSEADDR) failed");
@@ -195,16 +197,15 @@ int ekaUdpMcConnect(EkaDev *dev, uint32_t ip,
 
   struct sockaddr_in mcast = {};
   mcast.sin_family = AF_INET;
-  mcast.sin_addr.s_addr = ip;
+  mcast.sin_addr.s_addr = ip; // INADDR_ANY
   mcast.sin_port = port;
-
-  if (bind(sock, (struct sockaddr *)&mcast, sizeof(mcast)) <
-      0)
+  if (bind(sock, (struct sockaddr *)&mcast,
+           sizeof(struct sockaddr)) < 0)
     on_error("Failed to bind to %d",
              be16toh(mcast.sin_port));
 
   struct ip_mreq mreq = {};
-  mreq.imr_interface.s_addr = dev->genIfIp; // INADDR_ANY;
+  mreq.imr_interface.s_addr = srcIp; // INADDR_ANY;
   mreq.imr_multiaddr.s_addr = ip;
 
   if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq,
@@ -214,20 +215,151 @@ int ekaUdpMcConnect(EkaDev *dev, uint32_t ip,
 
   EKA_LOG("Kernel joined MC group %s:%u from %s (%s)",
           EKA_IP2STR(mreq.imr_multiaddr.s_addr),
-          be16toh(mcast.sin_port), dev->genIfName,
-          EKA_IP2STR(dev->genIfIp));
+          be16toh(mcast.sin_port), ifName,
+          EKA_IP2STR(srcIp));
   return sock;
 }
 
-/* ###########################################################
+int ekaUdpMcConnect(EkaDev *dev, uint32_t ip,
+                    uint16_t port) {
+  return ekaUdpMcConnect(dev, ip, port, 0);
+}
+/* #####################################################################
  */
+
+/* int ekaUdpConnect(EkaDev* dev, uint32_t ip, uint16_t
+ * port) { */
+/*   int sock = socket(AF_INET, SOCK_DGRAM, 0); */
+/*   if (sock < 0) on_error("failed to open UDP socket"); */
+
+/*   int const_one = 1; */
+/*   if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
+ * &const_one, sizeof(int)) < 0)
+ * on_error("setsockopt(SO_REUSEADDR) failed"); */
+/*   if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT,
+ * &const_one, sizeof(int)) < 0)
+ * on_error("setsockopt(SO_REUSEPORT) failed"); */
+
+/*   struct sockaddr_in local2bind = {}; */
+/*   local2bind.sin_family=AF_INET; */
+/*   local2bind.sin_addr.s_addr = INADDR_ANY; */
+/*   local2bind.sin_port = port; */
+/*   if (bind(sock,(struct sockaddr*) &local2bind,
+ * sizeof(struct sockaddr)) < 0) on_error("Failed to bind to
+ * %d",be16toh(local2bind.sin_port)); */
+
+/*   struct ip_mreq mreq = {}; */
+/*   mreq.imr_interface.s_addr = INADDR_ANY; */
+/*   mreq.imr_multiaddr.s_addr = ip; */
+
+/*   if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+ * &mreq, sizeof(mreq)) < 0) on_error("Failed to join
+ * %s",EKA_IP2STR(mreq.imr_multiaddr.s_addr)); */
+
+/*   EKA_LOG("Joined MC group
+ * %s:%u",EKA_IP2STR(mreq.imr_multiaddr.s_addr),be16toh(local2bind.sin_port));
+ */
+/*   return sock; */
+/* } */
+
+/* uint8_t normalize_bats_symbol_char(char c) { */
+/*   if (c >= '0' && c <= '9') return c - '0'; // 0..9 */
+/*   if (c >= 'A' && c <= 'Z') return c - 'A'; // 10..35 */
+/*   if (c >= 'a' && c <= 'z') return c - 'a'; // 36..61 */
+/*   on_error ("Unexpected symbol |%c|",c); */
+/* } */
+
+/* uint32_t bats_symbol2optionid (const char* s, uint
+ * symbol_size) { */
+/*   uint32_t compacted_id = 0; */
+/*   if (s[0] != '0' || s[1] != '1') on_error("%s doesnt
+ * have \"01\" prefix",s+'\0'); */
+/*   for (uint i = 0; i < symbol_size - 2; i++) { */
+/*     compacted_id |=
+ * normalize_bats_symbol_char(s[symbol_size-i-1]) << (i *
+ * symbol_size); */
+/*   } */
+/*   return compacted_id; */
+/* } */
+
+/* EfhTradeCond eka_opra_trade_cond_decode (char tc) { */
+/*   switch (tc) { */
+/*   case ' ': return EfhTradeCond::kReg; */
+/*   case 'A': return EfhTradeCond::kCanc; */
+/*   case 'B': return EfhTradeCond::kOseq; */
+/*   case 'C': return EfhTradeCond::kCncl; */
+/*   case 'D': return EfhTradeCond::kLate; */
+/*   case 'F': return EfhTradeCond::kOpen; */
+/*   case 'G': return EfhTradeCond::kCnol; */
+/*   case 'H': return EfhTradeCond::kOpnl; */
+/*   case 'I': return EfhTradeCond::kAuto; */
+/*   case 'J': return EfhTradeCond::kReop; */
+/*   case 'K': return EfhTradeCond::kAjst; */
+/*   case 'L': return EfhTradeCond::kSprd; */
+/*   case 'M': return EfhTradeCond::kStdl; */
+/*   case 'N': return EfhTradeCond::kStdp; */
+/*   case 'O': return EfhTradeCond::kCstp; */
+/*   case 'Q': return EfhTradeCond::kCmbo; */
+/*   case 'R': return EfhTradeCond::kSpim; */
+/*   case 'S': return EfhTradeCond::kIsoi; */
+/*   case 'T': return EfhTradeCond::kBnmt; */
+/*   case 'X': return EfhTradeCond::kXmpt; */
+/*   default: return EfhTradeCond::kUnmapped; */
+/*   } */
+/*   return EfhTradeCond::kUnmapped; */
+/* } */
+
+#if 0
+void eka_write(EkaDev* dev, uint64_t addr, uint64_t val) {
+  dev->snDev->write(addr,val);
+}
+
+uint64_t eka_read(EkaDev* dev, uint64_t addr) {
+  return dev->snDev->read(addr);
+}
+
+bool eka_is_all_zeros (const void* buf, ssize_t size) {
+  uint8_t* b = (uint8_t*)buf;
+  for (int i=0; i<size; i++) if (b[i] != 0) return false;
+  return true;
+}
+
+int decode_session_id (uint16_t id, uint8_t* core, uint8_t* sess) {
+    *core = (uint8_t) id / 128;
+    *sess = (uint8_t) id % 128;
+    return 0;
+}
+
+uint8_t session2core (uint16_t id) {
+  return (uint8_t) id / 128;
+}
+
+uint8_t session2sess (uint16_t id) {
+  return (uint8_t) id % 128;
+}
+
+uint16_t encode_session_id (uint8_t core, uint8_t sess) {
+    return sess + core*128;
+}
+
+uint16_t socket2session (EkaDev* dev, int sock_fd) {
+  for (int c=0;c<dev->hw.enabled_cores;c++) {
+    for (int s=0;s<dev->core[c].tcp_sessions;s++) {
+      if (sock_fd == dev->core[c].tcp_sess[s].sock_fd) {
+	return encode_session_id(c,s);
+      }
+    }
+  }
+  on_error("SocketFD %d is not found",sock_fd);
+  return 0xFFFF;
+}
+#endif
 
 void errno_decode(int errsv, char *reason) {
   switch (errsv) {
   case EPIPE:
-    strcpy(reason,
-           "Broken PIPE (late with the heartbeats?) "
-           "(errno=EPIPE)");
+    strcpy(reason, "Broken PIPE (late with the "
+                   "heartbeats?) (errno=EPIPE)");
     break;
   case EIO:
     strcpy(reason, "A low-level I/O error occurred while "
@@ -235,15 +367,14 @@ void errno_decode(int errsv, char *reason) {
     break;
   case EINTR:
     strcpy(reason,
-           "The call was interrupted by a signal "
-           "before any data was written (errno=EINTR)");
+           "The call was interrupted by a signal before "
+           "any data was written (errno=EINTR)");
     break;
   case EAGAIN:
-    strcpy(reason,
-           "The file descriptor fd refers to a "
-           "file other than a socket and has been "
-           "marked nonblocking (O_NONBLOCK), and the "
-           "write would block.(errno=EAGAIN)");
+    strcpy(reason, "The file descriptor fd refers to a "
+                   "file other than a socket and has been "
+                   "marked nonblocking (O_NONBLOCK), and "
+                   "the write would block.(errno=EAGAIN)");
     break;
   default:
     strcpy(reason, "Unknown errno");
@@ -297,10 +428,6 @@ EkaCapsResult ekaGetCapsResult(EkaDev *pEkaDev,
   case EkaCapType::kEkaCapsMaxSecCtxs:
   case EkaCapType::kEkaCapsMaxEkaHandle:
     return (EkaCapsResult)EkaDev::MAX_SEC_CTX;
-
-  case EkaCapType::kEkaCapsExchange:
-    return (EkaCapsResult)hw2efhFeedVer(
-        pEkaDev->ekaHwCaps->hwCaps.version.parser);
 
   case EkaCapType::kEkaCapsMaxCores:
     return (EkaCapsResult)EkaDev::MAX_CORES;

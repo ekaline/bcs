@@ -27,6 +27,7 @@
 
 #include "EkaFhBatsGr.h"
 #include "EkaFhBoxGr.h"
+#include "EkaFhCmeGr.h"
 #include "EkaFhPlrGr.h"
 
 #include "EkaCore.h"
@@ -961,7 +962,32 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
+  //---------------------------------------------------------------------
+  // efh.CME_SBE.group.X.recovery.SrcIpAddr, x.x.x.x
+  // k[0] k[1]   k[2]  k[3] k[4] k[5]
+  if (sourceType == EkaSourceType::kCME_SBE &&
+      matchConfKey(k, {"efh", exchName, "group", NULL,
+                       "recovery", "SrcIpAddr"})) {
+    auto *group = getGroupDowncast<EkaFhCmeGr>(*this, k[3],
+                                               key, value);
+    if (!group)
+      return EkaFhAddConf::IGNORED;
 
+    if (!inet_aton(
+            value,
+            (struct in_addr *)&group->recoverySrcIp)) {
+      on_warning("%s -- %s : IP address is not valid", key,
+                 value);
+      return EkaFhAddConf::WRONG_VALUE;
+    }
+
+    EKA_DEBUG("%s:%u: recovery.SrcIpAddr is "
+              "set to %s",
+              exchName, group->id,
+              EKA_IP2STR(group->recoverySrcIp));
+
+    return EkaFhAddConf::CONF_SUCCESS;
+  }
   //---------------------------------------------------------
   // efh.NOM_ITTO.group.X.staleDataNsThreshold,
   // <numSec> k[0] k[1]   k[2] k[3] k[4]   k[5]
