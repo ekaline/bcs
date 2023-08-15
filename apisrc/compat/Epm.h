@@ -550,8 +550,12 @@ struct EpmStrategyParams {
  * @returns The capability value. If an invalid capability
  * enumeration constant is provided, zero will be returned.
  */
+
+ /*
+Obsolete!
 uint64_t epmGetDeviceCapability(const EkaDev *ekaDev,
                                 EpmDeviceCapability cap);
+*/
 
 /**
  * Initialize all strategies on the given Ekaline device.

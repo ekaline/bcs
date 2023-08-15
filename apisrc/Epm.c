@@ -28,6 +28,7 @@
 
 #include "EkaEpmRegion.h"
 
+#if 0
 uint64_t epmGetDeviceCapability(const EkaDev *dev,
                                 EpmDeviceCapability cap) {
   if (dev == NULL)
@@ -60,7 +61,6 @@ uint64_t epmGetDeviceCapability(const EkaDev *dev,
   }
 }
 
-#if 0
 EkaOpResult epmSetAction(EkaDev *dev,
                          epm_strategyid_t strategy,
                          epm_actionid_t action,
