@@ -367,6 +367,10 @@ public:
   int mdCheckEndHour = 16;
   int mdCheckEndMinute = 30;
 
+  uint32_t recoverySrcIp =
+      0; // used to specify Solarflare NIC I/F for CME
+         // recovery by UDP MC
+
   EfhExchangeErrorCode lastExchErr =
       EfhExchangeErrorCode::kNoError;
 

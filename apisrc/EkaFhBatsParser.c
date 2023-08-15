@@ -8,9 +8,9 @@
 #include <string.h>
 
 #include "EkaFhBatsParser.h"
+#include "EkaFhBatsTransaction.h"
 #include "EkaFhParserCommon.h"
 #include "EkaOsiSymbol.h"
-
 #ifdef _PCAP_TEST_
 #include "batsPcapParse.h"
 #else
@@ -45,37 +45,20 @@ bool EkaFhBatsGr::parseMsg(
   if (op == EkaFhMode::SNAPSHOT &&
       enc == MsgId::SYMBOL_MAPPING)
     return false;
-  switch (enc) {
-  case MsgId::ADD_ORDER_LONG:
-  case MsgId::ADD_ORDER_SHORT:
-  case MsgId::ADD_ORDER_EXPANDED:
-  case MsgId::ORDER_EXECUTED:
-  case MsgId::ORDER_EXECUTED_AT_PRICE_SIZE:
-  case MsgId::REDUCED_SIZE_LONG:
-  case MsgId::REDUCED_SIZE_SHORT:
-  case MsgId::ORDER_MODIFY_LONG:
-  case MsgId::ORDER_MODIFY_SHORT:
-  case MsgId::ORDER_DELETE:
-  case MsgId::TRADE_LONG:
-  case MsgId::TRADE_SHORT:
-  case MsgId::TRADE_EXPANDED:
-  case MsgId::TRADING_STATUS:
 
-  case MsgId::AUCTION_UPDATE:
-  case MsgId::OPTIONS_AUCTION_UPDATE:
-  case MsgId::AUCTION_NOTIFICATION:
-  case MsgId::AUCTION_CANCEL:
+  if (msgHasTimestamp(enc))
     msg_timestamp =
         seconds + ((const GenericHeader *)m)->time;
+
+  bool tsChanged = (grTs_ != msg_timestamp);
+  grTs_ = msg_timestamp;
+
+  if (tsChanged)
+    flushTobBuf(pEfhRunCtx);
 
     /* if (state == GrpState::NORMAL) */
     /*   checkTimeDiff(dev->deltaTimeLogFile,dev->midnightSystemClock,msg_timestamp,sequence);
      */
-
-    break;
-  default: {
-  }
-  }
 
 #ifdef _PCAP_TEST_
   eka_print_msg(parser_log, (uint8_t *)m, id, sequence,
@@ -117,12 +100,12 @@ bool EkaFhBatsGr::parseMsg(
     return process_Definition(pEfhRunCtx, m, sequence, op);
     //--------------------------------------------------------------
   case MsgId::TRANSACTION_BEGIN: {
-    //    market_open = true;
+
     return false;
   }
     //--------------------------------------------------------------
   case MsgId::TRANSACTION_END: {
-    //    market_open = false;
+
     return false;
   }
     //--------------------------------------------------------------
@@ -574,10 +557,21 @@ bool EkaFhBatsGr::parseMsg(
   // s->option_open = market_open;
   s->option_open = true;
 
+  bool secChanged = (s != prevSec_);
+  prevSec_ = s;
+
+  if (secChanged)
+    flushTobBuf(pEfhRunCtx);
+
   if (!book->isEqualState(s)) {
-    book->generateOnQuote(pEfhRunCtx, s, sequence,
-                          msg_timestamp, gapNum,
-                          msgStartTime);
+    if (useTransactions && op == EkaFhMode::MCAST &&
+        trCtx_) {
+      trCtx_->pushTob(s, sequence, msg_timestamp);
+    } else {
+      book->generateOnQuote(pEfhRunCtx, s, sequence,
+                            msg_timestamp, gapNum,
+                            msgStartTime);
+    }
   }
 
   return false;

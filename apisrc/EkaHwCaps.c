@@ -17,13 +17,9 @@ EkaHwCaps::EkaHwCaps(SN_DeviceId devId) {
   if (!DeviceId)
     on_error("! DeviceId");
 
-  uint words2read =
-      sizeof(hwCaps) / 8 + !!(sizeof(hwCaps) % 8);
-  uint64_t srcAddr = HwCapabilitiesAddr / 8;
-  uint64_t *dstAddr = (uint64_t *)&hwCaps;
-  for (uint w = 0; w < words2read; w++)
-    SN_ReadUserLogicRegister(DeviceId, srcAddr++,
-                             dstAddr++);
+  if (!isCorrectHwCapsVer())
+    on_error("FPGA FW version is not supported by this SW");
+  refresh();
 
   int fd = SN_GetFileDescriptor(DeviceId);
   eka_ioctl_t __attribute__((aligned(0x1000))) state = {};
@@ -72,9 +68,18 @@ EkaHwCaps::EkaHwCaps(SN_DeviceId devId) {
     on_error("idx %u > bufSize %u", idx, bufSize);
 }
 
+bool EkaHwCaps::isCorrectHwCapsVer() {
+  const uint HwCapsVersionFlagAddr = 0xf0018;
+  uint64_t hwCapsVersionFlag = 0;
+  SN_ReadUserLogicRegister(DeviceId,
+                           HwCapsVersionFlagAddr / 8,
+                           &hwCapsVersionFlag);
+  return hwCapsVersionFlag != 0;
+}
+
 void EkaHwCaps::refresh() {
-  uint words2read =
-      sizeof(hwCaps) / 8 + !!(sizeof(hwCaps) % 8);
+  uint words2read = roundUp8(sizeof(hwCaps)) / 8;
+
   uint64_t srcAddr = HwCapabilitiesAddr / 8;
   uint64_t *dstAddr = (uint64_t *)&hwCaps;
   for (uint w = 0; w < words2read; w++)
@@ -115,9 +120,6 @@ void EkaHwCaps::print2buf() {
   idx += sprintf(&buf[idx],
                  "hwCaps.epm.numof_regions\t\t= %ju\n",
                  (uint64_t)(hwCaps.epm.numof_regions));
-  idx += sprintf(&buf[idx],
-                 "hwCaps.entity.numof_entities\t\t= %ju\n",
-                 (uint64_t)(hwCaps.entity.numof_entities));
   idx += sprintf(&buf[idx],
                  "hwCaps.scratchpad.size\t\t\t= %ju\n",
                  (uint64_t)(hwCaps.scratchpad.size));
