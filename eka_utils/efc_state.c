@@ -523,14 +523,11 @@ int printHeader(IfParams coreParams[NUM_OF_CORES],
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (!coreParams[coreId].valid)
       continue;
-    if (coreId==1) {
+    if ( !((pEkaHwCaps->hwCaps.core.bitmap_mirror_cores>>coreId)&0x1) ) {
       printf(colformats, "-");
       continue; 
     }
-    if (coreId==2) {
-      printf(colformats, "-");
-      continue; 
-    }
+    
     if (!(coreParams[coreId].mirrorEnable))
       printf(colformats, "off");
     else {
