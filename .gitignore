@@ -27,6 +27,7 @@
 !apisrc/FhBook
 !apisrc/Ehp
 !apisrc/ekaline
+!tests
 !tests/*.c
 !tests/*.h
 !eka_utils
