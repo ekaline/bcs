@@ -68,7 +68,6 @@ struct IfParams {
   uint8_t hwMACFilter[6] = {};
 
   bool mirrorEnable;
-  uint8_t mirrorTarget;
 };
 
 #define ADDR_P4_CONT_COUNTER1 0xf0340
@@ -525,17 +524,23 @@ int printHeader(IfParams coreParams[NUM_OF_CORES],
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (!coreParams[coreId].valid)
       continue;
-    if (coreId != 3) {
+    if (!((pEkaHwCaps->hwCaps.core.bitmap_mirror_cores >>
+           coreId) &
+          0x1)) {
       printf(colformats, "-");
       continue;
     }
+
     if (!(coreParams[coreId].mirrorEnable))
       printf(colformats, "off");
     else {
+      uint8_t mirrorTarget;
+      if (coreId == 0)
+        mirrorTarget = 3;
+      else
+        mirrorTarget = 0;
       std::string nameStr =
-          std::string(
-              coreParams[coreParams[coreId].mirrorTarget]
-                  .name) +
+          std::string(coreParams[mirrorTarget].name) +
           "       ";
       printf(colformats, nameStr.c_str());
     }
@@ -900,6 +905,9 @@ int getCurrHWEnables(IfParams coreParams[NUM_OF_CORES]) {
       continue;
     coreParams[coreId].hwParserEnable =
         (port_enable >> coreId) & 0x1;
+    coreParams[coreId].mirrorEnable =
+        (mirror_enable >> coreId) & 0x1;
+
     coreParams[coreId].hwSnifferEnable =
         (reg_read(0xf0360) >> coreId) & 0x1;
 
@@ -907,14 +915,6 @@ int getCurrHWEnables(IfParams coreParams[NUM_OF_CORES]) {
         be64toh(reg_read(0xe0200 + coreId * 0x1000) << 16);
     memcpy(coreParams[coreId].hwMACFilter,
            (void *)&hw_tcp_mac_filter, 6);
-
-    if (coreId == 3) {
-      if ((mirror_enable >> 0) & 0x1) {
-        coreParams[coreId].mirrorEnable = true;
-        coreParams[coreId].mirrorTarget =
-            (mirror_enable >> 1) & 0x3;
-      }
-    }
   }
 
   return 0;

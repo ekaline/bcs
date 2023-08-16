@@ -98,6 +98,10 @@ void EkaHwCaps::print2buf() {
               (uint64_t)(hwCaps.core.bitmap_tcp_cores));
   idx +=
       sprintf(&buf[idx],
+              "hwCaps.core.bitmap_mirror_cores\t\t= 0x%jx\n",
+              (uint64_t)(hwCaps.core.bitmap_mirror_cores));
+  idx +=
+      sprintf(&buf[idx],
               "hwCaps.core.tcp_sessions_percore\t= %ju\n",
               (uint64_t)(hwCaps.core.tcp_sessions_percore));
   idx += sprintf(&buf[idx],
@@ -129,6 +133,9 @@ void EkaHwCaps::print2buf() {
   idx += sprintf(&buf[idx],
                  "hwCaps.version.strategy\t\t\t= %ju\n",
                  (uint64_t)(hwCaps.version.strategy));
+  idx += sprintf(&buf[idx],
+                 "hwCaps.version.mirror\t\t\t= %ju\n",
+                 (uint64_t)(hwCaps.version.mirror));
   idx += sprintf(
       &buf[idx], "hwCaps.version.parser0\t\t\t= %ju (%s)\n",
       (uint64_t)((hwCaps.version.parser >> 0) & 0xF),

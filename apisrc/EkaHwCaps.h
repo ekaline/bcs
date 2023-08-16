@@ -13,7 +13,8 @@ class EkaHwCaps {
 
   struct hw_version_capabilities_t {
     uint64_t reserved2;
-    uint64_t reserved1;
+    uint8_t reserved1[7];
+    uint8_t mirror;
     uint8_t hwcaps;
     uint8_t hwparser; // hw engine revision
     uint8_t strategy;
@@ -44,7 +45,8 @@ class EkaHwCaps {
 
   struct hw_core_capabilities_t {
     uint64_t reserved2;
-    uint64_t reserved1;
+    uint8_t reserved1[7];
+    uint8_t bitmap_mirror_cores;
     uint16_t tcp_sessions_percore;
     uint8_t bitmap_tcp_cores;
     uint8_t bitmap_md_cores;
