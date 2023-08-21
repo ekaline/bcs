@@ -21,6 +21,12 @@
 
 TEST_F(TestEfcFixture, Dummiest) { EXPECT_EQ(0, 0); }
 
+TEST_F(TestCmeFc, CmeFC_0) {
+  auto t =
+      new TestCase({TestStrategy::CmeFc, core0_1mc, tcp0});
+  ASSERT_NE(t, nullptr);
+}
+
 int main(int argc, char **argv) {
   std::cout << "Main of " << argv[0] << "\n";
   ::testing::InitGoogleTest(&argc, argv);
