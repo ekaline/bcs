@@ -12,25 +12,26 @@ protected:
 
   void createTestCase(TestScenarioConfig &testScenario);
 
-  void runTest(const TestCase *testCase);
-
-  void getFireReport(const void *p, size_t len, void *ctx);
+  void runTest(TestCase *t);
 
   EfcArmVer sendPktToAll(const void *pkt, size_t pktLen,
                          EfcArmVer armVer, TestCase *t);
 
+  void commonInit(TestCase *t);
+
   virtual void configure(TestCase *t){};
-  virtual bool run(TestCase *t) { return false; };
+  virtual void run(TestCase *t){};
 
 protected:
   static const int MaxTcpTestSessions = 16;
   static const int MaxUdpTestSessions = 64;
   static const uint16_t numTcpSess = 1;
 
-  /* --------------------------------------------- */
+  char testName_[128] = {};
 
   EkaDev *dev_;
 
+public:
   struct FireReport {
     uint8_t *buf;
     size_t len;
@@ -41,9 +42,17 @@ protected:
   int nExpectedFireReports = 0;
 };
 
+/* --------------------------------------------- */
 class TestCmeFc : public TestEfcFixture {
 protected:
   void configure(TestCase *t) override;
-  bool run(TestCase *t) override;
+  void run(TestCase *t) override;
+};
+
+/* --------------------------------------------- */
+class TestP4 : public TestEfcFixture {
+protected:
+  void configure(TestCase *t) override;
+  void run(TestCase *t) override;
 };
 #endif

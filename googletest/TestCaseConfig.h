@@ -308,6 +308,8 @@ public:
 
     for (auto i = 0; i < mcParams->nMcGroups; i++) {
       auto coreId = mcParams->groups[i].coreId;
+      if (coreId < 0 || coreId > 1)
+        on_error("coreId = %d", coreId);
       auto perCoreidx = nMcCons_[coreId];
       udpConn_[coreId][perCoreidx] =
           new TestUdpConn(&mcParams->groups[i]);
@@ -315,6 +317,7 @@ public:
         on_error("Failed on new TestUdpConn");
 
       nMcCons_[coreId]++;
+      totalMcCons_++;
     }
   }
 
@@ -386,7 +389,7 @@ public:
 
   /* --------------------------------------------- */
   void printConf() {
-    printf("\t%ju MC groups:\n", nMcCons_);
+    printf("\t%ju MC groups:\n", totalMcCons_);
     for (size_t coreId = 0; coreId < EFC_MAX_CORES;
          coreId++)
       for (size_t i = 0; i < nMcCons_[coreId]; i++) {
@@ -405,6 +408,7 @@ public:
       *udpConn_[EFC_MAX_CORES]
                [EFC_PREALLOCATED_P4_ACTIONS_PER_LANE] = {};
   size_t nMcCons_[EFC_MAX_CORES] = {};
+  size_t totalMcCons_ = 0;
 };
 /* --------------------------------------------- */
 class TestTcpSessCtx {
@@ -494,6 +498,8 @@ public:
 class TestTcpCtx {
 public:
   TestTcpCtx(const TestTcpParams *tcpParams) {
+    TEST_LOG("Creating TestTcpCtx with %ju connections",
+             tcpParams->nTcpSess);
     nTcpSess_ = tcpParams->nTcpSess;
     for (auto i = 0; i < nTcpSess_; i++) {
       tcpSess_[i] =
