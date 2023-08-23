@@ -58,6 +58,20 @@ static void printUsage(char *cmd) {
 }
 
 /* --------------------------------------------- */
+
+static const char *decodeMirrorState(uint64_t c) {
+  switch (c) {
+  case 0:
+    return "Disable";
+  case 0x8:
+    return "Uplink mirroring: #3 -> #0";
+  case 0x9:
+    return "Duplex mirroring: #3 <--> #0";
+  default:
+    return "Unexpected conf";
+  }
+}
+/* --------------------------------------------- */
 static void checkHwCompat(const char *utilityName) {
   EkaHwCaps *ekaHwCaps = new EkaHwCaps(devId);
   if (!ekaHwCaps)
@@ -102,7 +116,8 @@ int main(int argc, char *argv[]) {
     case 'P':
     case 'p': {
       auto res = snRead(MirrorConfigAddr);
-      printf("Current Mirroring state 0x%jx\n", res);
+      printf("Current Mirroring state 0x%jx: %s\n", res,
+             decodeMirrorState(res));
     } break;
 
     case 'h':
