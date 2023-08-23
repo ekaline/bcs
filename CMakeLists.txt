@@ -148,6 +148,8 @@ set(EKA_INC_PATH ${EKA_INC_PATH} ${SMARTNIC_API_INCL})
 set(EKA_INC_PATH ${EKA_INC_PATH} ${SMARTNIC_DRIVER_INCL})
 set(EKA_INC_PATH ${EKA_INC_PATH} ${LWIP_INCL})
 
+set(EKA_LINK_MAP ${EKA_SRC_DIR}/compat/lib${EKA_LIB_NAME}.map)
+
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
@@ -188,7 +190,11 @@ target_link_libraries(
 file(GLOB EKA_LIB_NAME_PUBLIC_HEADER ${apiDIR}/*.h)
 set_target_properties(${EKA_LIB_NAME}
                       PROPERTIES PUBLIC_HEADER "${EKA_LIB_NAME_PUBLIC_HEADER}")
-
+set_target_properties(${EKA_LIB_NAME}
+  PROPERTIES
+  LINK_DEPENDS ${EKA_LINK_MAP}
+  LINK_FLAGS "-Wl,--version-script=${EKA_LINK_MAP}"
+)
 set_target_properties(${EKA_LIB_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
                                                  ${libDstDir})
 install(TARGETS ${EKA_LIB_NAME} RUNTIME DESTINATION lib COMPONENT Runtime)
