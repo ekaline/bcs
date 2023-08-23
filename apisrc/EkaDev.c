@@ -35,6 +35,9 @@ int ekaDefaultCreateThread(const char *name,
                            void *(*threadRoutine)(void *),
                            void *arg, void *context,
                            uintptr_t *handle);
+
+void ekaCloseLwip(EkaDev *dev);
+
 /* OnEfcFireReportCb* efcDefaultOnFireReportCb (EfcCtx*
  * efcCtx, const EfcFireReport* efcFireReport, size_t size);
  */
@@ -534,6 +537,8 @@ EkaDev::~EkaDev() {
     EKA_LOG("Turning off EFH Open dev: 0x%016jx", val);
     eka_write(SW_STATISTICS, val);
   }
+
+  ekaCloseLwip(dev);
 
   delete snDev;
 }
