@@ -28,8 +28,8 @@ SMARTNIC_API_INCL ?= $(SMARTNIC_ROOT)/include
 SMARTNIC_LIB ?= $(SMARTNIC_ROOT)/lib/libsmartnic.a
 
 LWIP_INCL:=$(LWIP_ROOT)/src/include 
-INC=$(SMARTNIC_DRIVER_INCL) $(SMARTNIC_API_INCL) $(LWIP_INCL) $(shell pwd) $(shell pwd)/compat $(shell pwd)/FhBook $(shell pwd)/Ehp $(shell pwd)/../pcapParsers $(shell pwd)/../tests
 
+INC=$(SMARTNIC_DRIVER_INCL) $(SMARTNIC_API_INCL) $(LWIP_INCL) $(shell pwd) $(shell pwd)/compat $(shell pwd)/FhBook $(shell pwd)/Ehp $(shell pwd)/../pcapParsers $(shell pwd)/../tests
 
 INCL=$(foreach d, $(INC), -I$d)
 INCL+=-Iarch
@@ -69,7 +69,7 @@ SMARTNIC_LIB_FILES := $(shell ar t $(SMARTNIC_LIB))
 
 
 
-#all:  $(LIBEKALINE) $(EKAUTILS_EXECS) $(EKATESTS_EXECS)
+#all:  $(LIBEKALINE) $(EKAUTILS_EXECS) $(EKATESTS_EXECS) 
 all:  eka_utils ekalib ekalib_test eka_tests unit_tests $(LIBEKALINE).a libeka_depend lwip_depend
 	@echo "========================================="
 	@echo created: $^
@@ -84,7 +84,7 @@ use_onload: all
 # LWIP
 
 LWIPDIR?=$(LWIP_ROOT)/src
-CFLAGS+=-I. -I$(LWIPDIR)/include -I./arch -D_GNU_SOURCE
+CFLAGS+=-I. -I$(LWIPDIR)/include -I./arch -D_GNU_SOURCE 
 
 include $(LWIPDIR)/Filelists.mk
 
@@ -119,11 +119,11 @@ include .libeka_depend
 .libeka_depend: $(EKALIB_SRCS)
 	$(CXX) $(GCC_FLAGS) $(CXXFLAGS) $(INCL) -MM $^ > .libeka_depend || rm -f .libeka_depend
 
-ekalib: $(LIBEKALINE).so
+ekalib: $(LIBEKALINE).so 
 $(LIBEKALINE).so: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIP_LIB)
 	$(CXX) $(EKALIB_OBJ) -shared -L. $(SMARTNIC_LIB) $(LWIP_LIB) -o $@ $(LD_FLAGS) $(LD_LIBS) -Wl,--version-script=./compat/$(LIBEKALINE).map
 
-ekalib_test: $(LIBEKALINE)_test.so
+ekalib_test: $(LIBEKALINE)_test.so 
 $(LIBEKALINE)_test.so: $(EKALIB_OBJ) $(SMARTNIC_LIB) $(LWIP_LIB)
 	$(CXX) $(EKALIB_OBJ) -shared -L. $(SMARTNIC_LIB) $(LWIP_LIB) -o $(LIBEKALINE)_test.so $(LD_FLAGS) $(LD_LIBS)
 
