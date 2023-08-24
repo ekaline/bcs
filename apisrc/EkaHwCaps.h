@@ -13,7 +13,8 @@ class EkaHwCaps {
 
   struct hw_version_capabilities_t {
     uint64_t reserved2;
-    uint8_t reserved1[7];
+    uint8_t reserved1[6];
+    uint8_t ctxbyhash;
     uint8_t mirror;
     uint8_t hwcaps;
     uint8_t hwparser; // hw engine revision

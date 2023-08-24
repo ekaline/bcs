@@ -136,6 +136,9 @@ void EkaHwCaps::print2buf() {
   idx += sprintf(&buf[idx],
                  "hwCaps.version.mirror\t\t\t= %ju\n",
                  (uint64_t)(hwCaps.version.mirror));
+  idx += sprintf(&buf[idx],
+                 "hwCaps.version.ctxbyhash\t\t= %ju\n",
+                 (uint64_t)(hwCaps.version.ctxbyhash));
   idx += sprintf(
       &buf[idx], "hwCaps.version.parser0\t\t\t= %ju (%s)\n",
       (uint64_t)((hwCaps.version.parser >> 0) & 0xF),
