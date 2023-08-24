@@ -154,7 +154,15 @@ find_package(Threads REQUIRED)
 # ##############################################################################
 # lib${EKA_LIB_NAME}.so
 
+set(EKA_LINK_MAP ${apiDIR}/libekaline2.map)
+
 add_library(${EKA_LIB_NAME} SHARED ${${EKA_LIB_NAME}_SRCS})
+
+set_target_properties(${EKA_LIB_NAME}
+  PROPERTIES
+  LINK_DEPENDS ${EKA_LINK_MAP}
+  LINK_FLAGS "-Wl,--version-script=${EKA_LINK_MAP}"
+)
 
 target_compile_options(${EKA_LIB_NAME} PRIVATE -std=c++23 -O3 -funroll-loops
                                                -pthread -pipe -march=native)
