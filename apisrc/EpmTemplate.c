@@ -13,9 +13,9 @@ EpmTemplate::EpmTemplate(uint idx) {
 #define _EPM_TEMPLATE_DEBUG_PRINTOUT_ 1
 
 int EpmTemplate::init() {
-  TEST_LOG("\n================================\n%s with %u "
-           "fields\n================================",
-           name, tSize);
+  EKA_LOG("\n================================\n%s with %u "
+          "fields\n================================",
+          name, tSize);
 
   fMap = new (EpmHwFieldsMap);
   if (!fMap)
@@ -28,7 +28,7 @@ int EpmTemplate::init() {
   for (int i = 0; i < (int)tSize; i++) {
     EpmTemplateField *f = &t[i];
 
-    /* TEST_LOG("%2d: %s: start=%u size = %u, source = %s,
+    /* EKA_LOG("%2d: %s: start=%u size = %u, source = %s,
      * swap = %d", */
     /* 	     i,f->name,idx,f->size, */
     /* 	     f->source == HwField::IMMEDIATE ? "IMM" : "HW",
@@ -38,10 +38,10 @@ int EpmTemplate::init() {
     auto fType = f->source;
     if (fType != HwField::IMMEDIATE &&
         f->size != fMap->map[(int)fType].size)
-      TEST_LOG("WARNING: %s template field %s size %d != "
-               "HW field size %d",
-               name, fMap->map[(int)fType].name, f->size,
-               fMap->map[(int)fType].size);
+      EKA_LOG("WARNING: %s template field %s size %d != "
+              "HW field size %d",
+              name, fMap->map[(int)fType].name, f->size,
+              fMap->map[(int)fType].size);
 
     for (uint16_t b = 0; b < f->size; b++) {
       if (f->source == HwField::IMMEDIATE) {
@@ -60,17 +60,17 @@ int EpmTemplate::init() {
     byteSize += f->size;
   }
 
-  //  TEST_LOG("%s byteSize = %u",name,byteSize);
+  //  EKA_LOG("%s byteSize = %u",name,byteSize);
 
 #if 0
-  
+
   for (uint i = 0; i < byteSize; i++) {
     if (i % 8 == 0) printf ("\n");
     printf ("0x%02x,",
 	    data[i]);
   }
   printf ("\n\n");
-  TEST_LOG("Im here");
+  EKA_LOG("Im here");
 #endif
 
 #if 0

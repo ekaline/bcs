@@ -344,7 +344,7 @@ bool EkaDev::openEpm() {
 #if 0
   for (auto i = 0; i < EkaEpmRegion::Regions::Total; i++) {
     uint8_t initByte = i + 1;
-    TEST_LOG("Initializing Region %d payload to 0x%x", i,
+    EKA_LOG("Initializing Region %d payload to 0x%x", i,
              initByte);
     epm->initHeap(i, initByte);
   }
@@ -450,7 +450,7 @@ uint8_t EkaDev::getNumFh() { return numFh; }
 /* ################################################## */
 
 EkaDev::~EkaDev() {
-  TEST_LOG("shutting down...");
+  EKA_LOG("shutting down...");
 
   /* igmp_thread_active = false; */
 
@@ -483,14 +483,14 @@ EkaDev::~EkaDev() {
     sleep(0);
   }
 
-  TEST_LOG("Closing %u FHs", numFh);
+  EKA_LOG("Closing %u FHs", numFh);
   fflush(stderr);
 
-  TEST_LOG("Closing Epm");
+  EKA_LOG("Closing Epm");
   dev->epm->active = false;
 
   if (efc) {
-    TEST_LOG("Closing Efc");
+    EKA_LOG("Closing Efc");
     delete efc;
   }
 

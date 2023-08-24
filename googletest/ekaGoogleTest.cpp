@@ -24,16 +24,12 @@
 /* --------------------------------------------- */
 
 TEST_F(TestCmeFc, CmeFC_0) {
-  auto t =
-      new TestCase({TestStrategy::CmeFc, core0_1mc, tcp0});
-  runTest(t);
+  runTest({TestStrategy::CmeFc, core0_1mc, tcp0});
 }
 /* --------------------------------------------- */
 
 TEST_F(TestP4, P4_0) {
-  auto t =
-      new TestCase({TestStrategy::P4, core0_1mc, tcp0});
-  runTest(t);
+  runTest({TestStrategy::P4, core0_1mc, tcp0});
 }
 /* --------------------------------------------- */
 

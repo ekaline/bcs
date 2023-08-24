@@ -176,7 +176,7 @@ static void tcpServer(const char *ip, uint16_t port,
                       int *sock, bool *serverSet) {
   pthread_setname_np(pthread_self(), "tcpServerParent");
 
-  TEST_LOG("Starting TCP server: %s:%u", ip, port);
+  EKA_LOG("Starting TCP server: %s:%u", ip, port);
   int sd = 0;
   if ((sd = socket(PF_INET, SOCK_STREAM, 0)) < 0)
     on_error("Socket");
@@ -251,17 +251,18 @@ public:
                be16toh(mcSrc_.sin_port));
     }
 
-    TEST_LOG("udpSock %d of MC %s:%u is binded to %s:%u",
-             udpSock_, EKA_IP2STR(mcDst_.sin_addr.s_addr),
-             be16toh(mcDst_.sin_port),
-             EKA_IP2STR(mcSrc_.sin_addr.s_addr),
-             be16toh(mcSrc_.sin_port));
+    EKA_LOG("udpSock %d of MC %s:%u is binded to %s:%u",
+            udpSock_, EKA_IP2STR(mcDst_.sin_addr.s_addr),
+            be16toh(mcDst_.sin_port),
+            EKA_IP2STR(mcSrc_.sin_addr.s_addr),
+            be16toh(mcSrc_.sin_port));
   }
   /* -------------------------------------------- */
 
   size_t printMcConnParams(char *dst) {
     if (!dst)
-      return printf("%d, %s:%u, ", coreId_, mcIp_, mcPort_);
+      return fprintf(g_ekaLogFile, "%d, %s:%u, ", coreId_,
+                     mcIp_, mcPort_);
     else
       return sprintf(dst, "%d, %s:%u, ", coreId_, mcIp_,
                      mcPort_);
@@ -273,7 +274,7 @@ public:
     char pktBufStr[8192] = {};
     hexDump2str("UdpPkt", pkt, pktLen, pktBufStr,
                 sizeof(pktBufStr));
-    TEST_LOG("Sending pkt\n%s\n to %s:%u", pktBufStr,
+    EKA_LOG("Sending pkt\n%s\n to %s:%u", pktBufStr,
              EKA_IP2STR(mcDst_.sin_addr.s_addr),
              be16toh(mcDst_.sin_port));
 #endif
@@ -389,16 +390,17 @@ public:
 
   /* --------------------------------------------- */
   void printConf() {
-    printf("\t%ju MC groups:\n", totalMcCons_);
+    fprintf(g_ekaLogFile, "\t%ju MC groups:\n",
+            totalMcCons_);
     for (size_t coreId = 0; coreId < EFC_MAX_CORES;
          coreId++)
       for (size_t i = 0; i < nMcCons_[coreId]; i++) {
         auto gr = udpConn_[coreId][i];
         char strBuf[256] = {};
         gr->printMcConnParams(strBuf);
-        printf("\t\t%s, ", strBuf);
+        fprintf(g_ekaLogFile, "\t\t%s, ", strBuf);
       }
-    printf("\n");
+    fprintf(g_ekaLogFile, "\n");
   }
   /* --------------------------------------------- */
 
@@ -451,9 +453,9 @@ public:
                EKA_IP2STR(serverAddr.sin_addr.s_addr),
                be16toh(serverAddr.sin_port));
 
-    TEST_LOG("TCP connected %s --> %s:%u", srcIp_,
-             EKA_IP2STR(serverAddr.sin_addr.s_addr),
-             be16toh(serverAddr.sin_port));
+    EKA_LOG("TCP connected %s --> %s:%u", srcIp_,
+            EKA_IP2STR(serverAddr.sin_addr.s_addr),
+            be16toh(serverAddr.sin_port));
   }
   /* --------------------------------------------- */
 
@@ -474,7 +476,7 @@ public:
     char rxBuf[2000] = {};
     bytes_read = recv(servSock_, rxBuf, sizeof(rxBuf), 0);
     if (bytes_read > 0)
-      TEST_LOG("\n%s", rxBuf);
+      EKA_LOG("\n%s", rxBuf);
   }
   /* --------------------------------------------- */
 
@@ -498,8 +500,8 @@ public:
 class TestTcpCtx {
 public:
   TestTcpCtx(const TestTcpParams *tcpParams) {
-    TEST_LOG("Creating TestTcpCtx with %ju connections",
-             tcpParams->nTcpSess);
+    EKA_LOG("Creating TestTcpCtx with %ju connections",
+            tcpParams->nTcpSess);
     nTcpSess_ = tcpParams->nTcpSess;
     for (auto i = 0; i < nTcpSess_; i++) {
       tcpSess_[i] =
@@ -521,13 +523,15 @@ public:
   }
 
   void printConf() {
-    printf("\t%ju TCP sessions:\n", nTcpSess_);
+    fprintf(g_ekaLogFile, "\t%ju TCP sessions:\n",
+            nTcpSess_);
     for (auto i = 0; i < nTcpSess_; i++) {
       auto gr = tcpSess_[i];
-      printf("\t\t%d, %s --> %s:%u, ", gr->coreId_,
-             gr->srcIp_, gr->dstIp_, gr->dstPort_);
+      fprintf(g_ekaLogFile, "\t\t%d, %s --> %s:%u, ",
+              gr->coreId_, gr->srcIp_, gr->dstIp_,
+              gr->dstPort_);
     }
-    printf("\n");
+    fprintf(g_ekaLogFile, "\n");
   }
 
   size_t nTcpSess_ = 0;
@@ -581,27 +585,37 @@ public:
       on_error("failed on new TestTcpCtx()");
 
     loop_ = tc.loop;
-    print("Created");
+    // print("Created");
   }
+  /* --------------------------------------------- */
 
-  ~TestCase() {
+  virtual ~TestCase() {
+    EKA_LOG("\n"
+            "===========================\n"
+            "END OT %s TEST\n"
+            "===========================\n",
+            printStrat(strat_));
 
-    TEST_LOG("\n"
-             "===========================\n"
-             "END OT %s TEST\n"
-             "===========================\n",
-             printStrat(strat_));
+    if (stratCtx_)
+      delete stratCtx_;
+    if (udpCtx_)
+      delete udpCtx_;
+    if (tcpCtx_)
+      delete tcpCtx_;
   }
+  /* --------------------------------------------- */
 
   void print(const char *msg) {
-    TEST_LOG("\n%s: \'%s\' ", msg, printStrat(strat_));
+    EKA_LOG("\n%s: \'%s\' ", msg, printStrat(strat_));
 
     printTcpCtx();
     printUdpCtx();
   }
+  /* --------------------------------------------- */
 
   void printTcpCtx() { return tcpCtx_->printConf(); }
   void printUdpCtx() { return udpCtx_->printConf(); }
+  /* --------------------------------------------- */
 
   TestStrategy strat_ = TestStrategy::Invalid;
   TestUdpCtx *udpCtx_ = nullptr;

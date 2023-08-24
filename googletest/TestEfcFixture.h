@@ -12,7 +12,7 @@ protected:
 
   void createTestCase(TestScenarioConfig &testScenario);
 
-  void runTest(TestCase *t);
+  void runTest(const TestCaseConfig &tc);
 
   EfcArmVer sendPktToAll(const void *pkt, size_t pktLen,
                          EfcArmVer armVer, TestCase *t);
@@ -22,12 +22,16 @@ protected:
   virtual void configure(TestCase *t){};
   virtual void run(TestCase *t){};
 
+  void testPrologue();
+  void testEpilogue();
+
 protected:
   static const int MaxTcpTestSessions = 16;
   static const int MaxUdpTestSessions = 64;
   static const uint16_t numTcpSess = 1;
 
   char testName_[128] = {};
+  char testLogFileName_[256] = {};
 
   EkaDev *dev_;
 

@@ -29,11 +29,11 @@ volatile bool serverSet = false;
 /* --------------------------------------------- */
 
 static void configureFpgaPorts(EkaDev *dev, TestCase *t) {
-  TEST_LOG("Initializing %ju ports", t->tcpCtx_->nTcpSess_);
+  EKA_LOG("Initializing %ju ports", t->tcpCtx_->nTcpSess_);
   for (auto i = 0; i < t->tcpCtx_->nTcpSess_; i++) {
-    TEST_LOG("Initializing FPGA port %d to %s",
-             t->tcpCtx_->tcpSess_[i]->coreId_,
-             t->tcpCtx_->tcpSess_[i]->srcIp_);
+    EKA_LOG("Initializing FPGA port %d to %s",
+            t->tcpCtx_->tcpSess_[i]->coreId_,
+            t->tcpCtx_->tcpSess_[i]->srcIp_);
     const EkaCoreInitCtx ekaCoreInitCtx = {
         .coreId =
             (EkaCoreId)t->tcpCtx_->tcpSess_[i]->coreId_,
@@ -55,7 +55,7 @@ static void configureFpgaPorts(EkaDev *dev, TestCase *t) {
 
 void TestEfcFixture::SetUp() {
   keep_work = true;
-
+#if 0
   const EkaDevInitCtx ekaDevInitCtx = {};
   ekaDevInit(&dev_, &ekaDevInitCtx);
   ASSERT_NE(dev_, nullptr);
@@ -65,21 +65,25 @@ void TestEfcFixture::SetUp() {
 
   sprintf(testName_, "%s__%s", test_info->test_case_name(),
           test_info->name());
+  sprintf(testLogFileName_, "%s/%s.log", "gtest_logs",
+          testName_);
+#endif
   return;
 }
 /* --------------------------------------------- */
 
 void TestEfcFixture::TearDown() {
   keep_work = false;
-
-  TEST_LOG("\n"
-           "===========================\n"
-           "END OF %s TEST\n"
-           "===========================\n",
-           testName_);
+#if 0
+  EKA_LOG("\n"
+          "===========================\n"
+          "END OF %s TEST\n"
+          "===========================\n",
+          testName_);
 
   ASSERT_NE(dev_, nullptr);
   ekaDevClose(dev_);
+#endif
   return;
 }
 /* --------------------------------------------- */
@@ -115,8 +119,49 @@ static void getFireReport(const void *p, size_t len,
   return;
 }
 /* --------------------------------------------- */
+void TestEfcFixture::testPrologue() {
+  const testing::TestInfo *const test_info =
+      testing::UnitTest::GetInstance()->current_test_info();
 
-void TestEfcFixture::runTest(TestCase *t) {
+  sprintf(testName_, "%s__%s", test_info->test_case_name(),
+          test_info->name());
+  sprintf(testLogFileName_, "%s/%s.log", "gtest_logs",
+          testName_);
+
+  if ((g_ekaLogFile = fopen(testLogFileName_, "w")) ==
+      nullptr)
+    on_error("Failed to open %s file for writing",
+             testLogFileName_);
+
+  const EkaDevInitCtx ekaDevInitCtx = {.logContext =
+                                           g_ekaLogFile};
+  ekaDevInit(&dev_, &ekaDevInitCtx);
+  ASSERT_NE(dev_, nullptr);
+}
+
+/* --------------------------------------------- */
+void TestEfcFixture::testEpilogue() {
+  EKA_LOG("\n"
+          "===========================\n"
+          "END OF %s TEST\n"
+          "===========================\n",
+          testName_);
+
+  ASSERT_NE(dev_, nullptr);
+  ekaDevClose(dev_);
+
+  fclose(g_ekaLogFile);
+}
+/* --------------------------------------------- */
+
+void TestEfcFixture::runTest(const TestCaseConfig &tc) {
+  testPrologue();
+
+  auto t = new TestCase(tc);
+  ASSERT_NE(t, nullptr);
+
+  t->print("Running");
+
   commonInit(t);
   configure(t);
 
@@ -128,6 +173,8 @@ void TestEfcFixture::runTest(TestCase *t) {
   efcRun(g_ekaDev, &runCtx);
 
   run(t);
+  delete t;
+  testEpilogue();
 }
 /* --------------------------------------------- */
 
@@ -212,9 +259,8 @@ void TestCmeFc::configure(TestCase *t) {
   auto dev = g_ekaDev;
   ASSERT_NE(dev, nullptr);
 
-  TEST_LOG(
-      "\n"
-      "=========== Configuring CmeFc Test ===========");
+  EKA_LOG("\n"
+          "=========== Configuring CmeFc Test ===========");
   auto udpMcParams = &t->udpCtx_->udpConf_;
 
   static const uint16_t QEDTestPurgeDSID = 0x1234;
@@ -258,8 +304,8 @@ void TestP4::configure(TestCase *t) {
   auto dev = g_ekaDev;
   ASSERT_NE(dev, nullptr);
 
-  TEST_LOG("\n"
-           "=========== Configuring P4 Test ===========");
+  EKA_LOG("\n"
+          "=========== Configuring P4 Test ===========");
   auto udpMcParams = &t->udpCtx_->udpConf_;
 
   struct EfcP4Params p4Params = {
@@ -301,7 +347,7 @@ void TestP4::configure(TestCase *t) {
     SecCtx secCtx = {};
     p4TestCtx->getSecCtx(i, &secCtx);
 
-    EKA_TEST(
+    EKA_LOG(
         "Setting StaticSecCtx[%ju] \'%s\' secId=0x%016jx,"
         "handle=%jd,bidMinPrice=%u,askMaxPrice=%u,"
         "bidSize=%u,askSize=%u,"
@@ -416,8 +462,8 @@ void TestCmeFc::run(TestCase *t) {
 
 void TestP4::run(TestCase *t) {
   ASSERT_NE(t, nullptr);
-  TEST_LOG("\n"
-           "=========== Running P4 Test ===========");
+  EKA_LOG("\n"
+          "=========== Running P4 Test ===========");
 
   auto p4TestCtx =
       dynamic_cast<EfcP4CboeTestCtx *>(t->stratCtx_);
