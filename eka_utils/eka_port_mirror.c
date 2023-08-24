@@ -62,7 +62,7 @@ static void printUsage(char *cmd) {
 static const char *decodeMirrorState(uint64_t c) {
   switch (c) {
   case 0:
-    return "Disable";
+    return "Disabled";
   case 0x8:
     return "Uplink mirroring: #3 -> #0";
   case 0x9:
@@ -109,7 +109,7 @@ int main(int argc, char *argv[]) {
       break;
     case 'D':
     case 'd':
-      printf("Disable Mirroring UP\n");
+      printf("Disable Mirroring\n");
       snWrite(MirrorConfigAddr, 0x0);
       break;
 

@@ -54,6 +54,9 @@ EkaOpResult efcInit(EkaDev *dev,
   if (dev->efc)
     on_error("Efc is already initialized");
 
+  if (!pEfcInitCtx->watchdog_timeout_sec)
+    on_error("pEfcInitCtx->watchdog_timeout_sec == 0");
+
   dev->efc = new EkaEfc(pEfcInitCtx);
 
   if (!dev->efc)
