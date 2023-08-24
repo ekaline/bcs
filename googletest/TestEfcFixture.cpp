@@ -207,7 +207,7 @@ EfcArmVer TestEfcFixture::sendPktToAll(const void *pkt,
 
   auto nextArmVer = armVer;
 
-  for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++)
+  for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++) {
     for (auto i = 0; i < t->udpCtx_->nMcCons_[coreId];
          i++) {
       if (!t->udpCtx_->udpConn_[coreId][i])
@@ -231,6 +231,8 @@ EfcArmVer TestEfcFixture::sendPktToAll(const void *pkt,
         std::this_thread::yield();
       }
     }
+  }
+
   return nextArmVer;
 }
 
@@ -458,6 +460,13 @@ void TestCmeFc::run(TestCase *t) {
 
   return;
 }
+
+/* ############################################# */
+
+void TestP4::selectAddOrderExpandedParams(
+    const P4SecurityCtx *secCtx, SideT side,
+    bool expectedFire) {}
+
 /* ############################################# */
 
 void TestP4::run(TestCase *t) {
@@ -492,6 +501,8 @@ void TestP4::run(TestCase *t) {
           pktBuf, mdSecId, mdSide, mdPrice, mdSize, true);
 
       p4ArmVer = sendPktToAll(pktBuf, pktLen, p4ArmVer, t);
+
+      auto fReport = fireReports.back();
     }
 #endif
 

@@ -58,5 +58,18 @@ class TestP4 : public TestEfcFixture {
 protected:
   void configure(TestCase *t) override;
   void run(TestCase *t) override;
+
+  void
+  selectAddOrderExpandedParams(const P4SecurityCtx *secCtx,
+                               SideT side,
+                               bool expectedFire);
+
+protected:
+  struct AddOrderParams {
+    const char secId[8];
+    SideT side;
+    uint64_t price;
+    uint32_t size;
+  };
 };
 #endif
