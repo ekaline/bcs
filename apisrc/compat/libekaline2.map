@@ -4,9 +4,3 @@ LIBEKALINE2_1.0	{
     local:
         *;
 };
-LIBEKALINE2_1.1	{
-    global:
-        *;
-    local:
-        *;
-};
