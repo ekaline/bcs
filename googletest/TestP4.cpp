@@ -9,7 +9,7 @@ void TestP4::configure(const TestCaseConfig *tc) {
           "=========== Configuring P4 Test ===========");
   auto udpMcParams = &udpCtx_->udpConf_;
 
-  FireStatisticsAddr_ = 0xf0818;
+  FireStatisticsAddr_ = 0xf0340;
 
   armController_ = efcArmP4;
   disArmController_ = efcDisArmP4;

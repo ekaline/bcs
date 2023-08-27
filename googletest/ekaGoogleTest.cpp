@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
 
-#if 0
+#if 1
 
 #include "TestCmeFc.h"
 #include "TestP4.h"
@@ -50,7 +50,7 @@ static const TestTcpSess tcp0_s[] = {};
 static const TestTcpParams tcp0 = {};
 #endif
 
-#if 0
+#if 1
 static const TestTcpSess tcp0_s[] = {
     {0, "100.0.0.0", "10.0.0.10", 22000}};
 static const TestTcpParams tcp0 = {tcp0_s,
@@ -68,11 +68,8 @@ TEST_F(TestCmeFc, CmeFC_0) {
 }
 #endif
 /* --------------------------------------------- */
-TEST(FactorialTest, HandlesZeroInput) { EXPECT_EQ(0, 0); }
-#if 0
-
-TEST_F(TestP4, FireOnAsk) {}
-
+TEST(Dummy, Zero) { EXPECT_EQ(0, 0); }
+#if 1
 
 TEST_F(TestP4, FireOnAsk) {
   TEST_LOG("Im here");
@@ -90,8 +87,8 @@ TEST_F(TestP4, FireOnAsk) {
       .price = (FixedPrice)(secs[0].askMaxPrice - 1),
       .size = 1};
 
-  const TestCaseConfig tc = {.mcParams = core0_1mc,
-                             .tcpParams = tcp0,
+  const TestCaseConfig tc = {.mcParams = &core0_1mc,
+                             .tcpParams = &tcp0,
                              .algoConfigParams = &secConf,
                              .mdInjectParams = &mdConf};
 
@@ -100,7 +97,7 @@ TEST_F(TestP4, FireOnAsk) {
 #endif
 
 /* --------------------------------------------- */
-#if 0
+#if 1
 
 TEST_F(TestP4, FireOnBid) {
   TestP4CboeSec secs[] = {{.id = "02gtst",
@@ -116,8 +113,8 @@ TEST_F(TestP4, FireOnBid) {
       .price = (FixedPrice)(secs[0].bidMinPrice + 1),
       .size = 1};
 
-  const TestCaseConfig tc = {.mcParams = core0_1mc,
-                             .tcpParams = tcp0,
+  const TestCaseConfig tc = {.mcParams = &core0_1mc,
+                             .tcpParams = &tcp0,
                              .algoConfigParams = &secConf,
                              .mdInjectParams = &mdConf};
 

@@ -18,16 +18,16 @@ typedef EkaOpResult (*ArmControllerCb)(EkaDev *pEkaDev,
                                        EfcArmVer ver);
 typedef EkaOpResult (*DisArmControllerCb)(EkaDev *pEkaDev);
 
-struct TestCaseConfig {
-  EfcUdpMcParams mcParams;
-  TestTcpParams tcpParams;
-  const void *algoConfigParams;
-  const void *mdInjectParams;
-  bool loop = false; // endless loop
-};
-
 class TestEfcFixture : public ::testing::Test {
 protected:
+  struct TestCaseConfig {
+    const EfcUdpMcParams *mcParams;
+    const TestTcpParams *tcpParams;
+    const void *algoConfigParams;
+    const void *mdInjectParams;
+    bool loop = false; // endless loop
+  };
+
   void SetUp() override;
   void TearDown() override;
 

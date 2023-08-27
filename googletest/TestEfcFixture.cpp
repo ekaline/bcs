@@ -139,11 +139,11 @@ void TestEfcFixture::testPrologue(
   ekaDevInit(&dev_, &ekaDevInitCtx);
   ASSERT_NE(dev_, nullptr);
 
-  udpCtx_ = new TestUdpCtx(&tc->mcParams);
+  udpCtx_ = new TestUdpCtx(tc->mcParams);
   if (!udpCtx_)
     on_error("failed on new TestUdpCtx()");
 
-  tcpCtx_ = new TestTcpCtx(&tc->tcpParams);
+  tcpCtx_ = new TestTcpCtx(tc->tcpParams);
   if (!tcpCtx_)
     on_error("failed on new TestTcpCtx()");
 }
@@ -217,14 +217,20 @@ EfcArmVer TestEfcFixture::sendPktToAll(const void *pkt,
 
   for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++) {
     for (auto i = 0; i < udpCtx_->nMcCons_[coreId]; i++) {
-      if (!udpCtx_->udpConn_[coreId][i])
+      auto udpCon = udpCtx_->udpConn_[coreId][i];
+
+      if (!udpCon)
         on_error("!udpConn_[%d][%d]", coreId, i);
 
       armController_(g_ekaDev, nextArmVer++);
       auto [strategyRuns_prev, strategyPassed_prev] =
           getP4stratStatistics(FireStatisticsAddr_);
 
-      udpCtx_->udpConn_[coreId][i]->sendUdpPkt(pkt, pktLen);
+      char udpConParamsStr[128] = {};
+      udpCon->printMcConnParams(udpConParamsStr);
+      TEST_LOG("Sending UPD MD to %s", udpConParamsStr);
+
+      udpCon->sendUdpPkt(pkt, pktLen);
       nExpectedFireReports += nFiresPerUdp;
       bool fired = false;
       while (keep_work && !fired &&
@@ -234,6 +240,14 @@ EfcArmVer TestEfcFixture::sendPktToAll(const void *pkt,
             getP4stratStatistics(FireStatisticsAddr_);
 
         fired = (strategyRuns_post != strategyRuns_prev);
+        if (!fired) {
+          TEST_LOG("[strategyRuns_prev %u, "
+                   "strategyPassed_prev %u] !="
+                   "[strategyRuns_post %u, "
+                   "strategyPassed_post %u]",
+                   strategyRuns_prev, strategyPassed_prev,
+                   strategyRuns_post, strategyPassed_post);
+        }
         std::this_thread::yield();
       }
     }
