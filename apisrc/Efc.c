@@ -341,7 +341,7 @@ EkaOpResult efcSwKeepAliveSend(EkaDev *dev,
   return EKA_OPRESULT__OK;
 }
 
-EkaOpResult efcClose(EfcCtx *efcCtx) {
+EkaOpResult efcClose(EkaDev *dev) {
   return EKA_OPRESULT__OK;
 }
 /* --------------------------------------------------- */
