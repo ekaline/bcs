@@ -39,4 +39,7 @@
 //#define EKA_EXPECTED_EFC_STRATEGY 134 // multi
 #define EKA_EXPECTED_EFC_STRATEGY 135 // {core,mcgroup}->action
 
+#define EKA_EXPECTED_PORT_MIRRORING 2
+#define EKA_EXPECTED_SEC_CTX_READ_BY_HASH 3
+
 #endif
