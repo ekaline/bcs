@@ -53,13 +53,8 @@ void TestEfcFixture::configureFpgaPorts() {
 /* --------------------------------------------- */
 
 void TestEfcFixture::SetUp() {
-  TEST_LOG("Im here");
 
   keep_work = true;
-#if 0
-  const EkaDevInitCtx ekaDevInitCtx = {};
-  ekaDevInit(&dev_, &ekaDevInitCtx);
-  ASSERT_NE(dev_, nullptr);
 
   const testing::TestInfo *const test_info =
       testing::UnitTest::GetInstance()->current_test_info();
@@ -68,23 +63,43 @@ void TestEfcFixture::SetUp() {
           test_info->name());
   sprintf(testLogFileName_, "%s/%s.log", "gtest_logs",
           testName_);
-#endif
+
+  if ((g_ekaLogFile = fopen(testLogFileName_, "w")) ==
+      nullptr)
+    on_error("Failed to open %s file for writing",
+             testLogFileName_);
+
+  // TMP PATCH !!!
+  // g_ekaLogFile = stdout;
+
+  const EkaDevInitCtx ekaDevInitCtx = {.logContext =
+                                           g_ekaLogFile};
+  ekaDevInit(&dev_, &ekaDevInitCtx);
+  ASSERT_NE(dev_, nullptr);
+
   return;
 }
 /* --------------------------------------------- */
 
 void TestEfcFixture::TearDown() {
   keep_work = false;
-#if 0
+
   EKA_LOG("\n"
           "===========================\n"
           "END OF %s TEST\n"
           "===========================\n",
           testName_);
 
+  if (udpCtx_)
+    delete udpCtx_;
+  if (tcpCtx_)
+    delete tcpCtx_;
+
   ASSERT_NE(dev_, nullptr);
   ekaDevClose(dev_);
-#endif
+
+  fclose(g_ekaLogFile);
+
   return;
 }
 
@@ -116,28 +131,7 @@ static void getFireReport(const void *p, size_t len,
   return;
 }
 /* --------------------------------------------- */
-void TestEfcFixture::testPrologue(
-    const TestCaseConfig *tc) {
-  const testing::TestInfo *const test_info =
-      testing::UnitTest::GetInstance()->current_test_info();
-
-  sprintf(testName_, "%s__%s", test_info->test_case_name(),
-          test_info->name());
-  sprintf(testLogFileName_, "%s/%s.log", "gtest_logs",
-          testName_);
-
-  if ((g_ekaLogFile = fopen(testLogFileName_, "w")) ==
-      nullptr)
-    on_error("Failed to open %s file for writing",
-             testLogFileName_);
-
-  // TMP PATCH !!!
-  g_ekaLogFile = stdout;
-
-  const EkaDevInitCtx ekaDevInitCtx = {.logContext =
-                                           g_ekaLogFile};
-  ekaDevInit(&dev_, &ekaDevInitCtx);
-  ASSERT_NE(dev_, nullptr);
+void TestEfcFixture::initNwCtxs(const TestCaseConfig *tc) {
 
   udpCtx_ = new TestUdpCtx(tc->mcParams);
   if (!udpCtx_)
@@ -149,32 +143,14 @@ void TestEfcFixture::testPrologue(
 }
 
 /* --------------------------------------------- */
-void TestEfcFixture::testEpilogue() {
-  EKA_LOG("\n"
-          "===========================\n"
-          "END OF %s TEST\n"
-          "===========================\n",
-          testName_);
-
-  if (udpCtx_)
-    delete udpCtx_;
-  if (tcpCtx_)
-    delete tcpCtx_;
-
-  ASSERT_NE(dev_, nullptr);
-  ekaDevClose(dev_);
-
-  fclose(g_ekaLogFile);
-}
-/* --------------------------------------------- */
 
 void TestEfcFixture::runTest(const TestCaseConfig *tc) {
-  testPrologue(tc);
+  initNwCtxs(tc);
 
-  print("Running");
+  printTestConfig("Running");
 
   commonInit();
-  configure(tc);
+  configureStrat(tc);
 
   EfcRunCtx runCtx = {.onEfcFireReportCb = getFireReport,
                       .cbCtx = this};
@@ -182,10 +158,6 @@ void TestEfcFixture::runTest(const TestCaseConfig *tc) {
 
   sendData(tc->mdInjectParams);
   disArmController_(g_ekaDev);
-
-  testEpilogue();
-  delete udpCtx_;
-  delete tcpCtx_;
 }
 /* --------------------------------------------- */
 
@@ -228,7 +200,7 @@ EfcArmVer TestEfcFixture::sendPktToAll(const void *pkt,
 
       char udpConParamsStr[128] = {};
       udpCon->printMcConnParams(udpConParamsStr);
-      TEST_LOG("Sending UPD MD to %s", udpConParamsStr);
+      EKA_LOG("Sending UPD MD to %s", udpConParamsStr);
 
       udpCon->sendUdpPkt(pkt, pktLen);
       nExpectedFireReports += nFiresPerUdp;
@@ -241,12 +213,12 @@ EfcArmVer TestEfcFixture::sendPktToAll(const void *pkt,
 
         fired = (strategyRuns_post != strategyRuns_prev);
         if (!fired) {
-          TEST_LOG("[strategyRuns_prev %u, "
-                   "strategyPassed_prev %u] !="
-                   "[strategyRuns_post %u, "
-                   "strategyPassed_post %u]",
-                   strategyRuns_prev, strategyPassed_prev,
-                   strategyRuns_post, strategyPassed_post);
+          EKA_LOG("[strategyRuns_prev %u, "
+                  "strategyPassed_prev %u] !="
+                  "[strategyRuns_post %u, "
+                  "strategyPassed_post %u]",
+                  strategyRuns_prev, strategyPassed_prev,
+                  strategyRuns_post, strategyPassed_post);
         }
         std::this_thread::yield();
       }

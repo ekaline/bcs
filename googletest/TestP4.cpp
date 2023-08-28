@@ -1,6 +1,6 @@
 #include "TestP4.h"
 
-void TestP4::configure(const TestCaseConfig *tc) {
+void TestP4::configureStrat(const TestCaseConfig *tc) {
   ASSERT_NE(tc, nullptr);
   auto dev = g_ekaDev;
   ASSERT_NE(dev, nullptr);
@@ -115,6 +115,19 @@ void TestP4::configure(const TestCaseConfig *tc) {
   }
 }
 /* ############################################# */
+/* --------------------------------------------- */
+
+static uint64_t getBinSecId(const char *secChar) {
+  if (strlen(secChar) != 6)
+    on_error("unexpected security \'%s\' len %ju != 6",
+             secChar, strlen(secChar));
+  char shiftedStr[8] = {};
+  for (auto i = 0; i < 6; i++)
+    shiftedStr[i + 2] = secChar[i];
+
+  return be64toh(*(uint64_t *)shiftedStr);
+}
+
 void TestP4::createSecList(const TestP4SecConf *secConf) {
   for (auto i = 0; i < secConf->nSec; i++) {
     secList_[i] = getBinSecId(secConf->sec[i].id);
@@ -122,7 +135,7 @@ void TestP4::createSecList(const TestP4SecConf *secConf) {
   nSec_ = secConf->nSec;
   EKA_LOG("Created List of %ju P4 Securities:", nSec_);
   for (auto i = 0; i < nSec_; i++)
-    EKA_LOG("\t%s, %ju %c",
+    EKA_LOG("\t\'%.8s\', 0x%jx %c",
             cboeSecIdString(secConf->sec[i].id, 8).c_str(),
             secList_[i], i == nSec_ - 1 ? '\n' : ',');
 }
@@ -191,15 +204,20 @@ size_t TestP4::createOrderExpanded(char *dst,
   p->msg.side = cboeSide(side);
   p->msg.size = size;
 
+#if 0
   char dstSymb[8] = {id[2], id[3], id[4], id[5],
                      id[6], id[7], ' ',   ' '};
+#endif
+  char dstSymb[8] = {' ',   ' ',   id[0], id[1],
+                     id[2], id[3], id[4], id[5]};
+
   memcpy(p->msg.exp_symbol, dstSymb, 8);
 
   p->msg.price = price;
 
   p->msg.customer_indicator = 'C';
 
-  EKA_LOG("%s %s s=%c, P=%ju, S=%u, c=%c",
+  EKA_LOG("%s \'%s\' s=%c, P=%ju, S=%u, c=%c",
           EKA_BATS_PITCH_MSG_DECODE(p->msg.header.type),
           std::string(p->msg.exp_symbol,
                       sizeof(p->msg.exp_symbol))

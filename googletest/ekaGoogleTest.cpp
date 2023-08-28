@@ -41,14 +41,6 @@ static const EfcUdpMcParams two_cores_1mc = {
 /* --------------------------------------------- */
 
 /* --------------------------------------------- */
-#if 0
-
-static const EfcUdpMcGroupParams mc0[] = {};
-static const EfcUdpMcParams core0_1mc = {};
-
-static const TestTcpSess tcp0_s[] = {};
-static const TestTcpParams tcp0 = {};
-#endif
 
 #if 1
 static const TestTcpSess tcp0_s[] = {
@@ -72,7 +64,7 @@ TEST(Dummy, Zero) { EXPECT_EQ(0, 0); }
 #if 1
 
 TEST_F(TestP4, FireOnAsk) {
-  TEST_LOG("Im here");
+  // TEST_LOG("Im here");
 
   TestP4CboeSec secs[] = {{.id = "01gtst",
                            .bidMinPrice = 1000,

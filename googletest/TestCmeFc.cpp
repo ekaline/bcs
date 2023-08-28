@@ -1,6 +1,6 @@
 #include "TestCmeFc.h"
 
-void TestCmeFc::configure(const TestCaseConfig *t) {
+void TestCmeFc::configureStrat(const TestCaseConfig *t) {
   ASSERT_NE(t, nullptr);
   auto dev = g_ekaDev;
   ASSERT_NE(dev, nullptr);

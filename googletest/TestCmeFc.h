@@ -5,7 +5,7 @@
 
 class TestCmeFc : public TestEfcFixture {
 protected:
-  void configure(const TestCaseConfig *t) override;
+  void configureStrat(const TestCaseConfig *t) override;
   void sendData(const void *mdInjectParams) override;
 };
 

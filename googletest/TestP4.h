@@ -48,14 +48,9 @@ static inline char cboeSide(SideT side) {
 
 /* --------------------------------------------- */
 
-static inline uint64_t getBinSecId(const char *secChar) {
-  return be64toh(*(uint64_t *)secChar);
-}
-/* --------------------------------------------- */
-
 class TestP4 : public TestEfcFixture {
 protected:
-  void configure(const TestCaseConfig *t) override;
+  void configureStrat(const TestCaseConfig *t) override;
   void sendData(const void *mdInjectParams) override;
 
 private:

@@ -40,16 +40,15 @@ protected:
 
   void configureFpgaPorts();
 
-  virtual void configure(const TestCaseConfig *t) = 0;
+  virtual void configureStrat(const TestCaseConfig *t) = 0;
   virtual void sendData(const void *mdInjectParams) = 0;
 
-  void testPrologue(const TestCaseConfig *t);
-  void testEpilogue();
+  void initNwCtxs(const TestCaseConfig *t);
 
   void printTcpCtx() { return tcpCtx_->printConf(); }
   void printUdpCtx() { return udpCtx_->printConf(); }
 
-  void print(const char *msg) {
+  void printTestConfig(const char *msg) {
     EKA_LOG("\n%s: \'%s\' ", msg, testName_);
 
     printTcpCtx();
