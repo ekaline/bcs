@@ -30,7 +30,7 @@ struct CboePitchAddOrderExpanded {
   add_order_expanded msg;
 } __attribute__((packed));
 
-static inline char cboeSide(SideT side) {
+char cboeSide(SideT side) {
   return side == SideT::BID ? 'B' : 'S';
 }
 
@@ -44,11 +44,11 @@ public:
       secList[i] = getBinSecId(&security[i]);
     }
     nSec = std::size(security);
-    EKA_LOG("Created List of %ju P4 Securities:", nSec);
+    TEST_LOG("Created List of %ju P4 Securities:", nSec);
     for (auto i = 0; i < nSec; i++)
-      EKA_LOG("\t%s, %ju %c",
-              cboeSecIdString(security[i].id, 8).c_str(),
-              secList[i], i == nSec - 1 ? '\n' : ',');
+      TEST_LOG("\t%s, %ju %c",
+               cboeSecIdString(security[i].id, 8).c_str(),
+               secList[i], i == nSec - 1 ? '\n' : ',');
   }
   /* --------------------------------------------- */
 
@@ -104,13 +104,13 @@ public:
 
     p->msg.customer_indicator = 'C';
 
-    EKA_LOG("%s %s s=%c, P=%ju, S=%u, c=%c",
-            EKA_BATS_PITCH_MSG_DECODE(p->msg.header.type),
-            std::string(p->msg.exp_symbol,
-                        sizeof(p->msg.exp_symbol))
-                .c_str(),
-            p->msg.side, p->msg.price, p->msg.size,
-            p->msg.customer_indicator);
+    TEST_LOG("%s %s s=%c, P=%ju, S=%u, c=%c",
+             EKA_BATS_PITCH_MSG_DECODE(p->msg.header.type),
+             std::string(p->msg.exp_symbol,
+                         sizeof(p->msg.exp_symbol))
+                 .c_str(),
+             p->msg.side, p->msg.price, p->msg.size,
+             p->msg.customer_indicator);
     return sizeof(CboePitchAddOrderExpanded);
   }
   /* --------------------------------------------- */
