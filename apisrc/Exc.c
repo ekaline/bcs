@@ -34,8 +34,9 @@
 // definition of FIONREAD.
 #define LWIP_IOCPARM_MASK                                  \
   0x7fU /* parameters must be < 128 bytes */
-#define LWIP_IOC_OUT 0x40000000UL /* copy out parameters   \
-                                   */
+#define LWIP_IOC_OUT                                       \
+  0x40000000UL /* copy out parameters                      \
+                */
 #define LWIP__IOR(x, y, t)                                 \
   ((long)(LWIP_IOC_OUT |                                   \
           ((sizeof(t) & LWIP_IOCPARM_MASK) << 16) |        \
@@ -447,8 +448,13 @@ ssize_t excRecv(EkaDev *dev, ExcConnHandle hConn,
  */
 int excClose(EkaDev *dev, ExcConnHandle hConn) {
   if (EkaTcpSess *const s = getEkaTcpSess(dev, hConn)) {
+    EKA_LOG("Deleting TCP Sess %u:%u", s->coreId,
+            s->sessId);
+    dev->addTcpSessMtx.lock();
     dev->core[s->coreId]->tcpSess[s->sessId] = nullptr;
     delete s;
+    dev->addTcpSessMtx.unlock();
+
     return 0;
   }
   return -1;
