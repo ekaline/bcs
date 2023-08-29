@@ -341,9 +341,6 @@ EkaOpResult efcSwKeepAliveSend(EkaDev *dev,
   return EKA_OPRESULT__OK;
 }
 
-EkaOpResult efcClose(EkaDev *dev) {
-  return EKA_OPRESULT__OK;
-}
 /* --------------------------------------------------- */
 
 EkaOpResult efcSetSessionCntr(EkaDev *dev,
