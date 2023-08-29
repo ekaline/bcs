@@ -164,7 +164,7 @@ void TestP4::sendData(const void *mdInjectParams) {
   uint32_t sequence = 32;
   const int LoopIterations = loop_ ? 10000 : 1;
 
-  for (auto i = 0; i < LoopIterations; i++) {
+  for (auto l = 0; l < LoopIterations; l++) {
     efcArmP4(g_ekaDev, p4ArmVer);
     char pktBuf[1500] = {};
 
@@ -175,12 +175,6 @@ void TestP4::sendData(const void *mdInjectParams) {
     p4ArmVer = sendPktToAll(pktBuf, pktLen, p4ArmVer);
 
     auto fReport = fireReports.back();
-
-    for (auto i = 0; i < tcpCtx_->nTcpSess_; i++) {
-      char rxBuf[8192] = {};
-      int rc = recv(tcpCtx_->tcpSess_[i]->servSock_, rxBuf,
-                    sizeof(rxBuf), 0);
-    }
   }
 }
 // ==============================================
@@ -204,12 +198,8 @@ size_t TestP4::createOrderExpanded(char *dst,
   p->msg.side = cboeSide(side);
   p->msg.size = size;
 
-#if 0
-  char dstSymb[8] = {id[2], id[3], id[4], id[5],
-                     id[6], id[7], ' ',   ' '};
-#endif
-  char dstSymb[8] = {' ',   ' ',   id[0], id[1],
-                     id[2], id[3], id[4], id[5]};
+  char dstSymb[8] = {id[0], id[1], id[2], id[3],
+                     id[4], id[5], ' ',   ' '};
 
   memcpy(p->msg.exp_symbol, dstSymb, 8);
 

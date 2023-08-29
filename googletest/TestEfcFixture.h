@@ -43,6 +43,11 @@ protected:
   virtual void configureStrat(const TestCaseConfig *t) = 0;
   virtual void sendData(const void *mdInjectParams) = 0;
 
+  std::pair<bool, bool>
+  waitForResults(uint32_t nStratEvaluated_prev,
+                 uint32_t nStratPassed_prev,
+                 int nExpectedFireReports);
+
   void initNwCtxs(const TestCaseConfig *t);
 
   void printTcpCtx() { return tcpCtx_->printConf(); }

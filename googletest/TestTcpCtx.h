@@ -55,6 +55,28 @@ struct TestTcpParams {
 };
 
 /* --------------------------------------------- */
+static void tcpChild(int sock, uint port) {
+  pthread_setname_np(pthread_self(), "tcpServerChild");
+  EKA_LOG("Running TCP Server for sock=%d, port = %u", sock,
+          port);
+  do {
+    char line[1536] = {};
+    int rc = recv(sock, line, sizeof(line), 0);
+    if (rc > 0) {
+      char bufStr[10000] = {};
+      hexDump2str("received TCP pkt", line, rc, bufStr,
+                  sizeof(bufStr));
+      EKA_LOG("%s", bufStr);
+      fflush(g_ekaLogFile);
+      send(sock, line, rc, 0);
+    }
+  } while (keep_work);
+  EKA_LOG("tcpChild thread is terminated");
+  fflush(stdout);
+  close(sock);
+  return;
+}
+/* --------------------------------------------- */
 
 static void tcpServer(const char *ip, uint16_t port,
                       int *sock, bool *serverSet) {
@@ -93,17 +115,34 @@ static void tcpServer(const char *ip, uint16_t port,
     on_error("Listen");
   *serverSet = true;
 
-  int addr_size = sizeof(addr);
-  *sock = accept(sd, (struct sockaddr *)&addr,
-                 (socklen_t *)&addr_size);
-  EKA_LOG("Connected from: %s:%d -- sock=%d",
-          EKA_IP2STR(addr.sin_addr.s_addr),
-          be16toh(addr.sin_port), *sock);
+  while (keep_work) {
+    int addr_size = sizeof(addr);
 
-  int status = fcntl(*sock, F_SETFL,
-                     fcntl(*sock, F_GETFL, 0) | O_NONBLOCK);
-  if (status == -1)
-    on_error("fcntl error");
+    *sock = accept(sd, (struct sockaddr *)&addr,
+                   (socklen_t *)&addr_size);
+    EKA_LOG("Connected from: %s:%d -- sock=%d\n",
+            inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),
+            *sock);
+    int status =
+        fcntl(*sock, F_SETFL,
+              fcntl(*sock, F_GETFL, 0) | O_NONBLOCK);
+    if (status == -1)
+      on_error("fcntl error");
+
+    do {
+      char line[1536] = {};
+      int rc = recv(*sock, line, sizeof(line), 0);
+      if (rc > 0) {
+        char bufStr[10000] = {};
+        hexDump2str("received TCP pkt", line, rc, bufStr,
+                    sizeof(bufStr));
+        EKA_LOG("%s", bufStr);
+        fflush(g_ekaLogFile);
+        send(*sock, line, rc, 0);
+      }
+    } while (keep_work);
+  }
+  EKA_LOG(" -- closing");
 
   return;
 }

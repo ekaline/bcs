@@ -82,6 +82,7 @@ void TestEfcFixture::SetUp() {
 /* --------------------------------------------- */
 
 void TestEfcFixture::TearDown() {
+  // sleep(1);
   keep_work = false;
 
   EKA_LOG("\n"
@@ -107,6 +108,9 @@ void TestEfcFixture::TearDown() {
 
 static void getFireReport(const void *p, size_t len,
                           void *ctx) {
+  fflush(g_ekaLogFile);
+  // EKA_LOG("Received Some Report");
+
   auto containerHdr{
       reinterpret_cast<const EkaContainerGlobalHdr *>(p)};
   if (containerHdr->type == EkaEventType::kExceptionEvent)
@@ -115,6 +119,9 @@ static void getFireReport(const void *p, size_t len,
   auto tFixturePtr = static_cast<TestEfcFixture *>(ctx);
   if (!tFixturePtr)
     on_error("!tFixturePtr");
+
+  EKA_LOG("Received FireReport: nReceivedFireReports=%d",
+          (int)tFixturePtr->nReceivedFireReports);
 
   auto fr = new TestEfcFixture::FireReport;
   if (!fr)
@@ -128,6 +135,10 @@ static void getFireReport(const void *p, size_t len,
   memcpy(fr->buf, p, len);
   tFixturePtr->fireReports.push_back(fr);
   tFixturePtr->nReceivedFireReports++;
+
+  EKA_LOG("FireReport pushed: nReceivedFireReports=%d",
+          (int)tFixturePtr->nReceivedFireReports);
+  fflush(g_ekaLogFile);
   return;
 }
 /* --------------------------------------------- */
@@ -166,14 +177,55 @@ getP4stratStatistics(uint64_t fireStatisticsAddr) {
   uint64_t var_p4_cont_counter1 =
       eka_read(fireStatisticsAddr);
 
-  auto strategyRuns = (var_p4_cont_counter1 >> 0) & MASK32;
-  auto strategyPassed =
+  auto nStrategyRuns = (var_p4_cont_counter1 >> 0) & MASK32;
+  auto nStrategyPassed =
       (var_p4_cont_counter1 >> 32) & MASK32;
 
-  return std::pair<uint32_t, uint32_t>{strategyRuns,
-                                       strategyPassed};
+  return std::pair<uint32_t, uint32_t>{nStrategyRuns,
+                                       nStrategyPassed};
 }
 
+/* --------------------------------------------- */
+std::pair<bool, bool> TestEfcFixture::waitForResults(
+    uint32_t nStratEvaluated_prev,
+    uint32_t nStratPassed_prev, int nExpectedFireReports) {
+  bool stratEvaluated = false;
+  bool stratPassed = false;
+  while (keep_work && !stratEvaluated) {
+    auto [nStratEvaluated_post, nStratPassed_post] =
+        getP4stratStatistics(FireStatisticsAddr_);
+
+    stratEvaluated =
+        (nStratEvaluated_post != nStratEvaluated_prev);
+    stratPassed = (nStratPassed_post != nStratPassed_prev);
+    if (!stratEvaluated) {
+      EKA_LOG("[nStratEvaluated_prev %u, "
+              "nStratPassed_prev %u] !="
+              "[nStratEvaluated_post %u, "
+              "nStratPassed_post %u]",
+              nStratEvaluated_prev, nStratPassed_prev,
+              nStratEvaluated_post, nStratPassed_post);
+    }
+
+    if (stratPassed) {
+      while (nExpectedFireReports !=
+             nReceivedFireReports.load()) {
+#if 0
+        EKA_LOG("Waiting for FireReport: "
+                "nExpectedFireReports = %d, "
+                "nReceivedFireReports = %d",
+                nExpectedFireReports,
+                nReceivedFireReports.load());
+#endif
+        std::this_thread::yield();
+      }
+    }
+    std::this_thread::yield();
+  } // waiting loop
+
+  EKA_LOG("Waiting completed");
+  return std::pair<bool, bool>(stratEvaluated, stratPassed);
+}
 /* --------------------------------------------- */
 
 EfcArmVer TestEfcFixture::sendPktToAll(const void *pkt,
@@ -195,35 +247,38 @@ EfcArmVer TestEfcFixture::sendPktToAll(const void *pkt,
         on_error("!udpConn_[%d][%d]", coreId, i);
 
       armController_(g_ekaDev, nextArmVer++);
-      auto [strategyRuns_prev, strategyPassed_prev] =
-          getP4stratStatistics(FireStatisticsAddr_);
 
       char udpConParamsStr[128] = {};
       udpCon->printMcConnParams(udpConParamsStr);
+
+      auto [nStratEvaluated_prev, nStratPassed_prev] =
+          getP4stratStatistics(FireStatisticsAddr_);
+      // ==============================================
       EKA_LOG("Sending UPD MD to %s", udpConParamsStr);
-
       udpCon->sendUdpPkt(pkt, pktLen);
-      nExpectedFireReports += nFiresPerUdp;
-      bool fired = false;
-      while (keep_work && !fired &&
-             nExpectedFireReports !=
-                 nReceivedFireReports.load()) {
-        auto [strategyRuns_post, strategyPassed_post] =
-            getP4stratStatistics(FireStatisticsAddr_);
+      // ==============================================
+      auto [stratEvaluated, stratPassed] =
+          waitForResults(nStratEvaluated_prev,
+                         nStratPassed_prev, nFiresPerUdp);
 
-        fired = (strategyRuns_post != strategyRuns_prev);
-        if (!fired) {
-          EKA_LOG("[strategyRuns_prev %u, "
-                  "strategyPassed_prev %u] !="
-                  "[strategyRuns_post %u, "
-                  "strategyPassed_post %u]",
-                  strategyRuns_prev, strategyPassed_prev,
-                  strategyRuns_post, strategyPassed_post);
+      if (stratPassed) {
+        for (auto i = 0; i < tcpCtx_->nTcpSess_; i++) {
+          int rc = 0;
+          char rxBuf[8192] = {};
+          while (rc <= 0) {
+            rc = excRecv(g_ekaDev,
+                         tcpCtx_->tcpSess_[i]->hCon_, rxBuf,
+                         sizeof(rxBuf), 0);
+          }
+          char bufStr[10000] = {};
+          hexDump2str("Echoed TCP pkt", rxBuf, rc, bufStr,
+                      sizeof(bufStr));
+          EKA_LOG("TCP Sess %d: %s", i, bufStr);
         }
-        std::this_thread::yield();
       }
-    }
-  }
+
+    } // iteration per MC grp
+  }   // iteration per Core
 
   return nextArmVer;
 }

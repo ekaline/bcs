@@ -60,7 +60,7 @@ TEST_F(TestCmeFc, CmeFC_0) {
 }
 #endif
 /* --------------------------------------------- */
-TEST(Dummy, Zero) { EXPECT_EQ(0, 0); }
+// TEST(Dummy, Zero) { EXPECT_EQ(0, 0); }
 #if 1
 
 TEST_F(TestP4, FireOnAsk) {
