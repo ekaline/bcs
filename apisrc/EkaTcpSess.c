@@ -95,9 +95,11 @@ EkaTcpSess::EkaTcpSess(EkaDev *pEkaDev, EkaCore *_parent,
         EkaEpmRegion::Regions::TcpTxFullPkt);
     fullPktAction->setTcpSess(this);
   } else {
-    EKA_LOG("sock=%d for: %s:%u --> %s:%u", sock,
-            EKA_IP2STR(srcIp), srcPort, EKA_IP2STR(dstIp),
-            dstPort);
+    EKA_LOG("Established TCP Session %u: sock=%d for: "
+            "%s:%u --> "
+            "%s:%u",
+            idx, sock, EKA_IP2STR(srcIp), srcPort,
+            EKA_IP2STR(dstIp), dstPort);
     fastPathAction = dev->epm->addAction(
         EkaEpm::ActionType::TcpFastPath, idx,
         EkaEpmRegion::Regions::TcpTxFullPkt);
