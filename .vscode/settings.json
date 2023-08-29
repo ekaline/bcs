@@ -71,7 +71,12 @@
                 "cinttypes": "cpp",
                 "typeinfo": "cpp",
                 "cassert": "cpp",
-                "optional": "c"
+                "optional": "c",
+                "strstream": "cpp",
+                "complex": "cpp",
+                "list": "cpp",
+                "cfenv": "cpp",
+                "typeindex": "cpp"
         },
         "cmake.configureOnOpen": true,
         "editor.tokenColorCustomizations": {

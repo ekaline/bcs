@@ -318,8 +318,8 @@ set_target_properties(runTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                           ${testDstDir})
 target_compile_options(runTests PUBLIC -std=c++23)
 
-add_dependencies(runTests ${EKA_LIB_NAME})
-target_link_libraries(runTests ${EKA_LIB_NAME} rt m Threads::Threads)
+add_dependencies(runTests ${EKA_LIB_NAME}_static)
+target_link_libraries(runTests ${EKA_LIB_NAME}_static rt m Threads::Threads)
 target_link_libraries(runTests -static-libgcc -static-libstdc++)
 
 target_include_directories(runTests PUBLIC ${EKA_INC_PATH})
