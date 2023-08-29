@@ -216,3 +216,50 @@ size_t TestP4::createOrderExpanded(char *dst,
           p->msg.customer_indicator);
   return sizeof(CboePitchAddOrderExpanded);
 }
+
+// ==============================================
+
+void TestP4::checkAlgoCorrectness(
+    const TestCaseConfig *tc) {
+
+  int i = 0;
+  for (const auto &fr : fireReports) {
+    efcPrintFireReport(fr->buf, fr->len, g_ekaLogFile);
+
+    getReportPtrs(fr->buf, fr->len);
+
+    auto msgP = firePkt_ + 54;
+    auto firedPayloadDiff =
+        memcmp(msgP, echoedPkts.at(i)->buf,
+               sizeof(BoeQuoteUpdateShortMsg));
+#if 0
+    hexDump("FireReport Msg", msgP,
+            sizeof(BoeQuoteUpdateShortMsg));
+    hexDump("Echo Pkt", echoedPkts.at(i)->buf,
+            echoedPkts.at(i)->len);
+#endif
+    EXPECT_EQ(firedPayloadDiff, 0);
+
+    auto boeQuoteUpdateShort =
+        reinterpret_cast<const BoeQuoteUpdateShortMsg *>(
+            msgP);
+
+    auto injectedMd = reinterpret_cast<const TestP4Md *>(
+        tc->mdInjectParams);
+
+    auto injectedSecIdstr =
+        cboeSecIdString(injectedMd->secId, 6);
+    auto firedSecIdStr =
+        std::string(boeQuoteUpdateShort->Symbol, 6);
+
+    EXPECT_EQ(injectedSecIdstr, firedSecIdStr);
+
+    EXPECT_EQ(injectedMd->price,
+              boeQuoteUpdateShort->Price);
+    EXPECT_EQ(injectedMd->size,
+              boeQuoteUpdateShort->OrderQty);
+    EXPECT_EQ(boeQuoteUpdateShort->Side,
+              cboeOppositeSide(injectedMd->side));
+    i++;
+  }
+}
