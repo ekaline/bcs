@@ -84,6 +84,8 @@ TEST_F(TestP4, FireOnAsk) {
                              .algoConfigParams = &secConf,
                              .mdInjectParams = &mdConf};
 
+  nExpectedFires = 1;
+
   runTest(&tc);
 }
 #endif
@@ -109,6 +111,8 @@ TEST_F(TestP4, FireOnBid) {
                              .tcpParams = &tcp0,
                              .algoConfigParams = &secConf,
                              .mdInjectParams = &mdConf};
+
+  nExpectedFires = 1;
 
   runTest(&tc);
 }
