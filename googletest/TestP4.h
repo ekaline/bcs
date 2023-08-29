@@ -42,6 +42,9 @@ struct CboePitchAddOrderExpanded {
   add_order_expanded msg;
 } __attribute__((packed));
 
+static inline char cboeOppositeSide(SideT side) {
+  return side == SideT::BID ? '2' : '1';
+}
 static inline char cboeSide(SideT side) {
   return side == SideT::BID ? 'B' : 'S';
 }

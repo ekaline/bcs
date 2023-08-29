@@ -20,6 +20,7 @@
 #include "eka_macros.h"
 
 #include "TestEfcFixture.h"
+#include "TestP4.h"
 
 #include "Efc.h"
 
@@ -101,6 +102,16 @@ void TestEfcFixture::TearDown() {
 
   fclose(g_ekaLogFile);
 
+  for (auto &p : fireReports) {
+    delete[] p->buf;
+  }
+  fireReports.clear();
+
+  for (auto &p : echoedPkts) {
+    delete[] p->buf;
+  }
+  echoedPkts.clear();
+
   return;
 }
 
@@ -123,7 +134,7 @@ static void getFireReport(const void *p, size_t len,
   EKA_LOG("Received FireReport: nReceivedFireReports=%d",
           (int)tFixturePtr->nReceivedFireReports);
 
-  auto fr = new TestEfcFixture::FireReport;
+  auto fr = new TestEfcFixture::MemChunk;
   if (!fr)
     on_error("!fr");
 
@@ -157,10 +168,16 @@ void TestEfcFixture::initNwCtxs(const TestCaseConfig *tc) {
 
 void TestEfcFixture::runTest(const TestCaseConfig *tc) {
   initNwCtxs(tc);
-
   printTestConfig("Running");
 
-  commonInit();
+  configureFpgaPorts();
+
+  EfcInitCtx initCtx = {.watchdog_timeout_sec = 1000000};
+  EkaOpResult efcInitRc = efcInit(g_ekaDev, &initCtx);
+  ASSERT_EQ(efcInitRc, EKA_OPRESULT__OK);
+
+  tcpCtx_->connectAll();
+
   configureStrat(tc);
 
   EfcRunCtx runCtx = {.onEfcFireReportCb = getFireReport,
@@ -169,7 +186,156 @@ void TestEfcFixture::runTest(const TestCaseConfig *tc) {
 
   sendData(tc->mdInjectParams);
   disArmController_(g_ekaDev);
+
+  checkFireReports(tc);
 }
+/* --------------------------------------------- */
+void TestEfcFixture::getReportPtrs(
+    const void *p, size_t len,
+    const EfcControllerState **ctrlState,
+    const EfcExceptionsReport **excptReport,
+    const SecCtx **secCtx, const EfcMdReport **mdReport,
+    const uint8_t **firePkt,
+    const EpmFireReport **epmReport,
+    const EpmFastCancelReport **cmeFcReport,
+    const EpmQEDReport **qedReport) {
+
+  auto b = static_cast<const uint8_t *>(p);
+  auto containerHdr{
+      reinterpret_cast<const EkaContainerGlobalHdr *>(b)};
+  b += sizeof(*containerHdr);
+
+  for (uint i = 0; i < containerHdr->num_of_reports; i++) {
+    auto reportHdr{
+        reinterpret_cast<const EfcReportHdr *>(b)};
+    b += sizeof(*reportHdr);
+    switch (reportHdr->type) {
+    case EfcReportType::kControllerState:
+      *ctrlState =
+          reinterpret_cast<const EfcControllerState *>(b);
+      // b += sizeof(*ctrlState);
+      b += reportHdr->size;
+
+      // TEST_LOG("EfcReportType::kControllerState");
+      break;
+
+    case EfcReportType::kExceptionReport:
+      *excptReport =
+          reinterpret_cast<const EfcExceptionsReport *>(b);
+      b += sizeof(*excptReport);
+      // TEST_LOG("EfcReportType::kExceptionReport");
+      break;
+
+    case EfcReportType::kMdReport:
+      *mdReport = reinterpret_cast<const EfcMdReport *>(b);
+      // b += sizeof(*mdReport);
+      b += reportHdr->size;
+
+      // TEST_LOG("EfcReportType::kMdReport");
+      break;
+
+    case EfcReportType::kSecurityCtx:
+      *secCtx = reinterpret_cast<const SecCtx *>(b);
+      b += sizeof(*secCtx);
+      break;
+
+    case EfcReportType::kFirePkt:
+      *firePkt = b;
+      b += reportHdr->size;
+      // TEST_LOG("EfcReportType::kFirePkt");
+      break;
+
+    case EfcReportType::kEpmReport:
+      *epmReport =
+          reinterpret_cast<const EpmFireReport *>(b);
+      // b += sizeof(*epmReport);
+      b += reportHdr->size;
+
+      // TEST_LOG("EfcReportType::kEpmReport");
+      break;
+
+    case EfcReportType::kFastCancelReport:
+      *cmeFcReport =
+          reinterpret_cast<const EpmFastCancelReport *>(b);
+      b += sizeof(*cmeFcReport);
+      // TEST_LOG("EfcReportType::kFastCancelReport");
+      break;
+
+    case EfcReportType::kQEDReport:
+      *qedReport =
+          reinterpret_cast<const EpmQEDReport *>(b);
+      b += sizeof(*qedReport);
+      // TEST_LOG("EfcReportType::kQEDReport");
+      break;
+
+    default:
+      on_error("Unexpected reportHdr->type %d",
+               (int)reportHdr->type);
+    }
+  }
+}
+/* --------------------------------------------- */
+
+void TestEfcFixture::checkFireReports(
+    const TestCaseConfig *tc) {
+
+  EXPECT_EQ(nExpectedFires, fireReports.size());
+  EXPECT_EQ(echoedPkts.size(), fireReports.size());
+
+  int i = 0;
+  for (const auto &fr : fireReports) {
+    const EfcControllerState *ctrlState = nullptr;
+    const EfcExceptionsReport *excptReport = nullptr;
+    const SecCtx *secCtx = nullptr;
+    const EfcMdReport *mdReport = nullptr;
+    const uint8_t *firePkt = nullptr;
+    const EpmFireReport *epmReport = nullptr;
+    const EpmFastCancelReport *cmeFcReport = nullptr;
+    const EpmQEDReport *qedReport = nullptr;
+
+    efcPrintFireReport(fr->buf, fr->len, g_ekaLogFile);
+
+    getReportPtrs(fr->buf, fr->len, &ctrlState,
+                  &excptReport, &secCtx, &mdReport,
+                  &firePkt, &epmReport, &cmeFcReport,
+                  &qedReport);
+
+    auto msgP = firePkt + 54;
+    auto firedPayloadDiff =
+        memcmp(msgP, echoedPkts.at(i)->buf,
+               sizeof(BoeQuoteUpdateShortMsg));
+#if 0
+    hexDump("FireReport Msg", msgP,
+            sizeof(BoeQuoteUpdateShortMsg));
+    hexDump("Echo Pkt", echoedPkts.at(i)->buf,
+            echoedPkts.at(i)->len);
+#endif
+    EXPECT_EQ(firedPayloadDiff, 0);
+
+    auto boeQuoteUpdateShort =
+        reinterpret_cast<const BoeQuoteUpdateShortMsg *>(
+            msgP);
+
+    auto injectedMd = reinterpret_cast<const TestP4Md *>(
+        tc->mdInjectParams);
+
+    auto injectedSecIdstr =
+        cboeSecIdString(injectedMd->secId, 6);
+    auto firedSecIdStr =
+        std::string(boeQuoteUpdateShort->Symbol, 6);
+
+    EXPECT_EQ(injectedSecIdstr, firedSecIdStr);
+
+    EXPECT_EQ(injectedMd->price,
+              boeQuoteUpdateShort->Price);
+    EXPECT_EQ(injectedMd->size,
+              boeQuoteUpdateShort->OrderQty);
+    EXPECT_EQ(boeQuoteUpdateShort->Side,
+              cboeOppositeSide(injectedMd->side));
+    i++;
+  }
+}
+
 /* --------------------------------------------- */
 
 static std::pair<uint32_t, uint32_t>
@@ -263,17 +429,29 @@ EfcArmVer TestEfcFixture::sendPktToAll(const void *pkt,
 
       if (stratPassed) {
         for (auto i = 0; i < tcpCtx_->nTcpSess_; i++) {
-          int rc = 0;
+          int len = 0;
           char rxBuf[8192] = {};
-          while (rc <= 0) {
-            rc = excRecv(g_ekaDev,
-                         tcpCtx_->tcpSess_[i]->hCon_, rxBuf,
-                         sizeof(rxBuf), 0);
+          while (len <= 0) {
+            len = excRecv(g_ekaDev,
+                          tcpCtx_->tcpSess_[i]->hCon_,
+                          rxBuf, sizeof(rxBuf), 0);
           }
           char bufStr[10000] = {};
-          hexDump2str("Echoed TCP pkt", rxBuf, rc, bufStr,
+          hexDump2str("Echoed TCP pkt", rxBuf, len, bufStr,
                       sizeof(bufStr));
           EKA_LOG("TCP Sess %d: %s", i, bufStr);
+
+          auto ep = new TestEfcFixture::MemChunk;
+          if (!ep)
+            on_error("!ep");
+
+          ep->buf = new uint8_t[len];
+          if (!ep->buf)
+            on_error("!ep->buf");
+          ep->len = len;
+
+          memcpy(ep->buf, rxBuf, len);
+          echoedPkts.push_back(ep);
         }
       }
 
@@ -284,18 +462,12 @@ EfcArmVer TestEfcFixture::sendPktToAll(const void *pkt,
 }
 
 /* ############################################# */
-void TestEfcFixture::commonInit() {
-  auto dev = g_ekaDev;
-  ASSERT_NE(dev, nullptr);
 
-  configureFpgaPorts();
-  tcpCtx_->connectAll();
-
-  EfcInitCtx initCtx = {.watchdog_timeout_sec = 1000000};
-
-  EkaOpResult efcInitRc = efcInit(dev, &initCtx);
-  ASSERT_EQ(efcInitRc, EKA_OPRESULT__OK);
-}
 /* ############################################# */
+void TestEfcFixture::printTestConfig(const char *msg) {
+  EKA_LOG("\n%s: \'%s\' ", msg, testName_);
 
+  printTcpCtx();
+  printUdpCtx();
+}
 /* ############################################# */

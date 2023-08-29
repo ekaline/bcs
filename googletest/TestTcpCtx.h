@@ -113,6 +113,7 @@ static void tcpServer(const char *ip, uint16_t port,
              be16toh(addr.sin_port));
   if (listen(sd, 20) != 0)
     on_error("Listen");
+
   *serverSet = true;
 
   while (keep_work) {
@@ -143,7 +144,8 @@ static void tcpServer(const char *ip, uint16_t port,
     } while (keep_work);
   }
   EKA_LOG(" -- closing");
-
+  close(*sock);
+  close(sd);
   return;
 }
 /* --------------------------------------------- */
@@ -159,7 +161,10 @@ public:
   }
   /* --------------------------------------------- */
 
-  ~TestTcpSessCtx() { tcpServThr_.join(); }
+  ~TestTcpSessCtx() {
+    tcpServThr_.join();
+    excClose(g_ekaDev, hCon_);
+  }
   /* --------------------------------------------- */
 
   void createTcpServ() {
@@ -249,6 +254,13 @@ public:
     }
   }
   /* --------------------------------------------- */
+  ~TestTcpCtx() {
+    EKA_LOG("Closing %d TCP connections", nTcpSess_);
+    for (auto i = 0; i < nTcpSess_; i++)
+      if (tcpSess_[i])
+        delete tcpSess_[i];
+  }
+  /* --------------------------------------------- */
 
   void connectAll() {
     for (auto i = 0; i < nTcpSess_; i++) {
@@ -274,8 +286,9 @@ public:
     fprintf(g_ekaLogFile, "\n");
   }
 
+  static const int MaxSess = 32;
   size_t nTcpSess_ = 0;
-  TestTcpSessCtx *tcpSess_[32] = {};
+  TestTcpSessCtx *tcpSess_[MaxSess] = {};
 };
 
 #endif

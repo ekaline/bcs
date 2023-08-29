@@ -36,8 +36,6 @@ protected:
   EfcArmVer sendPktToAll(const void *pkt, size_t pktLen,
                          EfcArmVer armVer);
 
-  void commonInit();
-
   void configureFpgaPorts();
 
   virtual void configureStrat(const TestCaseConfig *t) = 0;
@@ -53,12 +51,19 @@ protected:
   void printTcpCtx() { return tcpCtx_->printConf(); }
   void printUdpCtx() { return udpCtx_->printConf(); }
 
-  void printTestConfig(const char *msg) {
-    EKA_LOG("\n%s: \'%s\' ", msg, testName_);
+  void checkFireReports(const TestCaseConfig *tc);
+  void
+  getReportPtrs(const void *p, size_t len,
+                const EfcControllerState **ctrlState,
+                const EfcExceptionsReport **excptReport,
+                const SecCtx **secCtx,
+                const EfcMdReport **mdReport,
+                const uint8_t **firePkt,
+                const EpmFireReport **epmReport,
+                const EpmFastCancelReport **cmeFcReport,
+                const EpmQEDReport **qedReport);
 
-    printTcpCtx();
-    printUdpCtx();
-  }
+  void printTestConfig(const char *msg);
 
 protected:
   static const int MaxTcpTestSessions = 16;
@@ -80,14 +85,19 @@ protected:
   TestTcpCtx *tcpCtx_ = nullptr;
   bool loop_ = false;
 
+  int nExpectedFires = 0;
+
 public:
-  struct FireReport {
+  struct MemChunk {
     uint8_t *buf;
     size_t len;
   };
 
-  std::vector<FireReport *> fireReports = {};
+  std::vector<MemChunk *> fireReports = {};
   std::atomic<int> nReceivedFireReports = 0;
+
+  std::vector<MemChunk *> echoedPkts = {};
+
   int nExpectedFireReports = 0;
 };
 
