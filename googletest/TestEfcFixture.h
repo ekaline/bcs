@@ -52,16 +52,10 @@ protected:
   void printUdpCtx() { return udpCtx_->printConf(); }
 
   void checkFireReports(const TestCaseConfig *tc);
-  void
-  getReportPtrs(const void *p, size_t len,
-                const EfcControllerState **ctrlState,
-                const EfcExceptionsReport **excptReport,
-                const SecCtx **secCtx,
-                const EfcMdReport **mdReport,
-                const uint8_t **firePkt,
-                const EpmFireReport **epmReport,
-                const EpmFastCancelReport **cmeFcReport,
-                const EpmQEDReport **qedReport);
+  virtual void
+  checkAlgoCorrectness(const TestCaseConfig *tc) {}
+
+  void getReportPtrs(const void *p, size_t len);
 
   void printTestConfig(const char *msg);
 
@@ -86,6 +80,15 @@ protected:
   bool loop_ = false;
 
   int nExpectedFires = 0;
+
+  const EfcControllerState *ctrlState_ = nullptr;
+  const EfcExceptionsReport *excptReport_ = nullptr;
+  const SecCtx *secCtx_ = nullptr;
+  const EfcMdReport *mdReport_ = nullptr;
+  const uint8_t *firePkt_ = nullptr;
+  const EpmFireReport *epmReport_ = nullptr;
+  const EpmFastCancelReport *cmeFcReport_ = nullptr;
+  const EpmQEDReport *qedReport_ = nullptr;
 
 public:
   struct MemChunk {

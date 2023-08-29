@@ -56,6 +56,9 @@ protected:
   void configureStrat(const TestCaseConfig *t) override;
   void sendData(const void *mdInjectParams) override;
 
+  virtual void
+  checkAlgoCorrectness(const TestCaseConfig *tc);
+
 private:
   void createSecList(const TestP4SecConf *secConf);
   void getSecCtx(const TestP4CboeSec *secCtx, SecCtx *dst);

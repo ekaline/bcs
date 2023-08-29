@@ -188,17 +188,11 @@ void TestEfcFixture::runTest(const TestCaseConfig *tc) {
   disArmController_(g_ekaDev);
 
   checkFireReports(tc);
+  checkAlgoCorrectness(tc);
 }
 /* --------------------------------------------- */
-void TestEfcFixture::getReportPtrs(
-    const void *p, size_t len,
-    const EfcControllerState **ctrlState,
-    const EfcExceptionsReport **excptReport,
-    const SecCtx **secCtx, const EfcMdReport **mdReport,
-    const uint8_t **firePkt,
-    const EpmFireReport **epmReport,
-    const EpmFastCancelReport **cmeFcReport,
-    const EpmQEDReport **qedReport) {
+void TestEfcFixture::getReportPtrs(const void *p,
+                                   size_t len) {
 
   auto b = static_cast<const uint8_t *>(p);
   auto containerHdr{
@@ -211,60 +205,46 @@ void TestEfcFixture::getReportPtrs(
     b += sizeof(*reportHdr);
     switch (reportHdr->type) {
     case EfcReportType::kControllerState:
-      *ctrlState =
+      ctrlState_ =
           reinterpret_cast<const EfcControllerState *>(b);
-      // b += sizeof(*ctrlState);
-      b += reportHdr->size;
-
       // TEST_LOG("EfcReportType::kControllerState");
       break;
 
     case EfcReportType::kExceptionReport:
-      *excptReport =
+      excptReport_ =
           reinterpret_cast<const EfcExceptionsReport *>(b);
-      b += sizeof(*excptReport);
       // TEST_LOG("EfcReportType::kExceptionReport");
       break;
 
     case EfcReportType::kMdReport:
-      *mdReport = reinterpret_cast<const EfcMdReport *>(b);
-      // b += sizeof(*mdReport);
-      b += reportHdr->size;
-
+      mdReport_ = reinterpret_cast<const EfcMdReport *>(b);
       // TEST_LOG("EfcReportType::kMdReport");
       break;
 
     case EfcReportType::kSecurityCtx:
-      *secCtx = reinterpret_cast<const SecCtx *>(b);
-      b += sizeof(*secCtx);
+      secCtx_ = reinterpret_cast<const SecCtx *>(b);
       break;
 
     case EfcReportType::kFirePkt:
-      *firePkt = b;
-      b += reportHdr->size;
+      firePkt_ = b;
       // TEST_LOG("EfcReportType::kFirePkt");
       break;
 
     case EfcReportType::kEpmReport:
-      *epmReport =
+      epmReport_ =
           reinterpret_cast<const EpmFireReport *>(b);
-      // b += sizeof(*epmReport);
-      b += reportHdr->size;
-
       // TEST_LOG("EfcReportType::kEpmReport");
       break;
 
     case EfcReportType::kFastCancelReport:
-      *cmeFcReport =
+      cmeFcReport_ =
           reinterpret_cast<const EpmFastCancelReport *>(b);
-      b += sizeof(*cmeFcReport);
       // TEST_LOG("EfcReportType::kFastCancelReport");
       break;
 
     case EfcReportType::kQEDReport:
-      *qedReport =
+      qedReport_ =
           reinterpret_cast<const EpmQEDReport *>(b);
-      b += sizeof(*qedReport);
       // TEST_LOG("EfcReportType::kQEDReport");
       break;
 
@@ -272,6 +252,7 @@ void TestEfcFixture::getReportPtrs(
       on_error("Unexpected reportHdr->type %d",
                (int)reportHdr->type);
     }
+    b += reportHdr->size;
   }
 }
 /* --------------------------------------------- */
@@ -281,59 +262,6 @@ void TestEfcFixture::checkFireReports(
 
   EXPECT_EQ(nExpectedFires, fireReports.size());
   EXPECT_EQ(echoedPkts.size(), fireReports.size());
-
-  int i = 0;
-  for (const auto &fr : fireReports) {
-    const EfcControllerState *ctrlState = nullptr;
-    const EfcExceptionsReport *excptReport = nullptr;
-    const SecCtx *secCtx = nullptr;
-    const EfcMdReport *mdReport = nullptr;
-    const uint8_t *firePkt = nullptr;
-    const EpmFireReport *epmReport = nullptr;
-    const EpmFastCancelReport *cmeFcReport = nullptr;
-    const EpmQEDReport *qedReport = nullptr;
-
-    efcPrintFireReport(fr->buf, fr->len, g_ekaLogFile);
-
-    getReportPtrs(fr->buf, fr->len, &ctrlState,
-                  &excptReport, &secCtx, &mdReport,
-                  &firePkt, &epmReport, &cmeFcReport,
-                  &qedReport);
-
-    auto msgP = firePkt + 54;
-    auto firedPayloadDiff =
-        memcmp(msgP, echoedPkts.at(i)->buf,
-               sizeof(BoeQuoteUpdateShortMsg));
-#if 0
-    hexDump("FireReport Msg", msgP,
-            sizeof(BoeQuoteUpdateShortMsg));
-    hexDump("Echo Pkt", echoedPkts.at(i)->buf,
-            echoedPkts.at(i)->len);
-#endif
-    EXPECT_EQ(firedPayloadDiff, 0);
-
-    auto boeQuoteUpdateShort =
-        reinterpret_cast<const BoeQuoteUpdateShortMsg *>(
-            msgP);
-
-    auto injectedMd = reinterpret_cast<const TestP4Md *>(
-        tc->mdInjectParams);
-
-    auto injectedSecIdstr =
-        cboeSecIdString(injectedMd->secId, 6);
-    auto firedSecIdStr =
-        std::string(boeQuoteUpdateShort->Symbol, 6);
-
-    EXPECT_EQ(injectedSecIdstr, firedSecIdStr);
-
-    EXPECT_EQ(injectedMd->price,
-              boeQuoteUpdateShort->Price);
-    EXPECT_EQ(injectedMd->size,
-              boeQuoteUpdateShort->OrderQty);
-    EXPECT_EQ(boeQuoteUpdateShort->Side,
-              cboeOppositeSide(injectedMd->side));
-    i++;
-  }
 }
 
 /* --------------------------------------------- */
