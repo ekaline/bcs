@@ -42,6 +42,9 @@ struct CboePitchAddOrderExpanded {
   add_order_expanded msg;
 } __attribute__((packed));
 
+static inline char cboeOppositeSide(SideT side) {
+  return side == SideT::BID ? '2' : '1';
+}
 static inline char cboeSide(SideT side) {
   return side == SideT::BID ? 'B' : 'S';
 }
@@ -52,6 +55,9 @@ class TestP4 : public TestEfcFixture {
 protected:
   void configureStrat(const TestCaseConfig *t) override;
   void sendData(const void *mdInjectParams) override;
+
+  virtual void
+  checkAlgoCorrectness(const TestCaseConfig *tc);
 
 private:
   void createSecList(const TestP4SecConf *secConf);
