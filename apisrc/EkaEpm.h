@@ -178,6 +178,8 @@ public:
                           int regionId);
 
   epm_actionid_t allocateAction(EpmActionType actionType);
+  void deleteAction(EpmActionType actionType,
+                    epm_actionid_t localIdx, int regionId);
 
 private:
   void actionParamsSanityCheck(ActionType type,

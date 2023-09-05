@@ -469,6 +469,32 @@ EkaEpmAction *EkaEpm::addAction(ActionType type,
   return a_[globalIdx];
 }
 /* ---------------------------------------------------- */
+
+void EkaEpm::deleteAction(EpmActionType actionType,
+                          epm_actionid_t localIdx,
+                          int regionId) {
+  createActionMtx.lock();
+  epm_actionid_t globalIdx =
+      EkaEpmRegion::getBaseActionIdx(regionId) + localIdx;
+
+  if (a_[globalIdx]) {
+    EKA_LOG("Deleting Action[%d]: \'%s\' at regionId=%u",
+            (int)localIdx, printActionType(actionType),
+            regionId);
+    delete a_[globalIdx];
+    a_[globalIdx] = nullptr;
+  } else {
+    EKA_WARN(
+        "Warning: Cannot delete Action[%d] == nullptr: "
+        "\'%s\' at regionId=%u",
+        (int)localIdx, printActionType(actionType),
+        regionId);
+  }
+
+  createActionMtx.unlock();
+}
+
+/* ---------------------------------------------------- */
 epm_actionid_t
 EkaEpm::allocateAction(EpmActionType actionType) {
   allocateActionMtx.lock();
