@@ -1,7 +1,6 @@
 LIBEKALINE2_1.0	{
-		global:
-			*;
-
-		local:
-			*;
-		};
+    global:
+        *;
+    local:
+        *;
+};
