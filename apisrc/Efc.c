@@ -103,6 +103,7 @@ EkaOpResult setActionTcpSock(EkaDev *ekaDev,
           EKA_IP2STR(sess->srcIp), sess->srcPort,
           EKA_MAC2STR(sess->macDa), EKA_IP2STR(sess->dstIp),
           sess->dstPort);
+  epm->a_[globalIdx]->copyHeap2Fpga();
 
   return EKA_OPRESULT__OK;
 }
