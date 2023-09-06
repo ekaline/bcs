@@ -152,16 +152,6 @@ efcSwKeepAliveSend(EkaDev *pEkaDev,
                    int strategyId = EFC_STRATEGY);
 
 /**
- * This will close an Ekaline firing controller created with
- * efcInit.
- *
- * @oaram pEkaDev
- * @return        An EkalineOpResult indicating success or
- * an error in closing the controller.
- */
-EkaOpResult efcClose(EkaDev *pEkaDev);
-
-/**
  * Allocates a new Action from the Strategy pool.
  *
  * This function should not be called for the P4 strategies

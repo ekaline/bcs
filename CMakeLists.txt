@@ -32,12 +32,10 @@ message(STATUS "EKA_GIT_VER = ${EKA_GIT_VER}")
 
 set(CMAKE_C_COMPILER ${CMAKE_CXX_COMPILER})
 set(CMAKE_CXX_FLAGS
-    "
-    -O3
-    -funroll-loops
-    -pipe
-    -march=native
-    ")
+    "-O3\
+    -funroll-loops\
+    -pipe\
+    -march=native")
 
 add_compile_options("-Werror=return-type")
 
@@ -148,13 +146,23 @@ set(EKA_INC_PATH ${EKA_INC_PATH} ${SMARTNIC_API_INCL})
 set(EKA_INC_PATH ${EKA_INC_PATH} ${SMARTNIC_DRIVER_INCL})
 set(EKA_INC_PATH ${EKA_INC_PATH} ${LWIP_INCL})
 
+set(EKA_LINK_MAP ${EKA_SRC_DIR}/compat/lib${EKA_LIB_NAME}.map)
+
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 # ##############################################################################
 # lib${EKA_LIB_NAME}.so
 
+set(EKA_LINK_MAP ${apiDIR}/libekaline2.map)
+
 add_library(${EKA_LIB_NAME} SHARED ${${EKA_LIB_NAME}_SRCS})
+
+set_target_properties(${EKA_LIB_NAME}
+  PROPERTIES
+  LINK_DEPENDS ${EKA_LINK_MAP}
+  LINK_FLAGS "-Wl,--version-script=${EKA_LINK_MAP}"
+)
 
 target_compile_options(${EKA_LIB_NAME} PRIVATE -std=c++23 -O3 -funroll-loops
                                                -pthread -pipe -march=native)
@@ -188,7 +196,11 @@ target_link_libraries(
 file(GLOB EKA_LIB_NAME_PUBLIC_HEADER ${apiDIR}/*.h)
 set_target_properties(${EKA_LIB_NAME}
                       PROPERTIES PUBLIC_HEADER "${EKA_LIB_NAME_PUBLIC_HEADER}")
-
+set_target_properties(${EKA_LIB_NAME}
+  PROPERTIES
+  LINK_DEPENDS ${EKA_LINK_MAP}
+  LINK_FLAGS "-Wl,--version-script=${EKA_LINK_MAP}"
+)
 set_target_properties(${EKA_LIB_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
                                                  ${libDstDir})
 install(TARGETS ${EKA_LIB_NAME} RUNTIME DESTINATION lib COMPONENT Runtime)
@@ -290,4 +302,36 @@ foreach(pSrc ${pcapParser_SRCS})
   # target_link_libraries(${pcapParserExec} rt m Threads::Threads)
 
   target_include_directories(${pcapParserExec} PUBLIC ${EKA_INC_PATH})
+endforeach()
+
+# ##############################################################################
+# Google test
+
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS})
+
+set(EKA_GTESTS_DIR ${CMAKE_CURRENT_LIST_DIR}/googletest)
+set(testDstDir ${CMAKE_BINARY_DIR}/googletest/${EKA_LIB_NAME})
+
+# Link runTests with what we want to test and the GTest and pthread library
+add_executable(runTests ${EKA_GTESTS_DIR}/ekaGoogleTest.cpp)
+set_target_properties(runTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY
+                                          ${testDstDir})
+
+target_link_libraries(runTests ${GTEST_LIBRARIES} pthread)
+
+set_target_properties(runTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY
+                                          ${testDstDir})
+target_compile_options(runTests PUBLIC -std=c++23)
+
+add_dependencies(runTests ${EKA_LIB_NAME}_static)
+target_link_libraries(runTests ${EKA_LIB_NAME}_static rt m Threads::Threads)
+target_link_libraries(runTests -static-libgcc -static-libstdc++)
+
+target_include_directories(runTests PUBLIC ${EKA_INC_PATH})
+
+file(GLOB ekaGtest_SRCS ${EKA_GTESTS_DIR}/*.cpp)
+
+foreach(ekaGtestSrc ${ekaGtest_SRCS})
+  target_sources(runTests PRIVATE ${ekaGtestSrc})
 endforeach()

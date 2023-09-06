@@ -4,7 +4,6 @@
 #include <string>
 #include <unistd.h>
 
-#include "EfhMsgs.h"
 #include "EkaFhTypes.h"
 #include "eka_macros.h"
 
@@ -662,7 +661,7 @@ struct AuctionNotification { // 0xAD
                     // Solicitation Auction Mechanism (C1
                     // Only) 'T' = Step Up Mechanism (SUM)
                     // 'A' = SUM All or None
-  char side; // 'B' or 'S'
+  char side;        // 'B' or 'S'
   uint64_t price;
   uint32_t contracts;
   char customerIndicator; // 'N' = Non-Customer 'C' =
@@ -681,7 +680,7 @@ struct AuctionNotification_complex { // 0xAD
                     // 'S' = Complex Solicitation Auction
                     // Mechanism 'B' = Complex AIM 'O' = COA
                     // All or None
-  char side; // 'B' or 'S'
+  char side;        // 'B' or 'S'
   int64_t price;
   uint32_t contracts;
   char customerIndicator; // 'N' = Non-Customer 'C' =
@@ -889,6 +888,7 @@ inline uint64_t expSymbol2secId(const char (&s)[8]) {
              s[7]);
   return be64toh(*(uint64_t *)(s - 2)) & 0x0000ffffffffffff;
 }
+/* ------------------------------------------------ */
 
 inline EfhOrderSide getSide(char side) {
   switch (side) {
@@ -900,6 +900,7 @@ inline EfhOrderSide getSide(char side) {
     on_error("Unexpected side \'%c\'", side);
   }
 }
+/* ------------------------------------------------ */
 
 inline EfhTradeCond getTradeCond(char cond) {
   switch (cond) {
@@ -916,6 +917,38 @@ inline EfhTradeCond getTradeCond(char cond) {
     return EfhTradeCond::kUnmapped;
   }
 }
+/* ------------------------------------------------ */
+
+inline constexpr bool msgHasTimestamp(const MsgId enc) {
+  switch (enc) {
+  case MsgId::ADD_ORDER_LONG:
+  case MsgId::ADD_ORDER_SHORT:
+  case MsgId::ADD_ORDER_EXPANDED:
+  case MsgId::ORDER_EXECUTED:
+  case MsgId::ORDER_EXECUTED_AT_PRICE_SIZE:
+  case MsgId::REDUCED_SIZE_LONG:
+  case MsgId::REDUCED_SIZE_SHORT:
+  case MsgId::ORDER_MODIFY_LONG:
+  case MsgId::ORDER_MODIFY_SHORT:
+  case MsgId::ORDER_DELETE:
+  case MsgId::TRADE_LONG:
+  case MsgId::TRADE_SHORT:
+  case MsgId::TRADE_EXPANDED:
+  case MsgId::TRADING_STATUS:
+
+  case MsgId::AUCTION_UPDATE:
+  case MsgId::OPTIONS_AUCTION_UPDATE:
+  case MsgId::AUCTION_NOTIFICATION:
+  case MsgId::AUCTION_CANCEL:
+
+    return true;
+
+  default:
+    return false;
+  }
+}
+/* ------------------------------------------------ */
+
 } // namespace Bats
 
 #endif

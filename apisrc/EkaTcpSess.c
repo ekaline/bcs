@@ -95,9 +95,11 @@ EkaTcpSess::EkaTcpSess(EkaDev *pEkaDev, EkaCore *_parent,
         EkaEpmRegion::Regions::TcpTxFullPkt);
     fullPktAction->setTcpSess(this);
   } else {
-    EKA_LOG("sock=%d for: %s:%u --> %s:%u", sock,
-            EKA_IP2STR(srcIp), srcPort, EKA_IP2STR(dstIp),
-            dstPort);
+    EKA_LOG("Established TCP Session %u: sock=%d for: "
+            "%s:%u --> "
+            "%s:%u",
+            idx, sock, EKA_IP2STR(srcIp), srcPort,
+            EKA_IP2STR(dstIp), dstPort);
     fastPathAction = dev->epm->addAction(
         EkaEpm::ActionType::TcpFastPath, idx,
         EkaEpmRegion::Regions::TcpTxFullPkt);
@@ -317,18 +319,22 @@ EkaTcpSess::~EkaTcpSess() {
   EKA_LOG("Closing socket %d for core%u sess%u", sock,
           coreId, sessId);
   lwip_close(sock);
-  if (fullPktAction) {
-    delete (fullPktAction);
-    fullPktAction = NULL;
+
+  auto localIdx = coreId * TOTAL_SESSIONS_PER_CORE + sessId;
+
+  if (sessId == CONTROL_SESS_ID) {
+    dev->epm->deleteAction(
+        EkaEpm::ActionType::TcpFullPkt, localIdx,
+        EkaEpmRegion::Regions::TcpTxFullPkt);
+  } else {
+    dev->epm->deleteAction(
+        EkaEpm::ActionType::TcpFastPath, localIdx,
+        EkaEpmRegion::Regions::TcpTxFullPkt);
   }
-  if (emptyAckAction) {
-    delete (emptyAckAction);
-    emptyAckAction = NULL;
-  }
-  if (fastPathAction) {
-    delete (fastPathAction);
-    fastPathAction = NULL;
-  }
+  dev->epm->deleteAction(
+      EkaEpm::ActionType::TcpEmptyAck, localIdx,
+      EkaEpmRegion::Regions::TcpTxEmptyAck);
+
   EKA_LOG("Closed socket %d for core%u sess%u", sock,
           coreId, sessId);
 }

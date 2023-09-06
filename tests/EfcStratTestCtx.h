@@ -4,6 +4,8 @@
 class EfcStratTestCtx {
 protected:
   EfcStratTestCtx() {}
+
+public:
   virtual ~EfcStratTestCtx() = default;
 };
 

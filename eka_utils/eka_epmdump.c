@@ -15,18 +15,18 @@
 
 #include "EkaEpmRegion.h"
 
-volatile bool keep_work = true;
-FILE *outFile = stdout;
+static volatile bool keep_work = true;
+static FILE *outFile = stdout;
 
-int singleAction = -1;
-int singleActionRegion = EkaEpmRegion::Regions::Efc;
-int plainMemAddr = -1;
-int plainMemLen = -1;
+static int singleAction = -1;
+static int singleActionRegion = EkaEpmRegion::Regions::Efc;
+static int plainMemAddr = -1;
+static int plainMemLen = -1;
 
-bool checkAll = false;
-bool printAll = false;
+static bool checkAll = false;
+static bool printAll = false;
 
-SC_DeviceId devId = nullptr;
+static SC_DeviceId devId = nullptr;
 /* --------------------------------------------- */
 
 static void INThandler(int sig) {
@@ -204,6 +204,8 @@ static void checkHwCompat(const char *utilityName) {
       EKA_EXPECTED_EPM_VERSION)
     on_error("This FW version does not support %s",
              utilityName);
+
+  delete ekaHwCaps;
 }
 /* --------------------------------------------- */
 static uint64_t configEpmDump() {

@@ -1,5 +1,6 @@
 *
 !*.c
+!*.cpp
 !*.h
 !*.pl
 !*.txt
@@ -27,8 +28,16 @@
 !apisrc/FhBook
 !apisrc/Ehp
 !apisrc/ekaline
+!tests
 !tests/*.c
 !tests/*.h
+!eka_utils
+!eka_utils/*.h
+!eka_utils/*.c
+!googletest
+!googletest/*.h
+!googletest/*.c
+!googletest/*.cpp
 apisrc/Ehp/README.txt
 SmartNIC_SW/driver/smartnic.mod.c
 SmartNIC_SW/driver/ekaline_build_time.h

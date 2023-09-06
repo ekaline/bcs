@@ -535,6 +535,30 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
     return EkaFhAddConf::CONF_SUCCESS;
   }
   //---------------------------------------------------------
+  // efh.C1_PITCH.group.X.use.transactions, true/false
+  // k[0] k[1]   k[2]  k[3] k[4]     k[5]
+  if (sourceType == EkaSourceType::kCBOE_PITCH &&
+      matchConfKey(k, {"efh", exchName, "group", NULL,
+                       "use", "transactions"})) {
+    auto *group = getGroupDowncast<EkaFhBatsGr>(*this, k[3],
+                                                key, value);
+    if (!group)
+      return EkaFhAddConf::IGNORED;
+
+    if (!parseBool(value, &group->useTransactions)) {
+      on_warning("%s -- %s : invalid boolean, should be "
+                 "1/0 or true/false",
+                 key, value);
+      return EkaFhAddConf::WRONG_VALUE;
+    }
+
+    EKA_DEBUG("%s:%u: useTransactions is set to %d",
+              exchName, group->id, group->useTransactions);
+
+    return EkaFhAddConf::CONF_SUCCESS;
+  }
+
+  //---------------------------------------------------------
   // efh.NOM_ITTO.snapshot.auth, user:passwd
   // k[0] k[1]   k[2]     k[3]
   if (matchConfKey(k,

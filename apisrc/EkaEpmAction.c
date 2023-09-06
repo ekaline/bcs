@@ -210,6 +210,7 @@ void EkaEpmAction::printHeap() {
 void EkaEpmAction::printHwAction() {
   /*   EKA_LOG("hwAction_.bit_params=0x%x",
             (uint)hwAction_.bit_params); */
+#if 0
   EKA_LOG("hwAction_.tcpcs_template_db_ptr =0x%x",
           hwAction_.tcpcs_template_db_ptr);
   EKA_LOG("hwAction_.template_db_ptr=0x%x",
@@ -237,6 +238,7 @@ void EkaEpmAction::printHwAction() {
           hwAction_.payloadSize);
   EKA_LOG("hwAction_.tcpCsSizeSource=0x%x",
           (uint)hwAction_.tcpCsSizeSource);
+#endif
 }
 
 /* ---------------------------------------------------- */
