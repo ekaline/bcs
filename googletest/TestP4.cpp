@@ -227,6 +227,8 @@ void TestP4::checkAlgoCorrectness(
     efcPrintFireReport(fr->buf, fr->len, g_ekaLogFile);
 
     getReportPtrs(fr->buf, fr->len);
+    if (!firePkt_)
+      FAIL() << "!firePkt_";
 
     auto msgP = firePkt_ + 54;
     auto firedPayloadDiff =
