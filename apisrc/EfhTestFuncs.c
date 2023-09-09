@@ -782,8 +782,8 @@ EkaSource feedname2source(std::string feedName) {
   if (feedName == std::string("MRA")) return EkaSource::kMRX2_TOP;
   if (feedName == std::string("MRB")) return EkaSource::kMRX2_TOP;
   /* ------------------------------------------------------- */
-  if (feedName == std::string("GA")) return EkaSource::kGEM_TQF;
-  if (feedName == std::string("GB")) return EkaSource::kGEM_TQF;
+  if (feedName == std::string("GA")) return EkaSource::kGEM2_TOP;
+  if (feedName == std::string("GB")) return EkaSource::kGEM2_TOP;
   /* ------------------------------------------------------- */
   if (feedName == std::string("IA")) return EkaSource::kISE_TQF;
   if (feedName == std::string("IB")) return EkaSource::kISE_TQF;
