@@ -538,7 +538,8 @@ EkaDev::~EkaDev() {
     eka_write(SW_STATISTICS, val);
   }
 
-  ekaCloseLwip(dev);
+  if (epmEnabled)
+    ekaCloseLwip(dev);
 
   delete snDev;
 }

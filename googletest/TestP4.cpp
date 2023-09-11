@@ -1,5 +1,43 @@
 #include "TestP4.h"
 
+void TestP4::initializeAllCtxs(const TestCaseConfig *tc) {
+  auto secConf = reinterpret_cast<const TestP4SecConf *>(
+      tc->algoConfigParams);
+
+  // setting security contexts
+  for (size_t i = 0; i < nSec_; i++) {
+    auto handle = getSecCtxHandle(g_ekaDev, secList_[i]);
+
+    if (handle < 0) {
+      EKA_WARN(
+          "Security[%ju] %s was not "
+          "fit into FPGA hash: handle = %jd",
+          i, cboeSecIdString(secConf->sec[i].id, 8).c_str(),
+          handle);
+      continue;
+    }
+
+    SecCtx secCtx = {};
+    setSecCtx(&secConf->sec[i], &secCtx);
+
+    EKA_LOG(
+        "Setting StaticSecCtx[%ju] \'%s\' secId=0x%016jx,"
+        "handle=%jd,bidMinPrice=%u,askMaxPrice=%u,"
+        "bidSize=%u,askSize=%u,"
+        "versionKey=%u,lowerBytesOfSecId=0x%x",
+        i, cboeSecIdString(secConf->sec[i].id, 8).c_str(),
+        secList_[i], handle, secCtx.bidMinPrice,
+        secCtx.askMaxPrice, secCtx.bidSize, secCtx.askSize,
+        secCtx.versionKey, secCtx.lowerBytesOfSecId);
+    /* hexDump("secCtx",&secCtx,sizeof(secCtx)); */
+
+    auto rc =
+        efcSetStaticSecCtx(g_ekaDev, handle, &secCtx, 0);
+    if (rc != EKA_OPRESULT__OK)
+      on_error("failed to efcSetStaticSecCtx");
+  }
+}
+
 void TestP4::configureStrat(const TestCaseConfig *tc) {
   ASSERT_NE(tc, nullptr);
   auto dev = g_ekaDev;
@@ -28,43 +66,13 @@ void TestP4::configureStrat(const TestCaseConfig *tc) {
   auto secConf = reinterpret_cast<const TestP4SecConf *>(
       tc->algoConfigParams);
 
-  createSecList(secConf);
+  createSecList(tc->algoConfigParams);
 
   // subscribing on list of securities
   efcEnableFiringOnSec(g_ekaDev, secList_, nSec_);
 
   // ==============================================
-  // setting security contexts
-  for (size_t i = 0; i < nSec_; i++) {
-    auto handle = getSecCtxHandle(g_ekaDev, secList_[i]);
-
-    if (handle < 0) {
-      EKA_WARN(
-          "Security[%ju] %s was not "
-          "fit into FPGA hash: handle = %jd",
-          i, cboeSecIdString(secConf->sec[i].id, 8).c_str(),
-          handle);
-      continue;
-    }
-
-    SecCtx secCtx = {};
-    getSecCtx(&secConf->sec[i], &secCtx);
-
-    EKA_LOG(
-        "Setting StaticSecCtx[%ju] \'%s\' secId=0x%016jx,"
-        "handle=%jd,bidMinPrice=%u,askMaxPrice=%u,"
-        "bidSize=%u,askSize=%u,"
-        "versionKey=%u,lowerBytesOfSecId=0x%x",
-        i, cboeSecIdString(secConf->sec[i].id, 8).c_str(),
-        secList_[i], handle, secCtx.bidMinPrice,
-        secCtx.askMaxPrice, secCtx.bidSize, secCtx.askSize,
-        secCtx.versionKey, secCtx.lowerBytesOfSecId);
-    /* hexDump("secCtx",&secCtx,sizeof(secCtx)); */
-
-    rc = efcSetStaticSecCtx(g_ekaDev, handle, &secCtx, 0);
-    if (rc != EKA_OPRESULT__OK)
-      on_error("failed to efcSetStaticSecCtx");
-  }
+  initializeAllCtxs(tc);
 
   // ==============================================
   for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++) {
@@ -128,7 +136,11 @@ static uint64_t getBinSecId(const char *secChar) {
   return be64toh(*(uint64_t *)shiftedStr);
 }
 
-void TestP4::createSecList(const TestP4SecConf *secConf) {
+void TestP4::createSecList(const void *algoConfigParams) {
+
+  auto secConf = reinterpret_cast<const TestP4SecConf *>(
+      algoConfigParams);
+
   for (auto i = 0; i < secConf->nSec; i++) {
     secList_[i] = getBinSecId(secConf->sec[i].id);
   }
@@ -140,7 +152,7 @@ void TestP4::createSecList(const TestP4SecConf *secConf) {
             secList_[i], i == nSec_ - 1 ? '\n' : ',');
 }
 /* ############################################# */
-void TestP4::getSecCtx(const TestP4CboeSec *secCtx,
+void TestP4::setSecCtx(const TestP4CboeSec *secCtx,
                        SecCtx *dst) {
 
   dst->bidMinPrice = secCtx->bidMinPrice / 100;

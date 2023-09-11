@@ -5,6 +5,7 @@
 
 #include "TestCmeFc.h"
 #include "TestP4.h"
+#include "TestP4Rand.h"
 
 #endif
 
@@ -96,8 +97,10 @@ TEST_F(TestP4, FireOnAsk) {
                            .bidMinPrice = 1000,
                            .askMaxPrice = 2000,
                            .size = 1}};
-  TestP4SecConf secConf = {.sec = secs,
-                           .nSec = std::size(secs)};
+  TestP4SecConf secConf = {
+      .type = TestP4SecConfType::Predefined,
+      .sec = secs,
+      .nSec = std::size(secs)};
 
   TestP4Md mdConf = {
       .secId = secs[0].id,
@@ -118,14 +121,43 @@ TEST_F(TestP4, FireOnAsk) {
 
 /* --------------------------------------------- */
 #if 1
-
 TEST_F(TestP4, FireOnBid) {
   TestP4CboeSec secs[] = {{.id = "02gtst",
                            .bidMinPrice = 1000,
                            .askMaxPrice = 2000,
                            .size = 1}};
-  TestP4SecConf secConf = {.sec = secs,
-                           .nSec = std::size(secs)};
+  TestP4SecConf secConf = {
+      .type = TestP4SecConfType::Predefined,
+      .sec = secs,
+      .nSec = std::size(secs)};
+
+  TestP4Md mdConf = {
+      .secId = secs[0].id,
+      .side = SideT::BID,
+      .price = (FixedPrice)(secs[0].bidMinPrice + 1),
+      .size = 1};
+
+  const TestCaseConfig tc = {.mcParams = &core0_1mc,
+                             .tcpParams = &tcp0,
+                             .algoConfigParams = &secConf,
+                             .mdInjectParams = &mdConf};
+
+  nExpectedFires = 1;
+
+  runTest(&tc);
+}
+#endif
+/* --------------------------------------------- */
+#if 0
+TEST_F(TestP4Rand, RandFires) {
+  TestP4CboeSec secs[] = {{.id = "02gtst",
+                           .bidMinPrice = 1000,
+                           .askMaxPrice = 2000,
+                           .size = 1}};
+  TestP4SecConf secConf = {.type =
+                               TestP4SecConfType::Random,
+                           .percentageValidSecs = 1.0,
+                           .nSec = 4};
 
   TestP4Md mdConf = {
       .secId = secs[0].id,
