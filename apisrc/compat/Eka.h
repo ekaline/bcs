@@ -157,6 +157,7 @@ extern "C" {
       _x( BOX_HSVF    )				\
       _x( CME_SBE     )				\
       _x( MRX2_TOP    )				\
+      _x( GEM2_TOP    )				\
       _x( BX_DPTH     )
     EkaSource_ENUM_ITER( EKA__ENUM_DEF )
   };
@@ -193,6 +194,7 @@ extern "C" {
       return EkaSourceType::kNASDAQ_TOPO;
     case EkaSource::kPHLX_ORD:
       return EkaSourceType::kNASDAQ_PHLX_ORD;
+    case EkaSource::kGEM2_TOP:
     case EkaSource::kMRX2_TOP:
       return EkaSourceType::kNASDAQ_MRX_TOP2;
     case EkaSource::kBX_DPTH:
