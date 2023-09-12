@@ -15,6 +15,7 @@ include(cmake/ccache.cmake)
 
 option(ENABLE_TESTING "Enable Testing build" OFF)
 option(FhLab "Ekaline Lab build" OFF)
+option(EfhLatency "EFH Internal Latencies Profiling" OFF)
 # include(CTest) enable_testing()
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
@@ -28,7 +29,8 @@ execute_process(COMMAND git -C ${CMAKE_SOURCE_DIR} rev-parse --short HEAD
 
 string(REGEX REPLACE "\n$" "" EKA_GIT_VER "${EKA_GIT_VER}")
 
-message(STATUS "EKA_GIT_VER = ${EKA_GIT_VER}")
+message(STATUS "FhLab = ${FhLab}")
+message(STATUS "EfhLatency = ${EfhLatency}")
 
 set(CMAKE_C_COMPILER ${CMAKE_CXX_COMPILER})
 set(CMAKE_CXX_FLAGS
@@ -175,6 +177,10 @@ if(FhLab)
   # target_compile_definitions(${EKA_LIB_NAME} PUBLIC _DONT_SEND_MDTIMEOUT)
 endif()
 
+if(EfhLatency)
+  target_compile_definitions(${EKA_LIB_NAME} PUBLIC EFH_INTERNAL_LATENCY_CHECK)
+endif()
+
 target_include_directories(${EKA_LIB_NAME} PUBLIC ${EKA_INC_PATH})
 
 target_compile_definitions(${EKA_LIB_NAME} PUBLIC LIBEKA_GIT_VER=${EKA_GIT_VER})
@@ -196,11 +202,9 @@ target_link_libraries(
 file(GLOB EKA_LIB_NAME_PUBLIC_HEADER ${apiDIR}/*.h)
 set_target_properties(${EKA_LIB_NAME}
                       PROPERTIES PUBLIC_HEADER "${EKA_LIB_NAME_PUBLIC_HEADER}")
-set_target_properties(${EKA_LIB_NAME}
-  PROPERTIES
-  LINK_DEPENDS ${EKA_LINK_MAP}
-  LINK_FLAGS "-Wl,--version-script=${EKA_LINK_MAP}"
-)
+set_target_properties(
+  ${EKA_LIB_NAME} PROPERTIES LINK_DEPENDS ${EKA_LINK_MAP}
+                             LINK_FLAGS "-Wl,--version-script=${EKA_LINK_MAP}")
 set_target_properties(${EKA_LIB_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
                                                  ${libDstDir})
 install(TARGETS ${EKA_LIB_NAME} RUNTIME DESTINATION lib COMPONENT Runtime)
