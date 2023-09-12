@@ -745,6 +745,7 @@ void ekaFireReportThread(EkaDev *dev) {
       r = processFastCancelReport(
           dev, payload, len, efc->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
+      printFireReport = true;
       break;
     case EkaUserChannel::DMA_TYPE::NEWS:
       r = processNewsReport(
@@ -789,7 +790,7 @@ void ekaFireReportThread(EkaDev *dev) {
       char fireReportStr[16 * 1024] = {};
       hexDump2str("Fire Report", reportBuf, reportLen,
                   fireReportStr, sizeof(fireReportStr));
-      // EKA_LOG("reportCb: %s", fireReportStr);
+      EKA_LOG("reportCb: %s", fireReportStr);
     }
     dev->pEfcRunCtx->onEfcFireReportCb(
         reportBuf, reportLen, dev->pEfcRunCtx->cbCtx);
