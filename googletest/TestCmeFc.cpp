@@ -50,42 +50,55 @@ void TestCmeFc::configureStrat(const TestCaseConfig *t) {
 /* ############################################# */
 
 void TestCmeFc::sendData(const void *mdInjectParams) {
-  int cmeFcExpectedFires = 0;
-  int TotalInjects = 4;
+  auto mdConf =
+      reinterpret_cast<const TestCmeFcMd *>(mdInjectParams);
+
   EfcArmVer cmeFcArmVer = 0;
 
   uint64_t appSeq = 3000;
   efcSetSessionCntr(g_ekaDev, tcpCtx_->tcpSess_[0]->hCon_,
-                    appSeq);
+                    mdConf->appSeq);
 
-  for (auto i = 0; i < TotalInjects; i++) {
-    // efcArmCmeFc(g_ekaDev, cmeFcArmVer++); // arm and
-    // promote
-    cmeFcExpectedFires++;
+  ASSERT_NE(mdConf, nullptr);
 
-    const uint8_t pktBuf[] = {
-        0x22, 0xa5, 0x0d, 0x02, 0xa5, 0x6f, 0x01, 0x38,
-        0xca, 0x42, 0xdc, 0x16, 0x60, 0x00, 0x0b, 0x00,
-        0x30, 0x00, 0x01, 0x00, 0x09, 0x00, 0x41, 0x23,
-        0xff, 0x37, 0xca, 0x42, 0xdc, 0x16, 0x01, 0x00,
-        0x00, 0x20, 0x00, 0x01, 0x00, 0xfc, 0x2f, 0x9c,
-        0x9d, 0xb2, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-        0x5b, 0x33, 0x00, 0x00, 0x83, 0x88, 0x26, 0x00,
-        0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0xd9, 0x7a,
-        0x6d, 0x01, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x02, 0x0e, 0x19, 0x84, 0x8e,
-        0x36, 0x06, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0xb0, 0x7f, 0x8e,
-        0x36, 0x06, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00};
-
-    auto pktLen = sizeof(pktBuf);
-
-    cmeFcArmVer = sendPktToAll(pktBuf, pktLen, cmeFcArmVer);
-
-    // usleep(300000);
-  }
-  // ==============================================
+  sendPktToAll(mdConf->preloadedPkt, mdConf->pktLen,
+               cmeFcArmVer++);
 
   return;
+}
+
+/* ############################################# */
+void TestCmeFc::checkAlgoCorrectness(
+    const TestCaseConfig *tc) {
+
+  int i = 0;
+  for (const auto &fr : fireReports) {
+
+    auto injectedMd = reinterpret_cast<const TestCmeFcMd *>(
+        tc->mdInjectParams);
+
+    efcPrintFireReport(fr->buf, fr->len, g_ekaLogFile);
+
+    getReportPtrs(fr->buf, fr->len);
+    if (!firePkt_)
+      FAIL() << "!firePkt_";
+
+    auto msgP = firePkt_ + TcpDatagramOffset;
+
+    auto payloadLen = echoedPkts.at(i)->len;
+    auto dummyFireMsg =
+        reinterpret_cast<const DummyIlinkMsg *>(msgP);
+
+    auto firedPayloadDiff =
+        memcmp(msgP, echoedPkts.at(i)->buf, payloadLen);
+#if 0
+    hexDump("FireReport Msg", msgP, payloadLen);
+    hexDump("Echo Pkt", echoedPkts.at(i)->buf,
+            echoedPkts.at(i)->len);
+#endif
+    EXPECT_EQ(firedPayloadDiff, 0);
+
+    EXPECT_EQ(dummyFireMsg->appSeq, injectedMd->appSeq);
+    i++;
+  }
 }

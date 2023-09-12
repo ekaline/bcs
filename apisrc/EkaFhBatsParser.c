@@ -31,6 +31,13 @@ bool EkaFhBatsGr::parseMsg(
   MsgId enc = (MsgId)m[1];
   //  EKA_LOG("%s:%u: 0x%02x",EKA_EXCH_DECODE(exch),id,enc);
 
+#ifdef EFH_INTERNAL_LATENCY_CHECK
+  book->latencyStat = {};
+  sprintf(book->latencyStat.msgType, "%s",
+          EKA_BATS_PITCH_MSG_DECODE(enc));
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
+
   uint64_t msg_timestamp = 0;
 
   std::chrono::high_resolution_clock::time_point
@@ -564,6 +571,18 @@ bool EkaFhBatsGr::parseMsg(
     flushTobBuf(pEfhRunCtx);
 
   if (!book->isEqualState(s)) {
+#ifdef EFH_INTERNAL_LATENCY_CHECK
+    auto finish = std::chrono::high_resolution_clock::now();
+    book->latencyStat.totalLatencyNs =
+        (uint64_t)std::chrono::duration_cast<
+            std::chrono::nanoseconds>(finish - start)
+            .count();
+    //    if (duration_ns > 5000)
+    //        EKA_WARN("WARNING: \'%c\' processing took %ju
+    //        ns",
+    //                 enc, duration_ns);
+    latencies.push_back(book->latencyStat);
+#endif
     if (useTransactions && op == EkaFhMode::MCAST &&
         trCtx_) {
       trCtx_->pushTob(s, sequence, msg_timestamp);

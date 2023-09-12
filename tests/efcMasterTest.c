@@ -910,9 +910,6 @@ void configureCmeFcTest(TestCase *t) {
       "=========== Configuring CmeFc Test ===========");
   auto udpMcParams = &t->udpCtx_->udpConf_;
 
-  static const uint16_t QEDTestPurgeDSID = 0x1234;
-  static const uint8_t QEDTestMinNumLevel = 5;
-
   EfcCmeFcParams cmeParams = {.maxMsgSize = 97,
                               .minNoMDEntries = 0};
 

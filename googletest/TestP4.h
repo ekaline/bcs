@@ -15,7 +15,14 @@ struct TestP4CboeSec {
   uint8_t size;
 };
 
+enum class TestP4SecConfType : int {
+  Predefined = 0,
+  Random
+};
+
 struct TestP4SecConf {
+  TestP4SecConfType type;
+  float percentageValidSecs;
   const TestP4CboeSec *sec;
   size_t nSec;
 };
@@ -59,17 +66,18 @@ protected:
   virtual void
   checkAlgoCorrectness(const TestCaseConfig *tc);
 
-private:
-  void createSecList(const TestP4SecConf *secConf);
-  void getSecCtx(const TestP4CboeSec *secCtx, SecCtx *dst);
+  void createSecList(const void *secConf);
+  void setSecCtx(const TestP4CboeSec *secCtx, SecCtx *dst);
+
+  void initializeAllCtxs(const TestCaseConfig *tc);
 
   size_t createOrderExpanded(char *dst, const char *id,
                              SideT side, uint64_t price,
                              uint32_t size);
   /* --------------------------------------------- */
 
-private:
-  static const size_t MaxTestSecurities = 16;
+protected:
+  static const size_t MaxTestSecurities = 1024 * 1024;
   size_t nSec_ = 0;
   uint64_t secList_[MaxTestSecurities] = {};
 

@@ -53,7 +53,7 @@ protected:
 
   void checkFireReports(const TestCaseConfig *tc);
   virtual void
-  checkAlgoCorrectness(const TestCaseConfig *tc) {}
+  checkAlgoCorrectness(const TestCaseConfig *tc) = 0;
 
   void getReportPtrs(const void *p, size_t len);
 
@@ -63,6 +63,7 @@ protected:
   static const int MaxTcpTestSessions = 16;
   static const int MaxUdpTestSessions = 64;
   static const uint16_t numTcpSess = 1;
+  static const int TcpDatagramOffset = 54;
 
   // P4: 0xf0340, Cme: 0xf0800, QED: 0xf0818
   uint32_t FireStatisticsAddr_ = 0;

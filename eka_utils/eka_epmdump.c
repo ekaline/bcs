@@ -62,7 +62,11 @@ static void printUsage(char *cmd) {
 /* --------------------------------------------- */
 
 static int getAttr(int argc, char *argv[]) {
-
+  if (argc == 1) {
+    printf("%s: No dump option specified\n", argv[0]);
+    printUsage(argv[0]);
+    exit(1);
+  }
   int opt;
   while ((opt = getopt(argc, argv, ":b:s:w:r:a:lcph")) !=
          -1) {
