@@ -437,7 +437,7 @@ EkaFhGroup::~EkaFhGroup() {
   if (!latenciesFile)
     on_error("cannot open %s", fileName);
   for (auto const &l : latencies) {
-    fprintf(latenciesFile, "%c,", l.msgType);
+    fprintf(latenciesFile, "%s,", l.msgType);
     fprintf(latenciesFile, "%ju,", l.totalLatencyNs);
     fprintf(latenciesFile, "%d,",
             l.securityHashCollisonsCtr);

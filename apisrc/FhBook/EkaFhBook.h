@@ -12,7 +12,7 @@ class EkaFhGroup;
 
 #ifdef EFH_INTERNAL_LATENCY_CHECK
 struct EfhLatencyStat {
-  char msgType;
+  char msgType[64] = {};
   uint64_t totalLatencyNs = 0;
   int securityHashCollisonsCtr = 0;
   int orderHashCollisonsCtr = 0;

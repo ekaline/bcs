@@ -33,7 +33,8 @@ bool EkaFhBatsGr::parseMsg(
 
 #ifdef EFH_INTERNAL_LATENCY_CHECK
   book->latencyStat = {};
-  book->latencyStat.msgType = (char)enc;
+  sprintf(book->latencyStat.msgType, "%s",
+          EKA_BATS_PITCH_MSG_DECODE(enc));
   auto start = std::chrono::high_resolution_clock::now();
 #endif
 
