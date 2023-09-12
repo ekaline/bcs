@@ -33,7 +33,7 @@ bool EkaFhBxGr::parseMsg(
 
 #ifdef EFH_INTERNAL_LATENCY_CHECK
   book->latencyStat = {};
-  book->latencyStat.msgType = (char)enc;
+  book->latencyStat.msgType[0] = (char)enc;
   auto start = std::chrono::high_resolution_clock::now();
 #endif
 
