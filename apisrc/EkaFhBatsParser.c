@@ -449,8 +449,7 @@ bool EkaFhBatsGr::parseMsg(
       s = process_AuctionNotification<FhSecurity,
                                       AuctionNotification>(
           pEfhRunCtx, sequence, msg_timestamp, m);
-    if (s == NULL)
-      return false;
+    return false;
     break;
   }
     //--------------------------------------------------------------
