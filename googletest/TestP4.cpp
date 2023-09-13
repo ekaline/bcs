@@ -125,7 +125,7 @@ void TestP4::configureStrat(const TestCaseConfig *tc) {
 /* ############################################# */
 /* --------------------------------------------- */
 
-static uint64_t getBinSecId(const char *secChar) {
+uint64_t TestP4::getBinSecId(const char *secChar) {
   if (strlen(secChar) != 6)
     on_error("unexpected security \'%s\' len %ju != 6",
              secChar, strlen(secChar));

@@ -22,7 +22,7 @@ enum class TestP4SecConfType : int {
 
 struct TestP4SecConf {
   TestP4SecConfType type;
-  float percentageValidSecs;
+  double percentageValidSecs;
   const TestP4CboeSec *sec;
   size_t nSec;
 };
@@ -66,7 +66,7 @@ protected:
   virtual void
   checkAlgoCorrectness(const TestCaseConfig *tc);
 
-  void createSecList(const void *secConf);
+  virtual void createSecList(const void *secConf);
   void setSecCtx(const TestP4CboeSec *secCtx, SecCtx *dst);
 
   void initializeAllCtxs(const TestCaseConfig *tc);
@@ -74,6 +74,8 @@ protected:
   size_t createOrderExpanded(char *dst, const char *id,
                              SideT side, uint64_t price,
                              uint32_t size);
+
+  uint64_t getBinSecId(const char *secChar);
   /* --------------------------------------------- */
 
 protected:

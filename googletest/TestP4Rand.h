@@ -6,6 +6,7 @@
 class TestP4Rand : public TestP4 {
 
 protected:
+  void createSecList(const void *secConf) override;
 };
 
 #endif
