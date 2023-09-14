@@ -79,7 +79,8 @@ TEST_F(TestCmeFc, CmeFC_core3) {
 
   TestCmeFcMd mdConf = {.preloadedPkt = mdPkt,
                         .pktLen = sizeof(mdPkt),
-                        .appSeq = 0xa1b2c3d4};
+                        .appSeq = 0xa1b2c3d4,
+                        .expectedFire = true};
 
   const TestCaseConfig tc = {.mcParams = &core0_1mc,
                              .tcpParams = &tcp3,
@@ -93,7 +94,7 @@ TEST_F(TestCmeFc, CmeFC_core3) {
 /* --------------------------------------------- */
 #if 1
 TEST_F(TestP4, FireOnAsk) {
-  TestP4CboeSec secs[] = {{.id = "01gtst",
+  TestP4CboeSec secs[] = {{.strId = "01gtst",
                            .bidMinPrice = 1000,
                            .askMaxPrice = 2000,
                            .size = 1}};
@@ -103,10 +104,11 @@ TEST_F(TestP4, FireOnAsk) {
       .nSec = std::size(secs)};
 
   TestP4Md mdConf = {
-      .secId = secs[0].id,
+      .secId = secs[0].strId,
       .side = SideT::ASK,
       .price = (FixedPrice)(secs[0].askMaxPrice - 1),
-      .size = 1};
+      .size = 1,
+      .expectedFire = true};
 
   const TestCaseConfig tc = {.mcParams = &core0_1mc,
                              .tcpParams = &tcp0,
@@ -122,7 +124,7 @@ TEST_F(TestP4, FireOnAsk) {
 /* --------------------------------------------- */
 #if 1
 TEST_F(TestP4, FireOnBid) {
-  TestP4CboeSec secs[] = {{.id = "02gtst",
+  TestP4CboeSec secs[] = {{.strId = "02gtst",
                            .bidMinPrice = 1000,
                            .askMaxPrice = 2000,
                            .size = 1}};
@@ -132,10 +134,11 @@ TEST_F(TestP4, FireOnBid) {
       .nSec = std::size(secs)};
 
   TestP4Md mdConf = {
-      .secId = secs[0].id,
+      .secId = secs[0].strId,
       .side = SideT::BID,
       .price = (FixedPrice)(secs[0].bidMinPrice + 1),
-      .size = 1};
+      .size = 1,
+      .expectedFire = true};
 
   const TestCaseConfig tc = {.mcParams = &core0_1mc,
                              .tcpParams = &tcp0,
@@ -148,27 +151,19 @@ TEST_F(TestP4, FireOnBid) {
 }
 #endif
 /* --------------------------------------------- */
-#if 0
+#if 1
 TEST_F(TestP4Rand, RandFires) {
-  TestP4CboeSec secs[] = {{.id = "02gtst",
-                           .bidMinPrice = 1000,
-                           .askMaxPrice = 2000,
-                           .size = 1}};
+  TestP4CboeSec secs[] = {};
   TestP4SecConf secConf = {.type =
                                TestP4SecConfType::Random,
-                           .percentageValidSecs = 1.0,
-                           .nSec = 4};
+                           .percentageValidSecs = 0.5,
+                           .nSec = 8};
 
-  TestP4Md mdConf = {
-      .secId = secs[0].id,
-      .side = SideT::BID,
-      .price = (FixedPrice)(secs[0].bidMinPrice + 1),
-      .size = 1};
+  TestP4Md mdConf = {};
 
   const TestCaseConfig tc = {.mcParams = &core0_1mc,
                              .tcpParams = &tcp0,
-                             .algoConfigParams = &secConf,
-                             .mdInjectParams = &mdConf};
+                             .algoConfigParams = &secConf};
 
   nExpectedFires = 1;
 

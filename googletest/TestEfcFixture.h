@@ -34,12 +34,16 @@ protected:
   void runTest(const TestCaseConfig *tc);
 
   EfcArmVer sendPktToAll(const void *pkt, size_t pktLen,
-                         EfcArmVer armVer);
+                         EfcArmVer armVer,
+                         bool expectedFire);
 
   void configureFpgaPorts();
 
   virtual void configureStrat(const TestCaseConfig *t) = 0;
-  virtual void sendData(const void *mdInjectParams) = 0;
+
+  virtual void generateMdDataPkts(const void *t) = 0;
+
+  virtual void sendData() = 0;
 
   std::pair<bool, bool>
   waitForResults(uint32_t nStratEvaluated_prev,
@@ -51,7 +55,6 @@ protected:
   void printTcpCtx() { return tcpCtx_->printConf(); }
   void printUdpCtx() { return udpCtx_->printConf(); }
 
-  void checkFireReports(const TestCaseConfig *tc);
   virtual void
   checkAlgoCorrectness(const TestCaseConfig *tc) = 0;
 
@@ -97,12 +100,12 @@ public:
     size_t len;
   };
 
-  std::vector<MemChunk *> fireReports = {};
-  std::atomic<int> nReceivedFireReports = 0;
+  std::vector<MemChunk *> fireReports_ = {};
+  std::atomic<int> nReceivedFireReports_ = 0;
 
-  std::vector<MemChunk *> echoedPkts = {};
+  std::vector<MemChunk *> echoedPkts_ = {};
 
-  int nExpectedFireReports = 0;
+  int nExpectedFireReports_ = 0;
 };
 
 /* --------------------------------------------- */

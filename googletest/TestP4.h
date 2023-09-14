@@ -9,10 +9,13 @@ using namespace Bats;
 /* --------------------------------------------- */
 
 struct TestP4CboeSec {
-  const char *id;
+  std::string strId;
+  uint64_t binId;
   FixedPrice bidMinPrice;
   FixedPrice askMaxPrice;
   uint8_t size;
+  bool valid;
+  EfcSecCtxHandle handle;
 };
 
 enum class TestP4SecConfType : int {
@@ -28,10 +31,11 @@ struct TestP4SecConf {
 };
 
 struct TestP4Md {
-  const char *secId;
+  std::string secId;
   SideT side;
   FixedPrice price;
   uint16_t size;
+  bool expectedFire;
 };
 
 struct CboePitchAddOrderShort {
@@ -61,7 +65,9 @@ static inline char cboeSide(SideT side) {
 class TestP4 : public TestEfcFixture {
 protected:
   void configureStrat(const TestCaseConfig *t) override;
-  void sendData(const void *mdInjectParams) override;
+  virtual void generateMdDataPkts(const void *t) override;
+
+  virtual void sendData() override;
 
   virtual void
   checkAlgoCorrectness(const TestCaseConfig *tc);
@@ -69,13 +75,13 @@ protected:
   virtual void createSecList(const void *secConf);
   void setSecCtx(const TestP4CboeSec *secCtx, SecCtx *dst);
 
-  void initializeAllCtxs(const TestCaseConfig *tc);
+  virtual void initializeAllCtxs(const TestCaseConfig *tc);
 
   size_t createOrderExpanded(char *dst, const char *id,
                              SideT side, uint64_t price,
                              uint32_t size);
 
-  uint64_t getBinSecId(const char *secChar);
+  uint64_t getBinSecId(std::string strId);
   /* --------------------------------------------- */
 
 protected:
@@ -84,6 +90,8 @@ protected:
   uint64_t secList_[MaxTestSecurities] = {};
 
   uint32_t sequence_ = 100;
+
+  std::vector<TestP4Md> insertedMd_ = {};
 
 protected:
   struct AddOrderParams {

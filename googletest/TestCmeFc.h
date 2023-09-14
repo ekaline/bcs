@@ -13,15 +13,19 @@ struct TestCmeFcMd {
   const uint8_t *preloadedPkt;
   size_t pktLen;
   uint32_t appSeq;
+  bool expectedFire;
 };
 
 class TestCmeFc : public TestEfcFixture {
 protected:
   void configureStrat(const TestCaseConfig *t) override;
-  void sendData(const void *mdInjectParams) override;
-
+  void generateMdDataPkts(const void *t) override;
+  void sendData() override;
   void
   checkAlgoCorrectness(const TestCaseConfig *tc) override;
+
+protected:
+  std::vector<TestCmeFcMd> insertedMd_ = {};
 };
 
 /* --------------------------------------------- */
