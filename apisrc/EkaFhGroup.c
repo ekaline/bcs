@@ -436,6 +436,13 @@ EkaFhGroup::~EkaFhGroup() {
   FILE *latenciesFile = fopen(fileName, "w");
   if (!latenciesFile)
     on_error("cannot open %s", fileName);
+
+  std::sort(
+      latencies.begin(), latencies.end(),
+      [](const EfhLatencyStat &a, const EfhLatencyStat &b) {
+        return a.totalLatencyNs < b.totalLatencyNs;
+      });
+
   for (auto const &l : latencies) {
     fprintf(latenciesFile, "%s,", l.msgType);
     fprintf(latenciesFile, "%ju,", l.totalLatencyNs);
