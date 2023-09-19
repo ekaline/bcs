@@ -36,47 +36,67 @@ static std::string generateInValidSecId() {
 }
 
 /* ############################################# */
+static bool
+alreadyExists(std::vector<TestP4CboeSec> &secVec,
+              std::string secId) {
+  for (auto const &s : secVec)
+    if (s.strId == secId)
+      return true;
+  return false;
+}
+/* ############################################# */
+static std::string
+generateUniqValidSecId(std::vector<TestP4CboeSec> &secVec) {
+  while (1) {
+    auto secId = generateValidSecId();
+    if (!alreadyExists(secVec, secId))
+      return secId;
+    EKA_LOG("Regenerating previously existing \'%s\'",
+            secId.c_str());
+  }
+}
+/* ############################################# */
 
 void TestP4Rand::createSecList(
     const void *algoConfigParams) {
   auto secConf = reinterpret_cast<const TestP4SecConf *>(
       algoConfigParams);
 
+  nValidSecs_ = 0;
+
   for (auto i = 0; i < secConf->nSec; i++) {
     char secStrId[8] = {};
 
     TestP4CboeSec sec = {};
-    if (getRandomBoolean(secConf->percentageValidSecs)) {
-      sec.valid = true;
-      sec.strId = generateValidSecId();
-      sec.binId = getBinSecId(sec.strId);
-      sec.bidMinPrice = static_cast<FixedPrice>(rand());
-      sec.askMaxPrice = static_cast<FixedPrice>(rand());
-      sec.size = 1; // TBD
-      validSecs_.push_back(sec);
-    } else {
-      sec.valid = false;
-      sec.strId = generateInValidSecId();
-      sec.binId = getBinSecId(sec.strId);
-      sec.bidMinPrice = -1; // always pass
-      sec.askMaxPrice = 0;  // always pass
-      sec.size = 1;         // TBD
-      inValidSecs_.push_back(sec);
-    }
+    sec.valid =
+        getRandomBoolean(secConf->percentageValidSecs);
+    sec.strId = sec.valid ? generateUniqValidSecId(allSecs_)
+                          : generateInValidSecId();
+    sec.binId = getBinSecId(sec.strId);
+    sec.bidMinPrice = sec.valid
+                          ? static_cast<TestP4SecCtxPrice>(
+                                1 + rand() % 0x7FFF)
+                          : static_cast<TestP4SecCtxPrice>(
+                                -1) /* always pass */;
+    sec.askMaxPrice = sec.valid
+                          ? static_cast<TestP4SecCtxPrice>(
+                                1 + rand() % 0x7FFF)
+                          : static_cast<TestP4SecCtxPrice>(
+                                0) /* always pass */;
+    sec.size = 1; // TBD
+    allSecs_.push_back(sec);
+
     secList_[nSec_++] = sec.binId;
+    if (sec.valid)
+      nValidSecs_++;
   }
 
-  EKA_LOG("Created List of %ju Valid P4 Securities:",
-          validSecs_.size());
-  for (const auto &sec : validSecs_)
-    EKA_LOG("\t\'%.8s\', 0x%jx,", sec.strId.c_str(),
-            sec.binId);
-
-  EKA_LOG("Created List of %ju InValid P4 Securities:",
-          inValidSecs_.size());
-  for (const auto &sec : inValidSecs_)
-    EKA_LOG("\t\'%.8s\', 0x%jx,", sec.strId.c_str(),
-            sec.binId);
+  EKA_LOG("Created List of Total %ju (Valid %ju) P4 "
+          "Securities:",
+          allSecs_.size(), nValidSecs_);
+  for (const auto &sec : allSecs_)
+    EKA_LOG("\t\'%.8s\', 0x%jx (%s)", sec.strId.c_str(),
+            sec.binId, sec.valid ? "VALID" : "INVALID");
 }
 
 /* ############################################# */
@@ -84,8 +104,12 @@ void TestP4Rand::createSecList(
 void TestP4Rand::initializeAllCtxs(
     const TestCaseConfig *unused) {
   int i = 0;
-  for (auto &sec : validSecs_) {
+  for (auto &sec : allSecs_) {
+    if (!sec.valid)
+      continue;
     sec.handle = getSecCtxHandle(g_ekaDev, sec.binId);
+    if (sec.handle < 0)
+      continue;
 
     SecCtx secCtx = {};
     setSecCtx(&sec, &secCtx);
@@ -114,14 +138,17 @@ void TestP4Rand::initializeAllCtxs(
 /* ############################################# */
 
 void TestP4Rand::generateMdDataPkts(const void *unused) {
-  for (const auto &sec : validSecs_) {
+  for (const auto &sec : allSecs_) {
     TestP4Md md = {.secId = sec.strId,
                    .side = SideT::BID,
-                   .price = static_cast<FixedPrice>(
-                       sec.bidMinPrice + 1),
+                   .price = static_cast<TestP4MdPrice>(
+                       sec.bidMinPrice * 100 + 1),
                    .size = sec.size,
-                   .expectedFire = true};
-
+                   .expectedFire = sec.valid};
+#if 0
+    TEST_LOG("%s: sec.bidMinPrice = %u, md.price = %u",
+             md.secId.c_str(), sec.bidMinPrice, md.price);
+#endif
     insertedMd_.push_back(md);
   }
 }

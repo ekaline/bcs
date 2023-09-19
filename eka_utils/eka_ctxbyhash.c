@@ -13,14 +13,6 @@
 
 SC_DeviceId devId = nullptr;
 
-struct hw_ctxdump_t {
-  uint32_t Handle;
-  uint8_t HashStatus;
-  uint8_t pad3[3];
-  EkaHwSecCtx SecCTX;
-} __attribute__((packed))
-__attribute__((aligned(sizeof(uint64_t))));
-
 /* --------------------------------------------- */
 static void checkHwCompat(const char *utilityName) {
   EkaHwCaps *ekaHwCaps = new EkaHwCaps(devId);
@@ -62,7 +54,7 @@ static void printUsage(const char *cmd) {
          "\t-n numeric representaion of SecurityID"
          "\t-a ASCII representaion of SecurityID "
          "\t-h print this help"
-         "(Pitch Only!)",
+         "(Pitch Only!)\n",
          cmd);
 }
 /* --------------------------------------------- */

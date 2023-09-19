@@ -86,7 +86,7 @@ TEST_F(TestCmeFc, CmeFC_core3) {
                              .tcpParams = &tcp3,
                              .algoConfigParams = &cmeParams,
                              .mdInjectParams = &mdConf};
-  nExpectedFires = 1;
+  nExpectedFires_ = 1;
 
   runTest(&tc);
 }
@@ -95,27 +95,27 @@ TEST_F(TestCmeFc, CmeFC_core3) {
 #if 1
 TEST_F(TestP4, FireOnAsk) {
   TestP4CboeSec secs[] = {{.strId = "01gtst",
-                           .bidMinPrice = 1000,
-                           .askMaxPrice = 2000,
+                           .bidMinPrice = 10,
+                           .askMaxPrice = 20,
                            .size = 1}};
   TestP4SecConf secConf = {
       .type = TestP4SecConfType::Predefined,
       .sec = secs,
       .nSec = std::size(secs)};
 
-  TestP4Md mdConf = {
-      .secId = secs[0].strId,
-      .side = SideT::ASK,
-      .price = (FixedPrice)(secs[0].askMaxPrice - 1),
-      .size = 1,
-      .expectedFire = true};
+  TestP4Md mdConf = {.secId = secs[0].strId,
+                     .side = SideT::ASK,
+                     .price = static_cast<TestP4MdPrice>(
+                         secs[0].askMaxPrice * 100 - 1),
+                     .size = 1,
+                     .expectedFire = true};
 
   const TestCaseConfig tc = {.mcParams = &core0_1mc,
                              .tcpParams = &tcp0,
                              .algoConfigParams = &secConf,
                              .mdInjectParams = &mdConf};
 
-  nExpectedFires = 1;
+  nExpectedFires_ = 1;
 
   runTest(&tc);
 }
@@ -125,27 +125,27 @@ TEST_F(TestP4, FireOnAsk) {
 #if 1
 TEST_F(TestP4, FireOnBid) {
   TestP4CboeSec secs[] = {{.strId = "02gtst",
-                           .bidMinPrice = 1000,
-                           .askMaxPrice = 2000,
+                           .bidMinPrice = 10,
+                           .askMaxPrice = 20,
                            .size = 1}};
   TestP4SecConf secConf = {
       .type = TestP4SecConfType::Predefined,
       .sec = secs,
       .nSec = std::size(secs)};
 
-  TestP4Md mdConf = {
-      .secId = secs[0].strId,
-      .side = SideT::BID,
-      .price = (FixedPrice)(secs[0].bidMinPrice + 1),
-      .size = 1,
-      .expectedFire = true};
+  TestP4Md mdConf = {.secId = secs[0].strId,
+                     .side = SideT::BID,
+                     .price = static_cast<TestP4MdPrice>(
+                         secs[0].bidMinPrice * 100 + 1),
+                     .size = 1,
+                     .expectedFire = true};
 
   const TestCaseConfig tc = {.mcParams = &core0_1mc,
                              .tcpParams = &tcp0,
                              .algoConfigParams = &secConf,
                              .mdInjectParams = &mdConf};
 
-  nExpectedFires = 1;
+  nExpectedFires_ = 1;
 
   runTest(&tc);
 }
@@ -157,7 +157,7 @@ TEST_F(TestP4Rand, RandFires) {
   TestP4SecConf secConf = {.type =
                                TestP4SecConfType::Random,
                            .percentageValidSecs = 0.5,
-                           .nSec = 8};
+                           .nSec = 100000};
 
   TestP4Md mdConf = {};
 
@@ -165,7 +165,7 @@ TEST_F(TestP4Rand, RandFires) {
                              .tcpParams = &tcp0,
                              .algoConfigParams = &secConf};
 
-  nExpectedFires = 1;
+  nExpectedFires_ = 1;
 
   runTest(&tc);
 }

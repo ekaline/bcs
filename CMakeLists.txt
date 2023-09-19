@@ -16,6 +16,7 @@ include(cmake/ccache.cmake)
 option(ENABLE_TESTING "Enable Testing build" OFF)
 option(FhLab "Ekaline Lab build" OFF)
 option(EfhLatency "EFH Internal Latencies Profiling" OFF)
+option(EfcHashPrint "EFC Testing Printous" OFF)
 # include(CTest) enable_testing()
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
@@ -31,6 +32,7 @@ string(REGEX REPLACE "\n$" "" EKA_GIT_VER "${EKA_GIT_VER}")
 
 message(STATUS "FhLab = ${FhLab}")
 message(STATUS "EfhLatency = ${EfhLatency}")
+message(STATUS "EfcHashPrint = ${EfcHashPrint}")
 
 set(CMAKE_C_COMPILER ${CMAKE_CXX_COMPILER})
 set(CMAKE_CXX_FLAGS
@@ -181,6 +183,10 @@ if(EfhLatency)
   target_compile_definitions(${EKA_LIB_NAME} PUBLIC EFH_INTERNAL_LATENCY_CHECK)
 endif()
 
+if(EfcHashPrint)
+  target_compile_definitions(${EKA_LIB_NAME} PUBLIC EFC_PRINT_HASH)
+endif()
+
 target_include_directories(${EKA_LIB_NAME} PUBLIC ${EKA_INC_PATH})
 
 target_compile_definitions(${EKA_LIB_NAME} PUBLIC LIBEKA_GIT_VER=${EKA_GIT_VER})
@@ -222,6 +228,10 @@ target_include_directories(${EKA_LIB_NAME}_static PUBLIC ${EKA_INC_PATH})
 
 target_compile_definitions(${EKA_LIB_NAME}_static
                            PUBLIC LIBEKA_GIT_VER=${EKA_GIT_VER})
+
+if(EfcHashPrint)
+  target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC EFC_PRINT_HASH)
+endif()
 
 target_link_libraries(
   ${EKA_LIB_NAME}_static

@@ -7,12 +7,14 @@
 using namespace Bats;
 
 /* --------------------------------------------- */
+typedef uint16_t TestP4SecCtxPrice;
+typedef uint32_t TestP4MdPrice;
 
 struct TestP4CboeSec {
   std::string strId;
   uint64_t binId;
-  FixedPrice bidMinPrice;
-  FixedPrice askMaxPrice;
+  TestP4SecCtxPrice bidMinPrice;
+  TestP4SecCtxPrice askMaxPrice;
   uint8_t size;
   bool valid;
   EfcSecCtxHandle handle;
@@ -33,7 +35,7 @@ struct TestP4SecConf {
 struct TestP4Md {
   std::string secId;
   SideT side;
-  FixedPrice price;
+  TestP4MdPrice price;
   uint16_t size;
   bool expectedFire;
 };
@@ -76,12 +78,15 @@ protected:
   void setSecCtx(const TestP4CboeSec *secCtx, SecCtx *dst);
 
   virtual void initializeAllCtxs(const TestCaseConfig *tc);
+  void checkAllCtxs() override;
 
   size_t createOrderExpanded(char *dst, const char *id,
                              SideT side, uint64_t price,
                              uint32_t size);
 
   uint64_t getBinSecId(std::string strId);
+
+  std::pair<uint32_t, bool> getArmVer();
   /* --------------------------------------------- */
 
 protected:
@@ -89,9 +94,14 @@ protected:
   size_t nSec_ = 0;
   uint64_t secList_[MaxTestSecurities] = {};
 
+  std::vector<TestP4CboeSec> allSecs_ = {};
+  size_t nValidSecs_ = 0;
+
   uint32_t sequence_ = 100;
 
   std::vector<TestP4Md> insertedMd_ = {};
+
+  const int ArmDisarmP4Addr = 0xf07c8;
 
 protected:
   struct AddOrderParams {

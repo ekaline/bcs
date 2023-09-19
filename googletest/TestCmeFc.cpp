@@ -60,13 +60,11 @@ void TestCmeFc::generateMdDataPkts(
 /* ############################################# */
 
 void TestCmeFc::sendData() {
-  EfcArmVer cmeFcArmVer = 0;
-
   for (const auto &md : insertedMd_) {
     efcSetSessionCntr(g_ekaDev, tcpCtx_->tcpSess_[0]->hCon_,
                       md.appSeq);
 
-    sendPktToAll(md.preloadedPkt, md.pktLen, cmeFcArmVer++,
+    sendPktToAll(md.preloadedPkt, md.pktLen,
                  md.expectedFire);
   }
 }

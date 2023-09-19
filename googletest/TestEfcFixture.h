@@ -33,9 +33,8 @@ protected:
 
   void runTest(const TestCaseConfig *tc);
 
-  EfcArmVer sendPktToAll(const void *pkt, size_t pktLen,
-                         EfcArmVer armVer,
-                         bool expectedFire);
+  void sendPktToAll(const void *pkt, size_t pktLen,
+                    bool expectedFire);
 
   void configureFpgaPorts();
 
@@ -45,10 +44,11 @@ protected:
 
   virtual void sendData() = 0;
 
+  virtual void checkAllCtxs(){};
+
   std::pair<bool, bool>
   waitForResults(uint32_t nStratEvaluated_prev,
-                 uint32_t nStratPassed_prev,
-                 int nExpectedFireReports);
+                 uint32_t nStratPassed_prev);
 
   void initNwCtxs(const TestCaseConfig *t);
 
@@ -61,6 +61,10 @@ protected:
   void getReportPtrs(const void *p, size_t len);
 
   void printTestConfig(const char *msg);
+
+  virtual std::pair<uint32_t, bool> getArmVer() {
+    return std::pair<uint32_t, bool>(0, false);
+  }
 
 protected:
   static const int MaxTcpTestSessions = 16;
@@ -83,7 +87,8 @@ protected:
   TestTcpCtx *tcpCtx_ = nullptr;
   bool loop_ = false;
 
-  int nExpectedFires = 0;
+  int nExpectedFires_ = 0;
+  EfcArmVer armVer_ = 0;
 
   const EfcControllerState *ctrlState_ = nullptr;
   const EfcExceptionsReport *excptReport_ = nullptr;
@@ -93,6 +98,8 @@ protected:
   const EpmFireReport *epmReport_ = nullptr;
   const EpmFastCancelReport *cmeFcReport_ = nullptr;
   const EpmQEDReport *qedReport_ = nullptr;
+
+  bool testFailed_ = false;
 
 public:
   struct MemChunk {
