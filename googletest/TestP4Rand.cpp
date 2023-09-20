@@ -20,8 +20,21 @@ static std::string generateValidSecId() {
   std::string dst = {};
   dst += '0';
   dst += '0' + rand() % 4;
-  for (auto i = 2; i < 6; i++)
-    dst += 'a' + rand() % ('z' - 'a' + 1);
+
+  std::string charSet = "0123456789"
+                        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                        "abcdefghijklmnopqrstuvwxyz";
+
+  // Seed the random number generator
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int> dist(
+      0, charSet.size() - 1);
+
+  for (auto i = 2; i < 6; i++) {
+    int randomIndex = dist(gen);
+    dst += charSet[randomIndex];
+  }
   return dst;
 }
 /* ############################################# */
@@ -51,8 +64,10 @@ generateUniqValidSecId(std::vector<TestP4CboeSec> &secVec) {
     auto secId = generateValidSecId();
     if (!alreadyExists(secVec, secId))
       return secId;
+#if 0
     EKA_LOG("Regenerating previously existing \'%s\'",
             secId.c_str());
+#endif
   }
 }
 /* ############################################# */

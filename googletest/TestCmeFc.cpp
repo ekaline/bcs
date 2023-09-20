@@ -49,6 +49,14 @@ void TestCmeFc::configureStrat(const TestCaseConfig *t) {
 }
 
 /* ############################################# */
+std::pair<uint32_t, bool> TestCmeFc::getArmVer() {
+  auto curArm = eka_read(ArmDisarmCmeFcAddr);
+  auto curArmState = curArm & 0x1;
+  auto curArmVer = (curArm >> 32) & 0xFFFFFFFF;
+  return std::pair<uint32_t, bool>(curArmVer, curArmState);
+}
+
+/* ############################################# */
 
 void TestCmeFc::generateMdDataPkts(
     const void *mdInjectParams) {

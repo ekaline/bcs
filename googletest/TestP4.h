@@ -86,7 +86,7 @@ protected:
 
   uint64_t getBinSecId(std::string strId);
 
-  std::pair<uint32_t, bool> getArmVer();
+  std::pair<uint32_t, bool> getArmVer() override;
   /* --------------------------------------------- */
 
 protected:

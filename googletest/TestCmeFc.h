@@ -24,7 +24,11 @@ protected:
   void
   checkAlgoCorrectness(const TestCaseConfig *tc) override;
 
+  std::pair<uint32_t, bool> getArmVer() override;
+
 protected:
+  const int ArmDisarmCmeFcAddr = 0xf07d0;
+
   std::vector<TestCmeFcMd> insertedMd_ = {};
 };
 

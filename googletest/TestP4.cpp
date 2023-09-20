@@ -254,26 +254,25 @@ std::pair<uint32_t, bool> TestP4::getArmVer() {
 /* ############################################# */
 
 void TestP4::sendData() {
+  int i = 0;
   for (const auto &md : insertedMd_) {
     char pktBuf[1500] = {};
     auto pktLen =
         createOrderExpanded(pktBuf, md.secId.c_str(),
                             md.side, md.price, md.size);
-    EKA_LOG("Sending MD for %s: "
+    char msg[16000] = {};
+    sprintf(msg,
+            "%d: "
+            "Sending MD for %s: "
             "side= \'%c\', "
             "price=%u, "
             "size=%u",
-            md.secId.c_str(), cboeSide(md.side), md.price,
-            md.size);
+            i++, md.secId.c_str(), cboeSide(md.side),
+            md.price, md.size);
     sendPktToAll(pktBuf, pktLen, md.expectedFire);
     if (testFailed_) {
-      TEST_LOG("TEST FAILED at sending MD for %s: "
-               "side= \'%c\', "
-               "price=%u, "
-               "size=%u",
-               md.secId.c_str(), cboeSide(md.side),
-               md.price, md.size);
-      EXPECT_FALSE(!testFailed_);
+      TEST_LOG("TEST FAILED: %s", msg);
+      FAIL() << msg;
       return;
     }
   }

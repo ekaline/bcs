@@ -348,7 +348,6 @@ void TestEfcFixture::sendPktToAll(const void *pkt,
         on_error("!udpConn_[%d][%d]", coreId, i);
 
       auto [curArmVer, curArmState] = getArmVer();
-
       EXPECT_EQ(curArmVer, armVer_);
       EXPECT_TRUE(curArmState);
 
@@ -402,7 +401,9 @@ void TestEfcFixture::sendPktToAll(const void *pkt,
           memcpy(ep->buf, rxBuf, len);
           echoedPkts_.push_back(ep);
         }
-        armController_(g_ekaDev, ++armVer_);
+        ++armVer_;
+        EKA_LOG("Arming armVer_ = %d", armVer_);
+        armController_(g_ekaDev, armVer_);
       }
 
     } // iteration per MC grp

@@ -173,9 +173,8 @@ TEST_F(TestP4Rand, RandFires) {
   TestP4CboeSec secs[] = {};
   TestP4SecConf secConf = {.type =
                                TestP4SecConfType::Random,
-                           .percentageValidSecs = 0.5,
+                           .percentageValidSecs = 0.9,
                            .nSec = 100000};
-
   TestP4Md mdConf = {};
 
   const TestCaseConfig tc = {.mcParams = &core0_1mc,
