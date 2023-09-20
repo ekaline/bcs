@@ -16,7 +16,7 @@ struct TestP4CboeSec {
   TestP4SecCtxPrice bidMinPrice;
   TestP4SecCtxPrice askMaxPrice;
   uint8_t size;
-  bool valid;
+  bool valid = true;
   EfcSecCtxHandle handle;
 };
 

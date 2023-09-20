@@ -101,48 +101,22 @@ void TestP4Rand::createSecList(
 
 /* ############################################# */
 
-void TestP4Rand::initializeAllCtxs(
-    const TestCaseConfig *unused) {
-  int i = 0;
-  for (auto &sec : allSecs_) {
-    if (!sec.valid)
-      continue;
-    sec.handle = getSecCtxHandle(g_ekaDev, sec.binId);
-    if (sec.handle < 0)
-      continue;
-
-    SecCtx secCtx = {};
-    setSecCtx(&sec, &secCtx);
-
-    EKA_LOG(
-        "Setting StaticSecCtx[%ju] \'%s\' secId=0x%016jx,"
-        "handle=%jd,bidMinPrice=%u,askMaxPrice=%u,"
-        "bidSize=%u,askSize=%u,"
-        "versionKey=%u,lowerBytesOfSecId=0x%x",
-        i, sec.strId.c_str(), sec.binId, sec.handle,
-        secCtx.bidMinPrice, secCtx.askMaxPrice,
-        secCtx.bidSize, secCtx.askSize, secCtx.versionKey,
-        secCtx.lowerBytesOfSecId);
-    /* hexDump("secCtx",&secCtx,sizeof(secCtx)); */
-
-    if (sec.handle >= 0) {
-      auto rc = efcSetStaticSecCtx(g_ekaDev, sec.handle,
-                                   &secCtx, 0);
-      if (rc != EKA_OPRESULT__OK)
-        on_error("failed to efcSetStaticSecCtx");
-    }
-    i++;
-  }
-}
-
 /* ############################################# */
 
 void TestP4Rand::generateMdDataPkts(const void *unused) {
   for (const auto &sec : allSecs_) {
+
+    auto side =
+        getRandomBoolean(0.5) ? SideT::BID : SideT::ASK;
+
     TestP4Md md = {.secId = sec.strId,
-                   .side = SideT::BID,
-                   .price = static_cast<TestP4MdPrice>(
-                       sec.bidMinPrice * 100 + 1),
+                   .side = side,
+                   .price =
+                       side == SideT::BID
+                           ? static_cast<TestP4MdPrice>(
+                                 sec.bidMinPrice * 100 + 1)
+                           : static_cast<TestP4MdPrice>(
+                                 sec.askMaxPrice * 100 - 1),
                    .size = sec.size,
                    .expectedFire = sec.valid};
 #if 0

@@ -232,12 +232,9 @@ int EkaHwHashTableLine::pack(int _sum) {
 
 /* ############################################### */
 int EkaHwHashTableLine::downloadPacked() {
-  int packedBytes =
-      roundUp<int>(EFC_SUBSCR_TABLE_COLUMNS * getHashSize(),
-                   8) /
-          8 +
-      4;
-  int packedWords = roundUp<int>(packedBytes, 8) / 8;
+  int packedBytes = sizeof(PackedHashLine);
+
+  int packedWords = roundUp8(packedBytes) / 8;
 
 #ifdef _VERILOG_SIM
   if (validCnt == 0)
@@ -256,6 +253,10 @@ int EkaHwHashTableLine::downloadPacked() {
 
   uint64_t *pWord = (uint64_t *)&packed;
   for (auto i = 0; i < packedWords; i++) {
+#ifdef EFC_PRINT_HASH
+    if (validCnt != 0)
+      EKA_LOG("%d: 0x%016jx", i, *pWord);
+#endif
     eka_write(dev, FH_SUBS_HASH_BASE + 8 * i, *pWord);
     pWord++;
   }

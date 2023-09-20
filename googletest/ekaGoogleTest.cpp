@@ -1,13 +1,10 @@
 #include <gtest/gtest.h>
 #include <iostream>
 
-#if 1
-
 #include "TestCmeFc.h"
 #include "TestP4.h"
+#include "TestP4FixedSecs.h"
 #include "TestP4Rand.h"
-
-#endif
 
 /* --------------------------------------------- */
 #if 1
@@ -144,6 +141,26 @@ TEST_F(TestP4, FireOnBid) {
                              .tcpParams = &tcp0,
                              .algoConfigParams = &secConf,
                              .mdInjectParams = &mdConf};
+
+  nExpectedFires_ = 1;
+
+  runTest(&tc);
+}
+#endif
+/* --------------------------------------------- */
+#if 1
+TEST_F(TestP4FixedSecs, HashCollisionTest) {
+  // subscribing on 16 securities fitting same Hash line
+
+  fixedSecs_.insert(fixedSecs_.begin(),
+                    {"01bfkq", "00avkq", "02ovkq", "02yfkq",
+                     "01bvkq", "00zvkq", "01kfkq", "00nvkq",
+                     "02wvkq", "00jfkq", "02kvkq", "03jfkq",
+                     "02cfkq", "02jvkq", "00qfkq",
+                     "03evkq"});
+
+  const TestCaseConfig tc = {.mcParams = &core0_1mc,
+                             .tcpParams = &tcp0};
 
   nExpectedFires_ = 1;
 

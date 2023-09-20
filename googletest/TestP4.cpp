@@ -3,39 +3,38 @@
 
 /* ############################################# */
 
-void TestP4::initializeAllCtxs(const TestCaseConfig *tc) {
-  auto secConf = reinterpret_cast<const TestP4SecConf *>(
-      tc->algoConfigParams);
-
-  // setting security contexts
-  for (size_t i = 0; i < nSec_; i++) {
-    auto handle = getSecCtxHandle(g_ekaDev, secList_[i]);
-
-    if (handle < 0) {
-      EKA_WARN("Security[%ju] %s was not "
-               "fit into FPGA hash: handle = %jd",
-               i, secConf->sec[i].strId.c_str(), handle);
+void TestP4::initializeAllCtxs(
+    const TestCaseConfig *unused) {
+  int i = 0;
+  for (auto &sec : allSecs_) {
+    if (!sec.valid)
       continue;
+    sec.handle = getSecCtxHandle(g_ekaDev, sec.binId);
+    if (sec.handle < 0) {
+      EKA_WARN("Security[%d] \'%s\' 0x%016jx was not "
+               "fit into FPGA hash: handle = %jd",
+               i, sec.strId.c_str(), sec.binId, sec.handle);
+    } else {
+      SecCtx secCtx = {};
+      setSecCtx(&sec, &secCtx);
+
+      EKA_LOG(
+          "Setting StaticSecCtx[%ju] \'%s\' secId=0x%016jx,"
+          "handle=%jd,bidMinPrice=%u,askMaxPrice=%u,"
+          "bidSize=%u,askSize=%u,"
+          "versionKey=%u,lowerBytesOfSecId=0x%x",
+          i, sec.strId.c_str(), sec.binId, sec.handle,
+          secCtx.bidMinPrice, secCtx.askMaxPrice,
+          secCtx.bidSize, secCtx.askSize, secCtx.versionKey,
+          secCtx.lowerBytesOfSecId);
+      /* hexDump("secCtx",&secCtx,sizeof(secCtx)); */
+
+      auto rc = efcSetStaticSecCtx(g_ekaDev, sec.handle,
+                                   &secCtx, 0);
+      if (rc != EKA_OPRESULT__OK)
+        on_error("failed to efcSetStaticSecCtx");
     }
-
-    SecCtx secCtx = {};
-    setSecCtx(&secConf->sec[i], &secCtx);
-
-    EKA_LOG(
-        "Setting StaticSecCtx[%ju] \'%s\' secId=0x%016jx,"
-        "handle=%jd,bidMinPrice=%u,askMaxPrice=%u,"
-        "bidSize=%u,askSize=%u,"
-        "versionKey=%u,lowerBytesOfSecId=0x%x",
-        i, secConf->sec[i].strId.c_str(), secList_[i],
-        handle, secCtx.bidMinPrice, secCtx.askMaxPrice,
-        secCtx.bidSize, secCtx.askSize, secCtx.versionKey,
-        secCtx.lowerBytesOfSecId);
-    /* hexDump("secCtx",&secCtx,sizeof(secCtx)); */
-
-    auto rc =
-        efcSetStaticSecCtx(g_ekaDev, handle, &secCtx, 0);
-    if (rc != EKA_OPRESULT__OK)
-      on_error("failed to efcSetStaticSecCtx");
+    i++;
   }
 }
 /* ############################################# */
@@ -69,7 +68,6 @@ void TestP4::checkAllCtxs() {
               sec.strId.c_str(), sec.binId, sec.handle);
       EKA_WARN("%s", errMsg);
       ADD_FAILURE() << errMsg;
-
     } else {
       EKA_LOG("sec.binId 0x%016jx found, ctx in handle %u: "
               "bidMinPrice=%d,askMaxPrice=%d, bidSize=%d, "
@@ -117,9 +115,16 @@ void TestP4::configureStrat(const TestCaseConfig *tc) {
 
   createSecList(tc->algoConfigParams);
 
-  // subscribing on list of securities
+// subscribing on list of securities
+#if 0
+  for (auto i = 0; i < nSec_; i++)
+    EKA_LOG("efcEnableFiringOnSec: secList_[%d] = 0x%jx", i,
+            secList_[i]);
+#endif
   efcEnableFiringOnSec(g_ekaDev, secList_, nSec_);
 
+  for (auto i = 0; i < nSec_; i++)
+    EKA_LOG("secList_[i] = 0x%016jx", secList_);
   // ==============================================
   initializeAllCtxs(tc);
 
@@ -186,14 +191,29 @@ uint64_t TestP4::getBinSecId(std::string strId) {
   return be64toh(*(uint64_t *)shiftedStr);
 }
 
+/* ############################################# */
+
 void TestP4::createSecList(const void *algoConfigParams) {
+  if (!algoConfigParams)
+    on_error("!algoConfigParams");
 
   auto secConf = reinterpret_cast<const TestP4SecConf *>(
       algoConfigParams);
 
   for (auto i = 0; i < secConf->nSec; i++) {
-    secList_[i] = getBinSecId(secConf->sec[i].strId);
+    TestP4CboeSec sec = {
+        .strId = secConf->sec[i].strId,
+        .binId = getBinSecId(secConf->sec[i].strId),
+        .bidMinPrice = secConf->sec[i].bidMinPrice,
+        .askMaxPrice = secConf->sec[i].askMaxPrice,
+        .size = secConf->sec[i].size,
+        .valid = true,
+        .handle = -1};
+    allSecs_.push_back(sec);
+
+    secList_[i] = sec.binId;
   }
+
   nSec_ = secConf->nSec;
   EKA_LOG("Created List of %ju P4 Securities:", nSec_);
   for (auto i = 0; i < nSec_; i++)
