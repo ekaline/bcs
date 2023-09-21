@@ -13,7 +13,8 @@ include(cmake/projectsettings.cmake)
 # options ccache
 include(cmake/ccache.cmake)
 
-option(ENABLE_TESTING "Enable Testing build" OFF)
+option(ENABLE_EKA_TESTING "Enable Ekaline Testing build" OFF)
+option(ENABLE_GTEST "Enable Google Test build" OFF)
 option(FhLab "Ekaline Lab build" OFF)
 option(EfhLatency "EFH Internal Latencies Profiling" OFF)
 option(EfcHashPrint "EFC Testing Printous" OFF)
@@ -30,6 +31,8 @@ execute_process(COMMAND git -C ${CMAKE_SOURCE_DIR} rev-parse --short HEAD
 
 string(REGEX REPLACE "\n$" "" EKA_GIT_VER "${EKA_GIT_VER}")
 
+message(STATUS "ENABLE_EKA_TESTING = ${ENABLE_EKA_TESTING}")
+message(STATUS "ENABLE_GTEST = ${ENABLE_GTEST}")
 message(STATUS "FhLab = ${FhLab}")
 message(STATUS "EfhLatency = ${EfhLatency}")
 message(STATUS "EfcHashPrint = ${EfcHashPrint}")
@@ -257,7 +260,7 @@ install(TARGETS ${EKA_LIB_NAME}_static RUNTIME DESTINATION lib
 # ##############################################################################
 # Tests
 
-# if (ENABLE_TESTING)
+if (ENABLE_EKA_TESTING)
 file(GLOB test_SRCS ${EKA_TESTS_DIR}/*.c)
 set(testDstDir ${CMAKE_BINARY_DIR}/tests/${EKA_LIB_NAME})
 
@@ -274,7 +277,7 @@ foreach(test ${test_SRCS})
 
   target_include_directories(${testName} PUBLIC ${EKA_INC_PATH})
 endforeach()
-# endif()
+endif() # ENABLE_EKA_TESTING
 
 # ##############################################################################
 # Utils
@@ -321,6 +324,7 @@ endforeach()
 # ##############################################################################
 # Google test
 
+if (ENABLE_GTEST)
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 
@@ -342,10 +346,14 @@ add_dependencies(runTests ${EKA_LIB_NAME}_static)
 target_link_libraries(runTests ${EKA_LIB_NAME}_static rt m Threads::Threads)
 target_link_libraries(runTests -static-libgcc -static-libstdc++)
 
+set(CEREAL_DIR ${CMAKE_CURRENT_LIST_DIR}/cereal)
+
 target_include_directories(runTests PUBLIC ${EKA_INC_PATH})
+target_include_directories(runTests PUBLIC ${CEREAL_DIR}/include)
 
 file(GLOB ekaGtest_SRCS ${EKA_GTESTS_DIR}/*.cpp)
 
 foreach(ekaGtestSrc ${ekaGtest_SRCS})
   target_sources(runTests PRIVATE ${ekaGtestSrc})
 endforeach()
+endif() # ENABLE_GTEST

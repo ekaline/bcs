@@ -18,6 +18,13 @@ struct TestP4CboeSec {
   uint8_t size;
   bool valid = true;
   EfcSecCtxHandle handle;
+
+  template <class Archive> void serialize(Archive &ar) {
+    ar(CEREAL_NVP(strId), CEREAL_NVP(binId),
+       CEREAL_NVP(bidMinPrice), CEREAL_NVP(askMaxPrice),
+       CEREAL_NVP(size), CEREAL_NVP(valid),
+       CEREAL_NVP(handle));
+  }
 };
 
 enum class TestP4SecConfType : int {
@@ -38,6 +45,12 @@ struct TestP4Md {
   TestP4MdPrice price;
   uint16_t size;
   bool expectedFire;
+
+  template <class Archive> void serialize(Archive &ar) {
+    ar(CEREAL_NVP(secId), CEREAL_NVP(side),
+       CEREAL_NVP(price), CEREAL_NVP(size),
+       CEREAL_NVP(expectedFire));
+  }
 };
 
 struct CboePitchAddOrderShort {
@@ -66,6 +79,8 @@ static inline char cboeSide(SideT side) {
 
 class TestP4 : public TestEfcFixture {
 protected:
+  TestP4() { ArmDisarmAddr_ = 0xf07c8; }
+
   void configureStrat(const TestCaseConfig *t) override;
   virtual void generateMdDataPkts(const void *t) override;
 
@@ -86,7 +101,6 @@ protected:
 
   uint64_t getBinSecId(std::string strId);
 
-  std::pair<uint32_t, bool> getArmVer() override;
   /* --------------------------------------------- */
 
 protected:
@@ -100,8 +114,6 @@ protected:
   uint32_t sequence_ = 100;
 
   std::vector<TestP4Md> insertedMd_ = {};
-
-  const int ArmDisarmP4Addr = 0xf07c8;
 
 protected:
   struct AddOrderParams {

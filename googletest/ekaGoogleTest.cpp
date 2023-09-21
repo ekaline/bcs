@@ -149,20 +149,45 @@ TEST_F(TestP4, FireOnBid) {
 #endif
 /* --------------------------------------------- */
 #if 1
-TEST_F(TestP4FixedSecs, HashCollisionTest) {
+TEST_F(TestP4FixedSecs, Hash1Line16secs) {
   // subscribing on 16 securities fitting same Hash line
 
-  fixedSecs_.insert(fixedSecs_.begin(),
-                    {"01bfkq", "00avkq", "02ovkq", "02yfkq",
-                     "01bvkq", "00zvkq", "01kfkq", "00nvkq",
-                     "02wvkq", "00jfkq", "02kvkq", "03jfkq",
-                     "02cfkq", "02jvkq", "00qfkq",
-                     "03evkq"});
+  std::vector<std::string> testSecIds = {
+      "01bfkq", "00avkq", "02ovkq", "02yfkq",
+      "01bvkq", "00zvkq", "01kfkq", "00nvkq",
+      "02wvkq", "00jfkq", "02kvkq", "03jfkq",
+      "02cfkq", "02jvkq", "00qfkq", "03evkq"};
+
+  fixedSecs_.insert(fixedSecs_.begin(), testSecIds.begin(),
+                    testSecIds.begin() + testSecIds.size());
 
   const TestCaseConfig tc = {.mcParams = &core0_1mc,
                              .tcpParams = &tcp0};
 
-  nExpectedFires_ = 1;
+  nExpectedFires_ = 16;
+
+  runTest(&tc);
+}
+#endif
+/* --------------------------------------------- */
+#if 1
+TEST_F(TestP4FixedSecs, Hash1Line25secs) {
+  // subscribing on 25 securities at same Hash line
+
+  std::vector<std::string> testSecIds = {
+      "000aaa", "001aaa", "002aaa", "003aaa", "010aaa",
+      "011aaa", "012aaa", "013aaa", "020aaa", "021aaa",
+      "022aaa", "023aaa", "030aaa", "031aaa", "032aaa",
+      "033aaa", "03aaaa", "03baaa", "03caaa", "03daaa",
+      "03eaaa", "03faaa", "03gaaa", "03haaa", "03Xaaa"};
+
+  fixedSecs_.insert(fixedSecs_.begin(), testSecIds.begin(),
+                    testSecIds.begin() + testSecIds.size());
+
+  const TestCaseConfig tc = {.mcParams = &core0_1mc,
+                             .tcpParams = &tcp0};
+
+  nExpectedFires_ = 24;
 
   runTest(&tc);
 }
@@ -181,13 +206,39 @@ TEST_F(TestP4Rand, RandFires) {
                              .tcpParams = &tcp0,
                              .algoConfigParams = &secConf};
 
+  runTest(&tc);
+}
+#endif
+/* --------------------------------------------- */
+#if 1
+TEST_F(TestP4, FailureDebug) {
+  TestP4CboeSec secs[] = {{.strId = "03DB6K",
+                           .bidMinPrice = 19203,
+                           .askMaxPrice = 11520,
+                           .size = 1}};
+  TestP4SecConf secConf = {
+      .type = TestP4SecConfType::Predefined,
+      .sec = secs,
+      .nSec = std::size(secs)};
+
+  TestP4Md mdConf = {
+      .secId = secs[0].strId,
+      .side = SideT::BID,
+      .price = static_cast<TestP4MdPrice>(1920301),
+      .size = 1,
+      .expectedFire = true};
+
+  const TestCaseConfig tc = {.mcParams = &core0_1mc,
+                             .tcpParams = &tcp0,
+                             .algoConfigParams = &secConf,
+                             .mdInjectParams = &mdConf};
+
   nExpectedFires_ = 1;
 
   runTest(&tc);
 }
 #endif
 /* --------------------------------------------- */
-
 int main(int argc, char **argv) {
   std::cout << "Main of " << argv[0] << "\n";
   ::testing::InitGoogleTest(&argc, argv);

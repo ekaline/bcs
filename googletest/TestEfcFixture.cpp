@@ -192,6 +192,8 @@ void TestEfcFixture::runTest(const TestCaseConfig *tc) {
 
   generateMdDataPkts(tc->mdInjectParams);
 
+  archiveSecCtxsMd();
+
   armController_(g_ekaDev, armVer_);
 
   sendData();
@@ -200,6 +202,9 @@ void TestEfcFixture::runTest(const TestCaseConfig *tc) {
 
   EXPECT_EQ(nExpectedFireReports_, fireReports_.size());
   EXPECT_EQ(echoedPkts_.size(), fireReports_.size());
+
+  if (nExpectedFires_ >= 0)
+    EXPECT_EQ(fireReports_.size(), nExpectedFires_);
 
   if (!testFailed_)
     checkAlgoCorrectness(tc);
@@ -418,5 +423,12 @@ void TestEfcFixture::printTestConfig(const char *msg) {
 
   printTcpCtx();
   printUdpCtx();
+}
+/* ############################################# */
+std::pair<uint32_t, bool> TestEfcFixture::getArmVer() {
+  auto curArm = eka_read(ArmDisarmAddr_);
+  auto curArmState = curArm & 0x1;
+  auto curArmVer = (curArm >> 32) & 0xFFFFFFFF;
+  return std::pair<uint32_t, bool>(curArmVer, curArmState);
 }
 /* ############################################# */

@@ -4,6 +4,16 @@
 #include <gtest/gtest.h>
 
 #include "eka_macros.h"
+#include <cereal/archives/json.hpp>
+#include <cereal/cereal.hpp>
+#include <cereal/types/vector.hpp>
+
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+
+#include <vector>
 
 #include "EkaFhTypes.h"
 #include <Efc.h>
@@ -46,6 +56,8 @@ protected:
 
   virtual void checkAllCtxs(){};
 
+  virtual void archiveSecCtxsMd(){};
+
   std::pair<bool, bool>
   waitForResults(uint32_t nStratEvaluated_prev,
                  uint32_t nStratPassed_prev);
@@ -62,9 +74,7 @@ protected:
 
   void printTestConfig(const char *msg);
 
-  virtual std::pair<uint32_t, bool> getArmVer() {
-    return std::pair<uint32_t, bool>(0, false);
-  }
+  virtual std::pair<uint32_t, bool> getArmVer();
 
 protected:
   static const int MaxTcpTestSessions = 16;
@@ -87,7 +97,7 @@ protected:
   TestTcpCtx *tcpCtx_ = nullptr;
   bool loop_ = false;
 
-  int nExpectedFires_ = 0;
+  int nExpectedFires_ = -1;
   EfcArmVer armVer_ = 0;
 
   const EfcControllerState *ctrlState_ = nullptr;
@@ -100,6 +110,8 @@ protected:
   const EpmQEDReport *qedReport_ = nullptr;
 
   bool testFailed_ = false;
+
+  int ArmDisarmAddr_ = 0xf07d0; // overrided for P4
 
 public:
   struct MemChunk {

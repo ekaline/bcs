@@ -245,12 +245,7 @@ void TestP4::generateMdDataPkts(
   insertedMd_.push_back(*md);
 }
 /* ############################################# */
-std::pair<uint32_t, bool> TestP4::getArmVer() {
-  auto curArm = eka_read(ArmDisarmP4Addr);
-  auto curArmState = curArm & 0x1;
-  auto curArmVer = (curArm >> 32) & 0xFFFFFFFF;
-  return std::pair<uint32_t, bool>(curArmVer, curArmState);
-}
+
 /* ############################################# */
 
 void TestP4::sendData() {

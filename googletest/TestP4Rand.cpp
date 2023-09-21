@@ -2,6 +2,23 @@
 
 #include "TestP4Rand.h"
 
+/* ############################################# */
+
+TestP4Rand::TestP4Rand() {
+#if 0
+  outputFile_.open("rand/TestP4Rand.json",
+                   std::ofstream::out);
+#endif
+}
+/* ############################################# */
+
+TestP4Rand::~TestP4Rand() {
+#if 0
+outputFile_.close();
+#endif
+}
+/* ############################################# */
+
 static bool getRandomBoolean(double probability) {
   // Seed the random number generator
   std::random_device rd;
@@ -116,6 +133,14 @@ void TestP4Rand::createSecList(
 
 /* ############################################# */
 
+void TestP4Rand::archiveSecCtxsMd() {
+  std::ofstream outputFile("rand/SecCtxsMd.json");
+  cereal::JSONOutputArchive archive(outputFile);
+  archive(CEREAL_NVP(allSecs_));
+  archive(CEREAL_NVP(insertedMd_));
+};
+/* ############################################# */
+
 /* ############################################# */
 
 void TestP4Rand::generateMdDataPkts(const void *unused) {
@@ -124,16 +149,16 @@ void TestP4Rand::generateMdDataPkts(const void *unused) {
     auto side =
         getRandomBoolean(0.5) ? SideT::BID : SideT::ASK;
 
-    TestP4Md md = {.secId = sec.strId,
-                   .side = side,
-                   .price =
-                       side == SideT::BID
-                           ? static_cast<TestP4MdPrice>(
-                                 sec.bidMinPrice * 100 + 1)
-                           : static_cast<TestP4MdPrice>(
-                                 sec.askMaxPrice * 100 - 1),
-                   .size = sec.size,
-                   .expectedFire = sec.valid};
+    TestP4Md md = {
+        .secId = sec.strId,
+        .side = side,
+        .price = side == SideT::BID
+                     ? static_cast<TestP4MdPrice>(
+                           sec.bidMinPrice * 100 + 1)
+                     : static_cast<TestP4MdPrice>(
+                           sec.askMaxPrice * 100 - 1),
+        .size = sec.size,
+        .expectedFire = sec.valid && sec.handle >= 0};
 #if 0
     TEST_LOG("%s: sec.bidMinPrice = %u, md.price = %u",
              md.secId.c_str(), sec.bidMinPrice, md.price);
