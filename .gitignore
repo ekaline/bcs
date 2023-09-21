@@ -1,6 +1,7 @@
 *
 !*.c
 !*.cpp
+!*.hpp
 !*.h
 !*.pl
 !*.txt
@@ -38,6 +39,7 @@
 !googletest/*.h
 !googletest/*.c
 !googletest/*.cpp
+!cereal
 apisrc/Ehp/README.txt
 SmartNIC_SW/driver/smartnic.mod.c
 SmartNIC_SW/driver/ekaline_build_time.h
