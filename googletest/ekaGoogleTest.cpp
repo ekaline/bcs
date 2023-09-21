@@ -4,8 +4,8 @@
 #include "TestCmeFc.h"
 #include "TestP4.h"
 #include "TestP4FixedSecs.h"
+#include "TestP4PredefinedCtx.h"
 #include "TestP4Rand.h"
-
 /* --------------------------------------------- */
 #if 1
 static const TestTcpSess testDefaultTcpSess[] = {
@@ -200,11 +200,28 @@ TEST_F(TestP4Rand, RandFires) {
                                TestP4SecConfType::Random,
                            .percentageValidSecs = 0.9,
                            .nSec = 100000};
-  TestP4Md mdConf = {};
 
   const TestCaseConfig tc = {.mcParams = &core0_1mc,
                              .tcpParams = &tcp0,
                              .algoConfigParams = &secConf};
+
+  runTest(&tc);
+}
+#endif
+/* --------------------------------------------- */
+#if 1
+TEST_F(TestP4PredefinedCtx, RandFires) {
+  const TestCaseConfig tc = {.mcParams = &core0_1mc,
+                             .tcpParams = &tcp0};
+
+  runTest(&tc);
+}
+#endif
+/* --------------------------------------------- */
+#if 1
+TEST_F(TestP4PredefinedCtx, Hash1Line25secs) {
+  const TestCaseConfig tc = {.mcParams = &core0_1mc,
+                             .tcpParams = &tcp0};
 
   runTest(&tc);
 }

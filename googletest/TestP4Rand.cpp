@@ -5,10 +5,10 @@
 /* ############################################# */
 
 TestP4Rand::TestP4Rand() {
-#if 0
-  outputFile_.open("rand/TestP4Rand.json",
-                   std::ofstream::out);
-#endif
+  const testing::TestInfo *const test_info =
+      testing::UnitTest::GetInstance()->current_test_info();
+
+  sprintf(ctxFileName_, "%s", test_info->name());
 }
 /* ############################################# */
 
@@ -134,7 +134,7 @@ void TestP4Rand::createSecList(
 /* ############################################# */
 
 void TestP4Rand::archiveSecCtxsMd() {
-  std::ofstream outputFile("rand/SecCtxsMd.json");
+  std::ofstream outputFile(ctxFileName_);
   cereal::JSONOutputArchive archive(outputFile);
   archive(CEREAL_NVP(allSecs_));
   archive(CEREAL_NVP(insertedMd_));

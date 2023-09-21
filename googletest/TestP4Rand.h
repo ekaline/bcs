@@ -9,12 +9,13 @@ protected:
   TestP4Rand();
   virtual ~TestP4Rand();
 
-  void createSecList(const void *secConf) override;
+  virtual void createSecList(const void *secConf) override;
   virtual void generateMdDataPkts(const void *t) override;
 
   void archiveSecCtxsMd() override;
 
 protected:
+  char ctxFileName_[1024] = {};
 #if 0
   std::ofstream outputFile_;
   cereal::JSONOutputArchive archive_;

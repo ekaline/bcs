@@ -41,7 +41,7 @@ protected:
   void SetUp() override;
   void TearDown() override;
 
-  void runTest(const TestCaseConfig *tc);
+  virtual void runTest(const TestCaseConfig *tc);
 
   void sendPktToAll(const void *pkt, size_t pktLen,
                     bool expectedFire);
@@ -54,9 +54,10 @@ protected:
 
   virtual void sendData() = 0;
 
-  virtual void checkAllCtxs(){};
+  virtual void checkAllCtxs() {}
 
-  virtual void archiveSecCtxsMd(){};
+  virtual void archiveSecCtxsMd() {}
+  virtual void loadSecCtxsMd() {}
 
   std::pair<bool, bool>
   waitForResults(uint32_t nStratEvaluated_prev,

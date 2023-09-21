@@ -182,6 +182,8 @@ void TestEfcFixture::runTest(const TestCaseConfig *tc) {
 
   tcpCtx_->connectAll();
 
+  loadSecCtxsMd(); // works only for TestP4PredefinedCtx
+
   configureStrat(tc);
 
   EfcRunCtx runCtx = {.onEfcFireReportCb = getFireReport,
@@ -192,7 +194,7 @@ void TestEfcFixture::runTest(const TestCaseConfig *tc) {
 
   generateMdDataPkts(tc->mdInjectParams);
 
-  archiveSecCtxsMd();
+  archiveSecCtxsMd(); // works only for Random
 
   armController_(g_ekaDev, armVer_);
 
