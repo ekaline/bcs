@@ -137,9 +137,10 @@ int main(int argc, char *argv[]) {
 
   uint64_t hw_cmd =
       (secIdBin & 0x00ffffffffffffff) | (protocol_id << 56);
-  printf("checking secIdBin 0x%016jx, protocolid %u, hwcmd "
-         "0x%016jx\n",
-         secIdBin, protocol_id, hw_cmd);
+  printf(
+      "checking secIdBin 0x%016jx, protocolid %ju, hwcmd "
+      "0x%016jx\n",
+      secIdBin, protocol_id, hw_cmd);
 
   snWrite(0xf0038, hw_cmd);
 
@@ -154,7 +155,7 @@ int main(int argc, char *argv[]) {
 
   if (!(hwCtxDump.HashStatus)) {
     printf("secIdBin 0x%016jx was not found in hash, using "
-           "protocolid %u\n",
+           "protocolid %ju\n",
            secIdBin, protocol_id);
     return 0;
   }

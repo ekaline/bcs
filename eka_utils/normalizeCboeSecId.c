@@ -114,15 +114,15 @@ static std::string cboeSecIdString(uint64_t n) {
 }
 
 static void printUsage(const char *cmd) {
-  printf(
-      "USAGE: [opt] Normalize/Denormalize CBOE ScurityID "
-      "-- dump HW Security Context\n"
-      "\t-n <numeric representaion of SecurityID>\n"
-      "\t-d <normalized representaion of SecurityID>\n"
-      "\t-a <ASCII representaion of SecurityID>\n"
-      "\t-h print this help\n"
-      "(Pitch Only!)\n",
-      cmd);
+  printf("%s: USAGE: [opt] Normalize/Denormalize CBOE "
+         "ScurityID "
+         "-- dump HW Security Context\n"
+         "\t-n <numeric representaion of SecurityID>\n"
+         "\t-d <normalized representaion of SecurityID>\n"
+         "\t-a <ASCII representaion of SecurityID>\n"
+         "\t-h print this help\n"
+         "(Pitch Only!)\n",
+         cmd);
 }
 
 int main(int argc, char *argv[]) {
