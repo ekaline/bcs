@@ -9,6 +9,8 @@
 #include "EkaFh.h"
 #include "EkaNwParser.h"
 
+#include "EkaFhBook.h"
+
 class fh_q;
 class EkaFhBook;
 class EkaFhRunGroup;
@@ -373,6 +375,10 @@ public:
 
   EfhExchangeErrorCode lastExchErr =
       EfhExchangeErrorCode::kNoError;
+
+#ifdef EFH_INTERNAL_LATENCY_CHECK
+  std::vector<EfhLatencyStat> latencies = {};
+#endif
 
 private:
 protected:

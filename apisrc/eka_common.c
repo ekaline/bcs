@@ -22,6 +22,7 @@
 // #include <syslog.h>
 
 #include "EkaDev.h"
+#include "EkaHwCaps.h"
 #include "eka_macros.h"
 
 #include "Efc.h"
@@ -404,16 +405,29 @@ int convert_ts(char *dst, uint64_t ts) {
   return 0;
 }
 
+static EfhFeedVer hw2efhFeedVer(int hwFeedVer) {
+  switch (hwFeedVer) {
+  case SN_NASDAQ:
+    return EfhFeedVer::kNASDAQ;
+  case SN_MIAX:
+    return EfhFeedVer::kMIAX;
+  case SN_PHLX:
+    return EfhFeedVer::kPHLX;
+  case SN_GEMX:
+    return EfhFeedVer::kGEMX;
+  case SN_CBOE:
+    return EfhFeedVer::kCBOE;
+  default:
+    return EfhFeedVer::kInvalid;
+  }
+}
+
 EkaCapsResult ekaGetCapsResult(EkaDev *pEkaDev,
                                enum EkaCapType ekaCapType) {
   switch (ekaCapType) {
-
   case EkaCapType::kEkaCapsMaxSecCtxs:
   case EkaCapType::kEkaCapsMaxEkaHandle:
     return (EkaCapsResult)EkaDev::MAX_SEC_CTX;
-
-  case EkaCapType::kEkaCapsExchange:
-    return (EkaCapsResult)pEkaDev->hwFeedVer;
 
   case EkaCapType::kEkaCapsMaxCores:
     return (EkaCapsResult)EkaDev::MAX_CORES;

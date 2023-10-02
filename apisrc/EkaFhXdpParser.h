@@ -1,10 +1,11 @@
 #ifndef _EKA_FH_XDP_PARSER_H_
 #define _EKA_FH_XDP_PARSER_H_
 
-#include "EkaFhTypes.h"
-#include "eka_macros.h"
 #include <endian.h>
 #include <inttypes.h>
+
+#include "EfhMsgs.h"
+#include "eka_macros.h"
 
 #define EFH_XDP_STRIKE_PRICE_SCALE 1
 
@@ -460,8 +461,8 @@ struct XdpRequestResponse { // MSG TYPE 447
   //  4 – Rejected due to maximum number of refresh
   // requests in a day  6 – Rejected due to an Invalid
   // Channel ID  8 – Underlying download complete  9
-  // – Series download complete  10 – Complex download
-  // complete
+  // – Series download complete  10 – Complex
+  // download complete
 } __attribute__((packed));
 
 struct XdpLogoutRequest { // MSG TYPE 460
