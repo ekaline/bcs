@@ -61,12 +61,25 @@ sendDummyFastPathPkt(EkaDev *dev, const uint8_t *payload,
 /* ----------------------------------------------- */
 
 void ekaServThread(EkaDev *dev) {
-  if (!dev)
-    on_error("!dev");
+  auto epm = dev->epm;
+  if (!epm)
+    on_error("!epm");
 
   const char *threadName = "ServThread";
   EKA_LOG("Launching %s", threadName);
   pthread_setname_np(pthread_self(), threadName);
+
+  if (dev->affinityConf.servThreadCpuId >= 0) {
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(dev->affinityConf.servThreadCpuId, &cpuset);
+    int rc = pthread_setaffinity_np(
+        pthread_self(), sizeof(cpu_set_t), &cpuset);
+    if (rc < 0)
+      on_error("Failed to set affinity");
+    EKA_LOG("Affinity is set to CPU %d",
+            dev->affinityConf.servThreadCpuId);
+  }
 
   dev->servThreadTerminated = false;
   dev->servThreadActive = true;

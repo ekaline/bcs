@@ -94,6 +94,20 @@ void *EkaIgmp::igmpThreadLoopCb(void *pEkaIgmp) {
   igmp->igmpLoopTerminated = false;
   igmp->threadActive = true;
 
+  pthread_setname_np(pthread_self(), threadName.c_str());
+
+  if (dev->affinityConf.igmpThreadCpuId >= 0) {
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(dev->affinityConf.igmpThreadCpuId, &cpuset);
+    int rc = pthread_setaffinity_np(
+        pthread_self(), sizeof(cpu_set_t), &cpuset);
+    if (rc < 0)
+      on_error("Failed to set affinity");
+    EKA_LOG("Affinity is set to CPU %d",
+            dev->affinityConf.igmpThreadCpuId);
+  }
+
   auto lastNoMdTimeCheck = std::chrono::steady_clock::now();
 
   while (igmp->threadActive) {

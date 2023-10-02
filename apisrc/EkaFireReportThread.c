@@ -665,6 +665,19 @@ void ekaFireReportThread(EkaDev *dev) {
   EKA_LOG("Launching %s", threadName);
   pthread_setname_np(pthread_self(), threadName);
 
+  if (dev->affinityConf.fireReportThreadCpuId >= 0) {
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(dev->affinityConf.fireReportThreadCpuId,
+            &cpuset);
+    int rc = pthread_setaffinity_np(
+        pthread_self(), sizeof(cpu_set_t), &cpuset);
+    if (rc < 0)
+      on_error("Failed to set affinity");
+    EKA_LOG("Affinity is set to CPU %d",
+            dev->affinityConf.fireReportThreadCpuId);
+  }
+
   dev->fireReportThreadActive = true;
   dev->fireReportThreadTerminated = false;
 

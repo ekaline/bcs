@@ -551,10 +551,10 @@ struct EpmStrategyParams {
  * enumeration constant is provided, zero will be returned.
  */
 
- /*
+/*
 Obsolete!
 uint64_t epmGetDeviceCapability(const EkaDev *ekaDev,
-                                EpmDeviceCapability cap);
+                               EpmDeviceCapability cap);
 */
 
 /**

@@ -47,7 +47,7 @@ set(CMAKE_CXX_FLAGS
 add_compile_options("-Werror=return-type")
 
 # ##############################################################################
-set(EKA_LIB_NAME ekaline2)
+set(EKA_LIB_NAME ekaBC)
 
 # set(BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/build) TODO: we should move apisrc/
 # build to separated CMakeLists.txt
@@ -55,7 +55,7 @@ set(EKA_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/apisrc)
 set(EKA_TESTS_DIR ${CMAKE_CURRENT_LIST_DIR}/tests)
 
 set(libDstDir ${CMAKE_BINARY_DIR}/lib/${EKA_LIB_NAME})
-set(apiDIR ${EKA_SRC_DIR}/compat)
+set(apiDIR ${CMAKE_BINARY_DIR}/../bc_include)
 
 # ##############################################################################
 set(SMARTNIC_ROOT ${CMAKE_CURRENT_LIST_DIR}/SmartNIC_SW)
@@ -165,11 +165,9 @@ set(EKA_LINK_MAP ${apiDIR}/libekaline2.map)
 
 add_library(${EKA_LIB_NAME} SHARED ${${EKA_LIB_NAME}_SRCS})
 
-set_target_properties(${EKA_LIB_NAME}
-  PROPERTIES
-  LINK_DEPENDS ${EKA_LINK_MAP}
-  LINK_FLAGS "-Wl,--version-script=${EKA_LINK_MAP}"
-)
+set_target_properties(
+  ${EKA_LIB_NAME} PROPERTIES LINK_DEPENDS ${EKA_LINK_MAP}
+                             LINK_FLAGS "-Wl,--version-script=${EKA_LINK_MAP}")
 
 target_compile_options(${EKA_LIB_NAME} PRIVATE -std=c++23 -O3 -funroll-loops
                                                -pthread -pipe -march=native)
@@ -260,23 +258,23 @@ install(TARGETS ${EKA_LIB_NAME}_static RUNTIME DESTINATION lib
 # ##############################################################################
 # Tests
 
-if (ENABLE_EKA_TESTING)
-file(GLOB test_SRCS ${EKA_TESTS_DIR}/*.c)
-set(testDstDir ${CMAKE_BINARY_DIR}/tests/${EKA_LIB_NAME})
+if(ENABLE_EKA_TESTING)
+  file(GLOB test_SRCS ${EKA_TESTS_DIR}/*.c)
+  set(testDstDir ${CMAKE_BINARY_DIR}/tests/${EKA_LIB_NAME})
 
-foreach(test ${test_SRCS})
-  get_filename_component(testName ${test} NAME_WE)
-  add_executable(${testName} ${test})
-  set_target_properties(${testName} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
-                                               ${testDstDir})
-  target_compile_options(${testName} PUBLIC -std=c++23)
+  foreach(test ${test_SRCS})
+    get_filename_component(testName ${test} NAME_WE)
+    add_executable(${testName} ${test})
+    set_target_properties(${testName} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
+                                                 ${testDstDir})
+    target_compile_options(${testName} PUBLIC -std=c++23)
 
-  add_dependencies(${testName} ${EKA_LIB_NAME})
-  target_link_libraries(${testName} ${EKA_LIB_NAME} rt m Threads::Threads)
-  target_link_libraries(${testName} -static-libgcc -static-libstdc++)
+    add_dependencies(${testName} ${EKA_LIB_NAME})
+    target_link_libraries(${testName} ${EKA_LIB_NAME} rt m Threads::Threads)
+    target_link_libraries(${testName} -static-libgcc -static-libstdc++)
 
-  target_include_directories(${testName} PUBLIC ${EKA_INC_PATH})
-endforeach()
+    target_include_directories(${testName} PUBLIC ${EKA_INC_PATH})
+  endforeach()
 endif() # ENABLE_EKA_TESTING
 
 # ##############################################################################
@@ -324,36 +322,36 @@ endforeach()
 # ##############################################################################
 # Google test
 
-if (ENABLE_GTEST)
-find_package(GTest REQUIRED)
-include_directories(${GTEST_INCLUDE_DIRS})
+if(ENABLE_GTEST)
+  find_package(GTest REQUIRED)
+  include_directories(${GTEST_INCLUDE_DIRS})
 
-set(EKA_GTESTS_DIR ${CMAKE_CURRENT_LIST_DIR}/googletest)
-set(testDstDir ${CMAKE_BINARY_DIR}/googletest/${EKA_LIB_NAME})
+  set(EKA_GTESTS_DIR ${CMAKE_CURRENT_LIST_DIR}/googletest)
+  set(testDstDir ${CMAKE_BINARY_DIR}/googletest/${EKA_LIB_NAME})
 
-# Link runTests with what we want to test and the GTest and pthread library
-add_executable(runTests ${EKA_GTESTS_DIR}/ekaGoogleTest.cpp)
-set_target_properties(runTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY
-                                          ${testDstDir})
+  # Link runTests with what we want to test and the GTest and pthread library
+  add_executable(runTests ${EKA_GTESTS_DIR}/ekaGoogleTest.cpp)
+  set_target_properties(runTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY
+                                            ${testDstDir})
 
-target_link_libraries(runTests ${GTEST_LIBRARIES} pthread)
+  target_link_libraries(runTests ${GTEST_LIBRARIES} pthread)
 
-set_target_properties(runTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY
-                                          ${testDstDir})
-target_compile_options(runTests PUBLIC -std=c++23)
+  set_target_properties(runTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY
+                                            ${testDstDir})
+  target_compile_options(runTests PUBLIC -std=c++23)
 
-add_dependencies(runTests ${EKA_LIB_NAME}_static)
-target_link_libraries(runTests ${EKA_LIB_NAME}_static rt m Threads::Threads)
-target_link_libraries(runTests -static-libgcc -static-libstdc++)
+  add_dependencies(runTests ${EKA_LIB_NAME}_static)
+  target_link_libraries(runTests ${EKA_LIB_NAME}_static rt m Threads::Threads)
+  target_link_libraries(runTests -static-libgcc -static-libstdc++)
 
-set(CEREAL_DIR ${CMAKE_CURRENT_LIST_DIR}/cereal)
+  set(CEREAL_DIR ${CMAKE_CURRENT_LIST_DIR}/cereal)
 
-target_include_directories(runTests PUBLIC ${EKA_INC_PATH})
-target_include_directories(runTests PUBLIC ${CEREAL_DIR}/include)
+  target_include_directories(runTests PUBLIC ${EKA_INC_PATH})
+  target_include_directories(runTests PUBLIC ${CEREAL_DIR}/include)
 
-file(GLOB ekaGtest_SRCS ${EKA_GTESTS_DIR}/*.cpp)
+  file(GLOB ekaGtest_SRCS ${EKA_GTESTS_DIR}/*.cpp)
 
-foreach(ekaGtestSrc ${ekaGtest_SRCS})
-  target_sources(runTests PRIVATE ${ekaGtestSrc})
-endforeach()
+  foreach(ekaGtestSrc ${ekaGtest_SRCS})
+    target_sources(runTests PRIVATE ${ekaGtestSrc})
+  endforeach()
 endif() # ENABLE_GTEST

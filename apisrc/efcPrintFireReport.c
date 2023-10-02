@@ -88,6 +88,12 @@ inline size_t printExceptionReport(FILE *file,
     fprintf(file, "%s\n", excptBuf);
     fprintf(stderr, RED "%s\n" RESET, excptBuf);
   }
+  //  fprintf(file,"ArmStatus:");
+  //  fprintf(file,"\tarmFlag = %u \n"
+  //  ,exceptionsReport->armStatus.armFlag);
+  //  fprintf(file,"\texpectedVersion = %u\n",
+  //  exceptionsReport->armStatus.expectedVersion);
+
   return sizeof(*exceptionsReport);
 }
 /* ##################################################  */

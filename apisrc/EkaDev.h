@@ -9,6 +9,7 @@
 #include "Efc.h"
 #include "Efh.h"
 #include "Eka.h"
+#include "EkaBc.h"
 #include "EkaHwInternalStructs.h"
 #include "eka_hw_conf.h"
 
@@ -179,6 +180,8 @@ public:
   volatile uint64_t *snDevWCPtr = NULL;
   const uint32_t snDevNumberOfUserLogicRegisters = uint32_t(
       0x100000 /* BAR2_REGS_SIZE */ / sizeof(uint64_t));
+
+  EkaBcAffinityConfig affinityConf = {-1, -1, -1, -1};
 };
 
 /* ########################################################################

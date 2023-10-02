@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <iterator>
 #include <netinet/ether.h>
 #include <netinet/if_ether.h>
@@ -21,28 +22,50 @@
 #include <chrono>
 #include <sys/time.h>
 
-#include "EkaDev.h"
+#include "EkaBc.h"
 
-#include "Efc.h"
-#include "Efh.h"
-#include "Eka.h"
-#include "Epm.h"
-#include "Exc.h"
+#define TEST_LOG(...)                                      \
+  {                                                        \
+    printf("%s@%s:%d: ", __func__, __FILE__, __LINE__);    \
+    printf(__VA_ARGS__);                                   \
+    printf("\n");                                          \
+  }
+#define EKA_IP2STR(x)                                      \
+  ((std::to_string((x >> 0) & 0xFF) + '.' +                \
+    std::to_string((x >> 8) & 0xFF) + '.' +                \
+    std::to_string((x >> 16) & 0xFF) + '.' +               \
+    std::to_string((x >> 24) & 0xFF))                      \
+       .c_str())
 
-#include "eka_macros.h"
+#ifndef on_error
+#define on_error(...)                                      \
+  do {                                                     \
+    const int err = errno;                                 \
+    fprintf(stderr,                                        \
+            "EKALINE API LIB FATAL ERROR: %s@%s:%d: ",     \
+            __func__, __FILE__, __LINE__);                 \
+    fprintf(stderr, __VA_ARGS__);                          \
+    if (err)                                               \
+      fprintf(stderr, ": %s (%d)", strerror(err), err);    \
+    fprintf(stderr, "\n");                                 \
+    fflush(stdout);                                        \
+    fflush(stderr);                                        \
+    std::quick_exit(1);                                    \
+  } while (0)
+#endif
 
-#include "EkaCtxs.h"
-#include "EkaEfcDataStructs.h"
-#include "EkaFhCmeParser.h"
+#define RED "\x1B[31m"
+#define GRN "\x1B[32m"
+#define YEL "\x1B[33m"
+#define BLU "\x1B[34m"
+#define MAG "\x1B[35m"
+#define CYN "\x1B[36m"
+#define WHT "\x1B[37m"
+#define RESET "\x1B[0m"
 
-#include "EfcCme.h"
-#include "EfhTestFuncs.h"
-#include "ekaNW.h"
-#include <fcntl.h>
+bool keep_work;
 
-using namespace Bats;
-
-extern TestCtx *testCtx;
+extern FILE *g_ekaLogFile;
 
 /* --------------------------------------------- */
 std::string ts_ns2str(uint64_t ts);
@@ -55,7 +78,7 @@ volatile bool rxClientReady = false;
 volatile bool triggerGeneratorDone = false;
 
 static const int MaxFireEvents = 10000;
-static volatile EpmFireReport *FireEvent[MaxFireEvents] =
+static volatile EpmBCFireReport *FireEvent[MaxFireEvents] =
     {};
 static volatile int numFireEvents = 0;
 
@@ -68,7 +91,7 @@ int ReportedFires = 0;
 
 /* --------------------------------------------- */
 int getHWFireCnt(EkaDev *dev, uint64_t addr) {
-  uint64_t var_pass_counter = eka_read(dev, addr);
+  uint64_t var_pass_counter = 0; // eka_read(dev, addr); TBD
   int real_val = (var_pass_counter >> 0) & 0xffffffff;
   return real_val;
 }
@@ -78,15 +101,15 @@ void handleFireReport(const void *p, size_t len,
                       void *ctx) {
   auto b = static_cast<const uint8_t *>(p);
   auto containerHdr{
-      reinterpret_cast<const EkaContainerGlobalHdr *>(b)};
+      reinterpret_cast<const EkaBCContainerGlobalHdr *>(b)};
   switch (containerHdr->type) {
-  case EkaEventType::kExceptionEvent:
+  case EkaBCExceptionEvent:
     break;
   default:
     ReportedFires++;
   }
 
-  efcPrintFireReport(p, len, ctx);
+  efcBCPrintFireReport(p, len, ctx);
   return;
 }
 
@@ -94,39 +117,11 @@ void handleFireReport(const void *p, size_t len,
 
 void INThandler(int sig) {
   signal(sig, SIG_IGN);
-  testCtx->keep_work = false;
+  keep_work = false;
   TEST_LOG(
       "Ctrl-C detected: keep_work = false, exitting...");
   fflush(stdout);
   return;
-}
-
-/* --------------------------------------------- */
-
-int createThread(const char *name, EkaServiceType type,
-                 void *(*threadRoutine)(void *), void *arg,
-                 void *context, uintptr_t *handle) {
-  pthread_create((pthread_t *)handle, NULL, threadRoutine,
-                 arg);
-  pthread_setname_np((pthread_t)*handle, name);
-  return 0;
-}
-/* --------------------------------------------- */
-
-int credAcquire(EkaCredentialType credType, EkaGroup group,
-                const char *user,
-                const struct timespec *leaseTime,
-                const struct timespec *timeout,
-                void *context, EkaCredentialLease **lease) {
-  printf(
-      "Credential with USER %s is acquired for %s:%hhu\n",
-      user, EKA_EXCH_DECODE(group.source), group.localId);
-  return 0;
-}
-/* --------------------------------------------- */
-
-int credRelease(EkaCredentialLease *lease, void *context) {
-  return 0;
 }
 
 /* --------------------------------------------- */
@@ -170,9 +165,9 @@ void tcpServer(EkaDev *dev, std::string ip, uint16_t port,
   int addr_size = sizeof(addr);
   *sock = accept(sd, (struct sockaddr *)&addr,
                  (socklen_t *)&addr_size);
-  EKA_LOG("Connected from: %s:%d -- sock=%d\n",
-          inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),
-          *sock);
+  TEST_LOG("Connected from: %s:%d -- sock=%d\n",
+           inet_ntoa(addr.sin_addr), ntohs(addr.sin_port),
+           *sock);
 
   int status = fcntl(*sock, F_SETFL,
                      fcntl(*sock, F_GETFL, 0) | O_NONBLOCK);
@@ -207,10 +202,9 @@ getAttr(int argc, char *argv[], std::string *serverIp,
         uint16_t *serverTcpPort, std::string *clientIp,
         std::string *triggerIp, uint16_t *triggerUdpPort,
         uint16_t *numTcpSess, bool *runEfh,
-        bool *fatalDebug, bool *dontExit,
-        bool *reportOnly) {
+        bool *fatalDebug, bool *dontExit) {
   int opt;
-  while ((opt = getopt(argc, argv, ":c:s:p:u:l:t:fdher")) !=
+  while ((opt = getopt(argc, argv, ":c:s:p:u:l:t:fdhe")) !=
          -1) {
     switch (opt) {
     case 's':
@@ -249,10 +243,6 @@ getAttr(int argc, char *argv[], std::string *serverIp,
       printf("dontExit = OFF\n");
       *dontExit = false;
       break;
-    case 'r':
-      printf("reportOnly = ON\n");
-      *reportOnly = true;
-      break;
     case 'h':
       printUsage(argv[0]);
       exit(1);
@@ -276,48 +266,9 @@ static void cleanFireEvents() {
   return;
 }
 
-/* --------------------------------------------- */
-static std::string action2string(EpmTriggerAction action) {
-  switch (action) {
-  case Unknown:
-    return std::string("Unknown");
-  case Sent:
-    return std::string("Sent");
-  case InvalidToken:
-    return std::string("InvalidToken");
-  case InvalidStrategy:
-    return std::string("InvalidStrategy");
-  case InvalidAction:
-    return std::string("InvalidAction");
-  case DisabledAction:
-    return std::string("DisabledAction");
-  case SendError:
-    return std::string("SendError");
-  default:
-    on_error("Unexpected action %d", action);
-  }
-};
-/* --------------------------------------------- */
-
-/* static void printFireReport(EpmFireReport* report) { */
-/*   TEST_LOG("strategyId=%3d,actionId=%3d,action=%20s,error=%d,token=%016jx",
- */
-/* 	   report->strategyId, */
-/* 	   report->actionId, */
-/* 	   action2string(report->action).c_str(), */
-/* 	   report->error, */
-/* 	   report->trigger->token */
-/* 	   ); */
-/*   return; */
-/* } */
-
-/* --------------------------------------------- */
-
 static int sendCmeTradeMsg(std::string serverIp,
                            std::string dstIp,
-                           uint16_t dstPort,
-                           uint16_t cmeMsgSize,
-                           uint8_t noMDEntries) {
+                           uint16_t dstPort) {
   // Preparing UDP MC for MD trigger on GR#0
 
   int triggerSock =
@@ -346,47 +297,32 @@ static int sendCmeTradeMsg(std::string serverIp,
   triggerMcAddr.sin_addr.s_addr = inet_addr(dstIp.c_str());
   triggerMcAddr.sin_port = be16toh(dstPort);
 
-#if 0
-    uint8_t pkt[1536] = {};
-
-    auto p {pkt};
-    auto pktHdr {reinterpret_cast<Cme::PktHdr*>(p)};
-    p += sizeof(*pktHdr);
-
-    auto msgHdr {reinterpret_cast<Cme::MsgHdr*>(p)};
-    msgHdr->templateId = Cme::MsgId::MDIncrementalRefreshTradeSummary48;
-    msgHdr->size = cmeMsgSize;
-    p += sizeof(*msgHdr);
-
-    auto rootBlock {reinterpret_cast<Cme::MDIncrementalRefreshTradeSummary48_mainBlock*>(p)};
-    p += sizeof(*rootBlock);
-
-    auto pGroupSize {reinterpret_cast<Cme::groupSize_T*>(p)};
-    pGroupSize->numInGroup = noMDEntries;
-    p += sizeof(*pGroupSize);
-
-    const char* data = "Trade message XXXXXXXXXXX";
-    strcpy ((char*)p,data);
-    p += strlen(data);
-
-    size_t payloadLen = p - pkt;
-#else
-  const uint8_t pkt[] = {
-      0x22, 0xa5, 0x0d, 0x02, 0xa5, 0x6f, 0x01, 0x38, 0xca,
-      0x42, 0xdc, 0x16, 0x60, 0x00, 0x0b, 0x00, 0x30, 0x00,
-      0x01, 0x00, 0x09, 0x00, 0x41, 0x23, 0xff, 0x37, 0xca,
-      0x42, 0xdc, 0x16, 0x01, 0x00, 0x00, 0x20, 0x00, 0x01,
-      0x00, 0xfc, 0x2f, 0x9c, 0x9d, 0xb2, 0x00, 0x00, 0x01,
-      0x00, 0x00, 0x00, 0x5b, 0x33, 0x00, 0x00, 0x83, 0x88,
-      0x26, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0xd9,
-      0x7a, 0x6d, 0x01, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x02, 0x0e, 0x19, 0x84, 0x8e, 0x36,
-      0x06, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0xb0, 0x7f, 0x8e, 0x36, 0x06, 0x00,
-      0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  const uint8_t pkt[] =
+      {0x0b, 0x00, 0x00, 0x00, // seq num
+       0x65, 0x6f, 0x01, 0x38, 0xca, 0x42, 0xdc,
+       0x16,                   // sending time
+       0x60, 0x00,             // size
+       0x0b, 0x00,             // block len
+       48,   0x00,             // template id
+       0x01, 0x00, 0x09, 0x00, // stam
+       0x01, 0x6f, 0x01, 0x38, 0xca, 0x42, 0xdc,
+       0x16, // transact time (22,23,24,25,26,27,28,29)
+       0x01, // match indicator (0-fire)
+       0x00, 0x00, 0x20, 0x00, // stam
+       0x06,                   // numingroup
+       0x00, 0xfc, 0x2f, 0x9c, 0x9d, 0xb2, 0x00,
+       0x00, 0x01, 0x00, 0x00, 0x00, 0xcc, 0x33,
+       0x00, 0x00, 0x83, 0x88, 0x26, 0x00, 0x02,
+       0x00, 0x00, 0x00, 0x01, 0x00, 0xd9, 0x7a,
+       0x6d, 0x01, 0x00, 0x00, 0x10, 0x00, 0x00,
+       0x00, 0x00, 0x00, 0x00, 0x02, 0x0e, 0x19,
+       0x84, 0x8e, 0x36, 0x06, 0x00, 0x00, 0x01,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0xb0, 0x7f, 0x8e, 0x36, 0x06, 0x00,
+       0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+       0x00, 0x00};
 
   size_t payloadLen = std::size(pkt);
-#endif
 
   TEST_LOG("sending MDIncrementalRefreshTradeSummary48 "
            "trigger to %s:%u",
@@ -403,9 +339,6 @@ static int sendCmeTradeMsg(std::string serverIp,
 int main(int argc, char *argv[]) {
 
   signal(SIGINT, INThandler);
-  testCtx = new TestCtx;
-  if (!testCtx)
-    on_error("testCtx == NULL");
   // ==============================================
 
   std::string serverIp = "10.0.0.10"; // Ekaline lab default
@@ -419,11 +352,16 @@ int main(int argc, char *argv[]) {
   bool runEfh = false;
   bool fatalDebug = false;
   bool dontExit = true;
-  bool reportOnly = false;
+
+  const EkaBcAffinityConfig ekaBcAffinityConfig = {
+      .servThreadCpuId = -1,
+      .tcpRxThreadCpuId = -1,
+      .fireReportThreadCpuId = -1,
+      .igmpThreadCpuId = -1};
 
   getAttr(argc, argv, &serverIp, &serverTcpPort, &clientIp,
           &triggerIp, &triggerUdpPort, &numTcpSess, &runEfh,
-          &fatalDebug, &dontExit, &reportOnly);
+          &fatalDebug, &dontExit);
 
   if (numTcpSess > MaxTcpTestSessions)
     on_error("numTcpSess %d > MaxTcpTestSessions %d",
@@ -431,25 +369,24 @@ int main(int argc, char *argv[]) {
   // ==============================================
   // EkaDev general setup
   EkaDev *dev = NULL;
-  EfcArmVer armVer = 0;
-  EkaCoreId coreId = 0;
-  EkaOpResult rc;
-  const EkaDevInitCtx ekaDevInitCtx = {};
+  uint32_t armVer = 0;
+  int8_t coreId = 0;
+  int rc;
 
-  ekaDevInit(&dev, &ekaDevInitCtx);
+  //    ekaDevInit(&dev, &ekaDevInitCtx);
+  dev = ekaBcOpenDev(&ekaBcAffinityConfig);
 
   // ==============================================
   // 10G Port (core) setup
-  const EkaCoreInitCtx ekaCoreInitCtx = {
-      .coreId = coreId,
-      .attrs = {
-          .host_ip = inet_addr(clientIp.c_str()),
-          .netmask = inet_addr("255.255.255.0"),
-          .gateway = inet_addr("10.0.0.10"),
-          .nexthop_mac = {}, // resolved by our internal ARP
-          .src_mac_addr = {}, // taken from system config
-          .dont_garp = 0}};
-  ekaDevConfigurePort(dev, &ekaCoreInitCtx);
+  const EkaBcPortAttrs ekaCoreInitCtx = {
+      .host_ip = inet_addr(clientIp.c_str()),
+      .netmask = inet_addr("255.255.255.0"),
+      .gateway = inet_addr("10.0.0.10"),
+      .nexthop_mac = {}, // resolved by our internal ARP
+      .src_mac_addr = {} // taken from system config
+  };
+
+  ekaBcConfigurePort(dev, coreId, &ekaCoreInitCtx);
 
   // ==============================================
   // Launching TCP test Servers
@@ -461,122 +398,82 @@ int main(int argc, char *argv[]) {
         tcpServer, dev, serverIp, serverTcpBasePort + i,
         &tcpSock[i], &serverSet);
     server.detach();
-    while (testCtx->keep_work && !serverSet)
+    while (keep_work && !serverSet)
       sleep(0);
   }
   // ==============================================
   // Establishing EXC connections for EPM/EFC fires
 
-  ExcConnHandle conn[MaxTcpTestSessions] = {};
+  int conn[MaxTcpTestSessions] = {};
 
-  for (auto i = 0; i < numTcpSess; i++) {
-    struct sockaddr_in serverAddr = {};
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_addr.s_addr =
-        inet_addr(serverIp.c_str());
-    serverAddr.sin_port = be16toh(serverTcpBasePort + i);
-
-    int excSock = excSocket(dev, coreId, 0, 0, 0);
-    if (excSock < 0)
-      on_error("failed to open sock %d", i);
-    conn[i] =
-        excConnect(dev, excSock, (sockaddr *)&serverAddr,
-                   sizeof(sockaddr_in));
+  for (uint16_t i = 0; i < numTcpSess; i++) {
+    conn[i] = ekaBcTcpConnect(dev, coreId, serverIp.c_str(),
+                              serverTcpBasePort + i);
     if (conn[i] < 0)
-      on_error("excConnect %d %s:%u", i,
-               EKA_IP2STR(serverAddr.sin_addr.s_addr),
-               be16toh(serverAddr.sin_port));
+      on_error("failed to open sock %d", i);
     const char *pkt =
         "\n\nThis is 1st TCP packet sent from FPGA TCP "
         "client to Kernel TCP server\n\n";
-    excSend(dev, conn[i], pkt, strlen(pkt), 0);
+    ekaBcSend(dev, conn[i], pkt, strlen(pkt));
     int bytes_read = 0;
     char rxBuf[2000] = {};
     bytes_read = recv(tcpSock[i], rxBuf, sizeof(rxBuf), 0);
     if (bytes_read > 0)
-      EKA_LOG("\n%s", rxBuf);
+      TEST_LOG("\n%s", rxBuf);
   }
 
   // ==============================================
   // Setup EFC MC groups
 
-  EpmTriggerParams triggerParam[] = {
-      {0, "224.0.74.0", 30301},
+  EkaBcTriggerParams triggerParam[] = {
+      {coreId, "224.0.74.0", 30301},
       /* {0,"224.0.74.1",30302}, */
       /* {0,"224.0.74.2",30303}, */
       /* {0,"224.0.74.3",30304}, */
   };
 
-  EfcCtx efcCtx = {};
-  EfcCtx *pEfcCtx = &efcCtx;
+  rc = ekaBcFcInit(dev);
 
-  EfcInitCtx initCtx = {.feedVer = EfhFeedVer::kCME};
-  rc = efcInit(&pEfcCtx, dev, &initCtx);
-  if (rc != EKA_OPRESULT__OK)
+  if (rc != EKABC_OPRESULT__OK)
     on_error("efcInit returned %d", (int)rc);
 
   // ==============================================
   // Configuring EFC as EPM Strategy
 
-  const EpmStrategyParams efcEpmStrategyParams = {
-      .numActions = 256, // just a number
+  const EkaBcFcMdParams mdParams = {
       .triggerParams = triggerParam,
       .numTriggers = std::size(triggerParam),
-      .reportCb = NULL, // set via EfcRunCtx
-      .cbCtx = NULL};
-  rc = epmInitStrategies(dev, &efcEpmStrategyParams, 1);
-  if (rc != EKA_OPRESULT__OK)
+  };
+  rc = ekaBcCmeFcMdInit(dev, &mdParams);
+
+  if (rc != EKABC_OPRESULT__OK)
     on_error("epmInitStrategies failed: rc = %d", rc);
 
   // ==============================================
   // Global EFC config
-  EfcStratGlobCtx efcStratGlobCtx = {
-      .enable_strategy = 1,
-      .report_only = (uint8_t)reportOnly,
-      .watchdog_timeout_sec = 100000,
+  EkaBcCmeFastCanceGlobalParams efcStratGlobCtx = {
+      .report_only = 0,
+      .watchdog_timeout_sec = 1,
   };
-  efcInitStrategy(pEfcCtx, &efcStratGlobCtx);
+  ekaBcCmeFcGlobalInit(dev, &efcStratGlobCtx);
 
-  EfcRunCtx runCtx = {};
-  runCtx.onEfcFireReportCb = handleFireReport;
+  EkaBcFcRunCtx runCtx = {};
+  runCtx.onReportCb = handleFireReport;
   // ==============================================
+
   // CME FastCancel EFC config
-  static const uint64_t CmeTestFastCancelAlwaysFire =
-      0xadcd;
-  static const uint64_t CmeTestFastCancelToken =
-      0x1122334455667788;
-  static const uint64_t CmeTestFastCancelUser =
-      0xaabbccddeeff0011;
-  static const uint16_t CmeTestFastCancelMaxMsgSize =
-      97; //">96"
+  static const uint16_t CmeTestFastMinTimeDiff = 99; // <=99
   static const uint8_t CmeTestFastCancelMinNoMDEntries =
-      0; //"<1"
+      5; //<=5
 
-  // HARDCODED, not used by tickersend
-  static const uint16_t CmeTestFastCancelMaxMsgSizeTicker =
-      96;
+  auto cmeHwCancelIdx = ekaBcAllocateFcAction(dev);
 
-  // HARDCODED, not used by tickersend
-  static const uint8_t
-      CmeTestFastCancelMinNoMDEntriesTicker = 1;
+  EkaBcActionParams actionParams = {
+      .tcpSock = conn[0], .nextAction = EPM_BC_LAST_ACTION};
 
-  EfcAction genericActionParams = {
-      .type = EpmActionType::INVALID,
-      .token = CmeTestFastCancelToken,
-      .hConn = conn[0],
-      .actionFlags = AF_Valid,
-      .nextAction = EPM_LAST_ACTION,
-      .enable = CmeTestFastCancelAlwaysFire,
-      .postLocalMask = CmeTestFastCancelAlwaysFire,
-      .postStratMask = CmeTestFastCancelAlwaysFire,
-      .user = CmeTestFastCancelUser};
-
-  auto cmeHwCancelIdx =
-      efcAllocateNewAction(dev, EpmActionType::CmeHwCancel);
-
-  rc = efcSetAction(dev, cmeHwCancelIdx,
-                    &genericActionParams);
-  if (rc != EKA_OPRESULT__OK)
+  rc = ekaBcSetActionParams(dev, cmeHwCancelIdx,
+                            &actionParams);
+  if (rc != EKABC_OPRESULT__OK)
     on_error("efcSetAction returned %d", (int)rc);
 
   // ==============================================
@@ -586,95 +483,59 @@ int main(int argc, char *argv[]) {
       "CME Fast Cancel: Sequence = |____| With Dummy "
       "payload";
 
-  rc = efcSetActionPayload(dev, cmeHwCancelIdx,
-                           &CmeTestFastCancelMsg,
-                           strlen(CmeTestFastCancelMsg));
-  if (rc != EKA_OPRESULT__OK)
+  rc = ekaBcSetActionPayload(dev, cmeHwCancelIdx,
+                             &CmeTestFastCancelMsg,
+                             strlen(CmeTestFastCancelMsg));
+  if (rc != EKABC_OPRESULT__OK)
     on_error("efcSetActionPayload failed");
 
-  const EfcCmeFastCancelParams params = {
-      .maxMsgSize = CmeTestFastCancelMaxMsgSize,
-      .minNoMDEntries = CmeTestFastCancelMinNoMDEntries,
-      .token = CmeTestFastCancelToken,
-      .fireActionId = cmeHwCancelIdx};
+  const EkaBcCmeFcAlgoParams algoParams = {
+      .fireActionId = cmeHwCancelIdx,
+      .minTimeDiff = CmeTestFastMinTimeDiff,
+      .minNoMDEntries = CmeTestFastCancelMinNoMDEntries};
 
   // ==============================================
-  efcCmeFastCancelInit(dev, &params);
+  ekaBcCmeFcAlgoInit(dev, &algoParams);
   // ==============================================
-  efcEnableController(pEfcCtx, -1);
+  ekaBcEnableController(dev, false);
   // ==============================================
-  efcRun(pEfcCtx, &runCtx);
+  ekaBcFcRun(dev, &runCtx);
   // ==============================================
 
-  efcCmeSetILinkAppseq(dev, conn[0], 0x1);
-#if 0
-    EpmTrigger cmeTrigger = {
-	.token = CmeTestFastCancelToken,         ///< Security token
-	.strategy = EFC_STRATEGY,                ///< Strategy this trigger applies to
-	.action = (epm_actionid_t)EfcCmeActionId::HwCancel       ///< First action in linked sequence
-    };
-    const char* swMsg = "CME Fast SW Msg: Sequence = |____| : expected incremented Sequence";
-    const char* swHB  = "CME SW Heartbeat:Sequence = |____| : expected NOT incremented Sequence";
-
-    const size_t HbLen = 26;
-
-    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
-    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
-    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
-    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
-
-		efcSetSessionCntr(dev,conn[0],0x12345678aabbccdd);
-
-    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
-    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
-    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
-    efcCmeSend(dev,conn[0],swMsg,strlen(swMsg),0,true);
-
-    efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
-    efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
-    efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
-    efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
-    efcCmeSend(dev,conn[0],swHB,strlen(swMsg),0,false);
-
-    efcCmeSend(dev,conn[0],swHB,HbLen,0,false);
-    efcCmeSend(dev,conn[0],swHB,HbLen,0,false);
-    efcCmeSend(dev,conn[0],swHB,HbLen,0,false);
-    efcCmeSend(dev,conn[0],swHB,HbLen,0,false);
-    efcCmeSend(dev,conn[0],swHB,HbLen,0,false);
-
-
-    epmRaiseTriggers(dev,&cmeTrigger);
-    epmRaiseTriggers(dev,&cmeTrigger);
-    epmRaiseTriggers(dev,&cmeTrigger);
-    epmRaiseTriggers(dev,&cmeTrigger);
-#endif
+  ekaBcCmeSetILinkAppseq(dev, conn[0], 0x1);
 
   for (auto i = 0; i < TotalInjects; i++) {
     if (rand() % 3) {
-      efcEnableController(pEfcCtx, 1,
-                          armVer++); // arm and promote
+      ekaBcEnableController(dev, true,
+                            armVer++); // arm and promote
       ExpectedFires++;
     } else {
-      efcEnableController(pEfcCtx, 1,
-                          armVer - 1); // should be no arm
+      ekaBcEnableController(dev, true,
+                            armVer - 1); // should be no arm
     }
 
-    sendCmeTradeMsg(serverIp, triggerIp, triggerUdpPort,
-                    CmeTestFastCancelMaxMsgSizeTicker,
-                    CmeTestFastCancelMinNoMDEntriesTicker);
+    sendCmeTradeMsg(serverIp, triggerIp, triggerUdpPort);
     usleep(300000);
   }
 
   if (fatalDebug) {
     TEST_LOG(RED "\n=====================\nFATAL DEBUG: "
                  "ON\n=====================\n" RESET);
-    eka_write(dev, 0xf0f00, 0xefa0beda);
+    //    eka_write(dev, 0xf0f00, 0xefa0beda); //TBD
   }
 
   // ==============================================
+  ekaBcEnableController(dev, true,
+                        armVer++); // arm and promote
 
-  //    efcEnableController(pEfcCtx, 1, armVer++); //arm
-  efcEnableController(pEfcCtx, -1);
+  // test watchdog
+  for (auto i = 0; i < 10; i++) {
+    usleep(300000);
+    ekaBcSwKeepAliveSend(dev);
+  }
+
+  ekaBcEnableController(dev, false);
+
   int hw_fires = getHWFireCnt(dev, 0xf0800);
 
   printf("\n===========================\nEND OT TESTS : ");
@@ -696,10 +557,10 @@ int main(int argc, char *argv[]) {
   }
   printf(RESET);
   printf("===========================\n\n");
-  testCtx->keep_work = dontExit;
+  keep_work = dontExit;
   sleep(1);
-  EKA_LOG("--Test finished, ctrl-c to end---");
-  while (testCtx->keep_work) {
+  TEST_LOG("--Test finished, ctrl-c to end---");
+  while (keep_work) {
     sleep(0);
   }
 #endif
@@ -711,7 +572,7 @@ int main(int argc, char *argv[]) {
 
   printf("Closing device\n");
 
-  ekaDevClose(dev);
+  ekaBcCloseDev(dev);
 
   if (testPass)
     return 0;

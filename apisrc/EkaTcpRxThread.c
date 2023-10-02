@@ -19,6 +19,17 @@ void ekaTcpRxThread(EkaDev *dev) {
   const char *threadName = "TcpRxThread";
   EKA_LOG("Launching %s", threadName);
   pthread_setname_np(pthread_self(), threadName);
+  if (dev->affinityConf.tcpRxThreadCpuId >= 0) {
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(dev->affinityConf.tcpRxThreadCpuId, &cpuset);
+    int rc = pthread_setaffinity_np(
+        pthread_self(), sizeof(cpu_set_t), &cpuset);
+    if (rc < 0)
+      on_error("Failed to set affinity");
+    EKA_LOG("Affinity is set to CPU %d",
+            dev->affinityConf.tcpRxThreadCpuId);
+  }
 
   if (dev->tcpRxThreadActive)
     on_error("tcpRxThreadActive");
