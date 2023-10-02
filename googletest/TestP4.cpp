@@ -19,7 +19,7 @@ void TestP4::initializeAllCtxs(
       setSecCtx(&sec, &secCtx);
 
       EKA_LOG(
-          "Setting StaticSecCtx[%ju] \'%s\' secId=0x%016jx,"
+          "Setting StaticSecCtx[%d] \'%s\' secId=0x%016jx,"
           "handle=%jd,bidMinPrice=%u,askMaxPrice=%u,"
           "bidSize=%u,askSize=%u,"
           "versionKey=%u,lowerBytesOfSecId=0x%x",
@@ -63,7 +63,7 @@ void TestP4::checkAllCtxs() {
     if (hwCtxDump.HashStatus == 0) {
       char errMsg[2048] = {};
       sprintf(errMsg,
-              "\'%s\' (0x%016jx) (sw handle = %u) "
+              "\'%s\' (0x%016jx) (sw handle = %ju) "
               "not found in hash",
               sec.strId.c_str(), sec.binId, sec.handle);
       EKA_WARN("%s", errMsg);
@@ -124,7 +124,7 @@ void TestP4::configureStrat(const TestCaseConfig *tc) {
   efcEnableFiringOnSec(g_ekaDev, secList_, nSec_);
 
   for (auto i = 0; i < nSec_; i++)
-    EKA_LOG("secList_[i] = 0x%016jx", secList_);
+    EKA_LOG("secList_[i] = 0x%016jx", secList_[i]);
   // ==============================================
   initializeAllCtxs(tc);
 

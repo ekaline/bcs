@@ -172,7 +172,7 @@ int main(int argc, char *argv[]) {
 
   printf("asciiSecId = \'%s\', ", asciiSecId.c_str());
   printf("binSecId = 0x%016jx, ", binSecId);
-  printf("normalized = 0x%x, ", normSecId);
+  printf("normalized = 0x%jx, ", normSecId);
   printf("denormalized = \'%s\', ", denormSecId.c_str());
   printf("line %d", getLineIdx(normSecId));
   printf("\n");
