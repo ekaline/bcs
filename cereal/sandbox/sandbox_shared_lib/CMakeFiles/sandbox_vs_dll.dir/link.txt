@@ -1,0 +1,1 @@
+/usr/lib64/ccache/c++ -fPIC   -shared -Wl,-soname,libsandbox_vs_dll.so -o libsandbox_vs_dll.so CMakeFiles/sandbox_vs_dll.dir/base.cpp.o CMakeFiles/sandbox_vs_dll.dir/derived.cpp.o 

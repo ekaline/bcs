@@ -1,0 +1,1 @@
+/usr/lib64/ccache/c++     CMakeFiles/test_queue.dir/queue.cpp.o  -o test_queue 
