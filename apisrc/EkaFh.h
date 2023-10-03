@@ -280,6 +280,9 @@ public:
   bool active = false;
 
   volatile bool terminated = true;
+#ifdef EKA_NOM_LATENCY_CHECK
+  std::vector<std::pair<char, uint64_t>> latencies = {};
+#endif
 
 protected:
   EkaDev *dev = NULL;

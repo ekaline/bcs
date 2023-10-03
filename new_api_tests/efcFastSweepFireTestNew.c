@@ -192,13 +192,13 @@ void printUsage(char* cmd) {
 /* --------------------------------------------- */
 
 static int getAttr(int argc, char *argv[],
-		   std::string* serverIp, uint16_t* serverTcpPort, 
-		   std::string* clientIp, 
-		   std::string* triggerIp, uint16_t* triggerUdpPort,
-		   uint16_t* numTcpSess, bool* runEfh,
-		   bool* fatalDebug, bool* dontExit,bool *reportOnly) {
+									 std::string* serverIp, uint16_t* serverTcpPort, 
+									 std::string* clientIp, 
+									 std::string* triggerIp, uint16_t* triggerUdpPort,
+									 uint16_t* numTcpSess, bool* runEfh,
+									 bool* fatalDebug, bool* dontExit) {
 	int opt; 
-	while((opt = getopt(argc, argv, ":c:s:p:u:l:t:fdher")) != -1) {  
+	while((opt = getopt(argc, argv, ":c:s:p:u:l:t:fdhe")) != -1) {  
 		switch(opt) {  
 		case 's':  
 			*serverIp = std::string(optarg);
@@ -235,10 +235,6 @@ static int getAttr(int argc, char *argv[],
 		case 'e':  
 			printf("dontExit = OFF\n");
 			*dontExit = false;
-			break;
-		case 'r':  
-			printf("reportOnly = ON\n");
-			*reportOnly = true;
 			break;
 		case 'h':  
 			printUsage(argv[0]);
@@ -373,11 +369,10 @@ int main(int argc, char *argv[]) {
 	bool     runEfh             = false;
 	bool     fatalDebug         = false;
 	bool     dontExit           = true;
-	bool     reportOnly         = false;
-	
+
 	getAttr(argc,argv,&serverIp,&serverTcpPort,
-		&clientIp,&triggerIp,&triggerUdpPort,
-		&numTcpSess,&runEfh,&fatalDebug,&dontExit,&reportOnly);
+					&clientIp,&triggerIp,&triggerUdpPort,
+					&numTcpSess,&runEfh,&fatalDebug,&dontExit);
 
 	if (numTcpSess > MaxTcpTestSessions) 
 		on_error("numTcpSess %d > MaxTcpTestSessions %d",
@@ -455,7 +450,7 @@ int main(int argc, char *argv[]) {
 	// Global EFC config
 	EfcStratGlobCtx efcStratGlobCtx = {
 		.enable_strategy      = 1,
-		.report_only          = (uint8_t)reportOnly,
+		.report_only          = 0,
 		.watchdog_timeout_sec = 100000,
 	};
 

@@ -182,10 +182,9 @@ struct hw_status_arm_report_t {
 } __attribute__((packed));
 
 struct hw_epm_status_report_t {
-  hw_status_arm_report_t       nw_arm_report;
-  hw_status_arm_report_t       p4_arm_report;
+  hw_status_arm_report_t       arm_report;
   hw_status_exception_report_t exception_report;
-  uint8_t                      b64_padding[34];
+  uint8_t                      b32_padding[7];
   hw_epm_report_t              epm;
 } __attribute__((packed));
 
@@ -193,7 +192,7 @@ struct hw_epm_news_report_t {
   uint16_t        strategy_index;
   uint8_t         strategy_region;
   uint64_t        token;
-  uint8_t         b64_padding[53];
+  uint8_t         b32_padding[21];
   hw_epm_report_t epm;
 } __attribute__((packed));
 
@@ -203,7 +202,7 @@ struct hw_epm_fast_sweep_report_t {
   uint16_t        last_msg_num;
   uint16_t        locate_id;
   uint16_t        udp_payload_size;
-  uint8_t         b64_padding[56];
+  uint8_t         b32_padding[24];
   hw_epm_report_t epm;
 } __attribute__((packed));
 
@@ -211,70 +210,20 @@ struct hw_epm_fast_cancel_report_t {
   uint8_t         num_in_group;
   uint16_t        header_size;
   uint32_t        sequence_number;
-  uint8_t         b64_padding[57];
+  uint8_t         b32_padding[25];
   hw_epm_report_t epm;
 } __attribute__((packed));
 
 struct hw_epm_qed_report_t {
   uint16_t        ds_id;
   uint16_t        udp_payload_size;
-  uint8_t         b64_padding[60];
+  uint8_t         b32_padding[28];
   hw_epm_report_t epm;
 } __attribute__((packed));
 
 struct hw_epm_sw_trigger_report_t {
-  uint8_t         b64_padding[64];
+  uint8_t         b32_padding[32];
   hw_epm_report_t epm;
-} __attribute__((packed));
-
-struct EfcControllerReport {
-  uint8_t unarmReason;
-  uint8_t fireReason;
-} __attribute__((packed));
-
-typedef union {
-  uint8_t bits;
-  struct {
-    uint8_t Reserved : 1;
-    uint8_t CoreID : 3;
-    uint8_t isAON : 1;
-    uint8_t Side : 1;
-    uint8_t IsNotTradable : 1;
-    uint8_t SourceFeed : 1;
-  } __attribute__((packed))
-  bitmap; // must be in 1B resolution
-} __attribute__((packed)) EfcFiredOrderBitmap;
-
-struct EfcFiredOrder {
-  EfcFiredOrderBitmap attr;
-  uint8_t reserved;
-  uint64_t price;
-  uint32_t size;
-  uint8_t counter;
-  uint64_t securityId;
-  uint8_t groupId;
-  uint64_t sequence;
-  uint64_t timestamp;
-} __attribute__((packed));
-
-struct EkaHwSecCtx {
-  FixedPrice bidMinPrice;
-  FixedPrice askMaxPrice;
-  uint8_t bidSize;
-  uint8_t askSize;
-  uint8_t versionKey;
-  uint8_t lowerBytesOfSecId;
-} __attribute__((packed))
-__attribute__((aligned(sizeof(uint64_t))));
-
-struct EfcNormalizedFireReport {
-  EfcControllerReport controllerState;//2
-  EfcFiredOrder       triggerOrder;//40
-  uint32_t            securityCtxAddr;//4
-  EkaHwSecCtx         securityCtx;//8
-  uint8_t             b64_padding[10];
-  hw_epm_report_t     epm;
-
 } __attribute__((packed));
 
 /* parameter EKA_ACTIONRESULT_Unknown          = 0;  ///< Zero initialization yields an invalid value */

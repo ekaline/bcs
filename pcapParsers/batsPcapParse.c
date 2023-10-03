@@ -56,8 +56,6 @@ int main(int argc, char *argv[]) {
     auto msgInPkt = EKA_BATS_MSG_CNT((&pkt[pos]));
     auto sequence = EKA_BATS_SEQUENCE((&pkt[pos]));
     pos += sizeof(sequenced_unit_header);
-    printf("-----------\n");
-
     for (uint msg = 0; msg < msgInPkt; msg++) {
       uint8_t msgLen = pkt[pos];
 

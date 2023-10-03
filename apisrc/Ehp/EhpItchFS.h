@@ -9,8 +9,8 @@ enum class EhpItchFSMsg : int {
 };
 
 class EhpItchFS : public EhpProtocol {
-public:
-  EhpItchFS(EkaStrategy *strat);
+ public:
+  EhpItchFS(EkaDev* dev);
   virtual ~EhpItchFS() {}
 
   int init();
@@ -18,9 +18,10 @@ public:
   int createOrderExecuted();
   int createTradeNonCross();
 
-public:
+ public:
   static const int OrderExecutedMsg = 0;
   static const int TradeNonCrossMsg = 1;
+
 };
 
 #endif

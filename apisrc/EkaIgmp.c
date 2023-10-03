@@ -9,9 +9,6 @@
 void saveMcState(EkaDev *dev, int grId, int chId,
                  uint8_t coreId, uint32_t mcast_ip,
                  uint16_t mcast_port, uint64_t pktCnt);
-void saveMcState(EkaDev *dev, int grId, int chId,
-                 uint8_t coreId, uint32_t mcast_ip,
-                 uint16_t mcast_port, uint64_t pktCnt);
 
 /* ################################################## */
 
@@ -38,14 +35,12 @@ int EkaIgmp::mcJoin(int epmRegion, EkaCoreId coreId,
                     uint32_t ip, uint16_t port,
                     uint16_t vlanTag, uint64_t *pPktCnt) {
   createEntryMtx.lock();
-  int perChId = -1;
-
   for (auto i = 0; i < numIgmpEntries; i++) {
-    if (!igmpEntry[i])
-      on_error("!igmpEntry[%d]", i);
+    if (igmpEntry[i] == NULL)
+      on_error("igmpEntry[%d] == NULL", i);
     if (igmpEntry[i]->isMy(coreId, ip, port)) {
-      perChId = i;
-      goto EXISTING_ENTRY;
+      createEntryMtx.unlock();
+      return i;
     }
   }
   if (numIgmpEntriesAtCh[epmRegion] == MAX_ENTRIES_PER_LANE)
@@ -60,7 +55,7 @@ int EkaIgmp::mcJoin(int epmRegion, EkaCoreId coreId,
              coreId, numIgmpEntriesAtCore[coreId],
              MAX_ENTRIES_PER_LANE);
 
-  perChId = numIgmpEntriesAtCh[epmRegion];
+  int perChId = numIgmpEntriesAtCh[epmRegion];
 
   igmpEntry[numIgmpEntries] =
       new EkaIgmpEntry(dev, epmRegion, coreId, perChId, ip,
@@ -74,8 +69,6 @@ int EkaIgmp::mcJoin(int epmRegion, EkaCoreId coreId,
   numIgmpEntries++;
   numIgmpEntriesAtCh[epmRegion]++;
   numIgmpEntriesAtCore[coreId]++;
-
-EXISTING_ENTRY:
   createEntryMtx.unlock();
 
   return perChId;
@@ -99,7 +92,14 @@ void *EkaIgmp::igmpThreadLoopCb(void *pEkaIgmp) {
   while (igmp->threadActive) {
     for (int i = 0; i < igmp->numIgmpEntries; i++) {
       igmp->igmpEntry[i]->sendIgmpJoin();
-      igmp->igmpEntry[i]->saveMcState();
+      saveMcState(dev, igmp->igmpEntry[i]->perChId,
+                  igmp->igmpEntry[i]->epmRegion,
+                  igmp->igmpEntry[i]->coreId,
+                  igmp->igmpEntry[i]->ip,
+                  igmp->igmpEntry[i]->port,
+                  igmp->igmpEntry[i]->pPktCnt
+                      ? *igmp->igmpEntry[i]->pPktCnt
+                      : 0);
     }
     /* -------------------------------------- */
     static const int TimeOutSeconds = 4;
@@ -153,7 +153,6 @@ int EkaIgmp::igmpLeaveAll() {
   for (int i = 0; i < numIgmpEntries; i++) {
     igmpEntry[i]->sendIgmpLeave();
     delete igmpEntry[i];
-    igmpEntry[i] = nullptr;
   }
 
   return 0;

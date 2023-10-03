@@ -2,7 +2,6 @@
 #include "EkaHwCaps.h"
 #include "EkaDev.h"
 #include "EkaEpm.h"
-#include "EkaHwCaps.h"
 #include "EkaHwExpectedVersion.h"
 #include "smartnic.h"
 
@@ -17,9 +16,13 @@ EkaHwCaps::EkaHwCaps(SN_DeviceId devId) {
   if (!DeviceId)
     on_error("! DeviceId");
 
-  if (!isCorrectHwCapsVer())
-    on_error("FPGA FW version is not supported by this SW");
-  refresh();
+  uint words2read =
+      sizeof(hwCaps) / 8 + !!(sizeof(hwCaps) % 8);
+  uint64_t srcAddr = HwCapabilitiesAddr / 8;
+  uint64_t *dstAddr = (uint64_t *)&hwCaps;
+  for (uint w = 0; w < words2read; w++)
+    SN_ReadUserLogicRegister(DeviceId, srcAddr++,
+                             dstAddr++);
 
   int fd = SN_GetFileDescriptor(DeviceId);
   eka_ioctl_t __attribute__((aligned(0x1000))) state = {};
@@ -68,18 +71,9 @@ EkaHwCaps::EkaHwCaps(SN_DeviceId devId) {
     on_error("idx %u > bufSize %u", idx, bufSize);
 }
 
-bool EkaHwCaps::isCorrectHwCapsVer() {
-  const uint HwCapsVersionFlagAddr = 0xf0018;
-  uint64_t hwCapsVersionFlag = 0;
-  SN_ReadUserLogicRegister(DeviceId,
-                           HwCapsVersionFlagAddr / 8,
-                           &hwCapsVersionFlag);
-  return hwCapsVersionFlag != 0;
-}
-
 void EkaHwCaps::refresh() {
-  uint words2read = roundUp8(sizeof(hwCaps)) / 8;
-
+  uint words2read =
+      sizeof(hwCaps) / 8 + !!(sizeof(hwCaps) % 8);
   uint64_t srcAddr = HwCapabilitiesAddr / 8;
   uint64_t *dstAddr = (uint64_t *)&hwCaps;
   for (uint w = 0; w < words2read; w++)
@@ -96,10 +90,6 @@ void EkaHwCaps::print2buf() {
       sprintf(&buf[idx],
               "hwCaps.core.bitmap_tcp_cores\t\t= 0x%jx\n",
               (uint64_t)(hwCaps.core.bitmap_tcp_cores));
-  idx +=
-      sprintf(&buf[idx],
-              "hwCaps.core.bitmap_mirror_cores\t\t= 0x%jx\n",
-              (uint64_t)(hwCaps.core.bitmap_mirror_cores));
   idx +=
       sprintf(&buf[idx],
               "hwCaps.core.tcp_sessions_percore\t= %ju\n",
@@ -125,6 +115,9 @@ void EkaHwCaps::print2buf() {
                  "hwCaps.epm.numof_regions\t\t= %ju\n",
                  (uint64_t)(hwCaps.epm.numof_regions));
   idx += sprintf(&buf[idx],
+                 "hwCaps.entity.numof_entities\t\t= %ju\n",
+                 (uint64_t)(hwCaps.entity.numof_entities));
+  idx += sprintf(&buf[idx],
                  "hwCaps.scratchpad.size\t\t\t= %ju\n",
                  (uint64_t)(hwCaps.scratchpad.size));
   idx += sprintf(&buf[idx],
@@ -134,21 +127,9 @@ void EkaHwCaps::print2buf() {
                  "hwCaps.version.strategy\t\t\t= %ju\n",
                  (uint64_t)(hwCaps.version.strategy));
   idx += sprintf(&buf[idx],
-                 "hwCaps.version.mirror\t\t\t= %ju\n",
-                 (uint64_t)(hwCaps.version.mirror));
-  idx += sprintf(&buf[idx],
-                 "hwCaps.version.ctxbyhash\t\t= %ju\n",
-                 (uint64_t)(hwCaps.version.ctxbyhash));
-  idx += sprintf(
-      &buf[idx], "hwCaps.version.parser0\t\t\t= %ju (%s)\n",
-      (uint64_t)((hwCaps.version.parser >> 0) & 0xF),
-      EKA_FEED2STRING(
-          ((hwCaps.version.parser >> 0) & 0xF)));
-  idx += sprintf(
-      &buf[idx], "hwCaps.version.parser1\t\t\t= %ju (%s)\n",
-      (uint64_t)((hwCaps.version.parser >> 4) & 0xF),
-      EKA_FEED2STRING(
-          ((hwCaps.version.parser >> 4) & 0xF)));
+                 "hwCaps.version.parser\t\t\t= %ju (%s)\n",
+                 (uint64_t)(hwCaps.version.parser),
+                 EKA_FEED2STRING(hwCaps.version.parser));
   idx += sprintf(&buf[idx],
                  "hwCaps.version.hwparser\t\t\t= %ju\n",
                  (uint64_t)(hwCaps.version.hwparser));
@@ -236,12 +217,10 @@ bool EkaHwCaps::checkEpm() {
              "EkaEpm::MaxHeap %ju",
              hwCaps.epm.heap_total_bytes, EkaEpm::MaxHeap);
 
-  if (hwCaps.epm.numof_actions <
-      EkaEpmRegion::getTotalActions())
+  if (hwCaps.epm.numof_actions < EkaEpm::MaxActions)
     on_error("hwCaps.epm.numof_actions %d < "
-             "EkaEpmRegion::getTotalActions() %d",
-             hwCaps.epm.numof_actions,
-             EkaEpmRegion::getTotalActions());
+             "EkaEpm::MaxActions %d",
+             hwCaps.epm.numof_actions, EkaEpm::MaxActions);
 
   errno = 0;
   return true;
@@ -249,26 +228,24 @@ bool EkaHwCaps::checkEpm() {
 
 bool EkaHwCaps::checkEfc() {
   errno = ENOSYS;
-  // all parsers are generic
-  /* if (hwCaps.version.parser < 16) { */
-  /*   // HW parser is not Generic, checking for CME */
-  /*   if (hwCaps.version.parser != */
-  /*       EKA_EXPECTED_NONGENERIC_PARSER_VERSION) */
-  /*     on_error( */
-  /*         "hwCaps.version.parser 0x%x != " */
-  /*         "EKA_EXPECTED_NONGENERIC_PARSER_VERSION 0x%x",
-   */
-  /*         hwCaps.version.parser, */
-  /*         EKA_EXPECTED_NONGENERIC_PARSER_VERSION); */
-  /* } else { */
-  // HW parser is Generic
-  if (hwCaps.version.hwparser !=
-      EKA_EXPECTED_GENERIC_PARSER_VERSION)
-    on_error("hwCaps.version.hwparser 0x%x != "
-             "EKA_EXPECTED_GENERIC_PARSER_VERSION 0x%x",
-             hwCaps.version.hwparser,
-             EKA_EXPECTED_GENERIC_PARSER_VERSION);
-  //  }
+  if (hwCaps.version.parser < 16) {
+    // HW parser is not Generic, checking for CME
+    if (hwCaps.version.parser !=
+        EKA_EXPECTED_NONGENERIC_PARSER_VERSION)
+      on_error(
+          "hwCaps.version.parser 0x%x != "
+          "EKA_EXPECTED_NONGENERIC_PARSER_VERSION 0x%x",
+          hwCaps.version.parser,
+          EKA_EXPECTED_NONGENERIC_PARSER_VERSION);
+  } else {
+    // HW parser is Generic
+    if (hwCaps.version.hwparser !=
+        EKA_EXPECTED_GENERIC_PARSER_VERSION)
+      on_error("hwCaps.version.hwparser 0x%x != "
+               "EKA_EXPECTED_GENERIC_PARSER_VERSION 0x%x",
+               hwCaps.version.hwparser,
+               EKA_EXPECTED_GENERIC_PARSER_VERSION);
+  }
 
   if (hwCaps.version.strategy != EKA_EXPECTED_EFC_STRATEGY)
     on_error("hwCaps.version.strategy %d != "

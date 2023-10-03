@@ -3,19 +3,22 @@
 
 #include "EhpProtocol.h"
 
-enum class EhpQEDMsg : int { QedTrigger = 0 };
+enum class EhpQEDMsg : int {
+  QedTrigger = 0
+};
 
 class EhpQED : public EhpProtocol {
-public:
-  EhpQED(EkaStrategy *strat);
+ public:
+  EhpQED(EkaDev* dev);
   virtual ~EhpQED() {}
 
   int init();
 
   int createQedTrigger();
 
-public:
+ public:
   static const int QedTriggerMsg = 0;
+
 };
 
 #endif

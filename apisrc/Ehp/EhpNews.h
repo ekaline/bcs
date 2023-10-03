@@ -3,19 +3,22 @@
 
 #include "EhpProtocol.h"
 
-enum class EhpNewsMsg : int { News = 0 };
+enum class EhpNewsMsg : int {
+  News = 0
+};
 
 class EhpNews : public EhpProtocol {
-public:
-  EhpNews(EkaStrategy *strat);
+ public:
+  EhpNews(EkaDev* dev);
   virtual ~EhpNews() {}
 
   int init();
 
   int createNews();
 
-public:
+ public:
   static const int NewsMsg = 0;
+
 };
 
 #endif

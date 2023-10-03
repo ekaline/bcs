@@ -1,26 +1,29 @@
 #ifndef _EHP_PROTOCOL_H_
 #define _EHP_PROTOCOL_H_
 
-#include "EhpConf.h"
 #include "eka_macros.h"
+#include "EhpConf.h"
 
 class EkaDev;
-class EkaStrategy;
 
 class EhpProtocol {
-protected:
-  EhpProtocol(EkaStrategy *strat);
+ protected:
+  EhpProtocol(EkaDev* dev);
 
-public:
-  virtual int init() = 0;
-  int download2Hw(int coreId);
-
+ public:
+  virtual int init()        = 0; 
+  int         download2Hw();
+  
   /* ------------------------------------- */
-public:
+ public:
+  
   volatile EhpProtocolConf conf = {};
+  static const uint64_t EhpConfAddr = 0x10000;
 
-protected:
-  EkaDev *dev = NULL;
-  EkaStrategy *strat_ = nullptr;
+  // private:
+  EkaDev* dev = NULL;
+
+  
+
 };
 #endif

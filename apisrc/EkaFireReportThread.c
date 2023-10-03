@@ -370,21 +370,13 @@ std::pair<int, size_t> processExceptionReport(
     exceptReport.exceptionStatus.globalVector =
         hwEpmReport->exception_report.global_vector;
     // copying arm status fields
-    exceptReport.p4armStatus.armFlag =
-        hwEpmReport->p4_arm_report.arm_state;
-    exceptReport.p4armStatus.expectedVersion =
-        hwEpmReport->p4_arm_report.arm_expected_version;
-    exceptReport.nWarmStatus.armFlag =
-        hwEpmReport->nw_arm_report.arm_state;
-    exceptReport.nWarmStatus.expectedVersion =
-        hwEpmReport->nw_arm_report.arm_expected_version;
+    exceptReport.armStatus.armFlag =
+        hwEpmReport->arm_report.arm_state;
+    exceptReport.armStatus.expectedVersion =
+        hwEpmReport->arm_report.arm_expected_version;
     //    hexDump("------------\nexceptReport",hwEpmReport,sizeof(*hwEpmReport));
-    /* EKA_LOG("P4 ARM=%d, VER=%d", */
-    /* 	    hwEpmReport->p4_arm_report.arm_state,hwEpmReport->p4_arm_report.arm_expected_version);
-     */
-    /* EKA_LOG("NW ARM=%d, VER=%d", */
-    /* 	    hwEpmReport->nw_arm_report.arm_state,hwEpmReport->nw_arm_report.arm_expected_version);
-     */
+    //    EKA_LOG("ARM=%d
+    //    VER=%d",hwEpmReport->arm_report.arm_state,hwEpmReport->arm_report.arm_expected_version);
 
     b += pushExceptionReport(++reportIdx, b, &exceptReport);
     break;
@@ -581,7 +573,7 @@ processQEDReport(EkaDev *dev, const uint8_t *srcReport,
             srcReportLen);
     b += pushEpmReport(++reportIdx, b, &hwEpmReport->epm);
     b += pushQEDReport(++reportIdx, b, hwEpmReport);
-    b += pushFiredPkt(++reportIdx, b, q, dmaIdx);
+    //    b += pushFiredPkt (++reportIdx,b,q,dmaIdx);
     strategyId2ret = hwEpmReport->epm.strategyId;
     break;
   default:
@@ -619,8 +611,6 @@ processFireReport(EkaDev *dev, const uint8_t *srcReport,
       0; // to be overwritten at the end
   b += sizeof(*containerHdr);
   //--------------------------------------------------------------------------
-  b += pushEpmReport(++reportIdx, b, &hwReport->epm);
-
   b += pushControllerState(++reportIdx, b, hwReport);
 
   b += pushMdReport(++reportIdx, b, hwReport);
@@ -670,9 +660,9 @@ void ekaFireReportThread(EkaDev *dev) {
 
   auto epmReportCh{dev->epmReport};
 
-  if (!dev || !dev->efc)
-    on_error("!dev || !efc");
-  auto efc = dev->efc;
+  auto epm{dev->epm};
+  if (!epm)
+    on_error("!epm");
 
   if (!epmReportCh)
     on_error("!epmReportCh");
@@ -733,38 +723,37 @@ void ekaFireReportThread(EkaDev *dev) {
     switch ((EkaUserChannel::DMA_TYPE)dmaReportHdr->type) {
     case EkaUserChannel::DMA_TYPE::SW_TRIGGERED:
       r = processSwTriggeredReport(
-          dev, payload, len, efc->userReportQ,
+          dev, payload, len, dev->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
       break;
     case EkaUserChannel::DMA_TYPE::EXCEPTION:
       r = processExceptionReport(
-          dev, payload, len, efc->userReportQ,
+          dev, payload, len, dev->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
       break;
     case EkaUserChannel::DMA_TYPE::FAST_CANCEL:
       r = processFastCancelReport(
-          dev, payload, len, efc->userReportQ,
+          dev, payload, len, dev->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
-      printFireReport = true;
       break;
     case EkaUserChannel::DMA_TYPE::NEWS:
       r = processNewsReport(
-          dev, payload, len, efc->userReportQ,
+          dev, payload, len, dev->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
       break;
     case EkaUserChannel::DMA_TYPE::SWEEP:
       r = processSweepReport(
-          dev, payload, len, efc->userReportQ,
+          dev, payload, len, dev->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
       break;
     case EkaUserChannel::DMA_TYPE::QED:
       r = processQEDReport(
-          dev, payload, len, efc->userReportQ,
+          dev, payload, len, dev->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
       break;
     case EkaUserChannel::DMA_TYPE::FIRE:
       r = processFireReport(
-          dev, payload, len, efc->userReportQ,
+          dev, payload, len, dev->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
       printFireReport = true;
       break;
@@ -780,20 +769,44 @@ void ekaFireReportThread(EkaDev *dev) {
       on_error("reportLen %jd > sizeof(reportBuf) %jd",
                reportLen, sizeof(reportBuf));
 
-    if (!dev->pEfcRunCtx ||
-        !dev->pEfcRunCtx->onEfcFireReportCb)
-      on_error("dev->pEfcRunCtx || "
-               "pEfcRunCtx->onEfcFireReportCb "
-               "not defined");
+    if (strategyId != EPM_INVALID_STRATEGY) {
+      if (strategyId != EPM_NO_STRATEGY) { // valid strategy
+        auto reportedStrategy{epm->strategy[strategyId]};
+        if (!reportedStrategy) {
+          hexDump("Bad Report", reportBuf, reportLen);
+          on_error("!strategy[%d]", strategyId);
+        }
+        if (!reportedStrategy->reportCb)
+          on_error("reportCb is not defined");
 
-    if (printFireReport) {
-      char fireReportStr[16 * 1024] = {};
-      hexDump2str("Fire Report", reportBuf, reportLen,
-                  fireReportStr, sizeof(fireReportStr));
-      EKA_LOG("reportCb: %s", fireReportStr);
+        if (printFireReport) {
+          char fireReportStr[16 * 1024] = {};
+          hexDump2str("Fire Report", reportBuf, reportLen,
+                      fireReportStr, sizeof(fireReportStr));
+          EKA_LOG("reportCb: %s", fireReportStr);
+        }
+
+        reportedStrategy->reportCb(reportBuf, reportLen,
+                                   reportedStrategy->cbCtx);
+      } else { // no strategy, as exception
+        if (!dev->pEfcRunCtx)
+          EKA_WARN("dev->pEfcRunCtx is not defined");
+        else if (!dev->pEfcRunCtx->onEfcFireReportCb) {
+          EKA_WARN(
+              "dev->pEfcRunCtx->reportCb is not defined");
+        } else {
+          if (printFireReport) {
+            char fireReportStr[16 * 1024] = {};
+            hexDump2str("Fire Report", reportBuf, reportLen,
+                        fireReportStr,
+                        sizeof(fireReportStr));
+            EKA_LOG("onEfcFireReportCb: %s", fireReportStr);
+          }
+          dev->pEfcRunCtx->onEfcFireReportCb(
+              reportBuf, reportLen, dev->pEfcRunCtx->cbCtx);
+        }
+      }
     }
-    dev->pEfcRunCtx->onEfcFireReportCb(
-        reportBuf, reportLen, dev->pEfcRunCtx->cbCtx);
     epmReportCh->next();
   }
   dev->fireReportThreadTerminated = true;
