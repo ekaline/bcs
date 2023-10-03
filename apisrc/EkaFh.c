@@ -73,13 +73,6 @@ EkaOpResult EkaFh::init(const EfhInitCtx *pEfhInitCtx,
   getTradeTimeCb = pEfhInitCtx->getTradeTime;
   getTradeTimeCtx = pEfhInitCtx->getTradeTimeCtx;
 
-  if ((dev->ekaHwCaps->hwCaps.core.bitmap_md_cores &
-       (1 << c)) == 0) {
-    on_error(
-        "Core %u is not enabled in FPGA for Market Data RX",
-        c);
-  }
-
   assert(pEfhInitCtx->numOfGroups <= EKA_FH_GROUPS);
   groups = pEfhInitCtx->numOfGroups;
 
