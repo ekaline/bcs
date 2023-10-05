@@ -16,6 +16,7 @@ include(cmake/ccache.cmake)
 option(ENABLE_EKA_TESTING "Enable Ekaline Testing build" OFF)
 option(ENABLE_GTEST "Enable Google Test build" OFF)
 option(FhLab "Ekaline Lab build" OFF)
+option(GTEST_BUILD "WARNING: Ekaline Gtest build for Eka Lab ONLY!!!" OFF)
 option(EfhLatency "EFH Internal Latencies Profiling" OFF)
 option(EfcHashPrint "EFC Testing Printous" OFF)
 # include(CTest) enable_testing()
@@ -34,6 +35,7 @@ string(REGEX REPLACE "\n$" "" EKA_GIT_VER "${EKA_GIT_VER}")
 message(STATUS "ENABLE_EKA_TESTING = ${ENABLE_EKA_TESTING}")
 message(STATUS "ENABLE_GTEST = ${ENABLE_GTEST}")
 message(STATUS "FhLab = ${FhLab}")
+message(STATUS "GTEST_BUILD = ${GTEST_BUILD}")
 message(STATUS "EfhLatency = ${EfhLatency}")
 message(STATUS "EfcHashPrint = ${EfcHashPrint}")
 
@@ -182,6 +184,11 @@ if(FhLab)
   # target_compile_definitions(${EKA_LIB_NAME} PUBLIC _DONT_SEND_MDTIMEOUT)
 endif()
 
+if (GTEST_BUILD)
+  target_compile_definitions(${EKA_LIB_NAME} PUBLIC EKA_GTEST_BUILD)
+endif()
+
+
 if(EfhLatency)
   target_compile_definitions(${EKA_LIB_NAME} PUBLIC EFH_INTERNAL_LATENCY_CHECK)
 endif()
@@ -231,6 +238,14 @@ target_include_directories(${EKA_LIB_NAME}_static PUBLIC ${EKA_INC_PATH})
 
 target_compile_definitions(${EKA_LIB_NAME}_static
                            PUBLIC LIBEKA_GIT_VER=${EKA_GIT_VER})
+
+if(FhLab)
+  target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC FH_LAB)
+  target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC EKA_TEST_IGNORE_DEFINITIONS)
+  target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC EKA_TEST_IGNORE_GAP)
+  target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC FH_SUBSCRIBE_ALL)
+  # target_compile_definitions(${EKA_LIB_NAME} PUBLIC _DONT_SEND_MDTIMEOUT)
+endif()
 
 if(EfcHashPrint)
   target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC EFC_PRINT_HASH)

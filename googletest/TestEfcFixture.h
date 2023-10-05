@@ -48,11 +48,11 @@ protected:
 
   void configureFpgaPorts();
 
-  virtual void configureStrat(const TestCaseConfig *t) = 0;
+  virtual void configureStrat(const TestCaseConfig *t){}
 
-  virtual void generateMdDataPkts(const void *t) = 0;
+  virtual void generateMdDataPkts(const void *t){}
 
-  virtual void sendData() = 0;
+  virtual void sendData() {}
 
   virtual void checkAllCtxs() {}
 
@@ -69,7 +69,7 @@ protected:
   void printUdpCtx() { return udpCtx_->printConf(); }
 
   virtual void
-  checkAlgoCorrectness(const TestCaseConfig *tc) = 0;
+  checkAlgoCorrectness(const TestCaseConfig *tc) {}
 
   void getReportPtrs(const void *p, size_t len);
 

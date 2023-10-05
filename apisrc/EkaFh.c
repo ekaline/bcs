@@ -88,20 +88,23 @@ EkaOpResult EkaFh::init(const EfhInitCtx *pEfhInitCtx,
     if (ekaFhAddConfIsErr(r)) {
       EKA_ERROR(
           "Init failed to configure due to %s at %s -- %s",
-          ekaFhAddConfToString(r), ekaProp.szKey,
+          ekaFhAddConfToString(r),
+          ekaProp.szKey,
           ekaProp.szVal);
       return EKA_OPRESULT__ERR_INVALID_CONFIG;
     } else if (r != EkaFhAddConf::CONF_SUCCESS) {
       EKA_WARN("Config %s at %s -- %s",
-               ekaFhAddConfToString(r), ekaProp.szKey,
+               ekaFhAddConfToString(r),
+               ekaProp.szKey,
                ekaProp.szVal);
     }
   }
   for (uint i = 0; i < groups; i++) {
     if (auth_set && !b_gr[i]->auth_set) {
-      memcpy(b_gr[i]->auth_user, auth_user,
-             sizeof(auth_user));
-      memcpy(b_gr[i]->auth_passwd, auth_passwd,
+      memcpy(
+          b_gr[i]->auth_user, auth_user, sizeof(auth_user));
+      memcpy(b_gr[i]->auth_passwd,
+             auth_passwd,
              sizeof(auth_passwd));
       b_gr[i]->auth_set = true;
     }
@@ -131,8 +134,10 @@ EkaOpResult EkaFh::init(const EfhInitCtx *pEfhInitCtx,
 
   EKA_DEBUG("%s is Initialized: coreId = %u, feed_ver = "
             "%s, %u MC groups",
-            EKA_EXCH_DECODE(exch), c,
-            EKA_FEED_VER_DECODE(feed_ver), groups);
+            EKA_EXCH_DECODE(exch),
+            c,
+            EKA_FEED_VER_DECODE(feed_ver),
+            groups);
 
   return EKA_OPRESULT__OK;
 }
@@ -154,8 +159,8 @@ EkaOpResult EkaFh::init(const EfhInitCtx *pEfhInitCtx,
 /* } */
 /* ############################################# */
 int EkaFh::stop() {
-  EKA_DEBUG("Stopping %s (fhId=%u)", EKA_EXCH_DECODE(exch),
-            id);
+  EKA_DEBUG(
+      "Stopping %s (fhId=%u)", EKA_EXCH_DECODE(exch), id);
   for (uint i = 0; i < groups; i++) {
     if (b_gr[i] != NULL)
       b_gr[i]->stop();
@@ -190,8 +195,10 @@ int EkaFh::openGroups(EfhCtx *pEfhCtx,
     b_gr[i]->bookInit();
 
     EKA_LOG("%s:%u initialized as %s:%u at runGroups",
-            EKA_EXCH_DECODE(exch), b_gr[i]->id,
-            EKA_EXCH_DECODE(b_gr[i]->exch), i);
+            EKA_EXCH_DECODE(exch),
+            b_gr[i]->id,
+            EKA_EXCH_DECODE(b_gr[i]->exch),
+            i);
   }
   return 0;
 }
@@ -213,10 +220,13 @@ EkaFhGroup *EkaFh::nextGrToProcess(uint first,
   for (uint8_t i = 0; i < numGroups; i++) {
     if (b_gr[curr] == NULL)
       on_error("%s: numGroups=%u, but b_gr[%u] == NULL",
-               EKA_EXCH_DECODE(exch), numGroups, curr);
+               EKA_EXCH_DECODE(exch),
+               numGroups,
+               curr);
     if (b_gr[curr]->q == NULL)
       on_error("%s: b_gr[%u]->q == NULL",
-               EKA_EXCH_DECODE(exch), curr);
+               EKA_EXCH_DECODE(exch),
+               curr);
 
     if (b_gr[curr]->q->is_empty() ||
         b_gr[curr]->state == EkaFhGroup::GrpState::GAP) {
@@ -238,14 +248,16 @@ EkaOpResult EkaFh::subscribeStaticSecurity(
     EfhSecUserData efhSecUserData, uint64_t opaqueAttrA,
     uint64_t opaqueAttrB) {
   if (groupNum >= groups)
-    on_error("groupNum (%u) >= groups (%u)", groupNum,
-             groups);
+    on_error(
+        "groupNum (%u) >= groups (%u)", groupNum, groups);
   if (b_gr[groupNum] == NULL)
     on_error("b_gr[%u] == NULL", groupNum);
 
-  b_gr[groupNum]->subscribeStaticSecurity(
-      securityId, efhSecurityType, efhSecUserData,
-      opaqueAttrA, opaqueAttrB);
+  b_gr[groupNum]->subscribeStaticSecurity(securityId,
+                                          efhSecurityType,
+                                          efhSecUserData,
+                                          opaqueAttrA,
+                                          opaqueAttrB);
 
   b_gr[groupNum]->numSecurities++;
   return EKA_OPRESULT__OK;
@@ -274,8 +286,8 @@ int EkaFh::getTradeTime(
     return -1;
   }
 
-  return getTradeTimeCb(dateComponents, iso8601Date, time,
-                        getTradeTimeCtx);
+  return getTradeTimeCb(
+      dateComponents, iso8601Date, time, getTradeTimeCtx);
 }
 
 EkaOpResult EkaFh::setTradeTimeCtx(void *ctx) {
@@ -336,8 +348,8 @@ inline bool parseTimeMinutes(const char *in, int *tHour,
                              int *tMinute) {
   auto [p1, ec1] =
       std::from_chars(in, in + strlen(in), *tHour, 10);
-  auto [p2, ec2] = std::from_chars(p1 + 1, in + strlen(in),
-                                   *tMinute, 10);
+  auto [p2, ec2] = std::from_chars(
+      p1 + 1, in + strlen(in), *tMinute, 10);
 
   if (*p1 != ':' || *p2 || (int)ec1 || (int)ec2)
     return false;
@@ -395,13 +407,17 @@ inline EkaFhGroup *getGroup(EkaFh &fh, const char *grId,
   if (!parseFullStrToNum(grId, &gr)) {
     on_warning(
         "%s -- %s : ignoring invalid number for group_id",
-        key, value);
+        key,
+        value);
     return NULL;
   }
   if (gr >= fh.groups) {
     on_warning(
         "%s -- %s : ignoring group_id %d >= groups (=%u)",
-        key, value, gr, fh.groups);
+        key,
+        value,
+        gr,
+        fh.groups);
     return NULL;
   }
   if (!fh.b_gr[gr])
@@ -418,7 +434,8 @@ inline Group *getGroupDowncast(EkaFh &fh, const char *grId,
     return NULL;
   Group *downcast = dynamic_cast<Group *>(group);
   if (!downcast)
-    on_error("b_gr[%u] is not %s", group->id,
+    on_error("b_gr[%u] is not %s",
+             group->id,
              typeid(Group).name());
   return downcast;
 }
@@ -447,7 +464,8 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
 
 #define TRY_PARSE_NUM(STR, OUT, ERR)                       \
   if (!parseFullStrToNum(STR, &OUT)) {                     \
-    on_warning("%s -- %s : invalid number for " #OUT, key, \
+    on_warning("%s -- %s : invalid number for " #OUT,      \
+               key,                                        \
                value);                                     \
     return ERR;                                            \
   }
@@ -464,13 +482,18 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   // efh.NOM_ITTO.group.X.snapshot.connectRetryDelayTime,
   // <numSec> k[0] k[1]   k[2] k[3] k[4]   k[5]
   if (matchConfKey(k,
-                   {"efh", exchName, "group", NULL,
-                    "snapshot", "connectRetryDelayTime"})) {
+                   {"efh",
+                    exchName,
+                    "group",
+                    NULL,
+                    "snapshot",
+                    "connectRetryDelayTime"})) {
     EkaFhGroup *group = getGroup(*this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
-    TRY_PARSE_NUM(value, group->connectRetryDelayTime,
+    TRY_PARSE_NUM(value,
+                  group->connectRetryDelayTime,
                   EkaFhAddConf::WRONG_VALUE);
 
     return EkaFhAddConf::CONF_SUCCESS;
@@ -478,8 +501,13 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   //---------------------------------------------------------
   // efh.NOM_ITTO.group.X.snapshot.auth, user:passwd
   // k[0] k[1]   k[2] k[3] k[4]   k[5]
-  if (matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "snapshot", "auth"})) {
+  if (matchConfKey(k,
+                   {"efh",
+                    exchName,
+                    "group",
+                    NULL,
+                    "snapshot",
+                    "auth"})) {
     EkaFhGroup *group = getGroup(*this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
@@ -487,11 +515,13 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
     char string_filler =
         EFH_EXCH2FEED(exch) == EfhFeedVer::kXDP ? '\0'
                                                 : ' ';
-    if (!parseUserPassword(value, group->auth_user,
+    if (!parseUserPassword(value,
+                           group->auth_user,
                            group->auth_passwd,
                            string_filler)) {
       on_warning("%s -- %s : user:pass pair has wrong size",
-                 key, value);
+                 key,
+                 value);
       return EkaFhAddConf::WRONG_VALUE;
     }
 
@@ -506,17 +536,23 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   // efh.C1_PITCH.group.X.recovery.grpAuth, user:passwd
   // k[0] k[1]   k[2] k[3] k[4]   k[5]
   if (sourceType == EkaSourceType::kCBOE_PITCH &&
-      matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "recovery", "grpAuth"})) {
-    auto *group = getGroupDowncast<EkaFhBatsGr>(*this, k[3],
-                                                key, value);
+      matchConfKey(k,
+                   {"efh",
+                    exchName,
+                    "group",
+                    NULL,
+                    "recovery",
+                    "grpAuth"})) {
+    auto *group = getGroupDowncast<EkaFhBatsGr>(
+        *this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
-    if (!parseUserPassword(value, group->grpUser,
-                           group->grpPasswd, ' ')) {
+    if (!parseUserPassword(
+            value, group->grpUser, group->grpPasswd, ' ')) {
       on_warning("%s -- %s : user:pass pair has wrong size",
-                 key, value);
+                 key,
+                 value);
       return EkaFhAddConf::WRONG_VALUE;
     }
 
@@ -531,22 +567,30 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   // efh.C1_PITCH.group.X.use.transactions, true/false
   // k[0] k[1]   k[2]  k[3] k[4]     k[5]
   if (sourceType == EkaSourceType::kCBOE_PITCH &&
-      matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "use", "transactions"})) {
-    auto *group = getGroupDowncast<EkaFhBatsGr>(*this, k[3],
-                                                key, value);
+      matchConfKey(k,
+                   {"efh",
+                    exchName,
+                    "group",
+                    NULL,
+                    "use",
+                    "transactions"})) {
+    auto *group = getGroupDowncast<EkaFhBatsGr>(
+        *this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
     if (!parseBool(value, &group->useTransactions)) {
       on_warning("%s -- %s : invalid boolean, should be "
                  "1/0 or true/false",
-                 key, value);
+                 key,
+                 value);
       return EkaFhAddConf::WRONG_VALUE;
     }
 
     EKA_DEBUG("%s:%u: useTransactions is set to %d",
-              exchName, group->id, group->useTransactions);
+              exchName,
+              group->id,
+              group->useTransactions);
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
@@ -560,10 +604,11 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
         EFH_EXCH2FEED(exch) == EfhFeedVer::kXDP ? '\0'
                                                 : ' ';
 
-    if (!parseUserPassword(value, auth_user, auth_passwd,
-                           string_filler)) {
+    if (!parseUserPassword(
+            value, auth_user, auth_passwd, string_filler)) {
       on_warning("%s -- %s : user:pass pair has wrong size",
-                 key, value);
+                 key,
+                 value);
       return EkaFhAddConf::WRONG_VALUE;
     }
 
@@ -577,14 +622,15 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   //---------------------------------------------------------
   // efh.BOX_HSVF.group.X.gapsLimit, "1"
   // k[0] k[1]     k[2] k[3] k[4]   k[5]
-  if (matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "gapsLimit"})) {
+  if (matchConfKey(
+          k,
+          {"efh", exchName, "group", NULL, "gapsLimit"})) {
     EkaFhGroup *group = getGroup(*this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
-    TRY_PARSE_NUM(value, group->gapsLimit,
-                  EkaFhAddConf::WRONG_VALUE);
+    TRY_PARSE_NUM(
+        value, group->gapsLimit, EkaFhAddConf::WRONG_VALUE);
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
@@ -594,13 +640,13 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   if (sourceType == EkaSourceType::kCBOE_PITCH &&
       matchConfKey(
           k, {"efh", exchName, "group", NULL, "unit"})) {
-    auto *group = getGroupDowncast<EkaFhBatsGr>(*this, k[3],
-                                                key, value);
+    auto *group = getGroupDowncast<EkaFhBatsGr>(
+        *this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
-    TRY_PARSE_NUM(value, group->batsUnit,
-                  EkaFhAddConf::WRONG_VALUE);
+    TRY_PARSE_NUM(
+        value, group->batsUnit, EkaFhAddConf::WRONG_VALUE);
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
@@ -611,8 +657,12 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   // k[0] k[1]     k[2] k[3] k[4]   k[5]
   if (matchConfKey(k,
                    {"efh", exchName, "queue_capacity"}) ||
-      matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "queue_capacity"})) {
+      matchConfKey(k,
+                   {"efh",
+                    exchName,
+                    "group",
+                    NULL,
+                    "queue_capacity"})) {
 
     TRY_PARSE_NUM(value, qsize, EkaFhAddConf::WRONG_VALUE);
 
@@ -622,10 +672,15 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   // efh.BATS_PITCH.group.X.snapshot.sessionSubID, "0285"
   // k[0] k[1]     k[2] k[3] k[4]   k[5]
   if (sourceType == EkaSourceType::kCBOE_PITCH &&
-      matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "snapshot", "sessionSubID"})) {
-    auto *group = getGroupDowncast<EkaFhBatsGr>(*this, k[3],
-                                                key, value);
+      matchConfKey(k,
+                   {"efh",
+                    exchName,
+                    "group",
+                    NULL,
+                    "snapshot",
+                    "sessionSubID"})) {
+    auto *group = getGroupDowncast<EkaFhBatsGr>(
+        *this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
@@ -633,7 +688,9 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
     if (std::strlen(value) != len) {
       on_warning("%s -- %s : sessionSubID is not right "
                  "length (%d)",
-                 key, value, (int)len);
+                 key,
+                 value,
+                 (int)len);
       return EkaFhAddConf::WRONG_VALUE;
     }
     std::memcpy(group->sessionSubID, value, len);
@@ -644,10 +701,15 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   // efh.C1_PITCH.group.X.recovery.grpSessionSubID, "0285"
   // k[0] k[1]     k[2] k[3] k[4]   k[5]
   if (sourceType == EkaSourceType::kCBOE_PITCH &&
-      matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "recovery", "grpSessionSubID"})) {
-    auto *group = getGroupDowncast<EkaFhBatsGr>(*this, k[3],
-                                                key, value);
+      matchConfKey(k,
+                   {"efh",
+                    exchName,
+                    "group",
+                    NULL,
+                    "recovery",
+                    "grpSessionSubID"})) {
+    auto *group = getGroupDowncast<EkaFhBatsGr>(
+        *this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
@@ -656,7 +718,9 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
     if (std::strlen(value) != len) {
       on_warning("%s -- %s : grpSessionSubID is not right "
                  "length (%d)",
-                 key, value, (int)len);
+                 key,
+                 value,
+                 (int)len);
       return EkaFhAddConf::WRONG_VALUE;
     }
     std::memcpy(group->grpSessionSubID, value, len);
@@ -666,17 +730,24 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   //---------------------------------------------------------
   // efh.NOM_ITTO.group.X.mcast.addr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
-  if (matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "mcast", "addr"})) {
+  if (matchConfKey(k,
+                   {"efh",
+                    exchName,
+                    "group",
+                    NULL,
+                    "mcast",
+                    "addr"})) {
     EkaFhGroup *group = getGroup(*this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
-    if (!parseIpAddress(value, &group->mcast_ip,
-                        &group->mcast_port, false,
+    if (!parseIpAddress(value,
+                        &group->mcast_ip,
+                        &group->mcast_port,
+                        false,
                         &group->mcast_set)) {
-      on_warning("%s -- %s : IP address is not valid", key,
-                 value);
+      on_warning(
+          "%s -- %s : IP address is not valid", key, value);
       return EkaFhAddConf::WRONG_VALUE;
     }
     //      EKA_DEBUG ("%s %s for %s:%u is set to
@@ -687,17 +758,24 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   //---------------------------------------------------------
   // efh.NOM_ITTO.group.X.snapshot.addr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
-  if (matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "snapshot", "addr"})) {
+  if (matchConfKey(k,
+                   {"efh",
+                    exchName,
+                    "group",
+                    NULL,
+                    "snapshot",
+                    "addr"})) {
     EkaFhGroup *group = getGroup(*this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
-    if (!parseIpAddress(value, &group->snapshot_ip,
-                        &group->snapshot_port, true,
+    if (!parseIpAddress(value,
+                        &group->snapshot_ip,
+                        &group->snapshot_port,
+                        true,
                         &group->snapshot_set)) {
-      on_warning("%s -- %s : IP address is not valid", key,
-                 value);
+      on_warning(
+          "%s -- %s : IP address is not valid", key, value);
       return EkaFhAddConf::WRONG_VALUE;
     }
     //      EKA_DEBUG ("%s %s for %s:%u is set to
@@ -709,17 +787,25 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   // efh.C1_PITCH.group.X.recovery.grpAddr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
   if (sourceType == EkaSourceType::kCBOE_PITCH &&
-      matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "recovery", "grpAddr"})) {
-    auto *group = getGroupDowncast<EkaFhBatsGr>(*this, k[3],
-                                                key, value);
+      matchConfKey(k,
+                   {"efh",
+                    exchName,
+                    "group",
+                    NULL,
+                    "recovery",
+                    "grpAddr"})) {
+    auto *group = getGroupDowncast<EkaFhBatsGr>(
+        *this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
-    if (!parseIpAddress(value, &group->grpIp,
-                        &group->grpPort, true, nullptr)) {
-      on_warning("%s -- %s : IP address is not valid", key,
-                 value);
+    if (!parseIpAddress(value,
+                        &group->grpIp,
+                        &group->grpPort,
+                        true,
+                        nullptr)) {
+      on_warning(
+          "%s -- %s : IP address is not valid", key, value);
       return EkaFhAddConf::WRONG_VALUE;
     }
     /* EKA_DEBUG ("%s:%u: %s is set to %s:%u", */
@@ -731,17 +817,24 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   //---------------------------------------------------------
   // efh.NOM_ITTO.group.X.recovery.addr, x.x.x.x:xxxx
   // k[0] k[1]    k[2] k[3] k[4]   k[5]
-  if (matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "recovery", "addr"})) {
+  if (matchConfKey(k,
+                   {"efh",
+                    exchName,
+                    "group",
+                    NULL,
+                    "recovery",
+                    "addr"})) {
     EkaFhGroup *group = getGroup(*this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
-    if (!parseIpAddress(value, &group->recovery_ip,
-                        &group->recovery_port, true,
+    if (!parseIpAddress(value,
+                        &group->recovery_ip,
+                        &group->recovery_port,
+                        true,
                         &group->recovery_set)) {
-      on_warning("%s -- %s : IP address is not valid", key,
-                 value);
+      on_warning(
+          "%s -- %s : IP address is not valid", key, value);
       return EkaFhAddConf::WRONG_VALUE;
     }
     //      EKA_DEBUG ("%s %s for %s:%u is set to
@@ -753,8 +846,9 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   // efh.<exch>.group.X.products,
   // <comma-separated-product-keys> k[0] k[1]   k[2]  k[3]
   // k[4]
-  if (matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "products"})) {
+  if (matchConfKey(
+          k,
+          {"efh", exchName, "group", NULL, "products"})) {
     EkaFhGroup *group = getGroup(*this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
@@ -764,7 +858,9 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
     if (!tryCopyCString(val_buf, value)) {
       on_warning("%s -- %s : products list was too large "
                  "to parse (max str len = %d)",
-                 key, value, MaxProductsLen);
+                 key,
+                 value,
+                 MaxProductsLen);
       return EkaFhAddConf::WRONG_VALUE;
     }
 
@@ -776,21 +872,29 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
       if (mask == NoSuchProduct) {
         on_warning(
             "%s -- %s : product token `%s` not recognized",
-            key, value, n);
+            key,
+            value,
+            n);
         return EkaFhAddConf::WRONG_VALUE;
       }
       group->productMask |= mask;
     }
-    EKA_DEBUG("%s:%u: ProductMask is set to %x", exchName,
-              group->id, group->productMask);
+    EKA_DEBUG("%s:%u: ProductMask is set to %x",
+              exchName,
+              group->id,
+              group->productMask);
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
   //---------------------------------------------------------
   // efh.<exch>.group.X.useDefinitionsFile, "0" or "1"
   // k[0] k[1]  k[2] k[3] k[4]
-  if (matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "useDefinitionsFile"})) {
+  if (matchConfKey(k,
+                   {"efh",
+                    exchName,
+                    "group",
+                    NULL,
+                    "useDefinitionsFile"})) {
     EkaFhGroup *group = getGroup(*this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
@@ -798,12 +902,14 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
     if (!parseBool(value, &group->useDefinitionsFile)) {
       on_warning("%s -- %s : invalid boolean, should be "
                  "1/0 or true/false",
-                 key, value);
+                 key,
+                 value);
       return EkaFhAddConf::WRONG_VALUE;
     }
 
     EKA_DEBUG("%s:%u: useDefinitionsFile is set to %d",
-              exchName, group->id,
+              exchName,
+              group->id,
               group->useDefinitionsFile);
     return EkaFhAddConf::CONF_SUCCESS;
   }
@@ -811,17 +917,24 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   // efh.BOX_HSVF.group.X.mcast.line   ,"11"
   // k[0] k[1]    k[2] k[3] k[4]   k[5]
   if (sourceType == EkaSourceType::kBOX_HSVF &&
-      matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "mcast", "line"})) {
-    auto *group = getGroupDowncast<EkaFhBoxGr>(*this, k[3],
-                                               key, value);
+      matchConfKey(k,
+                   {"efh",
+                    exchName,
+                    "group",
+                    NULL,
+                    "mcast",
+                    "line"})) {
+    auto *group = getGroupDowncast<EkaFhBoxGr>(
+        *this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
     if (!tryCopyPaddedString(group->line, value, ' ')) {
       on_warning(
           "%s -- %s : line ID is too long (max %d chars)",
-          key, value, (int)sizeof(group->line));
+          key,
+          value,
+          (int)sizeof(group->line));
       return EkaFhAddConf::WRONG_VALUE;
     }
     //      EKA_DEBUG ("%s:%u line = %s",
@@ -833,23 +946,32 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   // efh.ARCA_PLR.group.X.refresh.tcpAddr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
   if (sourceType == EkaSourceType::kNYSE_PLR &&
-      matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "refresh", "tcpAddr"})) {
-    auto *group = getGroupDowncast<EkaFhPlrGr>(*this, k[3],
-                                               key, value);
+      matchConfKey(k,
+                   {"efh",
+                    exchName,
+                    "group",
+                    NULL,
+                    "refresh",
+                    "tcpAddr"})) {
+    auto *group = getGroupDowncast<EkaFhPlrGr>(
+        *this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
-    if (!parseIpAddress(value, &group->refreshTcpIp,
-                        &group->refreshTcpPort, true,
+    if (!parseIpAddress(value,
+                        &group->refreshTcpIp,
+                        &group->refreshTcpPort,
+                        true,
                         NULL)) {
-      on_warning("%s -- %s : IP address is not valid", key,
-                 value);
+      on_warning(
+          "%s -- %s : IP address is not valid", key, value);
       return EkaFhAddConf::WRONG_VALUE;
     }
 
-    EKA_DEBUG("%s:%u: %s is set to %s:%u", exchName,
-              group->id, k[5],
+    EKA_DEBUG("%s:%u: %s is set to %s:%u",
+              exchName,
+              group->id,
+              k[5],
               EKA_IP2STR(group->refreshTcpIp),
               be16toh(group->refreshTcpPort));
 
@@ -859,24 +981,33 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   // efh.ARCA_PLR.group.X.refresh.udpAddr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
   if (sourceType == EkaSourceType::kNYSE_PLR &&
-      matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "refresh", "udpAddr"})) {
-    auto *group = getGroupDowncast<EkaFhPlrGr>(*this, k[3],
-                                               key, value);
+      matchConfKey(k,
+                   {"efh",
+                    exchName,
+                    "group",
+                    NULL,
+                    "refresh",
+                    "udpAddr"})) {
+    auto *group = getGroupDowncast<EkaFhPlrGr>(
+        *this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
-    if (!parseIpAddress(value, &group->refreshUdpIp,
-                        &group->refreshUdpPort, true,
+    if (!parseIpAddress(value,
+                        &group->refreshUdpIp,
+                        &group->refreshUdpPort,
+                        true,
                         NULL)) {
-      on_warning("%s -- %s : IP address is not valid", key,
-                 value);
+      on_warning(
+          "%s -- %s : IP address is not valid", key, value);
       return EkaFhAddConf::WRONG_VALUE;
     }
 
     EKA_DEBUG("%s:%u: refreshUdpIp:refreshUdpPort %s is "
               "set to %s:%u",
-              exchName, group->id, k[5],
+              exchName,
+              group->id,
+              k[5],
               EKA_IP2STR(group->refreshUdpIp),
               be16toh(group->refreshUdpPort));
 
@@ -886,24 +1017,33 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   // efh.ARCA_PLR.group.X.retrans.tcpAddr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
   if (sourceType == EkaSourceType::kNYSE_PLR &&
-      matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "retrans", "tcpAddr"})) {
-    auto *group = getGroupDowncast<EkaFhPlrGr>(*this, k[3],
-                                               key, value);
+      matchConfKey(k,
+                   {"efh",
+                    exchName,
+                    "group",
+                    NULL,
+                    "retrans",
+                    "tcpAddr"})) {
+    auto *group = getGroupDowncast<EkaFhPlrGr>(
+        *this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
-    if (!parseIpAddress(value, &group->retransTcpIp,
-                        &group->retransTcpPort, true,
+    if (!parseIpAddress(value,
+                        &group->retransTcpIp,
+                        &group->retransTcpPort,
+                        true,
                         NULL)) {
-      on_warning("%s -- %s : IP address is not valid", key,
-                 value);
+      on_warning(
+          "%s -- %s : IP address is not valid", key, value);
       return EkaFhAddConf::WRONG_VALUE;
     }
 
     EKA_DEBUG("%s:%u: retransTcpIp:retransTcpPort %s is "
               "set to %s:%u",
-              exchName, group->id, k[5],
+              exchName,
+              group->id,
+              k[5],
               EKA_IP2STR(group->retransTcpIp),
               be16toh(group->retransTcpPort));
 
@@ -913,24 +1053,33 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   // efh.ARCA_PLR.group.X.retrans.udpAddr, x.x.x.x:xxxx
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
   if (sourceType == EkaSourceType::kNYSE_PLR &&
-      matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "retrans", "udpAddr"})) {
-    auto *group = getGroupDowncast<EkaFhPlrGr>(*this, k[3],
-                                               key, value);
+      matchConfKey(k,
+                   {"efh",
+                    exchName,
+                    "group",
+                    NULL,
+                    "retrans",
+                    "udpAddr"})) {
+    auto *group = getGroupDowncast<EkaFhPlrGr>(
+        *this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
-    if (!parseIpAddress(value, &group->retransUdpIp,
-                        &group->retransUdpPort, true,
+    if (!parseIpAddress(value,
+                        &group->retransUdpIp,
+                        &group->retransUdpPort,
+                        true,
                         NULL)) {
-      on_warning("%s -- %s : IP address is not valid", key,
-                 value);
+      on_warning(
+          "%s -- %s : IP address is not valid", key, value);
       return EkaFhAddConf::WRONG_VALUE;
     }
 
     EKA_DEBUG("%s:%u: retransUdpIp:retransUdpPort %s is "
               "set to %s:%u",
-              exchName, group->id, k[5],
+              exchName,
+              group->id,
+              k[5],
               EKA_IP2STR(group->retransUdpIp),
               be16toh(group->retransUdpPort));
 
@@ -940,23 +1089,28 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   // efh.ARCA_PLR.group.X.SourceId, xxxx
   // k[0] k[1]    k[2] k[3] k[4]    v[0]
   if (sourceType == EkaSourceType::kNYSE_PLR &&
-      matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "SourceId"})) {
-    auto *group = getGroupDowncast<EkaFhPlrGr>(*this, k[3],
-                                               key, value);
+      matchConfKey(
+          k,
+          {"efh", exchName, "group", NULL, "SourceId"})) {
+    auto *group = getGroupDowncast<EkaFhPlrGr>(
+        *this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
     if (!tryCopyPaddedString(group->sourceId, value)) {
       on_warning("%s -- %s : value too long for source ID "
                  "(max len = %u)",
-                 key, value,
+                 key,
+                 value,
                  (unsigned)sizeof(group->sourceId));
       return EkaFhAddConf::WRONG_VALUE;
     }
 
-    EKA_DEBUG("%s:%u: %s is set to \'%s\'", exchName,
-              group->id, k[4], group->sourceId);
+    EKA_DEBUG("%s:%u: %s is set to \'%s\'",
+              exchName,
+              group->id,
+              k[4],
+              group->sourceId);
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
@@ -964,18 +1118,21 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   // efh.ARCA_PLR.group.X.ChannelId, x
   // k[0] k[1]    k[2] k[3] k[4]    v[0]
   if (sourceType == EkaSourceType::kNYSE_PLR &&
-      matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "ChannelId"})) {
-    auto *group = getGroupDowncast<EkaFhPlrGr>(*this, k[3],
-                                               key, value);
+      matchConfKey(
+          k,
+          {"efh", exchName, "group", NULL, "ChannelId"})) {
+    auto *group = getGroupDowncast<EkaFhPlrGr>(
+        *this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
-    TRY_PARSE_NUM(value, group->channelId,
-                  EkaFhAddConf::WRONG_VALUE);
+    TRY_PARSE_NUM(
+        value, group->channelId, EkaFhAddConf::WRONG_VALUE);
 
-    EKA_DEBUG("%s:%u: ChannelId is set to %d", exchName,
-              group->id, group->channelId);
+    EKA_DEBUG("%s:%u: ChannelId is set to %d",
+              exchName,
+              group->id,
+              group->channelId);
 
     return EkaFhAddConf::CONF_SUCCESS;
   }
@@ -983,24 +1140,30 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   // efh.CME_SBE.group.X.recovery.SrcIpAddr, x.x.x.x
   // k[0] k[1]   k[2]  k[3] k[4] k[5]
   if (sourceType == EkaSourceType::kCME_SBE &&
-      matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "recovery", "SrcIpAddr"})) {
-    auto *group = getGroupDowncast<EkaFhCmeGr>(*this, k[3],
-                                               key, value);
+      matchConfKey(k,
+                   {"efh",
+                    exchName,
+                    "group",
+                    NULL,
+                    "recovery",
+                    "SrcIpAddr"})) {
+    auto *group = getGroupDowncast<EkaFhCmeGr>(
+        *this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
     if (!inet_aton(
             value,
             (struct in_addr *)&group->recoverySrcIp)) {
-      on_warning("%s -- %s : IP address is not valid", key,
-                 value);
+      on_warning(
+          "%s -- %s : IP address is not valid", key, value);
       return EkaFhAddConf::WRONG_VALUE;
     }
 
     EKA_DEBUG("%s:%u: recovery.SrcIpAddr is "
               "set to %s",
-              exchName, group->id,
+              exchName,
+              group->id,
               EKA_IP2STR(group->recoverySrcIp));
 
     return EkaFhAddConf::CONF_SUCCESS;
@@ -1008,13 +1171,18 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   //---------------------------------------------------------
   // efh.NOM_ITTO.group.X.staleDataNsThreshold,
   // <numSec> k[0] k[1]   k[2] k[3] k[4]   k[5]
-  if (matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "staleDataNsThreshold"})) {
+  if (matchConfKey(k,
+                   {"efh",
+                    exchName,
+                    "group",
+                    NULL,
+                    "staleDataNsThreshold"})) {
     EkaFhGroup *group = getGroup(*this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
-    TRY_PARSE_NUM(value, group->staleDataNsThreshold,
+    TRY_PARSE_NUM(value,
+                  group->staleDataNsThreshold,
                   EkaFhAddConf::WRONG_VALUE);
 
     return EkaFhAddConf::CONF_SUCCESS;
@@ -1022,16 +1190,24 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   //---------------------------------------------------------
   // efh.<EXCH>.group.X.check.md.start, HH:MM
   // k[0] k[1]  k[2] k[3] k[4] k[5] k[6]
-  if (matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "check", "md", "start"})) {
+  if (matchConfKey(k,
+                   {"efh",
+                    exchName,
+                    "group",
+                    NULL,
+                    "check",
+                    "md",
+                    "start"})) {
     EkaFhGroup *group = getGroup(*this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
-    if (!parseTimeMinutes(value, &group->mdCheckStartHour,
+    if (!parseTimeMinutes(value,
+                          &group->mdCheckStartHour,
                           &group->mdCheckStartMinute)) {
       on_warning("Invalid HH:MM format  \'%s\' -- \'%s\'",
-                 key, value);
+                 key,
+                 value);
       return EkaFhAddConf::WRONG_VALUE;
     }
     //      EKA_DEBUG ("%s %s for %s:%u is set to
@@ -1042,16 +1218,24 @@ EkaFhAddConf EkaFh::conf_parse(const char *key,
   //---------------------------------------------------------
   // efh.<EXCH>.group.X.check.md.end, HH:MM
   // k[0] k[1]  k[2] k[3] k[4] k[5] k[6]
-  if (matchConfKey(k, {"efh", exchName, "group", NULL,
-                       "check", "md", "end"})) {
+  if (matchConfKey(k,
+                   {"efh",
+                    exchName,
+                    "group",
+                    NULL,
+                    "check",
+                    "md",
+                    "end"})) {
     EkaFhGroup *group = getGroup(*this, k[3], key, value);
     if (!group)
       return EkaFhAddConf::IGNORED;
 
-    if (!parseTimeMinutes(value, &group->mdCheckEndHour,
+    if (!parseTimeMinutes(value,
+                          &group->mdCheckEndHour,
                           &group->mdCheckEndMinute)) {
       on_warning("Invalid HH:MM format  \'%s\' -- \'%s\'",
-                 key, value);
+                 key,
+                 value);
       return EkaFhAddConf::WRONG_VALUE;
     }
     //      EKA_DEBUG ("%s %s for %s:%u is set to
@@ -1073,14 +1257,19 @@ EkaOpResult EkaFh::initGroups(EfhCtx *pEfhCtx,
     if (!runGr->isMyGr(pEfhRunCtx->groups[i].localId))
       on_error("pEfhRunCtx->groups[%d].localId = %u doesnt "
                "belong to %s",
-               i, pEfhRunCtx->groups[i].localId,
+               i,
+               pEfhRunCtx->groups[i].localId,
                runGr->list2print);
     if (pEfhRunCtx->groups[i].source != exch)
       on_error("id=%u,fhId = %u, "
-               "pEfhRunCtx->groups[i].source %s != exch %s",
-               id, pEfhCtx->fhId,
+               "pEfhRunCtx->groups[%u].source %s (%d) != "
+               "exch %s",
+               id,
+               pEfhCtx->fhId,
+               i,
                EKA_EXCH_SOURCE_DECODE(
                    pEfhRunCtx->groups[i].source),
+               pEfhRunCtx->groups[i].source,
                EKA_EXCH_SOURCE_DECODE(exch));
 
     EkaFhGroup *gr = b_gr[pEfhRunCtx->groups[i].localId];
@@ -1094,11 +1283,13 @@ EkaOpResult EkaFh::initGroups(EfhCtx *pEfhCtx,
 
     gr->runGr = runGr;
 
-    runGr->igmpMcJoin(gr->mcast_ip, gr->mcast_port, 0,
-                      &gr->pktCnt);
+    runGr->igmpMcJoin(
+        gr->mcast_ip, gr->mcast_port, 0, &gr->pktCnt);
     EKA_DEBUG("%s:%u: joined %s:%u for %u securities",
-              EKA_EXCH_DECODE(exch), gr->id,
-              EKA_IP2STR(gr->mcast_ip), gr->mcast_port,
+              EKA_EXCH_DECODE(exch),
+              gr->id,
+              EKA_IP2STR(gr->mcast_ip),
+              gr->mcast_port,
               gr->getNumSecurities());
   }
   return EKA_OPRESULT__OK;
