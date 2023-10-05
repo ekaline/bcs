@@ -1,135 +1,156 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <arpa/inet.h>
-#include <string.h>
-#include <signal.h>
-#include <netinet/if_ether.h>
+#include <iterator>
 #include <netinet/ether.h>
+#include <netinet/if_ether.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
-#include <iterator>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <thread>
+#include <unistd.h>
 
-#include <sys/time.h>
 #include <chrono>
+#include <sys/time.h>
 
 #include "eka_macros.h"
 
-#include "Exc.h"
-#include "Eka.h"
 #include "Efc.h"
+#include "Eka.h"
 #include "Epm.h"
+#include "Exc.h"
 
-#include "epmCaps.h"
 #include "EkaEpm.h"
+#include "epmCaps.h"
 
-uint64_t epmGetDeviceCapability(const EkaDev *dev, EpmDeviceCapability cap) {
-  if (dev == NULL) return EKA_OPRESULT__ERR_BAD_ADDRESS;
+#include "EkaEpmRegion.h"
+
+#if 0
+uint64_t epmGetDeviceCapability(const EkaDev *dev,
+                                EpmDeviceCapability cap) {
+  if (dev == NULL)
+    return EKA_OPRESULT__ERR_BAD_ADDRESS;
   switch (cap) {
-    case EHC_PayloadMemorySize :
-      return dev->epm->getPayloadMemorySize();
+  case EHC_PayloadMemorySize:
+    // return dev->epm->getPayloadMemorySize();
+    return EkaEpmRegion::getWritableHeapSize();
 
-    case EHC_PayloadAlignment :
-      return dev->epm->getPayloadAlignment();
+  case EHC_PayloadAlignment:
+    return dev->epm->getPayloadAlignment();
 
-    case EHC_DatagramOffset :
-      return dev->epm->getDatagramOffset();
+  case EHC_DatagramOffset:
+    return dev->epm->getDatagramOffset();
 
-    case EHC_UdpDatagramOffset :
-      return dev->epm->getUdpDatagramOffset();
+  case EHC_UdpDatagramOffset:
+    return dev->epm->getUdpDatagramOffset();
 
-    case EHC_RequiredTailPadding :
-      return dev->epm->getRequiredTailPadding();
+  case EHC_RequiredTailPadding:
+    return dev->epm->getRequiredTailPadding();
 
-    case EHC_MaxStrategies :
-      return dev->epm->getMaxStrategies();
+  case EHC_MaxStrategies:
+    return dev->epm->getMaxStrategies();
 
-    case EHC_MaxActions :
-      return dev->epm->getMaxActions();
+  case EHC_MaxActions:
+    return EkaEpmRegion::getTotalActions();
 
-    default:
-      on_error("Unsupported EPM Cap: %d",(int)cap);
-    }
+  default:
+    on_error("Unsupported EPM Cap: %d", (int)cap);
+  }
 }
 
-EkaOpResult epmSetAction(EkaDev* dev,
-                         epm_strategyid_t strategy, 
-			 epm_actionid_t action,
+EkaOpResult epmSetAction(EkaDev *dev,
+                         epm_strategyid_t strategy,
+                         epm_actionid_t action,
                          const EpmAction *epmAction) {
-  if (dev == NULL) return EKA_OPRESULT__ERR_BAD_ADDRESS;
+  if (dev == NULL)
+    return EKA_OPRESULT__ERR_BAD_ADDRESS;
 
-  return dev->epm->setAction(strategy,action,epmAction);
+  return dev->epm->setAction(strategy, action, epmAction);
 }
 
 EkaOpResult epmGetAction(const EkaDev *dev,
-                         epm_strategyid_t strategy, 
-			 epm_actionid_t action,
+                         epm_strategyid_t strategy,
+                         epm_actionid_t action,
                          EpmAction *epmAction) {
-  if (dev == NULL) return EKA_OPRESULT__ERR_BAD_ADDRESS;
+  if (dev == NULL)
+    return EKA_OPRESULT__ERR_BAD_ADDRESS;
 
-  if (strategy >= (int)EkaEpm::MaxStrategies) return EKA_OPRESULT__ERR_INVALID_STRATEGY;
-  if (action   >= (int)EkaEpm::MaxActionsPerStrategy) return EKA_OPRESULT__ERR_INVALID_ACTION;
+  if (strategy >= EkaEpmRegion::MaxStrategies)
+    return EKA_OPRESULT__ERR_INVALID_STRATEGY;
+  if (action >= EkaEpmRegion::getMaxActionsPerRegion())
+    return EKA_OPRESULT__ERR_INVALID_ACTION;
 
-  return dev->epm->getAction(strategy,action,epmAction);
-
+  return dev->epm->getAction(strategy, action, epmAction);
 }
 
-
-EkaOpResult epmEnableController(EkaDev *dev, EkaCoreId coreId, bool enable) {
-  if (dev == NULL) return EKA_OPRESULT__ERR_BAD_ADDRESS;
-  if (coreId >= EkaDev::MAX_CORES || dev->core[coreId] == NULL)
+EkaOpResult epmEnableController(EkaDev *dev,
+                                EkaCoreId coreId,
+                                bool enable) {
+  if (dev == NULL)
+    return EKA_OPRESULT__ERR_BAD_ADDRESS;
+  if (coreId >= EkaDev::MAX_CORES ||
+      dev->core[coreId] == NULL)
     return EKA_OPRESULT__ERR_INVALID_CORE;
 
-  return dev->epm->enableController(coreId,enable);
+  return dev->epm->enableController(coreId, enable);
 }
 
-EkaOpResult epmInitStrategies(EkaDev *dev,
-                              const EpmStrategyParams *params,
-                              epm_strategyid_t numStrategies) {
-	if (! dev->checkAndSetEpmTx())
-		on_error("TX functionality is not available for this "
-						 "Ekaline SW instance - caught by another process");
-    
-  if (numStrategies > static_cast<epm_strategyid_t>
-			(dev->epm->getMaxStrategies()))
+EkaOpResult
+epmInitStrategies(EkaDev *dev,
+                  const EpmStrategyParams *params,
+                  epm_strategyid_t numStrategies) {
+  if (!dev->checkAndSetEpmTx())
+    on_error(
+        "TX functionality is not available for this "
+        "Ekaline SW instance - caught by another process");
+
+  if (numStrategies > static_cast<epm_strategyid_t>(
+                          dev->epm->getMaxStrategies()))
     return EKA_OPRESULT__ERR_MAX_STRATEGIES;
 
-  EKA_LOG("initializing %u EPM strategies",numStrategies);
-  return dev->epm->initStrategies(params,numStrategies);
+  EKA_LOG("initializing %u EPM strategies", numStrategies);
+  return dev->epm->initStrategies(params, numStrategies);
 }
 
-EkaOpResult epmSetStrategyEnableBits(EkaDev *dev,
-                                     epm_strategyid_t strategy,
-                                     epm_enablebits_t enable) {
+EkaOpResult
+epmSetStrategyEnableBits(EkaDev *dev,
+                         epm_strategyid_t strategy,
+                         epm_enablebits_t enable) {
 
-  if (dev == NULL) return EKA_OPRESULT__ERR_BAD_ADDRESS;
+  if (dev == NULL)
+    return EKA_OPRESULT__ERR_BAD_ADDRESS;
 
-  return dev->epm->setStrategyEnableBits(strategy,enable);
+  return dev->epm->setStrategyEnableBits(strategy, enable);
 }
 
-EkaOpResult epmGetStrategyEnableBits(const EkaDev *dev,
-                                     epm_strategyid_t strategy,
-                                     epm_enablebits_t *enable) {
+EkaOpResult
+epmGetStrategyEnableBits(const EkaDev *dev,
+                         epm_strategyid_t strategy,
+                         epm_enablebits_t *enable) {
 
-  if (dev == NULL) return EKA_OPRESULT__ERR_BAD_ADDRESS;
+  if (dev == NULL)
+    return EKA_OPRESULT__ERR_BAD_ADDRESS;
 
-  return dev->epm->getStrategyEnableBits(strategy,enable);
+  return dev->epm->getStrategyEnableBits(strategy, enable);
 }
 
 EkaOpResult epmRaiseTriggers(EkaDev *dev,
                              const EpmTrigger *trigger) {
 
-  if (dev == NULL) return EKA_OPRESULT__ERR_BAD_ADDRESS;
+  if (dev == NULL)
+    return EKA_OPRESULT__ERR_BAD_ADDRESS;
 
-  if (trigger == NULL) on_error("trigger == NULL");
-  if (trigger->strategy >= (int)EkaEpm::MaxStrategies) {
+  if (trigger == NULL)
+    on_error("trigger == NULL");
+  if (trigger->strategy >= EkaEpmRegion::MaxStrategies) {
     EKA_WARN("EKA_OPRESULT__ERR_INVALID_STRATEGY");
     return EKA_OPRESULT__ERR_INVALID_STRATEGY;
   }
-  if (trigger->action   >= (int)EkaEpm::MaxActionsPerStrategy) {
+  if (trigger->action >=
+      EkaEpmRegion::getMaxActionsPerRegion()) {
     EKA_WARN("EKA_OPRESULT__ERR_INVALID_ACTION");
     return EKA_OPRESULT__ERR_INVALID_ACTION;
   }
@@ -138,13 +159,16 @@ EkaOpResult epmRaiseTriggers(EkaDev *dev,
 }
 
 EkaOpResult epmPayloadHeapCopy(EkaDev *dev,
-                               epm_strategyid_t strategy, uint32_t offset,
-                               uint32_t length, const void *contents,
-			       const bool isUdpDatagram) {
-  if (dev == NULL) return EKA_OPRESULT__ERR_BAD_ADDRESS;
+                               epm_strategyid_t strategy,
+                               uint32_t offset,
+                               uint32_t length,
+                               const void *contents,
+                               const bool isUdpDatagram) {
+  if (dev == NULL)
+    return EKA_OPRESULT__ERR_BAD_ADDRESS;
 
-  return dev->epm->payloadHeapCopy(strategy,offset,length,contents,isUdpDatagram);
+  return dev->epm->payloadHeapCopy(strategy, offset, length,
+                                   contents, isUdpDatagram);
 }
-
-
+#endif
 /* ######################################### */

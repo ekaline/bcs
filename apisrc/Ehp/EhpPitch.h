@@ -4,8 +4,8 @@
 #include "EhpProtocol.h"
 
 class EhpPitch : public EhpProtocol {
- public:
-  EhpPitch(EkaDev* dev);
+public:
+  EhpPitch(EkaStrategy *strat);
   virtual ~EhpPitch() {}
 
   int init();
@@ -14,18 +14,17 @@ class EhpPitch : public EhpProtocol {
   int createAddOrderLong();
   int createAddOrderExpanded();
 
- public:
-  static const int AddOrderExpandedMsg  = 0;
+public:
+  static const int AddOrderExpandedMsg = 0;
   static const int AddOrderShortMsg = 1;
-  static const int AddOrderLongMsg  = 2;
-  static const int NumMsgs  = 3;
+  static const int AddOrderLongMsg = 2;
+  static const int NumMsgs = 3;
 
-  const char* msgName[NumMsgs] = {
-    "AddOrderExpanded",
-    "AddOrderShort",
-    "AddOrderLong"
-  };
+  const char *msgName[NumMsgs] = {
+      "AddOrderExpanded", "AddOrderShort", "AddOrderLong"};
 
+  bool fireOnAllAddOrders_ = false;
+  EfhFeedVer hwFeedVer_ = EfhFeedVer::kInvalid;
 };
 
 #endif

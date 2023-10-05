@@ -5,12 +5,12 @@
 
 enum class EhpNomMsg : int {
   AddOrderShort = 0,
-    AddOrderLong = 1
+  AddOrderLong = 1
 };
 
 class EhpNom : public EhpProtocol {
- public:
-  EhpNom(EkaDev* dev);
+public:
+  EhpNom(EkaStrategy *strat);
   virtual ~EhpNom() {}
 
   int init();
@@ -18,10 +18,9 @@ class EhpNom : public EhpProtocol {
   int createAddOrderShort();
   int createAddOrderLong();
 
- public:
+public:
   static const int AddOrderShortMsg = 0;
-  static const int AddOrderLongMsg  = 1;
-
+  static const int AddOrderLongMsg = 1;
 };
 
 #endif

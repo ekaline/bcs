@@ -117,7 +117,13 @@ private:
   volatile uint64_t *snDevWCPtr_;
 
   volatile bool txBuf_ = 0;
-  std::atomic_flag busy_[MaxWcCh] = {ATOMIC_FLAG_INIT};
+  std::atomic_flag busy_[MaxWcCh] = {
+      ATOMIC_FLAG_INIT, ATOMIC_FLAG_INIT, ATOMIC_FLAG_INIT,
+      ATOMIC_FLAG_INIT, ATOMIC_FLAG_INIT, ATOMIC_FLAG_INIT,
+      ATOMIC_FLAG_INIT, ATOMIC_FLAG_INIT, ATOMIC_FLAG_INIT,
+      ATOMIC_FLAG_INIT, ATOMIC_FLAG_INIT, ATOMIC_FLAG_INIT,
+      ATOMIC_FLAG_INIT, ATOMIC_FLAG_INIT, ATOMIC_FLAG_INIT,
+      ATOMIC_FLAG_INIT};
 
   /* ----------------------------------------- */
 

@@ -123,6 +123,9 @@ public:
     FhSecurity *s = &sec[index];
 
     while (s != NULL) {
+#ifdef EFH_INTERNAL_LATENCY_CHECK
+      latencyStat.securityHashCollisonsCtr++;
+#endif
       if (s->valid && s->secId == secId)
         return s;
       s = (FhSecurity *)s->next;
@@ -175,6 +178,9 @@ public:
     uint32_t index = getOrderHashIdx(orderId);
     FhOrder *o = ord[index];
     while (o != NULL) {
+#ifdef EFH_INTERNAL_LATENCY_CHECK
+      latencyStat.orderHashCollisonsCtr++;
+#endif
       if (o->orderId == orderId) {
         if (o->plevel == NULL)
           on_error("o->plevel == NULL for orderId %ju",
