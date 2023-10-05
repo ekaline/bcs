@@ -47,24 +47,26 @@ void TestCmeFc::configureStrat(const TestCaseConfig *t) {
     on_error("efcSetActionPayload failed for Action %d",
              cmeFcHwAction);
 }
+
 /* ############################################# */
 
-void TestCmeFc::sendData(const void *mdInjectParams) {
-  auto mdConf =
+void TestCmeFc::generateMdDataPkts(
+    const void *mdInjectParams) {
+  auto md =
       reinterpret_cast<const TestCmeFcMd *>(mdInjectParams);
+  // ==============================================
+  insertedMd_.push_back(*md);
+}
+/* ############################################# */
 
-  EfcArmVer cmeFcArmVer = 0;
+void TestCmeFc::sendData() {
+  for (const auto &md : insertedMd_) {
+    efcSetSessionCntr(g_ekaDev, tcpCtx_->tcpSess_[0]->hCon_,
+                      md.appSeq);
 
-  uint64_t appSeq = 3000;
-  efcSetSessionCntr(g_ekaDev, tcpCtx_->tcpSess_[0]->hCon_,
-                    mdConf->appSeq);
-
-  ASSERT_NE(mdConf, nullptr);
-
-  sendPktToAll(mdConf->preloadedPkt, mdConf->pktLen,
-               cmeFcArmVer++);
-
-  return;
+    sendPktToAll(md.preloadedPkt, md.pktLen,
+                 md.expectedFire);
+  }
 }
 
 /* ############################################# */
@@ -72,7 +74,7 @@ void TestCmeFc::checkAlgoCorrectness(
     const TestCaseConfig *tc) {
 
   int i = 0;
-  for (const auto &fr : fireReports) {
+  for (const auto &fr : fireReports_) {
 
     auto injectedMd = reinterpret_cast<const TestCmeFcMd *>(
         tc->mdInjectParams);
@@ -85,16 +87,16 @@ void TestCmeFc::checkAlgoCorrectness(
 
     auto msgP = firePkt_ + TcpDatagramOffset;
 
-    auto payloadLen = echoedPkts.at(i)->len;
+    auto payloadLen = echoedPkts_.at(i)->len;
     auto dummyFireMsg =
         reinterpret_cast<const DummyIlinkMsg *>(msgP);
 
     auto firedPayloadDiff =
-        memcmp(msgP, echoedPkts.at(i)->buf, payloadLen);
+        memcmp(msgP, echoedPkts_.at(i)->buf, payloadLen);
 #if 0
     hexDump("FireReport Msg", msgP, payloadLen);
-    hexDump("Echo Pkt", echoedPkts.at(i)->buf,
-            echoedPkts.at(i)->len);
+    hexDump("Echo Pkt", echoedPkts_.at(i)->buf,
+            echoedPkts_.at(i)->len);
 #endif
     EXPECT_EQ(firedPayloadDiff, 0);
 

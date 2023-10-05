@@ -4,6 +4,16 @@
 #include <gtest/gtest.h>
 
 #include "eka_macros.h"
+#include <cereal/archives/json.hpp>
+#include <cereal/cereal.hpp>
+#include <cereal/types/vector.hpp>
+
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+
+#include <vector>
 
 #include "EkaFhTypes.h"
 #include <Efc.h>
@@ -31,33 +41,41 @@ protected:
   void SetUp() override;
   void TearDown() override;
 
-  void runTest(const TestCaseConfig *tc);
+  virtual void runTest(const TestCaseConfig *tc);
 
-  EfcArmVer sendPktToAll(const void *pkt, size_t pktLen,
-                         EfcArmVer armVer);
+  void sendPktToAll(const void *pkt, size_t pktLen,
+                    bool expectedFire);
 
   void configureFpgaPorts();
 
-  virtual void configureStrat(const TestCaseConfig *t) = 0;
-  virtual void sendData(const void *mdInjectParams) = 0;
+  virtual void configureStrat(const TestCaseConfig *t){}
+
+  virtual void generateMdDataPkts(const void *t){}
+
+  virtual void sendData() {}
+
+  virtual void checkAllCtxs() {}
+
+  virtual void archiveSecCtxsMd() {}
+  virtual void loadSecCtxsMd() {}
 
   std::pair<bool, bool>
   waitForResults(uint32_t nStratEvaluated_prev,
-                 uint32_t nStratPassed_prev,
-                 int nExpectedFireReports);
+                 uint32_t nStratPassed_prev);
 
   void initNwCtxs(const TestCaseConfig *t);
 
   void printTcpCtx() { return tcpCtx_->printConf(); }
   void printUdpCtx() { return udpCtx_->printConf(); }
 
-  void checkFireReports(const TestCaseConfig *tc);
   virtual void
-  checkAlgoCorrectness(const TestCaseConfig *tc) = 0;
+  checkAlgoCorrectness(const TestCaseConfig *tc) {}
 
   void getReportPtrs(const void *p, size_t len);
 
   void printTestConfig(const char *msg);
+
+  virtual std::pair<uint32_t, bool> getArmVer();
 
 protected:
   static const int MaxTcpTestSessions = 16;
@@ -80,7 +98,8 @@ protected:
   TestTcpCtx *tcpCtx_ = nullptr;
   bool loop_ = false;
 
-  int nExpectedFires = 0;
+  int nExpectedFires_ = -1;
+  EfcArmVer armVer_ = 0;
 
   const EfcControllerState *ctrlState_ = nullptr;
   const EfcExceptionsReport *excptReport_ = nullptr;
@@ -91,18 +110,22 @@ protected:
   const EpmFastCancelReport *cmeFcReport_ = nullptr;
   const EpmQEDReport *qedReport_ = nullptr;
 
+  bool testFailed_ = false;
+
+  int ArmDisarmAddr_ = 0xf07d0; // overrided for P4
+
 public:
   struct MemChunk {
     uint8_t *buf;
     size_t len;
   };
 
-  std::vector<MemChunk *> fireReports = {};
-  std::atomic<int> nReceivedFireReports = 0;
+  std::vector<MemChunk *> fireReports_ = {};
+  std::atomic<int> nReceivedFireReports_ = 0;
 
-  std::vector<MemChunk *> echoedPkts = {};
+  std::vector<MemChunk *> echoedPkts_ = {};
 
-  int nExpectedFireReports = 0;
+  int nExpectedFireReports_ = 0;
 };
 
 /* --------------------------------------------- */

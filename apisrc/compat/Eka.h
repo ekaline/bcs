@@ -212,7 +212,7 @@ using ExcUdpTxConnHandle = ExcConnHandle;
       _x( CME_SBE            )
     EkaSourceType_ENUM_ITER( EKA__ENUM_DEF )
   };
-  
+
   constexpr EkaSourceType getEkaSourceType(const EkaSource src) {
     switch (src) {
     case EkaSource::kInvalid:

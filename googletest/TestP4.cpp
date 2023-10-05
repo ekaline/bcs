@@ -1,42 +1,89 @@
 #include "TestP4.h"
+#include "EkaHwInternalStructs.h"
 
-void TestP4::initializeAllCtxs(const TestCaseConfig *tc) {
-  auto secConf = reinterpret_cast<const TestP4SecConf *>(
-      tc->algoConfigParams);
+/* ############################################# */
 
-  // setting security contexts
-  for (size_t i = 0; i < nSec_; i++) {
-    auto handle = getSecCtxHandle(g_ekaDev, secList_[i]);
-
-    if (handle < 0) {
-      EKA_WARN(
-          "Security[%ju] %s was not "
-          "fit into FPGA hash: handle = %jd",
-          i, cboeSecIdString(secConf->sec[i].id, 8).c_str(),
-          handle);
+void TestP4::initializeAllCtxs(
+    const TestCaseConfig *unused) {
+  int i = 0;
+  for (auto &sec : allSecs_) {
+    if (!sec.valid)
       continue;
+    sec.handle = getSecCtxHandle(g_ekaDev, sec.binId);
+    if (sec.handle < 0) {
+      EKA_WARN("Security[%d] \'%s\' 0x%016jx was not "
+               "fit into FPGA hash: handle = %jd",
+               i, sec.strId.c_str(), sec.binId, sec.handle);
+    } else {
+      SecCtx secCtx = {};
+      setSecCtx(&sec, &secCtx);
+
+      EKA_LOG(
+          "Setting StaticSecCtx[%d] \'%s\' secId=0x%016jx,"
+          "handle=%jd,bidMinPrice=%u,askMaxPrice=%u,"
+          "bidSize=%u,askSize=%u,"
+          "versionKey=%u,lowerBytesOfSecId=0x%x",
+          i, sec.strId.c_str(), sec.binId, sec.handle,
+          secCtx.bidMinPrice, secCtx.askMaxPrice,
+          secCtx.bidSize, secCtx.askSize, secCtx.versionKey,
+          secCtx.lowerBytesOfSecId);
+      /* hexDump("secCtx",&secCtx,sizeof(secCtx)); */
+
+      auto rc = efcSetStaticSecCtx(g_ekaDev, sec.handle,
+                                   &secCtx, 0);
+      if (rc != EKA_OPRESULT__OK)
+        on_error("failed to efcSetStaticSecCtx");
     }
-
-    SecCtx secCtx = {};
-    setSecCtx(&secConf->sec[i], &secCtx);
-
-    EKA_LOG(
-        "Setting StaticSecCtx[%ju] \'%s\' secId=0x%016jx,"
-        "handle=%jd,bidMinPrice=%u,askMaxPrice=%u,"
-        "bidSize=%u,askSize=%u,"
-        "versionKey=%u,lowerBytesOfSecId=0x%x",
-        i, cboeSecIdString(secConf->sec[i].id, 8).c_str(),
-        secList_[i], handle, secCtx.bidMinPrice,
-        secCtx.askMaxPrice, secCtx.bidSize, secCtx.askSize,
-        secCtx.versionKey, secCtx.lowerBytesOfSecId);
-    /* hexDump("secCtx",&secCtx,sizeof(secCtx)); */
-
-    auto rc =
-        efcSetStaticSecCtx(g_ekaDev, handle, &secCtx, 0);
-    if (rc != EKA_OPRESULT__OK)
-      on_error("failed to efcSetStaticSecCtx");
+    i++;
   }
 }
+/* ############################################# */
+
+void TestP4::checkAllCtxs() {
+  for (const auto &sec : allSecs_) {
+    if (!sec.valid || sec.handle < 0)
+      continue;
+
+    uint64_t protocol_id = 2; // pitch
+
+    uint64_t hw_cmd = (sec.binId & 0x00ffffffffffffff) |
+                      (protocol_id << 56);
+
+    eka_write(0xf0038, hw_cmd);
+
+    hw_ctxdump_t hwCtxDump = {};
+
+    uint words2read = roundUp8(sizeof(hw_ctxdump_t)) / 8;
+    uint64_t srcAddr = 0x71000;
+    uint64_t *dstAddr = (uint64_t *)&hwCtxDump;
+
+    for (uint w = 0; w < words2read; w++)
+      *dstAddr++ = eka_read(srcAddr++);
+
+    if (hwCtxDump.HashStatus == 0) {
+      char errMsg[2048] = {};
+      sprintf(errMsg,
+              "\'%s\' (0x%016jx) (sw handle = %ju) "
+              "not found in hash",
+              sec.strId.c_str(), sec.binId, sec.handle);
+      EKA_WARN("%s", errMsg);
+      ADD_FAILURE() << errMsg;
+    } else {
+      EKA_LOG("sec.binId 0x%016jx found, ctx in handle %u: "
+              "bidMinPrice=%d,askMaxPrice=%d, bidSize=%d, "
+              "askSize=%d, versionKey=%d, "
+              "lowerBytesOfSecId=0x%x",
+              sec.binId, hwCtxDump.Handle,
+              hwCtxDump.SecCTX.bidMinPrice,
+              hwCtxDump.SecCTX.askMaxPrice,
+              hwCtxDump.SecCTX.bidSize,
+              hwCtxDump.SecCTX.askSize,
+              hwCtxDump.SecCTX.versionKey,
+              hwCtxDump.SecCTX.lowerBytesOfSecId);
+    }
+  }
+}
+/* ############################################# */
 
 void TestP4::configureStrat(const TestCaseConfig *tc) {
   ASSERT_NE(tc, nullptr);
@@ -68,9 +115,16 @@ void TestP4::configureStrat(const TestCaseConfig *tc) {
 
   createSecList(tc->algoConfigParams);
 
-  // subscribing on list of securities
+// subscribing on list of securities
+#if 0
+  for (auto i = 0; i < nSec_; i++)
+    EKA_LOG("efcEnableFiringOnSec: secList_[%d] = 0x%jx", i,
+            secList_[i]);
+#endif
   efcEnableFiringOnSec(g_ekaDev, secList_, nSec_);
 
+  for (auto i = 0; i < nSec_; i++)
+    EKA_LOG("secList_[i] = 0x%016jx", secList_[i]);
   // ==============================================
   initializeAllCtxs(tc);
 
@@ -125,7 +179,8 @@ void TestP4::configureStrat(const TestCaseConfig *tc) {
 /* ############################################# */
 /* --------------------------------------------- */
 
-static uint64_t getBinSecId(const char *secChar) {
+uint64_t TestP4::getBinSecId(std::string strId) {
+  const char *secChar = strId.c_str();
   if (strlen(secChar) != 6)
     on_error("unexpected security \'%s\' len %ju != 6",
              secChar, strlen(secChar));
@@ -136,57 +191,85 @@ static uint64_t getBinSecId(const char *secChar) {
   return be64toh(*(uint64_t *)shiftedStr);
 }
 
+/* ############################################# */
+
 void TestP4::createSecList(const void *algoConfigParams) {
+  if (!algoConfigParams)
+    on_error("!algoConfigParams");
 
   auto secConf = reinterpret_cast<const TestP4SecConf *>(
       algoConfigParams);
 
   for (auto i = 0; i < secConf->nSec; i++) {
-    secList_[i] = getBinSecId(secConf->sec[i].id);
+    TestP4CboeSec sec = {
+        .strId = secConf->sec[i].strId,
+        .binId = getBinSecId(secConf->sec[i].strId),
+        .bidMinPrice = secConf->sec[i].bidMinPrice,
+        .askMaxPrice = secConf->sec[i].askMaxPrice,
+        .size = secConf->sec[i].size,
+        .valid = true,
+        .handle = -1};
+    allSecs_.push_back(sec);
+
+    secList_[i] = sec.binId;
   }
+
   nSec_ = secConf->nSec;
   EKA_LOG("Created List of %ju P4 Securities:", nSec_);
   for (auto i = 0; i < nSec_; i++)
     EKA_LOG("\t\'%.8s\', 0x%jx %c",
-            cboeSecIdString(secConf->sec[i].id, 8).c_str(),
-            secList_[i], i == nSec_ - 1 ? '\n' : ',');
+            secConf->sec[i].strId.c_str(), secList_[i],
+            i == nSec_ - 1 ? '\n' : ',');
 }
 /* ############################################# */
 void TestP4::setSecCtx(const TestP4CboeSec *secCtx,
                        SecCtx *dst) {
 
-  dst->bidMinPrice = secCtx->bidMinPrice / 100;
-  dst->askMaxPrice = secCtx->askMaxPrice / 100;
+  dst->bidMinPrice = secCtx->bidMinPrice;
+  dst->askMaxPrice = secCtx->askMaxPrice;
   dst->bidSize = secCtx->size;
   dst->askSize = secCtx->size;
   dst->versionKey = 5; // TBD
 
   dst->lowerBytesOfSecId =
-      (uint8_t)(getBinSecId(secCtx->id) & 0xFF);
+      (uint8_t)(getBinSecId(secCtx->strId) & 0xFF);
+}
+
+/* ############################################# */
+
+void TestP4::generateMdDataPkts(
+    const void *mdInjectParams) {
+  auto md =
+      reinterpret_cast<const TestP4Md *>(mdInjectParams);
+  // ==============================================
+  insertedMd_.push_back(*md);
 }
 /* ############################################# */
 
-void TestP4::sendData(const void *mdInjectParams) {
-  EfcArmVer p4ArmVer = 0;
+/* ############################################# */
 
-  auto mdConf =
-      reinterpret_cast<const TestP4Md *>(mdInjectParams);
-  // ==============================================
-
-  uint32_t sequence = 32;
-  const int LoopIterations = loop_ ? 10000 : 1;
-
-  for (auto l = 0; l < LoopIterations; l++) {
-    efcArmP4(g_ekaDev, p4ArmVer);
+void TestP4::sendData() {
+  int i = 0;
+  for (const auto &md : insertedMd_) {
     char pktBuf[1500] = {};
-
-    auto pktLen = createOrderExpanded(
-        pktBuf, mdConf->secId, mdConf->side, mdConf->price,
-        mdConf->size);
-
-    p4ArmVer = sendPktToAll(pktBuf, pktLen, p4ArmVer);
-
-    auto fReport = fireReports.back();
+    auto pktLen =
+        createOrderExpanded(pktBuf, md.secId.c_str(),
+                            md.side, md.price, md.size);
+    char msg[16000] = {};
+    sprintf(msg,
+            "%d: "
+            "Sending MD for %s: "
+            "side= \'%c\', "
+            "price=%u, "
+            "size=%u",
+            i++, md.secId.c_str(), cboeSide(md.side),
+            md.price, md.size);
+    sendPktToAll(pktBuf, pktLen, md.expectedFire);
+    if (testFailed_) {
+      TEST_LOG("TEST FAILED: %s", msg);
+      FAIL() << msg;
+      return;
+    }
   }
 }
 // ==============================================
@@ -219,7 +302,7 @@ size_t TestP4::createOrderExpanded(char *dst,
 
   p->msg.customer_indicator = 'C';
 
-  EKA_LOG("%s \'%s\' s=%c, P=%ju, S=%u, c=%c",
+  EKA_LOG("Pkt to Send: %s \'%s\' s=%c, P=%ju, S=%u, c=%c",
           EKA_BATS_PITCH_MSG_DECODE(p->msg.header.type),
           std::string(p->msg.exp_symbol,
                       sizeof(p->msg.exp_symbol))
@@ -232,23 +315,39 @@ size_t TestP4::createOrderExpanded(char *dst,
 // ==============================================
 
 void TestP4::checkAlgoCorrectness(
-    const TestCaseConfig *tc) {
+    const TestCaseConfig *unused) {
 
   int i = 0;
-  for (const auto &fr : fireReports) {
+
+  for (const auto &md : insertedMd_) {
+    if (!md.expectedFire)
+      continue;
+
+    auto &fr = fireReports_.at(i);
     efcPrintFireReport(fr->buf, fr->len, g_ekaLogFile);
 
     getReportPtrs(fr->buf, fr->len);
 
     auto msgP = firePkt_ + TcpDatagramOffset;
     auto firedPayloadDiff =
-        memcmp(msgP, echoedPkts.at(i)->buf,
+        memcmp(msgP, echoedPkts_.at(i)->buf,
                sizeof(BoeQuoteUpdateShortMsg));
-#if 0
-    hexDump("FireReport Msg", msgP,
-            sizeof(BoeQuoteUpdateShortMsg));
-    hexDump("Echo Pkt", echoedPkts.at(i)->buf,
-            echoedPkts.at(i)->len);
+#if 1
+    if (firedPayloadDiff) {
+      char FireReportBufStr[10000] = {};
+      hexDump2str("FireReport Msg", msgP,
+                  sizeof(BoeQuoteUpdateShortMsg),
+                  FireReportBufStr,
+                  sizeof(FireReportBufStr));
+
+      char echoedPktsBufStr[10000] = {};
+      hexDump2str("Echo Pkt", echoedPkts_.at(i)->buf,
+                  echoedPkts_.at(i)->len, echoedPktsBufStr,
+                  sizeof(echoedPktsBufStr));
+
+      EKA_LOG("FireReport Msg != echoedPkt: %s %s",
+              FireReportBufStr, echoedPktsBufStr);
+    }
 #endif
     EXPECT_EQ(firedPayloadDiff, 0);
 
@@ -256,22 +355,15 @@ void TestP4::checkAlgoCorrectness(
         reinterpret_cast<const BoeQuoteUpdateShortMsg *>(
             msgP);
 
-    auto injectedMd = reinterpret_cast<const TestP4Md *>(
-        tc->mdInjectParams);
-
-    auto injectedSecIdstr =
-        cboeSecIdString(injectedMd->secId, 6);
     auto firedSecIdStr =
         std::string(boeQuoteUpdateShort->Symbol, 6);
 
-    EXPECT_EQ(injectedSecIdstr, firedSecIdStr);
+    EXPECT_EQ(md.secId, firedSecIdStr);
 
-    EXPECT_EQ(injectedMd->price,
-              boeQuoteUpdateShort->Price);
-    EXPECT_EQ(injectedMd->size,
-              boeQuoteUpdateShort->OrderQty);
+    EXPECT_EQ(md.price, boeQuoteUpdateShort->Price);
+    EXPECT_EQ(md.size, boeQuoteUpdateShort->OrderQty);
     EXPECT_EQ(boeQuoteUpdateShort->Side,
-              cboeOppositeSide(injectedMd->side));
+              cboeOppositeSide(md.side));
     i++;
   }
 }

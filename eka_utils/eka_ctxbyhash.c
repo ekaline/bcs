@@ -13,14 +13,6 @@
 
 SC_DeviceId devId = nullptr;
 
-struct hw_ctxdump_t {
-  uint32_t Handle;
-  uint8_t HashStatus;
-  uint8_t pad3[3];
-  EkaHwSecCtx SecCTX;
-} __attribute__((packed))
-__attribute__((aligned(sizeof(uint64_t))));
-
 /* --------------------------------------------- */
 static void checkHwCompat(const char *utilityName) {
   EkaHwCaps *ekaHwCaps = new EkaHwCaps(devId);
@@ -62,7 +54,7 @@ static void printUsage(const char *cmd) {
          "\t-n numeric representaion of SecurityID"
          "\t-a ASCII representaion of SecurityID "
          "\t-h print this help"
-         "(Pitch Only!)",
+         "(Pitch Only!)\n",
          cmd);
 }
 /* --------------------------------------------- */
@@ -145,9 +137,10 @@ int main(int argc, char *argv[]) {
 
   uint64_t hw_cmd =
       (secIdBin & 0x00ffffffffffffff) | (protocol_id << 56);
-  printf("checking secIdBin 0x%016jx, protocolid %u, hwcmd "
-         "0x%016jx\n",
-         secIdBin, protocol_id, hw_cmd);
+  printf(
+      "checking secIdBin 0x%016jx, protocolid %ju, hwcmd "
+      "0x%016jx\n",
+      secIdBin, protocol_id, hw_cmd);
 
   snWrite(0xf0038, hw_cmd);
 
@@ -162,7 +155,7 @@ int main(int argc, char *argv[]) {
 
   if (!(hwCtxDump.HashStatus)) {
     printf("secIdBin 0x%016jx was not found in hash, using "
-           "protocolid %u\n",
+           "protocolid %ju\n",
            secIdBin, protocol_id);
     return 0;
   }

@@ -102,15 +102,15 @@ void TestEfcFixture::TearDown() {
 
   fclose(g_ekaLogFile);
 
-  for (auto &p : fireReports) {
+  for (auto &p : fireReports_) {
     delete[] p->buf;
   }
-  fireReports.clear();
+  fireReports_.clear();
 
-  for (auto &p : echoedPkts) {
+  for (auto &p : echoedPkts_) {
     delete[] p->buf;
   }
-  echoedPkts.clear();
+  echoedPkts_.clear();
 
   return;
 }
@@ -131,8 +131,13 @@ static void getFireReport(const void *p, size_t len,
   if (!tFixturePtr)
     on_error("!tFixturePtr");
 
-  EKA_LOG("Received FireReport: nReceivedFireReports=%d",
-          (int)tFixturePtr->nReceivedFireReports);
+  tFixturePtr->nReceivedFireReports_++;
+  EKA_LOG("Received FireReport: \'%s\', "
+          "nReceivedFireReports=%d, "
+          "fireReports_.size()=%ju",
+          EkaEventType2STR(containerHdr->type),
+          tFixturePtr->nReceivedFireReports_.load(),
+          tFixturePtr->fireReports_.size());
 
   auto fr = new TestEfcFixture::MemChunk;
   if (!fr)
@@ -144,11 +149,10 @@ static void getFireReport(const void *p, size_t len,
   fr->len = len;
 
   memcpy(fr->buf, p, len);
-  tFixturePtr->fireReports.push_back(fr);
-  tFixturePtr->nReceivedFireReports++;
+  tFixturePtr->fireReports_.push_back(fr);
 
-  EKA_LOG("FireReport pushed: nReceivedFireReports=%d",
-          (int)tFixturePtr->nReceivedFireReports);
+  EKA_LOG("FireReport pushed: nReceivedFireReports_=%d",
+          (int)tFixturePtr->nReceivedFireReports_);
   fflush(g_ekaLogFile);
   return;
 }
@@ -178,17 +182,34 @@ void TestEfcFixture::runTest(const TestCaseConfig *tc) {
 
   tcpCtx_->connectAll();
 
+  loadSecCtxsMd(); // works only for TestP4PredefinedCtx
+
   configureStrat(tc);
 
   EfcRunCtx runCtx = {.onEfcFireReportCb = getFireReport,
                       .cbCtx = this};
   efcRun(g_ekaDev, &runCtx);
 
-  sendData(tc->mdInjectParams);
+  checkAllCtxs();
+
+  generateMdDataPkts(tc->mdInjectParams);
+
+  archiveSecCtxsMd(); // works only for Random
+
+  armController_(g_ekaDev, armVer_);
+
+  sendData();
+
   disArmController_(g_ekaDev);
 
-  checkFireReports(tc);
-  checkAlgoCorrectness(tc);
+  EXPECT_EQ(nExpectedFireReports_, fireReports_.size());
+  EXPECT_EQ(echoedPkts_.size(), fireReports_.size());
+
+  if (nExpectedFires_ >= 0)
+    EXPECT_EQ(fireReports_.size(), nExpectedFires_);
+
+  if (!testFailed_)
+    checkAlgoCorrectness(tc);
 }
 /* --------------------------------------------- */
 void TestEfcFixture::getReportPtrs(const void *p,
@@ -255,14 +276,6 @@ void TestEfcFixture::getReportPtrs(const void *p,
     b += reportHdr->size;
   }
 }
-/* --------------------------------------------- */
-
-void TestEfcFixture::checkFireReports(
-    const TestCaseConfig *tc) {
-
-  EXPECT_EQ(nExpectedFires, fireReports.size());
-  EXPECT_EQ(echoedPkts.size(), fireReports.size());
-}
 
 /* --------------------------------------------- */
 
@@ -282,7 +295,7 @@ getP4stratStatistics(uint64_t fireStatisticsAddr) {
 /* --------------------------------------------- */
 std::pair<bool, bool> TestEfcFixture::waitForResults(
     uint32_t nStratEvaluated_prev,
-    uint32_t nStratPassed_prev, int nExpectedFireReports) {
+    uint32_t nStratPassed_prev) {
   bool stratEvaluated = false;
   bool stratPassed = false;
   while (keep_work && !stratEvaluated) {
@@ -291,7 +304,6 @@ std::pair<bool, bool> TestEfcFixture::waitForResults(
 
     stratEvaluated =
         (nStratEvaluated_post != nStratEvaluated_prev);
-    stratPassed = (nStratPassed_post != nStratPassed_prev);
     if (!stratEvaluated) {
       EKA_LOG("[nStratEvaluated_prev %u, "
               "nStratPassed_prev %u] !="
@@ -301,15 +313,19 @@ std::pair<bool, bool> TestEfcFixture::waitForResults(
               nStratEvaluated_post, nStratPassed_post);
     }
 
+    stratPassed =
+        getP4stratStatistics(FireStatisticsAddr_).second !=
+        nStratPassed_prev;
+
     if (stratPassed) {
-      while (nExpectedFireReports !=
-             nReceivedFireReports.load()) {
-#if 0
+      while (nExpectedFireReports_ !=
+             nReceivedFireReports_.load()) {
+#if 1
         EKA_LOG("Waiting for FireReport: "
-                "nExpectedFireReports = %d, "
-                "nReceivedFireReports = %d",
-                nExpectedFireReports,
-                nReceivedFireReports.load());
+                "nExpectedFireReports_ = %d, "
+                "nReceivedFireReports_ = %d",
+                nExpectedFireReports_,
+                nReceivedFireReports_.load());
 #endif
         std::this_thread::yield();
       }
@@ -322,16 +338,14 @@ std::pair<bool, bool> TestEfcFixture::waitForResults(
 }
 /* --------------------------------------------- */
 
-EfcArmVer TestEfcFixture::sendPktToAll(const void *pkt,
-                                       size_t pktLen,
-                                       EfcArmVer armVer) {
+void TestEfcFixture::sendPktToAll(const void *pkt,
+                                  size_t pktLen,
+                                  bool expectedFire) {
 
   auto nFiresPerUdp = tcpCtx_->nTcpSess_;
 
   if (!armController_)
     on_error("!armController_");
-
-  auto nextArmVer = armVer;
 
   for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++) {
     for (auto i = 0; i < udpCtx_->nMcCons_[coreId]; i++) {
@@ -340,7 +354,9 @@ EfcArmVer TestEfcFixture::sendPktToAll(const void *pkt,
       if (!udpCon)
         on_error("!udpConn_[%d][%d]", coreId, i);
 
-      armController_(g_ekaDev, nextArmVer++);
+      auto [curArmVer, curArmState] = getArmVer();
+      EXPECT_EQ(curArmVer, armVer_);
+      EXPECT_TRUE(curArmState);
 
       char udpConParamsStr[128] = {};
       udpCon->printMcConnParams(udpConParamsStr);
@@ -348,12 +364,23 @@ EfcArmVer TestEfcFixture::sendPktToAll(const void *pkt,
       auto [nStratEvaluated_prev, nStratPassed_prev] =
           getP4stratStatistics(FireStatisticsAddr_);
       // ==============================================
-      EKA_LOG("Sending UPD MD to %s", udpConParamsStr);
+      nExpectedFireReports_ += expectedFire;
+      EKA_LOG("Sending UPD MD to %s, "
+              "expecting %d fires, "
+              "nExpectedFireReports_ = %d",
+              udpConParamsStr, expectedFire,
+              nExpectedFireReports_);
       udpCon->sendUdpPkt(pkt, pktLen);
       // ==============================================
-      auto [stratEvaluated, stratPassed] =
-          waitForResults(nStratEvaluated_prev,
-                         nStratPassed_prev, nFiresPerUdp);
+      auto [stratEvaluated, stratPassed] = waitForResults(
+          nStratEvaluated_prev, nStratPassed_prev);
+
+      if (expectedFire && !stratPassed) {
+        EKA_WARN("ERROR: expectedFire && !stratPassed");
+        testFailed_ = true;
+        // EXPECT_EQ(stratPassed, expectedFire);
+        return;
+      }
 
       if (stratPassed) {
         for (auto i = 0; i < tcpCtx_->nTcpSess_; i++) {
@@ -379,14 +406,15 @@ EfcArmVer TestEfcFixture::sendPktToAll(const void *pkt,
           ep->len = len;
 
           memcpy(ep->buf, rxBuf, len);
-          echoedPkts.push_back(ep);
+          echoedPkts_.push_back(ep);
         }
+        ++armVer_;
+        EKA_LOG("Arming armVer_ = %d", armVer_);
+        armController_(g_ekaDev, armVer_);
       }
 
     } // iteration per MC grp
   }   // iteration per Core
-
-  return nextArmVer;
 }
 
 /* ############################################# */
@@ -397,5 +425,12 @@ void TestEfcFixture::printTestConfig(const char *msg) {
 
   printTcpCtx();
   printUdpCtx();
+}
+/* ############################################# */
+std::pair<uint32_t, bool> TestEfcFixture::getArmVer() {
+  auto curArm = eka_read(ArmDisarmAddr_);
+  auto curArmState = curArm & 0x1;
+  auto curArmVer = (curArm >> 32) & 0xFFFFFFFF;
+  return std::pair<uint32_t, bool>(curArmVer, curArmState);
 }
 /* ############################################# */

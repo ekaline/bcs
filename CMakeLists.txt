@@ -13,9 +13,12 @@ include(cmake/projectsettings.cmake)
 # options ccache
 include(cmake/ccache.cmake)
 
-option(ENABLE_TESTING "Enable Testing build" OFF)
+option(ENABLE_EKA_TESTING "Enable Ekaline Testing build" OFF)
+option(ENABLE_GTEST "Enable Google Test build" OFF)
 option(FhLab "Ekaline Lab build" OFF)
+option(GTEST_BUILD "WARNING: Ekaline Gtest build for Eka Lab ONLY!!!" OFF)
 option(EfhLatency "EFH Internal Latencies Profiling" OFF)
+option(EfcHashPrint "EFC Testing Printous" OFF)
 # include(CTest) enable_testing()
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
@@ -29,8 +32,12 @@ execute_process(COMMAND git -C ${CMAKE_SOURCE_DIR} rev-parse --short HEAD
 
 string(REGEX REPLACE "\n$" "" EKA_GIT_VER "${EKA_GIT_VER}")
 
+message(STATUS "ENABLE_EKA_TESTING = ${ENABLE_EKA_TESTING}")
+message(STATUS "ENABLE_GTEST = ${ENABLE_GTEST}")
 message(STATUS "FhLab = ${FhLab}")
+message(STATUS "GTEST_BUILD = ${GTEST_BUILD}")
 message(STATUS "EfhLatency = ${EfhLatency}")
+message(STATUS "EfcHashPrint = ${EfcHashPrint}")
 
 set(CMAKE_C_COMPILER ${CMAKE_CXX_COMPILER})
 set(CMAKE_CXX_FLAGS
@@ -166,6 +173,8 @@ set_target_properties(${EKA_LIB_NAME}
   LINK_FLAGS "-Wl,--version-script=${EKA_LINK_MAP}"
 )
 
+set_property(TARGET ${EKA_LIB_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 target_compile_options(${EKA_LIB_NAME} PRIVATE -std=c++23 -O3 -funroll-loops
                                                -pthread -pipe -march=native)
 
@@ -177,8 +186,17 @@ if(FhLab)
   # target_compile_definitions(${EKA_LIB_NAME} PUBLIC _DONT_SEND_MDTIMEOUT)
 endif()
 
+if (GTEST_BUILD)
+  target_compile_definitions(${EKA_LIB_NAME} PUBLIC EKA_GTEST_BUILD)
+endif()
+
+
 if(EfhLatency)
   target_compile_definitions(${EKA_LIB_NAME} PUBLIC EFH_INTERNAL_LATENCY_CHECK)
+endif()
+
+if(EfcHashPrint)
+  target_compile_definitions(${EKA_LIB_NAME} PUBLIC EFC_PRINT_HASH)
 endif()
 
 target_include_directories(${EKA_LIB_NAME} PUBLIC ${EKA_INC_PATH})
@@ -216,12 +234,28 @@ install(TARGETS ${EKA_LIB_NAME} PUBLIC_HEADER DESTINATION include
 
 add_library(${EKA_LIB_NAME}_static STATIC ${${EKA_LIB_NAME}_SRCS})
 
-target_compile_options(${EKA_LIB_NAME}_static PUBLIC -std=c++23)
+target_compile_options(${EKA_LIB_NAME}_static PRIVATE -std=c++23 -O3 -funroll-loops
+                                               -pthread -pipe -march=native)
+
+set_property(TARGET ${EKA_LIB_NAME}_static PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 
 target_include_directories(${EKA_LIB_NAME}_static PUBLIC ${EKA_INC_PATH})
 
 target_compile_definitions(${EKA_LIB_NAME}_static
                            PUBLIC LIBEKA_GIT_VER=${EKA_GIT_VER})
+
+if(FhLab)
+  target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC FH_LAB)
+  target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC EKA_TEST_IGNORE_DEFINITIONS)
+  target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC EKA_TEST_IGNORE_GAP)
+  target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC FH_SUBSCRIBE_ALL)
+  # target_compile_definitions(${EKA_LIB_NAME} PUBLIC _DONT_SEND_MDTIMEOUT)
+endif()
+
+if(EfcHashPrint)
+  target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC EFC_PRINT_HASH)
+endif()
 
 target_link_libraries(
   ${EKA_LIB_NAME}_static
@@ -232,6 +266,12 @@ target_link_libraries(
          Threads::Threads
          -static-libgcc
          -static-libstdc++)
+
+set_target_properties(${EKA_LIB_NAME}_static
+                     PROPERTIES PUBLIC_HEADER "${EKA_LIB_NAME_PUBLIC_HEADER}")
+set_target_properties(
+  ${EKA_LIB_NAME}_static PROPERTIES LINK_DEPENDS ${EKA_LINK_MAP}
+                             LINK_FLAGS "-Wl,--version-script=${EKA_LINK_MAP}")
 
 set_target_properties(${EKA_LIB_NAME}_static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
                                                         ${libDstDir})
@@ -247,7 +287,7 @@ install(TARGETS ${EKA_LIB_NAME}_static RUNTIME DESTINATION lib
 # ##############################################################################
 # Tests
 
-# if (ENABLE_TESTING)
+if (ENABLE_EKA_TESTING)
 file(GLOB test_SRCS ${EKA_TESTS_DIR}/*.c)
 set(testDstDir ${CMAKE_BINARY_DIR}/tests/${EKA_LIB_NAME})
 
@@ -260,11 +300,15 @@ foreach(test ${test_SRCS})
 
   add_dependencies(${testName} ${EKA_LIB_NAME})
   target_link_libraries(${testName} ${EKA_LIB_NAME} rt m Threads::Threads)
+
+  #add_dependencies(${testName} ${EKA_LIB_NAME}_static)
+  #target_link_libraries(${testName} ${EKA_LIB_NAME}_static rt m Threads::Threads)
+
   target_link_libraries(${testName} -static-libgcc -static-libstdc++)
 
   target_include_directories(${testName} PUBLIC ${EKA_INC_PATH})
 endforeach()
-# endif()
+endif() # ENABLE_EKA_TESTING
 
 # ##############################################################################
 # Utils
@@ -311,6 +355,7 @@ endforeach()
 # ##############################################################################
 # Google test
 
+if (ENABLE_GTEST)
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 
@@ -328,14 +373,20 @@ set_target_properties(runTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                           ${testDstDir})
 target_compile_options(runTests PUBLIC -std=c++23)
 
-add_dependencies(runTests ${EKA_LIB_NAME}_static)
+#add_dependencies(runTests ${EKA_LIB_NAME}_static)
+
 target_link_libraries(runTests ${EKA_LIB_NAME}_static rt m Threads::Threads)
+#target_link_libraries(runTests ${EKA_LIB_NAME} rt m Threads::Threads)
 target_link_libraries(runTests -static-libgcc -static-libstdc++)
 
+set(CEREAL_DIR ${CMAKE_CURRENT_LIST_DIR}/cereal)
+
 target_include_directories(runTests PUBLIC ${EKA_INC_PATH})
+target_include_directories(runTests PUBLIC ${CEREAL_DIR}/include)
 
 file(GLOB ekaGtest_SRCS ${EKA_GTESTS_DIR}/*.cpp)
 
 foreach(ekaGtestSrc ${ekaGtest_SRCS})
   target_sources(runTests PRIVATE ${ekaGtestSrc})
 endforeach()
+endif() # ENABLE_GTEST

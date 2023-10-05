@@ -255,7 +255,7 @@ public:
   }
   /* --------------------------------------------- */
   ~TestTcpCtx() {
-    EKA_LOG("Closing %d TCP connections", nTcpSess_);
+    EKA_LOG("Closing %ju TCP connections", nTcpSess_);
     for (auto i = 0; i < nTcpSess_; i++)
       if (tcpSess_[i])
         delete tcpSess_[i];
