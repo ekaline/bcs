@@ -14,13 +14,9 @@ size_t TestIgmpFixture::prepareProps(
   for (EkaLSI grId = 0; grId < rg->nMcgroups; grId++) {
     sprintf(testProp[propId].key,
             "efh.%s.group.%d.mcast.addr",
-            EKA_EXCH_DECODE(rg->exch),
-            grId);
-    sprintf(testProp[propId].val,
-            "224.%d.%d.%d:%d",
-            rg->coreId,
-            runGrId,
-            rg->firstGrId + grId,
+            EKA_EXCH_DECODE(rg->exch), grId);
+    sprintf(testProp[propId].val, "236.%d.%d.%d:%d",
+            100 + rg->coreId, runGrId, rg->firstGrId + grId,
             18000 + rg->firstGrId + grId);
     prop[propId].szKey = testProp[propId].key;
     prop[propId].szVal = testProp[propId].val;
@@ -71,10 +67,8 @@ void TestIgmpFixture::runIgmpTest() {
         onEfhGroupStateChange;
 
     efhRunThread_[runGrId] =
-        std::thread(efhRunGroups,
-                    pEfhCtx,
-                    &efhRunCtx_[runGrId],
-                    (void **)NULL);
+        std::thread(efhRunGroups, pEfhCtx,
+                    &efhRunCtx_[runGrId], (void **)NULL);
     runGrId++;
   }
   fflush(g_ekaLogFile);

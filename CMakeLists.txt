@@ -173,6 +173,8 @@ set_target_properties(${EKA_LIB_NAME}
   LINK_FLAGS "-Wl,--version-script=${EKA_LINK_MAP}"
 )
 
+set_property(TARGET ${EKA_LIB_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 target_compile_options(${EKA_LIB_NAME} PRIVATE -std=c++23 -O3 -funroll-loops
                                                -pthread -pipe -march=native)
 
@@ -232,7 +234,11 @@ install(TARGETS ${EKA_LIB_NAME} PUBLIC_HEADER DESTINATION include
 
 add_library(${EKA_LIB_NAME}_static STATIC ${${EKA_LIB_NAME}_SRCS})
 
-target_compile_options(${EKA_LIB_NAME}_static PUBLIC -std=c++23)
+target_compile_options(${EKA_LIB_NAME}_static PRIVATE -std=c++23 -O3 -funroll-loops
+                                               -pthread -pipe -march=native)
+
+set_property(TARGET ${EKA_LIB_NAME}_static PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 
 target_include_directories(${EKA_LIB_NAME}_static PUBLIC ${EKA_INC_PATH})
 
@@ -261,6 +267,12 @@ target_link_libraries(
          -static-libgcc
          -static-libstdc++)
 
+set_target_properties(${EKA_LIB_NAME}_static
+                     PROPERTIES PUBLIC_HEADER "${EKA_LIB_NAME_PUBLIC_HEADER}")
+set_target_properties(
+  ${EKA_LIB_NAME}_static PROPERTIES LINK_DEPENDS ${EKA_LINK_MAP}
+                             LINK_FLAGS "-Wl,--version-script=${EKA_LINK_MAP}")
+
 set_target_properties(${EKA_LIB_NAME}_static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
                                                         ${libDstDir})
 
@@ -286,8 +298,12 @@ foreach(test ${test_SRCS})
                                                ${testDstDir})
   target_compile_options(${testName} PUBLIC -std=c++23)
 
-  add_dependencies(${testName} ${EKA_LIB_NAME})
-  target_link_libraries(${testName} ${EKA_LIB_NAME} rt m Threads::Threads)
+  #add_dependencies(${testName} ${EKA_LIB_NAME})
+  #target_link_libraries(${testName} ${EKA_LIB_NAME} rt m Threads::Threads)
+
+  add_dependencies(${testName} ${EKA_LIB_NAME}_static)
+  target_link_libraries(${testName} ${EKA_LIB_NAME}_static rt m Threads::Threads)
+
   target_link_libraries(${testName} -static-libgcc -static-libstdc++)
 
   target_include_directories(${testName} PUBLIC ${EKA_INC_PATH})
@@ -357,8 +373,10 @@ set_target_properties(runTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                           ${testDstDir})
 target_compile_options(runTests PUBLIC -std=c++23)
 
-add_dependencies(runTests ${EKA_LIB_NAME}_static)
+#add_dependencies(runTests ${EKA_LIB_NAME}_static)
+
 target_link_libraries(runTests ${EKA_LIB_NAME}_static rt m Threads::Threads)
+#target_link_libraries(runTests ${EKA_LIB_NAME} rt m Threads::Threads)
 target_link_libraries(runTests -static-libgcc -static-libstdc++)
 
 set(CEREAL_DIR ${CMAKE_CURRENT_LIST_DIR}/cereal)

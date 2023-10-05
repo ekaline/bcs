@@ -260,7 +260,7 @@ TEST_F(TestP4, FailureDebug) {
 TEST_F(TestIgmpFixture, Box12x1_Emld3x4) {
 
   // BOX: coreId = 0, 12 groups 1 per group
-  for (auto i = 0; i < 1; i++) {
+  for (auto i = 0; i < 12; i++) {
     TestEfhRunGrConfig rg = {.exch = EkaSource::kBOX_HSVF,
                              .coreId = 0,
                              .nMcgroups = 1,
@@ -269,14 +269,37 @@ TEST_F(TestIgmpFixture, Box12x1_Emld3x4) {
   }
 #if 1
   // EMLD: coreId = 2, 3 groups 4 per group
-  for (auto i = 0; i < 0; i++) {
+  for (auto i = 0; i < 3; i++) {
     TestEfhRunGrConfig rg = {.exch = EkaSource::kEMLD_TOM,
                              .coreId = 2,
                              .nMcgroups = 4,
-                             .firstGrId = i * 4};
+                             .firstGrId = 0};
     runGroups_.push_back(rg);
   }
 #endif
+  runIgmpTest();
+}
+/* --------------------------------------------- */
+TEST_F(TestIgmpFixture, Emld3x4_Box12x1) {
+
+  // EMLD: coreId = 2, 3 groups 4 per group
+  for (auto i = 0; i < 3; i++) {
+    TestEfhRunGrConfig rg = {.exch = EkaSource::kEMLD_TOM,
+                             .coreId = 2,
+                             .nMcgroups = 4,
+                             .firstGrId = 0};
+    runGroups_.push_back(rg);
+  }
+
+  // BOX: coreId = 0, 12 groups 1 per group
+  for (auto i = 0; i < 12; i++) {
+    TestEfhRunGrConfig rg = {.exch = EkaSource::kBOX_HSVF,
+                             .coreId = 0,
+                             .nMcgroups = 1,
+                             .firstGrId = 0};
+    runGroups_.push_back(rg);
+  }
+
   runIgmpTest();
 }
 /* --------------------------------------------- */
