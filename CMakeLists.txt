@@ -298,11 +298,11 @@ foreach(test ${test_SRCS})
                                                ${testDstDir})
   target_compile_options(${testName} PUBLIC -std=c++23)
 
-  #add_dependencies(${testName} ${EKA_LIB_NAME})
-  #target_link_libraries(${testName} ${EKA_LIB_NAME} rt m Threads::Threads)
+  add_dependencies(${testName} ${EKA_LIB_NAME})
+  target_link_libraries(${testName} ${EKA_LIB_NAME} rt m Threads::Threads)
 
-  add_dependencies(${testName} ${EKA_LIB_NAME}_static)
-  target_link_libraries(${testName} ${EKA_LIB_NAME}_static rt m Threads::Threads)
+  #add_dependencies(${testName} ${EKA_LIB_NAME}_static)
+  #target_link_libraries(${testName} ${EKA_LIB_NAME}_static rt m Threads::Threads)
 
   target_link_libraries(${testName} -static-libgcc -static-libstdc++)
 
