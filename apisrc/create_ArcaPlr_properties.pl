@@ -130,7 +130,7 @@ print "};\n\n";
 
 $exch = "AMEX_PLR";
 $groups = 15;
-$auth = "AOGTSXDP01";
+$auth = "AXGTSXDP01";
 
 $retrans_tcp = "162.69.127.250:35218";
 $attr = "vanilla_book";
