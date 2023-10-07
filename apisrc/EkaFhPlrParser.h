@@ -12,11 +12,29 @@
 
 // #define PLR_CERT 1
 
+
+// https://www.nyse.com/publicdocs/nyse/data/PILLAR_TOP_Client_Specification.pdf
+
 namespace Plr {
-  const uint8_t NYSE_BBO_ProductId = 162;
-  const uint8_t NYSE_Complex_ProductId = 163;
-  const uint8_t NYSE_Trades_ProductId = 165;
-  const uint8_t NYSE_Auction_ProductId = 164;
+
+#if 0
+NYSE ARCA Options 162 NYSE Arca TOP - BBO
+NYSE ARCA Options 165 NYSE Arca TOP - Trades
+NYSE ARCA Options 164 NYSE Arca TOP - Imbalances
+NYSE AMERICAN Options 172 NYSE American TOP - BBO
+NYSE AMERICAN Options 175 NYSE American TOP - Trades
+NYSE AMERICAN Options 174 NYSE American TOP - Imbalances
+#endif
+
+  const uint8_t ARCA_BBO_ProductId = 162;
+  const uint8_t ARCA_Complex_ProductId = 163;
+  const uint8_t ARCA_Trades_ProductId = 165;
+  const uint8_t ARCA_Auction_ProductId = 164;
+
+  const uint8_t AMEX_BBO_ProductId = 172;
+  const uint8_t AMEX_Complex_ProductId = 173;
+  const uint8_t AMEX_Trades_ProductId = 175;
+  const uint8_t AMEX_Auction_ProductId = 174;
 
   const size_t MaxVanillaDefinitions = 1'500'000;
   
