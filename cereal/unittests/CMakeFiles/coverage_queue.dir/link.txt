@@ -1,1 +1,0 @@
-/usr/lib64/ccache/c++    -coverage CMakeFiles/coverage_queue.dir/queue.cpp.o  -o ../coverage/coverage_queue 

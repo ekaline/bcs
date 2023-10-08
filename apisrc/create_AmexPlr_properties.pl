@@ -1,121 +1,12 @@
 #!/usr/bin/perl
 
-#ARCA Options TOP Feed (BBO)
+#AMEX Options TOP Feed (BBO)
 
 print <<EOF;
-#ifndef _EFH_ARCA_PLR_TOP__PROPS_H
-#define _EFH_ARCA_PLR_TOP__PROPS_H
+#ifndef _EFH_AMEX_PLR_TOP__PROPS_H
+#define _EFH_AMEX_PLR_TOP__PROPS_H
 EOF
 
-$exch_name = "ARCA_PLR";
-$groups = 15;
-$auth = "AOGTSXDP01";
-
-$retrans_tcp = "162.69.107.250:35068";
-
-$mc_base        = "224.0.96.";
-$mc_lsb_base    = 48;
-$mc_port_base        = 41051;
-
-$retrans_base        = "224.0.96.";
-$retrans_lsb_base    = 64;
-$retrans_port_base   = 42051;
-
-$refresh_base        = "224.0.96.";
-$refresh_lsb_base    = 80;
-$refresh_port_base   = 43051;
-
-$ch_id_base = 51;
-
-print "EkaProp efhArcaPlrInitCtxEntries_A[] = {\n";
-for ($i=0; $i<$groups - 1;$i++) {
-    $mc_lsb = $mc_lsb_base + $i;
-    $mc_port = $mc_port_base + $i;
-    $ch_id = $ch_id_base + $i;
-    $retrans_lsb = $retrans_lsb_base + $i;
-    $refresh_lsb = $refresh_lsb_base + $i;
-    $refresh_port = $refresh_port_base + $i;
-    $retrans_port = $retrans_port_base + $i;
-
-print <<EOI;
-    {"efh.ARCA_PLR.group.$i.products","vanilla_book"},
-    {"efh.ARCA_PLR.group.$i.mcast.addr",      "$mc_base$mc_lsb:$mc_port"},
-    {"efh.ARCA_PLR.group.$i.refresh.tcpAddr", "$retrans_tcp"},
-    {"efh.ARCA_PLR.group.$i.refresh.udpAddr", "$refresh_base$refresh_lsb:$refresh_port"},
-    {"efh.ARCA_PLR.group.$i.retrans.tcpAddr", "$retrans_tcp"},
-    {"efh.ARCA_PLR.group.$i.retrans.udpAddr", "$retrans_base$retrans_lsb:$retrans_port"},
-    {"efh.ARCA_PLR.group.$i.ChannelId","$ch_id"},
-    {"efh.ARCA_PLR.group.$i.SourceId","$auth"},
-
-EOI
-}
-
-$i = $groups - 1;
-
-print <<EOT;
-// trades
-    {"efh.ARCA_PLR.group.$i.products","vanilla_trades"},
-    {"efh.ARCA_PLR.group.$i.mcast.addr",      "224.0.96.96:44001"},
-    {"efh.ARCA_PLR.group.$i.refresh.tcpAddr", "$retrans_tcp"},
-    {"efh.ARCA_PLR.group.$i.refresh.udpAddr", "224.0.96.98:46001"},
-    {"efh.ARCA_PLR.group.$i.retrans.tcpAddr", "$retrans_tcp"},
-    {"efh.ARCA_PLR.group.$i.retrans.udpAddr", "224.0.96.97:45001"},
-    {"efh.ARCA_PLR.group.$i.ChannelId","1"},
-    {"efh.ARCA_PLR.group.$i.SourceId","$auth"},
-
-};
-EOT
-#------------------------------------------------
-print "EkaProp efhArcaPlrInitCtxEntries_B[] = {\n";
-for ($i=0; $i<$groups - 1;$i++) {
-    $mc_lsb = $mc_lsb_base + $i;
-    $mc_port = $mc_port_base + $i;
-    $ch_id = $ch_id_base + $i;
-    $retrans_lsb = $retrans_lsb_base + $i;
-    $refresh_lsb = $refresh_lsb_base + $i;
-    $refresh_port = $refresh_port_base + $i;
-    $retrans_port = $retrans_port_base + $i;
-
-print <<EOI;
-    {"efh.ARCA_PLR.group.$i.products","vanilla_book"},
-    {"efh.ARCA_PLR.group.$i.mcast.addr",      "$mc_base$mc_lsb:$mc_port"},
-    {"efh.ARCA_PLR.group.$i.refresh.tcpAddr", "$retrans_tcp"},
-    {"efh.ARCA_PLR.group.$i.refresh.udpAddr", "$refresh_base$refresh_lsb:$refresh_port"},
-    {"efh.ARCA_PLR.group.$i.retrans.tcpAddr", "$retrans_tcp"},
-    {"efh.ARCA_PLR.group.$i.retrans.udpAddr", "$retrans_base$retrans_lsb:$retrans_port"},
-    {"efh.ARCA_PLR.group.$i.ChannelId","$ch_id"},
-    {"efh.ARCA_PLR.group.$i.SourceId","$auth"},
-
-EOI
-}
-
-$i = $groups-1;
-
-print <<EOT;
-// trades
-    {"efh.ARCA_PLR.group.$i.products","vanilla_trades"},
-    {"efh.ARCA_PLR.group.$i.mcast.addr",      "224.0.96.96:44001"},
-    {"efh.ARCA_PLR.group.$i.refresh.tcpAddr", "$retrans_tcp"},
-    {"efh.ARCA_PLR.group.$i.refresh.udpAddr", "224.0.96.98:46001"},
-    {"efh.ARCA_PLR.group.$i.retrans.tcpAddr", "$retrans_tcp"},
-    {"efh.ARCA_PLR.group.$i.retrans.udpAddr", "224.0.96.97:45001"},
-    {"efh.ARCA_PLR.group.$i.ChannelId","1"},
-    {"efh.ARCA_PLR.group.$i.SourceId","$auth"},
-
-};
-EOT
-
-##################################################
-
-    print "const EkaGroup arcaPlrGroups[] = {\n";
-for ($i = 0; $i < $groups; $i ++) {
-    print "\t{EkaSource::k$exch_name, (EkaLSI)$i},\n";
-
-}
-print "};\n\n";
-
-
-#####################################################
 
 #Firm GTS Securities LLC
 #SenderCompId AXGTSXDP01
@@ -130,7 +21,7 @@ print "};\n\n";
 
 $exch = "AMEX_PLR";
 $groups = 15;
-$auth = "AXGTSXDP01";
+$auth = "AOGTSXDP01";
 
 $retrans_tcp = "162.69.127.250:35218";
 $attr = "vanilla_book";
@@ -227,6 +118,7 @@ for ($i = 0; $i < 28; $i ++) {
 print "};\n\n";
 
 
+#####################################################
 
 
 print "#endif\n";

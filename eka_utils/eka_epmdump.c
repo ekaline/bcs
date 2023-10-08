@@ -73,23 +73,27 @@ static int getAttr(int argc, char *argv[]) {
     switch (opt) {
     case 'b':
       plainMemAddr = std::stol(optarg, 0, 0);
-      printf("memAddr = %u (0x%x)\n", plainMemAddr,
+      printf("memAddr = %u (0x%x)\n",
+             plainMemAddr,
              plainMemAddr);
       if (plainMemAddr % 32)
         on_error("memAddr = %u (0x%x) is not 32B aligned",
-                 plainMemAddr, plainMemAddr);
+                 plainMemAddr,
+                 plainMemAddr);
       break;
     case 's':
       plainMemLen = std::stol(optarg, 0, 0);
       printf("memLen = %u\n", plainMemLen);
       if (plainMemLen % 32)
         on_error("memLen = %u (0x%x) is not 32B aligned",
-                 plainMemLen, plainMemLen);
+                 plainMemLen,
+                 plainMemLen);
       break;
     case 'r':
       singleActionRegion = std::stol(optarg, 0, 0);
       printf(
-          "region = %u (\'%s\')\n", singleActionRegion,
+          "region = %u (\'%s\')\n",
+          singleActionRegion,
           EkaEpmRegion::getRegionName(singleActionRegion));
       break;
     case 'a':
@@ -138,7 +142,9 @@ static void snWrite(uint64_t addr, uint64_t val) {
       SC_WriteUserLogicRegister(devId, addr / 8, val))
     on_error("SN_Write(0x%jx,0x%jx) returned smartnic "
              "error code : %d",
-             addr, val, SC_GetLastErrorCode());
+             addr,
+             val,
+             SC_GetLastErrorCode());
 }
 #if 1
 static uint64_t snRead(uint64_t addr) {
@@ -147,7 +153,8 @@ static uint64_t snRead(uint64_t addr) {
       SN_ReadUserLogicRegister(devId, addr / 8, &res))
     on_error(
         "SN_Read(0x%jx) returned smartnic error code : %d",
-        addr, SC_GetLastErrorCode());
+        addr,
+        SC_GetLastErrorCode());
   return res;
 }
 #endif
@@ -159,7 +166,11 @@ static size_t dumpMem(void *dst, int startAddr,
   if (startAddr % BlockSize || len % BlockSize)
     on_error("startAddr %d (0x%x) or len %ju (0x%ju) "
              "are not aligned to block size %d",
-             startAddr, startAddr, len, len, BlockSize);
+             startAddr,
+             startAddr,
+             len,
+             len,
+             BlockSize);
 
   auto nBlocks = len / BlockSize;
   auto blockAddr = startAddr / BlockSize;
@@ -188,9 +199,14 @@ static size_t dumpAction(void *dst, int region,
   return 64;
 }
 /* --------------------------------------------- */
-static void printIgmpPkt(const void *buf, FILE *f) {
+static void printIgmpPkt(int region, int actionIdx,
+                         const void *buf, FILE *f) {
   auto igmpP = reinterpret_cast<const IgmpPkt *>(buf);
-  fprintf(f, "%s %s on core %s\n",
+  fprintf(f,
+          "region=%d, actionIdx=%d, "
+          "%s %s on core %s\n",
+          region,
+          actionIdx,
           igmpP->igmpHdr.type == 0x16 ? "IGMP JOIN"
           : 0x17                      ? "IGMP LEAVE"
                                       : "IGMP INVALID",
@@ -257,7 +273,8 @@ bool checkActionParams(int region, int actionIdx,
                      EkaEpmRegion::getActionHeapOffs(
                          region, actionIdx)) {
     on_warning(
-        "heapOffs %u != Expected %u", hwAction->data_db_ptr,
+        "heapOffs %u != Expected %u",
+        hwAction->data_db_ptr,
         EkaEpmRegion::getActionHeapOffs(region, actionIdx));
     passed = false;
   }
@@ -300,14 +317,19 @@ processAction(int region, int actionIdx, char *hexDumpMsg) {
           "%s, " // PayloadLen/CSum origin
           "TCP conn = %d:%d, "
           "next = %d",
-          EkaEpmRegion::getRegionName(region), region,
-          printActionType(actionType), actionIdx, flatIdx,
-          isValid ? "Valid" : "Not Valid", a->data_db_ptr,
+          EkaEpmRegion::getRegionName(region),
+          region,
+          printActionType(actionType),
+          actionIdx,
+          flatIdx,
+          isValid ? "Valid" : "Not Valid",
+          a->data_db_ptr,
           a->payloadSize,
           a->tcpCsSizeSource == TcpCsSizeSource::FROM_ACTION
               ? "FROM_ACTION"
               : "FROM_DESCR",
-          a->target_core_id, a->target_session_id,
+          a->target_core_id,
+          a->target_session_id,
           (int16_t)a->next_action_index);
 
   fprintf(outFile, "%s\n", actionHexDumpMsg);
@@ -317,7 +339,8 @@ processAction(int region, int actionIdx, char *hexDumpMsg) {
     on_error(
         "flatIdx %u != getActionGlobalIdxFromUser() %u, "
         "user =0x%016jx",
-        flatIdx, getActionGlobalIdxFromUser(a->user),
+        flatIdx,
+        getActionGlobalIdxFromUser(a->user),
         a->user);
 
   int memAddr = a->data_db_ptr;
@@ -332,13 +355,16 @@ processAction(int region, int actionIdx, char *hexDumpMsg) {
           memAddr, memAddr, memLen, memLen, region,
           EkaEpmRegion::getRegionName(region));
 #endif
-  sprintf(hexDumpMsg, "Heap of %s Action %d",
-          printActionType(actionType), actionIdx);
+  sprintf(hexDumpMsg,
+          "Heap of %s Action %d",
+          printActionType(actionType),
+          actionIdx);
 
   if (!checkActionParams(region, actionIdx, a))
     on_error("checkActionParams failed for action %d at "
              "region %d ",
-             region, actionIdx);
+             region,
+             actionIdx);
 
   return {memAddr, memLen};
 }
@@ -361,7 +387,7 @@ static void printHeapMem(int region, int actionIdx,
   hexDump(hexDumpMsg, mem, heapLen, outFile);
 
   if (region >= EkaEpmRegion::Regions::EfcMc)
-    printIgmpPkt(mem, outFile);
+    printIgmpPkt(region, actionIdx, mem, outFile);
 
   delete[] mem;
   return;
@@ -374,8 +400,11 @@ static void dumpSingleAction(int singleActionRegion,
       singleActionRegion, singleAction, hexDumpMsg);
 
   if (heapOffs >= 0)
-    printHeapMem(singleActionRegion, singleAction, heapOffs,
-                 heapLen, hexDumpMsg);
+    printHeapMem(singleActionRegion,
+                 singleAction,
+                 heapOffs,
+                 heapLen,
+                 hexDumpMsg);
   return;
 }
 
@@ -408,7 +437,10 @@ int main(int argc, char *argv[]) {
     if (singleAction >= 0) {
       dumpSingleAction(singleActionRegion, singleAction);
     } else {
-      printHeapMem(-1, -1, plainMemAddr, plainMemLen,
+      printHeapMem(-1,
+                   -1,
+                   plainMemAddr,
+                   plainMemLen,
                    "Plain Memory Dump");
     }
   }

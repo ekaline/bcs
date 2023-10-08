@@ -13,6 +13,7 @@
 			(std::regex_search(std::string(x),std::regex("PHLX_TOPO"))  == true) ? EkaSource::kPHLX_TOPO  : \
 			(std::regex_search(std::string(x),std::regex("PHLX_ORD" ))  == true) ? EkaSource::kPHLX_ORD   : \
 			(std::regex_search(std::string(x),std::regex("GEM_TQF"))    == true) ? EkaSource::kGEM_TQF    : \
+			(std::regex_search(std::string(x),std::regex("GEM2_TOP"))    == true) ? EkaSource::kGEM2_TOP  : \
 			(std::regex_search(std::string(x),std::regex("ISE_TQF"))    == true) ? EkaSource::kISE_TQF    : \
 			(std::regex_search(std::string(x),std::regex("MRX_TQF"))    == true) ? EkaSource::kMRX_TQF    : \
 			(std::regex_search(std::string(x),std::regex("MRX2_TOP"))   == true) ? EkaSource::kMRX2_TOP   : \
@@ -35,6 +36,7 @@
   (x == EkaSource::kNOM_ITTO)   ? EfhFeedVer::kNASDAQ :	\
   (x == EkaSource::kBX_DPTH)    ? EfhFeedVer::kBX :	\
   (x == EkaSource::kGEM_TQF)    ? EfhFeedVer::kGEMX :	\
+  (x == EkaSource::kGEM2_TOP)   ? EfhFeedVer::kMRX2_TOP :	\
   (x == EkaSource::kISE_TQF)    ? EfhFeedVer::kGEMX :	\
   (x == EkaSource::kMRX_TQF)    ? EfhFeedVer::kGEMX :	\
   (x == EkaSource::kMRX2_TOP)   ? EfhFeedVer::kMRX2_TOP :	\
@@ -61,6 +63,7 @@
   (x == EkaSource::kNOM_ITTO)   ? "NOM_ITTO"   : \
   (x == EkaSource::kBX_DPTH)    ? "BX_DPTH"    : \
   (x == EkaSource::kGEM_TQF)    ? "GEM_TQF"    : \
+  (x == EkaSource::kGEM2_TOP)   ? "GEM2_TOP"   : \
   (x == EkaSource::kISE_TQF)    ? "ISE_TQF"    : \
   (x == EkaSource::kMRX_TQF)    ? "MRX_TQF"    : \
   (x == EkaSource::kMRX2_TOP)   ? "MRX2_TOP"   : \
@@ -85,6 +88,7 @@
   (x == EkaSource::kNOM_ITTO)   ? "NOM"      : \
   (x == EkaSource::kBX_DPTH)    ? "BX"       : \
   (x == EkaSource::kGEM_TQF)    ? "GEM"      : \
+  (x == EkaSource::kGEM2_TOP)   ? "GEM2_TOP" : \
   (x == EkaSource::kISE_TQF)    ? "ISE"      : \
   (x == EkaSource::kMRX_TQF)    ? "MRX"      : \
   (x == EkaSource::kMRX2_TOP)   ? "MRX2_TOP" : \

@@ -64,7 +64,7 @@ public:
   int configurePort(const EkaCoreInitCtx *pCoreInit);
   uint8_t getNumFh();
 
-  static const uint MAX_FEED_HANDLERS = 8;
+  static const uint MAX_FEED_HANDLERS = 32;
   static const int8_t MAX_CORES = 4;
   static const uint MAX_RUN_GROUPS = 32;
   static const uint MAX_SESS_PER_CORE = 31;

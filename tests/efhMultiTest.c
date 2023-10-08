@@ -1,28 +1,26 @@
+#include <algorithm>
+#include <arpa/inet.h>
+#include <assert.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
 #include <string.h>
-#include <time.h>
-#include <signal.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <thread>
-#include <assert.h>
+#include <time.h>
+#include <unistd.h>
 #include <vector>
-#include <algorithm>
 
-
-#include "EkaDev.h"
-#include "eka_macros.h"
-#include "Efh.h"
-#include "Exc.h"
-#include "Eka.h"
 #include "Efc.h"
+#include "Efh.h"
+#include "Eka.h"
 #include "EkaCtxs.h"
+#include "EkaDev.h"
+#include "Exc.h"
+#include "eka_macros.h"
 
 #include "EkaFhGroup.h"
-
 
 #include "EkaFhBatsParser.h"
 
@@ -40,10 +38,10 @@
 
 #include "EfhTestFuncs.h"
 
-extern TestCtx* testCtx;
+extern TestCtx *testCtx;
 
-
-/* ------------------------------------------------------------ */
+/* ------------------------------------------------------------
+ */
 static std::string eka_get_date() {
   const char *months[] = {"JAN", "FEB", "MAR", "APR",
                           "MAY", "JUN", "JUL", "AUG",
@@ -64,7 +62,6 @@ static std::string eka_get_time() {
           tm.tm_sec);
   return std::string(t_str);
 }
-
 
 static void print_usage(char *cmd) {
   printf("USAGE: %s -g <RunGroup> <flags> \n", cmd);
@@ -120,56 +117,54 @@ static void print_usage(char *cmd) {
 }
 
 static int getAttr(int argc, char *argv[],
-		   std::vector<TestRunGroup>& testRunGroups,
-		   std::vector<std::string>&  underlyings,
-		   bool *print_tob_updates,
-		   bool *subscribe_all,
-		   bool *print_parsed_messages,
-		   bool *verbose_statistics) {
-  int opt; 
-  while((opt = getopt(argc, argv, ":u:g:htavp")) != -1) {  
-    switch(opt) {  
-    case 't':  
-      printf("Print TOB Updates (EFH)\n");  
+                   std::vector<TestRunGroup> &testRunGroups,
+                   std::vector<std::string> &underlyings,
+                   bool *print_tob_updates,
+                   bool *subscribe_all,
+                   bool *print_parsed_messages,
+                   bool *verbose_statistics) {
+  int opt;
+  while ((opt = getopt(argc, argv, ":u:g:htavp")) != -1) {
+    switch (opt) {
+    case 't':
+      printf("Print TOB Updates (EFH)\n");
       *print_tob_updates = true;
-      break;  
-    case 'a':  
+      break;
+    case 'a':
       printf("subscribe all\n");
       *subscribe_all = true;
-      break;  
-    case 'u':  
-      underlyings.push_back(std::string(optarg));
-      printf("Underlying to subscribe: %s\n", optarg);  
-      break;  
-    case 'p':  
-      *print_parsed_messages = true;
-      printf("print_parsed_messages = true\n");  
-      break;  
-    case 'v':  
-      *verbose_statistics = true;
-      printf("verbose_statistics = true\n");  
       break;
-    case 'h':  
+    case 'u':
+      underlyings.push_back(std::string(optarg));
+      printf("Underlying to subscribe: %s\n", optarg);
+      break;
+    case 'p':
+      *print_parsed_messages = true;
+      printf("print_parsed_messages = true\n");
+      break;
+    case 'v':
+      *verbose_statistics = true;
+      printf("verbose_statistics = true\n");
+      break;
+    case 'h':
       print_usage(argv[0]);
-      exit (1);
-      break;  
+      exit(1);
+      break;
     case 'g': {
       TestRunGroup newTestRunGroup = {};
       newTestRunGroup.optArgStr = std::string(optarg);
       testRunGroups.push_back(newTestRunGroup);
-      break;  
+      break;
     }
-    case ':':  
-      printf("option needs a value\n");  
-      break;  
-    case '?':  
-      printf("unknown option: %c\n", optopt); 
-      break;  
-    } 
-
+    case ':':
+      printf("option needs a value\n");
+      break;
+    case '?':
+      printf("unknown option: %c\n", optopt);
+      break;
+    }
   }
   return 0;
-
 }
 
 static void INThandler(int sig) {
@@ -181,20 +176,24 @@ static void INThandler(int sig) {
   return;
 }
 
-static int createThread(const char *name, EkaServiceType type,
-                 void *(*threadRoutine)(void *), void *arg,
-                 void *context, uintptr_t *handle) {
+static int createThread(const char *name,
+                        EkaServiceType type,
+                        void *(*threadRoutine)(void *),
+                        void *arg, void *context,
+                        uintptr_t *handle) {
   pthread_create((pthread_t *)handle, NULL, threadRoutine,
                  arg);
   pthread_setname_np((pthread_t)*handle, name);
   return 0;
 }
 
-static int credAcquire(EkaCredentialType credType, EkaGroup group,
-                const char *user, size_t userLength,
-                const struct timespec *leaseTime,
-                const struct timespec *timeout,
-                void *context, EkaCredentialLease **lease) {
+static int credAcquire(EkaCredentialType credType,
+                       EkaGroup group, const char *user,
+                       size_t userLength,
+                       const struct timespec *leaseTime,
+                       const struct timespec *timeout,
+                       void *context,
+                       EkaCredentialLease **lease) {
   printf(
       "Credential with USER %.*s is acquired for %s:%hhu\n",
       (int)userLength, user, EKA_EXCH_DECODE(group.source),
@@ -202,21 +201,20 @@ static int credAcquire(EkaCredentialType credType, EkaGroup group,
   return 0;
 }
 
-static int credRelease(EkaCredentialLease *lease, void *context) {
+static int credRelease(EkaCredentialLease *lease,
+                       void *context) {
   return 0;
 }
 
-
-
 static int getTradeTimeCb(const EfhDateComponents *,
-                   uint32_t *iso8601Date, time_t *epochTime,
-                   void *ctx) {
+                          uint32_t *iso8601Date,
+                          time_t *epochTime, void *ctx) {
   return 0;
 }
 
 static void *onOrder(const EfhOrderMsg *msg,
-              EfhSecUserData secData,
-              EfhRunUserData userData) {
+                     EfhSecUserData secData,
+                     EfhRunUserData userData) {
   if (!testCtx->keep_work)
     return NULL;
 
@@ -275,8 +273,8 @@ static void *onOrder(const EfhOrderMsg *msg,
 }
 
 static void *onTrade(const EfhTradeMsg *msg,
-              EfhSecUserData secData,
-              EfhRunUserData userData) {
+                     EfhSecUserData secData,
+                     EfhRunUserData userData) {
   if (!testCtx->keep_work)
     return NULL;
 
@@ -523,7 +521,7 @@ onEfhGroupStateChange(const EfhGroupStateChangedMsg *msg,
 }
 
 static void onException(EkaExceptionReport *msg,
-                 EfhRunUserData efhRunUserData) {
+                        EfhRunUserData efhRunUserData) {
   if (!testCtx->keep_work)
     return;
   printf("%s: Doing nothing\n", __func__);
@@ -533,7 +531,7 @@ static void onException(EkaExceptionReport *msg,
 /* void onFireReport (EfcCtx* pEfcCtx, const EfcFireReport*
  * fire_report_buf, size_t size) { */
 static void onFireReport(const void *fire_report_buf,
-                  size_t size) {
+                         size_t size) {
   if (!testCtx->keep_work)
     return;
   printf("%s: Doing nothing \n", __func__);
@@ -542,7 +540,7 @@ static void onFireReport(const void *fire_report_buf,
 extern FILE *mdFile;
 
 static void *onMd(const EfhMdHeader *msg,
-           EfhRunUserData efhRunUserData) {
+                  EfhRunUserData efhRunUserData) {
   if (!testCtx->keep_work)
     return NULL;
   EfhCtx *pEfhCtx = (EfhCtx *)efhRunUserData;
@@ -642,8 +640,8 @@ static void *onMd(const EfhMdHeader *msg,
 }
 
 static void *onQuote(const EfhQuoteMsg *msg,
-              EfhSecUserData secData,
-              EfhRunUserData userData) {
+                     EfhSecUserData secData,
+                     EfhRunUserData userData) {
   if (!testCtx->keep_work)
     return NULL;
   EfhCtx *pEfhCtx = (EfhCtx *)userData;
@@ -740,8 +738,8 @@ static void *onQuote(const EfhQuoteMsg *msg,
 }
 
 static void *onImbalance(const EfhImbalanceMsg *msg,
-                  EfhSecUserData secData,
-                  EfhRunUserData userData) {
+                         EfhSecUserData secData,
+                         EfhRunUserData userData) {
   return NULL;
 }
 
@@ -856,8 +854,8 @@ onComplexDefinition(const EfhComplexDefinitionMsg *msg,
  */
 
 static void *onAuctionUpdate(const EfhAuctionUpdateMsg *msg,
-                      EfhSecUserData secData,
-                      EfhRunUserData userData) {
+                             EfhSecUserData secData,
+                             EfhRunUserData userData) {
   if (!testCtx->keep_work)
     return NULL;
   EfhCtx *pEfhCtx = (EfhCtx *)userData;
@@ -925,9 +923,10 @@ static void *onAuctionUpdate(const EfhAuctionUpdateMsg *msg,
 /* ------------------------------------------------------------
  */
 
-static void *onFutureDefinition(const EfhFutureDefinitionMsg *msg,
-                         EfhSecUserData secData,
-                         EfhRunUserData userData) {
+static void *
+onFutureDefinition(const EfhFutureDefinitionMsg *msg,
+                   EfhSecUserData secData,
+                   EfhRunUserData userData) {
   if (!testCtx->keep_work)
     return NULL;
 
@@ -1543,9 +1542,10 @@ static size_t feedname2numGroups(std::string feedName) {
            feedName.c_str());
 }
 
-static int createCtxts(std::vector<TestRunGroup> &testRunGroups,
-                std::vector<EfhInitCtx> &efhInitCtx,
-                std::vector<EfhRunCtx> &efhRunCtx) {
+static int
+createCtxts(std::vector<TestRunGroup> &testRunGroups,
+            std::vector<EfhInitCtx> &efhInitCtx,
+            std::vector<EfhRunCtx> &efhRunCtx) {
   const std::regex rg_regex("([0-9])\\:([A-Z][A-Z][A-Z]*)"
                             "\\:([0-9]+)\\.\\.([0-9]+)");
 
@@ -1642,106 +1642,128 @@ static int createCtxts(std::vector<TestRunGroup> &testRunGroups,
   return 0;
 }
 
-
 int main(int argc, char *argv[]) {
   testCtx = new TestCtx;
-  if (!testCtx) on_error("testCtx == NULL");
-  
-  std::vector<TestRunGroup> testRunGroups;
-  std::vector<EfhInitCtx>   efhInitCtx;
-  std::vector<EfhRunCtx>    efhRunCtx;
-  bool print_parsed_messages = false;
-  
-  getAttr(argc,argv,testRunGroups,testCtx->underlyings,&testCtx->print_tob_updates,
-	  &testCtx->subscribe_all,&print_parsed_messages,&testCtx->verbose_statistics);
+  if (!testCtx)
+    on_error("testCtx == NULL");
 
-  if (testRunGroups.size() == 0) { 
+  std::vector<TestRunGroup> testRunGroups;
+  std::vector<EfhInitCtx> efhInitCtx;
+  std::vector<EfhRunCtx> efhRunCtx;
+  bool print_parsed_messages = false;
+
+  getAttr(argc, argv, testRunGroups, testCtx->underlyings,
+          &testCtx->print_tob_updates,
+          &testCtx->subscribe_all, &print_parsed_messages,
+          &testCtx->verbose_statistics);
+
+  if (testRunGroups.size() == 0) {
     TEST_LOG("No test groups passed");
-    print_usage(argv[0]);	
-    return 1; 
+    print_usage(argv[0]);
+    return 1;
   }
 
-  createCtxts(testRunGroups,efhInitCtx,efhRunCtx);
+  createCtxts(testRunGroups, efhInitCtx, efhRunCtx);
 
-/* ------------------------------------------------------- */
+  /* -------------------------------------------------------
+   */
   signal(SIGINT, INThandler);
 
-/* ------------------------------------------------------- */
-  EkaDev* pEkaDev = NULL;
+  /* -------------------------------------------------------
+   */
+  EkaDev *pEkaDev = NULL;
 
   EkaDevInitCtx ekaDevInitCtx = {};
   ekaDevInitCtx.credAcquire = credAcquire;
   ekaDevInitCtx.credRelease = credRelease;
   ekaDevInitCtx.createThread = createThread;
-  ekaDevInit(&pEkaDev, (const EkaDevInitCtx*) &ekaDevInitCtx);
+  ekaDevInit(&pEkaDev,
+             (const EkaDevInitCtx *)&ekaDevInitCtx);
 
   //  std::vector<EfhCtx*>      pEfhCtx[16];
-  EfhCtx*      pEfhCtx[16] = {};
+  EfhCtx *pEfhCtx[16] = {};
 
-/* ------------------------------------------------------- */
+  /* -------------------------------------------------------
+   */
 
   for (size_t r = 0; r < testRunGroups.size(); r++) {
     try {
-      efhInitCtx.at(r).printParsedMessages = print_parsed_messages;
-      efhInit(&pEfhCtx[r],pEkaDev,&efhInitCtx.at(r));
-      if (pEfhCtx[r] == NULL) on_error("pEfhCtx[r] == NULL");
-      efhRunCtx.at(r).efhRunUserData = (EfhRunUserData)pEfhCtx[r];
+      efhInitCtx.at(r).printParsedMessages =
+          print_parsed_messages;
+      efhInit(&pEfhCtx[r], pEkaDev, &efhInitCtx.at(r));
+      if (pEfhCtx[r] == NULL)
+        on_error("pEfhCtx[r] == NULL");
+      efhRunCtx.at(r).efhRunUserData =
+          (EfhRunUserData)pEfhCtx[r];
 
-      if (pEfhCtx[r]->fhId >= 16) on_error("pEfhCtx[r]->fhId = %u,pEfhCtx[r]=%p",
-					  pEfhCtx[r]->fhId,pEfhCtx[r]);
-      if (pEfhCtx[r]->fhId != (uint)r) 
-	on_error("i=%jd, fhId = %u, pEfhCtx[r]=%p",r,pEfhCtx[r]->fhId,pEfhCtx[r]);
+      if (pEfhCtx[r]->fhId >= 16)
+        on_error("pEfhCtx[r]->fhId = %u,pEfhCtx[r]=%p",
+                 pEfhCtx[r]->fhId, pEfhCtx[r]);
+      if (pEfhCtx[r]->fhId != (uint)r)
+        on_error("i=%jd, fhId = %u, pEfhCtx[r]=%p", r,
+                 pEfhCtx[r]->fhId, pEfhCtx[r]);
 
       pEfhCtx[r]->printQStatistics = true;
 
-      /* ------------------------------------------------------- */
-      for (uint8_t i = 0; i < efhRunCtx.at(r).numGroups; i++) {
-	EkaSource exch = efhRunCtx.at(r).groups[i].source;
-	EkaLSI    grId = efhRunCtx.at(r).groups[i].localId;
-	auto gr = testCtx->grCtx[(int)exch][grId];
-	if (gr == NULL) on_error("gr == NULL");
+      /* -------------------------------------------------------
+       */
+      for (uint8_t i = 0; i < efhRunCtx.at(r).numGroups;
+           i++) {
+        EkaSource exch = efhRunCtx.at(r).groups[i].source;
+        EkaLSI grId = efhRunCtx.at(r).groups[i].localId;
+        auto gr = testCtx->grCtx[(int)exch][grId];
+        if (gr == NULL)
+          on_error("gr == NULL");
 
-	printf ("################ Group %u: %s:%u ################\n",
-		i,EKA_EXCH_DECODE(exch),grId);
+        printf("################ Group %u: %s:%u "
+               "################\n",
+               i, EKA_EXCH_DECODE(exch), grId);
 #ifdef EKA_TEST_IGNORE_DEFINITIONS
-	printf ("Skipping Definitions for EKA_TEST_IGNORE_DEFINITIONS\n");
+        printf("Skipping Definitions for "
+               "EKA_TEST_IGNORE_DEFINITIONS\n");
 #else
-	auto rc = efhGetDefs(pEfhCtx[r], &efhRunCtx.at(r),
-			     (EkaGroup*)&efhRunCtx.at(r).groups[i], NULL);
-	if (rc != EKA_OPRESULT__OK)
-	  on_error("efhGetDefs failed with rc=%d",rc);
+        auto rc = efhGetDefs(
+            pEfhCtx[r], &efhRunCtx.at(r),
+            (EkaGroup *)&efhRunCtx.at(r).groups[i], NULL);
+        if (rc != EKA_OPRESULT__OK)
+          on_error("efhGetDefs failed with rc=%d", rc);
 #endif
       }
-      /* ------------------------------------------------------- */
-      if (pEfhCtx[r]->fhId >= 16) on_error("pEfhCtx[r]->fhId = %u,pEfhCtx[r]=%p",
-					  pEfhCtx[r]->fhId,pEfhCtx[r]);
-      std::thread efh_run_thread = std::thread(efhRunGroups,pEfhCtx[r], &efhRunCtx.at(r),(void**)NULL);
+      /* -------------------------------------------------------
+       */
+      if (pEfhCtx[r]->fhId >= 16)
+        on_error("pEfhCtx[r]->fhId = %u,pEfhCtx[r]=%p",
+                 pEfhCtx[r]->fhId, pEfhCtx[r]);
+      std::thread efh_run_thread =
+          std::thread(efhRunGroups, pEfhCtx[r],
+                      &efhRunCtx.at(r), (void **)NULL);
       efh_run_thread.detach();
-      /* ------------------------------------------------------- */
-    }
-    catch (const std::out_of_range& oor) {
+      /* -------------------------------------------------------
+       */
+    } catch (const std::out_of_range &oor) {
       on_error("Out of Range error");
     }
   }
 
-  /* ------------------------------------------------------- */
+  /* -------------------------------------------------------
+   */
 
-  while (testCtx->keep_work) usleep(0);
+  while (testCtx->keep_work)
+    usleep(0);
 
   ekaDevClose(pEkaDev);
 
   for (auto exch = 0; exch < MAX_EXCH; exch++) {
     for (auto grId = 0; grId < MAX_GROUPS; grId++) {
       auto gr = testCtx->grCtx[exch][grId];
-      if (gr == NULL) continue;
-      fclose (gr->fullDict);
-      fclose (gr->subscrDict);
-      fclose(gr->MD);      
+      if (gr == NULL)
+        continue;
+      fclose(gr->fullDict);
+      fclose(gr->subscrDict);
+      fclose(gr->MD);
     }
   }
-  printf ("Exitting normally...\n");
+  printf("Exitting normally...\n");
 
   return 0;
 }
-
-

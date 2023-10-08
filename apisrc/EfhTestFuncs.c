@@ -1008,72 +1008,39 @@ EkaSource feedname2source(std::string feedName) {
   if (feedName == std::string("RPB"))
     return EkaSource::kARCA_PLR;
 
-  if (feedName == std::string("XPA"))
-    return EkaSource::kAMEX_PLR;
-  if (feedName == std::string("XPB"))
-    return EkaSource::kAMEX_PLR;
-  /* -------------------------------------------------------
-   */
-  if (feedName == std::string("BA"))
-    return EkaSource::kBOX_HSVF;
-  if (feedName == std::string("BB"))
-    return EkaSource::kBOX_HSVF;
-  if (feedName == std::string("BC"))
-    return EkaSource::kBOX_HSVF;
-  if (feedName == std::string("BD"))
-    return EkaSource::kBOX_HSVF;
-  /* -------------------------------------------------------
-   */
-  if (feedName == std::string("NA"))
-    return EkaSource::kNOM_ITTO;
-  if (feedName == std::string("NB"))
-    return EkaSource::kNOM_ITTO;
-  /* -------------------------------------------------------
-   */
-  if (feedName == std::string("BXA"))
-    return EkaSource::kBX_DPTH;
-  if (feedName == std::string("BXB"))
-    return EkaSource::kBX_DPTH;
-  /* -------------------------------------------------------
-   */
-  if (feedName == std::string("MRA"))
-    return EkaSource::kMRX2_TOP;
-  if (feedName == std::string("MRB"))
-    return EkaSource::kMRX2_TOP;
-  /* -------------------------------------------------------
-   */
-  if (feedName == std::string("GA"))
-    return EkaSource::kGEM_TQF;
-  if (feedName == std::string("GB"))
-    return EkaSource::kGEM_TQF;
-  /* -------------------------------------------------------
-   */
-  if (feedName == std::string("IA"))
-    return EkaSource::kISE_TQF;
-  if (feedName == std::string("IB"))
-    return EkaSource::kISE_TQF;
-  /* -------------------------------------------------------
-   */
-  if (feedName == std::string("TA"))
-    return EkaSource::kPHLX_TOPO;
-  if (feedName == std::string("TB"))
-    return EkaSource::kPHLX_TOPO;
-  /* -------------------------------------------------------
-   */
-  if (feedName == std::string("OA"))
-    return EkaSource::kPHLX_ORD;
-  if (feedName == std::string("OB"))
-    return EkaSource::kPHLX_ORD;
-  /* -------------------------------------------------------
-   */
-  if (feedName == std::string("EA"))
-    return EkaSource::kCME_SBE;
-  if (feedName == std::string("EB"))
-    return EkaSource::kCME_SBE;
-  /* -------------------------------------------------------
-   */
-  on_error("Unsupported feed name \"%s\"",
-           feedName.c_str());
+  if (feedName == std::string("XPA")) return EkaSource::kAMEX_PLR;
+  if (feedName == std::string("XPB")) return EkaSource::kAMEX_PLR;
+  /* ------------------------------------------------------- */
+  if (feedName == std::string("BA")) return EkaSource::kBOX_HSVF;
+  if (feedName == std::string("BB")) return EkaSource::kBOX_HSVF;
+  if (feedName == std::string("BC")) return EkaSource::kBOX_HSVF;
+  if (feedName == std::string("BD")) return EkaSource::kBOX_HSVF;
+  /* ------------------------------------------------------- */
+  if (feedName == std::string("NA")) return EkaSource::kNOM_ITTO;
+  if (feedName == std::string("NB")) return EkaSource::kNOM_ITTO;
+  /* ------------------------------------------------------- */
+  if (feedName == std::string("BXA")) return EkaSource::kBX_DPTH;
+  if (feedName == std::string("BXB")) return EkaSource::kBX_DPTH;
+  /* ------------------------------------------------------- */
+  if (feedName == std::string("MRA")) return EkaSource::kMRX2_TOP;
+  if (feedName == std::string("MRB")) return EkaSource::kMRX2_TOP;
+  /* ------------------------------------------------------- */
+  if (feedName == std::string("GA")) return EkaSource::kGEM2_TOP;
+  if (feedName == std::string("GB")) return EkaSource::kGEM2_TOP;
+  /* ------------------------------------------------------- */
+  if (feedName == std::string("IA")) return EkaSource::kISE_TQF;
+  if (feedName == std::string("IB")) return EkaSource::kISE_TQF;
+  /* ------------------------------------------------------- */
+  if (feedName == std::string("TA")) return EkaSource::kPHLX_TOPO;
+  if (feedName == std::string("TB")) return EkaSource::kPHLX_TOPO;
+  /* ------------------------------------------------------- */
+  if (feedName == std::string("OA")) return EkaSource::kPHLX_ORD;
+  if (feedName == std::string("OB")) return EkaSource::kPHLX_ORD;
+  /* ------------------------------------------------------- */
+  if (feedName == std::string("EA")) return EkaSource::kCME_SBE;
+  if (feedName == std::string("EB")) return EkaSource::kCME_SBE;
+  /* ------------------------------------------------------- */
+  on_error("Unsupported feed name \"%s\"",feedName.c_str());
 }
 
 static EkaProp *feedname2prop(std::string feedName) {

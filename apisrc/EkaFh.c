@@ -73,13 +73,6 @@ EkaOpResult EkaFh::init(const EfhInitCtx *pEfhInitCtx,
   getTradeTimeCb = pEfhInitCtx->getTradeTime;
   getTradeTimeCtx = pEfhInitCtx->getTradeTimeCtx;
 
-  if ((dev->ekaHwCaps->hwCaps.core.bitmap_md_cores &
-       (1 << c)) == 0) {
-    on_error(
-        "Core %u is not enabled in FPGA for Market Data RX",
-        c);
-  }
-
   assert(pEfhInitCtx->numOfGroups <= EKA_FH_GROUPS);
   groups = pEfhInitCtx->numOfGroups;
 
@@ -1084,10 +1077,12 @@ EkaOpResult EkaFh::initGroups(EfhCtx *pEfhCtx,
                runGr->list2print);
     if (pEfhRunCtx->groups[i].source != exch)
       on_error("id=%u,fhId = %u, "
-               "pEfhRunCtx->groups[i].source %s != exch %s",
-               id, pEfhCtx->fhId,
+               "pEfhRunCtx->groups[%u].source %s (%d) != "
+               "exch %s",
+               id, pEfhCtx->fhId, i,
                EKA_EXCH_SOURCE_DECODE(
                    pEfhRunCtx->groups[i].source),
+               (int)pEfhRunCtx->groups[i].source,
                EKA_EXCH_SOURCE_DECODE(exch));
 
     EkaFhGroup *gr = b_gr[pEfhRunCtx->groups[i].localId];

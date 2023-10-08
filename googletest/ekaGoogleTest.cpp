@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "TestCmeFc.h"
+#include "TestIgmpFixture.h"
 #include "TestP4.h"
 #include "TestP4FixedSecs.h"
 #include "TestP4PredefinedCtx.h"
@@ -255,6 +256,52 @@ TEST_F(TestP4, FailureDebug) {
   runTest(&tc);
 }
 #endif
+/* --------------------------------------------- */
+TEST_F(TestIgmpFixture, Box12x1_Emld3x4) {
+
+  // BOX: coreId = 0, 12 groups 1 per group
+  for (auto i = 0; i < 12; i++) {
+    TestEfhRunGrConfig rg = {.exch = EkaSource::kBOX_HSVF,
+                             .coreId = 0,
+                             .nMcgroups = 1,
+                             .firstGrId = 0};
+    runGroups_.push_back(rg);
+  }
+#if 1
+  // EMLD: coreId = 2, 3 groups 4 per group
+  for (auto i = 0; i < 3; i++) {
+    TestEfhRunGrConfig rg = {.exch = EkaSource::kEMLD_TOM,
+                             .coreId = 2,
+                             .nMcgroups = 4,
+                             .firstGrId = 0};
+    runGroups_.push_back(rg);
+  }
+#endif
+  runIgmpTest();
+}
+/* --------------------------------------------- */
+TEST_F(TestIgmpFixture, Emld3x4_Box12x1) {
+
+  // EMLD: coreId = 2, 3 groups 4 per group
+  for (auto i = 0; i < 3; i++) {
+    TestEfhRunGrConfig rg = {.exch = EkaSource::kEMLD_TOM,
+                             .coreId = 2,
+                             .nMcgroups = 4,
+                             .firstGrId = 0};
+    runGroups_.push_back(rg);
+  }
+
+  // BOX: coreId = 0, 12 groups 1 per group
+  for (auto i = 0; i < 12; i++) {
+    TestEfhRunGrConfig rg = {.exch = EkaSource::kBOX_HSVF,
+                             .coreId = 0,
+                             .nMcgroups = 1,
+                             .firstGrId = 0};
+    runGroups_.push_back(rg);
+  }
+
+  runIgmpTest();
+}
 /* --------------------------------------------- */
 int main(int argc, char **argv) {
   std::cout << "Main of " << argv[0] << "\n";
