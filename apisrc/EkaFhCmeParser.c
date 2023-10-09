@@ -337,7 +337,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
       case MDUpdateAction_T::New: {
 	auto dstMsg {reinterpret_cast<MdNewPlevel*>(msgBuf)};
 	    
-	hdr->mdMsgType  = EfhMdType::NewPlevel;
+	hdr->mdMsgType  = EfhMdType::kNewPlevel;
 	hdr->mdMsgSize  = sizeof(MdNewPlevel);
 	hdr->securityId = e->SecurityID;
 
@@ -352,7 +352,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
       case MDUpdateAction_T::Change: {
 	auto dstMsg {reinterpret_cast<MdChangePlevel*>(msgBuf)};
 	    
-	hdr->mdMsgType  = EfhMdType::ChangePlevel;
+	hdr->mdMsgType  = EfhMdType::kChangePlevel;
 	hdr->mdMsgSize  = sizeof(MdChangePlevel);
 	hdr->securityId = e->SecurityID;
 
@@ -368,7 +368,7 @@ int EkaFhCmeGr::process_MDIncrementalRefreshBook46(const EfhRunCtx* pEfhRunCtx,
       case MDUpdateAction_T::Delete: {
 	auto dstMsg {reinterpret_cast<MdDeletePlevel*>(msgBuf)};
 	    
-	hdr->mdMsgType  = EfhMdType::DeletePlevel;
+	hdr->mdMsgType  = EfhMdType::kDeletePlevel;
 	hdr->mdMsgSize  = sizeof(MdDeletePlevel);
 	hdr->securityId = e->SecurityID;
 

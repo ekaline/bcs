@@ -601,7 +601,7 @@ int EkaFhBatsGr::sendMdCb(const EfhRunCtx *pEfhRunCtx,
         reinterpret_cast<const add_order_long *>(m)};
     auto dstMsg{reinterpret_cast<MdNewOrder *>(msgBuf)};
 
-    hdr->mdMsgType = EfhMdType::NewOrder;
+    hdr->mdMsgType = EfhMdType::kNewOrder;
     hdr->mdMsgSize = sizeof(MdNewOrder);
     hdr->securityId = symbol2secId(srcMsg->symbol);
 
@@ -619,7 +619,7 @@ int EkaFhBatsGr::sendMdCb(const EfhRunCtx *pEfhRunCtx,
         reinterpret_cast<const add_order_short *>(m)};
     auto dstMsg{reinterpret_cast<MdNewOrder *>(msgBuf)};
 
-    hdr->mdMsgType = EfhMdType::NewOrder;
+    hdr->mdMsgType = EfhMdType::kNewOrder;
     hdr->mdMsgSize = sizeof(MdNewOrder);
     hdr->securityId = symbol2secId(srcMsg->symbol);
 
@@ -639,7 +639,7 @@ int EkaFhBatsGr::sendMdCb(const EfhRunCtx *pEfhRunCtx,
         reinterpret_cast<const add_order_expanded *>(m)};
     auto dstMsg{reinterpret_cast<MdNewOrder *>(msgBuf)};
 
-    hdr->mdMsgType = EfhMdType::NewOrder;
+    hdr->mdMsgType = EfhMdType::kNewOrder;
     hdr->mdMsgSize = sizeof(MdNewOrder);
     hdr->securityId = expSymbol2secId(srcMsg->exp_symbol);
 
