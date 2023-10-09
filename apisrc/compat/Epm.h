@@ -286,6 +286,12 @@ enum class EpmActionType : int {
 
   QEDHwPurge = 50,
 
+  // BC
+  CmeFc = 60,
+  EurFire = 61,
+
+  LAST_ACTION = 0xFFFF,
+
   // User Actions
   UserAction = 100 ///< EPM fire. No fields managed by HW
 };
