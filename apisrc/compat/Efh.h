@@ -138,42 +138,36 @@ EkaOpResult efhSetTradeTimeCtx( EfhCtx* efhCtx,
  * EfhMd functionality allows to get callback on every raw market data event
  *
  */
-enum class EfhMdType : uint16_t {
-  Invalid       = 0,
-    Generic,
-    Time,
-    Definition,
-    NewOrder,
-    NewQuote,
-    ModifyOrder,
-    ModifyQuote,
-    ReplaceOrder,
-    ReplaceQuote,
-    DeleteOrder,
-    DeleteQuote,
-    NewPlevel,
-    ChangePlevel,
-    DeletePlevel,
-    };
+enum class EfhMdType : uint8_t {
+#define EfhMdType_ENUM_ITER( _x )	\
+    _x( Invalid,       0 )		\
+    _x( Generic          )		\
+    _x( Time             )		\
+    _x( Definition       )		\
+    _x( NewOrder         )		\
+    _x( NewQuote         )		\
+    _x( ModifyOrder      )		\
+    _x( ModifyQuote      )		\
+    _x( ReplaceOrder     )		\
+    _x( ReplaceQuote     )		\
+    _x( DeleteOrder      )		\
+    _x( DeleteQuote      )		\
+    _x( NewPlevel        )		\
+    _x( ChangePlevel     )		\
+    _x( DeletePlevel     )
+  EfhMdType_ENUM_ITER( EKA__ENUM_DEF )
+};
 
-#define DecodeMdType(x)					\
-  x == EfhMdType::Invalid        ? "Invalid"      :	\
-    x == EfhMdType::Generic      ? "Generic"      :	\
-    x == EfhMdType::Time         ? "Time"         :	\
-    x == EfhMdType::Definition   ? "Definition"   :	\
-    x == EfhMdType::NewOrder     ? "NewOrder"     :	\
-    x == EfhMdType::NewQuote     ? "NewQuote"     :	\
-    x == EfhMdType::ModifyOrder  ? "ModifyOrder"  :	\
-    x == EfhMdType::ModifyQuote  ? "ModifyQuote"  :	\
-    x == EfhMdType::ReplaceOrder ? "ReplaceOrder" :	\
-    x == EfhMdType::ReplaceQuote ? "ReplaceQuote" :	\
-    x == EfhMdType::DeleteOrder  ? "DeleteOrder"  :	\
-    x == EfhMdType::DeleteQuote  ? "DeleteQuote"  :	\
-    x == EfhMdType::NewPlevel    ? "NewPlevel"    :	\
-    x == EfhMdType::ChangePlevel ? "ChangePlevel" :	\
-    x == EfhMdType::DeletePlevel ? "DeletePlevel" :	\
-    "UNKNOWN"
-    
+constexpr const char *DecodeMdType(const EfhMdType mdType) {
+  switch (mdType) {
+#define EKA__ENUM_DECODE(NAME, ...) \
+  case EfhMdType::EKA__DELAYED_CAT(k, NAME): return EKA__VAL(NAME);
+EfhMdType_ENUM_ITER(EKA__ENUM_DECODE)
+#undef EKA__ENUM_DECODE
+  default: return "UNKNOWN";
+  }
+}
+
 typedef struct {
   EfhMdType mdMsgType;
   uint16_t  mdRawMsgType;

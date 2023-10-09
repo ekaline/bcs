@@ -296,32 +296,32 @@ typedef void (*OnReportCb)(const void *report, size_t len, void *ctx);
   typedef uint32_t eka_in_addr_t; // replicated to avoid #include <netinet/in.h>
 
 struct EkaCoreInitAttrs {
-    #define EkaCoreInitAttrs_FIELD_ITER( _x )                                  \
-                _x( eka_in_addr_t,  host_ip )                                      \
-                _x( eka_in_addr_t,  netmask )                                      \
-                _x( eka_in_addr_t,  gateway )				\
-                _x( eka_ether_addr, nexthop_mac )                                  \
-                _x( eka_ether_addr, src_mac_addr)                                  \
-                _x( uint8_t,        dont_garp  )
-        EkaCoreInitAttrs_FIELD_ITER( EKA__FIELD_DEF )
+    #define EkaCoreInitAttrs_FIELD_ITER( _x )           \
+        _x( eka_in_addr_t,  host_ip )                   \
+        _x( eka_in_addr_t,  netmask )                   \
+        _x( eka_in_addr_t,  gateway )                   \
+        _x( eka_ether_addr, nexthop_mac )               \
+        _x( eka_ether_addr, src_mac_addr)               \
+        _x( uint8_t,        dont_garp  )
+    EkaCoreInitAttrs_FIELD_ITER( EKA__FIELD_DEF )
 };
  
 enum class EkaCredentialType {
-  #define EkaCredentialType_ENUM_ITER( _x )	\
-      _x( Unknown, 0 )       \
-      _x( MarketData )       \
-      _x( Snapshot   )       \
+  #define EkaCredentialType_ENUM_ITER( _x )     \
+      _x( Unknown, 0 )                          \
+      _x( MarketData )                          \
+      _x( Snapshot   )                          \
       _x( Recovery   )
   EkaCredentialType_ENUM_ITER( EKA__ENUM_DEF )
 };
 
 
 struct EkaCoreInitCtx {
-    #define EkaCoreInitCtx_FIELD_ITER( _x )                                             \
-                /** coreId This is the id of the core that we will be initializing. */  \
-                _x( EkaCoreId,       coreId )                                           \
-                _x( EkaCoreInitAttrs,    attrs )
-        EkaCoreInitCtx_FIELD_ITER( EKA__FIELD_DEF )
+    #define EkaCoreInitCtx_FIELD_ITER( _x )                                     \
+        /** coreId This is the id of the core that we will be initializing. */  \
+        _x( EkaCoreId,       coreId )                                           \
+        _x( EkaCoreInitAttrs,    attrs )
+    EkaCoreInitCtx_FIELD_ITER( EKA__FIELD_DEF )
 };
 
 struct EkaCredentialLease;
@@ -338,29 +338,29 @@ typedef int (*EkaAcquireCredentialsFn)(EkaCredentialType credType,
 typedef int (*EkaReleaseCredentialsFn)(EkaCredentialLease *lease, void* context);
 
 enum class EkaServiceType : uint8_t {
-  #define EkaServiceType_ENUM_ITER(_x)       \
-    _x ( Unspecified, 0 )                   \
-    _x ( FeedSnapshot )                     \
-    _x ( FeedRecovery )                     \
-    _x ( IGMP )                             \
-    _x ( PacketIO )                         \
-    _x ( LiveMarketData )                   \
-    _x ( Heartbeat )
-  EkaServiceType_ENUM_ITER( EKA__ENUM_DEF )
+    #define EkaServiceType_ENUM_ITER(_x)       \
+        _x ( Unspecified, 0 )                    \
+        _x ( FeedSnapshot )                      \
+        _x ( FeedRecovery )                      \
+        _x ( IGMP )                              \
+        _x ( PacketIO )                          \
+        _x ( LiveMarketData )                    \
+        _x ( Heartbeat )
+    EkaServiceType_ENUM_ITER( EKA__ENUM_DEF )
 };
 
 typedef int (*EkaThreadCreateFn)(const char* name, EkaServiceType type, void *(*start_routine)(void*),void *arg, void *context, uintptr_t *handle);
 
 struct EkaDevInitCtx {
-    #define EkaDevInitCtx_FIELD_ITER( _x )                              \
-                _x( EkaLogCallback,                    logCallback )    \
-                _x( void*,                             logContext  )	\
-                _x( EkaAcquireCredentialsFn,           credAcquire )	\
-                _x( EkaReleaseCredentialsFn,           credRelease )	\
-                _x( void*,                             credContext )	\
-                _x( EkaThreadCreateFn,                 createThread )	\
-                _x( void*,                             createThreadContext )
-        EkaDevInitCtx_FIELD_ITER( EKA__FIELD_DEF )
+    #define EkaDevInitCtx_FIELD_ITER( _x )                      \
+        _x( EkaLogCallback,                    logCallback )    \
+        _x( void*,                             logContext  )    \
+        _x( EkaAcquireCredentialsFn,           credAcquire )    \
+        _x( EkaReleaseCredentialsFn,           credRelease )    \
+        _x( void*,                             credContext )    \
+        _x( EkaThreadCreateFn,                 createThread )   \
+        _x( void*,                             createThreadContext )
+    EkaDevInitCtx_FIELD_ITER( EKA__FIELD_DEF )
 };
 
 /**
