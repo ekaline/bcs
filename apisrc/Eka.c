@@ -3,6 +3,7 @@
 
 #include "EkaDev.h"
 
+#define _EKA_LIB_RUN
 EkaDev *g_ekaDev;
 FILE *g_ekaLogFile;
 EkaLogCallback g_ekaLogCB;
