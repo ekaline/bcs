@@ -61,7 +61,7 @@ int EkaEpm::createRegion(int regionId) {
     auto globalIdx =
         EkaEpmRegion::getBaseActionIdx(regionId) + i;
     EkaEpmAction::copyHwActionParams2Fpga(&emptyAction,
-                                          globalIdx);
+                                          globalIdx, this);
   }
 
   initHeap(regionId, 0x0);
