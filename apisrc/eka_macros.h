@@ -41,7 +41,7 @@ class EkaDev;
 #endif
 
 #ifndef on_error
-#ifdef _EKA_LIB_RUN
+#ifdef EKA_LIB_RUN
 #define on_error(...)                                      \
   do {                                                     \
     const int err = errno;                                 \
@@ -53,12 +53,8 @@ class EkaDev;
       fprintf(stderr, ": %s (%d)", strerror(err), err);    \
     fprintf(stderr, "\n");                                 \
     fflush(stderr);                                        \
-    fprintf(g_ekaLogFile,                                  \
-            "EKALINE API LIB FATAL ERROR: %s@%s:%d: ",     \
-            __func__, __FILE__, __LINE__);                 \
-    fprintf(g_ekaLogFile, __VA_ARGS__);                    \
-    fprintf(g_ekaLogFile, "\n");                           \
-    fflush(g_ekaLogFile);                                  \
+    g_ekaLogCB(g_ekaLogFile, __FUNCTION__, __FILE__,       \
+               __LINE__, EKA_LOG_ERROR, __VA_ARGS__);      \
     std::quick_exit(1);                                    \
   } while (0)
 #else
