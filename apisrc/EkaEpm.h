@@ -234,6 +234,7 @@ public:
 
   std::mutex createActionMtx;
   std::mutex allocateActionMtx;
+  std::mutex writeAction2FpgaMtx;
 
   EpmTemplate *epmTemplate[(int)TemplateId::Count] = {};
 
