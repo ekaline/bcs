@@ -194,13 +194,13 @@ void EkaEpmAction::copyHwActionParams2Fpga(
 
   const uint64_t BufAddr = 0x89000;
   const uint64_t DescrAddr = 0xf0238;
-  pEpm->writeAction2FpgaMtx.lock();
+  pEpm->writeAction2FpgaMtx_->lock();
   copyBuf2Hw(g_ekaDev, BufAddr, (uint64_t *)params,
              sizeof(*params)); // write to scratchpad
 
   atomicIndirectBufWrite(g_ekaDev, DescrAddr, 0, 0,
                          actionGlobalIdx, 0);
-  pEpm->writeAction2FpgaMtx.unlock();
+  pEpm->writeAction2FpgaMtx_->unlock();
 }
 
 /* ---------------------------------------------------- */

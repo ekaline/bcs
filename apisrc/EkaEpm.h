@@ -24,6 +24,8 @@
 #include "EkaDev.h"
 #include "EkaEpmRegion.h"
 
+#include "EkaFileLock.h"
+
 class EkaEpmAction;
 class EkaUdpChannel;
 class EpmStrategy;
@@ -110,6 +112,7 @@ public:
   using ActionType = EpmActionType;
 
   EkaEpm(EkaDev *_dev);
+  ~EkaEpm();
 
   void initHeap(int regionId, uint8_t payloadByte = 0);
 
@@ -132,42 +135,6 @@ public:
   uint64_t getMaxStrategies() {
     return EkaEpmRegion::MaxStrategies;
   }
-
-#if 0
-  int getFreeAction(int regionId);
-
-  bool isActionReserved(int globalIdx);
-
-  EkaOpResult setAction(epm_strategyid_t strategy,
-                        epm_actionid_t action,
-                        const EpmAction *epmAction);
-
-  EkaOpResult getAction(epm_strategyid_t strategy,
-                        epm_actionid_t action,
-                        EpmAction *epmAction);
-
-  EkaOpResult enableController(EkaCoreId coreId,
-                               bool enable);
-
-  EkaOpResult
-  initStrategies(const EpmStrategyParams *params,
-                 epm_strategyid_t numStrategies);
-
-  EkaOpResult
-  setStrategyEnableBits(epm_strategyid_t strategy,
-                        epm_enablebits_t enable);
-  EkaOpResult
-  getStrategyEnableBits(epm_strategyid_t strategy,
-                        epm_enablebits_t *enable);
-
-  EkaOpResult raiseTriggers(const EpmTrigger *trigger);
-
-  EkaOpResult payloadHeapCopy(epm_strategyid_t strategy,
-                              uint32_t offset,
-                              uint32_t length,
-                              const void *contents,
-                              const bool isUdpDatagram);
-#endif
 
   void DownloadSingleTemplate2HW(EpmTemplate *t);
 
@@ -201,7 +168,7 @@ public:
   static const uint EpmMaxRawTcpSize =
       EkaDev::MAX_ETH_FRAME_SIZE;
 
-  volatile bool active = false;
+  volatile bool active_ = false;
   EkaDev *dev = NULL;
   /*
     EpmTemplate *tcpFastPathPkt = NULL;
@@ -234,11 +201,12 @@ public:
 
   std::mutex createActionMtx;
   std::mutex allocateActionMtx;
-  std::mutex writeAction2FpgaMtx;
 
   EpmTemplate *epmTemplate[(int)TemplateId::Count] = {};
 
   EkaEpmAction *a_[TotalEpmActions] = {};
+
+  EkaFileLock *writeAction2FpgaMtx_;
 
 private:
   bool actionOccupied_[TotalEpmActions] = {};
