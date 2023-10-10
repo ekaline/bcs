@@ -592,6 +592,7 @@ NYSE AMERICAN Options 174 NYSE American TOP - Imbalances
     case '1' : return EfhOrderCapacity::kAgency; // Firm
     case '2' : return EfhOrderCapacity::kBrokerDealer;
     case '3' : return EfhOrderCapacity::kMarketMaker;
+    case '5' : return EfhOrderCapacity::kAwayMarketMaker;
     case '8' : return EfhOrderCapacity::kProfessionalCustomer;
     default  :
       on_error("Unexpected RFQ capacity \'%c\'",capacity);
@@ -664,6 +665,7 @@ NYSE AMERICAN Options 174 NYSE American TOP - Imbalances
     // 			 • 1 = Firm
     // 			 • 2 = Broker Dealer
     // 			 • 3 = Market Maker
+    // 			 • 5 = Away Market Maker
     // 			 • 8 = Professional Customer
     // 			 Note: This field is used for BOLD only
 
