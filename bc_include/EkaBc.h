@@ -15,6 +15,9 @@ struct EkaBcAffinityConfig {
   int igmpThreadCpuId;
 };
 
+typedef int EkaBcSock;
+typedef int EkaBcActionIdx;
+
 EkaDev *ekaBcOpenDev(
     const EkaBcAffinityConfig *affinityConf = NULL);
 
@@ -23,13 +26,13 @@ int ekaBcCloseDev(EkaDev *pEkaDev);
 int ekaBcTcpConnect(EkaDev *pEkaDev, int8_t lane,
                     const char *ip, uint16_t port);
 
-ssize_t ekaBcSend(EkaDev *pEkaDev, int sock,
+ssize_t ekaBcSend(EkaDev *pEkaDev, EkaBcSock sock,
                   const void *buf, size_t size);
 
-ssize_t ekaBcRecv(EkaDev *pEkaDev, int sock, void *buf,
-                  size_t size);
+ssize_t ekaBcRecv(EkaDev *pEkaDev, EkaBcSock sock,
+                  void *buf, size_t size);
 
-int ekaBcCloseSock(EkaDev *pEkaDev, int sock);
+int ekaBcCloseSock(EkaDev *pEkaDev, EkaBcSock sock);
 
 int ekaBcFcInit(EkaDev *pEkaDev);
 
@@ -84,17 +87,17 @@ void ekaBcFcRun(EkaDev *pEkaDev,
 void ekaBcEnableController(EkaDev *pEkaDev, bool enable,
                            uint32_t ver = 0);
 
-ssize_t ekaBcCmeSendHB(EkaDev *pEkaDev, int sock,
+ssize_t ekaBcCmeSendHB(EkaDev *pEkaDev, EkaBcSock sock,
                        const void *buffer, size_t size);
 
-int ekaBcCmeSetILinkAppseq(EkaDev *ekaDev, int sock,
+int ekaBcCmeSetILinkAppseq(EkaDev *ekaDev, EkaBcSock sock,
                            int32_t appSequence);
 
 void efcBCPrintFireReport(const void *p, size_t len,
                           void *ctx);
 
 struct EkaBcAction {
-  int sock;       ///< TCP connection
+  EkaBcSock sock; ///< TCP connection
   int nextAction; ///< Next action in sequence
 };
 
@@ -117,12 +120,10 @@ struct EkaBcActionParams {
   int nextAction;
 };
 
+// obsolete, better to use
 int ekaBcSetActionParams(
     EkaDev *pEkaDev, int actionIdx,
     const struct EkaBcActionParams *params);
-
-int ekaBcSetActionPayload(EkaDev *pEkaDev, int actionIdx,
-                          const void *payload, size_t len);
 
 ///////////////////////
 // Reports
@@ -410,5 +411,198 @@ END:
   return d - dst;
 }
 
+/* ====================================================== */
+
+/**
+ * Init config passed to efcInit()
+ * Sets configuration for all strategies running
+ * under Efc
+ */
+struct EkaBcInitCtx {
+  bool report_only; // The HW generated Fires are not
+                    // really sent, but generate Fire Report
+  uint64_t watchdog_timeout_sec;
+};
+
+/**
+ * @brief Required before initializing Eurex Strategy.
+ *        Checks HW compatibility and creates Efc module
+ *
+ * @param ekaDev
+ * @param efcInitCtx
+ * @return int
+ */
+int ekaBcInit(EkaDev *ekaDev,
+              const EkaBcInitCtx *ekaBcInitCtx);
+
+// same as EkaBcFcRunCtx
+struct EkaBcRunCtx {
+  OnReportCb onEfcFireReportCb;
+  void *cbCtx;
+};
+
+// same as onEkaBcFcReportCb
+
+typedef void (*onEkaBcReportCb)(const void *report,
+                                size_t len, void *ctx);
+
+// same as ekaBcFcRun()
+void ekaBcRun(EkaDev *pEkaDev,
+              struct EkaBcFcRunCtx *pEkaBcFcRunCtx);
+
+enum class EkaBcActionType : int {
+  INVALID = 0,
+  CmeFc = 60,
+  EurFire = 61,
+
+  LAST_ACTION = 0xFFFF
+};
+
+/**
+ * Allocates a new Action from the Strategy pool.
+ *
+ * Every action has it's own reserved Heap space of
+ * 1536 Bytes for the network headers and the payload
+ *
+ * @param [in] pEkaDev
+ *
+ * @param [in] type EkaBcActionType of the requested Action
+ *
+ * @retval global index of the allocated Action or -1 if
+ * failed
+ */
+EkaBcActionIdx ekaBcAllocateNewAction(EkaDev *ekaDev,
+                                      EkaBcActionType type);
+
+/**
+ * @brief
+ *
+ * @param ekaDev
+ * @param actionIdx - global idx in range of 0..8K-1
+ * @param payload
+ * @param len
+ * @return * int
+ */
+int ekaBcSetActionPayload(EkaDev *ekaDev,
+                          EkaBcActionIdx actionIdx,
+                          const void *payload, size_t len);
+
+/**
+ * @brief Set the Action to previously connected Ekaline
+ * (Exc) Tcp Socket object
+ *
+ * @param ekaDev
+ * @param globalIdx
+ * @param excSock
+ * @return int
+ */
+int ekaBcSetActionTcpSock(EkaDev *ekaDev,
+                          EkaBcActionIdx actionIdx,
+                          EkaBcSock sock);
+
+/**
+ * @brief Set the Action Next hop in the chain. Use
+ * LAST_ACTION for the end-of-chain. Action is created
+ * with a default value of EPM_LAST_ACTION
+ *
+ *
+ * @param ekaDev
+ * @param globalIdx
+ * @param nextActionGlobalIdx
+ * @return int
+ */
+int ekaBcSetActionNext(EkaDev *ekaDev,
+                       EkaBcActionIdx actionIdx,
+                       EkaBcActionIdx nextActionIdx);
+
+/**
+ * @brief Send application message via HW action with
+ * predefined template. Should be used for sending
+ * Orders/Quotes/Cancels/Heartbeats if some fields like
+ * Application Sequence or Timestamp must be managed by
+ * HW.
+ *
+ * @param pEkaDev
+ * @param actionId
+ * @param buffer
+ * @param size
+ * @return ssize_t
+ */
+ssize_t ekaBcAppSend(EkaDev *pEkaDev,
+                     EkaBcActionIdx actionIdx,
+                     const void *buffer, size_t size);
+
+/* ====================================================== */
+typedef enum {
+  INVALID = 0,
+  // eobi
+  EKA_DAX = 1,
+  EKA_ESX = 2,
+  EKA_GBL = 3,
+  EKA_GBM = 4,
+  EKA_GBS = 5,
+  EKA_BTP = 6,
+  EKA_GBX = 7,
+  EKA_OAT = 8,
+  EKA_SMI = 9,
+  EKA_BONO = 10,
+  // cme
+  EKA_NQ = 1,
+  EKA_ES = 2,
+  EKA_DM = 3
+} eka_product_t;
+
+// SW Only, manipulated by library
+struct jump_params_t {
+  uint32_t max_tob_size;
+  uint32_t max_post_size;
+  uint32_t min_ticker_size;
+  uint64_t min_price_delta;
+  uint32_t buy_size;
+  uint32_t sell_size;
+  bool strat_en;
+};
+
+#define EKA_JUMP_ATBEST_SETS 4
+#define EKA_JUMP_BETTERBEST_SETS 5
+
+#define EKA_RJUMP_ATBEST_SETS 4
+#define EKA_RJUMP_BETTERBEST_SETS 6
+
+struct jump_strategy_params_t {
+  struct jump_params_t
+      better_best[EKA_JUMP_BETTERBEST_SETS];
+  struct jump_params_t at_best[EKA_JUMP_ATBEST_SETS];
+};
+
+struct reference_jump_params_t {
+  uint32_t max_tob_size;
+  uint32_t min_tob_size;
+  uint32_t max_opposit_tob_size;
+  uint64_t time_delta_ns;
+  uint32_t tickersize_lots;
+  uint32_t buy_size;
+  uint32_t sell_size;
+  uint8_t min_spread;
+  bool strat_en;
+};
+
+struct reference_jump_strategy_params_t {
+  struct reference_jump_params_t
+      better_best[EKA_RJUMP_BETTERBEST_SETS];
+  struct reference_jump_params_t
+      at_best[EKA_RJUMP_ATBEST_SETS];
+};
+
+int ekaBcInitEurStrategy(EkaDev *dev);
+
+int eka_set_jump_params(
+    EkaDev *dev,
+    const struct jump_strategy_params_t *params,
+    eka_product_t product_id);
+int eka_set_reference_jump_params(
+    EkaDev *dev,
+    const struct reference_jump_strategy_params_t *params,
+    eka_product_t product_id, eka_product_t reference_id);
 } // End of extern "C"
 #endif

@@ -104,8 +104,8 @@ int ekaBcTcpConnect(EkaDev *dev, int8_t coreId,
   return hSocket;
 }
 
-ssize_t ekaBcSend(EkaDev *dev, int sock, const void *buf,
-                  size_t size) {
+ssize_t ekaBcSend(EkaDev *dev, EkaBcActionIdx sock,
+                  const void *buf, size_t size) {
   EkaTcpSess *const s = dev->findTcpSess(sock);
   if (!s) {
     EKA_WARN("TCP sock %d not found", sock);
@@ -115,7 +115,7 @@ ssize_t ekaBcSend(EkaDev *dev, int sock, const void *buf,
                         size, 0);
 }
 
-ssize_t ekaBcCmeSendHB(EkaDev *dev, int sock,
+ssize_t ekaBcCmeSendHB(EkaDev *dev, EkaBcActionIdx sock,
                        const void *buffer, size_t size) {
   auto s = dev->findTcpSess(sock);
   if (!s) {
@@ -126,7 +126,7 @@ ssize_t ekaBcCmeSendHB(EkaDev *dev, int sock,
                     0, false);
 }
 
-ssize_t ekaBcRecv(EkaDev *dev, int sock, void *buf,
+ssize_t ekaBcRecv(EkaDev *dev, EkaBcSock sock, void *buf,
                   size_t size) {
   auto s = dev->findTcpSess(sock);
   if (!s) {
@@ -136,7 +136,7 @@ ssize_t ekaBcRecv(EkaDev *dev, int sock, void *buf,
   return s->recv(buf, size, 0);
 }
 
-int ekaBcCmeSetILinkAppseq(EkaDev *dev, int sock,
+int ekaBcCmeSetILinkAppseq(EkaDev *dev, EkaBcSock sock,
                            int32_t appSequence) {
   auto s = dev->findTcpSess(sock);
   if (!s) {
@@ -148,7 +148,7 @@ int ekaBcCmeSetILinkAppseq(EkaDev *dev, int sock,
   return 0;
 }
 
-int ekaBcCloseSock(EkaDev *dev, int sock) {
+int ekaBcCloseSock(EkaDev *dev, EkaBcSock sock) {
   auto s = dev->findTcpSess(sock);
   if (!s) {
     EKA_WARN("TCP sock %d not found", sock);
@@ -165,6 +165,22 @@ int ekaBcFcInit(EkaDev *dev) {
   EfcCtx *pEfcCtx = &efcCtx;
 
   EfcInitCtx initCtx = {.feedVer = EfhFeedVer::kCME};
+  auto rc = efcInit(&pEfcCtx, dev, &initCtx);
+  if (rc != EkaOpResult::EKA_OPRESULT__OK)
+    return -1;
+  return 0;
+}
+
+int ekaBcInit(EkaDev *ekaDev,
+              const EkaBcInitCtx *ekaBcInitCtx) {
+  EfcCtx efcCtx = {};
+  EfcCtx *pEfcCtx = &efcCtx;
+
+  EfcInitCtx initCtx = {
+      .report_only = ekaBcInitCtx->report_only,
+      .watchdog_timeout_sec =
+          ekaBcInitCtx->watchdog_timeout_sec};
+
   auto rc = efcInit(&pEfcCtx, dev, &initCtx);
   if (rc != EkaOpResult::EKA_OPRESULT__OK)
     return -1;
@@ -305,4 +321,48 @@ void ekaBcFcRun(EkaDev *dev,
       .onEfcFireReportCb = pEkaBcFcRunCtx->onReportCb};
   EfcCtx efcCtx = {.dev = dev};
   efcRun(&efcCtx, &efcRunCtx);
+}
+
+void ekaBcRun(EkaDev *dev,
+              struct EkaBcRunCtx *pEkaBcRunCtx) {
+  struct EfcRunCtx efcRunCtx = {
+      .onEfcFireReportCb = pEkaBcRunCtx->onReportCb};
+  EfcCtx efcCtx = {.dev = dev};
+  efcRun(&efcCtx, &efcRunCtx);
+}
+
+static EpmActionType bc2epmAction(EkaBcActionType type) {
+  switch (type) {
+  case EkaBcActionType::CmeFc:
+    return EpmActionType::CmeFc;
+
+  case EkaBcActionType::EurFire:
+    return EpmActionType::EurFire;
+
+  default:
+    on_error("Unexpected EkaBcActionType %d", (int)(type));
+  }
+}
+
+int ekaBcAllocateFcAction(EkaDev *dev,
+                          EkaBcActionType type) {
+  return efcAllocateNewAction(dev, bc2epmAction(type));
+}
+
+EkaOpResult ekaBcSetActionTcpSock(EkaDev *ekaDev,
+                                  EkaBcActionIdx actionIdx,
+                                  EkaBcSock sock) {
+  return setActionTcpSock(ekaDev, actionIdx, sock);
+}
+
+EkaOpResult
+ekaBcSetActionNext(EkaDev *ekaDev, EkaBcActionIdx actionIdx,
+                   EkaBcActionIdx nextActionIdx) {
+  return setActionNext(ekaDev, actionIdx, nextActionIdx);
+}
+
+ssize_t ekaBcAppSend(EkaDev *pEkaDev,
+                     EkaBcActionIdx actionIdx,
+                     const void *buffer, size_t size) {
+  return efcAppSend(pEkaDev, actionIdx, buffer, size);
 }
