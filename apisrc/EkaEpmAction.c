@@ -173,15 +173,8 @@ int EkaEpmAction::setHwAction() {
   hwAction_.payloadSize = pktSize_;
   hwAction_.tcpCsSizeSource = setTcpCsSizeSource(type_);
 
-#if 0
-  copyBuf2Hw(dev_, EkaEpm::EpmActionBase,
-             (uint64_t *)&hwAction_,
-             sizeof(hwAction_)); // write to scratchpad
-  atomicIndirectBufWrite(dev_, 0xf0238 /* ActionAddr */, 0,
-                         0, globalIdx(), 0);
-#endif
-
-  copyHwActionParams2Fpga(&hwAction_, globalIdx(), epm_);
+  copyHwActionParams2Fpga(&hwAction_, globalIdx(),
+                          regionId_, idx_, epm_);
 
   print("setHwAction");
   printHwAction();
@@ -190,17 +183,24 @@ int EkaEpmAction::setHwAction() {
 /* ---------------------------------------------------- */
 void EkaEpmAction::copyHwActionParams2Fpga(
     const epm_action_t *params, uint actionGlobalIdx,
-    EkaEpm *pEpm) {
+    uint regionId, uint localIdx, EkaEpm *pEpm) {
 
   const uint64_t BufAddr = 0x89000;
   const uint64_t DescrAddr = 0xf0238;
-  pEpm->writeAction2FpgaMtx_->lock();
+
+  char msg[256] = {};
+  sprintf(msg, "region %u, action Idx %u", regionId,
+          localIdx);
+
+  pEpm->writeAction2FpgaMtx_file_->lock(msg);
+  pEpm->writeAction2FpgaMtx_.lock();
   copyBuf2Hw(g_ekaDev, BufAddr, (uint64_t *)params,
              sizeof(*params)); // write to scratchpad
 
   atomicIndirectBufWrite(g_ekaDev, DescrAddr, 0, 0,
                          actionGlobalIdx, 0);
-  pEpm->writeAction2FpgaMtx_->unlock();
+  pEpm->writeAction2FpgaMtx_.unlock();
+  pEpm->writeAction2FpgaMtx_file_->unlock(msg);
 }
 
 /* ---------------------------------------------------- */
@@ -721,7 +721,8 @@ int EkaEpmAction::preloadFullPkt(const void *buf,
 
   memcpy(&epm_->heap[heapOffs_], buf, pktSize_);
   copyHeap2Fpga();
-  copyHwActionParams2Fpga(&hwAction_, globalIdx(), epm_);
+  copyHwActionParams2Fpga(&hwAction_, globalIdx(),
+                          regionId_, idx_, epm_);
 
   return 0;
 }

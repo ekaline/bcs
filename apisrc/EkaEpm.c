@@ -27,7 +27,7 @@ EkaEpm::EkaEpm(EkaDev *_dev) {
   dev = _dev;
   active_ = true;
 
-  writeAction2FpgaMtx_ = new EkaFileLock(
+  writeAction2FpgaMtx_file_ = new EkaFileLock(
       "/tmp/_eka_writeAction2FpgaMtx_.lock", &active_);
 
   const size_t strLen = 1024 * 64;
@@ -44,7 +44,7 @@ EkaEpm::EkaEpm(EkaDev *_dev) {
 /* ---------------------------------------------------- */
 EkaEpm::~EkaEpm() {
   active_ = false;
-  delete writeAction2FpgaMtx_;
+  delete writeAction2FpgaMtx_file_;
 }
 /* ---------------------------------------------------- */
 int EkaEpm::createRegion(int regionId) {
@@ -65,12 +65,12 @@ int EkaEpm::createRegion(int regionId) {
               EkaEpmRegion::getHeapSize(regionId) - 1);
 
 #ifndef _VERILOG_SIM
-  for (auto i = 0; i < nActions; i++) {
+  for (uint i = 0; i < nActions; i++) {
     epm_action_t emptyAction = {};
     auto globalIdx =
         EkaEpmRegion::getBaseActionIdx(regionId) + i;
-    EkaEpmAction::copyHwActionParams2Fpga(&emptyAction,
-                                          globalIdx, this);
+    EkaEpmAction::copyHwActionParams2Fpga(
+        &emptyAction, globalIdx, regionId, i, this);
   }
 
   initHeap(regionId, 0x0);

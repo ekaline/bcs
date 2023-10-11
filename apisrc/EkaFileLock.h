@@ -9,9 +9,9 @@ public:
 
   ~EkaFileLock();
 
-  int lock();
+  int lock(const char *msg);
 
-  int unlock();
+  int unlock(const char *msg);
 
 private:
   int lockfd_ = -1;
