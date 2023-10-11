@@ -202,11 +202,15 @@ public:
   std::mutex createActionMtx;
   std::mutex allocateActionMtx;
 
+  // to protect threads belonging to 1 process
+  std::mutex writeAction2FpgaMtx_;
+
+  // to protect processes
+  EkaFileLock *writeAction2FpgaMtx_file_;
+
   EpmTemplate *epmTemplate[(int)TemplateId::Count] = {};
 
   EkaEpmAction *a_[TotalEpmActions] = {};
-
-  EkaFileLock *writeAction2FpgaMtx_;
 
 private:
   bool actionOccupied_[TotalEpmActions] = {};
