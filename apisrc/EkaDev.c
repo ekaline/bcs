@@ -487,7 +487,7 @@ EkaDev::~EkaDev() {
   fflush(stderr);
 
   EKA_LOG("Closing Epm");
-  dev->epm->active = false;
+  dev->epm->active_ = false;
 
   if (efc) {
     EKA_LOG("Closing Efc");

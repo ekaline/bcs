@@ -93,7 +93,8 @@ public:
   /* ------------------------------------------------ */
 
   static void copyHwActionParams2Fpga(const epm_action_t *,
-                                      uint actionGlobalIdx);
+                                      uint actionGlobalIdx,
+                                      EkaEpm *pEpm);
 
 public:
 private:

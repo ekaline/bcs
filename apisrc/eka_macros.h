@@ -41,6 +41,7 @@ class EkaDev;
 #endif
 
 #ifndef on_error
+#ifdef EKA_LIB_RUN
 #define on_error(...)                                      \
   do {                                                     \
     const int err = errno;                                 \
@@ -51,7 +52,39 @@ class EkaDev;
     if (err)                                               \
       fprintf(stderr, ": %s (%d)", strerror(err), err);    \
     fprintf(stderr, "\n");                                 \
-    fflush(stdout);                                        \
+    fflush(stderr);                                        \
+    g_ekaLogCB(g_ekaLogFile, __FUNCTION__, __FILE__,       \
+               __LINE__, EKA_LOG_ERROR, __VA_ARGS__);      \
+    std::quick_exit(1);                                    \
+  } while (0)
+#else
+#define on_error(...)                                      \
+  do {                                                     \
+    const int err = errno;                                 \
+    fprintf(stderr,                                        \
+            "EKALINE API LIB FATAL ERROR: %s@%s:%d: ",     \
+            __func__, __FILE__, __LINE__);                 \
+    fprintf(stderr, __VA_ARGS__);                          \
+    if (err)                                               \
+      fprintf(stderr, ": %s (%d)", strerror(err), err);    \
+    fprintf(stderr, "\n");                                 \
+    fflush(stderr);                                        \
+    std::quick_exit(1);                                    \
+  } while (0)
+#endif
+#endif
+
+#ifndef on_error_stderr
+#define on_error_stderr(...)                               \
+  do {                                                     \
+    const int err = errno;                                 \
+    fprintf(stderr,                                        \
+            "EKALINE API LIB FATAL ERROR: %s@%s:%d: ",     \
+            __func__, __FILE__, __LINE__);                 \
+    fprintf(stderr, __VA_ARGS__);                          \
+    if (err)                                               \
+      fprintf(stderr, ": %s (%d)", strerror(err), err);    \
+    fprintf(stderr, "\n");                                 \
     fflush(stderr);                                        \
     std::quick_exit(1);                                    \
   } while (0)
@@ -364,8 +397,8 @@ inline std::string ts_ns2str(uint64_t ts) {
 
 // inline bool isStaleData(uint64_t exchTS,
 // 												uint64_t
-// StaleDataNanosecThreshold) { 		uint64_t exchNs
-// = exchTS % 1'000'000'000;
+// StaleDataNanosecThreshold) { 		uint64_t
+// exchNs = exchTS % 1'000'000'000;
 
 // 		auto now =
 // std::chrono::high_resolution_clock::now();

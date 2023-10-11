@@ -179,6 +179,8 @@ set_property(TARGET ${EKA_LIB_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_compile_options(${EKA_LIB_NAME} PRIVATE -std=c++23 -O3 -funroll-loops
                                                -pthread -pipe -march=native)
 
+target_compile_definitions(${EKA_LIB_NAME} PUBLIC EKA_LIB_RUN)
+
 if(FhLab)
   target_compile_definitions(${EKA_LIB_NAME} PUBLIC FH_LAB)
   target_compile_definitions(${EKA_LIB_NAME} PUBLIC EKA_TEST_IGNORE_DEFINITIONS)
@@ -245,6 +247,8 @@ target_include_directories(${EKA_LIB_NAME}_static PUBLIC ${EKA_INC_PATH})
 
 target_compile_definitions(${EKA_LIB_NAME}_static
                            PUBLIC LIBEKA_GIT_VER=${EKA_GIT_VER})
+
+target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC EKA_LIB_RUN)
 
 if(FhLab)
   target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC FH_LAB)

@@ -25,6 +25,10 @@
 
 EkaEpm::EkaEpm(EkaDev *_dev) {
   dev = _dev;
+  active_ = true;
+
+  writeAction2FpgaMtx_ = new EkaFileLock(
+      "/tmp/_eka_writeAction2FpgaMtx_.lock", &active_);
 
   const size_t strLen = 1024 * 64;
   auto epmRegionConfigString = new char[strLen];
@@ -36,6 +40,11 @@ EkaEpm::EkaEpm(EkaDev *_dev) {
   EKA_LOG("Created Epm with Regions:\n%s",
           epmRegionConfigString);
   delete[] epmRegionConfigString;
+}
+/* ---------------------------------------------------- */
+EkaEpm::~EkaEpm() {
+  active_ = false;
+  delete writeAction2FpgaMtx_;
 }
 /* ---------------------------------------------------- */
 int EkaEpm::createRegion(int regionId) {
@@ -61,7 +70,7 @@ int EkaEpm::createRegion(int regionId) {
     auto globalIdx =
         EkaEpmRegion::getBaseActionIdx(regionId) + i;
     EkaEpmAction::copyHwActionParams2Fpga(&emptyAction,
-                                          globalIdx);
+                                          globalIdx, this);
   }
 
   initHeap(regionId, 0x0);
@@ -111,251 +120,6 @@ void EkaEpm::initHeap(int regionId, uint8_t payloadByte) {
 
 /* ---------------------------------------------------- */
 
-#if 0
-EkaOpResult
-EkaEpm::raiseTriggers(const EpmTrigger *trigger) {
-  if (!trigger)
-    on_error("!trigger");
-  if (!dev->fireReportThreadActive) {
-    on_error(
-        "fireReportThread is not active! Call efcRun()");
-  }
-
-  uint strategyId = trigger->strategy;
-  uint actionId = trigger->action;
-  EKA_LOG("Raising Trigger: strategyId %u, ActionId %u",
-          strategyId, actionId);
-  fflush(stderr);
-
-  auto s = strategy[strategyId];
-  if (!s)
-    on_error("!strategy[%u]", strategyId);
-
-  auto a = s->action[actionId];
-  if (!a)
-    on_error("!strategy[%u]->action[%u]", strategyId,
-             actionId);
-
-  EKA_LOG("Accepted Trigger: token=0x%jx, strategyId=%d, "
-					"FistActionId=%d, ekaAction->idx = %u, "
-					"epm_trig_desc.str.action_index=%u",
-					trigger->token,strategyId,actionId,
-					a->idx,
-					epm_trig_desc.str.action_index);
-  a->send();
-
-  EKA_LOG("User Action: actionType = %u, strategyId=%u, "
-					"actionId=%u,heapAddr=%ju, pktSize=%u",
-  	  a->hwAction.tcpCsSizeSource,
-  	  strategyId,actionId,
-  	  a->hwAction.data_db_ptr,
-  	  a->hwAction.payloadSize
-  	  );
-  eka_write(dev,EPM_TRIGGER_DESC_ADDR,epm_trig_desc.desc);
-  return EKA_OPRESULT__OK;
-}
-#endif
-
-/* ---------------------------------------------------- */
-#if 0
-EkaOpResult EkaEpm::setAction(epm_strategyid_t strategyIdx,
-                              epm_actionid_t actionIdx,
-                              const EpmAction *epmAction) {
-
-  /* if (strategyIdx == EFC_STRATEGY) { */
-  /*   if (dev->efc == NULL) { */
-  /*     EKA_WARN ("EKA_OPRESULT__ERR_EFC_UNINITALIZED"); */
-  /*     return EKA_OPRESULT__ERR_EFC_UNINITALIZED; */
-  /*   } */
-  /*   EKA_LOG("Creating EFC Action %u",actionIdx); */
-  /*   EkaEpmAction* fireAction =
-   * dev->efc->createFireAction(actionIdx,
-   * epmAction->hConn); */
-  /*   if (fireAction == NULL) on_error("fireAction ==
-   * NULL"); */
-
-  /*   fireAction->updateAttrs(excGetCoreId(epmAction->hConn),
-   */
-  /* 			    excGetSessionId(epmAction->hConn),
-   */
-  /* 			    epmAction); */
-
-  /*   fireAction->updatePayload(epmAction->offset,epmAction->length);
-   */
-
-  /*   return EKA_OPRESULT__OK; */
-  /* } */
-
-  if (!initialized) {
-    EKA_WARN("EKA_OPRESULT__ERR_EPM_UNINITALIZED");
-    return EKA_OPRESULT__ERR_EPM_UNINITALIZED;
-  }
-
-  if (!validStrategyIdx(strategyIdx)) {
-    EKA_WARN("EKA_OPRESULT__ERR_INVALID_STRATEGY: "
-             "strategyIdx=%d",
-             strategyIdx);
-    return EKA_OPRESULT__ERR_INVALID_STRATEGY;
-  }
-  if (!strategy[strategyIdx]->myAction(actionIdx)) {
-    EKA_WARN("EKA_OPRESULT__ERR_INVALID_ACTION: "
-             "strategyIdx=%d, actionIdx=%d",
-             strategyIdx, actionIdx);
-    return EKA_OPRESULT__ERR_INVALID_ACTION;
-  }
-  EKA_LOG("Setting Action %d epmAction->type=\'%s\'",
-          actionIdx, printActionType(epmAction->type));
-  return strategy[strategyIdx]->setAction(actionIdx,
-                                          epmAction);
-}
-/* ---------------------------------------------------- */
-EkaOpResult EkaEpm::getAction(epm_strategyid_t strategyIdx,
-                              epm_actionid_t actionIdx,
-                              EpmAction *epmAction) {
-  if (!initialized)
-    return EKA_OPRESULT__ERR_EPM_UNINITALIZED;
-  if (!validStrategyIdx(strategyIdx))
-    return EKA_OPRESULT__ERR_INVALID_STRATEGY;
-  if (!strategy[strategyIdx]->myAction(actionIdx))
-    return EKA_OPRESULT__ERR_INVALID_ACTION;
-
-  return strategy[strategyIdx]->getAction(actionIdx,
-                                          epmAction);
-}
-/* ---------------------------------------------------- */
-
-EkaOpResult EkaEpm::enableController(EkaCoreId coreId,
-                                     bool enable) {
-  controllerEnabled = enable;
-
-  uint64_t fire_rx_en = eka_read(dev, ENABLE_PORT);
-  if (enable) {
-    fire_rx_en |= 1ULL << (coreId);      // rx
-    fire_rx_en |= 1ULL << (16 + coreId); // fire
-    EKA_LOG("Controller enabled for coreId %u (0x%016jx)",
-            coreId, fire_rx_en);
-  } else {
-    fire_rx_en &= ~(1ULL << (coreId));      // rx
-    fire_rx_en &= ~(1ULL << (16 + coreId)); // fire
-    EKA_LOG("Controller disabled for coreId %u (0x%016jx)",
-            coreId, fire_rx_en);
-  }
-  eka_write(dev, ENABLE_PORT, fire_rx_en);
-
-  return EKA_OPRESULT__OK;
-}
-#endif
-/* ---------------------------------------------------- */
-
-#if 0
-EkaOpResult
-EkaEpm::initStrategies(const EpmStrategyParams *params,
-                       epm_strategyid_t numStrategies) {
-  if (numStrategies > EkaEpmRegion::MaxStrategies)
-    on_error("numStrategies %u > MaxStrategies %d",
-             numStrategies, EkaEpmRegion::MaxStrategies);
-
-  stratNum = numStrategies;
-
-  createRegion(EkaEpmRegion::Regions::EfcMc);
-
-  epm_actionid_t currActionIdx = 0;
-
-  //  for (auto i = 0; i < EkaEpmRegion::MaxStrategies; i++)
-  //  {
-  for (auto i = 0; i < stratNum; i++) {
-
-    EKA_LOG("Imitializing strategy %d, hwFeedVer=%d", i,
-            (int)dev->hwFeedVer);
-    if (epmRegion[i])
-      on_error("epmRegion[%d] is already initialized", i);
-    createRegion(i);
-
-    if (strategy[i])
-      on_error("strategy[%d] is already initialized", i);
-
-    if (i == EFC_STRATEGY) {
-      dev->ekaHwCaps->checkEfc();
-      strategy[i] = new EkaEfc(this, i, currActionIdx,
-                               &params[i], dev->hwFeedVer);
-    } else {
-      strategy[i] =
-          new EpmStrategy(this, i, currActionIdx,
-                          &params[i], dev->hwFeedVer);
-    }
-    if (!strategy[i])
-      on_error("Fail to create strategy[%d]", i);
-
-    currActionIdx += params[i].numActions;
-
-    /*     if (currActionIdx > (int)MaxUserActions)
-          on_error("currActionIdx %d > MaxUserActions
-       %ju", currActionIdx,MaxUserActions); */
-  }
-
-  initialized = true;
-  return EKA_OPRESULT__OK;
-}
-#endif
-/* ---------------------------------------------------- */
-
-#if 0
-EkaOpResult
-EkaEpm::setStrategyEnableBits(epm_strategyid_t strategyIdx,
-                              epm_enablebits_t enable) {
-  if (!initialized)
-    return EKA_OPRESULT__ERR_EPM_UNINITALIZED;
-
-  if (!validStrategyIdx(strategyIdx))
-    return EKA_OPRESULT__ERR_INVALID_STRATEGY;
-
-  return strategy[strategyIdx]->setEnableBits(enable);
-}
-/* ---------------------------------------------------- */
-
-EkaOpResult
-EkaEpm::getStrategyEnableBits(epm_strategyid_t strategyIdx,
-                              epm_enablebits_t *enable) {
-  if (!initialized)
-    return EKA_OPRESULT__ERR_EPM_UNINITALIZED;
-  if (!validStrategyIdx(strategyIdx))
-    return EKA_OPRESULT__ERR_INVALID_STRATEGY;
-
-  return strategy[strategyIdx]->getEnableBits(enable);
-}
-
-/* ---------------------------------------------------- */
-EkaOpResult
-EkaEpm::payloadHeapCopy(epm_strategyid_t strategyIdx,
-                        uint32_t offset, uint32_t length,
-                        const void *contents,
-                        const bool isUdpDatagram) {
-  uint64_t payloadOffset =
-      isUdpDatagram ? UdpDatagramOffset : TcpDatagramOffset;
-
-  if ((offset - payloadOffset) % PayloadAlignment != 0) {
-    EKA_WARN("offset (%d) - payloadOffset "
-             "(%d) %% PayloadAlignment (=%d) != 0",
-             (int)offset, (int)payloadOffset,
-             (int)PayloadAlignment);
-    return EKA_OPRESULT__ERR_INVALID_ALIGN;
-  }
-
-  if (offset + length >
-      EkaEpmRegion::getWritableHeapSize()) {
-    EKA_WARN("offset %d + length %d > PayloadMemorySize %u",
-             (int)offset, (int)length,
-             EkaEpmRegion::getWritableHeapSize());
-    return EKA_OPRESULT__ERR_INVALID_OFFSET;
-  }
-
-  memcpy(&heap[offset], contents, length);
-
-  return EKA_OPRESULT__OK;
-}
-#endif
-/* ---------------------------------------------------- */
-
 void EkaEpm::InitDefaultTemplates() {
   EKA_LOG("Inititializing TcpFastPath and Raw templates");
 
@@ -389,23 +153,7 @@ void EkaEpm::DownloadSingleTemplate2HW(EpmTemplate *t) {
              (uint64_t *)&t->hw_tcpcs_template,
              sizeof(t->hw_tcpcs_template));
 }
-/* ---------------------------------------------------- */
-#if 0
-int EkaEpm::getFreeAction(int regionId) {
-  for (int i = EkaEpmRegion::getBaseActionIdx(regionId);
-       i < EkaEpmRegion::getBaseActionIdx(regionId) +
-               EkaEpmRegion::getMaxActions(regionId);
-       i++) {
-    if (!a_[i])
-      return i;
-  }
-  return -1;
-}
-/* ---------------------------------------------------- */
-bool EkaEpm::isActionReserved(int globalIdx) {
-  return (a_[globalIdx] != nullptr);
-}
-#endif
+
 /* ---------------------------------------------------- */
 void EkaEpm::actionParamsSanityCheck(ActionType type,
                                      int regionId) {
