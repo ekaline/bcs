@@ -16,6 +16,9 @@ class EkaUdpSess;
 class EkaP4Strategy;
 class EkaQedStrategy;
 class EkaCmeFcStrategy;
+class EkaBcCmeStrategy;
+class EkaEurStrategy;
+
 class EkaEpm;
 class EkaUserReportQ;
 
@@ -31,11 +34,14 @@ public:
   int disArmController();
   int run(const EfcRunCtx *pEfcRunCtx);
 
+  /* --------------------------------------------------- */
+
   void initP4(const EfcUdpMcParams *mcParams,
               const EfcP4Params *p4Params);
 
   void armP4(EfcArmVer ver);
   void disarmP4();
+  /* --------------------------------------------------- */
 
   void initQed(const EfcUdpMcParams *mcParams,
                const EfcQedParams *p4Params);
@@ -43,12 +49,25 @@ public:
                         int productId);
   void armQed(EfcArmVer ver);
   void disarmQed();
+  /* --------------------------------------------------- */
 
   void initCmeFc(const EfcUdpMcParams *mcParams,
                  const EfcCmeFcParams *cmeParams);
   void cmeFcSetFireAction(epm_actionid_t fireActionId);
   void armCmeFc(EfcArmVer ver);
   void disarmCmeFc();
+  /* --------------------------------------------------- */
+
+  void initBcCmeFc(const EfcUdpMcParams *mcParams,
+                   const EkaBcCmeFcAlgoParams *cmeParams);
+  void bcCmeFcSetFireAction(epm_actionid_t fireActionId);
+  void armBcCmeFc(EfcArmVer ver);
+  void disarmBcCmeFc();
+  /* --------------------------------------------------- */
+  void initEur(const EfcUdpMcParams *mcParams);
+  void armEur(EfcArmVer ver);
+  void disarmEur();
+  /* --------------------------------------------------- */
 
   bool isReportOnly() { return report_only_; }
 
@@ -73,6 +92,9 @@ public:
   EkaP4Strategy *p4_ = nullptr;
   EkaQedStrategy *qed_ = nullptr;
   EkaCmeFcStrategy *cme_ = nullptr;
+
+  EkaEurStrategy *eur_ = nullptr;
+  EkaBcCmeStrategy *bcCme_ = nullptr;
 
   EfcRunCtx localCopyEfcRunCtx = {};
   bool report_only_ = false;

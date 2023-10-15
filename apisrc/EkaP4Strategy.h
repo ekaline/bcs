@@ -39,8 +39,10 @@ public:
                      const EkaHwSecCtx *pHwSecCtx,
                      uint16_t writeChan);
 
+#if 0
   void arm(EfcArmVer ver);
   void disarm();
+#endif
 
 private:
   // void configureEhp();
@@ -68,8 +70,6 @@ public:
   bool fireOnAllAddOrders_ = false;
 
 private:
-  const int ArmDisarmP4Addr = 0xf07c8;
-
   EkaHwHashTableLine *hashLine[EFC_SUBSCR_TABLE_ROWS] = {};
 
   int regionId_ = EkaEpmRegion::Regions::Efc;

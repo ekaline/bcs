@@ -5,7 +5,6 @@
 #include "eka_macros.h"
 
 #include "Efc.h"
-#include "EfcCme.h"
 #include "Eka.h"
 #include "EkaBc.h"
 #include "EkaCore.h"
@@ -34,6 +33,7 @@ ekaBcOpenDev(const EkaBcAffinityConfig *affinityConf) {
 
   return g_ekaDev;
 }
+/* ==================================================== */
 
 int ekaBcCloseDev(EkaDev *dev) {
   if (!dev)
@@ -43,9 +43,10 @@ int ekaBcCloseDev(EkaDev *dev) {
 
   return 0;
 }
+/* ==================================================== */
 
-int ekaBcTcpConnect(EkaDev *dev, int8_t coreId,
-                    const char *ip, uint16_t port) {
+EkaBcSock ekaBcTcpConnect(EkaDev *dev, EkaBcLane coreId,
+                          const char *ip, uint16_t port) {
   if (!dev->checkAndSetEpmTx())
     on_error(
         "TX functionality is not available for this "
@@ -103,28 +104,68 @@ int ekaBcTcpConnect(EkaDev *dev, int8_t coreId,
 
   return hSocket;
 }
+/* ==================================================== */
+EkaBCOpResult excSetBlocking(EkaDev *dev, EkaBcSock hSock,
+                             bool blocking) {
+  if (!checkDevice(dev))
+    return -1;
+  else if (EkaTcpSess *const s = dev->findTcpSess(
+               static_cast<ExcSocketHandle>(hSock)))
+    return s->setBlocking(blocking);
+  EKA_WARN("ExcSocketHandle %d not found", hSock);
+  errno = EBADF;
+  return -1;
+}
+/* ==================================================== */
 
-ssize_t ekaBcSend(EkaDev *dev, EkaBcActionIdx sock,
+ssize_t ekaBcSend(EkaDev *pEkaDev, EkaBcSock ekaSock,
                   const void *buf, size_t size) {
-  EkaTcpSess *const s = dev->findTcpSess(sock);
+  EkaTcpSess *const s = dev->findTcpSess(ekaSock);
   if (!s) {
-    EKA_WARN("TCP sock %d not found", sock);
+    EKA_WARN("TCP sock %d not found", ekaSock);
     return -1;
   }
   return s->sendPayload(s->sessId /* thrId */, (void *)buf,
                         size, 0);
 }
+/* ==================================================== */
 
-ssize_t ekaBcCmeSendHB(EkaDev *dev, EkaBcActionIdx sock,
-                       const void *buffer, size_t size) {
-  auto s = dev->findTcpSess(sock);
-  if (!s) {
-    EKA_WARN("TCP sock %d not found", sock);
-    return -1;
-  }
-  return efcCmeSend(dev, s->getConnHandle(), buffer, size,
-                    0, false);
+ssize_t ekaBcAppSend(EkaDev *pEkaDev,
+                     EkaBcActionIdx actionIdx,
+                     const void *buffer, size_t size) {
+  if (!dev || !dev->epm)
+    on_error("!dev or Epm is not initialized");
+
+  if (!dev->epm->a_[actionIdx])
+    on_error("Acion[%d] is not set", actionIdx);
+
+  return dev->epm->a_[actionId]->fastSend(buffer, size);
 }
+/* ==================================================== */
+
+EkaBCOpResult ekaBcSetSessionCntr(EkaDev *dev,
+                                  EkaBcSock ekaSock,
+                                  uint64_t cntr) {
+  EkaTcpSess *const s = dev->findTcpSess(ekaSock);
+  if (!s) {
+    EKA_WARN("TCP sock %d not found", ekaSock);
+    return EKABC_OPRESULT__ERR_TCP_SOCKET;
+  }
+
+  s->updateFpgaCtx<EkaTcpSess::AppSeqBin>(cntr);
+
+  char cntrString[64] = {};
+  sprintf(cntrString, "%08ju", cntr);
+
+  uint64_t cntrAscii = 0;
+  memcpy(&cntrAscii, cntrString, 8);
+  s->updateFpgaCtx<EkaTcpSess::AppSeqAscii>(
+      be64toh(cntrAscii));
+
+  return EKA_OPRESULT__OK;
+}
+
+/* ==================================================== */
 
 ssize_t ekaBcRecv(EkaDev *dev, EkaBcSock sock, void *buf,
                   size_t size) {
@@ -136,43 +177,23 @@ ssize_t ekaBcRecv(EkaDev *dev, EkaBcSock sock, void *buf,
   return s->recv(buf, size, 0);
 }
 
-int ekaBcCmeSetILinkAppseq(EkaDev *dev, EkaBcSock sock,
-                           int32_t appSequence) {
-  auto s = dev->findTcpSess(sock);
-  if (!s) {
-    EKA_WARN("TCP sock %d not found", sock);
-    return -1;
-  }
-  efcCmeSetILinkAppseq(dev, s->getConnHandle(),
-                       appSequence);
-  return 0;
-}
+/* ==================================================== */
 
-int ekaBcCloseSock(EkaDev *dev, EkaBcSock sock) {
+EkaBCOpResult ekaBcCloseSock(EkaDev *dev, EkaBcSock sock) {
   auto s = dev->findTcpSess(sock);
   if (!s) {
     EKA_WARN("TCP sock %d not found", sock);
-    return -1;
+    return EKABC_OPRESULT__ERR_TCP_SOCKET;
   }
   dev->core[s->coreId]->tcpSess[s->sessId] = nullptr;
   delete s;
 
   return 0;
 }
+/* ==================================================== */
 
-int ekaBcFcInit(EkaDev *dev) {
-  EfcCtx efcCtx = {};
-  EfcCtx *pEfcCtx = &efcCtx;
-
-  EfcInitCtx initCtx = {.feedVer = EfhFeedVer::kCME};
-  auto rc = efcInit(&pEfcCtx, dev, &initCtx);
-  if (rc != EkaOpResult::EKA_OPRESULT__OK)
-    return -1;
-  return 0;
-}
-
-int ekaBcInit(EkaDev *ekaDev,
-              const EkaBcInitCtx *ekaBcInitCtx) {
+EkaBCOpResult ekaBcInit(EkaDev *ekaDev,
+                        const EkaBcInitCtx *ekaBcInitCtx) {
   EfcCtx efcCtx = {};
   EfcCtx *pEfcCtx = &efcCtx;
 
@@ -181,76 +202,20 @@ int ekaBcInit(EkaDev *ekaDev,
       .watchdog_timeout_sec =
           ekaBcInitCtx->watchdog_timeout_sec};
 
-  auto rc = efcInit(&pEfcCtx, dev, &initCtx);
-  if (rc != EkaOpResult::EKA_OPRESULT__OK)
-    return -1;
-  return 0;
+  return efcInit(&pEfcCtx, dev, &initCtx);
 }
 
-int ekaBcCmeFcMdInit(EkaDev *dev,
-                     const struct EkaBcFcMdParams *params) {
-  const EpmStrategyParams epmStrategyParams = {
-      .numActions = 256,
-      // EkaEpmRegion::getMaxActions(EkaEpmRegion::Regions::Efc),
-      .triggerParams =
-          (const EpmTriggerParams *)params->triggerParams,
-      .numTriggers = params->numTriggers};
-
-  auto rc = epmInitStrategies(dev, &epmStrategyParams, 1);
-  if (rc != EkaOpResult::EKA_OPRESULT__OK)
-    return -1;
-  return 0;
-}
-
-int ekaBcCmeFcGlobalInit(
-    EkaDev *dev,
-    const struct EkaBcCmeFastCanceGlobalParams *params) {
-  EfcCtx efcCtx = {.dev = dev};
-  EfcStratGlobCtx efcStratGlobCtx = {
-      .report_only = params->report_only,
-      .watchdog_timeout_sec = params->watchdog_timeout_sec};
-
-  efcInitStrategy(&efcCtx, &efcStratGlobCtx);
-  return 0;
-}
+/* ==================================================== */
 
 void ekaBcSwKeepAliveSend(EkaDev *dev) {
   EfcCtx efcCtx = {.dev = dev};
   efcSwKeepAliveSend(&efcCtx);
 }
 
-static const uint64_t DefaultToken = 0x1122334455667788;
+/* ==================================================== */
 
-int ekaBcCmeFcAlgoInit(
-    EkaDev *dev,
-    const struct EkaBcCmeFcAlgoParams *params) {
-  if (!dev)
-    on_error("! dev");
-  if (!params)
-    on_error("! params");
-
-  volatile EfcBCCmeFastCancelStrategyConf conf = {
-      //      .pad            = {},
-      .minNoMDEntries = params->minNoMDEntries,
-      .minTimeDiff = params->minTimeDiff,
-      .token = DefaultToken,
-      .fireActionId = (uint16_t)params->fireActionId,
-      .strategyId = (uint8_t)EFC_STRATEGY};
-
-  EKA_LOG("Configuring Cme Fast Cancel FPGA: "
-          "minNoMDEntries=%d,minTimeDiff=%ju,"
-          "fireActionId=%d",
-          conf.minNoMDEntries, conf.minTimeDiff,
-          conf.fireActionId);
-  //  hexDump("EfcCmeFastCancelStrategyConf",&conf,
-  //          sizeof(conf),stderr);
-  copyBuf2Hw(dev, 0x84000, (uint64_t *)&conf, sizeof(conf));
-  return 0;
-}
-
-void ekaBcConfigurePort(
-    EkaDev *dev, int8_t lane,
-    const struct EkaBcPortAttrs *pPortAttrs) {
+void ekaBcConfigurePort(EkaDev *dev, EkaBcLane lane,
+                        const EkaBcPortAttrs *pPortAttrs) {
   EkaCoreInitCtx ekaCoreInitCtx = {
       .coreId = lane,
       .attrs = {.host_ip = pPortAttrs->host_ip,
@@ -263,57 +228,32 @@ void ekaBcConfigurePort(
 
   ekaDevConfigurePort(dev, &ekaCoreInitCtx);
 }
+/* ==================================================== */
 
-/// @brief
-/// @param dev
-/// @return
-int ekaBcAllocateFcAction(EkaDev *dev) {
-  return efcAllocateNewAction(dev,
-                              EpmActionType::CmeHwCancel);
+EkaBcActionIdx
+ekaBcAllocateNewAction(EkaDev *pEkaDev,
+                       EkaBcActionType type) {
+  return efcAllocateNewAction(
+      dev, static_cast<EpmActionType>(type));
 }
 
-int ekaBcSetActionParams(
-    EkaDev *dev, int actionIdx,
-    const struct EkaBcActionParams *params) {
+/* ==================================================== */
 
-  auto s = dev->findTcpSess(params->tcpSock);
-  if (!s) {
-    EKA_WARN("TCP sock %d not found", params->tcpSock);
-    return -1;
-  }
+EkaBCOpResult
+ekaBcSetActionPayload(EkaDev *ekaDev,
+                      EkaBcActionIdx actionIdx,
+                      const void *payload, size_t len) {
 
-  EfcAction genericActionParams = {
-      .type = EpmActionType::CmeHwCancel,
-      .token = DefaultToken,
-      .hConn = s->getConnHandle(),
-      .actionFlags = AF_Valid,
-      .nextAction = params->nextAction,
-      .enable = EkaEpm::ALWAYS_ENABLE,
-      .postLocalMask = EkaEpm::ALWAYS_ENABLE,
-      .postStratMask = EkaEpm::ALWAYS_ENABLE,
-      .user = 0};
-
-  auto rc =
-      efcSetAction(dev, actionIdx, &genericActionParams);
-  if (rc != EKA_OPRESULT__OK)
-    return -1;
-  return 0;
+  return efcSetActionPayload(dev, actionIdx, payload, len);
 }
-
-int ekaBcSetActionPayload(EkaDev *dev, int actionIdx,
-                          const void *payload, size_t len) {
-  auto rc =
-      efcSetActionPayload(dev, actionIdx, payload, len);
-  if (rc != EKA_OPRESULT__OK)
-    return -1;
-  return 0;
-}
+/* ==================================================== */
 
 void ekaBcEnableController(EkaDev *dev, bool enable,
                            uint32_t armVer) {
   EfcCtx efcCtx = {.dev = dev};
   efcEnableController(&efcCtx, enable ? 1 : -1, armVer);
 }
+/* ==================================================== */
 
 void ekaBcFcRun(EkaDev *dev,
                 struct EkaBcFcRunCtx *pEkaBcFcRunCtx) {
@@ -322,6 +262,7 @@ void ekaBcFcRun(EkaDev *dev,
   EfcCtx efcCtx = {.dev = dev};
   efcRun(&efcCtx, &efcRunCtx);
 }
+/* ==================================================== */
 
 void ekaBcRun(EkaDev *dev,
               struct EkaBcRunCtx *pEkaBcRunCtx) {
@@ -331,38 +272,69 @@ void ekaBcRun(EkaDev *dev,
   efcRun(&efcCtx, &efcRunCtx);
 }
 
-static EpmActionType bc2epmAction(EkaBcActionType type) {
-  switch (type) {
-  case EkaBcActionType::CmeFc:
-    return EpmActionType::CmeFc;
+/* ==================================================== */
 
-  case EkaBcActionType::EurFire:
-    return EpmActionType::EurFire;
-
-  default:
-    on_error("Unexpected EkaBcActionType %d", (int)(type));
-  }
-}
-
-int ekaBcAllocateFcAction(EkaDev *dev,
-                          EkaBcActionType type) {
-  return efcAllocateNewAction(dev, bc2epmAction(type));
-}
-
-EkaOpResult ekaBcSetActionTcpSock(EkaDev *ekaDev,
-                                  EkaBcActionIdx actionIdx,
-                                  EkaBcSock sock) {
+EkaBCOpResult
+ekaBcSetActionTcpSock(EkaDev *ekaDev,
+                      EkaBcActionIdx actionIdx,
+                      EkaBcSock sock) {
   return setActionTcpSock(ekaDev, actionIdx, sock);
 }
+/* ==================================================== */
 
-EkaOpResult
+EkaBCOpResult
 ekaBcSetActionNext(EkaDev *ekaDev, EkaBcActionIdx actionIdx,
                    EkaBcActionIdx nextActionIdx) {
   return setActionNext(ekaDev, actionIdx, nextActionIdx);
 }
+/* ==================================================== */
 
 ssize_t ekaBcAppSend(EkaDev *pEkaDev,
                      EkaBcActionIdx actionIdx,
                      const void *buffer, size_t size) {
   return efcAppSend(pEkaDev, actionIdx, buffer, size);
+}
+/* ==================================================== */
+
+EkaBCOpResult
+ekaBcInitEurStrategy(EkaDev *dev,
+                     const EkaBcUdpMcParams *mcParams) {
+  if (!dev || !dev->efc)
+    on_error("Efc is not initialized: use efcInit()");
+  auto efc = dev->efc;
+
+  efc->initEur(
+      reinerpret_cast<const EfcUdpMcParams *>(mcParams));
+
+  return EKABC_OPRESULT__OK;
+}
+/* ==================================================== */
+//!!!
+void ekaBcInitEurStrategyDone(EkaDev *dev) {
+  ekaDownloadConf2hw(dev);
+  eka_join_mc_groups(dev);
+  sleep(1);               // to allow book to get filled
+  eka_read(dev, 0xf0728); // Clearing Interrupts
+  eka_read(dev, 0xf0798); // Clearing Interrupts
+
+  //------------------------------------
+
+  runBook(dev->exch->fireLogic);
+}
+
+/* ==================================================== */
+
+EkaBCOpResult ekaBcInitCmeFcStrategy(
+    EkaDev *pEkaDev, const EkaBcUdpMcParams *mcParams,
+    const EkaBcCmeFcAlgoParams *cmeFcParams) {
+
+  if (!dev || !dev->efc)
+    on_error("Efc is not initialized: use efcInit()");
+  auto efc = dev->efc;
+
+  efc->initBcCmeFc(
+      reinerpret_cast<const EfcUdpMcParams *>(mcParams),
+      cmeFcParams);
+
+  return EKABC_OPRESULT__OK;
 }

@@ -7,6 +7,9 @@
 #include "EhpNom.h"
 #include "EhpPitch.h"
 #include "EkaCmeFcStrategy.h"
+
+#include "EkaEurStrategy.h"
+
 #include "EkaCore.h"
 #include "EkaDev.h"
 #include "EkaEfc.h"
@@ -133,6 +136,20 @@ void EkaEfc::initCmeFc(const EfcUdpMcParams *mcParams,
 
   totalCoreIdBitmap_ |= cme_->getCoreBitmap();
 }
+
+/* ################################################ */
+void EkaEfc::initEur() {
+  eur_ = new EkaEurStrategy();
+
+  if (totalCoreIdBitmap_ & eur_->getCoreBitmap())
+    on_error(
+        "Eur cores bitmap 0x%x collide with previously "
+        "allocated 0x%x",
+        eur_->getCoreBitmap(), totalCoreIdBitmap_);
+
+  totalCoreIdBitmap_ |= eur_->getCoreBitmap();
+}
+
 /* ################################################ */
 
 void EkaEfc::qedSetFireAction(epm_actionid_t fireActionId,
@@ -150,6 +167,15 @@ void EkaEfc::cmeFcSetFireAction(
     on_error("CmeFc is not initialized. Run "
              "efcInitCmeFcStrategy()");
   cme_->setFireAction(fireActionId);
+}
+/* ################################################ */
+
+void EkaEfc::bcCmeFcSetFireAction(
+    epm_actionid_t fireActionId) {
+  if (!bcCme_)
+    on_error("BcCmeFc is not initialized. Run "
+             "ekaBcInitCmeFcStrategy()");
+  bcCme_->setFireAction(fireActionId);
 }
 /* ################################################ */
 int EkaEfc::armController(EfcArmVer ver) {
@@ -208,6 +234,34 @@ void EkaEfc::disarmCmeFc() {
     on_error("CmeFc is not initialized. Run "
              "efcInitCmeFcStrategy()");
   cme_->disarm();
+}
+/* ################################################ */
+void EkaEfc::armBcCmeFc(EfcArmVer ver) {
+  if (!bcCme_)
+    on_error("BcCmeFc is not initialized. Run "
+             "ekaBcInitCmeFcStrategy()");
+  bcCme_->arm(ver);
+}
+/* ################################################ */
+void EkaEfc::disarmBcCmeFc() {
+  if (!bcCme_)
+    on_error("BcCmeFc is not initialized. Run "
+             "ekaBcInitCmeFcStrategy()");
+  bcCme_->disarm();
+}
+/* ################################################ */
+void EkaEfc::armEur(EfcArmVer ver) {
+  if (!eur_)
+    on_error("Eur is not initialized. Run "
+             "ekaBcInitEurStrategy()");
+  eur_->arm(ver);
+}
+/* ################################################ */
+void EkaEfc::disarmEur() {
+  if (!eur_)
+    on_error("Eur is not initialized. Run "
+             "ekaBcInitEurStrategy()");
+  eur_->disarm();
 }
 /* ################################################ */
 #if 0

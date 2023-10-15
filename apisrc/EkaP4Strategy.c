@@ -69,6 +69,8 @@ EkaP4Strategy::EkaP4Strategy(const EfcUdpMcParams *mcParams,
 
   fireOnAllAddOrders_ = p4Params->fireOnAllAddOrders;
 
+  ArmDisarmAddr = ArmDisarmP4Addr;
+
   EKA_LOG("Creating %s with %d MC groups on lane #0 "
           "and %d MC groups on lane #1, "
           "max_size = %u",
@@ -98,6 +100,7 @@ EkaP4Strategy::EkaP4Strategy(const EfcUdpMcParams *mcParams,
 }
 
 /* --------------------------------------------------- */
+#if 0
 void EkaP4Strategy::arm(EfcArmVer ver) {
   EKA_LOG("Arming %s, ver = %u", name_.c_str(), ver);
   uint64_t armData = ((uint64_t)ver << 32) | 1;
@@ -109,6 +112,7 @@ void EkaP4Strategy::disarm() {
   EKA_LOG("Disarming %s", name_.c_str());
   eka_write(dev_, ArmDisarmP4Addr, 0);
 }
+#endif
 /* --------------------------------------------------- */
 
 void EkaP4Strategy::preallocateFireActions() {

@@ -43,7 +43,9 @@ protected:
   EkaEpm *epm_ = nullptr;
   // EhpProtocol *ehp_ = nullptr;
 
+  const int ArmDisarmP4Addr = 0xf07c8;
   const int ArmDisarmNonP4Addr = 0xf07d0;
+  int ArmDisarmAddr = ArmDisarmNonP4Addr; // default
 
 public:
   EkaStratMcCoreSess mcCoreSess_[EFC_MAX_CORES] = {};
