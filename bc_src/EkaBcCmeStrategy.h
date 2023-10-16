@@ -3,6 +3,8 @@
 
 #include "EkaStrategyEhp.h"
 
+#include "EhpCmeFC.h"
+
 class EkaBcCmeStrategy : public EkaStrategyEhp<EhpCmeFC> {
 public:
   EkaBcCmeStrategy(const EfcUdpMcParams *mcParams,

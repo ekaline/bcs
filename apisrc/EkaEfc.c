@@ -149,7 +149,18 @@ void EkaEfc::initEur() {
 
   totalCoreIdBitmap_ |= eur_->getCoreBitmap();
 }
+/* ################################################ */
+void EkaEfc::initBcCmeFc() {
+  bcCme_ = new EkaBcCmeStrategy();
 
+  if (totalCoreIdBitmap_ & bcCme_->getCoreBitmap())
+    on_error(
+        "BcCmeFc cores bitmap 0x%x collide with previously "
+        "allocated 0x%x",
+        bcCme_->getCoreBitmap(), totalCoreIdBitmap_);
+
+  totalCoreIdBitmap_ |= bcCme_->getCoreBitmap();
+}
 /* ################################################ */
 
 void EkaEfc::qedSetFireAction(epm_actionid_t fireActionId,
