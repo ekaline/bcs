@@ -94,6 +94,8 @@ public:
 
   static void copyHwActionParams2Fpga(const epm_action_t *,
                                       uint actionGlobalIdx,
+                                      uint regionId,
+                                      uint localIdx,
                                       EkaEpm *pEpm);
 
 public:
