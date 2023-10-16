@@ -83,7 +83,9 @@
                 "forward_list": "cpp",
                 "unordered_set": "cpp",
                 "variant": "c",
-                "span": "c"
+                "span": "c",
+                "any": "c",
+                "set": "c"
         },
         "cmake.configureOnOpen": true,
         "editor.tokenColorCustomizations": {

@@ -60,6 +60,11 @@ enum EkaBCOpResult {
   EKABC_OPRESULT__ERR_TCP_SOCKET = -501,
   EKABC_OPRESULT__ERR_UDP_SOCKET = -502,
   EKABC_OPRESULT__ERR_PROTOCOL = -503,
+
+  // Product specific
+  EKABC_OPRESULT__ERR_PRODUCT_DOES_NOT_EXIST = -600,
+  EKABC_OPRESULT__ERR_MAX_PRODUCTS_EXCEEDED = -601,
+
 };
 
 /**
@@ -123,11 +128,10 @@ EkaBcSock ekaBcTcpConnect(EkaDev *pEkaDev, EkaBcLane lane,
  * @param pEkaDev
  * @param hConn
  * @param blocking
- * @return EkaBCOpResult
+ * @return int
  */
-EkaBCOpResult ekaBcSetBlocking(EkaDev *pEkaDev,
-                               EkaBcSock ekaSock,
-                               bool blocking);
+int ekaBcSetBlocking(EkaDev *pEkaDev, EkaBcSock ekaSock,
+                     bool blocking);
 
 /**
  * @brief Sends data segment via Ekaline TCP socket.
@@ -505,7 +509,9 @@ typedef int64_t EkaBcSecHandle;
  *        Used only for initializing the securities list
  *
  */
-typedef int64_t EkaBcSecId;
+typedef uint32_t EkaBcSecId;
+
+#define EKA_BC_EUR_MAX_PRODS 16
 
 /**
  * @brief Subscribing on list of Securities (products)
@@ -539,6 +545,8 @@ EkaBcSecHandle ekaBcGetSecHandle(EkaDev *dev,
  *
  */
 struct EkaBcEurProductInitParams {
+  uint32_t exchange_security_id;
+
   uint64_t max_book_spread;
   uint64_t midpoint;
   uint64_t
@@ -625,6 +633,51 @@ ekaBcEurSetJumpParams(EkaDev *dev,
 EkaBCOpResult ekaBcEurSetReferenceJumpParams(
     EkaDev *dev, const EkaBcEurReferenceJumpParams *params,
     EkaBcSecHandle triggerProd, EkaBcSecHandle fireProd);
+
+/**
+ * @brief EkaBcArmVer is a mechanism to guarantee controlled
+ *        arming of the FPGA firing logic:
+ *        Every time the FPGA disarms itself as a result of
+ *        the Fire or Watchdog timeout, it increments the
+ *        ArmVer counter, so next time it can be armed only
+ *        if the SW provides ArmVer matching the expected
+ *        number by the FPGA
+ */
+typedef uint32_t EkaBcArmVer;
+
+/**
+@brief Arming Eurex strategy Firing logic
+ *
+ * @param dev
+ * @param ver
+ * @return EkaBCOpResult
+ */
+EkaBCOpResult ekaBcArmEur(EkaDev *dev, EkaBcArmVer ver);
+
+/**
+@brief DisArming Eurex strategy Firing logic
+ *
+ * @param dev
+ * @return EkaBCOpResult
+ */
+EkaBCOpResult ekaBcDisArmEur(EkaDev *dev);
+
+/**
+@brief Arming CmeFc strategy Firing logic
+ *
+ * @param dev
+ * @param ver
+ * @return EkaBCOpResult
+ */
+EkaBCOpResult ekaBcArmCmeFc(EkaDev *dev, EkaBcArmVer ver);
+
+/**
+@brief DisArming CmeFc strategy Firing logic
+ *
+ * @param dev
+ * @return EkaBCOpResult
+ */
+EkaBCOpResult ekaBcDisArmCmeFc(EkaDev *dev);
 
 typedef void (*onEkaBcReportCb)(const void *report,
                                 size_t len, void *ctx);

@@ -414,6 +414,15 @@ typedef struct __attribute__((packed)) {
 /* 	bit [7:0] min_num_in_group; */
 /* } sh_cancels_param_t; */
 
+struct EfcBCCmeFastCancelStrategyConf {
+  uint8_t minNoMDEntries;
+  uint64_t minTimeDiff;
+  uint64_t token;
+  uint16_t fireActionId;
+  uint8_t strategyId;
+} __attribute__((aligned(sizeof(uint64_t))))
+__attribute__((packed));
+
 struct EfcCmeFastCancelStrategyConf {
   uint8_t minNoMDEntries;
   uint16_t maxMsgSize;

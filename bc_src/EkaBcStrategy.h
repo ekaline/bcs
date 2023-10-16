@@ -3,7 +3,7 @@
 
 #include "EkaStrategyEhp.h"
 
-#include "EkaExch.h"
+// #include "EkaExch.h"
 
 class EkaUdpChannel;
 class EkaUdpSess;
@@ -12,16 +12,16 @@ class EkaBook;
 template <class Ehp>
 class EkaBcStrategy : public EkaStrategyEhp<Ehp> {
 public:
-  using GlobalExchSecurityId =
-      EkaExch::GlobalExchSecurityId;
-  using ProdId = EkaExch::ProdId;
+  /*   using GlobalExchSecurityId =
+        EkaExch::GlobalExchSecurityId;
+    using ProdId = EkaExch::ProdId;
 
-  enum CONF { MAX_PROD = 8, MAX_BOOKS = 4 };
+    enum CONF { MAX_PROD = 8, MAX_BOOKS = 4 }; */
   // static const uint MAX_BOOKS = 32;
 
   /* protected: */
   /*  EkaStrat(EkaExch* _exch); */
-  EkaStrat(EkaExch *_exch, EkaExch::StrategyType type);
+  // EkaStrat(EkaExch *_exch, EkaExch::StrategyType type);
 
 public:
   /* void setParent(EkaExch* _exch) { */
@@ -29,6 +29,7 @@ public:
   /*   dev = exch->dev; */
   /* } */
 
+#if 0
   uint addUdpSess(uint8_t coreId, uint32_t ip,
                   uint16_t port);
   EkaUdpSess *findUdpSess(uint32_t ip, uint16_t port);
@@ -84,6 +85,7 @@ public:
   hw_product_param_shadow[MAX_BOOKS] = {};
   hw_session_param_entry_t __attribute__((aligned(0x8)))
   hw_session_param_shadow[MAX_BOOKS * 2] = {}; // per i/f
+#endif
 
   EkaDev *dev = NULL;
 };

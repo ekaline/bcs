@@ -17,7 +17,8 @@ enum class EfhFeedVer {
 #define EfhFeedVer_ENUM_ITER(_x)                           \
   _x(Invalid, 0) _x(NASDAQ) _x(MIAX) _x(PHLX) _x(GEMX)     \
       _x(BATS) _x(XDP) _x(PLR) _x(BOX) _x(CME) _x(QED)     \
-          _x(NEWS) _x(CBOE) _x(ITCHFS) _x(MRX2_TOP) _x(BX)
+          _x(NEWS) _x(CBOE) _x(ITCHFS) _x(MRX2_TOP) _x(BX) \
+              _x(EUR)
   EfhFeedVer_ENUM_ITER(EKA__ENUM_DEF)
 };
 
@@ -153,32 +154,24 @@ EkaOpResult efhSetTradeTimeCtx(EfhCtx *efhCtx,
  *
  */
 enum class EfhMdType : uint8_t {
-#define EfhMdType_ENUM_ITER( _x )	\
-    _x( Invalid,       0 )		\
-    _x( Generic          )		\
-    _x( Time             )		\
-    _x( Definition       )		\
-    _x( NewOrder         )		\
-    _x( NewQuote         )		\
-    _x( ModifyOrder      )		\
-    _x( ModifyQuote      )		\
-    _x( ReplaceOrder     )		\
-    _x( ReplaceQuote     )		\
-    _x( DeleteOrder      )		\
-    _x( DeleteQuote      )		\
-    _x( NewPlevel        )		\
-    _x( ChangePlevel     )		\
-    _x( DeletePlevel     )
-  EfhMdType_ENUM_ITER( EKA__ENUM_DEF )
+#define EfhMdType_ENUM_ITER(_x)                            \
+  _x(Invalid, 0) _x(Generic) _x(Time) _x(Definition)       \
+      _x(NewOrder) _x(NewQuote) _x(ModifyOrder)            \
+          _x(ModifyQuote) _x(ReplaceOrder)                 \
+              _x(ReplaceQuote) _x(DeleteOrder)             \
+                  _x(DeleteQuote) _x(NewPlevel)            \
+                      _x(ChangePlevel) _x(DeletePlevel)
+  EfhMdType_ENUM_ITER(EKA__ENUM_DEF)
 };
 
 constexpr const char *DecodeMdType(const EfhMdType mdType) {
   switch (mdType) {
-#define EKA__ENUM_DECODE(NAME, ...) \
-  case EfhMdType::EKA__DELAYED_CAT(k, NAME): return EKA__VAL(NAME);
-EfhMdType_ENUM_ITER(EKA__ENUM_DECODE)
+#define EKA__ENUM_DECODE(NAME, ...)                        \
+  case EfhMdType::EKA__DELAYED_CAT(k, NAME):               \
+    return EKA__VAL(NAME);
+    EfhMdType_ENUM_ITER(EKA__ENUM_DECODE)
 #undef EKA__ENUM_DECODE
-  default: return "UNKNOWN";
+        default : return "UNKNOWN";
   }
 }
 

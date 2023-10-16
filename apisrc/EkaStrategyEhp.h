@@ -3,6 +3,8 @@
 
 #include "EkaStrategy.h"
 
+#include "EhpProtocol.h"
+
 template <class Ehp>
 class EkaStrategyEhp : public EkaStrategy {
 protected:

@@ -1,36 +1,37 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <arpa/inet.h>
-#include <string.h>
-#include <signal.h>
-#include <netinet/if_ether.h>
+#include <inttypes.h>
+#include <math.h>
 #include <netinet/ether.h>
+#include <netinet/if_ether.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <pthread.h>
-#include <math.h>
-#include <inttypes.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <thread>
+#include <unistd.h>
 
-
+#if 0
 #include "EkaCmeBook.h"
-#include "EkaIceBook.h"
-#include "eka_macros.h"
 #include "EkaCmeParser.h"
+#include "EkaCore.h"
+#include "EkaDev.h"
+#include "EkaHwInternalStructs.h"
+#include "EkaIceBook.h"
 #include "EkaIceParser.h"
 #include "EkaProd.h"
-#include "EkaHwInternalStructs.h"
-#include "eka_hw_conf.h"
-#include "EkaDev.h"
 #include "EkaStrat.h"
-#include "EkaCore.h"
-#include "EkaUdpSess.h"
 #include "EkaUdpChannel.h"
+#include "EkaUdpSess.h"
+#include "eka_hw_conf.h"
+#include "eka_macros.h"
 
-void setThreadAffinityName (EkaDev* dev, pthread_t thread, const char* name, uint cpuCore);
+void setThreadAffinityName(EkaDev *dev, pthread_t thread,
+                           const char *name, uint cpuCore);
 
 /* ----------------------------------------------------- */
 void disableHwUdp(EkaDev* dev) {
@@ -68,7 +69,7 @@ int createBooks(EkaStrat* strat,uint8_t coreId) {
 	      strat->prod[i]->mdCoreId,coreId);
       continue;
     }
-    if (strcmp(EKA_RESOLVE_PROD(strat->hwFeedVer,strat->prod[i]->product_id),"---") == 0) 
+    if (strcmp(EKA_RESOLVE_PROD(strat->hwFeedVer,strat->prod[i]->product_id),"---") == 0)
       on_error("Unsupported product id %u",(uint)strat->prod[i]->product_id);
     EKA_LOG("Creating Book for: %s on core %u",
 	    EKA_RESOLVE_PROD(strat->hwFeedVer,strat->prod[i]->product_id),coreId);
@@ -97,7 +98,7 @@ int subscribeOnMc(EkaStrat* strat, uint8_t coreId) {
     uint16_t vlanTag = strat->udpSess[i]->vlanTag; // = 0
 
     EKA_LOG("Subscribing Udp sess %u on %s:<ALL_PORTS>",i,EKA_IP2STR(mcastIp));
-    if (strat->udpChannel[coreId] == NULL) 
+    if (strat->udpChannel[coreId] == NULL)
       strat->udpChannel[coreId] = new EkaUdpChannel(strat->dev,coreId);
 
     if (strat->udpChannel[coreId] == NULL) on_error("strat->udpChannel[%u] == NULL",coreId);
@@ -127,7 +128,7 @@ int ekaWriteTob(EkaDev* dev, void* params, uint paramsSize, eka_product_t produc
 
   uint hw_product_index = dev->exch->fireLogic->findProdHw(product_id,__func__);
 
-  if (hw_product_index>=EKA_MAX_BOOK_PRODUCTS) 
+  if (hw_product_index>=EKA_MAX_BOOK_PRODUCTS)
     on_error ("SW TOB is supported only on book product (not on %u)\n",hw_product_index);
 
   uint64_t* wr_ptr = (uint64_t*) params;
@@ -140,7 +141,7 @@ int ekaWriteTob(EkaDev* dev, void* params, uint paramsSize, eka_product_t produc
   tob_desc.ltd.src_bank   = 0;
   tob_desc.ltd.src_thread = 0;
   tob_desc.ltd.target_idx = hw_product_index*2+(side==BUY ? 1 : 0);
-  eka_write (dev,0xf0410,tob_desc.lt_desc); //desc  
+  eka_write (dev,0xf0410,tob_desc.lt_desc); //desc
   return 0;
 }
 
@@ -160,7 +161,7 @@ void bookLoopThread_f(EkaStrat* strat) {
       if (strat->udpChannel[coreId] == NULL) continue;
       if (! strat->udpChannel[coreId]->has_data()) continue;
       uint8_t* pkt = NULL;
-      if ((pkt = (uint8_t*) strat->udpChannel[coreId]->get()) == NULL) on_error ("p == NULL"); 
+      if ((pkt = (uint8_t*) strat->udpChannel[coreId]->get()) == NULL) on_error ("p == NULL");
 
       EkaIpHdr*   ipH     = (EkaIpHdr*) (pkt - 8 - 20);
       EkaUdpHdr*  udpH    = (EkaUdpHdr*)(pkt - 8);
@@ -178,7 +179,7 @@ void bookLoopThread_f(EkaStrat* strat) {
 #endif
       pkt += strat->parser->processPkt(&mdOut,ProcessAction::UpdateBookOnly,pkt,payloadSize);
       if (! udpSess->isCorrectSeq(mdOut.pktSeq,mdOut.msgNum)) { /* on_error("Sequence Gap"); */ }
-    
+
       strat->udpChannel[coreId]->next();
     }
   }
@@ -218,7 +219,7 @@ void bookLoopThread_f(EkaStrat* strat) {
 /* #endif */
 /*     pkt += dev->exch->parser->processPkt(&mdOut,ProcessAction::UpdateBookOnly,pkt,payloadSize); */
 /*     if (! udpSess->isCorrectSeq(mdOut.pktSeq,mdOut.msgNum)) { /\* on_error("Sequence Gap"); *\/ } */
-    
+
 /*     dev->core[coreId]->udpChannel->next(); */
 /*   } */
 /* } */
@@ -243,5 +244,4 @@ void  runBook(EkaStrat* strat) {
 
 /* ----------------------------------------------------- */
 
-
-
+#endif

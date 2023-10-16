@@ -1,8 +1,9 @@
+#if 0
 #include "EkaBook.h"
-#include "EkaParser.h"
-#include "EkaTcpSess.h"
-#include "EkaStrat.h"
 #include "EkaEpm.h"
+#include "EkaParser.h"
+#include "EkaStrat.h"
+#include "EkaTcpSess.h"
 
 /* ----------------------------------------------------- */
 int EkaExch::initStrat(StrategyType type) {
@@ -47,7 +48,7 @@ uint EkaExch::booksPerCore(uint8_t coreId) {
 int EkaExch::setFireParams(int sock, void* params) {
   EkaTcpSess* s = dev->findTcpSess(sock);
   uint64_t base_addr = 0x20000 + s->coreId * 0x1000;
-    
+
   uint64_t* wr_ptr = (uint64_t*) params;
   int iter = getFireParamsSize()/8 + !!(getFireParamsSize()%8); // num of 8Byte words
   for (int z=0; z<iter; ++z) {
@@ -67,7 +68,7 @@ int EkaExch::prepareFireReportJump(void* dst,void* src) {
   dmaPtrDst->subtype  =          dmaPtrSrc->subtype;
   dmaPtrDst->core_id  =          dmaPtrSrc->core_id;
   dmaPtrDst->length   =  be16toh(dmaPtrSrc->length);
-  
+
   normalized_report_common_t* commonHPtrDst = &((fire_report_jump_t *)dst)->normalized_report.common_header;
   normalized_report_common_t* commonHPtrSrc = &((fire_report_jump_t *)src)->normalized_report.common_header;
 
@@ -102,7 +103,7 @@ int EkaExch::prepareFireReportJump(void* dst,void* src) {
 
   normalized_report_jump_t* normalizedPtrDst = &((fire_report_jump_t *)dst)->normalized_report;
   normalized_report_jump_t* normalizedPtrSrc = &((fire_report_jump_t *)src)->normalized_report;
- 
+
   normalizedPtrDst->ts                = be64toh(normalizedPtrSrc->ts);
   normalizedPtrDst->seq =      getFireReportSeq(normalizedPtrSrc->seq);
   normalizedPtrDst->post_ticker_size =  be64toh(normalizedPtrSrc->post_ticker_size);
@@ -120,3 +121,4 @@ int EkaExch::prepareFireReportJump(void* dst,void* src) {
 return 0;
 }
 
+#endif

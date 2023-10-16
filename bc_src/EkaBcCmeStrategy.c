@@ -39,10 +39,10 @@ EkaBcCmeStrategy::EkaBcCmeStrategy(
   configureEhp();
   // downloadEhp2Hw();
 
-  conf_.minNoMDEntries = params->minNoMDEntries;
-  conf_.minTimeDiff = params->minTimeDiff;
-  conf_.token = DefaultToken;
-  conf_.fireActionId = (uint16_t)params->fireActionId;
+  conf_.minNoMDEntries = cmeParams->minNoMDEntries;
+  conf_.minTimeDiff = cmeParams->minTimeDiff;
+  conf_.token = EkaEpm::DefaultToken;
+  conf_.fireActionId = (uint16_t)cmeParams->fireActionId;
   conf_.strategyId = (uint8_t)EFC_STRATEGY;
 
   EKA_LOG("Configuring Cme Fast Cancel FPGA: "
@@ -53,7 +53,7 @@ EkaBcCmeStrategy::EkaBcCmeStrategy(
           conf_.fireActionId);
   //  hexDump("EfcCmeFastCancelStrategyConf",&conf,
   //          sizeof(conf),stderr);
-  copyBuf2Hw(dev, 0x84000, (uint64_t *)&conf_,
+  copyBuf2Hw(dev_, 0x84000, (uint64_t *)&conf_,
              sizeof(conf_));
 
   EKA_LOG("Creating %s with %d MC groups on lane #0 "

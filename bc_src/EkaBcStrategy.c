@@ -20,9 +20,9 @@
 #include <sys/ioctl.h>
 
 #include "EkaBcStrategy.h"
-#include "EkaBook.h"
-#include "EkaProd.h"
-#include "eka_bc.h"
+// #include "EkaBook.h"
+// #include "EkaProd.h"
+#include "EkaBc.h"
 #include "eka_hw_conf.h"
 #include "eka_macros.h"
 
@@ -41,6 +41,7 @@
           "fieldName=%s, typeName=%s, fieldValue=%ju",     \
           #name, #type, _src->name);
 
+#if 0
 EkaBcStrategy::EkaBcStrategy(EkaExch *_exch,
                              EkaExch::StrategyType _type) {
   exch = _exch;
@@ -298,3 +299,4 @@ void initRJumpParams(volatile hw_rjump_params_t *dst,
                        const reference_jump_params_t>(
       dst, src, SN_CME);
 }
+#endif
