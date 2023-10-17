@@ -112,7 +112,82 @@ EkaBCOpResult EkaEurStrategy::downloadPackedDB() {
 EkaBCOpResult EkaEurStrategy::initProd(
     EkaBcSecHandle prodHande,
     const EkaBcEurProductInitParams *params) {
+  if (prodHande < 0 || prodHande >= MaxSecurities_) {
+    EKA_ERROR("Bad prodHande %jd", prodHande);
+    return EKABC_OPRESULT__ERR_BAD_PRODUCT_HANDLE;
+  }
+
+  if (prod[prodHande]) {
+    EKA_ERROR("Product with prodHande %jd "
+              "is already initialized",
+              prodHande);
+    return EKABC_OPRESULT__ERR_PRODUCT_ALREADY_INITED;
+  }
+
+  prod[prodHande] = new EkaBcEurProd(prodHande, params);
+
+  if (!prod[prodHande])
+    on_error("failed creating new Prod");
+
   return EKABC_OPRESULT__OK;
+}
+
+/* --------------------------------------------------- */
+
+EkaBCOpResult EkaEurStrategy::setProdJumpParams(
+    EkaBcSecHandle prodHande,
+    const EkaBcEurJumpParams *params) {
+  if (prodHande < 0 || prodHande >= MaxSecurities_) {
+    EKA_ERROR("Bad prodHande %jd", prodHande);
+    return EKABC_OPRESULT__ERR_BAD_PRODUCT_HANDLE;
+  }
+
+  if (!prod[prodHande]) {
+    EKA_ERROR("Product with prodHande %jd "
+              "is not initialized",
+              prodHande);
+    return EKABC_OPRESULT__ERR_PRODUCT_DOES_NOT_EXIST;
+  }
+
+  return prod[prodHande]->setJumpParams(params);
+}
+
+/* --------------------------------------------------- */
+
+EkaBCOpResult EkaEurStrategy::setProdReferenceJumpParams(
+    EkaBcSecHandle triggerProd, EkaBcSecHandle fireProd,
+    const EkaBcEurReferenceJumpParams *params) {
+  if (triggerProd < 0 || triggerProd >= MaxSecurities_) {
+    EKA_ERROR("Bad triggerProd %jd", triggerProd);
+    return EKABC_OPRESULT__ERR_BAD_PRODUCT_HANDLE;
+  }
+
+  if (fireProd < 0 || fireProd >= MaxSecurities_) {
+    EKA_ERROR("Bad fireProd %jd", fireProd);
+    return EKABC_OPRESULT__ERR_BAD_PRODUCT_HANDLE;
+  }
+
+  if (!prod[triggerProd]) {
+    EKA_ERROR("triggerProd with handle %jd "
+              "is not initialized",
+              triggerProd);
+    return EKABC_OPRESULT__ERR_PRODUCT_DOES_NOT_EXIST;
+  }
+
+  if (!prod[fireProd]) {
+    EKA_ERROR("fireProd with handle %jd "
+              "is not initialized",
+              fireProd);
+    return EKABC_OPRESULT__ERR_PRODUCT_DOES_NOT_EXIST;
+  }
+
+  if (triggerProd == fireProd) {
+    EKA_ERROR("triggerProd == fireProd =  %jd ", fireProd);
+    return EKABC_OPRESULT__ERR_BAD_PRODUCT_HANDLE;
+  }
+
+  return prod[triggerProd]->setReferenceJumpParams(fireProd,
+                                                   params);
 }
 
 /* --------------------------------------------------- */
@@ -139,3 +214,22 @@ void EkaEurStrategy::configureTemplates() {
 #endif
 }
 /* --------------------------------------------------- */
+int EkaEurStrategy::sendDate2Hw() {
+  struct timespec t;
+  clock_gettime(CLOCK_REALTIME, &t);
+  uint64_t current_time_ns =
+      ((uint64_t)(t.tv_sec) * (uint64_t)1000000000 +
+       (uint64_t)(t.tv_nsec)); // UTC
+  //  current_time_ns += static_cast<uint64_t>(6*60*60) *
+  //  static_cast<uint64_t>(1e9); //+6h UTC time
+
+  eka_write(dev_, 0xf0300 + 0 * 8,
+            current_time_ns); // data, last write commits
+                              // the change
+  eka_write(dev_, 0xf0300 + 1 * 8,
+            0x0); // data, last write commits the change
+  eka_write(dev_, 0xf0300 + 2 * 8,
+            0x0); // data, last write commits the change
+
+  return 1;
+}

@@ -46,6 +46,7 @@ SmartNIC_SW/driver/ekaline_build_time.h
 SmartNIC_SW/tools/fbupdate/build-number.txt
 
 !bc_src
+!bc_src/Eobi
 
 *.o
 *.so

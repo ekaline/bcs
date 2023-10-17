@@ -4,7 +4,10 @@
 #include "EkaStrategyEhp.h"
 
 #include "EhpEur.h"
+#include "EkaBcEurProd.h"
 #include "EkaHashEng.h"
+
+#include "EkaEobiTypes.h"
 
 class EkaEurStrategy : public EkaStrategyEhp<EhpEur> {
 public:
@@ -16,6 +19,16 @@ public:
   EkaBCOpResult
   initProd(EkaBcSecHandle prodHande,
            const EkaBcEurProductInitParams *params);
+
+  EkaBCOpResult
+  setProdJumpParams(EkaBcSecHandle prodHande,
+                    const EkaBcEurJumpParams *params);
+
+  EkaBCOpResult setProdReferenceJumpParams(
+      EkaBcSecHandle triggerProd, EkaBcSecHandle fireProd,
+      const EkaBcEurReferenceJumpParams *params);
+
+  int sendDate2Hw();
 
 private:
   void configureTemplates();
@@ -37,16 +50,26 @@ private:
   static const size_t Rows = 64 * 1024;
   static const size_t Cols = 3;
 
+  typedef int32_t ProductId;
+  using ExchSecurityId = EkaBcSecId;
+  typedef int64_t Price;
+  typedef int32_t Size;
+  typedef uint16_t NormPrice;
+
   using HashEngT =
       EkaHashEng<EkaBcSecId, EfhFeedVer::kEUR, Rows, Cols>;
 
   int nSec_ = 0;
+
+  EkaBcEurProd *prod[MaxSecurities_] = {};
 
   HashEngT *hashEng_ = nullptr;
 
   EkaUdpChannel *udpChannel[4 /*MAX_CORES*/] = {};
 
   int regionId_ = EkaEpmRegion::Regions::Efc;
+
+  EkaEobiParser *parser_ = nullptr;
 };
 
 #endif

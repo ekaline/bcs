@@ -64,6 +64,8 @@ enum EkaBCOpResult {
   // Product specific
   EKABC_OPRESULT__ERR_PRODUCT_DOES_NOT_EXIST = -600,
   EKABC_OPRESULT__ERR_MAX_PRODUCTS_EXCEEDED = -601,
+  EKABC_OPRESULT__ERR_BAD_PRODUCT_HANDLE = -602,
+  EKABC_OPRESULT__ERR_PRODUCT_ALREADY_INITED = -603,
 
 };
 
@@ -545,15 +547,14 @@ EkaBcSecHandle ekaBcGetSecHandle(EkaDev *dev,
  *
  */
 struct EkaBcEurProductInitParams {
-  uint32_t exchange_security_id;
-
-  uint64_t max_book_spread;
-  uint64_t midpoint;
+  EkaBcSecId secId;
+  uint64_t maxBookSpread;
+  uint64_t midPoint;
   uint64_t
-      price_div; // for price normalization for prints only
+      priceDiv; // for price normalization for prints only
   uint64_t step;
   bool isBook;
-  uint8_t ei_price_flavor;
+  uint8_t eiPriceFlavor;
 };
 
 /**
@@ -611,28 +612,28 @@ struct EkaBcEurReferenceJumpParams {
  * @brief Setting Eurex Jump params
  *
  * @param dev
- * @param params
  * @param prodHande
+ * @param params
  * @return EkaBCOpResult
  */
 EkaBCOpResult
-ekaBcEurSetJumpParams(EkaDev *dev,
-                      const EkaBcEurJumpParams *params,
-                      EkaBcSecHandle prodHande);
+ekaBcEurSetJumpParams(EkaDev *dev, EkaBcSecHandle prodHande,
+                      const EkaBcEurJumpParams *params);
 
 /**
  * @brief Setting Eurex Reference Jump params
  *
  * @param dev
- * @param params
  * @param triggerProd Product Handle of a product getting
  *                    Market Data trigger
  * @param fireProd    Product Handle of the firing product
+ * @param params
  * @return EkaBCOpResult
  */
 EkaBCOpResult ekaBcEurSetReferenceJumpParams(
-    EkaDev *dev, const EkaBcEurReferenceJumpParams *params,
-    EkaBcSecHandle triggerProd, EkaBcSecHandle fireProd);
+    EkaDev *dev, EkaBcSecHandle triggerProd,
+    EkaBcSecHandle fireProd,
+    const EkaBcEurReferenceJumpParams *params);
 
 /**
  * @brief EkaBcArmVer is a mechanism to guarantee controlled
@@ -696,10 +697,11 @@ struct EkaBcRunCtx {
  *             - IGMP Thread
  *
  * @param pEkaDev
- * @param pEkaBcFcRunCtx
+ * @param pEkaBcRunCtx
  */
 
-void ekaBcRun(EkaDev *pEkaDev, EkaBcRunCtx *pEkaBcFcRunCtx);
+void ekaBcEurRun(EkaDev *pEkaDev,
+                 EkaBcRunCtx *pEkaBcRunCtx);
 
 } // End of extern "C"
 #endif

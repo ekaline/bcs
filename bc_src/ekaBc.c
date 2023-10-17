@@ -288,8 +288,8 @@ EkaBCOpResult ekaBcDisArmCmeFc(EkaDev *dev) {
 
 /* ==================================================== */
 
-void ekaBcRun(EkaDev *dev,
-              struct EkaBcRunCtx *pEkaBcRunCtx) {
+void ekaBcEurRun(EkaDev *dev,
+                 struct EkaBcRunCtx *pEkaBcRunCtx) {
   struct EfcRunCtx efcRunCtx = {
       .onEfcFireReportCb = pEkaBcRunCtx->onReportCb};
   efcRun(dev, &efcRunCtx);
@@ -403,4 +403,38 @@ ekaBcInitEurProd(EkaDev *dev, EkaBcSecHandle prodHande,
              "ekaBcInitEurStrategy()");
 
   return eur->initProd(prodHande, params);
+}
+
+/* ==================================================== */
+EkaBCOpResult
+ekaBcEurSetJumpParams(EkaDev *dev, EkaBcSecHandle prodHande,
+                      const EkaBcEurJumpParams *params) {
+  if (!dev || !dev->efc)
+    on_error("Efc is not initialized: use ekaBcInit()");
+  auto efc = dev->efc;
+
+  auto eur = efc->eur_;
+  if (!eur)
+    on_error("Eurex is not initialized: use "
+             "ekaBcInitEurStrategy()");
+
+  return eur->setProdJumpParams(prodHande, params);
+}
+/* ==================================================== */
+
+EkaBCOpResult ekaBcEurSetReferenceJumpParams(
+    EkaDev *dev, EkaBcSecHandle triggerProd,
+    EkaBcSecHandle fireProd,
+    const EkaBcEurReferenceJumpParams *params) {
+  if (!dev || !dev->efc)
+    on_error("Efc is not initialized: use ekaBcInit()");
+  auto efc = dev->efc;
+
+  auto eur = efc->eur_;
+  if (!eur)
+    on_error("Eurex is not initialized: use "
+             "ekaBcInitEurStrategy()");
+
+  return eur->setProdReferenceJumpParams(triggerProd,
+                                         fireProd, params);
 }
