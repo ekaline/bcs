@@ -189,7 +189,8 @@ void EkaEfc::bcCmeFcSetFireAction(
   if (!bcCme_)
     on_error("BcCmeFc is not initialized. Run "
              "ekaBcInitCmeFcStrategy()");
-  bcCme_->setFireAction(fireActionId);
+  //!!!
+  // bcCme_->setFireAction(fireActionId);
 }
 /* ################################################ */
 int EkaEfc::armController(EfcArmVer ver) {

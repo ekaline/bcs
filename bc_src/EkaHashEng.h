@@ -5,15 +5,10 @@
 
 #include "EkaHashEngLine.h"
 
-class EkaHashEngBase {
-public:
-  virtual ~EkaHashEngBase() {}
-};
-
 /* =================================================== */
 template <class SecIdT, const EfhFeedVer FeedVer,
           const size_t Rows, const size_t Cols>
-class EkaHashEng : public EkaHashEngBase {
+class EkaHashEng {
 public:
   EkaHashEng() {
     for (auto i = 0; i < Rows; i++) {

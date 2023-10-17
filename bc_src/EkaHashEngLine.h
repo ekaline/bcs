@@ -3,14 +3,9 @@
 
 #include "eka_macros.h"
 
-class EkaHashEngLineBase {
-public:
-  virtual ~EkaHashEngLineBase() {}
-};
-
 template <class SecIdT, const EfhFeedVer FeedVer,
           const size_t Rows, const size_t Cols>
-class EkaHashEngLine : public EkaHashEngLineBase {
+class EkaHashEngLine {
 public:
   EkaHashEngLine(int id) { id_ = id; }
   /* --------------------------------------------------- */
