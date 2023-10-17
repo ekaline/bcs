@@ -1,5 +1,5 @@
-#ifndef _EHP_CMEFC_H_
-#define _EHP_CMEFC_H_
+#ifndef __EHP_EHP_EUR_H__
+#define __EHP_EHP_EUR_H__
 
 #include "EhpProtocol.h"
 

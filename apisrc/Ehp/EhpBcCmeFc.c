@@ -1,7 +1,7 @@
 #include "EkaDev.h"
 #include "ekaNW.h"
 
-#include "EhpBcCmeFC.h"
+#include "EhpBcCmeFc.h"
 
 EhpBcCmeFC::EhpBcCmeFC(EkaStrategy *strat)
     : EhpProtocol(strat) {

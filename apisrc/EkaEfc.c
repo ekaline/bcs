@@ -8,6 +8,7 @@
 #include "EhpPitch.h"
 #include "EkaCmeFcStrategy.h"
 
+#include "EkaBcCmeStrategy.h"
 #include "EkaEurStrategy.h"
 
 #include "EkaCore.h"
@@ -138,8 +139,8 @@ void EkaEfc::initCmeFc(const EfcUdpMcParams *mcParams,
 }
 
 /* ################################################ */
-void EkaEfc::initEur() {
-  eur_ = new EkaEurStrategy();
+void EkaEfc::initEur(const EfcUdpMcParams *mcParams) {
+  eur_ = new EkaEurStrategy(mcParams);
 
   if (totalCoreIdBitmap_ & eur_->getCoreBitmap())
     on_error(
@@ -150,8 +151,10 @@ void EkaEfc::initEur() {
   totalCoreIdBitmap_ |= eur_->getCoreBitmap();
 }
 /* ################################################ */
-void EkaEfc::initBcCmeFc() {
-  bcCme_ = new EkaBcCmeStrategy();
+void EkaEfc::initBcCmeFc(
+    const EfcUdpMcParams *mcParams,
+    const EkaBcCmeFcAlgoParams *cmeParams) {
+  bcCme_ = new EkaBcCmeStrategy(mcParams, cmeParams);
 
   if (totalCoreIdBitmap_ & bcCme_->getCoreBitmap())
     on_error(

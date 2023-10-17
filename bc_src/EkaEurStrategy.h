@@ -6,8 +6,6 @@
 #include "EhpEur.h"
 #include "EkaHashEng.h"
 
-class EkaHwHashTableLine;
-
 class EkaEurStrategy : public EkaStrategyEhp<EhpEur> {
 public:
   EkaEurStrategy(const EfcUdpMcParams *mcParams);

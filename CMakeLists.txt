@@ -143,8 +143,6 @@ install(TARGETS ekalwip_static RUNTIME DESTINATION lib COMPONENT Runtime)
 
 # ##############################################################################
 
-file(GLOB ${EKA_LIB_NAME}_SRCS ${EKA_SRC_DIR}/*.c ${EKA_SRC_DIR}/Ehp/*.c)
-
 set(EKA_GENERIC_SRC_PATH ${CMAKE_CURRENT_LIST_DIR}/apisrc)
 set(EKA_BC_SRC_PATH ${CMAKE_CURRENT_LIST_DIR}/bc_src)
 # set(EKA_BC_SRC_PATH ${EKA_BC_SRC_PATH} ${CMAKE_CURRENT_LIST_DIR}/bc_src/Cme)
@@ -173,6 +171,9 @@ set(EKA_INC_PATH ${EKA_INC_PATH} ${SMARTNIC_API_INCL})
 set(EKA_INC_PATH ${EKA_INC_PATH} ${SMARTNIC_DRIVER_INCL})
 set(EKA_INC_PATH ${EKA_INC_PATH} ${LWIP_INCL})
 
+file(GLOB ${EKA_LIB_NAME}_SRCS ${EKA_GENERIC_SRC_PATH}/*.c
+     ${EKA_GENERIC_SRC_PATH}/Ehp/*.c ${EKA_BC_SRC_PATH}/*.c)
+
 set(EKA_LINK_MAP ${apiDIR}/libekaline2.map)
 # set(EKA_LINK_MAP
 # ${CMAKE_CURRENT_LIST_DIR}/apisrc/compat/lib${EKA_LIB_NAME}.map)
@@ -197,7 +198,7 @@ set_property(TARGET ${EKA_LIB_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_compile_options(${EKA_LIB_NAME} PRIVATE -std=c++23 -O3 -funroll-loops
                                                -pthread -pipe -march=native)
 
-target_compile_definitions(${EKA_LIB_NAME} PUBLIC EKA_LIB_RUN)
+target_compile_definitions(${EKA_LIB_NAME} PRIVATE EKA_LIB_RUN)
 
 if(FhLab)
   target_compile_definitions(${EKA_LIB_NAME} PUBLIC FH_LAB)
@@ -266,7 +267,7 @@ target_include_directories(${EKA_LIB_NAME}_static PUBLIC ${EKA_INC_PATH})
 target_compile_definitions(${EKA_LIB_NAME}_static
                            PUBLIC LIBEKA_GIT_VER=${EKA_GIT_VER})
 
-target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC EKA_LIB_RUN)
+target_compile_definitions(${EKA_LIB_NAME}_static PRIVATE EKA_LIB_RUN)
 
 if(FhLab)
   target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC FH_LAB)
@@ -347,6 +348,8 @@ foreach(uSrc ${utils_SRCS})
   add_executable(${utilExec} ${uSrc})
   set_target_properties(${utilExec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                                ${utilsDstDir})
+  add_dependencies(${utilExec} ${EKA_LIB_NAME}_static)
+
   target_link_libraries(${utilExec} ${EKA_LIB_NAME}_static rt m
                         Threads::Threads)
   target_link_libraries(${utilExec} -static-libgcc -static-libstdc++)
