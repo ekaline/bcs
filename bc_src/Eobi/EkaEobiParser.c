@@ -2,6 +2,9 @@
 #include "EkaEobiBook.h"
 #include "EkaEurStrategy.h"
 
+#include "EkaEobiTypes.h"
+using namespace EkaEobi;
+
 #define SecurityStatusDecode(x)                            \
   x == 1    ? "Active"                                     \
   : x == 2  ? "Inactive"                                   \
@@ -12,17 +15,22 @@
   : x == 11 ? "PendingDeletion"                            \
   : x == 12 ? "KnockedOutAndSuspended"                     \
             : "UNKNOWN"
+//--------------------------------------------------------
 
-EkaEobiParser(EkaEurStrategy *strat) { strat_ = strat; }
+EkaEobiParser::EkaEobiParser(EkaEurStrategy *strat) {
+  strat_ = strat;
+}
+//--------------------------------------------------------
 
-inline uint EkaEobiParser::processPkt(
-    MdOut *mdOut, ProcessAction processAction, uint8_t *pkt,
-    uint pktPayloadSize) {
+uint EkaEobiParser::processPkt(MdOut *mdOut,
+                               ProcessAction processAction,
+                               const uint8_t *pkt,
+                               uint pktPayloadSize) {
   if (pkt == NULL)
     on_error("pkt == NULL");
 
-  uint8_t *p = pkt;
-  uint8_t *pktEnd = pkt + pktPayloadSize;
+  const uint8_t *p = pkt;
+  const uint8_t *pktEnd = pkt + pktPayloadSize;
   mdOut->book = NULL;
   mdOut->lastEvent = false;
 
@@ -45,10 +53,9 @@ inline uint EkaEobiParser::processPkt(
 
 //--------------------------------------------------------
 
-inline uint
-EkaEobiParser::processMsg(MdOut *mdOut,
-                          ProcessAction processAction,
-                          uint8_t *msgStart) {
+uint EkaEobiParser::processMsg(MdOut *mdOut,
+                               ProcessAction processAction,
+                               const uint8_t *msgStart) {
   MessageHeaderCompT *hdr = (MessageHeaderCompT *)msgStart;
 
 #ifdef _EKA_PARSER_PRINT_ALL_
@@ -61,8 +68,8 @@ EkaEobiParser::processMsg(MdOut *mdOut,
     /* ------------------------------ */
   case TID_ORDERADD: {
     OrderAddT *msg = (OrderAddT *)hdr;
-    b = (EkaEobiBook *)strat_->findBook(
-        static_cast<GlobalExchSecurityId>(msg->SecurityID));
+    b = strat_->findBook(
+        static_cast<ExchSecurityId>(msg->SecurityID));
     //    EKA_LOG ("msg->SecurityID = %u:
     //    ",(uint)msg->SecurityID);
     if (b == NULL)
@@ -75,8 +82,7 @@ EkaEobiParser::processMsg(MdOut *mdOut,
     eventSide = b->decodeSide(msg->OrderDetails.Side);
 #ifdef _EKA_PARSER_PRINT_ALL_
     EKA_LOG("ORDERADD: %ju,%c,%ju,%u",
-            (static_cast<GlobalExchSecurityId>(
-                msg->SecurityID)),
+            (static_cast<ExchSecurityId>(msg->SecurityID)),
             eventSide == BID ? 'B' : 'A',
             msg->OrderDetails.Price,
             msg->OrderDetails.DisplayQty);
@@ -85,8 +91,8 @@ EkaEobiParser::processMsg(MdOut *mdOut,
     /* ------------------------------ */
   case TID_ORDERMODIFY: {
     OrderModifyT *msg = (OrderModifyT *)hdr;
-    b = (EkaEobiBook *)strat_->findBook(
-        static_cast<GlobalExchSecurityId>(msg->SecurityID));
+    b = strat_->findBook(
+        static_cast<ExchSecurityId>(msg->SecurityID));
     if (b == NULL)
       return hdr->BodyLen;
 
@@ -97,8 +103,7 @@ EkaEobiParser::processMsg(MdOut *mdOut,
     eventSide = b->decodeSide(msg->OrderDetails.Side);
 #ifdef _EKA_PARSER_PRINT_ALL_
     EKA_LOG("ORDERMODIFY: %ju,%c,%ju,%u,%ju,%u",
-            (static_cast<GlobalExchSecurityId>(
-                msg->SecurityID)),
+            (static_cast<ExchSecurityId>(msg->SecurityID)),
             eventSide == BID ? 'B' : 'A', msg->PrevPrice,
             msg->PrevDisplayQty, msg->OrderDetails.Price,
             msg->OrderDetails.DisplayQty);
@@ -107,8 +112,8 @@ EkaEobiParser::processMsg(MdOut *mdOut,
     /* ------------------------------ */
   case TID_ORDERMODIFYSAMEPRIO: {
     OrderModifySamePrioT *msg = (OrderModifySamePrioT *)hdr;
-    b = (EkaEobiBook *)strat_->findBook(
-        static_cast<GlobalExchSecurityId>(msg->SecurityID));
+    b = strat_->findBook(
+        static_cast<ExchSecurityId>(msg->SecurityID));
     if (b == NULL)
       return hdr->BodyLen;
 
@@ -119,8 +124,7 @@ EkaEobiParser::processMsg(MdOut *mdOut,
     eventSide = b->decodeSide(msg->OrderDetails.Side);
 #ifdef _EKA_PARSER_PRINT_ALL_
     EKA_LOG("ORDERMODIFYSAMEPRIO: %ju,%c,%ju,%u,%u",
-            (static_cast<GlobalExchSecurityId>(
-                msg->SecurityID)),
+            (static_cast<ExchSecurityId>(msg->SecurityID)),
             eventSide == BID ? 'B' : 'A',
             msg->OrderDetails.Price, msg->PrevDisplayQty,
             msg->OrderDetails.DisplayQty);
@@ -129,8 +133,8 @@ EkaEobiParser::processMsg(MdOut *mdOut,
     /* ------------------------------ */
   case TID_ORDERDELETE: {
     OrderDeleteT *msg = (OrderDeleteT *)hdr;
-    b = (EkaEobiBook *)strat_->findBook(
-        static_cast<GlobalExchSecurityId>(msg->SecurityID));
+    b = strat_->findBook(
+        static_cast<ExchSecurityId>(msg->SecurityID));
     if (b == NULL)
       return hdr->BodyLen;
 
@@ -140,8 +144,7 @@ EkaEobiParser::processMsg(MdOut *mdOut,
     eventSide = b->decodeSide(msg->OrderDetails.Side);
 #ifdef _EKA_PARSER_PRINT_ALL_
     EKA_LOG("ORDERDELETE: %ju,%c,%ju,%u",
-            (static_cast<GlobalExchSecurityId>(
-                msg->SecurityID)),
+            (static_cast<ExchSecurityId>(msg->SecurityID)),
             eventSide == BID ? 'B' : 'A',
             msg->OrderDetails.Price,
             msg->OrderDetails.DisplayQty);
@@ -151,12 +154,11 @@ EkaEobiParser::processMsg(MdOut *mdOut,
   case TID_ORDERMASSDELETE: {
     OrderMassDeleteT *msg = (OrderMassDeleteT *)hdr;
 #ifdef _EKA_PARSER_PRINT_ALL_
-    EKA_LOG(
-        "ORDERMASSDELETE: %ju",
-        static_cast<GlobalExchSecurityId>(msg->SecurityID));
+    EKA_LOG("ORDERMASSDELETE: %ju",
+            static_cast<ExchSecurityId>(msg->SecurityID));
 #endif
-    b = (EkaEobiBook *)strat_->findBook(
-        static_cast<GlobalExchSecurityId>(msg->SecurityID));
+    b = strat_->findBook(
+        static_cast<ExchSecurityId>(msg->SecurityID));
     if (b == NULL)
       return hdr->BodyLen;
     b->orderMassDelete();
@@ -166,8 +168,8 @@ EkaEobiParser::processMsg(MdOut *mdOut,
   case TID_PARTIALORDEREXECUTION: {
     PartialOrderExecutionT *msg =
         (PartialOrderExecutionT *)hdr;
-    b = (EkaEobiBook *)strat_->findBook(
-        static_cast<GlobalExchSecurityId>(msg->SecurityID));
+    b = strat_->findBook(
+        static_cast<ExchSecurityId>(msg->SecurityID));
     if (b == NULL)
       return hdr->BodyLen;
     b->orderPartialExecution(msg->Side, msg->Price,
@@ -175,8 +177,7 @@ EkaEobiParser::processMsg(MdOut *mdOut,
     eventSide = b->decodeSide(msg->Side);
 #ifdef _EKA_PARSER_PRINT_ALL_
     EKA_LOG("PARTIALORDEREXECUTION: %ju,%c,%ju,%u",
-            (static_cast<GlobalExchSecurityId>(
-                msg->SecurityID)),
+            (static_cast<ExchSecurityId>(msg->SecurityID)),
             eventSide == BID ? 'B' : 'A', msg->Price,
             msg->LastQty);
 #endif
@@ -184,8 +185,8 @@ EkaEobiParser::processMsg(MdOut *mdOut,
     /* ------------------------------ */
   case TID_FULLORDEREXECUTION: {
     FullOrderExecutionT *msg = (FullOrderExecutionT *)hdr;
-    b = (EkaEobiBook *)strat_->findBook(
-        static_cast<GlobalExchSecurityId>(msg->SecurityID));
+    b = strat_->findBook(
+        static_cast<ExchSecurityId>(msg->SecurityID));
     if (b == NULL)
       return hdr->BodyLen;
     b->orderFullExecution(msg->Side, msg->Price,
@@ -193,8 +194,7 @@ EkaEobiParser::processMsg(MdOut *mdOut,
     eventSide = b->decodeSide(msg->Side);
 #ifdef _EKA_PARSER_PRINT_ALL_
     EKA_LOG("FULLORDEREXECUTION: %ju,%c,%ju,%u",
-            (static_cast<GlobalExchSecurityId>(
-                msg->SecurityID)),
+            (static_cast<ExchSecurityId>(msg->SecurityID)),
             eventSide == BID ? 'B' : 'A', msg->Price,
             msg->LastQty);
 #endif
@@ -222,18 +222,18 @@ EkaEobiParser::processMsg(MdOut *mdOut,
   switch (eventSide) {
   case ASK:
     if (b->testTobChange(ASK, mdOut->transactTime))
-      exch->onTobChange(mdOut, b, ASK);
+      strat_->onTobChange(mdOut, b, ASK);
     break;
   case BID:
     if (b->testTobChange(BID, mdOut->transactTime))
-      exch->onTobChange(mdOut, b, BID);
+      strat_->onTobChange(mdOut, b, BID);
     break;
   case SIDE::BOTH:
-    //    EKA_LOG("    exch->onTobChange(mdOut,b,ASK);");
-    exch->onTobChange(mdOut, b, ASK);
+    //    EKA_LOG("    strat_->onTobChange(mdOut,b,ASK);");
+    strat_->onTobChange(mdOut, b, ASK);
 
-    //    EKA_LOG("    exch->onTobChange(mdOut,b,BID);");
-    exch->onTobChange(mdOut, b, BID);
+    //    EKA_LOG("    strat_->onTobChange(mdOut,b,BID);");
+    strat_->onTobChange(mdOut, b, BID);
     break;
   default:
     break;
@@ -243,8 +243,8 @@ EkaEobiParser::processMsg(MdOut *mdOut,
 }
 //--------------------------------------------------------
 
-inline uint EkaEobiParser::printPkt(uint8_t *pkt,
-                                    uint pktPayloadSize) {
+uint EkaEobiParser::printPkt(uint8_t *pkt,
+                             uint pktPayloadSize) {
   if (pkt == NULL)
     on_error("pkt == NULL");
 
@@ -287,8 +287,7 @@ uint EkaEobiParser::printMsg(uint8_t *msgStart) {
   case TID_ORDERADD: {
     OrderAddT *msg = (OrderAddT *)hdr;
     printf("\tORDERADD: %ju,%c,%ju,%jd",
-           (static_cast<GlobalExchSecurityId>(
-               msg->SecurityID)),
+           (static_cast<ExchSecurityId>(msg->SecurityID)),
            decodeSide4print(msg->OrderDetails.Side),
            msg->OrderDetails.Price,
            msg->OrderDetails.DisplayQty);
@@ -297,8 +296,7 @@ uint EkaEobiParser::printMsg(uint8_t *msgStart) {
   case TID_ORDERMODIFY: {
     OrderModifyT *msg = (OrderModifyT *)hdr;
     printf("\tORDERMODIFY: %ju,%c,%ju,%jd,%ju,%jd",
-           (static_cast<GlobalExchSecurityId>(
-               msg->SecurityID)),
+           (static_cast<ExchSecurityId>(msg->SecurityID)),
            decodeSide4print(msg->OrderDetails.Side),
            msg->PrevPrice, msg->PrevDisplayQty,
            msg->OrderDetails.Price,
@@ -308,8 +306,7 @@ uint EkaEobiParser::printMsg(uint8_t *msgStart) {
   case TID_ORDERMODIFYSAMEPRIO: {
     OrderModifySamePrioT *msg = (OrderModifySamePrioT *)hdr;
     printf("\tORDERMODIFYSAMEPRIO: %ju,%c,%ju,%jd,%jd",
-           (static_cast<GlobalExchSecurityId>(
-               msg->SecurityID)),
+           (static_cast<ExchSecurityId>(msg->SecurityID)),
            decodeSide4print(msg->OrderDetails.Side),
            msg->OrderDetails.Price, msg->PrevDisplayQty,
            msg->OrderDetails.DisplayQty);
@@ -318,8 +315,7 @@ uint EkaEobiParser::printMsg(uint8_t *msgStart) {
   case TID_ORDERDELETE: {
     OrderDeleteT *msg = (OrderDeleteT *)hdr;
     printf("\tORDERDELETE: %ju,%c,%ju,%jd",
-           (static_cast<GlobalExchSecurityId>(
-               msg->SecurityID)),
+           (static_cast<ExchSecurityId>(msg->SecurityID)),
            decodeSide4print(msg->OrderDetails.Side),
            msg->OrderDetails.Price,
            msg->OrderDetails.DisplayQty);
@@ -327,17 +323,15 @@ uint EkaEobiParser::printMsg(uint8_t *msgStart) {
     /* ------------------------------ */
   case TID_ORDERMASSDELETE: {
     OrderMassDeleteT *msg = (OrderMassDeleteT *)hdr;
-    printf(
-        "\tORDERMASSDELETE: %ju",
-        static_cast<GlobalExchSecurityId>(msg->SecurityID));
+    printf("\tORDERMASSDELETE: %ju",
+           static_cast<ExchSecurityId>(msg->SecurityID));
   } break;
     /* ------------------------------ */
   case TID_PARTIALORDEREXECUTION: {
     PartialOrderExecutionT *msg =
         (PartialOrderExecutionT *)hdr;
     printf("\tPARTIALORDEREXECUTION: %ju,%c,%ju,%jd",
-           (static_cast<GlobalExchSecurityId>(
-               msg->SecurityID)),
+           (static_cast<ExchSecurityId>(msg->SecurityID)),
            decodeSide4print(msg->Side), msg->Price,
            msg->LastQty);
   } break;
@@ -345,8 +339,7 @@ uint EkaEobiParser::printMsg(uint8_t *msgStart) {
   case TID_FULLORDEREXECUTION: {
     FullOrderExecutionT *msg = (FullOrderExecutionT *)hdr;
     printf("\tFULLORDEREXECUTION: %ju,%c,%ju,%jd",
-           (static_cast<GlobalExchSecurityId>(
-               msg->SecurityID)),
+           (static_cast<ExchSecurityId>(msg->SecurityID)),
            decodeSide4print(msg->Side), msg->Price,
            msg->LastQty);
   } break;
@@ -356,8 +349,7 @@ uint EkaEobiParser::printMsg(uint8_t *msgStart) {
         (InstrumentStateChangeT *)hdr;
     printf(
         "\tINSTRUMENTSTATECHANGE: %ju,%s,%d,%d,%d,%d,%d,%d",
-        (static_cast<GlobalExchSecurityId>(
-            msg->SecurityID)),
+        (static_cast<ExchSecurityId>(msg->SecurityID)),
         SecurityStatusDecode(msg->SecurityStatus),
         msg->SecurityStatus, msg->SecurityTradingStatus,
         msg->MarketCondition, msg->FastMarketIndicator,

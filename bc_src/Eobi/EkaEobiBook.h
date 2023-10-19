@@ -1,43 +1,28 @@
-#ifndef _EKA_EOBI_BOOK_H
-#define _EKA_EOBI_BOOK_H
+#ifndef _EKA_EOBI_BOOK_H_
+#define _EKA_EOBI_BOOK_H_
 
 #include <string.h>
 
 #include "eka_hw_conf.h"
 #include "eka_macros.h"
 
-#include "EkaBookTypes.h"
+#include "EkaEobiBookSide.h"
 
-#include "EkaBook.h"
+#include "EkaEobiTypes.h"
+using namespace EkaEobi;
 
-class EkaEobiBookSide;
 class EkaEurStrategy;
-class EkaBcEurProd;
 
 // ################################################
 
-class EkaEobiBook : public EkaBook {
+class EkaEobiBook {
 public:
-  using ProductId = EkaEobi::ProductId;
-  using ExchSecurityId = EkaEobi::ExchSecurityId;
-  using Price = EkaEobi::Price;
-  using Size = EkaEobi::Size;
-  using NormPrice = EkaEobi::NormPrice;
-
-  typedef enum {
-    BID = 0,
-    ASK = 1,
-    IRRELEVANT = 3,
-    ERROR = 101,
-    BOTH = 200,
-    NONE = 300
-  } SIDE;
-
   static const uint ENTRIES = 32 * 1024;
 
   // ################################################
 
-  EkaEobiBook(EkaEurStrategy *strat, EkaBcEurProd *prod);
+  EkaEobiBook(EkaEurStrategy *strat, Price step,
+              Price midPoint);
   /* ------------------------------------------------ */
   int invalidate();
   /* ------------------------------------------------ */

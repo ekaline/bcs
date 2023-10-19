@@ -181,7 +181,7 @@ public:
   const uint32_t snDevNumberOfUserLogicRegisters = uint32_t(
       0x100000 /* BAR2_REGS_SIZE */ / sizeof(uint64_t));
 
-  EkaBcAffinityConfig affinityConf = {-1, -1, -1, -1};
+  EkaBcAffinityConfig affinityConf = {-1, -1, -1, -1, -1};
 };
 
 /* ########################################################################

@@ -430,6 +430,12 @@ inline std::string ts_ns2str(uint64_t ts) {
 /* -------------------------------------------------------
  */
 
+#ifdef EKA_FPGA_FREQUENCY
+#define _FREQUENCY EKA_FPGA_FREQUENCY
+#else
+#define _FREQUENCY (161.132828125)
+#endif
+
 inline uint64_t
 getFpgaTimeCycles() { // ignores Application - PCIe - FPGA
                       // latency
@@ -439,7 +445,7 @@ getFpgaTimeCycles() { // ignores Application - PCIe - FPGA
       ((uint64_t)(t.tv_sec) * (uint64_t)1000000000 +
        (uint64_t)(t.tv_nsec));
   uint64_t current_time_cycles =
-      (current_time_ns * (EKA_FPGA_FREQUENCY / 1000.0));
+      (current_time_ns * (_FREQUENCY / 1000.0));
   /* eka_write(dev,FPGA_RT_CNTR,current_time_cycles); */
   /* char t_str[64] = {}; */
   /* str_time_from_nano(current_time_ns,t_str); */
@@ -471,7 +477,7 @@ inline auto getPktTimestampCycles(const uint8_t *pPayload) {
 inline void printFpgaTime(char *dst, size_t dstSize,
                           uint64_t timeStampCycles) {
   uint64_t epcoh_seconds =
-      timeStampCycles * (1000.0 / EKA_FPGA_FREQUENCY) / 1e9;
+      timeStampCycles * (1000.0 / _FREQUENCY) / 1e9;
   auto raw_time{static_cast<time_t>(epcoh_seconds)};
   struct tm *timeinfo = localtime(&raw_time);
   //  strftime(dst, dstSize, "%a, %d %b %Y, %X", timeinfo);

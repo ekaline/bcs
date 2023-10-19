@@ -3,13 +3,15 @@
 
 #include "eka_macros.h"
 
-#include "EkaBc.h"
+#include "EkaEobiTypes.h"
+using namespace EkaEobi;
 
+class EkaEurStrategy;
 class EkaEobiBook;
 
 class EkaBcEurProd {
 public:
-  EkaBcEurProd(EkaBcSecHandle handle,
+  EkaBcEurProd(EkaEurStrategy *strat, EkaBcSecHandle handle,
                const EkaBcEurProductInitParams *p);
 
   EkaBCOpResult
@@ -20,19 +22,18 @@ public:
       const EkaBcEurReferenceJumpParams *params);
 
 public:
-  EkaBcSecId secId_ = 0;
-  uint64_t maxBookSpread_ = 0;
-  uint64_t midPoint_ = 0;
+  ExchSecurityId secId_ = 0;
+  Price maxBookSpread_ = 0;
+  Price midPoint_ = 0;
   uint64_t priceDiv_ =
       0; // for price normalization for prints only
-  uint64_t step_ = 0;
+  Price step_ = 0;
   bool isBook_ = 0;
   uint8_t eiPriceFlavor_ = 0;
 
   uint32_t hwMidPoint_ = 0;
 
   EkaEobiBook *book_ = nullptr;
-  EkaEobiParser *parser_ = nullptr;
 
 private:
   static const size_t MaxReferenceProds_ = 16;

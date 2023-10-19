@@ -88,6 +88,24 @@ EkaEfc::EkaEfc(const EfcInitCtx *pEfcInitCtx) {
                  sizeof(hwMaxEhpTemplate));
     }
   }
+
+  // Cleaning all MC groups
+  EKA_LOG("Resetting all HW MC Configs for "
+          "%d Lanes * %d MC Groups",
+          EkaDev::MAX_CORES, EFC_MAX_MC_GROUPS_PER_LANE);
+  for (uint8_t coreId = 0; coreId < EkaDev::MAX_CORES;
+       coreId++) {
+    for (auto i = 0; i < EFC_MAX_MC_GROUPS_PER_LANE; i++) {
+      // Cleaning all MC groups
+      uint32_t ip = 0;
+      uint16_t port = 0;
+      uint64_t tmp_ipport = ((uint64_t)i) << 56 |
+                            ((uint64_t)port) << 32 |
+                            be32toh(ip);
+      eka_write(dev_, HwUdpMcConfig + coreId * 8,
+                tmp_ipport);
+    }
+  }
 }
 /* ################################################ */
 EkaEfc::~EkaEfc() {
@@ -456,9 +474,6 @@ int EkaEfc::setHwGlobalParams() {
 #endif
 /* ################################################ */
 int EkaEfc::setHwUdpParams() {
-  const int HwUdpMcConfig =
-      0xf0500; // base, every core: + 8
-
   for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++) {
     if (!((1 << coreId) &
           dev_->ekaHwCaps->hwCaps.core.bitmap_md_cores))

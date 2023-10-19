@@ -2,24 +2,28 @@
 #include "EkaBcEurProd.h"
 #include "EkaEobiBookSide.h"
 
+#include "EkaEobiTypes.h"
+using namespace EkaEobi;
+
 /* ----------------------------------------------------- */
 
-EkaEobiBook::EkaEobiBook(EkaEurStrategy *strat,
-                         EkaBcEurProd *prod) {
-  prod_ = prod;
-  step_ = prod_->step_;
-  if ((int64_t)prod_->midPoint_ <
-      (int64_t)((ENTRIES / 2) * step_))
+EkaEobiBook::EkaEobiBook(EkaEurStrategy *strat, Price step,
+                         Price midPoint) {
+  step_ = step;
+  if ((int64_t)midPoint < (int64_t)((ENTRIES / 2) * step_))
     bottom_ = 0;
   else
-    bottom_ = prod_->midPoint_ - (ENTRIES / 2) * step_;
+    bottom_ = midPoint - (ENTRIES / 2) * step_;
 
   top_ = bottom_ + ENTRIES * step_;
 
-  bookSide[SIDE::BID] = new EkaEobiBookSide(BID, this);
-  bookSide[SIDE::ASK] = new EkaEobiBookSide(ASK, this);
+  bookSide[SIDE::BID] =
+      new EkaEobiBookSide(BID, step_, bottom_, top_);
+  bookSide[SIDE::ASK] =
+      new EkaEobiBookSide(ASK, step_, bottom_, top_);
 }
 /* ----------------------------------------------------- */
+
 int EkaEobiBook::invalidate() {
   bookSide[ASK]->invalidate();
   bookSide[BID]->invalidate();
@@ -94,6 +98,7 @@ int EkaEobiBook::orderFullExecution(uint8_t _side,
   return 0;
 }
 /* ----------------------------------------------------- */
+
 uint64_t EkaEobiBook::getEntryPrice(SIDE _side,
                                     uint bookEntry) {
   return bookSide[_side]->getEntryPrice(bookEntry);
@@ -105,6 +110,7 @@ uint EkaEobiBook::getEntrySize(SIDE _side, uint bookEntry) {
 }
 
 /* ----------------------------------------------------- */
+
 bool EkaEobiBook::testTobChange(SIDE side, uint64_t ts) {
   switch (side) {
   case ASK:
@@ -142,6 +148,7 @@ void EkaEobiBook::printTob() {
   printf("\n");
 }
 /* ----------------------------------------------------- */
+
 bool EkaEobiBook::checkIntegrity() {
   bool res = true;
   if (bookSide[BID]->tobIdx >= bookSide[ASK]->tobIdx) {

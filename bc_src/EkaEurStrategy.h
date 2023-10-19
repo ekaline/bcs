@@ -7,14 +7,31 @@
 #include "EkaBcEurProd.h"
 #include "EkaHashEng.h"
 
+#include "EkaEobiBook.h"
+
 #include "EkaEobiTypes.h"
+using namespace EkaEobi;
+
+class EkaBcEurProd;
+class EkaEobiParser;
+class EkaEobiBook;
+class EkaDev;
 
 class EkaEurStrategy : public EkaStrategyEhp<EhpEur> {
+private:
+  static const int MaxSecurities_ = 16;
+  static const size_t Rows = 64 * 1024;
+  static const size_t Cols = 3;
+
+  using HashEngT = EkaHashEng<EkaBcEurSecId,
+                              EfhFeedVer::kEUR, Rows, Cols>;
+
 public:
   EkaEurStrategy(const EfcUdpMcParams *mcParams);
 
-  EkaBCOpResult subscribeSecList(const EkaBcSecId *prodList,
-                                 size_t nProducts);
+  EkaBCOpResult
+  subscribeSecList(const EkaBcEurSecId *prodList,
+                   size_t nProducts);
 
   EkaBCOpResult
   initProd(EkaBcSecHandle prodHande,
@@ -30,42 +47,34 @@ public:
 
   int sendDate2Hw();
 
+  void runLoop(const EkaBcRunCtx *pEkaBcRunCtx);
+
+  void ekaWriteTob(EkaBcSecHandle handle, void *params,
+                   uint paramsSize, SIDE side);
+
 private:
   void configureTemplates();
 
   EkaBCOpResult downloadPackedDB();
 
-#if 0
-  void runBook();
-  void createBooks(uint8_t coreId);
-  bool productsBelongTo(uint8_t coreId);
+  void writeTob(EkaBcSecHandle handle, void *params,
+                uint paramsSize, SIDE side);
 
-  int ekaWriteTob(EkaDev *dev, void *params,
-                  uint paramsSize, eka_product_t product_id,
-                  eka_side_type_t side);
-#endif
+public:
+public:
+  EkaEobiBook *findBook(ExchSecurityId secId);
+
+  void onTobChange(MdOut *mdOut, EkaEobiBook *book,
+                   SIDE side);
 
 private:
-  static const int MaxSecurities_ = 16;
-  static const size_t Rows = 64 * 1024;
-  static const size_t Cols = 3;
-
-  typedef int32_t ProductId;
-  using ExchSecurityId = EkaBcSecId;
-  typedef int64_t Price;
-  typedef int32_t Size;
-  typedef uint16_t NormPrice;
-
-  using HashEngT =
-      EkaHashEng<EkaBcSecId, EfhFeedVer::kEUR, Rows, Cols>;
-
   int nSec_ = 0;
 
-  EkaBcEurProd *prod[MaxSecurities_] = {};
+  EkaBcEurProd *prod_[MaxSecurities_] = {};
 
   HashEngT *hashEng_ = nullptr;
 
-  EkaUdpChannel *udpChannel[4 /*MAX_CORES*/] = {};
+  EkaUdpChannel *udpChannel_[4 /*MAX_CORES*/] = {};
 
   int regionId_ = EkaEpmRegion::Regions::Efc;
 

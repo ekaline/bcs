@@ -2,6 +2,8 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
+#include <functional>
+
 #include "eka_macros.h"
 
 #include "Efc.h"
@@ -289,10 +291,21 @@ EkaBCOpResult ekaBcDisArmCmeFc(EkaDev *dev) {
 /* ==================================================== */
 
 void ekaBcEurRun(EkaDev *dev,
-                 struct EkaBcRunCtx *pEkaBcRunCtx) {
-  struct EfcRunCtx efcRunCtx = {
-      .onEfcFireReportCb = pEkaBcRunCtx->onReportCb};
-  efcRun(dev, &efcRunCtx);
+                 const EkaBcRunCtx *pEkaBcRunCtx) {
+
+  if (!dev || !dev->efc)
+    on_error("Efc is not initialized: use ekaBcInit()");
+
+  auto eur = dev->efc->eur_;
+  if (!eur)
+    on_error("Eurex is not initialized: use "
+             "ekaBcInitEurStrategy()");
+
+  auto loopFunc = std::bind(&EkaEurStrategy::runLoop, eur,
+                            pEkaBcRunCtx);
+
+  std::thread t(loopFunc);
+  t.join();
 }
 
 /* ==================================================== */
@@ -366,7 +379,7 @@ EkaBCOpResult ekaBcInitCmeFcStrategy(
 
 /* ==================================================== */
 EkaBCOpResult ekaBcSetProducts(EkaDev *dev,
-                               const EkaBcSecId *prodList,
+                               const EkaBcEurSecId *prodList,
                                size_t nProducts) {
   if (!dev || !dev->efc)
     on_error("Efc is not initialized: use ekaBcInit()");

@@ -3,24 +3,19 @@
 
 #include "EOBILayouts.h"
 
-class EkaEurStrategy;
+#include "eka_macros.h"
 
+#include "EkaEobiTypes.h"
+using namespace EkaEobi;
+
+class EkaEurStrategy;
 class EkaEobiParser {
 public:
-  using GlobalExchSecurityId =
-      EkaExch::GlobalExchSecurityId;
-
-  using ProductId = EkaEobi::ProductId;
-  using ExchSecurityId = EkaEobi::ExchSecurityId;
-  using Price = EkaEobi::Price;
-  using Size = EkaEobi::Size;
-  using NormPrice = EkaEobi::NormPrice;
-
   EkaEobiParser(EkaEurStrategy *strat);
   //--------------------------------------------------------
 
   uint processPkt(MdOut *mdOut, ProcessAction processAction,
-                  uint8_t *pkt, uint pktPayloadSize);
+                  const uint8_t *pkt, uint pktPayloadSize);
 
   //--------------------------------------------------------
   uint printPkt(uint8_t *pkt, uint pktPayloadSize);
@@ -38,7 +33,7 @@ private:
   //--------------------------------------------------------
   inline uint processMsg(MdOut *mdOut,
                          ProcessAction processAction,
-                         uint8_t *msgStart);
+                         const uint8_t *msgStart);
 
   //--------------------------------------------------------
 
@@ -72,28 +67,29 @@ private:
            : "UNKNOWN"
 
   // ###################################################
-  inline ExchSecurityId getSecurityId(uint8_t *msgPtr) {
+  inline ExchSecurityId
+  getSecurityId(const uint8_t *msgPtr) {
     MdEntryLayout *p = (MdEntryLayout *)msgPtr;
     return static_cast<ExchSecurityId>(p->SecurityId);
   }
   // ###################################################
-  inline Price getPrice(uint8_t *msgPtr) {
+  inline Price getPrice(const uint8_t *msgPtr) {
     MdEntryLayout *p = (MdEntryLayout *)msgPtr;
     return static_cast<Price>(p->price);
   }
   // ###################################################
-  inline Size getSize(uint8_t *msgPtr) {
+  inline Size getSize(const uint8_t *msgPtr) {
     MdEntryLayout *p = (MdEntryLayout *)msgPtr;
     return static_cast<Size>(p->size);
   }
   // ###################################################
-  inline uint32_t getSequence(uint8_t *msgPtr) {
+  inline uint32_t getSequence(const uint8_t *msgPtr) {
     MdEntryLayout *p = (MdEntryLayout *)msgPtr;
     return p->seq;
   }
   // ###################################################
 
-  inline ACTION getAction(uint8_t *msgPtr) {
+  inline ACTION getAction(const uint8_t *msgPtr) {
     MdEntryLayout *p = (MdEntryLayout *)msgPtr;
     switch (p->MDUpdateAction) {
     case 0:
@@ -109,7 +105,7 @@ private:
   }
 
   // ###################################################
-  inline SIDE getSide(uint8_t *msgPtr) {
+  inline SIDE getSide(const uint8_t *msgPtr) {
     if (((MdEntryLayout *)msgPtr)->MDEntryType == '0')
       return SIDE::BID;
     if (((MdEntryLayout *)msgPtr)->MDEntryType == '1')
@@ -151,10 +147,11 @@ private:
     currSize += sizeof(PacketHeaderT);
 
     uint64_t price =
-        s == BID ? (basePrice - priceLevel * priceStep) *
-                       priceMultiplier
-                 : (basePrice + priceLevel * priceStep) *
-                       priceMultiplier;
+        s == SIDE::BID
+            ? (basePrice - priceLevel * priceStep) *
+                  priceMultiplier
+            : (basePrice + priceLevel * priceStep) *
+                  priceMultiplier;
 
     OrderAddT *msg = (OrderAddT *)p;
     msg->MessageHeader.BodyLen = sizeof(OrderAddT);
@@ -162,7 +159,7 @@ private:
 
     msg->SecurityID = secId;
     msg->OrderDetails.DisplayQty = size;
-    msg->OrderDetails.Side = s == BID ? 1 : 2;
+    msg->OrderDetails.Side = s == SIDE::BID ? 1 : 2;
     msg->OrderDetails.Price = price;
 
     currSize += sizeof(OrderAddT);
@@ -197,13 +194,16 @@ private:
     msg->SecurityID = secId;
     msg->RequestTime = static_cast<uint64_t>(ts);
     msg->LastQty = size;
-    msg->AggressorSide = s == BID ? 1 : 2;
+    msg->AggressorSide = s == SIDE::BID ? 1 : 2;
     msg->LastPx = price;
 
     currSize += sizeof(ExecutionSummaryT);
 
     return currSize;
   }
+
+private:
+  EkaEurStrategy *strat_ = nullptr;
 };
 //--------------------------------------------------------
 

@@ -623,3 +623,25 @@ int EkaDev::clearHw() {
 
   return 0;
 }
+
+/* ################################################## */
+
+void setThreadAffinityName(pthread_t thread,
+                           const char *name, int cpuCore) {
+  //  pthread_t thread = pthread_self();
+  if (cpuCore >= 0) {
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(cpuCore, &cpuset);
+
+    if (pthread_setaffinity_np(thread, sizeof(cpu_set_t),
+                               &cpuset) != 0)
+      on_error("Failed to set affinity on core %u",
+               cpuCore);
+  }
+  pthread_setname_np(thread, name);
+  EKA_LOG("Affinity set to CPU Core %d for thread %s",
+          cpuCore, name);
+
+  return;
+}

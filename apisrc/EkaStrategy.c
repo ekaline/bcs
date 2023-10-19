@@ -27,6 +27,10 @@
 #include "EhpNom.h"
 #include "EhpPitch.h"
 #include "EhpQED.h"
+#include "EkaSnDev.h"
+
+#include "EkaEfc.h"
+#include "EkaUdpChannel.h"
 
 extern EkaDev *g_ekaDev;
 
@@ -94,6 +98,8 @@ EkaStrategy::EkaStrategy(const EfcUdpMcParams *mcParams) {
 /* --------------------------------------------------- */
 
 EkaStrategy::~EkaStrategy() {
+  active_ = false;
+
   disarm();
   disableRxFire();
   eka_write(dev_, P4_STRAT_CONF, (uint64_t)0);
@@ -101,6 +107,43 @@ EkaStrategy::~EkaStrategy() {
   eka_write(dev_, SW_STATISTICS,
             swStatistics & ~(1ULL << 63));
 }
+/* --------------------------------------------------- */
+void EkaStrategy::joinUdpChannels() {
+  for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++) {
+    if (!mcCoreSess_[coreId].numUdpSess)
+      continue;
+
+    udpChannel_[coreId] = new EkaUdpChannel(
+        dev_, dev_->snDev->dev_id, coreId, -1);
+    if (!udpChannel_[coreId])
+      on_error("!udpChannel_[%d]", coreId);
+
+    for (auto i = 0; i < mcCoreSess_[coreId].numUdpSess;
+         i++) {
+      if (!mcCoreSess_[coreId].udpSess[i])
+        on_error("!udpSess[%d][%d]", coreId, i);
+
+      auto ip = mcCoreSess_[coreId].udpSess[i]->ip;
+      auto port = mcCoreSess_[coreId].udpSess[i]->port;
+
+      EKA_LOG("Subscribing UdpChannel[%d]: "
+              "Lane %d %s:%u",
+              udpChannel_[coreId]->chId, coreId,
+              EKA_IP2STR(ip), port);
+
+      udpChannel_[coreId]->igmp_mc_join(ip, port, 0);
+
+      uint64_t tmp_ipport = ((uint64_t)i) << 56 |
+                            ((uint64_t)port) << 32 |
+                            be32toh(ip);
+      //  EKA_LOG("HW Port-IP register = 0x%016jx (%x :
+      //  %x)", tmp_ipport,ip,port);
+      eka_write(dev_, EkaEfc::HwUdpMcConfig + coreId * 8,
+                tmp_ipport);
+    }
+  }
+}
+
 /* --------------------------------------------------- */
 
 void EkaStrategy::arm(EfcArmVer ver) {
@@ -199,3 +242,21 @@ EkaUdpSess *EkaStrategy::findUdpSess(EkaCoreId coreId,
   return nullptr;
 }
 /* --------------------------------------------------- */
+// Probably not needed anymore!
+void EkaStrategy::disableHwUdp() {
+  uint64_t fire_rx_tx_en = eka_read(dev_, ENABLE_PORT);
+  fire_rx_tx_en &= 0xffffffff7fffffff; //[31] = 0, kill udp
+  EKA_LOG("Prebook, turn off udp = 0x%016jx",
+          fire_rx_tx_en);
+  eka_write(dev_, ENABLE_PORT, fire_rx_tx_en);
+  sleep(1);
+}
+/* ----------------------------------------------------- */
+
+void EkaStrategy::enableHwUdp() {
+  uint64_t fire_rx_tx_en = eka_read(dev_, ENABLE_PORT);
+  fire_rx_tx_en |= 1ULL << (31); //[31] = 1, pass udp
+  EKA_LOG("Post book, turn on udp = 0x%016jx",
+          fire_rx_tx_en);
+  eka_write(dev_, ENABLE_PORT, fire_rx_tx_en);
+}

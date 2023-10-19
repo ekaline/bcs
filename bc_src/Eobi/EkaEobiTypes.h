@@ -1,7 +1,59 @@
 #ifndef __EKA_EOBI_TYPES_H__
 #define __EKA_EOBI_TYPES_H__
 
+#include "eka_hw_conf.h"
+#include "eka_macros.h"
+
+#include "EkaBc.h"
+
 /* ----------------------------------------------------- */
+
+namespace EkaEobi {
+
+using ExchSecurityId = EkaBcEurSecId;
+typedef int64_t Price;
+typedef uint16_t NormPrice;
+typedef int32_t Size;
+
+static const uint ENTRIES = 32 * 1024;
+
+typedef enum {
+  BID = 0,
+  ASK = 1,
+  IRRELEVANT = 3,
+  ERROR = 101,
+  BOTH = 200,
+  NONE = 300
+} SIDE;
+
+struct MdOut {
+  EkaDev *dev;
+  uint8_t coreId;
+  uint8_t pad1[3];
+  uint32_t securityId;
+  SIDE side;
+  uint64_t price;
+  uint32_t size;
+  uint8_t priceLevel;
+  uint8_t pad2[3];
+  uint64_t sequence;
+  uint32_t pktSeq;
+  uint64_t transactTime;
+  bool lastEvent;
+  bool tobChanged;
+  uint16_t msgNum;
+  uint16_t sessNum;
+  void *book;
+};
+
+typedef enum {
+  Invalid = 0,
+  PrintOnly,
+  UpdateBookOnly,
+  PrintAndUpdateBook,
+  UpdateBookAndCheckIntegrity,
+  PrintAndUpdateBookAndCheckIntegrity
+} ProcessAction;
 
 struct EobiTobParams { // NOT used in eurex, in eurex
                        // different struct
@@ -73,5 +125,5 @@ inline OutT normalizeTimeDelta(InpT timeDelta) {
 
   return static_cast<OutT>(timeDelta / 1000);
 }
-
+} // namespace EkaEobi
 #endif

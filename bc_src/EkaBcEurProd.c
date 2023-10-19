@@ -2,8 +2,10 @@
 
 #include "EkaEobiBook.h"
 
-#include "EkaEobiParser.h"
-#include "EkaEurStrategy.h"
+#include "EkaEobiTypes.h"
+using namespace EkaEobi;
+
+class EkaEurStrategy;
 
 EkaBcEurProd::EkaBcEurProd(
     EkaEurStrategy *strat, EkaBcSecHandle handle,
@@ -30,29 +32,28 @@ EkaBcEurProd::EkaBcEurProd(
              handle_, step_, midPoint_, hwMidPoint_);
 
   EKA_LOG("Initialized Product[%jd]: "
-          "secId_ = %u, "
+          "secId_ = %jd, "
           "midPoint_ = %ju, "
           "step_ = %ju, "
-          "hwMidPoint_ = %ju, "
+          "hwMidPoint_ = %u, "
           "priceDiv_ = %ju, "
           "%s, ",
           handle_, secId_, midPoint_, step_, hwMidPoint_,
           priceDiv_, isBook_ ? "HAS BOOK" : "NO BOOK");
 
-  book_ = new EkaEobiBook(strat_, this);
+  book_ = new EkaEobiBook(strat_, step_, midPoint_);
   if (!book_)
     on_error("!book_");
-
-  parser_ = new EkaEobiParser(strat_);
-  if (!parser_)
-    on_error("!parser_");
 }
+/* --------------------------------------------------- */
 
 EkaBCOpResult EkaBcEurProd::setJumpParams(
     const EkaBcEurJumpParams *params) {
   memcpy(&jumpParams_, params, sizeof(*params));
   return EKABC_OPRESULT__OK;
 }
+
+/* --------------------------------------------------- */
 
 EkaBCOpResult EkaBcEurProd::setReferenceJumpParams(
     EkaBcSecHandle fireProd,
@@ -62,3 +63,4 @@ EkaBCOpResult EkaBcEurProd::setReferenceJumpParams(
 
   return EKABC_OPRESULT__OK;
 }
+/* --------------------------------------------------- */

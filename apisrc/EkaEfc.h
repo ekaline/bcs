@@ -89,6 +89,9 @@ private:
   uint8_t totalCoreIdBitmap_ = 0x00;
 
 public:
+  static const int HwUdpMcConfig =
+      0xf0500; // base, every core: + 8
+
   EkaP4Strategy *p4_ = nullptr;
   EkaQedStrategy *qed_ = nullptr;
   EkaCmeFcStrategy *cme_ = nullptr;

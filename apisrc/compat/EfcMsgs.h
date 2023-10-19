@@ -68,7 +68,7 @@ typedef struct {
   EfcMdReport_FIELD_ITER(EKA__FIELD_DEF)
 } EfcMdReport; // single appearence
 
-#define EFC_MAX_CORES 2
+#define EFC_MAX_CORES 4
 
 struct ExceptionReport {
   uint32_t globalVector;

@@ -1,6 +1,8 @@
 #ifndef _EKA_MC_STATE_H_
 #define _EKA_MC_STATE_H_
 
+#include "eka_macros.h"
+
 typedef struct {
   uint32_t group_address;  /**< Multicast group address of
                               this subscription */

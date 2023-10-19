@@ -25,6 +25,15 @@
 #include "EkaEurStrategy.h"
 #include "EkaHwHashTableLine.h"
 
+#include "EkaUdpChannel.h"
+
+#include "EkaEobiParser.h"
+
+#include "EkaBcEurProd.h"
+
+#include "EkaEobiTypes.h"
+using namespace EkaEobi;
+
 /* --------------------------------------------------- */
 EkaEurStrategy::EkaEurStrategy(
     const EfcUdpMcParams *mcParams)
@@ -51,15 +60,47 @@ EkaEurStrategy::EkaEurStrategy(
   EKA_LOG("Created HashEng for Eurex with "
           "%ju Rows, %ju Cols",
           Rows, Cols);
+
+  parser_ = new EkaEobiParser(this);
+  if (!parser_)
+    on_error("!parser_");
 }
 
 /* --------------------------------------------------- */
+void EkaEurStrategy::ekaWriteTob(EkaBcSecHandle handle,
+                                 void *params,
+                                 uint paramsSize,
+                                 SIDE side) {
+#if 0
+  uint hw_product_index = dev->exch->fireLogic->findProdHw(
+      product_id, __func__);
 
+  if (hw_product_index >= EKA_MAX_BOOK_PRODUCTS)
+    on_error("SW TOB is supported only on book product "
+             "(not on %u)\n",
+             hw_product_index);
+
+  uint64_t *wr_ptr = (uint64_t *)params;
+  int iter = paramsSize / 8 +
+             !!(paramsSize % 8); // num of 8Byte words
+  for (int i = 0; i < iter; i++) {
+    eka_write(dev, 0x70000 + i * 8,
+              *(wr_ptr + i)); // data loop
+    //    printf("config %d = %ju\n",i,*(wr_ptr + i));
+  }
+  union large_table_desc tob_desc = {};
+  tob_desc.ltd.src_bank = 0;
+  tob_desc.ltd.src_thread = 0;
+  tob_desc.ltd.target_idx =
+      hw_product_index * 2 + (side == BUY ? 1 : 0);
+  eka_write(dev, 0xf0410, tob_desc.lt_desc); // desc
+  return 0;
+#endif
+}
 /* --------------------------------------------------- */
 
-EkaBCOpResult
-EkaEurStrategy::subscribeSecList(const EkaBcSecId *prodList,
-                                 size_t nProducts) {
+EkaBCOpResult EkaEurStrategy::subscribeSecList(
+    const EkaBcEurSecId *prodList, size_t nProducts) {
   auto prod = prodList;
   for (auto i = 0; i < nProducts; i++) {
     if (hashEng_->subscribeSec(*prod)) {
@@ -117,16 +158,17 @@ EkaBCOpResult EkaEurStrategy::initProd(
     return EKABC_OPRESULT__ERR_BAD_PRODUCT_HANDLE;
   }
 
-  if (prod[prodHande]) {
+  if (prod_[prodHande]) {
     EKA_ERROR("Product with prodHande %jd "
               "is already initialized",
               prodHande);
     return EKABC_OPRESULT__ERR_PRODUCT_ALREADY_INITED;
   }
 
-  prod[prodHande] = new EkaBcEurProd(prodHande, params);
+  prod_[prodHande] =
+      new EkaBcEurProd(this, prodHande, params);
 
-  if (!prod[prodHande])
+  if (!prod_[prodHande])
     on_error("failed creating new Prod");
 
   return EKABC_OPRESULT__OK;
@@ -142,14 +184,14 @@ EkaBCOpResult EkaEurStrategy::setProdJumpParams(
     return EKABC_OPRESULT__ERR_BAD_PRODUCT_HANDLE;
   }
 
-  if (!prod[prodHande]) {
+  if (!prod_[prodHande]) {
     EKA_ERROR("Product with prodHande %jd "
               "is not initialized",
               prodHande);
     return EKABC_OPRESULT__ERR_PRODUCT_DOES_NOT_EXIST;
   }
 
-  return prod[prodHande]->setJumpParams(params);
+  return prod_[prodHande]->setJumpParams(params);
 }
 
 /* --------------------------------------------------- */
@@ -167,14 +209,14 @@ EkaBCOpResult EkaEurStrategy::setProdReferenceJumpParams(
     return EKABC_OPRESULT__ERR_BAD_PRODUCT_HANDLE;
   }
 
-  if (!prod[triggerProd]) {
+  if (!prod_[triggerProd]) {
     EKA_ERROR("triggerProd with handle %jd "
               "is not initialized",
               triggerProd);
     return EKABC_OPRESULT__ERR_PRODUCT_DOES_NOT_EXIST;
   }
 
-  if (!prod[fireProd]) {
+  if (!prod_[fireProd]) {
     EKA_ERROR("fireProd with handle %jd "
               "is not initialized",
               fireProd);
@@ -186,8 +228,8 @@ EkaBCOpResult EkaEurStrategy::setProdReferenceJumpParams(
     return EKABC_OPRESULT__ERR_BAD_PRODUCT_HANDLE;
   }
 
-  return prod[triggerProd]->setReferenceJumpParams(fireProd,
-                                                   params);
+  return prod_[triggerProd]->setReferenceJumpParams(
+      fireProd, params);
 }
 
 /* --------------------------------------------------- */
@@ -232,4 +274,114 @@ int EkaEurStrategy::sendDate2Hw() {
             0x0); // data, last write commits the change
 
   return 1;
+}
+/* --------------------------------------------------- */
+
+void EkaEurStrategy::runLoop(
+    const EkaBcRunCtx *pEkaBcRunCtx) {
+  setThreadAffinityName(pthread_self(), "EkalineBookLoop",
+                        dev_->affinityConf.bookThreadCpuId);
+
+  disableHwUdp();
+  joinUdpChannels();
+  enableHwUdp();
+
+  while (active_) {
+    for (auto coreId = 0; coreId < EFC_MAX_CORES;
+         coreId++) {
+      auto ch = udpChannel_[coreId];
+      if (!ch)
+        continue;
+      if (!ch->has_data())
+        continue;
+      auto pkt = ch->get();
+      if (!pkt)
+        on_error("!pkt");
+
+      EkaIpHdr *ipH = (EkaIpHdr *)(pkt - 8 - 20);
+      EkaUdpHdr *udpH = (EkaUdpHdr *)(pkt - 8);
+
+      auto udpSess = findUdpSess(coreId, ipH->dest,
+                                 be16toh((udpH->dest)));
+      if (!udpSess) {
+#ifdef _EKA_PARSER_PRINT_ALL_
+        EKA_LOG("%s:%u packet does not belog to our UDP "
+                "sessions",
+                EKA_IP2STR((ipH->dest)),
+                be16toh(udpH->dest));
+#endif
+        ch->next();
+        continue;
+      }
+      uint payloadSize = ch->getPayloadLen();
+#ifdef _EKA_PARSER_PRINT_ALL_
+      //    EKA_LOG("Pkt: %u byte ",payloadSize);
+#endif
+      MdOut mdOut = {};
+      parser_->processPkt(&mdOut,
+                          ProcessAction::UpdateBookOnly,
+                          pkt, payloadSize);
+#if 0
+      if (!udpSess->isCorrectSeq(mdOut.pktSeq,
+                                 mdOut.msgNum)) {
+        /* on_error("Sequence Gap"); */
+      }
+#endif
+      ch->next();
+    } // per CoreId for loop
+  }   // while (active_)
+}
+
+/* --------------------------------------------------- */
+
+EkaEobiBook *
+EkaEurStrategy::findBook(ExchSecurityId secId) {
+  for (auto i = 0; i < nSec_; i++) {
+    if (!prod_[i])
+      on_error("!prod_[%d]", i);
+    if (prod_[i]->isBook_ && prod_[i]->secId_ == secId)
+      return prod_[i]->book_;
+  }
+  return nullptr;
+}
+/* --------------------------------------------------- */
+
+void EkaEurStrategy::onTobChange(MdOut *mdOut,
+                                 EkaEobiBook *book,
+                                 SIDE side) {
+#if 0
+ EobiHwBookParams tobParams = {};
+
+  EkaProd* prod = b->prod;
+
+  uint64_t tobPrice = static_cast<uint64_t>(b->getEntryPrice(side,0));
+  uint64_t step     = prod->getStep();
+  uint64_t bottom   = prod->getBottom();
+
+  tobParams.tob.last_transacttime = mdOut->transactTime;
+  tobParams.tob.price             = tobPrice;
+  tobParams.tob.size              = b->getEntrySize (side,0);
+  tobParams.tob.msg_seq_num       = mdOut->sequence;
+
+  tobParams.tob.normprice         = tobPrice == 0 ? 0 : price2Norm(tobPrice,step,bottom);
+
+  tobParams.tob.firePrice = tobPrice;
+
+  uint64_t betterPrice = tobPrice == 0 ? 0 :
+    side == SIDE::BID ? tobPrice + step : tobPrice - step;
+
+  tobParams.tob.fireBetterPrice = betterPrice;
+
+  getDepthData (b, side,&tobParams.depth,HW_DEPTH_PRICES);
+
+  eka_side_type_t hwSide = side == BID ? eka_side_type_t::BUY : eka_side_type_t::SELL;
+#ifdef _EKA_PARSER_PRINT_ALL_
+  EKA_LOG("TOB changed price=%ju size=%ju normprice=%ju",tobParams.tob.price,tobParams.tob.size,tobParams.tob.normprice);
+#endif
+
+#ifdef PCAP_TEST
+#else
+  ekaWriteTob(mdOut->dev,&tobParams,sizeof(EobiHwBookParams),(eka_product_t)b->getProdId(),hwSide);
+#endif
+#endif
 }

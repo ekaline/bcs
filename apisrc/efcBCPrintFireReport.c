@@ -291,16 +291,16 @@ void efcBCPrintFireReport(const void *p, size_t len,
         reinterpret_cast<const EfcBCReportHdr *>(b)};
     b += sizeof(*reportHdr);
     switch (reportHdr->type) {
-    case EfcBCReportType::ExceptionReport:
+    case EfcBCReportType::BcExceptionReport:
       b += printBCExceptionReport(file, b);
       break;
-    case EfcBCReportType::FirePkt:
+    case EfcBCReportType::BcFirePkt:
       b += printBCFirePkt(file, b, reportHdr->size);
       break;
-    case EfcBCReportType::EpmReport:
+    case EfcBCReportType::BcEpmReport:
       b += printBCEpmReport(file, b);
       break;
-    case EfcBCReportType::FastCancelReport:
+    case EfcBCReportType::BcFastCancelReport:
       b += printBCFastCancelReport(file, b);
       break;
     default:

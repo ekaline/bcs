@@ -77,6 +77,7 @@ enum EkaBCOpResult {
 struct EkaBcAffinityConfig {
   int servThreadCpuId;  // critical
   int tcpRxThreadCpuId; // critical
+  int bookThreadCpuId;  // critical
   int fireReportThreadCpuId;
   int igmpThreadCpuId;
 };
@@ -415,12 +416,12 @@ struct EkaBCContainerGlobalHdr {
 };
 
 enum EfcBCReportType {
-  ControllerState = 1000,
-  MdReport = 2000,
-  ExceptionReport = 4000,
-  FirePkt = 5000,
-  EpmReport = 6000,
-  FastCancelReport = 7000
+  BcControllerState = 1000,
+  BcMdReport = 2000,
+  BcExceptionReport = 4000,
+  BcFirePkt = 5000,
+  BcEpmReport = 6000,
+  BcFastCancelReport = 7000
 };
 
 // every report is pre-pended by this header
@@ -511,7 +512,7 @@ typedef int64_t EkaBcSecHandle;
  *        Used only for initializing the securities list
  *
  */
-typedef uint32_t EkaBcSecId;
+typedef int64_t EkaBcEurSecId;
 
 #define EKA_BC_EUR_MAX_PRODS 16
 
@@ -524,7 +525,7 @@ typedef uint32_t EkaBcSecId;
  * @return EkaBCOpResult
  */
 EkaBCOpResult ekaBcSetProducts(EkaDev *dev,
-                               const EkaBcSecId *prodList,
+                               const EkaBcEurSecId *prodList,
                                size_t nProducts);
 
 /**
@@ -540,14 +541,14 @@ EkaBCOpResult ekaBcSetProducts(EkaDev *dev,
  * the internal data structure and so ignored!!!
  */
 EkaBcSecHandle ekaBcGetSecHandle(EkaDev *dev,
-                                 EkaBcSecId secId);
+                                 EkaBcEurSecId secId);
 
 /**
  * @brief Config params for Eurex product
  *
  */
 struct EkaBcEurProductInitParams {
-  EkaBcSecId secId;
+  EkaBcEurSecId secId;
   uint64_t maxBookSpread;
   uint64_t midPoint;
   uint64_t
@@ -680,6 +681,11 @@ EkaBCOpResult ekaBcArmCmeFc(EkaDev *dev, EkaBcArmVer ver);
  */
 EkaBCOpResult ekaBcDisArmCmeFc(EkaDev *dev);
 
+/**
+@brief Callback function pointer. Called every time the
+       Fire Report received from the FPGA
+ *
+ */
 typedef void (*onEkaBcReportCb)(const void *report,
                                 size_t len, void *ctx);
 
@@ -701,7 +707,7 @@ struct EkaBcRunCtx {
  */
 
 void ekaBcEurRun(EkaDev *pEkaDev,
-                 EkaBcRunCtx *pEkaBcRunCtx);
+                 const EkaBcRunCtx *pEkaBcRunCtx);
 
 } // End of extern "C"
 #endif
