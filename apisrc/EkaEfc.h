@@ -65,8 +65,8 @@ public:
   void disarmBcCmeFc();
   /* --------------------------------------------------- */
   void initEur(const EfcUdpMcParams *mcParams);
-  void armEur(EfcArmVer ver);
-  void disarmEur();
+  void armEur(EkaBcSecHandle prodHande, bool armBid,
+              bool armAsk, EkaBcArmVer ver);
   /* --------------------------------------------------- */
 
   bool isReportOnly() { return report_only_; }

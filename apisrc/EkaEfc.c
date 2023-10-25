@@ -283,19 +283,15 @@ void EkaEfc::disarmBcCmeFc() {
   bcCme_->disarm();
 }
 /* ################################################ */
-void EkaEfc::armEur(EfcArmVer ver) {
+void EkaEfc::armEur(EkaBcSecHandle prodHande, bool armBid,
+                    bool armAsk, EkaBcArmVer ver) {
   if (!eur_)
     on_error("Eur is not initialized. Run "
              "ekaBcInitEurStrategy()");
-  eur_->arm(ver);
+  eur_->arm(prodHande, armBid, armAsk, ver);
 }
 /* ################################################ */
-void EkaEfc::disarmEur() {
-  if (!eur_)
-    on_error("Eur is not initialized. Run "
-             "ekaBcInitEurStrategy()");
-  eur_->disarm();
-}
+
 /* ################################################ */
 #if 0
 int EkaEfc::initStratGlobalParams(

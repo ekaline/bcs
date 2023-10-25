@@ -346,6 +346,12 @@ EkaEurStrategy::findBook(ExchSecurityId secId) {
 }
 /* --------------------------------------------------- */
 
+void EkaEurStrategy::arm(EkaBcSecHandle prodHande,
+                         bool armBid, bool armAsk,
+                         EkaBcArmVer ver) {}
+
+/* --------------------------------------------------- */
+
 void EkaEurStrategy::onTobChange(MdOut *mdOut,
                                  EkaEobiBook *book,
                                  SIDE side) {

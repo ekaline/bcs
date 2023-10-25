@@ -41,6 +41,9 @@ public:
   setProdJumpParams(EkaBcSecHandle prodHande,
                     const EkaBcEurJumpParams *params);
 
+  void arm(EkaBcSecHandle prodHande, bool armBid,
+           bool armAsk, EkaBcArmVer ver);
+
   EkaBCOpResult setProdReferenceJumpParams(
       EkaBcSecHandle triggerProd, EkaBcSecHandle fireProd,
       const EkaBcEurReferenceJumpParams *params);

@@ -249,22 +249,15 @@ ekaBcSetActionPayload(EkaDev *dev, EkaBcActionIdx actionIdx,
 }
 /* ==================================================== */
 
-EkaBCOpResult ekaBcArmEur(EkaDev *dev, EkaBcArmVer ver) {
+EkaBCOpResult ekaBcArmEur(EkaDev *dev,
+                          EkaBcSecHandle prodHande,
+                          bool armBid, bool armAsk,
+                          EkaBcArmVer ver) {
   if (!dev || !dev->efc)
     on_error("Efc is not initialized: use ekaBcInit()");
   auto efc = dev->efc;
 
-  efc->armEur(static_cast<EfcArmVer>(ver));
-  return EKABC_OPRESULT__OK;
-}
-/* ==================================================== */
-
-EkaBCOpResult ekaBcDisArmEur(EkaDev *dev) {
-  if (!dev || !dev->efc)
-    on_error("Efc is not initialized: use ekaBcInit()");
-  auto efc = dev->efc;
-
-  efc->disarmEur();
+  efc->armEur(prodHande, armBid, armAsk, ver);
   return EKABC_OPRESULT__OK;
 }
 /* ==================================================== */
@@ -378,9 +371,9 @@ EkaBCOpResult ekaBcInitCmeFcStrategy(
 }
 
 /* ==================================================== */
-EkaBCOpResult ekaBcSetProducts(EkaDev *dev,
-                               const EkaBcEurSecId *prodList,
-                               size_t nProducts) {
+EkaBCOpResult
+ekaBcSetProducts(EkaDev *dev, const EkaBcEurSecId *prodList,
+                 size_t nProducts) {
   if (!dev || !dev->efc)
     on_error("Efc is not initialized: use ekaBcInit()");
   auto efc = dev->efc;

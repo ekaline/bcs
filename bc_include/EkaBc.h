@@ -71,7 +71,7 @@ enum EkaBCOpResult {
 
 /**
  * @brief Affinity settings for the span off threads
- *        negative CpuId means no config*
+ *        negative CpuId means no config
  *
  */
 struct EkaBcAffinityConfig {
@@ -524,9 +524,9 @@ typedef int64_t EkaBcEurSecId;
  * @param nProducts number of products
  * @return EkaBCOpResult
  */
-EkaBCOpResult ekaBcSetProducts(EkaDev *dev,
-                               const EkaBcEurSecId *prodList,
-                               size_t nProducts);
+EkaBCOpResult
+ekaBcSetProducts(EkaDev *dev, const EkaBcEurSecId *prodList,
+                 size_t nProducts);
 
 /**
  * @brief Mapping the exchange security encoding to internal
@@ -556,6 +556,7 @@ struct EkaBcEurProductInitParams {
   uint64_t step;
   bool isBook;
   uint8_t eiPriceFlavor;
+  EkaBcActionIdx fireActionIdx;
 };
 
 /**
@@ -586,6 +587,10 @@ struct JumpParams {
   bool strat_en;
 };
 
+/**
+ * @brief Used by ekaBcEurSetJumpParams()
+ *
+ */
 struct EkaBcEurJumpParams {
   JumpParams better_best[EKA_JUMP_BETTERBEST_SETS];
   JumpParams at_best[EKA_JUMP_ATBEST_SETS];
@@ -603,6 +608,10 @@ struct ReferenceJumpParams {
   bool strat_en;
 };
 
+/**
+ * @brief Used by ekaBcEurSetReferenceJumpParams()
+ *
+ */
 struct EkaBcEurReferenceJumpParams {
   ReferenceJumpParams
       better_best[EKA_RJUMP_BETTERBEST_SETS];
@@ -648,21 +657,21 @@ EkaBCOpResult ekaBcEurSetReferenceJumpParams(
 typedef uint32_t EkaBcArmVer;
 
 /**
-@brief Arming Eurex strategy Firing logic
+ * @brief Changing Arm/Disarm state of the Product
  *
  * @param dev
- * @param ver
+ * @param prodHande
+ * @param armBid
+ * @param armAsk
+ * @param ver Optional parameter needed only for Arming
+ *            (can be skipped if
+ *                armBid == false and armAsk == false)
  * @return EkaBCOpResult
  */
-EkaBCOpResult ekaBcArmEur(EkaDev *dev, EkaBcArmVer ver);
-
-/**
-@brief DisArming Eurex strategy Firing logic
- *
- * @param dev
- * @return EkaBCOpResult
- */
-EkaBCOpResult ekaBcDisArmEur(EkaDev *dev);
+EkaBCOpResult ekaBcArmEur(EkaDev *dev,
+                          EkaBcSecHandle prodHande,
+                          bool armBid, bool armAsk,
+                          EkaBcArmVer ver = 0);
 
 /**
 @brief Arming CmeFc strategy Firing logic
