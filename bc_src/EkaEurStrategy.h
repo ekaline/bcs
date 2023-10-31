@@ -52,8 +52,9 @@ public:
 
   void runLoop(const EkaBcRunCtx *pEkaBcRunCtx);
 
-  void ekaWriteTob(EkaBcSecHandle handle, void *params,
-                   uint paramsSize, SIDE side);
+  void ekaWriteTob(EkaBcSecHandle prodHandle,
+                   const EobiHwBookParams *params,
+                   SIDE side);
 
 private:
   void configureTemplates();

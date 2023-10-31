@@ -513,6 +513,10 @@ typedef int64_t EkaBcSecHandle;
  *
  */
 typedef int64_t EkaBcEurSecId;
+typedef int64_t EkaBcEurPrice;
+typedef uint32_t EkaBcEurFireSize;
+typedef int32_t EkaBcEurMdSize;
+typedef uint64_t EkaBcEurTimeNs;
 
 #define EKA_BC_EUR_MAX_PRODS 16
 
@@ -549,11 +553,13 @@ EkaBcSecHandle ekaBcGetSecHandle(EkaDev *dev,
  */
 struct EkaBcEurProductInitParams {
   EkaBcEurSecId secId;
-  uint64_t maxBookSpread;
-  uint64_t midPoint;
-  uint64_t
+  EkaBcEurFireSize maxBidSize;
+  EkaBcEurFireSize maxAskSize;
+  EkaBcEurPrice maxBookSpread;
+  EkaBcEurPrice midPoint;
+  EkaBcEurPrice
       priceDiv; // for price normalization for prints only
-  uint64_t step;
+  EkaBcEurPrice step;
   bool isBook;
   uint8_t eiPriceFlavor;
   EkaBcActionIdx fireActionIdx;
@@ -578,13 +584,15 @@ ekaBcInitEurProd(EkaDev *dev, EkaBcSecHandle prodHande,
 #define EKA_RJUMP_BETTERBEST_SETS 6
 
 struct JumpParams {
-  uint32_t max_tob_size;
-  uint32_t max_post_size;
-  uint32_t min_ticker_size;
-  uint64_t min_price_delta;
-  uint32_t buy_size;
-  uint32_t sell_size;
+  EkaBcEurMdSize max_tob_size;
+  EkaBcEurMdSize min_tob_size;
+  EkaBcEurFireSize max_post_size;
+  EkaBcEurMdSize min_ticker_size;
+  EkaBcEurPrice min_price_delta;
+  EkaBcEurFireSize buy_size;
+  EkaBcEurFireSize sell_size;
   bool strat_en;
+  bool boc; // Book Or Cancel
 };
 
 /**
@@ -592,20 +600,21 @@ struct JumpParams {
  *
  */
 struct EkaBcEurJumpParams {
-  JumpParams better_best[EKA_JUMP_BETTERBEST_SETS];
-  JumpParams at_best[EKA_JUMP_ATBEST_SETS];
+  JumpParams betterBest[EKA_JUMP_BETTERBEST_SETS];
+  JumpParams atBest[EKA_JUMP_ATBEST_SETS];
 };
 
 struct ReferenceJumpParams {
-  uint32_t max_tob_size;
-  uint32_t min_tob_size;
-  uint32_t max_opposit_tob_size;
-  uint64_t time_delta_ns;
-  uint32_t tickersize_lots;
-  uint32_t buy_size;
-  uint32_t sell_size;
+  EkaBcEurMdSize max_tob_size;
+  EkaBcEurMdSize min_tob_size;
+  EkaBcEurMdSize max_opposit_tob_size;
+  EkaBcEurTimeNs time_delta_ns;
+  EkaBcEurMdSize tickersize_lots;
+  EkaBcEurFireSize buy_size;
+  EkaBcEurFireSize sell_size;
   uint8_t min_spread;
   bool strat_en;
+  bool boc; // Book Or Cancel
 };
 
 /**
@@ -613,9 +622,8 @@ struct ReferenceJumpParams {
  *
  */
 struct EkaBcEurReferenceJumpParams {
-  ReferenceJumpParams
-      better_best[EKA_RJUMP_BETTERBEST_SETS];
-  ReferenceJumpParams at_best[EKA_RJUMP_ATBEST_SETS];
+  ReferenceJumpParams betterBest[EKA_RJUMP_BETTERBEST_SETS];
+  ReferenceJumpParams atBest[EKA_RJUMP_ATBEST_SETS];
 };
 
 /**

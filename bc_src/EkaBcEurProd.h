@@ -21,8 +21,12 @@ public:
       EkaBcSecHandle fireProd,
       const EkaBcEurReferenceJumpParams *params);
 
+private:
 public:
   ExchSecurityId secId_ = 0;
+  EkaBcEurFireSize maxBidSize_ = 0;
+  EkaBcEurFireSize maxAskSize_ = 0;
+
   Price maxBookSpread_ = 0;
   Price midPoint_ = 0;
   uint64_t priceDiv_ =
@@ -33,7 +37,11 @@ public:
 
   uint32_t hwMidPoint_ = 0;
 
+  EkaBcActionIdx fireActionIdx_ = -1;
+
   EkaEobiBook *book_ = nullptr;
+
+  EkaBcSecHandle handle_ = -1;
 
 private:
   static const size_t MaxReferenceProds_ = 16;
@@ -43,7 +51,6 @@ private:
   EkaBcEurJumpParams jumpParams_ = {};
   EkaBcEurReferenceJumpParams
       refJumpParams_[MaxReferenceProds_] = {};
-  EkaBcSecHandle handle_ = -1;
 };
 
 #endif

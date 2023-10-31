@@ -67,35 +67,23 @@ EkaEurStrategy::EkaEurStrategy(
 }
 
 /* --------------------------------------------------- */
-void EkaEurStrategy::ekaWriteTob(EkaBcSecHandle handle,
-                                 void *params,
-                                 uint paramsSize,
-                                 SIDE side) {
-#if 0
-  uint hw_product_index = dev->exch->fireLogic->findProdHw(
-      product_id, __func__);
+void EkaEurStrategy::ekaWriteTob(
+    EkaBcSecHandle prodHandle,
+    const EobiHwBookParams *params, SIDE side) {
 
-  if (hw_product_index >= EKA_MAX_BOOK_PRODUCTS)
-    on_error("SW TOB is supported only on book product "
-             "(not on %u)\n",
-             hw_product_index);
-
-  uint64_t *wr_ptr = (uint64_t *)params;
-  int iter = paramsSize / 8 +
-             !!(paramsSize % 8); // num of 8Byte words
-  for (int i = 0; i < iter; i++) {
-    eka_write(dev, 0x70000 + i * 8,
-              *(wr_ptr + i)); // data loop
+  auto wr_ptr = reinterpret_cast<const uint64_t *>(params);
+  auto nWords = roundUp8(sizeof(*params)) / 8;
+  uint32_t dstAddr = 0x90000;
+  for (int i = 0; i < nWords; i++) {
+    eka_write(dstAddr + i * 8, *(wr_ptr + i));
     //    printf("config %d = %ju\n",i,*(wr_ptr + i));
   }
   union large_table_desc tob_desc = {};
   tob_desc.ltd.src_bank = 0;
   tob_desc.ltd.src_thread = 0;
   tob_desc.ltd.target_idx =
-      hw_product_index * 2 + (side == BUY ? 1 : 0);
-  eka_write(dev, 0xf0410, tob_desc.lt_desc); // desc
-  return 0;
-#endif
+      prodHandle * 2 + (side == BID ? 0 : 1);
+  eka_write(0xf0660, tob_desc.lt_desc); // desc
 }
 /* --------------------------------------------------- */
 
@@ -282,6 +270,8 @@ void EkaEurStrategy::runLoop(
   setThreadAffinityName(pthread_self(), "EkalineBookLoop",
                         dev_->affinityConf.bookThreadCpuId);
 
+  downloadPackedDB();
+
   disableHwUdp();
   joinUdpChannels();
   enableHwUdp();
@@ -348,46 +338,97 @@ EkaEurStrategy::findBook(ExchSecurityId secId) {
 
 void EkaEurStrategy::arm(EkaBcSecHandle prodHande,
                          bool armBid, bool armAsk,
-                         EkaBcArmVer ver) {}
+                         EkaBcArmVer ver) {
+#if 0
+assign rf_arm_product         = register_write_data[0  +:  4];
+assign rf_arm_decide_buy_bit  = register_write_data[8  +:  1]; //1-arm, 0--disarm
+assign rf_arm_decide_sell_bit = register_write_data[9  +:  1];  //1-arm, 0--disarm
+assign rf_arm_version         = register_write_data[32 +: 32]; //only for arm==1
+
+address 0xf07c8
+#endif
+
+  if (prodHande < 0 || prodHande >= MaxSecurities_)
+    on_error("Bad prodHande %jd", prodHande);
+
+  uint64_t armData = 0;
+
+  armData |= prodHande & 0x0F; // 4 bits
+
+  armData |= (armBid << 8);
+  armData |= (armAsk << 9);
+
+  if (armBid || armAsk)
+    armData |= (static_cast<uint64_t>(ver) << 32);
+
+  eka_write(0xf07c8, armData);
+}
+
+/* --------------------------------------------------- */
+static inline void getDepthData(EkaEobiBook *b, SIDE side,
+                                EobiDepthParams *dst,
+                                uint depth) {
+  uint32_t accSize = 0;
+  for (uint i = 0; i < depth; i++) {
+    dst->entry[i].price = b->getEntryPrice(side, i);
+    accSize += b->getEntrySize(side, i);
+    dst->entry[i].size = accSize;
+  }
+}
+/* ----------------------------------------------------- */
+static inline uint16_t price2Norm(uint64_t _price,
+                                  uint64_t step,
+                                  uint64_t bottom) {
+  if (_price == 0)
+    return 0;
+  if (unlikely(_price < bottom))
+    on_error("price %ju < bottom %ju", _price, bottom);
+  return (_price - bottom) / step;
+}
 
 /* --------------------------------------------------- */
 
 void EkaEurStrategy::onTobChange(MdOut *mdOut,
                                  EkaEobiBook *book,
                                  SIDE side) {
-#if 0
- EobiHwBookParams tobParams = {};
+#if 1
+  EobiHwBookParams tobParams = {};
 
-  EkaProd* prod = b->prod;
+  auto *prod = book->prod_;
 
-  uint64_t tobPrice = static_cast<uint64_t>(b->getEntryPrice(side,0));
-  uint64_t step     = prod->getStep();
-  uint64_t bottom   = prod->getBottom();
+  uint64_t tobPrice =
+      static_cast<uint64_t>(book->getEntryPrice(side, 0));
+  uint64_t step = book->step_;
+  uint64_t bottom = book->bottom_;
 
   tobParams.tob.last_transacttime = mdOut->transactTime;
-  tobParams.tob.price             = tobPrice;
-  tobParams.tob.size              = b->getEntrySize (side,0);
-  tobParams.tob.msg_seq_num       = mdOut->sequence;
+  tobParams.tob.price = tobPrice;
+  tobParams.tob.size = book->getEntrySize(side, 0);
+  tobParams.tob.msg_seq_num = mdOut->sequence;
 
-  tobParams.tob.normprice         = tobPrice == 0 ? 0 : price2Norm(tobPrice,step,bottom);
+  tobParams.tob.normprice = tobPrice =
+      price2Norm(tobPrice, step, bottom);
 
   tobParams.tob.firePrice = tobPrice;
 
-  uint64_t betterPrice = tobPrice == 0 ? 0 :
-    side == SIDE::BID ? tobPrice + step : tobPrice - step;
+  uint64_t betterPrice = tobPrice == 0 ? 0
+                         : side == SIDE::BID
+                             ? tobPrice + step
+                             : tobPrice - step;
 
   tobParams.tob.fireBetterPrice = betterPrice;
 
-  getDepthData (b, side,&tobParams.depth,HW_DEPTH_PRICES);
+  getDepthData(book, side, &tobParams.depth,
+               HW_DEPTH_PRICES);
 
-  eka_side_type_t hwSide = side == BID ? eka_side_type_t::BUY : eka_side_type_t::SELL;
 #ifdef _EKA_PARSER_PRINT_ALL_
-  EKA_LOG("TOB changed price=%ju size=%ju normprice=%ju",tobParams.tob.price,tobParams.tob.size,tobParams.tob.normprice);
+  EKA_LOG("TOB changed price=%ju size=%ju normprice=%ju",
+          tobParams.tob.price, tobParams.tob.size,
+          tobParams.tob.normprice);
 #endif
 
-#ifdef PCAP_TEST
-#else
-  ekaWriteTob(mdOut->dev,&tobParams,sizeof(EobiHwBookParams),(eka_product_t)b->getProdId(),hwSide);
+#ifndef PCAP_TEST
+  ekaWriteTob(prod->handle_, &tobParams, side);
 #endif
 #endif
 }

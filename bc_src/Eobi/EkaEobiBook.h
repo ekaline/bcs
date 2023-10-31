@@ -12,7 +12,7 @@
 using namespace EkaEobi;
 
 class EkaEurStrategy;
-
+class EkaBcEurProd;
 // ################################################
 
 class EkaEobiBook {
@@ -21,8 +21,8 @@ public:
 
   // ################################################
 
-  EkaEobiBook(EkaEurStrategy *strat, Price step,
-              Price midPoint);
+  EkaEobiBook(EkaEurStrategy *strat, EkaBcEurProd *prod,
+              Price step, Price midPoint);
   /* ------------------------------------------------ */
   int invalidate();
   /* ------------------------------------------------ */
@@ -67,14 +67,15 @@ public:
 
   // ExchSecurityId securityId;
   // ProductId prodId;
+  EkaBcEurProd *prod_ = nullptr;
 
-  Price bottom_; // lowest price
-  Price top_;    // highest price
-  Price step_;
+  Price bottom_ = 0; // lowest price
+  Price top_ = 0;    // highest price
+  Price step_ = 0;
 
   /* ------------------------------------------------ */
 
-  EkaEobiBookSide *bookSide[2]; // 0 - bid, 1 - ask
+  EkaEobiBookSide *bookSide[2] = {}; // 0 - bid, 1 - ask
 
 private:
   // Price midpoint;

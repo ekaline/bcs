@@ -13,8 +13,7 @@ public:
   typedef int32_t Size;
   typedef uint16_t NormPrice;
 
-  struct EobiTobParams { // NOT used in eurex, in eurex
-                         // different struct
+  struct EobiTobParams {
     uint64_t last_transacttime;
     uint64_t fireBetterPrice;
     uint64_t firePrice;

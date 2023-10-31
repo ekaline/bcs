@@ -137,6 +137,7 @@ private:
     uint32_t attr;
     uint16_t col[Cols];
   } __attribute__((packed));
+
   PackedHashLine packed_ = {};
 
   struct HashCol {

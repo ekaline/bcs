@@ -7,8 +7,11 @@ using namespace EkaEobi;
 
 /* ----------------------------------------------------- */
 
-EkaEobiBook::EkaEobiBook(EkaEurStrategy *strat, Price step,
+EkaEobiBook::EkaEobiBook(EkaEurStrategy *strat,
+                         EkaBcEurProd *prod, Price step,
                          Price midPoint) {
+  prod_ = prod;
+
   step_ = step;
   if ((int64_t)midPoint < (int64_t)((ENTRIES / 2) * step_))
     bottom_ = 0;
