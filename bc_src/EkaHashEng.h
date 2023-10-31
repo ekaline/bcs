@@ -25,8 +25,13 @@ public:
   /* --------------------------------------------------- */
   virtual ~EkaHashEng() {}
   /* --------------------------------------------------- */
-  int getLineIdx(SecIdT normSecId) {
-    return (int)normSecId & (Rows - 1);
+  int getLineIdx(SecIdT secId) {
+    return static_cast<int>(secId & (Rows - 1));
+  }
+  /* --------------------------------------------------- */
+  int getSubscriptionId(SecIdT secId) {
+    auto lineIdx = getLineIdx(secId);
+    return hashLine_[lineIdx]->getSubscriptionId(secId);
   }
 
   /* --------------------------------------------------- */

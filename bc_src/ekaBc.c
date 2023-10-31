@@ -371,6 +371,21 @@ EkaBCOpResult ekaBcInitCmeFcStrategy(
 }
 
 /* ==================================================== */
+
+EkaBcSecHandle ekaBcGetSecHandle(EkaDev *dev,
+                                 EkaBcEurSecId secId) {
+  if (!dev || !dev->efc)
+    on_error("Efc is not initialized: use ekaBcInit()");
+  auto efc = dev->efc;
+
+  auto eur = efc->eur_;
+  if (!eur)
+    on_error("Eurex is not initialized: use "
+             "ekaBcInitEurStrategy()");
+
+  return eur->getSubscriptionId(secId);
+}
+
 EkaBCOpResult
 ekaBcSetProducts(EkaDev *dev, const EkaBcEurSecId *prodList,
                  size_t nProducts) {

@@ -85,6 +85,17 @@ void EkaEurStrategy::ekaWriteTob(
       prodHandle * 2 + (side == BID ? 0 : 1);
   eka_write(0xf0660, tob_desc.lt_desc); // desc
 }
+
+/* --------------------------------------------------- */
+EkaBcSecHandle
+EkaEurStrategy::getSubscriptionId(EkaBcEurSecId secId) {
+
+  auto handle = static_cast<EkaBcSecHandle>(
+      hashEng_->getSubscriptionId(secId));
+
+  return handle;
+}
+
 /* --------------------------------------------------- */
 
 EkaBCOpResult EkaEurStrategy::subscribeSecList(

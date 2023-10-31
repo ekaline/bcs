@@ -25,6 +25,7 @@
 #include <chrono>
 #include <sys/time.h>
 
+#include "EkaBc.h"
 #include "EkaEfcDataStructs.h"
 #include "eka_macros.h"
 #include <Efc.h>
@@ -42,8 +43,8 @@ static const char *udpSrcIp[] = {
 
 class TestUdpConn {
 public:
-  TestUdpConn(const EfcUdpMcGroupParams *mcParams) {
-    coreId_ = mcParams->coreId;
+  TestUdpConn(const EkaBcMcGroupParams *mcParams) {
+    coreId_ = mcParams->lane;
     mcIp_ = mcParams->mcIp;
     mcPort_ = mcParams->mcUdpPort;
 
@@ -104,7 +105,7 @@ public:
   }
 
 private:
-  EkaCoreId coreId_;
+  EkaBcLane coreId_;
 
   const char *srcIp_ = nullptr;
   const char *mcIp_ = nullptr;
@@ -120,20 +121,20 @@ private:
 /* --------------------------------------------- */
 class TestUdpCtx {
 public:
-  TestUdpCtx(const EfcUdpMcParams *mcParams) {
+  TestUdpCtx(const EkaBcUdpMcParams *mcParams) {
     memcpy(&udpConf_, mcParams, sizeof(udpConf_));
 
     for (auto i = 0; i < mcParams->nMcGroups; i++) {
-      auto coreId = mcParams->groups[i].coreId;
-      if (coreId < 0 || coreId > 1)
-        on_error("coreId = %d", coreId);
-      auto perCoreidx = nMcCons_[coreId];
-      udpConn_[coreId][perCoreidx] =
+      auto lane = mcParams->groups[i].lane;
+      if (lane < 0 || lane > 1)
+        on_error("lane = %d", lane);
+      auto perCoreidx = nMcCons_[lane];
+      udpConn_[lane][perCoreidx] =
           new TestUdpConn(&mcParams->groups[i]);
-      if (!udpConn_[coreId][perCoreidx])
+      if (!udpConn_[lane][perCoreidx])
         on_error("Failed on new TestUdpConn");
 
-      nMcCons_[coreId]++;
+      nMcCons_[lane]++;
       totalMcCons_++;
     }
   }
@@ -142,12 +143,12 @@ public:
 
   size_t printAllMcParams(char *dst) {
     size_t bufLen = 0;
-    for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++)
-      for (auto i = 0; i < nMcCons_[coreId]; i++) {
-        if (!udpConn_[coreId][i])
-          on_error("!udpConn_[%d][%d]", coreId, i);
+    for (auto lane = 0; lane < EFC_MAX_CORES; lane++)
+      for (auto i = 0; i < nMcCons_[lane]; i++) {
+        if (!udpConn_[lane][i])
+          on_error("!udpConn_[%d][%d]", lane, i);
         bufLen += sprintf(dst, "\t%2d: ", i);
-        bufLen += udpConn_[coreId][i]->printMcConnParams(
+        bufLen += udpConn_[lane][i]->printMcConnParams(
             dst + bufLen);
       }
     bufLen += sprintf(dst, "\n");
@@ -158,10 +159,9 @@ public:
   void printConf() {
     fprintf(g_ekaLogFile, "\t%ju MC groups:\n",
             totalMcCons_);
-    for (size_t coreId = 0; coreId < EFC_MAX_CORES;
-         coreId++)
-      for (size_t i = 0; i < nMcCons_[coreId]; i++) {
-        auto gr = udpConn_[coreId][i];
+    for (size_t lane = 0; lane < EFC_MAX_CORES; lane++)
+      for (size_t i = 0; i < nMcCons_[lane]; i++) {
+        auto gr = udpConn_[lane][i];
         char strBuf[256] = {};
         gr->printMcConnParams(strBuf);
         fprintf(g_ekaLogFile, "\t\t%s, ", strBuf);
@@ -170,7 +170,7 @@ public:
   }
   /* --------------------------------------------- */
 public:
-  EfcUdpMcParams udpConf_ = {};
+  EkaBcUdpMcParams udpConf_ = {};
 
   TestUdpConn
       *udpConn_[EFC_MAX_CORES]
