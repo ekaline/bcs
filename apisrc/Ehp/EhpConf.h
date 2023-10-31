@@ -2,7 +2,7 @@
 #define _EHP_CONF_H_
 #include "eka_macros.h"
 
-#define EhpMaxMsgTypes 8
+#define EhpMaxMsgTypes 2
 #define EhpNoMsgSize 0xF
 #define EhpNoMsgID 0xFFFF
 
@@ -24,7 +24,9 @@ enum class EhpSidePresence : int8_t {
 };
 
 enum class EhpHwProtocol : uint8_t {
-  NOM = 1,
+  //  NOM = 1,
+  NOM = 11, //stam
+  EURP4 = 1,
   PITCH = 2,
   QED = 12, // hardcoded in HW to trigger QED purge
   ITCHFS =
@@ -87,8 +89,14 @@ struct EhpParseTemplateMasked {
 struct EhpFieldParams {
   EhpParseTemplateMasked miscEnable[EhpMaxMsgTypes];
   EhpParseTemplateMasked isAON[EhpMaxMsgTypes];
+  EhpParseTemplate hgeneric1[EhpMaxMsgTypes];
+  EhpParseTemplate hgeneric0[EhpMaxMsgTypes];
   EhpParseTemplate sequence[EhpMaxMsgTypes];
   EhpParseTemplateSide side[EhpMaxMsgTypes];
+  EhpParseTemplate generic3[EhpMaxMsgTypes];  
+  EhpParseTemplate generic2[EhpMaxMsgTypes];  
+  EhpParseTemplate generic1[EhpMaxMsgTypes];  
+  EhpParseTemplate generic0[EhpMaxMsgTypes];  
   EhpParseTemplate securityId[EhpMaxMsgTypes];
   EhpParseTemplate price[EhpMaxMsgTypes];
   EhpParseTemplate size[EhpMaxMsgTypes];
