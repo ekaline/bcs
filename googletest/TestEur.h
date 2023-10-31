@@ -1,6 +1,7 @@
-#ifndef __TEST_CME_FC_H__
-#define __TEST_CME_FC_H__
+#ifndef __TEST_EUR_H__
+#define __TEST_EUR_H__
 
+#include "EkaBc.h"
 #include "TestEfcFixture.h"
 
 struct DummyIlinkMsg {
@@ -9,23 +10,20 @@ struct DummyIlinkMsg {
   uint8_t trailing[];
 } __attribute__((packed));
 
-struct TestCmeFcMd {
+struct TestEurMd {
   const uint8_t *preloadedPkt;
   size_t pktLen;
   uint32_t appSeq;
   bool expectedFire;
 };
 
-class TestCmeFc : public TestEfcFixture {
+class TestEur : public TestEfcFixture {
 protected:
-  void configureStrat(const TestCaseConfig *t) override;
   void generateMdDataPkts(const void *t) override;
   void sendData() override;
-  void
-  checkAlgoCorrectness(const TestCaseConfig *tc) override;
 
 protected:
-  std::vector<TestCmeFcMd> insertedMd_ = {};
+  std::vector<TestEurMd> insertedMd_ = {};
 };
 
 /* --------------------------------------------- */

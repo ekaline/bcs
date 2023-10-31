@@ -1,5 +1,8 @@
 #ifndef _EKA_BC_H_
 #define _EKA_BC_H_
+#include <stddef.h>
+#include <stdint.h>
+#include <sys/types.h>
 
 extern "C" {
 struct EkaDev;

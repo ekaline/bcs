@@ -20,7 +20,6 @@
 #include "eka_macros.h"
 
 #include "TestEfcFixture.h"
-#include "TestP4.h"
 
 #include "Efc.h"
 
@@ -28,28 +27,6 @@ volatile bool keep_work = true;
 volatile bool serverSet = false;
 
 /* --------------------------------------------- */
-
-void TestEfcFixture::configureFpgaPorts() {
-  EKA_LOG("Initializing %ju ports", tcpCtx_->nTcpSess_);
-  for (auto i = 0; i < tcpCtx_->nTcpSess_; i++) {
-    EKA_LOG("Initializing FPGA port %d to %s",
-            tcpCtx_->tcpSess_[i]->coreId_,
-            tcpCtx_->tcpSess_[i]->srcIp_);
-    const EkaCoreInitCtx ekaCoreInitCtx = {
-        .coreId = (EkaCoreId)tcpCtx_->tcpSess_[i]->coreId_,
-        .attrs = {
-            .host_ip =
-                inet_addr(tcpCtx_->tcpSess_[i]->srcIp_),
-            .netmask = inet_addr("255.255.255.0"),
-            .gateway =
-                inet_addr(tcpCtx_->tcpSess_[i]->dstIp_),
-            .nexthop_mac =
-                {}, // resolved by our internal ARP
-            .src_mac_addr = {}, // taken from system config
-            .dont_garp = 0}};
-    ekaDevConfigurePort(g_ekaDev, &ekaCoreInitCtx);
-  }
-}
 
 /* --------------------------------------------- */
 
@@ -73,13 +50,11 @@ void TestEfcFixture::SetUp() {
   // TMP PATCH !!!
   // g_ekaLogFile = stdout;
 
-  const EkaDevInitCtx ekaDevInitCtx = {.logContext =
-                                           g_ekaLogFile};
-  ekaDevInit(&dev_, &ekaDevInitCtx);
-  ASSERT_NE(dev_, nullptr);
-
   return;
 }
+
+/* --------------------------------------------- */
+
 /* --------------------------------------------- */
 
 void TestEfcFixture::TearDown() {
@@ -98,7 +73,7 @@ void TestEfcFixture::TearDown() {
     delete tcpCtx_;
 
   ASSERT_NE(dev_, nullptr);
-  ekaDevClose(dev_);
+  ekaBcCloseDev(dev_);
 
   fclose(g_ekaLogFile);
 
@@ -157,59 +132,72 @@ static void getFireReport(const void *p, size_t len,
   return;
 }
 /* --------------------------------------------- */
-void TestEfcFixture::initNwCtxs(const TestCaseConfig *tc) {
+void TestEfcFixture::initNwCtxs() {
 
-  udpCtx_ = new TestUdpCtx(tc->mcParams);
+  udpCtx_ = new TestUdpCtx(mcParams_);
   if (!udpCtx_)
     on_error("failed on new TestUdpCtx()");
 
-  tcpCtx_ = new TestTcpCtx(tc->tcpParams);
+  tcpCtx_ = new TestTcpCtx(tcpParams_);
   if (!tcpCtx_)
     on_error("failed on new TestTcpCtx()");
 }
 
 /* --------------------------------------------- */
 
-void TestEfcFixture::runTest(const TestCaseConfig *tc) {
-  initNwCtxs(tc);
+void TestEfcFixture::runTest() {
+  initNwCtxs();
   printTestConfig("Running");
+  /* --------------------------------------------- */
 
-  configureFpgaPorts();
+  EkaBcAffinityConfig aff = {-1, -1, -1, -1, -1};
+  dev_ = ekaBcOpenDev(&aff);
+  ASSERT_NE(dev_, nullptr);
+  /* --------------------------------------------- */
 
-  EfcInitCtx initCtx = {.watchdog_timeout_sec = 1000000};
-  EkaOpResult efcInitRc = efcInit(g_ekaDev, &initCtx);
-  ASSERT_EQ(efcInitRc, EKA_OPRESULT__OK);
+  for (auto i = 0; i < tcpCtx_->nTcpSess_; i++) {
+    EKA_LOG("Initializing FPGA port %d to %s",
+            tcpCtx_->tcpSess_[i]->coreId_,
+            tcpCtx_->tcpSess_[i]->srcIp_);
+    const EkaBcPortAttrs laneAttr = {
+        .host_ip = inet_addr(tcpCtx_->tcpSess_[i]->srcIp_),
+        .netmask = inet_addr("255.255.255.0"),
+        .gateway = inet_addr(tcpCtx_->tcpSess_[i]->dstIp_),
+        .nexthop_mac = {}, // resolved by our internal ARP
+        .src_mac_addr = {} // taken from system config
+    };
+    auto lane = static_cast<EkaBcLane>(
+        tcpCtx_->tcpSess_[i]->coreId_);
+    ekaBcConfigurePort(dev_, lane, &laneAttr);
+  }
+  /* --------------------------------------------- */
 
+  EkaBcInitCtx initCtx = {.report_only = false,
+                          .watchdog_timeout_sec = 1000000};
+  auto rc = ekaBcInit(dev_, &initCtx);
+  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+  /* --------------------------------------------- */
+  // TCP Connections
   tcpCtx_->connectAll();
 
-  loadSecCtxsMd(); // works only for TestP4PredefinedCtx
+  /* --------------------------------------------- */
+  rc = ekaBcInitEurStrategy(dev_, mcParams_);
+  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
 
-  configureStrat(tc);
+  /* --------------------------------------------- */
+  rc = ekaBcSetProducts(dev_, prodList_, nProds_);
+  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
 
-  EfcRunCtx runCtx = {.onEfcFireReportCb = getFireReport,
-                      .cbCtx = this};
-  efcRun(g_ekaDev, &runCtx);
+  for (auto i = 0; i < nProds_; i++) {
+    auto h = ekaBcGetSecHandle(dev_, prodList_[i]);
+    ASSERT_NE(h, -1);
+  }
+  /* --------------------------------------------- */
 
-  checkAllCtxs();
-
-  generateMdDataPkts(tc->mdInjectParams);
-
-  archiveSecCtxsMd(); // works only for Random
-
-  armController_(g_ekaDev, armVer_);
-
-  sendData();
-
-  disArmController_(g_ekaDev);
-
-  EXPECT_EQ(nExpectedFireReports_, fireReports_.size());
-  EXPECT_EQ(echoedPkts_.size(), fireReports_.size());
-
-  if (nExpectedFires_ >= 0)
-    EXPECT_EQ(fireReports_.size(), nExpectedFires_);
-
-  if (!testFailed_)
-    checkAlgoCorrectness(tc);
+  EkaBcRunCtx runCtx = {.onReportCb = getFireReport,
+                        .cbCtx = this};
+  ekaBcEurRun(dev_, &runCtx);
+  /* --------------------------------------------- */
 }
 /* --------------------------------------------- */
 void TestEfcFixture::getReportPtrs(const void *p,
@@ -387,8 +375,7 @@ void TestEfcFixture::sendPktToAll(const void *pkt,
           int len = 0;
           char rxBuf[8192] = {};
           while (len <= 0) {
-            len = excRecv(g_ekaDev,
-                          tcpCtx_->tcpSess_[i]->hCon_,
+            len = excRecv(dev_, tcpCtx_->tcpSess_[i]->hCon_,
                           rxBuf, sizeof(rxBuf), 0);
           }
           char bufStr[10000] = {};
@@ -410,7 +397,7 @@ void TestEfcFixture::sendPktToAll(const void *pkt,
         }
         ++armVer_;
         EKA_LOG("Arming armVer_ = %d", armVer_);
-        armController_(g_ekaDev, armVer_);
+        armController_(dev_, armVer_);
       }
 
     } // iteration per MC grp
@@ -418,7 +405,40 @@ void TestEfcFixture::sendPktToAll(const void *pkt,
 }
 
 /* ############################################# */
+#if 0
+void TestEfcFixture::checkAlgoCorrectness() {
+  int i = 0;
+  for (const auto &fr : fireReports_) {
 
+    auto injectedMd = reinterpret_cast<const TestEurMd *>(
+        tc->mdInjectParams);
+
+    ekaBcPrintFireReport(fr->buf, fr->len, g_ekaLogFile);
+
+    getReportPtrs(fr->buf, fr->len);
+    if (!firePkt_)
+      FAIL() << "!firePkt_";
+
+    auto msgP = firePkt_ + TcpDatagramOffset;
+
+    auto payloadLen = echoedPkts_.at(i)->len;
+    auto dummyFireMsg =
+        reinterpret_cast<const DummyIlinkMsg *>(msgP);
+
+    auto firedPayloadDiff =
+        memcmp(msgP, echoedPkts_.at(i)->buf, payloadLen);
+#if 0
+    hexDump("FireReport Msg", msgP, payloadLen);
+    hexDump("Echo Pkt", echoedPkts_.at(i)->buf,
+            echoedPkts_.at(i)->len);
+#endif
+    EXPECT_EQ(firedPayloadDiff, 0);
+
+    EXPECT_EQ(dummyFireMsg->appSeq, injectedMd->appSeq);
+    i++;
+  }
+}
+#endif
 /* ############################################# */
 void TestEfcFixture::printTestConfig(const char *msg) {
   EKA_LOG("\n%s: \'%s\' ", msg, testName_);

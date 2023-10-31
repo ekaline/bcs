@@ -33,6 +33,8 @@ public:
   subscribeSecList(const EkaBcEurSecId *prodList,
                    size_t nProducts);
 
+  EkaBcSecHandle getSubscriptionId(EkaBcEurSecId secId);
+
   EkaBCOpResult
   initProd(EkaBcSecHandle prodHande,
            const EkaBcEurProductInitParams *params);

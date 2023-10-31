@@ -574,7 +574,7 @@ static void *onMd(const EfhMdHeader *msg,
           msg->timeStamp);
 
   switch (msg->mdMsgType) {
-  case EfhMdType::NewOrder: {
+  case EfhMdType::kNewOrder: {
     auto m{reinterpret_cast<const MdNewOrder *>(msg)};
     const char *c = (const char *)&m->hdr.securityId;
     fprintf(logFile,
@@ -595,7 +595,7 @@ static void *onMd(const EfhMdHeader *msg,
     //    fflush(logFile);
   } break;
 
-  case EfhMdType::NewPlevel: {
+  case EfhMdType::kNewPlevel: {
     auto m{reinterpret_cast<const MdNewPlevel *>(msg)};
     fprintf(logFile,
             "%s (0x%x),0x%016jx "
@@ -608,7 +608,7 @@ static void *onMd(const EfhMdHeader *msg,
             m->side == EfhOrderSide::kBid ? 'B' : 'A',
             m->pLvl, m->price, m->size);
   } break;
-  case EfhMdType::ChangePlevel: {
+  case EfhMdType::kChangePlevel: {
     auto m{reinterpret_cast<const MdChangePlevel *>(msg)};
     fprintf(logFile,
             "%s (0x%x),0x%016jx "
@@ -621,7 +621,7 @@ static void *onMd(const EfhMdHeader *msg,
             m->side == EfhOrderSide::kBid ? 'B' : 'A',
             m->pLvl, m->price, m->size);
   } break;
-  case EfhMdType::DeletePlevel: {
+  case EfhMdType::kDeletePlevel: {
     auto m{reinterpret_cast<const MdDeletePlevel *>(msg)};
     fprintf(logFile,
             "%s (0x%x),0x%016jx (%ju),%ju,%s,%ju,%c,%u\n",
