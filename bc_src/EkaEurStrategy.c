@@ -289,6 +289,9 @@ void EkaEurStrategy::runLoop(
   disableHwUdp();
   joinUdpChannels();
   enableHwUdp();
+#ifdef _VERILOG_SIM
+  return;
+#endif
 
   while (active_) {
     for (auto coreId = 0; coreId < EFC_MAX_CORES;

@@ -258,9 +258,11 @@ bool EkaDev::initEpmTx() {
 
   const uint64_t MaxSizeOfStrategyConf = 0x1000;
 
+#ifndef _VERILOG_SIM
   uint8_t strategyConfToClean[MaxSizeOfStrategyConf] = {};
   copyBuf2Hw(dev, 0x84000, (uint64_t *)strategyConfToClean,
              sizeof(strategyConfToClean));
+#endif
 
   // dissabling TCP traffic
   for (auto coreId = 0; coreId < MAX_CORES; coreId++)
@@ -610,8 +612,10 @@ int EkaDev::clearHw() {
   eka_read(ADDR_INTERRUPT_MAIN_RC);   // Clearing Interrupts
   eka_read(ADDR_INTERRUPT_SHADOW_RC); // Clearing Interrupts
 
+#ifndef _VERILOG_SIM
   for (uint64_t p = 0; p < SW_SCRATCHPAD_SIZE / 8; p++)
     eka_write(SW_SCRATCHPAD_BASE + 8 * p, (uint64_t)0);
+#endif
 
   /* const EfcCmeFastCancelStrategyConf fc_conf = {}; */
   /* copyBuf2Hw(dev,0x84000,(uint64_t
