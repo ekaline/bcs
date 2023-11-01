@@ -3,7 +3,7 @@
 
 #include "EhpProtocol.h"
 
-enum class EhpEurMsg : int { FastCancel = 0 };
+enum class EhpEurMsg : int { ExecutionSummary = 0 };
 
 class EhpEur : public EhpProtocol {
 public:
@@ -12,10 +12,10 @@ public:
 
   int init();
 
-  int createFastCancel();
+  int createExecutionSummary();
 
 public:
-  static const int FastCancelMsg = 0;
+  static const int ExecutionSummaryMsg = 0;
 };
 
 #endif
