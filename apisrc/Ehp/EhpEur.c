@@ -41,16 +41,16 @@ EhpEur::EhpEur(EkaStrategy *strat) : EhpProtocol(strat) {
   conf.fields.sequence[0].byteOffs_7 = EhpBlankByte;
 
   // TransactTime
-  conf.fields.hgeneric0[msgType].msgId = 0; // Not relevant
-  conf.fields.hgeneric0[msgType].opcode = EhpOpcode::NOP;
-  conf.fields.hgeneric0[msgType].byteOffs_0 = 8 + 16;
-  conf.fields.hgeneric0[msgType].byteOffs_1 = 8 + 17;
-  conf.fields.hgeneric0[msgType].byteOffs_2 = 8 + 18;
-  conf.fields.hgeneric0[msgType].byteOffs_3 = 8 + 19;
-  conf.fields.hgeneric0[msgType].byteOffs_4 = 8 + 20;
-  conf.fields.hgeneric0[msgType].byteOffs_5 = 8 + 21;
-  conf.fields.hgeneric0[msgType].byteOffs_6 = 8 + 22;
-  conf.fields.hgeneric0[msgType].byteOffs_7 = 8 + 23;
+  conf.fields.hgeneric0[0].msgId = 0; // Not relevant
+  conf.fields.hgeneric0[0].opcode = EhpOpcode::NOP;
+  conf.fields.hgeneric0[0].byteOffs_0 = 8 + 16;
+  conf.fields.hgeneric0[0].byteOffs_1 = 8 + 17;
+  conf.fields.hgeneric0[0].byteOffs_2 = 8 + 18;
+  conf.fields.hgeneric0[0].byteOffs_3 = 8 + 19;
+  conf.fields.hgeneric0[0].byteOffs_4 = 8 + 20;
+  conf.fields.hgeneric0[0].byteOffs_5 = 8 + 21;
+  conf.fields.hgeneric0[0].byteOffs_6 = 8 + 22;
+  conf.fields.hgeneric0[0].byteOffs_7 = 8 + 23;
   
 }
 
@@ -113,7 +113,7 @@ int EhpEur::createExecutionSummary() {
 
   // NA
   conf.fields.miscEnable[msgType].msgId = msgId;
-  conf.fields.miscEnable[msgType].byteOffs_0 = 255
+  conf.fields.miscEnable[msgType].byteOffs_0 = 255;
   conf.fields.miscEnable[msgType].byteOffs_1 = EhpBlankByte;
   conf.fields.miscEnable[msgType].byteOffs_2 = EhpBlankByte;
   conf.fields.miscEnable[msgType].byteOffs_3 = EhpBlankByte;
