@@ -123,6 +123,10 @@ public:
 
   EkaBcEurSecId prodList_[16] = {};
   size_t nProds_ = 0;
+
+#ifdef _VERILOG_SIM
+  const char *verilogSimFileName_ = "ZheniaVerilogSim.txt";
+#endif
 };
 
 /* --------------------------------------------- */

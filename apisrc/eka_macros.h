@@ -17,6 +17,10 @@
 extern FILE *g_ekaLogFile;
 extern EkaLogCallback g_ekaLogCB;
 
+#ifdef _VERILOG_SIM
+extern FILE *g_ekaVerilogSimFile;
+#endif
+
 class EkaDev;
 
 #define SEC_TO_NANO 1e9
@@ -72,22 +76,22 @@ class EkaDev;
     std::quick_exit(1);                                    \
   } while (0)
 
-  #define EKA_LOG(...)                                      \
+#define EKA_LOG(...)                                       \
   do {                                                     \
     const int err = errno;                                 \
-    fprintf(stdout,                                        \
-            "%s@%s:%d: ",     \
-            __func__, __FILE__, __LINE__);                 \
+    fprintf(stdout, "%s@%s:%d: ", __func__, __FILE__,      \
+            __LINE__);                                     \
     fprintf(stdout, __VA_ARGS__);                          \
+    fprintf(stdout, "\n");                                 \
   } while (0)
 
-#define EKA_ERROR(...)                                      \
+#define EKA_ERROR(...)                                     \
   do {                                                     \
     const int err = errno;                                 \
-    fprintf(stdout,                                        \
-            "ERROR: %s@%s:%d: ",     \
-            __func__, __FILE__, __LINE__);                 \
+    fprintf(stdout, "ERROR: %s@%s:%d: ", __func__,         \
+            __FILE__, __LINE__);                           \
     fprintf(stdout, __VA_ARGS__);                          \
+    fprintf(stdout, "\n");                                 \
   } while (0)
 #endif
 #endif

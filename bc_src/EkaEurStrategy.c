@@ -126,7 +126,10 @@ EkaBCOpResult EkaEurStrategy::downloadPackedDB() {
     uint64_t buf[BufLen] = {};
 
     auto [validCnt, len] = hashEng_->getPackedLine(i, buf);
-
+#ifdef _VERILOG_SIM
+    if (validCnt == 0)
+      return EKABC_OPRESULT__OK;
+#endif
     int packedWords = roundUp8(len) / 8;
 
     uint64_t *pWord = buf;

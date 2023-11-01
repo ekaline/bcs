@@ -86,14 +86,39 @@ struct EkaBcAffinityConfig {
 };
 
 /**
+ * @brief Callback function to be used for printing
+ *        Ekaline logs
+ *
+ */
+typedef int (*EkaLogCallback)(void *ctx,
+                              const char *function,
+                              const char *file, int line,
+                              int priority,
+                              const char *format, ...)
+    __attribute__((format(printf, 6, 7)));
+
+/**
+ * @brief List of CallBack parameters:
+ *            logCb: function
+ *            cbCtx: log file pointer (stdout if not set)
+ */
+struct EkaBcCallbacks {
+  EkaLogCallback logCb;
+  void *cbCtx;
+};
+
+/**
  * @brief Initializing Ekaline Device
  *
  * @param affinityConf optional affinity config
+ * @param cb optional callbacks struct
  * @return EkaDev* Ekaline Device pointer to be
  *                 provided to all API calls
  */
-EkaDev *ekaBcOpenDev(
-    const EkaBcAffinityConfig *affinityConf = NULL);
+
+EkaDev *
+ekaBcOpenDev(const EkaBcAffinityConfig *affinityConf = NULL,
+             const EkaBcCallbacks *cb = NULL);
 
 /**
  * @brief Closes Ekaline Device and destroys all data

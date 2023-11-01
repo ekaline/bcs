@@ -283,6 +283,10 @@ if(EfcHashPrint)
   target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC EFC_PRINT_HASH)
 endif()
 
+if(VERILOG_SIM)
+  target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC _VERILOG_SIM)
+endif()
+
 target_link_libraries(
   ${EKA_LIB_NAME}_static
   PUBLIC libsmartnic_static
@@ -403,10 +407,12 @@ if(ENABLE_GTEST)
                                             ${testDstDir})
   target_compile_options(runTests PUBLIC -std=c++23)
 
+  target_compile_definitions(runTests PRIVATE EKA_LIB_RUN)
+
   # add_dependencies(runTests ${EKA_LIB_NAME}_static)
 
-  #target_link_libraries(runTests ${EKA_LIB_NAME}_static rt m Threads::Threads)
-   target_link_libraries(runTests ${EKA_LIB_NAME} rt m Threads::Threads)
+  target_link_libraries(runTests ${EKA_LIB_NAME}_static rt m Threads::Threads)
+  #target_link_libraries(runTests ${EKA_LIB_NAME} rt m Threads::Threads)
   target_link_libraries(runTests -static-libgcc -static-libstdc++)
 
   set(CEREAL_DIR ${CMAKE_CURRENT_LIST_DIR}/cereal)

@@ -22,8 +22,13 @@
 extern EkaDev *g_ekaDev;
 
 EkaDev *
-ekaBcOpenDev(const EkaBcAffinityConfig *affinityConf) {
+ekaBcOpenDev(const EkaBcAffinityConfig *affinityConf,
+             const EkaBcCallbacks *cb) {
   EkaDevInitCtx initCtx = {};
+  if (cb) {
+    // initCtx.logCallback = cb->logCb;
+    initCtx.logContext = cb->cbCtx;
+  }
   g_ekaDev = new EkaDev(&initCtx);
   if (!g_ekaDev)
     return NULL;
@@ -205,6 +210,11 @@ EkaBCOpResult ekaBcInit(EkaDev *dev,
           ekaBcInitCtx->watchdog_timeout_sec};
 
   efcInit(dev, &initCtx);
+  EKA_LOG("Efc initialized with "
+          "report_only = %d, "
+          "watchdog_timeout_sec = %ju",
+          initCtx.report_only,
+          initCtx.watchdog_timeout_sec);
   return EKABC_OPRESULT__OK;
 }
 
@@ -294,6 +304,7 @@ void ekaBcEurRun(EkaDev *dev,
     on_error("Eurex is not initialized: use "
              "ekaBcInitEurStrategy()");
 
+  EKA_LOG("Running EkaEurStrategy::runLoop()");
   auto loopFunc = std::bind(&EkaEurStrategy::runLoop, eur,
                             pEkaBcRunCtx);
 
@@ -336,7 +347,7 @@ ekaBcInitEurStrategy(EkaDev *dev,
 
   efc->initEur(
       reinterpret_cast<const EfcUdpMcParams *>(mcParams));
-
+  EKA_LOG("EurStrategy initialized");
   return EKABC_OPRESULT__OK;
 }
 /* ==================================================== */

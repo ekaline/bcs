@@ -8,6 +8,10 @@ EkaDev *g_ekaDev;
 FILE *g_ekaLogFile;
 EkaLogCallback g_ekaLogCB;
 
+#ifdef _VERILOG_SIM
+FILE *g_ekaVerilogSimFile;
+#endif
+
 EkaOpResult ekaDevInit(EkaDev **ppEkaDev,
                        const EkaDevInitCtx *pInitCtx) {
   *ppEkaDev = new EkaDev(pInitCtx);

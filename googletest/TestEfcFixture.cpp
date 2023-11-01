@@ -23,11 +23,15 @@
 
 #include "Efc.h"
 
+extern FILE *g_ekaLogFile;
+
 volatile bool keep_work = true;
 volatile bool serverSet = false;
 
 /* --------------------------------------------- */
-
+int ekaDefaultLog(void * /*unused*/, const char *function,
+                  const char *file, int line, int priority,
+                  const char *format, ...);
 /* --------------------------------------------- */
 
 void TestEfcFixture::SetUp() {
@@ -46,8 +50,15 @@ void TestEfcFixture::SetUp() {
       nullptr)
     on_error("Failed to open %s file for writing",
              testLogFileName_);
+  g_ekaLogCB = ekaDefaultLog;
 
-  // TMP PATCH !!!
+#ifdef _VERILOG_SIM
+  if ((g_ekaVerilogSimFile =
+           fopen(verilogSimFileName_, "w")) == nullptr)
+    on_error("Failed to open %s file for writing",
+             verilogSimFileName_);
+#endif
+  //  TMP PATCH !!!
   // g_ekaLogFile = stdout;
 
   return;
@@ -76,6 +87,10 @@ void TestEfcFixture::TearDown() {
   ekaBcCloseDev(dev_);
 
   fclose(g_ekaLogFile);
+
+#ifdef _VERILOG_SIM
+  fclose(g_ekaVerilogSimFile);
+#endif
 
   for (auto &p : fireReports_) {
     delete[] p->buf;
@@ -151,7 +166,9 @@ void TestEfcFixture::runTest() {
   /* --------------------------------------------- */
 
   EkaBcAffinityConfig aff = {-1, -1, -1, -1, -1};
-  dev_ = ekaBcOpenDev(&aff);
+  EkaBcCallbacks cb = {.logCb = ekaDefaultLog,
+                       .cbCtx = g_ekaLogFile};
+  dev_ = ekaBcOpenDev(&aff, &cb);
   ASSERT_NE(dev_, nullptr);
   /* --------------------------------------------- */
 
