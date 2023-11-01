@@ -346,12 +346,12 @@ set(utilsDstDir ${CMAKE_BINARY_DIR}/utils/${EKA_LIB_NAME})
 
 foreach(uSrc ${utils_SRCS})
   get_filename_component(utilExec ${uSrc} NAME_WE)
-  add_executable(${utilExec} ${uSrc})
+  add_executable(${utilExec} ${uSrc} ${EKA_GENERIC_SRC_PATH}/EkaHwCaps.c)
   set_target_properties(${utilExec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                                ${utilsDstDir})
-  add_dependencies(${utilExec} ${EKA_LIB_NAME}_static)
+  add_dependencies(${utilExec} libsmartnic_static)
 
-  target_link_libraries(${utilExec} ${EKA_LIB_NAME}_static rt m
+  target_link_libraries(${utilExec} libsmartnic_static rt m
                         Threads::Threads)
   target_link_libraries(${utilExec} -static-libgcc -static-libstdc++)
   target_compile_options(${utilExec} PUBLIC -std=c++23)
