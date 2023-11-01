@@ -240,7 +240,7 @@ void EkaP4Strategy::writeSecHwCtx(
 
 void EkaP4Strategy::initHwRoundTable() {
 #ifdef _VERILOG_SIM
-  return 0;
+  return;
 #else
 
   for (uint64_t addr = 0; addr < ROUND_2B_TABLE_DEPTH;
