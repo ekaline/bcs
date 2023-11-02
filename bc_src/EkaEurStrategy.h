@@ -28,6 +28,7 @@ private:
 
 public:
   EkaEurStrategy(const EfcUdpMcParams *mcParams);
+  ~EkaEurStrategy();
 
   EkaBCOpResult
   subscribeSecList(const EkaBcEurSecId *prodList,
@@ -72,6 +73,8 @@ public:
 
   void onTobChange(MdOut *mdOut, EkaEobiBook *book,
                    SIDE side);
+
+  std::thread runLoopThr_;
 
 private:
   int nSec_ = 0;

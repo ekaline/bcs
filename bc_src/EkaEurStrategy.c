@@ -66,6 +66,12 @@ EkaEurStrategy::EkaEurStrategy(
   if (!parser_)
     on_error("!parser_");
 }
+/* --------------------------------------------------- */
+
+EkaEurStrategy::~EkaEurStrategy() {
+  EKA_LOG("Destroying");
+  runLoopThr_.join();
+}
 
 /* --------------------------------------------------- */
 void EkaEurStrategy::ekaWriteTob(
@@ -273,6 +279,7 @@ void EkaEurStrategy::runLoop(
     const EkaBcRunCtx *pEkaBcRunCtx) {
   setThreadAffinityName(pthread_self(), "EkalineBookLoop",
                         dev_->affinityConf.bookThreadCpuId);
+  EKA_LOG("Running EkaEurStrategy::runLoop()");
 
   downloadPackedDB();
 

@@ -84,7 +84,7 @@ void TestEfcFixture::TearDown() {
     delete tcpCtx_;
 
   ASSERT_NE(dev_, nullptr);
-  ekaBcCloseDev(dev_);
+  // ekaBcCloseDev(dev_);
 
   fclose(g_ekaLogFile);
 
@@ -352,6 +352,8 @@ void TestEfcFixture::sendPktToAll(const void *pkt,
 
   if (!armController_)
     on_error("!armController_");
+  EKA_LOG("Im here");
+  fflush(g_ekaLogFile);
 
   for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++) {
     for (auto i = 0; i < udpCtx_->nMcCons_[coreId]; i++) {
@@ -376,9 +378,12 @@ void TestEfcFixture::sendPktToAll(const void *pkt,
               "nExpectedFireReports_ = %d",
               udpConParamsStr, expectedFire,
               nExpectedFireReports_);
+      fflush(g_ekaLogFile);
+
       udpCon->sendUdpPkt(pkt, pktLen);
       // ==============================================
-      // auto [stratEvaluated, stratPassed] = waitForResults(
+      // auto [stratEvaluated, stratPassed] =
+      // waitForResults(
       //     nStratEvaluated_prev, nStratPassed_prev);
 
       // if (expectedFire && !stratPassed) {
@@ -393,11 +398,13 @@ void TestEfcFixture::sendPktToAll(const void *pkt,
       //     int len = 0;
       //     char rxBuf[8192] = {};
       //     while (len <= 0) {
-      //       len = excRecv(dev_, tcpCtx_->tcpSess_[i]->hCon_,
+      //       len = excRecv(dev_,
+      //       tcpCtx_->tcpSess_[i]->hCon_,
       //                     rxBuf, sizeof(rxBuf), 0);
       //     }
       //     char bufStr[10000] = {};
-      //     hexDump2str("Echoed TCP pkt", rxBuf, len, bufStr,
+      //     hexDump2str("Echoed TCP pkt", rxBuf, len,
+      //     bufStr,
       //                 sizeof(bufStr));
       //     EKA_LOG("TCP Sess %d: %s", i, bufStr);
 

@@ -88,13 +88,13 @@ public:
   /* -------------------------------------------- */
 
   ssize_t sendUdpPkt(const void *pkt, size_t pktLen) {
-#if 0
+#if 1
     char pktBufStr[8192] = {};
     hexDump2str("UdpPkt", pkt, pktLen, pktBufStr,
                 sizeof(pktBufStr));
     EKA_LOG("Sending pkt\n%s\n to %s:%u", pktBufStr,
-             EKA_IP2STR(mcDst_.sin_addr.s_addr),
-             be16toh(mcDst_.sin_port));
+            EKA_IP2STR(mcDst_.sin_addr.s_addr),
+            be16toh(mcDst_.sin_port));
 #endif
     auto rc =
         sendto(udpSock_, pkt, pktLen, 0,
