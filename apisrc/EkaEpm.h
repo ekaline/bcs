@@ -66,6 +66,8 @@ public:
 
     QedHwFire,
 
+    EurEtiFire,
+
     Count
   };
 

@@ -10,11 +10,16 @@ struct DummyIlinkMsg {
   uint8_t trailing[];
 } __attribute__((packed));
 
-struct TestEurMd {
-  const uint8_t *preloadedPkt;
-  size_t pktLen;
-  uint32_t appSeq;
-  bool expectedFire;
+struct EobiAddOrderPkt {
+  PacketHeaderT pktHdr;
+  MessageHeaderCompT msgHdr;
+  OrderAddT orderAddMsg;
+};
+
+struct EobiExecSumPkt {
+  PacketHeaderT pktHdr;
+  MessageHeaderCompT msgHdr;
+  ExecutionSummaryT execSumMsg;
 };
 
 class TestEur : public TestEfcFixture {
@@ -23,7 +28,7 @@ protected:
   void sendData() override;
 
 protected:
-  std::vector<TestEurMd> insertedMd_ = {};
+  std::vector<int> insertedMd_ = {};
 };
 
 /* --------------------------------------------- */
