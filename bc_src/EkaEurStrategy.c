@@ -135,13 +135,14 @@ EkaBCOpResult EkaEurStrategy::downloadPackedDB() {
     auto [validCnt, len] = hashEng_->getPackedLine(i, buf);
 #ifdef _VERILOG_SIM
     if (validCnt == 0)
-      return EKABC_OPRESULT__OK;
+      continue;
 #endif
     int packedWords = roundUp8(len) / 8;
 
     uint64_t *pWord = buf;
     for (auto i = 0; i < packedWords; i++) {
-#ifdef EFC_PRINT_HASH
+      //#ifdef EFC_PRINT_HASH
+#if 1
       if (validCnt != 0)
         EKA_LOG("%d: 0x%016jx", i, *pWord);
 #endif
