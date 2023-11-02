@@ -30,8 +30,9 @@
 #include "EkaEobiParser.h"
 
 #include "EkaBcEurProd.h"
-
 #include "EkaEobiTypes.h"
+#include "EpmEti8PktTemplate.h"
+
 using namespace EkaEobi;
 
 /* --------------------------------------------------- */
@@ -236,25 +237,14 @@ EkaBCOpResult EkaEurStrategy::setProdReferenceJumpParams(
 
 /* --------------------------------------------------- */
 void EkaEurStrategy::configureTemplates() {
-  int templateIdx = -1;
-#if 0
-  templateIdx = (int)EkaEpm::TemplateId::CmeHwCancel;
+  int templateIdx = (int)EkaEpm::TemplateId::EurEtiFire;
+#if 1
+  templateIdx = (int)EkaEpm::TemplateId::EurEtiFire;
   epm_->epmTemplate[templateIdx] =
-      new EpmCmeILinkTemplate(templateIdx);
+      new EpmEti8PktTemplate(templateIdx);
   epm_->DownloadSingleTemplate2HW(
       epm_->epmTemplate[templateIdx]);
 
-  templateIdx = (int)EkaEpm::TemplateId::CmeSwFire;
-  epm_->epmTemplate[templateIdx] =
-      new EpmCmeILinkSwTemplate(templateIdx);
-  epm_->DownloadSingleTemplate2HW(
-      epm_->epmTemplate[templateIdx]);
-
-  templateIdx = (int)EkaEpm::TemplateId::CmeSwHb;
-  epm_->epmTemplate[templateIdx] =
-      new EpmCmeILinkHbTemplate(templateIdx);
-  epm_->DownloadSingleTemplate2HW(
-      epm_->epmTemplate[templateIdx]);
 #endif
 }
 /* --------------------------------------------------- */

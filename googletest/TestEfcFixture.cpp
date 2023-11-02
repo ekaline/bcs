@@ -107,8 +107,7 @@ void TestEfcFixture::TearDown() {
 
 /* --------------------------------------------- */
 
-static void getFireReport(const void *p, size_t len,
-                          void *ctx) {
+void getFireReport(const void *p, size_t len, void *ctx) {
   fflush(g_ekaLogFile);
   // EKA_LOG("Received Some Report");
 
@@ -161,6 +160,13 @@ void TestEfcFixture::initNwCtxs() {
 /* --------------------------------------------- */
 
 void TestEfcFixture::runTest() {
+  for (auto i = 0; i < nProds_; i++) {
+    auto h = ekaBcGetSecHandle(dev_, prodList_[i]);
+    ASSERT_NE(h, -1);
+  }
+}
+/* --------------------------------------------- */
+void TestEfcFixture::initEur() {
   initNwCtxs();
   printTestConfig("Running");
   /* --------------------------------------------- */
@@ -204,17 +210,12 @@ void TestEfcFixture::runTest() {
   /* --------------------------------------------- */
   rc = ekaBcSetProducts(dev_, prodList_, nProds_);
   ASSERT_EQ(rc, EKABC_OPRESULT__OK);
-
-  for (auto i = 0; i < nProds_; i++) {
-    auto h = ekaBcGetSecHandle(dev_, prodList_[i]);
-    ASSERT_NE(h, -1);
-  }
-  /* --------------------------------------------- */
-
+}
+/* --------------------------------------------- */
+void TestEfcFixture::runEur() {
   EkaBcRunCtx runCtx = {.onReportCb = getFireReport,
                         .cbCtx = this};
   ekaBcEurRun(dev_, &runCtx);
-  /* --------------------------------------------- */
 }
 /* --------------------------------------------- */
 void TestEfcFixture::getReportPtrs(const void *p,
