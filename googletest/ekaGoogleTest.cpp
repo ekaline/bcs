@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
 
-#include "TestEfcFixture.h"
+#include "TestEur.h"
 /* --------------------------------------------- */
 #if 1
 static const TestTcpSess testDefaultTcpSess[] = {
@@ -51,7 +51,8 @@ static const EkaBcUdpMcParams core0_1mc = {mc0,
 #endif
 /* --------------------------------------------- */
 #if 1
-TEST_F(TestEfcFixture, Eur_basic) {
+TEST_F(TestEur, Eur_basic) {
+  EkaBCOpResult rc;
 
   mcParams_ = &core0_1mc;
   tcpParams_ = &tcp3;
@@ -59,10 +60,52 @@ TEST_F(TestEfcFixture, Eur_basic) {
   prodList_[0] = static_cast<EkaBcEurSecId>(123);
   prodList_[1] = static_cast<EkaBcEurSecId>(456);
   prodList_[2] = static_cast<EkaBcEurSecId>(789);
-
   nProds_ = 3;
+  // Inititializes everything
+  initEur();
 
-  runTest();
+  auto h = ekaBcGetSecHandle(dev_, prodList_[0]);
+  ASSERT_NE(h, -1);
+
+  auto eurHwAction = ekaBcAllocateNewAction(
+      dev_, EkaBcActionType::EurFire);
+  ASSERT_NE(eurHwAction, -1);
+
+  rc = ekaBcSetActionTcpSock(
+      dev_, eurHwAction, tcpCtx_->tcpSess_[0]->excSock_);
+  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+
+  EkaBcEurProductInitParams prodParams = {.step = 1};
+  prodParams.fireActionIdx = eurHwAction;
+
+  rc = ekaBcInitEurProd(dev_, h, &prodParams);
+  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+
+  const char EurFireMsg[] = "EurFireMsg with Dummy "
+                            "payload";
+  rc = ekaBcSetActionPayload(dev_, eurHwAction, &EurFireMsg,
+                             strlen(EurFireMsg));
+  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+
+  EkaBcEurJumpParams jumpParams = {};
+  rc = ekaBcEurSetJumpParams(dev_, h, &jumpParams);
+  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+
+  EkaBcArmVer armVer = 0;
+
+  rc = ekaBcArmEur(dev_, h, true /* armBid */,
+                   true /* armAsk */, armVer);
+  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+
+  EkaBcRunCtx runCtx = {.onReportCb = getFireReport,
+                        .cbCtx = this};
+  ekaBcEurRun(dev_, &runCtx);
+
+  EobiAddOrderPkt addOrderPkt = {};
+  EobiExecSumPkt execSumPkt = {};
+
+  sendPktToAll(&addOrderPkt, sizeof(addOrderPkt), false);
+  sendPktToAll(&execSumPkt, sizeof(execSumPkt), true);
 }
 #endif
 /* --------------------------------------------- */

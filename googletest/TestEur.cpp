@@ -46,14 +46,17 @@ void TestEur::configureStrat(const TestCaseConfig *t) {
 
 void TestEur::generateMdDataPkts(
     const void *mdInjectParams) {
+#if 0
   auto md =
       reinterpret_cast<const TestEurMd *>(mdInjectParams);
   // ==============================================
   insertedMd_.push_back(*md);
+#endif
 }
 /* ############################################# */
 
 void TestEur::sendData() {
+#if 0
   for (const auto &md : insertedMd_) {
     ekaBcSetSessionCntr(dev_, tcpCtx_->tcpSess_[0]->hCon_,
                         md.appSeq);
@@ -61,6 +64,7 @@ void TestEur::sendData() {
     sendPktToAll(md.preloadedPkt, md.pktLen,
                  md.expectedFire);
   }
+#endif
 }
 
 /* ############################################# */
