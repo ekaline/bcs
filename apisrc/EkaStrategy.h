@@ -24,12 +24,12 @@ protected:
 
   EkaStrategy(const EfcUdpMcParams *mcParams);
 
+public:
   void joinUdpChannels();
 
   void disableHwUdp();
   void enableHwUdp();
 
-public:
   virtual ~EkaStrategy();
 
   void enableRxFire();
@@ -58,14 +58,14 @@ protected:
   const int ArmDisarmNonP4Addr = 0xf07d0;
   int ArmDisarmAddr = ArmDisarmNonP4Addr; // default
 
-  EkaUdpChannel *udpChannel_[EFC_MAX_CORES] = {};
+  EkaUdpChannel *udpChannel_[4 /*MAX_CORES*/] = {};
 
   volatile bool active_ = true;
 
 public:
   static const int MAX_MD_CORES = 4;
 
-  EkaStratMcCoreSess mcCoreSess_[EFC_MAX_CORES] = {};
+  EkaStratMcCoreSess mcCoreSess_[4 /*MAX_CORES*/] = {};
 
   OnReportCb reportCb_;
   void *cbCtx_;

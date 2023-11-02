@@ -59,10 +59,10 @@ public:
                    const EobiHwBookParams *params,
                    SIDE side);
 
+  EkaBCOpResult downloadPackedDB();
+
 private:
   void configureTemplates();
-
-  EkaBCOpResult downloadPackedDB();
 
   void writeTob(EkaBcSecHandle handle, void *params,
                 uint paramsSize, SIDE side);
@@ -82,10 +82,6 @@ private:
   EkaBcEurProd *prod_[MaxSecurities_] = {};
 
   HashEngT *hashEng_ = nullptr;
-
-  EkaUdpChannel *udpChannel_[4 /*MAX_CORES*/] = {};
-
-  int regionId_ = EkaEpmRegion::Regions::Efc;
 
   EkaEobiParser *parser_ = nullptr;
 };

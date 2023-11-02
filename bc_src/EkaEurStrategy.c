@@ -78,6 +78,8 @@ void EkaEurStrategy::ekaWriteTob(
     EkaBcSecHandle prodHandle,
     const EobiHwBookParams *params, SIDE side) {
 
+  EKA_LOG("TOB prodHandle %d, side %s", prodHandle,
+          side == BID ? "BID" : "ASK");
   auto wr_ptr = reinterpret_cast<const uint64_t *>(params);
   auto nWords = roundUp8(sizeof(*params)) / 8;
   uint32_t dstAddr = 0x90000;
@@ -141,7 +143,7 @@ EkaBCOpResult EkaEurStrategy::downloadPackedDB() {
 
     uint64_t *pWord = buf;
     for (auto i = 0; i < packedWords; i++) {
-      //#ifdef EFC_PRINT_HASH
+      // #ifdef EFC_PRINT_HASH
 #if 1
       if (validCnt != 0)
         EKA_LOG("%d: 0x%016jx", i, *pWord);
@@ -282,26 +284,21 @@ void EkaEurStrategy::runLoop(
                         dev_->affinityConf.bookThreadCpuId);
   EKA_LOG("Running EkaEurStrategy::runLoop()");
 
-  downloadPackedDB();
-
-  disableHwUdp();
-  joinUdpChannels();
-  enableHwUdp();
-#ifdef _VERILOG_SIM
-  return;
-#endif
-
   while (active_) {
     for (auto coreId = 0; coreId < EFC_MAX_CORES;
          coreId++) {
       auto ch = udpChannel_[coreId];
-      if (!ch)
+      if (!ch) {
+        // EKA_LOG("No udpChannel_[%d]", coreId);
         continue;
-      if (!ch->has_data())
+      }
+      if (!ch->has_data()) {
         continue;
+      }
       auto pkt = ch->get();
       if (!pkt)
         on_error("!pkt");
+      EKA_LOG("Got packet");
 
       EkaIpHdr *ipH = (EkaIpHdr *)(pkt - 8 - 20);
       EkaUdpHdr *udpH = (EkaUdpHdr *)(pkt - 8);
@@ -436,7 +433,8 @@ void EkaEurStrategy::onTobChange(MdOut *mdOut,
   getDepthData(book, side, &tobParams.depth,
                HW_DEPTH_PRICES);
 
-#ifdef _EKA_PARSER_PRINT_ALL_
+// #ifdef _EKA_PARSER_PRINT_ALL_
+#if 1
   EKA_LOG("TOB changed price=%ju size=%ju normprice=%ju",
           tobParams.tob.price, tobParams.tob.size,
           tobParams.tob.normprice);

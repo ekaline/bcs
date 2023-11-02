@@ -352,7 +352,6 @@ void TestEfcFixture::sendPktToAll(const void *pkt,
 
   if (!armController_)
     on_error("!armController_");
-  EKA_LOG("Im here");
   fflush(g_ekaLogFile);
 
   for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++) {

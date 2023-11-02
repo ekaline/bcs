@@ -78,6 +78,8 @@ set_target_properties(
   libsmartnic_static
   PROPERTIES IMPORTED_LOCATION ${SMARTNIC_LIB_STATIC}
              INTERFACE_INCLUDE_DIRECTORIES ${SMARTNIC_API_INCL})
+set_property(TARGET libsmartnic_static PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property(TARGET libsmartnic_static_lib PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 #
 # TODO: Please do not use below command! It could harm unicorns!
@@ -279,6 +281,10 @@ if(FhLab)
   # target_compile_definitions(${EKA_LIB_NAME} PUBLIC _DONT_SEND_MDTIMEOUT)
 endif()
 
+if(ENABLE_GTEST)
+  target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC _EKA_PARSER_PRINT_ALL_)
+endif()
+
 if(EfcHashPrint)
   target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC EFC_PRINT_HASH)
 endif()
@@ -289,12 +295,23 @@ endif()
 
 target_link_libraries(
   ${EKA_LIB_NAME}_static
-  PUBLIC libsmartnic_static
-         ekalwip_static
-         rt
-         m
-         Threads::Threads
-         -static-libgcc
+  PUBLIC libsmartnic_static)
+
+ target_link_libraries(
+  ${EKA_LIB_NAME}_static
+  PUBLIC        ekalwip_static)
+   target_link_libraries(
+  ${EKA_LIB_NAME}_static
+  PUBLIC      rt)
+   target_link_libraries(
+  ${EKA_LIB_NAME}_static
+  PUBLIC      m)
+   target_link_libraries(
+  ${EKA_LIB_NAME}_static
+  PUBLIC      Threads::Threads)
+         target_link_libraries(
+  ${EKA_LIB_NAME}_static
+  PUBLIC      -static-libgcc
          -static-libstdc++)
 
 set_target_properties(${EKA_LIB_NAME}_static

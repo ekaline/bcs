@@ -308,7 +308,19 @@ void ekaBcEurRun(EkaDev *dev,
     on_error("Eurex is not initialized: use "
              "ekaBcInitEurStrategy()");
 
-  EKA_LOG("Running EkaEurStrategy::runLoop()");
+  EKA_LOG("Downloading Hash");
+  eur->downloadPackedDB();
+
+  EKA_LOG("Disabling UDP RX");
+  eur->disableHwUdp();
+
+  EKA_LOG("Joining UDP Channels");
+  eur->joinUdpChannels();
+
+  EKA_LOG("Enabling UDP RX");
+  eur->enableHwUdp();
+
+  EKA_LOG("Lounching EkaEurStrategy::runLoop()");
   fflush(g_ekaLogFile);
 
   auto loopFunc = std::bind(&EkaEurStrategy::runLoop, eur,
