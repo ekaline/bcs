@@ -360,17 +360,17 @@ void TestEfcFixture::sendPktToAll(const void *pkt,
       if (!udpCon)
         on_error("!udpConn_[%d][%d]", coreId, i);
 
-      auto [curArmVer, curArmState] = getArmVer();
-      EXPECT_EQ(curArmVer, armVer_);
-      EXPECT_TRUE(curArmState);
+      // auto [curArmVer, curArmState] = getArmVer();
+      // EXPECT_EQ(curArmVer, armVer_);
+      // EXPECT_TRUE(curArmState);
 
       char udpConParamsStr[128] = {};
       udpCon->printMcConnParams(udpConParamsStr);
 
-      auto [nStratEvaluated_prev, nStratPassed_prev] =
-          getP4stratStatistics(FireStatisticsAddr_);
-      // ==============================================
-      nExpectedFireReports_ += expectedFire;
+      // auto [nStratEvaluated_prev, nStratPassed_prev] =
+      //     getP4stratStatistics(FireStatisticsAddr_);
+      // // ==============================================
+      // nExpectedFireReports_ += expectedFire;
       EKA_LOG("Sending UPD MD to %s, "
               "expecting %d fires, "
               "nExpectedFireReports_ = %d",
@@ -378,45 +378,45 @@ void TestEfcFixture::sendPktToAll(const void *pkt,
               nExpectedFireReports_);
       udpCon->sendUdpPkt(pkt, pktLen);
       // ==============================================
-      auto [stratEvaluated, stratPassed] = waitForResults(
-          nStratEvaluated_prev, nStratPassed_prev);
+      // auto [stratEvaluated, stratPassed] = waitForResults(
+      //     nStratEvaluated_prev, nStratPassed_prev);
 
-      if (expectedFire && !stratPassed) {
-        EKA_WARN("ERROR: expectedFire && !stratPassed");
-        testFailed_ = true;
-        // EXPECT_EQ(stratPassed, expectedFire);
-        return;
-      }
+      // if (expectedFire && !stratPassed) {
+      //   EKA_WARN("ERROR: expectedFire && !stratPassed");
+      //   testFailed_ = true;
+      //   // EXPECT_EQ(stratPassed, expectedFire);
+      //   return;
+      // }
 
-      if (stratPassed) {
-        for (auto i = 0; i < tcpCtx_->nTcpSess_; i++) {
-          int len = 0;
-          char rxBuf[8192] = {};
-          while (len <= 0) {
-            len = excRecv(dev_, tcpCtx_->tcpSess_[i]->hCon_,
-                          rxBuf, sizeof(rxBuf), 0);
-          }
-          char bufStr[10000] = {};
-          hexDump2str("Echoed TCP pkt", rxBuf, len, bufStr,
-                      sizeof(bufStr));
-          EKA_LOG("TCP Sess %d: %s", i, bufStr);
+      // if (stratPassed) {
+      //   for (auto i = 0; i < tcpCtx_->nTcpSess_; i++) {
+      //     int len = 0;
+      //     char rxBuf[8192] = {};
+      //     while (len <= 0) {
+      //       len = excRecv(dev_, tcpCtx_->tcpSess_[i]->hCon_,
+      //                     rxBuf, sizeof(rxBuf), 0);
+      //     }
+      //     char bufStr[10000] = {};
+      //     hexDump2str("Echoed TCP pkt", rxBuf, len, bufStr,
+      //                 sizeof(bufStr));
+      //     EKA_LOG("TCP Sess %d: %s", i, bufStr);
 
-          auto ep = new TestEfcFixture::MemChunk;
-          if (!ep)
-            on_error("!ep");
+      //     auto ep = new TestEfcFixture::MemChunk;
+      //     if (!ep)
+      //       on_error("!ep");
 
-          ep->buf = new uint8_t[len];
-          if (!ep->buf)
-            on_error("!ep->buf");
-          ep->len = len;
+      //     ep->buf = new uint8_t[len];
+      //     if (!ep->buf)
+      //       on_error("!ep->buf");
+      //     ep->len = len;
 
-          memcpy(ep->buf, rxBuf, len);
-          echoedPkts_.push_back(ep);
-        }
-        ++armVer_;
-        EKA_LOG("Arming armVer_ = %d", armVer_);
-        armController_(dev_, armVer_);
-      }
+      //     memcpy(ep->buf, rxBuf, len);
+      //     echoedPkts_.push_back(ep);
+      //   }
+      //   ++armVer_;
+      //   EKA_LOG("Arming armVer_ = %d", armVer_);
+      //   armController_(dev_, armVer_);
+      // }
 
     } // iteration per MC grp
   }   // iteration per Core

@@ -12,13 +12,11 @@ struct DummyIlinkMsg {
 
 struct EobiAddOrderPkt {
   PacketHeaderT pktHdr;
-  MessageHeaderCompT msgHdr;
   OrderAddT orderAddMsg;
 };
 
 struct EobiExecSumPkt {
   PacketHeaderT pktHdr;
-  MessageHeaderCompT msgHdr;
   ExecutionSummaryT execSumMsg;
 };
 
