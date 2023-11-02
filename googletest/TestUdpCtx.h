@@ -60,14 +60,12 @@ public:
     mcDst_.sin_addr.s_addr = inet_addr(mcIp_);
     mcDst_.sin_port = be16toh(mcPort_);
 
-#ifndef _VERILOG_SIM
     if (bind(udpSock_, (sockaddr *)&mcSrc_,
              sizeof(sockaddr)) != 0) {
       on_error("failed to bind server udpSock to %s:%u",
                EKA_IP2STR(mcSrc_.sin_addr.s_addr),
                be16toh(mcSrc_.sin_port));
     }
-#endif
 
     EKA_LOG("udpSock %d of MC %s:%u is binded to %s:%u",
             udpSock_, EKA_IP2STR(mcDst_.sin_addr.s_addr),

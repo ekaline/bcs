@@ -151,6 +151,7 @@ TEST_F(TestEur, Eur_basic) {
   EkaBcRunCtx runCtx = {.onReportCb = getFireReport,
                         .cbCtx = this};
   ekaBcEurRun(dev_, &runCtx);
+  sleep(1);
 
   EobiAddOrderPkt addOrderBidPkt = {};
   addOrderBidPkt.pktHdr.TransactTime = 0; // TBD
