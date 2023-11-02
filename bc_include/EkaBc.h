@@ -581,8 +581,8 @@ EkaBcSecHandle ekaBcGetSecHandle(EkaDev *dev,
  */
 struct EkaBcEurProductInitParams {
   EkaBcEurSecId secId;
-  EkaBcEurFireSize maxBidSize;
-  EkaBcEurFireSize maxAskSize;
+  EkaBcEurFireSize maxBidSize; //limit fire size
+  EkaBcEurFireSize maxAskSize; //limit fire size
   EkaBcEurPrice maxBookSpread;
   EkaBcEurPrice midPoint;
   EkaBcEurPrice
@@ -614,11 +614,11 @@ ekaBcInitEurProd(EkaDev *dev, EkaBcSecHandle prodHande,
 struct JumpParams {
   EkaBcEurMdSize max_tob_size;
   EkaBcEurMdSize min_tob_size;
-  EkaBcEurFireSize max_post_size;
+  EkaBcEurMdSize max_post_size;
   EkaBcEurMdSize min_ticker_size;
   EkaBcEurPrice min_price_delta;
-  EkaBcEurFireSize buy_size;
-  EkaBcEurFireSize sell_size;
+  EkaBcEurFireSize buy_size; //limit fire size
+  EkaBcEurFireSize sell_size; //limit fire size
   bool strat_en;
   bool boc; // Book Or Cancel
 };
