@@ -296,6 +296,8 @@ EkaBCOpResult ekaBcDisArmCmeFc(EkaDev *dev) {
 }
 
 /* ==================================================== */
+void runLoop_f(EkaEurStrategy *eur,
+               const EkaBcRunCtx *pEkaBcRunCtx);
 
 void ekaBcEurRun(EkaDev *dev,
                  const EkaBcRunCtx *pEkaBcRunCtx) {
@@ -326,7 +328,9 @@ void ekaBcEurRun(EkaDev *dev,
   auto loopFunc = std::bind(&EkaEurStrategy::runLoop, eur,
                             pEkaBcRunCtx);
 
-  eur->runLoopThr_ = std::thread(loopFunc);
+//  eur->runLoopThr_ = std::thread(loopFunc);
+  eur->runLoopThr_ = std::thread(runLoop_f,eur,pEkaBcRunCtx);
+
   EKA_LOG("EkaEurStrategy::runLoop() span off");
   fflush(g_ekaLogFile);
 }

@@ -68,7 +68,6 @@ private:
                 uint paramsSize, SIDE side);
 
 public:
-public:
   EkaEobiBook *findBook(ExchSecurityId secId);
 
   void onTobChange(MdOut *mdOut, EkaEobiBook *book,
@@ -83,6 +82,7 @@ private:
 
   HashEngT *hashEng_ = nullptr;
 
+public:
   EkaEobiParser *parser_ = nullptr;
 };
 

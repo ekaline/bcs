@@ -50,6 +50,8 @@ public:
   uint8_t coreIdBitmap_ = 0x00; // MD RX (Parsers) cores
 
 protected:
+public:
+
   EkaDev *dev_ = nullptr;
   EkaEpm *epm_ = nullptr;
   // EhpProtocol *ehp_ = nullptr;

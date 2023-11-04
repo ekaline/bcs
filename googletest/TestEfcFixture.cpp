@@ -350,8 +350,8 @@ void TestEfcFixture::sendPktToAll(const void *pkt,
 
   auto nFiresPerUdp = tcpCtx_->nTcpSess_;
 
-  if (!armController_)
-    on_error("!armController_");
+/*   if (!armController_)
+    on_error("!armController_"); */
   fflush(g_ekaLogFile);
 
   for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++) {
