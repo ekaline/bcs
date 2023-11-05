@@ -73,12 +73,12 @@ public:
 
 public:
   int enableRxFire();
+  int setHwUdpParams();
 
 private:
   EkaUdpSess *findUdpSess(EkaCoreId coreId, uint32_t mcAddr,
                           uint16_t mcPort);
   // int setHwGlobalParams();
-  int setHwUdpParams();
   int disableRxFire();
   int checkSanity();
 
