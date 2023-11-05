@@ -63,15 +63,15 @@ TEST_F(TestEur, Eur_basic) {
 
   /////////////// TOB
   EkaBcEurMdSize rawTobBidSize = 5;
-  EkaBcEurPrice tobBidPrice = 50000;
+  EkaBcEurPrice tobBidPrice = 59998;
 
   EkaBcEurMdSize rawTobAskSize = 8;
-  EkaBcEurPrice tobAskPrice = 50006;
+  EkaBcEurPrice tobAskPrice = 59999;
   /////////////// TOB
 
   /////////////// Trade
   EkaBcEurMdSize rawTradeSize = 2;
-  EkaBcEurPrice tradePrice = 60000;
+  EkaBcEurPrice tradePrice = 60000; //to depth 2 (total size = 8+8)
   /////////////// Trade
 
   EkaBcEurMdSize tobBidSize =
@@ -108,7 +108,7 @@ TEST_F(TestEur, Eur_basic) {
   prodParams.isBook = 1;
   prodParams.maxBidSize = sizeMultiplier;     // TBD
   prodParams.maxAskSize = sizeMultiplier * 2; // TBD
-  prodParams.maxBookSpread = tobAskPrice - tobBidPrice;
+  prodParams.maxBookSpread = tobAskPrice - tobBidPrice + 1;
   prodParams.midPoint =
       (tobAskPrice - tobBidPrice) / 2 + tobBidPrice;
 
@@ -127,7 +127,7 @@ TEST_F(TestEur, Eur_basic) {
   jumpParams.atBest[activeJumpAtBestSet].min_tob_size =
       (tobBidSize > tobAskSize) ? tobAskSize : tobBidSize;
   jumpParams.atBest[activeJumpAtBestSet].max_post_size =
-      tobBidSize - tradeSize; // TBD assume BUY ticker
+      tobAskSize + tobAskSize - tradeSize; // TBD assume BUY ticker
   jumpParams.atBest[activeJumpAtBestSet].min_ticker_size =
       tradeSize;
   jumpParams.atBest[activeJumpAtBestSet].min_price_delta =
@@ -136,7 +136,7 @@ TEST_F(TestEur, Eur_basic) {
       sizeMultiplier;
   jumpParams.atBest[activeJumpAtBestSet].sell_size =
       sizeMultiplier * 2;
-  jumpParams.atBest[activeJumpAtBestSet].strat_en = 0;
+  jumpParams.atBest[activeJumpAtBestSet].strat_en = 1;
   jumpParams.atBest[activeJumpAtBestSet].boc = 1;
 
   rc = ekaBcEurSetJumpParams(dev_, h, &jumpParams);
@@ -172,6 +172,9 @@ TEST_F(TestEur, Eur_basic) {
   addOrderBidPkt.orderAddMsg.OrderDetails.Price =
       tobBidPrice;
 
+  sendPktToAll(&addOrderBidPkt, sizeof(addOrderBidPkt),
+               false);
+
   EobiAddOrderPkt addOrderAskPkt = {};
   addOrderAskPkt.pktHdr.MessageHeader.TemplateID =
       TID_PACKETHEADER;
@@ -191,6 +194,17 @@ TEST_F(TestEur, Eur_basic) {
   addOrderAskPkt.orderAddMsg.OrderDetails.Price =
       tobAskPrice;
 
+  //tob
+  sendPktToAll(&addOrderAskPkt, sizeof(addOrderAskPkt),
+               false);
+
+  addOrderAskPkt.orderAddMsg.OrderDetails.Price =
+      tobAskPrice + 1;
+
+  //depth 1
+  sendPktToAll(&addOrderAskPkt, sizeof(addOrderAskPkt),
+               false);
+
   EobiExecSumPkt execSumPkt = {};
   execSumPkt.pktHdr.MessageHeader.TemplateID =
       TID_PACKETHEADER;
@@ -207,10 +221,6 @@ TEST_F(TestEur, Eur_basic) {
   execSumPkt.execSumMsg.AggressorSide = AggressorSide;
   execSumPkt.execSumMsg.LastPx = tradePrice;
 
-  sendPktToAll(&addOrderBidPkt, sizeof(addOrderBidPkt),
-               false);
-  sendPktToAll(&addOrderAskPkt, sizeof(addOrderAskPkt),
-               false);
   sendPktToAll(&execSumPkt, sizeof(execSumPkt), true);
   sleep(1);
 
