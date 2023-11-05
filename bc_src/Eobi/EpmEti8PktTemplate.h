@@ -34,48 +34,35 @@ public:
         /* --------------------------- */
         {"BodyLen", 4, HwField::IMMEDIATE, false, false},
         {"TemplateID", 2, HwField::IMMEDIATE, false, false},
-
         {"NetworkMsgID", 8, HwField::IMMEDIATE, false,
          false},
         {"Pad2", 2, HwField::IMMEDIATE, false, false},
-
-        {"AppSeq", 4, HwField::APPSEQ, true, true},
-
+        {"MsgSeqNum", 4, HwField::APPSEQ, true, true},
         {"SenderSubID", 4, HwField::IMMEDIATE, false,
          false},
-
-        {"OrderID", 8, HwField::IMMEDIATE, false, true},
-        {"ClOrdID", 8, HwField::IMMEDIATE, false, true},
-
-        {"OrigClOrdID", 8, HwField::IMMEDIATE, false,
-         false},
-        {"PartyIdInvestmentDecisionMaker", 8,
-         HwField::IMMEDIATE, false, false},
-        {"ExecutingTrader", 8, HwField::IMMEDIATE, false,
-         false},
-        {"MarketSegmentID", 4, HwField::IMMEDIATE, false,
-         false},
-        {"SimpleSecurityID", 4, HwField::IMMEDIATE, false,
-         false},
-        {"TargetPartyIDSessionID", 4, HwField::IMMEDIATE,
-         false, false},
-        {"OrderOrigination", 1, HwField::IMMEDIATE, false,
-         false},
-        {"PartyIdInvestmentDecisionMakerQualifier", 1,
-         HwField::IMMEDIATE, false, false},
-        {"ExecutingTraderQualifier", 1, HwField::IMMEDIATE,
-         false, false},
-        {"FIXClOrdID", 20, HwField::IMMEDIATE, false,
-         false},
-        {"ComplianceText", 20, HwField::IMMEDIATE, false,
-         false},
-        {"Pad1", 1, HwField::IMMEDIATE, false, false},
-
-        //    {"payload"  , EpmMaxRawTcpSize -
-        //    sizeof(EkaEthHdr) - sizeof(EkaIpHdr) -
-        //    sizeof(EkaTcpHdr) -
-        //    sizeof(DeleteOrderSingleRequestT) ,
-        //    HwField::IMMEDIATE, false, false}
+        {"Price", 8, HwField::PRICE, true, true},
+        {"OrderQty", 8, HwField::SIZE, true, true},
+        {"ClOrdID", 8, HwField::IMMEDIATE, false, false},
+        {"PartyIDClientID", 8, HwField::IMMEDIATE, false, false},
+        {"PartyIdInvestmentDecisionMaker", 8, HwField::IMMEDIATE, false, false},
+        {"ExecutingTrader", 8, HwField::IMMEDIATE, false, false},
+        {"SimpleSecurityID", 4, HwField::SECURITY_ID, true, true},
+        {"MatchInstCrossID", 4, HwField::IMMEDIATE, false, false},
+        {"EnrichmentRuleID", 2, HwField::IMMEDIATE, false, false},
+        {"Side", 1, HwField::SIDE, true, true},
+        {"ApplSeqIndicator", 1, HwField::IMMEDIATE, false, false},
+        {"ApplSeqIndicator", 1, HwField::IMMEDIATE, false, false},
+        {"ValueCheckTypeValue", 1, HwField::IMMEDIATE, false, false},
+        {"OrderAttributeLiquidityProvision", 1, HwField::IMMEDIATE, false, false},
+        {"TimeInForce", 1, HwField::IMMEDIATE, false, false},
+        {"ExecInst", 1, HwField::ASK_PRICE, true, true}, //WA, ==isBOC
+        {"TradingCapacity", 1, HwField::IMMEDIATE, false, false},
+        {"OrderOrigination", 1, HwField::IMMEDIATE, false, false},
+        {"PartyIdInvestmentDecisionMakerQualifier", 1, HwField::IMMEDIATE, false, false},
+        {"ExecutingTraderQualifier", 1, HwField::IMMEDIATE, false, false},
+        {"ComplianceText", 20, HwField::IMMEDIATE, false, false},
+        {"Pad7", 7, HwField::IMMEDIATE, false, false},
+	
     };
 
     tSize =
