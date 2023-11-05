@@ -81,7 +81,7 @@ TEST_F(TestEur, Eur_basic) {
   EkaBcEurMdSize tradeSize = rawTradeSize * sizeMultiplier;
 
   mcParams_ = &core0_1mc;
-  tcpParams_ = &tcp3;
+  tcpParams_ = &tcp0;
 
   prodList_[0] = static_cast<EkaBcEurSecId>(123);
   prodList_[1] = static_cast<EkaBcEurSecId>(456);
