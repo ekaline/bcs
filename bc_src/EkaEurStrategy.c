@@ -480,7 +480,7 @@ void EkaEurStrategy::onTobChange(MdOut *mdOut,
   tobParams.tob.size = book->getEntrySize(side, 0);
   tobParams.tob.msg_seq_num = mdOut->sequence;
 
-  tobParams.tob.normprice = tobPrice =
+  tobParams.tob.normprice =
       price2Norm(tobPrice, step, bottom);
 
   tobParams.tob.firePrice = tobPrice;
