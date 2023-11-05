@@ -51,7 +51,6 @@ public:
 
 protected:
 public:
-
   EkaDev *dev_ = nullptr;
   EkaEpm *epm_ = nullptr;
   // EhpProtocol *ehp_ = nullptr;
@@ -63,6 +62,7 @@ public:
   EkaUdpChannel *udpChannel_[4 /*MAX_CORES*/] = {};
 
   volatile bool active_ = true;
+  volatile bool terminated_ = false;
 
 public:
   static const int MAX_MD_CORES = 4;

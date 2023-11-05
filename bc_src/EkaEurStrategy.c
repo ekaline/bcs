@@ -288,17 +288,14 @@ void EkaEurStrategy::runLoop(
     for (auto coreId = 0; coreId < EFC_MAX_CORES;
          coreId++) {
       auto ch = udpChannel_[coreId];
-      if (!ch) {
-        // EKA_LOG("No udpChannel_[%d]", coreId);
+      if (!ch)
         continue;
-      }
-      if (!ch->has_data()) {
+      if (!ch->has_data())
         continue;
-      }
+
       auto pkt = ch->get();
       if (!pkt)
         on_error("!pkt");
-      EKA_LOG("Got packet");
 
       EkaIpHdr *ipH = (EkaIpHdr *)(pkt - 8 - 20);
       EkaUdpHdr *udpH = (EkaUdpHdr *)(pkt - 8);
@@ -332,13 +329,16 @@ void EkaEurStrategy::runLoop(
       ch->next();
     } // per CoreId for loop
   }   // while (active_)
+  terminated_ = true;
 }
 
 /* --------------------------------------------------- */
-void runLoop_f(EkaEurStrategy* eur,
-    const EkaBcRunCtx *pEkaBcRunCtx) {
-  setThreadAffinityName(pthread_self(), "EkalineBookLoop",
-                        eur->dev_->affinityConf.bookThreadCpuId);
+#if 0
+void runLoop_f(EkaEurStrategy *eur,
+               const EkaBcRunCtx *pEkaBcRunCtx) {
+  setThreadAffinityName(
+      pthread_self(), "EkalineBookLoop",
+      eur->dev_->affinityConf.bookThreadCpuId);
   EKA_LOG("Running EkaEurStrategy::runLoop()");
 
   while (eur->active_) {
@@ -349,19 +349,24 @@ void runLoop_f(EkaEurStrategy* eur,
         // EKA_LOG("No udpChannel_[%d]", coreId);
         continue;
       }
+      // EKA_LOG("Polling");
+
       if (!ch->has_data()) {
         continue;
       }
+      EKA_LOG("Got packet111");
+      fflush(g_ekaLogFile);
       auto pkt = ch->get();
       if (!pkt)
         on_error("!pkt");
       EKA_LOG("Got packet");
+      fflush(g_ekaLogFile);
 
       EkaIpHdr *ipH = (EkaIpHdr *)(pkt - 8 - 20);
       EkaUdpHdr *udpH = (EkaUdpHdr *)(pkt - 8);
 
-      auto udpSess = eur->findUdpSess(coreId, ipH->dest,
-                                 be16toh((udpH->dest)));
+      auto udpSess = eur->findUdpSess(
+          coreId, ipH->dest, be16toh((udpH->dest)));
       if (!udpSess) {
 #ifdef _EKA_PARSER_PRINT_ALL_
         EKA_LOG("%s:%u packet does not belog to our UDP "
@@ -377,9 +382,9 @@ void runLoop_f(EkaEurStrategy* eur,
       //    EKA_LOG("Pkt: %u byte ",payloadSize);
 #endif
       MdOut mdOut = {};
-      eur->parser_->processPkt(&mdOut,
-                          ProcessAction::UpdateBookOnly,
-                          pkt, payloadSize);
+      eur->parser_->processPkt(
+          &mdOut, ProcessAction::UpdateBookOnly, pkt,
+          payloadSize);
 #if 0
       if (!udpSess->isCorrectSeq(mdOut.pktSeq,
                                  mdOut.msgNum)) {
@@ -389,8 +394,9 @@ void runLoop_f(EkaEurStrategy* eur,
       ch->next();
     } // per CoreId for loop
   }   // while (active_)
+  eur->terminated_ = true;
 }
-
+#endif
 /* --------------------------------------------------- */
 EkaEobiBook *
 EkaEurStrategy::findBook(ExchSecurityId secId) {

@@ -154,9 +154,13 @@ TEST_F(TestEur, Eur_basic) {
   sleep(1);
 
   EobiAddOrderPkt addOrderBidPkt = {};
+  addOrderBidPkt.pktHdr.MessageHeader.TemplateID =
+      TID_PACKETHEADER;
+  addOrderBidPkt.pktHdr.MessageHeader.BodyLen =
+      sizeof(addOrderBidPkt.pktHdr);
   addOrderBidPkt.pktHdr.TransactTime = 0; // TBD
   addOrderBidPkt.orderAddMsg.MessageHeader.BodyLen =
-      sizeof(MessageHeaderCompT);
+      sizeof(addOrderBidPkt.orderAddMsg);
   addOrderBidPkt.orderAddMsg.MessageHeader.TemplateID =
       TID_ORDER_ADD;
   addOrderBidPkt.orderAddMsg.RequestTime = 0; // TBD
@@ -169,9 +173,13 @@ TEST_F(TestEur, Eur_basic) {
       tobBidPrice;
 
   EobiAddOrderPkt addOrderAskPkt = {};
+  addOrderAskPkt.pktHdr.MessageHeader.TemplateID =
+      TID_PACKETHEADER;
+  addOrderAskPkt.pktHdr.MessageHeader.BodyLen =
+      sizeof(addOrderAskPkt.pktHdr);
   addOrderAskPkt.pktHdr.TransactTime = 0; // TBD
   addOrderAskPkt.orderAddMsg.MessageHeader.BodyLen =
-      sizeof(MessageHeaderCompT);
+      sizeof(addOrderAskPkt.orderAddMsg);
   addOrderAskPkt.orderAddMsg.MessageHeader.TemplateID =
       TID_ORDER_ADD;
   addOrderAskPkt.orderAddMsg.RequestTime = 0; // TBD
@@ -184,9 +192,13 @@ TEST_F(TestEur, Eur_basic) {
       tobAskPrice;
 
   EobiExecSumPkt execSumPkt = {};
+  execSumPkt.pktHdr.MessageHeader.TemplateID =
+      TID_PACKETHEADER;
+  execSumPkt.pktHdr.MessageHeader.BodyLen =
+      sizeof(addOrderAskPkt.pktHdr);
   execSumPkt.pktHdr.TransactTime = 0; // TBD
   execSumPkt.execSumMsg.MessageHeader.BodyLen =
-      sizeof(MessageHeaderCompT);
+      sizeof(execSumPkt.execSumMsg);
   execSumPkt.execSumMsg.MessageHeader.TemplateID =
       TID_EXECUTION_SUMMARY;
   execSumPkt.execSumMsg.SecurityID = prodList_[0];
@@ -201,6 +213,10 @@ TEST_F(TestEur, Eur_basic) {
                false);
   sendPktToAll(&execSumPkt, sizeof(execSumPkt), true);
   sleep(1);
+
+  /*   while (keep_work) {
+      sleep(0);
+    } */
   ekaBcCloseDev(dev_);
 }
 #endif

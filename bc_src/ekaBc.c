@@ -44,13 +44,14 @@ ekaBcOpenDev(const EkaBcAffinityConfig *affinityConf,
 }
 /* ==================================================== */
 
-int ekaBcCloseDev(EkaDev *dev) {
+EkaBCOpResult ekaBcCloseDev(EkaDev *dev) {
   if (!dev)
-    return -1;
+    on_error("!dev");
+
   delete dev;
   g_ekaDev = NULL;
 
-  return 0;
+  return EKABC_OPRESULT__OK;
 }
 /* ==================================================== */
 
@@ -296,8 +297,6 @@ EkaBCOpResult ekaBcDisArmCmeFc(EkaDev *dev) {
 }
 
 /* ==================================================== */
-void runLoop_f(EkaEurStrategy *eur,
-               const EkaBcRunCtx *pEkaBcRunCtx);
 
 void ekaBcEurRun(EkaDev *dev,
                  const EkaBcRunCtx *pEkaBcRunCtx) {
@@ -313,14 +312,8 @@ void ekaBcEurRun(EkaDev *dev,
   EKA_LOG("Downloading Hash");
   eur->downloadPackedDB();
 
-  EKA_LOG("Disabling UDP RX");
-  eur->disableHwUdp();
-
   EKA_LOG("Joining UDP Channels");
   eur->joinUdpChannels();
-
-  EKA_LOG("Enabling UDP RX");
-  eur->enableHwUdp();
 
   EKA_LOG("Lounching EkaEurStrategy::runLoop()");
   fflush(g_ekaLogFile);
@@ -328,8 +321,9 @@ void ekaBcEurRun(EkaDev *dev,
   auto loopFunc = std::bind(&EkaEurStrategy::runLoop, eur,
                             pEkaBcRunCtx);
 
-//  eur->runLoopThr_ = std::thread(loopFunc);
-  eur->runLoopThr_ = std::thread(runLoop_f,eur,pEkaBcRunCtx);
+  eur->runLoopThr_ = std::thread(loopFunc);
+  /* eur->runLoopThr_ =
+      std::thread(runLoop_f, eur, pEkaBcRunCtx); */
 
   EKA_LOG("EkaEurStrategy::runLoop() span off");
   fflush(g_ekaLogFile);

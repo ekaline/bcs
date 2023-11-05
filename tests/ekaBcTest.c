@@ -270,8 +270,21 @@ int main(int argc, char *argv[]) {
   mcDst.sin_addr.s_addr = inet_addr(mc0[0].mcIp);
   mcDst.sin_port = be16toh(mc0[0].mcUdpPort);
 
+  if (bind(udpSock, (sockaddr *)&mcSrc, sizeof(sockaddr))) {
+    on_error("failed to bind server udpSock to %s:%u",
+             EKA_IP2STR(mcSrc.sin_addr.s_addr),
+             be16toh(mcSrc.sin_port));
+  }
+
+  EKA_LOG("udpSock %d of MC %s:%u is binded to %s:%u",
+          udpSock, EKA_IP2STR(mcDst.sin_addr.s_addr),
+          be16toh(mcDst.sin_port),
+          EKA_IP2STR(mcSrc.sin_addr.s_addr),
+          be16toh(mcSrc.sin_port));
+
   int r;
   // ==============================================
+  sleep(5);
 
   EKA_LOG("Sending addOrderBidPkt to %s:%u",
           EKA_IP2STR(mcDst.sin_addr.s_addr),
@@ -307,6 +320,8 @@ int main(int argc, char *argv[]) {
     on_error("MC trigger send failed");
   sleep(1);
   // ==============================================
+  sleep(5);
+
   ekaBcCloseDev(dev);
 
   return 0;
