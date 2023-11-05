@@ -71,12 +71,14 @@ public:
 
   bool isReportOnly() { return report_only_; }
 
+public:
+  int enableRxFire();
+
 private:
   EkaUdpSess *findUdpSess(EkaCoreId coreId, uint32_t mcAddr,
                           uint16_t mcPort);
   // int setHwGlobalParams();
   int setHwUdpParams();
-  int enableRxFire();
   int disableRxFire();
   int checkSanity();
 

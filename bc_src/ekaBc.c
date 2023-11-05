@@ -318,6 +318,8 @@ void ekaBcEurRun(EkaDev *dev,
   EKA_LOG("Lounching EkaEurStrategy::runLoop()");
   fflush(g_ekaLogFile);
 
+  dev->efc->enableRxFire();
+
   auto loopFunc = std::bind(&EkaEurStrategy::runLoop, eur,
                             pEkaBcRunCtx);
 
