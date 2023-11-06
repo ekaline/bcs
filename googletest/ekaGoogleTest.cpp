@@ -26,32 +26,46 @@ static const TestTcpSess tcp3_s[] = {
 static const TestTcpParams tcp3 = {tcp3_s,
                                    std::size(tcp3_s)};
 
-static const EkaBcMcGroupParams mc1[] = {
-    {1, "224.0.0.1", 30301}};
 static const EkaBcMcGroupParams mc01[] = {
     {0, "224.0.0.0", 30300}, {1, "224.0.0.1", 30301}};
 
-static const EkaBcUdpMcParams core1_1mc = {mc1,
-                                           std::size(mc1)};
 static const EkaBcUdpMcParams two_cores_1mc = {
     mc01, std::size(mc01)};
-#endif
-/* --------------------------------------------- */
 
-/* --------------------------------------------- */
-#if 1
 static const TestTcpSess tcp0_s[] = {
     {0, "100.0.0.0", "10.0.0.10", 22000}};
 static const TestTcpParams tcp0 = {tcp0_s,
                                    std::size(tcp0_s)};
-static const EkaBcMcGroupParams mc0[] = {0, "224.0.0.0",
-                                         30300};
+
+/* --------------------------------------------- */
+static const EkaBcMcGroupParams mc0[] = {0, "224.0.10.100",
+                                         30310};
 static const EkaBcUdpMcParams core0_1mc = {mc0,
                                            std::size(mc0)};
+static const EkaBcMcGroupParams mc1[] = {1, "224.1.11.101",
+                                         30311};
+static const EkaBcUdpMcParams core1_1mc = {mc1,
+                                           std::size(mc1)};
+static const EkaBcMcGroupParams mc2[] = {2, "224.2.12.102",
+                                         30312};
+static const EkaBcUdpMcParams core2_1mc = {mc2,
+                                           std::size(mc2)};
+static const EkaBcMcGroupParams mc3[] = {3, "224.3.13.103",
+                                         30313};
+static const EkaBcUdpMcParams core3_1mc = {mc3,
+                                           std::size(mc3)};
 #endif
 /* --------------------------------------------- */
 #if 1
 TEST_F(TestEur, Eur_basic) {
+  mcParams_ = &core2_1mc;
+  tcpParams_ = &tcp0;
+
+  auto mcCon = new TestUdpConn(mcParams_->groups);
+  ASSERT_NE(mcCon, nullptr);
+
+  /* -------------------------------------------- */
+
   EkaBCOpResult rc;
 
   /////////////// General
@@ -71,7 +85,8 @@ TEST_F(TestEur, Eur_basic) {
 
   /////////////// Trade
   EkaBcEurMdSize rawTradeSize = 2;
-  EkaBcEurPrice tradePrice = 60000; //to depth 2 (total size = 8+8)
+  EkaBcEurPrice tradePrice =
+      60000; // to depth 2 (total size = 8+8)
   /////////////// Trade
 
   EkaBcEurMdSize tobBidSize =
@@ -79,9 +94,6 @@ TEST_F(TestEur, Eur_basic) {
   EkaBcEurMdSize tobAskSize =
       rawTobAskSize * sizeMultiplier;
   EkaBcEurMdSize tradeSize = rawTradeSize * sizeMultiplier;
-
-  mcParams_ = &core0_1mc;
-  tcpParams_ = &tcp0;
 
   prodList_[0] = static_cast<EkaBcEurSecId>(123);
   prodList_[1] = static_cast<EkaBcEurSecId>(456);
@@ -127,7 +139,8 @@ TEST_F(TestEur, Eur_basic) {
   jumpParams.atBest[activeJumpAtBestSet].min_tob_size =
       (tobBidSize > tobAskSize) ? tobAskSize : tobBidSize;
   jumpParams.atBest[activeJumpAtBestSet].max_post_size =
-      tobAskSize + tobAskSize - tradeSize; // TBD assume BUY ticker
+      tobAskSize + tobAskSize -
+      tradeSize; // TBD assume BUY ticker
   jumpParams.atBest[activeJumpAtBestSet].min_ticker_size =
       tradeSize;
   jumpParams.atBest[activeJumpAtBestSet].min_price_delta =
@@ -172,8 +185,10 @@ TEST_F(TestEur, Eur_basic) {
   addOrderBidPkt.orderAddMsg.OrderDetails.Price =
       tobBidPrice;
 
-  sendPktToAll(&addOrderBidPkt, sizeof(addOrderBidPkt),
-               false);
+  /*   sendPktToAll(&addOrderBidPkt, sizeof(addOrderBidPkt),
+                 false); */
+  mcCon->sendUdpPkt(&addOrderBidPkt,
+                    sizeof(addOrderBidPkt));
 
   EobiAddOrderPkt addOrderAskPkt = {};
   addOrderAskPkt.pktHdr.MessageHeader.TemplateID =
@@ -194,16 +209,20 @@ TEST_F(TestEur, Eur_basic) {
   addOrderAskPkt.orderAddMsg.OrderDetails.Price =
       tobAskPrice;
 
-  //tob
-  sendPktToAll(&addOrderAskPkt, sizeof(addOrderAskPkt),
-               false);
+  // tob
+  /*   sendPktToAll(&addOrderAskPkt, sizeof(addOrderAskPkt),
+                 false); */
+  mcCon->sendUdpPkt(&addOrderAskPkt,
+                    sizeof(addOrderAskPkt));
 
   addOrderAskPkt.orderAddMsg.OrderDetails.Price =
       tobAskPrice + 1;
 
-  //depth 1
-  sendPktToAll(&addOrderAskPkt, sizeof(addOrderAskPkt),
-               false);
+  // depth 1
+  /*   sendPktToAll(&addOrderAskPkt, sizeof(addOrderAskPkt),
+                 false); */
+  mcCon->sendUdpPkt(&addOrderAskPkt,
+                    sizeof(addOrderAskPkt));
 
   EobiExecSumPkt execSumPkt = {};
   execSumPkt.pktHdr.MessageHeader.TemplateID =
@@ -221,7 +240,9 @@ TEST_F(TestEur, Eur_basic) {
   execSumPkt.execSumMsg.AggressorSide = AggressorSide;
   execSumPkt.execSumMsg.LastPx = tradePrice;
 
-  sendPktToAll(&execSumPkt, sizeof(execSumPkt), true);
+  /*   sendPktToAll(&execSumPkt, sizeof(execSumPkt), true);
+   */
+  mcCon->sendUdpPkt(&execSumPkt, sizeof(execSumPkt));
   sleep(1);
 
 #ifndef _VERILOG_SIM

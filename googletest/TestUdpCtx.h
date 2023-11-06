@@ -126,8 +126,6 @@ public:
 
     for (auto i = 0; i < mcParams->nMcGroups; i++) {
       auto lane = mcParams->groups[i].lane;
-      if (lane < 0 || lane > 1)
-        on_error("lane = %d", lane);
       auto perCoreidx = nMcCons_[lane];
       udpConn_[lane][perCoreidx] =
           new TestUdpConn(&mcParams->groups[i]);
