@@ -3,7 +3,8 @@
 
 // Generic EHP based P4 HW Parser
 // #define EKA_EXPECTED_GENERIC_PARSER_VERSION 0x1
-#define EKA_EXPECTED_GENERIC_PARSER_VERSION 0x2 // multi
+//#define EKA_EXPECTED_GENERIC_PARSER_VERSION 0x2 // multi
+#define EKA_EXPECTED_GENERIC_PARSER_VERSION 0x3 // bc
 
 // CME Fast Cancel HW not generic Parser
 #define EKA_EXPECTED_NONGENERIC_PARSER_VERSION 0x9 // cme
@@ -37,8 +38,8 @@
 // SRAM
 // #define EKA_EXPECTED_EFC_STRATEGY 133 // QED
 // #define EKA_EXPECTED_EFC_STRATEGY 134 // multi
-#define EKA_EXPECTED_EFC_STRATEGY                          \
-  135 // {core,mcgroup}->action
+//#define EKA_EXPECTED_EFC_STRATEGY 135 // {core,mcgroup}->action
+#define EKA_EXPECTED_EFC_STRATEGY 136 // bc
 
 #define EKA_EXPECTED_PORT_MIRRORING 2
 #define EKA_EXPECTED_SEC_CTX_READ_BY_HASH 3
