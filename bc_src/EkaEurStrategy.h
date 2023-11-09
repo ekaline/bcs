@@ -74,7 +74,7 @@ private:
       EkaDev *dev, const uint8_t *srcReport,
       uint srcReportLen, EkaUserReportQ *q, uint32_t dmaIdx,
       uint8_t *reportBuf);
-  std::pair<int, size_t> processExceptionReport(
+  std::pair<int, size_t> processExceptionsReport(
       EkaDev *dev, const uint8_t *srcReport,
       uint srcReportLen, EkaUserReportQ *q, uint32_t dmaIdx,
       uint8_t *reportBuf);

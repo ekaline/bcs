@@ -706,7 +706,7 @@ enum class EkaBcEventType : int {
 
 enum class EkaBcReportType : int {
   ControllerState = 1,
-  ExceptionReport,
+  ExceptionsReport,
   FirePkt,
   CmeFastCancelReport,
   EurFireReport
@@ -722,16 +722,6 @@ struct EkaBcReportHdr {
 struct EkaBcContainerGlobalHdr {
   EkaBcEventType eventType;
   int nReports;
-};
-
-struct EkaBcExceptionReport {
-  uint32_t globalVector;
-  uint32_t portVector[EFC_BC_MAX_CORES];
-};
-
-struct BCArmStatusReport {
-  uint8_t armFlag;
-  uint32_t expectedVersion;
 };
 
 enum EkaBcTriggerAction {
@@ -875,12 +865,17 @@ struct EkaBcArmReport {
   EkaBcArmSide side;   // 1
 } __attribute__((packed));
 
+struct EkaBcExceptionVector {
+  uint32_t globalVector;
+  uint32_t portVector[EFC_BC_MAX_CORES];
+};
+
 struct EkaBcExceptionsReport {
-  EkaBcArmReport nwReport__unused[16];  // 32
-  EkaBcArmReport statusReport[16];      // 32
-  EkaBcExceptionReport exceptionReport; // 20
-  uint8_t pad[256 - 32 - 32 - 20];      //
-} __attribute__((packed));              // 256
+  EkaBcArmReport nwReport__unused[16]; // 32
+  EkaBcArmReport statusReport[16];     // 32
+  EkaBcExceptionVector vector;         // 20
+  uint8_t pad[256 - 32 - 32 - 20];     //
+} __attribute__((packed));             // 256
 
 } // End of extern "C"
 #endif

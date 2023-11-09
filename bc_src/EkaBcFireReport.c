@@ -17,21 +17,14 @@
 #include "EkaEpmRegion.h"
 #include "EkaHwCaps.h"
 #include "EkaSnDev.h"
-#include "EkaTcpSess.h"
-#include "EkaUdpSess.h"
 
 #include "EkaEfcDataStructs.h"
 
 #include "EkaEurStrategy.h"
-#include "EkaHwHashTableLine.h"
+#include "EkaUserChannel.h"
 
-#include "EkaUdpChannel.h"
-
-#include "EkaEobiParser.h"
-
-#include "EkaBcEurProd.h"
-#include "EkaEobiTypes.h"
-#include "EpmEti8PktTemplate.h"
+#include "EkaEfcDataStructs.h"
+#include "EkaUserReportQ.h"
 
 using namespace EkaEobi;
 
@@ -129,7 +122,7 @@ void EkaEurStrategy::fireReportThreadLoop(
           dmaReportHdr->feedbackDmaIndex, reportBuf);
       break;
     case EkaUserChannel::DMA_TYPE::EXCEPTION:
-      r = processExceptionReport(
+      r = processExceptionsReport(
           dev_, payload, len, dev_->efc->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
       break;
@@ -187,37 +180,37 @@ EkaEurStrategy::processSwTriggeredReport(
 }
 /* ################################################## */
 inline size_t
-pushExceptionReport(int reportIdx, uint8_t *dst,
-                    EkaBcExceptionsReport *src) {
+pushExceptionsReport(int reportIdx, uint8_t *dst,
+                     const EkaBcExceptionsReport *src) {
   auto b = dst;
-  auto exceptionReportHdr =
-      reinterpret_cast<EkaBcReportHdr *>(b);
-  exceptionReportHdr->type =
-      EkaBcReportType::ExceptionReport;
-  exceptionReportHdr->idx = reportIdx;
-  exceptionReportHdr->size = sizeof(EkaBcExceptionsReport);
-  b += sizeof(*exceptionReportHdr);
+  auto reportHdr = reinterpret_cast<EkaBcReportHdr *>(b);
+  reportHdr->type = EkaBcReportType::ExceptionsReport;
+  reportHdr->idx = reportIdx;
+  reportHdr->size = sizeof(EkaBcExceptionsReport);
+  b += sizeof(*reportHdr);
   //--------------------------------------------------------------------------
-  auto exceptionReport{
-      reinterpret_cast<EkaBcExceptionsReport *>(b)};
-  b += sizeof(*exceptionReport);
+  auto ExceptionsReport =
+      reinterpret_cast<EkaBcExceptionsReport *>(b);
+  b += sizeof(*ExceptionsReport);
   //--------------------------------------------------------------------------
-  memcpy(exceptionReport, src, sizeof(*exceptionReport));
+  memcpy(ExceptionsReport, src, sizeof(*ExceptionsReport));
   //--------------------------------------------------------------------------
   return b - dst;
 }
 /* ################################################## */
 
 std::pair<int, size_t>
-EkaEurStrategy::processExceptionReport(
+EkaEurStrategy::processExceptionsReport(
     EkaDev *dev, const uint8_t *srcReport,
     uint srcReportLen, EkaUserReportQ *q, uint32_t dmaIdx,
     uint8_t *reportBuf) {
-#if 0
-  int strategyId2ret = EPM_INVALID_STRATEGY;
   //--------------------------------------------------------------------------
-  uint8_t *b = reportBuf;
+  uint8_t *b = reportBuf; // dst
   uint reportIdx = 0;
+  auto hwReport{
+      reinterpret_cast<const EkaBcExceptionsReport *>(
+          srcReport)};
+
   //--------------------------------------------------------------------------
   auto containerHdr{
       reinterpret_cast<EkaBcContainerGlobalHdr *>(b)};
@@ -226,60 +219,12 @@ EkaEurStrategy::processExceptionReport(
       0; // to be overwritten at the end
   b += sizeof(*containerHdr);
   //--------------------------------------------------------------------------
-  auto hwEpmReport{
-      reinterpret_cast<const hw_epm_status_report_t *>(
-          srcReport)};
+  b += pushExceptionsReport(++reportIdx, b, hwReport);
 
-  EkaBcExceptionsReport exceptReport = {};
-
-  switch (static_cast<HwEpmActionStatus>(
-      hwEpmReport->epm.action)) {
-  case HwEpmActionStatus::HWPeriodicStatus:
-    //    EKA_LOG("Processgin
-    //    HwEpmActionStatus::HWPeriodicStatus,
-    //    len=%d",srcReportLen);
-    // copying port exception vectors
-    for (int i = 0; i < EFC_MAX_CORES; i++) {
-      exceptReport.exceptionStatus.portVector[i] =
-          hwEpmReport->exception_report.core_vector[i];
-    }
-    // copying global exception vector
-    exceptReport.exceptionStatus.globalVector =
-        hwEpmReport->exception_report.global_vector;
-    // copying arm status fields
-    exceptReport.p4armStatus.armFlag =
-        hwEpmReport->p4_arm_report.arm_state;
-    exceptReport.p4armStatus.expectedVersion =
-        hwEpmReport->p4_arm_report.arm_expected_version;
-    exceptReport.nWarmStatus.armFlag =
-        hwEpmReport->nw_arm_report.arm_state;
-    exceptReport.nWarmStatus.expectedVersion =
-        hwEpmReport->nw_arm_report.arm_expected_version;
-    //    hexDump("------------\nexceptReport",hwEpmReport,sizeof(*hwEpmReport));
-    /* EKA_LOG("P4 ARM=%d, VER=%d", */
-    /* 	    hwEpmReport->p4_arm_report.arm_state,hwEpmReport->p4_arm_report.arm_expected_version);
-     */
-    /* EKA_LOG("NW ARM=%d, VER=%d", */
-    /* 	    hwEpmReport->nw_arm_report.arm_state,hwEpmReport->nw_arm_report.arm_expected_version);
-     */
-
-    b += pushExceptionReport(++reportIdx, b, &exceptReport);
-    break;
-  default:
-    // Broken EPM
-    EKA_LOG("Processgin HwEpmActionStatus::Garbage, len=%d",
-            srcReportLen);
-    b += pushEpmReport(++reportIdx, b, &hwEpmReport->epm);
-  }
   //--------------------------------------------------------------------------
   containerHdr->nReports = reportIdx;
 
-  if (containerHdr->nReports)
-    strategyId2ret = EPM_NO_STRATEGY;
-
-  return {strategyId2ret, b - reportBuf};
-#endif
-  return {0, 0};
+  return {EFC_STRATEGY, b - reportBuf};
 }
 
 std::pair<int, size_t>
@@ -290,34 +235,82 @@ EkaEurStrategy::processFastCancelReport(
   on_error("Not expected");
 }
 /* ################################################## */
+
+static inline size_t
+pushEurFireReport(int reportIdx, uint8_t *dst,
+                  const EkaBcFireReport *src) {
+
+  auto b = dst;
+  auto reportHdr = reinterpret_cast<EkaBcReportHdr *>(b);
+  reportHdr->type = EkaBcReportType::EurFireReport;
+  reportHdr->idx = reportIdx;
+  reportHdr->size = sizeof(EkaBcFireReport);
+  b += sizeof(*reportHdr);
+
+  memcpy(b, src, sizeof(EkaBcFireReport));
+
+  b += sizeof(EkaBcFireReport);
+  return b - dst;
+}
+
+/* ################################################## */
+static inline size_t
+pushFiredPkt(volatile bool *fireReportThreadActive,
+             int reportIdx, uint8_t *dst, EkaUserReportQ *q,
+             uint32_t dmaIdx) {
+
+  while (*fireReportThreadActive && q->isEmpty()) {
+  }
+  auto firePkt = q->pop();
+  auto firePktIndex = firePkt->hdr.index;
+
+  if (firePktIndex != dmaIdx) {
+    on_error("firePktIndex %u (0x%x) != dmaIdx %u (0x%x)",
+             firePktIndex, firePktIndex, dmaIdx, dmaIdx);
+  }
+
+  auto b = dst;
+  auto firePktHdr{reinterpret_cast<EfcReportHdr *>(b)};
+  firePktHdr->type = EfcReportType::kFirePkt;
+  firePktHdr->idx = reportIdx;
+  firePktHdr->size = firePkt->hdr.length;
+  b += sizeof(EfcReportHdr);
+
+  memcpy(b, firePkt->data, firePkt->hdr.length);
+  b += firePkt->hdr.length;
+  // hexDump("pushFiredPkt",firePkt->data,firePkt->hdr.length);
+
+  return b - dst;
+}
+
+/* ################################################## */
+
 std::pair<int, size_t> EkaEurStrategy::processFireReport(
     EkaDev *dev, const uint8_t *srcReport,
     uint srcReportLen, EkaUserReportQ *q, uint32_t dmaIdx,
     uint8_t *reportBuf) {
   //--------------------------------------------------------------------------
-#if 0
-  uint8_t *b = reportBuf;
+  uint8_t *b = reportBuf; // dst
   uint reportIdx = 0;
   auto hwReport{
-      reinterpret_cast<const EkaBcFireReport *>(
-          srcReport)};
+      reinterpret_cast<const EkaBcFireReport *>(srcReport)};
 
   //--------------------------------------------------------------------------
   auto containerHdr{
       reinterpret_cast<EkaBcContainerGlobalHdr *>(b)};
-  containerHdr->eventType = EkaBcEventType::EurFireEvent;
+  containerHdr->eventType = EkaBcEventType::FireEvent;
   containerHdr->nReports =
       0; // to be overwritten at the end
   b += sizeof(*containerHdr);
   //--------------------------------------------------------------------------
-  b += pushEpmReport(++reportIdx, b, &hwReport->epm);
+  b += pushEurFireReport(++reportIdx, b, hwReport);
 
-  b += pushFiredPkt(++reportIdx, b, q, dmaIdx);
+  b += pushFiredPkt(&dev_->fireReportThreadActive,
+                    ++reportIdx, b, q, dmaIdx);
 
   //--------------------------------------------------------------------------
   containerHdr->nReports = reportIdx;
 
   return {EFC_STRATEGY, b - reportBuf};
-#endif
-  return {0, 0};
 }
+/* ################################################## */

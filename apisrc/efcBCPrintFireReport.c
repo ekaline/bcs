@@ -194,8 +194,8 @@ END:
 
 /* #################################################### */
 
-inline size_t printBcExceptionReport(FILE *file,
-                                     const uint8_t *b) {
+inline size_t printBcExceptionsReport(FILE *file,
+                                      const uint8_t *b) {
   auto exceptionsReport{
       reinterpret_cast<const EkaBcExceptionsReport *>(b)};
   char excptBuf[2048] = {};
@@ -267,8 +267,8 @@ void ekaBcPrintFireReport(const void *p, size_t len,
         reinterpret_cast<const EkaBcReportHdr *>(b)};
     b += sizeof(*reportHdr);
     switch (reportHdr->type) {
-    case EkaBcReportType::ExceptionReport:
-      b += printBcExceptionReport(file, b);
+    case EkaBcReportType::ExceptionsReport:
+      b += printBcExceptionsReport(file, b);
       break;
     case EkaBcReportType::FirePkt:
       b += printBcFirePkt(file, b, reportHdr->size);
