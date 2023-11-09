@@ -28,13 +28,25 @@
 
 #define MASK32 0xffffffff
 
-#define S_P4 2
+#define S_P4 1
 #define S_QED 12
 #define S_SWEEP 13
 #define S_NEWS 14
 #define S_CANCEL 15
 
 SN_DeviceId devId;
+
+typedef struct __attribute__((packed)) {
+  uint64_t price;
+  uint32_t size;
+  uint32_t seq;
+} rf_tob_entry_t;
+
+typedef struct __attribute__((packed)) {
+  rf_tob_entry_t bid;
+  rf_tob_entry_t ask;
+} rf_tob_total_t;
+
 
 struct IfParams {
   char name[50] = {}; //{'N','O','_','N','A','M','E'};
@@ -67,7 +79,7 @@ struct IfParams {
   bool hwSnifferEnable;
   uint8_t hwMACFilter[6] = {};
 
-  bool mirrorEnable;
+  //  bool mirrorEnable;
 };
 
 #define ADDR_P4_CONT_COUNTER1 0xf0340
@@ -485,11 +497,11 @@ int printHeader(IfParams coreParams[NUM_OF_CORES],
     //    printf(colSmallNumFieldFormat,"",coreParams[coreId].mcGrps);
     //    printf
     //    (colformat,coreParams[coreId].hwParserEnable);
-    if (coreId < 4) // TBD check hw md cores
+    if (coreId >= 2) // TBD check hw md cores
       printf(colformats,
              EKA_FEED2STRING(
                  ((pEkaHwCaps->hwCaps.version.parser >>
-                   coreId * 4) &
+                   (coreId-2) * 4) &
                   0xF)));
     else
       printf(colformats, "-");
@@ -519,33 +531,33 @@ int printHeader(IfParams coreParams[NUM_OF_CORES],
 
   /* ----------------------------------------- */
   //  printf("%s",emptyPrefix);
-  printf(prefixStrFormat, "HW mirror target");
+  /* printf(prefixStrFormat, "HW mirror target"); */
 
-  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
-    if (!coreParams[coreId].valid)
-      continue;
-    if (!((pEkaHwCaps->hwCaps.core.bitmap_mirror_cores >>
-           coreId) &
-          0x1)) {
-      printf(colformats, "-");
-      continue;
-    }
+  /* for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) { */
+  /*   if (!coreParams[coreId].valid) */
+  /*     continue; */
+  /*   if (!((pEkaHwCaps->hwCaps.core.bitmap_mirror_cores >> */
+  /*          coreId) & */
+  /*         0x1)) { */
+  /*     printf(colformats, "-"); */
+  /*     continue; */
+  /*   } */
 
-    if (!(coreParams[coreId].mirrorEnable))
-      printf(colformats, "off");
-    else {
-      uint8_t mirrorTarget;
-      if (coreId == 0)
-        mirrorTarget = 3;
-      else
-        mirrorTarget = 0;
-      std::string nameStr =
-          std::string(coreParams[mirrorTarget].name) +
-          "       ";
-      printf(colformats, nameStr.c_str());
-    }
-  }
-  printf("\n");
+  /*   if (!(coreParams[coreId].mirrorEnable)) */
+  /*     printf(colformats, "off"); */
+  /*   else { */
+  /*     uint8_t mirrorTarget; */
+  /*     if (coreId == 0) */
+  /*       mirrorTarget = 3; */
+  /*     else */
+  /*       mirrorTarget = 0; */
+  /*     std::string nameStr = */
+  /*         std::string(coreParams[mirrorTarget].name) + */
+  /*         "       "; */
+  /*     printf(colformats, nameStr.c_str()); */
+  /*   } */
+  /* } */
+  /* printf("\n"); */
 
   /* ----------------------------------------- */
   //  printf("%s",emptyPrefix);
@@ -610,9 +622,46 @@ int printStratHeader() {
 }
 
 // ################################################
+int printTOB(uint8_t prod_idx) {
+  auto tob_mem = new uint8_t[64];
+
+  uint64_t *wrPtr = (uint64_t *)tob_mem;
+
+  //hw lock
+  uint64_t locked;
+  do {
+    locked = reg_read(0x72000); //1==locked
+  }
+  while (locked);
+
+  for (auto j = 0; j < 8; j++)
+    *wrPtr++ = reg_read(0x73000 + prod_idx * 64 + j * 8);
+
+  // hw unlock
+  reg_write(0x72000, 0); 
+
+
+  auto prodTOB{
+      reinterpret_cast<const rf_tob_total_t *>(tob_mem)};
+
+  printf("bid\n price = %ju\n size = %ju\n seq = %ju\n",
+	 prodTOB->bid.price, 
+	 prodTOB->bid.size, 
+	 prodTOB->bid.seq);
+  printf("ask\n price = %ju\n size = %ju\n seq = %ju\n",
+	 prodTOB->ask.price, 
+	 prodTOB->ask.size, 
+	 prodTOB->ask.seq);
+
+
+  return 0;
+}
+
+// ################################################
 int printStratStatus(StratState *pStratState) {
 
   /* ----------------------------------------- */
+  if (0) {
   printf(prefixStrFormat, "Arm State");
   for (auto stratId = 0; stratId < NUM_OF_STRAT;
        stratId++) {
@@ -681,7 +730,7 @@ int printStratStatus(StratState *pStratState) {
     printf(colformat, pCommonState->arm_ver);
   }
   printf("\n");
-
+  }
   /* ----------------------------------------- */
   printf(prefixStrFormat, "Subscription tries");
   for (auto stratId = 0; stratId < NUM_OF_STRAT;
@@ -896,17 +945,17 @@ int getCurrTraffic(IfParams coreParams[NUM_OF_CORES]) {
 int getCurrHWEnables(IfParams coreParams[NUM_OF_CORES]) {
 
   uint64_t port_enable = reg_read(0xf0020);
-  uint64_t mirror_enable = reg_read(0xf0030);
+  //  uint64_t mirror_enable = reg_read(0xf0030);
 
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
-    coreParams[coreId].mirrorEnable = false;
+    //    coreParams[coreId].mirrorEnable = false;
 
     if (!coreParams[coreId].valid)
       continue;
     coreParams[coreId].hwParserEnable =
         (port_enable >> coreId) & 0x1;
-    coreParams[coreId].mirrorEnable =
-        (mirror_enable >> coreId) & 0x1;
+    //    coreParams[coreId].mirrorEnable =
+    //        (mirror_enable >> coreId) & 0x1;
 
     coreParams[coreId].hwSnifferEnable =
         (reg_read(0xf0360) >> coreId) & 0x1;
@@ -1259,26 +1308,26 @@ int main(int argc, char *argv[]) {
          stratId++)
       active_strat[stratId] = false;
 
-    for (auto coreId = 0; coreId < 2;
-         coreId++) { // TBD md bitmap
+    for (auto coreId = 2; coreId < 4;
+         coreId++) { 
       if (((ekaHwCaps->hwCaps.version.parser >>
-            coreId * 4) &
+            (coreId-2) * 4) &
            0xF) != 0) {
         active_strat[((ekaHwCaps->hwCaps.version.parser >>
-                       coreId * 4) &
+                       (coreId-2) * 4) &
                       0xF)] = true;
       }
     }
-    active_strat[2] = true;
-    if (active_strat[12])
+
+    if (active_strat[S_QED])
       getQEDState(&pStratState->QED);
-    if (active_strat[13])
+    if (active_strat[S_SWEEP])
       getFastSweepState(&pStratState->fastSweep);
-    if (active_strat[14])
+    if (active_strat[S_NEWS])
       getNewsState(&pStratState->news);
-    if (active_strat[15])
+    if (active_strat[S_CANCEL])
       getFastCancelState(&pStratState->fastCancel);
-    if (active_strat[2])
+    if (active_strat[S_P4])
       getEfcState(&pStratState->p4);
 
     /* ----------------------------------------- */
@@ -1303,6 +1352,7 @@ int main(int argc, char *argv[]) {
     /* ----------------------------------------- */
     printStratHeader();
     printStratStatus(pStratState);
+    printTOB(0);
 
     /* ----------------------------------------- */
     char excptBuf[8192] = {};
