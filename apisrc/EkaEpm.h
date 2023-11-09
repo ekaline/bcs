@@ -54,6 +54,8 @@ public:
     TcpFastPath = 0,
     Raw,
 
+    EurEtiFire,
+
     BoeQuoteUpdateShort,
     BoeCancel,
 
@@ -65,8 +67,6 @@ public:
     CmeSwHb,
 
     QedHwFire,
-
-    EurEtiFire,
 
     Count
   };

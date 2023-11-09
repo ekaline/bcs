@@ -821,7 +821,7 @@ int EkaEpmAction::send(uint32_t _tcpCSum) {
   eka_write(dev_, EPM_TRIGGER_DESC_ADDR,
             epm_trig_desc.desc);
 
-  //  print("EkaEpmAction::send");
+  print("EkaEpmAction::send");
   //  return pktSize_;
   return payloadLen_;
 }

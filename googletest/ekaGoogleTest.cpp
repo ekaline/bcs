@@ -168,7 +168,8 @@ TEST_F(TestEur, Eur_basic) {
   EkaBcRunCtx runCtx = {.onReportCb = getFireReport,
                         .cbCtx = this};
   ekaBcEurRun(dev_, &runCtx);
-  sleep(1);
+
+  tcpCtx_->tcpSess_[0]->sendTestPkt();
 
   EobiAddOrderPkt addOrderBidPkt = {};
   addOrderBidPkt.pktHdr.MessageHeader.TemplateID =
