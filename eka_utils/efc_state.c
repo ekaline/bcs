@@ -630,28 +630,28 @@ int printTOB(uint8_t prod_idx) {
   //hw lock
   uint64_t locked;
   do {
-    locked = eka_read(devId, 0x72000); //1==locked
+    locked = reg_read(0x72000); //1==locked
   }
   while (locked);
 
   for (auto j = 0; j < 8; j++)
-    *wrPtr++ = eka_read(devId, 0x73000 + prod_idx * 64 + j * 8);
+    *wrPtr++ = reg_read(0x73000 + prod_idx * 64 + j * 8);
 
   // hw unlock
-  eka_write(devId, 0x72000, 0); 
+  reg_write(0x72000, 0); 
 
 
   auto prodTOB{
       reinterpret_cast<const rf_tob_total_t *>(tob_mem)};
 
   printf("bid\n price = %ju\n size = %ju\n seq = %ju\n",
-	 prodTOB.bid.price, 
-	 prodTOB.bid.size, 
-	 prodTOB.bid.seq);
+	 prodTOB->bid.price, 
+	 prodTOB->bid.size, 
+	 prodTOB->bid.seq);
   printf("ask\n price = %ju\n size = %ju\n seq = %ju\n",
-	 prodTOB.ask.price, 
-	 prodTOB.ask.size, 
-	 prodTOB.ask.seq);
+	 prodTOB->ask.price, 
+	 prodTOB->ask.size, 
+	 prodTOB->ask.seq);
 
 
   return 0;
