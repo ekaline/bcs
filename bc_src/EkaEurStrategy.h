@@ -61,11 +61,31 @@ public:
 
   EkaBCOpResult downloadPackedDB();
 
+  void
+  fireReportThreadLoop(const EkaBcRunCtx *pEkaBcRunCtx);
+
 private:
   void configureTemplates();
 
   void writeTob(EkaBcSecHandle handle, void *params,
                 uint paramsSize, SIDE side);
+
+  std::pair<int, size_t> processSwTriggeredReport(
+      EkaDev *dev, const uint8_t *srcReport,
+      uint srcReportLen, EkaUserReportQ *q, uint32_t dmaIdx,
+      uint8_t *reportBuf);
+  std::pair<int, size_t> processExceptionReport(
+      EkaDev *dev, const uint8_t *srcReport,
+      uint srcReportLen, EkaUserReportQ *q, uint32_t dmaIdx,
+      uint8_t *reportBuf);
+  std::pair<int, size_t> processFastCancelReport(
+      EkaDev *dev, const uint8_t *srcReport,
+      uint srcReportLen, EkaUserReportQ *q, uint32_t dmaIdx,
+      uint8_t *reportBuf);
+  std::pair<int, size_t>
+  processFireReport(EkaDev *dev, const uint8_t *srcReport,
+                    uint srcReportLen, EkaUserReportQ *q,
+                    uint32_t dmaIdx, uint8_t *reportBuf);
 
 public:
   EkaEobiBook *findBook(ExchSecurityId secId);
@@ -74,6 +94,7 @@ public:
                    SIDE side);
 
   std::thread runLoopThr_;
+  std::thread fireReportLoopThr_;
 
 private:
   int nSec_ = 0;

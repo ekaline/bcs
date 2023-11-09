@@ -127,8 +127,12 @@ TEST_F(TestEur, Eur_basic) {
   rc = ekaBcInitEurProd(dev_, h, &prodParams);
   ASSERT_EQ(rc, EKABC_OPRESULT__OK);
 
-  const char EurFireMsg[] = "EurFireMsg with Dummy "
-                            "payload";
+  const char EurFireMsg[] = "EurFireMsg with 120 "
+                            "Byte payload XXXXXXX"
+                            "12345678901234567890"
+                            "12345678901234567890"
+                            "12345678901234567890"
+                            "12345678901234567890";
   rc = ekaBcSetActionPayload(dev_, eurHwAction, &EurFireMsg,
                              strlen(EurFireMsg));
   ASSERT_EQ(rc, EKABC_OPRESULT__OK);

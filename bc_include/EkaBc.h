@@ -420,74 +420,6 @@ EkaBCOpResult ekaBcSetSessionCntr(EkaDev *dev,
 /* ======================================================
  */
 
-///////////////////////
-// Reports
-///////////////////////
-
-enum EkaBCEventType {
-  EkaBCFireEvent = 1,
-  EkaBCEpmEvent = 2,
-  EkaBCExceptionEvent = 3,
-  EkaBCFastCancelEvent = 4
-};
-
-#define EkaBCEventType2STR(x)                              \
-  x == EkaBCFireEvent         ? "FireEvent"                \
-  : x == EkaBCEpmEvent        ? "EpmEvent"                 \
-  : x == EkaBCExceptionEvent  ? "ExceptionEvent"           \
-  : x == EkaBCFastCancelEvent ? "FastCancelEvent"          \
-                              : "UnknownReport"
-
-struct EkaBCContainerGlobalHdr {
-  EkaBCEventType type;
-  uint32_t num_of_reports;
-};
-
-enum EfcBCReportType {
-  BcControllerState = 1000,
-  BcMdReport = 2000,
-  BcExceptionReport = 4000,
-  BcFirePkt = 5000,
-  BcEpmReport = 6000,
-  BcFastCancelReport = 7000
-};
-
-// every report is pre-pended by this header
-struct EfcBCReportHdr {
-  EfcBCReportType type;
-  uint8_t idx;
-  size_t size;
-};
-
-struct BCExceptionReport {
-  uint32_t globalVector;
-  uint32_t portVector[EFC_BC_MAX_CORES];
-};
-
-struct BCArmStatusReport {
-  uint8_t armFlag;
-  uint32_t expectedVersion;
-};
-
-struct EfcBCExceptionsReport {
-  BCArmStatusReport armStatus;
-  BCExceptionReport exceptionStatus;
-};
-
-enum EpmBCTriggerAction {
-  EkaBCUnknown, ///< Zero initialization yields an invalid
-                ///< value
-  EkaBCSent,    ///< All action payloads sent successfully
-  EkaBCInvalidToken,    ///< Trigger security token did not
-                        ///< match action token
-  EkaBCInvalidStrategy, ///< Strategy id was not valid
-  EkaBCInvalidAction,   ///< Action id was not valid
-  EkaBCDisabledAction,  ///< Did not fire because an enable
-                        ///< bit was not set
-  EkaBCSendError ///< Send error occured (e.g., TCP session
-                 ///< closed)
-};
-
 /* ==================================================== */
 
 /**
@@ -750,9 +682,205 @@ struct EkaBcRunCtx {
  * @param pEkaDev
  * @param pEkaBcRunCtx
  */
-
 void ekaBcEurRun(EkaDev *pEkaDev,
                  const EkaBcRunCtx *pEkaBcRunCtx);
+
+///////////////////////
+// Reports
+///////////////////////
+
+enum class EkaBcEventType : int {
+  ExceptionEvent = 1,
+  EpmEvent,
+  FireEvent,
+  FastCancelEvent
+};
+
+#define EkaBcEventType2STR(x)                              \
+  x == EkaBcEventType::FireEvent        ? "FireEvent"      \
+  : x == EkaBcEventType::EpmEvent       ? "EpmEvent"       \
+  : x == EkaBcEventType::ExceptionEvent ? "ExceptionEvent" \
+  : x == EkaBcEventType::FastCancelEvent                   \
+      ? "FastCancelEvent"                                  \
+      : "UnknownReport"
+
+enum class EkaBcReportType : int {
+  ControllerState = 1,
+  ExceptionReport,
+  FirePkt,
+  CmeFastCancelReport,
+  EurFireReport
+};
+
+// every report is pre-pended by this header
+struct EkaBcReportHdr {
+  EkaBcReportType type;
+  int idx;
+  size_t size;
+};
+
+struct EkaBcContainerGlobalHdr {
+  EkaBcEventType eventType;
+  int nReports;
+};
+
+struct EkaBcExceptionReport {
+  uint32_t globalVector;
+  uint32_t portVector[EFC_BC_MAX_CORES];
+};
+
+struct BCArmStatusReport {
+  uint8_t armFlag;
+  uint32_t expectedVersion;
+};
+
+enum EkaBcTriggerAction {
+  EkaBcUnknown, ///< Zero initialization yields an invalid
+                ///< value
+  EkaBcSent,    ///< All action payloads sent successfully
+  EkaBcInvalidToken,    ///< Trigger security token did not
+                        ///< match action token
+  EkaBcInvalidStrategy, ///< Strategy id was not valid
+  EkaBcInvalidAction,   ///< Action id was not valid
+  EkaBcDisabledAction,  ///< Did not fire because an enable
+                        ///< bit was not set
+  EkaBcSendError ///< Send error occured (e.g., TCP session
+                 ///< closed)
+};
+
+struct EkaEurHwTicker {
+  uint8_t localOrderCntr;  // 1
+  uint32_t appSeqNum;      // 4 from header
+  uint64_t transactTime;   // 8 from header
+  uint64_t requestTime;    // 8
+  uint8_t aggressorSide;   // 1
+  uint64_t lastQty;        // 8
+  uint64_t lastPrice;      // 8
+  uint64_t securityId;     // 8
+  uint8_t pad[18];         // 18
+} __attribute__((packed)); // 64
+
+struct EkaEurHwProductConf {
+  uint64_t securityId;     // 8
+  uint8_t productIdx;      // 1 = prodHande
+  uint16_t actionIdx;      // 2
+  uint8_t askSize;         // 1
+  uint8_t bidSize;         // 1
+  uint8_t maxBookSpread;   // 1
+  uint8_t pad[18];         // 18
+} __attribute__((packed)); // 32
+
+struct EkaBcEurReferenceJumpConf {
+  uint8_t bitParams;          // 1
+  uint8_t askSize;            // 1
+  uint8_t bidSize;            // 1
+  uint8_t minSpread;          // 1
+  uint16_t maxOppositTobSize; // 2
+  uint16_t minTobSize;        // 2
+  uint16_t maxTobSize;        // 2
+  uint8_t timeDeltaUs;        // 1
+  uint16_t tickerSizeLots;    // 2
+} __attribute__((packed));    // 13
+
+struct EkaBcEurJumpConf {
+  uint8_t bitParams;       // 1
+  uint8_t askSize;         // 1
+  uint8_t bidSize;         // 1
+  uint16_t minTobSize;     // 2
+  uint16_t maxTobSize;     // 2
+  uint8_t maxPostSize;     // 1
+  uint16_t minTickerSize;  // 2
+  uint64_t minPriceDelta;  // 8
+} __attribute__((packed)); // 18
+
+struct EkaEurHwStratConf {
+  EkaBcEurReferenceJumpConf refJumpConf; // 13
+  EkaBcEurJumpConf jumpConf;             // 18
+  uint8_t pad[1];                        // 1
+} __attribute__((packed));               // 32
+
+#if 0
+typedef struct packed {
+bit [6*8-1:0] pad;
+bit [7:0]     fire_reason;
+bit [7:0]     unarm_reason;
+} controller_report_sh_t;
+#endif
+
+struct EkaEurHwControllerState {
+  uint8_t unArmReason;     // 1
+  uint8_t fireReason;      // 1
+  uint8_t pad[6];          // 6
+} __attribute__((packed)); // 8B
+
+struct EkaEurHwTobSingleSideState {
+  uint64_t lastTransactTime; // 8
+  uint64_t eiBetterPrice;    // 8
+  uint64_t eiPrice;          // 8
+  uint64_t price;            // 8
+  uint16_t normPrice;        // 2
+  uint32_t size;             // 4
+  uint32_t msgSeqNum;        // 4
+} __attribute__((packed));   // 42B
+
+struct EkaEurHwTobState {
+  EkaEurHwTobSingleSideState bid; // 42
+  EkaEurHwTobSingleSideState ask; // 42
+} __attribute__((packed));        // 88B
+
+struct EkaBcEurHwFireReport {
+  EkaEurHwTicker ticker;                   // 64
+  EkaEurHwProductConf prodConf;            // 32
+  EkaEurHwStratConf stratConf;             // 32
+  EkaEurHwControllerState controllerState; // 8
+  EkaEurHwTobState tobState;               // 88
+} __attribute__((packed));
+
+enum class EkaBcHwFireStatus : uint8_t {
+  Unknown = 0,
+  Sent = 1,
+  InvalidToken = 2,
+  InvalidStrategy = 3,
+  InvalidAction = 4,
+  DisabledAction = 5,
+  SendError = 6,
+  HWPeriodicStatus = 255
+};
+
+struct EkaBcFireReport {
+  EkaBcEurHwFireReport eurFireReport;
+  uint64_t token__unused;
+  uint16_t currentActionIdx; // in the chain
+  uint16_t firstActionIdx;   // in the chain
+  uint8_t strategyId__unused;
+  EkaBcHwFireStatus fireStatus;
+  uint8_t errCode;
+  uint16_t preLocalEnable__unused;
+  uint16_t postLocalEnable__unused;
+  uint16_t preStratEnable__unused;
+  uint16_t postStratEnable__unused;
+  uint64_t user__unused;
+  uint8_t islocal__unused;
+} __attribute__((packed));
+
+enum class EkaBcArmSide : uint8_t {
+  NONE = 0x0,
+  BID = 0x1,
+  ASk = 0x2,
+  BOTH = 0x3
+};
+
+struct EkaBcArmReport {
+  uint8_t expectedVer; // 1
+  EkaBcArmSide side;   // 1
+} __attribute__((packed));
+
+struct EkaBcExceptionsReport {
+  EkaBcArmReport nwReport__unused[16];  // 32
+  EkaBcArmReport statusReport[16];      // 32
+  EkaBcExceptionReport exceptionReport; // 20
+  uint8_t pad[256 - 32 - 32 - 20];      //
+} __attribute__((packed));              // 256
 
 } // End of extern "C"
 #endif
