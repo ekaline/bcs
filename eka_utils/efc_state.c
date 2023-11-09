@@ -36,6 +36,18 @@
 
 SN_DeviceId devId;
 
+typedef struct __attribute__((packed)) {
+  uint64_t price;
+  uint32_t size;
+  uint32_t seq;
+} rf_tob_entry_t;
+
+typedef struct __attribute__((packed)) {
+  rf_tob_entry_t bid;
+  rf_tob_entry_t ask;
+} rf_tob_total_t;
+
+
 struct IfParams {
   char name[50] = {}; //{'N','O','_','N','A','M','E'};
   uint32_t ip = 0;
@@ -606,6 +618,29 @@ int printStratHeader() {
   printf("\n");
   printStratLineSeparator('+', '-');
   /* ----------------------------------------- */
+  return 0;
+}
+
+// ################################################
+int printTOB(uint8_t prod_idx) {
+  auto tob_mem = new uint8_t[64];
+
+  uint64_t *wrPtr = (uint64_t *)tob_mem;
+
+  for (auto j = 0; j < 8; j++)
+    *wrPtr++ = eka_read(devId, 0x73000 + prod_idx * 64 + j * 8);
+
+  auto prodTOB{
+      reinterpret_cast<const rf_tob_total_t *>(tob_mem)};
+
+  printf("bid\n price = %ju\n size = %ju\n seq = %ju\n",
+	 prodTOB.bid.price, 
+	 prodTOB.bid.size, 
+	 prodTOB.bid.seq);
+  printf("ask\n price = %ju\n size = %ju\n seq = %ju\n",
+	 prodTOB.ask.price, 
+	 prodTOB.ask.size, 
+	 prodTOB.ask.seq);
   return 0;
 }
 
@@ -1304,6 +1339,7 @@ int main(int argc, char *argv[]) {
     /* ----------------------------------------- */
     printStratHeader();
     printStratStatus(pStratState);
+    printTOB(0);
 
     /* ----------------------------------------- */
     char excptBuf[8192] = {};
