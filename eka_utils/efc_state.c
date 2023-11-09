@@ -627,8 +627,19 @@ int printTOB(uint8_t prod_idx) {
 
   uint64_t *wrPtr = (uint64_t *)tob_mem;
 
+  //hw lock
+  uint64_t locked;
+  do {
+    locked = eka_read(devId, 0x72000); //1==locked
+  }
+  while (locked);
+
   for (auto j = 0; j < 8; j++)
     *wrPtr++ = eka_read(devId, 0x73000 + prod_idx * 64 + j * 8);
+
+  // hw unlock
+  eka_write(devId, 0x72000, 0); 
+
 
   auto prodTOB{
       reinterpret_cast<const rf_tob_total_t *>(tob_mem)};
@@ -641,6 +652,8 @@ int printTOB(uint8_t prod_idx) {
 	 prodTOB.ask.price, 
 	 prodTOB.ask.size, 
 	 prodTOB.ask.seq);
+
+
   return 0;
 }
 
