@@ -315,18 +315,27 @@ void ekaBcEurRun(EkaDev *dev,
   EKA_LOG("Joining UDP Channels");
   eur->joinUdpChannels();
 
-  EKA_LOG("Lounching EkaEurStrategy::runLoop()");
+  /* ----------------------------------------------- */
+
+  EKA_LOG("Lounching "
+          "EkaEurStrategy::fireReportThreadLoop()");
+  auto fireReportLoopFunc =
+      std::bind(&EkaEurStrategy::fireReportThreadLoop, eur,
+                pEkaBcRunCtx);
+  eur->fireReportLoopThr_ = std::thread(fireReportLoopFunc);
+  EKA_LOG("EkaEurStrategy::fireReportThreadLoop() "
+          "span off");
   fflush(g_ekaLogFile);
+  /* ----------------------------------------------- */
 
   dev->efc->setHwUdpParams();
   dev->efc->enableRxFire();
 
+  EKA_LOG("Lounching EkaEurStrategy::runLoop()");
   auto loopFunc = std::bind(&EkaEurStrategy::runLoop, eur,
                             pEkaBcRunCtx);
 
   eur->runLoopThr_ = std::thread(loopFunc);
-  /* eur->runLoopThr_ =
-      std::thread(runLoop_f, eur, pEkaBcRunCtx); */
 
   EKA_LOG("EkaEurStrategy::runLoop() span off");
   fflush(g_ekaLogFile);

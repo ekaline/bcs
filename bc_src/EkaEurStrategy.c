@@ -251,6 +251,9 @@ void EkaEurStrategy::configureTemplates() {
   templateIdx = (int)EkaEpm::TemplateId::EurEtiFire;
   epm_->epmTemplate[templateIdx] =
       new EpmEti8PktTemplate(templateIdx);
+
+  EKA_LOG("EpmEti8PktTemplate payload syze = %u Bytes",
+          epm_->epmTemplate[templateIdx]->getByteSize());
   epm_->DownloadSingleTemplate2HW(
       epm_->epmTemplate[templateIdx]);
 
@@ -507,3 +510,4 @@ void EkaEurStrategy::onTobChange(MdOut *mdOut,
 #endif
 #endif
 }
+/* --------------------------------------------------- */

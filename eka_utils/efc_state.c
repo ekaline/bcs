@@ -485,7 +485,7 @@ int printHeader(IfParams coreParams[NUM_OF_CORES],
     //    printf(colSmallNumFieldFormat,"",coreParams[coreId].mcGrps);
     //    printf
     //    (colformat,coreParams[coreId].hwParserEnable);
-    if (coreId < 2) // TBD check hw md cores
+    if (coreId < 4) // TBD check hw md cores
       printf(colformats,
              EKA_FEED2STRING(
                  ((pEkaHwCaps->hwCaps.version.parser >>
@@ -1269,7 +1269,7 @@ int main(int argc, char *argv[]) {
                       0xF)] = true;
       }
     }
-
+    active_strat[2] = true;
     if (active_strat[12])
       getQEDState(&pStratState->QED);
     if (active_strat[13])
