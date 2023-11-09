@@ -252,7 +252,10 @@ void EkaEurStrategy::configureTemplates() {
   epm_->epmTemplate[templateIdx] =
       new EpmEti8PktTemplate(templateIdx);
 
-  EKA_LOG("EpmEti8PktTemplate payload syze = %u Bytes",
+  EKA_LOG("EpmEti8PktTemplate: "
+          "templateIdx = %d, "
+          "payload syze = %u Bytes",
+          templateIdx,
           epm_->epmTemplate[templateIdx]->getByteSize());
   epm_->DownloadSingleTemplate2HW(
       epm_->epmTemplate[templateIdx]);

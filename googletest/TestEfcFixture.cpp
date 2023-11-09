@@ -112,8 +112,9 @@ void getFireReport(const void *p, size_t len, void *ctx) {
   // EKA_LOG("Received Some Report");
 
   auto containerHdr{
-      reinterpret_cast<const EkaContainerGlobalHdr *>(p)};
-  if (containerHdr->type == EkaEventType::kExceptionEvent)
+      reinterpret_cast<const EkaBcContainerGlobalHdr *>(p)};
+  if (containerHdr->eventType ==
+      EkaBcEventType::ExceptionEvent)
     return;
 
   auto tFixturePtr = static_cast<TestEfcFixture *>(ctx);
@@ -124,7 +125,7 @@ void getFireReport(const void *p, size_t len, void *ctx) {
   EKA_LOG("Received FireReport: \'%s\', "
           "nReceivedFireReports=%d, "
           "fireReports_.size()=%ju",
-          EkaEventType2STR(containerHdr->type),
+          EkaBcEventType2STR(containerHdr->eventType),
           tFixturePtr->nReceivedFireReports_.load(),
           tFixturePtr->fireReports_.size());
 
@@ -223,10 +224,10 @@ void TestEfcFixture::getReportPtrs(const void *p,
 
   auto b = static_cast<const uint8_t *>(p);
   auto containerHdr{
-      reinterpret_cast<const EkaContainerGlobalHdr *>(b)};
+      reinterpret_cast<const EkaBcContainerGlobalHdr *>(b)};
   b += sizeof(*containerHdr);
 
-  for (uint i = 0; i < containerHdr->num_of_reports; i++) {
+  for (uint i = 0; i < containerHdr->nReports; i++) {
     auto reportHdr{
         reinterpret_cast<const EfcReportHdr *>(b)};
     b += sizeof(*reportHdr);
@@ -350,8 +351,8 @@ void TestEfcFixture::sendPktToAll(const void *pkt,
 
   auto nFiresPerUdp = tcpCtx_->nTcpSess_;
 
-/*   if (!armController_)
-    on_error("!armController_"); */
+  /*   if (!armController_)
+      on_error("!armController_"); */
   fflush(g_ekaLogFile);
 
   for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++) {
