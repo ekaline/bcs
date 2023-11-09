@@ -28,7 +28,7 @@
 
 #define MASK32 0xffffffff
 
-#define S_P4 2
+#define S_P4 1
 #define S_QED 12
 #define S_SWEEP 13
 #define S_NEWS 14
@@ -67,7 +67,7 @@ struct IfParams {
   bool hwSnifferEnable;
   uint8_t hwMACFilter[6] = {};
 
-  bool mirrorEnable;
+  //  bool mirrorEnable;
 };
 
 #define ADDR_P4_CONT_COUNTER1 0xf0340
@@ -485,11 +485,11 @@ int printHeader(IfParams coreParams[NUM_OF_CORES],
     //    printf(colSmallNumFieldFormat,"",coreParams[coreId].mcGrps);
     //    printf
     //    (colformat,coreParams[coreId].hwParserEnable);
-    if (coreId < 2) // TBD check hw md cores
+    if (coreId >= 2) // TBD check hw md cores
       printf(colformats,
              EKA_FEED2STRING(
                  ((pEkaHwCaps->hwCaps.version.parser >>
-                   coreId * 4) &
+                   (coreId-2) * 4) &
                   0xF)));
     else
       printf(colformats, "-");
@@ -519,33 +519,33 @@ int printHeader(IfParams coreParams[NUM_OF_CORES],
 
   /* ----------------------------------------- */
   //  printf("%s",emptyPrefix);
-  printf(prefixStrFormat, "HW mirror target");
+  /* printf(prefixStrFormat, "HW mirror target"); */
 
-  for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
-    if (!coreParams[coreId].valid)
-      continue;
-    if (!((pEkaHwCaps->hwCaps.core.bitmap_mirror_cores >>
-           coreId) &
-          0x1)) {
-      printf(colformats, "-");
-      continue;
-    }
+  /* for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) { */
+  /*   if (!coreParams[coreId].valid) */
+  /*     continue; */
+  /*   if (!((pEkaHwCaps->hwCaps.core.bitmap_mirror_cores >> */
+  /*          coreId) & */
+  /*         0x1)) { */
+  /*     printf(colformats, "-"); */
+  /*     continue; */
+  /*   } */
 
-    if (!(coreParams[coreId].mirrorEnable))
-      printf(colformats, "off");
-    else {
-      uint8_t mirrorTarget;
-      if (coreId == 0)
-        mirrorTarget = 3;
-      else
-        mirrorTarget = 0;
-      std::string nameStr =
-          std::string(coreParams[mirrorTarget].name) +
-          "       ";
-      printf(colformats, nameStr.c_str());
-    }
-  }
-  printf("\n");
+  /*   if (!(coreParams[coreId].mirrorEnable)) */
+  /*     printf(colformats, "off"); */
+  /*   else { */
+  /*     uint8_t mirrorTarget; */
+  /*     if (coreId == 0) */
+  /*       mirrorTarget = 3; */
+  /*     else */
+  /*       mirrorTarget = 0; */
+  /*     std::string nameStr = */
+  /*         std::string(coreParams[mirrorTarget].name) + */
+  /*         "       "; */
+  /*     printf(colformats, nameStr.c_str()); */
+  /*   } */
+  /* } */
+  /* printf("\n"); */
 
   /* ----------------------------------------- */
   //  printf("%s",emptyPrefix);
@@ -613,6 +613,7 @@ int printStratHeader() {
 int printStratStatus(StratState *pStratState) {
 
   /* ----------------------------------------- */
+  if (0) {
   printf(prefixStrFormat, "Arm State");
   for (auto stratId = 0; stratId < NUM_OF_STRAT;
        stratId++) {
@@ -681,7 +682,7 @@ int printStratStatus(StratState *pStratState) {
     printf(colformat, pCommonState->arm_ver);
   }
   printf("\n");
-
+  }
   /* ----------------------------------------- */
   printf(prefixStrFormat, "Subscription tries");
   for (auto stratId = 0; stratId < NUM_OF_STRAT;
@@ -896,17 +897,17 @@ int getCurrTraffic(IfParams coreParams[NUM_OF_CORES]) {
 int getCurrHWEnables(IfParams coreParams[NUM_OF_CORES]) {
 
   uint64_t port_enable = reg_read(0xf0020);
-  uint64_t mirror_enable = reg_read(0xf0030);
+  //  uint64_t mirror_enable = reg_read(0xf0030);
 
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
-    coreParams[coreId].mirrorEnable = false;
+    //    coreParams[coreId].mirrorEnable = false;
 
     if (!coreParams[coreId].valid)
       continue;
     coreParams[coreId].hwParserEnable =
         (port_enable >> coreId) & 0x1;
-    coreParams[coreId].mirrorEnable =
-        (mirror_enable >> coreId) & 0x1;
+    //    coreParams[coreId].mirrorEnable =
+    //        (mirror_enable >> coreId) & 0x1;
 
     coreParams[coreId].hwSnifferEnable =
         (reg_read(0xf0360) >> coreId) & 0x1;
@@ -1259,26 +1260,26 @@ int main(int argc, char *argv[]) {
          stratId++)
       active_strat[stratId] = false;
 
-    for (auto coreId = 0; coreId < 2;
-         coreId++) { // TBD md bitmap
+    for (auto coreId = 2; coreId < 4;
+         coreId++) { 
       if (((ekaHwCaps->hwCaps.version.parser >>
-            coreId * 4) &
+            (coreId-2) * 4) &
            0xF) != 0) {
         active_strat[((ekaHwCaps->hwCaps.version.parser >>
-                       coreId * 4) &
+                       (coreId-2) * 4) &
                       0xF)] = true;
       }
     }
 
-    if (active_strat[12])
+    if (active_strat[S_QED])
       getQEDState(&pStratState->QED);
-    if (active_strat[13])
+    if (active_strat[S_SWEEP])
       getFastSweepState(&pStratState->fastSweep);
-    if (active_strat[14])
+    if (active_strat[S_NEWS])
       getNewsState(&pStratState->news);
-    if (active_strat[15])
+    if (active_strat[S_CANCEL])
       getFastCancelState(&pStratState->fastCancel);
-    if (active_strat[2])
+    if (active_strat[S_P4])
       getEfcState(&pStratState->p4);
 
     /* ----------------------------------------- */
