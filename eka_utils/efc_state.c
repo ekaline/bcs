@@ -48,6 +48,22 @@ typedef struct __attribute__((packed)) {
 } rf_tob_total_t;
 
 
+typedef struct __attribute__((packed)) {
+  uint8_t buy:1;
+  uint8_t sell:1;
+  uint8_t pad8:6;
+} arm_rep_per_side_t;
+
+typedef struct __attribute__((packed)) {
+	uint8_t            expected_version;
+        arm_rep_per_side_t arm;
+} arm_prod_unaligned_report_t; 
+
+typedef struct __attribute__((packed)) {
+        arm_prod_unaligned_report_t prod[16];
+} arm_status_unaligned_report_t; 
+
+
 struct IfParams {
   char name[50] = {}; //{'N','O','_','N','A','M','E'};
   uint32_t ip = 0;
@@ -623,9 +639,13 @@ int printStratHeader() {
 
 // ################################################
 int printTOB(uint8_t prod_idx) {
-  auto tob_mem = new uint8_t[64];
+  //  auto tob_mem = new uint8_t[64];
+  //  auto arm_mem = new uint8_t[4];
+  unsigned char tob_mem[64];
+  unsigned char arm_mem[64];
 
   uint64_t *wrPtr = (uint64_t *)tob_mem;
+  uint64_t *wrPtrArm = (uint64_t *)arm_mem;
 
   //hw lock
   uint64_t locked;
@@ -637,12 +657,20 @@ int printTOB(uint8_t prod_idx) {
   for (auto j = 0; j < 8; j++)
     *wrPtr++ = reg_read(0x73000 + prod_idx * 64 + j * 8);
 
+  for (auto j = 0; j < 4; j++)
+    *wrPtrArm++ = reg_read(0x74000 + j * 8);
+
   // hw unlock
   reg_write(0x72000, 0); 
 
 
   auto prodTOB{
       reinterpret_cast<const rf_tob_total_t *>(tob_mem)};
+
+  auto armState{
+      reinterpret_cast<const arm_status_unaligned_report_t *>(arm_mem)};
+
+
 
   printf("bid\n price = %ju\n size = %ju\n seq = %ju\n",
 	 prodTOB->bid.price, 
@@ -652,7 +680,10 @@ int printTOB(uint8_t prod_idx) {
 	 prodTOB->ask.price, 
 	 prodTOB->ask.size, 
 	 prodTOB->ask.seq);
-
+  printf("arm\n version = %ju\n buy = %ju\n sell = %ju\n",
+  	 armState->prod[prod_idx].expected_version,
+  	 armState->prod[prod_idx].arm.buy,
+  	 armState->prod[prod_idx].arm.sell);
 
   return 0;
 }
@@ -1099,9 +1130,9 @@ int getEfcState(EfcState *pEfcState) {
   pEfcState->totalSecs = (subscrCnt >> 32) & 0xFFFFFFFF;
   pEfcState->subscribedSecs = subscrCnt & 0xFFFFFFFF;
 
-  pEfcState->strategyRuns =
-      (var_p4_cont_counter1 >> 0) & MASK32;
   pEfcState->strategyPassed =
+      (var_p4_cont_counter1 >> 0) & MASK32;
+  pEfcState->strategyRuns =
       (var_p4_cont_counter1 >> 32) & MASK32;
   pEfcState->ordersSubscribed =
       (var_p4_cont_counter3 >> 0) & MASK32;
