@@ -824,6 +824,9 @@ struct EkaBcEurHwFireReport {
   EkaEurHwStratConf stratConf;             // 32
   EkaEurHwControllerState controllerState; // 8
   EkaEurHwTobState tobState;               // 88
+  uint8_t pad[256 - sizeof(ticker) - sizeof(prodConf) -
+              sizeof(stratConf) - sizeof(controllerState) -
+              sizeof(tobState)];
 } __attribute__((packed));
 
 enum class EkaBcHwFireStatus : uint8_t {
@@ -838,19 +841,19 @@ enum class EkaBcHwFireStatus : uint8_t {
 };
 
 struct EkaBcFireReport {
-  EkaBcEurHwFireReport eurFireReport;
-  uint64_t token__unused;
+  EkaBcEurHwFireReport eurFireReport; //
+  uint64_t __unused1;
   uint16_t currentActionIdx; // in the chain
   uint16_t firstActionIdx;   // in the chain
-  uint8_t strategyId__unused;
+  uint8_t __unused2;
   EkaBcHwFireStatus fireStatus;
   uint8_t errCode;
-  uint16_t preLocalEnable__unused;
-  uint16_t postLocalEnable__unused;
-  uint16_t preStratEnable__unused;
-  uint16_t postStratEnable__unused;
-  uint64_t user__unused;
-  uint8_t islocal__unused;
+  uint16_t __unused3;
+  uint16_t __unused4;
+  uint16_t __unused5;
+  uint16_t __unused6;
+  uint64_t __unused7;
+  uint8_t __unused8;
 } __attribute__((packed));
 
 enum class EkaBcArmSide : uint8_t {

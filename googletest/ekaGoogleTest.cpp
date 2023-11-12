@@ -248,7 +248,7 @@ TEST_F(TestEur, Eur_basic) {
   /*   sendPktToAll(&execSumPkt, sizeof(execSumPkt), true);
    */
   mcCon->sendUdpPkt(&execSumPkt, sizeof(execSumPkt));
-  sleep(1);
+  sleep(5);
 
 #ifndef _VERILOG_SIM
   ekaBcCloseDev(dev_);
