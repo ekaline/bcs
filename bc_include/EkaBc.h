@@ -324,6 +324,17 @@ enum class EkaBcActionType : int {
 };
 
 /**
+ * @brief List of strategies in report
+ *
+ */
+enum class EkaBcStratType : uint8_t {
+  JUMP_ATBEST = 1,
+  JUMP_BETTERBEST = 2,
+  RJUMP_BETTERBEST = 4,
+  RJUMP_ATBEST = 5,
+};
+
+/**
  * @brief Allocates new Action from the pool and
  *        initializes its type.
  *        Every action has its own reserved space of
@@ -770,7 +781,8 @@ struct EkaBcEurReferenceJumpConf {
   uint16_t maxTobSize;        // 2
   uint8_t timeDeltaUs;        // 1
   uint16_t tickerSizeLots;    // 2
-} __attribute__((packed));    // 13
+  uint8_t        pad[19];     // 19
+} __attribute__((packed));    // 13+19
 
 struct EkaBcEurJumpConf {
   uint8_t bitParams;       // 1
@@ -781,26 +793,30 @@ struct EkaBcEurJumpConf {
   uint8_t maxPostSize;     // 1
   uint16_t minTickerSize;  // 2
   uint64_t minPriceDelta;  // 8
+  uint8_t        pad[14 ]; // 14
 } __attribute__((packed)); // 18
 
-struct EkaEurHwStratConf {
-  EkaBcEurReferenceJumpConf refJumpConf; // 13
-  EkaBcEurJumpConf jumpConf;             // 18
-  uint8_t pad[1];                        // 1
-} __attribute__((packed));               // 32
+union EkaEurHwStratConf{
+  EkaBcEurReferenceJumpConf refJumpConf; //32
+  EkaBcEurJumpConf jumpConf;             //32
+  } __attribute__((packed));
 
 #if 0
 typedef struct packed {
-bit [6*8-1:0] pad;
-bit [7:0]     fire_reason;
-bit [7:0]     unarm_reason;
-} controller_report_sh_t;
+	bit [4*8-1:0] pad;
+	bit [7:0]     fire_reason;
+	bit [7:0]     unarm_reason;
+	bit [7:0]     strategy_id;
+	bit [7:0]     strategy_subid;
+} controller_report_sh_t; 
 #endif
 
 struct EkaEurHwControllerState {
-  uint8_t unArmReason;     // 1
-  uint8_t fireReason;      // 1
-  uint8_t pad[6];          // 6
+  uint8_t        stratSubID;      // 1
+  EkaBcStratType stratID;         // 1
+  uint8_t        unArmReason;     // 1
+  uint8_t        fireReason;      // 1
+  uint8_t        pad[4];          // 4
 } __attribute__((packed)); // 8B
 
 struct EkaEurHwTobSingleSideState {
