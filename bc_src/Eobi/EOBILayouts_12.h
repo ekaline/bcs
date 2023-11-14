@@ -2,9 +2,9 @@
  *
  *  FILE NAME: EOBILayouts.h
  *
- *  INTERFACE VERSION:   11.1
+ *  INTERFACE VERSION:   12.0
  *
- *  BUILD NUMBER:        111.3.20.ga-111004011-138
+ *  BUILD NUMBER:        120.380.1.ga-120004013-9
  *
  *  DESCRIPTION:
  *
@@ -43,8 +43,8 @@ extern "C"
 {
 #endif
 
-#define EOBI_INTERFACE_VERSION "11.1"
-#define EOBI_BUILD_NUMBER      "111.3.20.ga-111004011-138"
+#define EOBI_INTERFACE_VERSION "12.0"
+#define EOBI_BUILD_NUMBER      "120.380.1.ga-120004013-9"
 
 /*
  * No Value defines
@@ -65,6 +65,7 @@ extern "C"
  */
 #define	TID_ADD_COMPLEX_INSTRUMENT                       13400		// < AddComplexInstrument (Add Complex Instrument)
 #define	TID_ADD_FLEXIBLE_INSTRUMENT                      13401		// < AddFlexibleInstrument (Add Flexible Instrument)
+#define	TID_ADD_SCALED_SIMPLE_INSTRUMENT                 13402		// < AddScaledSimpleInstrument (Add Scaled Simple Instrument)
 #define	TID_AUCTION_BBO                                  13500		// < AuctionBBO (Auction Best Bid/Offer)
 #define	TID_AUCTION_CLEARING_PRICE                       13501		// < AuctionClearingPrice (Auction Clearing Price)
 #define	TID_CROSS_REQUEST                                13502		// < CrossRequest (Cross Request)
@@ -79,7 +80,7 @@ extern "C"
 #define	TID_ORDER_MASS_DELETE                            13103		// < OrderMassDelete (Order Mass Delete)
 #define	TID_ORDER_MODIFY                                 13101		// < OrderModify (Order Modify)
 #define	TID_ORDER_MODIFY_SAME_PRIO                       13106		// < OrderModifySamePrio (Order Modify Same Priority)
-#define	TID_PACKET_HEADER                                13000		// < PacketHeader (Packet Header)
+#define	TID_PACKET_HEADER                                13002		// < PacketHeader (Packet Header)
 #define	TID_PARTIAL_ORDER_EXECUTION                      13105		// < PartialOrderExecution (Partial Order Execution)
 #define	TID_PRODUCT_STATE_CHANGE                         13300		// < ProductStateChange (Product State Change)
 #define	TID_PRODUCT_SUMMARY                              13600		// < ProductSummary (Product Summary)
@@ -90,7 +91,7 @@ extern "C"
 #define	TID_TRADE_REPORT                                 13201		// < TradeReport (Trade Report)
 #define	TID_TRADE_REVERSAL                               13200		// < TradeReversal (Trade Reversal)
 
-const int EOBI_EOBI_TID_MIN = 13000;  // lowest assigned template ID
+const int EOBI_EOBI_TID_MIN = 13001;  // lowest assigned template ID
 const int EOBI_EOBI_TID_MAX = 13602;  // highest assigned template ID
 
 /*
@@ -255,6 +256,7 @@ const int EOBI_EOBI_TID_MAX = 13602;  // highest assigned template ID
 #define ENUM_MARKET_DATA_TYPE_TES_TRADE_REPORT           15
 #define ENUM_MARKET_DATA_TYPE_HH_INDEX                   16
 #define ENUM_MARKET_DATA_TYPE_ADD_FLEXIBLE_INSTRUMENT    17
+#define ENUM_MARKET_DATA_TYPE_ADD_SCALED_SIMPLE_INSTRUMENT 18
 #define ENUM_MARKET_DATA_TYPE_NO_VALUE                   ((uint8_t) 0xff)
 
 // DataType MassMarketCondition
@@ -360,12 +362,19 @@ const int EOBI_EOBI_TID_MAX = 13602;  // highest assigned template ID
 #define ENUM_PRODUCT_COMPLEX_STRIP                       9
 #define ENUM_PRODUCT_COMPLEX_FLEXIBLE_INSTRUMENT         10
 #define ENUM_PRODUCT_COMPLEX_COMMODITY_STRIP             11
+#define ENUM_PRODUCT_COMPLEX_SCALED_SIMPLE_INSTRUMENT    12
 #define ENUM_PRODUCT_COMPLEX_NO_VALUE                    ((uint8_t) 0xff)
 
 // DataType PutOrCall
 #define ENUM_PUT_OR_CALL_PUT                             0
 #define ENUM_PUT_OR_CALL_CALL                            1
 #define ENUM_PUT_OR_CALL_NO_VALUE                        ((uint8_t) 0xff)
+
+// DataType RelatedSecurityIDSource
+#define LEN_RELATED_SECURITY_ID_SOURCE                   1
+#define ENUM_RELATED_SECURITY_ID_SOURCE_MARKETPLACE      "M"
+#define ENUM_RELATED_SECURITY_ID_SOURCE_MARKETPLACE_CHAR 'M'
+#define ENUM_RELATED_SECURITY_ID_SOURCE_NO_VALUE         0
 
 // DataType SecurityDesc
 #define LEN_SECURITY_DESC                                40
@@ -517,10 +526,10 @@ const int EOBI_EOBI_TID_MAX = 13602;  // highest assigned template ID
 // DataType TradeCondition
 #define ENUM_TRADE_CONDITION_IMPLIED_TRADE               1
 #define ENUM_TRADE_CONDITION_OUT_OF_SEQUENCE             107
-#define ENUM_TRADE_CONDITION_MIDPOINT_PRICE              155
 #define ENUM_TRADE_CONDITION_TRADING_ON_TERMS_OF_ISSUE   156
 #define ENUM_TRADE_CONDITION_SPECIAL_AUCTION             596
 #define ENUM_TRADE_CONDITION_TRADE_AT_CLOSE              624
+#define ENUM_TRADE_CONDITION_RETAIL                      743
 #define ENUM_TRADE_CONDITION_NO_VALUE                    ((uint16_t) 0xffff)
 
 // DataType TradingSessionID
@@ -552,6 +561,7 @@ const int EOBI_EOBI_TID_MAX = 13602;  // highest assigned template ID
 #define ENUM_TRD_TYPE_BLOCK_TRADE_AT_MARKET              1004
 #define ENUM_TRD_TYPE_XETRA_EUREX_ENLIGHT_TRIGGERED_TRADE 1006
 #define ENUM_TRD_TYPE_BLOCK_QTP_IP_TRADE                 1007
+#define ENUM_TRD_TYPE_DELTA_TRADE_AT_MARKET              1017
 #define ENUM_TRD_TYPE_NO_VALUE                           ((uint16_t) 0xffff)
 
 /*
@@ -614,6 +624,20 @@ typedef struct
     int64_t Price;
 } OrderDetailsCompT;
 
+// Structure: RelatedInstrumentGrp
+typedef struct
+{
+    int64_t RelatedSecurityID;
+} RelatedInstrumentGrpCompT;
+
+// Structure: RemainingOrderDetails
+typedef struct
+{
+    uint64_t TrdRegTSPrevTimePriority;
+    int64_t DisplayQty;
+    int64_t Price;
+} RemainingOrderDetailsCompT;
+
 // Structure: SecMassStatGrp
 typedef struct
 {
@@ -646,11 +670,11 @@ typedef struct
     int32_t SecuritySubType;
     uint8_t ProductComplex;
     uint8_t ImpliedMarketIndicator;
-    uint8_t LastFragment;
-    char Pad1[LEN_PAD1];
+    uint16_t QuantityScalingFactor;
     uint32_t LegRatioMultiplier;
     uint8_t NoLegs;
-    char Pad3[LEN_PAD3];
+    char Pad2[LEN_PAD2];
+    uint8_t LastFragment;
     InstrmtLegGrpSeqT InstrmtLegGrp[MAX_ADD_COMPLEX_INSTRUMENT_INSTRMT_LEG_GRP];
 } AddComplexInstrumentT;
 
@@ -673,6 +697,23 @@ typedef struct
     uint32_t OptAttribute;
     char Pad4[LEN_PAD4];
 } AddFlexibleInstrumentT;
+
+// Message:	    AddScaledSimpleInstrument
+// TemplateID:  13402
+// Alias:       Add Scaled Simple Instrument
+// FIX MsgType: SecurityDefinitionUpdateReport = "BP"
+typedef struct
+{
+    MessageHeaderCompT MessageHeader;
+    int64_t SecurityID;
+    uint64_t TransactTime;
+    char SecurityDesc[LEN_SECURITY_DESC];
+    uint8_t SecurityType;
+    char Pad1[LEN_PAD1];
+    uint16_t QuantityScalingFactor;
+    char Pad4[LEN_PAD4];
+    RelatedInstrumentGrpCompT RelatedInstrumentGrp;
+} AddScaledSimpleInstrumentT;
 
 // Message:	    AuctionBBO
 // TemplateID:  13500
@@ -735,7 +776,6 @@ typedef struct
 {
     MessageHeaderCompT MessageHeader;
     int64_t SecurityID;
-    uint64_t AggressorTime;
     uint64_t RequestTime;
     uint64_t ExecID;
     int64_t LastQty;
@@ -745,8 +785,10 @@ typedef struct
     uint8_t TradingHHIIndicator;
     char Pad3[LEN_PAD3];
     int64_t LastPx;
+    RemainingOrderDetailsCompT RemainingOrderDetails;
     int64_t RestingHiddenQty;
     int64_t RestingCxlQty;
+    uint64_t AggressorTime;
 } ExecutionSummaryT;
 
 // Message:	    FullOrderExecution
@@ -917,7 +959,7 @@ typedef struct
 } OrderModifySamePrioT;
 
 // Message:	    PacketHeader
-// TemplateID:  13000
+// TemplateID:  13002
 // Alias:       Packet Header
 // FIX MsgType: MarketDataReport = "U20"
 typedef struct
@@ -1095,6 +1137,7 @@ typedef struct
 
 #define	TID_ADDCOMPLEXINSTRUMENT                         13400		// < AddComplexInstrument (Add Complex Instrument)
 #define	TID_ADDFLEXIBLEINSTRUMENT                        13401		// < AddFlexibleInstrument (Add Flexible Instrument)
+#define	TID_ADDSCALEDSIMPLEINSTRUMENT                    13402		// < AddScaledSimpleInstrument (Add Scaled Simple Instrument)
 #define	TID_AUCTIONBBO                                   13500		// < AuctionBBO (Auction Best Bid/Offer)
 #define	TID_AUCTIONCLEARINGPRICE                         13501		// < AuctionClearingPrice (Auction Clearing Price)
 #define	TID_CROSSREQUEST                                 13502		// < CrossRequest (Cross Request)
@@ -1109,7 +1152,7 @@ typedef struct
 #define	TID_ORDERMASSDELETE                              13103		// < OrderMassDelete (Order Mass Delete)
 #define	TID_ORDERMODIFY                                  13101		// < OrderModify (Order Modify)
 #define	TID_ORDERMODIFYSAMEPRIO                          13106		// < OrderModifySamePrio (Order Modify Same Priority)
-#define	TID_PACKETHEADER                                 13000		// < PacketHeader (Packet Header)
+#define	TID_PACKETHEADER                                 13002		// < PacketHeader (Packet Header)
 #define	TID_PARTIALORDEREXECUTION                        13105		// < PartialOrderExecution (Partial Order Execution)
 #define	TID_PRODUCTSTATECHANGE                           13300		// < ProductStateChange (Product State Change)
 #define	TID_PRODUCTSUMMARY                               13600		// < ProductSummary (Product Summary)
@@ -1207,6 +1250,7 @@ typedef struct
 #define ENUM_MARKETDATATYPE_TESTRADEREPORT               15
 #define ENUM_MARKETDATATYPE_HHINDEX                      16
 #define ENUM_MARKETDATATYPE_ADDFLEXIBLEINSTRUMENT        17
+#define ENUM_MARKETDATATYPE_ADDSCALEDSIMPLEINSTRUMENT    18
 #define ENUM_MASSMARKETCONDITION_NORMAL                  0
 #define ENUM_MASSMARKETCONDITION_STRESSED                1
 #define ENUM_MASSSOLDOUTINDICATOR_SOLDOUT                1
@@ -1259,8 +1303,11 @@ typedef struct
 #define ENUM_PRODUCTCOMPLEX_STRIP                        9
 #define ENUM_PRODUCTCOMPLEX_FLEXIBLEINSTRUMENT           10
 #define ENUM_PRODUCTCOMPLEX_COMMODITYSTRIP               11
+#define ENUM_PRODUCTCOMPLEX_SCALEDSIMPLEINSTRUMENT       12
 #define ENUM_PUTORCALL_PUT                               0
 #define ENUM_PUTORCALL_CALL                              1
+#define LEN_RELATEDSECURITYIDSOURCE                      1
+#define ENUM_RELATEDSECURITYIDSOURCE_MARKETPLACE         "M"
 #define LEN_SECURITYDESC                                 40
 #define LEN_SECURITYIDSOURCE                             1
 #define ENUM_SECURITYIDSOURCE_MARKETPLACE                "M"
@@ -1355,10 +1402,10 @@ typedef struct
 #define ENUM_TRADSESSTATUS_CLOSED                        3
 #define ENUM_TRADECONDITION_IMPLIEDTRADE                 1
 #define ENUM_TRADECONDITION_OUTOFSEQUENCE                107
-#define ENUM_TRADECONDITION_MIDPOINTPRICE                155
 #define ENUM_TRADECONDITION_TRADINGONTERMSOFISSUE        156
 #define ENUM_TRADECONDITION_SPECIALAUCTION               596
 #define ENUM_TRADECONDITION_TRADEATCLOSE                 624
+#define ENUM_TRADECONDITION_RETAIL                       743
 #define ENUM_TRADINGSESSIONID_DAY                        1
 #define ENUM_TRADINGSESSIONID_MORNING                    3
 #define ENUM_TRADINGSESSIONID_EVENING                    5
@@ -1381,6 +1428,7 @@ typedef struct
 #define ENUM_TRDTYPE_BLOCKTRADEATMARKET                  1004
 #define ENUM_TRDTYPE_XETRAEUREXENLIGHTTRIGGEREDTRADE     1006
 #define ENUM_TRDTYPE_BLOCKQTPIPTRADE                     1007
+#define ENUM_TRDTYPE_DELTATRADEATMARKET                  1017
 
 /*
  * End of DEPRECATED defines
@@ -1391,4 +1439,3 @@ typedef struct
 #endif
 
 #endif
-
