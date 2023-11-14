@@ -49,10 +49,10 @@ EkaEurStrategy::EkaEurStrategy(
   configureEhp();
   // downloadEhp2Hw();
 
-  EKA_LOG("Creating %s with %d MC groups on lane #0 "
-          "and %d MC groups on lane #1",
-          name_.c_str(), mcCoreSess_[0].numUdpSess,
-          mcCoreSess_[1].numUdpSess);
+  /* EKA_LOG("Creating %s with %d MC groups on lane #0 " */
+  /*         "and %d MC groups on lane #1", */
+  /*         name_.c_str(), mcCoreSess_[0].numUdpSess, */
+  /*         mcCoreSess_[1].numUdpSess); */
 
   hashEng_ = new HashEngT();
   if (!hashEng_)
