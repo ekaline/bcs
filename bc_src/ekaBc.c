@@ -268,7 +268,7 @@ EkaBCOpResult ekaBcArmEur(EkaDev *dev,
     on_error("Efc is not initialized: use ekaBcInit()");
   auto efc = dev->efc;
 
-  EKA_LOG("Prod Handle: %d, "
+  EKA_LOG("Prod Handle: %jd, "
           "armBid=%d, armAsk=%d, armVer=%d",
           prodHande, armBid, armAsk, ver);
   fflush(g_ekaLogFile);
@@ -315,6 +315,11 @@ void ekaBcEurRun(EkaDev *dev,
   EKA_LOG("Joining UDP Channels");
   eur->joinUdpChannels();
 
+  /* ----------------------------------------------- */
+  if (!pEkaBcRunCtx)
+    on_error("!pEkaBcRunCtx");
+  if (!pEkaBcRunCtx->onReportCb)
+    on_error("!pEfcRunCtx->onReportCb");
   /* ----------------------------------------------- */
 
   EKA_LOG("Lounching "

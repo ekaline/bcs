@@ -78,7 +78,7 @@ void EkaEurStrategy::ekaWriteTob(
     EkaBcSecHandle prodHandle,
     const EobiHwBookParams *params, SIDE side) {
 
-  EKA_LOG("TOB prodHandle %d, side %s", prodHandle,
+  EKA_LOG("TOB prodHandle %jd, side %s", prodHandle,
           side == BID ? "BID" : "ASK");
   auto wr_ptr = reinterpret_cast<const uint64_t *>(params);
   auto nWords = roundUp8(sizeof(*params)) / 8;
@@ -339,70 +339,7 @@ void EkaEurStrategy::runLoop(
 }
 
 /* --------------------------------------------------- */
-#if 0
-void runLoop_f(EkaEurStrategy *eur,
-               const EkaBcRunCtx *pEkaBcRunCtx) {
-  setThreadAffinityName(
-      pthread_self(), "EkalineBookLoop",
-      eur->dev_->affinityConf.bookThreadCpuId);
-  EKA_LOG("Running EkaEurStrategy::runLoop()");
 
-  while (eur->active_) {
-    for (auto coreId = 0; coreId < EFC_MAX_CORES;
-         coreId++) {
-      auto ch = eur->udpChannel_[coreId];
-      if (!ch) {
-        // EKA_LOG("No udpChannel_[%d]", coreId);
-        continue;
-      }
-      // EKA_LOG("Polling");
-
-      if (!ch->has_data()) {
-        continue;
-      }
-      EKA_LOG("Got packet111");
-      fflush(g_ekaLogFile);
-      auto pkt = ch->get();
-      if (!pkt)
-        on_error("!pkt");
-      EKA_LOG("Got packet");
-      fflush(g_ekaLogFile);
-
-      EkaIpHdr *ipH = (EkaIpHdr *)(pkt - 8 - 20);
-      EkaUdpHdr *udpH = (EkaUdpHdr *)(pkt - 8);
-
-      auto udpSess = eur->findUdpSess(
-          coreId, ipH->dest, be16toh((udpH->dest)));
-      if (!udpSess) {
-#ifdef _EKA_PARSER_PRINT_ALL_
-        EKA_LOG("%s:%u packet does not belog to our UDP "
-                "sessions",
-                EKA_IP2STR((ipH->dest)),
-                be16toh(udpH->dest));
-#endif
-        ch->next();
-        continue;
-      }
-      uint payloadSize = ch->getPayloadLen();
-#ifdef _EKA_PARSER_PRINT_ALL_
-      //    EKA_LOG("Pkt: %u byte ",payloadSize);
-#endif
-      MdOut mdOut = {};
-      eur->parser_->processPkt(
-          &mdOut, ProcessAction::UpdateBookOnly, pkt,
-          payloadSize);
-#if 0
-      if (!udpSess->isCorrectSeq(mdOut.pktSeq,
-                                 mdOut.msgNum)) {
-        /* on_error("Sequence Gap"); */
-      }
-#endif
-      ch->next();
-    } // per CoreId for loop
-  }   // while (active_)
-  eur->terminated_ = true;
-}
-#endif
 /* --------------------------------------------------- */
 EkaEobiBook *
 EkaEurStrategy::findBook(ExchSecurityId secId) {
@@ -503,7 +440,7 @@ void EkaEurStrategy::onTobChange(MdOut *mdOut,
 
 // #ifdef _EKA_PARSER_PRINT_ALL_
 #if 1
-  EKA_LOG("TOB changed price=%ju size=%ju normprice=%ju",
+  EKA_LOG("TOB changed price=%ju size=%u normprice=%d",
           tobParams.tob.price, tobParams.tob.size,
           tobParams.tob.normprice);
 #endif
