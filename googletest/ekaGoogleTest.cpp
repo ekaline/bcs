@@ -170,7 +170,7 @@ TEST_F(TestEur, Eur_basic) {
   EkaBCOpResult rc;
 
   /////////////// General
-  uint8_t activeJumpAtBestSet = 2;
+  uint8_t activeJumpAtBestSet = 3;
   uint8_t activeJumpBetterBestSet = 4;
   EkaBcEurMdSize sizeMultiplier = 10000;
   uint8_t AggressorSide = ENUM_AGGRESSOR_SIDE_BUY;
@@ -256,6 +256,24 @@ TEST_F(TestEur, Eur_basic) {
       sizeMultiplier * 2;
   jumpParams.atBest[activeJumpAtBestSet].strat_en = 1;
   jumpParams.atBest[activeJumpAtBestSet].boc = 1;
+
+  jumpParams.betterBest[activeJumpBetterBestSet].max_tob_size =
+      (tobBidSize > tobAskSize) ? tobBidSize : tobAskSize;
+  jumpParams.betterBest[activeJumpBetterBestSet].min_tob_size =
+      (tobBidSize > tobAskSize) ? tobAskSize : tobBidSize;
+  jumpParams.betterBest[activeJumpBetterBestSet].max_post_size =
+      tobAskSize + tobAskSize -
+      tradeSize; // TBD assume BUY ticker
+  jumpParams.betterBest[activeJumpBetterBestSet].min_ticker_size =
+      tradeSize;
+  jumpParams.betterBest[activeJumpBetterBestSet].min_price_delta =
+      tradePrice - tobBidPrice; // TBD assume BUY ticker
+  jumpParams.betterBest[activeJumpBetterBestSet].buy_size =
+      sizeMultiplier;
+  jumpParams.betterBest[activeJumpBetterBestSet].sell_size =
+      sizeMultiplier * 2;
+  jumpParams.betterBest[activeJumpBetterBestSet].strat_en = 1;
+  jumpParams.betterBest[activeJumpBetterBestSet].boc = 0;
 
   rc = ekaBcEurSetJumpParams(dev_, h, &jumpParams);
   ASSERT_EQ(rc, EKABC_OPRESULT__OK);

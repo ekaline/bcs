@@ -38,7 +38,7 @@ uint EkaEobiParser::processPkt(MdOut *mdOut,
   if (hdr->TemplateID != TID_PACKETHEADER)
     on_error("TemplateID %u != TID_PACKETHEADER",
              hdr->TemplateID);
-  EKA_LOG("Processing Pkt");
+  //  EKA_LOG("Processing Pkt");
   mdOut->transactTime =
       ((PacketHeaderT *)hdr)->TransactTime;
 

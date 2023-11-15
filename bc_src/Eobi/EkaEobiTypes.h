@@ -191,6 +191,9 @@ index == hash_handle*16+0
 
 #endif
 
+#define BITPARAM_ENABLE  0x0
+#define BITPARAM_BOC     0x1
+
 struct HwReferenceJumpParamsSet {
   uint8_t bitParams;      // 1 : 0x01 ENABLED, 0x02 BOC
   HwFireSize askSize;     // 1

@@ -78,8 +78,8 @@ void EkaEurStrategy::ekaWriteTob(
     EkaBcSecHandle prodHandle,
     const EobiHwBookParams *params, SIDE side) {
 
-  EKA_LOG("TOB prodHandle %d, side %s", prodHandle,
-          side == BID ? "BID" : "ASK");
+  /* EKA_LOG("TOB prodHandle %d, side %s", prodHandle, */
+  /*         side == BID ? "BID" : "ASK"); */
   auto wr_ptr = reinterpret_cast<const uint64_t *>(params);
   auto nWords = roundUp8(sizeof(*params)) / 8;
   uint32_t dstAddr = 0x90000;
@@ -502,7 +502,7 @@ void EkaEurStrategy::onTobChange(MdOut *mdOut,
                HW_DEPTH_PRICES);
 
 // #ifdef _EKA_PARSER_PRINT_ALL_
-#if 1
+#if 0
   EKA_LOG("TOB changed price=%ju size=%ju normprice=%ju",
           tobParams.tob.price, tobParams.tob.size,
           tobParams.tob.normprice);
