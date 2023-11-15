@@ -159,6 +159,8 @@ void EkaEfc::initCmeFc(const EfcUdpMcParams *mcParams,
 /* ################################################ */
 void EkaEfc::initEur(const EfcUdpMcParams *mcParams) {
   eur_ = new EkaEurStrategy(mcParams);
+  if (!eur_)
+    on_error("!eur_");
 
   if (totalCoreIdBitmap_ & eur_->getCoreBitmap())
     on_error(
