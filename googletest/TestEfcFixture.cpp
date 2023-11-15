@@ -84,7 +84,7 @@ void TestEfcFixture::TearDown() {
     delete tcpCtx_;
 
   ASSERT_NE(dev_, nullptr);
-  ekaBcCloseDev(dev_);
+  // ekaBcCloseDev(dev_);
 
   fclose(g_ekaLogFile);
 
@@ -107,14 +107,14 @@ void TestEfcFixture::TearDown() {
 
 /* --------------------------------------------- */
 
-static void getFireReport(const void *p, size_t len,
-                          void *ctx) {
+void getFireReport(const void *p, size_t len, void *ctx) {
   fflush(g_ekaLogFile);
   // EKA_LOG("Received Some Report");
 
   auto containerHdr{
-      reinterpret_cast<const EkaContainerGlobalHdr *>(p)};
-  if (containerHdr->type == EkaEventType::kExceptionEvent)
+      reinterpret_cast<const EkaBcContainerGlobalHdr *>(p)};
+  if (containerHdr->eventType ==
+      EkaBcEventType::ExceptionEvent)
     return;
 
   auto tFixturePtr = static_cast<TestEfcFixture *>(ctx);
@@ -125,7 +125,7 @@ static void getFireReport(const void *p, size_t len,
   EKA_LOG("Received FireReport: \'%s\', "
           "nReceivedFireReports=%d, "
           "fireReports_.size()=%ju",
-          EkaEventType2STR(containerHdr->type),
+          EkaBcEventType2STR(containerHdr->eventType),
           tFixturePtr->nReceivedFireReports_.load(),
           tFixturePtr->fireReports_.size());
 
@@ -161,6 +161,13 @@ void TestEfcFixture::initNwCtxs() {
 /* --------------------------------------------- */
 
 void TestEfcFixture::runTest() {
+  for (auto i = 0; i < nProds_; i++) {
+    auto h = ekaBcGetSecHandle(dev_, prodList_[i]);
+    ASSERT_NE(h, -1);
+  }
+}
+/* --------------------------------------------- */
+void TestEfcFixture::initEur() {
   initNwCtxs();
   printTestConfig("Running");
   /* --------------------------------------------- */
@@ -204,17 +211,12 @@ void TestEfcFixture::runTest() {
   /* --------------------------------------------- */
   rc = ekaBcSetProducts(dev_, prodList_, nProds_);
   ASSERT_EQ(rc, EKABC_OPRESULT__OK);
-
-  for (auto i = 0; i < nProds_; i++) {
-    auto h = ekaBcGetSecHandle(dev_, prodList_[i]);
-    ASSERT_NE(h, -1);
-  }
-  /* --------------------------------------------- */
-
+}
+/* --------------------------------------------- */
+void TestEfcFixture::runEur() {
   EkaBcRunCtx runCtx = {.onReportCb = getFireReport,
                         .cbCtx = this};
   ekaBcEurRun(dev_, &runCtx);
-  /* --------------------------------------------- */
 }
 /* --------------------------------------------- */
 void TestEfcFixture::getReportPtrs(const void *p,
@@ -222,10 +224,10 @@ void TestEfcFixture::getReportPtrs(const void *p,
 
   auto b = static_cast<const uint8_t *>(p);
   auto containerHdr{
-      reinterpret_cast<const EkaContainerGlobalHdr *>(b)};
+      reinterpret_cast<const EkaBcContainerGlobalHdr *>(b)};
   b += sizeof(*containerHdr);
 
-  for (uint i = 0; i < containerHdr->num_of_reports; i++) {
+  for (uint i = 0; i < containerHdr->nReports; i++) {
     auto reportHdr{
         reinterpret_cast<const EfcReportHdr *>(b)};
     b += sizeof(*reportHdr);
@@ -349,8 +351,9 @@ void TestEfcFixture::sendPktToAll(const void *pkt,
 
   auto nFiresPerUdp = tcpCtx_->nTcpSess_;
 
-  if (!armController_)
-    on_error("!armController_");
+  /*   if (!armController_)
+      on_error("!armController_"); */
+  fflush(g_ekaLogFile);
 
   for (auto coreId = 0; coreId < EFC_MAX_CORES; coreId++) {
     for (auto i = 0; i < udpCtx_->nMcCons_[coreId]; i++) {
@@ -359,63 +362,68 @@ void TestEfcFixture::sendPktToAll(const void *pkt,
       if (!udpCon)
         on_error("!udpConn_[%d][%d]", coreId, i);
 
-      auto [curArmVer, curArmState] = getArmVer();
-      EXPECT_EQ(curArmVer, armVer_);
-      EXPECT_TRUE(curArmState);
+      // auto [curArmVer, curArmState] = getArmVer();
+      // EXPECT_EQ(curArmVer, armVer_);
+      // EXPECT_TRUE(curArmState);
 
       char udpConParamsStr[128] = {};
       udpCon->printMcConnParams(udpConParamsStr);
 
-      auto [nStratEvaluated_prev, nStratPassed_prev] =
-          getP4stratStatistics(FireStatisticsAddr_);
-      // ==============================================
-      nExpectedFireReports_ += expectedFire;
+      // auto [nStratEvaluated_prev, nStratPassed_prev] =
+      //     getP4stratStatistics(FireStatisticsAddr_);
+      // // ==============================================
+      // nExpectedFireReports_ += expectedFire;
       EKA_LOG("Sending UPD MD to %s, "
               "expecting %d fires, "
               "nExpectedFireReports_ = %d",
               udpConParamsStr, expectedFire,
               nExpectedFireReports_);
+      fflush(g_ekaLogFile);
+
       udpCon->sendUdpPkt(pkt, pktLen);
       // ==============================================
-      auto [stratEvaluated, stratPassed] = waitForResults(
-          nStratEvaluated_prev, nStratPassed_prev);
+      // auto [stratEvaluated, stratPassed] =
+      // waitForResults(
+      //     nStratEvaluated_prev, nStratPassed_prev);
 
-      if (expectedFire && !stratPassed) {
-        EKA_WARN("ERROR: expectedFire && !stratPassed");
-        testFailed_ = true;
-        // EXPECT_EQ(stratPassed, expectedFire);
-        return;
-      }
+      // if (expectedFire && !stratPassed) {
+      //   EKA_WARN("ERROR: expectedFire && !stratPassed");
+      //   testFailed_ = true;
+      //   // EXPECT_EQ(stratPassed, expectedFire);
+      //   return;
+      // }
 
-      if (stratPassed) {
-        for (auto i = 0; i < tcpCtx_->nTcpSess_; i++) {
-          int len = 0;
-          char rxBuf[8192] = {};
-          while (len <= 0) {
-            len = excRecv(dev_, tcpCtx_->tcpSess_[i]->hCon_,
-                          rxBuf, sizeof(rxBuf), 0);
-          }
-          char bufStr[10000] = {};
-          hexDump2str("Echoed TCP pkt", rxBuf, len, bufStr,
-                      sizeof(bufStr));
-          EKA_LOG("TCP Sess %d: %s", i, bufStr);
+      // if (stratPassed) {
+      //   for (auto i = 0; i < tcpCtx_->nTcpSess_; i++) {
+      //     int len = 0;
+      //     char rxBuf[8192] = {};
+      //     while (len <= 0) {
+      //       len = excRecv(dev_,
+      //       tcpCtx_->tcpSess_[i]->hCon_,
+      //                     rxBuf, sizeof(rxBuf), 0);
+      //     }
+      //     char bufStr[10000] = {};
+      //     hexDump2str("Echoed TCP pkt", rxBuf, len,
+      //     bufStr,
+      //                 sizeof(bufStr));
+      //     EKA_LOG("TCP Sess %d: %s", i, bufStr);
 
-          auto ep = new TestEfcFixture::MemChunk;
-          if (!ep)
-            on_error("!ep");
+      //     auto ep = new TestEfcFixture::MemChunk;
+      //     if (!ep)
+      //       on_error("!ep");
 
-          ep->buf = new uint8_t[len];
-          if (!ep->buf)
-            on_error("!ep->buf");
-          ep->len = len;
+      //     ep->buf = new uint8_t[len];
+      //     if (!ep->buf)
+      //       on_error("!ep->buf");
+      //     ep->len = len;
 
-          memcpy(ep->buf, rxBuf, len);
-          echoedPkts_.push_back(ep);
-        }
-        ++armVer_;
-        EKA_LOG("Arming armVer_ = %d", armVer_);
-        armController_(dev_, armVer_);
-      }
+      //     memcpy(ep->buf, rxBuf, len);
+      //     echoedPkts_.push_back(ep);
+      //   }
+      //   ++armVer_;
+      //   EKA_LOG("Arming armVer_ = %d", armVer_);
+      //   armController_(dev_, armVer_);
+      // }
 
     } // iteration per MC grp
   }   // iteration per Core

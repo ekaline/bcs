@@ -54,6 +54,8 @@ public:
     TcpFastPath = 0,
     Raw,
 
+    EurEtiFire,
+
     BoeQuoteUpdateShort,
     BoeCancel,
 

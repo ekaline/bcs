@@ -1,7 +1,108 @@
 #include <gtest/gtest.h>
 #include <iostream>
 
-#include "TestEfcFixture.h"
+#include "TestEur.h"
+/* --------------------------------------------- */
+void printFireReport(uint8_t *p) {
+  uint8_t *b = (uint8_t *)p;
+
+  auto reportHdr = reinterpret_cast<EkaBcReportHdr *>(b);
+  printf ("reportHdr->idx = %d\n",reportHdr->idx);
+
+  b += sizeof(*reportHdr);
+  auto hwReport{
+      reinterpret_cast<const EkaBcFireReport *>(b)};
+  printf ("\n---- Action Params ----\n");
+  printf ("currentActionIdx = %ju\n",(uint64_t)hwReport->currentActionIdx);
+  printf ("firstActionIdx = %ju\n",(uint64_t)hwReport->firstActionIdx);
+  printf ("\n---- Ticker Params ----\n");
+  printf ("localOrderCntr = %ju\n",(uint64_t)hwReport->eurFireReport.ticker.localOrderCntr);
+  printf ("appSeqNum = %ju\n",(uint64_t)hwReport->eurFireReport.ticker.appSeqNum);
+  printf ("transactTime = %ju\n",(uint64_t)hwReport->eurFireReport.ticker.transactTime);
+  printf ("requestTime = %ju\n",(uint64_t)hwReport->eurFireReport.ticker.requestTime);
+  printf ("aggressorSide = %ju\n",(uint64_t)hwReport->eurFireReport.ticker.aggressorSide);
+  printf ("lastQty = %ju\n",(uint64_t)hwReport->eurFireReport.ticker.lastQty);
+  printf ("lastPrice = %ju\n",(uint64_t)hwReport->eurFireReport.ticker.lastPrice);
+  printf ("securityId = %ju\n",(uint64_t)hwReport->eurFireReport.ticker.securityId);
+  printf ("\n---- Product Params ----\n");
+  printf ("securityId = %ju\n",(uint64_t)hwReport->eurFireReport.prodConf.securityId);
+  printf ("productIdx = %ju\n",(uint64_t)hwReport->eurFireReport.prodConf.productIdx);
+  printf ("actionIdx = %ju\n",(uint64_t)hwReport->eurFireReport.prodConf.actionIdx);
+  printf ("askSize = %ju\n",(uint64_t)hwReport->eurFireReport.prodConf.askSize);
+  printf ("bidSize = %ju\n",(uint64_t)hwReport->eurFireReport.prodConf.bidSize);
+  printf ("maxBookSpread = %ju\n",(uint64_t)hwReport->eurFireReport.prodConf.maxBookSpread);
+  printf ("\n---- Pass Params ----\n");
+  printf ("stratID = %ju\n",(uint64_t)hwReport->eurFireReport.controllerState.stratID);
+  printf ("stratSubID = %ju\n",(uint64_t)hwReport->eurFireReport.controllerState.stratSubID);
+  switch (hwReport->eurFireReport.controllerState.stratID) {
+  case EkaBcStratType::JUMP_ATBEST:
+  case EkaBcStratType::JUMP_BETTERBEST:
+  printf ("\n---- Strategy Params Jump----\n");
+  printf ("bitParams = %ju\n",(uint64_t)hwReport->eurFireReport.stratConf.jumpConf.bitParams);
+  printf ("askSize = %ju\n",(uint64_t)hwReport->eurFireReport.stratConf.jumpConf.askSize);
+  printf ("bidSize = %ju\n",(uint64_t)hwReport->eurFireReport.stratConf.jumpConf.bidSize);
+  printf ("minTobSize = %ju\n",(uint64_t)hwReport->eurFireReport.stratConf.jumpConf.minTobSize);
+  printf ("maxTobSize = %ju\n",(uint64_t)hwReport->eurFireReport.stratConf.jumpConf.maxTobSize);
+  printf ("maxPostSize = %ju\n",(uint64_t)hwReport->eurFireReport.stratConf.jumpConf.maxPostSize);
+  printf ("minTickerSize = %ju\n",(uint64_t)hwReport->eurFireReport.stratConf.jumpConf.minTickerSize);
+  printf ("minPriceDelta = %ju\n",(uint64_t)hwReport->eurFireReport.stratConf.jumpConf.minPriceDelta);
+    break;
+  case EkaBcStratType::RJUMP_BETTERBEST:
+  case EkaBcStratType::RJUMP_ATBEST:
+  printf ("\n---- Strategy Params RJump----\n");
+  printf ("bitParams = %ju\n",(uint64_t)hwReport->eurFireReport.stratConf.refJumpConf.bitParams);
+  printf ("askSize = %ju\n",(uint64_t)hwReport->eurFireReport.stratConf.refJumpConf.askSize);
+  printf ("bidSize = %ju\n",(uint64_t)hwReport->eurFireReport.stratConf.refJumpConf.bidSize);
+  printf ("minSpread = %ju\n",(uint64_t)hwReport->eurFireReport.stratConf.refJumpConf.minSpread);
+  printf ("maxOppositTobSize = %ju\n",(uint64_t)hwReport->eurFireReport.stratConf.refJumpConf.maxOppositTobSize);
+  printf ("minTobSize = %ju\n",(uint64_t)hwReport->eurFireReport.stratConf.refJumpConf.minTobSize);
+  printf ("maxTobSize = %ju\n",(uint64_t)hwReport->eurFireReport.stratConf.refJumpConf.maxTobSize);
+  printf ("timeDeltaUs = %ju\n",(uint64_t)hwReport->eurFireReport.stratConf.refJumpConf.timeDeltaUs);
+  printf ("tickerSizeLots = %ju\n",(uint64_t)hwReport->eurFireReport.stratConf.refJumpConf.tickerSizeLots);
+    break;
+  }
+  printf ("\n---- TOB State Bid----\n");
+  printf ("lastTransactTime = %ju\n",(uint64_t)hwReport->eurFireReport.tobState.bid.lastTransactTime);
+  printf ("eiBetterPrice = %ju\n",(uint64_t)hwReport->eurFireReport.tobState.bid.eiBetterPrice);
+  printf ("eiPrice = %ju\n",(uint64_t)hwReport->eurFireReport.tobState.bid.eiPrice);
+  printf ("price = %ju\n",(uint64_t)hwReport->eurFireReport.tobState.bid.price);
+  printf ("normPrice = %ju\n",(uint64_t)hwReport->eurFireReport.tobState.bid.normPrice);
+  printf ("size = %ju\n",(uint64_t)hwReport->eurFireReport.tobState.bid.size);
+  printf ("msgSeqNum = %ju\n",(uint64_t)hwReport->eurFireReport.tobState.bid.msgSeqNum);
+  printf ("\n---- TOB State Ask----\n");
+  printf ("lastTransactTime = %ju\n",(uint64_t)hwReport->eurFireReport.tobState.ask.lastTransactTime);
+  printf ("eiBetterPrice = %ju\n",(uint64_t)hwReport->eurFireReport.tobState.ask.eiBetterPrice);
+  printf ("eiPrice = %ju\n",(uint64_t)hwReport->eurFireReport.tobState.ask.eiPrice);
+  printf ("price = %ju\n",(uint64_t)hwReport->eurFireReport.tobState.ask.price);
+  printf ("normPrice = %ju\n",(uint64_t)hwReport->eurFireReport.tobState.ask.normPrice);
+  printf ("size = %ju\n",(uint64_t)hwReport->eurFireReport.tobState.ask.size);
+  printf ("msgSeqNum = %ju\n",(uint64_t)hwReport->eurFireReport.tobState.ask.msgSeqNum);
+
+
+}
+
+void getExampleFireReport(const void *p, size_t len, void *ctx) {
+  uint8_t *b = (uint8_t *)p;
+  auto containerHdr{
+      reinterpret_cast<EkaBcContainerGlobalHdr *>(b)};
+
+  //  printf ("Received %d reports\n",containerHdr->nReports);
+
+  switch (containerHdr->eventType) {
+  case EkaBcEventType::FireEvent:
+    printf ("Fire...\n");
+    b += sizeof(*containerHdr);
+    printFireReport(b);
+    break;
+  case EkaBcEventType::ExceptionEvent:
+    //    printf ("Status...\n");
+    break;
+  default:
+    break;
+  }
+
+}
+
 /* --------------------------------------------- */
 #if 1
 static const TestTcpSess testDefaultTcpSess[] = {
@@ -26,43 +127,233 @@ static const TestTcpSess tcp3_s[] = {
 static const TestTcpParams tcp3 = {tcp3_s,
                                    std::size(tcp3_s)};
 
-static const EkaBcMcGroupParams mc1[] = {
-    {1, "224.0.0.1", 30301}};
 static const EkaBcMcGroupParams mc01[] = {
     {0, "224.0.0.0", 30300}, {1, "224.0.0.1", 30301}};
 
-static const EkaBcUdpMcParams core1_1mc = {mc1,
-                                           std::size(mc1)};
 static const EkaBcUdpMcParams two_cores_1mc = {
     mc01, std::size(mc01)};
-#endif
-/* --------------------------------------------- */
 
-/* --------------------------------------------- */
-#if 1
 static const TestTcpSess tcp0_s[] = {
     {0, "100.0.0.0", "10.0.0.10", 22000}};
 static const TestTcpParams tcp0 = {tcp0_s,
                                    std::size(tcp0_s)};
-static const EkaBcMcGroupParams mc0[] = {0, "224.0.0.0",
-                                         30300};
+
+/* --------------------------------------------- */
+static const EkaBcMcGroupParams mc0[] = {0, "224.0.10.100",
+                                         30310};
 static const EkaBcUdpMcParams core0_1mc = {mc0,
                                            std::size(mc0)};
+static const EkaBcMcGroupParams mc1[] = {1, "224.1.11.101",
+                                         30311};
+static const EkaBcUdpMcParams core1_1mc = {mc1,
+                                           std::size(mc1)};
+static const EkaBcMcGroupParams mc2[] = {2, "224.2.12.102",
+                                         30312};
+static const EkaBcUdpMcParams core2_1mc = {mc2,
+                                           std::size(mc2)};
+static const EkaBcMcGroupParams mc3[] = {3, "224.3.13.103",
+                                         30313};
+static const EkaBcUdpMcParams core3_1mc = {mc3,
+                                           std::size(mc3)};
 #endif
 /* --------------------------------------------- */
 #if 1
-TEST_F(TestEfcFixture, Eur_basic) {
+TEST_F(TestEur, Eur_basic) {
+  mcParams_ = &core2_1mc;
+  tcpParams_ = &tcp0;
 
-  mcParams_ = &core0_1mc;
-  tcpParams_ = &tcp3;
+  auto mcCon = new TestUdpConn(mcParams_->groups);
+  ASSERT_NE(mcCon, nullptr);
+
+  /* -------------------------------------------- */
+
+  EkaBCOpResult rc;
+
+  /////////////// General
+  uint8_t activeJumpAtBestSet = 2;
+  uint8_t activeJumpBetterBestSet = 4;
+  EkaBcEurMdSize sizeMultiplier = 10000;
+  uint8_t AggressorSide = ENUM_AGGRESSOR_SIDE_BUY;
+  /////////////// General
+
+  /////////////// TOB
+  EkaBcEurMdSize rawTobBidSize = 5;
+  EkaBcEurPrice tobBidPrice = 59998;
+
+  EkaBcEurMdSize rawTobAskSize = 8;
+  EkaBcEurPrice tobAskPrice = 59999;
+  /////////////// TOB
+
+  /////////////// Trade
+  EkaBcEurMdSize rawTradeSize = 2;
+  EkaBcEurPrice tradePrice =
+      60000; // to depth 2 (total size = 8+8)
+  /////////////// Trade
+
+  EkaBcEurMdSize tobBidSize =
+      rawTobBidSize * sizeMultiplier;
+  EkaBcEurMdSize tobAskSize =
+      rawTobAskSize * sizeMultiplier;
+  EkaBcEurMdSize tradeSize = rawTradeSize * sizeMultiplier;
 
   prodList_[0] = static_cast<EkaBcEurSecId>(123);
   prodList_[1] = static_cast<EkaBcEurSecId>(456);
   prodList_[2] = static_cast<EkaBcEurSecId>(789);
-
   nProds_ = 3;
+  // Inititializes everything
+  initEur();
 
-  runTest();
+  auto h = ekaBcGetSecHandle(dev_, prodList_[0]);
+  ASSERT_NE(h, -1);
+
+  auto eurHwAction = ekaBcAllocateNewAction(
+      dev_, EkaBcActionType::EurFire);
+  ASSERT_NE(eurHwAction, -1);
+
+  rc = ekaBcSetActionTcpSock(
+      dev_, eurHwAction, tcpCtx_->tcpSess_[0]->excSock_);
+  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+
+  EkaBcEurProductInitParams prodParams = {};
+  prodParams.fireActionIdx = eurHwAction;
+  prodParams.secId = prodList_[0];
+  prodParams.step = 1;
+  prodParams.isBook = 1;
+  prodParams.maxBidSize = sizeMultiplier;     // TBD
+  prodParams.maxAskSize = sizeMultiplier * 2; // TBD
+  prodParams.maxBookSpread = tobAskPrice - tobBidPrice + 1;
+  prodParams.midPoint =
+      (tobAskPrice - tobBidPrice) / 2 + tobBidPrice;
+
+  rc = ekaBcInitEurProd(dev_, h, &prodParams);
+  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+
+  const char EurFireMsg[] = "EurFireMsg with 120 "
+                            "Byte payload XXXXXXX"
+                            "12345678901234567890"
+                            "12345678901234567890"
+                            "12345678901234567890"
+                            "12345678901234567890";
+  rc = ekaBcSetActionPayload(dev_, eurHwAction, &EurFireMsg,
+                             strlen(EurFireMsg));
+  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+
+  EkaBcEurJumpParams jumpParams = {};
+  jumpParams.atBest[activeJumpAtBestSet].max_tob_size =
+      (tobBidSize > tobAskSize) ? tobBidSize : tobAskSize;
+  jumpParams.atBest[activeJumpAtBestSet].min_tob_size =
+      (tobBidSize > tobAskSize) ? tobAskSize : tobBidSize;
+  jumpParams.atBest[activeJumpAtBestSet].max_post_size =
+      tobAskSize + tobAskSize -
+      tradeSize; // TBD assume BUY ticker
+  jumpParams.atBest[activeJumpAtBestSet].min_ticker_size =
+      tradeSize;
+  jumpParams.atBest[activeJumpAtBestSet].min_price_delta =
+      tradePrice - tobBidPrice; // TBD assume BUY ticker
+  jumpParams.atBest[activeJumpAtBestSet].buy_size =
+      sizeMultiplier;
+  jumpParams.atBest[activeJumpAtBestSet].sell_size =
+      sizeMultiplier * 2;
+  jumpParams.atBest[activeJumpAtBestSet].strat_en = 1;
+  jumpParams.atBest[activeJumpAtBestSet].boc = 1;
+
+  rc = ekaBcEurSetJumpParams(dev_, h, &jumpParams);
+  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+
+  EkaBcArmVer armVer = 0;
+
+  rc = ekaBcArmEur(dev_, h, true /* armBid */,
+                   true /* armAsk */, armVer);
+  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+
+  EkaBcRunCtx runCtx = {.onReportCb = getExampleFireReport,
+                        .cbCtx = this};
+  ekaBcEurRun(dev_, &runCtx);
+
+  tcpCtx_->tcpSess_[0]->sendTestPkt();
+
+  EobiAddOrderPkt addOrderBidPkt = {};
+  addOrderBidPkt.pktHdr.MessageHeader.TemplateID =
+      TID_PACKETHEADER;
+  addOrderBidPkt.pktHdr.MessageHeader.BodyLen =
+      sizeof(addOrderBidPkt.pktHdr);
+  addOrderBidPkt.pktHdr.TransactTime = 0; // TBD
+  addOrderBidPkt.orderAddMsg.MessageHeader.BodyLen =
+      sizeof(addOrderBidPkt.orderAddMsg);
+  addOrderBidPkt.orderAddMsg.MessageHeader.TemplateID =
+      TID_ORDER_ADD;
+  addOrderBidPkt.orderAddMsg.RequestTime = 0; // TBD
+  addOrderBidPkt.orderAddMsg.SecurityID = prodList_[0];
+  addOrderBidPkt.orderAddMsg.OrderDetails.DisplayQty =
+      tobBidSize;
+  addOrderBidPkt.orderAddMsg.OrderDetails.Side =
+      ENUM_SIDE_BUY;
+  addOrderBidPkt.orderAddMsg.OrderDetails.Price =
+      tobBidPrice;
+
+  /*   sendPktToAll(&addOrderBidPkt, sizeof(addOrderBidPkt),
+                 false); */
+  mcCon->sendUdpPkt(&addOrderBidPkt,
+                    sizeof(addOrderBidPkt));
+
+  EobiAddOrderPkt addOrderAskPkt = {};
+  addOrderAskPkt.pktHdr.MessageHeader.TemplateID =
+      TID_PACKETHEADER;
+  addOrderAskPkt.pktHdr.MessageHeader.BodyLen =
+      sizeof(addOrderAskPkt.pktHdr);
+  addOrderAskPkt.pktHdr.TransactTime = 0; // TBD
+  addOrderAskPkt.orderAddMsg.MessageHeader.BodyLen =
+      sizeof(addOrderAskPkt.orderAddMsg);
+  addOrderAskPkt.orderAddMsg.MessageHeader.TemplateID =
+      TID_ORDER_ADD;
+  addOrderAskPkt.orderAddMsg.RequestTime = 0; // TBD
+  addOrderAskPkt.orderAddMsg.SecurityID = prodList_[0];
+  addOrderAskPkt.orderAddMsg.OrderDetails.DisplayQty =
+      tobAskSize;
+  addOrderAskPkt.orderAddMsg.OrderDetails.Side =
+      ENUM_SIDE_SELL;
+  addOrderAskPkt.orderAddMsg.OrderDetails.Price =
+      tobAskPrice;
+
+  // tob
+  /*   sendPktToAll(&addOrderAskPkt, sizeof(addOrderAskPkt),
+                 false); */
+  mcCon->sendUdpPkt(&addOrderAskPkt,
+                    sizeof(addOrderAskPkt));
+
+  addOrderAskPkt.orderAddMsg.OrderDetails.Price =
+      tobAskPrice + 1;
+
+  // depth 1
+  /*   sendPktToAll(&addOrderAskPkt, sizeof(addOrderAskPkt),
+                 false); */
+  mcCon->sendUdpPkt(&addOrderAskPkt,
+                    sizeof(addOrderAskPkt));
+
+  EobiExecSumPkt execSumPkt = {};
+  execSumPkt.pktHdr.MessageHeader.TemplateID =
+      TID_PACKETHEADER;
+  execSumPkt.pktHdr.MessageHeader.BodyLen =
+      sizeof(addOrderAskPkt.pktHdr);
+  execSumPkt.pktHdr.TransactTime = 0; // TBD
+  execSumPkt.execSumMsg.MessageHeader.BodyLen =
+      sizeof(execSumPkt.execSumMsg);
+  execSumPkt.execSumMsg.MessageHeader.TemplateID =
+      TID_EXECUTION_SUMMARY;
+  execSumPkt.execSumMsg.SecurityID = prodList_[0];
+  execSumPkt.execSumMsg.RequestTime = 0; // TBD
+  execSumPkt.execSumMsg.LastQty = tradeSize;
+  execSumPkt.execSumMsg.AggressorSide = AggressorSide;
+  execSumPkt.execSumMsg.LastPx = tradePrice;
+
+  /*   sendPktToAll(&execSumPkt, sizeof(execSumPkt), true);
+   */
+  mcCon->sendUdpPkt(&execSumPkt, sizeof(execSumPkt));
+  sleep(5);
+
+#ifndef _VERILOG_SIM
+  ekaBcCloseDev(dev_);
+#endif
 }
 #endif
 /* --------------------------------------------- */

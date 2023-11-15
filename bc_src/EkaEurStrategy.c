@@ -30,8 +30,9 @@
 #include "EkaEobiParser.h"
 
 #include "EkaBcEurProd.h"
-
 #include "EkaEobiTypes.h"
+#include "EpmEti8PktTemplate.h"
+
 using namespace EkaEobi;
 
 /* --------------------------------------------------- */
@@ -48,10 +49,10 @@ EkaEurStrategy::EkaEurStrategy(
   configureEhp();
   // downloadEhp2Hw();
 
-  EKA_LOG("Creating %s with %d MC groups on lane #0 "
-          "and %d MC groups on lane #1",
-          name_.c_str(), mcCoreSess_[0].numUdpSess,
-          mcCoreSess_[1].numUdpSess);
+  /* EKA_LOG("Creating %s with %d MC groups on lane #0 " */
+  /*         "and %d MC groups on lane #1", */
+  /*         name_.c_str(), mcCoreSess_[0].numUdpSess, */
+  /*         mcCoreSess_[1].numUdpSess); */
 
   hashEng_ = new HashEngT();
   if (!hashEng_)
@@ -65,12 +66,20 @@ EkaEurStrategy::EkaEurStrategy(
   if (!parser_)
     on_error("!parser_");
 }
+/* --------------------------------------------------- */
+
+EkaEurStrategy::~EkaEurStrategy() {
+  EKA_LOG("Destroying");
+  runLoopThr_.join();
+}
 
 /* --------------------------------------------------- */
 void EkaEurStrategy::ekaWriteTob(
     EkaBcSecHandle prodHandle,
     const EobiHwBookParams *params, SIDE side) {
 
+  EKA_LOG("TOB prodHandle %d, side %s", prodHandle,
+          side == BID ? "BID" : "ASK");
   auto wr_ptr = reinterpret_cast<const uint64_t *>(params);
   auto nWords = roundUp8(sizeof(*params)) / 8;
   uint32_t dstAddr = 0x90000;
@@ -128,13 +137,14 @@ EkaBCOpResult EkaEurStrategy::downloadPackedDB() {
     auto [validCnt, len] = hashEng_->getPackedLine(i, buf);
 #ifdef _VERILOG_SIM
     if (validCnt == 0)
-      return EKABC_OPRESULT__OK;
+      continue;
 #endif
     int packedWords = roundUp8(len) / 8;
 
     uint64_t *pWord = buf;
     for (auto i = 0; i < packedWords; i++) {
-#ifdef EFC_PRINT_HASH
+      // #ifdef EFC_PRINT_HASH
+#if 1
       if (validCnt != 0)
         EKA_LOG("%d: 0x%016jx", i, *pWord);
 #endif
@@ -236,25 +246,20 @@ EkaBCOpResult EkaEurStrategy::setProdReferenceJumpParams(
 
 /* --------------------------------------------------- */
 void EkaEurStrategy::configureTemplates() {
-  int templateIdx = -1;
-#if 0
-  templateIdx = (int)EkaEpm::TemplateId::CmeHwCancel;
+  int templateIdx = (int)EkaEpm::TemplateId::EurEtiFire;
+#if 1
+  templateIdx = (int)EkaEpm::TemplateId::EurEtiFire;
   epm_->epmTemplate[templateIdx] =
-      new EpmCmeILinkTemplate(templateIdx);
+      new EpmEti8PktTemplate(templateIdx);
+
+  EKA_LOG("EpmEti8PktTemplate: "
+          "templateIdx = %d, "
+          "payload syze = %u Bytes",
+          templateIdx,
+          epm_->epmTemplate[templateIdx]->getByteSize());
   epm_->DownloadSingleTemplate2HW(
       epm_->epmTemplate[templateIdx]);
 
-  templateIdx = (int)EkaEpm::TemplateId::CmeSwFire;
-  epm_->epmTemplate[templateIdx] =
-      new EpmCmeILinkSwTemplate(templateIdx);
-  epm_->DownloadSingleTemplate2HW(
-      epm_->epmTemplate[templateIdx]);
-
-  templateIdx = (int)EkaEpm::TemplateId::CmeSwHb;
-  epm_->epmTemplate[templateIdx] =
-      new EpmCmeILinkHbTemplate(templateIdx);
-  epm_->DownloadSingleTemplate2HW(
-      epm_->epmTemplate[templateIdx]);
 #endif
 }
 /* --------------------------------------------------- */
@@ -283,15 +288,7 @@ void EkaEurStrategy::runLoop(
     const EkaBcRunCtx *pEkaBcRunCtx) {
   setThreadAffinityName(pthread_self(), "EkalineBookLoop",
                         dev_->affinityConf.bookThreadCpuId);
-
-  downloadPackedDB();
-
-  disableHwUdp();
-  joinUdpChannels();
-  enableHwUdp();
-#ifdef _VERILOG_SIM
-  return;
-#endif
+  EKA_LOG("Running EkaEurStrategy::runLoop()");
 
   while (active_) {
     for (auto coreId = 0; coreId < EFC_MAX_CORES;
@@ -301,6 +298,7 @@ void EkaEurStrategy::runLoop(
         continue;
       if (!ch->has_data())
         continue;
+
       auto pkt = ch->get();
       if (!pkt)
         on_error("!pkt");
@@ -337,10 +335,75 @@ void EkaEurStrategy::runLoop(
       ch->next();
     } // per CoreId for loop
   }   // while (active_)
+  terminated_ = true;
 }
 
 /* --------------------------------------------------- */
+#if 0
+void runLoop_f(EkaEurStrategy *eur,
+               const EkaBcRunCtx *pEkaBcRunCtx) {
+  setThreadAffinityName(
+      pthread_self(), "EkalineBookLoop",
+      eur->dev_->affinityConf.bookThreadCpuId);
+  EKA_LOG("Running EkaEurStrategy::runLoop()");
 
+  while (eur->active_) {
+    for (auto coreId = 0; coreId < EFC_MAX_CORES;
+         coreId++) {
+      auto ch = eur->udpChannel_[coreId];
+      if (!ch) {
+        // EKA_LOG("No udpChannel_[%d]", coreId);
+        continue;
+      }
+      // EKA_LOG("Polling");
+
+      if (!ch->has_data()) {
+        continue;
+      }
+      EKA_LOG("Got packet111");
+      fflush(g_ekaLogFile);
+      auto pkt = ch->get();
+      if (!pkt)
+        on_error("!pkt");
+      EKA_LOG("Got packet");
+      fflush(g_ekaLogFile);
+
+      EkaIpHdr *ipH = (EkaIpHdr *)(pkt - 8 - 20);
+      EkaUdpHdr *udpH = (EkaUdpHdr *)(pkt - 8);
+
+      auto udpSess = eur->findUdpSess(
+          coreId, ipH->dest, be16toh((udpH->dest)));
+      if (!udpSess) {
+#ifdef _EKA_PARSER_PRINT_ALL_
+        EKA_LOG("%s:%u packet does not belog to our UDP "
+                "sessions",
+                EKA_IP2STR((ipH->dest)),
+                be16toh(udpH->dest));
+#endif
+        ch->next();
+        continue;
+      }
+      uint payloadSize = ch->getPayloadLen();
+#ifdef _EKA_PARSER_PRINT_ALL_
+      //    EKA_LOG("Pkt: %u byte ",payloadSize);
+#endif
+      MdOut mdOut = {};
+      eur->parser_->processPkt(
+          &mdOut, ProcessAction::UpdateBookOnly, pkt,
+          payloadSize);
+#if 0
+      if (!udpSess->isCorrectSeq(mdOut.pktSeq,
+                                 mdOut.msgNum)) {
+        /* on_error("Sequence Gap"); */
+      }
+#endif
+      ch->next();
+    } // per CoreId for loop
+  }   // while (active_)
+  eur->terminated_ = true;
+}
+#endif
+/* --------------------------------------------------- */
 EkaEobiBook *
 EkaEurStrategy::findBook(ExchSecurityId secId) {
   for (auto i = 0; i < nSec_; i++) {
@@ -423,7 +486,7 @@ void EkaEurStrategy::onTobChange(MdOut *mdOut,
   tobParams.tob.size = book->getEntrySize(side, 0);
   tobParams.tob.msg_seq_num = mdOut->sequence;
 
-  tobParams.tob.normprice = tobPrice =
+  tobParams.tob.normprice =
       price2Norm(tobPrice, step, bottom);
 
   tobParams.tob.firePrice = tobPrice;
@@ -438,7 +501,8 @@ void EkaEurStrategy::onTobChange(MdOut *mdOut,
   getDepthData(book, side, &tobParams.depth,
                HW_DEPTH_PRICES);
 
-#ifdef _EKA_PARSER_PRINT_ALL_
+// #ifdef _EKA_PARSER_PRINT_ALL_
+#if 1
   EKA_LOG("TOB changed price=%ju size=%ju normprice=%ju",
           tobParams.tob.price, tobParams.tob.size,
           tobParams.tob.normprice);
@@ -449,3 +513,4 @@ void EkaEurStrategy::onTobChange(MdOut *mdOut,
 #endif
 #endif
 }
+/* --------------------------------------------------- */

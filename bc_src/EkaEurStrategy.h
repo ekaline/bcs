@@ -28,6 +28,7 @@ private:
 
 public:
   EkaEurStrategy(const EfcUdpMcParams *mcParams);
+  ~EkaEurStrategy();
 
   EkaBCOpResult
   subscribeSecList(const EkaBcEurSecId *prodList,
@@ -58,20 +59,42 @@ public:
                    const EobiHwBookParams *params,
                    SIDE side);
 
+  EkaBCOpResult downloadPackedDB();
+
+  void
+  fireReportThreadLoop(const EkaBcRunCtx *pEkaBcRunCtx);
+
 private:
   void configureTemplates();
-
-  EkaBCOpResult downloadPackedDB();
 
   void writeTob(EkaBcSecHandle handle, void *params,
                 uint paramsSize, SIDE side);
 
-public:
+  std::pair<int, size_t> processSwTriggeredReport(
+      EkaDev *dev, const uint8_t *srcReport,
+      uint srcReportLen, EkaUserReportQ *q, uint32_t dmaIdx,
+      uint8_t *reportBuf);
+  std::pair<int, size_t> processExceptionsReport(
+      EkaDev *dev, const uint8_t *srcReport,
+      uint srcReportLen, EkaUserReportQ *q, uint32_t dmaIdx,
+      uint8_t *reportBuf);
+  std::pair<int, size_t> processFastCancelReport(
+      EkaDev *dev, const uint8_t *srcReport,
+      uint srcReportLen, EkaUserReportQ *q, uint32_t dmaIdx,
+      uint8_t *reportBuf);
+  std::pair<int, size_t>
+  processFireReport(EkaDev *dev, const uint8_t *srcReport,
+                    uint srcReportLen, EkaUserReportQ *q,
+                    uint32_t dmaIdx, uint8_t *reportBuf);
+
 public:
   EkaEobiBook *findBook(ExchSecurityId secId);
 
   void onTobChange(MdOut *mdOut, EkaEobiBook *book,
                    SIDE side);
+
+  std::thread runLoopThr_;
+  std::thread fireReportLoopThr_;
 
 private:
   int nSec_ = 0;
@@ -80,10 +103,7 @@ private:
 
   HashEngT *hashEng_ = nullptr;
 
-  EkaUdpChannel *udpChannel_[4 /*MAX_CORES*/] = {};
-
-  int regionId_ = EkaEpmRegion::Regions::Efc;
-
+public:
   EkaEobiParser *parser_ = nullptr;
 };
 

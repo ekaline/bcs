@@ -23,6 +23,9 @@ EkaBcEurProd::EkaBcEurProd(
   eiPriceFlavor_ = p->eiPriceFlavor;
   fireActionIdx_ = p->fireActionIdx;
 
+  maxAskSize_ = p->maxAskSize;
+  maxBidSize_ = p->maxBidSize;
+
   hwMidPoint_ = midPoint_ / step_;
 
   if ((hwMidPoint_ * step_ != midPoint_) && isBook_)
@@ -108,6 +111,7 @@ EkaBCOpResult EkaBcEurProd::setJumpParams(
   auto nWords = roundUp8(sizeof(p)) / 8;
   auto sPtr = reinterpret_cast<const uint64_t *>(&p);
   uint dst = 0x50000 + handle_ * 256;
+
   for (auto i = 0; i < nWords; i++)
     eka_write(dst + 8 * i, *(sPtr++));
   return EKABC_OPRESULT__OK;

@@ -85,7 +85,8 @@
                 "variant": "c",
                 "span": "c",
                 "any": "c",
-                "set": "c"
+                "set": "c",
+                "*.ipp": "c"
         },
         "cmake.configureOnOpen": true,
         "editor.tokenColorCustomizations": {

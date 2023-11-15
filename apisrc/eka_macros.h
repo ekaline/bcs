@@ -239,7 +239,7 @@ class EkaDev;
 
 #define EKA_FEED2STRING(x)                                 \
   x == 0    ? "Unconfigured"                               \
-  : x == 1  ? "NOM"                                        \
+  : x == 1  ? "EUREX"                                      \
   : x == 2  ? "Pitch P4"                                   \
   : x == 12 ? "QED"                                        \
   : x == 13 ? "Itch FSweep"                                \
@@ -249,7 +249,7 @@ class EkaDev;
 
 #define EKA_STRAT2STRING(x)                                \
   x == 0    ? "Unconfigured"                               \
-  : x == 2  ? "P4"                                         \
+  : x == 1  ? "EUREX"                                      \
   : x == 12 ? "QED"                                        \
   : x == 13 ? "Fast Sweep"                                 \
   : x == 14 ? "Network News"                               \

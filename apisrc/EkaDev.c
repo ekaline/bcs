@@ -24,6 +24,8 @@
 #include "EkaWc.h"
 #include "eka_hw_conf.h"
 
+#include "EkaEurStrategy.h"
+
 extern FILE *g_ekaLogFile;
 extern EkaLogCallback g_ekaLogCB;
 
@@ -469,6 +471,14 @@ EkaDev::~EkaDev() {
   tcpRxThreadActive = false;
   fireReportThreadActive = false;
   ekaIgmp->threadActive = false;
+
+  if (dev->efc && dev->efc->eur_) {
+    dev->efc->eur_->active_ = false;
+    EKA_LOG("Waiting for termination of Run Loop");
+    while (!dev->efc->eur_->terminated_) {
+      sleep(0);
+    }
+  }
 
   EKA_LOG("Waiting for tcpRxThreadTerminated...");
   while (!tcpRxThreadTerminated) {

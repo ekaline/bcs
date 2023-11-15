@@ -26,9 +26,12 @@
 
 #include "EkaBc.h"
 
+#include "EOBILayouts.h"
 typedef EkaOpResult (*ArmControllerCb)(EkaDev *pEkaDev,
                                        EfcArmVer ver);
 typedef EkaOpResult (*DisArmControllerCb)(EkaDev *pEkaDev);
+
+void getFireReport(const void *p, size_t len, void *ctx);
 
 class TestEfcFixture : public ::testing::Test {
 protected:
@@ -38,6 +41,8 @@ protected:
   void openDevice();
 
   virtual void runTest();
+  virtual void initEur();
+  virtual void runEur();
 
   void sendPktToAll(const void *pkt, size_t pktLen,
                     bool expectedFire);
@@ -83,7 +88,7 @@ protected:
   char testName_[128] = {};
   char testLogFileName_[256] = {};
 
-  EkaDev *dev_;
+  EkaDev *dev_ = nullptr;
 
   TestUdpCtx *udpCtx_ = nullptr;
   TestTcpCtx *tcpCtx_ = nullptr;

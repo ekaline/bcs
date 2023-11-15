@@ -38,7 +38,7 @@ uint EkaEobiParser::processPkt(MdOut *mdOut,
   if (hdr->TemplateID != TID_PACKETHEADER)
     on_error("TemplateID %u != TID_PACKETHEADER",
              hdr->TemplateID);
-
+  EKA_LOG("Processing Pkt");
   mdOut->transactTime =
       ((PacketHeaderT *)hdr)->TransactTime;
 
@@ -81,6 +81,7 @@ uint EkaEobiParser::processMsg(MdOut *mdOut,
 
     eventSide = b->decodeSide(msg->OrderDetails.Side);
 #ifdef _EKA_PARSER_PRINT_ALL_
+
     EKA_LOG("ORDERADD: %ju,%c,%ju,%u",
             (static_cast<ExchSecurityId>(msg->SecurityID)),
             eventSide == BID ? 'B' : 'A',

@@ -351,7 +351,7 @@ int EkaEfc::disableRxFire() {
 
 /* ################################################ */
 int EkaEfc::enableRxFire() {
-  EkaStrategy *strategies[] = {p4_, qed_, cme_};
+  EkaStrategy *strategies[] = {p4_, qed_, cme_, eur_};
 
   uint8_t rxCoresBitmap = 0;
 
@@ -488,7 +488,7 @@ int EkaEfc::setHwUdpParams() {
                 tmp_ipport);
     }
 
-    EkaStrategy *strategies[] = {p4_, qed_, cme_};
+    EkaStrategy *strategies[] = {p4_, qed_, cme_, eur_};
 
     for (auto const &strat : strategies) {
       if (!strat)

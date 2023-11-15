@@ -44,13 +44,14 @@ ekaBcOpenDev(const EkaBcAffinityConfig *affinityConf,
 }
 /* ==================================================== */
 
-int ekaBcCloseDev(EkaDev *dev) {
+EkaBCOpResult ekaBcCloseDev(EkaDev *dev) {
   if (!dev)
-    return -1;
+    on_error("!dev");
+
   delete dev;
   g_ekaDev = NULL;
 
-  return 0;
+  return EKABC_OPRESULT__OK;
 }
 /* ==================================================== */
 
@@ -267,6 +268,10 @@ EkaBCOpResult ekaBcArmEur(EkaDev *dev,
     on_error("Efc is not initialized: use ekaBcInit()");
   auto efc = dev->efc;
 
+  EKA_LOG("Prod Handle: %d, "
+          "armBid=%d, armAsk=%d, armVer=%d",
+          prodHande, armBid, armAsk, ver);
+  fflush(g_ekaLogFile);
   efc->armEur(prodHande, armBid, armAsk, ver);
   return EKABC_OPRESULT__OK;
 }
@@ -304,12 +309,36 @@ void ekaBcEurRun(EkaDev *dev,
     on_error("Eurex is not initialized: use "
              "ekaBcInitEurStrategy()");
 
-  EKA_LOG("Running EkaEurStrategy::runLoop()");
+  EKA_LOG("Downloading Hash");
+  eur->downloadPackedDB();
+
+  EKA_LOG("Joining UDP Channels");
+  eur->joinUdpChannels();
+
+  /* ----------------------------------------------- */
+
+  EKA_LOG("Lounching "
+          "EkaEurStrategy::fireReportThreadLoop()");
+  auto fireReportLoopFunc =
+      std::bind(&EkaEurStrategy::fireReportThreadLoop, eur,
+                pEkaBcRunCtx);
+  eur->fireReportLoopThr_ = std::thread(fireReportLoopFunc);
+  EKA_LOG("EkaEurStrategy::fireReportThreadLoop() "
+          "span off");
+  fflush(g_ekaLogFile);
+  /* ----------------------------------------------- */
+
+  dev->efc->setHwUdpParams();
+  dev->efc->enableRxFire();
+
+  EKA_LOG("Lounching EkaEurStrategy::runLoop()");
   auto loopFunc = std::bind(&EkaEurStrategy::runLoop, eur,
                             pEkaBcRunCtx);
 
-  std::thread t(loopFunc);
-  t.join();
+  eur->runLoopThr_ = std::thread(loopFunc);
+
+  EKA_LOG("EkaEurStrategy::runLoop() span off");
+  fflush(g_ekaLogFile);
 }
 
 /* ==================================================== */
@@ -449,7 +478,8 @@ ekaBcEurSetJumpParams(EkaDev *dev, EkaBcSecHandle prodHande,
   if (!eur)
     on_error("Eurex is not initialized: use "
              "ekaBcInitEurStrategy()");
-
+  EKA_LOG("Setting EkaBcEurJumpParams");
+  fflush(g_ekaLogFile);
   return eur->setProdJumpParams(prodHande, params);
 }
 /* ==================================================== */
@@ -466,6 +496,7 @@ EkaBCOpResult ekaBcEurSetReferenceJumpParams(
   if (!eur)
     on_error("Eurex is not initialized: use "
              "ekaBcInitEurStrategy()");
+  EKA_LOG("Setting EkaBcEurReferenceJumpParams");
 
   return eur->setProdReferenceJumpParams(triggerProd,
                                          fireProd, params);

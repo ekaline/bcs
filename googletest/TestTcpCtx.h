@@ -212,6 +212,9 @@ public:
             "\n\nThis is 1st TCP packet sent from FPGA TCP "
             "client to Kernel TCP server: %s --> %s:%u\n\n",
             srcIp_, dstIp_, dstPort_);
+
+    EKA_LOG("Sending %s", pkt);
+
     excSend(g_ekaDev, hCon_, pkt, strlen(pkt), 0);
     int bytes_read = 0;
     char rxBuf[2000] = {};

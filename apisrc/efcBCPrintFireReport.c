@@ -32,43 +32,43 @@
 extern EkaDev *g_ekaDev;
 
 /* #################################################### */
-inline size_t printBCContainerGlobalHdr(FILE *file,
+inline size_t printBcContainerGlobalHdr(FILE *file,
                                         const uint8_t *b) {
   auto containerHdr{
-      reinterpret_cast<const EkaBCContainerGlobalHdr *>(b)};
-  switch (containerHdr->type) {
-  case EkaBCExceptionEvent:
+      reinterpret_cast<const EkaBcContainerGlobalHdr *>(b)};
+  switch (containerHdr->eventType) {
+  case EkaBcEventType::ExceptionEvent:
     break;
   default:
-    fprintf(file, "BCPrints GlobalHdr %s with %d reports\n",
-            EkaBCEventType2STR(containerHdr->type),
-            containerHdr->num_of_reports);
+    fprintf(file, "BcPrints GlobalHdr %s with %d reports\n",
+            EkaBcEventType2STR(containerHdr->eventType),
+            containerHdr->nReports);
   }
 
   return sizeof(*containerHdr);
 }
 
 /* #################################################### */
-size_t printBCFirePkt(FILE *file, const uint8_t *b,
+size_t printBcFirePkt(FILE *file, const uint8_t *b,
                       size_t size) {
-  hexDump("BCPrints Fired Pkt", b, size, file);
+  hexDump("BcPrints Fired Pkt", b, size, file);
   return size;
 }
 
 /* ####################################################  */
 
 inline int
-ekaBCDecodeExceptions(char *dst,
-                      const EfcBCExceptionsReport *excpt) {
+ekaBcDecodeExceptions(char *dst,
+                      const EkaBcExceptionsReport *excpt) {
+#if 0
   auto d = dst;
   bool exceptionRaised = false;
   if (excpt->exceptionStatus.globalVector)
     exceptionRaised = true;
-  ;
+
   for (auto i = 0; i < 4; i++) { // 4 Cores
     if (excpt->exceptionStatus.portVector[i])
       exceptionRaised = true;
-    ;
   }
   if (exceptionRaised)
     d += sprintf(d, "\n\nFPGA internal exceptions:\n");
@@ -188,17 +188,19 @@ END:
   //  d += sprintf(d,"Arm=%d,
   //  Ver=%d\n",excpt->armStatus.armFlag,excpt->armStatus.expectedVersion);
   return d - dst;
+#endif
+  return 0;
 }
 
 /* #################################################### */
 
-inline size_t printBCExceptionReport(FILE *file,
-                                     const uint8_t *b) {
+inline size_t printBcExceptionsReport(FILE *file,
+                                      const uint8_t *b) {
   auto exceptionsReport{
-      reinterpret_cast<const EfcBCExceptionsReport *>(b)};
+      reinterpret_cast<const EkaBcExceptionsReport *>(b)};
   char excptBuf[2048] = {};
   int decodeSize =
-      ekaBCDecodeExceptions(excptBuf, exceptionsReport);
+      ekaBcDecodeExceptions(excptBuf, exceptionsReport);
   if ((uint64_t)decodeSize > sizeof(excptBuf))
     on_error("decodeSize %d > sizeof(excptBuf) %jd",
              decodeSize, sizeof(excptBuf));
@@ -208,7 +210,7 @@ inline size_t printBCExceptionReport(FILE *file,
     fprintf(stderr, RED "%s\n" RESET, excptBuf);
   }
 
-  //  fprintf(file,"BCPrints ArmStatus:");
+  //  fprintf(file,"BcPrints ArmStatus:");
   //  fprintf(file,"\tarmFlag = %u \n"
   //  ,exceptionsReport->armStatus.armFlag);
   //  fprintf(file,"\texpectedVersion = %u\n",
@@ -216,28 +218,7 @@ inline size_t printBCExceptionReport(FILE *file,
   return sizeof(*exceptionsReport);
 }
 
-struct EpmBCFireReport {
-  int32_t
-      strategyId; ///< Strategy ID the report corresponds to
-  int32_t actionId; ///< Action ID the report corresponds to
-  int32_t triggerActionId; ///< Action ID of the Trigger
-  uint64_t triggerToken; ///< Security token of the Trigger
-  EpmBCTriggerAction
-      action; ///< What device did in response to trigger
-  EkaBCOpResult error;      ///< Error code for SendError
-  uint64_t preLocalEnable;  ///< Action-level enable bits
-                            ///< before fire
-  uint64_t postLocalEnable; ///< Action-level enable bits
-                            ///< after firing
-  uint64_t preStratEnable;  ///< Strategy-level enable bits
-                            ///< before fire
-  uint64_t postStratEnable; ///< Strategy-level enable bits
-                            ///< after fire
-  uintptr_t user; ///< Opaque value copied from EpmAction
-  bool local;     ///< True -> called from epmRaiseTrigger
-};
-
-struct EpmBCFastCancelReport {
+struct EpmBcFastCancelReport {
   uint8_t eventIsZero;     ///< Field from trigger MD
   uint8_t numInGroup;      ///< Field from trigger MD
   uint64_t transactTime;   ///< Field from trigger MD
@@ -246,34 +227,29 @@ struct EpmBCFastCancelReport {
 };
 
 /* #################################################### */
-int printBCEpmReport(FILE *file, const uint8_t *b) {
-  auto epmReport{
-      reinterpret_cast<const EpmBCFireReport *>(b)};
+int printEurFireReport(FILE *file, const uint8_t *b) {
+  auto report{reinterpret_cast<const EkaBcFireReport *>(b)};
 
-  fprintf(file,
-          "BCPrints EpmReport "
-          "StrategyId=%d,ActionId=%d,TriggerActionId=%d",
-          epmReport->strategyId, epmReport->actionId,
-          (int)epmReport->action);
-  return sizeof(*epmReport);
+  fprintf(file, "Prints EkaBcFireReport \n");
+  return sizeof(*report);
 }
 
 /* #################################################### */
-int printBCFastCancelReport(FILE *file, const uint8_t *b) {
-  auto epmReport{
-      reinterpret_cast<const EpmBCFastCancelReport *>(b)};
+int printBcFastCancelReport(FILE *file, const uint8_t *b) {
+  auto report{
+      reinterpret_cast<const EpmBcFastCancelReport *>(b)};
 
   fprintf(file,
-          "BCPrints FC Report "
+          "BcPrints FC Report "
           "eventIsZero=%d,numInGroup=%d,transactTime=%ju,"
           "headerTime=%ju,sequenceNumber=%u\n",
-          epmReport->eventIsZero, epmReport->numInGroup,
-          epmReport->transactTime, epmReport->headerTime,
-          epmReport->sequenceNumber);
-  return sizeof(*epmReport);
+          report->eventIsZero, report->numInGroup,
+          report->transactTime, report->headerTime,
+          report->sequenceNumber);
+  return sizeof(*report);
 }
 
-void efcBCPrintFireReport(const void *p, size_t len,
+void ekaBcPrintFireReport(const void *p, size_t len,
                           void *ctx) {
   auto file{reinterpret_cast<std::FILE *>(ctx)};
   if (!file)
@@ -283,25 +259,25 @@ void efcBCPrintFireReport(const void *p, size_t len,
 
   //--------------------------------------------------------------------------
   auto containerHdr{
-      reinterpret_cast<const EkaBCContainerGlobalHdr *>(b)};
-  b += printBCContainerGlobalHdr(file, b);
+      reinterpret_cast<const EkaBcContainerGlobalHdr *>(b)};
+  b += printBcContainerGlobalHdr(file, b);
   //--------------------------------------------------------------------------
-  for (uint i = 0; i < containerHdr->num_of_reports; i++) {
+  for (uint i = 0; i < containerHdr->nReports; i++) {
     auto reportHdr{
-        reinterpret_cast<const EfcBCReportHdr *>(b)};
+        reinterpret_cast<const EkaBcReportHdr *>(b)};
     b += sizeof(*reportHdr);
     switch (reportHdr->type) {
-    case EfcBCReportType::BcExceptionReport:
-      b += printBCExceptionReport(file, b);
+    case EkaBcReportType::ExceptionsReport:
+      b += printBcExceptionsReport(file, b);
       break;
-    case EfcBCReportType::BcFirePkt:
-      b += printBCFirePkt(file, b, reportHdr->size);
+    case EkaBcReportType::FirePkt:
+      b += printBcFirePkt(file, b, reportHdr->size);
       break;
-    case EfcBCReportType::BcEpmReport:
-      b += printBCEpmReport(file, b);
+    case EkaBcReportType::EurFireReport:
+      b += printEurFireReport(file, b);
       break;
-    case EfcBCReportType::BcFastCancelReport:
-      b += printBCFastCancelReport(file, b);
+    case EkaBcReportType::CmeFastCancelReport:
+      b += printBcFastCancelReport(file, b);
       break;
     default:
       on_error("Unexpected reportHdr->type %d",

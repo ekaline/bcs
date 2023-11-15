@@ -60,14 +60,12 @@ public:
     mcDst_.sin_addr.s_addr = inet_addr(mcIp_);
     mcDst_.sin_port = be16toh(mcPort_);
 
-#ifndef _VERILOG_SIM
     if (bind(udpSock_, (sockaddr *)&mcSrc_,
              sizeof(sockaddr)) != 0) {
       on_error("failed to bind server udpSock to %s:%u",
                EKA_IP2STR(mcSrc_.sin_addr.s_addr),
                be16toh(mcSrc_.sin_port));
     }
-#endif
 
     EKA_LOG("udpSock %d of MC %s:%u is binded to %s:%u",
             udpSock_, EKA_IP2STR(mcDst_.sin_addr.s_addr),
@@ -88,13 +86,13 @@ public:
   /* -------------------------------------------- */
 
   ssize_t sendUdpPkt(const void *pkt, size_t pktLen) {
-#if 0
+#if 1
     char pktBufStr[8192] = {};
     hexDump2str("UdpPkt", pkt, pktLen, pktBufStr,
                 sizeof(pktBufStr));
     EKA_LOG("Sending pkt\n%s\n to %s:%u", pktBufStr,
-             EKA_IP2STR(mcDst_.sin_addr.s_addr),
-             be16toh(mcDst_.sin_port));
+            EKA_IP2STR(mcDst_.sin_addr.s_addr),
+            be16toh(mcDst_.sin_port));
 #endif
     auto rc =
         sendto(udpSock_, pkt, pktLen, 0,
@@ -128,8 +126,6 @@ public:
 
     for (auto i = 0; i < mcParams->nMcGroups; i++) {
       auto lane = mcParams->groups[i].lane;
-      if (lane < 0 || lane > 1)
-        on_error("lane = %d", lane);
       auto perCoreidx = nMcCons_[lane];
       udpConn_[lane][perCoreidx] =
           new TestUdpConn(&mcParams->groups[i]);
