@@ -94,7 +94,8 @@ int eka_dump_params (EKA_CONF_TYPE param_id, int index) {
     printf(RESET);
 
     for(uint32_t i = 0; i < EKA_JUMP_ATBEST_SETS; i++){
-      if ((jump_configs.atBest[i].bitParams>>BITPARAM_ENABLE)&0x1) {
+      //      if ((jump_configs.atBest[i].bitParams>>BITPARAM_ENABLE)&0x1) {
+      if (1) {
 	if (!header_printed) {
 	  header_printed = true;
 	  //	  printf(UNDER);
@@ -159,7 +160,8 @@ int eka_dump_params (EKA_CONF_TYPE param_id, int index) {
     header_printed = false;
 
     for(uint32_t i = 0; i < EKA_JUMP_BETTERBEST_SETS; i++){
-      if ((jump_configs.betterBest[i].bitParams>>BITPARAM_ENABLE)&0x1) {
+      //      if ((jump_configs.betterBest[i].bitParams>>BITPARAM_ENABLE)&0x1) {
+      if (1) {
 	if (!header_printed) {
 	  //	  printf(UNDER);
 	  //    printf("\n%s %-8s\t",buf,"Jump Better");
@@ -274,8 +276,7 @@ int eka_dump_params (EKA_CONF_TYPE param_id, int index) {
     header_printed = false;
 
     for(uint32_t i = 0; i < EKA_RJUMP_ATBEST_SETS; i++){
-      //      if ((rjump.atBest[i].bit_params>>BP_ENABLE)&0x1) {
-      if (1) {
+      if ((rjump.atBest[i].bit_params>>BP_ENABLE)&0x1) {
 	if (!header_printed) {
 	  header_printed = true;
 	  //	  printf(UNDER);
@@ -347,8 +348,7 @@ int eka_dump_params (EKA_CONF_TYPE param_id, int index) {
 
 
     for(uint32_t i = 0; i < EKA_RJUMP_BETTERBEST_SETS; i++){
-      //      if ((rjump.betterBest[i].bit_params>>BP_ENABLE)&0x1) {
-      if (1) {
+      if ((rjump.betterBest[i].bit_params>>BP_ENABLE)&0x1) {
 	if (!header_printed) {
 	  header_printed = true;
 	  //	  printf(UNDER);

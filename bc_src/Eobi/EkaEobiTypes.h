@@ -259,6 +259,9 @@ inline uint16_t normalizeActionIdx(EkaBcActionIdx idx) {
 }
 
 inline HwFireSize normalizeFireSize(EkaBcEurFireSize size) {
+  if (size == static_cast<EkaBcEurFireSize>(-1))
+    return static_cast<HwFireSize>(-1);
+  
   if (size % 10000 || size > 15 * 10000)
     on_error("Bad size %u", size);
   return static_cast<HwFireSize>(size / 10000);
