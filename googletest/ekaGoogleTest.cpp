@@ -81,18 +81,39 @@ void printFireReport(uint8_t *p) {
 
 }
 
+void printPayloadReport(uint8_t *p) {
+  uint8_t *b = (uint8_t *)p;
+  auto firePktHdr{reinterpret_cast<EfcBcReportHdr *>(b)};
+
+  auto length = firePktHdr->size;
+  
+  printf ("Length = %d, Type = %s \n",length,EkaBcReportType2STR(firePktHdr->type));
+  
+  b += sizeof(EfcReportHdr);
+  b += 54; //skip l2-l3 headers
+
+  hexDump("Data (without headers)",b,length-54);
+
+
+}
+
 void getExampleFireReport(const void *p, size_t len, void *ctx) {
   uint8_t *b = (uint8_t *)p;
   auto containerHdr{
       reinterpret_cast<EkaBcContainerGlobalHdr *>(b)};
 
-  //  printf ("Received %d reports\n",containerHdr->nReports);
-
   switch (containerHdr->eventType) {
   case EkaBcEventType::FireEvent:
-    printf ("Fire...\n");
+    printf ("Fire with %d reports...\n",containerHdr->nReports);
+    //skip container header
     b += sizeof(*containerHdr);
+    //print fire report
     printFireReport(b);
+    //skip report hdr (of fire) and fire report
+    b += sizeof(EkaBcReportHdr);
+    b += sizeof(EkaBcFireReport);
+    //print payload
+    printPayloadReport(b);
     break;
   case EkaBcEventType::ExceptionEvent:
     //    printf ("Status...\n");

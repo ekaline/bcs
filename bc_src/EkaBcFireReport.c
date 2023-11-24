@@ -278,7 +278,7 @@ pushFiredPkt(volatile bool *fireReportThreadActive,
 
   memcpy(b, firePkt->data, firePkt->hdr.length);
   b += firePkt->hdr.length;
-  // hexDump("pushFiredPkt",firePkt->data,firePkt->hdr.length);
+  //  hexDump("pushFiredPkt",firePkt->data,firePkt->hdr.length);
 
   return b - dst;
 }

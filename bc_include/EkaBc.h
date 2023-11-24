@@ -700,6 +700,20 @@ void ekaBcEurRun(EkaDev *pEkaDev,
 // Reports
 ///////////////////////
 
+enum class EkaEfcBcReportType : int {
+  FirePkt = 5000
+};
+
+#define EkaBcReportType2STR(x)                             \
+  x == EkaEfcBcReportType::FirePkt        ? "FirePkt"      \
+      : "UnknownReport"
+  
+struct EfcBcReportHdr {
+  EkaEfcBcReportType type;
+  uint8_t idx;
+  size_t size;
+};
+  
 enum class EkaBcEventType : int {
   ExceptionEvent = 1,
   EpmEvent,
