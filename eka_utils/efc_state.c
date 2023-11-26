@@ -1360,7 +1360,8 @@ int main(int argc, char *argv[]) {
       getNewsState(&pStratState->news);
     if (active_strat[S_CANCEL])
       getFastCancelState(&pStratState->fastCancel);
-    if (active_strat[S_P4])
+//    if (active_strat[S_P4])
+//    otherwisse no report only disaply in unconfigured parser
       getEfcState(&pStratState->p4);
 
     /* ----------------------------------------- */
