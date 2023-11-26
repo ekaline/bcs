@@ -43,7 +43,7 @@ EkaEurStrategy::EkaEurStrategy(
   name_ = "Eurex";
 
   disableRxFire();
-  eka_write(dev_, P4_STRAT_CONF, (uint64_t)0);
+  //  eka_write(dev_, P4_STRAT_CONF, (uint64_t)0); evgeny - why reset report_ony?
 
   configureTemplates();
   configureEhp();

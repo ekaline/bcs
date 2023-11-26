@@ -48,7 +48,8 @@ EkaEfc::EkaEfc(const EfcInitCtx *pEfcInitCtx) {
           "watchdog_timeout_sec = %ju",
           report_only_, watchdog_timeout_sec_);
 
-  uint64_t p4_strat_conf = eka_read(dev_, P4_STRAT_CONF);
+  //  uint64_t p4_strat_conf = eka_read(dev_, P4_STRAT_CONF); evgeny
+  uint64_t p4_strat_conf = (uint64_t)0;
   uint64_t p4_watchdog_period = EKA_WATCHDOG_SEC_VAL;
 
   if (report_only_)
@@ -65,6 +66,7 @@ EkaEfc::EkaEfc(const EfcInitCtx *pEfcInitCtx) {
 
   eka_write(dev_, P4_STRAT_CONF, p4_strat_conf);
   eka_write(dev_, P4_WATCHDOG_CONF, p4_watchdog_period);
+  EKA_LOG("P4_STRAT_CONF=0x%jx",p4_strat_conf);
 
   userReportQ = new EkaUserReportQ(dev_);
   if (!userReportQ)

@@ -196,7 +196,7 @@ void TestEfcFixture::initEur() {
   }
   /* --------------------------------------------- */
 
-  EkaBcInitCtx initCtx = {.report_only = false,
+  EkaBcInitCtx initCtx = {.report_only = true,
                           .watchdog_timeout_sec = 1000000};
   auto rc = ekaBcInit(dev_, &initCtx);
   ASSERT_EQ(rc, EKABC_OPRESULT__OK);

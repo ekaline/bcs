@@ -89,7 +89,7 @@ void printPayloadReport(uint8_t *p) {
   
   printf ("Length = %d, Type = %s \n",length,EkaBcReportType2STR(firePktHdr->type));
   
-  b += sizeof(EfcReportHdr);
+  b += sizeof(EfcBcReportHdr);
   b += 54; //skip l2-l3 headers
 
   hexDump("Data (without headers)",b,length-54);

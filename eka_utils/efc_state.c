@@ -928,6 +928,8 @@ int printStratStatus(StratState *pStratState) {
   }
   printf("\n");
 
+
+
   printf("\n");
   return 0;
 }
@@ -1383,6 +1385,10 @@ int main(int argc, char *argv[]) {
     /* ----------------------------------------- */
     printStratHeader();
     printStratStatus(pStratState);
+
+  printf("ReportOnly            :\t%d\n\n",
+         pStratState->p4.commonState.reportOnly);
+  
     printTOB(0);
 
     /* ----------------------------------------- */
