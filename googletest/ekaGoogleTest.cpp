@@ -240,13 +240,19 @@ TEST_F(TestEur, Eur_basic) {
   prodParams.secId = prodList_[0];
   prodParams.step = 1;
   prodParams.isBook = 1;
-  prodParams.maxBidSize = sizeMultiplier;     // TBD
-  prodParams.maxAskSize = sizeMultiplier * 2; // TBD
-  prodParams.maxBookSpread = tobAskPrice - tobBidPrice + 1;
   prodParams.midPoint =
       (tobAskPrice - tobBidPrice) / 2 + tobBidPrice;
 
   rc = ekaBcInitEurProd(dev_, h, &prodParams);
+  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+
+
+  EkaBcProductDynamicParams prodDynamicParams = {};
+  prodDynamicParams.maxBidSize = sizeMultiplier;     // TBD
+  prodDynamicParams.maxAskSize = sizeMultiplier * 2; // TBD
+  prodDynamicParams.maxBookSpread = tobAskPrice - tobBidPrice + 1;
+  
+  rc = ekaBcSetEurProdDynamicParams(dev_, h, &prodDynamicParams);
   ASSERT_EQ(rc, EKABC_OPRESULT__OK);
 
   const char EurFireMsg[] = "EurFireMsg with 120 "
