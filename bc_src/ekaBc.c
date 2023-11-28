@@ -470,6 +470,22 @@ ekaBcInitEurProd(EkaDev *dev, EkaBcSecHandle prodHande,
 
   return eur->initProd(prodHande, params);
 }
+/* ==================================================== */
+EkaBCOpResult ekaBcSetEurProdDynamicParams(
+    EkaDev *dev, EkaBcSecHandle prodHande,
+    const EkaBcProductDynamicParams *params) {
+  if (!dev || !dev->efc)
+    on_error("Efc is not initialized: use ekaBcInit()");
+  auto efc = dev->efc;
+
+  auto eur = efc->eur_;
+  if (!eur)
+    on_error("Eurex is not initialized: use "
+             "ekaBcInitEurStrategy()");
+  EKA_LOG("Setting Product[%jd] Dynamic Params", prodHande);
+  fflush(g_ekaLogFile);
+  return eur->setProdDynamicParams(prodHande, params);
+}
 
 /* ==================================================== */
 EkaBCOpResult

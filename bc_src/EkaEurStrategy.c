@@ -43,7 +43,8 @@ EkaEurStrategy::EkaEurStrategy(
   name_ = "Eurex";
 
   disableRxFire();
-  //  eka_write(dev_, P4_STRAT_CONF, (uint64_t)0); evgeny - why reset report_ony?
+  //  eka_write(dev_, P4_STRAT_CONF, (uint64_t)0); evgeny -
+  //  why reset report_ony?
 
   configureTemplates();
   configureEhp();
@@ -185,6 +186,22 @@ EkaBCOpResult EkaEurStrategy::initProd(
     on_error("failed creating new Prod");
 
   return EKABC_OPRESULT__OK;
+}
+
+/* --------------------------------------------------- */
+
+EkaBCOpResult EkaEurStrategy::setProdDynamicParams(
+    EkaBcSecHandle prodHande,
+    const EkaBcProductDynamicParams *params) {
+  if (prodHande < 0 || prodHande >= MaxSecurities_) {
+    EKA_ERROR("Bad prodHande %jd", prodHande);
+    return EKABC_OPRESULT__ERR_BAD_PRODUCT_HANDLE;
+  }
+
+  if (!prod_[prodHande])
+    on_error("failed creating new Prod");
+
+  return prod_[prodHande]->setDynamicParams(params);
 }
 
 /* --------------------------------------------------- */

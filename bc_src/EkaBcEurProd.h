@@ -15,6 +15,9 @@ public:
                const EkaBcEurProductInitParams *p);
 
   EkaBCOpResult
+  setDynamicParams(const EkaBcProductDynamicParams *params);
+
+  EkaBCOpResult
   setJumpParams(const EkaBcEurJumpParams *params);
 
   EkaBCOpResult setReferenceJumpParams(

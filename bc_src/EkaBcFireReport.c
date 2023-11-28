@@ -38,6 +38,16 @@ static inline void sendExcptRequestTrigger(EkaDev *dev) {
 
 void EkaEurStrategy::fireReportThreadLoop(
     const EkaBcRunCtx *pEkaBcRunCtx) {
+
+  if (!pEkaBcRunCtx)
+    on_error("!pEkaBcRunCtx");
+  if (!pEkaBcRunCtx->onReportCb)
+    on_error("!pEkaBcRunCtx->onReportCb");
+  EkaBcRunCtx localCopyEkaBcRunCtx = {};
+
+  memcpy(&localCopyEkaBcRunCtx, pEkaBcRunCtx,
+         sizeof(localCopyEkaBcRunCtx));
+
   const char *threadName = "FireReport";
   EKA_LOG("Launching %s", threadName);
   pthread_setname_np(pthread_self(), threadName);
@@ -150,9 +160,8 @@ void EkaEurStrategy::fireReportThreadLoop(
       on_error("reportLen %jd > sizeof(reportBuf) %jd",
                reportLen, sizeof(reportBuf));
 
-    if (!pEkaBcRunCtx || !pEkaBcRunCtx->onReportCb)
-      on_error("pEkaBcRunCtx || pEfcRunCtx->onReportCb "
-               "not defined");
+    if (!localCopyEkaBcRunCtx.onReportCb)
+      on_error("!localCopyEkaBcRunCtx.onReportCb");
 
     if (printFireReport) {
       char fireReportStr[16 * 1024] = {};
@@ -160,8 +169,8 @@ void EkaEurStrategy::fireReportThreadLoop(
                   fireReportStr, sizeof(fireReportStr));
       EKA_LOG("reportCb: %s", fireReportStr);
     }
-    pEkaBcRunCtx->onReportCb(reportBuf, reportLen,
-                             pEkaBcRunCtx->cbCtx);
+    localCopyEkaBcRunCtx.onReportCb(
+        reportBuf, reportLen, localCopyEkaBcRunCtx.cbCtx);
     epmReportCh->next();
   }
   dev_->fireReportThreadTerminated = true;

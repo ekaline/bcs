@@ -40,6 +40,10 @@ public:
   initProd(EkaBcSecHandle prodHande,
            const EkaBcEurProductInitParams *params);
 
+  EkaBCOpResult setProdDynamicParams(
+      EkaBcSecHandle prodHande,
+      const EkaBcProductDynamicParams *params);
+
   EkaBCOpResult
   setProdJumpParams(EkaBcSecHandle prodHande,
                     const EkaBcEurJumpParams *params);

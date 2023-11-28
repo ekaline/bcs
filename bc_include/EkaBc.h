@@ -519,17 +519,15 @@ EkaBcSecHandle ekaBcGetSecHandle(EkaDev *dev,
                                  EkaBcEurSecId secId);
 
 /**
- * @brief Config params for Eurex product
+ * @brief Config params for Eurex product.
+ *        Initialized only once per Product.
  *
  */
 struct EkaBcEurProductInitParams {
   EkaBcEurSecId secId;
-  EkaBcEurFireSize maxBidSize; // limit fire size
-  EkaBcEurFireSize maxAskSize; // limit fire size
-  EkaBcEurPrice maxBookSpread;
   EkaBcEurPrice midPoint;
   EkaBcEurPrice
-      priceDiv; // for price normalization for prints only
+      priceDiv; // for price normalization (prints only)
   EkaBcEurPrice step;
   bool isBook;
   uint8_t eiPriceFlavor;
@@ -547,6 +545,29 @@ struct EkaBcEurProductInitParams {
 EkaBCOpResult
 ekaBcInitEurProd(EkaDev *dev, EkaBcSecHandle prodHande,
                  const EkaBcEurProductInitParams *params);
+
+/**
+ * @brief Product params used by FPGA strategy
+ *        Can be changed many times
+ *
+ */
+struct EkaBcProductDynamicParams {
+  EkaBcEurFireSize maxBidSize; // limit fire size
+  EkaBcEurFireSize maxAskSize; // limit fire size
+  EkaBcEurPrice maxBookSpread;
+};
+
+/**
+ * @brief Sets dynamic params of Eurex Product
+ *
+ * @param dev
+ * @param prodHande
+ * @param params
+ * @return EkaBCOpResult
+ */
+EkaBCOpResult ekaBcSetEurProdDynamicParams(
+    EkaDev *dev, EkaBcSecHandle prodHande,
+    const EkaBcProductDynamicParams *params);
 
 #define EKA_JUMP_ATBEST_SETS 4
 #define EKA_JUMP_BETTERBEST_SETS 5
@@ -700,20 +721,18 @@ void ekaBcEurRun(EkaDev *pEkaDev,
 // Reports
 ///////////////////////
 
-enum class EkaEfcBcReportType : int {
-  FirePkt = 5000
-};
+enum class EkaEfcBcReportType : int { FirePkt = 5000 };
 
 #define EkaBcReportType2STR(x)                             \
-  x == EkaEfcBcReportType::FirePkt        ? "FirePkt"      \
-      : "UnknownReport"
-  
+  x == EkaEfcBcReportType::FirePkt ? "FirePkt"             \
+                                   : "UnknownReport"
+
 struct EfcBcReportHdr {
   EkaEfcBcReportType type;
   uint8_t idx;
   size_t size;
 };
-  
+
 enum class EkaBcEventType : int {
   ExceptionEvent = 1,
   EpmEvent,
@@ -795,7 +814,7 @@ struct EkaBcEurReferenceJumpConf {
   uint16_t maxTobSize;        // 2
   uint8_t timeDeltaUs;        // 1
   uint16_t tickerSizeLots;    // 2
-  uint8_t        pad[19];     // 19
+  uint8_t pad[19];            // 19
 } __attribute__((packed));    // 13+19
 
 struct EkaBcEurJumpConf {
@@ -807,13 +826,13 @@ struct EkaBcEurJumpConf {
   uint8_t maxPostSize;     // 1
   uint16_t minTickerSize;  // 2
   uint64_t minPriceDelta;  // 8
-  uint8_t        pad[14 ]; // 14
+  uint8_t pad[14];         // 14
 } __attribute__((packed)); // 18
 
-union EkaEurHwStratConf{
-  EkaBcEurReferenceJumpConf refJumpConf; //32
-  EkaBcEurJumpConf jumpConf;             //32
-  } __attribute__((packed));
+union EkaEurHwStratConf {
+  EkaBcEurReferenceJumpConf refJumpConf; // 32
+  EkaBcEurJumpConf jumpConf;             // 32
+} __attribute__((packed));
 
 #if 0
 typedef struct packed {
@@ -822,15 +841,15 @@ typedef struct packed {
 	bit [7:0]     unarm_reason;
 	bit [7:0]     strategy_id;
 	bit [7:0]     strategy_subid;
-} controller_report_sh_t; 
+} controller_report_sh_t;
 #endif
 
 struct EkaEurHwControllerState {
-  uint8_t        stratSubID;      // 1
-  EkaBcStratType stratID;         // 1
-  uint8_t        unArmReason;     // 1
-  uint8_t        fireReason;      // 1
-  uint8_t        pad[4];          // 4
+  uint8_t stratSubID;      // 1
+  EkaBcStratType stratID;  // 1
+  uint8_t unArmReason;     // 1
+  uint8_t fireReason;      // 1
+  uint8_t pad[4];          // 4
 } __attribute__((packed)); // 8B
 
 struct EkaEurHwTobSingleSideState {
