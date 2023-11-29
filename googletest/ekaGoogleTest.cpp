@@ -256,9 +256,9 @@ TEST_F(TestEur, Eur_basic) {
     "12345678901234567890"
     "12345678901234567890";
 
-  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , 140);
-  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , 140);
-  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , 140);
+  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , strlen(EurSwFireMsg));
+  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , strlen(EurSwFireMsg));
+  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , strlen(EurSwFireMsg));
   //sw action
   
   EkaBcEurProductInitParams prodParams = {};
@@ -421,10 +421,11 @@ TEST_F(TestEur, Eur_basic) {
                    true /* armAsk */, armVer++);
   mcCon->sendUdpPkt(&execSumPkt, sizeof(execSumPkt));
   sleep(5);
-  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , 140);
-  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , 140);
-  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , 140);
-
+  for (uint i = 0; i < 100; i++) {
+    ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , strlen(EurSwFireMsg));
+  }
+  sleep(5);
+    
 #ifndef _VERILOG_SIM
   ekaBcCloseDev(dev_);
 #endif
