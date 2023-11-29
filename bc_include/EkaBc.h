@@ -319,8 +319,9 @@ typedef int EkaBcActionIdx;
  */
 enum class EkaBcActionType : int {
   INVALID = 0,
-  CmeFc = 60,
+  CmeFc  = 60,
   EurFire = 61,
+  EurSwSend = 62,
 };
 
 /**

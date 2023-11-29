@@ -235,6 +235,32 @@ TEST_F(TestEur, Eur_basic) {
       dev_, eurHwAction, tcpCtx_->tcpSess_[0]->excSock_);
   ASSERT_EQ(rc, EKABC_OPRESULT__OK);
 
+  rc = ekaBcSetActionTcpSock(
+      dev_, eurHwAction, tcpCtx_->tcpSess_[0]->excSock_);
+  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+
+  //sw action
+  auto eurSwAction = ekaBcAllocateNewAction(
+      dev_, EkaBcActionType::EurSwSend);
+  ASSERT_NE(eurSwAction, -1);
+
+  rc = ekaBcSetActionTcpSock(
+      dev_, eurSwAction, tcpCtx_->tcpSess_[0]->excSock_);
+  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+
+  const char EurSwFireMsg[] = "EurSwMessage wit 140"
+    "Byte payload XXXXXXX"
+    "12345678901234567890"
+    "12345678901234567890"
+    "12345678901234567890"
+    "12345678901234567890"
+    "12345678901234567890";
+
+  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , 140);
+  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , 140);
+  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , 140);
+  //sw action
+  
   EkaBcEurProductInitParams prodParams = {};
   prodParams.fireActionIdx = eurHwAction;
   prodParams.secId = prodList_[0];
@@ -302,7 +328,7 @@ TEST_F(TestEur, Eur_basic) {
   EkaBcArmVer armVer = 0;
 
   rc = ekaBcArmEur(dev_, h, true /* armBid */,
-                   true /* armAsk */, armVer);
+                   true /* armAsk */, armVer++);
   ASSERT_EQ(rc, EKABC_OPRESULT__OK);
 
   EkaBcRunCtx runCtx = {.onReportCb = getExampleFireReport,
@@ -387,8 +413,17 @@ TEST_F(TestEur, Eur_basic) {
 
   /*   sendPktToAll(&execSumPkt, sizeof(execSumPkt), true);
    */
+  ekaBcSetSessionCntr(dev_, tcpCtx_->tcpSess_[0]->excSock_, 5);
+    
   mcCon->sendUdpPkt(&execSumPkt, sizeof(execSumPkt));
   sleep(5);
+  rc = ekaBcArmEur(dev_, h, true /* armBid */,
+                   true /* armAsk */, armVer++);
+  mcCon->sendUdpPkt(&execSumPkt, sizeof(execSumPkt));
+  sleep(5);
+  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , 140);
+  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , 140);
+  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , 140);
 
 #ifndef _VERILOG_SIM
   ekaBcCloseDev(dev_);

@@ -55,6 +55,7 @@ public:
     Raw,
 
     EurEtiFire,
+    EurEtiSwSend,
 
     BoeQuoteUpdateShort,
     BoeCancel,

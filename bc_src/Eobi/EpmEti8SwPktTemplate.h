@@ -1,11 +1,11 @@
-#ifndef _EPM_ETI8_PKT_TEMPLATE_H_
-#define _EPM_ETI8_PKT_TEMPLATE_H_
+#ifndef _EPM_ETI8_SW_PKT_TEMPLATE_H_
+#define _EPM_ETI8_SW_PKT_TEMPLATE_H_
 
 #include "EpmTemplate.h"
 
-class EpmEti8PktTemplate : public EpmTemplate {
+class EpmEti8SwPktTemplate : public EpmTemplate {
 public:
-  EpmEti8PktTemplate(uint idx) : EpmTemplate(idx) {
+  EpmEti8SwPktTemplate(uint idx) : EpmTemplate(idx) {
     EpmTemplateField myTemplateStruct[] = {
         {"macDa", 6, HwField::IMMEDIATE, false, false},
         {"macSa", 6, HwField::IMMEDIATE, false, false},
@@ -38,33 +38,8 @@ public:
          false},
         {"Pad2", 2, HwField::IMMEDIATE, false, false},
         {"MsgSeqNum", 4, HwField::APPSEQ, true, true},
-        {"SenderSubID", 4, HwField::IMMEDIATE, false,
-         false},
-        {"Price", 8, HwField::PRICE, true, true},
-        {"OrderQty", 8, HwField::SIZE, true, true},
-        // {"ClOrdIDHW", 4, HwField::APPSEQ, true, true},
-        // {"ClOrdIDSW", 4, HwField::IMMEDIATE, false, false},
-	{"ClOrdIDSW", 8, HwField::IMMEDIATE, false, false},	
-        {"PartyIDClientID", 8, HwField::IMMEDIATE, false, false},
-        {"PartyIdInvestmentDecisionMaker", 8, HwField::IMMEDIATE, false, false},
-        {"ExecutingTrader", 8, HwField::IMMEDIATE, false, false},
-        {"SimpleSecurityID", 4, HwField::SECURITY_ID, true, true},
-        {"MatchInstCrossID", 4, HwField::IMMEDIATE, false, false},
-        {"EnrichmentRuleID", 2, HwField::IMMEDIATE, false, false},
-        {"Side", 1, HwField::SIDE, true, true},
-        {"ApplSeqIndicator", 1, HwField::IMMEDIATE, false, false},
-        {"ApplSeqIndicator", 1, HwField::IMMEDIATE, false, false},
-        {"ValueCheckTypeValue", 1, HwField::IMMEDIATE, false, false},
-        {"OrderAttributeLiquidityProvision", 1, HwField::IMMEDIATE, false, false},
-        {"TimeInForce", 1, HwField::IMMEDIATE, false, false},
-        {"ExecInst", 1, HwField::ASK_PRICE, true, true}, //WA, ==isBOC
-        {"TradingCapacity", 1, HwField::IMMEDIATE, false, false},
-        {"OrderOrigination", 1, HwField::IMMEDIATE, false, false},
-        {"PartyIdInvestmentDecisionMakerQualifier", 1, HwField::IMMEDIATE, false, false},
-        {"ExecutingTraderQualifier", 1, HwField::IMMEDIATE, false, false},
-        {"ComplianceText", 20, HwField::IMMEDIATE, false, false},
-        {"Pad7", 7, HwField::IMMEDIATE, false, false},
-	
+	{"Trailing", 1400, HwField::IMMEDIATE, false,false},
+
     };
 
     tSize =
@@ -74,7 +49,7 @@ public:
                MAX_FIELDS);
     memcpy(templateStruct, myTemplateStruct,
            sizeof(myTemplateStruct));
-    strcpy(name, "EpmEti8PktTemplate");
+    strcpy(name, "EpmEti8SwPktTemplate");
     init();
   }
 };

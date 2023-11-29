@@ -32,6 +32,7 @@
 #include "EkaBcEurProd.h"
 #include "EkaEobiTypes.h"
 #include "EpmEti8PktTemplate.h"
+#include "EpmEti8SwPktTemplate.h"
 
 using namespace EkaEobi;
 
@@ -253,6 +254,21 @@ void EkaEurStrategy::configureTemplates() {
       new EpmEti8PktTemplate(templateIdx);
 
   EKA_LOG("EpmEti8PktTemplate: "
+          "templateIdx = %d, "
+          "payload syze = %u Bytes",
+          templateIdx,
+          epm_->epmTemplate[templateIdx]->getByteSize());
+  epm_->DownloadSingleTemplate2HW(
+      epm_->epmTemplate[templateIdx]);
+
+#endif
+
+#if 1
+  templateIdx = (int)EkaEpm::TemplateId::EurEtiSwSend;
+  epm_->epmTemplate[templateIdx] =
+      new EpmEti8SwPktTemplate(templateIdx);
+
+  EKA_LOG("EpmEti8SwPktTemplate: "
           "templateIdx = %d, "
           "payload syze = %u Bytes",
           templateIdx,
