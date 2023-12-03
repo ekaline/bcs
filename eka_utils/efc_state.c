@@ -639,13 +639,11 @@ int printStratHeader() {
 
 // ################################################
 int printTOB(uint8_t prod_idx) {
-  //  auto tob_mem = new uint8_t[64];
-  //  auto arm_mem = new uint8_t[4];
-  unsigned char tob_mem[64];
+  unsigned char tob_mem[16][64];
   unsigned char arm_mem[64];
 
-  uint64_t *wrPtr = (uint64_t *)tob_mem;
-  uint64_t *wrPtrArm = (uint64_t *)arm_mem;
+  uint64_t *wrPtr;// = (uint64_t *)tob_mem;
+  uint64_t *wrPtrArm;// = (uint64_t *)arm_mem;
 
   //hw lock
   uint64_t locked;
@@ -654,36 +652,50 @@ int printTOB(uint8_t prod_idx) {
   }
   while (locked);
 
-  for (auto j = 0; j < 8; j++)
-    *wrPtr++ = reg_read(0x73000 + prod_idx * 64 + j * 8);
+  wrPtrArm = (uint64_t *)arm_mem;
 
   for (auto j = 0; j < 4; j++)
     *wrPtrArm++ = reg_read(0x74000 + j * 8);
+  
+  for (auto prod = 0; prod < 16; prod++) {
+    wrPtr    = (uint64_t *)tob_mem[prod];
+    
+    for (auto j = 0; j < 8; j++)
+      *wrPtr++ = reg_read(0x73000 + prod_idx * 64 + j * 8);
+  }
 
   // hw unlock
   reg_write(0x72000, 0); 
 
 
   auto prodTOB{
-      reinterpret_cast<const rf_tob_total_t *>(tob_mem)};
+      reinterpret_cast<const rf_tob_total_t *>(tob_mem[0])};
 
   auto armState{
       reinterpret_cast<const arm_status_unaligned_report_t *>(arm_mem)};
 
+  printf(prefixStrFormat, "Prod0");
+  printf("%d@%d : %d@%d",
+	 prodTOB->bid.size/10000,
+	 prodTOB->bid.price,
+	 prodTOB->ask.size/10000,
+	 prodTOB->ask.price
+	 );
+  printf("\n");
 
 
-  printf("bid\n price = %ju\n size = %ju\n seq = %ju\n",
-	 prodTOB->bid.price, 
-	 prodTOB->bid.size, 
-	 prodTOB->bid.seq);
-  printf("ask\n price = %ju\n size = %ju\n seq = %ju\n",
-	 prodTOB->ask.price, 
-	 prodTOB->ask.size, 
-	 prodTOB->ask.seq);
-  printf("arm\n version = %ju\n buy = %ju\n sell = %ju\n",
-  	 armState->prod[prod_idx].expected_version,
-  	 armState->prod[prod_idx].arm.buy,
-  	 armState->prod[prod_idx].arm.sell);
+  /* printf("bid\n price = %ju\n size = %ju\n seq = %ju\n", */
+  /* 	 prodTOB->bid.price,  */
+  /* 	 prodTOB->bid.size,  */
+  /* 	 prodTOB->bid.seq); */
+  /* printf("ask\n price = %ju\n size = %ju\n seq = %ju\n", */
+  /* 	 prodTOB->ask.price,  */
+  /* 	 prodTOB->ask.size,  */
+  /* 	 prodTOB->ask.seq); */
+  /* printf("arm\n version = %ju\n buy = %ju\n sell = %ju\n", */
+  /* 	 armState->prod[prod_idx].expected_version, */
+  /* 	 armState->prod[prod_idx].arm.buy, */
+  /* 	 armState->prod[prod_idx].arm.sell); */
 
   return 0;
 }
@@ -1065,6 +1077,7 @@ int printCurrRxTraffic(IfParams coreParams[NUM_OF_CORES]) {
 }
 // ################################################
 
+
 int printCurrTxTraffic(IfParams coreParams[NUM_OF_CORES]) {
 
   printf(prefixStrFormat, "Current TX PPS");
@@ -1387,11 +1400,11 @@ int main(int argc, char *argv[]) {
     printStratHeader();
     printStratStatus(pStratState);
 
-  printf("ReportOnly            :\t%d\n\n",
-         pStratState->p4.commonState.reportOnly);
-  
+    printf("ReportOnly            :\t%d\n\n",
+	   pStratState->p4.commonState.reportOnly);
+    
     printTOB(0);
-
+    
     /* ----------------------------------------- */
     char excptBuf[8192] = {};
     int decodeSize =
