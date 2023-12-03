@@ -299,6 +299,14 @@ int EkaEurStrategy::sendDate2Hw() {
   return 1;
 }
 /* --------------------------------------------------- */
+EkaBcEurProd *EkaEurStrategy::getProd(EkaBcSecHandle prodHandle) {
+  if (prodHandle < 0 || prodHandle >= MaxSecurities_)
+    on_error("Bad prodHandle %d",prodHandle);
+  return prod_[prodHandle];
+}
+
+
+/* --------------------------------------------------- */
 
 void EkaEurStrategy::runLoop(
     const EkaBcRunCtx *pEkaBcRunCtx) {

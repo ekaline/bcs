@@ -59,6 +59,8 @@ public:
                    const EobiHwBookParams *params,
                    SIDE side);
 
+  EkaBcEurProd *getProd(EkaBcSecHandle prodHandle);
+  
   EkaBCOpResult downloadPackedDB();
 
   void
