@@ -732,10 +732,11 @@ enum class EkaBcEventType : int {
 
 enum class EkaBcReportType : int {
   ControllerState = 1,
-  ExceptionsReport,
-  FirePkt,
-  CmeFastCancelReport,
-  EurFireReport
+    ExceptionsReport,
+    FirePkt,
+    CmeFastCancelReport,
+    EurFireReport,
+    EurSWFireReport
 };
 
 // every report is pre-pended by this header
@@ -887,6 +888,22 @@ struct EkaBcFireReport {
   uint8_t __unused8;
 } __attribute__((packed));
 
+struct EkaBcSwReport {
+  uint8_t pad[256];
+  uint64_t __unused1;
+  uint16_t currentActionIdx; // in the chain
+  uint16_t firstActionIdx;   // in the chain
+  uint8_t __unused2;
+  EkaBcHwFireStatus fireStatus;
+  uint8_t errCode;
+  uint16_t __unused3;
+  uint16_t __unused4;
+  uint16_t __unused5;
+  uint16_t __unused6;
+  uint64_t __unused7;
+  uint8_t __unused8;
+} __attribute__((packed));
+  
 enum class EkaBcArmSide : uint8_t {
   NONE = 0x0,
   BID = 0x1,

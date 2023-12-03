@@ -118,6 +118,17 @@ void getExampleFireReport(const void *p, size_t len, void *ctx) {
   case EkaBcEventType::ExceptionEvent:
     //    printf ("Status...\n");
     break;
+  case EkaBcEventType::EpmEvent:
+    printf ("SW Fire with %d reports...\n",containerHdr->nReports);
+    //skip container header
+    b += sizeof(*containerHdr);
+    //skip report hdr (of fire) and swfire report
+    b += sizeof(EkaBcReportHdr);
+    b += sizeof(EkaBcSwReport);
+    //print payload
+    printPayloadReport(b);
+    break;
+
   default:
     break;
   }
@@ -421,7 +432,7 @@ TEST_F(TestEur, Eur_basic) {
                    true /* armAsk */, armVer++);
   mcCon->sendUdpPkt(&execSumPkt, sizeof(execSumPkt));
   sleep(5);
-  for (uint i = 0; i < 100; i++) {
+  for (uint i = 0; i < 10; i++) {
     ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , strlen(EurSwFireMsg));
   }
   sleep(5);

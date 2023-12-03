@@ -56,10 +56,15 @@ int EkaEpmAction::setActionBitmap() {
     actionBitParams_.bitmap.feedbck_en = 0;
     break;
   case EpmActionType::CmeSwFire:
-  case EpmActionType::EurSwSend:
     actionBitParams_.bitmap.app_seq_inc = 1;
     actionBitParams_.bitmap.israw = 0;
     actionBitParams_.bitmap.report_en = 0;
+    actionBitParams_.bitmap.feedbck_en = 1;
+    break;
+  case EpmActionType::EurSwSend:
+    actionBitParams_.bitmap.app_seq_inc = 1;
+    actionBitParams_.bitmap.israw = 0;
+    actionBitParams_.bitmap.report_en = 1;
     actionBitParams_.bitmap.feedbck_en = 1;
     break;
   case EpmActionType::EurFire:

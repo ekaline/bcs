@@ -120,11 +120,13 @@ void EkaEurStrategy::fireReportThreadLoop(
       r = processSwTriggeredReport(
           dev_, payload, len, dev_->efc->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
+      //      EKA_LOG("XXXSWTRIGGERD");
       break;
     case EkaUserChannel::DMA_TYPE::EXCEPTION:
       r = processExceptionsReport(
           dev_, payload, len, dev_->efc->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
+      //      EKA_LOG("XXXEXCEPTION");
       break;
     case EkaUserChannel::DMA_TYPE::FAST_CANCEL:
       r = processFastCancelReport(
@@ -137,6 +139,7 @@ void EkaEurStrategy::fireReportThreadLoop(
           dev_, payload, len, dev_->efc->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
       printFireReport = true;
+      //      EKA_LOG("XXXFIRE");
       break;
     default:
       on_error("Unexpected DMA type 0x%x",
@@ -169,15 +172,7 @@ void EkaEurStrategy::fireReportThreadLoop(
   return;
 }
 
-/* ################################################## */
 
-std::pair<int, size_t>
-EkaEurStrategy::processSwTriggeredReport(
-    EkaDev *dev, const uint8_t *srcReport,
-    uint srcReportLen, EkaUserReportQ *q, uint32_t dmaIdx,
-    uint8_t *reportBuf) {
-  on_error("Not expected");
-}
 /* ################################################## */
 inline size_t
 pushExceptionsReport(int reportIdx, uint8_t *dst,
@@ -254,6 +249,25 @@ pushEurFireReport(int reportIdx, uint8_t *dst,
 }
 
 /* ################################################## */
+
+static inline size_t
+pushEurEpmReport(int reportIdx, uint8_t *dst,
+                  const EkaBcSwReport *src) {
+
+  auto b = dst;
+  auto reportHdr = reinterpret_cast<EkaBcReportHdr *>(b);
+  reportHdr->type = EkaBcReportType::EurSWFireReport;
+  reportHdr->idx = reportIdx;
+  reportHdr->size = sizeof(EkaBcSwReport);
+  b += sizeof(*reportHdr);
+
+  memcpy(b, src, sizeof(EkaBcSwReport));
+
+  b += sizeof(EkaBcSwReport);
+  return b - dst;
+}
+
+/* ################################################## */
 static inline size_t
 pushFiredPkt(volatile bool *fireReportThreadActive,
              int reportIdx, uint8_t *dst, EkaUserReportQ *q,
@@ -314,3 +328,48 @@ std::pair<int, size_t> EkaEurStrategy::processFireReport(
   return {EFC_STRATEGY, b - reportBuf};
 }
 /* ################################################## */
+
+/* ################################################## */
+
+std::pair<int, size_t>
+EkaEurStrategy::processSwTriggeredReport(
+    EkaDev *dev, const uint8_t *srcReport,
+    uint srcReportLen, EkaUserReportQ *q, uint32_t dmaIdx,
+    uint8_t *reportBuf) {
+  
+  //--------------------------------------------------------------------------
+  uint8_t *b = reportBuf;
+  uint reportIdx = 0;
+  //--------------------------------------------------------------------------
+  auto containerHdr{
+      reinterpret_cast<EkaBcContainerGlobalHdr *>(b)};
+  containerHdr->eventType = EkaBcEventType::EpmEvent;
+  containerHdr->nReports =
+      0; // to be overwritten at the end
+  b += sizeof(*containerHdr);
+  //--------------------------------------------------------------------------
+  auto hwEpmReport{
+      reinterpret_cast<const EkaBcSwReport *>(
+          srcReport)};
+
+  switch (static_cast<HwEpmActionStatus>(
+      hwEpmReport->fireStatus)) {
+  case HwEpmActionStatus::Sent:
+    b += pushEurEpmReport(++reportIdx, b, hwEpmReport);
+    b += pushFiredPkt(&dev_->fireReportThreadActive,
+                    ++reportIdx, b, q, dmaIdx);
+    //    EKA_LOG("processEpmReport HwEpmActionStatus::Sent,  len=%d",srcReportLen);
+    break;
+  default:
+    // Broken EPM send reported by hwEpmReport->action
+    EKA_LOG("Processgin HwEpmActionStatus::Garbage, len=%d",
+            srcReportLen);
+    b += pushEurEpmReport(++reportIdx, b, hwEpmReport);
+  }
+  //--------------------------------------------------------------------------
+  containerHdr->nReports = reportIdx;
+
+  return {EFC_STRATEGY, b - reportBuf};
+  
+}
+
