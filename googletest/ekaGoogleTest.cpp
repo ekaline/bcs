@@ -237,8 +237,11 @@ TEST_F(TestEur, Eur_basic) {
   // Inititializes everything
   initEur();
 
-  auto h = ekaBcGetSecHandle(dev_, prodList_[0]);
-  auto r = ekaBcGetSecHandle(dev_, prodList_[1]);
+  auto ref_index = 0;
+  auto main_index = 2;
+  
+  auto h = ekaBcGetSecHandle(dev_, prodList_[main_index]);
+  auto r = ekaBcGetSecHandle(dev_, prodList_[ref_index]);
   ASSERT_NE(h, -1);
   ASSERT_NE(r, -1);
 
@@ -278,7 +281,7 @@ TEST_F(TestEur, Eur_basic) {
   
   EkaBcEurProductInitParams prodParams = {};
   prodParams.fireActionIdx = eurHwAction;
-  prodParams.secId = prodList_[0];
+  prodParams.secId = prodList_[main_index];
   prodParams.step = 1;
   prodParams.isBook = 1;
   prodParams.maxBidSize = sizeMultiplier;     // TBD
@@ -289,7 +292,7 @@ TEST_F(TestEur, Eur_basic) {
 
   rc = ekaBcInitEurProd(dev_, h, &prodParams);
 
-  prodParams.secId = prodList_[1];
+  prodParams.secId = prodList_[ref_index];
   rc = ekaBcInitEurProd(dev_, r, &prodParams); //reference
   
   ASSERT_EQ(rc, EKABC_OPRESULT__OK);
@@ -305,6 +308,7 @@ TEST_F(TestEur, Eur_basic) {
   ASSERT_EQ(rc, EKABC_OPRESULT__OK);
 
   EkaBcEurJumpParams jumpParams = {};
+  
   jumpParams.atBest[activeJumpAtBestSet].max_tob_size =
       (tobBidSize > tobAskSize) ? tobBidSize : tobAskSize;
   jumpParams.atBest[activeJumpAtBestSet].min_tob_size =
@@ -345,6 +349,7 @@ TEST_F(TestEur, Eur_basic) {
   ASSERT_EQ(rc, EKABC_OPRESULT__OK);
 
   EkaBcEurReferenceJumpParams   rjumpParams = {};
+
   rjumpParams.atBest[activeRJumpAtBestSet].max_tob_size =
       (tobBidSize > tobAskSize) ? tobBidSize : tobAskSize;
   rjumpParams.atBest[activeRJumpAtBestSet].min_tob_size =

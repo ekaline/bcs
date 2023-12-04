@@ -449,7 +449,7 @@ int main(int argc, char *argv[]) {
   }
 
   //  printf ("Reading configurable parameters from FPGA...\n");
-  for (int i=0;i<1;i++) {
+  for (int i=0;i<4;i++) {
     //    eka_product_t prod_id = (eka_product_t)((var_sw_stats_zero>>(8+i*4))&0xf);
     //    if (prod_id==INVALID) continue;
     //    resolve_product(feed_id,buf,prod_id);
@@ -460,9 +460,12 @@ int main(int argc, char *argv[]) {
     //
 
     //    eka_dump_params(feed_id,EKA_CONF_TYPE::PRODUCT,i,buf);
-    printf(UNDER "\n      Prod %d       \n" RESET,i);
+    printf(UNDER "\n      Prod %d Jump    \n" RESET,i);
     eka_dump_params(EKA_CONF_TYPE::SJUMP,i);
+    printf(UNDER "\n      Prod %d Reference    \n" RESET,i);    
     eka_dump_params(EKA_CONF_TYPE::RJUMP,i);
+    printf("\n");    
+    
   }
 
 
