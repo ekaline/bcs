@@ -163,6 +163,36 @@ EkaBCOpResult EkaEurStrategy::downloadPackedDB() {
 }
 /* --------------------------------------------------- */
 
+/* --------------------------------------------------- */
+EkaBCOpResult EkaEurStrategy::downloadProdInfoDB() {
+
+  uint64_t bookCnt = 0;
+  uint64_t totalCnt = 0;
+  
+  EkaBcSecHandle prodHande;
+  for (prodHande = 0; prodHande < MaxSecurities_; prodHande++) {
+    if (prod_[prodHande]) {
+      totalCnt++;
+      if (prod_[prodHande]->isBook_) {
+	bookCnt++;
+	eka_write(SW_SCRATCHPAD_BASE + prodHande*8 , prod_[prodHande]->secId_);
+	EKA_LOG("prodHande %d isBook, secid 0x%jx (0x%d)",
+		prodHande,
+		prod_[prodHande]->secId_,
+		prod_[prodHande]->secId_);
+      }
+    }
+  }
+  EKA_LOG("Updating HW Scratchpad totalCnt %d, bookCnt %d",
+	  totalCnt,bookCnt);
+
+  eka_write(SW_SCRATCHPAD_BASE + 16*8 , totalCnt);
+  eka_write(SW_SCRATCHPAD_BASE + 17*8 , bookCnt);
+  
+  return EKABC_OPRESULT__OK;
+}
+/* --------------------------------------------------- */
+
 EkaBCOpResult EkaEurStrategy::initProd(
     EkaBcSecHandle prodHande,
     const EkaBcEurProductInitParams *params) {

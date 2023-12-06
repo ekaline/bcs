@@ -318,6 +318,9 @@ void ekaBcEurRun(EkaDev *dev,
   EKA_LOG("Joining UDP Channels");
   eur->joinUdpChannels();
 
+  EKA_LOG("Updating Scratchpad");
+  eur->downloadProdInfoDB();
+
   /* ----------------------------------------------- */
 
   EKA_LOG("Lounching "

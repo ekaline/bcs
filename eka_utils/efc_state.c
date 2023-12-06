@@ -123,6 +123,13 @@ struct EfcState {
   CommonState commonState;
 };
 
+struct EurProdState {
+  uint64_t totalSecs = 0;
+  uint64_t bookSecs = 0;
+  uint64_t secID[16];
+};
+
+
 struct FastCancelState {
   uint64_t strategyRuns = 0;
   uint64_t strategyPassed = 0;
@@ -153,6 +160,7 @@ struct StratState {
   FastSweepState fastSweep;
   QEDState QED;
   NewsState news;
+  EurProdState eur;
 };
 
 const char *emptyPrefix = "                     ";
@@ -165,6 +173,9 @@ const char *colformat = "|    %'-16ju  ";
 const char *colformats = "|    %'-16s  ";
 const char *colformatsgrn = GRN "|    %'-16s  " RESET;
 const char *colformatsred = RED "|    %'-16s  " RESET;
+const char *bookStringFormat = "| %20s ";
+const char *bookSideFormat = "| %10d@%-9d ";
+const char *prefixBookStrFormat = "%-12s %-8d";
 const int colLen = 22;
 
 bool active_strat[16] = {false};
@@ -414,6 +425,34 @@ int printStratLineSeparator(char sep, char s) {
   return 0;
 }
 // ################################################
+int printBookLineSeparator(char sep, char s, int num) {
+  printf("%s", std::string(strlen(emptyPrefix), s).c_str());
+  for (auto i = 0; i < num;  i++) {
+    printf("%c%s", sep, std::string(colLen, s).c_str());
+  }
+  printf("\n");
+  return 0;
+}
+
+// ################################################
+int printBookHeader() {
+  printf("\n");
+  printf("%s", emptyPrefix);
+  printf(bookStringFormat, "SecID      ");
+  printf(bookStringFormat, "Bid        ");
+  printf(bookStringFormat, "Ask        ");
+
+  printf("\n");
+
+  /* ----------------------------------------- */
+  printBookLineSeparator( '+', '-', 3);
+  /* ----------------------------------------- */
+  //  printf("%s",emptyPrefix);
+
+  return 0;
+}
+
+// ################################################
 
 int printHeader(IfParams coreParams[NUM_OF_CORES],
                 EfcState *pEfcState,
@@ -627,11 +666,21 @@ int printStratHeader() {
       continue;
 
     std::string nameStr =
-        std::string(EKA_STRAT2STRING(stratId)) + "       ";
+        std::string(EKA_STRAT2STRING(stratId)) + " Strategy  ";
     //    printf(colStringFormat, nameStr.c_str());
     printf(colformats, nameStr.c_str());
   }
   printf("\n");
+  printStratLineSeparator('+', '-');
+  /* ----------------------------------------- */
+  return 0;
+}
+
+// ################################################
+int printProdHeader() {
+  //  printf("%s", emptyPrefix);
+
+  //  printf("\n");
   printStratLineSeparator('+', '-');
   /* ----------------------------------------- */
   return 0;
@@ -674,28 +723,9 @@ int printTOB(uint8_t prod_idx) {
   auto armState{
       reinterpret_cast<const arm_status_unaligned_report_t *>(arm_mem)};
 
-  printf("Product%d %8d@%-8d : %8d@%-8d", prod_idx,
-	 prodTOB->bid.size/10000,
-	 prodTOB->bid.price,
-	 prodTOB->ask.size/10000,
-	 prodTOB->ask.price
-	 );
-  printf("\n");
-
-
-  /* printf("bid\n price = %ju\n size = %ju\n seq = %ju\n", */
-  /* 	 prodTOB->bid.price,  */
-  /* 	 prodTOB->bid.size,  */
-  /* 	 prodTOB->bid.seq); */
-  /* printf("ask\n price = %ju\n size = %ju\n seq = %ju\n", */
-  /* 	 prodTOB->ask.price,  */
-  /* 	 prodTOB->ask.size,  */
-  /* 	 prodTOB->ask.seq); */
-  /* printf("arm\n version = %ju\n buy = %ju\n sell = %ju\n", */
-  /* 	 armState->prod[prod_idx].expected_version, */
-  /* 	 armState->prod[prod_idx].arm.buy, */
-  /* 	 armState->prod[prod_idx].arm.sell); */
-
+  printf(bookSideFormat, prodTOB->bid.size/10000, prodTOB->bid.price);
+  printf(bookSideFormat, prodTOB->ask.size/10000, prodTOB->ask.price);
+  
   return 0;
 }
 
@@ -882,7 +912,7 @@ int printStratStatus(StratState *pStratState) {
   /* printf("\n"); */
 
   /* ----------------------------------------- */
-  printf(prefixStrFormat, "Report only");
+  printf(prefixStrFormat, "Report Only");
   for (auto stratId = 0; stratId < NUM_OF_STRAT;
        stratId++) {
     if (!active_strat[stratId])
@@ -909,7 +939,7 @@ int printStratStatus(StratState *pStratState) {
   printf("\n");
   
   /* ----------------------------------------- */
-  printf(prefixStrFormat, "Strat evaluated");
+  printf(prefixStrFormat, "Strat Evaluated");
   for (auto stratId = 0; stratId < NUM_OF_STRAT;
        stratId++) {
     if (!active_strat[stratId])
@@ -938,7 +968,7 @@ int printStratStatus(StratState *pStratState) {
   printf("\n");
 
   /* ----------------------------------------- */
-  printf(prefixStrFormat, "Strat passed");
+  printf(prefixStrFormat, "Strat Passed");
   for (auto stratId = 0; stratId < NUM_OF_STRAT;
        stratId++) {
     if (!active_strat[stratId])
@@ -966,10 +996,6 @@ int printStratStatus(StratState *pStratState) {
   }
   printf("\n");
 
-
-
-
-  printf("\n");
   return 0;
 }
 
@@ -1205,6 +1231,51 @@ int getEfcState(EfcState *pEfcState) {
 }
 
 // ################################################
+int getProdState(EurProdState *pProdState) {
+
+  pProdState->totalSecs = reg_read(SW_SCRATCHPAD_BASE + 16*8);
+  pProdState->bookSecs  = reg_read(SW_SCRATCHPAD_BASE + 17*8);
+
+  for (auto prodHande = 0; prodHande < 16; prodHande++) {
+    pProdState->secID[prodHande] =
+      reg_read(SW_SCRATCHPAD_BASE + prodHande*8);
+  }
+
+  return 0;
+}
+
+// ################################################
+int printProdState(EurProdState *pProdState) {
+  printf(prefixStrFormat, "Total Products");
+  printf (colformat,pProdState->totalSecs);
+  printf("\n");
+  printf(prefixStrFormat, "Book Products");
+  printf (colformat,pProdState->bookSecs);
+  printf("\n");
+  
+  return 0;
+}
+
+int printBookState(EurProdState *pProdState) {
+
+  for (auto prodHande = 0; prodHande < 16; prodHande++) {
+    if (pProdState->secID[prodHande]) {
+            //      printf(colformat, prodHande);
+
+      printf(prefixBookStrFormat, "Handle" , prodHande);
+      printf(colformat, pProdState->secID[prodHande]);
+      printTOB(prodHande);
+      printf("\n");
+      
+    }
+
+  }
+  
+  
+  return 0;
+}
+
+// ################################################
 int getFastCancelState(FastCancelState *pFastCancelState) {
 
   uint64_t var_fc_cont_counter1 = reg_read(0xf0800);
@@ -1429,10 +1500,12 @@ int main(int argc, char *argv[]) {
 
     /* printf("ReportOnly\t\t\t%d\n\n", */
     /* 	   pStratState->p4.commonState.reportOnly); */
-    
-    for (auto j = 0; j < 4; j++) {
-      printTOB(j);
-    }
+    getProdState(&pStratState->eur);
+    printProdHeader();
+    printProdState(&pStratState->eur);
+
+    printBookHeader();
+    printBookState(&pStratState->eur);
     
     /* ----------------------------------------- */
     char excptBuf[8192] = {};

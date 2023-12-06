@@ -294,6 +294,7 @@ TEST_F(TestEur, Eur_basic) {
   rc = ekaBcInitEurProd(dev_, h, &prodParams);
 
   prodParams.secId = prodList_[ref_index];
+
   rc = ekaBcInitEurProd(dev_, r, &prodParams); //reference
   
   ASSERT_EQ(rc, EKABC_OPRESULT__OK);
