@@ -364,7 +364,6 @@ EkaOpResult efcSetSessionCntr(EkaDev *dev,
   memcpy(&cntrAscii, cntrString, 8);
   tcpS->updateFpgaCtx<EkaTcpSess::AppSeqAscii>(
       be64toh(cntrAscii));
-
   return EKA_OPRESULT__OK;
 }
 /* --------------------------------------------------- */

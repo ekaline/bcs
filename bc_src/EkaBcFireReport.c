@@ -132,13 +132,11 @@ void EkaEurStrategy::fireReportThreadLoop(
       r = processFastCancelReport(
           dev_, payload, len, dev_->efc->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
-      printFireReport = true;
       break;
     case EkaUserChannel::DMA_TYPE::FIRE:
       r = processFireReport(
           dev_, payload, len, dev_->efc->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
-      printFireReport = true;
       //      EKA_LOG("XXXFIRE");
       break;
     default:

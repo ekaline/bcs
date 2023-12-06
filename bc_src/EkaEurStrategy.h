@@ -63,6 +63,8 @@ public:
   
   EkaBCOpResult downloadPackedDB();
 
+  EkaBCOpResult downloadProdInfoDB();
+
   void
   fireReportThreadLoop(const EkaBcRunCtx *pEkaBcRunCtx);
 

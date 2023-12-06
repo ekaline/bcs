@@ -383,12 +383,13 @@ ExcConnHandle excConnect(EkaDev *dev,
     return -1;
 
   sess->updateFpgaCtx<EkaTcpSess::AppSeqBin>(0);
-  char asciiZero[8] = {'0', '0', '0', '0',
-                       '0', '0', '0', '0'};
-  uint64_t asciiZeroNum;
-  memcpy(&asciiZeroNum, asciiZero, 8);
-  sess->updateFpgaCtx<EkaTcpSess::AppSeqAscii>(
-      be64toh(asciiZeroNum));
+  sess->updateFpgaCtx<EkaTcpSess::AppSeqAscii>(0);
+  /* char asciiZero[8] = {'0', '0', '0', '0', */
+  /*                      '0', '0', '0', '0'}; */
+  /* uint64_t asciiZeroNum; */
+  /* memcpy(&asciiZeroNum, asciiZero, 8); */
+  /* sess->updateFpgaCtx<EkaTcpSess::AppSeqAscii>( */
+  /*     be64toh(asciiZeroNum)); */
 
   return sess->getConnHandle();
 }

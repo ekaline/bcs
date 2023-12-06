@@ -98,6 +98,7 @@ void printPayloadReport(uint8_t *p) {
 }
 
 void getExampleFireReport(const void *p, size_t len, void *ctx) {
+  if (0) {
   uint8_t *b = (uint8_t *)p;
   auto containerHdr{
       reinterpret_cast<EkaBcContainerGlobalHdr *>(b)};
@@ -132,7 +133,7 @@ void getExampleFireReport(const void *p, size_t len, void *ctx) {
   default:
     break;
   }
-
+  }
 }
 
 /* --------------------------------------------- */
@@ -237,8 +238,8 @@ TEST_F(TestEur, Eur_basic) {
   // Inititializes everything
   initEur();
 
-  auto ref_index = 0;
-  auto main_index = 2;
+  auto ref_index = 1;
+  auto main_index = 0;
   
   auto h = ekaBcGetSecHandle(dev_, prodList_[main_index]);
   auto r = ekaBcGetSecHandle(dev_, prodList_[ref_index]);

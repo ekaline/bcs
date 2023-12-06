@@ -674,8 +674,7 @@ int printTOB(uint8_t prod_idx) {
   auto armState{
       reinterpret_cast<const arm_status_unaligned_report_t *>(arm_mem)};
 
-  printf(prefixStrFormat, "Prod0");
-  printf("%d@%d : %d@%d",
+  printf("Product%d %8d@%-8d : %8d@%-8d", prod_idx,
 	 prodTOB->bid.size/10000,
 	 prodTOB->bid.price,
 	 prodTOB->ask.size/10000,
@@ -774,8 +773,116 @@ int printStratStatus(StratState *pStratState) {
   }
   printf("\n");
   }
+  /* /\* ----------------------------------------- *\/ */
+  /* printf(prefixStrFormat, "Subscription tries"); */
+  /* for (auto stratId = 0; stratId < NUM_OF_STRAT; */
+  /*      stratId++) { */
+  /*   if (!active_strat[stratId]) */
+  /*     continue; */
+
+  /*   switch (stratId) { */
+  /*   case S_P4: */
+  /*     printf(colformat, pStratState->p4.totalSecs); */
+  /*     break; */
+  /*   case S_QED: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_SWEEP: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_NEWS: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_CANCEL: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   } */
+  /* } */
+  /* printf("\n"); */
+
+  /* /\* ----------------------------------------- *\/ */
+  /* printf(prefixStrFormat, "Subscription done"); */
+  /* for (auto stratId = 0; stratId < NUM_OF_STRAT; */
+  /*      stratId++) { */
+  /*   if (!active_strat[stratId]) */
+  /*     continue; */
+
+  /*   switch (stratId) { */
+  /*   case S_P4: */
+  /*     printf(colformat, pStratState->p4.subscribedSecs); */
+  /*     break; */
+  /*   case S_QED: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_SWEEP: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_NEWS: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_CANCEL: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   } */
+  /* } */
+  /* printf("\n"); */
+
   /* ----------------------------------------- */
-  printf(prefixStrFormat, "Subscription tries");
+  /* printf(prefixStrFormat, "Strat unsubscribed"); */
+  /* for (auto stratId = 0; stratId < NUM_OF_STRAT; */
+  /*      stratId++) { */
+  /*   if (!active_strat[stratId]) */
+  /*     continue; */
+
+  /*   switch (stratId) { */
+  /*   case S_P4: */
+  /*     printf(colformat, pStratState->p4.ordersUnsubscribed); */
+  /*     break; */
+  /*   case S_QED: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_SWEEP: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_NEWS: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_CANCEL: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   } */
+  /* } */
+  /* printf("\n"); */
+
+  /* /\* ----------------------------------------- *\/ */
+  /* printf(prefixStrFormat, "Strat subscribed"); */
+  /* for (auto stratId = 0; stratId < NUM_OF_STRAT; */
+  /*      stratId++) { */
+  /*   if (!active_strat[stratId]) */
+  /*     continue; */
+
+  /*   switch (stratId) { */
+  /*   case S_P4: */
+  /*     printf(colformat, pStratState->p4.ordersSubscribed); */
+  /*     break; */
+  /*   case S_QED: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_SWEEP: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_NEWS: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_CANCEL: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   } */
+  /* } */
+  /* printf("\n"); */
+
+  /* ----------------------------------------- */
+  printf(prefixStrFormat, "Report only");
   for (auto stratId = 0; stratId < NUM_OF_STRAT;
        stratId++) {
     if (!active_strat[stratId])
@@ -783,105 +890,24 @@ int printStratStatus(StratState *pStratState) {
 
     switch (stratId) {
     case S_P4:
-      printf(colformat, pStratState->p4.totalSecs);
+      printf(colformat,pStratState->p4.commonState.reportOnly);
       break;
     case S_QED:
-      printf(colformats, "-");
+      printf(colformat,pStratState->p4.commonState.reportOnly);
       break;
     case S_SWEEP:
-      printf(colformats, "-");
+      printf(colformat,pStratState->p4.commonState.reportOnly);
       break;
     case S_NEWS:
-      printf(colformats, "-");
+      printf(colformat,pStratState->p4.commonState.reportOnly);
       break;
     case S_CANCEL:
-      printf(colformats, "-");
+      printf(colformat,pStratState->p4.commonState.reportOnly);
       break;
     }
   }
   printf("\n");
-
-  /* ----------------------------------------- */
-  printf(prefixStrFormat, "Subscription done");
-  for (auto stratId = 0; stratId < NUM_OF_STRAT;
-       stratId++) {
-    if (!active_strat[stratId])
-      continue;
-
-    switch (stratId) {
-    case S_P4:
-      printf(colformat, pStratState->p4.subscribedSecs);
-      break;
-    case S_QED:
-      printf(colformats, "-");
-      break;
-    case S_SWEEP:
-      printf(colformats, "-");
-      break;
-    case S_NEWS:
-      printf(colformats, "-");
-      break;
-    case S_CANCEL:
-      printf(colformats, "-");
-      break;
-    }
-  }
-  printf("\n");
-
-  /* ----------------------------------------- */
-  printf(prefixStrFormat, "Strat unsubscribed");
-  for (auto stratId = 0; stratId < NUM_OF_STRAT;
-       stratId++) {
-    if (!active_strat[stratId])
-      continue;
-
-    switch (stratId) {
-    case S_P4:
-      printf(colformat, pStratState->p4.ordersUnsubscribed);
-      break;
-    case S_QED:
-      printf(colformats, "-");
-      break;
-    case S_SWEEP:
-      printf(colformats, "-");
-      break;
-    case S_NEWS:
-      printf(colformats, "-");
-      break;
-    case S_CANCEL:
-      printf(colformats, "-");
-      break;
-    }
-  }
-  printf("\n");
-
-  /* ----------------------------------------- */
-  printf(prefixStrFormat, "Strat subscribed");
-  for (auto stratId = 0; stratId < NUM_OF_STRAT;
-       stratId++) {
-    if (!active_strat[stratId])
-      continue;
-
-    switch (stratId) {
-    case S_P4:
-      printf(colformat, pStratState->p4.ordersSubscribed);
-      break;
-    case S_QED:
-      printf(colformats, "-");
-      break;
-    case S_SWEEP:
-      printf(colformats, "-");
-      break;
-    case S_NEWS:
-      printf(colformats, "-");
-      break;
-    case S_CANCEL:
-      printf(colformats, "-");
-      break;
-    }
-  }
-  printf("\n");
-
+  
   /* ----------------------------------------- */
   printf(prefixStrFormat, "Strat evaluated");
   for (auto stratId = 0; stratId < NUM_OF_STRAT;
@@ -939,6 +965,7 @@ int printStratStatus(StratState *pStratState) {
     }
   }
   printf("\n");
+
 
 
 
@@ -1135,24 +1162,24 @@ int getEfcState(EfcState *pEfcState) {
 
   uint64_t var_p4_cont_counter1 =
       reg_read(ADDR_P4_CONT_COUNTER1);
-  uint64_t var_p4_cont_counter3 =
-      reg_read(ADDR_P4_CONT_COUNTER3);
+  /* uint64_t var_p4_cont_counter3 = */
+  /*     reg_read(ADDR_P4_CONT_COUNTER3); */
   uint64_t var_p4_general_conf =
       reg_read(ADDR_P4_GENERAL_CONF);
   uint64_t var_fatal_debug = reg_read(ADDR_FATAL_CONF);
 
-  uint64_t subscrCnt = reg_read(SCRPAD_EFC_SUBSCR_CNT);
-  pEfcState->totalSecs = (subscrCnt >> 32) & 0xFFFFFFFF;
-  pEfcState->subscribedSecs = subscrCnt & 0xFFFFFFFF;
+  /* uint64_t subscrCnt = reg_read(SCRPAD_EFC_SUBSCR_CNT); */
+  /* pEfcState->totalSecs = (subscrCnt >> 32) & 0xFFFFFFFF; */
+  /* pEfcState->subscribedSecs = subscrCnt & 0xFFFFFFFF; */
 
   pEfcState->strategyPassed =
       (var_p4_cont_counter1 >> 0) & MASK32;
   pEfcState->strategyRuns =
       (var_p4_cont_counter1 >> 32) & MASK32;
-  pEfcState->ordersSubscribed =
-      (var_p4_cont_counter3 >> 0) & MASK32;
-  pEfcState->ordersUnsubscribed =
-      (var_p4_cont_counter3 >> 32) & MASK32;
+  /* pEfcState->ordersSubscribed = */
+  /*     (var_p4_cont_counter3 >> 0) & MASK32; */
+  /* pEfcState->ordersUnsubscribed = */
+  /*     (var_p4_cont_counter3 >> 32) & MASK32; */
 
   uint64_t armReg = reg_read(P4_ARM_DISARM);
   pEfcState->commonState.armed = (armReg & 0x1) != 0;
@@ -1286,7 +1313,7 @@ int printEfcState(EfcState *pEfcState) {
   printf("\n-----------------------------------------------"
          "---------");
 
-  printf("ReportOnly            :\t%d\n",
+  printf("ReportOnly\t\t%d\n",
          pEfcState->commonState.reportOnly);
 
   if (pEfcState->fatalDebug)
@@ -1400,10 +1427,12 @@ int main(int argc, char *argv[]) {
     printStratHeader();
     printStratStatus(pStratState);
 
-    printf("ReportOnly            :\t%d\n\n",
-	   pStratState->p4.commonState.reportOnly);
+    /* printf("ReportOnly\t\t\t%d\n\n", */
+    /* 	   pStratState->p4.commonState.reportOnly); */
     
-    printTOB(0);
+    for (auto j = 0; j < 4; j++) {
+      printTOB(j);
+    }
     
     /* ----------------------------------------- */
     char excptBuf[8192] = {};
