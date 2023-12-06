@@ -634,7 +634,7 @@ EkaBCOpResult ekaBcEurSetReferenceJumpParams(
  *        if the SW provides ArmVer matching the expected
  *        number by the FPGA
  */
-typedef uint32_t EkaBcArmVer;
+typedef uint8_t EkaBcArmVer;
 
 /**
  * @brief Changing Arm/Disarm state of the Product

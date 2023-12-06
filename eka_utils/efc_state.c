@@ -174,7 +174,7 @@ const char *colformats = "|    %'-16s  ";
 const char *colformatsgrn = GRN "|    %'-16s  " RESET;
 const char *colformatsred = RED "|    %'-16s  " RESET;
 const char *bookStringFormat = "| %20s ";
-const char *bookSideFormat = "| %10d@%-9d ";
+const char *bookSideFormat = "| %7u@%-12ju ";
 const char *prefixBookStrFormat = "%-12s %-8d";
 const int colLen = 22;
 
@@ -688,7 +688,7 @@ int printProdHeader() {
 
 // ################################################
 int printTOB(uint8_t prod_idx) {
-  unsigned char tob_mem[16][64];
+  unsigned char tob_mem[64];
   unsigned char arm_mem[64];
 
   uint64_t *wrPtr;// = (uint64_t *)tob_mem;
@@ -706,19 +706,17 @@ int printTOB(uint8_t prod_idx) {
   for (auto j = 0; j < 4; j++)
     *wrPtrArm++ = reg_read(0x74000 + j * 8);
   
-  for (auto prod = 0; prod < 16; prod++) {
-    wrPtr    = (uint64_t *)tob_mem[prod];
+  wrPtr    = (uint64_t *)tob_mem;
     
-    for (auto j = 0; j < 8; j++)
-      *wrPtr++ = reg_read(0x73000 + prod_idx * 64 + j * 8);
-  }
+  for (auto j = 0; j < 8; j++)
+    *wrPtr++ = reg_read(0x73000 + prod_idx * 64 + j * 8);
 
   // hw unlock
   reg_write(0x72000, 0); 
 
 
   auto prodTOB{
-      reinterpret_cast<const rf_tob_total_t *>(tob_mem[0])};
+      reinterpret_cast<const rf_tob_total_t *>(tob_mem)};
 
   auto armState{
       reinterpret_cast<const arm_status_unaligned_report_t *>(arm_mem)};
@@ -1233,12 +1231,14 @@ int getEfcState(EfcState *pEfcState) {
 // ################################################
 int getProdState(EurProdState *pProdState) {
 
-  pProdState->totalSecs = reg_read(SW_SCRATCHPAD_BASE + 16*8);
-  pProdState->bookSecs  = reg_read(SW_SCRATCHPAD_BASE + 17*8);
+  uint64_t prodBase = SW_SCRATCHPAD_BASE + 16*8; //from line 16
+  
+  pProdState->totalSecs = reg_read(prodBase + 16*8);
+  pProdState->bookSecs  = reg_read(prodBase + 17*8);
 
   for (auto prodHande = 0; prodHande < 16; prodHande++) {
     pProdState->secID[prodHande] =
-      reg_read(SW_SCRATCHPAD_BASE + prodHande*8);
+      reg_read(prodBase + prodHande*8);
   }
 
   return 0;

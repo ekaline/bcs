@@ -170,12 +170,15 @@ EkaBCOpResult EkaEurStrategy::downloadProdInfoDB() {
   uint64_t totalCnt = 0;
   
   EkaBcSecHandle prodHande;
+
+  uint64_t prodBase = SW_SCRATCHPAD_BASE + 16*8; //from line 16
+  
   for (prodHande = 0; prodHande < MaxSecurities_; prodHande++) {
     if (prod_[prodHande]) {
       totalCnt++;
       if (prod_[prodHande]->isBook_) {
 	bookCnt++;
-	eka_write(SW_SCRATCHPAD_BASE + prodHande*8 , prod_[prodHande]->secId_);
+	eka_write(prodBase + prodHande*8 , prod_[prodHande]->secId_);
 	EKA_LOG("prodHande %d isBook, secid 0x%jx (0x%d)",
 		prodHande,
 		prod_[prodHande]->secId_,
@@ -186,8 +189,8 @@ EkaBCOpResult EkaEurStrategy::downloadProdInfoDB() {
   EKA_LOG("Updating HW Scratchpad totalCnt %d, bookCnt %d",
 	  totalCnt,bookCnt);
 
-  eka_write(SW_SCRATCHPAD_BASE + 16*8 , totalCnt);
-  eka_write(SW_SCRATCHPAD_BASE + 17*8 , bookCnt);
+  eka_write(prodBase + 16*8 , totalCnt);
+  eka_write(prodBase + 17*8 , bookCnt);
   
   return EKABC_OPRESULT__OK;
 }
