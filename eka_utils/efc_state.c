@@ -176,6 +176,8 @@ const char *colformatsred = RED "|    %'-16s  " RESET;
 const char *bookStringFormat = "| %20s ";
 const char *bookSideFormat = "| %7u@%-12ju ";
 const char *prefixBookStrFormat = "%-12s %-8d";
+const char *bookArmFormat = "| %9s %10s ";
+const char *bookVersionFormat = "| %10u ";
 const int colLen = 22;
 
 bool active_strat[16] = {false};
@@ -441,11 +443,13 @@ int printBookHeader() {
   printf(bookStringFormat, "SecID      ");
   printf(bookStringFormat, "Bid        ");
   printf(bookStringFormat, "Ask        ");
+  printf(bookStringFormat, "Armed      ");
+  printf(bookStringFormat, "Version    ");
 
   printf("\n");
 
   /* ----------------------------------------- */
-  printBookLineSeparator( '+', '-', 3);
+  printBookLineSeparator( '+', '-', 5);
   /* ----------------------------------------- */
   //  printf("%s",emptyPrefix);
 
@@ -723,6 +727,19 @@ int printTOB(uint8_t prod_idx) {
 
   printf(bookSideFormat, prodTOB->bid.size/10000, prodTOB->bid.price);
   printf(bookSideFormat, prodTOB->ask.size/10000, prodTOB->ask.price);
+
+  printf("| ");
+  if (armState->prod[prod_idx].arm.buy)
+    printf(GRN "    BUY     " RESET);
+  else
+    printf(RED "    buy     " RESET);
+
+  if (armState->prod[prod_idx].arm.sell)
+    printf(GRN "    SELL " RESET);
+  else
+    printf(RED "    sell " RESET);
+
+  printf(bookVersionFormat, armState->prod[prod_idx].expected_version);
   
   return 0;
 }
