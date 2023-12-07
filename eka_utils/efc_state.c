@@ -1280,7 +1280,10 @@ int printBookState(EurProdState *pProdState) {
             //      printf(colformat, prodHande);
 
       printf(prefixBookStrFormat, "Handle" , prodHande);
-      printf(colformat, pProdState->secID[prodHande]);
+      char buffer[12];
+      snprintf(buffer, 16, "%ju", pProdState->secID[prodHande]);
+      //      printf(colformat, pProdState->secID[prodHande]);
+      printf(colformats, buffer);
       printTOB(prodHande);
       printf("\n");
       

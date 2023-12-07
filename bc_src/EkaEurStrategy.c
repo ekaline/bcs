@@ -418,13 +418,24 @@ void EkaEurStrategy::runLoop(
 /* --------------------------------------------------- */
 EkaEobiBook *
 EkaEurStrategy::findBook(ExchSecurityId secId) {
-  for (auto i = 0; i < nSec_; i++) {
-    if (!prod_[i])
-      on_error("!prod_[%d]", i);
-    if (prod_[i]->isBook_ && prod_[i]->secId_ == secId)
-      return prod_[i]->book_;
-  }
-  return nullptr;
+  auto h = getSubscriptionId(secId);
+  if (h<0)
+    return nullptr;
+
+  if (!prod_[h])
+    on_error("!prod_[%d] secId %d nSec_ %d", h,secId,nSec_);
+
+  if (prod_[h]->secId_ != secId)
+    on_error("prod_[h]->secId_ %d secId %d", prod_[h]->secId_, secId);
+  
+  if (!prod_[h]->isBook_)
+    return nullptr;
+  
+  if (!prod_[h]->book_)
+    on_error("!prod_[h]->book_");
+
+  return prod_[h]->book_;
+
 }
 /* --------------------------------------------------- */
 

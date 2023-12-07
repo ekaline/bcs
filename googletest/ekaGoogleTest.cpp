@@ -231,7 +231,7 @@ TEST_F(TestEur, Eur_basic) {
       rawTobAskSize * sizeMultiplier;
   EkaBcEurMdSize tradeSize = rawTradeSize * sizeMultiplier;
 
-  prodList_[0] = static_cast<EkaBcEurSecId>(123);
+  prodList_[0] = static_cast<EkaBcEurSecId>(1234567890);
   prodList_[1] = static_cast<EkaBcEurSecId>(456);
   prodList_[2] = static_cast<EkaBcEurSecId>(789);
   nProds_ = 3;
