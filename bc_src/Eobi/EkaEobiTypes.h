@@ -209,12 +209,13 @@ struct HwReferenceJumpParamsSet {
 } __attribute__((packed)); // 14 Bytes
 
 struct HwReferenceJumpParams {
+  char pad[6];
   HwProdParams prodParams;
   HwReferenceJumpParamsSet
       betterBest[EKA_RJUMP_BETTERBEST_SETS];
   HwReferenceJumpParamsSet atBest[EKA_RJUMP_ATBEST_SETS];
 } __attribute__((aligned(sizeof(uint64_t))))
-__attribute__((packed)); // 14 + 4 * 14 + 6 * 14 = 154
+__attribute__((packed)); // 14 + 4 * 14 + 6 * 14 = 154, roundup 160
 
 /* ----------------------------------------------------- */
 

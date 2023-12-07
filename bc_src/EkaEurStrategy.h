@@ -63,7 +63,11 @@ public:
                    const EobiHwBookParams *params,
                    SIDE side);
 
+  EkaBcEurProd *getProd(EkaBcSecHandle prodHandle);
+  
   EkaBCOpResult downloadPackedDB();
+
+  EkaBCOpResult downloadProdInfoDB();
 
   void
   fireReportThreadLoop(const EkaBcRunCtx *pEkaBcRunCtx);

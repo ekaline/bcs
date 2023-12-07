@@ -28,10 +28,10 @@
 
 #include "EkaEfcDataStructs.h"
 #include "eka_macros.h"
-#include <Efc.h>
-#include <Eka.h>
-#include <Epm.h>
-#include <Exc.h>
+#include <EkaBc.h>
+//#include <Eka.h>
+ //#include <Epm.h>
+//#include <Exc.h>
 
 extern EkaDev *g_ekaDev;
 /* --------------------------------------------- */
@@ -201,7 +201,7 @@ public:
   /* --------------------------------------------- */
 
   void set1stSeqNum(uint64_t seq) {
-    efcSetSessionCntr(g_ekaDev, hCon_, seq);
+    ekaBcSetSessionCntr(g_ekaDev, hCon_, seq);
     return;
   }
   /* --------------------------------------------- */

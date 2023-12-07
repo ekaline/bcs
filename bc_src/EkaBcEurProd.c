@@ -5,7 +5,7 @@
 #include "EkaEobiTypes.h"
 using namespace EkaEobi;
 
-class EkaEurStrategy;
+#include "EkaEurStrategy.h"
 
 EkaBcEurProd::EkaBcEurProd(
     EkaEurStrategy *strat, EkaBcSecHandle handle,
@@ -134,26 +134,33 @@ EkaBCOpResult EkaBcEurProd::setJumpParams(
 /* --------------------------------------------------- */
 
 EkaBCOpResult EkaBcEurProd::setReferenceJumpParams(
-    EkaBcSecHandle fireProd,
+    EkaBcSecHandle fireProdHandle,
     const EkaBcEurReferenceJumpParams *params) {
-  memcpy(&refJumpParams_[fireProd], params,
+  memcpy(&refJumpParams_[fireProdHandle], params,
          sizeof(*params));
 
+
+  auto fireProd = strat_->getProd(fireProdHandle);
+  if (!fireProd)
+    on_error("!fireProd");
+  
   HwReferenceJumpParams p = {};
+
+  
   /* -------------------------------------------------- */
 
-  p.prodParams.secId = secId_;
-  p.prodParams.prodHandle = normalizeHandle(handle_);
+  p.prodParams.secId = fireProd->secId_;
+  p.prodParams.prodHandle = normalizeHandle(fireProd->handle_);
   p.prodParams.actionIdx =
-      normalizeActionIdx(fireActionIdx_);
-  p.prodParams.askSize = normalizeFireSize(maxAskSize_);
-  p.prodParams.bidSize = normalizeFireSize(maxBidSize_);
+      normalizeActionIdx(fireProd->fireActionIdx_);
+  p.prodParams.askSize = normalizeFireSize(fireProd->maxAskSize_);
+  p.prodParams.bidSize = normalizeFireSize(fireProd->maxBidSize_);
   p.prodParams.maxBookSpread =
-      normalizePriceSpread(maxBookSpread_);
+      normalizePriceSpread(fireProd->maxBookSpread_);
   /* -------------------------------------------------- */
 
   for (auto i = 0; i < EKA_RJUMP_BETTERBEST_SETS; i++) {
-    auto s = &refJumpParams_[fireProd].betterBest[i];
+    auto s = &refJumpParams_[fireProdHandle].betterBest[i];
     auto d = &p.betterBest[i];
 
     d->bitParams =
@@ -162,7 +169,7 @@ EkaBCOpResult EkaBcEurProd::setReferenceJumpParams(
     d->askSize = normalizeFireSize(s->sell_size);
     d->bidSize = normalizeFireSize(s->buy_size);
 
-    d->minSpread = normalizeMdSize(s->min_spread);
+    d->minSpread = normalizePriceSpread(s->min_spread);
 
     d->maxOppositeTobSize =
         normalizeMdSize(s->max_opposit_tob_size);
@@ -175,7 +182,7 @@ EkaBCOpResult EkaBcEurProd::setReferenceJumpParams(
   /* -------------------------------------------------- */
 
   for (auto i = 0; i < EKA_RJUMP_ATBEST_SETS; i++) {
-    auto s = &refJumpParams_[fireProd].atBest[i];
+    auto s = &refJumpParams_[fireProdHandle].atBest[i];
     auto d = &p.atBest[i];
 
     d->bitParams =
@@ -184,7 +191,7 @@ EkaBCOpResult EkaBcEurProd::setReferenceJumpParams(
     d->askSize = normalizeFireSize(s->sell_size);
     d->bidSize = normalizeFireSize(s->buy_size);
 
-    d->minSpread = normalizeMdSize(s->min_spread);
+    d->minSpread = normalizePriceSpread(s->min_spread);
 
     d->maxOppositeTobSize =
         normalizeMdSize(s->max_opposit_tob_size);
@@ -197,17 +204,24 @@ EkaBCOpResult EkaBcEurProd::setReferenceJumpParams(
 
   /* -------------------------------------------------- */
 
-  static const size_t EXPECTED_HW_SIZE = 154;
-  if (sizeof(p) != EXPECTED_HW_SIZE)
-    on_error("sizeof(p) %ju != EXPECTED_HW_SIZE %ju",
-             sizeof(p), EXPECTED_HW_SIZE);
+  
+  /* static const size_t EXPECTED_HW_SIZE = 154; */
+  /* if (sizeof(p) != EXPECTED_HW_SIZE) */
+  /*   on_error("sizeof(p) %ju != EXPECTED_HW_SIZE %ju", */
+  /*            sizeof(p), EXPECTED_HW_SIZE); */
 
   auto nWords = roundUp8(sizeof(p)) / 8;
   auto sPtr = reinterpret_cast<const uint64_t *>(&p);
-  uint dst = 0x60000 + handle_ * 16 * 256 + fireProd * 256;
+  uint dst = 0x60000 + handle_ * 16 * 256;
 
   for (auto i = 0; i < nWords; i++)
     eka_write(dst + 8 * i, *(sPtr++));
+
+  /* -------------------------------------------------- */
+  //configuring the first ref target, for fast book fetch
+  EKA_LOG("Setting Reference: trigger prod=%d, ref prod=%d",
+	  handle_, fireProdHandle);
+  
   return EKABC_OPRESULT__OK;
 }
 /* --------------------------------------------------- */

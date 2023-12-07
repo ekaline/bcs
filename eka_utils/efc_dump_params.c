@@ -54,7 +54,7 @@ uint64_t reg_read (uint32_t addr)
 
 int eka_dump_params (EKA_CONF_TYPE param_id, int index) {
   volatile struct HwJumpParams jump_configs = {};
-  //  volatile struct hw_rjump_strategy_params_t rjump = {};
+  volatile struct HwReferenceJumpParams rjump_configs = {};
 
   //  volatile struct hw_product_param_entry_t product_params;
   int iter;
@@ -260,84 +260,100 @@ int eka_dump_params (EKA_CONF_TYPE param_id, int index) {
 
     break;
 #endif
-#if 0
-  case EKA_CONF_TYPE::RJUMP: 
-    iter = sizeof(struct hw_rjump_strategy_params_t)/8 + !!(sizeof(struct hw_rjump_strategy_params_t)%8); // num of 8Byte words
-    for(uint64_t i = 0; i < (uint64_t)iter; i++){
-      uint64_t var_config = reg_read(0xa0000+i*8+EKA_HW_RJUMP_LINE*index);
-      //      printf("config addr 0x%jx = 0x%jx\n",0xa0000+i*8+EKA_HW_RJUMP_LINE*index,var_config);
 
-      uint64_t* wr_ptr = (uint64_t*) &rjump;
+  case EKA_CONF_TYPE::RJUMP: 
+    iter = sizeof(struct HwReferenceJumpParams)/8 + !!(sizeof(struct HwReferenceJumpParams)%8); // num of 8Byte words
+    for(uint64_t i = 0; i < (uint64_t)iter; i++){
+      uint64_t var_config = reg_read(0x60000+i*8+256*index*16);
+
+      uint64_t* wr_ptr = (uint64_t*) &rjump_configs;
       *(wr_ptr + i) = var_config;
     }
 
-    header_printed = false;
 
+    printf("%-8s\t","Product Params");
+    printf("%-12s\t","maxBookSpread");
+    printf("%-12s\t","bidSize");
+    printf("%-12s\t","askSize");
+    printf("%-12s\t","actionIdx");
+    printf("%-12s\t","prodHandle");
+    printf("%-12s\n","secId");
+    //    printf(RESET);
+
+    printf(GRN);
+    printf("%-12s\t","");
+    printf("%-12u\t",rjump_configs.prodParams.maxBookSpread);
+    printf("%-12u\t",rjump_configs.prodParams.bidSize);
+    printf("%-12u\t",rjump_configs.prodParams.askSize);
+    printf("%-12u\t",rjump_configs.prodParams.actionIdx);
+    printf("%-12u\t",rjump_configs.prodParams.prodHandle);
+    printf("%-12u\n",rjump_configs.prodParams.secId);
+    printf(RESET);
+    
     for(uint32_t i = 0; i < EKA_RJUMP_ATBEST_SETS; i++){
-      //      if ((rjump.atBest[i].bit_params>>BP_ENABLE)&0x1) {
-      if (1) {
+      if ((rjump_configs.atBest[i].bitParams>>BITPARAM_ENABLE)&0x1) {
 	if (!header_printed) {
 	  header_printed = true;
 	  //	  printf(UNDER);
 	  //    printf("\n%s %-8s\t",buf,"RJmp Best");
 	  printf("%-8s\t","RJmp Best");
-	  printf("%-12s\t","ticker_lots");
-	  printf("%-12s\t","time_delta");
-	  printf("%-12s\t","maxtob_size");
-	  printf("%-12s\t","mintob_size");
-	  printf("%-12s\t","maxopp_size");
-	  printf("%-12s\t","min_spread");
-	  printf("%-12s\t","buy_size");
-	  printf("%-12s\t","sell_size");
-	  printf("%-12s\t","boc_en");
-	  printf("%-12s\n","strat_en");
+	  printf("%-12s\t","tickerSizeLots");
+	  printf("%-12s\t","timeDelta");
+	  printf("%-12s\t","maxTobSize");
+	  printf("%-12s\t","minTobSize");
+	  printf("%-12s\t","maxOppTobSize");
+	  printf("%-12s\t","minSpread");
+	  printf("%-12s\t","bidSize");
+	  printf("%-12s\t","askSize");
+	  printf("%-12s\t","BOC");
+	  printf("%-12s\n","Enabled");
 	  //	  printf(RESET);
 	}
 	printf(GRN);
 	printf("%s%-12d\t","Set",i);
 
-	if (rjump.atBest[i].tickersize_lots == (uint16_t)-1)
+	if (rjump_configs.atBest[i].tickerSizeLots == (uint16_t)-1)
 	  printf("%-12s\t",STR_IGNORE);
 	else
-	  printf("%-12u\t",rjump.atBest[i].tickersize_lots);
+	  printf("%-12u\t",rjump_configs.atBest[i].tickerSizeLots);
 
-	if (rjump.atBest[i].time_delta_ns == (uint16_t)-1)
+	if (rjump_configs.atBest[i].timeDelta == (uint16_t)-1)
 	  printf("%-12s\t",STR_IGNORE);
 	else
-	  printf("%-12u\t",rjump.atBest[i].time_delta_ns);
+	  printf("%-12u\t",rjump_configs.atBest[i].timeDelta);
 
-	if (rjump.atBest[i].max_tob_size == (uint16_t)-1)
+	if (rjump_configs.atBest[i].maxTobSize == (uint16_t)-1)
 	  printf("%-12s\t",STR_IGNORE);
 	else
-	  printf("%-12u\t",rjump.atBest[i].max_tob_size);
+	  printf("%-12u\t",rjump_configs.atBest[i].maxTobSize);
 
-	if (rjump.atBest[i].min_tob_size == (uint16_t)-1)
+	if (rjump_configs.atBest[i].minTobSize == (uint16_t)-1)
 	  printf("%-12s\t",STR_IGNORE);
 	else
-	  printf("%-12u\t",rjump.atBest[i].min_tob_size);
+	  printf("%-12u\t",rjump_configs.atBest[i].minTobSize);
 
-	if (rjump.atBest[i].max_opposit_tob_size == (uint16_t)-1)
+	if (rjump_configs.atBest[i].maxOppositeTobSize == (uint16_t)-1)
 	  printf("%-12s\t",STR_IGNORE);
 	else
-	  printf("%-12u\t",rjump.atBest[i].max_opposit_tob_size);
+	  printf("%-12u\t",rjump_configs.atBest[i].maxOppositeTobSize);
 
-	if (rjump.atBest[i].min_spread == (uint8_t)-1)
+	if (rjump_configs.atBest[i].minSpread == (uint8_t)-1)
 	  printf("%-12s\t",STR_IGNORE);
 	else
-	  printf("%-12u\t",rjump.atBest[i].min_spread);
+	  printf("%-12u\t",rjump_configs.atBest[i].minSpread);
 
-	if (rjump.atBest[i].buy_size == (uint8_t)-1)
+	if (rjump_configs.atBest[i].bidSize == (uint8_t)-1)
 	  printf("%-12s\t",STR_IGNORE);
 	else
-	  printf("%-12u\t",rjump.atBest[i].buy_size);
+	  printf("%-12u\t",rjump_configs.atBest[i].bidSize);
 
-	if (rjump.atBest[i].sell_size == (uint8_t)-1)
+	if (rjump_configs.atBest[i].askSize == (uint8_t)-1)
 	  printf("%-12s\t",STR_IGNORE);
 	else
-	  printf("%-12u\t",rjump.atBest[i].sell_size);
+	  printf("%-12u\t",rjump_configs.atBest[i].askSize);
 
-	printf("%-12s\t",(rjump.atBest[i].bit_params>>BP_BOC)&0x1 ? STR_EN : STR_DIS);
-	printf("%-12s\n",(rjump.atBest[i].bit_params>>BP_ENABLE)&0x1 ? STR_EN : STR_DIS);
+	printf("%-12s\t",(rjump_configs.atBest[i].bitParams>>BITPARAM_BOC)&0x1 ? STR_EN : STR_DIS);
+	printf("%-12s\n",(rjump_configs.atBest[i].bitParams>>BITPARAM_ENABLE)&0x1 ? STR_EN : STR_DIS);
 	printf(RESET);
       }
     }
@@ -347,76 +363,76 @@ int eka_dump_params (EKA_CONF_TYPE param_id, int index) {
 
 
     for(uint32_t i = 0; i < EKA_RJUMP_BETTERBEST_SETS; i++){
-      //      if ((rjump.betterBest[i].bit_params>>BP_ENABLE)&0x1) {
-      if (1) {
+      if ((rjump_configs.betterBest[i].bitParams>>BITPARAM_ENABLE)&0x1) {
 	if (!header_printed) {
 	  header_printed = true;
 	  //	  printf(UNDER);
 	  //    printf("\n%s %-8s\t",buf,"RJmp Better");
 	  printf("%-8s\t","RJmp Better");
-	  printf("%-12s\t","ticker_lots");
-	  printf("%-12s\t","time_delta");
-	  printf("%-12s\t","maxtob_size");
-	  printf("%-12s\t","mintob_size");
-	  printf("%-12s\t","maxopp_size");
-	  printf("%-12s\t","min_spread");
-	  printf("%-12s\t","buy_size");
-	  printf("%-12s\t","sell_size");
-	  printf("%-12s\t","boc_en");
-	  printf("%-12s\n","strat_en");
+	  printf("%-12s\t","tickerSizeLots");
+	  printf("%-12s\t","timeDelta");
+	  printf("%-12s\t","maxTobSize");
+	  printf("%-12s\t","minTobSize");
+	  printf("%-12s\t","maxOppTobSize");
+	  printf("%-12s\t","minSpread");
+	  printf("%-12s\t","bidSize");
+	  printf("%-12s\t","askSize");
+	  printf("%-12s\t","BOC");
+	  printf("%-12s\n","Enabled");
 	  //	  printf(RESET);
 	}
 	printf(GRN);
 	printf("%s%-12d\t","Set",i);
 
-	if (rjump.betterBest[i].tickersize_lots == (uint16_t)-1)
+	if (rjump_configs.betterBest[i].tickerSizeLots == (uint16_t)-1)
 	  printf("%-12s\t",STR_IGNORE);
 	else
-	  printf("%-12u\t",rjump.betterBest[i].tickersize_lots);
+	  printf("%-12u\t",rjump_configs.betterBest[i].tickerSizeLots);
 
-	if (rjump.betterBest[i].time_delta_ns == (uint16_t)-1)
+	if (rjump_configs.betterBest[i].timeDelta == (uint16_t)-1)
 	  printf("%-12s\t",STR_IGNORE);
 	else
-	  printf("%-12u\t",rjump.betterBest[i].time_delta_ns);
+	  printf("%-12u\t",rjump_configs.betterBest[i].timeDelta);
 
-	if (rjump.betterBest[i].max_tob_size == (uint16_t)-1)
+	if (rjump_configs.betterBest[i].maxTobSize == (uint16_t)-1)
 	  printf("%-12s\t",STR_IGNORE);
 	else
-	  printf("%-12u\t",rjump.betterBest[i].max_tob_size);
+	  printf("%-12u\t",rjump_configs.betterBest[i].maxTobSize);
 
-	if (rjump.betterBest[i].min_tob_size == (uint16_t)-1)
+	if (rjump_configs.betterBest[i].minTobSize == (uint16_t)-1)
 	  printf("%-12s\t",STR_IGNORE);
 	else
-	  printf("%-12u\t",rjump.betterBest[i].min_tob_size);
+	  printf("%-12u\t",rjump_configs.betterBest[i].minTobSize);
 
-	if (rjump.betterBest[i].max_opposit_tob_size == (uint16_t)-1)
+	if (rjump_configs.betterBest[i].maxOppositeTobSize == (uint16_t)-1)
 	  printf("%-12s\t",STR_IGNORE);
 	else
-	  printf("%-12u\t",rjump.betterBest[i].max_opposit_tob_size);
+	  printf("%-12u\t",rjump_configs.betterBest[i].maxOppositeTobSize);
 
-	if (rjump.betterBest[i].min_spread == (uint8_t)-1)
+	if (rjump_configs.betterBest[i].minSpread == (uint8_t)-1)
 	  printf("%-12s\t",STR_IGNORE);
 	else
-	  printf("%-12u\t",rjump.betterBest[i].min_spread);
+	  printf("%-12u\t",rjump_configs.betterBest[i].minSpread);
 
-	if (rjump.betterBest[i].buy_size == (uint8_t)-1)
+	if (rjump_configs.betterBest[i].bidSize == (uint8_t)-1)
 	  printf("%-12s\t",STR_IGNORE);
 	else
-	  printf("%-12u\t",rjump.betterBest[i].buy_size);
+	  printf("%-12u\t",rjump_configs.betterBest[i].bidSize);
 
-	if (rjump.betterBest[i].sell_size == (uint8_t)-1)
+	if (rjump_configs.betterBest[i].askSize == (uint8_t)-1)
 	  printf("%-12s\t",STR_IGNORE);
 	else
-	  printf("%-12u\t",rjump.betterBest[i].sell_size);
+	  printf("%-12u\t",rjump_configs.betterBest[i].askSize);
 
-	printf("%-12s\t",(rjump.betterBest[i].bit_params>>BP_BOC)&0x1 ? STR_EN : STR_DIS);
-	printf("%-12s\n",(rjump.betterBest[i].bit_params>>BP_ENABLE)&0x1 ? STR_EN : STR_DIS);
+	printf("%-12s\t",(rjump_configs.betterBest[i].bitParams>>BITPARAM_BOC)&0x1 ? STR_EN : STR_DIS);
+	printf("%-12s\n",(rjump_configs.betterBest[i].bitParams>>BITPARAM_ENABLE)&0x1 ? STR_EN : STR_DIS);
+	  
 	printf(RESET);
       }
     }
 
     break;
-#endif
+
 
   }
 
@@ -433,7 +449,7 @@ int main(int argc, char *argv[]) {
   }
 
   //  printf ("Reading configurable parameters from FPGA...\n");
-  for (int i=0;i<1;i++) {
+  for (int i=0;i<4;i++) {
     //    eka_product_t prod_id = (eka_product_t)((var_sw_stats_zero>>(8+i*4))&0xf);
     //    if (prod_id==INVALID) continue;
     //    resolve_product(feed_id,buf,prod_id);
@@ -444,9 +460,12 @@ int main(int argc, char *argv[]) {
     //
 
     //    eka_dump_params(feed_id,EKA_CONF_TYPE::PRODUCT,i,buf);
-    printf(UNDER "\n      Prod %d       \n" RESET,i);
+    printf(UNDER "\n      Prod %d Jump    \n" RESET,i);
     eka_dump_params(EKA_CONF_TYPE::SJUMP,i);
-    //    eka_dump_params(feed_id,EKA_CONF_TYPE::RJUMP,i,buf);
+    printf(UNDER "\n      Prod %d Reference    \n" RESET,i);    
+    eka_dump_params(EKA_CONF_TYPE::RJUMP,i);
+    printf("\n");    
+    
   }
 
 

@@ -32,6 +32,7 @@
 #include "EkaBcEurProd.h"
 #include "EkaEobiTypes.h"
 #include "EpmEti8PktTemplate.h"
+#include "EpmEti8SwPktTemplate.h"
 
 using namespace EkaEobi;
 
@@ -164,6 +165,39 @@ EkaBCOpResult EkaEurStrategy::downloadPackedDB() {
 }
 /* --------------------------------------------------- */
 
+/* --------------------------------------------------- */
+EkaBCOpResult EkaEurStrategy::downloadProdInfoDB() {
+
+  uint64_t bookCnt = 0;
+  uint64_t totalCnt = 0;
+  
+  EkaBcSecHandle prodHande;
+
+  uint64_t prodBase = SW_SCRATCHPAD_BASE + 16*8; //from line 16
+  
+  for (prodHande = 0; prodHande < MaxSecurities_; prodHande++) {
+    if (prod_[prodHande]) {
+      totalCnt++;
+      if (prod_[prodHande]->isBook_) {
+	bookCnt++;
+	eka_write(prodBase + prodHande*8 , prod_[prodHande]->secId_);
+	EKA_LOG("prodHande %d isBook, secid 0x%jx (0x%d)",
+		prodHande,
+		prod_[prodHande]->secId_,
+		prod_[prodHande]->secId_);
+      }
+    }
+  }
+  EKA_LOG("Updating HW Scratchpad totalCnt %d, bookCnt %d",
+	  totalCnt,bookCnt);
+
+  eka_write(prodBase + 16*8 , totalCnt);
+  eka_write(prodBase + 17*8 , bookCnt);
+  
+  return EKABC_OPRESULT__OK;
+}
+/* --------------------------------------------------- */
+
 EkaBCOpResult EkaEurStrategy::initProd(
     EkaBcSecHandle prodHande,
     const EkaBcEurProductInitParams *params) {
@@ -279,6 +313,21 @@ void EkaEurStrategy::configureTemplates() {
       epm_->epmTemplate[templateIdx]);
 
 #endif
+
+#if 1
+  templateIdx = (int)EkaEpm::TemplateId::EurEtiSwSend;
+  epm_->epmTemplate[templateIdx] =
+      new EpmEti8SwPktTemplate(templateIdx);
+
+  EKA_LOG("EpmEti8SwPktTemplate: "
+          "templateIdx = %d, "
+          "payload syze = %u Bytes",
+          templateIdx,
+          epm_->epmTemplate[templateIdx]->getByteSize());
+  epm_->DownloadSingleTemplate2HW(
+      epm_->epmTemplate[templateIdx]);
+
+#endif
 }
 /* --------------------------------------------------- */
 int EkaEurStrategy::sendDate2Hw() {
@@ -300,6 +349,14 @@ int EkaEurStrategy::sendDate2Hw() {
 
   return 1;
 }
+/* --------------------------------------------------- */
+EkaBcEurProd *EkaEurStrategy::getProd(EkaBcSecHandle prodHandle) {
+  if (prodHandle < 0 || prodHandle >= MaxSecurities_)
+    on_error("Bad prodHandle %d",prodHandle);
+  return prod_[prodHandle];
+}
+
+
 /* --------------------------------------------------- */
 
 void EkaEurStrategy::runLoop(

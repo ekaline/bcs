@@ -98,6 +98,7 @@ void printPayloadReport(uint8_t *p) {
 }
 
 void getExampleFireReport(const void *p, size_t len, void *ctx) {
+  if (0) {
   uint8_t *b = (uint8_t *)p;
   auto containerHdr{
       reinterpret_cast<EkaBcContainerGlobalHdr *>(b)};
@@ -118,10 +119,21 @@ void getExampleFireReport(const void *p, size_t len, void *ctx) {
   case EkaBcEventType::ExceptionEvent:
     //    printf ("Status...\n");
     break;
+  case EkaBcEventType::EpmEvent:
+    printf ("SW Fire with %d reports...\n",containerHdr->nReports);
+    //skip container header
+    b += sizeof(*containerHdr);
+    //skip report hdr (of fire) and swfire report
+    b += sizeof(EkaBcReportHdr);
+    b += sizeof(EkaBcSwReport);
+    //print payload
+    printPayloadReport(b);
+    break;
+
   default:
     break;
   }
-
+  }
 }
 
 /* --------------------------------------------- */
@@ -193,6 +205,8 @@ TEST_F(TestEur, Eur_basic) {
   /////////////// General
   uint8_t activeJumpAtBestSet = 3;
   uint8_t activeJumpBetterBestSet = 4;
+  uint8_t activeRJumpAtBestSet = 1;
+  uint8_t activeRJumpBetterBestSet = 2;
   EkaBcEurMdSize sizeMultiplier = 10000;
   uint8_t AggressorSide = ENUM_AGGRESSOR_SIDE_BUY;
   /////////////// General
@@ -224,8 +238,13 @@ TEST_F(TestEur, Eur_basic) {
   // Inititializes everything
   initEur();
 
-  auto h = ekaBcGetSecHandle(dev_, prodList_[0]);
+  auto ref_index = 1;
+  auto main_index = 0;
+  
+  auto h = ekaBcGetSecHandle(dev_, prodList_[main_index]);
+  auto r = ekaBcGetSecHandle(dev_, prodList_[ref_index]);
   ASSERT_NE(h, -1);
+  ASSERT_NE(r, -1);
 
   auto eurHwAction = ekaBcAllocateNewAction(
       dev_, EkaBcActionType::EurFire);
@@ -235,15 +254,46 @@ TEST_F(TestEur, Eur_basic) {
       dev_, eurHwAction, tcpCtx_->tcpSess_[0]->excSock_);
   ASSERT_EQ(rc, EKABC_OPRESULT__OK);
 
+  rc = ekaBcSetActionTcpSock(
+      dev_, eurHwAction, tcpCtx_->tcpSess_[0]->excSock_);
+  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+
+  //sw action
+  auto eurSwAction = ekaBcAllocateNewAction(
+      dev_, EkaBcActionType::EurSwSend);
+  ASSERT_NE(eurSwAction, -1);
+
+  rc = ekaBcSetActionTcpSock(
+      dev_, eurSwAction, tcpCtx_->tcpSess_[0]->excSock_);
+  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+
+  const char EurSwFireMsg[] = "EurSwMessage wit 140"
+    "Byte payload XXXXXXX"
+    "12345678901234567890"
+    "12345678901234567890"
+    "12345678901234567890"
+    "12345678901234567890"
+    "12345678901234567890";
+
+  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , strlen(EurSwFireMsg));
+  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , strlen(EurSwFireMsg));
+  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , strlen(EurSwFireMsg));
+  //sw action
+  
   EkaBcEurProductInitParams prodParams = {};
   prodParams.fireActionIdx = eurHwAction;
-  prodParams.secId = prodList_[0];
+  prodParams.secId = prodList_[main_index];
   prodParams.step = 1;
   prodParams.isBook = 1;
   prodParams.midPoint =
       (tobAskPrice - tobBidPrice) / 2 + tobBidPrice;
 
   rc = ekaBcInitEurProd(dev_, h, &prodParams);
+
+  prodParams.secId = prodList_[ref_index];
+
+  rc = ekaBcInitEurProd(dev_, r, &prodParams); //reference
+  
   ASSERT_EQ(rc, EKABC_OPRESULT__OK);
 
 
@@ -266,6 +316,7 @@ TEST_F(TestEur, Eur_basic) {
   ASSERT_EQ(rc, EKABC_OPRESULT__OK);
 
   EkaBcEurJumpParams jumpParams = {};
+  
   jumpParams.atBest[activeJumpAtBestSet].max_tob_size =
       (tobBidSize > tobAskSize) ? tobBidSize : tobAskSize;
   jumpParams.atBest[activeJumpAtBestSet].min_tob_size =
@@ -305,10 +356,45 @@ TEST_F(TestEur, Eur_basic) {
   rc = ekaBcEurSetJumpParams(dev_, h, &jumpParams);
   ASSERT_EQ(rc, EKABC_OPRESULT__OK);
 
+  EkaBcEurReferenceJumpParams   rjumpParams = {};
+
+  rjumpParams.atBest[activeRJumpAtBestSet].max_tob_size =
+      (tobBidSize > tobAskSize) ? tobBidSize : tobAskSize;
+  rjumpParams.atBest[activeRJumpAtBestSet].min_tob_size =
+      (tobBidSize > tobAskSize) ? tobAskSize : tobBidSize;
+  rjumpParams.atBest[activeRJumpAtBestSet].max_opposit_tob_size = sizeMultiplier; //TBD
+  rjumpParams.atBest[activeRJumpAtBestSet].time_delta_ns = 0; //TBD
+  rjumpParams.atBest[activeRJumpAtBestSet].tickersize_lots = sizeMultiplier; //TBD
+  rjumpParams.atBest[activeRJumpAtBestSet].buy_size =
+      sizeMultiplier;
+  rjumpParams.atBest[activeRJumpAtBestSet].sell_size =
+      sizeMultiplier * 2;
+  rjumpParams.atBest[activeRJumpAtBestSet].strat_en = 1;  
+  rjumpParams.atBest[activeRJumpAtBestSet].boc = 1;
+  rjumpParams.atBest[activeRJumpAtBestSet].min_spread = 1; //TBD
+
+  rjumpParams.betterBest[activeRJumpBetterBestSet].max_tob_size =
+      (tobBidSize > tobAskSize) ? tobBidSize : tobAskSize;
+  rjumpParams.betterBest[activeRJumpBetterBestSet].min_tob_size =
+      (tobBidSize > tobAskSize) ? tobAskSize : tobBidSize;
+  rjumpParams.betterBest[activeRJumpBetterBestSet].max_opposit_tob_size = sizeMultiplier; //TBD
+  rjumpParams.betterBest[activeRJumpBetterBestSet].time_delta_ns = 0; //TBD
+  rjumpParams.betterBest[activeRJumpBetterBestSet].tickersize_lots = sizeMultiplier; //TBD
+  rjumpParams.betterBest[activeRJumpBetterBestSet].buy_size =
+      sizeMultiplier;
+  rjumpParams.betterBest[activeRJumpBetterBestSet].sell_size =
+      sizeMultiplier * 2;
+  rjumpParams.betterBest[activeRJumpBetterBestSet].strat_en = 1;  
+  rjumpParams.betterBest[activeRJumpBetterBestSet].boc = 0;
+  rjumpParams.betterBest[activeRJumpBetterBestSet].min_spread = 1; //TBD
+
+  rc = ekaBcEurSetReferenceJumpParams(dev_, h, r, &rjumpParams);
+  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+  
   EkaBcArmVer armVer = 0;
 
   rc = ekaBcArmEur(dev_, h, true /* armBid */,
-                   true /* armAsk */, armVer);
+                   true /* armAsk */, armVer++);
   ASSERT_EQ(rc, EKABC_OPRESULT__OK);
 
   EkaBcRunCtx runCtx = {.onReportCb = getExampleFireReport,
@@ -393,9 +479,19 @@ TEST_F(TestEur, Eur_basic) {
 
   /*   sendPktToAll(&execSumPkt, sizeof(execSumPkt), true);
    */
+  ekaBcSetSessionCntr(dev_, tcpCtx_->tcpSess_[0]->excSock_, 5);
+    
+  mcCon->sendUdpPkt(&execSumPkt, sizeof(execSumPkt));
+  //  sleep(5);
+  rc = ekaBcArmEur(dev_, h, true /* armBid */,
+                   true /* armAsk */, armVer++);
   mcCon->sendUdpPkt(&execSumPkt, sizeof(execSumPkt));
   sleep(5);
-
+  for (uint i = 0; i < 0; i++) {
+    ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , strlen(EurSwFireMsg));
+  }
+  sleep(1);
+    
 #ifndef _VERILOG_SIM
   ekaBcCloseDev(dev_);
 #endif

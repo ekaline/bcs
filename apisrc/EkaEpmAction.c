@@ -61,6 +61,12 @@ int EkaEpmAction::setActionBitmap() {
     actionBitParams_.bitmap.report_en = 0;
     actionBitParams_.bitmap.feedbck_en = 1;
     break;
+  case EpmActionType::EurSwSend:
+    actionBitParams_.bitmap.app_seq_inc = 1;
+    actionBitParams_.bitmap.israw = 0;
+    actionBitParams_.bitmap.report_en = 1;
+    actionBitParams_.bitmap.feedbck_en = 1;
+    break;
   case EpmActionType::EurFire:
   case EpmActionType::BoeFire:
   case EpmActionType::CmeHwCancel:
@@ -104,6 +110,7 @@ void EkaEpmAction::setIpTtl() {
   case EpmActionType::UserAction:
   case EpmActionType::HwFireAction:
   case EpmActionType::EurFire:
+  case EpmActionType::EurSwSend:
   case EpmActionType::BoeFire:
   case EpmActionType::BoeCancel:
   case EpmActionType::SqfFire:
@@ -277,6 +284,10 @@ int EkaEpmAction::setTemplate() {
   case EpmActionType::EurFire:
     epmTemplate_ = epm_->epmTemplate[(
         int)EkaEpm::TemplateId::EurEtiFire];
+    break;
+  case EpmActionType::EurSwSend:
+    epmTemplate_ = epm_->epmTemplate[(
+        int)EkaEpm::TemplateId::EurEtiSwSend];
     break;
   case EpmActionType::BoeFire:
     epmTemplate_ = epm_->epmTemplate[(

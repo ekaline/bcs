@@ -123,6 +123,13 @@ struct EfcState {
   CommonState commonState;
 };
 
+struct EurProdState {
+  uint64_t totalSecs = 0;
+  uint64_t bookSecs = 0;
+  uint64_t secID[16];
+};
+
+
 struct FastCancelState {
   uint64_t strategyRuns = 0;
   uint64_t strategyPassed = 0;
@@ -153,6 +160,7 @@ struct StratState {
   FastSweepState fastSweep;
   QEDState QED;
   NewsState news;
+  EurProdState eur;
 };
 
 const char *emptyPrefix = "                     ";
@@ -165,6 +173,11 @@ const char *colformat = "|    %'-16ju  ";
 const char *colformats = "|    %'-16s  ";
 const char *colformatsgrn = GRN "|    %'-16s  " RESET;
 const char *colformatsred = RED "|    %'-16s  " RESET;
+const char *bookStringFormat = "| %20s ";
+const char *bookSideFormat = "| %7u@%-12ju ";
+const char *prefixBookStrFormat = "%-12s %-8d";
+const char *bookArmFormat = "| %9s %10s ";
+const char *bookVersionFormat = "| %10u ";
 const int colLen = 22;
 
 bool active_strat[16] = {false};
@@ -414,6 +427,36 @@ int printStratLineSeparator(char sep, char s) {
   return 0;
 }
 // ################################################
+int printBookLineSeparator(char sep, char s, int num) {
+  printf("%s", std::string(strlen(emptyPrefix), s).c_str());
+  for (auto i = 0; i < num;  i++) {
+    printf("%c%s", sep, std::string(colLen, s).c_str());
+  }
+  printf("\n");
+  return 0;
+}
+
+// ################################################
+int printBookHeader() {
+  printf("\n");
+  printf("%s", emptyPrefix);
+  printf(bookStringFormat, "SecID      ");
+  printf(bookStringFormat, "Bid        ");
+  printf(bookStringFormat, "Ask        ");
+  printf(bookStringFormat, "Armed      ");
+  printf(bookStringFormat, "Version    ");
+
+  printf("\n");
+
+  /* ----------------------------------------- */
+  printBookLineSeparator( '+', '-', 5);
+  /* ----------------------------------------- */
+  //  printf("%s",emptyPrefix);
+
+  return 0;
+}
+
+// ################################################
 
 int printHeader(IfParams coreParams[NUM_OF_CORES],
                 EfcState *pEfcState,
@@ -627,7 +670,7 @@ int printStratHeader() {
       continue;
 
     std::string nameStr =
-        std::string(EKA_STRAT2STRING(stratId)) + "       ";
+        std::string(EKA_STRAT2STRING(stratId)) + " Strategy  ";
     //    printf(colStringFormat, nameStr.c_str());
     printf(colformats, nameStr.c_str());
   }
@@ -638,14 +681,22 @@ int printStratHeader() {
 }
 
 // ################################################
+int printProdHeader() {
+  //  printf("%s", emptyPrefix);
+
+  //  printf("\n");
+  printStratLineSeparator('+', '-');
+  /* ----------------------------------------- */
+  return 0;
+}
+
+// ################################################
 int printTOB(uint8_t prod_idx) {
-  //  auto tob_mem = new uint8_t[64];
-  //  auto arm_mem = new uint8_t[4];
   unsigned char tob_mem[64];
   unsigned char arm_mem[64];
 
-  uint64_t *wrPtr = (uint64_t *)tob_mem;
-  uint64_t *wrPtrArm = (uint64_t *)arm_mem;
+  uint64_t *wrPtr;// = (uint64_t *)tob_mem;
+  uint64_t *wrPtrArm;// = (uint64_t *)arm_mem;
 
   //hw lock
   uint64_t locked;
@@ -654,11 +705,15 @@ int printTOB(uint8_t prod_idx) {
   }
   while (locked);
 
-  for (auto j = 0; j < 8; j++)
-    *wrPtr++ = reg_read(0x73000 + prod_idx * 64 + j * 8);
+  wrPtrArm = (uint64_t *)arm_mem;
 
   for (auto j = 0; j < 4; j++)
     *wrPtrArm++ = reg_read(0x74000 + j * 8);
+  
+  wrPtr    = (uint64_t *)tob_mem;
+    
+  for (auto j = 0; j < 8; j++)
+    *wrPtr++ = reg_read(0x73000 + prod_idx * 64 + j * 8);
 
   // hw unlock
   reg_write(0x72000, 0); 
@@ -670,21 +725,22 @@ int printTOB(uint8_t prod_idx) {
   auto armState{
       reinterpret_cast<const arm_status_unaligned_report_t *>(arm_mem)};
 
+  printf(bookSideFormat, prodTOB->bid.size/10000, prodTOB->bid.price);
+  printf(bookSideFormat, prodTOB->ask.size/10000, prodTOB->ask.price);
 
+  printf("| ");
+  if (armState->prod[prod_idx].arm.buy)
+    printf(GRN "    BUY     " RESET);
+  else
+    printf(RED "    buy     " RESET);
 
-  printf("bid\n price = %ju\n size = %ju\n seq = %ju\n",
-	 prodTOB->bid.price, 
-	 prodTOB->bid.size, 
-	 prodTOB->bid.seq);
-  printf("ask\n price = %ju\n size = %ju\n seq = %ju\n",
-	 prodTOB->ask.price, 
-	 prodTOB->ask.size, 
-	 prodTOB->ask.seq);
-  printf("arm\n version = %ju\n buy = %ju\n sell = %ju\n",
-  	 armState->prod[prod_idx].expected_version,
-  	 armState->prod[prod_idx].arm.buy,
-  	 armState->prod[prod_idx].arm.sell);
+  if (armState->prod[prod_idx].arm.sell)
+    printf(GRN "    SELL " RESET);
+  else
+    printf(RED "    sell " RESET);
 
+  printf(bookVersionFormat, armState->prod[prod_idx].expected_version);
+  
   return 0;
 }
 
@@ -762,8 +818,116 @@ int printStratStatus(StratState *pStratState) {
   }
   printf("\n");
   }
+  /* /\* ----------------------------------------- *\/ */
+  /* printf(prefixStrFormat, "Subscription tries"); */
+  /* for (auto stratId = 0; stratId < NUM_OF_STRAT; */
+  /*      stratId++) { */
+  /*   if (!active_strat[stratId]) */
+  /*     continue; */
+
+  /*   switch (stratId) { */
+  /*   case S_P4: */
+  /*     printf(colformat, pStratState->p4.totalSecs); */
+  /*     break; */
+  /*   case S_QED: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_SWEEP: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_NEWS: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_CANCEL: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   } */
+  /* } */
+  /* printf("\n"); */
+
+  /* /\* ----------------------------------------- *\/ */
+  /* printf(prefixStrFormat, "Subscription done"); */
+  /* for (auto stratId = 0; stratId < NUM_OF_STRAT; */
+  /*      stratId++) { */
+  /*   if (!active_strat[stratId]) */
+  /*     continue; */
+
+  /*   switch (stratId) { */
+  /*   case S_P4: */
+  /*     printf(colformat, pStratState->p4.subscribedSecs); */
+  /*     break; */
+  /*   case S_QED: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_SWEEP: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_NEWS: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_CANCEL: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   } */
+  /* } */
+  /* printf("\n"); */
+
   /* ----------------------------------------- */
-  printf(prefixStrFormat, "Subscription tries");
+  /* printf(prefixStrFormat, "Strat unsubscribed"); */
+  /* for (auto stratId = 0; stratId < NUM_OF_STRAT; */
+  /*      stratId++) { */
+  /*   if (!active_strat[stratId]) */
+  /*     continue; */
+
+  /*   switch (stratId) { */
+  /*   case S_P4: */
+  /*     printf(colformat, pStratState->p4.ordersUnsubscribed); */
+  /*     break; */
+  /*   case S_QED: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_SWEEP: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_NEWS: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_CANCEL: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   } */
+  /* } */
+  /* printf("\n"); */
+
+  /* /\* ----------------------------------------- *\/ */
+  /* printf(prefixStrFormat, "Strat subscribed"); */
+  /* for (auto stratId = 0; stratId < NUM_OF_STRAT; */
+  /*      stratId++) { */
+  /*   if (!active_strat[stratId]) */
+  /*     continue; */
+
+  /*   switch (stratId) { */
+  /*   case S_P4: */
+  /*     printf(colformat, pStratState->p4.ordersSubscribed); */
+  /*     break; */
+  /*   case S_QED: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_SWEEP: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_NEWS: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   case S_CANCEL: */
+  /*     printf(colformats, "-"); */
+  /*     break; */
+  /*   } */
+  /* } */
+  /* printf("\n"); */
+
+  /* ----------------------------------------- */
+  printf(prefixStrFormat, "Report Only");
   for (auto stratId = 0; stratId < NUM_OF_STRAT;
        stratId++) {
     if (!active_strat[stratId])
@@ -771,107 +935,26 @@ int printStratStatus(StratState *pStratState) {
 
     switch (stratId) {
     case S_P4:
-      printf(colformat, pStratState->p4.totalSecs);
+      printf(colformat,pStratState->p4.commonState.reportOnly);
       break;
     case S_QED:
-      printf(colformats, "-");
+      printf(colformat,pStratState->p4.commonState.reportOnly);
       break;
     case S_SWEEP:
-      printf(colformats, "-");
+      printf(colformat,pStratState->p4.commonState.reportOnly);
       break;
     case S_NEWS:
-      printf(colformats, "-");
+      printf(colformat,pStratState->p4.commonState.reportOnly);
       break;
     case S_CANCEL:
-      printf(colformats, "-");
+      printf(colformat,pStratState->p4.commonState.reportOnly);
       break;
     }
   }
   printf("\n");
-
+  
   /* ----------------------------------------- */
-  printf(prefixStrFormat, "Subscription done");
-  for (auto stratId = 0; stratId < NUM_OF_STRAT;
-       stratId++) {
-    if (!active_strat[stratId])
-      continue;
-
-    switch (stratId) {
-    case S_P4:
-      printf(colformat, pStratState->p4.subscribedSecs);
-      break;
-    case S_QED:
-      printf(colformats, "-");
-      break;
-    case S_SWEEP:
-      printf(colformats, "-");
-      break;
-    case S_NEWS:
-      printf(colformats, "-");
-      break;
-    case S_CANCEL:
-      printf(colformats, "-");
-      break;
-    }
-  }
-  printf("\n");
-
-  /* ----------------------------------------- */
-  printf(prefixStrFormat, "Strat unsubscribed");
-  for (auto stratId = 0; stratId < NUM_OF_STRAT;
-       stratId++) {
-    if (!active_strat[stratId])
-      continue;
-
-    switch (stratId) {
-    case S_P4:
-      printf(colformat, pStratState->p4.ordersUnsubscribed);
-      break;
-    case S_QED:
-      printf(colformats, "-");
-      break;
-    case S_SWEEP:
-      printf(colformats, "-");
-      break;
-    case S_NEWS:
-      printf(colformats, "-");
-      break;
-    case S_CANCEL:
-      printf(colformats, "-");
-      break;
-    }
-  }
-  printf("\n");
-
-  /* ----------------------------------------- */
-  printf(prefixStrFormat, "Strat subscribed");
-  for (auto stratId = 0; stratId < NUM_OF_STRAT;
-       stratId++) {
-    if (!active_strat[stratId])
-      continue;
-
-    switch (stratId) {
-    case S_P4:
-      printf(colformat, pStratState->p4.ordersSubscribed);
-      break;
-    case S_QED:
-      printf(colformats, "-");
-      break;
-    case S_SWEEP:
-      printf(colformats, "-");
-      break;
-    case S_NEWS:
-      printf(colformats, "-");
-      break;
-    case S_CANCEL:
-      printf(colformats, "-");
-      break;
-    }
-  }
-  printf("\n");
-
-  /* ----------------------------------------- */
-  printf(prefixStrFormat, "Strat evaluated");
+  printf(prefixStrFormat, "Strat Evaluated");
   for (auto stratId = 0; stratId < NUM_OF_STRAT;
        stratId++) {
     if (!active_strat[stratId])
@@ -900,7 +983,7 @@ int printStratStatus(StratState *pStratState) {
   printf("\n");
 
   /* ----------------------------------------- */
-  printf(prefixStrFormat, "Strat passed");
+  printf(prefixStrFormat, "Strat Passed");
   for (auto stratId = 0; stratId < NUM_OF_STRAT;
        stratId++) {
     if (!active_strat[stratId])
@@ -928,9 +1011,6 @@ int printStratStatus(StratState *pStratState) {
   }
   printf("\n");
 
-
-
-  printf("\n");
   return 0;
 }
 
@@ -1065,6 +1145,7 @@ int printCurrRxTraffic(IfParams coreParams[NUM_OF_CORES]) {
 }
 // ################################################
 
+
 int printCurrTxTraffic(IfParams coreParams[NUM_OF_CORES]) {
 
   printf(prefixStrFormat, "Current TX PPS");
@@ -1122,24 +1203,24 @@ int getEfcState(EfcState *pEfcState) {
 
   uint64_t var_p4_cont_counter1 =
       reg_read(ADDR_P4_CONT_COUNTER1);
-  uint64_t var_p4_cont_counter3 =
-      reg_read(ADDR_P4_CONT_COUNTER3);
+  /* uint64_t var_p4_cont_counter3 = */
+  /*     reg_read(ADDR_P4_CONT_COUNTER3); */
   uint64_t var_p4_general_conf =
       reg_read(ADDR_P4_GENERAL_CONF);
   uint64_t var_fatal_debug = reg_read(ADDR_FATAL_CONF);
 
-  uint64_t subscrCnt = reg_read(SCRPAD_EFC_SUBSCR_CNT);
-  pEfcState->totalSecs = (subscrCnt >> 32) & 0xFFFFFFFF;
-  pEfcState->subscribedSecs = subscrCnt & 0xFFFFFFFF;
+  /* uint64_t subscrCnt = reg_read(SCRPAD_EFC_SUBSCR_CNT); */
+  /* pEfcState->totalSecs = (subscrCnt >> 32) & 0xFFFFFFFF; */
+  /* pEfcState->subscribedSecs = subscrCnt & 0xFFFFFFFF; */
 
   pEfcState->strategyPassed =
       (var_p4_cont_counter1 >> 0) & MASK32;
   pEfcState->strategyRuns =
       (var_p4_cont_counter1 >> 32) & MASK32;
-  pEfcState->ordersSubscribed =
-      (var_p4_cont_counter3 >> 0) & MASK32;
-  pEfcState->ordersUnsubscribed =
-      (var_p4_cont_counter3 >> 32) & MASK32;
+  /* pEfcState->ordersSubscribed = */
+  /*     (var_p4_cont_counter3 >> 0) & MASK32; */
+  /* pEfcState->ordersUnsubscribed = */
+  /*     (var_p4_cont_counter3 >> 32) & MASK32; */
 
   uint64_t armReg = reg_read(P4_ARM_DISARM);
   pEfcState->commonState.armed = (armReg & 0x1) != 0;
@@ -1161,6 +1242,53 @@ int getEfcState(EfcState *pEfcState) {
   pEfcState->commonState.tcpFilterEn =
       (reg_read(0xf0020) >> 32 & 0x1) == 0;
 
+  return 0;
+}
+
+// ################################################
+int getProdState(EurProdState *pProdState) {
+
+  uint64_t prodBase = SW_SCRATCHPAD_BASE + 16*8; //from line 16
+  
+  pProdState->totalSecs = reg_read(prodBase + 16*8);
+  pProdState->bookSecs  = reg_read(prodBase + 17*8);
+
+  for (auto prodHande = 0; prodHande < 16; prodHande++) {
+    pProdState->secID[prodHande] =
+      reg_read(prodBase + prodHande*8);
+  }
+
+  return 0;
+}
+
+// ################################################
+int printProdState(EurProdState *pProdState) {
+  printf(prefixStrFormat, "Total Products");
+  printf (colformat,pProdState->totalSecs);
+  printf("\n");
+  printf(prefixStrFormat, "Book Products");
+  printf (colformat,pProdState->bookSecs);
+  printf("\n");
+  
+  return 0;
+}
+
+int printBookState(EurProdState *pProdState) {
+
+  for (auto prodHande = 0; prodHande < 16; prodHande++) {
+    if (pProdState->secID[prodHande]) {
+            //      printf(colformat, prodHande);
+
+      printf(prefixBookStrFormat, "Handle" , prodHande);
+      printf(colformat, pProdState->secID[prodHande]);
+      printTOB(prodHande);
+      printf("\n");
+      
+    }
+
+  }
+  
+  
   return 0;
 }
 
@@ -1273,7 +1401,7 @@ int printEfcState(EfcState *pEfcState) {
   printf("\n-----------------------------------------------"
          "---------");
 
-  printf("ReportOnly            :\t%d\n",
+  printf("ReportOnly\t\t%d\n",
          pEfcState->commonState.reportOnly);
 
   if (pEfcState->fatalDebug)
@@ -1387,11 +1515,15 @@ int main(int argc, char *argv[]) {
     printStratHeader();
     printStratStatus(pStratState);
 
-  printf("ReportOnly            :\t%d\n\n",
-         pStratState->p4.commonState.reportOnly);
-  
-    printTOB(0);
+    /* printf("ReportOnly\t\t\t%d\n\n", */
+    /* 	   pStratState->p4.commonState.reportOnly); */
+    getProdState(&pStratState->eur);
+    printProdHeader();
+    printProdState(&pStratState->eur);
 
+    printBookHeader();
+    printBookState(&pStratState->eur);
+    
     /* ----------------------------------------- */
     char excptBuf[8192] = {};
     int decodeSize =

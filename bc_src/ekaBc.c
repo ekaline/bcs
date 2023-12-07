@@ -164,14 +164,17 @@ EkaBCOpResult ekaBcSetSessionCntr(EkaDev *dev,
   }
 
   s->updateFpgaCtx<EkaTcpSess::AppSeqBin>(cntr);
+  s->updateFpgaCtx<EkaTcpSess::AppSeqAscii>(cntr);
 
-  char cntrString[64] = {};
-  sprintf(cntrString, "%08ju", cntr);
+  // in eurex, both use binary, ascii is used for clordid
+  
+  /* char cntrString[64] = {}; */
+  /* sprintf(cntrString, "%08ju", cntr); */
 
-  uint64_t cntrAscii = 0;
-  memcpy(&cntrAscii, cntrString, 8);
-  s->updateFpgaCtx<EkaTcpSess::AppSeqAscii>(
-      be64toh(cntrAscii));
+  /* uint64_t cntrAscii = 0; */
+  /* memcpy(&cntrAscii, cntrString, 8); */
+  /* s->updateFpgaCtx<EkaTcpSess::AppSeqAscii>( */
+  /*     be64toh(cntrAscii)); */
 
   return EKABC_OPRESULT__OK;
 }
@@ -314,6 +317,9 @@ void ekaBcEurRun(EkaDev *dev,
 
   EKA_LOG("Joining UDP Channels");
   eur->joinUdpChannels();
+
+  EKA_LOG("Updating Scratchpad");
+  eur->downloadProdInfoDB();
 
   /* ----------------------------------------------- */
   if (!pEkaBcRunCtx)

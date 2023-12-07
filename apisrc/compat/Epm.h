@@ -289,7 +289,8 @@ enum class EpmActionType : int {
   // BC
   CmeFc = 60,
   EurFire = 61,
-
+    EurSwSend = 62,
+    
   LAST_ACTION = 0xFFFF,
 
   // User Actions
