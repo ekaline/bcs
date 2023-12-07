@@ -1480,6 +1480,8 @@ int main(int argc, char *argv[]) {
       }
     }
 
+    active_strat[S_P4] = true; // single strategy
+    
     if (active_strat[S_QED])
       getQEDState(&pStratState->QED);
     if (active_strat[S_SWEEP])
@@ -1488,14 +1490,14 @@ int main(int argc, char *argv[]) {
       getNewsState(&pStratState->news);
     if (active_strat[S_CANCEL])
       getFastCancelState(&pStratState->fastCancel);
-//    if (active_strat[S_P4])
-//    otherwisse no report only disaply in unconfigured parser
-      getEfcState(&pStratState->p4);
-
+    //    if (active_strat[S_P4])
+    //    otherwisse no report only disaply in unconfigured parser
+    getEfcState(&pStratState->p4);
+    
     /* ----------------------------------------- */
     printf("\e[1;1H\e[2J"); //	system("clear");
     /* ----------------------------------------- */
-
+    
     printTime();
     /* ----------------------------------------- */
     printHeader(coreParams, &pStratState->p4, ekaHwCaps);
@@ -1504,37 +1506,39 @@ int main(int argc, char *argv[]) {
     /* ----------------------------------------- */
     printCurrRxTraffic(coreParams);
     /* ----------------------------------------- */
-    printLineSeparator(coreParams, '+', '-');
-    /* ----------------------------------------- */
-    printCurrTxTraffic(coreParams);
-    /* ----------------------------------------- */
-    printLineSeparator(coreParams, '+', '-');
-    /* ----------------------------------------- */
-    /* ----------------------------------------- */
-    /* ----------------------------------------- */
-    printStratHeader();
-    printStratStatus(pStratState);
+      printLineSeparator(coreParams, '+', '-');
+      /* ----------------------------------------- */
+      printCurrTxTraffic(coreParams);
+      /* ----------------------------------------- */
+      printLineSeparator(coreParams, '+', '-');
+      /* ----------------------------------------- */
+      /* ----------------------------------------- */
+      /* ----------------------------------------- */
+      printStratHeader();
+      printStratStatus(pStratState);
 
-    /* printf("ReportOnly\t\t\t%d\n\n", */
-    /* 	   pStratState->p4.commonState.reportOnly); */
-    getProdState(&pStratState->eur);
-    printProdHeader();
-    printProdState(&pStratState->eur);
+      /* printf("ReportOnly\t\t\t%d\n\n", */
+      /* 	   pStratState->p4.commonState.reportOnly); */
+      getProdState(&pStratState->eur);
+      printProdHeader();
+      printProdState(&pStratState->eur);
 
-    printBookHeader();
-    printBookState(&pStratState->eur);
+      printBookHeader();
+      printBookState(&pStratState->eur);
     
-    /* ----------------------------------------- */
-    char excptBuf[8192] = {};
-    int decodeSize =
+      /* ----------------------------------------- */
+      char excptBuf[8192] = {};
+      int decodeSize =
         ekaDecodeExceptions(excptBuf, pEfcExceptionsReport);
-    if ((uint64_t)decodeSize > sizeof(excptBuf))
-      on_error("decodeSize %d > sizeof(excptBuf) %jd",
-               decodeSize, sizeof(excptBuf));
-    printf("%s\n", excptBuf);
-    /* ----------------------------------------- */
-    sleep(1);
-  }
+      if ((uint64_t)decodeSize > sizeof(excptBuf))
+	on_error("decodeSize %d > sizeof(excptBuf) %jd",
+		 decodeSize, sizeof(excptBuf));
+      printf("%s\n", excptBuf);
+      /* ----------------------------------------- */
+      sleep(1);
+    }
+
+  
   delete ekaHwCaps;
   delete pEfcState;
   delete pFastCancelState;
