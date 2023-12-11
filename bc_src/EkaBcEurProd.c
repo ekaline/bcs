@@ -219,8 +219,14 @@ EkaBCOpResult EkaBcEurProd::setReferenceJumpParams(
 
   /* -------------------------------------------------- */
   //configuring the first ref target, for fast book fetch
-  EKA_LOG("Setting Reference: trigger prod=%d, ref prod=%d",
+  EKA_LOG("Setting Reference: trigger product = %d, reference product = %d",
 	  handle_, fireProdHandle);
+
+  uint64_t current_map = eka_read(0xf0110);
+  EKA_LOG("Old Reference Map = 0x%016jx", current_map);
+  current_map |= ((uint64_t)fireProdHandle << handle_*4);
+  EKA_LOG("New Reference Map = 0x%016jx", current_map);
+  //  eka_write(0xf0110, current_map);
   
   return EKABC_OPRESULT__OK;
 }

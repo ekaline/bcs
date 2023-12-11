@@ -2,6 +2,98 @@
 #include <iostream>
 
 #include "TestEur.h"
+// Structure: MessageHeaderIn
+
+typedef struct
+
+{
+
+    uint32_t BodyLen;
+
+    uint16_t TemplateID;
+
+    char NetworkMsgID[8];
+
+    char Pad2[2];
+
+} MessageHeaderInCompT;
+
+ 
+
+ 
+
+// Structure: RequestHeader
+
+typedef struct
+
+{
+
+    uint32_t MsgSeqNum;
+
+    uint32_t SenderSubID;
+
+} RequestHeaderCompT;
+
+ 
+
+ 
+
+typedef struct
+
+{
+
+    MessageHeaderInCompT MessageHeaderIn;
+
+    RequestHeaderCompT RequestHeader;
+
+    int64_t Price;
+
+    int64_t OrderQty;
+
+    uint64_t ClOrdID;
+
+    uint64_t PartyIDClientID;
+
+    uint64_t PartyIdInvestmentDecisionMaker;
+
+    uint64_t ExecutingTrader;
+
+    uint32_t SimpleSecurityID;
+
+    uint32_t MatchInstCrossID;
+
+    uint16_t EnrichmentRuleID;
+
+    uint8_t Side;
+
+    uint8_t ApplSeqIndicator;
+
+    uint8_t PriceValidityCheckType;
+
+    uint8_t ValueCheckTypeValue;
+
+    uint8_t OrderAttributeLiquidityProvision;
+
+    uint8_t TimeInForce;
+
+    uint8_t ExecInst;
+
+    uint8_t TradingCapacity;
+
+    uint8_t OrderOrigination;
+
+    uint8_t PartyIdInvestmentDecisionMakerQualifier;
+
+    uint8_t ExecutingTraderQualifier;
+
+    char ComplianceText[20];
+
+    char Pad7[7];
+
+} NewOrderSingleShortRequestT;
+
+
+
 /* --------------------------------------------- */
 void printFireReport(uint8_t *p) {
   uint8_t *b = (uint8_t *)p;
@@ -94,11 +186,15 @@ void printPayloadReport(uint8_t *p) {
 
   hexDump("Data (without headers)",b,length-54);
 
+  NewOrderSingleShortRequestT *o = (NewOrderSingleShortRequestT *)b;
+  printf ("Price = %ju\n",(uint64_t)o->Price);
+  printf ("OrderQty = %ju\n",(uint64_t)o->OrderQty);
 
+  
 }
 
 void getExampleFireReport(const void *p, size_t len, void *ctx) {
-  if (0) {
+  if (1) {
   uint8_t *b = (uint8_t *)p;
   auto containerHdr{
       reinterpret_cast<EkaBcContainerGlobalHdr *>(b)};
@@ -246,6 +342,7 @@ TEST_F(TestEur, Eur_basic) {
   ASSERT_NE(h, -1);
   ASSERT_NE(r, -1);
 
+  //  printf ("Main Hanlde = %d, Reference Handle = %d",h,r);
   auto eurHwAction = ekaBcAllocateNewAction(
       dev_, EkaBcActionType::EurFire);
   ASSERT_NE(eurHwAction, -1);
@@ -275,9 +372,9 @@ TEST_F(TestEur, Eur_basic) {
     "12345678901234567890"
     "12345678901234567890";
 
-  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , strlen(EurSwFireMsg));
-  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , strlen(EurSwFireMsg));
-  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , strlen(EurSwFireMsg));
+  //  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , strlen(EurSwFireMsg));
+  //  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , strlen(EurSwFireMsg));
+  //  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , strlen(EurSwFireMsg));
   //sw action
   
   EkaBcEurProductInitParams prodParams = {};
@@ -364,37 +461,39 @@ TEST_F(TestEur, Eur_basic) {
 
   EkaBcEurReferenceJumpParams   rjumpParams = {};
 
-  rjumpParams.atBest[activeRJumpAtBestSet].max_tob_size =
-      (tobBidSize > tobAskSize) ? tobBidSize : tobAskSize;
-  rjumpParams.atBest[activeRJumpAtBestSet].min_tob_size =
-      (tobBidSize > tobAskSize) ? tobAskSize : tobBidSize;
-  rjumpParams.atBest[activeRJumpAtBestSet].max_opposit_tob_size = sizeMultiplier; //TBD
-  rjumpParams.atBest[activeRJumpAtBestSet].time_delta_ns = 0; //TBD
-  rjumpParams.atBest[activeRJumpAtBestSet].tickersize_lots = sizeMultiplier; //TBD
-  rjumpParams.atBest[activeRJumpAtBestSet].buy_size =
-      sizeMultiplier;
-  rjumpParams.atBest[activeRJumpAtBestSet].sell_size =
-      sizeMultiplier * 2;
+  // rjumpParams.atBest[activeRJumpAtBestSet].max_tob_size =       (tobBidSize > tobAskSize) ? tobBidSize : tobAskSize;
+  // rjumpParams.atBest[activeRJumpAtBestSet].min_tob_size =      (tobBidSize > tobAskSize) ? tobAskSize : tobBidSize;
+  // rjumpParams.atBest[activeRJumpAtBestSet].max_opposit_tob_size = sizeMultiplier; //TBD
+  // rjumpParams.atBest[activeRJumpAtBestSet].time_delta_ns = 0; //TBD
+  // rjumpParams.atBest[activeRJumpAtBestSet].tickersize_lots = sizeMultiplier; //TBD
+  // rjumpParams.atBest[activeRJumpAtBestSet].buy_size =      sizeMultiplier;
+  // rjumpParams.atBest[activeRJumpAtBestSet].sell_size =      sizeMultiplier * 2;
+  // rjumpParams.atBest[activeRJumpAtBestSet].strat_en = 1;  
+  // rjumpParams.atBest[activeRJumpAtBestSet].boc = 1;
+  // rjumpParams.atBest[activeRJumpAtBestSet].min_spread = 1; //TBD
+
+  rjumpParams.atBest[activeRJumpAtBestSet].max_tob_size = (EkaBcEurMdSize)(-1);
+  rjumpParams.atBest[activeRJumpAtBestSet].min_tob_size =  (EkaBcEurMdSize)(-1);
+  rjumpParams.atBest[activeRJumpAtBestSet].max_opposit_tob_size = (EkaBcEurMdSize)(-1);
+  rjumpParams.atBest[activeRJumpAtBestSet].time_delta_ns = (EkaBcEurTimeNs)(-1);
+  rjumpParams.atBest[activeRJumpAtBestSet].tickersize_lots = (EkaBcEurMdSize)(-1);
+  rjumpParams.atBest[activeRJumpAtBestSet].buy_size =      (EkaBcEurFireSize)(-1);
+  rjumpParams.atBest[activeRJumpAtBestSet].sell_size =     (EkaBcEurFireSize)(-1);
   rjumpParams.atBest[activeRJumpAtBestSet].strat_en = 1;  
   rjumpParams.atBest[activeRJumpAtBestSet].boc = 1;
-  rjumpParams.atBest[activeRJumpAtBestSet].min_spread = 1; //TBD
+  rjumpParams.atBest[activeRJumpAtBestSet].min_spread = (uint8_t)(-1); 
+  
+  // rjumpParams.betterBest[activeRJumpBetterBestSet].max_tob_size =      (tobBidSize > tobAskSize) ? tobBidSize : tobAskSize;
+  // rjumpParams.betterBest[activeRJumpBetterBestSet].min_tob_size =      (tobBidSize > tobAskSize) ? tobAskSize : tobBidSize;
+  // rjumpParams.betterBest[activeRJumpBetterBestSet].max_opposit_tob_size = sizeMultiplier; //TBD
+  // rjumpParams.betterBest[activeRJumpBetterBestSet].time_delta_ns = 0; //TBD
+  // rjumpParams.betterBest[activeRJumpBetterBestSet].tickersize_lots = sizeMultiplier; //TBD
+  // rjumpParams.betterBest[activeRJumpBetterBestSet].buy_size =      sizeMultiplier;
+  // rjumpParams.betterBest[activeRJumpBetterBestSet].sell_size =      sizeMultiplier * 2;
+  // rjumpParams.betterBest[activeRJumpBetterBestSet].strat_en = 1;    rjumpParams.betterBest[activeRJumpBetterBestSet].boc = 0;
+  // rjumpParams.betterBest[activeRJumpBetterBestSet].min_spread = 1; //TBD
 
-  rjumpParams.betterBest[activeRJumpBetterBestSet].max_tob_size =
-      (tobBidSize > tobAskSize) ? tobBidSize : tobAskSize;
-  rjumpParams.betterBest[activeRJumpBetterBestSet].min_tob_size =
-      (tobBidSize > tobAskSize) ? tobAskSize : tobBidSize;
-  rjumpParams.betterBest[activeRJumpBetterBestSet].max_opposit_tob_size = sizeMultiplier; //TBD
-  rjumpParams.betterBest[activeRJumpBetterBestSet].time_delta_ns = 0; //TBD
-  rjumpParams.betterBest[activeRJumpBetterBestSet].tickersize_lots = sizeMultiplier; //TBD
-  rjumpParams.betterBest[activeRJumpBetterBestSet].buy_size =
-      sizeMultiplier;
-  rjumpParams.betterBest[activeRJumpBetterBestSet].sell_size =
-      sizeMultiplier * 2;
-  rjumpParams.betterBest[activeRJumpBetterBestSet].strat_en = 1;  
-  rjumpParams.betterBest[activeRJumpBetterBestSet].boc = 0;
-  rjumpParams.betterBest[activeRJumpBetterBestSet].min_spread = 1; //TBD
-
-  rc = ekaBcEurSetReferenceJumpParams(dev_, h, r, &rjumpParams);
+  rc = ekaBcEurSetReferenceJumpParams(dev_, r, h, &rjumpParams);
   ASSERT_EQ(rc, EKABC_OPRESULT__OK);
   
   EkaBcArmVer armVer = 0;
@@ -467,31 +566,50 @@ TEST_F(TestEur, Eur_basic) {
   mcCon->sendUdpPkt(&addOrderAskPkt,
                     sizeof(addOrderAskPkt));
 
-  EobiExecSumPkt execSumPkt = {};
-  execSumPkt.pktHdr.MessageHeader.TemplateID =
+  //jump
+  EobiExecSumPkt execSumJumpPkt = {};
+  execSumJumpPkt.pktHdr.MessageHeader.TemplateID =
       TID_PACKETHEADER;
-  execSumPkt.pktHdr.MessageHeader.BodyLen =
+  execSumJumpPkt.pktHdr.MessageHeader.BodyLen =
       sizeof(addOrderAskPkt.pktHdr);
-  execSumPkt.pktHdr.TransactTime = 0; // TBD
-  execSumPkt.execSumMsg.MessageHeader.BodyLen =
-      sizeof(execSumPkt.execSumMsg);
-  execSumPkt.execSumMsg.MessageHeader.TemplateID =
+  execSumJumpPkt.pktHdr.TransactTime = 0; // TBD
+  execSumJumpPkt.execSumMsg.MessageHeader.BodyLen =
+      sizeof(execSumJumpPkt.execSumMsg);
+  execSumJumpPkt.execSumMsg.MessageHeader.TemplateID =
       TID_EXECUTION_SUMMARY;
-  execSumPkt.execSumMsg.SecurityID = prodList_[0];
-  execSumPkt.execSumMsg.RequestTime = 0; // TBD
-  execSumPkt.execSumMsg.LastQty = tradeSize;
-  execSumPkt.execSumMsg.AggressorSide = AggressorSide;
-  execSumPkt.execSumMsg.LastPx = tradePrice;
+  execSumJumpPkt.execSumMsg.SecurityID = prodList_[main_index];
+  execSumJumpPkt.execSumMsg.RequestTime = 0; // TBD
+  execSumJumpPkt.execSumMsg.LastQty = tradeSize;
+  execSumJumpPkt.execSumMsg.AggressorSide = AggressorSide;
+  execSumJumpPkt.execSumMsg.LastPx = tradePrice;
 
-  /*   sendPktToAll(&execSumPkt, sizeof(execSumPkt), true);
+  //rjump
+  EobiExecSumPkt execSumRJumpPkt = {};
+  execSumRJumpPkt.pktHdr.MessageHeader.TemplateID =
+      TID_PACKETHEADER;
+  execSumRJumpPkt.pktHdr.MessageHeader.BodyLen =
+      sizeof(addOrderAskPkt.pktHdr);
+  execSumRJumpPkt.pktHdr.TransactTime = 0; // TBD
+  execSumRJumpPkt.execSumMsg.MessageHeader.BodyLen =
+      sizeof(execSumRJumpPkt.execSumMsg);
+  execSumRJumpPkt.execSumMsg.MessageHeader.TemplateID =
+      TID_EXECUTION_SUMMARY;
+  execSumRJumpPkt.execSumMsg.SecurityID = prodList_[ref_index];
+  execSumRJumpPkt.execSumMsg.RequestTime = 0; // TBD
+  execSumRJumpPkt.execSumMsg.LastQty = tradeSize;
+  execSumRJumpPkt.execSumMsg.AggressorSide = AggressorSide;
+  execSumRJumpPkt.execSumMsg.LastPx = tradePrice;
+  
+  /*   sendPktToAll(&execSumPkt, sizeof(execSumJumpPkt), true);
    */
   ekaBcSetSessionCntr(dev_, tcpCtx_->tcpSess_[0]->excSock_, 5);
     
-  mcCon->sendUdpPkt(&execSumPkt, sizeof(execSumPkt));
+  //  mcCon->sendUdpPkt(&execSumJumpPkt, sizeof(execSumJumpPkt));
+  mcCon->sendUdpPkt(&execSumRJumpPkt, sizeof(execSumRJumpPkt));
   //  sleep(5);
-  rc = ekaBcArmEur(dev_, h, true /* armBid */,
-                   true /* armAsk */, armVer++);
-  mcCon->sendUdpPkt(&execSumPkt, sizeof(execSumPkt));
+  // rc = ekaBcArmEur(dev_, h, true /* armBid */,
+  //                  true /* armAsk */, armVer++);
+  // mcCon->sendUdpPkt(&execSumPkt, sizeof(execSumPkt));
   sleep(5);
   for (uint i = 0; i < 0; i++) {
     ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg , strlen(EurSwFireMsg));
