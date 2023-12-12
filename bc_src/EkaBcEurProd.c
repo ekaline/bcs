@@ -226,7 +226,7 @@ EkaBCOpResult EkaBcEurProd::setReferenceJumpParams(
   EKA_LOG("Old Reference Map = 0x%016jx", current_map);
   current_map |= ((uint64_t)fireProdHandle << handle_*4);
   EKA_LOG("New Reference Map = 0x%016jx", current_map);
-  //  eka_write(0xf0110, current_map);
+  eka_write(0xf0110, current_map);
   
   return EKABC_OPRESULT__OK;
 }

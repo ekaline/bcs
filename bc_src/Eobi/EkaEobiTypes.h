@@ -20,7 +20,7 @@ typedef uint8_t HwFireSize;
 typedef uint16_t HwMdSize;
 typedef int64_t HwMdPrice;
 typedef uint8_t HwBookSpread;
-typedef uint16_t HwTimeDelta;
+typedef uint8_t HwTimeDelta;
 
 static const uint ENTRIES = 32 * 1024;
 
@@ -206,16 +206,15 @@ struct HwReferenceJumpParamsSet {
 
   HwTimeDelta timeDelta;   // 2
   HwMdSize tickerSizeLots; // 2
-} __attribute__((packed)); // 14 Bytes
+} __attribute__((packed)); // 13 Bytes
 
 struct HwReferenceJumpParams {
-  char pad[6];
   HwProdParams prodParams;
   HwReferenceJumpParamsSet
       betterBest[EKA_RJUMP_BETTERBEST_SETS];
   HwReferenceJumpParamsSet atBest[EKA_RJUMP_ATBEST_SETS];
 } __attribute__((aligned(sizeof(uint64_t))))
-__attribute__((packed)); // 14 + 4 * 14 + 6 * 14 = 154, roundup 160
+__attribute__((packed)); // 14 + 4 * 13 + 6 * 13 = 144, no roundup
 
 /* ----------------------------------------------------- */
 
