@@ -139,22 +139,23 @@ EkaBCOpResult EkaBcEurProd::setReferenceJumpParams(
   memcpy(&refJumpParams_[fireProdHandle], params,
          sizeof(*params));
 
-
   auto fireProd = strat_->getProd(fireProdHandle);
   if (!fireProd)
     on_error("!fireProd");
-  
+
   HwReferenceJumpParams p = {};
 
-  
   /* -------------------------------------------------- */
 
   p.prodParams.secId = fireProd->secId_;
-  p.prodParams.prodHandle = normalizeHandle(fireProd->handle_);
+  p.prodParams.prodHandle =
+      normalizeHandle(fireProd->handle_);
   p.prodParams.actionIdx =
       normalizeActionIdx(fireProd->fireActionIdx_);
-  p.prodParams.askSize = normalizeFireSize(fireProd->maxAskSize_);
-  p.prodParams.bidSize = normalizeFireSize(fireProd->maxBidSize_);
+  p.prodParams.askSize =
+      normalizeFireSize(fireProd->maxAskSize_);
+  p.prodParams.bidSize =
+      normalizeFireSize(fireProd->maxBidSize_);
   p.prodParams.maxBookSpread =
       normalizePriceSpread(fireProd->maxBookSpread_);
   /* -------------------------------------------------- */
@@ -204,7 +205,6 @@ EkaBCOpResult EkaBcEurProd::setReferenceJumpParams(
 
   /* -------------------------------------------------- */
 
-  
   /* static const size_t EXPECTED_HW_SIZE = 154; */
   /* if (sizeof(p) != EXPECTED_HW_SIZE) */
   /*   on_error("sizeof(p) %ju != EXPECTED_HW_SIZE %ju", */
@@ -218,16 +218,17 @@ EkaBCOpResult EkaBcEurProd::setReferenceJumpParams(
     eka_write(dst + 8 * i, *(sPtr++));
 
   /* -------------------------------------------------- */
-  //configuring the first ref target, for fast book fetch
-  EKA_LOG("Setting Reference: trigger product = %d, reference product = %d",
-	  handle_, fireProdHandle);
+  // configuring the first ref target, for fast book fetch
+  EKA_LOG("Setting Reference: trigger product = %jd, "
+          "reference product = %jd",
+          handle_, fireProdHandle);
 
   uint64_t current_map = eka_read(0xf0110);
   EKA_LOG("Old Reference Map = 0x%016jx", current_map);
-  current_map |= ((uint64_t)fireProdHandle << handle_*4);
+  current_map |= ((uint64_t)fireProdHandle << handle_ * 4);
   EKA_LOG("New Reference Map = 0x%016jx", current_map);
   eka_write(0xf0110, current_map);
-  
+
   return EKABC_OPRESULT__OK;
 }
 /* --------------------------------------------------- */
