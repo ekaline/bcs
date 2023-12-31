@@ -157,12 +157,6 @@ install(TARGETS ekalwip_static RUNTIME DESTINATION lib COMPONENT Runtime)
 
 set(EKA_GENERIC_SRC_PATH ${CMAKE_CURRENT_LIST_DIR}/apisrc)
 set(EKA_BC_SRC_PATH ${CMAKE_CURRENT_LIST_DIR}/bc_src)
-# set(EKA_BC_SRC_PATH ${EKA_BC_SRC_PATH} ${CMAKE_CURRENT_LIST_DIR}/bc_src/Cme)
-# set(EKA_BC_SRC_PATH ${EKA_BC_SRC_PATH}
-# ${CMAKE_CURRENT_LIST_DIR}/bc_src/EkaBook) set(EKA_BC_SRC_PATH
-# ${EKA_BC_SRC_PATH} ${CMAKE_CURRENT_LIST_DIR}/bc_src/Eobi) set(EKA_BC_SRC_PATH
-# ${EKA_BC_SRC_PATH} ${CMAKE_CURRENT_LIST_DIR}/bc_src/Ice) et(EKA_BC_SRC_PATH
-# ${EKA_BC_SRC_PATH} ${CMAKE_CURRENT_LIST_DIR}/bc_src/Nyse)
 
 set(EKA_INC_PATH ${EKA_INC_PATH} ${apiDIR})
 set(EKA_INC_PATH ${EKA_INC_PATH} ${EKA_GENERIC_SRC_PATH})
@@ -172,20 +166,17 @@ set(EKA_INC_PATH ${EKA_INC_PATH} ${EKA_GENERIC_SRC_PATH}/Ehp)
 set(EKA_INC_PATH ${EKA_INC_PATH} ${EKA_GENERIC_SRC_PATH}/FhBook)
 
 set(EKA_INC_PATH ${EKA_INC_PATH} ${CMAKE_CURRENT_LIST_DIR}/bc_src)
-# set(EKA_INC_PATH ${EKA_INC_PATH} ${CMAKE_CURRENT_LIST_DIR}/bc_src/Cme)
 set(EKA_INC_PATH ${EKA_INC_PATH} ${CMAKE_CURRENT_LIST_DIR}/bc_src/EkaBook)
 set(EKA_INC_PATH ${EKA_INC_PATH} ${CMAKE_CURRENT_LIST_DIR}/bc_src/Eobi)
-# set(EKA_INC_PATH ${EKA_INC_PATH} ${CMAKE_CURRENT_LIST_DIR}/bc_src/Ice)
-# set(EKA_INC_PATH ${EKA_INC_PATH} ${CMAKE_CURRENT_LIST_DIR}/bc_src/Nyse)
 
 set(EKA_INC_PATH ${EKA_INC_PATH} ${EKA_TESTS_DIR})
 set(EKA_INC_PATH ${EKA_INC_PATH} ${SMARTNIC_API_INCL})
 set(EKA_INC_PATH ${EKA_INC_PATH} ${SMARTNIC_DRIVER_INCL})
 set(EKA_INC_PATH ${EKA_INC_PATH} ${LWIP_INCL})
 
-file(GLOB ${EKA_LIB_NAME}_SRCS ${EKA_GENERIC_SRC_PATH}/*.c
-     ${EKA_GENERIC_SRC_PATH}/Ehp/*.c ${EKA_BC_SRC_PATH}/*.c
-     ${EKA_BC_SRC_PATH}/Eobi/*.c)
+file(GLOB ${EKA_LIB_NAME}_SRCS ${EKA_GENERIC_SRC_PATH}/*.cpp
+     ${EKA_GENERIC_SRC_PATH}/Ehp/*.cpp ${EKA_BC_SRC_PATH}/*.cpp
+     ${EKA_BC_SRC_PATH}/Eobi/*.cpp)
 
 set(EKA_LINK_MAP ${apiDIR}/libekaline2.map)
 # set(EKA_LINK_MAP
@@ -219,11 +210,7 @@ if(ENABLE_TESTING)
   target_compile_definitions(${EKA_LIB_NAME} PUBLIC ENABLE_TESTING="ON")
 endif()
 
-target_link_libraries(
-  ${EKA_LIB_NAME} PUBLIC libsmartnic_static ekalwip_static # rt m
-                                                           # Threads::Threads
-  # -static-libgcc \ -static-libstdc++
-)
+target_link_libraries(${EKA_LIB_NAME} PUBLIC libsmartnic_static ekalwip_static)
 
 file(GLOB EKA_LIB_NAME_PUBLIC_HEADER ${apiDIR}/*.h)
 set_target_properties(${EKA_LIB_NAME}
@@ -263,11 +250,6 @@ endif()
 
 target_link_libraries(${EKA_LIB_NAME}_static PUBLIC libsmartnic_static)
 target_link_libraries(${EKA_LIB_NAME}_static PUBLIC ekalwip_static)
-# target_link_libraries(${EKA_LIB_NAME}_static PUBLIC rt)
-# target_link_libraries(${EKA_LIB_NAME}_static PUBLIC m)
-# target_link_libraries(${EKA_LIB_NAME}_static PUBLIC Threads::Threads)
-# target_link_libraries(${EKA_LIB_NAME}_static PUBLIC -static-libgcc
-# -static-libstdc++)
 
 set_target_properties(${EKA_LIB_NAME}_static
                       PROPERTIES PUBLIC_HEADER "${EKA_LIB_NAME_PUBLIC_HEADER}")
@@ -290,7 +272,7 @@ install(TARGETS ${EKA_LIB_NAME}_static RUNTIME DESTINATION lib
 # ##############################################################################
 # Tests
 if(ENABLE_EKA_TESTING)
-  file(GLOB test_SRCS ${EKA_TESTS_DIR}/*.c)
+  file(GLOB test_SRCS ${EKA_TESTS_DIR}/*.cpp)
   set(testDstDir ${CMAKE_BINARY_DIR}/tests/${EKA_LIB_NAME})
 
   foreach(test ${test_SRCS})
@@ -301,12 +283,7 @@ if(ENABLE_EKA_TESTING)
     target_compile_options(${testName} PUBLIC -std=c++23)
 
     add_dependencies(${testName} ${EKA_LIB_NAME})
-    target_link_libraries(${testName} ${EKA_LIB_NAME} rt m Threads::Threads)
-
-    # add_dependencies(${testName} ${EKA_LIB_NAME}_static)
-    # target_link_libraries(${testName} ${EKA_LIB_NAME}_static rt m
-    # Threads::Threads) target_link_libraries(${testName} -static-libgcc
-    # -static-libstdc++)
+    # target_link_libraries(${testName} ${EKA_LIB_NAME} rt m Threads::Threads)
 
     target_include_directories(${testName} PUBLIC ${EKA_INC_PATH})
   endforeach()
@@ -314,19 +291,17 @@ endif() # ENABLE_EKA_TESTING
 
 # ##############################################################################
 # Utils
-file(GLOB utils_SRCS ${CMAKE_CURRENT_LIST_DIR}/eka_utils/*.c)
+file(GLOB utils_SRCS ${CMAKE_CURRENT_LIST_DIR}/eka_utils/*.cpp)
 set(utilsDstDir ${CMAKE_BINARY_DIR}/utils/${EKA_LIB_NAME})
 
 foreach(uSrc ${utils_SRCS})
   get_filename_component(utilExec ${uSrc} NAME_WE)
-  add_executable(${utilExec} ${uSrc} ${EKA_GENERIC_SRC_PATH}/EkaHwCaps.c)
+  add_executable(${utilExec} ${uSrc} ${EKA_GENERIC_SRC_PATH}/EkaHwCaps.cpp)
   set_target_properties(${utilExec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                                ${utilsDstDir})
   add_dependencies(${utilExec} libsmartnic_static)
 
-  target_link_libraries(${utilExec} libsmartnic_static rt m Threads::Threads)
-  target_link_libraries(${utilExec} -static-libgcc -static-libstdc++)
-  target_compile_options(${utilExec} PUBLIC -std=c++23)
+  target_link_libraries(${utilExec} libsmartnic_static)
 
   target_include_directories(${utilExec} PUBLIC ${EKA_INC_PATH})
   install(TARGETS ${utilExec} RUNTIME DESTINATION bin COMPONENT Runtime)
@@ -334,7 +309,7 @@ endforeach()
 
 # ##############################################################################
 # pcap parsers
-file(GLOB pcapParser_SRCS ${CMAKE_CURRENT_LIST_DIR}/pcapParsers/*.c)
+file(GLOB pcapParser_SRCS ${CMAKE_CURRENT_LIST_DIR}/pcapParsers/*.cpp)
 set(pcapsDstDir ${CMAKE_BINARY_DIR}/pcapParsers/${EKA_LIB_NAME})
 file(MAKE_DIRECTORY ${pcapsDstDir})
 

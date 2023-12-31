@@ -170,30 +170,33 @@ EkaBCOpResult EkaEurStrategy::downloadProdInfoDB() {
 
   uint64_t bookCnt = 0;
   uint64_t totalCnt = 0;
-  
+
   EkaBcSecHandle prodHande;
 
-  uint64_t prodBase = SW_SCRATCHPAD_BASE + 16*8; //from line 16
-  
-  for (prodHande = 0; prodHande < MaxSecurities_; prodHande++) {
+  uint64_t prodBase =
+      SW_SCRATCHPAD_BASE + 16 * 8; // from line 16
+
+  for (prodHande = 0; prodHande < MaxSecurities_;
+       prodHande++) {
     if (prod_[prodHande]) {
       totalCnt++;
       if (prod_[prodHande]->isBook_) {
-	bookCnt++;
-	eka_write(prodBase + prodHande*8 , prod_[prodHande]->secId_);
-	EKA_LOG("prodHande %d isBook, secid 0x%jx (0x%d)",
-		prodHande,
-		prod_[prodHande]->secId_,
-		prod_[prodHande]->secId_);
+        bookCnt++;
+        eka_write(prodBase + prodHande * 8,
+                  prod_[prodHande]->secId_);
+        EKA_LOG("prodHande %jd isBook, secid 0x%jx (0x%jd)",
+                prodHande, prod_[prodHande]->secId_,
+                prod_[prodHande]->secId_);
       }
     }
   }
-  EKA_LOG("Updating HW Scratchpad totalCnt %d, bookCnt %d",
-	  totalCnt,bookCnt);
+  EKA_LOG(
+      "Updating HW Scratchpad totalCnt %ju, bookCnt %ju",
+      totalCnt, bookCnt);
 
-  eka_write(prodBase + 16*8 , totalCnt);
-  eka_write(prodBase + 17*8 , bookCnt);
-  
+  eka_write(prodBase + 16 * 8, totalCnt);
+  eka_write(prodBase + 17 * 8, bookCnt);
+
   return EKABC_OPRESULT__OK;
 }
 /* --------------------------------------------------- */
@@ -350,12 +353,12 @@ int EkaEurStrategy::sendDate2Hw() {
   return 1;
 }
 /* --------------------------------------------------- */
-EkaBcEurProd *EkaEurStrategy::getProd(EkaBcSecHandle prodHandle) {
+EkaBcEurProd *
+EkaEurStrategy::getProd(EkaBcSecHandle prodHandle) {
   if (prodHandle < 0 || prodHandle >= MaxSecurities_)
-    on_error("Bad prodHandle %d",prodHandle);
+    on_error("Bad prodHandle %jd", prodHandle);
   return prod_[prodHandle];
 }
-
 
 /* --------------------------------------------------- */
 
@@ -419,23 +422,24 @@ void EkaEurStrategy::runLoop(
 EkaEobiBook *
 EkaEurStrategy::findBook(ExchSecurityId secId) {
   auto h = getSubscriptionId(secId);
-  if (h<0)
+  if (h < 0)
     return nullptr;
 
   if (!prod_[h])
-    on_error("!prod_[%d] secId %d nSec_ %d", h,secId,nSec_);
+    on_error("!prod_[%jd] secId %jd nSec_ %d", h, secId,
+             nSec_);
 
   if (prod_[h]->secId_ != secId)
-    on_error("prod_[h]->secId_ %d secId %d", prod_[h]->secId_, secId);
-  
+    on_error("prod_[h]->secId_ %jd secId %jd",
+             prod_[h]->secId_, secId);
+
   if (!prod_[h]->isBook_)
     return nullptr;
-  
+
   if (!prod_[h]->book_)
     on_error("!prod_[h]->book_");
 
   return prod_[h]->book_;
-
 }
 /* --------------------------------------------------- */
 
