@@ -210,7 +210,7 @@ if(ENABLE_TESTING)
   target_compile_definitions(${EKA_LIB_NAME} PUBLIC ENABLE_TESTING="ON")
 endif()
 
-target_link_libraries(${EKA_LIB_NAME} PUBLIC libsmartnic_static ekalwip_static)
+target_link_libraries(${EKA_LIB_NAME} PRIVATE libsmartnic_static ekalwip_static)
 
 file(GLOB EKA_LIB_NAME_PUBLIC_HEADER ${apiDIR}/*.h)
 set_target_properties(${EKA_LIB_NAME}
@@ -248,8 +248,8 @@ if(VERILOG_SIM)
   target_compile_definitions(${EKA_LIB_NAME}_static PUBLIC _VERILOG_SIM)
 endif()
 
-target_link_libraries(${EKA_LIB_NAME}_static PUBLIC libsmartnic_static)
-target_link_libraries(${EKA_LIB_NAME}_static PUBLIC ekalwip_static)
+target_link_libraries(${EKA_LIB_NAME}_static PRIVATE libsmartnic_static)
+target_link_libraries(${EKA_LIB_NAME}_static PRIVATE ekalwip_static)
 
 set_target_properties(${EKA_LIB_NAME}_static
                       PROPERTIES PUBLIC_HEADER "${EKA_LIB_NAME_PUBLIC_HEADER}")
