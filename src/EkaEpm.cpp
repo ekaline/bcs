@@ -45,6 +45,9 @@ EkaEpm::EkaEpm(EkaDev *_dev) {
 EkaEpm::~EkaEpm() {
   active_ = false;
   delete writeAction2FpgaMtx_file_;
+  for (auto i = 0; i < (int)TemplateId::Count; i++)
+    if (epmTemplate[i])
+      delete epmTemplate[i];
 }
 /* ---------------------------------------------------- */
 int EkaEpm::createRegion(int regionId) {

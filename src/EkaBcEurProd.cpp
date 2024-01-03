@@ -52,15 +52,15 @@ EkaBCOpResult EkaBcEurProd::setDynamicParams(
   maxBidSize_ = p->maxBidSize;
   maxBookSpread_ = p->maxBookSpread;
 
-  EKA_LOG("Product[%jd]: "
-          "secId_ = %jd, "
-          "midPoint_ = %ju, "
-          "step_ = %ju, "
-          "hwMidPoint_ = %u, "
-          "priceDiv_ = %ju, "
-          "%s, ",
-          handle_, secId_, midPoint_, step_, hwMidPoint_,
-          priceDiv_, isBook_ ? "HAS BOOK" : "NO BOOK");
+  /* EKA_LOG("Product[%jd]: " */
+  /*         "secId_ = %jd, " */
+  /*         "midPoint_ = %ju, " */
+  /*         "step_ = %ju, " */
+  /*         "hwMidPoint_ = %u, " */
+  /*         "priceDiv_ = %ju, " */
+  /*         "%s, ", */
+  /*         handle_, secId_, midPoint_, step_, hwMidPoint_, */
+  /*         priceDiv_, isBook_ ? "HAS BOOK" : "NO BOOK"); */
 
   return EKABC_OPRESULT__OK;
 }
@@ -139,23 +139,22 @@ EkaBCOpResult EkaBcEurProd::setReferenceJumpParams(
   memcpy(&refJumpParams_[fireProdHandle], params,
          sizeof(*params));
 
+
   auto fireProd = strat_->getProd(fireProdHandle);
   if (!fireProd)
     on_error("!fireProd");
-
+  
   HwReferenceJumpParams p = {};
 
+  
   /* -------------------------------------------------- */
 
   p.prodParams.secId = fireProd->secId_;
-  p.prodParams.prodHandle =
-      normalizeHandle(fireProd->handle_);
+  p.prodParams.prodHandle = normalizeHandle(fireProd->handle_);
   p.prodParams.actionIdx =
       normalizeActionIdx(fireProd->fireActionIdx_);
-  p.prodParams.askSize =
-      normalizeFireSize(fireProd->maxAskSize_);
-  p.prodParams.bidSize =
-      normalizeFireSize(fireProd->maxBidSize_);
+  p.prodParams.askSize = normalizeFireSize(fireProd->maxAskSize_);
+  p.prodParams.bidSize = normalizeFireSize(fireProd->maxBidSize_);
   p.prodParams.maxBookSpread =
       normalizePriceSpread(fireProd->maxBookSpread_);
   /* -------------------------------------------------- */
@@ -205,6 +204,7 @@ EkaBCOpResult EkaBcEurProd::setReferenceJumpParams(
 
   /* -------------------------------------------------- */
 
+  
   /* static const size_t EXPECTED_HW_SIZE = 154; */
   /* if (sizeof(p) != EXPECTED_HW_SIZE) */
   /*   on_error("sizeof(p) %ju != EXPECTED_HW_SIZE %ju", */
@@ -218,17 +218,30 @@ EkaBCOpResult EkaBcEurProd::setReferenceJumpParams(
     eka_write(dst + 8 * i, *(sPtr++));
 
   /* -------------------------------------------------- */
-  // configuring the first ref target, for fast book fetch
-  EKA_LOG("Setting Reference: trigger product = %jd, "
-          "reference product = %jd",
-          handle_, fireProdHandle);
+  //configuring the first ref target, for fast book fetch
+  /* EKA_LOG("Setting Reference: trigger product = %d, reference product = %d", */
+  /* 	  handle_, fireProdHandle); */
+  
+  // handle_        == trigger md product
+  // fireProdHandle == book product to fire
 
-  uint64_t current_map = eka_read(0xf0110);
-  EKA_LOG("Old Reference Map = 0x%016jx", current_map);
-  current_map |= ((uint64_t)fireProdHandle << handle_ * 4);
-  EKA_LOG("New Reference Map = 0x%016jx", current_map);
-  eka_write(0xf0110, current_map);
+  if (firstFireProd_ != fireProdHandle) {
+    uint64_t current_map = eka_read(0xf0110); 
+    EKA_LOG("Old HW Reference Map = 0x%016jx", current_map);
 
+    current_map &= ~(0xF << handle_*4);
+    EKA_LOG("Masking old value Reference Map = 0x%016jx", current_map);
+    
+    current_map |= ((uint64_t)fireProdHandle << handle_*4);
+    EKA_LOG("New HW Reference Map = 0x%016jx", current_map);
+    
+    eka_write(0xf0110, current_map);
+    firstFireProd_ = fireProdHandle;
+  }
+  /* else { */
+  /*   EKA_LOG("Cached"); */
+  /* } */
+  
   return EKABC_OPRESULT__OK;
 }
 /* --------------------------------------------------- */

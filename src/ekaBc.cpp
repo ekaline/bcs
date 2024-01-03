@@ -271,10 +271,10 @@ EkaBCOpResult ekaBcArmEur(EkaDev *dev,
     on_error("Efc is not initialized: use ekaBcInit()");
   auto efc = dev->efc;
 
-  EKA_LOG("Prod Handle: %jd, "
-          "armBid=%d, armAsk=%d, armVer=%d",
-          prodHande, armBid, armAsk, ver);
-  fflush(g_ekaLogFile);
+  //  EKA_LOG("Prod Handle: %jd, "
+  //          "armBid=%d, armAsk=%d, armVer=%d",
+  //          prodHande, armBid, armAsk, ver);
+  //  fflush(g_ekaLogFile);
   efc->armEur(prodHande, armBid, armAsk, ver);
   return EKABC_OPRESULT__OK;
 }
@@ -488,8 +488,8 @@ EkaBCOpResult ekaBcSetEurProdDynamicParams(
   if (!eur)
     on_error("Eurex is not initialized: use "
              "ekaBcInitEurStrategy()");
-  EKA_LOG("Setting Product[%jd] Dynamic Params", prodHande);
-  fflush(g_ekaLogFile);
+  //  EKA_LOG("Setting Product[%jd] Dynamic Params", prodHande);
+  //  fflush(g_ekaLogFile);
   return eur->setProdDynamicParams(prodHande, params);
 }
 
@@ -505,8 +505,8 @@ ekaBcEurSetJumpParams(EkaDev *dev, EkaBcSecHandle prodHande,
   if (!eur)
     on_error("Eurex is not initialized: use "
              "ekaBcInitEurStrategy()");
-  EKA_LOG("Setting EkaBcEurJumpParams");
-  fflush(g_ekaLogFile);
+  //  EKA_LOG("Setting EkaBcEurJumpParams");
+  //  fflush(g_ekaLogFile);
   return eur->setProdJumpParams(prodHande, params);
 }
 /* ==================================================== */
@@ -523,7 +523,7 @@ EkaBCOpResult ekaBcEurSetReferenceJumpParams(
   if (!eur)
     on_error("Eurex is not initialized: use "
              "ekaBcInitEurStrategy()");
-  EKA_LOG("Setting EkaBcEurReferenceJumpParams");
+  //  EKA_LOG("Setting EkaBcEurReferenceJumpParams");
 
   return eur->setProdReferenceJumpParams(triggerProd,
                                          fireProd, params);

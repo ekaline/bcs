@@ -191,7 +191,7 @@ EkaBCOpResult EkaEurStrategy::downloadProdInfoDB() {
     }
   }
   EKA_LOG(
-      "Updating HW Scratchpad totalCnt %ju, bookCnt %ju",
+      "Updating HW Scratchpad totalCnt %jd, bookCnt %jd",
       totalCnt, bookCnt);
 
   eka_write(prodBase + 16 * 8, totalCnt);

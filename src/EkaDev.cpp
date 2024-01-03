@@ -231,7 +231,7 @@ EkaDev::EkaDev(const EkaDevInitCtx *initCtx) {
 
   pEfcRunCtx = new EfcRunCtx;
   assert(pEfcRunCtx != NULL);
-  pEfcRunCtx = {};
+  memset(pEfcRunCtx, 0, sizeof(*pEfcRunCtx));
 
   EKA_LOG("EKALINE2 LIB BUILD TIME: %s @ %s", __DATE__,
           __TIME__);
@@ -461,7 +461,6 @@ EkaDev::~EkaDev() {
   exc_active = false;
   servThreadActive = false;
   fireReportThreadActive = false;
-  ekaIgmp->threadActive = false;
 
   EKA_LOG("Waiting for servThreadTerminated...");
   while (!servThreadTerminated) {
@@ -470,7 +469,6 @@ EkaDev::~EkaDev() {
 
   tcpRxThreadActive = false;
   fireReportThreadActive = false;
-  ekaIgmp->threadActive = false;
 
   if (dev->efc && dev->efc->eur_) {
     dev->efc->eur_->active_ = false;
@@ -490,10 +488,10 @@ EkaDev::~EkaDev() {
     sleep(0);
   }
 
-  EKA_LOG("Waiting for igmpLoopTerminated...");
-  while (!ekaIgmp->igmpLoopTerminated) {
-    sleep(0);
-  }
+  if (!ekaIgmp)
+    on_error("!ekaIgmp");
+  EKA_LOG("Deleting Igmp");
+  delete ekaIgmp;
 
   EKA_LOG("Closing %u FHs", numFh);
   fflush(stderr);
@@ -527,14 +525,13 @@ EkaDev::~EkaDev() {
     usleep(10);
   }
 
-  if (epmEnabled) {
-    for (uint c = 0; c < MAX_CORES; c++) {
-      if (core[c]) {
-        delete core[c];
-        core[c] = NULL;
-      }
+  for (uint c = 0; c < MAX_CORES; c++) {
+    if (core[c]) {
+      delete core[c];
+      core[c] = NULL;
     }
   }
+
 #ifdef EFH_TIME_CHECK_PERIOD
   fclose(deltaTimeLogFile);
 #endif
@@ -553,6 +550,30 @@ EkaDev::~EkaDev() {
   if (epmEnabled)
     ekaCloseLwip(dev);
 
+  EKA_LOG("Deleting ekaWc");
+  if (!ekaWc)
+    on_error("!ekaWc");
+  delete ekaWc;
+
+  EKA_LOG("Deleting ekaHwCaps");
+  if (!ekaHwCaps)
+    on_error("!ekaHwCaps");
+  delete ekaHwCaps;
+
+  EKA_LOG("Deleting pEfcRunCtx");
+  if (!pEfcRunCtx)
+    on_error("!pEfcRunCtx");
+  delete pEfcRunCtx;
+
+  EKA_LOG("Deleting epm");
+  if (!epm)
+    on_error("!epm");
+  delete epm;
+  EKA_LOG("epm deleted");
+
+  EKA_LOG("Deleting snDev");
+  if (!snDev)
+    on_error("!snDev");
   delete snDev;
 }
 /* ################################################## */

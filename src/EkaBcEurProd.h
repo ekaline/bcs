@@ -54,6 +54,9 @@ private:
   EkaBcEurJumpParams jumpParams_ = {};
   EkaBcEurReferenceJumpParams
       refJumpParams_[MaxReferenceProds_] = {};
+
+  int firstFireProd_ = -1;
+  
 };
 
 #endif

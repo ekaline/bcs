@@ -66,6 +66,10 @@ EkaHwCaps::EkaHwCaps(SN_DeviceId devId) {
   //  %ju\n",          *(uint64_t*)state.paramC);
   if (idx > bufSize)
     on_error("idx %u > bufSize %u", idx, bufSize);
+
+  delete (uint64_t *)state.paramC;
+  delete[] releaseStr;
+  delete[] buildTimeStr;
 }
 
 bool EkaHwCaps::isCorrectHwCapsVer() {
@@ -96,10 +100,10 @@ void EkaHwCaps::print2buf() {
       sprintf(&buf[idx],
               "hwCaps.core.bitmap_tcp_cores\t\t= 0x%jx\n",
               (uint64_t)(hwCaps.core.bitmap_tcp_cores));
-  idx +=
-      sprintf(&buf[idx],
-              "hwCaps.core.bitmap_mirror_cores\t\t= 0x%jx\n",
-              (uint64_t)(hwCaps.core.bitmap_mirror_cores));
+  idx += sprintf(
+      &buf[idx],
+      "hwCaps.core.bitmap_mirror_cores\t\t= 0x%jx\n",
+      (uint64_t)(hwCaps.core.bitmap_mirror_cores));
   idx +=
       sprintf(&buf[idx],
               "hwCaps.core.tcp_sessions_percore\t= %ju\n",

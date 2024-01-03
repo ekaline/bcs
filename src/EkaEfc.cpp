@@ -126,6 +126,11 @@ EkaEfc::EkaEfc(const EfcInitCtx *pEfcInitCtx) {
     for (auto i = 0; i < 256/8; i++)
       eka_write(dst_addr + 8 * i, 0x0);
   }
+
+  // Cleaning first RJump pointer
+  EKA_LOG("Resetting RJump Pointer");
+  eka_write(0xf0110, 0x0);
+  
 }
 
 /* ################################################ */

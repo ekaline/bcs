@@ -17,6 +17,7 @@ EkaFileLock::EkaFileLock(const char *fileName,
 EkaFileLock::~EkaFileLock() {
   unlock("Deleting lock");
   close(lockfd_);
+  EKA_LOG("EkaFileLock deleted");
 }
 
 int EkaFileLock::lock(const char *msg) {
@@ -54,6 +55,6 @@ int EkaFileLock::unlock(const char *msg) {
   if (rc != 0)
     on_error("Failed on releasing flock(): rc = %d", rc);
 
-  // EKA_LOG("%s: lock released", msg);
+  //  EKA_LOG("%s: lock released", msg);
   return 0;
 }

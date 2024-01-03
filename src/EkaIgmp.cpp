@@ -20,24 +20,38 @@ EkaIgmp::EkaIgmp(EkaDev *_dev) {
 
   EKA_LOG("EkaIgmp created");
 
+  igmpThread =
+      std::thread(&EkaIgmp::igmpThreadLoopCb, this);
+
+#if 0
   dev->createThread(
       "Igmp", EkaServiceType::kIGMP, igmpThreadLoopCb, this,
       dev->createThreadContext, (uintptr_t *)&igmpPthread);
+#endif
 }
 
 /* ################################################## */
 EkaIgmp::~EkaIgmp() {
-  threadActive = false;
+  threadActive_ = false;
+  createEntryMtx_.unlock();
+
+#if 0
   EKA_LOG("Waiting for igmpLoopTerminated");
-  while (!igmpLoopTerminated)
+  while (!igmpLoopTerminated_)
     sleep(0);
+#endif
+
+  EKA_LOG("igmpThread.join()");
+
+  // pthread_join(igmpPthread, NULL);
+  igmpThread.join();
 }
 
 /* ################################################## */
 int EkaIgmp::mcJoin(int epmRegion, EkaCoreId coreId,
                     uint32_t ip, uint16_t port,
                     uint16_t vlanTag, uint64_t *pPktCnt) {
-  createEntryMtx.lock();
+  createEntryMtx_.lock();
   int perChId = -1;
 
   for (auto i = 0; i < numIgmpEntries; i++) {
@@ -76,7 +90,7 @@ int EkaIgmp::mcJoin(int epmRegion, EkaCoreId coreId,
   numIgmpEntriesAtCore[coreId]++;
 
 EXISTING_ENTRY:
-  createEntryMtx.unlock();
+  createEntryMtx_.unlock();
 
   return perChId;
 }
@@ -84,15 +98,12 @@ EXISTING_ENTRY:
 /* ################################################## */
 
 /* ################################################## */
-void *EkaIgmp::igmpThreadLoopCb(void *pEkaIgmp) {
-  EkaIgmp *igmp = (EkaIgmp *)pEkaIgmp;
-  EkaDev *dev = igmp->dev;
-
+void EkaIgmp::igmpThreadLoopCb() {
   std::string threadName = std::string("Igmp");
   EKA_LOG("%s igmpThreadLoopCb() started",
           threadName.c_str());
-  igmp->igmpLoopTerminated = false;
-  igmp->threadActive = true;
+  igmpLoopTerminated_ = false;
+  threadActive_ = true;
 
   pthread_setname_np(pthread_self(), threadName.c_str());
 
@@ -108,62 +119,28 @@ void *EkaIgmp::igmpThreadLoopCb(void *pEkaIgmp) {
             dev->affinityConf.igmpThreadCpuId);
   }
 
-  auto lastNoMdTimeCheck = std::chrono::steady_clock::now();
-
-  while (igmp->threadActive) {
-    for (int i = 0; i < igmp->numIgmpEntries; i++) {
-      igmp->igmpEntry[i]->sendIgmpJoin();
-      igmp->igmpEntry[i]->saveMcState();
+  while (threadActive_) {
+    for (int i = 0; threadActive_ && i < numIgmpEntries;
+         i++) {
+      igmpEntry[i]->sendIgmpJoin();
+      igmpEntry[i]->saveMcState();
     }
     /* -------------------------------------- */
-    static const int TimeOutSeconds = 4;
-    auto now = std::chrono::steady_clock::now();
-    auto timeSinceLastNoMdCheck =
-        std::chrono::duration_cast<std::chrono::seconds>(
-            now - lastNoMdTimeCheck)
-            .count();
-
-    if (timeSinceLastNoMdCheck > TimeOutSeconds) {
-      for (uint i = 0; i < EkaDev::MAX_RUN_GROUPS; i++) {
-        auto runGr = dev->runGr[i];
-        if (runGr)
-          runGr->setTimeToCheckNoMdFlag();
-      }
-      lastNoMdTimeCheck = now;
-    }
-
-/* -------------------------------------- */
-#if 0
-    if (isTradingHours(8, 00, 16, 30)) {
-      static const int TimeOutSeconds = 4;
-      auto now = std::chrono::steady_clock::now();
-      auto timeSinceLastNoMdCheck =
-          std::chrono::duration_cast<std::chrono::seconds>(
-              now - lastNoMdTimeCheck)
-              .count();
-      if (timeSinceLastNoMdCheck > TimeOutSeconds) {
-        for (uint i = 0; i < EkaDev::MAX_RUN_GROUPS; i++) {
-          if (dev->runGr[i]) {
-            dev->runGr[i]->checkNoMd = true;
-          }
-        }
-        lastNoMdTimeCheck = now;
-      }
-    }
-#endif
-    /* -------------------------------------- */
-
-    sleep(1);
+    if (threadActive_)
+      sleep(1);
   }
-  igmp->igmpLeaveAll();
-  igmp->igmpLoopTerminated = true;
+  EKA_LOG("Loop terminated");
 
-  return 0;
+  igmpLeaveAll();
+  EKA_LOG("All MC groups left");
+  igmpLoopTerminated_ = true;
+
+  return;
 }
 
 /* ################################################## */
 int EkaIgmp::igmpLeaveAll() {
-  EKA_LOG("leaving all MC groups");
+  EKA_LOG("leaving all %d MC groups", numIgmpEntries);
   for (int i = 0; i < numIgmpEntries; i++) {
     igmpEntry[i]->sendIgmpLeave();
     delete igmpEntry[i];
