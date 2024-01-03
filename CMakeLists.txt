@@ -64,7 +64,7 @@ set(EKA_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(EKA_TESTS_DIR ${CMAKE_CURRENT_LIST_DIR}/tests)
 
 set(libDstDir ${CMAKE_BINARY_DIR}/lib/${EKA_LIB_NAME})
-set(apiDIR ${CMAKE_CURRENT_LIST_DIR}/bc_include)
+set(apiDIR ${CMAKE_CURRENT_LIST_DIR}/api)
 
 # ##############################################################################
 set(SMARTNIC_ROOT ${CMAKE_CURRENT_LIST_DIR}/SmartNIC_SW)

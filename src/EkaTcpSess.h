@@ -95,10 +95,10 @@ public:
     //   EKA_LOG("SEQ_UPDATE ASCII coreId = %d, sessId = %d, tableId = %d, wrAddr = 0x%jx, data = 0x%jx",
     // 	       coreId,sessId,tableId,wrAddr,data);
     // }
-    if (tableId==1) {
-      EKA_LOG("SEQ_UPDATE BINARY coreId = %d, sessId = %d, tableId = %d, wrAddr = 0x%jx, data = 0x%jx",
-	       coreId,sessId,tableId,wrAddr,data);
-    }
+    //    if (tableId==1) {
+    //      EKA_LOG("SEQ_UPDATE BINARY coreId = %d, sessId = %d, tableId = %d, wrAddr = 0x%jx, data = 0x%jx",
+    //	       coreId,sessId,tableId,wrAddr,data);
+    //    }
     
     return;
   }

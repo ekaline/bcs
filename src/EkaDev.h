@@ -196,6 +196,7 @@ inline void eka_write(EkaDev *dev, uint64_t addr,
 #ifdef _VERILOG_SIM
   fprintf(g_ekaVerilogSimFile,
           "efh_write(20'h%jx,64'h%jx);\n", addr, val);
+  fflush(g_ekaVerilogSimFile);
   //  if (addr!=0xf0300 && addr!=0xf0308 && addr!=0xf0310 &&
   //  addr!=0xf0608) printf
   //  ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //general
