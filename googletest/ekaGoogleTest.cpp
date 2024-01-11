@@ -256,10 +256,10 @@ static const TestTcpSess tcp3_s[] = {
 static const TestTcpParams tcp3 = {tcp3_s,
                                    std::size(tcp3_s)};
 
-static const EkaBcMcGroupParams mc01[] = {
+static const McGroupParams mc01[] = {
     {0, "224.0.0.0", 30300}, {1, "224.0.0.1", 30301}};
 
-static const EkaBcUdpMcParams two_cores_1mc = {
+static const UdpMcParams two_cores_1mc = {
     mc01, std::size(mc01)};
 
 static const TestTcpSess tcp0_s[] = {
@@ -268,21 +268,21 @@ static const TestTcpParams tcp0 = {tcp0_s,
                                    std::size(tcp0_s)};
 
 /* --------------------------------------------- */
-static const EkaBcMcGroupParams mc0[] = {0, "224.0.10.100",
+static const McGroupParams mc0[] = {0, "224.0.10.100",
                                          30310};
-static const EkaBcUdpMcParams core0_1mc = {mc0,
+static const UdpMcParams core0_1mc = {mc0,
                                            std::size(mc0)};
-static const EkaBcMcGroupParams mc1[] = {1, "224.1.11.101",
+static const McGroupParams mc1[] = {1, "224.1.11.101",
                                          30311};
-static const EkaBcUdpMcParams core1_1mc = {mc1,
+static const UdpMcParams core1_1mc = {mc1,
                                            std::size(mc1)};
-static const EkaBcMcGroupParams mc2[] = {2, "224.2.12.102",
+static const McGroupParams mc2[] = {2, "224.2.12.102",
                                          30312};
-static const EkaBcUdpMcParams core2_1mc = {mc2,
+static const UdpMcParams core2_1mc = {mc2,
                                            std::size(mc2)};
-static const EkaBcMcGroupParams mc3[] = {3, "224.3.13.103",
+static const McGroupParams mc3[] = {3, "224.3.13.103",
                                          30313};
-static const EkaBcUdpMcParams core3_1mc = {mc3,
+static const UdpMcParams core3_1mc = {mc3,
                                            std::size(mc3)};
 #endif
 /* --------------------------------------------- */
@@ -296,7 +296,7 @@ TEST_F(TestEur, Eur_basic) {
 
   /* -------------------------------------------- */
 
-  EkaBCOpResult rc;
+  OpResult rc;
 
   /////////////// General
   uint8_t activeJumpAtBestSet = 3;
@@ -349,11 +349,11 @@ TEST_F(TestEur, Eur_basic) {
 
   rc = ekaBcSetActionTcpSock(
       dev_, eurHwAction, tcpCtx_->tcpSess_[0]->excSock_);
-  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+  ASSERT_EQ(rc, OPRESULT__OK);
 
   rc = ekaBcSetActionTcpSock(
       dev_, eurHwAction, tcpCtx_->tcpSess_[0]->excSock_);
-  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+  ASSERT_EQ(rc, OPRESULT__OK);
 
   //sw action
   auto eurSwAction = ekaBcAllocateNewAction(
@@ -362,7 +362,7 @@ TEST_F(TestEur, Eur_basic) {
 
   rc = ekaBcSetActionTcpSock(
       dev_, eurSwAction, tcpCtx_->tcpSess_[0]->excSock_);
-  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+  ASSERT_EQ(rc, OPRESULT__OK);
 
   const char EurSwFireMsg[] = "EurSwMessage wit 140"
     "Byte payload XXXXXXX"
@@ -391,7 +391,7 @@ TEST_F(TestEur, Eur_basic) {
 
   rc = ekaBcInitEurProd(dev_, r, &prodParams); //reference
   
-  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+  ASSERT_EQ(rc, OPRESULT__OK);
 
 
   EkaBcProductDynamicParams prodDynamicParams = {};
@@ -406,7 +406,7 @@ TEST_F(TestEur, Eur_basic) {
   prodDynamicParams.maxBookSpread = tobAskPrice - tobBidPrice + 1;
 
   rc = ekaBcSetEurProdDynamicParams(dev_, r, &prodDynamicParams);
-  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+  ASSERT_EQ(rc, OPRESULT__OK);
 
   const char EurFireMsg[] = "EurFireMsg with 120 "
                             "Byte payload XXXXXXX"
@@ -416,7 +416,7 @@ TEST_F(TestEur, Eur_basic) {
                             "12345678901234567890";
   rc = ekaBcSetActionPayload(dev_, eurHwAction, &EurFireMsg,
                              strlen(EurFireMsg));
-  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+  ASSERT_EQ(rc, OPRESULT__OK);
 
   EkaBcEurJumpParams jumpParams = {};
   
@@ -457,7 +457,7 @@ TEST_F(TestEur, Eur_basic) {
   jumpParams.betterBest[activeJumpBetterBestSet].boc = 0;
 
   rc = ekaBcEurSetJumpParams(dev_, h, &jumpParams);
-  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+  ASSERT_EQ(rc, OPRESULT__OK);
 
   EkaBcEurReferenceJumpParams   rjumpParams = {};
 
@@ -494,13 +494,13 @@ TEST_F(TestEur, Eur_basic) {
   // rjumpParams.betterBest[activeRJumpBetterBestSet].min_spread = 1; //TBD
 
   rc = ekaBcEurSetReferenceJumpParams(dev_, r, h, &rjumpParams);
-  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+  ASSERT_EQ(rc, OPRESULT__OK);
   
   EkaBcArmVer armVer = 0;
 
   rc = ekaBcArmEur(dev_, h, true /* armBid */,
                    true /* armAsk */, armVer++);
-  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+  ASSERT_EQ(rc, OPRESULT__OK);
 
   EkaBcRunCtx runCtx = {.onReportCb = getExampleFireReport,
                         .cbCtx = this};

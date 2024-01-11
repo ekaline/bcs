@@ -175,7 +175,7 @@ void TestEfcFixture::initEur() {
   EkaBcAffinityConfig aff = {-1, -1, -1, -1, -1};
   EkaBcCallbacks cb = {.logCb = ekaDefaultLog,
                        .cbCtx = g_ekaLogFile};
-  dev_ = ekaBcOpenDev(&aff, &cb);
+  dev_ = openDev(&aff, &cb);
   ASSERT_NE(dev_, nullptr);
   /* --------------------------------------------- */
 
@@ -183,7 +183,7 @@ void TestEfcFixture::initEur() {
     EKA_LOG("Initializing FPGA port %d to %s",
             tcpCtx_->tcpSess_[i]->coreId_,
             tcpCtx_->tcpSess_[i]->srcIp_);
-    const EkaBcPortAttrs laneAttr = {
+    const PortAttrs laneAttr = {
         .host_ip = inet_addr(tcpCtx_->tcpSess_[i]->srcIp_),
         .netmask = inet_addr("255.255.255.0"),
         .gateway = inet_addr(tcpCtx_->tcpSess_[i]->dstIp_),
@@ -192,25 +192,25 @@ void TestEfcFixture::initEur() {
     };
     auto lane = static_cast<EkaBcLane>(
         tcpCtx_->tcpSess_[i]->coreId_);
-    ekaBcConfigurePort(dev_, lane, &laneAttr);
+    configurePort(dev_, lane, &laneAttr);
   }
   /* --------------------------------------------- */
 
-  EkaBcInitCtx initCtx = {.report_only = false,
+  HwEngInitCtx initCtx = {.report_only = false,
                           .watchdog_timeout_sec = 1000000};
-  auto rc = ekaBcInit(dev_, &initCtx);
-  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+  auto rc = hwEngInit(dev_, &initCtx);
+  ASSERT_EQ(rc, OPRESULT__OK);
   /* --------------------------------------------- */
   // TCP Connections
   tcpCtx_->connectAll();
 
   /* --------------------------------------------- */
   rc = ekaBcInitEurStrategy(dev_, mcParams_);
-  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+  ASSERT_EQ(rc, OPRESULT__OK);
 
   /* --------------------------------------------- */
   rc = ekaBcSetProducts(dev_, prodList_, nProds_);
-  ASSERT_EQ(rc, EKABC_OPRESULT__OK);
+  ASSERT_EQ(rc, OPRESULT__OK);
 }
 /* --------------------------------------------- */
 void TestEfcFixture::runEur() {

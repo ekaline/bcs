@@ -110,7 +110,7 @@ EkaEurStrategy::getSubscriptionId(EkaBcEurSecId secId) {
 
 /* --------------------------------------------------- */
 
-EkaBCOpResult EkaEurStrategy::subscribeSecList(
+OpResult EkaEurStrategy::subscribeSecList(
     const EkaBcEurSecId *prodList, size_t nProducts) {
   auto prod = prodList;
   for (auto i = 0; i < nProducts; i++) {
@@ -128,11 +128,11 @@ EkaBCOpResult EkaEurStrategy::subscribeSecList(
 
   hashEng_->packDB();
 
-  return EKABC_OPRESULT__OK;
+  return OPRESULT__OK;
 }
 
 /* --------------------------------------------------- */
-EkaBCOpResult EkaEurStrategy::downloadPackedDB() {
+OpResult EkaEurStrategy::downloadPackedDB() {
   for (auto i = 0; i < Rows; i++) {
     static const size_t BufLen = 256;
     uint64_t buf[BufLen] = {};
@@ -161,12 +161,12 @@ EkaBCOpResult EkaEurStrategy::downloadPackedDB() {
     desc.ltd.target_idx = i;
     eka_write(dev_, FH_SUBS_HASH_DESC, desc.lt_desc);
   }
-  return EKABC_OPRESULT__OK;
+  return OPRESULT__OK;
 }
 /* --------------------------------------------------- */
 
 /* --------------------------------------------------- */
-EkaBCOpResult EkaEurStrategy::downloadProdInfoDB() {
+OpResult EkaEurStrategy::downloadProdInfoDB() {
 
   uint64_t bookCnt = 0;
   uint64_t totalCnt = 0;
@@ -197,23 +197,23 @@ EkaBCOpResult EkaEurStrategy::downloadProdInfoDB() {
   eka_write(prodBase + 16 * 8, totalCnt);
   eka_write(prodBase + 17 * 8, bookCnt);
 
-  return EKABC_OPRESULT__OK;
+  return OPRESULT__OK;
 }
 /* --------------------------------------------------- */
 
-EkaBCOpResult EkaEurStrategy::initProd(
+OpResult EkaEurStrategy::initProd(
     EkaBcSecHandle prodHande,
     const EkaBcEurProductInitParams *params) {
   if (prodHande < 0 || prodHande >= MaxSecurities_) {
     EKA_ERROR("Bad prodHande %jd", prodHande);
-    return EKABC_OPRESULT__ERR_BAD_PRODUCT_HANDLE;
+    return OPRESULT__ERR_BAD_PRODUCT_HANDLE;
   }
 
   if (prod_[prodHande]) {
     EKA_ERROR("Product with prodHande %jd "
               "is already initialized",
               prodHande);
-    return EKABC_OPRESULT__ERR_PRODUCT_ALREADY_INITED;
+    return OPRESULT__ERR_PRODUCT_ALREADY_INITED;
   }
 
   prod_[prodHande] =
@@ -222,17 +222,17 @@ EkaBCOpResult EkaEurStrategy::initProd(
   if (!prod_[prodHande])
     on_error("failed creating new Prod");
 
-  return EKABC_OPRESULT__OK;
+  return OPRESULT__OK;
 }
 
 /* --------------------------------------------------- */
 
-EkaBCOpResult EkaEurStrategy::setProdDynamicParams(
+OpResult EkaEurStrategy::setProdDynamicParams(
     EkaBcSecHandle prodHande,
     const EkaBcProductDynamicParams *params) {
   if (prodHande < 0 || prodHande >= MaxSecurities_) {
     EKA_ERROR("Bad prodHande %jd", prodHande);
-    return EKABC_OPRESULT__ERR_BAD_PRODUCT_HANDLE;
+    return OPRESULT__ERR_BAD_PRODUCT_HANDLE;
   }
 
   if (!prod_[prodHande])
@@ -243,19 +243,19 @@ EkaBCOpResult EkaEurStrategy::setProdDynamicParams(
 
 /* --------------------------------------------------- */
 
-EkaBCOpResult EkaEurStrategy::setProdJumpParams(
+OpResult EkaEurStrategy::setProdJumpParams(
     EkaBcSecHandle prodHande,
     const EkaBcEurJumpParams *params) {
   if (prodHande < 0 || prodHande >= MaxSecurities_) {
     EKA_ERROR("Bad prodHande %jd", prodHande);
-    return EKABC_OPRESULT__ERR_BAD_PRODUCT_HANDLE;
+    return OPRESULT__ERR_BAD_PRODUCT_HANDLE;
   }
 
   if (!prod_[prodHande]) {
     EKA_ERROR("Product with prodHande %jd "
               "is not initialized",
               prodHande);
-    return EKABC_OPRESULT__ERR_PRODUCT_DOES_NOT_EXIST;
+    return OPRESULT__ERR_PRODUCT_DOES_NOT_EXIST;
   }
 
   return prod_[prodHande]->setJumpParams(params);
@@ -263,36 +263,36 @@ EkaBCOpResult EkaEurStrategy::setProdJumpParams(
 
 /* --------------------------------------------------- */
 
-EkaBCOpResult EkaEurStrategy::setProdReferenceJumpParams(
+OpResult EkaEurStrategy::setProdReferenceJumpParams(
     EkaBcSecHandle triggerProd, EkaBcSecHandle fireProd,
     const EkaBcEurReferenceJumpParams *params) {
   if (triggerProd < 0 || triggerProd >= MaxSecurities_) {
     EKA_ERROR("Bad triggerProd %jd", triggerProd);
-    return EKABC_OPRESULT__ERR_BAD_PRODUCT_HANDLE;
+    return OPRESULT__ERR_BAD_PRODUCT_HANDLE;
   }
 
   if (fireProd < 0 || fireProd >= MaxSecurities_) {
     EKA_ERROR("Bad fireProd %jd", fireProd);
-    return EKABC_OPRESULT__ERR_BAD_PRODUCT_HANDLE;
+    return OPRESULT__ERR_BAD_PRODUCT_HANDLE;
   }
 
   if (!prod_[triggerProd]) {
     EKA_ERROR("triggerProd with handle %jd "
               "is not initialized",
               triggerProd);
-    return EKABC_OPRESULT__ERR_PRODUCT_DOES_NOT_EXIST;
+    return OPRESULT__ERR_PRODUCT_DOES_NOT_EXIST;
   }
 
   if (!prod_[fireProd]) {
     EKA_ERROR("fireProd with handle %jd "
               "is not initialized",
               fireProd);
-    return EKABC_OPRESULT__ERR_PRODUCT_DOES_NOT_EXIST;
+    return OPRESULT__ERR_PRODUCT_DOES_NOT_EXIST;
   }
 
   if (triggerProd == fireProd) {
     EKA_ERROR("triggerProd == fireProd =  %jd ", fireProd);
-    return EKABC_OPRESULT__ERR_BAD_PRODUCT_HANDLE;
+    return OPRESULT__ERR_BAD_PRODUCT_HANDLE;
   }
 
   return prod_[triggerProd]->setReferenceJumpParams(

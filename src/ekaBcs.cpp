@@ -22,8 +22,8 @@
 extern EkaDev *g_ekaDev;
 namespace EkaBcs {
 
-EkaDev *
-ekaBcOpenDev(const EkaBcAffinityConfig *affinityConf,
+OpResult
+openDev(const EkaBcAffinityConfig *affinityConf,
              const EkaBcCallbacks *cb) {
   EkaDevInitCtx initCtx = {};
   if (cb) {
@@ -32,27 +32,25 @@ ekaBcOpenDev(const EkaBcAffinityConfig *affinityConf,
   }
   g_ekaDev = new EkaDev(&initCtx);
   if (!g_ekaDev)
-    return NULL;
-
-  auto dev = g_ekaDev;
+    return OPRESULT__ERR_DEVICE_INIT;
 
   int tcpInternalCountersThreadCpuId = -1;
   if (affinityConf)
-    memcpy(&dev->affinityConf, affinityConf,
+    memcpy(&g_ekaDev->affinityConf, affinityConf,
            sizeof(*affinityConf));
 
-  return g_ekaDev;
+  return OPRESULT__OK;
 }
 /* ==================================================== */
 
-EkaBCOpResult ekaBcCloseDev(EkaDev *dev) {
-  if (!dev)
-    on_error("!dev");
+OpResult ekaBcCloseDev(EkaDev *dev) {
+  if (!g_ekaDev)
+    on_error("!g_ekaDev");
 
-  delete dev;
+  delete g_ekaDev;
   g_ekaDev = NULL;
 
-  return EKABC_OPRESULT__OK;
+  return OPRESULT__OK;
 }
 /* ==================================================== */
 
@@ -155,13 +153,12 @@ ssize_t ekaBcAppSend(EkaDev *dev, EkaBcActionIdx actionIdx,
 
 /* ==================================================== */
 
-EkaBCOpResult ekaBcSetSessionCntr(EkaDev *dev,
-                                  EkaBcSock ekaSock,
-                                  uint64_t cntr) {
+OpResult ekaBcSetSessionCntr(EkaDev *dev, EkaBcSock ekaSock,
+                             uint64_t cntr) {
   EkaTcpSess *const s = dev->findTcpSess(ekaSock);
   if (!s) {
     EKA_WARN("TCP sock %d not found", ekaSock);
-    return EKABC_OPRESULT__ERR_TCP_SOCKET;
+    return OPRESULT__ERR_TCP_SOCKET;
   }
 
   s->updateFpgaCtx<EkaTcpSess::AppSeqBin>(cntr);
@@ -177,7 +174,7 @@ EkaBCOpResult ekaBcSetSessionCntr(EkaDev *dev,
   /* s->updateFpgaCtx<EkaTcpSess::AppSeqAscii>( */
   /*     be64toh(cntrAscii)); */
 
-  return EKABC_OPRESULT__OK;
+  return OPRESULT__OK;
 }
 
 /* ==================================================== */
@@ -194,33 +191,35 @@ ssize_t ekaBcRecv(EkaDev *dev, EkaBcSock sock, void *buf,
 
 /* ==================================================== */
 
-EkaBCOpResult ekaBcCloseSock(EkaDev *dev, EkaBcSock sock) {
+OpResult ekaBcCloseSock(EkaDev *dev, EkaBcSock sock) {
   auto s = dev->findTcpSess(sock);
   if (!s) {
     EKA_WARN("TCP sock %d not found", sock);
-    return EKABC_OPRESULT__ERR_TCP_SOCKET;
+    return OPRESULT__ERR_TCP_SOCKET;
   }
   dev->core[s->coreId]->tcpSess[s->sessId] = nullptr;
   delete s;
 
-  return EKABC_OPRESULT__OK;
+  return OPRESULT__OK;
 }
 /* ==================================================== */
 
-EkaBCOpResult ekaBcInit(EkaDev *dev,
-                        const EkaBcInitCtx *ekaBcInitCtx) {
+OpResult hwEngInit(const HwEngInitCtx *ekaBcInitCtx) {
+  if (!g_ekaDev)
+    return OPRESULT__ERR_DEVICE_INIT;
+
   EfcInitCtx initCtx = {
       .report_only = ekaBcInitCtx->report_only,
       .watchdog_timeout_sec =
           ekaBcInitCtx->watchdog_timeout_sec};
 
-  efcInit(dev, &initCtx);
-  EKA_LOG("Efc initialized with "
+  efcInit(g_ekaDev, &initCtx);
+  EKA_LOG("HW Engine initialized with "
           "report_only = %d, "
           "watchdog_timeout_sec = %ju",
           initCtx.report_only,
           initCtx.watchdog_timeout_sec);
-  return EKABC_OPRESULT__OK;
+  return OPRESULT__OK;
 }
 
 /* ==================================================== */
@@ -231,8 +230,10 @@ void ekaBcSwKeepAliveSend(EkaDev *dev) {
 
 /* ==================================================== */
 
-void ekaBcConfigurePort(EkaDev *dev, EkaBcLane lane,
-                        const EkaBcPortAttrs *pPortAttrs) {
+OpResult configurePort(EkaBcLane lane,
+                       const PortAttrs *pPortAttrs) {
+  if (!g_ekaDev)
+    return OPRESULT__ERR_DEVICE_INIT;
   EkaCoreInitCtx ekaCoreInitCtx = {
       .coreId = lane,
       .attrs = {.host_ip = pPortAttrs->host_ip,
@@ -243,7 +244,8 @@ void ekaBcConfigurePort(EkaDev *dev, EkaBcLane lane,
   memcpy(&ekaCoreInitCtx.attrs.src_mac_addr,
          pPortAttrs->src_mac_addr, 6);
 
-  ekaDevConfigurePort(dev, &ekaCoreInitCtx);
+  ekaDevConfigurePort(g_ekaDev, &ekaCoreInitCtx);
+  return OPRESULT__OK;
 }
 /* ==================================================== */
 
@@ -255,21 +257,21 @@ ekaBcAllocateNewAction(EkaDev *dev, EkaBcActionType type) {
 
 /* ==================================================== */
 
-EkaBCOpResult
-ekaBcSetActionPayload(EkaDev *dev, EkaBcActionIdx actionIdx,
-                      const void *payload, size_t len) {
+OpResult ekaBcSetActionPayload(EkaDev *dev,
+                               EkaBcActionIdx actionIdx,
+                               const void *payload,
+                               size_t len) {
 
   efcSetActionPayload(dev, actionIdx, payload, len);
-  return EKABC_OPRESULT__OK;
+  return OPRESULT__OK;
 }
 /* ==================================================== */
 
-EkaBCOpResult ekaBcArmEur(EkaDev *dev,
-                          EkaBcSecHandle prodHande,
-                          bool armBid, bool armAsk,
-                          EkaBcArmVer ver) {
+OpResult ekaBcArmEur(EkaDev *dev, EkaBcSecHandle prodHande,
+                     bool armBid, bool armAsk,
+                     EkaBcArmVer ver) {
   if (!dev || !dev->efc)
-    on_error("Efc is not initialized: use ekaBcInit()");
+    on_error("Efc is not initialized: use hwEngInit()");
   auto efc = dev->efc;
 
   //  EKA_LOG("Prod Handle: %jd, "
@@ -277,27 +279,27 @@ EkaBCOpResult ekaBcArmEur(EkaDev *dev,
   //          prodHande, armBid, armAsk, ver);
   //  fflush(g_ekaLogFile);
   efc->armEur(prodHande, armBid, armAsk, ver);
-  return EKABC_OPRESULT__OK;
+  return OPRESULT__OK;
 }
 /* ==================================================== */
 
-EkaBCOpResult ekaBcArmCmeFc(EkaDev *dev, EkaBcArmVer ver) {
+OpResult ekaBcArmCmeFc(EkaDev *dev, EkaBcArmVer ver) {
   if (!dev || !dev->efc)
-    on_error("Efc is not initialized: use ekaBcInit()");
+    on_error("Efc is not initialized: use hwEngInit()");
   auto efc = dev->efc;
 
   efc->armBcCmeFc(static_cast<EfcArmVer>(ver));
-  return EKABC_OPRESULT__OK;
+  return OPRESULT__OK;
 }
 /* ==================================================== */
 
-EkaBCOpResult ekaBcDisArmCmeFc(EkaDev *dev) {
+OpResult ekaBcDisArmCmeFc(EkaDev *dev) {
   if (!dev || !dev->efc)
-    on_error("Efc is not initialized: use ekaBcInit()");
+    on_error("Efc is not initialized: use hwEngInit()");
   auto efc = dev->efc;
 
   efc->disarmBcCmeFc();
-  return EKABC_OPRESULT__OK;
+  return OPRESULT__OK;
 }
 
 /* ==================================================== */
@@ -306,7 +308,7 @@ void ekaBcEurRun(EkaDev *dev,
                  const EkaBcRunCtx *pEkaBcRunCtx) {
 
   if (!dev || !dev->efc)
-    on_error("Efc is not initialized: use ekaBcInit()");
+    on_error("Efc is not initialized: use hwEngInit()");
 
   auto eur = dev->efc->eur_;
   if (!eur)
@@ -355,20 +357,19 @@ void ekaBcEurRun(EkaDev *dev,
 
 /* ==================================================== */
 
-EkaBCOpResult
-ekaBcSetActionTcpSock(EkaDev *ekaDev,
-                      EkaBcActionIdx actionIdx,
-                      EkaBcSock sock) {
+OpResult ekaBcSetActionTcpSock(EkaDev *ekaDev,
+                               EkaBcActionIdx actionIdx,
+                               EkaBcSock sock) {
   setActionTcpSock(ekaDev, actionIdx, sock);
-  return EKABC_OPRESULT__OK;
+  return OPRESULT__OK;
 }
 /* ==================================================== */
 
-EkaBCOpResult
-ekaBcSetActionNext(EkaDev *ekaDev, EkaBcActionIdx actionIdx,
-                   EkaBcActionIdx nextActionIdx) {
+OpResult ekaBcSetActionNext(EkaDev *ekaDev,
+                            EkaBcActionIdx actionIdx,
+                            EkaBcActionIdx nextActionIdx) {
   setActionNext(ekaDev, actionIdx, nextActionIdx);
-  return EKABC_OPRESULT__OK;
+  return OPRESULT__OK;
 }
 /* ==================================================== */
 
@@ -379,17 +380,17 @@ ssize_t ekaBcAppSend(EkaDev *pEkaDev,
 }
 /* ==================================================== */
 
-EkaBCOpResult
+OpResult
 ekaBcInitEurStrategy(EkaDev *dev,
-                     const EkaBcUdpMcParams *mcParams) {
+                     const UdpMcParams *mcParams) {
   if (!dev || !dev->efc)
-    on_error("Efc is not initialized: use ekaBcInit()");
+    on_error("Efc is not initialized: use hwEngInit()");
   auto efc = dev->efc;
 
   efc->initEur(
       reinterpret_cast<const EfcUdpMcParams *>(mcParams));
   EKA_LOG("EurStrategy initialized");
-  return EKABC_OPRESULT__OK;
+  return OPRESULT__OK;
 }
 /* ==================================================== */
 #if 0
@@ -407,19 +408,19 @@ void ekaBcInitEurStrategyDone(EkaDev *dev) {
 #endif
 /* ==================================================== */
 
-EkaBCOpResult ekaBcInitCmeFcStrategy(
-    EkaDev *dev, const EkaBcUdpMcParams *mcParams,
+OpResult ekaBcInitCmeFcStrategy(
+    EkaDev *dev, const UdpMcParams *mcParams,
     const EkaBcCmeFcAlgoParams *cmeFcParams) {
 
   if (!dev || !dev->efc)
-    on_error("Efc is not initialized: use ekaBcInit()");
+    on_error("Efc is not initialized: use hwEngInit()");
   auto efc = dev->efc;
 
   efc->initBcCmeFc(
       reinterpret_cast<const EfcUdpMcParams *>(mcParams),
       cmeFcParams);
 
-  return EKABC_OPRESULT__OK;
+  return OPRESULT__OK;
 }
 
 /* ==================================================== */
@@ -427,7 +428,7 @@ EkaBCOpResult ekaBcInitCmeFcStrategy(
 EkaBcSecHandle ekaBcGetSecHandle(EkaDev *dev,
                                  EkaBcEurSecId secId) {
   if (!dev || !dev->efc)
-    on_error("Efc is not initialized: use ekaBcInit()");
+    on_error("Efc is not initialized: use hwEngInit()");
   auto efc = dev->efc;
 
   auto eur = efc->eur_;
@@ -438,11 +439,11 @@ EkaBcSecHandle ekaBcGetSecHandle(EkaDev *dev,
   return eur->getSubscriptionId(secId);
 }
 
-EkaBCOpResult
-ekaBcSetProducts(EkaDev *dev, const EkaBcEurSecId *prodList,
-                 size_t nProducts) {
+OpResult ekaBcSetProducts(EkaDev *dev,
+                          const EkaBcEurSecId *prodList,
+                          size_t nProducts) {
   if (!dev || !dev->efc)
-    on_error("Efc is not initialized: use ekaBcInit()");
+    on_error("Efc is not initialized: use hwEngInit()");
   auto efc = dev->efc;
 
   auto eur = efc->eur_;
@@ -456,18 +457,18 @@ ekaBcSetProducts(EkaDev *dev, const EkaBcEurSecId *prodList,
   if (nProducts > EKA_BC_EUR_MAX_PRODS) {
     EKA_ERROR("nProducts %ju > EKA_BC_EUR_MAX_PRODS %d",
               nProducts, EKA_BC_EUR_MAX_PRODS);
-    return EKABC_OPRESULT__ERR_MAX_PRODUCTS_EXCEEDED;
+    return OPRESULT__ERR_MAX_PRODUCTS_EXCEEDED;
   }
 
   return eur->subscribeSecList(prodList, nProducts);
 }
 
 /* ==================================================== */
-EkaBCOpResult
+OpResult
 ekaBcInitEurProd(EkaDev *dev, EkaBcSecHandle prodHande,
                  const EkaBcEurProductInitParams *params) {
   if (!dev || !dev->efc)
-    on_error("Efc is not initialized: use ekaBcInit()");
+    on_error("Efc is not initialized: use hwEngInit()");
   auto efc = dev->efc;
 
   auto eur = efc->eur_;
@@ -478,11 +479,11 @@ ekaBcInitEurProd(EkaDev *dev, EkaBcSecHandle prodHande,
   return eur->initProd(prodHande, params);
 }
 /* ==================================================== */
-EkaBCOpResult ekaBcSetEurProdDynamicParams(
+OpResult ekaBcSetEurProdDynamicParams(
     EkaDev *dev, EkaBcSecHandle prodHande,
     const EkaBcProductDynamicParams *params) {
   if (!dev || !dev->efc)
-    on_error("Efc is not initialized: use ekaBcInit()");
+    on_error("Efc is not initialized: use hwEngInit()");
   auto efc = dev->efc;
 
   auto eur = efc->eur_;
@@ -495,11 +496,11 @@ EkaBCOpResult ekaBcSetEurProdDynamicParams(
 }
 
 /* ==================================================== */
-EkaBCOpResult
+OpResult
 ekaBcEurSetJumpParams(EkaDev *dev, EkaBcSecHandle prodHande,
                       const EkaBcEurJumpParams *params) {
   if (!dev || !dev->efc)
-    on_error("Efc is not initialized: use ekaBcInit()");
+    on_error("Efc is not initialized: use hwEngInit()");
   auto efc = dev->efc;
 
   auto eur = efc->eur_;
@@ -512,12 +513,12 @@ ekaBcEurSetJumpParams(EkaDev *dev, EkaBcSecHandle prodHande,
 }
 /* ==================================================== */
 
-EkaBCOpResult ekaBcEurSetReferenceJumpParams(
+OpResult ekaBcEurSetReferenceJumpParams(
     EkaDev *dev, EkaBcSecHandle triggerProd,
     EkaBcSecHandle fireProd,
     const EkaBcEurReferenceJumpParams *params) {
   if (!dev || !dev->efc)
-    on_error("Efc is not initialized: use ekaBcInit()");
+    on_error("Efc is not initialized: use hwEngInit()");
   auto efc = dev->efc;
 
   auto eur = efc->eur_;

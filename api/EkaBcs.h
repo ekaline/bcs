@@ -8,68 +8,68 @@ class EkaDev;
 
 namespace EkaBcs {
 
-#define EFC_BC_MAX_CORES 4
+static const int MAX_LANES = 4;
 
-enum EkaBCOpResult {
-  EKABC_OPRESULT__OK = 0, /** General success message */
-  EKABC_OPRESULT__ALREADY_INITIALIZED = 1,
-  EKABC_OPRESULT__END_OF_SESSION = 2,
-  EKABC_OPRESULT__ERR_A =
+enum OpResult {
+  OPRESULT__OK = 0, /** General success message */
+  OPRESULT__ERR_DEVICE_INIT = -1,
+  OPRESULT__ALREADY_INITIALIZED = -11,
+  OPRESULT__END_OF_SESSION = -12,
+  OPRESULT__ERR_A =
       -100, /** Temporary filler error message.  Replace 'A'
                with actual error code. */
-  EKABC_OPRESULT__ERR_DOUBLE_SUBSCRIPTION =
+  OPRESULT__ERR_DOUBLE_SUBSCRIPTION =
       -101, // returned by efhSubscribeStatic() if trying to
             // subscribe to same security again
-  EKABC_OPRESULT__ERR_BAD_ADDRESS =
+  OPRESULT__ERR_BAD_ADDRESS =
       -102, // returned if you pass NULL for something that
             // can't be NULL, similar to EFAULT
-  EKABC_OPRESULT__ERR_SYSTEM_ERROR =
+  OPRESULT__ERR_SYSTEM_ERROR =
       -103, // returned when a system call fails and errno
             // is set
-  EKABC_OPRESULT__ERR_NOT_IMPLEMENTED =
+  OPRESULT__ERR_NOT_IMPLEMENTED =
       -104, // returned when an API call is not implemented
-  EKABC_OPRESULT__ERR_GROUP_NOT_AVAILABLE =
+  OPRESULT__ERR_GROUP_NOT_AVAILABLE =
       -105, // returned by test feed handler when group not
             // present in capture
-  EKABC_OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION =
+  OPRESULT__ERR_EXCHANGE_RETRANSMIT_CONNECTION =
       -106, // returned if exchange retransmit connection
             // failed
-  EKABC_OPRESULT__ERR_EFC_SET_CTX_ON_UNSUBSCRIBED_SECURITY =
-      -107,
-  EKABC_OPRESULT__ERR_STRIKE_PRICE_OVERFLOW = -108,
-  EKABC_OPRESULT__ERR_INVALID_CONFIG = -109,
+  OPRESULT__ERR_EFC_SET_CTX_ON_UNSUBSCRIBED_SECURITY = -107,
+  OPRESULT__ERR_STRIKE_PRICE_OVERFLOW = -108,
+  OPRESULT__ERR_INVALID_CONFIG = -109,
 
   // EPM specific
-  EKABC_OPRESULT__ERR_EPM_DISABLED = -201,
-  EKABC_OPRESULT__ERR_INVALID_CORE = -202,
-  EKABC_OPRESULT__ERR_EPM_UNINITALIZED = -203,
-  EKABC_OPRESULT__ERR_INVALID_STRATEGY = -204,
-  EKABC_OPRESULT__ERR_INVALID_ACTION = -205,
-  EKABC_OPRESULT__ERR_NOT_CONNECTED = -206,
-  EKABC_OPRESULT__ERR_INVALID_OFFSET = -207,
-  EKABC_OPRESULT__ERR_INVALID_ALIGN = -208,
-  EKABC_OPRESULT__ERR_INVALID_LENGTH = -209,
-  EKABC_OPRESULT__ERR_UNKNOWN_FLAG = -210,
-  EKABC_OPRESULT__ERR_MAX_STRATEGIES = -211,
+  OPRESULT__ERR_EPM_DISABLED = -201,
+  OPRESULT__ERR_INVALID_CORE = -202,
+  OPRESULT__ERR_EPM_UNINITALIZED = -203,
+  OPRESULT__ERR_INVALID_STRATEGY = -204,
+  OPRESULT__ERR_INVALID_ACTION = -205,
+  OPRESULT__ERR_NOT_CONNECTED = -206,
+  OPRESULT__ERR_INVALID_OFFSET = -207,
+  OPRESULT__ERR_INVALID_ALIGN = -208,
+  OPRESULT__ERR_INVALID_LENGTH = -209,
+  OPRESULT__ERR_UNKNOWN_FLAG = -210,
+  OPRESULT__ERR_MAX_STRATEGIES = -211,
 
   // EFC specific
-  EKABC_OPRESULT__ERR_EFC_DISABLED = -301,
-  EKABC_OPRESULT__ERR_EFC_UNINITALIZED = -302,
+  OPRESULT__ERR_EFC_DISABLED = -301,
+  OPRESULT__ERR_EFC_UNINITALIZED = -302,
 
   // EFH recovery specific
-  EKABC_OPRESULT__RECOVERY_IN_PROGRESS = -400,
-  EKABC_OPRESULT__ERR_RECOVERY_FAILED = -401,
+  OPRESULT__RECOVERY_IN_PROGRESS = -400,
+  OPRESULT__ERR_RECOVERY_FAILED = -401,
 
   // EFH TCP/Protocol Handshake specific
-  EKABC_OPRESULT__ERR_TCP_SOCKET = -501,
-  EKABC_OPRESULT__ERR_UDP_SOCKET = -502,
-  EKABC_OPRESULT__ERR_PROTOCOL = -503,
+  OPRESULT__ERR_TCP_SOCKET = -501,
+  OPRESULT__ERR_UDP_SOCKET = -502,
+  OPRESULT__ERR_PROTOCOL = -503,
 
   // Product specific
-  EKABC_OPRESULT__ERR_PRODUCT_DOES_NOT_EXIST = -600,
-  EKABC_OPRESULT__ERR_MAX_PRODUCTS_EXCEEDED = -601,
-  EKABC_OPRESULT__ERR_BAD_PRODUCT_HANDLE = -602,
-  EKABC_OPRESULT__ERR_PRODUCT_ALREADY_INITED = -603,
+  OPRESULT__ERR_PRODUCT_DOES_NOT_EXIST = -600,
+  OPRESULT__ERR_MAX_PRODUCTS_EXCEEDED = -601,
+  OPRESULT__ERR_BAD_PRODUCT_HANDLE = -602,
+  OPRESULT__ERR_PRODUCT_ALREADY_INITED = -603,
 
 };
 
@@ -117,8 +117,8 @@ struct EkaBcCallbacks {
  *                 provided to all API calls
  */
 
-EkaDev *
-ekaBcOpenDev(const EkaBcAffinityConfig *affinityConf = NULL,
+OpResult
+openDev(const EkaBcAffinityConfig *affinityConf = NULL,
              const EkaBcCallbacks *cb = NULL);
 
 /**
@@ -126,9 +126,9 @@ ekaBcOpenDev(const EkaBcAffinityConfig *affinityConf = NULL,
  * structs
  *
  * @param pEkaDev
- * @return EkaBCOpResult
+ * @return OpResult
  */
-EkaBCOpResult ekaBcCloseDev(EkaDev *pEkaDev);
+OpResult ekaBcCloseDev(EkaDev *pEkaDev);
 
 /* ==================================================== */
 typedef int EkaBcSock;
@@ -194,10 +194,9 @@ ssize_t ekaBcRecv(EkaDev *pEkaDev, EkaBcSock ekaSock,
  *
  * @param pEkaDev
  * @param ekaSock
- * @return EkaBCOpResult
+ * @return OpResult
  */
-EkaBCOpResult ekaBcCloseSock(EkaDev *pEkaDev,
-                             EkaBcSock ekaSock);
+OpResult ekaBcCloseSock(EkaDev *pEkaDev, EkaBcSock ekaSock);
 
 /* ==================================================== */
 
@@ -206,7 +205,7 @@ EkaBCOpResult ekaBcCloseSock(EkaDev *pEkaDev,
  * Sets configuration for all strategies running
  * under Efc
  */
-struct EkaBcInitCtx {
+struct HwEngInitCtx {
   bool report_only; // The HW generated Fires are not
                     // really sent, but generate Fire Report
   uint64_t watchdog_timeout_sec;
@@ -216,12 +215,10 @@ struct EkaBcInitCtx {
  * @brief Required before initializing any Strategy.
  *        Checks HW compatibility and creates Efc module
  *
- * @param ekaDev
  * @param efcInitCtx
- * @return EkaBCOpResult
+ * @return OpResult
  */
-EkaBCOpResult ekaBcInit(EkaDev *ekaDev,
-                        const EkaBcInitCtx *ekaBcInitCtx);
+OpResult hwEngInit(const HwEngInitCtx *ekaBcInitCtx);
 
 /**
  * @brief Must be called in time period shorter than
@@ -239,7 +236,7 @@ void ekaBcSwKeepAliveSend(EkaDev *pEkaDev);
  * @brief
  *
  */
-struct EkaBcMcGroupParams {
+struct McGroupParams {
   EkaBcLane lane;   ///< 10G port to receive UDP MC trigger
   const char *mcIp; ///< MC IP address
   uint16_t mcUdpPort; ///< MC UDP Port
@@ -249,8 +246,8 @@ struct EkaBcMcGroupParams {
  * @brief list of MC groups belonging to the strategy
  *
  */
-struct EkaBcUdpMcParams {
-  const EkaBcMcGroupParams *groups;
+struct UdpMcParams {
+  const McGroupParams *groups;
   size_t nMcGroups;
 };
 /* ==================================================== */
@@ -261,7 +258,7 @@ struct EkaBcUdpMcParams {
  *        Might be needed for establishing TCP connections.
  *
  */
-struct EkaBcPortAttrs {
+struct PortAttrs {
   uint32_t host_ip; ///<
   uint32_t netmask;
   uint32_t gateway;
@@ -272,12 +269,11 @@ struct EkaBcPortAttrs {
 /**
  * @brief Overrides default (set by Linux) params
  *
- * @param pEkaDev
  * @param lane
  * @param pPortAttrs
  */
-void ekaBcConfigurePort(EkaDev *pEkaDev, EkaBcLane lane,
-                        const EkaBcPortAttrs *pPortAttrs);
+OpResult configurePort(EkaBcLane lane,
+                       const PortAttrs *pPortAttrs);
 
 /* ==================================================== */
 
@@ -359,12 +355,12 @@ EkaBcActionIdx ekaBcAllocateNewAction(EkaDev *pEkaDev,
  *                  ekaBcAllocateNewAction()
  * @param payload
  * @param len
- * @return * EkaBCOpResult
+ * @return * OpResult
  */
-EkaBCOpResult
-ekaBcSetActionPayload(EkaDev *ekaDev,
-                      EkaBcActionIdx actionIdx,
-                      const void *payload, size_t len);
+OpResult ekaBcSetActionPayload(EkaDev *ekaDev,
+                               EkaBcActionIdx actionIdx,
+                               const void *payload,
+                               size_t len);
 
 /**
  * @brief Set the Action to previously connected Ekaline
@@ -374,12 +370,11 @@ ekaBcSetActionPayload(EkaDev *ekaDev,
  * @param globalIdx handle of the action from
  *                  ekaBcAllocateNewAction()
  * @param ekaSock
- * @return EkaBCOpResult
+ * @return OpResult
  */
-EkaBCOpResult
-ekaBcSetActionTcpSock(EkaDev *ekaDev,
-                      EkaBcActionIdx actionIdx,
-                      EkaBcSock ekaSock);
+OpResult ekaBcSetActionTcpSock(EkaDev *ekaDev,
+                               EkaBcActionIdx actionIdx,
+                               EkaBcSock ekaSock);
 
 /**
  * @brief Set the Action Next hop in the chain. Use
@@ -390,11 +385,11 @@ ekaBcSetActionTcpSock(EkaDev *ekaDev,
  * @param ekaDev
  * @param globalIdx
  * @param nextActionGlobalIdx
- * @return EkaBCOpResult
+ * @return OpResult
  */
-EkaBCOpResult
-ekaBcSetActionNext(EkaDev *ekaDev, EkaBcActionIdx actionIdx,
-                   EkaBcActionIdx nextActionIdx);
+OpResult ekaBcSetActionNext(EkaDev *ekaDev,
+                            EkaBcActionIdx actionIdx,
+                            EkaBcActionIdx nextActionIdx);
 
 /**
  * @brief Sends application message via HW action with
@@ -424,11 +419,10 @@ ssize_t ekaBcAppSend(EkaDev *pEkaDev,
  * @param dev
  * @param ekaSock TCP sock handle
  * @param cntr Binary counter's value
- * @return EkaBCOpResult
+ * @return OpResult
  */
-EkaBCOpResult ekaBcSetSessionCntr(EkaDev *dev,
-                                  EkaBcSock ekaSock,
-                                  uint64_t cntr);
+OpResult ekaBcSetSessionCntr(EkaDev *dev, EkaBcSock ekaSock,
+                             uint64_t cntr);
 
 /* ======================================================
  */
@@ -452,10 +446,10 @@ struct EkaBcCmeFcAlgoParams {
  * @param pEkaDev
  * @param mcParams MC groups of the market data
  * @param cmeFcParams
- * @return EkaBCOpResult
+ * @return OpResult
  */
-EkaBCOpResult ekaBcInitCmeFcStrategy(
-    EkaDev *pEkaDev, const EkaBcUdpMcParams *mcParams,
+OpResult ekaBcInitCmeFcStrategy(
+    EkaDev *pEkaDev, const UdpMcParams *mcParams,
     const EkaBcCmeFcAlgoParams *cmeFcParams);
 
 /* ====================================================== */
@@ -467,11 +461,11 @@ EkaBCOpResult ekaBcInitCmeFcStrategy(
  *
  * @param dev
  * @param mcParams MC groups of the market data
- * @return EkaBCOpResult
+ * @return OpResult
  */
-EkaBCOpResult
+OpResult
 ekaBcInitEurStrategy(EkaDev *dev,
-                     const EkaBcUdpMcParams *mcParams);
+                     const UdpMcParams *mcParams);
 
 /**
  * @brief Security handle to be used for
@@ -499,11 +493,11 @@ typedef uint64_t EkaBcEurTimeNs;
  * @param dev
  * @param prodList List of securities in Exchange encoding
  * @param nProducts number of products
- * @return EkaBCOpResult
+ * @return OpResult
  */
-EkaBCOpResult
-ekaBcSetProducts(EkaDev *dev, const EkaBcEurSecId *prodList,
-                 size_t nProducts);
+OpResult ekaBcSetProducts(EkaDev *dev,
+                          const EkaBcEurSecId *prodList,
+                          size_t nProducts);
 
 /**
  * @brief Mapping the exchange security encoding to internal
@@ -542,9 +536,9 @@ struct EkaBcEurProductInitParams {
  * @param dev
  * @param prodHande
  * @param params
- * @return EkaBCOpResult
+ * @return OpResult
  */
-EkaBCOpResult
+OpResult
 ekaBcInitEurProd(EkaDev *dev, EkaBcSecHandle prodHande,
                  const EkaBcEurProductInitParams *params);
 
@@ -565,9 +559,9 @@ struct EkaBcProductDynamicParams {
  * @param dev
  * @param prodHande
  * @param params
- * @return EkaBCOpResult
+ * @return OpResult
  */
-EkaBCOpResult ekaBcSetEurProdDynamicParams(
+OpResult ekaBcSetEurProdDynamicParams(
     EkaDev *dev, EkaBcSecHandle prodHande,
     const EkaBcProductDynamicParams *params);
 
@@ -626,9 +620,9 @@ struct EkaBcEurReferenceJumpParams {
  * @param dev
  * @param prodHande
  * @param params
- * @return EkaBCOpResult
+ * @return OpResult
  */
-EkaBCOpResult
+OpResult
 ekaBcEurSetJumpParams(EkaDev *dev, EkaBcSecHandle prodHande,
                       const EkaBcEurJumpParams *params);
 
@@ -640,9 +634,9 @@ ekaBcEurSetJumpParams(EkaDev *dev, EkaBcSecHandle prodHande,
  *                    Market Data trigger
  * @param fireProd    Product Handle of the firing product
  * @param params
- * @return EkaBCOpResult
+ * @return OpResult
  */
-EkaBCOpResult ekaBcEurSetReferenceJumpParams(
+OpResult ekaBcEurSetReferenceJumpParams(
     EkaDev *dev, EkaBcSecHandle triggerProd,
     EkaBcSecHandle fireProd,
     const EkaBcEurReferenceJumpParams *params);
@@ -668,29 +662,28 @@ typedef uint8_t EkaBcArmVer;
  * @param ver Optional parameter needed only for Arming
  *            (can be skipped if
  *                armBid == false and armAsk == false)
- * @return EkaBCOpResult
+ * @return OpResult
  */
-EkaBCOpResult ekaBcArmEur(EkaDev *dev,
-                          EkaBcSecHandle prodHande,
-                          bool armBid, bool armAsk,
-                          EkaBcArmVer ver = 0);
+OpResult ekaBcArmEur(EkaDev *dev, EkaBcSecHandle prodHande,
+                     bool armBid, bool armAsk,
+                     EkaBcArmVer ver = 0);
 
 /**
 @brief Arming CmeFc strategy Firing logic
  *
  * @param dev
  * @param ver
- * @return EkaBCOpResult
+ * @return OpResult
  */
-EkaBCOpResult ekaBcArmCmeFc(EkaDev *dev, EkaBcArmVer ver);
+OpResult ekaBcArmCmeFc(EkaDev *dev, EkaBcArmVer ver);
 
 /**
 @brief DisArming CmeFc strategy Firing logic
  *
  * @param dev
- * @return EkaBCOpResult
+ * @return OpResult
  */
-EkaBCOpResult ekaBcDisArmCmeFc(EkaDev *dev);
+OpResult ekaBcDisArmCmeFc(EkaDev *dev);
 
 /**
 @brief Callback function pointer. Called every time the
@@ -938,7 +931,7 @@ struct EkaBcArmReport {
 
 struct EkaBcExceptionVector {
   uint32_t globalVector;
-  uint32_t portVector[EFC_BC_MAX_CORES];
+  uint32_t portVector[MAX_LANES];
 };
 
 struct EkaBcExceptionsReport {

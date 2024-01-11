@@ -14,13 +14,13 @@ public:
   EkaBcEurProd(EkaEurStrategy *strat, EkaBcSecHandle handle,
                const EkaBcEurProductInitParams *p);
 
-  EkaBCOpResult
+  OpResult
   setDynamicParams(const EkaBcProductDynamicParams *params);
 
-  EkaBCOpResult
+  OpResult
   setJumpParams(const EkaBcEurJumpParams *params);
 
-  EkaBCOpResult setReferenceJumpParams(
+  OpResult setReferenceJumpParams(
       EkaBcSecHandle fireProd,
       const EkaBcEurReferenceJumpParams *params);
 

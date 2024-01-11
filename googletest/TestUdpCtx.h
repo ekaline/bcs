@@ -43,7 +43,7 @@ static const char *udpSrcIp[] = {
 
 class TestUdpConn {
 public:
-  TestUdpConn(const EkaBcMcGroupParams *mcParams) {
+  TestUdpConn(const McGroupParams *mcParams) {
     coreId_ = mcParams->lane;
     mcIp_ = mcParams->mcIp;
     mcPort_ = mcParams->mcUdpPort;
@@ -121,7 +121,7 @@ private:
 /* --------------------------------------------- */
 class TestUdpCtx {
 public:
-  TestUdpCtx(const EkaBcUdpMcParams *mcParams) {
+  TestUdpCtx(const UdpMcParams *mcParams) {
     memcpy(&udpConf_, mcParams, sizeof(udpConf_));
 
     for (auto i = 0; i < mcParams->nMcGroups; i++) {
@@ -168,7 +168,7 @@ public:
   }
   /* --------------------------------------------- */
 public:
-  EkaBcUdpMcParams udpConf_ = {};
+  UdpMcParams udpConf_ = {};
 
   TestUdpConn
       *udpConn_[EFC_MAX_CORES]
