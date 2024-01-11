@@ -119,7 +119,7 @@ struct EkaBcCallbacks {
 
 OpResult
 openDev(const EkaBcAffinityConfig *affinityConf = NULL,
-             const EkaBcCallbacks *cb = NULL);
+        const EkaBcCallbacks *cb = NULL);
 
 /**
  * @brief Closes Ekaline Device and destroys all data
@@ -439,18 +439,24 @@ struct EkaBcCmeFcAlgoParams {
   uint8_t minNoMDEntries;
 };
 
+typedef void (*onMdRecvCb)(const void *md, size_t len,
+                           void *ctx);
+
 /**
  * @brief Initializes internal infrastructure for
  *        BC CmeFC strategy
  *
- * @param pEkaDev
  * @param mcParams MC groups of the market data
- * @param cmeFcParams
+ * @param cbFunc point to function to be called on receiving
+ *               every Market Data packet
+ * @param cbCtx  opaque field passed to the function
+ *               (can be used to pass FILE* ptr)
+ *
  * @return OpResult
  */
-OpResult ekaBcInitCmeFcStrategy(
-    EkaDev *pEkaDev, const UdpMcParams *mcParams,
-    const EkaBcCmeFcAlgoParams *cmeFcParams);
+OpResult setMdRcvParams(const UdpMcParams *mcParams,
+                        onMdRecvCb cbFunc,
+                        void *cbCtx = NULL);
 
 /* ====================================================== */
 
@@ -463,9 +469,8 @@ OpResult ekaBcInitCmeFcStrategy(
  * @param mcParams MC groups of the market data
  * @return OpResult
  */
-OpResult
-ekaBcInitEurStrategy(EkaDev *dev,
-                     const UdpMcParams *mcParams);
+OpResult ekaBcInitEurStrategy(EkaDev *dev,
+                              const UdpMcParams *mcParams);
 
 /**
  * @brief Security handle to be used for

@@ -11,28 +11,9 @@
 
 #include "EkaBcs.h"
 
-#define EKA_LOG(...)                                       \
-  do {                                                     \
-    const int err = errno;                                 \
-    fprintf(stdout, "%s@%s:%d: ", __func__, __FILE__,      \
-            __LINE__);                                     \
-    fprintf(stdout, __VA_ARGS__);                          \
-    fprintf(stdout, "\n");                                 \
-  } while (0)
+#include "testMacros.h"
 
-#define on_error(...)                                      \
-  do {                                                     \
-    const int err = errno;                                 \
-    fprintf(stderr,                                        \
-            "EKALINE API LIB FATAL ERROR: %s@%s:%d: ",     \
-            __func__, __FILE__, __LINE__);                 \
-    fprintf(stderr, __VA_ARGS__);                          \
-    if (err)                                               \
-      fprintf(stderr, ": %s (%d)", strerror(err), err);    \
-    fprintf(stderr, "\n");                                 \
-    fflush(stderr);                                        \
-    std::quick_exit(1);                                    \
-  } while (0)
+#include "EkaFhBcsSbeDecoder.h"
 
 static volatile bool g_keepWork = true;
 
@@ -46,17 +27,16 @@ void INThandler(int sig) {
 
 using namespace EkaBcs;
 
+static void printMdPkt(const void *md, size_t len,
+                       void *ctx) {
+  BcsSbeDecoder::printPkt(md);
+}
+
 int main(int argc, char *argv[]) {
 
   signal(SIGINT, INThandler);
   // ==============================================
-  static const char *udpSrcIp[] = {
-      "10.0.0.10",
-      "10.0.0.11",
-      "10.0.0.12",
-      "10.0.0.13",
-  };
-
+  // NW Config
   static const McGroupParams mc0[] = {0, "224.0.0.0",
                                       30300};
   static const UdpMcParams core0_1mc = {mc0,
