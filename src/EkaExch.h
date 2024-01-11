@@ -6,7 +6,7 @@
 
 #include "eka_macros.h"
 
-#include "EkaBc.h"
+#include "EkaBcs.h"
 #include "EkaDev.h"
 #include "EkaHwInternalStructs.h"
 

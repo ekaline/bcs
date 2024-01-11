@@ -8,7 +8,7 @@
 
 #include "Efc.h"
 #include "Eka.h"
-#include "EkaBc.h"
+#include "EkaBcs.h"
 #include "EkaCore.h"
 #include "EkaDev.h"
 #include "EkaEfc.h"
@@ -20,6 +20,7 @@
 #include "EkaEurStrategy.h"
 
 extern EkaDev *g_ekaDev;
+namespace EkaBcs {
 
 EkaDev *
 ekaBcOpenDev(const EkaBcAffinityConfig *affinityConf,
@@ -167,7 +168,7 @@ EkaBCOpResult ekaBcSetSessionCntr(EkaDev *dev,
   s->updateFpgaCtx<EkaTcpSess::AppSeqAscii>(cntr);
 
   // in eurex, both use binary, ascii is used for clordid
-  
+
   /* char cntrString[64] = {}; */
   /* sprintf(cntrString, "%08ju", cntr); */
 
@@ -488,8 +489,8 @@ EkaBCOpResult ekaBcSetEurProdDynamicParams(
   if (!eur)
     on_error("Eurex is not initialized: use "
              "ekaBcInitEurStrategy()");
-  //  EKA_LOG("Setting Product[%jd] Dynamic Params", prodHande);
-  //  fflush(g_ekaLogFile);
+  //  EKA_LOG("Setting Product[%jd] Dynamic Params",
+  //  prodHande); fflush(g_ekaLogFile);
   return eur->setProdDynamicParams(prodHande, params);
 }
 
@@ -528,3 +529,4 @@ EkaBCOpResult ekaBcEurSetReferenceJumpParams(
   return eur->setProdReferenceJumpParams(triggerProd,
                                          fireProd, params);
 }
+} // End of namespace EkaBcs

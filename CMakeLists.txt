@@ -58,7 +58,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 # ##############################################################################
-set(EKA_LIB_NAME ekaBC)
+set(EKA_LIB_NAME EkaBcs)
 
 set(EKA_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(EKA_TESTS_DIR ${CMAKE_CURRENT_LIST_DIR}/tests)
@@ -205,11 +205,11 @@ endif()
 target_link_libraries(${EKA_LIB_NAME} PRIVATE libsmartnic_static ekalwip_static)
 
 file(GLOB EKA_LIB_NAME_PUBLIC_HEADER ${apiDIR}/*.h)
-set_target_properties(${EKA_LIB_NAME}
-                      PROPERTIES PUBLIC_HEADER "${EKA_LIB_NAME_PUBLIC_HEADER}")
-set_target_properties(
-  ${EKA_LIB_NAME} PROPERTIES LINK_DEPENDS ${EKA_LINK_MAP}
-                             LINK_FLAGS "-Wl,--version-script=${EKA_LINK_MAP}")
+#set_target_properties(${EKA_LIB_NAME}
+#                      PROPERTIES PUBLIC_HEADER "${EKA_LIB_NAME_PUBLIC_HEADER}")
+#set_target_properties(
+#  ${EKA_LIB_NAME} PROPERTIES LINK_DEPENDS ${EKA_LINK_MAP}
+#                             LINK_FLAGS "-Wl,--version-script=${EKA_LINK_MAP}")
 set_target_properties(${EKA_LIB_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
                                                  ${libDstDir})
 install(TARGETS ${EKA_LIB_NAME} RUNTIME DESTINATION lib COMPONENT Runtime)
@@ -275,7 +275,7 @@ if(ENABLE_EKA_TESTING)
     target_compile_options(${testName} PUBLIC -std=c++23)
 
     add_dependencies(${testName} ${EKA_LIB_NAME})
-    # target_link_libraries(${testName} ${EKA_LIB_NAME} rt m Threads::Threads)
+    target_link_libraries(${testName} ${EKA_LIB_NAME} rt m Threads::Threads)
 
     target_include_directories(${testName} PUBLIC ${EKA_INC_PATH})
   endforeach()

@@ -1,11 +1,12 @@
-#ifndef _EKA_BC_H_
-#define _EKA_BC_H_
+#ifndef _EKA_BCS_H_
+#define _EKA_BCS_H_
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
 
-extern "C" {
-struct EkaDev;
+class EkaDev;
+
+namespace EkaBcs {
 
 #define EFC_BC_MAX_CORES 4
 
@@ -319,7 +320,7 @@ typedef int EkaBcActionIdx;
  */
 enum class EkaBcActionType : int {
   INVALID = 0,
-  CmeFc  = 60,
+  CmeFc = 60,
   EurFire = 61,
   EurSwSend = 62,
 };
@@ -751,11 +752,11 @@ enum class EkaBcEventType : int {
 
 enum class EkaBcReportType : int {
   ControllerState = 1,
-    ExceptionsReport,
-    FirePkt,
-    CmeFastCancelReport,
-    EurFireReport,
-    EurSWFireReport
+  ExceptionsReport,
+  FirePkt,
+  CmeFastCancelReport,
+  EurFireReport,
+  EurSWFireReport
 };
 
 // every report is pre-pended by this header
@@ -922,7 +923,7 @@ struct EkaBcSwReport {
   uint64_t __unused7;
   uint8_t __unused8;
 } __attribute__((packed));
-  
+
 enum class EkaBcArmSide : uint8_t {
   NONE = 0x0,
   BID = 0x1,
@@ -947,5 +948,5 @@ struct EkaBcExceptionsReport {
   uint8_t pad[256 - 32 - 32 - 20];     //
 } __attribute__((packed));             // 256
 
-} // End of extern "C"
+} // End of namespace EkaBcs
 #endif

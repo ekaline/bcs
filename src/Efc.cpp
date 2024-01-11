@@ -32,6 +32,8 @@
 
 #include "EkaEfcDataStructs.h"
 
+using namespace EkaBcs;
+
 int printSecCtx(EkaDev *dev, const SecCtx *msg);
 int printMdReport(EkaDev *dev, const EfcMdReport *msg);
 int printControllerStateReport(

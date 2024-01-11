@@ -9,7 +9,7 @@
 #include "Efc.h"
 #include "Efh.h"
 #include "Eka.h"
-#include "EkaBc.h"
+#include "EkaBcs.h"
 #include "EkaHwInternalStructs.h"
 #include "eka_hw_conf.h"
 
@@ -28,6 +28,8 @@ class EkaHwCaps;
 class EkaUserChannel;
 class EkaIgmp;
 class EkaWc;
+
+using namespace EkaBcs;
 
 class EkaDev {
 

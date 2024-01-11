@@ -4,7 +4,9 @@
 #include "eka_hw_conf.h"
 #include "eka_macros.h"
 
-#include "EkaBc.h"
+#include "EkaBcs.h"
+
+using namespace EkaBcs;
 
 /* ----------------------------------------------------- */
 
@@ -191,8 +193,8 @@ index == hash_handle*16+0
 
 #endif
 
-#define BITPARAM_ENABLE  0x0
-#define BITPARAM_BOC     0x1
+#define BITPARAM_ENABLE 0x0
+#define BITPARAM_BOC 0x1
 
 struct HwReferenceJumpParamsSet {
   uint8_t bitParams;      // 1 : 0x01 ENABLED, 0x02 BOC
@@ -213,8 +215,8 @@ struct HwReferenceJumpParams {
   HwReferenceJumpParamsSet
       betterBest[EKA_RJUMP_BETTERBEST_SETS];
   HwReferenceJumpParamsSet atBest[EKA_RJUMP_ATBEST_SETS];
-} __attribute__((aligned(sizeof(uint64_t))))
-__attribute__((packed)); // 14 + 4 * 13 + 6 * 13 = 144, no roundup
+} __attribute__((aligned(sizeof(uint64_t)))) __attribute__((
+    packed)); // 14 + 4 * 13 + 6 * 13 = 144, no roundup
 
 /* ----------------------------------------------------- */
 
@@ -261,7 +263,7 @@ inline uint16_t normalizeActionIdx(EkaBcActionIdx idx) {
 inline HwFireSize normalizeFireSize(EkaBcEurFireSize size) {
   if (size == static_cast<EkaBcEurFireSize>(-1))
     return static_cast<HwFireSize>(-1);
-  
+
   if (size % 10000 || size > 254 * 10000)
     on_error("Bad size %u", size);
   return static_cast<HwFireSize>(size / 10000);
