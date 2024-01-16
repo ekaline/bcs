@@ -1,63 +1,93 @@
-/* This file should be included from function fb_start_xmit(struct sk_buff *skb, struct net_device *dev) at file ndev.c */
+/* This file should be included from function
+ * fb_start_xmit(struct sk_buff *skb, struct net_device
+ * *dev) at file ndev.c */
 
-
-
-
-char* eka_p = pChannel->bucket[bucket]->data;
+char *eka_p = pChannel->bucket[bucket]->data;
 bool eka_drop_me = false;
-const FbEtherFrameHeader *frameHeader = (FbEtherFrameHeader*)eka_p;
-int sizeOfEtherFrameHeader = GetSizeOfEthernetFrameHeader(frameHeader); // includes the VLAN tags if exists !!
-struct iphdr *eka_ip = (struct iphdr*)&eka_p[sizeOfEtherFrameHeader];
+const FbEtherFrameHeader *frameHeader =
+    (FbEtherFrameHeader *)eka_p;
+int sizeOfEtherFrameHeader = GetSizeOfEthernetFrameHeader(
+    frameHeader); // includes the VLAN tags if exists !!
+struct iphdr *eka_ip =
+    (struct iphdr *)&eka_p[sizeOfEtherFrameHeader];
 
-//if (frameHeader->etherType == htons(ETHER_TYPE_ARP) && ndev->nif->eka_private_data->drop_arp) eka_drop_me = true;
+// if (frameHeader->etherType == htons(ETHER_TYPE_ARP) &&
+// ndev->nif->eka_private_data->drop_arp) eka_drop_me =
+// true;
 
-unsigned char *eka_saddr = (unsigned char *) &(eka_ip->saddr);
-unsigned char *eka_daddr = (unsigned char *) &(eka_ip->daddr);
+/* unsigned char *eka_saddr =
+    (unsigned char *)&(eka_ip->saddr);
+unsigned char *eka_daddr =
+    (unsigned char *)&(eka_ip->daddr);
+ */
+// uint8_t core = (uint8_t)(ndev->nif->lane);
 
-//uint8_t core = (uint8_t)(ndev->nif->lane);
-
-
-/* PRINTK("EKALINE DEBUG: TX %s: eka_debug=%u, core=%d, etherType=0x%04x (ETHER_TYPE_VLAN=0x%04x), eka_ip->protocol=0x%02x,  %02x:%02x:%02x:%02x:%02x:%02x--->%02x:%02x:%02x:%02x:%02x:%02x %d.%d.%d.%d -> %d.%d.%d.%d\n", */
+/* PRINTK("EKALINE DEBUG: TX %s: eka_debug=%u, core=%d,
+ * etherType=0x%04x (ETHER_TYPE_VLAN=0x%04x),
+ * eka_ip->protocol=0x%02x,
+ * %02x:%02x:%02x:%02x:%02x:%02x--->%02x:%02x:%02x:%02x:%02x:%02x
+ * %d.%d.%d.%d -> %d.%d.%d.%d\n", */
 /*        __func__, */
 /*        ndev->nif->eka_private_data->eka_debug, */
 /*        core, */
 /*        frameHeader->etherType, */
 /*        ETHER_TYPE_VLAN, */
 /*        eka_ip->protocol, */
-/*        (uint8_t)eka_p[6],(uint8_t)eka_p[7],(uint8_t)eka_p[8],(uint8_t)eka_p[9],(uint8_t)eka_p[10],(uint8_t)eka_p[11], */
-/*        (uint8_t)eka_p[0],(uint8_t)eka_p[1],(uint8_t)eka_p[2],(uint8_t)eka_p[3],(uint8_t)eka_p[4], (uint8_t)eka_p[5], */
-/*        eka_saddr[0],eka_saddr[1],eka_saddr[2],eka_saddr[3],eka_daddr[0],eka_daddr[1],eka_daddr[2],eka_daddr[3] */
+/*        (uint8_t)eka_p[6],(uint8_t)eka_p[7],(uint8_t)eka_p[8],(uint8_t)eka_p[9],(uint8_t)eka_p[10],(uint8_t)eka_p[11],
+ */
+/*        (uint8_t)eka_p[0],(uint8_t)eka_p[1],(uint8_t)eka_p[2],(uint8_t)eka_p[3],(uint8_t)eka_p[4],
+ * (uint8_t)eka_p[5], */
+/*        eka_saddr[0],eka_saddr[1],eka_saddr[2],eka_saddr[3],eka_daddr[0],eka_daddr[1],eka_daddr[2],eka_daddr[3]
+ */
 /*        ); */
 
-   
-//if (eka_ip->protocol == 0x2 && ndev->nif->eka_private_data->drop_igmp) eka_drop_me = true; /* IGMP */ 
-   
-// else 
+// if (eka_ip->protocol == 0x2 &&
+// ndev->nif->eka_private_data->drop_igmp) eka_drop_me =
+// true; /* IGMP */
 
-//uint8_t core = (uint8_t)(ndev->nif->lane);
-uint8_t core = (uint8_t)(ndev->nif->network_interface);
+// else
+
+// uint8_t core = (uint8_t)(ndev->nif->lane);
+// uint8_t core = (uint8_t)(ndev->nif->network_interface);
 
 if (eka_ip->protocol == 0x6) { // TCP
-   struct tcphdr* tcph = (struct tcphdr *)((char*)eka_ip + eka_ip->ihl * sizeof(uint32_t));
-   int eks;
-   for (eks=0; eks<EKA_SESSIONS_PER_NIF;eks++) {
-     if (ndev->nif->eka_private_data->eka_session[eks].active == 0) continue;
+  struct tcphdr *tcph =
+      (struct tcphdr *)((char *)eka_ip +
+                        eka_ip->ihl * sizeof(uint32_t));
+  int eks;
+  for (eks = 0; eks < EKA_SESSIONS_PER_NIF; eks++) {
+    if (ndev->nif->eka_private_data->eka_session[eks]
+            .active == 0)
+      continue;
 
-     /* PRINTK("EKALINE DEBUG: TX: 0x%08x:%u --> 0x%08x:%u vs TX: 0x%08x:%u --> 0x%08x:%u\n", */
-     /* 	    ndev->nif->eka_private_data->eka_session[eks].ip_saddr, */
-     /* 	    ndev->nif->eka_private_data->eka_session[eks].tcp_sport, */
-     /* 	    ndev->nif->eka_private_data->eka_session[eks].ip_daddr, */
-     /* 	    ndev->nif->eka_private_data->eka_session[eks].tcp_dport, */
-     /* 	    eka_ip->saddr, */
-     /* 	    ntohs(tcph->source), */
-     /* 	    eka_ip->daddr, */
-     /* 	    ntohs(tcph->dest) */
-     /* 	    ); */
-     if (ndev->nif->eka_private_data->eka_session[eks].ip_saddr != eka_ip->saddr) continue;
-     if (ndev->nif->eka_private_data->eka_session[eks].ip_daddr != eka_ip->daddr) continue;
-     if (ndev->nif->eka_private_data->eka_session[eks].tcp_sport != ntohs(tcph->source)) continue;
-     if (ndev->nif->eka_private_data->eka_session[eks].tcp_dport != ntohs(tcph->dest)) continue;
-     eka_drop_me = true;
+    /* PRINTK("EKALINE DEBUG: TX: 0x%08x:%u --> 0x%08x:%u vs
+     * TX: 0x%08x:%u --> 0x%08x:%u\n", */
+    /* 	    ndev->nif->eka_private_data->eka_session[eks].ip_saddr,
+     */
+    /* 	    ndev->nif->eka_private_data->eka_session[eks].tcp_sport,
+     */
+    /* 	    ndev->nif->eka_private_data->eka_session[eks].ip_daddr,
+     */
+    /* 	    ndev->nif->eka_private_data->eka_session[eks].tcp_dport,
+     */
+    /* 	    eka_ip->saddr, */
+    /* 	    ntohs(tcph->source), */
+    /* 	    eka_ip->daddr, */
+    /* 	    ntohs(tcph->dest) */
+    /* 	    ); */
+    if (ndev->nif->eka_private_data->eka_session[eks]
+            .ip_saddr != eka_ip->saddr)
+      continue;
+    if (ndev->nif->eka_private_data->eka_session[eks]
+            .ip_daddr != eka_ip->daddr)
+      continue;
+    if (ndev->nif->eka_private_data->eka_session[eks]
+            .tcp_sport != ntohs(tcph->source))
+      continue;
+    if (ndev->nif->eka_private_data->eka_session[eks]
+            .tcp_dport != ntohs(tcph->dest))
+      continue;
+    eka_drop_me = true;
 #if 0
      int mac_byte;
      for (mac_byte=0; mac_byte<6; mac_byte++) ndev->nif->eka_private_data->eka_session[eks].macda[mac_byte] = (uint8_t)eka_p[mac_byte]; // copying MAC_DA
@@ -85,11 +115,11 @@ if (eka_ip->protocol == 0x6) { // TCP
      } else {
        eka_drop_me = true;
      }
-	   
+
      //	    ndev->nif->eka_private_data->eka_session[eks].tcp_local_seq_num = ntohl(tcph->seq) + len - sizeOfEtherFrameHeader - 4 * eka_ip->ihl - 4 * tcph->doff;
      ndev->nif->eka_private_data->eka_session[eks].tcp_local_seq_num = ntohl(tcph->seq) + payload_len;
      if(ndev->nif->eka_private_data->eka_debug)
-       PRINTK("EKALINE DEBUG: TX %s: core=%d, %02x:%02x:%02x:%02x:%02x:%02x--->%02x:%02x:%02x:%02x:%02x:%02x %d.%d.%d.%d -> %d.%d.%d.%d : %hu->%hu, seq: %u, ack: %u, doff: %hu, urg: %hu, FLAGS=%c%c%c%c%c%c : payload_len = %u ,data[0]=0x%02x) : %s\n", 
+       PRINTK("EKALINE DEBUG: TX %s: core=%d, %02x:%02x:%02x:%02x:%02x:%02x--->%02x:%02x:%02x:%02x:%02x:%02x %d.%d.%d.%d -> %d.%d.%d.%d : %hu->%hu, seq: %u, ack: %u, doff: %hu, urg: %hu, FLAGS=%c%c%c%c%c%c : payload_len = %u ,data[0]=0x%02x) : %s\n",
 	      __func__,
 	      core,
 	      (uint8_t)eka_p[6],(uint8_t)eka_p[7],(uint8_t)eka_p[8],(uint8_t)eka_p[9],(uint8_t)eka_p[10],(uint8_t)eka_p[11],
@@ -136,11 +166,7 @@ if (eka_ip->protocol == 0x6) { // TCP
 
      *eka_reg_seq_desc = desc.desc;
      //            PRINTK("EKALINE DEBUG: %s: sending ACK=%u\n",__func__,ntohl(tcph->ack_seq));
-#endif //0
-     break;
-   }
-
- }
-
-
-
+#endif // 0
+    break;
+  }
+}
