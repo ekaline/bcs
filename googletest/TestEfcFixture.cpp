@@ -173,7 +173,7 @@ void TestEfcFixture::initEur() {
   /* --------------------------------------------- */
 
   EkaBcAffinityConfig aff = {-1, -1, -1, -1, -1};
-  EkaBcCallbacks cb = {.logCb = ekaDefaultLog,
+  EkaCallbacks cb = {.logCb = ekaDefaultLog,
                        .cbCtx = g_ekaLogFile};
   dev_ = openDev(&aff, &cb);
   ASSERT_NE(dev_, nullptr);

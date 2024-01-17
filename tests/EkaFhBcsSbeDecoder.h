@@ -295,12 +295,15 @@ struct OrderExecutionMsg {
   SecurityID_T Symbol;
 } __attribute__((packed));
 
-const uint8_t *printMsg(const void *msg) {
+const uint8_t *printMsg(const void *msg,
+                        FILE *outFile = stdout);
+
+const uint8_t *printMsg(const void *msg, FILE *outFile) {
   auto p = reinterpret_cast<const uint8_t *>(msg);
   auto msgHdr = reinterpret_cast<const MsgHdr *>(msg);
 
   auto msgId = static_cast<MsgId>(msgHdr->templateId);
-  printf("\t%s,", decodeMsgId(msgId));
+  fprintf(outFile, "\t%s,", decodeMsgId(msgId));
 
   p += sizeof(*msgHdr);
   p += msgHdr->blockLength;
@@ -317,10 +320,12 @@ const uint8_t *printMsg(const void *msg) {
     printf(
         "%s: ",
         std::string(m->Symbol, sizeof(m->Symbol)).c_str());
-    printf("%s: ", decodeMdEntryType(m->mdEntryType));
-    printf("MDEntryPx: %jde-9,", m->MDEntryPx.mantissa);
-    printf("MDEntrySize: %jd, ", m->MDEntrySize);
-    printf("%s ", decodeMDFlagSet(m->MDFlags));
+    fprintf(outFile,
+            "%s: ", decodeMdEntryType(m->mdEntryType));
+    fprintf(outFile, "MDEntryPx: %jde-9,",
+            m->MDEntryPx.mantissa);
+    fprintf(outFile, "MDEntrySize: %jd, ", m->MDEntrySize);
+    fprintf(outFile, "%s ", decodeMDFlagSet(m->MDFlags));
 
   } break;
     // ====================================================
@@ -331,12 +336,14 @@ const uint8_t *printMsg(const void *msg) {
     printf(
         "%s: ",
         std::string(m->Symbol, sizeof(m->Symbol)).c_str());
-    printf("%s: ", decodeMdEntryType(m->mdEntryType));
-    printf("MDEntryPx: %jde-9,", m->MDEntryPx.mantissa);
-    printf("MDEntrySize: %jd, ", m->MDEntrySize);
-    printf("LastPx: %jde-9,", m->LastPx.mantissa);
-    printf("LastQty: %jd, ", m->LastQty);
-    printf("%s ", decodeMDFlagSet(m->MDFlags));
+    fprintf(outFile,
+            "%s: ", decodeMdEntryType(m->mdEntryType));
+    fprintf(outFile, "MDEntryPx: %jde-9,",
+            m->MDEntryPx.mantissa);
+    fprintf(outFile, "MDEntrySize: %jd, ", m->MDEntrySize);
+    fprintf(outFile, "LastPx: %jde-9,", m->LastPx.mantissa);
+    fprintf(outFile, "LastQty: %jd, ", m->LastQty);
+    fprintf(outFile, "%s ", decodeMDFlagSet(m->MDFlags));
 
   } break;
 
@@ -356,16 +363,18 @@ const uint8_t *printMsg(const void *msg) {
     auto msgRoot =
         reinterpret_cast<const OrderBookSnapshotMsg_root *>(
             p);
-    printf("%s: ", std::string(msgRoot->Symbol,
-                               sizeof(msgRoot->Symbol))
-                       .c_str());
+    fprintf(outFile, "%s: ",
+            std::string(msgRoot->Symbol,
+                        sizeof(msgRoot->Symbol))
+                .c_str());
     auto grSize = reinterpret_cast<const GroupSize *>(p);
     p += sizeof(*grSize);
 
     for (auto i = 0; i < grSize->numInGroup; i++) {
       auto gr = reinterpret_cast<
           const OrderBookSnapshotMsg_MdEntry *>(p);
-      printf("%s: ", decodeMdEntryType(gr->mdEntryType));
+      fprintf(outFile,
+              "%s: ", decodeMdEntryType(gr->mdEntryType));
       p += grSize->blockLength;
     }
   } break;
@@ -378,15 +387,17 @@ const uint8_t *printMsg(const void *msg) {
       auto gr =
           reinterpret_cast<const BestPricesMsg_MdEntry *>(
               p);
-      printf("\t");
-      printf("%s: ",
-             std::string(gr->Symbol, sizeof(gr->Symbol))
-                 .c_str());
-      printf("MktBidPx: %jde-9,", gr->MktBidPx.mantissa);
-      printf("MktOfferPx: %jde-9,",
-             gr->MktOfferPx.mantissa);
-      printf("MktBidSize: %jd, ", gr->MktBidSize);
-      printf("MktOfferSize: %jd, ", gr->MktOfferSize);
+      fprintf(outFile, "\t");
+      fprintf(outFile, "%s: ",
+              std::string(gr->Symbol, sizeof(gr->Symbol))
+                  .c_str());
+      fprintf(outFile, "MktBidPx: %jde-9,",
+              gr->MktBidPx.mantissa);
+      fprintf(outFile, "MktOfferPx: %jde-9,",
+              gr->MktOfferPx.mantissa);
+      fprintf(outFile, "MktBidSize: %jd, ", gr->MktBidSize);
+      fprintf(outFile, "MktOfferSize: %jd, ",
+              gr->MktOfferSize);
       p += grSize->blockLength;
     }
   } break;
@@ -396,28 +407,32 @@ const uint8_t *printMsg(const void *msg) {
   return p;
 }
 
-void printPkt(const void *pkt) {
+void printPkt(const void *pkt, FILE *outFile = stdout);
+
+void printPkt(const void *pkt, FILE *outFile) {
   auto startOfPkt = reinterpret_cast<const uint8_t *>(pkt);
   auto p = startOfPkt;
   auto pktHdr = reinterpret_cast<const PktHdr *>(p);
-  printf("%8u,", pktHdr->msgSeqNum);
-  printf("%3u,", pktHdr->pktSize);
-  printf("%s,", ts_ns2str(pktHdr->sendTimeUTC).c_str());
-  // printf("\n");
+  fprintf(outFile, "%8u,", pktHdr->msgSeqNum);
+  fprintf(outFile, "%3u,", pktHdr->pktSize);
+  fprintf(outFile, "%s,",
+          ts_ns2str(pktHdr->sendTimeUTC).c_str());
+  // fprintf(outFile,"\n");
 
   p += sizeof(*pktHdr);
 
   if (pktHdr->pktFlags & 0x8) {
     auto incrPktHdr =
         reinterpret_cast<const PktIncrHdr *>(p);
-    printf("%s:\n",
-           ts_ns2str(incrPktHdr->transactTime).c_str());
-    // printf("%3d,", incrPktHdr->exchTradingSessionId);
+    fprintf(outFile, "%s:\n",
+            ts_ns2str(incrPktHdr->transactTime).c_str());
+    // fprintf(outFile,"%3d,",
+    // incrPktHdr->exchTradingSessionId);
     p += sizeof(*incrPktHdr);
   }
   while (p - startOfPkt < pktHdr->pktSize) {
     p = printMsg(p);
-    printf("\n");
+    fprintf(outFile, "\n");
   }
   if (p - startOfPkt != pktHdr->pktSize)
     on_error("p - startOfPkt %jd != pktHdr->pktSize %u",

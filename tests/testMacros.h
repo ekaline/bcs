@@ -7,9 +7,12 @@
 #include <errno.h>
 #include <math.h>
 #include <string>
+#include <stdarg.h>
 
-extern FILE *g_ekaLogFile;
-extern EkaLogCallback g_ekaLogCB;
+#include "EkaBcs.h"
+
+// extern FILE *g_ekaLogFile;
+//  extern EkaLogCallback g_ekaLogCB;
 
 #ifdef _VERILOG_SIM
 extern FILE *g_ekaVerilogSimFile;

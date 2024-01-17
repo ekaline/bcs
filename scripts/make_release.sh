@@ -32,7 +32,7 @@ mkdir -p ${DST_DIR}/SmartNIC_SW/bin
 mkdir -p ${DST_DIR}/SmartNIC_SW/tools
 
 cp $BUILD_DIR/../api/EkaBcs.h $DST_DIR/api
-cp $BUILD_DIR/lib/EkaBcs/libEkaBcs.* $DST_DIR/lib
+cp $BUILD_DIR/lib/EkaBcs/libEkaBcs.so $DST_DIR/lib
 
 cp $BUILD_DIR/utils/EkaBcs/eka_version $DST_DIR/utils
 cp $BUILD_DIR/utils/EkaBcs/eka_tcpdump $DST_DIR/utils
@@ -51,3 +51,4 @@ cd $HOME/BCS_RELEASES
 
 tar cvzf ${REL_NAME}.tar.gz $REL_NAME
 
+scp cvzf ${REL_NAME}.tar.gz gw01:~

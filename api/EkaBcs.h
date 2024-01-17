@@ -103,7 +103,7 @@ typedef int (*EkaLogCallback)(void *ctx,
  *            logCb: function
  *            cbCtx: log file pointer (stdout if not set)
  */
-struct EkaBcCallbacks {
+struct EkaCallbacks {
   EkaLogCallback logCb;
   void *cbCtx;
 };
@@ -119,16 +119,15 @@ struct EkaBcCallbacks {
 
 OpResult
 openDev(const EkaBcAffinityConfig *affinityConf = NULL,
-        const EkaBcCallbacks *cb = NULL);
+        const EkaCallbacks *cb = NULL);
 
 /**
  * @brief Closes Ekaline Device and destroys all data
  * structs
  *
- * @param pEkaDev
  * @return OpResult
  */
-OpResult ekaBcCloseDev(EkaDev *pEkaDev);
+OpResult closeDev();
 
 /* ==================================================== */
 typedef int EkaBcSock;
@@ -275,6 +274,40 @@ struct PortAttrs {
 OpResult configurePort(EkaBcLane lane,
                        const PortAttrs *pPortAttrs);
 
+/**
+ * @brief
+ *
+ */
+
+typedef int (*MdProcessCallback)(const void *pkt,
+                                 size_t pktLen, void *ctx);
+
+/**
+ * @brief Configures MC parameters to receive on Feed A
+ *        physical I/F (feth0)
+ *        USUALLY SHOULD BE CALLED IN SEPARATE THREAD!!!
+ *
+ * @param mcParams
+ * @param cb      Callback function to be executed on every
+ *                MD packet
+ * @param ctx     Optional parameter. Can be used as FILE*
+ * @return OpResult
+ */
+OpResult configureRcvMd_A(const UdpMcParams *mcParams,
+                          MdProcessCallback cb,
+                          void *ctx = NULL);
+
+OpResult configureRcvMd_B(const UdpMcParams *mcParams,
+                          MdProcessCallback cb,
+                          void *ctx = NULL);
+
+void startRcvMd_A();
+
+void startRcvMd_B();
+
+OpResult stopRcvMd_A();
+
+OpResult stopRcvMd_B();
 /* ==================================================== */
 
 /**
@@ -424,8 +457,7 @@ ssize_t ekaBcAppSend(EkaDev *pEkaDev,
 OpResult ekaBcSetSessionCntr(EkaDev *dev, EkaBcSock ekaSock,
                              uint64_t cntr);
 
-/* ======================================================
- */
+/* ==================================================== */
 
 /* ==================================================== */
 
