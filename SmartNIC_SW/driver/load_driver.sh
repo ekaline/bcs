@@ -35,33 +35,6 @@
 # *
 # ****************************************************************************
 
-# Function: get_interface_address() <if-name>
-#
-# Given an interface name as the first (and only) argument, set the variable
-# 'return_ip_addr equal to the `<ipv4-addr>/<cidr-prefix>` value for the
-# interface found in corresponding sysconfig/network-scripts ifcfg file.
-get_interface_address() {
-    local if_config_name="/etc/sysconfig/network-scripts/ifcfg-$1"
-
-    if test ! -e $if_config_name; then
-        echo "no network configuration file '$if_config_name' for interface '$1'"
-	exit 68 # EX_NOHOST
-    fi
-
-    # Extract the `IPADDR=<IPv4-address>` and `PREFIX=<CIDR-prefix-bits>`
-    # fields from the configuration script.
-    local ip_addr=$(grep IPADDR $if_config_name | cut -d'=' -f2)
-    local net_prefix=$(grep PREFIX $if_config_name | cut -d'=' -f2)
-
-    if test -z $ip_addr -o -z $net_prefix; then
-        echo "network configuration script '$1' (for interface $1) is missing IPADDR or PREFIX"
-	echo "ip_addr=$ip_addr net_prefix=$net_prefix"
-        exit 78 # EX_CONFIG
-    fi
-
-    return_ip_addr="$ip_addr/$net_prefix"
-}
-
 module="smartnic"
 device="smartnic"
 support_ul_devices=0
@@ -146,35 +119,3 @@ if [ $support_ul_devices -ne 0 ]; then
 fi
 
 echo "Driver '$module' loaded successfully."
-
-# Sleep for one second. Once the module is loaded, udev will try to rename the
-# network interfaces that the driver creates (e.g., feth0) to their new names
-# from /etc/sysconfig (e.g. fpga0_0) based on the MAC address. If we don't sleep
-# here, the commands below (which assume the fpga0_0-style names) might execute
-# before the rename occurs, and the interfaces won't exist.
-sleep 1
-
-# EKALINE_IF_DEVICES is set to a space-separated list of entries consisting
-# of the driver unit numbers for the interfaces to bring up, e.g., "0_0 1_0"
-# will configure fpga0_0 and fpga1_0.
-if test -z "$EKALINE_IF_DEVICES"; then
-    # Any port with an IP address - jnunez@striketechnologies.com - 11/13/2020
-    for fgpa_s in `/bin/ls /etc/sysconfig/network-scripts/ifcfg-fpga?_?`; do
-        declare -i is_valid=$(/bin/grep -c IPADDR $fgpa_s)
-        if [ $is_valid -eq 1 ]; then
-            new_dev=$(/usr/bin/grep DEVICE "$fgpa_s"| /bin/cut -f2 -d'='| /bin/sed 's#fpga##')
-            EKALINE_IF_DEVICES="$new_dev $EKALINE_IF_DEVICES"
-        fi
-    done
-    # EKALINE_IF_DEVICES="0_0" # We only bring up the first port if not set.
-fi
-
-for u in $EKALINE_IF_DEVICES; do
-    eka_ifname="fpga$u"
-
-    echo "Configurating Ekaline FPGA interface '$eka_ifname'"
-    ip link set $eka_ifname up
-    get_interface_address $eka_ifname
-    echo "Ekaline FGPA interface '$eka_ifname' will use IPv4 address $return_ip_addr"
-    ip address add $return_ip_addr dev $eka_ifname
-done

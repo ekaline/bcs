@@ -44,6 +44,10 @@
 #include <linux/netdevice.h>
 #include <linux/byteorder/generic.h>
 
+#include <linux/ktime.h>
+#include <linux/timekeeping.h>
+
+
 #include "main.h"
 #include "fpga.h"
 #include "regs.h"
@@ -1119,22 +1123,26 @@ int getFpgaTime(const device_context_t * pDevExt, uint64_t *rawtime)
 
 int setFpgaTime(const device_context_t * pDevExt)
 {
-    struct timeval tv;
+  //struct timeval tv;
+    struct timespec64 tv;
     uint64_t timer;
 
     LOG_FPGA_FUNCTION(LOG(LOG_FPGA), "");
 
     // We try to set the time approximately between to seconds
-    do_gettimeofday(&tv);
-    if (tv.tv_usec < 500000)
+    //    do_gettimeofday(&tv);
+    ktime_get_real_ts64(&tv);
+    if ((tv.tv_nsec / 1000) < 500000)
     {
-        mdelay((500000 - tv.tv_usec) / 1000);
+        mdelay((500000 - (tv.tv_nsec / 1000)) / 1000);
     }
     else {
-        mdelay((500000 + 1000000 - tv.tv_usec) / 1000);
+        mdelay((500000 + 1000000 - (tv.tv_nsec / 1000)) / 1000);
     }
-    do_gettimeofday(&tv);
-    timer = (uint64_t)tv.tv_usec * 25 * 100ULL | (uint64_t)tv.tv_sec << 32;
+    //    do_gettimeofday(&tv);
+    ktime_get_real_ts64(&tv);
+
+    timer = (uint64_t)(tv.tv_nsec / 1000) * 25 * 100ULL | (uint64_t)tv.tv_sec << 32;
     writeq(timer, pDevExt->bar0_va + FPGA_TIMER_TIME);
     return 0;
 }
@@ -1188,7 +1196,8 @@ int setClockSyncMode(device_context_t * pDevExt, uint32_t mode)
 
 static int adjust_cardtime_thread(void * pData)
 {
-    struct timespec ts;
+  //    struct timespec ts;
+    struct timespec64 ts;
     uint64_t currentTime = 0;
     int64_t diff = 0;
     int64_t val = 0;
@@ -1208,7 +1217,8 @@ static int adjust_cardtime_thread(void * pData)
         }
 
         // Get time of day from computer and from network card
-        getnstimeofday(&ts);
+	//        getnstimeofday(&ts);
+        ktime_get_raw_ts64(&ts);
         currentTime = readq(pDevExt->bar0_va + FPGA_TIMER_TIME);
 
         // Enable this to compare integer and floating point calculations in older kernels that support floating point.

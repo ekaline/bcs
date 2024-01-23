@@ -61,9 +61,10 @@ int send_signal_to_user_process(const device_context_t * pDevExt, pid_t pid, int
     siginfo_t info;
     #endif
 #else
-    siginfo_t info;
+    //    siginfo_t info;
+    struct kernel_siginfo info;
 #endif
-    
+
     /* siginfo_t info; */
     /* end of Ekaline fix*/
 
@@ -79,7 +80,8 @@ int send_signal_to_user_process(const device_context_t * pDevExt, pid_t pid, int
     pInterruptResults->minor = pDevExt->minor;
     pInterruptResults->channel = channelNumber;
     pInterruptResults->pContext = pContext;
-    getnstimeofday(&pInterruptResults->timestamp);
+    //    getnstimeofday(&pInterruptResults->timestamp);
+    ktime_get_real_ts64(&pInterruptResults->timestamp);
 
     // Locate user space task from the process identifier pid:
     pTask = get_pid_task(find_get_pid(pid), PIDTYPE_PID);

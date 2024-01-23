@@ -30,28 +30,28 @@ public:
   EkaEurStrategy(const EfcUdpMcParams *mcParams);
   ~EkaEurStrategy();
 
-  EkaBCOpResult
+  OpResult
   subscribeSecList(const EkaBcEurSecId *prodList,
                    size_t nProducts);
 
   EkaBcSecHandle getSubscriptionId(EkaBcEurSecId secId);
 
-  EkaBCOpResult
+  OpResult
   initProd(EkaBcSecHandle prodHande,
            const EkaBcEurProductInitParams *params);
 
-  EkaBCOpResult setProdDynamicParams(
+  OpResult setProdDynamicParams(
       EkaBcSecHandle prodHande,
       const EkaBcProductDynamicParams *params);
 
-  EkaBCOpResult
+  OpResult
   setProdJumpParams(EkaBcSecHandle prodHande,
                     const EkaBcEurJumpParams *params);
 
   void arm(EkaBcSecHandle prodHande, bool armBid,
            bool armAsk, EkaBcArmVer ver);
 
-  EkaBCOpResult setProdReferenceJumpParams(
+  OpResult setProdReferenceJumpParams(
       EkaBcSecHandle triggerProd, EkaBcSecHandle fireProd,
       const EkaBcEurReferenceJumpParams *params);
 
@@ -65,9 +65,9 @@ public:
 
   EkaBcEurProd *getProd(EkaBcSecHandle prodHandle);
   
-  EkaBCOpResult downloadPackedDB();
+  OpResult downloadPackedDB();
 
-  EkaBCOpResult downloadProdInfoDB();
+  OpResult downloadProdInfoDB();
 
   void
   fireReportThreadLoop(const EkaBcRunCtx *pEkaBcRunCtx);

@@ -1,7 +1,7 @@
 #ifndef _EKA_EOBI_H_
 #define _EKA_EOBI_H_
 
-#include "EkaBc.h"
+#include "EkaBcs.h"
 #include "EpmIlink3NewOrderTemplate.h" //PATCH
 #include "eka_macros.h"
 

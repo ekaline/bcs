@@ -46,7 +46,7 @@ EkaBcEurProd::EkaBcEurProd(
     on_error("!book_");
 }
 /* --------------------------------------------------- */
-EkaBCOpResult EkaBcEurProd::setDynamicParams(
+OpResult EkaBcEurProd::setDynamicParams(
     const EkaBcProductDynamicParams *p) {
   maxAskSize_ = p->maxAskSize;
   maxBidSize_ = p->maxBidSize;
@@ -62,11 +62,11 @@ EkaBCOpResult EkaBcEurProd::setDynamicParams(
   /*         handle_, secId_, midPoint_, step_, hwMidPoint_, */
   /*         priceDiv_, isBook_ ? "HAS BOOK" : "NO BOOK"); */
 
-  return EKABC_OPRESULT__OK;
+  return OPRESULT__OK;
 }
 /* --------------------------------------------------- */
 
-EkaBCOpResult EkaBcEurProd::setJumpParams(
+OpResult EkaBcEurProd::setJumpParams(
     const EkaBcEurJumpParams *params) {
   memcpy(&jumpParams_, params, sizeof(*params));
   HwJumpParams p = {};
@@ -128,12 +128,12 @@ EkaBCOpResult EkaBcEurProd::setJumpParams(
 
   for (auto i = 0; i < nWords; i++)
     eka_write(dst + 8 * i, *(sPtr++));
-  return EKABC_OPRESULT__OK;
+  return OPRESULT__OK;
 }
 
 /* --------------------------------------------------- */
 
-EkaBCOpResult EkaBcEurProd::setReferenceJumpParams(
+OpResult EkaBcEurProd::setReferenceJumpParams(
     EkaBcSecHandle fireProdHandle,
     const EkaBcEurReferenceJumpParams *params) {
   memcpy(&refJumpParams_[fireProdHandle], params,
@@ -242,6 +242,6 @@ EkaBCOpResult EkaBcEurProd::setReferenceJumpParams(
   /*   EKA_LOG("Cached"); */
   /* } */
   
-  return EKABC_OPRESULT__OK;
+  return OPRESULT__OK;
 }
 /* --------------------------------------------------- */

@@ -9,7 +9,7 @@
 #include "Efc.h"
 #include "Efh.h"
 #include "Eka.h"
-#include "EkaBc.h"
+#include "EkaBcs.h"
 #include "EkaHwInternalStructs.h"
 #include "eka_hw_conf.h"
 
@@ -28,6 +28,10 @@ class EkaHwCaps;
 class EkaUserChannel;
 class EkaIgmp;
 class EkaWc;
+
+class EkaMdRecvHandler;
+
+using namespace EkaBcs;
 
 class EkaDev {
 
@@ -186,6 +190,8 @@ public:
       0x100000 /* BAR2_REGS_SIZE */ / sizeof(uint64_t));
 
   EkaBcAffinityConfig affinityConf = {-1, -1, -1, -1, -1};
+
+  EkaMdRecvHandler *mdRecvH[2] = {};
 };
 
 /* ########################################################################

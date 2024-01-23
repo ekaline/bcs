@@ -22,7 +22,7 @@
 #include "EkaBcStrategy.h"
 // #include "EkaBook.h"
 // #include "EkaProd.h"
-#include "EkaBc.h"
+#include "EkaBcs.h"
 #include "eka_hw_conf.h"
 #include "eka_macros.h"
 

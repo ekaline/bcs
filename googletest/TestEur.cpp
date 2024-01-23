@@ -15,7 +15,7 @@ void TestEur::configureStrat(const TestCaseConfig *t) {
   disArmController_ = ekaBcDisArmEur;
 
   auto rc = ekaBcInitEurStrategy(dev, udpMcParams);
-  if (rc != EKABC_OPRESULT__OK)
+  if (rc != OPRESULT__OK)
     on_error("ekaBcInitEurStrategy returned %d", (int)rc);
 
   auto eurHwAction = ekaBcAllocateNewAction(
@@ -26,7 +26,7 @@ void TestEur::configureStrat(const TestCaseConfig *t) {
   rc = setActionTcpSock(dev, eurHwAction,
                         tcpCtx_->tcpSess_[0]->excSock_);
 
-  if (rc != EKABC_OPRESULT__OK)
+  if (rc != OPRESULT__OK)
     on_error("setActionTcpSock failed for Action %d",
              eurHwAction);
 
@@ -37,7 +37,7 @@ void TestEur::configureStrat(const TestCaseConfig *t) {
   rc = ekaBcSetActionPayload(dev, eurHwAction,
                              &CmeTestFastCancelMsg,
                              strlen(CmeTestFastCancelMsg));
-  if (rc != EKABC_OPRESULT__OK)
+  if (rc != OPRESULT__OK)
     on_error("ekaBcSetActionPayload failed for Action %d",
              eurHwAction);
 }

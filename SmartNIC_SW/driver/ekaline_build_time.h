@@ -1,3 +1,0 @@
-#define EKA_SN_DRIVER_BUILD_TIME "Tue May 25 09:06:14 EDT 2021"
-#define EKA_SN_DRIVER_RELEASE_NOTE "3_0_2_RC_WC6 63th MC group fix (5)"
-

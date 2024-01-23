@@ -123,7 +123,7 @@ public:
 
   int nExpectedFireReports_ = 0;
 
-  const EkaBcUdpMcParams *mcParams_ = nullptr;
+  const UdpMcParams *mcParams_ = nullptr;
   const TestTcpParams *tcpParams_ = nullptr;
 
   EkaBcEurSecId prodList_[16] = {};
