@@ -27,7 +27,7 @@
 !cmake/*cmake
 !CMakeLists.txt
 !apisrc/FhBook
-!apisrc/Ehp
+!src/Ehp
 !apisrc/ekaline
 !tests
 !tests/*.c
