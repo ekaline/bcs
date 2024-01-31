@@ -59,6 +59,10 @@ EkaMdRecvHandler::EkaMdRecvHandler(
 }
 /* ==================================================== */
 void EkaMdRecvHandler::run() {
+  EKA_LOG("\n"
+          "------------------------------\n"
+          "------ Waiting for MD --------\n"
+          "------------------------------");
   while (active_) {
     if (!udpChannel_->has_data())
       continue;
