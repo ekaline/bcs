@@ -46,6 +46,8 @@ cp $BUILD_DIR/utils/EkaBcs/sn_write $DST_DIR/utils
 cp $BUILD_DIR/utils/EkaBcs/efc_state $DST_DIR/utils
 cp $BUILD_DIR/utils/EkaBcs/mc_receive $DST_DIR/utils
 
+cp $BUILD_DIR/pcapParsers/EkaBcs/bcsPcapParse $DST_DIR/utils
+
 cp $BUILD_DIR/../SmartNIC_SW/driver/*.sh ${DST_DIR}/SmartNIC_SW/driver
 cp $BUILD_DIR/../SmartNIC_SW/driver/*.ko ${DST_DIR}/SmartNIC_SW/driver
 

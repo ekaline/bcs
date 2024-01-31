@@ -16,6 +16,9 @@ public:
 
   void stop();
 
+  void lnxIgmpJoin(uint32_t srcIp, uint32_t mcIp,
+                   uint16_t mcPort, uint32_t ssmIP = 0);
+
 private:
   static const size_t MaxUdpMcGroups_ = 64;
   EkaUdpChannel *udpChannel_ = NULL;
@@ -26,5 +29,7 @@ private:
   EkaBcLane lane_ = -1;
 
   volatile bool active_ = true;
+
+  int lnxUdpSock_ = -1;
 };
 #endif

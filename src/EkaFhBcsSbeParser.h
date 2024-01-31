@@ -295,12 +295,12 @@ struct OrderExecutionMsg {
   SecurityID_T Symbol;
 } __attribute__((packed));
 
-const uint8_t *printMsg(const void *msg) {
+const uint8_t *printMsg(const void *msg, int msgCnt) {
   auto p = reinterpret_cast<const uint8_t *>(msg);
   auto msgHdr = reinterpret_cast<const MsgHdr *>(msg);
 
   auto msgId = static_cast<MsgId>(msgHdr->templateId);
-  printf("\t%s,", decodeMsgId(msgId));
+  printf("\t%4d, %s,", msgCnt, decodeMsgId(msgId));
 
   p += sizeof(*msgHdr);
   p += msgHdr->blockLength;
@@ -378,7 +378,7 @@ const uint8_t *printMsg(const void *msg) {
       auto gr =
           reinterpret_cast<const BestPricesMsg_MdEntry *>(
               p);
-      printf("\t");
+      printf("\n\t\t");
       printf("%s: ",
              std::string(gr->Symbol, sizeof(gr->Symbol))
                  .c_str());
@@ -415,8 +415,9 @@ void printPkt(const void *pkt) {
     // printf("%3d,", incrPktHdr->exchTradingSessionId);
     p += sizeof(*incrPktHdr);
   }
+  int msgCnt = 1;
   while (p - startOfPkt < pktHdr->pktSize) {
-    p = printMsg(p);
+    p = printMsg(p, msgCnt++);
     printf("\n");
   }
   if (p - startOfPkt != pktHdr->pktSize)
