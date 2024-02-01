@@ -1,7 +1,11 @@
 #ifndef __EKA_FH_BCS_DECODER_H__
 #define __EKA_FH_BCS_DECODER_H__
 
-namespace BcsSbeDecoder {
+#include <bitset>
+#include <string>
+#include <vector>
+
+namespace BcsSbe {
 enum class MsgId : uint16_t {
   Heartbeat = 1,
   SequenceReset = 2,
@@ -145,6 +149,26 @@ static inline const char *decodeMDFlagSet(MDFlagSet f) {
   default:
     on_error("Unexpected MDFlagSet \'%u\'", (uint)f);
   }
+}
+
+static std::string MDFlagSetToString(MDFlagSet flagSet) {
+  auto bits = static_cast<uint32_t>(flagSet);
+  std::vector<std::string> flagNames = {
+      "Order",        "Quote",        "MarketInAuction",
+      "LastFragment", "Negotiated",   "Confirmed",
+      "DarkPool",     "AuctionResult"};
+
+  std::string result;
+
+  for (uint32_t i = 0; i < flagNames.size(); ++i) {
+    if ((bits & (1 << i)) != 0) {
+      if (!result.empty()) {
+        result += ", ";
+      }
+      result += flagNames[i];
+    }
+  }
+  return result;
 }
 
 enum class MDUpdateAction : uint8_t {
@@ -317,15 +341,18 @@ const uint8_t *printMsg(const void *msg, FILE *outFile) {
   case MsgId::OrderUpdate: {
     auto m = reinterpret_cast<const OrderUpdateMsg *>(
         p - msgHdr->blockLength);
-    printf(
-        "%s: ",
+    fprintf(
+        outFile, "%s: ",
         std::string(m->Symbol, sizeof(m->Symbol)).c_str());
+    fprintf(outFile, "%s ",
+            decodeMDUpdateAction(m->mdUpdateAction));
     fprintf(outFile,
             "%s: ", decodeMdEntryType(m->mdEntryType));
     fprintf(outFile, "MDEntryPx: %jde-9,",
             m->MDEntryPx.mantissa);
     fprintf(outFile, "MDEntrySize: %jd, ", m->MDEntrySize);
-    fprintf(outFile, "%s ", decodeMDFlagSet(m->MDFlags));
+    fprintf(outFile, "%s ",
+            MDFlagSetToString(m->MDFlags).c_str());
 
   } break;
     // ====================================================
@@ -333,9 +360,11 @@ const uint8_t *printMsg(const void *msg, FILE *outFile) {
   case MsgId::OrderExecution: {
     auto m = reinterpret_cast<const OrderExecutionMsg *>(
         p - msgHdr->blockLength);
-    printf(
-        "%s: ",
+    fprintf(
+        outFile, "%s: ",
         std::string(m->Symbol, sizeof(m->Symbol)).c_str());
+    fprintf(outFile, "%s: ",
+            decodeMDUpdateAction(m->mdUpdateAction));
     fprintf(outFile,
             "%s: ", decodeMdEntryType(m->mdEntryType));
     fprintf(outFile, "MDEntryPx: %jde-9,",
@@ -343,7 +372,8 @@ const uint8_t *printMsg(const void *msg, FILE *outFile) {
     fprintf(outFile, "MDEntrySize: %jd, ", m->MDEntrySize);
     fprintf(outFile, "LastPx: %jde-9,", m->LastPx.mantissa);
     fprintf(outFile, "LastQty: %jd, ", m->LastQty);
-    fprintf(outFile, "%s ", decodeMDFlagSet(m->MDFlags));
+    fprintf(outFile, "%s ",
+            MDFlagSetToString(m->MDFlags).c_str());
 
   } break;
 
@@ -387,7 +417,7 @@ const uint8_t *printMsg(const void *msg, FILE *outFile) {
       auto gr =
           reinterpret_cast<const BestPricesMsg_MdEntry *>(
               p);
-      fprintf(outFile, "\t");
+      printf("\n\t\t");
       fprintf(outFile, "%s: ",
               std::string(gr->Symbol, sizeof(gr->Symbol))
                   .c_str());
@@ -438,6 +468,6 @@ void printPkt(const void *pkt, FILE *outFile) {
     on_error("p - startOfPkt %jd != pktHdr->pktSize %u",
              p - startOfPkt, pktHdr->pktSize);
 }
-} // namespace BcsSbeDecoder
+} // namespace BcsSbe
 
 #endif

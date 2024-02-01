@@ -2,7 +2,7 @@
 #include <iostream>
 #include <pcap.h>
 
-#include "EkaFhBcsSbeParser.h"
+#include "EkaFhBcsSbeDecoder.h"
 
 using namespace BcsSbe;
 
