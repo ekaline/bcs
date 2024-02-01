@@ -47,7 +47,7 @@ int ekaDefaultLog(void *logFile /*unused*/,
 
 static int printMdPkt(const void *md, size_t len,
                       void *ctx) {
-  BcsSbeDecoder::printPkt(md);
+  BcsSbe::printPkt(md);
   return 0;
 }
 

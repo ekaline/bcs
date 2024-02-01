@@ -344,7 +344,7 @@ const uint8_t *printMsg(const void *msg, FILE *outFile) {
     fprintf(
         outFile, "%s: ",
         std::string(m->Symbol, sizeof(m->Symbol)).c_str());
-    fprintf(outFile, "%s ",
+    fprintf(outFile, "%6s ",
             decodeMDUpdateAction(m->mdUpdateAction));
     fprintf(outFile,
             "%s: ", decodeMdEntryType(m->mdEntryType));
@@ -363,7 +363,7 @@ const uint8_t *printMsg(const void *msg, FILE *outFile) {
     fprintf(
         outFile, "%s: ",
         std::string(m->Symbol, sizeof(m->Symbol)).c_str());
-    fprintf(outFile, "%s: ",
+    fprintf(outFile, "%6s: ",
             decodeMDUpdateAction(m->mdUpdateAction));
     fprintf(outFile,
             "%s: ", decodeMdEntryType(m->mdEntryType));
