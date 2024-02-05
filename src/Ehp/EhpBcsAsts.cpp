@@ -1,11 +1,11 @@
 #include "EkaDev.h"
 #include "ekaNW.h"
 
-#include "EhpBcCmeFc.h"
+#include "EhpBcsAsts.h"
 
-EhpBcCmeFC::EhpBcCmeFC(EkaStrategy *strat)
+EhpBcsAsts::EhpBcsAsts(EkaStrategy *strat)
     : EhpProtocol(strat) {
-  EKA_LOG("EhpBcCmeFC is created");
+  EKA_LOG("EhpBcsAsts is created");
 
   /* conf.params.protocolID = */
   /*     static_cast<decltype(conf.params.protocolID)>( */
@@ -29,13 +29,13 @@ EhpBcCmeFC::EhpBcCmeFC(EkaStrategy *strat)
   /* conf.fields.sequence[0].byteOffs_7 = EhpBlankByte; */
 }
 
-int EhpBcCmeFC::init() {
-  createFastCancel();
+int EhpBcsAsts::init() {
+  createBestPrice();
 
   return 0;
 }
 
-int EhpBcCmeFC::createFastCancel() {
+int EhpBcsAsts::createBestPrice() {
   /* uint16_t msgId = 48; */
   /* int msgType = FastCancelMsg; */
 

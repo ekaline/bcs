@@ -1,21 +1,21 @@
-#ifndef _EHP_BC_CMEFC_H_
-#define _EHP_BC_CMEFC_H_
+#ifndef _EHP_BCS_ASTS_H_
+#define _EHP_BCS_ASTS_H_
 
 #include "EhpProtocol.h"
 
-enum class EhpBcCmeFCMsg : int { FastCancel = 0 };
+enum class EhpBcsAstsMsg : int { FastCancel = 0 };
 
-class EhpBcCmeFC : public EhpProtocol {
+class EhpBcsAsts : public EhpProtocol {
 public:
-  EhpBcCmeFC(EkaStrategy *strat);
-  virtual ~EhpBcCmeFC() {}
+  EhpBcsAsts(EkaStrategy *strat);
+  virtual ~EhpBcsAsts() {}
 
   int init();
 
-  int createFastCancel();
+  int createBestPrice();
 
 public:
-  static const int FastCancelMsg = 0;
+  static const int BestPriceMsg = 0;
 };
 
 #endif
