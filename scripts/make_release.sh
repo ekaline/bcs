@@ -31,8 +31,12 @@ mkdir -p ${DST_DIR}/SmartNIC_SW/driver
 mkdir -p ${DST_DIR}/SmartNIC_SW/bin
 mkdir -p ${DST_DIR}/SmartNIC_SW/tools
 
+cp $BUILD_DIR/../README.TXT $DST_DIR/
+
 cp $BUILD_DIR/../api/EkaBcs.h $DST_DIR/api
 cp $BUILD_DIR/lib/EkaBcs/libEkaBcs.so $DST_DIR/lib
+
+cp -r $BUILD_DIR/../tests ${DST_DIR}/
 
 cp $BUILD_DIR/utils/EkaBcs/eka_version $DST_DIR/utils
 cp $BUILD_DIR/utils/EkaBcs/eka_tcpdump $DST_DIR/utils
@@ -40,6 +44,9 @@ cp $BUILD_DIR/utils/EkaBcs/eka_udp_mc_server $DST_DIR/utils
 cp $BUILD_DIR/utils/EkaBcs/sn_read $DST_DIR/utils
 cp $BUILD_DIR/utils/EkaBcs/sn_write $DST_DIR/utils
 cp $BUILD_DIR/utils/EkaBcs/efc_state $DST_DIR/utils
+cp $BUILD_DIR/utils/EkaBcs/mc_receive $DST_DIR/utils
+
+cp $BUILD_DIR/pcapParsers/EkaBcs/bcsPcapParse $DST_DIR/utils
 
 cp $BUILD_DIR/../SmartNIC_SW/driver/*.sh ${DST_DIR}/SmartNIC_SW/driver
 cp $BUILD_DIR/../SmartNIC_SW/driver/*.ko ${DST_DIR}/SmartNIC_SW/driver
@@ -51,4 +58,4 @@ cd $HOME/BCS_RELEASES
 
 tar cvzf ${REL_NAME}.tar.gz $REL_NAME
 
-scp cvzf ${REL_NAME}.tar.gz gw01:~
+scp ${REL_NAME}.tar.gz gw01:~

@@ -47,7 +47,7 @@ int ekaDefaultLog(void *logFile /*unused*/,
 
 static int printMdPkt(const void *md, size_t len,
                       void *ctx) {
-  BcsSbeDecoder::printPkt(md);
+  BcsSbe::printPkt(md);
   return 0;
 }
 
@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
   // MdRcvParams
 
   static const McGroupParams feedA[] = {
-      {0, "239.195.1.24", 16024},
+      //{0, "239.195.1.24", 16024},
       {0, "239.195.1.16", 16016}};
   static const UdpMcParams mcParamsA = {feedA,
                                         std::size(feedA)};

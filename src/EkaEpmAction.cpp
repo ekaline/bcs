@@ -202,7 +202,7 @@ void EkaEpmAction::copyHwActionParams2Fpga(
   sprintf(msg, "region %u, action Idx %u", regionId,
           localIdx);
 
-  pEpm->writeAction2FpgaMtx_file_->lock(msg);
+  // pEpm->writeAction2FpgaMtx_file_->lock(msg);
   pEpm->writeAction2FpgaMtx_.lock();
   copyBuf2Hw(g_ekaDev, BufAddr, (uint64_t *)params,
              sizeof(*params)); // write to scratchpad
@@ -210,7 +210,7 @@ void EkaEpmAction::copyHwActionParams2Fpga(
   atomicIndirectBufWrite(g_ekaDev, DescrAddr, 0, 0,
                          actionGlobalIdx, 0);
   pEpm->writeAction2FpgaMtx_.unlock();
-  pEpm->writeAction2FpgaMtx_file_->unlock(msg);
+  // pEpm->writeAction2FpgaMtx_file_->unlock(msg);
 }
 
 /* ---------------------------------------------------- */

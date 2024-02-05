@@ -27,8 +27,10 @@ EkaEpm::EkaEpm(EkaDev *_dev) {
   dev = _dev;
   active_ = true;
 
+#if 0
   writeAction2FpgaMtx_file_ = new EkaFileLock(
       "/tmp/_eka_writeAction2FpgaMtx_.lock", &active_);
+#endif
 
   const size_t strLen = 1024 * 64;
   auto epmRegionConfigString = new char[strLen];
@@ -44,7 +46,10 @@ EkaEpm::EkaEpm(EkaDev *_dev) {
 /* ---------------------------------------------------- */
 EkaEpm::~EkaEpm() {
   active_ = false;
+#if 0
   delete writeAction2FpgaMtx_file_;
+#endif
+
   for (auto i = 0; i < (int)TemplateId::Count; i++)
     if (epmTemplate[i])
       delete epmTemplate[i];
