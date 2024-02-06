@@ -2,6 +2,7 @@
 #include "ekaNW.h"
 
 #include "EhpBcsAsts.h"
+#include "EkaFhBcsSbeParser.h"
 
 EhpBcsAsts::EhpBcsAsts(EkaStrategy *strat)
     : EhpProtocol(strat) {
@@ -14,7 +15,7 @@ EhpBcsAsts::EhpBcsAsts(EkaStrategy *strat)
   conf.params.pktHdrLen = 39; //pkthdr,incheader,msgheadr,group
   
   conf.params.msgDeltaSize = EhpNoMsgSize;
-  conf.params.msgSizeImpl  = sizeof(struct BestPricesMsg_MdEntry);
+  conf.params.msgSizeImpl  = sizeof(BcsSbe::BestPricesMsg_MdEntry);
 
   conf.params.bytes4StartMsgProc = 0;
 
@@ -77,7 +78,7 @@ int EhpBcsAsts::init() {
 //24..31  Int64NULL_T MktOfferSize;
 //32..35  BoardID_T Board;
 //36..47  SecurityID_T Symbol;
-} __attribute__((packed));
+//} __attribute__((packed));
 
 int EhpBcsAsts::createBestPrice() {
   uint16_t msgId = EhpNoMsgID; //only msg0 is active
@@ -161,8 +162,8 @@ int EhpBcsAsts::createBestPrice() {
   conf.fields.generic0[msgType].byteOffs_3 = 12;
   conf.fields.generic0[msgType].byteOffs_4 = 11;
   conf.fields.generic0[msgType].byteOffs_5 = 10;
-  conf.fields.generic0[msgType].byteOffs_6 = 09;
-  conf.fields.generic0[msgType].byteOffs_7 = 08;
+  conf.fields.generic0[msgType].byteOffs_6 = 9;
+  conf.fields.generic0[msgType].byteOffs_7 = 8;
   
   // AskSize
   conf.fields.generic1[msgType].msgId = msgId;
