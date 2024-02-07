@@ -24,7 +24,7 @@
 #include "TestTcpCtx.h"
 #include "TestUdpCtx.h"
 
-#include "EkaBc.h"
+#include "EkaBcs.h"
 
 #include "EOBILayouts.h"
 typedef EkaOpResult (*ArmControllerCb)(EkaDev *pEkaDev,

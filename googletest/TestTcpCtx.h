@@ -28,10 +28,10 @@
 
 #include "EkaEfcDataStructs.h"
 #include "eka_macros.h"
-#include <EkaBc.h>
-//#include <Eka.h>
- //#include <Epm.h>
-//#include <Exc.h>
+#include <EkaBcs.h>
+// #include <Eka.h>
+// #include <Epm.h>
+// #include <Exc.h>
 
 extern EkaDev *g_ekaDev;
 /* --------------------------------------------- */
@@ -41,6 +41,7 @@ extern volatile bool serverSet;
 #define MASK32 0xffffffff
 
 /* --------------------------------------------- */
+using namespace EkaBcs;
 
 struct TestTcpSess {
   int coreId;

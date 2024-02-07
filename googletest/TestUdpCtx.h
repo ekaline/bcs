@@ -25,7 +25,7 @@
 #include <chrono>
 #include <sys/time.h>
 
-#include "EkaBc.h"
+#include "EkaBcs.h"
 #include "EkaEfcDataStructs.h"
 #include "eka_macros.h"
 #include <Efc.h>

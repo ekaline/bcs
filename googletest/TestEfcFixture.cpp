@@ -174,9 +174,9 @@ void TestEfcFixture::initEur() {
 
   EkaBcAffinityConfig aff = {-1, -1, -1, -1, -1};
   EkaCallbacks cb = {.logCb = ekaDefaultLog,
-                       .cbCtx = g_ekaLogFile};
-  dev_ = openDev(&aff, &cb);
-  ASSERT_NE(dev_, nullptr);
+                     .cbCtx = g_ekaLogFile};
+  auto rc = openDev(&aff, &cb);
+  ASSERT_EQ(rc, OPRESULT__OK);
   /* --------------------------------------------- */
 
   for (auto i = 0; i < tcpCtx_->nTcpSess_; i++) {
@@ -192,13 +192,14 @@ void TestEfcFixture::initEur() {
     };
     auto lane = static_cast<EkaBcLane>(
         tcpCtx_->tcpSess_[i]->coreId_);
-    configurePort(dev_, lane, &laneAttr);
+    rc = configurePort(lane, &laneAttr);
+    ASSERT_EQ(rc, OPRESULT__OK);
   }
   /* --------------------------------------------- */
 
   HwEngInitCtx initCtx = {.report_only = false,
                           .watchdog_timeout_sec = 1000000};
-  auto rc = hwEngInit(dev_, &initCtx);
+  rc = hwEngInit(&initCtx);
   ASSERT_EQ(rc, OPRESULT__OK);
   /* --------------------------------------------- */
   // TCP Connections

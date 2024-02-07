@@ -1,7 +1,7 @@
 #ifndef __TEST_EUR_H__
 #define __TEST_EUR_H__
 
-#include "EkaBc.h"
+#include "EkaBcs.h"
 #include "TestEfcFixture.h"
 
 struct DummyIlinkMsg {
