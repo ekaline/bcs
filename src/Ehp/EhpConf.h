@@ -28,6 +28,7 @@ enum class EhpHwProtocol : uint8_t {
   NOM = 11, //stam
   EURP4 = 1,
   PITCH = 2,
+    BCSASTS = 11, 
   QED = 12, // hardcoded in HW to trigger QED purge
   ITCHFS =
       13, // hardcoded in HW to trigger fast sweep strategy
@@ -123,11 +124,11 @@ struct EhpProtocolParams {
       bytes4Strategy[EhpMaxMsgTypes]; // bytes to receive
                                       // before Strategy
                                       // eval
-  uint8_t bytes4StartMsgProc : 4;     // message bytes
-  uint8_t
-      msgDeltaSize : 4; // extra bytes to offset per message
-  uint8_t pktHdrLen;    // packet header bytes
-  uint8_t protocolID : 4; //
+  uint8_t bytes4StartMsgProc ;     // message bytes
+  uint8_t pktHdrLen       ;    // packet header bytes
+  uint8_t msgSizeImpl     ; // implicit sizem if delta 0xff
+  uint8_t msgDeltaSize : 4; // extra bytes to offset per message
+  uint8_t protocolID   : 4; //
 } __attribute__((packed));
 
 /**
