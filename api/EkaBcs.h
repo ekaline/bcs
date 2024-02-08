@@ -150,7 +150,7 @@ typedef int8_t EkaBcLane;
  *             Should not be used as
  *             Linux socket descriptor!!!
  */
-EkaBcSock ekaBcTcpConnect(EkaDev *pEkaDev, EkaBcLane lane,
+EkaBcSock ekaBcTcpConnect(EkaBcLane lane,
                           const char *ip, uint16_t port);
 
 /**
@@ -161,7 +161,7 @@ EkaBcSock ekaBcTcpConnect(EkaDev *pEkaDev, EkaBcLane lane,
  * @param blocking
  * @return int
  */
-int ekaBcSetBlocking(EkaDev *pEkaDev, EkaBcSock ekaSock,
+int ekaBcSetBlocking(EkaBcSock ekaSock,
                      bool blocking);
 
 /**
@@ -173,7 +173,7 @@ int ekaBcSetBlocking(EkaDev *pEkaDev, EkaBcSock ekaSock,
  * @param size
  * @return ssize_t
  */
-ssize_t ekaBcSend(EkaDev *pEkaDev, EkaBcSock ekaSock,
+ssize_t ekaBcSend(EkaBcSock ekaSock,
                   const void *buf, size_t size);
 
 /**
@@ -185,7 +185,7 @@ ssize_t ekaBcSend(EkaDev *pEkaDev, EkaBcSock ekaSock,
  * @param size
  * @return ssize_t
  */
-ssize_t ekaBcRecv(EkaDev *pEkaDev, EkaBcSock ekaSock,
+ssize_t ekaBcRecv(EkaBcSock ekaSock,
                   void *buf, size_t size);
 
 /**
@@ -195,7 +195,7 @@ ssize_t ekaBcRecv(EkaDev *pEkaDev, EkaBcSock ekaSock,
  * @param ekaSock
  * @return OpResult
  */
-OpResult ekaBcCloseSock(EkaDev *pEkaDev, EkaBcSock ekaSock);
+OpResult ekaBcCloseSock(EkaBcSock ekaSock);
 
 /* ==================================================== */
 
@@ -227,7 +227,7 @@ OpResult hwEngInit(const HwEngInitCtx *ekaBcInitCtx);
  *
  * @param pEkaDev
  */
-void ekaBcSwKeepAliveSend(EkaDev *pEkaDev);
+void ekaBcSwKeepAliveSend();
 
 /* ==================================================== */
 
@@ -376,7 +376,7 @@ enum class EkaBcStratType : uint8_t {
  * @param type
  * @return Index (=handle) to be used or -1 if failed
  */
-EkaBcActionIdx ekaBcAllocateNewAction(EkaDev *pEkaDev,
+EkaBcActionIdx ekaBcAllocateNewAction(
                                       EkaBcActionType type);
 
 /**
@@ -390,7 +390,7 @@ EkaBcActionIdx ekaBcAllocateNewAction(EkaDev *pEkaDev,
  * @param len
  * @return * OpResult
  */
-OpResult ekaBcSetActionPayload(EkaDev *ekaDev,
+OpResult ekaBcSetActionPayload(
                                EkaBcActionIdx actionIdx,
                                const void *payload,
                                size_t len);
@@ -405,7 +405,7 @@ OpResult ekaBcSetActionPayload(EkaDev *ekaDev,
  * @param ekaSock
  * @return OpResult
  */
-OpResult ekaBcSetActionTcpSock(EkaDev *ekaDev,
+OpResult ekaBcSetActionTcpSock(
                                EkaBcActionIdx actionIdx,
                                EkaBcSock ekaSock);
 
@@ -420,7 +420,7 @@ OpResult ekaBcSetActionTcpSock(EkaDev *ekaDev,
  * @param nextActionGlobalIdx
  * @return OpResult
  */
-OpResult ekaBcSetActionNext(EkaDev *ekaDev,
+OpResult ekaBcSetActionNext(
                             EkaBcActionIdx actionIdx,
                             EkaBcActionIdx nextActionIdx);
 
@@ -440,7 +440,7 @@ OpResult ekaBcSetActionNext(EkaDev *ekaDev,
  * @param size
  * @return ssize_t
  */
-ssize_t ekaBcAppSend(EkaDev *pEkaDev,
+ssize_t ekaBcAppSend(
                      EkaBcActionIdx actionIdx,
                      const void *buffer, size_t size);
 
@@ -454,7 +454,7 @@ ssize_t ekaBcAppSend(EkaDev *pEkaDev,
  * @param cntr Binary counter's value
  * @return OpResult
  */
-OpResult ekaBcSetSessionCntr(EkaDev *dev, EkaBcSock ekaSock,
+OpResult ekaBcSetSessionCntr(EkaBcSock ekaSock,
                              uint64_t cntr);
 
 /* ==================================================== */
@@ -497,11 +497,10 @@ OpResult setMdRcvParams(const UdpMcParams *mcParams,
  *        Eurex Jump and RefJump logic
  *        must be called before configuring Eurex products
  *
- * @param dev
  * @param mcParams MC groups of the market data
  * @return OpResult
  */
-OpResult ekaBcInitEurStrategy(EkaDev *dev,
+OpResult ekaBcInitEurStrategy(
                               const UdpMcParams *mcParams);
 
 /**
@@ -527,12 +526,11 @@ typedef uint64_t EkaBcEurTimeNs;
 /**
  * @brief Subscribing on list of Securities (products)
  *
- * @param dev
  * @param prodList List of securities in Exchange encoding
  * @param nProducts number of products
  * @return OpResult
  */
-OpResult ekaBcSetProducts(EkaDev *dev,
+OpResult ekaBcSetProducts(
                           const EkaBcEurSecId *prodList,
                           size_t nProducts);
 
@@ -548,7 +546,7 @@ OpResult ekaBcSetProducts(EkaDev *dev,
  *         Negative value means the Security did not fetch
  * the internal data structure and so ignored!!!
  */
-EkaBcSecHandle ekaBcGetSecHandle(EkaDev *dev,
+EkaBcSecHandle ekaBcGetSecHandle(
                                  EkaBcEurSecId secId);
 
 /**
@@ -576,7 +574,7 @@ struct EkaBcEurProductInitParams {
  * @return OpResult
  */
 OpResult
-ekaBcInitEurProd(EkaDev *dev, EkaBcSecHandle prodHande,
+ekaBcInitEurProd(EkaBcSecHandle prodHande,
                  const EkaBcEurProductInitParams *params);
 
 /**
@@ -599,7 +597,7 @@ struct EkaBcProductDynamicParams {
  * @return OpResult
  */
 OpResult ekaBcSetEurProdDynamicParams(
-    EkaDev *dev, EkaBcSecHandle prodHande,
+    EkaBcSecHandle prodHande,
     const EkaBcProductDynamicParams *params);
 
 #define EKA_JUMP_ATBEST_SETS 4
@@ -701,7 +699,7 @@ typedef uint8_t EkaBcArmVer;
  *                armBid == false and armAsk == false)
  * @return OpResult
  */
-OpResult ekaBcArmEur(EkaDev *dev, EkaBcSecHandle prodHande,
+OpResult ekaBcArmEur(EkaBcSecHandle prodHande,
                      bool armBid, bool armAsk,
                      EkaBcArmVer ver = 0);
 
@@ -746,7 +744,7 @@ struct EkaBcRunCtx {
  * @param pEkaDev
  * @param pEkaBcRunCtx
  */
-void ekaBcEurRun(EkaDev *pEkaDev,
+void ekaBcEurRun(
                  const EkaBcRunCtx *pEkaBcRunCtx);
 
 ///////////////////////

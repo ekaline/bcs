@@ -382,32 +382,32 @@ TEST_F(TestEur, Eur_basic) {
   auto ref_index = 1;
   auto main_index = 0;
 
-  auto h = ekaBcGetSecHandle(dev_, prodList_[main_index]);
-  auto r = ekaBcGetSecHandle(dev_, prodList_[ref_index]);
+  auto h = ekaBcGetSecHandle( prodList_[main_index]);
+  auto r = ekaBcGetSecHandle( prodList_[ref_index]);
   ASSERT_NE(h, -1);
   ASSERT_NE(r, -1);
 
   //  printf ("Main Hanlde = %d, Reference Handle =
   //  %d",h,r);
   auto eurHwAction = ekaBcAllocateNewAction(
-      dev_, EkaBcActionType::EurFire);
+       EkaBcActionType::EurFire);
   ASSERT_NE(eurHwAction, -1);
 
   rc = ekaBcSetActionTcpSock(
-      dev_, eurHwAction, tcpCtx_->tcpSess_[0]->excSock_);
+       eurHwAction, tcpCtx_->tcpSess_[0]->excSock_);
   ASSERT_EQ(rc, OPRESULT__OK);
 
   rc = ekaBcSetActionTcpSock(
-      dev_, eurHwAction, tcpCtx_->tcpSess_[0]->excSock_);
+       eurHwAction, tcpCtx_->tcpSess_[0]->excSock_);
   ASSERT_EQ(rc, OPRESULT__OK);
 
   // sw action
   auto eurSwAction = ekaBcAllocateNewAction(
-      dev_, EkaBcActionType::EurSwSend);
+       EkaBcActionType::EurSwSend);
   ASSERT_NE(eurSwAction, -1);
 
   rc = ekaBcSetActionTcpSock(
-      dev_, eurSwAction, tcpCtx_->tcpSess_[0]->excSock_);
+       eurSwAction, tcpCtx_->tcpSess_[0]->excSock_);
   ASSERT_EQ(rc, OPRESULT__OK);
 
   const char EurSwFireMsg[] = "EurSwMessage wit 140"
@@ -433,11 +433,11 @@ TEST_F(TestEur, Eur_basic) {
   prodParams.midPoint =
       (tobAskPrice - tobBidPrice) / 2 + tobBidPrice;
 
-  rc = ekaBcInitEurProd(dev_, h, &prodParams);
+  rc = ekaBcInitEurProd( h, &prodParams);
 
   prodParams.secId = prodList_[ref_index];
 
-  rc = ekaBcInitEurProd(dev_, r, &prodParams); // reference
+  rc = ekaBcInitEurProd( r, &prodParams); // reference
 
   ASSERT_EQ(rc, OPRESULT__OK);
 
@@ -447,7 +447,7 @@ TEST_F(TestEur, Eur_basic) {
   prodDynamicParams.maxBookSpread =
       tobAskPrice - tobBidPrice + 1;
 
-  rc = ekaBcSetEurProdDynamicParams(dev_, h,
+  rc = ekaBcSetEurProdDynamicParams( h,
                                     &prodDynamicParams);
 
   prodDynamicParams.maxBidSize = sizeMultiplier * 3; // TBD
@@ -455,7 +455,7 @@ TEST_F(TestEur, Eur_basic) {
   prodDynamicParams.maxBookSpread =
       tobAskPrice - tobBidPrice + 1;
 
-  rc = ekaBcSetEurProdDynamicParams(dev_, r,
+  rc = ekaBcSetEurProdDynamicParams( r,
                                     &prodDynamicParams);
   ASSERT_EQ(rc, OPRESULT__OK);
 
@@ -465,7 +465,7 @@ TEST_F(TestEur, Eur_basic) {
                             "12345678901234567890"
                             "12345678901234567890"
                             "12345678901234567890";
-  rc = ekaBcSetActionPayload(dev_, eurHwAction, &EurFireMsg,
+  rc = ekaBcSetActionPayload( eurHwAction, &EurFireMsg,
                              strlen(EurFireMsg));
   ASSERT_EQ(rc, OPRESULT__OK);
 
@@ -511,7 +511,7 @@ TEST_F(TestEur, Eur_basic) {
       1;
   jumpParams.betterBest[activeJumpBetterBestSet].boc = 0;
 
-  rc = ekaBcEurSetJumpParams(dev_, h, &jumpParams);
+  //  rc = ekaBcEurSetJumpParams(dev_, h, &jumpParams);
   ASSERT_EQ(rc, OPRESULT__OK);
 
   EkaBcEurReferenceJumpParams rjumpParams = {};
@@ -577,19 +577,19 @@ TEST_F(TestEur, Eur_basic) {
   // rjumpParams.betterBest[activeRJumpBetterBestSet].min_spread
   // = 1; //TBD
 
-  rc = ekaBcEurSetReferenceJumpParams(dev_, r, h,
-                                      &rjumpParams);
+  //  rc = ekaBcEurSetReferenceJumpParams(dev_, r, h,
+  //                                      &rjumpParams);
   ASSERT_EQ(rc, OPRESULT__OK);
 
   EkaBcArmVer armVer = 0;
 
-  rc = ekaBcArmEur(dev_, h, true /* armBid */,
+  rc = ekaBcArmEur( h, true /* armBid */,
                    true /* armAsk */, armVer++);
   ASSERT_EQ(rc, OPRESULT__OK);
 
   EkaBcRunCtx runCtx = {.onReportCb = getExampleFireReport,
                         .cbCtx = this};
-  ekaBcEurRun(dev_, &runCtx);
+  ekaBcEurRun( &runCtx);
 
   tcpCtx_->tcpSess_[0]->sendTestPkt();
 
@@ -690,7 +690,7 @@ TEST_F(TestEur, Eur_basic) {
   /*   sendPktToAll(&execSumPkt, sizeof(execSumJumpPkt),
    * true);
    */
-  ekaBcSetSessionCntr(dev_, tcpCtx_->tcpSess_[0]->excSock_,
+  ekaBcSetSessionCntr( tcpCtx_->tcpSess_[0]->excSock_,
                       5);
 
   //  mcCon->sendUdpPkt(&execSumJumpPkt,
@@ -703,7 +703,7 @@ TEST_F(TestEur, Eur_basic) {
   // mcCon->sendUdpPkt(&execSumPkt, sizeof(execSumPkt));
   sleep(5);
   for (uint i = 0; i < 0; i++) {
-    ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg,
+    ekaBcAppSend( eurSwAction, &EurSwFireMsg,
                  strlen(EurSwFireMsg));
   }
   sleep(1);

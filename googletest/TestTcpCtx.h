@@ -202,7 +202,7 @@ public:
   /* --------------------------------------------- */
 
   void set1stSeqNum(uint64_t seq) {
-    ekaBcSetSessionCntr(g_ekaDev, hCon_, seq);
+    ekaBcSetSessionCntr(hCon_, seq);
     return;
   }
   /* --------------------------------------------- */

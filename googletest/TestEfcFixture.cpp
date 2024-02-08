@@ -162,7 +162,7 @@ void TestEfcFixture::initNwCtxs() {
 
 void TestEfcFixture::runTest() {
   for (auto i = 0; i < nProds_; i++) {
-    auto h = ekaBcGetSecHandle(dev_, prodList_[i]);
+    auto h = ekaBcGetSecHandle(prodList_[i]);
     ASSERT_NE(h, -1);
   }
 }
@@ -206,18 +206,18 @@ void TestEfcFixture::initEur() {
   tcpCtx_->connectAll();
 
   /* --------------------------------------------- */
-  rc = ekaBcInitEurStrategy(dev_, mcParams_);
+  rc = ekaBcInitEurStrategy(mcParams_);
   ASSERT_EQ(rc, OPRESULT__OK);
 
   /* --------------------------------------------- */
-  rc = ekaBcSetProducts(dev_, prodList_, nProds_);
+  rc = ekaBcSetProducts(prodList_, nProds_);
   ASSERT_EQ(rc, OPRESULT__OK);
 }
 /* --------------------------------------------- */
 void TestEfcFixture::runEur() {
   EkaBcRunCtx runCtx = {.onReportCb = getFireReport,
                         .cbCtx = this};
-  ekaBcEurRun(dev_, &runCtx);
+  ekaBcEurRun(&runCtx);
 }
 /* --------------------------------------------- */
 void TestEfcFixture::getReportPtrs(const void *p,
