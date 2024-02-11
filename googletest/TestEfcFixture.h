@@ -41,7 +41,7 @@ protected:
   void openDevice();
 
   virtual void runTest();
-  virtual void initEur();
+  virtual void initMoex();
   virtual void runEur();
 
   void sendPktToAll(const void *pkt, size_t pktLen,

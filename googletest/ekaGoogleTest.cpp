@@ -377,7 +377,7 @@ TEST_F(TestEur, Eur_basic) {
   prodList_[2] = static_cast<EkaBcEurSecId>(789);
   nProds_ = 3;
   // Inititializes everything
-  initEur();
+  initMoex();
 
   auto ref_index = 1;
   auto main_index = 0;

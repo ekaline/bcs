@@ -167,7 +167,7 @@ void TestEfcFixture::runTest() {
   }
 }
 /* --------------------------------------------- */
-void TestEfcFixture::initEur() {
+void TestEfcFixture::initMoex() {
   initNwCtxs();
   printTestConfig("Running");
   /* --------------------------------------------- */
