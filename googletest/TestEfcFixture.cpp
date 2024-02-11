@@ -206,7 +206,7 @@ void TestEfcFixture::initEur() {
   tcpCtx_->connectAll();
 
   /* --------------------------------------------- */
-  rc = ekaBcInitEurStrategy(mcParams_);
+  rc = ekaBcsInitMoexStrategy(mcParams_);
   ASSERT_EQ(rc, OPRESULT__OK);
 
   /* --------------------------------------------- */

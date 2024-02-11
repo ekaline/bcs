@@ -18,6 +18,7 @@ class EkaQedStrategy;
 class EkaCmeFcStrategy;
 class EkaBcCmeStrategy;
 class EkaEurStrategy;
+class EkaMoexStrategy;
 
 class EkaEpm;
 class EkaUserReportQ;
@@ -64,7 +65,7 @@ public:
   void armBcCmeFc(EfcArmVer ver);
   void disarmBcCmeFc();
   /* --------------------------------------------------- */
-  void initEur(const EfcUdpMcParams *mcParams);
+  void initMoex(const EfcUdpMcParams *mcParams);
   void armEur(EkaBcsSecHandle prodHande, bool armBid,
               bool armAsk, EkaBcArmVer ver);
   /* --------------------------------------------------- */
@@ -100,7 +101,8 @@ public:
 
   EkaEurStrategy *eur_ = nullptr;
   EkaBcCmeStrategy *bcCme_ = nullptr;
-
+  EkaMoexStrategy *moex_ = nullptr;
+  
   EfcRunCtx localCopyEfcRunCtx = {};
   bool report_only_ = false;
   uint64_t watchdog_timeout_sec_ = 0;

@@ -503,7 +503,7 @@ OpResult setMdRcvParams(const UdpMcParams *mcParams,
  * @param mcParams MC groups of the market data
  * @return OpResult
  */
-OpResult ekaBcInitEurStrategy(
+OpResult ekaBcsInitMoexStrategy(
                               const UdpMcParams *mcParams);
 
 /**

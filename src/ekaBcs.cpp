@@ -18,6 +18,7 @@
 #include "EkaUdpTxSess.h"
 
 #include "EkaEurStrategy.h"
+#include "EkaMoexStrategy.h"
 #include "EkaMdRecvHandler.h"
 
 extern EkaDev *g_ekaDev;
@@ -383,7 +384,7 @@ ssize_t ekaBcAppSend(
 }
 /* ==================================================== */
 
-OpResult ekaBcInitEurStrategy(
+OpResult ekaBcsInitMoexStrategy(
                               const UdpMcParams *mcParams) {
   if (!g_ekaDev )
     on_error("!g_ekaDev");
@@ -391,7 +392,7 @@ OpResult ekaBcInitEurStrategy(
     on_error("HW Eng is not initialized: use hwEngInit()");
   auto efc = g_ekaDev->efc;
 
-  efc->initEur(
+  efc->initMoex(
       reinterpret_cast<const EfcUdpMcParams *>(mcParams));
   EKA_LOG("EurStrategy initialized");
   return OPRESULT__OK;

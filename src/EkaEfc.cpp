@@ -9,7 +9,7 @@
 #include "EkaCmeFcStrategy.h"
 
 #include "EkaBcCmeStrategy.h"
-#include "EkaEurStrategy.h"
+#include "EkaMoexStrategy.h"
 
 #include "EkaCore.h"
 #include "EkaDev.h"
@@ -183,18 +183,18 @@ void EkaEfc::initCmeFc(const EfcUdpMcParams *mcParams,
 }
 
 /* ################################################ */
-void EkaEfc::initEur(const EfcUdpMcParams *mcParams) {
-  eur_ = new EkaEurStrategy(mcParams);
-  if (!eur_)
-    on_error("!eur_");
+void EkaEfc::initMoex(const EfcUdpMcParams *mcParams) {
+  moex_ = new EkaMoexStrategy(mcParams);
+  if (!moex_)
+    on_error("!moex_");
 
-  if (totalCoreIdBitmap_ & eur_->getCoreBitmap())
+  if (totalCoreIdBitmap_ & moex_->getCoreBitmap())
     on_error(
         "Eur cores bitmap 0x%x collide with previously "
         "allocated 0x%x",
-        eur_->getCoreBitmap(), totalCoreIdBitmap_);
+        moex_->getCoreBitmap(), totalCoreIdBitmap_);
 
-  totalCoreIdBitmap_ |= eur_->getCoreBitmap();
+  totalCoreIdBitmap_ |= moex_->getCoreBitmap();
 }
 /* ################################################ */
 void EkaEfc::initBcCmeFc(
@@ -313,10 +313,10 @@ void EkaEfc::disarmBcCmeFc() {
 /* ################################################ */
 void EkaEfc::armEur(EkaBcSecHandle prodHande, bool armBid,
                     bool armAsk, EkaBcArmVer ver) {
-  if (!eur_)
+  if (!moex_)
     on_error("Eur is not initialized. Run "
              "ekaBcInitEurStrategy()");
-  eur_->arm(prodHande, armBid, armAsk, ver);
+  moex_->arm(prodHande, armBid, armAsk, ver);
 }
 /* ################################################ */
 
@@ -377,7 +377,7 @@ int EkaEfc::disableRxFire() {
 
 /* ################################################ */
 int EkaEfc::enableRxFire() {
-  EkaStrategy *strategies[] = {p4_, qed_, cme_, eur_};
+  EkaStrategy *strategies[] = {p4_, qed_, cme_, moex_};
 
   uint8_t rxCoresBitmap = 0;
 
@@ -514,7 +514,7 @@ int EkaEfc::setHwUdpParams() {
                 tmp_ipport);
     }
 
-    EkaStrategy *strategies[] = {p4_, qed_, cme_, eur_};
+    EkaStrategy *strategies[] = {p4_, qed_, cme_, moex_};
 
     for (auto const &strat : strategies) {
       if (!strat)
