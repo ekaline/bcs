@@ -1,16 +1,16 @@
 #include "EkaDev.h"
 #include "ekaNW.h"
 
-#include "EhpBcsAsts.h"
+#include "EhpMoex.h"
 #include "EkaFhBcsSbeParser.h"
 
-EhpBcsAsts::EhpBcsAsts(EkaStrategy *strat)
+EhpBcsMoex::EhpBcsMoex(EkaStrategy *strat)
     : EhpProtocol(strat) {
-  EKA_LOG("EhpBcsAsts is created");
+  EKA_LOG("EhpBcsMoex is created");
 
   conf.params.protocolID =
       static_cast<decltype(conf.params.protocolID)>(
-          EhpHwProtocol::BCSASTS);
+          EhpHwProtocol::BCSMOEX);
   
   conf.params.pktHdrLen = 39; //pkthdr,incheader,msgheadr,group
   
@@ -45,7 +45,7 @@ EhpBcsAsts::EhpBcsAsts(EkaStrategy *strat)
   
 }
 
-int EhpBcsAsts::init() {
+int EhpBcsMoex::init() {
   createBestPrice();
 
   return 0;
@@ -80,7 +80,7 @@ int EhpBcsAsts::init() {
 //36..47  SecurityID_T Symbol;
 //} __attribute__((packed));
 
-int EhpBcsAsts::createBestPrice() {
+int EhpBcsMoex::createBestPrice() {
   uint16_t msgId = EhpNoMsgID; //only msg0 is active
   int msgType = BestPriceMsg;
 

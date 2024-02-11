@@ -28,7 +28,7 @@ enum class EhpHwProtocol : uint8_t {
   NOM = 11, //stam
   EURP4 = 1,
   PITCH = 2,
-    BCSASTS = 11, 
+    BCSMOEX = 11, 
   QED = 12, // hardcoded in HW to trigger QED purge
   ITCHFS =
       13, // hardcoded in HW to trigger fast sweep strategy
