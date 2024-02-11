@@ -126,7 +126,7 @@ public:
   const UdpMcParams *mcParams_ = nullptr;
   const TestTcpParams *tcpParams_ = nullptr;
 
-  EkaBcEurSecId prodList_[16] = {};
+  EkaBcsMoexSecId prodList_[16] = {};
   size_t nProds_ = 0;
 
 #ifdef _VERILOG_SIM

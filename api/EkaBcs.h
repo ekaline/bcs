@@ -541,8 +541,8 @@ typedef uint64_t EkaBcsMoexTimeNs; //tbd
  * @param nProducts number of products
  * @return OpResult
  */
-OpResult ekaBcSetProducts(
-                          const EkaBcEurSecId *prodList,
+OpResult ekaBcsSetProducts(
+                          const EkaBcsMoexSecId *prodList,
                           size_t nProducts);
 
 /**
@@ -557,8 +557,8 @@ OpResult ekaBcSetProducts(
  *         Negative value means the Security did not fetch
  * the internal data structure and so ignored!!!
  */
-EkaBcsSecHandle ekaBcGetSecHandle(
-                                 EkaBcEurSecId secId);
+EkaBcsSecHandle ekaBcsGetSecHandle(
+                                 EkaBcsMoexSecId secId);
 
 /**
  * @brief Config params for Eurex product.

@@ -512,42 +512,46 @@ OpResult stopRcvMd_B() { return stopRcvMd(1); }
 
 /* ==================================================== */
 
-EkaBcSecHandle ekaBcGetSecHandle(
-                                 EkaBcEurSecId secId) {
+EkaBcSecHandle ekaBcsGetSecHandle(
+                                 EkaBcsMoexSecId secId) {
   if (!g_ekaDev || !g_ekaDev->efc)
     on_error("HW Eng is not initialized: use hwEngInit()");
   auto efc = g_ekaDev->efc;
 
-  auto eur = efc->eur_;
-  if (!eur)
-    on_error("Eurex is not initialized: use "
-             "ekaBcInitEurStrategy()");
+  auto moex = efc->moex_;
+  if (!moex)
+    on_error("Moex is not initialized: use "
+             "ekaBcsInitMoexStrategy()");
 
-  return eur->getSubscriptionId(secId);
+  //tbd subscription
+  //  return eur->getSubscriptionId(secId);
+  return OPRESULT__OK;
 }
 
-OpResult ekaBcSetProducts(
-                          const EkaBcEurSecId *prodList,
+OpResult ekaBcsSetProducts(
+                          const EkaBcsMoexSecId *prodList,
                           size_t nProducts) {
   if (!g_ekaDev || !g_ekaDev->efc)
     on_error("HW Eng is not initialized: use hwEngInit()");
   auto efc = g_ekaDev->efc;
 
-  auto eur = efc->eur_;
-  if (!eur)
-    on_error("Eurex is not initialized: use "
-             "ekaBcInitEurStrategy()");
+  auto moex = efc->moex_;
+  if (!moex)
+    on_error("Moex is not initialized: use "
+             "ekaBcsInitMoexStrategy()");
 
   if (!prodList)
     on_error("!prodList");
 
-  if (nProducts > EKA_BC_EUR_MAX_PRODS) {
-    EKA_ERROR("nProducts %ju > EKA_BC_EUR_MAX_PRODS %d",
-              nProducts, EKA_BC_EUR_MAX_PRODS);
-    return OPRESULT__ERR_MAX_PRODUCTS_EXCEEDED;
-  }
+  //TBD moex products
+  // if (nProducts > EKA_BC_EUR_MAX_PRODS) {
+  //   EKA_ERROR("nProducts %ju > EKA_BC_EUR_MAX_PRODS %d",
+  //             nProducts, EKA_BC_EUR_MAX_PRODS);
+  //   return OPRESULT__ERR_MAX_PRODUCTS_EXCEEDED;
+  // }
 
-  return eur->subscribeSecList(prodList, nProducts);
+  // return eur->subscribeSecList(prodList, nProducts);
+  return OPRESULT__OK;
 }
 
 /* ==================================================== */

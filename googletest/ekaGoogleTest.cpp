@@ -382,8 +382,8 @@ TEST_F(TestEur, Eur_basic) {
   auto ref_index = 1;
   auto main_index = 0;
 
-  auto h = ekaBcGetSecHandle( prodList_[main_index]);
-  auto r = ekaBcGetSecHandle( prodList_[ref_index]);
+  auto h = ekaBcsGetSecHandle( prodList_[main_index]);
+  auto r = ekaBcsGetSecHandle( prodList_[ref_index]);
   ASSERT_NE(h, -1);
   ASSERT_NE(r, -1);
 
