@@ -57,6 +57,9 @@ public:
     EurEtiFire,
     EurEtiSwSend,
 
+    MoexFire,
+    MoexSwSend,
+    
     BoeQuoteUpdateShort,
     BoeCancel,
 

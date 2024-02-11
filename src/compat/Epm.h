@@ -289,7 +289,11 @@ enum class EpmActionType : int {
   // BC
   CmeFc = 60,
   EurFire = 61,
-    EurSwSend = 62,
+  EurSwSend = 62,
+    
+  // BCS
+  MoexFire = 70,
+  MoexSwSend = 71,
     
   LAST_ACTION = 0xFFFF,
 

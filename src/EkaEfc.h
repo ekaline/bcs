@@ -65,7 +65,7 @@ public:
   void disarmBcCmeFc();
   /* --------------------------------------------------- */
   void initEur(const EfcUdpMcParams *mcParams);
-  void armEur(EkaBcSecHandle prodHande, bool armBid,
+  void armEur(EkaBcsSecHandle prodHande, bool armBid,
               bool armAsk, EkaBcArmVer ver);
   /* --------------------------------------------------- */
 

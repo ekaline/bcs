@@ -15,42 +15,42 @@ EkaBcsMoexProd::EkaBcsMoexProd(
   handle_ = handle;
 
   secId_ = p->secId;
-  midPoint_ = p->midPoint;
-  priceDiv_ = p->priceDiv;
-  step_ = p->step;
-  isBook_ = p->isBook;
-  eiPriceFlavor_ = p->eiPriceFlavor;
+  //  midPoint_ = p->midPoint;
+  //  priceDiv_ = p->priceDiv;
+  //  step_ = p->step;
+  //  isBook_ = p->isBook;
+  //  eiPriceFlavor_ = p->eiPriceFlavor;
   fireActionIdx_ = p->fireActionIdx;
 
-  hwMidPoint_ = midPoint_ / step_;
+  // hwMidPoint_ = midPoint_ / step_;
 
-  if ((hwMidPoint_ * step_ != midPoint_) && isBook_)
-    on_error("Product[%jd]: Misconfiguration: "
-             "step_=%ju, "
-             "midPoint_=%ju, "
-             "hwMidPoint_=%u",
-             handle_, step_, midPoint_, hwMidPoint_);
+  // if ((hwMidPoint_ * step_ != midPoint_) && isBook_)
+  //   on_error("Product[%jd]: Misconfiguration: "
+  //            "step_=%ju, "
+  //            "midPoint_=%ju, "
+  //            "hwMidPoint_=%u",
+  //            handle_, step_, midPoint_, hwMidPoint_);
 
   EKA_LOG("Initialized Product[%jd]: "
-          "secId_ = %jd, "
-          "midPoint_ = %ju, "
-          "step_ = %ju, "
-          "hwMidPoint_ = %u, "
-          "priceDiv_ = %ju, "
-          "%s, ",
-          handle_, secId_, midPoint_, step_, hwMidPoint_,
-          priceDiv_, isBook_ ? "HAS BOOK" : "NO BOOK");
+          "secId_ = %jd, ",
+	  //          "midPoint_ = %ju, "
+	  //          "step_ = %ju, "
+	  //          "hwMidPoint_ = %u, "
+	  //          "priceDiv_ = %ju, "
+	  //          "%s, ",
+          handle_, secId_ /*, midPoint_, step_, hwMidPoint_,
+			     priceDiv_, isBook_ ? "HAS BOOK" : "NO BOOK"*/);
 
-  book_ = new EkaEobiBook(strat_, this, step_, midPoint_);
-  if (!book_)
-    on_error("!book_");
+  // book_ = new EkaEobiBook(strat_, this, step_, midPoint_);
+  // if (!book_)
+  //   on_error("!book_");
 }
 /* --------------------------------------------------- */
 OpResult EkaBcsMoexProd::setDynamicParams(
     const EkaBcsProductDynamicParams *p) {
-  maxAskSize_ = p->maxAskSize;
-  maxBidSize_ = p->maxBidSize;
-  maxBookSpread_ = p->maxBookSpread;
+  //  maxAskSize_ = p->maxAskSize;
+  //  maxBidSize_ = p->maxBidSize;
+  //  maxBookSpread_ = p->maxBookSpread;
 
   /* EKA_LOG("Product[%jd]: " */
   /*         "secId_ = %jd, " */

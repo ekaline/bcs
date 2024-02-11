@@ -102,9 +102,10 @@ EkaMoexStrategy::~EkaMoexStrategy() {
 EkaBcsSecHandle
 EkaMoexStrategy::getSubscriptionId(EkaBcsMoexSecId secId) {
 
-  auto handle = static_cast<EkaBcsSecHandle>(
-      hashEng_->getSubscriptionId(secId));
-
+  //  auto handle = static_cast<EkaBcsSecHandle>(
+  //      hashEng_->getSubscriptionId(secId));
+  //tbd no hash
+  auto handle = 0;
   return handle;
 }
 
@@ -112,55 +113,55 @@ EkaMoexStrategy::getSubscriptionId(EkaBcsMoexSecId secId) {
 
 OpResult EkaMoexStrategy::subscribeSecList(
     const EkaBcsMoexSecId *prodList, size_t nProducts) {
-  auto prod = prodList;
-  for (auto i = 0; i < nProducts; i++) {
-    if (hashEng_->subscribeSec(*prod)) {
-      nSec_++;
-#ifndef _VERILOG_SIM
-      uint64_t val = eka_read(dev_, SW_STATISTICS);
-      val &= 0xFFFFFFFF00000000;
-      val |= (uint64_t)(nSec_);
-      eka_write(dev_, SW_STATISTICS, val);
-#endif
-    }
-    prod++;
-  }
+//   auto prod = prodList;
+//   for (auto i = 0; i < nProducts; i++) {
+//     if (hashEng_->subscribeSec(*prod)) {
+//       nSec_++;
+// #ifndef _VERILOG_SIM
+//       uint64_t val = eka_read(dev_, SW_STATISTICS);
+//       val &= 0xFFFFFFFF00000000;
+//       val |= (uint64_t)(nSec_);
+//       eka_write(dev_, SW_STATISTICS, val);
+// #endif
+//     }
+//     prod++;
+//   }
 
-  hashEng_->packDB();
+//   hashEng_->packDB();
 
   return OPRESULT__OK;
 }
 
 /* --------------------------------------------------- */
 OpResult EkaMoexStrategy::downloadPackedDB() {
-  for (auto i = 0; i < Rows; i++) {
-    static const size_t BufLen = 256;
-    uint64_t buf[BufLen] = {};
+//   for (auto i = 0; i < Rows; i++) {
+//     static const size_t BufLen = 256;
+//     uint64_t buf[BufLen] = {};
 
-    auto [validCnt, len] = hashEng_->getPackedLine(i, buf);
-#ifdef _VERILOG_SIM
-    if (validCnt == 0)
-      continue;
-#endif
-    int packedWords = roundUp8(len) / 8;
+//     auto [validCnt, len] = hashEng_->getPackedLine(i, buf);
+// #ifdef _VERILOG_SIM
+//     if (validCnt == 0)
+//       continue;
+// #endif
+//     int packedWords = roundUp8(len) / 8;
 
-    uint64_t *pWord = buf;
-    for (auto i = 0; i < packedWords; i++) {
-      // #ifdef EFC_PRINT_HASH
-#if 1
-      if (validCnt != 0)
-        EKA_LOG("%d: 0x%016jx", i, *pWord);
-#endif
-      eka_write(dev_, FH_SUBS_HASH_BASE + 8 * i, *pWord);
-      pWord++;
-    }
+//     uint64_t *pWord = buf;
+//     for (auto i = 0; i < packedWords; i++) {
+//       // #ifdef EFC_PRINT_HASH
+// #if 1
+//       if (validCnt != 0)
+//         EKA_LOG("%d: 0x%016jx", i, *pWord);
+// #endif
+//       eka_write(dev_, FH_SUBS_HASH_BASE + 8 * i, *pWord);
+//       pWord++;
+//     }
 
-    union large_table_desc desc = {};
-    desc.ltd.src_bank = 0;
-    desc.ltd.src_thread = 0;
-    desc.ltd.target_idx = i;
-    eka_write(dev_, FH_SUBS_HASH_DESC, desc.lt_desc);
-  }
+//     union large_table_desc desc = {};
+//     desc.ltd.src_bank = 0;
+//     desc.ltd.src_thread = 0;
+//     desc.ltd.target_idx = i;
+//     eka_write(dev_, FH_SUBS_HASH_DESC, desc.lt_desc);
+//   }
   return OPRESULT__OK;
 }
 /* --------------------------------------------------- */
@@ -301,36 +302,37 @@ OpResult EkaMoexStrategy::setProdDynamicParams(
 
 /* --------------------------------------------------- */
 void EkaMoexStrategy::configureTemplates() {
-  int templateIdx = (int)EkaEpm::TemplateId::MoexEtiFire;
-#if 1
-  templateIdx = (int)EkaEpm::TemplateId::MoexEtiFire;
-  epm_->epmTemplate[templateIdx] =
-      new EpmEti8PktTemplate(templateIdx);
+  //TBD moex fires
+  //   int templateIdx = (int)EkaEpm::TemplateId::MoexFire;
+// #if 1
+//   templateIdx = (int)EkaEpm::TemplateId::MoexFire;
+//   epm_->epmTemplate[templateIdx] =
+//       new EpmEti8PktTemplate(templateIdx);
 
-  EKA_LOG("EpmEti8PktTemplate: "
-          "templateIdx = %d, "
-          "payload syze = %u Bytes",
-          templateIdx,
-          epm_->epmTemplate[templateIdx]->getByteSize());
-  epm_->DownloadSingleTemplate2HW(
-      epm_->epmTemplate[templateIdx]);
+//   EKA_LOG("EpmEti8PktTemplate: "
+//           "templateIdx = %d, "
+//           "payload syze = %u Bytes",
+//           templateIdx,
+//           epm_->epmTemplate[templateIdx]->getByteSize());
+//   epm_->DownloadSingleTemplate2HW(
+//       epm_->epmTemplate[templateIdx]);
 
-#endif
+// #endif
 
-#if 1
-  templateIdx = (int)EkaEpm::TemplateId::MoexEtiSwSend;
-  epm_->epmTemplate[templateIdx] =
-      new EpmEti8SwPktTemplate(templateIdx);
+// #if 1
+//   templateIdx = (int)EkaEpm::TemplateId::MoexEtiSwSend;
+//   epm_->epmTemplate[templateIdx] =
+//       new EpmEti8SwPktTemplate(templateIdx);
 
-  EKA_LOG("EpmEti8SwPktTemplate: "
-          "templateIdx = %d, "
-          "payload syze = %u Bytes",
-          templateIdx,
-          epm_->epmTemplate[templateIdx]->getByteSize());
-  epm_->DownloadSingleTemplate2HW(
-      epm_->epmTemplate[templateIdx]);
+//   EKA_LOG("EpmEti8SwPktTemplate: "
+//           "templateIdx = %d, "
+//           "payload syze = %u Bytes",
+//           templateIdx,
+//           epm_->epmTemplate[templateIdx]->getByteSize());
+//   epm_->DownloadSingleTemplate2HW(
+//       epm_->epmTemplate[templateIdx]);
 
-#endif
+// #endif
 }
 /* --------------------------------------------------- */
 int EkaMoexStrategy::sendDate2Hw() {
@@ -401,9 +403,10 @@ void EkaMoexStrategy::runLoop(
       //    EKA_LOG("Pkt: %u byte ",payloadSize);
 #endif
       MdOut mdOut = {};
-      parser_->processPkt(&mdOut,
-                          ProcessAction::UpdateBookOnly,
-                          pkt, payloadSize);
+      // TBD sw fh
+      // parser_->processPkt(&mdOut,
+      //                     ProcessAction::UpdateBookOnly,
+      //                     pkt, payloadSize);
 #if 0
       if (!udpSess->isCorrectSeq(mdOut.pktSeq,
                                  mdOut.msgNum)) {
@@ -539,5 +542,5 @@ static inline uint16_t price2Norm(uint64_t _price,
 //   ekaWriteTob(prod->handle_, &tobParams, side);
 // #endif
 // #endif
-}
+//}
 /* --------------------------------------------------- */

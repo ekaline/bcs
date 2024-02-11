@@ -17,7 +17,7 @@ class EkaEobiParser;
 class EkaEobiBook;
 class EkaDev;
 
-class EkaMoexStrategy : public EkaStrategyEhp<EhpMoex> {
+class EkaMoexStrategy : public EkaStrategyEhp<EhpBcsMoex> {
 private:
   static const int MaxSecurities_ = 16;
   static const size_t Rows = 64 * 1024;
@@ -109,7 +109,7 @@ private:
 
   EkaBcsMoexProd *prod_[MaxSecurities_] = {};
 
-  HashEngT *hashEng_ = nullptr;
+  //  HashEngT *hashEng_ = nullptr;
 
 public:
   //  EkaEobiParser *parser_ = nullptr;

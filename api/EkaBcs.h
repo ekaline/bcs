@@ -340,6 +340,7 @@ OpResult stopRcvMd_B();
  *     Payload is set by ekaBcSetActionPayload()
  */
 typedef int EkaBcActionIdx;
+typedef int EkaBcsActionIdx;
 
 #define EKA_BC_LAST_ACTION 0xFFFF
 
@@ -349,6 +350,8 @@ typedef int EkaBcActionIdx;
  */
 enum class EkaBcActionType : int {
   INVALID = 0,
+  MoexFire = 70,
+  MoexSwSend = 71,
   CmeFc = 60,
   EurFire = 61,
   EurSwSend = 62,
@@ -509,6 +512,7 @@ OpResult ekaBcInitEurStrategy(
  *
  */
 typedef int64_t EkaBcSecHandle;
+typedef int64_t EkaBcsSecHandle;
 
 /**
  * @brief Security ID as listed on the exchange
@@ -521,6 +525,13 @@ typedef uint32_t EkaBcEurFireSize;
 typedef int32_t EkaBcEurMdSize;
 typedef uint64_t EkaBcEurTimeNs;
 
+  //typedef char EkaBcsMoexSecId[12]; update to this
+typedef int64_t EkaBcsMoexSecId;
+typedef int64_t EkaBcsMoexPrice; //tbd
+typedef uint32_t EkaBcsMoexFireSize; //tbd
+typedef int32_t EkaBcsMoexMdSize; //tbd
+typedef uint64_t EkaBcsMoexTimeNs; //tbd
+  
 #define EKA_BC_EUR_MAX_PRODS 16
 
 /**
@@ -542,11 +553,11 @@ OpResult ekaBcSetProducts(
  *
  * @param dev
  * @param secId Exchange encoded ID
- * @return EkaBcSecHandle Handle ID.
+ * @return EkaBcsSecHandle Handle ID.
  *         Negative value means the Security did not fetch
  * the internal data structure and so ignored!!!
  */
-EkaBcSecHandle ekaBcGetSecHandle(
+EkaBcsSecHandle ekaBcGetSecHandle(
                                  EkaBcEurSecId secId);
 
 /**
@@ -566,6 +577,22 @@ struct EkaBcEurProductInitParams {
 };
 
 /**
+ * @brief Config params for Moex product.
+ *        Initialized only once per Product.
+ *
+ */
+struct EkaBcsMoexProductInitParams {
+  EkaBcsMoexSecId secId;
+  // EkaBcEurPrice midPoint;
+  // EkaBcEurPrice
+  //     priceDiv; // for price normalization (prints only)
+  // EkaBcEurPrice step;
+  // bool isBook;
+  // uint8_t eiPriceFlavor;
+  EkaBcsActionIdx fireActionIdx;
+};
+
+/**
  * @brief Setting basic params for Eurex product
  *
  * @param dev
@@ -574,7 +601,7 @@ struct EkaBcEurProductInitParams {
  * @return OpResult
  */
 OpResult
-ekaBcInitEurProd(EkaBcSecHandle prodHande,
+ekaBcInitEurProd(EkaBcsSecHandle prodHande,
                  const EkaBcEurProductInitParams *params);
 
 /**
@@ -589,6 +616,15 @@ struct EkaBcProductDynamicParams {
 };
 
 /**
+ * @brief Product params used by FPGA strategy
+ *        Can be changed many times
+ *
+ */
+struct EkaBcsProductDynamicParams {
+  int reserved;
+};
+  
+/**
  * @brief Sets dynamic params of Eurex Product
  *
  * @param dev
@@ -597,7 +633,7 @@ struct EkaBcProductDynamicParams {
  * @return OpResult
  */
 OpResult ekaBcSetEurProdDynamicParams(
-    EkaBcSecHandle prodHande,
+    EkaBcsSecHandle prodHande,
     const EkaBcProductDynamicParams *params);
 
 #define EKA_JUMP_ATBEST_SETS 4
@@ -658,7 +694,7 @@ struct EkaBcEurReferenceJumpParams {
  * @return OpResult
  */
 OpResult
-ekaBcEurSetJumpParams(EkaDev *dev, EkaBcSecHandle prodHande,
+ekaBcEurSetJumpParams(EkaDev *dev, EkaBcsSecHandle prodHande,
                       const EkaBcEurJumpParams *params);
 
 /**
@@ -672,8 +708,8 @@ ekaBcEurSetJumpParams(EkaDev *dev, EkaBcSecHandle prodHande,
  * @return OpResult
  */
 OpResult ekaBcEurSetReferenceJumpParams(
-    EkaDev *dev, EkaBcSecHandle triggerProd,
-    EkaBcSecHandle fireProd,
+    EkaDev *dev, EkaBcsSecHandle triggerProd,
+    EkaBcsSecHandle fireProd,
     const EkaBcEurReferenceJumpParams *params);
 
 /**
@@ -686,6 +722,7 @@ OpResult ekaBcEurSetReferenceJumpParams(
  *        number by the FPGA
  */
 typedef uint8_t EkaBcArmVer;
+typedef uint8_t EkaBcsArmVer;
 
 /**
  * @brief Changing Arm/Disarm state of the Product
@@ -699,7 +736,7 @@ typedef uint8_t EkaBcArmVer;
  *                armBid == false and armAsk == false)
  * @return OpResult
  */
-OpResult ekaBcArmEur(EkaBcSecHandle prodHande,
+OpResult ekaBcArmEur(EkaBcsSecHandle prodHande,
                      bool armBid, bool armAsk,
                      EkaBcArmVer ver = 0);
 
@@ -733,6 +770,11 @@ struct EkaBcRunCtx {
   void *cbCtx; ///< optional opaque field looped back to CB
 };
 
+struct EkaBcsRunCtx {
+  onEkaBcReportCb onReportCb;
+  void *cbCtx; ///< optional opaque field looped back to CB
+};
+  
 /**
  * @brief Downloads all the configs to the HW.
  *        Subscribes on the MC.
