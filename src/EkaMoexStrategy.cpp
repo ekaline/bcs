@@ -42,7 +42,8 @@ EkaMoexStrategy::EkaMoexStrategy(
     : EkaStrategyEhp(mcParams) {
 
   name_ = "Moex";
-
+  EKA_LOG("Starting EkaMoexStrategy");
+  
   disableRxFire();
   //  eka_write(dev_, P4_STRAT_CONF, (uint64_t)0); evgeny -
   //  why reset report_ony?

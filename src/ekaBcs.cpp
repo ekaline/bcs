@@ -394,7 +394,7 @@ OpResult ekaBcsInitMoexStrategy(
 
   efc->initMoex(
       reinterpret_cast<const EfcUdpMcParams *>(mcParams));
-  EKA_LOG("EurStrategy initialized");
+  EKA_LOG("Moex Strategy initialized");
   return OPRESULT__OK;
 }
 /* ==================================================== */

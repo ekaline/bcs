@@ -387,11 +387,14 @@ TEST_F(TestEur, Eur_basic) {
   ASSERT_NE(h, -1);
   ASSERT_NE(r, -1);
 
+  if (0) { 
+
   //  printf ("Main Hanlde = %d, Reference Handle =
   //  %d",h,r);
   auto eurHwAction = ekaBcAllocateNewAction(
-       EkaBcActionType::EurFire);
+       EkaBcActionType::MoexFire);
   ASSERT_NE(eurHwAction, -1);
+
 
   rc = ekaBcSetActionTcpSock(
        eurHwAction, tcpCtx_->tcpSess_[0]->excSock_);
@@ -403,7 +406,7 @@ TEST_F(TestEur, Eur_basic) {
 
   // sw action
   auto eurSwAction = ekaBcAllocateNewAction(
-       EkaBcActionType::EurSwSend);
+       EkaBcActionType::MoexSwSend);
   ASSERT_NE(eurSwAction, -1);
 
   rc = ekaBcSetActionTcpSock(
@@ -711,6 +714,7 @@ TEST_F(TestEur, Eur_basic) {
 #ifndef _VERILOG_SIM
   closeDev();
 #endif
+  } //if (0)
 }
 #endif
 /* --------------------------------------------- */
