@@ -225,7 +225,7 @@ void printPayloadReport(uint8_t *p) {
 
   auto length = firePktHdr->size;
 
-  printf("Length = %d, Type = %s \n", length,
+  printf("Length = %ju, Type = %s \n", length,
          EkaBcReportType2STR(firePktHdr->type));
 
   b += sizeof(EfcBcReportHdr);
@@ -382,337 +382,341 @@ TEST_F(TestEur, Eur_basic) {
   auto ref_index = 1;
   auto main_index = 0;
 
-  auto h = ekaBcsGetSecHandle( prodList_[main_index]);
-  auto r = ekaBcsGetSecHandle( prodList_[ref_index]);
+  auto h = ekaBcsGetSecHandle(prodList_[main_index]);
+  auto r = ekaBcsGetSecHandle(prodList_[ref_index]);
   ASSERT_NE(h, -1);
   ASSERT_NE(r, -1);
 
-  if (0) { 
+  if (0) {
 
-  //  printf ("Main Hanlde = %d, Reference Handle =
-  //  %d",h,r);
-  auto eurHwAction = ekaBcAllocateNewAction(
-       EkaBcActionType::MoexFire);
-  ASSERT_NE(eurHwAction, -1);
+    //  printf ("Main Hanlde = %d, Reference Handle =
+    //  %d",h,r);
+    auto eurHwAction =
+        allocateNewAction(EkaBcActionType::MoexFire);
+    ASSERT_NE(eurHwAction, -1);
 
+    rc = setActionTcpSock(
+        eurHwAction, tcpCtx_->tcpSess_[0]->excSock_);
+    ASSERT_EQ(rc, OPRESULT__OK);
 
-  rc = ekaBcSetActionTcpSock(
-       eurHwAction, tcpCtx_->tcpSess_[0]->excSock_);
-  ASSERT_EQ(rc, OPRESULT__OK);
+    rc = setActionTcpSock(
+        eurHwAction, tcpCtx_->tcpSess_[0]->excSock_);
+    ASSERT_EQ(rc, OPRESULT__OK);
 
-  rc = ekaBcSetActionTcpSock(
-       eurHwAction, tcpCtx_->tcpSess_[0]->excSock_);
-  ASSERT_EQ(rc, OPRESULT__OK);
+    // sw action
+    auto eurSwAction =
+        allocateNewAction(EkaBcActionType::MoexSwSend);
+    ASSERT_NE(eurSwAction, -1);
 
-  // sw action
-  auto eurSwAction = ekaBcAllocateNewAction(
-       EkaBcActionType::MoexSwSend);
-  ASSERT_NE(eurSwAction, -1);
+    rc = setActionTcpSock(
+        eurSwAction, tcpCtx_->tcpSess_[0]->excSock_);
+    ASSERT_EQ(rc, OPRESULT__OK);
 
-  rc = ekaBcSetActionTcpSock(
-       eurSwAction, tcpCtx_->tcpSess_[0]->excSock_);
-  ASSERT_EQ(rc, OPRESULT__OK);
+    const char EurSwFireMsg[] = "EurSwMessage wit 140"
+                                "Byte payload XXXXXXX"
+                                "12345678901234567890"
+                                "12345678901234567890"
+                                "12345678901234567890"
+                                "12345678901234567890"
+                                "12345678901234567890";
 
-  const char EurSwFireMsg[] = "EurSwMessage wit 140"
+    //  appTcpSend(dev_, eurSwAction, &EurSwFireMsg ,
+    //  strlen(EurSwFireMsg)); appTcpSend(dev_,
+    //  eurSwAction, &EurSwFireMsg , strlen(EurSwFireMsg));
+    //  appTcpSend(dev_, eurSwAction, &EurSwFireMsg ,
+    //  strlen(EurSwFireMsg));
+    // sw action
+
+    EkaBcEurProductInitParams prodParams = {};
+    prodParams.fireActionIdx = eurHwAction;
+    prodParams.secId = prodList_[main_index];
+    prodParams.step = 1;
+    prodParams.isBook = 1;
+    prodParams.midPoint =
+        (tobAskPrice - tobBidPrice) / 2 + tobBidPrice;
+
+    rc = ekaBcInitEurProd(h, &prodParams);
+
+    prodParams.secId = prodList_[ref_index];
+
+    rc = ekaBcInitEurProd(r, &prodParams); // reference
+
+    ASSERT_EQ(rc, OPRESULT__OK);
+
+    EkaBcProductDynamicParams prodDynamicParams = {};
+    prodDynamicParams.maxBidSize = sizeMultiplier; // TBD
+    prodDynamicParams.maxAskSize =
+        sizeMultiplier * 2; // TBD
+    prodDynamicParams.maxBookSpread =
+        tobAskPrice - tobBidPrice + 1;
+
+    rc =
+        ekaBcSetEurProdDynamicParams(h, &prodDynamicParams);
+
+    prodDynamicParams.maxBidSize =
+        sizeMultiplier * 3; // TBD
+    prodDynamicParams.maxAskSize =
+        sizeMultiplier * 4; // TBD
+    prodDynamicParams.maxBookSpread =
+        tobAskPrice - tobBidPrice + 1;
+
+    rc =
+        ekaBcSetEurProdDynamicParams(r, &prodDynamicParams);
+    ASSERT_EQ(rc, OPRESULT__OK);
+
+    const char EurFireMsg[] = "EurFireMsg with 120 "
                               "Byte payload XXXXXXX"
                               "12345678901234567890"
                               "12345678901234567890"
                               "12345678901234567890"
-                              "12345678901234567890"
                               "12345678901234567890";
+    rc = setActionPayload(eurHwAction, &EurFireMsg,
+                               strlen(EurFireMsg));
+    ASSERT_EQ(rc, OPRESULT__OK);
 
-  //  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg ,
-  //  strlen(EurSwFireMsg)); ekaBcAppSend(dev_, eurSwAction,
-  //  &EurSwFireMsg , strlen(EurSwFireMsg));
-  //  ekaBcAppSend(dev_, eurSwAction, &EurSwFireMsg ,
-  //  strlen(EurSwFireMsg));
-  // sw action
+    EkaBcEurJumpParams jumpParams = {};
 
-  EkaBcEurProductInitParams prodParams = {};
-  prodParams.fireActionIdx = eurHwAction;
-  prodParams.secId = prodList_[main_index];
-  prodParams.step = 1;
-  prodParams.isBook = 1;
-  prodParams.midPoint =
-      (tobAskPrice - tobBidPrice) / 2 + tobBidPrice;
+    jumpParams.atBest[activeJumpAtBestSet].max_tob_size =
+        (tobBidSize > tobAskSize) ? tobBidSize : tobAskSize;
+    jumpParams.atBest[activeJumpAtBestSet].min_tob_size =
+        (tobBidSize > tobAskSize) ? tobAskSize : tobBidSize;
+    jumpParams.atBest[activeJumpAtBestSet].max_post_size =
+        tobAskSize + tobAskSize -
+        tradeSize; // TBD assume BUY ticker
+    jumpParams.atBest[activeJumpAtBestSet].min_ticker_size =
+        tradeSize;
+    jumpParams.atBest[activeJumpAtBestSet].min_price_delta =
+        tradePrice - tobBidPrice; // TBD assume BUY ticker
+    jumpParams.atBest[activeJumpAtBestSet].buy_size =
+        sizeMultiplier;
+    jumpParams.atBest[activeJumpAtBestSet].sell_size =
+        sizeMultiplier * 2;
+    jumpParams.atBest[activeJumpAtBestSet].strat_en = 1;
+    jumpParams.atBest[activeJumpAtBestSet].boc = 1;
 
-  rc = ekaBcInitEurProd( h, &prodParams);
+    jumpParams.betterBest[activeJumpBetterBestSet]
+        .max_tob_size =
+        (tobBidSize > tobAskSize) ? tobBidSize : tobAskSize;
+    jumpParams.betterBest[activeJumpBetterBestSet]
+        .min_tob_size =
+        (tobBidSize > tobAskSize) ? tobAskSize : tobBidSize;
+    jumpParams.betterBest[activeJumpBetterBestSet]
+        .max_post_size = tobAskSize + tobAskSize -
+                         tradeSize; // TBD assume BUY ticker
+    jumpParams.betterBest[activeJumpBetterBestSet]
+        .min_ticker_size = tradeSize;
+    jumpParams.betterBest[activeJumpBetterBestSet]
+        .min_price_delta =
+        tradePrice - tobBidPrice; // TBD assume BUY ticker
+    jumpParams.betterBest[activeJumpBetterBestSet]
+        .buy_size = sizeMultiplier;
+    jumpParams.betterBest[activeJumpBetterBestSet]
+        .sell_size = sizeMultiplier * 2;
+    jumpParams.betterBest[activeJumpBetterBestSet]
+        .strat_en = 1;
+    jumpParams.betterBest[activeJumpBetterBestSet].boc = 0;
 
-  prodParams.secId = prodList_[ref_index];
+    //  rc = ekaBcEurSetJumpParams(dev_, h, &jumpParams);
+    ASSERT_EQ(rc, OPRESULT__OK);
 
-  rc = ekaBcInitEurProd( r, &prodParams); // reference
+    EkaBcEurReferenceJumpParams rjumpParams = {};
 
-  ASSERT_EQ(rc, OPRESULT__OK);
+    // rjumpParams.atBest[activeRJumpAtBestSet].max_tob_size
+    // = (tobBidSize > tobAskSize) ? tobBidSize :
+    // tobAskSize;
+    // rjumpParams.atBest[activeRJumpAtBestSet].min_tob_size
+    // = (tobBidSize > tobAskSize) ? tobAskSize :
+    // tobBidSize;
+    // rjumpParams.atBest[activeRJumpAtBestSet].max_opposit_tob_size
+    // = sizeMultiplier; //TBD
+    // rjumpParams.atBest[activeRJumpAtBestSet].time_delta_ns
+    // = 0; //TBD
+    // rjumpParams.atBest[activeRJumpAtBestSet].tickersize_lots
+    // = sizeMultiplier; //TBD
+    // rjumpParams.atBest[activeRJumpAtBestSet].buy_size =
+    // sizeMultiplier;
+    // rjumpParams.atBest[activeRJumpAtBestSet].sell_size =
+    // sizeMultiplier * 2;
+    // rjumpParams.atBest[activeRJumpAtBestSet].strat_en =
+    // 1; rjumpParams.atBest[activeRJumpAtBestSet].boc = 1;
+    // rjumpParams.atBest[activeRJumpAtBestSet].min_spread =
+    // 1; //TBD
 
-  EkaBcProductDynamicParams prodDynamicParams = {};
-  prodDynamicParams.maxBidSize = sizeMultiplier;     // TBD
-  prodDynamicParams.maxAskSize = sizeMultiplier * 2; // TBD
-  prodDynamicParams.maxBookSpread =
-      tobAskPrice - tobBidPrice + 1;
+    rjumpParams.atBest[activeRJumpAtBestSet].max_tob_size =
+        (EkaBcEurMdSize)(-1);
+    rjumpParams.atBest[activeRJumpAtBestSet].min_tob_size =
+        (EkaBcEurMdSize)(-1);
+    rjumpParams.atBest[activeRJumpAtBestSet]
+        .max_opposit_tob_size = (EkaBcEurMdSize)(-1);
+    rjumpParams.atBest[activeRJumpAtBestSet].time_delta_ns =
+        (EkaBcEurTimeNs)(-1);
+    rjumpParams.atBest[activeRJumpAtBestSet]
+        .tickersize_lots = (EkaBcEurMdSize)(-1);
+    rjumpParams.atBest[activeRJumpAtBestSet].buy_size =
+        (EkaBcEurFireSize)(-1);
+    rjumpParams.atBest[activeRJumpAtBestSet].sell_size =
+        (EkaBcEurFireSize)(-1);
+    rjumpParams.atBest[activeRJumpAtBestSet].strat_en = 1;
+    rjumpParams.atBest[activeRJumpAtBestSet].boc = 1;
+    rjumpParams.atBest[activeRJumpAtBestSet].min_spread =
+        (uint8_t)(-1);
 
-  rc = ekaBcSetEurProdDynamicParams( h,
-                                    &prodDynamicParams);
+    // rjumpParams.betterBest[activeRJumpBetterBestSet].max_tob_size
+    // =      (tobBidSize > tobAskSize) ? tobBidSize :
+    // tobAskSize;
+    // rjumpParams.betterBest[activeRJumpBetterBestSet].min_tob_size
+    // =      (tobBidSize > tobAskSize) ? tobAskSize :
+    // tobBidSize;
+    // rjumpParams.betterBest[activeRJumpBetterBestSet].max_opposit_tob_size
+    // = sizeMultiplier; //TBD
+    // rjumpParams.betterBest[activeRJumpBetterBestSet].time_delta_ns
+    // = 0; //TBD
+    // rjumpParams.betterBest[activeRJumpBetterBestSet].tickersize_lots
+    // = sizeMultiplier; //TBD
+    // rjumpParams.betterBest[activeRJumpBetterBestSet].buy_size
+    // =      sizeMultiplier;
+    // rjumpParams.betterBest[activeRJumpBetterBestSet].sell_size
+    // =      sizeMultiplier * 2;
+    // rjumpParams.betterBest[activeRJumpBetterBestSet].strat_en
+    // = 1;
+    // rjumpParams.betterBest[activeRJumpBetterBestSet].boc
+    // = 0;
+    // rjumpParams.betterBest[activeRJumpBetterBestSet].min_spread
+    // = 1; //TBD
 
-  prodDynamicParams.maxBidSize = sizeMultiplier * 3; // TBD
-  prodDynamicParams.maxAskSize = sizeMultiplier * 4; // TBD
-  prodDynamicParams.maxBookSpread =
-      tobAskPrice - tobBidPrice + 1;
+    //  rc = ekaBcEurSetReferenceJumpParams(dev_, r, h,
+    //                                      &rjumpParams);
+    ASSERT_EQ(rc, OPRESULT__OK);
 
-  rc = ekaBcSetEurProdDynamicParams( r,
-                                    &prodDynamicParams);
-  ASSERT_EQ(rc, OPRESULT__OK);
+    EkaBcArmVer armVer = 0;
 
-  const char EurFireMsg[] = "EurFireMsg with 120 "
-                            "Byte payload XXXXXXX"
-                            "12345678901234567890"
-                            "12345678901234567890"
-                            "12345678901234567890"
-                            "12345678901234567890";
-  rc = ekaBcSetActionPayload( eurHwAction, &EurFireMsg,
-                             strlen(EurFireMsg));
-  ASSERT_EQ(rc, OPRESULT__OK);
+    rc = ekaBcArmEur(h, true /* armBid */,
+                     true /* armAsk */, armVer++);
+    ASSERT_EQ(rc, OPRESULT__OK);
 
-  EkaBcEurJumpParams jumpParams = {};
+    EkaBcRunCtx runCtx = {
+        .onReportCb = getExampleFireReport, .cbCtx = this};
+    ekaBcEurRun(&runCtx);
 
-  jumpParams.atBest[activeJumpAtBestSet].max_tob_size =
-      (tobBidSize > tobAskSize) ? tobBidSize : tobAskSize;
-  jumpParams.atBest[activeJumpAtBestSet].min_tob_size =
-      (tobBidSize > tobAskSize) ? tobAskSize : tobBidSize;
-  jumpParams.atBest[activeJumpAtBestSet].max_post_size =
-      tobAskSize + tobAskSize -
-      tradeSize; // TBD assume BUY ticker
-  jumpParams.atBest[activeJumpAtBestSet].min_ticker_size =
-      tradeSize;
-  jumpParams.atBest[activeJumpAtBestSet].min_price_delta =
-      tradePrice - tobBidPrice; // TBD assume BUY ticker
-  jumpParams.atBest[activeJumpAtBestSet].buy_size =
-      sizeMultiplier;
-  jumpParams.atBest[activeJumpAtBestSet].sell_size =
-      sizeMultiplier * 2;
-  jumpParams.atBest[activeJumpAtBestSet].strat_en = 1;
-  jumpParams.atBest[activeJumpAtBestSet].boc = 1;
+    tcpCtx_->tcpSess_[0]->sendTestPkt();
 
-  jumpParams.betterBest[activeJumpBetterBestSet]
-      .max_tob_size =
-      (tobBidSize > tobAskSize) ? tobBidSize : tobAskSize;
-  jumpParams.betterBest[activeJumpBetterBestSet]
-      .min_tob_size =
-      (tobBidSize > tobAskSize) ? tobAskSize : tobBidSize;
-  jumpParams.betterBest[activeJumpBetterBestSet]
-      .max_post_size = tobAskSize + tobAskSize -
-                       tradeSize; // TBD assume BUY ticker
-  jumpParams.betterBest[activeJumpBetterBestSet]
-      .min_ticker_size = tradeSize;
-  jumpParams.betterBest[activeJumpBetterBestSet]
-      .min_price_delta =
-      tradePrice - tobBidPrice; // TBD assume BUY ticker
-  jumpParams.betterBest[activeJumpBetterBestSet].buy_size =
-      sizeMultiplier;
-  jumpParams.betterBest[activeJumpBetterBestSet].sell_size =
-      sizeMultiplier * 2;
-  jumpParams.betterBest[activeJumpBetterBestSet].strat_en =
-      1;
-  jumpParams.betterBest[activeJumpBetterBestSet].boc = 0;
+    EobiAddOrderPkt addOrderBidPkt = {};
+    addOrderBidPkt.pktHdr.MessageHeader.TemplateID =
+        TID_PACKETHEADER;
+    addOrderBidPkt.pktHdr.MessageHeader.BodyLen =
+        sizeof(addOrderBidPkt.pktHdr);
+    addOrderBidPkt.pktHdr.TransactTime = 0; // TBD
+    addOrderBidPkt.orderAddMsg.MessageHeader.BodyLen =
+        sizeof(addOrderBidPkt.orderAddMsg);
+    addOrderBidPkt.orderAddMsg.MessageHeader.TemplateID =
+        TID_ORDER_ADD;
+    addOrderBidPkt.orderAddMsg.RequestTime = 0; // TBD
+    addOrderBidPkt.orderAddMsg.SecurityID = prodList_[0];
+    addOrderBidPkt.orderAddMsg.OrderDetails.DisplayQty =
+        tobBidSize;
+    addOrderBidPkt.orderAddMsg.OrderDetails.Side =
+        ENUM_SIDE_BUY;
+    addOrderBidPkt.orderAddMsg.OrderDetails.Price =
+        tobBidPrice;
 
-  //  rc = ekaBcEurSetJumpParams(dev_, h, &jumpParams);
-  ASSERT_EQ(rc, OPRESULT__OK);
+    /*   sendPktToAll(&addOrderBidPkt,
+       sizeof(addOrderBidPkt), false); */
+    mcCon->sendUdpPkt(&addOrderBidPkt,
+                      sizeof(addOrderBidPkt));
 
-  EkaBcEurReferenceJumpParams rjumpParams = {};
+    EobiAddOrderPkt addOrderAskPkt = {};
+    addOrderAskPkt.pktHdr.MessageHeader.TemplateID =
+        TID_PACKETHEADER;
+    addOrderAskPkt.pktHdr.MessageHeader.BodyLen =
+        sizeof(addOrderAskPkt.pktHdr);
+    addOrderAskPkt.pktHdr.TransactTime = 0; // TBD
+    addOrderAskPkt.orderAddMsg.MessageHeader.BodyLen =
+        sizeof(addOrderAskPkt.orderAddMsg);
+    addOrderAskPkt.orderAddMsg.MessageHeader.TemplateID =
+        TID_ORDER_ADD;
+    addOrderAskPkt.orderAddMsg.RequestTime = 0; // TBD
+    addOrderAskPkt.orderAddMsg.SecurityID = prodList_[0];
+    addOrderAskPkt.orderAddMsg.OrderDetails.DisplayQty =
+        tobAskSize;
+    addOrderAskPkt.orderAddMsg.OrderDetails.Side =
+        ENUM_SIDE_SELL;
+    addOrderAskPkt.orderAddMsg.OrderDetails.Price =
+        tobAskPrice;
 
-  // rjumpParams.atBest[activeRJumpAtBestSet].max_tob_size =
-  // (tobBidSize > tobAskSize) ? tobBidSize : tobAskSize;
-  // rjumpParams.atBest[activeRJumpAtBestSet].min_tob_size =
-  // (tobBidSize > tobAskSize) ? tobAskSize : tobBidSize;
-  // rjumpParams.atBest[activeRJumpAtBestSet].max_opposit_tob_size
-  // = sizeMultiplier; //TBD
-  // rjumpParams.atBest[activeRJumpAtBestSet].time_delta_ns
-  // = 0; //TBD
-  // rjumpParams.atBest[activeRJumpAtBestSet].tickersize_lots
-  // = sizeMultiplier; //TBD
-  // rjumpParams.atBest[activeRJumpAtBestSet].buy_size =
-  // sizeMultiplier;
-  // rjumpParams.atBest[activeRJumpAtBestSet].sell_size =
-  // sizeMultiplier * 2;
-  // rjumpParams.atBest[activeRJumpAtBestSet].strat_en = 1;
-  // rjumpParams.atBest[activeRJumpAtBestSet].boc = 1;
-  // rjumpParams.atBest[activeRJumpAtBestSet].min_spread =
-  // 1; //TBD
+    // tob
+    /*   sendPktToAll(&addOrderAskPkt,
+       sizeof(addOrderAskPkt), false); */
+    mcCon->sendUdpPkt(&addOrderAskPkt,
+                      sizeof(addOrderAskPkt));
 
-  rjumpParams.atBest[activeRJumpAtBestSet].max_tob_size =
-      (EkaBcEurMdSize)(-1);
-  rjumpParams.atBest[activeRJumpAtBestSet].min_tob_size =
-      (EkaBcEurMdSize)(-1);
-  rjumpParams.atBest[activeRJumpAtBestSet]
-      .max_opposit_tob_size = (EkaBcEurMdSize)(-1);
-  rjumpParams.atBest[activeRJumpAtBestSet].time_delta_ns =
-      (EkaBcEurTimeNs)(-1);
-  rjumpParams.atBest[activeRJumpAtBestSet].tickersize_lots =
-      (EkaBcEurMdSize)(-1);
-  rjumpParams.atBest[activeRJumpAtBestSet].buy_size =
-      (EkaBcEurFireSize)(-1);
-  rjumpParams.atBest[activeRJumpAtBestSet].sell_size =
-      (EkaBcEurFireSize)(-1);
-  rjumpParams.atBest[activeRJumpAtBestSet].strat_en = 1;
-  rjumpParams.atBest[activeRJumpAtBestSet].boc = 1;
-  rjumpParams.atBest[activeRJumpAtBestSet].min_spread =
-      (uint8_t)(-1);
+    addOrderAskPkt.orderAddMsg.OrderDetails.Price =
+        tobAskPrice + 1;
 
-  // rjumpParams.betterBest[activeRJumpBetterBestSet].max_tob_size
-  // =      (tobBidSize > tobAskSize) ? tobBidSize :
-  // tobAskSize;
-  // rjumpParams.betterBest[activeRJumpBetterBestSet].min_tob_size
-  // =      (tobBidSize > tobAskSize) ? tobAskSize :
-  // tobBidSize;
-  // rjumpParams.betterBest[activeRJumpBetterBestSet].max_opposit_tob_size
-  // = sizeMultiplier; //TBD
-  // rjumpParams.betterBest[activeRJumpBetterBestSet].time_delta_ns
-  // = 0; //TBD
-  // rjumpParams.betterBest[activeRJumpBetterBestSet].tickersize_lots
-  // = sizeMultiplier; //TBD
-  // rjumpParams.betterBest[activeRJumpBetterBestSet].buy_size
-  // =      sizeMultiplier;
-  // rjumpParams.betterBest[activeRJumpBetterBestSet].sell_size
-  // =      sizeMultiplier * 2;
-  // rjumpParams.betterBest[activeRJumpBetterBestSet].strat_en
-  // = 1;
-  // rjumpParams.betterBest[activeRJumpBetterBestSet].boc =
-  // 0;
-  // rjumpParams.betterBest[activeRJumpBetterBestSet].min_spread
-  // = 1; //TBD
+    // depth 1
+    /*   sendPktToAll(&addOrderAskPkt,
+       sizeof(addOrderAskPkt), false); */
+    mcCon->sendUdpPkt(&addOrderAskPkt,
+                      sizeof(addOrderAskPkt));
 
-  //  rc = ekaBcEurSetReferenceJumpParams(dev_, r, h,
-  //                                      &rjumpParams);
-  ASSERT_EQ(rc, OPRESULT__OK);
+    // jump
+    EobiExecSumPkt execSumJumpPkt = {};
+    execSumJumpPkt.pktHdr.MessageHeader.TemplateID =
+        TID_PACKETHEADER;
+    execSumJumpPkt.pktHdr.MessageHeader.BodyLen =
+        sizeof(addOrderAskPkt.pktHdr);
+    execSumJumpPkt.pktHdr.TransactTime = 0; // TBD
+    execSumJumpPkt.execSumMsg.MessageHeader.BodyLen =
+        sizeof(execSumJumpPkt.execSumMsg);
+    execSumJumpPkt.execSumMsg.MessageHeader.TemplateID =
+        TID_EXECUTION_SUMMARY;
+    execSumJumpPkt.execSumMsg.SecurityID =
+        prodList_[main_index];
+    execSumJumpPkt.execSumMsg.RequestTime = 0; // TBD
+    execSumJumpPkt.execSumMsg.LastQty = tradeSize;
+    execSumJumpPkt.execSumMsg.AggressorSide = AggressorSide;
+    execSumJumpPkt.execSumMsg.LastPx = tradePrice;
 
-  EkaBcArmVer armVer = 0;
+    // rjump
+    EobiExecSumPkt execSumRJumpPkt = {};
+    execSumRJumpPkt.pktHdr.MessageHeader.TemplateID =
+        TID_PACKETHEADER;
+    execSumRJumpPkt.pktHdr.MessageHeader.BodyLen =
+        sizeof(addOrderAskPkt.pktHdr);
+    execSumRJumpPkt.pktHdr.TransactTime = 0; // TBD
+    execSumRJumpPkt.execSumMsg.MessageHeader.BodyLen =
+        sizeof(execSumRJumpPkt.execSumMsg);
+    execSumRJumpPkt.execSumMsg.MessageHeader.TemplateID =
+        TID_EXECUTION_SUMMARY;
+    execSumRJumpPkt.execSumMsg.SecurityID =
+        prodList_[ref_index];
+    execSumRJumpPkt.execSumMsg.RequestTime = 0; // TBD
+    execSumRJumpPkt.execSumMsg.LastQty = tradeSize;
+    execSumRJumpPkt.execSumMsg.AggressorSide =
+        AggressorSide;
+    execSumRJumpPkt.execSumMsg.LastPx = tradePrice;
 
-  rc = ekaBcArmEur( h, true /* armBid */,
-                   true /* armAsk */, armVer++);
-  ASSERT_EQ(rc, OPRESULT__OK);
+    /*   sendPktToAll(&execSumPkt, sizeof(execSumJumpPkt),
+     * true);
+     */
+    setSessionCntr(tcpCtx_->tcpSess_[0]->excSock_, 5);
 
-  EkaBcRunCtx runCtx = {.onReportCb = getExampleFireReport,
-                        .cbCtx = this};
-  ekaBcEurRun( &runCtx);
+    //  mcCon->sendUdpPkt(&execSumJumpPkt,
+    //  sizeof(execSumJumpPkt));
+    mcCon->sendUdpPkt(&execSumRJumpPkt,
+                      sizeof(execSumRJumpPkt));
+    //  sleep(5);
+    // rc = ekaBcArmEur(dev_, h, true /* armBid */,
+    //                  true /* armAsk */, armVer++);
+    // mcCon->sendUdpPkt(&execSumPkt, sizeof(execSumPkt));
+    sleep(5);
+    for (uint i = 0; i < 0; i++) {
+      appTcpSend(eurSwAction, &EurSwFireMsg,
+                   strlen(EurSwFireMsg));
+    }
+    sleep(1);
 
-  tcpCtx_->tcpSess_[0]->sendTestPkt();
+  } // if (0)
 
-  EobiAddOrderPkt addOrderBidPkt = {};
-  addOrderBidPkt.pktHdr.MessageHeader.TemplateID =
-      TID_PACKETHEADER;
-  addOrderBidPkt.pktHdr.MessageHeader.BodyLen =
-      sizeof(addOrderBidPkt.pktHdr);
-  addOrderBidPkt.pktHdr.TransactTime = 0; // TBD
-  addOrderBidPkt.orderAddMsg.MessageHeader.BodyLen =
-      sizeof(addOrderBidPkt.orderAddMsg);
-  addOrderBidPkt.orderAddMsg.MessageHeader.TemplateID =
-      TID_ORDER_ADD;
-  addOrderBidPkt.orderAddMsg.RequestTime = 0; // TBD
-  addOrderBidPkt.orderAddMsg.SecurityID = prodList_[0];
-  addOrderBidPkt.orderAddMsg.OrderDetails.DisplayQty =
-      tobBidSize;
-  addOrderBidPkt.orderAddMsg.OrderDetails.Side =
-      ENUM_SIDE_BUY;
-  addOrderBidPkt.orderAddMsg.OrderDetails.Price =
-      tobBidPrice;
-
-  /*   sendPktToAll(&addOrderBidPkt, sizeof(addOrderBidPkt),
-                 false); */
-  mcCon->sendUdpPkt(&addOrderBidPkt,
-                    sizeof(addOrderBidPkt));
-
-  EobiAddOrderPkt addOrderAskPkt = {};
-  addOrderAskPkt.pktHdr.MessageHeader.TemplateID =
-      TID_PACKETHEADER;
-  addOrderAskPkt.pktHdr.MessageHeader.BodyLen =
-      sizeof(addOrderAskPkt.pktHdr);
-  addOrderAskPkt.pktHdr.TransactTime = 0; // TBD
-  addOrderAskPkt.orderAddMsg.MessageHeader.BodyLen =
-      sizeof(addOrderAskPkt.orderAddMsg);
-  addOrderAskPkt.orderAddMsg.MessageHeader.TemplateID =
-      TID_ORDER_ADD;
-  addOrderAskPkt.orderAddMsg.RequestTime = 0; // TBD
-  addOrderAskPkt.orderAddMsg.SecurityID = prodList_[0];
-  addOrderAskPkt.orderAddMsg.OrderDetails.DisplayQty =
-      tobAskSize;
-  addOrderAskPkt.orderAddMsg.OrderDetails.Side =
-      ENUM_SIDE_SELL;
-  addOrderAskPkt.orderAddMsg.OrderDetails.Price =
-      tobAskPrice;
-
-  // tob
-  /*   sendPktToAll(&addOrderAskPkt, sizeof(addOrderAskPkt),
-                 false); */
-  mcCon->sendUdpPkt(&addOrderAskPkt,
-                    sizeof(addOrderAskPkt));
-
-  addOrderAskPkt.orderAddMsg.OrderDetails.Price =
-      tobAskPrice + 1;
-
-  // depth 1
-  /*   sendPktToAll(&addOrderAskPkt, sizeof(addOrderAskPkt),
-                 false); */
-  mcCon->sendUdpPkt(&addOrderAskPkt,
-                    sizeof(addOrderAskPkt));
-
-  // jump
-  EobiExecSumPkt execSumJumpPkt = {};
-  execSumJumpPkt.pktHdr.MessageHeader.TemplateID =
-      TID_PACKETHEADER;
-  execSumJumpPkt.pktHdr.MessageHeader.BodyLen =
-      sizeof(addOrderAskPkt.pktHdr);
-  execSumJumpPkt.pktHdr.TransactTime = 0; // TBD
-  execSumJumpPkt.execSumMsg.MessageHeader.BodyLen =
-      sizeof(execSumJumpPkt.execSumMsg);
-  execSumJumpPkt.execSumMsg.MessageHeader.TemplateID =
-      TID_EXECUTION_SUMMARY;
-  execSumJumpPkt.execSumMsg.SecurityID =
-      prodList_[main_index];
-  execSumJumpPkt.execSumMsg.RequestTime = 0; // TBD
-  execSumJumpPkt.execSumMsg.LastQty = tradeSize;
-  execSumJumpPkt.execSumMsg.AggressorSide = AggressorSide;
-  execSumJumpPkt.execSumMsg.LastPx = tradePrice;
-
-  // rjump
-  EobiExecSumPkt execSumRJumpPkt = {};
-  execSumRJumpPkt.pktHdr.MessageHeader.TemplateID =
-      TID_PACKETHEADER;
-  execSumRJumpPkt.pktHdr.MessageHeader.BodyLen =
-      sizeof(addOrderAskPkt.pktHdr);
-  execSumRJumpPkt.pktHdr.TransactTime = 0; // TBD
-  execSumRJumpPkt.execSumMsg.MessageHeader.BodyLen =
-      sizeof(execSumRJumpPkt.execSumMsg);
-  execSumRJumpPkt.execSumMsg.MessageHeader.TemplateID =
-      TID_EXECUTION_SUMMARY;
-  execSumRJumpPkt.execSumMsg.SecurityID =
-      prodList_[ref_index];
-  execSumRJumpPkt.execSumMsg.RequestTime = 0; // TBD
-  execSumRJumpPkt.execSumMsg.LastQty = tradeSize;
-  execSumRJumpPkt.execSumMsg.AggressorSide = AggressorSide;
-  execSumRJumpPkt.execSumMsg.LastPx = tradePrice;
-
-  /*   sendPktToAll(&execSumPkt, sizeof(execSumJumpPkt),
-   * true);
-   */
-  ekaBcSetSessionCntr( tcpCtx_->tcpSess_[0]->excSock_,
-                      5);
-
-  //  mcCon->sendUdpPkt(&execSumJumpPkt,
-  //  sizeof(execSumJumpPkt));
-  mcCon->sendUdpPkt(&execSumRJumpPkt,
-                    sizeof(execSumRJumpPkt));
-  //  sleep(5);
-  // rc = ekaBcArmEur(dev_, h, true /* armBid */,
-  //                  true /* armAsk */, armVer++);
-  // mcCon->sendUdpPkt(&execSumPkt, sizeof(execSumPkt));
-  sleep(5);
-  for (uint i = 0; i < 0; i++) {
-    ekaBcAppSend( eurSwAction, &EurSwFireMsg,
-                 strlen(EurSwFireMsg));
-  }
-  sleep(1);
-
-  } //if (0)
-  
 #ifndef _VERILOG_SIM
   closeDev();
 #endif

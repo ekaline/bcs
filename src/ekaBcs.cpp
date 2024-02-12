@@ -57,8 +57,8 @@ OpResult closeDev() {
 }
 /* ==================================================== */
 
-EkaBcSock ekaBcTcpConnect(EkaBcLane coreId,
-                          const char *ip, uint16_t port) {
+EkaSock tcpConnect(EkaBcLane coreId, const char *ip,
+                   uint16_t port) {
   if (!g_ekaDev->checkAndSetEpmTx())
     on_error(
         "TX functionality is not available for this "
@@ -93,9 +93,9 @@ EkaBcSock ekaBcTcpConnect(EkaBcLane coreId,
   sess->dstPort = be16toh(((sockaddr_in *)&dst)->sin_port);
 
   sess->bind();
-  g_ekaDev->snDev->set_fast_session(sess->coreId, sess->sessId,
-                               sess->srcIp, sess->srcPort,
-                               sess->dstIp, sess->dstPort);
+  g_ekaDev->snDev->set_fast_session(
+      sess->coreId, sess->sessId, sess->srcIp,
+      sess->srcPort, sess->dstIp, sess->dstPort);
 
   /* EKA_LOG("on coreId=%u, sessId=%u, sock=%d, %s:%u -->
    * %s:%u", */
@@ -117,21 +117,20 @@ EkaBcSock ekaBcTcpConnect(EkaBcLane coreId,
   return hSocket;
 }
 /* ==================================================== */
-int ekaBcSetBlocking(EkaBcSock hSock,
-                     bool blocking) {
-  EkaTcpSess *const s =
-      g_ekaDev->findTcpSess(static_cast<ExcSocketHandle>(hSock));
+int ekaBcSetBlocking(EkaSock hSock, bool blocking) {
+  EkaTcpSess *const s = g_ekaDev->findTcpSess(
+      static_cast<ExcSocketHandle>(hSock));
   if (s)
     return s->setBlocking(blocking);
 
-  EKA_WARN("EkaBcSock %d not found", hSock);
+  EKA_WARN("EkaSock %d not found", hSock);
   errno = EBADF;
   return -1;
 }
 /* ==================================================== */
 
-ssize_t ekaBcSend(EkaBcSock ekaSock,
-                  const void *buf, size_t size) {
+ssize_t tcpSend(EkaSock ekaSock, const void *buf,
+                size_t size) {
   EkaTcpSess *const s = g_ekaDev->findTcpSess(ekaSock);
   if (!s) {
     EKA_WARN("TCP sock %d not found", ekaSock);
@@ -142,7 +141,7 @@ ssize_t ekaBcSend(EkaBcSock ekaSock,
 }
 /* ==================================================== */
 #if 0
-ssize_t ekaBcAppSend(EkaDev *dev, EkaBcActionIdx actionIdx,
+ssize_t appTcpSend(EkaDev *dev, EkaActionIdx actionIdx,
                      const void *buffer, size_t size) {
   if (!dev || !dev->epm)
     on_error("!dev or Epm is not initialized");
@@ -156,7 +155,7 @@ ssize_t ekaBcAppSend(EkaDev *dev, EkaBcActionIdx actionIdx,
 
 /* ==================================================== */
 
-OpResult ekaBcSetSessionCntr(EkaBcSock ekaSock,
+OpResult setSessionCntr(EkaSock ekaSock,
                              uint64_t cntr) {
   EkaTcpSess *const s = g_ekaDev->findTcpSess(ekaSock);
   if (!s) {
@@ -182,8 +181,7 @@ OpResult ekaBcSetSessionCntr(EkaBcSock ekaSock,
 
 /* ==================================================== */
 
-ssize_t ekaBcRecv(EkaBcSock sock, void *buf,
-                  size_t size) {
+ssize_t tcpRecv(EkaSock sock, void *buf, size_t size) {
   auto s = g_ekaDev->findTcpSess(sock);
   if (!s) {
     EKA_WARN("TCP sock %d not found", sock);
@@ -194,7 +192,7 @@ ssize_t ekaBcRecv(EkaBcSock sock, void *buf,
 
 /* ==================================================== */
 
-OpResult ekaBcCloseSock( EkaBcSock sock) {
+OpResult closeSock(EkaSock sock) {
   auto s = g_ekaDev->findTcpSess(sock);
   if (!s) {
     EKA_WARN("TCP sock %d not found", sock);
@@ -228,9 +226,7 @@ OpResult hwEngInit(const HwEngInitCtx *ekaBcInitCtx) {
 
 /* ==================================================== */
 
-void ekaBcSwKeepAliveSend() {
-  efcSwKeepAliveSend(g_ekaDev, 0);
-}
+void swKeepAliveSend() { efcSwKeepAliveSend(g_ekaDev, 0); }
 
 /* ==================================================== */
 
@@ -253,16 +249,15 @@ OpResult configurePort(EkaBcLane lane,
 }
 /* ==================================================== */
 
-EkaBcActionIdx
-ekaBcAllocateNewAction(EkaBcActionType type) {
+EkaActionIdx
+allocateNewAction(EkaBcActionType type) {
   return efcAllocateNewAction(
       g_ekaDev, static_cast<EpmActionType>(type));
 }
 
 /* ==================================================== */
 
-OpResult ekaBcSetActionPayload(
-                               EkaBcActionIdx actionIdx,
+OpResult setActionPayload(EkaActionIdx actionIdx,
                                const void *payload,
                                size_t len) {
 
@@ -271,9 +266,8 @@ OpResult ekaBcSetActionPayload(
 }
 /* ==================================================== */
 
-OpResult ekaBcArmEur(EkaBcSecHandle prodHande,
-                     bool armBid, bool armAsk,
-                     EkaBcArmVer ver) {
+OpResult ekaBcArmEur(EkaBcSecHandle prodHande, bool armBid,
+                     bool armAsk, EkaBcArmVer ver) {
   if (!g_ekaDev || !g_ekaDev->efc)
     on_error("HW Eng is not initialized: use hwEngInit()");
   auto efc = g_ekaDev->efc;
@@ -308,8 +302,7 @@ OpResult ekaBcDisArmCmeFc(EkaDev *dev) {
 
 /* ==================================================== */
 
-void ekaBcEurRun(
-                 const EkaBcRunCtx *pEkaBcRunCtx) {
+void ekaBcEurRun(const EkaBcRunCtx *pEkaBcRunCtx) {
 
   if (!g_ekaDev || !g_ekaDev->efc)
     on_error("HW Eng is not initialized: use hwEngInit()");
@@ -361,32 +354,29 @@ void ekaBcEurRun(
 
 /* ==================================================== */
 
-OpResult ekaBcSetActionTcpSock(
-                               EkaBcActionIdx actionIdx,
-                               EkaBcSock sock) {
+OpResult setActionTcpSock(EkaActionIdx actionIdx,
+                               EkaSock sock) {
   setActionTcpSock(g_ekaDev, actionIdx, sock);
   return OPRESULT__OK;
 }
 /* ==================================================== */
 
-OpResult ekaBcSetActionNext(
-                            EkaBcActionIdx actionIdx,
-                            EkaBcActionIdx nextActionIdx) {
+OpResult setActionNext(EkaActionIdx actionIdx,
+                            EkaActionIdx nextActionIdx) {
   setActionNext(g_ekaDev, actionIdx, nextActionIdx);
   return OPRESULT__OK;
 }
 /* ==================================================== */
 
-ssize_t ekaBcAppSend(
-                     EkaBcActionIdx actionIdx,
+ssize_t appTcpSend(EkaActionIdx actionIdx,
                      const void *buffer, size_t size) {
   return efcAppSend(g_ekaDev, actionIdx, buffer, size);
 }
 /* ==================================================== */
 
-OpResult ekaBcsInitMoexStrategy(
-                              const UdpMcParams *mcParams) {
-  if (!g_ekaDev )
+OpResult
+initMoexStrategy(const UdpMcParams *mcParams) {
+  if (!g_ekaDev)
     on_error("!g_ekaDev");
   if (!g_ekaDev->efc)
     on_error("HW Eng is not initialized: use hwEngInit()");
@@ -512,8 +502,7 @@ OpResult stopRcvMd_B() { return stopRcvMd(1); }
 
 /* ==================================================== */
 
-EkaBcSecHandle ekaBcsGetSecHandle(
-                                 EkaBcsMoexSecId secId) {
+EkaBcSecHandle ekaBcsGetSecHandle(EkaBcsMoexSecId secId) {
   if (!g_ekaDev || !g_ekaDev->efc)
     on_error("HW Eng is not initialized: use hwEngInit()");
   auto efc = g_ekaDev->efc;
@@ -521,16 +510,15 @@ EkaBcSecHandle ekaBcsGetSecHandle(
   auto moex = efc->moex_;
   if (!moex)
     on_error("Moex is not initialized: use "
-             "ekaBcsInitMoexStrategy()");
+             "initMoexStrategy()");
 
-  //tbd subscription
-  //  return eur->getSubscriptionId(secId);
+  // tbd subscription
+  //   return eur->getSubscriptionId(secId);
   return OPRESULT__OK;
 }
 
-OpResult ekaBcsSetProducts(
-                          const EkaBcsMoexSecId *prodList,
-                          size_t nProducts) {
+OpResult ekaBcsSetProducts(const EkaBcsMoexSecId *prodList,
+                           size_t nProducts) {
   if (!g_ekaDev || !g_ekaDev->efc)
     on_error("HW Eng is not initialized: use hwEngInit()");
   auto efc = g_ekaDev->efc;
@@ -538,17 +526,17 @@ OpResult ekaBcsSetProducts(
   auto moex = efc->moex_;
   if (!moex)
     on_error("Moex is not initialized: use "
-             "ekaBcsInitMoexStrategy()");
+             "initMoexStrategy()");
 
   if (!prodList)
     on_error("!prodList");
 
-  //TBD moex products
-  // if (nProducts > EKA_BC_EUR_MAX_PRODS) {
-  //   EKA_ERROR("nProducts %ju > EKA_BC_EUR_MAX_PRODS %d",
-  //             nProducts, EKA_BC_EUR_MAX_PRODS);
-  //   return OPRESULT__ERR_MAX_PRODUCTS_EXCEEDED;
-  // }
+  // TBD moex products
+  //  if (nProducts > EKA_BC_EUR_MAX_PRODS) {
+  //    EKA_ERROR("nProducts %ju > EKA_BC_EUR_MAX_PRODS %d",
+  //              nProducts, EKA_BC_EUR_MAX_PRODS);
+  //    return OPRESULT__ERR_MAX_PRODUCTS_EXCEEDED;
+  //  }
 
   // return eur->subscribeSecList(prodList, nProducts);
   return OPRESULT__OK;

@@ -18,7 +18,7 @@ void TestEur::configureStrat(const TestCaseConfig *t) {
   if (rc != OPRESULT__OK)
     on_error("ekaBcInitEurStrategy returned %d", (int)rc);
 
-  auto eurHwAction = ekaBcAllocateNewAction(
+  auto eurHwAction = allocateNewAction(
       dev, EpmActionType::CmeHwCancel);
 
   ekaBcEurSetFireAction(dev, eurHwAction);
@@ -34,11 +34,11 @@ void TestEur::configureStrat(const TestCaseConfig *t) {
       "CME Fast Cancel: Sequence = |____| With Dummy "
       "payload";
 
-  rc = ekaBcSetActionPayload(dev, eurHwAction,
+  rc = setActionPayload(dev, eurHwAction,
                              &CmeTestFastCancelMsg,
                              strlen(CmeTestFastCancelMsg));
   if (rc != OPRESULT__OK)
-    on_error("ekaBcSetActionPayload failed for Action %d",
+    on_error("setActionPayload failed for Action %d",
              eurHwAction);
 }
 #endif
@@ -58,7 +58,7 @@ void TestEur::generateMdDataPkts(
 void TestEur::sendData() {
 #if 0
   for (const auto &md : insertedMd_) {
-    ekaBcSetSessionCntr(dev_, tcpCtx_->tcpSess_[0]->hCon_,
+    setSessionCntr(dev_, tcpCtx_->tcpSess_[0]->hCon_,
                         md.appSeq);
 
     sendPktToAll(md.preloadedPkt, md.pktLen,
