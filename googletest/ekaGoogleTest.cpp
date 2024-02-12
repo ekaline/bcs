@@ -711,10 +711,11 @@ TEST_F(TestEur, Eur_basic) {
   }
   sleep(1);
 
+  } //if (0)
+  
 #ifndef _VERILOG_SIM
   closeDev();
 #endif
-  } //if (0)
 }
 #endif
 /* --------------------------------------------- */
