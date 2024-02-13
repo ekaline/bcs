@@ -177,7 +177,7 @@ uint EkaEobiParser::processMsg(MdOut *mdOut,
                              msg->LastQty);
     eventSide = b->decodeSide(msg->Side);
 #ifdef _EKA_PARSER_PRINT_ALL_
-    EKA_LOG("PARTIALORDEREXECUTION: %ju,%c,%ju,%u",
+    EKA_LOG("PARTIALORDEREXECUTION: %ju,%c,%ju,%jd",
             (static_cast<ExchSecurityId>(msg->SecurityID)),
             eventSide == BID ? 'B' : 'A', msg->Price,
             msg->LastQty);
@@ -194,7 +194,7 @@ uint EkaEobiParser::processMsg(MdOut *mdOut,
                           msg->LastQty);
     eventSide = b->decodeSide(msg->Side);
 #ifdef _EKA_PARSER_PRINT_ALL_
-    EKA_LOG("FULLORDEREXECUTION: %ju,%c,%ju,%u",
+    EKA_LOG("FULLORDEREXECUTION: %ju,%c,%ju,%jd",
             (static_cast<ExchSecurityId>(msg->SecurityID)),
             eventSide == BID ? 'B' : 'A', msg->Price,
             msg->LastQty);

@@ -51,8 +51,10 @@ cp $BUILD_DIR/pcapParsers/EkaBcs/bcsPcapParse $DST_DIR/utils
 cp $BUILD_DIR/../SmartNIC_SW/driver/*.sh ${DST_DIR}/SmartNIC_SW/driver
 cp $BUILD_DIR/../SmartNIC_SW/driver/*.ko ${DST_DIR}/SmartNIC_SW/driver
 
-cp $BUILD_DIR/../SmartNIC_SW/bin/* ${DST_DIR}/SmartNIC_SW/bin
 cp $BUILD_DIR/../SmartNIC_SW/tools/fbconfig ${DST_DIR}/SmartNIC_SW/tools
+cp $BUILD_DIR/../SmartNIC_SW/tools/fbupdate ${DST_DIR}/SmartNIC_SW/tools
+cp $BUILD_DIR/../SmartNIC_SW/tools/fbconfig ${DST_DIR}/SmartNIC_SW/bin
+cp $BUILD_DIR/../SmartNIC_SW/tools/fbupdate ${DST_DIR}/SmartNIC_SW/bin
 
 cd $HOME/BCS_RELEASES
 

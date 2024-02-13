@@ -253,11 +253,11 @@ struct UdpMcParams {
  *
  */
 struct PortAttrs {
-  uint32_t host_ip; ///<
+  uint32_t host_ip;
   uint32_t netmask;
   uint32_t gateway;
-  char nexthop_mac[6];  ///< used for setup with L1 switch
-  char src_mac_addr[6]; ///< used for setup with L1 switch
+  uint8_t nexthop_mac[6];
+  uint8_t src_mac_addr[6];
 };
 
 /**
@@ -268,6 +268,17 @@ struct PortAttrs {
  */
 OpResult configurePort(EkaBcLane lane,
                        const PortAttrs *pPortAttrs);
+
+/**
+ * @brief
+ *
+ * @param lane
+ * @param ipAddr
+ * @param macAddr
+ * @return OpResult
+ */
+OpResult addArpEntry(EkaBcLane lane, const uint32_t *ipAddr,
+                     const uint8_t *macAddr);
 
 /**
  * @brief
@@ -767,8 +778,7 @@ struct EkaBcsRunCtx {
  */
 void ekaBcEurRun(const EkaBcRunCtx *pEkaBcRunCtx);
 
-void EkaBcsMoexRun(
-		 const EkaBcsRunCtx *pEkaBcRunCtx);
+void EkaBcsMoexRun(const EkaBcsRunCtx *pEkaBcRunCtx);
 
 ///////////////////////
 // Reports
