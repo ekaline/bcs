@@ -130,7 +130,7 @@ openDev(const EkaBcAffinityConfig *affinityConf = NULL,
 OpResult closeDev();
 
 /* ==================================================== */
-typedef int EkaBcSock;
+typedef int EkaSock;
 typedef int8_t EkaBcLane;
 
 /**
@@ -144,14 +144,14 @@ typedef int8_t EkaBcLane;
  * @param lane Physical I/F number: (0 for feth0, etc.)
  * @param ip   Destination IP address
  * @param port Destination TCP Port
- * @return EkaBcSock
+ * @return EkaSock
  *             File descriptor of the Ekaline socket.
  *             Negative if connection failed.
  *             Should not be used as
  *             Linux socket descriptor!!!
  */
-EkaBcSock ekaBcTcpConnect(EkaBcLane lane,
-                          const char *ip, uint16_t port);
+EkaSock tcpConnect(EkaBcLane lane, const char *ip,
+                   uint16_t port);
 
 /**
  * @brief Sets blocking/non-blocking attribute for ekaSock
@@ -161,41 +161,36 @@ EkaBcSock ekaBcTcpConnect(EkaBcLane lane,
  * @param blocking
  * @return int
  */
-int ekaBcSetBlocking(EkaBcSock ekaSock,
-                     bool blocking);
+int ekaBcSetBlocking(EkaSock ekaSock, bool blocking);
 
 /**
  * @brief Sends data segment via Ekaline TCP socket.
  *
- * @param pEkaDev
  * @param sock
  * @param buf
  * @param size
  * @return ssize_t
  */
-ssize_t ekaBcSend(EkaBcSock ekaSock,
-                  const void *buf, size_t size);
+ssize_t tcpSend(EkaSock ekaSock, const void *buf,
+                size_t size);
 
 /**
  * @brief Receives Data segment via Ekaline TCP socket.
  *
- * @param pEkaDev
  * @param sock
  * @param buf
  * @param size
  * @return ssize_t
  */
-ssize_t ekaBcRecv(EkaBcSock ekaSock,
-                  void *buf, size_t size);
+ssize_t tcpRecv(EkaSock ekaSock, void *buf, size_t size);
 
 /**
  * @brief Disconnects TCP session of ekaSock
  *
- * @param pEkaDev
  * @param ekaSock
  * @return OpResult
  */
-OpResult ekaBcCloseSock(EkaBcSock ekaSock);
+OpResult closeSock(EkaSock ekaSock);
 
 /* ==================================================== */
 
@@ -315,13 +310,13 @@ OpResult stopRcvMd_B();
  * It has:
  *  Control parameters:
  *      - Type: See EkaBcActionType.
- *              Set by ekaBcAllocateNewAction().
+ *              Set by allocateNewAction().
  *      - ekaSock: socket descriptor of the TCP Session
  *              the Action (=Packet) is sent on.
- *              Set by ekaBcSetActionTcpSock()
+ *              Set by setActionTcpSock()
  *      - nextAction: next in the chain
  *              or EKA_BC_LAST_ACTION
- *              Set by ekaBcSetActionNext()
+ *              Set by setActionNext()
  *
  *  Payload: The payload is modified before being sent
  *     according the internal template which corresponds to
@@ -337,9 +332,9 @@ OpResult stopRcvMd_B();
  *       - Application Sequence Number
  *       - etc
  *
- *     Payload is set by ekaBcSetActionPayload()
+ *     Payload is set by setActionPayload()
  */
-typedef int EkaBcActionIdx;
+typedef int EkaActionIdx;
 typedef int EkaBcsActionIdx;
 
 #define EKA_BC_LAST_ACTION 0xFFFF
@@ -379,8 +374,7 @@ enum class EkaBcStratType : uint8_t {
  * @param type
  * @return Index (=handle) to be used or -1 if failed
  */
-EkaBcActionIdx ekaBcAllocateNewAction(
-                                      EkaBcActionType type);
+EkaActionIdx allocateNewAction(EkaBcActionType type);
 
 /**
  * @brief Initializes the Payload of the Fire (=TX) Packet.
@@ -388,29 +382,25 @@ EkaBcActionIdx ekaBcAllocateNewAction(
  *
  * @param ekaDev
  * @param actionIdx handle of the action from
- *                  ekaBcAllocateNewAction()
+ *                  allocateNewAction()
  * @param payload
  * @param len
  * @return * OpResult
  */
-OpResult ekaBcSetActionPayload(
-                               EkaBcActionIdx actionIdx,
-                               const void *payload,
-                               size_t len);
+OpResult setActionPayload(EkaActionIdx actionIdx,
+                          const void *payload, size_t len);
 
 /**
  * @brief Set the Action to previously connected Ekaline
  *        (Exc) Tcp Socket object
  *
- * @param ekaDev
  * @param globalIdx handle of the action from
- *                  ekaBcAllocateNewAction()
+ *                  allocateNewAction()
  * @param ekaSock
  * @return OpResult
  */
-OpResult ekaBcSetActionTcpSock(
-                               EkaBcActionIdx actionIdx,
-                               EkaBcSock ekaSock);
+OpResult setActionTcpSock(EkaActionIdx actionIdx,
+                          EkaSock ekaSock);
 
 /**
  * @brief Set the Action Next hop in the chain. Use
@@ -418,14 +408,12 @@ OpResult ekaBcSetActionTcpSock(
  * created with a default value of EKA_BC_LAST_ACTION
  *
  *
- * @param ekaDev
  * @param globalIdx
  * @param nextActionGlobalIdx
  * @return OpResult
  */
-OpResult ekaBcSetActionNext(
-                            EkaBcActionIdx actionIdx,
-                            EkaBcActionIdx nextActionIdx);
+OpResult setActionNext(EkaActionIdx actionIdx,
+                       EkaActionIdx nextActionIdx);
 
 /**
  * @brief Sends application message via HW action with
@@ -434,7 +422,6 @@ OpResult ekaBcSetActionNext(
  *        like Application Sequence or Timestamp
  *        must be managed by HW.
  *
- * @param pEkaDev
  * @param actionIdx Handle of the Action pointing to:
  *                  - TCP Session (ekaSock)
  *                  - Payload template
@@ -443,22 +430,19 @@ OpResult ekaBcSetActionNext(
  * @param size
  * @return ssize_t
  */
-ssize_t ekaBcAppSend(
-                     EkaBcActionIdx actionIdx,
-                     const void *buffer, size_t size);
+ssize_t appTcpSend(EkaActionIdx actionIdx,
+                   const void *buffer, size_t size);
 
 /**
  * @brief Sets Application layer counter for Ekaline TCP
  *        session. Works for both ASCII and Binary counter
  *        representations.
  *
- * @param dev
  * @param ekaSock TCP sock handle
  * @param cntr Binary counter's value
  * @return OpResult
  */
-OpResult ekaBcSetSessionCntr(EkaBcSock ekaSock,
-                             uint64_t cntr);
+OpResult setSessionCntr(EkaSock ekaSock, uint64_t cntr);
 
 /* ==================================================== */
 
@@ -503,8 +487,7 @@ OpResult setMdRcvParams(const UdpMcParams *mcParams,
  * @param mcParams MC groups of the market data
  * @return OpResult
  */
-OpResult ekaBcsInitMoexStrategy(
-                              const UdpMcParams *mcParams);
+OpResult initMoexStrategy(const UdpMcParams *mcParams);
 
 /**
  * @brief Security handle to be used for
@@ -525,13 +508,13 @@ typedef uint32_t EkaBcEurFireSize;
 typedef int32_t EkaBcEurMdSize;
 typedef uint64_t EkaBcEurTimeNs;
 
-  //typedef char EkaBcsMoexSecId[12]; update to this
+// typedef char EkaBcsMoexSecId[12]; update to this
 typedef int64_t EkaBcsMoexSecId;
-typedef int64_t EkaBcsMoexPrice; //tbd
-typedef uint32_t EkaBcsMoexFireSize; //tbd
-typedef int32_t EkaBcsMoexMdSize; //tbd
-typedef uint64_t EkaBcsMoexTimeNs; //tbd
-  
+typedef int64_t EkaBcsMoexPrice;     // tbd
+typedef uint32_t EkaBcsMoexFireSize; // tbd
+typedef int32_t EkaBcsMoexMdSize;    // tbd
+typedef uint64_t EkaBcsMoexTimeNs;   // tbd
+
 #define EKA_BC_EUR_MAX_PRODS 16
 
 /**
@@ -541,9 +524,8 @@ typedef uint64_t EkaBcsMoexTimeNs; //tbd
  * @param nProducts number of products
  * @return OpResult
  */
-OpResult ekaBcsSetProducts(
-                          const EkaBcsMoexSecId *prodList,
-                          size_t nProducts);
+OpResult ekaBcsSetProducts(const EkaBcsMoexSecId *prodList,
+                           size_t nProducts);
 
 /**
  * @brief Mapping the exchange security encoding to internal
@@ -551,14 +533,12 @@ OpResult ekaBcsSetProducts(
  * the order of the securities on the subscription list is
  * not.
  *
- * @param dev
  * @param secId Exchange encoded ID
  * @return EkaBcsSecHandle Handle ID.
  *         Negative value means the Security did not fetch
  * the internal data structure and so ignored!!!
  */
-EkaBcsSecHandle ekaBcsGetSecHandle(
-                                 EkaBcsMoexSecId secId);
+EkaBcsSecHandle ekaBcsGetSecHandle(EkaBcsMoexSecId secId);
 
 /**
  * @brief Config params for Eurex product.
@@ -573,7 +553,7 @@ struct EkaBcEurProductInitParams {
   EkaBcEurPrice step;
   bool isBook;
   uint8_t eiPriceFlavor;
-  EkaBcActionIdx fireActionIdx;
+  EkaActionIdx fireActionIdx;
 };
 
 /**
@@ -595,7 +575,6 @@ struct EkaBcsMoexProductInitParams {
 /**
  * @brief Setting basic params for Eurex product
  *
- * @param dev
  * @param prodHande
  * @param params
  * @return OpResult
@@ -623,7 +602,7 @@ struct EkaBcProductDynamicParams {
 struct EkaBcsProductDynamicParams {
   int reserved;
 };
-  
+
 /**
  * @brief Sets dynamic params of Eurex Product
  *
@@ -694,7 +673,8 @@ struct EkaBcEurReferenceJumpParams {
  * @return OpResult
  */
 OpResult
-ekaBcEurSetJumpParams(EkaDev *dev, EkaBcsSecHandle prodHande,
+ekaBcEurSetJumpParams(EkaDev *dev,
+                      EkaBcsSecHandle prodHande,
                       const EkaBcEurJumpParams *params);
 
 /**
@@ -736,9 +716,8 @@ typedef uint8_t EkaBcsArmVer;
  *                armBid == false and armAsk == false)
  * @return OpResult
  */
-OpResult ekaBcArmEur(EkaBcsSecHandle prodHande,
-                     bool armBid, bool armAsk,
-                     EkaBcArmVer ver = 0);
+OpResult ekaBcArmEur(EkaBcsSecHandle prodHande, bool armBid,
+                     bool armAsk, EkaBcArmVer ver = 0);
 
 /**
 @brief Arming CmeFc strategy Firing logic
@@ -774,7 +753,7 @@ struct EkaBcsRunCtx {
   onEkaBcReportCb onReportCb;
   void *cbCtx; ///< optional opaque field looped back to CB
 };
-  
+
 /**
  * @brief Downloads all the configs to the HW.
  *        Subscribes on the MC.
@@ -786,8 +765,7 @@ struct EkaBcsRunCtx {
  * @param pEkaDev
  * @param pEkaBcRunCtx
  */
-void ekaBcEurRun(
-                 const EkaBcRunCtx *pEkaBcRunCtx);
+void ekaBcEurRun(const EkaBcRunCtx *pEkaBcRunCtx);
 
 void EkaBcsMoexRun(
 		 const EkaBcsRunCtx *pEkaBcRunCtx);

@@ -40,7 +40,7 @@ public:
 
   uint32_t hwMidPoint_ = 0;
 
-  EkaBcActionIdx fireActionIdx_ = -1;
+  EkaActionIdx fireActionIdx_ = -1;
 
   EkaEobiBook *book_ = nullptr;
 

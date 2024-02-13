@@ -254,7 +254,7 @@ inline uint8_t normalizeHandle(EkaBcSecHandle h) {
   return static_cast<uint8_t>(h);
 }
 
-inline uint16_t normalizeActionIdx(EkaBcActionIdx idx) {
+inline uint16_t normalizeActionIdx(EkaActionIdx idx) {
   if (idx < 0 || idx > 2048)
     on_error("Bad actionIdx %d", idx);
   return static_cast<uint16_t>(idx);

@@ -206,7 +206,7 @@ void TestEfcFixture::initMoex() {
   tcpCtx_->connectAll();
 
   /* --------------------------------------------- */
-  rc = ekaBcsInitMoexStrategy(mcParams_);
+  rc = initMoexStrategy(mcParams_);
   ASSERT_EQ(rc, OPRESULT__OK);
 
   /* --------------------------------------------- */
