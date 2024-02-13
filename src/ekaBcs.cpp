@@ -302,39 +302,37 @@ OpResult ekaBcDisArmCmeFc(EkaDev *dev) {
 
 /* ==================================================== */
 
-void ekaBcEurRun(const EkaBcRunCtx *pEkaBcRunCtx) {
+  void EkaBcsMoexRun(
+                 const EkaBcsRunCtx *pEkaBcsRunCtx) {
 
   if (!g_ekaDev || !g_ekaDev->efc)
     on_error("HW Eng is not initialized: use hwEngInit()");
 
-  auto eur = g_ekaDev->efc->eur_;
-  if (!eur)
-    on_error("Eurex is not initialized: use "
-             "ekaBcInitEurStrategy()");
-
-  EKA_LOG("Downloading Hash");
-  eur->downloadPackedDB();
+  auto moex = g_ekaDev->efc->moex_;
+  if (!moex)
+    on_error("Moex is not initialized: use "
+             "ekaBcsInitMoexStrategy()");
 
   EKA_LOG("Joining UDP Channels");
-  eur->joinUdpChannels();
+  moex->joinUdpChannels();
 
   EKA_LOG("Updating Scratchpad");
-  eur->downloadProdInfoDB();
+  moex->downloadProdInfoDB();
 
   /* ----------------------------------------------- */
-  if (!pEkaBcRunCtx)
-    on_error("!pEkaBcRunCtx");
-  if (!pEkaBcRunCtx->onReportCb)
+  if (!pEkaBcsRunCtx)
+    on_error("!pEkaBcsRunCtx");
+  if (!pEkaBcsRunCtx->onReportCb)
     on_error("!pEfcRunCtx->onReportCb");
   /* ----------------------------------------------- */
 
   EKA_LOG("Lounching "
-          "EkaEurStrategy::fireReportThreadLoop()");
+          "EkaMoexStrategy::fireReportThreadLoop()");
   auto fireReportLoopFunc =
-      std::bind(&EkaEurStrategy::fireReportThreadLoop, eur,
-                pEkaBcRunCtx);
-  eur->fireReportLoopThr_ = std::thread(fireReportLoopFunc);
-  EKA_LOG("EkaEurStrategy::fireReportThreadLoop() "
+      std::bind(&EkaMoexStrategy::fireReportThreadLoop, moex,
+                pEkaBcsRunCtx);
+  moex->fireReportLoopThr_ = std::thread(fireReportLoopFunc);
+  EKA_LOG("EkaMoexStrategy::fireReportThreadLoop() "
           "span off");
   fflush(g_ekaLogFile);
   /* ----------------------------------------------- */
@@ -342,13 +340,13 @@ void ekaBcEurRun(const EkaBcRunCtx *pEkaBcRunCtx) {
   g_ekaDev->efc->setHwUdpParams();
   g_ekaDev->efc->enableRxFire();
 
-  EKA_LOG("Lounching EkaEurStrategy::runLoop()");
-  auto loopFunc = std::bind(&EkaEurStrategy::runLoop, eur,
-                            pEkaBcRunCtx);
+  EKA_LOG("Lounching EkaMoexStrategy::runLoop()");
+  auto loopFunc = std::bind(&EkaMoexStrategy::runLoop, moex,
+                            pEkaBcsRunCtx);
 
-  eur->runLoopThr_ = std::thread(loopFunc);
+  moex->runLoopThr_ = std::thread(loopFunc);
 
-  EKA_LOG("EkaEurStrategy::runLoop() span off");
+  EKA_LOG("EkaMoexStrategy::runLoop() span off");
   fflush(g_ekaLogFile);
 }
 

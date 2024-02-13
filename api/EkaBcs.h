@@ -767,6 +767,9 @@ struct EkaBcsRunCtx {
  */
 void ekaBcEurRun(const EkaBcRunCtx *pEkaBcRunCtx);
 
+void EkaBcsMoexRun(
+		 const EkaBcsRunCtx *pEkaBcRunCtx);
+
 ///////////////////////
 // Reports
 ///////////////////////
