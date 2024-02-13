@@ -22,6 +22,10 @@
 #include "EkaMdRecvHandler.h"
 
 extern EkaDev *g_ekaDev;
+int ekaAddArpEntry(EkaDev *dev, EkaCoreId coreId,
+                   const uint32_t *protocolAddr,
+                   const uint8_t *hwAddr);
+
 namespace EkaBcs {
 
 OpResult openDev(const EkaBcAffinityConfig *affinityConf,
@@ -55,6 +59,19 @@ OpResult closeDev() {
 
   return OPRESULT__OK;
 }
+/* ==================================================== */
+
+OpResult addArpEntry(EkaBcLane lane, const uint32_t *ipAddr,
+                     const uint8_t *macAddr) {
+
+  auto rc = ekaAddArpEntry(g_ekaDev, lane, ipAddr, macAddr);
+
+  if (rc)
+    return OPRESULT__ERR_A;
+
+  return OPRESULT__OK;
+}
+
 /* ==================================================== */
 
 EkaSock tcpConnect(EkaBcLane coreId, const char *ip,
@@ -155,8 +172,7 @@ ssize_t appTcpSend(EkaDev *dev, EkaActionIdx actionIdx,
 
 /* ==================================================== */
 
-OpResult setSessionCntr(EkaSock ekaSock,
-                             uint64_t cntr) {
+OpResult setSessionCntr(EkaSock ekaSock, uint64_t cntr) {
   EkaTcpSess *const s = g_ekaDev->findTcpSess(ekaSock);
   if (!s) {
     EKA_WARN("TCP sock %d not found", ekaSock);
@@ -249,8 +265,7 @@ OpResult configurePort(EkaBcLane lane,
 }
 /* ==================================================== */
 
-EkaActionIdx
-allocateNewAction(EkaBcActionType type) {
+EkaActionIdx allocateNewAction(EkaBcActionType type) {
   return efcAllocateNewAction(
       g_ekaDev, static_cast<EpmActionType>(type));
 }
@@ -258,8 +273,7 @@ allocateNewAction(EkaBcActionType type) {
 /* ==================================================== */
 
 OpResult setActionPayload(EkaActionIdx actionIdx,
-                               const void *payload,
-                               size_t len) {
+                          const void *payload, size_t len) {
 
   efcSetActionPayload(g_ekaDev, actionIdx, payload, len);
   return OPRESULT__OK;
@@ -302,8 +316,7 @@ OpResult ekaBcDisArmCmeFc(EkaDev *dev) {
 
 /* ==================================================== */
 
-  void EkaBcsMoexRun(
-                 const EkaBcsRunCtx *pEkaBcsRunCtx) {
+void EkaBcsMoexRun(const EkaBcsRunCtx *pEkaBcsRunCtx) {
 
   if (!g_ekaDev || !g_ekaDev->efc)
     on_error("HW Eng is not initialized: use hwEngInit()");
@@ -329,9 +342,10 @@ OpResult ekaBcDisArmCmeFc(EkaDev *dev) {
   EKA_LOG("Lounching "
           "EkaMoexStrategy::fireReportThreadLoop()");
   auto fireReportLoopFunc =
-      std::bind(&EkaMoexStrategy::fireReportThreadLoop, moex,
-                pEkaBcsRunCtx);
-  moex->fireReportLoopThr_ = std::thread(fireReportLoopFunc);
+      std::bind(&EkaMoexStrategy::fireReportThreadLoop,
+                moex, pEkaBcsRunCtx);
+  moex->fireReportLoopThr_ =
+      std::thread(fireReportLoopFunc);
   EKA_LOG("EkaMoexStrategy::fireReportThreadLoop() "
           "span off");
   fflush(g_ekaLogFile);
@@ -353,27 +367,26 @@ OpResult ekaBcDisArmCmeFc(EkaDev *dev) {
 /* ==================================================== */
 
 OpResult setActionTcpSock(EkaActionIdx actionIdx,
-                               EkaSock sock) {
+                          EkaSock sock) {
   setActionTcpSock(g_ekaDev, actionIdx, sock);
   return OPRESULT__OK;
 }
 /* ==================================================== */
 
 OpResult setActionNext(EkaActionIdx actionIdx,
-                            EkaActionIdx nextActionIdx) {
+                       EkaActionIdx nextActionIdx) {
   setActionNext(g_ekaDev, actionIdx, nextActionIdx);
   return OPRESULT__OK;
 }
 /* ==================================================== */
 
 ssize_t appTcpSend(EkaActionIdx actionIdx,
-                     const void *buffer, size_t size) {
+                   const void *buffer, size_t size) {
   return efcAppSend(g_ekaDev, actionIdx, buffer, size);
 }
 /* ==================================================== */
 
-OpResult
-initMoexStrategy(const UdpMcParams *mcParams) {
+OpResult initMoexStrategy(const UdpMcParams *mcParams) {
   if (!g_ekaDev)
     on_error("!g_ekaDev");
   if (!g_ekaDev->efc)
