@@ -21,6 +21,7 @@
 #include "EkaEfcDataStructs.h"
 
 #include "EkaEurStrategy.h"
+#include "EkaMoexStrategy.h"
 #include "EkaUserChannel.h"
 
 #include "EkaEfcDataStructs.h"
@@ -36,8 +37,8 @@ static inline void sendExcptRequestTrigger(EkaDev *dev) {
 
 /* ################################################## */
 
-void EkaEurStrategy::fireReportThreadLoop(
-    const EkaBcRunCtx *pEkaBcRunCtx) {
+void EkaMoexStrategy::fireReportThreadLoop(
+    const EkaBcsRunCtx *pEkaBcRunCtx) {
 
   if (!pEkaBcRunCtx)
     on_error("!pEkaBcRunCtx");
@@ -202,7 +203,7 @@ pushExceptionsReport(int reportIdx, uint8_t *dst,
 /* ################################################## */
 
 std::pair<int, size_t>
-EkaEurStrategy::processExceptionsReport(
+EkaMoexStrategy::processExceptionsReport(
     EkaDev *dev, const uint8_t *srcReport,
     uint srcReportLen, EkaUserReportQ *q, uint32_t dmaIdx,
     uint8_t *reportBuf) {
@@ -230,7 +231,7 @@ EkaEurStrategy::processExceptionsReport(
 }
 
 std::pair<int, size_t>
-EkaEurStrategy::processFastCancelReport(
+EkaMoexStrategy::processFastCancelReport(
     EkaDev *dev, const uint8_t *srcReport,
     uint srcReportLen, EkaUserReportQ *q, uint32_t dmaIdx,
     uint8_t *reportBuf) {
@@ -239,7 +240,7 @@ EkaEurStrategy::processFastCancelReport(
 /* ################################################## */
 
 static inline size_t
-pushEurFireReport(int reportIdx, uint8_t *dst,
+pushMoexFireReport(int reportIdx, uint8_t *dst,
                   const EkaBcFireReport *src) {
 
   auto b = dst;
@@ -258,7 +259,7 @@ pushEurFireReport(int reportIdx, uint8_t *dst,
 /* ################################################## */
 
 static inline size_t
-pushEurEpmReport(int reportIdx, uint8_t *dst,
+pushMoexEpmReport(int reportIdx, uint8_t *dst,
                   const EkaBcSwReport *src) {
 
   auto b = dst;
@@ -306,7 +307,7 @@ pushFiredPkt(volatile bool *fireReportThreadActive,
 
 /* ################################################## */
 
-std::pair<int, size_t> EkaEurStrategy::processFireReport(
+std::pair<int, size_t> EkaMoexStrategy::processFireReport(
     EkaDev *dev, const uint8_t *srcReport,
     uint srcReportLen, EkaUserReportQ *q, uint32_t dmaIdx,
     uint8_t *reportBuf) {
@@ -324,7 +325,7 @@ std::pair<int, size_t> EkaEurStrategy::processFireReport(
       0; // to be overwritten at the end
   b += sizeof(*containerHdr);
   //--------------------------------------------------------------------------
-  b += pushEurFireReport(++reportIdx, b, hwReport);
+  b += pushMoexFireReport(++reportIdx, b, hwReport);
 
   b += pushFiredPkt(&dev_->fireReportThreadActive,
                     ++reportIdx, b, q, dmaIdx);
@@ -339,7 +340,7 @@ std::pair<int, size_t> EkaEurStrategy::processFireReport(
 /* ################################################## */
 
 std::pair<int, size_t>
-EkaEurStrategy::processSwTriggeredReport(
+EkaMoexStrategy::processSwTriggeredReport(
     EkaDev *dev, const uint8_t *srcReport,
     uint srcReportLen, EkaUserReportQ *q, uint32_t dmaIdx,
     uint8_t *reportBuf) {
@@ -362,7 +363,7 @@ EkaEurStrategy::processSwTriggeredReport(
   switch (static_cast<HwEpmActionStatus>(
       hwEpmReport->fireStatus)) {
   case HwEpmActionStatus::Sent:
-    b += pushEurEpmReport(++reportIdx, b, hwEpmReport);
+    b += pushMoexEpmReport(++reportIdx, b, hwEpmReport);
     b += pushFiredPkt(&dev_->fireReportThreadActive,
                     ++reportIdx, b, q, dmaIdx);
     //    EKA_LOG("processEpmReport HwEpmActionStatus::Sent,  len=%d",srcReportLen);
@@ -371,7 +372,7 @@ EkaEurStrategy::processSwTriggeredReport(
     // Broken EPM send reported by hwEpmReport->action
     EKA_LOG("Processgin HwEpmActionStatus::Garbage, len=%d",
             srcReportLen);
-    b += pushEurEpmReport(++reportIdx, b, hwEpmReport);
+    b += pushMoexEpmReport(++reportIdx, b, hwEpmReport);
   }
   //--------------------------------------------------------------------------
   containerHdr->nReports = reportIdx;

@@ -323,8 +323,10 @@ static const UdpMcParams core0_1mc = {mc0, std::size(mc0)};
 static const McGroupParams mc1[] = {1, "224.1.11.101",
                                     30311};
 static const UdpMcParams core1_1mc = {mc1, std::size(mc1)};
-static const McGroupParams mc2[] = {2, "224.2.12.102",
-                                    30312};
+// static const McGroupParams mc2[] = {2, "224.2.12.102",
+//                                     30312}
+static const McGroupParams mc2[] = {2, "239.195.1.16",
+                                     16016};
 static const UdpMcParams core2_1mc = {mc2, std::size(mc2)};
 static const McGroupParams mc3[] = {3, "224.3.13.103",
                                     30313};
@@ -387,8 +389,8 @@ TEST_F(TestEur, Eur_basic) {
   ASSERT_NE(h, -1);
   ASSERT_NE(r, -1);
 
-  if (0) { 
-
+#ifdef _TBD_
+  
   //  printf ("Main Hanlde = %d, Reference Handle =
   //  %d",h,r);
   auto eurHwAction = ekaBcAllocateNewAction(
@@ -590,10 +592,16 @@ TEST_F(TestEur, Eur_basic) {
                    true /* armAsk */, armVer++);
   ASSERT_EQ(rc, OPRESULT__OK);
 
-  EkaBcRunCtx runCtx = {.onReportCb = getExampleFireReport,
+#endif
+  
+  
+  EkaBcsRunCtx runCtx = {.onReportCb = getExampleFireReport,
                         .cbCtx = this};
-  ekaBcEurRun( &runCtx);
+  EkaBcsMoexRun( &runCtx);
 
+
+#ifdef _TBD_
+    
   tcpCtx_->tcpSess_[0]->sendTestPkt();
 
   EobiAddOrderPkt addOrderBidPkt = {};
@@ -711,11 +719,12 @@ TEST_F(TestEur, Eur_basic) {
   }
   sleep(1);
 
-  } //if (0)
+#endif
   
 #ifndef _VERILOG_SIM
   closeDev();
 #endif
+
 }
 #endif
 /* --------------------------------------------- */

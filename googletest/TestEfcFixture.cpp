@@ -214,11 +214,11 @@ void TestEfcFixture::initMoex() {
   ASSERT_EQ(rc, OPRESULT__OK);
 }
 /* --------------------------------------------- */
-void TestEfcFixture::runEur() {
-  EkaBcRunCtx runCtx = {.onReportCb = getFireReport,
-                        .cbCtx = this};
-  ekaBcEurRun(&runCtx);
-}
+// void TestEfcFixture::runEur() {
+//   EkaBcRunCtx runCtx = {.onReportCb = getFireReport,
+//                         .cbCtx = this};
+//   ekaBcEurRun(&runCtx);
+// }
 /* --------------------------------------------- */
 void TestEfcFixture::getReportPtrs(const void *p,
                                    size_t len) {
