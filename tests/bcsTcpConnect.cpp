@@ -91,21 +91,11 @@ int main(int argc, char *argv[]) {
 
   PortAttrs feth1Conf = {
       .host_ip = inet_addr("10.250.218.96"),
-      .netmask = inet_addr("255.255.0.0")};
+      .netmask = inet_addr("255.255.0.0"),
+      .nexthop_mac = {0x30, 0xf7, 0x0d, 0x9c, 0x6b, 0x3c}};
 
   if (configurePort(moexLane, &feth1Conf) != OPRESULT__OK)
     on_error("configurePort() failed");
-
-  // ==============================================
-  // Adding ARP for feth1
-  uint8_t moexSwitchMacAddr[6] = {0x30, 0xf7, 0x0d,
-                                  0x9c, 0x6b, 0x3c};
-
-  uint32_t ipAddr = inet_addr(moexIp);
-
-  if (addArpEntry(moexLane, &ipAddr, moexSwitchMacAddr) !=
-      OPRESULT__OK)
-    on_error("addArpEntry() failed");
 
   // ==============================================
   // TCP

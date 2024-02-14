@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
+#include <iostream>
+#include <cstring>
 
 class EkaDev;
 
@@ -272,17 +274,6 @@ OpResult configurePort(EkaBcLane lane,
 /**
  * @brief
  *
- * @param lane
- * @param ipAddr
- * @param macAddr
- * @return OpResult
- */
-OpResult addArpEntry(EkaBcLane lane, const uint32_t *ipAddr,
-                     const uint8_t *macAddr);
-
-/**
- * @brief
- *
  */
 
 typedef int (*MdProcessCallback)(const void *pkt,
@@ -491,9 +482,7 @@ OpResult setMdRcvParams(const UdpMcParams *mcParams,
 /* ====================================================== */
 
 /**
- * @brief Initializes internal infrastructure for
- *        Eurex Jump and RefJump logic
- *        must be called before configuring Eurex products
+ * @brief Initializes BCS Moex with MC params
  *
  * @param mcParams MC groups of the market data
  * @return OpResult
@@ -508,6 +497,20 @@ OpResult initMoexStrategy(const UdpMcParams *mcParams);
 typedef int64_t EkaBcSecHandle;
 typedef int64_t EkaBcsSecHandle;
 
+class MoexSecurityId {
+public:
+  MoexSecurityId() { std::memset(data, 0, sizeof(data)); }
+  MoexSecurityId &operator=(const MoexSecurityId &other) {
+    if (this != &other)
+      std::memcpy(data, other.data, sizeof(data));
+    return *this;
+  }
+  void print() const { std::cout << data << '\n'; }
+
+private:
+  char data[12];
+};
+
 /**
  * @brief Security ID as listed on the exchange
  *        Used only for initializing the securities list
@@ -519,8 +522,8 @@ typedef uint32_t EkaBcEurFireSize;
 typedef int32_t EkaBcEurMdSize;
 typedef uint64_t EkaBcEurTimeNs;
 
-// typedef char EkaBcsMoexSecId[12]; update to this
-typedef int64_t EkaBcsMoexSecId;
+typedef char EkaBcsMoexSecId[12]; /// update to this
+// typedef int64_t EkaBcsMoexSecId;
 typedef int64_t EkaBcsMoexPrice;     // tbd
 typedef uint32_t EkaBcsMoexFireSize; // tbd
 typedef int32_t EkaBcsMoexMdSize;    // tbd
@@ -552,156 +555,36 @@ OpResult ekaBcsSetProducts(const EkaBcsMoexSecId *prodList,
 EkaBcsSecHandle ekaBcsGetSecHandle(EkaBcsMoexSecId secId);
 
 /**
- * @brief Config params for Eurex product.
- *        Initialized only once per Product.
- *
- */
-struct EkaBcEurProductInitParams {
-  EkaBcEurSecId secId;
-  EkaBcEurPrice midPoint;
-  EkaBcEurPrice
-      priceDiv; // for price normalization (prints only)
-  EkaBcEurPrice step;
-  bool isBook;
-  uint8_t eiPriceFlavor;
-  EkaActionIdx fireActionIdx;
-};
-
-/**
  * @brief Config params for Moex product.
  *        Initialized only once per Product.
  *
  */
-struct EkaBcsMoexProductInitParams {
-  EkaBcsMoexSecId secId;
-  // EkaBcEurPrice midPoint;
-  // EkaBcEurPrice
-  //     priceDiv; // for price normalization (prints only)
-  // EkaBcEurPrice step;
-  // bool isBook;
-  // uint8_t eiPriceFlavor;
+struct ProdPairInitParams {
+  MoexSecurityId secA;
+  MoexSecurityId secB;
   EkaBcsActionIdx fireActionIdx;
 };
 
-/**
- * @brief Setting basic params for Eurex product
- *
- * @param prodHande
- * @param params
- * @return OpResult
- */
-OpResult
-ekaBcInitEurProd(EkaBcsSecHandle prodHande,
-                 const EkaBcEurProductInitParams *params);
+#define MOEX_MAX_PROD_PAIRS 16
 
-/**
- * @brief Product params used by FPGA strategy
- *        Can be changed many times
- *
- */
-struct EkaBcProductDynamicParams {
+typedef int PairIdx;
+
+OpResult initProdPair(PairIdx idx,
+                      const ProdPairInitParams *params);
+
+struct ProdPairDynamicParams {
+  // Place holders
+  EkaBcEurPrice priceA;
+  EkaBcEurPrice priceB;
+  EkaBcEurFireSize sizeA;
+  EkaBcEurFireSize sizeB;
   EkaBcEurFireSize maxBidSize; // limit fire size
   EkaBcEurFireSize maxAskSize; // limit fire size
   EkaBcEurPrice maxBookSpread;
 };
 
-/**
- * @brief Product params used by FPGA strategy
- *        Can be changed many times
- *
- */
-struct EkaBcsProductDynamicParams {
-  int reserved;
-};
-
-/**
- * @brief Sets dynamic params of Eurex Product
- *
- * @param dev
- * @param prodHande
- * @param params
- * @return OpResult
- */
-OpResult ekaBcSetEurProdDynamicParams(
-    EkaBcsSecHandle prodHande,
-    const EkaBcProductDynamicParams *params);
-
-#define EKA_JUMP_ATBEST_SETS 4
-#define EKA_JUMP_BETTERBEST_SETS 5
-
-#define EKA_RJUMP_ATBEST_SETS 4
-#define EKA_RJUMP_BETTERBEST_SETS 6
-
-struct JumpParams {
-  EkaBcEurMdSize max_tob_size;
-  EkaBcEurMdSize min_tob_size;
-  EkaBcEurMdSize max_post_size;
-  EkaBcEurMdSize min_ticker_size;
-  EkaBcEurPrice min_price_delta;
-  EkaBcEurFireSize buy_size;  // limit fire size
-  EkaBcEurFireSize sell_size; // limit fire size
-  bool strat_en;
-  bool boc; // Book Or Cancel
-};
-
-/**
- * @brief Used by ekaBcEurSetJumpParams()
- *
- */
-struct EkaBcEurJumpParams {
-  JumpParams betterBest[EKA_JUMP_BETTERBEST_SETS];
-  JumpParams atBest[EKA_JUMP_ATBEST_SETS];
-};
-
-struct ReferenceJumpParams {
-  EkaBcEurMdSize max_tob_size;
-  EkaBcEurMdSize min_tob_size;
-  EkaBcEurMdSize max_opposit_tob_size;
-  EkaBcEurTimeNs time_delta_ns;
-  EkaBcEurMdSize tickersize_lots;
-  EkaBcEurFireSize buy_size;
-  EkaBcEurFireSize sell_size;
-  uint8_t min_spread;
-  bool strat_en;
-  bool boc; // Book Or Cancel
-};
-
-/**
- * @brief Used by ekaBcEurSetReferenceJumpParams()
- *
- */
-struct EkaBcEurReferenceJumpParams {
-  ReferenceJumpParams betterBest[EKA_RJUMP_BETTERBEST_SETS];
-  ReferenceJumpParams atBest[EKA_RJUMP_ATBEST_SETS];
-};
-
-/**
- * @brief Setting Eurex Jump params
- *
- * @param dev
- * @param prodHande
- * @param params
- * @return OpResult
- */
-OpResult
-ekaBcEurSetJumpParams(EkaDev *dev,
-                      EkaBcsSecHandle prodHande,
-                      const EkaBcEurJumpParams *params);
-
-/**
- * @brief Setting Eurex Reference Jump params
- *
- * @param dev
- * @param triggerProd Product Handle of a product getting
- *                    Market Data trigger
- * @param fireProd    Product Handle of the firing product
- * @param params
- * @return OpResult
- */
-OpResult ekaBcEurSetReferenceJumpParams(
-    EkaDev *dev, EkaBcsSecHandle triggerProd,
-    EkaBcsSecHandle fireProd,
-    const EkaBcEurReferenceJumpParams *params);
+OpResult setProdPairDynamicParams(
+    PairIdx idx, const ProdPairDynamicParams *params);
 
 /**
  * @brief EkaBcArmVer is a mechanism to guarantee controlled
@@ -729,23 +612,6 @@ typedef uint8_t EkaBcsArmVer;
  */
 OpResult ekaBcArmEur(EkaBcsSecHandle prodHande, bool armBid,
                      bool armAsk, EkaBcArmVer ver = 0);
-
-/**
-@brief Arming CmeFc strategy Firing logic
- *
- * @param dev
- * @param ver
- * @return OpResult
- */
-OpResult ekaBcArmCmeFc(EkaDev *dev, EkaBcArmVer ver);
-
-/**
-@brief DisArming CmeFc strategy Firing logic
- *
- * @param dev
- * @return OpResult
- */
-OpResult ekaBcDisArmCmeFc(EkaDev *dev);
 
 /**
 @brief Callback function pointer. Called every time the
@@ -776,7 +642,6 @@ struct EkaBcsRunCtx {
  * @param pEkaDev
  * @param pEkaBcRunCtx
  */
-void ekaBcEurRun(const EkaBcRunCtx *pEkaBcRunCtx);
 
 void EkaBcsMoexRun(const EkaBcsRunCtx *pEkaBcRunCtx);
 

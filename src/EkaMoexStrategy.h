@@ -4,18 +4,14 @@
 #include "EkaStrategyEhp.h"
 
 #include "EhpMoex.h"
-#include "EkaBcsMoexProd.h"
+// #include "EkaBcsMoexProd.h"
 #include "EkaHashEng.h"
-
-#include "EkaEobiBook.h"
-
-#include "EkaEobiTypes.h"
-using namespace EkaEobi;
 
 class EkaBcsMoexProd;
 class EkaEobiParser;
 class EkaEobiBook;
 class EkaDev;
+class EkaMoexProdPair;
 
 class EkaMoexStrategy : public EkaStrategyEhp<EhpBcsMoex> {
 private:
@@ -24,25 +20,24 @@ private:
   static const size_t Cols = 3;
 
   //  using HashEngT = EkaHashEng<EkaBcEurSecId,
-  //                              EfhFeedVer::kEUR, Rows, Cols>;
+  //                              EfhFeedVer::kEUR, Rows,
+  //                              Cols>;
 
 public:
   EkaMoexStrategy(const EfcUdpMcParams *mcParams);
   ~EkaMoexStrategy();
 
-  OpResult
-  subscribeSecList(const EkaBcsMoexSecId *prodList,
-                   size_t nProducts);
+  OpResult subscribeSecList(const EkaBcsMoexSecId *prodList,
+                            size_t nProducts);
 
   EkaBcsSecHandle getSubscriptionId(EkaBcsMoexSecId secId);
 
-  OpResult
-  initProd(EkaBcsSecHandle prodHande,
-           const EkaBcsMoexProductInitParams *params);
+  OpResult initPair(PairIdx idx,
+                    const ProdPairInitParams *params);
 
-  OpResult setProdDynamicParams(
-      EkaBcsSecHandle prodHande,
-      const EkaBcsProductDynamicParams *params);
+  OpResult
+  setPairDynamicParams(PairIdx idx,
+                       const ProdPairDynamicParams *params);
 
   // OpResult
   // setProdJumpParams(EkaBcsSecHandle prodHande,
@@ -51,28 +46,24 @@ public:
   void arm(EkaBcsSecHandle prodHande, bool armBid,
            bool armAsk, EkaBcsArmVer ver);
 
-  // OpResult setProdReferenceJumpParams(
-  //     EkaBcsSecHandle triggerProd, EkaBcsSecHandle fireProd,
-  //     const EkaBcsMoexReferenceJumpParams *params);
-
-  int sendDate2Hw();
-
   void runLoop(const EkaBcsRunCtx *pEkaBcsRunCtx);
 
-  // void ekaWriteTob(EkaBcsSecHandle prodHandle,
-  //                  const EobiHwBookParams *params,
-  //                  SIDE side);
+  // EkaBcsMoexProd *getProd(EkaBcsSecHandle prodHandle);
 
-  EkaBcsMoexProd *getProd(EkaBcsSecHandle prodHandle);
-  
   OpResult downloadPackedDB();
 
   OpResult downloadProdInfoDB();
 
-  void
-  fireReportThreadLoop(const EkaBcsRunCtx *pEkaBcsRunCtx);
-
 private:
+  typedef enum {
+    BID = 0,
+    ASK = 1,
+    IRRELEVANT = 3,
+    ERROR = 101,
+    BOTH = 200,
+    NONE = 300
+  } SIDE;
+
   void configureTemplates();
 
   void writeTob(EkaBcsSecHandle handle, void *params,
@@ -82,34 +73,32 @@ private:
       EkaDev *dev, const uint8_t *srcReport,
       uint srcReportLen, EkaUserReportQ *q, uint32_t dmaIdx,
       uint8_t *reportBuf);
+
   std::pair<int, size_t> processExceptionsReport(
       EkaDev *dev, const uint8_t *srcReport,
       uint srcReportLen, EkaUserReportQ *q, uint32_t dmaIdx,
       uint8_t *reportBuf);
+
   std::pair<int, size_t> processFastCancelReport(
       EkaDev *dev, const uint8_t *srcReport,
       uint srcReportLen, EkaUserReportQ *q, uint32_t dmaIdx,
       uint8_t *reportBuf);
+
   std::pair<int, size_t>
   processFireReport(EkaDev *dev, const uint8_t *srcReport,
                     uint srcReportLen, EkaUserReportQ *q,
                     uint32_t dmaIdx, uint8_t *reportBuf);
 
 public:
-  // EkaEobiBook *findBook(ExchSecurityId secId);
-
-  // void onTobChange(MdOut *mdOut, EkaEobiBook *book,
-  //                  SIDE side);
-
   std::thread runLoopThr_;
   std::thread fireReportLoopThr_;
 
 private:
   int nSec_ = 0;
 
-  EkaBcsMoexProd *prod_[MaxSecurities_] = {};
+  // EkaBcsMoexProd *prod_[MaxSecurities_] = {};
 
-  //  HashEngT *hashEng_ = nullptr;
+  EkaMoexProdPair *pair_[MOEX_MAX_PROD_PAIRS] = {};
 
 public:
   //  EkaEobiParser *parser_ = nullptr;

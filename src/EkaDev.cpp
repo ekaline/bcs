@@ -24,7 +24,6 @@
 #include "EkaWc.h"
 #include "eka_hw_conf.h"
 
-#include "EkaEurStrategy.h"
 #include "EkaMoexStrategy.h"
 
 extern FILE *g_ekaLogFile;

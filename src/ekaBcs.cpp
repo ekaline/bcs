@@ -17,14 +17,10 @@
 #include "EkaTcpSess.h"
 #include "EkaUdpTxSess.h"
 
-#include "EkaEurStrategy.h"
 #include "EkaMoexStrategy.h"
 #include "EkaMdRecvHandler.h"
 
 extern EkaDev *g_ekaDev;
-int ekaAddArpEntry(EkaDev *dev, EkaCoreId coreId,
-                   const uint32_t *protocolAddr,
-                   const uint8_t *hwAddr);
 
 namespace EkaBcs {
 
@@ -59,19 +55,6 @@ OpResult closeDev() {
 
   return OPRESULT__OK;
 }
-/* ==================================================== */
-
-OpResult addArpEntry(EkaBcLane lane, const uint32_t *ipAddr,
-                     const uint8_t *macAddr) {
-
-  auto rc = ekaAddArpEntry(g_ekaDev, lane, ipAddr, macAddr);
-
-  if (rc)
-    return OPRESULT__ERR_A;
-
-  return OPRESULT__OK;
-}
-
 /* ==================================================== */
 
 EkaSock tcpConnect(EkaBcLane coreId, const char *ip,
@@ -278,41 +261,6 @@ OpResult setActionPayload(EkaActionIdx actionIdx,
   efcSetActionPayload(g_ekaDev, actionIdx, payload, len);
   return OPRESULT__OK;
 }
-/* ==================================================== */
-
-OpResult ekaBcArmEur(EkaBcSecHandle prodHande, bool armBid,
-                     bool armAsk, EkaBcArmVer ver) {
-  if (!g_ekaDev || !g_ekaDev->efc)
-    on_error("HW Eng is not initialized: use hwEngInit()");
-  auto efc = g_ekaDev->efc;
-
-  //  EKA_LOG("Prod Handle: %jd, "
-  //          "armBid=%d, armAsk=%d, armVer=%d",
-  //          prodHande, armBid, armAsk, ver);
-  //  fflush(g_ekaLogFile);
-  efc->armEur(prodHande, armBid, armAsk, ver);
-  return OPRESULT__OK;
-}
-/* ==================================================== */
-
-OpResult ekaBcArmCmeFc(EkaDev *dev, EkaBcArmVer ver) {
-  if (!dev || !dev->efc)
-    on_error("HW Eng is not initialized: use hwEngInit()");
-  auto efc = dev->efc;
-
-  efc->armBcCmeFc(static_cast<EfcArmVer>(ver));
-  return OPRESULT__OK;
-}
-/* ==================================================== */
-
-OpResult ekaBcDisArmCmeFc(EkaDev *dev) {
-  if (!dev || !dev->efc)
-    on_error("HW Eng is not initialized: use hwEngInit()");
-  auto efc = dev->efc;
-
-  efc->disarmBcCmeFc();
-  return OPRESULT__OK;
-}
 
 /* ==================================================== */
 
@@ -340,13 +288,12 @@ void EkaBcsMoexRun(const EkaBcsRunCtx *pEkaBcsRunCtx) {
   /* ----------------------------------------------- */
 
   EKA_LOG("Lounching "
-          "EkaMoexStrategy::fireReportThreadLoop()");
-  auto fireReportLoopFunc =
-      std::bind(&EkaMoexStrategy::fireReportThreadLoop,
-                moex, pEkaBcsRunCtx);
+          "EkaMoexStrategy::runLoop()");
+  auto fireReportLoopFunc = std::bind(
+      &EkaMoexStrategy::runLoop, moex, pEkaBcsRunCtx);
   moex->fireReportLoopThr_ =
       std::thread(fireReportLoopFunc);
-  EKA_LOG("EkaMoexStrategy::fireReportThreadLoop() "
+  EKA_LOG("EkaMoexStrategy::runLoop() "
           "span off");
   fflush(g_ekaLogFile);
   /* ----------------------------------------------- */
@@ -413,21 +360,6 @@ void ekaBcInitEurStrategyDone(EkaDev *dev) {
 }
 #endif
 /* ==================================================== */
-
-OpResult ekaBcInitCmeFcStrategy(
-    EkaDev *dev, const UdpMcParams *mcParams,
-    const EkaBcCmeFcAlgoParams *cmeFcParams) {
-
-  if (!dev || !dev->efc)
-    on_error("HW Eng is not initialized: use hwEngInit()");
-  auto efc = dev->efc;
-
-  efc->initBcCmeFc(
-      reinterpret_cast<const EfcUdpMcParams *>(mcParams),
-      cmeFcParams);
-
-  return OPRESULT__OK;
-}
 /* ==================================================== */
 
 OpResult configureRcvMd(int idx,
@@ -513,7 +445,8 @@ OpResult stopRcvMd_B() { return stopRcvMd(1); }
 
 /* ==================================================== */
 
-EkaBcSecHandle ekaBcsGetSecHandle(EkaBcsMoexSecId secId) {
+OpResult initProdPair(PairIdx idx,
+                      const ProdPairInitParams *params) {
   if (!g_ekaDev || !g_ekaDev->efc)
     on_error("HW Eng is not initialized: use hwEngInit()");
   auto efc = g_ekaDev->efc;
@@ -523,10 +456,24 @@ EkaBcSecHandle ekaBcsGetSecHandle(EkaBcsMoexSecId secId) {
     on_error("Moex is not initialized: use "
              "initMoexStrategy()");
 
-  // tbd subscription
-  //   return eur->getSubscriptionId(secId);
-  return OPRESULT__OK;
+  return moex->initPair(idx, params);
 }
+/* ==================================================== */
+
+OpResult setProdPairDynamicParams(
+    PairIdx idx, const ProdPairDynamicParams *params) {
+  if (!g_ekaDev || !g_ekaDev->efc)
+    on_error("HW Eng is not initialized: use hwEngInit()");
+  auto efc = g_ekaDev->efc;
+
+  auto moex = efc->moex_;
+  if (!moex)
+    on_error("Moex is not initialized: use "
+             "initMoexStrategy()");
+
+  return moex->setPairDynamicParams(idx, params);
+}
+/* ==================================================== */
 
 OpResult ekaBcsSetProducts(const EkaBcsMoexSecId *prodList,
                            size_t nProducts) {
@@ -554,70 +501,5 @@ OpResult ekaBcsSetProducts(const EkaBcsMoexSecId *prodList,
 }
 
 /* ==================================================== */
-OpResult
-ekaBcInitEurProd(EkaBcSecHandle prodHande,
-                 const EkaBcEurProductInitParams *params) {
-  if (!g_ekaDev || !g_ekaDev->efc)
-    on_error("HW Eng is not initialized: use hwEngInit()");
-  auto efc = g_ekaDev->efc;
 
-  auto eur = efc->eur_;
-  if (!eur)
-    on_error("Eurex is not initialized: use "
-             "ekaBcInitEurStrategy()");
-
-  return eur->initProd(prodHande, params);
-}
-/* ==================================================== */
-OpResult ekaBcSetEurProdDynamicParams(
-    EkaBcSecHandle prodHande,
-    const EkaBcProductDynamicParams *params) {
-  if (!g_ekaDev || !g_ekaDev->efc)
-    on_error("HW Eng is not initialized: use hwEngInit()");
-  auto efc = g_ekaDev->efc;
-
-  auto eur = efc->eur_;
-  if (!eur)
-    on_error("Eurex is not initialized: use "
-             "ekaBcInitEurStrategy()");
-  //  EKA_LOG("Setting Product[%jd] Dynamic Params",
-  //  prodHande); fflush(g_ekaLogFile);
-  return eur->setProdDynamicParams(prodHande, params);
-}
-
-/* ==================================================== */
-OpResult
-ekaBcEurSetJumpParams(EkaDev *dev, EkaBcSecHandle prodHande,
-                      const EkaBcEurJumpParams *params) {
-  if (!dev || !dev->efc)
-    on_error("HW Eng is not initialized: use hwEngInit()");
-  auto efc = dev->efc;
-
-  auto eur = efc->eur_;
-  if (!eur)
-    on_error("Eurex is not initialized: use "
-             "ekaBcInitEurStrategy()");
-  //  EKA_LOG("Setting EkaBcEurJumpParams");
-  //  fflush(g_ekaLogFile);
-  return eur->setProdJumpParams(prodHande, params);
-}
-/* ==================================================== */
-
-OpResult ekaBcEurSetReferenceJumpParams(
-    EkaDev *dev, EkaBcSecHandle triggerProd,
-    EkaBcSecHandle fireProd,
-    const EkaBcEurReferenceJumpParams *params) {
-  if (!dev || !dev->efc)
-    on_error("HW Eng is not initialized: use hwEngInit()");
-  auto efc = dev->efc;
-
-  auto eur = efc->eur_;
-  if (!eur)
-    on_error("Eurex is not initialized: use "
-             "ekaBcInitEurStrategy()");
-  //  EKA_LOG("Setting EkaBcEurReferenceJumpParams");
-
-  return eur->setProdReferenceJumpParams(triggerProd,
-                                         fireProd, params);
-}
 } // End of namespace EkaBcs

@@ -21,16 +21,12 @@
 
 #include "EkaEfcDataStructs.h"
 
-#include "EhpCmeFC.h"
-#include "EhpItchFS.h"
-#include "EhpNews.h"
-#include "EhpNom.h"
-#include "EhpPitch.h"
-#include "EhpQED.h"
 #include "EkaSnDev.h"
 
 #include "EkaEfc.h"
 #include "EkaUdpChannel.h"
+
+#include "EkaStrategy.h"
 
 extern EkaDev *g_ekaDev;
 

@@ -1,14 +1,6 @@
 #include <arpa/inet.h>
 #include <thread>
 
-#include "EhpCmeFC.h"
-#include "EhpItchFS.h"
-#include "EhpNews.h"
-#include "EhpNom.h"
-#include "EhpPitch.h"
-#include "EkaCmeFcStrategy.h"
-
-#include "EkaBcCmeStrategy.h"
 #include "EkaMoexStrategy.h"
 
 #include "EkaCore.h"
@@ -20,8 +12,6 @@
 #include "EkaHwCaps.h"
 #include "EkaHwHashTableLine.h"
 #include "EkaIgmp.h"
-#include "EkaP4Strategy.h"
-#include "EkaQedStrategy.h"
 #include "EkaTcpSess.h"
 #include "EkaUdpSess.h"
 #include "EkaUserReportQ.h"
@@ -48,7 +38,8 @@ EkaEfc::EkaEfc(const EfcInitCtx *pEfcInitCtx) {
           "watchdog_timeout_sec = %ju",
           report_only_, watchdog_timeout_sec_);
 
-  //  uint64_t p4_strat_conf = eka_read(dev_, P4_STRAT_CONF); evgeny
+  //  uint64_t p4_strat_conf = eka_read(dev_,
+  //  P4_STRAT_CONF); evgeny
   uint64_t p4_strat_conf = (uint64_t)0;
   uint64_t p4_watchdog_period = EKA_WATCHDOG_SEC_VAL;
 
@@ -66,7 +57,7 @@ EkaEfc::EkaEfc(const EfcInitCtx *pEfcInitCtx) {
 
   eka_write(dev_, P4_STRAT_CONF, p4_strat_conf);
   eka_write(dev_, P4_WATCHDOG_CONF, p4_watchdog_period);
-  EKA_LOG("P4_STRAT_CONF=0x%jx",p4_strat_conf);
+  EKA_LOG("P4_STRAT_CONF=0x%jx", p4_strat_conf);
 
   userReportQ = new EkaUserReportQ(dev_);
   if (!userReportQ)
@@ -110,27 +101,30 @@ EkaEfc::EkaEfc(const EfcInitCtx *pEfcInitCtx) {
   }
 
   // Cleaning all Jump params
-  EKA_LOG("Resetting %d Jump Parameters",EKA_BC_EUR_MAX_PRODS);
+  EKA_LOG("Resetting %d Jump Parameters",
+          EKA_BC_EUR_MAX_PRODS);
   uint dst_addr;
-  for (auto entry = 0; entry < EKA_BC_EUR_MAX_PRODS; entry++) {
+  for (auto entry = 0; entry < EKA_BC_EUR_MAX_PRODS;
+       entry++) {
     dst_addr = 0x50000 + entry * 256;
-    for (auto i = 0; i < 256/8; i++)
+    for (auto i = 0; i < 256 / 8; i++)
       eka_write(dst_addr + 8 * i, 0x0);
   }
 
-
   // Cleaning all RJump params
-  EKA_LOG("Resetting %d RJump Parameters",EKA_BC_EUR_MAX_PRODS*EKA_BC_EUR_MAX_PRODS);
-  for (auto entry = 0; entry < EKA_BC_EUR_MAX_PRODS*EKA_BC_EUR_MAX_PRODS; entry++) {
+  EKA_LOG("Resetting %d RJump Parameters",
+          EKA_BC_EUR_MAX_PRODS * EKA_BC_EUR_MAX_PRODS);
+  for (auto entry = 0;
+       entry < EKA_BC_EUR_MAX_PRODS * EKA_BC_EUR_MAX_PRODS;
+       entry++) {
     dst_addr = 0x60000 + entry * 256;
-    for (auto i = 0; i < 256/8; i++)
+    for (auto i = 0; i < 256 / 8; i++)
       eka_write(dst_addr + 8 * i, 0x0);
   }
 
   // Cleaning first RJump pointer
   EKA_LOG("Resetting RJump Pointer");
   eka_write(0xf0110, 0x0);
-  
 }
 
 /* ################################################ */
@@ -141,45 +135,6 @@ EkaEfc::~EkaEfc() {
   auto swStatistics = eka_read(dev_, SW_STATISTICS);
   eka_write(dev_, SW_STATISTICS,
             swStatistics & ~(1ULL << 63));
-}
-
-/* ################################################ */
-void EkaEfc::initP4(const EfcUdpMcParams *mcParams,
-                    const EfcP4Params *p4Params) {
-  p4_ = new EkaP4Strategy(mcParams, p4Params);
-
-  if (totalCoreIdBitmap_ & p4_->getCoreBitmap())
-    on_error("P4 cores 0x%x collide with previously "
-             "allocated 0x%x",
-             p4_->getCoreBitmap(), totalCoreIdBitmap_);
-
-  totalCoreIdBitmap_ |= p4_->getCoreBitmap();
-}
-/* ################################################ */
-void EkaEfc::initQed(const EfcUdpMcParams *mcParams,
-                     const EfcQedParams *qedParams) {
-  qed_ = new EkaQedStrategy(mcParams, qedParams);
-
-  if (totalCoreIdBitmap_ & qed_->getCoreBitmap())
-    on_error(
-        "Qed cores bitmap 0x%x collide with previously "
-        "allocated 0x%x",
-        qed_->getCoreBitmap(), totalCoreIdBitmap_);
-
-  totalCoreIdBitmap_ |= qed_->getCoreBitmap();
-}
-/* ################################################ */
-void EkaEfc::initCmeFc(const EfcUdpMcParams *mcParams,
-                       const EfcCmeFcParams *cmeParams) {
-  cme_ = new EkaCmeFcStrategy(mcParams, cmeParams);
-
-  if (totalCoreIdBitmap_ & cme_->getCoreBitmap())
-    on_error(
-        "CmeFc cores bitmap 0x%x collide with previously "
-        "allocated 0x%x",
-        cme_->getCoreBitmap(), totalCoreIdBitmap_);
-
-  totalCoreIdBitmap_ |= cme_->getCoreBitmap();
 }
 
 /* ################################################ */
@@ -196,48 +151,7 @@ void EkaEfc::initMoex(const EfcUdpMcParams *mcParams) {
 
   totalCoreIdBitmap_ |= moex_->getCoreBitmap();
 }
-/* ################################################ */
-void EkaEfc::initBcCmeFc(
-    const EfcUdpMcParams *mcParams,
-    const EkaBcCmeFcAlgoParams *cmeParams) {
-  bcCme_ = new EkaBcCmeStrategy(mcParams, cmeParams);
 
-  if (totalCoreIdBitmap_ & bcCme_->getCoreBitmap())
-    on_error(
-        "BcCmeFc cores bitmap 0x%x collide with previously "
-        "allocated 0x%x",
-        bcCme_->getCoreBitmap(), totalCoreIdBitmap_);
-
-  totalCoreIdBitmap_ |= bcCme_->getCoreBitmap();
-}
-/* ################################################ */
-
-void EkaEfc::qedSetFireAction(epm_actionid_t fireActionId,
-                              int productId) {
-  if (!qed_)
-    on_error("Qed is not initialized. Run "
-             "efcInitQedStrategy()");
-  qed_->setFireAction(fireActionId, productId);
-}
-/* ################################################ */
-
-void EkaEfc::cmeFcSetFireAction(
-    epm_actionid_t fireActionId) {
-  if (!cme_)
-    on_error("CmeFc is not initialized. Run "
-             "efcInitCmeFcStrategy()");
-  cme_->setFireAction(fireActionId);
-}
-/* ################################################ */
-
-void EkaEfc::bcCmeFcSetFireAction(
-    epm_actionid_t fireActionId) {
-  if (!bcCme_)
-    on_error("BcCmeFc is not initialized. Run "
-             "ekaBcInitCmeFcStrategy()");
-  //!!!
-  // bcCme_->setFireAction(fireActionId);
-}
 /* ################################################ */
 int EkaEfc::armController(EfcArmVer ver) {
   EKA_LOG("Arming EFC");
@@ -251,68 +165,10 @@ int EkaEfc::disArmController() {
   eka_write(dev_, P4_ARM_DISARM, 0);
   return 0;
 }
-/* ################################################ */
-void EkaEfc::armP4(EfcArmVer ver) {
-  if (!p4_)
-    on_error(
-        "P4 is not initialized. Run efcInitP4Strategy()");
-  p4_->arm(ver);
-}
 
 /* ################################################ */
-void EkaEfc::disarmP4() {
-  if (!p4_)
-    on_error(
-        "P4 is not initialized. Run efcInitP4Strategy()");
-  p4_->disarm();
-}
-/* ################################################ */
-void EkaEfc::armQed(EfcArmVer ver) {
-  if (!qed_)
-    on_error("Qed is not initialized. Run "
-             "efcInitQedStrategy()");
-  qed_->arm(ver);
-}
-
-/* ################################################ */
-void EkaEfc::disarmQed() {
-  if (!qed_)
-    on_error("Qed is not initialized. Run "
-             "efcInitQedStrategy()");
-  qed_->disarm();
-}
-/* ################################################ */
-void EkaEfc::armCmeFc(EfcArmVer ver) {
-  if (!cme_)
-    on_error("CmeFc is not initialized. Run "
-             "efcInitCmeFcStrategy()");
-  cme_->arm(ver);
-}
-
-/* ################################################ */
-void EkaEfc::disarmCmeFc() {
-  if (!cme_)
-    on_error("CmeFc is not initialized. Run "
-             "efcInitCmeFcStrategy()");
-  cme_->disarm();
-}
-/* ################################################ */
-void EkaEfc::armBcCmeFc(EfcArmVer ver) {
-  if (!bcCme_)
-    on_error("BcCmeFc is not initialized. Run "
-             "ekaBcInitCmeFcStrategy()");
-  bcCme_->arm(ver);
-}
-/* ################################################ */
-void EkaEfc::disarmBcCmeFc() {
-  if (!bcCme_)
-    on_error("BcCmeFc is not initialized. Run "
-             "ekaBcInitCmeFcStrategy()");
-  bcCme_->disarm();
-}
-/* ################################################ */
-void EkaEfc::armEur(EkaBcSecHandle prodHande, bool armBid,
-                    bool armAsk, EkaBcArmVer ver) {
+void EkaEfc::armMoex(EkaBcSecHandle prodHande, bool armBid,
+                     bool armAsk, EkaBcArmVer ver) {
   if (!moex_)
     on_error("Eur is not initialized. Run "
              "ekaBcInitEurStrategy()");
@@ -335,7 +191,7 @@ EkaUdpSess *EkaEfc::findUdpSess(EkaCoreId coreId,
                                 uint32_t mcAddr,
                                 uint16_t mcPort) {
 
-  EkaStrategy *strategies[] = {p4_, qed_, cme_};
+  EkaStrategy *strategies[] = {moex_};
 
   for (auto const &strat : strategies) {
     if (!strat)
@@ -377,7 +233,7 @@ int EkaEfc::disableRxFire() {
 
 /* ################################################ */
 int EkaEfc::enableRxFire() {
-  EkaStrategy *strategies[] = {p4_, qed_, cme_, moex_};
+  EkaStrategy *strategies[] = {moex_};
 
   uint8_t rxCoresBitmap = 0;
 
@@ -514,7 +370,7 @@ int EkaEfc::setHwUdpParams() {
                 tmp_ipport);
     }
 
-    EkaStrategy *strategies[] = {p4_, qed_, cme_, moex_};
+    EkaStrategy *strategies[] = {moex_};
 
     for (auto const &strat : strategies) {
       if (!strat)
