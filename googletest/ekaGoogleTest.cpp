@@ -354,8 +354,8 @@ TEST_F(TestMoex, Moex_basic) {
   /////////////// Trade
 
 
-  prodList_[0] = MoexSecurityId("AAAAAAAAAAAb");
-  prodList_[1] = MoexSecurityId("AAAAAAAAAAAb");
+  prodList_[0] = MoexSecurityId("EURRUB_TMS  ");
+  prodList_[1] = MoexSecurityId("USDCNY_TOD  ");
   nProds_ = 2;
   // Inititializes everything
   initMoex();
@@ -694,7 +694,7 @@ TEST_F(TestMoex, Moex_basic) {
     ekaBcAppSend( eurSwAction, &EurSwFireMsg,
                  strlen(EurSwFireMsg));
   }
-  sleep(1);
+  sleep(100);
 
 #endif
   
