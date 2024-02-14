@@ -28,8 +28,8 @@ OpResult EkaMoexProdPair::downloadStaticParams() {
 
   HwStruct __attribute__((aligned(32))) hw = {};
 
-  secA_.getName(hw.nameA);
-  secB_.getName(hw.nameB);
+  secA_.getSwapName(hw.nameA);
+  secB_.getSwapName(hw.nameB);
 
   const uint32_t BaseDstAddr = 0x86000;
 

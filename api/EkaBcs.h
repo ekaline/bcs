@@ -511,6 +511,12 @@ public:
   void getName(void *dst) {
     memcpy(dst, data, sizeof(data));
   }
+  void getSwapName(void *dst) {
+    char* dst_char = (char*)dst;
+    for (int i = 0; i < sizeof(data); i++) {
+      dst_char[i] = data[sizeof(data) - i - 1];
+    }    
+  }
   void print() const { std::cout << data << '\n'; }
 
 private:

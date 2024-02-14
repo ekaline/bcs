@@ -694,7 +694,6 @@ TEST_F(TestMoex, Moex_basic) {
     ekaBcAppSend( eurSwAction, &EurSwFireMsg,
                  strlen(EurSwFireMsg));
   }
-  sleep(100);
 
 #endif
   
