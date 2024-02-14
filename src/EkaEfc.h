@@ -9,15 +9,9 @@
 #include "eka_macros.h"
 
 #include "EkaEfcDataStructs.h"
-#include "EkaP4Strategy.h"
 #include "EpmStrategy.h"
 
 class EkaUdpSess;
-class EkaP4Strategy;
-class EkaQedStrategy;
-class EkaCmeFcStrategy;
-class EkaBcCmeStrategy;
-class EkaEurStrategy;
 class EkaMoexStrategy;
 
 class EkaEpm;
@@ -36,38 +30,9 @@ public:
   int run(const EfcRunCtx *pEfcRunCtx);
 
   /* --------------------------------------------------- */
-
-  void initP4(const EfcUdpMcParams *mcParams,
-              const EfcP4Params *p4Params);
-
-  void armP4(EfcArmVer ver);
-  void disarmP4();
-  /* --------------------------------------------------- */
-
-  void initQed(const EfcUdpMcParams *mcParams,
-               const EfcQedParams *p4Params);
-  void qedSetFireAction(epm_actionid_t fireActionId,
-                        int productId);
-  void armQed(EfcArmVer ver);
-  void disarmQed();
-  /* --------------------------------------------------- */
-
-  void initCmeFc(const EfcUdpMcParams *mcParams,
-                 const EfcCmeFcParams *cmeParams);
-  void cmeFcSetFireAction(epm_actionid_t fireActionId);
-  void armCmeFc(EfcArmVer ver);
-  void disarmCmeFc();
-  /* --------------------------------------------------- */
-
-  void initBcCmeFc(const EfcUdpMcParams *mcParams,
-                   const EkaBcCmeFcAlgoParams *cmeParams);
-  void bcCmeFcSetFireAction(epm_actionid_t fireActionId);
-  void armBcCmeFc(EfcArmVer ver);
-  void disarmBcCmeFc();
-  /* --------------------------------------------------- */
   void initMoex(const EfcUdpMcParams *mcParams);
-  void armEur(EkaBcsSecHandle prodHande, bool armBid,
-              bool armAsk, EkaBcArmVer ver);
+  void armMoex(EkaBcsSecHandle prodHande, bool armBid,
+               bool armAsk, EkaBcArmVer ver);
   /* --------------------------------------------------- */
 
   bool isReportOnly() { return report_only_; }
@@ -95,14 +60,8 @@ public:
   static const int HwUdpMcConfig =
       0xf0500; // base, every core: + 8
 
-  EkaP4Strategy *p4_ = nullptr;
-  EkaQedStrategy *qed_ = nullptr;
-  EkaCmeFcStrategy *cme_ = nullptr;
-
-  EkaEurStrategy *eur_ = nullptr;
-  EkaBcCmeStrategy *bcCme_ = nullptr;
   EkaMoexStrategy *moex_ = nullptr;
-  
+
   EfcRunCtx localCopyEfcRunCtx = {};
   bool report_only_ = false;
   uint64_t watchdog_timeout_sec_ = 0;

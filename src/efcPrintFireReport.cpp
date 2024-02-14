@@ -177,15 +177,7 @@ size_t printFirePkt(FILE *file, const uint8_t *b,
     on_error("!efc");
 
   fprintf(file, "FirePktReport:");
-  if (efc->p4_)
-    switch (efc->p4_->feedVer_) {
-    case EfhFeedVer::kCBOE:
-      printBoeFire(file, b);
-      return size;
-    default:
-      on_error("Unsupported EfhFeedVer %d",
-               (int)efc->p4_->feedVer_);
-    }
+
   hexDump("Fired Pkt", b, size, file);
   return size;
 }

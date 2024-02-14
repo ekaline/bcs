@@ -1,0 +1,254 @@
+<sbe:messageSchema xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:sbe="http://fixprotocol.io/2016/sbe" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" package="sbe.asts.gw" byteOrder="littleEndian" id="22343" version="0" semanticVersion="FIX5SP2" description="20201005" xsi:schemaLocation="http://fixprotocol.io/2016/sbe sbe.xsd">
+<xi:include href="sbe_asts_types.xml"/>
+<types>
+<enum name="SessionRejectReasonEnum" encodingType="uint8">
+<validValue name="UserNameInvalid">1</validValue>
+<validValue name="ValueIsIncorrect">5</validValue>
+<validValue name="SystemIsUnavailable">100</validValue>
+<validValue name="ClOrdIdIsNotUnique">101</validValue>
+</enum>
+<enum name="TerminationCodeEnum" encodingType="uint8">
+<validValue name="Finished">0</validValue>
+<validValue name="UnspecifiedError">1</validValue>
+<validValue name="ReRequestOutOfBounds">2</validValue>
+<validValue name="ReRequestInProgress">3</validValue>
+<validValue name="TooFastClient">4</validValue>
+<validValue name="TooSlowClient">5</validValue>
+<validValue name="MissedHeartbeat">6</validValue>
+<validValue name="InvalidMessage">7</validValue>
+<validValue name="TCPFailure">8</validValue>
+<validValue name="InvalidSequenceNumber">9</validValue>
+<validValue name="ServerShutdown">10</validValue>
+<validValue name="MustChangePassword">11</validValue>
+<validValue name="NeedRelogin">12</validValue>
+</enum>
+<enum name="BuySellEnum" encodingType="int8">
+<validValue name="Buy">1</validValue>
+<validValue name="Sell">2</validValue>
+</enum>
+<enum name="OrdTypeEnum" encodingType="char">
+<validValue name="Market">1</validValue>
+<validValue name="Limit">2</validValue>
+<validValue name="ClosingPeriod" description="Order of the closing period">B</validValue>
+</enum>
+<enum name="SplitFlagEnum" encodingType="int8">
+<validValue name="Split" description="Price split allowed">0</validValue>
+<validValue name="One" description="One price only">1</validValue>
+</enum>
+<enum name="IMMCancelEnum" encodingType="int8">
+<validValue name="Day" description="Put in the queue">0</validValue>
+<validValue name="FoK" description="Fill or kill">4</validValue>
+<validValue name="IoC" description="Withdraw the balance">3</validValue>
+<validValue name="PO" description="Passive Only">8</validValue>
+</enum>
+<enum name="MMOrderEnum" encodingType="int8">
+<validValue name="MarketMaker">5</validValue>
+</enum>
+<enum name="OrderActivationTypeEnum" encodingType="char">
+<validValue name="ClosingAuction" description="Order to the closing auction">C</validValue>
+<validValue name="ActivationTime" description="Order with activation time">T</validValue>
+</enum>
+<enum name="ExecTypeEnum" encodingType="char">
+<validValue name="New" description="New order">0</validValue>
+<validValue name="Cancel" description="Order cancel">4</validValue>
+<validValue name="Replace" description="Order replace">5</validValue>
+<validValue name="PCancel" description="Pending Cancel">6</validValue>
+<validValue name="Trade" description="Trade">F</validValue>
+<validValue name="PMTrade" description="PreMatched Trade">L</validValue>
+<validValue name="PMTradeC" description="PreMatched Trade Cancel">H</validValue>
+</enum>
+<enum name="OrderStatusEnum" encodingType="int8">
+<validValue name="New" description="New">0</validValue>
+<validValue name="PFilled" description="Partially filled">1</validValue>
+<validValue name="Filled" description="Filled">2</validValue>
+<validValue name="Canceled" description="Canceled">4</validValue>
+<validValue name="PCanceled" description="Pending Cancel (i.e. result of Order Cancel Request)">6</validValue>
+<validValue name="Suspended" description="Suspended">9</validValue>
+</enum>
+<enum name="LiquidityTypeEnum" encodingType="char">
+<validValue name="Quote" description="Quoter">E</validValue>
+<validValue name="Internal" description="Internal liquidity">I</validValue>
+</enum>
+<enum name="LastLiquidityIndEnum" encodingType="int8">
+<validValue name="Add" description="Add liguidity">1</validValue>
+<validValue name="Removed" description="Removed liguidity">2</validValue>
+</enum>
+<enum name="TradeTypeEnum" encodingType="int8">
+<validValue name="Regular">0</validValue>
+<validValue name="Iceberg">1</validValue>
+</enum>
+</types>
+<!--  Session layer messages  -->
+<sbe:message name="Sequence" id="1">
+<field name="SendingTime" id="52" type="UTCTimestamp"/>
+<field name="NextSeqNo" id="789" type="uInt64NULL"/>
+</sbe:message>
+<sbe:message name="RetransmitRequest" id="2">
+<field name="SendingTime" id="52" type="UTCTimestamp"/>
+<field name="BeginSeqNo" id="7" type="uInt64"/>
+<field name="Count" id="30003" type="uInt32"/>
+</sbe:message>
+<sbe:message name="Retransmission" id="3">
+<field name="SendingTime" id="52" type="UTCTimestamp"/>
+<field name="RequestTimestamp" id="30001" type="UTCTimestamp"/>
+<field name="NextSeqNo" id="789" type="uInt64"/>
+<field name="Count" id="30003" type="uInt32"/>
+</sbe:message>
+<sbe:message name="Terminate" id="4">
+<field name="SendingTime" id="52" type="UTCTimestamp"/>
+<field name="TerminationCode" id="20210" type="TerminationCodeEnum"/>
+</sbe:message>
+<sbe:message name="SessionReject" id="5">
+<field name="SendingTime" id="52" type="UTCTimestamp"/>
+<field name="ClOrdID" id="11" type="uInt64"/>
+<field name="RefTagID" id="371" type="uInt32"/>
+<field name="SessionRejectReason" id="373" type="SessionRejectReasonEnum"/>
+</sbe:message>
+<sbe:message name="Establish" id="6">
+<field name="SendingTime" id="52" type="UTCTimestamp"/>
+<field name="KeepAliveInterval" id="108" type="uInt16" description="The Sequence message interval. Range 1000-15000 milliseconds."/>
+<field name="Username" id="553" type="String12" description="UserID or UserName."/>
+<field name="Password" id="554" type="String8" description="Password."/>
+</sbe:message>
+<sbe:message name="EstablishmentAck" id="7">
+<field name="SendingTime" id="52" type="UTCTimestamp"/>
+<field name="TimeStamp" id="60" type="UTCTimestamp"/>
+<field name="RequestTime" id="5979" type="UTCTimestamp"/>
+<field name="NextSeqNo" id="789" type="uInt64"/>
+<field name="KeepAliveInterval" id="108" type="uInt16" description="The Sequence message interval. Range 1000-15000 milliseconds."/>
+</sbe:message>
+<sbe:message name="EstablishmentReject" id="8">
+<field name="SendingTime" id="52" type="UTCTimestamp"/>
+<field name="TimeStamp" id="60" type="UTCTimestamp"/>
+<field name="RequestTime" id="5979" type="UTCTimestamp"/>
+<field name="EstablishmentRejectCode" id="30002" type="uInt16"/>
+</sbe:message>
+<sbe:message name="ChangePassword" id="9">
+<field name="SendingTime" id="52" type="UTCTimestamp"/>
+<field name="Password" id="554" type="String8" description="Password."/>
+<field name="NewPassword" id="925" type="String8" description="New password."/>
+</sbe:message>
+<sbe:message name="ChangePasswordAck" id="10">
+<field name="SendingTime" id="52" type="UTCTimestamp"/>
+<field name="TimeStamp" id="60" type="UTCTimestamp"/>
+<field name="RequestTime" id="5979" type="UTCTimestamp"/>
+<field name="Password" id="554" type="String8" description="Password."/>
+</sbe:message>
+<sbe:message name="ChangePasswordReject" id="11">
+<field name="SendingTime" id="52" type="UTCTimestamp"/>
+<field name="TimeStamp" id="60" type="UTCTimestamp"/>
+<field name="RequestTime" id="5979" type="UTCTimestamp"/>
+<field name="RejReason" id="103" type="uint16"/>
+</sbe:message>
+<sbe:message name="BusinessMessageReject" id="12" semanticType="j">
+<field name="SendingTime" id="52" type="UTCTimestamp"/>
+<field name="TimeStamp" id="60" type="UTCTimestamp"/>
+<field name="RequestTime" id="5979" type="UTCTimestamp"/>
+<field name="ClOrdID" id="11" type="uInt64"/>
+<field name="MsgSeqNum" id="34" type="uInt32"/>
+<field name="OrdRejReason" id="103" type="uint16"/>
+</sbe:message>
+<!--  Application layer messages  -->
+<sbe:message name="NewOrderSingle" id="13" semanticType="D">
+<field name="SendingTime" id="52" type="UTCTimestamp"/>
+<field name="ClOrdID" id="11" type="uInt64"/>
+<field name="EffectiveTime" id="168" type="UTCTimeOnly"/>
+<field name="Price" id="44" type="Decimal9NULL"/>
+<field name="OrderQty" id="38" type="uInt64NULL"/>
+<field name="MaxFloor" id="111" type="uInt64NULL"/>
+<field name="CashOrderQty" id="152" type="Decimal2NULL"/>
+<field name="Side" id="54" type="BuySellEnum"/>
+<field name="OrdType" id="40" type="OrdTypeEnum"/>
+<field name="MaxPriceLevels" id="1090" type="SplitFlagEnum"/>
+<field name="TimeInForce" id="59" type="IMMCancelEnum" presence="optional" nullValue="0"/>
+<field name="OrderRestriction" id="529" type="MMOrderEnum" presence="optional"/>
+<field name="TradeThruTime" id="5202" type="OrderActivationTypeEnum" presence="optional"/>
+<field name="LiquidityType" id="10526" type="LiquidityTypeEnum" presence="optional"/>
+<field name="Account" id="1" type="String12"/>
+<field name="SecondaryClOrdID" id="526" type="String12"/>
+<field name="ClientCode" id="448" type="String12"/>
+<field name="Board" id="20336" type="BoardID" description="Board ID SECBOARD(4)"/>
+<field name="Symbol" id="55" type="SecurityID" description="Instrument ID SECODE(12)"/>
+<field name="BrokerRef" id="10600" type="String20"/>
+</sbe:message>
+<sbe:message name="OrderCancelRequest" id="14" semanticType="F">
+<field name="SendingTime" id="52" type="UTCTimestamp"/>
+<field name="ClOrdID" id="11" type="uInt64"/>
+<field name="OrigClOrdID" id="41" type="uInt64NULL"/>
+<field name="OrderID" id="37" type="uInt64NULL"/>
+</sbe:message>
+<sbe:message name="OrderMassCancelRequest" id="15" semanticType="g">
+<field name="SendingTime" id="52" type="UTCTimestamp"/>
+<field name="ClOrdID" id="11" type="uInt64"/>
+<field name="Side" id="54" type="BuySellEnum" presence="optional"/>
+<field name="Account" id="1" type="String12" presence="optional"/>
+<field name="SecondaryClOrdID" id="526" type="String12" presence="optional"/>
+<field name="ClientCode" id="448" type="String12" presence="optional"/>
+<field name="Board" id="20336" type="BoardID" description="Board ID SECBOARD(4)" presence="optional"/>
+<field name="Symbol" id="55" type="SecurityID" description="Instrument ID SECODE(12)" presence="optional"/>
+</sbe:message>
+<sbe:message name="OrderReplaceRequest" id="16" semanticType="G">
+<field name="SendingTime" id="52" type="UTCTimestamp"/>
+<field name="ClOrdID" id="11" type="uInt64"/>
+<field name="OrderID" id="37" type="uInt64NULL"/>
+<field name="OrigClOrdID" id="41" type="uInt64NULL"/>
+<field name="Price" id="44" type="Decimal9NULL"/>
+<field name="OrderQty" id="38" type="uInt64NULL"/>
+<field name="Side" id="54" type="BuySellEnum"/>
+<field name="Account" id="1" type="String12"/>
+<field name="SecondaryClOrdID" id="526" type="String12"/>
+<field name="ClientCode" id="448" type="String12"/>
+<field name="Board" id="20336" type="BoardID" description="Board ID SECBOARD(4)"/>
+<field name="Symbol" id="55" type="SecurityID" description="Instrument ID SECODE(12)"/>
+<field name="BrokerRef" id="10600" type="String20"/>
+</sbe:message>
+<sbe:message name="ExecutionReport" id="17" semanticType="8">
+<field name="SendingTime" id="52" type="UTCTimestamp"/>
+<field name="TimeStamp" id="60" type="UTCTimestamp"/>
+<field name="RequestTime" id="5979" type="UTCTimestamp"/>
+<field name="ClOrdID" id="11" type="uInt64"/>
+<field name="EffectiveTime" id="168" type="UTCTimeOnly"/>
+<field name="OrderID" id="37" type="uInt64NULL"/>
+<field name="OrigOrderID" id="9945" type="uInt64NULL"/>
+<field name="MDEntryID" id="278" type="uInt64NULL"/>
+<field name="OrigClOrdID" id="41" type="uInt64NULL"/>
+<field name="TrdMatchID" id="880" type="uInt64NULL"/>
+<field name="Price" id="44" type="Decimal9NULL"/>
+<field name="OrderQty" id="38" type="uInt64NULL"/>
+<field name="MaxFloor" id="111" type="uInt64NULL"/>
+<field name="CashOrderQty" id="152" type="Decimal2NULL"/>
+<field name="LastPx" id="31" type="Decimal9NULL"/>
+<field name="LastQty" id="32" type="uInt64NULL"/>
+<field name="LeavesQty" id="151" type="uInt64NULL"/>
+<field name="CxlQty" id="84" type="uInt64NULL"/>
+<field name="PreMatchedCumQty" id="18181" type="uInt64NULL"/>
+<field name="MsgSeqNum" id="34" type="uInt32"/>
+<field name="OrdCancelReason" id="9947" type="uInt8NULL"/>
+<field name="ExecType" id="150" type="ExecTypeEnum"/>
+<field name="OrdStatus" id="39" type="OrderStatusEnum"/>
+<field name="StipulationValue" id="6636" type="TradeTypeEnum" presence="optional"/>
+<field name="Side" id="54" type="BuySellEnum"/>
+<field name="OrdType" id="40" type="OrdTypeEnum"/>
+<field name="MaxPriceLevels" id="1090" type="SplitFlagEnum"/>
+<field name="TimeInForce" id="59" type="IMMCancelEnum"/>
+<field name="OrderRestriction" id="529" type="MMOrderEnum"/>
+<field name="TradeThruTime" id="5202" type="OrderActivationTypeEnum" presence="optional"/>
+<field name="LiquidityType" id="10526" type="LiquidityTypeEnum" presence="optional"/>
+<field name="LastLiquidityInd" id="851" type="LastLiquidityIndEnum"/>
+<field name="Account" id="1" type="String12"/>
+<field name="SecondaryClOrdID" id="526" type="String12"/>
+<field name="ClientCode" id="448" type="String12"/>
+<field name="Board" id="20336" type="BoardID" description="Board ID SECBOARD(4)"/>
+<field name="Symbol" id="55" type="SecurityID" description="Instrument ID SECODE(12)"/>
+<field name="BrokerRef" id="10600" type="String20"/>
+</sbe:message>
+<sbe:message name="OrderMassCancelReport" id="18" semanticType="r">
+<field name="SendingTime" id="52" type="UTCTimestamp"/>
+<field name="TimeStamp" id="60" type="UTCTimestamp"/>
+<field name="RequestTime" id="5979" type="UTCTimestamp"/>
+<field name="ClOrdID" id="11" type="uInt64"/>
+<field name="TotalAffectedOrders" id="533" type="uInt64"/>
+<field name="MsgSeqNum" id="34" type="uInt32"/>
+</sbe:message>
+</sbe:messageSchema>
+

@@ -33,8 +33,8 @@ EhpBcsMoex::EhpBcsMoex(EkaStrategy *strat)
   //templateID
   conf.fields.hgeneric0[0].msgId = 0; // Not relevant
   conf.fields.hgeneric0[0].opcode = EhpOpcode::NOP;
-  conf.fields.hgeneric0[0].byteOffs_0 = 31;
-  conf.fields.hgeneric0[0].byteOffs_1 = 30;
+  conf.fields.hgeneric0[0].byteOffs_0 = 30;
+  conf.fields.hgeneric0[0].byteOffs_1 = 31;
   conf.fields.hgeneric0[0].byteOffs_2 = EhpBlankByte;
   conf.fields.hgeneric0[0].byteOffs_3 = EhpBlankByte;
   conf.fields.hgeneric0[0].byteOffs_4 = EhpBlankByte;
@@ -117,6 +117,55 @@ int EhpBcsMoex::createBestPrice() {
   conf.fields.miscEnable[msgType].mask = 0x00; 
   conf.fields.miscEnable[msgType].expected = 0xFF; 
 
+
+  // BidPrice
+  conf.fields.price[msgType].msgId = msgId;
+  conf.fields.price[msgType].opcode = EhpOpcode::NOP;
+  conf.fields.price[msgType].byteOffs_0 = 0;
+  conf.fields.price[msgType].byteOffs_1 = 1;
+  conf.fields.price[msgType].byteOffs_2 = 2;
+  conf.fields.price[msgType].byteOffs_3 = 3;
+  conf.fields.price[msgType].byteOffs_4 = 4;
+  conf.fields.price[msgType].byteOffs_5 = 5;
+  conf.fields.price[msgType].byteOffs_6 = 6;
+  conf.fields.price[msgType].byteOffs_7 = 7;
+
+  // BidSize
+  conf.fields.size[msgType].msgId = msgId;
+  conf.fields.size[msgType].opcode = EhpOpcode::NOP;
+  conf.fields.size[msgType].byteOffs_0 = 16;
+  conf.fields.size[msgType].byteOffs_1 = 17;
+  conf.fields.size[msgType].byteOffs_2 = 18;
+  conf.fields.size[msgType].byteOffs_3 = 19;
+  conf.fields.size[msgType].byteOffs_4 = 20;
+  conf.fields.size[msgType].byteOffs_5 = 21;
+  conf.fields.size[msgType].byteOffs_6 = 22;
+  conf.fields.size[msgType].byteOffs_7 = 23;
+
+  // AspPrice
+  conf.fields.generic0[msgType].msgId = msgId;
+  conf.fields.generic0[msgType].opcode = EhpOpcode::NOP;
+  conf.fields.generic0[msgType].byteOffs_0 = 8;
+  conf.fields.generic0[msgType].byteOffs_1 = 9;
+  conf.fields.generic0[msgType].byteOffs_2 = 10;
+  conf.fields.generic0[msgType].byteOffs_3 = 11;
+  conf.fields.generic0[msgType].byteOffs_4 = 12;
+  conf.fields.generic0[msgType].byteOffs_5 = 13;
+  conf.fields.generic0[msgType].byteOffs_6 = 14;
+  conf.fields.generic0[msgType].byteOffs_7 = 15;
+  
+  // AskSize
+  conf.fields.generic1[msgType].msgId = msgId;
+  conf.fields.generic1[msgType].opcode = EhpOpcode::NOP;
+  conf.fields.generic1[msgType].byteOffs_0 = 24;
+  conf.fields.generic1[msgType].byteOffs_1 = 25;
+  conf.fields.generic1[msgType].byteOffs_2 = 26;
+  conf.fields.generic1[msgType].byteOffs_3 = 27;
+  conf.fields.generic1[msgType].byteOffs_4 = 28;
+  conf.fields.generic1[msgType].byteOffs_5 = 29;
+  conf.fields.generic1[msgType].byteOffs_6 = 30;
+  conf.fields.generic1[msgType].byteOffs_7 = 31;
+
   // SecurityIDLow
   conf.fields.securityId[msgType].msgId = msgId;
   conf.fields.securityId[msgType].opcode = EhpOpcode::NOP;
@@ -126,56 +175,8 @@ int EhpBcsMoex::createBestPrice() {
   conf.fields.securityId[msgType].byteOffs_3 = 44;
   conf.fields.securityId[msgType].byteOffs_4 = 43;
   conf.fields.securityId[msgType].byteOffs_5 = 42;
-  conf.fields.securityId[msgType].byteOffs_6 = 31;
+  conf.fields.securityId[msgType].byteOffs_6 = 41;
   conf.fields.securityId[msgType].byteOffs_7 = 40;
-
-  // BidPrice
-  conf.fields.price[msgType].msgId = msgId;
-  conf.fields.price[msgType].opcode = EhpOpcode::NOP;
-  conf.fields.price[msgType].byteOffs_0 = 7;
-  conf.fields.price[msgType].byteOffs_1 = 6;
-  conf.fields.price[msgType].byteOffs_2 = 5;
-  conf.fields.price[msgType].byteOffs_3 = 4;
-  conf.fields.price[msgType].byteOffs_4 = 3;
-  conf.fields.price[msgType].byteOffs_5 = 2;
-  conf.fields.price[msgType].byteOffs_6 = 1;
-  conf.fields.price[msgType].byteOffs_7 = 0;
-
-  // BidSize
-  conf.fields.size[msgType].msgId = msgId;
-  conf.fields.size[msgType].opcode = EhpOpcode::NOP;
-  conf.fields.size[msgType].byteOffs_0 = 23;
-  conf.fields.size[msgType].byteOffs_1 = 22;
-  conf.fields.size[msgType].byteOffs_2 = 21;
-  conf.fields.size[msgType].byteOffs_3 = 20;
-  conf.fields.size[msgType].byteOffs_4 = 19;
-  conf.fields.size[msgType].byteOffs_5 = 18;
-  conf.fields.size[msgType].byteOffs_6 = 17;
-  conf.fields.size[msgType].byteOffs_7 = 16;
-
-  // AspPrice
-  conf.fields.generic0[msgType].msgId = msgId;
-  conf.fields.generic0[msgType].opcode = EhpOpcode::NOP;
-  conf.fields.generic0[msgType].byteOffs_0 = 15;
-  conf.fields.generic0[msgType].byteOffs_1 = 14;
-  conf.fields.generic0[msgType].byteOffs_2 = 13;
-  conf.fields.generic0[msgType].byteOffs_3 = 12;
-  conf.fields.generic0[msgType].byteOffs_4 = 11;
-  conf.fields.generic0[msgType].byteOffs_5 = 10;
-  conf.fields.generic0[msgType].byteOffs_6 = 9;
-  conf.fields.generic0[msgType].byteOffs_7 = 8;
-  
-  // AskSize
-  conf.fields.generic1[msgType].msgId = msgId;
-  conf.fields.generic1[msgType].opcode = EhpOpcode::NOP;
-  conf.fields.generic1[msgType].byteOffs_0 = 31;
-  conf.fields.generic1[msgType].byteOffs_1 = 30;
-  conf.fields.generic1[msgType].byteOffs_2 = 29;
-  conf.fields.generic1[msgType].byteOffs_3 = 28;
-  conf.fields.generic1[msgType].byteOffs_4 = 27;
-  conf.fields.generic1[msgType].byteOffs_5 = 26;
-  conf.fields.generic1[msgType].byteOffs_6 = 25;
-  conf.fields.generic1[msgType].byteOffs_7 = 24;
 
   // SecIDHigh(0,1,2,3)+BoardID(4,5,6,7)
   conf.fields.generic2[msgType].msgId = msgId;

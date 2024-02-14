@@ -42,7 +42,7 @@ protected:
 
   virtual void runTest();
   virtual void initMoex();
-  virtual void runEur();
+  //  virtual void runEur();
 
   void sendPktToAll(const void *pkt, size_t pktLen,
                     bool expectedFire);
