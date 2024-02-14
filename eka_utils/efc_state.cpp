@@ -179,6 +179,7 @@ struct StratState {
 const char *emptyPrefix = "                     ";
 const char *prefixStrFormat = "%-20s ";
 const char *colStringFormat = "| %20s ";
+const char *boardStringFormat = "| %-20.4s ";
 const char *colStringFormatGrn = GRN "| %20s " RESET;
 const char *colStringFormatRed = RED "| %20s " RESET;
 const char *colSmallNumFieldFormat = "| %17s%3d ";
@@ -453,6 +454,7 @@ int printBookLineSeparator(char sep, char s, int num) {
 int printBookHeader() {
   printf("\n");
   printf("%s", emptyPrefix);
+  printf(bookStringFormat, "SecurityID ");
   printf(bookStringFormat, "BoardID    ");
   printf(bookStringFormat, "Bid        ");
   printf(bookStringFormat, "Ask        ");
@@ -462,7 +464,7 @@ int printBookHeader() {
   printf("\n");
 
   /* ----------------------------------------- */
-  printBookLineSeparator( '+', '-', 3);
+  printBookLineSeparator( '+', '-', 4);
   /* ----------------------------------------- */
   //  printf("%s",emptyPrefix);
 
@@ -788,14 +790,10 @@ int printTOB() {
   auto armState{
       reinterpret_cast<const arm_status_unaligned_report_t *>(arm_mem)};
 
-  // allTOB->prod[0].board_id[0] = 'h';
-  // allTOB->prod[0].board_id[1] = 'u';
-  // allTOB->prod[0].board_id[2] = 'y';
-  // allTOB->prod[0].board_id[3] = '1';
-  
   for (auto i = 0; i < 2; i++) {
     printf(prefixStrFormat,"");
-    printf(" %-20.4s",allTOB->prod[i].board_id);
+    printf(colStringFormat,"TBDNAME");
+    printf(boardStringFormat,allTOB->prod[i].board_id);
     printf(bookSideFormat, allTOB->prod[i].bid_size, allTOB->prod[i].bid_price);
     printf(bookSideFormat, allTOB->prod[i].ask_size, allTOB->prod[i].ask_price);
     printf("\n");
