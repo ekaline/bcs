@@ -37,6 +37,19 @@
 SN_DeviceId devId;
 
 typedef struct __attribute__((packed)) {
+  uint32_t res_align;
+  char     board_id[4];
+  uint64_t ask_size;
+  uint64_t bid_size;
+  uint64_t ask_price;
+  uint64_t bid_price;
+} rf_bcs_single_entry_t;
+
+typedef struct __attribute__((packed)) {
+        rf_bcs_single_entry_t prod[2];
+} rf_bcs_all_entry_t; 
+
+typedef struct __attribute__((packed)) {
   uint64_t price;
   uint32_t size;
   uint32_t seq;
@@ -440,16 +453,16 @@ int printBookLineSeparator(char sep, char s, int num) {
 int printBookHeader() {
   printf("\n");
   printf("%s", emptyPrefix);
-  printf(bookStringFormat, "SecID      ");
+  printf(bookStringFormat, "BoardID    ");
   printf(bookStringFormat, "Bid        ");
   printf(bookStringFormat, "Ask        ");
-  printf(bookStringFormat, "Armed      ");
-  printf(bookStringFormat, "Version    ");
+  //  printf(bookStringFormat, "Armed      ");
+  //  printf(bookStringFormat, "Version    ");
 
   printf("\n");
 
   /* ----------------------------------------- */
-  printBookLineSeparator( '+', '-', 5);
+  printBookLineSeparator( '+', '-', 3);
   /* ----------------------------------------- */
   //  printf("%s",emptyPrefix);
 
@@ -550,20 +563,25 @@ int printHeader(IfParams coreParams[NUM_OF_CORES],
   //  printf("%s",emptyPrefix);
   printf(prefixStrFormat, "HW parser type");
 
+  auto parser_idx = 0;
   for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) {
     if (!coreParams[coreId].valid)
       continue;
     //    printf(colSmallNumFieldFormat,"",coreParams[coreId].mcGrps);
     //    printf
     //    (colformat,coreParams[coreId].hwParserEnable);
-    if (coreId >= 2) // TBD check hw md cores
+    if ((pEkaHwCaps->hwCaps.core.bitmap_md_cores >> coreId) & 0x1) {
       printf(colformats,
              EKA_FEED2STRING(
-                 ((pEkaHwCaps->hwCaps.version.parser >>
-                   (coreId-2) * 4) &
+                 ((pEkaHwCaps->hwCaps.version.parser >> 
+                   parser_idx*4) &
                   0xF)));
+      parser_idx++;
+    }
     else
-      printf(colformats, "-");
+      {
+	printf(colformats, "-");
+      }
   }
   printf("\n");
 
@@ -691,7 +709,7 @@ int printProdHeader() {
 }
 
 // ################################################
-int printTOB(uint8_t prod_idx) {
+int printEurTOB(uint8_t prod_idx) {
   unsigned char tob_mem[64];
   unsigned char arm_mem[64];
 
@@ -740,6 +758,61 @@ int printTOB(uint8_t prod_idx) {
     printf(RED "    sell " RESET);
 
   printf(bookVersionFormat, armState->prod[prod_idx].expected_version);
+  
+  return 0;
+}
+
+// ################################################
+int printTOB() {
+  unsigned char tob_mem[4096];
+  unsigned char arm_mem[64];
+
+  uint64_t *wrPtr;// = (uint64_t *)tob_mem;
+  uint64_t *wrPtrArm;// = (uint64_t *)arm_mem;
+
+  wrPtrArm = (uint64_t *)arm_mem;
+
+  for (auto j = 0; j < 4; j++)
+    *wrPtrArm++ = reg_read(0x74000 + j * 8);
+  
+  wrPtr    = (uint64_t *)tob_mem;
+
+  uint64_t *dstAddr = (uint64_t *)tob_mem;
+  uint words2read = sizeof(rf_bcs_all_entry_t) / 8 + !!(sizeof(rf_bcs_all_entry_t) % 8);
+  for (uint w = 0; w < words2read; w++)
+    *(dstAddr + w) = reg_read(0x75000 +  w*8);
+    
+  auto allTOB{
+      reinterpret_cast< rf_bcs_all_entry_t *>(tob_mem)};
+
+  auto armState{
+      reinterpret_cast<const arm_status_unaligned_report_t *>(arm_mem)};
+
+  // allTOB->prod[0].board_id[0] = 'h';
+  // allTOB->prod[0].board_id[1] = 'u';
+  // allTOB->prod[0].board_id[2] = 'y';
+  // allTOB->prod[0].board_id[3] = '1';
+  
+  for (auto i = 0; i < 2; i++) {
+    printf(prefixStrFormat,"");
+    printf(" %-20.4s",allTOB->prod[i].board_id);
+    printf(bookSideFormat, allTOB->prod[i].bid_size, allTOB->prod[i].bid_price);
+    printf(bookSideFormat, allTOB->prod[i].ask_size, allTOB->prod[i].ask_price);
+    printf("\n");
+  }
+  
+  // printf("| ");
+  // if (armState->prod[prod_idx].arm.buy)
+  //   printf(GRN "    BUY     " RESET);
+  // else
+  //   printf(RED "    buy     " RESET);
+
+  // if (armState->prod[prod_idx].arm.sell)
+  //   printf(GRN "    SELL " RESET);
+  // else
+  //   printf(RED "    sell " RESET);
+
+  // printf(bookVersionFormat, armState->prod[prod_idx].expected_version);
   
   return 0;
 }
@@ -1273,25 +1346,26 @@ int printProdState(EurProdState *pProdState) {
   return 0;
 }
 
-int printBookState(EurProdState *pProdState) {
+// ################################################
+int printEurBookState(EurProdState *pProdState) {
 
-  for (auto prodHande = 0; prodHande < 16; prodHande++) {
+  for (auto prodHande = 0; prodHande < 2; prodHande++) {
     if (pProdState->secID[prodHande]) {
-            //      printf(colformat, prodHande);
-
       printf(prefixBookStrFormat, "Handle" , prodHande);
       char buffer[12];
       snprintf(buffer, 16, "%ju", pProdState->secID[prodHande]);
       //      printf(colformat, pProdState->secID[prodHande]);
       printf(colformats, buffer);
-      printTOB(prodHande);
+      printEurTOB(prodHande);
       printf("\n");
-      
     }
-
   }
-  
-  
+  return 0;
+}
+
+// ################################################
+int printBookState(EurProdState *pProdState) {
+  printTOB();
   return 0;
 }
 
@@ -1320,83 +1394,6 @@ int getFastCancelState(FastCancelState *pFastCancelState) {
   return 0;
 }
 
-// ################################################
-int getFastSweepState(FastSweepState *pFastSweepState) {
-
-  uint64_t var_fc_cont_counter1 = reg_read(0xf0810);
-
-  uint64_t var_p4_general_conf =
-      reg_read(ADDR_P4_GENERAL_CONF);
-
-  pFastSweepState->strategyRuns =
-      (var_fc_cont_counter1 >> 32) & MASK32;
-  pFastSweepState->strategyPassed =
-      (var_fc_cont_counter1 >> 0) & MASK32;
-
-  pFastSweepState->commonState.reportOnly =
-      (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT) != 0;
-
-  uint64_t armReg = reg_read(NW_ARM_DISARM);
-  pFastSweepState->commonState.armed = (armReg & 0x1) != 0;
-  pFastSweepState->commonState.arm_ver =
-      (armReg >> 32) & 0xFFFFFFFF;
-  pFastSweepState->commonState.killSwitch =
-      (reg_read(KILL_SWITCH) & 0x1) != 0;
-
-  return 0;
-}
-
-// ################################################
-int getQEDState(QEDState *pQEDState) {
-
-  uint64_t var_fc_cont_counter1 = reg_read(0xf0818);
-
-  uint64_t var_p4_general_conf =
-      reg_read(ADDR_P4_GENERAL_CONF);
-
-  pQEDState->strategyRuns =
-      (var_fc_cont_counter1 >> 32) & MASK32;
-  pQEDState->strategyPassed =
-      (var_fc_cont_counter1 >> 0) & MASK32;
-
-  pQEDState->commonState.reportOnly =
-      (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT) != 0;
-
-  uint64_t armReg = reg_read(NW_ARM_DISARM);
-  pQEDState->commonState.armed = (armReg & 0x1) != 0;
-  pQEDState->commonState.arm_ver =
-      (armReg >> 32) & 0xFFFFFFFF;
-  pQEDState->commonState.killSwitch =
-      (reg_read(KILL_SWITCH) & 0x1) != 0;
-
-  return 0;
-}
-
-// ################################################
-int getNewsState(NewsState *pNewsState) {
-
-  uint64_t var_news_cont_counter1 = reg_read(0xf0808);
-
-  uint64_t var_p4_general_conf =
-      reg_read(ADDR_P4_GENERAL_CONF);
-
-  pNewsState->strategyRuns =
-      (var_news_cont_counter1 >> 32) & MASK32;
-  pNewsState->strategyPassed =
-      (var_news_cont_counter1 >> 0) & MASK32;
-
-  pNewsState->commonState.reportOnly =
-      (var_p4_general_conf & EKA_P4_REPORT_ONLY_BIT) != 0;
-
-  uint64_t armReg = reg_read(NW_ARM_DISARM);
-  pNewsState->commonState.armed = (armReg & 0x1) != 0;
-  pNewsState->commonState.arm_ver =
-      (armReg >> 32) & 0xFFFFFFFF;
-  pNewsState->commonState.killSwitch =
-      (reg_read(KILL_SWITCH) & 0x1) != 0;
-
-  return 0;
-}
 
 // ################################################
 int printEfcState(EfcState *pEfcState) {
@@ -1472,27 +1469,18 @@ int main(int argc, char *argv[]) {
          stratId++)
       active_strat[stratId] = false;
 
-    for (auto coreId = 2; coreId < 4;
-         coreId++) { 
-      if (((ekaHwCaps->hwCaps.version.parser >>
-            (coreId-2) * 4) &
-           0xF) != 0) {
-        active_strat[((ekaHwCaps->hwCaps.version.parser >>
-                       (coreId-2) * 4) &
-                      0xF)] = true;
-      }
-    }
+    // for (auto parser = 0; parser < 2;
+    //      parser++) { 
+    //   if (((ekaHwCaps->hwCaps.version.parser >> parser*4) &
+    //        0xF) != 0) {
+    //     active_strat[((ekaHwCaps->hwCaps.version.parser >>
+    //                    (coreId-2) * 4) &
+    //                   0xF)] = true;
+    //   }
+    // }
 
     active_strat[S_P4] = true; // single strategy
     
-    if (active_strat[S_QED])
-      getQEDState(&pStratState->QED);
-    if (active_strat[S_SWEEP])
-      getFastSweepState(&pStratState->fastSweep);
-    if (active_strat[S_NEWS])
-      getNewsState(&pStratState->news);
-    if (active_strat[S_CANCEL])
-      getFastCancelState(&pStratState->fastCancel);
     //    if (active_strat[S_P4])
     //    otherwisse no report only disaply in unconfigured parser
     getEfcState(&pStratState->p4);
@@ -1518,13 +1506,11 @@ int main(int argc, char *argv[]) {
       /* ----------------------------------------- */
       /* ----------------------------------------- */
       printStratHeader();
-      printStratStatus(pStratState);
+      printStratStatus(pStratState); //TD update 
 
-      /* printf("ReportOnly\t\t\t%d\n\n", */
-      /* 	   pStratState->p4.commonState.reportOnly); */
-      getProdState(&pStratState->eur);
-      printProdHeader();
-      printProdState(&pStratState->eur);
+      // getProdState(&pStratState->eur);
+      // printProdHeader();
+      // printProdState(&pStratState->eur);
 
       printBookHeader();
       printBookState(&pStratState->eur);

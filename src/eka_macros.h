@@ -241,6 +241,7 @@ class EkaDev;
   x == 0    ? "Unconfigured"                               \
   : x == 1  ? "EUREX"                                      \
   : x == 2  ? "Pitch P4"                                   \
+  : x == 11 ? "Moex"                                       \
   : x == 12 ? "QED"                                        \
   : x == 13 ? "Itch FSweep"                                \
   : x == 14 ? "News"                                       \
@@ -249,7 +250,7 @@ class EkaDev;
 
 #define EKA_STRAT2STRING(x)                                \
   x == 0    ? "Unconfigured"                               \
-  : x == 1  ? "EUREX"                                      \
+  : x == 1  ? "MOEX"                                       \
   : x == 12 ? "QED"                                        \
   : x == 13 ? "Fast Sweep"                                 \
   : x == 14 ? "Network News"                               \
