@@ -499,12 +499,17 @@ typedef int64_t EkaBcsSecHandle;
 
 class MoexSecurityId {
 public:
-  MoexSecurityId(const char* name) { std::memcpy(data, name, sizeof(data)); }
+  MoexSecurityId(const char *name) {
+    std::memcpy(data, name, sizeof(data));
+  }
   MoexSecurityId() { std::memset(data, 0, sizeof(data)); }
   MoexSecurityId &operator=(const MoexSecurityId &other) {
     if (this != &other)
       std::memcpy(data, other.data, sizeof(data));
     return *this;
+  }
+  void getName(void *dst) {
+    memcpy(dst, data, sizeof(data));
   }
   void print() const { std::cout << data << '\n'; }
 
