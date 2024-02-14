@@ -160,12 +160,12 @@ void TestEfcFixture::initNwCtxs() {
 
 /* --------------------------------------------- */
 
-void TestEfcFixture::runTest() {
-  for (auto i = 0; i < nProds_; i++) {
-    auto h = ekaBcsGetSecHandle(prodList_[i]);
-    ASSERT_NE(h, -1);
-  }
-}
+// void TestEfcFixture::runTest() {
+//   for (auto i = 0; i < nProds_; i++) {
+//     auto h = ekaBcsGetSecHandle(prodList_[i]);
+//     ASSERT_NE(h, -1);
+//   }
+// }
 /* --------------------------------------------- */
 void TestEfcFixture::initMoex() {
   initNwCtxs();
@@ -210,8 +210,8 @@ void TestEfcFixture::initMoex() {
   ASSERT_EQ(rc, OPRESULT__OK);
 
   /* --------------------------------------------- */
-  rc = ekaBcsSetProducts(prodList_, nProds_);
-  ASSERT_EQ(rc, OPRESULT__OK);
+  // rc = ekaBcsSetProducts(prodList_, nProds_);
+  // ASSERT_EQ(rc, OPRESULT__OK);
 }
 /* --------------------------------------------- */
 // void TestEfcFixture::runEur() {

@@ -20,7 +20,7 @@ public:
     return OPRESULT__OK;
   }
 
-private:
+public:
   MoexSecurityId secA_;
   MoexSecurityId secB_;
 

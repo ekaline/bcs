@@ -199,6 +199,17 @@ OpResult EkaMoexStrategy::downloadProdInfoDB() {
 
   return OPRESULT__OK;
 }
+
+/* --------------------------------------------------- */
+OpResult EkaMoexStrategy::downloadPairInitParams(
+						 PairIdx idx,
+						 const EkaMoexProdPair *p
+						 ) {
+
+  p->secA_
+  return OPRESULT__OK;
+}
+
 /* --------------------------------------------------- */
 
 OpResult EkaMoexStrategy::initPair(
@@ -219,6 +230,8 @@ OpResult EkaMoexStrategy::initPair(
 
   if (!pair_[idx])
     on_error("failed creating new Pair");
+
+  downloadPairInitParams(idx,pair_[idx]);
 
   return OPRESULT__OK;
 }

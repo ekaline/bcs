@@ -1,8 +1,10 @@
 #include <gtest/gtest.h>
 #include <iostream>
 
-#include "TestEur.h"
 // Structure: MessageHeaderIn
+#include "EkaBcs.h"
+#include "TestEfcFixture.h"
+#include "TestMoex.h"
 
 using namespace EkaBcs;
 
@@ -334,7 +336,7 @@ static const UdpMcParams core3_1mc = {mc3, std::size(mc3)};
 #endif
 /* --------------------------------------------- */
 #if 1
-TEST_F(TestEur, Eur_basic) {
+TEST_F(TestMoex, Moex_basic) {
   mcParams_ = &core2_1mc;
   tcpParams_ = &tcp0;
 
@@ -345,49 +347,24 @@ TEST_F(TestEur, Eur_basic) {
 
   OpResult rc;
 
-  /////////////// General
-  uint8_t activeJumpAtBestSet = 3;
-  uint8_t activeJumpBetterBestSet = 4;
-  uint8_t activeRJumpAtBestSet = 1;
-  uint8_t activeRJumpBetterBestSet = 2;
-  EkaBcEurMdSize sizeMultiplier = 10000;
-  uint8_t AggressorSide = ENUM_AGGRESSOR_SIDE_BUY;
-  /////////////// General
 
-  /////////////// TOB
-  EkaBcEurMdSize rawTobBidSize = 5;
-  EkaBcEurPrice tobBidPrice = 59998;
-
-  EkaBcEurMdSize rawTobAskSize = 8;
-  EkaBcEurPrice tobAskPrice = 59999;
-  /////////////// TOB
-
-  /////////////// Trade
   EkaBcEurMdSize rawTradeSize = 2;
   EkaBcEurPrice tradePrice =
       60000; // to depth 2 (total size = 8+8)
   /////////////// Trade
 
-  EkaBcEurMdSize tobBidSize =
-      rawTobBidSize * sizeMultiplier;
-  EkaBcEurMdSize tobAskSize =
-      rawTobAskSize * sizeMultiplier;
-  EkaBcEurMdSize tradeSize = rawTradeSize * sizeMultiplier;
 
-  prodList_[0] = static_cast<EkaBcEurSecId>(1234567890);
-  prodList_[1] = static_cast<EkaBcEurSecId>(456);
-  prodList_[2] = static_cast<EkaBcEurSecId>(789);
-  nProds_ = 3;
+  prodList_[0] = MoexSecurityId("AAAAAAAAAAAb");
+  prodList_[1] = MoexSecurityId("AAAAAAAAAAAb");
+  nProds_ = 2;
   // Inititializes everything
   initMoex();
 
-  auto ref_index = 1;
-  auto main_index = 0;
+  ProdPairInitParams prodPairInitParams;
+  prodPairInitParams.secA = prodList_[0];
+  prodPairInitParams.secB = prodList_[1];
 
-  auto h = ekaBcsGetSecHandle( prodList_[main_index]);
-  auto r = ekaBcsGetSecHandle( prodList_[ref_index]);
-  ASSERT_NE(h, -1);
-  ASSERT_NE(r, -1);
+  auto ret = initProdPair(0,&prodPairInitParams);
 
 #ifdef _TBD_
   

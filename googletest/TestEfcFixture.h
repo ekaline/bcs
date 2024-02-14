@@ -26,7 +26,6 @@
 
 #include "EkaBcs.h"
 
-#include "EOBILayouts.h"
 typedef EkaOpResult (*ArmControllerCb)(EkaDev *pEkaDev,
                                        EfcArmVer ver);
 typedef EkaOpResult (*DisArmControllerCb)(EkaDev *pEkaDev);
@@ -40,7 +39,7 @@ protected:
 
   void openDevice();
 
-  virtual void runTest();
+  //  virtual void runTest();
   virtual void initMoex();
   //  virtual void runEur();
 
@@ -126,7 +125,7 @@ public:
   const UdpMcParams *mcParams_ = nullptr;
   const TestTcpParams *tcpParams_ = nullptr;
 
-  EkaBcsMoexSecId prodList_[16] = {};
+  MoexSecurityId prodList_[16] = {};
   size_t nProds_ = 0;
 
 #ifdef _VERILOG_SIM
