@@ -21,16 +21,15 @@ EkaMoexProdPair::EkaMoexProdPair(
 OpResult EkaMoexProdPair::downloadStaticParams() {
   struct HwStruct {
     uint32_t reservedA;
-    MoexSecurityId secA;
+    char nameA[12];
     uint32_t reservedB;
-    MoexSecurityId secB;
+    char nameB[12];
   } __attribute__((packed));
 
-  HwStruct __attribute__((aligned(32)))
-  hw = {.reservedA = 0,
-        .secA = secA_,
-        .reservedB = 0,
-        .secB = secB_};
+  HwStruct __attribute__((aligned(32))) hw = {};
+
+  secA_.getName(hw.nameA);
+  secB_.getName(hw.nameB);
 
   const uint32_t BaseDstAddr = 0x86000;
 
