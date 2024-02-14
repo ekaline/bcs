@@ -2,29 +2,25 @@
 #define _EKA_MOEX_PROD_PAIR_H_
 
 #include "EkaBcs.h"
-#include "eka_hw_conf.h"
 
 using namespace EkaBcs;
 
 class EkaMoexProdPair {
 public:
-  EkaMoexProdPair(const ProdPairInitParams *params) {
-    secA_ = params->secA;
-    secB_ = params->secB;
-
-    fireActionIdx_ = params->fireActionIdx;
-  }
+  EkaMoexProdPair(PairIdx idx,
+                  const ProdPairInitParams *params);
 
   OpResult
-  setDynamicParams(const ProdPairDynamicParams *params) {
-    return OPRESULT__OK;
-  }
+  setDynamicParams(const ProdPairDynamicParams *params);
 
-public:
+  OpResult downloadStaticParams();
+
+private:
   MoexSecurityId secA_;
   MoexSecurityId secB_;
 
   EkaBcsActionIdx fireActionIdx_ = -1;
+  PairIdx idx_ = -1;
 };
 
 #endif

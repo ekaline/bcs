@@ -201,16 +201,6 @@ OpResult EkaMoexStrategy::downloadProdInfoDB() {
 }
 
 /* --------------------------------------------------- */
-OpResult EkaMoexStrategy::downloadPairInitParams(
-						 PairIdx idx,
-						 const EkaMoexProdPair *p
-						 ) {
-
-  p->secA_
-  return OPRESULT__OK;
-}
-
-/* --------------------------------------------------- */
 
 OpResult EkaMoexStrategy::initPair(
     PairIdx idx, const ProdPairInitParams *params) {
@@ -226,12 +216,12 @@ OpResult EkaMoexStrategy::initPair(
     return OPRESULT__ERR_PRODUCT_ALREADY_INITED;
   }
 
-  pair_[idx] = new EkaMoexProdPair(params);
+  pair_[idx] = new EkaMoexProdPair(idx, params);
 
   if (!pair_[idx])
     on_error("failed creating new Pair");
 
-  downloadPairInitParams(idx,pair_[idx]);
+  pair_[idx]->downloadStaticParams();
 
   return OPRESULT__OK;
 }
