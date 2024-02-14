@@ -318,6 +318,8 @@ void EkaMoexStrategy::runLoop(
       if (!ch->has_data())
         continue;
 
+      EKA_LOG("core %d packet detected ",coreId);fflush(stdout);fflush(stderr);
+      
       auto pkt = ch->get();
       if (!pkt)
         on_error("!pkt");

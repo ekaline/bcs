@@ -696,7 +696,8 @@ TEST_F(TestMoex, Moex_basic) {
   }
 
 #endif
-  
+
+  sleep (100);
 #ifndef _VERILOG_SIM
   closeDev();
 #endif

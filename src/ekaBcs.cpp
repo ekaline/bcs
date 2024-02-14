@@ -287,15 +287,17 @@ void EkaBcsMoexRun(const EkaBcsRunCtx *pEkaBcsRunCtx) {
     on_error("!pEfcRunCtx->onReportCb");
   /* ----------------------------------------------- */
 
-  EKA_LOG("Lounching "
-          "EkaMoexStrategy::runLoop()");
-  auto fireReportLoopFunc = std::bind(
-      &EkaMoexStrategy::runLoop, moex, pEkaBcsRunCtx);
-  moex->fireReportLoopThr_ =
-      std::thread(fireReportLoopFunc);
-  EKA_LOG("EkaMoexStrategy::runLoop() "
-          "span off");
-  fflush(g_ekaLogFile);
+  //TBD fire report loop
+  // EKA_LOG("Lounching "
+  //         "EkaEurStrategy::fireReportThreadLoop()");
+  // auto fireReportLoopFunc =
+  //     std::bind(&EkaEurStrategy::fireReportThreadLoop, eur,
+  //               pEkaBcRunCtx);
+  // eur->fireReportLoopThr_ = std::thread(fireReportLoopFunc);
+  // EKA_LOG("EkaEurStrategy::fireReportThreadLoop() "
+  //         "span off");
+  // fflush(g_ekaLogFile);
+
   /* ----------------------------------------------- */
 
   g_ekaDev->efc->setHwUdpParams();
