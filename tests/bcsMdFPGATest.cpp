@@ -17,9 +17,14 @@
 
 #include "EkaFhBcsSbeDecoder.h"
 
+
 using namespace EkaBcs;
 
 static volatile bool g_keepWork = true;
+
+void getExampleFireReport(const void *p, size_t len,
+                          void *ctx);
+
 
 void INThandler(int sig) {
   signal(sig, SIG_IGN);
@@ -77,12 +82,35 @@ int main(int argc, char *argv[]) {
       {0, "239.195.1.16", 16016}};
   static const UdpMcParams mcParamsA = {feedA,
                                         std::size(feedA)};
+  //sw
   if (configureRcvMd_A(&mcParamsA, printMdPkt, stdout) !=
       OPRESULT__OK)
     on_error("setMdRcvParams() failed");
 
   std::thread rcvA(startRcvMd_A);
 
+  // ==============================================
+  // Product List
+  MoexSecurityId prodList_[16] = {};
+  
+  prodList_[0] = MoexSecurityId("EURRUB_TMS  ");
+  prodList_[1] = MoexSecurityId("USDCNY_TOD  ");
+
+  //hw (TBD check IGMP)
+  initMoexStrategy(&mcParamsA);
+  
+  ProdPairInitParams prodPairInitParams;
+  prodPairInitParams.secBase = prodList_[0];
+  prodPairInitParams.secQuote = prodList_[1];
+  //  prodPairInitParams.fireBaseNewIdx = TBD;
+  //  prodPairInitParams.fireQuoteReplaceIdx = TBD;
+  auto ret = initProdPair(0, &prodPairInitParams);
+  
+  EkaBcsRunCtx runCtx = {.onReportCb = getExampleFireReport,
+    .cbCtx = this};
+  EkaBcsMoexRun(&runCtx);
+  
+  
   while (g_keepWork)
     std::this_thread::yield();
 
