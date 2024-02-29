@@ -534,12 +534,12 @@ typedef uint32_t EkaBcEurFireSize;
 typedef int32_t EkaBcEurMdSize;
 typedef uint64_t EkaBcEurTimeNs;
 
-typedef char EkaBcsMoexSecId[12]; /// update to this
-// typedef int64_t EkaBcsMoexSecId;
-typedef int64_t EkaBcsMoexPrice;     // tbd
-typedef uint32_t EkaBcsMoexFireSize; // tbd
+typedef char EkaBcsMoexSecId[12]; 
+typedef int64_t EkaBcsMoexPrice; 
+typedef int64_t EkaBcsMoexSize;
+typedef int64_t EkaBcsMoexTimeNs;
+  
 typedef int32_t EkaBcsMoexMdSize;    // tbd
-typedef uint64_t EkaBcsMoexTimeNs;   // tbd
 
 #define EKA_BC_EUR_MAX_PRODS 16
 
@@ -572,27 +572,26 @@ EkaBcsSecHandle ekaBcsGetSecHandle(EkaBcsMoexSecId secId);
  *
  */
 struct ProdPairInitParams {
-  MoexSecurityId secA;
-  MoexSecurityId secB;
-  EkaBcsActionIdx fireActionIdx;
+  MoexSecurityId secBase;
+  MoexSecurityId secQuote;
+  EkaBcsActionIdx fireBaseNewIdx;
+  EkaBcsActionIdx fireQuoteReplaceIdx;
 };
 
-#define MOEX_MAX_PROD_PAIRS 16
+#define MOEX_MAX_PROD_PAIRS 1
 
 typedef int PairIdx;
 
 OpResult initProdPair(PairIdx idx,
                       const ProdPairInitParams *params);
 
-struct ProdPairDynamicParams {
-  // Place holders
-  EkaBcEurPrice priceA;
-  EkaBcEurPrice priceB;
-  EkaBcEurFireSize sizeA;
-  EkaBcEurFireSize sizeB;
-  EkaBcEurFireSize maxBidSize; // limit fire size
-  EkaBcEurFireSize maxAskSize; // limit fire size
-  EkaBcEurPrice maxBookSpread;
+  struct ProdPairDynamicParams {
+    EkaBcsMoexPrice markupBuy;
+    EkaBcsMoexPrice markupSell;
+    EkaBcsMoexPrice fixSpread;
+    EkaBcsMoexPrice tolerance;
+    EkaBcsMoexSize  quoteSize;
+    EkaBcsMoexTimeNs timeTolerance;
 };
 
 OpResult setProdPairDynamicParams(

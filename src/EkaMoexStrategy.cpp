@@ -221,7 +221,7 @@ OpResult EkaMoexStrategy::initPair(
   if (!pair_[idx])
     on_error("failed creating new Pair");
 
-  pair_[idx]->downloadStaticParams();
+  pair_[idx]->downloadParams();
 
   return OPRESULT__OK;
 }

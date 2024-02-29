@@ -13,13 +13,28 @@ public:
   OpResult
   setDynamicParams(const ProdPairDynamicParams *params);
 
-  OpResult downloadStaticParams();
+  OpResult downloadParams();
 
 private:
-  MoexSecurityId secA_;
-  MoexSecurityId secB_;
+  //static during Init()
+  MoexSecurityId secBase_;
+  MoexSecurityId secQuote_;
+  EkaBcsActionIdx fireBaseNewIdx_ = -1;
+  EkaBcsActionIdx fireQuoteReplaceIdx_ = -1;
 
-  EkaBcsActionIdx fireActionIdx_ = -1;
+  //dynamic prices
+  EkaBcsMoexPrice markupBuy_    = -1;
+  EkaBcsMoexPrice markupSell_   = -1;
+  EkaBcsMoexPrice fixSpread_    = -1;
+  EkaBcsMoexPrice tolerance_    = -1;
+  EkaBcsMoexPrice negTolerance_ = -1;
+
+  //dynamic sizes  
+  EkaBcsMoexSize  quoteSize_ = -1;
+
+  //dynamic times
+  EkaBcsMoexTimeNs timeTolerance_ = -1;
+  
   PairIdx idx_ = -1;
 };
 

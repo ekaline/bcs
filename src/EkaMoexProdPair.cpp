@@ -2,6 +2,7 @@
 #include "eka_hw_conf.h"
 
 #include "EkaDev.h"
+#include "EkaEpmAction.h"
 
 extern EkaDev *g_ekaDev;
 
@@ -11,30 +12,67 @@ EkaMoexProdPair::EkaMoexProdPair(
     PairIdx idx, const ProdPairInitParams *params) {
   idx_ = idx;
 
-  secA_ = params->secA;
-  secB_ = params->secB;
+  secBase_  = params->secBase;
+  secQuote_ = params->secQuote;
 
-  fireActionIdx_ = params->fireActionIdx;
+  fireBaseNewIdx_ = params->fireBaseNewIdx;
+  fireQuoteReplaceIdx_ = params->fireQuoteReplaceIdx;
 }
 /* --------------------------------------------------- */
 
-OpResult EkaMoexProdPair::downloadStaticParams() {
-  struct HwStruct {
-    uint32_t reservedA;
-    char nameA[12];
-    uint32_t reservedB;
-    char nameB[12];
+OpResult EkaMoexProdPair::downloadParams() {
+  
+  struct HwSignedStruct {
+    uint8_t sign;
+    int64_t value; //TBD try unsigned
   } __attribute__((packed));
 
-  HwStruct __attribute__((aligned(32))) hw = {};
+  struct HwSingpleProdStruct {
+    char name[12];
+  } __attribute__((packed));
 
-  secA_.getSwapName(hw.nameA);
-  secB_.getSwapName(hw.nameB);
+  struct HwSingplePairStruct {
+    HwSignedStruct      time_tolerance;
+    HwSignedStruct      neg_tolerance;
+    HwSignedStruct      tolerance;
+    HwSignedStruct      fix_spread;
+    HwSignedStruct      markup_sell;
+    HwSignedStruct      markup_buy;
+    HwSignedStruct      quote_size;
+    uint64_t            token;
+    uint16_t            strategy_index_base_new;
+    uint16_t            strategy_index_quot_replace;
+    uint8_t             strategy_region;
+    HwSingpleProdStruct quote;
+    HwSingpleProdStruct base;
+  } __attribute__((packed));
 
+
+  //TBD multiple pairs
+  HwSingplePairStruct __attribute__((aligned(sizeof(uint64_t)))) hw = {};
+  //HwSingplePairStruct hw = {};
+
+  //secid
+  secBase_.getSwapName(hw.base.name);
+  secQuote_.getSwapName(hw.quote.name);
+
+  hw.strategy_region = EkaEpmRegion::Regions::Efc;
+  hw.strategy_index_quot_replace = fireQuoteReplaceIdx_;
+  hw.strategy_index_base_new = fireBaseNewIdx_;
+  hw.token = 0x0;//TBD
+  hw.quote_size.value = quoteSize_;
+  hw.markup_buy.value = markupBuy_;
+  hw.markup_sell.value = markupSell_;
+  hw.fix_spread.value = fixSpread_;
+  hw.tolerance.value = tolerance_;
+  hw.neg_tolerance.value = negTolerance_;
+  hw.time_tolerance.value = timeTolerance_;
+  
   const uint32_t BaseDstAddr = 0x86000;
 
+  //TBD multiple pairs
   copyBuf2Hw(g_ekaDev, BaseDstAddr,
-             reinterpret_cast<uint64_t *>(&hw), sizeof(hw));
+             (uint64_t *)(&hw), sizeof(hw));
 
   return OPRESULT__OK;
 }
@@ -43,6 +81,15 @@ OpResult EkaMoexProdPair::downloadStaticParams() {
 
 OpResult EkaMoexProdPair::setDynamicParams(
     const ProdPairDynamicParams *params) {
+
+  markupBuy_     = params->markupBuy;
+  markupSell_    = params->markupSell;
+  fixSpread_     = params->fixSpread;
+  tolerance_     = params->tolerance;
+  negTolerance_  = -1*params->tolerance;
+  quoteSize_     = params->quoteSize;
+  timeTolerance_ = params->timeTolerance;
+  
   return OPRESULT__OK;
 }
 /* --------------------------------------------------- */
