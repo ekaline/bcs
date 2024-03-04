@@ -19,11 +19,39 @@
 
 
 using namespace EkaBcs;
+FILE *g_ekaLogFile = stdout;
 
 static volatile bool g_keepWork = true;
 
 void getExampleFireReport(const void *p, size_t len,
-                          void *ctx);
+                          void *ctx) {}
+
+
+static void setUp() {
+
+  char testLogFileName[256] = {};
+  sprintf(testLogFileName, "test_logs/testLog.log");
+
+  if ((g_ekaLogFile = fopen(testLogFileName, "w")) ==
+      nullptr)
+    on_error("Failed to open %s file for writing",
+             testLogFileName);
+  //  g_ekaLogCB = ekaDefaultLog;
+
+#ifdef _VERILOG_SIM
+  char verilogSimFileName[256] = {};
+  sprintf(verilogSimFileName, "test_logs/verilogLog.log");
+
+  if ((g_ekaVerilogSimFile =
+           fopen(verilogSimFileName, "w")) == nullptr)
+    on_error("Failed to open %s file for writing",
+             verilogSimFileName);
+#endif
+  //  TMP PATCH !!!
+  // g_ekaLogFile = stdout;
+
+  return;
+}
 
 
 void INThandler(int sig) {
@@ -34,7 +62,6 @@ void INThandler(int sig) {
   return;
 }
 
-FILE *g_ekaLogFile = stdout;
 
 int ekaDefaultLog(void *logFile /*unused*/,
                   const char *function, const char *file,
@@ -60,6 +87,7 @@ EkaLogCallback g_ekaLogCB = ekaDefaultLog;
 
 int main(int argc, char *argv[]) {
 
+  setUp();
   signal(SIGINT, INThandler);
   // ==============================================
 
@@ -78,16 +106,15 @@ int main(int argc, char *argv[]) {
   // MdRcvParams
 
   static const McGroupParams feedA[] = {
-      //{0, "239.195.1.24", 16024},
-      {0, "239.195.1.16", 16016}};
+      {2, "239.195.1.16", 16016}};
   static const UdpMcParams mcParamsA = {feedA,
                                         std::size(feedA)};
   //sw
-  if (configureRcvMd_A(&mcParamsA, printMdPkt, stdout) !=
-      OPRESULT__OK)
-    on_error("setMdRcvParams() failed");
-
-  std::thread rcvA(startRcvMd_A);
+  // if (configureRcvMd_A(&mcParamsA, printMdPkt, stdout) !=
+  //     OPRESULT__OK)
+  //   on_error("setMdRcvParams() failed");
+  
+  // std::thread rcvA(startRcvMd_A);
 
   // ==============================================
   // Product List
@@ -98,7 +125,7 @@ int main(int argc, char *argv[]) {
 
   //hw (TBD check IGMP)
   initMoexStrategy(&mcParamsA);
-  
+
   ProdPairInitParams prodPairInitParams;
   prodPairInitParams.secBase = prodList_[0];
   prodPairInitParams.secQuote = prodList_[1];
@@ -107,18 +134,33 @@ int main(int argc, char *argv[]) {
   auto ret = initProdPair(0, &prodPairInitParams);
   
   EkaBcsRunCtx runCtx = {.onReportCb = getExampleFireReport,
-    .cbCtx = this};
+    .cbCtx = NULL};
   EkaBcsMoexRun(&runCtx);
+
+
+  //base 2500@97145000000 : 90000@97152500000
+  //quot  100@ 7194400000 :    20@ 7207400000
   
-  
+  ProdPairDynamicParams prodPairDynamicParams;
+  prodPairDynamicParams.markupBuy     = 0x2;
+  prodPairDynamicParams.markupSell    = 0x3;
+  prodPairDynamicParams.fixSpread     = 0x4;
+  prodPairDynamicParams.tolerance     = 0x5;
+  prodPairDynamicParams.quoteSize     = 0x6;
+  prodPairDynamicParams.timeTolerance = 0x7;
+  ret = setProdPairDynamicParams(0, &prodPairDynamicParams);
+
+    EKA_LOG("Test Before Loop");
+
+#ifndef _VERILOG_SIM
   while (g_keepWork)
     std::this_thread::yield();
 
-  stopRcvMd_A();
-
-  rcvA.join();
+  //  stopRcvMd_A();
+  //  rcvA.join();
 
   closeDev();
+#endif
 
   return 0;
 }

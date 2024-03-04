@@ -90,6 +90,7 @@ OpResult EkaMoexProdPair::setDynamicParams(
   quoteSize_     = params->quoteSize;
   timeTolerance_ = params->timeTolerance;
   
+  downloadParams();
   return OPRESULT__OK;
 }
 /* --------------------------------------------------- */

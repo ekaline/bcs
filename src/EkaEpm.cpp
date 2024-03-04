@@ -150,6 +150,9 @@ void EkaEpm::DownloadSingleTemplate2HW(EpmTemplate *t) {
   if (!t)
     on_error("!t");
 
+  if (!dev)
+    on_error("!dev");
+
   EKA_LOG("Downloading %s, id=%u, getDataTemplateAddr=%jx, "
           "getCsumTemplateAddr=%jx ",
           t->name, t->id, t->getDataTemplateAddr(),
@@ -157,9 +160,18 @@ void EkaEpm::DownloadSingleTemplate2HW(EpmTemplate *t) {
 
   copyBuf2Hw_swap4(dev, t->getDataTemplateAddr(),
                    (uint64_t *)t->data, EpmMaxRawTcpSize);
+  
+  EKA_LOG("Downloading CS");
+	  
   copyBuf2Hw(dev, t->getCsumTemplateAddr(),
              (uint64_t *)&t->hw_tcpcs_template,
              sizeof(t->hw_tcpcs_template));
+
+  EKA_LOG("Downloaded %s, id=%u, getDataTemplateAddr=%jx, "
+          "getCsumTemplateAddr=%jx ",
+          t->name, t->id, t->getDataTemplateAddr(),
+          t->getCsumTemplateAddr());
+
 }
 
 /* ---------------------------------------------------- */

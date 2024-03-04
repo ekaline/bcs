@@ -182,7 +182,8 @@ EkaDev::EkaDev(const EkaDevInitCtx *initCtx) {
   midnightSystemClock = systemClockAtMidnight();
 
   openEpm();
-
+  EKA_LOG("EPM Opened");
+  
   ekaIgmp = new EkaIgmp(this);
   if (ekaIgmp == NULL)
     on_error("ekaIgmp == NULL");

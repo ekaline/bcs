@@ -347,8 +347,9 @@ typedef int EkaBcsActionIdx;
  */
 enum class EkaBcActionType : int {
   INVALID = 0,
-  MoexFire = 70,
-  MoexSwSend = 71,
+  MoexSwSend = 70,
+  MoexFireNew = 71,
+  MoexFireReplace = 72,
   CmeFc = 60,
   EurFire = 61,
   EurSwSend = 62,
@@ -607,7 +608,7 @@ OpResult setProdPairDynamicParams(
  *        number by the FPGA
  */
 typedef uint8_t EkaBcArmVer;
-typedef uint8_t EkaBcsArmVer;
+typedef uint32_t EkaBcsArmVer;
 
 /**
  * @brief Changing Arm/Disarm state of the Product

@@ -289,9 +289,13 @@ int EkaEpmAction::setTemplate() {
     epmTemplate_ = epm_->epmTemplate[(
         int)EkaEpm::TemplateId::EurEtiSwSend];
     break;
-  case EpmActionType::MoexFire:
+  case EpmActionType::MoexFireNew:
     epmTemplate_ = epm_->epmTemplate[(
-        int)EkaEpm::TemplateId::MoexFire];
+        int)EkaEpm::TemplateId::MoexFireNew];
+    break;
+  case EpmActionType::MoexFireReplace:
+    epmTemplate_ = epm_->epmTemplate[(
+        int)EkaEpm::TemplateId::MoexFireReplace];
     break;
   case EpmActionType::MoexSwSend:
     epmTemplate_ = epm_->epmTemplate[(
