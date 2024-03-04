@@ -26,6 +26,9 @@
 #include "EkaHwHashTableLine.h"
 
 #include "EkaUdpChannel.h"
+#include "EpmMoexFireNewTemplate.h"
+#include "EpmMoexFireReplaceTemplate.h"
+#include "EpmMoexSwPktTemplate.h"
 
 // #include "EkaBcsMoexProd.h"
 
@@ -245,37 +248,47 @@ OpResult EkaMoexStrategy::setPairDynamicParams(
 
 /* --------------------------------------------------- */
 void EkaMoexStrategy::configureTemplates() {
-  // TBD moex fires
-  //    int templateIdx = (int)EkaEpm::TemplateId::MoexFire;
-  // #if 1
-  //   templateIdx = (int)EkaEpm::TemplateId::MoexFire;
-  //   epm_->epmTemplate[templateIdx] =
-  //       new EpmEti8PktTemplate(templateIdx);
 
-  //   EKA_LOG("EpmEti8PktTemplate: "
-  //           "templateIdx = %d, "
-  //           "payload syze = %u Bytes",
-  //           templateIdx,
-  //           epm_->epmTemplate[templateIdx]->getByteSize());
-  //   epm_->DownloadSingleTemplate2HW(
-  //       epm_->epmTemplate[templateIdx]);
+  int templateIdx = (int)EkaEpm::TemplateId::MoexFireNew;
 
-  // #endif
+  epm_->epmTemplate[templateIdx] =
+    new EpmMoexFireNewTemplate(templateIdx);
 
-  // #if 1
-  //   templateIdx = (int)EkaEpm::TemplateId::MoexEtiSwSend;
-  //   epm_->epmTemplate[templateIdx] =
-  //       new EpmEti8SwPktTemplate(templateIdx);
+  EKA_LOG("EpmMoexFireNewTemplate: "
+	  "templateIdx = %d, "
+	  "payload syze = %u Bytes",
+	  templateIdx,
+	  epm_->epmTemplate[templateIdx]->getByteSize());
+  epm_->DownloadSingleTemplate2HW(
+				  epm_->epmTemplate[templateIdx]);
 
-  //   EKA_LOG("EpmEti8SwPktTemplate: "
-  //           "templateIdx = %d, "
-  //           "payload syze = %u Bytes",
-  //           templateIdx,
-  //           epm_->epmTemplate[templateIdx]->getByteSize());
-  //   epm_->DownloadSingleTemplate2HW(
-  //       epm_->epmTemplate[templateIdx]);
 
-  // #endif
+  templateIdx = (int)EkaEpm::TemplateId::MoexFireReplace;
+
+  epm_->epmTemplate[templateIdx] =
+    new EpmMoexFireReplaceTemplate(templateIdx);
+
+  EKA_LOG("EpmMoexFireReplaceTemplate: "
+	  "templateIdx = %d, "
+	  "payload syze = %u Bytes",
+	  templateIdx,
+	  epm_->epmTemplate[templateIdx]->getByteSize());
+  epm_->DownloadSingleTemplate2HW(
+				  epm_->epmTemplate[templateIdx]);
+  
+
+  templateIdx = (int)EkaEpm::TemplateId::MoexSwSend;
+  epm_->epmTemplate[templateIdx] =
+    new EpmMoexSwPktTemplate(templateIdx);
+
+  EKA_LOG("EpmMoexSwPktTemplate: "
+	  "templateIdx = %d, "
+	  "payload syze = %u Bytes",
+	  templateIdx,
+	  epm_->epmTemplate[templateIdx]->getByteSize());
+  epm_->DownloadSingleTemplate2HW(
+				  epm_->epmTemplate[templateIdx]);
+
 }
 /* --------------------------------------------------- */
 #if 0
@@ -362,30 +375,19 @@ void EkaMoexStrategy::runLoop(
 
 /* --------------------------------------------------- */
 
-void EkaMoexStrategy::arm(EkaBcsSecHandle prodHande,
-                          bool armBid, bool armAsk,
-                          EkaBcsArmVer ver) {
+void EkaMoexStrategy::arm(bool arm, EkaBcsArmVer ver) {
 #if 0
-assign rf_arm_product         = register_write_data[0  +:  4];
-assign rf_arm_decide_buy_bit  = register_write_data[8  +:  1]; //1-arm, 0--disarm
-assign rf_arm_decide_sell_bit = register_write_data[9  +:  1];  //1-arm, 0--disarm
-assign rf_arm_version         = register_write_data[32 +: 32]; //only for arm==1
-
-address 0xf07c8
+assign rf_arm_decide_bit  = register_write_data[0  +:  1]; //1-arm, 0--disarm
+assign rf_arm_version     = register_write_data[32 +: 32]; //only for arm==1
 #endif
-
-  if (prodHande < 0 || prodHande >= MaxSecurities_)
-    on_error("Bad prodHande %jd", prodHande);
 
   uint64_t armData = 0;
 
-  armData |= prodHande & 0x0F; // 4 bits
+  armData |= (arm << 0);
 
-  armData |= (armBid << 8);
-  armData |= (armAsk << 9);
-
-  if (armBid || armAsk)
+  if (arm)
     armData |= (static_cast<uint64_t>(ver) << 32);
 
-  eka_write(0xf07c8, armData);
+  eka_write(0xf07d0, armData);
+  EKA_LOG("Doing Arm=%d, Version=%d",arm,ver);
 }

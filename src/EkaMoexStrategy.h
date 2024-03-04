@@ -43,8 +43,7 @@ public:
   // setProdJumpParams(EkaBcsSecHandle prodHande,
   //                   const EkaBcsMoexJumpParams *params);
 
-  void arm(EkaBcsSecHandle prodHande, bool armBid,
-           bool armAsk, EkaBcsArmVer ver);
+  void arm(bool arm, EkaBcsArmVer ver);
 
   void runLoop(const EkaBcsRunCtx *pEkaBcsRunCtx);
 
@@ -69,7 +68,7 @@ private:
   void writeTob(EkaBcsSecHandle handle, void *params,
                 uint paramsSize, SIDE side);
 
-  std::pair<int, size_t> processSwTriggeredReport(
+  std::pair<int, size_t> processSwTriggeredReprt(
       EkaDev *dev, const uint8_t *srcReport,
       uint srcReportLen, EkaUserReportQ *q, uint32_t dmaIdx,
       uint8_t *reportBuf);

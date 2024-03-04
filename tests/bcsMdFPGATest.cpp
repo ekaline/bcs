@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
 
   // ==============================================
   // Basic HW params
-  HwEngInitCtx initCtx = {.report_only = false,
+  HwEngInitCtx initCtx = {.report_only = true,
                           .watchdog_timeout_sec = 1000000};
 
   if (hwEngInit(&initCtx) != OPRESULT__OK)
@@ -126,12 +126,33 @@ int main(int argc, char *argv[]) {
   //hw (TBD check IGMP)
   initMoexStrategy(&mcParamsA);
 
+  // Actions
+  auto fireNewActionIdx = allocateNewAction(EkaBcsActionType::MoexFireNew);
+  setActionTcpSock (fireNewActionIdx,(EkaSock)NULL);
+  setActionNext (fireNewActionIdx,EKA_BC_LAST_ACTION);
+
+  auto fireReplaceActionIdx = allocateNewAction(EkaBcsActionType::MoexFireReplace);
+  setActionTcpSock (fireReplaceActionIdx,(EkaSock)NULL);
+  setActionNext (fireReplaceActionIdx,EKA_BC_LAST_ACTION);
+
+  const char fireNewMsg[] =
+    "MOEX dummy pkt a b c d e f g h"
+    "NEW";
+  setActionPayload(fireNewActionIdx,&fireNewMsg,strlen(fireNewMsg));
+
+  const char fireReplaceMsg[] =
+    "MOEX dummy pkt a b c d e f g h"
+    "Replace";
+  setActionPayload(fireReplaceActionIdx,&fireReplaceMsg,strlen(fireReplaceMsg));
+  
+  // Static Product
   ProdPairInitParams prodPairInitParams;
   prodPairInitParams.secBase = prodList_[0];
   prodPairInitParams.secQuote = prodList_[1];
-  //  prodPairInitParams.fireBaseNewIdx = TBD;
-  //  prodPairInitParams.fireQuoteReplaceIdx = TBD;
+  prodPairInitParams.fireBaseNewIdx = fireNewActionIdx;
+  prodPairInitParams.fireQuoteReplaceIdx = fireReplaceActionIdx;
   auto ret = initProdPair(0, &prodPairInitParams);
+
   
   EkaBcsRunCtx runCtx = {.onReportCb = getExampleFireReport,
     .cbCtx = NULL};
@@ -150,8 +171,9 @@ int main(int argc, char *argv[]) {
   prodPairDynamicParams.timeTolerance = 0x7;
   ret = setProdPairDynamicParams(0, &prodPairDynamicParams);
 
-    EKA_LOG("Test Before Loop");
-
+  EKA_LOG("Test Before Loop");
+  ekaBcsArmMoex(true,0);
+  
 #ifndef _VERILOG_SIM
   while (g_keepWork)
     std::this_thread::yield();

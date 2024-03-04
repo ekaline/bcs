@@ -345,7 +345,7 @@ typedef int EkaBcsActionIdx;
  * @brief List of available Action Types
  *
  */
-enum class EkaBcActionType : int {
+enum class EkaBcsActionType : int {
   INVALID = 0,
   MoexSwSend = 70,
   MoexFireNew = 71,
@@ -377,7 +377,7 @@ enum class EkaBcStratType : uint8_t {
  * @param type
  * @return Index (=handle) to be used or -1 if failed
  */
-EkaActionIdx allocateNewAction(EkaBcActionType type);
+EkaActionIdx allocateNewAction(EkaBcsActionType type);
 
 /**
  * @brief Initializes the Payload of the Fire (=TX) Packet.
@@ -624,6 +624,8 @@ typedef uint32_t EkaBcsArmVer;
  */
 OpResult ekaBcArmEur(EkaBcsSecHandle prodHande, bool armBid,
                      bool armAsk, EkaBcArmVer ver = 0);
+
+OpResult ekaBcsArmMoex(bool arm,  EkaBcsArmVer ver = 0);
 
 /**
 @brief Callback function pointer. Called every time the

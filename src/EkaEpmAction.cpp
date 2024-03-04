@@ -67,6 +67,8 @@ int EkaEpmAction::setActionBitmap() {
     actionBitParams_.bitmap.report_en = 1;
     actionBitParams_.bitmap.feedbck_en = 1;
     break;
+  case EpmActionType::MoexFireNew:
+  case EpmActionType::MoexFireReplace:
   case EpmActionType::EurFire:
   case EpmActionType::BoeFire:
   case EpmActionType::CmeHwCancel:
@@ -110,6 +112,8 @@ void EkaEpmAction::setIpTtl() {
   case EpmActionType::UserAction:
   case EpmActionType::HwFireAction:
   case EpmActionType::EurFire:
+  case EpmActionType::MoexFireNew:
+  case EpmActionType::MoexFireReplace:
   case EpmActionType::EurSwSend:
   case EpmActionType::BoeFire:
   case EpmActionType::BoeCancel:
@@ -133,6 +137,8 @@ setTcpCsSizeSource(EpmActionType type) {
   case EpmActionType::UserAction:
   case EpmActionType::HwFireAction:
   case EpmActionType::EurFire:
+  case EpmActionType::MoexFireNew:
+  case EpmActionType::MoexFireReplace:
   case EpmActionType::BoeFire:
   case EpmActionType::BoeCancel:
   case EpmActionType::SqfFire:

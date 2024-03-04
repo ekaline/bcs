@@ -167,12 +167,11 @@ int EkaEfc::disArmController() {
 }
 
 /* ################################################ */
-void EkaEfc::armMoex(EkaBcSecHandle prodHande, bool armBid,
-                     bool armAsk, EkaBcArmVer ver) {
+void EkaEfc::armMoex(bool arm, EkaBcsArmVer ver) {
   if (!moex_)
-    on_error("Eur is not initialized. Run "
-             "ekaBcInitEurStrategy()");
-  moex_->arm(prodHande, armBid, armAsk, ver);
+    on_error("Moex is not initialized. Run "
+             "ekaBcInitMoexStrategy()");
+  moex_->arm(arm, ver);
 }
 /* ################################################ */
 

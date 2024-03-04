@@ -248,7 +248,7 @@ OpResult configurePort(EkaBcLane lane,
 }
 /* ==================================================== */
 
-EkaActionIdx allocateNewAction(EkaBcActionType type) {
+EkaActionIdx allocateNewAction(EkaBcsActionType type) {
   return efcAllocateNewAction(
       g_ekaDev, static_cast<EpmActionType>(type));
 }
@@ -503,5 +503,17 @@ OpResult ekaBcsSetProducts(const EkaBcsMoexSecId *prodList,
 }
 
 /* ==================================================== */
+
+/* ==================================================== */
+  OpResult ekaBcsArmMoex(bool arm,  EkaBcsArmVer ver) {
+  if (!g_ekaDev || !g_ekaDev->efc)
+    on_error("HW Eng is not initialized: use hwEngInit()");
+
+  auto efc = g_ekaDev->efc;
+  efc->armMoex(arm, ver);
+  return OPRESULT__OK;
+  
+  }
+/* ==================================================== */  
 
 } // End of namespace EkaBcs
