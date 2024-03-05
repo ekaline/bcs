@@ -441,11 +441,10 @@ ssize_t appTcpSend(EkaActionIdx actionIdx,
  *        session. Works for both ASCII and Binary counter
  *        representations.
  *
- * @param ekaSock TCP sock handle
  * @param cntr Binary counter's value
  * @return OpResult
  */
-OpResult setSessionCntr(EkaSock ekaSock, uint64_t cntr);
+OpResult setClOrdId(uint64_t cntr);
 
 /* ==================================================== */
 

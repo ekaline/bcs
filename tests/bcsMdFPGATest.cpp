@@ -172,6 +172,10 @@ int main(int argc, char *argv[]) {
   ret = setProdPairDynamicParams(0, &prodPairDynamicParams);
 
   EKA_LOG("Test Before Loop");
+  
+  // ClOrdID
+  setClOrdId(123);
+    
   ekaBcsArmMoex(true,0);
   
 #ifndef _VERILOG_SIM

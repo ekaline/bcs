@@ -155,26 +155,14 @@ ssize_t appTcpSend(EkaDev *dev, EkaActionIdx actionIdx,
 
 /* ==================================================== */
 
-OpResult setSessionCntr(EkaSock ekaSock, uint64_t cntr) {
-  EkaTcpSess *const s = g_ekaDev->findTcpSess(ekaSock);
-  if (!s) {
-    EKA_WARN("TCP sock %d not found", ekaSock);
-    return OPRESULT__ERR_TCP_SOCKET;
-  }
+OpResult setClOrdId(uint64_t cntr) {
 
-  s->updateFpgaCtx<EkaTcpSess::AppSeqBin>(cntr);
-  s->updateFpgaCtx<EkaTcpSess::AppSeqAscii>(cntr);
-
-  // in eurex, both use binary, ascii is used for clordid
-
-  /* char cntrString[64] = {}; */
-  /* sprintf(cntrString, "%08ju", cntr); */
-
-  /* uint64_t cntrAscii = 0; */
-  /* memcpy(&cntrAscii, cntrString, 8); */
-  /* s->updateFpgaCtx<EkaTcpSess::AppSeqAscii>( */
-  /*     be64toh(cntrAscii)); */
-
+  //0x76000 - base
+  //[3 +: 5] - pair id, NA for cntr
+  //[8 +: 4] - conf id, ==4
+  
+  eka_write(g_ekaDev, 0x76400, cntr);
+  
   return OPRESULT__OK;
 }
 
