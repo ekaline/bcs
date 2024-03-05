@@ -587,17 +587,17 @@ OpResult initProdPair(PairIdx idx,
 
 
 enum class EkaBcsOrderType : int {
-  INVALID = 0,
   MY_ORDER = 1,
   HEDGE_ORDER = 2,
 };
-  
-struct SwOrderParams {
-  EkaBcsMoexPrice buyPrice;
-  EkaBcsMoexPrice sellPrice;
+
+enum class EkaBcsOrderSide : int {
+  BUY = 1,
+  SELL = 2,
 };
+  
 OpResult setOrderPricePair(EkaBcsOrderType type, PairIdx idx,
-			     const SwOrderParams *params);
+			   EkaBcsOrderSide side, EkaBcsMoexPrice price);
   
 struct ProdPairDynamicParams {
     EkaBcsMoexPrice markupBuy;

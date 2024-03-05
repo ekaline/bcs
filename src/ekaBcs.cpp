@@ -170,7 +170,8 @@ OpResult setClOrdId(uint64_t cntr) {
 
 OpResult setOrderPricePair(EkaBcsOrderType type,
 			   PairIdx idx,
-			   const SwOrderParams *params) {
+			   EkaBcsOrderSide side,
+			   EkaBcsMoexPrice price) {
 
   //[3 +: 5] - pair id
   //[8 +: 4] - conf id
@@ -183,15 +184,19 @@ OpResult setOrderPricePair(EkaBcsOrderType type,
   base_addr |= (idx << 3); //Correct Pair
     switch (type) {
     case EkaBcsOrderType::MY_ORDER :
-      eka_write(g_ekaDev, base_addr + 0x000, params->buyPrice);
-      eka_write(g_ekaDev, base_addr + 0x100, params->sellPrice);
+      if (side == EkaBcsOrderSide::BUY)
+	eka_write(g_ekaDev, base_addr + 0x000, price);
+      else
+	eka_write(g_ekaDev, base_addr + 0x100, price);
       break;
     case EkaBcsOrderType::HEDGE_ORDER :
-      eka_write(g_ekaDev, base_addr + 0x200, params->buyPrice);
-      eka_write(g_ekaDev, base_addr + 0x300, params->sellPrice);
+      if (side == EkaBcsOrderSide::BUY)
+	eka_write(g_ekaDev, base_addr + 0x200, price);
+      else
+	eka_write(g_ekaDev, base_addr + 0x300, price);
       break;
     default:
-      on_error("Unknown type %d",type);
+      on_error("Unknown type %d",(int)type);
       break;
     }
   

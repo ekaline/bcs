@@ -177,14 +177,10 @@ int main(int argc, char *argv[]) {
   setClOrdId(123);
 
   // Set SW order
-  SwOrderParams swOrderParams = {};
-  swOrderParams.buyPrice = 0x444;
-  swOrderParams.sellPrice = 0x555;
-  setOrderPricePair(EkaBcsOrderType::MY_ORDER,0,&swOrderParams);
-
-  swOrderParams.buyPrice = 0x666;
-  swOrderParams.sellPrice = 0x777;
-  setOrderPricePair(EkaBcsOrderType::HEDGE_ORDER,0,&swOrderParams);
+  setOrderPricePair(EkaBcsOrderType::MY_ORDER,0,EkaBcsOrderSide::BUY,0x444);
+  setOrderPricePair(EkaBcsOrderType::MY_ORDER,0,EkaBcsOrderSide::SELL,0x555);
+  setOrderPricePair(EkaBcsOrderType::HEDGE_ORDER,0,EkaBcsOrderSide::BUY,0x666);
+  setOrderPricePair(EkaBcsOrderType::HEDGE_ORDER,0,EkaBcsOrderSide::SELL,0x777);
   
   ekaBcsArmMoex(true,0);
   
