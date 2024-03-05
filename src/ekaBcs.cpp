@@ -168,6 +168,39 @@ OpResult setClOrdId(uint64_t cntr) {
 
 /* ==================================================== */
 
+OpResult setOrderPricePair(EkaBcsOrderType type,
+			   PairIdx idx,
+			   const SwOrderParams *params) {
+
+  //[3 +: 5] - pair id
+  //[8 +: 4] - conf id
+  // conf:
+  // 0 -my buy
+  // 1 -my sell
+  // 2 -hedge buy
+  // 3 -hedge sell
+  uint64_t base_addr = 0x76000;
+  base_addr |= (idx << 3); //Correct Pair
+    switch (type) {
+    case EkaBcsOrderType::MY_ORDER :
+      eka_write(g_ekaDev, base_addr + 0x000, params->buyPrice);
+      eka_write(g_ekaDev, base_addr + 0x100, params->sellPrice);
+      break;
+    case EkaBcsOrderType::HEDGE_ORDER :
+      eka_write(g_ekaDev, base_addr + 0x200, params->buyPrice);
+      eka_write(g_ekaDev, base_addr + 0x300, params->sellPrice);
+      break;
+    default:
+      on_error("Unknown type %d",type);
+      break;
+    }
+  
+  return OPRESULT__OK;
+}
+
+
+/* ==================================================== */
+
 ssize_t tcpRecv(EkaSock sock, void *buf, size_t size) {
   auto s = g_ekaDev->findTcpSess(sock);
   if (!s) {

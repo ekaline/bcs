@@ -585,7 +585,21 @@ typedef int PairIdx;
 OpResult initProdPair(PairIdx idx,
                       const ProdPairInitParams *params);
 
-  struct ProdPairDynamicParams {
+
+enum class EkaBcsOrderType : int {
+  INVALID = 0,
+  MY_ORDER = 1,
+  HEDGE_ORDER = 2,
+};
+  
+struct SwOrderParams {
+  EkaBcsMoexPrice buyPrice;
+  EkaBcsMoexPrice sellPrice;
+};
+OpResult setOrderPricePair(EkaBcsOrderType type, PairIdx idx,
+			     const SwOrderParams *params);
+  
+struct ProdPairDynamicParams {
     EkaBcsMoexPrice markupBuy;
     EkaBcsMoexPrice markupSell;
     EkaBcsMoexPrice fixSpread;

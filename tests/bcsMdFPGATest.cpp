@@ -175,7 +175,17 @@ int main(int argc, char *argv[]) {
   
   // ClOrdID
   setClOrdId(123);
-    
+
+  // Set SW order
+  SwOrderParams swOrderParams = {};
+  swOrderParams.buyPrice = 0x444;
+  swOrderParams.sellPrice = 0x555;
+  setOrderPricePair(EkaBcsOrderType::MY_ORDER,0,&swOrderParams);
+
+  swOrderParams.buyPrice = 0x666;
+  swOrderParams.sellPrice = 0x777;
+  setOrderPricePair(EkaBcsOrderType::HEDGE_ORDER,0,&swOrderParams);
+  
   ekaBcsArmMoex(true,0);
   
 #ifndef _VERILOG_SIM
