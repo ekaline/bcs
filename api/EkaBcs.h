@@ -625,6 +625,9 @@ OpResult ekaBcArmEur(EkaBcsSecHandle prodHande, bool armBid,
 
 OpResult ekaBcsArmMoex(bool arm, EkaBcsArmVer ver = 0);
 
+OpResult ekaBcsResetReplaceCnt();
+OpResult ekaBcsSetReplaceThr(uint32_t threshold);
+
 /**
 @brief Callback function pointer. Called every time the
        Fire Report received from the FPGA

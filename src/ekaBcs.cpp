@@ -160,9 +160,9 @@ OpResult setClOrdId(uint64_t cntr) {
   //0x76000 - base
   //[3 +: 5] - pair id, NA for cntr
   //[8 +: 4] - conf id, ==4
-  
+
   eka_write(g_ekaDev, 0x76400, cntr);
-  
+
   return OPRESULT__OK;
 }
 
@@ -199,7 +199,7 @@ OpResult setOrderPricePair(EkaBcsOrderType type,
       on_error("Unknown type %d",(int)type);
       break;
     }
-  
+
   return OPRESULT__OK;
 }
 
@@ -339,7 +339,7 @@ void EkaBcsMoexRun(const EkaBcsRunCtx *pEkaBcsRunCtx) {
     sleep(0);
 
   EKA_LOG("fireReportThread activated");
-  
+
   g_ekaDev->efc->setHwUdpParams();
   g_ekaDev->efc->enableRxFire();
 
@@ -552,8 +552,34 @@ OpResult ekaBcsSetProducts(const EkaBcsMoexSecId *prodList,
   auto efc = g_ekaDev->efc;
   efc->armMoex(arm, ver);
   return OPRESULT__OK;
-  
+
   }
-/* ==================================================== */  
+/* ==================================================== */
+
+/* ==================================================== */
+  OpResult ekaBcsResetReplaceCnt() {
+  //0x76000 - base
+  //[3 +: 5] - pair id, NA for cntr
+  //[8 +: 4] - conf id, ==5
+
+  eka_write(g_ekaDev, 0x76500, 0x0);
+
+  return OPRESULT__OK;
+
+  }
+/* ==================================================== */
+
+/* ==================================================== */
+  OpResult ekaBcsSetReplaceThr(uint32_t threshold) {
+  //0x76000 - base
+  //[3 +: 5] - pair id, NA for cntr
+  //[8 +: 4] - conf id, ==6
+
+  eka_write(g_ekaDev, 0x76600, (uint64_t)threshold);
+
+  return OPRESULT__OK;
+
+  }
+/* ==================================================== */
 
 } // End of namespace EkaBcs

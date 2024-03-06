@@ -115,13 +115,13 @@ int main(int argc, char *argv[]) {
   // if (configureRcvMd_A(&mcParamsA, printMdPkt, stdout) !=
   //     OPRESULT__OK)
   //   on_error("setMdRcvParams() failed");
-  
+
   // std::thread rcvA(startRcvMd_A);
 
   // ==============================================
   // Product List
   MoexSecurityId prodList_[16] = {};
-  
+
   prodList_[0] = MoexSecurityId("EURRUB_TMS  ");
   prodList_[1] = MoexSecurityId("USDCNY_TOD  ");
 
@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
     "MOEX dummy pkt a b c d e f g h"
     "Replace";
   setActionPayload(fireReplaceActionIdx,&fireReplaceMsg,strlen(fireReplaceMsg));
-  
+
   // Static Product
   ProdPairInitParams prodPairInitParams;
   prodPairInitParams.secBase = prodList_[0];
@@ -155,7 +155,7 @@ int main(int argc, char *argv[]) {
   prodPairInitParams.fireQuoteReplaceIdx = fireReplaceActionIdx;
   auto ret = initProdPair(0, &prodPairInitParams);
 
-  
+
   EkaBcsRunCtx runCtx = {.onReportCb = getExampleFireReport,
     .cbCtx = NULL};
   EkaBcsMoexRun(&runCtx);
@@ -163,7 +163,7 @@ int main(int argc, char *argv[]) {
 
   //base 2500@97145000000 : 90000@97152500000
   //quot  100@ 7194400000 :    20@ 7207400000
-  
+
   ProdPairDynamicParams prodPairDynamicParams;
   prodPairDynamicParams.markupBuy     = 0x2;
   prodPairDynamicParams.markupSell    = 0x3;
@@ -174,18 +174,20 @@ int main(int argc, char *argv[]) {
   ret = setProdPairDynamicParams(0, &prodPairDynamicParams);
 
   EKA_LOG("Test Before Loop");
-  
+
   // ClOrdID
   setClOrdId(123);
+  ekaBcsResetReplaceCnt();
+  ekaBcsSetReplaceThr(100);
 
   // Set SW order
   setOrderPricePair(EkaBcsOrderType::MY_ORDER,0,EkaBcsOrderSide::BUY,0x444);
   setOrderPricePair(EkaBcsOrderType::MY_ORDER,0,EkaBcsOrderSide::SELL,0x555);
   setOrderPricePair(EkaBcsOrderType::HEDGE_ORDER,0,EkaBcsOrderSide::BUY,0x666);
   setOrderPricePair(EkaBcsOrderType::HEDGE_ORDER,0,EkaBcsOrderSide::SELL,0x777);
-  
+
   ekaBcsArmMoex(true,0);
-  
+
 #ifndef _VERILOG_SIM
   while (g_keepWork)
     std::this_thread::yield();
