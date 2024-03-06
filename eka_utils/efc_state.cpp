@@ -817,7 +817,18 @@ int printTOB() {
     printf(bookSideFormat, allTOB->pair.quote.ask_size, allTOB->pair.quote.ask_price);
     printf("\n");
   }
-  
+
+  printf("clordid = %d\n",allTOB->clordid);
+  printf("replace_arm_cnt = %d\n",allTOB->replace_arm_cnt);
+  printf("replace_arm_thresh = %d\n",allTOB->replace_arm_thresh);
+
+  printf("sell_order_update = %ju\n",allTOB->pair.sell_order_update);
+  printf("buy_order_update = %ju\n",allTOB->pair.buy_order_update);
+  printf("hedge_sell_price = %ju\n",allTOB->pair.hedge_sell_price);
+  printf("hedge_buy_price = %ju\n",allTOB->pair.hedge_buy_price);
+  printf("my_sell_price = %ju\n",allTOB->pair.my_sell_price);
+  printf("my_buy_price = %ju\n",allTOB->pair.my_buy_price);
+  //  printf(" = %d\n",allTOB->);
   // printf("| ");
   // if (armState->prod[prod_idx].arm.buy)
   //   printf(GRN "    BUY     " RESET);
