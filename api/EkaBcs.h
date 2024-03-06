@@ -350,9 +350,6 @@ enum class EkaBcsActionType : int {
   MoexSwSend = 70,
   MoexFireNew = 71,
   MoexFireReplace = 72,
-  CmeFc = 60,
-  EurFire = 61,
-  EurSwSend = 62,
 };
 
 /**
@@ -383,7 +380,6 @@ EkaActionIdx allocateNewAction(EkaBcsActionType type);
  * @brief Initializes the Payload of the Fire (=TX) Packet.
  *        Some fields are overridden by the template.
  *
- * @param ekaDev
  * @param actionIdx handle of the action from
  *                  allocateNewAction()
  * @param payload
@@ -448,18 +444,6 @@ OpResult setClOrdId(uint64_t cntr);
 
 /* ==================================================== */
 
-/* ==================================================== */
-
-/**
- * @brief Algo params of BC CmeFC strategy
- *
- */
-struct EkaBcCmeFcAlgoParams {
-  int fireActionId; ///< 1st Action fired
-  uint64_t minTimeDiff;
-  uint8_t minNoMDEntries;
-};
-
 typedef void (*onMdRecvCb)(const void *md, size_t len,
                            void *ctx);
 
@@ -512,10 +496,10 @@ public:
     memcpy(dst, data, sizeof(data));
   }
   void getSwapName(void *dst) {
-    char* dst_char = (char*)dst;
+    char *dst_char = (char *)dst;
     for (int i = 0; i < sizeof(data); i++) {
       dst_char[i] = data[sizeof(data) - i - 1];
-    }    
+    }
   }
   void print() const { std::cout << data << '\n'; }
 
@@ -534,12 +518,12 @@ typedef uint32_t EkaBcEurFireSize;
 typedef int32_t EkaBcEurMdSize;
 typedef uint64_t EkaBcEurTimeNs;
 
-typedef char EkaBcsMoexSecId[12]; 
-typedef int64_t EkaBcsMoexPrice; 
+typedef char EkaBcsMoexSecId[12];
+typedef int64_t EkaBcsMoexPrice;
 typedef int64_t EkaBcsMoexSize;
 typedef int64_t EkaBcsMoexTimeNs;
-  
-typedef int32_t EkaBcsMoexMdSize;    // tbd
+
+typedef int32_t EkaBcsMoexMdSize; // tbd
 
 #define EKA_BC_EUR_MAX_PRODS 16
 
@@ -585,7 +569,6 @@ typedef int PairIdx;
 OpResult initProdPair(PairIdx idx,
                       const ProdPairInitParams *params);
 
-
 enum class EkaBcsOrderType : int {
   MY_ORDER = 1,
   HEDGE_ORDER = 2,
@@ -595,17 +578,19 @@ enum class EkaBcsOrderSide : int {
   BUY = 1,
   SELL = 2,
 };
-  
-OpResult setOrderPricePair(EkaBcsOrderType type, PairIdx idx,
-			   EkaBcsOrderSide side, EkaBcsMoexPrice price);
-  
+
+OpResult setOrderPricePair(EkaBcsOrderType type,
+                           PairIdx idx,
+                           EkaBcsOrderSide side,
+                           EkaBcsMoexPrice price);
+
 struct ProdPairDynamicParams {
-    EkaBcsMoexPrice markupBuy;
-    EkaBcsMoexPrice markupSell;
-    EkaBcsMoexPrice fixSpread;
-    EkaBcsMoexPrice tolerance;
-    EkaBcsMoexSize  quoteSize;
-    EkaBcsMoexTimeNs timeTolerance;
+  EkaBcsMoexPrice markupBuy;
+  EkaBcsMoexPrice markupSell;
+  EkaBcsMoexPrice fixSpread;
+  EkaBcsMoexPrice tolerance;
+  EkaBcsMoexSize quoteSize;
+  EkaBcsMoexTimeNs timeTolerance;
 };
 
 OpResult setProdPairDynamicParams(
@@ -638,7 +623,7 @@ typedef uint32_t EkaBcsArmVer;
 OpResult ekaBcArmEur(EkaBcsSecHandle prodHande, bool armBid,
                      bool armAsk, EkaBcArmVer ver = 0);
 
-OpResult ekaBcsArmMoex(bool arm,  EkaBcsArmVer ver = 0);
+OpResult ekaBcsArmMoex(bool arm, EkaBcsArmVer ver = 0);
 
 /**
 @brief Callback function pointer. Called every time the
