@@ -19,7 +19,7 @@
 
 #include "EkaMoexStrategy.h"
 #include "EkaMdRecvHandler.h"
-
+void ekaFireReportThread(EkaDev *dev);
 extern EkaDev *g_ekaDev;
 
 namespace EkaBcs {
@@ -311,6 +311,8 @@ void EkaBcsMoexRun(const EkaBcsRunCtx *pEkaBcsRunCtx) {
     on_error("!pEkaBcsRunCtx");
   if (!pEkaBcsRunCtx->onReportCb)
     on_error("!pEfcRunCtx->onReportCb");
+  g_ekaDev->pEfcRunCtx->onEfcFireReportCb = pEkaBcsRunCtx->onReportCb;
+  g_ekaDev->pEfcRunCtx->cbCtx = pEkaBcsRunCtx->cbCtx;
   /* ----------------------------------------------- */
 
   //TBD fire report loop
@@ -326,6 +328,18 @@ void EkaBcsMoexRun(const EkaBcsRunCtx *pEkaBcsRunCtx) {
 
   /* ----------------------------------------------- */
 
+  if (g_ekaDev->fireReportThreadActive) {
+    on_error("fireReportThread already active");
+  }
+
+  g_ekaDev->fireReportThread =
+      std::thread(ekaFireReportThread, g_ekaDev);
+  g_ekaDev->fireReportThread.detach();
+  while (!g_ekaDev->fireReportThreadActive)
+    sleep(0);
+
+  EKA_LOG("fireReportThread activated");
+  
   g_ekaDev->efc->setHwUdpParams();
   g_ekaDev->efc->enableRxFire();
 

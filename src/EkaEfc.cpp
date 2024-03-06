@@ -281,7 +281,7 @@ int EkaEfc::checkSanity() {
 
 /* ################################################ */
 int EkaEfc::run(const EfcRunCtx *pEfcRunCtx) {
-  // TO BE FIXED!!!
+  // TO BE FIXED!!! (NOT USED)_
   //  checkSanity();
 
   reportCb = pEfcRunCtx->onEfcFireReportCb
@@ -306,6 +306,36 @@ int EkaEfc::run(const EfcRunCtx *pEfcRunCtx) {
   dev_->fireReportThread.detach();
   while (!dev_->fireReportThreadActive)
     sleep(0);
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
+  EKA_LOG("fireReportThread activated");
   EKA_LOG("fireReportThread activated");
 
   return 0;

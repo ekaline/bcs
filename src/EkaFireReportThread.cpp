@@ -225,6 +225,26 @@ pushNewsReport(int reportIdx, uint8_t *dst,
 
   return b - dst;
 }
+/* ################################################## */
+inline size_t
+pushExceptionsReport(int reportIdx, uint8_t *dst,
+                     const EkaBcExceptionsReport *src) {
+  auto b = dst;
+  auto reportHdr = reinterpret_cast<EkaBcReportHdr *>(b);
+  reportHdr->type = EkaBcReportType::ExceptionsReport;
+  reportHdr->idx = reportIdx;
+  reportHdr->size = sizeof(EkaBcExceptionsReport);
+  b += sizeof(*reportHdr);
+  //--------------------------------------------------------------------------
+  auto ExceptionsReport =
+      reinterpret_cast<EkaBcExceptionsReport *>(b);
+  b += sizeof(*ExceptionsReport);
+  //--------------------------------------------------------------------------
+  memcpy(ExceptionsReport, src, sizeof(*ExceptionsReport));
+  //--------------------------------------------------------------------------
+  return b - dst;
+}
+
 /* ###########################################################
  */
 inline size_t pushSweepReport(
@@ -336,71 +356,92 @@ std::pair<int, size_t> processExceptionReport(
     EkaDev *dev, const uint8_t *srcReport,
     uint srcReportLen, EkaUserReportQ *q, uint32_t dmaIdx,
     uint8_t *reportBuf) {
-
-  int strategyId2ret = EPM_INVALID_STRATEGY;
   //--------------------------------------------------------------------------
-  uint8_t *b = reportBuf;
+  uint8_t *b = reportBuf; // dst
   uint reportIdx = 0;
+  auto hwReport{
+      reinterpret_cast<const EkaBcExceptionsReport *>(
+          srcReport)};
+
   //--------------------------------------------------------------------------
   auto containerHdr{
-      reinterpret_cast<EkaContainerGlobalHdr *>(b)};
-  containerHdr->type = EkaEventType::kExceptionEvent;
-  containerHdr->num_of_reports =
+      reinterpret_cast<EkaBcContainerGlobalHdr *>(b)};
+  containerHdr->eventType = EkaBcEventType::ExceptionEvent;
+  containerHdr->nReports =
       0; // to be overwritten at the end
   b += sizeof(*containerHdr);
   //--------------------------------------------------------------------------
-  auto hwEpmReport{
-      reinterpret_cast<const hw_epm_status_report_t *>(
-          srcReport)};
+  b += pushExceptionsReport(++reportIdx, b, hwReport);
 
-  EfcExceptionsReport exceptReport = {};
-
-  switch (static_cast<HwEpmActionStatus>(
-      hwEpmReport->epm.action)) {
-  case HwEpmActionStatus::HWPeriodicStatus:
-    //    EKA_LOG("Processgin
-    //    HwEpmActionStatus::HWPeriodicStatus,
-    //    len=%d",srcReportLen);
-    // copying port exception vectors
-    for (int i = 0; i < EFC_MAX_CORES; i++) {
-      exceptReport.exceptionStatus.portVector[i] =
-          hwEpmReport->exception_report.core_vector[i];
-    }
-    // copying global exception vector
-    exceptReport.exceptionStatus.globalVector =
-        hwEpmReport->exception_report.global_vector;
-    // copying arm status fields
-    exceptReport.p4armStatus.armFlag =
-        hwEpmReport->p4_arm_report.arm_state;
-    exceptReport.p4armStatus.expectedVersion =
-        hwEpmReport->p4_arm_report.arm_expected_version;
-    exceptReport.nWarmStatus.armFlag =
-        hwEpmReport->nw_arm_report.arm_state;
-    exceptReport.nWarmStatus.expectedVersion =
-        hwEpmReport->nw_arm_report.arm_expected_version;
-    //    hexDump("------------\nexceptReport",hwEpmReport,sizeof(*hwEpmReport));
-    /* EKA_LOG("P4 ARM=%d, VER=%d", */
-    /* 	    hwEpmReport->p4_arm_report.arm_state,hwEpmReport->p4_arm_report.arm_expected_version);
-     */
-    /* EKA_LOG("NW ARM=%d, VER=%d", */
-    /* 	    hwEpmReport->nw_arm_report.arm_state,hwEpmReport->nw_arm_report.arm_expected_version);
-     */
-
-    b += pushExceptionReport(++reportIdx, b, &exceptReport);
-    break;
-  default:
-    // Broken EPM
-    EKA_LOG("Processgin HwEpmActionStatus::Garbage, len=%d",
-            srcReportLen);
-    b += pushEpmReport(++reportIdx, b, &hwEpmReport->epm);
-  }
   //--------------------------------------------------------------------------
-  containerHdr->num_of_reports = reportIdx;
+  containerHdr->nReports = reportIdx;
 
-  if (containerHdr->num_of_reports)
-    strategyId2ret = EPM_NO_STRATEGY;
+  return {EFC_STRATEGY, b - reportBuf};
 
-  return {strategyId2ret, b - reportBuf};
+  // int strategyId2ret = EPM_INVALID_STRATEGY;
+  // //--------------------------------------------------------------------------
+  // uint8_t *b = reportBuf;
+  // uint reportIdx = 0;
+  // //--------------------------------------------------------------------------
+  // auto containerHdr{
+  //     reinterpret_cast<EkaContainerGlobalHdr *>(b)};
+  // containerHdr->type = EkaEventType::kExceptionEvent;
+  // containerHdr->num_of_reports =
+  //     0; // to be overwritten at the end
+  // b += sizeof(*containerHdr);
+  // //--------------------------------------------------------------------------
+  // auto hwEpmReport{
+  //     reinterpret_cast<const hw_epm_status_report_t *>(
+  //         srcReport)};
+
+  // EfcExceptionsReport exceptReport = {};
+
+  // switch (static_cast<HwEpmActionStatus>(
+  //     hwEpmReport->epm.action)) {
+  // case HwEpmActionStatus::HWPeriodicStatus:
+  //   //    EKA_LOG("Processgin
+  //   //    HwEpmActionStatus::HWPeriodicStatus,
+  //   //    len=%d",srcReportLen);
+  //   // copying port exception vectors
+  //   for (int i = 0; i < EFC_MAX_CORES; i++) {
+  //     exceptReport.exceptionStatus.portVector[i] =
+  //         hwEpmReport->exception_report.core_vector[i];
+  //   }
+  //   // copying global exception vector
+  //   exceptReport.exceptionStatus.globalVector =
+  //       hwEpmReport->exception_report.global_vector;
+  //   // copying arm status fields
+  //   exceptReport.p4armStatus.armFlag =
+  //       hwEpmReport->p4_arm_report.arm_state;
+  //   exceptReport.p4armStatus.expectedVersion =
+  //       hwEpmReport->p4_arm_report.arm_expected_version;
+  //   exceptReport.nWarmStatus.armFlag =
+  //       hwEpmReport->nw_arm_report.arm_state;
+  //   exceptReport.nWarmStatus.expectedVersion =
+  //       hwEpmReport->nw_arm_report.arm_expected_version;
+  //   //    hexDump("------------\nexceptReport",hwEpmReport,sizeof(*hwEpmReport));
+  //   /* EKA_LOG("P4 ARM=%d, VER=%d", */
+  //   /* 	    hwEpmReport->p4_arm_report.arm_state,hwEpmReport->p4_arm_report.arm_expected_version);
+  //    */
+  //   /* EKA_LOG("NW ARM=%d, VER=%d", */
+  //   /* 	    hwEpmReport->nw_arm_report.arm_state,hwEpmReport->nw_arm_report.arm_expected_version);
+  //    */
+
+  //   b += pushExceptionReport(++reportIdx, b, &exceptReport);
+  //   break;
+  // default:
+  //   // Broken EPM
+  //   EKA_LOG("Processgin HwEpmActionStatus::Garbage, len=%d",
+  //           srcReportLen);
+  //   b += pushEpmReport(++reportIdx, b, &hwEpmReport->epm);
+  // }
+  // //--------------------------------------------------------------------------
+  // containerHdr->num_of_reports = reportIdx;
+
+  // if (containerHdr->num_of_reports)
+  //   strategyId2ret = EPM_NO_STRATEGY;
+
+  // return {strategyId2ret, b - reportBuf};
 }
 
 /* ###########################################################
@@ -605,6 +646,18 @@ processFireReport(EkaDev *dev, const uint8_t *srcReport,
                   uint32_t dmaIdx, uint8_t *reportBuf) {
   //--------------------------------------------------------------------------
 
+  EKA_LOG("FIRE--------------------------------------");
+  EKA_LOG("FIRE--------------------------------------");
+  EKA_LOG("FIRE--------------------------------------");
+  EKA_LOG("FIRE--------------------------------------");
+  EKA_LOG("FIRE--------------------------------------");
+  EKA_LOG("FIRE--------------------------------------");
+  EKA_LOG("FIRE--------------------------------------");
+  EKA_LOG("FIRE--------------------------------------");
+  EKA_LOG("FIRE--------------------------------------");
+  EKA_LOG("FIRE--------------------------------------");
+  EKA_LOG("FIRE--------------------------------------");
+  EKA_LOG("FIRE--------------------------------------");
   uint8_t *b = reportBuf;
   uint reportIdx = 0;
   auto hwReport{
@@ -751,27 +804,6 @@ void ekaFireReportThread(EkaDev *dev) {
       break;
     case EkaUserChannel::DMA_TYPE::EXCEPTION:
       r = processExceptionReport(
-          dev, payload, len, efc->userReportQ,
-          dmaReportHdr->feedbackDmaIndex, reportBuf);
-      break;
-    case EkaUserChannel::DMA_TYPE::FAST_CANCEL:
-      r = processFastCancelReport(
-          dev, payload, len, efc->userReportQ,
-          dmaReportHdr->feedbackDmaIndex, reportBuf);
-      printFireReport = true;
-      break;
-    case EkaUserChannel::DMA_TYPE::NEWS:
-      r = processNewsReport(
-          dev, payload, len, efc->userReportQ,
-          dmaReportHdr->feedbackDmaIndex, reportBuf);
-      break;
-    case EkaUserChannel::DMA_TYPE::SWEEP:
-      r = processSweepReport(
-          dev, payload, len, efc->userReportQ,
-          dmaReportHdr->feedbackDmaIndex, reportBuf);
-      break;
-    case EkaUserChannel::DMA_TYPE::QED:
-      r = processQEDReport(
           dev, payload, len, efc->userReportQ,
           dmaReportHdr->feedbackDmaIndex, reportBuf);
       break;

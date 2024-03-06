@@ -24,7 +24,9 @@ FILE *g_ekaLogFile = stdout;
 static volatile bool g_keepWork = true;
 
 void getExampleFireReport(const void *p, size_t len,
-                          void *ctx) {}
+                          void *ctx) {
+  //  printf ("Some report came\n");
+}
 
 
 static void setUp() {
