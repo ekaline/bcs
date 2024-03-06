@@ -22,7 +22,7 @@ class EkaUserChannel : public EkaDmaChannel<16> {
                                  //below are used only in LWIP_RX channel
  			         LWIP         = 4,
                                  //below are used only in EPM_REPORT channel
-                                 FIRE         = 1,
+                                 FIRE         = 12,
 				 EXCEPTION    = 6,
 				 FAST_CANCEL  = 7,
 				 NEWS         = 8,

@@ -59,7 +59,7 @@ OpResult EkaMoexProdPair::downloadParams() {
   hw.strategy_region = EkaEpmRegion::Regions::Efc;
   hw.strategy_index_quot_replace = fireQuoteReplaceIdx_;
   hw.strategy_index_base_new = fireBaseNewIdx_;
-  hw.token = 0x0;//TBD
+  hw.token = 0x1122334455667788;//TBD
   hw.quote_size.value = quoteSize_;
   hw.markup_buy.value = markupBuy_;
   hw.markup_sell.value = markupSell_;
