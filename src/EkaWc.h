@@ -45,12 +45,12 @@ public:
       on_error("wcRegionBase %p - snDevWCPtr_ %p != wcChId "
                "* 0x800 0x%x",
                wcRegionBase, snDevWCPtr_, wcChId * 0x800);
-    // TEST_LOG("hwHeapAddr=0x%jx, actionLocalIdx=%u,
-    // pktSize=%jd, wcRegionOffs=0x%x",
-    // 	     hwHeapAddr,actionLocalIdx,pktSize,wcChId *
-    // 0x800);
-    // hexDump("epmCopyWcBuf",swHeapAddr,roundUp64(pktSize));
-
+#if 0   
+    EKA_LOG("hwHeapAddr=0x%jx, actionLocalIdx=%u, pktSize=%jd, wcRegionOffs=0x%x",
+	     hwHeapAddr,actionLocalIdx,pktSize,wcChId *    0x800);
+    hexDump("epmCopyWcBuf",swHeapAddr,roundUp64(pktSize));
+#endif
+    
     epmCopyWcDesc(wcRegionBase, pktSize, hwHeapAddr,
                   actionLocalIdx, epmRegion,
                   0, // tcpPseudoCsum,
@@ -150,7 +150,7 @@ private:
         .hwHeapAddr = hwHeapAddr,
         .opc = (uint64_t)send};
 #if 0
-    TEST_LOG("desc: action_index=%u, hwHeapAddr=%x, size=%u, nBytes=%u, opc=%u",
+    EKA_LOG("desc: action_index=%u, hwHeapAddr=%x, size=%u, nBytes=%u, opc=%u",
 	     desc.trigDesc.str.action_index,
 	     desc.hwHeapAddr,
 	     desc.trigDesc.str.size,

@@ -37,16 +37,29 @@
 SN_DeviceId devId;
 
 typedef struct __attribute__((packed)) {
-  uint32_t res_align;
   char     board_id[4];
   uint64_t ask_size;
   uint64_t bid_size;
   uint64_t ask_price;
   uint64_t bid_price;
+} rf_bcs_single_prod_t;
+
+typedef struct __attribute__((packed)) {
+  uint64_t sell_order_update;  
+  uint64_t buy_order_update;  
+  uint64_t hedge_sell_price;  
+  uint64_t hedge_buy_price;  
+  uint64_t my_sell_price;  
+  uint64_t my_buy_price;
+  rf_bcs_single_prod_t quote;
+  rf_bcs_single_prod_t base;
 } rf_bcs_single_entry_t;
 
 typedef struct __attribute__((packed)) {
-        rf_bcs_single_entry_t prod[2];
+  uint32_t replace_arm_thresh;
+  uint32_t replace_arm_cnt;
+  uint64_t clordid;
+  rf_bcs_single_entry_t pair;
 } rf_bcs_all_entry_t; 
 
 typedef struct __attribute__((packed)) {
@@ -790,12 +803,18 @@ int printTOB() {
   auto armState{
       reinterpret_cast<const arm_status_unaligned_report_t *>(arm_mem)};
 
-  for (auto i = 0; i < 2; i++) {
+  for (auto i = 0; i < 1; i++) {
     printf(prefixStrFormat,"");
     printf(colStringFormat,"TBDNAME");
-    printf(boardStringFormat,allTOB->prod[i].board_id);
-    printf(bookSideFormat, allTOB->prod[i].bid_size, allTOB->prod[i].bid_price);
-    printf(bookSideFormat, allTOB->prod[i].ask_size, allTOB->prod[i].ask_price);
+    printf(boardStringFormat,allTOB->pair.base.board_id);
+    printf(bookSideFormat, allTOB->pair.base.bid_size, allTOB->pair.base.bid_price);
+    printf(bookSideFormat, allTOB->pair.base.ask_size, allTOB->pair.base.ask_price);
+    printf("\n");
+    printf(prefixStrFormat,"");
+    printf(colStringFormat,"TBDNAME");
+    printf(boardStringFormat,allTOB->pair.quote.board_id);
+    printf(bookSideFormat, allTOB->pair.quote.bid_size, allTOB->pair.quote.bid_price);
+    printf(bookSideFormat, allTOB->pair.quote.ask_size, allTOB->pair.quote.ask_price);
     printf("\n");
   }
   
@@ -819,7 +838,6 @@ int printTOB() {
 int printStratStatus(StratState *pStratState) {
 
   /* ----------------------------------------- */
-  if (0) {
   printf(prefixStrFormat, "Arm State");
   for (auto stratId = 0; stratId < NUM_OF_STRAT;
        stratId++) {
@@ -888,114 +906,6 @@ int printStratStatus(StratState *pStratState) {
     printf(colformat, pCommonState->arm_ver);
   }
   printf("\n");
-  }
-  /* /\* ----------------------------------------- *\/ */
-  /* printf(prefixStrFormat, "Subscription tries"); */
-  /* for (auto stratId = 0; stratId < NUM_OF_STRAT; */
-  /*      stratId++) { */
-  /*   if (!active_strat[stratId]) */
-  /*     continue; */
-
-  /*   switch (stratId) { */
-  /*   case S_P4: */
-  /*     printf(colformat, pStratState->p4.totalSecs); */
-  /*     break; */
-  /*   case S_QED: */
-  /*     printf(colformats, "-"); */
-  /*     break; */
-  /*   case S_SWEEP: */
-  /*     printf(colformats, "-"); */
-  /*     break; */
-  /*   case S_NEWS: */
-  /*     printf(colformats, "-"); */
-  /*     break; */
-  /*   case S_CANCEL: */
-  /*     printf(colformats, "-"); */
-  /*     break; */
-  /*   } */
-  /* } */
-  /* printf("\n"); */
-
-  /* /\* ----------------------------------------- *\/ */
-  /* printf(prefixStrFormat, "Subscription done"); */
-  /* for (auto stratId = 0; stratId < NUM_OF_STRAT; */
-  /*      stratId++) { */
-  /*   if (!active_strat[stratId]) */
-  /*     continue; */
-
-  /*   switch (stratId) { */
-  /*   case S_P4: */
-  /*     printf(colformat, pStratState->p4.subscribedSecs); */
-  /*     break; */
-  /*   case S_QED: */
-  /*     printf(colformats, "-"); */
-  /*     break; */
-  /*   case S_SWEEP: */
-  /*     printf(colformats, "-"); */
-  /*     break; */
-  /*   case S_NEWS: */
-  /*     printf(colformats, "-"); */
-  /*     break; */
-  /*   case S_CANCEL: */
-  /*     printf(colformats, "-"); */
-  /*     break; */
-  /*   } */
-  /* } */
-  /* printf("\n"); */
-
-  /* ----------------------------------------- */
-  /* printf(prefixStrFormat, "Strat unsubscribed"); */
-  /* for (auto stratId = 0; stratId < NUM_OF_STRAT; */
-  /*      stratId++) { */
-  /*   if (!active_strat[stratId]) */
-  /*     continue; */
-
-  /*   switch (stratId) { */
-  /*   case S_P4: */
-  /*     printf(colformat, pStratState->p4.ordersUnsubscribed); */
-  /*     break; */
-  /*   case S_QED: */
-  /*     printf(colformats, "-"); */
-  /*     break; */
-  /*   case S_SWEEP: */
-  /*     printf(colformats, "-"); */
-  /*     break; */
-  /*   case S_NEWS: */
-  /*     printf(colformats, "-"); */
-  /*     break; */
-  /*   case S_CANCEL: */
-  /*     printf(colformats, "-"); */
-  /*     break; */
-  /*   } */
-  /* } */
-  /* printf("\n"); */
-
-  /* /\* ----------------------------------------- *\/ */
-  /* printf(prefixStrFormat, "Strat subscribed"); */
-  /* for (auto stratId = 0; stratId < NUM_OF_STRAT; */
-  /*      stratId++) { */
-  /*   if (!active_strat[stratId]) */
-  /*     continue; */
-
-  /*   switch (stratId) { */
-  /*   case S_P4: */
-  /*     printf(colformat, pStratState->p4.ordersSubscribed); */
-  /*     break; */
-  /*   case S_QED: */
-  /*     printf(colformats, "-"); */
-  /*     break; */
-  /*   case S_SWEEP: */
-  /*     printf(colformats, "-"); */
-  /*     break; */
-  /*   case S_NEWS: */
-  /*     printf(colformats, "-"); */
-  /*     break; */
-  /*   case S_CANCEL: */
-  /*     printf(colformats, "-"); */
-  /*     break; */
-  /*   } */
-  /* } */
-  /* printf("\n"); */
 
   /* ----------------------------------------- */
   printf(prefixStrFormat, "Report Only");
@@ -1273,7 +1183,7 @@ int printCurrTxTraffic(IfParams coreParams[NUM_OF_CORES]) {
 int getEfcState(EfcState *pEfcState) {
 
   uint64_t var_p4_cont_counter1 =
-      reg_read(ADDR_P4_CONT_COUNTER1);
+      reg_read(0xf0800);
   /* uint64_t var_p4_cont_counter3 = */
   /*     reg_read(ADDR_P4_CONT_COUNTER3); */
   uint64_t var_p4_general_conf =
@@ -1293,7 +1203,7 @@ int getEfcState(EfcState *pEfcState) {
   /* pEfcState->ordersUnsubscribed = */
   /*     (var_p4_cont_counter3 >> 32) & MASK32; */
 
-  uint64_t armReg = reg_read(P4_ARM_DISARM);
+  uint64_t armReg = reg_read(NW_ARM_DISARM);
   pEfcState->commonState.armed = (armReg & 0x1) != 0;
   pEfcState->commonState.arm_ver =
       (armReg >> 32) & 0xFFFFFFFF;
@@ -1409,6 +1319,14 @@ int printEfcState(EfcState *pEfcState) {
   if (pEfcState->epmDump)
     printf(RED
            "WARNING: \'EPM Dump Mode\' is Active\n" RESET);
+
+  if (pEfcState->commonState.armed)
+    printf(GRN
+           "ARMED\n" RESET);
+  else
+    printf(RED
+           "disarmed\n" RESET);
+    
 
   if (pEfcState->forceFire) {
     printf(
