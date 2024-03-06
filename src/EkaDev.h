@@ -15,9 +15,6 @@
 
 #include "eka_sn_addr_space.h"
 
-class EkaFhRunGroup;
-class EkaFhGroup;
-class EkaFh;
 class EkaEfc;
 class EkaEpm;
 class EkaCore;
@@ -118,12 +115,12 @@ public:
 
   std::mutex addTcpSessMtx;
   std::mutex lwipConnectMtx;
-  std::mutex efhGrInitMtx;
+  // std::mutex efhGrInitMtx;
   std::mutex igmpJoinMtx;
 
   struct EfcCtx *pEfcCtx = NULL;
   struct EfcRunCtx *pEfcRunCtx = NULL;
-  struct EfhRunCtx *pEfhRunCtx = NULL;
+  // struct EfhRunCtx *pEfhRunCtx = NULL;
 
   void *credContext = NULL;
   void *createThreadContext = NULL;
@@ -143,15 +140,9 @@ public:
   volatile bool exc_inited = false;
   volatile bool lwip_inited = false;
 
-  volatile uint8_t numFh = 0;
-
   char genIfName[20] = {'U', 'N', 'S', 'E', 'T'};
   uint32_t genIfIp = 0; // INADDR_ANY;
 
-  EkaFh *fh[MAX_FEED_HANDLERS] = {};
-
-  volatile uint8_t numRunGr = 0;
-  EkaFhRunGroup *runGr[MAX_RUN_GROUPS] = {};
   std::mutex
       mtx; // mutex to protect concurrent dev->numRunGr++
 
@@ -203,51 +194,6 @@ inline void eka_write(EkaDev *dev, uint64_t addr,
   fprintf(g_ekaVerilogSimFile,
           "efh_write(20'h%jx,64'h%jx);\n", addr, val);
   fflush(g_ekaVerilogSimFile);
-  //  if (addr!=0xf0300 && addr!=0xf0308 && addr!=0xf0310 &&
-  //  addr!=0xf0608) printf
-  //  ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //general
-  //  writes if ((addr>=0x70000 && addr<=0x80000) ||
-  //  addr==0xf0410) printf
-  //  ("efh_write(20'h%jx,64'h%jx);\n",addr,val);
-  //  //tob+depth
-  /* if (addr>=0x89000 && addr<0x8a000)   printf
-   * ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //epm
-   * action */
-  /* if (addr==0xf0238)                   printf
-   * ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //epm
-   * action */
-  /* if (addr==0xf0230)                   printf
-   * ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //epm
-   * trigger */
-  /* if (addr>=0x81000 && addr<0x82000) printf
-   * ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //epm data
-   * thread window start */
-  /* if (addr>=0x82000 && addr<0x83000) printf
-   * ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //epm
-   * region */
-  /* if (addr>=0x85000 && addr<0x86000) printf
-   * ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //epm
-   * region strategy enables */
-  /* if (addr>=0xd0000 && addr<0xe0000) printf
-   * ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //epm data
-   */
-  /* if (addr>=0xc0000 && addr<0xd0000) printf
-   * ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //epm
-   * template */
-  /* if (addr>=0x88000 && addr<0x89000) printf
-   * ("efh_write(20'h%jx,64'h%jx);\n",addr,val); //epm tcpcs
-   * template */
-  /* if (addr==0xf0020                ) printf
-   * ("efh_write(20'h%jx,64'h%jx);\n",addr,val);
-   * //ENABLE_PORT */
-  /* if (addr==0xf0500                ) printf
-   * ("efh_write(20'h%jx,64'h%jx);\n",addr,val);
-   * //FH_GROUP_IPPORT */
-
-  //  if ((addr>=0x50000 && addr<0x60000) || addr==0xf0200)
-  //  printf ("efh_write(20'h%jx,64'h%jx);\n",addr,val);
-  //  //fastpath data and desc
-
 #endif
 
   if (dev == NULL)
@@ -363,54 +309,6 @@ inline void checkScratchPadAddr(uint64_t addr) {
         "SW_SCRATCHPAD_BASE %jx + SW_SCRATCHPAD_SIZE %jx",
         addr, (uint64_t)SW_SCRATCHPAD_BASE,
         (uint64_t)SW_SCRATCHPAD_SIZE);
-}
-
-// inline std::chrono::system_clock::time_point
-// systemClockAtMidnight() {
-//   auto now = std::chrono::system_clock::now();
-
-//   time_t tnow =
-//   std::chrono::system_clock::to_time_t(now); tm *date =
-//   std::localtime(&tnow); date->tm_hour = 0; date->tm_min
-//   = 0; date->tm_sec = 0; return
-//   std::chrono::system_clock::from_time_t(std::mktime(date));
-// }
-
-// inline uint64_t nsSinceMidnight() {
-//   auto now = std::chrono::system_clock::now();
-
-//   time_t tnow =
-//   std::chrono::system_clock::to_time_t(now); tm *date =
-//   std::localtime(&tnow); date->tm_hour = 0; date->tm_min
-//   = 0; date->tm_sec = 0; auto midnight =
-//   std::chrono::system_clock::from_time_t(std::mktime(date));
-
-//   return (uint64_t)
-//   std::chrono::duration_cast<std::chrono::nanoseconds>(now-midnight).count();
-// }
-
-inline void checkTimeDiff(
-    FILE *deltaTimeLogFile,
-    std::chrono::system_clock::time_point midnight,
-    uint64_t exchTimeNs, uint64_t sequence) {
-#ifdef EFH_TIME_CHECK_PERIOD
-  constexpr int period = EFH_TIME_CHECK_PERIOD == 0
-                             ? 1
-                             : EFH_TIME_CHECK_PERIOD;
-  if (sequence % period == 0) {
-    auto now = std::chrono::system_clock::now();
-
-    uint64_t currTimeNs =
-        std::chrono::duration_cast<
-            std::chrono::nanoseconds>(now - midnight)
-            .count();
-    int64_t deltaNs = currTimeNs - exchTimeNs;
-
-    fprintf(deltaTimeLogFile, "%16ju,%16ju,%16ju,%16jd\n",
-            sequence, currTimeNs, exchTimeNs, deltaNs);
-  }
-#endif
-  return;
 }
 
 // ---------------------------------------------------

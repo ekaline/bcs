@@ -2,7 +2,9 @@
 #include "ekaNW.h"
 
 #include "EhpMoex.h"
-#include "EkaFhBcsSbeParser.h"
+// #include "EkaFhBcsSbeParser.h"
+
+#include "EkaFhBcsSbeDecoder.h"
 
 EhpBcsMoex::EhpBcsMoex(EkaStrategy *strat)
     : EhpProtocol(strat) {
@@ -11,11 +13,13 @@ EhpBcsMoex::EhpBcsMoex(EkaStrategy *strat)
   conf.params.protocolID =
       static_cast<decltype(conf.params.protocolID)>(
           EhpHwProtocol::BCSMOEX);
-  
-  conf.params.pktHdrLen = 39; //pkthdr,incheader,msgheadr,group
-  
+
+  conf.params.pktHdrLen =
+      39; // pkthdr,incheader,msgheadr,group
+
   conf.params.msgDeltaSize = EhpNoMsgSize;
-  conf.params.msgSizeImpl  = sizeof(BcsSbe::BestPricesMsg_MdEntry);
+  conf.params.msgSizeImpl =
+      sizeof(BcsSbe::BestPricesMsg_MdEntry);
 
   conf.params.bytes4StartMsgProc = 0;
 
@@ -30,7 +34,7 @@ EhpBcsMoex::EhpBcsMoex(EkaStrategy *strat)
   conf.fields.sequence[0].byteOffs_6 = EhpBlankByte;
   conf.fields.sequence[0].byteOffs_7 = EhpBlankByte;
 
-  //templateID
+  // templateID
   conf.fields.hgeneric0[0].msgId = 0; // Not relevant
   conf.fields.hgeneric0[0].opcode = EhpOpcode::NOP;
   conf.fields.hgeneric0[0].byteOffs_0 = 30;
@@ -41,8 +45,6 @@ EhpBcsMoex::EhpBcsMoex(EkaStrategy *strat)
   conf.fields.hgeneric0[0].byteOffs_5 = EhpBlankByte;
   conf.fields.hgeneric0[0].byteOffs_6 = EhpBlankByte;
   conf.fields.hgeneric0[0].byteOffs_7 = EhpBlankByte;
-  
-  
 }
 
 int EhpBcsMoex::init() {
@@ -51,37 +53,36 @@ int EhpBcsMoex::init() {
   return 0;
 }
 
-//pkthdr 16B
-//00..03     uint32 seqnum
-//04..05     uint16 pktsize
-//06..07     uint16 flags pktHdr->pktFlags & 0x8 for increment
-//08..15     uint64 sendtime
+// pkthdr 16B
+// 00..03     uint32 seqnum
+// 04..05     uint16 pktsize
+// 06..07     uint16 flags pktHdr->pktFlags & 0x8 for
+// increment 08..15     uint64 sendtime
 
-//incrheader 12B
-//16..23     uint64 transacttime
-//24..27     int32  sessionid
+// incrheader 12B
+// 16..23     uint64 transacttime
+// 24..27     int32  sessionid
 
-//msgheader/sbe 8B
-//28..29     uint16 blocklength //should be zero for templateid3
-//30..31     uint16 templateid //3
-//32..33     uint16 schema
-//34..35     uint16 version
+// msgheader/sbe 8B
+// 28..29     uint16 blocklength //should be zero for
+// templateid3 30..31     uint16 templateid //3 32..33
+// uint16 schema 34..35     uint16 version
 
-//group 3B
-//36..37     uint16 blocklength //size of each small leg
-//38         uint8  numinroup
+// group 3B
+// 36..37     uint16 blocklength //size of each small leg
+// 38         uint8  numinroup
 
-//struct BestPricesMsg_MdEntry {
-//00..07  Decimal9NULL_T MktBidPx;
-//08..15  Decimal9NULL_T MktOfferPx;
-//16..23  Int64NULL_T MktBidSize;
-//24..31  Int64NULL_T MktOfferSize;
-//32..35  BoardID_T Board;
-//36..47  SecurityID_T Symbol;
-//} __attribute__((packed));
+// struct BestPricesMsg_MdEntry {
+// 00..07  Decimal9NULL_T MktBidPx;
+// 08..15  Decimal9NULL_T MktOfferPx;
+// 16..23  Int64NULL_T MktBidSize;
+// 24..31  Int64NULL_T MktOfferSize;
+// 32..35  BoardID_T Board;
+// 36..47  SecurityID_T Symbol;
+// } __attribute__((packed));
 
 int EhpBcsMoex::createBestPrice() {
-  uint16_t msgId = EhpNoMsgID; //only msg0 is active
+  uint16_t msgId = EhpNoMsgID; // only msg0 is active
   int msgType = BestPriceMsg;
 
   conf.params.bytes4Strategy[msgType].msgId = msgId;
@@ -114,9 +115,8 @@ int EhpBcsMoex::createBestPrice() {
   conf.fields.miscEnable[msgType].byteOffs_1 = EhpBlankByte;
   conf.fields.miscEnable[msgType].byteOffs_2 = EhpBlankByte;
   conf.fields.miscEnable[msgType].byteOffs_3 = EhpBlankByte;
-  conf.fields.miscEnable[msgType].mask = 0x00; 
-  conf.fields.miscEnable[msgType].expected = 0xFF; 
-
+  conf.fields.miscEnable[msgType].mask = 0x00;
+  conf.fields.miscEnable[msgType].expected = 0xFF;
 
   // BidPrice
   conf.fields.price[msgType].msgId = msgId;
@@ -153,7 +153,7 @@ int EhpBcsMoex::createBestPrice() {
   conf.fields.generic0[msgType].byteOffs_5 = 13;
   conf.fields.generic0[msgType].byteOffs_6 = 14;
   conf.fields.generic0[msgType].byteOffs_7 = 15;
-  
+
   // AskSize
   conf.fields.generic1[msgType].msgId = msgId;
   conf.fields.generic1[msgType].opcode = EhpOpcode::NOP;
@@ -189,7 +189,7 @@ int EhpBcsMoex::createBestPrice() {
   conf.fields.generic2[msgType].byteOffs_5 = 34;
   conf.fields.generic2[msgType].byteOffs_6 = 33;
   conf.fields.generic2[msgType].byteOffs_7 = 32;
-  
+
   // NA
   conf.fields.msgId[msgType].msgId = msgId;
   conf.fields.msgId[msgType].opcode = EhpOpcode::NOP;

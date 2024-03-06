@@ -6,15 +6,12 @@
 #include <string.h>
 #include <thread>
 
-#include "Efh.h"
 #include "Eka.h"
 #include "EkaCore.h"
 #include "EkaDev.h"
 #include "EkaEfc.h"
 #include "EkaEpm.h"
 #include "EkaEpmRegion.h"
-#include "EkaFh.h"
-#include "EkaFhRunGroup.h"
 #include "EkaHwCaps.h"
 #include "EkaHwInternalStructs.h"
 #include "EkaIgmp.h"
@@ -114,13 +111,6 @@ EkaDev::EkaDev(const EkaDevInitCtx *initCtx) {
   exc_inited = false;
   lwip_inited = false;
 
-  for (uint i = 0; i < MAX_FEED_HANDLERS; i++)
-    fh[i] = NULL;
-  numFh = 0;
-  for (uint i = 0; i < MAX_RUN_GROUPS; i++)
-    runGr[i] = NULL;
-  numRunGr = 0;
-
   /* -------------------------------------------- */
   dev = this;
 
@@ -170,10 +160,6 @@ EkaDev::EkaDev(const EkaDevInitCtx *initCtx) {
               0xF); // TBD 2 parser
 #endif
 
-#ifdef _ENFORCE_NOM_
-  // hwFeedVer = EfhFeedVer::kNASDAQ;
-#endif
-
   //  eka_write(ENABLE_PORT,0);
 
   time_t t;
@@ -183,7 +169,7 @@ EkaDev::EkaDev(const EkaDevInitCtx *initCtx) {
 
   openEpm();
   EKA_LOG("EPM Opened");
-  
+
   ekaIgmp = new EkaIgmp(this);
   if (ekaIgmp == NULL)
     on_error("ekaIgmp == NULL");
@@ -243,16 +229,6 @@ EkaDev::EkaDev(const EkaDevInitCtx *initCtx) {
   eka_write(FPGA_RT_CNTR, getFpgaTimeCycles());
   eka_write(SCRPAD_SW_VER,
             EKA_CORRECT_SW_VER | hwEnabledCores);
-
-#ifdef EFH_TIME_CHECK_PERIOD
-  deltaTimeLogFile = fopen("deltaTimeLogFile.csv", "w");
-  if (deltaTimeLogFile == NULL)
-    on_error("failed to create deltaTimeLogFile.csv");
-  fprintf(deltaTimeLogFile, "%16s,%16s,%16s,%16s\n",
-          "sequence", "currTimeNs", "exchTimeNs",
-          "deltaNs");
-
-#endif
 }
 /* ################################################## */
 bool EkaDev::initEpmTx() {
@@ -450,8 +426,6 @@ int EkaDev::configurePort(const EkaCoreInitCtx *pCoreInit) {
   return 0;
 }
 
-uint8_t EkaDev::getNumFh() { return numFh; }
-
 /* ################################################## */
 
 EkaDev::~EkaDev() {
@@ -494,7 +468,6 @@ EkaDev::~EkaDev() {
   EKA_LOG("Deleting Igmp");
   delete ekaIgmp;
 
-  EKA_LOG("Closing %u FHs", numFh);
   fflush(stderr);
 
   EKA_LOG("Closing Epm");
@@ -505,37 +478,12 @@ EkaDev::~EkaDev() {
     delete efc;
   }
 
-  for (auto i = 0; i < numFh; i++) {
-    if (fh[i] != NULL)
-      fh[i]->stop();
-  }
-  for (uint i = 0; i < numRunGr; i++) {
-    if (runGr[i] != NULL)
-      runGr[i]->thread_active = false;
-    delete runGr[i];
-  }
-  usleep(10);
-
-  for (auto i = 0; i < numFh; i++) {
-    if (fh[i] == NULL)
-      continue;
-    while (!fh[i]->terminated)
-      sleep(0);
-    delete fh[i];
-    fh[i] = NULL;
-    usleep(10);
-  }
-
   for (uint c = 0; c < MAX_CORES; c++) {
     if (core[c]) {
       delete core[c];
       core[c] = NULL;
     }
   }
-
-#ifdef EFH_TIME_CHECK_PERIOD
-  fclose(deltaTimeLogFile);
-#endif
 
   if (epmEnabled) {
     uint64_t val = eka_read(SW_STATISTICS);

@@ -770,10 +770,13 @@ struct EkaBcEurJumpConf {
   uint8_t pad[14];         // 14
 } __attribute__((packed)); // 18
 
+#if 0
+
 union EkaEurHwStratConf {
   EkaBcEurReferenceJumpConf refJumpConf; // 32
   EkaBcEurJumpConf jumpConf;             // 32
 } __attribute__((packed));
+#endif
 
 #if 0
 typedef struct packed {
@@ -808,6 +811,7 @@ struct EkaEurHwTobState {
   EkaEurHwTobSingleSideState ask; // 42
 } __attribute__((packed));        // 88B
 
+#if 0
 struct EkaBcEurHwFireReport {
   EkaEurHwTicker ticker;                   // 64
   EkaEurHwProductConf prodConf;            // 32
@@ -818,6 +822,7 @@ struct EkaBcEurHwFireReport {
               sizeof(stratConf) - sizeof(controllerState) -
               sizeof(tobState)];
 } __attribute__((packed));
+#endif
 
 enum class EkaBcHwFireStatus : uint8_t {
   Unknown = 0,
@@ -830,6 +835,7 @@ enum class EkaBcHwFireStatus : uint8_t {
   HWPeriodicStatus = 255
 };
 
+#if 0
 struct EkaBcFireReport {
   EkaBcEurHwFireReport eurFireReport; //
   uint64_t __unused1;
@@ -845,6 +851,7 @@ struct EkaBcFireReport {
   uint64_t __unused7;
   uint8_t __unused8;
 } __attribute__((packed));
+#endif
 
 struct EkaBcSwReport {
   uint8_t pad[256];
