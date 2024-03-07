@@ -111,12 +111,10 @@ void EkaMdRecvHandler::lnxIgmpJoin(uint32_t srcIp,
   int const_one = 1;
   if (setsockopt(lnxUdpSock_, SOL_SOCKET, SO_REUSEADDR,
                  &const_one, sizeof(int)) < 0)
-    on_error("%s: setsockopt(SO_REUSEADDR) failed\n",
-             __func__);
+    on_error("setsockopt(SO_REUSEADDR) failed");
   if (setsockopt(lnxUdpSock_, SOL_SOCKET, SO_REUSEPORT,
                  &const_one, sizeof(int)) < 0)
-    on_error("%s: setsockopt(SO_REUSEPORT) failed\n",
-             __func__);
+    on_error("setsockopt(SO_REUSEPORT) failed");
 
   struct sockaddr_in local2bind = {};
   local2bind.sin_family = AF_INET;
@@ -125,7 +123,7 @@ void EkaMdRecvHandler::lnxIgmpJoin(uint32_t srcIp,
 
   if (bind(lnxUdpSock_, (struct sockaddr *)&local2bind,
            sizeof(struct sockaddr)) < 0)
-    on_error("cannot bind UDP socket to port %d\n",
+    on_error("cannot bind UDP socket to port %d",
              be16toh(local2bind.sin_port));
 
   if (ssmIP) {

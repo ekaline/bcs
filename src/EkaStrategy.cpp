@@ -122,12 +122,12 @@ void EkaStrategy::joinUdpChannels() {
       auto ip = mcCoreSess_[coreId].udpSess[i]->ip;
       auto port = mcCoreSess_[coreId].udpSess[i]->port;
 
-      EKA_LOG("Subscribing UdpChannel[%d]: "
-              "Lane %d %s:%u",
-              udpChannel_[coreId]->chId, coreId,
-              EKA_IP2STR(ip), port);
+      EKA_WARN("DUMMY Subscribing UdpChannel[%d]: "
+               "Lane %d %s:%u",
+               udpChannel_[coreId]->chId, coreId,
+               EKA_IP2STR(ip), port);
 
-      udpChannel_[coreId]->igmp_mc_join(ip, port, 0);
+      // udpChannel_[coreId]->igmp_mc_join(ip, port, 0);
 
       uint64_t tmp_ipport = ((uint64_t)i) << 56 |
                             ((uint64_t)port) << 32 |

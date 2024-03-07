@@ -117,6 +117,11 @@ static int printMdPkt(const void *md, size_t len,
   return 0;
 }
 
+static int dummyProcessPkt(const void *md, size_t len,
+                           void *ctx) {
+  return 0;
+}
+
 EkaLogCallback g_ekaLogCB = ekaDefaultLog;
 
 int main(int argc, char *argv[]) {
@@ -140,15 +145,15 @@ int main(int argc, char *argv[]) {
   // MdRcvParams
 
   static const McGroupParams feedA[] = {
-      {2, "239.195.1.16", 16016}};
+      {0, "239.195.1.16", 16016}};
   static const UdpMcParams mcParamsA = {feedA,
                                         std::size(feedA)};
   // sw
-  // if (configureRcvMd_A(&mcParamsA, printMdPkt, stdout) !=
-  //     OPRESULT__OK)
-  //   on_error("setMdRcvParams() failed");
+  if (configureRcvMd_A(&mcParamsA, dummyProcessPkt,
+                       stdout) != OPRESULT__OK)
+    on_error("setMdRcvParams() failed");
 
-  // std::thread rcvA(startRcvMd_A);
+  std::thread rcvA(startRcvMd_A);
 
   // ==============================================
   // Product List
@@ -226,15 +231,13 @@ int main(int argc, char *argv[]) {
 
   ekaBcsArmMoex(true, 0);
 
-#ifndef _VERILOG_SIM
   while (g_keepWork)
     std::this_thread::yield();
 
-  //  stopRcvMd_A();
-  //  rcvA.join();
+  stopRcvMd_A();
+  rcvA.join();
 
   closeDev();
-#endif
 
   return 0;
 }

@@ -229,15 +229,15 @@ OpResult closeSock(EkaSock sock) {
 }
 /* ==================================================== */
 
-OpResult hwEngInit(const HwEngInitCtx *ekaBcInitCtx) {
+OpResult hwEngInit(const HwEngInitCtx *hwEngInitCtx) {
   if (!g_ekaDev) {
     EKA_ERROR("!g_ekaDev");
     return OPRESULT__ERR_DEVICE_INIT;
   }
   EfcInitCtx initCtx = {
-      .report_only = ekaBcInitCtx->report_only,
+      .report_only = hwEngInitCtx->report_only,
       .watchdog_timeout_sec =
-          ekaBcInitCtx->watchdog_timeout_sec};
+          hwEngInitCtx->watchdog_timeout_sec};
 
   efcInit(g_ekaDev, &initCtx);
   EKA_LOG("HW Engine initialized with "
