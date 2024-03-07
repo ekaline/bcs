@@ -23,10 +23,46 @@ FILE *g_ekaLogFile = stdout;
 
 static volatile bool g_keepWork = true;
 
+void printFireReport(uint8_t *p) {
+  uint8_t *b = (uint8_t *)p;
+
+  auto reportHdr = reinterpret_cast<EkaBcReportHdr *>(b);
+  printf ("reportHdr->idx = %d\n",reportHdr->idx);
+
+  b += sizeof(*reportHdr);
+}
+
+void printPayloadReport(uint8_t *p) {}
+
 void getExampleFireReport(const void *p, size_t len,
                           void *ctx) {
-  //  printf ("Some report came\n");
+  uint8_t *b = (uint8_t *)p;
+  auto containerHdr{
+      reinterpret_cast<EkaBcContainerGlobalHdr *>(b)};
+
+  switch (containerHdr->eventType) {
+  case EkaBcEventType::FireEvent:
+    printf ("Fire with %d reports...\n",containerHdr->nReports);
+    break;
+    //skip container header
+    b += sizeof(*containerHdr);
+    //print fire report
+    printFireReport(b);
+    //skip report hdr (of fire) and fire report
+    b += sizeof(EkaBcReportHdr);
+    b += sizeof(EkaBcsFireReport);
+    //print payload
+    printPayloadReport(b);
+    break;
+  case EkaBcEventType::ExceptionEvent:
+    //    printf ("Status...\n");
+    break;
+
+  default:
+    break;
+  }
 }
+
 
 
 static void setUp() {
