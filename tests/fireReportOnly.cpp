@@ -17,7 +17,6 @@
 
 #include "EkaFhBcsSbeDecoder.h"
 
-
 using namespace EkaBcs;
 FILE *g_ekaLogFile = stdout;
 
@@ -27,7 +26,7 @@ void printFireReport(uint8_t *p) {
   uint8_t *b = (uint8_t *)p;
 
   auto reportHdr = reinterpret_cast<EkaBcReportHdr *>(b);
-  printf ("reportHdr->idx = %d\n",reportHdr->idx);
+  printf("reportHdr->idx = %d\n", reportHdr->idx);
 
   b += sizeof(*reportHdr);
 }
@@ -42,16 +41,17 @@ void getExampleFireReport(const void *p, size_t len,
 
   switch (containerHdr->eventType) {
   case EkaBcEventType::FireEvent:
-    printf ("Fire with %d reports...\n",containerHdr->nReports);
+    printf("Fire with %d reports...\n",
+           containerHdr->nReports);
     break;
-    //skip container header
+    // skip container header
     b += sizeof(*containerHdr);
-    //print fire report
+    // print fire report
     printFireReport(b);
-    //skip report hdr (of fire) and fire report
+    // skip report hdr (of fire) and fire report
     b += sizeof(EkaBcReportHdr);
     b += sizeof(EkaBcsFireReport);
-    //print payload
+    // print payload
     printPayloadReport(b);
     break;
   case EkaBcEventType::ExceptionEvent:
@@ -63,8 +63,6 @@ void getExampleFireReport(const void *p, size_t len,
   }
 }
 
-
-
 static void setUp() {
 
   char testLogFileName[256] = {};
@@ -74,7 +72,7 @@ static void setUp() {
       nullptr)
     on_error("Failed to open %s file for writing",
              testLogFileName);
-  //  g_ekaLogCB = ekaDefaultLog;
+    //  g_ekaLogCB = ekaDefaultLog;
 
 #ifdef _VERILOG_SIM
   char verilogSimFileName[256] = {};
@@ -91,7 +89,6 @@ static void setUp() {
   return;
 }
 
-
 void INThandler(int sig) {
   signal(sig, SIG_IGN);
   g_keepWork = false;
@@ -99,7 +96,6 @@ void INThandler(int sig) {
   fflush(stdout);
   return;
 }
-
 
 int ekaDefaultLog(void *logFile /*unused*/,
                   const char *function, const char *file,
@@ -147,7 +143,7 @@ int main(int argc, char *argv[]) {
       {2, "239.195.1.16", 16016}};
   static const UdpMcParams mcParamsA = {feedA,
                                         std::size(feedA)};
-  //sw
+  // sw
   // if (configureRcvMd_A(&mcParamsA, printMdPkt, stdout) !=
   //     OPRESULT__OK)
   //   on_error("setMdRcvParams() failed");
@@ -161,51 +157,53 @@ int main(int argc, char *argv[]) {
   prodList_[0] = MoexSecurityId("EURRUB_TMS  ");
   prodList_[1] = MoexSecurityId("USDCNY_TOD  ");
 
-  //hw (TBD check IGMP)
+  // hw (TBD check IGMP)
   initMoexStrategy(&mcParamsA);
 
   // Actions
-  auto fireNewActionIdx = allocateNewAction(EkaBcsActionType::MoexFireNew);
-  setActionTcpSock (fireNewActionIdx,(EkaSock)NULL);
-  setActionNext (fireNewActionIdx,CHAIN_LAST_ACTION);
+  auto fireNewActionIdx =
+      allocateNewAction(EkaBcsActionType::MoexFireNew);
+  setActionTcpSock(fireNewActionIdx, EkaDummySock);
+  setActionNext(fireNewActionIdx, CHAIN_LAST_ACTION);
 
-  auto fireReplaceActionIdx = allocateNewAction(EkaBcsActionType::MoexFireReplace);
-  setActionTcpSock (fireReplaceActionIdx,(EkaSock)NULL);
-  setActionNext (fireReplaceActionIdx,CHAIN_LAST_ACTION);
+  auto fireReplaceActionIdx =
+      allocateNewAction(EkaBcsActionType::MoexFireReplace);
+  setActionTcpSock(fireReplaceActionIdx, (EkaSock)NULL);
+  setActionNext(fireReplaceActionIdx, CHAIN_LAST_ACTION);
 
-  const char fireNewMsg[] =
-    "MOEX dummy pkt a b c d e f g h"
-    "NEW";
-  setActionPayload(fireNewActionIdx,&fireNewMsg,strlen(fireNewMsg));
+  const char fireNewMsg[] = "MOEX dummy pkt a b c d e f g h"
+                            "NEW";
+  setActionPayload(fireNewActionIdx, &fireNewMsg,
+                   strlen(fireNewMsg));
 
   const char fireReplaceMsg[] =
-    "MOEX dummy pkt a b c d e f g h"
-    "Replace";
-  setActionPayload(fireReplaceActionIdx,&fireReplaceMsg,strlen(fireReplaceMsg));
+      "MOEX dummy pkt a b c d e f g h"
+      "Replace";
+  setActionPayload(fireReplaceActionIdx, &fireReplaceMsg,
+                   strlen(fireReplaceMsg));
 
   // Static Product
-  ProdPairInitParams prodPairInitParams;
+  ProdPairInitParams prodPairInitParams = {};
   prodPairInitParams.secBase = prodList_[0];
   prodPairInitParams.secQuote = prodList_[1];
   prodPairInitParams.fireBaseNewIdx = fireNewActionIdx;
-  prodPairInitParams.fireQuoteReplaceIdx = fireReplaceActionIdx;
+  prodPairInitParams.fireQuoteReplaceIdx =
+      fireReplaceActionIdx;
   auto ret = initProdPair(0, &prodPairInitParams);
 
-
   EkaBcsRunCtx runCtx = {.onReportCb = getExampleFireReport,
-    .cbCtx = NULL};
+                         .cbCtx = NULL};
   EkaBcsMoexRun(&runCtx);
 
-
-  //base 2500@97145000000 : 90000@97152500000
-  //quot  100@ 7194400000 :    20@ 7207400000
+  // base 2500@97145000000 : 90000@97152500000
+  // quot  100@ 7194400000 :    20@ 7207400000
 
   ProdPairDynamicParams prodPairDynamicParams;
-  prodPairDynamicParams.markupBuy     = 0x2;
-  prodPairDynamicParams.markupSell    = 0x3;
-  prodPairDynamicParams.fixSpread     = 0x4;
-  prodPairDynamicParams.tolerance     = 0x5;
-  prodPairDynamicParams.quoteSize     = 0x6;
+  prodPairDynamicParams.markupBuy = 0x2;
+  prodPairDynamicParams.markupSell = 0x3;
+  prodPairDynamicParams.fixSpread = 0x4;
+  prodPairDynamicParams.tolerance = 0x5;
+  prodPairDynamicParams.quoteSize = 0x6;
   prodPairDynamicParams.timeTolerance = 0x7;
   ret = setProdPairDynamicParams(0, &prodPairDynamicParams);
 
@@ -217,12 +215,16 @@ int main(int argc, char *argv[]) {
   ekaBcsSetReplaceThr(100);
 
   // Set SW order
-  setOrderPricePair(EkaBcsOrderType::MY_ORDER,0,EkaBcsOrderSide::BUY,444);
-  setOrderPricePair(EkaBcsOrderType::MY_ORDER,0,EkaBcsOrderSide::SELL,555);
-  setOrderPricePair(EkaBcsOrderType::HEDGE_ORDER,0,EkaBcsOrderSide::BUY,666);
-  setOrderPricePair(EkaBcsOrderType::HEDGE_ORDER,0,EkaBcsOrderSide::SELL,777);
+  setOrderPricePair(EkaBcsOrderType::MY_ORDER, 0,
+                    EkaBcsOrderSide::BUY, 444);
+  setOrderPricePair(EkaBcsOrderType::MY_ORDER, 0,
+                    EkaBcsOrderSide::SELL, 555);
+  setOrderPricePair(EkaBcsOrderType::HEDGE_ORDER, 0,
+                    EkaBcsOrderSide::BUY, 666);
+  setOrderPricePair(EkaBcsOrderType::HEDGE_ORDER, 0,
+                    EkaBcsOrderSide::SELL, 777);
 
-  ekaBcsArmMoex(true,0);
+  ekaBcsArmMoex(true, 0);
 
 #ifndef _VERILOG_SIM
   while (g_keepWork)

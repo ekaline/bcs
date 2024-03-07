@@ -92,6 +92,7 @@ int main(int argc, char *argv[]) {
   PortAttrs feth1Conf = {
       .host_ip = inet_addr("10.250.218.96"),
       .netmask = inet_addr("255.255.0.0"),
+      .gateway = inet_addr(moexIp),
       .nexthop_mac = {0x30, 0xf7, 0x0d, 0x9c, 0x6b, 0x3c}};
 
   if (configurePort(moexLane, &feth1Conf) != OPRESULT__OK)

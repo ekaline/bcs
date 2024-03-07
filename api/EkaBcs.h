@@ -135,6 +135,8 @@ OpResult closeDev();
 typedef int EkaSock;
 typedef int8_t EkaBcLane;
 
+static const EkaSock EkaDummySock = -1;
+
 /**
  * @brief Opens Ekaline TCP socket implemented in
  *        user space SW and FPGA HW.
@@ -317,7 +319,7 @@ OpResult stopRcvMd_B();
  *              the Action (=Packet) is sent on.
  *              Set by setActionTcpSock()
  *      - nextAction: next in the chain
- *              or EKA_BC_LAST_ACTION
+ *              or CHAIN_LAST_ACTION
  *              Set by setActionNext()
  *
  *  Payload: The payload is modified before being sent
@@ -339,7 +341,7 @@ OpResult stopRcvMd_B();
 typedef int EkaActionIdx;
 typedef int EkaBcsActionIdx;
 
-#define EKA_BC_LAST_ACTION 0xFFFF
+#define CHAIN_LAST_ACTION 0xFFFF
 
 /**
  * @brief List of available Action Types
@@ -403,8 +405,8 @@ OpResult setActionTcpSock(EkaActionIdx actionIdx,
 
 /**
  * @brief Set the Action Next hop in the chain. Use
- * EKA_BC_LAST_ACTION for the end-of-chain. Action is
- * created with a default value of EKA_BC_LAST_ACTION
+ * CHAIN_LAST_ACTION for the end-of-chain. Action is
+ * created with a default value of CHAIN_LAST_ACTION
  *
  *
  * @param globalIdx

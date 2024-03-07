@@ -27,6 +27,7 @@ mkdir -p ${DST_DIR}
 mkdir -p ${DST_DIR}/api
 mkdir -p ${DST_DIR}/lib
 mkdir -p ${DST_DIR}/utils
+mkdir -p ${DST_DIR}/tests
 mkdir -p ${DST_DIR}/SmartNIC_SW/driver
 mkdir -p ${DST_DIR}/SmartNIC_SW/bin
 mkdir -p ${DST_DIR}/SmartNIC_SW/tools
@@ -36,7 +37,10 @@ cp $BUILD_DIR/../README.TXT $DST_DIR/
 cp $BUILD_DIR/../api/EkaBcs.h $DST_DIR/api
 cp $BUILD_DIR/lib/EkaBcs/libEkaBcs.so $DST_DIR/lib
 
-cp -r $BUILD_DIR/../tests ${DST_DIR}/
+cp $BUILD_DIR/../tests/*.h ${DST_DIR}/
+cp $BUILD_DIR/../tests/bcsMdTest.cpp ${DST_DIR}/
+cp $BUILD_DIR/../tests/bcsTcpConnect.cpp ${DST_DIR}/
+cp $BUILD_DIR/../tests/fireReportOnly.cpp ${DST_DIR}/
 
 cp $BUILD_DIR/utils/EkaBcs/eka_version $DST_DIR/utils
 cp $BUILD_DIR/utils/EkaBcs/eka_tcpdump $DST_DIR/utils

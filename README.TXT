@@ -20,3 +20,11 @@ g++ $EKA_SW_HOME/tests/bcsTcpConnect.cpp \
 -L $EKA_SW_HOME/lib \
 -lEkaBcs \
 -Wl,-rpath,$EKA_SW_HOME/lib
+
+g++ $EKA_SW_HOME/tests/fireReportOnly.cpp \
+-o fireReportOnly \
+-I $EKA_SW_HOME/api \
+-I $EKA_SW_HOME/tests \
+-L $EKA_SW_HOME/lib \
+-lEkaBcs \
+-Wl,-rpath,$EKA_SW_HOME/lib
