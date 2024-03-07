@@ -37,7 +37,7 @@
 SN_DeviceId devId;
 
 typedef struct __attribute__((packed)) {
-  char     board_id[4];
+  char board_id[4];
   uint64_t ask_size;
   uint64_t bid_size;
   uint64_t ask_price;
@@ -45,11 +45,11 @@ typedef struct __attribute__((packed)) {
 } rf_bcs_single_prod_t;
 
 typedef struct __attribute__((packed)) {
-  uint64_t sell_order_update;  
-  uint64_t buy_order_update;  
-  uint64_t hedge_sell_price;  
-  uint64_t hedge_buy_price;  
-  uint64_t my_sell_price;  
+  uint64_t sell_order_update;
+  uint64_t buy_order_update;
+  uint64_t hedge_sell_price;
+  uint64_t hedge_buy_price;
+  uint64_t my_sell_price;
   uint64_t my_buy_price;
   rf_bcs_single_prod_t quote;
   rf_bcs_single_prod_t base;
@@ -60,7 +60,7 @@ typedef struct __attribute__((packed)) {
   uint32_t replace_arm_cnt;
   uint64_t clordid;
   rf_bcs_single_entry_t pair;
-} rf_bcs_all_entry_t; 
+} rf_bcs_all_entry_t;
 
 typedef struct __attribute__((packed)) {
   uint64_t price;
@@ -73,22 +73,20 @@ typedef struct __attribute__((packed)) {
   rf_tob_entry_t ask;
 } rf_tob_total_t;
 
-
 typedef struct __attribute__((packed)) {
-  uint8_t buy:1;
-  uint8_t sell:1;
-  uint8_t pad8:6;
+  uint8_t buy : 1;
+  uint8_t sell : 1;
+  uint8_t pad8 : 6;
 } arm_rep_per_side_t;
 
 typedef struct __attribute__((packed)) {
-	uint8_t            expected_version;
-        arm_rep_per_side_t arm;
-} arm_prod_unaligned_report_t; 
+  uint8_t expected_version;
+  arm_rep_per_side_t arm;
+} arm_prod_unaligned_report_t;
 
 typedef struct __attribute__((packed)) {
-        arm_prod_unaligned_report_t prod[16];
-} arm_status_unaligned_report_t; 
-
+  arm_prod_unaligned_report_t prod[16];
+} arm_status_unaligned_report_t;
 
 struct IfParams {
   char name[50] = {}; //{'N','O','_','N','A','M','E'};
@@ -154,7 +152,6 @@ struct EurProdState {
   uint64_t bookSecs = 0;
   uint64_t secID[16];
 };
-
 
 struct FastCancelState {
   uint64_t strategyRuns = 0;
@@ -456,7 +453,7 @@ int printStratLineSeparator(char sep, char s) {
 // ################################################
 int printBookLineSeparator(char sep, char s, int num) {
   printf("%s", std::string(strlen(emptyPrefix), s).c_str());
-  for (auto i = 0; i < num;  i++) {
+  for (auto i = 0; i < num; i++) {
     printf("%c%s", sep, std::string(colLen, s).c_str());
   }
   printf("\n");
@@ -477,7 +474,7 @@ int printBookHeader() {
   printf("\n");
 
   /* ----------------------------------------- */
-  printBookLineSeparator( '+', '-', 4);
+  printBookLineSeparator('+', '-', 4);
   /* ----------------------------------------- */
   //  printf("%s",emptyPrefix);
 
@@ -585,18 +582,18 @@ int printHeader(IfParams coreParams[NUM_OF_CORES],
     //    printf(colSmallNumFieldFormat,"",coreParams[coreId].mcGrps);
     //    printf
     //    (colformat,coreParams[coreId].hwParserEnable);
-    if ((pEkaHwCaps->hwCaps.core.bitmap_md_cores >> coreId) & 0x1) {
+    if ((pEkaHwCaps->hwCaps.core.bitmap_md_cores >>
+         coreId) &
+        0x1) {
       printf(colformats,
              EKA_FEED2STRING(
-                 ((pEkaHwCaps->hwCaps.version.parser >> 
-                   parser_idx*4) &
+                 ((pEkaHwCaps->hwCaps.version.parser >>
+                   parser_idx * 4) &
                   0xF)));
       parser_idx++;
+    } else {
+      printf(colformats, "-");
     }
-    else
-      {
-	printf(colformats, "-");
-      }
   }
   printf("\n");
 
@@ -625,10 +622,12 @@ int printHeader(IfParams coreParams[NUM_OF_CORES],
   //  printf("%s",emptyPrefix);
   /* printf(prefixStrFormat, "HW mirror target"); */
 
-  /* for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++) { */
+  /* for (auto coreId = 0; coreId < NUM_OF_CORES; coreId++)
+   * { */
   /*   if (!coreParams[coreId].valid) */
   /*     continue; */
-  /*   if (!((pEkaHwCaps->hwCaps.core.bitmap_mirror_cores >> */
+  /*   if (!((pEkaHwCaps->hwCaps.core.bitmap_mirror_cores >>
+   */
   /*          coreId) & */
   /*         0x1)) { */
   /*     printf(colformats, "-"); */
@@ -703,7 +702,8 @@ int printStratHeader() {
       continue;
 
     std::string nameStr =
-        std::string(EKA_STRAT2STRING(stratId)) + " Strategy  ";
+        std::string(EKA_STRAT2STRING(stratId)) +
+        " Strategy  ";
     //    printf(colStringFormat, nameStr.c_str());
     printf(colformats, nameStr.c_str());
   }
@@ -728,38 +728,38 @@ int printEurTOB(uint8_t prod_idx) {
   unsigned char tob_mem[64];
   unsigned char arm_mem[64];
 
-  uint64_t *wrPtr;// = (uint64_t *)tob_mem;
-  uint64_t *wrPtrArm;// = (uint64_t *)arm_mem;
+  uint64_t *wrPtr;    // = (uint64_t *)tob_mem;
+  uint64_t *wrPtrArm; // = (uint64_t *)arm_mem;
 
-  //hw lock
+  // hw lock
   uint64_t locked;
   do {
-    locked = reg_read(0x72000); //1==locked
-  }
-  while (locked);
+    locked = reg_read(0x72000); // 1==locked
+  } while (locked);
 
   wrPtrArm = (uint64_t *)arm_mem;
 
   for (auto j = 0; j < 4; j++)
     *wrPtrArm++ = reg_read(0x74000 + j * 8);
-  
-  wrPtr    = (uint64_t *)tob_mem;
-    
+
+  wrPtr = (uint64_t *)tob_mem;
+
   for (auto j = 0; j < 8; j++)
     *wrPtr++ = reg_read(0x73000 + prod_idx * 64 + j * 8);
 
   // hw unlock
-  reg_write(0x72000, 0); 
-
+  reg_write(0x72000, 0);
 
   auto prodTOB{
       reinterpret_cast<const rf_tob_total_t *>(tob_mem)};
 
-  auto armState{
-      reinterpret_cast<const arm_status_unaligned_report_t *>(arm_mem)};
+  auto armState{reinterpret_cast<
+      const arm_status_unaligned_report_t *>(arm_mem)};
 
-  printf(bookSideFormat, prodTOB->bid.size/10000, prodTOB->bid.price);
-  printf(bookSideFormat, prodTOB->ask.size/10000, prodTOB->ask.price);
+  printf(bookSideFormat, prodTOB->bid.size / 10000,
+         prodTOB->bid.price);
+  printf(bookSideFormat, prodTOB->ask.size / 10000,
+         prodTOB->ask.price);
 
   printf("| ");
   if (armState->prod[prod_idx].arm.buy)
@@ -772,8 +772,9 @@ int printEurTOB(uint8_t prod_idx) {
   else
     printf(RED "    sell " RESET);
 
-  printf(bookVersionFormat, armState->prod[prod_idx].expected_version);
-  
+  printf(bookVersionFormat,
+         armState->prod[prod_idx].expected_version);
+
   return 0;
 }
 
@@ -782,54 +783,65 @@ int printTOB() {
   unsigned char tob_mem[4096];
   unsigned char arm_mem[64];
 
-  uint64_t *wrPtr;// = (uint64_t *)tob_mem;
-  uint64_t *wrPtrArm;// = (uint64_t *)arm_mem;
+  uint64_t *wrPtr;    // = (uint64_t *)tob_mem;
+  uint64_t *wrPtrArm; // = (uint64_t *)arm_mem;
 
   wrPtrArm = (uint64_t *)arm_mem;
 
   for (auto j = 0; j < 4; j++)
     *wrPtrArm++ = reg_read(0x74000 + j * 8);
-  
-  wrPtr    = (uint64_t *)tob_mem;
+
+  wrPtr = (uint64_t *)tob_mem;
 
   uint64_t *dstAddr = (uint64_t *)tob_mem;
-  uint words2read = sizeof(rf_bcs_all_entry_t) / 8 + !!(sizeof(rf_bcs_all_entry_t) % 8);
+  uint words2read = sizeof(rf_bcs_all_entry_t) / 8 +
+                    !!(sizeof(rf_bcs_all_entry_t) % 8);
   for (uint w = 0; w < words2read; w++)
-    *(dstAddr + w) = reg_read(0x75000 +  w*8);
-    
-  auto allTOB{
-      reinterpret_cast< rf_bcs_all_entry_t *>(tob_mem)};
+    *(dstAddr + w) = reg_read(0x75000 + w * 8);
 
-  auto armState{
-      reinterpret_cast<const arm_status_unaligned_report_t *>(arm_mem)};
+  auto allTOB{
+      reinterpret_cast<rf_bcs_all_entry_t *>(tob_mem)};
+
+  auto armState{reinterpret_cast<
+      const arm_status_unaligned_report_t *>(arm_mem)};
 
   for (auto i = 0; i < 1; i++) {
-    printf(prefixStrFormat,"");
-    printf(colStringFormat,"TBDNAME");
-    printf(boardStringFormat,allTOB->pair.base.board_id);
-    printf(bookSideFormat, allTOB->pair.base.bid_size, allTOB->pair.base.bid_price);
-    printf(bookSideFormat, allTOB->pair.base.ask_size, allTOB->pair.base.ask_price);
+    printf(prefixStrFormat, "");
+    printf(colStringFormat, "TBDNAME");
+    printf(boardStringFormat, allTOB->pair.base.board_id);
+    printf(bookSideFormat, allTOB->pair.base.bid_size,
+           allTOB->pair.base.bid_price);
+    printf(bookSideFormat, allTOB->pair.base.ask_size,
+           allTOB->pair.base.ask_price);
     printf("\n");
-    printf(prefixStrFormat,"");
-    printf(colStringFormat,"TBDNAME");
-    printf(boardStringFormat,allTOB->pair.quote.board_id);
-    printf(bookSideFormat, allTOB->pair.quote.bid_size, allTOB->pair.quote.bid_price);
-    printf(bookSideFormat, allTOB->pair.quote.ask_size, allTOB->pair.quote.ask_price);
+    printf(prefixStrFormat, "");
+    printf(colStringFormat, "TBDNAME");
+    printf(boardStringFormat, allTOB->pair.quote.board_id);
+    printf(bookSideFormat, allTOB->pair.quote.bid_size,
+           allTOB->pair.quote.bid_price);
+    printf(bookSideFormat, allTOB->pair.quote.ask_size,
+           allTOB->pair.quote.ask_price);
     printf("\n");
   }
 
   printf("General:\n");
-  printf("Last HW ClOrdID = %d\n",allTOB->clordid);
-  printf("Replace Protection Counter = %d\n",allTOB->replace_arm_cnt);
-  printf("Replace Protection Threshold = %d\n",allTOB->replace_arm_thresh);
+  printf("Last HW ClOrdID = %ju\n", allTOB->clordid);
+  printf("Replace Protection Counter = %d\n",
+         allTOB->replace_arm_cnt);
+  printf("Replace Protection Threshold = %d\n",
+         allTOB->replace_arm_thresh);
   printf("Sell:\n");
-  printf("Order Time = %ju\n",allTOB->pair.sell_order_update);
-  printf("Hedge Price = %ju\n",allTOB->pair.hedge_sell_price);
-  printf("My Price = %ju\n",allTOB->pair.my_sell_price);
+  printf("Order Time = %ju\n",
+         allTOB->pair.sell_order_update);
+  printf("Hedge Price = %ju\n",
+         allTOB->pair.hedge_sell_price);
+  printf("My Price = %ju\n", allTOB->pair.my_sell_price);
   printf("Buy:\n");
-  printf("Order Time = %ju\n",allTOB->pair.buy_order_update);
-  printf("Hedge Price = %ju\n",allTOB->pair.hedge_buy_price);
-  printf("My Price = %ju\n",allTOB->pair.my_buy_price);
+  printf("Order Time = %ju\n",
+         allTOB->pair.buy_order_update);
+  printf("Hedge Price = %ju\n",
+         allTOB->pair.hedge_buy_price);
+  printf("My Price = %ju\n", allTOB->pair.my_buy_price);
   //  printf(" = %d\n",allTOB->);
   // printf("| ");
   // if (armState->prod[prod_idx].arm.buy)
@@ -842,8 +854,9 @@ int printTOB() {
   // else
   //   printf(RED "    sell " RESET);
 
-  // printf(bookVersionFormat, armState->prod[prod_idx].expected_version);
-  
+  // printf(bookVersionFormat,
+  // armState->prod[prod_idx].expected_version);
+
   return 0;
 }
 
@@ -929,24 +942,29 @@ int printStratStatus(StratState *pStratState) {
 
     switch (stratId) {
     case S_P4:
-      printf(colformat,pStratState->p4.commonState.reportOnly);
+      printf(colformat,
+             pStratState->p4.commonState.reportOnly);
       break;
     case S_QED:
-      printf(colformat,pStratState->p4.commonState.reportOnly);
+      printf(colformat,
+             pStratState->p4.commonState.reportOnly);
       break;
     case S_SWEEP:
-      printf(colformat,pStratState->p4.commonState.reportOnly);
+      printf(colformat,
+             pStratState->p4.commonState.reportOnly);
       break;
     case S_NEWS:
-      printf(colformat,pStratState->p4.commonState.reportOnly);
+      printf(colformat,
+             pStratState->p4.commonState.reportOnly);
       break;
     case S_CANCEL:
-      printf(colformat,pStratState->p4.commonState.reportOnly);
+      printf(colformat,
+             pStratState->p4.commonState.reportOnly);
       break;
     }
   }
   printf("\n");
-  
+
   /* ----------------------------------------- */
   printf(prefixStrFormat, "Strat Evaluated");
   for (auto stratId = 0; stratId < NUM_OF_STRAT;
@@ -1139,7 +1157,6 @@ int printCurrRxTraffic(IfParams coreParams[NUM_OF_CORES]) {
 }
 // ################################################
 
-
 int printCurrTxTraffic(IfParams coreParams[NUM_OF_CORES]) {
 
   printf(prefixStrFormat, "Current TX PPS");
@@ -1195,16 +1212,17 @@ int printCurrTxTraffic(IfParams coreParams[NUM_OF_CORES]) {
 // ################################################
 int getEfcState(EfcState *pEfcState) {
 
-  uint64_t var_p4_cont_counter1 =
-      reg_read(0xf0800);
+  uint64_t var_p4_cont_counter1 = reg_read(0xf0800);
   /* uint64_t var_p4_cont_counter3 = */
   /*     reg_read(ADDR_P4_CONT_COUNTER3); */
   uint64_t var_p4_general_conf =
       reg_read(ADDR_P4_GENERAL_CONF);
   uint64_t var_fatal_debug = reg_read(ADDR_FATAL_CONF);
 
-  /* uint64_t subscrCnt = reg_read(SCRPAD_EFC_SUBSCR_CNT); */
-  /* pEfcState->totalSecs = (subscrCnt >> 32) & 0xFFFFFFFF; */
+  /* uint64_t subscrCnt = reg_read(SCRPAD_EFC_SUBSCR_CNT);
+   */
+  /* pEfcState->totalSecs = (subscrCnt >> 32) & 0xFFFFFFFF;
+   */
   /* pEfcState->subscribedSecs = subscrCnt & 0xFFFFFFFF; */
 
   pEfcState->strategyPassed =
@@ -1242,14 +1260,15 @@ int getEfcState(EfcState *pEfcState) {
 // ################################################
 int getProdState(EurProdState *pProdState) {
 
-  uint64_t prodBase = SW_SCRATCHPAD_BASE + 16*8; //from line 16
-  
-  pProdState->totalSecs = reg_read(prodBase + 16*8);
-  pProdState->bookSecs  = reg_read(prodBase + 17*8);
+  uint64_t prodBase =
+      SW_SCRATCHPAD_BASE + 16 * 8; // from line 16
+
+  pProdState->totalSecs = reg_read(prodBase + 16 * 8);
+  pProdState->bookSecs = reg_read(prodBase + 17 * 8);
 
   for (auto prodHande = 0; prodHande < 16; prodHande++) {
     pProdState->secID[prodHande] =
-      reg_read(prodBase + prodHande*8);
+        reg_read(prodBase + prodHande * 8);
   }
 
   return 0;
@@ -1258,12 +1277,12 @@ int getProdState(EurProdState *pProdState) {
 // ################################################
 int printProdState(EurProdState *pProdState) {
   printf(prefixStrFormat, "Total Products");
-  printf (colformat,pProdState->totalSecs);
+  printf(colformat, pProdState->totalSecs);
   printf("\n");
   printf(prefixStrFormat, "Book Products");
-  printf (colformat,pProdState->bookSecs);
+  printf(colformat, pProdState->bookSecs);
   printf("\n");
-  
+
   return 0;
 }
 
@@ -1272,10 +1291,12 @@ int printEurBookState(EurProdState *pProdState) {
 
   for (auto prodHande = 0; prodHande < 2; prodHande++) {
     if (pProdState->secID[prodHande]) {
-      printf(prefixBookStrFormat, "Handle" , prodHande);
-      char buffer[12];
-      snprintf(buffer, 16, "%ju", pProdState->secID[prodHande]);
-      //      printf(colformat, pProdState->secID[prodHande]);
+      printf(prefixBookStrFormat, "Handle", prodHande);
+      char buffer[16];
+      snprintf(buffer, 16, "%ju",
+               pProdState->secID[prodHande]);
+      //      printf(colformat,
+      //      pProdState->secID[prodHande]);
       printf(colformats, buffer);
       printEurTOB(prodHande);
       printf("\n");
@@ -1315,7 +1336,6 @@ int getFastCancelState(FastCancelState *pFastCancelState) {
   return 0;
 }
 
-
 // ################################################
 int printEfcState(EfcState *pEfcState) {
   //// TBD NOT CURRENTLY DISPLAYED
@@ -1334,12 +1354,9 @@ int printEfcState(EfcState *pEfcState) {
            "WARNING: \'EPM Dump Mode\' is Active\n" RESET);
 
   if (pEfcState->commonState.armed)
-    printf(GRN
-           "ARMED\n" RESET);
+    printf(GRN "ARMED\n" RESET);
   else
-    printf(RED
-           "disarmed\n" RESET);
-    
+    printf(RED "disarmed\n" RESET);
 
   if (pEfcState->forceFire) {
     printf(
@@ -1399,25 +1416,28 @@ int main(int argc, char *argv[]) {
       active_strat[stratId] = false;
 
     // for (auto parser = 0; parser < 2;
-    //      parser++) { 
-    //   if (((ekaHwCaps->hwCaps.version.parser >> parser*4) &
+    //      parser++) {
+    //   if (((ekaHwCaps->hwCaps.version.parser >> parser*4)
+    //   &
     //        0xF) != 0) {
-    //     active_strat[((ekaHwCaps->hwCaps.version.parser >>
+    //     active_strat[((ekaHwCaps->hwCaps.version.parser
+    //     >>
     //                    (coreId-2) * 4) &
     //                   0xF)] = true;
     //   }
     // }
 
     active_strat[S_P4] = true; // single strategy
-    
+
     //    if (active_strat[S_P4])
-    //    otherwisse no report only disaply in unconfigured parser
+    //    otherwisse no report only disaply in unconfigured
+    //    parser
     getEfcState(&pStratState->p4);
-    
+
     /* ----------------------------------------- */
     printf("\e[1;1H\e[2J"); //	system("clear");
     /* ----------------------------------------- */
-    
+
     printTime();
     /* ----------------------------------------- */
     printHeader(coreParams, &pStratState->p4, ekaHwCaps);
@@ -1426,37 +1446,36 @@ int main(int argc, char *argv[]) {
     /* ----------------------------------------- */
     printCurrRxTraffic(coreParams);
     /* ----------------------------------------- */
-      printLineSeparator(coreParams, '+', '-');
-      /* ----------------------------------------- */
-      printCurrTxTraffic(coreParams);
-      /* ----------------------------------------- */
-      printLineSeparator(coreParams, '+', '-');
-      /* ----------------------------------------- */
-      /* ----------------------------------------- */
-      /* ----------------------------------------- */
-      printStratHeader();
-      printStratStatus(pStratState); //TD update 
+    printLineSeparator(coreParams, '+', '-');
+    /* ----------------------------------------- */
+    printCurrTxTraffic(coreParams);
+    /* ----------------------------------------- */
+    printLineSeparator(coreParams, '+', '-');
+    /* ----------------------------------------- */
+    /* ----------------------------------------- */
+    /* ----------------------------------------- */
+    printStratHeader();
+    printStratStatus(pStratState); // TD update
 
-      // getProdState(&pStratState->eur);
-      // printProdHeader();
-      // printProdState(&pStratState->eur);
+    // getProdState(&pStratState->eur);
+    // printProdHeader();
+    // printProdState(&pStratState->eur);
 
-      printBookHeader();
-      printBookState(&pStratState->eur);
-    
-      /* ----------------------------------------- */
-      char excptBuf[8192] = {};
-      int decodeSize =
+    printBookHeader();
+    printBookState(&pStratState->eur);
+
+    /* ----------------------------------------- */
+    char excptBuf[8192] = {};
+    int decodeSize =
         ekaDecodeExceptions(excptBuf, pEfcExceptionsReport);
-      if ((uint64_t)decodeSize > sizeof(excptBuf))
-	on_error("decodeSize %d > sizeof(excptBuf) %jd",
-		 decodeSize, sizeof(excptBuf));
-      printf("%s\n", excptBuf);
-      /* ----------------------------------------- */
-      sleep(1);
-    }
+    if ((uint64_t)decodeSize > sizeof(excptBuf))
+      on_error("decodeSize %d > sizeof(excptBuf) %jd",
+               decodeSize, sizeof(excptBuf));
+    printf("%s\n", excptBuf);
+    /* ----------------------------------------- */
+    sleep(1);
+  }
 
-  
   delete ekaHwCaps;
   delete pEfcState;
   delete pFastCancelState;
