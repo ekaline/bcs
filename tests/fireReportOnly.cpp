@@ -173,7 +173,7 @@ int main(int argc, char *argv[]) {
 
   auto fireReplaceActionIdx =
       allocateNewAction(EkaBcsActionType::MoexFireReplace);
-  setActionTcpSock(fireReplaceActionIdx, (EkaSock)NULL);
+  setActionTcpSock(fireReplaceActionIdx, EkaDummySock);
   setActionNext(fireReplaceActionIdx, CHAIN_LAST_ACTION);
 
   const char fireNewMsg[] = "MOEX dummy pkt a b c d e f g h"

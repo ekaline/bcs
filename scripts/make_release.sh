@@ -37,6 +37,7 @@ cp $BUILD_DIR/../README.TXT $DST_DIR/
 cp $BUILD_DIR/../api/EkaBcs.h $DST_DIR/api
 cp $BUILD_DIR/lib/EkaBcs/libEkaBcs.so $DST_DIR/lib
 
+cp $BUILD_DIR/../tests/Makefile ${DST_DIR}/tests
 cp $BUILD_DIR/../tests/*.h ${DST_DIR}/tests
 cp $BUILD_DIR/../tests/bcsMdTest.cpp ${DST_DIR}/tests
 cp $BUILD_DIR/../tests/bcsTcpConnect.cpp ${DST_DIR}/tests
