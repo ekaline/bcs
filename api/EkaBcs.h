@@ -696,7 +696,7 @@ enum class EkaBcReportType : int {
   ExceptionsReport,
   FirePkt,
   CmeFastCancelReport,
-  EurFireReport,
+  MoexFireReport,
   EurSWFireReport
 };
 
@@ -896,5 +896,38 @@ struct EkaBcExceptionsReport {
   uint8_t pad[256 - 32 - 32 - 20];     //
 } __attribute__((packed));             // 256
 
+
+
+struct EkaBcsMoexHwFireReport {
+  uint64_t RTCounterInternal;
+  uint64_t OrderUpdateTime;
+  uint64_t Delta;
+  uint64_t GoodPrice;
+  uint64_t MDAskPrice;
+  uint64_t MDBidPrice;
+  uint64_t MyOrderSellPrice;
+  uint64_t MyOrderBuyPrice;
+  uint64_t MDSecID; //will be updated to 12B later
+  uint8_t  PairID;
+  uint8_t  StratType;
+  uint8_t pad[256 - 8*9 - 1*2];
+} __attribute__((packed));
+  
+struct EkaBcsFireReport {
+  EkaBcsMoexHwFireReport moexFireReport; //
+  uint64_t __unused1;
+  uint16_t currentActionIdx; // in the chain
+  uint16_t firstActionIdx;   // in the chain
+  uint8_t __unused2;
+  EkaBcHwFireStatus fireStatus;
+  uint8_t errCode;
+  uint16_t __unused3;
+  uint16_t __unused4;
+  uint16_t __unused5;
+  uint16_t __unused6;
+  uint64_t __unused7;
+  uint8_t __unused8;
+} __attribute__((packed));
+  
 } // End of namespace EkaBcs
 #endif

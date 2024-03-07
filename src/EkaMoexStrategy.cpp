@@ -169,6 +169,18 @@ OpResult EkaMoexStrategy::downloadPackedDB() {
 
 /* --------------------------------------------------- */
 OpResult EkaMoexStrategy::downloadProdInfoDB() {
+  uint64_t prodBase =
+      SW_SCRATCHPAD_BASE + 32 * 8; // from line 32
+
+  for (auto idx = 0; idx < MOEX_MAX_PROD_PAIRS; idx++) {
+    if (pair_[idx]) {
+      //        eka_write(prodBase + idx * 8,
+      //                  prod_[prodHande]->secId_);
+        EKA_LOG("pair %d , secid 0x%jx (0x%jd)",
+                idx, 0x0, 0x0);
+    }
+  }
+
 #if 0
   uint64_t bookCnt = 0;
   uint64_t totalCnt = 0;
