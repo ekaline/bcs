@@ -818,16 +818,18 @@ int printTOB() {
     printf("\n");
   }
 
-  printf("clordid = %d\n",allTOB->clordid);
-  printf("replace_arm_cnt = %d\n",allTOB->replace_arm_cnt);
-  printf("replace_arm_thresh = %d\n",allTOB->replace_arm_thresh);
-
-  printf("sell_order_update = %ju\n",allTOB->pair.sell_order_update);
-  printf("buy_order_update = %ju\n",allTOB->pair.buy_order_update);
-  printf("hedge_sell_price = %ju\n",allTOB->pair.hedge_sell_price);
-  printf("hedge_buy_price = %ju\n",allTOB->pair.hedge_buy_price);
-  printf("my_sell_price = %ju\n",allTOB->pair.my_sell_price);
-  printf("my_buy_price = %ju\n",allTOB->pair.my_buy_price);
+  printf("General:\n");
+  printf("Last HW ClOrdID = %d\n",allTOB->clordid);
+  printf("Replace Protection Counter = %d\n",allTOB->replace_arm_cnt);
+  printf("Replace Protection Threshold = %d\n",allTOB->replace_arm_thresh);
+  printf("Sell:\n");
+  printf("Order Time = %ju\n",allTOB->pair.sell_order_update);
+  printf("Hedge Price = %ju\n",allTOB->pair.hedge_sell_price);
+  printf("My Price = %ju\n",allTOB->pair.my_sell_price);
+  printf("Buy:\n");
+  printf("Order Time = %ju\n",allTOB->pair.buy_order_update);
+  printf("Hedge Price = %ju\n",allTOB->pair.hedge_buy_price);
+  printf("My Price = %ju\n",allTOB->pair.my_buy_price);
   //  printf(" = %d\n",allTOB->);
   // printf("| ");
   // if (armState->prod[prod_idx].arm.buy)

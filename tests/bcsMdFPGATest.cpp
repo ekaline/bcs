@@ -181,10 +181,10 @@ int main(int argc, char *argv[]) {
   ekaBcsSetReplaceThr(100);
 
   // Set SW order
-  setOrderPricePair(EkaBcsOrderType::MY_ORDER,0,EkaBcsOrderSide::BUY,0x444);
-  setOrderPricePair(EkaBcsOrderType::MY_ORDER,0,EkaBcsOrderSide::SELL,0x555);
-  setOrderPricePair(EkaBcsOrderType::HEDGE_ORDER,0,EkaBcsOrderSide::BUY,0x666);
-  setOrderPricePair(EkaBcsOrderType::HEDGE_ORDER,0,EkaBcsOrderSide::SELL,0x777);
+  setOrderPricePair(EkaBcsOrderType::MY_ORDER,0,EkaBcsOrderSide::BUY,444);
+  setOrderPricePair(EkaBcsOrderType::MY_ORDER,0,EkaBcsOrderSide::SELL,555);
+  setOrderPricePair(EkaBcsOrderType::HEDGE_ORDER,0,EkaBcsOrderSide::BUY,666);
+  setOrderPricePair(EkaBcsOrderType::HEDGE_ORDER,0,EkaBcsOrderSide::SELL,777);
 
   ekaBcsArmMoex(true,0);
 
