@@ -483,8 +483,8 @@ typedef int64_t EkaBcsSecHandle;
 
 class MoexSecurityId {
 public:
-  MoexSecurityId(const char *name);
   MoexSecurityId();
+  MoexSecurityId(const char *name);
   MoexSecurityId &operator=(const MoexSecurityId &other);
   void getName(void *dst) const;
   void getSwapName(void *dst) const;
@@ -498,43 +498,12 @@ private:
  *        Used only for initializing the securities list
  *
  */
-typedef int64_t EkaBcEurSecId;
-typedef int64_t EkaBcEurPrice;
-typedef uint32_t EkaBcEurFireSize;
-typedef int32_t EkaBcEurMdSize;
-typedef uint64_t EkaBcEurTimeNs;
 
-typedef char EkaBcsMoexSecId[12];
 typedef int64_t EkaBcsMoexPrice;
 typedef int64_t EkaBcsMoexSize;
 typedef int64_t EkaBcsMoexTimeNs;
 
 typedef int32_t EkaBcsMoexMdSize; // tbd
-
-#define EKA_BC_EUR_MAX_PRODS 16
-
-/**
- * @brief Subscribing on list of Securities (products)
- *
- * @param prodList List of securities in Exchange encoding
- * @param nProducts number of products
- * @return OpResult
- */
-OpResult ekaBcsSetProducts(const EkaBcsMoexSecId *prodList,
-                           size_t nProducts);
-
-/**
- * @brief Mapping the exchange security encoding to internal
- * Handle. Allocation of the handles might not correspond to
- * the order of the securities on the subscription list is
- * not.
- *
- * @param secId Exchange encoded ID
- * @return EkaBcsSecHandle Handle ID.
- *         Negative value means the Security did not fetch
- * the internal data structure and so ignored!!!
- */
-EkaBcsSecHandle ekaBcsGetSecHandle(EkaBcsMoexSecId secId);
 
 /**
  * @brief Config params for Moex product.
@@ -594,21 +563,6 @@ OpResult setProdPairDynamicParams(
 typedef uint8_t EkaBcArmVer;
 typedef uint32_t EkaBcsArmVer;
 
-/**
- * @brief Changing Arm/Disarm state of the Product
- *
- * @param dev
- * @param prodHande
- * @param armBid
- * @param armAsk
- * @param ver Optional parameter needed only for Arming
- *            (can be skipped if
- *                armBid == false and armAsk == false)
- * @return OpResult
- */
-OpResult ekaBcArmEur(EkaBcsSecHandle prodHande, bool armBid,
-                     bool armAsk, EkaBcArmVer ver = 0);
-
 OpResult ekaBcsArmMoex(bool arm, EkaBcsArmVer ver = 0);
 
 OpResult ekaBcsResetReplaceCnt();
@@ -621,11 +575,6 @@ OpResult ekaBcsSetReplaceThr(uint32_t threshold);
  */
 typedef void (*onEkaBcReportCb)(const void *report,
                                 size_t len, void *ctx);
-
-struct EkaBcRunCtx {
-  onEkaBcReportCb onReportCb;
-  void *cbCtx; ///< optional opaque field looped back to CB
-};
 
 struct EkaBcsRunCtx {
   onEkaBcReportCb onReportCb;
@@ -681,9 +630,7 @@ enum class EkaBcReportType : int {
   ControllerState = 1,
   ExceptionsReport,
   FirePkt,
-  CmeFastCancelReport,
   MoexFireReport,
-  EurSWFireReport
 };
 
 // every report is pre-pended by this header
@@ -698,121 +645,6 @@ struct EkaBcContainerGlobalHdr {
   int nReports;
 };
 
-enum EkaBcTriggerAction {
-  EkaBcUnknown, ///< Zero initialization yields an invalid
-                ///< value
-  EkaBcSent,    ///< All action payloads sent successfully
-  EkaBcInvalidToken,    ///< Trigger security token did not
-                        ///< match action token
-  EkaBcInvalidStrategy, ///< Strategy id was not valid
-  EkaBcInvalidAction,   ///< Action id was not valid
-  EkaBcDisabledAction,  ///< Did not fire because an enable
-                        ///< bit was not set
-  EkaBcSendError ///< Send error occured (e.g., TCP session
-                 ///< closed)
-};
-
-struct EkaEurHwTicker {
-  uint8_t localOrderCntr;  // 1
-  uint32_t appSeqNum;      // 4 from header
-  uint64_t transactTime;   // 8 from header
-  uint64_t requestTime;    // 8
-  uint8_t aggressorSide;   // 1
-  uint64_t lastQty;        // 8
-  uint64_t lastPrice;      // 8
-  uint64_t securityId;     // 8
-  uint8_t pad[18];         // 18
-} __attribute__((packed)); // 64
-
-struct EkaEurHwProductConf {
-  uint64_t securityId;     // 8
-  uint8_t productIdx;      // 1 = prodHande
-  uint16_t actionIdx;      // 2
-  uint8_t askSize;         // 1
-  uint8_t bidSize;         // 1
-  uint8_t maxBookSpread;   // 1
-  uint8_t pad[18];         // 18
-} __attribute__((packed)); // 32
-
-struct EkaBcEurReferenceJumpConf {
-  uint8_t bitParams;          // 1
-  uint8_t askSize;            // 1
-  uint8_t bidSize;            // 1
-  uint8_t minSpread;          // 1
-  uint16_t maxOppositTobSize; // 2
-  uint16_t minTobSize;        // 2
-  uint16_t maxTobSize;        // 2
-  uint8_t timeDeltaUs;        // 1
-  uint16_t tickerSizeLots;    // 2
-  uint8_t pad[19];            // 19
-} __attribute__((packed));    // 13+19
-
-struct EkaBcEurJumpConf {
-  uint8_t bitParams;       // 1
-  uint8_t askSize;         // 1
-  uint8_t bidSize;         // 1
-  uint16_t minTobSize;     // 2
-  uint16_t maxTobSize;     // 2
-  uint8_t maxPostSize;     // 1
-  uint16_t minTickerSize;  // 2
-  uint64_t minPriceDelta;  // 8
-  uint8_t pad[14];         // 14
-} __attribute__((packed)); // 18
-
-#if 0
-
-union EkaEurHwStratConf {
-  EkaBcEurReferenceJumpConf refJumpConf; // 32
-  EkaBcEurJumpConf jumpConf;             // 32
-} __attribute__((packed));
-#endif
-
-#if 0
-typedef struct packed {
-	bit [4*8-1:0] pad;
-	bit [7:0]     fire_reason;
-	bit [7:0]     unarm_reason;
-	bit [7:0]     strategy_id;
-	bit [7:0]     strategy_subid;
-} controller_report_sh_t;
-#endif
-
-struct EkaEurHwControllerState {
-  uint8_t stratSubID;      // 1
-  EkaBcStratType stratID;  // 1
-  uint8_t unArmReason;     // 1
-  uint8_t fireReason;      // 1
-  uint8_t pad[4];          // 4
-} __attribute__((packed)); // 8B
-
-struct EkaEurHwTobSingleSideState {
-  uint64_t lastTransactTime; // 8
-  uint64_t eiBetterPrice;    // 8
-  uint64_t eiPrice;          // 8
-  uint64_t price;            // 8
-  uint16_t normPrice;        // 2
-  uint32_t size;             // 4
-  uint32_t msgSeqNum;        // 4
-} __attribute__((packed));   // 42B
-
-struct EkaEurHwTobState {
-  EkaEurHwTobSingleSideState bid; // 42
-  EkaEurHwTobSingleSideState ask; // 42
-} __attribute__((packed));        // 88B
-
-#if 0
-struct EkaBcEurHwFireReport {
-  EkaEurHwTicker ticker;                   // 64
-  EkaEurHwProductConf prodConf;            // 32
-  EkaEurHwStratConf stratConf;             // 32
-  EkaEurHwControllerState controllerState; // 8
-  EkaEurHwTobState tobState;               // 88
-  uint8_t pad[256 - sizeof(ticker) - sizeof(prodConf) -
-              sizeof(stratConf) - sizeof(controllerState) -
-              sizeof(tobState)];
-} __attribute__((packed));
-#endif
-
 enum class EkaBcHwFireStatus : uint8_t {
   Unknown = 0,
   Sent = 1,
@@ -823,24 +655,6 @@ enum class EkaBcHwFireStatus : uint8_t {
   SendError = 6,
   HWPeriodicStatus = 255
 };
-
-#if 0
-struct EkaBcFireReport {
-  EkaBcEurHwFireReport eurFireReport; //
-  uint64_t __unused1;
-  uint16_t currentActionIdx; // in the chain
-  uint16_t firstActionIdx;   // in the chain
-  uint8_t __unused2;
-  EkaBcHwFireStatus fireStatus;
-  uint8_t errCode;
-  uint16_t __unused3;
-  uint16_t __unused4;
-  uint16_t __unused5;
-  uint16_t __unused6;
-  uint64_t __unused7;
-  uint8_t __unused8;
-} __attribute__((packed));
-#endif
 
 struct EkaBcSwReport {
   uint8_t pad[256];
@@ -882,8 +696,6 @@ struct EkaBcExceptionsReport {
   uint8_t pad[256 - 32 - 32 - 20];     //
 } __attribute__((packed));             // 256
 
-
-
 struct EkaBcsMoexHwFireReport {
   uint64_t RTCounterInternal;
   uint64_t OrderUpdateTime;
@@ -893,12 +705,12 @@ struct EkaBcsMoexHwFireReport {
   uint64_t MDBidPrice;
   uint64_t MyOrderSellPrice;
   uint64_t MyOrderBuyPrice;
-  uint64_t MDSecID; //will be updated to 12B later
-  uint8_t  PairID;
-  uint8_t  StratType;
-  uint8_t pad[256 - 8*9 - 1*2];
+  uint64_t MDSecID; // will be updated to 12B later
+  uint8_t PairID;
+  uint8_t StratType;
+  uint8_t pad[256 - 8 * 9 - 1 * 2];
 } __attribute__((packed));
-  
+
 struct EkaBcsFireReport {
   EkaBcsMoexHwFireReport moexFireReport; //
   uint64_t __unused1;
@@ -914,6 +726,6 @@ struct EkaBcsFireReport {
   uint64_t __unused7;
   uint8_t __unused8;
 } __attribute__((packed));
-  
+
 } // End of namespace EkaBcs
 #endif

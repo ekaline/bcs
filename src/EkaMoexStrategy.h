@@ -27,11 +27,6 @@ public:
   EkaMoexStrategy(const EfcUdpMcParams *mcParams);
   ~EkaMoexStrategy();
 
-  OpResult subscribeSecList(const EkaBcsMoexSecId *prodList,
-                            size_t nProducts);
-
-  EkaBcsSecHandle getSubscriptionId(EkaBcsMoexSecId secId);
-
   OpResult initPair(PairIdx idx,
                     const ProdPairInitParams *params);
 

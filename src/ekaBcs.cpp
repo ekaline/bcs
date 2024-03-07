@@ -157,7 +157,7 @@ ssize_t appTcpSend(EkaDev *dev, EkaActionIdx actionIdx,
 
 OpResult setClOrdId(uint64_t cntr) {
 
-  //0x76000 - base
+  // 0x76000 - base
   //[3 +: 5] - pair id, NA for cntr
   //[8 +: 4] - conf id, ==4
 
@@ -169,9 +169,9 @@ OpResult setClOrdId(uint64_t cntr) {
 /* ==================================================== */
 
 OpResult setOrderPricePair(EkaBcsOrderType type,
-			   PairIdx idx,
-			   EkaBcsOrderSide side,
-			   EkaBcsMoexPrice price) {
+                           PairIdx idx,
+                           EkaBcsOrderSide side,
+                           EkaBcsMoexPrice price) {
 
   //[3 +: 5] - pair id
   //[8 +: 4] - conf id
@@ -181,28 +181,27 @@ OpResult setOrderPricePair(EkaBcsOrderType type,
   // 2 -hedge buy
   // 3 -hedge sell
   uint64_t base_addr = 0x76000;
-  base_addr |= (idx << 3); //Correct Pair
-    switch (type) {
-    case EkaBcsOrderType::MY_ORDER :
-      if (side == EkaBcsOrderSide::BUY)
-	eka_write(g_ekaDev, base_addr + 0x000, price);
-      else
-	eka_write(g_ekaDev, base_addr + 0x100, price);
-      break;
-    case EkaBcsOrderType::HEDGE_ORDER :
-      if (side == EkaBcsOrderSide::BUY)
-	eka_write(g_ekaDev, base_addr + 0x200, price);
-      else
-	eka_write(g_ekaDev, base_addr + 0x300, price);
-      break;
-    default:
-      on_error("Unknown type %d",(int)type);
-      break;
-    }
+  base_addr |= (idx << 3); // Correct Pair
+  switch (type) {
+  case EkaBcsOrderType::MY_ORDER:
+    if (side == EkaBcsOrderSide::BUY)
+      eka_write(g_ekaDev, base_addr + 0x000, price);
+    else
+      eka_write(g_ekaDev, base_addr + 0x100, price);
+    break;
+  case EkaBcsOrderType::HEDGE_ORDER:
+    if (side == EkaBcsOrderSide::BUY)
+      eka_write(g_ekaDev, base_addr + 0x200, price);
+    else
+      eka_write(g_ekaDev, base_addr + 0x300, price);
+    break;
+  default:
+    on_error("Unknown type %d", (int)type);
+    break;
+  }
 
   return OPRESULT__OK;
 }
-
 
 /* ==================================================== */
 
@@ -311,20 +310,23 @@ void EkaBcsMoexRun(const EkaBcsRunCtx *pEkaBcsRunCtx) {
     on_error("!pEkaBcsRunCtx");
   if (!pEkaBcsRunCtx->onReportCb)
     on_error("!pEfcRunCtx->onReportCb");
-  g_ekaDev->pEfcRunCtx->onEfcFireReportCb = pEkaBcsRunCtx->onReportCb;
+  g_ekaDev->pEfcRunCtx->onEfcFireReportCb =
+      pEkaBcsRunCtx->onReportCb;
   g_ekaDev->pEfcRunCtx->cbCtx = pEkaBcsRunCtx->cbCtx;
   /* ----------------------------------------------- */
 
-  //TBD fire report loop
-  // EKA_LOG("Lounching "
-  //         "EkaEurStrategy::fireReportThreadLoop()");
-  // auto fireReportLoopFunc =
-  //     std::bind(&EkaEurStrategy::fireReportThreadLoop, eur,
-  //               pEkaBcRunCtx);
-  // eur->fireReportLoopThr_ = std::thread(fireReportLoopFunc);
-  // EKA_LOG("EkaEurStrategy::fireReportThreadLoop() "
-  //         "span off");
-  // fflush(g_ekaLogFile);
+  // TBD fire report loop
+  //  EKA_LOG("Lounching "
+  //          "EkaEurStrategy::fireReportThreadLoop()");
+  //  auto fireReportLoopFunc =
+  //      std::bind(&EkaEurStrategy::fireReportThreadLoop,
+  //      eur,
+  //                pEkaBcRunCtx);
+  //  eur->fireReportLoopThr_ =
+  //  std::thread(fireReportLoopFunc);
+  //  EKA_LOG("EkaEurStrategy::fireReportThreadLoop() "
+  //          "span off");
+  //  fflush(g_ekaLogFile);
 
   /* ----------------------------------------------- */
 
@@ -516,70 +518,39 @@ OpResult setProdPairDynamicParams(
   return moex->setPairDynamicParams(idx, params);
 }
 /* ==================================================== */
-
-OpResult ekaBcsSetProducts(const EkaBcsMoexSecId *prodList,
-                           size_t nProducts) {
-  if (!g_ekaDev || !g_ekaDev->efc)
-    on_error("HW Eng is not initialized: use hwEngInit()");
-  auto efc = g_ekaDev->efc;
-
-  auto moex = efc->moex_;
-  if (!moex)
-    on_error("Moex is not initialized: use "
-             "initMoexStrategy()");
-
-  if (!prodList)
-    on_error("!prodList");
-
-  // TBD moex products
-  //  if (nProducts > EKA_BC_EUR_MAX_PRODS) {
-  //    EKA_ERROR("nProducts %ju > EKA_BC_EUR_MAX_PRODS %d",
-  //              nProducts, EKA_BC_EUR_MAX_PRODS);
-  //    return OPRESULT__ERR_MAX_PRODUCTS_EXCEEDED;
-  //  }
-
-  // return eur->subscribeSecList(prodList, nProducts);
-  return OPRESULT__OK;
-}
-
 /* ==================================================== */
-
-/* ==================================================== */
-  OpResult ekaBcsArmMoex(bool arm,  EkaBcsArmVer ver) {
+OpResult ekaBcsArmMoex(bool arm, EkaBcsArmVer ver) {
   if (!g_ekaDev || !g_ekaDev->efc)
     on_error("HW Eng is not initialized: use hwEngInit()");
 
   auto efc = g_ekaDev->efc;
   efc->armMoex(arm, ver);
   return OPRESULT__OK;
-
-  }
+}
 /* ==================================================== */
 
 /* ==================================================== */
-  OpResult ekaBcsResetReplaceCnt() {
-  //0x76000 - base
+OpResult ekaBcsResetReplaceCnt() {
+  // 0x76000 - base
   //[3 +: 5] - pair id, NA for cntr
   //[8 +: 4] - conf id, ==5
 
   eka_write(g_ekaDev, 0x76500, 0x0);
 
   return OPRESULT__OK;
-
-  }
+}
 /* ==================================================== */
 
 /* ==================================================== */
-  OpResult ekaBcsSetReplaceThr(uint32_t threshold) {
-  //0x76000 - base
+OpResult ekaBcsSetReplaceThr(uint32_t threshold) {
+  // 0x76000 - base
   //[3 +: 5] - pair id, NA for cntr
   //[8 +: 4] - conf id, ==6
 
   eka_write(g_ekaDev, 0x76600, (uint64_t)threshold);
 
   return OPRESULT__OK;
-
-  }
+}
 /* ==================================================== */
 
 } // End of namespace EkaBcs

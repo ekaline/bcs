@@ -100,31 +100,31 @@ EkaEfc::EkaEfc(const EfcInitCtx *pEfcInitCtx) {
     }
   }
 
-  // Cleaning all Jump params
-  EKA_LOG("Resetting %d Jump Parameters",
-          EKA_BC_EUR_MAX_PRODS);
-  uint dst_addr;
-  for (auto entry = 0; entry < EKA_BC_EUR_MAX_PRODS;
-       entry++) {
-    dst_addr = 0x50000 + entry * 256;
-    for (auto i = 0; i < 256 / 8; i++)
-      eka_write(dst_addr + 8 * i, 0x0);
-  }
+  // // Cleaning all Jump params
+  // EKA_LOG("Resetting %d Jump Parameters",
+  //         EKA_BC_EUR_MAX_PRODS);
+  // uint dst_addr;
+  // for (auto entry = 0; entry < EKA_BC_EUR_MAX_PRODS;
+  //      entry++) {
+  //   dst_addr = 0x50000 + entry * 256;
+  //   for (auto i = 0; i < 256 / 8; i++)
+  //     eka_write(dst_addr + 8 * i, 0x0);
+  // }
 
-  // Cleaning all RJump params
-  EKA_LOG("Resetting %d RJump Parameters",
-          EKA_BC_EUR_MAX_PRODS * EKA_BC_EUR_MAX_PRODS);
-  for (auto entry = 0;
-       entry < EKA_BC_EUR_MAX_PRODS * EKA_BC_EUR_MAX_PRODS;
-       entry++) {
-    dst_addr = 0x60000 + entry * 256;
-    for (auto i = 0; i < 256 / 8; i++)
-      eka_write(dst_addr + 8 * i, 0x0);
-  }
+  // // Cleaning all RJump params
+  // EKA_LOG("Resetting %d RJump Parameters",
+  //         EKA_BC_EUR_MAX_PRODS * EKA_BC_EUR_MAX_PRODS);
+  // for (auto entry = 0;
+  //      entry < EKA_BC_EUR_MAX_PRODS *
+  //      EKA_BC_EUR_MAX_PRODS; entry++) {
+  //   dst_addr = 0x60000 + entry * 256;
+  //   for (auto i = 0; i < 256 / 8; i++)
+  //     eka_write(dst_addr + 8 * i, 0x0);
+  // }
 
-  // Cleaning first RJump pointer
-  EKA_LOG("Resetting RJump Pointer");
-  eka_write(0xf0110, 0x0);
+  // // Cleaning first RJump pointer
+  // EKA_LOG("Resetting RJump Pointer");
+  // eka_write(0xf0110, 0x0);
 }
 
 /* ################################################ */
