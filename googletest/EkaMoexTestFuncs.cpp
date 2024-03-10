@@ -10,7 +10,7 @@
 void printFireReport(uint8_t *p) {
   uint8_t *b = (uint8_t *)p;
 
-  auto reportHdr = reinterpret_cast<EkaBcReportHdr *>(b);
+  auto reportHdr = reinterpret_cast<ReportHdr *>(b);
   printf("reportHdr->idx = %d\n", reportHdr->idx);
 
   b += sizeof(*reportHdr);
@@ -181,14 +181,14 @@ void printFireReport(uint8_t *p) {
 /* -------------------------------------------- */
 void printPayloadReport(uint8_t *p) {
   uint8_t *b = (uint8_t *)p;
-  auto firePktHdr{reinterpret_cast<EfcBcReportHdr *>(b)};
+  auto firePktHdr{reinterpret_cast<ReportHdr *>(b)};
 
   auto length = firePktHdr->size;
 
   printf("Length = %ju, Type = %s \n", length,
-         EkaBcReportType2STR(firePktHdr->type));
+         ReportType2STR(firePktHdr->type));
 
-  b += sizeof(EfcBcReportHdr);
+  b += sizeof(ReportHdr);
   b += 54; // skip l2-l3 headers
 
   hexDump("Data (without headers)", b, length - 54);
@@ -205,10 +205,10 @@ void getExampleFireReport(const void *p, size_t len,
   if (1) {
     uint8_t *b = (uint8_t *)p;
     auto containerHdr{
-        reinterpret_cast<EkaBcContainerGlobalHdr *>(b)};
+        reinterpret_cast<ContainerGlobalHdr *>(b)};
 
     switch (containerHdr->eventType) {
-    case EkaBcEventType::FireEvent:
+    case EventType::FireEvent:
       printf("Fire with %d reports...\n",
              containerHdr->nReports);
       // skip container header
@@ -216,21 +216,21 @@ void getExampleFireReport(const void *p, size_t len,
       // print fire report
       printFireReport(b);
       // skip report hdr (of fire) and fire report
-      b += sizeof(EkaBcReportHdr);
+      b += sizeof(ReportHdr);
       b += sizeof(EkaBcFireReport);
       // print payload
       printPayloadReport(b);
       break;
-    case EkaBcEventType::ExceptionEvent:
+    case EventType::ExceptionEvent:
       //    printf ("Status...\n");
       break;
-    case EkaBcEventType::EpmEvent:
+    case EventType::EpmEvent:
       printf("SW Fire with %d reports...\n",
              containerHdr->nReports);
       // skip container header
       b += sizeof(*containerHdr);
       // skip report hdr (of fire) and swfire report
-      b += sizeof(EkaBcReportHdr);
+      b += sizeof(ReportHdr);
       b += sizeof(EkaBcSwReport);
       // print payload
       printPayloadReport(b);

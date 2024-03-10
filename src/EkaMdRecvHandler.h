@@ -26,7 +26,7 @@ private:
   MdProcessCallback cb_ = NULL;
   void *ctx_ = NULL;
 
-  EkaBcLane lane_ = -1;
+  EkaLane lane_ = -1;
 
   volatile bool active_ = true;
 

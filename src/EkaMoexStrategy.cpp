@@ -293,7 +293,7 @@ int EkaMoexStrategy::sendDate2Hw() {
 /* --------------------------------------------------- */
 
 void EkaMoexStrategy::runLoop(
-    const EkaBcsRunCtx *pEkaBcsRunCtx) {
+    const RunCtx *pRunCtx) {
   setThreadAffinityName(pthread_self(), "EkalineBookLoop",
                         dev_->affinityConf.bookThreadCpuId);
   EKA_LOG("Running EkaMoexStrategy::runLoop()");
@@ -351,7 +351,7 @@ void EkaMoexStrategy::runLoop(
 
 /* --------------------------------------------------- */
 
-void EkaMoexStrategy::arm(bool arm, EkaBcsArmVer ver) {
+void EkaMoexStrategy::arm(bool arm, ArmVer ver) {
 #if 0
 assign rf_arm_decide_bit  = register_write_data[0  +:  1]; //1-arm, 0--disarm
 assign rf_arm_version     = register_write_data[32 +: 32]; //only for arm==1

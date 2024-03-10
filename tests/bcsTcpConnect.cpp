@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
   const char *moexIp = "91.203.252.67";
   const uint16_t moexTcpPort = 9212;
 
-  EkaBcLane moexLane = 1;
+  EkaLane moexLane = 1;
 
   signal(SIGINT, INThandler);
   // ==============================================

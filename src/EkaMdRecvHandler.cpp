@@ -131,7 +131,7 @@ void EkaMdRecvHandler::lnxIgmpJoin(uint32_t srcIp,
     mreq.imr_interface.s_addr = srcIp;
     mreq.imr_sourceaddr.s_addr = ssmIP;
     mreq.imr_multiaddr.s_addr = mcIp;
-    TEST_LOG(
+    EKA_LOG(
         "joining IGMP %s from local addr %s using SSM %s",
         EKA_IP2STR(mreq.imr_multiaddr.s_addr),
         EKA_IP2STR(mreq.imr_interface.s_addr),

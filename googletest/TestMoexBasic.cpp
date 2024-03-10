@@ -43,9 +43,9 @@ TEST_F(TestMoex, Basic) {
 
   auto ret = initProdPair(0, &prodPairInitParams);
 
-  EkaBcsRunCtx runCtx = {.onReportCb = getExampleFireReport,
+  RunCtx runCtx = {.onReportCb = getExampleFireReport,
                          .cbCtx = this};
-  EkaBcsMoexRun(&runCtx);
+  runMoexStrategy(&runCtx);
 
   sleep(100);
 #ifndef _VERILOG_SIM

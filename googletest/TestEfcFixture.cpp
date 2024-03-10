@@ -112,9 +112,9 @@ void getFireReport(const void *p, size_t len, void *ctx) {
   // EKA_LOG("Received Some Report");
 
   auto containerHdr{
-      reinterpret_cast<const EkaBcContainerGlobalHdr *>(p)};
+      reinterpret_cast<const ContainerGlobalHdr *>(p)};
   if (containerHdr->eventType ==
-      EkaBcEventType::ExceptionEvent)
+      EventType::ExceptionEvent)
     return;
 
   auto tFixturePtr = static_cast<TestEfcFixture *>(ctx);
@@ -125,7 +125,7 @@ void getFireReport(const void *p, size_t len, void *ctx) {
   EKA_LOG("Received FireReport: \'%s\', "
           "nReceivedFireReports=%d, "
           "fireReports_.size()=%ju",
-          EkaBcEventType2STR(containerHdr->eventType),
+          EventType2STR(containerHdr->eventType),
           tFixturePtr->nReceivedFireReports_.load(),
           tFixturePtr->fireReports_.size());
 
@@ -172,7 +172,7 @@ void TestEfcFixture::initMoex() {
   printTestConfig("Running");
   /* --------------------------------------------- */
 
-  EkaBcAffinityConfig aff = {-1, -1, -1, -1, -1};
+  AffinityConfig aff = {-1, -1, -1, -1, -1};
   EkaCallbacks cb = {.logCb = ekaDefaultLog,
                      .cbCtx = g_ekaLogFile};
   auto rc = openDev(&aff, &cb);
@@ -190,7 +190,7 @@ void TestEfcFixture::initMoex() {
         .nexthop_mac = {}, // resolved by our internal ARP
         .src_mac_addr = {} // taken from system config
     };
-    auto lane = static_cast<EkaBcLane>(
+    auto lane = static_cast<EkaLane>(
         tcpCtx_->tcpSess_[i]->coreId_);
     rc = configurePort(lane, &laneAttr);
     ASSERT_EQ(rc, OPRESULT__OK);
@@ -225,7 +225,7 @@ void TestEfcFixture::getReportPtrs(const void *p,
 
   auto b = static_cast<const uint8_t *>(p);
   auto containerHdr{
-      reinterpret_cast<const EkaBcContainerGlobalHdr *>(b)};
+      reinterpret_cast<const ContainerGlobalHdr *>(b)};
   b += sizeof(*containerHdr);
 
   for (uint i = 0; i < containerHdr->nReports; i++) {

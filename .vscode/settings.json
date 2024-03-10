@@ -5,6 +5,7 @@
         "files.trimFinalNewlines": true,
         "files.trimTrailingWhitespace": true,
         "files.associations": {
+                "*.c": "cpp",
                 "*.h": "c",
                 "fromChars.C": "cpp",
                 "charconv": "cpp",
@@ -86,7 +87,8 @@
                 "span": "c",
                 "any": "c",
                 "set": "c",
-                "*.ipp": "c"
+                "*.ipp": "c",
+                "codecvt": "cpp"
         },
         "cmake.configureOnOpen": true,
         "editor.tokenColorCustomizations": {

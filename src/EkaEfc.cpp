@@ -141,7 +141,7 @@ int EkaEfc::disArmController() {
 }
 
 /* ################################################ */
-void EkaEfc::armMoex(bool arm, EkaBcsArmVer ver) {
+void EkaEfc::armMoex(bool arm, ArmVer ver) {
   if (!moex_)
     on_error("Moex is not initialized. Run "
              "ekaBcInitMoexStrategy()");

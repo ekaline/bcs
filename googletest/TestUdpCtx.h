@@ -105,7 +105,7 @@ public:
   }
 
 private:
-  EkaBcLane coreId_;
+  EkaLane coreId_;
 
   const char *srcIp_ = nullptr;
   const char *mcIp_ = nullptr;

@@ -138,9 +138,9 @@ pushExceptionReport(int reportIdx, uint8_t *dst,
                     EfcExceptionsReport *src) {
   auto b = dst;
   auto exceptionReportHdr{
-      reinterpret_cast<EkaBcReportHdr *>(b)};
+      reinterpret_cast<ReportHdr *>(b)};
   exceptionReportHdr->type =
-      EkaBcReportType::ExceptionsReport;
+      ReportType::ExceptionsReport;
   exceptionReportHdr->idx = reportIdx;
   exceptionReportHdr->size = sizeof(EfcExceptionsReport);
   b += sizeof(*exceptionReportHdr);
@@ -233,8 +233,8 @@ inline size_t
 pushExceptionsReport(int reportIdx, uint8_t *dst,
                      const EkaBcExceptionsReport *src) {
   auto b = dst;
-  auto reportHdr = reinterpret_cast<EkaBcReportHdr *>(b);
-  reportHdr->type = EkaBcReportType::ExceptionsReport;
+  auto reportHdr = reinterpret_cast<ReportHdr *>(b);
+  reportHdr->type = ReportType::ExceptionsReport;
   reportHdr->idx = reportIdx;
   reportHdr->size = sizeof(EkaBcExceptionsReport);
   b += sizeof(*reportHdr);
@@ -368,8 +368,8 @@ std::pair<int, size_t> processExceptionReport(
 
   //--------------------------------------------------------------------------
   auto containerHdr{
-      reinterpret_cast<EkaBcContainerGlobalHdr *>(b)};
-  containerHdr->eventType = EkaBcEventType::ExceptionEvent;
+      reinterpret_cast<ContainerGlobalHdr *>(b)};
+  containerHdr->eventType = EventType::ExceptionEvent;
   containerHdr->nReports =
       0; // to be overwritten at the end
   b += sizeof(*containerHdr);
@@ -642,18 +642,18 @@ std::pair<int, size_t> processExceptionReport(
 
 static inline size_t
 pushMoexFireReport(int reportIdx, uint8_t *dst,
-                  const EkaBcsFireReport *src) {
+                  const FireReport *src) {
 
   auto b = dst;
-  auto reportHdr = reinterpret_cast<EkaBcReportHdr *>(b);
-  reportHdr->type = EkaBcReportType::MoexFireReport;
+  auto reportHdr = reinterpret_cast<ReportHdr *>(b);
+  reportHdr->type = ReportType::MoexFireReport;
   reportHdr->idx = reportIdx;
-  reportHdr->size = sizeof(EkaBcsFireReport);
+  reportHdr->size = sizeof(FireReport);
   b += sizeof(*reportHdr);
 
-  memcpy(b, src, sizeof(EkaBcsFireReport));
+  memcpy(b, src, sizeof(FireReport));
 
-  b += sizeof(EkaBcsFireReport);
+  b += sizeof(FireReport);
   return b - dst;
 }
 
@@ -668,12 +668,12 @@ std::pair<int, size_t> processBCSFireReport(
   uint8_t *b = reportBuf; // dst
   uint reportIdx = 0;
   auto hwReport{
-      reinterpret_cast<const EkaBcsFireReport *>(srcReport)};
+      reinterpret_cast<const FireReport *>(srcReport)};
 
   //--------------------------------------------------------------------------
   auto containerHdr{
-      reinterpret_cast<EkaBcContainerGlobalHdr *>(b)};
-  containerHdr->eventType = EkaBcEventType::FireEvent;
+      reinterpret_cast<ContainerGlobalHdr *>(b)};
+  containerHdr->eventType = EventType::FireEvent;
   containerHdr->nReports =
       0; // to be overwritten at the end
   b += sizeof(*containerHdr);

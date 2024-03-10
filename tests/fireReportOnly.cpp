@@ -10,6 +10,7 @@
 #include <cstring>
 #include <stdarg.h>
 #include <thread>
+#include <filesystem>
 
 #include "EkaBcs.h"
 
@@ -25,7 +26,7 @@ static volatile bool g_keepWork = true;
 void printFireReport(uint8_t *p) {
   uint8_t *b = (uint8_t *)p;
 
-  auto reportHdr = reinterpret_cast<EkaBcReportHdr *>(b);
+  auto reportHdr = reinterpret_cast<ReportHdr *>(b);
   printf("reportHdr->idx = %d\n", reportHdr->idx);
 
   b += sizeof(*reportHdr);
@@ -37,10 +38,10 @@ void getExampleFireReport(const void *p, size_t len,
                           void *ctx) {
   uint8_t *b = (uint8_t *)p;
   auto containerHdr{
-      reinterpret_cast<EkaBcContainerGlobalHdr *>(b)};
+      reinterpret_cast<ContainerGlobalHdr *>(b)};
 
   switch (containerHdr->eventType) {
-  case EkaBcEventType::FireEvent:
+  case EventType::FireEvent:
     printf("Fire with %d reports...\n",
            containerHdr->nReports);
     break;
@@ -49,12 +50,12 @@ void getExampleFireReport(const void *p, size_t len,
     // print fire report
     printFireReport(b);
     // skip report hdr (of fire) and fire report
-    b += sizeof(EkaBcReportHdr);
-    b += sizeof(EkaBcsFireReport);
+    b += sizeof(ReportHdr);
+    b += sizeof(FireReport);
     // print payload
     printPayloadReport(b);
     break;
-  case EkaBcEventType::ExceptionEvent:
+  case EventType::ExceptionEvent:
     //    printf ("Status...\n");
     break;
 
@@ -63,30 +64,46 @@ void getExampleFireReport(const void *p, size_t len,
   }
 }
 
-static void setUp() {
+static void openLogFiles(const char *name) {
+  std::string fullPath = name;
+  std::string filename =
+      std::filesystem::path(fullPath).filename();
+
+  std::string dirPath = "./test_log";
+
+  if (!std::filesystem::exists(dirPath))
+    if (!std::filesystem::create_directory(dirPath))
+      on_error("Failed creating directory: %s",
+               dirPath.c_str());
 
   char testLogFileName[256] = {};
-  sprintf(testLogFileName, "test_logs/testLog.log");
+  sprintf(testLogFileName, "%s/%s.log", dirPath.c_str(),
+          filename.c_str());
 
   if ((g_ekaLogFile = fopen(testLogFileName, "w")) ==
       nullptr)
     on_error("Failed to open %s file for writing",
              testLogFileName);
-    //  g_ekaLogCB = ekaDefaultLog;
 
 #ifdef _VERILOG_SIM
   char verilogSimFileName[256] = {};
-  sprintf(verilogSimFileName, "test_logs/verilogLog.log");
+  sprintf(verilogSimFileName, "%s/verilogLog.log",
+          dirPath.c_str());
 
   if ((g_ekaVerilogSimFile =
            fopen(verilogSimFileName, "w")) == nullptr)
     on_error("Failed to open %s file for writing",
              verilogSimFileName);
 #endif
-  //  TMP PATCH !!!
-  // g_ekaLogFile = stdout;
 
   return;
+}
+
+static void closeLogFiles() {
+  fclose(g_ekaLogFile);
+#ifdef _VERILOG_SIM
+  fclose(g_ekaVerilogSimFile);
+#endif
 }
 
 void INThandler(int sig) {
@@ -102,12 +119,25 @@ int ekaDefaultLog(void *logFile /*unused*/,
                   int line, int priority,
                   const char *format, ...) {
   va_list ap;
-  const int rc1 = fprintf(
-      g_ekaLogFile, "%s@%s:%u: ", function, file, line);
+  int rc1, rc2, rc3;
+
+  // Log to the file
+  if (g_ekaLogFile) {
+    rc1 = fprintf(g_ekaLogFile, "%s@%s:%u: ", function,
+                  file, line);
+    va_start(ap, format);
+    rc2 = vfprintf(g_ekaLogFile, format, ap);
+    va_end(ap);
+    rc3 = fprintf(g_ekaLogFile, "\n");
+  }
+
+  // Log to stdout
+  rc1 = printf("%s@%s:%u: ", function, file, line);
   va_start(ap, format);
-  const int rc2 = vfprintf(g_ekaLogFile, format, ap);
+  rc2 = vprintf(format, ap);
   va_end(ap);
-  const int rc3 = fprintf(g_ekaLogFile, "\n");
+  rc3 = printf("\n");
+
   return rc1 + rc2 + rc3;
 }
 
@@ -125,12 +155,18 @@ static int dummyProcessPkt(const void *md, size_t len,
 EkaLogCallback g_ekaLogCB = ekaDefaultLog;
 
 int main(int argc, char *argv[]) {
-
-  setUp();
   signal(SIGINT, INThandler);
-  // ==============================================
 
-  if (openDev() != OPRESULT__OK)
+  openLogFiles(argv[0]);
+
+  // ==============================================
+  AffinityConfig affinityConfig = {
+      -1, -1, -1, -1, -1,
+  };
+  EkaCallbacks cb = {.logCb = ekaDefaultLog,
+                     .cbCtx = g_ekaLogFile};
+
+  if (openDev(&affinityConfig, &cb) != OPRESULT__OK)
     on_error("openDev() failed");
 
   // ==============================================
@@ -167,12 +203,12 @@ int main(int argc, char *argv[]) {
 
   // Actions
   auto fireNewActionIdx =
-      allocateNewAction(EkaBcsActionType::MoexFireNew);
+      allocateNewAction(ActionType::MoexFireNew);
   setActionTcpSock(fireNewActionIdx, EkaDummySock);
   setActionNext(fireNewActionIdx, CHAIN_LAST_ACTION);
 
   auto fireReplaceActionIdx =
-      allocateNewAction(EkaBcsActionType::MoexFireReplace);
+      allocateNewAction(ActionType::MoexFireReplace);
   setActionTcpSock(fireReplaceActionIdx, EkaDummySock);
   setActionNext(fireReplaceActionIdx, CHAIN_LAST_ACTION);
 
@@ -184,8 +220,11 @@ int main(int argc, char *argv[]) {
   const char fireReplaceMsg[] =
       "MOEX dummy pkt a b c d e f g h"
       "Replace";
-  setActionPayload(fireReplaceActionIdx, &fireReplaceMsg,
-                   strlen(fireReplaceMsg));
+
+  if (setActionPayload(
+          fireReplaceActionIdx, &fireReplaceMsg,
+          strlen(fireReplaceMsg)) != OPRESULT__OK)
+    on_error("setActionPayload() failed");
 
   // Static Product
   ProdPairInitParams prodPairInitParams = {};
@@ -194,11 +233,16 @@ int main(int argc, char *argv[]) {
   prodPairInitParams.fireBaseNewIdx = fireNewActionIdx;
   prodPairInitParams.fireQuoteReplaceIdx =
       fireReplaceActionIdx;
-  auto ret = initProdPair(0, &prodPairInitParams);
 
-  EkaBcsRunCtx runCtx = {.onReportCb = getExampleFireReport,
+  PairIdx pairIdx = 0;
+
+  if (initProdPair(pairIdx, &prodPairInitParams) !=
+      OPRESULT__OK)
+    on_error("initProdPair() failed");
+
+  RunCtx runCtx = {.onReportCb = getExampleFireReport,
                          .cbCtx = NULL};
-  EkaBcsMoexRun(&runCtx);
+  runMoexStrategy(&runCtx);
 
   // base 2500@97145000000 : 90000@97152500000
   // quot  100@ 7194400000 :    20@ 7207400000
@@ -210,34 +254,54 @@ int main(int argc, char *argv[]) {
   prodPairDynamicParams.tolerance = 0x5;
   prodPairDynamicParams.quoteSize = 0x6;
   prodPairDynamicParams.timeTolerance = 0x7;
-  ret = setProdPairDynamicParams(0, &prodPairDynamicParams);
+
+  if (setProdPairDynamicParams(
+          pairIdx, &prodPairDynamicParams) != OPRESULT__OK)
+    on_error("setProdPairDynamicParams() failed");
 
   EKA_LOG("Test Before Loop");
 
   // ClOrdID
-  setClOrdId(123);
-  ekaBcsResetReplaceCnt();
-  ekaBcsSetReplaceThr(100);
+  if (setClOrdId(123) != OPRESULT__OK)
+    on_error("setClOrdId() failed");
+  if (resetReplaceCnt() != OPRESULT__OK)
+    on_error("resetReplaceCnt() failed");
+  if (setReplaceThreshold(100) != OPRESULT__OK)
+    on_error("setReplaceThreshold() failed");
 
   // Set SW order
-  setOrderPricePair(EkaBcsOrderType::MY_ORDER, 0,
-                    EkaBcsOrderSide::BUY, 444);
-  setOrderPricePair(EkaBcsOrderType::MY_ORDER, 0,
-                    EkaBcsOrderSide::SELL, 555);
-  setOrderPricePair(EkaBcsOrderType::HEDGE_ORDER, 0,
-                    EkaBcsOrderSide::BUY, 666);
-  setOrderPricePair(EkaBcsOrderType::HEDGE_ORDER, 0,
-                    EkaBcsOrderSide::SELL, 777);
+  if (setOrderPricePair(MoexOrderType::MY_ORDER, pairIdx,
+                        OrderSide::BUY,
+                        444) != OPRESULT__OK)
+    on_error("setOrderPricePair() failed");
+  if (setOrderPricePair(MoexOrderType::MY_ORDER, pairIdx,
+                        OrderSide::SELL,
+                        555) != OPRESULT__OK)
+    on_error("setOrderPricePair() failed");
+  if (setOrderPricePair(MoexOrderType::HEDGE_ORDER,
+                        pairIdx, OrderSide::BUY,
+                        666) != OPRESULT__OK)
+    on_error("setOrderPricePair() failed");
+  if (setOrderPricePair(MoexOrderType::HEDGE_ORDER,
+                        pairIdx, OrderSide::SELL,
+                        777) != OPRESULT__OK)
+    on_error("setOrderPricePair() failed");
 
-  ekaBcsArmMoex(true, 0);
+  if (armProductPair(pairIdx, true, 0) != OPRESULT__OK)
+    on_error("armProductPair() failed");
 
+#ifndef _VERILOG_SIM
   while (g_keepWork)
     std::this_thread::yield();
 
   stopRcvMd_A();
   rcvA.join();
 
-  closeDev();
+  if (closeDev() != OPRESULT__OK)
+    on_error("closeDev() failed");
+#endif
+
+  closeLogFiles();
 
   return 0;
 }

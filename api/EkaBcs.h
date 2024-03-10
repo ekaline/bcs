@@ -80,7 +80,7 @@ enum OpResult {
  *        negative CpuId means no config
  *
  */
-struct EkaBcAffinityConfig {
+struct AffinityConfig {
   int servThreadCpuId;  // critical
   int tcpRxThreadCpuId; // critical
   int bookThreadCpuId;  // critical
@@ -119,9 +119,8 @@ struct EkaCallbacks {
  *                 provided to all API calls
  */
 
-OpResult
-openDev(const EkaBcAffinityConfig *affinityConf = NULL,
-        const EkaCallbacks *cb = NULL);
+OpResult openDev(const AffinityConfig *affinityConf = NULL,
+                 const EkaCallbacks *cb = NULL);
 
 /**
  * @brief Closes Ekaline Device and destroys all data
@@ -133,7 +132,7 @@ OpResult closeDev();
 
 /* ==================================================== */
 typedef int EkaSock;
-typedef int8_t EkaBcLane;
+typedef int8_t EkaLane;
 
 static const EkaSock EkaDummySock = -1;
 
@@ -154,7 +153,7 @@ static const EkaSock EkaDummySock = -1;
  *             Should not be used as
  *             Linux socket descriptor!!!
  */
-EkaSock tcpConnect(EkaBcLane lane, const char *ip,
+EkaSock tcpConnect(EkaLane lane, const char *ip,
                    uint16_t port);
 
 /**
@@ -165,7 +164,7 @@ EkaSock tcpConnect(EkaBcLane lane, const char *ip,
  * @param blocking
  * @return int
  */
-int ekaBcSetBlocking(EkaSock ekaSock, bool blocking);
+int setTcpBlocking(EkaSock ekaSock, bool blocking);
 
 /**
  * @brief Sends data segment via Ekaline TCP socket.
@@ -216,7 +215,7 @@ struct HwEngInitCtx {
  * @param efcInitCtx
  * @return OpResult
  */
-OpResult hwEngInit(const HwEngInitCtx *ekaBcInitCtx);
+OpResult hwEngInit(const HwEngInitCtx *pHwEngInitCtx);
 
 /**
  * @brief Must be called in time period shorter than
@@ -226,7 +225,7 @@ OpResult hwEngInit(const HwEngInitCtx *ekaBcInitCtx);
  *
  * @param pEkaDev
  */
-void ekaBcSwKeepAliveSend();
+void swKeepAliveSend();
 
 /* ==================================================== */
 
@@ -235,7 +234,7 @@ void ekaBcSwKeepAliveSend();
  *
  */
 struct McGroupParams {
-  EkaBcLane lane;   ///< 10G port to receive UDP MC trigger
+  EkaLane lane;     ///< 10G port to receive UDP MC trigger
   const char *mcIp; ///< MC IP address
   uint16_t mcUdpPort; ///< MC UDP Port
 };
@@ -270,7 +269,7 @@ struct PortAttrs {
  * @param lane
  * @param pPortAttrs
  */
-OpResult configurePort(EkaBcLane lane,
+OpResult configurePort(EkaLane lane,
                        const PortAttrs *pPortAttrs);
 
 /**
@@ -313,7 +312,7 @@ OpResult stopRcvMd_B();
  * Action is an entity associated with a Firing Packet.
  * It has:
  *  Control parameters:
- *      - Type: See EkaBcActionType.
+ *      - Type: See ActionType.
  *              Set by allocateNewAction().
  *      - ekaSock: socket descriptor of the TCP Session
  *              the Action (=Packet) is sent on.
@@ -324,7 +323,7 @@ OpResult stopRcvMd_B();
  *
  *  Payload: The payload is modified before being sent
  *     according the internal template which corresponds to
- *     the EkaBcActionType. Usually the Payload has a format
+ *     the ActionType. Usually the Payload has a format
  *     Excgange connectivity protocol.
  *     Example of the fields usually overwritten by the
  * Template:
@@ -339,7 +338,6 @@ OpResult stopRcvMd_B();
  *     Payload is set by setActionPayload()
  */
 typedef int EkaActionIdx;
-typedef int EkaBcsActionIdx;
 
 #define CHAIN_LAST_ACTION 0xFFFF
 
@@ -347,22 +345,11 @@ typedef int EkaBcsActionIdx;
  * @brief List of available Action Types
  *
  */
-enum class EkaBcsActionType : int {
+enum class ActionType : int {
   INVALID = 0,
   MoexSwSend = 70,
   MoexFireNew = 71,
   MoexFireReplace = 72,
-};
-
-/**
- * @brief List of strategies in report
- *
- */
-enum class EkaBcStratType : uint8_t {
-  JUMP_ATBEST = 1,
-  JUMP_BETTERBEST = 2,
-  RJUMP_BETTERBEST = 4,
-  RJUMP_ATBEST = 5,
 };
 
 /**
@@ -376,7 +363,7 @@ enum class EkaBcStratType : uint8_t {
  * @param type
  * @return Index (=handle) to be used or -1 if failed
  */
-EkaActionIdx allocateNewAction(EkaBcsActionType type);
+EkaActionIdx allocateNewAction(ActionType type);
 
 /**
  * @brief Initializes the Payload of the Fire (=TX) Packet.
@@ -480,8 +467,6 @@ OpResult initMoexStrategy(const UdpMcParams *mcParams);
  *        configuring security's params
  *
  */
-typedef int64_t EkaBcSecHandle;
-typedef int64_t EkaBcsSecHandle;
 
 class MoexSecurityId {
 public:
@@ -501,11 +486,11 @@ private:
  *
  */
 
-typedef int64_t EkaBcsMoexPrice;
-typedef int64_t EkaBcsMoexSize;
-typedef int64_t EkaBcsMoexTimeNs;
+typedef int64_t MoexPrice;
+typedef int64_t MoexSize;
+typedef int64_t MoexTimeNs;
 
-typedef int32_t EkaBcsMoexMdSize; // tbd
+typedef int32_t MoexMdSize; // tbd
 
 /**
  * @brief Config params for Moex product.
@@ -515,8 +500,8 @@ typedef int32_t EkaBcsMoexMdSize; // tbd
 struct ProdPairInitParams {
   MoexSecurityId secBase;
   MoexSecurityId secQuote;
-  EkaBcsActionIdx fireBaseNewIdx;
-  EkaBcsActionIdx fireQuoteReplaceIdx;
+  EkaActionIdx fireBaseNewIdx;
+  EkaActionIdx fireQuoteReplaceIdx;
 };
 
 #define MOEX_MAX_PROD_PAIRS 1
@@ -526,35 +511,33 @@ typedef int PairIdx;
 OpResult initProdPair(PairIdx idx,
                       const ProdPairInitParams *params);
 
-enum class EkaBcsOrderType : int {
+enum class MoexOrderType : int {
   MY_ORDER = 1,
   HEDGE_ORDER = 2,
 };
 
-enum class EkaBcsOrderSide : int {
+enum class OrderSide : int {
   BUY = 1,
   SELL = 2,
 };
 
-OpResult setOrderPricePair(EkaBcsOrderType type,
-                           PairIdx idx,
-                           EkaBcsOrderSide side,
-                           EkaBcsMoexPrice price);
+OpResult setOrderPricePair(MoexOrderType type, PairIdx idx,
+                           OrderSide side, MoexPrice price);
 
 struct ProdPairDynamicParams {
-  EkaBcsMoexPrice markupBuy;
-  EkaBcsMoexPrice markupSell;
-  EkaBcsMoexPrice fixSpread;
-  EkaBcsMoexPrice tolerance;
-  EkaBcsMoexSize quoteSize;
-  EkaBcsMoexTimeNs timeTolerance;
+  MoexPrice markupBuy;
+  MoexPrice markupSell;
+  MoexPrice fixSpread;
+  MoexPrice tolerance;
+  MoexSize quoteSize;
+  MoexTimeNs timeTolerance;
 };
 
 OpResult setProdPairDynamicParams(
     PairIdx idx, const ProdPairDynamicParams *params);
 
 /**
- * @brief EkaBcArmVer is a mechanism to guarantee controlled
+ * @brief ArmVer is a mechanism to guarantee controlled
  *        arming of the FPGA firing logic:
  *        Every time the FPGA disarms itself as a result of
  *        the Fire or Watchdog timeout, it increments the
@@ -562,24 +545,24 @@ OpResult setProdPairDynamicParams(
  *        if the SW provides ArmVer matching the expected
  *        number by the FPGA
  */
-typedef uint8_t EkaBcArmVer;
-typedef uint32_t EkaBcsArmVer;
+typedef uint32_t ArmVer;
 
-OpResult ekaBcsArmMoex(bool arm, EkaBcsArmVer ver = 0);
+OpResult armProductPair(PairIdx idx, bool arm,
+                        ArmVer ver = 0);
 
-OpResult ekaBcsResetReplaceCnt();
-OpResult ekaBcsSetReplaceThr(uint32_t threshold);
+OpResult resetReplaceCnt();
+OpResult setReplaceThreshold(uint32_t threshold);
 
 /**
 @brief Callback function pointer. Called every time the
        Fire Report received from the FPGA
  *
  */
-typedef void (*onEkaBcReportCb)(const void *report,
-                                size_t len, void *ctx);
+typedef void (*OnReportCb)(const void *report, size_t len,
+                           void *ctx);
 
-struct EkaBcsRunCtx {
-  onEkaBcReportCb onReportCb;
+struct RunCtx {
+  OnReportCb onReportCb;
   void *cbCtx; ///< optional opaque field looped back to CB
 };
 
@@ -591,11 +574,10 @@ struct EkaBcsRunCtx {
  *             - Fire Report Thread
  *             - IGMP Thread
  *
- * @param pEkaDev
- * @param pEkaBcRunCtx
+ * @param pRunCtx
  */
 
-void EkaBcsMoexRun(const EkaBcsRunCtx *pEkaBcRunCtx);
+void runMoexStrategy(const RunCtx *pRunCtx);
 
 ///////////////////////
 // Reports
@@ -603,32 +585,18 @@ void EkaBcsMoexRun(const EkaBcsRunCtx *pEkaBcRunCtx);
 
 enum class EkaEfcBcReportType : int { FirePkt = 5000 };
 
-#define EkaBcReportType2STR(x)                             \
+#define ReportType2STR(x)                                  \
   x == EkaEfcBcReportType::FirePkt ? "FirePkt"             \
                                    : "UnknownReport"
 
-struct EfcBcReportHdr {
-  EkaEfcBcReportType type;
-  uint8_t idx;
-  size_t size;
-};
-
-enum class EkaBcEventType : int {
+enum class EventType : int {
   ExceptionEvent = 1,
   EpmEvent,
   FireEvent,
   FastCancelEvent
 };
 
-#define EkaBcEventType2STR(x)                              \
-  x == EkaBcEventType::FireEvent        ? "FireEvent"      \
-  : x == EkaBcEventType::EpmEvent       ? "EpmEvent"       \
-  : x == EkaBcEventType::ExceptionEvent ? "ExceptionEvent" \
-  : x == EkaBcEventType::FastCancelEvent                   \
-      ? "FastCancelEvent"                                  \
-      : "UnknownReport"
-
-enum class EkaBcReportType : int {
+enum class ReportType : int {
   ControllerState = 1,
   ExceptionsReport,
   FirePkt,
@@ -636,18 +604,18 @@ enum class EkaBcReportType : int {
 };
 
 // every report is pre-pended by this header
-struct EkaBcReportHdr {
-  EkaBcReportType type;
+struct ReportHdr {
+  ReportType type;
   int idx;
   size_t size;
 };
 
-struct EkaBcContainerGlobalHdr {
-  EkaBcEventType eventType;
+struct ContainerGlobalHdr {
+  EventType eventType;
   int nReports;
 };
 
-enum class EkaBcHwFireStatus : uint8_t {
+enum class HwFireStatus : uint8_t {
   Unknown = 0,
   Sent = 1,
   InvalidToken = 2,
@@ -664,7 +632,7 @@ struct EkaBcSwReport {
   uint16_t currentActionIdx; // in the chain
   uint16_t firstActionIdx;   // in the chain
   uint8_t __unused2;
-  EkaBcHwFireStatus fireStatus;
+  HwFireStatus fireStatus;
   uint8_t errCode;
   uint16_t __unused3;
   uint16_t __unused4;
@@ -674,7 +642,7 @@ struct EkaBcSwReport {
   uint8_t __unused8;
 } __attribute__((packed));
 
-enum class EkaBcArmSide : uint8_t {
+enum class ArmSide : uint8_t {
   NONE = 0x0,
   BID = 0x1,
   ASk = 0x2,
@@ -683,7 +651,7 @@ enum class EkaBcArmSide : uint8_t {
 
 struct EkaBcArmReport {
   uint8_t expectedVer; // 1
-  EkaBcArmSide side;   // 1
+  ArmSide side;        // 1
 } __attribute__((packed));
 
 struct EkaBcExceptionVector {
@@ -698,7 +666,7 @@ struct EkaBcExceptionsReport {
   uint8_t pad[256 - 32 - 32 - 20];     //
 } __attribute__((packed));             // 256
 
-struct EkaBcsMoexHwFireReport {
+struct MoexHwFireReport {
   uint64_t RTCounterInternal;
   uint64_t OrderUpdateTime;
   uint64_t Delta;
@@ -713,13 +681,13 @@ struct EkaBcsMoexHwFireReport {
   uint8_t pad[256 - 8 * 9 - 1 * 2];
 } __attribute__((packed));
 
-struct EkaBcsFireReport {
-  EkaBcsMoexHwFireReport moexFireReport; //
+struct FireReport {
+  MoexHwFireReport moexFireReport; //
   uint64_t __unused1;
   uint16_t currentActionIdx; // in the chain
   uint16_t firstActionIdx;   // in the chain
   uint8_t __unused2;
-  EkaBcHwFireStatus fireStatus;
+  HwFireStatus fireStatus;
   uint8_t errCode;
   uint16_t __unused3;
   uint16_t __unused4;

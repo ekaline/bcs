@@ -24,7 +24,7 @@ extern EkaDev *g_ekaDev;
 
 namespace EkaBcs {
 
-OpResult openDev(const EkaBcAffinityConfig *affinityConf,
+OpResult openDev(const AffinityConfig *affinityConf,
                  const EkaCallbacks *cb) {
   EkaDevInitCtx initCtx = {};
   if (cb) {
@@ -57,7 +57,7 @@ OpResult closeDev() {
 }
 /* ==================================================== */
 
-EkaSock tcpConnect(EkaBcLane coreId, const char *ip,
+EkaSock tcpConnect(EkaLane coreId, const char *ip,
                    uint16_t port) {
   if (!g_ekaDev->checkAndSetEpmTx())
     on_error(
@@ -117,7 +117,7 @@ EkaSock tcpConnect(EkaBcLane coreId, const char *ip,
   return hSocket;
 }
 /* ==================================================== */
-int ekaBcSetBlocking(EkaSock hSock, bool blocking) {
+int setTcpBlocking(EkaSock hSock, bool blocking) {
   EkaTcpSess *const s = g_ekaDev->findTcpSess(
       static_cast<ExcSocketHandle>(hSock));
   if (s)
@@ -168,10 +168,10 @@ OpResult setClOrdId(uint64_t cntr) {
 
 /* ==================================================== */
 
-OpResult setOrderPricePair(EkaBcsOrderType type,
+OpResult setOrderPricePair(MoexOrderType type,
                            PairIdx idx,
-                           EkaBcsOrderSide side,
-                           EkaBcsMoexPrice price) {
+                           OrderSide side,
+                           MoexPrice price) {
 
   //[3 +: 5] - pair id
   //[8 +: 4] - conf id
@@ -183,14 +183,14 @@ OpResult setOrderPricePair(EkaBcsOrderType type,
   uint64_t base_addr = 0x76000;
   base_addr |= (idx << 3); // Correct Pair
   switch (type) {
-  case EkaBcsOrderType::MY_ORDER:
-    if (side == EkaBcsOrderSide::BUY)
+  case MoexOrderType::MY_ORDER:
+    if (side == OrderSide::BUY)
       eka_write(g_ekaDev, base_addr + 0x000, price);
     else
       eka_write(g_ekaDev, base_addr + 0x100, price);
     break;
-  case EkaBcsOrderType::HEDGE_ORDER:
-    if (side == EkaBcsOrderSide::BUY)
+  case MoexOrderType::HEDGE_ORDER:
+    if (side == OrderSide::BUY)
       eka_write(g_ekaDev, base_addr + 0x200, price);
     else
       eka_write(g_ekaDev, base_addr + 0x300, price);
@@ -254,7 +254,7 @@ void swKeepAliveSend() { efcSwKeepAliveSend(g_ekaDev, 0); }
 
 /* ==================================================== */
 
-OpResult configurePort(EkaBcLane lane,
+OpResult configurePort(EkaLane lane,
                        const PortAttrs *pPortAttrs) {
   if (!g_ekaDev)
     return OPRESULT__ERR_DEVICE_INIT;
@@ -273,7 +273,7 @@ OpResult configurePort(EkaBcLane lane,
 }
 /* ==================================================== */
 
-EkaActionIdx allocateNewAction(EkaBcsActionType type) {
+EkaActionIdx allocateNewAction(ActionType type) {
   return efcAllocateNewAction(
       g_ekaDev, static_cast<EpmActionType>(type));
 }
@@ -283,13 +283,13 @@ EkaActionIdx allocateNewAction(EkaBcsActionType type) {
 OpResult setActionPayload(EkaActionIdx actionIdx,
                           const void *payload, size_t len) {
 
-  efcSetActionPayload(g_ekaDev, actionIdx, payload, len);
-  return OPRESULT__OK;
+  return static_cast<OpResult>(efcSetActionPayload(
+      g_ekaDev, actionIdx, payload, len));
 }
 
 /* ==================================================== */
 
-void EkaBcsMoexRun(const EkaBcsRunCtx *pEkaBcsRunCtx) {
+void runMoexStrategy(const RunCtx *pRunCtx) {
 
   if (!g_ekaDev || !g_ekaDev->efc)
     on_error("HW Eng is not initialized: use hwEngInit()");
@@ -306,13 +306,13 @@ void EkaBcsMoexRun(const EkaBcsRunCtx *pEkaBcsRunCtx) {
   moex->downloadProdInfoDB();
 
   /* ----------------------------------------------- */
-  if (!pEkaBcsRunCtx)
-    on_error("!pEkaBcsRunCtx");
-  if (!pEkaBcsRunCtx->onReportCb)
+  if (!pRunCtx)
+    on_error("!pRunCtx");
+  if (!pRunCtx->onReportCb)
     on_error("!pEfcRunCtx->onReportCb");
   g_ekaDev->pEfcRunCtx->onEfcFireReportCb =
-      pEkaBcsRunCtx->onReportCb;
-  g_ekaDev->pEfcRunCtx->cbCtx = pEkaBcsRunCtx->cbCtx;
+      pRunCtx->onReportCb;
+  g_ekaDev->pEfcRunCtx->cbCtx = pRunCtx->cbCtx;
   /* ----------------------------------------------- */
 
   // TBD fire report loop
@@ -347,7 +347,7 @@ void EkaBcsMoexRun(const EkaBcsRunCtx *pEkaBcsRunCtx) {
 
   EKA_LOG("Lounching EkaMoexStrategy::runLoop()");
   auto loopFunc = std::bind(&EkaMoexStrategy::runLoop, moex,
-                            pEkaBcsRunCtx);
+                            pRunCtx);
 
   moex->runLoopThr_ = std::thread(loopFunc);
 
@@ -519,7 +519,8 @@ OpResult setProdPairDynamicParams(
 }
 /* ==================================================== */
 /* ==================================================== */
-OpResult ekaBcsArmMoex(bool arm, EkaBcsArmVer ver) {
+OpResult armProductPair(PairIdx idx, bool arm,
+                        ArmVer ver) {
   if (!g_ekaDev || !g_ekaDev->efc)
     on_error("HW Eng is not initialized: use hwEngInit()");
 
@@ -530,7 +531,7 @@ OpResult ekaBcsArmMoex(bool arm, EkaBcsArmVer ver) {
 /* ==================================================== */
 
 /* ==================================================== */
-OpResult ekaBcsResetReplaceCnt() {
+OpResult resetReplaceCnt() {
   // 0x76000 - base
   //[3 +: 5] - pair id, NA for cntr
   //[8 +: 4] - conf id, ==5
@@ -542,7 +543,7 @@ OpResult ekaBcsResetReplaceCnt() {
 /* ==================================================== */
 
 /* ==================================================== */
-OpResult ekaBcsSetReplaceThr(uint32_t threshold) {
+OpResult setReplaceThreshold(uint32_t threshold) {
   // 0x76000 - base
   //[3 +: 5] - pair id, NA for cntr
   //[8 +: 4] - conf id, ==6

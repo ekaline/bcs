@@ -31,7 +31,7 @@ public:
 
   /* --------------------------------------------------- */
   void initMoex(const EfcUdpMcParams *mcParams);
-  void armMoex(bool arm, EkaBcsArmVer ver);
+  void armMoex(bool arm, ArmVer ver);
   /* --------------------------------------------------- */
 
   bool isReportOnly() { return report_only_; }
