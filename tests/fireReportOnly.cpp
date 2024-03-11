@@ -23,54 +23,72 @@ FILE *g_ekaLogFile = stdout;
 
 static volatile bool g_keepWork = true;
 
-void printFireReport(uint8_t *p) {
-  uint8_t *b = (uint8_t *)p;
+void printFireReport(const void *p) {
+  auto *b = static_cast<const uint8_t *>(p);
 
-  auto reportHdr = reinterpret_cast<ReportHdr *>(b);
+  auto reportHdr = reinterpret_cast<const ReportHdr *>(b);
   printf("reportHdr->idx = %d\n", reportHdr->idx);
 
   b += sizeof(*reportHdr);
-  auto hwReport{
-      reinterpret_cast<const FireReport *>(b)};
-  printf ("\n---- Action Params ----\n");
-  printf ("currentActionIdx = %ju\n",(uint64_t)hwReport->currentActionIdx);
-  printf ("firstActionIdx = %ju\n",(uint64_t)hwReport->firstActionIdx);
+  auto hwReport{reinterpret_cast<const FireReport *>(b)};
+  printf("\n---- Action Params ----\n");
+  printf("currentActionIdx = %ju\n",
+         (uint64_t)hwReport->currentActionIdx);
+  printf("firstActionIdx = %ju\n",
+         (uint64_t)hwReport->firstActionIdx);
 
-  printf ("\n---- Fire Params ----\n");
-  printf ("StratType = %ju\n",(uint64_t)hwReport->moexFireReport.StratType);
-  printf ("PairID = %ju\n",(uint64_t)hwReport->moexFireReport.PairID);
-  printf ("MDSecID = %ju\n",(uint64_t)hwReport->moexFireReport.MDSecID);
-  printf ("MyOrderBuyPrice = %ju\n",(uint64_t)hwReport->moexFireReport.MyOrderBuyPrice);
-  printf ("MyOrderSellPrice = %ju\n",(uint64_t)hwReport->moexFireReport.MyOrderSellPrice);
-  printf ("MDBidPrice = %ju\n",(uint64_t)hwReport->moexFireReport.MDBidPrice);
-  printf ("MDAskPrice = %ju\n",(uint64_t)hwReport->moexFireReport.MDAskPrice);
-  printf ("GoodPrice = %ju\n",(uint64_t)hwReport->moexFireReport.GoodPrice);
-  printf ("Delta = %ju\n",(uint64_t)hwReport->moexFireReport.Delta);
-  printf ("OrderUpdateTime = %ju\n",(uint64_t)hwReport->moexFireReport.OrderUpdateTime);
-  printf ("RTCounterInternal = %ju\n",(uint64_t)hwReport->moexFireReport.RTCounterInternal);
-  printf ("ReplaceOrigClOrdID = %ju\n",(uint64_t)hwReport->moexFireReport.ReplaceOrigClOrdID);
-  
+  printf("\n---- Fire Params ----\n");
+  printf("StratType = %ju\n",
+         (uint64_t)hwReport->moexFireReport.StratType);
+  printf("PairID = %ju\n",
+         (uint64_t)hwReport->moexFireReport.PairID);
+  printf("MDSecID = %ju\n",
+         (uint64_t)hwReport->moexFireReport.MDSecID);
+  printf(
+      "MyOrderBuyPrice = %ju\n",
+      (uint64_t)hwReport->moexFireReport.MyOrderBuyPrice);
+  printf(
+      "MyOrderSellPrice = %ju\n",
+      (uint64_t)hwReport->moexFireReport.MyOrderSellPrice);
+  printf("MDBidPrice = %ju\n",
+         (uint64_t)hwReport->moexFireReport.MDBidPrice);
+  printf("MDAskPrice = %ju\n",
+         (uint64_t)hwReport->moexFireReport.MDAskPrice);
+  printf("GoodPrice = %ju\n",
+         (uint64_t)hwReport->moexFireReport.GoodPrice);
+  printf("Delta = %ju\n",
+         (uint64_t)hwReport->moexFireReport.Delta);
+  printf(
+      "OrderUpdateTime = %ju\n",
+      (uint64_t)hwReport->moexFireReport.OrderUpdateTime);
+  printf(
+      "RTCounterInternal = %ju\n",
+      (uint64_t)hwReport->moexFireReport.RTCounterInternal);
+  printf("ReplaceOrigClOrdID = %ju\n",
+         (uint64_t)
+             hwReport->moexFireReport.ReplaceOrigClOrdID);
 }
 
-void printPayloadReport(uint8_t *p) {
-  uint8_t *b = (uint8_t *)p;
-  auto firePktHdr{reinterpret_cast<ReportHdr *>(b)};
+void printPayloadReport(const void *p) {
+  auto *b = static_cast<const uint8_t *>(p);
+  auto firePktHdr{reinterpret_cast<const ReportHdr *>(b)};
 
   auto length = firePktHdr->size;
-  
-  printf ("Length = %d, Type = %s \n",length,ReportType2STR((EkaEfcBcReportType)firePktHdr->type));
-  
-  b += sizeof(ReportHdr);
-  b += 54; //skip l2-l3 headers
 
-  hexDump("Data (without headers)",b,length-54);
+  printf("Length = %jd, Type = %s \n", length,
+         decodeReportType(firePktHdr->type));
+
+  b += sizeof(ReportHdr);
+  b += 54; // skip l2-l3 headers
+
+  hexDump("Data (without headers)", b, length - 54);
 }
 
 void getExampleFireReport(const void *p, size_t len,
                           void *ctx) {
-  uint8_t *b = (uint8_t *)p;
-  auto containerHdr{
-      reinterpret_cast<ContainerGlobalHdr *>(b)};
+  auto *b = static_cast<const uint8_t *>(p);
+  auto containerHdr =
+      reinterpret_cast<const ContainerGlobalHdr *>(b);
 
   switch (containerHdr->eventType) {
   case EventType::FireEvent:
@@ -235,11 +253,16 @@ int main(int argc, char *argv[]) {
   // Actions
   auto fireNewActionIdx =
       allocateNewAction(ActionType::MoexFireNew);
+  EKA_LOG("fireNewActionIdx = %d", fireNewActionIdx);
+
   setActionTcpSock(fireNewActionIdx, EkaDummySock);
   setActionNext(fireNewActionIdx, CHAIN_LAST_ACTION);
 
   auto fireReplaceActionIdx =
       allocateNewAction(ActionType::MoexFireReplace);
+  EKA_LOG("fireReplaceActionIdx = %d",
+          fireReplaceActionIdx);
+
   setActionTcpSock(fireReplaceActionIdx, EkaDummySock);
   setActionNext(fireReplaceActionIdx, CHAIN_LAST_ACTION);
 
@@ -272,7 +295,7 @@ int main(int argc, char *argv[]) {
     on_error("initProdPair() failed");
 
   RunCtx runCtx = {.onReportCb = getExampleFireReport,
-                         .cbCtx = NULL};
+                   .cbCtx = NULL};
   runMoexStrategy(&runCtx);
 
   // base 2500@97145000000 : 90000@97152500000
@@ -301,22 +324,18 @@ int main(int argc, char *argv[]) {
     on_error("setReplaceThreshold() failed");
 
   // Set SW order
-  if (setNewOrderPrice(pairIdx,
-		       OrderSide::BUY,
-		       444) != OPRESULT__OK)
+  if (setNewOrderPrice(pairIdx, OrderSide::BUY, 444) !=
+      OPRESULT__OK)
     on_error("setNewOrderPrice() failed");
-  if (setNewOrderPrice(pairIdx,
-		       OrderSide::SELL,
-		       555) != OPRESULT__OK)
+  if (setNewOrderPrice(pairIdx, OrderSide::SELL, 555) !=
+      OPRESULT__OK)
     on_error("setNewOrderPrice() failed");
-  
-  if (setReplaceOrderParams(
-                        pairIdx, OrderSide::BUY,
-			    666,9090) != OPRESULT__OK)
+
+  if (setReplaceOrderParams(pairIdx, OrderSide::BUY, 666,
+                            9090) != OPRESULT__OK)
     on_error("setReplaceOrderParams() failed");
-  if (setReplaceOrderParams(
-                        pairIdx, OrderSide::SELL,
-                        777,8080) != OPRESULT__OK)
+  if (setReplaceOrderParams(pairIdx, OrderSide::SELL, 777,
+                            8080) != OPRESULT__OK)
     on_error("setReplaceOrderParams() failed");
 
   if (armProductPair(pairIdx, true, 0) != OPRESULT__OK)

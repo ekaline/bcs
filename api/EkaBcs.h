@@ -512,21 +512,22 @@ typedef int PairIdx;
 OpResult initProdPair(PairIdx idx,
                       const ProdPairInitParams *params);
 
-  //enum class MoexOrderType : int {
-  //  MY_ORDER = 1,
-  //  HEDGE_ORDER = 2,
-  //};
+// enum class MoexOrderType : int {
+//   MY_ORDER = 1,
+//   HEDGE_ORDER = 2,
+// };
 
 enum class OrderSide : int {
   BUY = 1,
   SELL = 2,
 };
 
-OpResult setNewOrderPrice(PairIdx idx,
-			  OrderSide side, MoexPrice price);
+OpResult setNewOrderPrice(PairIdx idx, OrderSide side,
+                          MoexPrice price);
 
-OpResult setReplaceOrderParams(PairIdx idx,
-			       OrderSide side, MoexPrice price, MoexClOrdId clordid);
+OpResult setReplaceOrderParams(PairIdx idx, OrderSide side,
+                               MoexPrice price,
+                               MoexClOrdId clordid);
 
 struct ProdPairDynamicParams {
   MoexPrice markupBuy;
@@ -587,12 +588,6 @@ void runMoexStrategy(const RunCtx *pRunCtx);
 // Reports
 ///////////////////////
 
-enum class EkaEfcBcReportType : int { FirePkt = 5000 };
-
-#define ReportType2STR(x)                                  \
-  x == EkaEfcBcReportType::FirePkt ? "FirePkt"             \
-                                   : "UnknownReport"
-
 enum class EventType : int {
   ExceptionEvent = 1,
   EpmEvent,
@@ -603,9 +598,24 @@ enum class EventType : int {
 enum class ReportType : int {
   ControllerState = 1,
   ExceptionsReport,
-  FirePkt,
+  FirePkt = 5000,
   MoexFireReport,
 };
+
+inline const char *decodeReportType(ReportType type) {
+  switch (type) {
+  case ReportType::ControllerState:
+    return "ControllerState";
+  case ReportType::ExceptionsReport:
+    return "ExceptionsReport";
+  case ReportType::FirePkt:
+    return "FirePkt";
+  case ReportType::MoexFireReport:
+    return "MoexFireReport";
+  default:
+    return "Unknown";
+  }
+}
 
 // every report is pre-pended by this header
 struct ReportHdr {
