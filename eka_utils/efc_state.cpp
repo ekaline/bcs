@@ -45,6 +45,8 @@ typedef struct __attribute__((packed)) {
 } rf_bcs_single_prod_t;
 
 typedef struct __attribute__((packed)) {
+  uint64_t my_order_sell_clordid;
+  uint64_t my_order_buy_clordid;
   uint64_t sell_order_update;
   uint64_t buy_order_update;
   uint64_t hedge_sell_price;
