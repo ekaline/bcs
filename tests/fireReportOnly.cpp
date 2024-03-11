@@ -47,6 +47,7 @@ void printFireReport(const void *p) {
          MoexSecurityId(hwReport->hwReport.MDSecID)
              .getSwapName()
              .c_str());
+
   printf("MyOrderBuyPrice = %ju\n",
          (uint64_t)hwReport->hwReport.MyOrderBuyPrice);
   printf("MyOrderSellPrice = %ju\n",

@@ -18,9 +18,13 @@ std::string MoexSecurityId::getName() const {
   return std::string(data_);
 }
 std::string MoexSecurityId::getSwapName() const {
-  std::string reversed = std::string(data_);
-  std::reverse(reversed.begin(), reversed.end());
-  return reversed;
+  // std::string reversed = std::string(data_);
+  // std::reverse(reversed.begin(), reversed.end());
+
+  char reversed[12] = {};
+  getSwapName(reversed);
+
+  return std::string(reversed);
 }
 
 void MoexSecurityId::getSwapName(void *dst) const {
