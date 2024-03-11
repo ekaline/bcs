@@ -15,10 +15,11 @@ public:
 
   OpResult downloadParams();
 
-private:
   // static during Init()
   MoexSecurityId secBase_;
   MoexSecurityId secQuote_;
+
+private:
   EkaActionIdx fireBaseNewIdx_ = -1;
   EkaActionIdx fireQuoteReplaceIdx_ = -1;
 

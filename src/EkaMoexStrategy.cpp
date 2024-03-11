@@ -132,6 +132,7 @@ OpResult EkaMoexStrategy::downloadPackedDB() {
   return OPRESULT__OK;
 }
 /* --------------------------------------------------- */
+extern EkaDev *g_ekaDev;
 
 /* --------------------------------------------------- */
 OpResult EkaMoexStrategy::downloadProdInfoDB() {
@@ -140,6 +141,18 @@ OpResult EkaMoexStrategy::downloadProdInfoDB() {
 
   for (auto idx = 0; idx < MOEX_MAX_PROD_PAIRS; idx++) {
     if (pair_[idx]) {
+      char nameBase[16] = {};
+      // pair_[idx]->secBase_.getSwapName(nameBase);
+      pair_[idx]->secBase_.getName(nameBase);
+      copyBuf2Hw(g_ekaDev, prodBase, (uint64_t *)nameBase,
+                 sizeof(nameBase));
+
+      prodBase += 16;
+      char nameQuote[16] = {};
+      pair_[idx]->secQuote_.getName(nameQuote);
+      copyBuf2Hw(g_ekaDev, prodBase, (uint64_t *)nameQuote,
+                 sizeof(nameQuote));
+
       //        eka_write(prodBase + idx * 8,
       //                  prod_[prodHande]->secId_);
       // EKA_LOG("pair %d , secid 0x%jx (0x%jd)", idx,
@@ -292,8 +305,7 @@ int EkaMoexStrategy::sendDate2Hw() {
 
 /* --------------------------------------------------- */
 
-void EkaMoexStrategy::runLoop(
-    const RunCtx *pRunCtx) {
+void EkaMoexStrategy::runLoop(const RunCtx *pRunCtx) {
   setThreadAffinityName(pthread_self(), "EkalineBookLoop",
                         dev_->affinityConf.bookThreadCpuId);
   EKA_LOG("Running EkaMoexStrategy::runLoop()");

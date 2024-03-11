@@ -777,6 +777,17 @@ int printEurTOB(uint8_t prod_idx) {
 
   return 0;
 }
+// ################################################
+
+static inline void
+copyHw2Buf(void *bufAddr, uint64_t srcAddr, uint bufSize) {
+  uint64_t *dstAddr = (uint64_t *)bufAddr;
+  //  EKA_LOG("dstAddr=%p, srcAddr=0x%jx,
+  //  bufSize=%u",dstAddr,srcAddr,msgSize);
+  uint words2read = bufSize / 8 + !!(bufSize % 8);
+  for (uint w = 0; w < words2read; w++)
+    *(dstAddr + w) = reg_read(srcAddr + w * 8);
+}
 
 // ################################################
 int printTOB() {
@@ -807,7 +818,12 @@ int printTOB() {
 
   for (auto i = 0; i < 1; i++) {
     printf(prefixStrFormat, "");
-    printf(colStringFormat, "TBDNAME");
+
+    uint64_t prodBase = SW_SCRATCHPAD_BASE + 32 * 8;
+    char nameBase[16] = {};
+    copyHw2Buf(nameBase, prodBase, sizeof(nameBase));
+    printf(colStringFormat, nameBase);
+
     printf(boardStringFormat, allTOB->pair.base.board_id);
     printf(bookSideFormat, allTOB->pair.base.bid_size,
            allTOB->pair.base.bid_price);
@@ -815,7 +831,12 @@ int printTOB() {
            allTOB->pair.base.ask_price);
     printf("\n");
     printf(prefixStrFormat, "");
-    printf(colStringFormat, "TBDNAME");
+
+    prodBase += 16;
+    char nameQuote[16] = {};
+    copyHw2Buf(nameQuote, prodBase, sizeof(nameQuote));
+    printf(colStringFormat, nameQuote);
+
     printf(boardStringFormat, allTOB->pair.quote.board_id);
     printf(bookSideFormat, allTOB->pair.quote.bid_size,
            allTOB->pair.quote.bid_price);
