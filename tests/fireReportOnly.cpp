@@ -52,7 +52,19 @@ void printFireReport(uint8_t *p) {
   
 }
 
-void printPayloadReport(uint8_t *p) {}
+void printPayloadReport(uint8_t *p) {
+  uint8_t *b = (uint8_t *)p;
+  auto firePktHdr{reinterpret_cast<ReportHdr *>(b)};
+
+  auto length = firePktHdr->size;
+  
+  printf ("Length = %d, Type = %s \n",length,ReportType2STR((EkaEfcBcReportType)firePktHdr->type));
+  
+  b += sizeof(ReportHdr);
+  b += 54; //skip l2-l3 headers
+
+  hexDump("Data (without headers)",b,length-54);
+}
 
 void getExampleFireReport(const void *p, size_t len,
                           void *ctx) {
