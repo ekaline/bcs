@@ -17,6 +17,10 @@ EkaMoexProdPair::EkaMoexProdPair(
 
   fireBaseNewIdx_ = params->fireBaseNewIdx;
   fireQuoteReplaceIdx_ = params->fireQuoteReplaceIdx;
+
+  EKA_LOG("Created Pair[%d]: {\'%s\', \'%s\'}", idx,
+          secBase_.getName().c_str(),
+          secQuote_.getName().c_str());
 }
 /* --------------------------------------------------- */
 
@@ -91,6 +95,18 @@ OpResult EkaMoexProdPair::setDynamicParams(
   timeTolerance_ = params->timeTolerance;
 
   downloadParams();
+
+  EKA_LOG("Pair[%d]: "
+          "markupBuy=%jd, "
+          "markupSell=%jd, "
+          "fixSpread=%jd, "
+          "tolerance=%jd, "
+          "negTolerance=%jd, "
+          "quoteSize=%jd, "
+          "timeTolerance=%jd, ",
+          idx_, markupBuy_, markupSell_, fixSpread_,
+          tolerance_, negTolerance_, quoteSize_,
+          timeTolerance_);
   return OPRESULT__OK;
 }
 /* --------------------------------------------------- */

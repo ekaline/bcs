@@ -161,6 +161,7 @@ OpResult setClOrdId(uint64_t cntr) {
   //[3 +: 5] - pair id, NA for cntr
   //[8 +: 4] - conf id, ==4
 
+  EKA_LOG("ClOrdId = %ju", cntr);
   eka_write(g_ekaDev, 0x76400, cntr);
 
   return OPRESULT__OK;
@@ -168,9 +169,8 @@ OpResult setClOrdId(uint64_t cntr) {
 
 /* ==================================================== */
 
-OpResult setNewOrderPrice( PairIdx idx,
-                           OrderSide side,
-                           MoexPrice price) {
+OpResult setNewOrderPrice(PairIdx idx, OrderSide side,
+                          MoexPrice price) {
 
   //[3 +: 5] - pair id
   //[8 +: 4] - conf id
@@ -187,16 +187,16 @@ OpResult setNewOrderPrice( PairIdx idx,
   else
     eka_write(g_ekaDev, base_addr + 0x100, price);
 
-  
+  EKA_LOG("Pair[%d] NewOrderPrice = %jd", idx, price);
+
   return OPRESULT__OK;
 }
 
 /* ==================================================== */
 
-OpResult setReplaceOrderParams(PairIdx idx,
-			       OrderSide side,
-			       MoexPrice price,
-			       MoexClOrdId clordid) {
+OpResult setReplaceOrderParams(PairIdx idx, OrderSide side,
+                               MoexPrice price,
+                               MoexClOrdId clordid) {
 
   //[3 +: 5] - pair id
   //[8 +: 4] - conf id
@@ -209,16 +209,25 @@ OpResult setReplaceOrderParams(PairIdx idx,
   // 8 -sell_clordid
   uint64_t base_addr = 0x76000;
   base_addr |= (idx << 3); // Correct Pair
-
-  if (side == OrderSide::BUY) {
+  switch (side) {
+  case OrderSide::BUY:
     eka_write(g_ekaDev, base_addr + 0x200, price);
     eka_write(g_ekaDev, base_addr + 0x700, clordid);
-  }
-  else {
+    break;
+  case OrderSide::SELL:
     eka_write(g_ekaDev, base_addr + 0x300, price);
     eka_write(g_ekaDev, base_addr + 0x800, clordid);
+    break;
+  default:
+    on_error("Unexpected side = %d", (int)side);
   }
-  
+
+  EKA_LOG("Pair[%d] ReplaceOrder %s: "
+          "Price = %jd, "
+          "ClOrdId = %jd",
+          idx, side == OrderSide::BUY ? "BUY" : "SELL",
+          price, clordid);
+
   return OPRESULT__OK;
 }
 
@@ -365,8 +374,8 @@ void runMoexStrategy(const RunCtx *pRunCtx) {
   g_ekaDev->efc->enableRxFire();
 
   EKA_LOG("Lounching EkaMoexStrategy::runLoop()");
-  auto loopFunc = std::bind(&EkaMoexStrategy::runLoop, moex,
-                            pRunCtx);
+  auto loopFunc =
+      std::bind(&EkaMoexStrategy::runLoop, moex, pRunCtx);
 
   moex->runLoopThr_ = std::thread(loopFunc);
 
@@ -538,13 +547,15 @@ OpResult setProdPairDynamicParams(
 }
 /* ==================================================== */
 /* ==================================================== */
-OpResult armProductPair(PairIdx idx, bool arm,
-                        ArmVer ver) {
+OpResult armProductPair(PairIdx idx, bool arm, ArmVer ver) {
   if (!g_ekaDev || !g_ekaDev->efc)
     on_error("HW Eng is not initialized: use hwEngInit()");
 
   auto efc = g_ekaDev->efc;
   efc->armMoex(arm, ver);
+  EKA_LOG("Pair[%d] is %s with ver = %u", idx,
+          arm ? "ARMED" : "DISARMED", ver);
+
   return OPRESULT__OK;
 }
 /* ==================================================== */
@@ -555,6 +566,7 @@ OpResult resetReplaceCnt() {
   //[3 +: 5] - pair id, NA for cntr
   //[8 +: 4] - conf id, ==5
 
+  EKA_LOG("Replace Counter is cleared");
   eka_write(g_ekaDev, 0x76500, 0x0);
 
   return OPRESULT__OK;
@@ -566,6 +578,8 @@ OpResult setReplaceThreshold(uint32_t threshold) {
   // 0x76000 - base
   //[3 +: 5] - pair id, NA for cntr
   //[8 +: 4] - conf id, ==6
+
+  EKA_LOG("Replace Threshold = %u", threshold);
 
   eka_write(g_ekaDev, 0x76600, (uint64_t)threshold);
 

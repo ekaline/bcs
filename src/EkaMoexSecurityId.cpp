@@ -15,7 +15,7 @@ void MoexSecurityId::getName(void *dst) const {
 }
 
 std::string MoexSecurityId::getName() const {
-  return std::string(data_);
+  return std::string(data_, sizeof(data_));
 }
 std::string MoexSecurityId::getSwapName() const {
   // std::string reversed = std::string(data_);

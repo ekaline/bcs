@@ -34,6 +34,20 @@
 #define S_NEWS 14
 #define S_CANCEL 15
 
+#define on_error(...)                                      \
+  do {                                                     \
+    const int err = errno;                                 \
+    fprintf(stderr,                                        \
+            "EKALINE API LIB FATAL ERROR: %s@%s:%d: ",     \
+            __func__, __FILE__, __LINE__);                 \
+    fprintf(stderr, __VA_ARGS__);                          \
+    if (err)                                               \
+      fprintf(stderr, ": %s (%d)", strerror(err), err);    \
+    fprintf(stderr, "\n");                                 \
+    fflush(stderr);                                        \
+    std::quick_exit(1);                                    \
+  } while (0)
+
 SN_DeviceId devId;
 
 typedef struct __attribute__((packed)) {
@@ -208,6 +222,12 @@ const int colLen = 22;
 
 bool active_strat[16] = {false};
 
+unsigned char g_tobMem[4096] = {};
+unsigned char g_armMem[64] = {};
+
+char g_nameBase[16] = {};
+char g_nameQuote[16] = {};
+
 // ################################################
 
 inline uint64_t reg_read(uint32_t addr) {
@@ -242,6 +262,14 @@ inline void reg_write(uint64_t addr, uint64_t val) {
              SN_GetLastErrorCode());
 }
 
+static std::string reverseBoarId(const char *b) {
+  std::string res = {};
+  for (int i = 3; i >= 0; i--) {
+    res += b[i];
+  }
+  return res;
+}
+
 // ################################################
 void getIpMac_ioctl(uint8_t lane, IfParams *params) {
   char buf[1024];
@@ -258,16 +286,14 @@ void getIpMac_ioctl(uint8_t lane, IfParams *params) {
   sck = socket(AF_INET, SOCK_DGRAM, 0);
   if (sck < 0)
     on_error(
-        "%s: failed on socket(AF_INET, SOCK_DGRAM, 0) -> ",
-        __func__);
+        "failed on socket(AF_INET, SOCK_DGRAM, 0) -> ");
 
   /* Query available interfaces. */
   ifc.ifc_len = sizeof(buf);
   ifc.ifc_buf = buf;
   if (ioctl(sck, SIOCGIFCONF, &ifc) < 0)
     on_error(
-        "%s: failed on ioctl(sck, SIOCGIFCONF, &ifc)  -> ",
-        __func__);
+        "failed on ioctl(sck, SIOCGIFCONF, &ifc)  -> ");
 
   /* Iterate through the list of interfaces. */
   ifr = ifc.ifc_req;
@@ -290,8 +316,7 @@ void getIpMac_ioctl(uint8_t lane, IfParams *params) {
     strcpy(s.ifr_name, item->ifr_name);
 
     if (ioctl(sck, SIOCGIFHWADDR, &s) != 0)
-      on_error("%s: ioctl(fd, SIOCGIFHWADDR, &s) != 0) -> ",
-               __func__);
+      on_error("ioctl(fd, SIOCGIFHWADDR, &s) != 0) -> ");
     memcpy(params->mac, s.ifr_addr.sa_data, 6);
     break;
   }
@@ -325,17 +350,15 @@ int getNwParams(IfParams coreParams[NUM_OF_CORES]) {
     /* Get a socket handle. */
     sck = socket(AF_INET, SOCK_DGRAM, 0);
     if (sck < 0)
-      on_error("%s: failed on socket(AF_INET, SOCK_DGRAM, "
-               "0) -> ",
-               __func__);
+      on_error("failed on socket(AF_INET, SOCK_DGRAM, "
+               "0) -> ");
 
     /* Query available interfaces. */
     ifc.ifc_len = sizeof(buf);
     ifc.ifc_buf = buf;
     if (ioctl(sck, SIOCGIFCONF, &ifc) < 0)
-      on_error("%s: failed on ioctl(sck, SIOCGIFCONF, "
-               "&ifc)  -> ",
-               __func__);
+      on_error("failed on ioctl(sck, SIOCGIFCONF, "
+               "&ifc)  -> ");
 
     /* Iterate through the list of interfaces. */
     ifr = ifc.ifc_req;
@@ -359,9 +382,7 @@ int getNwParams(IfParams coreParams[NUM_OF_CORES]) {
       strcpy(s.ifr_name, item->ifr_name);
 
       if (ioctl(sck, SIOCGIFHWADDR, &s) != 0)
-        on_error(
-            "%s: ioctl(fd, SIOCGIFHWADDR, &s) != 0) -> ",
-            __func__);
+        on_error("ioctl(fd, SIOCGIFHWADDR, &s) != 0) -> ");
       memcpy(coreParams[coreId].mac, s.ifr_addr.sa_data, 6);
       coreParams[coreId].valid = true;
       break;
@@ -418,10 +439,8 @@ void printTime() {
 static void checkVer() {
   uint64_t swVer = reg_read(SCRPAD_SW_VER);
   if ((swVer & 0xFFFFFFFF00000000) != EKA_CORRECT_SW_VER) {
-    fprintf(stderr,
-            RED "%s: current SW Version 0x%jx is not "
-                "supported by %s\n" RESET,
-            __func__, swVer, __FILE__);
+    on_error("current SW Version 0x%jx is not supported",
+             swVer);
     //    exit(1);
   }
   //  TEST_LOG("swVer 0x%016jx is OK",swVer);
@@ -793,40 +812,47 @@ copyHw2Buf(void *bufAddr, uint64_t srcAddr, uint bufSize) {
 
 // ################################################
 int printTOB() {
-  unsigned char tob_mem[4096];
-  unsigned char arm_mem[64];
+#if 0
+  // unsigned char tob_mem[4096];
+  // unsigned char arm_mem[64];
 
-  uint64_t *wrPtr;    // = (uint64_t *)tob_mem;
-  uint64_t *wrPtrArm; // = (uint64_t *)arm_mem;
+  // uint64_t *wrPtr;    // = (uint64_t *)tob_mem;
+  // uint64_t *wrPtrArm; // = (uint64_t *)arm_mem;
 
-  wrPtrArm = (uint64_t *)arm_mem;
+  // wrPtrArm = (uint64_t *)arm_mem;
 
-  for (auto j = 0; j < 4; j++)
-    *wrPtrArm++ = reg_read(0x74000 + j * 8);
+  // for (auto j = 0; j < 4; j++)
+  //   *wrPtrArm++ = reg_read(0x74000 + j * 8);
 
-  wrPtr = (uint64_t *)tob_mem;
+  // wrPtr = (uint64_t *)tob_mem;
 
-  uint64_t *dstAddr = (uint64_t *)tob_mem;
-  uint words2read = sizeof(rf_bcs_all_entry_t) / 8 +
-                    !!(sizeof(rf_bcs_all_entry_t) % 8);
-  for (uint w = 0; w < words2read; w++)
-    *(dstAddr + w) = reg_read(0x75000 + w * 8);
+  // uint64_t *dstAddr = (uint64_t *)tob_mem;
+  // uint words2read = sizeof(rf_bcs_all_entry_t) / 8 +
+  //                   !!(sizeof(rf_bcs_all_entry_t) % 8);
+  // for (uint w = 0; w < words2read; w++)
+  //   *(dstAddr + w) = reg_read(0x75000 + w * 8);
 
-  auto allTOB{
-      reinterpret_cast<rf_bcs_all_entry_t *>(tob_mem)};
+  // auto allTOB =
+  //     reinterpret_cast<rf_bcs_all_entry_t *>(tob_mem);
 
-  auto armState{reinterpret_cast<
-      const arm_status_unaligned_report_t *>(arm_mem)};
+  // auto armState = reinterpret_cast<
+  //     const arm_status_unaligned_report_t *>(arm_mem);
+#endif
+
+  auto allTOB =
+      reinterpret_cast<rf_bcs_all_entry_t *>(g_tobMem);
+
+  auto armState = reinterpret_cast<
+      const arm_status_unaligned_report_t *>(g_armMem);
 
   for (auto i = 0; i < 1; i++) {
     printf(prefixStrFormat, "");
 
-    uint64_t prodBase = SW_SCRATCHPAD_BASE + 32 * 8;
-    char nameBase[16] = {};
-    copyHw2Buf(nameBase, prodBase, sizeof(nameBase));
-    printf(colStringFormat, nameBase);
+    printf(colStringFormat, g_nameBase);
 
-    printf(boardStringFormat, allTOB->pair.base.board_id);
+    printf(
+        boardStringFormat,
+        reverseBoarId(allTOB->pair.base.board_id).c_str());
     printf(bookSideFormat, allTOB->pair.base.bid_size,
            allTOB->pair.base.bid_price);
     printf(bookSideFormat, allTOB->pair.base.ask_size,
@@ -834,12 +860,11 @@ int printTOB() {
     printf("\n");
     printf(prefixStrFormat, "");
 
-    prodBase += 16;
-    char nameQuote[16] = {};
-    copyHw2Buf(nameQuote, prodBase, sizeof(nameQuote));
-    printf(colStringFormat, nameQuote);
+    printf(colStringFormat, g_nameQuote);
 
-    printf(boardStringFormat, allTOB->pair.quote.board_id);
+    printf(
+        boardStringFormat,
+        reverseBoarId(allTOB->pair.quote.board_id).c_str());
     printf(bookSideFormat, allTOB->pair.quote.bid_size,
            allTOB->pair.quote.bid_price);
     printf(bookSideFormat, allTOB->pair.quote.ask_size,
@@ -1277,12 +1302,20 @@ int getEfcState(EfcState *pEfcState) {
   pEfcState->commonState.tcpFilterEn =
       (reg_read(0xf0020) >> 32 & 0x1) == 0;
 
+  copyHw2Buf(g_armMem, 0x74000, sizeof(g_armMem));
+  copyHw2Buf(g_tobMem, 0x75000, sizeof(rf_bcs_all_entry_t));
+
+  uint64_t prodBase = SW_SCRATCHPAD_BASE + 32 * 8;
+  copyHw2Buf(g_nameBase, prodBase, sizeof(g_nameBase));
+  prodBase += 16;
+  copyHw2Buf(g_nameQuote, prodBase, sizeof(g_nameQuote));
+
   return 0;
 }
 
 // ################################################
 int getProdState(EurProdState *pProdState) {
-
+#if 0
   uint64_t prodBase =
       SW_SCRATCHPAD_BASE + 16 * 8; // from line 16
 
@@ -1293,7 +1326,7 @@ int getProdState(EurProdState *pProdState) {
     pProdState->secID[prodHande] =
         reg_read(prodBase + prodHande * 8);
   }
-
+#endif
   return 0;
 }
 
