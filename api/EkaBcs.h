@@ -489,6 +489,7 @@ private:
 typedef int64_t MoexPrice;
 typedef int64_t MoexSize;
 typedef int64_t MoexTimeNs;
+typedef int64_t MoexClOrdId;
 
 typedef int32_t MoexMdSize; // tbd
 
@@ -511,18 +512,21 @@ typedef int PairIdx;
 OpResult initProdPair(PairIdx idx,
                       const ProdPairInitParams *params);
 
-enum class MoexOrderType : int {
-  MY_ORDER = 1,
-  HEDGE_ORDER = 2,
-};
+  //enum class MoexOrderType : int {
+  //  MY_ORDER = 1,
+  //  HEDGE_ORDER = 2,
+  //};
 
 enum class OrderSide : int {
   BUY = 1,
   SELL = 2,
 };
 
-OpResult setOrderPricePair(MoexOrderType type, PairIdx idx,
-                           OrderSide side, MoexPrice price);
+OpResult setNewOrderPrice(PairIdx idx,
+			  OrderSide side, MoexPrice price);
+
+OpResult setReplaceOrderParams(PairIdx idx,
+			       OrderSide side, MoexPrice price, MoexClOrdId clordid);
 
 struct ProdPairDynamicParams {
   MoexPrice markupBuy;
@@ -667,6 +671,7 @@ struct EkaBcExceptionsReport {
 } __attribute__((packed));             // 256
 
 struct MoexHwFireReport {
+  uint64_t ReplaceOrigClOrdID;
   uint64_t RTCounterInternal;
   uint64_t OrderUpdateTime;
   uint64_t Delta;
@@ -678,7 +683,7 @@ struct MoexHwFireReport {
   uint64_t MDSecID; // will be updated to 12B later
   uint8_t PairID;
   uint8_t StratType;
-  uint8_t pad[256 - 8 * 9 - 1 * 2];
+  uint8_t pad[256 - 9 * 9 - 1 * 2];
 } __attribute__((packed));
 
 struct FireReport {

@@ -30,6 +30,26 @@ void printFireReport(uint8_t *p) {
   printf("reportHdr->idx = %d\n", reportHdr->idx);
 
   b += sizeof(*reportHdr);
+  auto hwReport{
+      reinterpret_cast<const FireReport *>(b)};
+  printf ("\n---- Action Params ----\n");
+  printf ("currentActionIdx = %ju\n",(uint64_t)hwReport->currentActionIdx);
+  printf ("firstActionIdx = %ju\n",(uint64_t)hwReport->firstActionIdx);
+
+  printf ("\n---- Fire Params ----\n");
+  printf ("StratType = %ju\n",(uint64_t)hwReport->moexFireReport.StratType);
+  printf ("PairID = %ju\n",(uint64_t)hwReport->moexFireReport.PairID);
+  printf ("MDSecID = %ju\n",(uint64_t)hwReport->moexFireReport.MDSecID);
+  printf ("MyOrderBuyPrice = %ju\n",(uint64_t)hwReport->moexFireReport.MyOrderBuyPrice);
+  printf ("MyOrderSellPrice = %ju\n",(uint64_t)hwReport->moexFireReport.MyOrderSellPrice);
+  printf ("MDBidPrice = %ju\n",(uint64_t)hwReport->moexFireReport.MDBidPrice);
+  printf ("MDAskPrice = %ju\n",(uint64_t)hwReport->moexFireReport.MDAskPrice);
+  printf ("GoodPrice = %ju\n",(uint64_t)hwReport->moexFireReport.GoodPrice);
+  printf ("Delta = %ju\n",(uint64_t)hwReport->moexFireReport.Delta);
+  printf ("OrderUpdateTime = %ju\n",(uint64_t)hwReport->moexFireReport.OrderUpdateTime);
+  printf ("RTCounterInternal = %ju\n",(uint64_t)hwReport->moexFireReport.RTCounterInternal);
+  printf ("ReplaceOrigClOrdID = %ju\n",(uint64_t)hwReport->moexFireReport.ReplaceOrigClOrdID);
+  
 }
 
 void printPayloadReport(uint8_t *p) {}
@@ -44,7 +64,6 @@ void getExampleFireReport(const void *p, size_t len,
   case EventType::FireEvent:
     printf("Fire with %d reports...\n",
            containerHdr->nReports);
-    break;
     // skip container header
     b += sizeof(*containerHdr);
     // print fire report
@@ -270,22 +289,23 @@ int main(int argc, char *argv[]) {
     on_error("setReplaceThreshold() failed");
 
   // Set SW order
-  if (setOrderPricePair(MoexOrderType::MY_ORDER, pairIdx,
-                        OrderSide::BUY,
-                        444) != OPRESULT__OK)
-    on_error("setOrderPricePair() failed");
-  if (setOrderPricePair(MoexOrderType::MY_ORDER, pairIdx,
-                        OrderSide::SELL,
-                        555) != OPRESULT__OK)
-    on_error("setOrderPricePair() failed");
-  if (setOrderPricePair(MoexOrderType::HEDGE_ORDER,
+  if (setNewOrderPrice(pairIdx,
+		       OrderSide::BUY,
+		       444) != OPRESULT__OK)
+    on_error("setNewOrderPrice() failed");
+  if (setNewOrderPrice(pairIdx,
+		       OrderSide::SELL,
+		       555) != OPRESULT__OK)
+    on_error("setNewOrderPrice() failed");
+  
+  if (setReplaceOrderParams(
                         pairIdx, OrderSide::BUY,
-                        666) != OPRESULT__OK)
-    on_error("setOrderPricePair() failed");
-  if (setOrderPricePair(MoexOrderType::HEDGE_ORDER,
+			    666,9090) != OPRESULT__OK)
+    on_error("setReplaceOrderParams() failed");
+  if (setReplaceOrderParams(
                         pairIdx, OrderSide::SELL,
-                        777) != OPRESULT__OK)
-    on_error("setOrderPricePair() failed");
+                        777,8080) != OPRESULT__OK)
+    on_error("setReplaceOrderParams() failed");
 
   if (armProductPair(pairIdx, true, 0) != OPRESULT__OK)
     on_error("armProductPair() failed");

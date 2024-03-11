@@ -168,8 +168,7 @@ OpResult setClOrdId(uint64_t cntr) {
 
 /* ==================================================== */
 
-OpResult setOrderPricePair(MoexOrderType type,
-                           PairIdx idx,
+OpResult setNewOrderPrice( PairIdx idx,
                            OrderSide side,
                            MoexPrice price) {
 
@@ -182,24 +181,44 @@ OpResult setOrderPricePair(MoexOrderType type,
   // 3 -hedge sell
   uint64_t base_addr = 0x76000;
   base_addr |= (idx << 3); // Correct Pair
-  switch (type) {
-  case MoexOrderType::MY_ORDER:
-    if (side == OrderSide::BUY)
-      eka_write(g_ekaDev, base_addr + 0x000, price);
-    else
-      eka_write(g_ekaDev, base_addr + 0x100, price);
-    break;
-  case MoexOrderType::HEDGE_ORDER:
-    if (side == OrderSide::BUY)
-      eka_write(g_ekaDev, base_addr + 0x200, price);
-    else
-      eka_write(g_ekaDev, base_addr + 0x300, price);
-    break;
-  default:
-    on_error("Unknown type %d", (int)type);
-    break;
-  }
 
+  if (side == OrderSide::BUY)
+    eka_write(g_ekaDev, base_addr + 0x000, price);
+  else
+    eka_write(g_ekaDev, base_addr + 0x100, price);
+
+  
+  return OPRESULT__OK;
+}
+
+/* ==================================================== */
+
+OpResult setReplaceOrderParams(PairIdx idx,
+			       OrderSide side,
+			       MoexPrice price,
+			       MoexClOrdId clordid) {
+
+  //[3 +: 5] - pair id
+  //[8 +: 4] - conf id
+  // conf:
+  // 0 -my buy
+  // 1 -my sell
+  // 2 -hedge buy
+  // 3 -hedge sell
+  // 7 -buy_clordid
+  // 8 -sell_clordid
+  uint64_t base_addr = 0x76000;
+  base_addr |= (idx << 3); // Correct Pair
+
+  if (side == OrderSide::BUY) {
+    eka_write(g_ekaDev, base_addr + 0x200, price);
+    eka_write(g_ekaDev, base_addr + 0x700, clordid);
+  }
+  else {
+    eka_write(g_ekaDev, base_addr + 0x300, price);
+    eka_write(g_ekaDev, base_addr + 0x800, clordid);
+  }
+  
   return OPRESULT__OK;
 }
 
