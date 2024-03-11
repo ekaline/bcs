@@ -14,6 +14,15 @@ void MoexSecurityId::getName(void *dst) const {
   memcpy(dst, data_, sizeof(data_));
 }
 
+std::string MoexSecurityId::getName() const {
+  return std::string(data_);
+}
+std::string MoexSecurityId::getSwapName() const {
+  std::string reversed = std::string(data_);
+  std::reverse(reversed.begin(), reversed.end());
+  return reversed;
+}
+
 void MoexSecurityId::getSwapName(void *dst) const {
   char *dst_char = (char *)dst;
   for (int i = 0; i < sizeof(data_); i++) {

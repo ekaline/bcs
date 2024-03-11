@@ -89,31 +89,34 @@ EkaOpResult setActionTcpSock(EkaDev *ekaDev,
     on_error("!dev || !epm || !efc");
   auto epm = dev->epm;
   auto efc = dev->efc;
-  
+
   if (!epm->a_[globalIdx])
     on_error("Action[%d] does not exist", globalIdx);
 
   if (!efc->isReportOnly()) {
     EkaTcpSess *const sess = dev->findTcpSess(excSock);
-    
+
     if (!sess)
       on_error("excSock %d does not exist", excSock);
-    
-    epm->a_[globalIdx]->setTcpSess(sess);
-  
-    EKA_LOG("Action[%d]: set TCP socket %d  "
-	    "%s %s:%u -->  %s  %s:%u ",
-	    globalIdx, excSock, EKA_MAC2STR(sess->macSa),
-	    EKA_IP2STR(sess->srcIp), sess->srcPort,
-	    EKA_MAC2STR(sess->macDa), EKA_IP2STR(sess->dstIp),
-	    sess->dstPort);
-    epm->a_[globalIdx]->copyHeap2Fpga();
-    
-  } else {
-    EKA_LOG("Action[%d]: set to dummy TCP socket",
-	    globalIdx);
-  }
 
+    epm->a_[globalIdx]->setTcpSess(sess);
+
+    EKA_LOG("Action[%d]: set TCP socket %d  "
+            "%s %s:%u -->  %s  %s:%u ",
+            globalIdx, excSock, EKA_MAC2STR(sess->macSa),
+            EKA_IP2STR(sess->srcIp), sess->srcPort,
+            EKA_MAC2STR(sess->macDa),
+            EKA_IP2STR(sess->dstIp), sess->dstPort);
+    epm->a_[globalIdx]->copyHeap2Fpga();
+
+  } else {
+    static const EkaLane EkaDummySockLane = 1;
+
+    epm->a_[globalIdx]->setCoreId(EkaDummySockLane);
+    EKA_LOG("Action[%d]: set to dummy TCP socket, "
+            "lane = %d",
+            globalIdx, EkaDummySockLane);
+  }
 
   return EKA_OPRESULT__OK;
 }

@@ -468,16 +468,20 @@ OpResult initMoexStrategy(const UdpMcParams *mcParams);
  *
  */
 
+typedef char MoexSecurityIdName[12];
+
 class MoexSecurityId {
 public:
   MoexSecurityId();
   MoexSecurityId(const char *name);
   MoexSecurityId &operator=(const MoexSecurityId &other);
+  std::string getName() const;
+  std::string getSwapName() const;
   void getName(void *dst) const;
   void getSwapName(void *dst) const;
 
 private:
-  char data_[12];
+  MoexSecurityIdName data_;
 };
 
 /**
@@ -674,11 +678,10 @@ struct EkaBcExceptionVector {
 };
 
 struct EkaBcExceptionsReport {
-  EkaBcArmReport nwReport__unused[16]; // 32
-  EkaBcArmReport statusReport[16];     // 32
-  EkaBcExceptionVector vector;         // 20
-  uint8_t pad[256 - 32 - 32 - 20];     //
-} __attribute__((packed));             // 256
+  EkaBcArmReport nwReport__unused[16];   // 32
+  EkaBcArmReport statusReport[16];       // 32
+  EkaBcExceptionVector vector;           // 20
+} __attribute__((packed, aligned(256))); // 256
 
 struct MoexHwFireReport {
   uint64_t ReplaceOrigClOrdID;
@@ -690,14 +693,13 @@ struct MoexHwFireReport {
   uint64_t MDBidPrice;
   uint64_t MyOrderSellPrice;
   uint64_t MyOrderBuyPrice;
-  uint64_t MDSecID; // will be updated to 12B later
+  MoexSecurityIdName MDSecID;
   uint8_t PairID;
   uint8_t StratType;
-  uint8_t pad[256 - 9 * 9 - 1 * 2];
-} __attribute__((packed));
+} __attribute__((packed, aligned(256)));
 
-struct FireReport {
-  MoexHwFireReport moexFireReport; //
+struct MoexFireReport {
+  MoexHwFireReport hwReport; //
   uint64_t __unused1;
   uint16_t currentActionIdx; // in the chain
   uint16_t firstActionIdx;   // in the chain

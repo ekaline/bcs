@@ -30,7 +30,8 @@ void printFireReport(const void *p) {
   printf("reportHdr->idx = %d\n", reportHdr->idx);
 
   b += sizeof(*reportHdr);
-  auto hwReport{reinterpret_cast<const FireReport *>(b)};
+  auto hwReport{
+      reinterpret_cast<const MoexFireReport *>(b)};
   printf("\n---- Action Params ----\n");
   printf("currentActionIdx = %ju\n",
          (uint64_t)hwReport->currentActionIdx);
@@ -39,34 +40,31 @@ void printFireReport(const void *p) {
 
   printf("\n---- Fire Params ----\n");
   printf("StratType = %ju\n",
-         (uint64_t)hwReport->moexFireReport.StratType);
+         (uint64_t)hwReport->hwReport.StratType);
   printf("PairID = %ju\n",
-         (uint64_t)hwReport->moexFireReport.PairID);
-  printf("MDSecID = %ju\n",
-         (uint64_t)hwReport->moexFireReport.MDSecID);
-  printf(
-      "MyOrderBuyPrice = %ju\n",
-      (uint64_t)hwReport->moexFireReport.MyOrderBuyPrice);
-  printf(
-      "MyOrderSellPrice = %ju\n",
-      (uint64_t)hwReport->moexFireReport.MyOrderSellPrice);
+         (uint64_t)hwReport->hwReport.PairID);
+  printf("MDSecID = \'%.12s\'\n",
+         MoexSecurityId(hwReport->hwReport.MDSecID)
+             .getSwapName()
+             .c_str());
+  printf("MyOrderBuyPrice = %ju\n",
+         (uint64_t)hwReport->hwReport.MyOrderBuyPrice);
+  printf("MyOrderSellPrice = %ju\n",
+         (uint64_t)hwReport->hwReport.MyOrderSellPrice);
   printf("MDBidPrice = %ju\n",
-         (uint64_t)hwReport->moexFireReport.MDBidPrice);
+         (uint64_t)hwReport->hwReport.MDBidPrice);
   printf("MDAskPrice = %ju\n",
-         (uint64_t)hwReport->moexFireReport.MDAskPrice);
+         (uint64_t)hwReport->hwReport.MDAskPrice);
   printf("GoodPrice = %ju\n",
-         (uint64_t)hwReport->moexFireReport.GoodPrice);
+         (uint64_t)hwReport->hwReport.GoodPrice);
   printf("Delta = %ju\n",
-         (uint64_t)hwReport->moexFireReport.Delta);
-  printf(
-      "OrderUpdateTime = %ju\n",
-      (uint64_t)hwReport->moexFireReport.OrderUpdateTime);
-  printf(
-      "RTCounterInternal = %ju\n",
-      (uint64_t)hwReport->moexFireReport.RTCounterInternal);
+         (uint64_t)hwReport->hwReport.Delta);
+  printf("OrderUpdateTime = %ju\n",
+         (uint64_t)hwReport->hwReport.OrderUpdateTime);
+  printf("RTCounterInternal = %ju\n",
+         (uint64_t)hwReport->hwReport.RTCounterInternal);
   printf("ReplaceOrigClOrdID = %ju\n",
-         (uint64_t)
-             hwReport->moexFireReport.ReplaceOrigClOrdID);
+         (uint64_t)hwReport->hwReport.ReplaceOrigClOrdID);
 }
 
 void printPayloadReport(const void *p) {
@@ -100,7 +98,7 @@ void getExampleFireReport(const void *p, size_t len,
     printFireReport(b);
     // skip report hdr (of fire) and fire report
     b += sizeof(ReportHdr);
-    b += sizeof(FireReport);
+    b += sizeof(MoexFireReport);
     // print payload
     printPayloadReport(b);
     break;
@@ -202,6 +200,8 @@ static int dummyProcessPkt(const void *md, size_t len,
 }
 
 EkaLogCallback g_ekaLogCB = ekaDefaultLog;
+
+/* ==================================================== */
 
 int main(int argc, char *argv[]) {
   signal(SIGINT, INThandler);

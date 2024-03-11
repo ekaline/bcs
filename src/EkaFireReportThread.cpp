@@ -661,18 +661,18 @@ std::pair<int, size_t> processExceptionReport(
 
 static inline size_t
 pushMoexFireReport(int reportIdx, uint8_t *dst,
-                   const FireReport *src) {
+                   const MoexFireReport *src) {
 
   auto b = dst;
   auto reportHdr = reinterpret_cast<ReportHdr *>(b);
   reportHdr->type = ReportType::MoexFireReport;
   reportHdr->idx = reportIdx;
-  reportHdr->size = sizeof(FireReport);
+  reportHdr->size = sizeof(MoexFireReport);
   b += sizeof(*reportHdr);
 
-  memcpy(b, src, sizeof(FireReport));
+  memcpy(b, src, sizeof(MoexFireReport));
 
-  b += sizeof(FireReport);
+  b += sizeof(MoexFireReport);
   return b - dst;
 }
 
@@ -686,7 +686,7 @@ processBCSFireReport(EkaDev *dev, const uint8_t *srcReport,
   uint8_t *b = reportBuf; // dst
   uint reportIdx = 0;
   auto hwReport =
-      reinterpret_cast<const FireReport *>(srcReport);
+      reinterpret_cast<const MoexFireReport *>(srcReport);
 
   //--------------------------------------------------------------------------
   auto containerHdr =
