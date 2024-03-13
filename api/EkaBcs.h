@@ -538,6 +538,7 @@ struct ProdPairDynamicParams {
   MoexPrice markupSell;
   MoexPrice fixSpread;
   MoexPrice tolerance;
+  MoexPrice slippage;
   MoexSize quoteSize;
   MoexTimeNs timeTolerance;
 };
@@ -695,7 +696,9 @@ struct MoexHwFireReport {
   uint64_t MyOrderBuyPrice;
   MoexSecurityIdName MDSecID;
   uint8_t PairID;
-  uint8_t StratType;
+  uint8_t StratType; //1-hedge,2-replace
+  uint8_t StratSubType; //1-aggressive,2-passive
+  uint8_t StratSide; //1-buy,2-sell
 } __attribute__((packed, aligned(256)));
 
 struct MoexFireReport {

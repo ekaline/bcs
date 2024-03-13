@@ -28,7 +28,7 @@ private:
   MoexPrice markupSell_ = -1;
   MoexPrice fixSpread_ = -1;
   MoexPrice tolerance_ = -1;
-  MoexPrice negTolerance_ = -1;
+  MoexPrice slippage_ = -1;
 
   // dynamic sizes
   MoexSize quoteSize_ = -1;

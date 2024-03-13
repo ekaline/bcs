@@ -37,7 +37,7 @@ OpResult EkaMoexProdPair::downloadParams() {
 
   struct HwSingplePairStruct {
     HwSignedStruct time_tolerance;
-    HwSignedStruct neg_tolerance;
+    HwSignedStruct slippage;
     HwSignedStruct tolerance;
     HwSignedStruct fix_spread;
     HwSignedStruct markup_sell;
@@ -67,11 +67,31 @@ OpResult EkaMoexProdPair::downloadParams() {
   hw.quote_size.value = quoteSize_;
   hw.markup_buy.value = markupBuy_;
   hw.markup_sell.value = markupSell_;
-  hw.fix_spread.value = fixSpread_;
   hw.tolerance.value = tolerance_;
-  hw.neg_tolerance.value = negTolerance_;
+  hw.slippage.value = slippage_;
   hw.time_tolerance.value = timeTolerance_;
 
+  if (fixSpread_ > 0) {
+    hw.fix_spread.value = fixSpread_;
+    hw.fix_spread.sign  = 0x0; //plus
+  } else {
+    hw.fix_spread.value = -1*fixSpread_;
+    hw.fix_spread.sign  = 0x1; //minus
+  }
+
+  EKA_LOG("Pair[%d]: "
+          "markupBuy=%jd, "
+          "markupSell=%jd, "
+          "fixSpread=%jd (%d,%jd), "
+          "tolerance=%jd, "
+          "slippage=%jd, "
+          "quoteSize=%jd, "
+          "timeTolerance=%jd, ",
+          idx_, markupBuy_, markupSell_,
+	  fixSpread_, hw.fix_spread.sign, hw.fix_spread.value, 
+          tolerance_, slippage_, quoteSize_,
+          timeTolerance_);
+  
   const uint32_t BaseDstAddr = 0x86000;
 
   // TBD multiple pairs
@@ -90,23 +110,12 @@ OpResult EkaMoexProdPair::setDynamicParams(
   markupSell_ = params->markupSell;
   fixSpread_ = params->fixSpread;
   tolerance_ = params->tolerance;
-  negTolerance_ = -1 * params->tolerance;
+  slippage_ = params->slippage;
   quoteSize_ = params->quoteSize;
   timeTolerance_ = params->timeTolerance;
 
   downloadParams();
 
-  EKA_LOG("Pair[%d]: "
-          "markupBuy=%jd, "
-          "markupSell=%jd, "
-          "fixSpread=%jd, "
-          "tolerance=%jd, "
-          "negTolerance=%jd, "
-          "quoteSize=%jd, "
-          "timeTolerance=%jd, ",
-          idx_, markupBuy_, markupSell_, fixSpread_,
-          tolerance_, negTolerance_, quoteSize_,
-          timeTolerance_);
   return OPRESULT__OK;
 }
 /* --------------------------------------------------- */

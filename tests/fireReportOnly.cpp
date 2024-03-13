@@ -41,6 +41,10 @@ void printFireReport(const void *p) {
   printf("\n---- Fire Params ----\n");
   printf("StratType = %ju\n",
          (uint64_t)hwReport->hwReport.StratType);
+  printf("StratSubType = %ju\n",
+         (uint64_t)hwReport->hwReport.StratSubType);
+  printf("StratSide = %ju\n",
+         (uint64_t)hwReport->hwReport.StratSide);
   printf("PairID = %ju\n",
          (uint64_t)hwReport->hwReport.PairID);
   printf("MDSecID = \'%.12s\'\n",
