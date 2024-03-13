@@ -92,6 +92,12 @@ void EkaMdRecvHandler::run() {
 
     auto payloadSize = udpChannel_->getPayloadLen();
 
+    // auto nanos = udpChannel_->getPktTsNanos();
+
+    // EKA_LOG("Time = %s, FPGA = %s",
+    //         ts_ns2str(nsSinceMidnight()).c_str(),
+    //         ts_ns2str(nanos).c_str());
+
     cb_(pkt, payloadSize, ctx_);
     udpChannel_->next();
   }

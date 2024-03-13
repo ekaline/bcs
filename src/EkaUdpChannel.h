@@ -9,29 +9,36 @@
 
 //----------------------------------------------
 class EkaUdpChannel : public EkaDmaChannel<1024> {
- public:
-  EkaUdpChannel(EkaDev* dev, SN_DeviceId devId,
-		uint8_t coreId, int requestedChId) :
-    EkaDmaChannel(dev,devId) {
+public:
+  EkaUdpChannel(EkaDev *dev, SN_DeviceId devId,
+                uint8_t coreId, int requestedChId)
+      : EkaDmaChannel(dev, devId) {
     core = coreId;
 
     if (!SN_IsUdpLane(dev_id, core))
-      on_error("Lane %u is not configured as an UDP lane!",core);
-    
+      on_error("Lane %u is not configured as an UDP lane!",
+               core);
+
     ChannelId = SN_AllocateUdpChannel(dev_id, core,
-				      requestedChId, NULL);
+                                      requestedChId, NULL);
     if (!ChannelId)
       on_error("Cannot open UDP channel");
-    
+
     chId = SC_GetChannelNumber(ChannelId);
     if (requestedChId != -1 && requestedChId != chId) {
-      on_error("requestedChId %d != chId %d",
-	       requestedChId, chId);
+      on_error("requestedChId %d != chId %d", requestedChId,
+               chId);
     }
 
-    EKA_LOG("UdpChannel %d: SUCCESS for lane %u",chId,core);
+    EKA_LOG("UdpChannel %d: SUCCESS for lane %u", chId,
+            core);
 
     initPointers();
+
+    // SC_SetTimeStampingMode(dev_id,
+    // SC_TIMECONTROL_SOFTWARE);
+    // SC_SetTimeStampingMode(dev_id,
+    // SC_TIMECONTROL_HARDWARE);
   }
 
   //----------------------------------------------
@@ -42,47 +49,61 @@ class EkaUdpChannel : public EkaDmaChannel<1024> {
       pktCtr++;
     }
     return pktCtr;
-  } 
+  }
   //----------------------------------------------
-  inline const uint8_t* get() {
+  inline const uint8_t *get() {
     return SN_GetUdpPayload(pIncomingUdpPacket);
   }
   //----------------------------------------------
+
+  inline uint64_t getPktTsNanos() {
+    uint32_t seconds = 0;
+    uint32_t nanoSeconds = 0;
+    SC_GetPacketTimestamp(pIncomingUdpPacket, &seconds,
+                          &nanoSeconds);
+    return seconds * 1'000'000'000ULL + nanoSeconds;
+  }
+
+  //----------------------------------------------
   inline int16_t getPayloadLen() {
-    return SN_GetPacketPayloadLength(ChannelId,pIncomingUdpPacket);
+    return SN_GetPacketPayloadLength(ChannelId,
+                                     pIncomingUdpPacket);
   }
   //----------------------------------------------
-  inline void igmp_mc_join (uint32_t mcast_ip,
-			    uint16_t mcast_port,
-			    int16_t vlanTag) {
-  // MC Port here is in BE (Human) format
+  inline void igmp_mc_join(uint32_t mcast_ip,
+                           uint16_t mcast_port,
+                           int16_t vlanTag) {
+    // MC Port here is in BE (Human) format
 
-  SN_IgmpOptions igmpOptions = {};
-  igmpOptions.StructSize = sizeof(igmpOptions);
-  igmpOptions.EnableMulticastBypass = true;
-  igmpOptions.VLanTag = vlanTag;
+    SN_IgmpOptions igmpOptions = {};
+    igmpOptions.StructSize = sizeof(igmpOptions);
+    igmpOptions.EnableMulticastBypass = true;
+    igmpOptions.VLanTag = vlanTag;
 
-  char ip[20] = {};
-  sprintf (ip, "%s",EKA_IP2STR(mcast_ip));
+    char ip[20] = {};
+    sprintf(ip, "%s", EKA_IP2STR(mcast_ip));
 
-  SN_Error errorCode = SN_IgmpJoin(ChannelId,core,
-				   (const char*)ip,mcast_port,
-				   NULL /* vlanTag ? &igmpOptions : NULL */);
-  if (errorCode != SN_ERR_SUCCESS) 
-    on_error("Failed to join on core %u MC %s:%u, vlanTag=%d, error code %d",
-	     core,ip,mcast_port,vlanTag,(int)errorCode);
-  EKA_LOG("IGMP joined %s:%u for HW UDP Channel %d from coreId = %u",
-	  ip,mcast_port,chId,core);
+    SN_Error errorCode = SN_IgmpJoin(
+        ChannelId, core, (const char *)ip, mcast_port,
+        NULL /* vlanTag ? &igmpOptions : NULL */);
+    if (errorCode != SN_ERR_SUCCESS)
+      on_error("Failed to join on core %u MC %s:%u, "
+               "vlanTag=%d, error code %d",
+               core, ip, mcast_port, vlanTag,
+               (int)errorCode);
+    EKA_LOG("IGMP joined %s:%u for HW UDP Channel %d from "
+            "coreId = %u",
+            ip, mcast_port, chId, core);
 
-  return;
-}
+    return;
+  }
   //----------------------------------------------
-  ~EkaUdpChannel() {};
-  
+  ~EkaUdpChannel(){};
+
 public:
-  int                     chId               = -1;
-  
+  int chId = -1;
+
 private:
-  uint8_t                 core               = -1;
+  uint8_t core = -1;
 };
 #endif
