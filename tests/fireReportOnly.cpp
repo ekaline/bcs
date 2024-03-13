@@ -62,8 +62,10 @@ void printFireReport(const void *p) {
          (uint64_t)hwReport->hwReport.MDAskPrice);
   printf("GoodPrice = %ju\n",
          (uint64_t)hwReport->hwReport.GoodPrice);
-  printf("Delta = %ju\n",
-         (uint64_t)hwReport->hwReport.Delta);
+  printf("Delta = %ju (%jd)\n",
+         (uint64_t)hwReport->hwReport.Delta,
+	 (uint64_t)hwReport->hwReport.Delta
+	 );
   printf("OrderUpdateTime = %ju\n",
          (uint64_t)hwReport->hwReport.OrderUpdateTime);
   printf("RTCounterInternal = %ju\n",
@@ -309,9 +311,10 @@ int main(int argc, char *argv[]) {
   ProdPairDynamicParams prodPairDynamicParams;
   prodPairDynamicParams.markupBuy = 0x2;
   prodPairDynamicParams.markupSell = 0x3;
-  prodPairDynamicParams.fixSpread = 0x4;
+  prodPairDynamicParams.fixSpread = -4;
   prodPairDynamicParams.tolerance = 0x5;
   prodPairDynamicParams.quoteSize = 0x6;
+  prodPairDynamicParams.slippage = 0x10;
   prodPairDynamicParams.timeTolerance = 0x7;
 
   if (setProdPairDynamicParams(
