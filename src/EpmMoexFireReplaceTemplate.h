@@ -40,14 +40,17 @@ public:
         /* --------------------------- */	
         {"SendingTime", 8, HwField::IMMEDIATE, false, false},
         {"ClOrdID", 8, HwField::SECURITY_ID, true, true},
-        {"OrdID", 8, HwField::SECURITY_ID, true, true},
+        {"OrdID", 8, HwField::IMMEDIATE, false, false},
+        {"OrigClOrdID", 8, HwField::ASK_PRICE, true, true},	
         {"Price", 8, HwField::PRICE, true, true},
         {"OrderQty", 8, HwField::SIZE, true, true},
         {"Side", 1, HwField::SIDE, true, true},
         {"Account", 12, HwField::IMMEDIATE, false, false},
+        {"SecondaryClOrdID", 12, HwField::IMMEDIATE, false, false},
+        {"ClientCode", 12, HwField::IMMEDIATE, false, false},	
         {"Board", 4, HwField::IMMEDIATE, false, false},
         {"Symbol", 12, HwField::IMMEDIATE, false, false},
-	
+	{"Brokerref", 20, HwField::IMMEDIATE, false, false},
     };
 
     tSize =

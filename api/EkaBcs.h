@@ -684,6 +684,22 @@ struct EkaBcExceptionsReport {
   EkaBcExceptionVector vector;           // 20
 } __attribute__((packed, aligned(256))); // 256
 
+#define EKA_FIRE_TYPE2STRING(x)                     \
+  x == 1    ? "Hedge"                               \
+  : x == 2  ? "Replace"                             \
+            : "Unknown"
+
+
+#define EKA_FIRE_SUBTYPE2STRING(x)                     \
+  x == 1    ? "Aggressive"                               \
+  : x == 2  ? "Passive"                             \
+            : "Unknown"
+  
+#define EKA_FIRE_SIDE2STRING(x)                     \
+  x == 1    ? "Buy"                               \
+  : x == 2  ? "Sell"                             \
+            : "Unknown"
+  
 struct MoexHwFireReport {
   uint64_t ReplaceOrigClOrdID;
   uint64_t RTCounterInternal;

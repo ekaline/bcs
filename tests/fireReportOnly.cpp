@@ -39,12 +39,12 @@ void printFireReport(const void *p) {
          (uint64_t)hwReport->firstActionIdx);
 
   printf("\n---- Fire Params ----\n");
-  printf("StratType = %ju\n",
-         (uint64_t)hwReport->hwReport.StratType);
-  printf("StratSubType = %ju\n",
-         (uint64_t)hwReport->hwReport.StratSubType);
-  printf("StratSide = %ju\n",
-         (uint64_t)hwReport->hwReport.StratSide);
+  printf("StratType = %s\n",
+         EKA_FIRE_TYPE2STRING(hwReport->hwReport.StratType));
+  printf("StratSubType = %s\n",
+         EKA_FIRE_SUBTYPE2STRING(hwReport->hwReport.StratSubType));
+  printf("StratSide = %s\n",
+         EKA_FIRE_SIDE2STRING(hwReport->hwReport.StratSide));
   printf("PairID = %ju\n",
          (uint64_t)hwReport->hwReport.PairID);
   printf("MDSecID = \'%.12s\'\n",

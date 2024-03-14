@@ -38,18 +38,26 @@ public:
         {"SchemaID", 2, HwField::IMMEDIATE, false, false},
         {"Version", 2, HwField::IMMEDIATE, false, false},
         /* --------------------------- */	
-        {"SendingTime", 8, HwField::IMMEDIATE, false, false},
+        {"SendingTime", 8, HwField::TIME, false, true},
         {"ClOrdID", 8, HwField::SECURITY_ID, true, true},
+        {"EffectiveTime", 8, HwField::IMMEDIATE, false, false},	
         {"Price", 8, HwField::PRICE, true, true},
         {"OrderQty", 8, HwField::SIZE, true, true},
+        {"MaxFloor", 8, HwField::IMMEDIATE, false, false},
+        {"CashOrderQty", 8, HwField::IMMEDIATE, false, false},
         {"Side", 1, HwField::SIDE, true, true},
         {"OrdType", 1, HwField::IMMEDIATE, false, false},
         {"MaxPriceLevels", 1, HwField::IMMEDIATE, false, false},
         {"TimeInForce", 1, HwField::IMMEDIATE, false, false},
+        {"OrderRestriction", 1, HwField::IMMEDIATE, false, false},
+        {"TradeThruTime", 1, HwField::IMMEDIATE, false, false},
+        {"LiquidityType", 1, HwField::IMMEDIATE, false, false},
         {"Account", 12, HwField::IMMEDIATE, false, false},
+        {"SecondaryClOrdID", 12, HwField::IMMEDIATE, false, false},
+        {"ClientCode", 12, HwField::IMMEDIATE, false, false},		
         {"Board", 4, HwField::IMMEDIATE, false, false},
         {"Symbol", 12, HwField::IMMEDIATE, false, false},
-	
+	{"Brokerref", 20, HwField::IMMEDIATE, false, false},
     };
 
     tSize =
