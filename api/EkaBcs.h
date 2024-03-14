@@ -684,22 +684,51 @@ struct EkaBcExceptionsReport {
   EkaBcExceptionVector vector;           // 20
 } __attribute__((packed, aligned(256))); // 256
 
-#define EKA_FIRE_TYPE2STRING(x)                     \
-  x == 1    ? "Hedge"                               \
-  : x == 2  ? "Replace"                             \
-            : "Unknown"
+#define EKA_FIRE_TYPE2STRING(x)                            \
+  x == 1 ? "Hedge" : x == 2 ? "Replace" : "Unknown"
 
+#define EKA_FIRE_SUBTYPE2STRING(x)                         \
+  x == 1 ? "Aggressive" : x == 2 ? "Passive" : "Unknown"
 
-#define EKA_FIRE_SUBTYPE2STRING(x)                     \
-  x == 1    ? "Aggressive"                               \
-  : x == 2  ? "Passive"                             \
-            : "Unknown"
-  
-#define EKA_FIRE_SIDE2STRING(x)                     \
-  x == 1    ? "Buy"                               \
-  : x == 2  ? "Sell"                             \
-            : "Unknown"
-  
+#define EKA_FIRE_SIDE2STRING(x)                            \
+  x == 1 ? "Buy" : x == 2 ? "Sell" : "Unknown"
+
+enum class StratType : uint8_t { Hedge = 1, Replace = 2 };
+inline const char *decodeStratType(StratType t) {
+  switch (t) {
+  case StratType::Hedge:
+    return "Hedge";
+  case StratType::Replace:
+    return "Replace";
+  default:
+    return "Unexpected";
+  }
+}
+enum class StratSubType : uint8_t {
+  Aggressive = 1,
+  Passive = 2
+};
+inline const char *decodeStratSubType(StratSubType t) {
+  switch (t) {
+  case StratSubType::Aggressive:
+    return "Aggressive";
+  case StratSubType::Passive:
+    return "Passive";
+  default:
+    return "Unexpected";
+  }
+}
+enum class StratSide : uint8_t { Buy = 1, Sell = 2 };
+inline const char *decodeStratSide(StratSide s) {
+  switch (s) {
+  case StratSide::Buy:
+    return "Buy";
+  case StratSide::Sell:
+    return "Sell";
+  default:
+    return "Unexpected";
+  }
+}
 struct MoexHwFireReport {
   uint64_t ReplaceOrigClOrdID;
   uint64_t RTCounterInternal;
@@ -712,9 +741,9 @@ struct MoexHwFireReport {
   uint64_t MyOrderBuyPrice;
   MoexSecurityIdName MDSecID;
   uint8_t PairID;
-  uint8_t StratType; //1-hedge,2-replace
-  uint8_t StratSubType; //1-aggressive,2-passive
-  uint8_t StratSide; //1-buy,2-sell
+  StratType stratType;       // 1-hedge,2-replace
+  StratSubType stratSubType; // 1-aggressive,2-passive
+  StratSide stratSide;       // 1-buy,2-sell
 } __attribute__((packed, aligned(256)));
 
 struct MoexFireReport {

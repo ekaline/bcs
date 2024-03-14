@@ -40,11 +40,12 @@ void printFireReport(const void *p) {
 
   printf("\n---- Fire Params ----\n");
   printf("StratType = %s\n",
-         EKA_FIRE_TYPE2STRING(hwReport->hwReport.StratType));
-  printf("StratSubType = %s\n",
-         EKA_FIRE_SUBTYPE2STRING(hwReport->hwReport.StratSubType));
+         decodeStratType(hwReport->hwReport.stratType));
+  printf(
+      "StratSubType = %s\n",
+      decodeStratSubType(hwReport->hwReport.stratSubType));
   printf("StratSide = %s\n",
-         EKA_FIRE_SIDE2STRING(hwReport->hwReport.StratSide));
+         decodeStratSide(hwReport->hwReport.stratSide));
   printf("PairID = %ju\n",
          (uint64_t)hwReport->hwReport.PairID);
   printf("MDSecID = \'%.12s\'\n",
@@ -64,8 +65,7 @@ void printFireReport(const void *p) {
          (uint64_t)hwReport->hwReport.GoodPrice);
   printf("Delta = %ju (%jd)\n",
          (uint64_t)hwReport->hwReport.Delta,
-	 (uint64_t)hwReport->hwReport.Delta
-	 );
+         (uint64_t)hwReport->hwReport.Delta);
   printf("OrderUpdateTime = %ju\n",
          (uint64_t)hwReport->hwReport.OrderUpdateTime);
   printf("RTCounterInternal = %ju\n",
