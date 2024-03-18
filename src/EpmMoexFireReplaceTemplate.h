@@ -51,6 +51,7 @@ public:
         {"Board", 4, HwField::IMMEDIATE, false, false},
         {"Symbol", 12, HwField::IMMEDIATE, false, false},
 	{"Brokerref", 20, HwField::IMMEDIATE, false, false},
+	{"ComplianceID", 1, HwField::IMMEDIATE, false, false},
     };
 
     tSize =
